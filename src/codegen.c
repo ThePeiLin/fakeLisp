@@ -3004,7 +3004,7 @@ static inline FklByteCodelnt* process_import_from_dll_with_prefix(FklNastNode* o
 			,NULL,0,0,0);
 
 	FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*lib->exportNum);
-	bc->code[0]=FKL_OP_IMPORT_FROM_DLL_WITH_SYMBOLS;
+	bc->code[0]=FKL_OP_IMPORT_FROM_DLL;
 	fklSetU64ToByteCode(bc->code+sizeof(char),libId);
 	fklSetU64ToByteCode(bc->code+sizeof(char)+sizeof(uint64_t),lib->exportNum);
 	memcpy(bc->code+sizeof(char)+sizeof(uint64_t)*2,exportsWithPrefix,sizeof(FklSid_t)*lib->exportNum);

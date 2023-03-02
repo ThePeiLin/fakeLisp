@@ -212,14 +212,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 							fklUninitBigInt(&bi);
 						}
 						break;
-					case FKL_OP_IMPORT_WITH_SYMBOLS:
-						{
-							fprintf(fp,"%lu"
-									,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
-							size_t exportsCount=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(uint64_t));
-							r+=sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*exportsCount;
-						}
-						break;
 					default:
 						FKL_ASSERT(0);
 						break;
@@ -361,12 +353,6 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 						+sizeof(uint32_t)
 						+sizeof(uint64_t)
 						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
-					break;
-				case FKL_OP_IMPORT_WITH_SYMBOLS:
-					{
-						size_t exportsCount=fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint64_t));
-						r+=sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*exportsCount;
-					}
 					break;
 				default:
 					FKL_ASSERT(0);

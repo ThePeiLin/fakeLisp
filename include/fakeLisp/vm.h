@@ -164,11 +164,9 @@ typedef struct FklVMproc
 	uint8_t* end;
 	FklSid_t sid;
 	uint32_t protoId;
-	uint32_t unresolveRef;
 	FklVMvalue** closure;
 	uint32_t count;
 	FklVMvalue* codeObj;
-	struct FklVMframe* by;
 }FklVMproc;
 
 typedef void (*FklVMFuncK)(struct FklVM*,FklCCState,void*);
@@ -207,8 +205,6 @@ typedef struct FklVMCompoundFrameData
 	FklSid_t sid:61;
 	FklVMCompoundFrameVarRef lr;
 	FklVMvalue* proc;
-	FklVMvalue** children;
-	uint32_t chc;
 	uint8_t* spc;
 	uint8_t* pc;
 	uint8_t* end;

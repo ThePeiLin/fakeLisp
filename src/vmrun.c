@@ -303,9 +303,7 @@ static void B_push_list(BYTE_CODE_ARGS);
 static void B_push_vector_0(BYTE_CODE_ARGS);
 static void B_list_push(BYTE_CODE_ARGS);
 static void B_import(BYTE_CODE_ARGS);
-static void B_import_with_symbols(BYTE_CODE_ARGS);
 static void B_import_from_dll(BYTE_CODE_ARGS);
-static void B_import_from_dll_with_symbols(BYTE_CODE_ARGS);
 static void B_push_0(BYTE_CODE_ARGS);
 static void B_push_1(BYTE_CODE_ARGS);
 static void B_push_i8(BYTE_CODE_ARGS);
@@ -358,9 +356,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_push_vector_0,
 	B_list_push,
 	B_import,
-	B_import_with_symbols,
 	B_import_from_dll,
-	B_import_from_dll_with_symbols,
 	B_push_0,
 	B_push_1,
 	B_push_i8,
@@ -452,21 +448,8 @@ inline void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
 		free(f);
 }
 
-static inline void close_proc_closure(FklVMframe* f)
-{
-	uint32_t chc=f->u.c.chc;
-	FklVMvalue** children=f->u.c.children;
-	for(uint32_t i=0;i<chc;i++)
-	{
-		FklVMvalue* c=children[i];
-		c->u.proc->by=NULL;
-	}
-	free(children);
-}
-
 inline void fklDoFinalizeCompoundFrame(FklVMframe* frame)
 {
-	close_proc_closure(frame);
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	free(lr->loc);
 	free(frame);
@@ -506,14 +489,6 @@ inline static void compound_frame_loc_ref_to_gray(FklVMframe* frame,FklVMgc* gc)
 		fklGC_toGrey(f->ref[i],gc);
 }
 
-inline static void children_to_gray(FklVMframe* f,FklVMgc* gc)
-{
-	uint32_t chc=f->u.c.chc;
-	FklVMvalue** children=f->u.c.children;
-	for(uint32_t i=0;i<chc;i++)
-		fklGC_toGrey(children[i],gc);
-}
-
 void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 {
 	switch(f->type)
@@ -521,7 +496,6 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 		case FKL_FRAME_COMPOUND:
 			fklGC_toGrey(fklGetCompoundFrameProc(f),gc);
 			compound_frame_loc_ref_to_gray(f,gc);
-			children_to_gray(f,gc);
 			break;
 		case FKL_FRAME_OTHEROBJ:
 			doAtomicFrame(f,gc);
@@ -824,18 +798,27 @@ static inline void inc_compound_frame_loc(FklVMCompoundFrameVarRef* f,uint32_t i
 	}
 }
 
+static inline FklVMvalue* put_box(FklVMCompoundFrameVarRef* lr,uint32_t idx,FklVM* exe)
+{
+	FklVMvalue** loc=lr->loc;
+	if(loc[idx]==FKL_VM_NIL)
+	{
+		loc[idx]=fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
+		exe->stack->tp--;
+	}
+	return loc[idx];
+}
+
 static inline FklVMproc* createVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,FklVMCompoundFrameVarRef* lr
 		,uint32_t prototypeId
-		,FklVMframe* by
 		,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
 	proc->protoId=prototypeId;
-	proc->unresolveRef=0;
 	FklPrototype* pt=&exe->ptpool->pts[prototypeId-1];
 	uint32_t count=pt->rcount;
 	if(count)
@@ -848,21 +831,13 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 			FklSymbolDef* c=&pt->refs[i];
 			if(c->isLocal)
 			{
-				if(c->cidx>=lr->lcount||lr->loc[c->cidx]==FKL_VM_NIL)
-				{
-					proc->unresolveRef++;
-					closure[i]=FKL_VM_NIL;
-				}
-				else
-					closure[i]=lr->loc[c->cidx];
+				inc_compound_frame_loc(lr,c->cidx,exe);
+				closure[i]=put_box(lr,c->cidx,exe);
 			}
 			else
 			{
 				if(c->cidx>=lr->rcount)
-				{
-					proc->unresolveRef++;
 					closure[i]=FKL_VM_NIL;
-				}
 				else
 					closure[i]=ref[c->cidx];
 			}
@@ -870,19 +845,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		proc->closure=closure;
 		proc->count=count;
 	}
-	if(proc->unresolveRef)
-		proc->by=by;
 	return proc;
-}
-
-static void inline add_child_proc(FklVMframe* frame,FklVMvalue* child)
-{
-	FklVMCompoundFrameData* f=&frame->u.c;
-	f->chc++;
-	FklVMvalue** children=(FklVMvalue**)realloc(f->children,sizeof(FklVMvalue*)*f->chc);
-	FKL_ASSERT(children);
-	children[f->chc-1]=child;
-	f->children=children;
 }
 
 inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
@@ -899,11 +862,8 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 			,get_compound_frame_code_obj(frame)
 			,fklGetCompoundFrameLocRef(frame)
 			,prototypeId
-			,frame
 			,exe);
-	FklVMvalue* child=fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
-	if(code->unresolveRef)
-		add_child_proc(frame,child);
+	fklCreateVMvalueToStack(FKL_TYPE_PROC,code,exe);
 	fklAddCompoundFrameCp(frame,sizeOfProc);
 }
 
@@ -1274,35 +1234,6 @@ static void inline B_load_lib(FklVM* exe,FklVMframe* frame)
 		init_import_env(frame,plib,exe);
 }
 
-static void inline B_import_with_symbols(FklVM* exe,FklVMframe* frame)
-{
-	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	//FklVMlib* plib=&exe->libs[libId-1];
-	//if(plib->libEnv==FKL_VM_NIL)
-	//	init_import_env(frame,plib,exe);
-	//else
-	//{
-	//	fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	//	uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(exportNum)));
-	//	FklSid_t* exports=fklCopyMemory(fklGetCompoundFrameCode(frame)
-	//			,sizeof(FklSid_t)*exportNum);
-	//	for(size_t i=0;i<exportNum;i++)
-	//	{
-	//		FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
-	//		if(pv==NULL)
-	//		{
-	//			free(exports);
-	//			char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
-	//			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-	//		}
-	//		FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
-	//		fklSetRef(pValue,*pv,exe->gc);
-	//	}
-	//	free(exports);
-	//	fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
-	//}
-}
-
 static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
 {
 	return fklGetAddress("_fklImportInit",handle);
@@ -1342,54 +1273,6 @@ static void inline B_import_from_dll(FklVM* exe,FklVMframe* frame)
 	//	FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
 	//fklNiEnd(&ap,stack);
-}
-
-static void inline B_import_from_dll_with_symbols(FklVM* exe,FklVMframe* frame)
-{
-	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	//FklVMlib* plib=&exe->libs[libId-1];
-	//if(plib->libEnv==FKL_VM_NIL)
-	//{
-	//	char* realpath=fklStringToCstr(plib->proc->u.str);
-	//	FklVMdll* dll=fklCreateVMdll(realpath);
-	//	FklImportDllInitFunc initFunc=NULL;
-	//	if(dll)
-	//		initFunc=getImportInit(dll->handle);
-	//	else
-	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-	//	if(!initFunc)
-	//	{
-	//		fklDestroyVMdll(dll);
-	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-	//	}
-	//	FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
-	//	fklInitVMdll(dllValue,exe);
-	//	FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
-	//	FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
-	//	fklSetRef(&plib->libEnv,envValue,exe->gc);
-	//	fklSetRef(&plib->proc,dllValue,exe->gc);
-	//	initFunc(exe,dllValue,plib->libEnv);
-	//	free(realpath);
-	//}
-	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	//uint64_t exportNum=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	//FklSid_t* exports=fklCopyMemory(fklGetCompoundFrameCode(frame)
-	//		,sizeof(FklSid_t)*exportNum);
-	//for(size_t i=0;i<exportNum;i++)
-	//{
-	//	FklVMvalue* volatile* pv=fklFindVar(plib->exports[i],plib->libEnv->u.env);
-	//	if(pv==NULL)
-	//	{
-	//		free(exports);
-	//		char* cstr=fklStringToCstr(fklGetSymbolWithId(plib->exports[i],exe->symbolTable)->symbol);
-	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll-with-symbols",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-	//	}
-	//	FklVMvalue* volatile* pValue=fklFindOrAddVar(exports[i],fklGetCompoundFrameLocalenv(frame)->u.env);
-	//	fklSetRef(pValue,*pv,exe->gc);
-	//}
-	//free(exports);
-	//fklAddCompoundFrameCp(frame,exportNum*sizeof(FklSid_t));
 }
 
 static void inline B_push_0(FklVM* exe,FklVMframe* frame)
@@ -1436,37 +1319,6 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
-static inline FklVMframe* get_proc_create_by(FklVMframe* by)
-{
-	return by->u.c.proc->u.proc->by;
-}
-
-static inline FklVMvalue* find_ref(FklPrototype* pts,FklVMproc* p,FklSymbolDef* cref)
-{
-	FklSidScope key={cref->id,cref->scope};
-	for(FklVMframe* by=p->by;by;by=get_proc_create_by(by))
-	{
-		FklVMvalue* v=fklGetCompoundFrameProc(by);
-		if(!v)
-			return FKL_VM_NIL;
-		else
-		{
-			FklVMproc* proc=v->u.proc;
-			FklPrototype* pt=&pts[proc->protoId-1];
-			FklSymbolDef* def=fklGetHashItem(&key,pt->defs);
-			if(def)
-			{
-				cref->isLocal=1;
-				cref->cidx=def->idx;
-				FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(by);
-				return lr->loc[def->idx];
-			}
-			cref=&pt->refs[cref->cidx];
-		}
-	}
-	return FKL_VM_NIL;
-}
-
 inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklPrototypePool* ptpool,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
@@ -1476,18 +1328,8 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 		FklPrototype* pt=&ptpool->pts[proc->protoId-1];
 		FklSymbolDef* def=&pt->refs[idx];
-		FklVMvalue* ref=find_ref(ptpool->pts,proc,def);
-		if(ref!=FKL_VM_NIL)
-		{
-			proc->unresolveRef--;
-			lr->ref[idx]=ref;
-			return &ref->u.box;
-		}
-		else
-		{
-			*psid=def->id;
-			return NULL;
-		}
+		*psid=def->id;
+		return NULL;
 	}
 	return &v->u.box;
 }

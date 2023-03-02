@@ -305,8 +305,6 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	f->mark=0;
 	f->tail=0;
 
-	f->children=NULL;
-	f->chc=0;
 	f->lr.rcount=0;
 	f->lr.ref=0;
 	f->lr.loc=NULL;
@@ -328,8 +326,6 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMfram
 	f->proc=FKL_VM_NIL;
 	f->mark=0;
 	f->tail=0;
-	f->children=NULL;
-	f->chc=0;
 	if(code)
 	{
 		f->pc=code->spc;
@@ -354,8 +350,6 @@ inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* p
 	f->mark=0;
 	f->tail=0;
 
-	f->children=NULL;
-	f->chc=0;
 	f->lr.rcount=0;
 	f->lr.ref=NULL;
 	f->lr.lcount=0;
@@ -396,8 +390,6 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	f->proc=NULL;
 	f->mark=0;
 	f->tail=0;
-	f->children=NULL;
-	f->chc=0;
 	f->lr.rcount=0;
 	f->lr.ref=NULL;
 	f->lr.lcount=0;

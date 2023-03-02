@@ -566,9 +566,7 @@ FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
 	tmp->sid=0;
 	tmp->closure=NULL;
 	tmp->count=0;
-	tmp->by=NULL;
 	tmp->protoId=1;
-	tmp->unresolveRef=0;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
 }
@@ -583,8 +581,6 @@ FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 	tmp->closure=NULL;
 	tmp->count=0;
 	tmp->protoId=0;
-	tmp->by=NULL;
-	tmp->unresolveRef=0;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
 }

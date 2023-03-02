@@ -2050,6 +2050,7 @@ static inline void destroy_tmp_macros(FklCodegenEnv* globalEnv)
 
 BC_PROCESS(_library_bc_process)
 {
+	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* libBc=create_lib_bcl(stack,fid,line);
 

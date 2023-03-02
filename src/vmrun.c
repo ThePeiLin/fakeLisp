@@ -1203,35 +1203,35 @@ static void inline B_list_push(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static inline void process_import(FklVMlib* plib
-		,FklVM* exe
-		,FklVMframe* frame
-		,char** cstr
-		,uint32_t scope)
-{
-	FklVMvalue** loc=plib->loc;
-	uint32_t* exportIndex=plib->idxes;
-	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
-	uint32_t protoId=fklGetCompoundFrameProc(frame)->u.proc->protoId;
-	FklPrototype* pt=&exe->ptpool->pts[protoId-1];
-	FklSidScope key={0,scope};
-	for(size_t i=0;i<plib->exportNum;i++)
-	{
-		FklVMvalue* v=loc[exportIndex[i]];
-		key.id=plib->exports[i];
-		if(v==FKL_VM_NIL)
-		{
-			*cstr=fklStringToCstr(fklGetSymbolWithId(key.id,exe->symbolTable)->symbol);
-			return;
-		}
-		FklSymbolDef* def=fklGetHashItem(&key,pt->defs);
-		FklVMvalue* volatile* pv=&lr->loc[def->idx];
-		if(*pv==FKL_VM_NIL)
-			*pv=fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,exe->gc);
-		else
-			(*pv)->u.box=v;
-	}
-}
+//static inline void process_import(FklVMlib* plib
+//		,FklVM* exe
+//		,FklVMframe* frame
+//		,char** cstr
+//		,uint32_t scope)
+//{
+//	FklVMvalue** loc=plib->loc;
+//	uint32_t* exportIndex=plib->idxes;
+//	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
+//	uint32_t protoId=fklGetCompoundFrameProc(frame)->u.proc->protoId;
+//	FklPrototype* pt=&exe->ptpool->pts[protoId-1];
+//	FklSidScope key={0,scope};
+//	for(size_t i=0;i<plib->exportNum;i++)
+//	{
+//		FklVMvalue* v=loc[exportIndex[i]];
+//		key.id=plib->exports[i];
+//		if(v==FKL_VM_NIL)
+//		{
+//			*cstr=fklStringToCstr(fklGetSymbolWithId(key.id,exe->symbolTable)->symbol);
+//			return;
+//		}
+//		FklSymbolDef* def=fklGetHashItem(&key,pt->defs);
+//		FklVMvalue* volatile* pv=&lr->loc[def->idx];
+//		if(*pv==FKL_VM_NIL)
+//			*pv=fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,exe->gc);
+//		else
+//			(*pv)->u.box=v;
+//	}
+//}
 
 static inline void init_import_env(FklVMframe* frame,FklVMlib* plib,FklVM* exe)
 {

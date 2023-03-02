@@ -255,7 +255,6 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					fprintf(fp,"%lf"
 							,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
 					break;
-				case FKL_OP_IMPORT:
 				case FKL_OP_PUSH_VECTOR:
 				case FKL_OP_PUSH_HASHTABLE_EQ:
 				case FKL_OP_PUSH_HASHTABLE_EQV:
@@ -275,6 +274,13 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 				case FKL_OP_PUSH_SYM:
 				case FKL_OP_POP_REST_ARG:
 					fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
+					break;
+				case FKL_OP_IMPORT:
+					{
+						uint32_t locIdx=fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
+						uint32_t libIdx=fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(locIdx));
+						fprintf(fp,"%u %u",locIdx,libIdx);
+					}
 					break;
 			}
 			r+=sizeof(char)+sizeof(int64_t);

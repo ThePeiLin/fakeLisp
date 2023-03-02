@@ -182,8 +182,9 @@ int fklIsSymbolDefined(FklSid_t sid,uint32_t scope,FklCodegenEnv*);
 
 int fklIsReplacementDefined(FklSid_t sid,FklCodegenEnv*);
 
-FklNastNode* fklGetReplacement(FklSid_t sid,FklCodegenEnv*);
-void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklCodegenEnv*);
+FklNastNode* fklGetReplacement(FklSid_t sid,FklHashTable*);
+
+void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklHashTable*);
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);

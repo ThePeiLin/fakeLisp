@@ -915,9 +915,9 @@ uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
 	}
 }
 
-void fklAddReplacementBySid(FklSid_t id,FklNastNode* node,FklCodegenEnv* env)
+void fklAddReplacementBySid(FklSid_t id,FklNastNode* node,FklHashTable* rep)
 {
-	fklPutNoRpHashItem(createCodegenReplacement(id,node),env->macros->replacements);
+	fklPutNoRpHashItem(createCodegenReplacement(id,node),rep);
 }
 
 int fklIsSymbolDefined(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
@@ -930,9 +930,9 @@ int fklIsReplacementDefined(FklSid_t id,FklCodegenEnv* env)
 	return fklGetHashItem(&id,env->macros->replacements)!=NULL;
 }
 
-FklNastNode* fklGetReplacement(FklSid_t id,FklCodegenEnv* env)
+FklNastNode* fklGetReplacement(FklSid_t id,FklHashTable* rep)
 {
-	FklCodegenReplacement* replace=fklGetHashItem(&id,env->macros->replacements);
+	FklCodegenReplacement* replace=fklGetHashItem(&id,rep);
 	if(replace)
 		return fklMakeNastNodeRef(replace->node);
 	return NULL;
@@ -1566,11 +1566,12 @@ static CODEGEN_FUNC(codegen_cond)
 				return;
 			}
 			uint32_t curScope=enter_new_scope(scope,curEnv);
+			FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 			FklCodegenQuest* curQuest=createCodegenQuest(_cond_exp_bc_process_1
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createDefaultQueueNextExpression(curQueue)
 					,curScope
-					,macroScope
+					,cms
 					,curEnv
 					,curExp->curline
 					,prevQuest
@@ -1601,11 +1602,12 @@ static CODEGEN_FUNC(codegen_cond)
 			return;
 		}
 		uint32_t curScope=enter_new_scope(scope,curEnv);
+		FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 		fklPushPtrStack(createCodegenQuest(_cond_exp_bc_process_2
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createDefaultQueueNextExpression(lastQueue)
 					,curScope
-					,macroScope
+					,cms
 					,curEnv
 					,lastExp->curline
 					,prevQuest
@@ -1994,13 +1996,14 @@ static inline void process_import_reader_macro(FklStringMatchPattern** phead,Fkl
 BC_PROCESS(_library_export_macro_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
-	FklCodegenEnv* exportTargetEnv=stack->base[0];
+	FklCodegenMacroScope* macros=stack->base[0];
+	FklCodegenEnv* exportTargetEnv=stack->base[1];
 	for(FklCodegenMacro* cur=codegen->globalEnv->macros->head;cur;cur=cur->next)
-		add_compiler_macro(exportTargetEnv->macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),NULL);
+		add_compiler_macro(macros,fklMakeNastNodeRef(cur->pattern),fklCopyByteCodelnt(cur->bcl),NULL);
 	for(FklHashTableNodeList* cur=codegen->globalEnv->macros->replacements->list;cur;cur=cur->next)
 	{
 		FklCodegenReplacement* rep=cur->node->item;
-		fklAddReplacementBySid(rep->id,rep->node,exportTargetEnv);
+		fklAddReplacementBySid(rep->id,rep->node,macros->replacements);
 	}
 	process_import_reader_macro(exportTargetEnv->phead,*codegen->globalEnv->phead);
 	process_import_reader_macro(&codegen->globalEnv->macros->patterns,*codegen->globalEnv->phead);
@@ -2043,7 +2046,7 @@ BC_PROCESS(_library_export_macro_with_prefix_pc_process)
 		FklString* origSymbol=fklGetSymbolWithId(rep->id,codegen->publicSymbolTable)->symbol;
 		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
 		FklSid_t id=fklAddSymbol(symbolWithPrefix,codegen->publicSymbolTable)->id;
-		fklAddReplacementBySid(id,rep->node,exportTargetEnv);
+		fklAddReplacementBySid(id,rep->node,exportTargetEnv->macros->replacements);
 		free(symbolWithPrefix);
 	}
 	process_import_reader_macro(exportTargetEnv->phead,*codegen->globalEnv->phead);
@@ -2228,7 +2231,7 @@ static const FklCodegenQuestContextMethodTable ImportMacroStackContextMethodTabl
 static void _export_macro_stack_context_finalizer(void* data)
 {
 	FklPtrStack* s=data;
-	while(s->top>1)
+	while(s->top>2)
 		fklDestroyByteCodelnt(fklPopPtrStack(s));
 	fklDestroyCodegenEnv(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
@@ -2374,7 +2377,8 @@ static inline void process_import_script(FklNastNode* origExp
 		,FklCodegen* codegen
 		,FklCodegenErrorState* errorState
 		,FklPtrStack* codegenQuestStack
-		,uint32_t scope)
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope)
 {
 	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0);
 	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv);
@@ -2473,6 +2477,7 @@ static inline void process_import_script(FklNastNode* origExp
 		fklPushPtrStack(prevQuest,codegenQuestStack);
 
 		FklPtrStack* exportMacroBcStack=fklCreatePtrStack(32,16);
+		fklPushPtrStack(macroScope,exportMacroBcStack);
 		fklPushPtrStack(curEnv,exportMacroBcStack);
 		curEnv->refcount+=1;
 
@@ -2599,7 +2604,8 @@ static CODEGEN_FUNC(codegen_import)
 			,codegen
 			,errorState
 			,codegenQuestStack
-			,scope);
+			,scope
+			,macroScope);
 	}
 	else if(fklIsAccessableRegFile(dllFileName))
 	{
@@ -2787,7 +2793,7 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
             FklString* origSymbol=fklGetSymbolWithId(rep->id,codegen->publicSymbolTable)->symbol;
             FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
             FklSid_t id=fklAddSymbol(symbolWithPrefix,codegen->publicSymbolTable)->id;
-            fklAddReplacementBySid(id,rep->node,curEnv);
+            fklAddReplacementBySid(id,rep->node,curEnv->macros->replacements);
             free(symbolWithPrefix);
         }
 
@@ -3128,8 +3134,8 @@ static CODEGEN_FUNC(codegen_defmacro)
 		if(value->type==FKL_NAST_SYM)
 		{
 			FklNastNode* replacement=NULL;
-			for(FklCodegenEnv* env=curEnv;env->prev&&!replacement;env=env->prev)
-				replacement=fklGetReplacement(value->u.sym,env);
+			for(FklCodegenMacroScope* cs=macroScope;cs&&!replacement;cs=cs->prev)
+				replacement=fklGetReplacement(value->u.sym,cs->replacements);
 			if(replacement)
 				value=replacement;
 			else
@@ -3142,7 +3148,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 				}
 			}
 		}
-		fklAddReplacementBySid(name->u.sym,value,curEnv);
+		fklAddReplacementBySid(name->u.sym,value,macroScope->replacements);
 	}
 	else if(name->type==FKL_NAST_PAIR)
 	{
@@ -3676,8 +3682,8 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 				if(curExp->type==FKL_NAST_SYM)
 				{
 					FklNastNode* replacement=NULL;
-					for(FklCodegenEnv* env=curEnv;env&&!replacement;env=env->prev)
-						replacement=fklGetReplacement(curExp->u.sym,env);
+					for(FklCodegenMacroScope* cs=curCodegenQuest->macroScope;cs&&!replacement;cs=cs->prev)
+						replacement=fklGetReplacement(curExp->u.sym,cs->replacements);
 					if(replacement)
 					{
 						fklDestroyNastNode(curExp);

@@ -4305,7 +4305,9 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
+		prc->protoId=clib->prototypeId;
+		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		fklInitMainProcRefs(proc->u.proc,refs,count);
 		val=proc;
 	}

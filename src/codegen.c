@@ -620,6 +620,8 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp
 {
 	FklPtrStack* urefs=&env->uref;
 	FklPrototype* pts=cp->pts;
+	FklPtrStack urefs1=FKL_STACK_INIT;
+	fklInitPtrStack(&urefs1,16,8);
 	while(!fklIsPtrStackEmpty(urefs))
 	{
 		FklUnReSymbolRef* uref=fklPopPtrStack(urefs);
@@ -630,11 +632,19 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp
 		{
 			ref->cidx=def->idx;
 			ref->isLocal=1;
+			free(uref);
+		}
+		else if(env->prev)
+		{
+			ref->cidx=fklAddCodegenRefBySid(uref->id,env);
+			free(uref);
 		}
 		else
-			ref->cidx=fklAddCodegenRefBySid(uref->id,env);
-		free(uref);
+			fklPushPtrStack(uref,&urefs1);
 	}
+	while(!fklIsPtrStackEmpty(&urefs1))
+		fklPushPtrStack(fklPopPtrStack(&urefs1),urefs);
+	fklUninitPtrStack(&urefs1);
 }
 
 static inline FklSymbolDef* get_def_by_id_and_scope(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
@@ -843,7 +853,10 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			free(cur->scopes);
 			fklDestroyHashTable(cur->defs);
 			fklDestroyHashTable(cur->refs);
-			fklUninitPtrStack(&cur->uref);
+			FklPtrStack* unref=&cur->uref;
+			while(!fklIsPtrStackEmpty(unref))
+				free(fklPopPtrStack(unref));
+			fklUninitPtrStack(unref);
 			fklDestroyCodegenMacroScope(cur->macros);
 			free(cur);
 		}

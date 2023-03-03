@@ -278,7 +278,7 @@ typedef struct FklVM
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
 	FklPrototypePool* ptpool;
-	uint32_t importingLibId;
+	FklVMlib* importingLib;
 }FklVM;
 
 typedef struct FklVMudMethodTable

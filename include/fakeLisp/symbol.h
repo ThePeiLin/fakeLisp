@@ -50,7 +50,6 @@ typedef struct FklPrototype
 	uint32_t lcount;
 	uint32_t rcount;
 	uint32_t p;
-	uint32_t pscope;
 }FklPrototype;
 
 typedef struct

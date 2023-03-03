@@ -394,7 +394,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
-	exe->importingLibId=0;
+	exe->importingLib=NULL;
 	exe->frames=NULL;
 	exe->tid=pthread_self();
 	exe->gc=fklCreateVMgc();
@@ -1203,7 +1203,7 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t locIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(locIdx)));
 	uint32_t libIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(libIdx)));
-	FklVMlib* plib=&exe->libs[exe->importingLibId-1];
+	FklVMlib* plib=exe->importingLib;
 	FklVMvalue* v=plib->loc[libIdx];
 	if(v==FKL_VM_NIL)
 	{
@@ -1227,7 +1227,7 @@ static void inline B_load_lib(FklVM* exe,FklVMframe* frame)
 	FklVMlib* plib=&exe->libs[libId-1];
 	if(plib->imported)
 	{
-		exe->importingLibId=libId;
+		exe->importingLib=plib;
 		fklAddCompoundFrameCp(frame,sizeof(libId));
 	}
 	else
@@ -1266,7 +1266,7 @@ static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 		fklNiResTp(exe->stack);
 		fklNiPopTp(exe->stack);
 	}
-	exe->importingLibId=libId;
+	exe->importingLib=plib;
 	fklAddCompoundFrameCp(frame,sizeof(libId));
 }
 
@@ -1799,7 +1799,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
-	exe->importingLibId=0;
+	exe->importingLib=NULL;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
 	exe->stack=fklCreateVMstack(0);

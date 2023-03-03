@@ -4504,7 +4504,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	FklVMgc* gc=exe->gc;
-	FklVMvalue** refs=lr->ref;
+	FklVMvarRef** refs=lr->ref;
 	uint32_t count=lr->rcount;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
 	{

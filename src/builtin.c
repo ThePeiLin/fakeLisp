@@ -5334,7 +5334,7 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	FklVMCompoundFrameVarRef* f=&frame->u.c.lr;
 	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
 	f->rcount=RefCount;
-	FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*f->rcount);
+	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*f->rcount);
 	FKL_ASSERT(closure);
 	f->ref=closure;
 	PublicBuiltInUserData* pd=init_vm_public_data(exe->gc,exe->symbolTable);
@@ -5346,9 +5346,9 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 				,FKL_VM_NIL)
 			,exe->gc);
 
-	closure[0]=fklCreateVMboxNoGC(exe->gc,pd->sysIn);
-	closure[1]=fklCreateVMboxNoGC(exe->gc,pd->sysOut);
-	closure[2]=fklCreateVMboxNoGC(exe->gc,pd->sysErr);
+	closure[0]=fklCreateClosedVMvarRef(pd->sysIn);
+	closure[1]=fklCreateClosedVMvarRef(pd->sysOut);
+	closure[2]=fklCreateClosedVMvarRef(pd->sysErr);
 
 	FklSymbolTable* table=exe->symbolTable;
 	for(size_t i=3;i<RefCount;i++)
@@ -5356,7 +5356,7 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 		FklVMdlproc* proc=fklCreateVMdlproc(builtInSymbolList[i].f,NULL,publicUserData);
 		proc->sid=fklAddSymbolCstr(builtInSymbolList[i].s,table)->id;
 		FklVMvalue* v=fklCreateVMvalueNoGC(FKL_TYPE_DLPROC,proc,exe->gc);
-		closure[i]=fklCreateVMboxNoGC(exe->gc,v);
+		closure[i]=fklCreateClosedVMvarRef(v);
 	}
 }
 

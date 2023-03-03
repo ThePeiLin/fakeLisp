@@ -111,7 +111,7 @@ int main(int argc,char** argv)
 		tmp->closure=lr->ref;
 		tmp->count=lr->rcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
-		fklInitMainVMframeWithProc(mainframe,tmp,NULL);
+		fklInitMainVMframeWithProc(mainframe,tmp,NULL,anotherVM->ptpool);
 		mainframe->u.c.proc=proc;
 
 		fklUpdatePrototype(codegen.ptpool
@@ -162,7 +162,7 @@ int main(int argc,char** argv)
 		FklVMgc* gc=anotherVM->gc;
 		FklVMframe* mainframe=anotherVM->frames;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
-		FklVMvalue** ref=mainframe->u.c.lr.ref;
+		FklVMvarRef** ref=mainframe->u.c.lr.ref;
 		loadLib(fp
 				,&anotherVM->libNum
 				,&anotherVM->libs
@@ -310,7 +310,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
 				tmp->protoId=1;
-				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames);
+				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames,anotherVM->ptpool);
 				mainframe.u.c.proc=proc;
 				anotherVM->frames=&mainframe;
 				fklTcMutexRelease(anotherVM->gc);

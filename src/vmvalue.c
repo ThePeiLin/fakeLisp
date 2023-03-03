@@ -1719,9 +1719,9 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 	FklVMproc* proc=root->u.proc;
 	fklGC_toGrey(proc->codeObj,gc);
 	uint32_t count=proc->count;
-	FklVMvalue** ref=proc->closure;
+	FklVMvarRef** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
-		fklGC_toGrey(ref[i],gc);
+		fklGC_toGrey(*(ref[i]->ref),gc);
 }
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)

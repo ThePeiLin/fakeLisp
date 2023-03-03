@@ -158,13 +158,21 @@ typedef struct FklVMhashTable
 	FklVMhashTableEqType type;
 }FklVMhashTable;
 
+typedef struct
+{
+	uint32_t refc;
+	uint32_t idx;
+	FklVMvalue** ref;
+	FklVMvalue* v;
+}FklVMvarRef;
+
 typedef struct FklVMproc
 {
 	uint8_t* spc;
 	uint8_t* end;
 	FklSid_t sid;
 	uint32_t protoId;
-	FklVMvalue** closure;
+	FklVMvarRef** closure;
 	uint32_t count;
 	FklVMvalue* codeObj;
 }FklVMproc;
@@ -192,8 +200,9 @@ typedef struct
 
 typedef struct FklVMCompoundFrameVarRef
 {
+	FklVMvarRef** lref;
 	FklVMvalue** loc;
-	FklVMvalue** ref;
+	FklVMvarRef** ref;
 	uint32_t lcount;
 	uint32_t rcount;
 }FklVMCompoundFrameVarRef;
@@ -430,13 +439,17 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* s
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 
-void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count);
-void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
+void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count);
+void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev,FklPrototypePool* ptpool);
 void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
 
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
+
+FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref);
+FklVMvarRef* fklCreateVMvarRef(FklVMvalue** loc,uint32_t idx);
+FklVMvarRef* fklCreateClosedVMvarRef(FklVMvalue* v);
 
 void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);

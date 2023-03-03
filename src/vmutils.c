@@ -312,7 +312,10 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	return tmp;
 }
 
-inline void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
+inline void fklInitMainVMframeWithProc(FklVMframe* tmp
+		,FklVMproc* code
+		,FklVMframe* prev
+		,FklPrototypePool* ptpool)
 {
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;
@@ -332,6 +335,13 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMfram
 		f->spc=code->spc;
 		f->end=code->end;
 		f->sid=code->sid;
+		FklVMCompoundFrameVarRef* lr=&f->lr;
+		FklPrototype* pt=&ptpool->pts[code->protoId-1];
+		uint32_t count=pt->lcount;
+		FklVMvalue** loc=(FklVMvalue**)calloc(count,sizeof(FklVMvalue*));
+		FKL_ASSERT(loc);
+		lr->loc=loc;
+		lr->lcount=count;
 	}
 }
 

@@ -747,77 +747,89 @@ inline int16_t fklGetI16FromByteCode(uint8_t* code)
 
 inline int32_t fklGetI32FromByteCode(uint8_t* code)
 {
-	int32_t i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
+	int32_t i;
+	memcpy(&i,code,sizeof(i));
+	//int32_t i=0;
+	//((uint8_t*)&i)[0]=code[0];
+	//((uint8_t*)&i)[1]=code[1];
+	//((uint8_t*)&i)[2]=code[2];
+	//((uint8_t*)&i)[3]=code[3];
 	return i;
 }
 
 inline uint32_t fklGetU32FromByteCode(uint8_t* code)
 {
-	uint32_t i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
+	uint32_t i;
+	memcpy(&i,code,sizeof(i));
+	//uint32_t i=0;
+	//((uint8_t*)&i)[0]=code[0];
+	//((uint8_t*)&i)[1]=code[1];
+	//((uint8_t*)&i)[2]=code[2];
+	//((uint8_t*)&i)[3]=code[3];
 	return i;
 }
 
 inline int64_t fklGetI64FromByteCode(uint8_t* code)
 {
-	int64_t i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
-	((uint8_t*)&i)[4]=code[4];
-	((uint8_t*)&i)[5]=code[5];
-	((uint8_t*)&i)[6]=code[6];
-	((uint8_t*)&i)[7]=code[7];
+	int64_t i;
+	memcpy(&i,code,sizeof(i));
+	//int64_t i=0;
+	//((uint8_t*)&i)[0]=code[0];
+	//((uint8_t*)&i)[1]=code[1];
+	//((uint8_t*)&i)[2]=code[2];
+	//((uint8_t*)&i)[3]=code[3];
+	//((uint8_t*)&i)[4]=code[4];
+	//((uint8_t*)&i)[5]=code[5];
+	//((uint8_t*)&i)[6]=code[6];
+	//((uint8_t*)&i)[7]=code[7];
 	return i;
 }
 
 inline uint64_t fklGetU64FromByteCode(uint8_t* code)
 {
-	uint64_t i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
-	((uint8_t*)&i)[4]=code[4];
-	((uint8_t*)&i)[5]=code[5];
-	((uint8_t*)&i)[6]=code[6];
-	((uint8_t*)&i)[7]=code[7];
+	uint64_t i;
+	memcpy(&i,code,sizeof(i));
+	//uint64_t i=0;
+	//((uint8_t*)&i)[0]=code[0];
+	//((uint8_t*)&i)[1]=code[1];
+	//((uint8_t*)&i)[2]=code[2];
+	//((uint8_t*)&i)[3]=code[3];
+	//((uint8_t*)&i)[4]=code[4];
+	//((uint8_t*)&i)[5]=code[5];
+	//((uint8_t*)&i)[6]=code[6];
+	//((uint8_t*)&i)[7]=code[7];
 	return i;
 }
 
 inline double fklGetF64FromByteCode(uint8_t* code)
 {
-	double d=0;
-	((uint8_t*)&d)[0]=code[0];
-	((uint8_t*)&d)[1]=code[1];
-	((uint8_t*)&d)[2]=code[2];
-	((uint8_t*)&d)[3]=code[3];
-	((uint8_t*)&d)[4]=code[4];
-	((uint8_t*)&d)[5]=code[5];
-	((uint8_t*)&d)[6]=code[6];
-	((uint8_t*)&d)[7]=code[7];
+	double d;
+	memcpy(&d,code,sizeof(d));
+	//double d=0;
+	//((uint8_t*)&d)[0]=code[0];
+	//((uint8_t*)&d)[1]=code[1];
+	//((uint8_t*)&d)[2]=code[2];
+	//((uint8_t*)&d)[3]=code[3];
+	//((uint8_t*)&d)[4]=code[4];
+	//((uint8_t*)&d)[5]=code[5];
+	//((uint8_t*)&d)[6]=code[6];
+	//((uint8_t*)&d)[7]=code[7];
 	return d;
 }
 
 inline FklSid_t fklGetSidFromByteCode(uint8_t* code)
 {
-	FklSid_t i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
-	((uint8_t*)&i)[4]=code[4];
-	((uint8_t*)&i)[5]=code[5];
-	((uint8_t*)&i)[6]=code[6];
-	((uint8_t*)&i)[7]=code[7];
+	FklSid_t i;
+	memcpy(&i,code,sizeof(i));
+	//FklSid_t i=0;
+	//((uint8_t*)&i)[0]=code[0];
+	//((uint8_t*)&i)[1]=code[1];
+	//((uint8_t*)&i)[2]=code[2];
+	//((uint8_t*)&i)[3]=code[3];
+	//((uint8_t*)&i)[4]=code[4];
+	//((uint8_t*)&i)[5]=code[5];
+	//((uint8_t*)&i)[6]=code[6];
+	//((uint8_t*)&i)[7]=code[7];
 	return i;
 }
 
@@ -828,72 +840,79 @@ inline void fklSetI8ToByteCode(uint8_t* code,int8_t i)
 
 inline void fklSetI16ToByteCode(uint8_t* code,int16_t i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
 }
 
 inline void fklSetI32ToByteCode(uint8_t* code,int32_t i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
+	//code[2]=((uint8_t*)&i)[2];
+	//code[3]=((uint8_t*)&i)[3];
 }
 
 inline void fklSetU32ToByteCode(uint8_t* code,uint32_t i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
+	//code[2]=((uint8_t*)&i)[2];
+	//code[3]=((uint8_t*)&i)[3];
 }
 
 inline void fklSetI64ToByteCode(uint8_t* code,int64_t i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
+	//code[2]=((uint8_t*)&i)[2];
+	//code[3]=((uint8_t*)&i)[3];
+	//code[4]=((uint8_t*)&i)[4];
+	//code[5]=((uint8_t*)&i)[5];
+	//code[6]=((uint8_t*)&i)[6];
+	//code[7]=((uint8_t*)&i)[7];
 }
 
 inline void fklSetU64ToByteCode(uint8_t* code,uint64_t i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
+	//code[2]=((uint8_t*)&i)[2];
+	//code[3]=((uint8_t*)&i)[3];
+	//code[4]=((uint8_t*)&i)[4];
+	//code[5]=((uint8_t*)&i)[5];
+	//code[6]=((uint8_t*)&i)[6];
+	//code[7]=((uint8_t*)&i)[7];
 }
 
 inline void fklSetF64ToByteCode(uint8_t* code,double i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
+	//code[2]=((uint8_t*)&i)[2];
+	//code[3]=((uint8_t*)&i)[3];
+	//code[4]=((uint8_t*)&i)[4];
+	//code[5]=((uint8_t*)&i)[5];
+	//code[6]=((uint8_t*)&i)[6];
+	//code[7]=((uint8_t*)&i)[7];
 }
 
 inline void fklSetSidToByteCode(uint8_t* code,FklSid_t i)
 {
-	code[0]=((uint8_t*)&i)[0];
-	code[1]=((uint8_t*)&i)[1];
-	code[2]=((uint8_t*)&i)[2];
-	code[3]=((uint8_t*)&i)[3];
-	code[4]=((uint8_t*)&i)[4];
-	code[5]=((uint8_t*)&i)[5];
-	code[6]=((uint8_t*)&i)[6];
-	code[7]=((uint8_t*)&i)[7];
+	memcpy(code,&i,sizeof(i));
+	//code[0]=((uint8_t*)&i)[0];
+	//code[1]=((uint8_t*)&i)[1];
+	//code[2]=((uint8_t*)&i)[2];
+	//code[3]=((uint8_t*)&i)[3];
+	//code[4]=((uint8_t*)&i)[4];
+	//code[5]=((uint8_t*)&i)[5];
+	//code[6]=((uint8_t*)&i)[6];
+	//code[7]=((uint8_t*)&i)[7];
 }
 
 static void fklSetCharToByteCode(uint8_t* code,char c)

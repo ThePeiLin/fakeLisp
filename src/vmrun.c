@@ -1177,7 +1177,7 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* v=plib->loc[libIdx];
 	if(v==FKL_VM_NIL)
 	{
-		FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId];
+		FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId-1];
 		FklSid_t sid=pt->loc[libIdx].id;
 		char* cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		if(cstr)

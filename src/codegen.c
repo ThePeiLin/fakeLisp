@@ -2263,8 +2263,6 @@ void fklPrintUndefinedRef(const FklCodegenEnv* env
 
 BC_PROCESS(_library_bc_process)
 {
-	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
-	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* libBc=create_lib_bcl(stack,fid,line);
 
@@ -2289,6 +2287,9 @@ BC_PROCESS(_library_bc_process)
 				,exportReplacements
 				,exportStringPatterns
 				,env);
+
+	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 
 	fklPushPtrStack(lib
 			,codegen->loadedLibStack);
@@ -4197,9 +4198,9 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 	{
 		lib->prototypeId=env->prototypeId;
 		uint32_t* idxes=(uint32_t*)malloc(sizeof(uint32_t)*exportNum);
+		FKL_ASSERT(idxes||!exportNum);
 		for(uint32_t i=0;i<exportNum;i++)
 			idxes[i]=fklAddCodegenDefBySid(exportsP[i],1,env);
-		FKL_ASSERT(idxes||!exportNum);
 		lib->exportIndex=idxes;
 	}
 	else

@@ -81,6 +81,8 @@ typedef struct //unresolved symbol ref
 	uint32_t scope;
 	uint32_t idx;
 	uint32_t prototypeId;
+	FklSid_t fid;
+	uint64_t line;
 }FklUnReSymbolRef;
 
 typedef struct

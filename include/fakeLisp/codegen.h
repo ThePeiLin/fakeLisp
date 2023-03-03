@@ -174,7 +174,12 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 
 FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
 
-uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
+void fklPrintUndefinedRef(const FklCodegenEnv* env
+		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* publicSymbolTable);
+
+uint32_t fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env);
+uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
 
 uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
 

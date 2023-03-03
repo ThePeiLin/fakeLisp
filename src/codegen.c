@@ -636,7 +636,7 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp
 		}
 		else if(env->prev)
 		{
-			ref->cidx=fklAddCodegenRefBySid(uref->id,env);
+			ref->cidx=fklAddCodegenRefBySid(uref->id,env,uref->fid,uref->line);
 			free(uref);
 		}
 		else
@@ -758,7 +758,12 @@ static FklSymbolDef* createCodegenEnvHashItem(FklSid_t key,uint32_t idx,uint32_t
 	return r;
 }
 
-static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id,uint32_t idx,uint32_t scope,uint32_t prototypeId)
+static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id
+		,uint32_t idx
+		,uint32_t scope
+		,uint32_t prototypeId
+		,FklSid_t fid
+		,uint64_t line)
 {
 	FklUnReSymbolRef* r=(FklUnReSymbolRef*)malloc(sizeof(FklUnReSymbolRef));
 	FKL_ASSERT(r);
@@ -766,6 +771,8 @@ static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id,uint32_t idx,uint32_t s
 	r->idx=idx;
 	r->scope=scope,
 	r->prototypeId=prototypeId;
+	r->fid=fid;
+	r->line=line;
 	return r;
 }
 
@@ -870,7 +877,23 @@ int fklIsSymbolRefed(FklSid_t id,FklCodegenEnv* env)
 	return fklGetHashItem(&id,env->defs)!=NULL||fklGetHashItem(&id,env->refs)!=NULL;
 }
 
-uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
+uint32_t fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env)
+{
+	FklHashTable* ht=env->refs;
+	FklSidScope key={id,env->pscope};
+	FklSymbolDef* el=fklGetHashItem(&key,ht);
+	if(el)
+		return el->idx;
+	else
+	{
+		uint32_t idx=ht->num;
+		FklSymbolDef* cel=createCodegenEnvHashItem(id,idx,env->pscope);
+		fklPutNoRpHashItem(cel,ht);
+		return idx;
+	}
+}
+
+uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
 {
 	FklHashTable* ht=env->refs;
 	FklSidScope key={id,env->pscope};
@@ -900,10 +923,15 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
 				else
 				{
 					cel->cidx=cur->refs->num;
-					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,cel->scope,env->prototypeId);
+					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,cel->scope,env->prototypeId,fid,line);
 					fklPushPtrStack(unref,&cur->uref);
 				}
 			}
+		}
+		else
+		{
+			FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,cel->scope,env->prototypeId,fid,line);
+			fklPushPtrStack(unref,&env->uref);
 		}
 		return idx;
 	}
@@ -1094,7 +1122,7 @@ static CODEGEN_FUNC(codegen_setq)
 		fklPushPtrStack(makeDupAndPutLoc(name,def->idx,codegen),stack);
 	else
 	{
-		uint32_t idx=fklAddCodegenRefBySid(name->u.sym,curEnv);
+		uint32_t idx=fklAddCodegenRefBySid(name->u.sym,curEnv,codegen->fid,name->curline);
 		fklPushPtrStack(makeDupAndPutRefLoc(name,idx,codegen),stack);
 	}
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_set_var_exp_bc_process
@@ -2219,9 +2247,32 @@ static inline void destroy_tmp_macros(FklCodegenEnv* globalEnv)
 	globalEnv->macros->replacements=NULL;
 }
 
+inline static void print_undefined_symbol(const FklPtrStack* urefs
+		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* publicSymTable)
+{
+	for(uint32_t i=0;i<urefs->top;i++)
+	{
+		FklUnReSymbolRef* ref=urefs->base[i];
+		fprintf(stderr,"warning of compiling: Symbol \"");
+		fklPrintString(fklGetSymbolWithId(ref->id,publicSymTable)->symbol,stderr);
+		fprintf(stderr,"\" is undefined at line %lu of ",ref->line);
+		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
+		fputc('\n',stderr);
+	}
+}
+
+void fklPrintUndefinedRef(const FklCodegenEnv* env
+		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* publicSymTable)
+{
+	print_undefined_symbol(&env->uref,globalSymTable,publicSymTable);
+}
+
 BC_PROCESS(_library_bc_process)
 {
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* libBc=create_lib_bcl(stack,fid,line);
 
@@ -3886,7 +3937,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 								bcl=makeGetLocBc(def->idx,curCodegen->fid,curExp->curline);
 							else
 							{
-								uint32_t idx=fklAddCodegenRefBySid(curExp->u.sym,curEnv);
+								uint32_t idx=fklAddCodegenRefBySid(curExp->u.sym,curEnv,curCodegen->fid,curExp->curline);
 								bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline);
 							}
 							curContext->t->__put_bcl(curContext->data,bcl);

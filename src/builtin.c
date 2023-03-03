@@ -5291,20 +5291,12 @@ static const struct SymbolFuncStruct
 	{NULL,                    NULL,                            },
 };
 
-typedef struct
-{
-	FklSid_t id;
-	uint32_t idx;
-	uint32_t cidx;
-	uint8_t isLocal;
-}FklCodegenEnvHashItem;
-
 void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* publicSymbolTable)
 {
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL
 			;list++)
-		fklAddCodegenRefBySid(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
+		fklAddCodegenBuiltinRefBySid(fklAddSymbolCstr(list->s,publicSymbolTable)->id,curEnv);
 }
 
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)

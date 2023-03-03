@@ -118,6 +118,7 @@ int main(int argc,char** argv)
 						,codegen.globalEnv
 						,codegen.globalSymTable
 						,codegen.publicSymbolTable);
+		fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{

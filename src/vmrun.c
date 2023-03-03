@@ -303,7 +303,6 @@ static void B_push_list(BYTE_CODE_ARGS);
 static void B_push_vector_0(BYTE_CODE_ARGS);
 static void B_list_push(BYTE_CODE_ARGS);
 static void B_import(BYTE_CODE_ARGS);
-static void B_import_from_dll(BYTE_CODE_ARGS);
 static void B_push_0(BYTE_CODE_ARGS);
 static void B_push_1(BYTE_CODE_ARGS);
 static void B_push_i8(BYTE_CODE_ARGS);
@@ -315,6 +314,7 @@ static void B_get_var_ref(BYTE_CODE_ARGS);
 static void B_put_var_ref(BYTE_CODE_ARGS);
 static void B_export(BYTE_CODE_ARGS);
 static void B_load_lib(BYTE_CODE_ARGS);
+static void B_load_dll(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -356,7 +356,6 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_push_vector_0,
 	B_list_push,
 	B_import,
-	B_import_from_dll,
 	B_push_0,
 	B_push_1,
 	B_push_i8,
@@ -368,6 +367,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_put_var_ref,
 	B_export,
 	B_load_lib,
+	B_load_dll,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -1239,40 +1239,35 @@ static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
 	return fklGetAddress("_fklImportInit",handle);
 }
 
-static void inline B_import_from_dll(FklVM* exe,FklVMframe* frame)
+static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 {
-	//uint64_t libId=fklGetU64FromByteCode(fklGetCompoundFrameCode(frame));
-	//FklVMlib* plib=&exe->libs[libId-1];
-	//FKL_NI_BEGIN(exe);
-	//if(plib->libEnv==FKL_VM_NIL)
-	//{
-	//	char* realpath=fklStringToCstr(plib->proc->u.str);
-	//	FklVMdll* dll=fklCreateVMdll(realpath);
-	//	FklImportDllInitFunc initFunc=NULL;
-	//	if(dll)
-	//		initFunc=getImportInit(dll->handle);
-	//	else
-	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-	//	if(!initFunc)
-	//	{
-	//		fklDestroyVMdll(dll);
-	//		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
-	//	}
-	//	FklVMvalue* dllValue=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
-	//	fklInitVMdll(dllValue,exe);
-	//	FklVMenv* env=fklCreateVMenv(FKL_VM_NIL,exe->gc);
-	//	FklVMvalue* envValue=fklCreateVMvalueToStack(FKL_TYPE_ENV,env,exe);
-	//	fklSetRef(&plib->libEnv,envValue,exe->gc);
-	//	fklSetRef(&plib->proc,dllValue,exe->gc);
-	//	initFunc(exe,dllValue,plib->libEnv);
-	//	free(realpath);
-	//}
-	//char* cstr=NULL;
-	//process_import(plib,exe,frame,&cstr);
-	//if(cstr)
-	//	FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import-from-dll",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-	//fklAddCompoundFrameCp(frame,sizeof(uint64_t));
-	//fklNiEnd(&ap,stack);
+	uint32_t libId=fklGetU32FromByteCode(fklGetCompoundFrameCode(frame));
+	FklVMlib* plib=&exe->libs[libId-1];
+	if(!plib->imported)
+	{
+		char* realpath=fklStringToCstr(plib->proc->u.str);
+		FklVMdll* dll=fklCreateVMdll(realpath);
+		FklImportDllInitFunc initFunc=NULL;
+		if(dll)
+			initFunc=getImportInit(dll->handle);
+		else
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+		if(!initFunc)
+		{
+			fklDestroyVMdll(dll);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+		}
+		fklNiSetTp(exe->stack);
+		FklVMvalue* dllv=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
+		plib->loc=initFunc(exe,dllv,&plib->count);
+		plib->imported=1;
+		plib->proc=dllv;
+		free(realpath);
+		fklNiResTp(exe->stack);
+		fklNiPopTp(exe->stack);
+	}
+	exe->importingLibId=libId;
+	fklAddCompoundFrameCp(frame,sizeof(libId));
 }
 
 static void inline B_push_0(FklVM* exe,FklVMframe* frame)

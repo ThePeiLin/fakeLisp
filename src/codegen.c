@@ -1945,14 +1945,29 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 {
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
-	for(size_t i=0;i<num;i++)
+	if(exportIndex)
 	{
-		FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
-				,publicSymbolTable)->id;
-		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
-		fklSetU32ToByteCode(&importCode[1],idx);
-		fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
-		bclBcAppendToBcl(bcl,&bc,fid,line);
+		for(size_t i=0;i<num;i++)
+		{
+			FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
+					,publicSymbolTable)->id;
+			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
+		}
+	}
+	else
+	{
+		for(size_t i=0;i<num;i++)
+		{
+			FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
+					,publicSymbolTable)->id;
+			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],i);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
+		}
 	}
 }
 
@@ -1970,16 +1985,33 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 {
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
-	for(size_t i=0;i<num;i++)
+	if(exportIndex)
 	{
-		FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
-		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
-		FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
-		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
-		fklSetU32ToByteCode(&importCode[1],idx);
-		fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
-		bclBcAppendToBcl(bcl,&bc,fid,line);
-		free(symbolWithPrefix);
+		for(size_t i=0;i<num;i++)
+		{
+			FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
+			FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
+			FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
+			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
+			free(symbolWithPrefix);
+		}
+	}
+	else
+	{
+		for(size_t i=0;i<num;i++)
+		{
+			FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
+			FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
+			FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
+			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],i);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
+			free(symbolWithPrefix);
+		}
 	}
 }
 
@@ -2645,7 +2677,8 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 		,const char* filename
 		,FklCodegenEnv* curEnv
 		,FklCodegen* codegen
-		,FklCodegenErrorState* errorState)
+		,FklCodegenErrorState* errorState
+		,uint32_t scope)
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->loadedLibStack);
@@ -2684,18 +2717,20 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 	{
 		lib=codegen->loadedLibStack->base[libId-1];
 		dll=lib->u.dll;
+		free(realpath);
 	}
+	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_DLL,libId),codegen->fid,origExp->curline);
 	add_symbol_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
 			,codegen->publicSymbolTable
 			,lib->exportNum
 			,lib->exports
 			,lib->exportIndex
-			,NULL
-			,0
-			,0
-			,0);
-	return createBclnt(create9lenBc(FKL_OP_IMPORT_FROM_DLL,libId),codegen->fid,origExp->curline);
+			,importBc
+			,codegen->fid
+			,origExp->curline
+			,scope);
+	return importBc;
 }
 
 static CODEGEN_FUNC(codegen_import)
@@ -2734,7 +2769,8 @@ static CODEGEN_FUNC(codegen_import)
 				,dllFileName
 				,curEnv
 				,codegen
-				,errorState);
+				,errorState
+				,scope);
 		if(bc)
 		{
 			FklPtrStack* bcStack=fklCreatePtrStack(1,1);
@@ -2951,7 +2987,8 @@ static inline FklByteCodelnt* process_import_from_dll_with_prefix(FklNastNode* o
 		,const char* filename
 		,FklCodegenEnv* curEnv
 		,FklCodegen* codegen
-		,FklCodegenErrorState* errorState)
+		,FklCodegenErrorState* errorState
+		,uint32_t scope)
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->loadedLibStack);
@@ -2990,26 +3027,26 @@ static inline FklByteCodelnt* process_import_from_dll_with_prefix(FklNastNode* o
 	{
 		lib=codegen->loadedLibStack->base[libId-1];
 		dll=lib->u.dll;
+		free(realpath);
 	}
 
-	FklSid_t* exportsWithPrefix=(FklSid_t*)malloc(sizeof(FklSid_t)*lib->exportNum);
-	FKL_ASSERT(exportsWithPrefix);
+	FklString* prefix=fklGetSymbolWithId(prefixNode->u.sym
+                ,codegen->publicSymbolTable)->symbol;
+
+	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_DLL,libId),codegen->fid,origExp->curline);
 	add_symbol_with_prefix_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
 			,codegen->publicSymbolTable
-			,NULL
+			,prefix
 			,lib->exportNum
 			,lib->exports
 			,lib->exportIndex
-			,NULL,0,0,0);
+			,importBc
+			,codegen->fid
+			,origExp->curline
+			,scope);
 
-	FklByteCode* bc=fklCreateByteCode(sizeof(char)+sizeof(uint64_t)*2+sizeof(FklSid_t)*lib->exportNum);
-	bc->code[0]=FKL_OP_IMPORT_FROM_DLL;
-	fklSetU64ToByteCode(bc->code+sizeof(char),libId);
-	fklSetU64ToByteCode(bc->code+sizeof(char)+sizeof(uint64_t),lib->exportNum);
-	memcpy(bc->code+sizeof(char)+sizeof(uint64_t)*2,exportsWithPrefix,sizeof(FklSid_t)*lib->exportNum);
-	free(exportsWithPrefix);
-	return createBclnt(bc,codegen->fid,origExp->curline);
+	return importBc;
 }
 
 static CODEGEN_FUNC(codegen_import_with_prefix)
@@ -3058,7 +3095,8 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 				,dllFileName
 				,curEnv
 				,codegen
-				,errorState);
+				,errorState
+				,scope);
 		if(bc)
 		{
 			FklPtrStack* bcStack=fklCreatePtrStack(1,1);
@@ -4163,6 +4201,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	lib->head=NULL;
 	lib->replacements=NULL;
 	lib->patterns=NULL;
+	lib->exportIndex=NULL;
 	init(&lib->exportNum,&lib->exports,table);
 }
 

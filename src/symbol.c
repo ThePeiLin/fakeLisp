@@ -215,15 +215,6 @@ inline FklPrototypePool* fklCreatePrototypePool(void)
 	return r;
 }
 
-FklImportIndexList* fklCreateImportIndexList(void)
-{
-	FklImportIndexList* r=(FklImportIndexList*)malloc(sizeof(*r));
-	FKL_ASSERT(r);
-	r->count=0;
-	r->idxList=NULL;
-	return r;
-}
-
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal)
 {
 	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));
@@ -254,4 +245,78 @@ void fklDestroyPrototypePool(FklPrototypePool* p)
 		free(pts);
 		free(p);
 	}
+}
+
+static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
+{
+	fwrite(&def->id,sizeof(def->id),1,fp);
+	fwrite(&def->scope,sizeof(def->scope),1,fp);
+	fwrite(&def->idx,sizeof(def->idx),1,fp);
+	fwrite(&def->cidx,sizeof(def->cidx),1,fp);
+	fwrite(&def->isLocal,sizeof(def->isLocal),1,fp);
+}
+
+static inline void write_prototype(const FklPrototype* pt,FILE* fp)
+{
+	uint32_t count=pt->lcount;
+	FklSymbolDef* defs=pt->loc;
+	fwrite(&count,sizeof(count),1,fp);
+	for(uint32_t i=0;i<count;i++)
+		write_symbol_def(&defs[i],fp);
+	count=pt->rcount;
+	defs=pt->refs;
+	fwrite(&count,sizeof(count),1,fp);
+	for(uint32_t i=0;i<count;i++)
+		write_symbol_def(&defs[i],fp);
+}
+
+inline void fklWritePrototypePool(const FklPrototypePool* ptpool,FILE* fp)
+{
+	uint32_t count=ptpool->count;
+	FklPrototype* pts=ptpool->pts;
+	fwrite(&count,sizeof(count),1,fp);
+	for(uint32_t i=0;i<count;i++)
+		write_prototype(&pts[i],fp);
+}
+
+static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
+{
+	fread(&def->id,sizeof(def->id),1,fp);
+	fread(&def->scope,sizeof(def->scope),1,fp);
+	fread(&def->idx,sizeof(def->idx),1,fp);
+	fread(&def->cidx,sizeof(def->cidx),1,fp);
+	fread(&def->isLocal,sizeof(def->isLocal),1,fp);
+}
+
+static inline void load_prototype(FklPrototype* pt,FILE* fp)
+{
+	uint32_t count=0;
+	fread(&count,sizeof(count),1,fp);
+	pt->lcount=count;
+	FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
+	FKL_ASSERT(defs||!count);
+	pt->loc=defs;
+	for(uint32_t i=0;i<count;i++)
+		load_symbol_def(&defs[i],fp);
+	fread(&count,sizeof(count),1,fp);
+	pt->rcount=count;
+	defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
+	FKL_ASSERT(defs||!count);
+	pt->refs=defs;
+	for(uint32_t i=0;i<count;i++)
+		load_symbol_def(&defs[i],fp);
+}
+
+inline FklPrototypePool* fklLoadPrototypePool(FILE* fp)
+{
+	FklPrototypePool* ptpool=fklCreatePrototypePool();
+	uint32_t count=0;
+	fread(&count,sizeof(count),1,fp);
+	FklPrototype* pts=(FklPrototype*)malloc(sizeof(FklPrototype)*count);
+	FKL_ASSERT(pts||!count);
+	for(uint32_t i=0;i<count;i++)
+		load_prototype(&pts[i],fp);
+	ptpool->count=count;
+	ptpool->pts=pts;
+	return ptpool;
 }

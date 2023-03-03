@@ -20,7 +20,7 @@
 static void runRepl(FklCodegen*,const FklSid_t*);
 static FklByteCode* loadByteCode(FILE*);
 static void loadSymbolTable(FILE*,FklSymbolTable* table);
-static void loadLib(FILE*,size_t*,FklVMlib**,FklVMvalue* globEnv,FklVMgc*);
+static void loadLib(FILE*,size_t*,FklVMlib**,FklVMgc*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
 
 int main(int argc,char** argv)
@@ -158,12 +158,18 @@ int main(int argc,char** argv)
 		FklByteCode* mainCode=loadByteCode(fp);
 		mainCodelnt->bc=mainCode;
 		FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
+		fklInitGlobalVMclosure(anotherVM->frames,anotherVM);
 		FklVMgc* gc=anotherVM->gc;
-		loadLib(fp,&anotherVM->libNum,&anotherVM->libs,FKL_VM_NIL,anotherVM->gc);
-		fclose(fp);
 		FklVMframe* mainframe=anotherVM->frames;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
 		FklVMvalue** ref=mainframe->u.c.lr.ref;
+		loadLib(fp
+				,&anotherVM->libNum
+				,&anotherVM->libs
+				,anotherVM->gc
+				,fklGetCompoundFrameLocRef(anotherVM->frames));
+		anotherVM->ptpool=fklLoadPrototypePool(fp);
+		fclose(fp);
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{
@@ -346,7 +352,11 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklDestroyAllVMs(anotherVM);
 }
 
-static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEnv,FklVMgc* gc)
+static void loadLib(FILE* fp
+		,size_t* plibNum
+		,FklVMlib** plibs
+		,FklVMgc* gc
+		,FklVMCompoundFrameVarRef* lr)
 {
 	fread(plibNum,sizeof(uint64_t),1,fp);
 	size_t libNum=*plibNum;
@@ -355,21 +365,19 @@ static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEn
 	*plibs=libs;
 	for(size_t i=0;i<libNum;i++)
 	{
-		uint64_t exportNum=0;
-		fread(&exportNum,sizeof(uint64_t),1,fp);
-		FklSid_t* exports=(FklSid_t*)malloc(sizeof(FklSid_t)*exportNum);
-		FKL_ASSERT(exports);
-		fread(exports,sizeof(FklSid_t),exportNum,fp);
 		FklCodegenLibType libType=FKL_CODEGEN_LIB_SCRIPT;
 		fread(&libType,sizeof(char),1,fp);
 		if(libType==FKL_CODEGEN_LIB_SCRIPT)
 		{
+			uint32_t protoId=0;
+			fread(&protoId,sizeof(protoId),1,fp);
 			FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
 			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
 			FklByteCode* bc=loadByteCode(fp);
 			bcl->bc=bc;
 			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,bcl,gc);
-			fklInitVMlibWithCodeObj(&libs[i],exportNum,exports,NULL,codeObj,gc);
+			fklInitVMlibWithCodeObj(&libs[i],codeObj,gc,protoId);
+			fklInitMainProcRefs(libs[i].proc->u.proc,lr->ref,lr->rcount);
 		}
 		else
 		{
@@ -378,7 +386,7 @@ static void loadLib(FILE* fp,size_t* plibNum,FklVMlib** plibs,FklVMvalue* globEn
 			FklString* s=fklCreateString(len,NULL);
 			fread(s->str,len,1,fp);
 			FklVMvalue* stringValue=fklCreateVMvalueNoGC(FKL_TYPE_STR,s,gc);
-			fklInitVMlib(&libs[i],exportNum,exports,NULL,stringValue);
+			fklInitVMlib(&libs[i],stringValue);
 		}
 	}
 }

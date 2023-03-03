@@ -249,9 +249,6 @@ typedef struct
 
 typedef struct FklVMlib
 {
-	size_t exportNum;
-	FklSid_t* exports;
-	uint32_t* idxes;
 	FklVMvalue* proc;
 	FklVMvalue** loc;
 	uint32_t count;
@@ -617,18 +614,9 @@ void fklDestroyVMframes(FklVMframe* h);
 
 void fklDestroyVMlib(FklVMlib* lib);
 
-void fklInitVMlib(FklVMlib*
-		,size_t exportNum
-		,FklSid_t* exports
-		,uint32_t*
-		,FklVMvalue* proc);
+void fklInitVMlib(FklVMlib*,FklVMvalue* proc);
 
-void fklInitVMlibWithCodeObj(FklVMlib*
-		,size_t exportNum
-		,FklSid_t* exports
-		,uint32_t* idxes
-		,FklVMvalue* codeObj
-		,FklVMgc* gc);
+void fklInitVMlibWithCodeObj(FklVMlib*,FklVMvalue* codeObj,FklVMgc* gc,uint32_t protoId);
 
 void fklUninitVMlib(FklVMlib*);
 

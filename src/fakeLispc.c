@@ -73,6 +73,8 @@ int main(int argc,char** argv)
 					fklUninitCodegen();
 					return 1;
 				}
+				fklUpdatePrototype(codegen.ptpool,codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
+				fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
 				FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 				char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 				strcpy(outputname,rp);
@@ -103,13 +105,10 @@ int main(int argc,char** argv)
 				for(size_t i=0;i<num;i++)
 				{
 					FklCodegenLib* lib=loadedLibStack->base[i];
-					uint64_t exportNum=lib->exportNum;
-					FklSid_t* exports=lib->exports;
-					fwrite(&exportNum,sizeof(uint64_t),1,outfp);
-					fwrite(exports,sizeof(FklSid_t),exportNum,outfp);
 					fwrite(&lib->type,sizeof(char),1,outfp);
 					if(lib->type==FKL_CODEGEN_LIB_SCRIPT)
 					{
+						fwrite(&lib->prototypeId,sizeof(lib->prototypeId),1,outfp);
 						FklByteCodelnt* bcl=lib->u.bcl;
 						FklLineNumberTable tmpLnt={bcl->ls,bcl->l};
 						fklWriteLineNumberTable(&tmpLnt,outfp);
@@ -127,6 +126,7 @@ int main(int argc,char** argv)
 						fwrite(rp,len,1,outfp);
 					}
 				}
+				fklWritePrototypePool(codegen.ptpool,outfp);
 				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);
 				fklDestroyMainFileRealPath();

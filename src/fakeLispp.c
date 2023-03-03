@@ -161,15 +161,12 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 	*plibs=libs;
 	for(size_t i=0;i<num;i++)
 	{
-		uint64_t exportNum=0;
-		fread(&exportNum,sizeof(uint64_t),1,fp);
-		FklSid_t* exports=(FklSid_t*)malloc(sizeof(FklSid_t)*exportNum);
-		FKL_ASSERT(exports);
-		fread(exports,sizeof(FklSid_t),exportNum,fp);
 		FklCodegenLibType libType=FKL_CODEGEN_LIB_SCRIPT;
 		fread(&libType,sizeof(char),1,fp);
 		if(libType==FKL_CODEGEN_LIB_SCRIPT)
 		{
+			uint32_t protoId=0;
+			fread(&protoId,sizeof(protoId),1,fp);
 			FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
 			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
 			FklByteCode* bc=loadByteCode(fp);
@@ -177,13 +174,14 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			fklInitCodegenScriptLib(&libs[i]
 					,NULL
 					,bcl
-					,exportNum
-					,exports
+					,0
+					,NULL
 					,NULL
 					,NULL
 					,NULL
 					,NULL
 					,NULL);
+			libs[i].prototypeId=protoId;
 		}
 		else
 		{

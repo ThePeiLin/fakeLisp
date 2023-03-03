@@ -1163,36 +1163,6 @@ static void inline B_list_push(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-//static inline void process_import(FklVMlib* plib
-//		,FklVM* exe
-//		,FklVMframe* frame
-//		,char** cstr
-//		,uint32_t scope)
-//{
-//	FklVMvalue** loc=plib->loc;
-//	uint32_t* exportIndex=plib->idxes;
-//	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
-//	uint32_t protoId=fklGetCompoundFrameProc(frame)->u.proc->protoId;
-//	FklPrototype* pt=&exe->ptpool->pts[protoId-1];
-//	FklSidScope key={0,scope};
-//	for(size_t i=0;i<plib->exportNum;i++)
-//	{
-//		FklVMvalue* v=loc[exportIndex[i]];
-//		key.id=plib->exports[i];
-//		if(v==FKL_VM_NIL)
-//		{
-//			*cstr=fklStringToCstr(fklGetSymbolWithId(key.id,exe->symbolTable)->symbol);
-//			return;
-//		}
-//		FklSymbolDef* def=fklGetHashItem(&key,pt->defs);
-//		FklVMvalue* volatile* pv=&lr->loc[def->idx];
-//		if(*pv==FKL_VM_NIL)
-//			*pv=fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,exe->gc);
-//		else
-//			(*pv)->u.box=v;
-//	}
-//}
-
 static inline void init_import_env(FklVMframe* frame,FklVMlib* plib,FklVM* exe)
 {
 	fklAddCompoundFrameCp(frame,-1);
@@ -1935,37 +1905,28 @@ void fklDestroyVMframes(FklVMframe* h)
 	}
 }
 
-void fklInitVMlib(FklVMlib* lib
-		,size_t exportNum
-		,FklSid_t* exports
-		,uint32_t* idxes
-		,FklVMvalue* proc)
+void fklInitVMlib(FklVMlib* lib,FklVMvalue* proc)
 {
-	lib->exportNum=exportNum;
-	lib->exports=exports;
 	lib->proc=proc;
-	lib->idxes=idxes;
 	lib->imported=0;
 	lib->loc=NULL;
 }
 
 inline void fklInitVMlibWithCodeObj(FklVMlib* lib
-		,size_t exportNum
-		,FklSid_t* exports
-		,uint32_t* exportIndex
 		,FklVMvalue* codeObj
-		,FklVMgc* gc)
+		,FklVMgc* gc
+		,uint32_t protoId)
 {
 	FklByteCode* bc=codeObj->u.code->bc;
-	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,fklCreateVMproc(bc->code,bc->size,codeObj,gc),gc);
-	fklInitVMlib(lib,exportNum,exports,exportIndex,proc);
+	FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
+	prc->protoId=protoId;
+	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
+	fklInitVMlib(lib,proc);
 }
 
 void fklUninitVMlib(FklVMlib* lib)
 {
-	free(lib->idxes);
 	free(lib->loc);
-	free(lib->exports);
 }
 
 void fklDestroyVMlib(FklVMlib* lib)

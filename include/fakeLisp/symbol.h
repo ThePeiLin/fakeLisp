@@ -49,7 +49,6 @@ typedef struct FklPrototype
 	struct FklSymbolDef* refs;
 	uint32_t lcount;
 	uint32_t rcount;
-	uint32_t p;
 }FklPrototype;
 
 typedef struct
@@ -83,14 +82,9 @@ typedef struct //unresolved symbol ref
 	uint64_t line;
 }FklUnReSymbolRef;
 
-typedef struct
-{
-	uint32_t** idxList;
-	uint32_t count;
-}FklImportIndexList;
-
 FklPrototypePool* fklCreatePrototypePool(void);
-FklImportIndexList* fklCreateImportIndexList(void);
+void fklWritePrototypePool(const FklPrototypePool* ptpool,FILE* fp);
+FklPrototypePool* fklLoadPrototypePool(FILE* fp);
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal);
 
 void fklUninitPrototype(FklPrototype* p);

@@ -607,7 +607,6 @@ static inline void create_and_insert_to_pool(FklPrototypePool* cp,uint32_t p,Fkl
 	cp->pts=pts;
 	FklPrototype* cpt=&pts[cp->count-1];
 	env->prototypeId=cp->count;
-	cpt->p=p;
 	cpt->loc=psid_to_gsid_ht(env->defs,globalSymTable,publicSymbolTable);
 	cpt->lcount=env->defs->num;
 	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable);
@@ -4515,11 +4514,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 	}
 	else
 		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
-	fklInitVMlib(vlib
-			,clib->exportNum
-			,needCopy?fklCopyMemory(clib->exports,clib->exportNum*sizeof(FklSid_t)):clib->exports
-			,needCopy?fklCopyMemory(clib->exportIndex,clib->exportNum*sizeof(FklSid_t)):clib->exportIndex
-			,val);
+	fklInitVMlib(vlib,val);
 }
 
 inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
@@ -4539,11 +4534,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 	}
 	else
 		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
-	fklInitVMlib(vlib
-			,clib->exportNum
-			,needCopy?fklCopyMemory(clib->exports,clib->exportNum*sizeof(FklSid_t)):clib->exports
-			,needCopy?fklCopyMemory(clib->exportIndex,clib->exportNum*sizeof(FklSid_t)):clib->exportIndex
-			,val);
+	fklInitVMlib(vlib,val);
 
 }
 
@@ -4566,11 +4557,7 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
 		fklDestroyDll(clib->u.dll);
 	}
-	fklInitVMlib(vlib
-			,clib->exportNum
-			,clib->exports
-			,clib->exportIndex
-			,val);
+	fklInitVMlib(vlib,val);
 
 	fklDestroyCodegenLibMacroScope(clib);
 	free(clib->rp);

@@ -4258,6 +4258,8 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	lib->replacements=NULL;
 	lib->patterns=NULL;
 	lib->exportIndex=NULL;
+	lib->exports=NULL;
+	lib->exportNum=0;
 	init(&lib->exportNum,&lib->exports,table);
 }
 
@@ -4288,7 +4290,8 @@ void fklUninitCodegenLib(FklCodegenLib* lib)
 			fklDestroyByteCodelnt(lib->u.bcl);
 			break;
 		case FKL_CODEGEN_LIB_DLL:
-			fklDestroyDll(lib->u.dll);
+			if(lib->u.dll)
+				fklDestroyDll(lib->u.dll);
 			break;
 	}
 	free(lib->exports);

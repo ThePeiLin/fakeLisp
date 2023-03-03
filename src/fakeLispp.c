@@ -117,14 +117,6 @@ int main(int argc,char** argv)
 			FklCodegenLib* cur=&libs[i];
 			fputc('\n',stdout);
 			printf("lib %lu:\n",i+1);
-			printf("exports %lu\n",cur->exportNum);
-			for(size_t j=0;j<cur->exportNum;j++)
-			{
-				FklSid_t id=cur->exports[j];
-				fklPrintRawSymbol(fklGetSymbolWithId(id,table)->symbol,stdout);
-				fputc('\n',stdout);
-			}
-			fputc('\n',stdout);
 			switch(cur->type)
 			{
 				case FKL_CODEGEN_LIB_SCRIPT:
@@ -150,6 +142,10 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	return 0;
+}
+
+static void dll_init(size_t* _,FklSid_t** __,FklSymbolTable* ___)
+{
 }
 
 static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* table)
@@ -192,19 +188,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			FKL_ASSERT(rp);
 			fread(rp,len,1,fp);
 			strcat(rp,FKL_DLL_FILE_TYPE);
-			FklDllHandle dll=fklLoadDll(rp);
-			if(!dll)
-			{
-				fprintf(stderr,"%s\n",dlerror());
-				exit(1);
-			}
-			FklCodegenDllLibInitExportFunc init=fklGetCodegenInitExportFunc(dll);
-			if(!init)
-			{
-				fprintf(stderr,"%s\n",dlerror());
-				exit(1);
-			}
-			fklInitCodegenDllLib(&libs[i],rp,dll,table,init);
+			fklInitCodegenDllLib(&libs[i],rp,NULL,table,dll_init);
 		}
 	}
 }

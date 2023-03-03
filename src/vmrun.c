@@ -45,7 +45,7 @@ static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
 	FklPrototype* pt=&exe->ptpool->pts[proc->u.proc->protoId-1];
-	uint32_t lcount=pt->defs->num;
+	uint32_t lcount=pt->lcount;
 	size_t size=sizeof(FklVMvalue*)*lcount;
 	FklVMvalue** loc=(FklVMvalue**)malloc(size);
 	FKL_ASSERT(loc);
@@ -1208,7 +1208,7 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 	if(v==FKL_VM_NIL)
 	{
 		FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId];
-		FklSid_t sid=pt->loc[libIdx]->id;
+		FklSid_t sid=pt->loc[libIdx].id;
 		char* cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		if(cstr)
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);

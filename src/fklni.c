@@ -96,12 +96,12 @@ void fklNiDoSomeAfterSetLoc(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
 	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
 	{
 		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
-		v->u.proc->sid=pt->loc[idx]->id;
+		v->u.proc->sid=pt->loc[idx].id;
 	}
 	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
 	{
 		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
-		v->u.dlproc->sid=pt->loc[idx]->id;
+		v->u.dlproc->sid=pt->loc[idx].id;
 	}
 	else if(FKL_IS_USERDATA(v)&&v->u.ud->t->__setq_hook)
 		v->u.ud->t->__setq_hook(v->u.ud->data,idx,f,exe);

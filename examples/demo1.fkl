@@ -14,11 +14,14 @@
 ;  (gle (cdr objlist))))
 
 (define gle (lambda (objlist)
-            (cond ((null (cdr objlist)) (car objlist))
-                  (1 (gle (cdr objlist))))))
+              (if (null (cdr objlist))
+                (car objlist)
+                (gle (cdr objlist)))))
+
 (define fact (lambda (n)
-            (cond ((<= n 1) n)
-                  (1 (* n (fact (- n 1)))))))
+               (if (<= n 1) n
+                 (* n (fact (- n 1))))))
+
 (defun ael (objlist object)
   (defun tmpfun (objlist tmp)
     (if (null (cdr objlist))

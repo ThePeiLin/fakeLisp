@@ -924,7 +924,7 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 
 static void inline B_drop(FklVM* exe,FklVMframe* frame)
 {
-	exe->stack->tp--;
+	exe->stack->tp-=exe->stack->tp>0;
 }
 
 static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)

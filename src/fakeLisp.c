@@ -85,6 +85,12 @@ int main(int argc,char** argv)
 			fklDestroyCwd();
 			return 1;
 		}
+		fklUpdatePrototype(codegen.ptpool
+						,codegen.globalEnv
+						,codegen.globalSymTable
+						,codegen.publicSymbolTable);
+		fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
+
 		chdir(fklGetCwd());
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
@@ -114,11 +120,6 @@ int main(int argc,char** argv)
 		fklInitMainVMframeWithProc(mainframe,tmp,NULL,anotherVM->ptpool);
 		mainframe->u.c.proc=proc;
 
-		fklUpdatePrototype(codegen.ptpool
-						,codegen.globalEnv
-						,codegen.globalSymTable
-						,codegen.publicSymbolTable);
-		fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
 		int r=fklRunVM(anotherVM);
 		if(r)
 		{

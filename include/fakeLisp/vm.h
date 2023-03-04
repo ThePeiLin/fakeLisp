@@ -198,9 +198,16 @@ typedef struct
 	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
 }FklVMframeContextMethodTable;
 
+typedef struct FklVMvarRefList
+{
+	FklVMvarRef* ref;
+	struct FklVMvarRefList* next;
+}FklVMvarRefList;
+
 typedef struct FklVMCompoundFrameVarRef
 {
 	FklVMvarRef** lref;
+	FklVMvarRefList* lrefl;
 	FklVMvalue** loc;
 	FklVMvarRef** ref;
 	uint32_t lcount;
@@ -445,11 +452,11 @@ void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
 
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
-FklVMframe* fklCreateVMframeWithProc(FklVMproc*,FklVMframe*);
 
 FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref);
 FklVMvarRef* fklCreateVMvarRef(FklVMvalue** loc,uint32_t idx);
 FklVMvarRef* fklCreateClosedVMvarRef(FklVMvalue* v);
+void fklDestroyVMvarRef(FklVMvarRef*);
 
 void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);

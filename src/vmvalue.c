@@ -1078,7 +1078,11 @@ void fklDestroyVMchanl(FklVMchanl* ch)
 
 void fklDestroyVMproc(FklVMproc* proc)
 {
-	free(proc->closure);
+	uint32_t count=proc->count;
+	FklVMvarRef** refs=proc->closure;
+	for(uint32_t i=0;i<count;i++)
+		fklDestroyVMvarRef(refs[i]);
+	free(refs);
 	free(proc);
 }
 
@@ -1721,7 +1725,11 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 	uint32_t count=proc->count;
 	FklVMvarRef** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
-		fklGC_toGrey(*(ref[i]->ref),gc);
+	{
+		FklVMvalue* volatile* pv=ref[i]->ref;
+		if(pv)
+			fklGC_toGrey(*pv,gc);
+	}
 }
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)

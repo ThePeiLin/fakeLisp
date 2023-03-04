@@ -260,6 +260,16 @@ FklVMframe* fklCopyVMframe(FklVMframe* f,FklVMframe* prev,FklVM* exe)
 	return NULL;
 }
 
+inline static void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
+{
+	lr->lcount=0;
+	lr->loc=NULL;
+	lr->lref=NULL;
+	lr->ref=NULL;
+	lr->rcount=0;
+	lr->lrefl=NULL;
+}
+
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* prev,FklVMgc* gc)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
@@ -279,10 +289,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->tail=pfd->tail;
 	FklVMCompoundFrameVarRef* lr=&fd->lr;
 	const FklVMCompoundFrameVarRef* plr=&pfd->lr;
-	lr->ref=plr->ref;
-	lr->rcount=plr->rcount;
-	lr->loc=plr->loc;
-	lr->lcount=plr->lcount;
+	*lr=*plr;
 	return tmp;
 }
 
@@ -304,11 +311,8 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	f->end=tmp->u.c.pc+codeObj->u.code->bc->size;
 	f->mark=0;
 	f->tail=0;
+	init_frame_var_ref(&f->lr);
 
-	f->lr.rcount=0;
-	f->lr.ref=0;
-	f->lr.loc=NULL;
-	f->lr.lcount=0;
 	return tmp;
 }
 
@@ -342,46 +346,50 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp
 		FKL_ASSERT(loc);
 		lr->loc=loc;
 		lr->lcount=count;
+		lr->lref=NULL;
+		lr->lrefl=NULL;
 	}
+	else
+		init_frame_var_ref(&f->lr);
 }
 
-inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
-{
-	tmp->errorCallBack=NULL;
-	tmp->type=FKL_FRAME_COMPOUND;
-	tmp->prev=prev;
-
-	FklVMCompoundFrameData* f=&tmp->u.c;
-	f->sid=0;
-	f->pc=NULL;
-	f->spc=NULL;
-	f->end=NULL;
-	f->proc=FKL_VM_NIL;
-	f->mark=0;
-	f->tail=0;
-
-	f->lr.rcount=0;
-	f->lr.ref=NULL;
-	f->lr.lcount=0;
-	f->lr.loc=NULL;
-	if(code)
-	{
-		f->lr.ref=code->closure;
-		f->lr.rcount=code->count;
-		f->pc=code->spc;
-		f->spc=code->spc;
-		f->end=code->end;
-		f->sid=code->sid;
-	}
-}
-
-FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
-{
-	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
-	FKL_ASSERT(tmp);
-	fklInitVMframeWithProc(tmp,code,prev);
-	return tmp;
-}
+//inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
+//{
+//	tmp->errorCallBack=NULL;
+//	tmp->type=FKL_FRAME_COMPOUND;
+//	tmp->prev=prev;
+//
+//	FklVMCompoundFrameData* f=&tmp->u.c;
+//	f->sid=0;
+//	f->pc=NULL;
+//	f->spc=NULL;
+//	f->end=NULL;
+//	f->proc=FKL_VM_NIL;
+//	f->mark=0;
+//	f->tail=0;
+//
+//	f->lr.rcount=0;
+//	f->lr.ref=NULL;
+//	f->lr.lcount=0;
+//	f->lr.loc=NULL;
+//	if(code)
+//	{
+//		f->lr.ref=code->closure;
+//		f->lr.rcount=code->count;
+//		f->pc=code->spc;
+//		f->spc=code->spc;
+//		f->end=code->end;
+//		f->sid=code->sid;
+//	}
+//}
+//
+//FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
+//{
+//	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
+//	FKL_ASSERT(tmp);
+//	fklInitVMframeWithProc(tmp,code,prev);
+//	return tmp;
+//}
 
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 {
@@ -400,10 +408,7 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	f->proc=NULL;
 	f->mark=0;
 	f->tail=0;
-	f->lr.rcount=0;
-	f->lr.ref=NULL;
-	f->lr.lcount=0;
-	f->lr.loc=NULL;
+	init_frame_var_ref(&f->lr);
 	if(code)
 	{
 		f->lr.ref=code->closure;

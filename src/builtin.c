@@ -2929,6 +2929,7 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 	FklStringMatchPattern* patterns=pbd->patterns;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchRouteNode* troute=route;
+	int err=0;
 	fklSplitStringIntoTokenWithPattern(stream->u.str->str
 			,stream->u.str->size
 			,line
@@ -2939,7 +2940,8 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 			,matchSet
 			,patterns
 			,route
-			,&troute);
+			,&troute
+			,&err);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
 	PublicBuiltInUserData* publicUserData=pd->u.ud->data;

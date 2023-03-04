@@ -233,16 +233,20 @@ static size_t getDefaultSymbolLen(const char* buf
 		,size_t n
 		,FklStringMatchState* strs
 		,FklStringMatchState* boxes
-		,FklStringMatchPattern* patterns)
+		,FklStringMatchPattern* patterns
+		,int* p)
 {
+	int hasStrs=0;
 	size_t i=0;
 	for(;i<n
 			&&!isspace(buf[i])
-			&&!matchStrInStrs(&buf[i],n-i,strs)
+			&&!(hasStrs=matchStrInStrs(&buf[i],n-i,strs))
 			&&!matchStrInBoxes(&buf[i],n-i,boxes)
 			&&!matchStrInPatterns(&buf[i],n-i,patterns)
 			&&!matchStrInDefaultHeaders(&buf[i],n-i)
 			;i++);
+	if(p)
+		*p=hasStrs;
 	return i;
 }
 
@@ -252,13 +256,14 @@ static FklToken* createDefaultToken(const char* buf
 		,FklStringMatchState* boxes
 		,FklStringMatchPattern* patterns
 		,size_t line
-		,size_t* jInc)
+		,size_t* jInc
+		,int* err)
 {
 	if(charbufEqual(buf,n
 				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_CHR].s
 				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_CHR].l))
 	{
-		size_t len=getDefaultSymbolLen(&buf[3],n-3,strs,boxes,patterns)+3;
+		size_t len=getDefaultSymbolLen(&buf[3],n-3,strs,boxes,patterns,NULL)+3;
 		*jInc=len;
 		return fklCreateToken(FKL_TOKEN_CHAR,fklCreateString(len,buf),line);
 	}
@@ -286,6 +291,7 @@ static FklToken* createDefaultToken(const char* buf
 		size_t i=0;
 		FklUintStack lenStack=FKL_STACK_INIT;
 		fklInitUintStack(&lenStack,2,4);
+		int hasStrs=0;
 		while(i<n)
 		{
 			size_t len=0;
@@ -302,7 +308,8 @@ static FklToken* createDefaultToken(const char* buf
 				}
 			}
 			else
-				len=getDefaultSymbolLen(&buf[i],n-i,strs,boxes,patterns);
+				len=getDefaultSymbolLen(&buf[i],n-i,strs,boxes,patterns,&hasStrs);
+			*err=hasStrs&&!len&&!lenStack.top;
 			if(!len)
 				break;
 			i+=len;
@@ -345,7 +352,8 @@ static FklStringMatchSet* matchInUniversSet(const char* buf
 		,FklToken** pt
 		,size_t line
 		,FklStringMatchSet* prev
-		,size_t* jInc)
+		,size_t* jInc
+		,int* err)
 {
 	FklStringMatchSet* r=NULL;
 	size_t pn=0;
@@ -376,7 +384,8 @@ static FklStringMatchSet* matchInUniversSet(const char* buf
 				,prev?prev->box:NULL
 				,pattern
 				,line
-				,jInc);
+				,jInc
+				,err);
 	}
 	else
 		*jInc=(*pt)->value->size;
@@ -559,7 +568,8 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 		,size_t line
 		,size_t* jInc
 		,FklStringMatchRouteNode** proute
-		,size_t top)
+		,size_t top
+		,int* err)
 {
 	FklStringMatchRouteNode* route=*proute;
 	if(isComment(buf,n))
@@ -579,7 +589,8 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 				,pt
 				,line
 				,NULL
-				,jInc);
+				,jInc
+				,err);
 		if(!isValidToken(*pt))
 		{
 			route->start=top;
@@ -612,7 +623,8 @@ static FklStringMatchSet* updatePreviusSet(FklStringMatchSet* set
 					,pt
 					,line
 					,set
-					,jInc);
+					,jInc
+					,err);
 			if(isValidToken(*pt))
 			{
 				FklStringMatchRouteNode* node=fklCreateStringMatchRouteNode(NULL
@@ -668,7 +680,8 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,FklStringMatchSet* matchSet
 		,FklStringMatchPattern* patterns
 		,FklStringMatchRouteNode* route
-		,FklStringMatchRouteNode** proute)
+		,FklStringMatchRouteNode** proute
+		,int* err)
 {
 	while(j<size&&matchSet)
 	{
@@ -682,7 +695,10 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 				,line
 				,&jInc
 				,&route
-				,retvalStack->top);
+				,retvalStack->top
+				,err);
+		if(*err)
+			return matchSet;
 		if(token==FKL_INCOMPLETED_TOKEN)
 			break;
 		else if(token==NULL)

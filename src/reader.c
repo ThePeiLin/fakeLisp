@@ -71,6 +71,7 @@ char* fklReadInStringPattern(FILE* fp
 			,NULL);
 	*proute=route;
 	size_t j=0;
+	int err=0;
 	for(;;)
 	{
 		matchSet=fklSplitStringIntoTokenWithPattern(tmp
@@ -83,7 +84,8 @@ char* fklReadInStringPattern(FILE* fp
 				,matchSet
 				,patterns
 				,route
-				,&route);
+				,&route
+				,&err);
 		if(matchSet==NULL)
 		{
 			if(size-j)
@@ -104,6 +106,16 @@ char* fklReadInStringPattern(FILE* fp
 			fklDestroyStringMatchSet(matchSet);
 			if(matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET)
 				*unexpectEOF=1;
+			free(tmp);
+			tmp=NULL;
+			break;
+		}
+		else if(err)
+		{
+			while(!fklIsPtrStackEmpty(retval))
+				fklDestroyToken(fklPopPtrStack(retval));
+			fklDestroyStringMatchSet(matchSet);
+			*unexpectEOF=2;
 			free(tmp);
 			tmp=NULL;
 			break;

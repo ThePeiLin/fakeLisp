@@ -42,7 +42,8 @@ FklStringMatchSet* fklSplitStringIntoTokenWithPattern(const char* buf
 		,FklStringMatchSet* matchSet
 		,FklStringMatchPattern* patterns
 		,FklStringMatchRouteNode* route
-		,FklStringMatchRouteNode** proute);
+		,FklStringMatchRouteNode** proute
+		,int* err);
 int fklIsAllComment(FklPtrStack*);
 #ifdef __cplusplus
 }

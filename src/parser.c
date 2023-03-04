@@ -20,6 +20,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchRouteNode* tmp=route;
+	int err=0;
 	matchSet=fklSplitStringIntoTokenWithPattern(cStr
 			,size
 			,line
@@ -30,7 +31,8 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 			,matchSet
 			,patterns
 			,route
-			,&tmp);
+			,&tmp
+			,&err);
 	FklNastNode* retval=NULL;
 	if(!matchSet)
 	{

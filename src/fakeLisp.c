@@ -348,7 +348,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
 	free(mainframe.u.c.lr.loc);
-	free(mainframe.u.c.lr.ref);
 	fklUninitPtrStack(&tokenStack);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);

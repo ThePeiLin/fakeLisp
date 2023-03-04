@@ -1358,7 +1358,8 @@ static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
 inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklPrototypePool* ptpool,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
-	FklVMvalue* volatile* v=idx>=lr->rcount?NULL:lr->ref[idx]->ref;
+	FklVMvarRef** refs=lr->ref;
+	FklVMvalue* volatile* v=(idx>=lr->rcount||(refs[idx]->ref))?NULL:refs[idx]->ref;
 	if(!v)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;

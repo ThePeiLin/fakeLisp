@@ -553,6 +553,13 @@ inline static void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	else
 	{
 		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
+		FklPrototype* pt=&exe->ptpool->pts[proc->u.proc->protoId-1];
+		uint32_t lcount=pt->lcount;
+		FklVMvalue** loc=(FklVMvalue**)calloc(lcount,sizeof(FklVMvalue*));
+		FKL_ASSERT(loc);
+		FklVMCompoundFrameVarRef* f=&tmpFrame->u.c.lr;
+		f->loc=loc;
+		f->lcount=lcount;
 		fklPushVMframe(tmpFrame,exe);
 	}
 }
@@ -1846,6 +1853,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
 	exe->codeObj=prev->codeObj;
 	exe->frames=NULL;
+	exe->ptpool=prev->ptpool;
 	fklCallObj(nextCall,NULL,exe);
 	insert_to_VM_chain(exe,prev,next,gc);
 	fklAddToGCNoGC(exe->chan,gc);

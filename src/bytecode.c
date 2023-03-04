@@ -352,7 +352,7 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 					r+=sizeof(char)
 						+sizeof(uint32_t)
 						+sizeof(uint64_t)
-						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
+						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint32_t));
 					break;
 				default:
 					FKL_ASSERT(0);
@@ -370,8 +370,7 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	uint64_t size=bc->size;
 	uint8_t* code=bc->code;
 	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
-		if(code[i]!=FKL_OP_POP_TP
-				&&code[i]!=FKL_OP_JMP)
+		if(code[i]!=FKL_OP_POP_TP&&code[i]!=FKL_OP_JMP)
 			return 0;
 	return 1;
 }

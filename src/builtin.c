@@ -4579,106 +4579,6 @@ void builtin_time(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-//void builtin_get(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMframe* frame=exe->frames;
-//	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
-//	FklVMvalue* sym=fklNiGetArg(&ap,stack);
-//	FklVMvalue* defaultValue=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get",FKL_ERR_TOOMANYARG,exe);
-//	if(!sym)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get",FKL_ERR_TOOFEWARG,exe);
-//	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.get",exe);
-//	FklVMvalue* volatile* pV=fklFindVar(FKL_GET_SYM(sym),frame->u.c.localenv->u.env);
-//	if(!pV)
-//	{
-//		if(defaultValue)
-//			fklNiReturn(defaultValue,&ap,stack);
-//		else
-//		{
-//			char* cstr=fklStringToCstr(fklGetSymbolWithId(FKL_GET_SYM(sym),exe->symbolTable)->symbol);
-//			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.get",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-//		}
-//	}
-//	else
-//		fklNiReturn(*pV,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
-
-//void builtin_get8(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMframe* frame=exe->frames;
-//	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
-//	FklVMvalue* sym=fklNiGetArg(&ap,stack);
-//	FklVMvalue* scope=fklNiGetArg(&ap,stack);
-//	FklVMvalue* defaultValue=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get*",FKL_ERR_TOOMANYARG,exe);
-//	if(!sym)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get*",FKL_ERR_TOOFEWARG,exe);
-//	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.get*",exe);
-//	FKL_NI_CHECK_TYPE(scope,FKL_IS_FIX,"builtin.get*",exe);
-//	FklVMvalue* env=fklGetCompoundFrameLocalenv(frame);
-//	FklVMvalue* volatile* pV=NULL;
-//	FklSid_t idOfVar=FKL_GET_SYM(sym);
-//	if(scope)
-//	{
-//		size_t s=fklGetInt(scope);
-//		if(s<0)
-//			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.get*",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-//		if(s)
-//		{
-//			for(size_t i=1;i<s;i++)
-//				env=env->u.env->prev;
-//			pV=fklFindVar(idOfVar,env->u.env);
-//		}
-//		else
-//			while(!pV&&env&&env!=FKL_VM_NIL)
-//			{
-//				pV=fklFindVar(idOfVar,env->u.env);
-//				env=env->u.env->prev;
-//			}
-//	}
-//	else
-//		pV=fklFindVar(idOfVar,env->u.env);
-//	if(!pV)
-//	{
-//		if(defaultValue)
-//			fklNiReturn(defaultValue,&ap,stack);
-//		else
-//		{
-//			char* cstr=fklStringToCstr(fklGetSymbolWithId(FKL_GET_SYM(sym),exe->symbolTable)->symbol);
-//			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.get",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-//		}
-//	}
-//	else
-//		fklNiReturn(*pV,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
-
-//void builtin_set(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMframe* frame=exe->frames;
-//	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
-//	FklVMvalue* sym=fklNiGetArg(&ap,stack);
-//	FklVMvalue* value=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set!",FKL_ERR_TOOMANYARG,exe);
-//	if(!sym||!value)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set!",FKL_ERR_TOOFEWARG,exe);
-//	FKL_NI_CHECK_TYPE(sym,FKL_IS_SYM,"builtin.set!",exe);
-//	FklSid_t sid=FKL_GET_SYM(sym);
-//	FklVMvalue* volatile* pv=fklFindOrAddVar(sid,frame->u.c.localenv->u.env);
-//	fklSetRef(pv,value,exe->gc);
-//	fklNiReturn(value,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//	fklNiDoSomeAfterSetq(*pv,sid);
-//}
-
 void builtin_system(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -5254,9 +5154,6 @@ static const struct SymbolFuncStruct
 	{"memp",                  builtin_memp,                    },
 	{"filter",                builtin_filter,                  },
 
-	//{"set!",                  builtin_set,                     },
-	//{"get",                   builtin_get,                     },
-	//{"get*",                  builtin_get8,                    },
 	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
 	{"srand",                 builtin_srand,                   },

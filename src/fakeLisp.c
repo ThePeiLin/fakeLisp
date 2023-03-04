@@ -312,12 +312,14 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
 				tmp->protoId=1;
-				fklInitMainVMframeWithProc(&mainframe,tmp,anotherVM->frames,anotherVM->ptpool);
+				fklInitMainVMframeWithProcForRepl(&mainframe,tmp,anotherVM->frames,anotherVM->ptpool);
 				mainframe.u.c.proc=proc;
 				anotherVM->frames=&mainframe;
 				fklTcMutexRelease(anotherVM->gc);
 				int r=fklRunReplVM(anotherVM);
 				fklTcMutexAcquire(anotherVM->gc);
+				tmp->closure=NULL;
+				tmp->count=0;
 				if(r)
 				{
 					FklVMstack* stack=anotherVM->stack;
@@ -347,7 +349,12 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	}
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
-	free(mainframe.u.c.lr.loc);
+	fklDoUninitCompoundFrame(&mainframe);
+	uint32_t count=mainframe.u.c.lr.rcount;
+	FklVMvarRef** ref=mainframe.u.c.lr.ref;
+	for(uint32_t i=0;i<count;i++)
+		fklDestroyVMvarRef(ref[i]);
+	free(ref);
 	fklUninitPtrStack(&tokenStack);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);

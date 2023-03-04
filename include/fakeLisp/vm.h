@@ -251,6 +251,8 @@ void** fklGetFrameData(FklVMframe* f);
 int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
+
+void fklDoUninitCompoundFrame(FklVMframe* frame);
 void fklDoFinalizeCompoundFrame(FklVMframe* frame);
 
 typedef struct
@@ -448,6 +450,7 @@ int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 
 void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count);
 void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev,FklPrototypePool* ptpool);
+void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev,FklPrototypePool* ptpool);
 void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
 
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);

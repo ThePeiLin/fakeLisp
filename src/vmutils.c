@@ -339,6 +339,52 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp
 		init_frame_var_ref(&f->lr);
 }
 
+inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
+		,FklVMproc* code
+		,FklVMframe* prev
+		,FklPrototypePool* ptpool)
+{
+	tmp->errorCallBack=NULL;
+	tmp->type=FKL_FRAME_COMPOUND;
+	tmp->prev=prev;
+
+	FklVMCompoundFrameData* f=&tmp->u.c;
+	f->sid=0;
+	f->pc=NULL;
+	f->spc=NULL;
+	f->end=NULL;
+	f->mark=0;
+	f->tail=0;
+	if(code)
+	{
+		f->pc=code->spc;
+		f->spc=code->spc;
+		f->end=code->end;
+		f->sid=code->sid;
+		FklVMCompoundFrameVarRef* lr=&f->lr;
+		code->closure=lr->ref;
+		code->count=lr->rcount;
+		FklPrototype* pt=&ptpool->pts[code->protoId-1];
+		uint32_t count=pt->lcount;
+		FklVMvalue** loc=(FklVMvalue**)realloc(lr->loc,count*sizeof(FklVMvalue*));
+		FKL_ASSERT(loc||!count);
+		memset(&loc[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));
+		if(lr->lref)
+		{
+			FklVMvarRef** lref=(FklVMvarRef**)realloc(lr->lref,count*sizeof(FklVMvarRef*));
+			FKL_ASSERT(lref||!count);
+			memset(&lref[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));
+			for(FklVMvarRefList* l=lr->lrefl;l;l=l->next)
+				l->ref->ref=&loc[l->ref->idx];
+			lr->lref=lref;
+		}
+		lr->loc=loc;
+		lr->lcount=count;
+	}
+	else
+		init_frame_var_ref(&f->lr);
+}
+
 //inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
 //{
 //	tmp->errorCallBack=NULL;

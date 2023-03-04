@@ -456,7 +456,7 @@ static inline void close_var_ref(FklVMvarRef* ref)
 	ref->ref=&ref->v;
 }
 
-inline void fklDoFinalizeCompoundFrame(FklVMframe* frame)
+inline void fklDoUninitCompoundFrame(FklVMframe* frame)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	for(FklVMvarRefList* l=lr->lrefl;l;)
@@ -469,6 +469,11 @@ inline void fklDoFinalizeCompoundFrame(FklVMframe* frame)
 	}
 	free(lr->lref);
 	free(lr->loc);
+}
+
+inline void fklDoFinalizeCompoundFrame(FklVMframe* frame)
+{
+	fklDoUninitCompoundFrame(frame);
 	free(frame);
 }
 
@@ -819,6 +824,7 @@ inline FklVMvarRef* fklCreateVMvarRef(FklVMvalue** loc,uint32_t idx)
 	ref->ref=&loc[idx];
 	ref->v=NULL;
 	ref->refc=0;
+	ref->idx=idx;
 	return ref;
 }
 

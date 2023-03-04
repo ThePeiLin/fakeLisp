@@ -1726,9 +1726,9 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 	FklVMvarRef** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
 	{
-		FklVMvalue* volatile* pv=ref[i]->ref;
-		if(pv)
-			fklGC_toGrey(*pv,gc);
+		FklVMvalue* v=*(ref[i]->ref);
+		if(v)
+			fklGC_toGrey(v,gc);
 	}
 }
 

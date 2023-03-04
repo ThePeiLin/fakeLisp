@@ -155,17 +155,23 @@ int main(int argc,char** argv)
 		FklByteCode* mainCode=loadByteCode(fp);
 		mainCodelnt->bc=mainCode;
 		FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
-		fklInitGlobalVMclosure(anotherVM->frames,anotherVM);
+
 		FklVMgc* gc=anotherVM->gc;
 		FklVMframe* mainframe=anotherVM->frames;
+
 		fklInitGlobalVMclosure(mainframe,anotherVM);
-		FklVMvarRef** ref=mainframe->u.c.lr.ref;
 		loadLib(fp
 				,&anotherVM->libNum
 				,&anotherVM->libs
 				,anotherVM->gc
 				,fklGetCompoundFrameLocRef(anotherVM->frames));
+
 		anotherVM->ptpool=fklLoadPrototypePool(fp);
+		fklInitMainVMframeWithProc(mainframe
+				,fklGetCompoundFrameProc(mainframe)->u.proc
+				,NULL
+				,anotherVM->ptpool);
+
 		fclose(fp);
 		int r=fklRunVM(anotherVM);
 		if(r)
@@ -176,10 +182,9 @@ int main(int argc,char** argv)
 		else
 			fklWaitGC(anotherVM->gc);
 		fklJoinAllThread(anotherVM);
-		free(ref);
 		fklDestroySymbolTable(table);
-		fklDestroyAllVMs(anotherVM);
 		fklDestroyVMgc(gc);
+		fklDestroyAllVMs(anotherVM);
 	}
 	else
 	{

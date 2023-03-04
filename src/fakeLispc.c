@@ -127,6 +127,7 @@ int main(int argc,char** argv)
 					}
 				}
 				fklWritePrototypePool(codegen.ptpool,outfp);
+				fklDestroyPrototypePool(codegen.ptpool);
 				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);
 				fklDestroyMainFileRealPath();

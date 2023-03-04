@@ -1658,6 +1658,117 @@ static CODEGEN_FUNC(codegen_cond)
 	}
 }
 
+BC_PROCESS(_if_exp_bc_process_0)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	uint8_t jmpIfFalseCode[9]={FKL_OP_JMP_IF_FALSE,0};
+	FklByteCode jmpIfFalse={9,jmpIfFalseCode};
+	uint8_t dropCode[]={FKL_OP_DROP};
+	FklByteCode drop={1,dropCode};
+
+	FklByteCodelnt* exp=fklPopPtrStack(stack);
+	FklByteCodelnt* cond=fklPopPtrStack(stack);
+
+	bcBclAppendToBcl(&drop,exp,fid,line);
+	fklSetI64ToByteCode(&jmpIfFalseCode[1],exp->bc->size);
+	bclBcAppendToBcl(cond,&jmpIfFalse,fid,line);
+	fklCodeLntCat(cond,exp);
+	fklDestroyByteCodelnt(exp);
+	return cond;
+}
+
+static CODEGEN_FUNC(codegen_if0)
+{
+	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* exp=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+
+	FklPtrQueue* nextQueue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(cond),nextQueue);
+	fklPushPtrQueue(fklMakeNastNodeRef(exp),nextQueue);
+
+	uint32_t curScope=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+	fklPushPtrStack(createCodegenQuest(_if_exp_bc_process_0
+				,createDefaultStackContext(fklCreatePtrStack(2,2))
+				,createDefaultQueueNextExpression(nextQueue)
+				,curScope
+				,cms
+				,curEnv
+				,origExp->curline
+				,NULL
+				,codegen)
+			,codegenQuestStack);
+}
+
+BC_PROCESS(_if_exp_bc_process_1)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* exp0=fklPopPtrStack(stack);
+	FklByteCodelnt* cond=fklPopPtrStack(stack);
+	FklByteCodelnt* exp1=fklPopPtrStack(stack);
+
+	uint8_t jmpCode[9]={FKL_OP_JMP,0};
+	FklByteCode jmp={9,jmpCode};
+	uint8_t jmpIfFalseCode[9]={FKL_OP_JMP_IF_FALSE,0};
+	FklByteCode jmpIfFalse={9,jmpIfFalseCode};
+
+	uint8_t dropCode[]={FKL_OP_DROP};
+	FklByteCode drop={1,dropCode};
+
+
+	bcBclAppendToBcl(&drop,exp0,fid,line);
+	bcBclAppendToBcl(&drop,exp1,fid,line);
+	fklSetI64ToByteCode(&jmpCode[1],exp1->bc->size);
+	bclBcAppendToBcl(exp0,&jmp,fid,line);
+	fklSetI64ToByteCode(&jmpIfFalseCode[1],exp0->bc->size);
+	bclBcAppendToBcl(cond,&jmpIfFalse,fid,line);
+	fklCodeLntCat(cond,exp0);
+	fklCodeLntCat(cond,exp1);
+	fklDestroyByteCodelnt(exp0);
+	fklDestroyByteCodelnt(exp1);
+	return cond;
+}
+
+static CODEGEN_FUNC(codegen_if1)
+{
+	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* exp0=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklNastNode* exp1=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+
+	FklPtrQueue* exp0Queue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(cond),exp0Queue);
+	fklPushPtrQueue(fklMakeNastNodeRef(exp0),exp0Queue);
+
+	FklPtrQueue* exp1Queue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(exp1),exp1Queue);
+
+	uint32_t curScope=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+	FklCodegenQuest* prev=createCodegenQuest(_if_exp_bc_process_1
+			,createDefaultStackContext(fklCreatePtrStack(2,2))
+			,createDefaultQueueNextExpression(exp0Queue)
+			,curScope
+			,cms
+			,curEnv
+			,origExp->curline
+			,NULL
+			,codegen);
+	fklPushPtrStack(prev,codegenQuestStack);
+
+	curScope=enter_new_scope(scope,curEnv);
+	cms=fklCreateCodegenMacroScope(macroScope);
+	fklPushPtrStack(createCodegenQuest(_default_bc_process
+				,createDefaultStackContext(fklCreatePtrStack(2,2))
+				,createDefaultQueueNextExpression(exp1Queue)
+				,curScope
+				,cms
+				,curEnv
+				,origExp->curline
+				,prev
+				,codegen)
+			,codegenQuestStack);
+}
+
 static FklCodegen* createCodegen(FklCodegen* prev
 		,const char* filename
 		,FklCodegenEnv* env)
@@ -3630,6 +3741,8 @@ typedef enum
 	PATTERN_AND,
 	PATTERN_OR,
 	PATTERN_COND,
+	PATTERN_IF0,
+	PATTERN_IF1,
 	PATTERN_LOAD,
 	PATTERN_IMPORT,
 	PATTERN_IMPORT_WITH_PREFIX,
@@ -3655,6 +3768,8 @@ static struct PatternAndFunc
 	{"(and,rest)",              NULL, codegen_and,                },
 	{"(or,rest)",               NULL, codegen_or,                 },
 	{"(cond,rest)",             NULL, codegen_cond,               },
+	{"(if value rest)",         NULL, codegen_if0,                },
+	{"(if value rest args)",    NULL, codegen_if1,                },
 	{"(load name)",             NULL, codegen_load,               },
 	{"(import name)",           NULL, codegen_import,             },
 	{"(import name rest)",      NULL, codegen_import_with_prefix, },

@@ -61,13 +61,6 @@
                 `(define ~(car sd) ~@(cdr sd))) d))
        `(let () ~@dfs ~@b)))
 
-   (defmacro (if condition exp1)
-     `(cond (~condition ~exp1)))
-
-   (defmacro (if condition exp1 exp2)
-     `(cond (~condition ~exp1)
-        (1 ~exp2)))
-
    (defmacro (when pred,expressions)
      `(cond [~pred
               ~@expressions]))

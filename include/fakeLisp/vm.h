@@ -185,19 +185,6 @@ typedef enum
 	FKL_FRAME_OTHEROBJ,
 }FklFrameType;
 
-typedef void* FklCallObjData[6];
-
-struct FklVMgc;
-typedef struct
-{
-	int (*end)(FklCallObjData data);
-	void (*step)(FklCallObjData data,struct FklVM*);
-	void (*print_backtrace)(FklCallObjData data,FILE* fp,FklSymbolTable*);
-	void (*atomic)(FklCallObjData data,struct FklVMgc*);
-	void (*finalizer)(FklCallObjData data);
-	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
-}FklVMframeContextMethodTable;
-
 typedef struct FklVMvarRefList
 {
 	FklVMvarRef* ref;
@@ -225,6 +212,19 @@ typedef struct FklVMCompoundFrameData
 	uint8_t* pc;
 	uint8_t* end;
 }FklVMCompoundFrameData;
+
+typedef void* FklCallObjData[sizeof(struct FklVMCompoundFrameData)/sizeof(void*)-1];
+
+struct FklVMgc;
+typedef struct
+{
+	int (*end)(FklCallObjData data);
+	void (*step)(FklCallObjData data,struct FklVM*);
+	void (*print_backtrace)(FklCallObjData data,FILE* fp,FklSymbolTable*);
+	void (*atomic)(FklCallObjData data,struct FklVMgc*);
+	void (*finalizer)(FklCallObjData data);
+	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
+}FklVMframeContextMethodTable;
 
 typedef struct FklVMframe
 {

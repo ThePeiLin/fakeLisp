@@ -1608,7 +1608,7 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 
 FklVMvalue* fklGetTopValue(FklVMstack* stack)
 {
-	return stack->tp?stack->values[stack->tp-1]:NULL;
+	return stack->values[stack->tp-1];
 }
 
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)

@@ -1029,8 +1029,7 @@ static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 static void inline B_jmp_if_true(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
-	FklVMvalue* tmpValue=fklGetTopValue(stack);
-	if(tmpValue&&tmpValue!=FKL_VM_NIL)
+	if(stack->tp&&fklGetTopValue(stack)!=FKL_VM_NIL)
 		fklAddCompoundFrameCp(frame,fklGetI64FromByteCode(fklGetCompoundFrameCode(frame)));
 	fklAddCompoundFrameCp(frame,sizeof(int64_t));
 }
@@ -1038,8 +1037,7 @@ static void inline B_jmp_if_true(FklVM* exe,FklVMframe* frame)
 static void inline B_jmp_if_false(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
-	FklVMvalue* tmpValue=fklGetTopValue(stack);
-	if(tmpValue&&tmpValue==FKL_VM_NIL)
+	if(stack->tp&&fklGetTopValue(stack)==FKL_VM_NIL)
 		fklAddCompoundFrameCp(frame,fklGetI64FromByteCode(fklGetCompoundFrameCode(frame)));
 	fklAddCompoundFrameCp(frame,sizeof(int64_t));
 }

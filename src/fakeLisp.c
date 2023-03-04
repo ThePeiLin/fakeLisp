@@ -100,6 +100,10 @@ int main(int argc,char** argv)
 		FKL_ASSERT(anotherVM->libs);
 		FklVMframe* mainframe=anotherVM->frames;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
+		fklInitMainVMframeWithProc(mainframe
+				,fklGetCompoundFrameProc(mainframe)->u.proc
+				,NULL
+				,anotherVM->ptpool);
 		FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
 
 		while(!fklIsPtrStackEmpty(loadedLibStack))
@@ -111,14 +115,6 @@ int main(int argc,char** argv)
 			if(type==FKL_CODEGEN_LIB_SCRIPT)
 				fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
 		}
-
-		FklVMproc* tmp=fklCreateVMproc(mainByteCode->bc->code,mainByteCode->bc->size,anotherVM->codeObj,anotherVM->gc);
-		tmp->protoId=1;
-		tmp->closure=lr->ref;
-		tmp->count=lr->rcount;
-		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
-		fklInitMainVMframeWithProc(mainframe,tmp,NULL,anotherVM->ptpool);
-		mainframe->u.c.proc=proc;
 
 		int r=fklRunVM(anotherVM);
 		if(r)

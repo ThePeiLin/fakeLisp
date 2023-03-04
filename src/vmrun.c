@@ -1277,6 +1277,7 @@ static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 		}
 		fklNiSetTp(exe->stack);
 		FklVMvalue* dllv=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
+		fklInitVMdll(dllv,exe);
 		plib->loc=initFunc(exe,dllv,&plib->count);
 		plib->imported=1;
 		plib->proc=dllv;

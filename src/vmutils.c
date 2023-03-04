@@ -369,7 +369,7 @@ inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
 		FklVMvalue** loc=(FklVMvalue**)realloc(lr->loc,count*sizeof(FklVMvalue*));
 		FKL_ASSERT(loc||!count);
 		memset(&loc[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));
-		if(lr->lref)
+		if(lr->lref&&loc!=lr->loc)
 		{
 			FklVMvarRef** lref=(FklVMvarRef**)realloc(lr->lref,count*sizeof(FklVMvarRef*));
 			FKL_ASSERT(lref||!count);

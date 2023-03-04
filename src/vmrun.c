@@ -613,10 +613,7 @@ void fklCallInDlproc(FklVMvalue* proc
 	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
-			{
-				FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
-				fklPushVMframe(tmpFrame,exe);
-			}
+			callCompoundProcdure(exe,proc,exe->frames);
 			break;
 		default:
 			callCallableObj(proc,exe);
@@ -1372,7 +1369,7 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	FklVMvarRef** refs=lr->ref;
-	FklVMvalue* volatile* v=(idx>=lr->rcount||(refs[idx]->ref))?NULL:refs[idx]->ref;
+	FklVMvalue* volatile* v=(idx>=lr->rcount||!(refs[idx]->ref))?NULL:refs[idx]->ref;
 	if(!v)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;

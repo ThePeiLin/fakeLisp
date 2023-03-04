@@ -4282,9 +4282,16 @@ void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib)
 	fklDestroyAllStringPattern(lib->patterns);
 }
 
-void fklUninitCodegenLib(FklCodegenLib* lib)
+inline void fklUninitCodegenLibInfo(FklCodegenLib* lib)
 {
 	free(lib->rp);
+	free(lib->exports);
+	free(lib->exportIndex);
+	lib->exportNum=0;
+}
+
+inline void fklUninitCodegenLib(FklCodegenLib* lib)
+{
 	switch(lib->type)
 	{
 		case FKL_CODEGEN_LIB_SCRIPT:
@@ -4295,9 +4302,8 @@ void fklUninitCodegenLib(FklCodegenLib* lib)
 				fklDestroyDll(lib->u.dll);
 			break;
 	}
-	free(lib->exports);
+	fklUninitCodegenLibInfo(lib);
 	fklDestroyCodegenLibMacroScope(lib);
-	lib->exportNum=0;
 }
 
 void fklDestroyCodegenLib(FklCodegenLib* lib)
@@ -4391,28 +4397,27 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 static void initVMframeFromPatternMatchTable(FklVMframe* frame
 		,FklHashTable* ht
 		,FklHashTable* lineHash
-		,FklVMgc* gc)
+		,FklVMgc* gc
+		,FklPrototypePool* ptpool)
 {
+	FklPrototype* mainPts=&ptpool->pts[0];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-	uint32_t count=ht->num;
-	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
+	uint32_t count=mainPts->lcount;
+	FklVMvalue** loc=(FklVMvalue**)calloc(count,sizeof(FklVMvalue*));
 	FKL_ASSERT(loc||!count);
-	for(uint32_t i=0;i<count;i++)
-	{
-		loc[i]=FKL_VM_NIL;
-		loc[i]=fklCreateVMvalueNoGC(FKL_TYPE_BOX,FKL_VM_NIL,gc);
-	}
 	uint32_t idx=0;
 	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
 	{
 		FklPatternMatchingHashTableItem* item=list->node->item;
 		FklVMvalue* v=fklCreateVMvalueFromNastNodeNoGC(item->node,lineHash,gc);
-		loc[idx]->u.box=v;
+		loc[idx]=v;
 		idx++;
 	}
 	lr->loc=loc;
 	lr->lcount=count;
+	lr->lref=NULL;
+	lr->lrefl=NULL;
 	proc->closure=lr->ref;
 	proc->count=lr->rcount;
 }
@@ -4438,7 +4443,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	}
 	FklVMframe* mainframe=anotherVM->frames;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
-	initVMframeFromPatternMatchTable(mainframe,ht,lineHash,anotherVM->gc);
+	initVMframeFromPatternMatchTable(mainframe,ht,lineHash,anotherVM->gc,ptpool);
 	anotherVM->ptpool=ptpool;
 	return anotherVM;
 }
@@ -4564,6 +4569,6 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	fklInitVMlib(vlib,val);
 
 	fklDestroyCodegenLibMacroScope(clib);
-	free(clib->rp);
+	fklUninitCodegenLibInfo(clib);
 	free(clib);
 }

@@ -46,7 +46,7 @@ int main(int argc,char** argv)
 			fklDestroyCodegenLibMacroScope(lib);
 			if(lib->type==FKL_CODEGEN_LIB_DLL)
 				fklDestroyDll(lib->u.dll);
-			free(lib->rp);
+			fklUninitCodegenLibInfo(lib);
 			free(lib);
 		}
 		fklUninitCodegener(&codegen);

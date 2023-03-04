@@ -221,6 +221,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 
 void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib);
 void fklUninitCodegenLib(FklCodegenLib*);
+void fklUninitCodegenLibInfo(FklCodegenLib*);
 
 FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 		,FklByteCodelnt* bcl

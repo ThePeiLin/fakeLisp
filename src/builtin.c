@@ -1581,7 +1581,8 @@ void builtin_vector_to_list(FKL_DL_PROC_ARGL)
 	{
 		fklSetRef(cur,fklCreateVMpairV(vec->base[i],FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
-		fklPopVMstack(stack);
+		fklDropTop(stack);
+		//fklPopVMstack(stack);
 	}
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -3433,7 +3434,7 @@ void builtin_go(FKL_DL_PROC_ARGL)
 			,exe->symbolTable
 			,exe->builtinErrorTypeId);
 	FklVMstack* threadVMstack=threadVM->stack;
-	fklNiSetBp(threadVMstack->tp,threadVMstack);
+	fklNiSetBpWithTp(threadVMstack);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklPtrStack comStack=FKL_STACK_INIT;
 	fklInitPtrStack(&comStack,32,16);
@@ -3680,10 +3681,9 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 		if(isShouldBeHandle(errSymbolLists[i],err->type))
 		{
 			FklVMstack* stack=exe->stack;
-			stack->bps.top=c->top;
-			stack->tp=c->bp;
+			//stack->bps.top=c->top;
+			stack->tp=fklNiSetBp(c->bp,stack);
 			fklPushVMvalue(errValue,stack);
-			fklNiSetBp(c->bp,stack);
 			FklVMframe* topFrame=exe->frames;
 			exe->frames=f;
 			while(topFrame!=f)
@@ -3752,6 +3752,8 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.call/eh",FKL_ERR_TOOFEWARG,exe);
 	}
 	fklNiResBp(&ap,stack);
+
+	ap=fklNiSetBp(ap,stack);
 	if(errSymbolLists.top)
 	{
 		FklVMframe* sf=exe->frames;
@@ -3769,7 +3771,7 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		FKL_ASSERT(t);
 		c->errorHandlers=t;
 		c->bp=ap;
-		c->top=stack->bps.top;
+		//c->top=stack->bps.top;
 		fklCallObj(proc,nf,exe);
 	}
 	else
@@ -3778,7 +3780,6 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		fklUninitPtrStack(&errHandlers);
 		fklTailCallObj(proc,exe->frames,exe);
 	}
-	fklNiSetBp(ap,stack);
 	fklNiEnd(&ap,exe->stack);
 #undef GET_PROC
 #undef GET_LIST
@@ -3823,7 +3824,7 @@ void builtin_apply(FKL_DL_PROC_ARGL)
 		fklUninitPtrStack(&stack2);
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.apply",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
-	fklNiSetBp(ap,stack);
+	ap=fklNiSetBp(ap,stack);
 	while(!fklIsPtrStackEmpty(&stack2))
 	{
 		FklVMvalue* t=fklPopPtrStack(&stack2);
@@ -3850,7 +3851,7 @@ typedef struct
 	size_t i;
 	size_t len;
 	size_t num;
-	size_t ap;
+	uint32_t ap;
 }MapCtx;
 
 #define K_MAP_PATTERN(K_FUNC,CUR_PROCESS,RESULT_PROCESS,NEXT_PROCESS) {MapCtx* mapctx=(MapCtx*)ctx;\
@@ -3859,14 +3860,12 @@ typedef struct
 	size_t argNum=mapctx->num;\
 	FklVMstack* stack=exe->stack;\
 	FklVMframe* frame=exe->frames;\
-	if(s==FKL_CC_OK)\
-		fklNiSetTp(exe->stack);\
-	else if(s==FKL_CC_RE)\
+	if(s==FKL_CC_RE)\
 	{\
 		FklVMvalue* result=fklGetTopValue(exe->stack);\
 		RESULT_PROCESS\
 		NEXT_PROCESS\
-		fklNiResTp(exe->stack);\
+		fklDropTop(exe->stack);\
 		mapctx->i++;\
 	}\
 	if(mapctx->i<len)\
@@ -3880,7 +3879,6 @@ typedef struct
 		}\
 		return fklCallInDlproc(mapctx->proc,argNum,mapctx->cars->u.vec->base,frame,exe,(K_FUNC),mapctx,sizeof(MapCtx));\
 	}\
-	fklNiPopTp(stack);\
 	fklNiReturn(*mapctx->r,&mapctx->ap,stack);\
 	fklNiEnd(&mapctx->ap,stack);}
 
@@ -3970,16 +3968,17 @@ typedef struct
 	FklVMvalue* obj;
 	FklVMvalue* proc;
 	FklVMvalue* list;
-	size_t ap;
+	uint32_t ap;
 }MemberCtx;
 
 static void k_member(K_FUNC_ARGL)
 {
 	MemberCtx* memberctx=(MemberCtx*)ctx;
 	FklVMstack* stack=exe->stack;
-	if(s==FKL_CC_OK)
-		fklNiSetTp(stack);
-	else if(s==FKL_CC_RE)
+	//if(s==FKL_CC_OK)
+	//	fklNiSetTp(stack);
+	//else
+	if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(stack);
 		if(result!=FKL_VM_NIL)
@@ -3989,7 +3988,8 @@ static void k_member(K_FUNC_ARGL)
 		}
 		else
 			memberctx->list=memberctx->list->u.pair->cdr;
-		fklNiResTp(stack);
+		fklDropTop(stack);
+		//fklNiResTp(stack);
 	}
 	if(memberctx->list!=FKL_VM_NIL)
 	{
@@ -3998,7 +3998,7 @@ static void k_member(K_FUNC_ARGL)
 				,2,arglist
 				,exe->frames,exe,k_member,memberctx,sizeof(MemberCtx));
 	}
-	fklNiPopTp(stack);
+	//fklNiPopTp(stack);
 	fklNiReturn(*memberctx->r,&memberctx->ap,stack);
 	fklNiEnd(&memberctx->ap,stack);
 }
@@ -4040,16 +4040,17 @@ typedef struct
 	FklVMvalue** r;
 	FklVMvalue* proc;
 	FklVMvalue* list;
-	size_t ap;
+	uint32_t ap;
 }MempCtx;
 
 static void k_memp(K_FUNC_ARGL)
 {
 	MempCtx* mempctx=(MempCtx*)ctx;
 	FklVMstack* stack=exe->stack;
-	if(s==FKL_CC_OK)
-		fklNiSetTp(stack);
-	else if(s==FKL_CC_RE)
+	//if(s==FKL_CC_OK)
+	//	fklNiSetTp(stack);
+	//else
+	if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(stack);
 		if(result!=FKL_VM_NIL)
@@ -4059,7 +4060,8 @@ static void k_memp(K_FUNC_ARGL)
 		}
 		else
 			mempctx->list=mempctx->list->u.pair->cdr;
-		fklNiResTp(stack);
+		fklDropTop(stack);
+		//fklNiResTp(stack);
 	}
 	if(mempctx->list!=FKL_VM_NIL)
 	{
@@ -4067,7 +4069,7 @@ static void k_memp(K_FUNC_ARGL)
 				,1,&mempctx->list->u.pair->car
 				,exe->frames,exe,k_memp,mempctx,sizeof(MempCtx));
 	}
-	fklNiPopTp(stack);
+	//fklNiPopTp(stack);
 	fklNiReturn(*mempctx->r,&mempctx->ap,stack);
 	fklNiEnd(&mempctx->ap,stack);
 }
@@ -4099,16 +4101,17 @@ typedef struct
 	FklVMvalue** cur;
 	FklVMvalue* proc;
 	FklVMvalue* list;
-	size_t ap;
+	uint32_t ap;
 }FilterCtx;
 
 static void k_filter(K_FUNC_ARGL)
 {
 	FilterCtx* filterctx=(FilterCtx*)ctx;
 	FklVMstack* stack=exe->stack;
-	if(s==FKL_CC_OK)
-		fklNiSetTp(stack);
-	else if(s==FKL_CC_RE)
+	//if(s==FKL_CC_OK)
+	//	fklNiSetTp(stack);
+	//else
+	if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(stack);
 		if(result!=FKL_VM_NIL)
@@ -4118,7 +4121,8 @@ static void k_filter(K_FUNC_ARGL)
 			filterctx->cur=&(*filterctx->cur)->u.pair->cdr;
 		}
 		filterctx->list=filterctx->list->u.pair->cdr;
-		fklNiResTp(stack);
+		fklDropTop(stack);
+		//fklNiResTp(stack);
 	}
 	if(filterctx->list!=FKL_VM_NIL)
 	{
@@ -4126,7 +4130,7 @@ static void k_filter(K_FUNC_ARGL)
 				,1,&filterctx->list->u.pair->car
 				,exe->frames,exe,k_filter,filterctx,sizeof(FilterCtx));
 	}
-	fklNiPopTp(stack);
+	//fklNiPopTp(stack);
 	fklNiReturn(*filterctx->r,&filterctx->ap,stack);
 	fklNiEnd(&filterctx->ap,stack);
 }

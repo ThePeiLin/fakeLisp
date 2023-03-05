@@ -6,20 +6,20 @@
 extern "C"{
 #endif
 
-FklVMvalue* fklNiGetArg(size_t* ap,FklVMstack*);
-FklVMvalue* fklNiPopTop(size_t* ap,FklVMstack*);
-void fklNiReturn(FklVMvalue*,size_t* ap,FklVMstack*);
-void fklNiSetBp(uint64_t nbp,FklVMstack* s);
-int fklNiResBp(size_t* ap,FklVMstack*);
-void fklNiSetTp(FklVMstack*);
-void fklNiResTp(FklVMstack*);
-void fklNiPopTp(FklVMstack*);
-void fklNiEnd(size_t* ap,FklVMstack*);
-void fklNiBegin(size_t* ap,FklVMstack*);
+FklVMvalue* fklNiGetArg(uint32_t* ap,FklVMstack*);
+void fklNiReturn(FklVMvalue*,uint32_t* ap,FklVMstack*);
+void fklNiSetBpWithTp(FklVMstack* s);
+uint32_t fklNiSetBp(uint32_t nbp,FklVMstack* s);
+int fklNiResBp(uint32_t* ap,FklVMstack*);
+//void fklNiSetTp(FklVMstack*);
+//void fklNiResTp(FklVMstack*);
+//void fklNiPopTp(FklVMstack*);
+void fklNiEnd(uint32_t* ap,FklVMstack*);
+void fklNiBegin(uint32_t* ap,FklVMstack*);
 void fklNiDoSomeAfterSetLoc(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
 void fklNiDoSomeAfterSetRef(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
 #define FKL_NI_BEGIN(EXE) FklVMstack* stack=(EXE)->stack;\
-size_t ap=0;\
+uint32_t ap=0;\
 fklNiBegin(&ap,stack);
 #define FKL_NI_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
 #define FKL_NI_CHECK_REST_ARG(PAP,STACK,ERR_INFO,EXE) if(fklNiResBp((PAP),(STACK)))\

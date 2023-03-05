@@ -323,10 +323,10 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				if(r)
 				{
 					FklVMstack* stack=anotherVM->stack;
-					stack->tps.top=0;
+					//stack->tps.top=0;
 					stack->tp=0;
 					stack->bp=0;
-					stack->bps.top=0;
+					//stack->bps.top=0;
 					delete_another_frame(anotherVM,&mainframe);
 				}
 				else

@@ -105,29 +105,29 @@ inline double fklGetDouble(const FklVMvalue* p)
 		:p->u.f64;
 }
 
-FklVMvalue* fklPopVMstack(FklVMstack* stack)
-{
-	if(!(stack->tp>stack->bp))
-		return NULL;
-	FklVMvalue* tmp=fklGetTopValue(stack);
-	stack->tp-=1;
-	return tmp;
-}
+//FklVMvalue* fklPopVMstack(FklVMstack* stack)
+//{
+//	if(!(stack->tp>stack->bp))
+//		return NULL;
+//	FklVMvalue* tmp=fklGetTopValue(stack);
+//	stack->tp-=1;
+//	return tmp;
+//}
 
-FklVMvalue* fklTopGet(FklVMstack* stack)
-{
+//FklVMvalue* fklTopGet(FklVMstack* stack)
+//{
 //	pthread_rwlock_wrlock(&stack->lock);
-	FklVMvalue* r=NULL;
-	if(!(stack->tp>stack->bp))
-		r=NULL;
-	else
-	{
-		FklVMvalue* tmp=fklGetTopValue(stack);
-		r=tmp;
-	}
+//	FklVMvalue* r=NULL;
+//	if(!(stack->tp>stack->bp))
+//		r=NULL;
+//	else
+//	{
+//		FklVMvalue* tmp=fklGetTopValue(stack);
+//		r=tmp;
+//	}
 //	pthread_rwlock_unlock(&stack->lock);
-	return r;
-}
+//	return r;
+//}
 
 void fklDecTop(FklVMstack* stack)
 {
@@ -150,10 +150,10 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
-	tmp->tps=(FklUintStack)FKL_STACK_INIT;
-	fklInitUintStackWithStack(&tmp->tps,&stack->tps);
-	tmp->bps=(FklUintStack)FKL_STACK_INIT;
-	fklInitUintStackWithStack(&tmp->bps,&stack->bps);
+	//tmp->tps=(FklUintStack)FKL_STACK_INIT;
+	//fklInitUintStackWithStack(&tmp->tps,&stack->tps);
+	//tmp->bps=(FklUintStack)FKL_STACK_INIT;
+	//fklInitUintStackWithStack(&tmp->bps,&stack->bps);
 //	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }

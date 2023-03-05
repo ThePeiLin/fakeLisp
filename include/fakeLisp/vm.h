@@ -257,10 +257,10 @@ void fklDoFinalizeCompoundFrame(FklVMframe* frame);
 
 typedef struct
 {
-	FklUintStack bps;
-	FklUintStack tps;
-	uint64_t volatile tp;
-	uint64_t bp;
+	//FklUintStack bps;
+	//FklUintStack tps;
+	uint32_t volatile tp;
+	uint32_t bp;
 	size_t size;
 	FklVMvalue** values;
 }FklVMstack;
@@ -436,13 +436,12 @@ double fklGetDouble(const FklVMvalue* p);
 FklHashTable* fklCreateValueSetHashtable(void);
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 
-typedef struct FklPreEnv FklPreEnv;
 FklHashTable* fklCreateLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 
-FklVMstack* fklCopyStack(FklVMstack*);
-FklVMvalue* fklPopVMstack(FklVMstack*);
+//FklVMstack* fklCopyStack(FklVMstack*);
+//FklVMvalue* fklPopVMstack(FklVMstack*);
 
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
@@ -507,7 +506,10 @@ void fklAddToGC(FklVMvalue*,FklVM*);
 void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);
 FklVMvalue* fklCreateTrueValue(void);
 FklVMvalue* fklCreateNilValue(void);
+
+void fklDropTop(FklVMstack* s);
 FklVMvalue* fklGetTopValue(FklVMstack*);
+FklVMvalue* fklPopTopValue(FklVMstack*);
 FklVMvalue* fklGetValue(FklVMstack*,int32_t);
 FklVMvalue* fklGetVMpairCar(FklVMvalue*);
 FklVMvalue* fklGetVMpairCdr(FklVMvalue*);
@@ -575,9 +577,9 @@ void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
 
-FklVMvalue* fklPopGetAndMark(FklVMstack* stack,FklVMgc*);
-FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMgc* gc);
-FklVMvalue* fklTopGet(FklVMstack* stack);
+//FklVMvalue* fklPopGetAndMark(FklVMstack* stack,FklVMgc*);
+//FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMgc* gc);
+//FklVMvalue* fklTopGet(FklVMstack* stack);
 void fklDecTop(FklVMstack* s);
 FklVMvalue* fklCreateVMvalueToStack(FklValueType
 		,void* p

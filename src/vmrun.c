@@ -608,7 +608,7 @@ void fklCallInDlproc(FklVMvalue* proc
 	DlprocFrameContext* c=(DlprocFrameContext*)frame->u.o.data;
 	c->state=DLPROC_CCC;
 	initVMcCC(&c->ccc,kFunc,ctx,size);
-	fklNiSetBp(stack->tp,stack);
+	fklNiSetBpWithTp(stack);
 	for(size_t i=argNum;i>0;i--)
 		fklPushVMvalue(arglist[i-1],stack);
 	switch(proc->type)
@@ -922,9 +922,14 @@ static void inline B_push_proc(FklVM* exe,FklVMframe* frame)
 	fklAddCompoundFrameCp(frame,sizeOfProc);
 }
 
+void inline fklDropTop(FklVMstack* s)
+{
+	s->tp-=s->tp>0;
+}
+
 static void inline B_drop(FklVM* exe,FklVMframe* frame)
 {
-	exe->stack->tp-=exe->stack->tp>0;
+	fklDropTop(exe->stack);
 }
 
 static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)
@@ -965,9 +970,7 @@ static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 
 static void inline B_set_bp(FklVM* exe,FklVMframe* frame)
 {
-	FklVMstack* stack=exe->stack;
-	fklNiSetBp(stack->tp,stack);
-	stack->bp=stack->tp;
+	fklNiSetBpWithTp(exe->stack);
 }
 
 //static void inline B_res_tp(FklVM* exe,FklVMframe* frame)
@@ -982,12 +985,17 @@ static void inline B_set_bp(FklVM* exe,FklVMframe* frame)
 //	fklNiPopTp(stack);
 //}
 
+inline FklVMvalue* fklPopTopValue(FklVMstack* s)
+{
+	return s->values[--s->tp];
+}
+
 static void inline B_res_bp(FklVM* exe,FklVMframe* frame)
 {
 	FklVMstack* stack=exe->stack;
 	if(stack->tp>stack->bp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.res-bp",FKL_ERR_TOOMANYARG,exe);
-	stack->bp=fklPopUintStack(&stack->bps);
+	stack->bp=FKL_GET_FIX(fklPopTopValue(stack));
 }
 
 static void inline B_call(FklVM* exe,FklVMframe* frame)
@@ -1274,15 +1282,17 @@ static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 			fklDestroyVMdll(dll);
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
 		}
-		fklNiSetTp(exe->stack);
+		uint32_t tp=exe->stack->tp;
+		//fklNiSetTp(exe->stack);
 		FklVMvalue* dllv=fklCreateVMvalueToStack(FKL_TYPE_DLL,dll,exe);
 		fklInitVMdll(dllv,exe);
 		plib->loc=initFunc(exe,dllv,&plib->count);
 		plib->imported=1;
 		plib->proc=dllv;
 		free(realpath);
-		fklNiResTp(exe->stack);
-		fklNiPopTp(exe->stack);
+		exe->stack->tp=tp;
+		//fklNiResTp(exe->stack);
+		//fklNiPopTp(exe->stack);
 	}
 	exe->importingLib=plib;
 	fklAddCompoundFrameCp(frame,sizeof(libId));
@@ -1420,10 +1430,10 @@ FklVMstack* fklCreateVMstack(uint32_t size)
 	tmp->bp=0;
 	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
 	FKL_ASSERT(tmp->values);
-	tmp->tps=(FklUintStack)FKL_STACK_INIT;
-	fklInitUintStack(&tmp->tps,32,16);
-	tmp->bps=(FklUintStack)FKL_STACK_INIT;
-	fklInitUintStack(&tmp->bps,32,16);
+	//tmp->tps=(FklUintStack)FKL_STACK_INIT;
+	//fklInitUintStack(&tmp->tps,32,16);
+	//tmp->bps=(FklUintStack)FKL_STACK_INIT;
+	//fklInitUintStack(&tmp->bps,32,16);
 	return tmp;
 }
 
@@ -1862,8 +1872,8 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 void fklDestroyVMstack(FklVMstack* stack)
 {
 //	pthread_rwlock_destroy(&stack->lock);
-	fklUninitUintStack(&stack->bps);
-	fklUninitUintStack(&stack->tps);
+	//fklUninitUintStack(&stack->bps);
+	//fklUninitUintStack(&stack->tps);
 	free(stack->values);
 	free(stack);
 }

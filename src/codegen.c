@@ -1854,6 +1854,7 @@ BC_PROCESS(_when_exp_bc_process)
 	if(retval->bc->size)
 		bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
 	fklReCodeLntCat(cond,retval);
+	fklDestroyByteCodelnt(cond);
 	bcBclAppendToBcl(&setTp,retval,fid,line);
 	bclBcAppendToBcl(retval,&popTp,fid,line);
 	return retval;
@@ -1883,6 +1884,7 @@ BC_PROCESS(_unless_exp_bc_process)
 	if(retval->bc->size)
 		bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
 	fklReCodeLntCat(cond,retval);
+	fklDestroyByteCodelnt(cond);
 	bcBclAppendToBcl(&setTp,retval,fid,line);
 	bclBcAppendToBcl(retval,&popTp,fid,line);
 	return retval;

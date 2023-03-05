@@ -4795,20 +4795,19 @@ void builtin_href1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-//void builtin_hash_clear(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMframe* frame=exe->frames;
-//	FklVMvalue* ht=fklNiGetArg(&ap,stack);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-clear!",FKL_ERR_TOOMANYARG,exe);
-//	if(!ht)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-clear!",FKL_ERR_TOOFEWARG,exe);
-//	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-clear!",exe);
-//	fklClearVMhashTable(ht->u.hash,exe->gc);
-//	fklNiReturn(ht,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
+void builtin_hash_clear(FKL_DL_PROC_ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* ht=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-clear!",FKL_ERR_TOOMANYARG,exe);
+	if(!ht)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-clear!",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-clear!",exe);
+	fklClearVMhashTable(ht->u.hash,exe->gc);
+	fklNiReturn(ht,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
 
 void builtin_set_href(FKL_DL_PROC_ARGL)
 {
@@ -5212,6 +5211,7 @@ static const struct SymbolFuncStruct
 	{"href!",                 builtin_href1,                   },
 	{"set-href!",             builtin_set_href,                },
 	{"set-href*!",            builtin_set_href8,               },
+	{"hash-clear!",           builtin_hash_clear,              },
 	{"hash->list",            builtin_hash_to_list,            },
 	{"hash-keys",             builtin_hash_keys,               },
 	{"hash-values",           builtin_hash_values,             },

@@ -12,84 +12,67 @@
    make-queue
    )
 
-  (define make-queue
-    (lambda elems
-      (define front (copy elems))
-      (define rear (tail front))
-      `#(queue ~front
-               ~rear)))
+  (define (make-queue,elems)
+    (define front (copy elems))
+    (define rear (tail front))
+    `#(queue ~front
+             ~rear))
 
-  (define type
-    (lambda (q)
-      (vref q 0)))
+  (define (type q)
+    (vref q 0))
 
-  (define queue?
-    (lambda (queue)
-      (and (vector? queue)
-           (eqv (length queue) 3)
-           (eq (type queue) 'queue))))
+  (define (queue? queue)
+    (and (vector? queue)
+         (eqv (length queue) 3)
+         (eq (type queue) 'queue)))
 
-  (define queue-base
-    (lambda (queue)
-      (vref queue 1)))
+  (define (queue-base queue)
+    (vref queue 1))
 
-  (define queue-front
-    (lambda (queue)
-      (car (queue-base queue))))
+  (define (queue-front queue)
+    (car (queue-base queue)))
 
-  (define q-tail
-    (lambda (q)
-      (vref q 2)))
+  (define (q-tail q)
+    (vref q 2))
 
-  (define queue-rear
-    (lambda (queue)
-      (car (q-tail queue))))
+  (define (queue-rear queue)
+    (car (q-tail queue)))
 
-    (define set-rear!
-    (lambda (q r)
-      (set-vref! q 2 r)))
+  (define (set-rear! q r)
+    (set-vref! q 2 r))
 
-  (define set-new-tail!
-    (lambda (q n)
-      (set-cdr! (q-tail q) n)))
+  (define (set-new-tail! q n)
+    (set-cdr! (q-tail q) n))
 
-  (define set-base!
-    (lambda (q f)
-      (set-vref! q 1 f)))
+  (define (set-base! q f)
+    (set-vref! q 1 f))
 
-  (define queue-empty?
-    (lambda (queue)
-      (null (queue-base queue))))
+  (define (queue-empty? queue)
+    (null (queue-base queue)))
 
-  (define queue-length
-    (lambda (queue)
-      (length (queue-base queue))))
+  (define (queue-length queue)
+    (length (queue-base queue)))
 
-  (define enqueue!
-    (lambda (q e)
-      (define n `(~e))
-      (cond
-        [(queue-empty? q)
-         (set-base! q n)]
-        [1 (set-new-tail! q n)])
+  (define (enqueue! q e)
+    (define n `(~e))
+    (if (queue-empty? q)
+      (set-base! q n)
+      (set-new-tail! q n))
+    (set-rear! q n))
+
+  (define (queue-push! q e)
+    (define n (cons e (queue-base q)))
+    (set-base! q n)
+    (when (null (q-tail q))
       (set-rear! q n)))
 
-  (define queue-push!
-    (lambda (q e)
-      (define n (cons e (queue-base q)))
-      (set-base! q n)
-      (cond
-        [(null (q-tail q))
-         (set-rear! q n)])))
-
-  (define queue-pop!
-    (lambda (q)
-      (define r (queue-front q))
-      (set-base! q (cdr (queue-base q)))
-      (cond
-        [(queue-empty? q)
-         (set-rear! q nil)])
-      r))
+  (define (queue-pop! q)
+    (define r (queue-front q))
+    (set-base! q (cdr (queue-base q)))
+    (when
+      (queue-empty? q)
+      (set-rear! q nil))
+    r)
 
   (define dequeue! queue-pop!)
   )

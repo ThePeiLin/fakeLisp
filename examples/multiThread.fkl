@@ -1,9 +1,9 @@
 (define ch (chanl 1))
 
 (go (lambda (ch)
-      (cond ((= (recv ch) "I'm your father!")
-             (princ "Thread#1:Noooooooo!\n")
-             (send nil ch))))
+      (when (= (recv ch) "I'm your father!")
+        (princ "Thread#1:Noooooooo!\n")
+        (send nil ch)))
     ch)
 (princ "Thread#0:I'm your father!\n")
 (send "I'm your father!" ch)

@@ -1,20 +1,18 @@
-(define p
-  (lambda (n)
-    (define w
-      (lambda (a b)
-        (cond [(or (eq b 0) (eq b (1+ a))) 0]
-              [(eq a 1) 1]
-              [1 (+ (w (-1+ a) (-1+ b))
-                    (w (-1+ a) b))])))
-    (define x
-      (lambda (n a)
-        (princ (w n a))
-        (princ #\\s)
-        (if (not (eq n a)) (x n (1+ a)))))
-    (define p-iter
-      (lambda (count)
-        (x count 1)
-        (princ #\\n)
-        (if (< count n) (p-iter (1+ count)))))
-    (p-iter 1)))
+(define (p n)
+  (define (w a b)
+    (cond [(or (eq b 0) (eq b (1+ a))) 0]
+      [(eq a 1) 1]
+      [1 (+ (w (-1+ a) (-1+ b))
+            (w (-1+ a) b))]))
+
+  (define (x n a)
+    (princ (w n a))
+    (princ #\\s)
+    (if (not (eq n a)) (x n (1+ a))))
+
+  (define (p-iter count)
+    (x count 1)
+    (princ #\\n)
+    (if (< count n) (p-iter (1+ count))))
+  (p-iter 1))
 (p 9)

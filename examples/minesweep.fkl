@@ -13,29 +13,7 @@
   `(- 0 ~VALUE))
 
 (define (neq a b) (not (eqv a b)))
-(define (resl objlist)
-  (if (null objlist)
-    objlist
-    (let loop-tmplist [(tmplist objlist)
-                       (tmp nil)]
-      (if (null (cdr tmplist))
-        (cons (car tmplist) tmp)
-        (loop-tmplist (cdr tmplist)
-                      (cons (car tmplist) tmp))))))
-(define (print,ls)
-  (let print-list [(tls ls)]
-    (cond [(null (cdr tls)) (princ (car tls))]
-          [1 (princ (car tls)) (print-list (cdr tls))])))
 
-(define (fprint fp,ls)
-  (let iter ((tls ls))
-    (cond [(null (cdr tls)) (princ (car tls) fp)]
-          [1 (princ (car tls) fp) (iter (cdr tls))])))
-
-(define (debug-print file,ls)
-  (let print-list ((tls ls))
-    (cond [(null (cdr tls)) (princ (car tls) file)]
-          [1 (princ (car tls) file) (print-list (cdr tls))])))
 (define (new-term)
   (princ "\033[?1049h"))
 
@@ -163,16 +141,16 @@
          (and (eqv (car (vref g-map (ARRY (- x xt) (- y yt)))) 1)
               (neq (cdr (vref g-map (ARRY (- x xt) (- y yt)))) 9))))
   (let loop-yt ((yt tier))
-    (cond ((and (> yt (-1+ (NEG tier))) (not ishave))
-           (let loop-xt ((xt tier))
-             (cond ((and (> xt (-1+ (NEG tier))) (not ishave))
-                    (if (sub-have-open g-map row line x y xt yt)
-                      (setq ishave 1)
-                      (loop-xt (- xt (if (or (eqv yt tier)
-                                             (eqv yt (NEG tier)))
-                                       1
-                                       (* tier 2))))))))
-           (loop-yt (-1+ yt)))))
+    (when (and (> yt (-1+ (NEG tier))) (not ishave))
+      (let loop-xt ((xt tier))
+        (when (and (> xt (-1+ (NEG tier))) (not ishave))
+          (if (sub-have-open g-map row line x y xt yt)
+            (setq ishave 1)
+            (loop-xt (- xt (if (or (eqv yt tier)
+                                   (eqv yt (NEG tier)))
+                             1
+                             (* tier 2)))))))
+      (loop-yt (-1+ yt))))
   ishave)
 
 (define (print-map g-map row line xl yl bomb-num)
@@ -186,41 +164,42 @@
     (print "mines:" bomb-num))
   (princ "\033[1;1H")
   (let loop-yp ((yp 0))
-    (cond ((<= yp (1+ line))
-           (let loop-xp ((xp 0))
-             (define light (if (and (eqv xp (-1+ xl))
-                                    (eqv yp (-1+ yl)))
-                             46
-                             0))
-             (define place (ARRY xp yp))
-             (cond ((<= xp (1+ row))
-                    (let ((front (car (vref g-map place)))
-                          (back (cdr (vref g-map place))))
-                      (case (front front)
-                        ((0) (cond ((eqv back 0)
-                                    (print "\033[0m\033["
-                                           light
-                                           "m."))
-                                   ((< back 9)
-                                    (print "\033[0m\033["
-                                           light
-                                           "m" back))
-                                   (1 (print "\033[0m\033["
-                                             light
-                                             "m*"))))
-                        ((1) (print "\033[0m\033["
-                                    light
-                                    "m="))
-                        ((2) (print "\033[0m\033["
-                                    light
-                                    "m!"))
-                        ((3) (print "\033[0m\033["
-                                    light
-                                    "m?"))
-                        ((4) (princ "\033[0m\033[44m#"))))
-                    (loop-xp (1+ xp)))))
-           (princ "\n")
-           (loop-yp (1+ yp)))))
+    (when (<= yp (1+ line))
+      (let loop-xp ((xp 0))
+        (define light (if (and (eqv xp (-1+ xl))
+                               (eqv yp (-1+ yl)))
+                        46
+                        0))
+        (define place (ARRY xp yp))
+        (when (<= xp (1+ row))
+          (let ((front (car (vref g-map place)))
+                (back (cdr (vref g-map place))))
+            (case (front front)
+              ((0) (cond
+                     [(eqv back 0)
+                      (print "\033[0m\033["
+                             light
+                             "m.")]
+                     [(< back 9)
+                      (print "\033[0m\033["
+                             light
+                             "m" back)]
+                     [1 (print "\033[0m\033["
+                               light
+                               "m*")]))
+              ((1) (print "\033[0m\033["
+                          light
+                          "m="))
+              ((2) (print "\033[0m\033["
+                          light
+                          "m!"))
+              ((3) (print "\033[0m\033["
+                          light
+                          "m?"))
+              ((4) (princ "\033[0m\033[44m#"))))
+          (loop-xp (1+ xp))))
+      (princ "\n")
+      (loop-yp (1+ yp))))
   (print-bomb-num))
 
 (define (main g-map line row bombnum)
@@ -238,12 +217,13 @@
     (define place (ARRY (-1+ xl) (-1+ yl)))
     (define front (car (vref g-map place)))
     (define back (cdr (vref g-map place)))
-    (cond ((eqv front 1)
-           (DEC bombnum)
-           (if (eqv back 9) (DEC rbombnum)))
-          ((eqv front 2)
-           (INC bombnum)
-           (if (eqv back 9) (INC rbombnum))))
+    (cond
+      [(eqv front 1)
+       (DEC bombnum)
+       (if (eqv back 9) (DEC rbombnum))]
+      [(eqv front 2)
+       (INC bombnum)
+       (if (eqv back 9) (INC rbombnum))])
     (set-vref! g-map place
                (cons (if (eqv front 3)
                        1
@@ -258,40 +238,41 @@
     (define place (ARRY x y))
     (define front (car (vref g-map place)))
     (define back (cdr (vref g-map place)))
-    (cond ((eqv back 9)
-           (setq is-game-over 1))
-          ((neq back 0)
-           (set-vref! g-map place
-                      (cons 0 back)))
-          (1
-           (set-vref! g-map place (cons 0 back))
-           (let loop-tier ((tier 1))
-             (cond ((can-open-block g-map row line x y tier)
-                    (let loop-yt ((yt tier))
-                      (cond ((> yt (-1+ (NEG tier)))
-                             (let loop-xt ((xt tier))
-                               (cond ((> xt (-1+ (NEG tier)))
-                                      (cond ((can-open-this-block g-map row line x y xt yt)
-                                             (let ((place (ARRY (- x xt) (- y yt))))
-                                               (define front (car (vref g-map place)))
-                                               (define back (cdr (vref g-map place)))
-                                               (set-vref! g-map place
-                                                          (cons 0 back)))))
-                                      (loop-xt (- xt (if (or (eqv yt tier)
-                                                             (eqv yt (NEG tier)))
-                                                       1
-                                                       (* tier 2)))))))
-                             (loop-yt (-1+ yt)))))
-                    (loop-tier (+ tier (if (have-unopened-block g-map row line x y tier) 0 1)))))))))
+    (cond
+      [(eqv back 9)
+       (setq is-game-over 1)]
+      [(neq back 0)
+       (set-vref! g-map place
+                  (cons 0 back))]
+      [1
+       (set-vref! g-map place (cons 0 back))
+       (let loop-tier ((tier 1))
+         (when (can-open-block g-map row line x y tier)
+           (let loop-yt ((yt tier))
+             (when (> yt (-1+ (NEG tier)))
+               (let loop-xt ((xt tier))
+                 (when (> xt (-1+ (NEG tier)))
+                   (when (can-open-this-block g-map row line x y xt yt)
+                     (let ((place (ARRY (- x xt) (- y yt))))
+                       (define front (car (vref g-map place)))
+                       (define back (cdr (vref g-map place)))
+                       (set-vref! g-map place
+                                  (cons 0 back))))
+                   (loop-xt (- xt (if (or (eqv yt tier)
+                                          (eqv yt (NEG tier)))
+                                    1
+                                    (* tier 2))))))
+               (loop-yt (-1+ yt))))
+           (loop-tier (+ tier (if (have-unopened-block g-map row line x y tier) 0 1)))))]))
 
   (define (open-all-block)
     (define num-of-block (* (+ line 2) (+ row 2)))
     (let loop-i ((i 0))
-      (cond ((< i num-of-block)
-             (let ((back (cdr (vref g-map i)))
-                   (front (car (vref g-map i))))
-               (if (neq front 4) (set-vref! g-map i (cons 0 back))))
-             (loop-i (1+ i))))))
+      (when (< i num-of-block)
+        (let ((back (cdr (vref g-map i)))
+              (front (car (vref g-map i))))
+          (if (neq front 4) (set-vref! g-map i (cons 0 back))))
+        (loop-i (1+ i)))))
   (print-map g-map row line xl yl bombnum)
   (let loop-ch ((ch (getch)))
     (case (ch ch)
@@ -303,14 +284,15 @@
       ((#\s) (open-block))
       ((#\q) (quit)))
     (print-map g-map row line xl yl bombnum)
-    (cond (is-game-over (open-all-block)
-                      (print-map g-map row line xl yl bombnum)
-                      (if (eqv ch #\q)
-                        (print "\033[" (// rline 2) ";" (+ rrow 2) "H")
-                        (print "\033[" (// rline 2) ";" (+ rrow 2) "H" "You fail!"))))
-    (cond ((eqv 0 rbombnum)
-           (print "\033[" (// rline 2) ";" (+ rrow 2) "H" "You win!")
-           (setq is-game-over 1)))
+    (when is-game-over
+      (open-all-block)
+      (print-map g-map row line xl yl bombnum)
+      (if (eqv ch #\q)
+        (print "\033[" (// rline 2) ";" (+ rrow 2) "H")
+        (print "\033[" (// rline 2) ";" (+ rrow 2) "H" "You fail!")))
+    (when (eqv 0 rbombnum)
+      (print "\033[" (// rline 2) ";" (+ rrow 2) "H" "You win!")
+      (setq is-game-over 1))
     (if (and (not is-game-over) (neq ch #\\4)) (loop-ch (getch)))))
 
 (new-term)

@@ -8,7 +8,7 @@
    cadaar cadadr caddar cadddr
    cdaaar cdaadr cdadar cdaddr
    cddaar cddadr cdddar cddddr
-   fprint fprin1
+   fprin1
    square min max
    merge-sort! merge-sort
    (defmacro (let d,b)
@@ -159,13 +159,6 @@
   (define (cdddar a) (cdr (cdr (cdr (car a)))))
 
   (define (cddddr a) (cdr (cdr (cdr (cdr a)))))
-
-  (define (fprint f,l)
-    (define (p-iter c)
-      (when c
-        (princ (car c) f)
-        (p-iter (cdr c))))
-    (p-iter l))
 
   (define (fprin1 f,l)
     (define (w-iter c)

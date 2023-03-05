@@ -12,52 +12,38 @@
    stack-base
    )
 
-  (define stack-base
-    (lambda (s)
-      (vref s 1)))
+  (define (stack-base s) (vref s 1))
 
-  (define set-base!
-    (lambda (s b)
-      (set-vref! s 1 b)))
+  (define (set-base! s b) (set-vref! s 1 b))
 
-  (define type
-    (lambda (s)
-      (vref s 0)))
+  (define (type s) (vref s 0))
 
-  (define make-stack
-    (lambda elems
-      `#(stack ~(reverse elems))))
+  (define (make-stack,elems)
+    `#(stack ~(reverse elems)))
 
-  (define stack->list
-    (lambda (stack)
-      (copy (stack-base stack))))
+  (define (stack->list stack)
+    (copy (stack-base stack)))
 
-  (define stack?
-    (lambda (stack)
-      (and (vector? stack)
-           (eq (type stack) 'stack)
-           (eqv (length stack) 2))))
+  (define (stack? stack)
+    (and (vector? stack)
+         (eq (type stack) 'stack)
+         (eqv (length stack) 2)))
 
-  (define stack-push!
-    (lambda (s e)
-      (set-base! s (cons e (stack-base s)))
-      e))
+  (define (stack-push! s e)
+    (set-base! s (cons e (stack-base s)))
+    e)
 
-  (define stack-top
-    (lambda (s)
-      (car (stack-base s))))
+  (define (stack-top s)
+    (car (stack-base s)))
 
-  (define stack-pop!
-    (lambda (s)
-      (define r (stack-top s))
-      (set-base! s (cdr (stack-base s)))
-      r))
+  (define (stack-pop! s)
+    (define r (stack-top s))
+    (set-base! s (cdr (stack-base s)))
+    r)
 
-  (define stack-count
-    (lambda (s)
-      (length (stack-base s))))
+  (define (stack-count s)
+    (length (stack-base s)))
 
-  (define stack-empty?
-    (lambda (s)
-      (null (stack-base s))))
+  (define (stack-empty? s)
+    (null (stack-base s)))
   )

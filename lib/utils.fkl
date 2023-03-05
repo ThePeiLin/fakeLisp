@@ -21,7 +21,7 @@
               (setq
                 vals
                 (map (lambda (sd) (nth 1 sd)) (car b)))
-              `(let ()
+              `(local
                  (define (~d,~args)
                    ~@(cdr b))
                  (~d ~@vals))]
@@ -32,7 +32,7 @@
             (map (lambda (sd) (nth 1 sd)) d))
           `((lambda ~args ~@b) ~@vals)]
          [(null d)
-          `((lambda () ~@b))]
+          `(local ~b)]
          [1 (raise (error "expanding-macro-let"
                           'syntax-error
                           "Wrong type of object behind key word:let\n"))])))
@@ -48,7 +48,7 @@
        (define dfs
          (map (lambda (sd)
                 `(define ~(car sd) ~@(cdr sd))) d))
-       `(let () ~@dfs ~@b)))
+       `(local ~@dfs ~@b)))
 
    (defmacro (case (s v),b)
      (begin

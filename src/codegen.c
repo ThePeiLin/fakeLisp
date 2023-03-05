@@ -304,13 +304,9 @@ BC_PROCESS(_begin_exp_bc_process)
 	if(stack->top)
 	{
 		uint8_t opcodes[]={
-			FKL_OP_SET_TP,
-			FKL_OP_RES_TP,
-			FKL_OP_POP_TP,
+			FKL_OP_DROP,
 		};
-		FklByteCode setTp={1,&opcodes[0]};
-		FklByteCode resTp={1,&opcodes[1]};
-		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode drop={1,&opcodes[0]};
 		FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 		size_t top=stack->top;
 		for(size_t i=0;i<top;i++)
@@ -320,13 +316,11 @@ BC_PROCESS(_begin_exp_bc_process)
 			{
 				fklCodeLntCat(retval,cur);
 				if(i<top-1)
-					bclBcAppendToBcl(retval,&resTp,fid,line);
+					bclBcAppendToBcl(retval,&drop,fid,line);
 			}
 			fklDestroyByteCodelnt(cur);
 		}
 		stack->top=0;
-		bcBclAppendToBcl(&setTp,retval,fid,line);
-		bclBcAppendToBcl(retval,&popTp,fid,line);
 		return retval;
 	}
 	else
@@ -460,21 +454,17 @@ BC_PROCESS(_and_exp_bc_process)
 	if(stack->top)
 	{
 		uint8_t opcodes[]={
-			FKL_OP_SET_TP,
-			FKL_OP_RES_TP,
-			FKL_OP_POP_TP,
+			FKL_OP_DROP,
 		};
 		uint8_t jmpOpcodes[9]={FKL_OP_JMP_IF_FALSE,};
-		FklByteCode setTp={1,&opcodes[0]};
-		FklByteCode resTp={1,&opcodes[1]};
-		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode drop={1,&opcodes[0]};
 		FklByteCode jmpIfFalse={9,jmpOpcodes};
 		FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 		while(!fklIsPtrStackEmpty(stack))
 		{
 			if(retval->bc->size)
 			{
-				bcBclAppendToBcl(&resTp,retval,fid,line);
+				bcBclAppendToBcl(&drop,retval,fid,line);
 				fklSetI64ToByteCode(&jmpOpcodes[1],retval->bc->size);
 				bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
 			}
@@ -482,8 +472,6 @@ BC_PROCESS(_and_exp_bc_process)
 			fklReCodeLntCat(cur,retval);
 			fklDestroyByteCodelnt(cur);
 		}
-		bcBclAppendToBcl(&setTp,retval,fid,line);
-		bclBcAppendToBcl(retval,&popTp,fid,line);
 		return retval;
 	}
 	else
@@ -514,21 +502,17 @@ BC_PROCESS(_or_exp_bc_process)
 	if(stack->top)
 	{
 		uint8_t opcodes[]={
-			FKL_OP_SET_TP,
-			FKL_OP_RES_TP,
-			FKL_OP_POP_TP,
+			FKL_OP_DROP,
 		};
 		uint8_t jmpOpcodes[9]={FKL_OP_JMP_IF_TRUE,};
-		FklByteCode setTp={1,&opcodes[0]};
-		FklByteCode resTp={1,&opcodes[1]};
-		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode drop={1,&opcodes[0]};
 		FklByteCode jmpIfTrue={9,jmpOpcodes};
 		FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 		while(!fklIsPtrStackEmpty(stack))
 		{
 			if(retval->bc->size)
 			{
-				bcBclAppendToBcl(&resTp,retval,fid,line);
+				bcBclAppendToBcl(&drop,retval,fid,line);
 				fklSetI64ToByteCode(&jmpOpcodes[1],retval->bc->size);
 				bcBclAppendToBcl(&jmpIfTrue,retval,fid,line);
 			}
@@ -536,8 +520,6 @@ BC_PROCESS(_or_exp_bc_process)
 			fklReCodeLntCat(cur,retval);
 			fklDestroyByteCodelnt(cur);
 		}
-		bcBclAppendToBcl(&setTp,retval,fid,line);
-		bclBcAppendToBcl(retval,&popTp,fid,line);
 		return retval;
 	}
 	else
@@ -713,13 +695,9 @@ BC_PROCESS(_lambda_exp_bc_process)
 	if(stack->top>1)
 	{
 		uint8_t opcodes[]={
-			FKL_OP_SET_TP,
-			FKL_OP_RES_TP,
-			FKL_OP_POP_TP,
+			FKL_OP_DROP,
 		};
-		FklByteCode setTp={1,&opcodes[0]};
-		FklByteCode resTp={1,&opcodes[1]};
-		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode drop={1,&opcodes[0]};
 		retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 		size_t top=stack->top;
 		for(size_t i=1;i<top;i++)
@@ -729,12 +707,10 @@ BC_PROCESS(_lambda_exp_bc_process)
 			{
 				fklCodeLntCat(retval,cur);
 				if(i<top-1)
-					bclBcAppendToBcl(retval,&resTp,fid,line);
+					bclBcAppendToBcl(retval,&drop,fid,line);
 			}
 			fklDestroyByteCodelnt(cur);
 		}
-		bcBclAppendToBcl(&setTp,retval,fid,line);
-		bclBcAppendToBcl(retval,&popTp,fid,line);
 	}
 	else
 		retval=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
@@ -1570,21 +1546,13 @@ static CODEGEN_FUNC(codegen_qsquote)
 
 BC_PROCESS(_cond_exp_bc_process_0)
 {
-    FklByteCodelnt* retval=NULL;
+	FklByteCodelnt* retval=NULL;
 	FklPtrStack* stack=GET_STACK(context);
-    if(stack->top)
-    {
-        retval=fklPopPtrStack(stack);
-        FklByteCode* setTp=create1lenBc(FKL_OP_SET_TP);
-        FklByteCode* popTp=create1lenBc(FKL_OP_POP_TP);
-        bcBclAppendToBcl(setTp,retval,fid,line);
-        bclBcAppendToBcl(retval,popTp,fid,line);
-        fklDestroyByteCode(setTp);
-        fklDestroyByteCode(popTp);
-    }
-    else
-        retval=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
-    return retval;
+	if(stack->top)
+		retval=fklPopPtrStack(stack);
+	else
+		retval=createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
+	return retval;
 }
 
 BC_PROCESS(_cond_exp_bc_process_1)
@@ -1593,13 +1561,14 @@ BC_PROCESS(_cond_exp_bc_process_1)
 	FklByteCodelnt* prev=stack->base[0];
 	FklByteCodelnt* first=stack->base[1];
 	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
-	FklByteCode* resTp=create1lenBc(FKL_OP_RES_TP);
-	bcBclAppendToBcl(resTp,prev,fid,line);
+	uint8_t dropC[]={FKL_OP_DROP};
+	FklByteCode drop={1,&dropC[0]};
+	bcBclAppendToBcl(&drop,prev,fid,line);
 	FklByteCode* jmp=create9lenBc(FKL_OP_JMP,prev->bc->size);
 	for(size_t i=2;i<stack->top;i++)
 	{
 		FklByteCodelnt* cur=stack->base[i];
-		bclBcAppendToBcl(retval,resTp,fid,line);
+		bclBcAppendToBcl(retval,&drop,fid,line);
 		fklCodeLntCat(retval,cur);
 		fklDestroyByteCodelnt(cur);
 	}
@@ -1613,7 +1582,6 @@ BC_PROCESS(_cond_exp_bc_process_1)
 	fklDestroyByteCodelnt(first);
 	fklDestroyByteCode(jmp);
 	fklDestroyByteCode(jmpIfFalse);
-	fklDestroyByteCode(resTp);
 	return retval;
 }
 
@@ -1622,11 +1590,12 @@ BC_PROCESS(_cond_exp_bc_process_2)
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* first=stack->base[0];
 	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
-	FklByteCode* resTp=create1lenBc(FKL_OP_RES_TP);
+	uint8_t dropC[]={FKL_OP_DROP};
+	FklByteCode drop={1,&dropC[0]};
 	for(size_t i=1;i<stack->top;i++)
 	{
 		FklByteCodelnt* cur=stack->base[i];
-		bclBcAppendToBcl(retval,resTp,fid,line);
+		bclBcAppendToBcl(retval,&drop,fid,line);
 		fklCodeLntCat(retval,cur);
 		fklDestroyByteCodelnt(cur);
 	}
@@ -1639,7 +1608,6 @@ BC_PROCESS(_cond_exp_bc_process_2)
 	}
 	fklReCodeLntCat(first,retval);
 	fklDestroyByteCodelnt(first);
-	fklDestroyByteCode(resTp);
 	return retval;
 }
 
@@ -1856,14 +1824,12 @@ BC_PROCESS(_when_exp_bc_process)
 	FklByteCodelnt* cond=stack->base[0];
 	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 
-	uint8_t singleOp[]={FKL_OP_SET_TP,FKL_OP_RES_TP,FKL_OP_POP_TP};
-	FklByteCode setTp={1,&singleOp[0]};
-	FklByteCode resTp={1,&singleOp[1]};
-	FklByteCode popTp={1,&singleOp[2]};
+	uint8_t singleOp[]={FKL_OP_DROP};
+	FklByteCode drop={1,&singleOp[0]};
 	for(size_t i=1;i<stack->top;i++)
 	{
 		FklByteCodelnt* cur=stack->base[i];
-		bclBcAppendToBcl(retval,&resTp,fid,line);
+		bclBcAppendToBcl(retval,&drop,fid,line);
 		fklCodeLntCat(retval,cur);
 		fklDestroyByteCodelnt(cur);
 	}
@@ -1875,8 +1841,6 @@ BC_PROCESS(_when_exp_bc_process)
 		bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
 	fklReCodeLntCat(cond,retval);
 	fklDestroyByteCodelnt(cond);
-	bcBclAppendToBcl(&setTp,retval,fid,line);
-	bclBcAppendToBcl(retval,&popTp,fid,line);
 	return retval;
 }
 
@@ -1886,14 +1850,12 @@ BC_PROCESS(_unless_exp_bc_process)
 	FklByteCodelnt* cond=stack->base[0];
 	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 
-	uint8_t singleOp[]={FKL_OP_SET_TP,FKL_OP_RES_TP,FKL_OP_POP_TP};
-	FklByteCode setTp={1,&singleOp[0]};
-	FklByteCode resTp={1,&singleOp[1]};
-	FklByteCode popTp={1,&singleOp[2]};
+	uint8_t singleOp[]={FKL_OP_DROP};
+	FklByteCode drop={1,&singleOp[0]};
 	for(size_t i=1;i<stack->top;i++)
 	{
 		FklByteCodelnt* cur=stack->base[i];
-		bclBcAppendToBcl(retval,&resTp,fid,line);
+		bclBcAppendToBcl(retval,&drop,fid,line);
 		fklCodeLntCat(retval,cur);
 		fklDestroyByteCodelnt(cur);
 	}
@@ -1905,8 +1867,6 @@ BC_PROCESS(_unless_exp_bc_process)
 		bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
 	fklReCodeLntCat(cond,retval);
 	fklDestroyByteCodelnt(cond);
-	bcBclAppendToBcl(&setTp,retval,fid,line);
-	bclBcAppendToBcl(retval,&popTp,fid,line);
 	return retval;
 }
 
@@ -2488,13 +2448,9 @@ static inline FklByteCodelnt* create_lib_bcl(FklPtrStack* stack
 	if(stack->top>2)
 	{
 		uint8_t opcodes[]={
-			FKL_OP_SET_TP,
-			FKL_OP_RES_TP,
-			FKL_OP_POP_TP,
+			FKL_OP_DROP,
 		};
-		FklByteCode setTp={1,&opcodes[0]};
-		FklByteCode resTp={1,&opcodes[1]};
-		FklByteCode popTp={1,&opcodes[2]};
+		FklByteCode drop={1,&opcodes[0]};
 		FklByteCodelnt* r=fklCreateByteCodelnt(fklCreateByteCode(0));
 		size_t top=stack->top;
 		for(size_t i=2;i<top;i++)
@@ -2503,12 +2459,10 @@ static inline FklByteCodelnt* create_lib_bcl(FklPtrStack* stack
 			if(cur->bc->size)
 			{
 				fklCodeLntCat(r,cur);
-				bclBcAppendToBcl(r,&resTp,fid,line);
+				bclBcAppendToBcl(r,&drop,fid,line);
 			}
 			fklDestroyByteCodelnt(cur);
 		}
-		bcBclAppendToBcl(&setTp,r,fid,line);
-		bclBcAppendToBcl(r,&popTp,fid,line);
 		libBc=r;
 	}
 	else

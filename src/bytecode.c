@@ -370,7 +370,8 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	uint64_t size=bc->size;
 	uint8_t* code=bc->code;
 	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
-		if(code[i]!=FKL_OP_POP_TP&&code[i]!=FKL_OP_JMP)
+		if(code[i]!=FKL_OP_JMP)
+		//if(code[i]!=FKL_OP_POP_TP&&code[i]!=FKL_OP_JMP)
 			return 0;
 	return 1;
 }

@@ -75,8 +75,9 @@ static int is_last_expression(FklVMframe* frame)
 		uint8_t* end=fklGetCompoundFrameEnd(frame);
 
 		for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
-			if(*pc!=FKL_OP_POP_TP
-					&&*pc!=FKL_OP_JMP)
+			if(*pc!=FKL_OP_JMP)
+			//if(*pc!=FKL_OP_POP_TP
+			//		&&*pc!=FKL_OP_JMP)
 				return 0;
 		frame->u.c.tail=1;
 	}
@@ -282,11 +283,11 @@ static void B_push_proc(BYTE_CODE_ARGS);
 static void B_drop(BYTE_CODE_ARGS);
 static void B_pop_arg(BYTE_CODE_ARGS);
 static void B_pop_rest_arg(BYTE_CODE_ARGS);
-static void B_set_tp(BYTE_CODE_ARGS);
+//static void B_set_tp(BYTE_CODE_ARGS);
 static void B_set_bp(BYTE_CODE_ARGS);
 static void B_call(BYTE_CODE_ARGS);
-static void B_res_tp(BYTE_CODE_ARGS);
-static void B_pop_tp(BYTE_CODE_ARGS);
+//static void B_res_tp(BYTE_CODE_ARGS);
+//static void B_pop_tp(BYTE_CODE_ARGS);
 static void B_res_bp(BYTE_CODE_ARGS);
 static void B_jmp_if_true(BYTE_CODE_ARGS);
 static void B_jmp_if_false(BYTE_CODE_ARGS);
@@ -335,11 +336,11 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_drop,
 	B_pop_arg,
 	B_pop_rest_arg,
-	B_set_tp,
+	//B_set_tp,
 	B_set_bp,
 	B_call,
-	B_res_tp,
-	B_pop_tp,
+	//B_res_tp,
+	//B_pop_tp,
 	B_res_bp,
 	B_jmp_if_true,
 	B_jmp_if_false,
@@ -957,11 +958,11 @@ static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
-static void inline B_set_tp(FklVM* exe,FklVMframe* frame)
-{
-	FklVMstack* stack=exe->stack;
-	fklNiSetTp(stack);
-}
+//static void inline B_set_tp(FklVM* exe,FklVMframe* frame)
+//{
+//	FklVMstack* stack=exe->stack;
+//	fklNiSetTp(stack);
+//}
 
 static void inline B_set_bp(FklVM* exe,FklVMframe* frame)
 {
@@ -970,17 +971,17 @@ static void inline B_set_bp(FklVM* exe,FklVMframe* frame)
 	stack->bp=stack->tp;
 }
 
-static void inline B_res_tp(FklVM* exe,FklVMframe* frame)
-{
-	FklVMstack* stack=exe->stack;
-	fklNiResTp(stack);
-}
-
-static void inline B_pop_tp(FklVM* exe,FklVMframe* frame)
-{
-	FklVMstack* stack=exe->stack;
-	fklNiPopTp(stack);
-}
+//static void inline B_res_tp(FklVM* exe,FklVMframe* frame)
+//{
+//	FklVMstack* stack=exe->stack;
+//	fklNiResTp(stack);
+//}
+//
+//static void inline B_pop_tp(FklVM* exe,FklVMframe* frame)
+//{
+//	FklVMstack* stack=exe->stack;
+//	fklNiPopTp(stack);
+//}
 
 static void inline B_res_bp(FklVM* exe,FklVMframe* frame)
 {

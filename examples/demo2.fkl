@@ -1,14 +1,15 @@
 (define (p n)
   (define (w a b)
-    (cond [(or (eq b 0) (eq b (1+ a))) 0]
-      [(eq a 1) 1]
+    (cond
+      [(or (eqv b 0) (eqv b (1+ a))) 0]
+      [(eqv a 1) 1]
       [1 (+ (w (-1+ a) (-1+ b))
             (w (-1+ a) b))]))
 
   (define (x n a)
     (princ (w n a))
     (princ #\\s)
-    (if (not (eq n a)) (x n (1+ a))))
+    (if (not (eqv n a)) (x n (1+ a))))
 
   (define (p-iter count)
     (x count 1)

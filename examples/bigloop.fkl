@@ -1,4 +1,3 @@
-(define iter
-  (lambda (n)
-    (if (< n 4000000) (iter (1+ n)))))
+(define (iter n)
+  (if (< n 4000000) (iter (1+ n))))
 (iter 0)

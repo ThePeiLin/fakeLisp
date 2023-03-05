@@ -1095,6 +1095,67 @@ static CODEGEN_FUNC(codegen_define)
 			,codegenQuestStack);
 }
 
+static CODEGEN_FUNC(codegen_defun)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* args=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+
+	FklCodegenEnv* lambdaCodegenEnv=fklCreateCodegenEnv(curEnv,scope);
+	FklByteCodelnt* argsBc=processArgs(args,lambdaCodegenEnv,codegen);
+	if(!argsBc)
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		lambdaCodegenEnv->refcount++;
+		fklDestroyCodegenEnv(lambdaCodegenEnv);
+		return;
+	}
+
+	FklPtrStack* setqStack=fklCreatePtrStack(2,1);
+	uint32_t idx=fklAddCodegenDefBySid(name->u.sym,scope,curEnv);
+	fklPushPtrStack(makeDupAndPutLoc(name,idx,codegen),setqStack);
+
+	FklCodegenQuest* prevQuest=createCodegenQuest(_set_var_exp_bc_process
+			,createDefaultStackContext(setqStack)
+			,NULL
+			,scope
+			,macroScope
+			,curEnv
+			,name->curline
+			,NULL
+			,codegen);
+	fklPushPtrStack(prevQuest,codegenQuestStack);
+
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FklPtrStack* lStack=fklCreatePtrStack(32,16);
+	fklPushPtrStack(argsBc,lStack);
+	create_and_insert_to_pool(codegen->ptpool
+			,curEnv->prototypeId
+			,lambdaCodegenEnv
+			,codegen->globalSymTable
+			,codegen->publicSymbolTable);
+	FklCodegenQuest* cur=createCodegenQuest(_lambda_exp_bc_process
+			,createDefaultStackContext(lStack)
+			,createDefaultQueueNextExpression(queue)
+			,1
+			,lambdaCodegenEnv->macros
+			,lambdaCodegenEnv
+			,rest->curline
+			,prevQuest
+			,codegen);
+	fklPushPtrStack(cur,codegenQuestStack);
+}
+
 static CODEGEN_FUNC(codegen_setq)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -3828,6 +3889,7 @@ static int matchAndCall(FklCodegenFunc func
 typedef enum
 {
 	PATTERN_BEGIN=0,
+	PATTERN_DEFUN,
 	PATTERN_DEFINE,
 	PATTERN_SETQ,
 	PATTERN_QUOTE,
@@ -3856,26 +3918,27 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"(begin,rest)",            NULL, codegen_begin,              },
-	{"(define name value)",     NULL, codegen_define,             },
-	{"(setq name value)",       NULL, codegen_setq,               },
-	{"(quote value)",           NULL, codegen_quote,              },
-	{"(unquote value)",         NULL, codegen_unquote,            },
-	{"(qsquote value)",         NULL, codegen_qsquote,            },
-	{"(lambda args,rest)",      NULL, codegen_lambda,             },
-	{"(and,rest)",              NULL, codegen_and,                },
-	{"(or,rest)",               NULL, codegen_or,                 },
-	{"(cond,rest)",             NULL, codegen_cond,               },
-	{"(if value rest)",         NULL, codegen_if0,                },
-	{"(if value rest args)",    NULL, codegen_if1,                },
-	{"(when value,rest)",       NULL, codegen_when,               },
-	{"(unless value,rest)",     NULL, codegen_unless,             },
-	{"(load name)",             NULL, codegen_load,               },
-	{"(import name)",           NULL, codegen_import,             },
-	{"(import name rest)",      NULL, codegen_import_with_prefix, },
-	{"(module name args,rest)", NULL, codegen_module,             },
-	{"(defmacro name value)",   NULL, codegen_defmacro,           },
-	{"(macroexpand value)",     NULL, codegen_macroexpand,        },
+	{"(begin,rest)",              NULL, codegen_begin,              },
+	{"(define (name,args),rest)", NULL, codegen_defun,              },
+	{"(define name value)",       NULL, codegen_define,             },
+	{"(setq name value)",         NULL, codegen_setq,               },
+	{"(quote value)",             NULL, codegen_quote,              },
+	{"(unquote value)",           NULL, codegen_unquote,            },
+	{"(qsquote value)",           NULL, codegen_qsquote,            },
+	{"(lambda args,rest)",        NULL, codegen_lambda,             },
+	{"(and,rest)",                NULL, codegen_and,                },
+	{"(or,rest)",                 NULL, codegen_or,                 },
+	{"(cond,rest)",               NULL, codegen_cond,               },
+	{"(if value rest)",           NULL, codegen_if0,                },
+	{"(if value rest args)",      NULL, codegen_if1,                },
+	{"(when value,rest)",         NULL, codegen_when,               },
+	{"(unless value,rest)",       NULL, codegen_unless,             },
+	{"(load name)",               NULL, codegen_load,               },
+	{"(import name)",             NULL, codegen_import,             },
+	{"(import name rest)",        NULL, codegen_import_with_prefix, },
+	{"(module name args,rest)",   NULL, codegen_module,             },
+	{"(defmacro name value)",     NULL, codegen_defmacro,           },
+	{"(macroexpand value)",       NULL, codegen_macroexpand,        },
 	{NULL,                      NULL, NULL,                       },
 };
 

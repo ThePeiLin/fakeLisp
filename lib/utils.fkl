@@ -77,11 +77,6 @@
                 cs)))
        `((lambda (~s) (cond,~body)) ~v)))
 
-   (defmacro (define (name,args),body)
-     `(define ~name
-        (lambda ~args
-          ~@body)))
-
    (defmacro (->> x,forms)
      (begin
        (define car-forms (car forms))
@@ -119,169 +114,120 @@
            [1 r]))))
    ]
 
-  (define caar (lambda (a)
-                 (car (car a))))
+  (define (caar a) (car (car a)))
 
-  (define cadr (lambda (a)
-                 (car (cdr a))))
+  (define (cadr a) (car (cdr a)))
 
-  (define cdar (lambda (a)
-                 (cdr (car a))))
+  (define (cdar a) (cdr (car a)))
 
-  (define cddr (lambda (a)
-                 (cdr (cdr a))))
+  (define (cddr a) (cdr (cdr a)))
 
-  (define caaar (lambda (a)
-                  (car (car (car a)))))
+  (define (caaar a) (car (car (car a))))
 
-  (define caadr (lambda (a)
-                  (car (car (cdr a)))))
+  (define (caadr a) (car (car (cdr a))))
 
-  (define cadar (lambda (a)
-                  (car (cdr (car a)))))
+  (define (cadar a) (car (cdr (car a))))
 
-  (define caddr (lambda (a)
-                  (car (cdr (cdr a)))))
+  (define (caddr a) (car (cdr (cdr a))))
 
-  (define cdaar (lambda (a)
-                  (cdr (car (car a)))))
+  (define (cdaar a) (cdr (car (car a))))
 
-  (define cdadr (lambda (a)
-                  (cdr (car (cdr a)))))
+  (define (cdadr a) (cdr (car (cdr a))))
 
-  (define cddar (lambda (a)
-                  (cdr (cdr (car )))))
+  (define (cddar a) (cdr (cdr (car ))))
 
-  (define cdddr (lambda (a)
-                  (cdr (cdr (cdr a)))))
+  (define (cdddr a) (cdr (cdr (cdr a))))
 
-  (define caaaar (lambda (a)
-                   (car (car (car (car a))))))
+  (define (caaaar a) (car (car (car (car a)))))
 
-  (define caaadr (lambda (a)
-                   (car (car (car (cdr a))))))
+  (define (caaadr a) (car (car (car (cdr a)))))
 
-  (define caadar (lambda (a)
-                   (car (car (cdr (car a))))))
+  (define (caadar a) (car (car (cdr (car a)))))
 
-  (define caaddr (lambda (a)
-                   (car (car (cdr (cdr a))))))
+  (define (caaddr a) (car (car (cdr (cdr a)))))
 
-  (define cadaar (lambda (a)
-                   (car (cdr (car (car a))))))
+  (define (cadaar a) (car (cdr (car (car a)))))
 
-  (define cadadr (lambda (a)
-                   (car (cdr (car (cdr a))))))
+  (define (cadadr a) (car (cdr (car (cdr a)))))
 
-  (define caddar (lambda (a)
-                   (car (cdr (cdr (car a))))))
+  (define (caddar a) (car (cdr (cdr (car a)))))
 
-  (define cadddr (lambda (a)
-                   (car (cdr (cdr (cdr a))))))
+  (define (cadddr a) (car (cdr (cdr (cdr a)))))
 
-  (define cdaaar (lambda (a)
-                   (cdr (car (car (car a))))))
+  (define (cdaaar a) (cdr (car (car (car a)))))
 
-  (define cdaadr (lambda (a)
-                   (cdr (car (car (cdr a))))))
+  (define (cdaadr a) (cdr (car (car (cdr a)))))
 
-  (define cdadar (lambda (a)
-                   (cdr (car (cdr (car a))))))
+  (define (cdadar a) (cdr (car (cdr (car a)))))
 
-  (define cdaddr (lambda (a)
-                   (cdr (car (cdr (cdr a))))))
+  (define (cdaddr a) (cdr (car (cdr (cdr a)))))
 
-  (define cddaar (lambda (a)
-                   (cdr (cdr (car (car a))))))
+  (define (cddaar a) (cdr (cdr (car (car a)))))
 
-  (define cddadr (lambda (a)
-                   (cdr (cdr (car (cdr a))))))
+  (define (cddadr a) (cdr (cdr (car (cdr a)))))
 
-  (define cdddar (lambda (a)
-                   (cdr (cdr (cdr (car a))))))
+  (define (cdddar a) (cdr (cdr (cdr (car a)))))
 
-  (define cddddr (lambda (a)
-                   (cdr (cdr (cdr (cdr a))))))
+  (define (cddddr a) (cdr (cdr (cdr (cdr a)))))
 
-  (define fprint
-    (lambda (f,l)
-      (define p-iter
-        (lambda (c)
-          (cond (c (princ (car c) f)
-                   (p-iter (cdr c))))))
-      (p-iter l)))
+  (define (fprint f,l)
+    (define (p-iter c)
+      (when c
+        (princ (car c) f)
+        (p-iter (cdr c))))
+    (p-iter l))
 
-  (define fprin1
-    (lambda (f,l)
-      (define w-iter
-        (lambda (c)
-          (cond (c (prin1 (car c) f)
-                   (w-iter (cdr c))))))
-      (w-iter l)))
+  (define (fprin1 f,l)
+    (define (w-iter c)
+      (when c
+        (prin1 (car c) f)
+        (w-iter (cdr c))))
+    (w-iter l))
 
-  (define square
-    (lambda (x)
-      (* x x)))
+  (define (square x) (* x x))
 
-  (define min
-    (lambda (a b)
-      (cond
-        [(< a b) a]
-        [1 b])))
+  (define (min a b) (if (< a b) a b))
 
-  (define max
-    (lambda (a b)
-      (cond
-        [(> a b) a]
-        [1 b])))
+  (define (max a b) (if (> a b) a b))
 
-  (define merge-sort!
-    (lambda (cmpf ls)
-      (define partition
-        (lambda (ls)
-          (define fast-and-slow
-            (lambda (h s f)
-              (define nf (and f (cdr f)))
-              (cond
-                [nf (fast-and-slow (cdr h) (cdr s) (cdr nf))]
-                [1
-                 (set-cdr! h nil)
-                 s])))
-          (fast-and-slow (cons nil ls) ls ls)))
+  (define (merge-sort! cmpf ls)
+    (define (partition ls)
+      (define (fast-and-slow h s f)
+        (define nf (and f (cdr f)))
+        (if nf
+          (fast-and-slow (cdr h) (cdr s) (cdr nf))
+          (begin (set-cdr! h nil) s)))
+      (fast-and-slow (cons nil ls) ls ls))
 
-      (define merge
-        (lambda (l h)
-          (define head '((),()))
-          (define m-iter
-            (lambda (c l h)
-              (cond
-                [(and l h)
-                 (define cl (car l))
-                 (define ch (car h))
-                 (define r (cmpf cl ch))
-                 (cond
-                   [r
-                     (set-cdr! c (cons cl nil))
-                     (m-iter (cdr c) (cdr l) h)]
-                   [1
-                    (set-cdr! c (cons ch nil))
-                    (m-iter (cdr c) l (cdr h))])]
-                [1
-                 (set-cdr! c (cond [l l][1 h]))])))
-          (m-iter head l h)
-          (cdr head)))
-      (define msort!
-        (lambda (l)
-          (cond
-            [(and l (cdr l))
-             (define h (partition l))
-             (merge (msort! l)
-                    (msort! h))]
-            [1 l])))
-      (msort! ls)))
+    (define (merge l h)
+      (define head '((),()))
+      (define (m-iter c l h)
+        (cond
+          [(and l h)
+           (define cl (car l))
+           (define ch (car h))
+           (define r (cmpf cl ch))
+           (cond
+             [r
+               (set-cdr! c (cons cl nil))
+               (m-iter (cdr c) (cdr l) h)]
+             [1
+              (set-cdr! c (cons ch nil))
+              (m-iter (cdr c) l (cdr h))])]
+          [1
+           (set-cdr! c (cond [l l][1 h]))]))
+      (m-iter head l h)
+      (cdr head))
 
-  (define merge-sort
-    (lambda (cmpf ls)
-      (merge-sort! cmpf (copy ls))))
+    (define (msort! l)
+      (if (and l (cdr l))
+        (begin
+          (define h (partition l))
+          (merge (msort! l)
+                 (msort! h)))
+        l))
+    (msort! ls))
+
+  (define (merge-sort cmpf ls) (merge-sort! cmpf (copy ls)))
 
     )

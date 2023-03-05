@@ -426,6 +426,34 @@ static CODEGEN_FUNC(codegen_begin)
 			,codegenQuestStack);
 }
 
+static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
+{
+	uint32_t r=++env->sc;
+	uint32_t* scopes=(uint32_t*)realloc(env->scopes,sizeof(uint32_t)*r);
+	FKL_ASSERT(scopes);
+	env->scopes=scopes;
+	scopes[r-1]=p;
+	return r;
+}
+
+static CODEGEN_FUNC(codegen_local)
+{
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+	pushListItemToQueue(rest,queue,NULL);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(32,16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,rest->curline
+			,codegen
+			,codegenQuestStack);
+}
+
 BC_PROCESS(_and_exp_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
@@ -462,27 +490,18 @@ BC_PROCESS(_and_exp_bc_process)
 		return createBclnt(fklCreatePushI32ByteCode(1),fid,line);
 }
 
-static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
-{
-	uint32_t r=++env->sc;
-	uint32_t* scopes=(uint32_t*)realloc(env->scopes,sizeof(uint32_t)*r);
-	FKL_ASSERT(scopes);
-	env->scopes=scopes;
-	scopes[r-1]=p;
-	return r;
-}
-
 static CODEGEN_FUNC(codegen_and)
 {
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	pushListItemToQueue(rest,queue,NULL);
 	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_and_exp_bc_process
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,cs
-			,macroScope
+			,cms
 			,curEnv
 			,rest->curline
 			,codegen
@@ -530,12 +549,13 @@ static CODEGEN_FUNC(codegen_or)
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 	pushListItemToQueue(rest,queue,NULL);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_or_exp_bc_process
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,cs
-			,macroScope
+			,cms
 			,curEnv
 			,rest->curline
 			,codegen
@@ -3544,6 +3564,16 @@ static FklNastNode* _nil_replacement(const FklNastNode* orig,FklCodegenEnv* env,
 	return fklCreateNastNode(FKL_NAST_NIL,orig->curline);
 }
 
+static FklNastNode* _is_main_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
+{
+	FklNastNode* n=fklCreateNastNode(FKL_NAST_FIX,orig->curline);
+	if(env->prototypeId==1)
+		n->u.fix=1;
+	else
+		n->type=FKL_NAST_NIL;
+	return n;
+}
+
 static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen)
 {
 	FklString* s=NULL;
@@ -3599,16 +3629,15 @@ static struct SymbolReplacement
 	{"*line*",     0, _line_replacement,     },
 	{"*file*",     0, _file_replacement,     },
 	{"*file-dir*", 0, _file_dir_replacement, },
+	{"*main?*",    0, _is_main_replacement,     },
 	{NULL,         0, NULL,                  },
 };
 
 static ReplacementFunc findBuiltInReplacementWithId(FklSid_t id)
 {
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
-	{
 		if(cur->sid==id)
 			return cur->func;
-	}
 	return NULL;
 }
 
@@ -3891,6 +3920,7 @@ static int matchAndCall(FklCodegenFunc func
 typedef enum
 {
 	PATTERN_BEGIN=0,
+	PATTERN_LOCAL,
 	PATTERN_DEFUN,
 	PATTERN_DEFINE,
 	PATTERN_SETQ,
@@ -3921,6 +3951,7 @@ static struct PatternAndFunc
 }builtInPattern[]=
 {
 	{"(begin,rest)",              NULL, codegen_begin,              },
+	{"(local,rest)",              NULL, codegen_local,              },
 	{"(define (name,args),rest)", NULL, codegen_defun,              },
 	{"(define name value)",       NULL, codegen_define,             },
 	{"(setq name value)",         NULL, codegen_setq,               },

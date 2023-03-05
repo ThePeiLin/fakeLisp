@@ -753,8 +753,7 @@ static void inline B_dummy(FklVM* exe,FklVMframe* frame)
 
 static void inline B_push_nil(FklVM* exe,FklVMframe* frame)
 {
-	FklVMstack* stack=exe->stack;
-	fklPushVMvalue(FKL_VM_NIL,stack);
+	fklPushVMvalue(FKL_VM_NIL,exe->stack);
 }
 
 static void inline B_push_pair(FklVM* exe,FklVMframe* frame)
@@ -1246,6 +1245,7 @@ static void inline B_load_lib(FklVM* exe,FklVMframe* frame)
 	{
 		exe->importingLib=plib;
 		fklAddCompoundFrameCp(frame,sizeof(libId));
+		fklPushVMvalue(FKL_VM_NIL,exe->stack);
 	}
 	else
 		init_import_env(frame,plib,exe);
@@ -1286,6 +1286,7 @@ static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 	}
 	exe->importingLib=plib;
 	fklAddCompoundFrameCp(frame,sizeof(libId));
+	fklPushVMvalue(FKL_VM_NIL,exe->stack);
 }
 
 static void inline B_push_0(FklVM* exe,FklVMframe* frame)

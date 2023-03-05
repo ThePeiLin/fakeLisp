@@ -3158,6 +3158,22 @@ void builtin_fprint(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+void builtin_fprin1(FKL_DL_PROC_ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* f=fklNiGetArg(&ap,stack);
+	if(!f)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fprin1",FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,"builtin.fprin1",exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FILE* fp=f->u.fp->fp;
+	for(;obj;obj=fklNiGetArg(&ap,stack))
+		fklPrin1VMvalue(obj,fp,exe->symbolTable);
+	fklNiResBp(&ap,stack);
+	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
 void builtin_newline(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -5032,6 +5048,7 @@ static const struct SymbolFuncStruct
 	{"println",               builtin_println,                 },
 	{"print",                 builtin_print,                   },
 	{"fprint",                builtin_fprint,                  },
+	{"fprin1",                builtin_fprin1,                  },
 	{"newline",               builtin_newline,                 },
 	{"dlopen",                builtin_dlopen,                  },
 	{"dlsym",                 builtin_dlsym,                   },

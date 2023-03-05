@@ -61,14 +61,6 @@
                 `(define ~(car sd) ~@(cdr sd))) d))
        `(let () ~@dfs ~@b)))
 
-   (defmacro (when pred,expressions)
-     `(cond [~pred
-              ~@expressions]))
-
-   (defmacro (unless pred,expressions)
-     `(cond [(not ~pred)
-             ~@expressions]))
-
    (defmacro (case (s v),b)
      (begin
        (define body

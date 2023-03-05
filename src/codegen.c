@@ -1769,6 +1769,102 @@ static CODEGEN_FUNC(codegen_if1)
 			,codegenQuestStack);
 }
 
+BC_PROCESS(_when_exp_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* cond=stack->base[0];
+	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
+
+	uint8_t singleOp[]={FKL_OP_SET_TP,FKL_OP_RES_TP,FKL_OP_POP_TP};
+	FklByteCode setTp={1,&singleOp[0]};
+	FklByteCode resTp={1,&singleOp[1]};
+	FklByteCode popTp={1,&singleOp[2]};
+	for(size_t i=1;i<stack->top;i++)
+	{
+		FklByteCodelnt* cur=stack->base[i];
+		bclBcAppendToBcl(retval,&resTp,fid,line);
+		fklCodeLntCat(retval,cur);
+		fklDestroyByteCodelnt(cur);
+	}
+	stack->top=0;
+	uint8_t jmpIfFalseCode[9]={FKL_OP_JMP_IF_FALSE,0};
+	FklByteCode jmpIfFalse={9,jmpIfFalseCode};
+	fklSetI64ToByteCode(&jmpIfFalseCode[1],retval->bc->size);
+	if(retval->bc->size)
+		bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
+	fklReCodeLntCat(cond,retval);
+	bcBclAppendToBcl(&setTp,retval,fid,line);
+	bclBcAppendToBcl(retval,&popTp,fid,line);
+	return retval;
+}
+
+BC_PROCESS(_unless_exp_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* cond=stack->base[0];
+	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
+
+	uint8_t singleOp[]={FKL_OP_SET_TP,FKL_OP_RES_TP,FKL_OP_POP_TP};
+	FklByteCode setTp={1,&singleOp[0]};
+	FklByteCode resTp={1,&singleOp[1]};
+	FklByteCode popTp={1,&singleOp[2]};
+	for(size_t i=1;i<stack->top;i++)
+	{
+		FklByteCodelnt* cur=stack->base[i];
+		bclBcAppendToBcl(retval,&resTp,fid,line);
+		fklCodeLntCat(retval,cur);
+		fklDestroyByteCodelnt(cur);
+	}
+	stack->top=0;
+	uint8_t jmpIfFalseCode[9]={FKL_OP_JMP_IF_TRUE,0};
+	FklByteCode jmpIfFalse={9,jmpIfFalseCode};
+	fklSetI64ToByteCode(&jmpIfFalseCode[1],retval->bc->size);
+	if(retval->bc->size)
+		bcBclAppendToBcl(&jmpIfFalse,retval,fid,line);
+	fklReCodeLntCat(cond,retval);
+	bcBclAppendToBcl(&setTp,retval,fid,line);
+	bclBcAppendToBcl(retval,&popTp,fid,line);
+	return retval;
+}
+
+static inline void codegen_when_unless(FklHashTable* ht
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,FklPtrStack* codegenQuestStack
+		,FklByteCodeProcesser func)
+{
+	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(cond),queue);
+	pushListItemToQueue(rest,queue,NULL);
+
+	uint32_t curScope=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(func
+			,createDefaultStackContext(fklCreatePtrStack(32,16))
+			,createDefaultQueueNextExpression(queue)
+			,curScope
+			,cms
+			,curEnv
+			,rest->curline
+			,codegen
+			,codegenQuestStack);
+}
+
+static CODEGEN_FUNC(codegen_when)
+{
+	codegen_when_unless(ht,scope,macroScope,curEnv,codegen,codegenQuestStack,_when_exp_bc_process);
+}
+
+static CODEGEN_FUNC(codegen_unless)
+{
+	codegen_when_unless(ht,scope,macroScope,curEnv,codegen,codegenQuestStack,_unless_exp_bc_process);
+}
+
 static FklCodegen* createCodegen(FklCodegen* prev
 		,const char* filename
 		,FklCodegenEnv* env)
@@ -3743,6 +3839,8 @@ typedef enum
 	PATTERN_COND,
 	PATTERN_IF0,
 	PATTERN_IF1,
+	PATTERN_WHEN,
+	PATTERN_UNLESS,
 	PATTERN_LOAD,
 	PATTERN_IMPORT,
 	PATTERN_IMPORT_WITH_PREFIX,
@@ -3770,6 +3868,8 @@ static struct PatternAndFunc
 	{"(cond,rest)",             NULL, codegen_cond,               },
 	{"(if value rest)",         NULL, codegen_if0,                },
 	{"(if value rest args)",    NULL, codegen_if1,                },
+	{"(when value,rest)",       NULL, codegen_when,               },
+	{"(unless value,rest)",     NULL, codegen_unless,             },
 	{"(load name)",             NULL, codegen_load,               },
 	{"(import name)",           NULL, codegen_import,             },
 	{"(import name rest)",      NULL, codegen_import_with_prefix, },

@@ -1124,7 +1124,6 @@ void fklPrintVMvalue(FklVMvalue* value
 						continue;
 					}
 				}
-				
 			}
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
@@ -1562,7 +1561,6 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						continue;
 					}
 				}
-				
 			}
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR

@@ -3,9 +3,7 @@
 ;defun宏
 (defmacro
   (defun name args,body)
-  ((lambda ()
-     (define list (lambda ls ls))
-     (list 'define name (cons 'lambda (cons args body))))))
+  (list 'define name (cons 'lambda (cons args body))))
 
 ;get the last element of a list
 ;(defun gle (objlist)

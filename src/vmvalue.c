@@ -776,9 +776,7 @@ FklVMvalue* fklCreateVMvalueToStack(FklValueType type
 {
 	FklVMstack* stack=vm->stack;
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	//	pthread_rwlock_wrlock(&stack->lock);
 	fklPushVMvalue(r,stack);
-	//	pthread_rwlock_unlock(&stack->lock);
 	fklAddToGC(r,vm);
 	return stack->values[stack->tp-1];
 }

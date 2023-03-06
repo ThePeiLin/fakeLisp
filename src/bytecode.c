@@ -371,7 +371,6 @@ static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 	uint8_t* code=bc->code;
 	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
 		if(code[i]!=FKL_OP_JMP)
-		//if(code[i]!=FKL_OP_POP_TP&&code[i]!=FKL_OP_JMP)
 			return 0;
 	return 1;
 }
@@ -583,41 +582,6 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 		fklReCodeCat(f->bc,s->bc);
 	}
 }
-
-//FklByteCodeLabel* fklCreateByteCodeLable(int32_t place,const char* label)
-//{
-//	FklByteCodeLabel* tmp=(FklByteCodeLabel*)malloc(sizeof(FklByteCodeLabel));
-//	FKL_ASSERT(tmp);
-//	tmp->place=place;
-//	tmp->label=fklCopyStr(label);
-//	return tmp;
-//}
-//
-//FklByteCodeLabel* fklFindByteCodeLabel(const char* label,FklPtrStack* s)
-//{
-//	int32_t l=0;
-//	int32_t h=s->top-1;
-//	int32_t mid;
-//	while(l<=h)
-//	{
-//		mid=l+(h-l)/2;
-//		int cmp=strcmp(((FklByteCodeLabel*)s->base[mid])->label,label);
-//		if(cmp>0)
-//			h=mid-1;
-//		else if(cmp<0)
-//			l=mid+1;
-//		else
-//			return (FklByteCodeLabel*)s->base[mid];
-//	}
-//	return NULL;
-//}
-//
-//
-//void fklDestroyByteCodeLabel(FklByteCodeLabel* obj)
-//{
-//	free(obj->label);
-//	free(obj);
-//}
 
 FklLineNumberTable* fklCreateLineNumTable()
 {

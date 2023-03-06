@@ -105,52 +105,18 @@ inline double fklGetDouble(const FklVMvalue* p)
 		:p->u.f64;
 }
 
-//FklVMvalue* fklPopVMstack(FklVMstack* stack)
-//{
-//	if(!(stack->tp>stack->bp))
-//		return NULL;
-//	FklVMvalue* tmp=fklGetTopValue(stack);
-//	stack->tp-=1;
-//	return tmp;
-//}
-
-//FklVMvalue* fklTopGet(FklVMstack* stack)
-//{
-//	pthread_rwlock_wrlock(&stack->lock);
-//	FklVMvalue* r=NULL;
-//	if(!(stack->tp>stack->bp))
-//		r=NULL;
-//	else
-//	{
-//		FklVMvalue* tmp=fklGetTopValue(stack);
-//		r=tmp;
-//	}
-//	pthread_rwlock_unlock(&stack->lock);
-//	return r;
-//}
-
-//void fklDecTop(FklVMstack* stack)
-//{
-//pthread_rwlock_wrlock(&stack->lock);
-//stack->tp--;
-//pthread_rwlock_unlock(&stack->lock);
-//}
-
 FklVMstack* fklCopyStack(FklVMstack* stack)
 {
 	int32_t i=0;
 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
 	FKL_ASSERT(tmp);
-//	pthread_rwlock_rdlock(&stack->lock);
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
-//	pthread_rwlock_init(&tmp->lock,NULL);
 	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
 	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
-//	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }
 
@@ -380,44 +346,6 @@ inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
 	else
 		init_frame_var_ref(&f->lr);
 }
-
-//inline void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev)
-//{
-//	tmp->errorCallBack=NULL;
-//	tmp->type=FKL_FRAME_COMPOUND;
-//	tmp->prev=prev;
-//
-//	FklVMCompoundFrameData* f=&tmp->u.c;
-//	f->sid=0;
-//	f->pc=NULL;
-//	f->spc=NULL;
-//	f->end=NULL;
-//	f->proc=FKL_VM_NIL;
-//	f->mark=0;
-//	f->tail=0;
-//
-//	f->lr.rcount=0;
-//	f->lr.ref=NULL;
-//	f->lr.lcount=0;
-//	f->lr.loc=NULL;
-//	if(code)
-//	{
-//		f->lr.ref=code->closure;
-//		f->lr.rcount=code->count;
-//		f->pc=code->spc;
-//		f->spc=code->spc;
-//		f->end=code->end;
-//		f->sid=code->sid;
-//	}
-//}
-//
-//FklVMframe* fklCreateVMframeWithProc(FklVMproc* code,FklVMframe* prev)
-//{
-//	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
-//	FKL_ASSERT(tmp);
-//	fklInitVMframeWithProc(tmp,code,prev);
-//	return tmp;
-//}
 
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 {

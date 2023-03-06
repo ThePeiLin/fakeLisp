@@ -577,10 +577,6 @@ void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
 
-//FklVMvalue* fklPopGetAndMark(FklVMstack* stack,FklVMgc*);
-//FklVMvalue* fklPopGetAndMarkWithoutLock(FklVMstack* stack,FklVMgc* gc);
-//FklVMvalue* fklTopGet(FklVMstack* stack);
-void fklDecTop(FklVMstack* s);
 FklVMvalue* fklCreateVMvalueToStack(FklValueType
 		,void* p
 		,FklVM*);

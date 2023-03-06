@@ -129,12 +129,12 @@ inline double fklGetDouble(const FklVMvalue* p)
 //	return r;
 //}
 
-void fklDecTop(FklVMstack* stack)
-{
-//	pthread_rwlock_wrlock(&stack->lock);
-	stack->tp--;
-//	pthread_rwlock_unlock(&stack->lock);
-}
+//void fklDecTop(FklVMstack* stack)
+//{
+//pthread_rwlock_wrlock(&stack->lock);
+//stack->tp--;
+//pthread_rwlock_unlock(&stack->lock);
+//}
 
 FklVMstack* fklCopyStack(FklVMstack* stack)
 {
@@ -150,10 +150,6 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	FKL_ASSERT(tmp->values);
 	for(;i<stack->tp;i++)
 		tmp->values[i]=stack->values[i];
-	//tmp->tps=(FklUintStack)FKL_STACK_INIT;
-	//fklInitUintStackWithStack(&tmp->tps,&stack->tps);
-	//tmp->bps=(FklUintStack)FKL_STACK_INIT;
-	//fklInitUintStackWithStack(&tmp->bps,&stack->bps);
 //	pthread_rwlock_unlock(&stack->lock);
 	return tmp;
 }

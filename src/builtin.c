@@ -1582,7 +1582,6 @@ void builtin_vector_to_list(FKL_DL_PROC_ARGL)
 		fklSetRef(cur,fklCreateVMpairV(vec->base[i],FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 		fklDropTop(stack);
-		//fklPopVMstack(stack);
 	}
 	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -3681,7 +3680,6 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 		if(isShouldBeHandle(errSymbolLists[i],err->type))
 		{
 			FklVMstack* stack=exe->stack;
-			//stack->bps.top=c->top;
 			stack->tp=fklNiSetBp(c->bp,stack);
 			fklPushVMvalue(errValue,stack);
 			FklVMframe* topFrame=exe->frames;
@@ -3771,7 +3769,6 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 		FKL_ASSERT(t);
 		c->errorHandlers=t;
 		c->bp=ap;
-		//c->top=stack->bps.top;
 		fklCallObj(proc,nf,exe);
 	}
 	else
@@ -3975,9 +3972,6 @@ static void k_member(K_FUNC_ARGL)
 {
 	MemberCtx* memberctx=(MemberCtx*)ctx;
 	FklVMstack* stack=exe->stack;
-	//if(s==FKL_CC_OK)
-	//	fklNiSetTp(stack);
-	//else
 	if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(stack);
@@ -3989,7 +3983,6 @@ static void k_member(K_FUNC_ARGL)
 		else
 			memberctx->list=memberctx->list->u.pair->cdr;
 		fklDropTop(stack);
-		//fklNiResTp(stack);
 	}
 	if(memberctx->list!=FKL_VM_NIL)
 	{
@@ -3998,7 +3991,6 @@ static void k_member(K_FUNC_ARGL)
 				,2,arglist
 				,exe->frames,exe,k_member,memberctx,sizeof(MemberCtx));
 	}
-	//fklNiPopTp(stack);
 	fklNiReturn(*memberctx->r,&memberctx->ap,stack);
 	fklNiEnd(&memberctx->ap,stack);
 }
@@ -4047,9 +4039,6 @@ static void k_memp(K_FUNC_ARGL)
 {
 	MempCtx* mempctx=(MempCtx*)ctx;
 	FklVMstack* stack=exe->stack;
-	//if(s==FKL_CC_OK)
-	//	fklNiSetTp(stack);
-	//else
 	if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(stack);
@@ -4061,7 +4050,6 @@ static void k_memp(K_FUNC_ARGL)
 		else
 			mempctx->list=mempctx->list->u.pair->cdr;
 		fklDropTop(stack);
-		//fklNiResTp(stack);
 	}
 	if(mempctx->list!=FKL_VM_NIL)
 	{
@@ -4069,7 +4057,6 @@ static void k_memp(K_FUNC_ARGL)
 				,1,&mempctx->list->u.pair->car
 				,exe->frames,exe,k_memp,mempctx,sizeof(MempCtx));
 	}
-	//fklNiPopTp(stack);
 	fklNiReturn(*mempctx->r,&mempctx->ap,stack);
 	fklNiEnd(&mempctx->ap,stack);
 }
@@ -4108,9 +4095,6 @@ static void k_filter(K_FUNC_ARGL)
 {
 	FilterCtx* filterctx=(FilterCtx*)ctx;
 	FklVMstack* stack=exe->stack;
-	//if(s==FKL_CC_OK)
-	//	fklNiSetTp(stack);
-	//else
 	if(s==FKL_CC_RE)
 	{
 		FklVMvalue* result=fklGetTopValue(stack);
@@ -4122,7 +4106,6 @@ static void k_filter(K_FUNC_ARGL)
 		}
 		filterctx->list=filterctx->list->u.pair->cdr;
 		fklDropTop(stack);
-		//fklNiResTp(stack);
 	}
 	if(filterctx->list!=FKL_VM_NIL)
 	{
@@ -4130,7 +4113,6 @@ static void k_filter(K_FUNC_ARGL)
 				,1,&filterctx->list->u.pair->car
 				,exe->frames,exe,k_filter,filterctx,sizeof(FilterCtx));
 	}
-	//fklNiPopTp(stack);
 	fklNiReturn(*filterctx->r,&filterctx->ap,stack);
 	fklNiEnd(&filterctx->ap,stack);
 }

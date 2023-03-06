@@ -1,0 +1,25 @@
+(define fib
+  ((lambda ()
+     (define fib-cache #())
+     (define (fib-cached n)
+       (if (<= (length fib-cache) n)
+         [begin
+           (append! fib-cache #(0))
+           (if (< n 2)
+             (set-vref! fib-cache n n)
+             (set-vref! fib-cache n
+                        (+ (fib-cached (-1+ n))
+                           (fib-cached (- n 2)))))]
+         (vref fib-cache n))))))
+
+;(define (fib n)
+;  (if (< n 2)
+;    n
+;    (+ (fib (-1+ n))
+;       (fib (- n 2)))))
+
+(define (iter n)
+  (when (< n 31)
+    (println (fib n))
+    (iter (1+ n))))
+(iter 0)

@@ -1870,10 +1870,11 @@ inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	{
 		fprintf(fp,"#<");
 		if(u->type)
+		{
 			fklPrintString(fklGetSymbolWithId(u->type,table)->symbol,fp);
-		else
-			fputs("userdata",fp);
-		fprintf(fp," %p>",u);
+			fputc(' ',fp);
+		}
+		fprintf(fp,"%p>",u);
 	}
 }
 
@@ -1886,10 +1887,11 @@ inline void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	{
 		fprintf(fp,"#<");
 		if(u->type)
+		{
 			fklPrintRawSymbol(fklGetSymbolWithId(u->type,table)->symbol,fp);
-		else
-			fputs("userdata",fp);
-		fprintf(fp," %p>",u);
+			fputc(' ',fp);
+		}
+		fprintf(fp,"%p>",u);
 	}
 }
 

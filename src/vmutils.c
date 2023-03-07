@@ -1284,10 +1284,11 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 						{
 							utstring_printf(result,"#<");
 							if(v->u.ud->type)
+							{
 								print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.ud->type,table)->symbol);
-							else
-								utstring_printf(result,"userdata");
-							utstring_printf(result," %p>",v->u.ud);
+								utstring_printf(result," ");
+							}
+							utstring_printf(result,"%p>",v->u.ud);
 						}
 						break;
 					default:

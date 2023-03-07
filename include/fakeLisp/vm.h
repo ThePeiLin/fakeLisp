@@ -257,8 +257,6 @@ void fklDoFinalizeCompoundFrame(FklVMframe* frame);
 
 typedef struct
 {
-	//FklUintStack bps;
-	//FklUintStack tps;
 	uint32_t volatile tp;
 	uint32_t bp;
 	size_t size;
@@ -276,12 +274,12 @@ typedef struct FklVMlib
 typedef struct FklVM
 {
 	uint32_t mark;
-	pthread_t tid;
-	FklVMframe* frames;
+	FklVMstack* stack;
 	//static stack frame,only for dlproc and callable obj;
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
 	FklVMframe sf;
-	FklVMstack* stack;
+	pthread_t tid;
+	FklVMframe* frames;
 	FklVMvalue* codeObj;
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;

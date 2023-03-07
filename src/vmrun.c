@@ -71,7 +71,6 @@ static int is_last_expression(FklVMframe* frame)
 	else if(!frame->u.c.tail)
 	{
 		uint8_t* pc=fklGetCompoundFrameCode(frame);
-		if(*pc==FKL_OP_CALL||*pc==FKL_OP_TAIL_CALL)pc++;
 		uint8_t* end=fklGetCompoundFrameEnd(frame);
 
 		for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
@@ -403,7 +402,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	fklInitBuiltinErrorType(exe->builtinErrorTypeId,publicSymbolTable);
 	exe->mark=1;
 	exe->chan=NULL;
-	exe->stack=fklCreateVMstack(0);
+	exe->stack=fklCreateVMstack(32);
 	exe->libNum=0;
 	exe->libs=NULL;
 	exe->ptpool=NULL;
@@ -1819,7 +1818,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->importingLib=NULL;
 	exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
-	exe->stack=fklCreateVMstack(0);
+	exe->stack=fklCreateVMstack(32);
 	exe->gc=gc;
 	exe->symbolTable=table;
 	exe->libNum=libNum;

@@ -1654,6 +1654,13 @@ BC_PROCESS(_cond_exp_bc_process_2)
 	return retval;
 }
 
+static inline int is_true_exp(const FklNastNode* exp)
+{
+	return exp->type!=FKL_NAST_NIL
+		&&exp->type!=FKL_NAST_PAIR
+		&&exp->type!=FKL_NAST_SYM;
+}
+
 static CODEGEN_FUNC(codegen_cond)
 {
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
@@ -1669,19 +1676,20 @@ static CODEGEN_FUNC(codegen_cond)
 	fklPushPtrStack(quest,codegenQuestStack);
 	if(rest->type!=FKL_NAST_NIL)
 	{
-		FklPtrStack* tmpStack=fklCreatePtrStack(32,16);
-		pushListItemToStack(rest,tmpStack,NULL);
-		FklNastNode* lastExp=fklPopPtrStack(tmpStack);
+		FklPtrStack tmpStack=FKL_STACK_INIT;
+		fklInitPtrStack(&tmpStack,32,16);
+		pushListItemToStack(rest,&tmpStack,NULL);
+		FklNastNode* lastExp=fklPopPtrStack(&tmpStack);
 		FklCodegenQuest* prevQuest=quest;
-		for(size_t i=0;i<tmpStack->top;i++)
+		for(size_t i=0;i<tmpStack.top;i++)
 		{
-			FklNastNode* curExp=tmpStack->base[i];
+			FklNastNode* curExp=tmpStack.base[i];
 			if(curExp->type!=FKL_NAST_PAIR)
 			{
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_SYNTAXERROR;
 				errorState->place=fklMakeNastNodeRef(origExp);
-				fklDestroyPtrStack(tmpStack);
+				fklUninitPtrStack(&tmpStack);
 				return;
 			}
 			FklNastNode* last=NULL;
@@ -1695,7 +1703,7 @@ static CODEGEN_FUNC(codegen_cond)
 				while(!fklIsPtrQueueEmpty(curQueue))
 					fklDestroyNastNode(fklPopPtrQueue(curQueue));
 				fklDestroyPtrQueue(curQueue);
-				fklDestroyPtrStack(tmpStack);
+				fklUninitPtrStack(&tmpStack);
 				return;
 			}
 			uint32_t curScope=enter_new_scope(scope,curEnv);
@@ -1718,11 +1726,18 @@ static CODEGEN_FUNC(codegen_cond)
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_SYNTAXERROR;
 			errorState->place=fklMakeNastNodeRef(origExp);
-			fklDestroyPtrStack(tmpStack);
+			fklUninitPtrStack(&tmpStack);
 			return;
 		}
 		FklPtrQueue* lastQueue=fklCreatePtrQueue();
-		pushListItemToQueue(lastExp,lastQueue,&last);
+		FklByteCodeProcesser cond_exp_bc_process=_cond_exp_bc_process_2;
+		if(lastExp->u.pair->cdr->type==FKL_NAST_PAIR&&is_true_exp(lastExp->u.pair->car))
+		{
+			pushListItemToQueue(lastExp->u.pair->cdr,lastQueue,&last);
+			cond_exp_bc_process=_begin_exp_bc_process;
+		}
+		else
+			pushListItemToQueue(lastExp,lastQueue,&last);
 		if(last->type!=FKL_NAST_NIL)
 		{
 			errorState->fid=codegen->fid;
@@ -1731,12 +1746,12 @@ static CODEGEN_FUNC(codegen_cond)
 			while(!fklIsPtrQueueEmpty(lastQueue))
 				fklDestroyNastNode(fklPopPtrQueue(lastQueue));
 			fklDestroyPtrQueue(lastQueue);
-			fklDestroyPtrStack(tmpStack);
+			fklUninitPtrStack(&tmpStack);
 			return;
 		}
 		uint32_t curScope=enter_new_scope(scope,curEnv);
 		FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
-		fklPushPtrStack(createCodegenQuest(_cond_exp_bc_process_2
+		fklPushPtrStack(createCodegenQuest(cond_exp_bc_process
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createDefaultQueueNextExpression(lastQueue)
 					,curScope
@@ -1746,7 +1761,7 @@ static CODEGEN_FUNC(codegen_cond)
 					,prevQuest
 					,codegen)
 				,codegenQuestStack);
-		fklDestroyPtrStack(tmpStack);
+		fklUninitPtrStack(&tmpStack);
 	}
 }
 

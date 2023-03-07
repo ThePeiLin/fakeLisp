@@ -1955,6 +1955,7 @@ void fklInitVMlib(FklVMlib* lib,FklVMvalue* proc)
 	lib->proc=proc;
 	lib->imported=0;
 	lib->loc=NULL;
+	lib->count=0;
 }
 
 inline void fklInitVMlibWithCodeObj(FklVMlib* lib

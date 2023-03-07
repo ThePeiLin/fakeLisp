@@ -1730,12 +1730,8 @@ static CODEGEN_FUNC(codegen_cond)
 			return;
 		}
 		FklPtrQueue* lastQueue=fklCreatePtrQueue();
-		FklByteCodeProcesser cond_exp_bc_process=_cond_exp_bc_process_2;
 		if(lastExp->u.pair->cdr->type==FKL_NAST_PAIR&&is_true_exp(lastExp->u.pair->car))
-		{
 			pushListItemToQueue(lastExp->u.pair->cdr,lastQueue,&last);
-			cond_exp_bc_process=_begin_exp_bc_process;
-		}
 		else
 			pushListItemToQueue(lastExp,lastQueue,&last);
 		if(last->type!=FKL_NAST_NIL)
@@ -1751,7 +1747,7 @@ static CODEGEN_FUNC(codegen_cond)
 		}
 		uint32_t curScope=enter_new_scope(scope,curEnv);
 		FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
-		fklPushPtrStack(createCodegenQuest(cond_exp_bc_process
+		fklPushPtrStack(createCodegenQuest(_cond_exp_bc_process_2
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createDefaultQueueNextExpression(lastQueue)
 					,curScope

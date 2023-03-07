@@ -1,6 +1,11 @@
 #ifndef FKL_BUILTIN_H
 #define FKL_BUILTIN_H
+
 #include"symbol.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum
 {
@@ -51,4 +56,9 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
 void fklInitGlobalVMclosure(struct FklVMframe* frame,FklVM*);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

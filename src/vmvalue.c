@@ -675,16 +675,11 @@ static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	if(obj->u.ud->t->__copy==NULL)
-		return NULL;
+	FklVMudata* r=fklCopyVMudata(obj->u.ud);
+	if(r)
+		return fklCreateVMvalueToStack(FKL_TYPE_USERDATA,r,vm);
 	else
-		return fklCreateVMvalueToStack(FKL_TYPE_USERDATA
-				,fklCreateVMudata(obj->u.ud->type
-					,obj->u.ud->t
-					,obj->u.ud->t->__copy(obj->u.ud->data)
-					,obj->u.ud->rel
-					,obj->u.ud->pd)
-				,vm);
+		return NULL;
 }
 
 static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
@@ -1181,8 +1176,6 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 			fklDestroyVMvec(cur->u.vec);
 			break;
 		case FKL_TYPE_USERDATA:
-			if(cur->u.ud->t->__finalizer)
-				cur->u.ud->t->__finalizer(cur->u.ud->data);
 			fklDestroyVMudata(cur->u.ud);
 			break;
 		case FKL_TYPE_F64:
@@ -1475,11 +1468,12 @@ static size_t _box_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	size_t (*udHashFunc)(void*,FklPtrStack* s)=v->u.ud->t->__hash;
-	if(udHashFunc)
-		return udHashFunc(v->u.ud->data,s);
-	else
-		return ((uintptr_t)v>>FKL_UNUSEDBITNUM);
+	return fklHashvVMudata(v->u.ud);
+	//size_t (*udHashFunc)(void*,FklPtrStack* s)=v->u.ud->t->__hash;
+	//if(udHashFunc)
+	//	return udHashFunc(v->u.ud->data,s);
+	//else
+	//	return ((uintptr_t)v>>FKL_UNUSEDBITNUM);
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1765,12 +1759,7 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 	if(root->u.ud->pd)
 		fklGC_toGrey(root->u.ud->rel,gc);
 	if(root->u.ud->t->__atomic)
-		root->u.ud->t->__atomic(root->u.ud->data,gc);
-}
-
-inline FklVMvalue* fklCreateVMboxNoGC(FklVMgc* gc,FklVMvalue* v)
-{
-	return fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,gc);
+		root->u.ud->t->__atomic(root->u.ud,gc);
 }
 
 FklVMvec* fklCreateVMvecNoInit(size_t size)
@@ -1807,29 +1796,33 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 		(*fir)->base[firSize+i]=sec->base[i];
 }
 
-FklVMudata* fklCreateVMudata(FklSid_t type,const FklVMudMethodTable* t,void* mem,FklVMvalue* rel,FklVMvalue* pd)
+FklVMudata* fklCreateVMudata(FklSid_t type
+		,const FklVMudMethodTable* t
+		,FklVMvalue* rel
+		,FklVMvalue* pd
+		,size_t dsize)
 {
-	FklVMudata* r=(FklVMudata*)malloc(sizeof(FklVMudata));
+	FklVMudata* r=(FklVMudata*)calloc(1,sizeof(FklVMudata)+dsize);
 	FKL_ASSERT(r);
 	r->type=type;
 	r->t=t;
 	r->rel=rel;
 	r->pd=pd;
-	r->data=mem;
+	r->dsize=dsize;
 	return r;
 }
 
-int fklIsCallableUd(FklVMvalue* v)
+inline int fklIsCallableUd(const FklVMudata* ud)
 {
-	return FKL_IS_USERDATA(v)&&v->u.ud->t->__call;
+	return ud->t->__call!=NULL;
 }
 
 int fklIsCallable(FklVMvalue* v)
 {
-	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||fklIsCallableUd(v);
+	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(v->u.ud));
 }
 
-int fklIsAppendable(FklVMvalue* v)
+inline int fklIsAppendable(FklVMvalue* v)
 {
 	return FKL_IS_STR(v)
 		||FKL_IS_BYTEVECTOR(v)
@@ -1839,6 +1832,123 @@ int fklIsAppendable(FklVMvalue* v)
 
 void fklDestroyVMudata(FklVMudata* u)
 {
+	fklFinalizeVMudata(u);
 	free(u);
 }
 
+inline int fklIsCmpableUd(const FklVMudata* u)
+{
+	return u->t->__cmp!=NULL;
+}
+
+inline int fklIsWritableUd(const FklVMudata* u)
+{
+	return u->t->__write!=NULL;
+}
+
+inline int fklIsAbleToStringUd(const FklVMudata* u)
+{
+	return u->t->__to_string!=NULL;
+}
+
+inline int fklUdHasLength(const FklVMudata* u)
+{
+	return u->t->__length!=NULL;
+}
+
+inline int fklUdHasSetqHook(const FklVMudata* u)
+{
+	return u->t->__setq_hook!=NULL;
+}
+
+inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
+{
+	void (*princ)(const FklVMudata*,FILE*,FklSymbolTable*)=u->t->__princ;
+	if(princ)
+		princ(u,fp,table);
+	else
+	{
+		fprintf(fp,"#<");
+		if(u->type)
+			fklPrintString(fklGetSymbolWithId(u->type,table)->symbol,fp);
+		else
+			fputs("userdata",fp);
+		fprintf(fp," %p>",u);
+	}
+}
+
+inline void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
+{
+	void (*prin1)(const FklVMudata*,FILE*,FklSymbolTable*)=u->t->__prin1;
+	if(prin1)
+		prin1(u,fp,table);
+	else
+	{
+		fprintf(fp,"#<");
+		if(u->type)
+			fklPrintRawSymbol(fklGetSymbolWithId(u->type,table)->symbol,fp);
+		else
+			fputs("userdata",fp);
+		fprintf(fp," %p>",u);
+	}
+}
+
+inline int fklAppendVMudata(FklVMudata** a,const FklVMudata* b)
+{
+	void (*append)(FklVMudata**,const FklVMudata*)=(*a)->t->__append;
+	if(append)
+	{
+		append(a,b);
+		return 0;
+	}
+	return 1;
+}
+
+inline int fklCmpVMudata(const FklVMudata* a,const FklVMvalue* b,int* r)
+{
+	return a->t->__cmp(a,b,r);
+}
+
+inline size_t fklLengthVMudata(const FklVMudata* a)
+{
+	return a->t->__length(a);
+}
+
+inline FklString* fklUdToString(const FklVMudata* a)
+{
+	return a->t->__to_string(a);
+}
+
+inline void fklWriteVMudata(const FklVMudata* a,FILE* fp)
+{
+	a->t->__write(a,fp);
+}
+
+inline void fklDoSomeAfterSetqVMudata(FklVMudata* a,uint32_t idx,FklVMframe* f,FklVM* exe)
+{
+	a->t->__setq_hook(a,idx,f,exe);
+}
+
+inline size_t fklHashvVMudata(const FklVMudata* a)
+{
+	size_t (*hashv)(const FklVMudata*)=a->t->__hash;
+	if(hashv)
+		return hashv(a);
+	else
+		return ((uintptr_t)a->data>>FKL_UNUSEDBITNUM);
+}
+
+inline void fklFinalizeVMudata(FklVMudata* a)
+{
+	void (*finalize)(FklVMudata*)=a->t->__finalizer;
+	if(finalize)
+		finalize(a);
+}
+
+inline FklVMudata* fklCopyVMudata(const FklVMudata* a)
+{
+	FklVMudata* (*copyer)(const FklVMudata* a)=a->t->__copy;
+	if(copyer)
+		return copyer(a);
+	return NULL;
+}

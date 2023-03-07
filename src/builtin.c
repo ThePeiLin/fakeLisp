@@ -35,31 +35,15 @@ typedef struct
 	FklSid_t builtInHeadSymbolTable[4];
 }PublicBuiltInUserData;
 
-static PublicBuiltInUserData* createPublicBuiltInUserData(FklVMvalue* sysIn
-		,FklVMvalue* sysOut
-		,FklVMvalue* sysErr
-		,FklSymbolTable* publicSymbolTable
-		)
+static void _public_builtin_userdata_finalizer(FklVMudata* p)
 {
-	PublicBuiltInUserData* r=(PublicBuiltInUserData*)malloc(sizeof(PublicBuiltInUserData));
-	FKL_ASSERT(r);
-	r->patterns=fklInitBuiltInStringPattern(publicSymbolTable);
-	r->sysIn=sysIn;
-	r->sysOut=sysOut;
-	r->sysErr=sysErr;
-	return r;
-}
-
-static void _public_builtin_userdata_finalizer(void* p)
-{
-	PublicBuiltInUserData* d=p;
+	PublicBuiltInUserData* d=(PublicBuiltInUserData*)p->data;
 	fklDestroyAllStringPattern(d->patterns);
-	free(d);
 }
 
-static void _public_builtin_userdata_atomic(void* p,FklVMgc* gc)
+static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
 {
-	PublicBuiltInUserData* d=p;
+	PublicBuiltInUserData* d=(PublicBuiltInUserData*)ud->data;
 	fklGC_toGrey(d->sysIn,gc);
 	fklGC_toGrey(d->sysOut,gc);
 	fklGC_toGrey(d->sysErr,gc);
@@ -222,13 +206,14 @@ static int __fkl_bytevector_append(FklVMvalue* retval,FklVMvalue* cur)
 
 static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 {
-	if(!FKL_IS_USERDATA(cur)
-			||retval->u.ud->type!=cur->u.ud->type
-			||!retval->u.ud->t->__append
-			||retval->u.ud->t->__append!=cur->u.ud->t->__append)
-		return 1;
-	cur->u.ud->t->__append(&retval->u.ud->data,cur->u.ud->data);
-	return 0;
+	return fklAppendVMudata(&retval->u.ud,cur->u.ud);
+	//if(!FKL_IS_USERDATA(cur)
+	//		||retval->u.ud->type!=cur->u.ud->type
+	//		||!retval->u.ud->t->__append
+	//		||retval->u.ud->t->__append!=cur->u.ud->t->__append)
+	//	return 1;
+	//cur->u.ud->t->__append(&retval->u.ud,cur->u.ud);
+	//return 0;
 }
 
 static int (*const valueAppend[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* retval,FklVMvalue* cur)=
@@ -1081,17 +1066,17 @@ void builtin_eqn(FKL_DL_PROC_ARGL)
 				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)==0);
 			else if(FKL_IS_CHR(prev)&&FKL_IS_CHR(cur))
 				r=prev==cur;
-			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
+				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)==0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
-			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)==0;
+				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)==0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
@@ -1145,17 +1130,17 @@ void builtin_gt(FKL_DL_PROC_ARGL)
 				r=(fklStringcmp(prev->u.str,cur->u.str)>0);
 			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
 				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)>0);
-			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>0;
+				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)>0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
-			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>0;
+				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)<=0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
@@ -1209,17 +1194,17 @@ void builtin_ge(FKL_DL_PROC_ARGL)
 				r=(fklStringcmp(prev->u.str,cur->u.str)>=0);
 			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
 				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)>=0);
-			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>=0;
+				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)>=0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
-			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)>=0;
+				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)<0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
@@ -1273,17 +1258,17 @@ void builtin_lt(FKL_DL_PROC_ARGL)
 				r=(fklStringcmp(prev->u.str,cur->u.str)<0);
 			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
 				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)<0);
-			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<0;
+				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)<0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
-			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<0;
+				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)>=0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
@@ -1337,17 +1322,17 @@ void builtin_le(FKL_DL_PROC_ARGL)
 				r=(fklStringcmp(prev->u.str,cur->u.str)<=0);
 			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
 				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)<=0);
-			else if(FKL_IS_USERDATA(prev)&&prev->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=prev->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<=0;
+				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)<=0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
-			else if(FKL_IS_USERDATA(cur)&&cur->u.ud->t->__cmp)
+			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
 			{
 				int isUnableToBeCmp=0;
-				r=cur->u.ud->t->__cmp(prev,cur,&isUnableToBeCmp)<=0;
+				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)>0;
 				if(isUnableToBeCmp)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
@@ -1894,8 +1879,8 @@ void builtin_to_string(FKL_DL_PROC_ARGL)
 			obj=obj->u.pair->cdr;
 		}
 	}
-	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__to_string)
-		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,obj->u.ud->t->__to_string(obj->u.ud->data),exe);
+	else if(FKL_IS_USERDATA(obj)&&fklIsAbleToStringUd(obj->u.ud))
+		retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklUdToString(obj->u.ud),exe);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.->string",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiReturn(retval,&ap,stack);
@@ -2769,8 +2754,8 @@ void builtin_length(FKL_DL_PROC_ARGL)
 		len=obj->u.vec->size;
 	else if(FKL_IS_BYTEVECTOR(obj))
 		len=obj->u.bvec->size;
-	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__length)
-		len=obj->u.ud->t->__length(obj->u.ud->data);
+	else if(FKL_IS_USERDATA(obj)&&fklUdHasLength(obj->u.ud))
+		len=fklLengthVMudata(obj->u.ud);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.length",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiReturn(fklMakeVMuint(len,exe),&ap,stack);
@@ -2831,7 +2816,7 @@ void builtin_read(FKL_DL_PROC_ARGL)
 	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchRouteNode* route=NULL;
-	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	PublicBuiltInUserData* pbd=(PublicBuiltInUserData*)pd->u.ud->data;
 	int unexpectEOF=0;
 	if(!stream||FKL_IS_FP(stream))
 	{
@@ -2861,7 +2846,7 @@ void builtin_read(FKL_DL_PROC_ARGL)
 		}
 	}
 	size_t errorLine=0;
-	PublicBuiltInUserData* publicUserData=pd->u.ud->data;
+	PublicBuiltInUserData* publicUserData=(PublicBuiltInUserData*)pd->u.ud->data;
 	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
@@ -2925,7 +2910,7 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	size_t line=1;
 	size_t j=0;
-	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	PublicBuiltInUserData* pbd=(PublicBuiltInUserData*)pd->u.ud->data;
 	FklStringMatchPattern* patterns=pbd->patterns;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchRouteNode* troute=route;
@@ -2944,11 +2929,10 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 			,&err);
 	fklDestroyStringMatchSet(matchSet);
 	size_t errorLine=0;
-	PublicBuiltInUserData* publicUserData=pd->u.ud->data;
 	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
-			,publicUserData->builtInHeadSymbolTable
+			,pbd->builtInHeadSymbolTable
 			,NULL
 			,exe->symbolTable);
 	fklDestroyStringMatchRoute(route);
@@ -3422,7 +3406,7 @@ void builtin_go(FKL_DL_PROC_ARGL)
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
 	if(!threadProc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_TOOFEWARG,exe);
-	if(!FKL_IS_PROC(threadProc)&&!FKL_IS_DLPROC(threadProc)&&!fklIsCallableUd(threadProc))
+	if(!fklIsCallable(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.go",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVM* threadVM=fklCreateThreadVM(exe->gc
 			,threadProc
@@ -4261,7 +4245,7 @@ void builtin_fgetc(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	PublicBuiltInUserData* pbd=(PublicBuiltInUserData*)pd->u.ud->data;
 	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
@@ -4292,7 +4276,7 @@ void builtin_fgeti(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	PublicBuiltInUserData* pbd=pd->u.ud->data;
+	PublicBuiltInUserData* pbd=(PublicBuiltInUserData*)pd->u.ud->data;
 	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,exe);
@@ -4331,8 +4315,8 @@ void builtin_fwrite(FKL_DL_PROC_ARGL)
 		fwrite(obj->u.str->str,obj->u.str->size,1,objFile);
 	if(FKL_IS_BYTEVECTOR(obj))
 		fwrite(obj->u.bvec->ptr,obj->u.bvec->size,1,objFile);
-	else if(FKL_IS_USERDATA(obj)&&obj->u.ud->t->__write)
-		obj->u.ud->t->__write(obj->u.ud->data,objFile);
+	else if(FKL_IS_USERDATA(obj)&&fklIsWritableUd(obj->u.ud))
+		fklWriteVMudata(obj->u.ud,objFile);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiReturn(obj,&ap,stack);
@@ -5226,7 +5210,7 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
 		fklAddSymbolCstr(list->s,table);
 }
 
-inline static PublicBuiltInUserData* init_vm_public_data(FklVMgc* gc,FklSymbolTable* table)
+inline static void init_vm_public_data(PublicBuiltInUserData* pd,FklVMgc* gc,FklSymbolTable* table)
 {
 	static const char* builtInHeadSymbolTableCstr[4]=
 	{
@@ -5238,14 +5222,12 @@ inline static PublicBuiltInUserData* init_vm_public_data(FklVMgc* gc,FklSymbolTa
 	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
 	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
 	FklVMvalue* builtInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
-	PublicBuiltInUserData* pd=createPublicBuiltInUserData(builtInStdin
-			,builtInStdout
-			,builtInStderr
-			,table);
+	pd->sysIn=builtInStdin;
+	pd->sysOut=builtInStdout;
+	pd->sysErr=builtInStderr;
+	pd->patterns=fklInitBuiltInStringPattern(table);
 	for(int i=0;i<3;i++)
 		pd->builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
-	return pd;
-
 }
 
 void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
@@ -5256,13 +5238,15 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*f->rcount);
 	FKL_ASSERT(closure);
 	f->ref=closure;
-	PublicBuiltInUserData* pd=init_vm_public_data(exe->gc,exe->symbolTable);
-	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
-			,fklCreateVMudata(0
+	FklVMudata* pud=fklCreateVMudata(0
 				,&PublicBuiltInUserDataMethodTable
-				,pd
 				,FKL_VM_NIL
-				,FKL_VM_NIL)
+				,FKL_VM_NIL
+				,sizeof(PublicBuiltInUserData));
+	init_vm_public_data((PublicBuiltInUserData*)pud->data,exe->gc,exe->symbolTable);
+	PublicBuiltInUserData* pd=(PublicBuiltInUserData*)pud->data;
+	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
+			,pud
 			,exe->gc);
 
 	closure[0]=fklCreateClosedVMvarRef(pd->sysIn);

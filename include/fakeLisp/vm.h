@@ -110,7 +110,8 @@ typedef struct FklVMudata
 	struct FklVMvalue* rel;
 	struct FklVMvalue* pd;
 	const struct FklVMudMethodTable* t;
-	void* data;
+	size_t dsize;
+	void* data[];
 }FklVMudata;
 
 typedef enum{
@@ -296,21 +297,21 @@ typedef struct FklVM
 
 typedef struct FklVMudMethodTable
 {
-	void (*__princ)(void*,FILE*,FklSymbolTable* table,FklVMvalue* pd);
-	void (*__prin1)(void*,FILE*,FklSymbolTable* table,FklVMvalue* pd);
-	void (*__finalizer)(void*);
+	void (*__princ)(const FklVMudata*,FILE*,FklSymbolTable* table);
+	void (*__prin1)(const FklVMudata*,FILE*,FklSymbolTable* table);
+	void (*__finalizer)(FklVMudata*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
-	void (*__call)(FklVMvalue*,FklVM*);
-	int (*__cmp)(FklVMvalue*,FklVMvalue*,int*);
-	void (*__write)(void*,FILE*);
-	void (*__atomic)(void*,struct FklVMgc*);
-	size_t (*__length)(void*);
-	void (*__append)(void**,void*);
-	void* (*__copy)(void*);
-	size_t (*__hash)(void*,FklPtrStack*);
-	void (*__setq_hook)(void*,uint32_t idx,FklVMframe* f,FklVM* exe);
-	FklString* (*__to_string)(void*);
-	FklBytevector* (*__to_bvec)(void*);
+	void (*__call)(const FklVMudata*,FklVM*);
+	int (*__cmp)(const FklVMudata*,const FklVMvalue*,int*);
+	void (*__write)(const FklVMudata*,FILE*);
+	void (*__atomic)(const FklVMudata*,struct FklVMgc*);
+	size_t (*__length)(const FklVMudata*);
+	void (*__append)(FklVMudata**,const FklVMudata*);
+	FklVMudata* (*__copy)(const FklVMudata*);
+	size_t (*__hash)(const FklVMudata*);
+	void (*__setq_hook)(FklVMudata*,uint32_t idx,FklVMframe* f,FklVM* exe);
+	FklString* (*__to_string)(const FklVMudata*);
+	FklBytevector* (*__to_bvec)(const FklVMudata*);
 }FklVMudMethodTable;
 
 typedef enum
@@ -556,8 +557,6 @@ void fklChanlSend(FklVMsend*,FklVMchanl*,FklVMgc*);
 void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
 void fklChanlRecv(FklVMrecv*,FklVMchanl*,FklVMgc*);
 
-FklVMvalue* fklCreateVMboxNoGC(FklVMgc*,FklVMvalue*);
-
 FklVMvec* fklCreateVMvecNoInit(size_t size);
 FklVMvec* fklCreateVMvec(size_t size);
 FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVM*);
@@ -565,9 +564,36 @@ FklVMvalue* fklCreateVMvecVFromStack(size_t size,FklVMvalue** base,FklVM*);
 void fklDestroyVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
-FklVMudata* fklCreateVMudata(FklSid_t type,const FklVMudMethodTable* t,void* mem,FklVMvalue* rel,FklVMvalue* pd);
-int fklIsCallableUd(FklVMvalue*);
+FklVMudata* fklCreateVMudata(FklSid_t type
+		,const FklVMudMethodTable* t
+		,FklVMvalue* rel
+		,FklVMvalue* pd
+		,size_t dsize);
 void fklDestroyVMudata(FklVMudata*);
+
+int fklIsCallableUd(const FklVMudata*);
+int fklIsCmpableUd(const FklVMudata*);
+int fklIsWritableUd(const FklVMudata*);
+int fklIsAbleToStringUd(const FklVMudata*);
+int fklUdHasLength(const FklVMudata*);
+int fklUdHasSetqHook(const FklVMudata*);
+
+
+void fklPrincVMudata(const FklVMudata*,FILE*,FklSymbolTable*);
+void fklPrin1VMudata(const FklVMudata*,FILE*,FklSymbolTable*);
+void fklFinalizeVMudata(FklVMudata*);
+int fklEqualVMudata(const FklVMudata*,const FklVMudata*);
+void fklCallVMudata(const FklVMudata*,const FklVMudata*);
+int fklCmpVMudata(const FklVMudata*,const FklVMvalue*,int*);
+void fklWriteVMudata(const FklVMudata*,FILE* fp);
+size_t fklLengthVMudata(const FklVMudata*);
+int fklAppendVMudata(FklVMudata**,const FklVMudata*);
+FklVMudata* fklCopyVMudata(const FklVMudata*);
+size_t fklHashvVMudata(const FklVMudata*);
+void fklDoSomeAfterSetqVMudata(FklVMudata*,uint32_t idx,FklVMframe* f,FklVM*);
+FklString* fklUdToString(const FklVMudata*);
+FklBytevector* fklUdToBytevector(const FklVMudata*);
+
 
 int fklIsCallable(FklVMvalue*);
 int fklIsAppendable(FklVMvalue*);

@@ -727,17 +727,7 @@ static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						fprintf(fp,"#<code-obj>");
 						break;
 					case FKL_TYPE_USERDATA:
-						if(v->u.ud->t->__princ)
-							v->u.ud->t->__princ(v->u.ud->data,fp,table,v->u.ud->pd);
-						else
-						{
-							fprintf(fp,"#<");
-							if(v->u.ud->type)
-								fklPrintString(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
-							else
-								fputs("userdata",fp);
-							fprintf(fp," %p>",v->u.ud);
-						}
+						fklPrincVMudata(v->u.ud,fp,table);
 						break;
 					default:
 						FKL_ASSERT(0);
@@ -832,17 +822,7 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 						fprintf(fp,"#<code-obj>");
 						break;
 					case FKL_TYPE_USERDATA:
-						if(v->u.ud->t->__prin1)
-							v->u.ud->t->__prin1(v->u.ud->data,fp,table,v->u.ud->pd);
-						else
-						{
-							fprintf(fp,"#<");
-							if(v->u.ud->type)
-								fklPrintRawSymbol(fklGetSymbolWithId(v->u.ud->type,table)->symbol,fp);
-							else
-								fputs("userdata",fp);
-							fprintf(fp," %p>",v->u.ud);
-						}
+						fklPrin1VMudata(v->u.ud,fp,table);
 						break;
 					default:
 						FKL_ASSERT(0);
@@ -1294,9 +1274,9 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 						utstring_printf(result,"#<code-obj>");
 						break;
 					case FKL_TYPE_USERDATA:
-						if(v->u.ud->t->__to_string)
+						if(fklIsAbleToStringUd(v->u.ud))
 						{
-							FklString* s=v->u.ud->t->__to_string(v->u.ud->data);
+							FklString* s=fklUdToString(v->u.ud);
 							utstring_bincpy(result,s->str,s->size);
 							free(s);
 						}

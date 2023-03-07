@@ -270,8 +270,9 @@ int fklCharBufToChar(const char* buf,size_t len)
 	int ch=0;
 	if(buf[0]!='\\')
 		return buf[0];
+	if(!(--len))
+		return '\\';
 	buf++;
-	len--;
 	if(toupper(buf[0])=='X'&&isxdigit(buf[1]))
 	{
 		for(size_t i=1;i<len&&isxdigit(buf[i]);i++)
@@ -323,11 +324,6 @@ int fklCharBufToChar(const char* buf,size_t len)
 		}
 	}
 	return ch;
-}
-
-int fklStringToChar(const FklString* str)
-{
-	return fklCharBufToChar(str->str,str->size);
 }
 
 int fklIsNumberCharBuf(const char* buf,size_t len)
@@ -569,7 +565,7 @@ void fklPrintRawChar(char chr,FILE* out)
 	if(isgraph(chr))
 	{
 		if(chr=='\\')
-			fprintf(out,"\\\\");
+			fprintf(out,"\\");
 		else
 			fprintf(out,"%c",chr);
 	}

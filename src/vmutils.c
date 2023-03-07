@@ -1105,7 +1105,7 @@ inline static void print_raw_char_to_utstring(UT_string* s,char c)
 	if(isgraph(c))
 	{
 		if(c=='\\')
-			utstring_printf(s,"\\\\");
+			utstring_printf(s,"\\");
 		else
 			utstring_printf(s,"%c",c);
 	}

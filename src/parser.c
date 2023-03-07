@@ -92,7 +92,7 @@ static int fklIsValidCharStr(const char* str,size_t len)
 	if(str[0]=='\\')
 	{
 		if(len<2)
-			return 0;
+			return 1;
 		if(toupper(str[1])=='X')
 		{
 			if(len<3||len>4)
@@ -792,6 +792,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 						destroyNastNodeQuest(cur);
 					}
 					fklUninitPtrStack(&questStack);
+					*errorLine=token->line;
 					return NULL;
 				}
 				else
@@ -812,6 +813,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 							destroyNastNodeQuest(cur);
 						}
 						fklUninitPtrStack(&questStack);
+						*errorLine=token->line;
 						return NULL;
 					}
 					fklPushPtrStack(node,curNastStack);

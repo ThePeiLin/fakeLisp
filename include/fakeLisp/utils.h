@@ -71,7 +71,6 @@ FklString* fklIntToString(int64_t);
 
 int32_t fklCountChar(const char*,char,int32_t);
 size_t fklCountCharInBuf(const char*,size_t s,char);
-int fklStringToChar(const FklString*);
 int fklCharBufToChar(const char*,size_t);
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize);

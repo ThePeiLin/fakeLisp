@@ -301,7 +301,7 @@ typedef struct FklVMudMethodTable
 	void (*__prin1)(const FklVMudata*,FILE*,FklSymbolTable* table);
 	void (*__finalizer)(FklVMudata*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
-	void (*__call)(const FklVMudata*,FklVM*);
+	void (*__call)(FklVMvalue*,FklVM*);
 	int (*__cmp)(const FklVMudata*,const FklVMvalue*,int*);
 	void (*__write)(const FklVMudata*,FILE*);
 	void (*__atomic)(const FklVMudata*,struct FklVMgc*);

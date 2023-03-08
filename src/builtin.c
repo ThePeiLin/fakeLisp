@@ -37,13 +37,13 @@ typedef struct
 
 static void _public_builtin_userdata_finalizer(FklVMudata* p)
 {
-	PublicBuiltInData* d=FKL_GET_UD_DATA(PublicBuiltInData,p);
+	FKL_DECL_UD_DATA(d,PublicBuiltInData,p);
 	fklDestroyAllStringPattern(d->patterns);
 }
 
 static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
 {
-	PublicBuiltInData* d=FKL_GET_UD_DATA(PublicBuiltInData,ud);
+	FKL_DECL_UD_DATA(d,PublicBuiltInData,ud);
 	fklGC_toGrey(d->sysIn,gc);
 	fklGC_toGrey(d->sysOut,gc);
 	fklGC_toGrey(d->sysErr,gc);
@@ -2816,7 +2816,7 @@ void builtin_read(FKL_DL_PROC_ARGL)
 	FklPtrStack tokenStack=FKL_STACK_INIT;
 	fklInitPtrStack(&tokenStack,32,16);
 	FklStringMatchRouteNode* route=NULL;
-	PublicBuiltInData* pbd=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud);
+	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
 	int unexpectEOF=0;
 	if(!stream||FKL_IS_FP(stream))
 	{
@@ -2846,11 +2846,10 @@ void builtin_read(FKL_DL_PROC_ARGL)
 		}
 	}
 	size_t errorLine=0;
-	PublicBuiltInData* publicUserData=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud);
 	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
 			,route
 			,&errorLine
-			,publicUserData->builtInHeadSymbolTable
+			,pbd->builtInHeadSymbolTable
 			,NULL
 			,exe->symbolTable);
 	FklVMvalue* tmp=NULL;
@@ -2910,7 +2909,7 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	size_t line=1;
 	size_t j=0;
-	PublicBuiltInData* pbd=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud);
+	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
 	FklStringMatchPattern* patterns=pbd->patterns;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
 	FklStringMatchRouteNode* troute=route;
@@ -4245,7 +4244,7 @@ void builtin_fgetc(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	PublicBuiltInData* pbd=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud);
+	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
 	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
@@ -4276,7 +4275,7 @@ void builtin_fgeti(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	PublicBuiltInData* pbd=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud);
+	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
 	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,exe);
@@ -5242,7 +5241,7 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 				,&PublicBuiltInDataMethodTable
 				,FKL_VM_NIL
 				,sizeof(PublicBuiltInData));
-	PublicBuiltInData* pd=FKL_GET_UD_DATA(PublicBuiltInData,pud);
+	FKL_DECL_UD_DATA(pd,PublicBuiltInData,pud);
 	init_vm_public_data(pd,exe->gc,exe->symbolTable);
 	FklVMvalue* publicUserData=fklCreateVMvalueNoGC(FKL_TYPE_USERDATA
 			,pud

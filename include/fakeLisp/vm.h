@@ -565,6 +565,7 @@ void fklDestroyVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
 #define FKL_GET_UD_DATA(TYPE,UD) ((TYPE*)(UD)->data)
+#define FKL_DECL_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,UD)
 
 FklVMudata* fklCreateVMudata(FklSid_t type
 		,const FklVMudMethodTable* t

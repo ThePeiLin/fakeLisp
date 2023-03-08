@@ -1756,8 +1756,8 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
 	if(root->u.ud->rel)
 		fklGC_toGrey(root->u.ud->rel,gc);
-	if(root->u.ud->pd)
-		fklGC_toGrey(root->u.ud->rel,gc);
+	//if(root->u.ud->pd)
+	//	fklGC_toGrey(root->u.ud->rel,gc);
 	if(root->u.ud->t->__atomic)
 		root->u.ud->t->__atomic(root->u.ud,gc);
 }
@@ -1799,7 +1799,6 @@ void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
 FklVMudata* fklCreateVMudata(FklSid_t type
 		,const FklVMudMethodTable* t
 		,FklVMvalue* rel
-		,FklVMvalue* pd
 		,size_t dsize)
 {
 	FklVMudata* r=(FklVMudata*)calloc(1,sizeof(FklVMudata)+dsize);
@@ -1807,8 +1806,7 @@ FklVMudata* fklCreateVMudata(FklSid_t type
 	r->type=type;
 	r->t=t;
 	r->rel=rel;
-	r->pd=pd;
-	r->dsize=dsize;
+	//r->pd=pd;
 	return r;
 }
 

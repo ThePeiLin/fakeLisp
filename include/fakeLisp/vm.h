@@ -104,13 +104,13 @@ typedef struct FklVMvec
 	struct FklVMvalue* base[];
 }FklVMvec;
 
+#define FKL_VM_UDATA_COMMON_HEADER 	FklSid_t type;\
+	struct FklVMvalue* rel;\
+	const struct FklVMudMethodTable* t
+
 typedef struct FklVMudata
 {
-	FklSid_t type;
-	struct FklVMvalue* rel;
-	struct FklVMvalue* pd;
-	const struct FklVMudMethodTable* t;
-	size_t dsize;
+	FKL_VM_UDATA_COMMON_HEADER;
 	void* data[];
 }FklVMudata;
 
@@ -564,10 +564,11 @@ FklVMvalue* fklCreateVMvecVFromStack(size_t size,FklVMvalue** base,FklVM*);
 void fklDestroyVMvec(FklVMvec*);
 void fklVMvecCat(FklVMvec**,const FklVMvec*);
 
+#define FKL_GET_UD_DATA(TYPE,UD) ((TYPE*)(UD)->data)
+
 FklVMudata* fklCreateVMudata(FklSid_t type
 		,const FklVMudMethodTable* t
 		,FklVMvalue* rel
-		,FklVMvalue* pd
 		,size_t dsize);
 void fklDestroyVMudata(FklVMudata*);
 

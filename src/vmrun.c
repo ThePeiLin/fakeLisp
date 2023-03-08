@@ -1497,9 +1497,12 @@ void fklGC_markRootToGrey(FklVM* exe)
 	{
 		FklVMlib* lib=&exe->libs[i];
 		fklGC_toGrey(lib->proc,gc);
-		for(uint32_t i=0;i<lib->count;i++)
-			if(lib->loc[i])
-				fklGC_toGrey(lib->loc[i],gc);
+		if(lib->imported)
+		{
+			for(uint32_t i=0;i<lib->count;i++)
+				if(lib->loc[i])
+					fklGC_toGrey(lib->loc[i],gc);
+		}
 	}
 	//pthread_rwlock_unlock(&exe->rlock);
 	//pthread_rwlock_rdlock(&stack->lock);

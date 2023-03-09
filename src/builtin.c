@@ -111,7 +111,7 @@ FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FK
 //builtin functions
 
 #define K_FUNC_ARGL FklVM* exe,FklCCState s,void* ctx
-void builtin_car(FKL_DL_PROC_ARGL)
+static void builtin_car(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -123,7 +123,7 @@ void builtin_car(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_car(FKL_DL_PROC_ARGL)
+static void builtin_set_car(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -137,7 +137,7 @@ void builtin_set_car(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_cdr(FKL_DL_PROC_ARGL)
+static void builtin_cdr(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -149,7 +149,7 @@ void builtin_cdr(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_cdr(FKL_DL_PROC_ARGL)
+static void builtin_set_cdr(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -163,7 +163,7 @@ void builtin_set_cdr(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_cons(FKL_DL_PROC_ARGL)
+static void builtin_cons(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* car=fklNiGetArg(&ap,stack);
@@ -231,7 +231,7 @@ static int (*const valueAppend[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* retval,FklVMval
 	NULL,
 };
 
-void builtin_copy(FKL_DL_PROC_ARGL)
+static void builtin_copy(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -266,7 +266,7 @@ static inline FklVMvalue** copy_list(FklVMvalue** pv,FklVM* exe)
 	return pv;
 }
 
-void builtin_append(FKL_DL_PROC_ARGL)
+static void builtin_append(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* retval=FKL_VM_NIL;
@@ -310,7 +310,7 @@ void builtin_append(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_append1(FKL_DL_PROC_ARGL)
+static void builtin_append1(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* retval=FKL_VM_NIL;
@@ -347,7 +347,7 @@ void builtin_append1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_eq(FKL_DL_PROC_ARGL)
+static void builtin_eq(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
@@ -364,7 +364,7 @@ void builtin_eq(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_eqv(FKL_DL_PROC_ARGL)
+static void builtin_eqv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
@@ -381,7 +381,7 @@ void builtin_eqv(FKL_DL_PROC_ARGL)
 		fklNiEnd(&ap,stack);
 }
 
-void builtin_equal(FKL_DL_PROC_ARGL)
+static void builtin_equal(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
@@ -405,7 +405,7 @@ static inline FklBigInt* create_uninit_big_int(void)
 	return t;
 }
 
-void builtin_add(FKL_DL_PROC_ARGL)
+static void builtin_add(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
@@ -463,7 +463,7 @@ void builtin_add(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_add_1(FKL_DL_PROC_ARGL)
+static void builtin_add_1(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* arg=fklNiGetArg(&ap,stack);
@@ -507,7 +507,7 @@ void builtin_add_1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sub(FKL_DL_PROC_ARGL)
+static void builtin_sub(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* prev=fklNiGetArg(&ap,stack);
@@ -618,7 +618,7 @@ void builtin_sub(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_abs(FKL_DL_PROC_ARGL)
+static void builtin_abs(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -653,7 +653,7 @@ void builtin_abs(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sub_1(FKL_DL_PROC_ARGL)
+static void builtin_sub_1(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* arg=fklNiGetArg(&ap,stack);
@@ -697,7 +697,7 @@ void builtin_sub_1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_mul(FKL_DL_PROC_ARGL)
+static void builtin_mul(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
@@ -747,7 +747,7 @@ void builtin_mul(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_idiv(FKL_DL_PROC_ARGL)
+static void builtin_idiv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* prev=fklNiGetArg(&ap,stack);
@@ -835,7 +835,7 @@ void builtin_idiv(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_div(FKL_DL_PROC_ARGL)
+static void builtin_div(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* prev=fklNiGetArg(&ap,stack);
@@ -956,7 +956,7 @@ void builtin_div(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_mod(FKL_DL_PROC_ARGL)
+static void builtin_mod(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fir=fklNiGetArg(&ap,stack);
@@ -1026,7 +1026,7 @@ void builtin_mod(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_eqn(FKL_DL_PROC_ARGL)
+static void builtin_eqn(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
@@ -1092,7 +1092,7 @@ void builtin_eqn(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_gt(FKL_DL_PROC_ARGL)
+static void builtin_gt(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
@@ -1156,7 +1156,7 @@ void builtin_gt(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_ge(FKL_DL_PROC_ARGL)
+static void builtin_ge(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
@@ -1220,7 +1220,7 @@ void builtin_ge(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_lt(FKL_DL_PROC_ARGL)
+static void builtin_lt(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
@@ -1284,7 +1284,7 @@ void builtin_lt(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_le(FKL_DL_PROC_ARGL)
+static void builtin_le(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
@@ -1348,7 +1348,7 @@ void builtin_le(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_char_to_integer(FKL_DL_PROC_ARGL)
+static void builtin_char_to_integer(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1361,7 +1361,7 @@ void builtin_char_to_integer(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_integer_to_char(FKL_DL_PROC_ARGL)
+static void builtin_integer_to_char(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1374,7 +1374,7 @@ void builtin_integer_to_char(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_list_to_vector(FKL_DL_PROC_ARGL)
+static void builtin_list_to_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1391,7 +1391,7 @@ void builtin_list_to_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_string_to_vector(FKL_DL_PROC_ARGL)
+static void builtin_string_to_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1408,7 +1408,7 @@ void builtin_string_to_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_list(FKL_DL_PROC_ARGL)
+static void builtin_make_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1435,7 +1435,7 @@ void builtin_make_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_string_to_list(FKL_DL_PROC_ARGL)
+static void builtin_string_to_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1458,7 +1458,7 @@ void builtin_string_to_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_bytevector_to_s8_list(FKL_DL_PROC_ARGL)
+static void builtin_bytevector_to_s8_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1482,7 +1482,7 @@ void builtin_bytevector_to_s8_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_bytevector_to_u8_list(FKL_DL_PROC_ARGL)
+static void builtin_bytevector_to_u8_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1506,7 +1506,7 @@ void builtin_bytevector_to_u8_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_bytevector_to_s8_vector(FKL_DL_PROC_ARGL)
+static void builtin_bytevector_to_s8_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1525,7 +1525,7 @@ void builtin_bytevector_to_s8_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_bytevector_to_u8_vector(FKL_DL_PROC_ARGL)
+static void builtin_bytevector_to_u8_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1544,7 +1544,7 @@ void builtin_bytevector_to_u8_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_vector_to_list(FKL_DL_PROC_ARGL)
+static void builtin_vector_to_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1567,7 +1567,7 @@ void builtin_vector_to_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_string(FKL_DL_PROC_ARGL)
+static void builtin_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	size_t size=ap-stack->bp;
@@ -1586,7 +1586,7 @@ void builtin_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_string(FKL_DL_PROC_ARGL)
+static void builtin_make_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* size=fklNiGetArg(&ap,stack);
@@ -1610,7 +1610,7 @@ void builtin_make_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_vector(FKL_DL_PROC_ARGL)
+static void builtin_make_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -1635,7 +1635,7 @@ void builtin_make_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_substring(FKL_DL_PROC_ARGL)
+static void builtin_substring(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
@@ -1663,7 +1663,7 @@ void builtin_substring(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sub_string(FKL_DL_PROC_ARGL)
+static void builtin_sub_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
@@ -1690,7 +1690,7 @@ void builtin_sub_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_subbytevector(FKL_DL_PROC_ARGL)
+static void builtin_subbytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
@@ -1718,7 +1718,7 @@ void builtin_subbytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sub_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_sub_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ostr=fklNiGetArg(&ap,stack);
@@ -1745,7 +1745,7 @@ void builtin_sub_bytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_subvector(FKL_DL_PROC_ARGL)
+static void builtin_subvector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ovec=fklNiGetArg(&ap,stack);
@@ -1773,7 +1773,7 @@ void builtin_subvector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sub_vector(FKL_DL_PROC_ARGL)
+static void builtin_sub_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ovec=fklNiGetArg(&ap,stack);
@@ -1800,7 +1800,7 @@ void builtin_sub_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_to_string(FKL_DL_PROC_ARGL)
+static void builtin_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1882,7 +1882,7 @@ void builtin_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_symbol_to_string(FKL_DL_PROC_ARGL)
+static void builtin_symbol_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1898,7 +1898,7 @@ void builtin_symbol_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_string_to_symbol(FKL_DL_PROC_ARGL)
+static void builtin_string_to_symbol(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1911,7 +1911,7 @@ void builtin_string_to_symbol(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_symbol_to_integer(FKL_DL_PROC_ARGL)
+static void builtin_symbol_to_integer(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1925,7 +1925,7 @@ void builtin_symbol_to_integer(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_string_to_number(FKL_DL_PROC_ARGL)
+static void builtin_string_to_number(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -1963,7 +1963,7 @@ void builtin_string_to_number(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_number_to_string(FKL_DL_PROC_ARGL)
+static void builtin_number_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -2009,7 +2009,7 @@ void builtin_number_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_integer_to_string(FKL_DL_PROC_ARGL)
+static void builtin_integer_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -2044,7 +2044,7 @@ void builtin_integer_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_f64_to_string(FKL_DL_PROC_ARGL)
+static void builtin_f64_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -2061,7 +2061,7 @@ void builtin_f64_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_vector_to_string(FKL_DL_PROC_ARGL)
+static void builtin_vector_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vec=fklNiGetArg(&ap,stack);
@@ -2079,7 +2079,7 @@ void builtin_vector_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_bytevector_to_string(FKL_DL_PROC_ARGL)
+static void builtin_bytevector_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vec=fklNiGetArg(&ap,stack);
@@ -2091,7 +2091,7 @@ void builtin_bytevector_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_string_to_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_string_to_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* str=fklNiGetArg(&ap,stack);
@@ -2103,7 +2103,7 @@ void builtin_string_to_bytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_vector_to_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_vector_to_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vec=fklNiGetArg(&ap,stack);
@@ -2124,7 +2124,7 @@ void builtin_vector_to_bytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_list_to_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_list_to_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* list=fklNiGetArg(&ap,stack);
@@ -2143,7 +2143,7 @@ void builtin_list_to_bytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_list_to_string(FKL_DL_PROC_ARGL)
+static void builtin_list_to_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* list=fklNiGetArg(&ap,stack);
@@ -2162,7 +2162,7 @@ void builtin_list_to_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_number_to_f64(FKL_DL_PROC_ARGL)
+static void builtin_number_to_f64(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -2182,7 +2182,7 @@ void builtin_number_to_f64(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_number_to_integer(FKL_DL_PROC_ARGL)
+static void builtin_number_to_integer(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -2214,45 +2214,7 @@ void builtin_number_to_integer(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_number_to_big_int(FKL_DL_PROC_ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->big-int",FKL_ERR_TOOMANYARG,exe);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->big-int",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->big-int",exe);
-	FklBigInt* bi=NULL;
-	if(FKL_IS_F64(obj))
-		bi=fklCreateBigIntD(obj->u.f64);
-	else if(FKL_IS_BIG_INT(obj))
-		bi=fklCopyBigInt(obj->u.bigInt);
-	else
-		bi=fklCreateBigInt(fklGetInt(obj));
-	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,bi,exe),&ap,stack);
-	fklNiEnd(&ap,stack);
-}
-
-void builtin_number_to_fix_int(FKL_DL_PROC_ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->fix-int",FKL_ERR_TOOMANYARG,exe);
-	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.number->fix-int",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->fix-int",exe);
-	int64_t r=0;
-	if(FKL_IS_F64(obj))
-		r=obj->u.f64;
-	else
-		r=fklGetInt(obj);
-	fklNiReturn(FKL_MAKE_VM_FIX(r),&ap,stack);
-	fklNiEnd(&ap,stack);
-}
-
-void builtin_nth(FKL_DL_PROC_ARGL)
+static void builtin_nth(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* place=fklNiGetArg(&ap,stack);
@@ -2279,7 +2241,7 @@ void builtin_nth(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_nth(FKL_DL_PROC_ARGL)
+static void builtin_set_nth(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* place=fklNiGetArg(&ap,stack);
@@ -2311,7 +2273,7 @@ void builtin_set_nth(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_sref(FKL_DL_PROC_ARGL)
+static void builtin_sref(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* str=fklNiGetArg(&ap,stack);
@@ -2369,15 +2331,15 @@ void builtin_sref(FKL_DL_PROC_ARGL)
 	fklNiReturn(fklMakeVMint(r,exe),&ap,stack);\
 	fklNiEnd(&ap,stack);
 
-void builtin_bvs8ref(FKL_DL_PROC_ARGL) {BV_U_S_8_REF(int8_t,"builtin.bvs8ref")}
-void builtin_bvs16ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(int16_t,"builtin.bvs16ref")}
-void builtin_bvs32ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(int32_t,"builtin.bvs32ref")}
-void builtin_bvs64ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(int64_t,"builtin.bvs64ref")}
+static void builtin_bvs8ref(FKL_DL_PROC_ARGL) {BV_U_S_8_REF(int8_t,"builtin.bvs8ref")}
+static void builtin_bvs16ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(int16_t,"builtin.bvs16ref")}
+static void builtin_bvs32ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(int32_t,"builtin.bvs32ref")}
+static void builtin_bvs64ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(int64_t,"builtin.bvs64ref")}
 
-void builtin_bvu8ref(FKL_DL_PROC_ARGL) {BV_U_S_8_REF(uint8_t,"builtin.bvu8ref")}
-void builtin_bvu16ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")}
-void builtin_bvu32ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(uint32_t,"builtin.bvu32ref")}
-void builtin_bvu64ref(FKL_DL_PROC_ARGL)
+static void builtin_bvu8ref(FKL_DL_PROC_ARGL) {BV_U_S_8_REF(uint8_t,"builtin.bvu8ref")}
+static void builtin_bvu16ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(uint16_t,"builtin.bvu16ref")}
+static void builtin_bvu32ref(FKL_DL_PROC_ARGL) {BV_LT_U64_REF(uint32_t,"builtin.bvu32ref")}
+static void builtin_bvu64ref(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* bvec=fklNiGetArg(&ap,stack);
@@ -2427,8 +2389,8 @@ void builtin_bvu64ref(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);\
 }
 
-void builtin_bvf32ref(FKL_DL_PROC_ARGL) BV_F_REF(float,"builtin.bvf32ref")
-void builtin_bvf64ref(FKL_DL_PROC_ARGL) BV_F_REF(double,"builtin.bvf32ref")
+static void builtin_bvf32ref(FKL_DL_PROC_ARGL) BV_F_REF(float,"builtin.bvf32ref")
+static void builtin_bvf64ref(FKL_DL_PROC_ARGL) BV_F_REF(double,"builtin.bvf32ref")
 #undef BV_F_REF
 
 #define SET_BV_LE_U8_REF(TYPE,WHO) FKL_NI_BEGIN(exe);\
@@ -2470,15 +2432,15 @@ void builtin_bvf64ref(FKL_DL_PROC_ARGL) BV_F_REF(double,"builtin.bvf32ref")
 	fklNiReturn(target,&ap,stack);\
 	fklNiEnd(&ap,stack);
 
-void builtin_set_bvs8ref(FKL_DL_PROC_ARGL) {SET_BV_LE_U8_REF(int8_t,"builtin.set-bvs8ref!")}
-void builtin_set_bvs16ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int16_t,"builtin.set-bvs16ref!")}
-void builtin_set_bvs32ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int32_t,"builtin.set-bvs32ref!")}
-void builtin_set_bvs64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int64_t,"builtin.set-bvs64ref!")}
+static void builtin_set_bvs8ref(FKL_DL_PROC_ARGL) {SET_BV_LE_U8_REF(int8_t,"builtin.set-bvs8ref!")}
+static void builtin_set_bvs16ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int16_t,"builtin.set-bvs16ref!")}
+static void builtin_set_bvs32ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int32_t,"builtin.set-bvs32ref!")}
+static void builtin_set_bvs64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int64_t,"builtin.set-bvs64ref!")}
 
-void builtin_set_bvu8ref(FKL_DL_PROC_ARGL) {SET_BV_LE_U8_REF(uint8_t,"builtin.set-bvu8ref!")}
-void builtin_set_bvu16ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")}
-void builtin_set_bvu32ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")}
-void builtin_set_bvu64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")}
+static void builtin_set_bvu8ref(FKL_DL_PROC_ARGL) {SET_BV_LE_U8_REF(uint8_t,"builtin.set-bvu8ref!")}
+static void builtin_set_bvu16ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")}
+static void builtin_set_bvu32ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")}
+static void builtin_set_bvu64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")}
 #undef SET_BV_IU_REF
 
 #define SET_BV_F_REF(TYPE,WHO) {\
@@ -2503,11 +2465,11 @@ void builtin_set_bvu64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin.set-bv
 	fklNiEnd(&ap,stack);\
 }
 
-void builtin_set_bvf32ref(FKL_DL_PROC_ARGL) SET_BV_F_REF(float,"builtin.set-bvf32ref!")
-void builtin_set_bvf64ref(FKL_DL_PROC_ARGL) SET_BV_F_REF(double,"builtin.set-bvf64ref!")
+static void builtin_set_bvf32ref(FKL_DL_PROC_ARGL) SET_BV_F_REF(float,"builtin.set-bvf32ref!")
+static void builtin_set_bvf64ref(FKL_DL_PROC_ARGL) SET_BV_F_REF(double,"builtin.set-bvf64ref!")
 #undef SET_BV_F_REF
 
-void builtin_set_sref(FKL_DL_PROC_ARGL)
+static void builtin_set_sref(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* str=fklNiGetArg(&ap,stack);
@@ -2532,7 +2494,7 @@ void builtin_set_sref(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fill_string(FKL_DL_PROC_ARGL)
+static void builtin_fill_string(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* str=fklNiGetArg(&ap,stack);
@@ -2548,7 +2510,7 @@ void builtin_fill_string(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fill_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_fill_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* bvec=fklNiGetArg(&ap,stack);
@@ -2564,7 +2526,7 @@ void builtin_fill_bytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_vref(FKL_DL_PROC_ARGL)
+static void builtin_vref(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vector=fklNiGetArg(&ap,stack);
@@ -2585,7 +2547,7 @@ void builtin_vref(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_vref(FKL_DL_PROC_ARGL)
+static void builtin_set_vref(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vector=fklNiGetArg(&ap,stack);
@@ -2608,7 +2570,7 @@ void builtin_set_vref(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fill_vector(FKL_DL_PROC_ARGL)
+static void builtin_fill_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vec=fklNiGetArg(&ap,stack);
@@ -2624,7 +2586,7 @@ void builtin_fill_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_cas_vref(FKL_DL_PROC_ARGL)
+static void builtin_cas_vref(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* vector=fklNiGetArg(&ap,stack);
@@ -2653,7 +2615,7 @@ void builtin_cas_vref(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_nthcdr(FKL_DL_PROC_ARGL)
+static void builtin_nthcdr(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* place=fklNiGetArg(&ap,stack);
@@ -2681,7 +2643,7 @@ void builtin_nthcdr(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_tail(FKL_DL_PROC_ARGL)
+static void builtin_tail(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* objlist=fklNiGetArg(&ap,stack);
@@ -2700,7 +2662,7 @@ void builtin_tail(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_nthcdr(FKL_DL_PROC_ARGL)
+static void builtin_set_nthcdr(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* place=fklNiGetArg(&ap,stack);
@@ -2732,7 +2694,7 @@ void builtin_set_nthcdr(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_length(FKL_DL_PROC_ARGL)
+static void builtin_length(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -2757,7 +2719,7 @@ void builtin_length(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fopen(FKL_DL_PROC_ARGL)
+static void builtin_fopen(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* filename=fklNiGetArg(&ap,stack);
@@ -2782,7 +2744,7 @@ void builtin_fopen(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fclose(FKL_DL_PROC_ARGL)
+static void builtin_fclose(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fp=fklNiGetArg(&ap,stack);
@@ -2798,7 +2760,7 @@ void builtin_fclose(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_read(FKL_DL_PROC_ARGL)
+static void builtin_read(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
@@ -2874,7 +2836,7 @@ void builtin_read(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_stringify(FKL_DL_PROC_ARGL)
+static void builtin_stringify(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* v=fklNiGetArg(&ap,stack);
@@ -2888,7 +2850,7 @@ void builtin_stringify(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_parse(FKL_DL_PROC_ARGL)
+static void builtin_parse(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
@@ -2946,7 +2908,7 @@ void builtin_parse(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fgets(FKL_DL_PROC_ARGL)
+static void builtin_fgets(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* psize=fklNiGetArg(&ap,stack);
@@ -3007,7 +2969,7 @@ void builtin_fgets(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fgetb(FKL_DL_PROC_ARGL)
+static void builtin_fgetb(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* psize=fklNiGetArg(&ap,stack);
@@ -3063,7 +3025,7 @@ void builtin_fgetb(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_prin1(FKL_DL_PROC_ARGL)
+static void builtin_prin1(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -3080,7 +3042,7 @@ void builtin_prin1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_princ(FKL_DL_PROC_ARGL)
+static void builtin_princ(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -3097,7 +3059,7 @@ void builtin_princ(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_println(FKL_DL_PROC_ARGL)
+static void builtin_println(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -3109,7 +3071,7 @@ void builtin_println(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_print(FKL_DL_PROC_ARGL)
+static void builtin_print(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -3120,7 +3082,7 @@ void builtin_print(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fprint(FKL_DL_PROC_ARGL)
+static void builtin_fprint(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* f=fklNiGetArg(&ap,stack);
@@ -3136,7 +3098,7 @@ void builtin_fprint(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fprin1(FKL_DL_PROC_ARGL)
+static void builtin_fprin1(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* f=fklNiGetArg(&ap,stack);
@@ -3152,7 +3114,7 @@ void builtin_fprin1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_newline(FKL_DL_PROC_ARGL)
+static void builtin_newline(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
@@ -3166,7 +3128,7 @@ void builtin_newline(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_dlopen(FKL_DL_PROC_ARGL)
+static void builtin_dlopen(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* dllName=fklNiGetArg(&ap,stack);
@@ -3186,7 +3148,7 @@ void builtin_dlopen(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_dlsym(FKL_DL_PROC_ARGL)
+static void builtin_dlsym(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ndll=fklNiGetArg(&ap,stack);
@@ -3209,7 +3171,7 @@ void builtin_dlsym(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_argv(FKL_DL_PROC_ARGL)
+static void builtin_argv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* retval=NULL;
@@ -3374,7 +3336,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 	return 1;
 }
 
-void builtin_pattern_match(FKL_DL_PROC_ARGL)
+static void builtin_pattern_match(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* pattern=fklNiGetArg(&ap,stack);
@@ -3394,7 +3356,7 @@ void builtin_pattern_match(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_go(FKL_DL_PROC_ARGL)
+static void builtin_go(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* threadProc=fklNiGetArg(&ap,stack);
@@ -3440,7 +3402,7 @@ void builtin_go(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_chanl(FKL_DL_PROC_ARGL)
+static void builtin_chanl(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* maxSize=fklNiGetArg(&ap,stack);
@@ -3455,7 +3417,7 @@ void builtin_chanl(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_chanl_num(FKL_DL_PROC_ARGL)
+static void builtin_chanl_num(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -3472,7 +3434,7 @@ void builtin_chanl_num(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_send(FKL_DL_PROC_ARGL)
+static void builtin_send(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* message=fklNiGetArg(&ap,stack);
@@ -3488,7 +3450,7 @@ void builtin_send(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_recv(FKL_DL_PROC_ARGL)
+static void builtin_recv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ch=fklNiGetArg(&ap,stack);
@@ -3517,7 +3479,7 @@ void builtin_recv(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_error(FKL_DL_PROC_ARGL)
+static void builtin_error(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* who=fklNiGetArg(&ap,stack);
@@ -3535,7 +3497,7 @@ void builtin_error(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_raise(FKL_DL_PROC_ARGL)
+static void builtin_raise(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* err=fklNiGetArg(&ap,stack);
@@ -3674,7 +3636,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 	return 0;
 }
 
-void builtin_call_eh(FKL_DL_PROC_ARGL)
+static void builtin_call_eh(FKL_DL_PROC_ARGL)
 {
 #define GET_LIST (0)
 #define GET_PROC (1)
@@ -3759,7 +3721,7 @@ void builtin_call_eh(FKL_DL_PROC_ARGL)
 #undef GET_LIST
 }
 
-void builtin_apply(FKL_DL_PROC_ARGL)
+static void builtin_apply(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMframe* frame=exe->frames;
@@ -3904,21 +3866,21 @@ static void k_map(K_FUNC_ARGL) {K_MAP_PATTERN(k_map,
 		*(mapctx->cur)=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),exe);,
 		fklSetRef(&(*mapctx->cur)->u.pair->car,result,gc);,
 		mapctx->cur=&(*mapctx->cur)->u.pair->cdr;)}
-void builtin_map(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.map",k_map,FKL_VM_NIL)}
+static void builtin_map(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.map",k_map,FKL_VM_NIL)}
 
 static void k_foreach(K_FUNC_ARGL) {K_MAP_PATTERN(k_foreach,,*(mapctx->r)=result;,)}
-void builtin_foreach(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.foreach",k_foreach,FKL_VM_NIL)}
+static void builtin_foreach(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.foreach",k_foreach,FKL_VM_NIL)}
 
 static void k_andmap(K_FUNC_ARGL) {K_MAP_PATTERN(k_andmap,,*(mapctx->r)=result;if(result==FKL_VM_NIL)mapctx->i=len;,)}
-void builtin_andmap(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.andmap",k_andmap,FKL_VM_TRUE)}
+static void builtin_andmap(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.andmap",k_andmap,FKL_VM_TRUE)}
 
 static void k_ormap(K_FUNC_ARGL) {K_MAP_PATTERN(k_ormap,,*(mapctx->r)=result;if(result!=FKL_VM_NIL)mapctx->i=len;,)}
-void builtin_ormap(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.ormap",k_ormap,FKL_VM_NIL)}
+static void builtin_ormap(FKL_DL_PROC_ARGL) {MAP_PATTERN("builtin.ormap",k_ormap,FKL_VM_NIL)}
 
 #undef K_MAP_PATTERN
 #undef MAP_PATTERN
 
-void builtin_memq(FKL_DL_PROC_ARGL)
+static void builtin_memq(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -3972,7 +3934,7 @@ static void k_member(K_FUNC_ARGL)
 	fklNiEnd(&memberctx->ap,stack);
 }
 
-void builtin_member(FKL_DL_PROC_ARGL)
+static void builtin_member(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -4038,7 +4000,7 @@ static void k_memp(K_FUNC_ARGL)
 	fklNiEnd(&mempctx->ap,stack);
 }
 
-void builtin_memp(FKL_DL_PROC_ARGL)
+static void builtin_memp(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
@@ -4094,7 +4056,7 @@ static void k_filter(K_FUNC_ARGL)
 	fklNiEnd(&filterctx->ap,stack);
 }
 
-void builtin_filter(FKL_DL_PROC_ARGL)
+static void builtin_filter(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
@@ -4116,7 +4078,7 @@ void builtin_filter(FKL_DL_PROC_ARGL)
 	fklCallFuncK(k_filter,exe,filterctx);
 }
 
-void builtin_list(FKL_DL_PROC_ARGL)
+static void builtin_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* r=FKL_VM_NIL;
@@ -4133,7 +4095,7 @@ void builtin_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_list8(FKL_DL_PROC_ARGL)
+static void builtin_list8(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* r=FKL_VM_NIL;
@@ -4155,7 +4117,7 @@ void builtin_list8(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_reverse(FKL_DL_PROC_ARGL)
+static void builtin_reverse(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -4175,7 +4137,7 @@ void builtin_reverse(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_feof(FKL_DL_PROC_ARGL)
+static void builtin_feof(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fp=fklNiGetArg(&ap,stack);
@@ -4190,7 +4152,7 @@ void builtin_feof(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_vector(FKL_DL_PROC_ARGL)
+static void builtin_vector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	size_t size=ap-stack->bp;
@@ -4202,7 +4164,7 @@ void builtin_vector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_getcwd(FKL_DL_PROC_ARGL)
+static void builtin_getcwd(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
@@ -4212,7 +4174,7 @@ void builtin_getcwd(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_chdir(FKL_DL_PROC_ARGL)
+static void builtin_chdir(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* dir=fklNiGetArg(&ap,stack);
@@ -4230,7 +4192,7 @@ void builtin_chdir(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fgetc(FKL_DL_PROC_ARGL)
+static void builtin_fgetc(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
@@ -4261,7 +4223,7 @@ void builtin_fgetc(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fgeti(FKL_DL_PROC_ARGL)
+static void builtin_fgeti(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
@@ -4292,7 +4254,7 @@ void builtin_fgeti(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_fwrite(FKL_DL_PROC_ARGL)
+static void builtin_fwrite(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -4316,7 +4278,7 @@ void builtin_fwrite(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_box(FKL_DL_PROC_ARGL)
+static void builtin_box(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
@@ -4328,7 +4290,7 @@ void builtin_box(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_unbox(FKL_DL_PROC_ARGL)
+static void builtin_unbox(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* box=fklNiGetArg(&ap,stack);
@@ -4341,7 +4303,7 @@ void builtin_unbox(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_box(FKL_DL_PROC_ARGL)
+static void builtin_set_box(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* box=fklNiGetArg(&ap,stack);
@@ -4356,7 +4318,7 @@ void builtin_set_box(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_cas_box(FKL_DL_PROC_ARGL)
+static void builtin_cas_box(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* box=fklNiGetArg(&ap,stack);
@@ -4377,7 +4339,7 @@ void builtin_cas_box(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	size_t size=ap-stack->bp;
@@ -4396,7 +4358,7 @@ void builtin_bytevector(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_make_bytevector(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* size=fklNiGetArg(&ap,stack);
@@ -4434,7 +4396,7 @@ void builtin_make_bytevector(FKL_DL_PROC_ARGL)
 	fklNiReturn(FKL_VM_NIL,&ap,stack);\
 	fklNiEnd(&ap,stack);
 
-void builtin_sleep(FKL_DL_PROC_ARGL)
+static void builtin_sleep(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* second=fklNiGetArg(&ap,stack);
@@ -4470,7 +4432,7 @@ void builtin_sleep(FKL_DL_PROC_ARGL)
 //	fklNiEnd(&ap,stack);
 //}
 
-void builtin_srand(FKL_DL_PROC_ARGL)
+static void builtin_srand(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* s=fklNiGetArg(&ap,stack);
@@ -4482,7 +4444,7 @@ void builtin_srand(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_rand(FKL_DL_PROC_ARGL)
+static void builtin_rand(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue*  lim=fklNiGetArg(&ap,stack);
@@ -4494,7 +4456,7 @@ void builtin_rand(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_get_time(FKL_DL_PROC_ARGL)
+static void builtin_get_time(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
@@ -4525,7 +4487,7 @@ void builtin_get_time(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_remove_file(FKL_DL_PROC_ARGL)
+static void builtin_remove_file(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* name=fklNiGetArg(&ap,stack);
@@ -4540,7 +4502,7 @@ void builtin_remove_file(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_time(FKL_DL_PROC_ARGL)
+static void builtin_time(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	if(fklNiResBp(&ap,stack))
@@ -4549,7 +4511,7 @@ void builtin_time(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_system(FKL_DL_PROC_ARGL)
+static void builtin_system(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* name=fklNiGetArg(&ap,stack);
@@ -4564,7 +4526,7 @@ void builtin_system(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hash(FKL_DL_PROC_ARGL)
+static void builtin_hash(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQ);
@@ -4584,7 +4546,7 @@ void builtin_hash(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hash_num(FKL_DL_PROC_ARGL)
+static void builtin_hash_num(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
@@ -4597,7 +4559,7 @@ void builtin_hash_num(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_hash(FKL_DL_PROC_ARGL)
+static void builtin_make_hash(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQ);
@@ -4616,7 +4578,7 @@ void builtin_make_hash(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hasheqv(FKL_DL_PROC_ARGL)
+static void builtin_hasheqv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQV);
@@ -4635,7 +4597,7 @@ void builtin_hasheqv(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_hasheqv(FKL_DL_PROC_ARGL)
+static void builtin_make_hasheqv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQV);
@@ -4654,7 +4616,7 @@ void builtin_make_hasheqv(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hashequal(FKL_DL_PROC_ARGL)
+static void builtin_hashequal(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQUAL);
@@ -4673,7 +4635,7 @@ void builtin_hashequal(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_make_hashequal(FKL_DL_PROC_ARGL)
+static void builtin_make_hashequal(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQUAL);
@@ -4692,7 +4654,7 @@ void builtin_make_hashequal(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_href(FKL_DL_PROC_ARGL)
+static void builtin_href(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
@@ -4717,7 +4679,7 @@ void builtin_href(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_href1(FKL_DL_PROC_ARGL)
+static void builtin_href1(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
@@ -4733,7 +4695,7 @@ void builtin_href1(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hash_clear(FKL_DL_PROC_ARGL)
+static void builtin_hash_clear(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
@@ -4747,7 +4709,7 @@ void builtin_hash_clear(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_href(FKL_DL_PROC_ARGL)
+static void builtin_set_href(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
@@ -4763,7 +4725,7 @@ void builtin_set_href(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_set_href8(FKL_DL_PROC_ARGL)
+static void builtin_set_href8(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* ht=fklNiGetArg(&ap,stack);
@@ -4782,7 +4744,7 @@ void builtin_set_href8(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hash_to_list(FKL_DL_PROC_ARGL)
+static void builtin_hash_to_list(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -4806,7 +4768,7 @@ void builtin_hash_to_list(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hash_keys(FKL_DL_PROC_ARGL)
+static void builtin_hash_keys(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -4829,7 +4791,7 @@ void builtin_hash_keys(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_hash_values(FKL_DL_PROC_ARGL)
+static void builtin_hash_values(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMgc* gc=exe->gc;
@@ -4852,34 +4814,34 @@ void builtin_hash_values(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_not(FKL_DL_PROC_ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.not")}
-void builtin_null(FKL_DL_PROC_ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.null")}
-void builtin_atom(FKL_DL_PROC_ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")}
-void builtin_char_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_CHR(val),"builtin.char?")}
-void builtin_integer_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val)||FKL_IS_BIG_INT(val),"builtin.integer?")}
-void builtin_fix_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val),"builtin.fix-int?")}
-void builtin_f64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_F64(val),"builtin.i64?")}
-void builtin_number_p(FKL_DL_PROC_ARGL) {PREDICATE(fklIsVMnumber(val),"builtin.number?")}
-void builtin_pair_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PAIR(val),"builtin.pair?")}
-void builtin_symbol_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_SYM(val),"builtin.symbol?")}
-void builtin_string_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_STR(val),"builtin.string?")}
-void builtin_error_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_ERR(val),"builtin.error?")}
-void builtin_procedure_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"builtin.procedure?")}
-void builtin_proc_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PROC(val),"builtin.proc?")}
-void builtin_dlproc_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")}
-void builtin_vector_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")}
-void builtin_bytevector_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")}
-void builtin_chanl_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")}
-void builtin_dll_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_DLL(val),"builtin.dll?")}
-void builtin_big_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_BIG_INT(val),"builtin.big-int?")}
-void builtin_list_p(FKL_DL_PROC_ARGL){PREDICATE(fklIsList(val),"builtin.list?")}
-void builtin_box_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_BOX(val),"builtin.box?")}
-void builtin_hash_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE(val),"builtin.hash?")}
-void builtin_hasheq_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQ(val),"builtin.hash?")}
-void builtin_hasheqv_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQV(val),"builtin.hash?")}
-void builtin_hashequal_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQUAL(val),"builtin.hash?")}
+static void builtin_not(FKL_DL_PROC_ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.not")}
+static void builtin_null(FKL_DL_PROC_ARGL) {PREDICATE(val==FKL_VM_NIL,"builtin.null")}
+static void builtin_atom(FKL_DL_PROC_ARGL) {PREDICATE(!FKL_IS_PAIR(val),"builtin.atom?")}
+static void builtin_char_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_CHR(val),"builtin.char?")}
+static void builtin_integer_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val)||FKL_IS_BIG_INT(val),"builtin.integer?")}
+static void builtin_fix_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_FIX(val),"builtin.fix-int?")}
+static void builtin_f64_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_F64(val),"builtin.i64?")}
+static void builtin_number_p(FKL_DL_PROC_ARGL) {PREDICATE(fklIsVMnumber(val),"builtin.number?")}
+static void builtin_pair_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PAIR(val),"builtin.pair?")}
+static void builtin_symbol_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_SYM(val),"builtin.symbol?")}
+static void builtin_string_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_STR(val),"builtin.string?")}
+static void builtin_error_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_ERR(val),"builtin.error?")}
+static void builtin_procedure_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_IS_DLPROC(val),"builtin.procedure?")}
+static void builtin_proc_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_PROC(val),"builtin.proc?")}
+static void builtin_dlproc_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_DLPROC(val),"builtin.dlproc?")}
+static void builtin_vector_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_VECTOR(val),"builtin.vector?")}
+static void builtin_bytevector_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val),"builtin.bytevector?")}
+static void builtin_chanl_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_CHAN(val),"builtin.chanl?")}
+static void builtin_dll_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_DLL(val),"builtin.dll?")}
+static void builtin_big_int_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_BIG_INT(val),"builtin.big-int?")}
+static void builtin_list_p(FKL_DL_PROC_ARGL){PREDICATE(fklIsList(val),"builtin.list?")}
+static void builtin_box_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_BOX(val),"builtin.box?")}
+static void builtin_hash_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE(val),"builtin.hash?")}
+static void builtin_hasheq_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQ(val),"builtin.hash?")}
+static void builtin_hasheqv_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQV(val),"builtin.hash?")}
+static void builtin_hashequal_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQUAL(val),"builtin.hash?")}
 
-void builtin_odd_p(FKL_DL_PROC_ARGL)
+static void builtin_odd_p(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);
@@ -4905,7 +4867,7 @@ void builtin_odd_p(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-void builtin_even_p(FKL_DL_PROC_ARGL)
+static void builtin_even_p(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* val=fklNiGetArg(&ap,stack);

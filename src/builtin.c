@@ -7,13 +7,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/builtin.h>
 #include<fakeLisp/codegen.h>
-#ifdef _WIN32
-#include<conio.h>
-#include<windows.h>
-#else
-#include<termios.h>
-#include<unistd.h>
-#endif
+
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
@@ -24,6 +18,7 @@
 #include<windows.h>
 #else
 #include<dlfcn.h>
+#include<unistd.h>
 #endif
 
 typedef struct
@@ -4439,31 +4434,6 @@ void builtin_make_bytevector(FKL_DL_PROC_ARGL)
 	fklNiReturn(FKL_VM_NIL,&ap,stack);\
 	fklNiEnd(&ap,stack);
 
-#ifndef _WIN32
-
-static int getch()
-{
-	struct termios oldt,createt;
-	int ch;
-	tcgetattr(STDIN_FILENO,&oldt);
-	createt=oldt;
-	createt.c_lflag &=~(ICANON|ECHO);
-	tcsetattr(STDIN_FILENO,TCSANOW,&createt);
-	ch=getchar();
-	tcsetattr(STDIN_FILENO,TCSANOW,&oldt);
-	return ch;
-}
-#endif
-
-void builtin_getch(FKL_DL_PROC_ARGL)
-{
-	FKL_NI_BEGIN(exe);
-	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.getch",FKL_ERR_TOOMANYARG,exe);
-	fklNiReturn(FKL_MAKE_VM_CHR(getch()),&ap,stack);
-	fklNiEnd(&ap,stack);
-}
-
 void builtin_sleep(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -5155,7 +5125,6 @@ static const struct SymbolFuncStruct
 	{"memp",                  builtin_memp,                    },
 	{"filter",                builtin_filter,                  },
 
-	{"getch",                 builtin_getch,                   },
 	{"sleep",                 builtin_sleep,                   },
 	{"srand",                 builtin_srand,                   },
 	{"rand",                  builtin_rand,                    },

@@ -124,8 +124,7 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	else
 	{
 		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames->prev);
-		FklPrototype* pt=&exe->ptpool->pts[proc->u.proc->protoId-1];
-		uint32_t lcount=pt->lcount;
+		uint32_t lcount=proc->u.proc->lcount;
 		FklVMvalue** loc=(FklVMvalue**)calloc(lcount,sizeof(FklVMvalue*));
 		FKL_ASSERT(loc);
 		FklVMCompoundFrameVarRef* f=&tmpFrame->u.c.lr;

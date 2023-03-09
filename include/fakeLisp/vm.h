@@ -173,9 +173,9 @@ typedef struct FklVMproc
 	uint8_t* end;
 	FklSid_t sid;
 	uint32_t protoId;
+	uint32_t lcount;
 	FklVMvarRef** closure;
 	uint32_t count;
-	uint32_t lcount;
 	FklVMvalue* codeObj;
 }FklVMproc;
 

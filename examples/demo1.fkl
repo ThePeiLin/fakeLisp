@@ -1,5 +1,4 @@
 (import (.. lib utils))
-(define print princ)
 ;defun宏
 (defmacro
   (defun name args,body)

@@ -4739,7 +4739,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	for(size_t i=0;i<macroLibStack->top;i++)
 	{
 		FklCodegenLib* cur=macroLibStack->base[i];
-		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],anotherVM->gc,1);
+		fklInitVMlibWithCodgenLib(cur,&anotherVM->libs[i],anotherVM->gc,1,ptpool);
 	}
 	FklVMframe* mainframe=anotherVM->frames;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
@@ -4805,7 +4805,8 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
 		,FklVMCompoundFrameVarRef* lr
-		,int needCopy)
+		,int needCopy
+		,FklPrototypePool* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	FklVMgc* gc=exe->gc;
@@ -4817,6 +4818,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
 		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
 		prc->protoId=clib->prototypeId;
+		prc->lcount=ptpool->pts[prc->protoId-1].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		fklInitMainProcRefs(proc->u.proc,refs,count);
 		val=proc;
@@ -4829,7 +4831,8 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVMgc* gc
-		,int needCopy)
+		,int needCopy
+		,FklPrototypePool* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
@@ -4838,6 +4841,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
 		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
 		prc->protoId=clib->prototypeId;
+		prc->lcount=ptpool->pts[prc->protoId-1].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}
@@ -4849,7 +4853,8 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 
 inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
-		,FklVMgc* gc)
+		,FklVMgc* gc
+		,FklPrototypePool* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
@@ -4858,6 +4863,7 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
 		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
 		prc->protoId=clib->prototypeId;
+		prc->lcount=ptpool->pts[prc->protoId-1].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}

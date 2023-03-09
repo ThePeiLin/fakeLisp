@@ -111,7 +111,7 @@ int main(int argc,char** argv)
 			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 			FklCodegenLibType type=cur->type;
 			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc);
+			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->ptpool);
 			if(type==FKL_CODEGEN_LIB_SCRIPT)
 				fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
 		}
@@ -301,7 +301,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 								,curVMlib
 								,anotherVM
 								,&mainframe.u.c.lr
-								,0);
+								,0
+								,anotherVM->ptpool);
 					}
 					FklVMlib* prev=anotherVM->libs;
 					anotherVM->libs=nlibs;

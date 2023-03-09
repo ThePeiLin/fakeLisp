@@ -290,6 +290,7 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp
 		code->count=lr->rcount;
 		FklPrototype* pt=&ptpool->pts[code->protoId-1];
 		uint32_t count=pt->lcount;
+		code->lcount=count;
 		FklVMvalue** loc=(FklVMvalue**)calloc(count,sizeof(FklVMvalue*));
 		FKL_ASSERT(loc);
 		lr->loc=loc;
@@ -328,6 +329,8 @@ inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
 		code->count=lr->rcount;
 		FklPrototype* pt=&ptpool->pts[code->protoId-1];
 		uint32_t count=pt->lcount;
+		FklVMproc* proc=fklGetCompoundFrameProc(tmp)->u.proc;
+		proc->lcount=count;
 		FklVMvalue** loc=(FklVMvalue**)realloc(lr->loc,count*sizeof(FklVMvalue*));
 		FKL_ASSERT(loc||!count);
 		memset(&loc[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));

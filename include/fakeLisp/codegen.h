@@ -271,17 +271,20 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,FklVM* exe
 		,struct FklVMCompoundFrameVarRef* lr
-		,int needCopy);
+		,int needCopy
+		,FklPrototypePool*);
 
 struct FklVMgc;
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMgc* vm
-		,int needCopy);
+		,int needCopy
+		,FklPrototypePool*);
 
 void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVMlib* vlib
-		,struct FklVMgc* vm);
+		,struct FklVMgc* vm
+		,FklPrototypePool*);
 #ifdef __cplusplus
 }
 #endif

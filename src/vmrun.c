@@ -44,8 +44,7 @@ static Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
-	FklPrototype* pt=&exe->ptpool->pts[proc->u.proc->protoId-1];
-	uint32_t lcount=pt->lcount;
+	uint32_t lcount=proc->u.proc->lcount;
 	FklVMvalue** loc=(FklVMvalue**)calloc(lcount,sizeof(FklVMvalue*));
 	FKL_ASSERT(loc);
 	FklVMCompoundFrameVarRef* f=&tmpFrame->u.c.lr;
@@ -890,6 +889,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		proc->closure=closure;
 		proc->count=count;
 	}
+	proc->lcount=pt->lcount;
 	return proc;
 }
 

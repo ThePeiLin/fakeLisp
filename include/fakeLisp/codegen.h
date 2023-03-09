@@ -86,13 +86,17 @@ typedef struct FklCodegen
 	size_t exportNum;
 	FklSid_t* exports;
 	FklSid_t* exportsP;
+	FklCodegenMacro* exportM;
+	FklStringMatchPattern* exportRM;
+	FklHashTable* exportR;
 	FklPtrStack* loadedLibStack;
 	FklPtrStack* macroLibStack;
 	FklStringMatchPattern* head;
 	FklStringMatchPattern** phead;
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
-	unsigned long refcount:63;
+	unsigned int libMark:1;
+	unsigned long refcount:62;
 	FklPrototypePool* ptpool;
 }FklCodegen;
 
@@ -109,7 +113,7 @@ typedef struct FklCodegenQuestContext
 	const FklCodegenQuestContextMethodTable* t;
 }FklCodegenQuestContext;
 
-typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenEnv*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenEnv*,FklCodegenMacroScope*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
 
 typedef struct FklCodegenErrorState
 {
@@ -156,7 +160,8 @@ void fklInitCodegener(FklCodegen* codegen
 		,FklCodegen* prev
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* publicSymbolTable
-		,int destroyAbleMark);
+		,int destroyAbleMark
+		,int libMark);
 
 void fklUninitCodegener(FklCodegen* codegen);
 void fklDestroyCodegener(FklCodegen* codegen);

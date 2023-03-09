@@ -55,8 +55,7 @@ inline FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 		exe->locv=locv;
 	}
 	FklVMvalue** r=&exe->locv[exe->ltp];
-	for(uint32_t i=0;i<count;i++)
-		r[i]=NULL;
+	memset(r,0,sizeof(FklVMvalue**)*count);
 	exe->ltp=nltp;
 	return r;
 }

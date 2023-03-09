@@ -10,7 +10,7 @@
            (set-vref! fib-cache n
                       (+ (fib-cached (-1+ n))
                          (fib-cached (- n 2)))))]
-        [1(vref fib-cache n)]))))
+        [1 (vref fib-cache n)]))))
 
 ;(define (fib n)
 ;  (if (< n 2)

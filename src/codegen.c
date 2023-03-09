@@ -4694,7 +4694,8 @@ static FklCodegenMacro* findMacro(FklNastNode* exp
 	return r;
 }
 
-static void initVMframeFromPatternMatchTable(FklVMframe* frame
+static void initVMframeFromPatternMatchTable(FklVM* exe
+		,FklVMframe* frame
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklVMgc* gc
@@ -4704,8 +4705,7 @@ static void initVMframeFromPatternMatchTable(FklVMframe* frame
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 	uint32_t count=mainPts->lcount;
-	FklVMvalue** loc=(FklVMvalue**)calloc(count,sizeof(FklVMvalue*));
-	FKL_ASSERT(loc||!count);
+	FklVMvalue** loc=fklAllocSpaceForLocalVar(exe,count);
 	uint32_t idx=0;
 	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
 	{
@@ -4743,7 +4743,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	}
 	FklVMframe* mainframe=anotherVM->frames;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
-	initVMframeFromPatternMatchTable(mainframe,ht,lineHash,anotherVM->gc,ptpool);
+	initVMframeFromPatternMatchTable(anotherVM,mainframe,ht,lineHash,anotherVM->gc,ptpool);
 	anotherVM->ptpool=ptpool;
 	return anotherVM;
 }

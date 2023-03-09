@@ -3237,7 +3237,6 @@ static void* threadVMfunc(void* p)
 	FklVMchanl* tmpCh=exe->chan->u.chan;
 	int64_t state=fklRunVM(exe);
 	fklTcMutexAcquire(exe->gc);
-	exe->chan=NULL;
 	if(!state)
 	{
 		FklVMvalue* v=fklGetTopValue(exe->stack);
@@ -3249,6 +3248,7 @@ static void* threadVMfunc(void* p)
 		FklVMvalue* err=fklGetTopValue(exe->stack);
 		fklChanlSend(fklCreateVMsend(err),tmpCh,exe->gc);
 	}
+	exe->chan=NULL;
 	fklDestroyVMstack(exe->stack);
 	exe->stack=NULL;
 	exe->codeObj=NULL;
@@ -3657,7 +3657,6 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 	size_t num=c->num;
 	FklVMvalue** errSymbolLists=c->errorSymbolLists;
 	FklVMerror* err=errValue->u.err;
-	FklVMframe* sf=&exe->sf;
 	for(size_t i=0;i<num;i++)
 	{
 		if(isShouldBeHandle(errSymbolLists[i],err->type))
@@ -3671,7 +3670,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 			{
 				FklVMframe* cur=topFrame;
 				topFrame=topFrame->prev;
-				fklDestroyVMframe(cur,sf);
+				fklDestroyVMframe(cur,exe);
 			}
 			fklTailCallObj(c->errorHandlers[i],f,exe);
 			return 1;

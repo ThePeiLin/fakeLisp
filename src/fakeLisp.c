@@ -100,7 +100,7 @@ int main(int argc,char** argv)
 		FKL_ASSERT(anotherVM->libs);
 		FklVMframe* mainframe=anotherVM->frames;
 		fklInitGlobalVMclosure(mainframe,anotherVM);
-		fklInitMainVMframeWithProc(mainframe
+		fklInitMainVMframeWithProc(anotherVM,mainframe
 				,fklGetCompoundFrameProc(mainframe)->u.proc
 				,NULL
 				,anotherVM->ptpool);
@@ -167,7 +167,8 @@ int main(int argc,char** argv)
 				,fklGetCompoundFrameLocRef(anotherVM->frames));
 
 		anotherVM->ptpool=fklLoadPrototypePool(fp);
-		fklInitMainVMframeWithProc(mainframe
+		fklInitMainVMframeWithProc(anotherVM
+				,mainframe
 				,fklGetCompoundFrameProc(mainframe)->u.proc
 				,NULL
 				,anotherVM->ptpool);
@@ -199,13 +200,12 @@ int main(int argc,char** argv)
 
 static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
 {
-	FklVMframe* sf=&exe->sf;
 	while(exe->frames)
 	{
 		FklVMframe* cur=exe->frames;
 		exe->frames=cur->prev;
 		if(cur!=main)
-			fklDestroyVMframe(cur,sf);
+			fklDestroyVMframe(cur,exe);
 	}
 }
 
@@ -313,7 +313,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 				FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
 				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
 				tmp->protoId=1;
-				fklInitMainVMframeWithProcForRepl(&mainframe,tmp,anotherVM->frames,anotherVM->ptpool);
+				fklInitMainVMframeWithProcForRepl(anotherVM,&mainframe,tmp,anotherVM->frames,anotherVM->ptpool);
 				mainframe.u.c.proc=proc;
 				anotherVM->frames=&mainframe;
 				fklTcMutexRelease(anotherVM->gc);
@@ -348,7 +348,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	}
 	fklDestroyLineNumberTable(globalLnt);
 	fklJoinAllThread(anotherVM);
-	fklDoUninitCompoundFrame(&mainframe);
+	fklDoUninitCompoundFrame(&mainframe,anotherVM);
 	uint32_t count=mainframe.u.c.lr.rcount;
 	FklVMvarRef** ref=mainframe.u.c.lr.ref;
 	for(uint32_t i=0;i<count;i++)

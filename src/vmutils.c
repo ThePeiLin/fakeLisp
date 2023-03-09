@@ -224,6 +224,7 @@ FklVMframe* fklCopyVMframe(FklVMframe* f,FklVMframe* prev,FklVM* exe)
 
 inline static void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
 {
+	lr->base=0;
 	lr->lcount=0;
 	lr->loc=NULL;
 	lr->lref=NULL;
@@ -263,7 +264,8 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,Fkl
 	return fklCreateVMframeWithProcValue(procV,NULL);
 }
 
-inline void fklInitMainVMframeWithProc(FklVMframe* tmp
+inline void fklInitMainVMframeWithProc(FklVM* exe
+		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
 		,FklPrototypePool* ptpool)
@@ -291,8 +293,8 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp
 		FklPrototype* pt=&ptpool->pts[code->protoId-1];
 		uint32_t count=pt->lcount;
 		code->lcount=count;
-		FklVMvalue** loc=(FklVMvalue**)calloc(count,sizeof(FklVMvalue*));
-		FKL_ASSERT(loc);
+		FklVMvalue** loc=fklAllocSpaceForLocalVar(exe,count);
+		lr->base=0;
 		lr->loc=loc;
 		lr->lcount=count;
 		lr->lref=NULL;
@@ -302,7 +304,21 @@ inline void fklInitMainVMframeWithProc(FklVMframe* tmp
 		init_frame_var_ref(&f->lr);
 }
 
-inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
+inline void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
+{
+	for(;f;f=f->prev)
+		if(f->type==FKL_FRAME_COMPOUND)
+		{
+			FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(f);
+			FklVMvalue** loc=&locv[lr->base];
+			for(FklVMvarRefList* ll=lr->lrefl;ll;ll=ll->next)
+				ll->ref->ref=&loc[ll->ref->idx];
+			lr->loc=loc;
+		}
+}
+
+inline void fklInitMainVMframeWithProcForRepl(FklVM* exe
+		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
 		,FklPrototypePool* ptpool)
@@ -329,9 +345,7 @@ inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
 		code->count=lr->rcount;
 		FklPrototype* pt=&ptpool->pts[code->protoId-1];
 		uint32_t count=pt->lcount;
-		FklVMproc* proc=fklGetCompoundFrameProc(tmp)->u.proc;
-		proc->lcount=count;
-		FklVMvalue** loc=(FklVMvalue**)realloc(lr->loc,count*sizeof(FklVMvalue*));
+		FklVMvalue** loc=(FklVMvalue**)realloc(exe->locv,count*sizeof(FklVMvalue*));
 		FKL_ASSERT(loc||!count);
 		memset(&loc[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));
 		if(lr->lref&&loc!=lr->loc)
@@ -343,6 +357,9 @@ inline void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp
 				l->ref->ref=&loc[l->ref->idx];
 			lr->lref=lref;
 		}
+		exe->locv=loc;
+		exe->ltp=count;
+		exe->lsize=count;
 		lr->loc=loc;
 		lr->lcount=count;
 	}
@@ -398,12 +415,12 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 	return r;
 }
 
-void fklDestroyVMframe(FklVMframe* frame,FklVMframe* sf)
+void fklDestroyVMframe(FklVMframe* frame,FklVM* exe)
 {
 	if(frame->type==FKL_FRAME_OTHEROBJ)
-		fklDoFinalizeObjFrame(frame,sf);
+		fklDoFinalizeObjFrame(frame,&exe->sf);
 	else
-		fklDoFinalizeCompoundFrame(frame);
+		fklDoFinalizeCompoundFrame(frame,exe);
 }
 
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)

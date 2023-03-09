@@ -199,6 +199,7 @@ typedef struct FklVMCompoundFrameVarRef
 	FklVMvarRefList* lrefl;
 	FklVMvalue** loc;
 	FklVMvarRef** ref;
+	uint32_t base;
 	uint32_t lcount;
 	uint32_t rcount;
 }FklVMCompoundFrameVarRef;
@@ -254,8 +255,8 @@ int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
 
-void fklDoUninitCompoundFrame(FklVMframe* frame);
-void fklDoFinalizeCompoundFrame(FklVMframe* frame);
+void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe);
+void fklDoFinalizeCompoundFrame(FklVMframe* frame,FklVM* exe);
 
 typedef struct
 {
@@ -276,7 +277,13 @@ typedef struct FklVMlib
 typedef struct FklVM
 {
 	uint32_t mark;
+
+	uint32_t ltp;
+	uint32_t lsize;
+	FklVMvalue** locv;
+	//op stack
 	FklVMstack* stack;
+
 	//static stack frame,only for dlproc and callable obj;
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
 	FklVMframe sf;
@@ -448,8 +455,21 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 
 void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count);
-void fklInitMainVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev,FklPrototypePool* ptpool);
-void fklInitMainVMframeWithProcForRepl(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev,FklPrototypePool* ptpool);
+
+void fklInitMainVMframeWithProc(FklVM*
+		,FklVMframe* tmp
+		,FklVMproc* code
+		,FklVMframe* prev
+		,FklPrototypePool* ptpool);
+void fklInitMainVMframeWithProcForRepl(FklVM*
+		,FklVMframe* tmp
+		,FklVMproc* code
+		,FklVMframe* prev
+		,FklPrototypePool* ptpool);
+
+FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
+void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
+
 void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
 
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc);
@@ -460,7 +480,7 @@ FklVMvarRef* fklCreateVMvarRef(FklVMvalue** loc,uint32_t idx);
 FklVMvarRef* fklCreateClosedVMvarRef(FklVMvalue* v);
 void fklDestroyVMvarRef(FklVMvarRef*);
 
-void fklDestroyVMframe(FklVMframe*,FklVMframe* sf);
+void fklDestroyVMframe(FklVMframe*,FklVM* exe);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 

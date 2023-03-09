@@ -113,10 +113,10 @@ FklVMstack* fklCopyStack(FklVMstack* stack)
 	tmp->size=stack->size;
 	tmp->tp=stack->tp;
 	tmp->bp=stack->bp;
-	tmp->values=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
-	FKL_ASSERT(tmp->values);
+	tmp->base=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
+	FKL_ASSERT(tmp->base);
 	for(;i<stack->tp;i++)
-		tmp->values[i]=stack->values[i];
+		tmp->base[i]=stack->base[i];
 	return tmp;
 }
 
@@ -1514,12 +1514,7 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 
 FklVMvalue* fklGetTopValue(FklVMstack* stack)
 {
-	return stack->values[stack->tp-1];
-}
-
-FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place)
-{
-	return stack->values[place];
+	return stack->base[stack->tp-1];
 }
 
 size_t fklVMlistLength(FklVMvalue* v)

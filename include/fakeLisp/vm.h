@@ -262,7 +262,7 @@ typedef struct
 	uint32_t volatile tp;
 	uint32_t bp;
 	size_t size;
-	FklVMvalue** values;
+	FklVMvalue** base;
 }FklVMstack;
 
 typedef struct FklVMlib
@@ -438,7 +438,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 
 FklHashTable* fklCreateLineNumHashTable(void);
 FklVMvalue* fklGetTopValue(FklVMstack* stack);
-FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
+//FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 
 //FklVMstack* fklCopyStack(FklVMstack*);
 //FklVMvalue* fklPopVMstack(FklVMstack*);

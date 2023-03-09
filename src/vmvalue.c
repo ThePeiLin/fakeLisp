@@ -773,7 +773,7 @@ FklVMvalue* fklCreateVMvalueToStack(FklValueType type
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
 	fklPushVMvalue(r,stack);
 	fklAddToGC(r,vm);
-	return stack->values[stack->tp-1];
+	return stack->base[stack->tp-1];
 }
 
 FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)

@@ -958,7 +958,7 @@ static void inline B_set_bp(FklVM* exe,FklVMframe* frame)
 
 inline FklVMvalue* fklPopTopValue(FklVMstack* s)
 {
-	return s->values[--s->tp];
+	return s->base[--s->tp];
 }
 
 static void inline B_res_bp(FklVM* exe,FklVMframe* frame)
@@ -1140,7 +1140,7 @@ static void inline B_push_list_0(FklVM* exe,FklVMframe* frame)
 	size_t bp=stack->bp;
 	for(size_t i=bp;ap>bp;ap--,i++)
 	{
-		*pcur=fklCreateVMpairV(stack->values[i],FKL_VM_NIL,exe);
+		*pcur=fklCreateVMpairV(stack->base[i],FKL_VM_NIL,exe);
 		pcur=&(*pcur)->u.pair->cdr;
 	}
 	fklSetRef(pcur,last,exe->gc);
@@ -1159,7 +1159,7 @@ static void inline B_push_list(FklVM* exe,FklVMframe* frame)
 	FklVMvalue** pcur=&pair;
 	for(size_t i=ap-size;i<ap;i++)
 	{
-		*pcur=fklCreateVMpairV(stack->values[i],FKL_VM_NIL,exe);
+		*pcur=fklCreateVMpairV(stack->base[i],FKL_VM_NIL,exe);
 		pcur=&(*pcur)->u.pair->cdr;
 	}
 	ap-=size;
@@ -1396,8 +1396,8 @@ FklVMstack* fklCreateVMstack(uint32_t size)
 	tmp->size=size;
 	tmp->tp=0;
 	tmp->bp=0;
-	tmp->values=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
-	FKL_ASSERT(tmp->values);
+	tmp->base=(FklVMvalue**)malloc(size*sizeof(FklVMvalue*));
+	FKL_ASSERT(tmp->base);
 	return tmp;
 }
 
@@ -1406,8 +1406,8 @@ void fklStackRecycle(FklVMstack* stack)
 {
 	if(stack->size-stack->tp>RECYCLE_NUN)
 	{
-		stack->values=(FklVMvalue**)realloc(stack->values,sizeof(FklVMvalue*)*(stack->size-RECYCLE_NUN));
-		FKL_ASSERT(stack->values);
+		stack->base=(FklVMvalue**)realloc(stack->base,sizeof(FklVMvalue*)*(stack->size-RECYCLE_NUN));
+		FKL_ASSERT(stack->base);
 		stack->size-=RECYCLE_NUN;
 	}
 }
@@ -1425,7 +1425,7 @@ void fklDBG_printVMstack(FklVMstack* stack,FILE* fp,int mode,FklSymbolTable* tab
 			if(mode&&stack->bp==i)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%ld:",i);
-			FklVMvalue* tmp=stack->values[i];
+			FklVMvalue* tmp=stack->base[i];
 			fklPrin1VMvalue(tmp,fp,table);
 			putc('\n',fp);
 		}
@@ -1507,7 +1507,7 @@ void fklGC_markRootToGrey(FklVM* exe)
 	//pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
-		FklVMvalue* value=stack->values[i];
+		FklVMvalue* value=stack->base[i];
 		if(FKL_IS_PTR(value))
 			fklGC_toGrey(value,gc);
 	}
@@ -1839,7 +1839,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 void fklDestroyVMstack(FklVMstack* stack)
 {
 	//pthread_rwlock_destroy(&stack->lock);
-	free(stack->values);
+	free(stack->base);
 	free(stack);
 }
 
@@ -1932,12 +1932,12 @@ inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 //	pthread_rwlock_wrlock(&s->lock);
 	if(s->tp>=s->size)
 	{
-		s->values=(FklVMvalue**)realloc(s->values
+		s->base=(FklVMvalue**)realloc(s->base
 				,sizeof(FklVMvalue*)*(s->size+64));
-		FKL_ASSERT(s->values);
+		FKL_ASSERT(s->base);
 		s->size+=64;
 	}
-	s->values[s->tp]=v;
+	s->base[s->tp]=v;
 	s->tp+=1;
 //	pthread_rwlock_unlock(&s->lock);
 }

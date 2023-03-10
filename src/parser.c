@@ -547,6 +547,9 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					fklPushPtrStack(c1->u.pair->car,&s1);
 					fklPushPtrStack(c1->u.pair->cdr,&s1);
 					break;
+				case FKL_NAST_SLOT:
+					r=1;
+					break;
 			}
 		}
 		if(!r)
@@ -872,3 +875,4 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 	fklUninitPtrStack(&questStack);
 	return retval;
 }
+

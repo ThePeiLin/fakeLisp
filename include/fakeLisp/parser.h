@@ -19,6 +19,7 @@ typedef enum{
 	FKL_NAST_BOX,
 	FKL_NAST_BYTEVECTOR,
 	FKL_NAST_HASHTABLE,
+	FKL_NAST_SLOT,
 }FklNastType;
 
 typedef struct FklNastPair
@@ -90,8 +91,6 @@ typedef enum
 	FKL_VM_HASH_EQV,
 	FKL_VM_HASH_EQUAL,
 }FklVMhashTableEqType;
-
-
 
 FklNastPair* fklCreateNastPair(void);
 FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType,size_t);

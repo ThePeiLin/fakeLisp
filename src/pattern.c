@@ -844,3 +844,17 @@ void fklPrintStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp)
 //	fklUninitPtrStack(&stack);
 	printStringMatchRoute(root,fp,0);
 }
+
+FklNastNode* fklCreatePatternFromNast(FklNastNode* node,FklHashTable** psymbolTable)
+{
+	FklNastNode* r=NULL;
+	if(node->type==FKL_NAST_PAIR
+			&&fklIsNastNodeList(node)
+			&&node->u.pair->car->type==FKL_NAST_SYM
+			&&node->u.pair->cdr->type==FKL_NAST_PAIR
+			&&node->u.pair->cdr->u.pair->car->type==FKL_NAST_SYM)
+	{
+		FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+	}
+	return r;
+}

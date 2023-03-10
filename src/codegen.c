@@ -1445,6 +1445,54 @@ static CODEGEN_FUNC(codegen_export)
 	}
 }
 
+inline static void push_single_bcl_codegen_quest(FklByteCodelnt* bcl
+		,FklPtrStack* codegenQuestStack
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
+		,FklCodegenEnv* curEnv
+		,FklCodegenQuest* prev
+		,FklCodegen* codegen
+		,uint64_t curline)
+{
+	FklPtrStack* stack=fklCreatePtrStack(1,1);
+	fklPushPtrStack(bcl,stack);
+	FklCodegenQuest* quest=createCodegenQuest(_default_bc_process
+			,createDefaultStackContext(stack)
+			,NULL
+			,scope
+			,macroScope
+			,curEnv
+			,curline
+			,prev
+			,codegen);
+	fklPushPtrStack(quest,codegenQuestStack);
+}
+
+static CODEGEN_FUNC(codegen_check)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	FklByteCodelnt* bcl=NULL;
+	FklOpcode op=FKL_OP_PUSH_NIL;
+	if(fklFindSymbolDefByIdAndScope(name->u.sym,scope,curEnv))
+		op=FKL_OP_PUSH_1;
+	bcl=createBclnt(create1lenBc(op),codegen->fid,origExp->curline);
+	push_single_bcl_codegen_quest(bcl
+			,codegenQuestStack
+			,scope
+			,macroScope
+			,curEnv
+			,NULL
+			,codegen
+			,origExp->curline);
+}
+
 static CODEGEN_FUNC(codegen_quote)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
@@ -3219,6 +3267,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklCodegenMacroScope* macros=fklPopPtrStack(stack);
 	fklDestroyCodegenMacroScope(macros);
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 	add_compiler_macro(&macros->head,pattern,macroBcl,codegen->ptpool,1);
 	return NULL;
 }
@@ -3229,6 +3278,7 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=fklPopPtrStack(stack);
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 	fklAddStringMatchPattern(pattern,macroBcl,codegen->phead,codegen->ptpool,1);
 	return NULL;
 }
@@ -3378,7 +3428,8 @@ static CODEGEN_FUNC(codegen_defmacro)
 	else if(name->type==FKL_NAST_PAIR)
 	{
 		FklHashTable* symbolTable=NULL;
-		if(!fklIsValidSyntaxPattern(name,&symbolTable))
+		FklNastNode* pattern=fklCreatePatternFromNast(name,&symbolTable);
+		if(!pattern)
 		{
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -3416,7 +3467,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 
 		FklPtrStack* bcStack=fklCreatePtrStack(16,16);
 		fklPushPtrStack(make_macro_scope_ref(macroScope),bcStack);
-		fklPushPtrStack(fklMakeNastNodeRef(name),bcStack);
+		fklPushPtrStack(fklMakeNastNodeRef(pattern),bcStack);
 
 		create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
 		FklPtrQueue* queue=fklCreatePtrQueue();
@@ -3652,6 +3703,7 @@ typedef enum
 	PATTERN_DEFMACRO,
 	PATTERN_MACROEXPAND,
 	PATTERN_EXPORT,
+	PATTERN_CHECK,
 }PatternEnum;
 
 static struct PatternAndFunc
@@ -3683,6 +3735,7 @@ static struct PatternAndFunc
 	{"(defmacro name value)",     NULL, codegen_defmacro,           },
 	{"(macroexpand value)",       NULL, codegen_macroexpand,        },
 	{"(export,rest)",             NULL, codegen_export,             },
+	{"(check name)",              NULL, codegen_check,              },
 	{NULL,                        NULL, NULL,                       },
 };
 

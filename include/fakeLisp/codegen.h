@@ -201,8 +201,6 @@ void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklHashTable*);
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope,FklCodegenMacroScope*);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
 
-//void fklCodegenPrintUndefinedSymbol(FklByteCodelnt* code,FklCodegenLib**,FklSymbolTable* symbolTable,size_t exportNum,FklSid_t* exports);
-
 void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,char* rp
 		,FklByteCodelnt* bcl

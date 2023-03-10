@@ -101,6 +101,7 @@ typedef struct
 #define FKL_PATTERN_BE_COVER (2)
 #define FKL_PATTERN_EQUAL    (3)
 
+FklNastNode* fklCreatePatternFromNast(FklNastNode*,FklHashTable**);
 int fklPatternMatch(const FklNastNode* pattern
 		,const FklNastNode* exp
 		,FklHashTable* ht);

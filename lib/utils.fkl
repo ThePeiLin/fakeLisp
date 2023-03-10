@@ -1,215 +1,204 @@
-(module
-  utils
-  [
-   caar cadr cdar cddr
-   caaar caadr cadar caddr
-   cdaar cdadr cddar cdddr
-   caaaar caaadr caadar caaddr
-   cadaar cadadr caddar cadddr
-   cdaaar cdaadr cdadar cdaddr
-   cddaar cddadr cdddar cddddr
-   square min max
-   merge-sort! merge-sort
-   (defmacro (let d,b)
-     (begin
-       (define args nil)
-       (define vals nil)
-       (cond [(symbol? d)
-              (setq
-                args
-                (map (lambda (sd) (nth 0 sd)) (car b)))
-              (setq
-                vals
-                (map (lambda (sd) (nth 1 sd)) (car b)))
-              `(local
-                 (define (~d,~args)
-                   ~@(cdr b))
-                 (~d ~@vals))]
-         [(pair? d)
-          (setq args
-            (map (lambda (sd) (nth 0 sd)) d))
-          (setq vals
-            (map (lambda (sd) (nth 1 sd)) d))
-          `((lambda ~args ~@b) ~@vals)]
-         [(null d)
-          `(local ~b)]
-         [1 (raise (error "expanding-macro-let"
-                          'syntax-error
-                          "Wrong type of object behind key word:let\n"))])))
-   (defmacro (let* d,b)
-     (if (not (and (not (atom d)) d (cdr d)))
-       `(let ~d ~@b)
-       `(let (~(car d))
-          (let* ~(cdr d)
-            ~@b))))
+(export
+  caar cadr cdar cddr
+  caaar caadr cadar caddr
+  cdaar cdadr cddar cdddr
+  caaaar caaadr caadar caaddr
+  cadaar cadadr caddar cadddr
+  cdaaar cdaadr cdadar cdaddr
+  cddaar cddadr cdddar cddddr
+  square min max
+  merge-sort! merge-sort
+  (defmacro (let d,b)
+    (begin
+      (define args nil)
+      (define vals nil)
+      (cond [(symbol? d)
+             (setq
+               args
+               (map (lambda (sd) (nth 0 sd)) (car b)))
+             (setq
+               vals
+               (map (lambda (sd) (nth 1 sd)) (car b)))
+             `(local
+                (define (~d,~args)
+                  ~@(cdr b))
+                (~d ~@vals))]
+        [(pair? d)
+         (setq args
+           (map (lambda (sd) (nth 0 sd)) d))
+         (setq vals
+           (map (lambda (sd) (nth 1 sd)) d))
+         `((lambda ~args ~@b) ~@vals)]
+        [(null d)
+         `(local ~@b)]
+        [1 (raise (error "expanding-macro-let"
+                         'syntax-error
+                         "Wrong type of object behind key word:let\n"))])))
+  (defmacro (let* d,b)
+    (if (not (and (not (atom d)) d (cdr d)))
+      `(let ~d ~@b)
+      `(let (~(car d))
+         (let* ~(cdr d)
+           ~@b))))
 
-   (defmacro (letrec d,b)
-     (begin
-       (define dfs
-         (map (lambda (sd)
-                `(define ~(car sd) ~@(cdr sd))) d))
-       `(local ~@dfs ~@b)))
+  (defmacro (letrec d,b)
+    (begin
+      (define dfs
+        (map (lambda (sd)
+               `(define ~(car sd) ~@(cdr sd))) d))
+      `(local ~@dfs ~@b)))
 
-   (defmacro (case (s v),b)
-     (begin
-       (define body
-         (let [(tb (map (lambda (x) (cdr x)) b))
-               (cs (map (lambda (x)
-                          (if (pair? x)
-                            `(member ~s '~x)
-                            x))
-                        (map (lambda (x) (nth 0 x)) b)))]
-           (map (lambda (x)
-                  (define r (cons x (car tb)))
-                  (setq tb (cdr tb))
-                  r)
-                cs)))
-       `((lambda (~s) (cond,~body)) ~v)))
+  (defmacro (case (s v),b)
+    (begin
+      (define body
+        (let [(tb (map (lambda (x) (cdr x)) b))
+              (cs (map (lambda (x)
+                         (if (pair? x)
+                           `(member ~s '~x)
+                           x))
+                       (map (lambda (x) (nth 0 x)) b)))]
+          (map (lambda (x)
+                 (define r (cons x (car tb)))
+                 (setq tb (cdr tb))
+                 r)
+               cs)))
+      `((lambda (~s) (cond,~body)) ~v)))
 
-   (defmacro (->> x,forms)
-     (begin
-       (define car-forms (car forms))
-       (let iter [(c (cdr forms))
-                  (r (if (pair? car-forms)
-                       `(~@car-forms ~@`(~x))
-                       `(~car-forms,(~x))))]
-         (if c
-           (begin
-             (define car-c (car c))
-             (iter (cdr c)
-                   (if (pair? car-c)
-                     `(~@car-c ~@`(~r))
-                     `(~car-c,(~r)))))
-           r))))
+  (defmacro (->> x,forms)
+    (begin
+      (define car-forms (car forms))
+      (let iter [(c (cdr forms))
+                 (r (if (pair? car-forms)
+                      `(~@car-forms ~@`(~x))
+                      `(~car-forms,(~x))))]
+        (if c
+          (begin
+            (define car-c (car c))
+            (iter (cdr c)
+                  (if (pair? car-c)
+                    `(~@car-c ~@`(~r))
+                    `(~car-c,(~r)))))
+          r))))
 
-   (defmacro (-> x,forms)
-     (begin
-       (define car-forms (car forms))
-       (let iter [(c (cdr forms))
-                  (r (if (pair? car-forms)
-                       `(~(car car-forms)
-                          ~@`(~x)
-                          ,~(cdr car-forms))
-                       `(~car-forms,(~x))))]
-         (if c
-           (begin
-             (define car-c (car c))
-             (iter (cdr c)
-                   (if (pair? car-c)
-                     `(~(car car-c)
-                        ~@`(~r)
-                        ,~(cdr car-c))
-                     `(~car-c,(~r)))))
-           r))))
-   ]
+  (defmacro (-> x,forms)
+    (begin
+      (define car-forms (car forms))
+      (let iter [(c (cdr forms))
+                 (r (if (pair? car-forms)
+                      `(~(car car-forms)
+                         ~@`(~x)
+                         ,~(cdr car-forms))
+                      `(~car-forms,(~x))))]
+        (if c
+          (begin
+            (define car-c (car c))
+            (iter (cdr c)
+                  (if (pair? car-c)
+                    `(~(car car-c)
+                       ~@`(~r)
+                       ,~(cdr car-c))
+                    `(~car-c,(~r)))))
+          r))))
+  )
+(define (caar a) (car (car a)))
 
-  (define (caar a) (car (car a)))
+(define (cadr a) (car (cdr a)))
 
-  (define (cadr a) (car (cdr a)))
+(define (cdar a) (cdr (car a)))
 
-  (define (cdar a) (cdr (car a)))
+(define (cddr a) (cdr (cdr a)))
 
-  (define (cddr a) (cdr (cdr a)))
+(define (caaar a) (car (car (car a))))
 
-  (define (caaar a) (car (car (car a))))
+(define (caadr a) (car (car (cdr a))))
 
-  (define (caadr a) (car (car (cdr a))))
+(define (cadar a) (car (cdr (car a))))
 
-  (define (cadar a) (car (cdr (car a))))
+(define (caddr a) (car (cdr (cdr a))))
 
-  (define (caddr a) (car (cdr (cdr a))))
+(define (cdaar a) (cdr (car (car a))))
 
-  (define (cdaar a) (cdr (car (car a))))
+(define (cdadr a) (cdr (car (cdr a))))
 
-  (define (cdadr a) (cdr (car (cdr a))))
+(define (cddar a) (cdr (cdr (car ))))
 
-  (define (cddar a) (cdr (cdr (car ))))
+(define (cdddr a) (cdr (cdr (cdr a))))
 
-  (define (cdddr a) (cdr (cdr (cdr a))))
+(define (caaaar a) (car (car (car (car a)))))
 
-  (define (caaaar a) (car (car (car (car a)))))
+(define (caaadr a) (car (car (car (cdr a)))))
 
-  (define (caaadr a) (car (car (car (cdr a)))))
+(define (caadar a) (car (car (cdr (car a)))))
 
-  (define (caadar a) (car (car (cdr (car a)))))
+(define (caaddr a) (car (car (cdr (cdr a)))))
 
-  (define (caaddr a) (car (car (cdr (cdr a)))))
+(define (cadaar a) (car (cdr (car (car a)))))
 
-  (define (cadaar a) (car (cdr (car (car a)))))
+(define (cadadr a) (car (cdr (car (cdr a)))))
 
-  (define (cadadr a) (car (cdr (car (cdr a)))))
+(define (caddar a) (car (cdr (cdr (car a)))))
 
-  (define (caddar a) (car (cdr (cdr (car a)))))
+(define (cadddr a) (car (cdr (cdr (cdr a)))))
 
-  (define (cadddr a) (car (cdr (cdr (cdr a)))))
+(define (cdaaar a) (cdr (car (car (car a)))))
 
-  (define (cdaaar a) (cdr (car (car (car a)))))
+(define (cdaadr a) (cdr (car (car (cdr a)))))
 
-  (define (cdaadr a) (cdr (car (car (cdr a)))))
+(define (cdadar a) (cdr (car (cdr (car a)))))
 
-  (define (cdadar a) (cdr (car (cdr (car a)))))
+(define (cdaddr a) (cdr (car (cdr (cdr a)))))
 
-  (define (cdaddr a) (cdr (car (cdr (cdr a)))))
+(define (cddaar a) (cdr (cdr (car (car a)))))
 
-  (define (cddaar a) (cdr (cdr (car (car a)))))
+(define (cddadr a) (cdr (cdr (car (cdr a)))))
 
-  (define (cddadr a) (cdr (cdr (car (cdr a)))))
+(define (cdddar a) (cdr (cdr (cdr (car a)))))
 
-  (define (cdddar a) (cdr (cdr (cdr (car a)))))
+(define (cddddr a) (cdr (cdr (cdr (cdr a)))))
 
-  (define (cddddr a) (cdr (cdr (cdr (cdr a)))))
+(define (square x) (* x x))
 
-  (define (fprin1 f,l)
-    (define (w-iter c)
-      (when c
-        (prin1 (car c) f)
-        (w-iter (cdr c))))
-    (w-iter l))
+(define (min a b) (if (< a b) a b))
 
-  (define (square x) (* x x))
+(define (max a b) (if (> a b) a b))
 
-  (define (min a b) (if (< a b) a b))
+(define (merge-sort! cmpf ls)
+  (define (partition ls)
+    (define (fast-and-slow h s f)
+      (define nf (and f (cdr f)))
+      (if nf
+        (fast-and-slow (cdr h) (cdr s) (cdr nf))
+        (begin (set-cdr! h nil) s)))
+    (fast-and-slow (cons nil ls) ls ls))
 
-  (define (max a b) (if (> a b) a b))
+  (define (merge l h)
+    (define head '((),()))
+    (define (m-iter c l h)
+      (cond
+        [(and l h)
+         (define cl (car l))
+         (define ch (car h))
+         (define r (cmpf cl ch))
+         (cond
+           [r
+             (set-cdr! c (cons cl nil))
+             (m-iter (cdr c) (cdr l) h)]
+           [1
+            (set-cdr! c (cons ch nil))
+            (m-iter (cdr c) l (cdr h))])]
+        [1
+         (set-cdr! c (cond [l l][1 h]))]))
+    (m-iter head l h)
+    (cdr head))
 
-  (define (merge-sort! cmpf ls)
-    (define (partition ls)
-      (define (fast-and-slow h s f)
-        (define nf (and f (cdr f)))
-        (if nf
-          (fast-and-slow (cdr h) (cdr s) (cdr nf))
-          (begin (set-cdr! h nil) s)))
-      (fast-and-slow (cons nil ls) ls ls))
+  (define (msort! l)
+    (if (and l (cdr l))
+      (begin
+        (define h (partition l))
+        (merge (msort! l)
+               (msort! h)))
+      l))
+  (msort! ls))
 
-    (define (merge l h)
-      (define head '((),()))
-      (define (m-iter c l h)
-        (cond
-          [(and l h)
-           (define cl (car l))
-           (define ch (car h))
-           (define r (cmpf cl ch))
-           (cond
-             [r
-               (set-cdr! c (cons cl nil))
-               (m-iter (cdr c) (cdr l) h)]
-             [1
-              (set-cdr! c (cons ch nil))
-              (m-iter (cdr c) l (cdr h))])]
-          [1
-           (set-cdr! c (cond [l l][1 h]))]))
-      (m-iter head l h)
-      (cdr head))
+(define (merge-sort cmpf ls) (merge-sort! cmpf (copy ls)))
 
-    (define (msort! l)
-      (if (and l (cdr l))
-        (begin
-          (define h (partition l))
-          (merge (msort! l)
-                 (msort! h)))
-        l))
-    (msort! ls))
-
-  (define (merge-sort cmpf ls) (merge-sort! cmpf (copy ls)))
-
-    )

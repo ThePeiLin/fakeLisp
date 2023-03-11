@@ -2770,6 +2770,8 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
 
+	uint8_t getVarRefCode[5]={FKL_OP_GET_VAR_REF,};
+	FklByteCode getVarRef={5,getVarRefCode};
 	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 
@@ -2790,17 +2792,18 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 		{
 			FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
 			uint32_t idl=0;
-			for(uint32_t i=0;i<=exportNum;i++)
-				if(exports[i]==targetId)
-				{
-					idl=i+1;
-					break;
-				}
-			if(idl)
+			for(;idl<exportNum&&exports[idl]!=targetId;idl++);
+			if(idl==exportNum)
+			{
+				uint32_t idx=fklAddCodegenRefBySid(cur,curEnv,codegen->fid,only->curline);
+				fklSetU32ToByteCode(&getVarRefCode[1],idx);
+				bclBcAppendToBcl(importBc,&getVarRef,codegen->fid,only->curline);
+			}
+			else
 			{
 				uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
 				fklSetU32ToByteCode(&importCode[1],idx);
-				fklSetU32ToByteCode(&importCode[5],exportIndex[idl-1]);
+				fklSetU32ToByteCode(&importCode[5],exportIndex[idl]);
 				bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
 			}
 		}

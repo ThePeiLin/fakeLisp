@@ -6,7 +6,11 @@
   cdaaar cdaadr cdadar cdaddr
   cddaar cddadr cdddar cddddr
   square min max
-  merge-sort! merge-sort
+  merge-sort! merge-sort)
+
+(import (f))
+
+(export
   (defmacro ~(let ~d,~b)
     (begin
       (define args nil)
@@ -99,4 +103,3 @@
                     `(~car-c,(~r)))))
           r)))))
 
-(import (f))

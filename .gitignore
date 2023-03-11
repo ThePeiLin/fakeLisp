@@ -11,6 +11,8 @@
 !/lib/
 !/lib/**/
 !/lib/*
+!/lib/utils/
+!/lib/utils/*
 !CMakeLists.txt
 !/src/
 !/src/*

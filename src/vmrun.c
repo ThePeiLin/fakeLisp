@@ -1214,12 +1214,21 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 		*get_compound_frame_loc(frame,locIdx,exe)=v;
 	else
 	{
-		FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId-1];
-		FklSid_t sid=pt->loc[libIdx].id;
-		char* cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
-		if(cstr)
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-		fklAddCompoundFrameCp(frame,sizeof(uint64_t));
+		fklAddCompoundFrameCp(frame,-sizeof(uint64_t));
+		char* cstr=NULL;
+		if(libIdx<plib->count)
+		{
+			FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId-1];
+			FklSid_t sid=pt->loc[libIdx].id;
+			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
+		}
+		else
+		{
+			FklPrototype* pt=&exe->ptpool->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId-1];
+			FklSid_t sid=pt->loc[locIdx].id;
+			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
+		}
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
 }
 

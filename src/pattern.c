@@ -624,7 +624,7 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 	{
 		FklNastNode* n0=fklPopPtrStack(&s0);
 		FklNastNode* n1=fklPopPtrStack(&s1);
-		if(n0->type==FKL_NAST_SYM)
+		if(n0->type==FKL_NAST_SLOT)
 		{
 			if(ht!=NULL)
 				fklPatternMatchingHashTableSet(n0->u.sym,n1,ht);
@@ -845,6 +845,25 @@ void fklPrintStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp)
 	printStringMatchRoute(root,fp,0);
 }
 
+static inline int is_valid_pattern_nast(const FklNastNode* p)
+{
+	if(p->type!=FKL_NAST_PAIR)
+		return 0;
+	if(p->u.pair->car->type!=FKL_NAST_SYM)
+		return 0;
+	return 1;
+}
+
+static inline int is_pattern_slot(FklSid_t s,const FklNastNode* p)
+{
+	return p->type==FKL_NAST_PAIR
+		&&p->u.pair->cdr->type==FKL_NAST_PAIR
+		&&p->u.pair->cdr->u.pair->cdr->type==FKL_NAST_NIL
+		&&p->u.pair->car->type==FKL_NAST_SYM
+		&&p->u.pair->car->u.sym==s
+		&&p->u.pair->cdr->u.pair->car->type==FKL_NAST_SYM;
+}
+
 FklNastNode* fklCreatePatternFromNast(FklNastNode* node,FklHashTable** psymbolTable)
 {
 	FklNastNode* r=NULL;
@@ -852,9 +871,52 @@ FklNastNode* fklCreatePatternFromNast(FklNastNode* node,FklHashTable** psymbolTa
 			&&fklIsNastNodeList(node)
 			&&node->u.pair->car->type==FKL_NAST_SYM
 			&&node->u.pair->cdr->type==FKL_NAST_PAIR
-			&&node->u.pair->cdr->u.pair->car->type==FKL_NAST_SYM)
+			&&node->u.pair->cdr->u.pair->cdr->type==FKL_NAST_NIL
+			&&is_valid_pattern_nast(node->u.pair->cdr->u.pair->car))
 	{
 		FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+		FklNastNode* exp=node->u.pair->cdr->u.pair->car;
+		FklSid_t slotId=node->u.pair->car->u.sym;
+		FklNastNode* rest=exp->u.pair->cdr;
+
+		FklPtrStack stack=FKL_STACK_INIT;
+		fklInitPtrStack(&stack,32,16);
+		fklPushPtrStack((void*)rest,&stack);
+		while(!fklIsPtrStackEmpty(&stack))
+		{
+			FklNastNode* c=fklPopPtrStack(&stack);
+			if(c->type==FKL_NAST_PAIR)
+			{
+				if(is_pattern_slot(slotId,c))
+				{
+					FklSid_t sym=c->u.pair->cdr->u.pair->car->u.sym;
+					if(fklGetHashItem((void*)&sym,symbolTable))
+					{
+						fklDestroyHashTable(symbolTable);
+						fklUninitPtrStack(&stack);
+						*psymbolTable=NULL;
+						return 0;
+					}
+					fklDestroyNastNode(c->u.pair->car);
+					fklDestroyNastNode(c->u.pair->cdr);
+					free(c->u.pair);
+					c->type=FKL_NAST_SLOT;
+					c->u.sym=sym;
+					fklPutNoRpHashItem(createSidHashItem(sym),symbolTable);
+				}
+				else
+				{
+					fklPushPtrStack(c->u.pair->cdr,&stack);
+					fklPushPtrStack(c->u.pair->car,&stack);
+				}
+			}
+		}
+		r=exp;
+		fklUninitPtrStack(&stack);
+		if(psymbolTable)
+			*psymbolTable=symbolTable;
+		else
+			fklDestroyHashTable(symbolTable);
 	}
 	return r;
 }

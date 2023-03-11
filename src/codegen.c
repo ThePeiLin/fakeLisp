@@ -98,7 +98,6 @@ typedef enum
 {
 	SUB_PATTERN_UNQUOTE=0,
 	SUB_PATTERN_UNQTESP=1,
-	SUB_PATTERN_LIBRARY=2,
 }SubPatternEnum;
 
 static struct SubPattern
@@ -107,9 +106,8 @@ static struct SubPattern
 	FklNastNode* pn;
 }builtInSubPattern[]=
 {
-	{"(unquote value)",NULL,},
-	{"(unqtesp value)",NULL,},
-	{"(module name args,rest)",NULL,},
+	{"~(unquote ~value)",NULL,},
+	{"~(unqtesp ~value)",NULL,},
 	{NULL,NULL,},
 };
 
@@ -3713,30 +3711,30 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"(begin,rest)",              NULL, codegen_begin,              },
-	{"(local,rest)",              NULL, codegen_local,              },
-	{"(define (name,args),rest)", NULL, codegen_defun,              },
-	{"(define name value)",       NULL, codegen_define,             },
-	{"(setq name value)",         NULL, codegen_setq,               },
-	{"(quote value)",             NULL, codegen_quote,              },
-	{"(unquote value)",           NULL, codegen_unquote,            },
-	{"(qsquote value)",           NULL, codegen_qsquote,            },
-	{"(lambda args,rest)",        NULL, codegen_lambda,             },
-	{"(and,rest)",                NULL, codegen_and,                },
-	{"(or,rest)",                 NULL, codegen_or,                 },
-	{"(cond,rest)",               NULL, codegen_cond,               },
-	{"(if value rest)",           NULL, codegen_if0,                },
-	{"(if value rest args)",      NULL, codegen_if1,                },
-	{"(when value,rest)",         NULL, codegen_when,               },
-	{"(unless value,rest)",       NULL, codegen_unless,             },
-	{"(load name)",               NULL, codegen_load,               },
-	{"(import name)",             NULL, codegen_import,             },
-	{"(import name rest)",        NULL, codegen_import_with_prefix, },
-	{"(defmacro name value)",     NULL, codegen_defmacro,           },
-	{"(macroexpand value)",       NULL, codegen_macroexpand,        },
-	{"(export,rest)",             NULL, codegen_export,             },
-	{"(check name)",              NULL, codegen_check,              },
-	{NULL,                        NULL, NULL,                       },
+	{"~(begin,~rest)",                NULL, codegen_begin,              },
+	{"~(local,~rest)",                NULL, codegen_local,              },
+	{"~(define (~name,~args),~rest)", NULL, codegen_defun,              },
+	{"~(define ~name ~value)",        NULL, codegen_define,             },
+	{"~(setq ~name ~value)",          NULL, codegen_setq,               },
+	{"~(quote ~value)",               NULL, codegen_quote,              },
+	{"`(unquote `value)",             NULL, codegen_unquote,            },
+	{"~(qsquote ~value)",             NULL, codegen_qsquote,            },
+	{"~(lambda ~args,~rest)",         NULL, codegen_lambda,             },
+	{"~(and,~rest)",                  NULL, codegen_and,                },
+	{"~(or,~rest)",                   NULL, codegen_or,                 },
+	{"~(cond,~rest)",                 NULL, codegen_cond,               },
+	{"~(if ~value ~rest)",            NULL, codegen_if0,                },
+	{"~(if ~value ~rest ~args)",      NULL, codegen_if1,                },
+	{"~(when ~value,~rest)",          NULL, codegen_when,               },
+	{"~(unless ~value,~rest)",        NULL, codegen_unless,             },
+	{"~(load ~name)",                 NULL, codegen_load,               },
+	{"~(import ~name)",               NULL, codegen_import,             },
+	{"~(import ~name ~rest)",         NULL, codegen_import_with_prefix, },
+	{"~(defmacro ~name ~value)",      NULL, codegen_defmacro,           },
+	{"~(macroexpand ~value)",         NULL, codegen_macroexpand,        },
+	{"~(export,~rest)",               NULL, codegen_export,             },
+	{"~(check ~name)",                NULL, codegen_check,              },
+	{NULL,                            NULL, NULL,                       },
 };
 
 static inline int isValidExportNodeList(FklNastNode* list)
@@ -3765,19 +3763,27 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 
 	FklStringMatchPattern* builtinStringPatterns=fklInitBuiltInStringPattern(publicSymbolTable);
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps
+	{
+		FklNastNode* node=fklCreateNastNodeFromCstr(cur->ps
 				,builtInHeadSymbolTable
 				,builtinStringPatterns
 				,publicSymbolTable);
+		cur->pn=fklMakeNastNodeRef(fklCreatePatternFromNast(node,NULL));
+		fklDestroyNastNode(node);
+	}
 
 	for(struct SymbolReplacement* cur=&builtInSymbolReplacement[0];cur->s!=NULL;cur++)
 		cur->sid=fklAddSymbolCstr(cur->s,publicSymbolTable)->id;
 
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
-		cur->pn=fklCreateNastNodeFromCstr(cur->ps
+	{
+		FklNastNode* node=fklCreateNastNodeFromCstr(cur->ps
 				,builtInHeadSymbolTable
 				,builtinStringPatterns
 				,publicSymbolTable);
+		cur->pn=fklMakeNastNodeRef(fklCreatePatternFromNast(node,NULL));
+		fklDestroyNastNode(node);
+	}
 
 	fklDestroyAllStringPattern(builtinStringPatterns);
 	return builtInHeadSymbolTable;

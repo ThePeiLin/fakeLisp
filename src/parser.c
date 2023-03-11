@@ -402,6 +402,7 @@ void fklDestroyNastNode(FklNastNode* node)
 				{
 					case FKL_NAST_FIX:
 					case FKL_NAST_SYM:
+					case FKL_NAST_SLOT:
 					case FKL_NAST_NIL:
 					case FKL_NAST_CHR:
 					case FKL_NAST_F64:

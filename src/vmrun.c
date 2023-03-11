@@ -1391,6 +1391,7 @@ static void inline B_export(FklVM* exe,FklVMframe* frame)
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	uint32_t count=lr->lcount;
 	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*count);
+	fklDropTop(exe->stack);
 	lib->loc=loc;
 	lib->count=count;
 	lib->imported=1;

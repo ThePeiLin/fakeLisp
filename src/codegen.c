@@ -1315,7 +1315,7 @@ BC_PROCESS(_export_macro_bc_process)
 	{
 		head->own=0;
 		fklAddStringMatchPattern(head->parts,head->u.proc,&codegen->exportRM,head->ptpool,1);
-		fklAddStringMatchPattern(head->parts,head->u.proc,codegen->phead,head->ptpool,0);
+		fklAddStringMatchPattern(head->parts,head->u.proc,origCodegen->phead,head->ptpool,0);
 	}
 	return NULL;
 }
@@ -4500,6 +4500,7 @@ void fklDestroyCodegenMacroScope(FklCodegenMacroScope* macros)
 			}
 			if(macros->replacements)
 				fklDestroyHashTable(macros->replacements);
+			fklDestroyAllStringPattern(macros->patterns);
 			free(macros);
 			macros=prev;
 		}

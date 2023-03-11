@@ -1,7 +1,7 @@
 (import (.. lib utils))
 ;defun宏
 (defmacro
-  (defun name args,body)
+  ~(defun ~name ~args,~body)
   (list 'define name (cons 'lambda (cons args body))))
 
 ;get the last element of a list

@@ -1,5 +1,4 @@
-(export
-  caar cadr cdar cddr
+(export caar cadr cdar cddr
   caaar caadr cadar caddr
   cdaar cdadr cddar cdddr
   caaaar caaadr caadar caaddr
@@ -8,7 +7,7 @@
   cddaar cddadr cdddar cddddr
   square min max
   merge-sort! merge-sort
-  (defmacro (let d,b)
+  (defmacro ~(let ~d,~b)
     (begin
       (define args nil)
       (define vals nil)
@@ -34,21 +33,21 @@
         [1 (raise (error "expanding-macro-let"
                          'syntax-error
                          "Wrong type of object behind key word:let\n"))])))
-  (defmacro (let* d,b)
+  (defmacro ~(let* ~d,~b)
     (if (not (and (not (atom d)) d (cdr d)))
       `(let ~d ~@b)
       `(let (~(car d))
          (let* ~(cdr d)
            ~@b))))
 
-  (defmacro (letrec d,b)
+  (defmacro ~(letrec ~d,~b)
     (begin
       (define dfs
         (map (lambda (sd)
                `(define ~(car sd) ~@(cdr sd))) d))
       `(local ~@dfs ~@b)))
 
-  (defmacro (case (s v),b)
+  (defmacro ~(case (~s ~v),~b)
     (begin
       (define body
         (let [(tb (map (lambda (x) (cdr x)) b))
@@ -64,7 +63,7 @@
                cs)))
       `((lambda (~s) (cond,~body)) ~v)))
 
-  (defmacro (->> x,forms)
+  (defmacro ~(->> ~x,~forms)
     (begin
       (define car-forms (car forms))
       (let iter [(c (cdr forms))
@@ -80,7 +79,7 @@
                     `(~car-c,(~r)))))
           r))))
 
-  (defmacro (-> x,forms)
+  (defmacro ~(-> ~x,~forms)
     (begin
       (define car-forms (car forms))
       (let iter [(c (cdr forms))

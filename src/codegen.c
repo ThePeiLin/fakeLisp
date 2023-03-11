@@ -1276,18 +1276,6 @@ static void add_compiler_macro(FklCodegenMacro** pmacro
 	}
 	else
 	{
-		//if(coverState==FKL_PATTERN_COVER)
-		//{
-		//	FklCodegenMacro* next=*pmacro;
-		//	*pmacro=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
-		//}
-		//else if(coverState==FKL_PATTERN_BE_COVER)
-		//{
-		//	FklCodegenMacro* cur=(*pmacro);
-		//	FklCodegenMacro* next=cur?cur->next:NULL;
-		//	cur->next=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
-		//}
-		//else
 		if(coverState==FKL_PATTERN_EQUAL)
 		{
 			FklCodegenMacro* macro=*pmacro;
@@ -2991,9 +2979,28 @@ static CODEGEN_FUNC(codegen_import)
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName
 			,codegen->publicSymbolTable);
+
+	char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
+	packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
+
 	char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
+
 	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
-	if(fklIsAccessableRegFile(scriptFileName))
+
+	if(fklIsAccessableRegFile(packageMainFileName))
+	{
+		process_import_script(origExp
+				,name
+				,importLibraryName
+				,packageMainFileName
+				,curEnv
+				,codegen
+				,errorState
+				,codegenQuestStack
+				,scope
+				,macroScope);
+	}
+	else if(fklIsAccessableRegFile(scriptFileName))
 	{
 		process_import_script(origExp
 			,name
@@ -3040,6 +3047,7 @@ static CODEGEN_FUNC(codegen_import)
 	free(filename);
 	free(scriptFileName);
 	free(dllFileName);
+	free(packageMainFileName);
 }
 
 static inline void process_import_script_with_prefix(FklNastNode* origExp
@@ -3217,9 +3225,29 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	FklNastNode* importLibraryName=NULL;
 	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName
 			,codegen->publicSymbolTable);
+	
+	char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
+	packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
+
 	char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
+
 	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+
 	if(fklIsAccessableRegFile(scriptFileName))
+	{
+		process_import_script_with_prefix(origExp
+				,name
+				,prefixNode
+				,importLibraryName
+				,packageMainFileName
+				,curEnv
+				,codegen
+				,errorState
+				,codegenQuestStack
+				,scope
+				,macroScope);
+	}
+	else if(fklIsAccessableRegFile(scriptFileName))
 	{
 		process_import_script_with_prefix(origExp
 				,name
@@ -3262,6 +3290,7 @@ static CODEGEN_FUNC(codegen_import_with_prefix)
 	free(filename);
 	free(scriptFileName);
 	free(dllFileName);
+	free(packageMainFileName);
 }
 
 BC_PROCESS(_compiler_macro_bc_process)

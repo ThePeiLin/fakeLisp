@@ -547,17 +547,6 @@ void fklAddStringMatchPattern(FklNastNode* parts
 		*head=fklCreateStringMatchPattern(parts,proc,ptpool,*head,own);
 	else
 	{
-		//if(coverState==FKL_PATTERN_COVER)
-		//{
-		//	FklStringMatchPattern* next=*phead;
-		//	*phead=fklCreateStringMatchPattern(parts,proc,ptpool,next,own);
-		//}
-		//else if(coverState==FKL_PATTERN_BE_COVER)
-		//{
-		//	FklStringMatchPattern* next=(*phead)->next;
-		//	(*phead)->next=fklCreateStringMatchPattern(parts,proc,ptpool,next,own);
-		//}
-		//else
 		if(coverState==FKL_PATTERN_EQUAL)
 		{
 			FklStringMatchPattern* cur=*phead;

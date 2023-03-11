@@ -1262,31 +1262,33 @@ static void add_compiler_macro(FklCodegenMacro** pmacro
 		,int own)
 {
 	int coverState=0;
-	for(FklCodegenMacro* cur=*pmacro;cur;cur=cur->next)
+	FklCodegenMacro** phead=pmacro;
+	for(FklCodegenMacro* cur=*pmacro;cur;pmacro=&cur->next,cur=cur->next)
 	{
 		coverState=fklPatternCoverState(cur->pattern,pattern);
-		if(coverState)
+		if(coverState&&coverState!=FKL_PATTERN_BE_COVER)
 			break;
 	}
 	if(!coverState)
 	{
-		FklCodegenMacro* macro=fklCreateCodegenMacro(pattern,bcl,*pmacro,ptpool,own);
-		*pmacro=macro;
+		FklCodegenMacro* macro=fklCreateCodegenMacro(pattern,bcl,*phead,ptpool,own);
+		*phead=macro;
 	}
 	else
 	{
-		if(coverState==FKL_PATTERN_COVER)
-		{
-			FklCodegenMacro* next=*pmacro;
-			*pmacro=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
-		}
-		else if(coverState==FKL_PATTERN_BE_COVER)
-		{
-			FklCodegenMacro* cur=(*pmacro);
-			FklCodegenMacro* next=cur->next;
-			cur->next=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
-		}
-		else
+		//if(coverState==FKL_PATTERN_COVER)
+		//{
+		//	FklCodegenMacro* next=*pmacro;
+		//	*pmacro=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
+		//}
+		//else if(coverState==FKL_PATTERN_BE_COVER)
+		//{
+		//	FklCodegenMacro* cur=(*pmacro);
+		//	FklCodegenMacro* next=cur?cur->next:NULL;
+		//	cur->next=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
+		//}
+		//else
+		if(coverState==FKL_PATTERN_EQUAL)
 		{
 			FklCodegenMacro* macro=*pmacro;
 			uninit_codegen_macro(macro);
@@ -1294,6 +1296,11 @@ static void add_compiler_macro(FklCodegenMacro** pmacro
 			macro->ptpool=ptpool;
 			macro->pattern=pattern;
 			macro->bcl=bcl;
+		}
+		else
+		{
+			FklCodegenMacro* next=*pmacro;
+			*pmacro=fklCreateCodegenMacro(pattern,bcl,next,ptpool,own);
 		}
 	}
 }

@@ -1310,7 +1310,7 @@ BC_PROCESS(_export_macro_bc_process)
 		fklAddReplacementBySid(rep->id,rep->node,codegen->exportR);
 		fklAddReplacementBySid(rep->id,rep->node,oms->replacements);
 	}
-	origCodegen->phead=&origCodegen->head;
+	origCodegen->phead=&codegen->head;
 	for(FklStringMatchPattern* head=cms->patterns;head;head=head->next)
 	{
 		head->own=0;
@@ -1388,13 +1388,13 @@ static inline void add_export_symbol(FklCodegen* libCodegen
 	fklUninitUintStack(&idPstack);
 }
 
-static inline int is_in_importing_lib(FklCodegen* codegen)
-{
-	for(;codegen;codegen=codegen->prev)
-		if(codegen->libMark)
-			return 1;
-	return 0;
-}
+//static inline int is_in_importing_lib(FklCodegen* codegen)
+//{
+//	for(;codegen;codegen=codegen->prev)
+//		if(codegen->libMark)
+//			return 1;
+//	return 0;
+//}
 
 static CODEGEN_FUNC(codegen_export)
 {
@@ -1407,12 +1407,14 @@ static CODEGEN_FUNC(codegen_export)
 		return;
 	}
 	FklPtrQueue* macroQueue=fklCreatePtrQueue();
-	if(is_in_importing_lib(codegen)
+	FklCodegen* libCodegen=codegen;
+	for(;libCodegen&&!libCodegen->libMark;libCodegen=libCodegen->prev);
+	if(libCodegen
 			&&curEnv==codegen->globalEnv
 			&&macroScope==codegen->globalEnv->macros)
 	{
 		FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
-		add_export_symbol(codegen
+		add_export_symbol(libCodegen
 				,rest
 				,macroQueue
 				,codegen->publicSymbolTable

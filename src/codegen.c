@@ -1296,6 +1296,8 @@ static void add_compiler_macro(FklCodegenMacro** pmacro
 BC_PROCESS(_export_macro_bc_process)
 {
 	FklCodegenMacroScope* oms=cms->prev;
+	FklCodegen* origCodegen=codegen;
+	for(;!codegen->libMark;codegen=codegen->prev);
 	for(FklCodegenMacro* cur=cms->head;cur;cur=cur->next)
 	{
 		cur->own=0;
@@ -1308,7 +1310,7 @@ BC_PROCESS(_export_macro_bc_process)
 		fklAddReplacementBySid(rep->id,rep->node,codegen->exportR);
 		fklAddReplacementBySid(rep->id,rep->node,oms->replacements);
 	}
-	codegen->phead=&codegen->head;
+	origCodegen->phead=&origCodegen->head;
 	for(FklStringMatchPattern* head=cms->patterns;head;head=head->next)
 	{
 		head->own=0;
@@ -1386,6 +1388,14 @@ static inline void add_export_symbol(FklCodegen* libCodegen
 	fklUninitUintStack(&idPstack);
 }
 
+static inline int is_in_importing_lib(FklCodegen* codegen)
+{
+	for(;codegen;codegen=codegen->prev)
+		if(codegen->libMark)
+			return 1;
+	return 0;
+}
+
 static CODEGEN_FUNC(codegen_export)
 {
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
@@ -1397,7 +1407,7 @@ static CODEGEN_FUNC(codegen_export)
 		return;
 	}
 	FklPtrQueue* macroQueue=fklCreatePtrQueue();
-	if(codegen->libMark
+	if(is_in_importing_lib(codegen)
 			&&curEnv==codegen->globalEnv
 			&&macroScope==codegen->globalEnv->macros)
 	{

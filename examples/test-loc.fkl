@@ -1,0 +1,11 @@
+(define (f1)
+  (define (f2)
+    (define (f3)
+      (println "f3:" a))
+    (println "f2:" a)
+    (define a "f3")
+    (f3))
+  (define a "f2")
+  (f2))
+
+(f1)

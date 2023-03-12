@@ -2779,16 +2779,13 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 			rep->refcount--;
 			fklAddReplacementBySid(cur,rep,macroScope->replacements);
 		}
-		else
-		{
-			FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
-			uint32_t idl=0;
-			for(;idl<exportNum&&exports[idl]!=targetId;idl++);
-			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
-			fklSetU32ToByteCode(&importCode[1],idx);
-			fklSetU32ToByteCode(&importCode[5],idl==exportNum?idl:exportIndex[idl]);
-			bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
-		}
+		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
+		uint32_t idl=0;
+		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
+		uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
+		fklSetU32ToByteCode(&importCode[1],idx);
+		fklSetU32ToByteCode(&importCode[5],idl==exportNum?idl:exportIndex[idl]);
+		bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
 	}
 
 	process_import_reader_macro(codegen->phead,lib->patterns,0);

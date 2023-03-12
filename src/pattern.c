@@ -679,46 +679,46 @@ FklHashTable* fklCreatePatternMatchingHashTable(void)
 	return fklCreateHashTable(8,8,2,0.75,1,&Codegen_hash_method_table);
 }
 
-int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
-{
-	if(p->type!=FKL_NAST_PAIR)
-		return 0;
-	FklNastNode* head=p->u.pair->car;
-	if(head->type!=FKL_NAST_SYM)
-		return 0;
-	const FklNastNode* body=p->u.pair->cdr;
-	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
-	FklPtrStack stack=FKL_STACK_INIT;
-	fklInitPtrStack(&stack,32,16);
-	fklPushPtrStack((void*)body,&stack);
-	while(!fklIsPtrStackEmpty(&stack))
-	{
-		const FklNastNode* c=fklPopPtrStack(&stack);
-		switch(c->type)
-		{
-			case FKL_NAST_PAIR:
-				fklPushPtrStack(c->u.pair->cdr,&stack);
-				fklPushPtrStack(c->u.pair->car,&stack);
-				break;
-			case FKL_NAST_SYM:
-				if(fklGetHashItem((void*)&c->u.sym,symbolTable))
-				{
-					fklDestroyHashTable(symbolTable);
-					fklUninitPtrStack(&stack);
-					*psymbolTable=NULL;
-					return 0;
-				}
-				fklPutNoRpHashItem(createSidHashItem(c->u.sym)
-						,symbolTable);
-				break;
-			default:
-				break;
-		}
-	}
-	*psymbolTable=symbolTable;
-	fklUninitPtrStack(&stack);
-	return 1;
-}
+//int fklIsValidSyntaxPattern(const FklNastNode* p,FklHashTable** psymbolTable)
+//{
+//	if(p->type!=FKL_NAST_PAIR)
+//		return 0;
+//	FklNastNode* head=p->u.pair->car;
+//	if(head->type!=FKL_NAST_SYM)
+//		return 0;
+//	const FklNastNode* body=p->u.pair->cdr;
+//	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+//	FklPtrStack stack=FKL_STACK_INIT;
+//	fklInitPtrStack(&stack,32,16);
+//	fklPushPtrStack((void*)body,&stack);
+//	while(!fklIsPtrStackEmpty(&stack))
+//	{
+//		const FklNastNode* c=fklPopPtrStack(&stack);
+//		switch(c->type)
+//		{
+//			case FKL_NAST_PAIR:
+//				fklPushPtrStack(c->u.pair->cdr,&stack);
+//				fklPushPtrStack(c->u.pair->car,&stack);
+//				break;
+//			case FKL_NAST_SYM:
+//				if(fklGetHashItem((void*)&c->u.sym,symbolTable))
+//				{
+//					fklDestroyHashTable(symbolTable);
+//					fklUninitPtrStack(&stack);
+//					*psymbolTable=NULL;
+//					return 0;
+//				}
+//				fklPutNoRpHashItem(createSidHashItem(c->u.sym)
+//						,symbolTable);
+//				break;
+//			default:
+//				break;
+//		}
+//	}
+//	*psymbolTable=symbolTable;
+//	fklUninitPtrStack(&stack);
+//	return 1;
+//}
 
 inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 {

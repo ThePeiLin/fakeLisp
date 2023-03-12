@@ -2639,6 +2639,7 @@ typedef struct
 	FklString* prefix;
 	uint32_t scope;
 	FklNastNode* only;
+	FklNastNode* alias;
 }ExportContextData;
 
 static void export_context_data_finalizer(void* data)
@@ -2671,7 +2672,7 @@ static const FklCodegenQuestContextMethodTable ExportContextMethodTable=
 	.__put_bcl=export_context_data_put_bcl,
 };
 
-static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
+static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 		,FklCodegen* codegen
 		,FklCodegenLib* lib
 		,FklCodegenEnv* curEnv
@@ -2821,6 +2822,137 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 	return importBc;
 }
 
+static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
+		,FklCodegen* codegen
+		,FklCodegenLib* lib
+		,FklCodegenEnv* curEnv
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
+		,uint64_t curline
+		,FklNastNode* alias)
+{
+	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
+
+	uint8_t importCode[9]={FKL_OP_IMPORT,0};
+	FklByteCode bc={9,importCode};
+
+	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
+	FklSymbolTable* globalSymTable=codegen->globalSymTable;
+
+	uint32_t exportNum=lib->exportNum;
+	uint32_t* exportIndex=lib->exportIndex;
+	FklSid_t* exports=lib->exports;
+	FklHashTable* replace=lib->replacements;
+	FklCodegenMacro* head=lib->head;
+
+	FklPrototype* pt=&codegen->ptpool->pts[lib->prototypeId-1];
+
+	for(;alias->type==FKL_NAST_PAIR;alias=alias->u.pair->cdr)
+	{
+		FklNastNode* curNode=alias->u.pair->car;
+		FklSid_t cur=curNode->u.pair->car->u.sym;
+		FklSid_t cur0=curNode->u.pair->cdr->u.pair->car->u.sym;
+		int r=0;
+		for(FklCodegenMacro* macro=head;macro;macro=macro->next)
+		{
+			FklNastNode* patternHead=macro->pattern->u.pair->car;
+			if(patternHead->u.sym==cur)
+			{
+				r=1;
+
+				FklNastNode* orig=macro->pattern;
+				FklNastNode* pattern=fklCreateNastNode(FKL_NAST_PAIR,orig->curline);
+				FklNastNode* newHead=fklCreateNastNode(FKL_NAST_SYM,orig->u.pair->car->curline);
+				newHead->u.sym=cur0;
+				pattern->u.pair=fklCreateNastPair();
+				pattern->u.pair->car=newHead;
+				pattern->u.pair->cdr=fklMakeNastNodeRef(orig->u.pair->cdr);
+
+				add_compiler_macro(&macroScope->head
+						,pattern
+						,macro->bcl
+						,macro->ptpool
+						,0);
+			}
+		}
+		FklNastNode* rep=fklGetReplacement(cur,replace);
+		if(rep)
+		{
+			r=1;
+			rep->refcount--;
+			fklAddReplacementBySid(cur0,rep,macroScope->replacements);
+		}
+		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
+		uint32_t idl=0;
+		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
+		if(idl!=exportNum)
+		{
+			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],exportIndex[idl]);
+			bclBcAppendToBcl(importBc,&bc,codegen->fid,alias->curline);
+		}
+		else if(!r)
+		{
+			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],pt->lcount);
+			bclBcAppendToBcl(importBc,&bc,codegen->fid,alias->curline);
+		}
+	}
+
+	process_import_reader_macro(codegen->phead,lib->patterns,0);
+
+	return importBc;
+}
+
+static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
+		,FklCodegen* codegen
+		,FklCodegenLib* lib
+		,FklCodegenEnv* env
+		,uint32_t scope
+		,FklCodegenMacroScope* cms
+		,uint64_t line
+		,FklString* prefix
+		,FklNastNode* only
+		,FklNastNode* alias)
+{
+	if(prefix)
+		return process_import_imported_lib_with_prefix(codegen->loadedLibStack->top
+				,codegen
+				,lib
+				,env
+				,scope
+				,cms
+				,line
+				,prefix);
+	if(only)
+		return process_import_imported_lib_only(codegen->loadedLibStack->top
+				,codegen
+				,lib
+				,env
+				,scope
+				,cms
+				,line
+				,only);
+	if(alias)
+		return process_import_imported_lib_alias(codegen->loadedLibStack->top
+				,codegen
+				,lib
+				,env
+				,scope
+				,cms
+				,line
+				,alias);
+	return process_import_imported_lib_common(codegen->loadedLibStack->top
+			,codegen
+			,lib
+			,env
+			,scope
+			,cms
+			,line);
+}
+
 BC_PROCESS(_library_bc_process)
 {
 	ExportContextData* data=context->data;
@@ -2850,31 +2982,16 @@ BC_PROCESS(_library_bc_process)
 	codegen->exports=NULL;
 	free(codegen->exportsP);
 	codegen->exportsP=NULL;
-	if(data->prefix)
-		return process_import_imported_lib_with_prefix(codegen->loadedLibStack->top
-				,data->codegen
-				,lib
-				,data->env
-				,data->scope
-				,data->cms
-				,line
-				,data->prefix);
-	if(data->only)
-		return process_import_imported_lib_only(codegen->loadedLibStack->top
-				,data->codegen
-				,lib
-				,data->env
-				,data->scope
-				,data->cms
-				,line
-				,data->only);
 	return process_import_imported_lib(codegen->loadedLibStack->top
-			,data->codegen
-			,lib
-			,data->env
-			,data->scope
-			,data->cms
-			,line);
+				,data->codegen
+				,lib
+				,data->env
+				,data->scope
+				,data->cms
+				,line
+				,data->prefix
+				,data->only
+				,data->alias);
 }
 
 static FklCodegenQuestContext* createExportContext(FklCodegen* codegen
@@ -2882,7 +2999,8 @@ static FklCodegenQuestContext* createExportContext(FklCodegen* codegen
 		,uint32_t scope
 		,FklCodegenMacroScope* cms
 		,FklString* prefix
-		,FklNastNode* only)
+		,FklNastNode* only
+		,FklNastNode* alias)
 {
 	ExportContextData* data=(ExportContextData*)malloc(sizeof(ExportContextData));
 	FKL_ASSERT(data);
@@ -2900,6 +3018,7 @@ static FklCodegenQuestContext* createExportContext(FklCodegen* codegen
 	data->prefix=prefix;
 
 	data->only=only?fklMakeNastNodeRef(only):NULL;
+	data->alias=alias?fklMakeNastNodeRef(alias):NULL;
 	data->stack=fklCreatePtrStack(16,16);
 	return createCodegenQuestContext(data,&ExportContextMethodTable);
 }
@@ -2915,7 +3034,7 @@ static size_t check_loaded_lib(const char* realpath,FklPtrStack* loadedLibStack)
 	return 0;
 }
 
-static inline void process_import_script(FklNastNode* origExp
+static inline void process_import_script_common_header(FklNastNode* origExp
 		,FklNastNode* name
 		,FklNastNode* importLibraryName
 		,const char* filename
@@ -2924,7 +3043,10 @@ static inline void process_import_script(FklNastNode* origExp
 		,FklCodegenErrorState* errorState
 		,FklPtrStack* codegenQuestStack
 		,uint32_t scope
-		,FklCodegenMacroScope* macroScope)
+		,FklCodegenMacroScope* macroScope
+		,FklString* prefix
+		,FklNastNode* only
+		,FklNastNode* alias)
 {
 	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0,NULL);
 	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv,1);
@@ -2950,17 +3072,17 @@ static inline void process_import_script(FklNastNode* origExp
 		FILE* fp=fopen(filename,"r");
 		if(!fp)
 		{
-			errorState->fid=nextCodegen->fid;
+			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
 			nextCodegen->refcount=1;
 			fklDestroyCodegener(nextCodegen);
-			fclose(fp);
 			return;
 		}
 		create_and_insert_to_pool(nextCodegen->ptpool,0,libEnv,nextCodegen->globalSymTable,nextCodegen->publicSymbolTable);
+
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
-				,createExportContext(codegen,curEnv,scope,macroScope,NULL,NULL)
+				,createExportContext(codegen,curEnv,scope,macroScope,prefix,only,alias)
 				,createFpNextExpression(fp,nextCodegen)
 				,1
 				,libEnv->macros
@@ -2974,20 +3096,55 @@ static inline void process_import_script(FklNastNode* origExp
 		fklDestroyHashTable(nextCodegen->exportR);
 		nextCodegen->exportR=NULL;
 		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
-		FklByteCodelnt* importBc=process_import_imported_lib(libId,codegen,lib,curEnv,scope,macroScope,origExp->curline);
 
+		FklByteCodelnt* importBc=process_import_imported_lib(libId
+				,codegen
+				,lib
+				,curEnv
+				,scope
+				,macroScope
+				,origExp->curline
+				,prefix
+				,only
+				,alias);
 		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
 		fklPushPtrStack(importBc,bcStack);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
 				,createDefaultStackContext(bcStack)
 				,NULL
 				,1
-				,NULL
-				,NULL
+				,nextCodegen->globalEnv->macros
+				,nextCodegen->globalEnv
 				,origExp->curline
 				,nextCodegen
 				,codegenQuestStack);
 	}
+}
+
+static inline void process_import_script(FklNastNode* origExp
+		,FklNastNode* name
+		,FklNastNode* importLibraryName
+		,const char* filename
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,FklCodegenErrorState* errorState
+		,FklPtrStack* codegenQuestStack
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope)
+{
+	process_import_script_common_header(origExp
+			,name
+			,importLibraryName
+			,filename
+			,curEnv
+			,codegen
+			,errorState
+			,codegenQuestStack
+			,scope
+			,macroScope
+			,NULL
+			,NULL
+			,NULL);
 }
 
 inline FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll)
@@ -3129,6 +3286,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 
 	return importBc;
 }
+
 static CODEGEN_FUNC(codegen_import)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -3224,77 +3382,19 @@ static inline void process_import_script_with_prefix(FklNastNode* origExp
 		,uint32_t scope
 		,FklCodegenMacroScope* macroScope)
 {
-	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0,NULL);
-	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv,1);
-	nextCodegen->head=fklInitBuiltInStringPattern(nextCodegen->publicSymbolTable);
-	nextCodegen->phead=&nextCodegen->head;
-
-	libEnv->phead=&nextCodegen->head;
-	fklInitGlobCodegenEnv(libEnv,nextCodegen->publicSymbolTable);
-	curEnv->phead=&codegen->head;
-
-	if(hasLoadSameFile(nextCodegen->realpath,codegen))
-	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_CIRCULARLOAD;
-		errorState->place=fklMakeNastNodeRef(name);
-		nextCodegen->refcount=1;
-		fklDestroyCodegener(nextCodegen);
-		return;
-	}
-	size_t libId=check_loaded_lib(nextCodegen->realpath,codegen->loadedLibStack);
-	if(!libId)
-	{
-		FILE* fp=fopen(filename,"r");
-		if(!fp)
-		{
-			errorState->fid=codegen->fid;
-			errorState->type=FKL_ERR_FILEFAILURE;
-			errorState->place=fklMakeNastNodeRef(name);
-			nextCodegen->refcount=1;
-			fklDestroyCodegener(nextCodegen);
-			return;
-		}
-		FklString* prefix=fklGetSymbolWithId(prefixNode->u.sym,codegen->publicSymbolTable)->symbol;
-		create_and_insert_to_pool(nextCodegen->ptpool,0,libEnv,nextCodegen->globalSymTable,nextCodegen->publicSymbolTable);
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
-				,createExportContext(codegen,curEnv,scope,macroScope,prefix,NULL)
-				,createFpNextExpression(fp,nextCodegen)
-				,1
-				,libEnv->macros
-				,libEnv
-				,origExp->curline
-				,nextCodegen
-				,codegenQuestStack);
-	}
-	else
-	{
-		fklDestroyHashTable(nextCodegen->exportR);
-		nextCodegen->exportR=NULL;
-		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
-		FklString* prefix=fklGetSymbolWithId(prefixNode->u.sym
-				,codegen->publicSymbolTable)->symbol;
-
-		FklByteCodelnt* importBc=process_import_imported_lib_with_prefix(libId
-				,codegen
-				,lib
-				,curEnv
-				,scope
-				,macroScope
-				,origExp->curline
-				,prefix);
-		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
-		fklPushPtrStack(importBc,bcStack);
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
-				,createDefaultStackContext(bcStack)
-				,NULL
-				,1
-				,nextCodegen->globalEnv->macros
-				,nextCodegen->globalEnv
-				,origExp->curline
-				,nextCodegen
-				,codegenQuestStack);
-	}
+	process_import_script_common_header(origExp
+			,name
+			,importLibraryName
+			,filename
+			,curEnv
+			,codegen
+			,errorState
+			,codegenQuestStack
+			,scope
+			,macroScope
+			,fklGetSymbolWithId(prefixNode->u.sym,codegen->publicSymbolTable)->symbol
+			,NULL
+			,NULL);
 }
 
 static inline FklByteCodelnt* process_import_from_dll_with_prefix(FklNastNode* origExp
@@ -3467,75 +3567,46 @@ static inline void process_import_script_only(FklNastNode* origExp
 		,uint32_t scope
 		,FklCodegenMacroScope* macroScope)
 {
-	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0,NULL);
-	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv,1);
-	nextCodegen->head=fklInitBuiltInStringPattern(nextCodegen->publicSymbolTable);
-	nextCodegen->phead=&nextCodegen->head;
+	process_import_script_common_header(origExp
+			,name
+			,importLibraryName
+			,filename
+			,curEnv
+			,codegen
+			,errorState
+			,codegenQuestStack
+			,scope
+			,macroScope
+			,NULL
+			,only
+			,NULL);
+}
 
-	libEnv->phead=&nextCodegen->head;
-	fklInitGlobCodegenEnv(libEnv,nextCodegen->publicSymbolTable);
-	curEnv->phead=&codegen->head;
-
-	if(hasLoadSameFile(nextCodegen->realpath,codegen))
-	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_CIRCULARLOAD;
-		errorState->place=fklMakeNastNodeRef(name);
-		nextCodegen->refcount=1;
-		fklDestroyCodegener(nextCodegen);
-		return;
-	}
-	size_t libId=check_loaded_lib(nextCodegen->realpath,codegen->loadedLibStack);
-	if(!libId)
-	{
-		FILE* fp=fopen(filename,"r");
-		if(!fp)
-		{
-			errorState->fid=codegen->fid;
-			errorState->type=FKL_ERR_FILEFAILURE;
-			errorState->place=fklMakeNastNodeRef(name);
-			nextCodegen->refcount=1;
-			fklDestroyCodegener(nextCodegen);
-			return;
-		}
-		create_and_insert_to_pool(nextCodegen->ptpool,0,libEnv,nextCodegen->globalSymTable,nextCodegen->publicSymbolTable);
-
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
-				,createExportContext(codegen,curEnv,scope,macroScope,NULL,only)
-				,createFpNextExpression(fp,nextCodegen)
-				,1
-				,libEnv->macros
-				,libEnv
-				,origExp->curline
-				,nextCodegen
-				,codegenQuestStack);
-	}
-	else
-	{
-		fklDestroyHashTable(nextCodegen->exportR);
-		nextCodegen->exportR=NULL;
-		FklCodegenLib* lib=codegen->loadedLibStack->base[libId-1];
-
-		FklByteCodelnt* importBc=process_import_imported_lib_only(libId
-				,codegen
-				,lib
-				,curEnv
-				,scope
-				,macroScope
-				,origExp->curline
-				,only);
-		FklPtrStack* bcStack=fklCreatePtrStack(1,1);
-		fklPushPtrStack(importBc,bcStack);
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
-				,createDefaultStackContext(bcStack)
-				,NULL
-				,1
-				,nextCodegen->globalEnv->macros
-				,nextCodegen->globalEnv
-				,origExp->curline
-				,nextCodegen
-				,codegenQuestStack);
-	}
+static inline void process_import_script_alias(FklNastNode* origExp
+		,FklNastNode* name
+		,FklNastNode* alias
+		,FklNastNode* importLibraryName
+		,const char* filename
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,FklCodegenErrorState* errorState
+		,FklPtrStack* codegenQuestStack
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope)
+{
+	process_import_script_common_header(origExp
+			,name
+			,importLibraryName
+			,filename
+			,curEnv
+			,codegen
+			,errorState
+			,codegenQuestStack
+			,scope
+			,macroScope
+			,NULL
+			,NULL
+			,alias);
 }
 
 static CODEGEN_FUNC(codegen_import_only)
@@ -3596,6 +3667,181 @@ static CODEGEN_FUNC(codegen_import_only)
 		FklByteCodelnt* bc=process_import_from_dll_only(origExp
 				,name
 				,only
+				,dllFileName
+				,curEnv
+				,codegen
+				,errorState
+				,scope);
+		if(bc)
+		{
+			FklPtrStack* bcStack=fklCreatePtrStack(1,1);
+			fklPushPtrStack(bc,bcStack);
+			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+					,createDefaultStackContext(bcStack)
+					,NULL
+					,1
+					,NULL
+					,NULL
+					,origExp->curline
+					,codegen
+					,codegenQuestStack);
+		}
+	}
+	free(filename);
+	free(scriptFileName);
+	free(dllFileName);
+	free(packageMainFileName);
+}
+
+static inline int is_valid_alias_sym_list(FklNastNode* alias)
+{
+	for(;alias->type==FKL_NAST_PAIR;alias=alias->u.pair->cdr)
+	{
+		FklNastNode* cur=alias->u.pair->car;
+		if(cur->type!=FKL_NAST_PAIR
+				||cur->u.pair->car->type!=FKL_NAST_SYM
+				||cur->u.pair->cdr->type!=FKL_NAST_PAIR
+				||cur->u.pair->cdr->u.pair->car->type!=FKL_NAST_SYM
+				||cur->u.pair->cdr->u.pair->cdr->type!=FKL_NAST_NIL)
+			return 0;
+	}
+	return 1;
+}
+
+static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
+		,FklNastNode* name
+		,FklNastNode* alias
+		,const char* filename
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,FklCodegenErrorState* errorState
+		,uint32_t scope)
+{
+	char* realpath=fklRealpath(filename);
+	size_t libId=check_loaded_lib(realpath,codegen->loadedLibStack);
+	FklDllHandle dll;
+	FklCodegenLib* lib=NULL;
+	if(!libId)
+	{
+		dll=fklLoadDll(realpath);
+		if(!dll)
+		{
+			fprintf(stderr,"%s\n",dlerror());
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_FILEFAILURE;
+			errorState->place=fklMakeNastNodeRef(name);
+			free(realpath);
+			return NULL;
+		}
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
+		if(!initExport)
+		{
+			fklDestroyDll(dll);
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_IMPORTFAILED;
+			errorState->place=fklMakeNastNodeRef(name);
+			free(realpath);
+			return NULL;
+		}
+		lib=fklCreateCodegenDllLib(realpath
+				,dll
+				,codegen->globalSymTable
+				,initExport);
+		fklPushPtrStack(lib,codegen->loadedLibStack);
+		libId=codegen->loadedLibStack->top;
+	}
+	else
+	{
+		lib=codegen->loadedLibStack->base[libId-1];
+		dll=lib->u.dll;
+		free(realpath);
+	}
+	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_DLL,libId),codegen->fid,origExp->curline);
+
+	uint8_t importCode[9]={FKL_OP_IMPORT,0};
+	FklByteCode bc={9,importCode};
+
+	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
+	FklSymbolTable* globalSymTable=codegen->globalSymTable;
+
+	uint32_t exportNum=lib->exportNum;
+	FklSid_t* exports=lib->exports;
+
+	for(;alias->type==FKL_NAST_PAIR;alias=alias->u.pair->cdr)
+	{
+		FklNastNode* curNode=alias->u.pair->car;
+		FklSid_t cur=curNode->u.pair->car->u.sym;
+		FklSid_t cur0=curNode->u.pair->cdr->u.pair->car->u.sym;
+		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
+		uint32_t idl=0;
+		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
+		uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
+		fklSetU32ToByteCode(&importCode[1],idx);
+		fklSetU32ToByteCode(&importCode[5],idl);
+		bclBcAppendToBcl(importBc,&bc,codegen->fid,alias->curline);
+	}
+
+	return importBc;
+}
+
+static CODEGEN_FUNC(codegen_import_alias)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* alias=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+
+	if(!is_valid_alias_sym_list(alias)
+			||name->type==FKL_NAST_NIL
+			||!fklIsNastNodeListAndHasSameType(name,FKL_NAST_SYM))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	FklNastNode* importLibraryName=NULL;
+	char* filename=combineFileNameFromListAndGetLastNode(name,&importLibraryName
+			,codegen->publicSymbolTable);
+
+	char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
+	packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
+
+	char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
+
+	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+
+	if(fklIsAccessableRegFile(packageMainFileName))
+	{
+		process_import_script_alias(origExp
+				,name
+				,alias
+				,importLibraryName
+				,packageMainFileName
+				,curEnv
+				,codegen
+				,errorState
+				,codegenQuestStack
+				,scope
+				,macroScope);
+	}
+	else if(fklIsAccessableRegFile(scriptFileName))
+	{
+		process_import_script_alias(origExp
+				,name
+				,alias
+				,importLibraryName
+				,scriptFileName
+				,curEnv
+				,codegen
+				,errorState
+				,codegenQuestStack
+				,scope
+				,macroScope);
+	}
+	else if(fklIsAccessableRegFile(dllFileName))
+	{
+		FklByteCodelnt* bc=process_import_from_dll_alias(origExp
+				,name
+				,alias
 				,dllFileName
 				,curEnv
 				,codegen
@@ -4064,6 +4310,7 @@ typedef enum
 	PATTERN_LOAD,
 	PATTERN_IMPORT_WITH_PREFIX,
 	PATTERN_IMPORT_ONLY,
+	PATTERN_IMPORT_ALIAS,
 	PATTERN_IMPORT,
 	PATTERN_DEFMACRO,
 	PATTERN_MACROEXPAND,
@@ -4097,6 +4344,7 @@ static struct PatternAndFunc
 	{"~(load ~name)",                  NULL, codegen_load,               },
 	{"~(import (prefix ~name ~rest))", NULL, codegen_import_with_prefix, },
 	{"~(import (only ~name,~rest))",   NULL, codegen_import_only,        },
+	{"~(import (alias ~name,~rest))",  NULL, codegen_import_alias,       },
 	{"~(import ~name)",                NULL, codegen_import,             },
 	{"~(defmacro ~name ~value)",       NULL, codegen_defmacro,           },
 	{"~(macroexpand ~value)",          NULL, codegen_macroexpand,        },

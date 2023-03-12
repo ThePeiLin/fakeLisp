@@ -3480,118 +3480,116 @@ static inline void codegen_import_helper(FklNastNode* origExp
 		,FklNastNode* only
 		,FklNastNode* alias)
 {
-	if(name->type==FKL_NAST_NIL||!fklIsNastNodeListAndHasSameType(name,FKL_NAST_SYM)
-			||(prefix&&prefix->type!=FKL_NAST_SYM)
-			||(only&&!fklIsNastNodeListAndHasSameType(only,FKL_NAST_SYM))
-			||(alias&&!is_valid_alias_sym_list(alias)))
-	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=fklMakeNastNodeRef(origExp);
-		return;
-	}
+    if(name->type==FKL_NAST_NIL||!fklIsNastNodeListAndHasSameType(name,FKL_NAST_SYM)
+            ||(prefix&&prefix->type!=FKL_NAST_SYM)
+            ||(only&&!fklIsNastNodeListAndHasSameType(only,FKL_NAST_SYM))
+            ||(alias&&!is_valid_alias_sym_list(alias)))
+    {
+        errorState->fid=codegen->fid;
+        errorState->type=FKL_ERR_SYNTAXERROR;
+        errorState->place=fklMakeNastNodeRef(origExp);
+        return;
+    }
 
-	if(rest->type==FKL_NAST_NIL)
-	{
-		char* filename=combineFileNameFromList(name,codegen->publicSymbolTable);
+    if(rest->type!=FKL_NAST_NIL)
+    {
+        FklNastNode* restExp=fklNastCons(fklMakeNastNodeRef(origExp->u.pair->car),rest,rest->curline);
 
-		char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
-		packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
+        origExp->u.pair->cdr->u.pair->cdr=fklCreateNastNode(FKL_NAST_NIL,rest->curline);
 
-		char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
+        FklPtrQueue* queue=fklCreatePtrQueue();
+        fklPushPtrQueue(restExp,queue);
+        FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
+                ,createDefaultStackContext(fklCreatePtrStack(2,1))
+                ,createDefaultQueueNextExpression(queue)
+                ,scope
+                ,macroScope
+                ,curEnv
+                ,origExp->curline
+                ,codegen
+                ,codegenQuestStack);
+    }
 
-		char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+    char* filename=combineFileNameFromList(name,codegen->publicSymbolTable);
 
-		if(fklIsAccessableRegFile(packageMainFileName))
-			process_import_script_common_header(origExp
-					,name
-					,packageMainFileName
-					,curEnv
-					,codegen
-					,errorState
-					,codegenQuestStack
-					,scope
-					,macroScope
-					,prefix
-					,only
-					,alias);
-		else if(fklIsAccessableRegFile(scriptFileName))
-			process_import_script_common_header(origExp
-					,name
-					,scriptFileName
-					,curEnv
-					,codegen
-					,errorState
-					,codegenQuestStack
-					,scope
-					,macroScope
-					,prefix
-					,only
-					,alias);
-		else if(fklIsAccessableRegFile(dllFileName))
-		{
-			FklByteCodelnt* bc=process_import_from_dll(origExp
-					,name
-					,dllFileName
-					,curEnv
-					,codegen
-					,errorState
-					,scope
-					,prefix
-					,only
-					,alias);
-			if(bc)
-			{
-				FklPtrStack* bcStack=fklCreatePtrStack(1,1);
-				fklPushPtrStack(bc,bcStack);
-				FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
-						,createDefaultStackContext(bcStack)
-						,NULL
-						,1
-						,NULL
-						,NULL
-						,origExp->curline
-						,codegen
-						,codegenQuestStack);
-			}
-		}
-		else
-		{
-			errorState->fid=codegen->fid;
-			errorState->type=FKL_ERR_IMPORTFAILED;
-			errorState->place=fklMakeNastNodeRef(name);
-		}
-		free(filename);
-		free(scriptFileName);
-		free(dllFileName);
-		free(packageMainFileName);
-	}
-	else
-	{
-		FklNastNode* restExp=fklNastCons(fklMakeNastNodeRef(origExp->u.pair->car),rest,rest->curline);
+    char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
+    packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
 
-		origExp->u.pair->cdr->u.pair->cdr=fklCreateNastNode(FKL_NAST_NIL,rest->curline);
+    char* scriptFileName=fklStrCat(fklCopyCstr(filename),".fkl");
 
-		FklPtrQueue* queue=fklCreatePtrQueue();
-		fklPushPtrQueue(fklMakeNastNodeRef(origExp),queue);
-		fklPushPtrQueue(restExp,queue);
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
-				,createDefaultStackContext(fklCreatePtrStack(2,1))
-				,createDefaultQueueNextExpression(queue)
-				,scope
-				,macroScope
-				,curEnv
-				,origExp->curline
-				,codegen
-				,codegenQuestStack);
-	}
+    char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+
+    if(fklIsAccessableRegFile(packageMainFileName))
+        process_import_script_common_header(origExp
+                ,name
+                ,packageMainFileName
+                ,curEnv
+                ,codegen
+                ,errorState
+                ,codegenQuestStack
+                ,scope
+                ,macroScope
+                ,prefix
+                ,only
+                ,alias);
+    else if(fklIsAccessableRegFile(scriptFileName))
+        process_import_script_common_header(origExp
+                ,name
+                ,scriptFileName
+                ,curEnv
+                ,codegen
+                ,errorState
+                ,codegenQuestStack
+                ,scope
+                ,macroScope
+                ,prefix
+                ,only
+                ,alias);
+    else if(fklIsAccessableRegFile(dllFileName))
+    {
+        FklByteCodelnt* bc=process_import_from_dll(origExp
+                ,name
+                ,dllFileName
+                ,curEnv
+                ,codegen
+                ,errorState
+                ,scope
+                ,prefix
+                ,only
+                ,alias);
+        if(bc)
+        {
+            FklPtrStack* bcStack=fklCreatePtrStack(1,1);
+            fklPushPtrStack(bc,bcStack);
+            FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+                    ,createDefaultStackContext(bcStack)
+                    ,NULL
+                    ,1
+                    ,NULL
+                    ,NULL
+                    ,origExp->curline
+                    ,codegen
+                    ,codegenQuestStack);
+        }
+    }
+    else
+    {
+        errorState->fid=codegen->fid;
+        errorState->type=FKL_ERR_IMPORTFAILED;
+        errorState->place=fklMakeNastNodeRef(name);
+    }
+    free(filename);
+    free(scriptFileName);
+    free(dllFileName);
+    free(packageMainFileName);
+
 }
 
 static CODEGEN_FUNC(codegen_import)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
-	
+
 	codegen_import_helper(origExp
 			,name
 			,rest

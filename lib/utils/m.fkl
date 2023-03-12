@@ -89,5 +89,7 @@
                        ~@`(~r)
                        ,~(cdr car-c))
                     `(~car-c,(~r)))))
-          r)))))
+          r))))
+  (defmacro ~(import*,~rest)
+    (cons 'begin (map (lambda (x) `(import ~x)) rest))))
 

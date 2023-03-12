@@ -92,6 +92,8 @@ typedef enum
 	FKL_VM_HASH_EQUAL,
 }FklVMhashTableEqType;
 
+FklNastNode* fklNastConsWithSym(FklSid_t,FklNastNode*,uint64_t l1,uint64_t l2);
+FklNastNode* fklNastCons(FklNastNode*,FklNastNode*,uint64_t l1);
 FklNastPair* fklCreateNastPair(void);
 FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType,size_t);
 FklNastVector* fklCreateNastVector(size_t);

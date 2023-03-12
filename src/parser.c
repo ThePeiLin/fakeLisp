@@ -877,3 +877,27 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack* tokenStac
 	return retval;
 }
 
+FklNastNode* fklNastConsWithSym(FklSid_t sym
+		,FklNastNode* cdr
+		,uint64_t l1
+		,uint64_t l2)
+{
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_PAIR,l1);
+	FklNastNode* h=fklCreateNastNode(FKL_NAST_SYM,l2);
+	h->u.sym=sym;
+	r->u.pair=fklCreateNastPair();
+	r->u.pair->car=h;
+	r->u.pair->cdr=cdr;
+	return r;
+}
+
+FklNastNode* fklNastCons(FklNastNode* car
+		,FklNastNode* cdr
+		,uint64_t l1)
+{
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_PAIR,l1);
+	r->u.pair=fklCreateNastPair();
+	r->u.pair->car=car;
+	r->u.pair->cdr=cdr;
+	return r;
+}

@@ -1209,7 +1209,8 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 	uint32_t locIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(locIdx)));
 	uint32_t libIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(libIdx)));
 	FklVMlib* plib=exe->importingLib;
-	FklVMvalue* v=plib->loc[libIdx];
+	uint32_t count=plib->count;
+	FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
 	if(v)
 		*get_compound_frame_loc(frame,locIdx,exe)=v;
 	else
@@ -1399,8 +1400,7 @@ static void inline B_export(FklVM* exe,FklVMframe* frame)
 	FklVMlib* lib=&exe->libs[libId-1];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	uint32_t count=lr->lcount;
-	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*(count+1));
-	loc[count]=NULL;
+	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*count);
 	fklDropTop(exe->stack);
 	lib->loc=loc;
 	lib->count=count;

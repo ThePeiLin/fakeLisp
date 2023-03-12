@@ -3493,12 +3493,22 @@ static inline void codegen_import_helper(FklNastNode* origExp
 
     if(rest->type!=FKL_NAST_NIL)
     {
-        FklNastNode* restExp=fklNastCons(fklMakeNastNodeRef(origExp->u.pair->car),rest,rest->curline);
+		FklPtrQueue* queue=fklCreatePtrQueue();
 
-        origExp->u.pair->cdr->u.pair->cdr=fklCreateNastNode(FKL_NAST_NIL,rest->curline);
+		FklNastPair* prevPair=origExp->u.pair->cdr->u.pair;
 
-        FklPtrQueue* queue=fklCreatePtrQueue();
-        fklPushPtrQueue(restExp,queue);
+		FklNastNode* importHead=origExp->u.pair->car;
+
+		for(;rest->type==FKL_NAST_PAIR;rest=rest->u.pair->cdr)
+		{
+			FklNastNode* restExp=fklNastCons(fklMakeNastNodeRef(importHead),rest,rest->curline);
+
+			prevPair->cdr=fklCreateNastNode(FKL_NAST_NIL,rest->curline);
+
+			fklPushPtrQueue(restExp,queue);
+
+			prevPair=rest->u.pair;
+		}
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
                 ,createDefaultStackContext(fklCreatePtrStack(2,1))
                 ,createDefaultQueueNextExpression(queue)
@@ -4447,7 +4457,8 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 								,curExp->curline));
 				}
 				fklDestroyNastNode(curExp);
-				if(!r&&fklTopPtrStack(&codegenQuestStack)!=curCodegenQuest)
+				if((!r&&fklTopPtrStack(&codegenQuestStack)!=curCodegenQuest)
+						||errorState.type)
 					break;
 			}
 		}

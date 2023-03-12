@@ -2710,7 +2710,7 @@ static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 	return importBc;
 }
 
-static inline FklByteCodelnt* process_import_imported_lib_with_prefix(uint32_t libId
+static inline FklByteCodelnt* process_import_imported_lib_prefix(uint32_t libId
 		,FklCodegen* codegen
 		,FklCodegenLib* lib
 		,FklCodegenEnv* curEnv
@@ -2918,7 +2918,7 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 		,FklNastNode* alias)
 {
 	if(prefix)
-		return process_import_imported_lib_with_prefix(codegen->loadedLibStack->top
+		return process_import_imported_lib_prefix(codegen->loadedLibStack->top
 				,codegen
 				,lib
 				,env
@@ -3260,7 +3260,7 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 	return importBc;
 }
 
-static inline FklByteCodelnt* process_import_from_dll_with_prefix(FklNastNode* origExp
+static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origExp
 		,FklNastNode* name
 		,FklNastNode* prefixNode
 		,const char* filename
@@ -3416,7 +3416,7 @@ static inline FklByteCodelnt* process_import_from_dll(FklNastNode* origExp
 		,FklNastNode* alias)
 {
 	if(prefix)
-		return process_import_from_dll_with_prefix(origExp
+		return process_import_from_dll_prefix(origExp
 				,name
 				,prefix
 				,filename
@@ -3606,7 +3606,7 @@ static CODEGEN_FUNC(codegen_import)
 			,NULL);
 }
 
-static CODEGEN_FUNC(codegen_import_with_prefix)
+static CODEGEN_FUNC(codegen_import_prefix)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* prefix=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
@@ -4106,7 +4106,7 @@ typedef enum
 	PATTERN_WHEN,
 	PATTERN_UNLESS,
 	PATTERN_LOAD,
-	PATTERN_IMPORT_WITH_PREFIX,
+	PATTERN_IMPORT_PREFIX,
 	PATTERN_IMPORT_ONLY,
 	PATTERN_IMPORT_ALIAS,
 	PATTERN_IMPORT,
@@ -4140,7 +4140,7 @@ static struct PatternAndFunc
 	{"~(when ~value,~rest)",                 NULL, codegen_when,               },
 	{"~(unless ~value,~rest)",               NULL, codegen_unless,             },
 	{"~(load ~name)",                        NULL, codegen_load,               },
-	{"~(import (prefix ~name ~rest),~args)", NULL, codegen_import_with_prefix, },
+	{"~(import (prefix ~name ~rest),~args)", NULL, codegen_import_prefix, },
 	{"~(import (only ~name,~rest),~args)",   NULL, codegen_import_only,        },
 	{"~(import (alias ~name,~rest),~args)",  NULL, codegen_import_alias,       },
 	{"~(import ~name,~args)",                NULL, codegen_import,             },

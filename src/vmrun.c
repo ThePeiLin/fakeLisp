@@ -1275,7 +1275,7 @@ static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 		fklInitVMdll(dllv,exe);
 		plib->loc=initFunc(exe,dllv,&plib->count);
 		plib->imported=1;
-		plib->proc=dllv;
+		plib->proc=FKL_VM_NIL;
 		free(realpath);
 		exe->stack->tp=tp;
 	}
@@ -1405,6 +1405,7 @@ static void inline B_export(FklVM* exe,FklVMframe* frame)
 	lib->loc=loc;
 	lib->count=count;
 	lib->imported=1;
+	lib->proc=FKL_VM_NIL;
 }
 
 FklVMstack* fklCreateVMstack(uint32_t size)

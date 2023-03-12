@@ -1388,14 +1388,6 @@ static inline void add_export_symbol(FklCodegen* libCodegen
 	fklUninitUintStack(&idPstack);
 }
 
-//static inline int is_in_importing_lib(FklCodegen* codegen)
-//{
-//	for(;codegen;codegen=codegen->prev)
-//		if(codegen->libMark)
-//			return 1;
-//	return 0;
-//}
-
 static CODEGEN_FUNC(codegen_export)
 {
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
@@ -2504,8 +2496,8 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 {
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
-	//if(exportIndex)
-	//{
+	if(exportIndex)
+	{
 		for(size_t i=0;i<num;i++)
 		{
 			FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
@@ -2515,19 +2507,19 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 			fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
 			bclBcAppendToBcl(bcl,&bc,fid,line);
 		}
-	//}
-	//else
-	//{
-	//	for(size_t i=0;i<num;i++)
-	//	{
-	//		FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
-	//				,publicSymbolTable)->id;
-	//		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
-	//		fklSetU32ToByteCode(&importCode[1],idx);
-	//		fklSetU32ToByteCode(&importCode[5],i);
-	//		bclBcAppendToBcl(bcl,&bc,fid,line);
-	//	}
-	//}
+	}
+	else
+	{
+		for(size_t i=0;i<num;i++)
+		{
+			FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
+					,publicSymbolTable)->id;
+			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],i);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
+		}
+	}
 }
 
 static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
@@ -2544,8 +2536,8 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 {
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
-	//if(exportIndex)
-	//{
+	if(exportIndex)
+	{
 		for(size_t i=0;i<num;i++)
 		{
 			FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
@@ -2557,21 +2549,21 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 			bclBcAppendToBcl(bcl,&bc,fid,line);
 			free(symbolWithPrefix);
 		}
-	//}
-	//else
-	//{
-	//	for(size_t i=0;i<num;i++)
-	//	{
-	//		FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
-	//		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
-	//		FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
-	//		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
-	//		fklSetU32ToByteCode(&importCode[1],idx);
-	//		fklSetU32ToByteCode(&importCode[5],i);
-	//		bclBcAppendToBcl(bcl,&bc,fid,line);
-	//		free(symbolWithPrefix);
-	//	}
-	//}
+	}
+	else
+	{
+		for(size_t i=0;i<num;i++)
+		{
+			FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
+			FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
+			FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
+			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],i);
+			bclBcAppendToBcl(bcl,&bc,fid,line);
+			free(symbolWithPrefix);
+		}
+	}
 }
 
 static inline void process_import_reader_macro(FklStringMatchPattern** phead,FklStringMatchPattern* head,int own)
@@ -3777,6 +3769,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		FklNastNode* pattern=fklCreatePatternFromNast(name,&symbolTable);
 		if(!pattern)
 		{
+			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
 			errorState->place=fklMakeNastNodeRef(name);
 			return;

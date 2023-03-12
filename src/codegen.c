@@ -2769,23 +2769,51 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 	uint32_t* exportIndex=lib->exportIndex;
 	FklSid_t* exports=lib->exports;
 	FklHashTable* replace=lib->replacements;
+	FklCodegenMacro* head=lib->head;
+
+	FklPrototype* pt=&codegen->ptpool->pts[lib->prototypeId-1];
 
 	for(;only->type==FKL_NAST_PAIR;only=only->u.pair->cdr)
 	{
 		FklSid_t cur=only->u.pair->car->u.sym;
+		int r=0;
+		for(FklCodegenMacro* macro=head;macro;macro=macro->next)
+		{
+			FklNastNode* patternHead=macro->pattern->u.pair->car;
+			if(patternHead->u.sym==cur)
+			{
+				r=1;
+				add_compiler_macro(&macroScope->head
+						,fklMakeNastNodeRef(macro->pattern)
+						,macro->bcl
+						,macro->ptpool
+						,0);
+			}
+		}
 		FklNastNode* rep=fklGetReplacement(cur,replace);
 		if(rep)
 		{
+			r=1;
 			rep->refcount--;
 			fklAddReplacementBySid(cur,rep,macroScope->replacements);
 		}
 		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
 		uint32_t idl=0;
 		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
-		uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
-		fklSetU32ToByteCode(&importCode[1],idx);
-		fklSetU32ToByteCode(&importCode[5],idl==exportNum?idl:exportIndex[idl]);
-		bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
+		if(idl!=exportNum)
+		{
+			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],exportIndex[idl]);
+			bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
+		}
+		else if(!r)
+		{
+			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],pt->lcount);
+			bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
+		}
 	}
 
 	process_import_reader_macro(codegen->phead,lib->patterns,0);

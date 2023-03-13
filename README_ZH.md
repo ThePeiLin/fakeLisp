@@ -1,5 +1,5 @@
 # fakeLisp
-fakeLisp是一个用c言编写的简单的lisp解释器。  
+fakeLisp是一个用c语言编写的简单的lisp解释器。  
 
 ## 编译
 

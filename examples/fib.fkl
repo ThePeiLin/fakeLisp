@@ -3,9 +3,7 @@
     (define fib-cache #(0 1 1))
     (define (fib-cached n)
       (define len (length fib-cache))
-      (if (<= len n)
-        (append! fib-cache
-                 (make-vector (- n -1 len) nil)))
+      (if (<= len n) (append! fib-cache (make-vector (- n -1 len) nil)))
       (define r (vref fib-cache n))
       (if r r
         (set-vref! fib-cache

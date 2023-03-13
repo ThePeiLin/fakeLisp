@@ -23,6 +23,86 @@ static void loadSymbolTable(FILE*,FklSymbolTable* table);
 static void loadLib(FILE*,size_t*,FklVMlib**,FklVMgc*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
 
+static inline int compileAndRun(char* filename)
+{
+	if(!fklIsAccessableRegFile(filename))
+	{
+		perror(filename);
+		fklDestroyCwd();
+		return EXIT_FAILURE;
+	}
+	FILE* fp=fopen(filename,"r");
+	if(fp==NULL)
+	{
+		perror(filename);
+		fklDestroyCwd();
+		return EXIT_FAILURE;
+	}
+	FklSymbolTable* publicSymbolTable=fklCreateSymbolTable();
+	fklAddSymbolCstr(filename,publicSymbolTable);
+	fklInitCodegen(publicSymbolTable);
+	FklCodegen codegen={.fid=0,};
+	char* rp=fklRealpath(filename);
+	fklSetMainFileRealPath(rp);
+	fklInitGlobalCodegener(&codegen,rp,NULL,fklCreateSymbolTable(),publicSymbolTable,0);
+	free(rp);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
+	if(mainByteCode==NULL)
+	{
+		fklDestroyPrototypePool(codegen.ptpool);
+		fklUninitCodegener(&codegen);
+		fklUninitCodegen();
+		fklDestroyMainFileRealPath();
+		fklDestroyCwd();
+		return 1;
+	}
+	fklUpdatePrototype(codegen.ptpool
+			,codegen.globalEnv
+			,codegen.globalSymTable
+			,codegen.publicSymbolTable);
+	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
+
+	chdir(fklGetCwd());
+	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
+	anotherVM->ptpool=codegen.ptpool;
+	anotherVM->libNum=codegen.loadedLibStack->top;
+	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
+	FKL_ASSERT(anotherVM->libs);
+	FklVMframe* mainframe=anotherVM->frames;
+	fklInitGlobalVMclosure(mainframe,anotherVM);
+	fklInitMainVMframeWithProc(anotherVM,mainframe
+			,fklGetCompoundFrameProc(mainframe)->u.proc
+			,NULL
+			,anotherVM->ptpool);
+	FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
+
+	while(!fklIsPtrStackEmpty(loadedLibStack))
+	{
+		FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
+		FklCodegenLibType type=cur->type;
+		FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
+		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->ptpool);
+		if(type==FKL_CODEGEN_LIB_SCRIPT)
+			fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
+	}
+
+	int r=fklRunVM(anotherVM);
+	if(r)
+	{
+		exitState=r;
+		fklDeleteCallChain(anotherVM);
+	}
+	else
+		fklWaitGC(anotherVM->gc);
+	fklJoinAllThread(anotherVM);
+	fklDestroyVMgc(anotherVM->gc);
+	fklDestroyAllVMs(anotherVM);
+	fklUninitCodegener(&codegen);
+	fklUninitCodegen();
+	return 0;
+}
+
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:NULL;
@@ -52,146 +132,80 @@ int main(int argc,char** argv)
 		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
 	}
-	else if(fklIsscript(filename))
-	{
-		if(!fklIsAccessableRegFile(filename))
-		{
-			perror(filename);
-			fklDestroyCwd();
-			return EXIT_FAILURE;
-		}
-		FILE* fp=fopen(filename,"r");
-		if(fp==NULL)
-		{
-			perror(filename);
-			fklDestroyCwd();
-			return EXIT_FAILURE;
-		}
-		FklSymbolTable* publicSymbolTable=fklCreateSymbolTable();
-		fklAddSymbolCstr(filename,publicSymbolTable);
-		fklInitCodegen(publicSymbolTable);
-		FklCodegen codegen={.fid=0,};
-		char* rp=fklRealpath(filename);
-		fklSetMainFileRealPath(rp);
-		fklInitGlobalCodegener(&codegen,rp,NULL,fklCreateSymbolTable(),publicSymbolTable,0);
-		free(rp);
-		FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
-		if(mainByteCode==NULL)
-		{
-			fklDestroyPrototypePool(codegen.ptpool);
-			fklUninitCodegener(&codegen);
-			fklUninitCodegen();
-			fklDestroyMainFileRealPath();
-			fklDestroyCwd();
-			return 1;
-		}
-		fklUpdatePrototype(codegen.ptpool
-						,codegen.globalEnv
-						,codegen.globalSymTable
-						,codegen.publicSymbolTable);
-		fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
-
-		chdir(fklGetCwd());
-		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
-		FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
-		anotherVM->ptpool=codegen.ptpool;
-		anotherVM->libNum=codegen.loadedLibStack->top;
-		anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
-		FKL_ASSERT(anotherVM->libs);
-		FklVMframe* mainframe=anotherVM->frames;
-		fklInitGlobalVMclosure(mainframe,anotherVM);
-		fklInitMainVMframeWithProc(anotherVM,mainframe
-				,fklGetCompoundFrameProc(mainframe)->u.proc
-				,NULL
-				,anotherVM->ptpool);
-		FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
-
-		while(!fklIsPtrStackEmpty(loadedLibStack))
-		{
-			FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
-			FklCodegenLibType type=cur->type;
-			FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-			fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->ptpool);
-			if(type==FKL_CODEGEN_LIB_SCRIPT)
-				fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
-		}
-
-		int r=fklRunVM(anotherVM);
-		if(r)
-		{
-			exitState=r;
-			fklDeleteCallChain(anotherVM);
-		}
-		else
-			fklWaitGC(anotherVM->gc);
-		fklJoinAllThread(anotherVM);
-		fklDestroyVMgc(anotherVM->gc);
-		fklDestroyAllVMs(anotherVM);
-		fklUninitCodegener(&codegen);
-		fklUninitCodegen();
-	}
-	else if(fklIscode(filename))
-	{
-		if(!fklIsAccessableRegFile(filename))
-		{
-			perror(filename);
-			fklDestroyCwd();
-			return EXIT_FAILURE;
-		}
-		FILE* fp=fopen(argv[1],"rb");
-		if(fp==NULL)
-		{
-			perror(filename);
-			fklDestroyCwd();
-			return EXIT_FAILURE;
-		}
-		FklSymbolTable* table=fklCreateSymbolTable();
-		loadSymbolTable(fp,table);
-		char* rp=fklRealpath(filename);
-		fklSetMainFileRealPath(rp);
-		free(rp);
-		FklByteCodelnt* mainCodelnt=fklCreateByteCodelnt(NULL);
-		fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
-		FklByteCode* mainCode=loadByteCode(fp);
-		mainCodelnt->bc=mainCode;
-		FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
-
-		FklVMgc* gc=anotherVM->gc;
-		FklVMframe* mainframe=anotherVM->frames;
-
-		fklInitGlobalVMclosure(mainframe,anotherVM);
-		loadLib(fp
-				,&anotherVM->libNum
-				,&anotherVM->libs
-				,anotherVM->gc
-				,fklGetCompoundFrameLocRef(anotherVM->frames));
-
-		anotherVM->ptpool=fklLoadPrototypePool(fp);
-		fklInitMainVMframeWithProc(anotherVM
-				,mainframe
-				,fklGetCompoundFrameProc(mainframe)->u.proc
-				,NULL
-				,anotherVM->ptpool);
-
-		fclose(fp);
-		int r=fklRunVM(anotherVM);
-		if(r)
-		{
-			exitState=r;
-			fklDeleteCallChain(anotherVM);
-		}
-		else
-			fklWaitGC(anotherVM->gc);
-		fklJoinAllThread(anotherVM);
-		fklDestroySymbolTable(table);
-		fklDestroyVMgc(gc);
-		fklDestroyAllVMs(anotherVM);
-	}
 	else
 	{
-		fprintf(stderr,"%s: It is not a correct file.\n",filename);
-		fklDestroyCwd();
-		return EXIT_FAILURE;
+		if(fklIsscript(filename))
+			return compileAndRun(filename);
+		else if(fklIscode(filename))
+		{
+			if(!fklIsAccessableRegFile(filename))
+			{
+				perror(filename);
+				fklDestroyCwd();
+				return EXIT_FAILURE;
+			}
+			FILE* fp=fopen(argv[1],"rb");
+			if(fp==NULL)
+			{
+				perror(filename);
+				fklDestroyCwd();
+				return EXIT_FAILURE;
+			}
+			FklSymbolTable* table=fklCreateSymbolTable();
+			loadSymbolTable(fp,table);
+			char* rp=fklRealpath(filename);
+			fklSetMainFileRealPath(rp);
+			free(rp);
+			FklByteCodelnt* mainCodelnt=fklCreateByteCodelnt(NULL);
+			fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
+			FklByteCode* mainCode=loadByteCode(fp);
+			mainCodelnt->bc=mainCode;
+			FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
+
+			FklVMgc* gc=anotherVM->gc;
+			FklVMframe* mainframe=anotherVM->frames;
+
+			fklInitGlobalVMclosure(mainframe,anotherVM);
+			loadLib(fp
+					,&anotherVM->libNum
+					,&anotherVM->libs
+					,anotherVM->gc
+					,fklGetCompoundFrameLocRef(anotherVM->frames));
+
+			anotherVM->ptpool=fklLoadPrototypePool(fp);
+			fklInitMainVMframeWithProc(anotherVM
+					,mainframe
+					,fklGetCompoundFrameProc(mainframe)->u.proc
+					,NULL
+					,anotherVM->ptpool);
+
+			fclose(fp);
+			int r=fklRunVM(anotherVM);
+			if(r)
+			{
+				exitState=r;
+				fklDeleteCallChain(anotherVM);
+			}
+			else
+				fklWaitGC(anotherVM->gc);
+			fklJoinAllThread(anotherVM);
+			fklDestroySymbolTable(table);
+			fklDestroyVMgc(gc);
+			fklDestroyAllVMs(anotherVM);
+		}
+		else
+		{
+			char* packageMainFileName=fklCopyCstr(filename);
+			packageMainFileName=fklStrCat(packageMainFileName,FKL_PATH_SEPARATOR_STR);
+			packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
+			if(fklIsAccessableRegFile(packageMainFileName))
+				return compileAndRun(packageMainFileName);
+
+			free(packageMainFileName);
+			fprintf(stderr,"%s: It is not a correct file.\n",filename);
+			fklDestroyCwd();
+			return EXIT_FAILURE;
+		}
 	}
 	fklDestroyMainFileRealPath();
 	fklDestroyCwd();

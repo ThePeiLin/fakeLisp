@@ -58,7 +58,7 @@ int main(int argc,char** argv)
 				char* rp=fklRealpath(filename);
 				fklSetMainFileRealPath(rp);
 				chdir(fklGetMainFileRealPath());
-				fklInitGlobalCodegener(&codegen,rp,NULL,fklCreateSymbolTable(),table,0);
+				fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),table,0);
 				FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 				fklInitVMargs(argc,argv);
 				if(mainByteCode==NULL)

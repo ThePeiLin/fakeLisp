@@ -25,7 +25,6 @@ typedef struct FklCodegenEnv
 	FklHashTable* defs;
 	FklHashTable* refs;
 	struct FklCodegenMacroScope* macros;
-	FklStringMatchPattern** phead;
 	size_t refcount;
 }FklCodegenEnv;
 
@@ -47,6 +46,7 @@ typedef struct FklCodegenMacroScope
 	FklHashTable* replacements;
 	FklCodegenMacro* head;
 	FklStringMatchPattern* patterns;
+	FklStringMatchPattern** phead;
 }FklCodegenMacroScope;
 
 typedef enum FklCodegenLibType
@@ -150,7 +150,6 @@ typedef struct FklCodegenQuest
 
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
-		,FklCodegenEnv* globalEnv
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* publicSymbolTable
 		,int destroyAbleMark);

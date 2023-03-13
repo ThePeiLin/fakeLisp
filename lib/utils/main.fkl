@@ -1,2 +1,2 @@
-(load "f.fkl")
-(load "m.fkl")
+(export
+  (import (f) (m)))

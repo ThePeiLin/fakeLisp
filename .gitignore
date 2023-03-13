@@ -5,9 +5,9 @@
 !/include/**/
 !/include/fakeLisp/
 !/include/fakeLisp/*
-!/examples/
-!/examples/**/
-!/examples/*.fkl
+!/test/
+!/test/**/
+!/test/*.fkl
 !/lib/
 !/lib/**/
 !/lib/*

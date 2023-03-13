@@ -7,4 +7,4 @@
 (define my-language 'Chinese)
 (princ (href internationle-in-some-language
              my-language ()))
-(princ #\\n)
+(newline)

@@ -79,8 +79,8 @@ target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 add_custom_target(COPY_LIB_FKL ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 
-#copy examples
+#copy test
 add_custom_target(COPY_EXAMPLES ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/examples/ ${CMAKE_BINARY_DIR}/examples/)
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/)
 
 

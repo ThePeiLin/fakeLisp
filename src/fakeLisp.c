@@ -23,20 +23,22 @@ static void loadSymbolTable(FILE*,FklSymbolTable* table);
 static void loadLib(FILE*,size_t*,FklVMlib**,FklVMgc*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
 
+#define FKL_EXIT_FAILURE (255)
+
 static inline int compileAndRun(char* filename)
 {
 	if(!fklIsAccessableRegFile(filename))
 	{
 		perror(filename);
 		fklDestroyCwd();
-		return EXIT_FAILURE;
+		return FKL_EXIT_FAILURE;
 	}
 	FILE* fp=fopen(filename,"r");
 	if(fp==NULL)
 	{
 		perror(filename);
 		fklDestroyCwd();
-		return EXIT_FAILURE;
+		return FKL_EXIT_FAILURE;
 	}
 	FklSymbolTable* publicSymbolTable=fklCreateSymbolTable();
 	fklAddSymbolCstr(filename,publicSymbolTable);
@@ -54,7 +56,7 @@ static inline int compileAndRun(char* filename)
 		fklUninitCodegen();
 		fklDestroyMainFileRealPath();
 		fklDestroyCwd();
-		return 1;
+		return FKL_EXIT_FAILURE;
 	}
 	fklUpdatePrototype(codegen.ptpool
 			,codegen.globalEnv
@@ -142,14 +144,14 @@ int main(int argc,char** argv)
 			{
 				perror(filename);
 				fklDestroyCwd();
-				return EXIT_FAILURE;
+				return FKL_EXIT_FAILURE;
 			}
 			FILE* fp=fopen(argv[1],"rb");
 			if(fp==NULL)
 			{
 				perror(filename);
 				fklDestroyCwd();
-				return EXIT_FAILURE;
+				return FKL_EXIT_FAILURE;
 			}
 			FklSymbolTable* table=fklCreateSymbolTable();
 			loadSymbolTable(fp,table);
@@ -204,7 +206,7 @@ int main(int argc,char** argv)
 			free(packageMainFileName);
 			fprintf(stderr,"%s: It is not a correct file.\n",filename);
 			fklDestroyCwd();
-			return EXIT_FAILURE;
+			return FKL_EXIT_FAILURE;
 		}
 	}
 	fklDestroyMainFileRealPath();

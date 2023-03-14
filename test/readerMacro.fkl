@@ -17,9 +17,6 @@ function square (a)
     call * (a a)
 }
 
-call princ ((\x->(+ x 9) 9))
-call princ (#\\n)
-call princ (call list (1 2 3))
-call princ (#\\n)
-call princ (call square (pop))
-call princ (#\\n)
+call println ((\x->(+ x 9) 9))
+call println (call list (1 2 3))
+call println (call square (pop))

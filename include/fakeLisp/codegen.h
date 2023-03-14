@@ -67,6 +67,7 @@ typedef struct FklCodegenLib
 	size_t exportNum;
 	uint32_t* exportIndex;
 	FklSid_t* exports;
+	FklSid_t* exportsP;
 	FklCodegenMacro* head;
 	FklHashTable* replacements;
 	FklStringMatchPattern* patterns;

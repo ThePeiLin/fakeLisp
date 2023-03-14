@@ -220,6 +220,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 		,char* rp
 		,FklDllHandle dll
 		,FklSymbolTable* table
+		,FklSymbolTable* ptable
 		,FklCodegenDllLibInitExportFunc init);
 
 void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib);
@@ -239,6 +240,7 @@ FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 FklCodegenLib* fklCreateCodegenDllLib(char* rp
 		,FklDllHandle dll
 		,FklSymbolTable* table
+		,FklSymbolTable* ptable
 		,FklCodegenDllLibInitExportFunc init);
 
 void fklDestroyCodegenLib(FklCodegenLib*);

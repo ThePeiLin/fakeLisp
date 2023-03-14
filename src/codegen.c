@@ -3419,6 +3419,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
+				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -3457,7 +3458,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 
 static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origExp
 		,FklNastNode* name
-		,FklNastNode* only
+		,FklNastNode* except
 		,const char* filename
 		,FklCodegenEnv* curEnv
 		,FklCodegen* codegen
@@ -3493,6 +3494,7 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
+				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -3508,22 +3510,18 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
 
-	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
-	FklSymbolTable* globalSymTable=codegen->globalSymTable;
-
 	uint32_t exportNum=lib->exportNum;
-	FklSid_t* exports=lib->exports;
+	FklSid_t* exportsP=lib->exportsP;
 
-	for(;only->type==FKL_NAST_PAIR;only=only->u.pair->cdr)
+	for(uint32_t i=0;i<exportNum;i++)
 	{
-		FklSid_t cur=only->u.pair->car->u.sym;
-		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
-		uint32_t idl=0;
-		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
-		uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
-		fklSetU32ToByteCode(&importCode[1],idx);
-		fklSetU32ToByteCode(&importCode[5],idl);
-		bclBcAppendToBcl(importBc,&bc,codegen->fid,only->curline);
+		if(!is_in_except_list(except,exportsP[i]))
+		{
+			uint32_t idx=fklAddCodegenDefBySid(exportsP[i],scope,curEnv);
+			fklSetU32ToByteCode(&importCode[1],idx);
+			fklSetU32ToByteCode(&importCode[5],i);
+			bclBcAppendToBcl(importBc,&bc,codegen->fid,except->curline);
+		}
 	}
 
 	return importBc;
@@ -3566,6 +3564,7 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
+				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -3628,6 +3627,7 @@ static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origEx
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
+				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -3696,6 +3696,7 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
+				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -5179,11 +5180,12 @@ FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 FklCodegenLib* fklCreateCodegenDllLib(char* rp
 		,FklDllHandle dll
 		,FklSymbolTable* table
+		,FklSymbolTable* ptable
 		,FklCodegenDllLibInitExportFunc init)
 {
 	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
 	FKL_ASSERT(lib);
-	fklInitCodegenDllLib(lib,rp,dll,table,init);
+	fklInitCodegenDllLib(lib,rp,dll,table,ptable,init);
 	return lib;
 }
 
@@ -5191,6 +5193,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 		,char* rp
 		,FklDllHandle dll
 		,FklSymbolTable* table
+		,FklSymbolTable* ptable
 		,FklCodegenDllLibInitExportFunc init)
 {
 	lib->rp=rp;
@@ -5200,9 +5203,24 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	lib->replacements=NULL;
 	lib->patterns=NULL;
 	lib->exportIndex=NULL;
-	lib->exports=NULL;
 	lib->exportNum=0;
-	init(&lib->exportNum,&lib->exports,table);
+	size_t num=0;
+	FklSid_t* exports=NULL;
+	init(&num,&exports,table);
+	FklSid_t* exportsP=NULL;
+	if(ptable)
+	{
+		exportsP=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
+		FKL_ASSERT(exportsP);
+		for(size_t i=0;i<num;i++)
+		{
+			FklSid_t idp=fklAddSymbol(fklGetSymbolWithId(exports[i],table)->symbol,ptable)->id;
+			exportsP[i]=idp;
+		}
+	}
+	lib->exportsP=exportsP;
+	lib->exports=exports;
+	lib->exportNum=num;
 }
 
 void fklDestroyCodegenMacroList(FklCodegenMacro* cur)

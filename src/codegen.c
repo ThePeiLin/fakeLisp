@@ -2911,7 +2911,7 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 {
 	process_import_reader_macro(cms->phead,lib->patterns,0);
 	if(prefix)
-		return process_import_imported_lib_prefix(codegen->loadedLibStack->top
+		return process_import_imported_lib_prefix(libId
 				,codegen
 				,lib
 				,env
@@ -2920,7 +2920,7 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 				,line
 				,prefix);
 	if(only)
-		return process_import_imported_lib_only(codegen->loadedLibStack->top
+		return process_import_imported_lib_only(libId
 				,codegen
 				,lib
 				,env
@@ -2929,7 +2929,7 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 				,line
 				,only);
 	if(alias)
-		return process_import_imported_lib_alias(codegen->loadedLibStack->top
+		return process_import_imported_lib_alias(libId
 				,codegen
 				,lib
 				,env
@@ -2938,7 +2938,7 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 				,line
 				,alias);
 	if(except)
-		return process_import_imported_lib_except(codegen->loadedLibStack->top
+		return process_import_imported_lib_except(libId
 				,codegen
 				,lib
 				,env
@@ -2946,7 +2946,7 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 				,cms
 				,line
 				,except);
-	return process_import_imported_lib_common(codegen->loadedLibStack->top
+	return process_import_imported_lib_common(libId
 			,codegen
 			,lib
 			,env
@@ -3938,7 +3938,6 @@ static inline void codegen_import_helper(FklNastNode* origExp
     free(scriptFileName);
     free(dllFileName);
     free(packageMainFileName);
-
 }
 
 static CODEGEN_FUNC(codegen_import)

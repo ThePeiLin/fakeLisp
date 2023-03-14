@@ -1405,7 +1405,14 @@ static void inline B_export(FklVM* exe,FklVMframe* frame)
 	lib->loc=loc;
 	lib->count=count;
 	lib->imported=1;
-	lib->proc=FKL_VM_NIL;
+	FklVMproc* proc=lib->proc->u.proc;
+	uint32_t rcount=proc->count;
+	proc->count=0;
+	FklVMvarRef** refs=proc->closure;
+	proc->closure=NULL;
+	for(uint32_t i=0;i<rcount;i++)
+		fklDestroyVMvarRef(refs[i]);
+	free(refs);
 }
 
 FklVMstack* fklCreateVMstack(uint32_t size)

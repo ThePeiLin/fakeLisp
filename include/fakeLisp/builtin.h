@@ -2,6 +2,7 @@
 #define FKL_BUILTIN_H
 
 #include"symbol.h"
+#include"bytecode.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,6 +44,10 @@ typedef enum
 	FKL_ERR_CIR_REF,
 }FklBuiltInErrorType;
 
+typedef FklByteCodelnt* (*FklBuiltinOptFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);
+FklBuiltinOptFunc fklGetBuiltInOpFunc(uint32_t idx,uint32_t argNum);
+
+uint8_t* fklGetBultinSymbolModifyMark(uint32_t*);
 #define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)
 //typedef struct FklCompEnv FklCompEnv;
 typedef struct FklCodegenEnv FklCodegenEnv;

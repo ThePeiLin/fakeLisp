@@ -80,6 +80,8 @@ typedef struct FklCodegen
 	char* realpath;
 	char* curDir;
 	uint64_t curline;
+	uint32_t builtinSymbolNum;
+	uint8_t* builtinSymModiMark;
 	FklCodegenEnv* globalEnv;
 	FklSymbolTable* globalSymTable;
 	FklSymbolTable* publicSymbolTable;
@@ -97,7 +99,8 @@ typedef struct FklCodegen
 	struct FklCodegen* prev;
 	unsigned int destroyAbleMark:1;
 	unsigned int libMark:1;
-	unsigned long refcount:62;
+	unsigned int macroMark:1;
+	unsigned long refcount:61;
 	FklPrototypePool* ptpool;
 }FklCodegen;
 
@@ -161,7 +164,8 @@ void fklInitCodegener(FklCodegen* codegen
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* publicSymbolTable
 		,int destroyAbleMark
-		,int libMark);
+		,int libMark
+		,int macroMark);
 
 void fklUninitCodegener(FklCodegen* codegen);
 void fklDestroyCodegener(FklCodegen* codegen);

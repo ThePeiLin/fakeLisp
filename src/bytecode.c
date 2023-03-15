@@ -506,6 +506,7 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt* o,uint64_t size)
 		o->l[i].scp+=size;
 }
 
+#define FKL_INCREASE_ALL_SCP(l,ls,s) for(size_t i=0;i<(ls);i++)(l)[i].scp+=(s)
 void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
 	if(s->bc->size)
@@ -580,6 +581,47 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 			}
 		}
 		fklReCodeCat(f->bc,s->bc);
+	}
+}
+
+void fklBclBcAppendToBcl(FklByteCodelnt* bcl
+		,const FklByteCode* bc
+		,FklSid_t fid
+		,uint64_t line)
+{
+	if(!bcl->l)
+	{
+		bcl->ls=1;
+		bcl->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
+		FKL_ASSERT(bcl->l);
+		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
+		fklCodeCat(bcl->bc,bc);
+	}
+	else
+	{
+		fklCodeCat(bcl->bc,bc);
+		bcl->l[bcl->ls-1].cpc+=bc->size;
+	}
+}
+
+void fklBcBclAppendToBcl(const FklByteCode* bc
+		,FklByteCodelnt* bcl
+		,FklSid_t fid
+		,uint64_t line)
+{
+	if(!bcl->l)
+	{
+		bcl->ls=1;
+		bcl->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
+		FKL_ASSERT(bcl->l);
+		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
+		fklCodeCat(bcl->bc,bc);
+	}
+	else
+	{
+		fklReCodeCat(bc,bcl->bc);
+		bcl->l[0].cpc+=bc->size;
+		FKL_INCREASE_ALL_SCP(bcl->l+1,bcl->ls-1,bc->size);
 	}
 }
 

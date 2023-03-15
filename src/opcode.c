@@ -52,6 +52,20 @@ static struct
 	{"export",                       4,  },
 	{"load-lib",                     4,  },
 	{"load-dll",                     4,  },
+	{"gt",                           0,  },
+	{"lt",                           0,  },
+	{"ge",                           0,  },
+	{"le",                           0,  },
+	{"inc",                          0,  },
+	{"dec",                          0,  },
+	{"add",                          0,  },
+	{"sub",                          0,  },
+	{"add1",                         0,  },
+	{"neg",                          0,  },
+	{"add3",                         0,  },
+	{"sub3",                         0,  },
+	{"push-car",                     0,  },
+	{"push-cdr",                     0,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

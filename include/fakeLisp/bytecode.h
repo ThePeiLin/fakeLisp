@@ -50,8 +50,17 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable*);
 void fklDestroyByteCodelnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
 void fklCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
-//void fklCodelntCopyCat(FklByteCodelnt*,const FklByteCodelnt*);
 void fklReCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
+
+void fklBclBcAppendToBcl(FklByteCodelnt* bcl
+		,const FklByteCode* bc
+		,FklSid_t fid
+		,uint64_t line);
+
+void fklBcBclAppendToBcl(const FklByteCode* bc
+		,FklByteCodelnt* bcl
+		,FklSid_t fid
+		,uint64_t line);
 
 FklLineNumberTable* fklCreateLineNumTable();
 void fklInitLineNumTabNode(FklLineNumTabNode*
@@ -103,7 +112,6 @@ FklByteCode* fklCreatePushStrByteCode(const FklString* str);
 FklByteCode* fklCreatePushBvecByteCode(const FklBytevector* bvec);
 
 void fklLoadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum);
-#define FKL_INCREASE_ALL_SCP(l,ls,s) for(size_t i=0;i<(ls);i++)(l)[i].scp+=(s)
 
 #ifdef __cplusplus
 }

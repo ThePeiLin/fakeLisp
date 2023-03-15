@@ -44,8 +44,8 @@ typedef enum
 	FKL_ERR_CIR_REF,
 }FklBuiltInErrorType;
 
-typedef FklByteCodelnt* (*FklBuiltinOptFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);
-FklBuiltinOptFunc fklGetBuiltInOpFunc(uint32_t idx,uint32_t argNum);
+typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);
+FklBuiltinInlineFunc fklGetBuiltInInlineFunc(uint32_t idx,uint32_t argNum);
 
 uint8_t* fklGetBultinSymbolModifyMark(uint32_t*);
 #define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)

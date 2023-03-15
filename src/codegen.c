@@ -332,7 +332,7 @@ inline static void pushListItemToStack(FklNastNode* list,FklPtrStack* stack,FklN
 		*last=list;
 }
 
-static inline FklBuiltinOptFunc is_optimizable_func_ref(uint32_t idx
+static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 		,FklCodegenEnv* env
 		,uint32_t argNum
 		,FklCodegen* codegen)
@@ -363,7 +363,7 @@ static inline FklBuiltinOptFunc is_optimizable_func_ref(uint32_t idx
 			break;
 	}
 	if(ref&&idx<codegen->builtinSymbolNum&&!codegen->builtinSymModiMark[idx])
-		return fklGetBuiltInOpFunc(idx,argNum);
+		return fklGetBuiltInInlineFunc(idx,argNum);
 	return NULL;
 }
 
@@ -375,17 +375,17 @@ BC_PROCESS(_funcall_exp_bc_process)
 		FklByteCodelnt* func=stack->base[0];
 		FklByteCode* funcBc=func->bc;
 		uint32_t argNum=stack->top-1;
-		FklBuiltinOptFunc optFunc=NULL;
+		FklBuiltinInlineFunc inlFunc=NULL;
 		if(argNum<4
 				&&funcBc->code[0]==FKL_OP_GET_VAR_REF
-				&&(optFunc=is_optimizable_func_ref(fklGetU32FromByteCode(&funcBc->code[1])
+				&&(inlFunc=is_inlinable_func_ref(fklGetU32FromByteCode(&funcBc->code[1])
 						,env
 						,argNum
 						,codegen)))
 		{
 			fklDestroyByteCodelnt(func);
 			stack->top=0;
-			return optFunc((FklByteCodelnt**)stack->base+1,fid,line);
+			return inlFunc((FklByteCodelnt**)stack->base+1,fid,line);
 		}
 		else
 		{

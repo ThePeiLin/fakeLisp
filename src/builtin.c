@@ -4866,6 +4866,11 @@ static FklByteCodelnt* inlfunc_mod(INL_FUNC_ARGS)
 	return inl_2_arg_func(FKL_OP_MOD,bcs,fid,line);
 }
 
+static FklByteCodelnt* inlfunc_nth(INL_FUNC_ARGS)
+{
+	return inl_2_arg_func(FKL_OP_NTH,bcs,fid,line);
+}
+
 static FklByteCodelnt* inlfunc_vref(INL_FUNC_ARGS)
 {
 	return inl_2_arg_func(FKL_OP_VEC_REF,bcs,fid,line);
@@ -5001,7 +5006,7 @@ static const struct SymbolFuncStruct
 	{">=",                    builtin_ge,                      {NULL,         inlfunc_true,  inlfunc_ge,    inlfunc_ge3,   }, },
 	{"<",                     builtin_lt,                      {NULL,         inlfunc_true,  inlfunc_lt,    inlfunc_lt3,   }, },
 	{"<=",                    builtin_le,                      {NULL,         inlfunc_true,  inlfunc_le,    inlfunc_le3,   }, },
-	{"nth",                   builtin_nth,                     {NULL,         NULL,          NULL,          NULL,          }, },
+	{"nth",                   builtin_nth,                     {NULL,         NULL,          inlfunc_nth,   NULL,          }, },
 	{"length",                builtin_length,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"apply",                 builtin_apply,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"call/eh",               builtin_call_eh,                 {NULL,         NULL,          NULL,          NULL,          }, },

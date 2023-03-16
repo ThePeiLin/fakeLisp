@@ -367,6 +367,7 @@ static void B_idiv3(BYTE_CODE_ARGS);
 static void B_push_car(BYTE_CODE_ARGS);
 static void B_push_cdr(BYTE_CODE_ARGS);
 static void B_cons(BYTE_CODE_ARGS);
+static void B_nth(BYTE_CODE_ARGS);
 static void B_vec_ref(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
@@ -460,6 +461,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_push_car,
 	B_push_cdr,
 	B_cons,
+	B_nth,
 	B_vec_ref,
 };
 
@@ -2002,6 +2004,29 @@ static inline void B_cons(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* car=fklNiGetArg(&ap,stack);
 	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
 	fklNiReturn(fklCreateVMpairV(car,cdr,exe),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static inline void B_nth(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* place=fklNiGetArg(&ap,stack);
+	FklVMvalue* objlist=fklNiGetArg(&ap,stack);
+	FKL_NI_CHECK_TYPE(place,fklIsInt,"builtin.nth",exe);
+	if(fklVMnumberLt0(place))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nth",FKL_ERR_INVALIDACCESS,exe);
+	size_t index=fklGetUint(place);
+	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
+	{
+		FklVMvalue* objPair=objlist;
+		for(uint64_t i=0;i<index&&FKL_IS_PAIR(objPair);i++,objPair=fklGetVMpairCdr(objPair));
+		if(FKL_IS_PAIR(objPair))
+			fklNiReturn(objPair->u.pair->car,&ap,stack);
+		else
+			fklNiReturn(FKL_VM_NIL,&ap,stack);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nth",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiEnd(&ap,stack);
 }
 

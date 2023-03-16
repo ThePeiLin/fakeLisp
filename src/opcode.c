@@ -91,6 +91,7 @@ static struct
 	{"push-car",             0,  },
 	{"push-cdr",             0,  },
 	{"cons",                 0,  },
+	{"nth",                  0,  },
 	{"vec-ref",              0,  },
 };
 

@@ -2403,6 +2403,7 @@ static FklCodegenNextExpression* createFpNextExpression(FILE* fp,FklCodegen* cod
 static CODEGEN_FUNC(codegen_load)
 {
 	FklNastNode* filename=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	if(filename->type!=FKL_NAST_STR)
 	{
 		errorState->fid=codegen->fid;
@@ -2410,6 +2411,36 @@ static CODEGEN_FUNC(codegen_load)
 		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
+
+	if(rest->type!=FKL_NAST_NIL)
+	{
+		FklPtrQueue* queue=fklCreatePtrQueue();
+
+		FklNastPair* prevPair=origExp->u.pair->cdr->u.pair;
+
+		FklNastNode* loadHead=origExp->u.pair->car;
+
+		for(;rest->type==FKL_NAST_PAIR;rest=rest->u.pair->cdr)
+		{
+			FklNastNode* restExp=fklNastCons(fklMakeNastNodeRef(loadHead),rest,rest->curline);
+
+			prevPair->cdr=fklCreateNastNode(FKL_NAST_NIL,rest->curline);
+
+			fklPushPtrQueue(restExp,queue);
+
+			prevPair=rest->u.pair;
+		}
+		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
+				,createDefaultStackContext(fklCreatePtrStack(2,1))
+				,createDefaultQueueNextExpression(queue)
+				,scope
+				,macroScope
+				,curEnv
+				,origExp->curline
+				,codegen
+				,codegenQuestStack);
+	}
+
 	char* filenameCstr=fklStringToCstr(filename->u.str);
 	if(!fklIsAccessableRegFile(filenameCstr))
 	{
@@ -4614,7 +4645,7 @@ static struct PatternAndFunc
 	{"~(if ~value ~rest ~args)",             NULL, codegen_if1,                },
 	{"~(when ~value,~rest)",                 NULL, codegen_when,               },
 	{"~(unless ~value,~rest)",               NULL, codegen_unless,             },
-	{"~(load ~name)",                        NULL, codegen_load,               },
+	{"~(load ~name,~rest)",                  NULL, codegen_load,               },
 	{"~(import (prefix ~name ~rest),~args)", NULL, codegen_import_prefix,      },
 	{"~(import (only ~name,~rest),~args)",   NULL, codegen_import_only,        },
 	{"~(import (alias ~name,~rest),~args)",  NULL, codegen_import_alias,       },

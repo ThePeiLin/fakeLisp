@@ -25,14 +25,12 @@
            (mp 0))
   (when (< cp len)
     (case (_ (sref code cp))
-      [(#\>) (begin
-               (setq mp (1+ mp))
-               (if (>= mp (length m))
-                 (append! m #(0))))]
-      [(#\<) (begin
-               (if (<= mp 0)
+      [(#\>) (setq mp (1+ mp))
+             (if (>= mp (length m))
+               (append! m #(0)))]
+      [(#\<) (if (<= mp 0)
                  (setq m (append #(0) m))
-                 (setq mp (-1+ mp))))]
+                 (setq mp (-1+ mp)))]
       [(#\+) (let [(c (vref m mp))]
                (set-vref! m mp (1+ c)))]
       [(#\-) (let [(c (vref m mp))]

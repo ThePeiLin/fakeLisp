@@ -4903,6 +4903,31 @@ static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 	return bcs[0];
 }
 
+static FklByteCodelnt* inlfunc_eqn3(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_EQN3,bcs,fid,line);
+}
+
+static FklByteCodelnt* inlfunc_gt3(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_GT3,bcs,fid,line);
+}
+
+static FklByteCodelnt* inlfunc_lt3(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_LT3,bcs,fid,line);
+}
+
+static FklByteCodelnt* inlfunc_ge3(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_GE3,bcs,fid,line);
+}
+
+static FklByteCodelnt* inlfunc_le3(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_LE3,bcs,fid,line);
+}
+
 static FklByteCodelnt* inlfunc_add3(INL_FUNC_ARGS)
 {
 	return inl_3_arg_func(FKL_OP_ADD3,bcs,fid,line);
@@ -4952,20 +4977,20 @@ static const struct SymbolFuncStruct
 	{"eq",                    builtin_eq,                      {NULL,         NULL,          inlfunc_eq,    NULL,          }, },
 	{"eqv",                   builtin_eqv,                     {NULL,         NULL,          inlfunc_eqv,   NULL,          }, },
 	{"equal",                 builtin_equal,                   {NULL,         NULL,          inlfunc_equal, NULL,          }, },
-	{"=",                     builtin_eqn,                     {NULL,         inlfunc_true,  inlfunc_eqn,   NULL,          }, },
+	{"=",                     builtin_eqn,                     {NULL,         inlfunc_true,  inlfunc_eqn,   inlfunc_eqn3,  }, },
 	{"+",                     builtin_add,                     {inlfunc_add0, inlfunc_add1,  inlfunc_add,   inlfunc_add3,  }, },
 	{"1+",                    builtin_add_1,                   {NULL,         inlfunc_add_1, NULL,          NULL,          }, },
 	{"-",                     builtin_sub,                     {NULL,         inlfunc_neg,   inlfunc_sub,   inlfunc_sub3,  }, },
 	{"-1+",                   builtin_sub_1,                   {NULL,         inlfunc_sub_1, NULL,          NULL,          }, },
-	{"*",                     builtin_mul,                     {inlfunc_mul0, inlfunc_mul1,   inlfunc_mul,   inlfunc_mul3,  }, },
+	{"*",                     builtin_mul,                     {inlfunc_mul0, inlfunc_mul1,  inlfunc_mul,   inlfunc_mul3,  }, },
 	{"/",                     builtin_div,                     {NULL,         inlfunc_rec,   inlfunc_div,   inlfunc_div3,  }, },
 	{"//",                    builtin_idiv,                    {NULL,         NULL,          inlfunc_idiv,  inlfunc_idiv3, }, },
 	{"%",                     builtin_mod,                     {NULL,         NULL,          inlfunc_mod,   NULL,          }, },
 	{"abs",                   builtin_abs,                     {NULL,         NULL,          NULL,          NULL,          }, },
-	{">",                     builtin_gt,                      {NULL,         inlfunc_true,  inlfunc_gt,    NULL,          }, },
-	{">=",                    builtin_ge,                      {NULL,         inlfunc_true,  inlfunc_ge,    NULL,          }, },
-	{"<",                     builtin_lt,                      {NULL,         inlfunc_true,  inlfunc_lt,    NULL,          }, },
-	{"<=",                    builtin_le,                      {NULL,         inlfunc_true,  inlfunc_le,    NULL,          }, },
+	{">",                     builtin_gt,                      {NULL,         inlfunc_true,  inlfunc_gt,    inlfunc_gt3,   }, },
+	{">=",                    builtin_ge,                      {NULL,         inlfunc_true,  inlfunc_ge,    inlfunc_ge3,   }, },
+	{"<",                     builtin_lt,                      {NULL,         inlfunc_true,  inlfunc_lt,    inlfunc_lt3,   }, },
+	{"<=",                    builtin_le,                      {NULL,         inlfunc_true,  inlfunc_le,    inlfunc_le3,   }, },
 	{"nth",                   builtin_nth,                     {NULL,         NULL,          NULL,          NULL,          }, },
 	{"length",                builtin_length,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"apply",                 builtin_apply,                   {NULL,         NULL,          NULL,          NULL,          }, },

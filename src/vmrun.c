@@ -331,11 +331,22 @@ static void B_not(BYTE_CODE_ARGS);
 static void B_eq(BYTE_CODE_ARGS);
 static void B_eqv(BYTE_CODE_ARGS);
 static void B_equal(BYTE_CODE_ARGS);
+
 static void B_eqn(BYTE_CODE_ARGS);
+static void B_eqn3(BYTE_CODE_ARGS);
+
 static void B_gt(BYTE_CODE_ARGS);
+static void B_gt3(BYTE_CODE_ARGS);
+
 static void B_lt(BYTE_CODE_ARGS);
+static void B_lt3(BYTE_CODE_ARGS);
+
 static void B_ge(BYTE_CODE_ARGS);
+static void B_ge3(BYTE_CODE_ARGS);
+
 static void B_le(BYTE_CODE_ARGS);
+static void B_le3(BYTE_CODE_ARGS);
+
 static void B_inc(BYTE_CODE_ARGS);
 static void B_dec(BYTE_CODE_ARGS);
 static void B_add(BYTE_CODE_ARGS);
@@ -410,11 +421,22 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_eq,
 	B_eqv,
 	B_equal,
+
 	B_eqn,
+	B_eqn3,
+
 	B_gt,
+	B_gt3,
+
 	B_lt,
+	B_lt3,
+
 	B_ge,
+	B_ge3,
+
 	B_le,
+	B_le3,
+
 	B_inc,
 	B_dec,
 	B_add,
@@ -1546,6 +1568,26 @@ static void inline B_eqn(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
+static void inline B_eqn3(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* a=fklNiGetArg(&ap,stack);
+	FklVMvalue* b=fklNiGetArg(&ap,stack);
+	FklVMvalue* c=fklNiGetArg(&ap,stack);
+	int err=0;
+	int r=fklVMvalueCmp(a,b,&err)==0
+		&&!err
+		&&fklVMvalueCmp(b,c,&err)==0;
+	if(err)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(r
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
 static void inline B_gt(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
@@ -1553,6 +1595,26 @@ static void inline B_gt(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* b=fklNiGetArg(&ap,stack);
 	int err=0;
 	int r=fklVMvalueCmp(a,b,&err)>0;
+	if(err)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(r
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static void inline B_gt3(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* a=fklNiGetArg(&ap,stack);
+	FklVMvalue* b=fklNiGetArg(&ap,stack);
+	FklVMvalue* c=fklNiGetArg(&ap,stack);
+	int err=0;
+	int r=fklVMvalueCmp(a,b,&err)>0
+		&&!err
+		&&fklVMvalueCmp(b,c,&err)>0;
 	if(err)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiReturn(r
@@ -1580,6 +1642,26 @@ static void inline B_lt(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
+static void inline B_lt3(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* a=fklNiGetArg(&ap,stack);
+	FklVMvalue* b=fklNiGetArg(&ap,stack);
+	FklVMvalue* c=fklNiGetArg(&ap,stack);
+	int err=0;
+	int r=fklVMvalueCmp(a,b,&err)<0
+		&&!err
+		&&fklVMvalueCmp(b,c,&err)<0;
+	if(err)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(r
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
 static void inline B_ge(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
@@ -1597,6 +1679,26 @@ static void inline B_ge(FklVM* exe,FklVMframe* frame)
 	fklNiEnd(&ap,stack);
 }
 
+static void inline B_ge3(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* a=fklNiGetArg(&ap,stack);
+	FklVMvalue* b=fklNiGetArg(&ap,stack);
+	FklVMvalue* c=fklNiGetArg(&ap,stack);
+	int err=0;
+	int r=fklVMvalueCmp(a,b,&err)>=0
+		&&!err
+		&&fklVMvalueCmp(b,c,&err)>=0;
+	if(err)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(r
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
 static void inline B_le(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
@@ -1604,6 +1706,26 @@ static void inline B_le(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* b=fklNiGetArg(&ap,stack);
 	int err=0;
 	int r=fklVMvalueCmp(a,b,&err)<=0;
+	if(err)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(r
+			?FKL_VM_TRUE
+			:FKL_VM_NIL
+			,&ap
+			,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static void inline B_le3(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* a=fklNiGetArg(&ap,stack);
+	FklVMvalue* b=fklNiGetArg(&ap,stack);
+	FklVMvalue* c=fklNiGetArg(&ap,stack);
+	int err=0;
+	int r=fklVMvalueCmp(a,b,&err)<=0
+		&&!err
+		&&fklVMvalueCmp(b,c,&err)<=0;
 	if(err)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiReturn(r

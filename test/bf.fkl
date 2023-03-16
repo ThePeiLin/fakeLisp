@@ -16,7 +16,7 @@
       (fclose fp)
       code)))
 
-(define m #vu8(0))
+(define m #(0))
 
 (define len (length code))
 
@@ -28,20 +28,20 @@
       [(#\>) (begin
                (setq mp (1+ mp))
                (if (>= mp (length m))
-                 (setq m (append m #vu8(0)))))]
+                 (append! m #(0))))]
       [(#\<) (begin
                (if (<= mp 0)
-                 (setq m (append #vu8(0) mp))
+                 (setq m (append #(0) m))
                  (setq mp (-1+ mp))))]
-      [(#\+) (let [(c (bvu8ref m mp))]
-               (set-bvu8ref! m mp (1+ c)))]
-      [(#\-) (let [(c (bvu8ref m mp))]
-               (set-bvu8ref! m mp (-1+ c)))]
-      [(#\.) (princ (integer->char (bvu8ref m mp)))]
-      [(#\,) (set-bvu8ref! m mp (fgetc stdin))]
+      [(#\+) (let [(c (vref m mp))]
+               (set-vref! m mp (1+ c)))]
+      [(#\-) (let [(c (vref m mp))]
+               (set-vref! m mp (-1+ c)))]
+      [(#\.) (princ (integer->char (vref m mp)))]
+      [(#\,) (set-vref! m mp (fgeti stdin))]
       [(#\[) (setq stack (cons cp stack))]
       [(#\])
-       (if (> (bvu8ref m mp) 0)
+       (if (> (vref m mp) 0)
          (setq cp (car stack))
          (setq stack (cdr stack)))]
       (1 (setq cp (1+ cp))))

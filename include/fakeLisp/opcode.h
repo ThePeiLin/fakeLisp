@@ -92,6 +92,7 @@ typedef enum
 	FKL_OP_IDIV3,
 	FKL_OP_PUSH_CAR,
 	FKL_OP_PUSH_CDR,
+	FKL_OP_CONS,
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

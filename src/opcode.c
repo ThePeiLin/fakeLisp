@@ -87,8 +87,10 @@ static struct
 	{"mul3",                 0,  },
 	{"div3",                 0,  },
 	{"idiv3",                0,  },
+
 	{"push-car",             0,  },
 	{"push-cdr",             0,  },
+	{"cons",                 0,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

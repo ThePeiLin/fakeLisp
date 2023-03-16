@@ -4821,6 +4821,11 @@ static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 	return bcs[0];
 }
 
+static FklByteCodelnt* inlfunc_cons(INL_FUNC_ARGS)
+{
+	return inl_2_arg_func(FKL_OP_CONS,bcs,fid,line);
+}
+
 static FklByteCodelnt* inlfunc_eq(INL_FUNC_ARGS)
 {
 	return inl_2_arg_func(FKL_OP_EQ,bcs,fid,line);
@@ -4967,7 +4972,7 @@ static const struct SymbolFuncStruct
 	{"stderr",                NULL,                            {NULL,         NULL,          NULL,          NULL,          }, },
 	{"car",                   builtin_car,                     {NULL,         inlfunc_car,   NULL,          NULL,          }, },
 	{"cdr",                   builtin_cdr,                     {NULL,         inlfunc_cdr,   NULL,          NULL,          }, },
-	{"cons",                  builtin_cons,                    {NULL,         NULL,          NULL,          NULL,          }, },
+	{"cons",                  builtin_cons,                    {NULL,         NULL,          inlfunc_cons,  NULL,          }, },
 	{"append",                builtin_append,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"append!",               builtin_append1,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"copy",                  builtin_copy,                    {NULL,         NULL,          NULL,          NULL,          }, },

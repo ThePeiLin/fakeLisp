@@ -366,6 +366,7 @@ static void B_div3(BYTE_CODE_ARGS);
 static void B_idiv3(BYTE_CODE_ARGS);
 static void B_push_car(BYTE_CODE_ARGS);
 static void B_push_cdr(BYTE_CODE_ARGS);
+static void B_cons(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -454,8 +455,10 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_mul3,
 	B_div3,
 	B_idiv3,
+
 	B_push_car,
 	B_push_cdr,
+	B_cons,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -1988,6 +1991,15 @@ static inline void B_push_cdr(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FKL_NI_CHECK_TYPE(obj,FKL_IS_PAIR,"builtin.cdr",exe);
 	fklNiReturn(obj->u.pair->cdr,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static inline void B_cons(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* car=fklNiGetArg(&ap,stack);
+	FklVMvalue* cdr=fklNiGetArg(&ap,stack);
+	fklNiReturn(fklCreateVMpairV(car,cdr,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

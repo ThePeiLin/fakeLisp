@@ -1003,16 +1003,48 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 	return r;
 }
 
-int fklNumcmp(FklVMvalue* fir,FklVMvalue* sec)
+#include<float.h>
+
+int inline fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 {
-	if(FKL_GET_TAG(fir)==FKL_GET_TAG(sec)&&FKL_GET_TAG(fir)==FKL_TAG_FIX)
-		return fir==sec;
-	else
+	int r=0;
+	*err=0;
+	if((FKL_IS_F64(a)&&fklIsVMnumber(b))
+			||(FKL_IS_F64(b)&&fklIsVMnumber(a)))
 	{
-		double first=(FKL_GET_TAG(fir)==FKL_TAG_FIX)?FKL_GET_FIX(fir):fir->u.f64;
-		double second=(FKL_GET_TAG(sec)==FKL_TAG_FIX)?FKL_GET_FIX(sec):sec->u.f64;
-		return fabs(first-second)==0;
+		double af=fklGetDouble(a);
+		double bf=fklGetDouble(b);
+		r=(af-bf)>DBL_EPSILON?1:
+			((af-bf)<-DBL_EPSILON?-1
+			 :0);
 	}
+	else if(fklIsInt(a)&&fklIsInt(b))
+	{
+		if(FKL_IS_FIX(a)&&FKL_IS_FIX(b))
+			r=FKL_GET_FIX(a)-FKL_GET_FIX(b);
+		else
+		{
+			if(FKL_IS_FIX(a))
+				r=fklCmpBigIntI(b->u.bigInt,FKL_GET_FIX(a))*-1;
+			else if(FKL_IS_FIX(b))
+				r=fklCmpBigIntI(a->u.bigInt,FKL_GET_FIX(b));
+			else
+				r=fklCmpBigInt(a->u.bigInt,b->u.bigInt);
+		}
+	}
+	else if(FKL_IS_STR(a)&&FKL_IS_STR(b))
+		r=fklStringcmp(a->u.str,b->u.str);
+	else if(FKL_IS_BYTEVECTOR(a)&&FKL_IS_BYTEVECTOR(a))
+		r=fklBytevectorcmp(a->u.bvec,b->u.bvec);
+	else if(FKL_IS_CHR(a)&&FKL_IS_CHR(b))
+		r=FKL_GET_CHR(a)-FKL_GET_CHR(b);
+	else if(FKL_IS_USERDATA(a)&&fklIsCmpableUd(a->u.ud))
+		r=fklCmpVMudata(a->u.ud,b,err);
+	else if(FKL_IS_USERDATA(b)&&fklIsCmpableUd(b->u.ud))
+		r=fklCmpVMudata(b->u.ud,a,err)*-1;
+	else
+		*err=1;
+	return r;
 }
 
 FklVMpair* fklCreateVMpair(void)

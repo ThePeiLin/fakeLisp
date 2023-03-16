@@ -536,7 +536,7 @@ FklVMvalue* fklGetVMpairCdr(FklVMvalue*);
 int fklVMvalueEqual(const FklVMvalue*,const FklVMvalue*);
 int fklVMvalueEqv(const FklVMvalue*,const FklVMvalue*);
 int fklVMvalueEq(const FklVMvalue*,const FklVMvalue*);
-int fklNumcmp(FklVMvalue*,FklVMvalue*);
+int fklVMvalueCmp(FklVMvalue*,FklVMvalue*,int*);
 
 FklVMpair* fklCreateVMpair(void);
 FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVM*);

@@ -1030,6 +1030,7 @@ static void builtin_eqn(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
+	int err=0;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklVMvalue* prev=NULL;
 	if(!cur)
@@ -1038,44 +1039,8 @@ static void builtin_eqn(FKL_DL_PROC_ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
-				r=fabs(fklGetDouble(prev)-fklGetDouble(cur))<DBL_EPSILON;
-			else if(fklIsInt(prev)&&fklIsInt(cur))
-			{
-				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
-					r=fklGetInt(prev)==fklGetInt(cur);
-				else
-				{
-					if(FKL_IS_FIX(prev))
-						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))==0;
-					else if(FKL_IS_FIX(cur))
-						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))==0;
-					else
-						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)==0;
-				}
-			}
-			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklStringcmp(prev->u.str,cur->u.str)==0);
-			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(prev))
-				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)==0);
-			else if(FKL_IS_CHR(prev)&&FKL_IS_CHR(cur))
-				r=prev==cur;
-			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)==0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)==0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else
+			r=fklVMvalueCmp(prev,cur,&err)==0;
+			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		if(!r)
@@ -1096,6 +1061,7 @@ static void builtin_gt(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	int r=1;
+	int err=0;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklVMvalue* prev=NULL;
 	if(!cur)
@@ -1104,42 +1070,8 @@ static void builtin_gt(FKL_DL_PROC_ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
-				r=(fklGetDouble(prev)-fklGetDouble(cur))>DBL_EPSILON;
-			else if(fklIsInt(prev)&&fklIsInt(cur))
-			{
-				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
-					r=FKL_GET_FIX(prev)>FKL_GET_FIX(cur);
-				else
-				{
-					if(FKL_IS_FIX(prev))
-						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))<0;
-					else if(FKL_IS_FIX(cur))
-						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))>0;
-					else
-						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)>0;
-				}
-			}
-			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklStringcmp(prev->u.str,cur->u.str)>0);
-			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
-				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)>0);
-			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)>0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)<0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else
+			r=fklVMvalueCmp(prev,cur,&err)>0;
+			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		if(!r)
@@ -1159,6 +1091,7 @@ static void builtin_gt(FKL_DL_PROC_ARGL)
 static void builtin_ge(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
+	int err=0;
 	int r=1;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklVMvalue* prev=NULL;
@@ -1168,42 +1101,8 @@ static void builtin_ge(FKL_DL_PROC_ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
-				r=(fklGetDouble(prev)-fklGetDouble(cur))>=DBL_EPSILON;
-			else if(fklIsInt(prev)&&fklIsInt(cur))
-			{
-				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
-					r=FKL_GET_FIX(prev)>=FKL_GET_FIX(cur);
-				else
-				{
-					if(FKL_IS_FIX(prev))
-						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))<=0;
-					else if(FKL_IS_FIX(cur))
-						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))>=0;
-					else
-						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)>=0;
-				}
-			}
-			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklStringcmp(prev->u.str,cur->u.str)>=0);
-			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
-				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)>=0);
-			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)>=0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)<=0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else
+			r=fklVMvalueCmp(prev,cur,&err)>=0;
+			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.>=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		if(!r)
@@ -1223,6 +1122,7 @@ static void builtin_ge(FKL_DL_PROC_ARGL)
 static void builtin_lt(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
+	int err=0;
 	int r=1;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklVMvalue* prev=NULL;
@@ -1232,42 +1132,8 @@ static void builtin_lt(FKL_DL_PROC_ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
-				r=(fklGetDouble(prev)-fklGetDouble(cur))<-DBL_EPSILON;
-			else if(fklIsInt(prev)&&fklIsInt(cur))
-			{
-				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
-					r=fklGetInt(prev)<fklGetInt(cur);
-				else
-				{
-					if(FKL_IS_FIX(prev))
-						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>0;
-					else if(FKL_IS_FIX(cur))
-						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<0;
-					else
-						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<0;
-				}
-			}
-			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklStringcmp(prev->u.str,cur->u.str)<0);
-			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
-				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)<0);
-			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)<0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)>0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else
+			r=fklVMvalueCmp(prev,cur,&err)<0;
+			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		if(!r)
@@ -1287,6 +1153,7 @@ static void builtin_lt(FKL_DL_PROC_ARGL)
 static void builtin_le(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
+	int err=0;
 	int r=1;
 	FklVMvalue* cur=fklNiGetArg(&ap,stack);
 	FklVMvalue* prev=NULL;
@@ -1296,42 +1163,8 @@ static void builtin_le(FKL_DL_PROC_ARGL)
 	{
 		if(prev)
 		{
-			if((FKL_IS_F64(prev)&&fklIsVMnumber(cur))
-					||(FKL_IS_F64(cur)&&fklIsVMnumber(prev)))
-				r=(fklGetDouble(prev)-fklGetDouble(cur))<=-DBL_EPSILON;
-			else if(fklIsInt(prev)&&fklIsInt(cur))
-			{
-				if(FKL_IS_FIX(prev)&&FKL_IS_FIX(cur))
-					r=fklGetInt(prev)<=fklGetInt(cur);
-				else
-				{
-					if(FKL_IS_FIX(prev))
-						r=fklCmpBigIntI(cur->u.bigInt,fklGetInt(prev))>=0;
-					else if(FKL_IS_FIX(cur))
-						r=fklCmpBigIntI(prev->u.bigInt,fklGetInt(cur))<=0;
-					else
-						r=fklCmpBigInt(prev->u.bigInt,cur->u.bigInt)<=0;
-				}
-			}
-			else if(FKL_IS_STR(prev)&&FKL_IS_STR(cur))
-				r=(fklStringcmp(prev->u.str,cur->u.str)<=0);
-			else if(FKL_IS_BYTEVECTOR(prev)&&FKL_IS_BYTEVECTOR(cur))
-				r=(fklBytevectorcmp(prev->u.bvec,cur->u.bvec)<=0);
-			else if(FKL_IS_USERDATA(prev)&&fklIsCmpableUd(prev->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(prev->u.ud,cur,&isUnableToBeCmp)<=0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else if(FKL_IS_USERDATA(cur)&&fklIsCmpableUd(cur->u.ud))
-			{
-				int isUnableToBeCmp=0;
-				r=fklCmpVMudata(cur->u.ud,prev,&isUnableToBeCmp)>=0;
-				if(isUnableToBeCmp)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			else
+			r=fklVMvalueCmp(prev,cur,&err)<=0;
+			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.<=",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
 		if(!r)

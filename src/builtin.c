@@ -4876,6 +4876,11 @@ static FklByteCodelnt* inlfunc_vref(INL_FUNC_ARGS)
 	return inl_2_arg_func(FKL_OP_VEC_REF,bcs,fid,line);
 }
 
+static FklByteCodelnt* inlfunc_sref(INL_FUNC_ARGS)
+{
+	return inl_2_arg_func(FKL_OP_STR_REF,bcs,fid,line);
+}
+
 static FklByteCodelnt* inlfunc_add(INL_FUNC_ARGS)
 {
 	return inl_2_arg_func(FKL_OP_ADD,bcs,fid,line);
@@ -5059,7 +5064,7 @@ static const struct SymbolFuncStruct
 	{"bytevector->string",    builtin_bytevector_to_string,    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"list->string",          builtin_list_to_string,          {NULL,         NULL,          NULL,          NULL,          }, },
 	{"->string",              builtin_to_string,               {NULL,         NULL,          NULL,          NULL,          }, },
-	{"sref",                  builtin_sref,                    {NULL,         NULL,          NULL,          NULL,          }, },
+	{"sref",                  builtin_sref,                    {NULL,         NULL,          inlfunc_sref,  NULL,          }, },
 	{"set-sref!",             builtin_set_sref,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fill-string!",          builtin_fill_string,             {NULL,         NULL,          NULL,          NULL,          }, },
 

@@ -369,6 +369,7 @@ static void B_push_cdr(BYTE_CODE_ARGS);
 static void B_cons(BYTE_CODE_ARGS);
 static void B_nth(BYTE_CODE_ARGS);
 static void B_vec_ref(BYTE_CODE_ARGS);
+static void B_str_ref(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -463,6 +464,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_cons,
 	B_nth,
 	B_vec_ref,
+	B_str_ref,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -2044,6 +2046,23 @@ static inline void B_vec_ref(FklVM* exe,FklVMframe* frame)
 	if(index>=vector->u.vec->size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_ERR_INVALIDACCESS,exe);
 	fklNiReturn(vector->u.vec->base[index],&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static inline void B_str_ref(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* str=fklNiGetArg(&ap,stack);
+	FklVMvalue* place=fklNiGetArg(&ap,stack);
+	if(!fklIsInt(place)||!FKL_IS_STR(str))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	size_t index=fklGetUint(place);
+	size_t size=str->u.str->size;
+	if(fklVMnumberLt0(place)||index>=size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INVALIDACCESS,exe);
+	if(index>=str->u.str->size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INVALIDACCESS,exe);
+	fklNiReturn(FKL_MAKE_VM_CHR(str->u.str->str[index]),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

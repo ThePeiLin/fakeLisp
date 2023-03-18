@@ -261,6 +261,7 @@ static void destroyCodegenQuest(FklCodegenQuest* quest)
 
 #define BC_PROCESS(NAME) static FklByteCodelnt* NAME(FklCodegen* codegen\
 		,FklCodegenEnv* env\
+		,uint32_t scope\
 		,FklCodegenMacroScope* cms\
 		,FklCodegenQuestContext* context\
 		,FklSid_t fid\
@@ -494,6 +495,240 @@ static CODEGEN_FUNC(codegen_local)
 			,rest->curline
 			,codegen
 			,codegenQuestStack);
+}
+
+static CODEGEN_FUNC(codegen_let0)
+{
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+	pushListItemToQueue(rest,queue,NULL);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(32,16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,rest->curline
+			,codegen
+			,codegenQuestStack);
+}
+
+typedef struct Let1Context
+{
+	FklPtrStack* stack;
+	FklUintStack* ss;
+}Let1Context;
+
+static inline Let1Context* createLet1Context(FklUintStack* ss)
+{
+	Let1Context* ctx=(Let1Context*)malloc(sizeof(Let1Context));
+	FKL_ASSERT(ctx);
+	ctx->ss=ss;
+	ctx->stack=fklCreatePtrStack(8,16);
+	return ctx;
+}
+
+static FklPtrStack* _let1_get_stack(void* d)
+{
+	return ((Let1Context*)d)->stack;
+}
+
+static void _let1_put_bcl(void* d,FklByteCodelnt* bcl)
+{
+	fklPushPtrStack(bcl,((Let1Context*)d)->stack);
+}
+
+static void _let1_finalizer(void* d)
+{
+	Let1Context* dd=(Let1Context*)d;
+	fklDestroyPtrStack(dd->stack);
+	fklDestroyUintStack(dd->ss);
+	free(dd);
+}
+
+static FklCodegenQuestContextMethodTable Let1ContextMethodTable=
+{
+	.__finalizer=_let1_finalizer,
+	.__get_bcl_stack=_let1_get_stack,
+	.__put_bcl=_let1_put_bcl,
+};
+
+static FklCodegenQuestContext* createLet1CodegenContext(FklUintStack* ss)
+{
+	return createCodegenQuestContext(createLet1Context(ss),&Let1ContextMethodTable);
+}
+
+static inline size_t nast_list_len(const FklNastNode* list)
+{
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)i++;
+	return i;
+}
+
+static int is_valid_let_arg(const FklNastNode* node)
+{
+	return node->type==FKL_NAST_PAIR
+		&&fklIsNastNodeList(node)
+		&&nast_list_len(node)==2
+		&&node->u.pair->car->type==FKL_NAST_SYM;
+}
+
+static int is_valid_let_args(const FklNastNode* sl
+		,FklCodegenEnv* env
+		,uint32_t scope
+		,FklUintStack* stack)
+{
+	if(fklIsNastNodeList(sl))
+	{
+		for(;sl->type==FKL_NAST_PAIR;sl=sl->u.pair->cdr)
+		{
+			FklNastNode* cc=sl->u.pair->car;
+			if(!is_valid_let_arg(cc))
+				return 0;
+			FklSid_t id=cc->u.pair->car->u.sym;
+			if(fklIsSymbolDefined(id,scope,env))
+				return 0;
+			fklPushUintStack(id,stack);
+			fklAddCodegenDefBySid(id,scope,env);
+		}
+		return 1;
+	}
+	else
+		return 0;
+}
+
+static inline FklNastNode* cadr_nast_node(FklNastNode* node)
+{
+	return node->u.pair->cdr->u.pair->car;
+}
+
+BC_PROCESS(_let1_exp_bc_process)
+{
+	Let1Context* ctx=context->data;
+	FklPtrStack* bcls=ctx->stack;
+	FklUintStack* symbolStack=ctx->ss;
+	uint8_t bpc[2]={FKL_OP_SET_BP,FKL_OP_RES_BP};
+	FklByteCode setBp={1,&bpc[0]};
+	FklByteCode resBp={1,&bpc[1]};
+
+	uint8_t popac[5]={FKL_OP_POP_ARG};
+	FklByteCode popArg={5,popac};
+	FklByteCodelnt* retval=fklPopPtrStack(bcls);
+	fklBcBclAppendToBcl(&resBp,retval,fid,line);
+	while(!fklIsUintStackEmpty(symbolStack))
+	{
+		FklSid_t id=fklPopUintStack(symbolStack);
+		uint32_t idx=fklAddCodegenDefBySid(id,scope,env);
+		fklSetU32ToByteCode(&popac[1],idx);
+		fklBcBclAppendToBcl(&popArg,retval,fid,line);
+	}
+	if(!fklIsPtrStackEmpty(bcls))
+	{
+		FklByteCodelnt* args=fklPopPtrStack(bcls);
+		fklReCodeLntCat(args,retval);
+		fklDestroyByteCodelnt(args);
+	}
+	fklBcBclAppendToBcl(&setBp,retval,fid,line);
+	return retval;
+}
+
+BC_PROCESS(_let_arg_exp_bc_process)
+{
+	FklPtrStack* bcls=GET_STACK(context);
+	if(bcls->top)
+	{
+		FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
+		while(!fklIsPtrStackEmpty(bcls))
+		{
+			FklByteCodelnt* cur=fklPopPtrStack(bcls);
+			fklCodeLntCat(retval,cur);
+			fklDestroyByteCodelnt(cur);
+		}
+		return retval;
+	}
+	else
+		return NULL;
+}
+
+static CODEGEN_FUNC(codegen_let1)
+{
+	FklUintStack* symStack=fklCreateUintStack(8,16);
+	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(firstSymbol->type!=FKL_NAST_SYM)
+	{
+		fklDestroyUintStack(symStack);
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+	FklNastNode* args=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	uint32_t cs=enter_new_scope(scope,curEnv);
+
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+
+	fklAddCodegenDefBySid(firstSymbol->u.sym,cs,curEnv);
+	fklPushUintStack(firstSymbol->u.sym,symStack);
+
+	if(!is_valid_let_args(args,curEnv,cs,symStack))
+	{
+		cms->refcount=1;
+		fklDestroyCodegenMacroScope(cms);
+		fklDestroyUintStack(symStack);
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+
+	FklPtrQueue* valueQueue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(value),valueQueue);
+	for(FklNastNode* cur=args;cur->type==FKL_NAST_PAIR;cur=cur->u.pair->cdr)
+		fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cur->u.pair->car)),valueQueue);
+
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FklCodegenQuest* let1Quest=createCodegenQuest(_let1_exp_bc_process
+			,createLet1CodegenContext(symStack)
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,NULL
+			,codegen);
+
+	fklPushPtrStack(let1Quest,codegenQuestStack);
+
+	uint32_t len=fklLengthPtrQueue(queue);
+
+	FklCodegenQuest* restQuest=createCodegenQuest(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(len,16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,rest->curline
+			,let1Quest
+			,codegen);
+	fklPushPtrStack(restQuest,codegenQuestStack);
+
+	len=fklLengthPtrQueue(valueQueue);
+
+	FklCodegenQuest* argQuest=createCodegenQuest(_let_arg_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(len,16))
+			,createDefaultQueueNextExpression(valueQueue)
+			,scope
+			,macroScope
+			,curEnv
+			,firstSymbol->curline
+			,let1Quest
+			,codegen);
+	fklPushPtrStack(argQuest,codegenQuestStack);
 }
 
 BC_PROCESS(_and_exp_bc_process)
@@ -4692,6 +4927,8 @@ typedef enum
 	PATTERN_EXPORT_SINGLE,
 	PATTERN_EXPORT,
 	PATTERN_CHECK,
+	PATTERN_LET0,
+	PATTERN_LET1,
 }PatternEnum;
 
 static struct PatternAndFunc
@@ -4729,6 +4966,8 @@ static struct PatternAndFunc
 	{"~(export ~value)",                     NULL, codegen_export_single,      },
 	{"~(export,~rest)",                      NULL, codegen_export,             },
 	{"~(check ~name)",                       NULL, codegen_check,              },
+	{"~(let [],~rest)",                      NULL, codegen_let0,               },
+	{"~(let [(~name ~value),~args],~rest)",  NULL, codegen_let1,               },
 	{NULL,                                   NULL, NULL,                       },
 };
 
@@ -5076,6 +5315,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 			FklCodegenQuest* prevQuest=curCodegenQuest->prev?curCodegenQuest->prev:fklTopPtrStack(&codegenQuestStack);
 			FklByteCodelnt* resultBcl=curCodegenQuest->processer(curCodegenQuest->codegen
 					,curEnv
+					,curCodegenQuest->scope
 					,curCodegenQuest->macroScope
 					,curContext
 					,curCodegenQuest->codegen->fid

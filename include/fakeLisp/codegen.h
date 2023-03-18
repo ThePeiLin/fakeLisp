@@ -117,7 +117,13 @@ typedef struct FklCodegenQuestContext
 	const FklCodegenQuestContextMethodTable* t;
 }FklCodegenQuestContext;
 
-typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*,FklCodegenEnv*,FklCodegenMacroScope*,FklCodegenQuestContext* context,FklSid_t,uint64_t);
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*
+		,FklCodegenEnv*
+		,uint32_t scope
+		,FklCodegenMacroScope*
+		,FklCodegenQuestContext* context
+		,FklSid_t
+		,uint64_t);
 
 typedef struct FklCodegenErrorState
 {
@@ -191,8 +197,6 @@ uint32_t fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env);
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
 
 uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
-
-int fklIsSymbolDefinedInCurScope(FklSid_t sid,uint32_t scope,FklCodegenEnv* env);
 
 int fklIsSymbolDefined(FklSid_t sid,uint32_t scope,FklCodegenEnv*);
 

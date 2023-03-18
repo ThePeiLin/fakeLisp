@@ -669,9 +669,10 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp
 	FklPrototype* pts=cp->pts;
 	FklPtrStack urefs1=FKL_STACK_INIT;
 	fklInitPtrStack(&urefs1,16,8);
-	while(!fklIsPtrStackEmpty(urefs))
+	uint32_t count=urefs->top;
+	for(uint32_t i=0;i<count;i++)
 	{
-		FklUnReSymbolRef* uref=fklPopPtrStack(urefs);
+		FklUnReSymbolRef* uref=urefs->base[i];
 		FklPrototype* cpt=&pts[uref->prototypeId-1];
 		FklSymbolDef* ref=&cpt->refs[uref->idx];
 		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
@@ -687,8 +688,12 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp
 			free(uref);
 		}
 		else
+		{
+			fklAddCodegenBuiltinRefBySid(uref->id,env);
 			fklPushPtrStack(uref,&urefs1);
+		}
 	}
+	urefs->top=0;
 	while(!fklIsPtrStackEmpty(&urefs1))
 		fklPushPtrStack(fklPopPtrStack(&urefs1),urefs);
 	fklUninitPtrStack(&urefs1);

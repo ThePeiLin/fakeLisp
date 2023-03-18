@@ -370,6 +370,8 @@ static void B_cons(BYTE_CODE_ARGS);
 static void B_nth(BYTE_CODE_ARGS);
 static void B_vec_ref(BYTE_CODE_ARGS);
 static void B_str_ref(BYTE_CODE_ARGS);
+static void B_box(BYTE_CODE_ARGS);
+static void B_unbox(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -465,6 +467,8 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_nth,
 	B_vec_ref,
 	B_str_ref,
+	B_box,
+	B_unbox,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
@@ -2063,6 +2067,23 @@ static inline void B_str_ref(FklVM* exe,FklVMframe* frame)
 	if(index>=str->u.str->size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INVALIDACCESS,exe);
 	fklNiReturn(FKL_MAKE_VM_CHR(str->u.str->str[index]),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static inline void B_box(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BOX,obj,exe),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static inline void B_unbox(FklVM* exe,FklVMframe* frame)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* box=fklNiGetArg(&ap,stack);
+	FKL_NI_CHECK_TYPE(box,FKL_IS_BOX,"builtin.unbox",exe);
+	fklNiReturn(box->u.box,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

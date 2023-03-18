@@ -4811,6 +4811,16 @@ static FklByteCodelnt* inlfunc_mul1(INL_FUNC_ARGS)
 	return inl_1_arg_func(FKL_OP_MUL1,bcs,fid,line);
 }
 
+static FklByteCodelnt* inlfunc_box(INL_FUNC_ARGS)
+{
+	return inl_1_arg_func(FKL_OP_BOX,bcs,fid,line);
+}
+
+static FklByteCodelnt* inlfunc_unbox(INL_FUNC_ARGS)
+{
+	return inl_1_arg_func(FKL_OP_UNBOX,bcs,fid,line);
+}
+
 static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
 {
 	uint8_t op[1]={opc};
@@ -5141,8 +5151,8 @@ static const struct SymbolFuncStruct
 
 	{"set-car!",              builtin_set_car,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"set-cdr!",              builtin_set_cdr,                 {NULL,         NULL,          NULL,          NULL,          }, },
-	{"box",                   builtin_box,                     {NULL,         NULL,          NULL,          NULL,          }, },
-	{"unbox",                 builtin_unbox,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"box",                   builtin_box,                     {NULL,         inlfunc_box,   NULL,          NULL,          }, },
+	{"unbox",                 builtin_unbox,                   {NULL,         inlfunc_unbox, NULL,          NULL,          }, },
 	{"set-box!",              builtin_set_box,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"cas-box!",              builtin_cas_box,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"box?",                  builtin_box_p,                   {NULL,         NULL,          NULL,          NULL,          }, },

@@ -94,6 +94,8 @@ static struct
 	{"nth",                  0,  },
 	{"vec-ref",              0,  },
 	{"str-ref",              0,  },
+	{"box",                  0,  },
+	{"unbox",                0,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

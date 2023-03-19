@@ -939,13 +939,16 @@ static inline void inc_lref(FklVMCompoundFrameVarRef* lr,uint32_t lcount)
 	}
 }
 
-static inline FklVMvarRef* insert_local_ref(FklVMCompoundFrameVarRef* lr,FklVMvarRef* ref)
+static inline FklVMvarRef* insert_local_ref(FklVMCompoundFrameVarRef* lr
+		,FklVMvarRef* ref
+		,uint32_t cidx)
 {
 	FklVMvarRefList* rl=(FklVMvarRefList*)malloc(sizeof(FklVMvarRefList));
 	FKL_ASSERT(rl);
 	rl->ref=fklMakeVMvarRefRef(ref);
 	rl->next=lr->lrefl;
 	lr->lrefl=rl;
+	lr->lref[cidx]=ref;
 	return ref;
 }
 
@@ -975,7 +978,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 				if(lr->lref[c->cidx])
 					closure[i]=fklMakeVMvarRefRef(lr->lref[c->cidx]);
 				else
-					closure[i]=insert_local_ref(lr,fklCreateVMvarRef(lr->loc,c->cidx));
+					closure[i]=insert_local_ref(lr,fklCreateVMvarRef(lr->loc,c->cidx),c->cidx);
 			}
 			else
 			{

@@ -26,3 +26,12 @@
 (println (f1 9))
 (println (// 9 (- 10 (f2))))
 
+(define (cons x y)
+  (lambda (m) (m x y)))
+(define (car x)
+  (x (lambda (m n) m)))
+(define (cdr x)
+  (x (lambda (m n) n)))
+(define c1 (cons 'foo 'bar))
+(println (car c1))
+(println (cdr c1))

@@ -9,3 +9,20 @@
   (f2))
 
 (f1)
+
+(define f1 nil)
+(define f2 nil)
+
+(define (f3 a)
+  (setq f1 (lambda (x)
+             (define t a)
+             (setq a x)
+             t))
+  (setq f2 (lambda () a)))
+
+(f3 10)
+
+(println (f2))
+(println (f1 9))
+(println (// 9 (- 10 (f2))))
+

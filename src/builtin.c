@@ -4588,15 +4588,16 @@ static void builtin_set_href8(FKL_DL_PROC_ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-href*!",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.set-href*!",exe);
+	FklVMvalue* value=NULL;
 	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
 	{
-		FklVMvalue* value=fklNiGetArg(&ap,stack);
+		value=fklNiGetArg(&ap,stack);
 		if(!value)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.set-href*!",FKL_ERR_TOOFEWARG,exe);
 		fklSetVMhashTable(key,value,ht->u.hash,exe->gc);
 	}
 	fklNiResBp(&ap,stack);
-	fklNiReturn(ht,&ap,stack);;
+	fklNiReturn(value,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

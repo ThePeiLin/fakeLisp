@@ -161,7 +161,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	if(frame==NULL)
 	{
 		FklVMerror* err=ev->u.err;
-		fprintf(stderr,"error of ");
+		fprintf(stderr,"error in ");
 		fklPrintString(err->who,stderr);
 		fprintf(stderr,": ");
 		fklPrintString(err->message,stderr);

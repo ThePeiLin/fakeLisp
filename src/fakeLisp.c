@@ -270,11 +270,11 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 			{
 				case 1:
 					exitState=1;
-					fprintf(stderr,"error of reader:Unexpect EOF at line %lu\n",codegen->curline);
+					fprintf(stderr,"error in reading:Unexpect EOF at line %lu\n",codegen->curline);
 					break;
 				case 2:
 					exitState=2;
-					fprintf(stderr,"error of reader:Invalid expression at line %lu\n",codegen->curline);
+					fprintf(stderr,"error in reading:Invalid expression at line %lu\n",codegen->curline);
 					break;
 			}
 			fklDestroyStringMatchRoute(route);

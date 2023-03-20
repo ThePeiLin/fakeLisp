@@ -2933,7 +2933,7 @@ inline static void print_undefined_symbol(const FklPtrStack* urefs
 	for(uint32_t i=0;i<urefs->top;i++)
 	{
 		FklUnReSymbolRef* ref=urefs->base[i];
-		fprintf(stderr,"warning of compiling: Symbol \"");
+		fprintf(stderr,"warning in compiling: Symbol \"");
 		fklPrintString(fklGetSymbolWithId(ref->id,publicSymTable)->symbol,stderr);
 		fprintf(stderr,"\" is undefined at line %lu of ",ref->line);
 		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
@@ -4608,7 +4608,7 @@ static struct SymbolReplacement
 	{"*line*",     0, _line_replacement,     },
 	{"*file*",     0, _file_replacement,     },
 	{"*file-dir*", 0, _file_dir_replacement, },
-	{"*main?*",    0, _is_main_replacement,     },
+	{"*main?*",    0, _is_main_replacement,  },
 	{NULL,         0, NULL,                  },
 };
 
@@ -5124,7 +5124,7 @@ static void printCodegenError(FklNastNode* obj
 {
 	if(type==FKL_ERR_DUMMY)
 		return;
-	fprintf(stderr,"error of compiler: ");
+	fprintf(stderr,"error in compiling: ");
 	switch(type)
 	{
 		case FKL_ERR_CIR_REF:

@@ -3343,6 +3343,29 @@ static void builtin_raise(FKL_DL_PROC_ARGL)
 	fklRaiseVMerror(err,exe);
 }
 
+static void builtin_throw(FKL_DL_PROC_ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* who=fklNiGetArg(&ap,stack);
+	FklVMvalue* type=fklNiGetArg(&ap,stack);
+	FklVMvalue* message=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.throw",FKL_ERR_TOOMANYARG,exe);
+	if(!type||!message)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.throw",FKL_ERR_TOOFEWARG,exe);
+	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.throw",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR
+			,fklCreateVMerror((FKL_IS_SYM(who))
+				?fklGetSymbolWithId(FKL_GET_SYM(who)
+					,exe->symbolTable)->symbol
+				:who->u.str
+				,FKL_GET_SYM(type)
+				,fklCopyString(message->u.str)),exe);
+	fklNiEnd(&ap,stack);
+	fklRaiseVMerror(err,exe);
+}
+
 typedef struct
 {
 	FklVMvalue* proc;
@@ -5046,6 +5069,7 @@ static const struct SymbolFuncStruct
 	{"recv",                  builtin_recv,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"error",                 builtin_error,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"raise",                 builtin_raise,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"reverse",               builtin_reverse,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof",                  builtin_feof,                    {NULL,         NULL,          NULL,          NULL,          }, },

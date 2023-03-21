@@ -4561,6 +4561,7 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv*
 		s=fklCreateStringFromCstr(fklGetCwd());
 	else
 		s=fklCreateStringFromCstr(codegen->curDir);
+	fklStringCstrCat(&s,FKL_PATH_SEPARATOR_STR);
 	r->u.str=s;
 	return r;
 }

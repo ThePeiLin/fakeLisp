@@ -1,5 +1,4 @@
 #include<fakeLisp/fklni.h>
-#include<fakeLisp/utils.h>
 
 static inline FklVMvalue* get_value(uint32_t* ap,FklVMstack* s)
 {
@@ -11,27 +10,8 @@ int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 	if(*ap>stack->bp)
 		return *ap-stack->bp;
 	stack->bp=FKL_GET_FIX(get_value(ap,stack));
-	//stack->bp=fklPopUintStack(&stack->bps);
 	return 0;
 }
-
-//void fklNiResTp(FklVMstack* stack)
-//{
-////	pthread_rwlock_wrlock(&stack->lock);
-//	stack->tp=fklTopUintStack(&stack->tps);
-//	fklStackRecycle(stack);
-////	pthread_rwlock_unlock(&stack->lock);
-//}
-//
-//void fklNiSetTp(FklVMstack* stack)
-//{
-//	fklPushUintStack(stack->tp,&stack->tps);
-//}
-//
-//void fklNiPopTp(FklVMstack* stack)
-//{
-//	fklPopUintStack(&stack->tps);
-//}
 
 void inline fklNiSetBpWithTp(FklVMstack* s)
 {
@@ -42,14 +22,12 @@ void inline fklNiSetBpWithTp(FklVMstack* s)
 uint32_t fklNiSetBp(uint32_t nbp,FklVMstack* s)
 {
 	fklNiReturn(FKL_MAKE_VM_FIX(s->bp),&nbp,s);
-	//fklPushUintStack(s->bp,&s->bps);
 	s->bp=nbp;
 	return nbp;
 }
 
 void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 {
-//	pthread_rwlock_wrlock(&s->lock);
 	if(s->tp>=s->size)
 	{
 		s->base=(FklVMvalue**)realloc(s->base
@@ -67,7 +45,6 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 		s->base[*ap]=v;
 	(*ap)++;
 	s->tp++;
-//	pthread_rwlock_unlock(&s->lock);
 }
 
 inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
@@ -77,9 +54,7 @@ inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
 
 inline void fklNiEnd(uint32_t* ap,FklVMstack* s)
 {
-//	pthread_rwlock_wrlock(&s->lock);
 	s->tp=*ap;
-//	pthread_rwlock_unlock(&s->lock);
 	*ap=0;
 }
 
@@ -95,12 +70,12 @@ void fklNiDoSomeAfterSetLoc(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
 	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
 	{
 		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
-		v->u.proc->sid=pt->loc[idx].id;
+		v->u.proc->sid=pt->loc[idx].k.id;
 	}
 	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
 	{
 		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
-		v->u.dlproc->sid=pt->loc[idx].id;
+		v->u.dlproc->sid=pt->loc[idx].k.id;
 	}
 	else if(FKL_IS_USERDATA(v)&&fklUdHasSetqHook(v->u.ud))
 		fklDoSomeAfterSetqVMudata(v->u.ud,idx,f,exe);
@@ -111,12 +86,12 @@ void fklNiDoSomeAfterSetRef(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
 	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
 	{
 		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
-		v->u.proc->sid=pt->refs[idx].id;
+		v->u.proc->sid=pt->refs[idx].k.id;
 	}
 	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
 	{
 		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
-		v->u.dlproc->sid=pt->refs[idx].id;
+		v->u.dlproc->sid=pt->refs[idx].k.id;
 	}
 	else if(FKL_IS_USERDATA(v)&&fklUdHasSetqHook(v->u.ud))
 		fklDoSomeAfterSetqVMudata(v->u.ud,idx,f,exe);

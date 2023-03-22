@@ -121,6 +121,13 @@ int fklIsAccessableDirectory(const char* s);
 FklDllHandle fklLoadDll(const char* path);
 void* fklGetAddress(const char*,FklDllHandle);
 void fklDestroyDll(FklDllHandle);
+
+//void fklSetSidKey(void*,void*);
+//void* fklGetSidKey(void*);
+//size_t fklSidHashFunc(void*);
+//int fklSidKeyEqual(void*,void*);
+
+FklHashTable* fklCreateSidSet(void);
 #ifdef __cplusplus
 }
 #endif

@@ -1,6 +1,5 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/fklni.h>
-#include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
@@ -1192,12 +1191,14 @@ static void inline B_push_hash_eq(FklVM* exe,FklVMframe* frame)
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
 			,fklCreateVMhashTable(FKL_VM_HASH_EQ),exe);
-	for(size_t i=0;i<num;i++)
+	uint64_t kvnum=num*2;
+	for(uint32_t i=0;i<kvnum;i+=2)
 	{
-		FklVMvalue* value=fklNiGetArg(&ap,stack);
-		FklVMvalue* key=fklNiGetArg(&ap,stack);
-		fklSetVMhashTableInReverseOrder(key,value,hash->u.hash,exe->gc);
+		FklVMvalue* key=stack->base[i];
+		FklVMvalue* value=stack->base[i+1];
+		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
 	}
+	ap-=kvnum;
 	fklNiReturn(hash,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1208,12 +1209,15 @@ static void inline B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
 			,fklCreateVMhashTable(FKL_VM_HASH_EQV),exe);
-	for(size_t i=0;i<num;i++)
+
+	uint64_t kvnum=num*2;
+	for(uint32_t i=0;i<kvnum;i+=2)
 	{
-		FklVMvalue* value=fklNiGetArg(&ap,stack);
-		FklVMvalue* key=fklNiGetArg(&ap,stack);
-		fklSetVMhashTableInReverseOrder(key,value,hash->u.hash,exe->gc);
+		FklVMvalue* key=stack->base[i];
+		FklVMvalue* value=stack->base[i+1];
+		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
 	}
+	ap-=kvnum;
 	fklNiReturn(hash,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1224,12 +1228,14 @@ static void inline B_push_hash_equal(FklVM* exe,FklVMframe* frame)
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
 			,fklCreateVMhashTable(FKL_VM_HASH_EQUAL),exe);
-	for(size_t i=0;i<num;i++)
+	uint64_t kvnum=num*2;
+	for(size_t i=0;i<kvnum;i+=2)
 	{
-		FklVMvalue* value=fklNiGetArg(&ap,stack);
-		FklVMvalue* key=fklNiGetArg(&ap,stack);
-		fklSetVMhashTableInReverseOrder(key,value,hash->u.hash,exe->gc);
+		FklVMvalue* key=stack->base[i];
+		FklVMvalue* value=stack->base[i+1];
+		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
 	}
+	ap-=kvnum;
 	fklNiReturn(hash,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -1316,13 +1322,13 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 		if(libIdx<plib->count)
 		{
 			FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId-1];
-			FklSid_t sid=pt->loc[libIdx].id;
+			FklSid_t sid=pt->loc[libIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
 		else
 		{
 			FklPrototype* pt=&exe->ptpool->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId-1];
-			FklSid_t sid=pt->loc[locIdx].id;
+			FklSid_t sid=pt->loc[locIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
@@ -1438,7 +1444,7 @@ inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklPrototyp
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 		FklPrototype* pt=&ptpool->pts[proc->protoId-1];
 		FklSymbolDef* def=&pt->refs[idx];
-		*psid=def->id;
+		*psid=def->k.id;
 		return NULL;
 	}
 	return v;
@@ -1467,7 +1473,7 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 		FklPrototype* pt=&ptpool->pts[proc->protoId-1];
 		FklSymbolDef* def=&pt->refs[idx];
-		*psid=def->id;
+		*psid=def->k.id;
 		return NULL;
 	}
 	return v;
@@ -1857,7 +1863,7 @@ else\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 }
 
-#define PROCESS_ADD_RES if(rd!=0.0)\
+#define PROCESS_ADD_RES() if(rd!=0.0)\
 {\
 	rd+=r64+fklBigIntToDouble(&bi);\
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);\
@@ -1895,7 +1901,7 @@ static inline void B_add(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* b=fklNiGetArg(&ap,stack);
 	PROCESS_ADD(a,"builtin.+");
 	PROCESS_ADD(b,"builtin.+");
-	PROCESS_ADD_RES;
+	PROCESS_ADD_RES();
 	fklNiEnd(&ap,stack);
 }
 
@@ -1912,11 +1918,11 @@ static inline void B_add3(FklVM* exe,FklVMframe* frame)
 	PROCESS_ADD(a,"builtin.+");
 	PROCESS_ADD(b,"builtin.+");
 	PROCESS_ADD(c,"builtin.+");
-	PROCESS_ADD_RES;
+	PROCESS_ADD_RES();
 	fklNiEnd(&ap,stack);
 }
 
-#define PROCESS_SUB_RES if(FKL_IS_F64(a)||rd!=0.0)\
+#define PROCESS_SUB_RES() if(FKL_IS_F64(a)||rd!=0.0)\
 {\
 	rd=fklGetDouble(a)-rd-r64-fklBigIntToDouble(&bi);\
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);\
@@ -1964,7 +1970,7 @@ static inline void B_sub(FklVM* exe,FklVMframe* frame)
 
 	FklVMvalue* b=fklNiGetArg(&ap,stack);
 	PROCESS_ADD(b,"builtin.-");
-	PROCESS_SUB_RES;
+	PROCESS_SUB_RES();
 	fklNiEnd(&ap,stack);
 }
 
@@ -1983,7 +1989,7 @@ static inline void B_sub3(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* c=fklNiGetArg(&ap,stack);
 	PROCESS_ADD(b,"builtin.-");
 	PROCESS_ADD(c,"builtin.-");
-	PROCESS_SUB_RES;
+	PROCESS_SUB_RES();
 	fklNiEnd(&ap,stack);
 }
 
@@ -2099,7 +2105,7 @@ static inline void B_add1(FklVM* exe,FklVMframe* frame)
 	FklBigInt bi=FKL_BIG_INT_INIT;
 	fklInitBigInt0(&bi);
 	PROCESS_ADD(a,"builtin.+");
-	PROCESS_ADD_RES;
+	PROCESS_ADD_RES();
 	fklNiEnd(&ap,stack);
 }
 
@@ -2571,25 +2577,11 @@ FklVMgc* fklCreateVMgc()
 	return tmp;
 }
 
-//void fklGC_reGrey(FklVMvalue* v,FklVMgc* gc)
-//{
-//	if(FKL_IS_PTR(v))
-//	{
-//		v->mark=FKL_MARK_G;
-//		pthread_rwlock_wrlock(&gc->greylock);
-//		h->grey=createGreylink(v,h->grey);
-//		h->greyNum++;
-//		pthread_rwlock_unlock(&gc->greylock);
-//	}
-//}
-
 void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
-	//if(FKL_IS_PTR(v)&&atomic_load(&v->mark)!=FKL_MARK_B)
 	if(FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
 	{
 		v->mark=FKL_MARK_G;
-	//atomic_store(&v->mark,FKL_MARK_G);
 		gc->grey=createGreylink(v,gc->grey);
 		gc->greyNum++;
 	}
@@ -2602,7 +2594,6 @@ void fklGC_markRootToGrey(FklVM* exe)
 	if(exe->codeObj)
 		fklGC_toGrey(exe->codeObj,gc);
 
-	//pthread_rwlock_rdlock(&exe->rlock);
 	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
 		fklDoAtomicFrame(cur,gc);
 
@@ -2623,15 +2614,12 @@ void fklGC_markRootToGrey(FklVM* exe)
 					fklGC_toGrey(lib->loc[i],gc);
 		}
 	}
-	//pthread_rwlock_unlock(&exe->rlock);
-	//pthread_rwlock_rdlock(&stack->lock);
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
 		FklVMvalue* value=stack->base[i];
 		if(FKL_IS_PTR(value))
 			fklGC_toGrey(value,gc);
 	}
-	//pthread_rwlock_unlock(&stack->lock);
 	if(exe->chan)
 		fklGC_toGrey(exe->chan,gc);
 }
@@ -2725,11 +2713,9 @@ int fklGC_propagate(FklVMgc* gc)
 		v=g->v;
 		free(g);
 	}
-	//if(FKL_IS_PTR(v)&&atomic_load(&v->mark)==FKL_MARK_G)
 	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
 		v->mark=FKL_MARK_B;
-		//atomic_store(&v->mark,FKL_MARK_B);
 		propagateMark(v,gc);
 	}
 	return gc->grey==NULL;
@@ -2738,16 +2724,13 @@ int fklGC_propagate(FklVMgc* gc)
 void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 {
 	size_t count=0;
-	//pthread_rwlock_wrlock(&gc->lock);
 	FklVMvalue* head=gc->head;
 	gc->head=NULL;
 	gc->running=FKL_GC_SWEEPING;
-	//pthread_rwlock_unlock(&gc->lock);
 	FklVMvalue** phead=&head;
 	while(*phead)
 	{
 		FklVMvalue* cur=*phead;
-		//if(atomic_exchange(&cur->mark,FKL_MARK_W)==FKL_MARK_W)
 		if(cur->mark==FKL_MARK_W)
 		{
 			*phead=cur->next;
@@ -2761,11 +2744,9 @@ void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 			phead=&cur->next;
 		}
 	}
-	//pthread_rwlock_wrlock(&gc->lock);
 	*phead=gc->head;
 	gc->head=head;
 	gc->num-=count;
-	//pthread_rwlock_unlock(&gc->lock);
 }
 
 void fklGC_sweep(FklVMvalue* head)
@@ -2784,24 +2765,6 @@ inline void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 	*s=gc->running;
 	*cr=gc->num>gc->threshold;
 }
-
-//static size_t fklGetHeapNum(FklVMgc* gc)
-//{
-//	size_t num=0;
-//	pthread_rwlock_rdlock(&gc->lock);
-//	num=h->num;
-//	pthread_rwlock_unlock(&gc->lock);
-//	return num;
-//}
-
-//static size_t fklGetGreyNum(FklVMgc* gc)
-//{
-//	size_t num=0;
-//	pthread_rwlock_rdlock(&gc->greylock);
-//	num=h->greyNum;
-//	pthread_rwlock_unlock(&gc->greylock);
-//	return num;
-//}
 
 #define FKL_GC_GRAY_FACTOR (16)
 #define FKL_GC_NEW_FACTOR (4)
@@ -2961,7 +2924,6 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 
 void fklDestroyVMstack(FklVMstack* stack)
 {
-	//pthread_rwlock_destroy(&stack->lock);
 	free(stack->base);
 	free(stack);
 }
@@ -3053,7 +3015,6 @@ void fklGC_joinGCthread(FklVMgc* gc)
 
 inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 {
-//	pthread_rwlock_wrlock(&s->lock);
 	if(s->tp>=s->size)
 	{
 		s->base=(FklVMvalue**)realloc(s->base
@@ -3063,7 +3024,6 @@ inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 	}
 	s->base[s->tp]=v;
 	s->tp+=1;
-//	pthread_rwlock_unlock(&s->lock);
 }
 
 void fklDestroyVMframes(FklVMframe* h)

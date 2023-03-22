@@ -1,5 +1,4 @@
 #include<fakeLisp/vm.h>
-#include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
 #include<stdlib.h>
 #include<math.h>
@@ -24,37 +23,36 @@ static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)
 	return key0==key1;
 }
 
-static void _LineNumHash_destroyItem(void* item)
-{
-	free(item);
-}
-
 static void* _LineNumHash_getKey(void* item)
 {
 	return &((LineNumHashItem*)item)->key;
 }
 
-static FklHashTableMethodTable LineNumHashMethTable=
+static void _LineNumHash_setKey(void* k0,void* k1)
 {
+	*(FklVMvalue**)k0=*(FklVMvalue**)k1;
+}
+
+static void _LineNumHash_setVal(void* d0,void* d1)
+{
+	*(LineNumHashItem*)d0=*(LineNumHashItem*)d1;
+}
+
+static FklHashTableMetaTable LineNumHashMetaTable=
+{
+	.size=sizeof(LineNumHashItem),
+	.__setKey=_LineNumHash_setKey,
+	.__setVal=_LineNumHash_setVal,
 	.__hashFunc=_LineNumHash_hashFunc,
-	.__destroyItem=_LineNumHash_destroyItem,
+	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_LineNumHash_keyEqual,
 	.__getKey=_LineNumHash_getKey,
 };
 
 FklHashTable* fklCreateLineNumHashTable(void)
 {
-	FklHashTable* lineHash=fklCreateHashTable(32,8,2,0.75,1,&LineNumHashMethTable);
+	FklHashTable* lineHash=fklCreateHashTable(32,8,2,0.75,1,&LineNumHashMetaTable);
 	return lineHash;
-}
-
-static LineNumHashItem* createLineNumHashItem(FklVMvalue* value,FklVMvalue* refBy,uint64_t lineNum)
-{
-	LineNumHashItem* item=(LineNumHashItem*)malloc(sizeof(LineNumHashItem));
-	FKL_ASSERT(item);
-	item->key=value;
-	item->line=lineNum;
-	return item;
 }
 
 #define SENTINEL_NAST_NODE (NULL)
@@ -87,7 +85,10 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 			FklVMvalue* v=fklCreateSaveVMvalue(type,NULL);
 			fklPushPtrStack(v,tStack);
 			if(lineHash)
-				fklPutReplHashItem(createLineNumHashItem(v,NULL,line),lineHash);
+			{
+				LineNumHashItem i={v,line};
+				fklGetOrPutHashItem(&i,lineHash);
+			}
 			switch(type)
 			{
 				case FKL_TYPE_BOX:
@@ -258,7 +259,10 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 			FklVMvalue* v=fklCreateSaveVMvalue(type,NULL);
 			fklPushPtrStack(v,tStack);
 			if(lineHash)
-				fklPutReplHashItem(createLineNumHashItem(v,NULL,line),lineHash);
+			{
+				LineNumHashItem i={v,line};
+				fklGetOrPutHashItem(&i,lineHash);
+			}
 			switch(type)
 			{
 				case FKL_TYPE_BOX:
@@ -529,7 +533,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->u.hash=fklCreateNastHash(value->u.hash->type,value->u.hash->ht->num);
 								for(FklHashTableNodeList* list=value->u.hash->ht->list;list;list=list->next)
 								{
-									FklVMhashTableItem* item=list->node->item;
+									FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 									fklPushPtrStack(item->key,&s0);
 									fklPushPtrStack(item->v,&s0);
 								}
@@ -665,7 +669,6 @@ static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	//return fklCreateVMpairV(obj->u.pair->car,obj->u.pair->cdr,vm);
 	return fklCopyVMlistOrAtom(obj,vm);
 }
 
@@ -689,7 +692,7 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	FklVMhashTable* nht=fklCreateVMhashTable(obj->u.hash->type);
 	for(FklHashTableNodeList* list=ht->ht->list;list;list=list->next)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklSetVMhashTable(item->key,item->v,nht,vm->gc);
 	}
 	return fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,nht,vm);
@@ -979,13 +982,13 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 					r=1;
 					for(FklHashTableNodeList* list=root1->u.hash->ht->list;list;list=list->next)
 					{
-						FklVMhashTableItem* item=list->node->item;
+						FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 						fklPushPtrStack(item->key,&s1);
 						fklPushPtrStack(item->v,&s1);
 					}
 					for(FklHashTableNodeList* list=root2->u.hash->ht->list;list;list=list->next)
 					{
-						FklVMhashTableItem* item=list->node->item;
+						FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 						fklPushPtrStack(item->key,&s2);
 						fklPushPtrStack(item->v,&s2);
 					}
@@ -1003,8 +1006,6 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 	return r;
 }
 
-#include<float.h>
-
 int inline fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 {
 	int r=0;
@@ -1014,8 +1015,8 @@ int inline fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	{
 		double af=fklGetDouble(a);
 		double bf=fklGetDouble(b);
-		r=(af-bf)>DBL_EPSILON?1:
-			((af-bf)<-DBL_EPSILON?-1
+		r=isgreater(af,bf)?1:
+			(isless(af,bf)?-1
 			 :0);
 	}
 	else if(fklIsInt(a)&&fklIsInt(b))
@@ -1396,15 +1397,6 @@ void fklChanlSend(FklVMsend* s,FklVMchanl* ch,FklVMgc* gc)
 	fklDestroyVMsend(s);
 }
 
-static FklVMhashTableItem* createVMhashTableItem(FklVMvalue* key,FklVMvalue* v,FklVMgc* gc)
-{
-	FklVMhashTableItem* tmp=(FklVMhashTableItem*)malloc(sizeof(FklVMhashTableItem));
-	FKL_ASSERT(tmp);
-	fklSetRef(&tmp->key,key,gc);
-	fklSetRef(&tmp->v,v,gc);
-	return tmp;
-}
-
 static size_t _vmhashtableEq_hashFunc(void* key)
 {
 	return (uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM;
@@ -1502,18 +1494,13 @@ static size_t _box_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	return fklHashvVMudata(v->u.ud);
-	//size_t (*udHashFunc)(void*,FklPtrStack* s)=v->u.ud->t->__hash;
-	//if(udHashFunc)
-	//	return udHashFunc(v->u.ud->data,s);
-	//else
-	//	return ((uintptr_t)v>>FKL_UNUSEDBITNUM);
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklPushPtrStack(item->key,s);
 		fklPushPtrStack(item->v,s);
 	}
@@ -1570,11 +1557,6 @@ static size_t _vmhashtable_hashFunc(void* key)
 		return VMvalueHashFunc(v);
 }
 
-static void _vmhashtable_destroyItem(void* item)
-{
-	free(item);
-}
-
 static int _vmhashtableEq_keyEqual(void* pkey0,void* pkey1)
 {
 	FklVMvalue* k0=*(FklVMvalue**)pkey0;
@@ -1587,10 +1569,23 @@ static void* _vmhashtable_getKey(void* item)
 	return &((FklVMhashTableItem*)item)->key;
 }
 
-static FklHashTableMethodTable VMhashTableEqMethTable=
+static void _vmhashtable_setKey(void* k0,void* k1)
 {
+	*(FklVMvalue**)k0=*(FklVMvalue**)k1;
+}
+
+static void _vmhashtable_setVal(void* d0,void* d1)
+{
+	*(FklVMhashTableItem*)d0=*(FklVMhashTableItem*)d1;
+}
+
+static FklHashTableMetaTable VMhashTableEqMetaTable=
+{
+	.size=sizeof(FklVMhashTableItem),
+	.__setKey=_vmhashtable_setKey,
+	.__setVal=_vmhashtable_setVal,
 	.__hashFunc=_vmhashtableEq_hashFunc,
-	.__destroyItem=_vmhashtable_destroyItem,
+	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_vmhashtableEq_keyEqual,
 	.__getKey=_vmhashtable_getKey,
 };
@@ -1602,10 +1597,13 @@ static int _vmhashtableEqv_keyEqual(void* pkey0,void* pkey1)
 	return fklVMvalueEqv(k0,k1);
 }
 
-static FklHashTableMethodTable VMhashTableEqvMethTable=
+static FklHashTableMetaTable VMhashTableEqvMetaTable=
 {
+	.size=sizeof(FklVMhashTableItem),
+	.__setKey=_vmhashtable_setKey,
+	.__setVal=_vmhashtable_setVal,
 	.__hashFunc=_vmhashtableEqv_hashFunc,
-	.__destroyItem=_vmhashtable_destroyItem,
+	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_vmhashtableEqv_keyEqual,
 	.__getKey=_vmhashtable_getKey,
 };
@@ -1617,19 +1615,22 @@ static int _vmhashtableEqual_keyEqual(void* pkey0,void* pkey1)
 	return fklVMvalueEqual(k0,k1);
 }
 
-static FklHashTableMethodTable VMhashTableEqualMethTable=
+static FklHashTableMetaTable VMhashTableEqualMetaTable=
 {
+	.size=sizeof(FklVMhashTableItem),
+	.__setKey=_vmhashtable_setKey,
+	.__setVal=_vmhashtable_setVal,
 	.__hashFunc=_vmhashtable_hashFunc,
-	.__destroyItem=_vmhashtable_destroyItem,
+	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_vmhashtableEqual_keyEqual,
 	.__getKey=_vmhashtable_getKey,
 };
 
-static FklHashTableMethodTable* const VMhashTableMethTableTable[]=
+static FklHashTableMetaTable* const VMhashTableMetaTableTable[]=
 {
-	&VMhashTableEqMethTable,
-	&VMhashTableEqvMethTable,
-	&VMhashTableEqualMethTable,
+	&VMhashTableEqMetaTable,
+	&VMhashTableEqvMetaTable,
+	&VMhashTableEqualMetaTable,
 };
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
@@ -1638,7 +1639,7 @@ void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 	FklHashTable* table=ht->ht;
 	for(FklHashTableNodeList* list=table->list;list;list=list->next)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklGC_toGrey(item->key,gc);
 		fklGC_toGrey(item->v,gc);
 	}
@@ -1649,7 +1650,7 @@ FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType type)
 	FklVMhashTable* tmp=(FklVMhashTable*)malloc(sizeof(FklVMhashTable));
 	FKL_ASSERT(tmp);
 	tmp->type=type;
-	tmp->ht=fklCreateHashTable(8,8,2,1.0,1,VMhashTableMethTableTable[type]);
+	tmp->ht=fklCreateHashTable(8,8,2,1.0,1,VMhashTableMetaTableTable[type]);
 	return tmp;
 }
 
@@ -1661,12 +1662,8 @@ void fklDestroyVMhashTable(FklVMhashTable* ht)
 
 FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc* gc)
 {
-	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
-	if(!item)
-	{
-		item=fklPutNoRpHashItem(createVMhashTableItem(key,toSet,gc),ht->ht);
-	}
-	return item;
+	FklVMhashTableItem i={key,toSet};
+	return fklGetOrPutHashItem(&i,ht->ht);
 }
 
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht)
@@ -1694,10 +1691,9 @@ void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 	FklHashTable* hash=ht->ht;
 	for(FklHashTableNodeList* list=hash->list;list;)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklSetRef(&item->key,FKL_VM_NIL,gc);
 		fklSetRef(&item->v,FKL_VM_NIL,gc);
-		free(item);
 		free(list->node);
 		FklHashTableNodeList* cur=list;
 		list=list->next;
@@ -1708,26 +1704,10 @@ void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc* gc)
 	hash->tail=&hash->list;
 }
 
-void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc)
-{
-	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
-	if(item)
-		fklSetRef(&item->v,v,gc);
-	else
-	{
-		fklPutInReverseOrder(createVMhashTableItem(key,v,gc),ht->ht);
-	}
-}
-
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc)
 {
-	FklVMhashTableItem* item=fklRefVMhashTable(key,ht);
-	if(item)
-		fklSetRef(&item->v,v,gc);
-	else
-	{
-		fklPutReplHashItem(createVMhashTableItem(key,v,gc),ht->ht);
-	}
+	FklVMhashTableItem* i=fklPutHashItem(&key,ht->ht);
+	i->v=v;
 }
 
 void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
@@ -1789,8 +1769,6 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
 	if(root->u.ud->rel)
 		fklGC_toGrey(root->u.ud->rel,gc);
-	//if(root->u.ud->pd)
-	//	fklGC_toGrey(root->u.ud->rel,gc);
 	if(root->u.ud->t->__atomic)
 		root->u.ud->t->__atomic(root->u.ud,gc);
 }
@@ -1839,7 +1817,6 @@ FklVMudata* fklCreateVMudata(FklSid_t type
 	r->type=type;
 	r->t=t;
 	r->rel=rel;
-	//r->pd=pd;
 	return r;
 }
 

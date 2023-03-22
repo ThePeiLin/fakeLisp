@@ -4,7 +4,6 @@
 #include<fakeLisp/base.h>
 #include<fakeLisp/lexer.h>
 #include<fakeLisp/pattern.h>
-#include<fakeLisp/utils.h>
 #include<fakeLisp/builtin.h>
 #include<fakeLisp/codegen.h>
 
@@ -202,13 +201,6 @@ static int __fkl_bytevector_append(FklVMvalue* retval,FklVMvalue* cur)
 static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 {
 	return fklAppendVMudata(&retval->u.ud,cur->u.ud);
-	//if(!FKL_IS_USERDATA(cur)
-	//		||retval->u.ud->type!=cur->u.ud->type
-	//		||!retval->u.ud->t->__append
-	//		||retval->u.ud->t->__append!=cur->u.ud->t->__append)
-	//	return 1;
-	//cur->u.ud->t->__append(&retval->u.ud,cur->u.ud);
-	//return 0;
 }
 
 static int (*const valueAppend[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* retval,FklVMvalue* cur)=
@@ -2015,6 +2007,8 @@ static void builtin_number_to_f64(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+#include<math.h>
+
 static void builtin_number_to_integer(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2026,7 +2020,7 @@ static void builtin_number_to_integer(FKL_DL_PROC_ARGL)
 	FKL_NI_CHECK_TYPE(obj,fklIsVMnumber,"builtin.number->integer",exe);
 	if(FKL_IS_F64(obj))
 	{
-		if(obj->u.f64-(double)INT64_MAX>DBL_EPSILON||obj->u.f64-INT64_MIN<-DBL_EPSILON)
+		if(isgreater(obj->u.f64,(double)FKL_FIX_INT_MAX)||isless(obj->u.f64,FKL_FIX_INT_MIN))
 			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntD(obj->u.f64),exe),&ap,stack);
 		else
 			fklNiReturn(fklMakeVMintD(obj->u.f64,exe),&ap,stack);
@@ -3087,50 +3081,6 @@ int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc*
 	return 0;
 }
 
-typedef struct
-{
-	FklSid_t id;
-}SidHashItem;
-
-static SidHashItem* createSidHashItem(FklSid_t key)
-{
-	SidHashItem* r=(SidHashItem*)malloc(sizeof(SidHashItem));
-	FKL_ASSERT(r);
-	r->id=key;
-	return r;
-}
-
-static size_t _sid_hashFunc(void* key)
-{
-	FklSid_t sid=*(FklSid_t*)key;
-	return sid;
-}
-
-static void _sid_destroyItem(void* item)
-{
-	free(item);
-}
-
-static int _sid_keyEqual(void* pkey0,void* pkey1)
-{
-	FklSid_t k0=*(FklSid_t*)pkey0;
-	FklSid_t k1=*(FklSid_t*)pkey1;
-	return k0==k1;
-}
-
-static void* _sid_getKey(void* item)
-{
-	return &((SidHashItem*)item)->id;
-}
-
-static FklHashTableMethodTable SidHashMethodTable=
-{
-	.__hashFunc=_sid_hashFunc,
-	.__destroyItem=_sid_destroyItem,
-	.__keyEqual=_sid_keyEqual,
-	.__getKey=_sid_getKey,
-};
-
 static int isValidSyntaxPattern(const FklVMvalue* p)
 {
 	if(!FKL_IS_PAIR(p))
@@ -3139,7 +3089,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 	if(!FKL_IS_SYM(head))
 		return 0;
 	const FklVMvalue* body=p->u.pair->cdr;
-	FklHashTable* symbolTable=fklCreateHashTable(8,4,2,0.75,1,&SidHashMethodTable);
+	FklHashTable* symbolTable=fklCreateSidSet();
 	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
 	fklPushPtrStack((void*)body,&stack);
@@ -3160,8 +3110,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 				fklUninitPtrStack(&stack);
 				return 0;
 			}
-			fklPutNoRpHashItem(createSidHashItem(sid)
-					,symbolTable);
+			fklPutHashItem(&sid,symbolTable);
 		}
 	}
 	fklDestroyHashTable(symbolTable);
@@ -4269,25 +4218,6 @@ static void builtin_sleep(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-//void builtin_usleep(FKL_DL_PROC_ARGL)
-//{
-//	FKL_NI_BEGIN(exe);
-//	FklVMvalue* second=fklNiGetArg(&ap,stack);
-//	FklVMframe* frame=exe->frames;
-//	if(!second)
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.usleep",FKL_ERR_TOOFEWARG,exe);
-//	if(fklNiResBp(&ap,stack))
-//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.usleep",FKL_ERR_TOOMANYARG,exe);
-//	FKL_NI_CHECK_TYPE(second,fklIsInt,"builtin.usleep",exe);
-//#ifdef _WIN32
-//		Sleep(fklGetInt(second));
-//#else
-//		usleep(fklGetInt(second));
-//#endif
-//	fklNiReturn(second,&ap,stack);
-//	fklNiEnd(&ap,stack);
-//}
-
 static void builtin_srand(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -4616,7 +4546,7 @@ static void builtin_hash_to_list(FKL_DL_PROC_ARGL)
 	FklVMvalue** cur=&r;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		FklVMvalue* pair=fklCreateVMpairV(item->key,item->v,exe);
 		fklSetRef(cur,fklCreateVMpairV(pair,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
@@ -4640,7 +4570,7 @@ static void builtin_hash_keys(FKL_DL_PROC_ARGL)
 	FklVMvalue** cur=&r;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklSetRef(cur,fklCreateVMpairV(item->key,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}
@@ -4663,7 +4593,7 @@ static void builtin_hash_values(FKL_DL_PROC_ARGL)
 	FklVMvalue** cur=&r;
 	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
 	{
-		FklVMhashTableItem* item=list->node->item;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklSetRef(cur,fklCreateVMpairV(item->v,FKL_VM_NIL,exe),gc);
 		cur=&(*cur)->u.pair->cdr;
 	}

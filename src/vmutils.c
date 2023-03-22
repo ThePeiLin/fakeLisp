@@ -1,11 +1,9 @@
 #include<fakeLisp/vm.h>
-#include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<float.h>
 #include<pthread.h>
 #ifndef _WIN32
 #include<dlfcn.h>
@@ -36,7 +34,7 @@ FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM* vm)
 
 FklVMvalue* fklMakeVMintD(double r64,FklVM* vm)
 {
-	if((r64-(double)FKL_FIX_INT_MAX)>DBL_EPSILON||(r64-FKL_FIX_INT_MIN)<-DBL_EPSILON)
+	if(isgreater(r64,(double)FKL_FIX_INT_MAX)||isless(r64,FKL_FIX_INT_MIN))
 		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntD(r64),vm);
 	else
 		return FKL_MAKE_VM_FIX(r64);
@@ -92,7 +90,7 @@ inline int fklVMnumberLt0(const FklVMvalue* p)
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)<0
 		:FKL_IS_F64(p)
-		?0.0-p->u.f64>DBL_EPSILON
+		?isless(p->u.f64,0.0)
 		:!FKL_IS_0_BIG_INT(p->u.bigInt)&&p->u.bigInt->neg;
 }
 
@@ -539,24 +537,10 @@ typedef struct
 	size_t w;
 }VMvalueHashItem;
 
-static VMvalueHashItem* createVMvalueHashItem(FklVMvalue* key,size_t w)
-{
-	VMvalueHashItem* r=(VMvalueHashItem*)malloc(sizeof(VMvalueHashItem));
-	FKL_ASSERT(r);
-	r->v=key;
-	r->w=w;
-	return r;
-}
-
 static size_t _VMvalue_hashFunc(void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	return (uintptr_t)v>>3;
-}
-
-static void _VMvalue_destroyItem(void* item)
-{
-	free(item);
 }
 
 static int _VMvalue_keyEqual(void* pkey0,void* pkey1)
@@ -566,28 +550,39 @@ static int _VMvalue_keyEqual(void* pkey0,void* pkey1)
 	return k0==k1;
 }
 
-static void* _VMvalue_getKey(void* item)
+static FKL_HASH_GET_KEY(_VMvalue_getKey,VMvalueHashItem,v);
+
+static void _VMvalue_setKey(void* k0,void* k1)
 {
-	return &((VMvalueHashItem*)item)->v;
+	*(FklVMvalue**)k0=*(FklVMvalue**)k1;
 }
 
-static FklHashTableMethodTable VMvalueHashMethodTable=
+static void _VMvalue_setVal(void* d0,void* d1)
 {
+	*(VMvalueHashItem*)d0=*(VMvalueHashItem*)d1;
+}
+
+static FklHashTableMetaTable VMvalueHashMetaTable=
+{
+	.size=sizeof(VMvalueHashItem),
+	.__setKey=_VMvalue_setKey,
+	.__setVal=_VMvalue_setVal,
 	.__hashFunc=_VMvalue_hashFunc,
-	.__destroyItem=_VMvalue_destroyItem,
+	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_VMvalue_keyEqual,
 	.__getKey=_VMvalue_getKey,
 };
 
 FklHashTable* fklCreateValueSetHashtable(void)
 {
-	return fklCreateHashTable(32,8,2,0.75,1,&VMvalueHashMethodTable);
+	return fklCreateHashTable(32,8,2,0.75,1,&VMvalueHashMetaTable);
 }
 
 static void putValueInSet(FklHashTable* s,FklVMvalue* v)
 {
-	size_t w=s->num;
-	fklPutNoRpHashItem(createVMvalueHashItem(v,w),s);
+	uint32_t num=s->num;
+	VMvalueHashItem* h=fklPutHashItem(&v,s);
+	h->w=num;
 }
 
 static int isInValueSet(FklVMvalue* v,FklHashTable* t,size_t* w)
@@ -644,7 +639,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 				FklPtrStack stack=FKL_STACK_INIT;
 				fklInitPtrStack(&stack,32,16);
 				for(FklHashTableNodeList* list=ht->ht->list;list;list=list->next)
-					fklPushPtrStack(list->node->item,&stack);
+					fklPushPtrStack(list->node->data,&stack);
 				while(!fklIsPtrStackEmpty(&stack))
 				{
 					FklVMhashTableItem* item=fklPopPtrStack(&stack);
@@ -977,7 +972,7 @@ void fklPrintVMvalue(FklVMvalue* value
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
 						{
-							FklVMhashTableItem* item=list->node->item;
+							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;
@@ -1415,7 +1410,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
 						{
-							FklVMhashTableItem* item=list->node->item;
+							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;

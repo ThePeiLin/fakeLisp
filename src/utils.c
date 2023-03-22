@@ -1097,3 +1097,39 @@ FklDllHandle fklLoadDll(const char* path)
 #endif
 }
 
+static void fklSetSidKey(void* k0,void* k1)
+{
+	*(FklSid_t*)k0=*(FklSid_t*)k1;
+}
+
+static void* fklGetSidKey(void* i)
+{
+	return (FklSid_t*)i;
+}
+
+static size_t fklSidHashFunc(void* k)
+{
+	return *(FklSid_t*)k;
+}
+
+static int fklSidKeyEqual(void* k0,void* k1)
+{
+	return *(FklSid_t*)k0==*(FklSid_t*)k1;
+}
+
+static const FklHashTableMetaTable SidSetMetaTable=
+{
+	.size=sizeof(FklSid_t),
+	.__setKey=fklSetSidKey,
+	.__setVal=fklSetSidKey,
+	.__hashFunc=fklSidHashFunc,
+	.__keyEqual=fklSidKeyEqual,
+	.__getKey=fklGetSidKey,
+	.__uninitItem=fklDoNothingUnintHashItem,
+};
+
+FklHashTable* fklCreateSidSet(void)
+{
+	return fklCreateHashTable(8,4,2,0.75,1,&SidSetMetaTable);
+}
+

@@ -219,8 +219,8 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32
 {
 	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));
 	FKL_ASSERT(r);
-	r->id=key;
-	r->scope=scope;
+	r->k.id=key;
+	r->k.scope=scope;
 	r->idx=idx;
 	r->cidx=cidx;
 	r->isLocal=isLocal;
@@ -249,8 +249,8 @@ void fklDestroyPrototypePool(FklPrototypePool* p)
 
 static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
 {
-	fwrite(&def->id,sizeof(def->id),1,fp);
-	fwrite(&def->scope,sizeof(def->scope),1,fp);
+	fwrite(&def->k.id,sizeof(def->k.id),1,fp);
+	fwrite(&def->k.scope,sizeof(def->k.scope),1,fp);
 	fwrite(&def->idx,sizeof(def->idx),1,fp);
 	fwrite(&def->cidx,sizeof(def->cidx),1,fp);
 	fwrite(&def->isLocal,sizeof(def->isLocal),1,fp);
@@ -281,8 +281,8 @@ inline void fklWritePrototypePool(const FklPrototypePool* ptpool,FILE* fp)
 
 static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
 {
-	fread(&def->id,sizeof(def->id),1,fp);
-	fread(&def->scope,sizeof(def->scope),1,fp);
+	fread(&def->k.id,sizeof(def->k.id),1,fp);
+	fread(&def->k.scope,sizeof(def->k.scope),1,fp);
 	fread(&def->idx,sizeof(def->idx),1,fp);
 	fread(&def->cidx,sizeof(def->cidx),1,fp);
 	fread(&def->isLocal,sizeof(def->isLocal),1,fp);

@@ -111,7 +111,7 @@ typedef struct FklVMvec
 typedef struct FklVMudata
 {
 	FKL_VM_UDATA_COMMON_HEADER;
-	void* data[];
+	uint8_t data[];
 }FklVMudata;
 
 typedef enum{
@@ -486,7 +486,6 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorTy
 
 FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType);
 void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc*);
-void fklSetVMhashTableInReverseOrder(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
 FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);

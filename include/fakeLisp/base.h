@@ -53,8 +53,8 @@ FklString* fklBytevectorToString(const FklBytevector*);
 
 typedef struct FklHashTableNode
 {
-	void* item;
 	struct FklHashTableNode* next;
+	uint8_t data[];
 }FklHashTableNode;
 
 typedef struct FklHashTableNodeList
@@ -70,20 +70,23 @@ typedef struct FklHashTable
 	FklHashTableNodeList** tail;
 	size_t num;
 	size_t size;
-	struct FklHashTableMethodTable* t;
+	const struct FklHashTableMetaTable* t;
 	double threshold;
 	size_t linkNum;
 	int thresholdInc;  //size+=size*(1.0/thresholdInc)
 	int linkNumInc;   //size+=size*(1.0/linkNumInc)
 }FklHashTable;
 
-typedef struct FklHashTableMethodTable
+typedef struct FklHashTableMetaTable
 {
+	size_t size;
+	void (*__setKey)(void*,void*);
+	void (*__setVal)(void*,void*);
 	size_t (*__hashFunc)(void*);
-	void (*__destroyItem)(void*);
+	void (*__uninitItem)(void*);
 	int (*__keyEqual)(void*,void*);
 	void* (*__getKey)(void*);
-}FklHashTableMethodTable;
+}FklHashTableMetaTable;
 
 #define FKL_HASH_GET_KEY(name,type,field) void* name(void* item){return &((type*)item)->field;}
 
@@ -92,16 +95,17 @@ FklHashTable* fklCreateHashTable(size_t size
 		,int linkNumInc
 		,double threshold
 		,int thresholdInc
-		,FklHashTableMethodTable*);
+		,const FklHashTableMetaTable*);
 
-FklHashTable* fklCreateDefaultHashTable(size_t size,FklHashTableMethodTable* t);
+FklHashTable* fklCreateDefaultHashTable(size_t size,FklHashTableMetaTable* t);
 
 void* fklGetHashItem(void* key,FklHashTable*);
-void* fklPutInReverseOrder(void* item,FklHashTable* table);
-void* fklPutReplHashItem(void* item,FklHashTable*); //put and replace;
-void* fklPutNoRpHashItem(void* item,FklHashTable* table); //put and no replace
+void* fklPutHashItem(void* key,FklHashTable*);
+void* fklGetOrPutHashItem(void* data,FklHashTable*);
 void fklDestroyHashTable(FklHashTable*);
 void fklRehashTable(FklHashTable*,unsigned int);
+
+void fklDoNothingUnintHashItem(void*);
 
 #define FKL_STACK_INIT {NULL,0,0,0}
 typedef struct

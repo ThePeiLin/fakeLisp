@@ -65,8 +65,7 @@ typedef struct
 
 typedef struct FklSymbolDef
 {
-	FklSid_t id;
-	uint32_t scope;
+	FklSidScope k;
 	uint32_t idx;
 	uint32_t cidx;
 	uint8_t isLocal;

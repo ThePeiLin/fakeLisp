@@ -88,6 +88,8 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32
 
 void fklUninitPrototype(FklPrototype* p);
 void fklDestroyPrototypePool(FklPrototypePool* p);
+
+FklHashTable* fklCreateSidSet(void);
 #ifdef __cplusplus
 }
 #endif

@@ -16,23 +16,6 @@ static size_t _LineNumHash_hashFunc(void* pKey)
 	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
 }
 
-static int _LineNumHash_keyEqual(void* pKey0,void* pKey1)
-{
-	FklVMvalue* key0=*(FklVMvalue**)pKey0;
-	FklVMvalue* key1=*(FklVMvalue**)pKey1;
-	return key0==key1;
-}
-
-static void* _LineNumHash_getKey(void* item)
-{
-	return &((LineNumHashItem*)item)->key;
-}
-
-static void _LineNumHash_setKey(void* k0,void* k1)
-{
-	*(FklVMvalue**)k0=*(FklVMvalue**)k1;
-}
-
 static void _LineNumHash_setVal(void* d0,void* d1)
 {
 	*(LineNumHashItem*)d0=*(LineNumHashItem*)d1;
@@ -41,17 +24,17 @@ static void _LineNumHash_setVal(void* d0,void* d1)
 static FklHashTableMetaTable LineNumHashMetaTable=
 {
 	.size=sizeof(LineNumHashItem),
-	.__setKey=_LineNumHash_setKey,
+	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_LineNumHash_setVal,
 	.__hashFunc=_LineNumHash_hashFunc,
 	.__uninitItem=fklDoNothingUnintHashItem,
-	.__keyEqual=_LineNumHash_keyEqual,
-	.__getKey=_LineNumHash_getKey,
+	.__keyEqual=fklHashPtrKeyEqual,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 FklHashTable* fklCreateLineNumHashTable(void)
 {
-	FklHashTable* lineHash=fklCreateHashTable(32,8,2,0.75,1,&LineNumHashMetaTable);
+	FklHashTable* lineHash=fklCreateHashTable(&LineNumHashMetaTable);
 	return lineHash;
 }
 
@@ -1557,23 +1540,6 @@ static size_t _vmhashtable_hashFunc(void* key)
 		return VMvalueHashFunc(v);
 }
 
-static int _vmhashtableEq_keyEqual(void* pkey0,void* pkey1)
-{
-	FklVMvalue* k0=*(FklVMvalue**)pkey0;
-	FklVMvalue* k1=*(FklVMvalue**)pkey1;
-	return fklVMvalueEq(k0,k1);
-}
-
-static void* _vmhashtable_getKey(void* item)
-{
-	return &((FklVMhashTableItem*)item)->key;
-}
-
-static void _vmhashtable_setKey(void* k0,void* k1)
-{
-	*(FklVMvalue**)k0=*(FklVMvalue**)k1;
-}
-
 static void _vmhashtable_setVal(void* d0,void* d1)
 {
 	*(FklVMhashTableItem*)d0=*(FklVMhashTableItem*)d1;
@@ -1582,12 +1548,12 @@ static void _vmhashtable_setVal(void* d0,void* d1)
 static FklHashTableMetaTable VMhashTableEqMetaTable=
 {
 	.size=sizeof(FklVMhashTableItem),
-	.__setKey=_vmhashtable_setKey,
+	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_vmhashtable_setVal,
 	.__hashFunc=_vmhashtableEq_hashFunc,
 	.__uninitItem=fklDoNothingUnintHashItem,
-	.__keyEqual=_vmhashtableEq_keyEqual,
-	.__getKey=_vmhashtable_getKey,
+	.__keyEqual=fklHashPtrKeyEqual,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 static int _vmhashtableEqv_keyEqual(void* pkey0,void* pkey1)
@@ -1600,12 +1566,12 @@ static int _vmhashtableEqv_keyEqual(void* pkey0,void* pkey1)
 static FklHashTableMetaTable VMhashTableEqvMetaTable=
 {
 	.size=sizeof(FklVMhashTableItem),
-	.__setKey=_vmhashtable_setKey,
+	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_vmhashtable_setVal,
 	.__hashFunc=_vmhashtableEqv_hashFunc,
 	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_vmhashtableEqv_keyEqual,
-	.__getKey=_vmhashtable_getKey,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 static int _vmhashtableEqual_keyEqual(void* pkey0,void* pkey1)
@@ -1618,12 +1584,12 @@ static int _vmhashtableEqual_keyEqual(void* pkey0,void* pkey1)
 static FklHashTableMetaTable VMhashTableEqualMetaTable=
 {
 	.size=sizeof(FklVMhashTableItem),
-	.__setKey=_vmhashtable_setKey,
+	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_vmhashtable_setVal,
 	.__hashFunc=_vmhashtable_hashFunc,
 	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_vmhashtableEqual_keyEqual,
-	.__getKey=_vmhashtable_getKey,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 static FklHashTableMetaTable* const VMhashTableMetaTableTable[]=
@@ -1650,7 +1616,7 @@ FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType type)
 	FklVMhashTable* tmp=(FklVMhashTable*)malloc(sizeof(FklVMhashTable));
 	FKL_ASSERT(tmp);
 	tmp->type=type;
-	tmp->ht=fklCreateHashTable(8,8,2,1.0,1,VMhashTableMetaTableTable[type]);
+	tmp->ht=fklCreateHashTable(VMhashTableMetaTableTable[type]);
 	return tmp;
 }
 

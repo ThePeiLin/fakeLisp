@@ -543,20 +543,6 @@ static size_t _VMvalue_hashFunc(void* key)
 	return (uintptr_t)v>>3;
 }
 
-static int _VMvalue_keyEqual(void* pkey0,void* pkey1)
-{
-	FklVMvalue* k0=*(FklVMvalue**)pkey0;
-	FklVMvalue* k1=*(FklVMvalue**)pkey1;
-	return k0==k1;
-}
-
-static FKL_HASH_GET_KEY(_VMvalue_getKey,VMvalueHashItem,v);
-
-static void _VMvalue_setKey(void* k0,void* k1)
-{
-	*(FklVMvalue**)k0=*(FklVMvalue**)k1;
-}
-
 static void _VMvalue_setVal(void* d0,void* d1)
 {
 	*(VMvalueHashItem*)d0=*(VMvalueHashItem*)d1;
@@ -565,17 +551,17 @@ static void _VMvalue_setVal(void* d0,void* d1)
 static FklHashTableMetaTable VMvalueHashMetaTable=
 {
 	.size=sizeof(VMvalueHashItem),
-	.__setKey=_VMvalue_setKey,
+	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_VMvalue_setVal,
 	.__hashFunc=_VMvalue_hashFunc,
 	.__uninitItem=fklDoNothingUnintHashItem,
-	.__keyEqual=_VMvalue_keyEqual,
-	.__getKey=_VMvalue_getKey,
+	.__keyEqual=fklHashPtrKeyEqual,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 FklHashTable* fklCreateValueSetHashtable(void)
 {
-	return fklCreateHashTable(32,8,2,0.75,1,&VMvalueHashMetaTable);
+	return fklCreateHashTable(&VMvalueHashMetaTable);
 }
 
 static void putValueInSet(FklHashTable* s,FklVMvalue* v)

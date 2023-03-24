@@ -839,8 +839,6 @@ static int _codegenenv_keyEqual(void* pkey0,void* pkey1)
 	return k0->id==k1->id&&k0->scope==k1->scope;
 }
 
-static FKL_HASH_GET_KEY(_codegenenv_getKey,FklSymbolDef,k);
-
 static void _codegenenv_setVal(void* d0,void* d1)
 {
 	*(FklSymbolDef*)d0=*(FklSymbolDef*)d1;
@@ -859,7 +857,7 @@ static FklHashTableMetaTable CodegenEnvHashMethodTable=
 	.__hashFunc=_codegenenv_hashFunc,
 	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_codegenenv_keyEqual,
-	.__getKey=_codegenenv_getKey,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 static inline FklSymbolDef* psid_to_gsid_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
@@ -1066,11 +1064,6 @@ static void _codegen_replacement_uninitItem(void* item)
 	fklDestroyNastNode(replace->node);
 }
 
-static void* _codegen_replacement_getKey(void* item)
-{
-	return &((FklCodegenReplacement*)item)->id;
-}
-
 static int _codegen_replacement_keyEqual(void* pkey0,void* pkey1)
 {
 	FklSid_t k0=*(FklSid_t*)pkey0;
@@ -1097,12 +1090,12 @@ static FklHashTableMetaTable CodegenReplacementHashMetaTable=
 	.__hashFunc=_codegenenv_hashFunc,
 	.__uninitItem=_codegen_replacement_uninitItem,
 	.__keyEqual=_codegen_replacement_keyEqual,
-	.__getKey=_codegen_replacement_getKey,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 static FklHashTable* createCodegenReplacements(void)
 {
-	return fklCreateHashTable(8,4,2,0.75,1,&CodegenReplacementHashMetaTable);
+	return fklCreateHashTable(&CodegenReplacementHashMetaTable);
 }
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev
@@ -1118,8 +1111,8 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev
 	r->prototypeId=1;
 	r->prev=prev;
 	r->refcount=0;
-	r->defs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
-	r->refs=fklCreateHashTable(8,4,2,0.75,1,&CodegenEnvHashMethodTable);
+	r->defs=fklCreateHashTable(&CodegenEnvHashMethodTable);
+	r->refs=fklCreateHashTable(&CodegenEnvHashMethodTable);
 	fklInitPtrStack(&r->uref,8,8);
 	r->macros=make_macro_scope_ref(fklCreateCodegenMacroScope(macroScope));
 	if(prev)

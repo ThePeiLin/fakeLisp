@@ -594,11 +594,6 @@ static size_t _pattern_matching_hash_table_hash_func(void* key)
 	return sid;
 }
 
-static void* _pattern_matching_hash_get_key(void* item)
-{
-	return &((FklPatternMatchingHashTableItem*)item)->id;
-}
-
 static int _pattern_matching_hash_key_equal(void* pk0,void* pk1)
 {
 	FklSid_t k0=*(FklSid_t*)pk0;
@@ -624,12 +619,12 @@ static FklHashTableMetaTable Codegen_hash_meta_table=
 	.__hashFunc=_pattern_matching_hash_table_hash_func,
 	.__uninitItem=fklDoNothingUnintHashItem,
 	.__keyEqual=_pattern_matching_hash_key_equal,
-	.__getKey=_pattern_matching_hash_get_key,
+	.__getKey=fklHashDefaultGetKey,
 };
 
 FklHashTable* fklCreatePatternMatchingHashTable(void)
 {
-	return fklCreateHashTable(8,8,2,0.75,1,&Codegen_hash_meta_table);
+	return fklCreateHashTable(&Codegen_hash_meta_table);
 }
 
 inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)

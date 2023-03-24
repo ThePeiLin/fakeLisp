@@ -320,3 +320,35 @@ inline FklPrototypePool* fklLoadPrototypePool(FILE* fp)
 	ptpool->pts=pts;
 	return ptpool;
 }
+
+static void fklSetSidKey(void* k0,void* k1)
+{
+	*(FklSid_t*)k0=*(FklSid_t*)k1;
+}
+
+static size_t fklSidHashFunc(void* k)
+{
+	return *(FklSid_t*)k;
+}
+
+static int fklSidKeyEqual(void* k0,void* k1)
+{
+	return *(FklSid_t*)k0==*(FklSid_t*)k1;
+}
+
+static const FklHashTableMetaTable SidSetMetaTable=
+{
+	.size=sizeof(FklSid_t),
+	.__setKey=fklSetSidKey,
+	.__setVal=fklSetSidKey,
+	.__hashFunc=fklSidHashFunc,
+	.__keyEqual=fklSidKeyEqual,
+	.__getKey=fklHashDefaultGetKey,
+	.__uninitItem=fklDoNothingUnintHashItem,
+};
+
+FklHashTable* fklCreateSidSet(void)
+{
+	return fklCreateHashTable(&SidSetMetaTable);
+}
+

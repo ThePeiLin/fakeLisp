@@ -1192,10 +1192,11 @@ static void inline B_push_hash_eq(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
 			,fklCreateVMhashTable(FKL_VM_HASH_EQ),exe);
 	uint64_t kvnum=num*2;
+	FklVMvalue** base=&stack->base[stack->tp-kvnum-1];
 	for(uint32_t i=0;i<kvnum;i+=2)
 	{
-		FklVMvalue* key=stack->base[i];
-		FklVMvalue* value=stack->base[i+1];
+		FklVMvalue* key=base[i];
+		FklVMvalue* value=base[i+1];
 		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
 	}
 	ap-=kvnum;
@@ -1211,10 +1212,11 @@ static void inline B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
 			,fklCreateVMhashTable(FKL_VM_HASH_EQV),exe);
 
 	uint64_t kvnum=num*2;
+	FklVMvalue** base=&stack->base[stack->tp-kvnum-1];
 	for(uint32_t i=0;i<kvnum;i+=2)
 	{
-		FklVMvalue* key=stack->base[i];
-		FklVMvalue* value=stack->base[i+1];
+		FklVMvalue* key=base[i];
+		FklVMvalue* value=base[i+1];
 		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
 	}
 	ap-=kvnum;
@@ -1229,10 +1231,12 @@ static void inline B_push_hash_equal(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
 			,fklCreateVMhashTable(FKL_VM_HASH_EQUAL),exe);
 	uint64_t kvnum=num*2;
+
+	FklVMvalue** base=&stack->base[stack->tp-kvnum-1];
 	for(size_t i=0;i<kvnum;i+=2)
 	{
-		FklVMvalue* key=stack->base[i];
-		FklVMvalue* value=stack->base[i+1];
+		FklVMvalue* key=base[i];
+		FklVMvalue* value=base[i+1];
 		fklSetVMhashTable(key,value,hash->u.hash,exe->gc);
 	}
 	ap-=kvnum;

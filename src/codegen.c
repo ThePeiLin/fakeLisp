@@ -5508,6 +5508,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 		free(codegen->realpath);
 	if(codegen->exports)
 		free(codegen->exports);
+	if(codegen->exportsP)
+		free(codegen->exportsP);
 	for(FklCodegenMacro* cur=codegen->exportM;cur;)
 	{
 		FklCodegenMacro* t=cur;

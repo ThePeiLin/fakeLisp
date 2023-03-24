@@ -80,10 +80,10 @@ typedef struct FklHashTable
 
 typedef struct FklHashTableMetaTable
 {
-	size_t size;
+	uint8_t size;
 	void (*__setKey)(void*,void*);
 	void (*__setVal)(void*,void*);
-	size_t (*__hashFunc)(void*);
+	uintptr_t (*__hashFunc)(void*);
 	void (*__uninitItem)(void*);
 	int (*__keyEqual)(void*,void*);
 	void* (*__getKey)(void*);

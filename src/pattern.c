@@ -588,7 +588,7 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 	return 1;
 }
 
-static size_t _pattern_matching_hash_table_hash_func(void* key)
+static uintptr_t _pattern_matching_hash_table_hash_func(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
 	return sid;

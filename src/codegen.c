@@ -826,7 +826,7 @@ static CODEGEN_FUNC(codegen_or)
 			,codegenQuestStack);
 }
 
-static size_t _codegenenv_hashFunc(void* key)
+static uintptr_t _codegenenv_hashFunc(void* key)
 {
 	FklSid_t sid=*(FklSid_t*)key;
 	return sid;
@@ -3353,6 +3353,9 @@ BC_PROCESS(_library_bc_process)
 	codegen->realpath=NULL;
 	codegen->exports=NULL;
 	codegen->exportsP=NULL;
+	codegen->exportM=NULL;
+	codegen->exportR=NULL;
+	codegen->exportRM=NULL;
 	return process_import_imported_lib(codegen->loadedLibStack->top
 				,data->codegen
 				,lib
@@ -4433,16 +4436,19 @@ typedef struct
 	FklPtrStack* stack;
 	FklNastNode* pattern;
 	FklCodegenMacroScope* macroScope;
+	FklPrototypePool* ptpool;
 }MacroContext;
 
 static inline MacroContext* createMacroContext(FklNastNode* pattern
-		,FklCodegenMacroScope* macroScope)
+		,FklCodegenMacroScope* macroScope
+		,FklPrototypePool* ptpool)
 {
 	MacroContext* r=(MacroContext*)malloc(sizeof(MacroContext));
 	FKL_ASSERT(r);
 	r->pattern=fklMakeNastNodeRef(pattern);
 	r->macroScope=macroScope?make_macro_scope_ref(macroScope):NULL;
 	r->stack=fklCreatePtrStack(1,1);
+	r->ptpool=ptpool;
 	return r;
 }
 
@@ -4453,13 +4459,15 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=d->pattern;
 	FklCodegenMacroScope* macros=d->macroScope;
+	FklPrototypePool* ptpool=d->ptpool;
+	d->ptpool=NULL;
 
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 	add_compiler_macro(&macros->head
 			,fklMakeNastNodeRef(pattern)
 			,macroBcl
-			,codegen->ptpool
+			,ptpool
 			,1);
 	return NULL;
 }
@@ -4471,13 +4479,15 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=d->pattern;
 	FklCodegenMacroScope* macroScope=d->macroScope;
+	FklPrototypePool* ptpool=d->ptpool;
+	d->ptpool=NULL;
 
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
 	fklAddStringMatchPattern(fklMakeNastNodeRef(pattern)
 			,macroBcl
 			,macroScope->phead
-			,codegen->ptpool
+			,ptpool
 			,1);
 	return NULL;
 }
@@ -4497,12 +4507,14 @@ static void _macro_stack_context_finalizer(void* data)
 {
 	MacroContext* d=(MacroContext*)data;
 	FklPtrStack* s=d->stack;
-	while(s->top)
+	while(!fklIsPtrStackEmpty(s))
 		fklDestroyByteCodelnt(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
 	fklDestroyNastNode(d->pattern);
 	if(d->macroScope)
 		fklDestroyCodegenMacroScope(d->macroScope);
+	if(d->ptpool)
+		fklDestroyPrototypePool(d->ptpool);
 	free(d);
 }
 
@@ -4514,9 +4526,10 @@ static const FklCodegenQuestContextMethodTable MacroStackContextMethodTable=
 };
 
 static inline FklCodegenQuestContext* createMacroQuestContext(FklNastNode* pattern
-		,FklCodegenMacroScope* macroScope)
+		,FklCodegenMacroScope* macroScope
+		,FklPrototypePool* ptpool)
 {
-	return createCodegenQuestContext(createMacroContext(pattern,macroScope),&MacroStackContextMethodTable);
+	return createCodegenQuestContext(createMacroContext(pattern,macroScope,ptpool),&MacroStackContextMethodTable);
 }
 
 typedef FklNastNode* (*ReplacementFunc)(const FklNastNode* orig,FklCodegenEnv* env,FklCodegen* codegen);
@@ -4673,7 +4686,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
-				,createMacroQuestContext(pattern,macroScope)
+				,createMacroQuestContext(pattern,macroScope,macroCodegen->ptpool)
 				,createDefaultQueueNextExpression(queue)
 				,1
 				,macroEnv->macros
@@ -4725,7 +4738,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
-				,createMacroQuestContext(name,macroScope)
+				,createMacroQuestContext(name,macroScope,macroCodegen->ptpool)
 				,createDefaultQueueNextExpression(queue)
 				,1
 				,macroEnv->macros
@@ -5495,6 +5508,15 @@ void fklUninitCodegener(FklCodegen* codegen)
 		free(codegen->realpath);
 	if(codegen->exports)
 		free(codegen->exports);
+	for(FklCodegenMacro* cur=codegen->exportM;cur;)
+	{
+		FklCodegenMacro* t=cur;
+		cur=cur->next;
+		fklDestroyCodegenMacro(t);
+	}
+	if(codegen->exportR)
+		fklDestroyHashTable(codegen->exportR);
+	fklDestroyAllStringPattern(codegen->exportRM);
 }
 
 void fklInitCodegenScriptLib(FklCodegenLib* lib

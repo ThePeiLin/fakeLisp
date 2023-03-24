@@ -537,7 +537,7 @@ typedef struct
 	size_t w;
 }VMvalueHashItem;
 
-static size_t _VMvalue_hashFunc(void* key)
+static uintptr_t _VMvalue_hashFunc(void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	return (uintptr_t)v>>3;

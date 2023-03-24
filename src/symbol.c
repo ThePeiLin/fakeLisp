@@ -326,7 +326,7 @@ static void fklSetSidKey(void* k0,void* k1)
 	*(FklSid_t*)k0=*(FklSid_t*)k1;
 }
 
-static size_t fklSidHashFunc(void* k)
+static uintptr_t fklSidHashFunc(void* k)
 {
 	return *(FklSid_t*)k;
 }

@@ -10,7 +10,7 @@ typedef struct
 	uint64_t line;
 }LineNumHashItem;
 
-static size_t _LineNumHash_hashFunc(void* pKey)
+static uintptr_t _LineNumHash_hashFunc(void* pKey)
 {
 	FklVMvalue* key=*(FklVMvalue**)pKey;
 	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
@@ -1380,7 +1380,7 @@ void fklChanlSend(FklVMsend* s,FklVMchanl* ch,FklVMgc* gc)
 	fklDestroyVMsend(s);
 }
 
-static size_t _vmhashtableEq_hashFunc(void* key)
+static uintptr_t _vmhashtableEq_hashFunc(void* key)
 {
 	return (uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM;
 }
@@ -1399,7 +1399,7 @@ static size_t integerHashFunc(const FklVMvalue* v)
 	}
 }
 
-static size_t _vmhashtableEqv_hashFunc(void* key)
+static uintptr_t _vmhashtableEqv_hashFunc(void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	if(fklIsInt(v))
@@ -1531,7 +1531,7 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 	return sum;
 }
 
-static size_t _vmhashtable_hashFunc(void* key)
+static uintptr_t _vmhashtable_hashFunc(void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	if(fklIsInt(v))

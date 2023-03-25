@@ -75,14 +75,14 @@ typedef struct FklVMchanl
 
 typedef struct
 {
-	pthread_cond_t cond;
+	FklVM* exe;
 	struct FklVMvalue* m;
 }FklVMsend;
 
 typedef struct
 {
-	pthread_cond_t cond;
-	struct FklVMvalue* v;
+	FklVM* exe;
+	struct FklVMvalue** slot;
 }FklVMrecv;
 
 typedef struct FklVMpair
@@ -93,9 +93,10 @@ typedef struct FklVMpair
 
 typedef struct FklVMfp
 {
+	FILE* fp;
+	uint32_t mutex;
 	size_t size;
 	uint8_t* prev;
-	FILE* fp;
 }FklVMfp;
 
 typedef struct FklVMvec
@@ -210,7 +211,28 @@ typedef struct FklVMCompoundFrameData
 	uint8_t* end;
 }FklVMCompoundFrameData;
 
-typedef void* FklCallObjData[sizeof(struct FklVMCompoundFrameData)/sizeof(void*)-1];
+typedef void* FklCallObjData[10];
+
+typedef struct
+{
+	FklVMFuncK kFunc;
+	void* ctx;
+	size_t size;
+}FklVMcCC;
+
+typedef enum
+{
+	DLPROC_READY=0,
+	DLPROC_CCC,
+	DLPROC_DONE,
+}FklDlprocFrameState;
+
+typedef struct
+{
+	FklVMvalue* proc;
+	FklDlprocFrameState state;
+	FklVMcCC ccc;
+}FklDlprocFrameContext;
 
 struct FklVMgc;
 typedef struct
@@ -235,7 +257,7 @@ typedef struct FklVMframe
 			FklCallObjData data;
 		}o;
 	}u;
-	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*,void*);
+	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
 	struct FklVMframe* prev;
 }FklVMframe;
 
@@ -268,6 +290,15 @@ typedef struct FklVMlib
 	uint8_t imported;
 }FklVMlib;
 
+typedef enum
+{
+	FKL_VM_EXIT,
+	FKL_VM_READY,
+	FKL_VM_RUNNING,
+	FKL_VM_WAITING,
+	FKL_VM_SLEEPING,
+}FklVMstate;
+
 typedef struct FklVM
 {
 	uint32_t mark;
@@ -282,8 +313,10 @@ typedef struct FklVM
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
 	FklVMframe sf;
 	pthread_t tid;
+
 	FklVMframe* frames;
 	FklVMvalue* codeObj;
+
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
 	size_t libNum;
@@ -295,7 +328,17 @@ typedef struct FklVM
 	FklSid_t* builtinErrorTypeId;
 	FklPrototypePool* ptpool;
 	FklVMlib* importingLib;
+
+	uint64_t alarmtime;
+	FklVMstate state;
 }FklVM;
+
+typedef struct
+{
+	FklVM* run;
+	FklVM* io;
+	FklVM* sleep;
+}FklVMscheduler;
 
 typedef struct FklVMudMethodTable
 {
@@ -364,7 +407,7 @@ typedef struct FklVMerrorHandler
 
 int fklRunVM(FklVM*);
 int fklRunReplVM(FklVM*);
-FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklVM* prev,FklVM* next);
+FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*);
 FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMvalue*
 		,FklVM* prev
@@ -373,6 +416,8 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMlib* libs
 		,FklSymbolTable*
 		,FklSid_t* builtinErrorTypeId);
+
+FklVM* fklGetNextRunningVM(FklVMscheduler* sc);
 
 void fklDestroyVMvalue(FklVMvalue*);
 FklVMstack* fklCreateVMstack(uint32_t);
@@ -568,17 +613,18 @@ FklVMerror* fklCreateVMerrorCstr(const char* who,FklSid_t type,FklString* messag
 void fklDestroyVMerror(FklVMerror*);
 
 
-FklVMrecv* fklCreateVMrecv(void);
+FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
 void fklDestroyVMrecv(FklVMrecv*);
 
-FklVMsend* fklCreateVMsend(FklVMvalue*);
+FklVMsend* fklCreateVMsend(FklVMvalue*,FklVM*);
 void fklDestroyVMsend(FklVMsend*);
 
-void fklSuspendThread(pthread_cond_t* cond,FklVMgc* gc);
-void fklResumeThread(pthread_cond_t* cond);
-void fklChanlSend(FklVMsend*,FklVMchanl*,FklVMgc*);
+void fklSleepThread(FklVM*,uint64_t sec);
+void fklSuspendThread(FklVM*);
+void fklResumeThread(FklVM*);
+void fklChanlSend(FklVMvalue* msg,FklVMchanl*,FklVM*);
 void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
-void fklChanlRecv(FklVMrecv*,FklVMchanl*,FklVMgc*);
+void fklChanlRecv(FklVMvalue**,FklVMchanl*,FklVM*);
 
 FklVMvec* fklCreateVMvecNoInit(size_t size);
 FklVMvec* fklCreateVMvec(size_t size);
@@ -639,6 +685,8 @@ uint64_t fklGetUint(const FklVMvalue*);
 void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
 
 void fklCallFuncK(FklVMFuncK funck,FklVM*,void* ctx);
+
+void fklContinueDlproc(FklVMframe*,FklVMFuncK,void*,size_t);
 
 void fklCallInDlproc(FklVMvalue*
 		,size_t argNum

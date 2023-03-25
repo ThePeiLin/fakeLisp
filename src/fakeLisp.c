@@ -62,7 +62,7 @@ static inline int compileAndRun(char* filename)
 
 	chdir(fklGetCwd());
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
-	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,NULL,NULL);
+	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable);
 	anotherVM->ptpool=codegen.ptpool;
 	anotherVM->libNum=codegen.loadedLibStack->top;
 	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
@@ -131,7 +131,7 @@ static inline int runCode(char* filename)
 	fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
 	FklByteCode* mainCode=loadByteCode(fp);
 	mainCodelnt->bc=mainCode;
-	FklVM* anotherVM=fklCreateVM(mainCodelnt,table,NULL,NULL);
+	FklVM* anotherVM=fklCreateVM(mainCodelnt,table);
 
 	FklVMgc* gc=anotherVM->gc;
 	FklVMframe* mainframe=anotherVM->frames;
@@ -233,7 +233,7 @@ static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
 
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
-	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,NULL,NULL);
+	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable);
 
 	anotherVM->ptpool=codegen->ptpool;
 	FklVMframe mainframe={FKL_FRAME_COMPOUND,};
@@ -243,8 +243,6 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 	fklInitPtrStack(&tokenStack,32,16);
 	FklLineNumberTable* globalLnt=fklCreateLineNumTable();
 	anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
-	char* prev=NULL;
-	size_t prevSize=0;
 	size_t libNum=codegen->loadedLibStack->top;
 	for(;;)
 	{
@@ -254,14 +252,11 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		int unexpectEOF=0;
 		size_t size=0;
 		char* list=fklReadInStringPattern(stdin
-				,&prev
 				,&size
-				,&prevSize
 				,codegen->curline
 				,&codegen->curline
 				,&unexpectEOF
 				,&tokenStack
-				,NULL
 				,*(codegen->phead)
 				,&route);
 		if(unexpectEOF)

@@ -2543,11 +2543,9 @@ static FklCodegen* createCodegen(FklCodegen* prev
 
 typedef struct
 {
-	char* prev;
-	size_t prevSize;
 	FILE* fp;
 	FklCodegen* codegen;
-	FklPtrStack* tokenStack;
+	FklPtrStack tokenStack;
 }CodegenLoadContext;
 
 static CodegenLoadContext* createCodegenLoadContext(FILE* fp,FklCodegen* codegen)
@@ -2556,28 +2554,23 @@ static CodegenLoadContext* createCodegenLoadContext(FILE* fp,FklCodegen* codegen
 	FKL_ASSERT(r);
 	r->codegen=codegen;
 	r->fp=fp;
-	r->tokenStack=fklCreatePtrStack(32,16);
-	r->prev=NULL;
-	r->prevSize=0;
+	fklInitPtrStack(&r->tokenStack,32,16);
 	return r;
 }
 
 static void _codegen_load_finalizer(void* pcontext)
 {
 	CodegenLoadContext* context=pcontext;
-	FklPtrStack* tokenStack=context->tokenStack;
+	FklPtrStack* tokenStack=&context->tokenStack;
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
-	fklDestroyPtrStack(tokenStack);
+	fklUninitPtrStack(tokenStack);
 	fclose(context->fp);
-	free(context->prev);
 	free(context);
 }
 
 inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 		,FILE* fp
-		,char** prev
-		,size_t* prevSize
 		,int* unexpectEOF
 		,FklPtrStack* tokenStack
 		,size_t* errorLine
@@ -2588,13 +2581,11 @@ inline static FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	FklNastNode* begin=NULL;
 	FklStringMatchRouteNode* route=NULL;
 	char* list=fklReadInStringPattern(fp
-			,prev
 			,&size
-			,prevSize
 			,codegen->curline
 			,&codegen->curline
 			,unexpectEOF
-			,tokenStack,NULL
+			,tokenStack
 			,*(codegen->phead)
 			,&route);
 	if(*unexpectEOF)
@@ -2628,15 +2619,13 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 {
 	CodegenLoadContext* context=pcontext;
 	FklCodegen* codegen=context->codegen;
-	FklPtrStack* tokenStack=context->tokenStack;
+	FklPtrStack* tokenStack=&context->tokenStack;
 	FILE* fp=context->fp;
 	int unexpectEOF=0;
 	size_t errorLine=0;
 	int hasError=0;
 	FklNastNode* begin=getExpressionFromFile(codegen
 			,fp
-			,&context->prev
-			,&context->prevSize
 			,&unexpectEOF
 			,tokenStack
 			,&errorLine
@@ -5796,9 +5785,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklCodegen* codegen)
 {
 	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl)
-			,codegen->publicSymbolTable
-			,NULL
-			,NULL);
+			,codegen->publicSymbolTable);
 	FklPtrStack* macroLibStack=codegen->macroLibStack;
 	anotherVM->libNum=macroLibStack->top;;
 	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*macroLibStack->top);

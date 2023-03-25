@@ -8,6 +8,7 @@
 #include<stdint.h>
 #include<math.h>
 #include<limits.h>
+#include<time.h>
 #ifdef WIN32
 #include<io.h>
 #include<process.h>
@@ -1097,3 +1098,21 @@ FklDllHandle fklLoadDll(const char* path)
 #endif
 }
 
+inline uint64_t fklGetTicks(void)
+{
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC,&t);
+	uint64_t ticks=t.tv_sec*1000+t.tv_nsec/1000000;
+	return ticks;
+}
+
+inline int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
+{
+	if(fp==stdin)
+	{
+		for(size_t i=len;i>0;i--)
+			if(ungetc(buf[i-1],fp))
+				return -1;
+	}
+	return fseek(fp,-len,SEEK_CUR);
+}

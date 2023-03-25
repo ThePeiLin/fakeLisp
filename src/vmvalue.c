@@ -1104,6 +1104,8 @@ FklVMfp* fklCreateVMfp(FILE* fp)
 	vfp->fp=fp;
 	vfp->size=0;
 	vfp->prev=NULL;
+	vfp->mutex=0;
+	//vfp->next=-1;
 	return vfp;
 }
 
@@ -1272,39 +1274,37 @@ void fklDestroyVMerror(FklVMerror* err)
 	free(err);
 }
 
-FklVMrecv* fklCreateVMrecv(void)
+FklVMrecv* fklCreateVMrecv(FklVMvalue** slot,FklVM* exe)
 {
 	FklVMrecv* tmp=(FklVMrecv*)malloc(sizeof(FklVMrecv));
 	FKL_ASSERT(tmp);
-	tmp->v=NULL;
-	pthread_cond_init(&tmp->cond,NULL);
+	tmp->slot=slot;
+	tmp->exe=exe;
 	return tmp;
 }
 
 void fklDestroyVMrecv(FklVMrecv* r)
 {
-	pthread_cond_destroy(&r->cond);
 	free(r);
 }
 
-FklVMsend* fklCreateVMsend(FklVMvalue* m)
+FklVMsend* fklCreateVMsend(FklVMvalue*m,FklVM* exe)
 {
 	FklVMsend* tmp=(FklVMsend*)malloc(sizeof(FklVMsend));
 	FKL_ASSERT(tmp);
 	tmp->m=m;
-	pthread_cond_init(&tmp->cond,NULL);
+	tmp->exe=exe;
 	return tmp;
 }
 
 void fklDestroyVMsend(FklVMsend* s)
 {
-	pthread_cond_destroy(&s->cond);
 	free(s);
 }
 
-inline void fklResumeThread(pthread_cond_t* cond)
+inline void fklResumeThread(FklVM* exe)
 {
-	pthread_cond_signal(cond);
+	exe->state=FKL_VM_READY;
 }
 
 void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
@@ -1313,12 +1313,12 @@ void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
 	{
 		*r=fklPopPtrQueue(ch->messages);
 		ch->messageNum--;
-		if(ch->messageNum<ch->max)
+		FklVMsend* s=fklPopPtrQueue(ch->sendq);
+		if(s)
 		{
-			FklVMsend* s=fklPopPtrQueue(ch->sendq);
 			ch->sendNum--;
-			if(s)
-				fklResumeThread(&s->cond);
+			fklResumeThread(s->exe);
+			fklDestroyVMsend(s);
 		}
 		*ok=1;
 	}
@@ -1326,59 +1326,63 @@ void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
 		*ok=0;
 }
 
-inline void fklSuspendThread(pthread_cond_t* cond,FklVMgc* gc)
+inline void fklSleepThread(FklVM* exe,uint64_t sec)
 {
-	pthread_cond_wait(cond,&gc->tcMutex);
+	exe->alarmtime=fklGetTicks()+sec*1000;
+	exe->state=FKL_VM_SLEEPING;
 }
 
-void fklChanlRecv(FklVMrecv* r,FklVMchanl* ch,FklVMgc* gc)
+inline void fklSuspendThread(FklVM* exe)
+{
+	exe->state=FKL_VM_WAITING;
+}
+
+void fklChanlRecv(FklVMvalue** slot,FklVMchanl* ch,FklVM* exe)
 {
 	if(!ch->messageNum)
 	{
+		FklVMrecv* r=fklCreateVMrecv(slot,exe);
 		fklPushPtrQueue(r,ch->recvq);
 		ch->recvNum++;
-		fklSuspendThread(&r->cond,gc);
+		fklSuspendThread(r->exe);
+		return;
 	}
-	r->v=fklPopPtrQueue(ch->messages);
+	*slot=fklPopPtrQueue(ch->messages);
 	ch->messageNum--;
-	if(ch->messageNum<ch->max)
+	FklVMsend* s=fklPopPtrQueue(ch->sendq);
+	if(s)
 	{
-		FklVMsend* s=fklPopPtrQueue(ch->sendq);
 		ch->sendNum--;
-		if(s)
-			fklResumeThread(&s->cond);
+		fklResumeThread(s->exe);
+		fklDestroyVMsend(s);
 	}
 }
 
-void fklChanlSend(FklVMsend* s,FklVMchanl* ch,FklVMgc* gc)
+void fklChanlSend(FklVMvalue* msg,FklVMchanl* ch,FklVM* exe)
 {
-	if(ch->recvNum)
+	FklVMrecv* r=fklPopPtrQueue(ch->recvq);
+	if(r)
 	{
-		FklVMrecv* r=fklPopPtrQueue(ch->recvq);
 		ch->recvNum--;
-		if(r)
-			fklResumeThread(&r->cond);
+		*r->slot=msg;
+		fklResumeThread(r->exe);
+		fklDestroyVMrecv(r);
+		return;
 	}
 	if(!ch->max||ch->messageNum<ch->max-1)
 	{
-		fklPushPtrQueue(s->m,ch->messages);
+		fklPushPtrQueue(msg,ch->messages);
 		ch->messageNum++;
 	}
 	else
 	{
-		if(ch->messageNum>=ch->max-1)
-		{
-			fklPushPtrQueue(s,ch->sendq);
-			ch->sendNum++;
-			if(ch->messageNum==ch->max-1)
-			{
-				fklPushPtrQueue(s->m,ch->messages);
-				ch->messageNum++;
-			}
-			fklSuspendThread(&s->cond,gc);
-		}
+		FklVMsend* s=fklCreateVMsend(msg,exe);
+		fklPushPtrQueue(s,ch->sendq);
+		ch->sendNum++;
+		fklPushPtrQueue(msg,ch->messages);
+		ch->messageNum++;
+		fklSuspendThread(s->exe);
 	}
-	fklDestroyVMsend(s);
 }
 
 static uintptr_t _vmhashtableEq_hashFunc(void* key)
@@ -1553,45 +1557,12 @@ static int _vmhashtableEqv_keyEqual(void* pkey0,void* pkey1)
 	return fklVMvalueEqv(k0,k1);
 }
 
-//static FklHashTableMetaTable VMhashTableEqMetaTable=
-//{
-//	.size=sizeof(FklVMhashTableItem),
-//	.__setKey=fklHashDefaultSetPtrKey,
-//	.__setVal=_vmhashtable_setVal,
-//	.__hashFunc=_vmhashtableEq_hashFunc,
-//	.__uninitItem=fklDoNothingUnintHashItem,
-//	.__keyEqual=fklHashPtrKeyEqual,
-//	.__getKey=fklHashDefaultGetKey,
-//};
-
-//static FklHashTableMetaTable VMhashTableEqvMetaTable=
-//{
-//	.size=sizeof(FklVMhashTableItem),
-//	.__setKey=fklHashDefaultSetPtrKey,
-//	.__setVal=_vmhashtable_setVal,
-//	.__hashFunc=_vmhashtableEqv_hashFunc,
-//	.__uninitItem=fklDoNothingUnintHashItem,
-//	.__keyEqual=_vmhashtableEqv_keyEqual,
-//	.__getKey=fklHashDefaultGetKey,
-//};
-
 static int _vmhashtableEqual_keyEqual(void* pkey0,void* pkey1)
 {
 	FklVMvalue* k0=*(FklVMvalue**)pkey0;
 	FklVMvalue* k1=*(FklVMvalue**)pkey1;
 	return fklVMvalueEqual(k0,k1);
 }
-
-//static FklHashTableMetaTable VMhashTableEqualMetaTable=
-//{
-//	.size=sizeof(FklVMhashTableItem),
-//	.__setKey=fklHashDefaultSetPtrKey,
-//	.__setVal=_vmhashtable_setVal,
-//	.__hashFunc=_vmhashtable_hashFunc,
-//	.__uninitItem=fklDoNothingUnintHashItem,
-//	.__keyEqual=_vmhashtableEqual_keyEqual,
-//	.__getKey=fklHashDefaultGetKey,
-//};
 
 static const FklHashTableMetaTable VMhashTableMetaTableTable[]=
 {
@@ -1679,7 +1650,7 @@ inline int fklIsVMhashEqual(FklHashTable* ht)
 
 inline uintptr_t fklGetVMhashTableType(FklHashTable* ht)
 {
-	return (ptrdiff_t)(ht->t-EqHashTableT)/sizeof(FklHashTableMetaTable);
+	return ((ptrdiff_t)(ht->t-EqHashTableT))/sizeof(FklHashTableMetaTable);
 }
 
 inline const char* fklGetVMhashTablePrefix(FklHashTable* ht)

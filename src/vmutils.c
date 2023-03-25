@@ -136,13 +136,13 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler* h)
 	free(h);
 }
 
-static void threadErrorCallBack(void* a)
-{
-	void** e=(void**)a;
-	int* i=(int*)a;
-	FklVM* exe=e[0];
-	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
-}
+//static void threadErrorCallBack(void* a)
+//{
+//	void** e=(void**)a;
+//	int* i=(int*)a;
+//	FklVM* exe=e[0];
+//	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
+//}
 
 inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 {
@@ -152,9 +152,9 @@ inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
-	void* i[3]={exe,(void*)255,(void*)1};
+	//void* i[3]={exe,(void*)255,(void*)1};
 	for(;frame;frame=frame->prev)
-		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe,i))
+		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
 			break;
 	if(frame==NULL)
 	{
@@ -197,7 +197,8 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 			else
 				fklDoPrintBacktrace(cur,stderr,exe->symbolTable);
 		}
-		threadErrorCallBack(i);
+		longjmp(exe->buf,1);
+		//threadErrorCallBack(i);
 	}
 	return 255;
 }

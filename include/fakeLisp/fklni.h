@@ -7,7 +7,7 @@ extern "C"{
 #endif
 
 FklVMvalue* fklNiGetArg(uint32_t* ap,FklVMstack*);
-void fklNiReturn(FklVMvalue*,uint32_t* ap,FklVMstack*);
+FklVMvalue** fklNiReturn(FklVMvalue*,uint32_t* ap,FklVMstack*);
 void fklNiSetBpWithTp(FklVMstack* s);
 uint32_t fklNiSetBp(uint32_t nbp,FklVMstack* s);
 int fklNiResBp(uint32_t* ap,FklVMstack*);

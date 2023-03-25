@@ -26,7 +26,7 @@ uint32_t fklNiSetBp(uint32_t nbp,FklVMstack* s)
 	return nbp;
 }
 
-void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
+FklVMvalue** fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 {
 	if(s->tp>=s->size)
 	{
@@ -35,16 +35,18 @@ void fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 		FKL_ASSERT(s->base);
 		s->size+=64;
 	}
+	FklVMvalue** r=&s->base[*ap];
 	if(*ap<s->tp)
 	{
 		FklVMvalue* t=s->base[*ap];
-		s->base[*ap]=v;
+		*r=v;
 		s->base[s->tp]=t;
 	}
 	else
-		s->base[*ap]=v;
+		*r=v;
 	(*ap)++;
 	s->tp++;
+	return r;
 }
 
 inline void fklNiBegin(uint32_t* ap,FklVMstack* s)

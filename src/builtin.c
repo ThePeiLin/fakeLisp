@@ -842,7 +842,7 @@ static void builtin_div(FKL_DL_PROC_ARGL)
 		fklNiResBp(&ap,stack);
 		if(FKL_IS_F64(prev))
 		{
-			if(prev->u.f64==0.0)
+			if(!islessgreater(prev->u.f64,0.0))
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,exe);
 			rd=1/prev->u.f64;
 			fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&rd,exe),&ap,stack);
@@ -903,7 +903,9 @@ static void builtin_div(FKL_DL_PROC_ARGL)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
 		}
-		if(r64==0||FKL_IS_0_BIG_INT(&bi)||rd==0.0)
+		if(r64==0
+				||FKL_IS_0_BIG_INT(&bi)
+				||!islessgreater(rd,0.0))
 		{
 			fklUninitBigInt(&bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,exe);
@@ -963,7 +965,7 @@ static void builtin_mod(FKL_DL_PROC_ARGL)
 	{
 		double af=fklGetDouble(fir);
 		double as=fklGetDouble(sec);
-		if(as==0.0)
+		if(!islessgreater(as,0.0))
 			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.%",FKL_ERR_DIVZEROERROR,exe);
 		double r=fmod(af,as);
 		fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_F64,&r,exe),&ap,stack);
@@ -2587,6 +2589,106 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+#include"utstring.h"
+typedef struct
+{
+	FklVMvalue* fpv;
+	FklStringMatchPattern* head;
+	UT_string* buf; //3*sizeof(void*)
+	FklPtrStack* tokenStack; //3*sizeof(void*)
+	uint32_t ap;
+	uint32_t done;
+}ReadCtx;
+
+static void read_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
+{
+	fprintf(fp,"at reading\n");
+}
+
+static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
+{
+	ReadCtx* c=(ReadCtx*)data;
+	fklGC_toGrey(c->fpv,gc);
+}
+
+static void read_frame_finalizer(FklCallObjData data)
+{
+	ReadCtx* c=(ReadCtx*)data;
+	utstring_free(c->buf);
+	FklPtrStack* s=c->tokenStack;
+	while(!fklIsPtrStackEmpty(s))
+		fklDestroyToken(fklPopPtrStack(s));
+	fklDestroyPtrStack(s);
+}
+
+static void read_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe)
+{
+	const ReadCtx* const sc=(const ReadCtx*)s;
+	ReadCtx* dc=(ReadCtx*)d;
+	memset(dc,0,sizeof(ReadCtx));
+	FklVMgc* gc=exe->gc;
+	dc->fpv=FKL_VM_NIL;
+	fklSetRef(&dc->fpv,sc->fpv,gc);
+	utstring_new(dc->buf);
+	UT_string* dcs=dc->buf;
+	const UT_string* scs=sc->buf;
+	utstring_bincpy(dcs,utstring_body(scs),utstring_len(scs));
+}
+
+static int read_frame_end(FklCallObjData d)
+{
+	return ((ReadCtx*)d)->done;
+}
+
+#include<fcntl.h>
+
+static void read_frame_step(FklCallObjData d,FklVM* exe)
+{
+	ReadCtx* rctx=(ReadCtx*)d;
+	FklVMfp* fp=rctx->fpv->u.fp;
+	int fd=fileno(fp->fp);
+	int attr=fcntl(fd,F_GETFL);
+	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
+	UT_string* s=rctx->buf;
+	int ch;
+	while((ch=fgetc(fp->fp))>0)
+		utstring_bincpy(s,&ch,sizeof(ch));
+	fcntl(fd,F_SETFL,attr);
+	if(feof(fp->fp))
+	{
+		rctx->done=1;
+		FklString* str=fklCreateString(utstring_len(s),utstring_body(s));
+		FklVMvalue* v=fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe);
+		uint32_t* pap=&rctx->ap;
+		fklNiReturn(v,pap,exe->stack);
+		fklNiEnd(pap,exe->stack);
+	}
+}
+
+static const FklVMframeContextMethodTable ReadContextMethodTable=
+{
+	.atomic=read_frame_atomic,
+	.finalizer=read_frame_finalizer,
+	.copy=read_frame_copy,
+	.print_backtrace=read_frame_print_backtrace,
+	.step=read_frame_step,
+	.end=read_frame_end,
+};
+
+static inline void initReadCtx(FklCallObjData data
+		,FklVMvalue* fpv
+		,FklStringMatchPattern* patterns
+		,uint32_t ap)
+{
+	ReadCtx* ctx=(ReadCtx*)data;
+	ctx->fpv=fpv;
+	ctx->head=patterns;
+	ctx->ap=ap;
+	utstring_new(ctx->buf);
+	ctx->tokenStack=fklCreatePtrStack(16,16);
+	ctx->done=0;
+}
+
 static void builtin_read(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2595,72 +2697,75 @@ static void builtin_read(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	char* tmpString=NULL;
-	FklVMfp* tmpFile=NULL;
-	FklPtrStack tokenStack=FKL_STACK_INIT;
-	fklInitPtrStack(&tokenStack,32,16);
-	FklStringMatchRouteNode* route=NULL;
+	//char* tmpString=NULL;
+	//FklVMfp* tmpFile=NULL;
+	//FklPtrStack tokenStack=FKL_STACK_INIT;
+	//fklInitPtrStack(&tokenStack,32,16);
+	//FklStringMatchRouteNode* route=NULL;
 	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
-	int unexpectEOF=0;
+	//int unexpectEOF=0;
 	if(!stream||FKL_IS_FP(stream))
 	{
-		size_t line=1;
-		tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
-		size_t size=0;
-		FklStringMatchPattern* patterns=pbd->patterns;
-		tmpString=fklReadInStringPattern(tmpFile->fp
-				,(char**)&tmpFile->prev
-				,&size
-				,&tmpFile->size
-				,line
-				,&line
-				,&unexpectEOF
-				,&tokenStack
-				,NULL
-				,patterns
-				,&route);
-		if(unexpectEOF)
-		{
-			free(tmpString);
-			while(!fklIsPtrStackEmpty(&tokenStack))
-				fklDestroyToken(fklPopPtrStack(&tokenStack));
-			fklUninitPtrStack(&tokenStack);
-			fklDestroyStringMatchRoute(route);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_UNEXPECTEOF,exe);
-		}
+		//size_t line=1;
+		//tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
+		void** ctx=exe->frames->u.o.data;
+		exe->frames->u.o.t=&ReadContextMethodTable;
+		initReadCtx(ctx,stream?stream:pbd->sysIn,pbd->patterns,ap);
+		//fklCallFuncK(k_read,exe,createReadCtx(stream?stream:pbd->sysIn,pbd->patterns,ap));
+		//size_t size=0;
+		//FklStringMatchPattern* patterns=pbd->patterns;
+		//tmpString=fklReadInStringPattern(tmpFile->fp
+		//		,(char**)&tmpFile->prev
+		//		,&size
+		//		,&tmpFile->size
+		//		,line
+		//		,&line
+		//		,&unexpectEOF
+		//		,&tokenStack
+		//		,patterns
+		//		,&route);
+		//if(unexpectEOF)
+		//{
+		//	free(tmpString);
+		//	while(!fklIsPtrStackEmpty(&tokenStack))
+		//		fklDestroyToken(fklPopPtrStack(&tokenStack));
+		//	fklUninitPtrStack(&tokenStack);
+		//	fklDestroyStringMatchRoute(route);
+		//	FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_UNEXPECTEOF,exe);
+		//}
 	}
-	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
-			,route
-			,&errorLine
-			,pbd->builtInHeadSymbolTable
-			,NULL
-			,exe->symbolTable);
-	FklVMvalue* tmp=NULL;
-	if(node==NULL)
-	{
-		if(unexpectEOF)
-		{
-			free(tmpString);
-			while(!fklIsPtrStackEmpty(&tokenStack))
-				fklDestroyToken(fklPopPtrStack(&tokenStack));
-			fklUninitPtrStack(&tokenStack);
-			fklDestroyStringMatchRoute(route);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
-		}
-		else
-			tmp=FKL_VM_NIL;
-	}
-	else
-		tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
-	while(!fklIsPtrStackEmpty(&tokenStack))
-		fklDestroyToken(fklPopPtrStack(&tokenStack));
-	fklUninitPtrStack(&tokenStack);
-	fklDestroyStringMatchRoute(route);
-	fklNiReturn(tmp,&ap,stack);
-	free(tmpString);
-	fklDestroyNastNode(node);
-	fklNiEnd(&ap,stack);
+	//size_t errorLine=0;
+	//FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
+	//		,route
+	//		,&errorLine
+	//		,pbd->builtInHeadSymbolTable
+	//		,NULL
+	//		,exe->symbolTable);
+	//FklVMvalue* tmp=NULL;
+	//if(node==NULL)
+	//{
+	//	if(unexpectEOF)
+	//	{
+	//		free(tmpString);
+	//		while(!fklIsPtrStackEmpty(&tokenStack))
+	//			fklDestroyToken(fklPopPtrStack(&tokenStack));
+	//		fklUninitPtrStack(&tokenStack);
+	//		fklDestroyStringMatchRoute(route);
+	//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
+	//	}
+	//	else
+	//		tmp=FKL_VM_NIL;
+	//}
+	//else
+	//	tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
+	//while(!fklIsPtrStackEmpty(&tokenStack))
+	//	fklDestroyToken(fklPopPtrStack(&tokenStack));
+	//fklUninitPtrStack(&tokenStack);
+	//fklDestroyStringMatchRoute(route);
+	//fklNiReturn(tmp,&ap,stack);
+	//free(tmpString);
+	//fklDestroyNastNode(node);
+	//fklNiEnd(&ap,stack);
 }
 
 static void builtin_stringify(FKL_DL_PROC_ARGL)
@@ -3015,34 +3120,34 @@ static void builtin_argv(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-static void* threadVMfunc(void* p)
-{
-	FklVM* exe=(FklVM*)p;
-	FklVMchanl* tmpCh=exe->chan->u.chan;
-	int64_t state=fklRunVM(exe);
-	fklTcMutexAcquire(exe->gc);
-	if(!state)
-	{
-		FklVMvalue* v=fklGetTopValue(exe->stack);
-		FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,v,exe);
-		fklChanlSend(fklCreateVMsend(resultBox),tmpCh,exe->gc);
-	}
-	else
-	{
-		FklVMvalue* err=fklGetTopValue(exe->stack);
-		fklChanlSend(fklCreateVMsend(err),tmpCh,exe->gc);
-	}
-	exe->chan=NULL;
-	fklDestroyVMstack(exe->stack);
-	exe->stack=NULL;
-	exe->codeObj=NULL;
-	if(state!=0)
-		fklDeleteCallChain(exe);
-	exe->frames=NULL;
-	exe->mark=0;
-	fklTcMutexRelease(exe->gc);
-	return (void*)state;
-}
+//static void* threadVMfunc(void* p)
+//{
+//	FklVM* exe=(FklVM*)p;
+//	FklVMchanl* tmpCh=exe->chan->u.chan;
+//	int64_t state=fklRunVM(exe);
+//	fklTcMutexAcquire(exe->gc);
+//	if(!state)
+//	{
+//		FklVMvalue* v=fklGetTopValue(exe->stack);
+//		FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,v,exe);
+//		fklChanlSend(fklCreateVMsend(resultBox),tmpCh,exe->gc);
+//	}
+//	else
+//	{
+//		FklVMvalue* err=fklGetTopValue(exe->stack);
+//		fklChanlSend(fklCreateVMsend(err),tmpCh,exe->gc);
+//	}
+//	exe->chan=NULL;
+//	fklDestroyVMstack(exe->stack);
+//	exe->stack=NULL;
+//	exe->codeObj=NULL;
+//	if(state!=0)
+//		fklDeleteCallChain(exe);
+//	exe->frames=NULL;
+//	exe->mark=0;
+//	fklTcMutexRelease(exe->gc);
+//	return (void*)state;
+//}
 
 int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklVMgc* gc)
 {
@@ -3169,18 +3274,18 @@ static void builtin_go(FKL_DL_PROC_ARGL)
 	}
 	fklUninitPtrStack(&comStack);
 	FklVMvalue* chan=threadVM->chan;
-	int32_t faildCode=0;
-	faildCode=pthread_create(&threadVM->tid,NULL,threadVMfunc,threadVM);
-	if(faildCode)
-	{
-		fklDeleteCallChain(threadVM);
-		fklDestroyVMstack(threadVM->stack);
-		threadVM->stack=NULL;
-		threadVM->codeObj=NULL;
-		fklNiReturn(FKL_MAKE_VM_FIX(faildCode),&ap,stack);
-	}
-	else
-		fklNiReturn(chan,&ap,stack);
+	//int32_t faildCode=0;
+	//faildCode=pthread_create(&threadVM->tid,NULL,threadVMfunc,threadVM);
+	//if(faildCode)
+	//{
+	//	fklDeleteCallChain(threadVM);
+	//	fklDestroyVMstack(threadVM->stack);
+	//	threadVM->stack=NULL;
+	//	threadVM->codeObj=NULL;
+	//	fklNiReturn(FKL_MAKE_VM_FIX(faildCode),&ap,stack);
+	//}
+	//else
+	fklNiReturn(chan,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3226,8 +3331,7 @@ static void builtin_send(FKL_DL_PROC_ARGL)
 	if(!message||!ch)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.send",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ch,FKL_IS_CHAN,"builtin.send",exe);
-	FklVMsend* t=fklCreateVMsend(message);
-	fklChanlSend(t,ch->u.chan,exe->gc);
+	fklChanlSend(message,ch->u.chan,exe);
 	fklNiReturn(message,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3252,12 +3356,7 @@ static void builtin_recv(FKL_DL_PROC_ARGL)
 		fklNiReturn(r,&ap,stack);
 	}
 	else
-	{
-		FklVMrecv* t=fklCreateVMrecv();
-		fklChanlRecv(t,ch->u.chan,exe->gc);
-		fklNiReturn(t->v,&ap,stack);
-		fklDestroyVMrecv(t);
-	}
+		fklChanlRecv(fklNiReturn(FKL_VM_NIL,&ap,stack),ch->u.chan,exe);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3325,7 +3424,6 @@ typedef struct
 	size_t top;
 }EhFrameContext;
 
-
 static void error_handler_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
@@ -3334,7 +3432,7 @@ static void error_handler_frame_print_backtrace(FklCallObjData data,FILE* fp,Fkl
 	{
 		fprintf(fp,"at dlproc:");
 		fklPrintString(fklGetSymbolWithId(dlproc->sid,table)->symbol
-				,stderr);
+				,fp);
 		fputc('\n',fp);
 	}
 	else
@@ -3413,7 +3511,7 @@ static int isShouldBeHandle(const FklVMvalue* symbolList,FklSid_t type)
 	return 0;
 }
 
-static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklVM* exe,void* a)
+static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 {
 	EhFrameContext* c=(EhFrameContext*)f->u.o.data;
 	size_t num=c->num;
@@ -4210,11 +4308,13 @@ static void builtin_sleep(FKL_DL_PROC_ARGL)
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sleep",FKL_ERR_TOOMANYARG,exe);
 	FKL_NI_CHECK_TYPE(second,fklIsInt,"builtin.sleep",exe);
-	int64_t sec=fklGetInt(second);
-	fklTcMutexRelease(exe->gc);
-	unsigned int r=sleep(sec);
-	fklTcMutexAcquire(exe->gc);
-	fklNiReturn(fklMakeVMuint(r,exe),&ap,stack);
+	uint64_t sec=fklGetUint(second);
+	//fklTcMutexRelease(exe->gc);
+	//unsigned int r=sleep(sec);
+	//fklTcMutexAcquire(exe->gc);
+
+	fklSleepThread(exe,sec);
+	fklNiReturn(second,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -5181,6 +5281,28 @@ uint8_t* fklGetBultinSymbolModifyMark(uint32_t* p)
 	FKL_ASSERT(r);
 	return r;
 }
+
+//void print_refs(FklHashTable* ht,FklSymbolTable* publicSymbolTable)
+//{
+//	uint32_t size=ht->size;
+//	FklHashTableNode** base=ht->base;
+//	for(uint32_t i=0;i<size;i++)
+//	{
+//		uint32_t c=0;
+//		for(FklHashTableNode* h=base[i];h;h=h->next)
+//			c++;
+//		fprintf(stderr,"%4u:",c);
+//		for(FklHashTableNode* h=base[i];h;h=h->next)
+//		{
+//			FklSymbolDef* def=(FklSymbolDef*)h->data;
+//			fputc('|',stderr);
+//			fklPrintString(fklGetSymbolWithId(def->k.id,publicSymbolTable)->symbol,stderr);
+//			fputc('|',stderr);
+//			fputs(" -> ",stderr);
+//		}
+//		fputs("(/)\n",stderr);
+//	}
+//}
 
 void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* publicSymbolTable)
 {

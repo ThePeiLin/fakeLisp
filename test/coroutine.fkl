@@ -2,9 +2,9 @@
 
 (go (lambda (ch)
       (when (= (recv ch) "I'm your father!")
-        (princ "Thread#1:Noooooooo!\n")
+        (princ "coroutine#1:Noooooooo!\n")
         (send nil ch)))
     ch)
-(princ "Thread#0:I'm your father!\n")
+(princ "coroutine#0:I'm your father!\n")
 (send "I'm your father!" ch)
 (recv ch)

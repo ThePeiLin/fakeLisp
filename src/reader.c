@@ -5,64 +5,59 @@
 #include<stdlib.h>
 #include<ctype.h>
 
-char* fklReadLine(FILE* fp,size_t* size)
-{
-	int32_t memSize=FKL_MAX_STRING_SIZE;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	FKL_ASSERT(tmp);
-	int ch=getc(fp);
-	for(;;)
-	{
-		if(ch==EOF)
-			break;
-		(*size)++;
-		if((*size)>memSize)
-		{
-			char* ttmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-			FKL_ASSERT(ttmp);
-			tmp=ttmp;
-			memSize+=FKL_MAX_STRING_SIZE;
-		}
-		tmp[*size-1]=ch;
-		if(ch=='\n')
-			break;
-		ch=getc(fp);
-	}
-	char* ttmp=(char*)realloc(tmp,sizeof(char)*(*size));
-	FKL_ASSERT(ttmp||!*size);
-	tmp=ttmp;
-	return tmp;
-}
+//char* fklReadLine(FILE* fp,size_t* size)
+//{
+//	int32_t memSize=FKL_MAX_STRING_SIZE;
+//	char* tmp=(char*)malloc(sizeof(char)*memSize);
+//	FKL_ASSERT(tmp);
+//	int ch=getc(fp);
+//	for(;;)
+//	{
+//		if(ch==EOF)
+//			break;
+//		(*size)++;
+//		if((*size)>memSize)
+//		{
+//			char* ttmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+//			FKL_ASSERT(ttmp);
+//			tmp=ttmp;
+//			memSize+=FKL_MAX_STRING_SIZE;
+//		}
+//		tmp[*size-1]=ch;
+//		if(ch=='\n')
+//			break;
+//		ch=getc(fp);
+//	}
+//	char* ttmp=(char*)realloc(tmp,sizeof(char)*(*size));
+//	FKL_ASSERT(ttmp||!*size);
+//	tmp=ttmp;
+//	return tmp;
+//}
 
 char* fklReadInStringPattern(FILE* fp
-		,char** prev
 		,size_t* psize
-		,size_t* prevSize
 		,size_t line
 		,size_t* pline
 		,int* unexpectEOF
 		,FklPtrStack* retval
-		,char* (*read)(FILE*,size_t*)
 		,FklStringMatchPattern* patterns
 		,FklStringMatchRouteNode** proute)
 {
 	size_t size=0;
+	char* nextline=NULL;
+	size_t nextlen=0;
 	char* tmp=NULL;
 	*unexpectEOF=0;
-	if(!read)
-		read=fklReadLine;
-	if(*prev)
-	{
-		tmp=(char*)malloc(sizeof(char)*(*prevSize));
-		FKL_ASSERT(tmp);
-		memcpy(tmp,*prev,*prevSize);
-		free(*prev);
-		*prev=NULL;
-		size=*prevSize;
-		*prevSize=0;
-	}
-	else
-		size=0;
+	//if(*prev)
+	//{
+	//	tmp=(char*)malloc(sizeof(char)*(*prevSize));
+	//	FKL_ASSERT(tmp);
+	//	memcpy(tmp,*prev,*prevSize);
+	//	free(*prev);
+	//	*prev=NULL;
+	//	size=*prevSize;
+	//	*prevSize=0;
+	//}
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL
 			,0,0
@@ -90,9 +85,11 @@ char* fklReadInStringPattern(FILE* fp
 		{
 			if(size-j)
 			{
-				*prevSize=size-j;
-				*prev=fklCopyMemory(tmp+j,*prevSize);
-				size-=*prevSize;
+				size_t restSize=size-j;
+				fklRewindStream(fp,tmp+j,restSize);
+				//*prevSize=size-j;
+				//*prev=fklCopyMemory(tmp+j,*prevSize);
+				size-=restSize;
 			}
 			char* rt=(char*)realloc(tmp,sizeof(char)*(size));
 			FKL_ASSERT(rt||!size);
@@ -120,16 +117,17 @@ char* fklReadInStringPattern(FILE* fp
 			tmp=NULL;
 			break;
 		}
-		size_t nextSize=0;
-		char* next=read(fp,&nextSize);
-		tmp=(char*)realloc(tmp,sizeof(char)+(size+nextSize));
+		ssize_t nextSize=getline(&nextline,&nextlen,fp);
+		if(nextSize==-1)
+			continue;
+		tmp=(char*)realloc(tmp,sizeof(char)*(size+nextSize));
 		FKL_ASSERT(tmp);
-		memcpy(tmp+size,next,nextSize);
+		memcpy(&tmp[size],nextline,nextSize);
 		size+=nextSize;
-		free(next);
 	}
 	*pline=line;
 	*psize=size;
+	free(nextline);
 	return tmp;
 }
 

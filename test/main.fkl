@@ -7,7 +7,7 @@
         (hello)
         (internationale)
         (test-loc)
-        (readerMacro)
+        (reader-macro)
         (test))
 
 (println "\ntest done!")

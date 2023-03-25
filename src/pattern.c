@@ -207,7 +207,7 @@ static FklNastNode* bytevectorProcesser(FklPtrStack* nastStack
 	return retval;
 }
 
-static FklNastNode* hashTableProcess(FklVMhashTableEqType type
+static FklNastNode* hashTableProcess(FklHashTableEqType type
 		,FklPtrStack* nastStack
 		,uint64_t line
 		,size_t* errorLine)
@@ -238,7 +238,7 @@ static FklNastNode* hashEqProcesser(FklPtrStack* nodeStack
 		,size_t* errorLine
 		,const FklSid_t st[4])
 {
-	return hashTableProcess(FKL_VM_HASH_EQ,nodeStack,line,errorLine);
+	return hashTableProcess(FKL_HASH_EQ,nodeStack,line,errorLine);
 }
 
 static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack
@@ -246,7 +246,7 @@ static FklNastNode* hashEqvProcesser(FklPtrStack* nodeStack
 		,size_t* errorLine
 		,const FklSid_t st[4])
 {
-	return hashTableProcess(FKL_VM_HASH_EQV,nodeStack,line,errorLine);
+	return hashTableProcess(FKL_HASH_EQV,nodeStack,line,errorLine);
 }
 
 static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack
@@ -254,7 +254,7 @@ static FklNastNode* hashEqualProcesser(FklPtrStack* nodeStack
 		,size_t* errorLine
 		,const FklSid_t st[4])
 {
-	return hashTableProcess(FKL_VM_HASH_EQUAL,nodeStack,line,errorLine);
+	return hashTableProcess(FKL_HASH_EQUAL,nodeStack,line,errorLine);
 }
 
 static struct BuiltinStringPattern

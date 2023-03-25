@@ -136,7 +136,7 @@ typedef struct FklVMvalue
 		struct FklVMcontinuation* cont;
 		FklVMfp* fp;
 		FklVMvec* vec;
-		struct FklVMhashTable* hash;
+		FklHashTable* hash;
 		struct FklVMchanl* chan;
 		struct FklVMerror* err;
 		FklBigInt* bigInt;
@@ -152,12 +152,6 @@ typedef struct
 	FklVMvalue* key;
 	FklVMvalue* v;
 }FklVMhashTableItem;
-
-typedef struct FklVMhashTable
-{
-	FklHashTable* ht;
-	FklVMhashTableEqType type;
-}FklVMhashTable;
 
 typedef struct
 {
@@ -484,13 +478,22 @@ void fklDestroyVMframe(FklVMframe*,FklVM* exe);
 FklString* fklGenErrorMessage(FklBuiltInErrorType type);
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
 
-FklVMhashTable* fklCreateVMhashTable(FklVMhashTableEqType);
-void fklClearVMhashTable(FklVMhashTable* ht,FklVMgc*);
-void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklVMhashTable* ht,FklVMgc* gc);
-FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklVMhashTable* ht,FklVMgc*);
-FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklVMhashTable* ht);
-FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklVMhashTable* ht,int* ok);
-void fklDestroyVMhashTable(FklVMhashTable*);
+FklHashTable* fklCreateVMhashTable(FklHashTableEqType);
+FklHashTable* fklCreateVMhashTableEq(void);
+FklHashTable* fklCreateVMhashTableEqv(void);
+FklHashTable* fklCreateVMhashTableEqual(void);
+
+int fklIsVMhashEq(FklHashTable*);
+int fklIsVMhashEqv(FklHashTable*);
+int fklIsVMhashEqual(FklHashTable*);
+uintptr_t fklGetVMhashTableType(FklHashTable*);
+const char* fklGetVMhashTablePrefix(FklHashTable*);
+void fklClearVMhashTable(FklHashTable* ht,FklVMgc*);
+void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc);
+FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc*);
+FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklHashTable* ht);
+FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklHashTable* ht,int* ok);
+void fklDestroyVMhashTable(FklHashTable*);
 
 FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
 FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc);
@@ -761,9 +764,9 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_IS_BIG_INT(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BIG_INT)
 #define FKL_IS_BOX(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BOX)
 #define FKL_IS_HASHTABLE(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE)
-#define FKL_IS_HASHTABLE_EQ(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQ)
-#define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQV)
-#define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&(P)->u.hash->type==FKL_VM_HASH_EQUAL)
+#define FKL_IS_HASHTABLE_EQ(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEq((P)->u.hash))
+#define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqv((P)->u.hash))
+#define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqual((P)->u.hash))
 
 #define FKL_DL_PROC_ARGL FklVM* exe,FklVMvalue* rel,FklVMvalue* pd
 

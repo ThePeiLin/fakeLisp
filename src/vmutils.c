@@ -621,10 +621,10 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 			}
 			else if(FKL_IS_HASHTABLE(v))
 			{
-				FklVMhashTable* ht=v->u.hash;
+				FklHashTable* ht=v->u.hash;
 				FklPtrStack stack=FKL_STACK_INIT;
 				fklInitPtrStack(&stack,32,16);
-				for(FklHashTableNodeList* list=ht->ht->list;list;list=list->next)
+				for(FklHashTableNodeList* list=ht->list;list;list=list->next)
 					fklPushPtrStack(list->node->data,&stack);
 				while(!fklIsPtrStackEmpty(&stack))
 				{
@@ -948,15 +948,15 @@ void fklPrintVMvalue(FklVMvalue* value
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						const static char* tmp[]=
-						{
-							"#hash(",
-							"#hasheqv(",
-							"#hashequal(",
-						};
-						fputs(tmp[v->u.hash->type],fp);
+						//const static char* tmp[]=
+						//{
+						//	"#hash(",
+						//	"#hasheqv(",
+						//	"#hashequal(",
+						//};
+						fputs(fklGetVMhashTablePrefix(v->u.hash),fp);
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
-						for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
+						for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)
 						{
 							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 							PrtElem* keyElem=NULL;
@@ -1386,15 +1386,15 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						const static char* tmp[]=
-						{
-							"#hash(",
-							"#hasheqv(",
-							"#hashequal(",
-						};
-						utstring_printf(&result,"%s",tmp[v->u.hash->type]);
+						//const static char* tmp[]=
+						//{
+						//	"#hash(",
+						//	"#hasheqv(",
+						//	"#hashequal(",
+						//};
+						utstring_printf(&result,"%s",fklGetVMhashTablePrefix(v->u.hash));
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
-						for(FklHashTableNodeList* list=v->u.hash->ht->list;list;list=list->next)
+						for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)
 						{
 							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 							PrtElem* keyElem=NULL;

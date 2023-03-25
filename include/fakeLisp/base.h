@@ -90,17 +90,9 @@ typedef struct FklHashTableMetaTable
 }FklHashTableMetaTable;
 
 #define FKL_HASH_GET_KEY(name,type,field) void* name(void* item){return &((type*)item)->field;}
+#define FKL_DEFAULT_HASH_LOAD_FACTOR (2.0)
 
-FklHashTable* fklCreateHashTable(
-		//size_t size
-		//,size_t linkNum
-		//,int linkNumInc
-		//,double threshold
-		//,int thresholdInc
-		//,
-		const FklHashTableMetaTable*);
-
-//FklHashTable* fklCreateDefaultHashTable(size_t size,FklHashTableMetaTable* t);
+FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
 
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutHashItem(void* key,FklHashTable*);

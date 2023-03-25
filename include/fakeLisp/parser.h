@@ -87,15 +87,15 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
 
 typedef enum
 {
-	FKL_VM_HASH_EQ=0,
-	FKL_VM_HASH_EQV,
-	FKL_VM_HASH_EQUAL,
-}FklVMhashTableEqType;
+	FKL_HASH_EQ=0,
+	FKL_HASH_EQV,
+	FKL_HASH_EQUAL,
+}FklHashTableEqType;
 
 FklNastNode* fklNastConsWithSym(FklSid_t,FklNastNode*,uint64_t l1,uint64_t l2);
 FklNastNode* fklNastCons(FklNastNode*,FklNastNode*,uint64_t l1);
 FklNastPair* fklCreateNastPair(void);
-FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType,size_t);
+FklNastHashTable* fklCreateNastHash(FklHashTableEqType,size_t);
 FklNastVector* fklCreateNastVector(size_t);
 int fklIsNastNodeList(const FklNastNode* list);
 int fklIsNastNodeListAndHasSameType(const FklNastNode* list,FklNastType type);

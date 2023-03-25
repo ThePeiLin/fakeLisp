@@ -5,6 +5,6 @@
         (Russian,"Интернационалом")
         (Spanish,"La Internacional")])
 (define my-language 'Chinese)
-(princ (href internationle-in-some-language
+(println internationle-in-some-language)
+(println (href internationle-in-some-language
              my-language ()))
-(newline)

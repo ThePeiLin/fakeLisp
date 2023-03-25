@@ -1190,7 +1190,7 @@ static void inline B_push_hash_eq(FklVM* exe,FklVMframe* frame)
 	FKL_NI_BEGIN(exe);
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
-			,fklCreateVMhashTable(FKL_VM_HASH_EQ),exe);
+			,fklCreateVMhashTableEq(),exe);
 	uint64_t kvnum=num*2;
 	FklVMvalue** base=&stack->base[stack->tp-kvnum-1];
 	for(uint32_t i=0;i<kvnum;i+=2)
@@ -1209,7 +1209,7 @@ static void inline B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
 	FKL_NI_BEGIN(exe);
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
-			,fklCreateVMhashTable(FKL_VM_HASH_EQV),exe);
+			,fklCreateVMhashTableEqv(),exe);
 
 	uint64_t kvnum=num*2;
 	FklVMvalue** base=&stack->base[stack->tp-kvnum-1];
@@ -1229,7 +1229,7 @@ static void inline B_push_hash_equal(FklVM* exe,FklVMframe* frame)
 	FKL_NI_BEGIN(exe);
 	uint64_t num=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* hash=fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE
-			,fklCreateVMhashTable(FKL_VM_HASH_EQUAL),exe);
+			,fklCreateVMhashTableEqual(),exe);
 	uint64_t kvnum=num*2;
 
 	FklVMvalue** base=&stack->base[stack->tp-kvnum-1];

@@ -222,7 +222,7 @@ typedef struct
 	uint32_t cindex;
 }MatchState;
 
-FklNastHashTable* fklCreateNastHash(FklVMhashTableEqType type,size_t num)
+FklNastHashTable* fklCreateNastHash(FklHashTableEqType type,size_t num)
 {
 	FklNastHashTable* r=(FklNastHashTable*)malloc(sizeof(FklNastHashTable));
 	FKL_ASSERT(r);

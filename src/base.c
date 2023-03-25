@@ -1810,7 +1810,7 @@ static FklHashTableNodeList* createHashTableNodeList(FklHashTableNode* node)
 	return list;
 }
 
-#define REHASH() if(isgreater((double)ht->num/ht->size,2.0))\
+#define REHASH() if(isgreater((double)ht->num/ht->size,FKL_DEFAULT_HASH_LOAD_FACTOR))\
 	expandHashTable(ht);
 
 static FklHashTableNode* createHashTableNode(size_t size,FklHashTableNode* next)
@@ -1829,9 +1829,20 @@ static inline void putHashNode(FklHashTableNode* node,FklHashTable* ht)
 	*pp=node;
 }
 
+static inline uint32_t next_pow2(uint32_t n)
+{
+	n--;
+	n|=n>>1;
+	n|=n>>2;
+	n|=n>>4;
+	n|=n>>8;
+	n|=n>>16;
+	return n+1;
+}
+
 static inline void expandHashTable(FklHashTable* table)
 {
-	table->size<<=1;
+	table->size=next_pow2(table->num);
 	table->mask=table->size-1;
 	FklHashTableNodeList* list=table->list;
 	free(table->base);

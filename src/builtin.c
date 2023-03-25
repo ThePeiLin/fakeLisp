@@ -3044,7 +3044,7 @@ static void* threadVMfunc(void* p)
 	return (void*)state;
 }
 
-int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklVMhashTable* ht,FklVMgc* gc)
+int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklVMgc* gc)
 {
 	if(!FKL_IS_PAIR(exp))
 		return 1;
@@ -3127,7 +3127,7 @@ static void builtin_pattern_match(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pattern-match",FKL_ERR_TOOFEWARG,exe);
 	if(!isValidSyntaxPattern(pattern))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pattern-match",FKL_ERR_INVALIDPATTERN,exe);
-	FklVMhashTable* hash=fklCreateVMhashTable(FKL_VM_HASH_EQ);
+	FklHashTable* hash=fklCreateVMhashTableEq();
 	if(matchPattern(pattern,exp,hash,exe->gc))
 	{
 		fklDestroyVMhashTable(hash);
@@ -4315,7 +4315,7 @@ static void builtin_system(FKL_DL_PROC_ARGL)
 static void builtin_hash(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQ);
+	FklHashTable* ht=fklCreateVMhashTableEq();
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
 			;cur
 			;cur=fklNiGetArg(&ap,stack))
@@ -4341,14 +4341,14 @@ static void builtin_hash_num(FKL_DL_PROC_ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-num",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-num",exe);
-	fklNiReturn(fklMakeVMuint(ht->u.hash->ht->num,exe),&ap,stack);
+	fklNiReturn(fklMakeVMuint(ht->u.hash->num,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
 static void builtin_make_hash(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQ);
+	FklHashTable* ht=fklCreateVMhashTableEq();
 	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
 	{
 		FklVMvalue* value=fklNiGetArg(&ap,stack);
@@ -4367,7 +4367,7 @@ static void builtin_make_hash(FKL_DL_PROC_ARGL)
 static void builtin_hasheqv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQV);
+	FklHashTable* ht=fklCreateVMhashTableEqv();
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
 			;cur
 			;cur=fklNiGetArg(&ap,stack))
@@ -4386,7 +4386,7 @@ static void builtin_hasheqv(FKL_DL_PROC_ARGL)
 static void builtin_make_hasheqv(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQV);
+	FklHashTable* ht=fklCreateVMhashTableEqv();
 	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
 	{
 		FklVMvalue* value=fklNiGetArg(&ap,stack);
@@ -4405,7 +4405,7 @@ static void builtin_make_hasheqv(FKL_DL_PROC_ARGL)
 static void builtin_hashequal(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQUAL);
+	FklHashTable* ht=fklCreateVMhashTableEqual();
 	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
 			;cur
 			;cur=fklNiGetArg(&ap,stack))
@@ -4424,7 +4424,7 @@ static void builtin_hashequal(FKL_DL_PROC_ARGL)
 static void builtin_make_hashequal(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMhashTable* ht=fklCreateVMhashTable(FKL_VM_HASH_EQUAL);
+	FklHashTable* ht=fklCreateVMhashTableEqual();
 	for(FklVMvalue* key=fklNiGetArg(&ap,stack);key;key=fklNiGetArg(&ap,stack))
 	{
 		FklVMvalue* value=fklNiGetArg(&ap,stack);
@@ -4541,10 +4541,10 @@ static void builtin_hash_to_list(FKL_DL_PROC_ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash->list",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash->list",exe);
-	FklVMhashTable* hash=ht->u.hash;
+	FklHashTable* hash=ht->u.hash;
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
-	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
+	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		FklVMvalue* pair=fklCreateVMpairV(item->key,item->v,exe);
@@ -4565,10 +4565,10 @@ static void builtin_hash_keys(FKL_DL_PROC_ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-keys",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-keys",exe);
-	FklVMhashTable* hash=ht->u.hash;
+	FklHashTable* hash=ht->u.hash;
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
-	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
+	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklSetRef(cur,fklCreateVMpairV(item->key,FKL_VM_NIL,exe),gc);
@@ -4588,10 +4588,10 @@ static void builtin_hash_values(FKL_DL_PROC_ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builin.hash-values",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-values",exe);
-	FklVMhashTable* hash=ht->u.hash;
+	FklHashTable* hash=ht->u.hash;
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
-	for(FklHashTableNodeList* list=hash->ht->list;list;list=list->next)
+	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklSetRef(cur,fklCreateVMpairV(item->v,FKL_VM_NIL,exe),gc);

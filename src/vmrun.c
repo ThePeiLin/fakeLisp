@@ -2647,7 +2647,7 @@ FklVMgc* fklCreateVMgc()
 
 void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
-	if(FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
+	if(FKL_IS_PTR(v)&&v!=NULL&&v->mark!=FKL_MARK_B)
 	{
 		v->mark=FKL_MARK_G;
 		gc->grey=createGreylink(v,gc->grey);
@@ -2659,8 +2659,7 @@ void fklGC_markRootToGrey(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMgc* gc=exe->gc;
-	if(exe->codeObj)
-		fklGC_toGrey(exe->codeObj,gc);
+	fklGC_toGrey(exe->codeObj,gc);
 
 	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
 		fklDoAtomicFrame(cur,gc);
@@ -2668,8 +2667,7 @@ void fklGC_markRootToGrey(FklVM* exe)
 	uint32_t count=exe->ltp;
 	FklVMvalue** loc=exe->locv;
 	for(uint32_t i=0;i<count;i++)
-		if(loc[i])
-			fklGC_toGrey(loc[i],gc);
+		fklGC_toGrey(loc[i],gc);
 
 	for(size_t i=0;i<exe->libNum;i++)
 	{
@@ -2678,18 +2676,15 @@ void fklGC_markRootToGrey(FklVM* exe)
 		if(lib->imported)
 		{
 			for(uint32_t i=0;i<lib->count;i++)
-				if(lib->loc[i])
-					fklGC_toGrey(lib->loc[i],gc);
+				fklGC_toGrey(lib->loc[i],gc);
 		}
 	}
 	for(uint32_t i=0;i<stack->tp;i++)
 	{
 		FklVMvalue* value=stack->base[i];
-		if(FKL_IS_PTR(value))
-			fklGC_toGrey(value,gc);
+		fklGC_toGrey(value,gc);
 	}
-	if(exe->chan)
-		fklGC_toGrey(exe->chan,gc);
+	fklGC_toGrey(exe->chan,gc);
 }
 
 void fklGC_markAllRootToGrey(FklVM* curVM)

@@ -1738,11 +1738,7 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 	uint32_t count=proc->count;
 	FklVMvarRef** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
-	{
-		FklVMvalue* v=*(ref[i]->ref);
-		if(v)
-			fklGC_toGrey(v,gc);
-	}
+		fklGC_toGrey(*(ref[i]->ref),gc);
 }
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
@@ -1756,16 +1752,13 @@ void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
 {
-	if(root->u.dll->pd)
-		fklGC_toGrey(root->u.dll->pd,gc);
+	fklGC_toGrey(root->u.dll->pd,gc);
 }
 
 void fklAtomicVMdlproc(FklVMvalue* root,FklVMgc* gc)
 {
-	if(root->u.dlproc->dll)
-		fklGC_toGrey(root->u.dlproc->dll,gc);
-	if(root->u.dlproc->pd)
-		fklGC_toGrey(root->u.dlproc->pd,gc);
+	fklGC_toGrey(root->u.dlproc->dll,gc);
+	fklGC_toGrey(root->u.dlproc->pd,gc);
 }
 
 void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
@@ -1775,8 +1768,7 @@ void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
-	if(root->u.ud->rel)
-		fklGC_toGrey(root->u.ud->rel,gc);
+	fklGC_toGrey(root->u.ud->rel,gc);
 	if(root->u.ud->t->__atomic)
 		root->u.ud->t->__atomic(root->u.ud,gc);
 }

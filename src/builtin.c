@@ -2582,7 +2582,7 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(fp,FKL_IS_FP,"builtin.fclose",exe);
-	if(fp->u.fp==NULL||fklDestroyVMfp(fp->u.fp))
+	if(fp->u.fp->mutex||fp->u.fp==NULL||fklDestroyVMfp(fp->u.fp))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_INVALIDACCESS,exe);
 	fp->u.fp=NULL;
 	fklNiReturn(FKL_VM_NIL,&ap,stack);
@@ -2594,15 +2594,18 @@ typedef struct
 {
 	FklVMvalue* fpv;
 	FklStringMatchPattern* head;
-	UT_string* buf; //3*sizeof(void*)
-	FklPtrStack* tokenStack; //3*sizeof(void*)
+	FklStringMatchRouteNode* route;
+	FklStringMatchSet* matchSet;
+	UT_string* buf;
+	FklPtrStack* tokenStack;
+	const FklSid_t* headSymbol;
 	uint32_t ap;
 	uint32_t done;
+	size_t j;
 }ReadCtx;
 
-static void read_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
+static void do_nothing_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
 {
-	fprintf(fp,"at reading\n");
 }
 
 static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
@@ -2614,25 +2617,14 @@ static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
 static void read_frame_finalizer(FklCallObjData data)
 {
 	ReadCtx* c=(ReadCtx*)data;
+	fklUnLockVMfp(c->fpv);
 	utstring_free(c->buf);
 	FklPtrStack* s=c->tokenStack;
 	while(!fklIsPtrStackEmpty(s))
 		fklDestroyToken(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
-}
-
-static void read_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe)
-{
-	const ReadCtx* const sc=(const ReadCtx*)s;
-	ReadCtx* dc=(ReadCtx*)d;
-	memset(dc,0,sizeof(ReadCtx));
-	FklVMgc* gc=exe->gc;
-	dc->fpv=FKL_VM_NIL;
-	fklSetRef(&dc->fpv,sc->fpv,gc);
-	utstring_new(dc->buf);
-	UT_string* dcs=dc->buf;
-	const UT_string* scs=sc->buf;
-	utstring_bincpy(dcs,utstring_body(scs),utstring_len(scs));
+	fklDestroyStringMatchRoute(c->route);
+	fklDestroyStringMatchSet(c->matchSet);
 }
 
 static int read_frame_end(FklCallObjData d)
@@ -2645,23 +2637,70 @@ static int read_frame_end(FklCallObjData d)
 static void read_frame_step(FklCallObjData d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
-	FklVMfp* fp=rctx->fpv->u.fp;
-	int fd=fileno(fp->fp);
+	FklVMfp* vfp=rctx->fpv->u.fp;
+	FILE* fp=vfp->fp;
+	int fd=fileno(fp);
 	int attr=fcntl(fd,F_GETFL);
 	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
 	UT_string* s=rctx->buf;
 	int ch;
-	while((ch=fgetc(fp->fp))>0)
-		utstring_bincpy(s,&ch,sizeof(ch));
-	fcntl(fd,F_SETFL,attr);
-	if(feof(fp->fp))
+	while((ch=fgetc(fp))>0)
 	{
-		rctx->done=1;
-		FklString* str=fklCreateString(utstring_len(s),utstring_body(s));
-		FklVMvalue* v=fklCreateVMvalueToStack(FKL_TYPE_STR,str,exe);
-		uint32_t* pap=&rctx->ap;
-		fklNiReturn(v,pap,exe->stack);
-		fklNiEnd(pap,exe->stack);
+		char c=ch;
+		utstring_bincpy(s,&c,sizeof(c));
+		if(ch=='\n')
+			break;
+	}
+	fcntl(fd,F_SETFL,attr);
+	if(feof(fp)||ch=='\n')
+	{
+		size_t line=1;
+		int err=0;
+		rctx->matchSet=fklSplitStringIntoTokenWithPattern(utstring_body(s)
+				,utstring_len(s)
+				,line
+				,&line
+				,rctx->j
+				,&rctx->j
+				,rctx->tokenStack
+				,rctx->matchSet
+				,rctx->head
+				,rctx->route
+				,&rctx->route
+				,&err);
+		if(rctx->matchSet==NULL)
+		{
+			size_t j=rctx->j;
+			size_t len=utstring_len(s);
+			size_t errorLine=0;
+			if(len-j)
+				fklRewindStream(fp,utstring_body(s)+j,len-j);
+			rctx->done=1;
+			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(rctx->tokenStack
+					,rctx->route
+					,&errorLine
+					,rctx->headSymbol
+					,NULL
+					,exe->symbolTable);
+			if(node==NULL)
+				FKL_RAISE_BUILTIN_ERROR_CSTR("read",FKL_ERR_INVALIDEXPR,exe);
+			FklVMvalue* v=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
+			uint32_t* pap=&rctx->ap;
+			fklNiReturn(v,pap,exe->stack);
+			fklNiEnd(pap,exe->stack);
+			fklDestroyNastNode(node);
+		}
+		else if(feof(fp))
+		{
+			rctx->done=1;
+			if(rctx->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET)
+				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTEOF,exe);
+		}
+		else if(err)
+		{
+			rctx->done=1;
+			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		}
 	}
 }
 
@@ -2669,8 +2708,8 @@ static const FklVMframeContextMethodTable ReadContextMethodTable=
 {
 	.atomic=read_frame_atomic,
 	.finalizer=read_frame_finalizer,
-	.copy=read_frame_copy,
-	.print_backtrace=read_frame_print_backtrace,
+	.copy=NULL,
+	.print_backtrace=do_nothing_print_backtrace,
 	.step=read_frame_step,
 	.end=read_frame_end,
 };
@@ -2678,15 +2717,37 @@ static const FklVMframeContextMethodTable ReadContextMethodTable=
 static inline void initReadCtx(FklCallObjData data
 		,FklVMvalue* fpv
 		,FklStringMatchPattern* patterns
-		,uint32_t ap)
+		,uint32_t ap
+		,const FklSid_t headSymbol[4])
 {
 	ReadCtx* ctx=(ReadCtx*)data;
 	ctx->fpv=fpv;
 	ctx->head=patterns;
+	ctx->matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
+	ctx->headSymbol=headSymbol;
+	ctx->j=0;
+	ctx->route=fklCreateStringMatchRouteNode(NULL
+			,0,0
+			,NULL
+			,NULL
+			,NULL);
 	ctx->ap=ap;
 	utstring_new(ctx->buf);
 	ctx->tokenStack=fklCreatePtrStack(16,16);
 	ctx->done=0;
+}
+
+static inline void initFrameToReadFrame(FklVM* exe
+		,FklVMvalue* fpv
+		,FklStringMatchPattern* patterns
+		,uint32_t ap
+		,const FklSid_t headSymbol[4])
+{
+	fklLockVMfp(fpv,exe);
+	FklVMframe* f=exe->frames;
+	f->type=FKL_FRAME_OTHEROBJ;
+	f->u.o.t=&ReadContextMethodTable;
+	initReadCtx(f->u.o.data,fpv,patterns,ap,headSymbol);
 }
 
 static void builtin_read(FKL_DL_PROC_ARGL)
@@ -2697,75 +2758,18 @@ static void builtin_read(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	//char* tmpString=NULL;
-	//FklVMfp* tmpFile=NULL;
-	//FklPtrStack tokenStack=FKL_STACK_INIT;
-	//fklInitPtrStack(&tokenStack,32,16);
-	//FklStringMatchRouteNode* route=NULL;
 	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
-	//int unexpectEOF=0;
 	if(!stream||FKL_IS_FP(stream))
 	{
-		//size_t line=1;
-		//tmpFile=stream?stream->u.fp:pbd->sysIn->u.fp;
-		void** ctx=exe->frames->u.o.data;
-		exe->frames->u.o.t=&ReadContextMethodTable;
-		initReadCtx(ctx,stream?stream:pbd->sysIn,pbd->patterns,ap);
-		//fklCallFuncK(k_read,exe,createReadCtx(stream?stream:pbd->sysIn,pbd->patterns,ap));
-		//size_t size=0;
-		//FklStringMatchPattern* patterns=pbd->patterns;
-		//tmpString=fklReadInStringPattern(tmpFile->fp
-		//		,(char**)&tmpFile->prev
-		//		,&size
-		//		,&tmpFile->size
-		//		,line
-		//		,&line
-		//		,&unexpectEOF
-		//		,&tokenStack
-		//		,patterns
-		//		,&route);
-		//if(unexpectEOF)
-		//{
-		//	free(tmpString);
-		//	while(!fklIsPtrStackEmpty(&tokenStack))
-		//		fklDestroyToken(fklPopPtrStack(&tokenStack));
-		//	fklUninitPtrStack(&tokenStack);
-		//	fklDestroyStringMatchRoute(route);
-		//	FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_UNEXPECTEOF,exe);
-		//}
+		FklVMvalue* fpv=stream?stream:pbd->sysIn;
+		if(!fpv->u.fp)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDACCESS,exe);
+		initFrameToReadFrame(exe
+				,fpv
+				,pbd->patterns
+				,ap
+				,pbd->builtInHeadSymbolTable);
 	}
-	//size_t errorLine=0;
-	//FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
-	//		,route
-	//		,&errorLine
-	//		,pbd->builtInHeadSymbolTable
-	//		,NULL
-	//		,exe->symbolTable);
-	//FklVMvalue* tmp=NULL;
-	//if(node==NULL)
-	//{
-	//	if(unexpectEOF)
-	//	{
-	//		free(tmpString);
-	//		while(!fklIsPtrStackEmpty(&tokenStack))
-	//			fklDestroyToken(fklPopPtrStack(&tokenStack));
-	//		fklUninitPtrStack(&tokenStack);
-	//		fklDestroyStringMatchRoute(route);
-	//		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDEXPR,exe);
-	//	}
-	//	else
-	//		tmp=FKL_VM_NIL;
-	//}
-	//else
-	//	tmp=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
-	//while(!fklIsPtrStackEmpty(&tokenStack))
-	//	fklDestroyToken(fklPopPtrStack(&tokenStack));
-	//fklUninitPtrStack(&tokenStack);
-	//fklDestroyStringMatchRoute(route);
-	//fklNiReturn(tmp,&ap,stack);
-	//free(tmpString);
-	//fklDestroyNastNode(node);
-	//fklNiEnd(&ap,stack);
 }
 
 static void builtin_stringify(FKL_DL_PROC_ARGL)
@@ -2840,6 +2844,131 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+typedef enum
+{
+	FGETC=0,
+	FGETI,
+	FGETS,
+	FGETB,
+}FgetMode;
+
+typedef struct
+{
+	FklVMvalue* fpv;
+	UT_string buf;
+	FgetMode mode:16;
+	uint16_t done;
+	uint32_t ap;
+	size_t len;
+}FgetCtx;
+
+static inline void initFgetCtx(FklCallObjData d,FklVMvalue* fpv,FgetMode mode,size_t len,uint32_t ap)
+{
+	FgetCtx* ctx=(FgetCtx*)d;
+	ctx->fpv=fpv;
+	ctx->mode=mode;
+	ctx->len=len;
+	ctx->ap=ap;
+	ctx->done=0;
+	utstring_init(&ctx->buf);
+}
+
+static void fget_frame_atomic(FklCallObjData data,FklVMgc* gc)
+{
+	FgetCtx* c=(FgetCtx*)data;
+	fklGC_toGrey(c->fpv,gc);
+}
+
+static void fget_frame_finalizer(FklCallObjData data)
+{
+	FgetCtx* c=(FgetCtx*)data;
+	utstring_done(&c->buf);
+	fklUnLockVMfp(c->fpv);
+}
+
+static int fget_frame_end(FklCallObjData d)
+{
+	return ((FgetCtx*)d)->done;
+}
+
+static void fget_frame_step(FklCallObjData d,FklVM* exe)
+{
+    FgetCtx* ctx=(FgetCtx*)d;
+    FklVMfp* vfp=ctx->fpv->u.fp;
+    FILE* fp=vfp->fp;
+    int fd=fileno(fp);
+    int attr=fcntl(fd,F_GETFL);
+    fcntl(fd,F_SETFL,attr|O_NONBLOCK);
+    int ch=0;
+    UT_string* s=&ctx->buf;
+    switch(ctx->mode)
+    {
+        case FGETC:
+        case FGETI:
+            ch=fgetc(fp);
+            if(feof(fp))
+            {
+                ctx->done=1;
+                uint32_t* pap=&ctx->ap;
+                fklNiReturn(FKL_VM_NIL,pap,exe->stack);
+                fklNiEnd(pap,exe->stack);
+            }
+            else if(ch>0)
+            {
+                ctx->done=1;
+                FklVMvalue* retval=ctx->mode==FGETC?FKL_MAKE_VM_CHR(ch):FKL_MAKE_VM_FIX(ch);
+                uint32_t* pap=&ctx->ap;
+                fklNiReturn(retval,pap,exe->stack);
+                fklNiEnd(pap,exe->stack);
+            }
+            break;
+        case FGETS:
+        case FGETB:
+            while(ctx->len&&(ch=fgetc(fp))>0)
+            {
+                char c=ch;
+                utstring_bincpy(s,&c,sizeof(c));
+                ctx->len--;
+            }
+            if(!ctx->len||feof(fp))
+            {
+                ctx->done=1;
+                uint32_t* pap=&ctx->ap;
+                size_t len=utstring_len(s);
+                const char* body=utstring_body(s);
+                FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(len,body),exe)
+                    :fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(len,(const uint8_t*)body),exe);
+                fklNiReturn(retval,pap,exe->stack);
+                fklNiEnd(pap,exe->stack);
+            }
+            break;
+    }
+    fcntl(fd,F_SETFL,attr);
+}
+
+static const FklVMframeContextMethodTable FgetContextMethodTable=
+{
+	.atomic=fget_frame_atomic,
+	.finalizer=fget_frame_finalizer,
+	.copy=NULL,
+	.print_backtrace=do_nothing_print_backtrace,
+	.step=fget_frame_step,
+	.end=fget_frame_end,
+};
+
+static inline void initFrameToFgetFrame(FklVM* exe
+		,FklVMvalue* fpv
+		,FgetMode mode
+		,size_t len
+		,uint32_t ap)
+{
+	FklVMframe* f=exe->frames;
+	fklLockVMfp(fpv,exe);
+	f->type=FKL_FRAME_OTHEROBJ;
+	f->u.o.t=&FgetContextMethodTable;
+	initFgetCtx(f->u.o.data,fpv,mode,len,ap);
+}
+
 static void builtin_fgets(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
@@ -2851,54 +2980,55 @@ static void builtin_fgets(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_TOOFEWARG,exe);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklVMfp* fp=file->u.fp;
 	if(fklVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t size=fklGetUint(psize);
-	char* str=(char*)malloc(sizeof(char)*size);
-	FKL_ASSERT(str||!size);
-	int32_t realRead=0;
-	if(fp->size)
-	{
-		if(fp->size<=size)
-		{
-			memcpy(str,fp->prev,fp->size);
-			realRead+=fp->size;
-			size-=fp->size;
-			free(fp->prev);
-			fp->prev=NULL;
-			fp->size=0;
-		}
-		else
-		{
-			fp->size-=size;
-			memcpy(str,fp->prev,size);
-			realRead+=size;
-			uint8_t* prev=fp->prev;
-			fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
-			free(prev);
-			size=0;
-		}
-	}
-	if(size)
-		realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
-	if(!realRead)
-	{
-		free(str);
-		fklNiReturn(FKL_VM_NIL,&ap,stack);
-	}
-	else
-	{
-		size_t size=fklGetUint(psize);
-		FklVMvalue* vmstr=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
-		vmstr->u.str=(FklString*)malloc(sizeof(FklString)+size);
-		FKL_ASSERT(vmstr->u.str);
-		vmstr->u.str->size=size;
-		memcpy(vmstr->u.str->str,str,size);
-		free(str);
-		fklNiReturn(vmstr,&ap,stack);
-	}
-	fklNiEnd(&ap,stack);
+	if(!file->u.fp)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INVALIDACCESS,exe);
+	initFrameToFgetFrame(exe,file,FGETS,fklGetUint(psize),ap);
+	//char* str=(char*)malloc(sizeof(char)*size);
+	//FKL_ASSERT(str||!size);
+	//int32_t realRead=0;
+	//if(fp->size)
+	//{
+	//	if(fp->size<=size)
+	//	{
+	//		memcpy(str,fp->prev,fp->size);
+	//		realRead+=fp->size;
+	//		size-=fp->size;
+	//		free(fp->prev);
+	//		fp->prev=NULL;
+	//		fp->size=0;
+	//	}
+	//	else
+	//	{
+	//		fp->size-=size;
+	//		memcpy(str,fp->prev,size);
+	//		realRead+=size;
+	//		uint8_t* prev=fp->prev;
+	//		fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
+	//		free(prev);
+	//		size=0;
+	//	}
+	//}
+	//if(size)
+	//	realRead+=fread(str,sizeof(uint8_t),size,fp->fp);
+	//if(!realRead)
+	//{
+	//	free(str);
+	//	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	//}
+	//else
+	//{
+	//	size_t size=fklGetUint(psize);
+	//	FklVMvalue* vmstr=fklCreateVMvalueToStack(FKL_TYPE_STR,NULL,exe);
+	//	vmstr->u.str=(FklString*)malloc(sizeof(FklString)+size);
+	//	FKL_ASSERT(vmstr->u.str);
+	//	vmstr->u.str->size=size;
+	//	memcpy(vmstr->u.str->str,str,size);
+	//	free(str);
+	//	fklNiReturn(vmstr,&ap,stack);
+	//}
+	//fklNiEnd(&ap,stack);
 }
 
 static void builtin_fgetb(FKL_DL_PROC_ARGL)
@@ -2912,49 +3042,50 @@ static void builtin_fgetb(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_TOOFEWARG,exe);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklVMfp* fp=file->u.fp;
 	if(fklVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t size=fklGetUint(psize);
-	uint8_t* ptr=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(ptr||!size);
-	int32_t realRead=0;
-	if(fp->size)
-	{
-		if(fp->size<=size)
-		{
-			memcpy(ptr,fp->prev,fp->size);
-			realRead+=fp->size;
-			size-=fp->size;
-			free(fp->prev);
-			fp->prev=NULL;
-			fp->size=0;
-		}
-		else
-		{
-			fp->size-=size;
-			memcpy(ptr,fp->prev,size);
-			realRead+=size;
-			uint8_t* prev=fp->prev;
-			fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
-			free(prev);
-			size=0;
-		}
-	}
-	if(size)
-		realRead+=fread(ptr,sizeof(uint8_t),size,fp->fp);
-	if(!realRead)
-	{
-		free(ptr);
-		fklNiReturn(FKL_VM_NIL,&ap,stack);
-	}
-	else
-	{
-		FklVMvalue* bvec=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(realRead,ptr),exe);
-		free(ptr);
-		fklNiReturn(bvec,&ap,stack);
-	}
-	fklNiEnd(&ap,stack);
+	if(!file->u.fp)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INVALIDACCESS,exe);
+	initFrameToFgetFrame(exe,file,FGETB,fklGetUint(psize),ap);
+	//uint8_t* ptr=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	//FKL_ASSERT(ptr||!size);
+	//int32_t realRead=0;
+	//if(fp->size)
+	//{
+	//	if(fp->size<=size)
+	//	{
+	//		memcpy(ptr,fp->prev,fp->size);
+	//		realRead+=fp->size;
+	//		size-=fp->size;
+	//		free(fp->prev);
+	//		fp->prev=NULL;
+	//		fp->size=0;
+	//	}
+	//	else
+	//	{
+	//		fp->size-=size;
+	//		memcpy(ptr,fp->prev,size);
+	//		realRead+=size;
+	//		uint8_t* prev=fp->prev;
+	//		fp->prev=fklCopyMemory(prev+size,sizeof(uint8_t)*fp->size);
+	//		free(prev);
+	//		size=0;
+	//	}
+	//}
+	//if(size)
+	//	realRead+=fread(ptr,sizeof(uint8_t),size,fp->fp);
+	//if(!realRead)
+	//{
+	//	free(ptr);
+	//	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	//}
+	//else
+	//{
+	//	FklVMvalue* bvec=fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(realRead,ptr),exe);
+	//	free(ptr);
+	//	fklNiReturn(bvec,&ap,stack);
+	//}
+	//fklNiEnd(&ap,stack);
 }
 
 static void builtin_prin1(FKL_DL_PROC_ARGL)
@@ -4051,7 +4182,7 @@ static void builtin_feof(FKL_DL_PROC_ARGL)
 	FKL_NI_CHECK_TYPE(fp,FKL_IS_FP,"builtin.feof",exe);
 	if(fp->u.fp==NULL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.feof",FKL_ERR_INVALIDACCESS,exe);
-	fklNiReturn(!fp->u.fp->size&&feof(fp->u.fp->fp)?FKL_VM_TRUE:FKL_VM_NIL,&ap,stack);
+	fklNiReturn(feof(fp->u.fp->fp)?FKL_VM_TRUE:FKL_VM_NIL,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4104,26 +4235,27 @@ static void builtin_fgetc(FKL_DL_PROC_ARGL)
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
-	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
-	if(!fp)
+	FklVMvalue* fpv=stream?stream:pbd->sysIn;
+	if(!fpv->u.fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
-	if(fp->size)
-	{
-		fp->size-=1;
-		fklNiReturn(FKL_MAKE_VM_CHR(fp->prev[0]),&ap,stack);
-		uint8_t* prev=fp->prev;
-		fp->prev=fklCopyMemory(prev+1,sizeof(uint8_t)*fp->size);
-		free(prev);
-	}
-	else
-	{
-		int ch=fgetc(fp->fp);
-		if(ch==EOF)
-			fklNiReturn(FKL_VM_NIL,&ap,stack);
-		else
-			fklNiReturn(FKL_MAKE_VM_CHR(ch),&ap,stack);
-	}
-	fklNiEnd(&ap,stack);
+	initFrameToFgetFrame(exe,fpv,FGETC,1,ap);
+	//if(fp->size)
+	//{
+	//	fp->size-=1;
+	//	fklNiReturn(FKL_MAKE_VM_CHR(fp->prev[0]),&ap,stack);
+	//	uint8_t* prev=fp->prev;
+	//	fp->prev=fklCopyMemory(prev+1,sizeof(uint8_t)*fp->size);
+	//	free(prev);
+	//}
+	//else
+	//{
+	//	int ch=fgetc(fp->fp);
+	//	if(ch==EOF)
+	//		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	//	else
+	//		fklNiReturn(FKL_MAKE_VM_CHR(ch),&ap,stack);
+	//}
+	//fklNiEnd(&ap,stack);
 }
 
 static void builtin_fgeti(FKL_DL_PROC_ARGL)
@@ -4135,26 +4267,27 @@ static void builtin_fgeti(FKL_DL_PROC_ARGL)
 	if(stream&&!FKL_IS_FP(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
-	FklVMfp* fp=stream?stream->u.fp:pbd->sysIn->u.fp;
-	if(!fp)
+	FklVMvalue* fpv=stream?stream:pbd->sysIn;
+	if(!fpv->u.fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,exe);
-	if(fp->size)
-	{
-		fp->size-=1;
-		fklNiReturn(FKL_MAKE_VM_CHR(fp->prev[0]),&ap,stack);
-		uint8_t* prev=fp->prev;
-		fp->prev=fklCopyMemory(prev+1,sizeof(uint8_t)*fp->size);
-		free(prev);
-	}
-	else
-	{
-		int ch=fgetc(fp->fp);
-		if(ch==EOF)
-			fklNiReturn(FKL_VM_NIL,&ap,stack);
-		else
-			fklNiReturn(FKL_MAKE_VM_FIX(ch),&ap,stack);
-	}
-	fklNiEnd(&ap,stack);
+	initFrameToFgetFrame(exe,fpv,FGETI,1,ap);
+	//if(fp->size)
+	//{
+	//	fp->size-=1;
+	//	fklNiReturn(FKL_MAKE_VM_CHR(fp->prev[0]),&ap,stack);
+	//	uint8_t* prev=fp->prev;
+	//	fp->prev=fklCopyMemory(prev+1,sizeof(uint8_t)*fp->size);
+	//	free(prev);
+	//}
+	//else
+	//{
+	//	int ch=fgetc(fp->fp);
+	//	if(ch==EOF)
+	//		fklNiReturn(FKL_VM_NIL,&ap,stack);
+	//	else
+	//		fklNiReturn(FKL_MAKE_VM_FIX(ch),&ap,stack);
+	//}
+	//fklNiEnd(&ap,stack);
 }
 
 static void builtin_fwrite(FKL_DL_PROC_ARGL)

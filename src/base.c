@@ -78,7 +78,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 	}
 }
 
-FklQueueNode* fklCreateQueueNode(void* data)
+inline FklQueueNode* fklCreateQueueNode(void* data)
 {
 	FklQueueNode* tmp=(FklQueueNode*)malloc(sizeof(FklQueueNode));
 	FKL_ASSERT(tmp);
@@ -87,33 +87,45 @@ FklQueueNode* fklCreateQueueNode(void* data)
 	return tmp;
 }
 
-void fklDestroyQueueNode(FklQueueNode* tmp)
+inline void fklDestroyQueueNode(FklQueueNode* tmp)
 {
 	free(tmp);
 }
 
-FklPtrQueue* fklCreatePtrQueue(void)
+inline void fklInitPtrQueue(FklPtrQueue* q)
+{
+	q->head=NULL;
+	q->tail=&q->head;
+}
+
+inline FklPtrQueue* fklCreatePtrQueue(void)
 {
 	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
 	FKL_ASSERT(tmp);
+
 	tmp->head=NULL;
 	tmp->tail=&tmp->head;
 	return tmp;
 }
 
-void fklDestroyPtrQueue(FklPtrQueue* tmp)
+inline void fklUninitPtrQueue(FklPtrQueue* q)
 {
-	FklQueueNode* cur=tmp->head;
+	FklQueueNode* cur=q->head;
 	while(cur)
 	{
 		FklQueueNode* prev=cur;
 		cur=cur->next;
 		fklDestroyQueueNode(prev);
 	}
+}
+
+inline void fklDestroyPtrQueue(FklPtrQueue* tmp)
+{
+	fklUninitPtrQueue(tmp);
 	free(tmp);
 }
 
-int fklIsPtrQueueEmpty(FklPtrQueue* queue)
+inline int fklIsPtrQueueEmpty(FklPtrQueue* queue)
 {
 	return queue->head==NULL;
 }
@@ -126,7 +138,7 @@ uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
 	return i;
 }
 
-void* fklPopPtrQueue(FklPtrQueue* tmp)
+inline void* fklPopPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* head=tmp->head;
 	if(!head)

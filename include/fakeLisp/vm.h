@@ -94,9 +94,8 @@ typedef struct FklVMpair
 typedef struct FklVMfp
 {
 	FILE* fp;
+	FklPtrQueue next;
 	uint32_t mutex;
-	size_t size;
-	uint8_t* prev;
 }FklVMfp;
 
 typedef struct FklVMvec
@@ -301,7 +300,7 @@ typedef enum
 
 typedef struct FklVM
 {
-	uint32_t mark;
+	//uint32_t mark;
 
 	uint32_t ltp;
 	uint32_t lsize;
@@ -333,12 +332,12 @@ typedef struct FklVM
 	FklVMstate state;
 }FklVM;
 
-typedef struct
-{
-	FklVM* run;
-	FklVM* io;
-	FklVM* sleep;
-}FklVMscheduler;
+//typedef struct
+//{
+//	FklVM* run;
+//	FklVM* io;
+//	FklVM* sleep;
+//}FklVMscheduler;
 
 typedef struct FklVMudMethodTable
 {
@@ -417,7 +416,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklSymbolTable*
 		,FklSid_t* builtinErrorTypeId);
 
-FklVM* fklGetNextRunningVM(FklVMscheduler* sc);
+//FklVM* fklGetNextRunningVM(FklVMscheduler* sc);
 
 void fklDestroyVMvalue(FklVMvalue*);
 FklVMstack* fklCreateVMstack(uint32_t);
@@ -434,7 +433,7 @@ void fklTcMutexRelease(FklVMgc*);
 
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
-void fklJoinAllThread(FklVM* cur);
+//void fklJoinAllThread(FklVM* cur);
 
 void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
@@ -594,8 +593,12 @@ void fklDestroyVMchanl(FklVMchanl*);
 
 void fklDestroyVMproc(FklVMproc*);
 
+
 FklVMfp* fklCreateVMfp(FILE*);
 int fklDestroyVMfp(FklVMfp*);
+
+void fklLockVMfp(FklVMvalue* fpv,FklVM*);
+void fklUnLockVMfp(FklVMvalue* vfp);
 
 typedef FklVMvalue** (*FklImportDllInitFunc)(FklVM* exe,FklVMvalue* dll,uint32_t* count);
 

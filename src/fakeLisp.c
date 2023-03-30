@@ -90,7 +90,7 @@ static inline int compileAndRun(char* filename)
 		fklDeleteCallChain(anotherVM);
 	else
 		fklWaitGC(anotherVM->gc);
-	fklJoinAllThread(anotherVM);
+	//fklJoinAllThread(anotherVM);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
 	fklUninitCodegener(&codegen);
@@ -158,7 +158,7 @@ static inline int runCode(char* filename)
 		fklDeleteCallChain(anotherVM);
 	else
 		fklWaitGC(anotherVM->gc);
-	fklJoinAllThread(anotherVM);
+	//fklJoinAllThread(anotherVM);
 	fklDestroySymbolTable(table);
 	fklDestroyVMgc(gc);
 	fklDestroyAllVMs(anotherVM);
@@ -364,7 +364,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 		}
 	}
 	fklDestroyLineNumberTable(globalLnt);
-	fklJoinAllThread(anotherVM);
+	//fklJoinAllThread(anotherVM);
 	fklDoUninitCompoundFrame(&mainframe,anotherVM);
 	uint32_t count=mainframe.u.c.lr.rcount;
 	FklVMvarRef** ref=mainframe.u.c.lr.ref;

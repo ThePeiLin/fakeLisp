@@ -485,7 +485,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
 	fklInitBuiltinErrorType(exe->builtinErrorTypeId,globalSymTable);
-	exe->mark=1;
+	//exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=fklCreateVMstack(32);
 	exe->libNum=0;
@@ -717,12 +717,12 @@ inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 	ByteCodes[fklGetCompoundFrameOpAndInc(curframe)](exe,curframe);
 }
 
-inline FklVM* fklGetNextRunningVM(FklVMscheduler* sc)
-{
-	FklVM* r=sc->run;
-	sc->run=r->next;
-	return r;
-}
+//inline FklVM* fklGetNextRunningVM(FklVMscheduler* sc)
+//{
+//	FklVM* r=sc->run;
+//	sc->run=r->next;
+//	return r;
+//}
 
 int fklRunReplVM(FklVM* exe)
 {
@@ -847,7 +847,17 @@ int fklRunVM(FklVM* idle)
 				break;
 			case FKL_VM_READY:
 				if(setjmp(exe->buf)==1)
-					return 255;
+				{
+					if(exe->chan)
+					{
+						FklVMvalue* err=fklGetTopValue(exe->stack);
+						fklChanlSend(err,exe->chan->u.chan,exe);
+						exe->state=FKL_VM_EXIT;
+						continue;
+					}
+					else
+						return 255;
+				}
 				exe->state=FKL_VM_RUNNING;
 				continue;
 				break;
@@ -2714,24 +2724,26 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 
 	for(FklVM* cur=curVM->next;cur!=curVM;)
 	{
-		uint32_t mark=cur->mark;
-		if(mark)
-		{
-			fklGC_markRootToGrey(cur);
-			cur=cur->next;
-		}
-		else
-		{
-			FklVM* t=cur;
-			pthread_join(cur->tid,NULL);
-			if(cur->prev)
-				cur->prev->next=cur->next;
-			if(cur->next)
-				cur->next->prev=cur->prev;
-			cur=cur->next;
-			free(t->libs);
-			free(t);
-		}
+		fklGC_markRootToGrey(cur);
+		cur=cur->next;
+		//uint32_t mark=cur->mark;
+		//if(mark)
+		//{
+		//	fklGC_markRootToGrey(cur);
+		//	cur=cur->next;
+		//}
+		//else
+		//{
+		//	FklVM* t=cur;
+		//	pthread_join(cur->tid,NULL);
+		//	if(cur->prev)
+		//		cur->prev->next=cur->next;
+		//	if(cur->next)
+		//		cur->next->prev=cur->prev;
+		//	cur=cur->next;
+		//	free(t->libs);
+		//	free(t);
+		//}
 	}
 }
 
@@ -2966,7 +2978,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
 	exe->importingLib=NULL;
-	exe->mark=1;
+	//exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
 	exe->stack=fklCreateVMstack(32);
 	exe->gc=gc;
@@ -3019,11 +3031,11 @@ void fklDestroyAllVMs(FklVM* curVM)
 	curVM->prev=NULL;
 	for(FklVM* cur=curVM;cur;)
 	{
-		if(cur->mark)
-		{
-			fklDeleteCallChain(cur);
-			fklDestroyVMstack(cur->stack);
-		}
+		//if(cur->mark)
+		//{
+		fklDeleteCallChain(cur);
+		fklDestroyVMstack(cur->stack);
+		//}
 		FklVM* t=cur;
 		cur=cur->next;
 		free(t->locv);
@@ -3039,14 +3051,14 @@ void fklDestroyVMgc(FklVMgc* gc)
 	free(gc);
 }
 
-void fklJoinAllThread(FklVM* curVM)
-{
-	//for(FklVM* cur=curVM->prev;cur;cur=cur->prev)
-	//	pthread_join(cur->tid,NULL);
-	//for(FklVM* cur=curVM->next;cur;cur=cur->next)
-	//	pthread_join(cur->tid,NULL);
-	curVM->mark=1;
-}
+//void fklJoinAllThread(FklVM* curVM)
+//{
+//for(FklVM* cur=curVM->prev;cur;cur=cur->prev)
+//	pthread_join(cur->tid,NULL);
+//for(FklVM* cur=curVM->next;cur;cur=cur->next)
+//	pthread_join(cur->tid,NULL);
+//curVM->mark=1;
+//}
 
 void fklDeleteCallChain(FklVM* exe)
 {

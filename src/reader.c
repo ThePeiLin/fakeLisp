@@ -5,35 +5,6 @@
 #include<stdlib.h>
 #include<ctype.h>
 
-//char* fklReadLine(FILE* fp,size_t* size)
-//{
-//	int32_t memSize=FKL_MAX_STRING_SIZE;
-//	char* tmp=(char*)malloc(sizeof(char)*memSize);
-//	FKL_ASSERT(tmp);
-//	int ch=getc(fp);
-//	for(;;)
-//	{
-//		if(ch==EOF)
-//			break;
-//		(*size)++;
-//		if((*size)>memSize)
-//		{
-//			char* ttmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
-//			FKL_ASSERT(ttmp);
-//			tmp=ttmp;
-//			memSize+=FKL_MAX_STRING_SIZE;
-//		}
-//		tmp[*size-1]=ch;
-//		if(ch=='\n')
-//			break;
-//		ch=getc(fp);
-//	}
-//	char* ttmp=(char*)realloc(tmp,sizeof(char)*(*size));
-//	FKL_ASSERT(ttmp||!*size);
-//	tmp=ttmp;
-//	return tmp;
-//}
-
 char* fklReadInStringPattern(FILE* fp
 		,size_t* psize
 		,size_t line
@@ -48,16 +19,6 @@ char* fklReadInStringPattern(FILE* fp
 	size_t nextlen=0;
 	char* tmp=NULL;
 	*unexpectEOF=0;
-	//if(*prev)
-	//{
-	//	tmp=(char*)malloc(sizeof(char)*(*prevSize));
-	//	FKL_ASSERT(tmp);
-	//	memcpy(tmp,*prev,*prevSize);
-	//	free(*prev);
-	//	*prev=NULL;
-	//	size=*prevSize;
-	//	*prevSize=0;
-	//}
 	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL
 			,0,0
@@ -87,8 +48,6 @@ char* fklReadInStringPattern(FILE* fp
 			{
 				size_t restSize=size-j;
 				fklRewindStream(fp,tmp+j,restSize);
-				//*prevSize=size-j;
-				//*prev=fklCopyMemory(tmp+j,*prevSize);
 				size-=restSize;
 			}
 			char* rt=(char*)realloc(tmp,sizeof(char)*(size));

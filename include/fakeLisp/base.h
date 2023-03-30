@@ -138,6 +138,8 @@ typedef struct
 FklQueueNode* fklCreateQueueNode(void*);
 void fklDestroyQueueNode(FklQueueNode*);
 
+void fklInitPtrQueue(FklPtrQueue* q);
+void fklUninitPtrQueue(FklPtrQueue* q);
 FklPtrQueue* fklCreatePtrQueue(void);
 void fklDestroyPtrQueue(FklPtrQueue*);
 int fklIsPtrQueueEmpty(FklPtrQueue*);

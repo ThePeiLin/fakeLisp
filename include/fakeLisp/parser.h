@@ -73,6 +73,7 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack*
 		,struct FklCodegen*
 		,FklSymbolTable*);
 
+
 struct FklStringMatchPattern;
 FklNastNode* fklCreateNastNodeFromCstr(const char*
 		,const FklSid_t t[4]

@@ -1102,9 +1102,10 @@ FklVMfp* fklCreateVMfp(FILE* fp)
 	FklVMfp* vfp=(FklVMfp*)malloc(sizeof(FklVMfp));
 	FKL_ASSERT(vfp);
 	vfp->fp=fp;
-	vfp->size=0;
-	vfp->prev=NULL;
+	//vfp->size=0;
+	//vfp->prev=NULL;
 	vfp->mutex=0;
+	fklInitPtrQueue(&vfp->next);
 	//vfp->next=-1;
 	return vfp;
 }
@@ -1114,14 +1115,37 @@ int fklDestroyVMfp(FklVMfp* vfp)
 	int r=0;
 	if(vfp)
 	{
-		if(vfp->size)
-			free(vfp->prev);
+		//if(vfp->size)
+		//	free(vfp->prev);
 		FILE* fp=vfp->fp;
 		if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
 			r=1;
+		fklUninitPtrQueue(&vfp->next);
 		free(vfp);
 	}
 	return r;
+}
+
+void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
+{
+	FklVMfp* vfp=fpv->u.fp;
+	if(vfp->mutex)
+	{
+		exe->state=FKL_VM_WAITING;
+		fklPushPtrQueue(exe,&vfp->next);
+	}
+	else
+		vfp->mutex=1;
+}
+
+void fklUnLockVMfp(FklVMvalue* fpv)
+{
+	FklVMfp* vfp=fpv->u.fp;
+	FklVM* next=fklPopPtrQueue(&vfp->next);
+	if(next)
+		next->state=FKL_VM_READY;
+	else
+		vfp->mutex=0;
 }
 
 FklVMdll* fklCreateVMdll(const char* dllName)

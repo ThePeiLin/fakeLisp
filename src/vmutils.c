@@ -152,7 +152,6 @@ inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
-	//void* i[3]={exe,(void*)255,(void*)1};
 	for(;frame;frame=frame->prev)
 		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
 			break;

@@ -5826,13 +5826,13 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 			errorState->fid=codegen->fid;
 			errorState->line=curline;
 			fklDeleteCallChain(anotherVM);
-			fklJoinAllThread(anotherVM);
+			//fklJoinAllThread(anotherVM);
 			r=NULL;
 		}
 		else
 		{
 			fklWaitGC(anotherVM->gc);
-			fklJoinAllThread(anotherVM);
+			//fklJoinAllThread(anotherVM);
 			uint64_t curline=r->curline;
 			fklDestroyNastNode(r);
 			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)

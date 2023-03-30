@@ -1111,8 +1111,9 @@ inline int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
 	if(fp==stdin)
 	{
 		for(size_t i=len;i>0;i--)
-			if(ungetc(buf[i-1],fp))
+			if(ungetc(buf[i-1],fp)==-1)
 				return -1;
+		return 0;
 	}
 	return fseek(fp,-len,SEEK_CUR);
 }

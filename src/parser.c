@@ -717,7 +717,7 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 	}
 	else
 	{
-		fklWaitGC(anotherVM->gc);
+		//fklWaitGC(anotherVM->gc);
 		//fklJoinAllThread(anotherVM);
 		fklDestroyNastNode(r);
 		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)

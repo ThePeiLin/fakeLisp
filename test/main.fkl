@@ -1,6 +1,7 @@
 (import (ascii-art)
         (bf)
         (bigloop)
+        (coroutine)
         (demo1)
         (demo2)
         (fib)

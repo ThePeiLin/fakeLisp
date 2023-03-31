@@ -473,14 +473,14 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	FKL_ASSERT(exe);
 	exe->importingLib=NULL;
 	exe->frames=NULL;
-	exe->tid=pthread_self();
+	//exe->tid=pthread_self();
 	exe->gc=fklCreateVMgc();
 	exe->state=FKL_VM_READY;
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc);
 		exe->frames=fklCreateVMframeWithCodeObj(codeObj,exe->frames,exe->gc);
-		exe->codeObj=codeObj;
+		//exe->codeObj=codeObj;
 	}
 	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
@@ -697,20 +697,20 @@ void fklCallInDlproc(FklVMvalue* proc
 	}
 }
 
-inline int fklTcMutexTryAcquire(FklVMgc* gc)
-{
-	return pthread_mutex_trylock(&gc->tcMutex);
-}
-
-inline void fklTcMutexAcquire(FklVMgc* gc)
-{
-	pthread_mutex_lock(&gc->tcMutex);
-}
-
-inline void fklTcMutexRelease(FklVMgc* gc)
-{
-	pthread_mutex_unlock(&gc->tcMutex);
-}
+//inline int fklTcMutexTryAcquire(FklVMgc* gc)
+//{
+//	return pthread_mutex_trylock(&gc->tcMutex);
+//}
+//
+//inline void fklTcMutexAcquire(FklVMgc* gc)
+//{
+//	pthread_mutex_lock(&gc->tcMutex);
+//}
+//
+//inline void fklTcMutexRelease(FklVMgc* gc)
+//{
+//	pthread_mutex_unlock(&gc->tcMutex);
+//}
 
 inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 {
@@ -729,18 +729,18 @@ int fklRunReplVM(FklVM* exe)
 	int r=setjmp(exe->buf);
 	if(r==1)
 	{
-		fklTcMutexRelease(exe->gc);
+		//fklTcMutexRelease(exe->gc);
 		return 255;
 	}
 	else if(r==2)
 	{
-		fklTcMutexRelease(exe->gc);
+		//fklTcMutexRelease(exe->gc);
 		return 0;
 	}
 	FklVMframe* sf=&exe->sf;
 	while(exe->frames)
 	{
-		fklTcMutexAcquire(exe->gc);
+		//fklTcMutexAcquire(exe->gc);
 		FklVMframe* curframe=exe->frames;
 		switch(curframe->type)
 		{
@@ -762,7 +762,7 @@ int fklRunReplVM(FklVM* exe)
 					fklDoCallableObjFrameStep(curframe,exe);
 				break;
 		}
-		fklTcMutexRelease(exe->gc);
+		//fklTcMutexRelease(exe->gc);
 	}
 	return 0;
 }
@@ -885,22 +885,22 @@ inline FklGCstate fklGetGCstate(FklVMgc* gc)
 	return state;
 }
 
-inline void fklWaitGC(FklVMgc* gc)
-{
-	FklGCstate running=fklGetGCstate(gc);
-	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
-		fklGC_joinGCthread(gc);
-	fklChangeGCstate(FKL_GC_NONE,gc);
-	gc->greyNum=0;
-	for(Greylink* volatile* head=&gc->grey;*head;)
-	{
-		Greylink* cur=*head;
-		*head=cur->next;
-		free(cur);
-	}
-	for(FklVMvalue* head=gc->head;head;head=head->next)
-		head->mark=FKL_MARK_W;
-}
+//inline void fklWaitGC(FklVMgc* gc)
+//{
+//	FklGCstate running=fklGetGCstate(gc);
+//	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
+//		fklGC_joinGCthread(gc);
+//	fklChangeGCstate(FKL_GC_NONE,gc);
+//	gc->greyNum=0;
+//	for(Greylink* volatile* head=&gc->grey;*head;)
+//	{
+//		Greylink* cur=*head;
+//		*head=cur->next;
+//		free(cur);
+//	}
+//	for(FklVMvalue* head=gc->head;head;head=head->next)
+//		head->mark=FKL_MARK_W;
+//}
 
 static void inline B_dummy(FklVM* exe,FklVMframe* frame)
 {
@@ -2651,7 +2651,7 @@ FklVMgc* fklCreateVMgc()
 	tmp->head=NULL;
 	tmp->grey=NULL;
 	tmp->greyNum=0;
-	pthread_mutex_init(&tmp->tcMutex,NULL);
+	//pthread_mutex_init(&tmp->tcMutex,NULL);
 	return tmp;
 }
 
@@ -2669,7 +2669,7 @@ void fklGC_markRootToGrey(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMgc* gc=exe->gc;
-	fklGC_toGrey(exe->codeObj,gc);
+	//fklGC_toGrey(exe->codeObj,gc);
 
 	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
 		fklDoAtomicFrame(cur,gc);
@@ -2986,7 +2986,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
-	exe->codeObj=prev->codeObj;
+	//exe->codeObj=prev->codeObj;
 	exe->frames=NULL;
 	exe->ptpool=prev->ptpool;
 	exe->lsize=0;
@@ -3046,7 +3046,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 
 void fklDestroyVMgc(FklVMgc* gc)
 {
-	fklWaitGC(gc);
+	//fklWaitGC(gc);
 	fklDestroyAllValues(gc);
 	free(gc);
 }

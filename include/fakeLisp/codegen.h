@@ -298,6 +298,9 @@ void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMgc* vm
 		,FklPrototypePool*);
+
+void fklInitFrameToReplFrame(FklVM*,FklCodegen* codegen,const FklSid_t* headSymbol);
+
 #ifdef __cplusplus
 }
 #endif

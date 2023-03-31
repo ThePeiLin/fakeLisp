@@ -95,7 +95,7 @@ typedef struct FklVMfp
 {
 	FILE* fp;
 	FklPtrQueue next;
-	uint32_t mutex;
+	uint32_t mutex:1;
 }FklVMfp;
 
 typedef struct FklVMvec
@@ -203,11 +203,11 @@ typedef struct FklVMCompoundFrameData
 	unsigned int tail:1;
 	unsigned int mark:2;
 	FklSid_t sid:61;
-	FklVMCompoundFrameVarRef lr;
 	FklVMvalue* proc;
 	uint8_t* spc;
 	uint8_t* pc;
 	uint8_t* end;
+	FklVMCompoundFrameVarRef lr;
 }FklVMCompoundFrameData;
 
 typedef void* FklCallObjData[10];
@@ -233,6 +233,11 @@ typedef struct
 	FklVMcCC ccc;
 }FklDlprocFrameContext;
 
+#define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) _Static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
+		,#TYPE" is too big")
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklDlprocFrameContext);
+
 struct FklVMgc;
 typedef struct
 {
@@ -247,6 +252,8 @@ typedef struct
 typedef struct FklVMframe
 {
 	FklFrameType type;
+	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
+	struct FklVMframe* prev;
 	union
 	{
 		FklVMCompoundFrameData c;
@@ -256,8 +263,6 @@ typedef struct FklVMframe
 			FklCallObjData data;
 		}o;
 	}u;
-	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
-	struct FklVMframe* prev;
 }FklVMframe;
 
 void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table);
@@ -311,10 +316,10 @@ typedef struct FklVM
 	//static stack frame,only for dlproc and callable obj;
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
 	FklVMframe sf;
-	pthread_t tid;
+	//pthread_t tid;
 
 	FklVMframe* frames;
-	FklVMvalue* codeObj;
+	//FklVMvalue* codeObj;
 
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
@@ -372,7 +377,7 @@ typedef enum
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
-	pthread_mutex_t tcMutex;
+	//pthread_mutex_t tcMutex;
 	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
@@ -427,9 +432,9 @@ FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
 void fklDestroyVMgc(FklVMgc*);
 
-void fklTcMutexAcquire(FklVMgc*);
-int fklTcMutexTryAcquire(FklVMgc*);
-void fklTcMutexRelease(FklVMgc*);
+//void fklTcMutexAcquire(FklVMgc*);
+//int fklTcMutexTryAcquire(FklVMgc*);
+//void fklTcMutexRelease(FklVMgc*);
 
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
@@ -450,7 +455,7 @@ void fklGC_toGrey(FklVMvalue*,FklVMgc*);
 void fklGC_step(FklVM* exe);
 void fklGC_joinGCthread(FklVMgc* gc);
 
-void fklWaitGC(FklVMgc* gc);
+//void fklWaitGC(FklVMgc* gc);
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
 
@@ -597,7 +602,7 @@ void fklDestroyVMproc(FklVMproc*);
 FklVMfp* fklCreateVMfp(FILE*);
 int fklDestroyVMfp(FklVMfp*);
 
-void fklLockVMfp(FklVMvalue* fpv,FklVM*);
+int fklLockVMfp(FklVMvalue* fpv,FklVM*);
 void fklUnLockVMfp(FklVMvalue* vfp);
 
 typedef FklVMvalue** (*FklImportDllInitFunc)(FklVM* exe,FklVMvalue* dll,uint32_t* count);

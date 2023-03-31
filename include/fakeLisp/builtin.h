@@ -62,6 +62,10 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
 void fklInitGlobalVMclosure(struct FklVMframe* frame,FklVM*);
 
+#define FKL_VM_STDIN_IDX (0)
+#define FKL_VM_STDOUT_IDX (1)
+#define FKL_VM_STDERR_IDX (2)
+
 #ifdef __cplusplus
 }
 #endif

@@ -2594,6 +2594,7 @@ typedef struct
 {
 	FklVMvalue* fpv;
 	FklStringMatchPattern* head;
+	FklStringMatchRouteNode* root;
 	FklStringMatchRouteNode* route;
 	FklStringMatchSet* matchSet;
 	UT_string* buf;
@@ -2603,6 +2604,8 @@ typedef struct
 	uint32_t done;
 	size_t j;
 }ReadCtx;
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
 
 static void do_nothing_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
 {
@@ -2623,7 +2626,7 @@ static void read_frame_finalizer(FklCallObjData data)
 	while(!fklIsPtrStackEmpty(s))
 		fklDestroyToken(fklPopPtrStack(s));
 	fklDestroyPtrStack(s);
-	fklDestroyStringMatchRoute(c->route);
+	fklDestroyStringMatchRoute(c->root);
 	fklDestroyStringMatchSet(c->matchSet);
 }
 
@@ -2677,13 +2680,13 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 				fklRewindStream(fp,utstring_body(s)+j,len-j);
 			rctx->done=1;
 			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(rctx->tokenStack
-					,rctx->route
+					,rctx->root
 					,&errorLine
 					,rctx->headSymbol
 					,NULL
 					,exe->symbolTable);
 			if(node==NULL)
-				FKL_RAISE_BUILTIN_ERROR_CSTR("read",FKL_ERR_INVALIDEXPR,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 			FklVMvalue* v=fklCreateVMvalueFromNastNodeAndStoreInStack(node,NULL,exe);
 			uint32_t* pap=&rctx->ap;
 			fklNiReturn(v,pap,exe->stack);
@@ -2726,11 +2729,12 @@ static inline void initReadCtx(FklCallObjData data
 	ctx->matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 	ctx->headSymbol=headSymbol;
 	ctx->j=0;
-	ctx->route=fklCreateStringMatchRouteNode(NULL
+	ctx->root=fklCreateStringMatchRouteNode(NULL
 			,0,0
 			,NULL
 			,NULL
 			,NULL);
+	ctx->route=ctx->root;
 	ctx->ap=ap;
 	utstring_new(ctx->buf);
 	ctx->tokenStack=fklCreatePtrStack(16,16);
@@ -2861,6 +2865,8 @@ typedef struct
 	uint32_t ap;
 	size_t len;
 }FgetCtx;
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FgetCtx);
 
 static inline void initFgetCtx(FklCallObjData d,FklVMvalue* fpv,FgetMode mode,size_t len,uint32_t ap)
 {
@@ -3554,6 +3560,8 @@ typedef struct
 	size_t bp;
 	size_t top;
 }EhFrameContext;
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
 
 static void error_handler_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
 {
@@ -5491,9 +5499,9 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 			,pud
 			,exe->gc);
 
-	closure[0]=fklCreateClosedVMvarRef(pd->sysIn);
-	closure[1]=fklCreateClosedVMvarRef(pd->sysOut);
-	closure[2]=fklCreateClosedVMvarRef(pd->sysErr);
+	closure[FKL_VM_STDIN_IDX]=fklCreateClosedVMvarRef(pd->sysIn);
+	closure[FKL_VM_STDOUT_IDX]=fklCreateClosedVMvarRef(pd->sysOut);
+	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvarRef(pd->sysErr);
 
 	FklSymbolTable* table=exe->symbolTable;
 	for(size_t i=3;i<RefCount;i++)

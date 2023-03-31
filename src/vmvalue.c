@@ -1126,16 +1126,17 @@ int fklDestroyVMfp(FklVMfp* vfp)
 	return r;
 }
 
-void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
+int fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
 {
 	FklVMfp* vfp=fpv->u.fp;
 	if(vfp->mutex)
 	{
 		exe->state=FKL_VM_WAITING;
 		fklPushPtrQueue(exe,&vfp->next);
+		return 1;
 	}
-	else
-		vfp->mutex=1;
+	vfp->mutex=1;
+	return 0;
 }
 
 void fklUnLockVMfp(FklVMvalue* fpv)

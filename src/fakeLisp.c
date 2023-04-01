@@ -86,11 +86,6 @@ static inline int compileAndRun(char* filename)
 	}
 
 	int r=fklRunVM(anotherVM);
-	//if(r)
-	//	fklDeleteCallChain(anotherVM);
-	//else
-	//	fklWaitGC(anotherVM->gc);
-	//fklJoinAllThread(anotherVM);
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
 	fklUninitCodegener(&codegen);
@@ -154,11 +149,6 @@ static inline int runCode(char* filename)
 
 	initLibWithPrototyle(anotherVM->libs,anotherVM->libNum,anotherVM->ptpool);
 	int r=fklRunVM(anotherVM);
-	//if(r)
-	//	fklDeleteCallChain(anotherVM);
-	//else
-	//	fklWaitGC(anotherVM->gc);
-	//fklJoinAllThread(anotherVM);
 	fklDestroySymbolTable(table);
 	fklDestroyVMgc(gc);
 	fklDestroyAllVMs(anotherVM);
@@ -220,161 +210,15 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-//static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
-//{
-//	while(exe->frames)
-//	{
-//		FklVMframe* cur=exe->frames;
-//		exe->frames=cur->prev;
-//		if(cur!=main)
-//			fklDestroyVMframe(cur,exe);
-//	}
-//}
-
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable);
 	anotherVM->ptpool=codegen->ptpool;
 
-	//FklVMframe mainframe={FKL_FRAME_COMPOUND,};
-	//fklInitGlobalVMclosure(&mainframe,anotherVM);
-
 	fklInitFrameToReplFrame(anotherVM,codegen,builtInHeadSymbolTable);
 
 	fklRunVM(anotherVM);
-	//FklPtrStack tokenStack=FKL_STACK_INIT;
-	//fklInitPtrStack(&tokenStack,32,16);
-	////FklLineNumberTable* globalLnt=fklCreateLineNumTable();
-	////anotherVM->codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,fklCreateByteCodelnt(fklCreateByteCode(0)),anotherVM->gc);
-	//size_t libNum=codegen->loadedLibStack->top;
-	//for(;;)
-	//{
-	//	FklNastNode* begin=NULL;
-	//	FklStringMatchRouteNode* route=NULL;
-	//	printf(">>>");
-	//	int unexpectEOF=0;
-	//	size_t size=0;
-	//	char* list=fklReadInStringPattern(stdin
-	//			,&size
-	//			,codegen->curline
-	//			,&codegen->curline
-	//			,&unexpectEOF
-	//			,&tokenStack
-	//			,*(codegen->phead)
-	//			,&route);
-	//	if(unexpectEOF)
-	//	{
-	//		switch(unexpectEOF)
-	//		{
-	//			case 1:
-	//				exitState=1;
-	//				fprintf(stderr,"error in reading:Unexpect EOF at line %lu\n",codegen->curline);
-	//				break;
-	//			case 2:
-	//				exitState=2;
-	//				fprintf(stderr,"error in reading:Invalid expression at line %lu\n",codegen->curline);
-	//				break;
-	//		}
-	//		fklDestroyStringMatchRoute(route);
-	//		continue;
-	//	}
-	//	size_t errorLine=0;
-	//	//fklTcMutexAcquire(anotherVM->gc);
-	//	begin=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
-	//			,route
-	//			,&errorLine
-	//			,builtInHeadSymbolTable
-	//			,codegen
-	//			,codegen->publicSymbolTable);
-	//	//fklTcMutexRelease(anotherVM->gc);
-	//	fklDestroyStringMatchRoute(route);
-	//	free(list);
-	//	if(fklIsPtrStackEmpty(&tokenStack))
-	//		break;
-	//	while(!fklIsPtrStackEmpty(&tokenStack))
-	//		fklDestroyToken(fklPopPtrStack(&tokenStack));
-	//	if(!begin)
-	//		fprintf(stderr,"error of reader:Invalid expression at line %lu\n",errorLine);
-	//	else
-	//	{
-	//		fklMakeNastNodeRef(begin);
-	//		//fklTcMutexAcquire(anotherVM->gc);
-	//		FklByteCodelnt* tmpByteCode=fklGenExpressionCode(begin,codegen->globalEnv,codegen);
-	//		if(tmpByteCode)
-	//		{
-	//			fklUpdatePrototype(codegen->ptpool
-	//					,codegen->globalEnv
-	//					,codegen->globalSymTable
-	//					,codegen->publicSymbolTable);
-	//			size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
-	//			if(unloadlibNum)
-	//			{
-	//				libNum+=unloadlibNum;
-	//				FklVMlib* nlibs=(FklVMlib*)malloc(sizeof(FklVMlib)*libNum);
-	//				FKL_ASSERT(nlibs);
-	//				memcpy(nlibs,anotherVM->libs,sizeof(FklVMlib)*anotherVM->libNum);
-	//				for(size_t i=anotherVM->libNum;i<libNum;i++)
-	//				{
-	//					FklVMlib* curVMlib=&nlibs[i];
-	//					FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
-	//					fklInitVMlibWithCodegenLibRefs(curCGlib
-	//							,curVMlib
-	//							,anotherVM
-	//							,&mainframe.u.c.lr
-	//							,0
-	//							,anotherVM->ptpool);
-	//				}
-	//				FklVMlib* prev=anotherVM->libs;
-	//				anotherVM->libs=nlibs;
-	//				anotherVM->libNum=libNum;
-	//				free(prev);
-	//			}
-	//			FklVMvalue* anotherCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,tmpByteCode,anotherVM->gc);
-	//			FklVMproc* tmp=fklCreateVMproc(tmpByteCode->bc->code,tmpByteCode->bc->size,anotherCodeObj,anotherVM->gc);
-	//			FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,anotherVM->gc);
-	//			tmp->protoId=1;
-	//			fklInitMainVMframeWithProcForRepl(anotherVM,&mainframe,tmp,anotherVM->frames,anotherVM->ptpool);
-	//			mainframe.u.c.proc=proc;
-	//			anotherVM->frames=&mainframe;
-	//			//fklTcMutexRelease(anotherVM->gc);
-	//			int r=fklRunReplVM(anotherVM);
-	//			//fklTcMutexAcquire(anotherVM->gc);
-	//			tmp->closure=NULL;
-	//			tmp->count=0;
-	//			if(r)
-	//			{
-	//				FklVMstack* stack=anotherVM->stack;
-	//				stack->tp=0;
-	//				stack->bp=0;
-	//				delete_another_frame(anotherVM,&mainframe);
-	//			}
-	//			else
-	//			{
-	//				FklVMstack* stack=anotherVM->stack;
-	//				if(stack->tp!=0)
-	//				{
-	//					printf(";=>");
-	//					fklDBG_printVMstack(stack,stdout,0,anotherVM->symbolTable);
-	//				}
-	//				//fklWaitGC(anotherVM->gc);
-	//				anotherVM->frames=NULL;
-	//				stack->tp=0;
-	//			}
-	//		}
-	//		//fklTcMutexRelease(anotherVM->gc);
-	//		fklDestroyNastNode(begin);
-	//		begin=NULL;
-	//	}
-	//}
-	////fklDestroyLineNumberTable(globalLnt);
-	////fklJoinAllThread(anotherVM);
-	//fklDoUninitCompoundFrame(&mainframe,anotherVM);
-	//uint32_t count=mainframe.u.c.lr.rcount;
-	//FklVMvarRef** ref=mainframe.u.c.lr.ref;
-	//for(uint32_t i=0;i<count;i++)
-	//	fklDestroyVMvarRef(ref[i]);
-	//free(ref);
-	//fklUninitPtrStack(&tokenStack);
+
 	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
 }

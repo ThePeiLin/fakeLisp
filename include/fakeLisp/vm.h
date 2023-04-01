@@ -305,7 +305,6 @@ typedef enum
 
 typedef struct FklVM
 {
-	//uint32_t mark;
 
 	uint32_t ltp;
 	uint32_t lsize;
@@ -316,10 +315,8 @@ typedef struct FklVM
 	//static stack frame,only for dlproc and callable obj;
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
 	FklVMframe sf;
-	//pthread_t tid;
 
 	FklVMframe* frames;
-	//FklVMvalue* codeObj;
 
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
@@ -377,7 +374,6 @@ typedef enum
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
-	//pthread_mutex_t tcMutex;
 	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
@@ -410,7 +406,6 @@ typedef struct FklVMerrorHandler
 //vmrun
 
 int fklRunVM(FklVM*);
-//int fklRunReplVM(FklVM*);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*);
 FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMvalue*
@@ -432,13 +427,8 @@ FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
 void fklDestroyVMgc(FklVMgc*);
 
-//void fklTcMutexAcquire(FklVMgc*);
-//int fklTcMutexTryAcquire(FklVMgc*);
-//void fklTcMutexRelease(FklVMgc*);
-
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
-//void fklJoinAllThread(FklVM* cur);
 
 void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
@@ -455,7 +445,6 @@ void fklGC_toGrey(FklVMvalue*,FklVMgc*);
 void fklGC_step(FklVM* exe);
 void fklGC_joinGCthread(FklVMgc* gc);
 
-//void fklWaitGC(FklVMgc* gc);
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
 

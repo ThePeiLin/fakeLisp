@@ -136,14 +136,6 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler* h)
 	free(h);
 }
 
-//static void threadErrorCallBack(void* a)
-//{
-//	void** e=(void**)a;
-//	int* i=(int*)a;
-//	FklVM* exe=e[0];
-//	longjmp(exe->buf,i[(sizeof(void*)*2)/sizeof(int)]);
-//}
-
 inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 {
 	return frame->u.c.proc->u.proc->codeObj;
@@ -201,47 +193,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	if(frame==NULL)
 	{
 		fklPrintErrBacktrace(ev,exe);
-		//FklVMerror* err=ev->u.err;
-		//fprintf(stderr,"error in ");
-		//fklPrintString(err->who,stderr);
-		//fprintf(stderr,": ");
-		//fklPrintString(err->message,stderr);
-		//fprintf(stderr,"\n");
-		//for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
-		//{
-		//	if(cur->type==FKL_FRAME_COMPOUND)
-		//	{
-		//		if(fklGetCompoundFrameSid(cur)!=0)
-		//		{
-		//			fprintf(stderr,"at proc:");
-		//			fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
-		//					,stderr);
-		//		}
-		//		else
-		//		{
-		//			if(cur->prev)
-		//				fprintf(stderr,"at <lambda>");
-		//			else
-		//				fprintf(stderr,"at <top>");
-		//		}
-		//		FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
-		//		FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
-		//				,codeObj->ls
-		//				,codeObj->l);
-		//		if(node->fid)
-		//		{
-		//			fprintf(stderr,"(%u:",node->line);
-		//			fklPrintString(fklGetSymbolWithId(node->fid,exe->symbolTable)->symbol,stderr);
-		//			fprintf(stderr,")\n");
-		//		}
-		//		else
-		//			fprintf(stderr,"(%u)\n",node->line);
-		//	}
-		//	else
-		//		fklDoPrintBacktrace(cur,stderr,exe->symbolTable);
-		//}
 		longjmp(exe->buf,1);
-		//threadErrorCallBack(i);
 	}
 	return 255;
 }
@@ -992,12 +944,6 @@ void fklPrintVMvalue(FklVMvalue* value
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						//const static char* tmp[]=
-						//{
-						//	"#hash(",
-						//	"#hasheqv(",
-						//	"#hashequal(",
-						//};
 						fputs(fklGetVMhashTablePrefix(v->u.hash),fp);
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)
@@ -1430,12 +1376,6 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						//const static char* tmp[]=
-						//{
-						//	"#hash(",
-						//	"#hasheqv(",
-						//	"#hashequal(",
-						//};
 						utstring_printf(&result,"%s",fklGetVMhashTablePrefix(v->u.hash));
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)

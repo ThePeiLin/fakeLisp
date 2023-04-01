@@ -494,19 +494,16 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	FKL_ASSERT(exe);
 	exe->importingLib=NULL;
 	exe->frames=NULL;
-	//exe->tid=pthread_self();
 	exe->gc=fklCreateVMgc();
 	exe->state=FKL_VM_READY;
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc);
 		exe->frames=fklCreateVMframeWithCodeObj(codeObj,exe->frames,exe->gc);
-		//exe->codeObj=codeObj;
 	}
 	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
 	fklInitBuiltinErrorType(exe->builtinErrorTypeId,globalSymTable);
-	//exe->mark=1;
 	exe->chan=NULL;
 	exe->stack=fklCreateVMstack(32);
 	exe->libNum=0;
@@ -517,7 +514,6 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->lsize=0;
 	exe->prev=exe;
 	exe->next=exe;
-	//insert_to_VM_chain(exe,prev,next,exe->gc);
 	return exe;
 }
 
@@ -718,21 +714,6 @@ void fklCallInDlproc(FklVMvalue* proc
 	}
 }
 
-//inline int fklTcMutexTryAcquire(FklVMgc* gc)
-//{
-//	return pthread_mutex_trylock(&gc->tcMutex);
-//}
-//
-//inline void fklTcMutexAcquire(FklVMgc* gc)
-//{
-//	pthread_mutex_lock(&gc->tcMutex);
-//}
-//
-//inline void fklTcMutexRelease(FklVMgc* gc)
-//{
-//	pthread_mutex_unlock(&gc->tcMutex);
-//}
-
 inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 {
 	ByteCodes[fklGetCompoundFrameOpAndInc(curframe)](exe,curframe);
@@ -743,49 +724,6 @@ inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 //	FklVM* r=sc->run;
 //	sc->run=r->next;
 //	return r;
-//}
-
-//int fklRunReplVM(FklVM* exe)
-//{
-//	int r=setjmp(exe->buf);
-//	if(r==1)
-//	{
-//		//fklTcMutexRelease(exe->gc);
-//		return 255;
-//	}
-//	else if(r==2)
-//	{
-//		//fklTcMutexRelease(exe->gc);
-//		return 0;
-//	}
-//	FklVMframe* sf=&exe->sf;
-//	while(exe->frames)
-//	{
-//		//fklTcMutexAcquire(exe->gc);
-//		FklVMframe* curframe=exe->frames;
-//		switch(curframe->type)
-//		{
-//			case FKL_FRAME_COMPOUND:
-//				if(fklIsCompoundFrameReachEnd(curframe))
-//				{
-//					if(curframe->prev)
-//						fklDoFinalizeCompoundFrame(popFrame(exe),exe);
-//					else
-//						longjmp(exe->buf,2);
-//				}
-//				else
-//					fklDoCompoundFrameStep(curframe,exe);
-//				break;
-//			case FKL_FRAME_OTHEROBJ:
-//				if(fklIsCallableObjFrameReachEnd(curframe))
-//					fklDoFinalizeObjFrame(popFrame(exe),sf);
-//				else
-//					fklDoCallableObjFrameStep(curframe,exe);
-//				break;
-//		}
-//		//fklTcMutexRelease(exe->gc);
-//	}
-//	return 0;
 //}
 
 static inline void do_step_VM(FklVM* exe)
@@ -808,7 +746,6 @@ static inline void do_step_VM(FklVM* exe)
 	}
 	if(exe->frames==NULL)
 		exe->state=FKL_VM_EXIT;
-	//return 0;
 }
 
 static inline FklVM* do_exit_VM(FklVM* exe)
@@ -906,23 +843,6 @@ inline FklGCstate fklGetGCstate(FklVMgc* gc)
 	state=gc->running;
 	return state;
 }
-
-//inline void fklWaitGC(FklVMgc* gc)
-//{
-//	FklGCstate running=fklGetGCstate(gc);
-//	if(running==FKL_GC_SWEEPING||running==FKL_GC_COLLECT||running==FKL_GC_DONE)
-//		fklGC_joinGCthread(gc);
-//	fklChangeGCstate(FKL_GC_NONE,gc);
-//	gc->greyNum=0;
-//	for(Greylink* volatile* head=&gc->grey;*head;)
-//	{
-//		Greylink* cur=*head;
-//		*head=cur->next;
-//		free(cur);
-//	}
-//	for(FklVMvalue* head=gc->head;head;head=head->next)
-//		head->mark=FKL_MARK_W;
-//}
 
 static void inline B_dummy(FklVM* exe,FklVMframe* frame)
 {
@@ -2672,7 +2592,6 @@ FklVMgc* fklCreateVMgc()
 	tmp->head=NULL;
 	tmp->grey=NULL;
 	tmp->greyNum=0;
-	//pthread_mutex_init(&tmp->tcMutex,NULL);
 	return tmp;
 }
 
@@ -2690,7 +2609,6 @@ void fklGC_markRootToGrey(FklVM* exe)
 {
 	FklVMstack* stack=exe->stack;
 	FklVMgc* gc=exe->gc;
-	//fklGC_toGrey(exe->codeObj,gc);
 
 	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
 		fklDoAtomicFrame(cur,gc);
@@ -2720,51 +2638,12 @@ void fklGC_markRootToGrey(FklVM* exe)
 
 void fklGC_markAllRootToGrey(FklVM* curVM)
 {
-	//for(FklVM* cur=curVM->prev;cur;)
-	//{
-	//	uint32_t mark=cur->mark;
-	//	if(mark)
-	//	{
-	//		fklGC_markRootToGrey(cur);
-	//		cur=cur->prev;
-	//	}
-	//	else
-	//	{
-	//		FklVM* t=cur;
-	//		pthread_join(cur->tid,NULL);
-	//		if(cur->prev)
-	//			cur->prev->next=cur->next;
-	//		if(cur->next)
-	//			cur->next->prev=cur->prev;
-	//		cur=cur->prev;
-	//		free(t->libs);
-	//		free(t);
-	//	}
-	//}
 	fklGC_markRootToGrey(curVM);
 
 	for(FklVM* cur=curVM->next;cur!=curVM;)
 	{
 		fklGC_markRootToGrey(cur);
 		cur=cur->next;
-		//uint32_t mark=cur->mark;
-		//if(mark)
-		//{
-		//	fklGC_markRootToGrey(cur);
-		//	cur=cur->next;
-		//}
-		//else
-		//{
-		//	FklVM* t=cur;
-		//	pthread_join(cur->tid,NULL);
-		//	if(cur->prev)
-		//		cur->prev->next=cur->next;
-		//	if(cur->next)
-		//		cur->next->prev=cur->prev;
-		//	cur=cur->next;
-		//	free(t->libs);
-		//	free(t);
-		//}
 	}
 }
 
@@ -2999,7 +2878,6 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
 	exe->importingLib=NULL;
-	//exe->mark=1;
 	exe->chan=fklCreateSaveVMvalue(FKL_TYPE_CHAN,fklCreateVMchanl(0));
 	exe->stack=fklCreateVMstack(32);
 	exe->gc=gc;
@@ -3007,7 +2885,6 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
-	//exe->codeObj=prev->codeObj;
 	exe->frames=NULL;
 	exe->ptpool=prev->ptpool;
 	exe->lsize=0;
@@ -3035,28 +2912,12 @@ void fklDestroyAllVMs(FklVM* curVM)
 		fklUninitVMlib(&libs[i]);
 	free(curVM->builtinErrorTypeId);
 	fklDestroyPrototypePool(curVM->ptpool);
-	//for(FklVM* prev=curVM->prev;prev;)
-	//{
-	//	if(prev->mark)
-	//	{
-	//		fklDeleteCallChain(prev);
-	//		fklDestroyVMstack(prev->stack);
-	//	}
-	//	FklVM* t=prev;
-	//	prev=prev->prev;
-	//	free(t->locv);
-	//	free(t->libs);
-	//	free(t);
-	//}
 	curVM->prev->next=NULL;
 	curVM->prev=NULL;
 	for(FklVM* cur=curVM;cur;)
 	{
-		//if(cur->mark)
-		//{
 		fklDeleteCallChain(cur);
 		fklDestroyVMstack(cur->stack);
-		//}
 		FklVM* t=cur;
 		cur=cur->next;
 		free(t->locv);
@@ -3067,19 +2928,9 @@ void fklDestroyAllVMs(FklVM* curVM)
 
 void fklDestroyVMgc(FklVMgc* gc)
 {
-	//fklWaitGC(gc);
 	fklDestroyAllValues(gc);
 	free(gc);
 }
-
-//void fklJoinAllThread(FklVM* curVM)
-//{
-//for(FklVM* cur=curVM->prev;cur;cur=cur->prev)
-//	pthread_join(cur->tid,NULL);
-//for(FklVM* cur=curVM->next;cur;cur=cur->next)
-//	pthread_join(cur->tid,NULL);
-//curVM->mark=1;
-//}
 
 void fklDeleteCallChain(FklVM* exe)
 {

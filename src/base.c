@@ -1739,13 +1739,6 @@ size_t fklCountCharInString(FklString* s,char c)
 	return fklCountCharInBuf(s->str,s->size,c);
 }
 
-//FklHashTable* fklCreateHashTable(size_t size
-//		,size_t linkNum
-//		,int linkNumInc
-//		,double threshold
-//		,int thresholdInc
-//		,const FklHashTableMetaTable* t)
-
 FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 {
 	uint32_t size=4;
@@ -1759,34 +1752,9 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 	r->num=0;
 	r->size=size;
 	r->mask=size-1;
-	//r->linkNum=linkNum;
-	//r->linkNumInc=linkNumInc;
-	//r->threshold=threshold;
-	//r->thresholdInc=thresholdInc;
 	r->t=t;
 	return r;
 }
-
-//FklHashTable* fklCreateDefaultHashTable(size_t size,FklHashTableMetaTable* t)
-//{
-//	uint32_t size=4;
-//	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
-//	FKL_ASSERT(r);
-//	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
-//	FKL_ASSERT(base);
-//	r->base=base;
-//	r->list=NULL;
-//	r->tail=&r->list;
-//	r->num=0;
-//	r->size=size;
-//	r->mask=size-1;
-//	//r->linkNum=4;
-//	//r->linkNumInc=2;
-//	//r->threshold=0.75;
-//	//r->thresholdInc=1;
-//	r->t=t;
-//	return r;
-//}
 
 #define HASH_FUNC_HEADER uintptr_t (*hashv)(void*)=ht->t->__hashFunc;\
 	void* (*key)(void*)=ht->t->__getKey;\

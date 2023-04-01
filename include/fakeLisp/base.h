@@ -72,10 +72,6 @@ typedef struct FklHashTable
 	uint32_t size;
 	uint32_t mask;
 	const struct FklHashTableMetaTable* t;
-	//double threshold;
-	//size_t linkNum;
-	//int thresholdInc;  //size+=size*(1.0/thresholdInc)
-	//int linkNumInc;   //size+=size*(1.0/linkNumInc)
 }FklHashTable;
 
 typedef struct FklHashTableMetaTable

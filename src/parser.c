@@ -711,14 +711,11 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 	if(e)
 	{
 		fklDeleteCallChain(anotherVM);
-		//fklJoinAllThread(anotherVM);
 		r=NULL;
 		*errorLine=curline;
 	}
 	else
 	{
-		//fklWaitGC(anotherVM->gc);
-		//fklJoinAllThread(anotherVM);
 		fklDestroyNastNode(r);
 		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
 				,curline,lineHash

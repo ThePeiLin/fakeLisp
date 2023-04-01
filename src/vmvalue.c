@@ -1106,11 +1106,8 @@ FklVMfp* fklCreateVMfp(FILE* fp)
 	FklVMfp* vfp=(FklVMfp*)malloc(sizeof(FklVMfp));
 	FKL_ASSERT(vfp);
 	vfp->fp=fp;
-	//vfp->size=0;
-	//vfp->prev=NULL;
 	vfp->mutex=0;
 	fklInitPtrQueue(&vfp->next);
-	//vfp->next=-1;
 	return vfp;
 }
 
@@ -1119,8 +1116,6 @@ int fklDestroyVMfp(FklVMfp* vfp)
 	int r=0;
 	if(vfp)
 	{
-		//if(vfp->size)
-		//	free(vfp->prev);
 		FILE* fp=vfp->fp;
 		if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
 			r=1;

@@ -5829,13 +5829,10 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 			errorState->fid=codegen->fid;
 			errorState->line=curline;
 			fklDeleteCallChain(anotherVM);
-			//fklJoinAllThread(anotherVM);
 			r=NULL;
 		}
 		else
 		{
-			//fklWaitGC(anotherVM->gc);
-			//fklJoinAllThread(anotherVM);
 			uint64_t curline=r->curline;
 			fklDestroyNastNode(r);
 			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
@@ -6114,13 +6111,6 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				f->lcount=proc->lcount;
 
 				exe->frames=mainframe;
-
-				//fklInitMainVMframeWithProc(exe,mainframe,proc,exe->frames,exe->ptpool);
-				//FklVMproc* tmp=fklCreateVMproc(mainCode->bc->code,mainCode->bc->size,mainCodeObj,exe->gc,1);
-				//FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,exe->gc);
-				//fklInitMainVMframeWithProcForRepl(exe,mainframe,tmp,exe->frames,exe->ptpool);
-				//mainframe->u.c.proc=proc;
-				//exe->frames=mainframe;
 			}
 			else
 				ctx->state=WAITING;
@@ -6238,13 +6228,6 @@ inline void fklInitFrameToReplFrame(FklVM* exe
 	ctx->exe=exe;
 	ctx->mainProc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,exe->gc);
 	ctx->lcount=0;
-
-	//FklVMframe* mainframe=(FklVMframe*)calloc(1,sizeof(FklVMframe));
-	//FKL_ASSERT(mainframe);
-	//mainframe->prev=replFrame;
-	//mainframe->type=FKL_FRAME_COMPOUND;
-	//fklInitGlobalVMclosure(mainframe,exe);
-	//ctx->mainFrame=mainframe;
 
 	FklVMvalue* stdinVal=proc->closure[FKL_VM_STDIN_IDX]->v;
 	ctx->stdinVal=stdinVal;

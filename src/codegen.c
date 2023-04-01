@@ -17,6 +17,7 @@ static FklSid_t builtInPatternVar_rest=0;
 static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
 static FklSid_t builtInPatternVar_args=0;
+static FklSid_t builtInPatternVar_arg0=0;
 static FklSid_t builtInHeadSymbolTable[4]={0};
 
 static void _default_stack_context_finalizer(void* data)
@@ -652,6 +653,103 @@ BC_PROCESS(_let_arg_exp_bc_process)
 }
 
 static CODEGEN_FUNC(codegen_let1)
+{
+	FklUintStack* symStack=fklCreateUintStack(8,16);
+	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(firstSymbol->type!=FKL_NAST_SYM)
+	{
+		fklDestroyUintStack(symStack);
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+	FklNastNode* args=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	uint32_t cs=enter_new_scope(scope,curEnv);
+
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+
+	fklAddCodegenDefBySid(firstSymbol->u.sym,cs,curEnv);
+	fklPushUintStack(firstSymbol->u.sym,symStack);
+
+	if(!is_valid_let_args(args,curEnv,cs,symStack))
+	{
+		cms->refcount=1;
+		fklDestroyCodegenMacroScope(cms);
+		fklDestroyUintStack(symStack);
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+
+	FklPtrQueue* valueQueue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(value),valueQueue);
+	for(FklNastNode* cur=args;cur->type==FKL_NAST_PAIR;cur=cur->u.pair->cdr)
+		fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cur->u.pair->car)),valueQueue);
+
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FklCodegenQuest* let1Quest=createCodegenQuest(_let1_exp_bc_process
+			,createLet1CodegenContext(symStack)
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,NULL
+			,codegen);
+
+	fklPushPtrStack(let1Quest,codegenQuestStack);
+
+	uint32_t len=fklLengthPtrQueue(queue);
+
+	FklCodegenQuest* restQuest=createCodegenQuest(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(len,16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,rest->curline
+			,let1Quest
+			,codegen);
+	fklPushPtrStack(restQuest,codegenQuestStack);
+
+	len=fklLengthPtrQueue(valueQueue);
+
+	FklCodegenQuest* argQuest=createCodegenQuest(_let_arg_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(len,16))
+			,createDefaultQueueNextExpression(valueQueue)
+			,scope
+			,macroScope
+			,curEnv
+			,firstSymbol->curline
+			,let1Quest
+			,codegen);
+	fklPushPtrStack(argQuest,codegenQuestStack);
+}
+
+static CODEGEN_FUNC(codegen_named_let0)
+{
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+	pushListItemToQueue(rest,queue,NULL);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(32,16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,rest->curline
+			,codegen
+			,codegenQuestStack);
+}
+
+static CODEGEN_FUNC(codegen_named_let1)
 {
 	FklUintStack* symStack=fklCreateUintStack(8,16);
 	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
@@ -4921,37 +5019,39 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"~(begin,~rest)",                       NULL, codegen_begin,              },
-	{"~(local,~rest)",                       NULL, codegen_local,              },
-	{"~(define (~name,~args),~rest)",        NULL, codegen_defun,              },
-	{"~(define ~name ~value)",               NULL, codegen_define,             },
-	{"~(setq ~name ~value)",                 NULL, codegen_setq,               },
-	{"~(quote ~value)",                      NULL, codegen_quote,              },
-	{"`(unquote `value)",                    NULL, codegen_unquote,            },
-	{"~(qsquote ~value)",                    NULL, codegen_qsquote,            },
-	{"~(lambda ~args,~rest)",                NULL, codegen_lambda,             },
-	{"~(and,~rest)",                         NULL, codegen_and,                },
-	{"~(or,~rest)",                          NULL, codegen_or,                 },
-	{"~(cond,~rest)",                        NULL, codegen_cond,               },
-	{"~(if ~value ~rest)",                   NULL, codegen_if0,                },
-	{"~(if ~value ~rest ~args)",             NULL, codegen_if1,                },
-	{"~(when ~value,~rest)",                 NULL, codegen_when,               },
-	{"~(unless ~value,~rest)",               NULL, codegen_unless,             },
-	{"~(load ~name,~rest)",                  NULL, codegen_load,               },
-	{"~(import (prefix ~name ~rest),~args)", NULL, codegen_import_prefix,      },
-	{"~(import (only ~name,~rest),~args)",   NULL, codegen_import_only,        },
-	{"~(import (alias ~name,~rest),~args)",  NULL, codegen_import_alias,       },
-	{"~(import (except ~name,~rest),~args)", NULL, codegen_import_except,      },
-	{"~(import ~name,~args)",                NULL, codegen_import,             },
-	{"~(import)",                            NULL, codegen_import_none,        },
-	{"~(defmacro ~name ~value)",             NULL, codegen_defmacro,           },
-	{"~(macroexpand ~value)",                NULL, codegen_macroexpand,        },
-	{"~(export ~value)",                     NULL, codegen_export_single,      },
-	{"~(export,~rest)",                      NULL, codegen_export,             },
-	{"~(check ~name)",                       NULL, codegen_check,              },
-	{"~(let [],~rest)",                      NULL, codegen_let0,               },
-	{"~(let [(~name ~value),~args],~rest)",  NULL, codegen_let1,               },
-	{NULL,                                   NULL, NULL,                       },
+	{"~(begin,~rest)",                            NULL, codegen_begin,         },
+	{"~(local,~rest)",                            NULL, codegen_local,         },
+	{"~(define (~name,~args),~rest)",             NULL, codegen_defun,         },
+	{"~(define ~name ~value)",                    NULL, codegen_define,        },
+	{"~(setq ~name ~value)",                      NULL, codegen_setq,          },
+	{"~(quote ~value)",                           NULL, codegen_quote,         },
+	{"`(unquote `value)",                         NULL, codegen_unquote,       },
+	{"~(qsquote ~value)",                         NULL, codegen_qsquote,       },
+	{"~(lambda ~args,~rest)",                     NULL, codegen_lambda,        },
+	{"~(and,~rest)",                              NULL, codegen_and,           },
+	{"~(or,~rest)",                               NULL, codegen_or,            },
+	{"~(cond,~rest)",                             NULL, codegen_cond,          },
+	{"~(if ~value ~rest)",                        NULL, codegen_if0,           },
+	{"~(if ~value ~rest ~args)",                  NULL, codegen_if1,           },
+	{"~(when ~value,~rest)",                      NULL, codegen_when,          },
+	{"~(unless ~value,~rest)",                    NULL, codegen_unless,        },
+	{"~(load ~name,~rest)",                       NULL, codegen_load,          },
+	{"~(import (prefix ~name ~rest),~args)",      NULL, codegen_import_prefix, },
+	{"~(import (only ~name,~rest),~args)",        NULL, codegen_import_only,   },
+	{"~(import (alias ~name,~rest),~args)",       NULL, codegen_import_alias,  },
+	{"~(import (except ~name,~rest),~args)",      NULL, codegen_import_except, },
+	{"~(import ~name,~args)",                     NULL, codegen_import,        },
+	{"~(import)",                                 NULL, codegen_import_none,   },
+	{"~(defmacro ~name ~value)",                  NULL, codegen_defmacro,      },
+	{"~(macroexpand ~value)",                     NULL, codegen_macroexpand,   },
+	{"~(export ~value)",                          NULL, codegen_export_single, },
+	{"~(export,~rest)",                           NULL, codegen_export,        },
+	{"~(check ~name)",                            NULL, codegen_check,         },
+	{"~(let [],~rest)",                           NULL, codegen_let0,          },
+	{"~(let [(~name ~value),~args],~rest)",       NULL, codegen_let1,          },
+	{"~(let ~arg0 [],~rest)",                     NULL, codegen_named_let0,    },
+	{"~(let ~arg0 [(~name ~value),~args],~rest)", NULL, codegen_named_let1,    },
+	{NULL,                                        NULL, NULL,                  },
 };
 
 static inline int isExportDefmacroExp(FklNastNode* c)
@@ -4993,6 +5093,7 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 	builtInPatternVar_rest=fklAddSymbolCstr("rest",publicSymbolTable)->id;
 	builtInPatternVar_name=fklAddSymbolCstr("name",publicSymbolTable)->id;
 	builtInPatternVar_args=fklAddSymbolCstr("args",publicSymbolTable)->id;
+	builtInPatternVar_arg0=fklAddSymbolCstr("arg0",publicSymbolTable)->id;
 	builtInPatternVar_value=fklAddSymbolCstr("value",publicSymbolTable)->id;
 
 	FklStringMatchPattern* builtinStringPatterns=fklInitBuiltInStringPattern(publicSymbolTable);

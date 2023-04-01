@@ -80,7 +80,7 @@ add_custom_target(COPY_LIB_FKL ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 
 #copy test
-add_custom_target(COPY_EXAMPLES ALL
+add_custom_target(COPY_TEST ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/)
 
 

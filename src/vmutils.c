@@ -149,6 +149,49 @@ inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 	return frame->u.c.proc->u.proc->codeObj;
 }
 
+inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
+{
+	FklVMerror* err=ev->u.err;
+	fprintf(stderr,"error in ");
+	fklPrintString(err->who,stderr);
+	fprintf(stderr,": ");
+	fklPrintString(err->message,stderr);
+	fprintf(stderr,"\n");
+	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
+	{
+		if(cur->type==FKL_FRAME_COMPOUND)
+		{
+			if(fklGetCompoundFrameSid(cur)!=0)
+			{
+				fprintf(stderr,"at proc:");
+				fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
+						,stderr);
+			}
+			else
+			{
+				if(cur->prev)
+					fprintf(stderr,"at <lambda>");
+				else
+					fprintf(stderr,"at <top>");
+			}
+			FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
+			FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
+					,codeObj->ls
+					,codeObj->l);
+			if(node->fid)
+			{
+				fprintf(stderr,"(%u:",node->line);
+				fklPrintString(fklGetSymbolWithId(node->fid,exe->symbolTable)->symbol,stderr);
+				fprintf(stderr,")\n");
+			}
+			else
+				fprintf(stderr,"(%u)\n",node->line);
+		}
+		else
+			fklDoPrintBacktrace(cur,stderr,exe->symbolTable);
+	}
+}
+
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
 	FklVMframe* frame=exe->frames;
@@ -157,45 +200,46 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 			break;
 	if(frame==NULL)
 	{
-		FklVMerror* err=ev->u.err;
-		fprintf(stderr,"error in ");
-		fklPrintString(err->who,stderr);
-		fprintf(stderr,": ");
-		fklPrintString(err->message,stderr);
-		fprintf(stderr,"\n");
-		for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
-		{
-			if(cur->type==FKL_FRAME_COMPOUND)
-			{
-				if(fklGetCompoundFrameSid(cur)!=0)
-				{
-					fprintf(stderr,"at proc:");
-					fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
-							,stderr);
-				}
-				else
-				{
-					if(cur->prev)
-						fprintf(stderr,"at <lambda>");
-					else
-						fprintf(stderr,"at <top>");
-				}
-				FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
-				FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
-						,codeObj->ls
-						,codeObj->l);
-				if(node->fid)
-				{
-					fprintf(stderr,"(%u:",node->line);
-					fklPrintString(fklGetSymbolWithId(node->fid,exe->symbolTable)->symbol,stderr);
-					fprintf(stderr,")\n");
-				}
-				else
-					fprintf(stderr,"(%u)\n",node->line);
-			}
-			else
-				fklDoPrintBacktrace(cur,stderr,exe->symbolTable);
-		}
+		fklPrintErrBacktrace(ev,exe);
+		//FklVMerror* err=ev->u.err;
+		//fprintf(stderr,"error in ");
+		//fklPrintString(err->who,stderr);
+		//fprintf(stderr,": ");
+		//fklPrintString(err->message,stderr);
+		//fprintf(stderr,"\n");
+		//for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
+		//{
+		//	if(cur->type==FKL_FRAME_COMPOUND)
+		//	{
+		//		if(fklGetCompoundFrameSid(cur)!=0)
+		//		{
+		//			fprintf(stderr,"at proc:");
+		//			fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
+		//					,stderr);
+		//		}
+		//		else
+		//		{
+		//			if(cur->prev)
+		//				fprintf(stderr,"at <lambda>");
+		//			else
+		//				fprintf(stderr,"at <top>");
+		//		}
+		//		FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
+		//		FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
+		//				,codeObj->ls
+		//				,codeObj->l);
+		//		if(node->fid)
+		//		{
+		//			fprintf(stderr,"(%u:",node->line);
+		//			fklPrintString(fklGetSymbolWithId(node->fid,exe->symbolTable)->symbol,stderr);
+		//			fprintf(stderr,")\n");
+		//		}
+		//		else
+		//			fprintf(stderr,"(%u)\n",node->line);
+		//	}
+		//	else
+		//		fklDoPrintBacktrace(cur,stderr,exe->symbolTable);
+		//}
 		longjmp(exe->buf,1);
 		//threadErrorCallBack(i);
 	}

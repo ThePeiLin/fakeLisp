@@ -1257,6 +1257,9 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 		}
 		else
 		{
+			FklSymbolDef def=INIT_SYMBOL_DEF(id,0,idx);
+			FklSymbolDef* cel=fklGetOrPutHashItem(&def,ht);
+			idx=cel->idx;
 			FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,0,env->prototypeId,fid,line);
 			fklPushPtrStack(unref,&env->uref);
 		}
@@ -5858,20 +5861,18 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
-		,FklVMCompoundFrameVarRef* lr
+		,FklVMvarRef** refs
+		,uint32_t count
 		,int needCopy
 		,FklPrototypePool* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	FklVMgc* gc=exe->gc;
-	FklVMvarRef** refs=lr->ref;
-	uint32_t count=lr->rcount;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
-		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
-		prc->protoId=clib->prototypeId;
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
 		prc->lcount=ptpool->pts[prc->protoId-1].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		fklInitMainProcRefs(proc->u.proc,refs,count);
@@ -5893,8 +5894,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
-		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
-		prc->protoId=clib->prototypeId;
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
 		prc->lcount=ptpool->pts[prc->protoId-1].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
@@ -5915,8 +5915,7 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
-		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
-		prc->protoId=clib->prototypeId;
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
 		prc->lcount=ptpool->pts[prc->protoId-1].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
@@ -5947,17 +5946,20 @@ typedef struct
 typedef struct
 {
 	FklCodegen* codegen;
-	FklVMvalue* stdinVal;
 	NastCreatCtx* cc;
-	FklVMframe* mainFrame;
+	FklVM* exe;
+	FklVMvalue* stdinVal;
+	FklVMvalue* mainProc;
 	UT_string* buf;
 	const FklSid_t* headSymbol;
 	enum
 	{
 		READY,
+		WAITING,
 		READING,
 		DONE,
 	}state:8;
+	uint32_t lcount;
 }ReplCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplCtx);
@@ -5968,12 +5970,16 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 
-	NastCreatCtx* cc=ctx->cc;
 	if(ctx->state==READY)
 	{
-		if(fklLockVMfp(ctx->stdinVal,exe))
-			return;
-
+		ctx->state=WAITING;
+		fklLockVMfp(ctx->stdinVal,exe);
+		return;
+	}
+	NastCreatCtx* cc=ctx->cc;
+	if(ctx->state==WAITING)
+	{
+		exe->ltp=ctx->lcount;
 		ctx->state=READING;
 		FklVMstack* stack=exe->stack;
 		if(stack->tp!=0)
@@ -6049,7 +6055,6 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklDestroyToken(fklPopPtrStack(tokenStack));
 			fklDestroyStringMatchRoute(cc->root);
-			cc->root=NULL;
 			utstring_clear(s);
 
 			if(node==NULL)
@@ -6058,16 +6063,18 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 
 			size_t libNum=codegen->loadedLibStack->top;
 			FklByteCodelnt* mainCode=fklGenExpressionCode(node,codegen->globalEnv,codegen);
+			fklDestroyNastNode(node);
 			if(mainCode)
 			{
 				fklUnLockVMfp(ctx->stdinVal);
 				ctx->state=READY;
-				FklVMframe* mainframe=ctx->mainFrame;
 				fklUpdatePrototype(codegen->ptpool
 						,codegen->globalEnv
 						,codegen->globalSymTable
 						,codegen->publicSymbolTable);
 				size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
+
+				FklVMproc* proc=ctx->mainProc->u.proc;
 				if(unloadlibNum)
 				{
 					libNum+=unloadlibNum;
@@ -6081,7 +6088,8 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 						fklInitVMlibWithCodegenLibRefs(curCGlib
 								,curVMlib
 								,exe
-								,&mainframe->u.c.lr
+								,proc->closure
+								,proc->count
 								,0
 								,exe->ptpool);
 					}
@@ -6090,14 +6098,32 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 					exe->libNum=libNum;
 					free(prev);
 				}
-				FklVMvalue* anotherCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc);
-				FklVMproc* tmp=fklCreateVMproc(mainCode->bc->code,mainCode->bc->size,anotherCodeObj,exe->gc);
-				FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,exe->gc);
-				tmp->protoId=1;
-				fklInitMainVMframeWithProcForRepl(exe,mainframe,tmp,exe->frames,exe->ptpool);
-				mainframe->u.c.proc=proc;
+				FklVMvalue* mainCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc);
+				ctx->lcount=codegen->ptpool->pts[0].lcount;
+
+				proc->lcount=ctx->lcount;
+				proc->codeObj=mainCodeObj;
+				proc->spc=mainCode->bc->code;
+				proc->end=proc->spc+mainCode->bc->size;
+
+				FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
+
+				FklVMCompoundFrameVarRef* f=&mainframe->u.c.lr;
+				f->base=exe->ltp;
+				f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
+				f->lcount=proc->lcount;
+
 				exe->frames=mainframe;
+
+				//fklInitMainVMframeWithProc(exe,mainframe,proc,exe->frames,exe->ptpool);
+				//FklVMproc* tmp=fklCreateVMproc(mainCode->bc->code,mainCode->bc->size,mainCodeObj,exe->gc,1);
+				//FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,tmp,exe->gc);
+				//fklInitMainVMframeWithProcForRepl(exe,mainframe,tmp,exe->frames,exe->ptpool);
+				//mainframe->u.c.proc=proc;
+				//exe->frames=mainframe;
 			}
+			else
+				ctx->state=WAITING;
 		}
 		else if(err||(feof(fp)&&cc->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET))
 		{
@@ -6108,6 +6134,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				fklDestroyToken(fklPopPtrStack(tokenStack));
 			cc->root=NULL;
 			cc->matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
+			utstring_clear(s);
 			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 			else
@@ -6130,12 +6157,29 @@ static void repl_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 	fklGC_toGrey(ctx->stdinVal,gc);
+	fklGC_toGrey(ctx->mainProc,gc);
+	FklVMvalue** locv=ctx->exe->locv;
+	uint32_t lcount=ctx->lcount;
+	for(uint32_t i=0;i<lcount;i++)
+		fklGC_toGrey(locv[i],gc);
+}
+
+static inline void destroyNastCreatCtx(NastCreatCtx* cc)
+{
+	FklPtrStack* tokenStack=cc->tokenStack;
+	while(!tokenStack)
+		fklDestroyToken(fklPopPtrStack(tokenStack));
+	fklDestroyPtrStack(tokenStack);
+	fklDestroyStringMatchRoute(cc->root);
+	fklDestroyStringMatchSet(cc->matchSet);
+	free(cc);
 }
 
 static void repl_frame_finalizer(FklCallObjData data)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 	utstring_free(ctx->buf);
+	destroyNastCreatCtx(ctx->cc);
 }
 
 static const FklVMframeContextMethodTable ReplContextMethodTable=
@@ -6160,6 +6204,22 @@ static inline NastCreatCtx* createNastCreatCtx(void)
 	return cc;
 }
 
+static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
+{
+	exe->stack->tp=0;
+	exe->stack->bp=0;
+	fklPrintErrBacktrace(errValue,exe);
+	while(exe->frames->prev)
+	{
+		FklVMframe* cur=exe->frames;
+		exe->frames=cur->prev;
+		fklDestroyVMframe(cur,exe);
+	}
+	ReplCtx* ctx=(ReplCtx*)exe->frames->u.o.data;
+	ctx->state=READY;
+	return 1;
+}
+
 inline void fklInitFrameToReplFrame(FklVM* exe
 		,FklCodegen* codegen
 		,const FklSid_t* builtInHeadSymbolTable)
@@ -6167,19 +6227,26 @@ inline void fklInitFrameToReplFrame(FklVM* exe
 	FklVMframe* replFrame=(FklVMframe*)calloc(1,sizeof(FklVMframe));
 	FKL_ASSERT(replFrame);
 	replFrame->prev=NULL;
+	replFrame->errorCallBack=replErrorCallBack;
 	exe->frames=replFrame;
 	replFrame->type=FKL_FRAME_OTHEROBJ;
 	replFrame->u.o.t=&ReplContextMethodTable;
 	ReplCtx* ctx=(ReplCtx*)replFrame->u.o.data;
 
-	FklVMframe* mainframe=(FklVMframe*)calloc(1,sizeof(FklVMframe));
-	FKL_ASSERT(mainframe);
-	mainframe->prev=replFrame;
-	mainframe->type=FKL_FRAME_COMPOUND;
-	fklInitGlobalVMclosure(mainframe,exe);
-	ctx->mainFrame=mainframe;
+	FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1);
+	fklInitGlobalVMclosureForProc(proc,exe);
+	ctx->exe=exe;
+	ctx->mainProc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,exe->gc);
+	ctx->lcount=0;
 
-	FklVMvalue* stdinVal=mainframe->u.c.lr.ref[FKL_VM_STDIN_IDX]->v;
+	//FklVMframe* mainframe=(FklVMframe*)calloc(1,sizeof(FklVMframe));
+	//FKL_ASSERT(mainframe);
+	//mainframe->prev=replFrame;
+	//mainframe->type=FKL_FRAME_COMPOUND;
+	//fklInitGlobalVMclosure(mainframe,exe);
+	//ctx->mainFrame=mainframe;
+
+	FklVMvalue* stdinVal=proc->closure[FKL_VM_STDIN_IDX]->v;
 	ctx->stdinVal=stdinVal;
 	ctx->codegen=codegen;
 	NastCreatCtx* cc=createNastCreatCtx();

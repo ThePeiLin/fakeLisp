@@ -558,7 +558,11 @@ FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
 	return tmp;
 }
 
-FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc)
+FklVMproc* fklCreateVMproc(uint8_t* spc
+		,uint64_t cpc
+		,FklVMvalue* codeObj
+		,FklVMgc* gc
+		,uint32_t protoId)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
@@ -567,7 +571,7 @@ FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc
 	tmp->sid=0;
 	tmp->closure=NULL;
 	tmp->count=0;
-	tmp->protoId=0;
+	tmp->protoId=protoId;
 	tmp->lcount=0;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
@@ -1126,17 +1130,16 @@ int fklDestroyVMfp(FklVMfp* vfp)
 	return r;
 }
 
-int fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
+void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
 {
 	FklVMfp* vfp=fpv->u.fp;
 	if(vfp->mutex)
 	{
 		exe->state=FKL_VM_WAITING;
 		fklPushPtrQueue(exe,&vfp->next);
-		return 1;
 	}
-	vfp->mutex=1;
-	return 0;
+	else
+		vfp->mutex=1;
 }
 
 void fklUnLockVMfp(FklVMvalue* fpv)

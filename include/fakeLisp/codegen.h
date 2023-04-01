@@ -278,12 +278,13 @@ struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 
 struct FklVMlib;
 struct FklVMvalue;
-struct FklVMCompoundFrameVarRef;
+typedef struct FklVMvarRef FklVMvarRef;
 
 void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,FklVM* exe
-		,struct FklVMCompoundFrameVarRef* lr
+		,FklVMvarRef** refs
+		,uint32_t count
 		,int needCopy
 		,FklPrototypePool*);
 

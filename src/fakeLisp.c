@@ -220,24 +220,24 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
-{
-	while(exe->frames)
-	{
-		FklVMframe* cur=exe->frames;
-		exe->frames=cur->prev;
-		if(cur!=main)
-			fklDestroyVMframe(cur,exe);
-	}
-}
+//static inline void delete_another_frame(FklVM* exe,FklVMframe* main)
+//{
+//	while(exe->frames)
+//	{
+//		FklVMframe* cur=exe->frames;
+//		exe->frames=cur->prev;
+//		if(cur!=main)
+//			fklDestroyVMframe(cur,exe);
+//	}
+//}
 
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable);
-
 	anotherVM->ptpool=codegen->ptpool;
-	FklVMframe mainframe={FKL_FRAME_COMPOUND,};
-	fklInitGlobalVMclosure(&mainframe,anotherVM);
+
+	//FklVMframe mainframe={FKL_FRAME_COMPOUND,};
+	//fklInitGlobalVMclosure(&mainframe,anotherVM);
 
 	fklInitFrameToReplFrame(anotherVM,codegen,builtInHeadSymbolTable);
 

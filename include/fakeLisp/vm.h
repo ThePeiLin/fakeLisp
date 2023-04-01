@@ -153,7 +153,7 @@ typedef struct
 	FklVMvalue* v;
 }FklVMhashTableItem;
 
-typedef struct
+typedef struct FklVMvarRef
 {
 	uint32_t refc;
 	uint32_t idx;
@@ -410,7 +410,7 @@ typedef struct FklVMerrorHandler
 //vmrun
 
 int fklRunVM(FklVM*);
-int fklRunReplVM(FklVM*);
+//int fklRunReplVM(FklVM*);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*);
 FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMvalue*
@@ -496,6 +496,7 @@ FklVMvalue* fklGetTopValue(FklVMstack* stack);
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
+void fklPrintErrBacktrace(FklVMvalue*,FklVM*);
 
 void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count);
 
@@ -511,6 +512,7 @@ void fklInitMainVMframeWithProcForRepl(FklVM*
 		,FklPrototypePool* ptpool);
 
 FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
+FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);
 void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 
 void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
@@ -544,7 +546,11 @@ FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklHashTable* ht);
 FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklHashTable* ht,int* ok);
 void fklDestroyVMhashTable(FklHashTable*);
 
-FklVMproc* fklCreateVMproc(uint8_t* spc,uint64_t cpc,FklVMvalue* codeObj,FklVMgc* gc);
+FklVMproc* fklCreateVMproc(uint8_t* spc
+		,uint64_t cpc
+		,FklVMvalue* codeObj
+		,FklVMgc* gc
+		,uint32_t prototypeId);
 FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);
@@ -602,7 +608,7 @@ void fklDestroyVMproc(FklVMproc*);
 FklVMfp* fklCreateVMfp(FILE*);
 int fklDestroyVMfp(FklVMfp*);
 
-int fklLockVMfp(FklVMvalue* fpv,FklVM*);
+void fklLockVMfp(FklVMvalue* fpv,FklVM*);
 void fklUnLockVMfp(FklVMvalue* vfp);
 
 typedef FklVMvalue** (*FklImportDllInitFunc)(FklVM* exe,FklVMvalue* dll,uint32_t* count);

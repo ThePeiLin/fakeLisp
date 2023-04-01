@@ -59,6 +59,27 @@ inline FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 	return r;
 }
 
+inline FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
+{
+	if(count>exe->ltp)
+	{
+		uint32_t nltp=count;
+		if(exe->lsize<nltp)
+		{
+			exe->lsize=nltp+32;
+			FklVMvalue** locv=(FklVMvalue**)realloc(exe->locv,sizeof(FklVMvalue*)*exe->lsize);
+			FKL_ASSERT(locv);
+			if(exe->locv!=locv)
+				fklUpdateAllVarRef(exe->frames,locv);
+			exe->locv=locv;
+		}
+		FklVMvalue** r=&exe->locv[exe->ltp];
+		memset(r,0,sizeof(FklVMvalue**)*(count-exe->ltp));
+		exe->ltp=nltp;
+	}
+	return exe->locv;
+}
+
 static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
 {
 	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
@@ -724,48 +745,48 @@ inline void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe)
 //	return r;
 //}
 
-int fklRunReplVM(FklVM* exe)
-{
-	int r=setjmp(exe->buf);
-	if(r==1)
-	{
-		//fklTcMutexRelease(exe->gc);
-		return 255;
-	}
-	else if(r==2)
-	{
-		//fklTcMutexRelease(exe->gc);
-		return 0;
-	}
-	FklVMframe* sf=&exe->sf;
-	while(exe->frames)
-	{
-		//fklTcMutexAcquire(exe->gc);
-		FklVMframe* curframe=exe->frames;
-		switch(curframe->type)
-		{
-			case FKL_FRAME_COMPOUND:
-				if(fklIsCompoundFrameReachEnd(curframe))
-				{
-					if(curframe->prev)
-						fklDoFinalizeCompoundFrame(popFrame(exe),exe);
-					else
-						longjmp(exe->buf,2);
-				}
-				else
-					fklDoCompoundFrameStep(curframe,exe);
-				break;
-			case FKL_FRAME_OTHEROBJ:
-				if(fklIsCallableObjFrameReachEnd(curframe))
-					fklDoFinalizeObjFrame(popFrame(exe),sf);
-				else
-					fklDoCallableObjFrameStep(curframe,exe);
-				break;
-		}
-		//fklTcMutexRelease(exe->gc);
-	}
-	return 0;
-}
+//int fklRunReplVM(FklVM* exe)
+//{
+//	int r=setjmp(exe->buf);
+//	if(r==1)
+//	{
+//		//fklTcMutexRelease(exe->gc);
+//		return 255;
+//	}
+//	else if(r==2)
+//	{
+//		//fklTcMutexRelease(exe->gc);
+//		return 0;
+//	}
+//	FklVMframe* sf=&exe->sf;
+//	while(exe->frames)
+//	{
+//		//fklTcMutexAcquire(exe->gc);
+//		FklVMframe* curframe=exe->frames;
+//		switch(curframe->type)
+//		{
+//			case FKL_FRAME_COMPOUND:
+//				if(fklIsCompoundFrameReachEnd(curframe))
+//				{
+//					if(curframe->prev)
+//						fklDoFinalizeCompoundFrame(popFrame(exe),exe);
+//					else
+//						longjmp(exe->buf,2);
+//				}
+//				else
+//					fklDoCompoundFrameStep(curframe,exe);
+//				break;
+//			case FKL_FRAME_OTHEROBJ:
+//				if(fklIsCallableObjFrameReachEnd(curframe))
+//					fklDoFinalizeObjFrame(popFrame(exe),sf);
+//				else
+//					fklDoCallableObjFrameStep(curframe,exe);
+//				break;
+//		}
+//		//fklTcMutexRelease(exe->gc);
+//	}
+//	return 0;
+//}
 
 static inline void do_step_VM(FklVM* exe)
 {
@@ -794,16 +815,17 @@ static inline FklVM* do_exit_VM(FklVM* exe)
 {
 	FklVM* prev=exe->prev;
 	FklVM* next=exe->next;
+
 	prev->next=next;
 	next->prev=prev;
-
 	exe->prev=exe;
 	exe->next=exe;
+
 	if(exe->chan)
 	{
 		FklVMchanl* tmpCh=exe->chan->u.chan;
 		FklVMvalue* v=fklGetTopValue(exe->stack);
-		FklVMvalue* resultBox=fklCreateVMvalueToStack(FKL_TYPE_BOX,v,exe);
+		FklVMvalue* resultBox=fklCreateVMvalueNoGC(FKL_TYPE_BOX,v,exe->gc);
 		fklChanlSend(resultBox,tmpCh,exe);
 
 		fklDeleteCallChain(exe);
@@ -1028,8 +1050,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
-	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc);
-	proc->protoId=protoId;
+	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc,protoId);
 	FklPrototype* pt=&exe->ptpool->pts[protoId-1];
 	uint32_t count=pt->rcount;
 	if(count)
@@ -3130,8 +3151,7 @@ inline void fklInitVMlibWithCodeObj(FklVMlib* lib
 		,uint32_t protoId)
 {
 	FklByteCode* bc=codeObj->u.code->bc;
-	FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc);
-	prc->protoId=protoId;
+	FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,protoId);
 	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 	fklInitVMlib(lib,proc);
 }

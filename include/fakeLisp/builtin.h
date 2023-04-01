@@ -53,7 +53,7 @@ uint8_t* fklGetBultinSymbolModifyMark(uint32_t*);
 typedef struct FklCodegenEnv FklCodegenEnv;
 typedef struct FklVM FklVM;
 struct FklVMframe;
-
+typedef struct FklVMproc FklVMproc;
 //void fklInitCompEnv(FklCompEnv* curEnv);
 void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable*);
 //void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
@@ -61,6 +61,7 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
 void fklInitGlobalVMclosure(struct FklVMframe* frame,FklVM*);
+void fklInitGlobalVMclosureForProc(FklVMproc*,FklVM*);
 
 #define FKL_VM_STDIN_IDX (0)
 #define FKL_VM_STDOUT_IDX (1)

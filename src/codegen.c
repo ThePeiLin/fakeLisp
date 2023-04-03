@@ -1,3 +1,4 @@
+#include "fakeLisp/parser.h"
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/lexer.h>
@@ -733,6 +734,14 @@ static CODEGEN_FUNC(codegen_let1)
 
 static CODEGEN_FUNC(codegen_named_let0)
 {
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_arg0,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	uint32_t cs=enter_new_scope(scope,curEnv);
@@ -751,6 +760,14 @@ static CODEGEN_FUNC(codegen_named_let0)
 
 static CODEGEN_FUNC(codegen_named_let1)
 {
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_arg0,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
 	FklUintStack* symStack=fklCreateUintStack(8,16);
 	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);

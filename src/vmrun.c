@@ -19,8 +19,8 @@
 #include<time.h>
 #include<setjmp.h>
 
-static pthread_mutex_t GCthreadLock=PTHREAD_MUTEX_INITIALIZER;
-static pthread_t GCthreadId;
+//static pthread_mutex_t GCthreadLock=PTHREAD_MUTEX_INITIALIZER;
+//static pthread_t GCthreadId;
 static int VMargc=0;
 static char** VMargv=NULL;
 
@@ -2743,76 +2743,76 @@ inline void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 	*cr=gc->num>gc->threshold;
 }
 
-#define FKL_GC_GRAY_FACTOR (16)
-#define FKL_GC_NEW_FACTOR (4)
+//#define FKL_GC_GRAY_FACTOR (16)
+//#define FKL_GC_NEW_FACTOR (4)
 
-inline void fklGC_step(FklVM* exe)
-{
-	FklGCstate running=FKL_GC_NONE;
-	int cr=0;
-	fklGetGCstateAndGCNum(exe->gc,&running,&cr);
-	static size_t greyNum=0;
-	cr=1;
-	switch(running)
-	{
-		case FKL_GC_NONE:
-			if(cr)
-			{
-				fklChangeGCstate(FKL_GC_MARK_ROOT,exe->gc);
-				fklGC_pause(exe);
-				fklChangeGCstate(FKL_GC_PROPAGATE,exe->gc);
-			}
-			break;
-		case FKL_GC_MARK_ROOT:
-			break;
-		case FKL_GC_PROPAGATE:
-			{
-				size_t create_n=exe->gc->greyNum-greyNum;
-				size_t timce=exe->gc->greyNum/FKL_GC_GRAY_FACTOR+create_n/FKL_GC_NEW_FACTOR+1;
-				greyNum+=create_n;
-				for(size_t i=0;i<timce;i++)
-					if(fklGC_propagate(exe->gc))
-					{
-						fklChangeGCstate(FKL_GC_SWEEP,exe->gc);
-						break;
-					}
-			}
-			break;
-		case FKL_GC_SWEEP:
-			if(!pthread_mutex_trylock(&GCthreadLock))
-			{
-				pthread_create(&GCthreadId,NULL,fklGC_sweepThreadFunc,exe->gc);
-				fklChangeGCstate(FKL_GC_COLLECT,exe->gc);
-				pthread_mutex_unlock(&GCthreadLock);
-			}
-			break;
-		case FKL_GC_COLLECT:
-		case FKL_GC_SWEEPING:
-			break;
-		case FKL_GC_DONE:
-			if(!pthread_mutex_trylock(&GCthreadLock))
-			{
-				fklChangeGCstate(FKL_GC_NONE,exe->gc);
-				pthread_join(GCthreadId,NULL);
-				pthread_mutex_unlock(&GCthreadLock);
-			}
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
-}
+//inline void fklGC_step(FklVM* exe)
+//{
+//	FklGCstate running=FKL_GC_NONE;
+//	int cr=0;
+//	fklGetGCstateAndGCNum(exe->gc,&running,&cr);
+//	static size_t greyNum=0;
+//	cr=1;
+//	switch(running)
+//	{
+//		case FKL_GC_NONE:
+//			if(cr)
+//			{
+//				fklChangeGCstate(FKL_GC_MARK_ROOT,exe->gc);
+//				fklGC_pause(exe);
+//				fklChangeGCstate(FKL_GC_PROPAGATE,exe->gc);
+//			}
+//			break;
+//		case FKL_GC_MARK_ROOT:
+//			break;
+//		case FKL_GC_PROPAGATE:
+//			{
+//				size_t create_n=exe->gc->greyNum-greyNum;
+//				size_t timce=exe->gc->greyNum/FKL_GC_GRAY_FACTOR+create_n/FKL_GC_NEW_FACTOR+1;
+//				greyNum+=create_n;
+//				for(size_t i=0;i<timce;i++)
+//					if(fklGC_propagate(exe->gc))
+//					{
+//						fklChangeGCstate(FKL_GC_SWEEP,exe->gc);
+//						break;
+//					}
+//			}
+//			break;
+//		case FKL_GC_SWEEP:
+//			if(!pthread_mutex_trylock(&GCthreadLock))
+//			{
+//				pthread_create(&GCthreadId,NULL,fklGC_sweepThreadFunc,exe->gc);
+//				fklChangeGCstate(FKL_GC_COLLECT,exe->gc);
+//				pthread_mutex_unlock(&GCthreadLock);
+//			}
+//			break;
+//		case FKL_GC_COLLECT:
+//		case FKL_GC_SWEEPING:
+//			break;
+//		case FKL_GC_DONE:
+//			if(!pthread_mutex_trylock(&GCthreadLock))
+//			{
+//				fklChangeGCstate(FKL_GC_NONE,exe->gc);
+//				pthread_join(GCthreadId,NULL);
+//				pthread_mutex_unlock(&GCthreadLock);
+//			}
+//			break;
+//		default:
+//			FKL_ASSERT(0);
+//			break;
+//	}
+//}
 
-void* fklGC_sweepThreadFunc(void* arg)
-{
-	FklVMgc* gc=arg;
-	FklVMvalue* white=NULL;
-	fklGC_collect(gc,&white);
-	fklChangeGCstate(FKL_GC_SWEEPING,gc);
-	fklGC_sweep(white);
-	fklChangeGCstate(FKL_GC_DONE,gc);
-	return NULL;
-}
+//void* fklGC_sweepThreadFunc(void* arg)
+//{
+//	FklVMgc* gc=arg;
+//	FklVMvalue* white=NULL;
+//	fklGC_collect(gc,&white);
+//	fklChangeGCstate(FKL_GC_SWEEPING,gc);
+//	fklGC_sweep(white);
+//	fklChangeGCstate(FKL_GC_DONE,gc);
+//	return NULL;
+//}
 
 void* fklGC_threadFunc(void* arg)
 {
@@ -2959,11 +2959,11 @@ char** fklGetVMargv(void)
 	return VMargv;
 }
 
-void fklGC_joinGCthread(FklVMgc* gc)
-{
-	pthread_join(GCthreadId,NULL);
-	gc->running=FKL_GC_NONE;
-}
+//void fklGC_joinGCthread(FklVMgc* gc)
+//{
+//	pthread_join(GCthreadId,NULL);
+//	gc->running=FKL_GC_NONE;
+//}
 
 inline void fklPushVMvalue(FklVMvalue* v,FklVMstack* s)
 {

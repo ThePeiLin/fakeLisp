@@ -10,7 +10,7 @@
 //#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
-#include<pthread.h>
+//#include<pthread.h>
 #include<setjmp.h>
 
 #ifdef __cplusplus
@@ -424,20 +424,20 @@ void fklDestroyVMgc(FklVMgc*);
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
 
-void fklChangeGCstate(FklGCstate,FklVMgc*);
+//void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
-void fklGetGCstateAndGCNum(FklVMgc*,FklGCstate* s,int* num);
+//void fklGetGCstateAndGCNum(FklVMgc*,FklGCstate* s,int* num);
 void* fklGC_threadFunc(void*);
-void* fklGC_sweepThreadFunc(void*);
-void fklGC_mark(FklVM*);
-void fklGC_markValue(FklVMvalue*);
-void fklGC_markValueInStack(FklVMstack*);
-void fklGC_markValueInCallChain(FklPtrStack*);
-void fklGC_markMessage(FklQueueNode*);
-void fklGC_markSendT(FklQueueNode*);
+//void* fklGC_sweepThreadFunc(void*);
+//void fklGC_mark(FklVM*);
+//void fklGC_markValue(FklVMvalue*);
+//void fklGC_markValueInStack(FklVMstack*);
+//void fklGC_markValueInCallChain(FklPtrStack*);
+//void fklGC_markMessage(FklQueueNode*);
+//void fklGC_markSendT(FklQueueNode*);
 void fklGC_toGrey(FklVMvalue*,FklVMgc*);
-void fklGC_step(FklVM* exe);
-void fklGC_joinGCthread(FklVMgc* gc);
+//void fklGC_step(FklVM* exe);
+//void fklGC_joinGCthread(FklVMgc* gc);
 
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);

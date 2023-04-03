@@ -4322,6 +4322,8 @@ static void builtin_rand(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
+#include<time.h>
+
 static void builtin_get_time(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);

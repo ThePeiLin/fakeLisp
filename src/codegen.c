@@ -803,10 +803,9 @@ BC_PROCESS(_lambda_exp_bc_process)
 // 	return createBclnt(bc,codegen->fid,sym->curline);
 // }
 
-static FklByteCodelnt* processArgs(
-	const FklNastNode* args
-	,FklCodegenEnv* curEnv
-	,FklCodegen* codegen)
+static FklByteCodelnt* processArgs(const FklNastNode* args
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen)
 {
 	FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 	uint8_t popArgCode[5]={FKL_OP_POP_ARG,};
@@ -869,11 +868,10 @@ static FklByteCodelnt* processArgs(
 	return retval;
 }
 
-static FklByteCodelnt* processArgsInStack(
-	FklUintStack* stack
-	,FklCodegenEnv* curEnv
-	,FklCodegen* codegen
-	,uint64_t curline)
+static FklByteCodelnt* processArgsInStack(FklUintStack* stack
+		,FklCodegenEnv* curEnv
+		,FklCodegen* codegen
+		,uint64_t curline)
 {
 	uint8_t popArgCode[5]={FKL_OP_POP_ARG,};
 	FklByteCode popArg={5,popArgCode};
@@ -955,31 +953,29 @@ static CODEGEN_FUNC(codegen_named_let0)
 	uint32_t cs=enter_new_scope(scope,curEnv);
 	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
-		_funcall_exp_bc_process
-		,createDefaultStackContext(fklCreatePtrStack(2,1))
-		,NULL
-		,cs
-		,cms
-		,curEnv
-		,name->curline
-		,codegen
-		,codegenQuestStack);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_funcall_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(2,1))
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,name->curline
+			,codegen
+			,codegenQuestStack);
 
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
 	uint32_t idx=fklAddCodegenDefBySid(name->u.sym,cs,curEnv);
 	fklPushPtrStack(makeDupAndPutLoc(name,idx,codegen),stack);
 
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
-		_set_var_exp_bc_process
-		,createDefaultStackContext(stack)
-		,NULL
-		,cs
-		,cms
-		,curEnv
-		,name->curline
-		,codegen
-		,codegenQuestStack);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_set_var_exp_bc_process
+			,createDefaultStackContext(stack)
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,name->curline
+			,codegen
+			,codegenQuestStack);
 
 	FklCodegenEnv* lambdaCodegenEnv=fklCreateCodegenEnv(curEnv,cs,cms);
 	FklPtrStack* lStack=fklCreatePtrStack(2,16);
@@ -995,8 +991,7 @@ static CODEGEN_FUNC(codegen_named_let0)
 			,codegen->globalSymTable
 			,codegen->publicSymbolTable);
 
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
-			_lambda_exp_bc_process
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_lambda_exp_bc_process
 			,createDefaultStackContext(lStack)
 			,createDefaultQueueNextExpression(queue)
 			,1
@@ -1049,89 +1044,82 @@ static CODEGEN_FUNC(codegen_named_let1)
 	}
 
 	create_and_insert_to_pool(codegen->ptpool
-						   ,curEnv->prototypeId
-						   ,lambdaCodegenEnv
-						   ,codegen->globalSymTable
-						   ,codegen->publicSymbolTable);
+			,curEnv->prototypeId
+			,lambdaCodegenEnv
+			,codegen->globalSymTable
+			,codegen->publicSymbolTable);
 
 	FklPtrQueue* valueQueue=fklCreatePtrQueue();
 
 	fklPushPtrQueue(fklMakeNastNodeRef(value),valueQueue);
 	for(FklNastNode* cur=args;cur->type==FKL_NAST_PAIR;cur=cur->u.pair->cdr)
 		fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cur->u.pair->car)),valueQueue);
-	
-	FklCodegenQuest* funcallQuest=createCodegenQuest(
-		_funcall_exp_bc_process
-		,createDefaultStackContext(fklCreatePtrStack(2,1))
-		,NULL
-		,cs
-		,cms
-		,curEnv
-		,name->curline
-		,NULL
-		,codegen);
+
+	FklCodegenQuest* funcallQuest=createCodegenQuest(_funcall_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(2,1))
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,name->curline
+			,NULL
+			,codegen);
 	fklPushPtrStack(funcallQuest,codegenQuestStack);
 
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
 	uint32_t idx=fklAddCodegenDefBySid(name->u.sym,cs,curEnv);
 	fklPushPtrStack(makeDupAndPutLoc(name,idx,codegen),stack);
 
-	fklPushPtrStack(
-		createCodegenQuest(
-			_let_arg_exp_bc_process
-			,createDefaultStackContext(fklCreatePtrStack(fklLengthPtrQueue(valueQueue),16))
-			,createDefaultQueueNextExpression(valueQueue)
-			,scope
-			,macroScope
-			,curEnv
-			,firstSymbol->curline
-			,funcallQuest
-			,codegen)
-		,codegenQuestStack);
+	fklPushPtrStack(createCodegenQuest(_let_arg_exp_bc_process
+				,createDefaultStackContext(fklCreatePtrStack(fklLengthPtrQueue(valueQueue),16))
+				,createDefaultQueueNextExpression(valueQueue)
+				,scope
+				,macroScope
+				,curEnv
+				,firstSymbol->curline
+				,funcallQuest
+				,codegen)
+			,codegenQuestStack);
 
-	fklPushPtrStack(
-		createCodegenQuest(
-			_set_var_exp_bc_process
-			,createDefaultStackContext(stack)
-			,NULL
-			,cs
-			,cms
-			,curEnv
-			,name->curline
-			,funcallQuest
-			,codegen)
-		,codegenQuestStack);
+	fklPushPtrStack(createCodegenQuest(_set_var_exp_bc_process
+				,createDefaultStackContext(stack)
+				,NULL
+				,cs
+				,cms
+				,curEnv
+				,name->curline
+				,funcallQuest
+				,codegen)
+			,codegenQuestStack);
 
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	pushListItemToQueue(rest,queue,NULL);
 	FklPtrStack* lStack=fklCreatePtrStack(2,16);
 
-	FklByteCodelnt* argBc=processArgsInStack(
-		symStack
-		,lambdaCodegenEnv
-		,codegen
-		,firstSymbol->curline);
+	FklByteCodelnt* argBc=processArgsInStack(symStack
+			,lambdaCodegenEnv
+			,codegen
+			,firstSymbol->curline);
 
 	fklPushPtrStack(argBc,lStack);
 
 	fklDestroyUintStack(symStack);
 	create_and_insert_to_pool(codegen->ptpool
-						   ,curEnv->prototypeId
-						   ,lambdaCodegenEnv
-						   ,codegen->globalSymTable
-						   ,codegen->publicSymbolTable);
+			,curEnv->prototypeId
+			,lambdaCodegenEnv
+			,codegen->globalSymTable
+			,codegen->publicSymbolTable);
 
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
-		_lambda_exp_bc_process
-		,createDefaultStackContext(lStack)
-		,createDefaultQueueNextExpression(queue)
-		,1
-		,lambdaCodegenEnv->macros
-		,lambdaCodegenEnv
-		,rest->curline
-		,codegen
-		,codegenQuestStack);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_lambda_exp_bc_process
+			,createDefaultStackContext(lStack)
+			,createDefaultQueueNextExpression(queue)
+			,1
+			,lambdaCodegenEnv->macros
+			,lambdaCodegenEnv
+			,rest->curline
+			,codegen
+			,codegenQuestStack);
 }
 
 BC_PROCESS(_and_exp_bc_process)

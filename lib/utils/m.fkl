@@ -7,11 +7,10 @@
            ~@b))))
 
   (defmacro ~(letrec ~d,~b)
-    (begin
-      (define dfs
-        (map (lambda (sd)
-               `(define ~(car sd) ~@(cdr sd))) d))
-      `(local ~@dfs ~@b)))
+    `(local ~@(map (lambda (sd)
+                     `(define ~(car sd) ~@(cdr sd)))
+                   d)
+       ~@b))
 
   (defmacro ~(case (~s ~v),~b)
     (begin

@@ -1,30 +1,4 @@
 (export
-  (defmacro ~(let ~d,~b)
-    (begin
-      (define args nil)
-      (define vals nil)
-      (cond [(symbol? d)
-             (setq
-               args
-               (map (lambda (sd) (nth 0 sd)) (car b)))
-             (setq
-               vals
-               (map (lambda (sd) (nth 1 sd)) (car b)))
-             `(local
-                (define (~d,~args)
-                  ~@(cdr b))
-                (~d ~@vals))]
-        [(pair? d)
-         (setq args
-           (map (lambda (sd) (nth 0 sd)) d))
-         (setq vals
-           (map (lambda (sd) (nth 1 sd)) d))
-         `((lambda ~args ~@b) ~@vals)]
-        [(null d)
-         `(local ~@b)]
-        [1 (raise (error 'syntax-error
-                         "expanding-macro-let"
-                         "Wrong type of object behind key word:let\n"))])))
   (defmacro ~(let* ~d,~b)
     (if (not (and (not (atom d)) d (cdr d)))
       `(let ~d ~@b)

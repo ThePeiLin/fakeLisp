@@ -804,10 +804,10 @@ static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 							fputs("#<dlproc>",fp);
 						break;
 					case FKL_TYPE_ERR:
-						fprintf(fp,"#<err w:");
-						fklPrintRawString(v->u.err->who,fp);
-						fprintf(fp," t:");
+						fprintf(fp,"#<err t:");
 						fklPrintRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol,fp);
+						fprintf(fp," w:");
+						fklPrintRawString(v->u.err->who,fp);
 						fprintf(fp," m:");
 						fklPrintRawString(v->u.err->message,fp);
 						fprintf(fp,">");
@@ -1250,10 +1250,10 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 							utstring_printf(result,"#<dlproc>");
 						break;
 					case FKL_TYPE_ERR:
-						utstring_printf(result,"#<err w:");
-						print_raw_string_to_ut_string(result,v->u.err->who);
-						utstring_printf(result,"t:");
+						utstring_printf(result,"#<err t:");
 						print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.err->type,table)->symbol);
+						utstring_printf(result,"w:");
+						print_raw_string_to_ut_string(result,v->u.err->who);
 						utstring_printf(result,"m:");
 						print_raw_string_to_ut_string(result,v->u.err->message);
 						utstring_printf(result,">");

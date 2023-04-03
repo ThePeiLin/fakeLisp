@@ -22,8 +22,8 @@
          `((lambda ~args ~@b) ~@vals)]
         [(null d)
          `(local ~@b)]
-        [1 (raise (error "expanding-macro-let"
-                         'syntax-error
+        [1 (raise (error 'syntax-error
+                         "expanding-macro-let"
                          "Wrong type of object behind key word:let\n"))])))
   (defmacro ~(let* ~d,~b)
     (if (not (and (not (atom d)) d (cdr d)))

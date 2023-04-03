@@ -3377,8 +3377,8 @@ static void builtin_recv(FKL_DL_PROC_ARGL)
 static void builtin_error(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* who=fklNiGetArg(&ap,stack);
 	FklVMvalue* type=fklNiGetArg(&ap,stack);
+	FklVMvalue* who=fklNiGetArg(&ap,stack);
 	FklVMvalue* message=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.error",FKL_ERR_TOOMANYARG,exe);
@@ -3408,8 +3408,8 @@ static void builtin_raise(FKL_DL_PROC_ARGL)
 static void builtin_throw(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* who=fklNiGetArg(&ap,stack);
 	FklVMvalue* type=fklNiGetArg(&ap,stack);
+	FklVMvalue* who=fklNiGetArg(&ap,stack);
 	FklVMvalue* message=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.throw",FKL_ERR_TOOMANYARG,exe);

@@ -20,7 +20,7 @@
 static void runRepl(FklCodegen*,const FklSid_t*);
 static FklByteCode* loadByteCode(FILE*);
 static void loadSymbolTable(FILE*,FklSymbolTable* table);
-static void loadLib(FILE*,size_t*,FklVMlib**,FklVMgc*,FklVMCompoundFrameVarRef* lr);
+static void loadLib(FILE*,uint64_t*,FklVMlib**,FklVMgc*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
 
 #define FKL_EXIT_FAILURE (255)
@@ -224,7 +224,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 }
 
 static void loadLib(FILE* fp
-		,size_t* plibNum
+		,uint64_t* plibNum
 		,FklVMlib** plibs
 		,FklVMgc* gc
 		,FklVMCompoundFrameVarRef* lr)

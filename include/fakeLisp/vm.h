@@ -68,16 +68,10 @@ typedef struct FklVMchanl
 	volatile size_t messageNum;
 	volatile size_t sendNum;
 	volatile size_t recvNum;
-	FklPtrQueue* messages;
-	FklPtrQueue* recvq;
-	FklPtrQueue* sendq;
+	FklPtrQueue messages;
+	FklPtrQueue recvq;
+	FklPtrQueue sendq;
 }FklVMchanl;
-
-typedef struct
-{
-	FklVM* exe;
-	struct FklVMvalue* m;
-}FklVMsend;
 
 typedef struct
 {
@@ -320,7 +314,7 @@ typedef struct FklVM
 
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
-	size_t libNum;
+	uint64_t libNum;
 	FklVMlib* libs;
 	struct FklVM* prev;
 	struct FklVM* next;
@@ -587,7 +581,7 @@ int fklVMvalueCmp(FklVMvalue*,FklVMvalue*,int*);
 FklVMpair* fklCreateVMpair(void);
 FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVM*);
 
-FklVMchanl* fklCreateVMchanl(int32_t size);
+FklVMchanl* fklCreateVMchanl(uint32_t size);
 
 void fklDestroyVMchanl(FklVMchanl*);
 
@@ -618,9 +612,6 @@ void fklDestroyVMerror(FklVMerror*);
 
 FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
 void fklDestroyVMrecv(FklVMrecv*);
-
-FklVMsend* fklCreateVMsend(FklVMvalue*,FklVM*);
-void fklDestroyVMsend(FklVMsend*);
 
 void fklSleepThread(FklVM*,uint64_t sec);
 void fklSuspendThread(FklVM*);

@@ -2698,6 +2698,12 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 			rctx->done=1;
 			if(rctx->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTEOF,exe);
+			else
+			{
+				uint32_t* pap=&rctx->ap;
+				fklNiReturn(FKL_VM_NIL,pap,exe->stack);
+				fklNiEnd(pap,exe->stack);
+			}
 		}
 		else if(err)
 		{

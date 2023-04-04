@@ -748,6 +748,12 @@ static inline void do_step_VM(FklVM* exe)
 		exe->state=FKL_VM_EXIT;
 }
 
+static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
+{
+	for(size_t i=0;i<num;i++)
+		fklUninitVMlib(&libs[i]);
+}
+
 static inline FklVM* do_exit_VM(FklVM* exe)
 {
 	FklVM* prev=exe->prev;
@@ -767,6 +773,7 @@ static inline FklVM* do_exit_VM(FklVM* exe)
 
 		fklDeleteCallChain(exe);
 		fklDestroyVMstack(exe->stack);
+		uninit_all_vm_lib(exe->libs,exe->libNum);
 		free(exe->locv);
 		free(exe->libs);
 		free(exe);
@@ -1391,6 +1398,7 @@ static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 		fklInitVMdll(dllv,exe);
 		plib->loc=initFunc(exe,dllv,&plib->count);
 		plib->imported=1;
+		plib->belong=1;
 		plib->proc=FKL_VM_NIL;
 		free(realpath);
 		exe->stack->tp=tp;
@@ -1521,6 +1529,7 @@ static void inline B_export(FklVM* exe,FklVMframe* frame)
 	lib->loc=loc;
 	lib->count=count;
 	lib->imported=1;
+	lib->belong=1;
 	FklVMproc* proc=lib->proc->u.proc;
 	uint32_t rcount=proc->count;
 	proc->count=0;
@@ -2866,6 +2875,14 @@ void fklDestroyAllValues(FklVMgc* gc)
 	}
 }
 
+static inline FklVMlib* copy_vm_libs(FklVMlib* libs,size_t libNum)
+{
+	FklVMlib* r=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
+	for(size_t i=0;i<libNum;i++)
+		r[i].belong=0;
+	return r;
+}
+
 FklVM* fklCreateThreadVM(FklVMgc* gc
 		,FklVMvalue* nextCall
 		,FklVM* prev
@@ -2884,7 +2901,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->symbolTable=table;
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
-	exe->libs=fklCopyMemory(libs,libNum*sizeof(FklVMlib));
+	exe->libs=copy_vm_libs(libs,libNum);
 	exe->frames=NULL;
 	exe->ptpool=prev->ptpool;
 	exe->lsize=0;
@@ -2906,16 +2923,13 @@ void fklDestroyVMstack(FklVMstack* stack)
 
 void fklDestroyAllVMs(FklVM* curVM)
 {
-	size_t libNum=curVM->libNum;
-	FklVMlib* libs=curVM->libs;
-	for(size_t i=0;i<libNum;i++)
-		fklUninitVMlib(&libs[i]);
 	free(curVM->builtinErrorTypeId);
 	fklDestroyPrototypePool(curVM->ptpool);
 	curVM->prev->next=NULL;
 	curVM->prev=NULL;
 	for(FklVM* cur=curVM;cur;)
 	{
+		uninit_all_vm_lib(cur->libs,cur->libNum);
 		fklDeleteCallChain(cur);
 		fklDestroyVMstack(cur->stack);
 		FklVM* t=cur;
@@ -2992,6 +3006,7 @@ void fklInitVMlib(FklVMlib* lib,FklVMvalue* proc)
 {
 	lib->proc=proc;
 	lib->imported=0;
+	lib->belong=0;
 	lib->loc=NULL;
 	lib->count=0;
 }
@@ -3009,7 +3024,8 @@ inline void fklInitVMlibWithCodeObj(FklVMlib* lib
 
 void fklUninitVMlib(FklVMlib* lib)
 {
-	free(lib->loc);
+	if(lib->belong)
+		free(lib->loc);
 }
 
 void fklDestroyVMlib(FklVMlib* lib)

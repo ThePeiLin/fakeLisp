@@ -286,6 +286,7 @@ typedef struct FklVMlib
 	FklVMvalue** loc;
 	uint32_t count;
 	uint8_t imported;
+	uint8_t belong;
 }FklVMlib;
 
 typedef enum

@@ -6225,7 +6225,6 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 	else
 		val=fklCreateVMvalueNoGC(FKL_TYPE_STR,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp),gc);
 	fklInitVMlib(vlib,val);
-
 }
 
 inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib

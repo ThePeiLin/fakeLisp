@@ -1,16 +1,10 @@
 (export
-  (defmacro ~(let* ~d,~b)
-    (if (not (and (not (atom d)) d (cdr d)))
-      `(let ~d ~@b)
-      `(let (~(car d))
-         (let* ~(cdr d)
-           ~@b))))
+  (defmacro ~(let* [],~b)
+    `(let [],~b))
 
-  (defmacro ~(letrec ~d,~b)
-    `(local ~@(map (lambda (sd)
-                     `(define ~(car sd) ~@(cdr sd)))
-                   d)
-       ~@b))
+  (defmacro ~(let* [(~n ~v),~r],~b)
+    `(let [(~n ~v)]
+       (let* ~r,~b)))
 
   (defmacro ~(case (~s ~v),~b)
     (begin

@@ -737,6 +737,85 @@ static CODEGEN_FUNC(codegen_let1)
 	fklPushPtrStack(argQuest,codegenQuestStack);
 }
 
+static CODEGEN_FUNC(codegen_letrec)
+{
+	FklUintStack* symStack=fklCreateUintStack(8,16);
+	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(firstSymbol->type!=FKL_NAST_SYM)
+	{
+		fklDestroyUintStack(symStack);
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+	FklNastNode* args=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	uint32_t cs=enter_new_scope(scope,curEnv);
+
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+
+	fklAddCodegenDefBySid(firstSymbol->u.sym,cs,curEnv);
+	fklPushUintStack(firstSymbol->u.sym,symStack);
+
+	if(!is_valid_let_args(args,curEnv,cs,symStack))
+	{
+		cms->refcount=1;
+		fklDestroyCodegenMacroScope(cms);
+		fklDestroyUintStack(symStack);
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+
+	FklPtrQueue* valueQueue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(value),valueQueue);
+	for(FklNastNode* cur=args;cur->type==FKL_NAST_PAIR;cur=cur->u.pair->cdr)
+		fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cur->u.pair->car)),valueQueue);
+
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FklCodegenQuest* let1Quest=createCodegenQuest(_let1_exp_bc_process
+			,createLet1CodegenContext(symStack)
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,NULL
+			,codegen);
+
+	fklPushPtrStack(let1Quest,codegenQuestStack);
+
+	uint32_t len=fklLengthPtrQueue(queue);
+
+	FklCodegenQuest* restQuest=createCodegenQuest(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(len,16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,rest->curline
+			,let1Quest
+			,codegen);
+	fklPushPtrStack(restQuest,codegenQuestStack);
+
+	len=fklLengthPtrQueue(valueQueue);
+
+	FklCodegenQuest* argQuest=createCodegenQuest(_let_arg_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(len,16))
+			,createDefaultQueueNextExpression(valueQueue)
+			,cs
+			,cms
+			,curEnv
+			,firstSymbol->curline
+			,let1Quest
+			,codegen);
+	fklPushPtrStack(argQuest,codegenQuestStack);
+}
+
 BC_PROCESS(_set_var_exp_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
@@ -1727,6 +1806,9 @@ static CODEGEN_FUNC(codegen_defun)
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
 			,codegen->publicSymbolTable);
+	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
+			,name
+			,lambdaCodegenEnv->macros->replacements);
 	FklCodegenQuest* cur=createCodegenQuest(_lambda_exp_bc_process
 			,createDefaultStackContext(lStack)
 			,createDefaultQueueNextExpression(queue)
@@ -5192,6 +5274,8 @@ static struct PatternAndFunc
 	{"~(let [(~name ~value),~args],~rest)",       NULL, codegen_let1,          },
 	{"~(let ~arg0 [],~rest)",                     NULL, codegen_named_let0,    },
 	{"~(let ~arg0 [(~name ~value),~args],~rest)", NULL, codegen_named_let1,    },
+	{"~(letrec [],~rest)",                        NULL, codegen_let0,          },
+	{"~(letrec [(~name ~value),~args],~rest)",    NULL, codegen_letrec,        },
 	{NULL,                                        NULL, NULL,                  },
 };
 

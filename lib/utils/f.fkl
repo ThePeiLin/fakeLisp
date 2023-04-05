@@ -6,7 +6,8 @@
   cdaaar cdaadr cdadar cdaddr
   cddaar cddadr cdddar cddddr
   square min max
-  merge-sort! merge-sort)
+  merge-sort! merge-sort
+  times)
 
 (define (caar a) (car (car a)))
 
@@ -110,3 +111,8 @@
 
 (define (merge-sort cmpf ls) (merge-sort! cmpf (copy ls)))
 
+(define (times f t)
+  (let do [(c 0)]
+    (when (< c t)
+      (f)
+      (do (1+ c)))))

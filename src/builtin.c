@@ -3316,8 +3316,8 @@ static void builtin_chanl_num(FKL_DL_PROC_ARGL)
 static void builtin_send(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* message=fklNiGetArg(&ap,stack);
 	FklVMvalue* ch=fklNiGetArg(&ap,stack);
+	FklVMvalue* message=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.send",FKL_ERR_TOOMANYARG,exe);
 	if(!message||!ch)

@@ -1,10 +1,29 @@
-(define ch (chanl 1))
+(define n 10)
+(define buf (chanl n))
 
-(go (lambda (ch)
-      (when (= (recv ch) "I'm your father!")
-        (princ "coroutine#1:Noooooooo!\n")
-        (send ch nil)))
-    ch)
-(princ "coroutine#0:I'm your father!\n")
-(send ch "I'm your father!")
-(recv ch)
+(define running 1)
+
+(define (producer n)
+  (let iter [(c 0)]
+    (when running
+      (println "produce:" c)
+      (send buf c)
+      (iter (% (1+ c) n))))
+  (println "producer exit"))
+
+(define (consumer)
+  (let iter []
+    (when running
+      (println "consume:" (recv buf))
+      (iter)))
+  (println "consumer exit"))
+
+(let iter [(c 0)]
+  (when (< c 10)
+    (go producer n)
+    (go consumer)
+    (iter (1+ c))))
+
+(sleep 1)
+
+(setq running nil)

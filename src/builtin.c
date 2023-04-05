@@ -4071,19 +4071,19 @@ static void builtin_getcwd(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-static void builtin_chdir(FKL_DL_PROC_ARGL)
+static void builtin_cd(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* dir=fklNiGetArg(&ap,stack);
 	if(!dir)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chdir",FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cd",FKL_ERR_TOOFEWARG,exe);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.chdir",FKL_ERR_TOOMANYARG,exe);
-	FKL_NI_CHECK_TYPE(dir,FKL_IS_STR,"builtin.chdir",exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.cd",FKL_ERR_TOOMANYARG,exe);
+	FKL_NI_CHECK_TYPE(dir,FKL_IS_STR,"builtin.cd",exe);
 	char* cdir=fklStringToCstr(dir->u.str);
 	int r=fklChangeWorkPath(cdir);
 	if(r)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.chdir",cdir,1,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.cd",cdir,1,FKL_ERR_FILEFAILURE,exe);
 	free(cdir);
 	fklNiReturn(FKL_VM_NIL,&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -5157,7 +5157,7 @@ static const struct SymbolFuncStruct
 	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"getcwd",                builtin_getcwd,                  {NULL,         NULL,          NULL,          NULL,          }, },
-	{"chdir",                 builtin_chdir,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"cd",                    builtin_cd,                      {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgetc",                 builtin_fgetc,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgeti",                 builtin_fgeti,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,          NULL,          }, },

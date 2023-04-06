@@ -2960,8 +2960,10 @@ static void builtin_fgets(FKL_DL_PROC_ARGL)
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_TOOMANYARG,exe);
-	if(!file||!psize)
+	if(!psize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_TOOFEWARG,exe);
+	if(!file)
+		file=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn;
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklVMnumberLt0(psize))
@@ -2978,8 +2980,10 @@ static void builtin_fgetb(FKL_DL_PROC_ARGL)
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_TOOMANYARG,exe);
-	if(!file||!psize)
+	if(!psize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_TOOFEWARG,exe);
+	if(!file)
+		file=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn;
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklVMnumberLt0(psize))

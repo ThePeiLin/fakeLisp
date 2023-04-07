@@ -1,3 +1,4 @@
+#include "fakeLisp/vm.h"
 #include<fakeLisp/reader.h>
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/fklni.h>
@@ -3156,24 +3157,33 @@ static void builtin_argv(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-int matchPattern(FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklVMgc* gc)
+inline static FklVMvalue* isSlot(const FklVMvalue* head,const FklVMvalue* v)
 {
-	if(!FKL_IS_PAIR(exp))
-		return 1;
-	if(pattern->u.pair->car!=exp->u.pair->car)
-		return 1;
+	if(FKL_IS_PAIR(v)
+			&&v->u.pair->car==head
+			&&FKL_IS_PAIR(v->u.pair->cdr)
+			&&v->u.pair->cdr->u.pair->cdr==FKL_VM_NIL
+			&&FKL_IS_SYM(v->u.pair->cdr->u.pair->car))
+		return v->u.pair->cdr->u.pair->car;
+	return NULL;
+}
+
+int matchPattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklVMgc* gc)
+{
+	FklVMvalue* slotS=pattern->u.pair->car;
 	FklPtrStack s0=FKL_STACK_INIT;
 	fklInitPtrStack(&s0,32,16);
 	FklPtrStack s1=FKL_STACK_INIT;
 	fklInitPtrStack(&s1,32,16);
-	fklPushPtrStack(pattern->u.pair->cdr,&s0);
-	fklPushPtrStack(exp->u.pair->cdr,&s1);
+	fklPushPtrStack(pattern->u.pair->cdr->u.pair->car,&s0);
+	fklPushPtrStack(exp,&s1);
 	while(!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
 	{
 		FklVMvalue* v0=fklPopPtrStack(&s0);
 		FklVMvalue* v1=fklPopPtrStack(&s1);
-		if(FKL_IS_SYM(v0))
-			fklSetVMhashTable(v0,v1,ht,gc);
+		FklVMvalue* slotV=isSlot(slotS,v0);
+		if(slotV)
+			fklSetVMhashTable(slotV,v1,ht,gc);
 		else if(FKL_IS_PAIR(v0)&&FKL_IS_PAIR(v1))
 		{
 			fklPushPtrStack(v0->u.pair->cdr,&s0);
@@ -3201,6 +3211,11 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 	if(!FKL_IS_SYM(head))
 		return 0;
 	const FklVMvalue* body=p->u.pair->cdr;
+	if(!FKL_IS_PAIR(body))
+		return 0;
+	if(body->u.pair->cdr!=FKL_VM_NIL)
+		return 0;
+	body=body->u.pair->car;
 	FklHashTable* symbolTable=fklCreateSidSet();
 	FklPtrStack stack=FKL_STACK_INIT;
 	fklInitPtrStack(&stack,32,16);
@@ -3208,14 +3223,10 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 	while(!fklIsPtrStackEmpty(&stack))
 	{
 		const FklVMvalue* c=fklPopPtrStack(&stack);
-		if(FKL_IS_PAIR(c))
+		FklVMvalue* slotV=isSlot(head,c);
+		if(slotV)
 		{
-			fklPushPtrStack(c->u.pair->cdr,&stack);
-			fklPushPtrStack(c->u.pair->car,&stack);
-		}
-		else if(FKL_IS_SYM(c))
-		{
-			FklSid_t sid=FKL_GET_SYM(c);
+			FklSid_t sid=FKL_GET_SYM(slotV);
 			if(fklGetHashItem(&sid,symbolTable))
 			{
 				fklDestroyHashTable(symbolTable);
@@ -3224,21 +3235,26 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 			}
 			fklPutHashItem(&sid,symbolTable);
 		}
+		if(FKL_IS_PAIR(c))
+		{
+			fklPushPtrStack(c->u.pair->cdr,&stack);
+			fklPushPtrStack(c->u.pair->car,&stack);
+		}
 	}
 	fklDestroyHashTable(symbolTable);
 	fklUninitPtrStack(&stack);
 	return 1;
 }
 
-static void builtin_pattern_match(FKL_DL_PROC_ARGL)
+static void builtin_pmatch(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* pattern=fklNiGetArg(&ap,stack);
 	FklVMvalue* exp=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pattern-match",FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pmatch",FKL_ERR_TOOFEWARG,exe);
 	if(!isValidSyntaxPattern(pattern))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pattern-match",FKL_ERR_INVALIDPATTERN,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.pmatch",FKL_ERR_INVALIDPATTERN,exe);
 	FklHashTable* hash=fklCreateVMhashTableEq();
 	if(matchPattern(pattern,exp,hash,exe->gc))
 	{
@@ -5221,7 +5237,7 @@ static const struct SymbolFuncStruct
 	{"hash-keys",             builtin_hash_keys,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash-values",           builtin_hash_values,             {NULL,         NULL,          NULL,          NULL,          }, },
 
-	{"pattern-match",         builtin_pattern_match,           {NULL,         NULL,          NULL,          NULL,          }, },
+	{"pmatch",                builtin_pmatch,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"odd?",                  builtin_odd_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"even?",                 builtin_even_p,                  {NULL,         NULL,          NULL,          NULL,          }, },

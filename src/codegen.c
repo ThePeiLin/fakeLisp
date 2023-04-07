@@ -544,7 +544,10 @@ static void _let1_put_bcl(void* d,FklByteCodelnt* bcl)
 static void _let1_finalizer(void* d)
 {
 	Let1Context* dd=(Let1Context*)d;
-	fklDestroyPtrStack(dd->stack);
+	FklPtrStack* s=dd->stack;
+	while(!fklIsPtrStackEmpty(s))
+		fklDestroyByteCodelnt(fklPopPtrStack(s));
+	fklDestroyPtrStack(s);
 	fklDestroyUintStack(dd->ss);
 	free(dd);
 }
@@ -671,7 +674,8 @@ static CODEGEN_FUNC(codegen_let1)
 		errorState->fid=codegen->fid;
 		return;
 	}
-	FklNastNode* args=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	FklPatternMatchingHashTableItem* item=fklGetHashItem(&builtInPatternVar_args,ht);
+	FklNastNode* args=item?item->node:NULL;
 	uint32_t cs=enter_new_scope(scope,curEnv);
 
 	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
@@ -679,21 +683,26 @@ static CODEGEN_FUNC(codegen_let1)
 	fklAddCodegenDefBySid(firstSymbol->u.sym,cs,curEnv);
 	fklPushUintStack(firstSymbol->u.sym,symStack);
 
-	if(!is_valid_let_args(args,curEnv,cs,symStack))
-	{
-		cms->refcount=1;
-		fklDestroyCodegenMacroScope(cms);
-		fklDestroyUintStack(symStack);
-		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=fklMakeNastNodeRef(origExp);
-		errorState->fid=codegen->fid;
-		return;
-	}
-
 	FklPtrQueue* valueQueue=fklCreatePtrQueue();
 	fklPushPtrQueue(fklMakeNastNodeRef(value),valueQueue);
-	for(FklNastNode* cur=args;cur->type==FKL_NAST_PAIR;cur=cur->u.pair->cdr)
-		fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cur->u.pair->car)),valueQueue);
+
+	if(args)
+	{
+		if(!is_valid_let_args(args,curEnv,cs,symStack))
+		{
+			cms->refcount=1;
+			fklDestroyNastNode(value);
+			fklDestroyPtrQueue(valueQueue);
+			fklDestroyCodegenMacroScope(cms);
+			fklDestroyUintStack(symStack);
+			errorState->type=FKL_ERR_SYNTAXERROR;
+			errorState->place=fklMakeNastNodeRef(origExp);
+			errorState->fid=codegen->fid;
+			return;
+		}
+		for(FklNastNode* cur=args;cur->type==FKL_NAST_PAIR;cur=cur->u.pair->cdr)
+			fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cur->u.pair->car)),valueQueue);
+	}
 
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
@@ -735,6 +744,62 @@ static CODEGEN_FUNC(codegen_let1)
 			,let1Quest
 			,codegen);
 	fklPushPtrStack(argQuest,codegenQuestStack);
+}
+
+static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t line)
+{
+	FklNastNode* r=NULL;
+	FklNastNode** cur=&r;
+	for(size_t i=0;i<num;i++)
+	{
+		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,a[i]->curline);
+		(*cur)->u.pair=fklCreateNastPair();
+		(*cur)->u.pair->car=a[i];
+		cur=&(*cur)->u.pair->cdr;
+	}
+	(*cur)=fklCreateNastNode(FKL_NAST_NIL,line);
+	return r;
+}
+
+static CODEGEN_FUNC(codegen_let81)
+{
+	FklSid_t letHeadId=fklAddSymbolCstr("let",codegen->publicSymbolTable)->id;
+	FklNastNode* letHead=fklCreateNastNode(FKL_NAST_SYM,origExp->u.pair->car->curline);
+	letHead->u.sym=letHeadId;
+
+	FklNastNode* firstNameValue=cadr_nast_node(origExp);
+
+	FklNastNode* args=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+
+	FklNastNode* restLet8=fklCreateNastNode(FKL_NAST_PAIR,args->curline);
+	restLet8->u.pair=fklCreateNastPair();
+	restLet8->u.pair->car=args;
+	restLet8->u.pair->cdr=fklMakeNastNodeRef(rest);
+	FklNastNode* old=origExp->u.pair->cdr;
+	origExp->u.pair->cdr=restLet8;
+
+	FklNastNode* a[3]=
+	{
+		letHead,
+		fklMakeNastNodeRef(firstNameValue),
+		fklMakeNastNodeRef(origExp),
+	};
+	letHead=create_nast_list(a,3,origExp->curline);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	fklPushPtrQueue(letHead,queue);
+	fklDestroyNastNode(old);
+	firstNameValue->u.pair->cdr=fklCreateNastNode(FKL_NAST_NIL,firstNameValue->u.pair->cdr->curline);
+
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(1,1))
+			,createDefaultQueueNextExpression(queue)
+			,scope
+			,macroScope
+			,curEnv
+			,letHead->curline
+			,codegen
+			,codegenQuestStack);
 }
 
 static CODEGEN_FUNC(codegen_letrec)
@@ -5272,6 +5337,9 @@ static struct PatternAndFunc
 	{"~(check ~name)",                            NULL, codegen_check,         },
 	{"~(let [],~rest)",                           NULL, codegen_let0,          },
 	{"~(let [(~name ~value),~args],~rest)",       NULL, codegen_let1,          },
+	{"~(let* [],~rest)",                          NULL, codegen_let0,          },
+	{"~(let* [(~name ~value)],~rest)",            NULL, codegen_let1,          },
+	{"~(let* [(~name ~value),~args],~rest)",      NULL, codegen_let81,         },
 	{"~(let ~arg0 [],~rest)",                     NULL, codegen_named_let0,    },
 	{"~(let ~arg0 [(~name ~value),~args],~rest)", NULL, codegen_named_let1,    },
 	{"~(letrec [],~rest)",                        NULL, codegen_let0,          },

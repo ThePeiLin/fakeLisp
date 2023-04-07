@@ -1,11 +1,4 @@
 (export
-  (defmacro ~(let* [],~b)
-    `(let [],~b))
-
-  (defmacro ~(let* [(~n ~v),~r],~b)
-    `(let [(~n ~v)]
-       (let* ~r,~b)))
-
   (defmacro ~(case (~s ~v),~b)
     (begin
       (define body

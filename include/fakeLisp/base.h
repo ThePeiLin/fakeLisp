@@ -93,6 +93,7 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutHashItem(void* key,FklHashTable*);
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
+void fklClearHashTable(FklHashTable* ht);
 void fklDestroyHashTable(FklHashTable*);
 
 void fklDoNothingUnintHashItem(void*);

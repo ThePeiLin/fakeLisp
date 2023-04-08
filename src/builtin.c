@@ -4673,7 +4673,7 @@ static void builtin_hash_clear(FKL_DL_PROC_ARGL)
 	if(!ht)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.hash-clear!",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(ht,FKL_IS_HASHTABLE,"builtin.hash-clear!",exe);
-	fklClearVMhashTable(ht->u.hash,exe->gc);
+	fklClearHashTable(ht->u.hash);
 	fklNiReturn(ht,&ap,stack);
 	fklNiEnd(&ap,stack);
 }

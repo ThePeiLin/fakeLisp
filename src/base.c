@@ -1739,19 +1739,20 @@ size_t fklCountCharInString(FklString* s,char c)
 	return fklCountCharInBuf(s->str,s->size,c);
 }
 
+#define DEFAULT_HASH_TABLE_SIZE (4)
+
 FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 {
-	uint32_t size=4;
 	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
 	FKL_ASSERT(r);
-	FklHashTableNode** base=(FklHashTableNode**)calloc(size,sizeof(FklHashTableNode*));
+	FklHashTableNode** base=(FklHashTableNode**)calloc(DEFAULT_HASH_TABLE_SIZE,sizeof(FklHashTableNode*));
 	FKL_ASSERT(base);
 	r->base=base;
 	r->list=NULL;
 	r->tail=&r->list;
 	r->num=0;
-	r->size=size;
-	r->mask=size-1;
+	r->size=DEFAULT_HASH_TABLE_SIZE;
+	r->mask=DEFAULT_HASH_TABLE_SIZE-1;
 	r->t=t;
 	return r;
 }
@@ -1819,6 +1820,28 @@ static inline uint32_t next_pow2(uint32_t n)
 	n|=n>>16;
 	return n+1;
 }
+
+inline void fklClearHashTable(FklHashTable* ht)
+{
+	for(FklHashTableNodeList* list=ht->list;list;)
+	{
+		FklHashTableNodeList* cur=list;
+		free(list->node);
+		list=list->next;
+		free(cur);
+	}
+	ht->num=0;
+	ht->list=NULL;
+	ht->tail=&ht->list;
+	ht->size=DEFAULT_HASH_TABLE_SIZE;
+	ht->mask=DEFAULT_HASH_TABLE_SIZE-1;
+	FklHashTableNode** base=(FklHashTableNode**)calloc(ht->size,sizeof(FklHashTableNode*));
+	FKL_ASSERT(base);
+	free(ht->base);
+	ht->base=base;
+}
+
+#undef DEFAULT_HASH_TABLE_SIZE
 
 static inline void expandHashTable(FklHashTable* table)
 {

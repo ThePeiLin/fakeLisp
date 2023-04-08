@@ -523,7 +523,7 @@ int fklIsVMhashEqv(FklHashTable*);
 int fklIsVMhashEqual(FklHashTable*);
 uintptr_t fklGetVMhashTableType(FklHashTable*);
 const char* fklGetVMhashTablePrefix(FklHashTable*);
-void fklClearVMhashTable(FklHashTable* ht,FklVMgc*);
+
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc);
 FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklHashTable* ht);

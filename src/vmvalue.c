@@ -1700,23 +1700,6 @@ FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklHashTable* ht,int* ok)
 	return r;
 }
 
-void fklClearVMhashTable(FklHashTable* ht,FklVMgc* gc)
-{
-	for(FklHashTableNodeList* list=ht->list;list;)
-	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-		fklSetRef(&item->key,FKL_VM_NIL,gc);
-		fklSetRef(&item->v,FKL_VM_NIL,gc);
-		free(list->node);
-		FklHashTableNodeList* cur=list;
-		list=list->next;
-		free(cur);
-	}
-	ht->num=0;
-	ht->list=NULL;
-	ht->tail=&ht->list;
-}
-
 void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc)
 {
 	FklVMhashTableItem* i=fklPutHashItem(&key,ht);

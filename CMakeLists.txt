@@ -76,7 +76,7 @@ target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #copy lib/*.fkl
-add_custom_target(COPY_LIB_FKL ALL
+add_custom_target(COPY_LIB ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 
 #copy test

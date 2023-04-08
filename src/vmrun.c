@@ -110,9 +110,10 @@ static int is_last_expression(FklVMframe* frame)
 		uint8_t* pc=fklGetCompoundFrameCode(frame);
 		uint8_t* end=fklGetCompoundFrameEnd(frame);
 
-		for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
-			if(*pc!=FKL_OP_JMP)
-				return 0;
+		if(pc[-1]!=FKL_OP_TAIL_CALL)
+			for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
+				if(*pc!=FKL_OP_JMP)
+					return 0;
 		frame->u.c.tail=1;
 	}
 	return 1;

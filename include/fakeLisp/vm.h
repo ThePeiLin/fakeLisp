@@ -66,8 +66,6 @@ typedef struct FklVMchanl
 {
 	size_t max;
 	volatile size_t messageNum;
-	volatile size_t sendNum;
-	volatile size_t recvNum;
 	FklPtrQueue messages;
 	FklPtrQueue recvq;
 	FklPtrQueue sendq;

@@ -471,7 +471,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_unbox,
 };
 
-inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next,FklVMgc* gc)
+inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
 {
 	cur->prev=prev;
 	cur->next=next;
@@ -2910,7 +2910,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->locv=NULL;
 	exe->state=FKL_VM_READY;
 	fklCallObj(nextCall,NULL,exe);
-	insert_to_VM_chain(exe,prev,next,gc);
+	insert_to_VM_chain(exe,prev,next);
 	fklAddToGCNoGC(exe->chan,gc);
 	return exe;
 }

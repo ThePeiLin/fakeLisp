@@ -1,29 +1,24 @@
-(define n 10)
-(define buf (chanl n))
+(define max 10)
+(define buf (chanl max))
 
-(define running 1)
-
-(define (producer n)
+(define (producer)
   (let iter [(c 0)]
-    (when running
+    (when (< c max)
       (println "produce:" c)
       (send buf c)
-      (iter (% (1+ c) n))))
+      (iter (1+ c))))
   (println "producer exit"))
 
 (define (consumer)
-  (let iter []
-    (when running
+  (let iter [(c 0)]
+    (when (< c max)
       (println "consume:" (recv buf))
-      (iter)))
+      (iter (1+ c))))
   (println "consumer exit"))
 
 (let iter [(c 0)]
-  (when (< c 10)
-    (go producer n)
+  (when (< c max)
+    (go producer)
     (go consumer)
     (iter (1+ c))))
 
-(sleep 1)
-
-(setq running nil)

@@ -921,70 +921,71 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 		{
 			if(root1->type!=root2->type)
 				r=0;
-			switch(root1->type)
-			{
-				case FKL_TYPE_F64:
-					r=root1->u.f64==root2->u.f64;
-					break;
-				case FKL_TYPE_STR:
-					r=!fklStringcmp(root1->u.str,root2->u.str);
-					break;
-				case FKL_TYPE_BYTEVECTOR:
-					r=!fklBytevectorcmp(root1->u.bvec,root2->u.bvec);
-					break;
-				case FKL_TYPE_PAIR:
-					r=1;
-					fklPushPtrStack(root1->u.pair->car,&s1);
-					fklPushPtrStack(root1->u.pair->cdr,&s1);
-					fklPushPtrStack(root2->u.pair->car,&s2);
-					fklPushPtrStack(root2->u.pair->cdr,&s2);
-					break;
-				case FKL_TYPE_BOX:
-					r=1;
-					fklPushPtrStack(root1->u.box,&s1);
-					fklPushPtrStack(root2->u.box,&s2);
-					break;
-				case FKL_TYPE_VECTOR:
-					if(root1->u.vec->size!=root2->u.vec->size)
-						r=0;
-					else
-					{
+			else
+				switch(root1->type)
+				{
+					case FKL_TYPE_F64:
+						r=root1->u.f64==root2->u.f64;
+						break;
+					case FKL_TYPE_STR:
+						r=!fklStringcmp(root1->u.str,root2->u.str);
+						break;
+					case FKL_TYPE_BYTEVECTOR:
+						r=!fklBytevectorcmp(root1->u.bvec,root2->u.bvec);
+						break;
+					case FKL_TYPE_PAIR:
 						r=1;
-						size_t size=root1->u.vec->size;
-						for(size_t i=0;i<size;i++)
-							fklPushPtrStack(root1->u.vec->base[i],&s1);
-						for(size_t i=0;i<size;i++)
-							fklPushPtrStack(root2->u.vec->base[i],&s2);
-					}
-					break;
-				case FKL_TYPE_BIG_INT:
-					r=!fklCmpBigInt(root1->u.bigInt,root2->u.bigInt);
-					break;
-				case FKL_TYPE_USERDATA:
-					if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
-						r=0;
-					else
-						r=root1->u.ud->t->__equal(root1->u.ud,root2->u.ud);
-					break;
-				case FKL_TYPE_HASHTABLE:
-					r=1;
-					for(FklHashTableNodeList* list=root1->u.hash->list;list;list=list->next)
-					{
-						FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-						fklPushPtrStack(item->key,&s1);
-						fklPushPtrStack(item->v,&s1);
-					}
-					for(FklHashTableNodeList* list=root2->u.hash->list;list;list=list->next)
-					{
-						FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-						fklPushPtrStack(item->key,&s2);
-						fklPushPtrStack(item->v,&s2);
-					}
-					break;
-				default:
-					r=(root1==root2);
-					break;
-			}
+						fklPushPtrStack(root1->u.pair->car,&s1);
+						fklPushPtrStack(root1->u.pair->cdr,&s1);
+						fklPushPtrStack(root2->u.pair->car,&s2);
+						fklPushPtrStack(root2->u.pair->cdr,&s2);
+						break;
+					case FKL_TYPE_BOX:
+						r=1;
+						fklPushPtrStack(root1->u.box,&s1);
+						fklPushPtrStack(root2->u.box,&s2);
+						break;
+					case FKL_TYPE_VECTOR:
+						if(root1->u.vec->size!=root2->u.vec->size)
+							r=0;
+						else
+						{
+							r=1;
+							size_t size=root1->u.vec->size;
+							for(size_t i=0;i<size;i++)
+								fklPushPtrStack(root1->u.vec->base[i],&s1);
+							for(size_t i=0;i<size;i++)
+								fklPushPtrStack(root2->u.vec->base[i],&s2);
+						}
+						break;
+					case FKL_TYPE_BIG_INT:
+						r=!fklCmpBigInt(root1->u.bigInt,root2->u.bigInt);
+						break;
+					case FKL_TYPE_USERDATA:
+						if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
+							r=0;
+						else
+							r=root1->u.ud->t->__equal(root1->u.ud,root2->u.ud);
+						break;
+					case FKL_TYPE_HASHTABLE:
+						r=1;
+						for(FklHashTableNodeList* list=root1->u.hash->list;list;list=list->next)
+						{
+							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+							fklPushPtrStack(item->key,&s1);
+							fklPushPtrStack(item->v,&s1);
+						}
+						for(FklHashTableNodeList* list=root2->u.hash->list;list;list=list->next)
+						{
+							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+							fklPushPtrStack(item->key,&s2);
+							fklPushPtrStack(item->v,&s2);
+						}
+						break;
+					default:
+						r=(root1==root2);
+						break;
+				}
 		}
 		if(!r)
 			break;

@@ -3221,6 +3221,7 @@ int matchPattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklV
 	fklInitPtrStack(&s1,32,16);
 	fklPushPtrStack(pattern->u.pair->cdr->u.pair->car,&s0);
 	fklPushPtrStack(exp,&s1);
+	int r=0;
 	while(!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
 	{
 		FklVMvalue* v0=fklPopPtrStack(&s0);
@@ -3228,6 +3229,11 @@ int matchPattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklV
 		FklVMvalue* slotV=isSlot(slotS,v0);
 		if(slotV)
 			fklSetVMhashTable(slotV,v1,ht,gc);
+		else if(FKL_IS_BOX(v0)&&FKL_IS_BOX(v1))
+		{
+			fklPushPtrStack(v0->u.box,&s0);
+			fklPushPtrStack(v1->u.box,&s1);
+		}
 		else if(FKL_IS_PAIR(v0)&&FKL_IS_PAIR(v1))
 		{
 			fklPushPtrStack(v0->u.pair->cdr,&s0);
@@ -3235,16 +3241,50 @@ int matchPattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklV
 			fklPushPtrStack(v1->u.pair->cdr,&s1);
 			fklPushPtrStack(v1->u.pair->car,&s1);
 		}
+		else if(FKL_IS_VECTOR(v0)
+				&&FKL_IS_VECTOR(v1))
+		{
+			r=v0->u.vec->size!=v1->u.vec->size;
+			if(r)
+				break;
+			FklVMvalue** b0=v0->u.vec->base;
+			FklVMvalue** b1=v1->u.vec->base;
+			for(size_t i=v0->u.vec->size;i>0;i--)
+			{
+				fklPushPtrStack(b0[i-1],&s0);
+				fklPushPtrStack(b1[i-1],&s1);
+			}
+		}
+		else if(FKL_IS_HASHTABLE(v0)
+				&&FKL_IS_HASHTABLE(v1))
+		{
+			r=v0->u.hash->t!=v1->u.hash->t
+				||v0->u.hash->num!=v1->u.hash->num;
+			if(r)
+				break;
+			FklHashTableNodeList* h0=v0->u.hash->list;
+			FklHashTableNodeList* h1=v1->u.hash->list;
+			while(h0)
+			{
+				FklVMhashTableItem* i0=(FklVMhashTableItem*)h0->node->data;
+				FklVMhashTableItem* i1=(FklVMhashTableItem*)h1->node->data;
+				fklPushPtrStack(i0->v,&s0);
+				fklPushPtrStack(i0->key,&s0);
+				fklPushPtrStack(i1->v,&s1);
+				fklPushPtrStack(i1->key,&s1);
+				h0=h0->next;
+				h1=h1->next;
+			}
+		}
 		else if(!fklVMvalueEqual(v0,v1))
 		{
-			fklUninitPtrStack(&s0);
-			fklUninitPtrStack(&s1);
-			return 1;
+			r=1;
+			break;
 		}
 	}
 	fklUninitPtrStack(&s0);
 	fklUninitPtrStack(&s1);
-	return 0;
+	return r;
 }
 
 static int isValidSyntaxPattern(const FklVMvalue* p)
@@ -3283,6 +3323,23 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 		{
 			fklPushPtrStack(c->u.pair->cdr,&stack);
 			fklPushPtrStack(c->u.pair->car,&stack);
+		}
+		else if(FKL_IS_BOX(c))
+			fklPushPtrStack(c->u.box,&stack);
+		else if(FKL_IS_VECTOR(c))
+		{
+			FklVMvalue** base=c->u.vec->base;
+			for(size_t i=c->u.vec->size;i>0;i--)
+				fklPushPtrStack(base[i-1],&stack);
+		}
+		else if(FKL_IS_HASHTABLE(c))
+		{
+			for(FklHashTableNodeList* h=c->u.hash->list;h;h=h->next)
+			{
+				FklVMhashTableItem* i=(FklVMhashTableItem*)h->node->data;
+				fklPushPtrStack(i->v,&stack);
+				fklPushPtrStack(i->key,&stack);
+			}
 		}
 	}
 	fklDestroyHashTable(symbolTable);

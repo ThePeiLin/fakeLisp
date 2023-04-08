@@ -3076,11 +3076,12 @@ static void builtin_println(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	for(;obj;obj=fklNiGetArg(&ap,stack))
+	FklVMvalue* r=FKL_VM_NIL;
+	for(;obj;r=obj,obj=fklNiGetArg(&ap,stack))
 		fklPrincVMvalue(obj,stdout,exe->symbolTable);
 	fputc('\n',stdout);
 	fklNiResBp(&ap,stack);
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3088,10 +3089,11 @@ static void builtin_print(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	for(;obj;obj=fklNiGetArg(&ap,stack))
+	FklVMvalue* r=FKL_VM_NIL;
+	for(;obj;r=obj,obj=fklNiGetArg(&ap,stack))
 		fklPrincVMvalue(obj,stdout,exe->symbolTable);
 	fklNiResBp(&ap,stack);
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3103,11 +3105,12 @@ static void builtin_fprint(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fprint",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,"builtin.fprint",exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=f->u.fp->fp;
-	for(;obj;obj=fklNiGetArg(&ap,stack))
+	for(;obj;r=obj,obj=fklNiGetArg(&ap,stack))
 		fklPrincVMvalue(obj,fp,exe->symbolTable);
 	fklNiResBp(&ap,stack);
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -3119,11 +3122,12 @@ static void builtin_fprin1(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fprin1",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,"builtin.fprin1",exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=f->u.fp->fp;
-	for(;obj;obj=fklNiGetArg(&ap,stack))
+	for(;obj;r=obj,obj=fklNiGetArg(&ap,stack))
 		fklPrin1VMvalue(obj,fp,exe->symbolTable);
 	fklNiResBp(&ap,stack);
-	fklNiReturn(FKL_VM_NIL,&ap,stack);
+	fklNiReturn(r,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 

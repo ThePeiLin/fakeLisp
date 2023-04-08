@@ -2833,6 +2833,7 @@ typedef enum
 	FGETI,
 	FGETS,
 	FGETB,
+	FGETD,
 }FgetMode;
 
 typedef struct
@@ -2843,11 +2844,17 @@ typedef struct
 	uint16_t done;
 	uint32_t ap;
 	size_t len;
+	char delim;
 }FgetCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FgetCtx);
 
-static inline void initFgetCtx(FklCallObjData d,FklVMvalue* fpv,FgetMode mode,size_t len,uint32_t ap)
+static inline void initFgetCtx(FklCallObjData d
+		,FklVMvalue* fpv
+		,FgetMode mode
+		,size_t len
+		,char del
+		,uint32_t ap)
 {
 	FgetCtx* ctx=(FgetCtx*)d;
 	ctx->fpv=fpv;
@@ -2855,6 +2862,7 @@ static inline void initFgetCtx(FklCallObjData d,FklVMvalue* fpv,FgetMode mode,si
 	ctx->len=len;
 	ctx->ap=ap;
 	ctx->done=0;
+	ctx->delim=del;
 	utstring_init(&ctx->buf);
 }
 
@@ -2878,57 +2886,74 @@ static int fget_frame_end(FklCallObjData d)
 
 static void fget_frame_step(FklCallObjData d,FklVM* exe)
 {
-    FgetCtx* ctx=(FgetCtx*)d;
-    FklVMfp* vfp=ctx->fpv->u.fp;
-    FILE* fp=vfp->fp;
-    int fd=fileno(fp);
-    int attr=fcntl(fd,F_GETFL);
-    fcntl(fd,F_SETFL,attr|O_NONBLOCK);
-    int ch=0;
-    UT_string* s=&ctx->buf;
-    switch(ctx->mode)
-    {
-        case FGETC:
-        case FGETI:
-            ch=fgetc(fp);
-            if(feof(fp))
-            {
-                ctx->done=1;
-                uint32_t* pap=&ctx->ap;
-                fklNiReturn(FKL_VM_NIL,pap,exe->stack);
-                fklNiEnd(pap,exe->stack);
-            }
-            else if(ch>0)
-            {
-                ctx->done=1;
-                FklVMvalue* retval=ctx->mode==FGETC?FKL_MAKE_VM_CHR(ch):FKL_MAKE_VM_FIX(ch);
-                uint32_t* pap=&ctx->ap;
-                fklNiReturn(retval,pap,exe->stack);
-                fklNiEnd(pap,exe->stack);
-            }
-            break;
-        case FGETS:
-        case FGETB:
-            while(ctx->len&&(ch=fgetc(fp))>0)
-            {
-                char c=ch;
-                utstring_bincpy(s,&c,sizeof(c));
-                ctx->len--;
-            }
-            if(!ctx->len||feof(fp))
-            {
-                ctx->done=1;
-                uint32_t* pap=&ctx->ap;
-                size_t len=utstring_len(s);
-                const char* body=utstring_body(s);
-                FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(len,body),exe)
-                    :fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(len,(const uint8_t*)body),exe);
-                fklNiReturn(retval,pap,exe->stack);
-                fklNiEnd(pap,exe->stack);
-            }
-            break;
-    }
-    fcntl(fd,F_SETFL,attr);
+	FgetCtx* ctx=(FgetCtx*)d;
+	FklVMfp* vfp=ctx->fpv->u.fp;
+	FILE* fp=vfp->fp;
+	int fd=fileno(fp);
+	int attr=fcntl(fd,F_GETFL);
+	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
+	int ch=0;
+	UT_string* s=&ctx->buf;
+	switch(ctx->mode)
+	{
+		case FGETC:
+		case FGETI:
+			ch=fgetc(fp);
+			if(feof(fp))
+			{
+				ctx->done=1;
+				uint32_t* pap=&ctx->ap;
+				fklNiReturn(FKL_VM_NIL,pap,exe->stack);
+				fklNiEnd(pap,exe->stack);
+			}
+			else if(ch>0)
+			{
+				ctx->done=1;
+				FklVMvalue* retval=ctx->mode==FGETC?FKL_MAKE_VM_CHR(ch):FKL_MAKE_VM_FIX(ch);
+				uint32_t* pap=&ctx->ap;
+				fklNiReturn(retval,pap,exe->stack);
+				fklNiEnd(pap,exe->stack);
+			}
+			break;
+		case FGETD:
+			while((ch=fgetc(fp))>0)
+			{
+				char c=ch;
+				utstring_bincpy(s,&c,sizeof(c));
+				if(ch==ctx->delim)
+					break;
+			}
+			if(feof(fp)||ch==ctx->delim)
+			{
+				ctx->done=1;
+				FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(utstring_len(s),utstring_body(s)),exe);
+				uint32_t* pap=&ctx->ap;
+				fklNiReturn(retval,pap,exe->stack);
+				fklNiEnd(pap,exe->stack);
+			}
+			break;
+		case FGETS:
+		case FGETB:
+			while(ctx->len&&(ch=fgetc(fp))>0)
+			{
+				char c=ch;
+				utstring_bincpy(s,&c,sizeof(c));
+				ctx->len--;
+			}
+			if(!ctx->len||feof(fp))
+			{
+				ctx->done=1;
+				uint32_t* pap=&ctx->ap;
+				size_t len=utstring_len(s);
+				const char* body=utstring_body(s);
+				FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(len,body),exe)
+					:fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(len,(const uint8_t*)body),exe);
+				fklNiReturn(retval,pap,exe->stack);
+				fklNiEnd(pap,exe->stack);
+			}
+			break;
+	}
+	fcntl(fd,F_SETFL,attr);
 }
 
 static const FklVMframeContextMethodTable FgetContextMethodTable=
@@ -2945,13 +2970,32 @@ static inline void initFrameToFgetFrame(FklVM* exe
 		,FklVMvalue* fpv
 		,FgetMode mode
 		,size_t len
+		,char del
 		,uint32_t ap)
 {
 	FklVMframe* f=exe->frames;
 	fklLockVMfp(fpv,exe);
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->u.o.t=&FgetContextMethodTable;
-	initFgetCtx(f->u.o.data,fpv,mode,len,ap);
+	initFgetCtx(f->u.o.data,fpv,mode,len,del,ap);
+}
+
+static void builtin_fgetd(FKL_DL_PROC_ARGL)
+{
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* del=fklNiGetArg(&ap,stack);
+	FklVMvalue* file=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetd",FKL_ERR_TOOMANYARG,exe);
+	if(!del)
+		del=FKL_MAKE_VM_CHR('\n');
+	if(!file)
+		file=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn;
+	if(!FKL_IS_FP(file)||!FKL_IS_CHR(del))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetd",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(!file->u.fp)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetd",FKL_ERR_INVALIDACCESS,exe);
+	initFrameToFgetFrame(exe,file,FGETD,0,FKL_GET_CHR(del),ap);
 }
 
 static void builtin_fgets(FKL_DL_PROC_ARGL)
@@ -2971,7 +3015,7 @@ static void builtin_fgets(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	if(!file->u.fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INVALIDACCESS,exe);
-	initFrameToFgetFrame(exe,file,FGETS,fklGetUint(psize),ap);
+	initFrameToFgetFrame(exe,file,FGETS,fklGetUint(psize),0,ap);
 }
 
 static void builtin_fgetb(FKL_DL_PROC_ARGL)
@@ -2991,7 +3035,7 @@ static void builtin_fgetb(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	if(!file->u.fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INVALIDACCESS,exe);
-	initFrameToFgetFrame(exe,file,FGETB,fklGetUint(psize),ap);
+	initFrameToFgetFrame(exe,file,FGETB,fklGetUint(psize),0,ap);
 }
 
 static void builtin_prin1(FKL_DL_PROC_ARGL)
@@ -4121,7 +4165,7 @@ static void builtin_fgetc(FKL_DL_PROC_ARGL)
 	FklVMvalue* fpv=stream?stream:pbd->sysIn;
 	if(!fpv->u.fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
-	initFrameToFgetFrame(exe,fpv,FGETC,1,ap);
+	initFrameToFgetFrame(exe,fpv,FGETC,1,0,ap);
 }
 
 static void builtin_fgeti(FKL_DL_PROC_ARGL)
@@ -4136,7 +4180,7 @@ static void builtin_fgeti(FKL_DL_PROC_ARGL)
 	FklVMvalue* fpv=stream?stream:pbd->sysIn;
 	if(!fpv->u.fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,exe);
-	initFrameToFgetFrame(exe,fpv,FGETI,1,ap);
+	initFrameToFgetFrame(exe,fpv,FGETI,1,0,ap);
 }
 
 static void builtin_fwrite(FKL_DL_PROC_ARGL)
@@ -4300,11 +4344,11 @@ static void builtin_srand(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* s=fklNiGetArg(&ap,stack);
-    if(fklNiResBp(&ap,stack))
+	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.srand",FKL_ERR_TOOMANYARG,exe);
 	FKL_NI_CHECK_TYPE(s,fklIsInt,"builtin.srand",exe);
-    srand(fklGetInt(s));
-    fklNiReturn(s,&ap,stack);
+	srand(fklGetInt(s));
+	fklNiReturn(s,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
@@ -4817,12 +4861,12 @@ static FklByteCodelnt* inlfunc_cdr(INL_FUNC_ARGS)
 
 static FklByteCodelnt* inlfunc_add_1(INL_FUNC_ARGS)
 {
-    return inl_1_arg_func(FKL_OP_INC,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_INC,bcs,fid,line);
 }
 
 static FklByteCodelnt* inlfunc_sub_1(INL_FUNC_ARGS)
 {
-    return inl_1_arg_func(FKL_OP_DEC,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_DEC,bcs,fid,line);
 }
 
 static FklByteCodelnt* inlfunc_neg(INL_FUNC_ARGS)
@@ -5183,6 +5227,7 @@ static const struct SymbolFuncStruct
 	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgets",                 builtin_fgets,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fgetd",                 builtin_fgetd,                   {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"set-car!",              builtin_set_car,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"set-cdr!",              builtin_set_cdr,                 {NULL,         NULL,          NULL,          NULL,          }, },

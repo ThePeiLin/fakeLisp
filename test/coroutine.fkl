@@ -2,18 +2,16 @@
 (define buf (chanl max))
 
 (define (producer)
-  (let iter [(c 0)]
-    (when (< c max)
-      (println "produce:" c)
-      (send buf c)
-      (iter (1+ c))))
+  (do [(c 0 (1+ c))]
+    [(>= c max)]
+    (println "produce:" c)
+    (send buf c))
   (println "producer exit"))
 
 (define (consumer)
-  (let iter [(c 0)]
-    (when (< c max)
-      (println "consume:" (recv buf))
-      (iter (1+ c))))
+  (do [(c 0 (1+ c))]
+    [(>= c max)]
+    (println "consume:" (recv buf)))
   (println "consumer exit"))
 
 (let iter [(c 0)]

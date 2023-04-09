@@ -1,3 +1,4 @@
+#include "fakeLisp/base.h"
 #include "fakeLisp/parser.h"
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/opcode.h>
@@ -17,8 +18,10 @@
 static FklSid_t builtInPatternVar_rest=0;
 static FklSid_t builtInPatternVar_name=0;
 static FklSid_t builtInPatternVar_value=0;
+static FklSid_t builtInPatternVar_cond=0;
 static FklSid_t builtInPatternVar_args=0;
 static FklSid_t builtInPatternVar_arg0=0;
+static FklSid_t builtInPatternVar_arg1=0;
 static FklSid_t builtInHeadSymbolTable[4]={0};
 
 static void _default_stack_context_finalizer(void* data)
@@ -410,6 +413,20 @@ BC_PROCESS(_funcall_exp_bc_process)
 		return createBclnt(create1lenBc(FKL_OP_PUSH_NIL),fid,line);
 }
 
+static int isNonRetvalExp(const FklNastNode*);
+
+static int pushFuncallListToQueue(FklNastNode* list,FklPtrQueue* queue,FklNastNode** last)
+{
+	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
+		if(isNonRetvalExp(list->u.pair->car))
+			return 1;
+		else
+			fklPushPtrQueue(fklMakeNastNodeRef(list->u.pair->car),queue);
+	if(last)
+		*last=list;
+	return 0;
+}
+
 static void codegen_funcall(FklNastNode* rest
 		,FklPtrStack* codegenQuestStack
 		,uint32_t scope
@@ -420,8 +437,8 @@ static void codegen_funcall(FklNastNode* rest
 {
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklNastNode* last=NULL;
-	pushListItemToQueue(rest,queue,&last);
-	if(last->type!=FKL_NAST_NIL)
+	int r=pushFuncallListToQueue(rest,queue,&last);
+	if(r||last->type!=FKL_NAST_NIL)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
@@ -575,8 +592,6 @@ static inline FklNastNode* cadr_nast_node(const FklNastNode* node)
 	return node->u.pair->cdr->u.pair->car;
 }
 
-static int isNonRetvalExp(const FklNastNode*);
-
 static int is_valid_let_arg(const FklNastNode* node)
 {
 	return node->type==FKL_NAST_PAIR
@@ -610,7 +625,7 @@ static int is_valid_let_args(const FklNastNode* sl
 		return 0;
 }
 
-static inline FklNastNode* caddr_nast_node(FklNastNode* node)
+static inline FklNastNode* caddr_nast_node(const FklNastNode* node)
 {
 	return node->u.pair->cdr->u.pair->cdr->u.pair->car;
 }
@@ -881,6 +896,441 @@ static CODEGEN_FUNC(codegen_letrec)
 			,let1Quest
 			,codegen);
 	fklPushPtrStack(argQuest,codegenQuestStack);
+}
+
+BC_PROCESS(_do0_exp_bc_process)
+{
+	FklPtrStack* s=GET_STACK(context);
+	FklByteCodelnt* rest=fklPopPtrStack(s);
+	FklByteCodelnt* value=fklPopPtrStack(s);
+	FklByteCodelnt* cond=fklPopPtrStack(s);
+
+	uint8_t popC[]={FKL_OP_DROP,};
+	FklByteCode pop={1,popC};
+	uint8_t jmpC[9]={FKL_OP_JMP,};
+	FklByteCode jmp={9,jmpC};
+	uint8_t jmpIfTrueC[9]={FKL_OP_JMP_IF_TRUE,};
+	FklByteCode jmpIfTrue={9,jmpIfTrueC};
+
+	if(rest->bc->size)
+		fklBcBclAppendToBcl(&pop,rest,fid,line);
+
+	fklSetI64ToByteCode(&jmpIfTrueC[1],rest->bc->size+jmp.size);
+	fklBclBcAppendToBcl(cond,&jmpIfTrue,fid,line);
+
+	int64_t jmpLen=rest->bc->size+cond->bc->size+jmp.size;
+	fklSetI64ToByteCode(&jmpC[1],-jmpLen);
+	fklBclBcAppendToBcl(rest,&jmp,fid,line);
+	fklCodeLntCat(cond,rest);
+	fklDestroyByteCodelnt(rest);
+
+	if(value->bc->size)
+		fklBclBcAppendToBcl(cond,&pop,fid,line);
+	fklReCodeLntCat(cond,value);
+	fklDestroyByteCodelnt(cond);
+
+	return value;
+}
+
+BC_PROCESS(_do_rest_exp_bc_process)
+{
+	FklPtrStack* s=GET_STACK(context);
+	if(s->top)
+	{
+		uint8_t popC[]={FKL_OP_DROP,};
+		FklByteCode pop={1,popC};
+		FklByteCodelnt* r=sequnce_exp_bc_process(s,fid,line);
+		fklBclBcAppendToBcl(r,&pop,fid,line);
+		return r;
+	}
+	return fklCreateByteCodelnt(fklCreateByteCode(0));
+}
+
+static CODEGEN_FUNC(codegen_do0)
+{
+	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_cond,ht);
+
+	FklPatternMatchingHashTableItem* item=fklGetHashItem(&builtInPatternVar_value,ht);
+	FklNastNode* value=item?item->node:NULL;
+
+	if(isNonRetvalExp(cond)||(value&&isNonRetvalExp(value)))
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+
+	FklCodegenQuest* do0Quest=createCodegenQuest(_do0_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(3,16))
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,cond->curline
+			,NULL
+			,codegen);
+	fklPushPtrStack(do0Quest,codegenQuestStack);
+
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_do_rest_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(fklLengthPtrQueue(queue),16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,cond->curline
+			,codegen
+			,codegenQuestStack);
+
+	if(value)
+	{
+		FklPtrQueue* vQueue=fklCreatePtrQueue();
+		fklPushPtrQueue(fklMakeNastNodeRef(value),vQueue);
+		FklCodegenQuest* do0VQuest=createCodegenQuest(_default_bc_process
+				,createDefaultStackContext(fklCreatePtrStack(1,16))
+				,createDefaultQueueNextExpression(vQueue)
+				,cs
+				,cms
+				,curEnv
+				,origExp->curline
+				,do0Quest
+				,codegen);
+		fklPushPtrStack(do0VQuest,codegenQuestStack);
+	}
+	else
+	{
+		FklByteCodelnt* v=fklCreateByteCodelnt(fklCreateByteCode(0));
+		FklPtrStack* s=fklCreatePtrStack(1,16);	
+		fklPushPtrStack(v,s);
+		FklCodegenQuest* do0VQuest=createCodegenQuest(_default_bc_process
+				,createDefaultStackContext(s)
+				,NULL
+				,cs
+				,cms
+				,curEnv
+				,origExp->curline
+				,do0Quest
+				,codegen);
+		fklPushPtrStack(do0VQuest,codegenQuestStack);
+	}
+	FklPtrQueue* cQueue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(cond),cQueue);
+	FklCodegenQuest* do0CQuest=createCodegenQuest(_default_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(1,16))
+			,createDefaultQueueNextExpression(cQueue)
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,do0Quest
+			,codegen);
+	fklPushPtrStack(do0CQuest,codegenQuestStack);
+}
+
+static inline int is_valid_do_var_bind(const FklNastNode* list,FklNastNode** nextV)
+{
+	if(!fklIsNastNodeList(list))
+		return 0;
+	if(list->u.pair->car->type!=FKL_NAST_SYM)
+		return 0;
+	size_t len=nast_list_len(list);
+	if(len!=2&&len!=3)
+		return 0;
+	const FklNastNode* initVal=cadr_nast_node(list);
+	if(isNonRetvalExp(initVal))
+		return 0;
+	if(len==3)
+	{
+		FklNastNode* next=caddr_nast_node(list);
+		if(isNonRetvalExp(next))
+			return 0;
+		*nextV=next;
+	}
+	return 1;
+}
+
+static inline void destroy_next_exp_queue(FklPtrQueue* q)
+{
+	while(!fklIsPtrQueueEmpty(q))
+		fklDestroyNastNode(fklPopPtrQueue(q));
+	fklDestroyPtrQueue(q);
+}
+
+static inline int is_valid_do_bind_list(const FklNastNode* sl
+		,FklCodegenEnv* env
+		,uint32_t scope
+		,FklUintStack* stack
+		,FklUintStack* nstack
+		,FklPtrQueue* valueQueue
+		,FklPtrQueue* nextQueue)
+{
+	if(fklIsNastNodeList(sl))
+	{
+		for(;sl->type==FKL_NAST_PAIR;sl=sl->u.pair->cdr)
+		{
+			FklNastNode* cc=sl->u.pair->car;
+			FklNastNode* nextExp=NULL;
+			if(!is_valid_do_var_bind(cc,&nextExp))
+				return 0;
+			FklSid_t id=cc->u.pair->car->u.sym;
+			if(fklIsSymbolDefined(id,scope,env))
+				return 0;
+			uint32_t idx=fklAddCodegenDefBySid(id,scope,env);
+			fklPushUintStack(idx,stack);
+			fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cc)),valueQueue);
+			if(nextExp)
+			{
+				fklPushUintStack(idx,nstack);
+				fklPushPtrQueue(fklMakeNastNodeRef(nextExp),nextQueue);
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
+BC_PROCESS(_do1_init_val_bc_process)
+{
+	FklByteCodelnt* ret=fklCreateByteCodelnt(fklCreateByteCode(0));
+	Let1Context* ctx=(Let1Context*)(context->data);
+	FklPtrStack* s=ctx->stack;
+	FklUintStack* ss=ctx->ss;
+
+	uint8_t popC[1]={FKL_OP_DROP,};
+	FklByteCode pop={1,popC,};
+
+	uint8_t putLocC[5]={FKL_OP_PUT_LOC,};
+	FklByteCode putLoc={5,putLocC,};
+
+	uint64_t* idxbase=ss->base;
+	FklByteCodelnt** bclBase=(FklByteCodelnt**)s->base;
+	uint32_t top=s->top;
+	for(uint32_t i=0;i<top;i++)
+	{
+		uint32_t idx=idxbase[i];
+		FklByteCodelnt* curBcl=bclBase[i];
+		fklSetU32ToByteCode(&putLocC[1],idx);
+		fklBclBcAppendToBcl(curBcl,&putLoc,fid,line);
+		fklBclBcAppendToBcl(curBcl,&pop,fid,line);
+		fklCodeLntCat(ret,curBcl);
+	}
+	return ret;
+}
+
+BC_PROCESS(_do1_next_val_bc_process)
+{
+	Let1Context* ctx=(Let1Context*)(context->data);
+	FklPtrStack* s=ctx->stack;
+	FklUintStack* ss=ctx->ss;
+
+	if(s->top)
+	{
+		FklByteCodelnt* ret=fklCreateByteCodelnt(fklCreateByteCode(0));
+		uint8_t popC[1]={FKL_OP_DROP,};
+		FklByteCode pop={1,popC,};
+
+		uint8_t putLocC[5]={FKL_OP_PUT_LOC,};
+		FklByteCode putLoc={5,putLocC,};
+
+		uint64_t* idxbase=ss->base;
+		FklByteCodelnt** bclBase=(FklByteCodelnt**)s->base;
+		uint32_t top=s->top;
+		for(uint32_t i=0;i<top;i++)
+		{
+			uint32_t idx=idxbase[i];
+			FklByteCodelnt* curBcl=bclBase[i];
+			fklSetU32ToByteCode(&putLocC[1],idx);
+			fklBclBcAppendToBcl(curBcl,&putLoc,fid,line);
+			fklBclBcAppendToBcl(curBcl,&pop,fid,line);
+			fklCodeLntCat(ret,curBcl);
+		}
+		return ret;
+	}
+	return NULL;
+}
+
+BC_PROCESS(_do1_bc_process)
+{
+	FklPtrStack* s=GET_STACK(context);
+	FklByteCodelnt* next=s->top==5?fklPopPtrStack(s):NULL;
+	FklByteCodelnt* rest=fklPopPtrStack(s);
+	FklByteCodelnt* value=fklPopPtrStack(s);
+	FklByteCodelnt* cond=fklPopPtrStack(s);
+	FklByteCodelnt* init=fklPopPtrStack(s);
+
+	uint8_t popC[]={FKL_OP_DROP,};
+	FklByteCode pop={1,popC};
+	uint8_t jmpC[9]={FKL_OP_JMP,};
+	FklByteCode jmp={9,jmpC};
+	uint8_t jmpIfTrueC[9]={FKL_OP_JMP_IF_TRUE,};
+	FklByteCode jmpIfTrue={9,jmpIfTrueC};
+
+	fklBclBcAppendToBcl(rest,&pop,fid,line);
+	if(next)
+	{
+		fklCodeLntCat(rest,next);
+		fklDestroyByteCodelnt(next);
+	}
+
+	fklSetI64ToByteCode(&jmpIfTrueC[1],rest->bc->size+jmp.size);
+	fklBclBcAppendToBcl(cond,&jmpIfTrue,fid,line);
+
+	int64_t jmpLen=rest->bc->size+cond->bc->size+jmp.size;
+	fklSetI64ToByteCode(&jmpC[1],-jmpLen);
+	fklBclBcAppendToBcl(rest,&jmp,fid,line);
+	fklCodeLntCat(cond,rest);
+	fklDestroyByteCodelnt(rest);
+
+	if(value->bc->size)
+		fklBclBcAppendToBcl(cond,&pop,fid,line);
+	fklReCodeLntCat(cond,value);
+	fklDestroyByteCodelnt(cond);
+
+	fklReCodeLntCat(init,value);
+	fklDestroyByteCodelnt(init);
+	return value;
+}
+
+static CODEGEN_FUNC(codegen_do1)
+{
+	FklNastNode* bindlist=cadr_nast_node(origExp);
+
+	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_cond,ht);
+
+	FklPatternMatchingHashTableItem* item=fklGetHashItem(&builtInPatternVar_value,ht);
+	FklNastNode* value=item?item->node:NULL;
+
+	if(isNonRetvalExp(cond)||(value&&isNonRetvalExp(value)))
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+
+	FklUintStack* symStack=fklCreateUintStack(4,16);
+	FklUintStack* nextSymStack=fklCreateUintStack(4,16);
+
+	uint32_t cs=enter_new_scope(scope,curEnv);
+	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
+
+	FklPtrQueue* valueQueue=fklCreatePtrQueue();
+	FklPtrQueue* nextValueQueue=fklCreatePtrQueue();
+	if(!is_valid_do_bind_list(bindlist
+				,curEnv,cs
+				,symStack,nextSymStack
+				,valueQueue,nextValueQueue))
+	{
+		cms->refcount=1;
+		fklDestroyCodegenMacroScope(cms);
+		fklDestroyUintStack(symStack);
+		fklDestroyUintStack(nextSymStack);
+		destroy_next_exp_queue(valueQueue);
+		destroy_next_exp_queue(nextValueQueue);
+		
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		errorState->fid=codegen->fid;
+		return;
+	}
+
+	FklCodegenQuest* do1Quest=createCodegenQuest(_do1_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(5,16))
+			,NULL
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,NULL
+			,codegen);
+	fklPushPtrStack(do1Quest,codegenQuestStack);
+
+	FklCodegenQuest* do1NextValQuest=createCodegenQuest(_do1_next_val_bc_process
+			,createLet1CodegenContext(nextSymStack)
+			,createDefaultQueueNextExpression(nextValueQueue)
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,do1Quest
+			,codegen);
+
+	fklPushPtrStack(do1NextValQuest,codegenQuestStack);
+
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FklCodegenQuest* do1RestQuest=createCodegenQuest(_do_rest_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(fklLengthPtrQueue(queue),16))
+			,createDefaultQueueNextExpression(queue)
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,do1Quest
+			,codegen);
+	fklPushPtrStack(do1RestQuest,codegenQuestStack);
+
+	if(value)
+	{
+		FklPtrQueue* vQueue=fklCreatePtrQueue();
+		fklPushPtrQueue(fklMakeNastNodeRef(value),vQueue);
+		FklCodegenQuest* do1VQuest=createCodegenQuest(_default_bc_process
+				,createDefaultStackContext(fklCreatePtrStack(1,16))
+				,createDefaultQueueNextExpression(vQueue)
+				,cs
+				,cms
+				,curEnv
+				,origExp->curline
+				,do1Quest
+				,codegen);
+		fklPushPtrStack(do1VQuest,codegenQuestStack);
+	}
+	else
+	{
+		FklByteCodelnt* v=fklCreateByteCodelnt(fklCreateByteCode(0));
+		FklPtrStack* s=fklCreatePtrStack(1,16);	
+		fklPushPtrStack(v,s);
+		FklCodegenQuest* do1VQuest=createCodegenQuest(_default_bc_process
+				,createDefaultStackContext(s)
+				,NULL
+				,cs
+				,cms
+				,curEnv
+				,origExp->curline
+				,do1Quest
+				,codegen);
+		fklPushPtrStack(do1VQuest,codegenQuestStack);
+	}
+
+	FklPtrQueue* cQueue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(cond),cQueue);
+	FklCodegenQuest* do1CQuest=createCodegenQuest(_default_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(1,16))
+			,createDefaultQueueNextExpression(cQueue)
+			,cs
+			,cms
+			,curEnv
+			,origExp->curline
+			,do1Quest
+			,codegen);
+	fklPushPtrStack(do1CQuest,codegenQuestStack);
+
+	FklCodegenQuest* do1InitValQuest=createCodegenQuest(_do1_init_val_bc_process
+			,createLet1CodegenContext(symStack)
+			,createDefaultQueueNextExpression(valueQueue)
+			,scope
+			,macroScope
+			,curEnv
+			,origExp->curline
+			,do1Quest
+			,codegen);
+	fklPushPtrStack(do1InitValQuest,codegenQuestStack);
 }
 
 BC_PROCESS(_set_var_exp_bc_process)
@@ -5312,7 +5762,13 @@ typedef enum
 	PATTERN_NAMED_LET1,
 	PATTERN_LETREC0,
 	PATTERN_LETREC1,
+
 	PATTERN_DO0,
+	PATTERN_DO0N,
+	PATTERN_DO1,
+	PATTERN_DO1N,
+	PATTERN_DO11,
+	PATTERN_DO11N,
 
 	PATTERN_DEFUN,
 	PATTERN_DEFINE,
@@ -5349,47 +5805,54 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"~(begin,~rest)",                              NULL, codegen_begin,         },
-	{"~(local,~rest)",                              NULL, codegen_local,         },
-	{"~(let [],~rest)",                             NULL, codegen_let0,          },
-	{"~(let [(~name ~value),~args],~rest)",         NULL, codegen_let1,          },
-	{"~(let* [],~rest)",                            NULL, codegen_let0,          },
-	{"~(let* [(~name ~value)],~rest)",              NULL, codegen_let1,          },
-	{"~(let* [(~name ~value),~args],~rest)",        NULL, codegen_let81,         },
-	{"~(let ~arg0 [],~rest)",                       NULL, codegen_named_let0,    },
-	{"~(let ~arg0 [(~name ~value),~args],~rest)",   NULL, codegen_named_let1,    },
-	{"~(letrec [],~rest)",                          NULL, codegen_let0,          },
-	{"~(letrec [(~name ~value),~args],~rest)",      NULL, codegen_letrec,        },
-	{"~(do [] [~arg0 ~value],~rest)",               NULL, codegen_do0,           },
-	{"~(do [(~name ~value)] [~arg0 ~value],~rest)", NULL, codegen_do1,           },
+	{"~(begin,~rest)",                                         NULL, codegen_begin,         },
+	{"~(local,~rest)",                                         NULL, codegen_local,         },
+	{"~(let [],~rest)",                                        NULL, codegen_let0,          },
+	{"~(let [(~name ~value),~args],~rest)",                    NULL, codegen_let1,          },
+	{"~(let* [],~rest)",                                       NULL, codegen_let0,          },
+	{"~(let* [(~name ~value)],~rest)",                         NULL, codegen_let1,          },
+	{"~(let* [(~name ~value),~args],~rest)",                   NULL, codegen_let81,         },
+	{"~(let ~arg0 [],~rest)",                                  NULL, codegen_named_let0,    },
+	{"~(let ~arg0 [(~name ~value),~args],~rest)",              NULL, codegen_named_let1,    },
+	{"~(letrec [],~rest)",                                     NULL, codegen_let0,          },
+	{"~(letrec [(~name ~value),~args],~rest)",                 NULL, codegen_letrec,        },
 
-	{"~(define (~name,~args),~rest)",               NULL, codegen_defun,         },
-	{"~(define ~name ~value)",                      NULL, codegen_define,        },
-	{"~(setq ~name ~value)",                        NULL, codegen_setq,          },
-	{"~(check ~name)",                              NULL, codegen_check,         },
-	{"~(quote ~value)",                             NULL, codegen_quote,         },
-	{"`(unquote `value)",                           NULL, codegen_unquote,       },
-	{"~(qsquote ~value)",                           NULL, codegen_qsquote,       },
-	{"~(lambda ~args,~rest)",                       NULL, codegen_lambda,        },
-	{"~(and,~rest)",                                NULL, codegen_and,           },
-	{"~(or,~rest)",                                 NULL, codegen_or,            },
-	{"~(cond,~rest)",                               NULL, codegen_cond,          },
-	{"~(if ~value ~rest)",                          NULL, codegen_if0,           },
-	{"~(if ~value ~rest ~args)",                    NULL, codegen_if1,           },
-	{"~(when ~value,~rest)",                        NULL, codegen_when,          },
-	{"~(unless ~value,~rest)",                      NULL, codegen_unless,        },
-	{"~(load ~name,~rest)",                         NULL, codegen_load,          },
-	{"~(import (prefix ~name ~rest),~args)",        NULL, codegen_import_prefix, },
-	{"~(import (only ~name,~rest),~args)",          NULL, codegen_import_only,   },
-	{"~(import (alias ~name,~rest),~args)",         NULL, codegen_import_alias,  },
-	{"~(import (except ~name,~rest),~args)",        NULL, codegen_import_except, },
-	{"~(import ~name,~args)",                       NULL, codegen_import,        },
-	{"~(import)",                                   NULL, codegen_import_none,   },
-	{"~(defmacro ~name ~value)",                    NULL, codegen_defmacro,      },
-	{"~(macroexpand ~value)",                       NULL, codegen_macroexpand,   },
-	{"~(export ~value)",                            NULL, codegen_export_single, },
-	{"~(export,~rest)",                             NULL, codegen_export,        },
-	{NULL,                                          NULL, NULL,                  },
+	{"~(do [] [~cond ~value],~rest)",                          NULL, codegen_do0,           },
+	{"~(do [] [~cond],~rest)",                                 NULL, codegen_do0,           },
+
+	{"~(do [(~name ~arg0),~args] [~cond ~value],~rest)",       NULL, codegen_do1,           },
+	{"~(do [(~name ~arg0),~args] [~cond],~rest)",              NULL, codegen_do1,           },
+
+	{"~(do [(~name ~arg0 ~arg1),~args] [~cond ~value],~rest)", NULL, codegen_do1,           },
+	{"~(do [(~name ~arg0 ~arg1),~args] [~cond],~rest)",        NULL, codegen_do1,           },
+
+	{"~(define (~name,~args),~rest)",                          NULL, codegen_defun,         },
+	{"~(define ~name ~value)",                                 NULL, codegen_define,        },
+	{"~(setq ~name ~value)",                                   NULL, codegen_setq,          },
+	{"~(check ~name)",                                         NULL, codegen_check,         },
+	{"~(quote ~value)",                                        NULL, codegen_quote,         },
+	{"`(unquote `value)",                                      NULL, codegen_unquote,       },
+	{"~(qsquote ~value)",                                      NULL, codegen_qsquote,       },
+	{"~(lambda ~args,~rest)",                                  NULL, codegen_lambda,        },
+	{"~(and,~rest)",                                           NULL, codegen_and,           },
+	{"~(or,~rest)",                                            NULL, codegen_or,            },
+	{"~(cond,~rest)",                                          NULL, codegen_cond,          },
+	{"~(if ~value ~rest)",                                     NULL, codegen_if0,           },
+	{"~(if ~value ~rest ~args)",                               NULL, codegen_if1,           },
+	{"~(when ~value,~rest)",                                   NULL, codegen_when,          },
+	{"~(unless ~value,~rest)",                                 NULL, codegen_unless,        },
+	{"~(load ~name,~rest)",                                    NULL, codegen_load,          },
+	{"~(import (prefix ~name ~rest),~args)",                   NULL, codegen_import_prefix, },
+	{"~(import (only ~name,~rest),~args)",                     NULL, codegen_import_only,   },
+	{"~(import (alias ~name,~rest),~args)",                    NULL, codegen_import_alias,  },
+	{"~(import (except ~name,~rest),~args)",                   NULL, codegen_import_except, },
+	{"~(import ~name,~args)",                                  NULL, codegen_import,        },
+	{"~(import)",                                              NULL, codegen_import_none,   },
+	{"~(defmacro ~name ~value)",                               NULL, codegen_defmacro,      },
+	{"~(macroexpand ~value)",                                  NULL, codegen_macroexpand,   },
+	{"~(export ~value)",                                       NULL, codegen_export_single, },
+	{"~(export,~rest)",                                        NULL, codegen_export,        },
+	{NULL,                                                     NULL, NULL,                  },
 };
 
 static inline int isExportDefmacroExp(const FklNastNode* c)
@@ -5439,8 +5902,10 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 		builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],publicSymbolTable)->id;
 	builtInPatternVar_rest=fklAddSymbolCstr("rest",publicSymbolTable)->id;
 	builtInPatternVar_name=fklAddSymbolCstr("name",publicSymbolTable)->id;
+	builtInPatternVar_cond=fklAddSymbolCstr("cond",publicSymbolTable)->id;
 	builtInPatternVar_args=fklAddSymbolCstr("args",publicSymbolTable)->id;
 	builtInPatternVar_arg0=fklAddSymbolCstr("arg0",publicSymbolTable)->id;
+	builtInPatternVar_arg1=fklAddSymbolCstr("arg1",publicSymbolTable)->id;
 	builtInPatternVar_value=fklAddSymbolCstr("value",publicSymbolTable)->id;
 
 	FklStringMatchPattern* builtinStringPatterns=fklInitBuiltInStringPattern(publicSymbolTable);

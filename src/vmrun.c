@@ -1450,11 +1450,9 @@ static void inline B_get_loc(FklVM* exe,FklVMframe* frame)
 
 static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 {
-	FKL_NI_BEGIN(exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
-	FklVMvalue* v=fklNiGetArg(&ap,stack);
+	FklVMvalue* v=fklGetTopValue(exe->stack);
 	*get_compound_frame_loc(frame,idx,exe)=v;
-	fklNiEnd(&ap,stack);
 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
@@ -1504,7 +1502,6 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 
 static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 {
-	FKL_NI_BEGIN(exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	FklSid_t id=0;
 	FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->ptpool,&id);
@@ -1513,9 +1510,8 @@ static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 		char* cstr=fklStringToCstr(fklGetSymbolWithId(id,exe->symbolTable)->symbol);
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
-	FklVMvalue* v=fklNiGetArg(&ap,stack);
+	FklVMvalue* v=fklGetTopValue(exe->stack);
 	*pv=v;
-	fklNiEnd(&ap,stack);
 	fklNiDoSomeAfterSetRef(v,idx,frame,exe);
 }
 

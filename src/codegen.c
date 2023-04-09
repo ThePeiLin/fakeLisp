@@ -172,19 +172,18 @@ static FklByteCodelnt* createBclnt(FklByteCode* bc
 	return r;
 }
 
-static FklByteCode* createDupPutOrGet(uint32_t idx,FklOpcode putOrGet)
+static FklByteCode* createDupPutLocOrVar(uint32_t idx,FklOpcode putLocOrVar)
 {
-	FklByteCode* r=fklCreateByteCode(sizeof(char)+sizeof(char)+sizeof(uint32_t));
-	r->code[0]=FKL_OP_DUP;
-	r->code[sizeof(char)]=putOrGet;
-	fklSetU32ToByteCode(r->code+sizeof(char)+sizeof(char),idx);
+	FklByteCode* r=fklCreateByteCode(sizeof(char)+sizeof(uint32_t));
+	r->code[0]=putLocOrVar;
+	fklSetU32ToByteCode(r->code+sizeof(char),idx);
 	return r;
 }
 
 static FklByteCodelnt* makeDupAndPutLoc(const FklNastNode* sym,uint32_t idx,FklCodegen* codegen)
 {
 	fklAddSymbol(fklGetSymbolWithId(sym->u.sym,codegen->publicSymbolTable)->symbol,codegen->globalSymTable);
-	FklByteCodelnt* r=createBclnt(createDupPutOrGet(idx,FKL_OP_PUT_LOC),codegen->fid,sym->curline);
+	FklByteCodelnt* r=createBclnt(createDupPutLocOrVar(idx,FKL_OP_PUT_LOC),codegen->fid,sym->curline);
 	return r;
 }
 
@@ -193,7 +192,7 @@ static FklByteCodelnt* makeDupAndPutRefLoc(const FklNastNode* sym
 		,FklCodegen* codegen)
 {
 	fklAddSymbol(fklGetSymbolWithId(sym->u.sym,codegen->publicSymbolTable)->symbol,codegen->globalSymTable);
-	FklByteCodelnt* r=createBclnt(createDupPutOrGet(idx,FKL_OP_PUT_VAR_REF),codegen->fid,sym->curline);
+	FklByteCodelnt* r=createBclnt(createDupPutLocOrVar(idx,FKL_OP_PUT_VAR_REF),codegen->fid,sym->curline);
 	return r;
 }
 
@@ -571,12 +570,20 @@ static inline size_t nast_list_len(const FklNastNode* list)
 	return i;
 }
 
+static inline FklNastNode* cadr_nast_node(const FklNastNode* node)
+{
+	return node->u.pair->cdr->u.pair->car;
+}
+
+static int isNonRetvalExp(const FklNastNode*);
+
 static int is_valid_let_arg(const FklNastNode* node)
 {
 	return node->type==FKL_NAST_PAIR
 		&&fklIsNastNodeList(node)
 		&&nast_list_len(node)==2
-		&&node->u.pair->car->type==FKL_NAST_SYM;
+		&&node->u.pair->car->type==FKL_NAST_SYM
+		&&!isNonRetvalExp(cadr_nast_node(node));
 }
 
 static int is_valid_let_args(const FklNastNode* sl
@@ -601,11 +608,6 @@ static int is_valid_let_args(const FklNastNode* sl
 	}
 	else
 		return 0;
-}
-
-static inline FklNastNode* cadr_nast_node(FklNastNode* node)
-{
-	return node->u.pair->cdr->u.pair->car;
 }
 
 static inline FklNastNode* caddr_nast_node(FklNastNode* node)
@@ -666,7 +668,7 @@ static CODEGEN_FUNC(codegen_let1)
 	FklUintStack* symStack=fklCreateUintStack(8,16);
 	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	if(firstSymbol->type!=FKL_NAST_SYM)
+	if(firstSymbol->type!=FKL_NAST_SYM||isNonRetvalExp(value))
 	{
 		fklDestroyUintStack(symStack);
 		errorState->type=FKL_ERR_SYNTAXERROR;
@@ -807,7 +809,7 @@ static CODEGEN_FUNC(codegen_letrec)
 	FklUintStack* symStack=fklCreateUintStack(8,16);
 	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	if(firstSymbol->type!=FKL_NAST_SYM)
+	if(firstSymbol->type!=FKL_NAST_SYM||isNonRetvalExp(value))
 	{
 		fklDestroyUintStack(symStack);
 		errorState->type=FKL_ERR_SYNTAXERROR;
@@ -1159,7 +1161,7 @@ static CODEGEN_FUNC(codegen_named_let1)
 	FklUintStack* symStack=fklCreateUintStack(8,16);
 	FklNastNode* firstSymbol=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	if(firstSymbol->type!=FKL_NAST_SYM)
+	if(firstSymbol->type!=FKL_NAST_SYM||isNonRetvalExp(value))
 	{
 		fklDestroyUintStack(symStack);
 		errorState->type=FKL_ERR_SYNTAXERROR;
@@ -1799,7 +1801,7 @@ static CODEGEN_FUNC(codegen_define)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	if(name->type!=FKL_NAST_SYM)
+	if(name->type!=FKL_NAST_SYM||isNonRetvalExp(value))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
@@ -1923,7 +1925,7 @@ static CODEGEN_FUNC(codegen_setq)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	if(name->type!=FKL_NAST_SYM)
+	if(name->type!=FKL_NAST_SYM||isNonRetvalExp(value))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
@@ -2068,8 +2070,8 @@ BC_PROCESS(_export_macro_bc_process)
 	return NULL;
 }
 
-static int isValidExportNodeList(FklNastNode* list);
-static int isExportDefmacroExp(FklNastNode*);
+static int isValidExportNodeList(const FklNastNode* list);
+static int isExportDefmacroExp(const FklNastNode*);
 
 static inline void add_export_macro_exp(FklNastNode* list
 		,FklPtrQueue* exportQueue)
@@ -2190,6 +2192,13 @@ inline static void unquoteHelperFunc(FklNastNode* value
 static CODEGEN_FUNC(codegen_unquote)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(isNonRetvalExp(value))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	unquoteHelperFunc(value
 			,codegenQuestStack
 			,scope
@@ -2607,7 +2616,7 @@ static CODEGEN_FUNC(codegen_cond)
 			FklNastNode* last=NULL;
 			FklPtrQueue* curQueue=fklCreatePtrQueue();
 			pushListItemToQueue(curExp,curQueue,&last);
-			if(last->type!=FKL_NAST_NIL)
+			if(last->type!=FKL_NAST_NIL||isNonRetvalExp(fklFirstPtrQueue(curQueue)))
 			{
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_SYNTAXERROR;
@@ -2650,7 +2659,9 @@ static CODEGEN_FUNC(codegen_cond)
 		}
 		else
 			pushListItemToQueue(lastExp,lastQueue,&last);
-		if(last->type!=FKL_NAST_NIL)
+		if(last->type!=FKL_NAST_NIL
+				||(cond_exp_bc_process!=_begin_exp_bc_process
+					&&isNonRetvalExp(fklFirstPtrQueue(lastQueue))))
 		{
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_SYNTAXERROR;
@@ -2706,7 +2717,13 @@ static CODEGEN_FUNC(codegen_if0)
 {
 	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
 	FklNastNode* exp=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
-
+	if(isNonRetvalExp(cond)||isNonRetvalExp(exp))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	FklPtrQueue* nextQueue=fklCreatePtrQueue();
 	fklPushPtrQueue(fklMakeNastNodeRef(cond),nextQueue);
 	fklPushPtrQueue(fklMakeNastNodeRef(exp),nextQueue);
@@ -2776,6 +2793,13 @@ static CODEGEN_FUNC(codegen_if1)
 	FklNastNode* exp0=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklNastNode* exp1=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
 
+	if(isNonRetvalExp(cond)||isNonRetvalExp(exp0)||isNonRetvalExp(exp1))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	FklPtrQueue* exp0Queue=fklCreatePtrQueue();
 	fklPushPtrQueue(fklMakeNastNodeRef(cond),exp0Queue);
 	fklPushPtrQueue(fklMakeNastNodeRef(exp0),exp0Queue);
@@ -2878,9 +2902,18 @@ static inline void codegen_when_unless(FklHashTable* ht
 		,FklCodegenEnv* curEnv
 		,FklCodegen* codegen
 		,FklPtrStack* codegenQuestStack
-		,FklByteCodeProcesser func)
+		,FklByteCodeProcesser func
+		,FklCodegenErrorState* errorState
+		,FklNastNode* origExp)
 {
 	FklNastNode* cond=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
+	if(isNonRetvalExp(cond))
+	{
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	fklPushPtrQueue(fklMakeNastNodeRef(cond),queue);
@@ -2902,12 +2935,12 @@ static inline void codegen_when_unless(FklHashTable* ht
 
 static CODEGEN_FUNC(codegen_when)
 {
-	codegen_when_unless(ht,scope,macroScope,curEnv,codegen,codegenQuestStack,_when_exp_bc_process);
+	codegen_when_unless(ht,scope,macroScope,curEnv,codegen,codegenQuestStack,_when_exp_bc_process,errorState,origExp);
 }
 
 static CODEGEN_FUNC(codegen_unless)
 {
-	codegen_when_unless(ht,scope,macroScope,curEnv,codegen,codegenQuestStack,_unless_exp_bc_process);
+	codegen_when_unless(ht,scope,macroScope,curEnv,codegen,codegenQuestStack,_unless_exp_bc_process,errorState,origExp);
 }
 
 static FklCodegen* createCodegen(FklCodegen* prev
@@ -5279,6 +5312,8 @@ typedef enum
 	PATTERN_NAMED_LET1,
 	PATTERN_LETREC0,
 	PATTERN_LETREC1,
+	PATTERN_DO0,
+
 	PATTERN_DEFUN,
 	PATTERN_DEFINE,
 	PATTERN_SETQ,
@@ -5314,49 +5349,61 @@ static struct PatternAndFunc
 	FklCodegenFunc func;
 }builtInPattern[]=
 {
-	{"~(begin,~rest)",                            NULL, codegen_begin,         },
-	{"~(local,~rest)",                            NULL, codegen_local,         },
-	{"~(let [],~rest)",                           NULL, codegen_let0,          },
-	{"~(let [(~name ~value),~args],~rest)",       NULL, codegen_let1,          },
-	{"~(let* [],~rest)",                          NULL, codegen_let0,          },
-	{"~(let* [(~name ~value)],~rest)",            NULL, codegen_let1,          },
-	{"~(let* [(~name ~value),~args],~rest)",      NULL, codegen_let81,         },
-	{"~(let ~arg0 [],~rest)",                     NULL, codegen_named_let0,    },
-	{"~(let ~arg0 [(~name ~value),~args],~rest)", NULL, codegen_named_let1,    },
-	{"~(letrec [],~rest)",                        NULL, codegen_let0,          },
-	{"~(letrec [(~name ~value),~args],~rest)",    NULL, codegen_letrec,        },
-	{"~(define (~name,~args),~rest)",             NULL, codegen_defun,         },
-	{"~(define ~name ~value)",                    NULL, codegen_define,        },
-	{"~(setq ~name ~value)",                      NULL, codegen_setq,          },
-	{"~(check ~name)",                            NULL, codegen_check,         },
-	{"~(quote ~value)",                           NULL, codegen_quote,         },
-	{"`(unquote `value)",                         NULL, codegen_unquote,       },
-	{"~(qsquote ~value)",                         NULL, codegen_qsquote,       },
-	{"~(lambda ~args,~rest)",                     NULL, codegen_lambda,        },
-	{"~(and,~rest)",                              NULL, codegen_and,           },
-	{"~(or,~rest)",                               NULL, codegen_or,            },
-	{"~(cond,~rest)",                             NULL, codegen_cond,          },
-	{"~(if ~value ~rest)",                        NULL, codegen_if0,           },
-	{"~(if ~value ~rest ~args)",                  NULL, codegen_if1,           },
-	{"~(when ~value,~rest)",                      NULL, codegen_when,          },
-	{"~(unless ~value,~rest)",                    NULL, codegen_unless,        },
-	{"~(load ~name,~rest)",                       NULL, codegen_load,          },
-	{"~(import (prefix ~name ~rest),~args)",      NULL, codegen_import_prefix, },
-	{"~(import (only ~name,~rest),~args)",        NULL, codegen_import_only,   },
-	{"~(import (alias ~name,~rest),~args)",       NULL, codegen_import_alias,  },
-	{"~(import (except ~name,~rest),~args)",      NULL, codegen_import_except, },
-	{"~(import ~name,~args)",                     NULL, codegen_import,        },
-	{"~(import)",                                 NULL, codegen_import_none,   },
-	{"~(defmacro ~name ~value)",                  NULL, codegen_defmacro,      },
-	{"~(macroexpand ~value)",                     NULL, codegen_macroexpand,   },
-	{"~(export ~value)",                          NULL, codegen_export_single, },
-	{"~(export,~rest)",                           NULL, codegen_export,        },
-	{NULL,                                        NULL, NULL,                  },
+	{"~(begin,~rest)",                              NULL, codegen_begin,         },
+	{"~(local,~rest)",                              NULL, codegen_local,         },
+	{"~(let [],~rest)",                             NULL, codegen_let0,          },
+	{"~(let [(~name ~value),~args],~rest)",         NULL, codegen_let1,          },
+	{"~(let* [],~rest)",                            NULL, codegen_let0,          },
+	{"~(let* [(~name ~value)],~rest)",              NULL, codegen_let1,          },
+	{"~(let* [(~name ~value),~args],~rest)",        NULL, codegen_let81,         },
+	{"~(let ~arg0 [],~rest)",                       NULL, codegen_named_let0,    },
+	{"~(let ~arg0 [(~name ~value),~args],~rest)",   NULL, codegen_named_let1,    },
+	{"~(letrec [],~rest)",                          NULL, codegen_let0,          },
+	{"~(letrec [(~name ~value),~args],~rest)",      NULL, codegen_letrec,        },
+	{"~(do [] [~arg0 ~value],~rest)",               NULL, codegen_do0,           },
+	{"~(do [(~name ~value)] [~arg0 ~value],~rest)", NULL, codegen_do1,           },
+
+	{"~(define (~name,~args),~rest)",               NULL, codegen_defun,         },
+	{"~(define ~name ~value)",                      NULL, codegen_define,        },
+	{"~(setq ~name ~value)",                        NULL, codegen_setq,          },
+	{"~(check ~name)",                              NULL, codegen_check,         },
+	{"~(quote ~value)",                             NULL, codegen_quote,         },
+	{"`(unquote `value)",                           NULL, codegen_unquote,       },
+	{"~(qsquote ~value)",                           NULL, codegen_qsquote,       },
+	{"~(lambda ~args,~rest)",                       NULL, codegen_lambda,        },
+	{"~(and,~rest)",                                NULL, codegen_and,           },
+	{"~(or,~rest)",                                 NULL, codegen_or,            },
+	{"~(cond,~rest)",                               NULL, codegen_cond,          },
+	{"~(if ~value ~rest)",                          NULL, codegen_if0,           },
+	{"~(if ~value ~rest ~args)",                    NULL, codegen_if1,           },
+	{"~(when ~value,~rest)",                        NULL, codegen_when,          },
+	{"~(unless ~value,~rest)",                      NULL, codegen_unless,        },
+	{"~(load ~name,~rest)",                         NULL, codegen_load,          },
+	{"~(import (prefix ~name ~rest),~args)",        NULL, codegen_import_prefix, },
+	{"~(import (only ~name,~rest),~args)",          NULL, codegen_import_only,   },
+	{"~(import (alias ~name,~rest),~args)",         NULL, codegen_import_alias,  },
+	{"~(import (except ~name,~rest),~args)",        NULL, codegen_import_except, },
+	{"~(import ~name,~args)",                       NULL, codegen_import,        },
+	{"~(import)",                                   NULL, codegen_import_none,   },
+	{"~(defmacro ~name ~value)",                    NULL, codegen_defmacro,      },
+	{"~(macroexpand ~value)",                       NULL, codegen_macroexpand,   },
+	{"~(export ~value)",                            NULL, codegen_export_single, },
+	{"~(export,~rest)",                             NULL, codegen_export,        },
+	{NULL,                                          NULL, NULL,                  },
 };
 
-static inline int isExportDefmacroExp(FklNastNode* c)
+static inline int isExportDefmacroExp(const FklNastNode* c)
 {
 	return fklPatternMatch(builtInPattern[PATTERN_DEFMACRO].pn,c,NULL);
+}
+
+static inline int isNonRetvalExp(const FklNastNode* c)
+{
+	static const size_t PatternNum=sizeof(builtInPattern)/sizeof(struct PatternAndFunc)-1;
+	for(size_t i=PATTERN_DEFMACRO;i<PatternNum;i++)
+		if(fklPatternMatch(builtInPattern[i].pn,c,NULL))
+			return 1;
+	return 0;
 }
 
 static inline int isExportImportExp(FklNastNode* c)
@@ -5369,7 +5416,7 @@ static inline int isExportImportExp(FklNastNode* c)
 		||fklPatternMatch(builtInPattern[PATTERN_IMPORT_NONE].pn,c,NULL);
 }
 
-static inline int isValidExportNodeList(FklNastNode* list)
+static inline int isValidExportNodeList(const FklNastNode* list)
 {
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
 		if(list->u.pair->car->type!=FKL_NAST_SYM

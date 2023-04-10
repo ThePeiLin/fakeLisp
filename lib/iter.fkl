@@ -31,8 +31,7 @@
   ((vref iterator init-idx))
   (define rest (vref iterator rest-idx))
   (define next (vref iterator next-idx))
-  (let iter [(res (rest))]
-    (when res
-      (f (next))
-      (iter (rest)))))
+  (do [(res (rest) (rest))]
+    [(not res)]
+    (f (next))))
 

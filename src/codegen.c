@@ -1005,7 +1005,7 @@ static CODEGEN_FUNC(codegen_do0)
 	else
 	{
 		FklByteCodelnt* v=fklCreateByteCodelnt(fklCreateByteCode(0));
-		FklPtrStack* s=fklCreatePtrStack(1,16);	
+		FklPtrStack* s=fklCreatePtrStack(1,16);
 		fklPushPtrStack(v,s);
 		FklCodegenQuest* do0VQuest=createCodegenQuest(_default_bc_process
 				,createDefaultStackContext(s)
@@ -5503,116 +5503,135 @@ static CODEGEN_FUNC(codegen_defmacro)
 		}
 		fklAddReplacementBySid(name->u.sym,value,macroScope->replacements);
 	}
-	else if(name->type==FKL_NAST_PAIR)
-	{
-		FklHashTable* symbolTable=NULL;
-		FklNastNode* pattern=fklCreatePatternFromNast(name,&symbolTable);
-		if(!pattern)
-		{
-			errorState->fid=codegen->fid;
-			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
-			errorState->place=fklMakeNastNodeRef(name);
-			return;
-		}
-		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(curEnv,0,macroScope);
-		for(FklHashTableNodeList* list=symbolTable->list
-				;list
-				;list=list->next)
-		{
-			FklSid_t* id=(FklSid_t*)list->node->data;
-			fklAddCodegenDefBySid(*id,1,macroEnv);
-		}
-		fklDestroyHashTable(symbolTable);
-		FklCodegen* macroCodegen=createCodegen(codegen
-				,NULL
-				,macroEnv
-				,0
-				,1);
-		macroCodegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
-		fklDestroyCodegenEnv(macroEnv->prev);
-		macroEnv->prev=NULL;
-		free(macroCodegen->curDir);
-		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
-		macroCodegen->filename=fklCopyCstr(codegen->filename);
-		macroCodegen->realpath=fklCopyCstr(codegen->realpath);
-		macroCodegen->ptpool=fklCreatePrototypePool();
-
-		macroCodegen->globalSymTable=codegen->publicSymbolTable;
-		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
-		macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
-		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
-		fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
-
-		create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
-		FklPtrQueue* queue=fklCreatePtrQueue();
-		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
-				,createMacroQuestContext(pattern,macroScope,macroCodegen->ptpool)
-				,createDefaultQueueNextExpression(queue)
-				,1
-				,macroEnv->macros
-				,macroEnv
-				,value->curline
-				,macroCodegen
-				,codegenQuestStack);
-	}
-	else if(name->type==FKL_NAST_VECTOR)
-	{
-		FklHashTable* symbolTable=NULL;
-		if(!fklIsValidStringPattern(name,&symbolTable))
-		{
-			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
-			errorState->place=fklMakeNastNodeRef(name);
-			return;
-		}
-		FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0,macroScope);
-		for(FklHashTableNodeList* list=symbolTable->list
-				;list
-				;list=list->next)
-		{
-			FklSid_t* item=(FklSid_t*)list->node->data;
-			fklAddCodegenDefBySid(*item,1,macroEnv);
-		}
-		fklDestroyHashTable(symbolTable);
-
-		FklCodegen* macroCodegen=createCodegen(codegen
-				,NULL
-				,macroEnv
-				,0
-				,1);
-		macroCodegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
-		fklDestroyCodegenEnv(macroEnv->prev);
-		macroEnv->prev=NULL;
-		free(macroCodegen->curDir);
-		macroCodegen->curDir=fklCopyCstr(codegen->curDir);
-		macroCodegen->filename=fklCopyCstr(codegen->filename);
-		macroCodegen->realpath=fklCopyCstr(codegen->realpath);
-		macroCodegen->ptpool=fklCreatePrototypePool();
-
-		macroCodegen->globalSymTable=codegen->publicSymbolTable;
-		macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
-		macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
-		macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
-		fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
-
-		create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
-		FklPtrQueue* queue=fklCreatePtrQueue();
-		fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
-		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
-				,createMacroQuestContext(name,macroScope,macroCodegen->ptpool)
-				,createDefaultQueueNextExpression(queue)
-				,1
-				,macroEnv->macros
-				,macroEnv
-				,value->curline
-				,macroCodegen
-				,codegenQuestStack);
-	}
 	else
 	{
-		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=fklMakeNastNodeRef(origExp);
-		return;
+		if(name->type==FKL_NAST_PAIR)
+		{
+			if(isNonRetvalExp(value))
+			{
+				errorState->type=FKL_ERR_SYNTAXERROR;
+				errorState->place=fklMakeNastNodeRef(origExp);
+				errorState->fid=codegen->fid;
+				return;
+			}
+			FklHashTable* symbolTable=NULL;
+			FklNastNode* pattern=fklCreatePatternFromNast(name,&symbolTable);
+			if(!pattern)
+			{
+				errorState->fid=codegen->fid;
+				errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
+				errorState->place=fklMakeNastNodeRef(name);
+				return;
+			}
+			FklCodegenEnv* macroEnv=fklCreateCodegenEnv(curEnv,0,macroScope);
+			for(FklHashTableNodeList* list=symbolTable->list
+					;list
+					;list=list->next)
+			{
+				FklSid_t* id=(FklSid_t*)list->node->data;
+				fklAddCodegenDefBySid(*id,1,macroEnv);
+			}
+			fklDestroyHashTable(symbolTable);
+			FklCodegen* macroCodegen=createCodegen(codegen
+					,NULL
+					,macroEnv
+					,0
+					,1);
+			macroCodegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
+			fklDestroyCodegenEnv(macroEnv->prev);
+			macroEnv->prev=NULL;
+			free(macroCodegen->curDir);
+			macroCodegen->curDir=fklCopyCstr(codegen->curDir);
+			macroCodegen->filename=fklCopyCstr(codegen->filename);
+			macroCodegen->realpath=fklCopyCstr(codegen->realpath);
+			macroCodegen->ptpool=fklCreatePrototypePool();
+
+			macroCodegen->globalSymTable=codegen->publicSymbolTable;
+			macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
+			macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
+			macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
+			fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
+
+			create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
+			FklPtrQueue* queue=fklCreatePtrQueue();
+			fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
+			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
+					,createMacroQuestContext(pattern,macroScope,macroCodegen->ptpool)
+					,createDefaultQueueNextExpression(queue)
+					,1
+					,macroEnv->macros
+					,macroEnv
+					,value->curline
+					,macroCodegen
+					,codegenQuestStack);
+		}
+		else if(name->type==FKL_NAST_VECTOR)
+		{
+			if(isNonRetvalExp(value))
+			{
+				errorState->type=FKL_ERR_SYNTAXERROR;
+				errorState->place=fklMakeNastNodeRef(origExp);
+				errorState->fid=codegen->fid;
+				return;
+			}
+			FklHashTable* symbolTable=NULL;
+			if(!fklIsValidStringPattern(name,&symbolTable))
+			{
+				errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
+				errorState->place=fklMakeNastNodeRef(name);
+				errorState->fid=codegen->fid;
+				return;
+			}
+			FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0,macroScope);
+			for(FklHashTableNodeList* list=symbolTable->list
+					;list
+					;list=list->next)
+			{
+				FklSid_t* item=(FklSid_t*)list->node->data;
+				fklAddCodegenDefBySid(*item,1,macroEnv);
+			}
+			fklDestroyHashTable(symbolTable);
+
+			FklCodegen* macroCodegen=createCodegen(codegen
+					,NULL
+					,macroEnv
+					,0
+					,1);
+			macroCodegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
+			fklDestroyCodegenEnv(macroEnv->prev);
+			macroEnv->prev=NULL;
+			free(macroCodegen->curDir);
+			macroCodegen->curDir=fklCopyCstr(codegen->curDir);
+			macroCodegen->filename=fklCopyCstr(codegen->filename);
+			macroCodegen->realpath=fklCopyCstr(codegen->realpath);
+			macroCodegen->ptpool=fklCreatePrototypePool();
+
+			macroCodegen->globalSymTable=codegen->publicSymbolTable;
+			macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
+			macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
+			macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
+			fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
+
+			create_and_insert_to_pool(macroCodegen->ptpool,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
+			FklPtrQueue* queue=fklCreatePtrQueue();
+			fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
+			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
+					,createMacroQuestContext(name,macroScope,macroCodegen->ptpool)
+					,createDefaultQueueNextExpression(queue)
+					,1
+					,macroEnv->macros
+					,macroEnv
+					,value->curline
+					,macroCodegen
+					,codegenQuestStack);
+		}
+		else
+		{
+			errorState->type=FKL_ERR_SYNTAXERROR;
+			errorState->place=fklMakeNastNodeRef(origExp);
+			errorState->fid=codegen->fid;
+			return;
+		}
 	}
 }
 
@@ -6140,6 +6159,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					{
 						fklDestroyNastNode(curExp);
 						curExp=replacement;
+						goto skip;
 					}
 					else
 					{
@@ -6176,6 +6196,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 						,&errorState);
 				if(r)
 				{
+skip:
 					curContext->t->__put_bcl(curContext->data
 							,createBclnt(fklCodegenNode(curExp,curCodegen)
 								,curCodegen->fid

@@ -16,38 +16,25 @@
       `((lambda (~s) (cond,~body)) ~v)))
 
   (defmacro ~(->> ~x,~forms)
-    (begin
-      (define car-forms (car forms))
-      (let iter [(c (cdr forms))
-                 (r (if (pair? car-forms)
-                      `(~@car-forms ~@`(~x))
-                      `(~car-forms,(~x))))]
-        (if c
-          (begin
-            (define car-c (car c))
-            (iter (cdr c)
-                  (if (pair? car-c)
-                    `(~@car-c ~@`(~r))
-                    `(~car-c,(~r)))))
-          r))))
+    (let [(carc (car forms))]
+      (do [(c (cdr forms) (cdr c))
+           (r (if (pair? carc)
+                `(~@carc ~@`(~x))
+                `(~carc,(~x)))
+              (if (pair? carc)
+                `(~@carc ~@`(~r))
+                `(~carc,(~r))))]
+        [(null c) r]
+        (setq carc (car c)))))
 
   (defmacro ~(-> ~x,~forms)
-    (begin
-      (define car-forms (car forms))
-      (let iter [(c (cdr forms))
-                 (r (if (pair? car-forms)
-                      `(~(car car-forms)
-                         ~@`(~x)
-                         ,~(cdr car-forms))
-                      `(~car-forms,(~x))))]
-        (if c
-          (begin
-            (define car-c (car c))
-            (iter (cdr c)
-                  (if (pair? car-c)
-                    `(~(car car-c)
-                       ~@`(~r)
-                       ,~(cdr car-c))
-                    `(~car-c,(~r)))))
-          r)))))
+    (let [(carc (car forms))]
+      (do [(c (cdr forms) (cdr c))
+           (r (if (pair? carc)
+                `(~(car carc)
+                   ~@`(~x)
+                   ,~(cdr carc))
+                `(~carc,(~x))))]
+        [(null c) r]
+        (setq carc (car c))))))
 

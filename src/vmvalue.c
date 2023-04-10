@@ -1101,20 +1101,28 @@ inline FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
 {
 	int hasPlus=0;
 	int hasW=0;
-	switch(*mode)
-	{
-		case 'w':
-		case 'a':
-			hasW=1;
-			break;
-	}
-	int foflg=1;
-	for(mode++;foflg&&*mode;mode++)
+
+	for(;*mode;mode++)
 		switch(*mode)
+		{
+			case 'w':
+			case 'a':
+				hasW=1;
+				break;
+			case 'r':
+				break;
+			default:
+				goto checkPlus;
+				break;
+		}
+
+checkPlus:
+	while(*mode)
+		switch(*(mode++))
 		{
 			case '+':
 				hasPlus=1;
-				foflg=0;
+				goto ret;
 				break;
 			case 't':
 			case 'b':
@@ -1122,9 +1130,10 @@ inline FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
 			case 'n':
 				break;
 			default:
-				foflg=0;
+				goto ret;
 				break;
 		}
+ret:
 	if(hasPlus)
 		return FKL_VM_FP_RW;
 	else if(hasW)

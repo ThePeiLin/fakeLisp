@@ -1097,11 +1097,36 @@ void fklDestroyVMproc(FklVMproc* proc)
 	free(proc);
 }
 
-FklVMfp* fklCreateVMfp(FILE* fp)
+inline FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
+{
+	int hasPlus=0;
+	int hasW=0;
+	switch(*mode)
+	{
+		case 'w':
+		case 'a':
+			hasW=1;
+			break;
+	}
+	for(mode++;hasPlus&&*mode;mode++)
+		if(*mode=='+')
+		{
+			hasPlus=1;
+			break;
+		}
+	if(hasPlus)
+		return FKL_VM_FP_RW;
+	else if(hasW)
+		return FKL_VM_FP_W;
+	return FKL_VM_FP_R;
+}
+
+FklVMfp* fklCreateVMfp(FILE* fp,FklVMfpRW rw)
 {
 	FklVMfp* vfp=(FklVMfp*)malloc(sizeof(FklVMfp));
 	FKL_ASSERT(vfp);
 	vfp->fp=fp;
+	vfp->rw=rw;
 	vfp->mutex=0;
 	fklInitPtrQueue(&vfp->next);
 	return vfp;

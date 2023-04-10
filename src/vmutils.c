@@ -448,6 +448,7 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorTy
 			fklStringCstrCat(&t,"Failed for file:\"");
 			fklStringCstrCat(&t,str);
 			fklStringCstrCat(&t,"\"");
+			break;
 		case FKL_ERR_SYMUNDEFINE:
 			fklStringCstrCat(&t,"Symbol ");
 			fklStringCstrCat(&t,str);

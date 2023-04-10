@@ -83,10 +83,18 @@ typedef struct FklVMpair
 	struct FklVMvalue* cdr;
 }FklVMpair;
 
+typedef enum
+{
+	FKL_VM_FP_R=0,
+	FKL_VM_FP_W,
+	FKL_VM_FP_RW,
+}FklVMfpRW;
+
 typedef struct FklVMfp
 {
 	FILE* fp;
 	FklPtrQueue next;
+	FklVMfpRW rw:31;
 	uint32_t mutex:1;
 }FklVMfp;
 
@@ -587,7 +595,8 @@ void fklDestroyVMchanl(FklVMchanl*);
 void fklDestroyVMproc(FklVMproc*);
 
 
-FklVMfp* fklCreateVMfp(FILE*);
+FklVMfpRW fklGetVMfpRwFromCstr(const char* mode);
+FklVMfp* fklCreateVMfp(FILE*,FklVMfpRW);
 int fklDestroyVMfp(FklVMfp*);
 
 void fklLockVMfp(FklVMvalue* fpv,FklVM*);
@@ -750,21 +759,27 @@ void fklUninitVMlib(FklVMlib*);
 
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerror((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
+			,fklCreateVMerror((WHO)\
+			,fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
+			,fklCreateVMerrorCstr((WHO)\
+			,fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)
 
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR,fklCreateVMerrorCstr((WHO),fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
+	FklVMvalue* err=fklCreateVMvalueToStack(FKL_TYPE_ERR\
+			,fklCreateVMerrorCstr((WHO)\
+			,fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId),errorMessage),(EXE));\
 	fklRaiseVMerror(err,(EXE));\
 	return;\
 }while(0)

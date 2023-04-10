@@ -2541,7 +2541,7 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 	if(!file)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("builtin.fopen",c_filename,0,FKL_ERR_FILEFAILURE,exe);
 	else
-		obj=fklCreateVMvalueToStack(FKL_TYPE_FP,fklCreateVMfp(file),exe);
+		obj=fklCreateVMvalueToStack(FKL_TYPE_FP,fklCreateVMfp(file,fklGetVMfpRwFromCstr(c_mode)),exe);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -5417,9 +5417,9 @@ inline static void init_vm_public_data(PublicBuiltInData* pd,FklVMgc* gc,FklSymb
 		"unquote",
 		"unqtesp",
 	};
-	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin),gc);
-	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout),gc);
-	FklVMvalue* builtInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr),gc);
+	FklVMvalue* builtInStdin=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdin,FKL_VM_FP_R),gc);
+	FklVMvalue* builtInStdout=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stdout,FKL_VM_FP_W),gc);
+	FklVMvalue* builtInStderr=fklCreateVMvalueNoGC(FKL_TYPE_FP,fklCreateVMfp(stderr,FKL_VM_FP_W),gc);
 	pd->sysIn=builtInStdin;
 	pd->sysOut=builtInStdout;
 	pd->sysErr=builtInStderr;

@@ -85,16 +85,16 @@ typedef struct FklVMpair
 
 typedef enum
 {
-	FKL_VM_FP_R=0,
-	FKL_VM_FP_W,
-	FKL_VM_FP_RW,
+	FKL_VM_FP_R=1,
+	FKL_VM_FP_W=2,
+	FKL_VM_FP_RW=3,
 }FklVMfpRW;
 
 typedef struct FklVMfp
 {
 	FILE* fp;
 	FklPtrQueue next;
-	FklVMfpRW rw:31;
+	FklVMfpRW rw:2;
 	uint32_t mutex:1;
 }FklVMfp;
 

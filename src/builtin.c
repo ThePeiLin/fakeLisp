@@ -97,6 +97,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"no-value-for-key",
 		"number-should-not-be-less-than-0",
 		"cir-ref",
+		"unsupported-operation",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)
@@ -2551,7 +2552,7 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fp=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_TOOMANYARG,exe);
 	if(!fp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fclose",FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_TYPE(fp,FKL_IS_FP,"builtin.fclose",exe);
@@ -2733,20 +2734,52 @@ static inline void initFrameToReadFrame(FklVM* exe
 	initReadCtx(f->u.o.data,fpv,patterns,ap,headSymbol);
 }
 
+#define FKL_VM_FP_R_MASK (1)
+#define FKL_VM_FP_W_MASK (2)
+
+static inline int isVMfpReadable(const FklVMvalue* fp)
+{
+	return fp->u.fp->rw&FKL_VM_FP_R_MASK;
+}
+
+static inline int isVMfpWritable(const FklVMvalue* fp)
+{
+	return fp->u.fp->rw&FKL_VM_FP_W_MASK;
+}
+
+#undef FKL_VM_FP_R_MASK
+#undef FKL_VM_FP_W_MASK
+
+#define CHECK_FP_READABLE(V,I,E) if(!isVMfpReadable(V))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(I,FKL_ERR_UNSUPPORTED_OP,E)
+
+#define CHECK_FP_WRITABLE(V,I,E) if(!isVMfpWritable(V))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(I,FKL_ERR_UNSUPPORTED_OP,E)
+
+#define CHECK_FP_OPEN(V,I,E) if(!(V)->u.fp)\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(I,FKL_ERR_INVALIDACCESS,E)
+
+#define GET_OR_USE_STDOUT(VN) if(!VN)\
+	VN=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysOut
+
+#define GET_OR_USE_STDIN(VN) if(!VN)\
+	VN=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn
+
 static void builtin_read(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.read";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
 	if(stream&&!FKL_IS_FP(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(!stream||FKL_IS_FP(stream))
 	{
+		FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
 		FklVMvalue* fpv=stream?stream:pbd->sysIn;
-		if(!fpv->u.fp)
-			FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.read",FKL_ERR_INVALIDACCESS,exe);
+		CHECK_FP_READABLE(fpv,Pname,exe);
+		CHECK_FP_OPEN(fpv,Pname,exe);
 		initFrameToReadFrame(exe
 				,fpv
 				,pbd->patterns
@@ -2989,12 +3022,11 @@ static void builtin_fgetd(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetd",FKL_ERR_TOOMANYARG,exe);
 	if(!del)
 		del=FKL_MAKE_VM_CHR('\n');
-	if(!file)
-		file=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn;
+	GET_OR_USE_STDIN(file);
 	if(!FKL_IS_FP(file)||!FKL_IS_CHR(del))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetd",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	if(!file->u.fp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetd",FKL_ERR_INVALIDACCESS,exe);
+	CHECK_FP_OPEN(file,"builtin.fgetd",exe);
+	CHECK_FP_READABLE(file,"builtin.fgetd",exe);
 	initFrameToFgetFrame(exe,file,FGETD,0,FKL_GET_CHR(del),ap);
 }
 
@@ -3007,14 +3039,13 @@ static void builtin_fgets(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_TOOMANYARG,exe);
 	if(!psize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_TOOFEWARG,exe);
-	if(!file)
-		file=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn;
+	GET_OR_USE_STDIN(file);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	if(!file->u.fp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgets",FKL_ERR_INVALIDACCESS,exe);
+	CHECK_FP_OPEN(file,"builtin.fgets",exe);
+	CHECK_FP_READABLE(file,"builtin.fgets",exe);
 	initFrameToFgetFrame(exe,file,FGETS,fklGetUint(psize),0,ap);
 }
 
@@ -3027,47 +3058,57 @@ static void builtin_fgetb(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_TOOMANYARG,exe);
 	if(!psize)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_TOOFEWARG,exe);
-	if(!file)
-		file=FKL_GET_UD_DATA(PublicBuiltInData,pd->u.ud)->sysIn;
+	GET_OR_USE_STDIN(file);
 	if(!FKL_IS_FP(file)||!fklIsInt(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	if(!file->u.fp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetb",FKL_ERR_INVALIDACCESS,exe);
+	CHECK_FP_OPEN(file,"builtin.fgetb",exe);
+	CHECK_FP_READABLE(file,"builtin.fgetb",exe);
 	initFrameToFgetFrame(exe,file,FGETB,fklGetUint(psize),0,ap);
 }
 
 static void builtin_prin1(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.prin1";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_TOOFEWARG,exe);
-	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.prin1",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FILE* objFile=file?file->u.fp->fp:stdout;
-	fklPrin1VMvalue(obj,objFile,exe->symbolTable);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	GET_OR_USE_STDOUT(file);
+	if(!FKL_IS_FP(file))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	CHECK_FP_OPEN(file,Pname,exe);
+	CHECK_FP_WRITABLE(file,Pname,exe);
+
+	FILE* fp=file->u.fp->fp;
+	fklPrin1VMvalue(obj,fp,exe->symbolTable);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
 
 static void builtin_princ(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.princ";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
 	if(!obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_TOOFEWARG,exe);
-	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.princ",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FILE* objFile=file?file->u.fp->fp:stdout;
-	fklPrincVMvalue(obj,objFile,exe->symbolTable);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	GET_OR_USE_STDOUT(file);
+	if(!FKL_IS_FP(file))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	CHECK_FP_OPEN(file,Pname,exe);
+	CHECK_FP_WRITABLE(file,Pname,exe);
+
+	FILE* fp=file->u.fp->fp;
+	fklPrincVMvalue(obj,fp,exe->symbolTable);
 	fklNiReturn(obj,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -3099,11 +3140,14 @@ static void builtin_print(FKL_DL_PROC_ARGL)
 
 static void builtin_fprint(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.fprint";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* f=fklNiGetArg(&ap,stack);
 	if(!f)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fprint",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,"builtin.fprint",exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(f,Pname,exe);
+	CHECK_FP_WRITABLE(f,Pname,exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=f->u.fp->fp;
@@ -3116,11 +3160,15 @@ static void builtin_fprint(FKL_DL_PROC_ARGL)
 
 static void builtin_fprin1(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.fprin1";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* f=fklNiGetArg(&ap,stack);
 	if(!f)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fprin1",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,"builtin.fprin1",exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(f,Pname,exe);
+	CHECK_FP_WRITABLE(f,Pname,exe);
+
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=f->u.fp->fp;
@@ -3133,14 +3181,17 @@ static void builtin_fprin1(FKL_DL_PROC_ARGL)
 
 static void builtin_newline(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.newline";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* file=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.newline",FKL_ERR_TOOMANYARG,exe);
-	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.newline",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FILE* objFile=file?file->u.fp->fp:stdout;
-	fputc('\n',objFile);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+	GET_OR_USE_STDOUT(file);
+	FKL_NI_CHECK_TYPE(file,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(file,Pname,exe);
+	CHECK_FP_WRITABLE(file,Pname,exe);
+	FILE* fp=file->u.fp->fp;
+	fputc('\n',fp);
 	fklNiReturn(FKL_VM_NIL,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -4163,15 +4214,15 @@ static void builtin_reverse(FKL_DL_PROC_ARGL)
 
 static void builtin_feof(FKL_DL_PROC_ARGL)
 {
+	static const char Pname[]="builtin.feof";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* fp=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.feof",FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
 	if(!fp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.feof",FKL_ERR_TOOFEWARG,exe);
-	FKL_NI_CHECK_TYPE(fp,FKL_IS_FP,"builtin.feof",exe);
-	if(fp->u.fp==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.feof",FKL_ERR_INVALIDACCESS,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FKL_NI_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(fp,Pname,exe);
 	fklNiReturn(feof(fp->u.fp->fp)?FKL_VM_TRUE:FKL_VM_NIL,&ap,stack);
 	fklNiEnd(&ap,stack);
 }
@@ -4222,13 +4273,11 @@ static void builtin_fgetc(FKL_DL_PROC_ARGL)
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_TOOMANYARG,exe);
-	if(stream&&!FKL_IS_FP(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
-	FklVMvalue* fpv=stream?stream:pbd->sysIn;
-	if(!fpv->u.fp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgetc",FKL_ERR_INVALIDACCESS,exe);
-	initFrameToFgetFrame(exe,fpv,FGETC,1,0,ap);
+	GET_OR_USE_STDIN(stream);
+	FKL_NI_CHECK_TYPE(stream,FKL_IS_FP,"builtin.fgetc",exe);
+	CHECK_FP_OPEN(stream,"builtin.fgetc",exe);
+	CHECK_FP_READABLE(stream,"builtin.fgetc",exe);
+	initFrameToFgetFrame(exe,stream,FGETC,1,0,ap);
 }
 
 static void builtin_fgeti(FKL_DL_PROC_ARGL)
@@ -4237,13 +4286,11 @@ static void builtin_fgeti(FKL_DL_PROC_ARGL)
 	FklVMvalue* stream=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_TOOMANYARG,exe);
-	if(stream&&!FKL_IS_FP(stream))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,pd->u.ud);
-	FklVMvalue* fpv=stream?stream:pbd->sysIn;
-	if(!fpv->u.fp)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fgeti",FKL_ERR_INVALIDACCESS,exe);
-	initFrameToFgetFrame(exe,fpv,FGETI,1,0,ap);
+	GET_OR_USE_STDIN(stream);
+	FKL_NI_CHECK_TYPE(stream,FKL_IS_FP,"builtin.fgeti",exe);
+	CHECK_FP_OPEN(stream,"builtin.fgeti",exe);
+	CHECK_FP_READABLE(stream,"builtin.fgeti",exe);
+	initFrameToFgetFrame(exe,stream,FGETI,1,0,ap);
 }
 
 static void builtin_fwrite(FKL_DL_PROC_ARGL)
@@ -4255,15 +4302,18 @@ static void builtin_fwrite(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_TOOMANYARG,exe);
 	if(!obj)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_TOOFEWARG,exe);
-	if(file&&!FKL_IS_FP(file))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FILE* objFile=file?file->u.fp->fp:stdout;
+
+	GET_OR_USE_STDOUT(file);
+	FKL_NI_CHECK_TYPE(file,FKL_IS_FP,"builtin.fwrite",exe);
+	CHECK_FP_OPEN(file,"builtin.fwrite",exe);
+	CHECK_FP_WRITABLE(file,"builtin.fwrite",exe);
+	FILE* fp=file->u.fp->fp;
 	if(FKL_IS_STR(obj))
-		fwrite(obj->u.str->str,obj->u.str->size,1,objFile);
+		fwrite(obj->u.str->str,obj->u.str->size,1,fp);
 	if(FKL_IS_BYTEVECTOR(obj))
-		fwrite(obj->u.bvec->ptr,obj->u.bvec->size,1,objFile);
+		fwrite(obj->u.bvec->ptr,obj->u.bvec->size,1,fp);
 	else if(FKL_IS_USERDATA(obj)&&fklIsWritableUd(obj->u.ud))
-		fklWriteVMudata(obj->u.ud,objFile);
+		fklWriteVMudata(obj->u.ud,fp);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.fwrite",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	fklNiReturn(obj,&ap,stack);

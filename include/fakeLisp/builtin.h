@@ -42,6 +42,7 @@ typedef enum
 	FKL_ERR_NO_VALUE_FOR_KEY,
 	FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
 	FKL_ERR_CIR_REF,
+	FKL_ERR_UNSUPPORTED_OP,
 }FklBuiltInErrorType;
 
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);

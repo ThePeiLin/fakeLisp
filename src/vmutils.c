@@ -498,6 +498,7 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 		"No value for key",
 		"Number should not be less than 0",
 		"Circular reference occurs",
+		"Unsupported operation",
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);

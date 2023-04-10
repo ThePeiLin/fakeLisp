@@ -1108,7 +1108,7 @@ inline FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
 			hasW=1;
 			break;
 	}
-	for(mode++;hasPlus&&*mode;mode++)
+	for(mode++;*mode;mode++)
 		if(*mode=='+')
 		{
 			hasPlus=1;

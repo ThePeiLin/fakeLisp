@@ -233,7 +233,7 @@ typedef struct
 	FklVMcCC ccc;
 }FklDlprocFrameContext;
 
-#define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) _Static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
+#define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
 		,#TYPE" is too big")
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklDlprocFrameContext);

@@ -221,9 +221,9 @@ typedef struct
 
 typedef enum
 {
-	DLPROC_READY=0,
-	DLPROC_CCC,
-	DLPROC_DONE,
+	FKL_DLPROC_READY=0,
+	FKL_DLPROC_CCC,
+	FKL_DLPROC_DONE,
 }FklDlprocFrameState;
 
 typedef struct

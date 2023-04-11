@@ -227,7 +227,7 @@ static void dlproc_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe
 static int dlproc_frame_end(FklCallObjData data)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
-	return c->state==DLPROC_DONE;
+	return c->state==FKL_DLPROC_DONE;
 }
 
 static void dlproc_frame_step(FklCallObjData data,FklVM* exe)
@@ -236,15 +236,15 @@ static void dlproc_frame_step(FklCallObjData data,FklVM* exe)
 	FklVMdlproc* dlproc=c->proc->u.dlproc;
 	switch(c->state)
 	{
-		case DLPROC_READY:
-			c->state=DLPROC_DONE;
+		case FKL_DLPROC_READY:
+			c->state=FKL_DLPROC_DONE;
 			dlproc->func(exe,dlproc->dll,dlproc->pd);
 			break;
-		case DLPROC_CCC:
-			c->state=DLPROC_DONE;
+		case FKL_DLPROC_CCC:
+			c->state=FKL_DLPROC_DONE;
 			c->ccc.kFunc(exe,FKL_CC_RE,c->ccc.ctx);
 			break;
-		case DLPROC_DONE:
+		case FKL_DLPROC_DONE:
 			break;
 	}
 }
@@ -263,7 +263,7 @@ inline static void initDlprocFrameContext(FklCallObjData data,FklVMvalue* proc,F
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	fklSetRef(&c->proc,proc,gc);
-	c->state=DLPROC_READY;
+	c->state=FKL_DLPROC_READY;
 	initVMcCC(&c->ccc,NULL,NULL,0);
 }
 
@@ -686,7 +686,7 @@ inline void fklContinueDlproc(FklVMframe* frame
 		,size_t size)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)frame->u.o.data;
-	c->state=DLPROC_CCC;
+	c->state=FKL_DLPROC_CCC;
 	initVMcCC(&c->ccc,kFunc,ctx,size);
 }
 
@@ -1093,8 +1093,11 @@ static void inline B_call(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
+	if(!tmpValue)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(tmpValue))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,exe);
+	fklNiEnd(&ap,stack);
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
@@ -1104,15 +1107,17 @@ static void inline B_call(FklVM* exe,FklVMframe* frame)
 			callCallableObj(tmpValue,exe);
 			break;
 	}
-	fklNiEnd(&ap,stack);
 }
 
 static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 {
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
+	if(!tmpValue)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(tmpValue))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,exe);
+	fklNiEnd(&ap,stack);
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
@@ -1122,7 +1127,6 @@ static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 			callCallableObj(tmpValue,exe);
 			break;
 	}
-	fklNiEnd(&ap,stack);
 }
 
 static void inline B_jmp_if_true(FklVM* exe,FklVMframe* frame)

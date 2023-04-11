@@ -103,21 +103,6 @@ inline double fklGetDouble(const FklVMvalue* p)
 		:p->u.f64;
 }
 
-FklVMstack* fklCopyStack(FklVMstack* stack)
-{
-	int32_t i=0;
-	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
-	FKL_ASSERT(tmp);
-	tmp->size=stack->size;
-	tmp->tp=stack->tp;
-	tmp->bp=stack->bp;
-	tmp->base=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*(tmp->size));
-	FKL_ASSERT(tmp->base);
-	for(;i<stack->tp;i++)
-		tmp->base[i]=stack->base[i];
-	return tmp;
-}
-
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,uint8_t* spc,uint64_t cpc)
 {
 	FklVMerrorHandler* t=(FklVMerrorHandler*)malloc(sizeof(FklVMerrorHandler));
@@ -394,18 +379,12 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 
 FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev)
 {
-	FklVMframe* r=(FklVMframe*)malloc(sizeof(FklVMframe));
+	FklVMframe* r=(FklVMframe*)calloc(1,sizeof(FklVMframe));
 	FKL_ASSERT(r);
 	r->prev=prev;
 	r->errorCallBack=NULL;
 	r->type=FKL_FRAME_OTHEROBJ;
 	r->u.o.t=t;
-	r->u.o.data[0]=NULL;
-	r->u.o.data[1]=NULL;
-	r->u.o.data[2]=NULL;
-	r->u.o.data[3]=NULL;
-	r->u.o.data[4]=NULL;
-	r->u.o.data[5]=NULL;
 	return r;
 }
 

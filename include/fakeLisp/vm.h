@@ -328,7 +328,7 @@ typedef struct FklVM
 	jmp_buf buf;
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
-	FklPrototypes* ptpool;
+	FklFuncPrototypes* ptpool;
 	FklVMlib* importingLib;
 
 	uint64_t alarmtime;
@@ -494,12 +494,12 @@ void fklInitMainVMframeWithProc(FklVM*
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklPrototypes* ptpool);
+		,FklFuncPrototypes* ptpool);
 void fklInitMainVMframeWithProcForRepl(FklVM*
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklPrototypes* ptpool);
+		,FklFuncPrototypes* ptpool);
 
 FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);
@@ -711,7 +711,7 @@ unsigned int fklSetCompoundFrameMark(FklVMframe*,unsigned int);
 FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f);
 
 FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);
-FklPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe*,FklVM* exe);
+FklFuncPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe*,FklVM* exe);
 
 uint8_t* fklGetCompoundFrameCode(const FklVMframe*);
 

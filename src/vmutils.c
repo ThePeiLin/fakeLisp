@@ -262,7 +262,7 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklPrototypes* ptpool)
+		,FklFuncPrototypes* ptpool)
 {
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;
@@ -284,7 +284,7 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 		FklVMCompoundFrameVarRef* lr=&f->lr;
 		code->closure=lr->ref;
 		code->count=lr->rcount;
-		FklPrototype* pt=&ptpool->pts[code->protoId-1];
+		FklFuncPrototype* pt=&ptpool->pts[code->protoId-1];
 		uint32_t count=pt->lcount;
 		code->lcount=count;
 		FklVMvalue** loc=fklAllocSpaceForLocalVar(exe,count);
@@ -315,7 +315,7 @@ inline void fklInitMainVMframeWithProcForRepl(FklVM* exe
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklPrototypes* ptpool)
+		,FklFuncPrototypes* ptpool)
 {
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;
@@ -337,7 +337,7 @@ inline void fklInitMainVMframeWithProcForRepl(FklVM* exe
 		FklVMCompoundFrameVarRef* lr=&f->lr;
 		code->closure=lr->ref;
 		code->count=lr->rcount;
-		FklPrototype* pt=&ptpool->pts[code->protoId-1];
+		FklFuncPrototype* pt=&ptpool->pts[code->protoId-1];
 		uint32_t count=pt->lcount;
 		FklVMvalue** loc=(FklVMvalue**)realloc(exe->locv,count*sizeof(FklVMvalue*));
 		FKL_ASSERT(loc||!count);

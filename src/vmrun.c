@@ -979,7 +979,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc,protoId);
-	FklPrototype* pt=&exe->ptpool->pts[protoId-1];
+	FklFuncPrototype* pt=&exe->ptpool->pts[protoId-1];
 	uint32_t count=pt->rcount;
 	if(count)
 	{
@@ -1343,13 +1343,13 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 		char* cstr=NULL;
 		if(libIdx<plib->count)
 		{
-			FklPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId-1];
+			FklFuncPrototype* pt=&exe->ptpool->pts[plib->proc->u.proc->protoId-1];
 			FklSid_t sid=pt->loc[libIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
 		else
 		{
-			FklPrototype* pt=&exe->ptpool->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId-1];
+			FklFuncPrototype* pt=&exe->ptpool->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId-1];
 			FklSid_t sid=pt->loc[locIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
@@ -1456,14 +1456,14 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
-inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklPrototypes* ptpool,FklSid_t* psid)
+inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* ptpool,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	FklVMvalue* v=idx<lr->rcount?*(lr->ref[idx]->ref):NULL;
 	if(!v)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-		FklPrototype* pt=&ptpool->pts[proc->protoId-1];
+		FklFuncPrototype* pt=&ptpool->pts[proc->protoId-1];
 		FklSymbolDef* def=&pt->refs[idx];
 		*psid=def->k.id;
 		return NULL;
@@ -1484,7 +1484,7 @@ static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
 	fklPushVMvalue(v,exe->stack);
 }
 
-inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklPrototypes* ptpool,FklSid_t* psid)
+inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* ptpool,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	FklVMvarRef** refs=lr->ref;
@@ -1492,7 +1492,7 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 	if(!v)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-		FklPrototype* pt=&ptpool->pts[proc->protoId-1];
+		FklFuncPrototype* pt=&ptpool->pts[proc->protoId-1];
 		FklSymbolDef* def=&pt->refs[idx];
 		*psid=def->k.id;
 		return NULL;
@@ -3052,7 +3052,7 @@ inline FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)
 	return f->u.c.proc;
 }
 
-inline FklPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe* f,FklVM* exe)
+inline FklFuncPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe* f,FklVM* exe)
 {
 	uint32_t pId=f->u.c.proc->u.proc->protoId;
 	return &exe->ptpool->pts[pId-1];

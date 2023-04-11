@@ -28,12 +28,12 @@ typedef struct FklCodegenEnv
 	size_t refcount;
 }FklCodegenEnv;
 
-void fklUpdatePrototype(FklPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable);
+void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable);
 
 typedef struct FklCodegenMacro
 {
 	FklNastNode* pattern;
-	FklPrototypes* ptpool;
+	FklFuncPrototypes* ptpool;
 	FklByteCodelnt* bcl;
 	struct FklCodegenMacro* next;
 	uint8_t own;
@@ -101,7 +101,7 @@ typedef struct FklCodegen
 	unsigned int libMark:1;
 	unsigned int macroMark:1;
 	unsigned long refcount:61;
-	FklPrototypes* ptpool;
+	FklFuncPrototypes* ptpool;
 }FklCodegen;
 
 typedef struct
@@ -256,7 +256,7 @@ void fklDestroyCodegenLib(FklCodegenLib*);
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
 		,FklByteCodelnt* bcl
 		,FklCodegenMacro* next
-		,FklPrototypes* ptpool
+		,FklFuncPrototypes* ptpool
 		,int own);
 void fklDestroyCodegenMacro(FklCodegenMacro* macro);
 void fklDestroyCodegenMacroList(FklCodegenMacro* macro);
@@ -271,7 +271,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 struct FklVM;
 struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
-		,FklPrototypes* ptpool
+		,FklFuncPrototypes* ptpool
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen);
@@ -286,19 +286,19 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMvarRef** refs
 		,uint32_t count
 		,int needCopy
-		,FklPrototypes*);
+		,FklFuncPrototypes*);
 
 struct FklVMgc;
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMgc* vm
 		,int needCopy
-		,FklPrototypes*);
+		,FklFuncPrototypes*);
 
 void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVMlib* vlib
 		,struct FklVMgc* vm
-		,FklPrototypes*);
+		,FklFuncPrototypes*);
 
 void fklInitFrameToReplFrame(FklVM*,FklCodegen* codegen,const FklSid_t* headSymbol);
 

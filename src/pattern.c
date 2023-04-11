@@ -6,7 +6,7 @@
 
 FklStringMatchPattern* fklCreateStringMatchPattern(FklNastNode* parts
 		,FklByteCodelnt* bcl
-		,FklPrototypes* ptpool
+		,FklFuncPrototypes* ptpool
 		,FklStringMatchPattern* next
 		,int own)
 {
@@ -484,7 +484,7 @@ static inline void uninit_string_match_pattern(FklStringMatchPattern* o)
 void fklAddStringMatchPattern(FklNastNode* parts
 		,FklByteCodelnt* proc
 		,FklStringMatchPattern** head
-		,FklPrototypes* ptpool
+		,FklFuncPrototypes* ptpool
 		,int own)
 {
 	int coverState=0;

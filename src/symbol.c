@@ -206,9 +206,9 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
-inline FklPrototypes* fklCreatePrototypePool(void)
+inline FklFuncPrototypes* fklCreatePrototypePool(void)
 {
-	FklPrototypes* r=(FklPrototypes*)malloc(sizeof(*r));
+	FklFuncPrototypes* r=(FklFuncPrototypes*)malloc(sizeof(*r));
 	FKL_ASSERT(r);
 	r->count=0;
 	r->pts=NULL;
@@ -227,18 +227,18 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32
 	return r;
 }
 
-void fklUninitPrototype(FklPrototype* p)
+void fklUninitPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
 	free(p->loc);
 	p->rcount=0;
 }
 
-void fklDestroyPrototypePool(FklPrototypes* p)
+void fklDestroyPrototypePool(FklFuncPrototypes* p)
 {
 	if(p)
 	{
-		FklPrototype* pts=p->pts;
+		FklFuncPrototype* pts=p->pts;
 		uint32_t count=p->count;
 		for(uint32_t i=0;i<count;i++)
 			fklUninitPrototype(&pts[i]);
@@ -256,7 +256,7 @@ static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
 	fwrite(&def->isLocal,sizeof(def->isLocal),1,fp);
 }
 
-static inline void write_prototype(const FklPrototype* pt,FILE* fp)
+static inline void write_prototype(const FklFuncPrototype* pt,FILE* fp)
 {
 	uint32_t count=pt->lcount;
 	FklSymbolDef* defs=pt->loc;
@@ -270,10 +270,10 @@ static inline void write_prototype(const FklPrototype* pt,FILE* fp)
 		write_symbol_def(&defs[i],fp);
 }
 
-inline void fklWritePrototypePool(const FklPrototypes* ptpool,FILE* fp)
+inline void fklWritePrototypePool(const FklFuncPrototypes* ptpool,FILE* fp)
 {
 	uint32_t count=ptpool->count;
-	FklPrototype* pts=ptpool->pts;
+	FklFuncPrototype* pts=ptpool->pts;
 	fwrite(&count,sizeof(count),1,fp);
 	for(uint32_t i=0;i<count;i++)
 		write_prototype(&pts[i],fp);
@@ -288,7 +288,7 @@ static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
 	fread(&def->isLocal,sizeof(def->isLocal),1,fp);
 }
 
-static inline void load_prototype(FklPrototype* pt,FILE* fp)
+static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 {
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
@@ -307,12 +307,12 @@ static inline void load_prototype(FklPrototype* pt,FILE* fp)
 		load_symbol_def(&defs[i],fp);
 }
 
-inline FklPrototypes* fklLoadPrototypePool(FILE* fp)
+inline FklFuncPrototypes* fklLoadPrototypePool(FILE* fp)
 {
-	FklPrototypes* ptpool=fklCreatePrototypePool();
+	FklFuncPrototypes* ptpool=fklCreatePrototypePool();
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
-	FklPrototype* pts=(FklPrototype*)malloc(sizeof(FklPrototype)*count);
+	FklFuncPrototype* pts=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*count);
 	FKL_ASSERT(pts||!count);
 	for(uint32_t i=0;i<count;i++)
 		load_prototype(&pts[i],fp);

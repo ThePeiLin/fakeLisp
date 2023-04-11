@@ -71,12 +71,12 @@ void fklNiDoSomeAfterSetLoc(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
 {
 	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
 	{
-		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
 		v->u.proc->sid=pt->loc[idx].k.id;
 	}
 	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
 	{
-		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
 		v->u.dlproc->sid=pt->loc[idx].k.id;
 	}
 	else if(FKL_IS_USERDATA(v)&&fklUdHasSetqHook(v->u.ud))
@@ -87,12 +87,12 @@ void fklNiDoSomeAfterSetRef(FklVMvalue* v,uint32_t idx,FklVMframe* f,FklVM* exe)
 {
 	if(FKL_IS_PROC(v)&&v->u.proc->sid==0)
 	{
-		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
 		v->u.proc->sid=pt->refs[idx].k.id;
 	}
 	else if(FKL_IS_DLPROC(v)&&v->u.dlproc->sid==0)
 	{
-		FklPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
+		FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(f,exe);
 		v->u.dlproc->sid=pt->refs[idx].k.id;
 	}
 	else if(FKL_IS_USERDATA(v)&&fklUdHasSetqHook(v->u.ud))

@@ -93,9 +93,9 @@ static inline int compileAndRun(char* filename)
 	return r;
 }
 
-static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklPrototypes* ptpool)
+static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklFuncPrototypes* ptpool)
 {
-	FklPrototype* pts=ptpool->pts;
+	FklFuncPrototype* pts=ptpool->pts;
 	for(uint32_t i=0;i<num;i++)
 	{
 		FklVMlib* cur=&lib[i];

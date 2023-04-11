@@ -49,13 +49,13 @@ typedef struct FklPrototype
 	struct FklSymbolDef* refs;
 	uint32_t lcount;
 	uint32_t rcount;
-}FklPrototype;
+}FklFuncPrototype;
 
 typedef struct
 {
-	FklPrototype* pts;
+	FklFuncPrototype* pts;
 	uint32_t count;
-}FklPrototypes;
+}FklFuncPrototypes;
 
 typedef struct
 {
@@ -81,13 +81,13 @@ typedef struct //unresolved symbol ref
 	uint64_t line;
 }FklUnReSymbolRef;
 
-FklPrototypes* fklCreatePrototypePool(void);
-void fklWritePrototypePool(const FklPrototypes* ptpool,FILE* fp);
-FklPrototypes* fklLoadPrototypePool(FILE* fp);
+FklFuncPrototypes* fklCreatePrototypePool(void);
+void fklWritePrototypePool(const FklFuncPrototypes* ptpool,FILE* fp);
+FklFuncPrototypes* fklLoadPrototypePool(FILE* fp);
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal);
 
-void fklUninitPrototype(FklPrototype* p);
-void fklDestroyPrototypePool(FklPrototypes* p);
+void fklUninitPrototype(FklFuncPrototype* p);
+void fklDestroyPrototypePool(FklFuncPrototypes* p);
 
 FklHashTable* fklCreateSidSet(void);
 #ifdef __cplusplus

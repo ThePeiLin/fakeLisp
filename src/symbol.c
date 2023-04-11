@@ -206,9 +206,9 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
-inline FklPrototypePool* fklCreatePrototypePool(void)
+inline FklPrototypes* fklCreatePrototypePool(void)
 {
-	FklPrototypePool* r=(FklPrototypePool*)malloc(sizeof(*r));
+	FklPrototypes* r=(FklPrototypes*)malloc(sizeof(*r));
 	FKL_ASSERT(r);
 	r->count=0;
 	r->pts=NULL;
@@ -234,7 +234,7 @@ void fklUninitPrototype(FklPrototype* p)
 	p->rcount=0;
 }
 
-void fklDestroyPrototypePool(FklPrototypePool* p)
+void fklDestroyPrototypePool(FklPrototypes* p)
 {
 	if(p)
 	{
@@ -270,7 +270,7 @@ static inline void write_prototype(const FklPrototype* pt,FILE* fp)
 		write_symbol_def(&defs[i],fp);
 }
 
-inline void fklWritePrototypePool(const FklPrototypePool* ptpool,FILE* fp)
+inline void fklWritePrototypePool(const FklPrototypes* ptpool,FILE* fp)
 {
 	uint32_t count=ptpool->count;
 	FklPrototype* pts=ptpool->pts;
@@ -307,9 +307,9 @@ static inline void load_prototype(FklPrototype* pt,FILE* fp)
 		load_symbol_def(&defs[i],fp);
 }
 
-inline FklPrototypePool* fklLoadPrototypePool(FILE* fp)
+inline FklPrototypes* fklLoadPrototypePool(FILE* fp)
 {
-	FklPrototypePool* ptpool=fklCreatePrototypePool();
+	FklPrototypes* ptpool=fklCreatePrototypePool();
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
 	FklPrototype* pts=(FklPrototype*)malloc(sizeof(FklPrototype)*count);

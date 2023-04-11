@@ -1383,7 +1383,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	fklDestroyByteCodelnt(stack->base[0]);
 	stack->top=0;
 	fklScanAndSetTailCall(retval->bc);
-	FklPrototypePool* ptpool=codegen->ptpool;
+	FklPrototypes* ptpool=codegen->ptpool;
 	fklUpdatePrototype(ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
 	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,env->prototypeId,retval->bc->size);
 	fklBcBclAppendToBcl(pushProc,retval,fid,line);
@@ -1521,7 +1521,7 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTabl
 	return refs;
 }
 
-static inline void create_and_insert_to_pool(FklPrototypePool* cp,uint32_t p,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+static inline void create_and_insert_to_pool(FklPrototypes* cp,uint32_t p,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	cp->count+=1;
 	FklPrototype* pts=(FklPrototype*)realloc(cp->pts,sizeof(FklPrototype)*cp->count);
@@ -1848,7 +1848,7 @@ static FklHashTableMetaTable CodegenEnvHashMethodTable=
 	.__getKey=fklHashDefaultGetKey,
 };
 
-inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypePool* cp)
+inline static void process_unresolve_ref(FklCodegenEnv* env,FklPrototypes* cp)
 {
 	FklPtrStack* urefs=&env->uref;
 	FklPrototype* pts=cp->pts;
@@ -1890,7 +1890,7 @@ static inline FklSymbolDef* get_def_by_id_and_scope(FklSid_t id,uint32_t scope,F
 	return fklGetHashItem(&key,env->defs);
 }
 
-inline void fklUpdatePrototype(FklPrototypePool* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+inline void fklUpdatePrototype(FklPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	FklPrototype* pts=&cp->pts[env->prototypeId-1];
 	FklHashTable* eht=env->defs;
@@ -2458,7 +2458,7 @@ static inline void uninit_codegen_macro(FklCodegenMacro* macro)
 static void add_compiler_macro(FklCodegenMacro** pmacro
 		,FklNastNode* pattern
 		,FklByteCodelnt* bcl
-		,FklPrototypePool* ptpool
+		,FklPrototypes* ptpool
 		,int own)
 {
 	int coverState=0;
@@ -5297,12 +5297,12 @@ typedef struct
 	FklPtrStack* stack;
 	FklNastNode* pattern;
 	FklCodegenMacroScope* macroScope;
-	FklPrototypePool* ptpool;
+	FklPrototypes* ptpool;
 }MacroContext;
 
 static inline MacroContext* createMacroContext(FklNastNode* pattern
 		,FklCodegenMacroScope* macroScope
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	MacroContext* r=(MacroContext*)malloc(sizeof(MacroContext));
 	FKL_ASSERT(r);
@@ -5320,7 +5320,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=d->pattern;
 	FklCodegenMacroScope* macros=d->macroScope;
-	FklPrototypePool* ptpool=d->ptpool;
+	FklPrototypes* ptpool=d->ptpool;
 	d->ptpool=NULL;
 
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
@@ -5340,7 +5340,7 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklNastNode* pattern=d->pattern;
 	FklCodegenMacroScope* macroScope=d->macroScope;
-	FklPrototypePool* ptpool=d->ptpool;
+	FklPrototypes* ptpool=d->ptpool;
 	d->ptpool=NULL;
 
 	fklUpdatePrototype(codegen->ptpool,env,codegen->globalSymTable,codegen->publicSymbolTable);
@@ -5388,7 +5388,7 @@ static const FklCodegenQuestContextMethodTable MacroStackContextMethodTable=
 
 static inline FklCodegenQuestContext* createMacroQuestContext(FklNastNode* pattern
 		,FklCodegenMacroScope* macroScope
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	return createCodegenQuestContext(createMacroContext(pattern,macroScope,ptpool),&MacroStackContextMethodTable);
 }
@@ -6606,7 +6606,7 @@ void fklDestroyCodegenLib(FklCodegenLib* lib)
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
 		,FklByteCodelnt* bcl
 		,FklCodegenMacro* next
-		,FklPrototypePool* ptpool
+		,FklPrototypes* ptpool
 		,int own)
 {
 	FklCodegenMacro* r=(FklCodegenMacro*)malloc(sizeof(FklCodegenMacro));
@@ -6692,7 +6692,7 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklVMgc* gc
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	FklPrototype* mainPts=&ptpool->pts[0];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
@@ -6716,7 +6716,7 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 }
 
 FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
-		,FklPrototypePool* ptpool
+		,FklPrototypes* ptpool
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen)
@@ -6795,7 +6795,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMvarRef** refs
 		,uint32_t count
 		,int needCopy
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	FklVMgc* gc=exe->gc;
@@ -6818,7 +6818,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVMgc* gc
 		,int needCopy
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)
@@ -6838,7 +6838,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVMgc* gc
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	FklVMvalue* val=FKL_VM_NIL;
 	if(clib->type==FKL_CODEGEN_LIB_SCRIPT)

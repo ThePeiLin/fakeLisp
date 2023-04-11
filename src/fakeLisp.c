@@ -93,7 +93,7 @@ static inline int compileAndRun(char* filename)
 	return r;
 }
 
-static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklPrototypePool* ptpool)
+static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklPrototypes* ptpool)
 {
 	FklPrototype* pts=ptpool->pts;
 	for(uint32_t i=0;i<num;i++)

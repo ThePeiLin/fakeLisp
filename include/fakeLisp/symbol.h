@@ -55,7 +55,7 @@ typedef struct
 {
 	FklPrototype* pts;
 	uint32_t count;
-}FklPrototypePool;
+}FklPrototypes;
 
 typedef struct
 {
@@ -81,13 +81,13 @@ typedef struct //unresolved symbol ref
 	uint64_t line;
 }FklUnReSymbolRef;
 
-FklPrototypePool* fklCreatePrototypePool(void);
-void fklWritePrototypePool(const FklPrototypePool* ptpool,FILE* fp);
-FklPrototypePool* fklLoadPrototypePool(FILE* fp);
+FklPrototypes* fklCreatePrototypePool(void);
+void fklWritePrototypePool(const FklPrototypes* ptpool,FILE* fp);
+FklPrototypes* fklLoadPrototypePool(FILE* fp);
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal);
 
 void fklUninitPrototype(FklPrototype* p);
-void fklDestroyPrototypePool(FklPrototypePool* p);
+void fklDestroyPrototypePool(FklPrototypes* p);
 
 FklHashTable* fklCreateSidSet(void);
 #ifdef __cplusplus

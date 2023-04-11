@@ -262,7 +262,7 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;
@@ -315,7 +315,7 @@ inline void fklInitMainVMframeWithProcForRepl(FklVM* exe
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklPrototypePool* ptpool)
+		,FklPrototypes* ptpool)
 {
 	tmp->errorCallBack=NULL;
 	tmp->type=FKL_FRAME_COMPOUND;

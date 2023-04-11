@@ -1456,7 +1456,7 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
-inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklPrototypePool* ptpool,FklSid_t* psid)
+inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklPrototypes* ptpool,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	FklVMvalue* v=idx<lr->rcount?*(lr->ref[idx]->ref):NULL;
@@ -1484,7 +1484,7 @@ static void inline B_get_var_ref(FklVM* exe,FklVMframe* frame)
 	fklPushVMvalue(v,exe->stack);
 }
 
-inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklPrototypePool* ptpool,FklSid_t* psid)
+inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklPrototypes* ptpool,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
 	FklVMvarRef** refs=lr->ref;

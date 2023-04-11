@@ -43,7 +43,7 @@ void fklDestroySymbolTable(FklSymbolTable*);
 
 void fklWriteSymbolTable(FklSymbolTable*,FILE*);
 
-typedef struct FklPrototype
+typedef struct FklFuncPrototype
 {
 	struct FklSymbolDef* loc;
 	struct FklSymbolDef* refs;

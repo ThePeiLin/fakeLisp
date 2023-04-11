@@ -1097,7 +1097,6 @@ static void inline B_call(FklVM* exe,FklVMframe* frame)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(tmpValue))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,exe);
-	fklNiEnd(&ap,stack);
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
@@ -1107,6 +1106,7 @@ static void inline B_call(FklVM* exe,FklVMframe* frame)
 			callCallableObj(tmpValue,exe);
 			break;
 	}
+	fklNiEnd(&ap,stack);
 }
 
 static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
@@ -1117,7 +1117,6 @@ static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(tmpValue))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,exe);
-	fklNiEnd(&ap,stack);
 	switch(tmpValue->type)
 	{
 		case FKL_TYPE_PROC:
@@ -1127,6 +1126,7 @@ static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 			callCallableObj(tmpValue,exe);
 			break;
 	}
+	fklNiEnd(&ap,stack);
 }
 
 static void inline B_jmp_if_true(FklVM* exe,FklVMframe* frame)

@@ -232,7 +232,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	FklVMCompoundFrameVarRef* lr=&fd->lr;
 	const FklVMCompoundFrameVarRef* plr=&pfd->lr;
 	*lr=*plr;
-	FklVMvarRef** lref=fklCopyMemory(plr->lref,sizeof(FklVMvarRef*)*plr->lcount);
+	FklVMvarRef** lref=plr->lref?fklCopyMemory(plr->lref,sizeof(FklVMvarRef*)*plr->lcount):NULL;
 	FklVMvarRefList* nl=NULL;
 	for(FklVMvarRefList* ll=lr->lrefl;ll;ll=ll->next)
 	{

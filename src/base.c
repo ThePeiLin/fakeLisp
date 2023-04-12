@@ -494,7 +494,8 @@ void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 	if(fklIsHexNumCharBuf(buf,len))
 	{
 		int neg=buf[0]=='-';
-		uint64_t i=2+neg;
+		int offset=neg||buf[0]=='+';
+		uint64_t i=2+offset;
 		for(;i<len&&isxdigit(buf[i]);i++)
 		{
 			fklMulBigIntI(r,16);
@@ -505,7 +506,8 @@ void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 	else if(fklIsOctNumCharBuf(buf,len))
 	{
 		int neg=buf[0]=='-';
-		uint64_t i=1+neg;
+		int offset=neg||buf[0]=='+';
+		uint64_t i=1+offset;
 		for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
 		{
 			fklMulBigIntI(r,8);
@@ -516,7 +518,8 @@ void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 	else
 	{
 		int neg=buf[0]=='-';
-		uint64_t i=neg;
+		int offset=neg||buf[0]=='+';
+		uint64_t i=offset;
 		for(;i<len&&isdigit(buf[i]);i++)
 		{
 			fklMulBigIntI(r,10);

@@ -33,7 +33,7 @@ void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbolTable*
 typedef struct FklCodegenMacro
 {
 	FklNastNode* pattern;
-	FklFuncPrototypes* ptpool;
+	FklFuncPrototypes* pts;
 	FklByteCodelnt* bcl;
 	struct FklCodegenMacro* next;
 	uint8_t own;
@@ -101,7 +101,7 @@ typedef struct FklCodegen
 	unsigned int libMark:1;
 	unsigned int macroMark:1;
 	unsigned long refcount:61;
-	FklFuncPrototypes* ptpool;
+	FklFuncPrototypes* pts;
 }FklCodegen;
 
 typedef struct
@@ -256,7 +256,7 @@ void fklDestroyCodegenLib(FklCodegenLib*);
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
 		,FklByteCodelnt* bcl
 		,FklCodegenMacro* next
-		,FklFuncPrototypes* ptpool
+		,FklFuncPrototypes* pts
 		,int own);
 void fklDestroyCodegenMacro(FklCodegenMacro* macro);
 void fklDestroyCodegenMacroList(FklCodegenMacro* macro);
@@ -271,7 +271,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 struct FklVM;
 struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
-		,FklFuncPrototypes* ptpool
+		,FklFuncPrototypes* pts
 		,FklHashTable* ht
 		,FklHashTable* lineHash
 		,FklCodegen* codegen);

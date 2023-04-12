@@ -206,7 +206,7 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
-inline FklFuncPrototypes* fklCreatePrototypePool(void)
+inline FklFuncPrototypes* fklCreateFuncPrototypes(void)
 {
 	FklFuncPrototypes* r=(FklFuncPrototypes*)malloc(sizeof(*r));
 	FKL_ASSERT(r);
@@ -227,21 +227,21 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32
 	return r;
 }
 
-void fklUninitPrototype(FklFuncPrototype* p)
+void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
 	free(p->loc);
 	p->rcount=0;
 }
 
-void fklDestroyPrototypePool(FklFuncPrototypes* p)
+void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 {
 	if(p)
 	{
 		FklFuncPrototype* pts=p->pts;
 		uint32_t count=p->count;
 		for(uint32_t i=0;i<count;i++)
-			fklUninitPrototype(&pts[i]);
+			fklUninitFuncPrototype(&pts[i]);
 		free(pts);
 		free(p);
 	}
@@ -270,13 +270,13 @@ static inline void write_prototype(const FklFuncPrototype* pt,FILE* fp)
 		write_symbol_def(&defs[i],fp);
 }
 
-inline void fklWritePrototypePool(const FklFuncPrototypes* ptpool,FILE* fp)
+inline void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp)
 {
-	uint32_t count=ptpool->count;
-	FklFuncPrototype* pts=ptpool->pts;
+	uint32_t count=pts->count;
+	FklFuncPrototype* pta=pts->pts;
 	fwrite(&count,sizeof(count),1,fp);
 	for(uint32_t i=0;i<count;i++)
-		write_prototype(&pts[i],fp);
+		write_prototype(&pta[i],fp);
 }
 
 static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
@@ -307,18 +307,18 @@ static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 		load_symbol_def(&defs[i],fp);
 }
 
-inline FklFuncPrototypes* fklLoadPrototypePool(FILE* fp)
+inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 {
-	FklFuncPrototypes* ptpool=fklCreatePrototypePool();
+	FklFuncPrototypes* pts=fklCreateFuncPrototypes();
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
-	FklFuncPrototype* pts=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*count);
+	FklFuncPrototype* pta=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*count);
 	FKL_ASSERT(pts||!count);
 	for(uint32_t i=0;i<count;i++)
-		load_prototype(&pts[i],fp);
-	ptpool->count=count;
-	ptpool->pts=pts;
-	return ptpool;
+		load_prototype(&pta[i],fp);
+	pts->count=count;
+	pts->pts=pta;
+	return pts;
 }
 
 static void fklSetSidKey(void* k0,void* k1)

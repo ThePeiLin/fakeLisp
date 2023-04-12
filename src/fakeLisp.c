@@ -49,12 +49,12 @@ static inline int compileAndRun(char* filename)
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
 	{
-		fklDestroyPrototypePool(codegen.ptpool);
+		fklDestroyFuncPrototypes(codegen.pts);
 		fklUninitCodegener(&codegen);
 		fklUninitCodegen();
 		return FKL_EXIT_FAILURE;
 	}
-	fklUpdatePrototype(codegen.ptpool
+	fklUpdatePrototype(codegen.pts
 			,codegen.globalEnv
 			,codegen.globalSymTable
 			,codegen.publicSymbolTable);
@@ -63,7 +63,7 @@ static inline int compileAndRun(char* filename)
 	chdir(fklGetCwd());
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable);
-	anotherVM->ptpool=codegen.ptpool;
+	anotherVM->pts=codegen.pts;
 	anotherVM->libNum=codegen.loadedLibStack->top;
 	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
 	FKL_ASSERT(anotherVM->libs);
@@ -72,7 +72,7 @@ static inline int compileAndRun(char* filename)
 	fklInitMainVMframeWithProc(anotherVM,mainframe
 			,fklGetCompoundFrameProc(mainframe)->u.proc
 			,NULL
-			,anotherVM->ptpool);
+			,anotherVM->pts);
 	FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
 
 	while(!fklIsPtrStackEmpty(loadedLibStack))
@@ -80,7 +80,7 @@ static inline int compileAndRun(char* filename)
 		FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 		FklCodegenLibType type=cur->type;
 		FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->ptpool);
+		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
 			fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
 	}
@@ -93,14 +93,14 @@ static inline int compileAndRun(char* filename)
 	return r;
 }
 
-static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklFuncPrototypes* ptpool)
+static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklFuncPrototypes* pts)
 {
-	FklFuncPrototype* pts=ptpool->pts;
+	FklFuncPrototype* pta=pts->pts;
 	for(uint32_t i=0;i<num;i++)
 	{
 		FklVMlib* cur=&lib[i];
 		if(FKL_IS_PROC(cur->proc))
-			cur->proc->u.proc->lcount=pts[cur->proc->u.proc->protoId-1].lcount;
+			cur->proc->u.proc->lcount=pta[cur->proc->u.proc->protoId-1].lcount;
 	}
 }
 
@@ -138,16 +138,16 @@ static inline int runCode(char* filename)
 			,anotherVM->gc
 			,fklGetCompoundFrameLocRef(anotherVM->frames));
 
-	anotherVM->ptpool=fklLoadPrototypePool(fp);
+	anotherVM->pts=fklLoadFuncPrototypes(fp);
 	fklInitMainVMframeWithProc(anotherVM
 			,mainframe
 			,fklGetCompoundFrameProc(mainframe)->u.proc
 			,NULL
-			,anotherVM->ptpool);
+			,anotherVM->pts);
 
 	fclose(fp);
 
-	initLibWithPrototyle(anotherVM->libs,anotherVM->libNum,anotherVM->ptpool);
+	initLibWithPrototyle(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(table);
 	fklDestroyVMgc(gc);
@@ -213,7 +213,7 @@ int main(int argc,char** argv)
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable);
-	anotherVM->ptpool=codegen->ptpool;
+	anotherVM->pts=codegen->pts;
 
 	fklInitFrameToReplFrame(anotherVM,codegen,builtInHeadSymbolTable);
 

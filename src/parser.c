@@ -703,11 +703,11 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 			,nastStack
 			,tokenStack);
 	FklHashTable* lineHash=fklCreateLineNumHashTable();
-	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc,pattern->ptpool,ht,lineHash,codegen);
+	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc,pattern->pts,ht,lineHash,codegen);
 	FklVMgc* gc=anotherVM->gc;
 	FklNastNode* r=NULL;
 	int e=fklRunVM(anotherVM);
-	anotherVM->ptpool=NULL;
+	anotherVM->pts=NULL;
 	if(e)
 	{
 		fklDeleteCallChain(anotherVM);

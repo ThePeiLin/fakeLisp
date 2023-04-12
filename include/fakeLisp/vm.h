@@ -328,7 +328,7 @@ typedef struct FklVM
 	jmp_buf buf;
 	FklSymbolTable* symbolTable;
 	FklSid_t* builtinErrorTypeId;
-	FklFuncPrototypes* ptpool;
+	FklFuncPrototypes* pts;
 	FklVMlib* importingLib;
 
 	uint64_t alarmtime;
@@ -494,12 +494,12 @@ void fklInitMainVMframeWithProc(FklVM*
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklFuncPrototypes* ptpool);
+		,FklFuncPrototypes* pts);
 void fklInitMainVMframeWithProcForRepl(FklVM*
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
-		,FklFuncPrototypes* ptpool);
+		,FklFuncPrototypes* pts);
 
 FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);

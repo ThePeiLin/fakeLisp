@@ -81,13 +81,13 @@ typedef struct //unresolved symbol ref
 	uint64_t line;
 }FklUnReSymbolRef;
 
-FklFuncPrototypes* fklCreatePrototypePool(void);
-void fklWritePrototypePool(const FklFuncPrototypes* ptpool,FILE* fp);
-FklFuncPrototypes* fklLoadPrototypePool(FILE* fp);
+FklFuncPrototypes* fklCreateFuncPrototypes(void);
+void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp);
+FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp);
 FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal);
 
-void fklUninitPrototype(FklFuncPrototype* p);
-void fklDestroyPrototypePool(FklFuncPrototypes* p);
+void fklUninitFuncPrototype(FklFuncPrototype* p);
+void fklDestroyFuncPrototypes(FklFuncPrototypes* p);
 
 FklHashTable* fklCreateSidSet(void);
 #ifdef __cplusplus

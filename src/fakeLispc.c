@@ -64,7 +64,7 @@ int main(int argc,char** argv)
 				if(mainByteCode==NULL)
 				{
 					free(rp);
-					fklDestroyPrototypePool(codegen.ptpool);
+					fklDestroyFuncPrototypes(codegen.pts);
 					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
 					fklDestroyMainFileRealPath();
@@ -73,7 +73,7 @@ int main(int argc,char** argv)
 					fklUninitCodegen();
 					return 1;
 				}
-				fklUpdatePrototype(codegen.ptpool,codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
+				fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
 				fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
 				FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 				char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
@@ -84,7 +84,7 @@ int main(int argc,char** argv)
 				if(!outfp)
 				{
 					fprintf(stderr,"%s:Can't create byte code file!",outputname);
-					fklDestroyPrototypePool(codegen.ptpool);
+					fklDestroyFuncPrototypes(codegen.pts);
 					fklUninitCodegener(&codegen);
 					fklUninitCodegen();
 					fklDestroyMainFileRealPath();
@@ -126,8 +126,8 @@ int main(int argc,char** argv)
 						fwrite(rp,len,1,outfp);
 					}
 				}
-				fklWritePrototypePool(codegen.ptpool,outfp);
-				fklDestroyPrototypePool(codegen.ptpool);
+				fklWriteFuncPrototypes(codegen.pts,outfp);
+				fklDestroyFuncPrototypes(codegen.pts);
 				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);
 				fklDestroyMainFileRealPath();

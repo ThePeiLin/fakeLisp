@@ -7039,7 +7039,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
 
 				FklVMCompoundFrameVarRef* f=&mainframe->u.c.lr;
-				f->base=exe->ltp;
+				f->base=0;
 				f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
 				f->lcount=proc->lcount;
 

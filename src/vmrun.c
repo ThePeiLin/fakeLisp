@@ -1114,7 +1114,7 @@ static void inline B_tail_call(FklVM* exe,FklVMframe* frame)
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* tmpValue=fklNiGetArg(&ap,stack);
 	if(!tmpValue)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(tmpValue))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,exe);
 	switch(tmpValue->type)

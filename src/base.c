@@ -130,10 +130,10 @@ inline int fklIsPtrQueueEmpty(FklPtrQueue* queue)
 	return queue->head==NULL;
 }
 
-uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
+inline uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* cur=tmp->head;
-	int32_t i=0;
+	uint64_t i=0;
 	for(;cur;cur=cur->next,i++);
 	return i;
 }

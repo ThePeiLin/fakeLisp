@@ -1406,17 +1406,14 @@ void fklChanlSend(FklVMvalue* msg,FklVMchanl* ch,FklVM* exe)
 		fklDestroyVMrecv(r);
 		return;
 	}
-	if(!ch->max||ch->messageNum<ch->max-1)
-	{
+	ch->messageNum++;
+	if(!ch->max||ch->messageNum<ch->max)
 		fklPushPtrQueue(msg,&ch->messages);
-		ch->messageNum++;
-	}
 	else
 	{
 		fklSuspendThread(exe);
 		fklPushPtrQueue(exe,&ch->sendq);
 		fklPushPtrQueue(msg,&ch->messages);
-		ch->messageNum++;
 	}
 }
 

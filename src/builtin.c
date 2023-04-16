@@ -3563,9 +3563,9 @@ static void builtin_chanl(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,stack);
 }
 
-static void builtin_chanl_num(FKL_DL_PROC_ARGL)
+static void builtin_chanl_msg_num(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.chanl-num";
+	static const char Pname[]="builtin.chanl#msg";
 	FKL_NI_BEGIN(exe);
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	if(fklNiResBp(&ap,stack))
@@ -3580,6 +3580,92 @@ static void builtin_chanl_num(FKL_DL_PROC_ARGL)
 	fklNiReturn(fklMakeVMuint(len,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
 }
+
+static void builtin_chanl_send_num(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.chanl#send";
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	size_t len=0;
+	if(FKL_IS_CHAN(obj))
+		len=fklLengthPtrQueue(&obj->u.chan->sendq);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(fklMakeVMuint(len,exe),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static void builtin_chanl_recv_num(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.chanl#recv";
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	size_t len=0;
+	if(FKL_IS_CHAN(obj))
+		len=fklLengthPtrQueue(&obj->u.chan->recvq);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(fklMakeVMuint(len,exe),&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static void builtin_chanl_full_p(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.chanl#recv";
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FklVMvalue* retval=NULL;
+	if(FKL_IS_CHAN(obj))
+		retval=obj->u.chan->max>0&&obj->u.chan->messageNum>=obj->u.chan->max?FKL_MAKE_VM_FIX(1):FKL_VM_NIL;
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(retval,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+static void builtin_chanl_msg_to_list(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.chanl-msg->list";
+	FKL_NI_BEGIN(exe);
+	FklVMvalue* obj=fklNiGetArg(&ap,stack);
+	if(fklNiResBp(&ap,stack))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+	if(!obj)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FklVMvalue* r=NULL;
+	FklVMvalue** cur=&r;
+	if(FKL_IS_CHAN(obj))
+	{
+		FklVMgc* gc=exe->gc;
+		for(FklQueueNode* h=obj->u.chan->messages.head
+				;h
+				;h=h->next)
+		{
+			FklVMvalue* msg=h->data;
+			fklSetRef(cur,fklCreateVMpairV(msg,FKL_VM_NIL,exe),gc);
+			cur=&(*cur)->u.pair->cdr;
+			fklDropTop(stack);
+		}
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	fklNiReturn(r,&ap,stack);
+	fklNiEnd(&ap,stack);
+}
+
+
 
 static void builtin_send(FKL_DL_PROC_ARGL)
 {
@@ -5365,7 +5451,11 @@ static const struct SymbolFuncStruct
 	{"argv",                  builtin_argv,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"go",                    builtin_go,                      {NULL,         NULL,          NULL,          NULL,          }, },
 	{"chanl",                 builtin_chanl,                   {NULL,         NULL,          NULL,          NULL,          }, },
-	{"chanl-num",             builtin_chanl_num,               {NULL,         NULL,          NULL,          NULL,          }, },
+	{"chanl#msg",             builtin_chanl_msg_num,           {NULL,         NULL,          NULL,          NULL,          }, },
+	{"chanl#recv",            builtin_chanl_recv_num,          {NULL,         NULL,          NULL,          NULL,          }, },
+	{"chanl#send",            builtin_chanl_send_num,          {NULL,         NULL,          NULL,          NULL,          }, },
+	{"chanl-full?",           builtin_chanl_full_p,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"chanl-msg->list",       builtin_chanl_msg_to_list,       {NULL,         NULL,          NULL,          NULL,          }, },
 	{"send",                  builtin_send,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"recv",                  builtin_recv,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"error",                 builtin_error,                   {NULL,         NULL,          NULL,          NULL,          }, },

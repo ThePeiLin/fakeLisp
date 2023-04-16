@@ -14,9 +14,8 @@
     (println "consume:" (recv buf)))
   (println "consumer exit"))
 
-(let iter [(c 0)]
-  (when (< c max)
-    (go producer)
-    (go consumer)
-    (iter (1+ c))))
+(do [(c 0 (1+ c))]
+  [(>= c max)]
+  (go producer)
+  (go consumer))
 

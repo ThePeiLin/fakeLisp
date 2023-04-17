@@ -6896,6 +6896,18 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplCtx);
 
 #include<fcntl.h>
 
+static inline void init_with_main_proc(FklVMproc* d,const FklVMproc* s)
+{
+	uint32_t count=s->count;
+	FklVMvarRef** refs=fklCopyMemory(s->closure,count*sizeof(FklVMvarRef*));
+	for(uint32_t i=0;i<count;i++)
+		fklMakeVMvarRefRef(refs[i]);
+	d->closure=refs;
+	d->count=count;
+	d->protoId=1;
+	d->lcount=s->lcount;
+}
+
 static void repl_frame_step(FklCallObjData data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
@@ -7004,7 +7016,10 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 						,codegen->publicSymbolTable);
 				size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
 
-				FklVMproc* proc=ctx->mainProc->u.proc;
+				FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1);
+				init_with_main_proc(proc,ctx->mainProc->u.proc);
+				FklVMvalue* mainProc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,exe->gc);
+				ctx->mainProc=mainProc;
 				if(unloadlibNum)
 				{
 					libNum+=unloadlibNum;

@@ -75,6 +75,7 @@ static inline int compileAndRun(char* filename)
 			,anotherVM->pts);
 	FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
 
+	FklVMgc* gc=anotherVM->gc;
 	while(!fklIsPtrStackEmpty(loadedLibStack))
 	{
 		FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
@@ -87,7 +88,7 @@ static inline int compileAndRun(char* filename)
 
 	int r=fklRunVM(anotherVM);
 	fklDestroyAllVMs(anotherVM);
-	fklDestroyVMgc(anotherVM->gc);
+	fklDestroyVMgc(gc);
 	fklUninitCodegener(&codegen);
 	fklUninitCodegen();
 	return r;
@@ -135,7 +136,7 @@ static inline int runCode(char* filename)
 	loadLib(fp
 			,&anotherVM->libNum
 			,&anotherVM->libs
-			,anotherVM->gc
+			,gc
 			,fklGetCompoundFrameLocRef(anotherVM->frames));
 
 	anotherVM->pts=fklLoadFuncPrototypes(fp);
@@ -219,8 +220,9 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 
 	fklRunVM(anotherVM);
 
+	FklVMgc* gc=anotherVM->gc;
 	fklDestroyAllVMs(anotherVM);
-	fklDestroyVMgc(anotherVM->gc);
+	fklDestroyVMgc(gc);
 }
 
 static void loadLib(FILE* fp

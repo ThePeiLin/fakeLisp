@@ -2650,11 +2650,8 @@ void fklGC_markAllRootToGrey(FklVM* curVM)
 {
 	fklGC_markRootToGrey(curVM);
 
-	for(FklVM* cur=curVM->next;cur!=curVM;)
-	{
+	for(FklVM* cur=curVM->next;cur!=curVM;cur=cur->next)
 		fklGC_markRootToGrey(cur);
-		cur=cur->next;
-	}
 }
 
 void fklGC_pause(FklVM* exe)

@@ -86,8 +86,8 @@ static inline int compileAndRun(char* filename)
 	}
 
 	int r=fklRunVM(anotherVM);
-	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
+	fklDestroyVMgc(anotherVM->gc);
 	fklUninitCodegener(&codegen);
 	fklUninitCodegen();
 	return r;
@@ -150,8 +150,8 @@ static inline int runCode(char* filename)
 	initLibWithPrototyle(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(table);
-	fklDestroyVMgc(gc);
 	fklDestroyAllVMs(anotherVM);
+	fklDestroyVMgc(gc);
 	return r;
 }
 
@@ -219,8 +219,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 
 	fklRunVM(anotherVM);
 
-	fklDestroyVMgc(anotherVM->gc);
 	fklDestroyAllVMs(anotherVM);
+	fklDestroyVMgc(anotherVM->gc);
 }
 
 static void loadLib(FILE* fp

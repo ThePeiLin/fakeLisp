@@ -4360,19 +4360,16 @@ static void builtin_list(FKL_DL_PROC_ARGL)
 static void builtin_list8(FKL_DL_PROC_ARGL)
 {
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* r=FKL_VM_NIL;
+	FklVMvalue* r=fklNiGetArg(&ap,stack);
+	if(!r)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.list*",FKL_ERR_TOOFEWARG,exe);
 	FklVMvalue** pcur=&r;
-	for(FklVMvalue* cur=fklNiGetArg(&ap,stack);cur;)
+	for(FklVMvalue* cur=fklNiGetArg(&ap,stack)
+			;cur
+			;cur=fklNiGetArg(&ap,stack))
 	{
-		FklVMvalue* next=fklNiGetArg(&ap,stack);
-		if(next)
-		{
-			*pcur=fklCreateVMpairV(cur,FKL_VM_NIL,exe);
-			pcur=&(*pcur)->u.pair->cdr;
-		}
-		else
-			*pcur=cur;
-		cur=next;
+		*pcur=fklCreateVMpairV(*pcur,cur,exe);
+		pcur=&(*pcur)->u.pair->cdr;
 	}
 	fklNiResBp(&ap,stack);
 	fklNiReturn(r,&ap,stack);

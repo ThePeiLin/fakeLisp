@@ -1563,6 +1563,9 @@ static CODEGEN_FUNC(codegen_named_let0)
 	uint32_t idx=fklAddCodegenDefBySid(name->u.sym,cs,curEnv);
 	fklPushPtrStack(makeDupAndPutLoc(name,idx,codegen),stack);
 
+	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
+			,name
+			,cms->replacements);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_set_var_exp_bc_process
 			,createDefaultStackContext(stack)
 			,NULL

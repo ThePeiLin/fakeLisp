@@ -4074,8 +4074,13 @@ static void k_member(K_FUNC_ARGL)
 	{
 		FklVMvalue* arglist[2]={memberctx->obj,memberctx->list->u.pair->car};
 		return fklCallInDlproc(memberctx->proc
-				,2,arglist
-				,exe->frames,exe,k_member,memberctx,sizeof(MemberCtx));
+				,2
+				,arglist
+				,exe->frames
+				,exe
+				,k_member
+				,memberctx
+				,sizeof(MemberCtx));
 	}
 	fklNiReturn(*memberctx->r,&memberctx->ap,stack);
 	fklNiEnd(&memberctx->ap,stack);
@@ -4085,11 +4090,8 @@ static void builtin_member(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.member";
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	FklVMvalue* list=fklNiGetArg(&ap,stack);
+	DECL_AND_CHECK_ARG2(obj,list,Pname);
 	FklVMvalue* proc=fklNiGetArg(&ap,stack);
-	if(!obj||!list)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 	FKL_NI_CHECK_REST_ARG(&ap,stack,Pname,exe);
 	FKL_NI_CHECK_TYPE(list,fklIsList,Pname,exe);
 	if(proc)
@@ -4104,6 +4106,7 @@ static void builtin_member(FKL_DL_PROC_ARGL)
 		memberctx->list=list;
 		memberctx->ap=ap;
 		fklCallFuncK(k_member,exe,memberctx);
+		return;
 	}
 	FklVMvalue* r=list;
 	for(;r!=FKL_VM_NIL;r=r->u.pair->cdr)

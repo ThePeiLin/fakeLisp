@@ -206,12 +206,22 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
-inline FklFuncPrototypes* fklCreateFuncPrototypes(void)
+static inline void init_as_empty_pt(FklFuncPrototype* pt)
+{
+	pt->loc=NULL;
+	pt->refs=NULL;
+	pt->lcount=0;
+	pt->rcount=0;
+}
+
+inline FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
 {
 	FklFuncPrototypes* r=(FklFuncPrototypes*)malloc(sizeof(*r));
 	FKL_ASSERT(r);
-	r->count=0;
-	r->pts=NULL;
+	r->count=count;
+	r->pts=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*(count+1));
+	FKL_ASSERT(r->pts);
+	init_as_empty_pt(r->pts);
 	return r;
 }
 
@@ -240,7 +250,7 @@ void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 	{
 		FklFuncPrototype* pts=p->pts;
 		uint32_t count=p->count;
-		for(uint32_t i=0;i<count;i++)
+		for(uint32_t i=1;i<=count;i++)
 			fklUninitFuncPrototype(&pts[i]);
 		free(pts);
 		free(p);
@@ -275,7 +285,7 @@ inline void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp)
 	uint32_t count=pts->count;
 	FklFuncPrototype* pta=pts->pts;
 	fwrite(&count,sizeof(count),1,fp);
-	for(uint32_t i=0;i<count;i++)
+	for(uint32_t i=1;i<=count;i++)
 		write_prototype(&pta[i],fp);
 }
 
@@ -309,15 +319,13 @@ static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 
 inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 {
-	FklFuncPrototypes* pts=fklCreateFuncPrototypes();
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
-	FklFuncPrototype* pta=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*count);
+	FklFuncPrototypes* pts=fklCreateFuncPrototypes(count);
+	FklFuncPrototype* pta=pts->pts;
 	FKL_ASSERT(pts||!count);
-	for(uint32_t i=0;i<count;i++)
+	for(uint32_t i=1;i<=count;i++)
 		load_prototype(&pta[i],fp);
-	pts->count=count;
-	pts->pts=pta;
 	return pts;
 }
 

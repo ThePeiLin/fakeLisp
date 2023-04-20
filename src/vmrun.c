@@ -979,7 +979,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 {
 	FklVMgc* gc=exe->gc;
 	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc,protoId);
-	FklFuncPrototype* pt=&exe->pts->pts[protoId-1];
+	FklFuncPrototype* pt=&exe->pts->pts[protoId];
 	uint32_t count=pt->rcount;
 	if(count)
 	{
@@ -1347,13 +1347,13 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 		char* cstr=NULL;
 		if(libIdx<plib->count)
 		{
-			FklFuncPrototype* pt=&exe->pts->pts[plib->proc->u.proc->protoId-1];
+			FklFuncPrototype* pt=&exe->pts->pts[plib->proc->u.proc->protoId];
 			FklSid_t sid=pt->loc[libIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
 		else
 		{
-			FklFuncPrototype* pt=&exe->pts->pts[fklGetCompoundFrameProc(frame)->u.proc->protoId-1];
+			FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(frame,exe);
 			FklSid_t sid=pt->loc[locIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
@@ -1467,7 +1467,7 @@ inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncProt
 	if(!v)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-		FklFuncPrototype* pt=&pts->pts[proc->protoId-1];
+		FklFuncPrototype* pt=&pts->pts[proc->protoId];
 		FklSymbolDef* def=&pt->refs[idx];
 		*psid=def->k.id;
 		return NULL;
@@ -1496,7 +1496,7 @@ inline static FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 	if(!v)
 	{
 		FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
-		FklFuncPrototype* pt=&pts->pts[proc->protoId-1];
+		FklFuncPrototype* pt=&pts->pts[proc->protoId];
 		FklSymbolDef* def=&pt->refs[idx];
 		*psid=def->k.id;
 		return NULL;
@@ -3056,7 +3056,7 @@ inline FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)
 inline FklFuncPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe* f,FklVM* exe)
 {
 	uint32_t pId=f->u.c.proc->u.proc->protoId;
-	return &exe->pts->pts[pId-1];
+	return &exe->pts->pts[pId];
 }
 
 inline uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe* f,size_t a)

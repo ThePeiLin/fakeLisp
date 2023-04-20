@@ -1524,10 +1524,10 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTabl
 static inline void create_and_insert_to_pool(FklFuncPrototypes* cp,uint32_t p,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	cp->count+=1;
-	FklFuncPrototype* pts=(FklFuncPrototype*)realloc(cp->pts,sizeof(FklFuncPrototype)*cp->count);
+	FklFuncPrototype* pts=(FklFuncPrototype*)realloc(cp->pts,sizeof(FklFuncPrototype)*(cp->count+1));
 	FKL_ASSERT(pts);
 	cp->pts=pts;
-	FklFuncPrototype* cpt=&pts[cp->count-1];
+	FklFuncPrototype* cpt=&pts[cp->count];
 	env->prototypeId=cp->count;
 	cpt->loc=psid_to_gsid_ht(env->defs,globalSymTable,publicSymbolTable);
 	cpt->lcount=env->defs->num;
@@ -1861,7 +1861,7 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 	for(uint32_t i=0;i<count;i++)
 	{
 		FklUnReSymbolRef* uref=urefs->base[i];
-		FklFuncPrototype* cpt=&pts[uref->prototypeId-1];
+		FklFuncPrototype* cpt=&pts[uref->prototypeId];
 		FklSymbolDef* ref=&cpt->refs[uref->idx];
 		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
 		if(def)
@@ -1895,7 +1895,7 @@ static inline FklSymbolDef* get_def_by_id_and_scope(FklSid_t id,uint32_t scope,F
 
 inline void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
-	FklFuncPrototype* pts=&cp->pts[env->prototypeId-1];
+	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
 	FklHashTable* eht=env->defs;
 	FklSymbolDef* loc=(FklSymbolDef*)realloc(pts->loc,sizeof(FklSymbolDef)*eht->num);
 	FKL_ASSERT(loc||!eht->num);
@@ -3941,7 +3941,7 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
 
-	FklFuncPrototype* pt=&codegen->pts->pts[lib->prototypeId-1];
+	FklFuncPrototype* pt=&codegen->pts->pts[lib->prototypeId];
 
 	for(;only->type==FKL_NAST_PAIR;only=only->u.pair->cdr)
 	{
@@ -4074,7 +4074,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
 
-	FklFuncPrototype* pt=&codegen->pts->pts[lib->prototypeId-1];
+	FklFuncPrototype* pt=&codegen->pts->pts[lib->prototypeId];
 
 	for(;alias->type==FKL_NAST_PAIR;alias=alias->u.pair->cdr)
 	{
@@ -5547,7 +5547,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 			macroCodegen->curDir=fklCopyCstr(codegen->curDir);
 			macroCodegen->filename=fklCopyCstr(codegen->filename);
 			macroCodegen->realpath=fklCopyCstr(codegen->realpath);
-			macroCodegen->pts=fklCreateFuncPrototypes();
+			macroCodegen->pts=fklCreateFuncPrototypes(0);
 
 			macroCodegen->globalSymTable=codegen->publicSymbolTable;
 			macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
@@ -5607,7 +5607,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 			macroCodegen->curDir=fklCopyCstr(codegen->curDir);
 			macroCodegen->filename=fklCopyCstr(codegen->filename);
 			macroCodegen->realpath=fklCopyCstr(codegen->realpath);
-			macroCodegen->pts=fklCreateFuncPrototypes();
+			macroCodegen->pts=fklCreateFuncPrototypes(0);
 
 			macroCodegen->globalSymTable=codegen->publicSymbolTable;
 			macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
@@ -6331,7 +6331,7 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 	codegen->phead=&codegen->head;
 	codegen->loadedLibStack=fklCreatePtrStack(8,8);
 	codegen->macroLibStack=fklCreatePtrStack(8,8);
-	codegen->pts=fklCreateFuncPrototypes();
+	codegen->pts=fklCreateFuncPrototypes(0);
 	codegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&codegen->builtinSymbolNum);
 	create_and_insert_to_pool(codegen->pts
 			,0
@@ -6398,7 +6398,7 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->phead=&codegen->head;
 		codegen->loadedLibStack=fklCreatePtrStack(8,8);
 		codegen->macroLibStack=fklCreatePtrStack(8,8);
-		codegen->pts=fklCreateFuncPrototypes();
+		codegen->pts=fklCreateFuncPrototypes(0);
 		codegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&codegen->builtinSymbolNum);
 	}
 }
@@ -6697,7 +6697,7 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 		,FklVMgc* gc
 		,FklFuncPrototypes* pts)
 {
-	FklFuncPrototype* mainPts=&pts->pts[0];
+	FklFuncPrototype* mainPts=&pts->pts[1];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	FklVMproc* proc=fklGetCompoundFrameProc(frame)->u.proc;
 	uint32_t count=mainPts->lcount;
@@ -6807,7 +6807,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
 		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
-		prc->lcount=pts->pts[prc->protoId-1].lcount;
+		prc->lcount=pts->pts[prc->protoId].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		fklInitMainProcRefs(proc->u.proc,refs,count);
 		val=proc;
@@ -6829,7 +6829,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
 		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
-		prc->lcount=pts->pts[prc->protoId-1].lcount;
+		prc->lcount=pts->pts[prc->protoId].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}
@@ -6849,7 +6849,7 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
 		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
-		prc->lcount=pts->pts[prc->protoId-1].lcount;
+		prc->lcount=pts->pts[prc->protoId].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}
@@ -7047,7 +7047,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 					free(prev);
 				}
 				FklVMvalue* mainCodeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,mainCode,exe->gc);
-				ctx->lcount=codegen->pts->pts[0].lcount;
+				ctx->lcount=codegen->pts->pts[1].lcount;
 
 				proc->lcount=ctx->lcount;
 				proc->codeObj=mainCodeObj;

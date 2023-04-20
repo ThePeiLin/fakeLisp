@@ -101,7 +101,7 @@ static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklFuncProtot
 	{
 		FklVMlib* cur=&lib[i];
 		if(FKL_IS_PROC(cur->proc))
-			cur->proc->u.proc->lcount=pta[cur->proc->u.proc->protoId-1].lcount;
+			cur->proc->u.proc->lcount=pta[cur->proc->u.proc->protoId].lcount;
 	}
 }
 

@@ -7026,12 +7026,12 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				if(unloadlibNum)
 				{
 					libNum+=unloadlibNum;
-					FklVMlib* nlibs=(FklVMlib*)malloc(sizeof(FklVMlib)*libNum);
+					FklVMlib* nlibs=(FklVMlib*)calloc((libNum+1),sizeof(FklVMlib));
 					FKL_ASSERT(nlibs);
-					memcpy(nlibs,exe->libs,sizeof(FklVMlib)*exe->libNum);
+					memcpy(nlibs,exe->libs,sizeof(FklVMlib)*(exe->libNum+1));
 					for(size_t i=exe->libNum;i<libNum;i++)
 					{
-						FklVMlib* curVMlib=&nlibs[i];
+						FklVMlib* curVMlib=&nlibs[i+1];
 						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
 						fklInitVMlibWithCodegenLibRefs(curCGlib
 								,curVMlib

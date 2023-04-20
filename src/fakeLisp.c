@@ -65,7 +65,7 @@ static inline int compileAndRun(char* filename)
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable);
 	anotherVM->pts=codegen.pts;
 	anotherVM->libNum=codegen.loadedLibStack->top;
-	anotherVM->libs=(FklVMlib*)malloc(sizeof(FklVMlib)*loadedLibStack->top);
+	anotherVM->libs=(FklVMlib*)calloc((loadedLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 	FklVMframe* mainframe=anotherVM->frames;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
@@ -78,9 +78,9 @@ static inline int compileAndRun(char* filename)
 	FklVMgc* gc=anotherVM->gc;
 	while(!fklIsPtrStackEmpty(loadedLibStack))
 	{
+		FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
 		FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 		FklCodegenLibType type=cur->type;
-		FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
 		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
 			fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
@@ -215,6 +215,8 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable);
 	anotherVM->pts=codegen->pts;
+	anotherVM->libs=(FklVMlib*)calloc(1,sizeof(FklVMlib));
+	FKL_ASSERT(anotherVM->libs);
 
 	fklInitFrameToReplFrame(anotherVM,codegen,builtInHeadSymbolTable);
 
@@ -233,10 +235,10 @@ static void loadLib(FILE* fp
 {
 	fread(plibNum,sizeof(uint64_t),1,fp);
 	size_t libNum=*plibNum;
-	FklVMlib* libs=(FklVMlib*)malloc(sizeof(FklVMlib)*libNum);
+	FklVMlib* libs=(FklVMlib*)calloc((libNum+1),sizeof(FklVMlib));
 	FKL_ASSERT(libs);
 	*plibs=libs;
-	for(size_t i=0;i<libNum;i++)
+	for(size_t i=1;i<=libNum;i++)
 	{
 		FklCodegenLibType libType=FKL_CODEGEN_LIB_SCRIPT;
 		fread(&libType,sizeof(char),1,fp);

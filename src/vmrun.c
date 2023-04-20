@@ -753,7 +753,7 @@ static inline void do_step_VM(FklVM* exe)
 
 static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
 {
-	for(size_t i=0;i<num;i++)
+	for(size_t i=1;i<=num;i++)
 		fklUninitVMlib(&libs[i]);
 }
 
@@ -1366,7 +1366,7 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 static void inline B_load_lib(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t libId=fklGetU32FromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMlib* plib=&exe->libs[libId-1];
+	FklVMlib* plib=&exe->libs[libId];
 	if(plib->imported)
 	{
 		exe->importingLib=plib;
@@ -1385,7 +1385,7 @@ static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
 static void inline B_load_dll(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t libId=fklGetU32FromByteCode(fklGetCompoundFrameCode(frame));
-	FklVMlib* plib=&exe->libs[libId-1];
+	FklVMlib* plib=&exe->libs[libId];
 	if(!plib->imported)
 	{
 		char* realpath=fklStringToCstr(plib->proc->u.str);
@@ -1524,7 +1524,7 @@ static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 static void inline B_export(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t libId=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(libId)));
-	FklVMlib* lib=&exe->libs[libId-1];
+	FklVMlib* lib=&exe->libs[libId];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	uint32_t count=lr->lcount;
 	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*count);
@@ -2906,7 +2906,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->symbolTable=table;
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
-	exe->libs=copy_vm_libs(libs,libNum);
+	exe->libs=copy_vm_libs(libs,libNum+1);
 	exe->frames=NULL;
 	exe->pts=prev->pts;
 	exe->lsize=0;

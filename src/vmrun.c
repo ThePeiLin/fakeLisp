@@ -372,6 +372,7 @@ static void B_vec_ref(BYTE_CODE_ARGS);
 static void B_str_ref(BYTE_CODE_ARGS);
 static void B_box(BYTE_CODE_ARGS);
 static void B_unbox(BYTE_CODE_ARGS);
+static void B_box0(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -469,6 +470,7 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_str_ref,
 	B_box,
 	B_unbox,
+	B_box0,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
@@ -691,7 +693,7 @@ inline void fklContinueDlproc(FklVMframe* frame
 }
 
 void fklCallInDlproc(FklVMvalue* proc
-		,size_t argNum
+		,uint32_t argNum
 		,FklVMvalue* arglist[]
 		,FklVMframe* frame
 		,FklVM* exe
@@ -702,8 +704,8 @@ void fklCallInDlproc(FklVMvalue* proc
 	FklVMstack* stack=exe->stack;
 	fklContinueDlproc(frame,kFunc,ctx,size);
 	fklNiSetBpWithTp(stack);
-	for(size_t i=argNum;i>0;i--)
-		fklPushVMvalue(arglist[i-1],stack);
+	for(int64_t i=argNum-1;i>=0;i--)
+		fklPushVMvalue(arglist[i],stack);
 	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
@@ -1176,7 +1178,7 @@ static void inline B_push_vector(FklVM* exe,FklVMframe* frame)
 	FKL_NI_BEGIN(exe);
 	uint64_t size=fklGetU64FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint64_t)));
 	FklVMvalue* vec=fklCreateVMvecV(size,NULL,exe);
-	for(size_t i=size;i>0;i--)
+	for(uint64_t i=size;i>0;i--)
 		fklSetRef(&vec->u.vec->base[i-1],fklNiGetArg(&ap,stack),exe->gc);
 	fklNiReturn(vec
 			,&ap
@@ -2109,6 +2111,11 @@ static inline void B_box(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* obj=fklNiGetArg(&ap,stack);
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BOX,obj,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
+}
+
+static inline void B_box0(FklVM* exe,FklVMframe* frame)
+{
+	fklCreateVMvalueToStack(FKL_TYPE_BOX,FKL_VM_NIL,exe);
 }
 
 static inline void B_unbox(FklVM* exe,FklVMframe* frame)

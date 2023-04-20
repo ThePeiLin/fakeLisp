@@ -39,6 +39,11 @@
 	if(!c||!b||!a)\
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 
+#define DECL_AND_SET_DEFAULT(a,v) \
+	FklVMvalue* a=fklNiGetArg(&ap,stack);\
+	if(!a)\
+		a=v;
+
 typedef struct
 {
 	FklVMvalue* sysIn;
@@ -4166,9 +4171,7 @@ static void builtin_box(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.box";
 	FKL_NI_BEGIN(exe);
-	FklVMvalue* obj=fklNiGetArg(&ap,stack);
-	if(!obj)
-		obj=FKL_VM_NIL;
+	DECL_AND_SET_DEFAULT(obj,FKL_VM_NIL);
 	FKL_NI_CHECK_REST_ARG(&ap,stack,Pname,exe);
 	fklNiReturn(fklCreateVMvalueToStack(FKL_TYPE_BOX,obj,exe),&ap,stack);
 	fklNiEnd(&ap,stack);
@@ -4736,6 +4739,11 @@ static inline FklByteCodelnt* inl_0_arg_func(FklOpcode opc,FklSid_t fid,uint64_t
 	return r;
 }
 
+static FklByteCodelnt* inlfunc_box0(INL_FUNC_ARGS)
+{
+	return inl_0_arg_func(FKL_OP_BOX0,fid,line);
+}
+
 static inline FklByteCodelnt* inlfunc_add0(INL_FUNC_ARGS)
 {
 	return inl_0_arg_func(FKL_OP_PUSH_0,fid,line);
@@ -5150,7 +5158,7 @@ static const struct SymbolFuncStruct
 
 	{"set-car!",              builtin_set_car,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"set-cdr!",              builtin_set_cdr,                 {NULL,         NULL,          NULL,          NULL,          }, },
-	{"box",                   builtin_box,                     {NULL,         inlfunc_box,   NULL,          NULL,          }, },
+	{"box",                   builtin_box,                     {inlfunc_box0, inlfunc_box,   NULL,          NULL,          }, },
 	{"unbox",                 builtin_unbox,                   {NULL,         inlfunc_unbox, NULL,          NULL,          }, },
 	{"set-box!",              builtin_set_box,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"cas-box!",              builtin_cas_box,                 {NULL,         NULL,          NULL,          NULL,          }, },

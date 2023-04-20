@@ -691,7 +691,7 @@ void fklCallFuncK(FklVMFuncK funck,FklVM*,void* ctx);
 void fklContinueDlproc(FklVMframe*,FklVMFuncK,void*,size_t);
 
 void fklCallInDlproc(FklVMvalue*
-		,size_t argNum
+		,uint32_t argNum
 		,FklVMvalue*[]
 		,FklVMframe*
 		,FklVM*

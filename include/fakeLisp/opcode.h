@@ -98,6 +98,7 @@ typedef enum
 	FKL_OP_STR_REF,
 	FKL_OP_BOX,
 	FKL_OP_UNBOX,
+	FKL_OP_BOX0,
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

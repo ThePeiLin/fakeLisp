@@ -55,11 +55,30 @@ inline int fklIsVMnumber(const FklVMvalue* p)
 	return fklIsInt(p)||FKL_IS_F64(p);
 }
 
+static inline FklVMvalue* get_initial_fast_value(const FklVMvalue* pr)
+{
+	return FKL_IS_PAIR(pr)?pr->u.pair->cdr:FKL_VM_NIL;
+}
+
+static inline FklVMvalue* get_fast_value(const FklVMvalue* head)
+{
+	return (FKL_IS_PAIR(head)
+			&&FKL_IS_PAIR(head->u.pair->cdr)
+			&&FKL_IS_PAIR(head->u.pair->cdr->u.pair->cdr))
+		?head->u.pair->cdr->u.pair->cdr
+		:FKL_VM_NIL;
+}
+
 int fklIsList(const FklVMvalue* p)
 {
-	for(;p!=FKL_VM_NIL;p=p->u.pair->cdr)
-		if(!FKL_IS_PAIR(p))
+	FklVMvalue* fast=get_initial_fast_value(p);
+	for(;FKL_IS_PAIR(p)
+			;p=p->u.pair->cdr
+			,fast=get_fast_value(fast))
+		if(fast==p)
 			return 0;
+	if(p!=FKL_VM_NIL)
+		return 0;
 	return 1;
 }
 

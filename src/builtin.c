@@ -299,15 +299,8 @@ static void builtin_append(FKL_DL_PROC_ARGL)
 		for(;cur;cur=fklNiGetArg(&ap,stack))
 		{
 			FklVMvalue* pr=*prev;
-			for(FklVMvalue* head=get_initial_fast_value(pr)
-					;FKL_IS_PAIR(pr)
-					;pr=pr->u.pair->cdr
-					,head=get_fast_value(head))
-				if(head==pr)
-					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_CIR_REF,exe);
-			prev=copy_list(prev,exe);
-			for(;FKL_IS_PAIR(*prev);prev=&(*prev)->u.pair->cdr);
-			if(*prev==FKL_VM_NIL)
+			if(fklIsList(pr)
+					&&(prev=copy_list(prev,exe),*prev==FKL_VM_NIL))
 				*prev=cur;
 			else
 				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -2354,7 +2347,7 @@ static void builtin_length(FKL_DL_PROC_ARGL)
 	DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_NI_CHECK_REST_ARG(&ap,stack,Pname,exe);
 	size_t len=0;
-	if(obj==FKL_VM_NIL||FKL_IS_PAIR(obj))
+	if((obj==FKL_VM_NIL||FKL_IS_PAIR(obj))&&fklIsList(obj))
 		len=fklVMlistLength(obj);
 	else if(FKL_IS_STR(obj))
 		len=obj->u.str->size;

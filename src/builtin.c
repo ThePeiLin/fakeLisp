@@ -4054,8 +4054,7 @@ static void builtin_reverse(FKL_DL_PROC_ARGL)
 	FKL_NI_BEGIN(exe);
 	DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_NI_CHECK_REST_ARG(&ap,stack,Pname,exe);
-	if(!FKL_IS_PAIR(obj)&&obj!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_NI_CHECK_TYPE(obj,fklIsList,Pname,exe);
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(obj!=FKL_VM_NIL)
 	{

@@ -1507,9 +1507,9 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 	return ref;
 }
 
-FklVMvalue* fklGetTopValue(FklVMstack* stack)
+FklVMvalue* fklGetTopValue(FklVM* exe)
 {
-	return stack->base[stack->tp-1];
+	return exe->base[exe->tp-1];
 }
 
 size_t fklVMlistLength(FklVMvalue* v)

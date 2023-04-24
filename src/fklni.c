@@ -1,11 +1,11 @@
 #include<fakeLisp/fklni.h>
 
-static inline FklVMvalue* get_value(uint32_t* ap,FklVMstack* s)
+static inline FklVMvalue* get_value(uint32_t* ap,FklVM* s)
 {
 	return *ap>0?s->base[--(*ap)]:NULL;
 }
 
-int fklNiResBp(uint32_t* ap,FklVMstack* stack)
+int fklNiResBp(uint32_t* ap,FklVM* stack)
 {
 	if(*ap>stack->bp)
 		return *ap-stack->bp;
@@ -13,28 +13,22 @@ int fklNiResBp(uint32_t* ap,FklVMstack* stack)
 	return 0;
 }
 
-void inline fklNiSetBpWithTp(FklVMstack* s)
+void inline fklNiSetBpWithTp(FklVM* s)
 {
 	fklPushVMvalue(FKL_MAKE_VM_FIX(s->bp),s);
 	s->bp=s->tp;
 }
 
-uint32_t fklNiSetBp(uint32_t nbp,FklVMstack* s)
+uint32_t fklNiSetBp(uint32_t nbp,FklVM* s)
 {
 	fklNiReturn(FKL_MAKE_VM_FIX(s->bp),&nbp,s);
 	s->bp=nbp;
 	return nbp;
 }
 
-FklVMvalue** fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
+FklVMvalue** fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVM* s)
 {
-	if(s->tp>=s->size)
-	{
-		s->base=(FklVMvalue**)realloc(s->base
-				,sizeof(FklVMvalue*)*(s->size+64));
-		FKL_ASSERT(s->base);
-		s->size+=64;
-	}
+	fklAllocMoreStack(s);
 	FklVMvalue** r=&s->base[*ap];
 	if(*ap<s->tp)
 	{
@@ -49,18 +43,18 @@ FklVMvalue** fklNiReturn(FklVMvalue* v,uint32_t* ap,FklVMstack* s)
 	return r;
 }
 
-inline void fklNiBegin(uint32_t* ap,FklVMstack* s)
+inline void fklNiBegin(uint32_t* ap,FklVM* s)
 {
 	*ap=s->tp;
 }
 
-inline void fklNiEnd(uint32_t* ap,FklVMstack* s)
+inline void fklNiEnd(uint32_t* ap,FklVM* s)
 {
 	s->tp=*ap;
 	*ap=0;
 }
 
-FklVMvalue* fklNiGetArg(uint32_t*ap,FklVMstack* stack)
+FklVMvalue* fklNiGetArg(uint32_t*ap,FklVM* stack)
 {
 	if(*ap>stack->bp)
 		return stack->base[--(*ap)];

@@ -43,7 +43,6 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		,FklHashTable* lineHash
 		,FklVM* vm)
 {
-	FklVMstack* vmStack=vm->stack;
 	FklVMgc* gc=vm->gc;
 	FklPtrStack nodeStack=FKL_STACK_INIT;
 	fklInitPtrStack(&nodeStack,32,16);
@@ -110,7 +109,7 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 					break;
 			}
 			fklAddToGCNoGC(v,vm->gc);
-			fklPushVMvalue(v,vmStack);
+			fklPushVMvalue(v,vm);
 			fklDestroyPtrStack(cStack);
 			cStack=tStack;
 		}
@@ -131,22 +130,22 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 					fklPushPtrStack(FKL_MAKE_VM_SYM(root->u.sym),cStack);
 					break;
 				case FKL_NAST_F64:
-					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_F64,&root->u.f64,gc,vmStack),cStack);
+					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_F64,&root->u.f64,gc,vm),cStack);
 					break;
 				case FKL_NAST_STR:
 					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_STR
 								,fklCreateString(root->u.str->size,root->u.str->str)
 								,gc
-								,vmStack),cStack);
+								,vm),cStack);
 					break;
 				case FKL_NAST_BYTEVECTOR:
 					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_BYTEVECTOR
 								,fklCreateBytevector(root->u.bvec->size,root->u.bvec->ptr)
 								,gc
-								,vmStack),cStack);
+								,vm),cStack);
 					break;
 				case FKL_NAST_BIG_INT:
-					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(root->u.bigInt),gc,vmStack),cStack);
+					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(root->u.bigInt),gc,vm),cStack);
 					break;
 				case FKL_NAST_BOX:
 					{
@@ -761,11 +760,10 @@ FklVMvalue* fklCreateVMvalueToStack(FklValueType type
 		,void* pValue
 		,FklVM* vm)
 {
-	FklVMstack* stack=vm->stack;
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklPushVMvalue(r,stack);
+	fklPushVMvalue(r,vm);
 	fklAddToGC(r,vm);
-	return stack->base[stack->tp-1];
+	return r;
 }
 
 FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
@@ -832,10 +830,10 @@ FklVMvalue* fklCreateVMvalueNoGC(FklValueType type,void* pValue,FklVMgc* gc)
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType type,void* pValue,FklVMgc* gc,FklVMstack* s)
+FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType type,void* pValue,FklVMgc* gc,FklVM* vm)
 {
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklPushVMvalue(r,s);
+	fklPushVMvalue(r,vm);
 	fklAddToGCNoGC(r,gc);
 	return r;
 }

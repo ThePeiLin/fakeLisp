@@ -717,7 +717,7 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 	else
 	{
 		fklDestroyNastNode(r);
-		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
+		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM)
 				,curline,lineHash
 				,codegen->publicSymbolTable);
 	}

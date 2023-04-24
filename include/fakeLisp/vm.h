@@ -251,7 +251,8 @@ typedef struct
 
 typedef struct FklVMframe
 {
-	FklFrameType type;
+	uint32_t bp;
+	FklFrameType type:32;
 	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
 	struct FklVMframe* prev;
 	union
@@ -278,13 +279,13 @@ void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
 void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe);
 void fklDoFinalizeCompoundFrame(FklVMframe* frame,FklVM* exe);
 
-typedef struct
-{
-	uint32_t volatile tp;
-	uint32_t bp;
-	size_t size;
-	FklVMvalue** base;
-}FklVMstack;
+//typedef struct
+//{
+//	uint32_t volatile tp;
+//	uint32_t bp;
+//	size_t size;
+//	FklVMvalue** base;
+//}FklVMstack;
 
 typedef struct FklVMlib
 {
@@ -304,6 +305,9 @@ typedef enum
 	FKL_VM_SLEEPING,
 }FklVMstate;
 
+#define FKL_VM_STACK_INC_NUM (128)
+#define FKL_VM_STACK_INC_SIZE (sizeof(FklVMvalue*)*128)
+
 typedef struct FklVM
 {
 
@@ -311,7 +315,12 @@ typedef struct FklVM
 	uint32_t lsize;
 	FklVMvalue** locv;
 	//op stack
-	FklVMstack* stack;
+	
+	size_t size;
+	uint32_t last;
+	uint32_t tp;
+	uint32_t bp;
+	FklVMvalue** base;
 
 	//static stack frame,only for dlproc and callable obj;
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
@@ -420,9 +429,12 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 //FklVM* fklGetNextRunningVM(FklVMscheduler* sc);
 
 void fklDestroyVMvalue(FklVMvalue*);
-FklVMstack* fklCreateVMstack(uint32_t);
-void fklDestroyVMstack(FklVMstack*);
-void fklStackRecycle(FklVMstack*);
+void fklInitVMstack(FklVM*);
+void fklUninitVMstack(FklVM*);
+//FklVMstack* fklCreateVMstack(uint32_t);
+//void fklDestroyVMstack(FklVMstack*);
+void fklAllocMoreStack(FklVM*);
+void fklShrinkStack(FklVM*);
 int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
@@ -450,7 +462,7 @@ void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
 
 void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
-void fklDBG_printVMstack(FklVMstack*,FILE*,int,FklSymbolTable* table);
+void fklDBG_printVMstack(FklVM*,FILE*,int,FklSymbolTable* table);
 
 FklString* fklStringify(FklVMvalue*,FklSymbolTable*);
 void fklPrintVMvalue(FklVMvalue* value
@@ -477,7 +489,7 @@ FklHashTable* fklCreateValueSetHashtable(void);
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 
 FklHashTable* fklCreateLineNumHashTable(void);
-FklVMvalue* fklGetTopValue(FklVMstack* stack);
+FklVMvalue* fklGetTopValue(FklVM*);
 //FklVMvalue* fklGetValue(FklVMstack* stack,int32_t place);
 
 //FklVMstack* fklCopyStack(FklVMstack*);
@@ -558,7 +570,7 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVM*);
 FklVMvalue* fklCopyVMvalue(FklVMvalue*,FklVM*);
 FklVMvalue* fklCreateVMvalue(FklValueType,void*,FklVM*);
 FklVMvalue* fklCreateVMvalueNoGC(FklValueType,void*,FklVMgc*);
-FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType,void*,FklVMgc*,FklVMstack* s);
+FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType,void*,FklVMgc*,FklVM* s);
 FklVMvalue* fklCreateSaveVMvalue(FklValueType,void*);
 FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 		,FklHashTable* lineHash
@@ -574,10 +586,10 @@ void fklAddToGCNoGC(FklVMvalue*,FklVMgc*);
 FklVMvalue* fklCreateTrueValue(void);
 FklVMvalue* fklCreateNilValue(void);
 
-void fklDropTop(FklVMstack* s);
-FklVMvalue* fklGetTopValue(FklVMstack*);
-FklVMvalue* fklPopTopValue(FklVMstack*);
-FklVMvalue* fklGetValue(FklVMstack*,int32_t);
+void fklDropTop(FklVM* s);
+FklVMvalue* fklGetTopValue(FklVM*);
+FklVMvalue* fklPopTopValue(FklVM*);
+FklVMvalue* fklGetValue(FklVM*,uint32_t);
 FklVMvalue* fklGetVMpairCar(FklVMvalue*);
 FklVMvalue* fklGetVMpairCdr(FklVMvalue*);
 int fklVMvalueEqual(const FklVMvalue*,const FklVMvalue*);
@@ -684,7 +696,7 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile*
 int fklVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);
 
-void fklPushVMvalue(FklVMvalue* v,FklVMstack* s);
+void fklPushVMvalue(FklVMvalue* v,FklVM* s);
 
 void fklCallFuncK(FklVMFuncK funck,FklVM*,void* ctx);
 

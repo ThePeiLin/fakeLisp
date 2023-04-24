@@ -6772,7 +6772,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		{
 			uint64_t curline=r->curline;
 			fklDestroyNastNode(r);
-			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM->stack)
+			r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM)
 					,curline
 					,lineHash
 					,codegen->publicSymbolTable);
@@ -6926,13 +6926,12 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	{
 		exe->ltp=ctx->lcount;
 		ctx->state=READING;
-		FklVMstack* stack=exe->stack;
-		if(stack->tp!=0)
+		if(exe->tp!=0)
 		{
 			printf(";=>");
-			fklDBG_printVMstack(stack,stdout,0,exe->symbolTable);
+			fklDBG_printVMstack(exe,stdout,0,exe->symbolTable);
 		}
-		stack->tp=0;
+		exe->tp=0;
 
 		cc->matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
 		cc->j=0;
@@ -7147,8 +7146,8 @@ static inline NastCreatCtx* createNastCreatCtx(void)
 
 static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 {
-	exe->stack->tp=0;
-	exe->stack->bp=0;
+	exe->tp=0;
+	exe->bp=0;
 	fklPrintErrBacktrace(errValue,exe);
 	while(exe->frames->prev)
 	{

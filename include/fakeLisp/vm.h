@@ -251,8 +251,7 @@ typedef struct
 
 typedef struct FklVMframe
 {
-	uint32_t bp;
-	FklFrameType type:32;
+	FklFrameType type;
 	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
 	struct FklVMframe* prev;
 	union
@@ -312,7 +311,7 @@ typedef struct FklVM
 {
 
 	uint32_t ltp;
-	uint32_t lsize;
+	uint32_t llast;
 	FklVMvalue** locv;
 	//op stack
 	
@@ -503,11 +502,6 @@ void fklPrintErrBacktrace(FklVMvalue*,FklVM*);
 void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count);
 
 void fklInitMainVMframeWithProc(FklVM*
-		,FklVMframe* tmp
-		,FklVMproc* code
-		,FklVMframe* prev
-		,FklFuncPrototypes* pts);
-void fklInitMainVMframeWithProcForRepl(FklVM*
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev

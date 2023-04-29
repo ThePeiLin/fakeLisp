@@ -268,6 +268,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
 					break;
 				case FKL_OP_IMPORT:
+				case FKL_OP_CLOSE_REF:
 					{
 						uint32_t locIdx=fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
 						uint32_t libIdx=fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(locIdx));
@@ -365,12 +366,21 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 	return r;
 }
 
+static inline int64_t get_next(uint64_t i,uint8_t* code)
+{
+	if(code[i]==FKL_OP_JMP)
+		return fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t);
+	else if(code[i]==FKL_OP_CLOSE_REF)
+		return sizeof(char)+sizeof(uint32_t)+sizeof(uint32_t);
+	return 1;
+}
+
 static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 {
 	uint64_t size=bc->size;
 	uint8_t* code=bc->code;
-	for(uint64_t i=index;i<size;i+=(code[i]==FKL_OP_JMP)?fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t):1)
-		if(code[i]!=FKL_OP_JMP)
+	for(uint64_t i=index;i<size;i+=get_next(i,code))
+		if(code[i]!=FKL_OP_JMP&&code[i]!=FKL_OP_CLOSE_REF)
 			return 0;
 	return 1;
 }

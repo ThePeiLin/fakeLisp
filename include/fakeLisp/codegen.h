@@ -11,18 +11,27 @@
 extern "C" {
 #endif
 
+typedef struct FklCodegenEnvScope
+{
+	uint32_t p;
+	uint32_t start;
+	uint32_t end;
+	FklHashTable* defs;
+}FklCodegenEnvScope;
+
 typedef struct FklCodegenEnv
 {
 	FklPtrStack uref;
 
-	uint32_t* scopes;
+	uint8_t* occupiedFlags;
+	FklCodegenEnvScope* scopes;
+	uint32_t lcount;
 	uint32_t sc;
 	uint32_t pscope;
 
 	uint32_t prototypeId;
 
 	struct FklCodegenEnv* prev;
-	FklHashTable* defs;
 	FklHashTable* refs;
 	struct FklCodegenMacroScope* macros;
 	size_t refcount;

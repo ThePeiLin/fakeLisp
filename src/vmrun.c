@@ -41,13 +41,14 @@ static Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 
 /*procedure call functions*/
 
+#define FKL_VM_LOCV_INC_NUM (32)
 inline FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 {
 	uint32_t nltp=exe->ltp+count;
-	if(exe->lsize<nltp)
+	if(exe->llast<nltp)
 	{
-		exe->lsize=nltp+32;
-		FklVMvalue** locv=(FklVMvalue**)realloc(exe->locv,sizeof(FklVMvalue*)*exe->lsize);
+		exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
+		FklVMvalue** locv=(FklVMvalue**)realloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
 		FKL_ASSERT(locv);
 		if(exe->locv!=locv)
 			fklUpdateAllVarRef(exe->frames,locv);
@@ -64,10 +65,10 @@ inline FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 	if(count>exe->ltp)
 	{
 		uint32_t nltp=count;
-		if(exe->lsize<nltp)
+		if(exe->llast<nltp)
 		{
-			exe->lsize=nltp+32;
-			FklVMvalue** locv=(FklVMvalue**)realloc(exe->locv,sizeof(FklVMvalue*)*exe->lsize);
+			exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
+			FklVMvalue** locv=(FklVMvalue**)realloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
 			FKL_ASSERT(locv);
 			if(exe->locv!=locv)
 				fklUpdateAllVarRef(exe->frames,locv);
@@ -101,6 +102,15 @@ inline void fklSwapCompoundFrame(FklVMframe* a,FklVMframe* b)
 	}
 }
 
+static inline int64_t get_next_code(uint8_t* pc)
+{
+	if(*pc==FKL_OP_JMP)
+		return 1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t);
+	else if(*pc==FKL_OP_CLOSE_REF)
+		return 1+sizeof(uint32_t)+sizeof(uint32_t);
+	return 1;
+}
+
 static int is_last_expression(FklVMframe* frame)
 {
 	if(frame->type!=FKL_FRAME_COMPOUND)
@@ -111,8 +121,8 @@ static int is_last_expression(FklVMframe* frame)
 		uint8_t* end=fklGetCompoundFrameEnd(frame);
 
 		if(pc[-1]!=FKL_OP_TAIL_CALL)
-			for(;pc<end;pc+=(*pc==FKL_OP_JMP)?1+fklGetI64FromByteCode(pc+1)+sizeof(int64_t):1)
-				if(*pc!=FKL_OP_JMP)
+			for(;pc<end;pc+=get_next_code(pc))
+				if(*pc!=FKL_OP_JMP&&*pc!=FKL_OP_CLOSE_REF)
 					return 0;
 		frame->u.c.tail=1;
 	}
@@ -373,6 +383,11 @@ static void B_str_ref(BYTE_CODE_ARGS);
 static void B_box(BYTE_CODE_ARGS);
 static void B_unbox(BYTE_CODE_ARGS);
 static void B_box0(BYTE_CODE_ARGS);
+
+static void B_close_ref(BYTE_CODE_ARGS);
+
+// static void B_set_loc(BYTE_CODE_ARGS);
+// static void B_pop_set_arg(BYTE_CODE_ARGS);
 #undef BYTE_CODE_ARGS
 
 static void (*ByteCodes[])(FklVM*,FklVMframe*)=
@@ -471,6 +486,8 @@ static void (*ByteCodes[])(FklVM*,FklVMframe*)=
 	B_box,
 	B_unbox,
 	B_box0,
+
+	B_close_ref,
 };
 
 inline static void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
@@ -514,7 +531,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->pts=NULL;
 	exe->locv=NULL;
 	exe->ltp=0;
-	exe->lsize=0;
+	exe->llast=0;
 	exe->prev=exe;
 	exe->next=exe;
 	return exe;
@@ -1042,7 +1059,7 @@ static void inline B_drop(FklVM* exe,FklVMframe* frame)
 	fklDropTop(exe);
 }
 
-static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx,FklVM* exe)
+static inline FklVMvalue* volatile* get_compound_frame_loc(FklVMframe* frame,uint32_t idx)
 {
 	FklVMvalue** loc=frame->u.c.lr.loc;
 	return &loc[idx];
@@ -1055,10 +1072,29 @@ static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	FklVMvalue* v=fklNiGetArg(&ap,exe);
-	*get_compound_frame_loc(frame,idx,exe)=v;
+	*get_compound_frame_loc(frame,idx)=v;
 	fklNiEnd(&ap,exe);
 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
+
+// static void inline B_pop_set_arg(FklVM* exe,FklVMframe* frame)
+// {
+// 	FKL_NI_BEGIN(exe);
+// 	if(ap<=exe->bp)
+// 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
+// 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
+// 	FklVMvalue* v=fklNiGetArg(&ap,exe);
+// 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
+// 	FklVMvarRef* ref;
+// 	if(lr->lref&&(ref=lr->lref[idx]))
+// 	{
+// 		close_var_ref(ref);
+// 		lr->lref[idx]=NULL;
+// 	}
+// 	lr->loc[idx]=v;
+// 	fklNiEnd(&ap,exe);
+// 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
+// }
 
 static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 {
@@ -1068,7 +1104,7 @@ static void inline B_pop_rest_arg(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* volatile* pValue=&obj;
 	for(;ap>exe->bp;pValue=&(*pValue)->u.pair->cdr)
 		*pValue=fklCreateVMpairV(fklNiGetArg(&ap,exe),FKL_VM_NIL,exe);
-	*get_compound_frame_loc(frame,idx,exe)=obj;
+	*get_compound_frame_loc(frame,idx)=obj;
 	fklNiEnd(&ap,exe);
 }
 
@@ -1338,7 +1374,7 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 	uint32_t count=plib->count;
 	FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
 	if(v)
-		*get_compound_frame_loc(frame,locIdx,exe)=v;
+		*get_compound_frame_loc(frame,locIdx)=v;
 	else
 	{
 		fklAddCompoundFrameCp(frame,-sizeof(uint64_t));
@@ -1450,11 +1486,26 @@ static void inline B_get_loc(FklVM* exe,FklVMframe* frame)
 	fklPushVMvalue(get_loc(frame,idx),exe);
 }
 
+// static void inline B_set_loc(FklVM* exe,FklVMframe* frame)
+// {
+// 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
+// 	FklVMvalue* v=fklGetTopValue(exe);
+// 	FklVMCompoundFrameVarRef* lr=&frame->u.c.lr;
+// 	FklVMvarRef* ref;
+// 	if(lr->lref&&(ref=lr->lref[idx]))
+// 	{
+// 		close_var_ref(ref);
+// 		lr->lref[idx]=NULL;
+// 	}
+// 	lr->loc[idx]=v;
+// 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
+// }
+
 static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	FklVMvalue* v=fklGetTopValue(exe);
-	*get_compound_frame_loc(frame,idx,exe)=v;
+	*get_compound_frame_loc(frame,idx)=v;
 	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
@@ -2539,6 +2590,30 @@ static inline void B_idiv3(FklVM* exe,FklVMframe* frame)
 #undef PROCESS_MUL_RES
 #undef PROCESS_SUB_RES
 
+static inline void close_var_ref_between(FklVMCompoundFrameVarRef* lr,uint32_t sIdx,uint32_t eIdx)
+{
+	FklVMvarRef** lref=lr->lref;
+	FklVMvalue** loc=lr->loc;
+	if(lref)
+		for(;sIdx<eIdx;sIdx++)
+		{
+			FklVMvarRef* ref=lref[sIdx];
+			if(ref)
+			{
+				close_var_ref(ref);
+				lref[sIdx]=NULL;
+				loc[sIdx]=NULL;
+			}
+		}
+}
+
+static inline void B_close_ref(FklVM* exe,FklVMframe* frame)
+{
+	uint32_t sIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sIdx)));
+	uint32_t eIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(eIdx)));
+	close_var_ref_between(fklGetCompoundFrameLocRef(frame),sIdx,eIdx);
+}
+
 // FklVMstack* fklCreateVMstack(uint32_t size)
 // {
 // 	FklVMstack* tmp=(FklVMstack*)malloc(sizeof(FklVMstack));
@@ -2922,7 +2997,7 @@ FklVM* fklCreateThreadVM(FklVMgc* gc
 	exe->libs=copy_vm_libs(libs,libNum+1);
 	exe->frames=NULL;
 	exe->pts=prev->pts;
-	exe->lsize=0;
+	exe->llast=0;
 	exe->ltp=0;
 	exe->locv=NULL;
 	exe->state=FKL_VM_READY;

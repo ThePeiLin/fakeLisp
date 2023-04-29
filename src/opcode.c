@@ -100,6 +100,12 @@ static struct
 	{"box",                  0,  },
 	{"unbox",                0,  },
 	{"box0",                 0,  },
+
+	//{"close-put-loc",        4,  },
+	//{"close-pop-arg",        4,  },
+	//{"close-import",         8,  },
+
+	{"close-ref",            8,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

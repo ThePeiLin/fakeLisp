@@ -68,10 +68,10 @@ typedef struct FklHashTable
 	FklHashTableNode** base;
 	FklHashTableNodeList* list;
 	FklHashTableNodeList** tail;
+	const struct FklHashTableMetaTable* t;
 	uint32_t num;
 	uint32_t size;
 	uint32_t mask;
-	const struct FklHashTableMetaTable* t;
 }FklHashTable;
 
 typedef struct FklHashTableMetaTable

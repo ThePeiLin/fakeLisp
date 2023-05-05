@@ -2590,10 +2590,8 @@ static inline void B_idiv3(FklVM* exe,FklVMframe* frame)
 #undef PROCESS_MUL_RES
 #undef PROCESS_SUB_RES
 
-static inline void close_var_ref_between(FklVMCompoundFrameVarRef* lr,uint32_t sIdx,uint32_t eIdx)
+static inline void close_var_ref_between(FklVMvarRef** lref,uint32_t sIdx,uint32_t eIdx)
 {
-	FklVMvarRef** lref=lr->lref;
-	FklVMvalue** loc=lr->loc;
 	if(lref)
 		for(;sIdx<eIdx;sIdx++)
 		{
@@ -2602,7 +2600,6 @@ static inline void close_var_ref_between(FklVMCompoundFrameVarRef* lr,uint32_t s
 			{
 				close_var_ref(ref);
 				lref[sIdx]=NULL;
-				loc[sIdx]=NULL;
 			}
 		}
 }
@@ -2611,7 +2608,7 @@ static inline void B_close_ref(FklVM* exe,FklVMframe* frame)
 {
 	uint32_t sIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(sIdx)));
 	uint32_t eIdx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(eIdx)));
-	close_var_ref_between(fklGetCompoundFrameLocRef(frame),sIdx,eIdx);
+	close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,sIdx,eIdx);
 }
 
 // FklVMstack* fklCreateVMstack(uint32_t size)

@@ -555,6 +555,7 @@ static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
 	newScope->end=0;
 	if(p)
 		newScope->start=scopes[p-1].defs->num+scopes[p-1].start;
+	newScope->empty=newScope->start;
 	return r;
 }
 
@@ -573,7 +574,7 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
 		if(def)
 		{
-			env->occupiedFlags[def->idx]=1;
+			env->slotFlags[def->idx]=FKL_CODEGEN_ENV_SLOT_REF;
 			ref->cidx=def->idx;
 			ref->isLocal=1;
 			free(uref);
@@ -603,11 +604,16 @@ static inline int has_var_be_ref(uint8_t* flags
 	process_unresolve_ref(env,cp);
 	int r=0;
 	uint32_t end=sc->start+sc->end;
-	for(uint32_t i=sc->start;i<end;i++)
+	uint32_t i=sc->start;
+	for(;i<end;i++)
 	{
-		r=flags[i];
+		r=flags[i]==FKL_CODEGEN_ENV_SLOT_REF;
 		flags[i]=0;
+		if(r)
+			break;
 	}
+	for(;i<end;i++)
+		flags[i]=0;
 	return r;
 }
 
@@ -633,7 +639,7 @@ static inline void close_ref_to_local_scope(FklByteCodelnt* retval
 		,uint64_t line)
 {
 	FklCodegenEnvScope* cur=&env->scopes[scope-1];
-	if(has_var_be_ref(env->occupiedFlags,cur,env,codegen->pts))
+	if(has_var_be_ref(env->slotFlags,cur,env,codegen->pts))
 		append_close_ref(retval,cur,fid,line);
 }
 
@@ -2147,7 +2153,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev
 	r->prev=prev;
 	r->refcount=0;
 	r->lcount=0;
-	r->occupiedFlags=NULL;
+	r->slotFlags=NULL;
 	// r->defs=fklCreateHashTable(&CodegenEnvHashMethodTable);
 	r->refs=fklCreateHashTable(&CodegenEnvHashMethodTable);
 	fklInitPtrStack(&r->uref,8,8);
@@ -2171,7 +2177,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			for(uint32_t i=0;i<sc;i++)
 				fklDestroyHashTable(scopes[i].defs);
 			free(scopes);
-			free(cur->occupiedFlags);
+			free(cur->slotFlags);
 			fklDestroyHashTable(cur->refs);
 			FklPtrStack* unref=&cur->uref;
 			while(!fklIsPtrStackEmpty(unref))
@@ -2278,7 +2284,7 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 				FklSymbolDef* cel=add_ref_per_penv(id,env,targetEnv);
 				cel->isLocal=1;
 				cel->cidx=targetDef->idx;
-				targetEnv->occupiedFlags[targetDef->idx]=1;
+				targetEnv->slotFlags[targetDef->idx]=FKL_CODEGEN_ENV_SLOT_REF;
 			}
 			else
 			{
@@ -2340,6 +2346,12 @@ static inline int has_resolvable_ref(FklSid_t id,uint32_t scope,FklCodegenEnv* e
 	return 0;
 }
 
+static inline uint32_t get_next_empty(uint32_t empty,uint8_t* flags,uint32_t lcount)
+{
+	for(;empty<lcount&&flags[empty];empty++);
+	return empty;
+}
+
 uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* env)
 {
 	FklCodegenEnvScope* scope=&env->scopes[scopeId-1];
@@ -2348,26 +2360,27 @@ uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* env)
 	FklSymbolDef* el=fklGetHashItem(&key,ht);
 	if(!el)
 	{
-		uint32_t idx=scope->end+scope->start;
+		uint32_t idx=scope->empty;
 		el=fklPutHashItem(&key,ht);
+		if(idx<env->lcount&&has_resolvable_ref(id,scopeId,env))
+			idx=env->lcount;
+		else
+			scope->empty=get_next_empty(scope->empty+1,env->slotFlags,env->lcount);
 		el->idx=idx;
-		scope->end++;
-		if(has_resolvable_ref(id,scopeId,env)&&idx<env->lcount&&env->occupiedFlags[idx])
-		{
-			el->idx++;
-			scope->end++;
-		}
+		uint32_t end=(idx+1)-scope->start;
+		if(scope->end<end)
+			scope->end=end;
 		if(idx>=env->lcount)
 		{
 			env->lcount=idx+1;
-			uint8_t* occupiedFlags=(uint8_t*)realloc(env->occupiedFlags,sizeof(uint8_t)*env->lcount);
-			FKL_ASSERT(occupiedFlags);
-			occupiedFlags[env->lcount-1]=0;
-			env->occupiedFlags=occupiedFlags;
+			uint8_t* slotFlags=(uint8_t*)realloc(env->slotFlags,sizeof(uint8_t)*env->lcount);
+			FKL_ASSERT(slotFlags);
+			env->slotFlags=slotFlags;
 		}
+		env->slotFlags[idx]=FKL_CODEGEN_ENV_SLOT_OCC;
+		// env->occupiedFlags[el->idx]=1;
 	}
 	// *flag=env->occupiedFlags[el->idx];
-	// env->occupiedFlags[el->idx]=1;
 	return el->idx;
 }
 
@@ -6001,8 +6014,8 @@ typedef enum
 	PATTERN_IMPORT_EXCEPT,
 	PATTERN_IMPORT,
 	PATTERN_IMPORT_NONE,
-	PATTERN_DEFMACRO,
 	PATTERN_MACROEXPAND,
+	PATTERN_DEFMACRO,
 	PATTERN_EXPORT_SINGLE,
 	PATTERN_EXPORT,
 }PatternEnum;
@@ -6057,8 +6070,8 @@ static struct PatternAndFunc
 	{"~(import (except ~name,~rest),~args)",                   NULL, codegen_import_except, },
 	{"~(import ~name,~args)",                                  NULL, codegen_import,        },
 	{"~(import)",                                              NULL, codegen_import_none,   },
-	{"~(defmacro ~name ~value)",                               NULL, codegen_defmacro,      },
 	{"~(macroexpand ~value)",                                  NULL, codegen_macroexpand,   },
+	{"~(defmacro ~name ~value)",                               NULL, codegen_defmacro,      },
 	{"~(export ~value)",                                       NULL, codegen_export_single, },
 	{"~(export,~rest)",                                        NULL, codegen_export,        },
 	{NULL,                                                     NULL, NULL,                  },

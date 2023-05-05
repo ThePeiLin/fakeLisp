@@ -15,15 +15,18 @@ typedef struct FklCodegenEnvScope
 {
 	uint32_t p;
 	uint32_t start;
+	uint32_t empty;
 	uint32_t end;
 	FklHashTable* defs;
 }FklCodegenEnvScope;
 
+#define FKL_CODEGEN_ENV_SLOT_OCC (1)
+#define FKL_CODEGEN_ENV_SLOT_REF (2)
 typedef struct FklCodegenEnv
 {
 	FklPtrStack uref;
 
-	uint8_t* occupiedFlags;
+	uint8_t* slotFlags;
 	FklCodegenEnvScope* scopes;
 	uint32_t lcount;
 	uint32_t sc;

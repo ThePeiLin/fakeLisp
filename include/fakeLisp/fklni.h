@@ -16,8 +16,8 @@ int fklNiResBp(uint32_t* ap,FklVM*);
 //void fklNiPopTp(FklVMstack*);
 void fklNiEnd(uint32_t* ap,FklVM*);
 void fklNiBegin(uint32_t* ap,FklVM*);
-void fklNiDoSomeAfterSetLoc(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
-void fklNiDoSomeAfterSetRef(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
+// void fklNiDoSomeAfterSetLoc(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
+// void fklNiDoSomeAfterSetRef(FklVMvalue*,uint32_t idx,FklVMframe* f,FklVM* exe);
 #define FKL_NI_BEGIN(EXE) uint32_t ap=0;\
 fklNiBegin(&ap,(EXE));
 #define FKL_NI_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)

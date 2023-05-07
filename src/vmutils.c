@@ -130,7 +130,7 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum
 	t->num=errTypeNum;
 	t->proc.spc=spc;
 	t->proc.end=spc+cpc;
-	t->proc.sid=0;
+	// t->proc.sid=0;
 	return t;
 }
 
@@ -297,7 +297,7 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;
-		f->sid=code->sid;
+		// f->sid=code->sid;
 		FklVMCompoundFrameVarRef* lr=&f->lr;
 		code->closure=lr->ref;
 		code->count=lr->rcount;
@@ -407,7 +407,7 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;
-		f->sid=code->sid;
+		// f->sid=code->sid;
 		f->proc=proc;
 	}
 	return tmp;
@@ -665,190 +665,218 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 	fklUninitPtrStack(&beAccessed);
 }
 
+#define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklSymbolTable* table
+static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS)
+{
+	fprintf(fp,"%lf",v->u.f64);
+}
+
+static void vmvalue_big_int_printer(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintBigInt(v->u.bigInt,fp);
+}
+
+static void vmvalue_string_princ(VMVALUE_PRINTER_ARGS)
+{
+	fwrite(v->u.str->str,v->u.str->size,1,fp);
+}
+
+static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintRawBytevector(v->u.bvec,fp);
+}
+
+static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS)
+{
+	fklPrincVMudata(v->u.ud,fp,table);
+}
+
+static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
+{
+	// if(v->u.proc->sid)
+	// {
+	// 	fprintf(fp,"#<proc ");
+	// 	fklPrintString(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
+	// 	fputc('>',fp);
+	// }
+	// else
+	fprintf(fp,"#<proc %p>",v->u.proc);
+
+}
+
+static void vmvalue_chanl_printer(VMVALUE_PRINTER_ARGS)
+{
+	fprintf(fp,"#<chanl %p>",v->u.chan);
+}
+
+static void vmvalue_fp_printer(VMVALUE_PRINTER_ARGS)
+{
+	if(v->u.fp->fp==stdin)
+		fputs("#<fp stdin>",fp);
+	else if(v->u.fp->fp==stdout)
+		fputs("#<fp stdout>",fp);
+	else if(v->u.fp->fp==stderr)
+		fputs("#<fp stderr>",fp);
+	else
+		fprintf(fp,"#<fp %p>",v->u.fp);
+}
+
+static void vmvalue_dll_printer(VMVALUE_PRINTER_ARGS)
+{
+	fprintf(fp,"#<dll %p>",v->u.dll);
+}
+
+static void vmvalue_dlproc_printer(VMVALUE_PRINTER_ARGS)
+{
+	if(v->u.dlproc->sid)
+	{
+		fprintf(fp,"#<dlproc ");
+		fklPrintRawSymbol(fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol,fp);
+		fputc('>',fp);
+	}
+	else
+		fprintf(fp,"#<dlproc %p>",v->u.dlproc);
+}
+
+static void vmvalue_error_princ(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintString(v->u.err->message,fp);
+}
+
+static void vmvalue_code_obj_printer(VMVALUE_PRINTER_ARGS)
+{
+	fprintf(fp,"#<code-obj %p>",v->u.code);
+}
+
+static void (*VMvaluePtrPrincTable[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
+{
+	vmvalue_f64_printer,
+	vmvalue_big_int_printer,
+	vmvalue_string_princ,
+	NULL,
+	NULL,
+	NULL,
+	vmvalue_bytevector_printer,
+	vmvalue_userdata_princ,
+	vmvalue_proc_printer,
+	vmvalue_chanl_printer,
+	vmvalue_fp_printer,
+	vmvalue_dll_printer,
+	vmvalue_dlproc_printer,
+	vmvalue_error_princ,
+	NULL,
+	vmvalue_code_obj_printer,
+};
+
+static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS)
+{
+	VMvaluePtrPrincTable[v->type](v,fp,table);
+}
+
+static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS)
+{
+	fputs("()",fp);
+}
+
+static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS)
+{
+	fprintf(fp,"%ld",FKL_GET_FIX(v));
+}
+
+static void vmvalue_sym_ptr_princ(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintString(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol,fp);
+}
+
+static void vmvalue_chr_ptr_princ(VMVALUE_PRINTER_ARGS)
+{
+	putc(FKL_GET_CHR(v),fp);
+}
+
+static void (*VMvaluePrincTable[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS)=
+{
+	vmvalue_ptr_ptr_princ,
+	vmvalue_nil_ptr_print,
+	vmvalue_fix_ptr_print,
+	vmvalue_sym_ptr_princ,
+	vmvalue_chr_ptr_princ,
+};
+
 static void princVMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 {
-	FklVMptrTag tag=FKL_GET_TAG(v);
-	switch(tag)
-	{
-		case FKL_TAG_NIL:
-			fprintf(fp,"()");
-			break;
-		case FKL_TAG_FIX:
-			fprintf(fp,"%ld",FKL_GET_FIX(v));
-			break;
-		case FKL_TAG_CHR:
-			putc(FKL_GET_CHR(v),fp);
-			break;
-		case FKL_TAG_SYM:
-			fklPrintString(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol,fp);
-			break;
-		case FKL_TAG_PTR:
-			{
-				switch(v->type)
-				{
-					case FKL_TYPE_F64:
-						fprintf(fp,"%lf",v->u.f64);
-						break;
-					case FKL_TYPE_STR:
-						fwrite(v->u.str->str,v->u.str->size,1,fp);
-						break;
-					case FKL_TYPE_BYTEVECTOR:
-						fklPrintRawBytevector(v->u.bvec,fp);
-						break;
-					case FKL_TYPE_PROC:
-						if(v->u.proc->sid)
-						{
-							fprintf(fp,"#<proc ");
-							fklPrintString(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
-							fputc('>',fp);
-						}
-						else
-							fprintf(fp,"#<proc>");
-						break;
-					case FKL_TYPE_CHAN:
-						fputs("#<chanl>",fp);
-						break;
-					case FKL_TYPE_FP:
-						if(v->u.fp->fp==stdin)
-							fputs("#<fp stdin>",fp);
-						else if(v->u.fp->fp==stdout)
-							fputs("#<fp stdout>",fp);
-						else if(v->u.fp->fp==stderr)
-							fputs("#<fp stderr>",fp);
-						else
-							fputs("#<fp>",fp);
-						break;
-					case FKL_TYPE_DLL:
-						fprintf(fp,"#<dll>");
-						break;
-					case FKL_TYPE_DLPROC:
-						if(v->u.dlproc->sid)
-						{
-							fprintf(fp,"#<dlproc ");
-							fklPrintString(fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol,fp);
-							fputc('>',fp);
-						}
-						else
-							fprintf(fp,"#<dlproc>");
-						break;
-					case FKL_TYPE_ERR:
-						fklPrintString(v->u.err->message,fp);
-						break;
-					case FKL_TYPE_BIG_INT:
-						fklPrintBigInt(v->u.bigInt,fp);
-						break;
-					case FKL_TYPE_CODE_OBJ:
-						fprintf(fp,"#<code-obj>");
-						break;
-					case FKL_TYPE_USERDATA:
-						fklPrincVMudata(v->u.ud,fp,table);
-						break;
-					default:
-						FKL_ASSERT(0);
-						break;
-				}
-			}
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
+	VMvaluePrincTable[(FklVMptrTag)FKL_GET_TAG(v)](v,fp,table);
 }
+
+static void vmvalue_sym_ptr_prin1(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintRawSymbol(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol,fp);
+}
+
+static void vmvalue_chr_ptr_prin1(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintRawChar(FKL_GET_CHR(v),fp);
+}
+
+static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS)
+{
+	fklPrintRawString(v->u.str,fp);
+}
+
+static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS)
+{
+	fklPrin1VMudata(v->u.ud,fp,table);
+}
+
+static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
+{
+	fprintf(fp,"#<err t:");
+	fklPrintRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol,fp);
+	fprintf(fp," w:");
+	fklPrintRawString(v->u.err->who,fp);
+	fprintf(fp," m:");
+	fklPrintRawString(v->u.err->message,fp);
+	fprintf(fp,">");
+}
+
+static void (*VMvaluePtrPrin1Table[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
+{
+	vmvalue_f64_printer,
+	vmvalue_big_int_printer,
+	vmvalue_string_prin1,
+	NULL,
+	NULL,
+	NULL,
+	vmvalue_bytevector_printer,
+	vmvalue_userdata_prin1,
+	vmvalue_proc_printer,
+	vmvalue_chanl_printer,
+	vmvalue_fp_printer,
+	vmvalue_dll_printer,
+	vmvalue_dlproc_printer,
+	vmvalue_error_prin1,
+	NULL,
+	vmvalue_code_obj_printer,
+};
+
+static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS)
+{
+	VMvaluePtrPrin1Table[v->type](v,fp,table);
+}
+
+static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS)=
+{
+	vmvalue_ptr_ptr_prin1,
+	vmvalue_nil_ptr_print,
+	vmvalue_fix_ptr_print,
+	vmvalue_sym_ptr_prin1,
+	vmvalue_chr_ptr_prin1,
+};
 
 static void prin1VMatom(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 {
-	FklVMptrTag tag=FKL_GET_TAG(v);
-	switch(tag)
-	{
-		case FKL_TAG_NIL:
-			fputs("()",fp);
-			break;
-		case FKL_TAG_FIX:
-			fprintf(fp,"%ld",FKL_GET_FIX(v));
-			break;
-		case FKL_TAG_CHR:
-			fklPrintRawChar(FKL_GET_CHR(v),fp);
-			break;
-		case FKL_TAG_SYM:
-			fklPrintRawSymbol(fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol,fp);
-			break;
-		case FKL_TAG_PTR:
-			{
-				switch(v->type)
-				{
-					case FKL_TYPE_F64:
-						fprintf(fp,"%lf",v->u.f64);
-						break;
-					case FKL_TYPE_STR:
-						fklPrintRawString(v->u.str,fp);
-						break;
-					case FKL_TYPE_BYTEVECTOR:
-						fklPrintRawBytevector(v->u.bvec,fp);
-						break;
-					case FKL_TYPE_PROC:
-						if(v->u.proc->sid)
-						{
-							fprintf(fp,"#<proc ");
-							fklPrintRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
-							fputc('>',fp);
-						}
-						else
-							fputs("#<proc>",fp);
-						break;
-					case FKL_TYPE_CHAN:
-						fputs("#<chanl>",fp);
-						break;
-					case FKL_TYPE_FP:
-						if(v->u.fp->fp==stdin)
-							fputs("#<fp stdin>",fp);
-						else if(v->u.fp->fp==stdout)
-							fputs("#<fp stdout>",fp);
-						else if(v->u.fp->fp==stderr)
-							fputs("#<fp stderr>",fp);
-						else
-							fputs("#<fp>",fp);
-						break;
-					case FKL_TYPE_DLL:
-						fputs("#<dll>",fp);
-						break;
-					case FKL_TYPE_DLPROC:
-						if(v->u.dlproc->sid){
-							fprintf(fp,"#<dlproc ");
-							fklPrintRawSymbol(fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol,fp);
-							fputc('>',fp);
-						}
-						else
-							fputs("#<dlproc>",fp);
-						break;
-					case FKL_TYPE_ERR:
-						fprintf(fp,"#<err t:");
-						fklPrintRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol,fp);
-						fprintf(fp," w:");
-						fklPrintRawString(v->u.err->who,fp);
-						fprintf(fp," m:");
-						fklPrintRawString(v->u.err->message,fp);
-						fprintf(fp,">");
-						break;
-					case FKL_TYPE_BIG_INT:
-						fklPrintBigInt(v->u.bigInt,fp);
-						break;
-					case FKL_TYPE_CODE_OBJ:
-						fprintf(fp,"#<code-obj>");
-						break;
-					case FKL_TYPE_USERDATA:
-						fklPrin1VMudata(v->u.ud,fp,table);
-						break;
-					default:
-						FKL_ASSERT(0);
-						break;
-				}
-			}
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
+	VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v,fp,table);
 }
+#undef VMVALUE_PRINTER_ARGS
 
 void fklPrin1VMvalue(FklVMvalue* value,FILE* fp,FklSymbolTable* table)
 {
@@ -1231,14 +1259,14 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 						print_bytevector_to_ut_string(result,v->u.bvec);
 						break;
 					case FKL_TYPE_PROC:
-						if(v->u.proc->sid)
-						{
-							utstring_printf(result,"#<proc ");
-							print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
-							utstring_printf(result,">");
-						}
-						else
-							utstring_printf(result,"#<proc>");
+						// if(v->u.proc->sid)
+						// {
+						// 	utstring_printf(result,"#<proc ");
+						// 	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
+						// 	utstring_printf(result,">");
+						// }
+						// else
+							utstring_printf(result,"#<proc %p>",v->u.proc);
 						break;
 					case FKL_TYPE_CHAN:
 						utstring_printf(result,"#<chanl>");
@@ -1260,7 +1288,7 @@ inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSy
 						if(v->u.dlproc->sid)
 						{
 							utstring_printf(result,"#<dlproc ");
-							print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
+							print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol);
 							utstring_printf(result,">");
 						}
 						else

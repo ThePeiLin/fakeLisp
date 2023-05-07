@@ -549,7 +549,7 @@ FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
 	FKL_ASSERT(tmp);
 	tmp->spc=bc->code;
 	tmp->end=bc->code+bc->size;
-	tmp->sid=0;
+	// tmp->sid=0;
 	tmp->closure=NULL;
 	tmp->count=0;
 	tmp->protoId=1;
@@ -567,7 +567,7 @@ FklVMproc* fklCreateVMproc(uint8_t* spc
 	FKL_ASSERT(tmp);
 	tmp->spc=spc;
 	tmp->end=spc+cpc;
-	tmp->sid=0;
+	// tmp->sid=0;
 	tmp->closure=NULL;
 	tmp->count=0;
 	tmp->protoId=protoId;
@@ -1876,10 +1876,10 @@ inline int fklUdHasLength(const FklVMudata* u)
 	return u->t->__length!=NULL;
 }
 
-inline int fklUdHasSetqHook(const FklVMudata* u)
-{
-	return u->t->__setq_hook!=NULL;
-}
+// inline int fklUdHasSetqHook(const FklVMudata* u)
+// {
+// 	return u->t->__setq_hook!=NULL;
+// }
 
 inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 {
@@ -1946,10 +1946,10 @@ inline void fklWriteVMudata(const FklVMudata* a,FILE* fp)
 	a->t->__write(a,fp);
 }
 
-inline void fklDoSomeAfterSetqVMudata(FklVMudata* a,uint32_t idx,FklVMframe* f,FklVM* exe)
-{
-	a->t->__setq_hook(a,idx,f,exe);
-}
+// inline void fklDoSomeAfterSetqVMudata(FklVMudata* a,uint32_t idx,FklVMframe* f,FklVM* exe)
+// {
+// 	a->t->__setq_hook(a,idx,f,exe);
+// }
 
 inline size_t fklHashvVMudata(const FklVMudata* a)
 {

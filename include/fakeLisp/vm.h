@@ -37,6 +37,8 @@ typedef enum
 	FKL_TYPE_CODE_OBJ,
 }FklValueType;
 
+#define FKL_VMVALUE_PTR_TYPE_NUM (FKL_TYPE_CODE_OBJ+1)
+
 typedef enum
 {
 	FKL_CC_OK=0,
@@ -55,6 +57,8 @@ typedef enum
 	FKL_TAG_SYM,
 	FKL_TAG_CHR,
 }FklVMptrTag;
+
+#define FKL_PTR_TAG_NUM (FKL_TAG_CHR+1)
 
 typedef struct FklVMdll
 {
@@ -165,7 +169,7 @@ typedef struct FklVMproc
 {
 	uint8_t* spc;
 	uint8_t* end;
-	FklSid_t sid;
+	// FklSid_t sid;
 	uint32_t protoId;
 	uint32_t lcount;
 	FklVMvarRef** closure;
@@ -364,7 +368,7 @@ typedef struct FklVMudMethodTable
 	void (*__append)(FklVMudata**,const FklVMudata*);
 	FklVMudata* (*__copy)(const FklVMudata*);
 	size_t (*__hash)(const FklVMudata*);
-	void (*__setq_hook)(FklVMudata*,uint32_t idx,FklVMframe* f,FklVM* exe);
+	// void (*__setq_hook)(FklVMudata*,uint32_t idx,FklVMframe* f,FklVM* exe);
 	FklString* (*__to_string)(const FklVMudata*);
 	FklBytevector* (*__to_bvec)(const FklVMudata*);
 }FklVMudMethodTable;
@@ -655,7 +659,7 @@ int fklIsCmpableUd(const FklVMudata*);
 int fklIsWritableUd(const FklVMudata*);
 int fklIsAbleToStringUd(const FklVMudata*);
 int fklUdHasLength(const FklVMudata*);
-int fklUdHasSetqHook(const FklVMudata*);
+// int fklUdHasSetqHook(const FklVMudata*);
 
 
 void fklPrincVMudata(const FklVMudata*,FILE*,FklSymbolTable*);
@@ -669,7 +673,7 @@ size_t fklLengthVMudata(const FklVMudata*);
 int fklAppendVMudata(FklVMudata**,const FklVMudata*);
 FklVMudata* fklCopyVMudata(const FklVMudata*);
 size_t fklHashvVMudata(const FklVMudata*);
-void fklDoSomeAfterSetqVMudata(FklVMudata*,uint32_t idx,FklVMframe* f,FklVM*);
+// void fklDoSomeAfterSetqVMudata(FklVMudata*,uint32_t idx,FklVMframe* f,FklVM*);
 FklString* fklUdToString(const FklVMudata*);
 FklBytevector* fklUdToBytevector(const FklVMudata*);
 

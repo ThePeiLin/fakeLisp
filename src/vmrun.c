@@ -1074,7 +1074,7 @@ static void inline B_pop_arg(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* v=fklNiGetArg(&ap,exe);
 	*get_compound_frame_loc(frame,idx)=v;
 	fklNiEnd(&ap,exe);
-	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
+	// fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
 // static void inline B_pop_set_arg(FklVM* exe,FklVMframe* frame)
@@ -1506,7 +1506,7 @@ static void inline B_put_loc(FklVM* exe,FklVMframe* frame)
 	uint32_t idx=fklGetU32FromByteCode(fklGetCompoundFrameCodeAndAdd(frame,sizeof(uint32_t)));
 	FklVMvalue* v=fklGetTopValue(exe);
 	*get_compound_frame_loc(frame,idx)=v;
-	fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
+	// fklNiDoSomeAfterSetLoc(v,idx,frame,exe);
 }
 
 inline static FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
@@ -1565,7 +1565,7 @@ static void inline B_put_var_ref(FklVM* exe,FklVMframe* frame)
 	}
 	FklVMvalue* v=fklGetTopValue(exe);
 	*pv=v;
-	fklNiDoSomeAfterSetRef(v,idx,frame,exe);
+	// fklNiDoSomeAfterSetRef(v,idx,frame,exe);
 }
 
 static void inline B_export(FklVM* exe,FklVMframe* frame)

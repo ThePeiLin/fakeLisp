@@ -1689,26 +1689,26 @@ static FklByteCodelnt* processArgsInStack(FklUintStack* stack
 	return retval;
 }
 
-static inline FklSymbolDef* psid_to_gsid_ht(FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
-{
-	FklCodegenEnvScope* scopes=env->scopes;
-	uint32_t sc=env->sc;
-	FklSymbolDef* loc=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*env->lcount);
-	FKL_ASSERT(loc||!env->lcount);
-	for(uint32_t i=0;i<sc;i++)
-	{
-		FklHashTable* sht=scopes[i].defs;
-		for(FklHashTableNodeList* list=sht->list;list;list=list->next)
-		{
-			FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
-			FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
-			uint32_t idx=sd->idx;
-			FklSymbolDef def={.k.id=sid,.k.scope=sd->k.scope,.idx=sd->idx,.cidx=sd->cidx,.isLocal=sd->isLocal};
-			loc[idx]=def;
-		}
-	}
-	return loc;
-}
+// static inline FklSymbolDef* psid_to_gsid_ht(FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+// {
+// 	FklCodegenEnvScope* scopes=env->scopes;
+// 	uint32_t sc=env->sc;
+// 	FklSymbolDef* loc=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*env->lcount);
+// 	FKL_ASSERT(loc||!env->lcount);
+// 	for(uint32_t i=0;i<sc;i++)
+// 	{
+// 		FklHashTable* sht=scopes[i].defs;
+// 		for(FklHashTableNodeList* list=sht->list;list;list=list->next)
+// 		{
+// 			FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
+// 			FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
+// 			uint32_t idx=sd->idx;
+// 			FklSymbolDef def={.k.id=sid,.k.scope=sd->k.scope,.idx=sd->idx,.cidx=sd->cidx,.isLocal=sd->isLocal};
+// 			loc[idx]=def;
+// 		}
+// 	}
+// 	return loc;
+// }
 
 static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
@@ -1732,7 +1732,7 @@ static inline void create_and_insert_to_pool(FklFuncPrototypes* cp,uint32_t p,Fk
 	cp->pts=pts;
 	FklFuncPrototype* cpt=&pts[cp->count];
 	env->prototypeId=cp->count;
-	cpt->loc=psid_to_gsid_ht(env,globalSymTable,publicSymbolTable);
+	// cpt->loc=psid_to_gsid_ht(env,globalSymTable,publicSymbolTable);
 	cpt->lcount=env->lcount;
 	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable);
 	cpt->rcount=env->refs->num;
@@ -2045,22 +2045,22 @@ static CODEGEN_FUNC(codegen_or)
 inline void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
 {
 	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
-	FklCodegenEnvScope* scopes=env->scopes;
-	size_t size=sizeof(FklSymbolDef)*env->lcount;
-	FklSymbolDef* loc=(FklSymbolDef*)realloc(pts->loc,size);
-	FKL_ASSERT(loc||!env->lcount);
-	memset(loc,0,size);
+	// FklCodegenEnvScope* scopes=env->scopes;
+	// size_t size=sizeof(FklSymbolDef)*env->lcount;
+	// FklSymbolDef* loc=(FklSymbolDef*)realloc(pts->loc,size);
+	// FKL_ASSERT(loc||!env->lcount);
+	// memset(loc,0,size);
 	FklHashTable* eht=NULL;
-	eht=scopes[0].defs;
-	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
-	{
-		FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
-		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
-		uint32_t idx=sd->idx;
-		FklSymbolDef def={.k.id=sid,.k.scope=sd->k.scope,.idx=sd->idx,.cidx=sd->cidx,.isLocal=sd->isLocal};
-		loc[idx]=def;
-	}
-	pts->loc=loc;
+	// eht=scopes[0].defs;
+	// for(FklHashTableNodeList* list=eht->list;list;list=list->next)
+	// {
+	// 	FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
+	// 	FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
+	// 	uint32_t idx=sd->idx;
+	// 	FklSymbolDef def={.k.id=sid,.k.scope=sd->k.scope,.idx=sd->idx,.cidx=sd->cidx,.isLocal=sd->isLocal};
+	// 	loc[idx]=def;
+	// }
+	// pts->loc=loc;
 	pts->lcount=env->lcount;
 	process_unresolve_ref(env,cp);
 	eht=env->refs;

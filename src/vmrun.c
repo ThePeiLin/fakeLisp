@@ -1385,12 +1385,12 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 			FklSid_t sid=pt->loc[libIdx].k.id;
 			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
 		}
-		else
-		{
-			FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(frame,exe);
-			FklSid_t sid=pt->loc[locIdx].k.id;
-			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
-		}
+		// else
+		// {
+		// 	FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(frame,exe);
+		// 	FklSid_t sid=pt->loc[locIdx].k.id;
+		// 	cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
+		// }
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
 	}
 }

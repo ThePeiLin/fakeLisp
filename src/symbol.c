@@ -208,7 +208,7 @@ void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
 
 static inline void init_as_empty_pt(FklFuncPrototype* pt)
 {
-	pt->loc=NULL;
+	// pt->loc=NULL;
 	pt->refs=NULL;
 	pt->lcount=0;
 	pt->rcount=0;
@@ -240,7 +240,7 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32
 void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
-	free(p->loc);
+	// free(p->loc);
 	p->rcount=0;
 }
 
@@ -269,12 +269,12 @@ static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
 static inline void write_prototype(const FklFuncPrototype* pt,FILE* fp)
 {
 	uint32_t count=pt->lcount;
-	FklSymbolDef* defs=pt->loc;
+	// FklSymbolDef* defs=pt->loc;
 	fwrite(&count,sizeof(count),1,fp);
-	for(uint32_t i=0;i<count;i++)
-		write_symbol_def(&defs[i],fp);
+	// for(uint32_t i=0;i<count;i++)
+	// 	write_symbol_def(&defs[i],fp);
 	count=pt->rcount;
-	defs=pt->refs;
+	 FklSymbolDef* defs=pt->refs;
 	fwrite(&count,sizeof(count),1,fp);
 	for(uint32_t i=0;i<count;i++)
 		write_symbol_def(&defs[i],fp);
@@ -303,14 +303,14 @@ static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
 	pt->lcount=count;
-	FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
-	FKL_ASSERT(defs||!count);
-	pt->loc=defs;
-	for(uint32_t i=0;i<count;i++)
-		load_symbol_def(&defs[i],fp);
+	// FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
+	// FKL_ASSERT(defs||!count);
+	// pt->loc=defs;
+	// for(uint32_t i=0;i<count;i++)
+	// 	load_symbol_def(&defs[i],fp);
 	fread(&count,sizeof(count),1,fp);
 	pt->rcount=count;
-	defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
+	FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
 	FKL_ASSERT(defs||!count);
 	pt->refs=defs;
 	for(uint32_t i=0;i<count;i++)

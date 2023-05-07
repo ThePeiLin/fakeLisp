@@ -1223,14 +1223,13 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 {
 	switch(cur->type)
 	{
+		case FKL_TYPE_F64:
+		case FKL_TYPE_BOX:
+			break;
 		case FKL_TYPE_STR:
-			free(cur->u.str);
-			break;
-		case FKL_TYPE_BYTEVECTOR:
-			free(cur->u.bvec);
-			break;
 		case FKL_TYPE_PAIR:
-			free(cur->u.pair);
+		case FKL_TYPE_BYTEVECTOR:
+			free(cur->u.str);
 			break;
 		case FKL_TYPE_PROC:
 			fklDestroyVMproc(cur->u.proc);
@@ -1255,9 +1254,6 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 			break;
 		case FKL_TYPE_USERDATA:
 			fklDestroyVMudata(cur->u.ud);
-			break;
-		case FKL_TYPE_F64:
-		case FKL_TYPE_BOX:
 			break;
 		case FKL_TYPE_HASHTABLE:
 			fklDestroyVMhashTable(cur->u.hash);

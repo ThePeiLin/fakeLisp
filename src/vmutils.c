@@ -1228,115 +1228,160 @@ inline static void print_big_int_to_ut_string(UT_string* s,FklBigInt* a)
 	}
 }
 
+#define VMVALUE_TO_UTSTRING_ARGS UT_string* result,FklVMvalue* v,FklSymbolTable* table
+
+static void nil_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"()");
+}
+
+static void fix_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"%ld",FKL_GET_FIX(v));
+}
+
+static void sym_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
+}
+
+static void chr_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	print_raw_char_to_utstring(result,FKL_GET_CHR(v));
+}
+
+static void vmvalue_f64_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"%lf",v->u.f64);
+}
+
+static void vmvalue_big_int_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	print_big_int_to_ut_string(result,v->u.bigInt);
+}
+
+static void vmvalue_string_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	print_raw_string_to_ut_string(result,v->u.str);
+}
+
+static void vmvalue_bytevector_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	print_bytevector_to_ut_string(result,v->u.bvec);
+}
+
+static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	if(fklIsAbleToStringUd(v->u.ud))
+	{
+		FklString* s=fklUdToString(v->u.ud);
+		utstring_bincpy(result,s->str,s->size);
+		free(s);
+	}
+	else
+	{
+		utstring_printf(result,"#<");
+		if(v->u.ud->type)
+		{
+			print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.ud->type,table)->symbol);
+			utstring_printf(result," ");
+		}
+		utstring_printf(result,"%p>",v->u.ud);
+	}
+}
+
+static void vmvalue_proc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"#<proc %p>",v->u.proc);
+}
+
+static void vmvalue_chanl_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"#<chanl %p>",v->u.chan);
+}
+
+static void vmvalue_fp_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	if(v->u.fp->fp==stdin)
+		utstring_printf(result,"#<fp stdin>");
+	else if(v->u.fp->fp==stdout)
+		utstring_printf(result,"#<fp stdout>");
+	else if(v->u.fp->fp==stderr)
+		utstring_printf(result,"#<fp stderr>");
+	else
+		utstring_printf(result,"#<fp %p>",v->u.fp);
+}
+
+static void vmvalue_dll_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"#<dll %p>",v->u.dll);
+}
+
+static void vmvalue_dlproc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	if(v->u.dlproc->sid)
+	{
+		utstring_printf(result,"#<dlproc ");
+		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol);
+		utstring_printf(result,">");
+	}
+	else
+		utstring_printf(result,"#<dlproc %p>",v->u.dlproc);
+}
+
+static void vmvalue_error_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"#<err t:");
+	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.err->type,table)->symbol);
+	utstring_printf(result,"w:");
+	print_raw_string_to_ut_string(result,v->u.err->who);
+	utstring_printf(result,"m:");
+	print_raw_string_to_ut_string(result,v->u.err->message);
+	utstring_printf(result,">");
+}
+
+static void vmvalue_code_obj_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	utstring_printf(result,"#<code-obj %p>",v->u.code);
+}
+
+static void (*atom_ptr_ptr_to_ut_string_printer_table[FKL_VMVALUE_PTR_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+{
+	vmvalue_f64_to_ut_string,
+	vmvalue_big_int_to_ut_string,
+	vmvalue_string_to_ut_string,
+	NULL,
+	NULL,
+	NULL,
+	vmvalue_bytevector_to_ut_string,
+	vmvalue_userdata_to_ut_string,
+	vmvalue_proc_to_ut_string,
+	vmvalue_chanl_to_ut_string,
+	vmvalue_fp_to_ut_string,
+	vmvalue_dll_to_ut_string,
+	vmvalue_dlproc_to_ut_string,
+	vmvalue_error_to_ut_string,
+	NULL,
+	vmvalue_code_obj_to_ut_string,
+};
+
+static void ptr_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	atom_ptr_ptr_to_ut_string_printer_table[v->type](result,v,table);
+}
+
+static void (*atom_ptr_to_ut_string_printer_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+{
+	ptr_ptr_to_ut_string,
+	nil_ptr_to_ut_string,
+	fix_ptr_to_ut_string,
+	sym_ptr_to_ut_string,
+	chr_ptr_to_ut_string,
+};
+
 inline static void print_atom_to_ut_string(UT_string* result,FklVMvalue* v,FklSymbolTable* table)
 {
-	FklVMptrTag tag=FKL_GET_TAG(v);
-	switch(tag)
-	{
-		case FKL_TAG_NIL:
-			utstring_printf(result,"()");
-			break;
-		case FKL_TAG_FIX:
-			utstring_printf(result,"%ld",FKL_GET_FIX(v));
-			break;
-		case FKL_TAG_CHR:
-			print_raw_char_to_utstring(result,FKL_GET_CHR(v));
-			break;
-		case FKL_TAG_SYM:
-			print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
-			break;
-		case FKL_TAG_PTR:
-			{
-				switch(v->type)
-				{
-					case FKL_TYPE_F64:
-						utstring_printf(result,"%lf",v->u.f64);
-						break;
-					case FKL_TYPE_STR:
-						print_raw_string_to_ut_string(result,v->u.str);
-						break;
-					case FKL_TYPE_BYTEVECTOR:
-						print_bytevector_to_ut_string(result,v->u.bvec);
-						break;
-					case FKL_TYPE_PROC:
-						// if(v->u.proc->sid)
-						// {
-						// 	utstring_printf(result,"#<proc ");
-						// 	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
-						// 	utstring_printf(result,">");
-						// }
-						// else
-							utstring_printf(result,"#<proc %p>",v->u.proc);
-						break;
-					case FKL_TYPE_CHAN:
-						utstring_printf(result,"#<chanl>");
-						break;
-					case FKL_TYPE_FP:
-						if(v->u.fp->fp==stdin)
-							utstring_printf(result,"#<fp stdin>");
-						else if(v->u.fp->fp==stdout)
-							utstring_printf(result,"#<fp stdout>");
-						else if(v->u.fp->fp==stderr)
-							utstring_printf(result,"#<fp stderr>");
-						else
-							utstring_printf(result,"#<fp>");
-						break;
-					case FKL_TYPE_DLL:
-						utstring_printf(result,"#<dll>");
-						break;
-					case FKL_TYPE_DLPROC:
-						if(v->u.dlproc->sid)
-						{
-							utstring_printf(result,"#<dlproc ");
-							print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol);
-							utstring_printf(result,">");
-						}
-						else
-							utstring_printf(result,"#<dlproc>");
-						break;
-					case FKL_TYPE_ERR:
-						utstring_printf(result,"#<err t:");
-						print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.err->type,table)->symbol);
-						utstring_printf(result,"w:");
-						print_raw_string_to_ut_string(result,v->u.err->who);
-						utstring_printf(result,"m:");
-						print_raw_string_to_ut_string(result,v->u.err->message);
-						utstring_printf(result,">");
-						break;
-					case FKL_TYPE_BIG_INT:
-						print_big_int_to_ut_string(result,v->u.bigInt);
-						break;
-					case FKL_TYPE_CODE_OBJ:
-						utstring_printf(result,"#<code-obj>");
-						break;
-					case FKL_TYPE_USERDATA:
-						if(fklIsAbleToStringUd(v->u.ud))
-						{
-							FklString* s=fklUdToString(v->u.ud);
-							utstring_bincpy(result,s->str,s->size);
-							free(s);
-						}
-						else
-						{
-							utstring_printf(result,"#<");
-							if(v->u.ud->type)
-							{
-								print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.ud->type,table)->symbol);
-								utstring_printf(result," ");
-							}
-							utstring_printf(result,"%p>",v->u.ud);
-						}
-						break;
-					default:
-						FKL_ASSERT(0);
-						break;
-				}
-			}
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
+	atom_ptr_to_ut_string_printer_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,table);
 }
 
 FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)

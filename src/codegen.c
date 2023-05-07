@@ -599,31 +599,43 @@ inline static void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 static inline int has_var_be_ref(uint8_t* flags
 		,FklCodegenEnvScope* sc
 		,FklCodegenEnv* env
-		,FklFuncPrototypes* cp)
+		,FklFuncPrototypes* cp
+		,uint32_t* start
+		,uint32_t* end)
 {
 	process_unresolve_ref(env,cp);
 	int r=0;
-	uint32_t end=sc->start+sc->end;
+	uint32_t last=sc->start+sc->end;
 	uint32_t i=sc->start;
-	for(;i<end;i++)
+	uint32_t s=i;
+	for(;i<last;i++)
 	{
 		r=flags[i]==FKL_CODEGEN_ENV_SLOT_REF;
 		flags[i]=0;
 		if(r)
+		{
+			s=i;
 			break;
+		}
 	}
-	for(;i<end;i++)
+	uint32_t e=i;
+	for(;i<last;i++)
+	{
+		if(flags[i]==FKL_CODEGEN_ENV_SLOT_REF)
+			e=i;
 		flags[i]=0;
+	}
+	*start=s;
+	*end=e+1;
 	return r;
 }
 
 static inline void append_close_ref(FklByteCodelnt* retval
-		,FklCodegenEnvScope* scope
+		,uint32_t s
+		,uint32_t e
 		,FklSid_t fid
 		,uint64_t line)
 {
-	uint32_t s=scope->start;
-	uint32_t e=scope->start+scope->end;
 	uint8_t c[9]={FKL_OP_CLOSE_REF,};
 	FklByteCode bc={9,c};
 	fklSetU32ToByteCode(&c[1],s);
@@ -639,8 +651,10 @@ static inline void close_ref_to_local_scope(FklByteCodelnt* retval
 		,uint64_t line)
 {
 	FklCodegenEnvScope* cur=&env->scopes[scope-1];
-	if(has_var_be_ref(env->slotFlags,cur,env,codegen->pts))
-		append_close_ref(retval,cur,fid,line);
+	uint32_t start=cur->start;
+	uint32_t end=start+1;
+	if(has_var_be_ref(env->slotFlags,cur,env,codegen->pts,&start,&end))
+		append_close_ref(retval,start,end,fid,line);
 }
 
 BC_PROCESS(_local_exp_bc_process)

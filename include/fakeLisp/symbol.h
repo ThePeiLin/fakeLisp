@@ -49,6 +49,9 @@ typedef struct FklFuncPrototype
 	struct FklSymbolDef* refs;
 	uint32_t lcount;
 	uint32_t rcount;
+	FklSid_t sid;
+	FklSid_t fid;
+	uint64_t line;
 }FklFuncPrototype;
 
 typedef struct

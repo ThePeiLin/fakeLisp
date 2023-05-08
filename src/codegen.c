@@ -1531,6 +1531,39 @@ static CODEGEN_FUNC(codegen_do1)
 	fklPushPtrStack(do1InitValQuest,codegenQuestStack);
 }
 
+static inline FklSid_t get_sid_in_gs_with_id_in_ps(FklSid_t id,FklSymbolTable* ps,FklSymbolTable* gs)
+{
+	return fklAddSymbol(fklGetSymbolWithId(id,ps)->symbol,gs)->id;
+}
+
+static inline FklSid_t get_sid_with_idx(FklCodegenEnvScope* sc
+		,uint32_t idx
+		,FklSymbolTable* ps
+		,FklSymbolTable* gs)
+{
+	for(FklHashTableNodeList* l=sc->defs->list;l;l=l->next)
+	{
+		FklSymbolDef* def=(FklSymbolDef*)l->node->data;
+		if(def->idx==idx)
+			return get_sid_in_gs_with_id_in_ps(def->k.id,ps,gs);
+	}
+	return 0;
+}
+
+static inline FklSid_t get_sid_with_ref_idx(FklHashTable* refs
+		,uint32_t idx
+		,FklSymbolTable* ps
+		,FklSymbolTable* gs)
+{
+	for(FklHashTableNodeList* l=refs->list;l;l=l->next)
+	{
+		FklSymbolDef* def=(FklSymbolDef*)l->node->data;
+		if(def->idx==idx)
+			return get_sid_in_gs_with_id_in_ps(def->k.id,ps,gs);
+	}
+	return 0;
+}
+
 BC_PROCESS(_set_var_exp_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
@@ -1538,6 +1571,29 @@ BC_PROCESS(_set_var_exp_bc_process)
 	FklByteCodelnt* popVar=fklPopPtrStack(stack);
 	if(cur&&popVar)
 	{
+		if(cur->bc->code[0]==FKL_OP_PUSH_PROC)
+		{
+			if(popVar->bc->code[0]==FKL_OP_PUT_LOC)
+			{
+				uint32_t prototypeId=fklGetU32FromByteCode(&cur->bc->code[1]);
+				uint32_t idx=fklGetU32FromByteCode(&popVar->bc->code[1]);
+				if(!codegen->pts->pts[prototypeId].sid)
+					codegen->pts->pts[prototypeId].sid=get_sid_with_idx(&env->scopes[scope-1]
+							,idx
+							,codegen->publicSymbolTable
+							,codegen->globalSymTable);
+			}
+			else if(popVar->bc->code[0]==FKL_OP_PUT_VAR_REF)
+			{
+				uint32_t prototypeId=fklGetU32FromByteCode(&cur->bc->code[1]);
+				uint32_t idx=fklGetU32FromByteCode(&popVar->bc->code[1]);
+				if(!codegen->pts->pts[prototypeId].sid)
+					codegen->pts->pts[prototypeId].sid=get_sid_with_ref_idx(env->refs
+							,idx
+							,codegen->publicSymbolTable
+							,codegen->globalSymTable);
+			}
+		}
 		fklReCodeLntCat(cur,popVar);
 		fklDestroyByteCodelnt(cur);
 	}
@@ -1725,7 +1781,14 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTabl
 	return refs;
 }
 
-static inline void create_and_insert_to_pool(FklFuncPrototypes* cp,uint32_t p,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+static inline void create_and_insert_to_pool(FklFuncPrototypes* cp
+		,uint32_t p
+		,FklCodegenEnv* env
+		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* publicSymbolTable
+		,FklSid_t sid
+		,FklSid_t fid
+		,uint64_t line)
 {
 	cp->count+=1;
 	FklFuncPrototype* pts=(FklFuncPrototype*)realloc(cp->pts,sizeof(FklFuncPrototype)*(cp->count+1));
@@ -1737,6 +1800,9 @@ static inline void create_and_insert_to_pool(FklFuncPrototypes* cp,uint32_t p,Fk
 	cpt->lcount=env->lcount;
 	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable);
 	cpt->rcount=env->refs->num;
+	cpt->sid=sid;
+	cpt->fid=fid;
+	cpt->line=line;
 }
 
 BC_PROCESS(_named_let_set_var_exp_bc_process)
@@ -1760,6 +1826,10 @@ BC_PROCESS(_named_let_set_var_exp_bc_process)
 	return popVar;
 }
 
+// static inline FklSid_t get_sid_in_gs_with_id_in_ps(FklSid_t id,FklSymbolTable* ps,FklSymbolTable* gs)
+// {
+// 	return fklAddSymbol(fklGetSymbolWithId(id,ps)->symbol,gs)->id;
+// }
 
 static CODEGEN_FUNC(codegen_named_let0)
 {
@@ -1814,7 +1884,10 @@ static CODEGEN_FUNC(codegen_named_let0)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable);
+			,codegen->publicSymbolTable
+			,get_sid_in_gs_with_id_in_ps(name->u.sym,codegen->publicSymbolTable,codegen->globalSymTable)
+			,codegen->fid
+			,origExp->curline);
 
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_lambda_exp_bc_process
 			,createDefaultStackContext(lStack)
@@ -1868,12 +1941,6 @@ static CODEGEN_FUNC(codegen_named_let1)
 		return;
 	}
 
-	create_and_insert_to_pool(codegen->pts
-			,curEnv->prototypeId
-			,lambdaCodegenEnv
-			,codegen->globalSymTable
-			,codegen->publicSymbolTable);
-
 	FklPtrQueue* valueQueue=fklCreatePtrQueue();
 
 	fklPushPtrQueue(fklMakeNastNodeRef(value),valueQueue);
@@ -1894,7 +1961,10 @@ static CODEGEN_FUNC(codegen_named_let1)
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
 	uint32_t idx=fklAddCodegenDefBySid(name->u.sym,cs,curEnv);
 	fklPushPtrStack(makePutLoc(name,idx,codegen),stack);
-
+	
+	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
+			,name
+			,cms->replacements);
 	fklPushPtrStack(createCodegenQuest(_let_arg_exp_bc_process
 				,createDefaultStackContext(fklCreatePtrStack(fklLengthPtrQueue(valueQueue),16))
 				,createDefaultQueueNextExpression(valueQueue)
@@ -1934,7 +2004,10 @@ static CODEGEN_FUNC(codegen_named_let1)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable);
+			,codegen->publicSymbolTable
+	 		,get_sid_in_gs_with_id_in_ps(name->u.sym,codegen->publicSymbolTable,codegen->globalSymTable)
+			,codegen->fid
+			,origExp->curline);
 
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_lambda_exp_bc_process
 			,createDefaultStackContext(lStack)
@@ -2447,7 +2520,10 @@ static CODEGEN_FUNC(codegen_lambda)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable);
+			,codegen->publicSymbolTable
+			,0
+			,codegen->fid
+			,origExp->curline);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_lambda_exp_bc_process
 			,createDefaultStackContext(stack)
 			,createDefaultQueueNextExpression(queue)
@@ -2534,7 +2610,10 @@ static CODEGEN_FUNC(codegen_defun)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable);
+			,codegen->publicSymbolTable
+			,get_sid_in_gs_with_id_in_ps(name->u.sym,codegen->publicSymbolTable,codegen->globalSymTable)
+			,codegen->fid
+			,origExp->curline);
 	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
 			,name
 			,lambdaCodegenEnv->macros->replacements);
@@ -4820,7 +4899,14 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 			fklDestroyCodegener(nextCodegen);
 			return;
 		}
-		create_and_insert_to_pool(nextCodegen->pts,0,libEnv,nextCodegen->globalSymTable,nextCodegen->publicSymbolTable);
+		create_and_insert_to_pool(nextCodegen->pts
+				,0
+				,libEnv
+				,nextCodegen->globalSymTable
+				,nextCodegen->publicSymbolTable
+				,0
+				,nextCodegen->fid
+				,1);
 
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_library_bc_process
 				,createExportContext(codegen,curEnv,scope,macroScope,prefix,only,alias,except)
@@ -5806,7 +5892,14 @@ static CODEGEN_FUNC(codegen_defmacro)
 			macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
 			fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
 
-			create_and_insert_to_pool(macroCodegen->pts,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
+			create_and_insert_to_pool(macroCodegen->pts
+					,0
+					,macroEnv
+					,macroCodegen->globalSymTable
+					,macroCodegen->publicSymbolTable
+					,0
+					,macroCodegen->fid
+					,value->curline);
 			FklPtrQueue* queue=fklCreatePtrQueue();
 			fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_compiler_macro_bc_process
@@ -5866,7 +5959,14 @@ static CODEGEN_FUNC(codegen_defmacro)
 			macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
 			fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
 
-			create_and_insert_to_pool(macroCodegen->pts,0,macroEnv,macroCodegen->globalSymTable,macroCodegen->publicSymbolTable);
+			create_and_insert_to_pool(macroCodegen->pts
+					,0
+					,macroEnv
+					,macroCodegen->globalSymTable
+					,macroCodegen->publicSymbolTable
+					,0
+					,macroCodegen->fid
+					,value->curline);
 			FklPtrQueue* queue=fklCreatePtrQueue();
 			fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 			FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
@@ -6611,7 +6711,10 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 			,0
 			,codegen->globalEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable);
+			,codegen->publicSymbolTable
+			,0
+			,codegen->fid
+			,1);
 }
 
 void fklInitCodegener(FklCodegen* codegen
@@ -6989,7 +7092,7 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 	lr->lref=NULL;
 	lr->lrefl=NULL;
 	proc->closure=lr->ref;
-	proc->count=lr->rcount;
+	proc->rcount=lr->rcount;
 }
 
 FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
@@ -7080,7 +7183,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
-		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId,0);
 		prc->lcount=pts->pts[prc->protoId].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		fklInitMainProcRefs(proc->u.proc,refs,count);
@@ -7102,7 +7205,7 @@ inline void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,needCopy?fklCopyByteCodelnt(clib->u.bcl):clib->u.bcl,gc);
-		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId,0);
 		prc->lcount=pts->pts[prc->protoId].lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
@@ -7122,8 +7225,9 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	{
 		FklByteCode* bc=clib->u.bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,clib->u.bcl,gc);
-		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId);
-		prc->lcount=pts->pts[prc->protoId].lcount;
+		FklFuncPrototype* pt=&pts->pts[clib->prototypeId];
+		FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,clib->prototypeId,pt->sid);
+		prc->lcount=pt->lcount;
 		FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 		val=proc;
 	}
@@ -7175,20 +7279,45 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplCtx);
 
 static inline void init_with_main_proc(FklVMproc* d,const FklVMproc* s)
 {
-	uint32_t count=s->count;
+	uint32_t count=s->rcount;
 	FklVMvarRef** refs=fklCopyMemory(s->closure,count*sizeof(FklVMvarRef*));
 	for(uint32_t i=0;i<count;i++)
 		fklMakeVMvarRefRef(refs[i]);
 	d->closure=refs;
-	d->count=count;
+	d->rcount=count;
 	d->protoId=1;
 	d->lcount=s->lcount;
 }
+
+static inline void inc_lref(FklVMCompoundFrameVarRef* lr,uint32_t lcount)
+{
+	if(!lr->lref)
+	{
+		lr->lref=(FklVMvarRef**)calloc(lcount,sizeof(FklVMvarRef*));
+		FKL_ASSERT(lr->lref);
+	}
+}
+
+static inline FklVMvarRef* insert_local_ref(FklVMCompoundFrameVarRef* lr
+		,FklVMvarRef* ref
+		,uint32_t cidx)
+{
+	FklVMvarRefList* rl=(FklVMvarRefList*)malloc(sizeof(FklVMvarRefList));
+	FKL_ASSERT(rl);
+	rl->ref=fklMakeVMvarRefRef(ref);
+	rl->next=lr->lrefl;
+	lr->lrefl=rl;
+	lr->lref[cidx]=ref;
+	return ref;
+}
+
 static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 		,FklFuncPrototypes* cp
 		,FklVMgc* gc
-		,FklVMvalue** loc)
+		,FklVMvalue** loc
+		,FklVMframe* mainframe)
 {
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(mainframe);
 	FklPtrStack* urefs=&env->uref;
 	FklFuncPrototype* pts=cp->pts;
 	FklPtrStack urefs1=FKL_STACK_INIT;
@@ -7207,13 +7336,23 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 			ref->isLocal=1;
 			uint32_t prototypeId=uref->prototypeId;
 			uint32_t idx=ref->idx;
+			inc_lref(lr,lr->lcount);
 			for(FklVMvalue* v=gc->head;v;v=v->next)
 				if(FKL_IS_PROC(v)&&v->u.proc->protoId==prototypeId)
 				{
 					FklVMproc* proc=v->u.proc;
 					FklVMvarRef* ref=proc->closure[idx];
-					ref->idx=def->idx;
-					ref->ref=&loc[def->idx];
+					if(lr->lref[def->idx])
+					{
+						proc->closure[idx]=fklMakeVMvarRefRef(lr->lref[def->idx]);
+						fklDestroyVMvarRef(ref);
+					}
+					else
+					{
+						ref->idx=def->idx;
+						ref->ref=&loc[def->idx];
+						insert_local_ref(lr,ref,def->idx);
+					}
 				}
 			free(uref);
 		}
@@ -7223,10 +7362,7 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 			free(uref);
 		}
 		else
-		{
-			fklAddCodegenBuiltinRefBySid(uref->id,env);
 			fklPushPtrStack(uref,&urefs1);
-		}
 	}
 	urefs->top=0;
 	while(!fklIsPtrStackEmpty(&urefs1))
@@ -7234,16 +7370,19 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 	fklUninitPtrStack(&urefs1);
 }
 
-static inline void update_prototype_for_repl(FklFuncPrototypes* cp
-		,FklCodegenEnv* env
-		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymbolTable
-		,FklVMgc* gc
-		,FklVMvalue** loc)
+static inline void update_prototype_lcount(FklFuncPrototypes* cp
+		,FklCodegenEnv* env)
 {
 	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
 	pts->lcount=env->lcount;
-	process_unresolve_ref_for_repl(env,cp,gc,loc);
+}
+
+static inline void update_prototype_ref(FklFuncPrototypes* cp
+		,FklCodegenEnv* env	
+		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* publicSymbolTable)
+{
+	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
 	FklHashTable* eht=env->refs;
 	uint32_t count=eht->num;
 	FklSymbolDef* refs=(FklSymbolDef*)realloc(pts->refs,sizeof(FklSymbolDef)*count);
@@ -7260,6 +7399,31 @@ static inline void update_prototype_for_repl(FklFuncPrototypes* cp
 			.cidx=sd->cidx,
 			.isLocal=sd->isLocal};
 		refs[sd->idx]=ref;
+	}
+}
+
+// static inline void update_prototype_for_repl(FklFuncPrototypes* cp
+// 		,FklCodegenEnv* env
+// 		,FklSymbolTable* globalSymTable
+// 		,FklSymbolTable* publicSymbolTable
+// 		,FklVMgc* gc
+// 		,FklVMvalue** loc
+// 		,FklVMframe* mainframe)
+// {
+// 	process_unresolve_ref_for_repl(env,cp,gc,loc,mainframe);
+// }
+
+static inline void alloc_more_space_for_var_ref(FklVMCompoundFrameVarRef* lr
+		,uint32_t i
+		,uint32_t n)
+{
+	if(lr->lref&&i<n)
+	{
+		FklVMvarRef** lref=(FklVMvarRef**)realloc(lr->lref,sizeof(FklVMvarRef*)*n);
+		FKL_ASSERT(lref);
+		for(;i<n;i++)
+			lref[i]=NULL;
+		lr->lref=lref;
 	}
 }
 
@@ -7376,7 +7540,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 							,curVMlib
 							,exe
 							,proc->closure
-							,proc->count
+							,proc->rcount
 							,0
 							,exe->pts);
 				}
@@ -7387,16 +7551,17 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			}
 			if(mainCode)
 			{
+				uint32_t o_lcount=ctx->lcount;
 				fklUnLockVMfp(ctx->stdinVal);
 				ctx->state=READY;
-				update_prototype_for_repl(codegen->pts
+
+				update_prototype_lcount(codegen->pts,codegen->globalEnv);
+
+				update_prototype_ref(codegen->pts
 						,codegen->globalEnv
 						,codegen->globalSymTable
-						,codegen->publicSymbolTable
-						,exe->gc
-						,exe->locv);
-
-				FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1);
+						,codegen->publicSymbolTable);
+				FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1,0);
 				init_with_main_proc(proc,ctx->mainProc->u.proc);
 				FklVMvalue* mainProc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,exe->gc);
 				ctx->mainProc=mainProc;
@@ -7410,11 +7575,13 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				proc->end=proc->spc+mainCode->bc->size;
 
 				FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
-
 				FklVMCompoundFrameVarRef* f=&mainframe->u.c.lr;
 				f->base=0;
 				f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
 				f->lcount=proc->lcount;
+				alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
+
+				process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
 
 				exe->frames=mainframe;
 			}
@@ -7529,7 +7696,7 @@ inline void fklInitFrameToReplFrame(FklVM* exe
 	replFrame->u.o.t=&ReplContextMethodTable;
 	ReplCtx* ctx=(ReplCtx*)replFrame->u.o.data;
 
-	FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1);
+	FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1,0);
 	fklInitGlobalVMclosureForProc(proc,exe);
 	ctx->exe=exe;
 	ctx->mainProc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,exe->gc);

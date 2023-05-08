@@ -542,34 +542,35 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 #undef SENTINEL_NAST_NODE
 
-FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
+inline FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
 {
 	FklByteCode* bc=codeObj->u.code->bc;
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
 	tmp->spc=bc->code;
 	tmp->end=bc->code+bc->size;
-	// tmp->sid=0;
+	tmp->sid=0;
 	tmp->closure=NULL;
-	tmp->count=0;
+	tmp->rcount=0;
 	tmp->protoId=1;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
 	return tmp;
 }
 
-FklVMproc* fklCreateVMproc(uint8_t* spc
+inline FklVMproc* fklCreateVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,FklVMgc* gc
-		,uint32_t protoId)
+		,uint32_t protoId
+		,FklSid_t sid)
 {
 	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
 	FKL_ASSERT(tmp);
 	tmp->spc=spc;
 	tmp->end=spc+cpc;
-	// tmp->sid=0;
+	tmp->sid=sid;
 	tmp->closure=NULL;
-	tmp->count=0;
+	tmp->rcount=0;
 	tmp->protoId=protoId;
 	tmp->lcount=0;
 	fklSetRef(&tmp->codeObj,codeObj,gc);
@@ -1087,7 +1088,7 @@ void fklDestroyVMchanl(FklVMchanl* ch)
 
 void fklDestroyVMproc(FklVMproc* proc)
 {
-	uint32_t count=proc->count;
+	uint32_t count=proc->rcount;
 	FklVMvarRef** refs=proc->closure;
 	for(uint32_t i=0;i<count;i++)
 		fklDestroyVMvarRef(refs[i]);
@@ -1744,7 +1745,7 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMproc* proc=root->u.proc;
 	fklGC_toGrey(proc->codeObj,gc);
-	uint32_t count=proc->count;
+	uint32_t count=proc->rcount;
 	FklVMvarRef** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
 		fklGC_toGrey(*(ref[i]->ref),gc);

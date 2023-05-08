@@ -5314,8 +5314,8 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 void fklInitGlobalVMclosureForProc(FklVMproc* proc,FklVM* exe)
 {
 	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
-	proc->count=RefCount;
-	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*proc->count);
+	proc->rcount=RefCount;
+	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*proc->rcount);
 	FKL_ASSERT(closure);
 	proc->closure=closure;
 	FklVMudata* pud=fklCreateVMudata(0

@@ -171,6 +171,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					case FKL_OP_PUSH_PROC:
 						{
 							uint32_t offset=sizeof(uint32_t)+sizeof(char);
+							fprintf(fp,"%u ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
 							uint64_t ncpc=fklGetU64FromByteCode(tmpCode->code+i+offset);
 							fprintf(fp,"%lu",ncpc);
 							fklPushPtrStack(createByteCodePrintState(cState->type,cState->tc,i+offset+sizeof(uint64_t)+ncpc,cState->cpc),s);

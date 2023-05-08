@@ -94,10 +94,10 @@ static inline int compileAndRun(char* filename)
 	return r;
 }
 
-static inline void initLibWithPrototyle(FklVMlib* lib,uint32_t num,FklFuncPrototypes* pts)
+static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncPrototypes* pts)
 {
 	FklFuncPrototype* pta=pts->pts;
-	for(uint32_t i=0;i<num;i++)
+	for(uint32_t i=1;i<=num;i++)
 	{
 		FklVMlib* cur=&lib[i];
 		if(FKL_IS_PROC(cur->proc))
@@ -148,7 +148,7 @@ static inline int runCode(char* filename)
 
 	fclose(fp);
 
-	initLibWithPrototyle(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
+	initLibWithPrototype(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(table);
 	fklDestroyAllVMs(anotherVM);

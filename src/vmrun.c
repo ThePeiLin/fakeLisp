@@ -996,8 +996,8 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 		,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
-	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc,protoId);
 	FklFuncPrototype* pt=&exe->pts->pts[protoId];
+	FklVMproc* proc=fklCreateVMproc(spc,cpc,codeObj,gc,protoId,pt->sid);
 	uint32_t count=pt->rcount;
 	if(count)
 	{
@@ -1024,7 +1024,7 @@ static inline FklVMproc* createVMproc(uint8_t* spc
 			}
 		}
 		proc->closure=closure;
-		proc->count=count;
+		proc->rcount=count;
 	}
 	proc->lcount=pt->lcount;
 	return proc;
@@ -1581,8 +1581,8 @@ static void inline B_export(FklVM* exe,FklVMframe* frame)
 	lib->imported=1;
 	lib->belong=1;
 	FklVMproc* proc=lib->proc->u.proc;
-	uint32_t rcount=proc->count;
-	proc->count=0;
+	uint32_t rcount=proc->rcount;
+	proc->rcount=0;
 	FklVMvarRef** refs=proc->closure;
 	proc->closure=NULL;
 	for(uint32_t i=0;i<rcount;i++)
@@ -3111,7 +3111,7 @@ inline void fklInitVMlibWithCodeObj(FklVMlib* lib
 		,uint32_t protoId)
 {
 	FklByteCode* bc=codeObj->u.code->bc;
-	FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,protoId);
+	FklVMproc* prc=fklCreateVMproc(bc->code,bc->size,codeObj,gc,protoId,0);
 	FklVMvalue* proc=fklCreateVMvalueNoGC(FKL_TYPE_PROC,prc,gc);
 	fklInitVMlib(lib,proc);
 }
@@ -3205,8 +3205,8 @@ inline int fklIsCompoundFrameReachEnd(FklVMframe* f)
 
 inline void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count)
 {
-	mainProc->count=count;
-	mainProc->closure=fklCopyMemory(closure,sizeof(FklVMvalue*)*mainProc->count);
+	mainProc->rcount=count;
+	mainProc->closure=fklCopyMemory(closure,sizeof(FklVMvalue*)*mainProc->rcount);
 	for(uint32_t i=0;i<count;i++)
 		fklMakeVMvarRefRef(closure[i]);
 }

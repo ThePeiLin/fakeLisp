@@ -169,11 +169,11 @@ typedef struct FklVMproc
 {
 	uint8_t* spc;
 	uint8_t* end;
-	// FklSid_t sid;
+	FklSid_t sid;
 	uint32_t protoId;
 	uint32_t lcount;
+	uint32_t rcount;
 	FklVMvarRef** closure;
-	uint32_t count;
 	FklVMvalue* codeObj;
 }FklVMproc;
 
@@ -550,7 +550,8 @@ FklVMproc* fklCreateVMproc(uint8_t* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,FklVMgc* gc
-		,uint32_t prototypeId);
+		,uint32_t prototypeId
+		,FklSid_t id);
 FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);

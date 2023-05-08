@@ -130,7 +130,7 @@ FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum
 	t->num=errTypeNum;
 	t->proc.spc=spc;
 	t->proc.end=spc+cpc;
-	// t->proc.sid=0;
+	t->proc.sid=0;
 	return t;
 }
 
@@ -157,19 +157,52 @@ inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 	{
 		if(cur->type==FKL_FRAME_COMPOUND)
 		{
-			if(fklGetCompoundFrameSid(cur)!=0)
+			// if(fklGetCompoundFrameSid(cur)!=0)
+			// {
+			// 	fprintf(stderr,"at proc:");
+			// 	fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
+			// 			,stderr);
+			// }
+			// else
+			// {
+			if(cur->prev)
 			{
-				fprintf(stderr,"at proc:");
-				fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
-						,stderr);
+				FklVMproc* proc=fklGetCompoundFrameProc(cur)->u.proc;
+				if(proc->sid)
+				{
+					fprintf(stderr,"at proc:");
+					fklPrintString(fklGetSymbolWithId(proc->sid,exe->symbolTable)->symbol
+							,stderr);
+				}
+				else
+				{
+					FklFuncPrototype* pt=NULL;fklGetCompoundFrameProcPrototype(cur,exe);
+					FklSid_t sid=fklGetCompoundFrameSid(cur);
+					if(!sid)
+					{
+						pt=fklGetCompoundFrameProcPrototype(cur,exe);
+						sid=pt->sid;
+					}
+					if(pt->sid)
+					{
+						fprintf(stderr,"at proc:");
+						fklPrintString(fklGetSymbolWithId(pt->sid,exe->symbolTable)->symbol
+								,stderr);
+					}
+					else
+					{
+						fprintf(stderr,"at <proc ");
+						if(pt->fid)
+							fklPrintRawString(fklGetSymbolWithId(pt->fid,exe->symbolTable)->symbol,stderr);
+						else
+							fputs("stdin",stderr);
+						fprintf(stderr,":%lu>",pt->line);
+					}
+				}
 			}
 			else
-			{
-				if(cur->prev)
-					fprintf(stderr,"at <lambda>");
-				else
-					fprintf(stderr,"at <top>");
-			}
+				fprintf(stderr,"at <top>");
+			// }
 			FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
 			FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
 					,codeObj->ls
@@ -244,7 +277,6 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->pc=pfd->pc;
 	fd->spc=pfd->spc;
 	fd->end=pfd->end;
-	fd->sid=pfd->sid;
 	fklSetRef(&fd->proc,pfd->proc,gc);
 	fd->mark=pfd->mark;
 	fd->tail=pfd->tail;
@@ -297,10 +329,10 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;
-		// f->sid=code->sid;
+		f->sid=code->sid;
 		FklVMCompoundFrameVarRef* lr=&f->lr;
 		code->closure=lr->ref;
-		code->count=lr->rcount;
+		code->rcount=lr->rcount;
 		FklFuncPrototype* pt=&pts->pts[code->protoId];
 		uint32_t count=pt->lcount;
 		code->lcount=count;
@@ -403,11 +435,11 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	if(code)
 	{
 		f->lr.ref=code->closure;
-		f->lr.rcount=code->count;
+		f->lr.rcount=code->rcount;
 		f->pc=code->spc;
 		f->spc=code->spc;
 		f->end=code->end;
-		// f->sid=code->sid;
+		f->sid=code->sid;
 		f->proc=proc;
 	}
 	return tmp;
@@ -693,14 +725,14 @@ static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
 {
-	// if(v->u.proc->sid)
-	// {
-	// 	fprintf(fp,"#<proc ");
-	// 	fklPrintString(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
-	// 	fputc('>',fp);
-	// }
-	// else
-	fprintf(fp,"#<proc %p>",v->u.proc);
+	if(v->u.proc->sid)
+	{
+		fprintf(fp,"#<proc ");
+		fklPrintRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
+		fputc('>',fp);
+	}
+	else
+		fprintf(fp,"#<proc %p>",v->u.proc);
 
 }
 
@@ -1292,7 +1324,14 @@ static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_proc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	utstring_printf(result,"#<proc %p>",v->u.proc);
+	if(v->u.proc->sid)
+	{
+		utstring_printf(result,"#<proc ");
+		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
+		utstring_printf(result,">");
+	}
+	else
+		utstring_printf(result,"#<proc %p>",v->u.proc);
 }
 
 static void vmvalue_chanl_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)

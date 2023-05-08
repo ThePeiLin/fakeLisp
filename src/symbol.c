@@ -278,6 +278,9 @@ static inline void write_prototype(const FklFuncPrototype* pt,FILE* fp)
 	fwrite(&count,sizeof(count),1,fp);
 	for(uint32_t i=0;i<count;i++)
 		write_symbol_def(&defs[i],fp);
+	fwrite(&pt->sid,sizeof(pt->sid),1,fp);
+	fwrite(&pt->fid,sizeof(pt->fid),1,fp);
+	fwrite(&pt->line,sizeof(pt->line),1,fp);
 }
 
 inline void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp)
@@ -315,6 +318,9 @@ static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 	pt->refs=defs;
 	for(uint32_t i=0;i<count;i++)
 		load_symbol_def(&defs[i],fp);
+	fread(&pt->sid,sizeof(pt->sid),1,fp);
+	fread(&pt->fid,sizeof(pt->fid),1,fp);
+	fread(&pt->line,sizeof(pt->line),1,fp);
 }
 
 inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)

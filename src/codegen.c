@@ -7184,6 +7184,84 @@ static inline void init_with_main_proc(FklVMproc* d,const FklVMproc* s)
 	d->protoId=1;
 	d->lcount=s->lcount;
 }
+static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
+		,FklFuncPrototypes* cp
+		,FklVMgc* gc
+		,FklVMvalue** loc)
+{
+	FklPtrStack* urefs=&env->uref;
+	FklFuncPrototype* pts=cp->pts;
+	FklPtrStack urefs1=FKL_STACK_INIT;
+	fklInitPtrStack(&urefs1,16,8);
+	uint32_t count=urefs->top;
+	for(uint32_t i=0;i<count;i++)
+	{
+		FklUnReSymbolRef* uref=urefs->base[i];
+		FklFuncPrototype* cpt=&pts[uref->prototypeId];
+		FklSymbolDef* ref=&cpt->refs[uref->idx];
+		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
+		if(def)
+		{
+			env->slotFlags[def->idx]=FKL_CODEGEN_ENV_SLOT_REF;
+			ref->cidx=def->idx;
+			ref->isLocal=1;
+			uint32_t prototypeId=uref->prototypeId;
+			uint32_t idx=ref->idx;
+			for(FklVMvalue* v=gc->head;v;v=v->next)
+				if(FKL_IS_PROC(v)&&v->u.proc->protoId==prototypeId)
+				{
+					FklVMproc* proc=v->u.proc;
+					FklVMvarRef* ref=proc->closure[idx];
+					ref->idx=def->idx;
+					ref->ref=&loc[def->idx];
+				}
+			free(uref);
+		}
+		else if(env->prev)
+		{
+			ref->cidx=fklAddCodegenRefBySid(uref->id,env,uref->fid,uref->line);
+			free(uref);
+		}
+		else
+		{
+			fklAddCodegenBuiltinRefBySid(uref->id,env);
+			fklPushPtrStack(uref,&urefs1);
+		}
+	}
+	urefs->top=0;
+	while(!fklIsPtrStackEmpty(&urefs1))
+		fklPushPtrStack(fklPopPtrStack(&urefs1),urefs);
+	fklUninitPtrStack(&urefs1);
+}
+
+static inline void update_prototype_for_repl(FklFuncPrototypes* cp
+		,FklCodegenEnv* env
+		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* publicSymbolTable
+		,FklVMgc* gc
+		,FklVMvalue** loc)
+{
+	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
+	pts->lcount=env->lcount;
+	process_unresolve_ref_for_repl(env,cp,gc,loc);
+	FklHashTable* eht=env->refs;
+	uint32_t count=eht->num;
+	FklSymbolDef* refs=(FklSymbolDef*)realloc(pts->refs,sizeof(FklSymbolDef)*count);
+	FKL_ASSERT(refs||!count);
+	pts->refs=refs;
+	pts->rcount=count;
+	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
+	{
+		FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSymbolDef ref={.k.id=sid,
+			.k.scope=sd->k.scope,
+			.idx=sd->idx,
+			.cidx=sd->cidx,
+			.isLocal=sd->isLocal};
+		refs[sd->idx]=ref;
+	}
+}
 
 static void repl_frame_step(FklCallObjData data,FklVM* exe)
 {
@@ -7311,10 +7389,12 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			{
 				fklUnLockVMfp(ctx->stdinVal);
 				ctx->state=READY;
-				fklUpdatePrototype(codegen->pts
+				update_prototype_for_repl(codegen->pts
 						,codegen->globalEnv
 						,codegen->globalSymTable
-						,codegen->publicSymbolTable);
+						,codegen->publicSymbolTable
+						,exe->gc
+						,exe->locv);
 
 				FklVMproc* proc=fklCreateVMproc(NULL,0,FKL_VM_NIL,exe->gc,1);
 				init_with_main_proc(proc,ctx->mainProc->u.proc);

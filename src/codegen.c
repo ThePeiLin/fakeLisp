@@ -6064,9 +6064,9 @@ typedef enum
 	PATTERN_IMPORT_ALIAS,
 	PATTERN_IMPORT_EXCEPT,
 	PATTERN_IMPORT,
-	PATTERN_IMPORT_NONE,
 	PATTERN_MACROEXPAND,
 	PATTERN_DEFMACRO,
+	PATTERN_IMPORT_NONE,
 	PATTERN_EXPORT_SINGLE,
 	PATTERN_EXPORT,
 }PatternEnum;
@@ -6120,9 +6120,9 @@ static struct PatternAndFunc
 	{"~(import (alias ~name,~rest),~args)",                    NULL, codegen_import_alias,  },
 	{"~(import (except ~name,~rest),~args)",                   NULL, codegen_import_except, },
 	{"~(import ~name,~args)",                                  NULL, codegen_import,        },
-	{"~(import)",                                              NULL, codegen_import_none,   },
 	{"~(macroexpand ~value)",                                  NULL, codegen_macroexpand,   },
 	{"~(defmacro ~name ~value)",                               NULL, codegen_defmacro,      },
+	{"~(import)",                                              NULL, codegen_import_none,   },
 	{"~(export ~value)",                                       NULL, codegen_export_single, },
 	{"~(export,~rest)",                                        NULL, codegen_export,        },
 	{NULL,                                                     NULL, NULL,                  },
@@ -6167,7 +6167,9 @@ static inline int isValidExportNodeList(const FklNastNode* list)
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
 		if(list->u.pair->car->type!=FKL_NAST_SYM
 				&&!isExportDefmacroExp(list->u.pair->car)
-				&&!isExportImportExp(list->u.pair->car))
+				&&!isExportImportExp(list->u.pair->car)
+				&&!isExportDefunExp(list->u.pair->car)
+				&&!isExportDefineExp(list->u.pair->car))
 			return 0;
 	return list->type==FKL_NAST_NIL;
 }

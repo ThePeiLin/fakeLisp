@@ -43,6 +43,7 @@ typedef enum
 	FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
 	FKL_ERR_CIR_REF,
 	FKL_ERR_UNSUPPORTED_OP,
+	FKL_ERR_IMPORT_MISSING,
 }FklBuiltInErrorType;
 
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);

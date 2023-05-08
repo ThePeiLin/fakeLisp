@@ -1,39 +1,20 @@
-(export
-  enqueue!
-  queue-push!
-  queue-pop!
-  dequeue!
-  queue-base
-  queue-front
-  queue-rear
-  queue-length
-  make-queue)
-
-(define (make-queue,elems)
-  (define front (copy elems))
-  (define rear (tail front))
-  `#(queue ~front
-           ~rear))
+;export list
+;*  enqueue!
+;*  queue-push!
+;*  queue-pop!
+;*  dequeue!
+;*  queue-base
+;*  queue-front
+;*  queue-rear
+;*  queue-length
+;*  make-queue
+;*  queue?
 
 (define (type q)
   (vref q 0))
 
-(define (queue? queue)
-  (and (vector? queue)
-    (eqv (length queue) 3)
-    (eq (type queue) 'queue)))
-
-(define (queue-base queue)
-  (vref queue 1))
-
-(define (queue-front queue)
-  (car (queue-base queue)))
-
 (define (q-tail q)
   (vref q 2))
-
-(define (queue-rear queue)
-  (car (q-tail queue)))
 
 (define (set-rear! q r)
   (set-vref! q 2 r))
@@ -47,29 +28,49 @@
 (define (queue-empty? queue)
   (null (queue-base queue)))
 
-(define (queue-length queue)
-  (length (queue-base queue)))
+(export
+  (define (make-queue,elems)
+    (define front (copy elems))
+    (define rear (tail front))
+    `#(queue ~front
+             ~rear))
 
-(define (enqueue! q e)
-  (define n `(~e))
-  (if (queue-empty? q)
+  (define (queue? queue)
+    (and (vector? queue)
+      (eqv (length queue) 3)
+      (eq (type queue) 'queue)))
+
+  (define (queue-base queue)
+    (vref queue 1))
+
+  (define (queue-front queue)
+    (car (queue-base queue)))
+
+  (define (queue-rear queue)
+    (car (q-tail queue)))
+
+  (define (queue-length queue)
+    (length (queue-base queue)))
+
+  (define (enqueue! q e)
+    (define n `(~e))
+    (if (queue-empty? q)
+      (set-base! q n)
+      (set-new-tail! q n))
+    (set-rear! q n))
+
+  (define (queue-push! q e)
+    (define n (cons e (queue-base q)))
     (set-base! q n)
-    (set-new-tail! q n))
-  (set-rear! q n))
+    (when (null (q-tail q))
+      (set-rear! q n)))
 
-(define (queue-push! q e)
-  (define n (cons e (queue-base q)))
-  (set-base! q n)
-  (when (null (q-tail q))
-    (set-rear! q n)))
+  (define (queue-pop! q)
+    (define r (queue-front q))
+    (set-base! q (cdr (queue-base q)))
+    (when
+      (queue-empty? q)
+      (set-rear! q nil))
+    r)
 
-(define (queue-pop! q)
-  (define r (queue-front q))
-  (set-base! q (cdr (queue-base q)))
-  (when
-    (queue-empty? q)
-    (set-rear! q nil))
-  r)
-
-(define dequeue! queue-pop!)
-
+  (define dequeue! queue-pop!))

@@ -1373,26 +1373,26 @@ static void inline B_import(FklVM* exe,FklVMframe* frame)
 	FklVMlib* plib=exe->importingLib;
 	uint32_t count=plib->count;
 	FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
-	if(v)
+	// if(v)
 		*get_compound_frame_loc(frame,locIdx)=v;
-	else
-	{
-		fklAddCompoundFrameCp(frame,-sizeof(uint64_t));
-		char* cstr=NULL;
-		if(libIdx<plib->count)
-		{
-			FklFuncPrototype* pt=&exe->pts->pts[plib->proc->u.proc->protoId];
-			FklSid_t sid=pt->loc[libIdx].k.id;
-			cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
-		}
-		// else
-		// {
-		// 	FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(frame,exe);
-		// 	FklSid_t sid=pt->loc[locIdx].k.id;
-		// 	cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
-		// }
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
-	}
+	// else
+	// {
+	// 	fklAddCompoundFrameCp(frame,-sizeof(uint64_t));
+	// 	char* cstr=NULL;
+	// 	if(libIdx<plib->count)
+	// 	{
+	// 		FklFuncPrototype* pt=&exe->pts->pts[plib->proc->u.proc->protoId];
+	// 		FklSid_t sid=pt->loc[libIdx].k.id;
+	// 		cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
+	// 	}
+	// 	// else
+	// 	// {
+	// 	// 	FklFuncPrototype* pt=fklGetCompoundFrameProcPrototype(frame,exe);
+	// 	// 	FklSid_t sid=pt->loc[locIdx].k.id;
+	// 	// 	cstr=fklStringToCstr(fklGetSymbolWithId(sid,exe->symbolTable)->symbol);
+	// 	// }
+	// 	FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.import",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+	// }
 }
 
 static void inline B_load_lib(FklVM* exe,FklVMframe* frame)

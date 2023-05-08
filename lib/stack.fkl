@@ -1,46 +1,54 @@
-(export
-  stack-push!
-  stack-pop!
-  stack?
-  stack-top
-  stack-empty?
-  make-stack
-  stack->list
-  stack-count
-  stack-base)
+;export list
+;*  stack-push!
+;*  stack-pop!
+;*  stack?
+;*  stack-top
+;*  stack-empty?
+;*  make-stack
+;*  stack->list
+;*  stack-count
+;*  stack-base
 
-(define (stack-base s) (vref s 1))
+(export (define (stack-base s) (vref s 1)))
 
 (define (set-base! s b) (set-vref! s 1 b))
 
 (define (type s) (vref s 0))
 
-(define (make-stack,elems)
-  `#(stack ~(reverse elems)))
+(export
+  (define (make-stack,elems)
+    `#(stack ~(reverse elems))))
 
-(define (stack->list stack)
-  (copy (stack-base stack)))
+(export
+  (define (stack->list stack)
+    (copy (stack-base stack))))
 
-(define (stack? stack)
-  (and (vector? stack)
-    (eq (type stack) 'stack)
-    (eqv (length stack) 2)))
+(export
+  (define (stack? stack)
+    (and (vector? stack)
+      (eq (type stack) 'stack)
+      (eqv (length stack) 2))))
 
-(define (stack-push! s e)
+(export
+  (define (stack-push! s e)
   (set-base! s (cons e (stack-base s)))
-  e)
+  e))
 
-(define (stack-top s)
-  (car (stack-base s)))
+(export
+  (define (stack-top s)
+    (car (stack-base s))))
 
-(define (stack-pop! s)
-  (define r (stack-top s))
-  (set-base! s (cdr (stack-base s)))
-  r)
+(export
+  (define (stack-pop! s)
+    (define r (stack-top s))
+    (set-base! s (cdr (stack-base s)))
+    r))
 
-(define (stack-count s)
-  (length (stack-base s)))
+(export
+  (define (stack-count s)
+    (length (stack-base s))))
 
-(define (stack-empty? s)
-  (null (stack-base s)))
+(export
+  (define (stack-empty? s)
+    (null (stack-base s))))
 

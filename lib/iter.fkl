@@ -1,37 +1,40 @@
+;export list
+;*  mk-integer-iterator
+;*  mk-list-iterator
+;*  do-iter
+
 (export
-  mk-integer-iterator
-  mk-list-iterator
-  do-iter)
+  (define (mk-integer-iterator start end step)
+    (define cur start)
+    `#(iterator
+        ~(lambda () (setq cur start))
+        ~(lambda () (< cur end))
+        ~(lambda ()
+           (define r cur)
+           (setq cur (+ cur step))
+           r))))
 
-(define (mk-integer-iterator start end step)
-  (define cur start)
-  `#(iterator
-      ~(lambda () (setq cur start))
-      ~(lambda () (< cur end))
-      ~(lambda ()
-         (define r cur)
-         (setq cur (+ cur step))
-         r)))
-
-(define (mk-list-iterator l)
-  (define c l)
-  `#(iterator
-      ~(lambda () (setq c l))
-      ~(lambda () c)
-      ~(lambda ()
-         (define r (car c))
-         (setq c (cdr c))
-         r)))
+(export
+  (define (mk-list-iterator l)
+    (define c l)
+    `#(iterator
+        ~(lambda () (setq c l))
+        ~(lambda () c)
+        ~(lambda ()
+           (define r (car c))
+           (setq c (cdr c))
+           r))))
 
 (defmacro init-idx 1)
 (defmacro rest-idx 2)
 (defmacro next-idx 3)
 
-(define (do-iter f iterator)
-  ((vref iterator init-idx))
-  (define rest (vref iterator rest-idx))
-  (define next (vref iterator next-idx))
-  (do [(res (rest) (rest))]
-    [(not res)]
-    (f (next))))
+(export
+  (define (do-iter f iterator)
+    ((vref iterator init-idx))
+    (define rest (vref iterator rest-idx))
+    (define next (vref iterator next-idx))
+    (do [(res (rest) (rest))]
+      [(not res)]
+      (f (next)))))
 

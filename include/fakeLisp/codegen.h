@@ -129,14 +129,6 @@ typedef struct FklCodegenQuestContext
 	const FklCodegenQuestContextMethodTable* t;
 }FklCodegenQuestContext;
 
-typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*
-		,FklCodegenEnv*
-		,uint32_t scope
-		,FklCodegenMacroScope*
-		,FklCodegenQuestContext* context
-		,FklSid_t
-		,uint64_t);
-
 typedef struct FklCodegenErrorState
 {
 	FklSid_t fid;
@@ -144,6 +136,15 @@ typedef struct FklCodegenErrorState
 	FklNastNode* place;
 	size_t line;
 }FklCodegenErrorState;
+
+typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegen*
+		,FklCodegenEnv*
+		,uint32_t scope
+		,FklCodegenMacroScope*
+		,FklCodegenQuestContext* context
+		,FklSid_t
+		,uint64_t
+		,FklCodegenErrorState* errorState);
 
 typedef struct
 {

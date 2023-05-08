@@ -121,6 +121,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"number-should-not-be-less-than-0",
 		"cir-ref",
 		"unsupported-operation",
+		"import-missing",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)

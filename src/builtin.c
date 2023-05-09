@@ -2445,26 +2445,13 @@ static int read_frame_end(FklCallObjData d)
 	return ((ReadCtx*)d)->done;
 }
 
-#include<fcntl.h>
-
 static void read_frame_step(FklCallObjData d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=rctx->fpv->u.fp;
-	FILE* fp=vfp->fp;
-	int fd=fileno(fp);
-	int attr=fcntl(fd,F_GETFL);
-	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
 	FklStringBuffer* s=rctx->buf;
-	int ch;
-	while((ch=fgetc(fp))>0)
-	{
-		fklStringBufferPutc(s,ch);
-		if(ch=='\n')
-			break;
-	}
-	fcntl(fd,F_SETFL,attr);
-	if(feof(fp)||ch=='\n')
+	int ch=fklVMfpNonBlockGetline(vfp,s);
+	if(fklVMfpEof(vfp)||ch=='\n')
 	{
 		size_t line=1;
 		int err=0;
@@ -2486,7 +2473,7 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 			size_t len=fklStringBufferLen(s);
 			size_t errorLine=0;
 			if(len-j)
-				fklRewindStream(fp,fklStringBufferBody(s)+j,len-j);
+				fklVMfpRewind(vfp,s,j);
 			rctx->done=1;
 			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(rctx->tokenStack
 					,rctx->root
@@ -2502,7 +2489,7 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 			fklNiEnd(pap,exe);
 			fklDestroyNastNode(node);
 		}
-		else if(feof(fp))
+		else if(fklVMfpEof(vfp))
 		{
 			rctx->done=1;
 			if(rctx->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET)
@@ -2751,18 +2738,14 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 {
 	FgetCtx* ctx=(FgetCtx*)d;
 	FklVMfp* vfp=ctx->fpv->u.fp;
-	FILE* fp=vfp->fp;
-	int fd=fileno(fp);
-	int attr=fcntl(fd,F_GETFL);
-	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
 	int ch=0;
 	FklStringBuffer* s=&ctx->buf;
 	switch(ctx->mode)
 	{
 		case FGETC:
 		case FGETI:
-			ch=fgetc(fp);
-			if(feof(fp))
+			ch=fklVMfpNonBlockGetc(vfp);
+			if(fklVMfpEof(vfp))
 			{
 				ctx->done=1;
 				uint32_t* pap=&ctx->ap;
@@ -2779,14 +2762,8 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 			}
 			break;
 		case FGETD:
-			while((ch=fgetc(fp))>0)
-			{
-				char c=ch;
-				fklStringBufferBincpy(s,&c,sizeof(c));
-				if(ch==ctx->delim)
-					break;
-			}
-			if(feof(fp)||ch==ctx->delim)
+			fklVMfpNonBlockGetdelim(vfp,s,ctx->delim);
+			if(fklVMfpEof(vfp)||ch==ctx->delim)
 			{
 				ctx->done=1;
 				FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklStringBufferToString(s),exe);
@@ -2797,13 +2774,8 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 			break;
 		case FGETS:
 		case FGETB:
-			while(ctx->len&&(ch=fgetc(fp))>0)
-			{
-				char c=ch;
-				fklStringBufferBincpy(s,&c,sizeof(c));
-				ctx->len--;
-			}
-			if(!ctx->len||feof(fp))
+			ctx->len-=fklVMfpNonBlockGets(vfp,s,ctx->len);
+			if(!ctx->len||fklVMfpEof(vfp))
 			{
 				ctx->done=1;
 				uint32_t* pap=&ctx->ap;
@@ -2814,7 +2786,6 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 			}
 			break;
 	}
-	fcntl(fd,F_SETFL,attr);
 }
 
 static const FklVMframeContextMethodTable FgetContextMethodTable=

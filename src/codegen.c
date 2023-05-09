@@ -7273,8 +7273,6 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplCtx);
 
-#include<fcntl.h>
-
 static inline void init_with_main_proc(FklVMproc* d,const FklVMproc* s)
 {
 	uint32_t count=s->rcount;
@@ -7460,21 +7458,10 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 
 	FklCodegen* codegen=ctx->codegen;
 	FklVMfp* vfp=ctx->stdinVal->u.fp;
-	FILE* fp=vfp->fp;
-	int fd=fileno(fp);
-	int attr=fcntl(fd,F_GETFL);
-	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
 	FklStringBuffer* s=ctx->buf;
-	int ch;
-	while((ch=fgetc(fp))>0)
-	{
-		fklStringBufferPutc(s,ch);
-		if(ch=='\n')
-			break;
-	}
-	fcntl(fd,F_SETFL,attr);
+	int ch=fklVMfpNonBlockGetline(vfp,s);
 	FklPtrStack* tokenStack=cc->tokenStack;
-	if(feof(fp)||ch=='\n')
+	if(fklVMfpEof(vfp)||ch=='\n')
 	{
 		size_t line=1;
 		int err=0;
@@ -7501,7 +7488,8 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			size_t len=fklStringBufferLen(s);
 			size_t errorLine=0;
 			if(len-j)
-				fklRewindStream(fp,fklStringBufferBody(s)+j,len-j);
+				fklVMfpRewind(vfp,s,j);
+				// fklRewindStream(fp,fklStringBufferBody(s)+j,len-j);
 			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
 					,cc->root
 					,&errorLine
@@ -7585,7 +7573,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			else
 				ctx->state=WAITING;
 		}
-		else if(err||(feof(fp)&&cc->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET))
+		else if(err||(fklVMfpEof(vfp)&&cc->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET))
 		{
 			fklUnLockVMfp(ctx->stdinVal);
 			fklDestroyStringMatchSet(cc->matchSet);

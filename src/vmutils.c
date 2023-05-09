@@ -1306,7 +1306,7 @@ static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 	if(fklIsAbleToStringUd(v->u.ud))
 	{
 		FklString* s=fklUdToString(v->u.ud);
-		fklStringBufferBincpy(result,s->str,s->size);
+		fklStringBufferConcatWithString(result,s);
 		free(s);
 	}
 	else

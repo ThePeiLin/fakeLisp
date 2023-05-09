@@ -608,8 +608,10 @@ void fklDestroyVMproc(FklVMproc*);
 
 FklVMfpRW fklGetVMfpRwFromCstr(const char* mode);
 FklVMfp* fklCreateVMfp(FILE*,FklVMfpRW);
-int fklVMfpNonBlockGetch(FklVMfp* fp);
-int fklVMfpNonBlockGets(FklVMfp* fp,FklStringBuffer*,size_t len);
+int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer*,size_t j);
+int fklVMfpEof(FklVMfp*);
+int fklVMfpNonBlockGetc(FklVMfp* fp);
+size_t fklVMfpNonBlockGets(FklVMfp* fp,FklStringBuffer*,size_t len);
 int fklVMfpNonBlockGetline(FklVMfp* fp,FklStringBuffer*);
 int fklVMfpNonBlockGetdelim(FklVMfp* fp,FklStringBuffer*,char ch);
 

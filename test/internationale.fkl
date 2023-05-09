@@ -8,3 +8,5 @@
 (println internationle-in-some-language)
 (println (href internationle-in-some-language
              my-language ()))
+(prin1 (stringify internationle-in-some-language))
+(newline)

@@ -5,6 +5,7 @@
 #include<math.h>
 #include<string.h>
 #include<ctype.h>
+#include<stdarg.h>
 int fklIsPtrStackEmpty(FklPtrStack* stack)
 {
 	return stack->top==0;
@@ -1740,6 +1741,138 @@ void fklWriteStringToCstr(char* c_str,const FklString* str)
 size_t fklCountCharInString(FklString* s,char c)
 {
 	return fklCountCharInBuf(s->str,s->size,c);
+}
+
+inline void fklInitStringBuffer(FklStringBuffer* b)
+{
+	b->i=0;
+	b->s=0;
+	b->b=NULL;
+	fklStringBufferReverse(b,64);
+}
+
+inline uint32_t fklStringBufferLen(FklStringBuffer* b)
+{
+	return b->i;
+}
+
+inline char* fklStringBufferBody(FklStringBuffer* b)
+{
+	return b->b;
+}
+
+inline void fklStringBufferPutc(FklStringBuffer* b,char c)
+{
+	fklStringBufferReverse(b,1);
+	b->b[b->i++]=c;
+}
+
+inline void fklStringBufferBincpy(FklStringBuffer* b,const void* p,size_t l)
+{
+	fklStringBufferReverse(b,l);
+	memcpy(&b->b[b->i],p,l);
+	b->i+=l;
+}
+
+inline FklString* fklStringBufferToString(FklStringBuffer* b)
+{
+	return fklCreateString(b->i,b->b);
+}
+
+inline FklBytevector* fklStringBufferToBytevector(FklStringBuffer* b)
+{
+	return fklCreateBytevector(b->i,(uint8_t*)b->b);
+}
+
+inline FklStringBuffer* fklCreateStringBuffer(void)
+{
+	FklStringBuffer* r=(FklStringBuffer*)malloc(sizeof(FklStringBuffer));
+	FKL_ASSERT(r);
+	fklInitStringBuffer(r);
+	return r;
+}
+
+inline void fklUninitStringBuffer(FklStringBuffer* b)
+{
+	b->s=0;
+	b->i=0;
+	free(b->b);
+	b->b=NULL;
+}
+
+inline void fklDestroyStringBuffer(FklStringBuffer* b)
+{
+	fklUninitStringBuffer(b);
+	free(b);
+}
+
+inline void fklStringBufferClear(FklStringBuffer* b)
+{
+	b->i=0;
+}
+
+inline void fklStringBufferFill(FklStringBuffer* b,char c)
+{
+	memset(b->b,c,b->i);
+}
+
+inline void fklStringBufferReverse(FklStringBuffer* b,size_t s)
+{
+	if((b->s-b->i)<s)
+	{
+		b->s+=s;
+		char* t=(char*)realloc(b->b,b->s);
+		FKL_ASSERT(t);
+		b->b=t;
+	}
+}
+
+static inline void string_buffer_printf_va(FklStringBuffer* b,const char* fmt,va_list ap)
+{
+	int n;
+	va_list cp;
+	for(;;)
+	{
+#ifdef _WIN32
+		cp = ap;
+#else
+		va_copy(cp,ap);
+#endif
+		n=vsnprintf(&b->b[b->i],b->s-b->i,fmt,cp);
+		va_end(cp);
+		if((n>-1)&&n<(b->s-b->i))
+		{
+			b->i+=n;
+			return;
+		}
+		if(n>-1)
+			fklStringBufferReverse(b,n+1);
+		else
+			fklStringBufferReverse(b,(b->s)*2);
+	}
+}
+
+inline void fklStringBufferPrintf(FklStringBuffer* b,const char* fmt,...)
+{
+	va_list ap;
+	va_start(ap,fmt);
+	string_buffer_printf_va(b,fmt,ap);
+	va_end(ap);
+}
+
+inline void fklStringBufferConcatWithCstr(FklStringBuffer* b,const char* s)
+{
+	fklStringBufferBincpy(b,s,strlen(s));
+}
+
+inline void fklStringBufferConcatWithString(FklStringBuffer* b,const FklString* s)
+{
+	fklStringBufferBincpy(b,s->str,s->size);
+}
+
+inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklStringBuffer* b)
+{
+	fklStringBufferBincpy(a,b->b,b->i);
 }
 
 #define DEFAULT_HASH_TABLE_SIZE (4)

@@ -7243,8 +7243,6 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	free(clib);
 }
 
-#include"utstring.h"
-
 typedef struct
 {
 	size_t j;
@@ -7261,7 +7259,7 @@ typedef struct
 	FklVM* exe;
 	FklVMvalue* stdinVal;
 	FklVMvalue* mainProc;
-	UT_string* buf;
+	FklStringBuffer* buf;
 	const FklSid_t* headSymbol;
 	enum
 	{
@@ -7466,12 +7464,11 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	int fd=fileno(fp);
 	int attr=fcntl(fd,F_GETFL);
 	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
-	UT_string* s=ctx->buf;
+	FklStringBuffer* s=ctx->buf;
 	int ch;
 	while((ch=fgetc(fp))>0)
 	{
-		char c=ch;
-		utstring_bincpy(s,&c,sizeof(c));
+		fklStringBufferPutc(s,ch);
 		if(ch=='\n')
 			break;
 	}
@@ -7481,8 +7478,8 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	{
 		size_t line=1;
 		int err=0;
-		cc->matchSet=fklSplitStringIntoTokenWithPattern(utstring_body(s)
-				,utstring_len(s)
+		cc->matchSet=fklSplitStringIntoTokenWithPattern(fklStringBufferBody(s)
+				,fklStringBufferLen(s)
 				,line
 				,&line
 				,cc->j
@@ -7501,10 +7498,10 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 		if(cc->matchSet==NULL)
 		{
 			size_t j=cc->j;
-			size_t len=utstring_len(s);
+			size_t len=fklStringBufferLen(s);
 			size_t errorLine=0;
 			if(len-j)
-				fklRewindStream(fp,utstring_body(s)+j,len-j);
+				fklRewindStream(fp,fklStringBufferBody(s)+j,len-j);
 			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
 					,cc->root
 					,&errorLine
@@ -7515,7 +7512,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			while(!fklIsPtrStackEmpty(tokenStack))
 				fklDestroyToken(fklPopPtrStack(tokenStack));
 			fklDestroyStringMatchRoute(cc->root);
-			utstring_clear(s);
+			fklStringBufferClear(s);
 
 			if(node==NULL)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
@@ -7597,7 +7594,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				fklDestroyToken(fklPopPtrStack(tokenStack));
 			cc->root=NULL;
 			cc->matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
-			utstring_clear(s);
+			fklStringBufferClear(s);
 			if(err)
 				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 			else
@@ -7641,7 +7638,7 @@ static inline void destroyNastCreatCtx(NastCreatCtx* cc)
 static void repl_frame_finalizer(FklCallObjData data)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
-	utstring_free(ctx->buf);
+	fklDestroyStringBuffer(ctx->buf);
 	destroyNastCreatCtx(ctx->cc);
 }
 
@@ -7709,6 +7706,6 @@ inline void fklInitFrameToReplFrame(FklVM* exe
 	ctx->cc=cc;
 	ctx->state=READY;
 	ctx->headSymbol=builtInHeadSymbolTable;
-	utstring_new(ctx->buf);
+	ctx->buf=fklCreateStringBuffer();
 }
 

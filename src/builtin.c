@@ -2400,7 +2400,6 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 	fklNiEnd(&ap,exe);
 }
 
-#include"utstring.h"
 typedef struct
 {
 	FklVMvalue* fpv;
@@ -2408,7 +2407,7 @@ typedef struct
 	FklStringMatchRouteNode* root;
 	FklStringMatchRouteNode* route;
 	FklStringMatchSet* matchSet;
-	UT_string* buf;
+	FklStringBuffer* buf;
 	FklPtrStack* tokenStack;
 	const FklSid_t* headSymbol;
 	uint32_t ap;
@@ -2432,7 +2431,7 @@ static void read_frame_finalizer(FklCallObjData data)
 {
 	ReadCtx* c=(ReadCtx*)data;
 	fklUnLockVMfp(c->fpv);
-	utstring_free(c->buf);
+	fklDestroyStringBuffer(c->buf);
 	FklPtrStack* s=c->tokenStack;
 	while(!fklIsPtrStackEmpty(s))
 		fklDestroyToken(fklPopPtrStack(s));
@@ -2456,12 +2455,11 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 	int fd=fileno(fp);
 	int attr=fcntl(fd,F_GETFL);
 	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
-	UT_string* s=rctx->buf;
+	FklStringBuffer* s=rctx->buf;
 	int ch;
 	while((ch=fgetc(fp))>0)
 	{
-		char c=ch;
-		utstring_bincpy(s,&c,sizeof(c));
+		fklStringBufferPutc(s,ch);
 		if(ch=='\n')
 			break;
 	}
@@ -2470,8 +2468,8 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 	{
 		size_t line=1;
 		int err=0;
-		rctx->matchSet=fklSplitStringIntoTokenWithPattern(utstring_body(s)
-				,utstring_len(s)
+		rctx->matchSet=fklSplitStringIntoTokenWithPattern(fklStringBufferBody(s)
+				,fklStringBufferLen(s)
 				,line
 				,&line
 				,rctx->j
@@ -2485,10 +2483,10 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 		if(rctx->matchSet==NULL)
 		{
 			size_t j=rctx->j;
-			size_t len=utstring_len(s);
+			size_t len=fklStringBufferLen(s);
 			size_t errorLine=0;
 			if(len-j)
-				fklRewindStream(fp,utstring_body(s)+j,len-j);
+				fklRewindStream(fp,fklStringBufferBody(s)+j,len-j);
 			rctx->done=1;
 			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(rctx->tokenStack
 					,rctx->root
@@ -2553,7 +2551,7 @@ static inline void initReadCtx(FklCallObjData data
 			,NULL);
 	ctx->route=ctx->root;
 	ctx->ap=ap;
-	utstring_new(ctx->buf);
+	ctx->buf=fklCreateStringBuffer();
 	ctx->tokenStack=fklCreatePtrStack(16,16);
 	ctx->done=0;
 }
@@ -2704,7 +2702,7 @@ typedef enum
 typedef struct
 {
 	FklVMvalue* fpv;
-	UT_string buf;
+	FklStringBuffer buf;
 	FgetMode mode:16;
 	uint16_t done;
 	uint32_t ap;
@@ -2728,7 +2726,7 @@ static inline void initFgetCtx(FklCallObjData d
 	ctx->ap=ap;
 	ctx->done=0;
 	ctx->delim=del;
-	utstring_init(&ctx->buf);
+	fklInitStringBuffer(&ctx->buf);
 }
 
 static void fget_frame_atomic(FklCallObjData data,FklVMgc* gc)
@@ -2740,7 +2738,7 @@ static void fget_frame_atomic(FklCallObjData data,FklVMgc* gc)
 static void fget_frame_finalizer(FklCallObjData data)
 {
 	FgetCtx* c=(FgetCtx*)data;
-	utstring_done(&c->buf);
+	fklUninitStringBuffer(&c->buf);
 	fklUnLockVMfp(c->fpv);
 }
 
@@ -2758,7 +2756,7 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 	int attr=fcntl(fd,F_GETFL);
 	fcntl(fd,F_SETFL,attr|O_NONBLOCK);
 	int ch=0;
-	UT_string* s=&ctx->buf;
+	FklStringBuffer* s=&ctx->buf;
 	switch(ctx->mode)
 	{
 		case FGETC:
@@ -2784,14 +2782,14 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 			while((ch=fgetc(fp))>0)
 			{
 				char c=ch;
-				utstring_bincpy(s,&c,sizeof(c));
+				fklStringBufferBincpy(s,&c,sizeof(c));
 				if(ch==ctx->delim)
 					break;
 			}
 			if(feof(fp)||ch==ctx->delim)
 			{
 				ctx->done=1;
-				FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(utstring_len(s),utstring_body(s)),exe);
+				FklVMvalue* retval=fklCreateVMvalueToStack(FKL_TYPE_STR,fklStringBufferToString(s),exe);
 				uint32_t* pap=&ctx->ap;
 				fklNiReturn(retval,pap,exe);
 				fklNiEnd(pap,exe);
@@ -2802,17 +2800,15 @@ static void fget_frame_step(FklCallObjData d,FklVM* exe)
 			while(ctx->len&&(ch=fgetc(fp))>0)
 			{
 				char c=ch;
-				utstring_bincpy(s,&c,sizeof(c));
+				fklStringBufferBincpy(s,&c,sizeof(c));
 				ctx->len--;
 			}
 			if(!ctx->len||feof(fp))
 			{
 				ctx->done=1;
 				uint32_t* pap=&ctx->ap;
-				size_t len=utstring_len(s);
-				const char* body=utstring_body(s);
-				FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueToStack(FKL_TYPE_STR,fklCreateString(len,body),exe)
-					:fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCreateBytevector(len,(const uint8_t*)body),exe);
+				FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueToStack(FKL_TYPE_STR,fklStringBufferToString(s),exe)
+					:fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklStringBufferToBytevector(s),exe);
 				fklNiReturn(retval,pap,exe);
 				fklNiEnd(pap,exe);
 			}

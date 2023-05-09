@@ -38,11 +38,36 @@ void fklWriteStringToCstr(char*,const FklString*);
 FklString* fklStringToRawString(const FklString* str);
 FklString* fklStringToRawSymbol(const FklString* str);
 
+typedef struct FklStringBuffer
+{
+	char* b;
+	uint32_t s;
+	uint32_t i;
+}FklStringBuffer;
+
+FklStringBuffer* fklCreateStringBuffer(void);
+char* fklStringBufferBody(FklStringBuffer*);
+uint32_t fklStringBufferLen(FklStringBuffer*);
+void fklInitStringBuffer(FklStringBuffer*);
+void fklStringBufferReverse(FklStringBuffer*,size_t s);
+void fklUninitStringBuffer(FklStringBuffer*);
+void fklDestroyStringBuffer(FklStringBuffer*);
+void fklStringBufferClear(FklStringBuffer*);
+void fklStringBufferFill(FklStringBuffer*,char);
+void fklStringBufferBincpy(FklStringBuffer*,const void*,size_t);
+void fklStringBufferConcatWithCstr(FklStringBuffer*,const char*);
+void fklStringBufferConcatWithString(FklStringBuffer*,const FklString*);
+void fklStringBufferConcatWithStringBuffer(FklStringBuffer*,const FklStringBuffer*);
+void fklStringBufferPutc(FklStringBuffer*,char);
+void fklStringBufferPrintf(FklStringBuffer*,const char* fmt,...);
+FklString* fklStringBufferToString(FklStringBuffer*);
+
 typedef struct FklBytevector
 {
 	uint64_t size;
 	uint8_t ptr[];
 }FklBytevector;
+FklBytevector* fklStringBufferToBytevector(FklStringBuffer*);
 
 FklBytevector* fklCreateBytevector(size_t,const uint8_t*);
 FklBytevector* fklCopyBytevector(const FklBytevector*);

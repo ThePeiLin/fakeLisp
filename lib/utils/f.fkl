@@ -116,7 +116,6 @@
 
 (export
   (define (times f t)
-    (let do [(c 0)]
-      (when (< c t)
-        (f)
-        (do (1+ c))))))
+    (do [(c 0 (setq c (1+ c)))]
+      [(>= c t)]
+      (f))))

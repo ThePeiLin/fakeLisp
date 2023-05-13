@@ -446,20 +446,9 @@ void fklDestroyVMgc(FklVMgc*);
 void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
 
-//void fklChangeGCstate(FklGCstate,FklVMgc*);
 FklGCstate fklGetGCstate(FklVMgc*);
-//void fklGetGCstateAndGCNum(FklVMgc*,FklGCstate* s,int* num);
 void* fklGC_threadFunc(void*);
-//void* fklGC_sweepThreadFunc(void*);
-//void fklGC_mark(FklVM*);
-//void fklGC_markValue(FklVMvalue*);
-//void fklGC_markValueInStack(FklVMstack*);
-//void fklGC_markValueInCallChain(FklPtrStack*);
-//void fklGC_markMessage(FklQueueNode*);
-//void fklGC_markSendT(FklQueueNode*);
 void fklGC_toGrey(FklVMvalue*,FklVMgc*);
-//void fklGC_step(FklVM* exe);
-//void fklGC_joinGCthread(FklVMgc* gc);
 
 void fklDestroyAllValues(FklVMgc*);
 void fklGC_sweep(FklVMvalue*);
@@ -474,6 +463,20 @@ void fklPrintVMvalue(FklVMvalue* value
 		,FklSymbolTable* table);
 void fklPrin1VMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
 void fklPrincVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
+
+
+FklVMvalue* fklDlprocGetArg(uint32_t* ap,FklVM*);
+FklVMvalue** fklDlprocReturn(FklVMvalue*,uint32_t* ap,FklVM*);
+void fklDlprocSetBpWithTp(FklVM* s);
+uint32_t fklDlprocSetBp(uint32_t nbp,FklVM* s);
+int fklDlprocResBp(uint32_t* ap,FklVM*);
+void fklDlprocEnd(uint32_t* ap,FklVM*);
+void fklDlprocBegin(uint32_t* ap,FklVM*);
+#define FKL_DLPROC_BEGIN(EXE) uint32_t ap=0;\
+fklDlprocBegin(&ap,(EXE));
+#define FKL_DLPROC_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
+#define FKL_DLPROC_CHECK_REST_ARG(PAP,STACK,ERR_INFO,EXE) if(fklDlprocResBp((PAP),(STACK)))\
+FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOMANYARG,EXE)
 
 //vmutils
 

@@ -204,9 +204,9 @@ typedef struct FklVMCompoundFrameVarRef
 
 typedef struct FklVMCompoundFrameData
 {
+	FklSid_t sid:61;
 	unsigned int tail:1;
 	unsigned int mark:2;
-	FklSid_t sid:61;
 	FklVMvalue* proc;
 	uint8_t* spc;
 	uint8_t* pc;
@@ -219,8 +219,8 @@ typedef void* FklCallObjData[10];
 typedef struct
 {
 	FklVMFuncK kFunc;
-	void* ctx;
 	size_t size;
+	void* ctx;
 }FklVMcCC;
 
 typedef enum
@@ -390,8 +390,9 @@ typedef struct FklVMgc
 	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
-	struct Greylink* volatile grey;
-	size_t volatile greyNum;
+	// struct Greylink* volatile grey;
+	// size_t volatile greyNum;
+	FklVM GcCo;
 }FklVMgc;
 
 typedef struct FklVMdlproc
@@ -412,8 +413,8 @@ typedef struct FklVMerror
 typedef struct FklVMerrorHandler
 {
 	FklSid_t* typeIds;
-	uint32_t num;
 	FklVMproc proc;
+	uint32_t num;
 }FklVMerrorHandler;
 
 //vmrun
@@ -447,7 +448,8 @@ void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
 
 FklGCstate fklGetGCstate(FklVMgc*);
-void* fklGC_threadFunc(void*);
+void fklTryGC(FklVM*);
+// void* fklGC_threadFunc(void*);
 void fklGC_toGrey(FklVMvalue*,FklVMgc*);
 
 void fklDestroyAllValues(FklVMgc*);

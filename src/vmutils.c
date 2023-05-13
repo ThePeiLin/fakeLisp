@@ -1610,7 +1610,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 	return retval;
 }
 
-FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
+inline FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;
@@ -1623,12 +1623,12 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 	return ref;
 }
 
-FklVMvalue* fklGetTopValue(FklVM* exe)
+inline FklVMvalue* fklGetTopValue(FklVM* exe)
 {
 	return exe->base[exe->tp-1];
 }
 
-size_t fklVMlistLength(FklVMvalue* v)
+inline size_t fklVMlistLength(FklVMvalue* v)
 {
 	size_t len=0;
 	for(;FKL_IS_PAIR(v);v=fklGetVMpairCdr(v))len++;

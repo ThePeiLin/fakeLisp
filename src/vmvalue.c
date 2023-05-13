@@ -817,13 +817,6 @@ void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
 	}
 }
 
-static void tryGC(FklVM* vm)
-{
-	FklVMgc* gc=vm->gc;
-	if(gc->num>gc->threshold)
-		fklGC_threadFunc(vm);
-}
-
 FklVMvalue* fklCreateVMvalueNoGC(FklValueType type,void* pValue,FklVMgc* gc)
 {
 	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
@@ -848,7 +841,7 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
 			fklGC_toGrey(v,gc);
 		gc->num+=1;
-		tryGC(vm);
+		fklTryGC(vm);
 		v->next=gc->head;
 		v->mark=FKL_MARK_W;
 		gc->head=v;

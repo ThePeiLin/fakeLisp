@@ -30,11 +30,21 @@
 (defmacro next-idx 3)
 
 (export
-  (define (do-iter f iterator)
+  (define (iter-foreach f iterator)
     ((vref iterator init-idx))
     (define end? (vref iterator end?-idx))
     (define next (vref iterator next-idx))
     (do []
       [(end?)]
       (f (next)))))
+
+(export
+  (define (iter-map f iterator)
+    ((vref iterator init-idx))
+    (define end? (vref iterator end?-idx))
+    (define next (vref iterator next-idx))
+    (define r (cons nil nil))
+    (do [(c r
+            (set-cdr! c (cons (f (next)) nil)))]
+      [(end?) (cdr r)])))
 

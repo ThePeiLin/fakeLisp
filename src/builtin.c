@@ -4010,10 +4010,30 @@ static void builtin_reverse(FKL_DL_PROC_ARGL)
 	FKL_DLPROC_CHECK_REST_ARG(&ap,exe,Pname,exe);
 	FKL_DLPROC_CHECK_TYPE(obj,fklIsList,Pname,exe);
 	FklVMvalue* retval=FKL_VM_NIL;
-	if(obj!=FKL_VM_NIL)
+	for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=cdr->u.pair->cdr)
+		retval=fklCreateVMpairV(cdr->u.pair->car,retval,exe);
+	fklDlprocReturn(retval,&ap,exe);
+	fklDlprocEnd(&ap,exe);
+}
+
+static void builtin_reverse1(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.reverse!";
+	FKL_DLPROC_BEGIN(exe);
+	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DLPROC_CHECK_REST_ARG(&ap,exe,Pname,exe);
+	FKL_DLPROC_CHECK_TYPE(obj,fklIsList,Pname,exe);
+	FklVMvalue* retval=FKL_VM_NIL;
+	FklVMvalue* cdr=obj;
+	FklVMgc* gc=exe->gc;
+	while(cdr!=FKL_VM_NIL)
 	{
-		for(FklVMvalue* cdr=obj;cdr!=FKL_VM_NIL;cdr=cdr->u.pair->cdr)
-			retval=fklCreateVMpairV(cdr->u.pair->car,retval,exe);
+		FklVMvalue* car=cdr->u.pair->car;
+		FklVMvalue* pair=cdr;
+		cdr=cdr->u.pair->cdr;
+		fklSetRef(&pair->u.pair->car,car,gc);
+		fklSetRef(&pair->u.pair->cdr,retval,gc);
+		retval=pair;
 	}
 	fklDlprocReturn(retval,&ap,exe);
 	fklDlprocEnd(&ap,exe);
@@ -5006,6 +5026,7 @@ static const struct SymbolFuncStruct
 	{"raise",                 builtin_raise,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"reverse",               builtin_reverse,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"reverse!",              builtin_reverse1,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof",                  builtin_feof,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"nthcdr",                builtin_nthcdr,                  {NULL,         NULL,          NULL,          NULL,          }, },

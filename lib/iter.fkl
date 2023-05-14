@@ -5,46 +5,40 @@
 
 (export
   (define (mk-integer-iterator start end step)
-    (define cur start)
-    `#(iterator
-        ~(lambda () (setq cur start))
-        ~(lambda () (>= cur end))
-        ~(lambda ()
-           (define r cur)
-           (setq cur (+ cur step))
-           r))))
+    (lambda ()
+      (define cur start)
+      (cons (lambda () (>= cur end))
+            (lambda ()
+              (define r cur)
+              (setq cur (+ cur step))
+              r)))))
 
 (export
   (define (mk-list-iterator l)
-    (define c l)
-    `#(iterator
-        ~(lambda () (setq c l))
-        ~(lambda () (not c))
-        ~(lambda ()
-           (define r (car c))
-           (setq c (cdr c))
-           r))))
-
-(defmacro init-idx 1)
-(defmacro end?-idx 2)
-(defmacro next-idx 3)
+    (lambda ()
+      (define c l)
+      (cons
+        (lambda () (not c))
+        (lambda ()
+          (define r (car c))
+          (setq c (cdr c))
+          r)))))
 
 (export
   (define (iter-foreach f iterator)
-    ((vref iterator init-idx))
-    (define end? (vref iterator end?-idx))
-    (define next (vref iterator next-idx))
+    (define pp (iterator))
+    (define end? (car pp))
+    (define next (cdr pp))
     (do []
       [(end?)]
       (f (next)))))
 
 (export
   (define (iter-map f iterator)
-    ((vref iterator init-idx))
-    (define end? (vref iterator end?-idx))
-    (define next (vref iterator next-idx))
-    (define r (cons nil nil))
-    (do [(c r
-            (set-cdr! c (cons (f (next)) nil)))]
-      [(end?) (cdr r)])))
+    (define pp (iterator))
+    (define end? (car pp))
+    (define next (cdr pp))
+    (do [(r nil
+            (cons (f (next)) r))]
+      [(end?) (reverse! r)])))
 

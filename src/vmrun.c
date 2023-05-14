@@ -2722,7 +2722,7 @@ void fklGC_markRootToGrey(FklVM* exe)
 	for(uint32_t i=0;i<count;i++)
 		fklGC_toGrey(loc[i],gc);
 
-	for(size_t i=0;i<exe->libNum;i++)
+	for(size_t i=1;i<=exe->libNum;i++)
 	{
 		FklVMlib* lib=&exe->libs[i];
 		fklGC_toGrey(lib->proc,gc);

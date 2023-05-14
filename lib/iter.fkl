@@ -8,7 +8,7 @@
     (define cur start)
     `#(iterator
         ~(lambda () (setq cur start))
-        ~(lambda () (< cur end))
+        ~(lambda () (>= cur end))
         ~(lambda ()
            (define r cur)
            (setq cur (+ cur step))
@@ -19,22 +19,22 @@
     (define c l)
     `#(iterator
         ~(lambda () (setq c l))
-        ~(lambda () c)
+        ~(lambda () (not c))
         ~(lambda ()
            (define r (car c))
            (setq c (cdr c))
            r))))
 
 (defmacro init-idx 1)
-(defmacro rest-idx 2)
+(defmacro end?-idx 2)
 (defmacro next-idx 3)
 
 (export
   (define (do-iter f iterator)
     ((vref iterator init-idx))
-    (define rest (vref iterator rest-idx))
+    (define end? (vref iterator end?-idx))
     (define next (vref iterator next-idx))
-    (do [(res (rest) (rest))]
-      [(not res)]
+    (do []
+      [(end?)]
       (f (next)))))
 

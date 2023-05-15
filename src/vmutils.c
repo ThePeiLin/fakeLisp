@@ -277,6 +277,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->pc=pfd->pc;
 	fd->spc=pfd->spc;
 	fd->end=pfd->end;
+	fd->proc=FKL_VM_NIL;
 	fklSetRef(&fd->proc,pfd->proc,gc);
 	fd->mark=pfd->mark;
 	fd->tail=pfd->tail;

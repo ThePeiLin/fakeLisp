@@ -2352,6 +2352,22 @@ static inline FklSymbolDef* add_ref_per_penv(FklSid_t id
 	return cel;
 }
 
+static inline int is_ref_solved(FklSymbolDef* ref,FklCodegenEnv* env)
+{
+	if(env)
+	{
+		uint32_t top=env->uref.top;
+		FklUnReSymbolRef** refs=(FklUnReSymbolRef**)env->uref.base;
+		for(uint32_t i=0;i<top;i++)
+		{
+			FklUnReSymbolRef* cur=refs[i];
+			if(cur->id==ref->k.id&&cur->scope==ref->k.scope)
+				return 0;
+		}
+	}
+	return 1;
+}
+
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
 {
 	FklHashTable* ht=env->refs;
@@ -2379,7 +2395,7 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 				FklSymbolDef* targetRef=has_outer_ref(cur
 						,id
 						,&targetEnv);
-				if(targetRef)
+				if(targetRef&&is_ref_solved(targetRef,targetEnv->prev))
 					add_ref_per_penv(id,env,targetEnv->prev);
 				else
 				{
@@ -6265,7 +6281,7 @@ static inline int isExportImportExp(FklNastNode* c)
 static inline int isValidExportNodeList(const FklNastNode* list)
 {
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr)
-		if(list->u.pair->car->type!=FKL_NAST_SYM
+		if(list->u.pair->car->type!=FKL_NAST_PAIR
 				&&!isExportDefmacroExp(list->u.pair->car)
 				&&!isExportImportExp(list->u.pair->car)
 				&&!isExportDefunExp(list->u.pair->car)

@@ -1,6 +1,5 @@
 (import (ascii-art)
         (bf)
-        (bigloop)
         (coroutine)
         (demo1)
         (demo2)
@@ -9,6 +8,7 @@
         (internationale)
         (test-loc)
         (reader-macro)
+        (bigloop)
         (test))
 
 (println "\ntest done!")

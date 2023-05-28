@@ -242,7 +242,7 @@ int fklIsDoubleCstr(const char* objStr)
 {
 	size_t i=(objStr[0]=='-')?1:0;
 	int isHex=(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2));
-	ssize_t len=strlen(objStr);
+	size_t len=strlen(objStr);
 	for(i+=isHex*2;objStr[i]!='\0';i++)
 	{
 		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])==('E'+isHex*('P'-'E'))&&i<(len-1)))
@@ -332,7 +332,7 @@ int fklIsNumberCharBuf(const char* buf,size_t len)
 {
 	if(!len)
 		return 0;
-	int i=(*buf=='-'||*buf=='+')?1:0;
+	size_t i=(*buf=='-'||*buf=='+')?1:0;
 	int hasDot=0;
 	int hasExp=0;
 	if(i&&(len<2||!isdigit(buf[1])))
@@ -462,7 +462,7 @@ int fklIsNumberCstr(const char* objStr)
 	return 1;
 }
 
-inline int static isSpecialCharAndPrint(uint8_t ch,FILE* out)
+static inline int isSpecialCharAndPrint(uint8_t ch,FILE* out)
 {
 	int r=0;
 	if((r=ch=='\n'))
@@ -768,7 +768,7 @@ char** fklSplit(char* str,char* divstr,int* length)
 	while(pNext!=NULL)
 	{
 		count++;
-		char** tstrArry=(char**)realloc(strArry,sizeof(char*)*count);
+		char** tstrArry=(char**)fklRealloc(strArry,sizeof(char*)*count);
 		FKL_ASSERT(tstrArry);
 		strArry=tstrArry;
 		strArry[count-1]=pNext;
@@ -854,7 +854,7 @@ void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const 
 
 char* fklStrCat(char* s1,const char* s2)
 {
-	s1=(char*)realloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
+	s1=(char*)fklRealloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
 	FKL_ASSERT(s1);
 	strcat(s1,s2);
 	return s1;
@@ -880,7 +880,7 @@ char* fklCharBufToCstr(const char* buf,size_t size)
 		len++;
 	}
 	str[len]='\0';
-	char* tstr=(char*)realloc(str,(strlen(str)+1)*sizeof(char));
+	char* tstr=(char*)fklRealloc(str,(strlen(str)+1)*sizeof(char));
 	FKL_ASSERT(str);
 	str=tstr;
 	return str;
@@ -921,7 +921,7 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 		}
 		else
 		{
-			for(int j=0;j<l;j++)
+			for(unsigned int j=0;j<l;j++)
 				putc(str[i+j],out);
 			i+=l;
 		}
@@ -1029,14 +1029,14 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 		strSize++;
 		if(strSize>memSize-1)
 		{
-			char* ttmp=(char*)realloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			char* ttmp=(char*)fklRealloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
 			FKL_ASSERT(tmp);
 			tmp=ttmp;
 			memSize+=FKL_MAX_STRING_SIZE;
 		}
 		tmp[strSize-1]=ch;
 	}
-	char* ttmp=(char*)realloc(tmp,strSize*sizeof(char));
+	char* ttmp=(char*)fklRealloc(tmp,strSize*sizeof(char));
 	FKL_ASSERT(ttmp||!strSize);
 	tmp=ttmp;
 	*psize=strSize;
@@ -1098,7 +1098,7 @@ FklDllHandle fklLoadDll(const char* path)
 #endif
 }
 
-inline uint64_t fklGetTicks(void)
+inline int64_t fklGetTicks(void)
 {
 	struct timespec t;
 	clock_gettime(CLOCK_MONOTONIC,&t);
@@ -1117,3 +1117,9 @@ inline int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
 	}
 	return fseek(fp,-len,SEEK_CUR);
 }
+
+inline void* fklRealloc(void* ptr,size_t ns)
+{
+	return ns?realloc(ptr,ns):(free(ptr),NULL);
+}
+

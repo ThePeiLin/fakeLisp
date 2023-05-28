@@ -32,7 +32,7 @@ int main(int argc,char** argv)
 		fklSetCwd(cwd);
 		free(cwd);
 		chdir(fklGetCwd());
-		for(int j=0;j<buf.gl_pathc;j++)
+		for(size_t j=0;j<buf.gl_pathc;j++)
 		{
 			char* filename=buf.gl_pathv[j];
 			FILE* fp=fopen(filename,"r");
@@ -100,6 +100,7 @@ int main(int argc,char** argv)
 				uint8_t* code=mainByteCode->bc->code;
 				fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
 				fwrite(code,sizeOfMain,1,outfp);
+				fklWriteFuncPrototypes(codegen.pts,outfp);
 				uint64_t num=loadedLibStack->top;
 				fwrite(&num,sizeof(uint64_t),1,outfp);
 				for(size_t i=0;i<num;i++)
@@ -126,7 +127,6 @@ int main(int argc,char** argv)
 						fwrite(rp,len,1,outfp);
 					}
 				}
-				fklWriteFuncPrototypes(codegen.pts,outfp);
 				fklDestroyFuncPrototypes(codegen.pts);
 				fklDestroyByteCodelnt(mainByteCode);
 				fclose(outfp);

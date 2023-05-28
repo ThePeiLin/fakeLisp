@@ -20,7 +20,7 @@
 static void runRepl(FklCodegen*,const FklSid_t*);
 static FklByteCode* loadByteCode(FILE*);
 static void loadSymbolTable(FILE*,FklSymbolTable* table);
-static void loadLib(FILE*,uint64_t*,FklVMlib**,FklVMgc*,FklVMCompoundFrameVarRef* lr);
+static void loadLib(FILE*,uint64_t*,FklVMlib**,FklVM*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
 
 #define FKL_EXIT_FAILURE (255)
@@ -62,15 +62,14 @@ static inline int compileAndRun(char* filename)
 
 	chdir(fklGetCwd());
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
-	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable);
-	anotherVM->pts=codegen.pts;
+	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts);
 	anotherVM->libNum=codegen.loadedLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((loadedLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 	FklVMframe* mainframe=anotherVM->frames;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	fklInitMainVMframeWithProc(anotherVM,mainframe
-			,fklGetCompoundFrameProc(mainframe)->u.proc
+			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
 			,NULL
 			,anotherVM->pts);
 	FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
@@ -81,9 +80,9 @@ static inline int compileAndRun(char* filename)
 		FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
 		FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
 		FklCodegenLibType type=cur->type;
-		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM->gc,anotherVM->pts);
+		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
-			fklInitMainProcRefs(curVMlib->proc->u.proc,lr->ref,lr->rcount);
+			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
 	}
 
 	int r=fklRunVM(anotherVM);
@@ -101,7 +100,10 @@ static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncProtot
 	{
 		FklVMlib* cur=&lib[i];
 		if(FKL_IS_PROC(cur->proc))
-			cur->proc->u.proc->lcount=pta[cur->proc->u.proc->protoId].lcount;
+		{
+			FklVMproc* proc=FKL_VM_PROC(cur->proc);
+			proc->lcount=pta[proc->protoId].lcount;
+		}
 	}
 }
 
@@ -127,7 +129,8 @@ static inline int runCode(char* filename)
 	fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
 	FklByteCode* mainCode=loadByteCode(fp);
 	mainCodelnt->bc=mainCode;
-	FklVM* anotherVM=fklCreateVM(mainCodelnt,table);
+
+	FklVM* anotherVM=fklCreateVM(mainCodelnt,table,fklLoadFuncPrototypes(fp));
 
 	FklVMgc* gc=anotherVM->gc;
 	FklVMframe* mainframe=anotherVM->frames;
@@ -136,13 +139,12 @@ static inline int runCode(char* filename)
 	loadLib(fp
 			,&anotherVM->libNum
 			,&anotherVM->libs
-			,gc
+			,anotherVM
 			,fklGetCompoundFrameLocRef(anotherVM->frames));
 
-	anotherVM->pts=fklLoadFuncPrototypes(fp);
 	fklInitMainVMframeWithProc(anotherVM
 			,mainframe
-			,fklGetCompoundFrameProc(mainframe)->u.proc
+			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
 			,NULL
 			,anotherVM->pts);
 
@@ -213,8 +215,7 @@ int main(int argc,char** argv)
 
 static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 {
-	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable);
-	anotherVM->pts=codegen->pts;
+	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,codegen->pts);
 	anotherVM->libs=(FklVMlib*)calloc(1,sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 
@@ -230,7 +231,7 @@ static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
 static void loadLib(FILE* fp
 		,uint64_t* plibNum
 		,FklVMlib** plibs
-		,FklVMgc* gc
+		,FklVM* exe
 		,FklVMCompoundFrameVarRef* lr)
 {
 	fread(plibNum,sizeof(uint64_t),1,fp);
@@ -250,9 +251,9 @@ static void loadLib(FILE* fp
 			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
 			FklByteCode* bc=loadByteCode(fp);
 			bcl->bc=bc;
-			FklVMvalue* codeObj=fklCreateVMvalueNoGC(FKL_TYPE_CODE_OBJ,bcl,gc);
-			fklInitVMlibWithCodeObj(&libs[i],codeObj,gc,protoId);
-			fklInitMainProcRefs(libs[i].proc->u.proc,lr->ref,lr->rcount);
+			FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,bcl);
+			fklInitVMlibWithCodeObj(&libs[i],codeObj,exe,protoId);
+			fklInitMainProcRefs(FKL_VM_PROC(libs[i].proc),lr->ref,lr->rcount);
 		}
 		else
 		{
@@ -260,7 +261,7 @@ static void loadLib(FILE* fp
 			fread(&len,sizeof(uint64_t),1,fp);
 			FklString* s=fklCreateString(len,NULL);
 			fread(s->str,len,1,fp);
-			FklVMvalue* stringValue=fklCreateVMvalueNoGC(FKL_TYPE_STR,s,gc);
+			FklVMvalue* stringValue=fklCreateVMvalueStr(exe,s);
 			fklInitVMlib(&libs[i],stringValue);
 		}
 	}

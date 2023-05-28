@@ -45,7 +45,6 @@ void fklWriteSymbolTable(FklSymbolTable*,FILE*);
 
 typedef struct FklFuncPrototype
 {
-	// struct FklSymbolDef* loc;
 	struct FklSymbolDef* refs;
 	uint32_t lcount;
 	uint32_t rcount;

@@ -309,7 +309,7 @@ void fklPrintNastNode(const FklNastNode* exp
 					break;
 				case FKL_NAST_HASHTABLE:
 					{
-						const static char* tmp[]=
+						static const char* tmp[]=
 						{
 							"#hash(",
 							"#hasheqv(",
@@ -561,7 +561,7 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 	return r;
 }
 
-inline static FklToken* getSingleToken(FklStringMatchRouteNode* routeNode
+static inline FklToken* getSingleToken(FklStringMatchRouteNode* routeNode
 		,FklPtrStack* tokenStack)
 {
 	return tokenStack->base[routeNode->start];
@@ -703,7 +703,14 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 			,nastStack
 			,tokenStack);
 	FklHashTable* lineHash=fklCreateLineNumHashTable();
-	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc,pattern->pts,ht,lineHash,codegen);
+	FklNastNode* retval=NULL;
+	FklVM* anotherVM=fklInitMacroExpandVM(pattern->u.proc
+			,pattern->pts
+			,ht
+			,lineHash
+			,codegen
+			,&retval
+			,curline);
 	FklVMgc* gc=anotherVM->gc;
 	FklNastNode* r=NULL;
 	int e=fklRunVM(anotherVM);
@@ -714,12 +721,10 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		r=NULL;
 		*errorLine=curline;
 	}
-	else
+	else if(retval)
 	{
 		fklDestroyNastNode(r);
-		r=fklCreateNastNodeFromVMvalue(fklGetTopValue(anotherVM)
-				,curline,lineHash
-				,codegen->publicSymbolTable);
+		r=retval;
 	}
 	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
 	{
@@ -728,8 +733,8 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 	}
 	fklDestroyHashTable(ht);
 	fklDestroyHashTable(lineHash);
-	fklDestroyVMgc(gc);
 	fklDestroyAllVMs(anotherVM);
+	fklDestroyVMgc(gc);
 	if(r)
 		r->refcount=0;
 	return r;

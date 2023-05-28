@@ -287,7 +287,9 @@ struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklFuncPrototypes* pts
 		,FklHashTable* ht
 		,FklHashTable* lineHash
-		,FklCodegen* codegen);
+		,FklCodegen* codegen
+		,FklNastNode** pr
+		,uint64_t curline);
 
 struct FklVMlib;
 struct FklVMvalue;
@@ -304,13 +306,13 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 struct FklVMgc;
 void fklInitVMlibWithCodgenLib(FklCodegenLib* clib
 		,struct FklVMlib* vlib
-		,struct FklVMgc* vm
+		,struct FklVM* vm
 		,int needCopy
 		,FklFuncPrototypes*);
 
 void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVMlib* vlib
-		,struct FklVMgc* vm
+		,struct FklVM* vm
 		,FklFuncPrototypes*);
 
 void fklInitFrameToReplFrame(FklVM*,FklCodegen* codegen,const FklSid_t* headSymbol);

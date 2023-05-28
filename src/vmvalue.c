@@ -39,9 +39,10 @@ FklHashTable* fklCreateLineNumHashTable(void)
 }
 
 #define SENTINEL_NAST_NODE (NULL)
-FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
-		,FklHashTable* lineHash
-		,FklVM* vm)
+FklVMvalue* fklCreateVMvalueFromNastNode(
+		FklVM* vm
+		,const FklNastNode* node
+		,FklHashTable* lineHash)
 {
 	FklVMgc* gc=vm->gc;
 	FklPtrStack nodeStack=FKL_STACK_INIT;
@@ -64,225 +65,49 @@ FklVMvalue* fklCreateVMvalueFromNastNodeAndStoreInStack(const FklNastNode* node
 			FklPtrStack* tStack=fklTopPtrStack(&stackStack);
 			FklValueType type=fklPopUintStack(&reftypeStack);
 			uint64_t line=fklPopUintStack(&reftypeStack);
-			FklVMvalue* v=fklCreateSaveVMvalue(type,NULL);
+			FklVMvalue* v=NULL;
+			switch(type)
+			{
+				case FKL_TYPE_BOX:
+					v=fklCreateVMvalueBox(vm,fklPopPtrStack(cStack));
+					break;
+				case FKL_TYPE_PAIR:
+					{
+						size_t top=cStack->top;
+						v=fklCreateVMvaluePair(vm,cStack->base[top-1],cStack->base[top-2]);
+					}
+					break;
+				case FKL_TYPE_VECTOR:
+					{
+						v=fklCreateVMvalueVec(vm,cStack->top);
+						FklVMvec* vec=FKL_VM_VEC(v);
+						for(size_t i=cStack->top,j=0;i>0;i--,j++)
+							vec->base[j]=cStack->base[i-1];
+					}
+					break;
+				case FKL_TYPE_HASHTABLE:
+					{
+						v=fklCreateVMvalueHash(vm,fklPopUintStack(&reftypeStack));
+						FklHashTable* hash=FKL_VM_HASH(v);
+						for(size_t i=cStack->top;i>0;i-=2)
+						{
+							FklVMvalue* key=cStack->base[i-1];
+							FklVMvalue* v=cStack->base[i-2];
+							fklVMhashTableSet(key,v,hash,gc);
+						}
+					}
+					break;
+				default:
+					FKL_ASSERT(0);
+					break;
+			}
 			fklPushPtrStack(v,tStack);
 			if(lineHash)
 			{
 				LineNumHashItem i={v,line};
 				fklGetOrPutHashItem(&i,lineHash);
 			}
-			switch(type)
-			{
-				case FKL_TYPE_BOX:
-					v->u.box=fklPopPtrStack(cStack);
-					break;
-				case FKL_TYPE_PAIR:
-					{
-						FklVMpair* pair=fklCreateVMpair();
-						size_t top=cStack->top;
-						pair->car=cStack->base[top-1];
-						pair->cdr=cStack->base[top-2];
-						v->u.pair=pair;
-					}
-					break;
-				case FKL_TYPE_VECTOR:
-					{
-						v->u.vec=fklCreateVMvecNoInit(cStack->top);
-						for(size_t i=cStack->top,j=0;i>0;i--,j++)
-							v->u.vec->base[j]=cStack->base[i-1];
-					}
-					break;
-				case FKL_TYPE_HASHTABLE:
-					{
-						FklHashTable* hash=fklCreateVMhashTable(fklPopUintStack(&reftypeStack));
-						v->u.hash=hash;
-						for(size_t i=cStack->top;i>0;i-=2)
-						{
-							FklVMvalue* key=cStack->base[i-1];
-							FklVMvalue* v=cStack->base[i-2];
-							fklSetVMhashTable(key,v,hash,gc);
-						}
-					}
-					break;
-				default:
-					FKL_ASSERT(0);
-					break;
-			}
-			fklAddToGCNoGC(v,vm->gc);
-			fklPushVMvalue(v,vm);
-			fklDestroyPtrStack(cStack);
-			cStack=tStack;
-		}
-		else
-		{
-			switch(root->type)
-			{
-				case FKL_NAST_NIL:
-					fklPushPtrStack(FKL_VM_NIL,cStack);
-					break;
-				case FKL_NAST_FIX:
-					fklPushPtrStack(FKL_MAKE_VM_FIX(root->u.fix),cStack);
-					break;
-				case FKL_NAST_CHR:
-					fklPushPtrStack(FKL_MAKE_VM_CHR(root->u.chr),cStack);
-					break;
-				case FKL_NAST_SYM:
-					fklPushPtrStack(FKL_MAKE_VM_SYM(root->u.sym),cStack);
-					break;
-				case FKL_NAST_F64:
-					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_F64,&root->u.f64,gc,vm),cStack);
-					break;
-				case FKL_NAST_STR:
-					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_STR
-								,fklCreateString(root->u.str->size,root->u.str->str)
-								,gc
-								,vm),cStack);
-					break;
-				case FKL_NAST_BYTEVECTOR:
-					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_BYTEVECTOR
-								,fklCreateBytevector(root->u.bvec->size,root->u.bvec->ptr)
-								,gc
-								,vm),cStack);
-					break;
-				case FKL_NAST_BIG_INT:
-					fklPushPtrStack(fklCreateVMvalueNoGCAndToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(root->u.bigInt),gc,vm),cStack);
-					break;
-				case FKL_NAST_BOX:
-					{
-						FklPtrStack* bStack=fklCreatePtrStack(1,16);
-						fklPushPtrStack(bStack,&stackStack);
-						cStack=bStack;
-						fklPushUintStack(root->curline,&reftypeStack);
-						fklPushUintStack(FKL_TYPE_BOX,&reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
-						fklPushPtrStack(root->u.box,&nodeStack);
-					}
-					break;
-				case FKL_NAST_VECTOR:
-					{
-						fklPushUintStack(root->curline,&reftypeStack);
-						fklPushUintStack(FKL_TYPE_VECTOR,&reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
-						for(size_t i=0;i<root->u.vec->size;i++)
-							fklPushPtrStack(root->u.vec->base[i],&nodeStack);
-						FklPtrStack* vStack=fklCreatePtrStack(root->u.vec->size,16);
-						fklPushPtrStack(vStack,&stackStack);
-						cStack=vStack;
-					}
-					break;
-				case FKL_NAST_HASHTABLE:
-					{
-						fklPushUintStack(root->u.hash->type,&reftypeStack);
-						fklPushUintStack(root->curline,&reftypeStack);
-						fklPushUintStack(FKL_TYPE_HASHTABLE,&reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
-						size_t num=root->u.hash->num;
-						FklNastHashTable* hash=root->u.hash;
-						for(size_t i=0;i<num;i++)
-						{
-							fklPushPtrStack(hash->items[i].car,&nodeStack);
-							fklPushPtrStack(hash->items[i].cdr,&nodeStack);
-						}
-						FklPtrStack* hStack=fklCreatePtrStack(32,16);
-						fklPushPtrStack(hStack,&stackStack);
-						cStack=hStack;
-					}
-					break;
-				case FKL_NAST_PAIR:
-					{
-						FklPtrStack* pStack=fklCreatePtrStack(2,16);
-						fklPushPtrStack(pStack,&stackStack);
-						cStack=pStack;
-						fklPushUintStack(root->curline,&reftypeStack);
-						fklPushUintStack(FKL_TYPE_PAIR,&reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
-						fklPushPtrStack(root->u.pair->car,&nodeStack);
-						fklPushPtrStack(root->u.pair->cdr,&nodeStack);
-					}
-					break;
-				default:
-					FKL_ASSERT(0);
-					break;
-			}
-		}
-	}
-	FklVMvalue* retval=fklTopPtrStack(&valueStack);
-	fklUninitPtrStack(&stackStack);
-	fklUninitPtrStack(&nodeStack);
-	fklUninitPtrStack(&valueStack);
-	fklUninitUintStack(&reftypeStack);
-	return retval;
-}
 
-FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
-		,FklHashTable* lineHash
-		,FklVMgc* gc)
-{
-	FklPtrStack nodeStack=FKL_STACK_INIT;
-	fklInitPtrStack(&nodeStack,32,16);
-	FklUintStack reftypeStack=FKL_STACK_INIT;
-	fklInitUintStack(&reftypeStack,32,16);
-	FklPtrStack valueStack=FKL_STACK_INIT;
-	fklInitPtrStack(&valueStack,32,16);
-	FklPtrStack stackStack=FKL_STACK_INIT;
-	fklInitPtrStack(&stackStack,32,16);
-	fklPushPtrStack((void*)node,&nodeStack);
-	fklPushPtrStack(&valueStack,&stackStack);
-	while(!fklIsPtrStackEmpty(&nodeStack))
-	{
-		FklNastNode* root=fklPopPtrStack(&nodeStack);
-		FklPtrStack* cStack=fklTopPtrStack(&stackStack);
-		if(root==SENTINEL_NAST_NODE)
-		{
-			fklPopPtrStack(&stackStack);
-			FklPtrStack* tStack=fklTopPtrStack(&stackStack);
-			FklValueType type=fklPopUintStack(&reftypeStack);
-			uint64_t line=fklPopUintStack(&reftypeStack);
-			FklVMvalue* v=fklCreateSaveVMvalue(type,NULL);
-			fklPushPtrStack(v,tStack);
-			if(lineHash)
-			{
-				LineNumHashItem i={v,line};
-				fklGetOrPutHashItem(&i,lineHash);
-			}
-			switch(type)
-			{
-				case FKL_TYPE_BOX:
-					v->u.box=fklPopPtrStack(cStack);
-					break;
-				case FKL_TYPE_PAIR:
-					{
-						FklVMpair* pair=fklCreateVMpair();
-						size_t top=cStack->top;
-						pair->car=cStack->base[top-1];
-						pair->cdr=cStack->base[top-2];
-						v->u.pair=pair;
-					}
-					break;
-				case FKL_TYPE_VECTOR:
-					{
-						v->u.vec=fklCreateVMvecNoInit(cStack->top);
-						for(size_t i=cStack->top,j=0;i>0;i--,j++)
-							v->u.vec->base[j]=cStack->base[i-1];
-					}
-					break;
-				case FKL_TYPE_HASHTABLE:
-					{
-						FklHashTable* hash=fklCreateVMhashTable(fklPopUintStack(&reftypeStack));
-						v->u.hash=hash;
-						for(size_t i=cStack->top;i>0;i-=2)
-						{
-							FklVMvalue* key=cStack->base[i-1];
-							FklVMvalue* v=cStack->base[i-2];
-							fklSetVMhashTable(key,v,hash,gc);
-						}
-					}
-					break;
-				default:
-					FKL_ASSERT(0);
-					break;
-			}
-			fklAddToGCNoGC(v,gc);
 			fklDestroyPtrStack(cStack);
 			cStack=tStack;
 		}
@@ -303,21 +128,20 @@ FklVMvalue* fklCreateVMvalueFromNastNodeNoGC(const FklNastNode* node
 					fklPushPtrStack(FKL_MAKE_VM_SYM(root->u.sym),cStack);
 					break;
 				case FKL_NAST_F64:
-					fklPushPtrStack(fklCreateVMvalueNoGC(FKL_TYPE_F64,&root->u.f64,gc),cStack);
+					fklPushPtrStack(fklCreateVMvalueF64(vm,root->u.f64),cStack);
 					break;
 				case FKL_NAST_STR:
-					fklPushPtrStack(fklCreateVMvalueNoGC(FKL_TYPE_STR
-								,fklCreateString(root->u.str->size,root->u.str->str)
-								,gc)
+					fklPushPtrStack(fklCreateVMvalueStr(vm
+								,fklCopyString(root->u.str))
 							,cStack);
 					break;
 				case FKL_NAST_BYTEVECTOR:
-					fklPushPtrStack(fklCreateVMvalueNoGC(FKL_TYPE_BYTEVECTOR
-								,fklCreateBytevector(root->u.bvec->size,root->u.bvec->ptr)
-								,gc),cStack);
+					fklPushPtrStack(fklCreateVMvalueBvec(vm
+								,fklCreateBytevector(root->u.bvec->size,root->u.bvec->ptr))
+							,cStack);
 					break;
 				case FKL_NAST_BIG_INT:
-					fklPushPtrStack(fklCreateVMvalueNoGC(FKL_TYPE_BIG_INT,fklCopyBigInt(root->u.bigInt),gc),cStack);
+					fklPushPtrStack(fklCreateVMvalueBigInt(vm,root->u.bigInt),cStack);
 					break;
 				case FKL_NAST_BOX:
 					{
@@ -437,19 +261,19 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 						{
 							case FKL_TYPE_F64:
 								cur->type=FKL_NAST_F64;
-								cur->u.f64=value->u.f64;
+								cur->u.f64=FKL_VM_F64(value);
 								break;
 							case FKL_TYPE_STR:
 								cur->type=FKL_NAST_STR;
-								cur->u.str=fklCopyString(value->u.str);
+								cur->u.str=fklCopyString(FKL_VM_STR(value));
 								break;
 							case FKL_TYPE_BYTEVECTOR:
 								cur->type=FKL_NAST_BYTEVECTOR;
-								cur->u.bvec=fklCopyBytevector(value->u.bvec);
+								cur->u.bvec=fklCopyBytevector(FKL_VM_BVEC(value));
 								break;
 							case FKL_TYPE_BIG_INT:
 								cur->type=FKL_NAST_BIG_INT;
-								cur->u.bigInt=fklCopyBigInt(value->u.bigInt);
+								cur->u.bigInt=fklCopyBigInt(FKL_VM_BI(value));
 								break;
 							case FKL_TYPE_PROC:
 								cur->type=FKL_NAST_SYM;
@@ -485,46 +309,52 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								break;
 							case FKL_TYPE_BOX:
 								cur->type=FKL_NAST_BOX;
-								fklPushPtrStack(value->u.box,&s0);
+								fklPushPtrStack(FKL_VM_BOX(value),&s0);
 								fklPushPtrStack(&cur->u.box,&s1);
 								fklPushUintStack(cur->curline,&lineStack);
 								break;
 							case FKL_TYPE_PAIR:
 								cur->type=FKL_NAST_PAIR;
 								cur->u.pair=fklCreateNastPair();
-								fklPushPtrStack(value->u.pair->car,&s0);
-								fklPushPtrStack(value->u.pair->cdr,&s0);
+								fklPushPtrStack(FKL_VM_CAR(value),&s0);
+								fklPushPtrStack(FKL_VM_CDR(value),&s0);
 								fklPushPtrStack(&cur->u.pair->car,&s1);
 								fklPushPtrStack(&cur->u.pair->cdr,&s1);
 								fklPushUintStack(cur->curline,&lineStack);
 								fklPushUintStack(cur->curline,&lineStack);
 								break;
 							case FKL_TYPE_VECTOR:
-								cur->type=FKL_NAST_VECTOR;
-								cur->u.vec=fklCreateNastVector(value->u.vec->size);
-								for(size_t i=0;i<value->u.vec->size;i++)
-									fklPushPtrStack(value->u.vec->base[i],&s0);
-								for(size_t i=0;i<cur->u.vec->size;i++)
 								{
-									fklPushPtrStack(&cur->u.vec->base[i],&s1);
-									fklPushUintStack(cur->curline,&lineStack);
+									FklVMvec* vec=FKL_VM_VEC(value);
+									cur->type=FKL_NAST_VECTOR;
+									cur->u.vec=fklCreateNastVector(vec->size);
+									for(size_t i=0;i<vec->size;i++)
+										fklPushPtrStack(vec->base[i],&s0);
+									for(size_t i=0;i<cur->u.vec->size;i++)
+									{
+										fklPushPtrStack(&cur->u.vec->base[i],&s1);
+										fklPushUintStack(cur->curline,&lineStack);
+									}
 								}
 								break;
 							case FKL_TYPE_HASHTABLE:
-								cur->type=FKL_NAST_HASHTABLE;
-								cur->u.hash=fklCreateNastHash(fklGetVMhashTableType(value->u.hash),value->u.hash->num);
-								for(FklHashTableNodeList* list=value->u.hash->list;list;list=list->next)
 								{
-									FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-									fklPushPtrStack(item->key,&s0);
-									fklPushPtrStack(item->v,&s0);
-								}
-								for(size_t i=0;i<cur->u.hash->num;i++)
-								{
-									fklPushPtrStack(&cur->u.hash->items[i].car,&s1);
-									fklPushPtrStack(&cur->u.hash->items[i].cdr,&s1);
-									fklPushUintStack(cur->curline,&lineStack);
-									fklPushUintStack(cur->curline,&lineStack);
+									FklHashTable* hash=FKL_VM_HASH(value);
+									cur->type=FKL_NAST_HASHTABLE;
+									cur->u.hash=fklCreateNastHash(fklGetVMhashTableType(hash),hash->num);
+									for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+									{
+										FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+										fklPushPtrStack(item->key,&s0);
+										fklPushPtrStack(item->v,&s0);
+									}
+									for(size_t i=0;i<cur->u.hash->num;i++)
+									{
+										fklPushPtrStack(&cur->u.hash->items[i].car,&s1);
+										fklPushPtrStack(&cur->u.hash->items[i].cdr,&s1);
+										fklPushUintStack(cur->curline,&lineStack);
+										fklPushUintStack(cur->curline,&lineStack);
+									}
 								}
 								break;
 						}
@@ -541,41 +371,6 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 }
 
 #undef SENTINEL_NAST_NODE
-
-inline FklVMproc* fklCreateVMprocWithWholeCodeObj(FklVMvalue* codeObj,FklVMgc* gc)
-{
-	FklByteCode* bc=codeObj->u.code->bc;
-	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
-	FKL_ASSERT(tmp);
-	tmp->spc=bc->code;
-	tmp->end=bc->code+bc->size;
-	tmp->sid=0;
-	tmp->closure=NULL;
-	tmp->rcount=0;
-	tmp->protoId=1;
-	fklSetRef(&tmp->codeObj,codeObj,gc);
-	return tmp;
-}
-
-inline FklVMproc* fklCreateVMproc(uint8_t* spc
-		,uint64_t cpc
-		,FklVMvalue* codeObj
-		,FklVMgc* gc
-		,uint32_t protoId
-		,FklSid_t sid)
-{
-	FklVMproc* tmp=(FklVMproc*)malloc(sizeof(FklVMproc));
-	FKL_ASSERT(tmp);
-	tmp->spc=spc;
-	tmp->end=spc+cpc;
-	tmp->sid=sid;
-	tmp->closure=NULL;
-	tmp->rcount=0;
-	tmp->protoId=protoId;
-	tmp->lcount=0;
-	fklSetRef(&tmp->codeObj,codeObj,gc);
-	return tmp;
-}
 
 FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVM* vm)
 {
@@ -605,11 +400,11 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVM* vm)
 					switch(type)
 					{
 						case FKL_TYPE_PAIR:
-							*root1=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),vm);
-							fklPushPtrStack(&(*root1)->u.pair->car,&s2);
-							fklPushPtrStack(&(*root1)->u.pair->cdr,&s2);
-							fklPushPtrStack(root->u.pair->car,&s1);
-							fklPushPtrStack(root->u.pair->cdr,&s1);
+							*root1=fklCreateVMvaluePairNil(vm);
+							fklPushPtrStack(&FKL_VM_CAR(*root1),&s2);
+							fklPushPtrStack(&FKL_VM_CDR(*root1),&s2);
+							fklPushPtrStack(FKL_VM_CAR(root),&s1);
+							fklPushPtrStack(FKL_VM_CDR(root),&s1);
 							break;
 						default:
 							*root1=root;
@@ -630,28 +425,29 @@ FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklVMvalue* tmp=fklCreateVMvalueToStack(FKL_TYPE_F64,NULL,vm);
-	tmp->u.f64=obj->u.f64;
+	FklVMvalue* tmp=fklCreateVMvalueF64(vm,FKL_VM_F64(obj));
 	return tmp;
 }
 
 static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCopyBigInt(obj->u.bigInt),vm);
+	return fklCreateVMvalueBigInt(vm,FKL_VM_BI(obj));
 }
 
 static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvecV(obj->u.vec->size,obj->u.vec->base,vm);
+	FklVMvec* vec=FKL_VM_VEC(obj);
+	return fklCreateVMvalueVecWithPtr(vm,vec->size,vec->base);
 }
 
 static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_STR,fklCopyString(obj->u.str),vm); }
+	return fklCreateVMvalueStr(vm,fklCopyString(FKL_VM_STR(obj)));
+}
 
 static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_BYTEVECTOR,fklCopyBytevector(obj->u.bvec),vm);
+	return fklCreateVMvalueBvec(vm,fklCopyBytevector(FKL_VM_BVEC(obj)));
 }
 
 static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVM* vm)
@@ -661,29 +457,33 @@ static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueToStack(FKL_TYPE_BOX,obj->u.box,vm);
+	return fklCreateVMvalueBox(vm,FKL_VM_BOX(obj));
 }
 
 static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklVMudata* r=fklCopyVMudata(obj->u.ud);
-	if(r)
-		return fklCreateVMvalueToStack(FKL_TYPE_USERDATA,r,vm);
-	else
+	FklVMudata* src=FKL_VM_UD(obj);
+	FklVMvalue* dst=fklCreateVMvalueUdata(vm
+			,src->type
+			,src->t
+			,src->rel);
+	if(fklCopyVMudata(src,FKL_VM_UD(dst)))
 		return NULL;
+	return dst;
 }
 
 static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklHashTable* ht=obj->u.hash;
-	FklHashTable* nht=fklCreateVMhashTableEq();
+	FklHashTable* ht=FKL_VM_HASH(obj);
+	FklVMvalue* r=fklCreateVMvalueHashEq(vm);
+	FklHashTable* nht=FKL_VM_HASH(r);
 	nht->t=ht->t;
 	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-		fklSetVMhashTable(item->key,item->v,nht,vm->gc);
+		fklVMhashTableSet(item->key,item->v,nht,vm->gc);
 	}
-	return fklCreateVMvalueToStack(FKL_TYPE_HASHTABLE,nht,vm);
+	return r;
 }
 
 static FklVMvalue* (*const valueCopyers[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* obj,FklVM* vm)=
@@ -736,118 +536,6 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 	return tmp;
 }
 
-static inline double getF64FromByteCode(uint8_t* code)
-{
-	double i=0;
-	((uint8_t*)&i)[0]=code[0];
-	((uint8_t*)&i)[1]=code[1];
-	((uint8_t*)&i)[2]=code[2];
-	((uint8_t*)&i)[3]=code[3];
-	((uint8_t*)&i)[4]=code[4];
-	((uint8_t*)&i)[5]=code[5];
-	((uint8_t*)&i)[6]=code[6];
-	((uint8_t*)&i)[7]=code[7];
-	return i;
-}
-
-FklVMvalue* fklCreateVMvalue(FklValueType type,void* pValue,FklVM* vm)
-{
-	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklAddToGC(r,vm);
-	return r;
-}
-
-FklVMvalue* fklCreateVMvalueToStack(FklValueType type
-		,void* pValue
-		,FklVM* vm)
-{
-	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklPushVMvalue(r,vm);
-	fklAddToGC(r,vm);
-	return r;
-}
-
-FklVMvalue* fklCreateSaveVMvalue(FklValueType type,void* pValue)
-{
-	FklVMvalue* tmp=(FklVMvalue*)malloc(sizeof(FklVMvalue));
-	FKL_ASSERT(tmp);
-	tmp->type=type;
-	tmp->mark=FKL_MARK_W;
-	switch(type)
-	{
-		case FKL_TYPE_F64:
-			if(pValue)
-				tmp->u.f64=getF64FromByteCode(pValue);
-			break;
-		case FKL_TYPE_BYTEVECTOR:
-		case FKL_TYPE_STR:
-		case FKL_TYPE_PAIR:
-		case FKL_TYPE_PROC:
-		case FKL_TYPE_CHAN:
-		case FKL_TYPE_FP:
-		case FKL_TYPE_DLL:
-		case FKL_TYPE_DLPROC:
-		case FKL_TYPE_ERR:
-		case FKL_TYPE_VECTOR:
-		case FKL_TYPE_USERDATA:
-		case FKL_TYPE_BIG_INT:
-		case FKL_TYPE_BOX:
-		case FKL_TYPE_HASHTABLE:
-		case FKL_TYPE_CODE_OBJ:
-			tmp->u.box=pValue;
-			break;
-		default:
-			return NULL;
-			break;
-	}
-	return FKL_MAKE_VM_PTR(tmp);
-}
-
-void fklAddToGCNoGC(FklVMvalue* v,FklVMgc* gc)
-{
-	if(FKL_IS_PTR(v))
-	{
-		FklGCstate running=fklGetGCstate(gc);
-		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
-			fklGC_toGrey(v,gc);
-		v->mark=FKL_MARK_W;
-		v->next=gc->head;
-		gc->head=v;
-		gc->num+=1;
-	}
-}
-
-FklVMvalue* fklCreateVMvalueNoGC(FklValueType type,void* pValue,FklVMgc* gc)
-{
-	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklAddToGCNoGC(r,gc);
-	return r;
-}
-
-FklVMvalue* fklCreateVMvalueNoGCAndToStack(FklValueType type,void* pValue,FklVMgc* gc,FklVM* vm)
-{
-	FklVMvalue* r=fklCreateSaveVMvalue(type,pValue);
-	fklPushVMvalue(r,vm);
-	fklAddToGCNoGC(r,gc);
-	return r;
-}
-
-void fklAddToGC(FklVMvalue* v,FklVM* vm)
-{
-	FklVMgc* gc=vm->gc;
-	if(FKL_IS_PTR(v))
-	{
-		FklGCstate running=fklGetGCstate(gc);
-		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
-			fklGC_toGrey(v,gc);
-		gc->num+=1;
-		fklTryGC(vm);
-		v->next=gc->head;
-		v->mark=FKL_MARK_W;
-		gc->head=v;
-	}
-}
-
 inline FklVMvalue* fklCreateTrueValue()
 {
 	return FKL_MAKE_VM_FIX(1);
@@ -858,28 +546,20 @@ inline FklVMvalue* fklCreateNilValue()
 	return FKL_VM_NIL;
 }
 
-FklVMvalue* fklGetVMpairCar(FklVMvalue* obj)
-{
-	return obj->u.pair->car;
-}
-
-FklVMvalue* fklGetVMpairCdr(FklVMvalue* obj)
-{
-	return obj->u.pair->cdr;
-}
-
 int fklVMvalueEqv(const FklVMvalue* fir,const FklVMvalue* sec)
 {
 	if(fklIsInt(fir)&&fklIsInt(sec))
 	{
-		if(FKL_IS_BIG_INT(fir)&&FKL_IS_BIG_INT(sec))
-			return fklCmpBigInt(fir->u.bigInt,sec->u.bigInt)==0;
-		else if(FKL_IS_BIG_INT(fir))
-			return fklCmpBigIntI(fir->u.bigInt,FKL_GET_FIX(sec))==0;
-		else if(FKL_IS_BIG_INT(fir))
-			return fklCmpBigIntI(fir->u.bigInt,FKL_GET_FIX(sec))==0;
+		int b0=FKL_IS_FIX(fir);
+		int b1=FKL_IS_FIX(sec);
+		if(b0&&b1)
+			return fir==sec;
+		else if(b0)
+			return fklCmpBigIntI(FKL_VM_BI(sec),FKL_GET_FIX(fir))==0;
+		else if(b1)
+			return fklCmpBigIntI(FKL_VM_BI(fir),FKL_GET_FIX(sec))==0;
 		else
-			return FKL_GET_FIX(fir)==FKL_GET_FIX(sec);
+			return fklCmpBigInt(FKL_VM_BI(fir),FKL_VM_BI(sec))==0;
 	}
 	else
 		return fir==sec;
@@ -917,61 +597,77 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 				switch(root1->type)
 				{
 					case FKL_TYPE_F64:
-						r=root1->u.f64==root2->u.f64;
+						r=FKL_VM_F64(root1)==FKL_VM_F64(root2);
 						break;
 					case FKL_TYPE_STR:
-						r=!fklStringcmp(root1->u.str,root2->u.str);
+						r=!fklStringcmp(FKL_VM_STR(root1),FKL_VM_STR(root2));
 						break;
 					case FKL_TYPE_BYTEVECTOR:
-						r=!fklBytevectorcmp(root1->u.bvec,root2->u.bvec);
+						r=!fklBytevectorcmp(FKL_VM_BVEC(root1),FKL_VM_BVEC(root2));
 						break;
 					case FKL_TYPE_PAIR:
 						r=1;
-						fklPushPtrStack(root1->u.pair->car,&s1);
-						fklPushPtrStack(root1->u.pair->cdr,&s1);
-						fklPushPtrStack(root2->u.pair->car,&s2);
-						fklPushPtrStack(root2->u.pair->cdr,&s2);
+						fklPushPtrStack(FKL_VM_CAR(root1),&s1);
+						fklPushPtrStack(FKL_VM_CDR(root1),&s1);
+						fklPushPtrStack(FKL_VM_CAR(root2),&s2);
+						fklPushPtrStack(FKL_VM_CDR(root2),&s2);
 						break;
 					case FKL_TYPE_BOX:
 						r=1;
-						fklPushPtrStack(root1->u.box,&s1);
-						fklPushPtrStack(root2->u.box,&s2);
+						fklPushPtrStack(FKL_VM_BOX(root1),&s1);
+						fklPushPtrStack(FKL_VM_BOX(root2),&s2);
 						break;
 					case FKL_TYPE_VECTOR:
-						if(root1->u.vec->size!=root2->u.vec->size)
-							r=0;
-						else
 						{
-							r=1;
-							size_t size=root1->u.vec->size;
-							for(size_t i=0;i<size;i++)
-								fklPushPtrStack(root1->u.vec->base[i],&s1);
-							for(size_t i=0;i<size;i++)
-								fklPushPtrStack(root2->u.vec->base[i],&s2);
+							FklVMvec* vec1=FKL_VM_VEC(root1);
+							FklVMvec* vec2=FKL_VM_VEC(root2);
+							if(vec1->size!=vec2->size)
+								r=0;
+							else
+							{
+								r=1;
+								size_t size=vec1->size;
+								for(size_t i=0;i<size;i++)
+									fklPushPtrStack(vec1->base[i],&s1);
+								for(size_t i=0;i<size;i++)
+									fklPushPtrStack(vec2->base[i],&s2);
+							}
 						}
 						break;
 					case FKL_TYPE_BIG_INT:
-						r=!fklCmpBigInt(root1->u.bigInt,root2->u.bigInt);
+						r=!fklCmpBigInt(FKL_VM_BI(root1),FKL_VM_BI(root2));
 						break;
 					case FKL_TYPE_USERDATA:
-						if(root1->u.ud->type!=root2->u.ud->type||!root1->u.ud->t->__equal)
-							r=0;
-						else
-							r=root1->u.ud->t->__equal(root1->u.ud,root2->u.ud);
+						{
+							FklVMudata* ud1=FKL_VM_UD(root1);
+							FklVMudata* ud2=FKL_VM_UD(root2);
+							if(ud1->t!=ud2->t||!ud1->t->__equal)
+								r=0;
+							else
+								r=ud1->t->__equal(ud1,ud2);
+						}
 						break;
 					case FKL_TYPE_HASHTABLE:
-						r=1;
-						for(FklHashTableNodeList* list=root1->u.hash->list;list;list=list->next)
 						{
-							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-							fklPushPtrStack(item->key,&s1);
-							fklPushPtrStack(item->v,&s1);
-						}
-						for(FklHashTableNodeList* list=root2->u.hash->list;list;list=list->next)
-						{
-							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
-							fklPushPtrStack(item->key,&s2);
-							fklPushPtrStack(item->v,&s2);
+							FklHashTable* h1=FKL_VM_HASH(root1);
+							FklHashTable* h2=FKL_VM_HASH(root2);
+							if(h1->t!=h2->t||h1->num!=h2->num)
+								r=0;
+							else
+							{
+								for(FklHashTableNodeList* list=h1->list;list;list=list->next)
+								{
+									FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+									fklPushPtrStack(item->key,&s1);
+									fklPushPtrStack(item->v,&s1);
+								}
+								for(FklHashTableNodeList* list=h2->list;list;list=list->next)
+								{
+									FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+									fklPushPtrStack(item->key,&s2);
+									fklPushPtrStack(item->v,&s2);
+								}
+							}
 						}
 						break;
 					default:
@@ -987,7 +683,7 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 	return r;
 }
 
-int inline fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
+inline int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 {
 	int r=0;
 	*err=0;
@@ -1002,91 +698,30 @@ int inline fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	}
 	else if(fklIsInt(a)&&fklIsInt(b))
 	{
-		if(FKL_IS_FIX(a)&&FKL_IS_FIX(b))
+		int b0=FKL_IS_FIX(a);
+		int b1=FKL_IS_FIX(b);
+		if(b0&&b1)
 			r=FKL_GET_FIX(a)-FKL_GET_FIX(b);
+		else if(b0)
+			r=fklCmpBigIntI(FKL_VM_BI(b),FKL_GET_FIX(a))*-1;
+		else if(b1)
+			r=fklCmpBigIntI(FKL_VM_BI(a),FKL_GET_FIX(b));
 		else
-		{
-			if(FKL_IS_FIX(a))
-				r=fklCmpBigIntI(b->u.bigInt,FKL_GET_FIX(a))*-1;
-			else if(FKL_IS_FIX(b))
-				r=fklCmpBigIntI(a->u.bigInt,FKL_GET_FIX(b));
-			else
-				r=fklCmpBigInt(a->u.bigInt,b->u.bigInt);
-		}
+			r=fklCmpBigInt(FKL_VM_BI(a),FKL_VM_BI(b));
 	}
 	else if(FKL_IS_STR(a)&&FKL_IS_STR(b))
-		r=fklStringcmp(a->u.str,b->u.str);
+		r=fklStringcmp(FKL_VM_STR(a),FKL_VM_STR(b));
 	else if(FKL_IS_BYTEVECTOR(a)&&FKL_IS_BYTEVECTOR(a))
-		r=fklBytevectorcmp(a->u.bvec,b->u.bvec);
+		r=fklBytevectorcmp(FKL_VM_BVEC(a),FKL_VM_BVEC(b));
 	else if(FKL_IS_CHR(a)&&FKL_IS_CHR(b))
 		r=FKL_GET_CHR(a)-FKL_GET_CHR(b);
-	else if(FKL_IS_USERDATA(a)&&fklIsCmpableUd(a->u.ud))
-		r=fklCmpVMudata(a->u.ud,b,err);
-	else if(FKL_IS_USERDATA(b)&&fklIsCmpableUd(b->u.ud))
-		r=fklCmpVMudata(b->u.ud,a,err)*-1;
+	else if(FKL_IS_USERDATA(a)&&fklIsCmpableUd(FKL_VM_UD(a)))
+		r=fklCmpVMudata(FKL_VM_UD(a),b,err);
+	else if(FKL_IS_USERDATA(b)&&fklIsCmpableUd(FKL_VM_UD(b)))
+		r=fklCmpVMudata(FKL_VM_UD(b),a,err)*-1;
 	else
 		*err=1;
 	return r;
-}
-
-FklVMpair* fklCreateVMpair(void)
-{
-	FklVMpair* tmp=(FklVMpair*)malloc(sizeof(FklVMpair));
-	FKL_ASSERT(tmp);
-	tmp->car=FKL_VM_NIL;
-	tmp->cdr=FKL_VM_NIL;
-	return tmp;
-}
-
-FklVMvalue* fklCreateVMpairV(FklVMvalue* car,FklVMvalue* cdr,FklVM* vm)
-{
-	FklVMgc* gc=vm->gc;
-	FklVMvalue* pair=fklCreateVMvalueToStack(FKL_TYPE_PAIR,fklCreateVMpair(),vm);
-	fklSetRef(&pair->u.pair->car,car,gc);
-	fklSetRef(&pair->u.pair->cdr,cdr,gc);
-	return pair;
-}
-
-FklVMvalue* fklCreateVMvecV(size_t size,FklVMvalue** base,FklVM* vm)
-{
-	FklVMgc* gc=vm->gc;
-	FklVMvalue* vec=fklCreateVMvalueToStack(FKL_TYPE_VECTOR,fklCreateVMvec(size),vm);
-	if(base)
-		for(size_t i=0;i<size;i++)
-			fklSetRef(&vec->u.vec->base[i],base[i],gc);
-	return vec;
-}
-
-FklVMchanl* fklCreateVMchanl(uint32_t maxSize)
-{
-	FklVMchanl* tmp=(FklVMchanl*)malloc(sizeof(FklVMchanl));
-	FKL_ASSERT(tmp);
-	tmp->max=maxSize;
-	tmp->messageNum=0;
-	fklInitPtrQueue(&tmp->messages);
-	fklInitPtrQueue(&tmp->sendq);
-	fklInitPtrQueue(&tmp->recvq);
-	return tmp;
-}
-
-void fklDestroyVMchanl(FklVMchanl* ch)
-{
-	fklUninitPtrQueue(&ch->messages);
-	for(FklQueueNode* head=ch->recvq.head;head;head=head->next)
-		fklDestroyVMrecv(head->data);
-	fklUninitPtrQueue(&ch->sendq);
-	fklUninitPtrQueue(&ch->recvq);
-	free(ch);
-}
-
-void fklDestroyVMproc(FklVMproc* proc)
-{
-	uint32_t count=proc->rcount;
-	FklVMvarRef** refs=proc->closure;
-	for(uint32_t i=0;i<count;i++)
-		fklDestroyVMvarRef(refs[i]);
-	free(refs);
-	free(proc);
 }
 
 inline FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
@@ -1127,17 +762,6 @@ ret:
 	else if(hasW)
 		return FKL_VM_FP_W;
 	return FKL_VM_FP_R;
-}
-
-FklVMfp* fklCreateVMfp(FILE* fp,FklVMfpRW rw)
-{
-	FklVMfp* vfp=(FklVMfp*)malloc(sizeof(FklVMfp));
-	FKL_ASSERT(vfp);
-	vfp->fp=fp;
-	vfp->rw=rw;
-	vfp->mutex=0;
-	fklInitPtrQueue(&vfp->next);
-	return vfp;
 }
 
 #include<fcntl.h>
@@ -1201,23 +825,19 @@ int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer* b,size_t j)
 	return fklRewindStream(vfp->fp,b->b+j,b->i-j);
 }
 
-int fklDestroyVMfp(FklVMfp* vfp)
+inline int fklUninitVMfp(FklVMfp* vfp)
 {
 	int r=0;
-	if(vfp)
-	{
-		FILE* fp=vfp->fp;
-		if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
-			r=1;
-		fklUninitPtrQueue(&vfp->next);
-		free(vfp);
-	}
+	FILE* fp=vfp->fp;
+	if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
+		r=1;
+	fklUninitPtrQueue(&vfp->next);
 	return r;
 }
 
 void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
 {
-	FklVMfp* vfp=fpv->u.fp;
+	FklVMfp* vfp=FKL_VM_FP(fpv);
 	if(vfp->mutex)
 	{
 		exe->state=FKL_VM_WAITING;
@@ -1229,7 +849,7 @@ void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
 
 void fklUnLockVMfp(FklVMvalue* fpv)
 {
-	FklVMfp* vfp=fpv->u.fp;
+	FklVMfp* vfp=FKL_VM_FP(fpv);
 	FklVM* next=fklPopPtrQueue(&vfp->next);
 	if(next)
 		next->state=FKL_VM_READY;
@@ -1237,97 +857,72 @@ void fklUnLockVMfp(FklVMvalue* fpv)
 		vfp->mutex=0;
 }
 
-FklVMdll* fklCreateVMdll(const char* dllName)
-{
-	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
-	char* realDllName=(char*)malloc(sizeof(char)*len);
-	FKL_ASSERT(realDllName);
-	strcpy(realDllName,dllName);
-	strcat(realDllName,FKL_DLL_FILE_TYPE);
-	char* rpath=fklRealpath(realDllName);
-	if(!rpath)
-	{
-		free(realDllName);
-		return NULL;
-	}
-	FklDllHandle handle=fklLoadDll(rpath);
-	if(!handle)
-	{
-		free(rpath);
-		free(realDllName);
-		return NULL;
-	}
-	free(realDllName);
-	free(rpath);
-	FklVMdll* r=(FklVMdll*)malloc(sizeof(FklVMdll));
-	FKL_ASSERT(r);
-	r->handle=handle;
-	r->pd=FKL_VM_NIL;
-	return r;
-}
-
 void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
 {
-	FklDllHandle handle=rel->u.dll->handle;
+	FklVMdll* dll=FKL_VM_DLL(rel);
+	FklDllHandle handle=dll->handle;
 	void (*init)(FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",handle);
 	if(init)
-		init(rel->u.dll,exe);
+		init(dll,exe);
 }
 
-void fklDestroyVMvalue(FklVMvalue* cur)
+static inline void uninit_nothing_value(FklVMvalue* v)
 {
-	switch(cur->type)
-	{
-		case FKL_TYPE_F64:
-		case FKL_TYPE_BOX:
-			break;
-		case FKL_TYPE_STR:
-		case FKL_TYPE_PAIR:
-		case FKL_TYPE_BYTEVECTOR:
-			free(cur->u.str);
-			break;
-		case FKL_TYPE_PROC:
-			fklDestroyVMproc(cur->u.proc);
-			break;
-		case FKL_TYPE_CHAN:
-			fklDestroyVMchanl(cur->u.chan);
-			break;
-		case FKL_TYPE_FP:
-			fklDestroyVMfp(cur->u.fp);
-			break;
-		case FKL_TYPE_DLL:
-			fklDestroyVMdll(cur->u.dll);
-			break;
-		case FKL_TYPE_DLPROC:
-			fklDestroyVMdlproc(cur->u.dlproc);
-			break;
-		case FKL_TYPE_ERR:
-			fklDestroyVMerror(cur->u.err);
-			break;
-		case FKL_TYPE_VECTOR:
-			fklDestroyVMvec(cur->u.vec);
-			break;
-		case FKL_TYPE_USERDATA:
-			fklDestroyVMudata(cur->u.ud);
-			break;
-		case FKL_TYPE_HASHTABLE:
-			fklDestroyVMhashTable(cur->u.hash);
-			break;
-		case FKL_TYPE_BIG_INT:
-			fklDestroyBigInt(cur->u.bigInt);
-			break;
-		case FKL_TYPE_CODE_OBJ:
-			fklDestroyByteCodelnt(cur->u.code);
-			break;
-		default:
-			FKL_ASSERT(0);
-			break;
-	}
-	free((void*)cur);
 }
 
-void fklDestroyVMdll(FklVMdll* dll)
+static inline void uninit_big_int_value(FklVMvalue* v)
 {
+	fklUninitBigInt(FKL_VM_BI(v));
+}
+
+static inline void uninit_string_value(FklVMvalue* v)
+{
+	free(FKL_VM_STR(v));
+}
+
+static inline void uninit_bvec_value(FklVMvalue* v)
+{
+	free(FKL_VM_BVEC(v));
+}
+
+static inline void uninit_vector_value(FklVMvalue* v)
+{
+	free(FKL_VM_VEC(v)->base);
+}
+
+static inline void uninit_ud_value(FklVMvalue* v)
+{
+	fklFinalizeVMudata(FKL_VM_UD(v));
+}
+
+static inline void uninit_proc_value(FklVMvalue* v)
+{
+	FklVMproc* proc=FKL_VM_PROC(v);
+	uint32_t count=proc->rcount;
+	FklVMvarRef** refs=proc->closure;
+	for(uint32_t i=0;i<count;i++)
+		fklDestroyVMvarRef(refs[i]);
+	free(refs);
+}
+
+static inline void uninit_chanl_value(FklVMvalue* v)
+{
+	FklVMchanl* ch=FKL_VM_CHANL(v);
+	fklUninitPtrQueue(&ch->messages);
+	for(FklQueueNode* head=ch->recvq.head;head;head=head->next)
+		fklDestroyVMrecv(head->data);
+	fklUninitPtrQueue(&ch->sendq);
+	fklUninitPtrQueue(&ch->recvq);
+}
+
+static inline void uninit_fp_value(FklVMvalue* v)
+{
+	fklUninitVMfp(FKL_VM_FP(v));
+}
+
+static inline void uninit_dll_value(FklVMvalue* v)
+{
+	FklVMdll* dll=FKL_VM_DLL(v);
 	if(dll->handle)
 	{
 		void (*uninit)(void)=fklGetAddress("_fklUninit",dll->handle);
@@ -1335,52 +930,52 @@ void fklDestroyVMdll(FklVMdll* dll)
 			uninit();
 		fklDestroyDll(dll->handle);
 	}
-	free(dll);
 }
 
-FklVMdlproc* fklCreateVMdlproc(FklVMdllFunc address
-		,FklVMvalue* dll
-		,FklVMvalue* pd)
+static inline void uninit_err_value(FklVMvalue* v)
 {
-	FklVMdlproc* tmp=(FklVMdlproc*)malloc(sizeof(FklVMdlproc));
-	FKL_ASSERT(tmp);
-	tmp->func=address;
-	tmp->dll=dll;
-	tmp->pd=pd;
-	tmp->sid=0;
-	return tmp;
-}
-
-void fklDestroyVMdlproc(FklVMdlproc* dlproc)
-{
-	free(dlproc);
-}
-
-FklVMerror* fklCreateVMerror(const FklString* who,FklSid_t type,FklString* message)
-{
-	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t);
-	t->who=fklCopyString(who);
-	t->type=type;
-	t->message=message;
-	return t;
-}
-
-FklVMerror* fklCreateVMerrorCstr(const char* who,FklSid_t type,FklString* message)
-{
-	FklVMerror* t=(FklVMerror*)malloc(sizeof(FklVMerror));
-	FKL_ASSERT(t);
-	t->who=fklCreateStringFromCstr(who);
-	t->type=type;
-	t->message=message;
-	return t;
-}
-
-void fklDestroyVMerror(FklVMerror* err)
-{
+	FklVMerror* err=FKL_VM_ERR(v);
 	free(err->who);
 	free(err->message);
-	free(err);
+}
+
+static inline void uninit_hash_value(FklVMvalue* v)
+{
+	fklUninitHashTable(FKL_VM_HASH(v));
+}
+
+static inline void uninit_code_obj_value(FklVMvalue* v)
+{
+	FklByteCodelnt* t=FKL_VM_CO(v);
+	fklDestroyByteCode(t->bc);
+	if(t->l)
+		free(t->l);
+}
+
+static void (*fkl_value_uniniters[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* v)=
+{
+	uninit_nothing_value,  //f64
+	uninit_big_int_value,  //big-int
+	uninit_string_value,   //string
+	uninit_vector_value,   //vector
+	uninit_nothing_value,  //pair
+	uninit_nothing_value,  //box
+	uninit_bvec_value,     //bvec
+	uninit_ud_value,       //ud
+	uninit_proc_value,     //proc
+	uninit_chanl_value,    //chanl
+	uninit_fp_value,       //fp
+	uninit_dll_value,      //dll
+	uninit_nothing_value,  //dlproc
+	uninit_err_value,      //error
+	uninit_hash_value,     //hash
+	uninit_code_obj_value, //code-obj
+};
+
+void fklDestroyVMvalue(FklVMvalue* cur)
+{
+	fkl_value_uniniters[cur->type](cur);
+	free((void*)cur);
 }
 
 FklVMrecv* fklCreateVMrecv(FklVMvalue** slot,FklVM* exe)
@@ -1478,7 +1073,7 @@ static size_t integerHashFunc(const FklVMvalue* v)
 	else
 	{
 		size_t sum=0;
-		FklBigInt* bi=v->u.bigInt;
+		FklBigInt* bi=FKL_VM_BI(v);
 		for(size_t i=0;i<bi->num;i++)
 			sum+=bi->digits[i];
 		return sum;
@@ -1502,14 +1097,14 @@ static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 		uint64_t i;
 	}t=
 	{
-		.f=v->u.f64,
+		.f=FKL_VM_F64(v),
 	};
 	return t.i;
 }
 
 static size_t _big_int_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	const FklBigInt* bi=v->u.bigInt;
+	const FklBigInt* bi=FKL_VM_BI(v);
 	size_t r=0;
 	for(size_t i=0;i<bi->size;i++)
 	{
@@ -1523,7 +1118,7 @@ static size_t _big_int_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	FklString* str=v->u.str;
+	const FklString* str=FKL_VM_STR(v);
 	size_t sum=str->size;
 	for(size_t i=0;i<str->size;i++)
 		sum+=str->str[i];
@@ -1532,7 +1127,7 @@ static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _bytevector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	FklBytevector* bvec=v->u.bvec;
+	const FklBytevector* bvec=FKL_VM_BVEC(v);
 	size_t sum=bvec->size;
 	for(size_t i=0;i<bvec->size;i++)
 		sum+=bvec->ptr[i];
@@ -1541,7 +1136,7 @@ static size_t _bytevector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	FklVMvec* vec=v->u.vec;
+	const FklVMvec* vec=FKL_VM_VEC(v);
 	for(size_t i=0;i<vec->size;i++)
 		fklPushPtrStack(vec->base[i],s);
 	return vec->size;
@@ -1549,31 +1144,32 @@ static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _pair_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	fklPushPtrStack(v->u.pair->car,s);
-	fklPushPtrStack(v->u.pair->cdr,s);
+	fklPushPtrStack(FKL_VM_CAR(v),s);
+	fklPushPtrStack(FKL_VM_CDR(v),s);
 	return 2;
 }
 
 static size_t _box_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	fklPushPtrStack(v->u.box,s);
+	fklPushPtrStack(FKL_VM_BOX(v),s);
 	return 1;
 }
 
 static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	return fklHashvVMudata(v->u.ud);
+	return fklHashvVMudata(FKL_VM_UD(v));
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)
+	FklHashTable* hash=FKL_VM_HASH(v);
+	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklPushPtrStack(item->key,s);
 		fklPushPtrStack(item->v,s);
 	}
-	return v->u.hash->num+fklGetVMhashTableType(v->u.hash);
+	return hash->num+fklGetVMhashTableType(hash);
 }
 
 static size_t (*const valueHashFuncTable[FKL_TYPE_CODE_OBJ+1])(const FklVMvalue*,FklPtrStack* s)=
@@ -1685,33 +1281,13 @@ static const FklHashTableMetaTable* EqualHashTableT=&VMhashTableMetaTableTable[2
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 {
-	FklHashTable* table=pht->u.hash;
+	FklHashTable* table=FKL_VM_HASH(pht);
 	for(FklHashTableNodeList* list=table->list;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 		fklGC_toGrey(item->key,gc);
 		fklGC_toGrey(item->v,gc);
 	}
-}
-
-FklHashTable* fklCreateVMhashTable(FklHashTableEqType type)
-{
-	return fklCreateHashTable(&VMhashTableMetaTableTable[type]);
-}
-
-FklHashTable* fklCreateVMhashTableEq(void)
-{
-	return fklCreateHashTable(EqHashTableT);
-}
-
-FklHashTable* fklCreateVMhashTableEqv(void)
-{
-	return fklCreateHashTable(EqvHashTableT);
-}
-
-FklHashTable* fklCreateVMhashTableEqual(void)
-{
-	return fklCreateHashTable(EqualHashTableT);
 }
 
 inline int fklIsVMhashEq(FklHashTable* ht)
@@ -1745,24 +1321,19 @@ inline const char* fklGetVMhashTablePrefix(FklHashTable* ht)
 	return prefix[fklGetVMhashTableType(ht)];
 }
 
-void fklDestroyVMhashTable(FklHashTable* ht)
-{
-	fklDestroyHashTable(ht);
-}
-
-FklVMhashTableItem* fklRefVMhashTable1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc* gc)
+FklVMhashTableItem* fklVMhashTableRef1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc* gc)
 {
 	FklVMhashTableItem i={key,toSet};
 	return fklGetOrPutHashItem(&i,ht);
 }
 
-FklVMhashTableItem* fklRefVMhashTable(FklVMvalue* key,FklHashTable* ht)
+FklVMhashTableItem* fklVMhashTableRef(FklVMvalue* key,FklHashTable* ht)
 {
 	FklVMhashTableItem* item=fklGetHashItem(&key,ht);
 	return item;
 }
 
-FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklHashTable* ht,int* ok)
+FklVMvalue* fklVMhashTableGet(FklVMvalue* key,FklHashTable* ht,int* ok)
 {
 	FklVMvalue* r=NULL;
 	FklVMhashTableItem* item=fklGetHashItem(&key,ht);
@@ -1776,28 +1347,409 @@ FklVMvalue* fklGetVMhashTable(FklVMvalue* key,FklHashTable* ht,int* ok)
 	return r;
 }
 
-void fklSetVMhashTable(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc)
+void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc)
 {
 	FklVMhashTableItem* i=fklPutHashItem(&key,ht);
 	i->v=v;
 }
 
+#define NEW_OBJ(TYPE) (FklVMvalue*)calloc(1,sizeof(TYPE));
+
+FklVMvalue* fklCreateVMvaluePair(FklVM* exe,FklVMvalue* car,FklVMvalue* cdr)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvaluePair);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_PAIR;
+	FKL_VM_CAR(r)=car;
+	FKL_VM_CDR(r)=cdr;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvaluePairWithCar(FklVM* exe,FklVMvalue* car)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvaluePair);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_PAIR;
+	FKL_VM_CAR(r)=car;
+	FKL_VM_CDR(r)=FKL_VM_NIL;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvaluePairNil(FklVM* exe)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvaluePair);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_PAIR;
+	FKL_VM_CAR(r)=FKL_VM_NIL;
+	FKL_VM_CDR(r)=FKL_VM_NIL;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueVec(FklVM* exe,size_t size)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_VECTOR;
+	FklVMvec* v=FKL_VM_VEC(r);
+	FklVMvalue** base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
+	FKL_ASSERT(base);
+	v->base=base;
+	v->size=size;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueVecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_VECTOR;
+	FklVMvec* v=FKL_VM_VEC(r);
+	size_t ss=size*sizeof(FklVMvalue*);
+	FklVMvalue** base=(FklVMvalue**)malloc(ss);
+	FKL_ASSERT(base);
+	memcpy(base,ptr,ss);
+	v->base=base;
+	v->size=size;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBox(FklVM* exe,FklVMvalue* b)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBox);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BOX;
+	FKL_VM_BOX(r)=b;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBoxNil(FklVM* exe)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBox);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BOX;
+	FKL_VM_BOX(r)=FKL_VM_NIL;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueF64(FklVM* exe,double d)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueF64);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_F64;
+	FKL_VM_F64(r)=d;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueStr(FklVM* exe,FklString* s)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_STR;
+	FKL_VM_STR(r)=s;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBvec(FklVM* exe,FklBytevector* b)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BYTEVECTOR;
+	FKL_VM_BVEC(r)=b;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueError(FklVM* exe
+		,FklSid_t type
+		,const FklString* who
+		,FklString* message)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueErr);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_ERR;
+	FklVMerror* err=FKL_VM_ERR(r);
+	err->type=type;
+	err->who=fklCopyString(who);
+	err->message=message;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueChanl(FklVM* exe,size_t max)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueChanl);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_CHAN;
+	FklVMchanl* ch=FKL_VM_CHANL(r);
+	ch->max=max;
+	ch->messageNum=0;
+	fklInitPtrQueue(&ch->messages);
+	fklInitPtrQueue(&ch->sendq);
+	fklInitPtrQueue(&ch->recvq);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueFp(FklVM* exe,FILE* fp,FklVMfpRW rw)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueFp);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_FP;
+	FklVMfp* vfp=FKL_VM_FP(r);
+	vfp->fp=fp;
+	vfp->rw=rw;
+	vfp->mutex=0;
+	fklInitPtrQueue(&vfp->next);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM* exe
+		,FklSid_t type
+		,const char* who
+		,FklString* message)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueErr);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_ERR;
+	FklVMerror* err=FKL_VM_ERR(r);
+	err->type=type;
+	err->who=fklCreateStringFromCstr(who);
+	err->message=message;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigInt(FklVM* exe
+		,const FklBigInt* bi)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklSetBigInt(FKL_VM_BI(r),bi);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigIntWithI64(FklVM* exe
+		,int64_t i)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklSetBigIntI(FKL_VM_BI(r),i);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigIntWithU64(FklVM* exe
+		,uint64_t u)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklSetBigIntU(FKL_VM_BI(r),u);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigIntWithF64(FklVM* exe
+		,double d)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklSetBigIntD(FKL_VM_BI(r),d);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueProc(FklVM* exe
+		,uint8_t* spc
+		,uint64_t cpc
+		,FklVMvalue* codeObj
+		,uint32_t pid)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueProc);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_PROC;
+	FklVMproc* proc=FKL_VM_PROC(r);
+
+	FklFuncPrototype* pt=&exe->pts->pts[pid];
+
+	proc->spc=spc;
+	proc->end=spc+cpc;
+	proc->sid=pt->sid;
+	proc->protoId=pid;
+	proc->lcount=pt->lcount;
+	proc->codeObj=codeObj;
+
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueProcWithWholeCodeObj(FklVM* exe
+		,FklVMvalue* codeObj
+		,uint32_t pid)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueProc);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_PROC;
+	FklVMproc* proc=FKL_VM_PROC(r);
+
+	FklFuncPrototype* pt=&exe->pts->pts[pid];
+
+ 	FklByteCode* bc=FKL_VM_CO(codeObj)->bc;
+	proc->spc=bc->code;
+	proc->end=bc->code+bc->size;
+	proc->sid=pt->sid;
+	proc->protoId=pid;
+	proc->lcount=pt->lcount;
+	proc->codeObj=codeObj;
+
+	fklAddToGC(r,exe);
+	return r;
+}
+
+
+FklVMvalue* fklCreateVMvalueHash(FklVM* exe,FklHashTableEqType type)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueHash);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_HASHTABLE;
+	fklInitHashTable(FKL_VM_HASH(r),&VMhashTableMetaTableTable[type]);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueHashEq(FklVM* exe)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueHash);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_HASHTABLE;
+	fklInitHashTable(FKL_VM_HASH(r),EqHashTableT);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueHashEqv(FklVM* exe)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueHash);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_HASHTABLE;
+	fklInitHashTable(FKL_VM_HASH(r),EqvHashTableT);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueHashEqual(FklVM* exe)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueHash);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_HASHTABLE;
+	fklInitHashTable(FKL_VM_HASH(r),EqualHashTableT);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueCodeObj(FklVM* exe,FklByteCodelnt* bcl)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueCodeObj);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_CODE_OBJ;
+	*FKL_VM_CO(r)=*bcl;
+	free(bcl);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
+{
+	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
+	char realDllName[len];
+	strcpy(realDllName,dllName);
+	strcat(realDllName,FKL_DLL_FILE_TYPE);
+	char* rpath=fklRealpath(realDllName);
+	if(!rpath)
+		return NULL;
+	FklDllHandle handle=fklLoadDll(rpath);
+	if(!handle)
+	{
+		free(rpath);
+		return NULL;
+	}
+	free(rpath);
+	FklVMvalue* r=NEW_OBJ(FklVMvalueDll);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_DLL;
+	FklVMdll* dll=FKL_VM_DLL(r);
+	dll->handle=handle;
+	dll->pd=FKL_VM_NIL;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueDlproc(FklVM* exe
+		,FklVMdllFunc func
+		,FklVMvalue* dll
+		,FklVMvalue* pd
+		,FklSid_t sid)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueDlproc);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_DLPROC;
+	FklVMdlproc* dlp=FKL_VM_DLPROC(r);
+	dlp->func=func;
+	dlp->dll=dll;
+	dlp->pd=pd;
+	dlp->sid=sid;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
+		,FklSid_t type
+		,const FklVMudMetaTable* t
+		,FklVMvalue* rel)
+{
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueUd)+t->size);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_USERDATA;
+	FklVMudata* ud=FKL_VM_UD(r);
+	ud->type=type;
+	ud->t=t;
+	ud->rel=rel;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+#undef NEW_OBJ
+
 void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
 {
-	FklVMvec* vec=pVec->u.vec;
+	FklVMvec* vec=FKL_VM_VEC(pVec);
 	for(size_t i=0;i<vec->size;i++)
 		fklGC_toGrey(vec->base[i],gc);
 }
 
 void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(root->u.pair->car,gc);
-	fklGC_toGrey(root->u.pair->cdr,gc);
+	fklGC_toGrey(FKL_VM_CAR(root),gc);
+	fklGC_toGrey(FKL_VM_CDR(root),gc);
 }
 
 void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 {
-	FklVMproc* proc=root->u.proc;
+	FklVMproc* proc=FKL_VM_PROC(root);
 	fklGC_toGrey(proc->codeObj,gc);
 	uint32_t count=proc->rcount;
 	FklVMvarRef** ref=proc->closure;
@@ -1807,7 +1759,7 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 {
-	for(FklQueueNode* head=root->u.chan->messages.head
+	for(FklQueueNode* head=FKL_VM_CHANL(root)->messages.head
 		;head
 		;head=head->next)
 		fklGC_toGrey(head->data,gc);
@@ -1815,72 +1767,39 @@ void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(root->u.dll->pd,gc);
+	fklGC_toGrey(FKL_VM_DLL(root)->pd,gc);
 }
 
 void fklAtomicVMdlproc(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(root->u.dlproc->dll,gc);
-	fklGC_toGrey(root->u.dlproc->pd,gc);
+	FklVMdlproc* dlproc=FKL_VM_DLPROC(root);
+	fklGC_toGrey(dlproc->dll,gc);
+	fklGC_toGrey(dlproc->pd,gc);
 }
 
 void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(root->u.box,gc);
+	fklGC_toGrey(FKL_VM_BOX(root),gc);
 }
 
 void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(root->u.ud->rel,gc);
-	if(root->u.ud->t->__atomic)
-		root->u.ud->t->__atomic(root->u.ud,gc);
+	FklVMudata* ud=FKL_VM_UD(root);
+	fklGC_toGrey(ud->rel,gc);
+	if(ud->t->__atomic)
+		ud->t->__atomic(ud,gc);
 }
 
-FklVMvec* fklCreateVMvecNoInit(size_t size)
+void fklVMvecConcat(FklVMvec* fir,const FklVMvec* sec)
 {
-	FklVMvec* r=(FklVMvec*)malloc(sizeof(FklVMvec)+sizeof(FklVMvalue*)*size);
-	FKL_ASSERT(r);
-	r->size=size;
-	return r;
-}
-
-FklVMvec* fklCreateVMvec(size_t size)
-{
-	FklVMvec* r=(FklVMvec*)malloc(sizeof(FklVMvec)+sizeof(FklVMvalue*)*size);
-	FKL_ASSERT(r);
-	r->size=size;
-	for(size_t i=0;i<size;i++)
-		r->base[i]=FKL_VM_NIL;
-	return r;
-}
-
-void fklDestroyVMvec(FklVMvec* vec)
-{
-	free(vec);
-}
-
-void fklVMvecCat(FklVMvec** fir,const FklVMvec* sec)
-{
-	size_t firSize=(*fir)->size;
+	size_t firSize=fir->size;
 	size_t secSize=sec->size;
-	*fir=(FklVMvec*)realloc(*fir,sizeof(FklVMvec)+(firSize+secSize)*sizeof(FklVMvalue*));
-	FKL_ASSERT(*fir);
-	(*fir)->size=firSize+secSize;
+	FklVMvalue** nbase=(FklVMvalue**)fklRealloc(fir->base,(firSize+secSize)*sizeof(FklVMvalue*));
+	FKL_ASSERT(nbase);
+	fir->base=nbase;
+	fir->size=firSize+secSize;
 	for(size_t i=0;i<secSize;i++)
-		(*fir)->base[firSize+i]=sec->base[i];
-}
-
-FklVMudata* fklCreateVMudata(FklSid_t type
-		,const FklVMudMethodTable* t
-		,FklVMvalue* rel
-		,size_t dsize)
-{
-	FklVMudata* r=(FklVMudata*)calloc(1,sizeof(FklVMudata)+dsize);
-	FKL_ASSERT(r);
-	r->type=type;
-	r->t=t;
-	r->rel=rel;
-	return r;
+		nbase[firSize+i]=sec->base[i];
 }
 
 inline int fklIsCallableUd(const FklVMudata* ud)
@@ -1890,7 +1809,12 @@ inline int fklIsCallableUd(const FklVMudata* ud)
 
 int fklIsCallable(FklVMvalue* v)
 {
-	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(v->u.ud));
+	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(FKL_VM_UD(v)));
+}
+
+static inline int is_appendable_userdata(FklVMudata* ud)
+{
+	return ud->t->__append!=NULL;
 }
 
 inline int fklIsAppendable(FklVMvalue* v)
@@ -1898,13 +1822,7 @@ inline int fklIsAppendable(FklVMvalue* v)
 	return FKL_IS_STR(v)
 		||FKL_IS_BYTEVECTOR(v)
 		||FKL_IS_VECTOR(v)
-		||(FKL_IS_USERDATA(v)&&v->u.ud->t->__copy&&v->u.ud->t->__append);
-}
-
-void fklDestroyVMudata(FklVMudata* u)
-{
-	fklFinalizeVMudata(u);
-	free(u);
+		||(FKL_IS_USERDATA(v)&&is_appendable_userdata(FKL_VM_UD(v)));
 }
 
 inline int fklIsCmpableUd(const FklVMudata* u)
@@ -1926,11 +1844,6 @@ inline int fklUdHasLength(const FklVMudata* u)
 {
 	return u->t->__length!=NULL;
 }
-
-// inline int fklUdHasSetqHook(const FklVMudata* u)
-// {
-// 	return u->t->__setq_hook!=NULL;
-// }
 
 inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 {
@@ -1966,9 +1879,9 @@ inline void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	}
 }
 
-inline int fklAppendVMudata(FklVMudata** a,const FklVMudata* b)
+inline int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)
 {
-	void (*append)(FklVMudata**,const FklVMudata*)=(*a)->t->__append;
+	void (*append)(FklVMudata*,const FklVMudata*)=a->t->__append;
 	if(append)
 	{
 		append(a,b);
@@ -1997,11 +1910,6 @@ inline void fklWriteVMudata(const FklVMudata* a,FILE* fp)
 	a->t->__write(a,fp);
 }
 
-// inline void fklDoSomeAfterSetqVMudata(FklVMudata* a,uint32_t idx,FklVMframe* f,FklVM* exe)
-// {
-// 	a->t->__setq_hook(a,idx,f,exe);
-// }
-
 inline size_t fklHashvVMudata(const FklVMudata* a)
 {
 	size_t (*hashv)(const FklVMudata*)=a->t->__hash;
@@ -2018,10 +1926,13 @@ inline void fklFinalizeVMudata(FklVMudata* a)
 		finalize(a);
 }
 
-inline FklVMudata* fklCopyVMudata(const FklVMudata* a)
+inline int fklCopyVMudata(const FklVMudata* a,FklVMudata* dst)
 {
-	FklVMudata* (*copyer)(const FklVMudata* a)=a->t->__copy;
+	void (*copyer)(const FklVMudata* a,FklVMudata* dst)=a->t->__copy;
 	if(copyer)
-		return copyer(a);
-	return NULL;
+	{
+		copyer(a,dst);
+		return 0;
+	}
+	return 1;
 }

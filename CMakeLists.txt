@@ -12,9 +12,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 #warnnig setting
 if(MSVC)
-	add_compile_options(/W4)
+	add_compile_options(/Wall)
 else()
-	add_compile_options(-Wall)# -fsanitize=thread)
+	add_compile_options(-Wall -Wextra -Wno-unused-parameter)# -fsanitize=thread)
 endif()
 set(CMAKE_C_STANDARD 11)
 

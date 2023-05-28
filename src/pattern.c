@@ -713,7 +713,7 @@ void fklDestroyStringMatchRoute(FklStringMatchRouteNode* root)
 	fklUninitPtrStack(&stack);
 }
 
-inline static void printStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp,uint32_t depth)
+static inline void printStringMatchRoute(FklStringMatchRouteNode* root,FILE* fp,uint32_t depth)
 {
 	for(uint32_t i=1;i<depth;i++)
 		fprintf(fp,"|   ");

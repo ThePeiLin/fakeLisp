@@ -11,15 +11,10 @@
 #include<tchar.h>
 #endif
 
-FklVMvalue* fklMakeVMf64(double f,FklVM* vm)
-{
-	return fklCreateVMvalueToStack(FKL_TYPE_F64,&f,vm);
-}
-
 FklVMvalue* fklMakeVMint(int64_t r64,FklVM* vm)
 {
 	if(r64>FKL_FIX_INT_MAX||r64<FKL_FIX_INT_MIN)
-		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigInt(r64),vm);
+		return fklCreateVMvalueBigIntWithI64(vm,r64);
 	else
 		return FKL_MAKE_VM_FIX(r64);
 }
@@ -27,7 +22,7 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVM* vm)
 FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM* vm)
 {
 	if(r64>FKL_FIX_INT_MAX)
-		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntU(r64),vm);
+		return fklCreateVMvalueBigIntWithU64(vm,r64);
 	else
 		return FKL_MAKE_VM_FIX(r64);
 }
@@ -35,7 +30,7 @@ FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM* vm)
 FklVMvalue* fklMakeVMintD(double r64,FklVM* vm)
 {
 	if(isgreater(r64,(double)FKL_FIX_INT_MAX)||isless(r64,FKL_FIX_INT_MIN))
-		return fklCreateVMvalueToStack(FKL_TYPE_BIG_INT,fklCreateBigIntD(r64),vm);
+		return fklCreateVMvalueBigIntWithF64(vm,r64);
 	else
 		return FKL_MAKE_VM_FIX(r64);
 }
@@ -57,15 +52,15 @@ inline int fklIsVMnumber(const FklVMvalue* p)
 
 static inline FklVMvalue* get_initial_fast_value(const FklVMvalue* pr)
 {
-	return FKL_IS_PAIR(pr)?pr->u.pair->cdr:FKL_VM_NIL;
+	return FKL_IS_PAIR(pr)?FKL_VM_CDR(pr):FKL_VM_NIL;
 }
 
 static inline FklVMvalue* get_fast_value(const FklVMvalue* head)
 {
 	return (FKL_IS_PAIR(head)
-			&&FKL_IS_PAIR(head->u.pair->cdr)
-			&&FKL_IS_PAIR(head->u.pair->cdr->u.pair->cdr))
-		?head->u.pair->cdr->u.pair->cdr
+			&&FKL_IS_PAIR(FKL_VM_CDR(head))
+			&&FKL_IS_PAIR(FKL_VM_CDR(FKL_VM_CDR(head))))
+		?FKL_VM_CDR(FKL_VM_CDR(head))
 		:FKL_VM_NIL;
 }
 
@@ -73,7 +68,7 @@ int fklIsList(const FklVMvalue* p)
 {
 	FklVMvalue* fast=get_initial_fast_value(p);
 	for(;FKL_IS_PAIR(p)
-			;p=p->u.pair->cdr
+			;p=FKL_VM_CDR(p)
 			,fast=get_fast_value(fast))
 		if(fast==p)
 			return 0;
@@ -84,8 +79,8 @@ int fklIsList(const FklVMvalue* p)
 
 int fklIsSymbolList(const FklVMvalue* p)
 {
-	for(;p!=FKL_VM_NIL;p=p->u.pair->cdr)
-		if(!FKL_IS_PAIR(p)||!FKL_IS_SYM(p->u.pair->car))
+	for(;p!=FKL_VM_NIL;p=FKL_VM_CDR(p))
+		if(!FKL_IS_PAIR(p)||!FKL_IS_SYM(FKL_VM_CAR(p)))
 			return 0;
 	return 1;
 }
@@ -94,14 +89,14 @@ inline int64_t fklGetInt(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)
-		:fklBigIntToI64(p->u.bigInt);
+		:fklBigIntToI64(FKL_VM_BI(p));
 }
 
 inline uint64_t fklGetUint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
-		?FKL_GET_FIX(p)
-		:fklBigIntToU64(p->u.bigInt);
+		?(uint64_t)FKL_GET_FIX(p)
+		:fklBigIntToU64(FKL_VM_BI(p));
 }
 
 inline int fklVMnumberLt0(const FklVMvalue* p)
@@ -109,8 +104,8 @@ inline int fklVMnumberLt0(const FklVMvalue* p)
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)<0
 		:FKL_IS_F64(p)
-		?isless(p->u.f64,0.0)
-		:!FKL_IS_0_BIG_INT(p->u.bigInt)&&p->u.bigInt->neg;
+		?isless(FKL_VM_F64(p),0.0)
+		:fklIsBigIntLt0(FKL_VM_BI(p));
 }
 
 inline double fklGetDouble(const FklVMvalue* p)
@@ -118,8 +113,8 @@ inline double fklGetDouble(const FklVMvalue* p)
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)
 		:(FKL_IS_BIG_INT(p))
-		?fklBigIntToDouble(p->u.bigInt)
-		:p->u.f64;
+		?fklBigIntToDouble(FKL_VM_BI(p))
+		:FKL_VM_F64(p);
 }
 
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,uint8_t* spc,uint64_t cpc)
@@ -140,14 +135,14 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler* h)
 	free(h);
 }
 
-inline static FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
+static inline FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 {
-	return frame->u.c.proc->u.proc->codeObj;
+	return FKL_VM_PROC(frame->u.c.proc)->codeObj;
 }
 
 inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 {
-	FklVMerror* err=ev->u.err;
+	FklVMerror* err=FKL_VM_ERR(ev);
 	fprintf(stderr,"error in ");
 	fklPrintString(err->who,stderr);
 	fprintf(stderr,": ");
@@ -157,17 +152,9 @@ inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 	{
 		if(cur->type==FKL_FRAME_COMPOUND)
 		{
-			// if(fklGetCompoundFrameSid(cur)!=0)
-			// {
-			// 	fprintf(stderr,"at proc:");
-			// 	fklPrintString(fklGetSymbolWithId(fklGetCompoundFrameSid(cur),exe->symbolTable)->symbol
-			// 			,stderr);
-			// }
-			// else
-			// {
 			if(cur->prev)
 			{
-				FklVMproc* proc=fklGetCompoundFrameProc(cur)->u.proc;
+				FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(cur));
 				if(proc->sid)
 				{
 					fprintf(stderr,"at proc:");
@@ -202,8 +189,7 @@ inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 			}
 			else
 				fprintf(stderr,"at <top>");
-			// }
-			FklByteCodelnt* codeObj=get_compound_frame_code_obj(cur)->u.code;
+			FklByteCodelnt* codeObj=FKL_VM_CO(get_compound_frame_code_obj(cur));
 			FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
 					,codeObj->ls
 					,codeObj->l);
@@ -253,7 +239,7 @@ FklVMframe* fklCopyVMframe(FklVMframe* f,FklVMframe* prev,FklVM* exe)
 	return NULL;
 }
 
-inline static void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
+static inline void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
 {
 	lr->base=0;
 	lr->lcount=0;
@@ -300,12 +286,10 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	return tmp;
 }
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVMframe* prev,FklVMgc* gc)
+FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM* vm)
 {
-	FklVMproc* proc=fklCreateVMprocWithWholeCodeObj(codeObj,gc);
-	proc->protoId=1;
-	FklVMvalue* procV=fklCreateVMvalueNoGC(FKL_TYPE_PROC,proc,gc);
-	return fklCreateVMframeWithProcValue(procV,NULL);
+	FklVMvalue* r=fklCreateVMvalueProcWithWholeCodeObj(vm,codeObj,1);
+	return fklCreateVMframeWithProcValue(r,NULL);
 }
 
 inline void fklInitMainVMframeWithProc(FklVM* exe
@@ -365,59 +349,9 @@ inline void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
 		}
 }
 
-// inline void fklInitMainVMframeWithProcForRepl(FklVM* exe
-// 		,FklVMframe* tmp
-// 		,FklVMproc* code
-// 		,FklVMframe* prev
-// 		,FklFuncPrototypes* pts)
-// {
-// 	tmp->errorCallBack=NULL;
-// 	tmp->type=FKL_FRAME_COMPOUND;
-// 	tmp->prev=prev;
-//
-// 	FklVMCompoundFrameData* f=&tmp->u.c;
-// 	f->sid=0;
-// 	f->pc=NULL;
-// 	f->spc=NULL;
-// 	f->end=NULL;
-// 	f->mark=0;
-// 	f->tail=0;
-// 	if(code)
-// 	{
-// 		f->pc=code->spc;
-// 		f->spc=code->spc;
-// 		f->end=code->end;
-// 		f->sid=code->sid;
-// 		FklVMCompoundFrameVarRef* lr=&f->lr;
-// 		code->closure=lr->ref;
-// 		code->count=lr->rcount;
-// 		FklFuncPrototype* pt=&pts->pts[code->protoId];
-// 		uint32_t count=pt->lcount;
-// 		FklVMvalue** loc=(FklVMvalue**)realloc(exe->locv,count*sizeof(FklVMvalue*));
-// 		FKL_ASSERT(loc||!count);
-// 		memset(&loc[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));
-// 		if(lr->lref&&loc!=lr->loc)
-// 		{
-// 			FklVMvarRef** lref=(FklVMvarRef**)realloc(lr->lref,count*sizeof(FklVMvarRef*));
-// 			FKL_ASSERT(lref||!count);
-// 			memset(&lref[lr->lcount],0,(count-lr->lcount)*sizeof(FklVMvalue*));
-// 			for(FklVMvarRefList* l=lr->lrefl;l;l=l->next)
-// 				l->ref->ref=&loc[l->ref->idx];
-// 			lr->lref=lref;
-// 		}
-// 		exe->locv=loc;
-// 		exe->ltp=count;
-// 		exe->llast=count;
-// 		lr->loc=loc;
-// 		lr->lcount=count;
-// 	}
-// 	else
-// 		init_frame_var_ref(&f->lr);
-// }
-
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 {
-	FklVMproc* code=proc->u.proc;
+	FklVMproc* code=FKL_VM_PROC(proc);
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
 	tmp->errorCallBack=NULL;
@@ -646,17 +580,17 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 			putValueInSet(totalAccessed,v);
 			if(FKL_IS_PAIR(v))
 			{
-				if(v->u.pair->cdr==v||v->u.pair->car==v)
+				if(FKL_VM_CDR(v)==v||FKL_VM_CAR(v)==v)
 					putValueInSet(recValueSet,v);
 				else
 				{
-					fklPushPtrStack(v->u.pair->cdr,&beAccessed);
-					fklPushPtrStack(v->u.pair->car,&beAccessed);
+					fklPushPtrStack(FKL_VM_CDR(v),&beAccessed);
+					fklPushPtrStack(FKL_VM_CAR(v),&beAccessed);
 				}
 			}
 			else if(FKL_IS_VECTOR(v))
 			{
-				FklVMvec* vec=v->u.vec;
+				FklVMvec* vec=FKL_VM_VEC(v);
 				for(size_t i=vec->size;i>0;i--)
 				{
 					if(vec->base[i-1]==v)
@@ -667,7 +601,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 			}
 			else if(FKL_IS_HASHTABLE(v))
 			{
-				FklHashTable* ht=v->u.hash;
+				FklHashTable* ht=FKL_VM_HASH(v);
 				FklPtrStack stack=FKL_STACK_INIT;
 				fklInitPtrStack(&stack,32,16);
 				for(FklHashTableNodeList* list=ht->list;list;list=list->next)
@@ -687,10 +621,11 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 			}
 			else
 			{
-				if(v->u.box==v)
+				FklVMvalue* box=FKL_VM_BOX(v);
+				if(box==v)
 					putValueInSet(recValueSet,v);
 				else
-					fklPushPtrStack(v->u.box,&beAccessed);
+					fklPushPtrStack(box,&beAccessed);
 			}
 		}
 	}
@@ -701,84 +636,88 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 #define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklSymbolTable* table
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"%lf",v->u.f64);
+	fprintf(fp,"%lf",FKL_VM_F64(v));
 }
 
 static void vmvalue_big_int_printer(VMVALUE_PRINTER_ARGS)
 {
-	fklPrintBigInt(v->u.bigInt,fp);
+	fklPrintBigInt(FKL_VM_BI(v),fp);
 }
 
 static void vmvalue_string_princ(VMVALUE_PRINTER_ARGS)
 {
-	fwrite(v->u.str->str,v->u.str->size,1,fp);
+	FklString* ss=FKL_VM_STR(v);
+	fwrite(ss->str,ss->size,1,fp);
 }
 
 static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS)
 {
-	fklPrintRawBytevector(v->u.bvec,fp);
+	fklPrintRawBytevector(FKL_VM_BVEC(v),fp);
 }
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS)
 {
-	fklPrincVMudata(v->u.ud,fp,table);
+	fklPrincVMudata(FKL_VM_UD(v),fp,table);
 }
 
 static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
 {
-	if(v->u.proc->sid)
+	FklVMproc* proc=FKL_VM_PROC(v);
+	if(proc->sid)
 	{
 		fprintf(fp,"#<proc ");
-		fklPrintRawSymbol(fklGetSymbolWithId(v->u.proc->sid,table)->symbol,fp);
+		fklPrintRawSymbol(fklGetSymbolWithId(proc->sid,table)->symbol,fp);
 		fputc('>',fp);
 	}
 	else
-		fprintf(fp,"#<proc %p>",v->u.proc);
+		fprintf(fp,"#<proc %p>",proc);
 
 }
 
 static void vmvalue_chanl_printer(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"#<chanl %p>",v->u.chan);
+	fprintf(fp,"#<chanl %p>",FKL_VM_CHANL(v));
 }
 
 static void vmvalue_fp_printer(VMVALUE_PRINTER_ARGS)
 {
-	if(v->u.fp->fp==stdin)
+	FklVMfp* vfp=FKL_VM_FP(v);
+	if(vfp->fp==stdin)
 		fputs("#<fp stdin>",fp);
-	else if(v->u.fp->fp==stdout)
+	else if(vfp->fp==stdout)
 		fputs("#<fp stdout>",fp);
-	else if(v->u.fp->fp==stderr)
+	else if(vfp->fp==stderr)
 		fputs("#<fp stderr>",fp);
 	else
-		fprintf(fp,"#<fp %p>",v->u.fp);
+		fprintf(fp,"#<fp %p>",vfp);
 }
 
 static void vmvalue_dll_printer(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"#<dll %p>",v->u.dll);
+	fprintf(fp,"#<dll %p>",FKL_VM_DLL(v));
 }
 
 static void vmvalue_dlproc_printer(VMVALUE_PRINTER_ARGS)
 {
-	if(v->u.dlproc->sid)
+	FklVMdlproc* dlproc=FKL_VM_DLPROC(v);
+	if(dlproc->sid)
 	{
 		fprintf(fp,"#<dlproc ");
-		fklPrintRawSymbol(fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol,fp);
+		fklPrintRawSymbol(fklGetSymbolWithId(dlproc->sid,table)->symbol,fp);
 		fputc('>',fp);
 	}
 	else
-		fprintf(fp,"#<dlproc %p>",v->u.dlproc);
+		fprintf(fp,"#<dlproc %p>",dlproc);
 }
 
 static void vmvalue_error_princ(VMVALUE_PRINTER_ARGS)
 {
-	fklPrintString(v->u.err->message,fp);
+	fklPrintString(FKL_VM_ERR(v)->message,fp);
 }
 
 static void vmvalue_code_obj_printer(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"#<code-obj %p>",v->u.code);
+	fprintf(fp,"#<code-obj %p>",FKL_VM_CO(v));
 }
 
 static void (*VMvaluePtrPrincTable[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
@@ -852,22 +791,23 @@ static void vmvalue_chr_ptr_prin1(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS)
 {
-	fklPrintRawString(v->u.str,fp);
+	fklPrintRawString(FKL_VM_STR(v),fp);
 }
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS)
 {
-	fklPrin1VMudata(v->u.ud,fp,table);
+	fklPrin1VMudata(FKL_VM_UD(v),fp,table);
 }
 
 static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
 {
+	FklVMerror* err=FKL_VM_ERR(v);
 	fprintf(fp,"#<err t:");
-	fklPrintRawSymbol(fklGetSymbolWithId(v->u.err->type,table)->symbol,fp);
+	fklPrintRawSymbol(fklGetSymbolWithId(err->type,table)->symbol,fp);
 	fprintf(fp," w:");
-	fklPrintRawString(v->u.err->who,fp);
+	fklPrintRawString(err->who,fp);
 	fprintf(fp," m:");
-	fklPrintRawString(v->u.err->message,fp);
+	fklPrintRawString(err->message,fp);
 	fprintf(fp,">");
 }
 
@@ -990,17 +930,18 @@ void fklPrintVMvalue(FklVMvalue* value
 					{
 						fputs("#(",fp);
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
-						for(size_t i=0;i<v->u.vec->size;i++)
+						FklVMvec* vec=FKL_VM_VEC(v);
+						for(size_t i=0;i<vec->size;i++)
 						{
 							size_t w=0;
-							if((isInValueSet(v->u.vec->base[i],recValueSet,&w)&&isInValueSet(v->u.vec->base[i],hasPrintRecSet,NULL))||v->u.vec->base[i]==v)
+							if((isInValueSet(vec->base[i],recValueSet,&w)&&isInValueSet(vec->base[i],hasPrintRecSet,NULL))||vec->base[i]==v)
 								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
 										,vQueue);
 							else
 							{
-								fklPushPtrQueue(createPrtElem(PRT_CAR,v->u.vec->base[i])
+								fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
 										,vQueue);
-								putValueInSet(hasPrintRecSet,v->u.vec->base[i]);
+								putValueInSet(hasPrintRecSet,vec->base[i]);
 							}
 						}
 						fklPushPtrStack(vQueue,&queueStack);
@@ -1011,20 +952,22 @@ void fklPrintVMvalue(FklVMvalue* value
 					{
 						fputs("#&",fp);
 						size_t w=0;
-						if((isInValueSet(v->u.box,recValueSet,&w)&&isInValueSet(v->u.box,hasPrintRecSet,NULL))||v->u.box==v)
+						FklVMvalue* box=FKL_VM_BOX(v);
+						if((isInValueSet(box,recValueSet,&w)&&isInValueSet(box,hasPrintRecSet,NULL))||box==v)
 							fklPushPtrQueueToFront(createPrtElem(PRT_REC_BOX,(void*)w),cQueue);
 						else
 						{
-							fklPushPtrQueueToFront(createPrtElem(PRT_BOX,v->u.box),cQueue);
-							putValueInSet(hasPrintRecSet,v->u.box);
+							fklPushPtrQueueToFront(createPrtElem(PRT_BOX,box),cQueue);
+							putValueInSet(hasPrintRecSet,box);
 						}
 						continue;
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						fputs(fklGetVMhashTablePrefix(v->u.hash),fp);
+						FklHashTable* hash=FKL_VM_HASH(v);
+						fputs(fklGetVMhashTablePrefix(hash),fp);
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
-						for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)
+						for(FklHashTableNodeList* list=hash->list;list;list=list->next)
 						{
 							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 							PrtElem* keyElem=NULL;
@@ -1054,26 +997,27 @@ void fklPrintVMvalue(FklVMvalue* value
 					{
 						fputc('(',fp);
 						FklPtrQueue* lQueue=fklCreatePtrQueue();
-						FklVMpair* p=v->u.pair;
+						FklVMvalue* car=FKL_VM_CAR(v);
+						FklVMvalue* cdr=FKL_VM_CDR(v);
 						for(;;)
 						{
 							PrtElem* ce=NULL;
 							size_t w=0;
-							if(isInValueSet(p->car,recValueSet,&w)&&(isInValueSet(p->car,hasPrintRecSet,NULL)||p->car==v))
+							if(isInValueSet(car,recValueSet,&w)&&(isInValueSet(car,hasPrintRecSet,NULL)||car==v))
 								ce=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
 							{
-								ce=createPrtElem(PRT_CAR,p->car);
-								putValueInSet(hasPrintRecSet,p->car);
+								ce=createPrtElem(PRT_CAR,car);
+								putValueInSet(hasPrintRecSet,car);
 							}
 							fklPushPtrQueue(ce,lQueue);
-							if(isInValueSet(p->cdr,recValueSet,&w))
+							if(isInValueSet(cdr,recValueSet,&w))
 							{
 								PrtElem* cdre=NULL;
-								if(p->cdr!=v&&!isInValueSet(p->cdr,hasPrintRecSet,NULL))
+								if(cdr!=v&&!isInValueSet(cdr,hasPrintRecSet,NULL))
 								{
-									cdre=createPrtElem(PRT_CDR,p->cdr);
-									putValueInSet(hasPrintRecSet,p->cdr);
+									cdre=createPrtElem(PRT_CDR,cdr);
+									putValueInSet(hasPrintRecSet,cdr);
 								}
 								else
 								{
@@ -1082,15 +1026,17 @@ void fklPrintVMvalue(FklVMvalue* value
 								fklPushPtrQueue(cdre,lQueue);
 								break;
 							}
-							FklVMpair* next=FKL_IS_PAIR(p->cdr)?p->cdr->u.pair:NULL;
-							if(!next)
+							if(FKL_IS_PAIR(cdr))
 							{
-								FklVMvalue* cdr=p->cdr;
+								car=FKL_VM_CAR(cdr);
+								cdr=FKL_VM_CDR(cdr);
+							}
+							else
+							{
 								if(cdr!=FKL_VM_NIL)
 									fklPushPtrQueue(createPrtElem(PRT_CDR,cdr),lQueue);
 								break;
 							}
-							p=next;
 						}
 						fklPushPtrStack(lQueue,&queueStack);
 						cQueue=lQueue;
@@ -1125,7 +1071,7 @@ void fklPrintVMvalue(FklVMvalue* value
 }
 
 #include<ctype.h>
-inline static int is_special_char_and_print_to_utstring(FklStringBuffer* s,char ch)
+static inline int is_special_char_and_print_to_utstring(FklStringBuffer* s,char ch)
 {
 	int r=0;
 	if((r=ch=='\n'))
@@ -1147,7 +1093,7 @@ inline static int is_special_char_and_print_to_utstring(FklStringBuffer* s,char 
 	return r;
 }
 
-inline static void print_raw_char_to_utstring(FklStringBuffer* s,char c)
+static inline void print_raw_char_to_utstring(FklStringBuffer* s,char c)
 {
 	fklStringBufferPrintf(s,"#\\");
 	if(isgraph(c))
@@ -1167,7 +1113,7 @@ inline static void print_raw_char_to_utstring(FklStringBuffer* s,char c)
 	}
 }
 
-inline static void print_raw_string_to_ut_string_with_se(FklStringBuffer* s,FklString* fstr,char se)
+static inline void print_raw_string_to_ut_string_with_se(FklStringBuffer* s,FklString* fstr,char se)
 {
 	char buf[7]={0};
 	fklStringBufferPrintf(s,"%c",se);
@@ -1217,17 +1163,17 @@ inline static void print_raw_string_to_ut_string_with_se(FklStringBuffer* s,FklS
 	fklStringBufferPrintf(s,"%c",se);
 }
 
-inline static void print_raw_string_to_ut_string(FklStringBuffer* s,FklString* f)
+static inline void print_raw_string_to_ut_string(FklStringBuffer* s,FklString* f)
 {
 	print_raw_string_to_ut_string_with_se(s,f,'"');
 }
 
-inline static void print_raw_symbol_to_ut_string(FklStringBuffer* s,FklString* f)
+static inline void print_raw_symbol_to_ut_string(FklStringBuffer* s,FklString* f)
 {
 	print_raw_string_to_ut_string_with_se(s,f,'|');
 }
 
-inline static void print_bytevector_to_ut_string(FklStringBuffer* s,FklBytevector* bvec)
+static inline void print_bytevector_to_ut_string(FklStringBuffer* s,FklBytevector* bvec)
 {
 	size_t size=bvec->size;
 	uint8_t* ptr=bvec->ptr;
@@ -1241,7 +1187,7 @@ inline static void print_bytevector_to_ut_string(FklStringBuffer* s,FklBytevecto
 	fklStringBufferPrintf(s,")");
 }
 
-inline static void print_big_int_to_ut_string(FklStringBuffer* s,FklBigInt* a)
+static inline void print_big_int_to_ut_string(FklStringBuffer* s,FklBigInt* a)
 {
 	if(!FKL_IS_0_BIG_INT(a)&&a->neg)
 		fklStringBufferPrintf(s,"-");
@@ -1284,104 +1230,109 @@ static void chr_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_f64_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"%lf",v->u.f64);
+	fklStringBufferPrintf(result,"%lf",FKL_VM_F64(v));
 }
 
 static void vmvalue_big_int_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_big_int_to_ut_string(result,v->u.bigInt);
+	print_big_int_to_ut_string(result,FKL_VM_BI(v));
 }
 
 static void vmvalue_string_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_raw_string_to_ut_string(result,v->u.str);
+	print_raw_string_to_ut_string(result,FKL_VM_STR(v));
 }
 
 static void vmvalue_bytevector_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_bytevector_to_ut_string(result,v->u.bvec);
+	print_bytevector_to_ut_string(result,FKL_VM_BVEC(v));
 }
 
 static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	if(fklIsAbleToStringUd(v->u.ud))
+	FklVMudata* ud=FKL_VM_UD(v);
+	if(fklIsAbleToStringUd(ud))
 	{
-		FklString* s=fklUdToString(v->u.ud);
+		FklString* s=fklUdToString(ud);
 		fklStringBufferConcatWithString(result,s);
 		free(s);
 	}
 	else
 	{
 		fklStringBufferPrintf(result,"#<");
-		if(v->u.ud->type)
+		if(ud->type)
 		{
-			print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.ud->type,table)->symbol);
+			print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(ud->type,table)->symbol);
 			fklStringBufferPrintf(result," ");
 		}
-		fklStringBufferPrintf(result,"%p>",v->u.ud);
+		fklStringBufferPrintf(result,"%p>",ud);
 	}
 }
 
 static void vmvalue_proc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	if(v->u.proc->sid)
+	FklVMproc* proc=FKL_VM_PROC(v);
+	if(proc->sid)
 	{
 		fklStringBufferPrintf(result,"#<proc ");
-		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.proc->sid,table)->symbol);
+		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(proc->sid,table)->symbol);
 		fklStringBufferPrintf(result,">");
 	}
 	else
-		fklStringBufferPrintf(result,"#<proc %p>",v->u.proc);
+		fklStringBufferPrintf(result,"#<proc %p>",proc);
 }
 
 static void vmvalue_chanl_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"#<chanl %p>",v->u.chan);
+	fklStringBufferPrintf(result,"#<chanl %p>",FKL_VM_CHANL(v));
 }
 
 static void vmvalue_fp_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	if(v->u.fp->fp==stdin)
+	FklVMfp* vfp=FKL_VM_FP(v);
+	if(vfp->fp==stdin)
 		fklStringBufferPrintf(result,"#<fp stdin>");
-	else if(v->u.fp->fp==stdout)
+	else if(vfp->fp==stdout)
 		fklStringBufferPrintf(result,"#<fp stdout>");
-	else if(v->u.fp->fp==stderr)
+	else if(vfp->fp==stderr)
 		fklStringBufferPrintf(result,"#<fp stderr>");
 	else
-		fklStringBufferPrintf(result,"#<fp %p>",v->u.fp);
+		fklStringBufferPrintf(result,"#<fp %p>",vfp);
 }
 
 static void vmvalue_dll_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"#<dll %p>",v->u.dll);
+	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
 }
 
 static void vmvalue_dlproc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	if(v->u.dlproc->sid)
+	FklVMdlproc* dlproc=FKL_VM_DLPROC(v);
+	if(dlproc->sid)
 	{
 		fklStringBufferPrintf(result,"#<dlproc ");
-		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.dlproc->sid,table)->symbol);
+		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(dlproc->sid,table)->symbol);
 		fklStringBufferPrintf(result,">");
 	}
 	else
-		fklStringBufferPrintf(result,"#<dlproc %p>",v->u.dlproc);
+		fklStringBufferPrintf(result,"#<dlproc %p>",dlproc);
 }
 
 static void vmvalue_error_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
+	FklVMerror* err=FKL_VM_ERR(v);
 	fklStringBufferPrintf(result,"#<err t:");
-	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(v->u.err->type,table)->symbol);
+	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(err->type,table)->symbol);
 	fklStringBufferPrintf(result,"w:");
-	print_raw_string_to_ut_string(result,v->u.err->who);
+	print_raw_string_to_ut_string(result,err->who);
 	fklStringBufferPrintf(result,"m:");
-	print_raw_string_to_ut_string(result,v->u.err->message);
+	print_raw_string_to_ut_string(result,err->message);
 	fklStringBufferPrintf(result,">");
 }
 
 static void vmvalue_code_obj_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"#<code-obj %p>",v->u.code);
+	fklStringBufferPrintf(result,"#<code-obj %p>",FKL_VM_CO(v));
 }
 
 static void (*atom_ptr_ptr_to_ut_string_printer_table[FKL_VMVALUE_PTR_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
@@ -1418,7 +1369,7 @@ static void (*atom_ptr_to_ut_string_printer_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_U
 	chr_ptr_to_ut_string,
 };
 
-inline static void print_atom_to_ut_string(FklStringBuffer* result,FklVMvalue* v,FklSymbolTable* table)
+static inline void print_atom_to_ut_string(FklStringBuffer* result,FklVMvalue* v,FklSymbolTable* table)
 {
 	atom_ptr_to_ut_string_printer_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,table);
 }
@@ -1473,17 +1424,18 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					{
 						fklStringBufferPrintf(&result,"#(");
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
-						for(size_t i=0;i<v->u.vec->size;i++)
+						FklVMvec* vec=FKL_VM_VEC(v);
+						for(size_t i=0;i<vec->size;i++)
 						{
 							size_t w=0;
-							if((isInValueSet(v->u.vec->base[i],recValueSet,&w)&&isInValueSet(v->u.vec->base[i],hasPrintRecSet,NULL))||v->u.vec->base[i]==v)
+							if((isInValueSet(vec->base[i],recValueSet,&w)&&isInValueSet(vec->base[i],hasPrintRecSet,NULL))||vec->base[i]==v)
 								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
 										,vQueue);
 							else
 							{
-								fklPushPtrQueue(createPrtElem(PRT_CAR,v->u.vec->base[i])
+								fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
 										,vQueue);
-								putValueInSet(hasPrintRecSet,v->u.vec->base[i]);
+								putValueInSet(hasPrintRecSet,vec->base[i]);
 							}
 						}
 						fklPushPtrStack(vQueue,&queueStack);
@@ -1494,20 +1446,22 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					{
 						fklStringBufferPrintf(&result,"#&");
 						size_t w=0;
-						if((isInValueSet(v->u.box,recValueSet,&w)&&isInValueSet(v->u.box,hasPrintRecSet,NULL))||v->u.box==v)
+						FklVMvalue* box=FKL_VM_BOX(v);
+						if((isInValueSet(box,recValueSet,&w)&&isInValueSet(box,hasPrintRecSet,NULL))||box==v)
 							fklPushPtrQueueToFront(createPrtElem(PRT_REC_BOX,(void*)w),cQueue);
 						else
 						{
-							fklPushPtrQueueToFront(createPrtElem(PRT_BOX,v->u.box),cQueue);
-							putValueInSet(hasPrintRecSet,v->u.box);
+							fklPushPtrQueueToFront(createPrtElem(PRT_BOX,box),cQueue);
+							putValueInSet(hasPrintRecSet,box);
 						}
 						continue;
 					}
 					else if(FKL_IS_HASHTABLE(v))
 					{
-						fklStringBufferPrintf(&result,"%s",fklGetVMhashTablePrefix(v->u.hash));
+						FklHashTable* hash=FKL_VM_HASH(v);
+						fklStringBufferPrintf(&result,"%s",fklGetVMhashTablePrefix(hash));
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
-						for(FklHashTableNodeList* list=v->u.hash->list;list;list=list->next)
+						for(FklHashTableNodeList* list=hash->list;list;list=list->next)
 						{
 							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
 							PrtElem* keyElem=NULL;
@@ -1537,26 +1491,27 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					{
 						fklStringBufferPrintf(&result,"(");
 						FklPtrQueue* lQueue=fklCreatePtrQueue();
-						FklVMpair* p=v->u.pair;
+						FklVMvalue* car=FKL_VM_CAR(v);
+						FklVMvalue* cdr=FKL_VM_CDR(v);
 						for(;;)
 						{
 							PrtElem* ce=NULL;
 							size_t w=0;
-							if(isInValueSet(p->car,recValueSet,&w)&&(isInValueSet(p->car,hasPrintRecSet,NULL)||p->car==v))
+							if(isInValueSet(car,recValueSet,&w)&&(isInValueSet(car,hasPrintRecSet,NULL)||car==v))
 								ce=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
 							{
-								ce=createPrtElem(PRT_CAR,p->car);
-								putValueInSet(hasPrintRecSet,p->car);
+								ce=createPrtElem(PRT_CAR,car);
+								putValueInSet(hasPrintRecSet,car);
 							}
 							fklPushPtrQueue(ce,lQueue);
-							if(isInValueSet(p->cdr,recValueSet,&w))
+							if(isInValueSet(cdr,recValueSet,&w))
 							{
 								PrtElem* cdre=NULL;
-								if(p->cdr!=v&&!isInValueSet(p->cdr,hasPrintRecSet,NULL))
+								if(cdr!=v&&!isInValueSet(cdr,hasPrintRecSet,NULL))
 								{
-									cdre=createPrtElem(PRT_CDR,p->cdr);
-									putValueInSet(hasPrintRecSet,p->cdr);
+									cdre=createPrtElem(PRT_CDR,cdr);
+									putValueInSet(hasPrintRecSet,cdr);
 								}
 								else
 								{
@@ -1565,15 +1520,17 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 								fklPushPtrQueue(cdre,lQueue);
 								break;
 							}
-							FklVMpair* next=FKL_IS_PAIR(p->cdr)?p->cdr->u.pair:NULL;
-							if(!next)
+							if(FKL_IS_PAIR(cdr))
 							{
-								FklVMvalue* cdr=p->cdr;
+								car=FKL_VM_CAR(cdr);
+								cdr=FKL_VM_CDR(cdr);
+							}
+							else
+							{
 								if(cdr!=FKL_VM_NIL)
 									fklPushPtrQueue(createPrtElem(PRT_CDR,cdr),lQueue);
 								break;
 							}
-							p=next;
 						}
 						fklPushPtrStack(lQueue,&queueStack);
 						cQueue=lQueue;
@@ -1631,7 +1588,434 @@ inline FklVMvalue* fklGetTopValue(FklVM* exe)
 inline size_t fklVMlistLength(FklVMvalue* v)
 {
 	size_t len=0;
-	for(;FKL_IS_PAIR(v);v=fklGetVMpairCdr(v))len++;
+	for(;FKL_IS_PAIR(v);v=FKL_VM_CDR(v))len++;
 	return len;
+}
+
+inline int fklProcessVMnumAdd(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi)
+{
+	if(FKL_IS_FIX(cur))
+	{
+		int64_t c64=FKL_GET_FIX(cur);
+		if(fklIsFixAddOverflow(*pr64,c64))
+			fklAddBigIntI(bi,c64);
+		else
+			*pr64+=c64;
+	}
+	else if(FKL_IS_BIG_INT(cur))
+		fklAddBigInt(bi,FKL_VM_BI(cur));
+	else if(FKL_IS_F64(cur))
+		*pf64+=FKL_VM_F64(cur);
+	else
+	{
+		fklUninitBigInt(bi);
+		return 1;
+	}
+	return 0;
+}
+
+inline int fklProcessVMnumMul(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi)
+{
+	if(FKL_IS_FIX(cur))
+	{
+		int64_t c64=FKL_GET_FIX(cur);
+		if(fklIsFixMulOverflow(*pr64,c64))
+			fklMulBigIntI(bi,c64);
+		else
+			*pr64*=c64;
+	}
+	else if(FKL_IS_BIG_INT(cur))
+		fklMulBigInt(bi,FKL_VM_BI(cur));
+	else if(FKL_IS_F64(cur))
+		*pf64*=FKL_VM_F64(cur);
+	else
+	{
+		fklUninitBigInt(bi);
+		return 1;
+	}
+	return 0;
+}
+
+inline int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,FklBigInt* bi)
+{
+	if(FKL_IS_FIX(cur))
+	{
+		int64_t c64=FKL_GET_FIX(cur);
+		if(fklIsFixMulOverflow(*pr64,c64))
+			fklMulBigIntI(bi,c64);
+		else
+			*pr64*=c64;
+	}
+	else if(FKL_IS_BIG_INT(cur))
+		fklMulBigInt(bi,FKL_VM_BI(cur));
+	else
+	{
+		fklUninitBigInt(bi);
+		return 1;
+	}
+	return 0;
+}
+
+inline FklVMvalue* fklProcessVMnumInc(FklVM* exe,FklVMvalue* arg)
+{
+	if(FKL_IS_F64(arg))
+		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)+1.0);
+	else
+	{
+		if(FKL_IS_BIG_INT(arg))
+		{
+			FklBigInt* bigint=FKL_VM_BI(arg);
+			if(fklIsBigIntAdd1InFixIntRange(bigint))
+				return FKL_MAKE_VM_FIX(fklBigIntToI64(bigint)+1);
+			else
+			{
+				FklVMvalue* r=fklCreateVMvalueBigInt(exe,bigint);
+				fklAddBigIntI(FKL_VM_BI(r),1);
+				return r;
+			}
+		}
+		else
+		{
+			int64_t i=FKL_GET_FIX(arg)+1;
+			if(i>FKL_FIX_INT_MAX)
+				return fklCreateVMvalueBigIntWithI64(exe,i);
+			else
+				return FKL_MAKE_VM_FIX(i);
+		}
+	}
+}
+
+inline FklVMvalue* fklProcessVMnumDec(FklVM* exe,FklVMvalue* arg)
+{
+	if(FKL_IS_F64(arg))
+		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)-1.0);
+	else
+	{
+		if(FKL_IS_BIG_INT(arg))
+		{
+			FklBigInt* bigint=FKL_VM_BI(arg);
+			if(fklIsBigIntSub1InFixIntRange(bigint))
+				return FKL_MAKE_VM_FIX(fklBigIntToI64(bigint)-1);
+			else
+			{
+				FklVMvalue* r=fklCreateVMvalueBigInt(exe,bigint);
+				fklSubBigIntI(FKL_VM_BI(r),1);
+				return r;
+			}
+		}
+		else
+		{
+			int64_t i=FKL_GET_FIX(arg)-1;
+			if(i<FKL_FIX_INT_MIN)
+				return fklCreateVMvalueBigIntWithI64(exe,i);
+			else
+				return FKL_MAKE_VM_FIX(i);
+		}
+	}
+}
+
+
+inline FklVMvalue* fklProcessVMnumAddResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
+{
+	FklVMvalue* r=NULL;
+	if(rd!=0.0)
+	{
+		r=fklCreateVMvalueF64(exe,rd+r64+fklBigIntToDouble(bi));
+		fklUninitBigInt(bi);
+	}
+	else if(FKL_IS_0_BIG_INT(bi))
+	{
+		r=FKL_MAKE_VM_FIX(r64);
+		fklUninitBigInt(bi);
+	}
+	else
+	{
+		fklAddBigIntI(bi,r64);
+		if(fklIsGtLtFixBigInt(bi))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=*bi;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(bi));
+			fklUninitBigInt(bi);
+		}
+	}
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumSubResult(FklVM* exe,FklVMvalue* prev,int64_t r64,double rd,FklBigInt* bi)
+{
+	FklVMvalue* r=NULL;
+	if(FKL_IS_F64(prev)||rd!=0.0)
+	{
+		r=fklCreateVMvalueF64(exe,fklGetDouble(prev)-rd-r64-fklBigIntToDouble(bi));
+		fklUninitBigInt(bi);
+	}
+	else if(FKL_IS_BIG_INT(prev)||!FKL_IS_0_BIG_INT(bi))
+	{
+		if(FKL_IS_FIX(prev))
+			fklSubBigIntI(bi,FKL_GET_FIX(prev));
+		else
+			fklSubBigInt(bi,FKL_VM_BI(prev));
+		bi->neg=!bi->neg;
+		fklSubBigIntI(bi,r64);
+		if(fklIsGtLtFixBigInt(bi))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=*bi;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(bi));
+			fklUninitBigInt(bi);
+		}
+	}
+	else
+	{
+		int64_t p64=FKL_GET_FIX(prev);
+		if(fklIsFixAddOverflow(p64,-r64))
+		{
+			fklAddBigIntI(bi,p64);
+			fklSubBigIntI(bi,r64);
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=*bi;
+		}
+		else
+		{
+			r=fklMakeVMint(p64-r64,exe);
+			fklUninitBigInt(bi);
+		}
+	}
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumNeg(FklVM* exe,FklVMvalue* prev)
+{
+	FklVMvalue* r=NULL;
+	if(FKL_IS_F64(prev))
+		r=fklCreateVMvalueF64(exe,-FKL_VM_F64(prev));
+	else if(FKL_IS_FIX(prev))
+	{
+		int64_t p64=-FKL_GET_FIX(prev);
+		if(p64>FKL_FIX_INT_MAX)
+			r=fklCreateVMvalueBigIntWithI64(exe,p64);
+		else
+			r=FKL_MAKE_VM_FIX(p64);
+	}
+	else
+	{
+		FklBigInt bi=FKL_BIG_INT_INIT;
+		fklInitBigInt0(&bi);
+		fklSetBigInt(&bi,FKL_VM_BI(prev));
+		bi.neg=!bi.neg;
+		if(fklIsGtLtFixBigInt(&bi))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=bi;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(&bi));
+			fklUninitBigInt(&bi);
+		}
+	}
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumMulResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
+{
+	FklVMvalue* r=NULL;
+	if(rd!=1.0)
+	{
+		r=fklCreateVMvalueF64(exe,rd*r64*fklBigIntToDouble(bi));
+		fklUninitBigInt(bi);
+	}
+	else if(FKL_IS_1_BIG_INT(bi))
+	{
+		r=FKL_MAKE_VM_FIX(r64);
+		fklUninitBigInt(bi);
+	}
+	else
+	{
+		fklMulBigIntI(bi,r64);
+		if(fklIsGtLtFixBigInt(bi))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=*bi;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(bi));
+			fklUninitBigInt(bi);
+		}
+	}
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,FklBigInt* bi)
+{
+	FklVMvalue* r=NULL;
+	if(FKL_IS_BIG_INT(prev)||!FKL_IS_1_BIG_INT(bi))
+	{
+		FklBigInt t=FKL_BIG_INT_INIT;
+		if(FKL_IS_FIX(prev))
+			fklSetBigIntI(&t,FKL_GET_FIX(prev));
+		else
+			fklSetBigInt(&t,FKL_VM_BI(prev));
+		fklDivBigInt(&t,bi);
+		fklDivBigIntI(&t,r64);
+		if(fklIsGtLtFixBigInt(&t))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=t;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(&t));
+			fklUninitBigInt(&t);
+		}
+	}
+	else
+		r=FKL_MAKE_VM_FIX(FKL_GET_FIX(prev)/r64);
+	fklUninitBigInt(bi);
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumDivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,double rd,FklBigInt* bi)
+{
+	FklVMvalue* r=NULL;
+	if(FKL_IS_F64(prev)
+			||rd!=1.0
+			||(FKL_IS_FIX(prev)
+				&&FKL_IS_1_BIG_INT(bi)
+				&&FKL_GET_FIX(prev)%(r64))
+			||(FKL_IS_BIG_INT(prev)
+				&&((!FKL_IS_1_BIG_INT(bi)&&!fklIsDivisibleBigInt(FKL_VM_BI(prev),bi))
+					||!fklIsDivisibleBigIntI(FKL_VM_BI(prev),r64))))
+		r=fklCreateVMvalueF64(exe,fklGetDouble(prev)/rd/r64/fklBigIntToDouble(bi));
+	else if(FKL_IS_BIG_INT(prev)||!FKL_IS_1_BIG_INT(bi))
+	{
+		FklBigInt t=FKL_BIG_INT_INIT;
+		if(FKL_IS_FIX(prev))
+			fklSetBigIntI(&t,FKL_GET_FIX(prev));
+		else
+			fklSetBigInt(&t,FKL_VM_BI(prev));
+		fklDivBigInt(&t,bi);
+		fklDivBigIntI(&t,r64);
+		if(fklIsGtLtFixBigInt(&t))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=t;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(&t));
+			fklUninitBigInt(&t);
+		}
+	}
+	else
+		r=FKL_MAKE_VM_FIX(FKL_GET_FIX(prev)/r64);
+	fklUninitBigInt(bi);
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumRec(FklVM* exe,FklVMvalue* prev)
+{
+	FklVMvalue* r=NULL;
+	if(FKL_IS_F64(prev))
+	{
+		double d=FKL_VM_F64(prev);
+		if(!islessgreater(d,0.0))
+			return NULL;
+		r=fklCreateVMvalueF64(exe,1.0/d);
+	}
+	else
+	{
+		if(FKL_IS_FIX(prev))
+		{
+			int64_t r64=FKL_GET_FIX(prev);
+			if(!r64)
+				return NULL;
+			if(r64==1)
+				r=FKL_MAKE_VM_FIX(1);
+			else if(r64==-1)
+				r=FKL_MAKE_VM_FIX(-1);
+			else
+				r=fklCreateVMvalueF64(exe,1.0/r64);
+		}
+		else
+		{
+			FklBigInt* bigint=FKL_VM_BI(prev);
+			if(FKL_IS_1_BIG_INT(bigint))
+				r=FKL_MAKE_VM_FIX(1);
+			else if(FKL_IS_N_1_BIG_INT(bigint))
+				r=FKL_MAKE_VM_FIX(-1);
+			else
+				r=fklCreateVMvalueF64(exe,1.0/fklBigIntToDouble(bigint));
+		}
+	}
+	return r;
+}
+
+inline FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
+{
+	FklVMvalue* r=NULL;
+	if(FKL_IS_F64(fir)||FKL_IS_F64(sec))
+	{
+		double af=fklGetDouble(fir);
+		double as=fklGetDouble(sec);
+		if(!islessgreater(as,0.0))
+			return NULL;
+		r=fklCreateVMvalueF64(exe,fmod(af,as));
+	}
+	else if(FKL_IS_FIX(fir)&&FKL_IS_FIX(sec))
+	{
+		int64_t si=FKL_GET_FIX(sec);
+		if(si==0)
+			return NULL;
+		r=FKL_MAKE_VM_FIX(FKL_GET_FIX(fir)%si);
+	}
+	else
+	{
+		FklBigInt rem=FKL_BIG_INT_INIT;
+		fklInitBigInt0(&rem);
+		if(FKL_IS_BIG_INT(fir))
+			fklSetBigInt(&rem,FKL_VM_BI(fir));
+		else
+			fklSetBigIntI(&rem,fklGetInt(fir));
+		if(FKL_IS_BIG_INT(sec))
+		{
+			FklBigInt* bigint=FKL_VM_BI(sec);
+			if(FKL_IS_0_BIG_INT(bigint))
+			{
+				fklUninitBigInt(&rem);
+				return NULL;
+			}
+			fklModBigInt(&rem,bigint);
+		}
+		else
+		{
+			int64_t si=fklGetInt(sec);
+			if(si==0)
+			{
+				fklUninitBigInt(&rem);
+				return NULL;
+			}
+			fklModBigIntI(&rem,si);
+		}
+		if(fklIsGtLtFixBigInt(&rem))
+		{
+			r=fklCreateVMvalueBigInt(exe,NULL);
+			*FKL_VM_BI(r)=rem;
+		}
+		else
+		{
+			r=FKL_MAKE_VM_FIX(fklBigIntToI64(&rem));
+			fklUninitBigInt(&rem);
+		}
+	}
+	return NULL;
 }
 

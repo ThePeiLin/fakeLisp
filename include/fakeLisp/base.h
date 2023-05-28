@@ -40,9 +40,9 @@ FklString* fklStringToRawSymbol(const FklString* str);
 
 typedef struct FklStringBuffer
 {
-	char* b;
 	uint32_t s;
 	uint32_t i;
+	char* b;
 }FklStringBuffer;
 
 FklStringBuffer* fklCreateStringBuffer(void);
@@ -113,12 +113,14 @@ typedef struct FklHashTableMetaTable
 #define FKL_HASH_GET_KEY(name,type,field) void* name(void* item){return &((type*)item)->field;}
 #define FKL_DEFAULT_HASH_LOAD_FACTOR (2.0)
 
+void fklInitHashTable(FklHashTable*,const FklHashTableMetaTable*);
 FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
 
 void* fklGetHashItem(void* key,FklHashTable*);
 void* fklPutHashItem(void* key,FklHashTable*);
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
 void fklClearHashTable(FklHashTable* ht);
+void fklUninitHashTable(FklHashTable*);
 void fklDestroyHashTable(FklHashTable*);
 
 void fklDoNothingUnintHashItem(void*);
@@ -262,6 +264,7 @@ void fklUninitBigInt(FklBigInt*);
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);
 void fklSetBigIntI(FklBigInt*,int64_t src);
 void fklSetBigIntU(FklBigInt*,uint64_t src);
+void fklSetBigIntD(FklBigInt*,double);
 
 void fklAddBigInt(FklBigInt*,const FklBigInt* addend);
 void fklAddBigIntI(FklBigInt*,int64_t addend);
@@ -278,6 +281,12 @@ int fklIsGtI64MaxBigInt(const FklBigInt* a);
 int fklIsGtU64MaxBigInt(const FklBigInt* a);
 int fklIsLtI64MinBigInt(const FklBigInt* a);
 int fklIsGeLeI64BigInt(const FklBigInt* a);
+
+int fklIsBigIntOdd(const FklBigInt* a);
+int fklIsBigIntEven(const FklBigInt* a);
+int fklIsBigIntLt0(const FklBigInt* a);
+int fklIsBigIntAdd1InFixIntRange(const FklBigInt* a);
+int fklIsBigIntSub1InFixIntRange(const FklBigInt* a);
 
 int fklDivModBigInt(FklBigInt*,FklBigInt*,const FklBigInt* divider);
 int fklDivModBigIntI(FklBigInt*,int64_t*,int64_t divider);
@@ -301,7 +310,6 @@ uint64_t fklBigIntToU64(const FklBigInt*);
 double fklBigIntToDouble(const FklBigInt*);
 void fklDestroyBigInt(FklBigInt*);
 void fklPrintBigInt(const FklBigInt*,FILE*);
-void fklSprintBigInt(const FklBigInt*,size_t size,char* buf);
 FklString* fklBigIntToString(const FklBigInt*,int radix);
 void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res);
 

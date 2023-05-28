@@ -50,7 +50,7 @@ char* fklReadInStringPattern(FILE* fp
 				fklRewindStream(fp,tmp+j,restSize);
 				size-=restSize;
 			}
-			char* rt=(char*)realloc(tmp,sizeof(char)*(size));
+			char* rt=(char*)fklRealloc(tmp,sizeof(char)*(size));
 			FKL_ASSERT(rt||!size);
 			tmp=rt;
 			break;
@@ -79,7 +79,7 @@ char* fklReadInStringPattern(FILE* fp
 		ssize_t nextSize=getline(&nextline,&nextlen,fp);
 		if(nextSize==-1)
 			continue;
-		tmp=(char*)realloc(tmp,sizeof(char)*(size+nextSize));
+		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
 		FKL_ASSERT(tmp);
 		memcpy(&tmp[size],nextline,nextSize);
 		size+=nextSize;

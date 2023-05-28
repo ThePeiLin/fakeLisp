@@ -71,14 +71,14 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 			mid++;
 		table->num+=1;
 		int32_t i=table->num-1;
-		table->list=(FklSymTabNode**)realloc(table->list,sizeof(FklSymTabNode*)*table->num);
+		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
 		node=fklCreateSymTabNode(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->num;
-		table->idl=(FklSymTabNode**)realloc(table->idl,sizeof(FklSymTabNode*)*table->num);
+		table->idl=(FklSymTabNode**)fklRealloc(table->idl,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->idl);
 		table->idl[table->num-1]=node;
 	}
@@ -123,14 +123,14 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 			mid++;
 		table->num+=1;
 		int32_t i=table->num-1;
-		table->list=(FklSymTabNode**)realloc(table->list,sizeof(FklSymTabNode*)*table->num);
+		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
 		node=fklCreateSymTabNodeCstr(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
 		node->id=table->num;
-		table->idl=(FklSymTabNode**)realloc(table->idl,sizeof(FklSymTabNode*)*table->num);
+		table->idl=(FklSymTabNode**)fklRealloc(table->idl,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->idl);
 		table->idl[table->num-1]=node;
 	}
@@ -145,8 +145,7 @@ void fklDestroySymTabNode(FklSymTabNode* node)
 
 void fklDestroySymbolTable(FklSymbolTable* table)
 {
-	int32_t i=0;
-	for(;i<table->num;i++)
+	for(uint32_t i=0;i<table->num;i++)
 		fklDestroySymTabNode(table->list[i]);
 	free(table->list);
 	free(table->idl);
@@ -188,8 +187,7 @@ FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable* table)
 
 void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 {
-	int32_t i=0;
-	for(;i<table->num;i++)
+	for(uint32_t i=0;i<table->num;i++)
 	{
 		FklSymTabNode* cur=table->list[i];
 		fprintf(fp,"symbol:");

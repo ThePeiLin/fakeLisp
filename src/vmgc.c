@@ -31,16 +31,6 @@ static inline Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 	return g;
 }
 
-inline FklVMgc* fklCreateVMgc()
-{
-	FklVMgc* tmp=(FklVMgc*)calloc(1,sizeof(FklVMgc));
-	FKL_ASSERT(tmp);
-	tmp->threshold=FKL_THRESHOLD_SIZE;
-	tmp->GcCo.gc=tmp;
-	tmp->GcCo.state=FKL_VM_WAITING;
-	return tmp;
-}
-
 inline void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
 	if(FKL_IS_PTR(v)&&v!=NULL&&v->mark!=FKL_MARK_B)
@@ -283,20 +273,13 @@ static inline void initFrameCtxToGcCoCtx(FklCallObjData data,FklVMgc* gc)
 	c->ps=&gc->running;
 }
 
+static void gc_frame_atomic(FklCallObjData data,FklVMgc* gc)
+{
+}
+
 static void gc_frame_step(FklCallObjData data,FklVM* exe)
 {
-	// GcCoCtx* ctx=(GcCoCtx*)data;
-	// FklVMgc* gc=ctx->gc;
-	// uint32_t stepCount=ctx->count+(gc->num-ctx->num)*2;
-	// ctx->num=gc->num;
-	// Greylink* volatile* l=&ctx->greylink;
-	// for(uint32_t i=0;*l&&i<stepCount;i++)
-	// {
-	// 	Greylink* cur=*l;
-	// 	*l=cur->next;
-	// 	propagateMark(cur->v,gc);
-	// 	free(cur);
-	// }
+	// fprintf(stderr,"gc step\n");
 	FklVMgc* gc=exe->gc;
 	gc->running=FKL_GC_MARK_ROOT;
 	fklGC_markAllRootToGrey(exe);
@@ -316,14 +299,21 @@ static int gc_frame_end(FklCallObjData data)
 	GcCoCtx* ctx=(GcCoCtx*)data;
 	FklVMgc* gc=ctx->gc;
 	int r=gc->running==FKL_GC_DONE;
-	gc->running=FKL_GC_NONE;
+	if(r)
+		gc->running=FKL_GC_NONE;
 	return r;
+}
+
+static void gc_frame_finalizer(FklCallObjData data)
+{
 }
 
 static const FklVMframeContextMethodTable GcCoMethodTable=
 {
 	.step=gc_frame_step,
 	.end=gc_frame_end,
+	.atomic=gc_frame_atomic,
+	.finalizer=gc_frame_finalizer
 };
 
 static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
@@ -336,10 +326,62 @@ static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
 	initFrameCtxToGcCoCtx(f->u.o.data,gc);
 }
 
-inline void fklTryGC(FklVM* vm)
+inline FklVMgc* fklCreateVMgc()
+{
+	FklVMgc* tmp=(FklVMgc*)calloc(1,sizeof(FklVMgc));
+	FKL_ASSERT(tmp);
+	tmp->threshold=FKL_THRESHOLD_SIZE;
+	FklVM* gcvm=&tmp->GcCo;
+	gcvm->gc=tmp;
+	gcvm->state=FKL_VM_WAITING;
+	gcvm->prev=gcvm;
+	gcvm->next=gcvm;
+	return tmp;
+}
+
+static inline void insert_gc_vm(FklVM* prev,FklVMgc* gc)
+{
+	FklVM* gcvm=&gc->GcCo;
+	gcvm->state=FKL_VM_READY;
+	FklVM* next=prev->next;
+	gcvm->prev=prev;
+	gcvm->next=next;
+	prev->next=gcvm;
+	next->prev=gcvm;
+}
+
+void fklTryGC(FklVM* vm)
 {
 	FklVMgc* gc=vm->gc;
-	if(gc->num>gc->threshold)
-		fklGC_threadFunc(vm);
+	FklVM* gcvm=&gc->GcCo;
+	if(gc->num>gc->threshold&&gcvm->next==gcvm&&gc->running==FKL_GC_NONE)
+	{
+		gc->running=FKL_GC_MARK_ROOT;
+		initGcCoVM(&gc->GcCo,gc);
+		insert_gc_vm(vm,gc);
+	}
+}
+
+void fklAddToGC(FklVMvalue* v,FklVM* vm)
+{
+	FklVMgc* gc=vm->gc;
+	if(FKL_IS_PTR(v))
+	{
+		FklGCstate running=fklGetGCstate(gc);
+		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
+			fklGC_toGrey(v,gc);
+		else
+			v->mark=FKL_MARK_W;
+		gc->num+=1;
+		v->next=gc->head;
+		gc->head=v;
+		fklTryGC(vm);
+	}
+}
+
+void fklDestroyVMgc(FklVMgc* gc)
+{
+	fklDestroyAllValues(gc);
+	free(gc);
 }
 

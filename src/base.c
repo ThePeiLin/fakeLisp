@@ -32,7 +32,7 @@ void fklPushPtrStack(void* data,FklPtrStack* stack)
 {
 	if(stack->top==stack->size)
 	{
-		void** tmpData=(void**)realloc(stack->base,(stack->size+stack->inc)*sizeof(void*));
+		void** tmpData=(void**)fklRealloc(stack->base,(stack->size+stack->inc)*sizeof(void*));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
@@ -72,7 +72,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 {
 	if(stack->size-stack->top>stack->inc)
 	{
-		void** tmpData=(void**)realloc(stack->base,(stack->size-stack->inc)*sizeof(void*));
+		void** tmpData=(void**)fklRealloc(stack->base,(stack->size-stack->inc)*sizeof(void*));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
@@ -206,7 +206,7 @@ void fklPushIntStack(int64_t data,FklIntStack* stack)
 {
 	if(stack->top==stack->size)
 	{
-		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(int64_t));
+		int64_t* tmpData=(int64_t*)fklRealloc(stack->base,(stack->size+stack->inc)*sizeof(int64_t));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
@@ -241,7 +241,7 @@ void fklRecycleIntStack(FklIntStack* stack)
 {
 	if(stack->size-stack->top>stack->inc)
 	{
-		int64_t* tmpData=(int64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(int64_t));
+		int64_t* tmpData=(int64_t*)fklRealloc(stack->base,(stack->size-stack->inc)*sizeof(int64_t));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
@@ -295,7 +295,7 @@ void fklPushUintStack(uint64_t data,FklUintStack* stack)
 {
 	if(stack->top==stack->size)
 	{
-		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(uint64_t));
+		uint64_t* tmpData=(uint64_t*)fklRealloc(stack->base,(stack->size+stack->inc)*sizeof(uint64_t));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
@@ -330,7 +330,7 @@ void fklRecycleUintStack(FklUintStack* stack)
 {
 	if(stack->size-stack->top>stack->inc)
 	{
-		uint64_t* tmpData=(uint64_t*)realloc(stack->base,(stack->size-stack->inc)*sizeof(uint64_t));
+		uint64_t* tmpData=(uint64_t*)fklRealloc(stack->base,(stack->size-stack->inc)*sizeof(uint64_t));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
@@ -355,11 +355,11 @@ FklBigInt* fklCreateBigInt(int64_t v)
 FklBigInt* fklCreateBigIntD(double v)
 {
 	v=floor(v);
-	if(islessequal(v,0))
+	if(!islessgreater(v,0.0))
 		return fklCreateBigInt0();
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
 	FKL_ASSERT(t);
-	if(islessequal(v,0))
+	if(isless(v,0))
 	{
 		t->neg=1;
 		v*=-1;
@@ -367,8 +367,6 @@ FklBigInt* fklCreateBigIntD(double v)
 	else
 		t->neg=0;
 	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
-	if(t->num==0)
-		t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
 	FKL_ASSERT(t->digits);
@@ -735,7 +733,7 @@ static void ensureBigIntDigits(FklBigInt* obj,uint64_t num)
 	if(obj->size<num)
 	{
 		uint8_t* digits=obj->digits;
-		obj->digits=(uint8_t*)realloc(digits,sizeof(char)*num);
+		obj->digits=(uint8_t*)fklRealloc(digits,sizeof(char)*num);
 		FKL_ASSERT(obj->digits);
 		obj->size=num;
 	}
@@ -764,8 +762,6 @@ void fklInitBigIntU(FklBigInt* t,uint64_t v)
 		return fklInitBigInt0(t);
 	t->neg=0;
 	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
-	if(t->num==0)
-		t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
 	FKL_ASSERT(t->digits);
@@ -792,8 +788,6 @@ void fklInitBigIntI(FklBigInt* t,int64_t v)
 	else
 		t->neg=0;
 	t->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
-	if(t->num==0)
-		t->num=1;
 	t->size=t->num;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
 	FKL_ASSERT(t->digits);
@@ -813,8 +807,6 @@ void fklSetBigIntU(FklBigInt* des,uint64_t src)
 	if(src)
 		des->num=floor(log2(src)/log2(FKL_BIG_INT_RADIX))+1;
 	else
-		des->num=1;
-	if(des->num==0)
 		des->num=1;
 	ensureBigIntDigits(des,des->num);
 	for(uint64_t i=0;i<des->num;i++)
@@ -838,8 +830,6 @@ void fklSetBigIntI(FklBigInt* des,int64_t src)
 		des->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
 	else
 		des->num=1;
-	if(des->num==0)
-		des->num=1;
 	ensureBigIntDigits(des,des->num);
 	for(uint64_t i=0;i<des->num;i++)
 	{
@@ -848,6 +838,28 @@ void fklSetBigIntI(FklBigInt* des,int64_t src)
 			c*=-1;
 		des->digits[i]=c;
 		src/=FKL_BIG_INT_RADIX;
+	}
+}
+
+void fklSetBigIntD(FklBigInt* des,double d)
+{
+	d=floor(d);
+	if(isless(d,0))
+	{
+		des->neg=1;
+		d*=-1;
+	}
+	else
+		des->neg=0;
+	if(islessequal(d,0.0))
+		des->num=1;
+	else
+		des->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
+	ensureBigIntDigits(des,des->num);
+	for(uint64_t i=0;i<des->num;i++)
+	{
+		des->digits[i]=fmod(d,FKL_BIG_INT_RADIX);
+		d/=FKL_BIG_INT_RADIX;
 	}
 }
 
@@ -1298,6 +1310,22 @@ static const uint8_t FKL_BIG_INT_FIX_MIN_BIT[8]={0x00,0x00,0x00,0x00,0x00,0x00,0
 static const FklBigInt FKL_BIG_INT_FIX_MAX={(uint8_t*)FKL_BIG_INT_FIX_MAX_BIT,8,8,0};
 static const FklBigInt FKL_BIG_INT_FIX_MIN={(uint8_t*)FKL_BIG_INT_FIX_MIN_BIT,8,8,1};
 
+static const uint8_t FKL_BIG_INT_FIX_SUB_1_MAX_BIT[8]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,};
+static const uint8_t FKL_BIG_INT_FIX_ADD_1_MIN_BIT[8]={0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x10,};
+
+static const FklBigInt FKL_BIG_INT_FIX_SUB_1_MAX={(uint8_t*)FKL_BIG_INT_FIX_SUB_1_MAX_BIT,8,8,0};
+static const FklBigInt FKL_BIG_INT_FIX_ADD_1_MIN={(uint8_t*)FKL_BIG_INT_FIX_ADD_1_MIN_BIT,8,8,1};
+
+inline int fklIsBigIntAdd1InFixIntRange(const FklBigInt* a)
+{
+	return fklCmpBigInt(a,&FKL_BIG_INT_FIX_ADD_1_MIN)==0;
+}
+
+inline int fklIsBigIntSub1InFixIntRange(const FklBigInt* a)
+{
+	return fklCmpBigInt(a,&FKL_BIG_INT_FIX_SUB_1_MAX)==0;
+}
+
 inline int fklIsGtLtFixBigInt(const FklBigInt* a)
 {
 	return (fklCmpBigInt(a,&FKL_BIG_INT_FIX_MAX)>0||fklCmpBigInt(a,&FKL_BIG_INT_FIX_MIN)<0);
@@ -1331,6 +1359,21 @@ inline int fklIsGtI64MaxBigInt(const FklBigInt* a)
 inline int fklIsLtI64MinBigInt(const FklBigInt* a)
 {
 	return fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<0;
+}
+
+inline int fklIsBigIntOdd(const FklBigInt* a)
+{
+	return a->digits[0]%2;
+}
+
+inline int fklIsBigIntEven(const FklBigInt* a)
+{
+	return !fklIsBigIntOdd(a);
+}
+
+inline int fklIsBigIntLt0(const FklBigInt *a)
+{
+	return !FKL_IS_0_BIG_INT(a)&&a->neg;
 }
 
 uint64_t fklBigIntToU64(const FklBigInt* a)
@@ -1454,25 +1497,6 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 	}
 }
 
-void fklSprintBigInt(const FklBigInt* bi,size_t size,char* buf)
-{
-	if(bi->neg)
-	{
-		(buf++)[0]='-';
-		size--;
-	}
-	if(FKL_IS_0_BIG_INT(bi))
-		buf[0]='0';
-	else
-	{
-		FklU8Stack res=FKL_STACK_INIT;
-		fklBigIntToRadixDigitsLe(bi,10,&res);
-		for(size_t i=res.top;i>0;i--)
-			buf[i]=res.base[i-1]+'0';
-		fklUninitU8Stack(&res);
-	}
-}
-
 int fklCmpBigIntI(const FklBigInt* bi,int64_t i)
 {
 	FklBigInt tbi=FKL_BIG_INT_INIT;
@@ -1540,7 +1564,7 @@ void fklStringCharBufCat(FklString** a,const char* buf,size_t s)
 {
 	size_t aSize=(*a)->size;
 	FklString* prev=*a;
-	prev=(FklString*)realloc(prev,sizeof(FklString)+(aSize+s)*sizeof(char));
+	prev=(FklString*)fklRealloc(prev,sizeof(FklString)+(aSize+s)*sizeof(char));
 	FKL_ASSERT(prev);
 	*a=prev;
 	prev->size=aSize+s;
@@ -1575,7 +1599,7 @@ void fklPrintString(const FklString* str,FILE* fp)
 	fwrite(str->str,str->size,1,fp);
 }
 
-int static isSpecialCharAndWrite(uint8_t ch,FklString** pr)
+static int isSpecialCharAndWrite(uint8_t ch,FklString** pr)
 {
 	char buf[3]={'\\',0,0};
 	int r=0;
@@ -1600,7 +1624,7 @@ int static isSpecialCharAndWrite(uint8_t ch,FklString** pr)
 	return r;
 }
 
-inline static void writeRawCharBufToString(const uint8_t* str,const char se,size_t size,FklString** pr)
+static inline void writeRawCharBufToString(const uint8_t* str,const char se,size_t size,FklString** pr)
 {
 	char buf[7]={se,0};
 	fklStringCstrCat(pr,buf);
@@ -1660,7 +1684,7 @@ inline static void writeRawCharBufToString(const uint8_t* str,const char se,size
 		}
 		else
 		{
-			for(int j=0;j<l;j++)
+			for(unsigned int j=0;j<l;j++)
 				buf[j]=str[i+j];
 			buf[l]='\0';
 			fklStringCstrCat(pr,buf);
@@ -1706,7 +1730,7 @@ char* fklCstrStringCat(char* fir,const FklString* sec)
 	if(!fir)
 		return fklStringToCstr(sec);
 	size_t len=strlen(fir);
-	fir=(char*)realloc(fir,sizeof(char)*len+sec->size+1);
+	fir=(char*)fklRealloc(fir,sizeof(char)*len+sec->size+1);
 	FKL_ASSERT(fir);
 	fklWriteStringToCstr(&fir[len],sec);
 	return fir;
@@ -1716,7 +1740,7 @@ void fklStringCstrCat(FklString** pfir,const char* sec)
 {
 	size_t seclen=strlen(sec);
 	FklString* prev=*pfir;
-	prev=(FklString*)realloc(prev,sizeof(FklString)+(prev->size+seclen)*sizeof(char));
+	prev=(FklString*)fklRealloc(prev,sizeof(FklString)+(prev->size+seclen)*sizeof(char));
 	FKL_ASSERT(prev);
 	*pfir=prev;
 	memcpy(&prev->str[prev->size],sec,seclen);
@@ -1821,7 +1845,7 @@ inline void fklStringBufferReverse(FklStringBuffer* b,size_t s)
 	if((b->s-b->i)<s)
 	{
 		b->s+=s;
-		char* t=(char*)realloc(b->b,b->s);
+		char* t=(char*)fklRealloc(b->b,b->s);
 		FKL_ASSERT(t);
 		b->b=t;
 	}
@@ -1829,7 +1853,7 @@ inline void fklStringBufferReverse(FklStringBuffer* b,size_t s)
 
 static inline void string_buffer_printf_va(FklStringBuffer* b,const char* fmt,va_list ap)
 {
-	int n;
+	long n;
 	va_list cp;
 	for(;;)
 	{
@@ -1877,10 +1901,8 @@ inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklSt
 
 #define DEFAULT_HASH_TABLE_SIZE (4)
 
-FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
+inline void fklInitHashTable(FklHashTable* r,const FklHashTableMetaTable* t)
 {
-	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
-	FKL_ASSERT(r);
 	FklHashTableNode** base=(FklHashTableNode**)calloc(DEFAULT_HASH_TABLE_SIZE,sizeof(FklHashTableNode*));
 	FKL_ASSERT(base);
 	r->base=base;
@@ -1890,6 +1912,13 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 	r->size=DEFAULT_HASH_TABLE_SIZE;
 	r->mask=DEFAULT_HASH_TABLE_SIZE-1;
 	r->t=t;
+}
+
+FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
+{
+	FklHashTable* r=(FklHashTable*)malloc(sizeof(FklHashTable));
+	FKL_ASSERT(r);
+	fklInitHashTable(r,t);
 	return r;
 }
 
@@ -2058,7 +2087,7 @@ void fklHashDefaultSetPtrKey(void* k0,void* k1)
 #undef REHASH
 #undef HASH_FUNC_HEADER
 
-void fklDestroyHashTable(FklHashTable* table)
+inline void fklUninitHashTable(FklHashTable* table)
 {
 	void (*uninitFunc)(void*)=table->t->__uninitItem;
 	FklHashTableNodeList* list=table->list;
@@ -2071,6 +2100,11 @@ void fklDestroyHashTable(FklHashTable* table)
 		free(cur);
 	}
 	free(table->base);
+}
+
+void fklDestroyHashTable(FklHashTable* table)
+{
+	fklUninitHashTable(table);
 	free(table);
 }
 
@@ -2092,7 +2126,7 @@ void fklBytevectorCat(FklBytevector** a,const FklBytevector* b)
 {
 	size_t aSize=(*a)->size;
 	FklBytevector* prev=*a;
-	prev=(FklBytevector*)realloc(prev,sizeof(FklBytevector)+(aSize+b->size)*sizeof(char));
+	prev=(FklBytevector*)fklRealloc(prev,sizeof(FklBytevector)+(aSize+b->size)*sizeof(char));
 	FKL_ASSERT(prev);
 	*a=prev;
 	prev->size=aSize+b->size;
@@ -2172,7 +2206,7 @@ void fklPushU8Stack(uint8_t data,FklU8Stack* stack)
 {
 	if(stack->top==stack->size)
 	{
-		uint8_t* tmpData=(uint8_t*)realloc(stack->base,(stack->size+stack->inc)*sizeof(uint8_t));
+		uint8_t* tmpData=(uint8_t*)fklRealloc(stack->base,(stack->size+stack->inc)*sizeof(uint8_t));
 		FKL_ASSERT(tmpData);
 		stack->base=tmpData;
 		stack->size+=stack->inc;
@@ -2205,7 +2239,7 @@ void fklRecycleU8Stack(FklU8Stack* s)
 {
 	if(s->size-s->top>s->inc)
 	{
-		uint8_t* tmpData=(uint8_t*)realloc(s->base,(s->size-s->inc)*sizeof(uint8_t));
+		uint8_t* tmpData=(uint8_t*)fklRealloc(s->base,(s->size-s->inc)*sizeof(uint8_t));
 		FKL_ASSERT(tmpData);
 		s->base=tmpData;
 		s->size-=s->inc;

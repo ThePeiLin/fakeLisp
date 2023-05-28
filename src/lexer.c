@@ -6,7 +6,7 @@
 #include<ctype.h>
 #include<string.h>
 
-inline static int isCompleteStringBuf(const char* buf,size_t size,char ch,size_t* len)
+static inline int isCompleteStringBuf(const char* buf,size_t size,char ch,size_t* len)
 {
 	int mark=0;
 	int markN=0;
@@ -23,17 +23,17 @@ inline static int isCompleteStringBuf(const char* buf,size_t size,char ch,size_t
 	return !mark;
 }
 
-inline static FklNastNode* getPartFromState(FklStringMatchState* state,size_t index)
+static inline FklNastNode* getPartFromState(FklStringMatchState* state,size_t index)
 {
 	return state->pattern->parts->u.vec->base[index];
 }
 
-inline static FklNastNode* getPartFromPattern(FklStringMatchPattern* pattern,size_t index)
+static inline FklNastNode* getPartFromPattern(FklStringMatchPattern* pattern,size_t index)
 {
 	return pattern->parts->u.vec->base[index];
 }
 
-inline static size_t getSizeFromPattern(FklStringMatchPattern* p)
+static inline size_t getSizeFromPattern(FklStringMatchPattern* p)
 {
 	return p->parts->u.vec->size;
 }
@@ -132,17 +132,17 @@ static FklStringMatchSet* createStringMatchSet(FklStringMatchState* strs
 	return r;
 }
 
-inline static int charbufEqual(const char* buf,size_t n,const char* s,size_t l)
+static inline int charbufEqual(const char* buf,size_t n,const char* s,size_t l)
 {
 	return n>=l&&!memcmp(s,buf,l);
 }
 
-inline static int simpleMatch(const char* buf,size_t n,FklString* s)
+static inline int simpleMatch(const char* buf,size_t n,FklString* s)
 {
 	return n>=s->size&&!memcmp(s->str,buf,s->size);
 }
 
-inline static int matchWithStr(size_t pn,const char* buf,size_t n,FklString* s)
+static inline int matchWithStr(size_t pn,const char* buf,size_t n,FklString* s)
 {
 	return (pn==0||pn==s->size)&&simpleMatch(buf,n,s);
 }
@@ -207,7 +207,7 @@ DefaultTokenHeaders[]=
 	{0,NULL,},
 };
 
-inline static int isComment(const char* buf,size_t n)
+static inline int isComment(const char* buf,size_t n)
 {
 	return charbufEqual(buf,n
 			,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_COMMENT_0].s
@@ -217,7 +217,7 @@ inline static int isComment(const char* buf,size_t n)
 				,DefaultTokenHeaders[DEFAULT_TOKEN_HEADER_COMMENT_1].l);
 }
 
-inline static int matchStrInDefaultHeaders(const char* buf,size_t n)
+static inline int matchStrInDefaultHeaders(const char* buf,size_t n)
 {
 	for(const struct DefaultTokenHeader* cur=&DefaultTokenHeaders[0];cur->l;cur++)
 	{
@@ -539,12 +539,12 @@ static void rollBack(FklStringMatchState* strs
 	}
 }
 
-inline static int isValidToken(FklToken* t)
+static inline int isValidToken(FklToken* t)
 {
 	return t&&t!=FKL_INCOMPLETED_TOKEN;
 }
 
-inline static FklStringMatchPattern* getCompleteMatchPattern(FklStringMatchState* strs
+static inline FklStringMatchPattern* getCompleteMatchPattern(FklStringMatchState* strs
 		,FklStringMatchState* boxes
 		,FklStringMatchState* syms)
 {

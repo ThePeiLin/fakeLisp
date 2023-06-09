@@ -270,13 +270,6 @@ typedef struct FklVMCompoundFrameData
 
 typedef void* FklCallObjData[10];
 
-typedef struct
-{
-	FklVMFuncK kFunc;
-	size_t size;
-	void* ctx;
-}FklVMcCC;
-
 typedef enum
 {
 	FKL_DLPROC_READY=0,
@@ -288,7 +281,10 @@ typedef struct
 {
 	FklVMvalue* proc;
 	FklDlprocFrameState state;
-	FklVMcCC ccc;
+	uint32_t tp;
+	FklVMFuncK kFunc;
+	size_t size;
+	void* ctx;
 }FklDlprocFrameContext;
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
@@ -547,19 +543,19 @@ FklVMvalue* fklProcessVMnumDivResult(FklVM*,FklVMvalue*,int64_t r64,double rd,Fk
 
 FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,FklBigInt* bi);
 
-FklVMvalue* fklDlprocGetArg(uint32_t* ap,FklVM*);
-FklVMvalue** fklDlprocReturn(FklVMvalue*,uint32_t* ap,FklVM*);
-void fklDlprocSetBpWithTp(FklVM* s);
-uint32_t fklDlprocSetBp(uint32_t nbp,FklVM* s);
-int fklDlprocResBp(uint32_t* ap,FklVM*);
-void fklDlprocEnd(uint32_t* ap,FklVM*);
-void fklDlprocBegin(uint32_t* ap,FklVM*);
+void fklSetBp(FklVM* s);
+int fklResBp(FklVM*);
+// FklVMvalue* fklDlprocGetArg(uint32_t* ap,FklVM*);
+// FklVMvalue** fklDlprocReturn(FklVMvalue*,uint32_t* ap,FklVM*);
+// void fklDlprocSetBpWithTp(FklVM* s);
+// uint32_t fklDlprocSetBp(uint32_t nbp,FklVM* s);
+// int fklDlprocResBp(uint32_t* ap,FklVM*);
+// void fklDlprocEnd(uint32_t* ap,FklVM*);
+// void fklDlprocBegin(uint32_t* ap,FklVM*);
 
-#define FKL_DLPROC_BEGIN(EXE) uint32_t ap=0;\
-fklDlprocBegin(&ap,(EXE));
-#define FKL_DLPROC_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
-#define FKL_DLPROC_CHECK_REST_ARG(PAP,STACK,ERR_INFO,EXE) if(fklDlprocResBp((PAP),(STACK)))\
-FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOMANYARG,EXE)
+#define FKL_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
+#define FKL_CHECK_REST_ARG(STACK,ERR_INFO,EXE) if(fklResBp((STACK)))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOMANYARG,EXE)
 
 FklVMvalue* fklMakeVMint(int64_t r64,FklVM*);
 FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM*);
@@ -747,6 +743,7 @@ FklVMvalue* fklCreateTrueValue(void);
 FklVMvalue* fklCreateNilValue(void);
 
 void fklDropTop(FklVM* s);
+FklVMvalue* fklPopArg(FklVM*);
 FklVMvalue* fklGetTopValue(FklVM*);
 FklVMvalue* fklPopTopValue(FklVM*);
 FklVMvalue* fklGetValue(FklVM*,uint32_t);
@@ -822,13 +819,13 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile*
 int fklVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);
 
-void fklPushVMvalue(FklVM* s,FklVMvalue* v);
+FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 
 void fklCallFuncK(FklVMFuncK funck,FklVM*,void* ctx);
 
-void fklContinueDlproc(FklVMframe*,FklVMFuncK,void*,size_t);
+void fklContinueFuncK(FklVMframe*,FklVMFuncK,void*,size_t);
 
-void fklCallInDlproc(FklVMvalue*
+void fklCallInFuncK(FklVMvalue*
 		,uint32_t argNum
 		,FklVMvalue*[]
 		,FklVMframe*

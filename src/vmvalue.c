@@ -952,28 +952,28 @@ static inline void uninit_code_obj_value(FklVMvalue* v)
 		free(t->l);
 }
 
-static void (*fkl_value_uniniters[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* v)=
-{
-	uninit_nothing_value,  //f64
-	uninit_big_int_value,  //big-int
-	uninit_string_value,   //string
-	uninit_vector_value,   //vector
-	uninit_nothing_value,  //pair
-	uninit_nothing_value,  //box
-	uninit_bvec_value,     //bvec
-	uninit_ud_value,       //ud
-	uninit_proc_value,     //proc
-	uninit_chanl_value,    //chanl
-	uninit_fp_value,       //fp
-	uninit_dll_value,      //dll
-	uninit_nothing_value,  //dlproc
-	uninit_err_value,      //error
-	uninit_hash_value,     //hash
-	uninit_code_obj_value, //code-obj
-};
-
 void fklDestroyVMvalue(FklVMvalue* cur)
 {
+	static void (*fkl_value_uniniters[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* v)=
+	{
+		uninit_nothing_value,  //f64
+		uninit_big_int_value,  //big-int
+		uninit_string_value,   //string
+		uninit_vector_value,   //vector
+		uninit_nothing_value,  //pair
+		uninit_nothing_value,  //box
+		uninit_bvec_value,     //bvec
+		uninit_ud_value,       //ud
+		uninit_proc_value,     //proc
+		uninit_chanl_value,    //chanl
+		uninit_fp_value,       //fp
+		uninit_dll_value,      //dll
+		uninit_nothing_value,  //dlproc
+		uninit_err_value,      //error
+		uninit_hash_value,     //hash
+		uninit_code_obj_value, //code-obj
+	};
+
 	fkl_value_uniniters[cur->type](cur);
 	free((void*)cur);
 }

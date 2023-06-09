@@ -111,6 +111,7 @@ int main(int argc,char** argv)
 		fklDestroyByteCode(mainCode);
 		FklCodegenLib* libs=NULL;
 		size_t num=0;
+		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
 		loadLib(fp,&num,&libs,table);
 		for(size_t i=0;i<num;i++)
 		{

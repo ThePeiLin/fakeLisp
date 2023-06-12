@@ -204,11 +204,13 @@ static void dlproc_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe
 	FklDlprocFrameContext* dc=(FklDlprocFrameContext*)d;
 	FklVMgc* gc=exe->gc;
 	dc->state=sc->state;
+	dc->btp=sc->btp;
 	fklSetRef(&dc->proc,sc->proc,gc);
 	dc->kFunc=sc->kFunc;
 	dc->size=sc->size;
 	if(dc->size)
 		dc->ctx=fklCopyMemory(sc->ctx,dc->size);
+	dc->rtp=sc->rtp;
 
 }
 
@@ -252,7 +254,8 @@ static inline void initDlprocFrameContext(FklCallObjData data,FklVMvalue* proc,F
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	fklSetRef(&c->proc,proc,exe->gc);
 	c->state=FKL_DLPROC_READY;
-	c->tp=exe->tp;
+	c->btp=exe->tp;
+	c->rtp=exe->tp;
 	dlproc_init_ccc(c,NULL,NULL,0);
 }
 
@@ -667,14 +670,82 @@ void fklTailCallObj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 	fklCallObj(proc,exe->frames,exe);
 }
 
-inline void fklCallFuncK(FklVMFuncK kf,FklVM* v,void* ctx)
+inline void fklCallFuncK(FklVMFuncK kf
+		,FklVM* v
+		,void* ctx
+		,uint32_t rtp)
 {
 	FklVMframe* sf=v->frames;
 	FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
 	nf->errorCallBack=sf->errorCallBack;
 	fklDoCopyObjFrameContext(sf,nf,v);
 	v->frames=nf;
+	v->tp=((FklDlprocFrameContext*)(nf->u.o.data))->btp;
+	((FklDlprocFrameContext*)(nf->u.o.data))->rtp=rtp;
 	kf(v,FKL_CC_OK,ctx);
+}
+
+inline void fklCallFuncK1(FklVMFuncK kf
+		,FklVM* v
+		,void* ctx
+		,uint32_t rtp
+		,FklVMvalue* resultBox)
+{
+	FklVMframe* sf=v->frames;
+	FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+	nf->errorCallBack=sf->errorCallBack;
+	fklDoCopyObjFrameContext(sf,nf,v);
+	v->frames=nf;
+	v->tp=((FklDlprocFrameContext*)(nf->u.o.data))->btp;
+	fklPushVMvalue(v,resultBox);
+	((FklDlprocFrameContext*)(nf->u.o.data))->rtp=rtp;
+	kf(v,FKL_CC_OK,ctx);
+}
+
+inline void fklCallFuncK2(FklVMFuncK kf
+		,FklVM* v
+		,void* ctx
+		,uint32_t rtp
+		,FklVMvalue* a
+		,FklVMvalue* b)
+{
+	FklVMframe* sf=v->frames;
+	FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+	nf->errorCallBack=sf->errorCallBack;
+	fklDoCopyObjFrameContext(sf,nf,v);
+	v->frames=nf;
+	v->tp=((FklDlprocFrameContext*)(nf->u.o.data))->btp;
+	fklPushVMvalue(v,a);
+	fklPushVMvalue(v,b);
+	((FklDlprocFrameContext*)(nf->u.o.data))->rtp=rtp;
+	kf(v,FKL_CC_OK,ctx);
+}
+
+inline void fklCallFuncK3(FklVMFuncK kf
+		,FklVM* v
+		,void* ctx
+		,uint32_t rtp
+		,FklVMvalue* a
+		,FklVMvalue* b
+		,FklVMvalue* c)
+{
+	FklVMframe* sf=v->frames;
+	FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+	nf->errorCallBack=sf->errorCallBack;
+	fklDoCopyObjFrameContext(sf,nf,v);
+	v->frames=nf;
+	v->tp=((FklDlprocFrameContext*)(nf->u.o.data))->btp;
+	fklPushVMvalue(v,a);
+	fklPushVMvalue(v,b);
+	fklPushVMvalue(v,c);
+	((FklDlprocFrameContext*)(nf->u.o.data))->rtp=rtp;
+	kf(v,FKL_CC_OK,ctx);
+}
+
+inline void fklFuncKReturn(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
+{
+	exe->tp=rtp;
+	fklPushVMvalue(exe,retval);
 }
 
 inline void fklContinueFuncK(FklVMframe* frame

@@ -280,11 +280,12 @@ typedef enum
 typedef struct
 {
 	FklVMvalue* proc;
-	FklDlprocFrameState state;
-	uint32_t tp;
+	FklDlprocFrameState state:32;
+	uint32_t btp;
 	FklVMFuncK kFunc;
 	size_t size;
 	void* ctx;
+	uint32_t rtp;
 }FklDlprocFrameContext;
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
@@ -821,7 +822,31 @@ uint64_t fklGetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 
-void fklCallFuncK(FklVMFuncK funck,FklVM*,void* ctx);
+void fklCallFuncK(FklVMFuncK funck
+		,FklVM*
+		,void* ctx
+		,uint32_t rtp);
+
+void fklCallFuncK1(FklVMFuncK funck
+		,FklVM*
+		,void* ctx
+		,uint32_t rtp
+		,FklVMvalue* resultBox);
+
+void fklCallFuncK2(FklVMFuncK funck
+		,FklVM*
+		,void* ctx
+		,uint32_t rtp
+		,FklVMvalue* a
+		,FklVMvalue* b);
+
+void fklCallFuncK3(FklVMFuncK funck
+		,FklVM*
+		,void* ctx
+		,uint32_t rtp
+		,FklVMvalue* a
+		,FklVMvalue* b
+		,FklVMvalue* c);
 
 void fklContinueFuncK(FklVMframe*,FklVMFuncK,void*,size_t);
 
@@ -833,6 +858,9 @@ void fklCallInFuncK(FklVMvalue*
 		,FklVMFuncK
 		,void*
 		,size_t);
+
+#define FKL_GET_DLPROC_RTP(EXE) (((FklDlprocFrameContext*)((EXE)->frames->u.o.data))->rtp)
+void fklFuncKReturn(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 
 size_t fklVMlistLength(FklVMvalue*);
 

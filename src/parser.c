@@ -501,10 +501,10 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 				case FKL_NAST_NIL:
 					break;
 				case FKL_NAST_STR:
-					r=!fklStringcmp(c0->u.str,c1->u.str);
+					r=!fklStringCmp(c0->u.str,c1->u.str);
 					break;
 				case FKL_NAST_BYTEVECTOR:
-					r=!fklBytevectorcmp(c0->u.bvec,c1->u.bvec);
+					r=!fklBytevectorCmp(c0->u.bvec,c1->u.bvec);
 					break;
 				case FKL_NAST_CHR:
 					r=c0->u.chr==c1->u.chr;

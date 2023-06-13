@@ -1071,27 +1071,6 @@ void fklPrintVMvalue(FklVMvalue* value
 }
 
 #include<ctype.h>
-static inline int is_special_char_and_print_to_utstring(FklStringBuffer* s,char ch)
-{
-	int r=0;
-	if((r=ch=='\n'))
-		fklStringBufferPrintf(s,"\\n");
-	else if((r=ch=='\t'))
-		fklStringBufferPrintf(s,"\\t");
-	else if((r=ch=='\v'))
-		fklStringBufferPrintf(s,"\\v");
-	else if((r=ch=='\a'))
-		fklStringBufferPrintf(s,"\\a");
-	else if((r=ch=='\b'))
-		fklStringBufferPrintf(s,"\\b");
-	else if((r=ch=='\f'))
-		fklStringBufferPrintf(s,"\\f");
-	else if((r=ch=='\r'))
-		fklStringBufferPrintf(s,"\\r");
-	else if((r=ch=='\x20'))
-		fklStringBufferPrintf(s," ");
-	return r;
-}
 
 static inline void print_raw_char_to_utstring(FklStringBuffer* s,char c)
 {
@@ -1103,7 +1082,7 @@ static inline void print_raw_char_to_utstring(FklStringBuffer* s,char c)
 		else
 			fklStringBufferPrintf(s,"%c",c);
 	}
-	else if(is_special_char_and_print_to_utstring(s,c));
+	else if(fklIsSpecialCharAndPrintToStringBuffer(s,c));
 	else
 	{
 		uint8_t j=c;
@@ -1113,78 +1092,14 @@ static inline void print_raw_char_to_utstring(FklStringBuffer* s,char c)
 	}
 }
 
-static inline void print_raw_string_to_ut_string_with_se(FklStringBuffer* s,FklString* fstr,char se)
-{
-	char buf[7]={0};
-	fklStringBufferPrintf(s,"%c",se);
-	size_t size=fstr->size;
-	uint8_t* str=(uint8_t*)fstr->str;
-	for(size_t i=0;i<size;)
-	{
-		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);
-		if(l==7)
-		{
-			uint8_t j=str[i];
-			uint8_t h=j/16;
-			uint8_t l=j%16;
-			fklStringBufferPrintf(s,"\\x%c%c"
-					,h<10?'0'+h:'A'+(h-10)
-					,l<10?'0'+l:'A'+(l-10));
-			i++;
-		}
-		else if(l==1)
-		{
-			if(str[i]==se)
-				fklStringBufferPrintf(s,"\\%c",se);
-			else if(str[i]=='\\')
-				fklStringBufferPrintf(s,"\\\\");
-			else if(isgraph(str[i]))
-				fklStringBufferPrintf(s,"%c",str[i]);
-			else if(is_special_char_and_print_to_utstring(s,str[i]));
-			else
-			{
-				uint8_t j=str[i];
-				uint8_t h=j/16;
-				uint8_t l=j%16;
-				fklStringBufferPrintf(s,"\\x%c%c"
-						,h<10?'0'+h:'A'+(h-10)
-						,l<10?'0'+l:'A'+(l-10));
-			}
-			i++;
-		}
-		else
-		{
-			strncpy(buf,(char*)&str[i],l);
-			buf[l]='\0';
-			fklStringBufferPrintf(s,"%s",buf);
-			i+=l;
-		}
-	}
-	fklStringBufferPrintf(s,"%c",se);
-}
-
 static inline void print_raw_string_to_ut_string(FklStringBuffer* s,FklString* f)
 {
-	print_raw_string_to_ut_string_with_se(s,f,'"');
+	fklPrintRawStringToStringBuffer(s,f,'"');
 }
 
 static inline void print_raw_symbol_to_ut_string(FklStringBuffer* s,FklString* f)
 {
-	print_raw_string_to_ut_string_with_se(s,f,'|');
-}
-
-static inline void print_bytevector_to_ut_string(FklStringBuffer* s,FklBytevector* bvec)
-{
-	size_t size=bvec->size;
-	uint8_t* ptr=bvec->ptr;
-	fklStringBufferPrintf(s,"#vu8(");
-	for(size_t i=0;i<size;i++)
-	{
-		fklStringBufferPrintf(s,"0x%X",ptr[i]);
-		if(i<size-1)
-			fklStringBufferPrintf(s," ");
-	}
-	fklStringBufferPrintf(s,")");
+	fklPrintRawStringToStringBuffer(s,f,'|');
 }
 
 static inline void print_big_int_to_ut_string(FklStringBuffer* s,FklBigInt* a)
@@ -1245,7 +1160,7 @@ static void vmvalue_string_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_bytevector_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_bytevector_to_ut_string(result,FKL_VM_BVEC(v));
+	fklPrintBytevectorToStringBuffer(result,FKL_VM_BVEC(v));
 }
 
 static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)

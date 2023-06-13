@@ -600,10 +600,10 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 						r=FKL_VM_F64(root1)==FKL_VM_F64(root2);
 						break;
 					case FKL_TYPE_STR:
-						r=!fklStringcmp(FKL_VM_STR(root1),FKL_VM_STR(root2));
+						r=!fklStringCmp(FKL_VM_STR(root1),FKL_VM_STR(root2));
 						break;
 					case FKL_TYPE_BYTEVECTOR:
-						r=!fklBytevectorcmp(FKL_VM_BVEC(root1),FKL_VM_BVEC(root2));
+						r=!fklBytevectorCmp(FKL_VM_BVEC(root1),FKL_VM_BVEC(root2));
 						break;
 					case FKL_TYPE_PAIR:
 						r=1;
@@ -710,9 +710,9 @@ inline int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 			r=fklCmpBigInt(FKL_VM_BI(a),FKL_VM_BI(b));
 	}
 	else if(FKL_IS_STR(a)&&FKL_IS_STR(b))
-		r=fklStringcmp(FKL_VM_STR(a),FKL_VM_STR(b));
+		r=fklStringCmp(FKL_VM_STR(a),FKL_VM_STR(b));
 	else if(FKL_IS_BYTEVECTOR(a)&&FKL_IS_BYTEVECTOR(a))
-		r=fklBytevectorcmp(FKL_VM_BVEC(a),FKL_VM_BVEC(b));
+		r=fklBytevectorCmp(FKL_VM_BVEC(a),FKL_VM_BVEC(b));
 	else if(FKL_IS_CHR(a)&&FKL_IS_CHR(b))
 		r=FKL_GET_CHR(a)-FKL_GET_CHR(b);
 	else if(FKL_IS_USERDATA(a)&&fklIsCmpableUd(FKL_VM_UD(a)))

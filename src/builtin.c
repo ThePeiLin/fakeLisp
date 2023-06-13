@@ -1801,16 +1801,12 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklString* filenameStr=FKL_VM_STR(filename);
 	FklString* modeStr=FKL_VM_STR(mode);
-	char c_filename[filenameStr->size+1];
-	char c_mode[modeStr->size+1];
-	fklWriteStringToCstr(c_filename,filenameStr);
-	fklWriteStringToCstr(c_mode,modeStr);
-	FILE* file=fopen(c_filename,c_mode);
+	FILE* file=fopen(filenameStr->str,modeStr->str);
 	FklVMvalue* obj=NULL;
 	if(!file)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,c_filename,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
 	else
-		obj=fklCreateVMvalueFp(exe,file,fklGetVMfpRwFromCstr(c_mode));
+		obj=fklCreateVMvalueFp(exe,file,fklGetVMfpRwFromCstr(modeStr->str));
 	fklPushVMvalue(exe,obj);
 }
 
@@ -2376,11 +2372,9 @@ static void builtin_dlopen(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(dllName,FKL_IS_STR,Pname,exe);
 	FklString* dllNameStr=FKL_VM_STR(dllName);
-	char str[dllNameStr->size+1];
-	fklWriteStringToCstr(str,dllNameStr);
-	FklVMvalue* ndll=fklCreateVMvalueDll(exe,str);
+	FklVMvalue* ndll=fklCreateVMvalueDll(exe,dllNameStr->str);
 	if(!ndll)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,str,0,FKL_ERR_LOADDLLFAILD,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dllNameStr->str,0,FKL_ERR_LOADDLLFAILD,exe);
 	fklInitVMdll(ndll,exe);
 	fklPushVMvalue(exe,ndll);
 }
@@ -2393,12 +2387,10 @@ static void builtin_dlsym(FKL_DL_PROC_ARGL)
 	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(ndll))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklString* ss=FKL_VM_STR(symbol);
-	char str[ss->size+1];
-	fklWriteStringToCstr(str,ss);
 	FklVMdll* dll=FKL_VM_DLL(ndll);
-	FklVMdllFunc funcAddress=fklGetAddress(str,dll->handle);
+	FklVMdllFunc funcAddress=fklGetAddress(ss->str,dll->handle);
 	if(!funcAddress)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,str,0,FKL_ERR_INVALIDSYMBOL,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,ss->str,0,FKL_ERR_INVALIDSYMBOL,exe);
 	fklPushVMvalue(exe,fklCreateVMvalueDlproc(exe,funcAddress,ndll,dll->pd,0));
 }
 
@@ -3400,11 +3392,10 @@ static void builtin_cd(FKL_DL_PROC_ARGL)
 	DECL_AND_CHECK_ARG(dir,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
-	char* cdir=fklStringToCstr(FKL_VM_STR(dir));
-	int r=fklChangeWorkPath(cdir);
+	FklString* dirstr=FKL_VM_STR(dir);
+	int r=fklChangeWorkPath(dirstr->str);
 	if(r)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,cdir,1,FKL_ERR_FILEFAILURE,exe);
-	free(cdir);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
 	fklPushVMvalue(exe,FKL_VM_NIL);
 }
 
@@ -3615,9 +3606,7 @@ static void builtin_remove_file(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
 	FklString* nameStr=FKL_VM_STR(name);
-	char str[nameStr->size+1];
-	fklWriteStringToCstr(str,nameStr);
-	fklPushVMvalue(exe,FKL_MAKE_VM_FIX(remove(str)));
+	fklPushVMvalue(exe,FKL_MAKE_VM_FIX(remove(nameStr->str)));
 }
 
 static void builtin_time(FKL_DL_PROC_ARGL)
@@ -3634,9 +3623,7 @@ static void builtin_system(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
 	FklString* nameStr=FKL_VM_STR(name);
-	char str[nameStr->size+1];
-	fklWriteStringToCstr(str,nameStr);
-	fklPushVMvalue(exe,fklMakeVMint(system(str),exe));
+	fklPushVMvalue(exe,fklMakeVMint(system(nameStr->str),exe));
 }
 
 static void builtin_hash(FKL_DL_PROC_ARGL)

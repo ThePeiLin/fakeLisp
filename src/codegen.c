@@ -3794,16 +3794,15 @@ static CODEGEN_FUNC(codegen_load)
 				,codegenQuestStack);
 	}
 
-	char* filenameCstr=fklStringToCstr(filename->u.str);
-	if(!fklIsAccessableRegFile(filenameCstr))
+	const FklString* filenameStr=filename->u.str;
+	if(!fklIsAccessableRegFile(filenameStr->str))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_FILEFAILURE;
 		errorState->place=fklMakeNastNodeRef(filename);
-		free(filenameCstr);
 		return;
 	}
-	FklCodegen* nextCodegen=createCodegen(codegen,filenameCstr,curEnv,0,0);
+	FklCodegen* nextCodegen=createCodegen(codegen,filenameStr->str,curEnv,0,0);
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
 		errorState->fid=codegen->fid;
@@ -3813,8 +3812,7 @@ static CODEGEN_FUNC(codegen_load)
 		fklDestroyCodegener(nextCodegen);
 		return;
 	}
-	FILE* fp=fopen(filenameCstr,"r");
-	free(filenameCstr);
+	FILE* fp=fopen(filenameStr->str,"r");
 	if(!fp)
 	{
 		errorState->fid=codegen->fid;

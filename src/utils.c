@@ -135,10 +135,7 @@ FklString* fklDoubleToString(double num)
 
 double fklStringToDouble(const FklString* str)
 {
-	char c_str[str->size+1];
-	fklWriteStringToCstr(c_str,str);
-	double tmp=atof(c_str);
-	return tmp;
+	return atof(str->str);
 }
 
 FklString* fklIntToString(int64_t num)
@@ -588,7 +585,7 @@ int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32
 	while(l<=h)
 	{
 		mid=l+(h-l)/2;
-		int resultOfCmp=fklStringcmp(pStr[mid],str);
+		int resultOfCmp=fklStringCmp(pStr[mid],str);
 		if(resultOfCmp>0)
 			h=mid-1;
 		else if(resultOfCmp<0)

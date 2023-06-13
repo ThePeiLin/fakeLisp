@@ -13,7 +13,7 @@ extern "C"{
 typedef struct FklString
 {
 	uint64_t size;
-	char str[];
+	char str[1];
 }FklString;
 
 FklString* fklCreateString(size_t,const char*);
@@ -25,16 +25,17 @@ void fklStringCat(FklString**,const FklString*);
 void fklStringCstrCat(FklString**,const char*);
 void fklStringCharBufCat(FklString**,const char* buf,size_t s);
 char* fklCstrStringCat(char*,const FklString*);
-int fklStringcmp(const FklString*,const FklString*);
+int fklStringCmp(const FklString*,const FklString*);
 int fklStringCstrCmp(const FklString*,const char*);
 char* fklStringToCstr(const FklString* str);
 void fklPrintRawString(const FklString* str,FILE* fp);
 void fklPrintString(const FklString* str,FILE* fp);
 void fklPrintRawSymbol(const FklString* str,FILE* fp);
 FklString* fklStringAppend(const FklString*,const FklString*);
-void fklDestroyStringArray(FklString**,uint32_t num);
 void fklWriteStringToCstr(char*,const FklString*);
 
+struct FklStringBuffer;
+void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s,const FklString* fstr,char se);
 FklString* fklStringToRawString(const FklString* str);
 FklString* fklStringToRawSymbol(const FklString* str);
 
@@ -44,6 +45,8 @@ typedef struct FklStringBuffer
 	uint32_t i;
 	char* b;
 }FklStringBuffer;
+
+#define FKL_STRING_BUFFER_INIT {0,0,NULL}
 
 FklStringBuffer* fklCreateStringBuffer(void);
 char* fklStringBufferBody(FklStringBuffer*);
@@ -61,6 +64,7 @@ void fklStringBufferConcatWithStringBuffer(FklStringBuffer*,const FklStringBuffe
 void fklStringBufferPutc(FklStringBuffer*,char);
 void fklStringBufferPrintf(FklStringBuffer*,const char* fmt,...);
 FklString* fklStringBufferToString(FklStringBuffer*);
+int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch);
 
 typedef struct FklBytevector
 {
@@ -72,9 +76,10 @@ FklBytevector* fklStringBufferToBytevector(FklStringBuffer*);
 FklBytevector* fklCreateBytevector(size_t,const uint8_t*);
 FklBytevector* fklCopyBytevector(const FklBytevector*);
 void fklBytevectorCat(FklBytevector**,const FklBytevector*);
-int fklBytevectorcmp(const FklBytevector*,const FklBytevector*);
+int fklBytevectorCmp(const FklBytevector*,const FklBytevector*);
 void fklPrintRawBytevector(const FklBytevector* str,FILE* fp);
 FklString* fklBytevectorToString(const FklBytevector*);
+void fklPrintBytevectorToStringBuffer(FklStringBuffer*,const FklBytevector* bvec);
 
 typedef struct FklHashTableNode
 {

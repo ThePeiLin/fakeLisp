@@ -1410,15 +1410,15 @@ static inline void B_load_dll(FklVM* exe,FklVMframe* frame)
 	FklVMlib* plib=&exe->libs[libId];
 	if(!plib->imported)
 	{
-		char* realpath=fklStringToCstr(FKL_VM_STR(plib->proc));
-		FklVMvalue* dll=fklCreateVMvalueDll(exe,realpath);
+		FklString* realpath=FKL_VM_STR(plib->proc);
+		FklVMvalue* dll=fklCreateVMvalueDll(exe,realpath->str);
 		FklImportDllInitFunc initFunc=NULL;
 		if(dll)
 			initFunc=getImportInit(FKL_VM_DLL(dll)->handle);
 		else
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath->str,0,FKL_ERR_IMPORTFAILED,exe);
 		if(!initFunc)
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath,1,FKL_ERR_IMPORTFAILED,exe);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath->str,0,FKL_ERR_IMPORTFAILED,exe);
 		uint32_t tp=exe->tp;
 		fklInitVMdll(dll,exe);
 		plib->loc=initFunc(exe,dll,&plib->count);
@@ -1499,8 +1499,8 @@ static inline void B_get_var_ref(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* v=get_var_val(frame,idx,exe->pts,&id);
 	if(id)
 	{
-		char* cstr=fklStringToCstr(fklGetSymbolWithId(id,exe->symbolTable)->symbol);
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.get-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+		FklString* str=fklGetSymbolWithId(id,exe->symbolTable)->symbol;
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.get-var-ref",str->str,0,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	fklPushVMvalue(exe,v);
 }
@@ -1528,8 +1528,8 @@ static inline void B_put_var_ref(FklVM* exe,FklVMframe* frame)
 	FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 	if(!pv)
 	{
-		char* cstr=fklStringToCstr(fklGetSymbolWithId(id,exe->symbolTable)->symbol);
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",cstr,1,FKL_ERR_SYMUNDEFINE,exe);
+		FklString* str=fklGetSymbolWithId(id,exe->symbolTable)->symbol;
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",str->str,0,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	FklVMvalue* v=fklGetTopValue(exe);
 	*pv=v;

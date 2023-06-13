@@ -56,7 +56,7 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
-			int r=fklStringcmp(table->list[mid]->symbol,sym);
+			int r=fklStringCmp(table->list[mid]->symbol,sym);
 			if(r>0)
 				h=mid-1;
 			else if(r<0)
@@ -67,7 +67,7 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 				return node;
 			}
 		}
-		if(fklStringcmp(table->list[mid]->symbol,sym)<=0)
+		if(fklStringCmp(table->list[mid]->symbol,sym)<=0)
 			mid++;
 		table->num+=1;
 		int32_t i=table->num-1;

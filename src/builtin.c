@@ -3752,6 +3752,20 @@ static void builtin_href(FKL_DL_PROC_ARGL)
 	}
 }
 
+static void builtin_href7(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.href&";
+	DECL_AND_CHECK_ARG2(ht,key,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname,exe);
+	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
+	int ok=0;
+	FklVMvalue* retval=fklVMhashTableGet(key,FKL_VM_HASH(ht),&ok);
+	if(ok)
+		fklPushVMvalue(exe,fklCreateVMvalueBox(exe,retval));
+	else
+		fklPushVMvalue(exe,FKL_VM_NIL);
+}
+
 static void builtin_href1(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.href!";
@@ -4399,6 +4413,7 @@ static const struct SymbolFuncStruct
 	{"hasheqv?",              builtin_hasheqv_p,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hashequal?",            builtin_hashequal_p,             {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href",                  builtin_href,                    {NULL,         NULL,          NULL,          NULL,          }, },
+	{"href&",                 builtin_href7,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href!",                 builtin_href1,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"set-href!",             builtin_set_href,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"set-href*!",            builtin_set_href8,               {NULL,         NULL,          NULL,          NULL,          }, },

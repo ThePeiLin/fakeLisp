@@ -2722,13 +2722,25 @@ static void builtin_recv(FKL_DL_PROC_ARGL)
 	{
 		FKL_CHECK_TYPE(okBox,FKL_IS_BOX,Pname,exe);
 		FklVMvalue* r=FKL_VM_NIL;
-		int ok=0;
-		fklChanlRecvOk(chanl,&r,&ok);
-		FKL_VM_BOX(okBox)=ok?FKL_VM_TRUE:FKL_VM_NIL;
+		FKL_VM_BOX(okBox)=fklChanlRecvOk(chanl,&r)?FKL_VM_TRUE:FKL_VM_NIL;
 		fklPushVMvalue(exe,r);
 	}
 	else
 		fklChanlRecv(fklPushVMvalue(exe,FKL_VM_NIL),chanl,exe);
+}
+
+static void builtin_recv7(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.recv&";
+	DECL_AND_CHECK_ARG(ch,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname,exe);
+	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,Pname,exe);
+	FklVMchanl* chanl=FKL_VM_CHANL(ch);
+	FklVMvalue* r=FKL_VM_NIL;
+	if(fklChanlRecvOk(chanl,&r))
+		fklPushVMvalue(exe,fklCreateVMvalueBox(exe,r));
+	else
+		fklPushVMvalue(exe,FKL_VM_NIL);
 }
 
 static void builtin_error(FKL_DL_PROC_ARGL)
@@ -4260,6 +4272,7 @@ static const struct SymbolFuncStruct
 	{"chanl-msg->list",       builtin_chanl_msg_to_list,       {NULL,         NULL,          NULL,          NULL,          }, },
 	{"send",                  builtin_send,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"recv",                  builtin_recv,                    {NULL,         NULL,          NULL,          NULL,          }, },
+	{"recv&",                 builtin_recv7,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"error",                 builtin_error,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"raise",                 builtin_raise,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,          NULL,          }, },

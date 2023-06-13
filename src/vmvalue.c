@@ -998,7 +998,7 @@ inline void fklResumeThread(FklVM* exe)
 	exe->state=FKL_VM_READY;
 }
 
-void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
+int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r)
 {
 	if(ch->messageNum)
 	{
@@ -1007,10 +1007,10 @@ void fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r,int* ok)
 		FklVM* s=fklPopPtrQueue(&ch->sendq);
 		if(s)
 			fklResumeThread(s);
-		*ok=1;
+		return 1;
 	}
 	else
-		*ok=0;
+		return 0;
 }
 
 inline void fklSleepThread(FklVM* exe,uint64_t sec)

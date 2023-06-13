@@ -779,7 +779,7 @@ void fklSleepThread(FklVM*,uint64_t sec);
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);
 void fklChanlSend(FklVMvalue* msg,FklVMchanl*,FklVM*);
-void fklChanlRecvOk(FklVMchanl*,FklVMvalue**,int*);
+int fklChanlRecvOk(FklVMchanl*,FklVMvalue**);
 void fklChanlRecv(FklVMvalue**,FklVMchanl*,FklVM*);
 
 void fklVMvecConcat(FklVMvec*,const FklVMvec*);

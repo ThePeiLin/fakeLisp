@@ -13,7 +13,8 @@
                  (setq tb (cdr tb))
                  r)
                cs)))
-      `((lambda (~s) (cond,~body)) ~v)))
+      `(let [(~s ~v)]
+         (cond,~body))))
 
   (defmacro ~(->> ~x,~forms)
     (let [(carc (car forms))]

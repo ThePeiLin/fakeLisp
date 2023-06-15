@@ -8,6 +8,7 @@
         (internationale)
         (test-loc)
         (reader-macro)
+        (compiler-macro)
         (bigloop)
         (test))
 

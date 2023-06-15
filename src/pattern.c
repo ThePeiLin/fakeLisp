@@ -627,12 +627,91 @@ FklHashTable* fklCreatePatternMatchingHashTable(void)
 	return fklCreateHashTable(&Codegen_hash_meta_table);
 }
 
-inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
+static inline int is_pattern_equal(const FklNastNode* pattern,const FklNastNode* exp)
+{
+	if(exp->type!=FKL_NAST_PAIR)
+		return 0;
+	if(exp->u.pair->car->type!=FKL_NAST_SYM
+			||pattern->u.pair->car->u.sym!=exp->u.pair->car->u.sym)
+		return 0;
+	FklPtrStack s0=FKL_STACK_INIT;
+	fklInitPtrStack(&s0,32,16);
+	FklPtrStack s1=FKL_STACK_INIT;
+	fklInitPtrStack(&s1,32,16);
+	fklPushPtrStack(pattern->u.pair->cdr,&s0);
+	fklPushPtrStack(exp->u.pair->cdr,&s1);
+	int r=1;
+	while(r&&!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
+	{
+		FklNastNode* n0=fklPopPtrStack(&s0);
+		FklNastNode* n1=fklPopPtrStack(&s1);
+		if(n0->type!=n1->type)
+			r=0;
+		else if(n0->type==FKL_NAST_SLOT)
+			continue;
+		else if(n0->type==FKL_NAST_PAIR&&n1->type==FKL_NAST_PAIR)
+		{
+			fklPushPtrStack(n0->u.pair->cdr,&s0);
+			fklPushPtrStack(n0->u.pair->car,&s0);
+			fklPushPtrStack(n1->u.pair->cdr,&s1);
+			fklPushPtrStack(n1->u.pair->car,&s1);
+		}
+		else if(!fklNastNodeEqual(n0,n1))
+			r=0;
+	}
+	fklUninitPtrStack(&s0);
+	fklUninitPtrStack(&s1);
+	return r;
+}
+
+static inline int is_partly_covered(const FklNastNode* pattern,const FklNastNode* exp)
 {
 	int r=0;
-	r+=fklPatternMatch(p0,p1,NULL)?FKL_PATTERN_COVER:0;
-	r+=fklPatternMatch(p1,p0,NULL)?FKL_PATTERN_BE_COVER:0;
+	if(exp->type!=FKL_NAST_PAIR)
+		return r;
+	if(exp->u.pair->car->type!=FKL_NAST_SYM
+			||pattern->u.pair->car->u.sym!=exp->u.pair->car->u.sym)
+		return r;
+	FklPtrStack s0=FKL_STACK_INIT;
+	fklInitPtrStack(&s0,32,16);
+	FklPtrStack s1=FKL_STACK_INIT;
+	fklInitPtrStack(&s1,32,16);
+	fklPushPtrStack(pattern->u.pair->cdr,&s0);
+	fklPushPtrStack(exp->u.pair->cdr,&s1);
+	while(!fklIsPtrStackEmpty(&s0)&&!fklIsPtrStackEmpty(&s1))
+	{
+		FklNastNode* n0=fklPopPtrStack(&s0);
+		FklNastNode* n1=fklPopPtrStack(&s1);
+		if(n0->type==FKL_NAST_SLOT)
+		{
+			r=1;
+			break;
+		}
+		else if(n0->type==FKL_NAST_PAIR&&n1->type==FKL_NAST_PAIR)
+		{
+			fklPushPtrStack(n0->u.pair->cdr,&s0);
+			fklPushPtrStack(n0->u.pair->car,&s0);
+			fklPushPtrStack(n1->u.pair->cdr,&s1);
+			fklPushPtrStack(n1->u.pair->car,&s1);
+		}
+		else if(!fklNastNodeEqual(n0,n1))
+			break;
+	}
+	fklUninitPtrStack(&s0);
+	fklUninitPtrStack(&s1);
 	return r;
+}
+
+inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
+{
+	if(is_pattern_equal(p0,p1))
+		return FKL_PATTERN_EQUAL;
+	else if(is_partly_covered(p0,p1))
+		return FKL_PATTERN_COVER;
+	else if(is_partly_covered(p1,p0))
+		return FKL_PATTERN_BE_COVER;
+	else
+		return FKL_PATTERN_NOT_EQUAL;
 }
 
 void fklDestroyStringMatchState(FklStringMatchState* state)

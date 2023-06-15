@@ -2657,35 +2657,34 @@ static void add_compiler_macro(FklCodegenMacro** pmacro
 		,FklFuncPrototypes* pts
 		,int own)
 {
-	int coverState=0;
+	int coverState=FKL_PATTERN_NOT_EQUAL;
 	FklCodegenMacro** phead=pmacro;
 	for(FklCodegenMacro* cur=*pmacro;cur;pmacro=&cur->next,cur=cur->next)
 	{
 		coverState=fklPatternCoverState(cur->pattern,pattern);
-		if(coverState&&coverState!=FKL_PATTERN_BE_COVER)
+		if(coverState==FKL_PATTERN_BE_COVER)
+			phead=&cur->next;
+		else if(coverState)
 			break;
 	}
-	if(!coverState)
+	if(coverState==FKL_PATTERN_NOT_EQUAL)
 	{
 		FklCodegenMacro* macro=fklCreateCodegenMacro(pattern,bcl,*phead,pts,own);
 		*phead=macro;
 	}
+	else if(coverState==FKL_PATTERN_EQUAL)
+	{
+		FklCodegenMacro* macro=*pmacro;
+		uninit_codegen_macro(macro);
+		macro->own=own;
+		macro->pts=pts;
+		macro->pattern=pattern;
+		macro->bcl=bcl;
+	}
 	else
 	{
-		if(coverState==FKL_PATTERN_EQUAL)
-		{
-			FklCodegenMacro* macro=*pmacro;
-			uninit_codegen_macro(macro);
-			macro->own=own;
-			macro->pts=pts;
-			macro->pattern=pattern;
-			macro->bcl=bcl;
-		}
-		else
-		{
-			FklCodegenMacro* next=*pmacro;
-			*pmacro=fklCreateCodegenMacro(pattern,bcl,next,pts,own);
-		}
+		FklCodegenMacro* next=*pmacro;
+		*pmacro=fklCreateCodegenMacro(pattern,bcl,next,pts,own);
 	}
 }
 

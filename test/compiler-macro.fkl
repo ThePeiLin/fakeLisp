@@ -1,0 +1,17 @@
+(import (only (.. lib utils m) assert))
+
+(defmacro ~(test-m1 ~a ~b) 1)
+(defmacro ~(test-m1 ~a) nil)
+(assert (test-m1 (1 2) 3))
+
+(defmacro ~(test-m2 ~a) nil)
+(defmacro ~(test-m2 ~a ~b) 1)
+(assert (test-m2 (1 2) 3))
+
+(defmacro ~(test-m3 (~a,~b),~c) 1)
+(defmacro ~(test-m3 ~a ~b) nil)
+(assert (test-m3 (1 2) 3))
+
+(defmacro ~(test-m4 ~a ~b) nil)
+(defmacro ~(test-m4 (~a,~b),~c) 1)
+(assert (test-m4 (1 2) 3))

@@ -28,6 +28,18 @@
         [(null c) r]
         (setq carc (car c)))))
 
+  (defmacro ~(assert ~exp)
+    `(unless ~exp
+       (throw 'assert-fail
+              *file*
+              ~(append! "expression " (stringify (stringify exp)) " failed"))))
+
+  (defmacro ~(assert ~exp ~message)
+    `(unless ~exp
+       (throw 'assert-fail
+              *file*
+              ~message)))
+
   (defmacro ~(-> ~x,~forms)
     (let [(carc (car forms))]
       (do [(c (cdr forms) (cdr c))

@@ -97,9 +97,10 @@ typedef struct
 	FklNastNode* node;
 }FklPatternMatchingHashTableItem;
 
-#define FKL_PATTERN_COVER    (1)
-#define FKL_PATTERN_BE_COVER (2)
-#define FKL_PATTERN_EQUAL    (3)
+#define FKL_PATTERN_NOT_EQUAL (0)
+#define FKL_PATTERN_COVER     (1)
+#define FKL_PATTERN_BE_COVER  (2)
+#define FKL_PATTERN_EQUAL     (3)
 
 FklNastNode* fklCreatePatternFromNast(FklNastNode*,FklHashTable**);
 int fklPatternMatch(const FklNastNode* pattern

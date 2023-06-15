@@ -2765,6 +2765,7 @@ static void builtin_raise(FKL_DL_PROC_ARGL)
 	DECL_AND_CHECK_ARG(err,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
+	fklPopVMframe(exe);
 	fklRaiseVMerror(err,exe);
 }
 
@@ -2781,6 +2782,7 @@ static void builtin_throw(FKL_DL_PROC_ARGL)
 			?fklGetSymbolWithId(FKL_GET_SYM(who),exe->symbolTable)->symbol
 			:FKL_VM_STR(who)
 			,fklCopyString(FKL_VM_STR(message)));
+	fklPopVMframe(exe);
 	fklRaiseVMerror(err,exe);
 }
 

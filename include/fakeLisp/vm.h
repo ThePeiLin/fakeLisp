@@ -482,6 +482,7 @@ typedef struct FklVMerrorHandler
 	uint32_t num;
 }FklVMerrorHandler;
 
+void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*);
 FklVM* fklCreateThreadVM(FklVMvalue*

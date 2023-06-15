@@ -594,6 +594,20 @@ static inline FklVMframe* popFrame(FklVM* exe)
 	return frame;
 }
 
+inline void fklPopVMframe(FklVM* exe)
+{
+	FklVMframe* f=popFrame(exe);
+	switch(f->type)
+	{
+		case FKL_FRAME_COMPOUND:
+			fklDoFinalizeCompoundFrame(f,exe);
+			break;
+		case FKL_FRAME_OTHEROBJ:
+			fklDoFinalizeObjFrame(f,&exe->sf);
+			break;
+	}
+}
+
 static inline void doAtomicFrame(FklVMframe* f,FklVMgc* gc)
 {
 	f->u.o.t->atomic(fklGetFrameData(f),gc);
@@ -2451,65 +2465,4 @@ inline void fklSetBp(FklVM* s)
 	fklPushVMvalue(s,FKL_MAKE_VM_FIX(s->bp));
 	s->bp=s->tp;
 }
-
-// static inline FklVMvalue* get_value(uint32_t* ap,FklVM* s)
-// {
-// 	return *ap>0?s->base[--(*ap)]:NULL;
-// }
-
-// int fklDlprocResBp(uint32_t* ap,FklVM* stack)
-// {
-// 	if(*ap>stack->bp)
-// 		return *ap-stack->bp;
-// 	stack->bp=FKL_GET_FIX(get_value(ap,stack));
-// 	return 0;
-// }
-
-// inline void fklDlprocSetBpWithTp(FklVM* s)
-// {
-// 	fklPushVMvalue(s,FKL_MAKE_VM_FIX(s->bp));
-// 	s->bp=s->tp;
-// }
-
-// uint32_t fklDlprocSetBp(uint32_t nbp,FklVM* s)
-// {
-// 	fklPushVMvalue(s,FKL_MAKE_VM_FIX(s->bp));
-// 	s->bp=nbp;
-// 	return nbp;
-// }
-
-// FklVMvalue** fklDlprocReturn(FklVMvalue* v,uint32_t* ap,FklVM* s)
-// {
-// 	fklAllocMoreStack(s);
-// 	FklVMvalue** r=&s->base[*ap];
-// 	if(*ap<s->tp)
-// 	{
-// 		FklVMvalue* t=s->base[*ap];
-// 		*r=v;
-// 		s->base[s->tp]=t;
-// 	}
-// 	else
-// 		*r=v;
-// 	(*ap)++;
-// 	s->tp++;
-// 	return r;
-// }
-
-// inline void fklDlprocBegin(uint32_t* ap,FklVM* s)
-// {
-// 	*ap=s->tp;
-// }
-
-// inline void fklDlprocEnd(uint32_t* ap,FklVM* s)
-// {
-// 	s->tp=*ap;
-// 	*ap=0;
-// }
-
-// FklVMvalue* fklDlprocGetArg(uint32_t*ap,FklVM* stack)
-// {
-// 	if(*ap>stack->bp)
-// 		return stack->base[--(*ap)];
-// 	return NULL;
-// }
 

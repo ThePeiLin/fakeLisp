@@ -1333,6 +1333,11 @@ FklVMhashTableItem* fklVMhashTableRef(FklVMvalue* key,FklHashTable* ht)
 	return item;
 }
 
+FklVMhashTableItem* fklVMhashTableGetItem(FklVMvalue* key,FklHashTable* ht)
+{
+	return (FklVMhashTableItem*)fklGetHashItem(&key,ht);
+}
+
 FklVMvalue* fklVMhashTableGet(FklVMvalue* key,FklHashTable* ht,int* ok)
 {
 	FklVMvalue* r=NULL;

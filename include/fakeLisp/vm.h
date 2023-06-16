@@ -615,6 +615,7 @@ const char* fklGetVMhashTablePrefix(FklHashTable*);
 void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc);
 FklVMhashTableItem* fklVMhashTableRef1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklVMhashTableRef(FklVMvalue* key,FklHashTable* ht);
+FklVMhashTableItem* fklVMhashTableGetItem(FklVMvalue* key,FklHashTable* ht);
 FklVMvalue* fklVMhashTableGet(FklVMvalue* key,FklHashTable* ht,int* ok);
 
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc);

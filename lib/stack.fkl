@@ -11,7 +11,7 @@
 
 (export (define (stack-base s) (vref s 1)))
 
-(define (set-base! s b) (set-vref! s 1 b))
+(define (base=! s b) (vref=! s 1 b))
 
 (define (type s) (vref s 0))
 
@@ -31,8 +31,8 @@
 
 (export
   (define (stack-push! s e)
-  (set-base! s (cons e (stack-base s)))
-  e))
+    (base=! s (cons e (stack-base s)))
+    e))
 
 (export
   (define (stack-top s)
@@ -41,7 +41,7 @@
 (export
   (define (stack-pop! s)
     (define r (stack-top s))
-    (set-base! s (cdr (stack-base s)))
+    (base=! s (cdr (stack-base s)))
     r))
 
 (export

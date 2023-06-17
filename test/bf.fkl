@@ -36,14 +36,14 @@
          (setq mp (-1+ mp)))]
       [(eq op #\+)
        (define c (vref m mp))
-       (set-vref! m mp (1+ c))]
+       (vref=! m mp (1+ c))]
       [(eq op #\-)
        (define c (vref m mp))
-       (set-vref! m mp (-1+ c))]
+       (vref=! m mp (-1+ c))]
       [(eq op #\.)
        (princ (integer->char (vref m mp)))]
       [(eq op #\,)
-       (set-vref! m mp (fgeti stdin))]
+       (vref=! m mp (fgeti stdin))]
       [(eq op #\[)
        (setq stack (cons cp stack))]
       [(eq op #\])

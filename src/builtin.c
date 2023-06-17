@@ -145,9 +145,9 @@ static void builtin_car(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,FKL_VM_CAR(obj));
 }
 
-static void builtin_set_car(FKL_DL_PROC_ARGL)
+static void builtin_car_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-car!";
+	static const char Pname[]="builtin.car=!";
 	DECL_AND_CHECK_ARG2(obj,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(obj,FKL_IS_PAIR,Pname,exe);
@@ -164,9 +164,9 @@ static void builtin_cdr(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,FKL_VM_CDR(obj));
 }
 
-static void builtin_set_cdr(FKL_DL_PROC_ARGL)
+static void builtin_cdr_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-cdr!";
+	static const char Pname[]="builtin.cdr=!";
 	DECL_AND_CHECK_ARG2(obj,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(obj,FKL_IS_PAIR,Pname,exe);
@@ -1434,9 +1434,9 @@ static void builtin_nth(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 }
 
-static void builtin_set_nth(FKL_DL_PROC_ARGL)
+static void builtin_nth_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-nth!";
+	static const char Pname[]="builtin.nth=!";
 	DECL_AND_CHECK_ARG3(place,objlist,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(place,fklIsInt,Pname,exe);
@@ -1566,15 +1566,15 @@ static void builtin_bvf64ref(FKL_DL_PROC_ARGL) {BV_F_REF(double,"builtin.bvf32re
 	memcpy(&bv->ptr[index],&r,sizeof(r));\
 	fklPushVMvalue(exe,target);\
 
-static void builtin_set_bvs8ref(FKL_DL_PROC_ARGL) {SET_BV_S_U_8_REF(int8_t,"builtin.set-bvs8ref!")}
-static void builtin_set_bvs16ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int16_t,"builtin.set-bvs16ref!")}
-static void builtin_set_bvs32ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int32_t,"builtin.set-bvs32ref!")}
-static void builtin_set_bvs64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(int64_t,"builtin.set-bvs64ref!")}
+static void builtin_bvs8ref_set(FKL_DL_PROC_ARGL) {SET_BV_S_U_8_REF(int8_t,"builtin.bvs8ref=!")}
+static void builtin_bvs16ref_set(FKL_DL_PROC_ARGL) {SET_BV_REF(int16_t,"builtin.bvs16ref=!")}
+static void builtin_bvs32ref_set(FKL_DL_PROC_ARGL) {SET_BV_REF(int32_t,"builtin.bvs32ref=!")}
+static void builtin_bvs64ref_set(FKL_DL_PROC_ARGL) {SET_BV_REF(int64_t,"builtin.bvs64ref=!")}
 
-static void builtin_set_bvu8ref(FKL_DL_PROC_ARGL) {SET_BV_S_U_8_REF(uint8_t,"builtin.set-bvu8ref!")}
-static void builtin_set_bvu16ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint16_t,"builtin.set-bvu16ref!")}
-static void builtin_set_bvu32ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint32_t,"builtin.set-bvu32ref!")}
-static void builtin_set_bvu64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin.set-bvu64ref!")}
+static void builtin_bvu8ref_set(FKL_DL_PROC_ARGL) {SET_BV_S_U_8_REF(uint8_t,"builtin.bvu8ref=!")}
+static void builtin_bvu16ref_set(FKL_DL_PROC_ARGL) {SET_BV_REF(uint16_t,"builtin.bvu16ref=!")}
+static void builtin_bvu32ref_set(FKL_DL_PROC_ARGL) {SET_BV_REF(uint32_t,"builtin.bvu32ref=!")}
+static void builtin_bvu64ref_set(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin.bvu64ref=!")}
 
 #undef SET_BV_S_U_8_REF
 #undef SET_BV_REF
@@ -1593,13 +1593,13 @@ static void builtin_set_bvu64ref(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin
 	memcpy(&bv->ptr[index],&r,sizeof(r));\
 	fklPushVMvalue(exe,target);\
 
-static void builtin_set_bvf32ref(FKL_DL_PROC_ARGL) {SET_BV_F_REF(float,"builtin.set-bvf32ref!")}
-static void builtin_set_bvf64ref(FKL_DL_PROC_ARGL) {SET_BV_F_REF(double,"builtin.set-bvf64ref!")}
+static void builtin_bvf32ref_set(FKL_DL_PROC_ARGL) {SET_BV_F_REF(float,"builtin.bvf32ref=!")}
+static void builtin_bvf64ref_set(FKL_DL_PROC_ARGL) {SET_BV_F_REF(double,"builtin.bvf64ref=!")}
 #undef SET_BV_F_REF
 
-static void builtin_set_sref(FKL_DL_PROC_ARGL)
+static void builtin_sref_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-sref!";
+	static const char Pname[]="builtin.sref=!";
 	DECL_AND_CHECK_ARG3(str,place,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	if(!fklIsInt(place)||!FKL_IS_STR(str))
@@ -1615,9 +1615,9 @@ static void builtin_set_sref(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,target);
 }
 
-static void builtin_fill_string(FKL_DL_PROC_ARGL)
+static void builtin_string_fill(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.fill-string!";
+	static const char Pname[]="builtin.string-fill!";
 	DECL_AND_CHECK_ARG2(str,content,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	if(!FKL_IS_CHR(content)||!FKL_IS_STR(str))
@@ -1627,9 +1627,9 @@ static void builtin_fill_string(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,str);
 }
 
-static void builtin_fill_bytevector(FKL_DL_PROC_ARGL)
+static void builtin_bytevector_fill(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.fill-bytevector!";
+	static const char Pname[]="builtin.bytevector-fill!";
 	DECL_AND_CHECK_ARG2(bvec,content,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	if(!fklIsInt(content)||!FKL_IS_BYTEVECTOR(bvec))
@@ -1654,9 +1654,9 @@ static void builtin_vref(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,v->base[index]);
 }
 
-static void builtin_set_vref(FKL_DL_PROC_ARGL)
+static void builtin_vref_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-vref!";
+	static const char Pname[]="builtin.vref=!";
 	DECL_AND_CHECK_ARG3(vec,place,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	if(!fklIsInt(place)||!FKL_IS_VECTOR(vec))
@@ -1670,9 +1670,9 @@ static void builtin_set_vref(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,target);
 }
 
-static void builtin_fill_vector(FKL_DL_PROC_ARGL)
+static void builtin_vector_fill(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.fill-vector!";
+	static const char Pname[]="builtin.vector-fill!";
 	DECL_AND_CHECK_ARG2(vec,content,Pname)
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(vec,FKL_IS_VECTOR,Pname,exe);
@@ -1683,9 +1683,9 @@ static void builtin_fill_vector(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,vec);
 }
 
-static void builtin_cas_vref(FKL_DL_PROC_ARGL)
+static void builtin_vref_cas(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.cas-vref!";
+	static const char Pname[]="builtin.vref-cas!";
 	FklVMvalue* vec=fklPopArg(exe);
 	FklVMvalue* place=fklPopArg(exe);
 	FklVMvalue* old=fklPopArg(exe);
@@ -1746,9 +1746,9 @@ static void builtin_tail(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 }
 
-static void builtin_set_nthcdr(FKL_DL_PROC_ARGL)
+static void builtin_nthcdr_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-nthcdr!";
+	static const char Pname[]="builtin.nthcdr=!";
 	DECL_AND_CHECK_ARG3(place,objlist,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(place,fklIsInt,Pname,exe);
@@ -3483,9 +3483,9 @@ static void builtin_unbox(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,FKL_VM_BOX(box));
 }
 
-static void builtin_set_box(FKL_DL_PROC_ARGL)
+static void builtin_box_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-box!";
+	static const char Pname[]="builtin.box=!";
 	DECL_AND_CHECK_ARG2(box,obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(box,FKL_IS_BOX,Pname,exe);
@@ -3493,9 +3493,9 @@ static void builtin_set_box(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,obj);
 }
 
-static void builtin_cas_box(FKL_DL_PROC_ARGL)
+static void builtin_box_cas(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.cas-box!";
+	static const char Pname[]="builtin.box-cas!";
 	DECL_AND_CHECK_ARG3(box,old,new,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(box,FKL_IS_BOX,Pname,exe);
@@ -3813,9 +3813,9 @@ static void builtin_hash_clear(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,ht);
 }
 
-static void builtin_set_href(FKL_DL_PROC_ARGL)
+static void builtin_href_set(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-href!";
+	static const char Pname[]="builtin.href=!";
 	DECL_AND_CHECK_ARG3(ht,key,value,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
@@ -3823,9 +3823,9 @@ static void builtin_set_href(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,value);;
 }
 
-static void builtin_set_href8(FKL_DL_PROC_ARGL)
+static void builtin_href_set8(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.set-href*!";
+	static const char Pname[]="builtin.href=*!";
 	DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklVMvalue* value=NULL;
@@ -4321,8 +4321,8 @@ static const struct SymbolFuncStruct
 	{"list->string",          builtin_list_to_string,          {NULL,         NULL,          NULL,          NULL,          }, },
 	{"->string",              builtin_to_string,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"sref",                  builtin_sref,                    {NULL,         NULL,          inlfunc_sref,  NULL,          }, },
-	{"set-sref!",             builtin_set_sref,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fill-string!",          builtin_fill_string,             {NULL,         NULL,          NULL,          NULL,          }, },
+	{"sref=!",               builtin_sref_set,                {NULL,         NULL,          NULL,          NULL,          }, },
+	{"string-fill!",          builtin_string_fill,             {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"error?",                builtin_error_p,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"procedure?",            builtin_procedure_p,             {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4337,9 +4337,9 @@ static const struct SymbolFuncStruct
 	{"list->vector",          builtin_list_to_vector,          {NULL,         NULL,          NULL,          NULL,          }, },
 	{"string->vector",        builtin_string_to_vector,        {NULL,         NULL,          NULL,          NULL,          }, },
 	{"vref",                  builtin_vref,                    {NULL,         NULL,          inlfunc_vref,  NULL,          }, },
-	{"set-vref!",             builtin_set_vref,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"cas-vref!",             builtin_cas_vref,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fill-vector!",          builtin_fill_vector,             {NULL,         NULL,          NULL,          NULL,          }, },
+	{"vref=!",                builtin_vref_set,                {NULL,         NULL,          NULL,          NULL,          }, },
+	{"vref-cas!",             builtin_vref_cas,                {NULL,         NULL,          NULL,          NULL,          }, },
+	{"vector-fill!",          builtin_vector_fill,             {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"list?",                 builtin_list_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"list",                  builtin_list,                    {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4347,8 +4347,8 @@ static const struct SymbolFuncStruct
 	{"make-list",             builtin_make_list,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"vector->list",          builtin_vector_to_list,          {NULL,         NULL,          NULL,          NULL,          }, },
 	{"string->list",          builtin_string_to_list,          {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-nth!",              builtin_set_nth,                 {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-nthcdr!",           builtin_set_nthcdr,              {NULL,         NULL,          NULL,          NULL,          }, },
+	{"nth=!",                 builtin_nth_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"nthcdr=!",              builtin_nthcdr_set,              {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"bytevector?",           builtin_bytevector_p,            {NULL,         NULL,          NULL,          NULL,          }, },
 	{"bytevector",            builtin_bytevector,              {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4373,17 +4373,17 @@ static const struct SymbolFuncStruct
 	{"bvu64ref",              builtin_bvu64ref,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"bvf32ref",              builtin_bvf32ref,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"bvf64ref",              builtin_bvf64ref,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvs8ref!",          builtin_set_bvs8ref,             {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvs16ref!",         builtin_set_bvs16ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvs32ref!",         builtin_set_bvs32ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvs64ref!",         builtin_set_bvs64ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvu8ref!",          builtin_set_bvu8ref,             {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvu16ref!",         builtin_set_bvu16ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvu32ref!",         builtin_set_bvu32ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvu64ref!",         builtin_set_bvu64ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvf32ref!",         builtin_set_bvf32ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-bvf64ref!",         builtin_set_bvf64ref,            {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fill-bytevector!",      builtin_fill_bytevector,         {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvs8ref=!",             builtin_bvs8ref_set,             {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvs16ref=!",            builtin_bvs16ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvs32ref=!",            builtin_bvs32ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvs64ref=!",            builtin_bvs64ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvu8ref=!",             builtin_bvu8ref_set,             {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvu16ref=!",            builtin_bvu16ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvu32ref=!",            builtin_bvu32ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvu64ref=!",            builtin_bvu64ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvf32ref=!",            builtin_bvf32ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bvf64ref=!",            builtin_bvf64ref_set,            {NULL,         NULL,          NULL,          NULL,          }, },
+	{"bytevector-fill!",      builtin_bytevector_fill,         {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4396,12 +4396,12 @@ static const struct SymbolFuncStruct
 	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgetd",                 builtin_fgetd,                   {NULL,         NULL,          NULL,          NULL,          }, },
 
-	{"set-car!",              builtin_set_car,                 {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-cdr!",              builtin_set_cdr,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"car=!",                 builtin_car_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"cdr=!",                 builtin_cdr_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"box",                   builtin_box,                     {inlfunc_box0, inlfunc_box,   NULL,          NULL,          }, },
 	{"unbox",                 builtin_unbox,                   {NULL,         inlfunc_unbox, NULL,          NULL,          }, },
-	{"set-box!",              builtin_set_box,                 {NULL,         NULL,          NULL,          NULL,          }, },
-	{"cas-box!",              builtin_cas_box,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"box=!",                 builtin_box_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"box-cas!",              builtin_box_cas,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"box?",                  builtin_box_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"number?",               builtin_number_p,                {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4444,8 +4444,8 @@ static const struct SymbolFuncStruct
 	{"href&",                 builtin_href7,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hrefp",                 builtin_hrefp,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href!",                 builtin_href1,                   {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-href!",             builtin_set_href,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"set-href*!",            builtin_set_href8,               {NULL,         NULL,          NULL,          NULL,          }, },
+	{"href=!",                builtin_href_set,                {NULL,         NULL,          NULL,          NULL,          }, },
+	{"href=*!",               builtin_href_set8,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash-clear!",           builtin_hash_clear,              {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash->list",            builtin_hash_to_list,            {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash-keys",             builtin_hash_keys,               {NULL,         NULL,          NULL,          NULL,          }, },

@@ -9,6 +9,33 @@
 extern "C"{
 #endif
 
+
+typedef struct FklGrammerProduction
+{
+	FklSid_t nt;
+	struct FklGrammerProduction* next;
+}FklGrammerProduction;
+
+typedef struct FklAnalysisTable
+{
+}FklAnalysisTable;
+
+typedef struct
+{
+	FklHashTable* terminalIndexSet;
+	FklString** terminals;
+	size_t tNum;
+
+	FklSid_t* nonterminals;
+	size_t ntNum;
+
+	FklHashTable* productions;
+
+	FklAnalysisTable aTable;
+}FklLalr1Grammer;
+
+FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
+
 typedef enum
 {
 	FKL_TOKEN_RESERVE_STR=0,

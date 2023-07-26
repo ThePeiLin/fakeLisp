@@ -30,18 +30,19 @@ FklSymTabNode* fklCreateSymTabNodeCstr(const char*);
 
 FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);
+FklSymTabNode* fklAddSymbolCharBuf(const char*,size_t,FklSymbolTable*);
 
-FklSymTabNode* fklFindSymbol(const FklString*,FklSymbolTable*);
-FklSymTabNode* fklFindSymbolCstr(const char*,FklSymbolTable*);
+FklSymTabNode* fklFindSymbol(const FklString*,const FklSymbolTable*);
+FklSymTabNode* fklFindSymbolCstr(const char*,const FklSymbolTable*);
 
-FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable*);
+FklSymTabNode* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable*);
 
-void fklPrintSymbolTable(FklSymbolTable*,FILE*);
+void fklPrintSymbolTable(const FklSymbolTable*,FILE*);
 
 void fklDestroySymTabNode(FklSymTabNode*);
 void fklDestroySymbolTable(FklSymbolTable*);
 
-void fklWriteSymbolTable(FklSymbolTable*,FILE*);
+void fklWriteSymbolTable(const FklSymbolTable*,FILE*);
 
 typedef struct FklFuncPrototype
 {

@@ -1,9 +1,12 @@
+#include "fakeLisp/base.h"
+#include "fakeLisp/symbol.h"
 #include<fakeLisp/lexer.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/parser.h>
 #include<ctype.h>
+#include <stdlib.h>
 #include<string.h>
 
 static inline int isCompleteStringBuf(const char* buf,size_t size,char ch,size_t* len)
@@ -775,4 +778,93 @@ int fklIsAllComment(FklPtrStack* tokenStack)
 			return 0;
 	}
 	return 1;
+}
+
+static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t len)
+{
+	FklGrammerProduction* r=(FklGrammerProduction*)calloc(1,sizeof(FklGrammerProduction));
+	r->left=left;
+	r->len=len;
+	r->units=(FklGrammerProductionUnit*)calloc(len,sizeof(FklGrammerProductionUnit));
+	return r;
+}
+
+static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* str,FklSymbolTable* symbolTable,FklSymbolTable* termTable)
+{
+	const char* ss;
+	size_t len;
+	for(ss=str;isspace(*ss);ss++);
+	for(len=0;!isspace(ss[len]);len++);
+	FklSid_t left=fklAddSymbolCharBuf(ss,len,symbolTable)->id;
+	ss+=len;
+	len=0;
+	FklPtrStack st=FKL_STACK_INIT;
+	fklInitPtrStack(&st,8,8);
+	while(*ss)
+	{
+		for(;isspace(*ss);ss++);
+		for(len=0;ss[len]&&!isspace(ss[len]);len++);
+		fklPushPtrStack(fklCreateString(len,ss),&st);
+		ss+=len;
+	}
+	size_t prod_len=st.top;
+	FklGrammerProduction* prod=create_empty_production(left,prod_len);
+	for(uint32_t i=0;i<st.top;i++)
+	{
+		FklGrammerProductionUnit* u=&prod->units[i];
+		FklString* s=st.base[i];
+		switch(*(s->str))
+		{
+			case '#':
+				u->term=1;
+				u->nt=fklAddSymbolCharBuf(&s->str[1],s->size-1,termTable)->id;
+				break;
+			case '&':
+				u->term=0;
+				u->nt=fklAddSymbolCharBuf(&s->str[1],s->size-1,symbolTable)->id;
+				break;
+		}
+		free(s);
+	}
+	fklUninitPtrStack(&st);
+	return prod;
+}
+
+FklLalr1Grammer* fklCreateLalr1GrammerFromCstr(const char* str[],FklSymbolTable* st)
+{
+	FklLalr1Grammer* grammer=NULL;
+	FklSymbolTable* tt=grammer->terminals;
+	for(;*str;str++)
+	{
+		FklGrammerProduction* prod=create_grammer_prod_from_cstr(*str,st,tt);
+	}
+	return grammer;
+}
+
+static inline void print_prod_unit(FILE* fp,const FklGrammerProductionUnit* u,const FklSymbolTable* st,const FklSymbolTable* tt)
+{
+	if(u->term)
+	{
+		fputc('#',fp);
+		fklPrintString(fklGetSymbolWithId(u->nt,tt)->symbol,fp);
+	}
+	else
+	{
+		fputc('&',fp);
+		fklPrintString(fklGetSymbolWithId(u->nt,st)->symbol,fp);
+	}
+}
+
+void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt)
+{
+	fklPrintString(fklGetSymbolWithId(prod->left,st)->symbol,fp);
+	fputs(" ->",fp);
+	size_t len=prod->len;
+	FklGrammerProductionUnit* units=prod->units;
+	for(size_t i=0;i<len;i++)
+	{
+		fputc(' ',fp);
+		print_prod_unit(fp,&units[i],st,tt);
+	}
+	fputc('\n',fp);
 }

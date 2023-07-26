@@ -10,21 +10,81 @@ extern "C"{
 #endif
 
 
+typedef struct FklGrammerProductionUnit
+{
+	FklSid_t nt:63;
+	unsigned int term:1;
+	unsigned int delim:1;
+	unsigned int space:1;
+	unsigned int repeat:1;
+}FklGrammerProductionUnit;
+
 typedef struct FklGrammerProduction
 {
-	FklSid_t nt;
+	FklSid_t left;
+	size_t len;
+	FklGrammerProductionUnit* units;
 	struct FklGrammerProduction* next;
+	union
+	{
+		FklByteCodelnt* proc;
+		void* func;
+	}action;
+	int isBuiltin;
 }FklGrammerProduction;
+
+typedef struct
+{
+	FklGrammerProduction* production;
+	uint32_t idx;
+	FklString* lookAhead;
+}FklLalrItem;
+
+typedef enum FklAnalysisAction
+{
+	FKL_ANALYSIS_SHIFT,
+	FKL_ANALYSIS_REDUCE,
+}FklAnalysisAction;
+
+typedef struct FklAnalysisStateGoto
+{
+	FklSid_t nt;
+	uint32_t idx;
+	struct FklAnalysisStateGoto* next;
+}FklAnalysisStateGoto;
+
+typedef struct FklAnalysisStateAction
+{
+	FklString* str;
+	FklAnalysisAction action;
+	uint32_t idx;
+
+	struct FklAnalysisStateAction* next;
+}FklAnalysisStateAction;
+
+typedef struct FklAnalysisState
+{
+	unsigned int builtin:1;
+	union
+	{
+		void* func;
+		struct
+		{
+			FklAnalysisStateAction* action;
+			FklAnalysisStateGoto* gt;
+		}state;
+	};
+}FklAnalysisState;
 
 typedef struct FklAnalysisTable
 {
+	size_t num;
+	FklAnalysisState* states;
 }FklAnalysisTable;
 
 typedef struct
 {
-	FklHashTable* terminalIndexSet;
-	FklString** terminals;
-	size_t tNum;
+	FklSymbolTable* terminals;
 
 	FklSid_t* nonterminals;
 	size_t ntNum;
@@ -35,6 +95,11 @@ typedef struct
 }FklLalr1Grammer;
 
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
+
+FklLalr1Grammer* fklCreateLalr1GrammerFromCstr(const char* str[],FklSymbolTable* st);
+
+void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);
+int fklLalr1TokenizeCstr(FklLalr1Grammer* g,const char* str,FklPtrStack* stack);
 
 typedef enum
 {

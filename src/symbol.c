@@ -1,3 +1,4 @@
+#include "fakeLisp/base.h"
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/utils.h>
 #include<ctype.h>
@@ -50,9 +51,9 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 	}
 	else
 	{
-		int32_t l=0;
-		int32_t h=table->num-1;
-		int32_t mid=0;
+		int64_t l=0;
+		int64_t h=table->num-1;
+		int64_t mid=0;
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
@@ -70,7 +71,7 @@ FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 		if(fklStringCmp(table->list[mid]->symbol,sym)<=0)
 			mid++;
 		table->num+=1;
-		int32_t i=table->num-1;
+		int64_t i=table->num-1;
 		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
 		node=fklCreateSymTabNode(sym);
@@ -102,9 +103,9 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 	}
 	else
 	{
-		int32_t l=0;
-		int32_t h=table->num-1;
-		int32_t mid=0;
+		int64_t l=0;
+		int64_t h=table->num-1;
+		int64_t mid=0;
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
@@ -122,10 +123,64 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 		if(fklStringCstrCmp(table->list[mid]->symbol,sym)<=0)
 			mid++;
 		table->num+=1;
-		int32_t i=table->num-1;
+		int64_t i=table->num-1;
 		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
 		node=fklCreateSymTabNodeCstr(sym);
+		for(;i>mid;i--)
+			table->list[i]=table->list[i-1];
+		table->list[mid]=node;
+		node->id=table->num;
+		table->idl=(FklSymTabNode**)fklRealloc(table->idl,sizeof(FklSymTabNode*)*table->num);
+		FKL_ASSERT(table->idl);
+		table->idl[table->num-1]=node;
+	}
+	return node;
+}
+
+FklSymTabNode* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* table)
+{
+	FklSymTabNode* node=NULL;
+	FklString* sym=fklCreateString(len,buf);
+	if(!table->list)
+	{
+		node=fklCreateSymTabNode(sym);
+		table->num=1;
+		node->id=table->num;
+		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
+		FKL_ASSERT(table->list);
+		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
+		FKL_ASSERT(table->idl);
+		table->list[0]=node;
+		table->idl[0]=node;
+	}
+	else
+	{
+		int64_t l=0;
+		int64_t h=table->num-1;
+		int64_t mid=0;
+		while(l<=h)
+		{
+			mid=l+(h-l)/2;
+			int r=fklStringCmp(table->list[mid]->symbol,sym);
+			if(r>0)
+				h=mid-1;
+			else if(r<0)
+				l=mid+1;
+			else
+			{
+				free(sym);
+				node=table->list[mid];
+				return node;
+			}
+		}
+		if(fklStringCmp(table->list[mid]->symbol,sym)<=0)
+			mid++;
+		table->num+=1;
+		int64_t i=table->num-1;
+		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
+		FKL_ASSERT(table->list);
+		node=fklCreateSymTabNode(sym);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;
@@ -152,7 +207,7 @@ void fklDestroySymbolTable(FklSymbolTable* table)
 	free(table);
 }
 
-FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
+FklSymTabNode* fklFindSymbolCstr(const char* symbol,const FklSymbolTable* table)
 {
 	FklSymTabNode* retval=NULL;
 	if(table->list)
@@ -178,14 +233,14 @@ FklSymTabNode* fklFindSymbolCstr(const char* symbol,FklSymbolTable* table)
 	return retval;
 }
 
-FklSymTabNode* fklGetSymbolWithId(FklSid_t id,FklSymbolTable* table)
+FklSymTabNode* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable* table)
 {
 	if(id==0)
 		return NULL;
 	return table->idl[id-1];
 }
 
-void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
+void fklPrintSymbolTable(const FklSymbolTable* table,FILE* fp)
 {
 	for(uint32_t i=0;i<table->num;i++)
 	{
@@ -197,7 +252,7 @@ void fklPrintSymbolTable(FklSymbolTable* table,FILE* fp)
 	fprintf(fp,"size:%lu\n",table->num);
 }
 
-void fklWriteSymbolTable(FklSymbolTable* table,FILE* fp)
+void fklWriteSymbolTable(const FklSymbolTable* table,FILE* fp)
 {
 	fwrite(&table->num,sizeof(table->num),1,fp);
 	for(uint64_t i=0;i<table->num;i++)

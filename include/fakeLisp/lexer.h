@@ -14,7 +14,7 @@ typedef struct FklGrammerProductionUnit
 {
 	FklSid_t nt:63;
 	unsigned int term:1;
-	unsigned int delim:1;
+	unsigned int nodel:1;
 	unsigned int space:1;
 	unsigned int repeat:1;
 }FklGrammerProductionUnit;
@@ -25,11 +25,11 @@ typedef struct FklGrammerProduction
 	size_t len;
 	FklGrammerProductionUnit* units;
 	struct FklGrammerProduction* next;
-	union
-	{
-		FklByteCodelnt* proc;
-		void* func;
-	}action;
+	// union
+	// {
+	// 	FklByteCodelnt* proc;
+	// 	void* func;
+	// }action;
 	int isBuiltin;
 }FklGrammerProduction;
 
@@ -49,7 +49,7 @@ typedef enum FklAnalysisAction
 typedef struct FklAnalysisStateGoto
 {
 	FklSid_t nt;
-	uint32_t idx;
+	struct FklAnalysisState* state;
 	struct FklAnalysisStateGoto* next;
 }FklAnalysisStateGoto;
 
@@ -57,7 +57,11 @@ typedef struct FklAnalysisStateAction
 {
 	FklString* str;
 	FklAnalysisAction action;
-	uint32_t idx;
+	union
+	{
+		struct FklAnalysisState* state;
+		FklGrammerProduction* prod;
+	}u;
 
 	struct FklAnalysisStateAction* next;
 }FklAnalysisStateAction;
@@ -86,8 +90,8 @@ typedef struct
 {
 	FklSymbolTable* terminals;
 
-	FklSid_t* nonterminals;
-	size_t ntNum;
+	FklSid_t start;
+	FklHashTable* nonterminals;
 
 	FklHashTable* productions;
 
@@ -99,6 +103,7 @@ FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 FklLalr1Grammer* fklCreateLalr1GrammerFromCstr(const char* str[],FklSymbolTable* st);
 
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);
+void fklPrintLalr1Grammer(FILE* fp,const FklLalr1Grammer* grammer,FklSymbolTable* st);
 int fklLalr1TokenizeCstr(FklLalr1Grammer* g,const char* str,FklPtrStack* stack);
 
 typedef enum

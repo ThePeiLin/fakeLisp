@@ -929,7 +929,7 @@ static inline FklGrammerProduction* create_extra_production(FklSid_t start)
 	return prod;
 }
 
-static inline void add_prod_to_grammer(FklLalr1Grammer* grammer,FklGrammerProduction* prod)
+static inline void add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction* prod)
 {
 	FklSid_t left=prod->left;
 	FklHashTable* productions=grammer->productions;
@@ -974,18 +974,18 @@ static inline void add_prod_to_grammer(FklLalr1Grammer* grammer,FklGrammerProduc
 	}
 }
 
-static inline FklLalr1Grammer* create_empty_lalr1_grammer()
+static inline FklGrammer* create_empty_lalr1_grammer()
 {
-	FklLalr1Grammer* r=(FklLalr1Grammer*)calloc(1,sizeof(FklLalr1Grammer));
+	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
 	r->terminals=fklCreateSymbolTable();
 	r->nonterminals=fklCreateSidSet();
 	r->productions=create_prod_hash_table();
 	return r;
 }
 
-FklLalr1Grammer* fklCreateLalr1GrammerFromCstr(const char* str[],FklSymbolTable* st)
+FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 {
-	FklLalr1Grammer* grammer=create_empty_lalr1_grammer();
+	FklGrammer* grammer=create_empty_lalr1_grammer();
 	FklSymbolTable* tt=grammer->terminals;
 	for(;*str;str++)
 	{
@@ -1009,6 +1009,10 @@ static inline void print_prod_unit(FILE* fp,const FklGrammerProductionUnit* u,co
 	}
 }
 
+FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
+{
+}
+
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt)
 {
 	if(prod->left)
@@ -1026,7 +1030,7 @@ void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const F
 	fputc('\n',fp);
 }
 
-void fklPrintLalr1Grammer(FILE* fp,const FklLalr1Grammer* grammer,FklSymbolTable* st)
+void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st)
 {
 	FklSymbolTable* tt=grammer->terminals;
 	for(FklHashTableNodeList* list=grammer->productions->list;list;list=list->next)

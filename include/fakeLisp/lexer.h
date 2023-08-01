@@ -96,15 +96,17 @@ typedef struct
 	FklHashTable* productions;
 
 	FklAnalysisTable aTable;
-}FklLalr1Grammer;
+}FklGrammer;
 
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
-FklLalr1Grammer* fklCreateLalr1GrammerFromCstr(const char* str[],FklSymbolTable* st);
+FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
+
+FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);
-void fklPrintLalr1Grammer(FILE* fp,const FklLalr1Grammer* grammer,FklSymbolTable* st);
-int fklLalr1TokenizeCstr(FklLalr1Grammer* g,const char* str,FklPtrStack* stack);
+void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
+int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);
 
 typedef enum
 {

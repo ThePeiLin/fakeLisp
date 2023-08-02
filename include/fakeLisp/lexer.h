@@ -17,13 +17,13 @@ typedef struct FklGrammerProductionUnit
 	unsigned int nodel:1;
 	unsigned int space:1;
 	unsigned int repeat:1;
-}FklGrammerProductionSym;
+}FklGrammerSym;
 
 typedef struct FklGrammerProduction
 {
 	FklSid_t left;
 	size_t len;
-	FklGrammerProductionSym* syms;
+	FklGrammerSym* syms;
 	struct FklGrammerProduction* next;
 	// union
 	// {
@@ -35,7 +35,7 @@ typedef struct FklGrammerProduction
 
 typedef struct
 {
-	FklGrammerProduction* production;
+	FklGrammerProduction* prod;
 	uint32_t idx;
 	FklString* lookAhead;
 }FklLalrItem;
@@ -104,6 +104,9 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
+void fklPrintItemSet(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp);
+
+FklGrammerProduction* fklGetGrammerProductions(FklGrammer* g,FklSid_t left);
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);

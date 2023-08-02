@@ -17,13 +17,13 @@ typedef struct FklGrammerProductionUnit
 	unsigned int nodel:1;
 	unsigned int space:1;
 	unsigned int repeat:1;
-}FklGrammerProductionUnit;
+}FklGrammerProductionSym;
 
 typedef struct FklGrammerProduction
 {
 	FklSid_t left;
 	size_t len;
-	FklGrammerProductionUnit* units;
+	FklGrammerProductionSym* syms;
 	struct FklGrammerProduction* next;
 	// union
 	// {

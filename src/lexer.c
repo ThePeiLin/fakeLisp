@@ -815,7 +815,7 @@ static inline void destroy_prod(FklGrammerProduction* h)
 
 	// if(!h->isBuiltin)
 	// 	fklDestroyByteCodelnt(h->action.proc);
-	free(h->units);
+	free(h->syms);
 	free(h);
 }
 
@@ -848,7 +848,7 @@ static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t
 	FklGrammerProduction* r=(FklGrammerProduction*)calloc(1,sizeof(FklGrammerProduction));
 	r->left=left;
 	r->len=len;
-	r->units=(FklGrammerProductionUnit*)calloc(len,sizeof(FklGrammerProductionUnit));
+	r->syms=(FklGrammerProductionSym*)calloc(len,sizeof(FklGrammerProductionSym));
 	return r;
 }
 
@@ -874,7 +874,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	FklGrammerProduction* prod=create_empty_production(left,prod_len);
 	for(uint32_t i=0;i<st.top;i++)
 	{
-		FklGrammerProductionUnit* u=&prod->units[i];
+		FklGrammerProductionSym* u=&prod->syms[i];
 		FklString* s=st.base[i];
 		switch(*(s->str))
 		{
@@ -898,7 +898,7 @@ static inline FklHashTable* create_prod_hash_table()
 	return fklCreateHashTable(&ProdHashMetaTable);
 }
 
-static inline int prod_unit_equal(const FklGrammerProductionUnit* u0,const FklGrammerProductionUnit* u1)
+static inline int prod_sym_equal(const FklGrammerProductionSym* u0,const FklGrammerProductionSym* u1)
 {
 	return u0->term==u1->term
 		&&u0->nt==u1->nt
@@ -912,10 +912,10 @@ static inline int prod_equal(const FklGrammerProduction* prod0,const FklGrammerP
 	if(prod0->len!=prod1->len)
 		return 0;
 	size_t len=prod0->len;
-	FklGrammerProductionUnit* u0=prod0->units;
-	FklGrammerProductionUnit* u1=prod1->units;
+	FklGrammerProductionSym* u0=prod0->syms;
+	FklGrammerProductionSym* u1=prod1->syms;
 	for(size_t i=0;i<len;i++)
-		if(!prod_unit_equal(&u0[i],&u1[i]))
+		if(!prod_sym_equal(&u0[i],&u1[i]))
 			return 0;
 	return 1;
 }
@@ -923,7 +923,7 @@ static inline int prod_equal(const FklGrammerProduction* prod0,const FklGrammerP
 static inline FklGrammerProduction* create_extra_production(FklSid_t start)
 {
 	FklGrammerProduction* prod=create_empty_production(0,1);
-	FklGrammerProductionUnit* u=&prod->units[0];
+	FklGrammerProductionSym* u=&prod->syms[0];
 	u->term=0;
 	u->nt=start;
 	return prod;
@@ -995,7 +995,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 	return grammer;
 }
 
-static inline void print_prod_unit(FILE* fp,const FklGrammerProductionUnit* u,const FklSymbolTable* st,const FklSymbolTable* tt)
+static inline void print_prod_sym(FILE* fp,const FklGrammerProductionSym* u,const FklSymbolTable* st,const FklSymbolTable* tt)
 {
 	if(u->term)
 	{
@@ -1021,11 +1021,11 @@ void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const F
 		fputs("S'",fp);
 	fputs(" ->",fp);
 	size_t len=prod->len;
-	FklGrammerProductionUnit* units=prod->units;
+	FklGrammerProductionSym* syms=prod->syms;
 	for(size_t i=0;i<len;i++)
 	{
 		fputc(' ',fp);
-		print_prod_unit(fp,&units[i],st,tt);
+		print_prod_sym(fp,&syms[i],st,tt);
 	}
 	fputc('\n',fp);
 }

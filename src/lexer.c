@@ -1086,9 +1086,9 @@ static inline int lalr_item_cmp(const FklLalrItem* i0,const FklLalrItem* i1)
 		return -1;
 	else if(p0->left>p1->left)
 		return 1;
-	else if(p0->len<p1->len)
-		return -1;
 	else if(p0->len>p1->len)
+		return -1;
+	else if(p0->len<p1->len)
 		return 1;
 	else
 	{

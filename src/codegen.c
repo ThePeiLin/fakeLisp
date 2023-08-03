@@ -487,16 +487,16 @@ static CODEGEN_FUNC(codegen_begin)
 			,codegenQuestStack);
 }
 
-static uintptr_t _codegenenv_hashFunc(void* key)
+static uintptr_t _codegenenv_hashFunc(const void* key)
 {
-	FklSid_t sid=*(FklSid_t*)key;
+	FklSid_t sid=*(const FklSid_t*)key;
 	return sid;
 }
 
-static int _codegenenv_keyEqual(void* pkey0,void* pkey1)
+static int _codegenenv_keyEqual(const void* pkey0,const void* pkey1)
 {
-	FklSidScope* k0=pkey0;
-	FklSidScope* k1=pkey1;
+	const FklSidScope* k0=pkey0;
+	const FklSidScope* k1=pkey1;
 	return k0->id==k1->id&&k0->scope==k1->scope;
 }
 
@@ -2090,10 +2090,10 @@ static void _codegen_replacement_uninitItem(void* item)
 	fklDestroyNastNode(replace->node);
 }
 
-static int _codegen_replacement_keyEqual(void* pkey0,void* pkey1)
+static int _codegen_replacement_keyEqual(const void* pkey0,const void* pkey1)
 {
-	FklSid_t k0=*(FklSid_t*)pkey0;
-	FklSid_t k1=*(FklSid_t*)pkey1;
+	FklSid_t k0=*(const FklSid_t*)pkey0;
+	FklSid_t k1=*(const FklSid_t*)pkey1;
 	return k0==k1;
 }
 

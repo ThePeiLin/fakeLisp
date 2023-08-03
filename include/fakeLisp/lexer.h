@@ -12,7 +12,7 @@ extern "C"{
 
 typedef struct FklGrammerProductionUnit
 {
-	FklSid_t nt:63;
+	FklSid_t nt:61;
 	unsigned int term:1;
 	unsigned int nodel:1;
 	unsigned int space:1;
@@ -33,11 +33,30 @@ typedef struct FklGrammerProduction
 	int isBuiltin;
 }FklGrammerProduction;
 
+typedef enum
+{
+	FKL_LALR_LOOKAHEAD_NONE,
+	FKL_LALR_LOOKAHEAD_EOE,
+	FKL_LALR_LOOKAHEAD_STRING,
+	FKL_LALR_LOOKAHEAD_BUILTIN,
+}FklLalrItemLookAheadType;
+
+typedef struct
+{
+	FklLalrItemLookAheadType t;
+	union
+	{
+		FklString* s;
+		void* func;
+		void* ptr;
+	}u;
+}FklLalrItemLookAhead;
+
 typedef struct
 {
 	FklGrammerProduction* prod;
 	uint32_t idx;
-	FklString* lookAhead;
+	FklLalrItemLookAhead la;
 }FklLalrItem;
 
 typedef enum FklAnalysisAction
@@ -55,7 +74,7 @@ typedef struct FklAnalysisStateGoto
 
 typedef struct FklAnalysisStateAction
 {
-	FklString* str;
+	FklLalrItemLookAhead la;
 	FklAnalysisAction action;
 	union
 	{
@@ -105,6 +124,10 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
 void fklPrintItemSet(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp);
+void fklPrintItemsetSet(const FklHashTable* i
+		,const FklGrammer* g
+		,const FklSymbolTable* st
+		,FILE* fp);
 
 FklGrammerProduction* fklGetGrammerProductions(FklGrammer* g,FklSid_t left);
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);

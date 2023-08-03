@@ -1876,9 +1876,9 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 	return r;
 }
 
-#define HASH_FUNC_HEADER uintptr_t (*hashv)(void*)=ht->t->__hashFunc;\
+#define HASH_FUNC_HEADER uintptr_t (*hashv)(const void*)=ht->t->__hashFunc;\
 	void* (*key)(void*)=ht->t->__getKey;\
-	int (*keq)(void*,void*)=ht->t->__keyEqual;\
+	int (*keq)(const void*,const void*)=ht->t->__keyEqual;\
 
 static inline uint32_t hash32shift(uint32_t k,uint32_t mask)
 {
@@ -2028,9 +2028,9 @@ void* fklHashDefaultGetKey(void* i)
 	return i;
 }
 
-int fklHashPtrKeyEqual(void* a,void* b)
+int fklHashPtrKeyEqual(const void* a,const void* b)
 {
-	return *(void**)a==*(void**)b;
+	return *(const void**)a==*(const void**)b;
 }
 
 void fklHashDefaultSetPtrKey(void* k0,void* k1)

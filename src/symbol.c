@@ -393,14 +393,14 @@ static void fklSetSidKey(void* k0,void* k1)
 	*(FklSid_t*)k0=*(FklSid_t*)k1;
 }
 
-static uintptr_t fklSidHashFunc(void* k)
+static uintptr_t fklSidHashFunc(const void* k)
 {
-	return *(FklSid_t*)k;
+	return *(const FklSid_t*)k;
 }
 
-static int fklSidKeyEqual(void* k0,void* k1)
+static int fklSidKeyEqual(const void* k0,const void* k1)
 {
-	return *(FklSid_t*)k0==*(FklSid_t*)k1;
+	return *(const FklSid_t*)k0==*(const FklSid_t*)k1;
 }
 
 static const FklHashTableMetaTable SidSetMetaTable=

@@ -109,9 +109,9 @@ typedef struct FklHashTableMetaTable
 	uint8_t size;
 	void (*__setKey)(void*,void*);
 	void (*__setVal)(void*,void*);
-	uintptr_t (*__hashFunc)(void*);
+	uintptr_t (*__hashFunc)(const void*);
 	void (*__uninitItem)(void*);
-	int (*__keyEqual)(void*,void*);
+	int (*__keyEqual)(const void*,const void*);
 	void* (*__getKey)(void*);
 }FklHashTableMetaTable;
 
@@ -130,7 +130,7 @@ void fklDestroyHashTable(FklHashTable*);
 
 void fklDoNothingUnintHashItem(void*);
 void* fklHashDefaultGetKey(void* i);
-int fklHashPtrKeyEqual(void* a,void* b);
+int fklHashPtrKeyEqual(const void* a,const void* b);
 void fklHashDefaultSetPtrKey(void* k0,void* k1);
 
 #define FKL_STACK_INIT {NULL,0,0,0}

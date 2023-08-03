@@ -588,16 +588,16 @@ int fklPatternMatch(const FklNastNode* pattern,const FklNastNode* exp,FklHashTab
 	return 1;
 }
 
-static uintptr_t _pattern_matching_hash_table_hash_func(void* key)
+static uintptr_t _pattern_matching_hash_table_hash_func(const void* key)
 {
-	FklSid_t sid=*(FklSid_t*)key;
+	FklSid_t sid=*(const FklSid_t*)key;
 	return sid;
 }
 
-static int _pattern_matching_hash_key_equal(void* pk0,void* pk1)
+static int _pattern_matching_hash_key_equal(const void* pk0,const void* pk1)
 {
-	FklSid_t k0=*(FklSid_t*)pk0;
-	FklSid_t k1=*(FklSid_t*)pk1;
+	FklSid_t k0=*(const FklSid_t*)pk0;
+	FklSid_t k1=*(const FklSid_t*)pk1;
 	return k0==k1;
 }
 

@@ -10,9 +10,9 @@ typedef struct
 	uint64_t line;
 }LineNumHashItem;
 
-static uintptr_t _LineNumHash_hashFunc(void* pKey)
+static uintptr_t _LineNumHash_hashFunc(const void* pKey)
 {
-	FklVMvalue* key=*(FklVMvalue**)pKey;
+	const FklVMvalue* key=*(const FklVMvalue**)pKey;
 	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
 }
 
@@ -1061,9 +1061,9 @@ void fklChanlSend(FklVMvalue* msg,FklVMchanl* ch,FklVM* exe)
 	}
 }
 
-static uintptr_t _vmhashtableEq_hashFunc(void* key)
+static uintptr_t _vmhashtableEq_hashFunc(const void* key)
 {
-	return (uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM;
+	return (uintptr_t)(*(const void**)key)>>FKL_UNUSEDBITNUM;
 }
 
 static size_t integerHashFunc(const FklVMvalue* v)
@@ -1080,13 +1080,13 @@ static size_t integerHashFunc(const FklVMvalue* v)
 	}
 }
 
-static uintptr_t _vmhashtableEqv_hashFunc(void* key)
+static uintptr_t _vmhashtableEqv_hashFunc(const void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
 	if(fklIsInt(v))
 		return integerHashFunc(v);
 	else
-		return (uintptr_t)(*(void**)key)>>FKL_UNUSEDBITNUM;
+		return (uintptr_t)(*(const void**)key)>>FKL_UNUSEDBITNUM;
 }
 
 static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1213,9 +1213,9 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 	return sum;
 }
 
-static uintptr_t _vmhashtable_hashFunc(void* key)
+static uintptr_t _vmhashtable_hashFunc(const void* key)
 {
-	FklVMvalue* v=*(FklVMvalue**)key;
+	const FklVMvalue* v=*(const FklVMvalue**)key;
 	if(fklIsInt(v))
 		return integerHashFunc(v);
 	else
@@ -1227,17 +1227,17 @@ static void _vmhashtable_setVal(void* d0,void* d1)
 	*(FklVMhashTableItem*)d0=*(FklVMhashTableItem*)d1;
 }
 
-static int _vmhashtableEqv_keyEqual(void* pkey0,void* pkey1)
+static int _vmhashtableEqv_keyEqual(const void* pkey0,const void* pkey1)
 {
-	FklVMvalue* k0=*(FklVMvalue**)pkey0;
-	FklVMvalue* k1=*(FklVMvalue**)pkey1;
+	const FklVMvalue* k0=*(const FklVMvalue**)pkey0;
+	const FklVMvalue* k1=*(const FklVMvalue**)pkey1;
 	return fklVMvalueEqv(k0,k1);
 }
 
-static int _vmhashtableEqual_keyEqual(void* pkey0,void* pkey1)
+static int _vmhashtableEqual_keyEqual(const void* pkey0,const void* pkey1)
 {
-	FklVMvalue* k0=*(FklVMvalue**)pkey0;
-	FklVMvalue* k1=*(FklVMvalue**)pkey1;
+	const FklVMvalue* k0=*(const FklVMvalue**)pkey0;
+	const FklVMvalue* k1=*(const FklVMvalue**)pkey1;
 	return fklVMvalueEqual(k0,k1);
 }
 

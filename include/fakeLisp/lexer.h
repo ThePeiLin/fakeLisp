@@ -59,6 +59,19 @@ typedef struct
 	FklLalrItemLookAhead la;
 }FklLalrItem;
 
+typedef struct FklLalrItemSetLink
+{
+	FklGrammerSym sym;
+	struct FklLalrItemSet* dst;
+	struct FklLalrItemSetLink* next;
+}FklLalrItemSetLink;
+
+typedef struct FklLalrItemSet
+{
+	FklHashTable* items;
+	FklLalrItemSetLink* links;
+}FklLalrItemSet;
+
 typedef enum FklAnalysisAction
 {
 	FKL_ANALYSIS_SHIFT,

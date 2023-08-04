@@ -459,7 +459,7 @@ int fklIsNumberCstr(const char* objStr)
 	return 1;
 }
 
-static inline int isSpecialCharAndPrint(uint8_t ch,FILE* out)
+int fklIsSpecialCharAndPrint(uint8_t ch,FILE* out)
 {
 	int r=0;
 	if((r=ch=='\n'))
@@ -567,7 +567,7 @@ void fklPrintRawChar(char chr,FILE* out)
 		else
 			fprintf(out,"%c",chr);
 	}
-	else if(isSpecialCharAndPrint(chr,out));
+	else if(fklIsSpecialCharAndPrint(chr,out));
 	else
 	{
 		uint8_t j=chr;
@@ -906,7 +906,7 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 				fprintf(out,"\\\\");
 			else if(isgraph(str[i]))
 				putc(str[i],out);
-			else if(isSpecialCharAndPrint(str[i],out));
+			else if(fklIsSpecialCharAndPrint(str[i],out));
 			else
 			{
 				uint8_t j=str[i];

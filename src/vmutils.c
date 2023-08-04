@@ -1092,17 +1092,17 @@ static inline void print_raw_char_to_utstring(FklStringBuffer* s,char c)
 	}
 }
 
-static inline void print_raw_string_to_ut_string(FklStringBuffer* s,FklString* f)
+static inline void print_raw_string_to_string_buffer(FklStringBuffer* s,FklString* f)
 {
 	fklPrintRawStringToStringBuffer(s,f,'"');
 }
 
-static inline void print_raw_symbol_to_ut_string(FklStringBuffer* s,FklString* f)
+static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f)
 {
 	fklPrintRawStringToStringBuffer(s,f,'|');
 }
 
-static inline void print_big_int_to_ut_string(FklStringBuffer* s,FklBigInt* a)
+static inline void print_big_int_to_string_buffer(FklStringBuffer* s,FklBigInt* a)
 {
 	if(!FKL_IS_0_BIG_INT(a)&&a->neg)
 		fklStringBufferPrintf(s,"-");
@@ -1123,47 +1123,47 @@ static inline void print_big_int_to_ut_string(FklStringBuffer* s,FklBigInt* a)
 
 #define VMVALUE_TO_UTSTRING_ARGS FklStringBuffer* result,FklVMvalue* v,FklSymbolTable* table
 
-static void nil_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void nil_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"()");
 }
 
-static void fix_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void fix_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"%ld",FKL_GET_FIX(v));
 }
 
-static void sym_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void sym_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
+	print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(FKL_GET_SYM(v),table)->symbol);
 }
 
-static void chr_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void chr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	print_raw_char_to_utstring(result,FKL_GET_CHR(v));
 }
 
-static void vmvalue_f64_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_f64_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"%lf",FKL_VM_F64(v));
 }
 
-static void vmvalue_big_int_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_big_int_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_big_int_to_ut_string(result,FKL_VM_BI(v));
+	print_big_int_to_string_buffer(result,FKL_VM_BI(v));
 }
 
-static void vmvalue_string_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_string_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_raw_string_to_ut_string(result,FKL_VM_STR(v));
+	print_raw_string_to_string_buffer(result,FKL_VM_STR(v));
 }
 
-static void vmvalue_bytevector_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_bytevector_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklPrintBytevectorToStringBuffer(result,FKL_VM_BVEC(v));
 }
 
-static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_userdata_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMudata* ud=FKL_VM_UD(v);
 	if(fklIsAbleToStringUd(ud))
@@ -1177,32 +1177,32 @@ static void vmvalue_userdata_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<");
 		if(ud->type)
 		{
-			print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(ud->type,table)->symbol);
+			print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(ud->type,table)->symbol);
 			fklStringBufferPrintf(result," ");
 		}
 		fklStringBufferPrintf(result,"%p>",ud);
 	}
 }
 
-static void vmvalue_proc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_proc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMproc* proc=FKL_VM_PROC(v);
 	if(proc->sid)
 	{
 		fklStringBufferPrintf(result,"#<proc ");
-		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(proc->sid,table)->symbol);
+		print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(proc->sid,table)->symbol);
 		fklStringBufferPrintf(result,">");
 	}
 	else
 		fklStringBufferPrintf(result,"#<proc %p>",proc);
 }
 
-static void vmvalue_chanl_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_chanl_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"#<chanl %p>",FKL_VM_CHANL(v));
 }
 
-static void vmvalue_fp_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_fp_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMfp* vfp=FKL_VM_FP(v);
 	if(vfp->fp==stdin)
@@ -1215,78 +1215,78 @@ static void vmvalue_fp_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<fp %p>",vfp);
 }
 
-static void vmvalue_dll_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_dll_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
 }
 
-static void vmvalue_dlproc_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_dlproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMdlproc* dlproc=FKL_VM_DLPROC(v);
 	if(dlproc->sid)
 	{
 		fklStringBufferPrintf(result,"#<dlproc ");
-		print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(dlproc->sid,table)->symbol);
+		print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(dlproc->sid,table)->symbol);
 		fklStringBufferPrintf(result,">");
 	}
 	else
 		fklStringBufferPrintf(result,"#<dlproc %p>",dlproc);
 }
 
-static void vmvalue_error_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_error_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMerror* err=FKL_VM_ERR(v);
 	fklStringBufferPrintf(result,"#<err t:");
-	print_raw_symbol_to_ut_string(result,fklGetSymbolWithId(err->type,table)->symbol);
+	print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(err->type,table)->symbol);
 	fklStringBufferPrintf(result,"w:");
-	print_raw_string_to_ut_string(result,err->who);
+	print_raw_string_to_string_buffer(result,err->who);
 	fklStringBufferPrintf(result,"m:");
-	print_raw_string_to_ut_string(result,err->message);
+	print_raw_string_to_string_buffer(result,err->message);
 	fklStringBufferPrintf(result,">");
 }
 
-static void vmvalue_code_obj_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_code_obj_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"#<code-obj %p>",FKL_VM_CO(v));
 }
 
-static void (*atom_ptr_ptr_to_ut_string_printer_table[FKL_VMVALUE_PTR_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+static void (*atom_ptr_ptr_to_string_buffer_printer_table[FKL_VMVALUE_PTR_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
-	vmvalue_f64_to_ut_string,
-	vmvalue_big_int_to_ut_string,
-	vmvalue_string_to_ut_string,
+	vmvalue_f64_to_string_buffer,
+	vmvalue_big_int_to_string_buffer,
+	vmvalue_string_to_string_buffer,
 	NULL,
 	NULL,
 	NULL,
-	vmvalue_bytevector_to_ut_string,
-	vmvalue_userdata_to_ut_string,
-	vmvalue_proc_to_ut_string,
-	vmvalue_chanl_to_ut_string,
-	vmvalue_fp_to_ut_string,
-	vmvalue_dll_to_ut_string,
-	vmvalue_dlproc_to_ut_string,
-	vmvalue_error_to_ut_string,
+	vmvalue_bytevector_to_string_buffer,
+	vmvalue_userdata_to_string_buffer,
+	vmvalue_proc_to_string_buffer,
+	vmvalue_chanl_to_string_buffer,
+	vmvalue_fp_to_string_buffer,
+	vmvalue_dll_to_string_buffer,
+	vmvalue_dlproc_to_string_buffer,
+	vmvalue_error_to_string_buffer,
 	NULL,
-	vmvalue_code_obj_to_ut_string,
+	vmvalue_code_obj_to_string_buffer,
 };
 
-static void ptr_ptr_to_ut_string(VMVALUE_TO_UTSTRING_ARGS)
+static void ptr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	atom_ptr_ptr_to_ut_string_printer_table[v->type](result,v,table);
+	atom_ptr_ptr_to_string_buffer_printer_table[v->type](result,v,table);
 }
 
-static void (*atom_ptr_to_ut_string_printer_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+static void (*atom_ptr_to_string_buffer_printer_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
-	ptr_ptr_to_ut_string,
-	nil_ptr_to_ut_string,
-	fix_ptr_to_ut_string,
-	sym_ptr_to_ut_string,
-	chr_ptr_to_ut_string,
+	ptr_ptr_to_string_buffer,
+	nil_ptr_to_string_buffer,
+	fix_ptr_to_string_buffer,
+	sym_ptr_to_string_buffer,
+	chr_ptr_to_string_buffer,
 };
 
-static inline void print_atom_to_ut_string(FklStringBuffer* result,FklVMvalue* v,FklSymbolTable* table)
+static inline void print_atom_to_string_buffer(FklStringBuffer* result,FklVMvalue* v,FklSymbolTable* table)
 {
-	atom_ptr_to_ut_string_printer_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,table);
+	atom_ptr_to_string_buffer_printer_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,table);
 }
 
 FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
@@ -1329,7 +1329,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 			{
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
-					print_atom_to_ut_string(&result,v,table);
+					print_atom_to_string_buffer(&result,v,table);
 				else
 				{
 					size_t i=0;

@@ -141,6 +141,10 @@ void fklPrintItemsetSet(const FklHashTable* i
 		,const FklGrammer* g
 		,const FklSymbolTable* st
 		,FILE* fp);
+void fklPrintItemsetSetAsDot(const FklHashTable* i
+		,const FklGrammer* g
+		,const FklSymbolTable* st
+		,FILE* fp);
 
 FklGrammerProduction* fklGetGrammerProductions(FklGrammer* g,FklSid_t left);
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);

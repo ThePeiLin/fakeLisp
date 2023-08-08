@@ -523,9 +523,9 @@ static uintptr_t _VMvalue_hashFunc(const void* key)
 	return (uintptr_t)v>>3;
 }
 
-static void _VMvalue_setVal(void* d0,void* d1)
+static void _VMvalue_setVal(void* d0,const void* d1)
 {
-	*(VMvalueHashItem*)d0=*(VMvalueHashItem*)d1;
+	*(VMvalueHashItem*)d0=*(const VMvalueHashItem*)d1;
 }
 
 static FklHashTableMetaTable VMvalueHashMetaTable=

@@ -601,14 +601,14 @@ static int _pattern_matching_hash_key_equal(const void* pk0,const void* pk1)
 	return k0==k1;
 }
 
-static void _pattern_match_hash_set_key(void* k0,void* k1)
+static void _pattern_match_hash_set_key(void* k0,const void* k1)
 {
-	*(FklSid_t*)k0=*(FklSid_t*)k1;
+	*(FklSid_t*)k0=*(const FklSid_t*)k1;
 }
 
-static void _pattern_match_hash_set_val(void* d0,void* d1)
+static void _pattern_match_hash_set_val(void* d0,const void* d1)
 {
-	*(FklPatternMatchingHashTableItem*)d0=*(FklPatternMatchingHashTableItem*)d1;
+	*(FklPatternMatchingHashTableItem*)d0=*(const FklPatternMatchingHashTableItem*)d1;
 }
 
 static FklHashTableMetaTable Codegen_hash_meta_table=

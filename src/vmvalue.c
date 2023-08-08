@@ -16,9 +16,9 @@ static uintptr_t _LineNumHash_hashFunc(const void* pKey)
 	return (uintptr_t)FKL_GET_PTR(key)>>FKL_UNUSEDBITNUM;
 }
 
-static void _LineNumHash_setVal(void* d0,void* d1)
+static void _LineNumHash_setVal(void* d0,const void* d1)
 {
-	*(LineNumHashItem*)d0=*(LineNumHashItem*)d1;
+	*(LineNumHashItem*)d0=*(const LineNumHashItem*)d1;
 }
 
 static FklHashTableMetaTable LineNumHashMetaTable=
@@ -1222,9 +1222,9 @@ static uintptr_t _vmhashtable_hashFunc(const void* key)
 		return VMvalueHashFunc(v);
 }
 
-static void _vmhashtable_setVal(void* d0,void* d1)
+static void _vmhashtable_setVal(void* d0,const void* d1)
 {
-	*(FklVMhashTableItem*)d0=*(FklVMhashTableItem*)d1;
+	*(FklVMhashTableItem*)d0=*(const FklVMhashTableItem*)d1;
 }
 
 static int _vmhashtableEqv_keyEqual(const void* pkey0,const void* pkey1)

@@ -2033,9 +2033,9 @@ int fklHashPtrKeyEqual(const void* a,const void* b)
 	return *(const void**)a==*(const void**)b;
 }
 
-void fklHashDefaultSetPtrKey(void* k0,void* k1)
+void fklHashDefaultSetPtrKey(void* k0,const void* k1)
 {
-	*(void**)k0=*(void**)k1;
+	*(void**)k0=*(void* const*)k1;
 }
 
 #undef REHASH

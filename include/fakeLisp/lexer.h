@@ -10,10 +10,10 @@ extern "C"{
 #endif
 
 
-typedef struct FklGrammerProductionUnit
+typedef struct FklGrammerSym
 {
 	FklSid_t nt:61;
-	unsigned int term:1;
+	unsigned int isterm:1;
 	unsigned int nodel:1;
 	unsigned int space:1;
 	unsigned int repeat:1;
@@ -46,7 +46,7 @@ typedef struct
 	FklLalrItemLookAheadType t;
 	union
 	{
-		FklString* s;
+		const FklString* s;
 		void* func;
 		void* ptr;
 	}u;
@@ -69,6 +69,7 @@ typedef struct FklLalrItemSetLink
 typedef struct FklLalrItemSet
 {
 	FklHashTable* items;
+	FklHashTable lookaheads;
 	FklLalrItemSetLink* links;
 }FklLalrItemSet;
 
@@ -136,6 +137,8 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
+void fklLr0ToLalrItems(FklHashTable*,FklGrammer* grammer);
+
 void fklPrintItemSet(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp);
 void fklPrintItemsetSet(const FklHashTable* i
 		,const FklGrammer* g
@@ -146,7 +149,7 @@ void fklPrintItemsetSetAsDot(const FklHashTable* i
 		,const FklSymbolTable* st
 		,FILE* fp);
 
-FklGrammerProduction* fklGetGrammerProductions(FklGrammer* g,FklSid_t left);
+FklGrammerProduction* fklGetGrammerProductions(const FklGrammer* g,FklSid_t left);
 void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);

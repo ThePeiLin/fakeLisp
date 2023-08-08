@@ -500,12 +500,12 @@ static int _codegenenv_keyEqual(const void* pkey0,const void* pkey1)
 	return k0->id==k1->id&&k0->scope==k1->scope;
 }
 
-static void _codegenenv_setVal(void* d0,void* d1)
+static void _codegenenv_setVal(void* d0,const void* d1)
 {
 	*(FklSymbolDef*)d0=*(FklSymbolDef*)d1;
 }
 
-static void _codegenenv_setKey(void* pkey0,void* pkey1)
+static void _codegenenv_setKey(void* pkey0,const void* pkey1)
 {
 	*(FklSidScope*)pkey0=*(FklSidScope*)pkey1;
 }
@@ -2097,15 +2097,15 @@ static int _codegen_replacement_keyEqual(const void* pkey0,const void* pkey1)
 	return k0==k1;
 }
 
-static void _codegen_replacement_setVal(void* d0,void* d1)
+static void _codegen_replacement_setVal(void* d0,const void* d1)
 {
-	*(FklCodegenReplacement*)d0=*(FklCodegenReplacement*)d1;
+	*(FklCodegenReplacement*)d0=*(const FklCodegenReplacement*)d1;
 	fklMakeNastNodeRef(((FklCodegenReplacement*)d0)->node);
 }
 
-static void _codegen_replacement_setKey(void* k0,void* k1)
+static void _codegen_replacement_setKey(void* k0,const void* k1)
 {
-	*(FklSid_t*)k0=*(FklSid_t*)k1;
+	*(FklSid_t*)k0=*(const FklSid_t*)k1;
 }
 
 static FklHashTableMetaTable CodegenReplacementHashMetaTable=

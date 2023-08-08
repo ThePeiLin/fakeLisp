@@ -388,9 +388,9 @@ inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 	return pts;
 }
 
-static void fklSetSidKey(void* k0,void* k1)
+static void fklSetSidKey(void* k0,const void* k1)
 {
-	*(FklSid_t*)k0=*(FklSid_t*)k1;
+	*(FklSid_t*)k0=*(const FklSid_t*)k1;
 }
 
 static uintptr_t fklSidHashFunc(const void* k)

@@ -41,6 +41,9 @@ typedef enum
 	FKL_LALR_LOOKAHEAD_BUILTIN,
 }FklLalrItemLookAheadType;
 
+#define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_NONE,.u.ptr=NULL})
+#define FKL_LALR_LOOKAHEAD_EOE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_EOE,.u.ptr=NULL})
+
 typedef struct
 {
 	FklLalrItemLookAheadType t;

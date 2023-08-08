@@ -1,12 +1,7 @@
-#include "fakeLisp/base.h"
-#include "fakeLisp/symbol.h"
 #include<fakeLisp/lexer.h>
 #include<fakeLisp/utils.h>
-#include<fakeLisp/reader.h>
-#include<fakeLisp/pattern.h>
 #include<fakeLisp/parser.h>
 #include<ctype.h>
-#include <stdlib.h>
 #include<string.h>
 
 static inline int isCompleteStringBuf(const char* buf,size_t size,char ch,size_t* len)
@@ -1154,7 +1149,7 @@ static inline FklLalrItem lalr_item_init(FklGrammerProduction* prod,size_t idx,c
 	if(la)
 		item.la=*la;
 	else
-		item.la=(FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_NONE,.u.ptr=NULL};
+		item.la=FKL_LALR_LOOKAHEAD_NONE_INIT;
 	return item;
 }
 
@@ -1334,7 +1329,6 @@ static inline FklHashTable* create_first_item_set(FklGrammerProduction* prod)
 
 static inline void print_look_ahead(FILE* fp,const FklLalrItemLookAhead* la)
 {
-	fputs(" , ",fp);
 	switch(la->t)
 	{
 		case FKL_LALR_LOOKAHEAD_STRING:
@@ -1379,6 +1373,7 @@ static inline void print_item(FILE* fp
 		putc(' ',fp);
 		print_prod_sym(fp,&syms[i],st,tt);
 	}
+	fputs(" , ",fp);
 	print_look_ahead(fp,&item->la);
 	putc('\n',fp);
 }
@@ -1570,7 +1565,7 @@ static inline void lalr_item_set_goto(FklLalrItemSet* itemset
 			if(!itemsetptr)
 			{
 				FklLalrItemSet itemset={.items=closure,.links=NULL};
-				itemsetptr=fklPutHashItem(&itemset,itemsetSet);
+				itemsetptr=fklGetOrPutHashItem(&itemset,itemsetSet);
 				fklPushPtrQueue(itemsetptr,pending);
 			}
 			else
@@ -1588,7 +1583,7 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
 	FklHashTable* items=create_first_item_set(prod);
 	lr0_item_set_closure_and_sort(items,grammer);
 	FklLalrItemSet itemset={.items=items,};
-	FklLalrItemSet* itemsetptr=fklPutHashItem(&itemset,itemset_set);
+	FklLalrItemSet* itemsetptr=fklGetOrPutHashItem(&itemset,itemset_set);
 	FklPtrQueue pending;
 	fklInitPtrQueue(&pending);
 	fklPushPtrQueue(itemsetptr,&pending);
@@ -1784,14 +1779,15 @@ static inline int check_lookahead_self_generated_and_spread(FklGrammer* g
 	const FklGrammerSym* xsym=&x->sym;
 	FklHashTable closure;
 	init_empty_item_set(&closure);
-	int has_spread=0;
+	FklPtrStack pending;
+	fklInitPtrStack(&pending,8,16);
 	int change=0;
 	for(FklHashTableNodeList* il=items->list;il;il=il->next)
 	{
 		FklLalrItem* i=(FklLalrItem*)il->node->data;
 		if(is_kernel_item(i))
 		{
-			FklLalrItem item={.prod=i->prod,.idx=i->idx,.la={.t=FKL_LALR_LOOKAHEAD_NONE,.u.ptr=NULL}};
+			FklLalrItem item={.prod=i->prod,.idx=i->idx,.la=FKL_LALR_LOOKAHEAD_NONE_INIT};
 			fklPutHashItem(&item,&closure);
 			lr1_item_set_closure(&closure,g);
 			for(FklHashTableNodeList* cl=closure.list;cl;cl=cl->next)
@@ -1801,17 +1797,26 @@ static inline int check_lookahead_self_generated_and_spread(FklGrammer* g
 				if(s&&grammer_sym_equal(s,xsym))
 				{
 					if(i->la.t==FKL_LALR_LOOKAHEAD_NONE)
-						has_spread=1;
+						fklPushPtrStack(x->dst,&pending);
 					else
-						fklPutHashItem(&i->la,self_generated);
+					{
+						FklHashTable* dstLookaheads=&x->dst->lookaheads;
+						if(!fklGetHashItem(&i->la,dstLookaheads))
+						{
+							change=1;
+							fklPutHashItem(&i->la,dstLookaheads);
+						}
+					}
 				}
 			}
 			fklClearHashTable(&closure);
 		}
 	}
-	if(has_spread)
+
+	while(!fklIsPtrStackEmpty(&pending))
 	{
-		FklHashTable* dstLookaheads=&x->dst->lookaheads;
+		FklLalrItemSet* itemset=fklPopPtrStack(&pending);
+		FklHashTable* dstLookaheads=&itemset->lookaheads;
 		FklHashTableNodeList* sl=self_generated->list;
 		for(;sl;sl=sl->next)
 		{
@@ -1823,18 +1828,89 @@ static inline int check_lookahead_self_generated_and_spread(FklGrammer* g
 				break;
 			}
 		}
-		for(sl=sl->next;sl;sl=sl->next)
+		if(sl)
 		{
-			FklLalrItemLookAhead* la=(FklLalrItemLookAhead*)sl->node->data;
-			fklPutHashItem(la,dstLookaheads);
+			for(sl=sl->next;sl;sl=sl->next)
+			{
+				FklLalrItemLookAhead* la=(FklLalrItemLookAhead*)sl->node->data;
+				fklPutHashItem(la,dstLookaheads);
+			}
 		}
 	}
+	fklUninitPtrStack(&pending);
+	// if(has_spread)
+	// {
+	// }
 	return change;
+}
+
+static inline void print_self_generated_look_aheads(FILE* fp,const FklHashTable* las);
+static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g)
+{
+	FklHashTableNodeList* isl=lr0->list;
+	FklLalrItemLookAhead eoeLookAhead=FKL_LALR_LOOKAHEAD_EOE_INIT;
+	FklLalrItemSet* s=(FklLalrItemSet*)isl->node->data;
+	fklPutHashItem(&eoeLookAhead,&s->lookaheads);
+	for(FklLalrItemSetLink* link=s->links;link;link=link->next)
+		check_lookahead_self_generated_and_spread(g,s->items,link,&s->lookaheads);
+}
+
+static inline void add_look_ahead_to_items(FklHashTable* items
+		,const FklHashTable* lookaheads
+		,FklGrammer* g)
+{
+	FklHashTable add;
+	init_empty_item_set(&add);
+	for(FklHashTableNodeList* il=items->list;il;il=il->next)
+	{
+		FklLalrItem* i=(FklLalrItem*)il->node->data;
+		if(is_kernel_item(i))
+		{
+			for(const FklHashTableNodeList* sl=lookaheads->list;sl;sl=sl->next)
+			{
+				const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)sl->node->data;
+				FklLalrItem newItem=*i;
+				newItem.la=*la;
+				fklPutHashItem(&newItem,&add);
+			}
+		}
+	}
+	fklClearHashTable(items);
+	for(FklHashTableNodeList* il=add.list;il;il=il->next)
+	{
+		FklLalrItem* i=(FklLalrItem*)il->node->data;
+		fklPutHashItem(i,items);
+	}
+	fklUninitHashTable(&add);
+	lr1_item_set_closure(items,g);
+	lalr_item_set_sort(items);
+}
+
+static inline void add_look_ahead_for_all_item_set(FklHashTable* lr0,FklGrammer* g)
+{
+	for(FklHashTableNodeList* isl=lr0->list;isl;isl=isl->next)
+	{
+		FklLalrItemSet* itemSet=(FklLalrItemSet*)isl->node->data;
+		add_look_ahead_to_items(itemSet->items,&itemSet->lookaheads,g);
+	}
 }
 
 void fklLr0ToLalrItems(FklHashTable* lr0,FklGrammer* g)
 {
 #warning incomplete
+	init_lalr_look_ahead(lr0,g);
+	int change;
+	do
+	{
+		change=0;
+		for(FklHashTableNodeList* isl=lr0->list;isl;isl=isl->next)
+		{
+			FklLalrItemSet* s=(FklLalrItemSet*)isl->node->data;
+			for(FklLalrItemSetLink* link=s->links;link;link=link->next)
+				change|=check_lookahead_self_generated_and_spread(g,s->items,link,&s->lookaheads);
+		}
+	}while(change);
+	add_look_ahead_for_all_item_set(lr0,g);
 }
 
 typedef struct
@@ -1869,6 +1945,29 @@ static const FklHashTableMetaTable ItemsetPrintingHashMetaTable=
 	.__uninitItem=fklDoNothingUnintHashItem,
 };
 
+static inline void print_look_ahead_as_dot(FILE* fp,const FklLalrItemLookAhead* la)
+{
+	switch(la->t)
+	{
+		case FKL_LALR_LOOKAHEAD_STRING:
+			{
+				fputs("\\\'",fp);
+				const FklString* str=la->u.s;
+				print_string_as_dot((const uint8_t*)str->str,'\'',str->size,fp);
+				fputs("\\\'",fp);
+			}
+			break;
+		case FKL_LALR_LOOKAHEAD_EOE:
+			fputs("$$",fp);
+			break;
+		case FKL_LALR_LOOKAHEAD_BUILTIN:
+			fputs("&%",fp);
+			break;
+		case FKL_LALR_LOOKAHEAD_NONE:
+			fputs("()",fp);
+			break;
+	}
+}
 
 static inline void print_item_as_dot(FILE* fp
 		,const FklLalrItem* item
@@ -1899,7 +1998,8 @@ static inline void print_item_as_dot(FILE* fp
 		putc(' ',fp);
 		print_prod_sym_as_dot(fp,&syms[i],st,tt);
 	}
-	print_look_ahead(fp,&item->la);
+	fputs(" , ",fp);
+	print_look_ahead_as_dot(fp,&item->la);
 	fputs("\\l\\\n",fp);
 }
 
@@ -1912,6 +2012,22 @@ static inline void print_item_set_as_dot(const FklHashTable* itemSet,const FklGr
 		print_item_as_dot(fp,item,st,tt);
 	}
 }
+
+// static inline void print_self_generated_look_aheads_as_dot(FILE* fp,const FklHashTable* las)
+// {
+// 	const FklHashTableNodeList* ll=las->list;
+// 	if(ll)
+// 	{
+// 		const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)ll->node->data;
+// 		print_look_ahead_as_dot(fp,la);
+// 		for(ll=ll->next;ll;ll=ll->next)
+// 		{
+// 			fputs(" / ",fp);
+// 			la=(FklLalrItemLookAhead*)ll->node->data;
+// 			print_look_ahead_as_dot(fp,la);
+// 		}
+// 	}
+// }
 
 void fklPrintItemsetSetAsDot(const FklHashTable* i
 		,const FklGrammer* g
@@ -1938,7 +2054,9 @@ void fklPrintItemsetSetAsDot(const FklHashTable* i
 		const FklHashTable* i=s->items;
 		ItemsetCount* c=fklGetHashItem(&s,&countTable);
 		count=c->count;
-		fprintf(fp,"\t\"I%lu\"[nojustify=true shape=\"box\" label=\"I%lu\\l\\\n",count,count);
+		fprintf(fp,"\t\"I%lu\"[nojustify=true shape=\"box\" label=\"I%lu\\l\\\n"
+				,count
+				,count);
 		print_item_set_as_dot(i,g,st,fp);
 		fputs("\"]\n",fp);
 		for(FklLalrItemSetLink* l=s->links;l;l=l->next)
@@ -1953,6 +2071,22 @@ void fklPrintItemsetSetAsDot(const FklHashTable* i
 	}
 	fklUninitHashTable(&countTable);
 	fputs("}",fp);
+}
+
+static inline void print_self_generated_look_aheads(FILE* fp,const FklHashTable* las)
+{
+	const FklHashTableNodeList* ll=las->list;
+	if(ll)
+	{
+		const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)ll->node->data;
+		print_look_ahead(fp,la);
+		for(ll=ll->next;ll;ll=ll->next)
+		{
+			fputs(" / ",fp);
+			la=(FklLalrItemLookAhead*)ll->node->data;
+			print_look_ahead(fp,la);
+		}
+	}
 }
 
 void fklPrintItemsetSet(const FklHashTable* i
@@ -1975,7 +2109,9 @@ void fklPrintItemsetSet(const FklHashTable* i
 		const FklHashTable* i=s->items;
 		ItemsetCount* c=fklGetHashItem(&s,&countTable);
 		count=c->count;
-		fprintf(fp,"===\nI%lu:\n",count);
+		fprintf(fp,"===\nI%lu: ",count);
+		print_self_generated_look_aheads(fp,&s->lookaheads);
+		putc('\n',fp);
 		fklPrintItemSet(i,g,st,fp);
 		putc('\n',fp);
 		for(FklLalrItemSetLink* l=s->links;l;l=l->next)

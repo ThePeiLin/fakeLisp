@@ -921,6 +921,7 @@ static inline int prod_equal(const FklGrammerProduction* prod0,const FklGrammerP
 static inline FklGrammerProduction* create_extra_production(FklSid_t start)
 {
 	FklGrammerProduction* prod=create_empty_production(0,1);
+	prod->idx=0;
 	FklGrammerSym* u=&prod->syms[0];
 	u->isterm=0;
 	u->nt=start;
@@ -950,6 +951,8 @@ static inline void add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction*
 		}
 		else
 		{
+			prod->idx=grammer->prodNum;
+			grammer->prodNum++;
 			prod->next=NULL;
 			*pp=prod;
 		}
@@ -964,11 +967,15 @@ static inline void add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction*
 			extra_prod->next=NULL;
 			item=fklPutHashItem(&extra_prod->left,productions);
 			item->prods=extra_prod;
+			item->prods->idx=grammer->prodNum;
+			grammer->prodNum++;
 		}
 		fklPutHashItem(&left,grammer->nonterminals);
 		prod->next=NULL;
 		item=fklPutHashItem(&left,productions);
+		prod->idx=grammer->prodNum;
 		item->prods=prod;
+		grammer->prodNum++;
 	}
 }
 
@@ -1375,17 +1382,30 @@ static inline void print_item(FILE* fp
 	}
 	fputs(" , ",fp);
 	print_look_ahead(fp,&item->la);
-	putc('\n',fp);
 }
 
 void fklPrintItemSet(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp)
 {
 	FklSymbolTable* tt=g->terminals;
+	FklLalrItem* curItem=NULL;
 	for(FklHashTableNodeList* list=itemSet->list;list;list=list->next)
 	{
 		FklLalrItem* item=(FklLalrItem*)list->node->data;
-		print_item(fp,item,st,tt);
+		if(!curItem||item->idx!=curItem->idx
+				||item->prod!=curItem->prod)
+		{
+			if(curItem)
+				putc('\n',fp);
+			curItem=item;
+			print_item(fp,curItem,st,tt);
+		}
+		else
+		{
+			fputs(" / ",fp);
+			print_look_ahead(fp,&item->la);
+		}
 	}
+	putc('\n',fp);
 }
 
 static void hash_grammer_sym_set_key(void* s0,const void* s1)
@@ -1778,26 +1798,6 @@ static inline void init_empty_item_set(FklHashTable* t)
 	fklInitHashTable(t,&LalrItemHashMetaTable);
 }
 
-// static inline int spread_look_ahead_to_item_set(const FklHashTable* spread
-// 		,FklHashTable* dstItems
-// 		,const FklLalrItem* item)
-// {
-// 	int change=0;
-// 	for(FklHashTableNodeList* al=spread->list;al;al=al->next)
-// 	{
-// 		FklLalrItemLookAhead* la=(FklLalrItemLookAhead*)al->node->data;
-// 		FklLalrItem newItem=*item;
-// 		newItem.la=*la;
-// 		newItem.idx++;
-// 		if(!fklGetHashItem(&newItem,dstItems))
-// 		{
-// 			change=1;
-// 			fklPutHashItem(&newItem,dstItems);
-// 		}
-// 	}
-// 	return change;
-// }
-
 static inline void add_lookahead_spread(FklLalrItemSet* itemset
 		,const FklLalrItem* src
 		,FklHashTable* dstItems
@@ -1910,16 +1910,7 @@ static inline void add_look_ahead_to_items(FklHashTable* items
 	{
 		FklLalrItem* i=(FklLalrItem*)il->node->data;
 		if(i->la.t!=FKL_LALR_LOOKAHEAD_NONE&&is_kernel_item(i))
-		{
 			fklPutHashItem(i,&add);
-			// for(const FklHashTableNodeList* sl=lookaheads->list;sl;sl=sl->next)
-			// {
-			// 	const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)sl->node->data;
-			// 	FklLalrItem newItem=*i;
-			// 	newItem.la=*la;
-			// 	fklPutHashItem(&newItem,&add);
-			// }
-		}
 	}
 	fklClearHashTable(items);
 	for(FklHashTableNodeList* il=add.list;il;il=il->next)
@@ -2044,20 +2035,33 @@ static inline void print_item_as_dot(FILE* fp
 	}
 	fputs(" , ",fp);
 	print_look_ahead_as_dot(fp,&item->la);
-	fputs("\\l\\\n",fp);
 }
 
 static inline void print_item_set_as_dot(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp)
 {
 	FklSymbolTable* tt=g->terminals;
+	FklLalrItem* curItem=NULL;
 	for(FklHashTableNodeList* list=itemSet->list;list;list=list->next)
 	{
 		FklLalrItem* item=(FklLalrItem*)list->node->data;
-		print_item_as_dot(fp,item,st,tt);
+		if(!curItem||item->idx!=curItem->idx
+				||item->prod!=curItem->prod)
+		{
+			if(curItem)
+				fputs("\\l\\\n",fp);
+			curItem=item;
+			print_item_as_dot(fp,curItem,st,tt);
+		}
+		else
+		{
+			fputs(" / ",fp);
+			print_look_ahead_as_dot(fp,&item->la);
+		}
 	}
+	fputs("\\l\\\n",fp);
 }
 
-void fklPrintItemsetSetAsDot(const FklHashTable* i
+void fklPrintItemStateSetAsDot(const FklHashTable* i
 		,const FklGrammer* g
 		,const FklSymbolTable* st
 		,FILE* fp)
@@ -2101,13 +2105,12 @@ void fklPrintItemsetSetAsDot(const FklHashTable* i
 
 static inline FklAnalysisStateAction* create_shift_action(const FklGrammerSym* sym
 		,const FklSymbolTable* tt
-		,FklAnalysisStateAction* next
 		,FklAnalysisState* state)
 {
 	const FklString* s=fklGetSymbolWithId(sym->nt,tt)->symbol;
 	FklAnalysisStateAction* action=(FklAnalysisStateAction*)malloc(sizeof(FklAnalysisStateAction));
 	FKL_ASSERT(action);
-	action->next=next;
+	action->next=NULL;
 	action->action=FKL_ANALYSIS_SHIFT;
 	action->u.state=state;
 	action->la.t=FKL_LALR_LOOKAHEAD_STRING;
@@ -2145,8 +2148,6 @@ static inline int add_reduce_action(FklAnalysisState* curState
 	FklAnalysisStateAction* action=(FklAnalysisStateAction*)malloc(sizeof(FklAnalysisStateAction));
 	FKL_ASSERT(action);
 	action->la=*la;
-	action->next=curState->state.action;
-	curState->state.action=action;
 	if(prod->left==0)
 		action->action=FKL_ANALYSIS_ACCEPT;
 	else
@@ -2154,10 +2155,37 @@ static inline int add_reduce_action(FklAnalysisState* curState
 		action->action=FKL_ANALYSIS_REDUCE;
 		action->u.prod=prod;
 	}
+	FklAnalysisStateAction** pa=&curState->state.action;
+	if(la->t==FKL_LALR_LOOKAHEAD_STRING)
+	{
+		const FklString* s=action->la.u.s;
+		for(;*pa;pa=&(*pa)->next)
+		{
+			FklAnalysisStateAction* curAction=*pa;
+			if(curAction->la.t!=FKL_LALR_LOOKAHEAD_STRING
+					||(curAction->la.t==FKL_LALR_LOOKAHEAD_STRING
+						&&s->size>curAction->la.u.s->size))
+				break;
+		}
+		action->next=*pa;
+		*pa=action;
+	}
+	else
+	{
+		FklAnalysisStateAction** pa=&curState->state.action;
+		for(;*pa;pa=&(*pa)->next)
+		{
+			FklAnalysisStateAction* curAction=*pa;
+			if(curAction->la.t!=FKL_LALR_LOOKAHEAD_STRING)
+				break;
+		}
+		action->next=*pa;
+		*pa=action;
+	}
 	return 0;
 }
 
-static inline void clear_analyze_table(FklGrammer* g,size_t last)
+static inline void clear_analysis_table(FklGrammer* g,size_t last)
 {
 	size_t end=last+1;
 	FklAnalysisState* states=g->aTable.states;
@@ -2183,6 +2211,26 @@ static inline void clear_analyze_table(FklGrammer* g,size_t last)
 	free(states);
 	g->aTable.states=NULL;
 	g->aTable.num=0;
+}
+
+static inline void add_shift_action(FklAnalysisState* curState
+		,const FklGrammerSym* sym
+		,const FklSymbolTable* tt
+		,FklAnalysisState* dstState)
+{
+	FklAnalysisStateAction* action=create_shift_action(sym,tt,dstState);
+	const FklString* s=action->la.u.s;
+	FklAnalysisStateAction** pa=&curState->state.action;
+	for(;*pa;pa=&(*pa)->next)
+	{
+		FklAnalysisStateAction* curAction=*pa;
+		if(curAction->la.t!=FKL_LALR_LOOKAHEAD_STRING
+				||(curAction->la.t==FKL_LALR_LOOKAHEAD_STRING
+					&&s->size>curAction->la.u.s->size))
+			break;
+	}
+	action->next=*pa;
+	*pa=action;
 }
 
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
@@ -2220,7 +2268,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 			size_t dstIdx=c->idx;
 			FklAnalysisState* dstState=&astates[dstIdx];
 			if(sym->isterm)
-				curState->state.action=create_shift_action(sym,tt,curState->state.action,dstState);
+				add_shift_action(curState,sym,tt,dstState);
 			else
 				curState->state.gt=create_state_goto(sym,tt,curState->state.gt,dstState);
 		}
@@ -2231,11 +2279,8 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 			{
 				if(add_reduce_action(curState,item->prod,&item->la))
 				{
-					fprintf(stderr,"has reduce conflict in I%lu with ",idx);
-					print_look_ahead(stderr,&item->la);
-					fputs(" !\n",stderr);
 					hasConflict=1;
-					clear_analyze_table(grammer,idx);
+					clear_analysis_table(grammer,idx);
 					goto break_loop;
 				}
 			}
@@ -2247,10 +2292,35 @@ break_loop:
 	return hasConflict;
 }
 
-void fklPrintAnalyzeTable(const FklGrammer* grammer,FklSymbolTable* st,FILE* fp)
+static inline void print_look_ahead_of_analysis_table(FILE* fp,const FklLalrItemLookAhead* la)
+{
+	switch(la->t)
+	{
+		case FKL_LALR_LOOKAHEAD_STRING:
+			{
+				fputc('\'',fp);
+				const FklString* str=la->u.s;
+				print_string_as_dot((const uint8_t*)str->str,'\'',str->size,fp);
+				fputc('\'',fp);
+			}
+			break;
+		case FKL_LALR_LOOKAHEAD_EOF:
+			fputs("$$",fp);
+			break;
+		case FKL_LALR_LOOKAHEAD_BUILTIN:
+			fputs("&%",fp);
+			break;
+		case FKL_LALR_LOOKAHEAD_NONE:
+			fputs("()",fp);
+			break;
+	}
+}
+
+void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp)
 {
 	size_t num=grammer->aTable.num;
 	FklAnalysisState* states=grammer->aTable.states;
+
 	for(size_t i=0;i<num;i++)
 	{
 		fprintf(fp,"%lu: ",i);
@@ -2263,7 +2333,7 @@ void fklPrintAnalyzeTable(const FklGrammer* grammer,FklSymbolTable* st,FILE* fp)
 			{
 				case FKL_ANALYSIS_SHIFT:
 					fputs("S(",fp);
-					print_look_ahead_as_dot(fp,&actions->la);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
 					{
 						uintptr_t idx=actions->u.state-states;
 						fprintf(fp," , %lu )",idx);
@@ -2271,12 +2341,12 @@ void fklPrintAnalyzeTable(const FklGrammer* grammer,FklSymbolTable* st,FILE* fp)
 					break;
 				case FKL_ANALYSIS_REDUCE:
 					fputs("R(",fp);
-					print_look_ahead_as_dot(fp,&actions->la);
-					fputc(')',fp);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
+					fprintf(fp," , %lu )",actions->u.prod->idx);
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					fputs("acc(",fp);
-					print_look_ahead_as_dot(fp,&actions->la);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
 					fputc(')',fp);
 					break;
 			}
@@ -2295,7 +2365,60 @@ void fklPrintAnalyzeTable(const FklGrammer* grammer,FklSymbolTable* st,FILE* fp)
 	}
 }
 
-void fklPrintItemsetSet(const FklHashTable* i
+void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
+		,const FklSymbolTable* st
+		,FILE* fp)
+{
+	size_t num=g->aTable.num;
+	FklAnalysisState* states=g->aTable.states;
+
+	print_table_header_for_grapheasy(g,st,fp);
+
+	for(size_t i=0;i<num;i++)
+	{
+		fprintf(fp,"%lu: ",i);
+		FklAnalysisState* curState=&states[i];
+		for(FklAnalysisStateAction* actions=curState->state.action
+				;actions
+				;actions=actions->next)
+		{
+			switch(actions->action)
+			{
+				case FKL_ANALYSIS_SHIFT:
+					fputs("S(",fp);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
+					{
+						uintptr_t idx=actions->u.state-states;
+						fprintf(fp," , %lu )",idx);
+					}
+					break;
+				case FKL_ANALYSIS_REDUCE:
+					fputs("R(",fp);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
+					fprintf(fp," , %lu )",actions->u.prod->idx);
+					break;
+				case FKL_ANALYSIS_ACCEPT:
+					fputs("acc(",fp);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
+					fputc(')',fp);
+					break;
+			}
+			fputc('\t',fp);
+		}
+		fputs("|\t",fp);
+		for(FklAnalysisStateGoto* gt=curState->state.gt;gt;gt=gt->next)
+		{
+			uintptr_t idx=gt->state-states;
+			fputc('(',fp);
+			fklPrintRawSymbol(fklGetSymbolWithId(gt->nt,st)->symbol,fp);
+			fprintf(fp," , %lu)",idx);
+			fputc('\t',fp);
+		}
+		fputc('\n',fp);
+	}
+}
+
+void fklPrintItemStateSet(const FklHashTable* i
 		,const FklGrammer* g
 		,const FklSymbolTable* st
 		,FILE* fp)
@@ -2316,7 +2439,6 @@ void fklPrintItemsetSet(const FklHashTable* i
 		ItemStateIdx* c=fklGetHashItem(&s,&idxTable);
 		idx=c->idx;
 		fprintf(fp,"===\nI%lu: ",idx);
-		// print_self_generated_look_aheads(fp,&s->lookaheads);
 		putc('\n',fp);
 		fklPrintItemSet(i,g,st,fp);
 		putc('\n',fp);
@@ -2365,7 +2487,10 @@ void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st)
 	{
 		FklGrammerProduction* prods=((ProdHashItem*)list->node->data)->prods;
 		for(;prods;prods=prods->next)
+		{
+			fprintf(fp,"(%lu) ",prods->idx);
 			fklPrintGrammerProduction(fp,prods,st,tt);
+		}
 	}
 }
 

@@ -23,6 +23,7 @@ typedef struct FklGrammerProduction
 {
 	FklSid_t left;
 	size_t len;
+	size_t idx;
 	FklGrammerSym* syms;
 	struct FklGrammerProduction* next;
 	// union
@@ -138,6 +139,7 @@ typedef struct
 	FklSid_t start;
 	FklHashTable* nonterminals;
 
+	size_t prodNum;
 	FklHashTable* productions;
 
 	FklAnalysisTable aTable;
@@ -150,16 +152,18 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states);
-void fklPrintAnalyzeTable(const FklGrammer* grammer,FklSymbolTable* st,FILE* fp);
+void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
+void fklPrintAnalysisTableForGraphEasy(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
 
 void fklLr0ToLalrItems(FklHashTable*,FklGrammer* grammer);
 
 void fklPrintItemSet(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp);
-void fklPrintItemsetSet(const FklHashTable* i
+void fklPrintItemStateSet(const FklHashTable* i
 		,const FklGrammer* g
 		,const FklSymbolTable* st
 		,FILE* fp);
-void fklPrintItemsetSetAsDot(const FklHashTable* i
+
+void fklPrintItemStateSetAsDot(const FklHashTable* i
 		,const FklGrammer* g
 		,const FklSymbolTable* st
 		,FILE* fp);

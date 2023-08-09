@@ -36,13 +36,13 @@ typedef struct FklGrammerProduction
 typedef enum
 {
 	FKL_LALR_LOOKAHEAD_NONE,
-	FKL_LALR_LOOKAHEAD_EOE,
+	FKL_LALR_LOOKAHEAD_EOF,
 	FKL_LALR_LOOKAHEAD_STRING,
 	FKL_LALR_LOOKAHEAD_BUILTIN,
 }FklLalrItemLookAheadType;
 
 #define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_NONE,.u.ptr=NULL})
-#define FKL_LALR_LOOKAHEAD_EOE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_EOE,.u.ptr=NULL})
+#define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_EOF,.u.ptr=NULL})
 
 typedef struct
 {
@@ -69,18 +69,27 @@ typedef struct FklLalrItemSetLink
 	struct FklLalrItemSetLink* next;
 }FklLalrItemSetLink;
 
+typedef struct FklLookAheadSpreads
+{
+	FklLalrItem src;
+	FklHashTable* dstItems;
+	FklLalrItem dst;
+	struct FklLookAheadSpreads* next;
+}FklLookAheadSpreads;
+
 typedef struct FklLalrItemSet
 {
 	FklHashTable* items;
-	FklHashTable lookaheads;
+	FklLookAheadSpreads* spreads;
 	FklLalrItemSetLink* links;
 }FklLalrItemSet;
 
-typedef enum FklAnalysisAction
+typedef enum
 {
 	FKL_ANALYSIS_SHIFT,
+	FKL_ANALYSIS_ACCEPT,
 	FKL_ANALYSIS_REDUCE,
-}FklAnalysisAction;
+}FklAnalysisStateActionEnum;
 
 typedef struct FklAnalysisStateGoto
 {
@@ -92,11 +101,11 @@ typedef struct FklAnalysisStateGoto
 typedef struct FklAnalysisStateAction
 {
 	FklLalrItemLookAhead la;
-	FklAnalysisAction action;
+	FklAnalysisStateActionEnum action;
 	union
 	{
-		struct FklAnalysisState* state;
-		FklGrammerProduction* prod;
+		const struct FklAnalysisState* state;
+		const FklGrammerProduction* prod;
 	}u;
 
 	struct FklAnalysisStateAction* next;
@@ -139,6 +148,9 @@ FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
+
+int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states);
+void fklPrintAnalyzeTable(const FklGrammer* grammer,FklSymbolTable* st,FILE* fp);
 
 void fklLr0ToLalrItems(FklHashTable*,FklGrammer* grammer);
 

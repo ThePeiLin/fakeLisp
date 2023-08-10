@@ -419,3 +419,7 @@ FklHashTable* fklCreateSidSet(void)
 	return fklCreateHashTable(&SidSetMetaTable);
 }
 
+void fklInitSidSet(FklHashTable* t)
+{
+	fklInitHashTable(t,&SidSetMetaTable);
+}

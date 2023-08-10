@@ -173,6 +173,8 @@ void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const F
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);
 
+int fklParseForCstr(const FklAnalysisTable* aTable,const char* str,FklPtrStack* stack);
+
 typedef enum
 {
 	FKL_TOKEN_RESERVE_STR=0,

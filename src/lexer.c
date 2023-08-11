@@ -1160,7 +1160,7 @@ static inline FklLalrItem lalr_item_init(FklGrammerProduction* prod,size_t idx,c
 	return item;
 }
 
-static inline FklLalrItem lalr_item_advance(const FklLalrItem* i)
+static inline FklLalrItem get_item_advance(const FklLalrItem* i)
 {
 	FklLalrItem item=
 	{
@@ -1285,7 +1285,7 @@ static inline void lalr_item_set_sort(FklHashTable* itemSet)
 	free(item_array);
 }
 
-static inline void lr0_item_set_closure_and_sort(FklHashTable* itemSet,FklGrammer* g)
+static inline void lr0_item_set_closure(FklHashTable* itemSet,FklGrammer* g)
 {
 	int change;
 	FklHashTable* sidSet=fklCreateSidSet();
@@ -1444,9 +1444,9 @@ static const FklHashTableMetaTable GrammerSymMetaTable=
 	.__keyEqual=hash_grammer_sym_equal,
 };
 
-static inline FklHashTable* create_grammer_sym_set(void)
+static inline void init_grammer_sym_set(FklHashTable* t)
 {
-	return fklCreateHashTable(&GrammerSymMetaTable);
+	fklInitHashTable(t,&GrammerSymMetaTable);
 }
 
 static int look_ahead_eqaul(const void* d0,const void* d1)
@@ -1556,12 +1556,13 @@ static inline FklHashTable* create_item_state_set(void)
 	return fklCreateHashTable(&ItemStateSetHashMetaTable);
 }
 
-static inline void lalr_item_set_goto(FklLalrItemSet* itemset
+static inline void lr0_item_set_goto(FklLalrItemSet* itemset
 		,FklHashTable* itemsetSet
 		,FklGrammer* g
 		,FklPtrQueue* pending)
 {
-	FklHashTable* checked=create_grammer_sym_set();
+	FklHashTable checked;
+	init_grammer_sym_set(&checked);
 	FklHashTableNodeList* l;
 	FklHashTable* items=itemset->items;
 	for(l=items->list;l;l=l->next)
@@ -1569,9 +1570,9 @@ static inline void lalr_item_set_goto(FklLalrItemSet* itemset
 		FklLalrItem* i=(FklLalrItem*)l->node->data;
 		FklGrammerSym* sym=get_item_next(i);
 		if(sym)
-			fklPutHashItem(sym,checked);
+			fklPutHashItem(sym,&checked);
 	}
-	for(l=checked->list;l;l=l->next)
+	for(l=checked.list;l;l=l->next)
 	{
 		FklHashTable* closure=create_empty_item_set();
 		FklGrammerSym* sym=(FklGrammerSym*)l->node->data;
@@ -1583,11 +1584,11 @@ static inline void lalr_item_set_goto(FklLalrItemSet* itemset
 				FklGrammerSym* next=get_item_next(i);
 				if(next&&hash_grammer_sym_equal(sym,next))
 				{
-					FklLalrItem item=lalr_item_advance(i);
+					FklLalrItem item=get_item_advance(i);
 					fklPutHashItem(&item,closure);
 				}
 			}
-			lr0_item_set_closure_and_sort(closure,g);
+			lr0_item_set_closure(closure,g);
 			FklLalrItemSet* itemsetptr=fklGetHashItem(&closure,itemsetSet);
 			if(!itemsetptr)
 			{
@@ -1600,6 +1601,7 @@ static inline void lalr_item_set_goto(FklLalrItemSet* itemset
 			item_set_add_link(itemset,sym,itemsetptr);
 		}
 	}
+	fklUninitHashTable(&checked);
 }
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
@@ -1608,7 +1610,7 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
 	FklSid_t left=0;
 	FklGrammerProduction* prod=((ProdHashItem*)fklGetHashItem(&left,grammer->productions))->prods;
 	FklHashTable* items=create_first_item_set(prod);
-	lr0_item_set_closure_and_sort(items,grammer);
+	lr0_item_set_closure(items,grammer);
 	FklLalrItemSet itemset={.items=items,};
 	FklLalrItemSet* itemsetptr=fklGetOrPutHashItem(&itemset,itemstate_set);
 	FklPtrQueue pending;
@@ -1617,7 +1619,7 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
 	while(!fklIsPtrQueueEmpty(&pending))
 	{
 		FklLalrItemSet* itemsetptr=fklPopPtrQueue(&pending);
-		lalr_item_set_goto(itemsetptr,itemstate_set,grammer,&pending);
+		lr0_item_set_goto(itemsetptr,itemstate_set,grammer,&pending);
 	}
 	fklUninitPtrQueue(&pending);
 	return itemstate_set;
@@ -2740,6 +2742,7 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 
 int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* tokens)
 {
+#warning incomplete
 	FklPtrStack symbolStack;
 	FklPtrStack stateStack;
 	fklInitPtrStack(&stateStack,16,8);
@@ -2758,7 +2761,7 @@ int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* toke
 				case FKL_LALR_LOOKAHEAD_STRING:
 					{
 						const FklString* laString=action->la.u.s;
-						if(fklStringCstrCmp(laString,cstr))
+						if(fklStringCstrMatch(laString,cstr))
 						{
 							term=fklCreateString(laString->size,cstr);
 							goto process_action;

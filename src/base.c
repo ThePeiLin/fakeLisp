@@ -1532,6 +1532,11 @@ int fklStringCstrCmp(const FklString* fir,const char* sec)
 	return strcmp(fir->str,sec);
 }
 
+int fklStringCstrMatch(const FklString* a,const char* b)
+{
+	return !strncmp(a->str,b,a->size);
+}
+
 FklString* fklCopyString(const FklString* obj)
 {
 	return fklCreateString(obj->size,obj->str);

@@ -26,7 +26,10 @@ void fklStringCstrCat(FklString**,const char*);
 void fklStringCharBufCat(FklString**,const char* buf,size_t s);
 char* fklCstrStringCat(char*,const FklString*);
 int fklStringCmp(const FklString*,const FklString*);
+
 int fklStringCstrCmp(const FklString*,const char*);
+int fklStringCstrMatch(const FklString*,const char*);
+
 char* fklStringToCstr(const FklString* str);
 void fklPrintRawString(const FklString* str,FILE* fp);
 void fklPrintString(const FklString* str,FILE* fp);

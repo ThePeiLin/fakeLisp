@@ -45,13 +45,15 @@ typedef enum
 #define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_NONE,.u.ptr=NULL})
 #define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_EOF,.u.ptr=NULL})
 
+typedef int (*FklBuiltinLookAhead)(const char* str,size_t* matchLen);
+
 typedef struct
 {
 	FklLalrItemLookAheadType t;
 	union
 	{
 		const FklString* s;
-		void* func;
+		FklBuiltinLookAhead func;
 		void* ptr;
 	}u;
 }FklLalrItemLookAhead;

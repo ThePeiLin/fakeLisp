@@ -873,6 +873,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	for(uint32_t i=0;i<st.top;i++)
 	{
 		FklGrammerSym* u=&prod->syms[i];
+		u->skip_space=1;
 		FklString* s=st.base[i];
 		switch(*(s->str))
 		{
@@ -900,8 +901,8 @@ static inline int prod_sym_equal(const FklGrammerSym* u0,const FklGrammerSym* u1
 {
 	return u0->isterm==u1->isterm
 		&&u0->nt==u1->nt
-		&&u0->nodel==u1->nodel
-		&&u0->space==u1->space
+		&&u0->no_delim==u1->no_delim
+		&&u0->skip_space==u1->skip_space
 		&&u0->repeat==u1->repeat;
 }
 
@@ -1254,8 +1255,8 @@ static inline int lalr_item_cmp(const FklLalrItem* i0,const FklLalrItem* i1)
 				return 1;
 			else
 			{
-				unsigned int f0=(s0->nodel<<2)+(s0->space<<1)+s0->repeat;
-				unsigned int f1=(s1->nodel<<2)+(s1->space<<1)+s1->repeat;
+				unsigned int f0=(s0->no_delim<<2)+(s0->skip_space<<1)+s0->repeat;
+				unsigned int f1=(s1->no_delim<<2)+(s1->skip_space<<1)+s1->repeat;
 				if(f0<f1)
 					return -1;
 				else if(f0>f1)
@@ -1430,15 +1431,15 @@ static void hash_grammer_sym_set_key(void* s0,const void* s1)
 static uintptr_t hash_grammer_sym_hash_func(const void* d)
 {
 	const FklGrammerSym* s=d;
-	return (s->isterm<<4)+(s->nt<<3)+(s->nodel<<2)+(s->space<<1)+s->repeat;
+	return (s->isterm<<4)+(s->nt<<3)+(s->no_delim<<2)+(s->skip_space<<1)+s->repeat;
 }
 
 static inline int grammer_sym_equal(const FklGrammerSym* s0,const FklGrammerSym* s1)
 {
 	return s0->isterm==s1->isterm
 		&&s0->nt==s1->nt
-		&&s0->nodel==s1->nodel
-		&&s0->space==s1->space
+		&&s0->no_delim==s1->no_delim
+		&&s0->skip_space==s1->skip_space
 		&&s0->repeat==s1->repeat;
 }
 
@@ -2235,6 +2236,37 @@ static inline void add_shift_action(FklAnalysisState* curState
 	*pa=action;
 }
 
+static int builtin_lookahead_macth_func_space(const char* s,size_t* matchLen)
+{
+	if(isspace(*s))
+	{
+		*matchLen=1;
+		return 1;
+	}
+	return 0;
+}
+
+static inline FklAnalysisStateAction* create_builtin_ignore_action(FklBuiltinLookAhead func)
+{
+	FklAnalysisStateAction* action=(FklAnalysisStateAction*)malloc(sizeof(FklAnalysisStateAction));
+	FKL_ASSERT(action);
+	action->next=NULL;
+	action->action=FKL_ANALYSIS_IGNORE;
+	action->u.state=NULL;
+	action->la.t=FKL_LALR_LOOKAHEAD_BUILTIN;
+	action->la.u.func=func;
+	return action;
+}
+
+static inline void add_skip_space_action(FklAnalysisState* curState)
+{
+	FklAnalysisStateAction* action=create_builtin_ignore_action(builtin_lookahead_macth_func_space);
+	FklAnalysisStateAction** pa=&curState->state.action;
+	for(;*pa;pa=&(*pa)->next);
+	action->next=*pa;
+	*pa=action;
+}
+
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 {
 	int hasConflict=0;
@@ -2255,6 +2287,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 	idx=0;
 	for(const FklHashTableNodeList* l=states->list;l;l=l->next,idx++)
 	{
+		int skip_space=0;
 		const FklLalrItemSet* s=(const FklLalrItemSet*)l->node->data;
 		FklAnalysisState* curState=&astates[idx];
 		curState->builtin=0;
@@ -2276,7 +2309,10 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 		for(const FklHashTableNodeList* il=items->list;il;il=il->next)
 		{
 			FklLalrItem* item=(FklLalrItem*)il->node->data;
-			if(item->idx>=item->prod->len)
+			FklGrammerSym* sym=get_item_next(item);
+			if(sym)
+				skip_space=sym->skip_space;
+			else
 			{
 				if(add_reduce_action(curState,item->prod,&item->la))
 				{
@@ -2286,6 +2322,8 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 				}
 			}
 		}
+		if(skip_space)
+			add_skip_space_action(curState);
 	}
 
 break_loop:
@@ -2332,6 +2370,11 @@ void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FI
 		{
 			switch(actions->action)
 			{
+				case FKL_ANALYSIS_IGNORE:
+					fputs("I(",fp);
+					print_look_ahead_of_analysis_table(fp,&actions->la);
+					fputc(')',fp);
+					break;
 				case FKL_ANALYSIS_SHIFT:
 					fputs("S(",fp);
 					print_look_ahead_of_analysis_table(fp,&actions->la);
@@ -2572,6 +2615,9 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
 			{
 				switch(action->action)
 				{
+					case FKL_ANALYSIS_IGNORE:
+						fputc('i',fp);
+						break;
 					case FKL_ANALYSIS_SHIFT:
 						{
 							uintptr_t idx=action->u.state-states;
@@ -2740,6 +2786,45 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 	return 0;
 }
 
+static inline int look_ahead_match(const FklLalrItemLookAhead* la,const char* cstr,size_t* matchLen)
+{
+	switch(la->t)
+	{
+		case FKL_LALR_LOOKAHEAD_STRING:
+			{
+				const FklString* laString=la->u.s;
+				if(fklStringCstrMatch(laString,cstr))
+				{
+					*matchLen=laString->size;
+					return 1;
+				}
+			}
+			break;
+		case FKL_LALR_LOOKAHEAD_EOF:
+			if(!*cstr)
+				return 1;
+			break;
+		case FKL_LALR_LOOKAHEAD_BUILTIN:
+			if(la->u.func(cstr,matchLen))
+				return 1;
+			break;
+		case FKL_LALR_LOOKAHEAD_NONE:
+			FKL_ASSERT(0);
+			break;
+	}
+	return 0;
+}
+
+static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisState* states)
+{
+	for(size_t i=0;i<stateStack->top;i++)
+	{
+		const FklAnalysisState* curState=stateStack->base[i];
+		fprintf(stderr,"%lu ",curState-states);
+	}
+	fputc('\n',stderr);
+}
+
 int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* tokens)
 {
 #warning incomplete
@@ -2754,38 +2839,18 @@ int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* toke
 	{
 		const FklAnalysisState* state=fklTopPtrStack(&stateStack);
 		const FklAnalysisStateAction* action=state->state.action;
+		dbg_print_state_stack(&stateStack,t->states);
 		for(;action;action=action->next)
-		{
-			switch(action->la.t)
-			{
-				case FKL_LALR_LOOKAHEAD_STRING:
-					{
-						const FklString* laString=action->la.u.s;
-						if(fklStringCstrMatch(laString,cstr))
-						{
-							matchLen=laString->size;
-							goto process_action;
-						}
-					}
-					break;
-				case FKL_LALR_LOOKAHEAD_EOF:
-					if(!*cstr)
-						goto process_action;
-					break;
-				case FKL_LALR_LOOKAHEAD_BUILTIN:
-					if(action->la.u.func(cstr,&matchLen))
-						goto process_action;
-					break;
-				case FKL_LALR_LOOKAHEAD_NONE:
-					FKL_ASSERT(0);
-					break;
-			}
-		}
-process_action:
+			if(look_ahead_match(&action->la,cstr,&matchLen))
+				break;
 		if(action)
 		{
 			switch(action->action)
 			{
+				case FKL_ANALYSIS_IGNORE:
+					cstr+=matchLen;
+					continue;
+					break;
 				case FKL_ANALYSIS_SHIFT:
 					{
 						FklString* term=fklCreateString(matchLen,cstr);

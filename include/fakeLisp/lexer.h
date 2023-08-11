@@ -14,8 +14,8 @@ typedef struct FklGrammerSym
 {
 	FklSid_t nt:61;
 	unsigned int isterm:1;
-	unsigned int nodel:1;
-	unsigned int space:1;
+	unsigned int no_delim:1;
+	unsigned int skip_space:1;
 	unsigned int repeat:1;
 }FklGrammerSym;
 
@@ -92,6 +92,7 @@ typedef enum
 	FKL_ANALYSIS_SHIFT,
 	FKL_ANALYSIS_ACCEPT,
 	FKL_ANALYSIS_REDUCE,
+	FKL_ANALYSIS_IGNORE,
 }FklAnalysisStateActionEnum;
 
 typedef struct FklAnalysisStateGoto

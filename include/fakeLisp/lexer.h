@@ -36,25 +36,34 @@ typedef struct FklGrammerProduction
 
 typedef enum
 {
-	FKL_LALR_LOOKAHEAD_NONE,
-	FKL_LALR_LOOKAHEAD_EOF,
-	FKL_LALR_LOOKAHEAD_STRING,
-	FKL_LALR_LOOKAHEAD_BUILTIN,
-}FklLalrItemLookAheadType;
+	FKL_LALR_MATCH_NONE,
+	FKL_LALR_MATCH_EOF,
+	FKL_LALR_MATCH_STRING,
+	FKL_LALR_MATCH_BUILTIN,
+}FklLalrMatchType;
 
-#define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_NONE,.u.ptr=NULL})
-#define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_LOOKAHEAD_EOF,.u.ptr=NULL})
-
-typedef int (*FklBuiltinLookAhead)(const char* str,size_t* matchLen);
+#define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,})
+#define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_EOF,})
 
 typedef struct
 {
-	FklLalrItemLookAheadType t;
+	int (*match)(void* ctx,const char* str,size_t* matchLen);
+	int (*ctx_equal)(const void* c0,const void* c1);
+	void* (*ctx_create)(void);
+	void (*ctx_destroy)(void*);
+	const char* (*name)(const void*);
+}FklLalrBuiltinMatch;
+
+typedef struct
+{
+	FklLalrMatchType t;
+	unsigned int no_delim:1;
+	unsigned int skip_space:1;
+	unsigned int repeat:1;
 	union
 	{
 		const FklString* s;
-		FklBuiltinLookAhead func;
-		void* ptr;
+		const FklLalrBuiltinMatch* func;
 	}u;
 }FklLalrItemLookAhead;
 
@@ -102,9 +111,24 @@ typedef struct FklAnalysisStateGoto
 	struct FklAnalysisStateGoto* next;
 }FklAnalysisStateGoto;
 
+typedef struct
+{
+	FklLalrMatchType t;
+	union
+	{
+		const FklString* str;
+		struct
+		{
+			const FklLalrBuiltinMatch* t;
+			void* ctx;
+		}func;
+	}m;
+}FklAnalysisStateActionMatch;
+
 typedef struct FklAnalysisStateAction
 {
-	FklLalrItemLookAhead la;
+	FklAnalysisStateActionMatch match;
+
 	FklAnalysisStateActionEnum action;
 	union
 	{

@@ -1084,29 +1084,12 @@ static void lalr_item_set_key(void* d0,const void* d1)
 	*(FklLalrItem*)d0=*(const FklLalrItem*)d1;
 }
 
-static inline FklLookAheadStrMatch grammer_to_look_ahead_str_match(const FklGrammerSym* s,const FklSymbolTable* tt)
-{
-	FklLookAheadStrMatch r=
-	{
-		.s=fklGetSymbolWithId(s->nt,tt)->symbol,
-		.repeat=s->repeat,
-		.skip_space=s->skip_space,
-		.no_delim=s->no_delim,
-	};
-	return r;
-}
-
-static inline int lalr_look_ahead_string_equal(const FklLookAheadStrMatch* s0,const FklLookAheadStrMatch* s1)
-{
-	return s0->s==s1->s
-		&&s0->no_delim==s1->no_delim
-		&&s0->skip_space==s1->skip_space
-		&&s0->repeat==s1->repeat;
-}
-
 static inline int lalr_look_ahead_equal(const FklLalrItemLookAhead* la0,const FklLalrItemLookAhead* la1)
 {
-	if(la0->t!=la1->t)
+	if(la0->t!=la1->t
+			||la0->no_delim!=la1->no_delim
+			||la0->skip_space!=la1->skip_space
+			||la0->repeat!=la1->repeat)
 		return 0;
 	switch(la0->t)
 	{
@@ -1115,10 +1098,8 @@ static inline int lalr_look_ahead_equal(const FklLalrItemLookAhead* la0,const Fk
 			return 1;
 			break;
 		case FKL_LALR_MATCH_STRING:
-			return lalr_look_ahead_string_equal(&la0->u.strMatch,&la1->u.strMatch);
-			break;
 		case FKL_LALR_MATCH_BUILTIN:
-			return la0->u.func==la1->u.func;
+			return la0->u.fill==la1->u.fill;
 			break;
 		default:
 			FKL_ASSERT(0);
@@ -1135,20 +1116,11 @@ static int lalr_item_equal(const void* d0,const void* d1)
 		&&lalr_look_ahead_equal(&i0->la,&i1->la);
 }
 
-static inline uintptr_t lalr_look_ahead_string_hash(const FklLookAheadStrMatch* str)
-{
-	return (uintptr_t)str->s+(str->no_delim<<2)+(str->skip_space<<1)+str->repeat;
-}
-
 static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la)
 {
-	uintptr_t rest=la->t==FKL_LALR_MATCH_STRING
-		?lalr_look_ahead_string_hash(&la->u.strMatch)
-		:(la->t==FKL_LALR_MATCH_BUILTIN
-				?(uintptr_t)la->u.func
-				:0);
+	uintptr_t rest=la->u.fill;
 
-	return rest*(((uintptr_t)la->t)+1);
+	return rest+((uintptr_t)la->t)+(la->no_delim<<2)+(la->skip_space<<1)+(la->repeat);
 }
 
 static uintptr_t lalr_item_hash_func(const void* d)
@@ -1210,17 +1182,6 @@ static inline FklLalrItem get_item_advance(const FklLalrItem* i)
 	return item;
 }
 
-static inline int lalr_look_ahead_string_cmp(const FklLookAheadStrMatch* s0,const FklLookAheadStrMatch* s1)
-{
-	uintptr_t h0=lalr_look_ahead_string_hash(s0);
-	uintptr_t h1=lalr_look_ahead_string_hash(s1);
-	if(h0<h1)
-		return -1;
-	else if(h0>h1)
-		return 1;
-	return 0;
-}
-
 static inline int lalr_look_ahead_cmp(const FklLalrItemLookAhead* la0,const FklLalrItemLookAhead* la1)
 {
 	if(la0->t==la1->t)
@@ -1244,7 +1205,7 @@ static inline int lalr_look_ahead_cmp(const FklLalrItemLookAhead* la0,const FklL
 				}
 				break;
 			case FKL_LALR_MATCH_STRING:
-				return lalr_look_ahead_string_cmp(&la0->u.strMatch,&la1->u.strMatch);
+				return fklStringCmp(la0->u.s,la1->u.s);
 				break;
 			default:
 				FKL_ASSERT(0);
@@ -1399,7 +1360,7 @@ static inline void print_look_ahead(FILE* fp,const FklLalrItemLookAhead* la)
 	{
 		case FKL_LALR_MATCH_STRING:
 			putc('#',fp);
-			fklPrintString(la->u.strMatch.s,fp);
+			fklPrintString(la->u.s,fp);
 			break;
 		case FKL_LALR_MATCH_EOF:
 			fputs("$$",fp);
@@ -1713,7 +1674,10 @@ static inline int get_first_set(const FklGrammer* g
 				FklLalrItemLookAhead la=
 				{
 					.t=FKL_LALR_MATCH_STRING,
-					.u.strMatch=grammer_to_look_ahead_str_match(sym,tt),
+					.no_delim=sym->no_delim,
+					.skip_space=sym->skip_space,
+					.repeat=sym->repeat,
+					.u.s=s,
 				};
 				fklPutHashItem(&la,first);
 				break;
@@ -2039,7 +2003,7 @@ static inline void print_look_ahead_as_dot(FILE* fp,const FklLalrItemLookAhead* 
 		case FKL_LALR_MATCH_STRING:
 			{
 				fputs("\\\'",fp);
-				const FklString* str=la->u.strMatch.s;
+				const FklString* str=la->u.s;
 				print_string_as_dot((const uint8_t*)str->str,'\'',str->size,fp);
 				fputs("\\\'",fp);
 			}
@@ -2191,7 +2155,7 @@ static inline int lalr_look_ahead_and_action_match_equal(const FklAnalysisStateA
 		switch(match->t)
 		{
 			case FKL_LALR_MATCH_STRING:
-				return match->m.str==la->u.strMatch.s;
+				return match->m.str==la->u.s;
 				break;
 			case FKL_LALR_MATCH_BUILTIN:
 				return match->m.func.t==la->u.func;
@@ -2218,7 +2182,7 @@ static inline void init_action_with_look_ahead(FklAnalysisStateAction* action,co
 	switch(action->match.t)
 	{
 		case FKL_LALR_MATCH_STRING:
-			action->match.m.str=la->u.strMatch.s;
+			action->match.m.str=la->u.s;
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			action->match.m.func.t=la->u.func;
@@ -2423,7 +2387,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 					clear_analysis_table(grammer,idx);
 					goto break_loop;
 				}
-				if(item->la.t==FKL_LALR_MATCH_STRING&&item->la.u.strMatch.skip_space)
+				if(item->la.skip_space)
 					skip_space=1;
 			}
 		}
@@ -2694,7 +2658,7 @@ static inline void print_look_ahead_for_grapheasy(const FklLalrItemLookAhead* la
 		case FKL_LALR_MATCH_STRING:
 			{
 				fputc('\'',fp);
-				const FklString* str=la->u.strMatch.s;
+				const FklString* str=la->u.s;
 				print_string_for_grapheasy(str,fp);
 				fputc('\'',fp);
 			}

@@ -14,8 +14,7 @@ typedef struct FklGrammerSym
 {
 	FklSid_t nt:61;
 	unsigned int isterm:1;
-	unsigned int no_delim:1;
-	unsigned int skip_space:1;
+	unsigned int delim:1;
 	unsigned int repeat:1;
 }FklGrammerSym;
 
@@ -43,7 +42,7 @@ typedef enum
 }FklLalrMatchType;
 
 #define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,.u.fill=0})
-#define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.skip_space=1,.t=FKL_LALR_MATCH_EOF,.u.fill=0})
+#define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.delim=1,.t=FKL_LALR_MATCH_EOF,.u.fill=0})
 
 typedef struct
 {
@@ -57,8 +56,7 @@ typedef struct
 typedef struct
 {
 	FklLalrMatchType t;
-	unsigned int no_delim:1;
-	unsigned int skip_space:1;
+	unsigned int delim:1;
 	unsigned int repeat:1;
 	union
 	{

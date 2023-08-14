@@ -873,7 +873,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	for(uint32_t i=0;i<st.top;i++)
 	{
 		FklGrammerSym* u=&prod->syms[i];
-		u->skip_space=1;
+		u->delim=1;
 		FklString* s=st.base[i];
 		switch(*(s->str))
 		{
@@ -901,8 +901,7 @@ static inline int prod_sym_equal(const FklGrammerSym* u0,const FklGrammerSym* u1
 {
 	return u0->isterm==u1->isterm
 		&&u0->nt==u1->nt
-		&&u0->no_delim==u1->no_delim
-		&&u0->skip_space==u1->skip_space
+		&&u0->delim==u1->delim
 		&&u0->repeat==u1->repeat;
 }
 
@@ -924,7 +923,7 @@ static inline FklGrammerProduction* create_extra_production(FklSid_t start)
 	FklGrammerProduction* prod=create_empty_production(0,1);
 	prod->idx=0;
 	FklGrammerSym* u=&prod->syms[0];
-	u->skip_space=1;
+	u->delim=1;
 	u->isterm=0;
 	u->nt=start;
 	return prod;
@@ -1087,8 +1086,7 @@ static void lalr_item_set_key(void* d0,const void* d1)
 static inline int lalr_look_ahead_equal(const FklLalrItemLookAhead* la0,const FklLalrItemLookAhead* la1)
 {
 	if(la0->t!=la1->t
-			||la0->no_delim!=la1->no_delim
-			||la0->skip_space!=la1->skip_space
+			||la0->delim!=la1->delim
 			||la0->repeat!=la1->repeat)
 		return 0;
 	switch(la0->t)
@@ -1120,7 +1118,7 @@ static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la
 {
 	uintptr_t rest=la->u.fill;
 
-	return rest+((uintptr_t)la->t)+(la->no_delim<<2)+(la->skip_space<<1)+(la->repeat);
+	return rest+((uintptr_t)la->t)+(la->delim<<1)+(la->repeat);
 }
 
 static uintptr_t lalr_item_hash_func(const void* d)
@@ -1260,8 +1258,8 @@ static inline int lalr_item_cmp(const FklLalrItem* i0,const FklLalrItem* i1)
 				return 1;
 			else
 			{
-				unsigned int f0=(s0->no_delim<<2)+(s0->skip_space<<1)+s0->repeat;
-				unsigned int f1=(s1->no_delim<<2)+(s1->skip_space<<1)+s1->repeat;
+				unsigned int f0=(s0->delim<<1)+s0->repeat;
+				unsigned int f1=(s1->delim<<1)+s1->repeat;
 				if(f0<f1)
 					return -1;
 				else if(f0>f1)
@@ -1437,15 +1435,14 @@ static void hash_grammer_sym_set_key(void* s0,const void* s1)
 static uintptr_t hash_grammer_sym_hash_func(const void* d)
 {
 	const FklGrammerSym* s=d;
-	return (s->isterm<<4)+(s->nt<<3)+(s->no_delim<<2)+(s->skip_space<<1)+s->repeat;
+	return (s->isterm<<3)+(s->nt<<2)+(s->delim<<1)+s->repeat;
 }
 
 static inline int grammer_sym_equal(const FklGrammerSym* s0,const FklGrammerSym* s1)
 {
 	return s0->isterm==s1->isterm
 		&&s0->nt==s1->nt
-		&&s0->no_delim==s1->no_delim
-		&&s0->skip_space==s1->skip_space
+		&&s0->delim==s1->delim
 		&&s0->repeat==s1->repeat;
 }
 
@@ -1674,8 +1671,7 @@ static inline int get_first_set(const FklGrammer* g
 				FklLalrItemLookAhead la=
 				{
 					.t=FKL_LALR_MATCH_STRING,
-					.no_delim=sym->no_delim,
-					.skip_space=sym->skip_space,
+					.delim=sym->delim,
 					.repeat=sym->repeat,
 					.u.s=s,
 				};
@@ -2240,6 +2236,19 @@ static inline int add_reduce_action(FklAnalysisState* curState
 	return 0;
 }
 
+static inline void* init_builtin_match(const FklLalrBuiltinMatch* m)
+{
+	if(m->ctx_create)
+		return m->ctx_create();
+	return NULL;
+}
+
+static inline void destroy_builtin_match(void* ctx,const FklLalrBuiltinMatch* m)
+{
+	if(m->ctx_destroy)
+		m->ctx_destroy(ctx);
+}
+
 static inline void clear_analysis_table(FklGrammer* g,size_t last)
 {
 	size_t end=last+1;
@@ -2248,6 +2257,8 @@ static inline void clear_analysis_table(FklGrammer* g,size_t last)
 	{
 		FklAnalysisState* curState=&states[i];
 		FklAnalysisStateAction* actions=curState->state.action;
+		if(actions->match.t==FKL_LALR_MATCH_BUILTIN)
+			destroy_builtin_match(actions->match.m.func.ctx,actions->match.m.func.t);
 		while(actions)
 		{
 			FklAnalysisStateAction* next=actions->next;
@@ -2321,7 +2332,7 @@ static inline FklAnalysisStateAction* create_builtin_ignore_action(const FklLalr
 	action->u.state=NULL;
 	action->match.t=FKL_LALR_MATCH_BUILTIN;
 	action->match.m.func.t=func;
-	action->match.m.func.ctx=NULL;
+	action->match.m.func.ctx=init_builtin_match(func);
 	return action;
 }
 
@@ -2378,7 +2389,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 			FklLalrItem* item=(FklLalrItem*)il->node->data;
 			FklGrammerSym* sym=get_item_next(item);
 			if(sym)
-				skip_space=sym->skip_space;
+				skip_space=sym->delim;
 			else
 			{
 				if(add_reduce_action(curState,item->prod,&item->la))
@@ -2387,7 +2398,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 					clear_analysis_table(grammer,idx);
 					goto break_loop;
 				}
-				if(item->la.skip_space)
+				if(item->la.delim)
 					skip_space=1;
 			}
 		}
@@ -2950,15 +2961,15 @@ static inline int is_state_action_match(const FklAnalysisStateActionMatch* match
 	return 0;
 }
 
-static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisState* states)
-{
-	for(size_t i=0;i<stateStack->top;i++)
-	{
-		const FklAnalysisState* curState=stateStack->base[i];
-		fprintf(stderr,"%lu ",curState-states);
-	}
-	fputc('\n',stderr);
-}
+// static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisState* states)
+// {
+// 	for(size_t i=0;i<stateStack->top;i++)
+// 	{
+// 		const FklAnalysisState* curState=stateStack->base[i];
+// 		fprintf(stderr,"%lu ",curState-states);
+// 	}
+// 	fputc('\n',stderr);
+// }
 
 int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* tokens)
 {
@@ -2974,7 +2985,7 @@ int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* toke
 	{
 		const FklAnalysisState* state=fklTopPtrStack(&stateStack);
 		const FklAnalysisStateAction* action=state->state.action;
-		dbg_print_state_stack(&stateStack,t->states);
+		// dbg_print_state_stack(&stateStack,t->states);
 		for(;action;action=action->next)
 			if(is_state_action_match(&action->match,cstr,&matchLen))
 				break;

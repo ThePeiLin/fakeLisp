@@ -41,8 +41,8 @@ typedef enum
 	FKL_LALR_MATCH_BUILTIN,
 }FklLalrMatchType;
 
-#define FKL_LALR_LOOKAHEAD_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,.u.fill=0})
-#define FKL_LALR_LOOKAHEAD_EOF_INIT ((FklLalrItemLookAhead){.delim=1,.t=FKL_LALR_MATCH_EOF,.u.fill=0})
+#define FKL_LALR_MATCH_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,.u.fill=0})
+#define FKL_LALR_MATCH_EOF_INIT ((FklLalrItemLookAhead){.delim=1,.t=FKL_LALR_MATCH_EOF,.u.fill=0})
 
 typedef struct
 {

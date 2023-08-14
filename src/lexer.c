@@ -1165,7 +1165,7 @@ static inline FklLalrItem lalr_item_init(FklGrammerProduction* prod,size_t idx,c
 	if(la)
 		item.la=*la;
 	else
-		item.la=FKL_LALR_LOOKAHEAD_NONE_INIT;
+		item.la=FKL_LALR_MATCH_NONE_INIT;
 	return item;
 }
 
@@ -1844,7 +1844,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 		FklLalrItem* i=(FklLalrItem*)il->node->data;
 		if(i->la.t==FKL_LALR_MATCH_NONE)
 		{
-			FklLalrItem item={.prod=i->prod,.idx=i->idx,.la=FKL_LALR_LOOKAHEAD_NONE_INIT};
+			FklLalrItem item={.prod=i->prod,.idx=i->idx,.la=FKL_LALR_MATCH_NONE_INIT};
 			fklPutHashItem(&item,&closure);
 			lr1_item_set_closure(&closure,g);
 			for(FklHashTableNodeList* cl=closure.list;cl;cl=cl->next)
@@ -1908,7 +1908,7 @@ static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g)
 	{
 		FklLalrItem* i=(FklLalrItem*)il->node->data;
 		FklLalrItem item=*i;
-		item.la=FKL_LALR_LOOKAHEAD_EOF_INIT;
+		item.la=FKL_LALR_MATCH_EOF_INIT;
 		fklPutHashItem(&item,s->items);
 	}
 }
@@ -2190,6 +2190,42 @@ static inline void init_action_with_look_ahead(FklAnalysisStateAction* action,co
 	}
 }
 
+// static const char* builtin_match_any_name(const void* ctx)
+// {
+// 	return "any";
+// }
+//
+// static int builtin_match_any_func(void* ctx,const char* s,size_t* matchLen)
+// {
+// 	*matchLen=1;
+// 	return 1;
+// }
+//
+// static const FklLalrBuiltinMatch builtin_match_any=
+// {
+// 	.name=builtin_match_any_name,
+// 	.match=builtin_match_any_func,
+// 	.ctx_equal=NULL,
+// 	.ctx_create=NULL,
+// 	.ctx_destroy=NULL,
+// };
+//
+// static inline void add_any_match_accept_action(FklAnalysisState* curState)
+// {
+// 	FklAnalysisStateAction* action=(FklAnalysisStateAction*)malloc(sizeof(FklAnalysisStateAction));
+// 	FKL_ASSERT(action);
+// 	action->next=NULL;
+// 	action->action=FKL_ANALYSIS_ACCEPT;
+// 	action->u.state=NULL;
+// 	action->match.t=FKL_LALR_MATCH_BUILTIN;
+// 	action->match.m.func.t=&builtin_match_any;
+// 	action->match.m.func.ctx=NULL;
+// 	FklAnalysisStateAction** pa=&curState->state.action;
+// 	for(;*pa;pa=&(*pa)->next);
+// 	action->next=*pa;
+// 	*pa=action;
+// }
+
 static inline int add_reduce_action(FklAnalysisState* curState
 		,const FklGrammerProduction* prod
 		,const FklLalrItemLookAhead* la)
@@ -2340,7 +2376,9 @@ static inline void add_skip_space_action(FklAnalysisState* curState)
 {
 	FklAnalysisStateAction* action=create_builtin_ignore_action(&builtin_match_space);
 	FklAnalysisStateAction** pa=&curState->state.action;
-	for(;*pa;pa=&(*pa)->next);
+	for(;*pa;pa=&(*pa)->next)
+		if((*pa)->match.t==FKL_LALR_MATCH_EOF)
+			break;
 	action->next=*pa;
 	*pa=action;
 }
@@ -2675,7 +2713,7 @@ static inline void print_look_ahead_for_grapheasy(const FklLalrItemLookAhead* la
 			}
 			break;
 		case FKL_LALR_MATCH_EOF:
-			fputs("$",fp);
+			fputc('$',fp);
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			fputs("%",fp);
@@ -2947,8 +2985,8 @@ static inline int is_state_action_match(const FklAnalysisStateActionMatch* match
 			}
 			break;
 		case FKL_LALR_MATCH_EOF:
-			if(!*cstr)
-				return 1;
+			*matchLen=1;
+			return 1;
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			if(match->m.func.t->match(match->m.func.ctx,cstr,matchLen))
@@ -2961,15 +2999,15 @@ static inline int is_state_action_match(const FklAnalysisStateActionMatch* match
 	return 0;
 }
 
-// static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisState* states)
-// {
-// 	for(size_t i=0;i<stateStack->top;i++)
-// 	{
-// 		const FklAnalysisState* curState=stateStack->base[i];
-// 		fprintf(stderr,"%lu ",curState-states);
-// 	}
-// 	fputc('\n',stderr);
-// }
+static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisState* states)
+{
+	for(size_t i=0;i<stateStack->top;i++)
+	{
+		const FklAnalysisState* curState=stateStack->base[i];
+		fprintf(stderr,"%lu ",curState-states);
+	}
+	fputc('\n',stderr);
+}
 
 int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* tokens)
 {
@@ -2985,7 +3023,7 @@ int fklParseForCstr(const FklAnalysisTable* t,const char* cstr,FklPtrStack* toke
 	{
 		const FklAnalysisState* state=fklTopPtrStack(&stateStack);
 		const FklAnalysisStateAction* action=state->state.action;
-		// dbg_print_state_stack(&stateStack,t->states);
+		dbg_print_state_stack(&stateStack,t->states);
 		for(;action;action=action->next)
 			if(is_state_action_match(&action->match,cstr,&matchLen))
 				break;

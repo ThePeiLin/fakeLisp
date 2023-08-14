@@ -23,6 +23,10 @@ typedef struct FklSymbolTable
 	FklSymTabNode** idl;
 }FklSymbolTable;
 
+void fklSetSidKey(void* k0,const void* k1);
+uintptr_t fklSidHashFunc(const void* k);
+int fklSidKeyEqual(const void* k0,const void* k1);
+
 FklSymbolTable* fklCreateSymbolTable();
 
 FklSymTabNode* fklCreateSymTabNode(const FklString*);

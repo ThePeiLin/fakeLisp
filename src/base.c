@@ -1896,7 +1896,7 @@ static inline uint32_t hash32shift(uint32_t k,uint32_t mask)
 	return k&mask;
 }
 
-void* fklGetHashItem(void* pkey,FklHashTable* ht)
+void* fklGetHashItem(void* pkey,const FklHashTable* ht)
 {
 	HASH_FUNC_HEADER;
 

@@ -10,12 +10,36 @@ extern "C"{
 #endif
 
 
+struct FklGrammerProduction;
+struct FklGrammer;
+typedef struct
+{
+	int (*match)(void* ctx,const char* str,size_t* matchLen);
+	int (*ctx_cmp)(const void* c0,const void* c1);
+	int (*ctx_equal)(const void* c0,const void* c1);
+	uintptr_t (*ctx_hash)(const void* c);
+	void* (*ctx_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g);
+	void (*ctx_destroy)(void*);
+	const char* (*name)(const void*);
+}FklLalrBuiltinMatch;
+
+typedef struct
+{
+	const FklLalrBuiltinMatch* t;
+	void* c;
+}FklLalrBuiltinGrammerSym;
+
 typedef struct FklGrammerSym
 {
-	FklSid_t nt:61;
-	unsigned int isterm:1;
 	unsigned int delim:1;
 	unsigned int repeat:1;
+	unsigned int isterm:1;
+	unsigned int isbuiltin:1;
+	union
+	{
+		FklSid_t nt:61;
+		FklLalrBuiltinGrammerSym b;
+	}u;
 }FklGrammerSym;
 
 typedef struct FklGrammerProduction
@@ -41,17 +65,8 @@ typedef enum
 	FKL_LALR_MATCH_BUILTIN,
 }FklLalrMatchType;
 
-#define FKL_LALR_MATCH_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,.u.fill=0})
-#define FKL_LALR_MATCH_EOF_INIT ((FklLalrItemLookAhead){.delim=1,.t=FKL_LALR_MATCH_EOF,.u.fill=0})
-
-typedef struct
-{
-	int (*match)(void* ctx,const char* str,size_t* matchLen);
-	int (*ctx_equal)(const void* c0,const void* c1);
-	void* (*ctx_create)(void);
-	void (*ctx_destroy)(void*);
-	const char* (*name)(const void*);
-}FklLalrBuiltinMatch;
+#define FKL_LALR_MATCH_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,})
+#define FKL_LALR_MATCH_EOF_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_EOF,})
 
 typedef struct
 {
@@ -61,8 +76,7 @@ typedef struct
 	union
 	{
 		const FklString* s;
-		const FklLalrBuiltinMatch* func;
-		uintptr_t fill;
+		FklLalrBuiltinGrammerSym b;
 	}u;
 }FklLalrItemLookAhead;
 
@@ -116,11 +130,7 @@ typedef struct
 	union
 	{
 		const FklString* str;
-		struct
-		{
-			const FklLalrBuiltinMatch* t;
-			void* ctx;
-		}func;
+		FklLalrBuiltinGrammerSym func;
 	}m;
 }FklAnalysisStateActionMatch;
 
@@ -158,15 +168,17 @@ typedef struct FklAnalysisTable
 	FklAnalysisState* states;
 }FklAnalysisTable;
 
-typedef struct
+typedef struct FklGrammer
 {
 	FklSymbolTable* terminals;
 
 	FklSid_t start;
-	FklHashTable* nonterminals;
+	FklHashTable nonterminals;
 
 	size_t prodNum;
-	FklHashTable* productions;
+	FklHashTable productions;
+
+	FklHashTable builtins;
 
 	FklAnalysisTable aTable;
 }FklGrammer;
@@ -174,6 +186,7 @@ typedef struct
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
+void fklDestroyGrammer(FklGrammer*);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
@@ -200,6 +213,7 @@ void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);
 
 int fklParseForCstr(const FklAnalysisTable* aTable,const char* str,FklPtrStack* stack);
+int fklParseForCstrDbg(const FklAnalysisTable* aTable,const char* str,FklPtrStack* stack);
 
 typedef enum
 {

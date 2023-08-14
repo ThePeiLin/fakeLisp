@@ -388,17 +388,17 @@ inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 	return pts;
 }
 
-static void fklSetSidKey(void* k0,const void* k1)
+void fklSetSidKey(void* k0,const void* k1)
 {
 	*(FklSid_t*)k0=*(const FklSid_t*)k1;
 }
 
-static uintptr_t fklSidHashFunc(const void* k)
+uintptr_t fklSidHashFunc(const void* k)
 {
 	return *(const FklSid_t*)k;
 }
 
-static int fklSidKeyEqual(const void* k0,const void* k1)
+int fklSidKeyEqual(const void* k0,const void* k1)
 {
 	return *(const FklSid_t*)k0==*(const FklSid_t*)k1;
 }

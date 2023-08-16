@@ -971,7 +971,8 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 		for(len=0;ss[len]&&!isspace(ss[len]);len++);
 		if(ss[0]=='+')
 			joint_num++;
-		fklPushPtrStack(fklCreateString(len,ss),&st);
+		if(len)
+			fklPushPtrStack(fklCreateString(len,ss),&st);
 		ss+=len;
 	}
 	size_t prod_len=st.top-joint_num;

@@ -870,7 +870,7 @@ static const FklLalrBuiltinMatch builtin_match_any=
 	.ctx_destroy=NULL,
 };
 
-static int builtin_lookahead_macth_func_space(void* ctx,const char* s,size_t* matchLen)
+static int builtin_macth_func_space(void* ctx,const char* s,size_t* matchLen)
 {
 	// if(isspace(*s))
 	// {
@@ -892,7 +892,29 @@ static const char* builtin_match_space_name(const void* ctx)
 static const FklLalrBuiltinMatch builtin_match_space=
 {
 	.name=builtin_match_space_name,
-	.match=builtin_lookahead_macth_func_space,
+	.match=builtin_macth_func_space,
+	.ctx_equal=NULL,
+	.ctx_create=NULL,
+	.ctx_destroy=NULL,
+};
+
+static const char* builtin_match_eol_name(const void* ctx)
+{
+	return "eol";
+}
+
+static int builtin_match_func_eol(void* ctx,const char* s,size_t* matchLen)
+{
+	size_t i=0;
+	for(;s[i]&&s[i]=='\n';i++);
+	*matchLen=i;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_eol=
+{
+	.name=builtin_match_eol_name,
+	.match=builtin_match_func_eol,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
 	.ctx_destroy=NULL,
@@ -1340,6 +1362,7 @@ static const struct BuiltinGrammerSymList
 	{"%any",&builtin_match_any,},
 	{"%space",&builtin_match_space,},
 	{"%qstr",&builtin_match_qstr,},
+	{"%eol",&builtin_match_eol,},
 	{NULL,NULL},
 };
 

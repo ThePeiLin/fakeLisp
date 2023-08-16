@@ -27,6 +27,7 @@ void fklStringCharBufCat(FklString**,const char* buf,size_t s);
 char* fklCstrStringCat(char*,const FklString*);
 int fklStringCmp(const FklString*,const FklString*);
 
+int fklStringCharBufCmp(const FklString*,size_t len,const char* buf);
 int fklStringCstrCmp(const FklString*,const char*);
 int fklStringCstrMatch(const FklString*,const char*);
 

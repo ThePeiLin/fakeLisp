@@ -1532,6 +1532,19 @@ int fklStringCstrCmp(const FklString* fir,const char* sec)
 	return strcmp(fir->str,sec);
 }
 
+int fklStringCharBufCmp(const FklString* fir,size_t len,const char* buf)
+{
+	size_t size=fir->size<len?fir->size:len;
+	int r=memcmp(fir->str,buf,size);
+	if(r)
+		return r;
+	else if(fir->size<len)
+		return -1;
+	else if(fir->size>len)
+		return 1;
+	return r;
+}
+
 int fklStringCstrMatch(const FklString* a,const char* b)
 {
 	return !strncmp(a->str,b,a->size);
@@ -2096,8 +2109,12 @@ int fklBytevectorCmp(const FklBytevector* fir,const FklBytevector* sec)
 {
 	size_t size=fir->size<sec->size?fir->size:sec->size;
 	int r=memcmp(fir->ptr,sec->ptr,size);
-	if(!r)
-		return (int64_t)fir->size-(int64_t)sec->size;
+	if(r)
+		return r;
+	else if(fir->size<sec->size)
+		return -1;
+	else if(fir->size>sec->size)
+		return 1;
 	return r;
 }
 

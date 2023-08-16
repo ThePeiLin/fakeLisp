@@ -12,13 +12,15 @@ extern "C"{
 
 struct FklGrammerProduction;
 struct FklGrammer;
+struct FklGrammerSym;
 typedef struct
 {
 	int (*match)(void* ctx,const char* str,size_t* matchLen);
 	int (*ctx_cmp)(const void* c0,const void* c1);
 	int (*ctx_equal)(const void* c0,const void* c1);
 	uintptr_t (*ctx_hash)(const void* c);
-	void* (*ctx_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g);
+	void* (*ctx_create)(const struct FklGrammerSym* next,const FklSymbolTable* tt);
+	void* (*ctx_global_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g);
 	void (*ctx_destroy)(void*);
 	const char* (*name)(const void*);
 }FklLalrBuiltinMatch;
@@ -165,6 +167,22 @@ typedef struct FklAnalysisTable
 	size_t num;
 	FklAnalysisState* states;
 }FklAnalysisTable;
+
+typedef struct
+{
+	union
+	{
+		const FklString* str;
+		FklLalrBuiltinGrammerSym b;
+	}u;
+	unsigned int isbuiltin:1;
+}FklGrammerIgnore;
+
+typedef struct
+{
+	size_t len;
+
+}FklGrammerIgnores;
 
 typedef struct FklGrammer
 {

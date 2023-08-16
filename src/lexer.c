@@ -815,6 +815,12 @@ static inline void destroy_prod(FklGrammerProduction* h)
 	free(h);
 }
 
+static inline void destroy_builtin_grammer_sym(const FklLalrBuiltinGrammerSym* s)
+{
+	if(s->t->ctx_destroy)
+		s->t->ctx_destroy(s->c);
+}
+
 static void prod_hash_uninit(void* d)
 {
 	ProdHashItem* prod=(ProdHashItem*)d;
@@ -822,6 +828,14 @@ static void prod_hash_uninit(void* d)
 	while(h)
 	{
 		FklGrammerProduction* next=h->next;
+		FklGrammerSym* syms=h->syms;
+		size_t len=h->len;
+		for(size_t i=0;i<len;i++)
+		{
+			FklGrammerSym* s=&syms[i];
+			if(s->isbuiltin)
+				destroy_builtin_grammer_sym(&s->u.b);
+		}
 		destroy_prod(h);
 		h=next;
 	}
@@ -867,6 +881,7 @@ static const FklLalrBuiltinMatch builtin_match_any=
 	.match=builtin_match_any_func,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
+	.ctx_global_create=NULL,
 	.ctx_destroy=NULL,
 };
 
@@ -895,6 +910,7 @@ static const FklLalrBuiltinMatch builtin_match_space=
 	.match=builtin_macth_func_space,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
+	.ctx_global_create=NULL,
 	.ctx_destroy=NULL,
 };
 
@@ -917,6 +933,7 @@ static const FklLalrBuiltinMatch builtin_match_eol=
 	.match=builtin_match_func_eol,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
+	.ctx_global_create=NULL,
 	.ctx_destroy=NULL,
 };
 
@@ -942,10 +959,19 @@ static const FklHashTableMetaTable SidBuiltinHashMetaTable=
 	.__uninitItem=fklDoNothingUnintHashItem,
 };
 
+static inline const FklGrammerSym* sym_at_idx(const FklGrammerProduction* prod,size_t i)
+{
+	if(i>=prod->len)
+		return NULL;
+	return &prod->syms[i];
+}
+
 static inline void* init_builtin_grammer_sym(const FklLalrBuiltinMatch* m,size_t i,FklGrammerProduction* prod,FklGrammer* g)
 {
+	if(m->ctx_global_create)
+		return m->ctx_global_create(i,prod,g);
 	if(m->ctx_create)
-		return m->ctx_create(i,prod,g);
+		return m->ctx_create(sym_at_idx(prod,i+1),g->terminals);
 	return NULL;
 }
 
@@ -1015,9 +1041,10 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 				}
 				break;
 		}
-		free(s);
 		symIdx++;
 	}
+	while(!fklIsPtrStackEmpty(&st))
+		free(fklPopPtrStack(&st));
 	fklUninitPtrStack(&st);
 	return prod;
 }
@@ -1085,10 +1112,13 @@ static inline int add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction* 
 	{
 		FklGrammerProduction** pp=&item->prods;
 		FklGrammerProduction* cur=NULL;
-		for(;*pp;pp=&((*pp)->next),cur=*pp)
+		for(;*pp;pp=&((*pp)->next))
 		{
 			if(prod_equal(*pp,prod))
+			{
+				cur=*pp;
 				break;
+			}
 		}
 		if(cur)
 		{
@@ -1269,19 +1299,19 @@ static uintptr_t builtin_match_qstr_hash(const void* c0)
 	return 0;
 }
 
-static void* builtin_match_qstr_create(size_t i,FklGrammerProduction* prod,FklGrammer* g)
+static void* builtin_match_qstr_create(const FklGrammerSym* next,const FklSymbolTable* tt)
 {
-	if(i>=prod->len)
+	if(!next)
 		return NULL;
-	FklGrammerSym* s=&prod->syms[i+1];
-	if(s->isterm)
+	if(next->isterm)
 	{
 		QuoteStringCtx* ctx=(QuoteStringCtx*)malloc(sizeof(QuoteStringCtx));
-		ctx->isbuiltin=s->isbuiltin;
+		FKL_ASSERT(ctx);
+		ctx->isbuiltin=next->isbuiltin;
 		if(ctx->isbuiltin)
-			ctx->u.b=&s->u.b;
+			ctx->u.b=&next->u.b;
 		else
-			ctx->u.s=fklGetSymbolWithId(s->u.nt,g->terminals)->symbol;
+			ctx->u.s=fklGetSymbolWithId(next->u.nt,tt)->symbol;
 		return ctx;
 	}
 	return NULL;
@@ -1351,6 +1381,7 @@ static const FklLalrBuiltinMatch builtin_match_qstr=
 	.ctx_equal=builtin_match_qstr_equal,
 	.ctx_hash=builtin_match_qstr_hash,
 	.ctx_create=builtin_match_qstr_create,
+	.ctx_global_create=NULL,
 	.ctx_destroy=builtin_match_qstr_destroy,
 };
 
@@ -1378,15 +1409,43 @@ static inline void init_builtin_grammer_sym_table(FklHashTable* s,FklSymbolTable
 	}
 }
 
+static inline void clear_analysis_table(FklGrammer* g,size_t last)
+{
+	size_t end=last+1;
+	FklAnalysisState* states=g->aTable.states;
+	for(size_t i=0;i<end;i++)
+	{
+		FklAnalysisState* curState=&states[i];
+		FklAnalysisStateAction* actions=curState->state.action;
+		while(actions)
+		{
+			FklAnalysisStateAction* next=actions->next;
+			free(actions);
+			actions=next;
+		}
+
+		FklAnalysisStateGoto* gt=curState->state.gt;
+		while(gt)
+		{
+			FklAnalysisStateGoto* next=gt->next;
+			free(gt);
+			gt=next;
+		}
+	}
+	free(states);
+	g->aTable.states=NULL;
+	g->aTable.num=0;
+}
+
 void fklDestroyGrammer(FklGrammer* g)
 {
 #warning incomplete
-}
-
-static inline void destroy_builtin_grammer_sym(const FklLalrBuiltinGrammerSym* s)
-{
-	if(s->t->ctx_destroy)
-		s->t->ctx_destroy(s->c);
+	fklUninitHashTable(&g->productions);
+	fklUninitHashTable(&g->builtins);
+	fklUninitHashTable(&g->nonterminals);
+	fklDestroySymbolTable(g->terminals);
+	clear_analysis_table(g,g->aTable.num-1);
+	free(g);
 }
 
 static inline void init_all_builtin_grammer_sym(FklGrammer* g)
@@ -1976,7 +2035,7 @@ static void item_set_uninit(void* d)
 	while(sp)
 	{
 		FklLookAheadSpreads* next=sp->next;
-		free(l);
+		free(sp);
 		sp=next;
 	}
 }
@@ -2283,8 +2342,6 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 	const FklGrammerSym* xsym=&x->sym;
 	FklHashTable closure;
 	init_empty_item_set(&closure);
-	FklHashTable spread;
-	fklInitHashTable(&spread,&LookAheadHashMetaTable);
 	for(FklHashTableNodeList* il=items->list;il;il=il->next)
 	{
 		FklLalrItem* i=(FklLalrItem*)il->node->data;
@@ -2309,6 +2366,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 			fklClearHashTable(&closure);
 		}
 	}
+	fklUninitHashTable(&closure);
 }
 
 static inline int lookahead_spread(FklLalrItemSet* itemset)
@@ -2688,34 +2746,6 @@ static inline int add_reduce_action(FklAnalysisState* curState
 		*pa=action;
 	}
 	return 0;
-}
-
-static inline void clear_analysis_table(FklGrammer* g,size_t last)
-{
-	size_t end=last+1;
-	FklAnalysisState* states=g->aTable.states;
-	for(size_t i=0;i<end;i++)
-	{
-		FklAnalysisState* curState=&states[i];
-		FklAnalysisStateAction* actions=curState->state.action;
-		while(actions)
-		{
-			FklAnalysisStateAction* next=actions->next;
-			free(actions);
-			actions=next;
-		}
-
-		FklAnalysisStateGoto* gt=curState->state.gt;
-		while(gt)
-		{
-			FklAnalysisStateGoto* next=gt->next;
-			free(gt);
-			gt=next;
-		}
-	}
-	free(states);
-	g->aTable.states=NULL;
-	g->aTable.num=0;
 }
 
 static inline void add_shift_action(FklAnalysisState* curState

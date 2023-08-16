@@ -31,6 +31,7 @@ FklSymbolTable* fklCreateSymbolTable();
 
 FklSymTabNode* fklCreateSymTabNode(const FklString*);
 FklSymTabNode* fklCreateSymTabNodeCstr(const char*);
+FklSymTabNode* fklCreateSymTabNodeCharBuf(size_t len,const char* buf);
 
 FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);

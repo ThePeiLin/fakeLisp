@@ -1,4 +1,3 @@
-#include "fakeLisp/base.h"
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/utils.h>
 #include<ctype.h>
@@ -22,6 +21,15 @@ FklSymTabNode* fklCreateSymTabNodeCstr(const char* symbol)
 	FKL_ASSERT(tmp);
 	tmp->id=0;
 	tmp->symbol=fklCreateStringFromCstr(symbol);
+	return tmp;
+}
+
+FklSymTabNode* fklCreateSymTabNodeCharBuf(size_t len,const char* buf)
+{
+	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
+	FKL_ASSERT(tmp);
+	tmp->id=0;
+	tmp->symbol=fklCreateString(len,buf);
 	return tmp;
 }
 
@@ -141,10 +149,9 @@ FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 FklSymTabNode* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* table)
 {
 	FklSymTabNode* node=NULL;
-	FklString* sym=fklCreateString(len,buf);
 	if(!table->list)
 	{
-		node=fklCreateSymTabNode(sym);
+		node=fklCreateSymTabNodeCharBuf(len,buf);
 		table->num=1;
 		node->id=table->num;
 		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
@@ -162,25 +169,24 @@ FklSymTabNode* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* ta
 		while(l<=h)
 		{
 			mid=l+(h-l)/2;
-			int r=fklStringCmp(table->list[mid]->symbol,sym);
+			int r=fklStringCharBufCmp(table->list[mid]->symbol,len,buf);
 			if(r>0)
 				h=mid-1;
 			else if(r<0)
 				l=mid+1;
 			else
 			{
-				free(sym);
 				node=table->list[mid];
 				return node;
 			}
 		}
-		if(fklStringCmp(table->list[mid]->symbol,sym)<=0)
+		if(fklStringCharBufCmp(table->list[mid]->symbol,len,buf)<=0)
 			mid++;
 		table->num+=1;
 		int64_t i=table->num-1;
 		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
 		FKL_ASSERT(table->list);
-		node=fklCreateSymTabNode(sym);
+		node=fklCreateSymTabNodeCharBuf(len,buf);
 		for(;i>mid;i--)
 			table->list[i]=table->list[i-1];
 		table->list[mid]=node;

@@ -32,7 +32,6 @@ typedef struct
 typedef struct FklGrammerSym
 {
 	unsigned int delim:1;
-	unsigned int repeat:1;
 	unsigned int isterm:1;
 	unsigned int isbuiltin:1;
 	union
@@ -72,7 +71,6 @@ typedef struct
 {
 	FklLalrMatchType t;
 	unsigned int delim:1;
-	unsigned int repeat:1;
 	union
 	{
 		const FklString* s;

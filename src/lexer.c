@@ -1008,7 +1008,6 @@ static inline int prod_sym_equal(const FklGrammerSym* u0,const FklGrammerSym* u1
 {
 	if(u0->isbuiltin==u1->isbuiltin
 			&&u0->delim==u1->delim
-			&&u0->repeat==u1->repeat
 			&&u0->isterm==u1->isterm)
 	{
 		if(u0->isbuiltin)
@@ -1153,8 +1152,8 @@ static inline int grammer_sym_cmp(const FklGrammerSym* s0,const FklGrammerSym* s
 			return 1;
 		else
 		{
-			unsigned int f0=(s0->delim<<1)+s0->repeat;
-			unsigned int f1=(s1->delim<<1)+s1->repeat;
+			unsigned int f0=(s0->delim<<1);
+			unsigned int f1=(s1->delim<<1);
 			if(f0<f1)
 				return -1;
 			else if(f0>f1)
@@ -1180,8 +1179,7 @@ static inline int grammer_sym_equal(const FklGrammerSym* s0,const FklGrammerSym*
 	return s0->isterm==s1->isterm
 		&&s0->isbuiltin==s1->isbuiltin
 		&&(s0->isbuiltin?builtin_grammer_sym_equal(&s0->u.b,&s1->u.b):s0->u.nt==s1->u.nt)
-		&&s0->delim==s1->delim
-		&&s0->repeat==s1->repeat;
+		&&s0->delim==s1->delim;
 }
 
 static uintptr_t builtin_grammer_sym_hash(const FklLalrBuiltinGrammerSym* s)
@@ -1195,8 +1193,7 @@ static inline uintptr_t grammer_sym_hash(const FklGrammerSym* s)
 {
 	return (s->isterm<<3)
 		+(s->isbuiltin?builtin_grammer_sym_hash(&s->u.b)<<2:s->u.nt<<2)
-		+(s->delim<<1)
-		+s->repeat;
+		+(s->delim<<1);
 }
 
 typedef struct
@@ -1510,8 +1507,7 @@ static void lalr_item_set_key(void* d0,const void* d1)
 static inline int lalr_look_ahead_equal(const FklLalrItemLookAhead* la0,const FklLalrItemLookAhead* la1)
 {
 	if(la0->t!=la1->t
-			||la0->delim!=la1->delim
-			||la0->repeat!=la1->repeat)
+			||la0->delim!=la1->delim)
 		return 0;
 	switch(la0->t)
 	{
@@ -1549,7 +1545,7 @@ static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la
 				?builtin_grammer_sym_hash(&la->u.b)
 				:0);
 
-	return rest+((uintptr_t)la->t)+(la->delim<<1)+(la->repeat);
+	return rest+((uintptr_t)la->t)+(la->delim<<1);
 }
 
 static uintptr_t lalr_item_hash_func(const void* d)
@@ -2079,7 +2075,6 @@ static inline int get_first_set(const FklGrammer* g
 				{
 					.t=FKL_LALR_MATCH_BUILTIN,
 					.delim=sym->delim,
-					.repeat=sym->repeat,
 					.u.b=sym->u.b,
 				};
 				fklPutHashItem(&la,first);
@@ -2099,7 +2094,6 @@ static inline int get_first_set(const FklGrammer* g
 					{
 						.t=FKL_LALR_MATCH_STRING,
 						.delim=sym->delim,
-						.repeat=sym->repeat,
 						.u.s=s,
 					};
 					fklPutHashItem(&la,first);

@@ -1507,17 +1507,284 @@ static const FklLalrBuiltinMatch builtin_match_qstr=
 	.ctx_destroy=builtin_match_qstr_destroy,
 };
 
+static const char* builtin_match_dec_int_name(const void* ctx)
+{
+	return "dec-int";
+}
+
+static inline size_t get_max_non_term_length(void* ctx)
+{
+	FKL_ASSERT(0);
+#warning incomplete
+}
+
+static int builtin_match_dec_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	// [-+]?(0|[1-9]\d*)
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(!maxLen)
+		return 0;
+	size_t len=0;
+	if(cstr[len]=='-'||cstr[len]=='+')
+		len++;
+	if(isdigit(cstr[len])&&cstr[len]!='0')
+		len++;
+	else
+		return 0;
+	for(;len<maxLen;len++)
+		if(!isdigit(cstr[len]))
+			return 0;
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_dec_int=
+{
+	.match=builtin_match_dec_int_func,
+	.name=builtin_match_dec_int_name,
+	.ctx_cmp=NULL,
+	.ctx_hash=NULL,
+	.ctx_equal=NULL,
+	.ctx_create=NULL,
+	.ctx_destroy=NULL,
+	.ctx_global_create=NULL,
+};
+
+static const char* builtin_match_hex_int_name(const void* c)
+{
+	return "hex-int";
+}
+
+static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	// [-+]?0[xX][0-9a-fA-F]+
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(maxLen<3)
+		return 0;
+	size_t len=0;
+	if(cstr[len]=='-'||cstr[len]=='+')
+		len++;
+	if(maxLen-len<3)
+		return 0;
+	if(cstr[len]=='0')
+		len++;
+	else
+		return 0;
+	if(cstr[len]=='x'||cstr[len]=='X')
+		len++;
+	else
+		return 0;
+	for(;len<maxLen;len++)
+		if(!isxdigit(cstr[len]))
+			return 0;
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_hex_int=
+{
+	.name=builtin_match_hex_int_name,
+	.match=builtin_match_hex_int_func,
+};
+
+static const char* builtin_match_oct_int_name(const void* c)
+{
+	return "oct-int";
+}
+
+static int builtin_match_oct_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	// [-+]?0[0-7]+
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(maxLen<2)
+		return 0;
+	size_t len=0;
+	if(cstr[len]=='-'||cstr[len]=='+')
+		len++;
+	if(maxLen-len<2)
+		return 0;
+	if(cstr[len]=='0')
+		len++;
+	else
+		return 0;
+	for(;len<maxLen;len++)
+		if(cstr[len]<'0'||cstr[len]>'7')
+			return 0;
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+
+static const FklLalrBuiltinMatch builtin_match_oct_int=
+{
+	.name=builtin_match_oct_int_name,
+	.match=builtin_match_oct_int_func,
+};
+
+static const char* builtin_match_dec_float_name(const void* c)
+{
+	return "dec-float";
+}
+
+static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+
+	// [-+]?(\.\d+([eE][-+]?\d+)?|\d+(\.\d*([eE][-+]?\d+)?|[eE][-+]?\d+))
+	if(maxLen<2)
+		return 0;
+	size_t len=0;
+	if(cstr[len]=='-'||cstr[len]=='+')
+		len++;
+	if(maxLen-len<2)
+		return 0;
+	if(cstr[len]=='.')
+	{
+		len++;
+		if(maxLen-len<1)
+			return 0;
+		for(;len<maxLen;len++)
+			if(!isdigit(cstr[len]))
+				break;
+		if(len==maxLen)
+			goto accept;
+		else if(cstr[len]=='e'||cstr[len]=='E')
+			goto after_e;
+		else
+			return 0;
+	}
+	else
+	{
+		for(;len<maxLen;len++)
+			if(!isdigit(cstr[len]))
+				break;
+		if(cstr[len]=='.')
+		{
+			len++;
+			for(;len<maxLen;len++)
+				if(!isdigit(cstr[len]))
+					break;
+			if(len==maxLen)
+				goto accept;
+			else if(cstr[len]=='e'||cstr[len]=='E')
+				goto after_e;
+			else
+				return 0;
+		}
+		else if(cstr[len]=='e'||cstr[len]=='E')
+		{
+after_e:
+			len++;
+			if(cstr[len]=='-'||cstr[len]=='+')
+				len++;
+			if(maxLen-len<1)
+				return 0;
+			for(;len<maxLen;len++)
+				if(!isdigit(cstr[len]))
+					return 0;
+		}
+		else
+			return 0;
+	}
+accept:
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_dec_float=
+{
+	.name=builtin_match_dec_float_name,
+	.match=builtin_match_dec_float_func,
+};
+
+static const char* builtin_match_hex_float_name(const void* ctx)
+{
+	return "hex-float";
+}
+
+static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+
+	// [-+]?(\.\d+|\d+(\.\d*(e\d+)?|e\d+))
+	if(maxLen<2)
+		return 0;
+	size_t len=0;
+	if(cstr[len]=='-'||cstr[len]=='+')
+		len++;
+	if(maxLen-len<2)
+		return 0;
+	if(cstr[len]=='.')
+	{
+		len++;
+		if(maxLen-len<1)
+			return 0;
+		for(;len<maxLen;len++)
+			if(!isdigit(cstr[len]))
+				return 0;
+	}
+	else
+	{
+		for(;len<maxLen;len++)
+			if(!isdigit(cstr[len]))
+				break;
+		if(cstr[len]=='.')
+		{
+			len++;
+			for(;len<maxLen;len++)
+				if(!isdigit(cstr[len]))
+					break;
+			if(cstr[len]=='e'||cstr[len]=='E')
+			{
+				len++;
+				if(maxLen-len<1)
+					return 0;
+				for(;len<maxLen;len++)
+					if(!isdigit(cstr[len]))
+						return 0;
+			}
+			else
+				return 0;
+		}
+		else if(cstr[len]=='e'||cstr[len]=='E')
+		{
+			len++;
+			if(maxLen-len<1)
+				return 0;
+			for(;len<maxLen;len++)
+				if(!isdigit(cstr[len]))
+					return 0;
+		}
+		else
+			return 0;
+	}
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_hex_float=
+{
+	.name=builtin_match_hex_float_name,
+	.match=builtin_match_hex_float_func,
+};
+
 static const struct BuiltinGrammerSymList
 {
 	const char* name;
 	const FklLalrBuiltinMatch* t;
 }builtin_grammer_sym_list[]=
 {
-	{"%any",&builtin_match_any,},
-	{"%space",&builtin_match_space,},
-	{"%qstr",&builtin_match_qstr,},
-	{"%eol",&builtin_match_eol,},
-	{NULL,NULL},
+	{"%any",        &builtin_match_any,        },
+	{"%space",      &builtin_match_space,      },
+	{"%qstr",       &builtin_match_qstr,       },
+	{"%eol",        &builtin_match_eol,        },
+	{"%dec-int",    &builtin_match_dec_int,    },
+	{"%hex-int",    &builtin_match_hex_int,    },
+	{"%hex-int",    &builtin_match_oct_int,    },
+	{"%dec-float",  &builtin_match_dec_float,  },
+	{"%hex-float",  &builtin_match_hex_float,  },
+	// {"%identifier", &builtin_match_identifier, },
+	{NULL,          NULL,                      },
 };
 
 static inline void init_builtin_grammer_sym_table(FklHashTable* s,FklSymbolTable* st)
@@ -1602,9 +1869,13 @@ static inline void init_all_builtin_grammer_sym(FklGrammer* g)
 				FklGrammerSym* u=&prod->syms[idx];
 				if(u->isbuiltin)
 				{
-					if(u->u.b.c)
+					if(!u->u.b.c)
+						u->u.b.c=init_builtin_grammer_sym(u->u.b.t,idx,prod,g);
+					else if(u->u.b.t->ctx_global_create)
+					{
 						destroy_builtin_grammer_sym(&u->u.b);
-					u->u.b.c=init_builtin_grammer_sym(u->u.b.t,idx,prod,g);
+						u->u.b.c=init_builtin_grammer_sym(u->u.b.t,idx,prod,g);
+					}
 				}
 			}
 		}

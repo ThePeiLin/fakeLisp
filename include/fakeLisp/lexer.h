@@ -176,13 +176,14 @@ typedef struct
 		FklLalrBuiltinGrammerSym b;
 	}u;
 	unsigned int isbuiltin:1;
-}FklGrammerIgnore;
+}FklGrammerIgnoreSym;
 
-typedef struct
+typedef struct FklGrammerIgnore
 {
+	struct FklGrammerIgnore* next;
 	size_t len;
-
-}FklGrammerIgnores;
+	FklGrammerIgnoreSym ig[];
+}FklGrammerIgnore;
 
 typedef struct FklGrammer
 {
@@ -195,6 +196,8 @@ typedef struct FklGrammer
 	FklHashTable productions;
 
 	FklHashTable builtins;
+
+	FklGrammerIgnore* ignores;
 
 	FklAnalysisTable aTable;
 }FklGrammer;

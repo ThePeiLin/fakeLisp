@@ -2787,7 +2787,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 		const FklHashTable* i=s->items;
 		ItemStateIdx* c=fklGetHashItem(&s,&idxTable);
 		idx=c->idx;
-		fprintf(fp,"\t\"I%lu\"[nojustify=true shape=\"box\" label=\"I%lu\\l\\\n"
+		fprintf(fp,"\t\"I%lu\"[fontname=\"Courier\" nojustify=true shape=\"box\" label=\"I%lu\\l\\\n"
 				,idx
 				,idx);
 		print_item_set_as_dot(i,g,st,fp);
@@ -2796,7 +2796,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 		{
 			FklLalrItemSet* dst=l->dst;
 			ItemStateIdx* c=fklGetHashItem(&dst,&idxTable);
-			fprintf(fp,"\tI%lu->I%lu[label=\"",idx,c->idx);
+			fprintf(fp,"\tI%lu->I%lu[fontname=\"Courier\" label=\"",idx,c->idx);
 			print_prod_sym_as_dot(fp,&l->sym,st,g->terminals);
 			fputs("\"]\n",fp);
 		}

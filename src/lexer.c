@@ -1507,28 +1507,21 @@ static const FklLalrBuiltinMatch builtin_match_qstr=
 	.ctx_destroy=builtin_match_qstr_destroy,
 };
 
-static const char* builtin_match_dec_int_name(const void* ctx)
-{
-	return "dec-int";
-}
-
-static inline size_t get_max_non_term_length(void* ctx)
-{
-	FKL_ASSERT(0);
-#warning incomplete
-}
-
-static int builtin_match_dec_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+static inline int is_dec_int(const char* cstr,size_t maxLen)
 {
 	// [-+]?(0|[1-9]\d*)
-	size_t maxLen=get_max_non_term_length(ctx);
 	if(!maxLen)
 		return 0;
 	size_t idx=0;
 	if(cstr[idx]=='-'||cstr[idx]=='+')
 		idx++;
-	if(cstr[idx]=='0'&&idx+1!=maxLen)
-		return 0;
+	if(cstr[idx]=='0')
+	{
+		if(idx+1==maxLen)
+			return 1;
+		else
+			return 0;
+	}
 	if(isdigit(cstr[idx])&&cstr[idx]!='0')
 		idx++;
 	else
@@ -1536,31 +1529,32 @@ static int builtin_match_dec_int_func(void* ctx,const char* cstr,size_t* pmatchL
 	for(;idx<maxLen;idx++)
 		if(!isdigit(cstr[idx]))
 			return 0;
-	*pmatchLen=maxLen;
 	return 1;
 }
 
-static const FklLalrBuiltinMatch builtin_match_dec_int=
+static inline int is_oct_int(const char* cstr,size_t maxLen)
 {
-	.match=builtin_match_dec_int_func,
-	.name=builtin_match_dec_int_name,
-	.ctx_cmp=NULL,
-	.ctx_hash=NULL,
-	.ctx_equal=NULL,
-	.ctx_create=NULL,
-	.ctx_destroy=NULL,
-	.ctx_global_create=NULL,
-};
-
-static const char* builtin_match_hex_int_name(const void* c)
-{
-	return "hex-int";
+	// [-+]?0[0-7]+
+	if(maxLen<2)
+		return 0;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<2)
+		return 0;
+	if(cstr[idx]=='0')
+		idx++;
+	else
+		return 0;
+	for(;idx<maxLen;idx++)
+		if(cstr[idx]<'0'||cstr[idx]>'7')
+			return 0;
+	return 1;
 }
 
-static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+static inline int is_hex_int(const char* cstr,size_t maxLen)
 {
 	// [-+]?0[xX][0-9a-fA-F]+
-	size_t maxLen=get_max_non_term_length(ctx);
 	if(maxLen<3)
 		return 0;
 	size_t idx=0;
@@ -1579,58 +1573,11 @@ static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchL
 	for(;idx<maxLen;idx++)
 		if(!isxdigit(cstr[idx]))
 			return 0;
-	*pmatchLen=maxLen;
 	return 1;
 }
 
-static const FklLalrBuiltinMatch builtin_match_hex_int=
+static inline int is_dec_float(const char* cstr,size_t maxLen)
 {
-	.name=builtin_match_hex_int_name,
-	.match=builtin_match_hex_int_func,
-};
-
-static const char* builtin_match_oct_int_name(const void* c)
-{
-	return "oct-int";
-}
-
-static int builtin_match_oct_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
-{
-	// [-+]?0[0-7]+
-	size_t maxLen=get_max_non_term_length(ctx);
-	if(maxLen<2)
-		return 0;
-	size_t idx=0;
-	if(cstr[idx]=='-'||cstr[idx]=='+')
-		idx++;
-	if(maxLen-idx<2)
-		return 0;
-	if(cstr[idx]=='0')
-		idx++;
-	else
-		return 0;
-	for(;idx<maxLen;idx++)
-		if(cstr[idx]<'0'||cstr[idx]>'7')
-			return 0;
-	*pmatchLen=maxLen;
-	return 1;
-}
-
-
-static const FklLalrBuiltinMatch builtin_match_oct_int=
-{
-	.name=builtin_match_oct_int_name,
-	.match=builtin_match_oct_int_func,
-};
-
-static const char* builtin_match_dec_float_name(const void* c)
-{
-	return "dec-float";
-}
-
-static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
-{
-	size_t maxLen=get_max_non_term_length(ctx);
 	// [-+]?(\.\d+([eE][-+]?\d+)?|\d+(\.\d*([eE][-+]?\d+)?|[eE][-+]?\d+))
 	if(maxLen<2)
 		return 0;
@@ -1642,7 +1589,7 @@ static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatc
 	if(cstr[idx]=='.')
 	{
 		idx++;
-		if(maxLen-idx<1)
+		if(maxLen-idx<1||cstr[idx]=='e'||cstr[idx]=='E')
 			return 0;
 		goto after_dot;
 	}
@@ -1661,7 +1608,7 @@ after_dot:
 				if(!isdigit(cstr[idx]))
 					break;
 			if(idx==maxLen)
-				goto accept;
+				return 1;
 			else if(cstr[idx]=='e'||cstr[idx]=='E')
 				goto after_e;
 			else
@@ -1682,25 +1629,11 @@ after_e:
 		else
 			return 0;
 	}
-accept:
-	*pmatchLen=maxLen;
 	return 1;
 }
 
-static const FklLalrBuiltinMatch builtin_match_dec_float=
+static inline int is_hex_float(const char* cstr,size_t maxLen)
 {
-	.name=builtin_match_dec_float_name,
-	.match=builtin_match_dec_float_func,
-};
-
-static const char* builtin_match_hex_float_name(const void* ctx)
-{
-	return "hex-float";
-}
-
-static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
-{
-	size_t maxLen=get_max_non_term_length(ctx);
 	// [-+]?0[xX](\.[0-9a-fA-F]+[pP][-+]?[0-9a-fA-F]+|[0-9a-fA-F]+(\.[0-9a-fA-F]*[pP][-+]?[0-9a-fA-F]+|[pP][-+]?[0-9a-fA-F]+))
 	if(maxLen<5)
 		return 0;
@@ -1720,7 +1653,7 @@ static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatc
 	if(cstr[idx]=='.')
 	{
 		idx++;
-		if(maxLen-idx<3)
+		if(maxLen-idx<3||cstr[idx]=='p'||cstr[idx]=='P')
 			return 0;
 		goto after_dot;
 	}
@@ -1760,14 +1693,181 @@ after_p:
 		else
 			return 0;
 	}
-	*pmatchLen=maxLen;
 	return 1;
+}
+
+static const char* builtin_match_dec_int_name(const void* ctx)
+{
+	return "dec-int";
+}
+
+static inline size_t get_max_non_term_length(void* ctx)
+{
+	FKL_ASSERT(0);
+#warning incomplete
+}
+
+static int builtin_match_dec_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(is_dec_int(cstr,maxLen))
+	{
+		*pmatchLen=maxLen;
+		return 1;
+	}
+	return 0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_dec_int=
+{
+	.match=builtin_match_dec_int_func,
+	.name=builtin_match_dec_int_name,
+	.ctx_cmp=NULL,
+	.ctx_hash=NULL,
+	.ctx_equal=NULL,
+	.ctx_create=NULL,
+	.ctx_destroy=NULL,
+	.ctx_global_create=NULL,
+};
+
+static const char* builtin_match_hex_int_name(const void* c)
+{
+	return "hex-int";
+}
+
+static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(is_hex_int(cstr,maxLen))
+	{
+		*pmatchLen=maxLen;
+		return 1;
+	}
+	return 0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_hex_int=
+{
+	.name=builtin_match_hex_int_name,
+	.match=builtin_match_hex_int_func,
+};
+
+static const char* builtin_match_oct_int_name(const void* c)
+{
+	return "oct-int";
+}
+
+static int builtin_match_oct_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(is_oct_int(cstr,maxLen))
+	{
+		*pmatchLen=maxLen;
+		return 1;
+	}
+	return 0;
+}
+
+
+static const FklLalrBuiltinMatch builtin_match_oct_int=
+{
+	.name=builtin_match_oct_int_name,
+	.match=builtin_match_oct_int_func,
+};
+
+static const char* builtin_match_dec_float_name(const void* c)
+{
+	return "dec-float";
+}
+
+static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(is_dec_float(cstr,maxLen))
+	{
+		*pmatchLen=maxLen;
+		return 1;
+	}
+	return 0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_dec_float=
+{
+	.name=builtin_match_dec_float_name,
+	.match=builtin_match_dec_float_func,
+};
+
+static const char* builtin_match_hex_float_name(const void* ctx)
+{
+	return "hex-float";
+}
+
+static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(is_hex_float(cstr,maxLen))
+	{
+		*pmatchLen=maxLen;
+		return 1;
+	}
+	return 0;
 }
 
 static const FklLalrBuiltinMatch builtin_match_hex_float=
 {
 	.name=builtin_match_hex_float_name,
 	.match=builtin_match_hex_float_func,
+};
+
+static const char* builtin_match_number_name(const void* ctx)
+{
+	return "number";
+}
+
+static int builtin_match_number_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(maxLen&&(is_dec_int(cstr,maxLen)
+				||is_oct_int(cstr,maxLen)
+				||is_hex_int(cstr,maxLen)
+				||is_dec_float(cstr,maxLen)
+				||is_hex_float(cstr,maxLen)))
+	{
+		*pmatchLen=maxLen;
+		return 1;
+	}
+	return 0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_number=
+{
+	.name=builtin_match_number_name,
+	.match=builtin_match_number_func,
+};
+
+static const char* builtin_match_identifier_name(const void* ctx)
+{
+	return "identifier";
+}
+
+static int builtin_match_identifier_func(void* ctx,const char* cstr,size_t* pmatchLen)
+{
+	size_t maxLen=get_max_non_term_length(ctx);
+	if(!maxLen
+			||is_dec_int(cstr,maxLen)
+			||is_oct_int(cstr,maxLen)
+			||is_hex_int(cstr,maxLen)
+			||is_dec_float(cstr,maxLen)
+			||is_hex_float(cstr,maxLen))
+		return 0;
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_identifier=
+{
+	.name=builtin_match_identifier_name,
+	.match=builtin_match_identifier_func,
 };
 
 static const struct BuiltinGrammerSymList
@@ -1785,7 +1885,8 @@ static const struct BuiltinGrammerSymList
 	{"%hex-int",    &builtin_match_oct_int,    },
 	{"%dec-float",  &builtin_match_dec_float,  },
 	{"%hex-float",  &builtin_match_hex_float,  },
-	// {"%identifier", &builtin_match_identifier, },
+	{"%number",     &builtin_match_number,     },
+	{"%identifier", &builtin_match_identifier, },
 	{NULL,          NULL,                      },
 };
 

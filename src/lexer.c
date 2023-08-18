@@ -1524,15 +1524,17 @@ static int builtin_match_dec_int_func(void* ctx,const char* cstr,size_t* pmatchL
 	size_t maxLen=get_max_non_term_length(ctx);
 	if(!maxLen)
 		return 0;
-	size_t len=0;
-	if(cstr[len]=='-'||cstr[len]=='+')
-		len++;
-	if(isdigit(cstr[len])&&cstr[len]!='0')
-		len++;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(cstr[idx]=='0'&&idx+1!=maxLen)
+		return 0;
+	if(isdigit(cstr[idx])&&cstr[idx]!='0')
+		idx++;
 	else
 		return 0;
-	for(;len<maxLen;len++)
-		if(!isdigit(cstr[len]))
+	for(;idx<maxLen;idx++)
+		if(!isdigit(cstr[idx]))
 			return 0;
 	*pmatchLen=maxLen;
 	return 1;
@@ -1561,21 +1563,21 @@ static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchL
 	size_t maxLen=get_max_non_term_length(ctx);
 	if(maxLen<3)
 		return 0;
-	size_t len=0;
-	if(cstr[len]=='-'||cstr[len]=='+')
-		len++;
-	if(maxLen-len<3)
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<3)
 		return 0;
-	if(cstr[len]=='0')
-		len++;
+	if(cstr[idx]=='0')
+		idx++;
 	else
 		return 0;
-	if(cstr[len]=='x'||cstr[len]=='X')
-		len++;
+	if(cstr[idx]=='x'||cstr[idx]=='X')
+		idx++;
 	else
 		return 0;
-	for(;len<maxLen;len++)
-		if(!isxdigit(cstr[len]))
+	for(;idx<maxLen;idx++)
+		if(!isxdigit(cstr[idx]))
 			return 0;
 	*pmatchLen=maxLen;
 	return 1;
@@ -1598,17 +1600,17 @@ static int builtin_match_oct_int_func(void* ctx,const char* cstr,size_t* pmatchL
 	size_t maxLen=get_max_non_term_length(ctx);
 	if(maxLen<2)
 		return 0;
-	size_t len=0;
-	if(cstr[len]=='-'||cstr[len]=='+')
-		len++;
-	if(maxLen-len<2)
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<2)
 		return 0;
-	if(cstr[len]=='0')
-		len++;
+	if(cstr[idx]=='0')
+		idx++;
 	else
 		return 0;
-	for(;len<maxLen;len++)
-		if(cstr[len]<'0'||cstr[len]>'7')
+	for(;idx<maxLen;idx++)
+		if(cstr[idx]<'0'||cstr[idx]>'7')
 			return 0;
 	*pmatchLen=maxLen;
 	return 1;
@@ -1629,58 +1631,52 @@ static const char* builtin_match_dec_float_name(const void* c)
 static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
 	size_t maxLen=get_max_non_term_length(ctx);
-
 	// [-+]?(\.\d+([eE][-+]?\d+)?|\d+(\.\d*([eE][-+]?\d+)?|[eE][-+]?\d+))
 	if(maxLen<2)
 		return 0;
-	size_t len=0;
-	if(cstr[len]=='-'||cstr[len]=='+')
-		len++;
-	if(maxLen-len<2)
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<2)
 		return 0;
-	if(cstr[len]=='.')
+	if(cstr[idx]=='.')
 	{
-		len++;
-		if(maxLen-len<1)
+		idx++;
+		if(maxLen-idx<1)
 			return 0;
-		for(;len<maxLen;len++)
-			if(!isdigit(cstr[len]))
-				break;
-		if(len==maxLen)
-			goto accept;
-		else if(cstr[len]=='e'||cstr[len]=='E')
-			goto after_e;
-		else
-			return 0;
+		goto after_dot;
 	}
 	else
 	{
-		for(;len<maxLen;len++)
-			if(!isdigit(cstr[len]))
+		for(;idx<maxLen;idx++)
+			if(!isdigit(cstr[idx]))
 				break;
-		if(cstr[len]=='.')
+		if(idx==maxLen)
+			return 0;
+		if(cstr[idx]=='.')
 		{
-			len++;
-			for(;len<maxLen;len++)
-				if(!isdigit(cstr[len]))
+			idx++;
+after_dot:
+			for(;idx<maxLen;idx++)
+				if(!isdigit(cstr[idx]))
 					break;
-			if(len==maxLen)
+			if(idx==maxLen)
 				goto accept;
-			else if(cstr[len]=='e'||cstr[len]=='E')
+			else if(cstr[idx]=='e'||cstr[idx]=='E')
 				goto after_e;
 			else
 				return 0;
 		}
-		else if(cstr[len]=='e'||cstr[len]=='E')
+		else if(cstr[idx]=='e'||cstr[idx]=='E')
 		{
 after_e:
-			len++;
-			if(cstr[len]=='-'||cstr[len]=='+')
-				len++;
-			if(maxLen-len<1)
+			idx++;
+			if(cstr[idx]=='-'||cstr[idx]=='+')
+				idx++;
+			if(maxLen-idx<1)
 				return 0;
-			for(;len<maxLen;len++)
-				if(!isdigit(cstr[len]))
+			for(;idx<maxLen;idx++)
+				if(!isdigit(cstr[idx]))
 					return 0;
 		}
 		else
@@ -1705,54 +1701,60 @@ static const char* builtin_match_hex_float_name(const void* ctx)
 static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
 	size_t maxLen=get_max_non_term_length(ctx);
-
-	// [-+]?(\.\d+|\d+(\.\d*(e\d+)?|e\d+))
-	if(maxLen<2)
+	// [-+]?0[xX](\.[0-9a-fA-F]+[pP][-+]?[0-9a-fA-F]+|[0-9a-fA-F]+(\.[0-9a-fA-F]*[pP][-+]?[0-9a-fA-F]+|[pP][-+]?[0-9a-fA-F]+))
+	if(maxLen<5)
 		return 0;
-	size_t len=0;
-	if(cstr[len]=='-'||cstr[len]=='+')
-		len++;
-	if(maxLen-len<2)
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<5)
 		return 0;
-	if(cstr[len]=='.')
+	if(cstr[idx]=='0')
+		idx++;
+	else
+		return 0;
+	if(cstr[idx]=='x'||cstr[idx]=='X')
+		idx++;
+	else
+		return 0;
+	if(cstr[idx]=='.')
 	{
-		len++;
-		if(maxLen-len<1)
+		idx++;
+		if(maxLen-idx<3)
 			return 0;
-		for(;len<maxLen;len++)
-			if(!isdigit(cstr[len]))
-				return 0;
+		goto after_dot;
 	}
 	else
 	{
-		for(;len<maxLen;len++)
-			if(!isdigit(cstr[len]))
+		for(;idx<maxLen;idx++)
+			if(!isxdigit(cstr[idx]))
 				break;
-		if(cstr[len]=='.')
+		if(idx==maxLen)
+			return 0;
+		if(cstr[idx]=='.')
 		{
-			len++;
-			for(;len<maxLen;len++)
-				if(!isdigit(cstr[len]))
+			idx++;
+after_dot:
+			for(;idx<maxLen;idx++)
+				if(!isxdigit(cstr[idx]))
 					break;
-			if(cstr[len]=='e'||cstr[len]=='E')
-			{
-				len++;
-				if(maxLen-len<1)
-					return 0;
-				for(;len<maxLen;len++)
-					if(!isdigit(cstr[len]))
-						return 0;
-			}
+			if(idx==maxLen)
+				return 0;
+			else if(cstr[idx]=='p'||cstr[idx]=='P')
+				goto after_p;
 			else
 				return 0;
 		}
-		else if(cstr[len]=='e'||cstr[len]=='E')
+		else if(cstr[idx]=='p'||cstr[idx]=='P')
 		{
-			len++;
-			if(maxLen-len<1)
+after_p:
+			idx++;
+			if(cstr[idx]=='-'||cstr[idx]=='+')
+				idx++;
+			if(maxLen-idx<1)
 				return 0;
-			for(;len<maxLen;len++)
-				if(!isdigit(cstr[len]))
+			for(;idx<maxLen;idx++)
+				if(!isxdigit(cstr[idx]))
 					return 0;
 		}
 		else

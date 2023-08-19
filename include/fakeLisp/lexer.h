@@ -38,7 +38,7 @@ typedef struct FklGrammerSym
 	unsigned int isbuiltin:1;
 	union
 	{
-		FklSid_t nt:61;
+		FklSid_t nt;
 		FklLalrBuiltinGrammerSym b;
 	}u;
 }FklGrammerSym;

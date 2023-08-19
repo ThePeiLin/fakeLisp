@@ -97,6 +97,14 @@ typedef struct FklHashTableNodeList
 	struct FklHashTableNodeList* next;
 }FklHashTableNodeList;
 
+typedef struct FKlHashTableItem
+{
+	struct FklHashTableItem* prev;
+	struct FklHashTableItem* next;
+	struct FklHashTableItem* ni;
+	uint8_t data[];
+}FklHashTableItem;
+
 typedef struct FklHashTable
 {
 	FklHashTableNode** base;
@@ -128,6 +136,7 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
 void* fklGetHashItem(void* key,const FklHashTable*);
 void* fklPutHashItem(void* key,FklHashTable*);
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
+void fklDelHashItem(void* key,FklHashTable*);
 void fklClearHashTable(FklHashTable* ht);
 void fklUninitHashTable(FklHashTable*);
 void fklDestroyHashTable(FklHashTable*);

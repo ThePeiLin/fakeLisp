@@ -19,8 +19,8 @@ typedef struct
 	int (*ctx_cmp)(const void* c0,const void* c1);
 	int (*ctx_equal)(const void* c0,const void* c1);
 	uintptr_t (*ctx_hash)(const void* c);
-	void* (*ctx_create)(const struct FklGrammerSym* next,const FklSymbolTable* tt);
-	void* (*ctx_global_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g);
+	void* (*ctx_create)(const struct FklGrammerSym* next,const FklSymbolTable* tt,int* failed);
+	void* (*ctx_global_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g,int* failed);
 	void (*ctx_destroy)(void*);
 	const char* (*name)(const void*);
 }FklLalrBuiltinMatch;

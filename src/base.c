@@ -1894,7 +1894,7 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 	return r;
 }
 
-#define HASH_FUNC_HEADER uintptr_t (*hashv)(const void*)=ht->t->__hashFunc;\
+#define HASH_FUNC_HEADER() uintptr_t (*hashv)(const void*)=ht->t->__hashFunc;\
 	void* (*key)(void*)=ht->t->__getKey;\
 	int (*keq)(const void*,const void*)=ht->t->__keyEqual;\
 
@@ -1911,7 +1911,7 @@ static inline uint32_t hash32shift(uint32_t k,uint32_t mask)
 
 void* fklGetHashItem(void* pkey,const FklHashTable* ht)
 {
-	HASH_FUNC_HEADER;
+	HASH_FUNC_HEADER();
 
 	for(FklHashTableNode* p=ht->base[hash32shift(hashv(pkey),ht->mask)];p;p=p->next)
 		if(keq(pkey,key(p->data)))
@@ -1960,9 +1960,11 @@ static inline uint32_t next_pow2(uint32_t n)
 
 inline void fklClearHashTable(FklHashTable* ht)
 {
+	void (*uninitFunc)(void*)=ht->t->__uninitItem;
 	for(FklHashTableNodeList* list=ht->list;list;)
 	{
 		FklHashTableNodeList* cur=list;
+		uninitFunc(cur->node->data);
 		free(list->node);
 		list=list->next;
 		free(cur);
@@ -1993,9 +1995,34 @@ static inline void expandHashTable(FklHashTable* table)
 		putHashNode(list->node,table);
 }
 
+void fklDelHashItem(void* pkey,FklHashTable* ht)
+{
+	HASH_FUNC_HEADER();
+	FklHashTableNode** p=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	for(;*p;p=&(*p)->next)
+		if(keq(pkey,key((*p)->data)))
+			break;
+
+	FklHashTableNode* node=*p;
+	if(node)
+	{
+		*p=node->next;
+		FklHashTableNodeList** list=&ht->list;
+		for(;(*list)->node!=node;list=&(*list)->next);
+		FklHashTableNodeList* listNode=*list;
+		if(ht->tail==&listNode->next)
+			ht->tail=list;
+		*list=listNode->next;
+		void (*uninitFunc)(void*)=ht->t->__uninitItem;
+		uninitFunc(node->data);
+		free(node);
+		free(listNode);
+	}
+}
+
 void* fklPutHashItem(void* pkey,FklHashTable* ht)
 {
-	HASH_FUNC_HEADER;
+	HASH_FUNC_HEADER();
 
 	FklHashTableNode** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
 	int i=0;
@@ -2019,7 +2046,7 @@ void* fklPutHashItem(void* pkey,FklHashTable* ht)
 
 void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 {
-	HASH_FUNC_HEADER;
+	HASH_FUNC_HEADER();
 	void* pkey=key(data);
 	FklHashTableNode** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
 	int i=0;

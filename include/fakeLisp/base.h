@@ -85,19 +85,7 @@ void fklPrintRawBytevector(const FklBytevector* str,FILE* fp);
 FklString* fklBytevectorToString(const FklBytevector*);
 void fklPrintBytevectorToStringBuffer(FklStringBuffer*,const FklBytevector* bvec);
 
-typedef struct FklHashTableNode
-{
-	struct FklHashTableNode* next;
-	uint8_t data[];
-}FklHashTableNode;
-
-typedef struct FklHashTableNodeList
-{
-	FklHashTableNode* node;
-	struct FklHashTableNodeList* next;
-}FklHashTableNodeList;
-
-typedef struct FKlHashTableItem
+typedef struct FklHashTableItem
 {
 	struct FklHashTableItem* prev;
 	struct FklHashTableItem* next;
@@ -107,9 +95,9 @@ typedef struct FKlHashTableItem
 
 typedef struct FklHashTable
 {
-	FklHashTableNode** base;
-	FklHashTableNodeList* list;
-	FklHashTableNodeList** tail;
+	FklHashTableItem** base;
+	FklHashTableItem* first;
+	FklHashTableItem* last;
 	const struct FklHashTableMetaTable* t;
 	uint32_t num;
 	uint32_t size;

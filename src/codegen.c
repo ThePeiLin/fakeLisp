@@ -345,10 +345,10 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 	FklSymbolDef* ref=NULL;
 	while(env)
 	{
-		FklHashTableNodeList* list=env->refs->list;
+		FklHashTableItem* list=env->refs->first;
 		for(;list;list=list->next)
 		{
-			FklSymbolDef* def=(FklSymbolDef*)list->node->data;
+			FklSymbolDef* def=(FklSymbolDef*)list->data;
 			if(def->idx==idx)
 			{
 				if(def->isLocal)
@@ -1494,9 +1494,9 @@ static inline FklSid_t get_sid_with_idx(FklCodegenEnvScope* sc
 		,FklSymbolTable* ps
 		,FklSymbolTable* gs)
 {
-	for(FklHashTableNodeList* l=sc->defs->list;l;l=l->next)
+	for(FklHashTableItem* l=sc->defs->first;l;l=l->next)
 	{
-		FklSymbolDef* def=(FklSymbolDef*)l->node->data;
+		FklSymbolDef* def=(FklSymbolDef*)l->data;
 		if(def->idx==idx)
 			return get_sid_in_gs_with_id_in_ps(def->k.id,ps,gs);
 	}
@@ -1508,9 +1508,9 @@ static inline FklSid_t get_sid_with_ref_idx(FklHashTable* refs
 		,FklSymbolTable* ps
 		,FklSymbolTable* gs)
 {
-	for(FklHashTableNodeList* l=refs->list;l;l=l->next)
+	for(FklHashTableItem* l=refs->first;l;l=l->next)
 	{
-		FklSymbolDef* def=(FklSymbolDef*)l->node->data;
+		FklSymbolDef* def=(FklSymbolDef*)l->data;
 		if(def->idx==idx)
 			return get_sid_in_gs_with_id_in_ps(def->k.id,ps,gs);
 	}
@@ -1689,9 +1689,9 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTabl
 {
 	FklSymbolDef* refs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*sht->num);
 	FKL_ASSERT(refs);
-	for(FklHashTableNodeList* list=sht->list;list;list=list->next)
+	for(FklHashTableItem* list=sht->first;list;list=list->next)
 	{
-		FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
+		FklSymbolDef* sd=(FklSymbolDef*)list->data;
 		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={{sid,0},sd->idx,sd->cidx,sd->isLocal};
 		refs[sd->idx]=ref;
@@ -2040,9 +2040,9 @@ inline void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbo
 	FKL_ASSERT(refs||!count);
 	pts->refs=refs;
 	pts->rcount=count;
-	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
+	for(FklHashTableItem* list=eht->first;list;list=list->next)
 	{
-		FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
+		FklSymbolDef* sd=(FklSymbolDef*)list->data;
 		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={.k.id=sid,
 			.k.scope=sd->k.scope,
@@ -2541,10 +2541,10 @@ static inline void mark_modify_builtin_ref(uint32_t idx
 	FklSymbolDef* ref=NULL;
 	while(env)
 	{
-		FklHashTableNodeList* list=env->refs->list;
+		FklHashTableItem* list=env->refs->first;
 		for(;list;list=list->next)
 		{
-			FklSymbolDef* def=(FklSymbolDef*)list->node->data;
+			FklSymbolDef* def=(FklSymbolDef*)list->data;
 			if(def->idx==idx)
 			{
 				if(def->isLocal)
@@ -2699,9 +2699,9 @@ BC_PROCESS(_export_macro_bc_process)
 		add_compiler_macro(&codegen->exportM,fklMakeNastNodeRef(cur->pattern),cur->bcl,cur->pts,1);
 		add_compiler_macro(&oms->head,fklMakeNastNodeRef(cur->pattern),cur->bcl,cur->pts,0);
 	}
-	for(FklHashTableNodeList* cur=cms->replacements->list;cur;cur=cur->next)
+	for(FklHashTableItem* cur=cms->replacements->first;cur;cur=cur->next)
 	{
-		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->node->data;
+		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
 		fklAddReplacementBySid(rep->id,rep->node,codegen->exportR);
 		fklAddReplacementBySid(rep->id,rep->node,oms->replacements);
 	}
@@ -3958,9 +3958,9 @@ static inline void export_replacement_with_prefix(FklHashTable* replacements
 		,FklSymbolTable* publicSymbolTable
 		,FklString* prefix)
 {
-	for(FklHashTableNodeList* cur=replacements->list;cur;cur=cur->next)
+	for(FklHashTableItem* cur=replacements->first;cur;cur=cur->next)
 	{
-		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->node->data;
+		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
 		FklString* origSymbol=fklGetSymbolWithId(rep->id,publicSymbolTable)->symbol;
 		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
 		FklSid_t id=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
@@ -4058,9 +4058,9 @@ static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 				,cur->pts
 				,0);
 
-	for(FklHashTableNodeList* cur=lib->replacements->list;cur;cur=cur->next)
+	for(FklHashTableItem* cur=lib->replacements->first;cur;cur=cur->next)
 	{
-		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->node->data;
+		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
 		fklAddReplacementBySid(rep->id,rep->node,macroScope->replacements);
 	}
 
@@ -4229,9 +4229,9 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 		}
 	}
 
-	for(FklHashTableNodeList* reps=replace->list;reps;reps=reps->next)
+	for(FklHashTableItem* reps=replace->first;reps;reps=reps->next)
 	{
-		FklCodegenReplacement* rep=(FklCodegenReplacement*)reps->node->data;
+		FklCodegenReplacement* rep=(FklCodegenReplacement*)reps->data;
 		if(!is_in_except_list(except,rep->id))
 			fklAddReplacementBySid(rep->id,rep->node,macroScope->replacements);
 	}
@@ -4483,9 +4483,9 @@ BC_PROCESS(_export_import_bc_process)
 	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 
-	for(FklHashTableNodeList* list=defs->list;list;list=list->next)
+	for(FklHashTableItem* list=defs->first;list;list=list->next)
 	{
-		FklSymbolDef* def=(FklSymbolDef*)(list->node->data);
+		FklSymbolDef* def=(FklSymbolDef*)(list->data);
 		FklSid_t idp=def->k.id;
 		fklAddCodegenDefBySid(idp,1,targetEnv);
 		FklSid_t id=fklAddSymbol(fklGetSymbolWithId(idp,publicSymbolTable)->symbol
@@ -4538,9 +4538,9 @@ BC_PROCESS(_export_import_bc_process)
 				,head->pts,0);
 	}
 
-	for(FklHashTableNodeList* cur=env->macros->replacements->list;cur;cur=cur->next)
+	for(FklHashTableItem* cur=env->macros->replacements->first;cur;cur=cur->next)
 	{
-		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->node->data;
+		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
 		fklAddReplacementBySid(rep->id,rep->node,codegen->exportR);
 		fklAddReplacementBySid(rep->id,rep->node,macros->replacements);
 	}
@@ -5762,11 +5762,11 @@ static CODEGEN_FUNC(codegen_defmacro)
 				return;
 			}
 			FklCodegenEnv* macroEnv=fklCreateCodegenEnv(curEnv,0,macroScope);
-			for(FklHashTableNodeList* list=symbolTable->list
+			for(FklHashTableItem* list=symbolTable->first
 					;list
 					;list=list->next)
 			{
-				FklSid_t* id=(FklSid_t*)list->node->data;
+				FklSid_t* id=(FklSid_t*)list->data;
 				fklAddCodegenDefBySid(*id,1,macroEnv);
 			}
 			fklDestroyHashTable(symbolTable);
@@ -5828,11 +5828,11 @@ static CODEGEN_FUNC(codegen_defmacro)
 				return;
 			}
 			FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0,macroScope);
-			for(FklHashTableNodeList* list=symbolTable->list
+			for(FklHashTableItem* list=symbolTable->first
 					;list
 					;list=list->next)
 			{
-				FklSid_t* item=(FklSid_t*)list->node->data;
+				FklSid_t* item=(FklSid_t*)list->data;
 				fklAddCodegenDefBySid(*item,1,macroEnv);
 			}
 			fklDestroyHashTable(symbolTable);
@@ -6977,9 +6977,9 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 	uint32_t count=mainPts->lcount;
 	FklVMvalue** loc=fklAllocSpaceForLocalVar(exe,count);
 	uint32_t idx=0;
-	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
+	for(FklHashTableItem* list=ht->first;list;list=list->next)
 	{
-		FklPatternMatchingHashTableItem* item=(FklPatternMatchingHashTableItem*)list->node->data;
+		FklPatternMatchingHashTableItem* item=(FklPatternMatchingHashTableItem*)list->data;
 		FklVMvalue* v=fklCreateVMvalueFromNastNode(exe,item->node,lineHash);
 		loc[idx]=v;
 		idx++;
@@ -7346,9 +7346,9 @@ static inline void update_prototype_ref(FklFuncPrototypes* cp
 	FKL_ASSERT(refs||!count);
 	pts->refs=refs;
 	pts->rcount=count;
-	for(FklHashTableNodeList* list=eht->list;list;list=list->next)
+	for(FklHashTableItem* list=eht->first;list;list=list->next)
 	{
-		FklSymbolDef* sd=(FklSymbolDef*)list->node->data;
+		FklSymbolDef* sd=(FklSymbolDef*)list->data;
 		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={.k.id=sid,
 			.k.scope=sd->k.scope,

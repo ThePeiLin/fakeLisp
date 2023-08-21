@@ -726,9 +726,9 @@ static FklNastNode* readerMacroExpand(FklStringMatchPattern* pattern
 		fklDestroyNastNode(r);
 		r=retval;
 	}
-	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
+	for(FklHashTableItem* list=ht->first;list;list=list->next)
 	{
-		FklPatternMatchingHashTableItem* item=(FklPatternMatchingHashTableItem*)list->node->data;
+		FklPatternMatchingHashTableItem* item=(FklPatternMatchingHashTableItem*)list->data;
 		fklDestroyNastNode(item->node);
 	}
 	fklDestroyHashTable(ht);

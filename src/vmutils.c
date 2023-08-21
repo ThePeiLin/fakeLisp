@@ -604,8 +604,8 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 				FklHashTable* ht=FKL_VM_HASH(v);
 				FklPtrStack stack=FKL_STACK_INIT;
 				fklInitPtrStack(&stack,32,16);
-				for(FklHashTableNodeList* list=ht->list;list;list=list->next)
-					fklPushPtrStack(list->node->data,&stack);
+				for(FklHashTableItem* list=ht->first;list;list=list->next)
+					fklPushPtrStack(list->data,&stack);
 				while(!fklIsPtrStackEmpty(&stack))
 				{
 					FklVMhashTableItem* item=fklPopPtrStack(&stack);
@@ -967,9 +967,9 @@ void fklPrintVMvalue(FklVMvalue* value
 						FklHashTable* hash=FKL_VM_HASH(v);
 						fputs(fklGetVMhashTablePrefix(hash),fp);
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
-						for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+						for(FklHashTableItem* list=hash->first;list;list=list->next)
 						{
-							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+							FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;
@@ -1376,9 +1376,9 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						FklHashTable* hash=FKL_VM_HASH(v);
 						fklStringBufferPrintf(&result,"%s",fklGetVMhashTablePrefix(hash));
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
-						for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+						for(FklHashTableItem* list=hash->first;list;list=list->next)
 						{
-							FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+							FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;

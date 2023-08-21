@@ -2475,12 +2475,12 @@ int matchPattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklV
 				||h0->num!=h1->num;
 			if(r)
 				break;
-			FklHashTableNodeList* hl0=h0->list;
-			FklHashTableNodeList* hl1=h1->list;
+			FklHashTableItem* hl0=h0->first;
+			FklHashTableItem* hl1=h1->first;
 			while(h0)
 			{
-				FklVMhashTableItem* i0=(FklVMhashTableItem*)hl0->node->data;
-				FklVMhashTableItem* i1=(FklVMhashTableItem*)hl1->node->data;
+				FklVMhashTableItem* i0=(FklVMhashTableItem*)hl0->data;
+				FklVMhashTableItem* i1=(FklVMhashTableItem*)hl1->data;
 				fklPushPtrQueue(i0->key,&q0);
 				fklPushPtrQueue(i0->v,&q0);
 				fklPushPtrQueue(i1->key,&q1);
@@ -2549,9 +2549,9 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 		}
 		else if(FKL_IS_HASHTABLE(c))
 		{
-			for(FklHashTableNodeList* h=FKL_VM_HASH(c)->list;h;h=h->next)
+			for(FklHashTableItem* h=FKL_VM_HASH(c)->first;h;h=h->next)
 			{
-				FklVMhashTableItem* i=(FklVMhashTableItem*)h->node->data;
+				FklVMhashTableItem* i=(FklVMhashTableItem*)h->data;
 				fklPushPtrStack(i->key,&exe);
 				fklPushPtrStack(i->v,&exe);
 			}
@@ -3851,9 +3851,9 @@ static void builtin_hash_to_list(FKL_DL_PROC_ARGL)
 	FklHashTable* hash=FKL_VM_HASH(ht);
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
-	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+	for(FklHashTableItem* list=hash->first;list;list=list->next)
 	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 		FklVMvalue* pair=fklCreateVMvaluePair(exe,item->key,item->v);
 		fklSetRef(cur,fklCreateVMvaluePairWithCar(exe,pair),gc);
 		cur=&FKL_VM_CDR(*cur);
@@ -3871,9 +3871,9 @@ static void builtin_hash_keys(FKL_DL_PROC_ARGL)
 	FklHashTable* hash=FKL_VM_HASH(ht);
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
-	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+	for(FklHashTableItem* list=hash->first;list;list=list->next)
 	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 		fklSetRef(cur,fklCreateVMvaluePairWithCar(exe,item->key),gc);
 		cur=&FKL_VM_CDR(*cur);
 	}
@@ -3890,9 +3890,9 @@ static void builtin_hash_values(FKL_DL_PROC_ARGL)
 	FklHashTable* hash=FKL_VM_HASH(ht);
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
-	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+	for(FklHashTableItem* list=hash->first;list;list=list->next)
 	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 		fklSetRef(cur,fklCreateVMvaluePairWithCar(exe,item->v),gc);
 		cur=&FKL_VM_CDR(*cur);
 	}

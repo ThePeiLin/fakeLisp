@@ -1875,11 +1875,11 @@ inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklSt
 
 inline void fklInitHashTable(FklHashTable* r,const FklHashTableMetaTable* t)
 {
-	FklHashTableNode** base=(FklHashTableNode**)calloc(DEFAULT_HASH_TABLE_SIZE,sizeof(FklHashTableNode*));
+	FklHashTableItem** base=(FklHashTableItem**)calloc(DEFAULT_HASH_TABLE_SIZE,sizeof(FklHashTableItem*));
 	FKL_ASSERT(base);
 	r->base=base;
-	r->list=NULL;
-	r->tail=&r->list;
+	r->first=NULL;
+	r->last=NULL;
 	r->num=0;
 	r->size=DEFAULT_HASH_TABLE_SIZE;
 	r->mask=DEFAULT_HASH_TABLE_SIZE-1;
@@ -1913,37 +1913,28 @@ void* fklGetHashItem(void* pkey,const FklHashTable* ht)
 {
 	HASH_FUNC_HEADER();
 
-	for(FklHashTableNode* p=ht->base[hash32shift(hashv(pkey),ht->mask)];p;p=p->next)
+	for(FklHashTableItem* p=ht->base[hash32shift(hashv(pkey),ht->mask)];p;p=p->ni)
 		if(keq(pkey,key(p->data)))
 			return p->data;
 	return NULL;
 }
 
-static FklHashTableNodeList* createHashTableNodeList(FklHashTableNode* node)
-{
-	FklHashTableNodeList* list=(FklHashTableNodeList*)malloc(sizeof(FklHashTableNodeList));
-	FKL_ASSERT(node);
-	list->node=node;
-	list->next=NULL;
-	return list;
-}
-
 #define REHASH() if(isgreater((double)ht->num/ht->size,FKL_DEFAULT_HASH_LOAD_FACTOR))\
 	expandHashTable(ht);
 
-static FklHashTableNode* createHashTableNode(size_t size,FklHashTableNode* next)
+static FklHashTableItem* createHashTableItem(size_t size,FklHashTableItem* ni)
 {
-	FklHashTableNode* node=(FklHashTableNode*)calloc(1,sizeof(FklHashTableNode)+size);
+	FklHashTableItem* node=(FklHashTableItem*)calloc(1,sizeof(FklHashTableItem)+size);
 	FKL_ASSERT(node);
-	node->next=next;
+	node->ni=ni;
 	return node;
 }
 
-static inline void putHashNode(FklHashTableNode* node,FklHashTable* ht)
+static inline void putHashNode(FklHashTableItem* node,FklHashTable* ht)
 {
 	void* pkey=ht->t->__getKey(node->data);
-	FklHashTableNode** pp=&ht->base[hash32shift(ht->t->__hashFunc(pkey),ht->mask)];
-	node->next=*pp;
+	FklHashTableItem** pp=&ht->base[hash32shift(ht->t->__hashFunc(pkey),ht->mask)];
+	node->ni=*pp;
 	*pp=node;
 }
 
@@ -1961,23 +1952,19 @@ static inline uint32_t next_pow2(uint32_t n)
 inline void fklClearHashTable(FklHashTable* ht)
 {
 	void (*uninitFunc)(void*)=ht->t->__uninitItem;
-	for(FklHashTableNodeList* list=ht->list;list;)
+	for(FklHashTableItem* list=ht->first;list;)
 	{
-		FklHashTableNodeList* cur=list;
-		uninitFunc(cur->node->data);
-		free(list->node);
+		FklHashTableItem* cur=list;
+		uninitFunc(cur->data);
 		list=list->next;
 		free(cur);
 	}
+	memset(ht->base,0,sizeof(FklHashTableItem*)*ht->size);
 	ht->num=0;
-	ht->list=NULL;
-	ht->tail=&ht->list;
+	ht->first=NULL;
+	ht->last=NULL;
 	ht->size=DEFAULT_HASH_TABLE_SIZE;
 	ht->mask=DEFAULT_HASH_TABLE_SIZE-1;
-	FklHashTableNode** base=(FklHashTableNode**)calloc(ht->size,sizeof(FklHashTableNode*));
-	FKL_ASSERT(base);
-	free(ht->base);
-	ht->base=base;
 }
 
 #undef DEFAULT_HASH_TABLE_SIZE
@@ -1986,37 +1973,39 @@ static inline void expandHashTable(FklHashTable* table)
 {
 	table->size=next_pow2(table->num);
 	table->mask=table->size-1;
-	FklHashTableNodeList* list=table->list;
+	FklHashTableItem* list=table->first;
 	free(table->base);
-	FklHashTableNode** nbase=(FklHashTableNode**)calloc(table->size,sizeof(FklHashTableNode*));
+	FklHashTableItem** nbase=(FklHashTableItem**)calloc(table->size,sizeof(FklHashTableItem*));
 	FKL_ASSERT(nbase);
 	table->base=nbase;
 	for(;list;list=list->next)
-		putHashNode(list->node,table);
+		putHashNode(list,table);
 }
 
 void fklDelHashItem(void* pkey,FklHashTable* ht)
 {
 	HASH_FUNC_HEADER();
-	FklHashTableNode** p=&ht->base[hash32shift(hashv(pkey),ht->mask)];
-	for(;*p;p=&(*p)->next)
+	FklHashTableItem** p=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	for(;*p;p=&(*p)->ni)
 		if(keq(pkey,key((*p)->data)))
 			break;
 
-	FklHashTableNode* node=*p;
-	if(node)
+	FklHashTableItem* item=*p;
+	if(item)
 	{
-		*p=node->next;
-		FklHashTableNodeList** list=&ht->list;
-		for(;(*list)->node!=node;list=&(*list)->next);
-		FklHashTableNodeList* listNode=*list;
-		if(ht->tail==&listNode->next)
-			ht->tail=list;
-		*list=listNode->next;
+		*p=item->ni;
+		if(item->prev)
+			item->prev->next=item->next;
+		if(item->next)
+			item->next->prev=item->prev;
+		if(ht->last==item)
+			ht->last=item->prev;
+		if(ht->first==item)
+			ht->first=item->next;
+
 		void (*uninitFunc)(void*)=ht->t->__uninitItem;
-		uninitFunc(node->data);
-		free(node);
-		free(listNode);
+		uninitFunc(item->data);
+		free(item);
 	}
 }
 
@@ -2024,19 +2013,25 @@ void* fklPutHashItem(void* pkey,FklHashTable* ht)
 {
 	HASH_FUNC_HEADER();
 
-	FklHashTableNode** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
 	int i=0;
 	void* d1=NULL;
-	for(FklHashTableNode* pn=*pp;pn;pn=pn->next,i++)
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
 		if(keq(key(pn->data),pkey))
 			d1=pn->data;
 	if(!d1)
 	{
-		FklHashTableNode* node=createHashTableNode(ht->t->size,*pp);
+		FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);
 		ht->t->__setKey(key(node->data),pkey);
 		*pp=node;
-		*ht->tail=createHashTableNodeList(node);
-		ht->tail=&(*ht->tail)->next;
+		if(ht->first)
+		{
+			node->prev=ht->last;
+			ht->last->next=node;
+		}
+		else
+			ht->first=node;
+		ht->last=node;
 		ht->num++;
 		d1=node->data;
 		REHASH();
@@ -2048,20 +2043,26 @@ void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 {
 	HASH_FUNC_HEADER();
 	void* pkey=key(data);
-	FklHashTableNode** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
 	int i=0;
 	void* d1=NULL;
-	for(FklHashTableNode* pn=*pp;pn;pn=pn->next,i++)
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
 		if(keq(key(pn->data),pkey))
 			d1=pn->data;
 	if(!d1)
 	{
-		FklHashTableNode* node=createHashTableNode(ht->t->size,*pp);
+		FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);
 		ht->t->__setVal(node->data,data);
 		d1=node->data;
 		*pp=node;
-		*ht->tail=createHashTableNodeList(node);
-		ht->tail=&(*ht->tail)->next;
+		if(ht->first)
+		{
+			node->prev=ht->last;
+			ht->last->next=node;
+		}
+		else
+			ht->first=node;
+		ht->last=node;
 		ht->num++;
 		REHASH();
 	}
@@ -2089,12 +2090,11 @@ void fklHashDefaultSetPtrKey(void* k0,const void* k1)
 inline void fklUninitHashTable(FklHashTable* table)
 {
 	void (*uninitFunc)(void*)=table->t->__uninitItem;
-	FklHashTableNodeList* list=table->list;
+	FklHashTableItem* list=table->first;
 	while(list)
 	{
-		FklHashTableNodeList* cur=list;
-		uninitFunc(cur->node->data);
-		free(cur->node);
+		FklHashTableItem* cur=list;
+		uninitFunc(cur->data);
 		list=list->next;
 		free(cur);
 	}

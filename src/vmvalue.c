@@ -342,9 +342,9 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 									FklHashTable* hash=FKL_VM_HASH(value);
 									cur->type=FKL_NAST_HASHTABLE;
 									cur->u.hash=fklCreateNastHash(fklGetVMhashTableType(hash),hash->num);
-									for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+									for(FklHashTableItem* list=hash->first;list;list=list->next)
 									{
-										FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+										FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 										fklPushPtrStack(item->key,&s0);
 										fklPushPtrStack(item->v,&s0);
 									}
@@ -478,9 +478,9 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	FklVMvalue* r=fklCreateVMvalueHashEq(vm);
 	FklHashTable* nht=FKL_VM_HASH(r);
 	nht->t=ht->t;
-	for(FklHashTableNodeList* list=ht->list;list;list=list->next)
+	for(FklHashTableItem* list=ht->first;list;list=list->next)
 	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 		fklVMhashTableSet(item->key,item->v,nht,vm->gc);
 	}
 	return r;
@@ -655,15 +655,15 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 								r=0;
 							else
 							{
-								for(FklHashTableNodeList* list=h1->list;list;list=list->next)
+								for(FklHashTableItem* list=h1->first;list;list=list->next)
 								{
-									FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+									FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 									fklPushPtrStack(item->key,&s1);
 									fklPushPtrStack(item->v,&s1);
 								}
-								for(FklHashTableNodeList* list=h2->list;list;list=list->next)
+								for(FklHashTableItem* list=h2->first;list;list=list->next)
 								{
-									FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+									FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 									fklPushPtrStack(item->key,&s2);
 									fklPushPtrStack(item->v,&s2);
 								}
@@ -1163,9 +1163,9 @@ static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	FklHashTable* hash=FKL_VM_HASH(v);
-	for(FklHashTableNodeList* list=hash->list;list;list=list->next)
+	for(FklHashTableItem* list=hash->first;list;list=list->next)
 	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 		fklPushPtrStack(item->key,s);
 		fklPushPtrStack(item->v,s);
 	}
@@ -1282,9 +1282,9 @@ static const FklHashTableMetaTable* EqualHashTableT=&VMhashTableMetaTableTable[2
 void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 {
 	FklHashTable* table=FKL_VM_HASH(pht);
-	for(FklHashTableNodeList* list=table->list;list;list=list->next)
+	for(FklHashTableItem* list=table->first;list;list=list->next)
 	{
-		FklVMhashTableItem* item=(FklVMhashTableItem*)list->node->data;
+		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
 		fklGC_toGrey(item->key,gc);
 		fklGC_toGrey(item->v,gc);
 	}

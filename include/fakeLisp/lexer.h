@@ -22,7 +22,7 @@ typedef struct
 	void* (*ctx_create)(const struct FklGrammerSym* next,const FklSymbolTable* tt,int* failed);
 	void* (*ctx_global_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g,int* failed);
 	void (*ctx_destroy)(void*);
-	const char* (*name)(const void*);
+	const char* name;
 }FklLalrBuiltinMatch;
 
 typedef struct

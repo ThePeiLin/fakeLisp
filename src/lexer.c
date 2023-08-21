@@ -864,11 +864,6 @@ static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t
 	return r;
 }
 
-static const char* builtin_match_any_name(const void* ctx)
-{
-	return "any";
-}
-
 static int builtin_match_any_func(void* ctx,const char* s,size_t* matchLen)
 {
 	*matchLen=1;
@@ -877,7 +872,7 @@ static int builtin_match_any_func(void* ctx,const char* s,size_t* matchLen)
 
 static const FklLalrBuiltinMatch builtin_match_any=
 {
-	.name=builtin_match_any_name,
+	.name="any",
 	.match=builtin_match_any_func,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
@@ -899,14 +894,9 @@ static int builtin_macth_func_space(void* ctx,const char* s,size_t* matchLen)
 	return i>0;
 }
 
-static const char* builtin_match_space_name(const void* ctx)
-{
-	return "space";
-}
-
 static const FklLalrBuiltinMatch builtin_match_space=
 {
-	.name=builtin_match_space_name,
+	.name="space",
 	.match=builtin_macth_func_space,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
@@ -914,10 +904,6 @@ static const FklLalrBuiltinMatch builtin_match_space=
 	.ctx_destroy=NULL,
 };
 
-static const char* builtin_match_eol_name(const void* ctx)
-{
-	return "eol";
-}
 
 static int builtin_match_func_eol(void* ctx,const char* s,size_t* matchLen)
 {
@@ -929,7 +915,7 @@ static int builtin_match_func_eol(void* ctx,const char* s,size_t* matchLen)
 
 static const FklLalrBuiltinMatch builtin_match_eol=
 {
-	.name=builtin_match_eol_name,
+	.name="eol",
 	.match=builtin_match_func_eol,
 	.ctx_equal=NULL,
 	.ctx_create=NULL,
@@ -1297,11 +1283,6 @@ static inline FklGrammer* create_empty_lalr1_grammer(void)
 	return r;
 }
 
-static const char* builtin_match_qstr_name(const void* ctx)
-{
-	return "qstr";
-}
-
 static inline int builtin_grammer_sym_cmp(const FklLalrBuiltinGrammerSym* b0,const FklLalrBuiltinGrammerSym* b1)
 {
 	if(b0->t->ctx_cmp)
@@ -1508,7 +1489,7 @@ static int builtin_match_qstr_match(void* c,const char* cstr,size_t* matchLen)
 static const FklLalrBuiltinMatch builtin_match_qstr=
 {
 	.match=builtin_match_qstr_match,
-	.name=builtin_match_qstr_name,
+	.name="qstr",
 	.ctx_cmp=builtin_match_qstr_cmp,
 	.ctx_equal=builtin_match_qstr_equal,
 	.ctx_hash=builtin_match_qstr_hash,
@@ -1706,11 +1687,6 @@ after_p:
 	return 1;
 }
 
-static const char* builtin_match_dec_int_name(const void* ctx)
-{
-	return "dec-int";
-}
-
 static inline size_t get_max_non_term_length(void* ctx)
 {
 	FKL_ASSERT(0);
@@ -1731,19 +1707,8 @@ static int builtin_match_dec_int_func(void* ctx,const char* cstr,size_t* pmatchL
 static const FklLalrBuiltinMatch builtin_match_dec_int=
 {
 	.match=builtin_match_dec_int_func,
-	.name=builtin_match_dec_int_name,
-	.ctx_cmp=NULL,
-	.ctx_hash=NULL,
-	.ctx_equal=NULL,
-	.ctx_create=NULL,
-	.ctx_destroy=NULL,
-	.ctx_global_create=NULL,
+	.name="dec-int",
 };
-
-static const char* builtin_match_hex_int_name(const void* c)
-{
-	return "hex-int";
-}
 
 static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
@@ -1758,14 +1723,9 @@ static int builtin_match_hex_int_func(void* ctx,const char* cstr,size_t* pmatchL
 
 static const FklLalrBuiltinMatch builtin_match_hex_int=
 {
-	.name=builtin_match_hex_int_name,
+	.name="hex-int",
 	.match=builtin_match_hex_int_func,
 };
-
-static const char* builtin_match_oct_int_name(const void* c)
-{
-	return "oct-int";
-}
 
 static int builtin_match_oct_int_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
@@ -1781,14 +1741,9 @@ static int builtin_match_oct_int_func(void* ctx,const char* cstr,size_t* pmatchL
 
 static const FklLalrBuiltinMatch builtin_match_oct_int=
 {
-	.name=builtin_match_oct_int_name,
+	.name="oct-int",
 	.match=builtin_match_oct_int_func,
 };
-
-static const char* builtin_match_dec_float_name(const void* c)
-{
-	return "dec-float";
-}
 
 static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
@@ -1803,14 +1758,9 @@ static int builtin_match_dec_float_func(void* ctx,const char* cstr,size_t* pmatc
 
 static const FklLalrBuiltinMatch builtin_match_dec_float=
 {
-	.name=builtin_match_dec_float_name,
+	.name="dec-float",
 	.match=builtin_match_dec_float_func,
 };
-
-static const char* builtin_match_hex_float_name(const void* ctx)
-{
-	return "hex-float";
-}
 
 static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
@@ -1825,14 +1775,9 @@ static int builtin_match_hex_float_func(void* ctx,const char* cstr,size_t* pmatc
 
 static const FklLalrBuiltinMatch builtin_match_hex_float=
 {
-	.name=builtin_match_hex_float_name,
+	.name="hex-float",
 	.match=builtin_match_hex_float_func,
 };
-
-static const char* builtin_match_number_name(const void* ctx)
-{
-	return "number";
-}
 
 static int builtin_match_number_func(void* ctx,const char* cstr,size_t* pmatchLen)
 {
@@ -1851,7 +1796,7 @@ static int builtin_match_number_func(void* ctx,const char* cstr,size_t* pmatchLe
 
 static const FklLalrBuiltinMatch builtin_match_number=
 {
-	.name=builtin_match_number_name,
+	.name="number",
 	.match=builtin_match_number_func,
 };
 
@@ -1862,10 +1807,6 @@ typedef struct
 	const FklString* end;
 }IdentifierCtx;
 
-static const char* builtin_match_identifier_name(const void* ctx)
-{
-	return "identifier";
-}
 
 static inline size_t process_qstr_match(const char* cstr
 		,const FklString* end)
@@ -2029,7 +1970,7 @@ static uintptr_t builtin_match_identifier_hash(const void* c)
 
 static const FklLalrBuiltinMatch builtin_match_identifier=
 {
-	.name=builtin_match_identifier_name,
+	.name="identifier",
 	.match=builtin_match_identifier_func,
 	.ctx_cmp=builtin_match_identifier_cmp,
 	.ctx_equal=builtin_match_identifier_equal,
@@ -2233,7 +2174,7 @@ static inline void print_prod_sym(FILE* fp,const FklGrammerSym* u,const FklSymbo
 		if(u->isbuiltin)
 		{
 			putc('%',fp);
-			fputs(u->u.b.t->name(u->u.b.c),fp);
+			fputs(u->u.b.t->name,fp);
 		}
 		else
 		{
@@ -2299,7 +2240,7 @@ static inline void print_prod_sym_as_dot(FILE* fp,const FklGrammerSym* u,const F
 		if(u->isbuiltin)
 		{
 			fputc('%',fp);
-			fputs(u->u.b.t->name(u->u.b.c),fp);
+			fputs(u->u.b.t->name,fp);
 		}
 		else
 		{
@@ -2601,7 +2542,7 @@ static inline void print_look_ahead(FILE* fp,const FklLalrItemLookAhead* la)
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			fputs("&%",fp);
-			fputs(la->u.b.t->name(la->u.b.c),fp);
+			fputs(la->u.b.t->name,fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
 			fputs("()",fp);
@@ -3270,7 +3211,7 @@ static inline void print_look_ahead_as_dot(FILE* fp,const FklLalrItemLookAhead* 
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			fputs("%",fp);
-			fputs(la->u.b.t->name(la->u.b.c),fp);
+			fputs(la->u.b.t->name,fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
 			fputs("()",fp);
@@ -3701,7 +3642,7 @@ static inline void print_look_ahead_of_analysis_table(FILE* fp,const FklAnalysis
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			fputs("%",fp);
-			fputs(match->m.func.t->name(match->m.func.c),fp);
+			fputs(match->m.func.t->name,fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
 			fputs("()",fp);
@@ -3949,7 +3890,7 @@ static inline void print_look_ahead_for_grapheasy(const FklLalrItemLookAhead* la
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
 			fputc('%',fp);
-			fputs(la->u.b.t->name(la->u.b.c),fp);
+			fputs(la->u.b.t->name,fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
 			fputs("()",fp);
@@ -4144,7 +4085,7 @@ static inline void print_ignores(const FklGrammerIgnore* ig,FILE* fp)
 			if(igs->isbuiltin)
 			{
 				fputc('%',fp);
-				fputs(igs->u.b.t->name(igs->u.b.c),fp);
+				fputs(igs->u.b.t->name,fp);
 			}
 			else
 			{

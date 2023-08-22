@@ -58,6 +58,7 @@ typedef struct FklGrammerSym
 	}u;
 }FklGrammerSym;
 
+typedef FklNastNode* (*FklBuiltinProdAction)(FklNastNode** nodes,size_t num,size_t line,FklSymbolTable* st);
 typedef struct FklGrammerProduction
 {
 	FklSid_t left;
@@ -65,6 +66,7 @@ typedef struct FklGrammerProduction
 	size_t idx;
 	FklGrammerSym* syms;
 	struct FklGrammerProduction* next;
+	FklBuiltinProdAction func;
 	// union
 	// {
 	// 	FklByteCodelnt* proc;
@@ -220,9 +222,17 @@ typedef struct FklGrammer
 	FklAnalysisTable aTable;
 }FklGrammer;
 
+typedef struct
+{
+	const char* cstr;
+	FklBuiltinProdAction func;
+}FklGrammerCstrAction;
+
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
+FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction prodAction[],FklSymbolTable* st);
+
 void fklDestroyGrammer(FklGrammer*);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
@@ -249,8 +259,16 @@ void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const F
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);
 
-int fklParseForCstr(const FklAnalysisTable* aTable,const char* str,FklPtrStack* stack,FklGrammerMatchOuterCtx*);
-int fklParseForCstrDbg(const FklAnalysisTable* aTable,const char* str,FklPtrStack* stack,FklGrammerMatchOuterCtx*);
+int fklParseForCstr(const FklAnalysisTable* aTable
+		,const char* str
+		,FklPtrStack* stack
+		,FklGrammerMatchOuterCtx*
+		,FklSymbolTable* st);
+int fklParseForCstrDbg(const FklAnalysisTable* aTable
+		,const char* str
+		,FklPtrStack* stack
+		,FklGrammerMatchOuterCtx*
+		,FklSymbolTable* st);
 
 typedef enum
 {

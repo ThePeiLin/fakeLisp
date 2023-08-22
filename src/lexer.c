@@ -1940,9 +1940,7 @@ typedef struct
 	const FklString* end;
 }IdentifierCtx;
 
-
-static inline size_t process_qstr_match(const char* cstr
-		,const FklString* end)
+static inline size_t process_quoted_string_match(const char* cstr,const FklString* end)
 {
 	size_t matchLen=0;
 	size_t len=0;
@@ -1960,6 +1958,55 @@ static inline size_t process_qstr_match(const char* cstr
 		}
 	}
 	return 0;
+}
+
+FklNastNode* prod_action_symbol(const FklGrammerProduction* prod
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	const IdentifierCtx* ctx=prod->syms[0].u.b.c;
+	const FklString* start=ctx->start;
+	const FklString* end=ctx->end;
+
+	const FklString* str=nodes[0]->u.str;
+	const char* cstr=str->str;
+
+	FklStringBuffer buffer;
+	fklInitStringBuffer(&buffer);
+	
+	if(start)
+	{
+		while(*cstr)
+		{
+			if(fklStringCstrMatch(start,cstr))
+			{
+				cstr+=start->size;
+				size_t len=process_quoted_string_match(cstr,end);
+				if(!len)
+					return 0;
+				size_t size=0;
+				char* s=fklCastEscapeCharBuf(cstr,len-end->size,&size);
+				fklStringBufferBincpy(&buffer,s,size);
+				free(s);
+				cstr+=len;
+				continue;
+			}
+			size_t len=0;
+			for(;cstr[len];len++)
+				if(fklStringCstrMatch(start,cstr+len))
+					break;
+			fklStringBufferBincpy(&buffer,cstr,len);
+			cstr+=len;
+		}
+		FklSid_t id=fklAddSymbolCharBuf(buffer.b,buffer.i,st)->id;
+		FklNastNode* node=fklCreateNastNode(FKL_NAST_SYM,nodes[0]->curline);
+		node->u.sym=id;
+		return node;
+	}
+	else
+		return fklMakeNastNodeRef(nodes[0]);
 }
 
 static int builtin_match_identifier_func(void* c
@@ -1980,7 +2027,7 @@ static int builtin_match_identifier_func(void* c
 			{
 				matchLen+=start->size;
 				cstr+=start->size;
-				size_t len=process_qstr_match(cstr,end);
+				size_t len=process_quoted_string_match(cstr,end);
 				if(!len)
 					return 0;
 				matchLen+=len;
@@ -2521,11 +2568,6 @@ static inline void init_empty_item_set(FklHashTable* t)
 	fklInitHashTable(t,&LalrItemHashMetaTable);
 }
 
-static inline FklHashTable* create_empty_item_set(void)
-{
-	return fklCreateHashTable(&LalrItemHashMetaTable);
-}
-
 static inline FklGrammerSym* get_item_next(const FklLalrItem* item)
 {
 	if(item->idx>=item->prod->len)
@@ -2712,12 +2754,11 @@ static inline void lr0_item_set_copy_and_closure(FklHashTable* dst,const FklHash
 	lr0_item_set_closure(dst,g);
 }
 
-static inline FklHashTable* create_first_item_set(FklGrammerProduction* prod)
+static inline void init_first_item_set(FklHashTable* itemSet,FklGrammerProduction* prod)
 {
 	FklLalrItem item=lalr_item_init(prod,0,NULL);
-	FklHashTable* itemSet=create_empty_item_set();
+	init_empty_item_set(itemSet);
 	fklPutHashItem(&item,itemSet);
-	return itemSet;
 }
 
 static inline void print_look_ahead(FILE* fp,const FklLalrItemLookAhead* la)
@@ -2864,7 +2905,7 @@ static void item_set_set_val(void* d0,const void* d1)
 
 static uintptr_t item_set_hash_func(const void* d)
 {
-	const FklHashTable* i=*(const FklHashTable**)d;
+	const FklHashTable* i=(const FklHashTable*)d;
 	uintptr_t v=0;
 	for(FklHashTableItem* l=i->first;l;l=l->next)
 	{
@@ -2876,8 +2917,8 @@ static uintptr_t item_set_hash_func(const void* d)
 
 static int item_set_equal(const void* d0,const void* d1)
 {
-	const FklHashTable* s0=*(const FklHashTable**)d0;
-	const FklHashTable* s1=*(const FklHashTable**)d1;
+	const FklHashTable* s0=(const FklHashTable*)d0;
+	const FklHashTable* s1=(const FklHashTable*)d1;
 	if(s0->num!=s1->num)
 		return 0;
 	const FklHashTableItem* l0=s0->first;
@@ -2891,7 +2932,7 @@ static int item_set_equal(const void* d0,const void* d1)
 static void item_set_uninit(void* d)
 {
 	FklLalrItemSet* s=(FklLalrItemSet*)d;
-	fklDestroyHashTable(s->items);
+	fklUninitHashTable(&s->items);
 	FklLalrItemSetLink* l=s->links;
 	while(l)
 	{
@@ -2918,11 +2959,16 @@ static void item_set_add_link(FklLalrItemSet* src,FklGrammerSym* sym,FklLalrItem
 	src->links=l;
 }
 
+static void item_set_set_key(void* k0,const void* k1)
+{
+	*(FklHashTable*)k0=*(FklHashTable*)k1;
+}
+
 static const FklHashTableMetaTable ItemStateSetHashMetaTable=
 {
 	.size=sizeof(FklLalrItemSet),
 	.__getKey=fklHashDefaultGetKey,
-	.__setKey=fklHashDefaultSetPtrKey,
+	.__setKey=item_set_set_key,
 	.__setVal=item_set_set_val,
 	.__hashFunc=item_set_hash_func,
 	.__keyEqual=item_set_equal,
@@ -2942,7 +2988,7 @@ static inline void lr0_item_set_goto(FklLalrItemSet* itemset
 	FklHashTable checked;
 	init_grammer_sym_set(&checked);
 	FklHashTableItem* l;
-	FklHashTable* items=itemset->items;
+	FklHashTable* items=&itemset->items;
 	FklHashTable itemsClosure;
 	init_empty_item_set(&itemsClosure);
 	lr0_item_set_copy_and_closure(&itemsClosure,items,g);
@@ -2956,7 +3002,8 @@ static inline void lr0_item_set_goto(FklLalrItemSet* itemset
 	}
 	for(l=checked.first;l;l=l->next)
 	{
-		FklHashTable* newItems=create_empty_item_set();
+		FklHashTable newItems;
+		init_empty_item_set(&newItems);
 		FklGrammerSym* sym=(FklGrammerSym*)l->data;
 		for(FklHashTableItem* l=itemsClosure.first;l;l=l->next)
 		{
@@ -2965,7 +3012,7 @@ static inline void lr0_item_set_goto(FklLalrItemSet* itemset
 			if(next&&hash_grammer_sym_equal(sym,next))
 			{
 				FklLalrItem item=get_item_advance(i);
-				fklPutHashItem(&item,newItems);
+				fklPutHashItem(&item,&newItems);
 			}
 		}
 		FklLalrItemSet* itemsetptr=fklGetHashItem(&newItems,itemsetSet);
@@ -2976,7 +3023,7 @@ static inline void lr0_item_set_goto(FklLalrItemSet* itemset
 			fklPushPtrQueue(itemsetptr,pending);
 		}
 		else
-			fklDestroyHashTable(newItems);
+			fklUninitHashTable(&newItems);
 		item_set_add_link(itemset,sym,itemsetptr);
 	}
 	fklUninitHashTable(&itemsClosure);
@@ -2988,7 +3035,8 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
 	FklHashTable* itemstate_set=create_item_state_set();
 	FklSid_t left=0;
 	FklGrammerProduction* prod=((ProdHashItem*)fklGetHashItem(&left,&grammer->productions))->prods;
-	FklHashTable* items=create_first_item_set(prod);
+	FklHashTable items;
+	init_first_item_set(&items,prod);
 	FklLalrItemSet itemset={.items=items,};
 	FklLalrItemSet* itemsetptr=fklGetOrPutHashItem(&itemset,itemstate_set);
 	FklPtrQueue pending;
@@ -3227,7 +3275,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 {
 	if(x->dst==itemset)
 		return;
-	FklHashTable* items=itemset->items;
+	FklHashTable* items=&itemset->items;
 	const FklGrammerSym* xsym=&x->sym;
 	FklHashTable closure;
 	init_empty_item_set(&closure);
@@ -3247,9 +3295,9 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 				if(s&&grammer_sym_equal(s,xsym))
 				{
 					if(i->la.t==FKL_LALR_MATCH_NONE)
-						add_lookahead_spread(itemset,&item,x->dst->items,i);
+						add_lookahead_spread(itemset,&item,&x->dst->items,i);
 					else
-						fklPutHashItem(i,x->dst->items);
+						fklPutHashItem(i,&x->dst->items);
 				}
 			}
 			fklClearHashTable(&closure);
@@ -3261,7 +3309,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 static inline int lookahead_spread(FklLalrItemSet* itemset)
 {
 	int change=0;
-	FklHashTable* items=itemset->items;
+	FklHashTable* items=&itemset->items;
 	for(FklLookAheadSpreads* sp=itemset->spreads;sp;sp=sp->next)
 	{
 		FklLalrItem* srcItem=&sp->src;
@@ -3297,12 +3345,12 @@ static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g)
 	}
 	FklHashTableItem* isl=lr0->first;
 	FklLalrItemSet* s=(FklLalrItemSet*)isl->data;
-	for(FklHashTableItem* il=s->items->first;il;il=il->next)
+	for(FklHashTableItem* il=s->items.first;il;il=il->next)
 	{
 		FklLalrItem* i=(FklLalrItem*)il->data;
 		FklLalrItem item=*i;
 		item.la=FKL_LALR_MATCH_EOF_INIT;
-		fklPutHashItem(&item,s->items);
+		fklPutHashItem(&item,&s->items);
 	}
 }
 
@@ -3333,7 +3381,7 @@ static inline void add_look_ahead_for_all_item_set(FklHashTable* lr0,FklGrammer*
 	for(FklHashTableItem* isl=lr0->first;isl;isl=isl->next)
 	{
 		FklLalrItemSet* itemSet=(FklLalrItemSet*)isl->data;
-		add_look_ahead_to_items(itemSet->items,g);
+		add_look_ahead_to_items(&itemSet->items,g);
 	}
 }
 
@@ -3487,7 +3535,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 	for(const FklHashTableItem* l=i->first;l;l=l->next)
 	{
 		const FklLalrItemSet* s=(const FklLalrItemSet*)l->data;
-		const FklHashTable* i=s->items;
+		const FklHashTable* i=&s->items;
 		ItemStateIdx* c=fklGetHashItem(&s,&idxTable);
 		idx=c->idx;
 		fprintf(fp,"\t\"I%lu\"[fontname=\"Courier\" nojustify=true shape=\"box\" label=\"I%lu\\l\\\n"
@@ -3751,7 +3799,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 		curState->func=NULL;
 		curState->state.action=NULL;
 		curState->state.gt=NULL;
-		FklHashTable* items=s->items;
+		const FklHashTable* items=&s->items;
 		for(FklLalrItemSetLink* ll=s->links;ll;ll=ll->next)
 		{
 			const FklGrammerSym* sym=&ll->sym;
@@ -4197,7 +4245,7 @@ void fklPrintItemStateSet(const FklHashTable* i
 	for(const FklHashTableItem* l=i->first;l;l=l->next)
 	{
 		const FklLalrItemSet* s=(const FklLalrItemSet*)l->data;
-		const FklHashTable* i=s->items;
+		const FklHashTable* i=&s->items;
 		ItemStateIdx* c=fklGetHashItem(&s,&idxTable);
 		idx=c->idx;
 		fprintf(fp,"===\nI%lu: ",idx);
@@ -4336,7 +4384,7 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 		nodes[i]=as->ast;
 		free(as);
 	}
-	fklPushPtrStack(create_nonterm_analyzing_symbol(left,prod->func(nodes,len,outerCtx->line,st)),symbolStack);
+	fklPushPtrStack(create_nonterm_analyzing_symbol(left,prod->func(prod,nodes,len,outerCtx->line,st)),symbolStack);
 	for(size_t i=0;i<len;i++)
 		fklDestroyNastNode(nodes[i]);
 	fklPushPtrStack((void*)state,stateStack);
@@ -4433,6 +4481,7 @@ int fklParseForCstrDbg(const FklAnalysisTable* t
 						fputc('\n',stderr);
 						fklPrintNastNode(top->ast,stderr,st);
 						fputc('\n',stderr);
+						fklDestroyNastNode(top->ast);
 					}
 					goto break_for;
 					break;

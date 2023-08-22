@@ -58,7 +58,8 @@ typedef struct FklGrammerSym
 	}u;
 }FklGrammerSym;
 
-typedef FklNastNode* (*FklBuiltinProdAction)(FklNastNode** nodes,size_t num,size_t line,FklSymbolTable* st);
+struct FklGrammerProduction;
+typedef FklNastNode* (*FklBuiltinProdAction)(const struct FklGrammerProduction* this,FklNastNode** nodes,size_t num,size_t line,FklSymbolTable* st);
 typedef struct FklGrammerProduction
 {
 	FklSid_t left;
@@ -121,7 +122,7 @@ typedef struct FklLookAheadSpreads
 
 typedef struct FklLalrItemSet
 {
-	FklHashTable* items;
+	FklHashTable items;
 	FklLookAheadSpreads* spreads;
 	FklLalrItemSetLink* links;
 }FklLalrItemSet;

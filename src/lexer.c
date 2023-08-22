@@ -881,6 +881,60 @@ static const FklLalrBuiltinMatch builtin_match_any=
 	.match=builtin_match_any_func,
 };
 
+static int builtin_match_hex2_func(void* ctx
+		,const char* start
+		,const char* s
+		,size_t* matchLen
+		,FklGrammerMatchOuterCtx* outerCtx)
+{
+	size_t i=0;
+	for(;i<2&&*s&&isxdigit(*s);i++);
+	*matchLen=i;
+	return i>0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_hex2=
+{
+	.name="hex2",
+	.match=builtin_match_hex2_func,
+};
+
+static int builtin_match_oct3_func(void* ctx
+		,const char* start
+		,const char* s
+		,size_t* matchLen
+		,FklGrammerMatchOuterCtx* outerCtx)
+{
+	size_t i=0;
+	for(;i<3&&*s&&isdigit(*s)&&*s<'8';i++);
+	*matchLen=i;
+	return i>0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_oct3=
+{
+	.name="oct3",
+	.match=builtin_match_oct3_func,
+};
+
+static int builtin_match_dec3_func(void* ctx
+		,const char* start
+		,const char* s
+		,size_t* matchLen
+		,FklGrammerMatchOuterCtx* outerCtx)
+{
+	size_t i=0;
+	for(;i<3&&*s&&isdigit(*s);i++);
+	*matchLen=i;
+	return i>0;
+}
+
+static const FklLalrBuiltinMatch builtin_match_dec3=
+{
+	.name="dec3",
+	.match=builtin_match_dec3_func,
+};
+
 static int builtin_macth_func_space(void* ctx
 		,const char* start
 		,const char* s
@@ -2376,6 +2430,9 @@ static const struct BuiltinGrammerSymList
 }builtin_grammer_sym_list[]=
 {
 	{"%any",       &builtin_match_any,       },
+	{"%dec3",      &builtin_match_dec3,      },
+	{"%hex2",      &builtin_match_hex2,      },
+	{"%oct3",      &builtin_match_oct3,      },
 	{"%space",     &builtin_match_space,     },
 	{"%qstr",      &builtin_match_qstr,      },
 	{"%eol",       &builtin_match_eol,       },

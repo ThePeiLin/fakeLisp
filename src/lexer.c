@@ -1970,14 +1970,13 @@ FklNastNode* prod_action_symbol(const FklGrammerProduction* prod
 	const FklString* start=ctx->start;
 	const FklString* end=ctx->end;
 
-	const FklString* str=nodes[0]->u.str;
-	const char* cstr=str->str;
-
-	FklStringBuffer buffer;
-	fklInitStringBuffer(&buffer);
-	
 	if(start)
 	{
+		const FklString* str=nodes[0]->u.str;
+		const char* cstr=str->str;
+
+		FklStringBuffer buffer;
+		fklInitStringBuffer(&buffer);
 		while(*cstr)
 		{
 			if(fklStringCstrMatch(start,cstr))
@@ -2003,6 +2002,7 @@ FklNastNode* prod_action_symbol(const FklGrammerProduction* prod
 		FklSid_t id=fklAddSymbolCharBuf(buffer.b,buffer.i,st)->id;
 		FklNastNode* node=fklCreateNastNode(FKL_NAST_SYM,nodes[0]->curline);
 		node->u.sym=id;
+		fklUninitStringBuffer(&buffer);
 		return node;
 	}
 	else
@@ -4387,6 +4387,7 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 	fklPushPtrStack(create_nonterm_analyzing_symbol(left,prod->func(prod,nodes,len,outerCtx->line,st)),symbolStack);
 	for(size_t i=0;i<len;i++)
 		fklDestroyNastNode(nodes[i]);
+	free(nodes);
 	fklPushPtrStack((void*)state,stateStack);
 	return 0;
 }

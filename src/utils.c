@@ -1033,9 +1033,6 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 		}
 		tmp[strSize-1]=ch;
 	}
-	char* ttmp=(char*)fklRealloc(tmp,strSize*sizeof(char));
-	FKL_ASSERT(ttmp||!strSize);
-	tmp=ttmp;
 	*psize=strSize;
 	return tmp;
 }

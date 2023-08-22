@@ -265,6 +265,10 @@ void fklInitBigInt1(FklBigInt*);
 void fklInitBigIntU(FklBigInt*,uint64_t v);
 void fklInitBigIntFromMem(FklBigInt*,const void*mem,size_t size);
 void fklInitBigIntFromString(FklBigInt*,const FklString*);
+void fklInitBigIntFromDecString(FklBigInt*,const FklString*);
+void fklInitBigIntFromHexString(FklBigInt*,const FklString*);
+void fklInitBigIntFromOctString(FklBigInt*,const FklString*);
+
 void fklUninitBigInt(FklBigInt*);
 
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);

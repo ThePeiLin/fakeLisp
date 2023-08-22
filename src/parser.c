@@ -450,6 +450,13 @@ void fklDestroyNastNode(FklNastNode* node)
 	fklUninitPtrStack(&stack);
 }
 
+size_t fklNastListLength(const FklNastNode* list)
+{
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr,i++);
+	return i;
+}
+
 int fklIsNastNodeList(const FklNastNode* list)
 {
 	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr);

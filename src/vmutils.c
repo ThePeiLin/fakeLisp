@@ -1072,21 +1072,25 @@ void fklPrintVMvalue(FklVMvalue* value
 
 #include<ctype.h>
 
-static inline void print_raw_char_to_utstring(FklStringBuffer* s,char c)
+static inline void print_raw_char_to_string_buffer(FklStringBuffer* s,char c)
 {
-	fklStringBufferPrintf(s,"#\\");
-	if(isgraph(c))
+	fklStringBufferConcatWithCstr(s,"#\\");
+	if(c==' ')
+		fklStringBufferConcatWithCstr(s,"\\x20");
+	else if(c=='\0')
+		fklStringBufferConcatWithCstr(s,"\\0");
+	else if(fklIsSpecialCharAndPrintToStringBuffer(s,c));
+	else if(isgraph(c))
 	{
 		if(c=='\\')
-			fklStringBufferPrintf(s,"\\");
+			fklStringBufferPutc(s,'\\');
 		else
-			fklStringBufferPrintf(s,"%c",c);
+			fklStringBufferPutc(s,c);
 	}
-	else if(fklIsSpecialCharAndPrintToStringBuffer(s,c));
 	else
 	{
 		uint8_t j=c;
-		fklStringBufferPrintf(s,"x");
+		fklStringBufferConcatWithCstr(s,"\\x");
 		fklStringBufferPrintf(s,"%X",j/16);
 		fklStringBufferPrintf(s,"%X",j%16);
 	}
@@ -1105,9 +1109,9 @@ static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklStrin
 static inline void print_big_int_to_string_buffer(FklStringBuffer* s,FklBigInt* a)
 {
 	if(!FKL_IS_0_BIG_INT(a)&&a->neg)
-		fklStringBufferPrintf(s,"-");
+		fklStringBufferPutc(s,'-');
 	if(FKL_IS_0_BIG_INT(a))
-		fklStringBufferPrintf(s,"0");
+		fklStringBufferPutc(s,'0');
 	else
 	{
 		FklU8Stack res=FKL_STACK_INIT;
@@ -1115,7 +1119,7 @@ static inline void print_big_int_to_string_buffer(FklStringBuffer* s,FklBigInt* 
 		for(size_t i=res.top;i>0;i--)
 		{
 			uint8_t c=res.base[i-1];
-			fklStringBufferPrintf(s,"%c",'0'+c);
+			fklStringBufferPutc(s,'0'+c);
 		}
 		fklUninitU8Stack(&res);
 	}
@@ -1125,7 +1129,7 @@ static inline void print_big_int_to_string_buffer(FklStringBuffer* s,FklBigInt* 
 
 static void nil_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"()");
+	fklStringBufferConcatWithCstr(result,"()");
 }
 
 static void fix_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1140,7 +1144,7 @@ static void sym_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 
 static void chr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	print_raw_char_to_utstring(result,FKL_GET_CHR(v));
+	print_raw_char_to_string_buffer(result,FKL_GET_CHR(v));
 }
 
 static void vmvalue_f64_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1174,11 +1178,11 @@ static void vmvalue_userdata_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	}
 	else
 	{
-		fklStringBufferPrintf(result,"#<");
+		fklStringBufferConcatWithCstr(result,"#<");
 		if(ud->type)
 		{
 			print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(ud->type,table)->symbol);
-			fklStringBufferPrintf(result," ");
+			fklStringBufferPutc(result,' ');
 		}
 		fklStringBufferPrintf(result,"%p>",ud);
 	}
@@ -1189,9 +1193,9 @@ static void vmvalue_proc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	FklVMproc* proc=FKL_VM_PROC(v);
 	if(proc->sid)
 	{
-		fklStringBufferPrintf(result,"#<proc ");
+		fklStringBufferConcatWithCstr(result,"#<proc ");
 		print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(proc->sid,table)->symbol);
-		fklStringBufferPrintf(result,">");
+		fklStringBufferPutc(result,'>');
 	}
 	else
 		fklStringBufferPrintf(result,"#<proc %p>",proc);
@@ -1206,11 +1210,11 @@ static void vmvalue_fp_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMfp* vfp=FKL_VM_FP(v);
 	if(vfp->fp==stdin)
-		fklStringBufferPrintf(result,"#<fp stdin>");
+		fklStringBufferConcatWithCstr(result,"#<fp stdin>");
 	else if(vfp->fp==stdout)
-		fklStringBufferPrintf(result,"#<fp stdout>");
+		fklStringBufferConcatWithCstr(result,"#<fp stdout>");
 	else if(vfp->fp==stderr)
-		fklStringBufferPrintf(result,"#<fp stderr>");
+		fklStringBufferConcatWithCstr(result,"#<fp stderr>");
 	else
 		fklStringBufferPrintf(result,"#<fp %p>",vfp);
 }
@@ -1225,9 +1229,9 @@ static void vmvalue_dlproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	FklVMdlproc* dlproc=FKL_VM_DLPROC(v);
 	if(dlproc->sid)
 	{
-		fklStringBufferPrintf(result,"#<dlproc ");
+		fklStringBufferConcatWithCstr(result,"#<dlproc ");
 		print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(dlproc->sid,table)->symbol);
-		fklStringBufferPrintf(result,">");
+		fklStringBufferPutc(result,'>');
 	}
 	else
 		fklStringBufferPrintf(result,"#<dlproc %p>",dlproc);
@@ -1236,13 +1240,13 @@ static void vmvalue_dlproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 static void vmvalue_error_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMerror* err=FKL_VM_ERR(v);
-	fklStringBufferPrintf(result,"#<err t:");
+	fklStringBufferConcatWithCstr(result,"#<err t:");
 	print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(err->type,table)->symbol);
-	fklStringBufferPrintf(result,"w:");
+	fklStringBufferConcatWithCstr(result,"w:");
 	print_raw_string_to_string_buffer(result,err->who);
-	fklStringBufferPrintf(result,"m:");
+	fklStringBufferConcatWithCstr(result,"m:");
 	print_raw_string_to_string_buffer(result,err->message);
-	fklStringBufferPrintf(result,">");
+	fklStringBufferPutc(result,'>');
 }
 
 static void vmvalue_code_obj_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1309,12 +1313,12 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 			PrtElem* e=fklPopPtrQueue(cQueue);
 			FklVMvalue* v=e->v;
 			if(e->state==PRT_CDR||e->state==PRT_REC_CDR)
-				fklStringBufferPrintf(&result,",");
+				fklStringBufferPutc(&result,',');
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
 				fklStringBufferPrintf(&result,"#%lu",(uintptr_t)e->v);
 			else if(e->state==PRT_HASH_ITEM)
 			{
-				fklStringBufferPrintf(&result,"(");
+				fklStringBufferPutc(&result,'(');
 				FklPtrQueue* iQueue=fklCreatePtrQueue();
 				HashPrtElem* elem=(void*)e->v;
 				fklPushPtrQueue(elem->key,iQueue);
@@ -1337,7 +1341,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						fklStringBufferPrintf(&result,"#%lu=",i);
 					if(FKL_IS_VECTOR(v))
 					{
-						fklStringBufferPrintf(&result,"#(");
+						fklStringBufferConcatWithCstr(&result,"#(");
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						FklVMvec* vec=FKL_VM_VEC(v);
 						for(size_t i=0;i<vec->size;i++)
@@ -1359,7 +1363,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					}
 					else if(FKL_IS_BOX(v))
 					{
-						fklStringBufferPrintf(&result,"#&");
+						fklStringBufferConcatWithCstr(&result,"#&");
 						size_t w=0;
 						FklVMvalue* box=FKL_VM_BOX(v);
 						if((isInValueSet(box,recValueSet,&w)&&isInValueSet(box,hasPrintRecSet,NULL))||box==v)
@@ -1374,7 +1378,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					else if(FKL_IS_HASHTABLE(v))
 					{
 						FklHashTable* hash=FKL_VM_HASH(v);
-						fklStringBufferPrintf(&result,"%s",fklGetVMhashTablePrefix(hash));
+						fklStringBufferConcatWithCstr(&result,fklGetVMhashTablePrefix(hash));
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableItem* list=hash->first;list;list=list->next)
 						{
@@ -1404,7 +1408,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					}
 					else
 					{
-						fklStringBufferPrintf(&result,"(");
+						fklStringBufferPutc(&result,'(');
 						FklPtrQueue* lQueue=fklCreatePtrQueue();
 						FklVMvalue* car=FKL_VM_CAR(v);
 						FklVMvalue* cdr=FKL_VM_CDR(v);
@@ -1458,20 +1462,20 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
-				fklStringBufferPrintf(&result," ");
+				fklStringBufferPutc(&result,' ');
 		}
 		fklPopPtrStack(&queueStack);
 		fklDestroyPtrQueue(cQueue);
 		if(!fklIsPtrStackEmpty(&queueStack))
 		{
-			fklStringBufferPrintf(&result,")");
+			fklStringBufferPutc(&result,')');
 			cQueue=fklTopPtrStack(&queueStack);
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
-				fklStringBufferPrintf(&result," ");
+				fklStringBufferPutc(&result,' ');
 		}
 	}
 	fklUninitPtrStack(&queueStack);

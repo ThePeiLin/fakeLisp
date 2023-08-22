@@ -98,6 +98,7 @@ FklNastNode* fklNastCons(FklNastNode*,FklNastNode*,uint64_t l1);
 FklNastPair* fklCreateNastPair(void);
 FklNastHashTable* fklCreateNastHash(FklHashTableEqType,size_t);
 FklNastVector* fklCreateNastVector(size_t);
+size_t fklNastListLength(const FklNastNode* list);
 int fklIsNastNodeList(const FklNastNode* list);
 int fklIsNastNodeListAndHasSameType(const FklNastNode* list,FklNastType type);
 

@@ -908,7 +908,7 @@ static int builtin_match_oct3_func(void* ctx
 	size_t i=0;
 	for(;i<3&&*s&&isdigit(*s)&&*s<'8';i++);
 	*matchLen=i;
-	return i>0;
+	return 1;
 }
 
 static const FklLalrBuiltinMatch builtin_match_oct3=

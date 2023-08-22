@@ -560,18 +560,22 @@ int fklWriteCharAsCstr(char chr,char* buf,size_t s)
 void fklPrintRawChar(char chr,FILE* out)
 {
 	fprintf(out,"#\\");
-	if(isgraph(chr))
+	if(chr==' ')
+		fputs("\\x20",out);
+	else if(chr=='\0')
+		fputs("\\0",out);
+	else if(fklIsSpecialCharAndPrint(chr,out));
+	else if(isgraph(chr))
 	{
 		if(chr=='\\')
 			fprintf(out,"\\");
 		else
 			fprintf(out,"%c",chr);
 	}
-	else if(fklIsSpecialCharAndPrint(chr,out));
 	else
 	{
 		uint8_t j=chr;
-		fprintf(out,"x");
+		fputs("\\x",out);
 		fprintf(out,"%X",j/16);
 		fprintf(out,"%X",j%16);
 	}

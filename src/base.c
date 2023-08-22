@@ -1658,28 +1658,28 @@ inline int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch)
 {
 	int r=0;
 	if((r=ch=='\n'))
-		fklStringBufferPrintf(s,"\\n");
+		fklStringBufferConcatWithCstr(s,"\\n");
 	else if((r=ch=='\t'))
-		fklStringBufferPrintf(s,"\\t");
+		fklStringBufferConcatWithCstr(s,"\\t");
 	else if((r=ch=='\v'))
-		fklStringBufferPrintf(s,"\\v");
+		fklStringBufferConcatWithCstr(s,"\\v");
 	else if((r=ch=='\a'))
-		fklStringBufferPrintf(s,"\\a");
+		fklStringBufferConcatWithCstr(s,"\\a");
 	else if((r=ch=='\b'))
-		fklStringBufferPrintf(s,"\\b");
+		fklStringBufferConcatWithCstr(s,"\\b");
 	else if((r=ch=='\f'))
-		fklStringBufferPrintf(s,"\\f");
+		fklStringBufferConcatWithCstr(s,"\\f");
 	else if((r=ch=='\r'))
-		fklStringBufferPrintf(s,"\\r");
+		fklStringBufferConcatWithCstr(s,"\\r");
 	else if((r=ch=='\x20'))
-		fklStringBufferPrintf(s," ");
+		fklStringBufferPutc(s,' ');
 	return r;
 }
 
 inline void fklPrintRawStringToStringBuffer(FklStringBuffer* s,const FklString* fstr,char se)
 {
 	char buf[7]={0};
-	fklStringBufferPrintf(s,"%c",se);
+	fklStringBufferPutc(s,se);
 	size_t size=fstr->size;
 	uint8_t* str=(uint8_t*)fstr->str;
 	for(size_t i=0;i<size;)
@@ -1700,9 +1700,9 @@ inline void fklPrintRawStringToStringBuffer(FklStringBuffer* s,const FklString* 
 			if(str[i]==se)
 				fklStringBufferPrintf(s,"\\%c",se);
 			else if(str[i]=='\\')
-				fklStringBufferPrintf(s,"\\\\");
+				fklStringBufferConcatWithCstr(s,"\\\\");
 			else if(isgraph(str[i]))
-				fklStringBufferPrintf(s,"%c",str[i]);
+				fklStringBufferPutc(s,str[i]);
 			else if(fklIsSpecialCharAndPrintToStringBuffer(s,str[i]));
 			else
 			{
@@ -1719,11 +1719,11 @@ inline void fklPrintRawStringToStringBuffer(FklStringBuffer* s,const FklString* 
 		{
 			strncpy(buf,(char*)&str[i],l);
 			buf[l]='\0';
-			fklStringBufferPrintf(s,"%s",buf);
+			fklStringBufferConcatWithCstr(s,buf);
 			i+=l;
 		}
 	}
-	fklStringBufferPrintf(s,"%c",se);
+	fklStringBufferPutc(s,se);
 }
 
 FklString* fklStringToRawString(const FklString* str)
@@ -2199,14 +2199,14 @@ inline void fklPrintBytevectorToStringBuffer(FklStringBuffer* s,const FklBytevec
 {
 	size_t size=bvec->size;
 	const uint8_t* ptr=bvec->ptr;
-	fklStringBufferPrintf(s,"#vu8(");
+	fklStringBufferConcatWithCstr(s,"#vu8(");
 	for(size_t i=0;i<size;i++)
 	{
 		fklStringBufferPrintf(s,"0x%X",ptr[i]);
 		if(i<size-1)
-			fklStringBufferPrintf(s," ");
+			fklStringBufferPutc(s,' ');
 	}
-	fklStringBufferPrintf(s,")");
+	fklStringBufferPutc(s,')');
 }
 
 FklString* fklBytevectorToString(const FklBytevector* bv)

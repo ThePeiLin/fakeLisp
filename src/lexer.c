@@ -4012,6 +4012,13 @@ static inline int add_reduce_action(FklAnalysisState* curState
 		action->next=*pa;
 		*pa=action;
 	}
+	else if(la->t==FKL_LALR_MATCH_EOF)
+	{
+		FklAnalysisStateAction** pa=&curState->state.action;
+		for(;*pa;pa=&(*pa)->next);
+		action->next=*pa;
+		*pa=action;
+	}
 	else
 	{
 		FklAnalysisStateAction** pa=&curState->state.action;

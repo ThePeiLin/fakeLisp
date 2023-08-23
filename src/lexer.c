@@ -2720,9 +2720,14 @@ static inline void compute_all_first_set(FklGrammer* g)
 								change=1;
 								fklPutHashItem(la,&firstItem->first);
 							}
-							if(!curFirstItem->hasEpsilon)
-								break;
 						}
+						if(curFirstItem->hasEpsilon&&i==len-1)
+						{
+							change|=firstItem->hasEpsilon!=1;
+							firstItem->hasEpsilon=1;
+						}
+						if(!curFirstItem->hasEpsilon)
+							break;
 					}
 				}
 			}
@@ -3508,6 +3513,8 @@ static inline int get_first_set_from_first_sets(const FklGrammer* g
 				const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)symList->data;
 				fklPutHashItem(la,first);
 			}
+			if(firstSetItem->hasEpsilon&&i==len-1)
+				hasEpsilon=1;
 			if(!firstSetItem->hasEpsilon)
 				break;
 		}
@@ -4168,7 +4175,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 				skip_space=sym->delim;
 			else
 			{
-				int hasConflict=add_reduce_action(curState,item->prod,&item->la);
+				hasConflict=add_reduce_action(curState,item->prod,&item->la);
 				if(hasConflict)
 				{
 					clear_analysis_table(grammer,idx);

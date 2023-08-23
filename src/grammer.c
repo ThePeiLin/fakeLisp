@@ -438,6 +438,7 @@ static FklNastNode* prod_action_bytevector(const FklGrammerProduction* prod
 	}
 	return r;
 }
+
 static const FklGrammerCstrAction example_grammer_action[]=
 {
 	{"s-exp &list",                   prod_action_return_first,  },

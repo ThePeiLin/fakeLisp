@@ -3530,13 +3530,9 @@ static inline void add_lookahead_spread(FklLalrItemSet* itemset
 }
 
 static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
-		,FklLalrItemSet* itemset
-		,const FklLalrItemSetLink* x)
+		,FklLalrItemSet* itemset)
 {
-	if(x->dst==itemset)
-		return;
 	FklHashTable* items=&itemset->items;
-	const FklGrammerSym* xsym=&x->sym;
 	FklHashTable closure;
 	init_empty_item_set(&closure);
 	for(FklHashTableItem* il=items->first;il;il=il->next)
@@ -3552,12 +3548,18 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 				FklLalrItem* i=(FklLalrItem*)cl->data;
 				const FklGrammerSym* s=get_item_next(i);
 				i->idx++;
-				if(s&&grammer_sym_equal(s,xsym))
+				for(const FklLalrItemSetLink* x=itemset->links;x;x=x->next)
 				{
-					if(i->la.t==FKL_LALR_MATCH_NONE)
-						add_lookahead_spread(itemset,&item,&x->dst->items,i);
-					else
-						fklPutHashItem(i,&x->dst->items);
+					if(x->dst==itemset)
+						continue;
+					const FklGrammerSym* xsym=&x->sym;
+					if(s&&grammer_sym_equal(s,xsym))
+					{
+						if(i->la.t==FKL_LALR_MATCH_NONE)
+							add_lookahead_spread(itemset,&item,&x->dst->items,i);
+						else
+							fklPutHashItem(i,&x->dst->items);
+					}
 				}
 			}
 			fklClearHashTable(&closure);
@@ -3600,8 +3602,7 @@ static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g)
 	for(FklHashTableItem* isl=lr0->first;isl;isl=isl->next)
 	{
 		FklLalrItemSet* s=(FklLalrItemSet*)isl->data;
-		for(FklLalrItemSetLink* link=s->links;link;link=link->next)
-			check_lookahead_self_generated_and_spread(g,s,link);
+		check_lookahead_self_generated_and_spread(g,s);
 	}
 	FklHashTableItem* isl=lr0->first;
 	FklLalrItemSet* s=(FklLalrItemSet*)isl->data;

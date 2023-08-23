@@ -218,6 +218,8 @@ typedef struct FklGrammer
 
 	FklHashTable builtins;
 
+	FklHashTable firstSets;
+
 	FklGrammerIgnore* ignores;
 
 	FklAnalysisTable aTable;

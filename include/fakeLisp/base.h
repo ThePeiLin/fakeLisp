@@ -121,8 +121,8 @@ typedef struct FklHashTableMetaTable
 void fklInitHashTable(FklHashTable*,const FklHashTableMetaTable*);
 FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
 
-void* fklGetHashItem(void* key,const FklHashTable*);
-void* fklPutHashItem(void* key,FklHashTable*);
+void* fklGetHashItem(const void* key,const FklHashTable*);
+void* fklPutHashItem(const void* key,FklHashTable*);
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
 void fklDelHashItem(void* key,FklHashTable*);
 void fklClearHashTable(FklHashTable* ht);

@@ -1311,7 +1311,7 @@ static inline int add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction* 
 		{
 			grammer->start=left;
 			FklGrammerProduction* extra_prod=create_extra_production(left);
-			fklPutHashItem(&extra_prod->left,&grammer->nonterminals);
+			// fklPutHashItem(&extra_prod->left,&grammer->nonterminals);
 			extra_prod->next=NULL;
 			item=fklPutHashItem(&extra_prod->left,productions);
 			item->prods=extra_prod;
@@ -1326,19 +1326,6 @@ static inline int add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction* 
 		grammer->prodNum++;
 	}
 	return 0;
-}
-
-static inline FklGrammer* create_empty_lalr1_grammer(void)
-{
-	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
-	FKL_ASSERT(r);
-	r->terminals=fklCreateSymbolTable();
-	r->ignores=NULL;
-	r->sortedTerminals=NULL;
-	r->sortedTerminalsNum=0;
-	fklInitSidSet(&r->nonterminals);
-	init_prod_hash_table(&r->productions);
-	return r;
 }
 
 static inline int builtin_grammer_sym_cmp(const FklLalrBuiltinGrammerSym* b0,const FklLalrBuiltinGrammerSym* b1)
@@ -2510,6 +2497,7 @@ void fklDestroyGrammer(FklGrammer* g)
 	fklUninitHashTable(&g->productions);
 	fklUninitHashTable(&g->builtins);
 	fklUninitHashTable(&g->nonterminals);
+	fklUninitHashTable(&g->firstSets);
 	fklDestroySymbolTable(g->terminals);
 	clear_analysis_table(g,g->aTable.num-1);
 	free(g->sortedTerminals);
@@ -2580,6 +2568,205 @@ static inline int add_ignore_to_grammer(FklGrammer* g,FklGrammerIgnore* ig)
 	return 0;
 }
 
+typedef struct
+{
+	FklSid_t left;
+	FklHashTable first;
+	int hasEpsilon;
+}FirstSetItem;
+
+static void first_set_item_set_val(void* d0,const void* d1)
+{
+	FirstSetItem* s=(FirstSetItem*)d0;
+	*s=*(const FirstSetItem*)d1;
+}
+
+static void first_set_item_uninit(void* d)
+{
+	fklUninitHashTable(&((FirstSetItem*)d)->first);
+}
+
+static const FklHashTableMetaTable FirstSetHashMetaTable=
+{
+	.size=sizeof(FirstSetItem),
+	.__getKey=fklHashDefaultGetKey,
+	.__setKey=fklSetSidKey,
+	.__hashFunc=fklSidHashFunc,
+	.__keyEqual=fklSidKeyEqual,
+	.__setVal=first_set_item_set_val,
+	.__uninitItem=first_set_item_uninit,
+};
+
+// function calculateFirstSets(grammar):
+//     for each terminal symbol t:
+//         add t to First[t]
+//     
+//     for each non-terminal symbol A:
+//         initialize First[A] as an empty set
+//
+//     repeat:
+//         noChange = true
+//         for each production A -> X1X2...Xn:
+//             i = 1
+//             while i <= n and Xi can derive ε:
+//                 add First[Xi] - {ε} to First[A]
+//                 i = i + 1
+//
+//             if i > n or Xi cannot derive ε:
+//                 add First[Xi] to First[A]
+//                 
+//             if First[A] has new elements:
+//                 noChange = false
+//
+//     return First
+
+static inline int lalr_look_ahead_equal(const FklLalrItemLookAhead* la0,const FklLalrItemLookAhead* la1);
+static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la);
+
+static int look_ahead_equal(const void* d0,const void* d1)
+{
+	return lalr_look_ahead_equal((const FklLalrItemLookAhead*)d0
+			,(const FklLalrItemLookAhead*)d1);
+}
+
+static void look_ahead_set_key(void* d0,const void* d1)
+{
+	*(FklLalrItemLookAhead*)d0=*(const FklLalrItemLookAhead*)d1;
+}
+
+static uintptr_t look_ahead_hash_func(const void* d)
+{
+	return lalr_look_ahead_hash_func((const FklLalrItemLookAhead*)d);
+}
+
+static const FklHashTableMetaTable LookAheadHashMetaTable=
+{
+	.size=sizeof(FklLalrItemLookAhead),
+	.__getKey=fklHashDefaultGetKey,
+	.__setKey=look_ahead_set_key,
+	.__setVal=look_ahead_set_key,
+	.__hashFunc=look_ahead_hash_func,
+	.__keyEqual=look_ahead_equal,
+	.__uninitItem=fklDoNothingUnintHashItem,
+};
+
+static inline void compute_all_first_set(FklGrammer* g)
+{
+	FklHashTable* firsetSets=&g->firstSets;
+	const FklSymbolTable* tt=g->terminals;
+
+	for(const FklHashTableItem* sidl=g->nonterminals.first;sidl;sidl=sidl->next)
+	{
+		FklSid_t id=*(const FklSid_t*)sidl->data;
+		FirstSetItem* item=fklPutHashItem(&id,firsetSets);
+		item->hasEpsilon=0;
+		fklInitHashTable(&item->first,&LookAheadHashMetaTable);
+	}
+
+	int change;
+	do
+	{
+		change=0;
+		for(const FklHashTableItem* leftProds=g->productions.first;leftProds;leftProds=leftProds->next)
+		{
+			const ProdHashItem* leftProd=(const ProdHashItem*)leftProds->data;
+			if(leftProd->left==0)
+				continue;
+			FirstSetItem* firstItem=fklGetHashItem(&leftProd->left,firsetSets);
+			const FklGrammerProduction* prods=leftProd->prods;
+			for(;prods;prods=prods->next)
+			{
+				size_t len=prods->len;
+				if(!len)
+				{
+					change|=firstItem->hasEpsilon!=1;
+					firstItem->hasEpsilon=1;
+					continue;
+				}
+				const FklGrammerSym* syms=prods->syms;
+				for(size_t i=0;i<len;i++)
+				{
+					const FklGrammerSym* sym=&syms[i];
+					if(sym->isterm)
+					{
+						if(sym->isbuiltin)
+						{
+							FklLalrItemLookAhead la=
+							{
+								.t=FKL_LALR_MATCH_BUILTIN,
+								.delim=sym->delim,
+								.u.b=sym->u.b,
+							};
+							if(!fklGetHashItem(&la,&firstItem->first))
+							{
+								change=1;
+								fklPutHashItem(&la,&firstItem->first);
+							}
+							break;
+						}
+						else
+						{
+							const FklString* s=fklGetSymbolWithId(sym->u.nt,tt)->symbol;
+							if(s->size==0)
+							{
+								if(i==len-1)
+								{
+									change|=firstItem->hasEpsilon!=1;
+									firstItem->hasEpsilon=1;
+								}
+							}
+							else
+							{
+								FklLalrItemLookAhead la=
+								{
+									.t=FKL_LALR_MATCH_STRING,
+									.delim=sym->delim,
+									.u.s=s,
+								};
+								if(!fklGetHashItem(&la,&firstItem->first))
+								{
+									change=1;
+									fklPutHashItem(&la,&firstItem->first);
+								}
+								break;
+							}
+						}
+					}
+					else
+					{
+						const FirstSetItem* curFirstItem=fklGetHashItem(&sym->u.nt,firsetSets);
+						for(const FklHashTableItem* syms=curFirstItem->first.first;syms;syms=syms->next)
+						{
+							const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)syms->data;
+							if(!fklGetHashItem(la,&firstItem->first))
+							{
+								change=1;
+								fklPutHashItem(la,&firstItem->first);
+							}
+							if(!curFirstItem->hasEpsilon)
+								break;
+						}
+					}
+				}
+			}
+		}
+	}while(change);
+}
+
+static inline FklGrammer* create_empty_lalr1_grammer(void)
+{
+	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
+	FKL_ASSERT(r);
+	r->terminals=fklCreateSymbolTable();
+	r->ignores=NULL;
+	r->sortedTerminals=NULL;
+	r->sortedTerminalsNum=0;
+	fklInitSidSet(&r->nonterminals);
+	fklInitHashTable(&r->firstSets,&FirstSetHashMetaTable);
+	init_prod_hash_table(&r->productions);
+	return r;
+}
+
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 {
 	FklGrammer* grammer=create_empty_lalr1_grammer();
@@ -2619,6 +2806,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 		fklDestroyGrammer(grammer);
 		return NULL;
 	}
+	compute_all_first_set(grammer);
 	return grammer;
 }
 
@@ -2662,6 +2850,7 @@ FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSy
 		fklDestroyGrammer(grammer);
 		return NULL;
 	}
+	compute_all_first_set(grammer);
 	return grammer;
 }
 
@@ -3128,33 +3317,6 @@ static inline void init_grammer_sym_set(FklHashTable* t)
 	fklInitHashTable(t,&GrammerSymMetaTable);
 }
 
-static int look_ahead_equal(const void* d0,const void* d1)
-{
-	return lalr_look_ahead_equal((const FklLalrItemLookAhead*)d0
-			,(const FklLalrItemLookAhead*)d1);
-}
-
-static void look_ahead_set_key(void* d0,const void* d1)
-{
-	*(FklLalrItemLookAhead*)d0=*(const FklLalrItemLookAhead*)d1;
-}
-
-static uintptr_t look_ahead_hash_func(const void* d)
-{
-	return lalr_look_ahead_hash_func((const FklLalrItemLookAhead*)d);
-}
-
-static const FklHashTableMetaTable LookAheadHashMetaTable=
-{
-	.size=sizeof(FklLalrItemLookAhead),
-	.__getKey=fklHashDefaultGetKey,
-	.__setKey=look_ahead_set_key,
-	.__setVal=look_ahead_set_key,
-	.__hashFunc=look_ahead_hash_func,
-	.__keyEqual=look_ahead_equal,
-	.__uninitItem=fklDoNothingUnintHashItem,
-};
-
 static void item_set_set_val(void* d0,const void* d1)
 {
 	FklLalrItemSet* s=(FklLalrItemSet*)d0;
@@ -3311,19 +3473,224 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
 	return itemstate_set;
 }
 
-static inline int get_first_set_helper(const FklGrammer* g
+// static inline int get_first_set_iter(const FklGrammer* g
+// 		,const FklGrammerProduction* prod
+// 		,uint32_t idx
+// 		,FklHashTable* first
+// 		,FklHashTable* computedLeft)
+// {
+// 	const FklSymbolTable* tt=g->terminals;
+// 	int hasEpsilon=0;
+// 	FklPtrStack pendingProds;
+// 	FklUintStack pendingIdxs;
+// 	FklUintStack pendingLefts;
+// 	fklInitPtrStack(&pendingProds,16,16);
+// 	fklInitUintStack(&pendingIdxs,16,16);
+// 	fklInitUintStack(&pendingLefts,16,16);
+//
+// 	fklPushPtrStack((void*)prod,&pendingProds);
+// 	fklPushUintStack(idx,&pendingIdxs);
+// 	while(!fklIsPtrStackEmpty(&pendingProds))
+// 	{
+// 		const FklGrammerProduction* prod=fklTopPtrStack(&pendingProds);
+// 		uint32_t idx=fklPopUintStack(&pendingIdxs);
+// 		size_t len=prod->len;
+// 		for(uint32_t i=idx;i<len;i++)
+// 		{
+// 			FklGrammerSym* sym=&prod->syms[i];
+// 			if(sym->isterm)
+// 			{
+// 				if(sym->isbuiltin)
+// 				{
+// 					FklLalrItemLookAhead la=
+// 					{
+// 						.t=FKL_LALR_MATCH_BUILTIN,
+// 						.delim=sym->delim,
+// 						.u.b=sym->u.b,
+// 					};
+// 					fklPutHashItem(&la,first);
+// 					break;
+// 				}
+// 				else
+// 				{
+// 					FklString* s=fklGetSymbolWithId(sym->u.nt,tt)->symbol;
+// 					if(s->size==0)
+// 					{
+// 						if(i==len-1)
+// 							hasEpsilon=1;
+// 					}
+// 					else
+// 					{
+// 						FklLalrItemLookAhead la=
+// 						{
+// 							.t=FKL_LALR_MATCH_STRING,
+// 							.delim=sym->delim,
+// 							.u.s=s,
+// 						};
+// 						fklPutHashItem(&la,first);
+// 						break;
+// 					}
+// 				}
+// 			}
+// 			else if(!fklGetHashItem(&sym->u.nt,computedLeft))
+// 			{
+// 				fklPushUintStack(idx,&pendingIdxs);
+// 				FklGrammerProduction* prods=fklGetGrammerProductions(g,sym->u.nt);
+// 				for(;prods;prods=prods->next)
+// 				{
+// 					if(prods!=prod||i!=0)
+// 					{
+// 						fklPushUintStack(sym->u.nt,&pendingLefts);
+// 						fklPushPtrStack(prods,&pendingProds);
+// 						fklPushUintStack(0,&pendingIdxs);
+// 					}
+// 				}
+// 				continue;
+// 			}
+// 			fklPopPtrStack(&pendingProds);
+// 			FklSid_t left=fklPopUintStack(&pendingLefts);
+// 			fklDelHashItem(&left,computedLeft);
+// 		}
+// 	}
+// 	return hasEpsilon;
+// }
+
+// static inline int get_first_set_helper(const FklGrammer* g
+// 		,const FklGrammerProduction* prod
+// 		,uint32_t idx
+// 		,FklHashTable* first
+// 		,FklHashTable* computedLeft)
+// {
+// #warning recursive
+// 	size_t len=prod->len;
+// 	if(idx>=len)
+// 		return 1;
+// 	size_t lastIdx=len-1;
+// 	FklSymbolTable* tt=g->terminals;
+// 	int hasEpsilon=0;
+// 	for(uint32_t i=idx;i<len;i++)
+// 	{
+// 		FklGrammerSym* sym=&prod->syms[i];
+// 		if(sym->isterm)
+// 		{
+// 			if(sym->isbuiltin)
+// 			{
+// 				FklLalrItemLookAhead la=
+// 				{
+// 					.t=FKL_LALR_MATCH_BUILTIN,
+// 					.delim=sym->delim,
+// 					.u.b=sym->u.b,
+// 				};
+// 				fklPutHashItem(&la,first);
+// 				break;
+// 			}
+// 			else
+// 			{
+// 				FklString* s=fklGetSymbolWithId(sym->u.nt,tt)->symbol;
+// 				if(s->size==0)
+// 				{
+// 					if(i==lastIdx)
+// 						hasEpsilon=1;
+// 				}
+// 				else
+// 				{
+// 					FklLalrItemLookAhead la=
+// 					{
+// 						.t=FKL_LALR_MATCH_STRING,
+// 						.delim=sym->delim,
+// 						.u.s=s,
+// 					};
+// 					fklPutHashItem(&la,first);
+// 					break;
+// 				}
+// 			}
+// 		}
+// 		else
+// 		{
+// 			if(!fklGetHashItem(&sym->u.nt,computedLeft))
+// 			{
+// 				FklGrammerProduction* prods=fklGetGrammerProductions(g,sym->u.nt);
+// 				int hasEpsilon=0;
+// 				FklHashTable noterminal_first;
+// 				fklInitHashTable(&noterminal_first,&LookAheadHashMetaTable);
+// 				for(;prods;prods=prods->next)
+// 				{
+// 					if(prods!=prod||i!=0)
+// 					{
+// 						fklPutHashItem(&sym->u.nt,computedLeft);
+// 						hasEpsilon|=get_first_set_helper(g,prods,0,&noterminal_first,computedLeft);
+// 						fklDelHashItem(&sym->u.nt,computedLeft);
+// 						for(FklHashTableItem* l=noterminal_first.first;l;l=l->next)
+// 						{
+// 							FklLalrItemLookAhead* la=(FklLalrItemLookAhead*)l->data;
+// 							fklPutHashItem(la,first);
+// 						}
+// 						fklClearHashTable(&noterminal_first);
+// 					}
+// 				}
+// 				fklUninitHashTable(&noterminal_first);
+// 				if(!hasEpsilon)
+// 					break;
+// 			}
+// 		}
+// 	}
+// 	return hasEpsilon;
+// 	// FklPtrStack pending;
+// 	// FklPtrStack froms;
+// 	// FklUintStack idxs;
+// 	// fklInitPtrStack(&pending,8,8);
+// 	// fklInitPtrStack(&froms,8,8);
+// 	// fklInitUintStack(&idxs,8,8);
+// 	//
+// 	// fklPushPtrStack(&prod->syms[idx],&pending);
+// 	// fklPushPtrStack(prod,&froms);
+// 	// fklPushUintStack(idx,&idxs);
+// 	//
+// 	// FklSymbolTable* tt=g->terminals;
+// 	// while(!fklIsPtrStackEmpty(&pending))
+// 	// {
+// 	// 	FklGrammerSym* sym=fklPopPtrStack(&pending);
+// 	// 	FklGrammerProduction* from=fklPopPtrStack(&froms);
+// 	// 	uint64_t idx=fklPopUintStack(&idxs);
+// 	// 	if(sym->isterm)
+// 	// 	{
+// 	// 		FklString* s=fklGetSymbolWithId(sym->nt,tt)->symbol;
+// 	// 		FklLalrItemLookAhead la={.t=FKL_LALR_MATCH_STRING,.u.s=s};
+// 	// 		fklPutHashItem(&la,t);
+// 	// 	}
+// 	// 	else
+// 	// 	{
+// 	// 		FklSid_t left=sym->nt;
+// 	// 		FklGrammerProduction* prods=fklGetGrammerProductions(g,left);
+// 	// 		for(;prods;prods=prods->next)
+// 	// 		{
+// 	// 			FklGrammerSym* sym=&prods->syms[0];
+// 	// 			if(sym->isterm||sym->nt!=left)
+// 	// 			{
+// 	// 				fklPushPtrStack(sym,&pending);
+// 	// 				fklPushPtrStack(prods,&froms);
+// 	// 				fklPushUintStack(0,&idxs);
+// 	// 			}
+// 	// 		}
+// 	// 	}
+// 	// }
+// 	// fklUninitPtrStack(&pending);
+// 	// return t;
+// }
+
+static inline int get_first_set_from_first_sets(const FklGrammer* g
 		,const FklGrammerProduction* prod
 		,uint32_t idx
 		,FklHashTable* first
 		,FklHashTable* computedLeft)
 {
-#warning recursive
 	size_t len=prod->len;
 	if(idx>=len)
 		return 1;
 	size_t lastIdx=len-1;
 	FklSymbolTable* tt=g->terminals;
 	int hasEpsilon=0;
+	const FklHashTable* firstSets=&g->firstSets;
 	for(uint32_t i=idx;i<len;i++)
 	{
 		FklGrammerSym* sym=&prod->syms[i];
@@ -3363,75 +3730,17 @@ static inline int get_first_set_helper(const FklGrammer* g
 		}
 		else
 		{
-			if(!fklGetHashItem(&sym->u.nt,computedLeft))
+			const FirstSetItem* firstSetItem=fklGetHashItem(&sym->u.nt,firstSets);
+			for(FklHashTableItem* symList=firstSetItem->first.first;symList;symList=symList->next)
 			{
-				FklGrammerProduction* prods=fklGetGrammerProductions(g,sym->u.nt);
-				int hasEpsilon=0;
-				FklHashTable noterminal_first;
-				fklInitHashTable(&noterminal_first,&LookAheadHashMetaTable);
-				for(;prods;prods=prods->next)
-				{
-					if(prods!=prod||i!=0)
-					{
-						fklPutHashItem(&sym->u.nt,computedLeft);
-						hasEpsilon|=get_first_set_helper(g,prods,0,&noterminal_first,computedLeft);
-						fklDelHashItem(&sym->u.nt,computedLeft);
-						for(FklHashTableItem* l=noterminal_first.first;l;l=l->next)
-						{
-							FklLalrItemLookAhead* la=(FklLalrItemLookAhead*)l->data;
-							fklPutHashItem(la,first);
-						}
-						fklClearHashTable(&noterminal_first);
-					}
-				}
-				fklUninitHashTable(&noterminal_first);
-				if(!hasEpsilon)
-					break;
+				const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)symList->data;
+				fklPutHashItem(la,first);
 			}
+			if(!firstSetItem->hasEpsilon)
+				break;
 		}
 	}
 	return hasEpsilon;
-	// FklPtrStack pending;
-	// FklPtrStack froms;
-	// FklUintStack idxs;
-	// fklInitPtrStack(&pending,8,8);
-	// fklInitPtrStack(&froms,8,8);
-	// fklInitUintStack(&idxs,8,8);
-	//
-	// fklPushPtrStack(&prod->syms[idx],&pending);
-	// fklPushPtrStack(prod,&froms);
-	// fklPushUintStack(idx,&idxs);
-	//
-	// FklSymbolTable* tt=g->terminals;
-	// while(!fklIsPtrStackEmpty(&pending))
-	// {
-	// 	FklGrammerSym* sym=fklPopPtrStack(&pending);
-	// 	FklGrammerProduction* from=fklPopPtrStack(&froms);
-	// 	uint64_t idx=fklPopUintStack(&idxs);
-	// 	if(sym->isterm)
-	// 	{
-	// 		FklString* s=fklGetSymbolWithId(sym->nt,tt)->symbol;
-	// 		FklLalrItemLookAhead la={.t=FKL_LALR_MATCH_STRING,.u.s=s};
-	// 		fklPutHashItem(&la,t);
-	// 	}
-	// 	else
-	// 	{
-	// 		FklSid_t left=sym->nt;
-	// 		FklGrammerProduction* prods=fklGetGrammerProductions(g,left);
-	// 		for(;prods;prods=prods->next)
-	// 		{
-	// 			FklGrammerSym* sym=&prods->syms[0];
-	// 			if(sym->isterm||sym->nt!=left)
-	// 			{
-	// 				fklPushPtrStack(sym,&pending);
-	// 				fklPushPtrStack(prods,&froms);
-	// 				fklPushUintStack(0,&idxs);
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// fklUninitPtrStack(&pending);
-	// return t;
 }
 
 static inline int get_first_set(const FklGrammer* g
@@ -3441,7 +3750,7 @@ static inline int get_first_set(const FklGrammer* g
 {
 	FklHashTable computedLeft;
 	fklInitSidSet(&computedLeft);
-	int hasEpsilon=get_first_set_helper(g,prod,idx,first,&computedLeft);
+	int hasEpsilon=get_first_set_from_first_sets(g,prod,idx,first,&computedLeft);
 	fklUninitHashTable(&computedLeft);
 	return hasEpsilon;
 }

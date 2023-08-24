@@ -1076,7 +1076,7 @@ static inline void print_raw_char_to_string_buffer(FklStringBuffer* s,char c)
 {
 	fklStringBufferConcatWithCstr(s,"#\\");
 	if(c==' ')
-		fklStringBufferConcatWithCstr(s,"\\x20");
+		fklStringBufferConcatWithCstr(s,"\\s");
 	else if(c=='\0')
 		fklStringBufferConcatWithCstr(s,"\\0");
 	else if(fklIsSpecialCharAndPrintToStringBuffer(s,c));

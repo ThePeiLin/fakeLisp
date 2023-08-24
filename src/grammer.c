@@ -2,8 +2,7 @@
 #include<fakeLisp/base.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
-
-#warning incomplete
+#include<ctype.h>
 
 extern FklNastNode* prod_action_symbol(const FklGrammerProduction* prod
 		,FklNastNode** nodes
@@ -178,17 +177,6 @@ static FklNastNode* prod_action_float(const FklGrammerProduction* prod
 	return r;
 }
 
-static FklNastNode* prod_action_backslash(const FklGrammerProduction* prod
-		,FklNastNode** nodes
-		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
-{
-	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->chr='\\';
-	return c;
-}
-
 static FklNastNode* prod_action_any_char(const FklGrammerProduction* prod
 		,FklNastNode** nodes
 		,size_t num
@@ -197,6 +185,34 @@ static FklNastNode* prod_action_any_char(const FklGrammerProduction* prod
 {
 	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
 	c->chr=nodes[1]->str->str[0];
+	return c;
+}
+
+static FklNastNode* prod_action_esc_char(const FklGrammerProduction* prod
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	static const char* escapeChars=FKL_ESCAPE_CHARS;
+	static const char* escapeCharsTo=FKL_ESCAPE_CHARS_TO;
+
+	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
+	FklString* str=nodes[1]->str;
+	if(str->size)
+	{
+		char ch=toupper(nodes[1]->str->str[0]);
+		for(size_t i=0;escapeChars[i];i++)
+			if(ch==escapeChars[i])
+			{
+				c->chr=escapeCharsTo[i];
+				goto end;
+			}
+		c->chr=nodes[1]->str->str[0];
+	}
+	else
+		c->chr='\\';
+end:
 	return c;
 }
 
@@ -475,11 +491,12 @@ static const FklGrammerCstrAction example_grammer_action[]=
 	{"float &%s-dfloat + #|",         prod_action_float,         },
 	{"float &%s-xfloat + #|",         prod_action_float,         },
 
-	{"char ##\\\\",                   prod_action_backslash,     },
-	{"char ##\\ + &%any",             prod_action_any_char,      },
+	{"char ##\\ + &%any",             prod_action_any_char,     },
+	{"char ##\\\\ + &%esc",           prod_action_esc_char,     },
 	{"char ##\\\\ + &%dec3",          prod_action_dec_char,      },
 	{"char ##\\\\0 + &%oct3",         prod_action_oct_char,      },
 	{"char ##\\\\x + &%hex2",         prod_action_hex_char,      },
+	{"char ##\\\\X + &%hex2",         prod_action_hex_char,      },
 
 	{"box ##& &s-exp",                prod_action_box,           },
 

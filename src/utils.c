@@ -561,7 +561,7 @@ void fklPrintRawChar(char chr,FILE* out)
 {
 	fprintf(out,"#\\");
 	if(chr==' ')
-		fputs("\\x20",out);
+		fputs("\\s",out);
 	else if(chr=='\0')
 		fputs("\\0",out);
 	else if(fklIsSpecialCharAndPrint(chr,out));

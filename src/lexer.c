@@ -2410,6 +2410,33 @@ static const FklLalrBuiltinMatch builtin_match_identifier=
 	.ctx_global_create=builtin_match_number_global_create,
 };
 
+static inline int char_in_cstr(char c,const char* s)
+{
+	for(;*s;s++)
+		if(*s==c)
+			return 1;
+	return 0;
+}
+
+static int builtin_match_esc_func(void* c
+		,const char* cstrStart
+		,const char* cstr
+		,size_t* pmatchLen
+		,FklGrammerMatchOuterCtx* outerCtx)
+{
+	static const char* escape_char=FKL_ESCAPE_CHARS;
+	size_t matchLen=0;
+	if(char_in_cstr(toupper(*cstr),escape_char))
+		matchLen++;
+	*pmatchLen=matchLen;
+	return 1;
+}
+static const FklLalrBuiltinMatch builtin_match_esc=
+{
+	.name="esc",
+	.match=builtin_match_esc_func,
+};
+
 static const struct BuiltinGrammerSymList
 {
 	const char* name;
@@ -2417,6 +2444,7 @@ static const struct BuiltinGrammerSymList
 }builtin_grammer_sym_list[]=
 {
 	{"%any",       &builtin_match_any,       },
+	{"%esc",       &builtin_match_esc,       },
 	{"%dec3",      &builtin_match_dec3,      },
 	{"%hex2",      &builtin_match_hex2,      },
 	{"%oct3",      &builtin_match_oct3,      },

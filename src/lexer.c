@@ -861,6 +861,7 @@ static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t
 	r->len=len;
 	r->func=func;
 	r->syms=(FklGrammerSym*)calloc(len,sizeof(FklGrammerSym));
+	r->isBuiltin=1;
 	FKL_ASSERT(r->syms);
 	return r;
 }

@@ -68,13 +68,16 @@ typedef struct FklGrammerProduction
 	size_t idx;
 	FklGrammerSym* syms;
 	struct FklGrammerProduction* next;
-	FklBuiltinProdAction func;
-	// union
-	// {
-	// 	FklByteCodelnt* proc;
-	// 	void* func;
-	// }action;
 	int isBuiltin;
+	union
+	{
+		struct
+		{
+			FklByteCodelnt* bcl;
+			FklFuncPrototypes* pts;
+		};
+		FklBuiltinProdAction func;
+	};
 }FklGrammerProduction;
 
 typedef enum

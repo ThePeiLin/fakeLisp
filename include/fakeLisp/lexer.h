@@ -29,6 +29,7 @@ typedef struct
 	int (*match)(void* ctx
 			,const char* start
 			,const char* str
+			,size_t restLen
 			,size_t* matchLen
 			,FklGrammerMatchOuterCtx* outerCtx);
 	int (*ctx_cmp)(const void* c0,const void* c1);

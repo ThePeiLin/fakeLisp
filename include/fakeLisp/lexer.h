@@ -247,6 +247,7 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states);
 void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
 void fklPrintAnalysisTableForGraphEasy(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
+void fklPrintAnalysisTableAsCfunc(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
 
 void fklLr0ToLalrItems(FklHashTable*,FklGrammer* grammer);
 

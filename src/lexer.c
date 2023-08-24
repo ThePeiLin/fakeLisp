@@ -2494,29 +2494,29 @@ static const struct BuiltinGrammerSymList
 	const FklLalrBuiltinMatch* t;
 }builtin_grammer_sym_list[]=
 {
-	{"%any",       &builtin_match_any,       },
-	{"%esc",       &builtin_match_esc,       },
-	{"%dec3",      &builtin_match_dec3,      },
-	{"%hex2",      &builtin_match_hex2,      },
-	{"%oct3",      &builtin_match_oct3,      },
-	{"%space",     &builtin_match_space,     },
-	{"%qstr",      &builtin_match_qstr,      },
-	{"%eol",       &builtin_match_eol,       },
+	{"%any",        &builtin_match_any,        },
+	{"%esc",        &builtin_match_esc,        },
+	{"%dec3",       &builtin_match_dec3,       },
+	{"%hex2",       &builtin_match_hex2,       },
+	{"%oct3",       &builtin_match_oct3,       },
+	{"%space",      &builtin_match_space,      },
+	{"%qstr",       &builtin_match_qstr,       },
+	{"%eol",        &builtin_match_eol,        },
 
-	{"%dec-int",   &builtin_match_dec_int,   },
-	{"%hex-int",   &builtin_match_hex_int,   },
-	{"%oct-int",   &builtin_match_oct_int,   },
-	{"%dec-float", &builtin_match_dec_float, },
-	{"%hex-float", &builtin_match_hex_float, },
-	{"%identifier",    &builtin_match_identifier,    },
+	{"%dec-int",    &builtin_match_dec_int,    },
+	{"%hex-int",    &builtin_match_hex_int,    },
+	{"%oct-int",    &builtin_match_oct_int,    },
+	{"%dec-float",  &builtin_match_dec_float,  },
+	{"%hex-float",  &builtin_match_hex_float,  },
+	{"%identifier", &builtin_match_identifier, },
 
-	{"%s-dint",    &builtin_match_s_dint,    },
-	{"%s-xint",    &builtin_match_s_xint,    },
-	{"%s-oint",    &builtin_match_s_oint,    },
-	{"%s-dfloat",  &builtin_match_s_dfloat,  },
-	{"%s-xfloat",  &builtin_match_s_xfloat,  },
-	{"%symbol",    &builtin_match_symbol,    },
-	{NULL,         NULL,                     },
+	{"%s-dint",     &builtin_match_s_dint,     },
+	{"%s-xint",     &builtin_match_s_xint,     },
+	{"%s-oint",     &builtin_match_s_oint,     },
+	{"%s-dfloat",   &builtin_match_s_dfloat,   },
+	{"%s-xfloat",   &builtin_match_s_xfloat,   },
+	{"%symbol",     &builtin_match_symbol,     },
+	{NULL,          NULL,                      },
 };
 
 static inline void init_builtin_grammer_sym_table(FklHashTable* s,FklSymbolTable* st)
@@ -4662,6 +4662,25 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
 	fputc(']',fp);
 	fklUninitHashTable(&laTable);
 	fklUninitHashTable(&sidSet);
+}
+
+static inline void print_terminals_to_c_file(const FklSymbolTable* tt,FILE* fp)
+{
+	size_t num=tt->num;
+	FklSymTabNode* const* idl=tt->idl;
+	for(size_t i=0;i<num;i++)
+	{
+		const FklSymTabNode* node=idl[i];
+		const FklString* symbol=node->symbol;
+		const FklSid_t id=node->id;
+		size_t size=symbol->size+1;
+		fprintf(stderr,"struct {uint64_t size;char str[%lu];}terminal_%lu={.size=%lu,.str=\"\"}\n",size+1,id,size);
+	}
+}
+
+void fklPrintAnalysisTableAsCfunc(const FklGrammer* g, const FklSymbolTable* st, FILE *fp)
+{
+	print_terminals_to_c_file(g->terminals,fp);
 }
 
 void fklPrintItemStateSet(const FklHashTable* i

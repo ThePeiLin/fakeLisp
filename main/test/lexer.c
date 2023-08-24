@@ -2,7 +2,182 @@
 #include<fakeLisp/base.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
+#include<stdio.h>
+#include<stdlib.h>
 #include<ctype.h>
+
+// const char* test_grammer[]={
+// 	"s #( &s #)",
+// 	"s #( #)",
+// 	"s &d",
+// 	"d #0",
+// 	"d #1",
+// 	"d #2",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"string #“ + &%qstr + #”",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"ss #( &b #)",
+// 	"ss &s",
+// 	"b &ss &b",
+// 	"b ",
+//
+// 	"s #d",
+// 	"s #c",
+// 	"s #d + &s",
+// 	"s #c + &s",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"s #foobar",
+// 	"s #| + &%qstr + #|",
+// 	"s &s + #foobar",
+// 	"s &s + #| + &%qstr + #|",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"s #( &l #)",
+// 	"s #[ &l #]",
+//
+// 	// "s ##( &v #)",
+// 	// "s ##[ &v #]",
+// 	//
+// 	// "s ##hash( &kv #)",
+// 	// "s ##hash[ &kv #]",
+// 	//
+// 	// "s ##hasheqv( &kv #)",
+// 	// "s ##hasheqv[ &kv #]",
+// 	//
+// 	// "s ##hashequal( &kv #)",
+// 	// "s ##hashequal[ &kv #]",
+// 	//
+// 	// "s ##vu8( &v8 #)",
+// 	// "s ##vu8[ &v8 #]",
+// 	//
+// 	// "s #' &s",
+// 	// "s #` &s",
+// 	// "s #~ &s",
+// 	// "s #~@ &s",
+// 	// "s ##& &s",
+// 	//
+// 	// "s &%dec-int",
+// 	// "s &%hex-int",
+// 	// "s &%oct-int",
+// 	//
+// 	// "s &%dec-float",
+// 	// "s &%hex-float",
+//
+// 	"s &%identifier + #|",
+// 	// "s #\" + &%qstr #\"",
+//
+// 	"l ",
+// 	"l &s &l",
+// 	"l &s #, &s",
+// 	//
+// 	// "v ",
+// 	// "v &s &v",
+// 	//
+// 	// "v8 ",
+// 	// "v8 &%dec-int &v8",
+// 	// "v8 &%hex-int &v8",
+// 	// "v8 &%oct-int &v8",
+// 	//
+// 	// "kv ",
+// 	// "kv #( &s #, &s #) &kv",
+// 	// "kv #[ &s #, &s #] &kv",
+//
+// 	"+ &%space",
+// 	"+ #; &%eol",
+// 	"+ ##! &%eol",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"s #foo",
+// 	"s #foo",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"s &f &b",
+// 	"f #f &f ",
+// 	"f ",
+// 	"b #b",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"comment #; + &%eol",
+// 	"comment ##! + &%eol",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"E #a &A",
+// 	"E #b &B",
+// 	"A #c &A",
+// 	"A #d",
+// 	"B #c &B",
+// 	"B #d",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"S &B &B",
+// 	"B #a &B",
+// 	"B #b",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"E &E #+ &T",
+// 	"E &T",
+// 	"T &T #* &F",
+// 	"T &F",
+// 	"F #0",
+// 	"F #1",
+// 	"F #( &E #)",
+// 	NULL,
+// };
+
+
+// const char* example_grammer[]=
+// {
+// 	"S #a &A #d",
+// 	"S #b &B #d",
+// 	"S #a &B #e",
+// 	"S #b &A #e",
+// 	"A #c",
+// 	"B #c",
+// 	NULL,
+// };
+
+// const char* example_grammer[]=
+// {
+// 	"S &L #= &R",
+// 	"S &R",
+// 	"L #* &R",
+// 	"L #id",
+// 	"R &L",
+// 	NULL,
+// };
 
 extern FklNastNode* prod_action_symbol(const FklGrammerProduction* prod
 		,FklNastNode** nodes
@@ -537,3 +712,147 @@ static const FklGrammerCstrAction example_grammer_action[]=
 	{NULL,                            NULL,                      },
 };
 
+// {"symbol #| + &%qstr + #|",          prod_action_string,        },
+// {"symbol &%identifier",          prod_action_return_first,        },
+// {"symbol &symbol + &%identifier",          prod_action_return_first,        },
+// {"symbol &symbol + #| + &%qstr + #|",          prod_action_return_first,        },
+
+// static const FklGrammerCstrAction example_grammer[]=
+// {
+// 	{"E &E #+ &T", prod_action_return_first, },
+// 	{"E &T",       prod_action_return_first, },
+// 	{"T &T #* &F", prod_action_return_first, },
+// 	{"T &F",       prod_action_return_first, },
+// 	{"F #0",       prod_action_return_first, },
+// 	{"F #1",       prod_action_return_first, },
+// 	{"F #( &E #)", prod_action_return_first, },
+// 	{"+ &%space",  NULL,                     },
+// 	{NULL,         NULL,                     },
+// };
+
+// static const FklGrammerCstrAction example_grammer[]=
+// {
+// 	{"ss &s &b #c", prod_action_return_first, },
+// 	{"s #d",        prod_action_return_first, },
+// 	{"b &b #a",     prod_action_return_first, },
+// 	{"b ",          prod_action_return_first, },
+// 	{"+ &%space",   NULL,                     },
+// 	{NULL,          NULL,                     },
+// };
+
+int main()
+{
+	FklSymbolTable* st=fklCreateSymbolTable();
+	// FklGrammer* g=fklCreateGrammerFromCstr(example_grammer,st);
+	// FklGrammer* g=fklCreateGrammerFromCstrAction(example_grammer,st);
+	FklGrammer* g=fklCreateGrammerFromCstrAction(example_grammer_action,st);
+	if(!g)
+	{
+		fklDestroySymbolTable(st);
+		fprintf(stderr,"garmmer create fail\n");
+		exit(1);
+	}
+	if(g->sortedTerminals)
+	{
+		fputs("\nterminals:\n",stdout);
+		for(size_t i=0;i<g->sortedTerminalsNum;i++)
+			fprintf(stdout,"%s\n",g->sortedTerminals[i]->str);
+		fputc('\n',stdout);
+	}
+	fputs("grammer:\n",stdout);
+	fklPrintGrammer(stdout, g, st);
+	FklHashTable* itemSet=fklGenerateLr0Items(g);
+	fputc('\n',stdout);
+	fputs("item sets:\n",stdout);
+	FILE* gzf=fopen("items.gz.txt","w");
+	FILE* lalrgzf=fopen("items-lalr.gz.txt","w");
+	fklPrintItemStateSetAsDot(itemSet,g,st,gzf);
+	fklLr0ToLalrItems(itemSet,g);
+	fklPrintItemStateSet(itemSet,g,st,stdout);
+	fklPrintItemStateSetAsDot(itemSet,g,st,lalrgzf);
+
+	if(fklGenerateLalrAnalyzeTable(g,itemSet))
+	{
+		fklDestroySymbolTable(st);
+		fprintf(stderr,"not lalr garmmer\n");
+		exit(1);
+	}
+	fklPrintAnalysisTable(g,st,stdout);
+	fklDestroyHashTable(itemSet);
+
+	FILE* tablef=fopen("table.txt","w");
+	fklPrintAnalysisTableForGraphEasy(g,st,tablef);
+
+	fclose(tablef);
+	fclose(gzf);
+	fclose(lalrgzf);
+
+	fputc('\n',stdout);
+	// const char* exp="1*(1+1)";
+	// const char* exp=" 1 * (1 + 1) ";
+	// const char* exp="foobar|foo|foobar|bar|";
+	// const char* exp=" a c d ";
+	// const char* exp=" a c dd";
+	// const char* exp="fffb";
+	// const char* exp="(\"foo\" \"bar\" \"foobar\",;abcd\n\"i\")";
+	// const char* exp="[(foobar;comments\nfoo bar),abcd]";
+	// const char* exp="(foo bar abcd|foo \\|bar|efgh foo \"foo\\\"\",bar)";
+	
+	const char* exps[]=
+	{
+		"#\\\\11",
+		"#\\\\z",
+		"#\\\\n",
+		"#\\\\",
+		"#\\;",
+		"#\\|",
+		"#\\\"",
+		"#\\(",
+		"#\\\\s",
+		"(abcd)abcd",
+		";comments\nabcd",
+		"foobar|foo|foobar|bar|",
+		"(\"foo\" \"bar\" \"foobar\",;abcd\n\"i\")",
+		"[(foobar;comments\nfoo bar),abcd]",
+		"(foo bar abcd|foo \\|bar|efgh foo \"foo\\\"\",bar)",
+		"'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)",
+		"#hash((a,1) (b,2))",
+		"#vu8(114 514 114514)",
+		"114514",
+		"#\\ ",
+		// "#\\",
+		NULL,
+	};
+
+	// const char* exp="'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)";
+	// const char* exp="“114514”";
+	FklPtrStack tokenStack=FKL_STACK_INIT;
+	int retval=0;
+	for(const char** exp=&exps[0];*exp;exp++)
+	{
+		fklInitPtrStack(&tokenStack,16,8);
+
+		FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+
+		retval=fklParseForCstrDbg(&g->aTable,*exp,&tokenStack,&outerCtx,st);
+
+		fputc('\n',stdout);
+		for(size_t i=0;i<tokenStack.top;i++)
+		{
+			FklString* s=tokenStack.base[i];
+			fprintf(stdout,"%s\n",s->str);
+			free(s);
+		}
+		fputc('\n',stdout);
+
+		fklUninitPtrStack(&tokenStack);
+		if(retval)
+			break;
+	}
+	FILE* c_parser_file=fopen("c_parser_func.c","w");
+	fklPrintAnalysisTableAsCfunc(g,st,c_parser_file);
+	fclose(c_parser_file);
+	fklDestroyGrammer(g);
+	fklDestroySymbolTable(st);
+	return retval;
+}

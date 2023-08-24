@@ -2954,7 +2954,7 @@ static void builtin_call_eh(FKL_DL_PROC_ARGL)
 				fklPushPtrStack(v,&errHandlers);
 				break;
 		}
-		state-set!state;
+		state=!state;
 	}
 	if(state==GET_PROC)
 	{

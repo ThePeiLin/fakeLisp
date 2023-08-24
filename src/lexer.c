@@ -2426,7 +2426,9 @@ static int builtin_match_esc_func(void* c
 {
 	static const char* escape_char=FKL_ESCAPE_CHARS;
 	size_t matchLen=0;
-	if(char_in_cstr(toupper(*cstr),escape_char))
+	if(isdigit(*cstr))
+		return 0;
+	if(*cstr&&(!isspace(*cstr)||char_in_cstr(toupper(*cstr),escape_char)))
 		matchLen++;
 	*pmatchLen=matchLen;
 	return 1;

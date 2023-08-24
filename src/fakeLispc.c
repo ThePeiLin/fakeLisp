@@ -110,7 +110,7 @@ int main(int argc,char** argv)
 						if(lib->type==FKL_CODEGEN_LIB_SCRIPT)
 						{
 							fwrite(&lib->prototypeId,sizeof(lib->prototypeId),1,outfp);
-							FklByteCodelnt* bcl=lib->u.bcl;
+							FklByteCodelnt* bcl=lib->bcl;
 							FklLineNumberTable tmpLnt={bcl->ls,bcl->l};
 							fklWriteLineNumberTable(&tmpLnt,outfp);
 							uint64_t libSize=bcl->bc->size;

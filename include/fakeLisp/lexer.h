@@ -55,7 +55,7 @@ typedef struct FklGrammerSym
 	{
 		FklSid_t nt;
 		FklLalrBuiltinGrammerSym b;
-	}u;
+	};
 }FklGrammerSym;
 
 struct FklGrammerProduction;
@@ -95,7 +95,7 @@ typedef struct
 	{
 		const FklString* s;
 		FklLalrBuiltinGrammerSym b;
-	}u;
+	};
 }FklLalrItemLookAhead;
 
 typedef struct
@@ -149,7 +149,7 @@ typedef struct
 	{
 		const FklString* str;
 		FklLalrBuiltinGrammerSym func;
-	}m;
+	};
 }FklAnalysisStateActionMatch;
 
 typedef struct FklAnalysisStateAction
@@ -161,7 +161,7 @@ typedef struct FklAnalysisStateAction
 	{
 		const struct FklAnalysisState* state;
 		const FklGrammerProduction* prod;
-	}u;
+	};
 
 	struct FklAnalysisStateAction* next;
 }FklAnalysisStateAction;
@@ -192,7 +192,7 @@ typedef struct
 	{
 		const FklString* str;
 		FklLalrBuiltinGrammerSym b;
-	}u;
+	};
 	unsigned int isbuiltin:1;
 }FklGrammerIgnoreSym;
 

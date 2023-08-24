@@ -21,7 +21,7 @@ typedef struct FklStringMatchPattern
 	{
 		FklByteCodelnt* proc;
 		FklNastNode* (*func)(FklPtrStack*,uint64_t,size_t*,const FklSid_t[4]);
-	}u;
+	};
 	FklFuncPrototypes* pts;
 	struct FklStringMatchPattern* next;
 	uint8_t own;

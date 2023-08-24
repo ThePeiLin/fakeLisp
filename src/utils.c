@@ -954,14 +954,14 @@ union Fixu
 	{
 		int64_t fix:61;
 		int8_t o:3;
-	}s;
+	};
 	int64_t i;
 };
 
 inline int fklIsFixAddOverflow(int64_t a,int64_t b)
 {
-	union Fixu us={.s.fix=a+b};
-	int64_t sum=us.s.fix;
+	union Fixu us={.fix=a+b};
+	int64_t sum=us.fix;
 	return (a<0&&b<0&&sum>0)||(a>0&&b>0&&sum<0);
 }
 
@@ -990,9 +990,9 @@ inline int fklIsFixMulOverflow(int64_t a,int64_t b)
 		return (INT64_MAX/a)>b;
 	if(a*b==INT64_MIN)
 		return 0;
-	union Fixu t={.s.fix=a*b};
-	t.s.fix/=b;
-	return a!=t.s.fix;
+	union Fixu t={.fix=a*b};
+	t.fix/=b;
+	return a!=t.fix;
 }
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)

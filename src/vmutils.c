@@ -137,7 +137,7 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler* h)
 
 static inline FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 {
-	return FKL_VM_PROC(frame->u.c.proc)->codeObj;
+	return FKL_VM_PROC(frame->c.proc)->codeObj;
 }
 
 inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
@@ -230,7 +230,7 @@ FklVMframe* fklCopyVMframe(FklVMframe* f,FklVMframe* prev,FklVM* exe)
 			break;
 		case FKL_FRAME_OTHEROBJ:
 			{
-				FklVMframe* r=fklCreateOtherObjVMframe(f->u.o.t,prev);
+				FklVMframe* r=fklCreateOtherObjVMframe(f->t,prev);
 				fklDoCopyObjFrameContext(f,r,exe);
 				return r;
 			}
@@ -257,8 +257,8 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	tmp->type=FKL_FRAME_COMPOUND;
 	tmp->prev=prev;
 	tmp->errorCallBack=f->errorCallBack;
-	FklVMCompoundFrameData* fd=&tmp->u.c;
-	const FklVMCompoundFrameData* pfd=&f->u.c;
+	FklVMCompoundFrameData* fd=&tmp->c;
+	const FklVMCompoundFrameData* pfd=&f->c;
 	fd->sid=pfd->sid;
 	fd->pc=pfd->pc;
 	fd->spc=pfd->spc;
@@ -302,7 +302,7 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 	tmp->type=FKL_FRAME_COMPOUND;
 	tmp->prev=prev;
 
-	FklVMCompoundFrameData* f=&tmp->u.c;
+	FklVMCompoundFrameData* f=&tmp->c;
 	f->sid=0;
 	f->pc=NULL;
 	f->spc=NULL;
@@ -358,7 +358,7 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 	tmp->type=FKL_FRAME_COMPOUND;
 	tmp->prev=prev;
 
-	FklVMCompoundFrameData* f=&tmp->u.c;
+	FklVMCompoundFrameData* f=&tmp->c;
 	f->sid=0;
 	f->pc=NULL;
 	f->spc=NULL;
@@ -387,7 +387,7 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 	r->prev=prev;
 	r->errorCallBack=NULL;
 	r->type=FKL_FRAME_OTHEROBJ;
-	r->u.o.t=t;
+	r->t=t;
 	return r;
 }
 

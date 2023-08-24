@@ -74,7 +74,7 @@ typedef struct FklCodegenLib
 	{
 		FklByteCodelnt* bcl;
 		FklDllHandle dll;
-	}u;
+	};
 	char* rp;
 	size_t exportNum;
 	uint32_t* exportIndex;

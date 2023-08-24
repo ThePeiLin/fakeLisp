@@ -19,7 +19,7 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(GcCoCtx);
 
 static inline Greylink* volatile* get_grey_link(FklVMgc* gc)
 {
-	return &((GcCoCtx*)(gc->GcCo.sf.u.o.data))->greylink;
+	return &((GcCoCtx*)(gc->GcCo.sf.data))->greylink;
 }
 
 static inline Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
@@ -321,9 +321,9 @@ static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
 	FklVMframe* f=&exe->sf;
 	f->prev=NULL;
 	f->type=FKL_FRAME_OTHEROBJ;
-	f->u.o.t=&GcCoMethodTable;
+	f->t=&GcCoMethodTable;
 	exe->frames=f;
-	initFrameCtxToGcCoCtx(f->u.o.data,gc);
+	initFrameCtxToGcCoCtx(f->data,gc);
 }
 
 inline FklVMgc* fklCreateVMgc()

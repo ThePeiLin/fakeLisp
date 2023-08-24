@@ -72,7 +72,7 @@ static inline int compileAndRun(char* filename)
 			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
 			,NULL
 			,anotherVM->pts);
-	FklVMCompoundFrameVarRef* lr=&mainframe->u.c.lr;
+	FklVMCompoundFrameVarRef* lr=&mainframe->c.lr;
 
 	FklVMgc* gc=anotherVM->gc;
 	while(!fklIsPtrStackEmpty(loadedLibStack))
@@ -180,7 +180,7 @@ int main(int argc,char** argv)
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);
 			fklDestroyCodegenLibMacroScope(lib);
 			if(lib->type==FKL_CODEGEN_LIB_DLL)
-				fklDestroyDll(lib->u.dll);
+				fklDestroyDll(lib->dll);
 			fklUninitCodegenLibInfo(lib);
 			free(lib);
 		}

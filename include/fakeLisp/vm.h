@@ -316,8 +316,8 @@ typedef struct FklVMframe
 		{
 			const FklVMframeContextMethodTable* t;
 			FklCallObjData data;
-		}o;
-	}u;
+		};
+	};
 }FklVMframe;
 
 void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table);
@@ -861,7 +861,7 @@ void fklCallInFuncK(FklVMvalue*
 		,void*
 		,size_t);
 
-#define FKL_GET_DLPROC_RTP(EXE) (((FklDlprocFrameContext*)((EXE)->frames->u.o.data))->rtp)
+#define FKL_GET_DLPROC_RTP(EXE) (((FklDlprocFrameContext*)((EXE)->frames->data))->rtp)
 void fklFuncKReturn(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 
 size_t fklVMlistLength(FklVMvalue*);

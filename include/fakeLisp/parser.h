@@ -59,7 +59,7 @@ typedef struct FklNastNode
 		FklNastPair* pair;
 		FklNastHashTable* hash;
 		struct FklNastNode* box;
-	}u;
+	};
 }FklNastNode;
 
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line);

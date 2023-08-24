@@ -3,6 +3,8 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
 
+#warning incomplete
+
 extern FklNastNode* prod_action_symbol(const FklGrammerProduction* prod
 		,FklNastNode** nodes
 		,size_t num
@@ -33,12 +35,12 @@ static FklNastNode* prod_action_string(const FklGrammerProduction* prod
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* s=nodes[1]->u.str;
+	const FklString* s=nodes[1]->str;
 	size_t size=0;
 	char* cstr=fklCastEscapeCharBuf(s->str,s->size,&size);
 	FklString* str=fklCreateString(size,cstr);
 	FklNastNode* node=fklCreateNastNode(FKL_NAST_STR,nodes[1]->curline);
-	node->u.str=str;
+	node->str=str;
 	free(cstr);
 	return node;
 }
@@ -61,9 +63,9 @@ static FklNastNode* prod_action_pair(const FklGrammerProduction* prod
 	FklNastNode* car=nodes[0];
 	FklNastNode* cdr=nodes[2];
 	FklNastNode* pair=fklCreateNastNode(FKL_NAST_PAIR,line);
-	pair->u.pair=fklCreateNastPair();
-	pair->u.pair->car=fklMakeNastNodeRef(car);
-	pair->u.pair->cdr=fklMakeNastNodeRef(cdr);
+	pair->pair=fklCreateNastPair();
+	pair->pair->car=fklMakeNastNodeRef(car);
+	pair->pair->cdr=fklMakeNastNodeRef(cdr);
 	return pair;
 }
 
@@ -76,9 +78,9 @@ static FklNastNode* prod_action_list(const FklGrammerProduction* prod
 	FklNastNode* car=nodes[0];
 	FklNastNode* cdr=nodes[1];
 	FklNastNode* pair=fklCreateNastNode(FKL_NAST_PAIR,line);
-	pair->u.pair=fklCreateNastPair();
-	pair->u.pair->car=fklMakeNastNodeRef(car);
-	pair->u.pair->cdr=fklMakeNastNodeRef(cdr);
+	pair->pair=fklCreateNastPair();
+	pair->pair->car=fklMakeNastNodeRef(car);
+	pair->pair->cdr=fklMakeNastNodeRef(cdr);
 	return pair;
 }
 
@@ -88,7 +90,7 @@ static FklNastNode* prod_action_dec_integer(const FklGrammerProduction* prod
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->u.str;
+	const FklString* str=nodes[0]->str;
 	int64_t i=strtoll(str->str,NULL,10);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
@@ -98,13 +100,13 @@ static FklNastNode* prod_action_dec_integer(const FklGrammerProduction* prod
 		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
-		r->u.bigInt=bi;
+		r->bigInt=bi;
 		r->type=FKL_NAST_BIG_INT;
 	}
 	else
 	{
 		r->type=FKL_NAST_FIX;
-		r->u.fix=i;
+		r->fix=i;
 	}
 	return r;
 }
@@ -115,7 +117,7 @@ static FklNastNode* prod_action_hex_integer(const FklGrammerProduction* prod
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->u.str;
+	const FklString* str=nodes[0]->str;
 	int64_t i=strtoll(str->str,NULL,16);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
@@ -125,13 +127,13 @@ static FklNastNode* prod_action_hex_integer(const FklGrammerProduction* prod
 		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
-		r->u.bigInt=bi;
+		r->bigInt=bi;
 		r->type=FKL_NAST_BIG_INT;
 	}
 	else
 	{
 		r->type=FKL_NAST_FIX;
-		r->u.fix=i;
+		r->fix=i;
 	}
 	return r;
 }
@@ -142,7 +144,7 @@ static FklNastNode* prod_action_oct_integer(const FklGrammerProduction* prod
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->u.str;
+	const FklString* str=nodes[0]->str;
 	int64_t i=strtoll(str->str,NULL,8);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
@@ -152,13 +154,13 @@ static FklNastNode* prod_action_oct_integer(const FklGrammerProduction* prod
 		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
-		r->u.bigInt=bi;
+		r->bigInt=bi;
 		r->type=FKL_NAST_BIG_INT;
 	}
 	else
 	{
 		r->type=FKL_NAST_FIX;
-		r->u.fix=i;
+		r->fix=i;
 	}
 	return r;
 }
@@ -169,10 +171,10 @@ static FklNastNode* prod_action_float(const FklGrammerProduction* prod
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->u.str;
+	const FklString* str=nodes[0]->str;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_F64,line);
 	double i=strtod(str->str,NULL);
-	r->u.f64=i;
+	r->f64=i;
 	return r;
 }
 
@@ -183,7 +185,7 @@ static FklNastNode* prod_action_backslash(const FklGrammerProduction* prod
 		,FklSymbolTable* st)
 {
 	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->u.chr='\\';
+	c->chr='\\';
 	return c;
 }
 
@@ -194,7 +196,7 @@ static FklNastNode* prod_action_any_char(const FklGrammerProduction* prod
 		,FklSymbolTable* st)
 {
 	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->u.chr=nodes[1]->u.str->str[0];
+	c->chr=nodes[1]->str->str[0];
 	return c;
 }
 
@@ -205,7 +207,7 @@ static FklNastNode* prod_action_dec_char(const FklGrammerProduction* prod
 		,FklSymbolTable* st)
 {
 	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->u.chr=strtol(nodes[1]->u.str->str,NULL,10);
+	c->chr=strtol(nodes[1]->str->str,NULL,10);
 	return c;
 }
 
@@ -216,7 +218,7 @@ static FklNastNode* prod_action_hex_char(const FklGrammerProduction* prod
 		,FklSymbolTable* st)
 {
 	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->u.chr=strtol(nodes[1]->u.str->str,NULL,16);
+	c->chr=strtol(nodes[1]->str->str,NULL,16);
 	return c;
 }
 
@@ -227,11 +229,11 @@ static FklNastNode* prod_action_oct_char(const FklGrammerProduction* prod
 		,FklSymbolTable* st)
 {
 	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	const FklString* s=nodes[1]->u.str;
+	const FklString* s=nodes[1]->str;
 	if(s->size)
-		c->u.chr=strtol(s->str,NULL,8);
+		c->chr=strtol(s->str,NULL,8);
 	else
-		c->u.chr=0;
+		c->chr=0;
 	return c;
 }
 
@@ -242,7 +244,7 @@ static FklNastNode* prod_action_box(const FklGrammerProduction* prod
 		,FklSymbolTable* st)
 {
 	FklNastNode* box=fklCreateNastNode(FKL_NAST_BOX,line);
-	box->u.box=fklMakeNastNodeRef(nodes[1]);
+	box->box=fklMakeNastNodeRef(nodes[1]);
 	return box;
 }
 
@@ -256,10 +258,10 @@ static FklNastNode* prod_action_vector(const FklGrammerProduction* prod
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_VECTOR,line);
 	size_t len=fklNastListLength(list);
 	FklNastVector* vec=fklCreateNastVector(len);
-	r->u.vec=vec;
+	r->vec=vec;
 	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr,i++)
-		vec->base[i]=fklMakeNastNodeRef(list->u.pair->car);
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+		vec->base[i]=fklMakeNastNodeRef(list->pair->car);
 	return r;
 }
 
@@ -270,9 +272,9 @@ static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t 
 	for(size_t i=0;i<num;i++)
 	{
 		(*cur)=fklCreateNastNode(FKL_NAST_PAIR,a[i]->curline);
-		(*cur)->u.pair=fklCreateNastPair();
-		(*cur)->u.pair->car=a[i];
-		cur=&(*cur)->u.pair->cdr;
+		(*cur)->pair=fklCreateNastPair();
+		(*cur)->pair->car=a[i];
+		cur=&(*cur)->pair->cdr;
 	}
 	(*cur)=fklCreateNastNode(FKL_NAST_NIL,line);
 	return r;
@@ -287,7 +289,7 @@ static FklNastNode* prod_action_quote(const FklGrammerProduction* prod
 	FklSid_t id=fklAddSymbolCstr("quote",st)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
-	head->u.sym=id;
+	head->sym=id;
 	FklNastNode* s_exps[]={head,s_exp};
 	return create_nast_list(s_exps,2,line);
 }
@@ -301,7 +303,7 @@ static FklNastNode* prod_action_unquote(const FklGrammerProduction* prod
 	FklSid_t id=fklAddSymbolCstr("unquote",st)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
-	head->u.sym=id;
+	head->sym=id;
 	FklNastNode* s_exps[]={head,s_exp};
 	return create_nast_list(s_exps,2,line);
 }
@@ -315,7 +317,7 @@ static FklNastNode* prod_action_qsquote(const FklGrammerProduction* prod
 	FklSid_t id=fklAddSymbolCstr("qsquote",st)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
-	head->u.sym=id;
+	head->sym=id;
 	FklNastNode* s_exps[]={head,s_exp};
 	return create_nast_list(s_exps,2,line);
 }
@@ -329,7 +331,7 @@ static FklNastNode* prod_action_unqtesp(const FklGrammerProduction* prod
 	FklSid_t id=fklAddSymbolCstr("unqtesp",st)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
-	head->u.sym=id;
+	head->sym=id;
 	FklNastNode* s_exps[]={head,s_exp};
 	return create_nast_list(s_exps,2,line);
 }
@@ -345,14 +347,14 @@ static FklNastNode* prod_action_kv_list(const FklGrammerProduction* prod
 	FklNastNode* rest=nodes[5];
 
 	FklNastNode* pair=fklCreateNastNode(FKL_NAST_PAIR,line);
-	pair->u.pair=fklCreateNastPair();
-	pair->u.pair->car=fklMakeNastNodeRef(car);
-	pair->u.pair->cdr=fklMakeNastNodeRef(cdr);
+	pair->pair=fklCreateNastPair();
+	pair->pair->car=fklMakeNastNodeRef(car);
+	pair->pair->cdr=fklMakeNastNodeRef(cdr);
 
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_PAIR,line);
-	r->u.pair=fklCreateNastPair();
-	r->u.pair->car=pair;
-	r->u.pair->cdr=fklMakeNastNodeRef(rest);
+	r->pair=fklCreateNastPair();
+	r->pair->car=pair;
+	r->pair->cdr=fklMakeNastNodeRef(rest);
 	return r;
 }
 
@@ -366,12 +368,12 @@ static FklNastNode* prod_action_hasheq(const FklGrammerProduction* prod
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
 	size_t len=fklNastListLength(list);
 	FklNastHashTable* ht=fklCreateNastHash(FKL_HASH_EQ,len);
-	r->u.hash=ht;
+	r->hash=ht;
 	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr,i++)
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
 	{
-		ht->items[i].car=fklMakeNastNodeRef(list->u.pair->car->u.pair->car);
-		ht->items[i].cdr=fklMakeNastNodeRef(list->u.pair->car->u.pair->cdr);
+		ht->items[i].car=fklMakeNastNodeRef(list->pair->car->pair->car);
+		ht->items[i].cdr=fklMakeNastNodeRef(list->pair->car->pair->cdr);
 	}
 	return r;
 }
@@ -386,12 +388,12 @@ static FklNastNode* prod_action_hasheqv(const FklGrammerProduction* prod
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
 	size_t len=fklNastListLength(list);
 	FklNastHashTable* ht=fklCreateNastHash(FKL_HASH_EQV,len);
-	r->u.hash=ht;
+	r->hash=ht;
 	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr,i++)
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
 	{
-		ht->items[i].car=fklMakeNastNodeRef(list->u.pair->car->u.pair->car);
-		ht->items[i].cdr=fklMakeNastNodeRef(list->u.pair->car->u.pair->cdr);
+		ht->items[i].car=fklMakeNastNodeRef(list->pair->car->pair->car);
+		ht->items[i].cdr=fklMakeNastNodeRef(list->pair->car->pair->cdr);
 	}
 	return r;
 }
@@ -406,12 +408,12 @@ static FklNastNode* prod_action_hashequal(const FklGrammerProduction* prod
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
 	size_t len=fklNastListLength(list);
 	FklNastHashTable* ht=fklCreateNastHash(FKL_HASH_EQUAL,len);
-	r->u.hash=ht;
+	r->hash=ht;
 	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr,i++)
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
 	{
-		ht->items[i].car=fklMakeNastNodeRef(list->u.pair->car->u.pair->car);
-		ht->items[i].cdr=fklMakeNastNodeRef(list->u.pair->car->u.pair->cdr);
+		ht->items[i].car=fklMakeNastNodeRef(list->pair->car->pair->car);
+		ht->items[i].cdr=fklMakeNastNodeRef(list->pair->car->pair->cdr);
 	}
 	return r;
 }
@@ -426,15 +428,15 @@ static FklNastNode* prod_action_bytevector(const FklGrammerProduction* prod
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
 	size_t len=fklNastListLength(list);
 	FklBytevector* bv=fklCreateBytevector(len,NULL);
-	r->u.bvec=bv;
+	r->bvec=bv;
 	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->u.pair->cdr,i++)
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
 	{
-		FklNastNode* cur=list->u.pair->car;
+		FklNastNode* cur=list->pair->car;
 		if(cur->type==FKL_NAST_FIX)
-			bv->ptr[i]=cur->u.fix>UINT8_MAX?UINT8_MAX:(cur->u.fix<0?0:cur->u.fix);
+			bv->ptr[i]=cur->fix>UINT8_MAX?UINT8_MAX:(cur->fix<0?0:cur->fix);
 		else
-			bv->ptr[i]=cur->u.bigInt->neg?0:UINT8_MAX;
+			bv->ptr[i]=cur->bigInt->neg?0:UINT8_MAX;
 	}
 	return r;
 }

@@ -1969,8 +1969,8 @@ static inline void initFrameToReadFrame(FklVM* exe
 	fklLockVMfp(fpv,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
-	f->u.o.t=&ReadContextMethodTable;
-	initReadCtx(f->u.o.data,fpv,patterns,ap,headSymbol);
+	f->t=&ReadContextMethodTable;
+	initReadCtx(f->data,fpv,patterns,ap,headSymbol);
 }
 
 #define FKL_VM_FP_R_MASK (1)
@@ -2210,8 +2210,8 @@ static inline void initFrameToFgetFrame(FklVM* exe
 	FklVMframe* f=exe->frames;
 	fklLockVMfp(fpv,exe);
 	f->type=FKL_FRAME_OTHEROBJ;
-	f->u.o.t=&FgetContextMethodTable;
-	initFgetCtx(f->u.o.data,fpv,mode,len,del,ap);
+	f->t=&FgetContextMethodTable;
+	initFgetCtx(f->data,fpv,mode,len,del,ap);
 }
 
 static void builtin_fgetd(FKL_DL_PROC_ARGL)
@@ -2886,7 +2886,7 @@ static int isShouldBeHandle(const FklVMvalue* symbolList,FklSid_t type)
 
 static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 {
-	EhFrameContext* c=(EhFrameContext*)f->u.o.data;
+	EhFrameContext* c=(EhFrameContext*)f->data;
 	size_t num=c->num;
 	FklVMvalue** errSymbolLists=c->errorSymbolLists;
 	FklVMerror* err=FKL_VM_ERR(errValue);
@@ -2966,12 +2966,12 @@ static void builtin_call_eh(FKL_DL_PROC_ARGL)
 	if(errSymbolLists.top)
 	{
 		FklVMframe* sf=exe->frames;
-		FklVMframe* nf=fklCreateOtherObjVMframe(sf->u.o.t,sf->prev);
+		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
 		nf->errorCallBack=errorCallBackWithErrorHandler;
 		fklDoCopyObjFrameContext(sf,nf,exe);
 		exe->frames=nf;
-		nf->u.o.t=&ErrorHandlerContextMethodTable;
-		EhFrameContext* c=(EhFrameContext*)nf->u.o.data;
+		nf->t=&ErrorHandlerContextMethodTable;
+		EhFrameContext* c=(EhFrameContext*)nf->data;
 		c->num=errSymbolLists.top;
 		FklVMvalue** t=(FklVMvalue**)fklRealloc(errSymbolLists.base,errSymbolLists.top*sizeof(FklVMvalue*));
 		FKL_ASSERT(t);
@@ -4537,7 +4537,7 @@ static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 
 void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 {
-	FklVMCompoundFrameVarRef* f=&frame->u.c.lr;
+	FklVMCompoundFrameVarRef* f=&frame->c.lr;
 	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
 	f->rcount=RefCount;
 	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*f->rcount);

@@ -121,7 +121,7 @@ int main(int argc,char** argv)
 			switch(cur->type)
 			{
 				case FKL_CODEGEN_LIB_SCRIPT:
-					fklPrintByteCodelnt(cur->u.bcl,stdout,table);
+					fklPrintByteCodelnt(cur->bcl,stdout,table);
 					break;
 				case FKL_CODEGEN_LIB_DLL:
 					fputs(cur->rp,stdout);

@@ -16,14 +16,14 @@
 (define (q-tail q)
   (vref q 2))
 
-(define (rear=! q r)
-  (vref=! q 2 r))
+(define (rear-set! q r)
+  (vref-set! q 2 r))
 
-(define (new-tail=! q n)
-  (cdr=! (q-tail q) n))
+(define (new-tail-set! q n)
+  (cdr-set! (q-tail q) n))
 
-(define (base=! q f)
-  (vref=! q 1 f))
+(define (base-set! q f)
+  (vref-set! q 1 f))
 
 (define (queue-empty? queue)
   (null (queue-base queue)))
@@ -55,22 +55,22 @@
   (define (enqueue! q e)
     (define n `(~e))
     (if (queue-empty? q)
-      (base=! q n)
-      (new-tail=! q n))
-    (rear=! q n))
+      (base-set! q n)
+      (new-tail-set! q n))
+    (rear-set! q n))
 
   (define (queue-push! q e)
     (define n (cons e (queue-base q)))
-    (base=! q n)
+    (base-set! q n)
     (when (null (q-tail q))
-      (rear=! q n)))
+      (rear-set! q n)))
 
   (define (queue-pop! q)
     (define r (queue-front q))
-    (base=! q (cdr (queue-base q)))
+    (base-set! q (cdr (queue-base q)))
     (when
       (queue-empty? q)
-      (rear=! q nil))
+      (rear-set! q nil))
     r)
 
   (define dequeue! queue-pop!))

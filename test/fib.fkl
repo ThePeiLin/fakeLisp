@@ -6,7 +6,7 @@
       (if (<= len n) (append! fib-cache (make-vector (- n -1 len) nil)))
       (define r (vref fib-cache n))
       (if r r
-        (vref=! fib-cache
+        (vref-set! fib-cache
                 n
                 (+ (fib-cached (-1+ n))
                    (fib-cached (- n 2))))))))

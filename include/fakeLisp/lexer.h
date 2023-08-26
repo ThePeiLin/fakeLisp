@@ -39,6 +39,8 @@ typedef struct
 	void* (*ctx_global_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g,int* failed);
 	void (*ctx_destroy)(void*);
 	const char* name;
+	void (*print_src)(const struct FklGrammer* g,FILE* fp);
+	void (*print_c_match_cond)(void* ctx,FILE* fp);
 }FklLalrBuiltinMatch;
 
 typedef struct
@@ -60,7 +62,7 @@ typedef struct FklGrammerSym
 }FklGrammerSym;
 
 struct FklGrammerProduction;
-typedef FklNastNode* (*FklBuiltinProdAction)(const struct FklGrammerProduction* this,FklNastNode** nodes,size_t num,size_t line,FklSymbolTable* st);
+typedef FklNastNode* (*FklBuiltinProdAction)(FklNastNode** nodes,size_t num,size_t line,FklSymbolTable* st);
 typedef struct FklGrammerProduction
 {
 	FklSid_t left;
@@ -76,7 +78,11 @@ typedef struct FklGrammerProduction
 			FklByteCodelnt* bcl;
 			FklFuncPrototypes* pts;
 		};
-		FklBuiltinProdAction func;
+		struct
+		{
+			const char* name;
+			FklBuiltinProdAction func;
+		};
 	};
 }FklGrammerProduction;
 
@@ -232,8 +238,15 @@ typedef struct FklGrammer
 typedef struct
 {
 	const char* cstr;
+	const char* action_name;
 	FklBuiltinProdAction func;
 }FklGrammerCstrAction;
+
+typedef struct
+{
+	FklSid_t nt;
+	FklNastNode* ast;
+}FklAnalyzingSymbol;
 
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
@@ -247,7 +260,11 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states);
 void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
 void fklPrintAnalysisTableForGraphEasy(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
-void fklPrintAnalysisTableAsCfunc(const FklGrammer* grammer,const FklSymbolTable* st,FILE* fp);
+void fklPrintAnalysisTableAsCfunc(const FklGrammer* grammer
+		,const FklSymbolTable* st
+		,const char* actions_src[]
+		,size_t actions_src_num
+		,FILE* fp);
 
 void fklLr0ToLalrItems(FklHashTable*,FklGrammer* grammer);
 
@@ -277,6 +294,15 @@ int fklParseForCstrDbg(const FklAnalysisTable* aTable
 		,FklPtrStack* stack
 		,FklGrammerMatchOuterCtx*
 		,FklSymbolTable* st);
+
+size_t fklQuotedStringMatch(const char* cstr,size_t restLen,const FklString* end);
+size_t fklQuotedCharBufMatch(const char* cstr,size_t restLen,const char* end,size_t end_size);
+
+int fklIsDecInt(const char* cstr,size_t maxLen);
+int fklIsOctInt(const char* cstr,size_t maxLen);
+int fklIsHexInt(const char* cstr,size_t maxLen);
+int fklIsDecFloat(const char* cstr,size_t maxLen);
+int fklIsHexFloat(const char* cstr,size_t maxLen);
 
 typedef enum
 {

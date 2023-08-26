@@ -576,8 +576,7 @@ void fklPrintRawChar(char chr,FILE* out)
 	{
 		uint8_t j=chr;
 		fputs("\\x",out);
-		fprintf(out,"%X",j/16);
-		fprintf(out,"%X",j%16);
+		fprintf(out,"%02X",j);
 	}
 }
 
@@ -898,8 +897,7 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 		{
 			uint8_t j=str[i];
 			fprintf(out,"\\x");
-			fprintf(out,"%X",j/16);
-			fprintf(out,"%X",j%16);
+			fprintf(out,"%02X",j);
 			i++;
 		}
 		else if(l==1)
@@ -915,8 +913,7 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 			{
 				uint8_t j=str[i];
 				fprintf(out,"\\x");
-				fprintf(out,"%X",j/16);
-				fprintf(out,"%X",j%16);
+				fprintf(out,"%02X",j);
 			}
 			i++;
 		}

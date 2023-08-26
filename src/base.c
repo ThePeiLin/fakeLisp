@@ -1590,9 +1590,18 @@ int fklStringCharBufCmp(const FklString* fir,size_t len,const char* buf)
 	return r;
 }
 
-int fklStringCstrMatch(const FklString* a,const char* b)
+size_t fklStringCharBufMatch(const FklString* a,const char* b,size_t b_size)
 {
-	return !strncmp(a->str,b,a->size);
+	return fklCharBufMatch(a->str,a->size,b,b_size);
+}
+
+size_t fklCharBufMatch(const char* a,size_t a_size,const char* b,size_t b_size)
+{
+	if(b_size<a_size)
+		return 0;
+	if(!memcmp(a,b,a_size))
+		return a_size;
+	return 0;
 }
 
 FklString* fklCopyString(const FklString* obj)
@@ -1937,6 +1946,42 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 	FKL_ASSERT(r);
 	fklInitHashTable(r,t);
 	return r;
+}
+
+void fklSetPtrKey(void* k0,const void* k1)
+{
+	*(void**)k0=*(void* const*)k1;
+}
+
+int fklPtrKeyEqual(const void* k0,const void* k1)
+{
+	return *(void* const*)k0==*(void* const*)k1;
+}
+
+uintptr_t fklPtrHashFunc(const void* k)
+{
+	return (uintptr_t)*(void* const*)k;
+}
+
+static const FklHashTableMetaTable PtrSetMetaTable=
+{
+	.size=sizeof(void*),
+	.__setKey=fklSetPtrKey,
+	.__setVal=fklSetPtrKey,
+	.__hashFunc=fklPtrHashFunc,
+	.__keyEqual=fklPtrKeyEqual,
+	.__getKey=fklHashDefaultGetKey,
+	.__uninitItem=fklDoNothingUnintHashItem,
+};
+
+void fklInitPtrSet(FklHashTable* r)
+{
+	fklInitHashTable(r,&PtrSetMetaTable);
+}
+
+FklHashTable* fklCreatePtrSet(void)
+{
+	return fklCreateHashTable(&PtrSetMetaTable);
 }
 
 #define HASH_FUNC_HEADER() uintptr_t (*hashv)(const void*)=ht->t->__hashFunc;\

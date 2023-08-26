@@ -29,7 +29,9 @@ int fklStringCmp(const FklString*,const FklString*);
 
 int fklStringCharBufCmp(const FklString*,size_t len,const char* buf);
 int fklStringCstrCmp(const FklString*,const char*);
-int fklStringCstrMatch(const FklString*,const char*);
+size_t fklStringCharBufMatch(const FklString*,const char*,size_t len);
+
+size_t fklCharBufMatch(const char* s0,size_t l0,const char* s1,size_t l1);
 
 char* fklStringToCstr(const FklString* str);
 void fklPrintRawString(const FklString* str,FILE* fp);
@@ -120,6 +122,13 @@ typedef struct FklHashTableMetaTable
 
 void fklInitHashTable(FklHashTable*,const FklHashTableMetaTable*);
 FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
+
+void fklSetPtrKey(void* k0,const void* k1);
+uintptr_t fklPtrHashFunc(const void* k);
+int fklPtrKeyEqual(const void* k0,const void* k1);
+
+void fklInitPtrSet(FklHashTable*);
+FklHashTable* fklCreatPtrSet(void);
 
 void* fklGetHashItem(const void* key,const FklHashTable*);
 void* fklPutHashItem(const void* key,FklHashTable*);

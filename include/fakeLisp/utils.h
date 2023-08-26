@@ -32,8 +32,8 @@ typedef void* FklDllHandle;
 #define FKL_MAX(a,b) (((a)>(b))?(a):(b))
 #define FKL_ASSERT(exp) assert(exp)
 
-#define FKL_ESCAPE_CHARS "ABTNVFRS"
-#define FKL_ESCAPE_CHARS_TO "\a\b\t\n\v\f\r\x20"
+#define FKL_ESCAPE_CHARS ("ABTNVFRS")
+#define FKL_ESCAPE_CHARS_TO ("\a\b\t\n\v\f\r\x20")
 
 int fklIsHexNumString(const FklString*);
 int fklIsOctNumString(const FklString*);

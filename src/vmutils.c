@@ -1091,8 +1091,7 @@ static inline void print_raw_char_to_string_buffer(FklStringBuffer* s,char c)
 	{
 		uint8_t j=c;
 		fklStringBufferConcatWithCstr(s,"\\x");
-		fklStringBufferPrintf(s,"%X",j/16);
-		fklStringBufferPrintf(s,"%X",j%16);
+		fklStringBufferPrintf(s,"%02X",j);
 	}
 }
 

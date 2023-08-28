@@ -284,16 +284,21 @@ void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const F
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 int fklTokenizeCstr(FklGrammer* g,const char* str,FklPtrStack* stack);
 
-int fklParseForCstr(const FklAnalysisTable* aTable
+FklNastNode* fklParseWithTableForCstr(const FklAnalysisTable* aTable
 		,const char* str
-		,FklPtrStack* stack
 		,FklGrammerMatchOuterCtx*
-		,FklSymbolTable* st);
-int fklParseForCstrDbg(const FklAnalysisTable* aTable
+		,FklSymbolTable* st
+		,int* err);
+FklNastNode* fklParseWithTableForCstrDbg(const FklAnalysisTable* aTable
 		,const char* str
-		,FklPtrStack* stack
 		,FklGrammerMatchOuterCtx*
-		,FklSymbolTable* st);
+		,FklSymbolTable* st
+		,int* err);
+
+FklNastNode* fklReaderParserForCstr(const char* str
+		,FklGrammerMatchOuterCtx*
+		,FklSymbolTable* st
+		,int* err);
 
 size_t fklQuotedStringMatch(const char* cstr,size_t restLen,const FklString* end);
 size_t fklQuotedCharBufMatch(const char* cstr,size_t restLen,const char* end,size_t end_size);

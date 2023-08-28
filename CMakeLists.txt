@@ -77,10 +77,22 @@ enable_testing()
 add_executable(test-lexer "main/test/lexer.c")
 target_link_libraries(test-lexer ${LIBFKL_TARGET_NAME})
 
+add_executable(test-parser "main/test/parser.c" "nast-parser.c")
+target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
+
+add_custom_target(PARSER_C_FUNC ALL
+	COMMAND test-lexer
+	BYPRODUCTS "nast-parser.c")
+
+add_dependencies(test-parser PARSER_C_FUNC)
+
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>
 	)
 
+add_test(NAME test-parser
+	COMMAND $<TARGET_FILE:test-parser>
+	)
 
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL

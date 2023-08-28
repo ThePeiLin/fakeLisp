@@ -4,7 +4,7 @@
 #include<fakeLisp/utils.h>
 #include<ctype.h>
 
-static inline FklNastNode* prod_action_symbol(FklNastNode** nodes
+static FklNastNode* prod_action_symbol(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -52,7 +52,7 @@ static inline FklNastNode* prod_action_symbol(FklNastNode** nodes
 	return node;
 }
 
-static inline FklNastNode* prod_action_return_first(FklNastNode** nodes
+static FklNastNode* prod_action_return_first(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -60,7 +60,7 @@ static inline FklNastNode* prod_action_return_first(FklNastNode** nodes
 	return fklMakeNastNodeRef(nodes[0]);
 }
 
-static inline FklNastNode* prod_action_return_second(FklNastNode** nodes
+static FklNastNode* prod_action_return_second(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -68,7 +68,7 @@ static inline FklNastNode* prod_action_return_second(FklNastNode** nodes
 	return fklMakeNastNodeRef(nodes[1]);
 }
 
-static inline FklNastNode* prod_action_string(FklNastNode** nodes
+static FklNastNode* prod_action_string(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -87,8 +87,7 @@ static inline FklNastNode* prod_action_string(FklNastNode** nodes
 	return node;
 }
 
-
-static inline FklNastNode* prod_action_nil(FklNastNode** nodes
+static FklNastNode* prod_action_nil(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -96,7 +95,7 @@ static inline FklNastNode* prod_action_nil(FklNastNode** nodes
 	return fklCreateNastNode(FKL_NAST_NIL,line);
 }
 
-static inline FklNastNode* prod_action_pair(FklNastNode** nodes
+static FklNastNode* prod_action_pair(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -110,7 +109,7 @@ static inline FklNastNode* prod_action_pair(FklNastNode** nodes
 	return pair;
 }
 
-static inline FklNastNode* prod_action_list(FklNastNode** nodes
+static FklNastNode* prod_action_list(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -124,7 +123,7 @@ static inline FklNastNode* prod_action_list(FklNastNode** nodes
 	return pair;
 }
 
-static inline FklNastNode* prod_action_dec_integer(FklNastNode** nodes
+static FklNastNode* prod_action_dec_integer(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -150,7 +149,7 @@ static inline FklNastNode* prod_action_dec_integer(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_hex_integer(FklNastNode** nodes
+static FklNastNode* prod_action_hex_integer(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -176,7 +175,7 @@ static inline FklNastNode* prod_action_hex_integer(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_oct_integer(FklNastNode** nodes
+static FklNastNode* prod_action_oct_integer(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -202,7 +201,7 @@ static inline FklNastNode* prod_action_oct_integer(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_float(FklNastNode** nodes
+static FklNastNode* prod_action_float(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -214,7 +213,7 @@ static inline FklNastNode* prod_action_float(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_any_char(FklNastNode** nodes
+static FklNastNode* prod_action_any_char(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -224,7 +223,7 @@ static inline FklNastNode* prod_action_any_char(FklNastNode** nodes
 	return c;
 }
 
-static inline FklNastNode* prod_action_esc_char(FklNastNode** nodes
+static FklNastNode* prod_action_esc_char(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -250,7 +249,7 @@ static inline FklNastNode* prod_action_esc_char(FklNastNode** nodes
 	return c;
 }
 
-static inline FklNastNode* prod_action_dec_char(FklNastNode** nodes
+static FklNastNode* prod_action_dec_char(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -260,7 +259,7 @@ static inline FklNastNode* prod_action_dec_char(FklNastNode** nodes
 	return c;
 }
 
-static inline FklNastNode* prod_action_hex_char(FklNastNode** nodes
+static FklNastNode* prod_action_hex_char(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -270,7 +269,7 @@ static inline FklNastNode* prod_action_hex_char(FklNastNode** nodes
 	return c;
 }
 
-static inline FklNastNode* prod_action_oct_char(FklNastNode** nodes
+static FklNastNode* prod_action_oct_char(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -284,7 +283,7 @@ static inline FklNastNode* prod_action_oct_char(FklNastNode** nodes
 	return c;
 }
 
-static inline FklNastNode* prod_action_box(FklNastNode** nodes
+static FklNastNode* prod_action_box(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -294,7 +293,7 @@ static inline FklNastNode* prod_action_box(FklNastNode** nodes
 	return box;
 }
 
-static inline FklNastNode* prod_action_vector(FklNastNode** nodes
+static FklNastNode* prod_action_vector(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -325,7 +324,7 @@ static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t 
 	return r;
 }
 
-static inline FklNastNode* prod_action_quote(FklNastNode** nodes
+static FklNastNode* prod_action_quote(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -338,7 +337,7 @@ static inline FklNastNode* prod_action_quote(FklNastNode** nodes
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_unquote(FklNastNode** nodes
+static FklNastNode* prod_action_unquote(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -351,7 +350,7 @@ static inline FklNastNode* prod_action_unquote(FklNastNode** nodes
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_qsquote(FklNastNode** nodes
+static FklNastNode* prod_action_qsquote(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -364,7 +363,7 @@ static inline FklNastNode* prod_action_qsquote(FklNastNode** nodes
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_unqtesp(FklNastNode** nodes
+static FklNastNode* prod_action_unqtesp(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -377,7 +376,7 @@ static inline FklNastNode* prod_action_unqtesp(FklNastNode** nodes
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_kv_list(FklNastNode** nodes
+static FklNastNode* prod_action_kv_list(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -398,7 +397,7 @@ static inline FklNastNode* prod_action_kv_list(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_hasheq(FklNastNode** nodes
+static FklNastNode* prod_action_hasheq(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -417,7 +416,7 @@ static inline FklNastNode* prod_action_hasheq(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_hasheqv(FklNastNode** nodes
+static FklNastNode* prod_action_hasheqv(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -436,7 +435,7 @@ static inline FklNastNode* prod_action_hasheqv(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_hashequal(FklNastNode** nodes
+static FklNastNode* prod_action_hashequal(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -455,7 +454,7 @@ static inline FklNastNode* prod_action_hashequal(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_bytevector(FklNastNode** nodes
+static FklNastNode* prod_action_bytevector(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)

@@ -1131,28 +1131,20 @@ int main()
 		NULL,
 	};
 
-	FklPtrStack tokenStack=FKL_STACK_INIT;
 	int retval=0;
 	for(const char** exp=&exps[0];*exp;exp++)
 	{
-		fklInitPtrStack(&tokenStack,16,8);
-
 		FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
 
-		retval=fklParseForCstrDbg(&g->aTable,*exp,&tokenStack,&outerCtx,st);
+		FklNastNode* ast=fklParseWithTableForCstr(&g->aTable,*exp,&outerCtx,st,&retval);
 
-		fputc('\n',stdout);
-		for(size_t i=0;i<tokenStack.top;i++)
-		{
-			FklString* s=tokenStack.base[i];
-			fprintf(stdout,"%s\n",s->str);
-			free(s);
-		}
-		fputc('\n',stdout);
-
-		fklUninitPtrStack(&tokenStack);
 		if(retval)
 			break;
+
+		fklPrintNastNode(ast,stdout,st);
+		fklDestroyNastNode(ast);
+		fputc('\n',stdout);
+
 	}
 	FILE* c_parser_file=fopen("nast-parser.c","w");
 	fklPrintAnalysisTableAsCfunc(g,st,&prod_actions_src,1,c_parser_file);

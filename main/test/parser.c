@@ -37,6 +37,7 @@ int main()
 		"\"foobar\"",
 		"114514",
 		"\"foobar\"",
+		"(define (i x)\n(when (not (eq 0 x)) (princ \"Hello,world!\n\") (i (-1+ x))))",
 		NULL,
 	};
 

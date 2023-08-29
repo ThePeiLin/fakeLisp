@@ -276,7 +276,7 @@ static int builtin_match_func_space(void* ctx
 		,FklGrammerMatchOuterCtx* outerCtx)
 {
 	size_t i=0;
-	for(;s[i]&&isspace(s[i]);i++);
+	for(;i<restLen&&isspace(s[i]);i++);
 	*matchLen=i;
 	return i>0;
 }
@@ -290,7 +290,7 @@ static void builtin_match_space_print_src(const FklGrammer* g,FILE* fp)
 			"\t\t,FklGrammerMatchOuterCtx* outerCtx)\n"
 			"{\n"
 			"\tsize_t i=0;\n"
-			"\tfor(;s[i]&&isspace(s[i]);i++);\n"
+			"\tfor(;i<restLen&&isspace(s[i]);i++);\n"
 			"\t*matchLen=i;\n"
 			"\treturn i>0;\n"
 			"}\n",fp);
@@ -2572,7 +2572,7 @@ static const FklHashTableMetaTable LookAheadHashMetaTable=
 	.__uninitItem=fklDoNothingUnintHashItem,
 };
 
-static inline void compute_all_first_set(FklGrammer* g)
+static inline int compute_all_first_set(FklGrammer* g)
 {
 	FklHashTable* firsetSets=&g->firstSets;
 	const FklSymbolTable* tt=g->terminals;
@@ -2657,6 +2657,8 @@ static inline void compute_all_first_set(FklGrammer* g)
 					else
 					{
 						const FirstSetItem* curFirstItem=fklGetHashItem(&sym->nt,firsetSets);
+						if(!curFirstItem)
+							return 1;
 						for(const FklHashTableItem* syms=curFirstItem->first.first;syms;syms=syms->next)
 						{
 							const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)syms->data;
@@ -2678,6 +2680,7 @@ static inline void compute_all_first_set(FklGrammer* g)
 			}
 		}
 	}while(change);
+	return 0;
 }
 
 static inline FklGrammer* create_empty_lalr1_grammer(void)
@@ -2728,12 +2731,11 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 			}
 		}
 	}
-	if(init_all_builtin_grammer_sym(grammer))
+	if(init_all_builtin_grammer_sym(grammer)||compute_all_first_set(grammer))
 	{
 		fklDestroyGrammer(grammer);
 		return NULL;
 	}
-	compute_all_first_set(grammer);
 	return grammer;
 }
 
@@ -2772,12 +2774,11 @@ FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSy
 			}
 		}
 	}
-	if(init_all_builtin_grammer_sym(grammer))
+	if(init_all_builtin_grammer_sym(grammer)||compute_all_first_set(grammer))
 	{
 		fklDestroyGrammer(grammer);
 		return NULL;
 	}
-	compute_all_first_set(grammer);
 	return grammer;
 }
 
@@ -4663,6 +4664,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 		case FKL_ANALYSIS_SHIFT:
 			fprintf(fp,"\t\t\tfklPushPtrStack((void*)state_%lu,stateStack);\n",ac->state-states);
 			fputs("\t\t\tfklPushPtrStack(create_term_analyzing_symbol(*in,matchLen,outerCtx->line),symbolStack);\n"
+					"\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
 					"\t\t\t*in+=matchLen;\n"
 					"\t\t\t*restLen-=matchLen;\n"
 					,fp);
@@ -4694,7 +4696,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 						"\t\t\t\tfree(as);\n"
 						"\t\t\t}\n",ac->prod->len);
 
-			fprintf(fp,"\t\t\tFklNastNode* ast=%s(nodes,%lu,outerCtx->line,st);\n",ac->prod->name,ac->prod->len);
+			fprintf(fp,"\t\t\tFklNastNode* ast=%s(nodes,%lu,fklGetFirstNthLine(nodes,%lu,outerCtx->line),st);\n",ac->prod->name,ac->prod->len,ac->prod->len);
 			if(ac->prod->len)
 				fprintf(fp,"\t\t\tfor(size_t i=0;i<%lu;i++)\n"
 						"\t\t\t\tfklDestroyNastNode(nodes[i]);\n"
@@ -4704,7 +4706,8 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			fprintf(fp,"\t\t\tfklPushPtrStack((void*)create_nonterm_analyzing_symbol(%lu,ast),symbolStack);\n",ac->prod->left);
 			break;
 		case FKL_ANALYSIS_IGNORE:
-			fputs("\t\t\t*in+=matchLen;\n"
+			fputs("\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
+					"\t\t\t*in+=matchLen;\n"
 					"\t\t\t*restLen-=matchLen;\n"
 					"\t\t\tgoto action_match_start;\n",fp);
 			break;
@@ -5142,19 +5145,26 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 	if(!state)
 		return 1;
 	symbolStack->top-=len;
-	FklNastNode** nodes=(FklNastNode**)malloc(sizeof(FklNastNode*)*len);
-	FKL_ASSERT(nodes);
-	FklAnalyzingSymbol** base=(FklAnalyzingSymbol**)&symbolStack->base[symbolStack->top];
-	for(size_t i=0;i<len;i++)
+	FklNastNode** nodes=NULL;
+	if(len)
 	{
-		FklAnalyzingSymbol* as=base[i];
-		nodes[i]=as->ast;
-		free(as);
+		nodes=(FklNastNode**)malloc(sizeof(FklNastNode*)*len);
+		FKL_ASSERT(nodes);
+		FklAnalyzingSymbol** base=(FklAnalyzingSymbol**)&symbolStack->base[symbolStack->top];
+		for(size_t i=0;i<len;i++)
+		{
+			FklAnalyzingSymbol* as=base[i];
+			nodes[i]=as->ast;
+			free(as);
+		}
 	}
-	fklPushPtrStack(create_nonterm_analyzing_symbol(left,prod->func(nodes,len,outerCtx->line,st)),symbolStack);
-	for(size_t i=0;i<len;i++)
-		fklDestroyNastNode(nodes[i]);
-	free(nodes);
+	fklPushPtrStack(create_nonterm_analyzing_symbol(left,prod->func(nodes,len,fklGetFirstNthLine(nodes,len,outerCtx->line),st)),symbolStack);
+	if(len)
+	{
+		for(size_t i=0;i<len;i++)
+			fklDestroyNastNode(nodes[i]);
+		free(nodes);
+	}
 	fklPushPtrStack((void*)state,stateStack);
 	return 0;
 }
@@ -5307,5 +5317,13 @@ break_for:
 		free(fklPopPtrStack(&symbolStack));
 	fklUninitPtrStack(&symbolStack);
 	return ast;
+}
+
+uint64_t fklGetFirstNthLine(FklNastNode* nodes[],size_t num,size_t line)
+{
+	if(num)
+		return nodes[0]->curline;
+	else
+		return line;
 }
 

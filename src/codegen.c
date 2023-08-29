@@ -3651,35 +3651,42 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	size_t size=0;
 	FklNastNode* begin=NULL;
 	FklStringMatchRouteNode* route=NULL;
-	char* list=fklReadInStringPattern(fp
+	char* list=fklReadWithBuiltinParser(fp
 			,&size
 			,codegen->curline
 			,&codegen->curline
+			,codegen->publicSymbolTable
 			,unexpectEOF
-			,tokenStack
-			,*(codegen->phead)
-			,&route);
+			,&begin);
+	// char* list=fklReadInStringPattern(fp
+	// 		,&size
+	// 		,codegen->curline
+	// 		,&codegen->curline
+	// 		,unexpectEOF
+	// 		,tokenStack
+	// 		,*(codegen->phead)
+	// 		,&route);
 	if(*unexpectEOF)
 		begin=NULL;
-	else
-	{
-		free(list);
-		if(fklIsAllComment(tokenStack))
-		{
-			begin=NULL;
-			*hasError=0;
-		}
-		else
-		{
-			begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
-					,route
-					,errorLine
-					,builtInHeadSymbolTable
-					,codegen
-					,codegen->publicSymbolTable);
-			*hasError=(begin==NULL);
-		}
-	}
+	// else
+	// {
+	// 	free(list);
+	// 	if(fklIsAllComment(tokenStack))
+	// 	{
+	// 		begin=NULL;
+	// 		*hasError=0;
+	// 	}
+	// 	else
+	// 	{
+	// 		begin=fklCreateNastNodeFromTokenStackAndMatchRoute(tokenStack
+	// 				,route
+	// 				,errorLine
+	// 				,builtInHeadSymbolTable
+	// 				,codegen
+	// 				,codegen->publicSymbolTable);
+	// 		*hasError=(begin==NULL);
+	// 	}
+	// }
 	while(!fklIsPtrStackEmpty(tokenStack))
 		fklDestroyToken(fklPopPtrStack(tokenStack));
 	fklDestroyStringMatchRoute(route);

@@ -73,7 +73,7 @@ FklString* fklIntToString(int64_t);
 //int64_t fklCstrToInt(const char*);
 //int64_t fklStringToInt(const FklString*);
 
-int32_t fklCountChar(const char*,char,int32_t);
+size_t fklCountChar(const char*,char,size_t);
 size_t fklCountCharInBuf(const char*,size_t s,char);
 int fklCharBufToChar(const char*,size_t);
 

@@ -778,10 +778,10 @@ char** fklSplit(char* str,char* divstr,int* length)
 	return strArry;
 }
 
-int32_t fklCountChar(const char* str,char c,int32_t len)
+size_t fklCountChar(const char* str,char c,size_t len)
 {
-	int32_t num=0;
-	int32_t i=0;
+	size_t num=0;
+	size_t i=0;
 	if(len==-1)
 	{
 		for(;str[i]!='\0';i++)

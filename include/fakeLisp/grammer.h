@@ -64,7 +64,11 @@ typedef struct FklGrammerSym
 }FklGrammerSym;
 
 struct FklGrammerProduction;
-typedef FklNastNode* (*FklBuiltinProdAction)(FklNastNode** nodes,size_t num,size_t line,FklSymbolTable* st);
+
+uint64_t fklGetFirstNthLine(FklNastNode* nodes[],size_t num,size_t line);
+
+typedef FklNastNode* (*FklBuiltinProdAction)(FklNastNode* nodes[],size_t num,size_t line,FklSymbolTable* st);
+
 typedef struct FklGrammerProduction
 {
 	FklSid_t left;

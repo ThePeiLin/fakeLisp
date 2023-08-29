@@ -27,27 +27,31 @@ char* fklReadWithBuiltinParser(FILE* fp
 	FklNastNode* ast=NULL;
 	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
 	outerCtx.line=line;
+	size_t offset=0;
 	for(;;)
 	{
-		size_t restLen=size;
+		size_t restLen=size-offset;
 		int err=0;
-		ast=fklDefaultParseForCharBuf(tmp
-				,size
+		ast=fklDefaultParseForCharBuf(tmp+offset
+				,restLen
 				,&restLen
 				,&outerCtx
 				,st
 				,&err
 				,&symbolStack
 				,&stateStack);
-		if(err==FKL_PARSE_REDUCE_FAILED&&feof(fp))
+		if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&feof(fp))
 		{
-			*unexpectEOF=FKL_PARSE_TERMINAL_MATCH_FAILED;
-			free(tmp);
+			if(stateStack.top>1)
+			{
+				*unexpectEOF=err;
+				free(tmp);
+			}
 			return NULL;
 		}
-		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED)
+		else if(err==FKL_PARSE_REDUCE_FAILED)
 		{
-			*unexpectEOF=FKL_PARSE_REDUCE_FAILED;
+			*unexpectEOF=err;
 			free(tmp);
 			return NULL;
 		}
@@ -67,6 +71,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
 		FKL_ASSERT(tmp);
 		memcpy(&tmp[size],nextline,nextSize);
+		offset=size-restLen;
 		size+=nextSize;
 	}
 	*pline=outerCtx.line;

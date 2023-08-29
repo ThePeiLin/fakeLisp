@@ -8,6 +8,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+char* fklReadWithBuiltinParser(FILE* fp
+		,size_t* psize
+		,size_t line
+		,size_t* pline
+		,FklSymbolTable* st
+		,int* unexpectEOF
+		,FklNastNode** output);
+
 char* fklReadInStringPattern(FILE*
 		,size_t* size
 		,size_t line

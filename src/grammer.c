@@ -5004,7 +5004,7 @@ void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st)
 	print_ignores(grammer->ignores,fp);
 }
 
-FklNastNode* fklReaderParserForCstr(const char* cstr
+FklNastNode* fklDefaultParseForCstr(const char* cstr
 		,FklGrammerMatchOuterCtx* outerCtx
 		,FklSymbolTable* st
 		,int* err
@@ -5031,7 +5031,7 @@ FklNastNode* fklReaderParserForCstr(const char* cstr
 	return ast;
 }
 
-FklNastNode* fklReaderParserForCharBuf(const char* cstr
+FklNastNode* fklDefaultParseForCharBuf(const char* cstr
 		,size_t len
 		,size_t* restLen
 		,FklGrammerMatchOuterCtx* outerCtx

@@ -304,14 +304,14 @@ typedef int (*FklStateFuncPtr)(FklPtrStack*,FklPtrStack*,int,FklSid_t,void**,con
 
 void fklPushState0ToStack(FklPtrStack* stateStack);
 
-FklNastNode* fklReaderParserForCstr(const char* str
+FklNastNode* fklDefaultParseForCstr(const char* str
 		,FklGrammerMatchOuterCtx*
 		,FklSymbolTable* st
 		,int* err
 		,FklPtrStack* symbols
 		,FklPtrStack* states);
 
-FklNastNode* fklReaderParserForCharBuf(const char* str
+FklNastNode* fklDefaultParseForCharBuf(const char* str
 		,size_t len
 		,size_t* restLen
 		,FklGrammerMatchOuterCtx*

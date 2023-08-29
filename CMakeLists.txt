@@ -99,14 +99,7 @@ target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND ${GRAMMER_GEN}
-	DEPENDS "main/grammer.c")
-
-add_custom_target(parser ALL
-	COMMAND ${GRAMMER_GEN}
-	BYPRODUCTS "parse.c"
 	DEPENDS ${GRAMMER_GEN})
-
-add_dependencies(test-parser parser)
 
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)

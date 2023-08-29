@@ -51,7 +51,7 @@ int main()
 		fklInitPtrStack(&stateStack,8,16);
 		fklPushState0ToStack(&stateStack);
 		fklInitPtrStack(&symbolStack,8,16);
-		FklNastNode* ast=fklReaderParserForCstr(*exp,&outerCtx,st,&retval,&symbolStack,&stateStack);
+		FklNastNode* ast=fklDefaultParseForCstr(*exp,&outerCtx,st,&retval,&symbolStack,&stateStack);
 
 		while(!fklIsPtrStackEmpty(&symbolStack))
 			free(fklPopPtrStack(&symbolStack));

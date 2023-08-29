@@ -1,6 +1,7 @@
 #include<fakeLisp/reader.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/lexer.h>
+#include<fakeLisp/grammer.h>
 #include<string.h>
 #include<stdlib.h>
 #include<ctype.h>
@@ -9,19 +10,69 @@ char* fklReadWithBuiltinParser(FILE* fp
 		,size_t* psize
 		,size_t line
 		,size_t* pline
+		,FklSymbolTable* st
 		,int* unexpectEOF
-		,FklNastNode** ast)
+		,FklNastNode** output)
 {
 	size_t size=0;
+	char* nextline=NULL;
+	size_t nextlen=0;
 	FklPtrStack stateStack;
 	FklPtrStack symbolStack;
 	fklInitPtrStack(&stateStack,16,16);
 	fklInitPtrStack(&symbolStack,16,16);
 	fklPushState0ToStack(&stateStack);
-	char* nextline=NULL;
-	size_t nextLen=0;
 	char* tmp=NULL;
 	*unexpectEOF=0;
+	FklNastNode* ast=NULL;
+	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	outerCtx.line=line;
+	for(;;)
+	{
+		size_t restLen=size;
+		int err=0;
+		ast=fklDefaultParseForCharBuf(tmp
+				,size
+				,&restLen
+				,&outerCtx
+				,st
+				,&err
+				,&symbolStack
+				,&stateStack);
+		if(err==FKL_PARSE_REDUCE_FAILED&&feof(fp))
+		{
+			*unexpectEOF=FKL_PARSE_TERMINAL_MATCH_FAILED;
+			free(tmp);
+			return NULL;
+		}
+		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED)
+		{
+			*unexpectEOF=FKL_PARSE_REDUCE_FAILED;
+			free(tmp);
+			return NULL;
+		}
+		else if(ast)
+		{
+			if(restLen)
+			{
+				fklRewindStream(fp,tmp+size-restLen,restLen);
+				size-=restLen;
+			}
+			*output=ast;
+			break;
+		}
+		ssize_t nextSize=getline(&nextline,&nextlen,fp);
+		if(nextSize==-1)
+			continue;
+		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
+		FKL_ASSERT(tmp);
+		memcpy(&tmp[size],nextline,nextSize);
+		size+=nextSize;
+	}
+	*pline=outerCtx.line;
+	*psize=size;
+	free(nextline);
+	return tmp;
 }
 
 char* fklReadInStringPattern(FILE* fp

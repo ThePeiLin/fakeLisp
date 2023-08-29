@@ -1,4 +1,4 @@
-#include<fakeLisp/lexer.h>
+#include<fakeLisp/grammer.h>
 #include<fakeLisp/base.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
@@ -950,106 +950,109 @@ static const char* prod_actions_src=
 "	return r;\n"
 "}\n";
 
-static const FklGrammerCstrAction example_grammer_action[]=
+static const FklGrammerCstrAction builtin_grammer_and_action[]=
 {
-	{"s-exp &list",                   "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &vector",                 "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &bytevector",             "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &box",                    "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &hasheq",                 "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &hasheqv",                "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &hashequal",              "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &string",                 "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &symbol",                 "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &integer",                "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &float",                  "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &char",                   "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &quote",                  "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &qsquote",                "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &unquote",                "prod_action_return_first",  prod_action_return_first,  },
-	{"s-exp &unqtesp",                "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*list*",                   "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*vector*",                 "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*bytevector*",             "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*box*",                    "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*hasheq*",                 "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*hasheqv*",                "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*hashequal*",              "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*string*",                 "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*symbol*",                 "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*integer*",                "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*float*",                  "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*char*",                   "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*quote*",                  "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*qsquote*",                "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*unquote*",                "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*unqtesp*",                "prod_action_return_first",  prod_action_return_first,  },
 
-	{"quote #' &s-exp",               "prod_action_quote",         prod_action_quote,         },
-	{"qsquote #` &s-exp",             "prod_action_qsquote",       prod_action_qsquote,       },
-	{"unquote #~ &s-exp",             "prod_action_unquote",       prod_action_unquote,       },
-	{"unqtesp #~@ &s-exp",            "prod_action_unqtesp",       prod_action_unqtesp,       },
+	{"*quote* #' &*s-exp*",               "prod_action_quote",         prod_action_quote,         },
+	{"*qsquote* #` &*s-exp*",             "prod_action_qsquote",       prod_action_qsquote,       },
+	{"*unquote* #~ &*s-exp*",             "prod_action_unquote",       prod_action_unquote,       },
+	{"*unqtesp* #~@ &*s-exp*",            "prod_action_unqtesp",       prod_action_unqtesp,       },
 
-	{"symbol &%symbol + #|",          "prod_action_symbol",        prod_action_symbol,        },
-	{"string &%string + #\"",         "prod_action_string",        prod_action_string,        },
+	{"*symbol* &%symbol + #|",            "prod_action_symbol",        prod_action_symbol,        },
+	{"*string* &%string + #\"",           "prod_action_string",        prod_action_string,        },
 
-	{"integer &%s-dint + #|",         "prod_action_dec_integer",   prod_action_dec_integer,   },
-	{"integer &%s-xint + #|",         "prod_action_hex_integer",   prod_action_hex_integer,   },
-	{"integer &%s-oint + #|",         "prod_action_oct_integer",   prod_action_oct_integer,   },
+	{"*integer* &%s-dint + #|",           "prod_action_dec_integer",   prod_action_dec_integer,   },
+	{"*integer* &%s-xint + #|",           "prod_action_hex_integer",   prod_action_hex_integer,   },
+	{"*integer* &%s-oint + #|",           "prod_action_oct_integer",   prod_action_oct_integer,   },
 
-	{"float &%s-dfloat + #|",         "prod_action_float",         prod_action_float,         },
-	{"float &%s-xfloat + #|",         "prod_action_float",         prod_action_float,         },
+	{"*float* &%s-dfloat + #|",           "prod_action_float",         prod_action_float,         },
+	{"*float* &%s-xfloat + #|",           "prod_action_float",         prod_action_float,         },
 
-	{"char ##\\ + &%any",             "prod_action_any_char",      prod_action_any_char,      },
-	{"char ##\\\\ + &%esc",           "prod_action_esc_char",      prod_action_esc_char,      },
-	{"char ##\\\\ + &%dec3",          "prod_action_dec_char",      prod_action_dec_char,      },
-	{"char ##\\\\ + &%oct3",          "prod_action_oct_char",      prod_action_oct_char,      },
-	{"char ##\\\\x + &%hex2",         "prod_action_hex_char",      prod_action_hex_char,      },
-	{"char ##\\\\X + &%hex2",         "prod_action_hex_char",      prod_action_hex_char,      },
+	{"*char* ##\\ + &%any",               "prod_action_any_char",      prod_action_any_char,      },
+	{"*char* ##\\\\ + &%esc",             "prod_action_esc_char",      prod_action_esc_char,      },
+	{"*char* ##\\\\ + &%dec3",            "prod_action_dec_char",      prod_action_dec_char,      },
+	{"*char* ##\\\\ + &%oct3",            "prod_action_oct_char",      prod_action_oct_char,      },
+	{"*char* ##\\\\x + &%hex2",           "prod_action_hex_char",      prod_action_hex_char,      },
+	{"*char* ##\\\\X + &%hex2",           "prod_action_hex_char",      prod_action_hex_char,      },
 
-	{"box ##& &s-exp",                "prod_action_box",           prod_action_box,           },
+	{"*box* ##& &*s-exp*",                "prod_action_box",           prod_action_box,           },
 
-	{"list #( &l #)",                 "prod_action_return_second", prod_action_return_second, },
-	{"list #[ &l #]",                 "prod_action_return_second", prod_action_return_second, },
+	{"*list* #( &l #)",                   "prod_action_return_second", prod_action_return_second, },
+	{"*list* #[ &l #]",                   "prod_action_return_second", prod_action_return_second, },
 
-	{"l ",                            "prod_action_nil",           prod_action_nil,           },
-	{"l &s-exp &l",                   "prod_action_list",          prod_action_list,          },
-	{"l &s-exp #, &s-exp",            "prod_action_pair",          prod_action_pair,          },
+	{"l ",                                "prod_action_nil",           prod_action_nil,           },
+	{"l &*s-exp* &l",                     "prod_action_list",          prod_action_list,          },
+	{"l &*s-exp* #, &*s-exp*",            "prod_action_pair",          prod_action_pair,          },
 
-	{"vector ##( &v #)",              "prod_action_vector",        prod_action_vector,        },
-	{"vector ##[ &v #]",              "prod_action_vector",        prod_action_vector,        },
+	{"*vector* ##( &v #)",                "prod_action_vector",        prod_action_vector,        },
+	{"*vector* ##[ &v #]",                "prod_action_vector",        prod_action_vector,        },
 
-	{"v ",                            "prod_action_nil",           prod_action_nil,           },
-	{"v &s-exp &v",                   "prod_action_list",          prod_action_list,          },
+	{"v ",                                "prod_action_nil",           prod_action_nil,           },
+	{"v &*s-exp* &v",                     "prod_action_list",          prod_action_list,          },
 
-	{"hasheq ##hash( &kv #)",         "prod_action_hasheq",        prod_action_hasheq,        },
-	{"hasheq ##hash[ &kv #]",         "prod_action_hasheq",        prod_action_hasheq,        },
+	{"*hasheq* ##hash( &kv #)",           "prod_action_hasheq",        prod_action_hasheq,        },
+	{"*hasheq* ##hash[ &kv #]",           "prod_action_hasheq",        prod_action_hasheq,        },
 
-	{"hasheqv ##hasheqv( &kv #)",     "prod_action_hasheqv",       prod_action_hasheqv,       },
-	{"hasheqv ##hasheqv[ &kv #]",     "prod_action_hasheqv",       prod_action_hasheqv,       },
+	{"*hasheqv* ##hasheqv( &kv #)",       "prod_action_hasheqv",       prod_action_hasheqv,       },
+	{"*hasheqv* ##hasheqv[ &kv #]",       "prod_action_hasheqv",       prod_action_hasheqv,       },
 
-	{"hashequal ##hashequal( &kv #)", "prod_action_hashequal",     prod_action_hashequal,     },
-	{"hashequal ##hashequal[ &kv #]", "prod_action_hashequal",     prod_action_hashequal,     },
+	{"*hashequal* ##hashequal( &kv #)",   "prod_action_hashequal",     prod_action_hashequal,     },
+	{"*hashequal* ##hashequal[ &kv #]",   "prod_action_hashequal",     prod_action_hashequal,     },
 
-	{"kv ",                           "prod_action_nil",           prod_action_nil,           },
-	{"kv #( &s-exp #, &s-exp #) &kv", "prod_action_kv_list",       prod_action_kv_list,       },
-	{"kv #[ &s-exp #, &s-exp #] &kv", "prod_action_kv_list",       prod_action_kv_list,       },
+	{"kv ",                               "prod_action_nil",           prod_action_nil,           },
+	{"kv #( &*s-exp* #, &*s-exp* #) &kv", "prod_action_kv_list",       prod_action_kv_list,       },
+	{"kv #[ &*s-exp* #, &*s-exp* #] &kv", "prod_action_kv_list",       prod_action_kv_list,       },
 
-	{"bytevector ##vu8( &v8 #)",      "prod_action_bytevector",    prod_action_bytevector,    },
-	{"bytevector ##vu8[ &v8 #]",      "prod_action_bytevector",    prod_action_bytevector,    },
+	{"*bytevector* ##vu8( &v8 #)",        "prod_action_bytevector",    prod_action_bytevector,    },
+	{"*bytevector* ##vu8[ &v8 #]",        "prod_action_bytevector",    prod_action_bytevector,    },
 
-	{"v8 ",                           "prod_action_nil",           prod_action_nil,           },
-	{"v8 &integer &v8",               "prod_action_list",          prod_action_list,          },
+	{"v8 ",                               "prod_action_nil",           prod_action_nil,           },
+	{"v8 &*integer* &v8",                 "prod_action_list",          prod_action_list,          },
 
-	{"+ &%space",                     NULL,                        NULL,                      },
-	{"+ #; &%eol",                    NULL,                        NULL,                      },
-	{"+ ##! &%eol",                   NULL,                        NULL,                      },
-	{NULL,                            NULL,                        NULL,                      },
+	{"+ &%space",                         NULL,                        NULL,                      },
+	{"+ #; &%eol",                        NULL,                        NULL,                      },
+	{"+ ##! &%eol",                       NULL,                        NULL,                      },
+	{NULL,                                NULL,                        NULL,                      },
 };
 
 int main()
 {
 	FklSymbolTable* st=fklCreateSymbolTable();
-	FklGrammer* g=fklCreateGrammerFromCstrAction(example_grammer_action,st);
+	FklGrammer* g=fklCreateGrammerFromCstrAction(builtin_grammer_and_action,st);
 	if(!g)
 	{
 		fklDestroySymbolTable(st);
 		fprintf(stderr,"garmmer create fail\n");
 		exit(1);
 	}
+
 	FklHashTable* itemSet=fklGenerateLr0Items(g);
+	fklLr0ToLalrItems(itemSet,g);
+
 	if(fklGenerateLalrAnalyzeTable(g,itemSet))
 	{
 		fklDestroySymbolTable(st);
 		fprintf(stderr,"not lalr garmmer\n");
 		exit(1);
 	}
-	FILE* c_parser_file=fopen("nast-parser.c","w");
-	fklPrintAnalysisTableAsCfunc(g,st,&prod_actions_src,1,c_parser_file);
-	fclose(c_parser_file);
+	FILE* parse=fopen("parse.c","w");
+	fklPrintAnalysisTableAsCfunc(g,st,&prod_actions_src,1,parse);
+	fclose(parse);
 	return 0;
 }

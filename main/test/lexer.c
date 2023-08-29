@@ -1,4 +1,4 @@
-#include<fakeLisp/lexer.h>
+#include<fakeLisp/grammer.h>
 #include<fakeLisp/base.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
@@ -1035,26 +1035,26 @@ static const FklGrammerCstrAction example_grammer_action[]=
 
 
 
-static const FklGrammerCstrAction example_grammer[]=
-{
-	{"s &%dec-int",          "prod_action_return_first", prod_action_return_first, },
-	{"s &%hex-int",          "prod_action_return_first", prod_action_return_first, },
-	{"s &%oct-int",          "prod_action_return_first", prod_action_return_first, },
-	{"s &%dec-float",        "prod_action_return_first", prod_action_return_first, },
-	{"s &%hex-float",        "prod_action_return_first", prod_action_return_first, },
-	{"s &%identifier",       "prod_action_return_first", prod_action_return_first, },
-	{"s #\" + &%qstr + #\"", "prod_action_return_second", prod_action_return_second, },
-
-	{"s &%s-dint + #|",      "prod_action_dec_integer",  prod_action_dec_integer,  },
-	{"s &%s-xint + #|",      "prod_action_hex_integer",  prod_action_hex_integer,  },
-	{"s &%s-oint + #|",      "prod_action_oct_integer",  prod_action_oct_integer,  },
-
-	{"s &%s-dfloat + #|",    "prod_action_float",        prod_action_float,        },
-	{"s &%s-xfloat + #|",    "prod_action_float",        prod_action_float,        },
-	{"s &%symbol + #|",      "prod_action_symbol",       prod_action_symbol,       },
-
-	{NULL,                   NULL,                       NULL,                     },
-};
+// static const FklGrammerCstrAction example_grammer[]=
+// {
+// 	{"s &%dec-int",          "prod_action_return_first", prod_action_return_first, },
+// 	{"s &%hex-int",          "prod_action_return_first", prod_action_return_first, },
+// 	{"s &%oct-int",          "prod_action_return_first", prod_action_return_first, },
+// 	{"s &%dec-float",        "prod_action_return_first", prod_action_return_first, },
+// 	{"s &%hex-float",        "prod_action_return_first", prod_action_return_first, },
+// 	{"s &%identifier",       "prod_action_return_first", prod_action_return_first, },
+// 	{"s #\" + &%qstr + #\"", "prod_action_return_second", prod_action_return_second, },
+//
+// 	{"s &%s-dint + #|",      "prod_action_dec_integer",  prod_action_dec_integer,  },
+// 	{"s &%s-xint + #|",      "prod_action_hex_integer",  prod_action_hex_integer,  },
+// 	{"s &%s-oint + #|",      "prod_action_oct_integer",  prod_action_oct_integer,  },
+//
+// 	{"s &%s-dfloat + #|",    "prod_action_float",        prod_action_float,        },
+// 	{"s &%s-xfloat + #|",    "prod_action_float",        prod_action_float,        },
+// 	{"s &%symbol + #|",      "prod_action_symbol",       prod_action_symbol,       },
+//
+// 	{NULL,                   NULL,                       NULL,                     },
+// };
 
 int main()
 {

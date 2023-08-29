@@ -1,5 +1,5 @@
-#ifndef FKL_LEXER_H
-#define FKL_LEXER_H
+#ifndef FKL_PARSER_H
+#define FKL_PARSER_H
 #include"symbol.h"
 #include"base.h"
 #ifdef __cplusplus

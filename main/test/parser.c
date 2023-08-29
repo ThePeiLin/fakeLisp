@@ -1,4 +1,4 @@
-#include<fakeLisp/lexer.h>
+#include<fakeLisp/grammer.h>
 #include<fakeLisp/base.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
@@ -45,8 +45,18 @@ int main()
 	{
 		FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
 
-		FklNastNode* ast=fklReaderParserForCstr(*exp,&outerCtx,st,&retval);
+		FklPtrStack stateStack;
+		FklPtrStack symbolStack;
 
+		fklInitPtrStack(&stateStack,8,16);
+		fklPushState0ToStack(&stateStack);
+		fklInitPtrStack(&symbolStack,8,16);
+		FklNastNode* ast=fklReaderParserForCstr(*exp,&outerCtx,st,&retval,&symbolStack,&stateStack);
+
+		while(!fklIsPtrStackEmpty(&symbolStack))
+			free(fklPopPtrStack(&symbolStack));
+		fklUninitPtrStack(&symbolStack);
+		fklUninitPtrStack(&stateStack);
 		if(retval)
 			break;
 

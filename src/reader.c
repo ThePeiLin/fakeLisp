@@ -5,6 +5,25 @@
 #include<stdlib.h>
 #include<ctype.h>
 
+char* fklReadWithBuiltinParser(FILE* fp
+		,size_t* psize
+		,size_t line
+		,size_t* pline
+		,int* unexpectEOF
+		,FklNastNode** ast)
+{
+	size_t size=0;
+	FklPtrStack stateStack;
+	FklPtrStack symbolStack;
+	fklInitPtrStack(&stateStack,16,16);
+	fklInitPtrStack(&symbolStack,16,16);
+	fklPushState0ToStack(&stateStack);
+	char* nextline=NULL;
+	size_t nextLen=0;
+	char* tmp=NULL;
+	*unexpectEOF=0;
+}
+
 char* fklReadInStringPattern(FILE* fp
 		,size_t* psize
 		,size_t line

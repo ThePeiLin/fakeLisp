@@ -29,6 +29,8 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(LIBFKL_TARGET_NAME fkl)
+set(GRAMMER_GEN grammer)
+set(PARSE parse)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -40,6 +42,19 @@ file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")
 file(GLOB COMPILER_SOURCE "main/fakeLispc.c")
 
 file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
+
+file(GLOB GRAMMER_GEN_SOURCE
+	"main/grammer.c"
+	"src/grammer.c"
+	"src/base.c"
+	"src/utils.c"
+	"src/symbol.c"
+	"src/nast.c")
+
+#parser.o
+add_library(${PARSE}
+	OBJECT
+	"parse.c")
 
 #libfkl.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
@@ -59,17 +74,19 @@ target_link_libraries(${FKL_SHARED_LIB_NAME} ${LINK_TARGET})
 set_property(TARGET ${LIBFKL_TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 
-#fakeLisp, fakeLispc, fakeLispp
+#fakeLisp, fakeLispc, fakeLispp, grammer
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
+add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 
 
 #linking
-target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${GRAMMER_GEN} ${LINK_TARGET})
 
 #testing
 enable_testing()
@@ -77,22 +94,25 @@ enable_testing()
 add_executable(test-lexer "main/test/lexer.c")
 target_link_libraries(test-lexer ${LIBFKL_TARGET_NAME})
 
-add_executable(test-parser "main/test/parser.c" "nast-parser.c")
+add_executable(test-parser "main/test/parser.c")
 target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 
-add_custom_target(PARSER_C_FUNC ALL
-	COMMAND test-lexer
-	BYPRODUCTS "nast-parser.c")
+add_custom_command(OUTPUT "parse.c"
+	COMMAND ${GRAMMER_GEN}
+	DEPENDS "main/grammer.c")
 
-add_dependencies(test-parser PARSER_C_FUNC)
+add_custom_target(parser ALL
+	COMMAND ${GRAMMER_GEN}
+	BYPRODUCTS "parse.c"
+	DEPENDS ${GRAMMER_GEN})
+
+add_dependencies(test-parser parser)
 
 add_test(NAME test-lexer
-	COMMAND $<TARGET_FILE:test-lexer>
-	)
+	COMMAND $<TARGET_FILE:test-lexer>)
 
 add_test(NAME test-parser
-	COMMAND $<TARGET_FILE:test-parser>
-	)
+	COMMAND $<TARGET_FILE:test-parser>)
 
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL

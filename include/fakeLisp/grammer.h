@@ -1,9 +1,10 @@
 #ifndef FKL_GRAMMER_H
 #define FKL_GRAMMER_H
+
 #include"base.h"
 #include"symbol.h"
 #include"bytecode.h"
-#include"parser.h"
+#include"nast.h"
 #include<stddef.h>
 #include<stdio.h>
 

@@ -44,16 +44,18 @@ char* fklReadWithBuiltinParser(FILE* fp
 		{
 			if(stateStack.top>1)
 			{
-				*unexpectEOF=err;
+				*unexpectEOF=!restLen?err:FKL_PARSE_REDUCE_FAILED;
 				free(tmp);
+				tmp=NULL;
 			}
-			return NULL;
+			break;
 		}
 		else if(err==FKL_PARSE_REDUCE_FAILED)
 		{
 			*unexpectEOF=err;
 			free(tmp);
-			return NULL;
+			tmp=NULL;
+			break;
 		}
 		else if(ast)
 		{
@@ -74,6 +76,14 @@ char* fklReadWithBuiltinParser(FILE* fp
 		offset=size-restLen;
 		size+=nextSize;
 	}
+	fklUninitPtrStack(&stateStack);
+	while(!fklIsPtrStackEmpty(&symbolStack))
+	{
+		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		fklDestroyNastNode(s->ast);
+		free(s);
+	}
+	fklUninitPtrStack(&symbolStack);
 	*pline=outerCtx.line;
 	*psize=size;
 	free(nextline);

@@ -1,5 +1,6 @@
 #ifndef FKL_NAST_H
 #define FKL_NAST_H
+
 #include"symbol.h"
 #include"base.h"
 

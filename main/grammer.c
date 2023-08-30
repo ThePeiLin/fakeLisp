@@ -213,74 +213,17 @@ static inline FklNastNode* prod_action_float(FklNastNode** nodes
 	return r;
 }
 
-static inline FklNastNode* prod_action_any_char(FklNastNode** nodes
+static inline FklNastNode* prod_action_char(FklNastNode** nodes
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
-	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->chr=nodes[1]->str->str[0];
-	return c;
-}
-
-static inline FklNastNode* prod_action_esc_char(FklNastNode** nodes
-		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
-{
-	static const char* escapeChars=FKL_ESCAPE_CHARS;
-	static const char* escapeCharsTo=FKL_ESCAPE_CHARS_TO;
-
-	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	FklString* str=nodes[1]->str;
-	if(str->size)
-	{
-		char ch=toupper(nodes[1]->str->str[0]);
-		for(size_t i=0;escapeChars[i];i++)
-			if(ch==escapeChars[i])
-			{
-				c->chr=escapeCharsTo[i];
-				return c;
-			}
-		c->chr=nodes[1]->str->str[0];
-	}
-	else
-		c->chr='\\';
-	return c;
-}
-
-static inline FklNastNode* prod_action_dec_char(FklNastNode** nodes
-		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
-{
-	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->chr=strtol(nodes[1]->str->str,NULL,10);
-	return c;
-}
-
-static inline FklNastNode* prod_action_hex_char(FklNastNode** nodes
-		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
-{
-	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	c->chr=strtol(nodes[1]->str->str,NULL,16);
-	return c;
-}
-
-static inline FklNastNode* prod_action_oct_char(FklNastNode** nodes
-		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
-{
-	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);
-	const FklString* s=nodes[1]->str;
-	if(s->size)
-		c->chr=strtol(s->str,NULL,8);
-	else
-		c->chr=0;
-	return c;
+	const FklString* str=nodes[0]->str;
+	if(!fklIsValidCharBuf(str->str+2,str->size-2))
+		return NULL;
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_CHR,line);
+	r->chr=fklCharBufToChar(str->str+2,str->size-2);
+	return r;
 }
 
 static inline FklNastNode* prod_action_box(FklNastNode** nodes
@@ -687,74 +630,17 @@ static const char* prod_actions_src=
 "	return r;\n"
 "}\n"
 "\n"
-"static inline FklNastNode* prod_action_any_char(FklNastNode** nodes\n"
+"static inline FklNastNode* prod_action_char(FklNastNode** nodes\n"
 "		,size_t num\n"
 "		,size_t line\n"
 "		,FklSymbolTable* st)\n"
 "{\n"
-"	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);\n"
-"	c->chr=nodes[1]->str->str[0];\n"
-"	return c;\n"
-"}\n"
-"\n"
-"static inline FklNastNode* prod_action_esc_char(FklNastNode** nodes\n"
-"		,size_t num\n"
-"		,size_t line\n"
-"		,FklSymbolTable* st)\n"
-"{\n"
-"	static const char* escapeChars=FKL_ESCAPE_CHARS;\n"
-"	static const char* escapeCharsTo=FKL_ESCAPE_CHARS_TO;\n"
-"\n"
-"	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);\n"
-"	FklString* str=nodes[1]->str;\n"
-"	if(str->size)\n"
-"	{\n"
-"		char ch=toupper(nodes[1]->str->str[0]);\n"
-"		for(size_t i=0;escapeChars[i];i++)\n"
-"			if(ch==escapeChars[i])\n"
-"			{\n"
-"				c->chr=escapeCharsTo[i];\n"
-"				return c;\n"
-"			}\n"
-"		c->chr=nodes[1]->str->str[0];\n"
-"	}\n"
-"	else\n"
-"		c->chr='\\\\';\n"
-"	return c;\n"
-"}\n"
-"\n"
-"static inline FklNastNode* prod_action_dec_char(FklNastNode** nodes\n"
-"		,size_t num\n"
-"		,size_t line\n"
-"		,FklSymbolTable* st)\n"
-"{\n"
-"	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);\n"
-"	c->chr=strtol(nodes[1]->str->str,NULL,10);\n"
-"	return c;\n"
-"}\n"
-"\n"
-"static inline FklNastNode* prod_action_hex_char(FklNastNode** nodes\n"
-"		,size_t num\n"
-"		,size_t line\n"
-"		,FklSymbolTable* st)\n"
-"{\n"
-"	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);\n"
-"	c->chr=strtol(nodes[1]->str->str,NULL,16);\n"
-"	return c;\n"
-"}\n"
-"\n"
-"static inline FklNastNode* prod_action_oct_char(FklNastNode** nodes\n"
-"		,size_t num\n"
-"		,size_t line\n"
-"		,FklSymbolTable* st)\n"
-"{\n"
-"	FklNastNode* c=fklCreateNastNode(FKL_NAST_CHR,line);\n"
-"	const FklString* s=nodes[1]->str;\n"
-"	if(s->size)\n"
-"		c->chr=strtol(s->str,NULL,8);\n"
-"	else\n"
-"		c->chr=0;\n"
-"	return c;\n"
+"	const FklString* str=nodes[0]->str;\n"
+"	if(!fklIsValidCharBuf(str->str+2,str->size-2))\n"
+"		return NULL;\n"
+"	FklNastNode* r=fklCreateNastNode(FKL_NAST_CHR,line);\n"
+"	r->chr=fklCharBufToChar(str->str+2,str->size-2);\n"
+"	return r;\n"
 "}\n"
 "\n"
 "static inline FklNastNode* prod_action_box(FklNastNode** nodes\n"
@@ -984,12 +870,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*float* &%s-dfloat + #|",           "prod_action_float",         prod_action_float,         },
 	{"*float* &%s-xfloat + #|",           "prod_action_float",         prod_action_float,         },
 
-	{"*char* ##\\ + &%any",               "prod_action_any_char",      prod_action_any_char,      },
-	{"*char* ##\\\\ + &%esc",             "prod_action_esc_char",      prod_action_esc_char,      },
-	{"*char* ##\\\\ + &%dec3",            "prod_action_dec_char",      prod_action_dec_char,      },
-	{"*char* ##\\\\ + &%oct3",            "prod_action_oct_char",      prod_action_oct_char,      },
-	{"*char* ##\\\\x + &%hex2",           "prod_action_hex_char",      prod_action_hex_char,      },
-	{"*char* ##\\\\X + &%hex2",           "prod_action_hex_char",      prod_action_hex_char,      },
+	{"*char* &%s-char ##\\",              "prod_action_char",          prod_action_char,          },
 
 	{"*box* ##& &*s-exp*",                "prod_action_box",           prod_action_box,           },
 

@@ -263,6 +263,47 @@ int fklIsDoubleCharBuf(const char* buf,size_t len)
 	return 0;
 }
 
+int fklIsValidCharBuf(const char* str,size_t len)
+{
+	if(len==0)
+		return 0;
+	if(isalpha(str[0])&&len>1)
+		return 0;
+	if(str[0]=='\\')
+	{
+		if(len<2)
+			return 1;
+		if(toupper(str[1])=='X')
+		{
+			if(len<3||len>4)
+				return 0;
+			for(size_t i=2;i<len;i++)
+				if(!isxdigit(str[i]))
+					return 0;
+		}
+		else if(str[1]=='0')
+		{
+			if(len>5)
+				return 0;
+			if(len>2)
+			{
+				for(size_t i=2;i<len;i++)
+					if(!isdigit(str[i])||str[i]>'7')
+						return 0;
+			}
+		}
+		else if(isdigit(str[1]))
+		{
+			if(len>4)
+				return 0;
+			for(size_t i=1;i<len;i++)
+				if(!isdigit(str[i]))
+					return 0;
+		}
+	}
+	return 1;
+}
+
 int fklCharBufToChar(const char* buf,size_t len)
 {
 	int ch=0;
@@ -290,36 +331,13 @@ int fklCharBufToChar(const char* buf,size_t len)
 	}
 	else
 	{
-		switch(toupper(*(buf)))
-		{
-			case 'A':
-				ch=0x07;
-				break;
-			case 'B':
-				ch=0x08;
-				break;
-			case 'T':
-				ch=0x09;
-				break;
-			case 'N':
-				ch=0x0a;
-				break;
-			case 'V':
-				ch=0x0b;
-				break;
-			case 'F':
-				ch=0x0c;
-				break;
-			case 'R':
-				ch=0x0d;
-				break;
-			case 'S':
-				ch=0x20;
-				break;
-			default:
-				ch=*(buf);
-				break;
-		}
+		static const char* escapeChars=FKL_ESCAPE_CHARS;
+		static const char* escapeCharsTo=FKL_ESCAPE_CHARS_TO;
+		char ch=toupper(*(buf));
+		for(size_t i=0;escapeChars[i];i++)
+			if(ch==escapeChars[i])
+				return escapeCharsTo[i];;
+		return *buf;
 	}
 	return ch;
 }
@@ -776,25 +794,6 @@ char** fklSplit(char* str,char* divstr,int* length)
 	}
 	*length=count;
 	return strArry;
-}
-
-size_t fklCountChar(const char* str,char c,size_t len)
-{
-	size_t num=0;
-	size_t i=0;
-	if(len==-1)
-	{
-		for(;str[i]!='\0';i++)
-			if(str[i]==c)
-				num++;
-	}
-	else
-	{
-		for(;i<len;i++)
-			if(str[i]==c)
-				num++;
-	}
-	return num;
 }
 
 size_t fklCountCharInBuf(const char* buf,size_t n,char c)

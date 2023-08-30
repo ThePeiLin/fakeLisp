@@ -1,5 +1,6 @@
 #ifndef FKL_READER_H
 #define FKL_READER_H
+
 #include"pattern.h"
 #include"base.h"
 #include<stdio.h>

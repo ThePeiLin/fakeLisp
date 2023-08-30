@@ -1,12 +1,14 @@
 #ifndef FKL_CODEGEN_H
 #define FKL_CODEGEN_H
+
 #include"utils.h"
 #include"symbol.h"
 #include"pattern.h"
 #include"base.h"
-#include"parser.h"
+#include"nast.h"
 #include"bytecode.h"
 #include"builtin.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,6 +1,7 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/lexer.h>
+#include<fakeLisp/parser.h>
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/reader.h>
@@ -3668,6 +3669,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	// 		,&route);
 	if(*unexpectEOF)
 		begin=NULL;
+	free(list);
 	// else
 	// {
 	// 	free(list);

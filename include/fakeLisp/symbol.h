@@ -1,8 +1,9 @@
 #ifndef FKL_SYMBOL_H
 #define FKL_SYMBOL_H
+
+#include"base.h"
 #include<stdint.h>
 #include<stdio.h>
-#include"base.h"
 
 #ifdef __cplusplus
 extern "C" {

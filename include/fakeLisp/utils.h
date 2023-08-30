@@ -1,5 +1,6 @@
 #ifndef FKL_SRC_UTILS_H
 #define FKL_SRC_UTILS_H
+
 #include"base.h"
 #include<stdint.h>
 #include<stddef.h>
@@ -54,7 +55,7 @@ char* fklGetStringFromList(const char*);
 char* fklGetStringAfterBackslash(const char*);
 char* fklGetStringAfterBackslashInStr(const char* str);
 int fklPower(int,int);
-//char* fklCastEscapeCharater(const char*,char,size_t*);
+
 int fklIsSpecialCharAndPrint(uint8_t ch,FILE* out);
 void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out);
 void fklPrintRawCstring(const char*,char se,FILE*);
@@ -70,11 +71,10 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max);
 int fklWriteCharAsCstr(char,char*,size_t);
 char* fklIntToCstr(int64_t);
 FklString* fklIntToString(int64_t);
-//int64_t fklCstrToInt(const char*);
-//int64_t fklStringToInt(const FklString*);
 
-size_t fklCountChar(const char*,char,size_t);
 size_t fklCountCharInBuf(const char*,size_t s,char);
+
+int fklIsValidCharBuf(const char* str,size_t len);
 int fklCharBufToChar(const char*,size_t);
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize);

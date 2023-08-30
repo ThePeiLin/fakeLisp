@@ -53,50 +53,9 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
 	return retval;
 }
 
-static int fklIsValidCharStr(const char* str,size_t len)
-{
-	if(len==0)
-		return 0;
-	if(isalpha(str[0])&&len>1)
-		return 0;
-	if(str[0]=='\\')
-	{
-		if(len<2)
-			return 1;
-		if(toupper(str[1])=='X')
-		{
-			if(len<3||len>4)
-				return 0;
-			for(size_t i=2;i<len;i++)
-				if(!isxdigit(str[i]))
-					return 0;
-		}
-		else if(str[1]=='0')
-		{
-			if(len>5)
-				return 0;
-			if(len>2)
-			{
-				for(size_t i=2;i<len;i++)
-					if(!isdigit(str[i])||str[i]>'7')
-						return 0;
-			}
-		}
-		else if(isdigit(str[1]))
-		{
-			if(len>4)
-				return 0;
-			for(size_t i=1;i<len;i++)
-				if(!isdigit(str[i]))
-					return 0;
-		}
-	}
-	return 1;
-}
-
 static FklNastNode* createChar(const FklString* oStr,uint64_t line,FklSymbolTable* table)
 {
-	if(!fklIsValidCharStr(oStr->str+2,oStr->size-2))
+	if(!fklIsValidCharBuf(oStr->str+2,oStr->size-2))
 		return NULL;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_CHR,line);
 	r->chr=fklCharBufToChar(oStr->str+2,oStr->size-2);

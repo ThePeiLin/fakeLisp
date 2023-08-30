@@ -147,7 +147,7 @@ static void builtin_match_hex2_print_src(const FklGrammer* g,FILE* fp)
 			"\t\t,size_t* matchLen\n"
 			"\t\t,FklGrammerMatchOuterCtx* outerCtx)\n{\n"
 			"\tsize_t i=0;\n"
-			"\tfor(;i<2&&s[i]&&isxdigit(s[i]);i++);\n"
+			"\tfor(;i<restLen&&i<2&&isxdigit(s[i]);i++);\n"
 			"\t*matchLen=i;\n"
 			"\treturn i>0;\n"
 			"}\n",fp);
@@ -161,7 +161,7 @@ static int builtin_match_hex2_func(void* ctx
 		,FklGrammerMatchOuterCtx* outerCtx)
 {
 	size_t i=0;
-	for(;i<2&&s[i]&&isxdigit(s[i]);i++);
+	for(;i<restLen&&i<2&&isxdigit(s[i]);i++);
 	*matchLen=i;
 	return i>0;
 }
@@ -228,7 +228,7 @@ static int builtin_match_dec3_func(void* ctx
 		,FklGrammerMatchOuterCtx* outerCtx)
 {
 	size_t i=0;
-	for(;i<3&&s[i]&&isdigit(s[i]);i++);
+	for(;i<restLen&&i<3&&isdigit(s[i]);i++);
 	if((i>1&&*s!='0')||(*s=='0'&&i==1))
 	{
 		*matchLen=i;
@@ -248,7 +248,7 @@ static void builtin_match_dec3_print_src(const FklGrammer* g,FILE* fp)
 			"\t\t,FklGrammerMatchOuterCtx* outerCtx)\n"
 			"{\n"
 			"\tsize_t i=0;\n"
-			"\tfor(;i<3&&s[i]&&isdigit(s[i]);i++);\n"
+			"\tfor(;i<restLen&&i<3&&isdigit(s[i]);i++);\n"
 			"\tif((i>1&&*s!='0')||(*s=='0'&&i==1))\n"
 			"\t{\n"
 			"\t\t*matchLen=i;\n"
@@ -313,7 +313,7 @@ static int builtin_match_func_eol(void* ctx
 		,FklGrammerMatchOuterCtx* outerCtx)
 {
 	size_t i=0;
-	for(;s[i]&&s[i]!='\n';i++);
+	for(;i<restLen&&s[i]!='\n';i++);
 	*matchLen=i+(s[i]=='\n');
 	return 1;
 }
@@ -327,7 +327,7 @@ static void builtin_match_eol_print_src(const FklGrammer* g,FILE* fp)
 			"\t\t,FklGrammerMatchOuterCtx* outerCtx)\n"
 			"{\n"
 			"\tsize_t i=0;\n"
-			"\tfor(;s[i]&&s[i]!='\\n';i++);\n"
+			"\tfor(;i<restLen&&s[i]!='\\n';i++);\n"
 			"\t*matchLen=i+(s[i]=='\\n');\n"
 			"\treturn 1;\n"
 			"}\n",fp);
@@ -1537,6 +1537,47 @@ static const FklLalrBuiltinMatch builtin_match_identifier=
 	.print_c_match_cond=builtin_match_identifier_print_c_match_cond,
 };
 
+DEFINE_DEFAULT_C_MATCH_COND(noterm);
+
+static void builtin_match_noterm_print_src(const FklGrammer* g,FILE* fp)
+{
+	fputs("static int builtin_match_noterm(const char* cstrStart\n"
+			"\t,const char* cstr\n"
+			"\t,size_t restLen\n"
+			"\t,size_t* pmatchLen\n"
+			"\t,FklGrammerMatchOuterCtx* outerCtx)\n"
+			"{\n"
+			"\tsize_t maxLen=get_max_non_term_length(outerCtx,cstrStart,cstr,restLen);\n"
+			"\tif(!maxLen)\n"
+			"\t\treturn 0;\n"
+			"\t*pmatchLen=maxLen;\n"
+			"\treturn 1;\n"
+			"}\n",fp);
+}
+
+static int builtin_match_noterm_func(void* c
+		,const char* cstrStart
+		,const char* cstr
+		,size_t restLen
+		,size_t* pmatchLen
+		,FklGrammerMatchOuterCtx* outerCtx)
+{
+	size_t maxLen=get_max_non_term_length(c,outerCtx,cstrStart,cstr,restLen);
+	if(!maxLen)
+		return 0;
+	*pmatchLen=maxLen;
+	return 1;
+}
+
+static const FklLalrBuiltinMatch builtin_match_noterm=
+{
+	.name="noterm",
+	.match=builtin_match_noterm_func,
+	.ctx_global_create=builtin_match_number_global_create,
+	.print_src=builtin_match_noterm_print_src,
+	.print_c_match_cond=builtin_match_noterm_print_c_match_cond,
+};
+
 typedef struct
 {
 	const FklGrammer* g;
@@ -1819,6 +1860,109 @@ static const FklLalrBuiltinMatch builtin_match_s_xfloat=
 	.ctx_destroy=s_number_ctx_destroy,
 	.print_src=builtin_match_s_xfloat_print_src,
 	.print_c_match_cond=builtin_match_s_xfloat_print_c_match_cond,
+};
+
+static int builtin_match_s_char_func(void* c
+		,const char* start
+		,const char* cstr
+		,size_t restLen
+		,size_t* pmatchLen
+		,FklGrammerMatchOuterCtx* outerCtx)
+{
+	const SymbolNumberCtx* ctx=c;
+	const FklString* prefix=ctx->start;
+	size_t minLen=prefix->size+1;
+	if(restLen<minLen)
+		return 0;
+	if(!fklStringCharBufMatch(prefix,cstr,restLen))
+		return 0;
+	restLen-=prefix->size;
+	cstr+=prefix->size;
+	size_t maxLen=get_max_non_term_length(ctx->g,outerCtx,start,cstr,restLen);
+	if(!maxLen)
+		*pmatchLen=prefix->size+1;
+	else
+		*pmatchLen=prefix->size+maxLen;
+	return 1;
+}
+
+static void builtin_match_s_char_print_src(const FklGrammer* g,FILE* fp)
+{
+	fputs("static int builtin_match_s_char(const char* start\n"
+			"\t\t,const char* cstr\n"
+			"\t\t,size_t restLen\n"
+			"\t\t,size_t* pmatchLen\n"
+			"\t\t,FklGrammerMatchOuterCtx* outerCtx\n"
+			"\t\t,const char* prefix\n"
+			"\t\t,size_t prefix_size)\n"
+			"{\n"
+			"\tsize_t minLen=prefix_size+1;\n"
+			"\tif(restLen<minLen)\n"
+			"\t\treturn 0;\n"
+			"\tif(!fklCharBufMatch(prefix,prefix_size,cstr,restLen))\n"
+			"\t\treturn 0;\n"
+			"\trestLen-=prefix_size;\n"
+			"\tcstr+=prefix_size;\n"
+			"\tsize_t maxLen=get_max_non_term_length(outerCtx,start,cstr,restLen);\n"
+			"\tif(!maxLen)\n"
+			"\t\t*pmatchLen=prefix_size+1;\n"
+			"\telse\n"
+			"\t\t*pmatchLen=prefix_size+maxLen;\n"
+			"\treturn 1;\n"
+			"}\n",fp);
+}
+
+DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND(s_char);
+
+static void* s_char_ctx_global_create(size_t idx
+		,FklGrammerProduction* prod
+		,FklGrammer* g
+		,int* failed)
+{
+	if(prod->len<2||prod->len>2||idx!=0)
+	{
+		*failed=1;
+		return NULL;
+	}
+	const FklString* start=NULL;
+	if(!prod->syms[1].isterm
+			||prod->syms[1].isbuiltin)
+	{
+		*failed=1;
+		return NULL;
+	}
+	start=fklGetSymbolWithId(prod->syms[1].nt,g->terminals)->symbol;
+	prod->len=1;
+	SymbolNumberCtx* ctx=(SymbolNumberCtx*)malloc(sizeof(SymbolNumberCtx));
+	FKL_ASSERT(ctx);
+	ctx->start=start;
+	ctx->g=g;
+	if(!g->sortedTerminals)
+	{
+		size_t num=g->terminals->num;
+		g->sortedTerminalsNum=num;
+		const FklString** terms=(const FklString**)malloc(sizeof(FklString*)*num);
+		FKL_ASSERT(terms);
+		FklSymTabNode** symList=g->terminals->list;
+		for(size_t i=0;i<num;i++)
+			terms[i]=symList[i]->symbol;
+		qsort(terms,num,sizeof(FklString*),string_len_cmp);
+		g->sortedTerminals=terms;
+	}
+	return ctx;
+}
+
+static const FklLalrBuiltinMatch builtin_match_s_char=
+{
+	.name="s-char",
+	.match=builtin_match_s_char_func,
+	.ctx_global_create=s_char_ctx_global_create,
+	.ctx_cmp=s_number_ctx_cmp,
+	.ctx_equal=s_number_ctx_equal,
+	.ctx_hash=s_number_ctx_hash,
+	.ctx_destroy=s_number_ctx_destroy,
+	.print_src=builtin_match_s_char_print_src,
+	.print_c_match_cond=builtin_match_s_char_print_c_match_cond,
 };
 
 typedef struct
@@ -2374,12 +2518,15 @@ static const struct BuiltinGrammerSymList
 	{"%dec-float",  &builtin_match_dec_float,  },
 	{"%hex-float",  &builtin_match_hex_float,  },
 	{"%identifier", &builtin_match_identifier, },
+	{"%noterm",     &builtin_match_noterm,     },
 
 	{"%s-dint",     &builtin_match_s_dint,     },
 	{"%s-xint",     &builtin_match_s_xint,     },
 	{"%s-oint",     &builtin_match_s_oint,     },
 	{"%s-dfloat",   &builtin_match_s_dfloat,   },
 	{"%s-xfloat",   &builtin_match_s_xfloat,   },
+	{"%s-char",     &builtin_match_s_char,     },
+
 	{"%symbol",     &builtin_match_symbol,     },
 
 	{"%string",     &builtin_match_string,     },
@@ -4592,7 +4739,7 @@ static inline void print_get_max_non_term_length_to_c_file(const FklGrammer* g,F
 			"\t\t(void)otherMatchLen;\n"
 			"\t\t(void)restLen;\n"
 			"\t\t(void)in;\n"
-			"\t\twhile(len<rLen)\n\t\t{\n"
+			"\t\twhile(rLen)\n\t\t{\n"
 			"\t\t\tif(",fp);
 	if(g->ignores)
 	{
@@ -4627,6 +4774,7 @@ static inline void print_get_max_non_term_length_to_c_file(const FklGrammer* g,F
 	fputs(")\n",fp);
 	fputs("\t\t\t\tbreak;\n"
 			"\t\t\tlen++;\n"
+			"\t\t\trLen--;\n"
 			"\t\t\tcur++;\n"
 			"\t\t}\n"
 			"\t\touterCtx->maxNonterminalLen=len;\n"
@@ -5028,6 +5176,7 @@ FklNastNode* fklDefaultParseForCstr(const char* cstr
 		{
 			FklAnalyzingSymbol* s=fklPopPtrStack(symbolStack);
 			ast=s->ast;
+			free(s);
 			break;
 		}
 	}
@@ -5057,6 +5206,7 @@ FklNastNode* fklDefaultParseForCharBuf(const char* cstr
 		{
 			FklAnalyzingSymbol* s=fklPopPtrStack(symbolStack);
 			ast=s->ast;
+			free(s);
 			break;
 		}
 	}

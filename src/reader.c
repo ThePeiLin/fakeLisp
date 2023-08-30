@@ -12,6 +12,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		,size_t* pline
 		,FklSymbolTable* st
 		,int* unexpectEOF
+		,size_t* errLine
 		,FklNastNode** output)
 {
 	size_t size=0;
@@ -38,12 +39,14 @@ char* fklReadWithBuiltinParser(FILE* fp
 				,&outerCtx
 				,st
 				,&err
+				,errLine
 				,&symbolStack
 				,&stateStack);
 		if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&feof(fp))
 		{
 			if(stateStack.top>1)
 			{
+				*errLine=line;
 				*unexpectEOF=!restLen?err:FKL_PARSE_REDUCE_FAILED;
 				free(tmp);
 				tmp=NULL;
@@ -68,12 +71,12 @@ char* fklReadWithBuiltinParser(FILE* fp
 			break;
 		}
 		ssize_t nextSize=getline(&nextline,&nextlen,fp);
+		offset=size-restLen;
 		if(nextSize==-1)
 			continue;
 		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
 		FKL_ASSERT(tmp);
 		memcpy(&tmp[size],nextline,nextSize);
-		offset=size-restLen;
 		size+=nextSize;
 	}
 	fklUninitPtrStack(&stateStack);

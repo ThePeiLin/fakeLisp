@@ -1,5 +1,6 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/reader.h>
+#include<fakeLisp/parser.h>
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/base.h>
 #include<fakeLisp/lexer.h>

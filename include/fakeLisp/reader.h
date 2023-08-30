@@ -16,6 +16,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		,size_t* pline
 		,FklSymbolTable* st
 		,int* unexpectEOF
+		,size_t* errLine
 		,FklNastNode** output);
 
 char* fklReadInStringPattern(FILE*

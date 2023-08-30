@@ -4825,7 +4825,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			fprintf(fp,"\t\t\tsymbolStack->top-=%lu;\n",ac->prod->len);
 			fputs("\t\t\tFklStateFuncPtr func=(FklStateFuncPtr)fklTopPtrStack(stateStack);\n",fp);
 			fputs("\t\t\tFklStateFuncPtr nextState=NULL;\n",fp);
-			fprintf(fp,"\t\t\tfunc(NULL,NULL,0,%lu,(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL);\n",ac->prod->left);
+			fprintf(fp,"\t\t\tfunc(NULL,NULL,0,%lu,(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL,NULL);\n",ac->prod->left);
 			fputs("\t\t\tif(!nextState)\n\t\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n",fp);
 			fputs("\t\t\tfklPushPtrStack((void*)nextState,stateStack);\n",fp);
 
@@ -4844,13 +4844,18 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 						"\t\t\t\tfree(as);\n"
 						"\t\t\t}\n",ac->prod->len);
 
-			fprintf(fp,"\t\t\tFklNastNode* ast=%s(nodes,%lu,fklGetFirstNthLine(nodes,%lu,outerCtx->line),st);\n",ac->prod->name,ac->prod->len,ac->prod->len);
+			fprintf(fp
+					,"\t\t\tsize_t line=fklGetFirstNthLine(nodes,%lu,outerCtx->line);\n"
+					"\t\t\tFklNastNode* ast=%s(nodes,%lu,line,st);\n"
+					,ac->prod->len
+					,ac->prod->name
+					,ac->prod->len);
 			if(ac->prod->len)
 				fprintf(fp,"\t\t\tfor(size_t i=0;i<%lu;i++)\n"
 						"\t\t\t\tfklDestroyNastNode(nodes[i]);\n"
 						"\t\t\tfree(nodes);\n"
 						,ac->prod->len);
-			fputs("\t\t\tif(!ast)\n\t\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n",fp);
+			fputs("\t\t\tif(!ast)\n\t\t\t\t{*errLine=line;return FKL_PARSE_REDUCE_FAILED;}\n",fp);
 			fprintf(fp,"\t\t\tfklPushPtrStack((void*)create_nonterm_analyzing_symbol(%lu,ast),symbolStack);\n",ac->prod->left);
 			break;
 		case FKL_ANALYSIS_IGNORE:
@@ -4875,7 +4880,8 @@ static inline void print_state_prototype_to_c_file(const FklAnalysisState* state
 			",size_t*"
 			",FklGrammerMatchOuterCtx*"
 			",FklSymbolTable*"
-			",int*);\n",idx);
+			",int*"
+			",size_t*);\n",idx);
 }
 
 static inline void print_state_to_c_file(const FklAnalysisState* states,size_t idx,FILE* fp)
@@ -4891,7 +4897,8 @@ static inline void print_state_to_c_file(const FklAnalysisState* states,size_t i
 			"\t\t,size_t* restLen\n"
 			"\t\t,FklGrammerMatchOuterCtx* outerCtx\n"
 			"\t\t,FklSymbolTable* st\n"
-			"\t\t,int* accept)\n{\n",idx);
+			"\t\t,int* accept\n"
+			"\t\t,size_t* errLine)\n{\n",idx);
 	fputs("\tif(is_action)\n\t{\n",fp);
 	for(const FklAnalysisStateAction* ac=state->state.action;ac;ac=ac->next)
 		if(ac->action==FKL_ANALYSIS_IGNORE)
@@ -5159,6 +5166,7 @@ FklNastNode* fklDefaultParseForCstr(const char* cstr
 		,FklGrammerMatchOuterCtx* outerCtx
 		,FklSymbolTable* st
 		,int* err
+		,uint64_t* errLine
 		,FklPtrStack* symbolStack
 		,FklPtrStack* stateStack)
 {
@@ -5169,7 +5177,7 @@ FklNastNode* fklDefaultParseForCstr(const char* cstr
 	{
 		int accept=0;
 		FklStateFuncPtr state=fklTopPtrStack(stateStack);
-		*err=state(stateStack,symbolStack,1,0,NULL,start,&cstr,&restLen,outerCtx,st,&accept);
+		*err=state(stateStack,symbolStack,1,0,NULL,start,&cstr,&restLen,outerCtx,st,&accept,errLine);
 		if(*err)
 			break;
 		if(accept)
@@ -5189,6 +5197,7 @@ FklNastNode* fklDefaultParseForCharBuf(const char* cstr
 		,FklGrammerMatchOuterCtx* outerCtx
 		,FklSymbolTable* st
 		,int* err
+		,uint64_t* errLine
 		,FklPtrStack* symbolStack
 		,FklPtrStack* stateStack)
 {
@@ -5199,7 +5208,7 @@ FklNastNode* fklDefaultParseForCharBuf(const char* cstr
 	{
 		int accept=0;
 		FklStateFuncPtr state=fklTopPtrStack(stateStack);
-		*err=state(stateStack,symbolStack,1,0,NULL,start,&cstr,restLen,outerCtx,st,&accept);
+		*err=state(stateStack,symbolStack,1,0,NULL,start,&cstr,restLen,outerCtx,st,&accept,errLine);
 		if(*err)
 			break;
 		if(accept)

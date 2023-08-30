@@ -3646,7 +3646,6 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 		,int* unexpectEOF
 		,FklPtrStack* tokenStack
 		,size_t* errorLine
-		,int* hasError
 		,FklCodegenErrorState* errorState)
 {
 	size_t size=0;
@@ -3658,6 +3657,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,&codegen->curline
 			,codegen->publicSymbolTable
 			,unexpectEOF
+			,errorLine
 			,&begin);
 	// char* list=fklReadInStringPattern(fp
 	// 		,&size
@@ -3695,6 +3695,8 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	return begin;
 }
 
+#include<fakeLisp/grammer.h>
+
 static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenErrorState* errorState)
 {
 	CodegenLoadContext* context=pcontext;
@@ -3703,36 +3705,18 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 	FILE* fp=context->fp;
 	int unexpectEOF=0;
 	size_t errorLine=0;
-	int hasError=0;
 	FklNastNode* begin=getExpressionFromFile(codegen
 			,fp
 			,&unexpectEOF
 			,tokenStack
 			,&errorLine
-			,&hasError
 			,errorState);
 	if(unexpectEOF)
 	{
-		errorState->line=codegen->curline;
 		errorState->fid=codegen->fid;
 		errorState->place=NULL;
-		switch(unexpectEOF)
-		{
-			case 1:
-				errorState->type=FKL_ERR_UNEXPECTEOF;
-				break;
-			case 2:
-				errorState->type=FKL_ERR_INVALIDEXPR;
-				break;
-		}
-		return NULL;
-	}
-	if(hasError)
-	{
-		errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_INVALIDEXPR;
-		errorState->line=errorLine?errorLine:codegen->curline;
-		errorState->place=NULL;
+		errorState->line=errorLine;
+		errorState->type=unexpectEOF==FKL_PARSE_TERMINAL_MATCH_FAILED?FKL_ERR_UNEXPECTEOF:FKL_ERR_INVALIDEXPR;
 		return NULL;
 	}
 	return begin;
@@ -7416,12 +7400,14 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	if(fklVMfpEof(vfp)||ch=='\n')
 	{
 		int err=0;
+		size_t errLine=0;
 		ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+cc->offset
 				,cc->restLen
 				,&cc->restLen
 				,&outerCtx
 				,exe->symbolTable
 				,&err
+				,&errLine
 				,&cc->symbolStack
 				,&cc->stateStack);
 		codegen->curline=outerCtx.line;

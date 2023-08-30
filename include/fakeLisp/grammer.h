@@ -305,7 +305,18 @@ FklNastNode* fklParseWithTableForCstrDbg(const FklAnalysisTable* aTable
 #define FKL_PARSE_TERMINAL_MATCH_FAILED (1)
 #define FKL_PARSE_REDUCE_FAILED (2)
 
-typedef int (*FklStateFuncPtr)(FklPtrStack*,FklPtrStack*,int,FklSid_t,void**,const char*,const char**,size_t*,FklGrammerMatchOuterCtx*,FklSymbolTable*,int*);
+typedef int (*FklStateFuncPtr)(FklPtrStack*
+		,FklPtrStack*
+		,int
+		,FklSid_t
+		,void**
+		,const char*
+		,const char**
+		,size_t*
+		,FklGrammerMatchOuterCtx*
+		,FklSymbolTable*
+		,int*
+		,size_t* errLine);
 
 void fklPushState0ToStack(FklPtrStack* stateStack);
 
@@ -313,6 +324,7 @@ FklNastNode* fklDefaultParseForCstr(const char* str
 		,FklGrammerMatchOuterCtx*
 		,FklSymbolTable* st
 		,int* err
+		,size_t* errLine
 		,FklPtrStack* symbols
 		,FklPtrStack* states);
 
@@ -322,6 +334,7 @@ FklNastNode* fklDefaultParseForCharBuf(const char* str
 		,FklGrammerMatchOuterCtx*
 		,FklSymbolTable* st
 		,int* err
+		,size_t* errLine
 		,FklPtrStack* symbols
 		,FklPtrStack* states);
 

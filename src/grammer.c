@@ -5308,13 +5308,16 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 			free(as);
 		}
 	}
-	fklPushPtrStack(create_nonterm_analyzing_symbol(left,prod->func(nodes,len,fklGetFirstNthLine(nodes,len,outerCtx->line),st)),symbolStack);
+	FklNastNode* ast=prod->func(nodes,len,fklGetFirstNthLine(nodes,len,outerCtx->line),st);
 	if(len)
 	{
 		for(size_t i=0;i<len;i++)
 			fklDestroyNastNode(nodes[i]);
 		free(nodes);
 	}
+	if(!ast)
+		return 1;
+	fklPushPtrStack(create_nonterm_analyzing_symbol(left,ast),symbolStack);
 	fklPushPtrStack((void*)state,stateStack);
 	return 0;
 }
@@ -5363,8 +5366,9 @@ FklNastNode* fklParseWithTableForCstrDbg(const FklAnalysisTable* t
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					{
-						FklAnalyzingSymbol* top=fklTopPtrStack(&symbolStack);
+						FklAnalyzingSymbol* top=fklPopPtrStack(&symbolStack);
 						ast=top->ast;
+						free(top);
 					}
 					goto break_for;
 					break;
@@ -5375,7 +5379,7 @@ FklNastNode* fklParseWithTableForCstrDbg(const FklAnalysisTable* t
 								,outerCtx
 								,st))
 					{
-						*err=2;
+						*err=FKL_PARSE_REDUCE_FAILED;
 						goto break_for;
 					}
 					break;
@@ -5383,14 +5387,18 @@ FklNastNode* fklParseWithTableForCstrDbg(const FklAnalysisTable* t
 		}
 		else
 		{
-			*err=1;
+			*err=FKL_PARSE_TERMINAL_MATCH_FAILED;
 			break;
 		}
 	}
 break_for:
 	fklUninitPtrStack(&stateStack);
 	while(!fklIsPtrStackEmpty(&symbolStack))
-		free(fklPopPtrStack(&symbolStack));
+	{
+		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		fklDestroyNastNode(s->ast);
+		free(s);
+	}
 	fklUninitPtrStack(&symbolStack);
 	return ast;
 }
@@ -5437,8 +5445,9 @@ FklNastNode* fklParseWithTableForCstr(const FklAnalysisTable* t
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					{
-						FklAnalyzingSymbol* top=fklTopPtrStack(&symbolStack);
+						FklAnalyzingSymbol* top=fklPopPtrStack(&symbolStack);
 						ast=top->ast;
+						free(top);
 					}
 					goto break_for;
 					break;
@@ -5464,7 +5473,11 @@ FklNastNode* fklParseWithTableForCstr(const FklAnalysisTable* t
 break_for:
 	fklUninitPtrStack(&stateStack);
 	while(!fklIsPtrStackEmpty(&symbolStack))
-		free(fklPopPtrStack(&symbolStack));
+	{
+		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		fklDestroyNastNode(s->ast);
+		free(s);
+	}
 	fklUninitPtrStack(&symbolStack);
 	return ast;
 }

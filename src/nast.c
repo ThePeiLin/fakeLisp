@@ -406,3 +406,27 @@ int fklIsNastNodeListAndHasSameType(const FklNastNode* list,FklNastType type)
 	return list->type==FKL_NAST_NIL;
 }
 
+FklNastNode* fklNastConsWithSym(FklSid_t sym
+		,FklNastNode* cdr
+		,uint64_t l1
+		,uint64_t l2)
+{
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_PAIR,l1);
+	FklNastNode* h=fklCreateNastNode(FKL_NAST_SYM,l2);
+	h->sym=sym;
+	r->pair=fklCreateNastPair();
+	r->pair->car=h;
+	r->pair->cdr=cdr;
+	return r;
+}
+
+FklNastNode* fklNastCons(FklNastNode* car
+		,FklNastNode* cdr
+		,uint64_t l1)
+{
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_PAIR,l1);
+	r->pair=fklCreateNastPair();
+	r->pair->car=car;
+	r->pair->cdr=cdr;
+	return r;
+}

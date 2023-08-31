@@ -1,4 +1,3 @@
-#include<fakeLisp/reader.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>

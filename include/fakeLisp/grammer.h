@@ -255,6 +255,7 @@ typedef struct
 	FklNastNode* ast;
 }FklAnalyzingSymbol;
 
+void fklDestroyAnayzingSymbol(FklAnalyzingSymbol*);
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);

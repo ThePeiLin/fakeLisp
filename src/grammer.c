@@ -5502,7 +5502,7 @@ FklNastNode* fklParseWithTableForCstr(const FklAnalysisTable* t
 								,outerCtx
 								,st))
 					{
-						*err=2;
+						*err=FKL_PARSE_REDUCE_FAILED;
 						goto break_for;
 					}
 					break;
@@ -5510,7 +5510,7 @@ FklNastNode* fklParseWithTableForCstr(const FklAnalysisTable* t
 		}
 		else
 		{
-			*err=1;
+			*err=FKL_PARSE_TERMINAL_MATCH_FAILED;
 			break;
 		}
 	}
@@ -5534,3 +5534,8 @@ uint64_t fklGetFirstNthLine(FklNastNode* nodes[],size_t num,size_t line)
 		return line;
 }
 
+void fklDestroyAnayzingSymbol(FklAnalyzingSymbol* s)
+{
+	fklDestroyNastNode(s->ast);
+	free(s);
+}

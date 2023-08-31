@@ -3,24 +3,23 @@
 
 #include"symbol.h"
 #include"nast.h"
-#include"base.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct FklStringMatchRouteNode;
-struct FklCodegen;
-FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack*
-		,struct FklStringMatchRouteNode*
-		,size_t* errorLine
-		,const FklSid_t t[4]
-		,struct FklCodegen*
-		,FklSymbolTable*);
-
-
-struct FklStringMatchPattern;
 FklNastNode* fklCreateNastNodeFromCstr(const char*,FklSymbolTable* publicSymbolTable);
+
+char* fklReadWithBuiltinParser(FILE* fp
+		,size_t* psize
+		,size_t line
+		,size_t* pline
+		,FklSymbolTable* st
+		,int* unexpectEOF
+		,size_t* errLine
+		,FklNastNode** output
+		,FklPtrStack* symbolStack
+		,FklPtrStack* stateStack);
 
 #ifdef __cplusplus
 }

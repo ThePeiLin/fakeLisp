@@ -7,7 +7,7 @@
         (hello)
         (internationale)
         (test-loc)
-        (reader-macro)
+;        (reader-macro)
         (compiler-macro)
         (bigloop)
         (test))

@@ -4262,6 +4262,31 @@ static inline void add_ignore_action(FklGrammer* g,FklAnalysisState* curState)
 	}
 }
 
+static inline int is_only_single_way_to_reduce(const FklLalrItemSet* set)
+{
+	for(FklLalrItemSetLink* l=set->links;l;l=l->next)
+		if(l->sym.isterm)
+			return 0;
+	FklHashTable prodSet;
+	int hasEof=0;
+	int delim=0;
+	fklInitPtrSet(&prodSet);
+	for(const FklHashTableItem* l=set->items.first;l;l=l->next)
+	{
+		const FklLalrItem* item=(const FklLalrItem*)l->data;
+		fklPutHashItem(&item->prod,&prodSet);
+		if(item->la.t==FKL_LALR_MATCH_EOF)
+			hasEof=1;
+		if(item->la.delim)
+			delim=1;
+	}
+	size_t num=prodSet.num;
+	fklUninitHashTable(&prodSet);
+	if(prodSet.num!=1)
+		return 0;
+	return num==1&&hasEof&&delim;
+}
+
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 {
 	int hasConflict=0;
@@ -4301,22 +4326,32 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 			else
 				curState->state.gt=create_state_goto(sym,tt,curState->state.gt,dstState);
 		}
-		for(const FklHashTableItem* il=items->first;il;il=il->next)
+		if(is_only_single_way_to_reduce(s))
 		{
-			FklLalrItem* item=(FklLalrItem*)il->data;
-			FklGrammerSym* sym=get_item_next(item);
-			if(sym)
-				skip_space=sym->delim;
-			else
+			FklLalrItem* item=(FklLalrItem*)(items->first)->data;
+			FklLalrItemLookAhead eofla=FKL_LALR_MATCH_EOF_INIT;
+			add_reduce_action(curState,item->prod,&eofla);
+			skip_space=1;
+		}
+		else
+		{
+			for(const FklHashTableItem* il=items->first;il;il=il->next)
 			{
-				hasConflict=add_reduce_action(curState,item->prod,&item->la);
-				if(hasConflict)
+				FklLalrItem* item=(FklLalrItem*)il->data;
+				FklGrammerSym* sym=get_item_next(item);
+				if(sym)
+					skip_space=sym->delim;
+				else
 				{
-					clear_analysis_table(grammer,idx);
-					goto break_loop;
+					hasConflict=add_reduce_action(curState,item->prod,&item->la);
+					if(hasConflict)
+					{
+						clear_analysis_table(grammer,idx);
+						goto break_loop;
+					}
+					if(item->la.delim)
+						skip_space=1;
 				}
-				if(item->la.delim)
-					skip_space=1;
 			}
 		}
 		if(skip_space)

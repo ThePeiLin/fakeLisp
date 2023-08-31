@@ -7198,7 +7198,6 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 typedef struct
 {
 	size_t offset;
-	size_t restLen;
 	FklPtrStack stateStack;
 	FklPtrStack symbolStack;
 }NastCreatCtx;
@@ -7365,6 +7364,21 @@ static inline void alloc_more_space_for_var_ref(FklVMCompoundFrameVarRef* lr
 
 #include<fakeLisp/grammer.h>
 
+static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx* cc,FklStringBuffer* s)
+{
+	cc->offset=0;
+	fklStringBufferClear(s);
+	FklPtrStack* ss=&cc->symbolStack;
+	while(!fklIsPtrStackEmpty(ss))
+	{
+		FklAnalyzingSymbol* s=fklPopPtrStack(ss);
+		fklDestroyNastNode(s->ast);
+		free(s);
+	}
+	cc->stateStack.top=0;
+	fklPushState0ToStack(&cc->stateStack);
+}
+
 static void repl_frame_step(FklCallObjData data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
@@ -7397,19 +7411,21 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	FklNastNode* ast=NULL;
 	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
 	outerCtx.line=codegen->curline;
+	size_t restLen=fklStringBufferLen(s)-cc->offset;
 	if(fklVMfpEof(vfp)||ch=='\n')
 	{
 		int err=0;
 		size_t errLine=0;
 		ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+cc->offset
-				,cc->restLen
-				,&cc->restLen
+				,restLen
+				,&restLen
 				,&outerCtx
 				,exe->symbolTable
 				,&err
 				,&errLine
 				,&cc->symbolStack
 				,&cc->stateStack);
+		cc->offset=s->i-restLen;
 		codegen->curline=outerCtx.line;
 		fklUnLockVMfp(ctx->stdinVal);
 		if(cc->symbolStack.top==0&&ch==-1)
@@ -7418,36 +7434,26 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 		{
 			if(err==FKL_PARSE_TERMINAL_MATCH_FAILED)
 			{
-				if(fklVMfpEof(vfp)||cc->stateStack.top>1)
+				if(fklVMfpEof(vfp)&&cc->stateStack.top>1)
 				{
-					fklStringBufferClear(s);
-					FklPtrStack* ss=&cc->symbolStack;
-					while(!fklIsPtrStackEmpty(ss))
-					{
-						FklAnalyzingSymbol* s=fklPopPtrStack(ss);
-						fklDestroyNastNode(s->ast);
-						free(s);
-					}
-					if(cc->restLen)
+					repl_nast_ctx_and_buf_reset(cc,s);
+					if(restLen)
 						FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 					else
 						FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTEOF,exe);
 				}
-				else
-					cc->offset=s->i-cc->restLen;
 			}
 			else if(err==FKL_PARSE_REDUCE_FAILED)
+			{
+				repl_nast_ctx_and_buf_reset(cc,s);
 				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+			}
 			else if(ast)
 			{
-				cc->stateStack.top=0;
-				fklPushState0ToStack(&cc->stateStack);
+				if(restLen)
+					fklVMfpRewind(vfp,s,s->i-restLen);
 				ctx->state=DONE;
-				if(cc->restLen)
-					fklVMfpRewind(vfp,s,s->i-cc->restLen);
-				fklStringBufferClear(s);
-				cc->restLen=0;
-				cc->offset=0;
+				repl_nast_ctx_and_buf_reset(cc,s);
 
 				fklMakeNastNodeRef(ast);
 				size_t libNum=codegen->loadedLibStack->top;
@@ -7579,7 +7585,6 @@ static inline NastCreatCtx* createNastCreatCtx(void)
 	NastCreatCtx* cc=(NastCreatCtx*)malloc(sizeof(NastCreatCtx));
 	FKL_ASSERT(cc);
 	cc->offset=0;
-	cc->restLen=0;
 	fklInitPtrStack(&cc->symbolStack,16,16);
 	fklInitPtrStack(&cc->stateStack,16,16);
 	fklPushState0ToStack(&cc->stateStack);

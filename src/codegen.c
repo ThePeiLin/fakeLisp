@@ -6185,10 +6185,7 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 	FklStringMatchPattern* builtinStringPatterns=fklInitBuiltInStringPattern(publicSymbolTable);
 	for(struct PatternAndFunc* cur=&builtInPattern[0];cur->ps!=NULL;cur++)
 	{
-		FklNastNode* node=fklCreateNastNodeFromCstr(cur->ps
-				,builtInHeadSymbolTable
-				,builtinStringPatterns
-				,publicSymbolTable);
+		FklNastNode* node=fklCreateNastNodeFromCstr(cur->ps,publicSymbolTable);
 		cur->pn=fklMakeNastNodeRef(fklCreatePatternFromNast(node,NULL));
 		fklDestroyNastNode(node);
 	}
@@ -6198,10 +6195,7 @@ const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
 
 	for(struct SubPattern* cur=&builtInSubPattern[0];cur->ps!=NULL;cur++)
 	{
-		FklNastNode* node=fklCreateNastNodeFromCstr(cur->ps
-				,builtInHeadSymbolTable
-				,builtinStringPatterns
-				,publicSymbolTable);
+		FklNastNode* node=fklCreateNastNodeFromCstr(cur->ps,publicSymbolTable);
 		cur->pn=fklMakeNastNodeRef(fklCreatePatternFromNast(node,NULL));
 		fklDestroyNastNode(node);
 	}

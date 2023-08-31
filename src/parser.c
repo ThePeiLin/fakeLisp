@@ -1,4 +1,5 @@
 #include<fakeLisp/parser.h>
+#include<fakeLisp/grammer.h>
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/lexer.h>
@@ -7,50 +8,35 @@
 #include<string.h>
 #include<ctype.h>
 
-FklNastNode* fklCreateNastNodeFromCstr(const char* cStr
-		,const FklSid_t buildInHeadSymbolTable[4]
-		,FklStringMatchPattern* patterns
-		,FklSymbolTable* publicSymbolTable)
+FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,FklSymbolTable* publicSymbolTable)
 {
-	FklPtrStack tokenStack=FKL_STACK_INIT;
-	fklInitPtrStack(&tokenStack,8,16);
-	size_t size=strlen(cStr);
-	size_t line=0;
-	size_t j=0;
-	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
-	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
-	FklStringMatchRouteNode* tmp=route;
+	FklPtrStack stateStack;
+	FklPtrStack symbolStack;
+	fklInitPtrStack(&stateStack,16,16);
+	fklInitPtrStack(&symbolStack,16,16);
+	fklPushState0ToStack(&stateStack);
+
 	int err=0;
-	matchSet=fklSplitStringIntoTokenWithPattern(cStr
-			,size
-			,line
-			,&line
-			,j
-			,&j
-			,&tokenStack
-			,matchSet
-			,patterns
-			,route
-			,&tmp
-			,&err);
-	FklNastNode* retval=NULL;
-	if(!matchSet)
+	size_t errLine=0;
+	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklNastNode* node=fklDefaultParseForCstr(cStr
+			,&outerCtx
+			,publicSymbolTable
+			,&err
+			,&errLine
+			,&symbolStack
+			,&stateStack);
+
+	while(!fklIsPtrStackEmpty(&symbolStack))
 	{
-		size_t errorLine=0;
-		retval=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
-				,route
-				,&errorLine
-				,buildInHeadSymbolTable
-				,NULL
-				,publicSymbolTable);
+		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		fklDestroyNastNode(s->ast);
+		free(s);
 	}
-	else
-		fklDestroyStringMatchSet(matchSet);
-	while(!fklIsPtrStackEmpty(&tokenStack))
-		fklDestroyToken(fklPopPtrStack(&tokenStack));
-	fklDestroyStringMatchRoute(route);
-	fklUninitPtrStack(&tokenStack);
-	return retval;
+	fklUninitPtrStack(&symbolStack);
+	fklUninitPtrStack(&stateStack);
+
+	return node;
 }
 
 static FklNastNode* createChar(const FklString* oStr,uint64_t line,FklSymbolTable* table)

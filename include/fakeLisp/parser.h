@@ -20,10 +20,8 @@ FklNastNode* fklCreateNastNodeFromTokenStackAndMatchRoute(FklPtrStack*
 
 
 struct FklStringMatchPattern;
-FklNastNode* fklCreateNastNodeFromCstr(const char*
-		,const FklSid_t t[4]
-		,struct FklStringMatchPattern* pattern
-		,FklSymbolTable* publicSymbolTable);
+FklNastNode* fklCreateNastNodeFromCstr(const char*,FklSymbolTable* publicSymbolTable);
+
 #ifdef __cplusplus
 }
 #endif

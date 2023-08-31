@@ -1,6 +1,7 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/reader.h>
 #include<fakeLisp/parser.h>
+#include<fakeLisp/grammer.h>
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/base.h>
 #include<fakeLisp/lexer.h>
@@ -49,14 +50,10 @@ typedef struct
 	FklVMvalue* sysIn;
 	FklVMvalue* sysOut;
 	FklVMvalue* sysErr;
-	FklStringMatchPattern* patterns;
-	FklSid_t builtInHeadSymbolTable[4];
 }PublicBuiltInData;
 
 static void _public_builtin_userdata_finalizer(FklVMudata* p)
 {
-	FKL_DECL_UD_DATA(d,PublicBuiltInData,p);
-	fklDestroyAllStringPattern(d->patterns);
 }
 
 static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
@@ -1827,16 +1824,11 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 typedef struct
 {
 	FklVMvalue* fpv;
-	FklStringMatchPattern* head;
-	FklStringMatchRouteNode* root;
-	FklStringMatchRouteNode* route;
-	FklStringMatchSet* matchSet;
 	FklStringBuffer* buf;
-	FklPtrStack* tokenStack;
-	const FklSid_t* headSymbol;
-	uint32_t ap;
+	FklPtrStack* symbolStack;
+	FklPtrStack* stateStack;
+	size_t offset;
 	uint32_t done;
-	size_t j;
 }ReadCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
@@ -1856,12 +1848,15 @@ static void read_frame_finalizer(FklCallObjData data)
 	ReadCtx* c=(ReadCtx*)data;
 	fklUnLockVMfp(c->fpv);
 	fklDestroyStringBuffer(c->buf);
-	FklPtrStack* s=c->tokenStack;
-	while(!fklIsPtrStackEmpty(s))
-		fklDestroyToken(fklPopPtrStack(s));
-	fklDestroyPtrStack(s);
-	fklDestroyStringMatchRoute(c->root);
-	fklDestroyStringMatchSet(c->matchSet);
+	FklPtrStack* ss=c->symbolStack;
+	while(!fklIsPtrStackEmpty(ss))
+	{
+		FklAnalyzingSymbol* s=fklPopPtrStack(ss);
+		fklDestroyNastNode(s->ast);
+		free(s);
+	}
+	fklDestroyPtrStack(ss);
+	fklDestroyPtrStack(c->stateStack);
 }
 
 static int read_frame_end(FklCallObjData d)
@@ -1875,54 +1870,51 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 	FklVMfp* vfp=FKL_VM_FP(rctx->fpv);
 	FklStringBuffer* s=rctx->buf;
 	int ch=fklVMfpNonBlockGetline(vfp,s);
+	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
 	if(fklVMfpEof(vfp)||ch=='\n')
 	{
-		size_t line=1;
 		int err=0;
-		rctx->matchSet=fklSplitStringIntoTokenWithPattern(fklStringBufferBody(s)
-				,fklStringBufferLen(s)
-				,line
-				,&line
-				,rctx->j
-				,&rctx->j
-				,rctx->tokenStack
-				,rctx->matchSet
-				,rctx->head
-				,rctx->route
-				,&rctx->route
-				,&err);
-		if(rctx->matchSet==NULL)
+		size_t restLen=fklStringBufferLen(s)-rctx->offset;
+		size_t errLine=0;
+		FklNastNode* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+rctx->offset
+				,restLen
+				,&restLen
+				,&outerCtx
+				,exe->symbolTable
+				,&err
+				,&errLine
+				,rctx->symbolStack
+				,rctx->stateStack);
+		rctx->offset=fklStringBufferLen(s)-restLen;
+		fklUnLockVMfp(rctx->fpv);
+
+		if(rctx->symbolStack->top==0&&ch==-1)
 		{
-			size_t j=rctx->j;
-			size_t len=fklStringBufferLen(s);
-			size_t errorLine=0;
-			if(len-j)
-				fklVMfpRewind(vfp,s,j);
 			rctx->done=1;
-			FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(rctx->tokenStack
-					,rctx->root
-					,&errorLine
-					,rctx->headSymbol
-					,NULL
-					,exe->symbolTable);
-			if(node==NULL)
-				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-			FklVMvalue* v=fklCreateVMvalueFromNastNode(exe,node,NULL);
-			fklPushVMvalue(exe,v);
-			fklDestroyNastNode(node);
+			fklPushVMvalue(exe,FKL_VM_NIL);
 		}
-		else if(fklVMfpEof(vfp))
+		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED)
 		{
-			rctx->done=1;
-			if(rctx->matchSet!=FKL_STRING_PATTERN_UNIVERSAL_SET)
-				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTEOF,exe);
-			else
-				fklPushVMvalue(exe,FKL_VM_NIL);
+			if(fklVMfpEof(vfp)&&rctx->stateStack->top>1)
+			{
+				if(restLen)
+					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+				else
+					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTEOF,exe);
+			}
 		}
-		else if(err)
+		else if(err==FKL_PARSE_REDUCE_FAILED)
 		{
-			rctx->done=1;
 			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		}
+		else if(ast)
+		{
+			if(restLen)
+				fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
+			rctx->done=1;
+			FklVMvalue* v=fklCreateVMvalueFromNastNode(exe,ast,NULL);
+			fklPushVMvalue(exe,v);
+			fklDestroyNastNode(ast);
 		}
 	}
 }
@@ -1938,40 +1930,25 @@ static const FklVMframeContextMethodTable ReadContextMethodTable=
 };
 
 static inline void initReadCtx(FklCallObjData data
-		,FklVMvalue* fpv
-		,FklStringMatchPattern* patterns
-		,uint32_t ap
-		,const FklSid_t headSymbol[4])
+		,FklVMvalue* fpv)
 {
 	ReadCtx* ctx=(ReadCtx*)data;
 	ctx->fpv=fpv;
-	ctx->head=patterns;
-	ctx->matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
-	ctx->headSymbol=headSymbol;
-	ctx->j=0;
-	ctx->root=fklCreateStringMatchRouteNode(NULL
-			,0,0
-			,NULL
-			,NULL
-			,NULL);
-	ctx->route=ctx->root;
-	ctx->ap=ap;
+	ctx->symbolStack=fklCreatePtrStack(16,16);
+	ctx->stateStack=fklCreatePtrStack(16,16);
+	fklPushState0ToStack(ctx->stateStack);
 	ctx->buf=fklCreateStringBuffer();
-	ctx->tokenStack=fklCreatePtrStack(16,16);
 	ctx->done=0;
+	ctx->offset=0;
 }
 
-static inline void initFrameToReadFrame(FklVM* exe
-		,FklVMvalue* fpv
-		,FklStringMatchPattern* patterns
-		,uint32_t ap
-		,const FklSid_t headSymbol[4])
+static inline void initFrameToReadFrame(FklVM* exe,FklVMvalue* fpv)
 {
 	fklLockVMfp(fpv,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&ReadContextMethodTable;
-	initReadCtx(f->data,fpv,patterns,ap,headSymbol);
+	initReadCtx(f->data,fpv);
 }
 
 #define FKL_VM_FP_R_MASK (1)
@@ -2018,11 +1995,7 @@ static void builtin_read(FKL_DL_PROC_ARGL)
 		FklVMvalue* fpv=stream?stream:pbd->sysIn;
 		CHECK_FP_READABLE(fpv,Pname,exe);
 		CHECK_FP_OPEN(fpv,Pname,exe);
-		initFrameToReadFrame(exe
-				,fpv
-				,pbd->patterns
-				,0
-				,pbd->builtInHeadSymbolTable);
+		initFrameToReadFrame(exe,fpv);
 	}
 }
 
@@ -2042,49 +2015,54 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	if(!FKL_IS_STR(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	char* tmpString=NULL;
-	FklPtrStack tokenStack=FKL_STACK_INIT;
-	fklInitPtrStack(&tokenStack,32,16);
-	FklStringMatchSet* matchSet=FKL_STRING_PATTERN_UNIVERSAL_SET;
-	size_t line=1;
-	size_t j=0;
-	FKL_DECL_UD_DATA(pbd,PublicBuiltInData,FKL_VM_UD(pd));
-	FklStringMatchPattern* patterns=pbd->patterns;
-	FklStringMatchRouteNode* route=fklCreateStringMatchRouteNode(NULL,0,0,NULL,NULL,NULL);
-	FklStringMatchRouteNode* troute=route;
-	int err=0;
+
 	FklString* ss=FKL_VM_STR(stream);
-	fklSplitStringIntoTokenWithPattern(ss->str
-			,ss->size
-			,line
-			,&line
-			,j
-			,&j
-			,&tokenStack
-			,matchSet
-			,patterns
-			,route
-			,&troute
-			,&err);
-	fklDestroyStringMatchSet(matchSet);
+
+	int err=0;
 	size_t errorLine=0;
-	FklNastNode* node=fklCreateNastNodeFromTokenStackAndMatchRoute(&tokenStack
-			,route
+	FklPtrStack symbolStack;
+	FklPtrStack stateStack;
+	fklInitPtrStack(&symbolStack,16,16);
+	fklInitPtrStack(&stateStack,16,16);
+	fklPushState0ToStack(&stateStack);
+
+	size_t restLen=ss->size;
+	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklNastNode* node=fklDefaultParseForCharBuf(ss->str
+			,restLen
+			,&restLen
+			,&outerCtx
+			,exe->symbolTable
+			,&err
 			,&errorLine
-			,pbd->builtInHeadSymbolTable
-			,NULL
-			,exe->symbolTable);
-	fklDestroyStringMatchRoute(route);
+			,&symbolStack
+			,&stateStack);
+
 	FklVMvalue* tmp=NULL;
 	if(node==NULL)
+	{
+		while(!fklIsPtrStackEmpty(&symbolStack))
+		{
+			FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+			fklDestroyNastNode(s->ast);
+			free(s);
+		}
+		fklUninitPtrStack(&symbolStack);
+		fklUninitPtrStack(&stateStack);
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDEXPR,exe);
+	}
 	else
 		tmp=fklCreateVMvalueFromNastNode(exe,node,NULL);
-	while(!fklIsPtrStackEmpty(&tokenStack))
-		fklDestroyToken(fklPopPtrStack(&tokenStack));
-	fklUninitPtrStack(&tokenStack);
+
+	while(!fklIsPtrStackEmpty(&symbolStack))
+	{
+		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		fklDestroyNastNode(s->ast);
+		free(s);
+	}
+	fklUninitPtrStack(&symbolStack);
+	fklUninitPtrStack(&stateStack);
 	fklPushVMvalue(exe,tmp);
-	free(tmpString);
 	fklDestroyNastNode(node);
 }
 
@@ -4517,23 +4495,12 @@ void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
 
 static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 {
-	static const char* builtInHeadSymbolTableCstr[4]=
-	{
-		"quote",
-		"qsquote",
-		"unquote",
-		"unqtesp",
-	};
-	FklSymbolTable* table=exe->symbolTable;
 	FklVMvalue* builtInStdin=fklCreateVMvalueFp(exe,stdin,FKL_VM_FP_R);
 	FklVMvalue* builtInStdout=fklCreateVMvalueFp(exe,stdout,FKL_VM_FP_W);
 	FklVMvalue* builtInStderr=fklCreateVMvalueFp(exe,stderr,FKL_VM_FP_W);
 	pd->sysIn=builtInStdin;
 	pd->sysOut=builtInStdout;
 	pd->sysErr=builtInStderr;
-	pd->patterns=fklInitBuiltInStringPattern(table);
-	for(int i=0;i<3;i++)
-		pd->builtInHeadSymbolTable[i]=fklAddSymbolCstr(builtInHeadSymbolTableCstr[i],table)->id;
 }
 
 void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)

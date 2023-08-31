@@ -7210,7 +7210,6 @@ typedef struct
 	FklVMvalue* stdinVal;
 	FklVMvalue* mainProc;
 	FklStringBuffer* buf;
-	const FklSid_t* headSymbol;
 	enum
 	{
 		READY,
@@ -7425,7 +7424,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				,&errLine
 				,&cc->symbolStack
 				,&cc->stateStack);
-		cc->offset=s->i-restLen;
+		cc->offset=fklStringBufferLen(s)-restLen;
 		codegen->curline=outerCtx.line;
 		fklUnLockVMfp(ctx->stdinVal);
 		if(cc->symbolStack.top==0&&ch==-1)
@@ -7451,7 +7450,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			else if(ast)
 			{
 				if(restLen)
-					fklVMfpRewind(vfp,s,s->i-restLen);
+					fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
 				ctx->state=DONE;
 				repl_nast_ctx_and_buf_reset(cc,s);
 
@@ -7633,7 +7632,6 @@ inline void fklInitFrameToReplFrame(FklVM* exe
 	NastCreatCtx* cc=createNastCreatCtx();
 	ctx->cc=cc;
 	ctx->state=READY;
-	ctx->headSymbol=builtInHeadSymbolTable;
 	ctx->buf=fklCreateStringBuffer();
 }
 

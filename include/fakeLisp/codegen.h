@@ -87,28 +87,35 @@ typedef struct FklCodegenLib
 
 typedef struct FklCodegen
 {
+	struct FklCodegen* prev;
+
 	char* filename;
 	char* realpath;
 	char* curDir;
 	uint64_t curline;
+	FklSid_t fid;
+
 	uint32_t builtinSymbolNum;
 	uint8_t* builtinSymModiMark;
 	FklCodegenEnv* globalEnv;
+
 	FklSymbolTable* globalSymTable;
 	FklSymbolTable* publicSymbolTable;
-	FklSid_t fid;
+
 	size_t exportNum;
 	FklSid_t* exports;
 	FklSid_t* exportsP;
 	FklCodegenMacro* export_macro;
 	FklHashTable* export_replacement;
+
 	FklPtrStack* loadedLibStack;
 	FklPtrStack* macroLibStack;
-	struct FklCodegen* prev;
+
 	unsigned int destroyAbleMark:1;
 	unsigned int libMark:1;
 	unsigned int macroMark:1;
 	unsigned long refcount:61;
+
 	FklFuncPrototypes* pts;
 }FklCodegen;
 

@@ -68,7 +68,7 @@ struct FklGrammerProduction;
 
 uint64_t fklGetFirstNthLine(FklNastNode* nodes[],size_t num,size_t line);
 
-typedef FklNastNode* (*FklBuiltinProdAction)(FklNastNode* nodes[],size_t num,size_t line,FklSymbolTable* st);
+typedef FklNastNode* (*FklBuiltinProdAction)(void* ctx,FklNastNode* nodes[],size_t num,size_t line,FklSymbolTable* st);
 
 typedef struct FklGrammerProduction
 {
@@ -78,19 +78,10 @@ typedef struct FklGrammerProduction
 	FklGrammerSym* syms;
 	struct FklGrammerProduction* next;
 	int isBuiltin;
-	union
-	{
-		struct
-		{
-			FklByteCodelnt* bcl;
-			FklFuncPrototypes* pts;
-		};
-		struct
-		{
-			const char* name;
-			FklBuiltinProdAction func;
-		};
-	};
+	const char* name;
+	FklBuiltinProdAction func;
+	void (*ctx_destroyer)(void*);
+	void* ctx;
 }FklGrammerProduction;
 
 typedef enum

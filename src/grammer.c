@@ -35,9 +35,7 @@ static void prod_hash_set_val(void* d0,const void* d1)
 
 static inline void destroy_prod(FklGrammerProduction* h)
 {
-
-	// if(!h->isBuiltin)
-	// 	fklDestroyByteCodelnt(h->action.proc);
+	h->ctx_destroyer(h->ctx);
 	free(h->syms);
 	free(h);
 }
@@ -80,7 +78,7 @@ static const FklHashTableMetaTable ProdHashMetaTable=
 	.__getKey=fklHashDefaultGetKey,
 };
 
-static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t len,const char* name,FklBuiltinProdAction func)
+static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t len,const char* name,FklBuiltinProdAction func,void* ctx,void (*destroy)(void*))
 {
 	FklGrammerProduction* r=(FklGrammerProduction*)calloc(1,sizeof(FklGrammerProduction));
 	FKL_ASSERT(r);
@@ -88,6 +86,8 @@ static inline FklGrammerProduction* create_empty_production(FklSid_t left,size_t
 	r->len=len;
 	r->name=name;
 	r->func=func;
+	r->ctx=ctx;
+	r->ctx_destroyer=destroy;
 	r->syms=(FklGrammerSym*)calloc(len,sizeof(FklGrammerSym));
 	r->isBuiltin=1;
 	FKL_ASSERT(r->syms);
@@ -385,6 +385,10 @@ static inline void* init_builtin_grammer_sym(const FklLalrBuiltinMatch* m
 	return NULL;
 }
 
+static void prod_ctx_destroy_do_nothing(void* c)
+{
+}
+
 static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* str
 		,FklGrammer* g
 		,FklHashTable* builtins
@@ -414,7 +418,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 		ss+=len;
 	}
 	size_t prod_len=st.top-joint_num;
-	FklGrammerProduction* prod=create_empty_production(left,prod_len,name,func);
+	FklGrammerProduction* prod=create_empty_production(left,prod_len,name,func,NULL,prod_ctx_destroy_do_nothing);
 	int next_delim=1;
 	size_t symIdx=0;
 	for(uint32_t i=0;i<st.top;i++)
@@ -536,7 +540,7 @@ static inline FklGrammerIgnore* create_grammer_ignore_from_cstr(const char* str
 		fklUninitPtrStack(&st);
 		return NULL;
 	}
-	FklGrammerProduction* prod=create_empty_production(left,prod_len,NULL,NULL);
+	FklGrammerProduction* prod=create_empty_production(left,prod_len,NULL,NULL,NULL,prod_ctx_destroy_do_nothing);
 	int next_delim=1;
 	size_t symIdx=0;
 	for(uint32_t i=0;i<st.top;i++)
@@ -627,7 +631,7 @@ static inline int prod_equal(const FklGrammerProduction* prod0,const FklGrammerP
 
 static inline FklGrammerProduction* create_extra_production(FklSid_t start)
 {
-	FklGrammerProduction* prod=create_empty_production(0,1,NULL,NULL);
+	FklGrammerProduction* prod=create_empty_production(0,1,NULL,NULL,NULL,prod_ctx_destroy_do_nothing);
 	prod->idx=0;
 	FklGrammerSym* u=&prod->syms[0];
 	u->delim=1;
@@ -658,10 +662,9 @@ static inline int add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction* 
 		}
 		if(cur)
 		{
-			// prod->next=cur->next;
-			// *pp=prod;
-			// destroy_prod(cur);
-			destroy_prod(prod);
+			prod->next=cur->next;
+			*pp=prod;
+			destroy_prod(cur);
 		}
 		else
 		{
@@ -677,7 +680,6 @@ static inline int add_prod_to_grammer(FklGrammer* grammer,FklGrammerProduction* 
 		{
 			grammer->start=left;
 			FklGrammerProduction* extra_prod=create_extra_production(left);
-			// fklPutHashItem(&extra_prod->left,&grammer->nonterminals);
 			extra_prod->next=NULL;
 			item=fklPutHashItem(&extra_prod->left,productions);
 			item->prods=extra_prod;
@@ -2606,6 +2608,12 @@ void fklDestroyGrammer(FklGrammer* g)
 static inline int init_all_builtin_grammer_sym(FklGrammer* g)
 {
 	int failed=0;
+	if(g->sortedTerminalsNum)
+	{
+		free(g->sortedTerminals);
+		g->sortedTerminals=NULL;
+		g->sortedTerminalsNum=0;
+	}
 	for(FklHashTableItem* pl=g->productions.first;pl;pl=pl->next)
 	{
 		ProdHashItem* i=(ProdHashItem*)pl->data;
@@ -5352,7 +5360,7 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 			free(as);
 		}
 	}
-	FklNastNode* ast=prod->func(nodes,len,fklGetFirstNthLine(nodes,len,outerCtx->line),st);
+	FklNastNode* ast=prod->func(prod->ctx,nodes,len,fklGetFirstNthLine(nodes,len,outerCtx->line),st);
 	if(len)
 	{
 		for(size_t i=0;i<len;i++)
@@ -5372,7 +5380,6 @@ FklNastNode* fklParseWithTableForCstrDbg(const FklAnalysisTable* t
 		,FklSymbolTable* st
 		,int* err)
 {
-#warning incomplete
 	FklNastNode* ast=NULL;
 	const char* start=cstr;
 	size_t restLen=strlen(start);
@@ -5453,7 +5460,6 @@ FklNastNode* fklParseWithTableForCstr(const FklAnalysisTable* t
 		,FklSymbolTable* st
 		,int* err)
 {
-#warning incomplete
 	FklNastNode* ast=NULL;
 	const char* start=cstr;
 	size_t restLen=strlen(start);

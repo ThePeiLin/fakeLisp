@@ -1,22 +1,64 @@
-(defmacro #("\\" a "->" b)
-  `(lambda (~a) ~b))
-(defmacro #("call" a b)
-  `(~a,~b))
-(defmacro #("var" a "=" b)
-  `(define ~a ~b))
-(defmacro #("function" n a "{" #&b "}")
-  `(define ~n (lambda ~a ~@b)))
+;; 读取器宏定义
+;; 定义时向文法增加 *s-exp* -> left
+;; #[<左部> <右部> <动作类型> <动作>]
+;;
+;; 定义时不向文法增加 *s-exp* -> left
+;; #[<右部> <左部> <动作类型> <动作>]
+;;
+;; 其中*s-exp*是起始符号
+;;
+;; 左部非终结符不允许是内建非终结符
+;; 如果要直接添加 *s-exp* -> <prod> ，产生式左部应当填 "()"
+;; 产生式左部为()的读取器宏的导出不受到only等导入限制的影响
+;; 产生式左部不为()的读取器宏在导入时会受到prefix的影响
+;;
+;; 读取器宏的定义以组为单位
+;; 引用了除内建非终结符外的其他组的非终结符的组不允许导出
+;;
+;; 虽然这玩意儿叫读取器宏，但其实本质是产生式
 
-var pop=9
-function list ls
+(defmacro
+  #(my-lambda
+     #["#lambda(" #(*symbol* a) ")" b]
+     custom `(lambda (~a) ~b))
+
+  #(my-lambda
+     #["#lambda[" #(*symbol* a) "]" b]
+     custom `(lambda (~a) ~b))
+
+  #(my-fn-call
+     #["#call&" a b]
+     custom `(~a,~b))
+
+  #(my-var-def
+     #["#var!" #(*symbol* a) "#:=" b]
+     custom `(define ~a ~b))
+
+  #(#[]
+    func-body
+    builtin nil)
+
+  #(#[*s-exp* func-body]
+    func-body
+    builtin list)
+
+  #(my-fn-def
+     #["#fn" n a "{" #(func-body b) "}"]
+     custom
+     `(define ~n (lambda ~a ~@b))))
+
+#var! pop #:=9
+
+#fn list ls
 {
     ls
 }
-function square (a)
+
+#fn square (a)
 {
     call * (a a)
 }
 
-call println ((\x->(+ x 9) 9))
-call println (call list (1 2 3))
-call println (call square (pop))
+#call println ((#lambda( x ) (+ x 9) 9))
+#call println (#call& list (1 2 3))
+#call println (#call& square (pop))

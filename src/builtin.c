@@ -3800,6 +3800,19 @@ static void builtin_href_set(FKL_DL_PROC_ARGL)
 	fklPushVMvalue(exe,value);;
 }
 
+static void builtin_href_del1(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.href-del!";
+	DECL_AND_CHECK_ARG2(ht,key,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname,exe);
+	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
+	FklVMhashTableItem i;
+	if(fklDelHashItem(&key,FKL_VM_HASH(ht),&i))
+		fklPushVMvalue(exe,fklCreateVMvaluePair(exe,i.key,i.v));
+	else
+		fklPushVMvalue(exe,FKL_VM_NIL);
+}
+
 static void builtin_href_set8(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.href=*!";
@@ -4423,6 +4436,7 @@ static const struct SymbolFuncStruct
 	{"href!",                 builtin_href1,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href-set!",             builtin_href_set,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href-set*!",            builtin_href_set8,               {NULL,         NULL,          NULL,          NULL,          }, },
+	{"href-del!",             builtin_href_del1,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash-clear!",           builtin_hash_clear,              {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash->list",            builtin_hash_to_list,            {NULL,         NULL,          NULL,          NULL,          }, },
 	{"hash-keys",             builtin_hash_keys,               {NULL,         NULL,          NULL,          NULL,          }, },

@@ -134,7 +134,7 @@ FklHashTable* fklCreatPtrSet(void);
 void* fklGetHashItem(const void* key,const FklHashTable*);
 void* fklPutHashItem(const void* key,FklHashTable*);
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
-void fklDelHashItem(void* key,FklHashTable*);
+int fklDelHashItem(void* key,FklHashTable*,void* v);
 void fklClearHashTable(FklHashTable* ht);
 void fklUninitHashTable(FklHashTable*);
 void fklDestroyHashTable(FklHashTable*);

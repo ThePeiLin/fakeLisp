@@ -2072,7 +2072,7 @@ static inline void expandHashTable(FklHashTable* table)
 		putHashNode(list,table);
 }
 
-void fklDelHashItem(void* pkey,FklHashTable* ht)
+int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 {
 	HASH_FUNC_HEADER();
 	FklHashTableItem** p=&ht->base[hash32shift(hashv(pkey),ht->mask)];
@@ -2093,10 +2093,14 @@ void fklDelHashItem(void* pkey,FklHashTable* ht)
 		if(ht->first==item)
 			ht->first=item->next;
 
+		if(deleted)
+			ht->t->__setVal(deleted,item->data);
 		void (*uninitFunc)(void*)=ht->t->__uninitItem;
 		uninitFunc(item->data);
 		free(item);
+		return 1;
 	}
+	return 0;
 }
 
 void* fklPutHashItem(const void* pkey,FklHashTable* ht)

@@ -57,7 +57,7 @@ typedef struct FklVM FklVM;
 struct FklVMframe;
 typedef struct FklVMproc FklVMproc;
 //void fklInitCompEnv(FklCompEnv* curEnv);
-void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable*);
+void fklInitGlobCodegenEnv(FklCodegenEnv*);
 //void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);

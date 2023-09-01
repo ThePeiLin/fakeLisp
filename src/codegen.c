@@ -182,7 +182,7 @@ static FklByteCode* createDupPutLocOrVar(uint32_t idx,FklOpcode putLocOrVar)
 
 static FklByteCodelnt* makePutLoc(const FklNastNode* sym,uint32_t idx,FklCodegen* codegen)
 {
-	fklAddSymbol(fklGetSymbolWithId(sym->sym,codegen->publicSymbolTable)->symbol,codegen->globalSymTable);
+	fklAddSymbol(fklGetSymbolWithIdFromPst(sym->sym)->symbol,codegen->globalSymTable);
 	FklByteCodelnt* r=createBclnt(createDupPutLocOrVar(idx,FKL_OP_PUT_LOC),codegen->fid,sym->curline);
 	return r;
 }
@@ -191,7 +191,7 @@ static FklByteCodelnt* makePutRefLoc(const FklNastNode* sym
 		,uint32_t idx
 		,FklCodegen* codegen)
 {
-	fklAddSymbol(fklGetSymbolWithId(sym->sym,codegen->publicSymbolTable)->symbol,codegen->globalSymTable);
+	fklAddSymbol(fklGetSymbolWithIdFromPst(sym->sym)->symbol,codegen->globalSymTable);
 	FklByteCodelnt* r=createBclnt(createDupPutLocOrVar(idx,FKL_OP_PUT_VAR_REF),codegen->fid,sym->curline);
 	return r;
 }
@@ -926,7 +926,7 @@ static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t 
 
 static CODEGEN_FUNC(codegen_let81)
 {
-	FklSid_t letHeadId=fklAddSymbolCstr("let",codegen->publicSymbolTable)->id;
+	FklSid_t letHeadId=fklAddSymbolCstrToPst("let")->id;
 	FklNastNode* letHead=fklCreateNastNode(FKL_NAST_SYM,origExp->pair->car->curline);
 	letHead->sym=letHeadId;
 
@@ -1481,35 +1481,33 @@ static CODEGEN_FUNC(codegen_do1)
 	fklPushPtrStack(do1InitValQuest,codegenQuestStack);
 }
 
-static inline FklSid_t get_sid_in_gs_with_id_in_ps(FklSid_t id,FklSymbolTable* ps,FklSymbolTable* gs)
+static inline FklSid_t get_sid_in_gs_with_id_in_ps(FklSid_t id,FklSymbolTable* gs)
 {
-	return fklAddSymbol(fklGetSymbolWithId(id,ps)->symbol,gs)->id;
+	return fklAddSymbol(fklGetSymbolWithIdFromPst(id)->symbol,gs)->id;
 }
 
 static inline FklSid_t get_sid_with_idx(FklCodegenEnvScope* sc
 		,uint32_t idx
-		,FklSymbolTable* ps
 		,FklSymbolTable* gs)
 {
 	for(FklHashTableItem* l=sc->defs->first;l;l=l->next)
 	{
 		FklSymbolDef* def=(FklSymbolDef*)l->data;
 		if(def->idx==idx)
-			return get_sid_in_gs_with_id_in_ps(def->k.id,ps,gs);
+			return get_sid_in_gs_with_id_in_ps(def->k.id,gs);
 	}
 	return 0;
 }
 
 static inline FklSid_t get_sid_with_ref_idx(FklHashTable* refs
 		,uint32_t idx
-		,FklSymbolTable* ps
 		,FklSymbolTable* gs)
 {
 	for(FklHashTableItem* l=refs->first;l;l=l->next)
 	{
 		FklSymbolDef* def=(FklSymbolDef*)l->data;
 		if(def->idx==idx)
-			return get_sid_in_gs_with_id_in_ps(def->k.id,ps,gs);
+			return get_sid_in_gs_with_id_in_ps(def->k.id,gs);
 	}
 	return 0;
 }
@@ -1530,7 +1528,6 @@ BC_PROCESS(_set_var_exp_bc_process)
 				if(!codegen->pts->pts[prototypeId].sid)
 					codegen->pts->pts[prototypeId].sid=get_sid_with_idx(&env->scopes[scope-1]
 							,idx
-							,codegen->publicSymbolTable
 							,codegen->globalSymTable);
 			}
 			else if(popVar->bc->code[0]==FKL_OP_PUT_VAR_REF)
@@ -1540,7 +1537,6 @@ BC_PROCESS(_set_var_exp_bc_process)
 				if(!codegen->pts->pts[prototypeId].sid)
 					codegen->pts->pts[prototypeId].sid=get_sid_with_ref_idx(env->refs
 							,idx
-							,codegen->publicSymbolTable
 							,codegen->globalSymTable);
 			}
 		}
@@ -1588,7 +1584,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	stack->top=0;
 	fklScanAndSetTailCall(retval->bc);
 	FklFuncPrototypes* pts=codegen->pts;
-	fklUpdatePrototype(pts,env,codegen->globalSymTable,codegen->publicSymbolTable);
+	fklUpdatePrototype(pts,env,codegen->globalSymTable);
 	FklByteCode* pushProc=create13lenBc(FKL_OP_PUSH_PROC,env->prototypeId,retval->bc->size);
 	fklBcBclAppendToBcl(pushProc,retval,fid,line);
 	fklDestroyByteCode(pushProc);
@@ -1620,7 +1616,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args
 		}
 		uint32_t idx=fklAddCodegenDefBySid(cur->sym,1,curEnv);
 
-		fklAddSymbol(fklGetSymbolWithId(cur->sym,codegen->publicSymbolTable)->symbol
+		fklAddSymbol(fklGetSymbolWithIdFromPst(cur->sym)->symbol
 			,codegen->globalSymTable);
 
 		fklSetU32ToByteCode(&popArgCode[1],idx);
@@ -1641,7 +1637,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args
 		}
 		uint32_t idx=fklAddCodegenDefBySid(args->sym,1,curEnv);
 
-		fklAddSymbol(fklGetSymbolWithId(args->sym,codegen->publicSymbolTable)->symbol
+		fklAddSymbol(fklGetSymbolWithIdFromPst(args->sym)->symbol
 			,codegen->globalSymTable);
 
 		fklSetU32ToByteCode(&popRestArgCode[1],idx);
@@ -1670,7 +1666,7 @@ static FklByteCodelnt* processArgsInStack(FklUintStack* stack
 
 		uint32_t idx=fklAddCodegenDefBySid(curId,1,curEnv);
 
-		fklAddSymbol(fklGetSymbolWithId(curId,codegen->publicSymbolTable)->symbol
+		fklAddSymbol(fklGetSymbolWithIdFromPst(curId)->symbol
 			   ,codegen->globalSymTable);
 
 		fklSetU32ToByteCode(&popArgCode[1],idx);
@@ -1682,14 +1678,14 @@ static FklByteCodelnt* processArgsInStack(FklUintStack* stack
 	return retval;
 }
 
-static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht,FklSymbolTable* globalSymTable)
 {
 	FklSymbolDef* refs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*sht->num);
 	FKL_ASSERT(refs);
 	for(FklHashTableItem* list=sht->first;list;list=list->next)
 	{
 		FklSymbolDef* sd=(FklSymbolDef*)list->data;
-		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithIdFromPst(sd->k.id)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={{sid,0},sd->idx,sd->cidx,sd->isLocal};
 		refs[sd->idx]=ref;
 	}
@@ -1700,7 +1696,6 @@ static inline void create_and_insert_to_pool(FklFuncPrototypes* cp
 		,uint32_t p
 		,FklCodegenEnv* env
 		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymbolTable
 		,FklSid_t sid
 		,FklSid_t fid
 		,uint64_t line)
@@ -1712,7 +1707,7 @@ static inline void create_and_insert_to_pool(FklFuncPrototypes* cp
 	FklFuncPrototype* cpt=&pts[cp->count];
 	env->prototypeId=cp->count;
 	cpt->lcount=env->lcount;
-	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,publicSymbolTable);
+	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable);
 	cpt->rcount=env->refs->num;
 	cpt->sid=sid;
 	cpt->fid=fid;
@@ -1768,7 +1763,7 @@ static CODEGEN_FUNC(codegen_named_let0)
 	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv);
 	fklPushPtrStack(makePutLoc(name,idx,codegen),stack);
 
-	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
+	fklAddReplacementBySid(fklAddSymbolCstrToPst("*func*")->id
 			,name
 			,cms->replacements);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_named_let_set_var_exp_bc_process
@@ -1793,8 +1788,7 @@ static CODEGEN_FUNC(codegen_named_let0)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
-			,get_sid_in_gs_with_id_in_ps(name->sym,codegen->publicSymbolTable,codegen->globalSymTable)
+			,get_sid_in_gs_with_id_in_ps(name->sym,codegen->globalSymTable)
 			,codegen->fid
 			,origExp->curline);
 
@@ -1871,7 +1865,7 @@ static CODEGEN_FUNC(codegen_named_let1)
 	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv);
 	fklPushPtrStack(makePutLoc(name,idx,codegen),stack);
 	
-	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
+	fklAddReplacementBySid(fklAddSymbolCstrToPst("*func*")->id
 			,name
 			,cms->replacements);
 	fklPushPtrStack(createCodegenQuest(_let_arg_exp_bc_process
@@ -1913,8 +1907,7 @@ static CODEGEN_FUNC(codegen_named_let1)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
-	 		,get_sid_in_gs_with_id_in_ps(name->sym,codegen->publicSymbolTable,codegen->globalSymTable)
+	 		,get_sid_in_gs_with_id_in_ps(name->sym,codegen->globalSymTable)
 			,codegen->fid
 			,origExp->curline);
 
@@ -2025,7 +2018,7 @@ static CODEGEN_FUNC(codegen_or)
 			,codegenQuestStack);
 }
 
-inline void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* publicSymbolTable)
+inline void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbolTable* globalSymTable)
 {
 	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
 	FklHashTable* eht=NULL;
@@ -2040,7 +2033,7 @@ inline void fklUpdatePrototype(FklFuncPrototypes* cp,FklCodegenEnv* env,FklSymbo
 	for(FklHashTableItem* list=eht->first;list;list=list->next)
 	{
 		FklSymbolDef* sd=(FklSymbolDef*)list->data;
-		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithIdFromPst(sd->k.id)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={.k.id=sid,
 			.k.scope=sd->k.scope,
 			.idx=sd->idx,
@@ -2422,7 +2415,6 @@ static CODEGEN_FUNC(codegen_lambda)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
 			,0
 			,codegen->fid
 			,origExp->curline);
@@ -2512,11 +2504,10 @@ static CODEGEN_FUNC(codegen_defun)
 			,curEnv->prototypeId
 			,lambdaCodegenEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
-			,get_sid_in_gs_with_id_in_ps(name->sym,codegen->publicSymbolTable,codegen->globalSymTable)
+			,get_sid_in_gs_with_id_in_ps(name->sym,codegen->globalSymTable)
 			,codegen->fid
 			,origExp->curline);
-	fklAddReplacementBySid(fklAddSymbolCstr("*func*",codegen->publicSymbolTable)->id
+	fklAddReplacementBySid(fklAddSymbolCstrToPst("*func*")->id
 			,name
 			,lambdaCodegenEnv->macros->replacements);
 	FklCodegenQuest* cur=createCodegenQuest(_lambda_exp_bc_process
@@ -2725,9 +2716,7 @@ static int isExportImportExp(FklNastNode*);
 static inline void add_export_symbol(FklCodegen* libCodegen
 		,FklNastNode* origExp
 		,FklNastNode* rest
-		,FklPtrQueue* exportQueue
-		,FklSymbolTable* publicSymbolTable
-		,FklSymbolTable* globalSymTable)
+		,FklPtrQueue* exportQueue)
 {
 	FklNastPair* prevPair=origExp->pair;
 	FklNastNode* exportHead=origExp->pair->car;
@@ -3596,7 +3585,6 @@ static FklCodegen* createCodegen(FklCodegen* prev
 			,env
 			,prev
 			,prev->globalSymTable
-			,prev->publicSymbolTable
 			,1
 			,libMark
 			,macroMark);
@@ -3651,7 +3639,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 			,&size
 			,codegen->curline
 			,&codegen->curline
-			,codegen->publicSymbolTable
+			,fklGetPubSymTab()
 			,unexpectEOF
 			,errorLine
 			,&begin
@@ -3797,14 +3785,13 @@ static CODEGEN_FUNC(codegen_load)
 			,codegenQuestStack);
 }
 
-static inline char* combineFileNameFromList(FklNastNode* list
-		,FklSymbolTable* publicSymbolTable)
+static inline char* combineFileNameFromList(FklNastNode* list)
 {
 	char* r=NULL;
 	for(FklNastNode* curPair=list;curPair->type==FKL_NAST_PAIR;curPair=curPair->pair->cdr)
 	{
 		FklNastNode* cur=curPair->pair->car;
-		r=fklCstrStringCat(r,fklGetSymbolWithId(cur->sym,publicSymbolTable)->symbol);
+		r=fklCstrStringCat(r,fklGetSymbolWithIdFromPst(cur->sym)->symbol);
 		if(curPair->pair->cdr->type!=FKL_NAST_NIL)
 			r=fklStrCat(r,FKL_PATH_SEPARATOR_STR);
 	}
@@ -3813,7 +3800,6 @@ static inline char* combineFileNameFromList(FklNastNode* list
 
 static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 		,FklSymbolTable* symbolTable
-		,FklSymbolTable* publicSymbolTable
 		,size_t num
 		,FklSid_t* exports
 		,uint32_t* exportIndex
@@ -3828,8 +3814,7 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 	{
 		for(size_t i=0;i<num;i++)
 		{
-			FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
-					,publicSymbolTable)->id;
+			FklSid_t sym=fklAddSymbolToPst(fklGetSymbolWithId(exports[i],symbolTable)->symbol)->id;
 			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
 			fklSetU32ToByteCode(&importCode[1],idx);
 			fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
@@ -3840,8 +3825,7 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 	{
 		for(size_t i=0;i<num;i++)
 		{
-			FklSid_t sym=fklAddSymbol(fklGetSymbolWithId(exports[i],symbolTable)->symbol
-					,publicSymbolTable)->id;
+			FklSid_t sym=fklAddSymbolToPst(fklGetSymbolWithId(exports[i],symbolTable)->symbol)->id;
 			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
 			fklSetU32ToByteCode(&importCode[1],idx);
 			fklSetU32ToByteCode(&importCode[5],i);
@@ -3852,7 +3836,6 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 
 static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 		,FklSymbolTable* symbolTable
-		,FklSymbolTable* publicSymbolTable
 		,FklString* prefix
 		,size_t num
 		,FklSid_t* exports
@@ -3870,7 +3853,7 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 		{
 			FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
 			FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
-			FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
+			FklSid_t sym=fklAddSymbolToPst(symbolWithPrefix)->id;
 			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
 			fklSetU32ToByteCode(&importCode[1],idx);
 			fklSetU32ToByteCode(&importCode[5],exportIndex[i]);
@@ -3884,7 +3867,7 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 		{
 			FklString* origSymbol=fklGetSymbolWithId(exports[i],symbolTable)->symbol;
 			FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
-			FklSid_t sym=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
+			FklSid_t sym=fklAddSymbolToPst(symbolWithPrefix)->id;
 			uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
 			fklSetU32ToByteCode(&importCode[1],idx);
 			fklSetU32ToByteCode(&importCode[5],i);
@@ -3905,12 +3888,11 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 // }
 
 static FklNastNode* createPatternWithPrefixFromOrig(FklNastNode* orig
-		,FklString* prefix
-		,FklSymbolTable* publicSymbolTable)
+		,FklString* prefix)
 {
-	FklString* head=fklGetSymbolWithId(orig->pair->car->sym,publicSymbolTable)->symbol;
+	FklString* head=fklGetSymbolWithIdFromPst(orig->pair->car->sym)->symbol;
 	FklString* symbolWithPrefix=fklStringAppend(prefix,head);
-	FklNastNode* patternWithPrefix=fklNastConsWithSym(fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id
+	FklNastNode* patternWithPrefix=fklNastConsWithSym(fklAddSymbolToPst(symbolWithPrefix)->id
 			,fklMakeNastNodeRef(orig->pair->cdr)
 			,orig->curline
 			,orig->pair->car->curline);
@@ -3920,29 +3902,27 @@ static FklNastNode* createPatternWithPrefixFromOrig(FklNastNode* orig
 
 static inline void export_replacement_with_prefix(FklHashTable* replacements
 		,FklCodegenMacroScope* macros
-		,FklSymbolTable* publicSymbolTable
 		,FklString* prefix)
 {
 	for(FklHashTableItem* cur=replacements->first;cur;cur=cur->next)
 	{
 		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
-		FklString* origSymbol=fklGetSymbolWithId(rep->id,publicSymbolTable)->symbol;
+		FklString* origSymbol=fklGetSymbolWithIdFromPst(rep->id)->symbol;
 		FklString* symbolWithPrefix=fklStringAppend(prefix,origSymbol);
-		FklSid_t id=fklAddSymbol(symbolWithPrefix,publicSymbolTable)->id;
+		FklSid_t id=fklAddSymbolToPst(symbolWithPrefix)->id;
 		fklAddReplacementBySid(id,rep->node,macros->replacements);
 		free(symbolWithPrefix);
 	}
 }
 
 static inline void print_undefined_symbol(const FklPtrStack* urefs
-		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymTable)
+		,FklSymbolTable* globalSymTable)
 {
 	for(uint32_t i=0;i<urefs->top;i++)
 	{
 		FklUnReSymbolRef* ref=urefs->base[i];
 		fprintf(stderr,"warning in compiling: Symbol \"");
-		fklPrintString(fklGetSymbolWithId(ref->id,publicSymTable)->symbol,stderr);
+		fklPrintString(fklGetSymbolWithIdFromPst(ref->id)->symbol,stderr);
 		fprintf(stderr,"\" is undefined at line %lu of ",ref->line);
 		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
 		fputc('\n',stderr);
@@ -3950,10 +3930,9 @@ static inline void print_undefined_symbol(const FklPtrStack* urefs
 }
 
 void fklPrintUndefinedRef(const FklCodegenEnv* env
-		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymTable)
+		,FklSymbolTable* globalSymTable)
 {
-	print_undefined_symbol(&env->uref,globalSymTable,publicSymTable);
+	print_undefined_symbol(&env->uref,globalSymTable);
 }
 
 typedef struct
@@ -4032,7 +4011,6 @@ static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
 	add_symbol_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
 			,lib->exportNum
 			,lib->exports
 			,lib->exportIndex
@@ -4053,25 +4031,22 @@ static inline FklByteCodelnt* process_import_imported_lib_prefix(uint32_t libId
 		,uint64_t curline
 		,FklNastNode* prefixNode)
 {
-	FklString* prefix=fklGetSymbolWithId(prefixNode->sym,codegen->publicSymbolTable)->symbol;
+	FklString* prefix=fklGetSymbolWithIdFromPst(prefixNode->sym)->symbol;
 	for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
 		add_compiler_macro(&macroScope->head
 				,createPatternWithPrefixFromOrig(cur->pattern
-					,prefix
-					,codegen->publicSymbolTable)
+					,prefix)
 				,cur->bcl
 				,cur->pts
 				,0);
 
 	export_replacement_with_prefix(lib->replacements
 			,macroScope
-			,codegen->publicSymbolTable
 			,prefix);
 
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
 	add_symbol_with_prefix_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
 			,prefix
 			,lib->exportNum
 			,lib->exports
@@ -4229,7 +4204,6 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
 
-	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 
 	uint32_t exportNum=lib->exportNum;
@@ -4271,7 +4245,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 			rep->refcount--;
 			fklAddReplacementBySid(cur0,rep,macroScope->replacements);
 		}
-		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithIdFromPst(cur)->symbol,globalSymTable)->id;
 		uint32_t idl=0;
 		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
 		if(idl!=exportNum)
@@ -4368,19 +4342,19 @@ BC_PROCESS(_library_bc_process)
 			,libBc
 			,codegen->exportNum
 			,codegen->exports
-			,codegen->exportsP
+			,codegen->exports_in_pst
 			,codegen->export_macro
 			,codegen->export_replacement
 			,env);
 
-	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,codegen->publicSymbolTable);
-	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
+	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable);
+	print_undefined_symbol(&env->uref,codegen->globalSymTable);
 
 	fklPushPtrStack(lib,codegen->loadedLibStack);
 
 	codegen->realpath=NULL;
 	codegen->exports=NULL;
-	codegen->exportsP=NULL;
+	codegen->exports_in_pst=NULL;
 	codegen->export_macro=NULL;
 	codegen->export_replacement=NULL;
 	return process_import_imported_lib(codegen->loadedLibStack->top
@@ -4443,7 +4417,6 @@ BC_PROCESS(_export_import_bc_process)
 	FklUintStack idPstack=FKL_STACK_INIT;
 	fklInitUintStack(&idPstack,defs->num,16);
 
-	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 
 	for(FklHashTableItem* list=defs->first;list;list=list->next)
@@ -4451,7 +4424,7 @@ BC_PROCESS(_export_import_bc_process)
 		FklSymbolDef* def=(FklSymbolDef*)(list->data);
 		FklSid_t idp=def->k.id;
 		fklAddCodegenDefBySid(idp,1,targetEnv);
-		FklSid_t id=fklAddSymbol(fklGetSymbolWithId(idp,publicSymbolTable)->symbol
+		FklSid_t id=fklAddSymbol(fklGetSymbolWithIdFromPst(idp)->symbol
 					,globalSymTable)->id;
 		fklPushUintStack(id,&idStack);
 		fklPushUintStack(idp,&idPstack);
@@ -4467,7 +4440,7 @@ BC_PROCESS(_export_import_bc_process)
 		FklSid_t* exports=(FklSid_t*)fklRealloc(codegen->exports,num*sizeof(FklSid_t));
 		FKL_ASSERT(exports);
 
-		FklSid_t* exportsP=(FklSid_t*)fklRealloc(codegen->exportsP,num*sizeof(FklSid_t));
+		FklSid_t* exportsP=(FklSid_t*)fklRealloc(codegen->exports_in_pst,num*sizeof(FklSid_t));
 		FKL_ASSERT(exportsP);
 
 		FklSid_t* nes=&exports[codegen->exportNum];
@@ -4478,7 +4451,7 @@ BC_PROCESS(_export_import_bc_process)
 			nesp[i]=idPbase[i];
 		}
 
-		codegen->exportsP=exportsP;
+		codegen->exports_in_pst=exportsP;
 		codegen->exports=exports;
 		codegen->exportNum=num;
 	}
@@ -4534,9 +4507,7 @@ static CODEGEN_FUNC(codegen_export)
 		add_export_symbol(libCodegen
 				,origExp
 				,rest
-				,exportQueue
-				,codegen->publicSymbolTable
-				,codegen->globalSymTable);
+				,exportQueue);
 
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_begin_exp_bc_process
 				,createDefaultStackContext(fklCreatePtrStack(2,1))
@@ -4575,7 +4546,6 @@ static inline int is_symbolId_in(FklSid_t* ida,uint32_t num,FklSid_t id)
 static CODEGEN_FUNC(codegen_export_single)
 {
 	FklNastNode* value=fklPatternMatchingHashTableRef(builtInPatternVar_value,ht);
-	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 	FklCodegen* libCodegen=codegen;
 	for(;libCodegen&&!libCodegen->libMark;libCodegen=libCodegen->prev);
@@ -4606,9 +4576,9 @@ process_def_in_lib:
 			if(name->type!=FKL_NAST_SYM)
 				goto error;
 			FklSid_t idp=name->sym;
-			if(!is_symbolId_in(libCodegen->exportsP,libCodegen->exportNum,idp))
+			if(!is_symbolId_in(libCodegen->exports_in_pst,libCodegen->exportNum,idp))
 			{
-				FklSid_t id=fklAddSymbol(fklGetSymbolWithId(idp,publicSymbolTable)->symbol
+				FklSid_t id=fklAddSymbol(fklGetSymbolWithIdFromPst(idp)->symbol
 						,globalSymTable)->id;
 
 				uint32_t num=libCodegen->exportNum+1;
@@ -4616,13 +4586,13 @@ process_def_in_lib:
 				FklSid_t* exports=(FklSid_t*)fklRealloc(libCodegen->exports,num*sizeof(FklSid_t));
 				FKL_ASSERT(exports);
 
-				FklSid_t* exportsP=(FklSid_t*)fklRealloc(libCodegen->exportsP,num*sizeof(FklSid_t));
+				FklSid_t* exportsP=(FklSid_t*)fklRealloc(libCodegen->exports_in_pst,num*sizeof(FklSid_t));
 				FKL_ASSERT(exportsP);
 
 				exports[libCodegen->exportNum]=id;
 				exportsP[libCodegen->exportNum]=idp;
 
-				libCodegen->exportsP=exportsP;
+				libCodegen->exports_in_pst=exportsP;
 				libCodegen->exports=exports;
 				libCodegen->exportNum=num;
 			}
@@ -4736,7 +4706,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 	// nextCodegen->phead=&nextCodegen->head;
 	// libEnv->macros->phead=nextCodegen->phead;
 
-	fklInitGlobCodegenEnv(libEnv,nextCodegen->publicSymbolTable);
+	fklInitGlobCodegenEnv(libEnv);
 
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
@@ -4764,7 +4734,6 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 				,0
 				,libEnv
 				,nextCodegen->globalSymTable
-				,nextCodegen->publicSymbolTable
 				,0
 				,nextCodegen->fid
 				,1);
@@ -4854,7 +4823,6 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
-				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -4870,7 +4838,6 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
 
-	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 
 	uint32_t exportNum=lib->exportNum;
@@ -4879,7 +4846,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 	for(;only->type==FKL_NAST_PAIR;only=only->pair->cdr)
 	{
 		FklSid_t cur=only->pair->car->sym;
-		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithIdFromPst(cur)->symbol,globalSymTable)->id;
 		uint32_t idl=0;
 		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
 		uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
@@ -4929,7 +4896,6 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
-				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -4999,7 +4965,6 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
-				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -5013,7 +4978,6 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_DLL,libId),codegen->fid,origExp->curline);
 	add_symbol_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
 			,lib->exportNum
 			,lib->exports
 			,lib->exportIndex
@@ -5062,7 +5026,6 @@ static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origEx
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
-				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -5074,13 +5037,11 @@ static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origEx
 		free(realpath);
 	}
 
-	FklString* prefix=fklGetSymbolWithId(prefixNode->sym
-                ,codegen->publicSymbolTable)->symbol;
+	FklString* prefix=fklGetSymbolWithIdFromPst(prefixNode->sym)->symbol;
 
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_DLL,libId),codegen->fid,origExp->curline);
 	add_symbol_with_prefix_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
 			,prefix
 			,lib->exportNum
 			,lib->exports
@@ -5131,7 +5092,6 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 		lib=fklCreateCodegenDllLib(realpath
 				,dll
 				,codegen->globalSymTable
-				,codegen->publicSymbolTable
 				,initExport);
 		fklPushPtrStack(lib,codegen->loadedLibStack);
 		libId=codegen->loadedLibStack->top;
@@ -5147,7 +5107,6 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 	uint8_t importCode[9]={FKL_OP_IMPORT,0};
 	FklByteCode bc={9,importCode};
 
-	FklSymbolTable* publicSymbolTable=codegen->publicSymbolTable;
 	FklSymbolTable* globalSymTable=codegen->globalSymTable;
 
 	uint32_t exportNum=lib->exportNum;
@@ -5158,7 +5117,7 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 		FklNastNode* curNode=alias->pair->car;
 		FklSid_t cur=curNode->pair->car->sym;
 		FklSid_t cur0=curNode->pair->cdr->pair->car->sym;
-		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithId(cur,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithIdFromPst(cur)->symbol,globalSymTable)->id;
 		uint32_t idl=0;
 		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
 		uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
@@ -5298,7 +5257,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
                 ,codegenQuestStack);
     }
 
-    char* filename=combineFileNameFromList(name,codegen->publicSymbolTable);
+    char* filename=combineFileNameFromList(name);
 
     char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
     packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
@@ -5524,8 +5483,8 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklFuncPrototypes* pts=d->pts;
 	d->pts=NULL;
 
-	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,codegen->publicSymbolTable);
-	print_undefined_symbol(&env->uref,codegen->globalSymTable,codegen->publicSymbolTable);
+	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable);
+	print_undefined_symbol(&env->uref,codegen->globalSymTable);
 	add_compiler_macro(&macros->head
 			,fklMakeNastNodeRef(pattern)
 			,macroBcl
@@ -5747,17 +5706,15 @@ static CODEGEN_FUNC(codegen_defmacro)
 			macroCodegen->realpath=fklCopyCstr(codegen->realpath);
 			macroCodegen->pts=fklCreateFuncPrototypes(0);
 
-			macroCodegen->globalSymTable=codegen->publicSymbolTable;
-			macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
-			macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
+			macroCodegen->globalSymTable=fklGetPubSymTab();
+			macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstrToPst(macroCodegen->filename)->id:0;
 			macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
-			fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
+			fklInitGlobCodegenEnv(macroEnv);
 
 			create_and_insert_to_pool(macroCodegen->pts
 					,0
 					,macroEnv
 					,macroCodegen->globalSymTable
-					,macroCodegen->publicSymbolTable
 					,0
 					,macroCodegen->fid
 					,value->curline);
@@ -5888,8 +5845,7 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegen* codegenr)
 		switch(node->type)
 		{
 			case FKL_NAST_SYM:
-				tmp=fklCreatePushSidByteCode(fklAddSymbol(fklGetSymbolWithId(node->sym
-								,codegenr->publicSymbolTable)->symbol
+				tmp=fklCreatePushSidByteCode(fklAddSymbol(fklGetSymbolWithIdFromPst(node->sym)->symbol
 							,codegenr->globalSymTable)->id);
 				break;
 			case FKL_NAST_NIL:
@@ -6137,8 +6093,9 @@ static inline int isValidExportNodeList(const FklNastNode* list)
 	return list->type==FKL_NAST_NIL;
 }
 
-const FklSid_t* fklInitCodegen(FklSymbolTable* publicSymbolTable)
+const FklSid_t* fklInitCodegen()
 {
+	FklSymbolTable* publicSymbolTable=fklGetPubSymTab();
 	static const char* builtInHeadSymbolTableCstr[4]=
 	{
 		"quote",
@@ -6255,9 +6212,9 @@ static void printCodegenError(FklNastNode* obj
 		,FklBuiltInErrorType type
 		,FklSid_t sid
 		,FklSymbolTable* symbolTable
-		,FklSymbolTable* publicSymbolTable
 		,size_t line)
 {
+	FklSymbolTable* publicSymbolTable=fklGetPubSymTab();
 	if(type==FKL_ERR_DUMMY)
 		return;
 	fprintf(stderr,"error in compiling: ");
@@ -6440,7 +6397,6 @@ print_error:
 					,errorState.type
 					,errorState.fid
 					,curCodegen->globalSymTable
-					,curCodegen->publicSymbolTable
 					,errorState.line);
 			while(!fklIsPtrStackEmpty(&codegenQuestStack))
 			{
@@ -6526,12 +6482,10 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 void fklInitGlobalCodegener(FklCodegen* codegen
 		,const char* rp
 		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymTable
 		,int destroyAbleMark)
 {
 	fklInitSymbolTableWithBuiltinSymbol(globalSymTable);
 	codegen->globalSymTable=globalSymTable;
-	codegen->publicSymbolTable=publicSymTable;
 	if(rp!=NULL)
 	{
 		codegen->curDir=fklGetDir(rp);
@@ -6546,10 +6500,11 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 		codegen->realpath=NULL;
 		codegen->fid=0;
 	}
+	codegen->g=NULL;
 	codegen->curline=1;
 	codegen->prev=NULL;
 	codegen->globalEnv=fklCreateCodegenEnv(NULL,0,NULL);
-	fklInitGlobCodegenEnv(codegen->globalEnv,publicSymTable);
+	fklInitGlobCodegenEnv(codegen->globalEnv);
 	codegen->globalEnv->refcount+=1;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
@@ -6563,7 +6518,6 @@ void fklInitGlobalCodegener(FklCodegen* codegen
 			,0
 			,codegen->globalEnv
 			,codegen->globalSymTable
-			,codegen->publicSymbolTable
 			,0
 			,codegen->fid
 			,1);
@@ -6574,7 +6528,6 @@ void fklInitCodegener(FklCodegen* codegen
 		,FklCodegenEnv* env
 		,FklCodegen* prev
 		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymTable
 		,int destroyAbleMark
 		,int libMark
 		,int macroMark)
@@ -6594,18 +6547,18 @@ void fklInitCodegener(FklCodegen* codegen
 		codegen->realpath=NULL;
 		codegen->fid=0;
 	}
+	codegen->g=NULL;
 	codegen->curline=1;
 	codegen->prev=prev;
 	prev->refcount+=1;
 	codegen->globalEnv=env;
 	env->refcount+=1;
 	codegen->globalSymTable=globalSymTable;
-	codegen->publicSymbolTable=publicSymTable;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
 	codegen->exportNum=0;
 	codegen->exports=NULL;
-	codegen->exportsP=NULL;
+	codegen->exports_in_pst=NULL;
 	codegen->libMark=libMark;
 	codegen->macroMark=macroMark;
 	codegen->export_macro=NULL;
@@ -6635,9 +6588,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 		free(codegen->builtinSymModiMark);
 	if(!codegen->destroyAbleMark)
 	{
-		if(codegen->globalSymTable&&codegen->globalSymTable!=codegen->publicSymbolTable)
+		if(codegen->globalSymTable&&codegen->globalSymTable!=fklGetPubSymTab())
 			fklDestroySymbolTable(codegen->globalSymTable);
-		fklDestroySymbolTable(codegen->publicSymbolTable);
 		while(!fklIsPtrStackEmpty(codegen->loadedLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(codegen->loadedLibStack));
 		fklDestroyPtrStack(codegen->loadedLibStack);
@@ -6657,8 +6609,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 		free(codegen->realpath);
 	if(codegen->exports)
 		free(codegen->exports);
-	if(codegen->exportsP)
-		free(codegen->exportsP);
+	if(codegen->exports_in_pst)
+		free(codegen->exports_in_pst);
 	for(FklCodegenMacro* cur=codegen->export_macro;cur;)
 	{
 		FklCodegenMacro* t=cur;
@@ -6729,12 +6681,11 @@ FklCodegenLib* fklCreateCodegenScriptLib(char* rp
 FklCodegenLib* fklCreateCodegenDllLib(char* rp
 		,FklDllHandle dll
 		,FklSymbolTable* table
-		,FklSymbolTable* ptable
 		,FklCodegenDllLibInitExportFunc init)
 {
 	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
 	FKL_ASSERT(lib);
-	fklInitCodegenDllLib(lib,rp,dll,table,ptable,init);
+	fklInitCodegenDllLib(lib,rp,dll,table,init);
 	return lib;
 }
 
@@ -6742,7 +6693,6 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 		,char* rp
 		,FklDllHandle dll
 		,FklSymbolTable* table
-		,FklSymbolTable* ptable
 		,FklCodegenDllLibInitExportFunc init)
 {
 	lib->rp=rp;
@@ -6756,15 +6706,12 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	FklSid_t* exports=NULL;
 	init(&num,&exports,table);
 	FklSid_t* exportsP=NULL;
-	if(ptable)
+	exportsP=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
+	FKL_ASSERT(exportsP);
+	for(size_t i=0;i<num;i++)
 	{
-		exportsP=(FklSid_t*)malloc(sizeof(FklSid_t)*num);
-		FKL_ASSERT(exportsP);
-		for(size_t i=0;i<num;i++)
-		{
-			FklSid_t idp=fklAddSymbol(fklGetSymbolWithId(exports[i],table)->symbol,ptable)->id;
-			exportsP[i]=idp;
-		}
+		FklSid_t idp=fklAddSymbolToPst(fklGetSymbolWithId(exports[i],table)->symbol)->id;
+		exportsP[i]=idp;
 	}
 	lib->exportsP=exportsP;
 	lib->exports=exports;
@@ -6993,13 +6940,14 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklNastNode** pr
 		,uint64_t curline)
 {
+	FklSymbolTable* publicSymbolTable=fklGetPubSymTab();
 	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl)
-			,codegen->publicSymbolTable
+			,publicSymbolTable
 			,pts);
 	insert_macro_expand_frame(anotherVM->frames
 			,pr
 			,lineHash
-			,codegen->publicSymbolTable
+			,publicSymbolTable
 			,curline);
 
 	FklPtrStack* macroLibStack=codegen->macroLibStack;
@@ -7268,8 +7216,7 @@ static inline void update_prototype_lcount(FklFuncPrototypes* cp
 
 static inline void update_prototype_ref(FklFuncPrototypes* cp
 		,FklCodegenEnv* env
-		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* publicSymbolTable)
+		,FklSymbolTable* globalSymTable)
 {
 	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
 	FklHashTable* eht=env->refs;
@@ -7281,7 +7228,7 @@ static inline void update_prototype_ref(FklFuncPrototypes* cp
 	for(FklHashTableItem* list=eht->first;list;list=list->next)
 	{
 		FklSymbolDef* sd=(FklSymbolDef*)list->data;
-		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,publicSymbolTable)->symbol,globalSymTable)->id;
+		FklSid_t sid=fklAddSymbol(fklGetSymbolWithIdFromPst(sd->k.id)->symbol,globalSymTable)->id;
 		FklSymbolDef ref={.k.id=sid,
 			.k.scope=sd->k.scope,
 			.idx=sd->idx,
@@ -7437,8 +7384,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 
 					update_prototype_ref(codegen->pts
 							,codegen->globalEnv
-							,codegen->globalSymTable
-							,codegen->publicSymbolTable);
+							,codegen->globalSymTable);
 					FklVMvalue* mainProc=fklCreateVMvalueProc(exe,NULL,0,FKL_VM_NIL,1);
 					FklVMproc* proc=FKL_VM_PROC(mainProc);
 					init_with_main_proc(proc,FKL_VM_PROC(ctx->mainProc));

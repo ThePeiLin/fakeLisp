@@ -38,10 +38,15 @@ FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);
 FklSymTabNode* fklAddSymbolCharBuf(const char*,size_t,FklSymbolTable*);
 
-FklSymTabNode* fklFindSymbol(const FklString*,const FklSymbolTable*);
-FklSymTabNode* fklFindSymbolCstr(const char*,const FklSymbolTable*);
+FklSymTabNode* fklAddSymbolToPst(const FklString*);
+FklSymTabNode* fklAddSymbolCstrToPst(const char*);
+FklSymTabNode* fklAddSymbolCharBufToPst(const char*,size_t);
 
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable*);
+FklSymTabNode* fklGetSymbolWithIdFromPst(FklSid_t id);
+
+FklSymbolTable* fklGetPubSymTab(void);
+void fklUninitPubSymTab(void);
 
 void fklPrintSymbolTable(const FklSymbolTable*,FILE*);
 

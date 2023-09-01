@@ -4,6 +4,91 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<pthread.h>
+
+static pthread_rwlock_t PubLock=PTHREAD_RWLOCK_INITIALIZER;
+static FklSymbolTable* PubSymTab=NULL;
+
+static int wrlock_pub_sym_lock(void)
+{
+	return pthread_rwlock_wrlock(&PubLock);
+}
+
+static int rdlock_pub_sym_lock(void)
+{
+	return pthread_rwlock_rdlock(&PubLock);
+}
+
+static int unlock_pub_sym_lock(void)
+{
+	return pthread_rwlock_unlock(&PubLock);
+}
+
+void fklUninitPubSymTab(void)
+{
+	wrlock_pub_sym_lock();
+	if(PubSymTab)
+	{
+		fklDestroySymbolTable(PubSymTab);
+		PubSymTab=NULL;
+	}
+	unlock_pub_sym_lock();
+}
+
+static inline void init_public_symbol_table(void)
+{
+	wrlock_pub_sym_lock();
+	if(!PubSymTab)
+	{
+		PubSymTab=fklCreateSymbolTable();
+		atexit(fklUninitPubSymTab);
+	}
+	unlock_pub_sym_lock();
+}
+
+FklSymbolTable* fklGetPubSymTab(void)
+{
+	init_public_symbol_table();
+	return PubSymTab;
+}
+
+FklSymTabNode* fklAddSymbolToPst(const FklString* sym)
+{
+	init_public_symbol_table();
+	wrlock_pub_sym_lock();
+	FklSymTabNode* r=fklAddSymbol(sym,PubSymTab);
+	unlock_pub_sym_lock();
+	return r;
+}
+
+FklSymTabNode* fklAddSymbolCstrToPst(const char* sym)
+{
+	init_public_symbol_table();
+	wrlock_pub_sym_lock();
+	FklSymTabNode* r=fklAddSymbolCstr(sym,PubSymTab);
+	unlock_pub_sym_lock();
+	return r;
+}
+
+FklSymTabNode* fklAddSymbolCharBufToPst(const char* buf,size_t len)
+{
+	init_public_symbol_table();
+	wrlock_pub_sym_lock();
+	FklSymTabNode* r=fklAddSymbolCharBuf(buf,len,PubSymTab);
+	unlock_pub_sym_lock();
+	return r;
+}
+
+FklSymTabNode* fklGetSymbolWithIdFromPst(FklSid_t id)
+{
+	if(id==0)
+		return NULL;
+	init_public_symbol_table();
+	rdlock_pub_sym_lock();
+	FklSymTabNode* r=fklGetSymbolWithId(id,PubSymTab);
+	unlock_pub_sym_lock();
+	return r;
+}
 
 FklSymbolTable* fklCreateSymbolTable()
 {
@@ -211,32 +296,6 @@ void fklDestroySymbolTable(FklSymbolTable* table)
 	free(table->list);
 	free(table->idl);
 	free(table);
-}
-
-FklSymTabNode* fklFindSymbolCstr(const char* symbol,const FklSymbolTable* table)
-{
-	FklSymTabNode* retval=NULL;
-	if(table->list)
-	{
-		int32_t l=0;
-		int32_t h=table->num-1;
-		int32_t mid;
-		while(l<=h)
-		{
-			mid=l+(h-l)/2;
-			int resultOfCmp=fklStringCstrCmp(table->list[mid]->symbol,symbol);
-			if(resultOfCmp>0)
-				h=mid-1;
-			else if(resultOfCmp<0)
-				l=mid+1;
-			else
-			{
-				retval=table->list[mid];
-				break;
-			}
-		}
-	}
-	return retval;
 }
 
 FklSymTabNode* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable* table)

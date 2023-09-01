@@ -27,8 +27,7 @@ int main(int argc,char** argv)
 		glob(pattern,GLOB_NOSORT,NULL,&buf);
 		if(buf.gl_pathc>0)
 		{
-			FklSymbolTable* table=fklCreateSymbolTable();
-			fklInitCodegen(table);
+			fklInitCodegen();
 			char* cwd=getcwd(NULL,0);
 			fklSetCwd(cwd);
 			free(cwd);
@@ -43,7 +42,6 @@ int main(int argc,char** argv)
 					fklDestroyCwd();
 					globfree(&buf);
 					fklUninitCodegen();
-					fklDestroySymbolTable(table);
 					return EXIT_FAILURE;
 				}
 				if(fklIsscript(filename))
@@ -55,12 +53,12 @@ int main(int argc,char** argv)
 						fklUninitCodegen();
 						return EXIT_FAILURE;
 					}
-					fklAddSymbolCstr(filename,table);
+					fklAddSymbolCstrToPst(filename);
 					FklCodegen codegen={.fid=0,};
 					char* rp=fklRealpath(filename);
 					fklSetMainFileRealPath(rp);
 					chdir(fklGetMainFileRealPath());
-					fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),table,0);
+					fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0);
 					FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 					fklInitVMargs(argc,argv);
 					if(mainByteCode==NULL)
@@ -74,8 +72,8 @@ int main(int argc,char** argv)
 						globfree(&buf);
 						return EXIT_FAILURE;
 					}
-					fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
-					fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
+					fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable);
+					fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable);
 					FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 					char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 					strcpy(outputname,rp);
@@ -142,7 +140,6 @@ int main(int argc,char** argv)
 					fklDestroyCwd();
 					globfree(&buf);
 					fklUninitCodegen();
-					fklDestroySymbolTable(table);
 					return EXIT_FAILURE;
 				}
 			}

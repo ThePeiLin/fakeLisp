@@ -36,13 +36,12 @@ static inline int compileAndRun(char* filename)
 		perror(filename);
 		return FKL_EXIT_FAILURE;
 	}
-	FklSymbolTable* publicSymbolTable=fklCreateSymbolTable();
-	fklAddSymbolCstr(filename,publicSymbolTable);
-	fklInitCodegen(publicSymbolTable);
+	fklAddSymbolCstrToPst(filename);
+	fklInitCodegen();
 	FklCodegen codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
 	fklSetMainFileRealPath(rp);
-	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),publicSymbolTable,0);
+	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
@@ -54,9 +53,8 @@ static inline int compileAndRun(char* filename)
 	}
 	fklUpdatePrototype(codegen.pts
 			,codegen.globalEnv
-			,codegen.globalSymTable
-			,codegen.publicSymbolTable);
-	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,codegen.publicSymbolTable);
+			,codegen.globalSymTable);
+	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable);
 
 	chdir(fklGetCwd());
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
@@ -168,8 +166,8 @@ int main(int argc,char** argv)
 		fklSetMainFileRealPathWithCwd();
 		FklCodegen codegen={.fid=0,};
 		FklSymbolTable* globalSymTable=fklCreateSymbolTable();
-		const FklSid_t* builtInHeadSymbolTable=fklInitCodegen(globalSymTable);
-		fklInitGlobalCodegener(&codegen,NULL,globalSymTable,globalSymTable,0);
+		const FklSid_t* builtInHeadSymbolTable=fklInitCodegen();
+		fklInitGlobalCodegener(&codegen,NULL,globalSymTable,0);
 		runRepl(&codegen,builtInHeadSymbolTable);
 		codegen.globalSymTable=NULL;
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;

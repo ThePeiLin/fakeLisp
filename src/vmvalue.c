@@ -27,7 +27,7 @@ static FklHashTableMetaTable LineNumHashMetaTable=
 	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_LineNumHash_setVal,
 	.__hashFunc=_LineNumHash_hashFunc,
-	.__uninitItem=fklDoNothingUnintHashItem,
+	.__uninitItem=fklDoNothingUninitHashItem,
 	.__keyEqual=fklHashPtrKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
 };
@@ -1249,7 +1249,7 @@ static const FklHashTableMetaTable VMhashTableMetaTableTable[]=
 		.__setKey=fklHashDefaultSetPtrKey,
 		.__setVal=_vmhashtable_setVal,
 		.__hashFunc=_vmhashtableEq_hashFunc,
-		.__uninitItem=fklDoNothingUnintHashItem,
+		.__uninitItem=fklDoNothingUninitHashItem,
 		.__keyEqual=fklHashPtrKeyEqual,
 		.__getKey=fklHashDefaultGetKey,
 	},
@@ -1259,7 +1259,7 @@ static const FklHashTableMetaTable VMhashTableMetaTableTable[]=
 		.__setKey=fklHashDefaultSetPtrKey,
 		.__setVal=_vmhashtable_setVal,
 		.__hashFunc=_vmhashtableEqv_hashFunc,
-		.__uninitItem=fklDoNothingUnintHashItem,
+		.__uninitItem=fklDoNothingUninitHashItem,
 		.__keyEqual=_vmhashtableEqv_keyEqual,
 		.__getKey=fklHashDefaultGetKey,
 	},
@@ -1269,7 +1269,7 @@ static const FklHashTableMetaTable VMhashTableMetaTableTable[]=
 		.__setKey=fklHashDefaultSetPtrKey,
 		.__setVal=_vmhashtable_setVal,
 		.__hashFunc=_vmhashtable_hashFunc,
-		.__uninitItem=fklDoNothingUnintHashItem,
+		.__uninitItem=fklDoNothingUninitHashItem,
 		.__keyEqual=_vmhashtableEqual_keyEqual,
 		.__getKey=fklHashDefaultGetKey,
 	},
@@ -1307,7 +1307,7 @@ inline int fklIsVMhashEqual(FklHashTable* ht)
 
 inline uintptr_t fklGetVMhashTableType(FklHashTable* ht)
 {
-	return ((ptrdiff_t)(ht->t-EqHashTableT))/sizeof(FklHashTableMetaTable);
+	return ht->t-EqHashTableT;
 }
 
 inline const char* fklGetVMhashTablePrefix(FklHashTable* ht)

@@ -1,64 +1,110 @@
 ;; 读取器宏定义
-;; 定义时向文法增加 *s-exp* -> left
+;; 定义时向文法增加 |*s-exp*| -> |left|
 ;; #[<左部> <右部> <动作类型> <动作>]
 ;;
-;; 定义时不向文法增加 *s-exp* -> left
+;; 定义时不向文法增加 |*s-exp*| -> |left|
 ;; #[<右部> <左部> <动作类型> <动作>]
 ;;
-;; 其中*s-exp*是起始符号
+;; 其中|*s-exp*|是起始符号
+;;
+;; 动作类型有：builtin、simple和custom
+;; builtin是内置动作，执行简单的动作，比如返回第一个文法符号
+;; simple是简单自定义动作，通过增加若干个参数来实现简单的自定义
+;; custom是自定义动作，通过执行LISP表达式来实现完全的自定义
+;;
+;; 形如 #[<右部>] 的产生式是特殊的产生式，这些产生式不允许含有非终结符
+;; 并且匹配后会忽略
+;; 比如注释 #[#(";" %eol)] 和 #[#("#!" %eol)]
+;; 其中%eol是内建特殊终结符，该终结符匹配当前位置到行尾的所有字符，并且该终结符永远匹配成功
+;; 特殊产生式能被导出，不能被引用
 ;;
 ;; 左部非终结符不允许是内建非终结符
-;; 如果要直接添加 *s-exp* -> <prod> ，产生式左部应当填 "()"
-;; 产生式左部为()的读取器宏的导出不受到only等导入限制的影响
-;; 产生式左部不为()的读取器宏在导入时会受到prefix的影响
+;; 如果要直接添加 |*s-exp*| -> <prod> ，产生式左部应当填“()”
+;; 产生式左部为“()”的读取器宏的导出不受到only等导入限制的影响
 ;;
 ;; 读取器宏的定义以组为单位
+;; 每个组都有一个符号作为名字
+;; 名字为“()”的组不允许导出
+;; 拥有名字的组在导出时会受到导入语句的限制
+;; prefix会使某一组的名字加上前缀
+;; only会导入特定名字的组
+;; alias会重命名特定名字的组
+;;
+;; 引用其他组的非终结符时要用一个pair来引用
+;; (<组名> , <非终结符>)
+;; 内建非终结符无论合适都可以直接引用
+;; 不能引用左部为“()”的产生式
+;; 不能引用名字为“()”的组的非终结符
+;;
+;; 同一个组的产生式会按照定义的先后顺序排序
+;; 以组为单位的好处是添加多条产生式时不需要多次生成分析表
+;; 以及能够方便确认非终结符的引用关系
+;;
 ;; 引用了除内建非终结符外的其他组的非终结符的组不允许导出
+;;
+;; 读取器宏的作用域是从定义或导入位置开始到文件结束
 ;;
 ;; 虽然这玩意儿叫读取器宏，但其实本质是产生式
 
+; (defmacro
+;   #(#["/*" () %until () "*/"]) ;; 自定义注释
+;   #(my-lambda
+;      #["#lambda(" #(*symbol* a) ")" b]
+;      custom `(lambda (~a) ~b))
+;
+;   #(my-lambda
+;      #["#lambda[" #(*symbol* a) "]" b]
+;      custom `(lambda (~a) ~b))
+;
+;   #(my-fn-call
+;      #["#call&" *s-exp* *list*]
+;      builtin list)
+;
+;   #(my-var-def
+;      #["#var!" #(*symbol* a) "#:=" b]
+;      custom `(define ~a ~b))
+;
+;   #(#[]
+;     func-body
+;     builtin nil)
+;
+;   #(#[*s-exp* func-body]
+;     func-body
+;     builtin list)
+;
+;   #(my-fn-def
+;      #["#fn" n a "{" #(func-body b) "}"]
+;      custom
+;      `(define ~n (lambda ~a ~@b)))
+;   custom)
+
 (defmacro
-  #(my-lambda
-     #["#lambda(" #(*symbol* a) ")" b]
-     custom `(lambda (~a) ~b))
+  #(#["/*" () %until () "*/"]) ;; 自定义注释
+  #(2nd-quote #["#2nd'" *s-exp*] builtin quote)
+  #(#["#2nd~" *s-exp*] 2nd-unquote builtin unquote)
+  #(() #[2nd-unquote] builtin first)
+  custom)
 
-  #(my-lambda
-     #["#lambda[" #(*symbol* a) "]" b]
-     custom `(lambda (~a) ~b))
+/*
+这里是自定义注释
+*/
 
-  #(my-fn-call
-     #["#call&" a b]
-     custom `(~a,~b))
+(println '#2nd'abcd)
 
-  #(my-var-def
-     #["#var!" #(*symbol* a) "#:=" b]
-     custom `(define ~a ~b))
+(println '#2nd'#2nd~abcd)
 
-  #(#[]
-    func-body
-    builtin nil)
-
-  #(#[*s-exp* func-body]
-    func-body
-    builtin list)
-
-  #(my-fn-def
-     #["#fn" n a "{" #(func-body b) "}"]
-     custom
-     `(define ~n (lambda ~a ~@b))))
-
-#var! pop #:=9
-
-#fn list ls
-{
-    ls
-}
-
-#fn square (a)
-{
-    call * (a a)
-}
-
-#call println ((#lambda( x ) (+ x 9) 9))
-#call println (#call& list (1 2 3))
-#call println (#call& square (pop))
+; #var! pop #:=9
+;
+; #fn list ls
+; {
+;     ls
+; }
+;
+; #fn square (a)
+; {
+;     call * (a a)
+; }
+;
+; #call println ((#lambda( x ) (+ x 9) 9))
+; #call println (#call& list (1 2 3))
+; #call println (#call& square (pop))

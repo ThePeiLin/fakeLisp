@@ -86,7 +86,7 @@ static FklHashTableMetaTable Codegen_hash_meta_table=
 	.__setKey=_pattern_match_hash_set_key,
 	.__setVal=_pattern_match_hash_set_val,
 	.__hashFunc=_pattern_matching_hash_table_hash_func,
-	.__uninitItem=fklDoNothingUnintHashItem,
+	.__uninitItem=fklDoNothingUninitHashItem,
 	.__keyEqual=_pattern_matching_hash_key_equal,
 	.__getKey=fklHashDefaultGetKey,
 };

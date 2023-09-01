@@ -79,7 +79,6 @@ static FklVMudMetaTable PublicBuiltInDataMetaTable=
 	.__hash=NULL,
 };
 
-
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table)
 {
 	static const char* builtInErrorType[]=
@@ -101,7 +100,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"load-dll-faild",
 		"invalid-symbol",
 		"library-undefined",
-		"unexpect-eof",
+		"unexpected-eof",
 		"div-zero-error",
 		"file-failure",
 		"invalid-value",
@@ -1898,7 +1897,7 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 				if(restLen)
 					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 				else
-					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTEOF,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
 			}
 		}
 		else if(err==FKL_PARSE_REDUCE_FAILED)
@@ -4459,7 +4458,7 @@ FklBuiltinInlineFunc fklGetBuiltInInlineFunc(uint32_t idx,uint32_t argNum)
 	return builtInSymbolList[idx].inlfunc[argNum];
 }
 
-uint8_t* fklGetBultinSymbolModifyMark(uint32_t* p)
+uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t* p)
 {
 	*p=BuiltinSymbolNum;
 	uint8_t* r=(uint8_t*)calloc(BuiltinSymbolNum,sizeof(uint8_t));

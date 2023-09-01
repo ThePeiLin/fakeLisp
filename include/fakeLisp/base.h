@@ -139,7 +139,7 @@ void fklClearHashTable(FklHashTable* ht);
 void fklUninitHashTable(FklHashTable*);
 void fklDestroyHashTable(FklHashTable*);
 
-void fklDoNothingUnintHashItem(void*);
+void fklDoNothingUninitHashItem(void*);
 void* fklHashDefaultGetKey(void* i);
 int fklHashPtrKeyEqual(const void* a,const void* b);
 void fklHashDefaultSetPtrKey(void* k0,const void* k1);

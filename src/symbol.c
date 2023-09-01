@@ -48,13 +48,15 @@ static inline void init_public_symbol_table(void)
 
 FklSymbolTable* fklGetPubSymTab(void)
 {
-	init_public_symbol_table();
+	if(!PubSymTab)
+		init_public_symbol_table();
 	return PubSymTab;
 }
 
 FklSymTabNode* fklAddSymbolToPst(const FklString* sym)
 {
-	init_public_symbol_table();
+	if(!PubSymTab)
+		init_public_symbol_table();
 	wrlock_pub_sym_lock();
 	FklSymTabNode* r=fklAddSymbol(sym,PubSymTab);
 	unlock_pub_sym_lock();
@@ -63,7 +65,8 @@ FklSymTabNode* fklAddSymbolToPst(const FklString* sym)
 
 FklSymTabNode* fklAddSymbolCstrToPst(const char* sym)
 {
-	init_public_symbol_table();
+	if(!PubSymTab)
+		init_public_symbol_table();
 	wrlock_pub_sym_lock();
 	FklSymTabNode* r=fklAddSymbolCstr(sym,PubSymTab);
 	unlock_pub_sym_lock();
@@ -72,7 +75,8 @@ FklSymTabNode* fklAddSymbolCstrToPst(const char* sym)
 
 FklSymTabNode* fklAddSymbolCharBufToPst(const char* buf,size_t len)
 {
-	init_public_symbol_table();
+	if(!PubSymTab)
+		init_public_symbol_table();
 	wrlock_pub_sym_lock();
 	FklSymTabNode* r=fklAddSymbolCharBuf(buf,len,PubSymTab);
 	unlock_pub_sym_lock();
@@ -83,7 +87,8 @@ FklSymTabNode* fklGetSymbolWithIdFromPst(FklSid_t id)
 {
 	if(id==0)
 		return NULL;
-	init_public_symbol_table();
+	if(!PubSymTab)
+		init_public_symbol_table();
 	rdlock_pub_sym_lock();
 	FklSymTabNode* r=fklGetSymbolWithId(id,PubSymTab);
 	unlock_pub_sym_lock();
@@ -326,7 +331,6 @@ void fklWriteSymbolTable(const FklSymbolTable* table,FILE* fp)
 
 static inline void init_as_empty_pt(FklFuncPrototype* pt)
 {
-	// pt->loc=NULL;
 	pt->refs=NULL;
 	pt->lcount=0;
 	pt->rcount=0;
@@ -358,7 +362,6 @@ FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32
 void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
-	// free(p->loc);
 	p->rcount=0;
 }
 
@@ -387,10 +390,7 @@ static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
 static inline void write_prototype(const FklFuncPrototype* pt,FILE* fp)
 {
 	uint32_t count=pt->lcount;
-	// FklSymbolDef* defs=pt->loc;
 	fwrite(&count,sizeof(count),1,fp);
-	// for(uint32_t i=0;i<count;i++)
-	// 	write_symbol_def(&defs[i],fp);
 	count=pt->rcount;
 	 FklSymbolDef* defs=pt->refs;
 	fwrite(&count,sizeof(count),1,fp);
@@ -424,11 +424,6 @@ static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
 	pt->lcount=count;
-	// FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
-	// FKL_ASSERT(defs||!count);
-	// pt->loc=defs;
-	// for(uint32_t i=0;i<count;i++)
-	// 	load_symbol_def(&defs[i],fp);
 	fread(&count,sizeof(count),1,fp);
 	pt->rcount=count;
 	FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
@@ -476,7 +471,7 @@ static const FklHashTableMetaTable SidSetMetaTable=
 	.__hashFunc=fklSidHashFunc,
 	.__keyEqual=fklSidKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
-	.__uninitItem=fklDoNothingUnintHashItem,
+	.__uninitItem=fklDoNothingUninitHashItem,
 };
 
 FklHashTable* fklCreateSidSet(void)

@@ -1971,7 +1971,7 @@ static const FklHashTableMetaTable PtrSetMetaTable=
 	.__hashFunc=fklPtrHashFunc,
 	.__keyEqual=fklPtrKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
-	.__uninitItem=fklDoNothingUnintHashItem,
+	.__uninitItem=fklDoNothingUninitHashItem,
 };
 
 void fklInitPtrSet(FklHashTable* r)
@@ -2201,7 +2201,7 @@ void fklDestroyHashTable(FklHashTable* table)
 	free(table);
 }
 
-void fklDoNothingUnintHashItem(void* i)
+void fklDoNothingUninitHashItem(void* i)
 {
 }
 

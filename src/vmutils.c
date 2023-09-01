@@ -534,7 +534,7 @@ static FklHashTableMetaTable VMvalueHashMetaTable=
 	.__setKey=fklHashDefaultSetPtrKey,
 	.__setVal=_VMvalue_setVal,
 	.__hashFunc=_VMvalue_hashFunc,
-	.__uninitItem=fklDoNothingUnintHashItem,
+	.__uninitItem=fklDoNothingUninitHashItem,
 	.__keyEqual=fklHashPtrKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
 };

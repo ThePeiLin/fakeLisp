@@ -1,0 +1,44 @@
+(defmacro
+  #(json #["#json'" json-value] builtin second)
+
+  #(#[1 "null"] json-value builtin symbol)
+
+  #(#[1 "true"] json-value builtin symbol)
+
+  #(#[1 "false"] json-value builtin symbol)
+
+  #(#[*string*] json-value builtin first)
+
+  #(#[*integer*] json-value builtin first)
+
+  #(#[*float*] json-value builtin first)
+
+  #(#["{" json-object-items "}"] json-value builtin hashequal)
+
+  #(#[*string* ":" json-value] json-object-item builtin pair)
+
+  #(#[] json-object-items builtin nil)
+
+  #(#[json-object-item] json-object-items builtin list)
+
+  #(#[json-object-item "," json-object-items] json-object-items builtin pair)
+
+
+  #(#["[" json-array-items "]"] json-value builtin vector)
+
+  #(#[] json-array-items builtin nil)
+
+  #(#[json-value] json-array-items builtin list)
+
+  #(#[json-value "," json-array-items] json-array-items builtin pair)
+
+  json)
+
+(prin1 #json'{"foo":1,"bar":2,})
+
+(newline)
+
+(prin1 #json'["foo","bar",null,true,false])
+
+(newline)
+

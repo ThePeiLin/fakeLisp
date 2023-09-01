@@ -27,7 +27,7 @@ typedef enum
 	FKL_ERR_LOADDLLFAILD,
 	FKL_ERR_INVALIDSYMBOL,
 	FKL_ERR_LIBUNDEFINED,
-	FKL_ERR_UNEXPECTEOF,
+	FKL_ERR_UNEXPECTED_EOF,
 	FKL_ERR_DIVZEROERROR,
 	FKL_ERR_FILEFAILURE,
 	FKL_ERR_INVALID_VALUE,
@@ -49,7 +49,7 @@ typedef enum
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);
 FklBuiltinInlineFunc fklGetBuiltInInlineFunc(uint32_t idx,uint32_t argNum);
 
-uint8_t* fklGetBultinSymbolModifyMark(uint32_t*);
+uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t*);
 #define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)
 //typedef struct FklCompEnv FklCompEnv;
 typedef struct FklCodegenEnv FklCodegenEnv;

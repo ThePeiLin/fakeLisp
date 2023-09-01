@@ -86,6 +86,14 @@ typedef struct FklCodegenLib
 	uint32_t prototypeId;
 }FklCodegenLib;
 
+typedef struct
+{
+	FklSid_t id;
+	int is_ref_outer;
+	FklHashTable prods;
+	FklGrammerIgnore* ignore;
+}FklGrammerProductionGroup;
+
 typedef struct FklCodegen
 {
 	struct FklCodegen* prev;
@@ -97,6 +105,20 @@ typedef struct FklCodegen
 	FklSid_t fid;
 
 	FklGrammer* g;
+
+	struct
+	{
+		FklHashTable builtin_prods;
+		FklGrammerIgnore* builtin_ignores;
+	};
+	struct
+	{
+		FklHashTable unnamed_prods;
+		FklGrammerIgnore* unnamed_ignores;
+	};
+
+	FklHashTable named_prod_groups;
+
 	uint32_t builtinSymbolNum;
 	uint8_t* builtinSymModiMark;
 	FklCodegenEnv* globalEnv;
@@ -190,7 +212,7 @@ void fklInitCodegener(FklCodegen* codegen
 void fklUninitCodegener(FklCodegen* codegen);
 void fklDestroyCodegener(FklCodegen* codegen);
 FklCodegen* fklCreateCodegener(void);
-const FklSid_t* fklInitCodegen(void);
+void fklInitCodegen(void);
 void fklUninitCodegen(void);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegen* codegen);
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
@@ -310,7 +332,7 @@ void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVM* vm
 		,FklFuncPrototypes*);
 
-void fklInitFrameToReplFrame(FklVM*,FklCodegen* codegen,const FklSid_t* headSymbol);
+void fklInitFrameToReplFrame(FklVM*,FklCodegen* codegen);
 
 #ifdef __cplusplus
 }

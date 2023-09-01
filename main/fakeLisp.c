@@ -15,7 +15,7 @@
 #include<unistd.h>
 #endif
 
-static void runRepl(FklCodegen*,const FklSid_t*);
+static void runRepl(FklCodegen*);
 static FklByteCode* loadByteCode(FILE*);
 static void loadSymbolTable(FILE*,FklSymbolTable* table);
 static void loadLib(FILE*,uint64_t*,FklVMlib**,FklVM*,FklVMCompoundFrameVarRef* lr);
@@ -165,10 +165,9 @@ int main(int argc,char** argv)
 	{
 		fklSetMainFileRealPathWithCwd();
 		FklCodegen codegen={.fid=0,};
-		FklSymbolTable* globalSymTable=fklCreateSymbolTable();
-		const FklSid_t* builtInHeadSymbolTable=fklInitCodegen();
-		fklInitGlobalCodegener(&codegen,NULL,globalSymTable,0);
-		runRepl(&codegen,builtInHeadSymbolTable);
+		fklInitCodegen();
+		fklInitGlobalCodegener(&codegen,NULL,fklGetPubSymTab(),0);
+		runRepl(&codegen);
 		codegen.globalSymTable=NULL;
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 		while(!fklIsPtrStackEmpty(loadedLibStack))
@@ -209,13 +208,13 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-static void runRepl(FklCodegen* codegen,const FklSid_t* builtInHeadSymbolTable)
+static void runRepl(FklCodegen* codegen)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,codegen->pts);
 	anotherVM->libs=(FklVMlib*)calloc(1,sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 
-	fklInitFrameToReplFrame(anotherVM,codegen,builtInHeadSymbolTable);
+	fklInitFrameToReplFrame(anotherVM,codegen);
 
 	fklRunVM(anotherVM);
 

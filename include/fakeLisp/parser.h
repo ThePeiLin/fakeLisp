@@ -3,6 +3,7 @@
 
 #include"symbol.h"
 #include"nast.h"
+#include"grammer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,6 +12,18 @@ extern "C" {
 FklNastNode* fklCreateNastNodeFromCstr(const char*,FklSymbolTable* publicSymbolTable);
 
 char* fklReadWithBuiltinParser(FILE* fp
+		,size_t* psize
+		,size_t line
+		,size_t* pline
+		,FklSymbolTable* st
+		,int* unexpectEOF
+		,size_t* errLine
+		,FklNastNode** output
+		,FklPtrStack* symbolStack
+		,FklPtrStack* stateStack);
+
+char* fklReadWithAnalysisTable(const FklGrammer* g
+		,FILE* fp
 		,size_t* psize
 		,size_t line
 		,size_t* pline

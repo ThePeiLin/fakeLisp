@@ -98,8 +98,9 @@ add_executable(test-parser "main/test/parser.c")
 target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 
 add_custom_command(OUTPUT "parse.c"
-	COMMAND ${GRAMMER_GEN}
-	DEPENDS ${GRAMMER_GEN})
+	COMMAND ${GRAMMER_GEN} < ${PROJECT_SOURCE_DIR}/main/action.c
+	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/action.c
+	VERBATIM)
 
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)

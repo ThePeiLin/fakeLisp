@@ -444,6 +444,26 @@ static inline FklNastNode* prod_action_bytevector(void* ctx
 	return r;
 }
 
+// static const FklGrammerCstrAction example_grammer_action[]=
+// {
+// 	{"s &b &b",           "prod_action_return_first", prod_action_return_first, },
+// 	{"b ##reacherable",   "prod_action_return_first", prod_action_return_first, },
+// 	{"u ##unreacherable", "prod_action_return_first", prod_action_return_first, },
+//
+// 	{"+ &%space",         NULL,                       NULL,                     },
+// 	{"+ #; &%eol",        NULL,                       NULL,                     },
+// 	{"+ ##! &%eol",       NULL,                       NULL,                     },
+// 	{NULL,                NULL,                       NULL,                     },
+// };
+
+// static const FklGrammerCstrAction example_grammer_action[]=
+// {
+// 	{"s #/* + &%until + #*/", "prod_action_return_second",prod_action_return_second, },
+// 	{"s #\" + &%qstr + #\"",   "prod_action_return_second", prod_action_return_second, },
+//
+// 	{NULL,                NULL,                       NULL,                     },
+// };
+
 static const FklGrammerCstrAction example_grammer_action[]=
 {
 	{"s-exp &list",                   "prod_action_return_first",  prod_action_return_first,  },
@@ -586,13 +606,13 @@ int main()
 		"[(foobar;comments\nfoo bar),abcd]",
 		"(foo bar abcd|foo \\|bar|efgh foo \"foo\\\"\",bar)",
 		"#hash((a,1) (b,2))",
+		"#hashequal((a,1) (b,2))",
 		"#vu8(114 514 114514)",
 		"114514",
 		"#\\ ",
 		"'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)",
 		"\"foobar\"",
 		"114514",
-		"\"foobar\"",
 		NULL,
 	};
 
@@ -601,7 +621,7 @@ int main()
 	{
 		FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
 
-		FklNastNode* ast=fklParseWithTableForCstr(&g->aTable,*exp,&outerCtx,st,&retval);
+		FklNastNode* ast=fklParseWithTableForCstr(g,*exp,&outerCtx,st,&retval);
 
 		if(retval)
 			break;

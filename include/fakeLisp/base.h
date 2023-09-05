@@ -98,10 +98,10 @@ typedef struct FklHashTableItem
 
 typedef struct FklHashTable
 {
+	const struct FklHashTableMetaTable* t;
 	FklHashTableItem** base;
 	FklHashTableItem* first;
 	FklHashTableItem* last;
-	const struct FklHashTableMetaTable* t;
 	uint32_t num;
 	uint32_t size;
 	uint32_t mask;

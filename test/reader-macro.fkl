@@ -48,6 +48,7 @@
 
 ; (defmacro
 ;   #(#["/*" () %until () "*/"]) ;; 自定义注释
+; 
 ;   #(my-lambda
 ;      #["#lambda(" #(*symbol* a) ")" b]
 ;      custom `(lambda (~a) ~b))
@@ -57,12 +58,12 @@
 ;      custom `(lambda (~a) ~b))
 ;
 ;   #(my-fn-call
-;      #["#call&" *s-exp* *list*]
+;      #[1 "call" *s-exp* *list*]
 ;      builtin list)
 ;
 ;   #(my-var-def
-;      #["#var!" #(*symbol* a) "#:=" b]
-;      custom `(define ~a ~b))
+;      #[1 "var" *symbol* 1 "=" *s-exp*]
+;      simple #(list define 1 3))
 ;
 ;   #(#[]
 ;     func-body
@@ -73,38 +74,23 @@
 ;     builtin list)
 ;
 ;   #(my-fn-def
-;      #["#fn" n a "{" #(func-body b) "}"]
+;      #[1 "def" n a "{" #(func-body b) "}"]
 ;      custom
-;      `(define ~n (lambda ~a ~@b)))
+;      `(define (~n,~a),~b))
 ;   custom)
 
-(defmacro
-  #(#["/*" () %until () "*/"]) ;; 自定义注释
-  #(2nd-quote #["#2nd'" *s-exp*] builtin quote)
-  #(#["#2nd~" *s-exp*] 2nd-unquote builtin unquote)
-  #(() #[2nd-unquote] builtin first)
-  custom)
-
-/*
-这里是自定义注释
-*/
-
-(println '#2nd'abcd)
-
-(println '#2nd'#2nd~abcd)
-
-; #var! pop #:=9
+; var pop = 9
 ;
-; #fn list ls
+; def list ls
 ; {
 ;     ls
 ; }
 ;
-; #fn square (a)
+; def square (a)
 ; {
 ;     call * (a a)
 ; }
 ;
-; #call println ((#lambda( x ) (+ x 9) 9))
-; #call println (#call& list (1 2 3))
-; #call println (#call& square (pop))
+; call println ((#lambda( x ) (+ x 9) 9))
+; call println (call list (1 2 3))
+; call println (call square (pop))

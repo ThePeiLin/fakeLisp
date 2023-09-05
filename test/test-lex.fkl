@@ -19,7 +19,7 @@
 
   #(#[] json-object-items builtin nil)
 
-  #(#[json-object-item] json-object-items builtin list)
+  #(#[json-object-item] json-object-items builtin cons)
 
   #(#[json-object-item "," json-object-items] json-object-items builtin pair)
 
@@ -28,7 +28,7 @@
 
   #(#[] json-array-items builtin nil)
 
-  #(#[json-value] json-array-items builtin list)
+  #(#[json-value] json-array-items builtin cons)
 
   #(#[json-value "," json-array-items] json-array-items builtin pair)
 
@@ -42,3 +42,35 @@
 
 (newline)
 
+(defmacro
+  #(() #["#4th'" *s-exp* *s-exp* *s-exp* *s-exp*] simple #(nth 4))
+  #(() #["#23cons'" *s-exp* *s-exp* *s-exp* *s-exp*] simple #(cons 3 4))
+  #(() #["#head'" *s-exp*] simple #(head head 1))
+  #(() #["#2nd-vector'" *s-exp* *s-exp*] simple #(vector 2))
+  #(() #[%symbol "《" "》"] simple #(symbol 0 "《" "》"))
+  #(() #[%string "“" "”"] simple #(string 0 "“" "”"))
+  ())
+
+(prin1 '#4th' foo bar foobar barfoo)
+
+(newline)
+
+(prin1 '#23cons' foo bar foobar barfoo)
+
+(newline)
+
+(prin1 '#head' foo)
+
+(newline)
+
+(prin1 '#2nd-vector' (foo bar) (foobar barfoo))
+
+(newline)
+
+(prin1 '《测试》)
+
+(newline)
+
+(prin1 '“测试”)
+
+(newline)

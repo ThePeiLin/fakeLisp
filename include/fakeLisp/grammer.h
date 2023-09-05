@@ -86,9 +86,10 @@ typedef struct FklGrammerProduction
 	struct FklGrammerProduction* next;
 	int isBuiltin;
 	const char* name;
-	FklBuiltinProdAction func;
-	void (*ctx_destroyer)(void*);
 	void* ctx;
+	FklBuiltinProdAction func;
+	void* (*ctx_copyer)(const void*);
+	void (*ctx_destroyer)(void*);
 }FklGrammerProduction;
 
 typedef struct
@@ -309,7 +310,8 @@ FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
 		,const char* name
 		,FklBuiltinProdAction func
 		,void* ctx
-		,void (*destroy)(void*));
+		,void (*destroy)(void*)
+		,void* (*copyer)(const void*));
 
 FklGrammerProduction* fklCreateProduction(FklSid_t group
 		,FklSid_t sid
@@ -318,9 +320,13 @@ FklGrammerProduction* fklCreateProduction(FklSid_t group
 		,const char* name
 		,FklBuiltinProdAction func
 		,void* ctx
-		,void (*destroy)(void*));
+		,void (*destroy)(void*)
+		,void* (*copyer)(const void*));
 
+void fklProdCtxDestroyFree(void* c);
 void fklProdCtxDestroyDoNothing(void* c);
+void* fklProdCtxCopyerDoNothing(const void* c);
+
 void fklDestroyGrammerProduction(FklGrammerProduction* h);
 void fklUninitGrammerSymbols(FklGrammerSym* syms,size_t len);
 FklGrammerIgnore* fklGrammerSymbolsToIgnore(FklGrammerSym* syms

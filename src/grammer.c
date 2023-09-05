@@ -113,7 +113,8 @@ inline FklGrammerProduction* fklCreateProduction(FklSid_t group
 		,const char* name
 		,FklBuiltinProdAction func
 		,void* ctx
-		,void (*destroy)(void*))
+		,void (*destroy)(void*)
+		,void* (*copyer)(const void*))
 {
 	FklGrammerProduction* r=(FklGrammerProduction*)calloc(1,sizeof(FklGrammerProduction));
 	FKL_ASSERT(r);
@@ -124,6 +125,7 @@ inline FklGrammerProduction* fklCreateProduction(FklSid_t group
 	r->func=func;
 	r->ctx=ctx;
 	r->ctx_destroyer=destroy;
+	r->ctx_copyer=copyer;
 	r->syms=syms;;
 	r->isBuiltin=1;
 	return r;
@@ -135,7 +137,8 @@ inline FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
 		,const char* name
 		,FklBuiltinProdAction func
 		,void* ctx
-		,void (*destroy)(void*))
+		,void (*destroy)(void*)
+		,void* (*copyer)(const void*))
 {
 	FklGrammerProduction* r=(FklGrammerProduction*)calloc(1,sizeof(FklGrammerProduction));
 	FKL_ASSERT(r);
@@ -146,6 +149,7 @@ inline FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
 	r->func=func;
 	r->ctx=ctx;
 	r->ctx_destroyer=destroy;
+	r->ctx_copyer=copyer;
 	r->syms=(FklGrammerSym*)calloc(len,sizeof(FklGrammerSym));
 	r->isBuiltin=1;
 	FKL_ASSERT(r->syms);
@@ -448,6 +452,16 @@ void fklProdCtxDestroyDoNothing(void* c)
 {
 }
 
+void fklProdCtxDestroyFree(void* c)
+{
+	free(c);
+}
+
+void* fklProdCtxCopyerDoNothing(const void* c)
+{
+	return (void*)c;
+}
+
 static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* str
 		,FklHashTable* builtins
 		,FklSymbolTable* symbolTable
@@ -476,7 +490,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 		ss+=len;
 	}
 	size_t prod_len=st.top-joint_num;
-	FklGrammerProduction* prod=fklCreateEmptyProduction(0,left,prod_len,name,func,NULL,fklProdCtxDestroyDoNothing);
+	FklGrammerProduction* prod=fklCreateEmptyProduction(0,left,prod_len,name,func,NULL,fklProdCtxDestroyDoNothing,fklProdCtxCopyerDoNothing);
 	int next_delim=1;
 	size_t symIdx=0;
 	for(uint32_t i=0;i<st.top;i++)
@@ -598,7 +612,7 @@ static inline FklGrammerIgnore* create_grammer_ignore_from_cstr(const char* str
 		fklUninitPtrStack(&st);
 		return NULL;
 	}
-	FklGrammerProduction* prod=fklCreateEmptyProduction(0,left,prod_len,NULL,NULL,NULL,fklProdCtxDestroyDoNothing);
+	FklGrammerProduction* prod=fklCreateEmptyProduction(0,left,prod_len,NULL,NULL,NULL,fklProdCtxDestroyDoNothing,fklProdCtxCopyerDoNothing);
 	int next_delim=1;
 	size_t symIdx=0;
 	for(uint32_t i=0;i<st.top;i++)
@@ -698,7 +712,7 @@ static inline int prod_equal(const FklGrammerProduction* prod0,const FklGrammerP
 
 static inline FklGrammerProduction* create_extra_production(FklSid_t group,FklSid_t start)
 {
-	FklGrammerProduction* prod=fklCreateEmptyProduction(0,0,1,NULL,NULL,NULL,fklProdCtxDestroyDoNothing);
+	FklGrammerProduction* prod=fklCreateEmptyProduction(0,0,1,NULL,NULL,NULL,fklProdCtxDestroyDoNothing,fklProdCtxCopyerDoNothing);
 	prod->idx=0;
 	FklGrammerSym* u=&prod->syms[0];
 	u->delim=1;
@@ -718,10 +732,12 @@ FklGrammerProduction* fklCopyUninitedGrammerProduction(FklGrammerProduction* pro
 			,prod->name
 			,prod->func
 			,prod->ctx
-			,prod->ctx_destroyer);
+			,prod->ctx_destroyer
+			,prod->ctx_copyer);
 	FklGrammerSym* ss=r->syms;
 	FklGrammerSym* oss=prod->syms;
 	memcpy(ss,oss,prod->len*sizeof(FklGrammerSym));
+	r->ctx=r->ctx_copyer(prod->ctx);
 	r->next=NULL;
 	return r;
 }

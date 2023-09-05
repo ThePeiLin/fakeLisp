@@ -5734,7 +5734,7 @@ static inline FklNastNode* codegen_prod_action_pair(void* ctx
 	return pair;
 }
 
-static inline FklNastNode* codegen_prod_action_list(void* ctx
+static inline FklNastNode* codegen_prod_action_cons(void* ctx
 		,FklNastNode** nodes
 		,size_t num
 		,size_t line
@@ -5866,7 +5866,7 @@ static inline FklNastNode* codegen_prod_action_hasheq(void* ctx
 		,FklSymbolTable* st)
 {
 	if(num<2)
-		return 0;
+		return NULL;
 	FklNastNode* list=nodes[1];
 	if(!fklIsNastNodeListAndHasSameType(list,FKL_NAST_PAIR))
 		return NULL;
@@ -5969,7 +5969,7 @@ static struct CstrIdProdAction
 	{"second",    0, codegen_prod_action_second,    },
 	{"third",     0, codegen_prod_action_third,     },
 	{"pair",      0, codegen_prod_action_pair,      },
-	{"list",      0, codegen_prod_action_list,      },
+	{"cons",      0, codegen_prod_action_cons,      },
 	{"box",       0, codegen_prod_action_box,       },
 	{"vector",    0, codegen_prod_action_vector,    },
 	{"quote",     0, codegen_prod_action_quote,     },
@@ -5983,7 +5983,7 @@ static struct CstrIdProdAction
 	{NULL,        0, NULL,                          },
 };
 
-static inline void init_codegen_prod_action_list(void)
+static inline void init_builtin_prod_action_list(void)
 {
 	for(struct CstrIdProdAction* l=CodegenProdActions;l->name;l++)
 		l->id=fklAddSymbolCstrToPst(l->name)->id;
@@ -5994,6 +5994,469 @@ static inline FklBuiltinProdAction find_builtin_prod_action(FklSid_t id)
 	for(struct CstrIdProdAction* l=CodegenProdActions;l->name;l++)
 		if(l->id==id)
 			return l->func;
+	return NULL;
+}
+
+static void* simple_action_nth_create(FklNastNode* rest[],size_t rest_len,int* failed)
+{
+	if(rest_len<1
+			||rest[0]->type!=FKL_NAST_FIX
+			||rest[0]->fix<0)
+	{
+		*failed=1;
+		return NULL;
+	}
+	return (void*)(rest[0]->fix);
+}
+
+static FklNastNode* simple_action_nth(void* ctx
+		,FklNastNode* nodes[]
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	return fklMakeNastNodeRef(nodes[nth]);
+}
+
+struct SimpleActionConsCtx
+{
+	uint64_t car;
+	uint64_t cdr;
+};
+
+static void* simple_action_cons_create(FklNastNode* rest[],size_t rest_len,int* failed)
+{
+	if(rest_len<2
+			||rest[0]->type!=FKL_NAST_FIX
+			||rest[0]->fix<0
+			||rest[1]->type!=FKL_NAST_FIX
+			||rest[1]->fix<0)
+	{
+		*failed=1;
+		return NULL;
+	}
+	struct SimpleActionConsCtx* ctx=(struct SimpleActionConsCtx*)malloc(sizeof(struct SimpleActionConsCtx));
+	FKL_ASSERT(ctx);
+	ctx->car=rest[0]->fix;
+	ctx->cdr=rest[1]->fix;
+	return ctx;
+}
+
+static void* simple_action_cons_copy(const void* c)
+{
+	struct SimpleActionConsCtx* ctx=(struct SimpleActionConsCtx*)malloc(sizeof(struct SimpleActionConsCtx));
+	FKL_ASSERT(ctx);
+	*ctx=*(struct SimpleActionConsCtx*)c;
+	return ctx;
+}
+
+static FklNastNode* simple_action_cons(void* c
+		,FklNastNode* nodes[]
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	struct SimpleActionConsCtx* cc=(struct SimpleActionConsCtx*)c;
+	if(cc->car>=num
+			||cc->cdr>=num)
+		return NULL;
+	FklNastNode* retval=fklCreateNastNode(FKL_NAST_PAIR,line);
+	retval->pair=fklCreateNastPair();
+	retval->pair->car=fklMakeNastNodeRef(nodes[cc->car]);
+	retval->pair->cdr=fklMakeNastNodeRef(nodes[cc->cdr]);
+	return retval;
+}
+
+struct SimpleActionHeadCtx
+{
+	FklNastNode* head;
+	uint64_t nth;
+};
+
+static FklNastNode* simple_action_head(void* c
+		,FklNastNode* nodes[]
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	struct SimpleActionHeadCtx* cc=(struct SimpleActionHeadCtx*)c;
+	if(cc->nth>=num)
+		return NULL;
+	FklNastNode* head=fklMakeNastNodeRef(cc->head);
+	FklNastNode* other=fklMakeNastNodeRef(nodes[cc->nth]);
+	FklNastNode* exps[]={head,other};
+	return create_nast_list(exps,2,line);
+}
+
+static void* simple_action_head_create(FklNastNode* rest[],size_t rest_len,int* failed)
+{
+	if(rest_len<2
+			||rest[1]->type!=FKL_NAST_FIX
+			||rest[1]->fix<0)
+	{
+		*failed=1;
+		return NULL;
+	}
+	struct SimpleActionHeadCtx* ctx=(struct SimpleActionHeadCtx*)malloc(sizeof(struct SimpleActionHeadCtx));
+	FKL_ASSERT(ctx);
+	ctx->head=fklMakeNastNodeRef(rest[0]);
+	ctx->nth=rest[1]->fix;
+	return ctx;
+}
+
+static void* simple_action_head_copy(const void* cc)
+{
+	struct SimpleActionHeadCtx* ctx=(struct SimpleActionHeadCtx*)malloc(sizeof(struct SimpleActionHeadCtx));
+	FKL_ASSERT(ctx);
+	*ctx=*(struct SimpleActionHeadCtx*)cc;
+	fklMakeNastNodeRef(ctx->head);
+	return ctx;
+}
+
+static void simple_action_head_destroy(void* cc)
+{
+	struct SimpleActionHeadCtx* ctx=(struct SimpleActionHeadCtx*)cc;
+	fklDestroyNastNode(ctx->head);
+	free(ctx);
+}
+
+static inline FklNastNode* simple_action_box(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	FklNastNode* box=fklCreateNastNode(FKL_NAST_BOX,line);
+	box->box=fklMakeNastNodeRef(nodes[nth]);
+	return box;
+}
+
+static inline FklNastNode* simple_action_vector(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	FklNastNode* list=nodes[nth];
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_VECTOR,line);
+	size_t len=fklNastListLength(list);
+	FklNastVector* vec=fklCreateNastVector(len);
+	r->vec=vec;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+		vec->base[i]=fklMakeNastNodeRef(list->pair->car);
+	return r;
+}
+
+static inline FklNastNode* simple_action_hasheq(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	FklNastNode* list=nodes[nth];
+	if(!fklIsNastNodeListAndHasSameType(list,FKL_NAST_PAIR))
+		return NULL;
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
+	size_t len=fklNastListLength(list);
+	FklNastHashTable* ht=fklCreateNastHash(FKL_HASH_EQ,len);
+	r->hash=ht;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+	{
+		ht->items[i].car=fklMakeNastNodeRef(list->pair->car->pair->car);
+		ht->items[i].cdr=fklMakeNastNodeRef(list->pair->car->pair->cdr);
+	}
+	return r;
+}
+
+static inline FklNastNode* simple_action_hasheqv(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	FklNastNode* list=nodes[nth];
+	if(!fklIsNastNodeListAndHasSameType(list,FKL_NAST_PAIR))
+		return NULL;
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
+	size_t len=fklNastListLength(list);
+	FklNastHashTable* ht=fklCreateNastHash(FKL_HASH_EQV,len);
+	r->hash=ht;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+	{
+		ht->items[i].car=fklMakeNastNodeRef(list->pair->car->pair->car);
+		ht->items[i].cdr=fklMakeNastNodeRef(list->pair->car->pair->cdr);
+	}
+	return r;
+}
+
+static inline FklNastNode* simple_action_hashequal(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	FklNastNode* list=nodes[nth];
+	if(!fklIsNastNodeListAndHasSameType(list,FKL_NAST_PAIR))
+		return NULL;
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
+	size_t len=fklNastListLength(list);
+	FklNastHashTable* ht=fklCreateNastHash(FKL_HASH_EQUAL,len);
+	r->hash=ht;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+	{
+		ht->items[i].car=fklMakeNastNodeRef(list->pair->car->pair->car);
+		ht->items[i].cdr=fklMakeNastNodeRef(list->pair->car->pair->cdr);
+	}
+	return r;
+}
+
+static inline FklNastNode* simple_action_bytevector(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	uintptr_t nth=(uintptr_t)ctx;
+	if(nth>=num)
+		return NULL;
+	FklNastNode* list=nodes[nth];
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
+	size_t len=fklNastListLength(list);
+	FklBytevector* bv=fklCreateBytevector(len,NULL);
+	r->bvec=bv;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+	{
+		FklNastNode* cur=list->pair->car;
+		if(cur->type==FKL_NAST_FIX)
+			bv->ptr[i]=cur->fix>UINT8_MAX?UINT8_MAX:(cur->fix<0?0:cur->fix);
+		else
+			bv->ptr[i]=cur->bigInt->neg?0:UINT8_MAX;
+	}
+	return r;
+}
+
+struct SimpleActionSymbolCtx
+{
+	uint64_t nth;
+	FklString* start;
+	FklString* end;
+};
+
+static void* simple_action_symbol_create(FklNastNode* rest[],size_t rest_len,int* failed)
+{
+	FklString* start=NULL;
+	FklString* end=NULL;
+	if(rest_len==0
+			||rest[0]->type!=FKL_NAST_FIX
+			||rest[0]->fix<0)
+	{
+		*failed=1;
+		return NULL;
+	}
+	if(rest_len==3)
+	{
+		if(rest[1]->type!=FKL_NAST_STR
+				||rest[1]->str->size==0
+				||rest[2]->type!=FKL_NAST_STR
+				||rest[2]->str->size==0)
+		{
+			*failed=1;
+			return NULL;
+		}
+		start=rest[1]->str;
+		end=rest[2]->str;
+	}
+	else if(rest_len==2)
+	{
+		if(rest[1]->type!=FKL_NAST_STR
+				||rest[1]->str->size==0)
+		{
+			*failed=1;
+			return NULL;
+		}
+		start=rest[1]->str;
+		end=start;
+	}
+	struct SimpleActionSymbolCtx* ctx=(struct SimpleActionSymbolCtx*)malloc(sizeof(struct SimpleActionSymbolCtx));
+	FKL_ASSERT(ctx);
+	ctx->nth=rest[0]->fix;
+	ctx->start=start?fklCopyString(start):NULL;
+	ctx->end=end?fklCopyString(end):NULL;
+	return ctx;
+}
+
+static void* simple_action_symbol_copy(const void* cc)
+{
+	struct SimpleActionSymbolCtx* ctx=(struct SimpleActionSymbolCtx*)malloc(sizeof(struct SimpleActionSymbolCtx));
+	FKL_ASSERT(ctx);
+	*ctx=*(struct SimpleActionSymbolCtx*)cc;
+	ctx->end=fklCopyString(ctx->end);
+	ctx->start=fklCopyString(ctx->start);
+	return ctx;
+}
+
+static void simple_action_symbol_destroy(void* cc)
+{
+	struct SimpleActionSymbolCtx* ctx=(struct SimpleActionSymbolCtx*)cc;
+	free(ctx->end);
+	free(ctx->start);
+	free(ctx);
+}
+
+static FklNastNode* simple_action_symbol(void* c
+		,FklNastNode* nodes[]
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	struct SimpleActionSymbolCtx* ctx=(struct SimpleActionSymbolCtx*)c;
+	if(ctx->nth>=num)
+		return NULL;
+	FklNastNode* node=nodes[ctx->nth];
+	if(node->type!=FKL_NAST_STR)
+		return NULL;
+	FklNastNode* sym=NULL;
+	if(ctx->start)
+	{
+		const char* start=ctx->start->str;
+		size_t start_size=ctx->start->size;
+		const char* end=ctx->end->str;
+		size_t end_size=ctx->end->size;
+
+		const FklString* str=node->str;
+		const char* cstr=str->str;
+		size_t cstr_size=str->size;
+
+		FklStringBuffer buffer;
+		fklInitStringBuffer(&buffer);
+		const char* end_cstr=cstr+str->size;
+		while(cstr<end_cstr)
+		{
+			if(fklCharBufMatch(start,start_size,cstr,cstr_size))
+			{
+				cstr+=start_size;
+				cstr_size-=start_size;
+				size_t len=fklQuotedCharBufMatch(cstr,cstr_size,end,end_size);
+				if(!len)
+					return 0;
+				size_t size=0;
+				char* s=fklCastEscapeCharBuf(cstr,len-end_size,&size);
+				fklStringBufferBincpy(&buffer,s,size);
+				free(s);
+				cstr+=len;
+				cstr_size-=len;
+				continue;
+			}
+			size_t len=0;
+			for(;(cstr+len)<end_cstr;len++)
+				if(fklCharBufMatch(start,start_size,cstr+len,cstr_size-len))
+					break;
+			fklStringBufferBincpy(&buffer,cstr,len);
+			cstr+=len;
+			cstr_size-=len;
+		}
+		FklSid_t id=fklAddSymbolCharBuf(buffer.b,buffer.i,st)->id;
+		sym=fklCreateNastNode(FKL_NAST_SYM,node->curline);
+		sym->sym=id;
+		fklUninitStringBuffer(&buffer);
+	}
+	else
+	{
+		FklNastNode* sym=fklCreateNastNode(FKL_NAST_SYM,node->curline);
+		sym->sym=fklAddSymbol(node->str,st)->id;
+	}
+	return sym;
+}
+
+static inline FklNastNode* simple_action_string(void* c
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	struct SimpleActionSymbolCtx* ctx=(struct SimpleActionSymbolCtx*)c;
+	if(ctx->nth>=num)
+		return NULL;
+	FklNastNode* node=nodes[ctx->nth];
+	if(node->type!=FKL_NAST_STR)
+		return NULL;
+	if(ctx->start)
+	{
+		size_t start_size=ctx->start->size;
+		size_t end_size=ctx->end->size;
+
+		const FklString* str=node->str;
+		const char* cstr=str->str;
+
+		size_t size=0;
+		char* s=fklCastEscapeCharBuf(&cstr[start_size],str->size-end_size-start_size,&size);
+		FklNastNode* retval=fklCreateNastNode(FKL_NAST_STR,node->curline);
+		retval->str=fklCreateString(size,s);
+		free(s);
+		return retval;
+	}
+	else
+		return fklMakeNastNodeRef(node);
+}
+
+static struct CstrIdCreatorProdAction
+{
+	const char* name;
+	FklSid_t id;
+	FklBuiltinProdAction func;
+	void* (*creator)(FklNastNode* rest[],size_t rest_len,int* failed);
+	void* (*ctx_copyer)(const void*);
+	void (*ctx_destroy)(void*);
+}CodegenProdCreatorActions[]=
+{
+	{"nth",        0, simple_action_nth,        simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{"cons",       0, simple_action_cons,       simple_action_cons_create,   simple_action_cons_copy,   fklProdCtxDestroyFree,         },
+	{"head",       0, simple_action_head,       simple_action_head_create,   simple_action_head_copy,   simple_action_head_destroy,    },
+	{"symbol",     0, simple_action_symbol,     simple_action_symbol_create, simple_action_symbol_copy, simple_action_symbol_destroy, },
+	{"string",     0, simple_action_string,     simple_action_symbol_create, simple_action_symbol_copy, simple_action_symbol_destroy, },
+	{"box",        0, simple_action_box,        simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{"vector",     0, simple_action_vector,     simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{"hasheq",     0, simple_action_hasheq,     simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{"hasheqv",    0, simple_action_hasheqv,    simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{"hashequal",  0, simple_action_hashequal,  simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{"bytevector", 0, simple_action_bytevector, simple_action_nth_create,    fklProdCtxCopyerDoNothing, fklProdCtxDestroyDoNothing,    },
+	{NULL,         0, NULL,                     NULL,                        NULL,                      NULL,                          },
+};
+
+static inline void init_simple_prod_action_list(void)
+{
+	for(struct CstrIdCreatorProdAction* l=CodegenProdCreatorActions;l->name;l++)
+		l->id=fklAddSymbolCstrToPst(l->name)->id;
+}
+
+static inline struct CstrIdCreatorProdAction* find_simple_prod_action(FklSid_t id)
+{
+	for(struct CstrIdCreatorProdAction* l=CodegenProdCreatorActions;l->name;l++)
+		if(l->id==id)
+			return l;
 	return NULL;
 }
 
@@ -6145,7 +6608,31 @@ static inline FklGrammerProduction* nast_vector_to_production(const FklNastVecto
 				,NULL
 				,action
 				,NULL
-				,fklProdCtxDestroyDoNothing);
+				,fklProdCtxDestroyDoNothing
+				,fklProdCtxCopyerDoNothing);
+	}
+	else if(action_type==builtInPatternVar_simple)
+	{
+		if(action_ast->type!=FKL_NAST_VECTOR
+				||!action_ast->vec->size
+				||action_ast->vec->base[0]->type!=FKL_NAST_SYM)
+			return NULL;
+		struct CstrIdCreatorProdAction* action=find_simple_prod_action(action_ast->vec->base[0]->sym);
+		if(!action)
+			return NULL;
+		int failed=0;
+		void* ctx=action->creator(&action_ast->vec->base[1],action_ast->vec->size-1,&failed);
+		if(failed)
+			return NULL;
+		return fklCreateProduction(left_group
+				,sid
+				,len
+				,syms
+				,NULL
+				,action->func
+				,ctx
+				,action->ctx_destroy
+				,action->ctx_copyer);
 	}
 	else
 		FKL_ASSERT(0);
@@ -6428,7 +6915,9 @@ static inline int check_group_outer_ref(FklCodegen* codegen
 
 static inline FklGrammerProduction* create_extra_start_production(FklSid_t group,FklSid_t sid)
 {
-	FklGrammerProduction* prod=fklCreateEmptyProduction(0,0,1,NULL,NULL,NULL,fklProdCtxDestroyDoNothing);
+	FklGrammerProduction* prod=fklCreateEmptyProduction(0,0,1,NULL,NULL,NULL
+			,fklProdCtxDestroyDoNothing
+			,fklProdCtxCopyerDoNothing);
 	prod->func=codegen_prod_action_first;
 	prod->idx=0;
 	FklGrammerSym* u=&prod->syms[0];
@@ -7178,7 +7667,8 @@ void fklInitCodegen(void)
 		fklDestroyNastNode(node);
 	}
 
-	init_codegen_prod_action_list();
+	init_builtin_prod_action_list();
+	init_simple_prod_action_list();
 }
 
 void fklUninitCodegen(void)

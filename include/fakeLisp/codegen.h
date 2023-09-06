@@ -80,9 +80,13 @@ typedef struct FklCodegenLib
 	size_t exportNum;
 	uint32_t* exportIndex;
 	FklSid_t* exports;
-	FklSid_t* exportsP;
+	FklSid_t* exports_in_pst;
 	FklCodegenMacro* head;
 	FklHashTable* replacements;
+
+	FklHashTable named_prod_groups;
+	FklSymbolTable* terminal_table;
+
 	uint32_t prototypeId;
 }FklCodegenLib;
 
@@ -129,6 +133,8 @@ typedef struct FklCodegen
 	FklSid_t* exports_in_pst;
 	FklCodegenMacro* export_macro;
 	FklHashTable* export_replacement;
+
+	FklHashTable* export_named_prod_groups;
 
 	FklPtrStack* loadedLibStack;
 	FklPtrStack* macroLibStack;
@@ -244,13 +250,8 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope,FklCodege
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
 
 void fklInitCodegenScriptLib(FklCodegenLib* lib
-		,char* rp
+		,FklCodegen* codegen
 		,FklByteCodelnt* bcl
-		,size_t exportNum
-		,FklSid_t* exports
-		,FklSid_t* exportsP
-		,FklCodegenMacro* head
-		,FklHashTable* replacements
 		,FklCodegenEnv* env);
 
 typedef void (*FklCodegenDllLibInitExportFunc)(size_t*,FklSid_t**,FklSymbolTable* table);
@@ -267,13 +268,8 @@ void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib);
 void fklUninitCodegenLib(FklCodegenLib*);
 void fklUninitCodegenLibInfo(FklCodegenLib*);
 
-FklCodegenLib* fklCreateCodegenScriptLib(char* rp
+FklCodegenLib* fklCreateCodegenScriptLib(FklCodegen* codegen
 		,FklByteCodelnt* bcl
-		,size_t exportNum
-		,FklSid_t* exports
-		,FklSid_t* exportsP
-		,FklCodegenMacro* head
-		,FklHashTable* replacements
 		,FklCodegenEnv* env);
 
 FklCodegenLib* fklCreateCodegenDllLib(char* rp

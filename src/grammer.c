@@ -444,7 +444,16 @@ static inline void* init_builtin_grammer_sym(const FklLalrBuiltinMatch* m
 	if(m->ctx_global_create)
 		return m->ctx_global_create(i,prod,g,failed);
 	if(m->ctx_create)
-		return m->ctx_create(sym_at_idx(prod,i+1),g->terminals,failed);
+	{
+		const FklGrammerSym* sym=sym_at_idx(prod,i+1);
+		if(sym&&(!sym->isterm||sym->isbuiltin))
+		{
+			*failed=1;
+			return NULL;
+		}
+		const FklString* next=sym?fklGetSymbolWithId(sym->nt.sid,g->terminals)->symbol:NULL;
+		return m->ctx_create(next,failed);
+	}
 	return NULL;
 }
 
@@ -556,7 +565,13 @@ inline FklGrammerIgnore* fklGrammerSymbolsToIgnore(FklGrammerSym* syms,size_t le
 			if(b->c)
 				destroy_builtin_grammer_sym(b);
 			if(b->t->ctx_create)
-				b->c=b->t->ctx_create((i<len)?&syms[i]:NULL,tt,&failed);
+			{
+				FklGrammerSym* sym=(i<len)?&syms[i]:NULL;
+				if(sym&&(!sym->isterm||sym->isbuiltin))
+					return NULL;
+				const FklString* next=sym?fklGetSymbolWithId(sym->nt.sid,tt)->symbol:NULL;
+				b->c=b->t->ctx_create(next,&failed);
+			}
 			if(failed)
 				return NULL;
 		}
@@ -574,7 +589,14 @@ inline FklGrammerIgnore* fklGrammerSymbolsToIgnore(FklGrammerSym* syms,size_t le
 		if(igs->isbuiltin)
 			igs->b=sym->b;
 		else
+		{
+			if(sym->end_with_terminal)
+			{
+				free(ig);
+				return NULL;
+			}
 			igs->str=fklGetSymbolWithId(sym->nt.sid,tt)->symbol;
+		}
 	}
 	return ig;
 }
@@ -797,7 +819,7 @@ inline int fklAddProdAndExtraToGrammer(FklGrammer* g,FklGrammerProduction* prod)
 	return 0;
 }
 
-inline int fklAddProdToGrammer(FklHashTable* productions
+inline int fklAddProdToProdTable(FklHashTable* productions
 		,FklHashTable* builtins
 		,FklGrammerProduction* prod)
 {
@@ -951,9 +973,7 @@ static uintptr_t builtin_match_qstr_hash(const void* c0)
 	return (uintptr_t)c0;
 }
 
-static void* builtin_match_qstr_create(const FklGrammerSym* next
-		,const FklSymbolTable* tt
-		,int* failed)
+static void* builtin_match_qstr_create(const FklString* next,int* failed)
 {
 	*failed=0;
 	if(!next)
@@ -961,16 +981,7 @@ static void* builtin_match_qstr_create(const FklGrammerSym* next
 		*failed=1;
 		return NULL;
 	}
-	if(next->isterm)
-	{
-		if(next->isbuiltin)
-		{
-			*failed=1;
-			return NULL;
-		}
-		return fklGetSymbolWithId(next->nt.sid,tt)->symbol;
-	}
-	return NULL;
+	return (void*)next;
 }
 
 static void builtin_match_qstr_destroy(void* ctx)
@@ -1087,9 +1098,7 @@ static int builtin_match_until_match(void* c
 	return 0;
 }
 
-static void* builtin_match_until_create(const FklGrammerSym* next
-		,const FklSymbolTable* tt
-		,int* failed)
+static void* builtin_match_until_create(const FklString* next,int* failed)
 {
 	*failed=0;
 	if(!next)
@@ -1097,16 +1106,7 @@ static void* builtin_match_until_create(const FklGrammerSym* next
 		*failed=1;
 		return NULL;
 	}
-	if(next->isterm)
-	{
-		if(next->isbuiltin)
-		{
-			*failed=1;
-			return NULL;
-		}
-		return fklGetSymbolWithId(next->nt.sid,tt)->symbol;
-	}
-	return NULL;
+	return (void*)next;
 }
 
 static void builtin_match_until_print_src(const FklGrammer* g,FILE* fp)
@@ -1844,7 +1844,8 @@ static void* s_number_ctx_global_create(size_t idx
 	if(prod->len==2)
 	{
 		if(!prod->syms[1].isterm
-				||prod->syms[1].isbuiltin)
+				||prod->syms[1].isbuiltin
+				||prod->syms[1].end_with_terminal)
 		{
 			*failed=1;
 			return NULL;
@@ -2157,7 +2158,8 @@ static void* s_char_ctx_global_create(size_t idx
 	}
 	const FklString* start=NULL;
 	if(!prod->syms[1].isterm
-			||prod->syms[1].isbuiltin)
+			||prod->syms[1].isbuiltin
+			||prod->syms[1].end_with_terminal)
 	{
 		*failed=1;
 		return NULL;
@@ -2427,7 +2429,8 @@ static void* builtin_match_symbol_global_create(size_t idx
 	if(prod->len==2)
 	{
 		if(!prod->syms[1].isterm
-				||prod->syms[1].isbuiltin)
+				||prod->syms[1].isbuiltin
+				||prod->syms[1].end_with_terminal)
 		{
 			*failed=1;
 			return NULL;
@@ -2439,8 +2442,10 @@ static void* builtin_match_symbol_global_create(size_t idx
 	{
 		if(!prod->syms[1].isterm
 				||prod->syms[1].isbuiltin
+				||prod->syms[1].end_with_terminal
 				||!prod->syms[2].isterm
-				||prod->syms[2].isbuiltin)
+				||prod->syms[2].isbuiltin
+				||prod->syms[2].end_with_terminal)
 		{
 			*failed=1;
 			return NULL;
@@ -2603,7 +2608,8 @@ static void* builtin_match_string_global_create(size_t idx
 	if(prod->len==2)
 	{
 		if(!prod->syms[1].isterm
-				||prod->syms[1].isbuiltin)
+				||prod->syms[1].isbuiltin
+				||prod->syms[1].end_with_terminal)
 		{
 			*failed=1;
 			return NULL;
@@ -2615,8 +2621,10 @@ static void* builtin_match_string_global_create(size_t idx
 	{
 		if(!prod->syms[1].isterm
 				||prod->syms[1].isbuiltin
+				||prod->syms[1].end_with_terminal
 				||!prod->syms[2].isterm
-				||prod->syms[2].isbuiltin)
+				||prod->syms[2].isbuiltin
+				||prod->syms[2].end_with_terminal)
 		{
 			*failed=1;
 			return NULL;
@@ -2891,7 +2899,7 @@ static inline int init_all_builtin_grammer_sym(FklGrammer* g)
 	return failed;
 }
 
-inline int fklAddIgnoreToGrammer(FklGrammerIgnore** pp,FklGrammerIgnore* ig)
+inline int fklAddIgnoreToIgnoreList(FklGrammerIgnore** pp,FklGrammerIgnore* ig)
 {
 	for(;*pp;pp=&(*pp)->next)
 	{
@@ -3192,7 +3200,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 				fklDestroyGrammer(grammer);
 				return NULL;
 			}
-			if(fklAddIgnoreToGrammer(&grammer->ignores,ignore))
+			if(fklAddIgnoreToIgnoreList(&grammer->ignores,ignore))
 			{
 				fklDestroyIgnore(ignore);
 				fklDestroyGrammer(grammer);
@@ -3234,7 +3242,7 @@ FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSy
 				fklDestroyGrammer(grammer);
 				return NULL;
 			}
-			if(fklAddIgnoreToGrammer(&grammer->ignores,ignore))
+			if(fklAddIgnoreToIgnoreList(&grammer->ignores,ignore))
 			{
 				fklDestroyIgnore(ignore);
 				fklDestroyGrammer(grammer);
@@ -6608,7 +6616,7 @@ FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 			FklGrammerIgnore* ignore=create_grammer_ignore_from_cstr(str,builtins,st,tt);
 			if(!ignore)
 				return NULL;
-			if(fklAddIgnoreToGrammer(&ignores,ignore))
+			if(fklAddIgnoreToIgnoreList(&ignores,ignore))
 			{
 				fklDestroyIgnore(ignore);
 				return NULL;
@@ -6617,7 +6625,7 @@ FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 		else
 		{
 			FklGrammerProduction* prod=create_grammer_prod_from_cstr(str,builtins,st,tt,pa->action_name,pa->func);
-			if(fklAddProdToGrammer(ht,builtins,prod))
+			if(fklAddProdToProdTable(ht,builtins,prod))
 			{
 				fklDestroyGrammerProduction(prod);
 				return NULL;

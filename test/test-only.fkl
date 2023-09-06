@@ -1,0 +1,13 @@
+(import (only (test-lib) custom))
+
+(defmacro
+  #(test #["#ya-quote'" (custom,custom-quote)] builtin second)
+  ())
+
+(import (only (.. lib utils m) assert))
+
+(println "test only")
+
+(assert (equal (println '#quote'foobar) '(quote foobar)))
+
+(assert (equal (println '#ya-quote'#quote'foobar) '(quote foobar)))

@@ -2680,25 +2680,26 @@ static void add_compiler_macro(FklCodegenMacro** pmacro
 
 BC_PROCESS(_export_macro_bc_process)
 {
-	FklCodegenMacroScope* oms=cms->prev;
+	FklCodegenMacroScope* target_macro_scope=cms->prev;
 	for(;!codegen->libMark;codegen=codegen->prev);
 	for(FklCodegenMacro* cur=cms->head;cur;cur=cur->next)
 	{
 		cur->own=0;
 		add_compiler_macro(&codegen->export_macro,fklMakeNastNodeRef(cur->pattern),cur->bcl,cur->pts,1);
-		add_compiler_macro(&oms->head,fklMakeNastNodeRef(cur->pattern),cur->bcl,cur->pts,0);
+		add_compiler_macro(&target_macro_scope->head,fklMakeNastNodeRef(cur->pattern),cur->bcl,cur->pts,0);
 	}
 	for(FklHashTableItem* cur=cms->replacements->first;cur;cur=cur->next)
 	{
 		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
 		fklAddReplacementBySid(rep->id,rep->node,codegen->export_replacement);
-		fklAddReplacementBySid(rep->id,rep->node,oms->replacements);
+		fklAddReplacementBySid(rep->id,rep->node,target_macro_scope->replacements);
 	}
 	return NULL;
 }
 
 static int isValidExportNodeList(const FklNastNode* list);
 static int isExportDefmacroExp(const FklNastNode*);
+static int isExportDefReaderMacroExp(const FklNastNode*);
 static int isExportDefineExp(const FklNastNode* c);
 static int isExportDefunExp(const FklNastNode* c);
 
@@ -4008,13 +4009,66 @@ static const FklCodegenQuestContextMethodTable ExportContextMethodTable=
 	.__put_bcl=export_context_data_put_bcl,
 };
 
+static inline void recompute_ignores_terminal_sid(FklGrammerIgnore* igs,FklSymbolTable* target_table)
+{
+	FklGrammerIgnoreSym* syms=igs->ig;
+	size_t len=igs->len;
+	for(size_t i=len;i>0;i--)
+	{
+		size_t idx=i-1;
+		FklGrammerIgnoreSym* cur=&syms[idx];
+		if(cur->isbuiltin)
+		{
+			int failed=0;
+			cur->b.c=cur->b.t->ctx_create(idx+1<len?syms[idx+1].str:NULL,&failed);
+		}
+		else
+			cur->str=fklAddSymbol(cur->str,target_table)->symbol;
+	}
+}
+
+static inline void recompute_prod_terminal_sid(FklGrammerProduction* prod
+		,FklSymbolTable* target_table
+		,FklSymbolTable* origin_table)
+{
+	size_t len=prod->len;
+	FklGrammerSym* sym=prod->syms;
+	for(size_t i=0;i<len;i++)
+	{
+		FklGrammerSym* cur=&sym[i];
+		if(cur->isterm&&!cur->isbuiltin)
+			cur->nt.sid=fklAddSymbol(fklGetSymbolWithId(cur->nt.sid,origin_table)->symbol,target_table)->id;
+	}
+}
+
+static inline void replace_group_id(FklGrammerProduction* prod,FklSid_t new_id)
+{
+	size_t len=prod->len;
+	if(prod->left.group)
+		prod->left.group=new_id;
+	FklGrammerSym* sym=prod->syms;
+	for(size_t i=0;i<len;i++)
+	{
+		FklGrammerSym* cur=&sym[i];
+		if(!cur->isterm&&cur->nt.group)
+			cur->nt.group=new_id;
+	}
+}
+
+static inline int init_builtin_grammer(FklCodegen* codegen,FklSymbolTable* st);
+static inline int add_group_prods(FklGrammer* g,const FklHashTable* prods);
+static inline int add_group_ignores(FklGrammer* g,FklGrammerIgnore* igs);
+static inline FklGrammerProductionGroup* add_production_group(FklHashTable* named_prod_groups,FklSid_t group_id);
+static inline int add_all_group_to_grammer(FklCodegen* codegen);
+
 static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 		,FklCodegen* codegen
 		,FklCodegenLib* lib
 		,FklCodegenEnv* curEnv
 		,uint32_t scope
 		,FklCodegenMacroScope* macroScope
-		,uint64_t curline)
+		,uint64_t curline
+		,FklCodegenErrorState* errorState)
 {
 	for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
 		add_compiler_macro(&macroScope->head
@@ -4027,6 +4081,74 @@ static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 	{
 		FklCodegenReplacement* rep=(FklCodegenReplacement*)cur->data;
 		fklAddReplacementBySid(rep->id,rep->node,macroScope->replacements);
+	}
+
+	if(lib->named_prod_groups.t)
+	{
+		if(!codegen->g)
+		{
+			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
+			{
+reader_macro_error:
+				errorState->line=curline;
+				errorState->fid=codegen->fid;
+				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+				errorState->place=NULL;
+				return NULL;
+			}
+		}
+		else
+		{
+			fklClearGrammer(codegen->g);
+			if(add_group_ignores(codegen->g,codegen->builtin_ignores))
+				goto reader_macro_error;
+
+			if(add_group_prods(codegen->g,&codegen->builtin_prods))
+				goto reader_macro_error;
+		}
+
+		FklGrammer* g=codegen->g;
+		FklSymbolTable* origin_table=lib->terminal_table;
+		for(FklHashTableItem* prod_group_item=lib->named_prod_groups.first;prod_group_item;prod_group_item=prod_group_item->next)
+		{
+			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)prod_group_item->data;
+			FklGrammerProductionGroup* target_group=add_production_group(&codegen->named_prod_groups,group->id);
+
+			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+			{
+				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+				FKL_ASSERT(ig);
+				ig->len=igs->len;
+				ig->next=NULL;
+				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+
+				recompute_ignores_terminal_sid(ig,g->terminals);
+				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
+				{
+					free(ig);
+					goto reader_macro_error;
+				}
+			}
+
+			for(FklHashTableItem* prod_hash_item=group->prods.first
+					;prod_hash_item
+					;prod_hash_item=prod_hash_item->next)
+			{
+				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
+				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
+				{
+					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
+					{
+						fklDestroyGrammerProduction(prod);
+						goto reader_macro_error;
+					}
+				}
+			}
+		}
+		if(add_all_group_to_grammer(codegen))
+			goto reader_macro_error;
 	}
 
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
@@ -4050,7 +4172,8 @@ static inline FklByteCodelnt* process_import_imported_lib_prefix(uint32_t libId
 		,uint32_t scope
 		,FklCodegenMacroScope* macroScope
 		,uint64_t curline
-		,FklNastNode* prefixNode)
+		,FklNastNode* prefixNode
+		,FklCodegenErrorState* errorState)
 {
 	FklString* prefix=fklGetSymbolWithIdFromPst(prefixNode->sym)->symbol;
 	for(FklCodegenMacro* cur=lib->head;cur;cur=cur->next)
@@ -4064,7 +4187,85 @@ static inline FklByteCodelnt* process_import_imported_lib_prefix(uint32_t libId
 	export_replacement_with_prefix(lib->replacements
 			,macroScope
 			,prefix);
+	if(lib->named_prod_groups.t)
+	{
+		if(!codegen->g)
+		{
+			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
+			{
+reader_macro_error:
+				errorState->line=curline;
+				errorState->fid=codegen->fid;
+				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+				errorState->place=NULL;
+				return NULL;
+			}
+		}
+		else
+		{
+			fklClearGrammer(codegen->g);
+			if(add_group_ignores(codegen->g,codegen->builtin_ignores))
+				goto reader_macro_error;
 
+			if(add_group_prods(codegen->g,&codegen->builtin_prods))
+				goto reader_macro_error;
+		}
+
+		FklGrammer* g=codegen->g;
+		FklSymbolTable* origin_table=lib->terminal_table;
+		FklStringBuffer buffer;
+		fklInitStringBuffer(&buffer);
+		for(FklHashTableItem* prod_group_item=lib->named_prod_groups.first;prod_group_item;prod_group_item=prod_group_item->next)
+		{
+			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)prod_group_item->data;
+			fklStringBufferConcatWithString(&buffer,prefix);
+			fklStringBufferConcatWithString(&buffer,fklGetSymbolWithIdFromPst(group->id)->symbol);
+
+			FklSid_t group_id_with_prefix=fklAddSymbolCharBufToPst(buffer.b,buffer.i)->id;
+
+			FklGrammerProductionGroup* target_group=add_production_group(&codegen->named_prod_groups,group_id_with_prefix);
+
+			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+			{
+				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+				FKL_ASSERT(ig);
+				ig->len=igs->len;
+				ig->next=NULL;
+				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+
+				recompute_ignores_terminal_sid(ig,g->terminals);
+				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
+				{
+					fklUninitStringBuffer(&buffer);
+					free(ig);
+					goto reader_macro_error;
+				}
+			}
+
+			for(FklHashTableItem* prod_hash_item=group->prods.first
+					;prod_hash_item
+					;prod_hash_item=prod_hash_item->next)
+			{
+				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
+				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
+				{
+					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+					replace_group_id(prod,group_id_with_prefix);
+					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
+					{
+						fklUninitStringBuffer(&buffer);
+						fklDestroyGrammerProduction(prod);
+						goto reader_macro_error;
+					}
+				}
+			}
+			fklStringBufferClear(&buffer);
+		}
+		fklUninitStringBuffer(&buffer);
+		if(add_all_group_to_grammer(codegen))
+			goto reader_macro_error;
+	}
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
 	add_symbol_with_prefix_to_local_env_in_array(curEnv
 			,codegen->globalSymTable
@@ -4097,10 +4298,11 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 
 	uint32_t exportNum=lib->exportNum;
 	uint32_t* exportIndex=lib->exportIndex;
-	FklSid_t* exportsP=lib->exportsP;
+	FklSid_t* exportsP=lib->exports_in_pst;
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
 
+	int is_inited_grammer=0;
 	for(;only->type==FKL_NAST_PAIR;only=only->pair->cdr)
 	{
 		FklSid_t cur=only->pair->car->sym;
@@ -4125,6 +4327,74 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 			rep->refcount--;
 			fklAddReplacementBySid(cur,rep,macroScope->replacements);
 		}
+
+		if(lib->named_prod_groups.t&&fklGetHashItem(&cur,&lib->named_prod_groups))
+		{
+			r=1;
+			if(!is_inited_grammer)
+			{
+				if(!codegen->g)
+				{
+					if(init_builtin_grammer(codegen,fklGetPubSymTab()))
+					{
+reader_macro_error:
+						errorState->line=curline;
+						errorState->fid=codegen->fid;
+						errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+						errorState->place=NULL;
+						return NULL;
+					}
+				}
+				else
+				{
+					fklClearGrammer(codegen->g);
+					if(add_group_ignores(codegen->g,codegen->builtin_ignores))
+						goto reader_macro_error;
+
+					if(add_group_prods(codegen->g,&codegen->builtin_prods))
+						goto reader_macro_error;
+				}
+				is_inited_grammer=1;
+			}
+			FklGrammer* g=codegen->g;
+			FklSymbolTable* origin_table=lib->terminal_table;
+			FklGrammerProductionGroup* group=fklGetHashItem(&cur,&lib->named_prod_groups);
+			FklGrammerProductionGroup* target_group=add_production_group(&codegen->named_prod_groups,cur);
+
+			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+			{
+				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+				FKL_ASSERT(ig);
+				ig->len=igs->len;
+				ig->next=NULL;
+				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+
+				recompute_ignores_terminal_sid(ig,g->terminals);
+				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
+				{
+					free(ig);
+					goto reader_macro_error;
+				}
+			}
+
+			for(FklHashTableItem* prod_hash_item=group->prods.first
+					;prod_hash_item
+					;prod_hash_item=prod_hash_item->next)
+			{
+				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
+				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
+				{
+					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
+					{
+						fklDestroyGrammerProduction(prod);
+						goto reader_macro_error;
+					}
+				}
+			}
+		}
+
 		uint32_t idl=0;
 		for(;idl<exportNum&&exportsP[idl]!=cur;idl++);
 		if(idl!=exportNum)
@@ -4144,6 +4414,8 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 		}
 	}
 
+	if(is_inited_grammer&&add_all_group_to_grammer(codegen))
+		goto reader_macro_error;
 	return importBc;
 }
 
@@ -4162,7 +4434,8 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 		,uint32_t scope
 		,FklCodegenMacroScope* macroScope
 		,uint64_t curline
-		,FklNastNode* except)
+		,FklNastNode* except
+		,FklCodegenErrorState* errorState)
 {
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
 
@@ -4172,7 +4445,7 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 	uint32_t exportNum=lib->exportNum;
 	uint32_t* exportIndex=lib->exportIndex;
 
-	FklSid_t* exportsP=lib->exportsP;
+	FklSid_t* exportsP=lib->exports_in_pst;
 
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
@@ -4196,7 +4469,76 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 		if(!is_in_except_list(except,rep->id))
 			fklAddReplacementBySid(rep->id,rep->node,macroScope->replacements);
 	}
+	if(lib->named_prod_groups.t)
+	{
+		if(!codegen->g)
+		{
+			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
+			{
+reader_macro_error:
+				errorState->line=curline;
+				errorState->fid=codegen->fid;
+				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+				errorState->place=NULL;
+				return NULL;
+			}
+		}
+		else
+		{
+			fklClearGrammer(codegen->g);
+			if(add_group_ignores(codegen->g,codegen->builtin_ignores))
+				goto reader_macro_error;
 
+			if(add_group_prods(codegen->g,&codegen->builtin_prods))
+				goto reader_macro_error;
+		}
+
+		FklGrammer* g=codegen->g;
+		FklSymbolTable* origin_table=lib->terminal_table;
+		for(FklHashTableItem* prod_group_item=lib->named_prod_groups.first;prod_group_item;prod_group_item=prod_group_item->next)
+		{
+			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)prod_group_item->data;
+			if(!is_in_except_list(except,group->id))
+			{
+				FklGrammerProductionGroup* target_group=add_production_group(&codegen->named_prod_groups,group->id);
+
+				for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+				{
+					FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+					FKL_ASSERT(ig);
+					ig->len=igs->len;
+					ig->next=NULL;
+					memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+
+					recompute_ignores_terminal_sid(ig,g->terminals);
+					if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
+					{
+						free(ig);
+						goto reader_macro_error;
+					}
+				}
+
+				for(FklHashTableItem* prod_hash_item=group->prods.first
+						;prod_hash_item
+						;prod_hash_item=prod_hash_item->next)
+				{
+					FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
+					for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
+					{
+						FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+						recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+						if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
+						{
+							fklDestroyGrammerProduction(prod);
+							goto reader_macro_error;
+						}
+					}
+				}
+			}
+		}
+		if(add_all_group_to_grammer(codegen))
+			goto reader_macro_error;
+	}
 	for(uint32_t i=0;i<exportNum;i++)
 	{
 		if(!is_in_except_list(except,exportsP[i]))
@@ -4233,6 +4575,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
 
+	int is_inited_grammer=0;
 	for(;alias->type==FKL_NAST_PAIR;alias=alias->pair->cdr)
 	{
 		FklNastNode* curNode=alias->pair->car;
@@ -4266,6 +4609,76 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 			rep->refcount--;
 			fklAddReplacementBySid(cur0,rep,macroScope->replacements);
 		}
+
+		if(lib->named_prod_groups.t&&fklGetHashItem(&cur,&lib->named_prod_groups))
+		{
+			r=1;
+			if(!is_inited_grammer)
+			{
+				if(!codegen->g)
+				{
+					if(init_builtin_grammer(codegen,fklGetPubSymTab()))
+					{
+reader_macro_error:
+						errorState->line=curline;
+						errorState->fid=codegen->fid;
+						errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+						errorState->place=NULL;
+						return NULL;
+					}
+				}
+				else
+				{
+					fklClearGrammer(codegen->g);
+					if(add_group_ignores(codegen->g,codegen->builtin_ignores))
+						goto reader_macro_error;
+
+					if(add_group_prods(codegen->g,&codegen->builtin_prods))
+						goto reader_macro_error;
+				}
+				is_inited_grammer=1;
+			}
+			FklGrammer* g=codegen->g;
+			FklSymbolTable* origin_table=lib->terminal_table;
+			FklGrammerProductionGroup* group=fklGetHashItem(&cur,&lib->named_prod_groups);
+
+			FklGrammerProductionGroup* target_group=add_production_group(&codegen->named_prod_groups,cur0);
+
+			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+			{
+				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+				FKL_ASSERT(ig);
+				ig->len=igs->len;
+				ig->next=NULL;
+				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+
+				recompute_ignores_terminal_sid(ig,g->terminals);
+				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
+				{
+					free(ig);
+					goto reader_macro_error;
+				}
+			}
+
+			for(FklHashTableItem* prod_hash_item=group->prods.first
+					;prod_hash_item
+					;prod_hash_item=prod_hash_item->next)
+			{
+				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
+				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
+				{
+					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+					replace_group_id(prod,cur0);
+					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
+					{
+						fklDestroyGrammerProduction(prod);
+						goto reader_macro_error;
+					}
+				}
+			}
+		}
+
 		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithIdFromPst(cur)->symbol,globalSymTable)->id;
 		uint32_t idl=0;
 		for(;idl<exportNum&&exports[idl]!=targetId;idl++);
@@ -4285,6 +4698,10 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 			break;
 		}
 	}
+	
+	if(is_inited_grammer&&add_all_group_to_grammer(codegen))
+		goto reader_macro_error;
+
 	return importBc;
 }
 
@@ -4301,7 +4718,6 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 		,FklNastNode* except
 		,FklCodegenErrorState* errorState)
 {
-	// process_import_reader_macro(cms->phead,lib->patterns,0);
 	if(prefix)
 		return process_import_imported_lib_prefix(libId
 				,codegen
@@ -4310,7 +4726,8 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 				,scope
 				,cms
 				,line
-				,prefix);
+				,prefix
+				,errorState);
 	if(only)
 		return process_import_imported_lib_only(libId
 				,codegen
@@ -4339,18 +4756,42 @@ static inline FklByteCodelnt* process_import_imported_lib(uint32_t libId
 				,scope
 				,cms
 				,line
-				,except);
+				,except
+				,errorState);
 	return process_import_imported_lib_common(libId
 			,codegen
 			,lib
 			,env
 			,scope
 			,cms
-			,line);
+			,line
+			,errorState);
+}
+
+static inline int is_exporting_outer_ref_group(FklCodegen* codegen)
+{
+	for(FklHashTableItem* sid_list=codegen->export_named_prod_groups->first
+			;sid_list
+			;sid_list=sid_list->next)
+	{
+		FklSid_t id=*(FklSid_t*)sid_list->data;
+		FklGrammerProductionGroup* group=fklGetHashItem(&id,&codegen->named_prod_groups);
+		if(group->is_ref_outer)
+			return 1;
+	}
+	return 0;
 }
 
 BC_PROCESS(_library_bc_process)
 {
+	if(is_exporting_outer_ref_group(codegen))
+	{
+		errorState->type=FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP;
+		errorState->fid=codegen->fid;
+		errorState->line=line;
+		errorState->place=NULL;
+		return NULL;
+	}
 	ExportContextData* data=context->data;
 	FklByteCodelnt* libBc=sequnce_exp_bc_process(data->stack,fid,line);
 
@@ -4359,13 +4800,8 @@ BC_PROCESS(_library_bc_process)
 	FklByteCode exportOpBc={5,exportOpBcCode};
 	fklBclBcAppendToBcl(libBc,&exportOpBc,fid,line);
 
-	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen->realpath
+	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen
 			,libBc
-			,codegen->exportNum
-			,codegen->exports
-			,codegen->exports_in_pst
-			,codegen->export_macro
-			,codegen->export_replacement
 			,env);
 
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable);
@@ -4502,8 +4938,6 @@ BC_PROCESS(_export_import_bc_process)
 		fklAddReplacementBySid(rep->id,rep->node,macros->replacements);
 	}
 
-	// process_import_reader_macro(macros->phead,cms->patterns,0);
-	// process_import_reader_macro(&codegen->exportRM,cms->patterns,0);
 	return bcl;
 }
 
@@ -4561,6 +4995,15 @@ static inline int is_symbolId_in(FklSid_t* ida,uint32_t num,FklSid_t id)
 	for(;ida<end;ida++)
 		if(*ida==id)
 			return 1;
+	return 0;
+}
+
+static inline FklSid_t get_reader_macro_group_id(const FklNastNode* node)
+{
+	for(;node->pair->cdr->type!=FKL_NAST_NIL;node=node->pair->cdr);
+	const FklNastNode* group_id_node=node->pair->car;
+	if(group_id_node->type==FKL_NAST_SYM)
+		return group_id_node->sym;
 	return 0;
 }
 
@@ -4626,8 +5069,6 @@ process_def_in_lib:
 		{
 			FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 
-			// cms->phead=&cms->patterns;
-
 			fklPushPtrStack(createCodegenQuest(_export_macro_bc_process
 						,createEmptyContext()
 						,createDefaultQueueNextExpression(queue)
@@ -4653,13 +5094,31 @@ process_def_in_lib:
 					,codegenQuestStack);
 		}
 	}
+	else if(isExportDefReaderMacroExp(value))
+	{
+		FklSid_t group_id=get_reader_macro_group_id(value);
+		if(!group_id)
+			goto error;
+		if(isInLib)
+			fklPutHashItem(&group_id,codegen->export_named_prod_groups);
+		fklPushPtrStack(createCodegenQuest(_empty_bc_process
+					,createEmptyContext()
+					,createDefaultQueueNextExpression(queue)
+					,1
+					,macroScope
+					,curEnv
+					,origExp->curline
+					,NULL
+					,codegen)
+				,codegenQuestStack);
+	}
 	else if(isExportImportExp(value))
 	{
 		if(isInLib)
 		{
 			FklCodegenEnv* exportEnv=fklCreateCodegenEnv(NULL,0,macroScope);
 			FklCodegenMacroScope* cms=exportEnv->macros;
-			// cms->phead=&cms->patterns;
+
 			fklPushPtrStack(createCodegenQuest(_export_import_bc_process
 						,createExportContext(libCodegen,curEnv,1,cms,NULL,NULL,NULL,NULL)
 						,createDefaultQueueNextExpression(queue)
@@ -4689,6 +5148,8 @@ process_as_begin:
 	else
 	{
 error:
+		fklDestroyNastNode(value);
+		fklDestroyPtrQueue(queue);
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
@@ -4723,9 +5184,6 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 {
 	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0,NULL);
 	FklCodegen* nextCodegen=createCodegen(codegen,filename,libEnv,1,0);
-	// nextCodegen->head=fklInitBuiltInStringPattern(nextCodegen->publicSymbolTable);
-	// nextCodegen->phead=&nextCodegen->head;
-	// libEnv->macros->phead=nextCodegen->phead;
 
 	fklInitGlobCodegenEnv(libEnv);
 
@@ -4933,7 +5391,7 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 	FklByteCode bc={9,importCode};
 
 	uint32_t exportNum=lib->exportNum;
-	FklSid_t* exportsP=lib->exportsP;
+	FklSid_t* exportsP=lib->exports_in_pst;
 
 	for(uint32_t i=0;i<exportNum;i++)
 	{
@@ -5617,8 +6075,10 @@ static void custom_action_ctx_destroy(void* c)
 		ctx->refcount--;
 	else
 	{
-		fklDestroyByteCodelnt(ctx->bcl);
-		fklDestroyFuncPrototypes(ctx->pts);
+		if(ctx->bcl)
+			fklDestroyByteCodelnt(ctx->bcl);
+		if(ctx->pts)
+			fklDestroyFuncPrototypes(ctx->pts);
 		free(ctx);
 	}
 }
@@ -6647,13 +7107,14 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 			const FklNastNode* cur=base[i];
 			FklGrammerSym* ss=&retval[i];
 			ss->delim=delim[i];
-			ss->end_with_terminal=end_with_terminal[i];
+			ss->end_with_terminal=0;
 			if(cur->type==FKL_NAST_STR)
 			{
 				ss->isterm=1;
 				ss->isbuiltin=0;
 				ss->nt.group=0;
 				ss->nt.sid=fklAddSymbol(cur->str,tt)->id;
+				ss->end_with_terminal=end_with_terminal[i];
 			}
 			else if(cur->type==FKL_NAST_PAIR)
 			{
@@ -6760,7 +7221,6 @@ static inline FklGrammerProduction* nast_vector_to_production(const FklNastVecto
 		,FklCodegenMacroScope* macroScope
 		,FklPtrStack* codegenQuestStack)
 {
-#warning incomplete
 	int failed=0;
 	size_t len=0;
 	FklGrammerSym* syms=nast_vector_to_production_right_part(vec
@@ -6890,7 +7350,7 @@ static inline int add_group_ignores(FklGrammer* g,FklGrammerIgnore* igs)
 		ig->next=NULL;
 		memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
 
-		if(fklAddIgnoreToGrammer(&g->ignores,ig))
+		if(fklAddIgnoreToIgnoreList(&g->ignores,ig))
 		{
 			free(ig);
 			return 1;
@@ -7071,10 +7531,10 @@ static const FklHashTableMetaTable GrammerProductionMetaTable=
 	.__setVal=grammer_production_group_set_val,
 };
 
-static inline FklGrammerProductionGroup* add_production_group(FklCodegen* codegen,FklSid_t group_id)
+static inline FklGrammerProductionGroup* add_production_group(FklHashTable* named_prod_groups,FklSid_t group_id)
 {
 	FklGrammerProductionGroup group_init={.id=group_id,.ignore=NULL,.is_ref_outer=0,.prods.t=NULL};
-	FklGrammerProductionGroup* group=fklGetOrPutHashItem(&group_init,&codegen->named_prod_groups);
+	FklGrammerProductionGroup* group=fklGetOrPutHashItem(&group_init,named_prod_groups);
 	if(!group->prods.t)
 		fklInitGrammerProductionTable(&group->prods);
 	return group;
@@ -7159,7 +7619,6 @@ static inline int process_add_production(FklSid_t group_id
 		,FklCodegenMacroScope* macroScope
 		,FklPtrStack* codegenQuestStack)
 {
-#warning incomlete
 	FklSymbolTable* st=fklGetPubSymTab();
 	if(!codegen->g)
 	{
@@ -7193,7 +7652,7 @@ reader_macro_error:
 		}
 		if(group_id==0)
 		{
-			if(fklAddIgnoreToGrammer(&codegen->unnamed_ignores,ignore))
+			if(fklAddIgnoreToIgnoreList(&codegen->unnamed_ignores,ignore))
 			{
 				fklDestroyIgnore(ignore);
 				goto reader_macro_error;
@@ -7201,8 +7660,8 @@ reader_macro_error:
 		}
 		else
 		{
-			FklGrammerProductionGroup* group=add_production_group(codegen,group_id);
-			if(fklAddIgnoreToGrammer(&group->ignore,ignore))
+			FklGrammerProductionGroup* group=add_production_group(&codegen->named_prod_groups,group_id);
+			if(fklAddIgnoreToIgnoreList(&group->ignore,ignore))
 			{
 				fklDestroyIgnore(ignore);
 				goto reader_macro_error;
@@ -7233,7 +7692,7 @@ reader_macro_error:
 				goto reader_macro_error;
 			if(group_id==0)
 			{
-				if(fklAddProdToGrammer(&codegen->unnamed_prods,&codegen->g->builtins,prod))
+				if(fklAddProdToProdTable(&codegen->unnamed_prods,&codegen->g->builtins,prod))
 				{
 					fklDestroyGrammerProduction(prod);
 					goto reader_macro_error;
@@ -7241,8 +7700,8 @@ reader_macro_error:
 			}
 			else
 			{
-				FklGrammerProductionGroup* group=add_production_group(codegen,group_id);
-				if(fklAddProdToGrammer(&group->prods,&codegen->g->builtins,prod))
+				FklGrammerProductionGroup* group=add_production_group(&codegen->named_prod_groups,group_id);
+				if(fklAddProdToProdTable(&group->prods,&codegen->g->builtins,prod))
 				{
 					fklDestroyGrammerProduction(prod);
 					goto reader_macro_error;
@@ -7275,12 +7734,12 @@ reader_macro_error:
 				goto reader_macro_error;
 			if(group_id==0)
 			{
-				if(fklAddProdToGrammer(&codegen->unnamed_prods,&codegen->g->builtins,prod))
+				if(fklAddProdToProdTable(&codegen->unnamed_prods,&codegen->g->builtins,prod))
 				{
 					fklDestroyGrammerProduction(prod);
 					goto reader_macro_error;
 				}
-				if(fklAddProdToGrammer(&codegen->unnamed_prods,&codegen->g->builtins,extra_prod))
+				if(fklAddProdToProdTable(&codegen->unnamed_prods,&codegen->g->builtins,extra_prod))
 				{
 					fklDestroyGrammerProduction(extra_prod);
 					goto reader_macro_error;
@@ -7288,13 +7747,13 @@ reader_macro_error:
 			}
 			else
 			{
-				FklGrammerProductionGroup* group=add_production_group(codegen,group_id);
-				if(fklAddProdToGrammer(&group->prods,&codegen->g->builtins,prod))
+				FklGrammerProductionGroup* group=add_production_group(&codegen->named_prod_groups,group_id);
+				if(fklAddProdToProdTable(&group->prods,&codegen->g->builtins,prod))
 				{
 					fklDestroyGrammerProduction(prod);
 					goto reader_macro_error;
 				}
-				if(fklAddProdToGrammer(&group->prods,&codegen->g->builtins,extra_prod))
+				if(fklAddProdToProdTable(&group->prods,&codegen->g->builtins,extra_prod))
 				{
 					fklDestroyGrammerProduction(extra_prod);
 					goto reader_macro_error;
@@ -7326,7 +7785,7 @@ reader_macro_error:
 				goto reader_macro_error;
 			if(group_id==0)
 			{
-				if(fklAddProdToGrammer(&codegen->unnamed_prods,&codegen->g->builtins,prod))
+				if(fklAddProdToProdTable(&codegen->unnamed_prods,&codegen->g->builtins,prod))
 				{
 					fklDestroyGrammerProduction(prod);
 					goto reader_macro_error;
@@ -7334,8 +7793,8 @@ reader_macro_error:
 			}
 			else
 			{
-				FklGrammerProductionGroup* group=add_production_group(codegen,group_id);
-				if(fklAddProdToGrammer(&group->prods,&codegen->g->builtins,prod))
+				FklGrammerProductionGroup* group=add_production_group(&codegen->named_prod_groups,group_id);
+				if(fklAddProdToProdTable(&group->prods,&codegen->g->builtins,prod))
 				{
 					fklDestroyGrammerProduction(prod);
 					goto reader_macro_error;
@@ -7442,70 +7901,6 @@ static CODEGEN_FUNC(codegen_defmacro)
 			errorState->fid=codegen->fid;
 			return;
 		}
-		// if(isNonRetvalExp(value))
-		// {
-		// 	errorState->type=FKL_ERR_SYNTAXERROR;
-		// 	errorState->place=fklMakeNastNodeRef(origExp);
-		// 	errorState->fid=codegen->fid;
-		// 	return;
-		// }
-		// FklHashTable* symbolTable=NULL;
-		// if(!fklIsValidStringPattern(name,&symbolTable))
-		// {
-		// 	errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
-		// 	errorState->place=fklMakeNastNodeRef(name);
-		// 	errorState->fid=codegen->fid;
-		// 	return;
-		// }
-		// FklCodegenEnv* macroEnv=fklCreateCodegenEnv(NULL,0,macroScope);
-		// for(FklHashTableItem* list=symbolTable->first
-		// 		;list
-		// 		;list=list->next)
-		// {
-		// 	FklSid_t* item=(FklSid_t*)list->data;
-		// 	fklAddCodegenDefBySid(*item,1,macroEnv);
-		// }
-		// fklDestroyHashTable(symbolTable);
-		//
-		// FklCodegen* macroCodegen=createCodegen(codegen
-		// 		,NULL
-		// 		,macroEnv
-		// 		,0
-		// 		,1);
-		// macroCodegen->builtinSymModiMark=fklGetBultinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
-		// fklDestroyCodegenEnv(macroEnv->prev);
-		// macroEnv->prev=NULL;
-		// free(macroCodegen->curDir);
-		// macroCodegen->curDir=fklCopyCstr(codegen->curDir);
-		// macroCodegen->filename=fklCopyCstr(codegen->filename);
-		// macroCodegen->realpath=fklCopyCstr(codegen->realpath);
-		// macroCodegen->pts=fklCreateFuncPrototypes(0);
-		//
-		// macroCodegen->globalSymTable=codegen->publicSymbolTable;
-		// macroCodegen->publicSymbolTable=codegen->publicSymbolTable;
-		// macroCodegen->loadedLibStack=macroCodegen->macroLibStack;
-		// macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,macroCodegen->publicSymbolTable)->id:0;
-		// fklInitGlobCodegenEnv(macroEnv,macroCodegen->publicSymbolTable);
-		//
-		// create_and_insert_to_pool(macroCodegen->pts
-		// 		,0
-		// 		,macroEnv
-		// 		,macroCodegen->globalSymTable
-		// 		,macroCodegen->publicSymbolTable
-		// 		,0
-		// 		,macroCodegen->fid
-		// 		,value->curline);
-		// FklPtrQueue* queue=fklCreatePtrQueue();
-		// fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
-		// FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
-		// 		,createMacroQuestContext(name,macroScope,macroCodegen->pts)
-		// 		,createDefaultQueueNextExpression(queue)
-		// 		,1
-		// 		,macroEnv->macros
-		// 		,macroEnv
-		// 		,value->curline
-		// 		,macroCodegen
-		// 		,codegenQuestStack);
 	}
 	else
 	{
@@ -7802,6 +8197,13 @@ static struct PatternAndFunc
 static inline int isExportDefmacroExp(const FklNastNode* c)
 {
 	return fklPatternMatch(builtInPattern[PATTERN_DEFMACRO].pn,c,NULL)
+		&&cadr_nast_node(c)->type!=FKL_NAST_VECTOR;
+}
+
+static inline int isExportDefReaderMacroExp(const FklNastNode* c)
+{
+	return (fklPatternMatch(builtInPattern[PATTERN_DEFMACRO].pn,c,NULL)
+			&&cadr_nast_node(c)->type==FKL_NAST_VECTOR)
 		||fklPatternMatch(builtInPattern[PATTERN_DEF_READER_MACROS].pn,c,NULL);
 }
 
@@ -8024,6 +8426,9 @@ static void printCodegenError(FklNastNode* obj
 		case FKL_ERR_IMPORT_MISSING:
 			fprintf(stderr,"Missing import for ");
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
+			break;
+		case FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP:
+			fprintf(stderr,"Exporting production groups with reference to other group");
 			break;
 		default:
 			fprintf(stderr,"Unknown compiling error.");
@@ -8312,6 +8717,7 @@ void fklInitCodegener(FklCodegen* codegen
 	codegen->macroMark=macroMark;
 	codegen->export_macro=NULL;
 	codegen->export_replacement=libMark?createCodegenReplacements():NULL;
+	codegen->export_named_prod_groups=libMark?fklCreateSidSet():NULL;
 	if(prev)
 	{
 		codegen->loadedLibStack=prev->loadedLibStack;
@@ -8366,6 +8772,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 		cur=cur->next;
 		fklDestroyCodegenMacro(t);
 	}
+	if(codegen->export_named_prod_groups)
+		fklDestroyHashTable(codegen->export_named_prod_groups);
 	if(codegen->export_replacement)
 		fklDestroyHashTable(codegen->export_replacement);
 	if(codegen->g)
@@ -8387,31 +8795,95 @@ void fklUninitCodegener(FklCodegen* codegen)
 	}
 }
 
+static inline void recompute_all_terminal_sid(FklGrammerProductionGroup* group
+		,FklSymbolTable* target_table
+		,FklSymbolTable* origin_table)
+{
+	for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+		recompute_ignores_terminal_sid(igs,target_table);
+	for(FklHashTableItem* prod_hash_item_list=group->prods.first
+			;prod_hash_item_list
+			;prod_hash_item_list=prod_hash_item_list->next)
+	{
+		FklGrammerProdHashItem* prod_item=(FklGrammerProdHashItem*)prod_hash_item_list->data;
+		for(FklGrammerProduction* prods=prod_item->prods;prods;prods=prods->next)
+			recompute_prod_terminal_sid(prods,target_table,origin_table);
+	}
+}
+
 void fklInitCodegenScriptLib(FklCodegenLib* lib
-		,char* rp
+		,FklCodegen* codegen
 		,FklByteCodelnt* bcl
-		,size_t exportNum
-		,FklSid_t* exports
-		,FklSid_t* exportsP
-		,FklCodegenMacro* head
-		,FklHashTable* replacements
 		,FklCodegenEnv* env)
 {
-	lib->rp=rp;
+	size_t exportNum=0;
+	FklSid_t* exports_in_pst=NULL;
 	lib->type=FKL_CODEGEN_LIB_SCRIPT;
 	lib->bcl=bcl;
-	lib->exportNum=exportNum;
-	lib->exports=exports;
-	lib->head=head;
-	lib->replacements=replacements;
-	lib->exportsP=exportsP;
+	lib->named_prod_groups.t=NULL;
+	lib->terminal_table=NULL;
+	if(codegen)
+	{
+		exportNum=codegen->exportNum;
+		exports_in_pst=codegen->exports_in_pst;
+		lib->rp=codegen->realpath;
+		lib->exportNum=exportNum;
+		lib->exports=codegen->exports;
+		lib->head=codegen->export_macro;
+		lib->replacements=codegen->export_replacement;
+		lib->exports_in_pst=exports_in_pst;
+		if(codegen->export_named_prod_groups&&codegen->export_named_prod_groups->num)
+		{
+			lib->terminal_table=fklCreateSymbolTable();
+			FklGrammer* g=codegen->g;
+			fklInitHashTable(&lib->named_prod_groups,&GrammerProductionMetaTable);
+			for(FklHashTableItem* sid_list=codegen->export_named_prod_groups->first
+					;sid_list
+					;sid_list=sid_list->next)
+			{
+				FklSid_t id=*(FklSid_t*)sid_list->data;
+				FklGrammerProductionGroup* group=fklGetHashItem(&id,&codegen->named_prod_groups);
+				FklGrammerProductionGroup* target_group=add_production_group(&lib->named_prod_groups,id);
+				for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+				{
+					FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+					FKL_ASSERT(ig);
+					ig->len=igs->len;
+					ig->next=NULL;
+					memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+					fklAddIgnoreToIgnoreList(&target_group->ignore,ig);
+				}
+				for(FklHashTableItem* prod_hash_item_list=group->prods.first
+						;prod_hash_item_list
+						;prod_hash_item_list=prod_hash_item_list->next)
+				{
+					FklGrammerProdHashItem* prod_item=(FklGrammerProdHashItem*)prod_hash_item_list->data;
+					for(FklGrammerProduction* prods=prod_item->prods;prods;prods=prods->next)
+					{
+						FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+						fklAddProdToProdTable(&target_group->prods,&g->builtins,prod);
+					}
+				}
+				recompute_all_terminal_sid(target_group,lib->terminal_table,g->terminals);
+			}
+		}
+	}
+	else
+	{
+		lib->rp=NULL;
+		lib->exports=NULL;
+		lib->head=NULL;
+		lib->replacements=NULL;
+		lib->exportNum=exportNum;
+		lib->exports_in_pst=exports_in_pst;
+	}
 	if(env)
 	{
 		lib->prototypeId=env->prototypeId;
 		uint32_t* idxes=(uint32_t*)malloc(sizeof(uint32_t)*exportNum);
 		FKL_ASSERT(idxes||!exportNum);
 		for(uint32_t i=0;i<exportNum;i++)
-			idxes[i]=fklAddCodegenDefBySid(exportsP[i],1,env);
+			idxes[i]=fklAddCodegenDefBySid(exports_in_pst[i],1,env);
 		lib->exportIndex=idxes;
 	}
 	else
@@ -8421,25 +8893,15 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 	}
 }
 
-FklCodegenLib* fklCreateCodegenScriptLib(char* rp
+FklCodegenLib* fklCreateCodegenScriptLib(FklCodegen* codegen
 		,FklByteCodelnt* bcl
-		,size_t exportNum
-		,FklSid_t* exports
-		,FklSid_t* exportsP
-		,FklCodegenMacro* head
-		,FklHashTable* replacements
 		,FklCodegenEnv* env)
 {
 	FklCodegenLib* lib=(FklCodegenLib*)malloc(sizeof(FklCodegenLib));
 	FKL_ASSERT(lib);
 	fklInitCodegenScriptLib(lib
-			,rp
+			,codegen
 			,bcl
-			,exportNum
-			,exports
-			,exportsP
-			,head
-			,replacements
 			,env);
 	return lib;
 }
@@ -8479,7 +8941,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 		FklSid_t idp=fklAddSymbolToPst(fklGetSymbolWithId(exports[i],table)->symbol)->id;
 		exportsP[i]=idp;
 	}
-	lib->exportsP=exportsP;
+	lib->exports_in_pst=exportsP;
 	lib->exports=exports;
 	lib->exportNum=num;
 }
@@ -8505,8 +8967,13 @@ inline void fklUninitCodegenLibInfo(FklCodegenLib* lib)
 {
 	free(lib->rp);
 	free(lib->exports);
-	free(lib->exportsP);
+	free(lib->exports_in_pst);
 	free(lib->exportIndex);
+	if(lib->named_prod_groups.t)
+	{
+		fklUninitHashTable(&lib->named_prod_groups);
+		fklDestroySymbolTable(lib->terminal_table);
+	}
 	lib->exportNum=0;
 }
 

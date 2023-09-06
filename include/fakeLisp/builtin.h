@@ -44,6 +44,8 @@ typedef enum
 	FKL_ERR_CIR_REF,
 	FKL_ERR_UNSUPPORTED_OP,
 	FKL_ERR_IMPORT_MISSING,
+	FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP,
+	FKL_ERR_IMPORT_READER_MACRO_ERROR,
 }FklBuiltInErrorType;
 
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);

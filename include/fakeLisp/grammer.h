@@ -38,7 +38,7 @@ typedef struct
 	int (*ctx_cmp)(const void* c0,const void* c1);
 	int (*ctx_equal)(const void* c0,const void* c1);
 	uintptr_t (*ctx_hash)(const void* c);
-	void* (*ctx_create)(const struct FklGrammerSym* next,const FklSymbolTable* tt,int* failed);
+	void* (*ctx_create)(const FklString* next,int* failed);
 	void* (*ctx_global_create)(size_t,struct FklGrammerProduction* prod,struct FklGrammer* g,int* failed);
 	void (*ctx_destroy)(void*);
 	const char* name;
@@ -275,7 +275,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
 FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction prodAction[],FklSymbolTable* st);
 
 int fklAddProdAndExtraToGrammer(FklGrammer* g,FklGrammerProduction* prod);
-int fklAddProdToGrammer(FklHashTable* productions
+int fklAddProdToProdTable(FklHashTable* productions
 		,FklHashTable* builtins
 		,FklGrammerProduction* prod);
 void fklDestroyGrammer(FklGrammer*);
@@ -411,7 +411,7 @@ FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st);
 FklGrammer* fklCreateBuiltinGrammer(FklSymbolTable* st);
 
-int fklAddIgnoreToGrammer(FklGrammerIgnore** pp,FklGrammerIgnore* ig);
+int fklAddIgnoreToIgnoreList(FklGrammerIgnore** pp,FklGrammerIgnore* ig);
 void fklDestroyIgnore(FklGrammerIgnore* ig);
 
 size_t fklQuotedStringMatch(const char* cstr,size_t restLen,const FklString* end);

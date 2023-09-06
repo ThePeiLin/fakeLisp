@@ -10,7 +10,11 @@
         (test-lex)
         (reader-macro)
         (compiler-macro)
-        (bigloop)
-        (test))
+        (test)
+        (test-alias)
+        (test-only)
+        (test-prefix)
+        (test-except)
+        (bigloop))
 
 (println "\ntest done!")

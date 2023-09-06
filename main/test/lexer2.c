@@ -132,6 +132,21 @@ static inline FklNastNode* prod_action_list(void* ctx
 	return pair;
 }
 
+static inline FklNastNode* prod_action_fn_call(void* ctx
+		,FklNastNode** nodes
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	FklNastNode* car=nodes[0];
+	FklNastNode* cdr=nodes[2];
+	FklNastNode* pair=fklCreateNastNode(FKL_NAST_PAIR,line);
+	pair->pair=fklCreateNastPair();
+	pair->pair->car=fklMakeNastNodeRef(car);
+	pair->pair->cdr=fklMakeNastNodeRef(cdr);
+	return pair;
+}
+
 static inline FklNastNode* prod_action_dec_integer(void* ctx
 		,FklNastNode** nodes
 		,size_t num
@@ -444,6 +459,26 @@ static inline FklNastNode* prod_action_bytevector(void* ctx
 	return r;
 }
 
+// static const FklGrammerCstrAction example_grammer_action[]=
+// {
+// 	{"s &b &b",           "prod_action_return_first", prod_action_return_first, },
+// 	{"b ##reacherable",   "prod_action_return_first", prod_action_return_first, },
+// 	{"u ##unreacherable", "prod_action_return_first", prod_action_return_first, },
+//
+// 	{"+ &%space",         NULL,                       NULL,                     },
+// 	{"+ #; &%eol",        NULL,                       NULL,                     },
+// 	{"+ ##! &%eol",       NULL,                       NULL,                     },
+// 	{NULL,                NULL,                       NULL,                     },
+// };
+
+// static const FklGrammerCstrAction example_grammer_action[]=
+// {
+// 	{"s #/* + &%until + #*/", "prod_action_return_second",prod_action_return_second, },
+// 	{"s #\" + &%qstr + #\"",   "prod_action_return_second", prod_action_return_second, },
+//
+// 	{NULL,                NULL,                       NULL,                     },
+// };
+
 static const FklGrammerCstrAction example_grammer_action[]=
 {
 	{"s-exp &list",                   "prod_action_return_first",  prod_action_return_first,  },
@@ -462,6 +497,7 @@ static const FklGrammerCstrAction example_grammer_action[]=
 	{"s-exp &qsquote",                "prod_action_return_first",  prod_action_return_first,  },
 	{"s-exp &unquote",                "prod_action_return_first",  prod_action_return_first,  },
 	{"s-exp &unqtesp",                "prod_action_return_first",  prod_action_return_first,  },
+	{"s-exp &fn-call",                "prod_action_return_first",  prod_action_return_first,  },
 
 	{"quote #' &s-exp",               "prod_action_quote",         prod_action_quote,         },
 	{"qsquote #` &s-exp",             "prod_action_qsquote",       prod_action_qsquote,       },
@@ -478,7 +514,7 @@ static const FklGrammerCstrAction example_grammer_action[]=
 	{"float &%s-dfloat + #|",         "prod_action_float",         prod_action_float,         },
 	{"float &%s-xfloat + #|",         "prod_action_float",         prod_action_float,         },
 
-	{"char &%s-char + ##\\",          "prod_action_char",      prod_action_char,      },
+	{"char &%s-char + ##\\",          "prod_action_char",          prod_action_char,          },
 
 	{"box ##& &s-exp",                "prod_action_box",           prod_action_box,           },
 
@@ -513,6 +549,7 @@ static const FklGrammerCstrAction example_grammer_action[]=
 
 	{"v8 ",                           "prod_action_nil",           prod_action_nil,           },
 	{"v8 &integer &v8",               "prod_action_list",          prod_action_list,          },
+	{"fn-call &s-exp #'{ &l #}",      "prod_action_fn_call",       prod_action_fn_call,       },
 
 	{"+ &%space",                     NULL,                        NULL,                      },
 	{"+ #; &%eol",                    NULL,                        NULL,                      },
@@ -593,6 +630,7 @@ int main()
 		"'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)",
 		"\"foobar\"",
 		"114514",
+		"println'{foo bar}",
 		NULL,
 	};
 

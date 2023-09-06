@@ -94,6 +94,9 @@ enable_testing()
 add_executable(test-lexer "main/test/lexer.c")
 target_link_libraries(test-lexer ${LIBFKL_TARGET_NAME})
 
+add_executable(test-lexer2 "main/test/lexer2.c")
+target_link_libraries(test-lexer2 ${LIBFKL_TARGET_NAME})
+
 add_executable(test-parser "main/test/parser.c")
 target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 

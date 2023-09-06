@@ -80,7 +80,7 @@
         (define nf (and f (cdr f)))
         (if nf
           (fast-and-slow (cdr h) (cdr s) (cdr nf))
-          (begin (set-cdr! h nil) s)))
+          (begin (cdr-set! h nil) s)))
       (fast-and-slow (cons nil ls) ls ls))
 
     (define (merge l h)
@@ -93,13 +93,13 @@
            (define r (cmpf cl ch))
            (cond
              [r
-               (set-cdr! c (cons cl nil))
+               (cdr-set! c (cons cl nil))
                (m-iter (cdr c) (cdr l) h)]
              [1
-              (set-cdr! c (cons ch nil))
+              (cdr-set! c (cons ch nil))
               (m-iter (cdr c) l (cdr h))])]
           [1
-           (set-cdr! c (cond [l l][1 h]))]))
+           (cdr-set! c (cond [l l][1 h]))]))
       (m-iter head l h)
       (cdr head))
 

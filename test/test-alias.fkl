@@ -1,0 +1,18 @@
+(import (alias (test-lib)
+               (comment comment)
+               (custom foobar)
+               ))
+
+(defmacro
+  #(test #["#ya-quote'" (foobar,custom-quote)] builtin second)
+  ())
+
+/*comment*/
+
+(import (only (.. lib utils m) assert))
+
+(println "test alias")
+
+(assert (equal (println '#quote'foobar) '(quote foobar)))
+
+(assert (equal (println '#ya-quote'#quote'foobar) '(quote foobar)))

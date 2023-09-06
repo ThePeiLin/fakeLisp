@@ -1,0 +1,9 @@
+(export
+  (defmacro
+    #[custom-quote #["#quote'" *s-exp*] builtin quote]
+    custom))
+
+(export
+  (defmacro
+    #(#["/*" () %until () "*/"])
+    comment))

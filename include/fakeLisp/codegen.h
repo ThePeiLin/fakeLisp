@@ -304,7 +304,7 @@ struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklFuncPrototypes* pts
 		,FklHashTable* ht
 		,FklHashTable* lineHash
-		,FklCodegen* codegen
+		,FklPtrStack* macroLibStack
 		,FklNastNode** pr
 		,uint64_t curline);
 

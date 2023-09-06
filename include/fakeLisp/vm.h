@@ -572,7 +572,7 @@ double fklGetDouble(const FklVMvalue* p);
 FklHashTable* fklCreateValueSetHashtable(void);
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 
-FklHashTable* fklCreateLineNumHashTable(void);
+void fklInitLineNumHashTable(FklHashTable* ht);
 FklVMvalue* fklGetTopValue(FklVM*);
 
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* spc,uint64_t cpc);

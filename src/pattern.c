@@ -96,6 +96,11 @@ FklHashTable* fklCreatePatternMatchingHashTable(void)
 	return fklCreateHashTable(&Codegen_hash_meta_table);
 }
 
+void fklInitPatternMatchHashTable(FklHashTable* ht)
+{
+	fklInitHashTable(ht,&Codegen_hash_meta_table);
+}
+
 static inline int is_pattern_equal(const FklNastNode* pattern,const FklNastNode* exp)
 {
 	if(exp->type!=FKL_NAST_PAIR)

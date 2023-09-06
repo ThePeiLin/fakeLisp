@@ -45,11 +45,13 @@
 (defmacro
   #(() #["#4th'" *s-exp* *s-exp* *s-exp* *s-exp*] simple #(nth 4))
   #(() #["#23cons'" *s-exp* *s-exp* *s-exp* *s-exp*] simple #(cons 3 4))
-  #(() #["#head'" *s-exp*] simple #(head head 1))
+  #(() #["#head'" *s-exp* *s-exp*] simple #(head head 1 2))
   #(() #["#2nd-vector'" *s-exp* *s-exp*] simple #(vector 2))
   #(() #[%symbol "《" "》"] simple #(symbol 0 "《" "》"))
   #(() #[%string "“" "”"] simple #(string 0 "“" "”"))
-  ())
+  #(() #["#other-json'" (json,json-value)] builtin second)
+  #(() #[1 "var" *symbol* 1 "=" *s-exp*] simple #(head define 1 3))
+  other)
 
 (prin1 '#4th' foo bar foobar barfoo)
 
@@ -59,7 +61,7 @@
 
 (newline)
 
-(prin1 '#head' foo)
+(prin1 '#head' foo bar)
 
 (newline)
 
@@ -74,3 +76,11 @@
 (prin1 '“测试”)
 
 (newline)
+
+(prin1 #other-json'["foo","bar",null,true,false])
+
+(newline)
+
+var foo = 114514
+
+(println foo)

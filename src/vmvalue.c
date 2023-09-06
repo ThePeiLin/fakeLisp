@@ -32,10 +32,9 @@ static FklHashTableMetaTable LineNumHashMetaTable=
 	.__getKey=fklHashDefaultGetKey,
 };
 
-FklHashTable* fklCreateLineNumHashTable(void)
+void fklInitLineNumHashTable(FklHashTable* ht)
 {
-	FklHashTable* lineHash=fklCreateHashTable(&LineNumHashMetaTable);
-	return lineHash;
+	fklInitHashTable(ht,&LineNumHashMetaTable);
 }
 
 #define SENTINEL_NAST_NODE (NULL)

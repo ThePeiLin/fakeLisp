@@ -29,6 +29,7 @@ void fklPatternMatchingHashTableSet(FklSid_t sid,FklNastNode* node,FklHashTable*
 int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1);
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht);
 FklHashTable* fklCreatePatternMatchingHashTable(void);
+void fklInitPatternMatchHashTable(FklHashTable* ht);
 
 #ifdef __cplusplus
 }

@@ -44,7 +44,7 @@ file(GLOB COMPILER_SOURCE "main/fakeLispc.c")
 file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 
 file(GLOB GRAMMER_GEN_SOURCE
-	"main/grammer.c"
+	"main/grammer/grammer.c"
 	"src/grammer.c"
 	"src/base.c"
 	"src/utils.c"
@@ -101,8 +101,8 @@ add_executable(test-parser "main/test/parser.c")
 target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 
 add_custom_command(OUTPUT "parse.c"
-	COMMAND ${GRAMMER_GEN} < ${PROJECT_SOURCE_DIR}/main/action.c
-	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/action.c
+	COMMAND ${GRAMMER_GEN} < ${PROJECT_SOURCE_DIR}/main/grammer/action.c
+	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/grammer/action.c
 	VERBATIM)
 
 add_test(NAME test-lexer

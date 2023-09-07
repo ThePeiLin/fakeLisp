@@ -3899,16 +3899,6 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 	}
 }
 
-// static inline void process_import_reader_macro(FklStringMatchPattern** phead,FklStringMatchPattern* head,int own)
-// {
-// 	for(FklStringMatchPattern* cur=head;cur&&cur->type!=FKL_STRING_PATTERN_BUILTIN;cur=cur->next)
-// 	{
-// 		if(own)
-// 			cur->own=0;
-// 		fklAddStringMatchPattern(cur->parts,cur->proc,phead,cur->pts,own);
-// 	}
-// }
-
 static FklNastNode* createPatternWithPrefixFromOrig(FklNastNode* orig
 		,FklString* prefix)
 {

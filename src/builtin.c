@@ -1155,7 +1155,7 @@ static void builtin_string_to_number(FKL_DL_PROC_ARGL)
 	FklString* str=FKL_VM_STR(obj);
 	if(fklIsNumberString(str))
 	{
-		if(fklIsDoubleString(str))
+		if(fklIsFloat(str->str,str->size))
 			r=fklCreateVMvalueF64(exe,fklStringToDouble(str));
 		else
 		{

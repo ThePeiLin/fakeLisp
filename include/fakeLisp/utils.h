@@ -36,19 +36,15 @@ typedef void* FklDllHandle;
 #define FKL_ESCAPE_CHARS ("ABTNVFRS")
 #define FKL_ESCAPE_CHARS_TO ("\a\b\t\n\v\f\r\x20")
 
-int fklIsHexNumString(const FklString*);
-int fklIsOctNumString(const FklString*);
-int fklIsDoubleString(const FklString*);
+int fklIsDecInt(const char* cstr,size_t maxLen);
+int fklIsOctInt(const char* cstr,size_t maxLen);
+int fklIsHexInt(const char* cstr,size_t maxLen);
+int fklIsDecFloat(const char* cstr,size_t maxLen);
+int fklIsHexFloat(const char* cstr,size_t maxLen);
+int fklIsFloat(const char* cstr,size_t maxLen);
+
 int fklIsNumberString(const FklString*);
-
-int fklIsHexNumCstr(const char*);
-int fklIsOctNumCstr(const char*);
-int fklIsDoubleCstr(const char*);
 int fklIsNumberCstr(const char*);
-
-int fklIsHexNumCharBuf(const char*,size_t);
-int fklIsOctNumCharBuf(const char*,size_t);
-int fklIsDoubleCharBuf(const char*,size_t);
 int fklIsNumberCharBuf(const char*,size_t);
 
 char* fklGetStringFromList(const char*);

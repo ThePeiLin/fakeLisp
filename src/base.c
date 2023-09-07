@@ -436,7 +436,7 @@ FklBigInt* fklCreateBigIntFromCstr(const char* v)
 	FklBigInt* r=fklCreateBigInt0();
 	size_t len=strlen(v);
 	FKL_ASSERT(r);
-	if(fklIsHexNumCharBuf(v,len))
+	if(fklIsHexInt(v,len))
 	{
 		int neg=v[0]=='-';
 		v+=2+neg;
@@ -447,7 +447,7 @@ FklBigInt* fklCreateBigIntFromCstr(const char* v)
 		}
 		r->neg=neg;
 	}
-	else if(fklIsOctNumCharBuf(v,len))
+	else if(fklIsOctInt(v,len))
 	{
 		int neg=v[0]=='-';
 		v+=neg+1;
@@ -535,7 +535,7 @@ void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
-	if(fklIsHexNumCharBuf(buf,len))
+	if(fklIsHexInt(buf,len))
 	{
 		int neg=buf[0]=='-';
 		int offset=neg||buf[0]=='+';
@@ -547,7 +547,7 @@ void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 		}
 		r->neg=neg;
 	}
-	else if(fklIsOctNumCharBuf(buf,len))
+	else if(fklIsOctInt(buf,len))
 	{
 		int neg=buf[0]=='-';
 		int offset=neg||buf[0]=='+';

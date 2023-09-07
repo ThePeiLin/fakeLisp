@@ -166,103 +166,6 @@ void fklPrintRawCstring(const char* objStr,char se,FILE* out)
 	fklPrintRawCharBuf((const uint8_t*)objStr,se,strlen(objStr),out);
 }
 
-int fklIsHexNumCstr(const char* objStr)
-{
-	size_t i=(*objStr=='-')?1:0;
-	if(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2))
-	{
-		for(i+=2;objStr[i]!='\0';i++)
-		{
-			if(!isxdigit(objStr[i]))
-				return 0;
-		}
-	}
-	else
-		return 0;
-	return 1;
-}
-
-int fklIsHexNumCharBuf(const char* buf,size_t len)
-{
-	if(len>0)
-	{
-		size_t i=(*buf=='-')?1:0;
-		if(len>2&&(!strncmp(buf+i,"0x",2)||!strncmp(buf+i,"0X",2)))
-		{
-			for(i+=2;i<len;i++)
-				if(!isxdigit(buf[i]))
-					return 0;
-		}
-		else
-			return 0;
-		return 1;
-	}
-	return 0;
-}
-
-int fklIsOctNumCharBuf(const char* buf,size_t len)
-{
-	if(len>0)
-	{
-		size_t i=(*buf=='-')?1:0;
-		if(len<2||buf[i]!='0')
-			return 0;
-		for(;i<len;i++)
-		{
-			if(!isdigit(buf[i])||buf[i]>'7')
-				return 0;
-		}
-		return 1;
-	}
-	return 0;
-}
-
-int fklIsOctNumCstr(const char* objStr)
-{
-	size_t i=(*objStr=='-')?1:0;
-	if(objStr[i]!='0')
-		return 0;
-	for(;objStr[i]!='\0';i++)
-	{
-		if(!isdigit(objStr[i])||objStr[i]>'7')
-			return 0;
-	}
-	return 1;
-}
-
-int fklIsDoubleString(const FklString* str)
-{
-	return fklIsDoubleCharBuf(str->str,str->size);
-}
-
-int fklIsDoubleCstr(const char* objStr)
-{
-	size_t i=(objStr[0]=='-')?1:0;
-	int isHex=(!strncmp(objStr+i,"0x",2)||!strncmp(objStr+i,"0X",2));
-	size_t len=strlen(objStr);
-	for(i+=isHex*2;objStr[i]!='\0';i++)
-	{
-		if(objStr[i]=='.'||(i!=0&&toupper(objStr[i])==('E'+isHex*('P'-'E'))&&i<(len-1)))
-			return 1;
-	}
-	return 0;
-}
-
-int fklIsDoubleCharBuf(const char* buf,size_t len)
-{
-	if(len>0)
-	{
-		size_t i=(buf[0]=='-')?1:0;
-		int isHex=len>2&&(!strncmp(buf+i,"0x",2)||!strncmp(buf+i,"0X",2));
-		for(i+=isHex*2;i<len;i++)
-		{
-			if(buf[i]=='.'||(i!=0&&toupper(buf[i])==('E'+isHex*('P'-'E'))&&i<(len-1)))
-				return 1;
-		}
-	}
-	return 0;
-}
-
 int fklIsValidCharBuf(const char* str,size_t len)
 {
 	if(len==0)
@@ -319,10 +222,10 @@ int fklCharBufToChar(const char* buf,size_t len)
 	}
 	else if(fklIsNumberCharBuf(buf,len))
 	{
-		if(fklIsHexNumCharBuf(buf,len))
+		if(fklIsHexInt(buf,len))
 			for(size_t i=2;i<len&&isxdigit(buf[i]);i++)
 				ch=ch*16+(isdigit(buf[i])?buf[i]-'0':(toupper(buf[i])-'A'+10));
-		else if(fklIsOctNumCharBuf(buf,len))
+		else if(fklIsOctInt(buf,len))
 			for(size_t i=1;i<len&&isdigit(buf[i])&&buf[i]<'8';i++)
 				ch=ch*8+buf[i]-'0';
 		else
@@ -343,69 +246,12 @@ int fklCharBufToChar(const char* buf,size_t len)
 }
 
 int fklIsNumberCharBuf(const char* buf,size_t len)
-
 {
-	if(!len)
-		return 0;
-	size_t i=(*buf=='-'||*buf=='+')?1:0;
-	int hasDot=0;
-	int hasExp=0;
-	if(i&&(len<2||!isdigit(buf[1])))
-		return 0;
-	else if(len==1&&buf[0]=='.')
-		return 0;
-	else
-	{
-		if(len>2&&(!strncmp(buf+i,"0x",2)||!strncmp(buf+i,"0X",2)))
-		{
-			for(i+=2;i<len;i++)
-			{
-				if(buf[i]=='.')
-				{
-					if(hasDot)
-						return 0;
-					else
-						hasDot=1;
-				}
-				else if(!isxdigit(buf[i]))
-				{
-					if(toupper(buf[i])=='P')
-					{
-						if(i<3||hasExp||i>(len-2))
-							return 0;
-						hasExp=1;
-					}
-					else
-						return 0;
-				}
-			}
-		}
-		else
-		{
-			for(;i<len;i++)
-			{
-				if(buf[i]=='.')
-				{
-					if(hasDot)
-						return 0;
-					else
-						hasDot=1;
-				}
-				else if(!isdigit(buf[i]))
-				{
-					if(toupper(buf[i])=='E')
-					{
-						if(i<1||hasExp||i>(len-2))
-							return 0;
-						hasExp=1;
-					}
-					else
-						return 0;
-				}
-			}
-		}
-	}
-	return 1;
+	return fklIsDecInt(buf,len)
+		||fklIsOctInt(buf,len)
+		||fklIsHexInt(buf,len)
+		||fklIsDecFloat(buf,len)
+		||fklIsHexFloat(buf,len);
 }
 
 int fklIsNumberString(const FklString* str)
@@ -1117,3 +963,197 @@ inline void* fklRealloc(void* ptr,size_t ns)
 	return ns?realloc(ptr,ns):(free(ptr),NULL);
 }
 
+inline int fklIsDecInt(const char* cstr,size_t maxLen)
+{
+	// [-+]?(0|[1-9]\d*)
+	if(!maxLen)
+		return 0;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(cstr[idx]=='0')
+	{
+		if(idx+1==maxLen)
+			return 1;
+		else
+			return 0;
+	}
+	if(isdigit(cstr[idx])&&cstr[idx]!='0')
+		idx++;
+	else
+		return 0;
+	for(;idx<maxLen;idx++)
+		if(!isdigit(cstr[idx]))
+			return 0;
+	return 1;
+}
+
+inline int fklIsOctInt(const char* cstr,size_t maxLen)
+{
+	// [-+]?0[0-7]+
+	if(maxLen<2)
+		return 0;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<2)
+		return 0;
+	if(cstr[idx]=='0')
+		idx++;
+	else
+		return 0;
+	for(;idx<maxLen;idx++)
+		if(cstr[idx]<'0'||cstr[idx]>'7')
+			return 0;
+	return 1;
+}
+
+inline int fklIsHexInt(const char* cstr,size_t maxLen)
+{
+	// [-+]?0[xX][0-9a-fA-F]+
+	if(maxLen<3)
+		return 0;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<3)
+		return 0;
+	if(cstr[idx]=='0')
+		idx++;
+	else
+		return 0;
+	if(cstr[idx]=='x'||cstr[idx]=='X')
+		idx++;
+	else
+		return 0;
+	for(;idx<maxLen;idx++)
+		if(!isxdigit(cstr[idx]))
+			return 0;
+	return 1;
+}
+
+inline int fklIsDecFloat(const char* cstr,size_t maxLen)
+{
+	// [-+]?(\.\d+([eE][-+]?\d+)?|\d+(\.\d*([eE][-+]?\d+)?|[eE][-+]?\d+))
+	if(maxLen<2)
+		return 0;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<2)
+		return 0;
+	if(cstr[idx]=='.')
+	{
+		idx++;
+		if(maxLen-idx<1||cstr[idx]=='e'||cstr[idx]=='E')
+			return 0;
+		goto after_dot;
+	}
+	else
+	{
+		for(;idx<maxLen;idx++)
+			if(!isdigit(cstr[idx]))
+				break;
+		if(idx==maxLen)
+			return 0;
+		if(cstr[idx]=='.')
+		{
+			idx++;
+after_dot:
+			for(;idx<maxLen;idx++)
+				if(!isdigit(cstr[idx]))
+					break;
+			if(idx==maxLen)
+				return 1;
+			else if(cstr[idx]=='e'||cstr[idx]=='E')
+				goto after_e;
+			else
+				return 0;
+		}
+		else if(cstr[idx]=='e'||cstr[idx]=='E')
+		{
+after_e:
+			idx++;
+			if(cstr[idx]=='-'||cstr[idx]=='+')
+				idx++;
+			if(maxLen-idx<1)
+				return 0;
+			for(;idx<maxLen;idx++)
+				if(!isdigit(cstr[idx]))
+					return 0;
+		}
+		else
+			return 0;
+	}
+	return 1;
+}
+
+inline int fklIsHexFloat(const char* cstr,size_t maxLen)
+{
+	// [-+]?0[xX](\.[0-9a-fA-F]+[pP][-+]?[0-9a-fA-F]+|[0-9a-fA-F]+(\.[0-9a-fA-F]*[pP][-+]?[0-9a-fA-F]+|[pP][-+]?[0-9a-fA-F]+))
+	if(maxLen<5)
+		return 0;
+	size_t idx=0;
+	if(cstr[idx]=='-'||cstr[idx]=='+')
+		idx++;
+	if(maxLen-idx<5)
+		return 0;
+	if(cstr[idx]=='0')
+		idx++;
+	else
+		return 0;
+	if(cstr[idx]=='x'||cstr[idx]=='X')
+		idx++;
+	else
+		return 0;
+	if(cstr[idx]=='.')
+	{
+		idx++;
+		if(maxLen-idx<3||cstr[idx]=='p'||cstr[idx]=='P')
+			return 0;
+		goto after_dot;
+	}
+	else
+	{
+		for(;idx<maxLen;idx++)
+			if(!isxdigit(cstr[idx]))
+				break;
+		if(idx==maxLen)
+			return 0;
+		if(cstr[idx]=='.')
+		{
+			idx++;
+after_dot:
+			for(;idx<maxLen;idx++)
+				if(!isxdigit(cstr[idx]))
+					break;
+			if(idx==maxLen)
+				return 0;
+			else if(cstr[idx]=='p'||cstr[idx]=='P')
+				goto after_p;
+			else
+				return 0;
+		}
+		else if(cstr[idx]=='p'||cstr[idx]=='P')
+		{
+after_p:
+			idx++;
+			if(cstr[idx]=='-'||cstr[idx]=='+')
+				idx++;
+			if(maxLen-idx<1)
+				return 0;
+			for(;idx<maxLen;idx++)
+				if(!isxdigit(cstr[idx]))
+					return 0;
+		}
+		else
+			return 0;
+	}
+	return 1;
+}
+
+int fklIsFloat(const char *cstr,size_t maxLen)
+{
+	return fklIsDecFloat(cstr,maxLen)
+		||fklIsHexFloat(cstr,maxLen);
+}

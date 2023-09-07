@@ -417,12 +417,6 @@ void fklDestroyIgnore(FklGrammerIgnore* ig);
 size_t fklQuotedStringMatch(const char* cstr,size_t restLen,const FklString* end);
 size_t fklQuotedCharBufMatch(const char* cstr,size_t restLen,const char* end,size_t end_size);
 
-int fklIsDecInt(const char* cstr,size_t maxLen);
-int fklIsOctInt(const char* cstr,size_t maxLen);
-int fklIsHexInt(const char* cstr,size_t maxLen);
-int fklIsDecFloat(const char* cstr,size_t maxLen);
-int fklIsHexFloat(const char* cstr,size_t maxLen);
-
 #ifdef __cplusplus
 }
 #endif

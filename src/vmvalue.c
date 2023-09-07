@@ -38,8 +38,7 @@ void fklInitLineNumHashTable(FklHashTable* ht)
 }
 
 #define SENTINEL_NAST_NODE (NULL)
-FklVMvalue* fklCreateVMvalueFromNastNode(
-		FklVM* vm
+FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 		,const FklNastNode* node
 		,FklHashTable* lineHash)
 {

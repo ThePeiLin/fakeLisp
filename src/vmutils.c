@@ -481,6 +481,9 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 		"Number should not be less than 0",
 		"Circular reference occurs",
 		"Unsupported operation",
+		NULL,
+		NULL,
+		NULL,
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);

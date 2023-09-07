@@ -117,6 +117,8 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"cir-ref",
 		"unsupported-operation",
 		"import-missing",
+		"export-outer-ref-prod-group",
+		"import-reader-macro-error",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)

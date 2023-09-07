@@ -8418,7 +8418,10 @@ static void printCodegenError(FklNastNode* obj
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP:
-			fprintf(stderr,"Exporting production groups with reference to other group");
+			fputs("Exporting production groups with reference to other group",stderr);
+			break;
+		case FKL_ERR_IMPORT_READER_MACRO_ERROR:
+			fputs("Failed to import reader macro",stderr);
 			break;
 		default:
 			fprintf(stderr,"Unknown compiling error.");

@@ -477,12 +477,15 @@ char* fklCopyCstr(const char* str)
 
 int fklIsscript(const char* filename)
 {
-	int i;
-	int len=strlen(filename);
-	for(i=len;i>=0;i--)if(filename[i]=='.')break;
-	int lenOfExtension=strlen(filename+i);
-	if(lenOfExtension!=4)return 0;
-	else return !strcmp(filename+i,".fkl");
+	size_t i=strlen(filename);
+	for(;i>0;i--)
+		if(filename[i-1]=='.')
+			break;
+	size_t lenOfExtension=strlen(filename+i);
+	if(lenOfExtension!=3)
+		return 0;
+	else
+		return !strcmp(filename+i,"fkl");
 }
 
 int fklIscode(const char* filename)

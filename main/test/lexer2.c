@@ -6,12 +6,14 @@
 #include<stdlib.h>
 #include<ctype.h>
 
-static inline FklNastNode* prod_action_symbol(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_symbol(void* ctx
+		,void* outerCtx
+		,void* ast[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
+	FklNastNode** nodes=(FklNastNode**)ast;
 	const char* start="|";
 	size_t start_size=1;
 	const char* end="|";
@@ -23,7 +25,8 @@ static inline FklNastNode* prod_action_symbol(void* ctx
 
 	FklStringBuffer buffer;
 	fklInitStringBuffer(&buffer);
-	while(*cstr)
+	const char* end_cstr=cstr+str->size;
+	while(cstr<end_cstr)
 	{
 		if(fklCharBufMatch(start,start_size,cstr,cstr_size))
 		{
@@ -41,7 +44,7 @@ static inline FklNastNode* prod_action_symbol(void* ctx
 			continue;
 		}
 		size_t len=0;
-		for(;cstr[len];len++)
+		for(;(cstr+len)<end_cstr;len++)
 			if(fklCharBufMatch(start,start_size,cstr+len,cstr_size-len))
 				break;
 		fklStringBufferBincpy(&buffer,cstr,len);
@@ -55,8 +58,9 @@ static inline FklNastNode* prod_action_symbol(void* ctx
 	return node;
 }
 
-static inline FklNastNode* prod_action_return_first(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_return_first(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -64,8 +68,9 @@ static inline FklNastNode* prod_action_return_first(void* ctx
 	return fklMakeNastNodeRef(nodes[0]);
 }
 
-static inline FklNastNode* prod_action_return_second(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_return_second(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -73,12 +78,14 @@ static inline FklNastNode* prod_action_return_second(void* ctx
 	return fklMakeNastNodeRef(nodes[1]);
 }
 
-static inline FklNastNode* prod_action_string(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_string(void* ctx
+		,void* outerCtx
+		,void* ast[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
+	FklNastNode** nodes=(FklNastNode**)ast;
 	size_t start_size=1;
 	size_t end_size=1;
 
@@ -93,8 +100,9 @@ static inline FklNastNode* prod_action_string(void* ctx
 	return node;
 }
 
-static inline FklNastNode* prod_action_nil(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_nil(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -102,8 +110,9 @@ static inline FklNastNode* prod_action_nil(void* ctx
 	return fklCreateNastNode(FKL_NAST_NIL,line);
 }
 
-static inline FklNastNode* prod_action_pair(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_pair(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -117,8 +126,9 @@ static inline FklNastNode* prod_action_pair(void* ctx
 	return pair;
 }
 
-static inline FklNastNode* prod_action_list(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_list(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -132,28 +142,14 @@ static inline FklNastNode* prod_action_list(void* ctx
 	return pair;
 }
 
-static inline FklNastNode* prod_action_fn_call(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_dec_integer(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
-	FklNastNode* car=nodes[0];
-	FklNastNode* cdr=nodes[2];
-	FklNastNode* pair=fklCreateNastNode(FKL_NAST_PAIR,line);
-	pair->pair=fklCreateNastPair();
-	pair->pair->car=fklMakeNastNodeRef(car);
-	pair->pair->cdr=fklMakeNastNodeRef(cdr);
-	return pair;
-}
-
-static inline FklNastNode* prod_action_dec_integer(void* ctx
-		,FklNastNode** nodes
-		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
-{
-	const FklString* str=nodes[0]->str;
+	const FklString* str=((FklNastNode*)nodes[0])->str;
 	int64_t i=strtoll(str->str,NULL,10);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
@@ -174,13 +170,14 @@ static inline FklNastNode* prod_action_dec_integer(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_hex_integer(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_hex_integer(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->str;
+	const FklString* str=((FklNastNode*)nodes[0])->str;
 	int64_t i=strtoll(str->str,NULL,16);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
@@ -201,13 +198,14 @@ static inline FklNastNode* prod_action_hex_integer(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_oct_integer(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_oct_integer(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->str;
+	const FklString* str=((FklNastNode*)nodes[0])->str;
 	int64_t i=strtoll(str->str,NULL,8);
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
@@ -228,26 +226,28 @@ static inline FklNastNode* prod_action_oct_integer(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_float(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_float(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->str;
+	const FklString* str=((FklNastNode*)nodes[0])->str;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_F64,line);
 	double i=strtod(str->str,NULL);
 	r->f64=i;
 	return r;
 }
 
-static inline FklNastNode* prod_action_char(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_char(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
 {
-	const FklString* str=nodes[0]->str;
+	const FklString* str=((FklNastNode*)nodes[0])->str;
 	if(!fklIsValidCharBuf(str->str+2,str->size-2))
 		return NULL;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_CHR,line);
@@ -255,8 +255,9 @@ static inline FklNastNode* prod_action_char(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_box(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_box(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -266,8 +267,9 @@ static inline FklNastNode* prod_action_box(void* ctx
 	return box;
 }
 
-static inline FklNastNode* prod_action_vector(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_vector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -283,7 +285,7 @@ static inline FklNastNode* prod_action_vector(void* ctx
 	return r;
 }
 
-static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t line)
+static inline FklNastNode* create_nast_list(FklNastNode* a[],size_t num,uint64_t line)
 {
 	FklNastNode* r=NULL;
 	FklNastNode** cur=&r;
@@ -298,8 +300,9 @@ static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t 
 	return r;
 }
 
-static inline FklNastNode* prod_action_quote(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_quote(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -312,8 +315,9 @@ static inline FklNastNode* prod_action_quote(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_unquote(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_unquote(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -326,8 +330,9 @@ static inline FklNastNode* prod_action_unquote(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_qsquote(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_qsquote(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -340,8 +345,9 @@ static inline FklNastNode* prod_action_qsquote(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_unqtesp(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_unqtesp(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -354,8 +360,9 @@ static inline FklNastNode* prod_action_unqtesp(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* prod_action_kv_list(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_kv_list(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -376,8 +383,9 @@ static inline FklNastNode* prod_action_kv_list(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_hasheq(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_hasheq(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -396,8 +404,9 @@ static inline FklNastNode* prod_action_hasheq(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_hasheqv(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_hasheqv(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -416,8 +425,9 @@ static inline FklNastNode* prod_action_hasheqv(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_hashequal(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_hashequal(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -436,8 +446,9 @@ static inline FklNastNode* prod_action_hashequal(void* ctx
 	return r;
 }
 
-static inline FklNastNode* prod_action_bytevector(void* ctx
-		,FklNastNode** nodes
+static inline void* prod_action_bytevector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -457,6 +468,22 @@ static inline FklNastNode* prod_action_bytevector(void* ctx
 			bv->ptr[i]=cur->bigInt->neg?0:UINT8_MAX;
 	}
 	return r;
+}
+
+static inline void* prod_action_fn_call(void* ctx
+		,void* outerCtx
+		,void* nodes[]
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	FklNastNode* car=nodes[0];
+	FklNastNode* cdr=nodes[2];
+	FklNastNode* pair=fklCreateNastNode(FKL_NAST_PAIR,line);
+	pair->pair=fklCreateNastPair();
+	pair->pair->car=fklMakeNastNodeRef(car);
+	pair->pair->cdr=fklMakeNastNodeRef(cdr);
+	return pair;
 }
 
 // static const FklGrammerCstrAction example_grammer_action[]=
@@ -637,7 +664,7 @@ int main()
 	int retval=0;
 	for(const char** exp=&exps[0];*exp;exp++)
 	{
-		FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+		FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 
 		FklNastNode* ast=fklParseWithTableForCstr(g,*exp,&outerCtx,st,&retval);
 

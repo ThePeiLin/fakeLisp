@@ -106,9 +106,8 @@ typedef struct FklVMvec
 	struct FklVMvalue** base;
 }FklVMvec;
 
-#define FKL_VM_UDATA_COMMON_HEADER 	FklSid_t type;\
-	struct FklVMvalue* rel;\
-	const struct FklVMudMethodTable* t
+#define FKL_VM_UDATA_COMMON_HEADER struct FklVMvalue* rel;\
+	const struct FklVMudMetaTable* t
 
 typedef struct FklVMudata
 {
@@ -397,7 +396,7 @@ typedef struct FklVM
 //	FklVM* sleep;
 //}FklVMscheduler;
 
-typedef struct FklVMudMethodTable
+typedef struct FklVMudMetaTable
 {
 	size_t size;
 	void (*__princ)(const FklVMudata*,FILE*,FklSymbolTable* table);
@@ -612,7 +611,7 @@ int fklIsVMhashEqual(FklHashTable*);
 uintptr_t fklGetVMhashTableType(FklHashTable*);
 const char* fklGetVMhashTablePrefix(FklHashTable*);
 
-void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc);
+void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht);
 FklVMhashTableItem* fklVMhashTableRef1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklVMhashTableRef(FklVMvalue* key,FklHashTable* ht);
 FklVMhashTableItem* fklVMhashTableGetItem(FklVMvalue* key,FklHashTable* ht);
@@ -684,6 +683,12 @@ FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM*,FklSid_t type,const char* who,F
 
 FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const FklBigInt*);
 
+FklVMvalue* fklCreateVMvalueBigIntWithDecString(FklVM* exe,const FklString* str);
+
+FklVMvalue* fklCreateVMvalueBigIntWithOctString(FklVM* exe,const FklString* str);
+
+FklVMvalue* fklCreateVMvalueBigIntWithHexString(FklVM* exe,const FklString* str);
+
 FklVMvalue* fklCreateVMvalueBigIntWithI64(FklVM*,int64_t);
 
 FklVMvalue* fklCreateVMvalueBigIntWithU64(FklVM*,uint64_t);
@@ -691,7 +696,6 @@ FklVMvalue* fklCreateVMvalueBigIntWithU64(FklVM*,uint64_t);
 FklVMvalue* fklCreateVMvalueBigIntWithF64(FklVM*,double);
 
 FklVMvalue* fklCreateVMvalueUdata(FklVM*
-		,FklSid_t type
 		,const FklVMudMetaTable* t
 		,FklVMvalue* rel);
 
@@ -740,6 +744,14 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 #define FKL_VM_BOX(V) (((FklVMvalueBox*)(V))->box)
 
 #define FKL_VM_CO(V) (&(((FklVMvalueCodeObj*)(V))->bcl))
+
+// vmparser
+
+#define FKL_VMVALUE_PARSE_OUTER_CTX_INIT(EXE) {.maxNonterminalLen=0,.line=1,.start=NULL,.cur=NULL,.create=fklVMvalueTerminalCreate,.destroy=fklVMvalueTerminalDestroy,.ctx=(void*)(EXE)}
+
+void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx);
+void fklVMvalueTerminalDestroy(void*);
+void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
 
 void fklAddToGC(FklVMvalue*,FklVM*);
 FklVMvalue* fklCreateTrueValue(void);

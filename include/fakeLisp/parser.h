@@ -9,7 +9,13 @@
 extern "C" {
 #endif
 
+#define FKL_NAST_PARSE_OUTER_CTX_INIT {.maxNonterminalLen=0,.line=1,.start=NULL,.cur=NULL,.create=fklNastTerminalCreate,.destroy=(void(*)(void*))fklDestroyNastNode,}
+
 FklNastNode* fklCreateNastNodeFromCstr(const char*,FklSymbolTable* publicSymbolTable);
+
+void fklNastPushState0ToStack(FklPtrStack* stateStack);
+
+void* fklNastTerminalCreate(const char* s,size_t len,size_t line,void* ctx);
 
 char* fklReadWithBuiltinParser(FILE* fp
 		,size_t* psize
@@ -20,6 +26,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		,size_t* errLine
 		,FklNastNode** output
 		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
 		,FklPtrStack* stateStack);
 
 char* fklReadWithAnalysisTable(const FklGrammer* g
@@ -32,6 +39,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		,size_t* errLine
 		,FklNastNode** output
 		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
 		,FklPtrStack* stateStack);
 
 #ifdef __cplusplus

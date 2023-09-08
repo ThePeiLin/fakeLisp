@@ -1813,15 +1813,17 @@ inline char* fklStringBufferBody(FklStringBuffer* b)
 
 inline void fklStringBufferPutc(FklStringBuffer* b,char c)
 {
-	fklStringBufferReverse(b,1);
+	fklStringBufferReverse(b,2);
 	b->b[b->i++]=c;
+	b->b[b->i]='\0';
 }
 
 inline void fklStringBufferBincpy(FklStringBuffer* b,const void* p,size_t l)
 {
-	fklStringBufferReverse(b,l);
+	fklStringBufferReverse(b,l+1);
 	memcpy(&b->b[b->i],p,l);
 	b->i+=l;
+	b->b[b->i]='\0';
 }
 
 inline FklString* fklStringBufferToString(FklStringBuffer* b)

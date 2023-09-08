@@ -11,19 +11,22 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,FklSymbolTable* publicSy
 {
 	FklPtrStack stateStack;
 	FklPtrStack symbolStack;
+	FklUintStack lineStack;
 	fklInitPtrStack(&stateStack,16,16);
 	fklInitPtrStack(&symbolStack,16,16);
-	fklPushState0ToStack(&stateStack);
+	fklInitUintStack(&lineStack,16,16);
+	fklNastPushState0ToStack(&stateStack);
 
 	int err=0;
 	size_t errLine=0;
-	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 	FklNastNode* node=fklDefaultParseForCstr(cStr
 			,&outerCtx
 			,publicSymbolTable
 			,&err
 			,&errLine
 			,&symbolStack
+			,&lineStack
 			,&stateStack);
 
 	while(!fklIsPtrStackEmpty(&symbolStack))
@@ -34,6 +37,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,FklSymbolTable* publicSy
 	}
 	fklUninitPtrStack(&symbolStack);
 	fklUninitPtrStack(&stateStack);
+	fklUninitUintStack(&lineStack);
 
 	return node;
 }
@@ -47,6 +51,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		,size_t* errLine
 		,FklNastNode** output
 		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
 		,FklPtrStack* stateStack)
 {
 	size_t size=0;
@@ -55,7 +60,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 	char* tmp=NULL;
 	*unexpectEOF=0;
 	FklNastNode* ast=NULL;
-	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 	outerCtx.line=line;
 	size_t offset=0;
 	for(;;)
@@ -70,6 +75,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 				,&err
 				,errLine
 				,symbolStack
+				,lineStack
 				,stateStack);
 		if(err==FKL_PARSE_WAITING_FOR_MORE&&feof(fp))
 		{
@@ -83,8 +89,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		{
 			if(restLen)
 			{
-				FklAnalyzingSymbol* top=fklTopPtrStack(symbolStack);
-				*errLine=top?top->ast->curline:outerCtx.line;
+				*errLine=fklIsUintStackEmpty(lineStack)?fklTopUintStack(lineStack):outerCtx.line;
 				*unexpectEOF=FKL_PARSE_REDUCE_FAILED;
 				free(tmp);
 				tmp=NULL;
@@ -135,6 +140,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		,size_t* errLine
 		,FklNastNode** output
 		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
 		,FklPtrStack* stateStack)
 {
 	size_t size=0;
@@ -143,7 +149,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 	char* tmp=NULL;
 	*unexpectEOF=0;
 	FklNastNode* ast=NULL;
-	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 	outerCtx.line=line;
 	size_t offset=0;
 	for(;;)
@@ -159,6 +165,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 				,&err
 				,errLine
 				,symbolStack
+				,lineStack
 				,stateStack);
 		if(err==FKL_PARSE_WAITING_FOR_MORE&&feof(fp))
 		{
@@ -172,8 +179,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		{
 			if(restLen)
 			{
-				FklAnalyzingSymbol* top=fklTopPtrStack(symbolStack);
-				*errLine=top?top->ast->curline:outerCtx.line;
+				*errLine=fklIsUintStackEmpty(lineStack)?fklTopUintStack(lineStack):outerCtx.line;
 				*unexpectEOF=FKL_PARSE_REDUCE_FAILED;
 				free(tmp);
 				tmp=NULL;
@@ -212,4 +218,11 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 	*psize=size;
 	free(nextline);
 	return tmp;
+}
+
+void* fklNastTerminalCreate(const char* s,size_t len,size_t line,void* ctx)
+{
+	FklNastNode* ast=fklCreateNastNode(FKL_NAST_STR,line);
+	ast->str=fklCreateString(len,s);
+	return ast;
 }

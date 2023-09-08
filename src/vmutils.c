@@ -1180,13 +1180,14 @@ static void vmvalue_userdata_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	}
 	else
 	{
-		fklStringBufferConcatWithCstr(result,"#<");
-		if(ud->type)
-		{
-			print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(ud->type,table)->symbol);
-			fklStringBufferPutc(result,' ');
-		}
-		fklStringBufferPrintf(result,"%p>",ud);
+		fklStringBufferPrintf(result,"#<userdata %p>",ud);
+		// fklStringBufferConcatWithCstr(result,"#<");
+		// if(ud->type)
+		// {
+		// 	print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(ud->type,table)->symbol);
+		// 	fklStringBufferPutc(result,' ');
+		// }
+		// fklStringBufferPrintf(result,"%p>",ud);
 	}
 }
 

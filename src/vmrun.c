@@ -1287,7 +1287,7 @@ static inline void B_push_hash_eq(FklVM* exe,FklVMframe* frame)
 	{
 		FklVMvalue* key=base[i];
 		FklVMvalue* value=base[i+1];
-		fklVMhashTableSet(key,value,ht,exe->gc);
+		fklVMhashTableSet(key,value,ht);
 	}
 	exe->tp-=kvnum;
 	fklPushVMvalue(exe,hash);
@@ -1305,7 +1305,7 @@ static inline void B_push_hash_eqv(FklVM* exe,FklVMframe* frame)
 	{
 		FklVMvalue* key=base[i];
 		FklVMvalue* value=base[i+1];
-		fklVMhashTableSet(key,value,ht,exe->gc);
+		fklVMhashTableSet(key,value,ht);
 	}
 	exe->tp-=kvnum;
 	fklPushVMvalue(exe,hash);
@@ -1323,7 +1323,7 @@ static inline void B_push_hash_equal(FklVM* exe,FklVMframe* frame)
 	{
 		FklVMvalue* key=base[i];
 		FklVMvalue* value=base[i+1];
-		fklVMhashTableSet(key,value,ht,exe->gc);
+		fklVMhashTableSet(key,value,ht);
 	}
 	exe->tp-=kvnum;
 	fklPushVMvalue(exe,hash);

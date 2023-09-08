@@ -31,6 +31,7 @@ set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(LIBFKL_TARGET_NAME fkl)
 set(GRAMMER_GEN grammer)
 set(PARSE parse)
+set(VMPARSE vmparse)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -55,6 +56,11 @@ file(GLOB GRAMMER_GEN_SOURCE
 add_library(${PARSE}
 	OBJECT
 	"parse.c")
+
+#vmparser.o
+add_library(${VMPARSE}
+	OBJECT
+	"vmparse.c")
 
 #libfkl.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
@@ -82,7 +88,7 @@ add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 
 
 #linking
-target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE})
+target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
@@ -101,8 +107,27 @@ add_executable(test-parser "main/test/parser.c")
 target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 
 add_custom_command(OUTPUT "parse.c"
-	COMMAND ${GRAMMER_GEN} < ${PROJECT_SOURCE_DIR}/main/grammer/action.c
+	COMMAND ${GRAMMER_GEN}
+	"parse.c"
+	${PROJECT_SOURCE_DIR}/main/grammer/action.c
+	"<fakeLisp/parser.h>"
+	"fklNastTerminalCreate"
+	"fklDestroyNastNode"
+	"fklNastPushState0ToStack"
+
 	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/grammer/action.c
+	VERBATIM)
+
+add_custom_command(OUTPUT "vmparse.c"
+	COMMAND ${GRAMMER_GEN}
+	"vmparse.c"
+	${PROJECT_SOURCE_DIR}/main/grammer/vmaction.c
+	"<fakeLisp/vm.h>"
+	"fklVMvalueTerminalCreate"
+	"fklVMvalueTerminalDestroy"
+	"fklVMvaluePushState0ToStack"
+
+	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/grammer/vmaction.c
 	VERBATIM)
 
 add_test(NAME test-lexer

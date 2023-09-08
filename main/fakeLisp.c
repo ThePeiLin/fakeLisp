@@ -190,17 +190,20 @@ int main(int argc,char** argv)
 			exitState=runCode(filename);
 		else
 		{
-			char* packageMainFileName=fklCopyCstr(filename);
-			packageMainFileName=fklStrCat(packageMainFileName,FKL_PATH_SEPARATOR_STR);
-			packageMainFileName=fklStrCat(packageMainFileName,"main.fkl");
-			if(fklIsAccessableRegFile(packageMainFileName))
-				exitState=compileAndRun(packageMainFileName);
+			FklStringBuffer buffer;
+			fklInitStringBuffer(&buffer);
+			fklStringBufferConcatWithCstr(&buffer,filename);
+			fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
+			fklStringBufferConcatWithCstr(&buffer,"main.fkl");
+
+			if(fklIsAccessableRegFile(buffer.b))
+				exitState=compileAndRun(buffer.b);
 			else
 			{
 				exitState=FKL_EXIT_FAILURE;
 				fprintf(stderr,"%s: It is not a correct file.\n",filename);
 			}
-			free(packageMainFileName);
+			fklUninitStringBuffer(&buffer);
 		}
 	}
 	fklDestroyMainFileRealPath();

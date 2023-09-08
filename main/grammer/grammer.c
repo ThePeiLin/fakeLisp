@@ -4,8 +4,18 @@
 #include<fakeLisp/utils.h>
 #include<ctype.h>
 
-int main()
+int main(int argc,char* argv[])
 {
+	if(argc<7)
+		return 1;
+
+	const char* outer_file_name=argv[1];
+	const char* action_file_name=argv[2];
+	const char* other_head_file_name=argv[3];
+	const char* ast_creator_name=argv[4];
+	const char* ast_destroy_name=argv[5];
+	const char* state_0_push_name=argv[6];
+
 	FklSymbolTable* st=fklCreateSymbolTable();
 	FklGrammer* g=fklCreateBuiltinGrammer(st);
 	if(!g)
@@ -26,9 +36,20 @@ int main()
 		fprintf(stderr,"not lalr garmmer\n");
 		return 1;
 	}
-	FILE* parse=fopen("parse.c","w");
-	fklPrintAnalysisTableAsCfunc(g,st,stdin,parse);
+
+	FILE* action_file=fopen(action_file_name,"r");
+	FILE* parse=fopen(outer_file_name,"w");
+	fklPrintAnalysisTableAsCfunc(g
+			,st
+			,action_file
+			,other_head_file_name
+			,ast_creator_name
+			,ast_destroy_name
+			,state_0_push_name
+			,parse);
 	fclose(parse);
+	fclose(action_file);
+
 	fklDestroySymbolTable(st);
 	fklDestroyGrammer(g);
 	fklDestroyHashTable(itemSet);

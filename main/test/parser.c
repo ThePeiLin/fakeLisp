@@ -44,21 +44,24 @@ int main()
 	int retval=0;
 	for(const char** exp=&exps[0];*exp;exp++)
 	{
-		FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+		FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 
 		FklPtrStack stateStack;
 		FklPtrStack symbolStack;
+		FklUintStack lineStack;
 
 		fklInitPtrStack(&stateStack,8,16);
-		fklPushState0ToStack(&stateStack);
+		fklNastPushState0ToStack(&stateStack);
 		fklInitPtrStack(&symbolStack,8,16);
+		fklInitUintStack(&lineStack,8,16);
 		size_t errLine=0;
-		FklNastNode* ast=fklDefaultParseForCstr(*exp,&outerCtx,st,&retval,&errLine,&symbolStack,&stateStack);
+		FklNastNode* ast=fklDefaultParseForCstr(*exp,&outerCtx,st,&retval,&errLine,&symbolStack,&lineStack,&stateStack);
 
 		while(!fklIsPtrStackEmpty(&symbolStack))
 			free(fklPopPtrStack(&symbolStack));
 		fklUninitPtrStack(&symbolStack);
 		fklUninitPtrStack(&stateStack);
+		fklUninitUintStack(&lineStack);
 		if(retval)
 			break;
 

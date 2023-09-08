@@ -1825,6 +1825,7 @@ typedef struct
 	FklVMvalue* fpv;
 	FklStringBuffer* buf;
 	FklPtrStack* symbolStack;
+	FklUintStack* lineStack;
 	FklPtrStack* stateStack;
 	size_t offset;
 	uint32_t done;
@@ -1840,6 +1841,10 @@ static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
 	fklGC_toGrey(c->fpv,gc);
+	FklAnalyzingSymbol** base=(FklAnalyzingSymbol**)c->symbolStack->base;
+	size_t len=c->symbolStack->top;
+	for(size_t i=0;i<len;i++)
+		fklGC_toGrey(base[i]->ast,gc);
 }
 
 static void read_frame_finalizer(FklCallObjData data)
@@ -1849,12 +1854,9 @@ static void read_frame_finalizer(FklCallObjData data)
 	fklDestroyStringBuffer(c->buf);
 	FklPtrStack* ss=c->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
-	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(ss);
-		fklDestroyNastNode(s->ast);
-		free(s);
-	}
+		free(fklPopPtrStack(ss));
 	fklDestroyPtrStack(ss);
+	fklDestroyUintStack(c->lineStack);
 	fklDestroyPtrStack(c->stateStack);
 }
 
@@ -1869,13 +1871,13 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 	FklVMfp* vfp=FKL_VM_FP(rctx->fpv);
 	FklStringBuffer* s=rctx->buf;
 	int ch=fklVMfpNonBlockGetline(vfp,s);
-	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 	if(fklVMfpEof(vfp)||ch=='\n')
 	{
 		int err=0;
 		size_t restLen=fklStringBufferLen(s)-rctx->offset;
 		size_t errLine=0;
-		FklNastNode* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+rctx->offset
+		FklVMvalue* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+rctx->offset
 				,restLen
 				,&restLen
 				,&outerCtx
@@ -1883,6 +1885,7 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 				,&err
 				,&errLine
 				,rctx->symbolStack
+				,rctx->lineStack
 				,rctx->stateStack);
 		rctx->offset=fklStringBufferLen(s)-restLen;
 		fklUnLockVMfp(rctx->fpv);
@@ -1892,28 +1895,20 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 			rctx->done=1;
 			fklPushVMvalue(exe,FKL_VM_NIL);
 		}
-		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED)
-		{
-			if(fklVMfpEof(vfp)&&rctx->stateStack->top>1)
-			{
-				if(restLen)
-					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-				else
-					FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
-			}
-		}
-		else if(err==FKL_PARSE_REDUCE_FAILED)
-		{
+		else if((err==FKL_PARSE_WAITING_FOR_MORE
+					||(err=FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
+				&&fklVMfpEof(vfp))
+			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
+		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-		}
+		else if(err==FKL_PARSE_REDUCE_FAILED)
+			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 		else if(ast)
 		{
 			if(restLen)
 				fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
 			rctx->done=1;
-			FklVMvalue* v=fklCreateVMvalueFromNastNode(exe,ast,NULL);
-			fklPushVMvalue(exe,v);
-			fklDestroyNastNode(ast);
+			fklPushVMvalue(exe,ast);
 		}
 	}
 }
@@ -1935,7 +1930,8 @@ static inline void initReadCtx(FklCallObjData data
 	ctx->fpv=fpv;
 	ctx->symbolStack=fklCreatePtrStack(16,16);
 	ctx->stateStack=fklCreatePtrStack(16,16);
-	fklPushState0ToStack(ctx->stateStack);
+	ctx->lineStack=fklCreateUintStack(16,16);
+	fklVMvaluePushState0ToStack(ctx->stateStack);
 	ctx->buf=fklCreateStringBuffer();
 	ctx->done=0;
 	ctx->offset=0;
@@ -2021,13 +2017,15 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 	size_t errorLine=0;
 	FklPtrStack symbolStack;
 	FklPtrStack stateStack;
+	FklUintStack lineStack;
 	fklInitPtrStack(&symbolStack,16,16);
 	fklInitPtrStack(&stateStack,16,16);
-	fklPushState0ToStack(&stateStack);
+	fklInitUintStack(&lineStack,16,16);
+	fklVMvaluePushState0ToStack(&stateStack);
 
 	size_t restLen=ss->size;
-	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
-	FklNastNode* node=fklDefaultParseForCharBuf(ss->str
+	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+	FklVMvalue* node=fklDefaultParseForCharBuf(ss->str
 			,restLen
 			,&restLen
 			,&outerCtx
@@ -2035,34 +2033,25 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 			,&err
 			,&errorLine
 			,&symbolStack
+			,&lineStack
 			,&stateStack);
 
-	FklVMvalue* tmp=NULL;
 	if(node==NULL)
 	{
 		while(!fklIsPtrStackEmpty(&symbolStack))
-		{
-			FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
-			fklDestroyNastNode(s->ast);
-			free(s);
-		}
+			free(fklPopPtrStack(&symbolStack));
 		fklUninitPtrStack(&symbolStack);
 		fklUninitPtrStack(&stateStack);
+		fklUninitUintStack(&lineStack);
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDEXPR,exe);
 	}
-	else
-		tmp=fklCreateVMvalueFromNastNode(exe,node,NULL);
 
 	while(!fklIsPtrStackEmpty(&symbolStack))
-	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
-		fklDestroyNastNode(s->ast);
-		free(s);
-	}
+		free(fklPopPtrStack(&symbolStack));
 	fklUninitPtrStack(&symbolStack);
 	fklUninitPtrStack(&stateStack);
-	fklPushVMvalue(exe,tmp);
-	fklDestroyNastNode(node);
+	fklUninitUintStack(&lineStack);
+	fklPushVMvalue(exe,node);
 }
 
 typedef enum
@@ -2414,7 +2403,7 @@ int matchPattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHashTable* ht,FklV
 		FklVMvalue* v1=fklPopPtrQueue(&q1);
 		FklVMvalue* slotV=isSlot(slotS,v0);
 		if(slotV)
-			fklVMhashTableSet(slotV,v1,ht,gc);
+			fklVMhashTableSet(slotV,v1,ht);
 		else if(FKL_IS_BOX(v0)&&FKL_IS_BOX(v1))
 		{
 			fklPushPtrQueue(FKL_VM_BOX(v0),&q0);
@@ -2735,6 +2724,36 @@ static void builtin_error(FKL_DL_PROC_ARGL)
 				?fklGetSymbolWithId(FKL_GET_SYM(who),exe->symbolTable)->symbol
 				:FKL_VM_STR(who)
 				,fklCopyString(FKL_VM_STR(message))));
+}
+
+static void builtin_error_type(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.error-type";
+	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname,exe);
+	FklVMerror* error=FKL_VM_ERR(err);
+	fklPushVMvalue(exe,FKL_MAKE_VM_SYM(error->type));
+}
+
+static void builtin_error_who(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.error-who";
+	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname,exe);
+	FklVMerror* error=FKL_VM_ERR(err);
+	fklPushVMvalue(exe,fklCreateVMvalueStr(exe,fklCopyString(error->who)));
+}
+
+static void builtin_error_msg(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.error-msg";
+	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname,exe);
+	FklVMerror* error=FKL_VM_ERR(err);
+	fklPushVMvalue(exe,fklCreateVMvalueStr(exe,fklCopyString(error->message)));
 }
 
 static void builtin_raise(FKL_DL_PROC_ARGL)
@@ -3629,7 +3648,7 @@ static void builtin_hash(FKL_DL_PROC_ARGL)
 	{
 		if(!FKL_IS_PAIR(cur))
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		fklVMhashTableSet(FKL_VM_CAR(cur),FKL_VM_CDR(cur),ht,exe->gc);
+		fklVMhashTableSet(FKL_VM_CAR(cur),FKL_VM_CDR(cur),ht);
 	}
 	fklResBp(exe);
 	fklPushVMvalue(exe,r);;
@@ -3654,7 +3673,7 @@ static void builtin_make_hash(FKL_DL_PROC_ARGL)
 		FklVMvalue* value=fklPopArg(exe);
 		if(!value)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-		fklVMhashTableSet(key,value,ht,exe->gc);
+		fklVMhashTableSet(key,value,ht);
 	}
 	fklResBp(exe);
 	fklPushVMvalue(exe,r);;
@@ -3671,7 +3690,7 @@ static void builtin_hasheqv(FKL_DL_PROC_ARGL)
 	{
 		if(!FKL_IS_PAIR(cur))
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		fklVMhashTableSet(FKL_VM_CAR(cur),FKL_VM_CDR(cur),ht,exe->gc);
+		fklVMhashTableSet(FKL_VM_CAR(cur),FKL_VM_CDR(cur),ht);
 	}
 	fklPushVMvalue(exe,r);;
 }
@@ -3686,7 +3705,7 @@ static void builtin_make_hasheqv(FKL_DL_PROC_ARGL)
 		FklVMvalue* value=fklPopArg(exe);
 		if(!value)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-		fklVMhashTableSet(key,value,ht,exe->gc);
+		fklVMhashTableSet(key,value,ht);
 	}
 	fklResBp(exe);
 	fklPushVMvalue(exe,r);;
@@ -3703,7 +3722,7 @@ static void builtin_hashequal(FKL_DL_PROC_ARGL)
 	{
 		if(!FKL_IS_PAIR(cur))
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		fklVMhashTableSet(FKL_VM_CAR(cur),FKL_VM_CDR(cur),ht,exe->gc);
+		fklVMhashTableSet(FKL_VM_CAR(cur),FKL_VM_CDR(cur),ht);
 	}
 	fklPushVMvalue(exe,r);;
 }
@@ -3718,10 +3737,10 @@ static void builtin_make_hashequal(FKL_DL_PROC_ARGL)
 		FklVMvalue* value=fklPopArg(exe);
 		if(!value)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-		fklVMhashTableSet(key,value,ht,exe->gc);
+		fklVMhashTableSet(key,value,ht);
 	}
 	fklResBp(exe);
-	fklPushVMvalue(exe,r);;
+	fklPushVMvalue(exe,r);
 }
 
 static void builtin_href(FKL_DL_PROC_ARGL)
@@ -3744,9 +3763,9 @@ static void builtin_href(FKL_DL_PROC_ARGL)
 	}
 }
 
-static void builtin_hrefp(FKL_DL_PROC_ARGL)
+static void builtin_href4(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.hrefp";
+	static const char Pname[]="builtin.href$";
 	DECL_AND_CHECK_ARG2(ht,key,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
@@ -3797,7 +3816,7 @@ static void builtin_href_set(FKL_DL_PROC_ARGL)
 	DECL_AND_CHECK_ARG3(ht,key,value,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname,exe);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
-	fklVMhashTableSet(key,value,FKL_VM_HASH(ht),exe->gc);
+	fklVMhashTableSet(key,value,FKL_VM_HASH(ht));
 	fklPushVMvalue(exe,value);;
 }
 
@@ -3826,7 +3845,7 @@ static void builtin_href_set8(FKL_DL_PROC_ARGL)
 		value=fklPopArg(exe);
 		if(!value)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-		fklVMhashTableSet(key,value,hash,exe->gc);
+		fklVMhashTableSet(key,value,hash);
 	}
 	fklResBp(exe);
 	fklPushVMvalue(exe,value);
@@ -4280,6 +4299,9 @@ static const struct SymbolFuncStruct
 	{"recv",                  builtin_recv,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"recv&",                 builtin_recv7,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"error",                 builtin_error,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"error-type",            builtin_error_type,              {NULL,         NULL,          NULL,          NULL,          }, },
+	{"error-who",             builtin_error_who,               {NULL,         NULL,          NULL,          NULL,          }, },
+	{"error-msg",             builtin_error_msg,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"raise",                 builtin_raise,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"reverse",               builtin_reverse,                 {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4433,7 +4455,7 @@ static const struct SymbolFuncStruct
 	{"hashequal?",            builtin_hashequal_p,             {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href",                  builtin_href,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href&",                 builtin_href7,                   {NULL,         NULL,          NULL,          NULL,          }, },
-	{"hrefp",                 builtin_hrefp,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"href$",                 builtin_href4,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href!",                 builtin_href1,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href-set!",             builtin_href_set,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"href-set*!",            builtin_href_set8,               {NULL,         NULL,          NULL,          NULL,          }, },
@@ -4525,7 +4547,6 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	FKL_ASSERT(closure);
 	f->ref=closure;
 	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe
-			,0
 			,&PublicBuiltInDataMetaTable
 			,FKL_VM_NIL);
 	FklVMudata* pud=FKL_VM_UD(publicUserData);
@@ -4556,7 +4577,6 @@ void fklInitGlobalVMclosureForProc(FklVMproc* proc,FklVM* exe)
 	FKL_ASSERT(closure);
 	proc->closure=closure;
 	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe
-			,0
 			,&PublicBuiltInDataMetaTable
 			,FKL_VM_NIL);
 

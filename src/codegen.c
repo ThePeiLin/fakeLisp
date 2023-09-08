@@ -3600,6 +3600,7 @@ typedef struct
 	FklCodegen* codegen;
 	FklPtrStack symbolStack;
 	FklPtrStack stateStack;
+	FklUintStack lineStack;
 }CodegenLoadContext;
 
 #include<fakeLisp/grammer.h>
@@ -3611,6 +3612,7 @@ static CodegenLoadContext* createCodegenLoadContext(FILE* fp,FklCodegen* codegen
 	r->codegen=codegen;
 	r->fp=fp;
 	fklInitPtrStack(&r->stateStack,16,16);
+	fklInitUintStack(&r->lineStack,16,16);
 	fklInitPtrStack(&r->symbolStack,16,16);
 	return r;
 }
@@ -3623,6 +3625,7 @@ static void _codegen_load_finalizer(void* pcontext)
 		fklDestroyAnayzingSymbol(fklPopPtrStack(symbolStack));
 	fklUninitPtrStack(symbolStack);
 	fklUninitPtrStack(&context->stateStack);
+	fklUninitUintStack(&context->lineStack);
 	fclose(context->fp);
 	free(context);
 }
@@ -3633,6 +3636,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 		,size_t* errorLine
 		,FklCodegenErrorState* errorState
 		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
 		,FklPtrStack* stateStack)
 {
 	size_t size=0;
@@ -3653,11 +3657,12 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 				,errorLine
 				,&begin
 				,symbolStack
+				,lineStack
 				,stateStack);
 	}
 	else
 	{
-		fklPushState0ToStack(stateStack);
+		fklNastPushState0ToStack(stateStack);
 		list=fklReadWithBuiltinParser(fp
 				,&size
 				,codegen->curline
@@ -3667,6 +3672,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 				,errorLine
 				,&begin
 				,symbolStack
+				,lineStack
 				,stateStack);
 	}
 	if(list)
@@ -3686,6 +3692,7 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 	FklCodegen* codegen=context->codegen;
 	FklPtrStack* stateStack=&context->stateStack;
 	FklPtrStack* symbolStack=&context->symbolStack;
+	FklUintStack* lineStack=&context->lineStack;
 	FILE* fp=context->fp;
 	int unexpectEOF=0;
 	size_t errorLine=0;
@@ -3695,6 +3702,7 @@ static FklNastNode* _codegen_load_get_next_expression(void* pcontext,FklCodegenE
 			,&errorLine
 			,errorState
 			,symbolStack
+			,lineStack
 			,stateStack);
 	if(unexpectEOF)
 	{
@@ -4063,6 +4071,84 @@ static inline int add_group_ignores(FklGrammer* g,FklGrammerIgnore* igs);
 static inline FklGrammerProductionGroup* add_production_group(FklHashTable* named_prod_groups,FklSid_t group_id);
 static inline int add_all_group_to_grammer(FklCodegen* codegen);
 
+static inline int import_reader_macro(int is_grammer_inited
+		,int* p_is_grammer_inited
+		,FklCodegen* codegen
+		,FklCodegenErrorState* errorState
+		,uint64_t curline
+		,FklCodegenLib* lib
+		,FklGrammerProductionGroup* group
+		,FklSid_t origin_group_id
+		,FklSid_t new_group_id)
+{
+	FklGrammer* g=*codegen->g;
+	if(!is_grammer_inited)
+	{
+		if(!g)
+		{
+			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
+			{
+reader_macro_error:
+				errorState->line=curline;
+				errorState->fid=codegen->fid;
+				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+				errorState->place=NULL;
+				return 1;
+			}
+			g=*codegen->g;
+		}
+		else
+		{
+			fklClearGrammer(g);
+			if(add_group_ignores(g,*codegen->builtin_ignores))
+				goto reader_macro_error;
+
+			if(add_group_prods(g,codegen->builtin_prods))
+				goto reader_macro_error;
+		}
+		*p_is_grammer_inited=1;
+	}
+
+	FklSymbolTable* origin_table=lib->terminal_table;
+	FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,new_group_id);
+
+	for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
+	{
+		FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
+		FKL_ASSERT(ig);
+		ig->len=igs->len;
+		ig->next=NULL;
+		memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
+
+		recompute_ignores_terminal_sid(ig,g->terminals);
+		if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
+		{
+			free(ig);
+			goto reader_macro_error;
+		}
+	}
+
+	for(FklHashTableItem* prod_hash_item=group->prods.first
+			;prod_hash_item
+			;prod_hash_item=prod_hash_item->next)
+	{
+		FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
+		for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
+		{
+			FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
+			recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+			if(origin_group_id!=new_group_id)
+				replace_group_id(prod,new_group_id);
+			if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
+			{
+				fklDestroyGrammerProduction(prod);
+				goto reader_macro_error;
+			}
+		}
+	}
+	return 0;
+}
+
 static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 		,FklCodegen* codegen
 		,FklCodegenLib* lib
@@ -4087,71 +4173,29 @@ static inline FklByteCodelnt* process_import_imported_lib_common(uint32_t libId
 
 	if(lib->named_prod_groups.t)
 	{
-		FklGrammer* g=*codegen->g;
-		if(!g)
-		{
-			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
-			{
-reader_macro_error:
-				errorState->line=curline;
-				errorState->fid=codegen->fid;
-				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
-				errorState->place=NULL;
-				return NULL;
-			}
-		}
-		else
-		{
-			fklClearGrammer(g);
-			if(add_group_ignores(g,*codegen->builtin_ignores))
-				goto reader_macro_error;
-
-			if(add_group_prods(g,codegen->builtin_prods))
-				goto reader_macro_error;
-		}
-		g=*codegen->g;
-
-		FklSymbolTable* origin_table=lib->terminal_table;
+		int is_grammer_inited=0;
 		for(FklHashTableItem* prod_group_item=lib->named_prod_groups.first;prod_group_item;prod_group_item=prod_group_item->next)
 		{
 			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)prod_group_item->data;
-			FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,group->id);
-
-			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
-			{
-				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
-				FKL_ASSERT(ig);
-				ig->len=igs->len;
-				ig->next=NULL;
-				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
-
-				recompute_ignores_terminal_sid(ig,g->terminals);
-				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
-				{
-					free(ig);
-					goto reader_macro_error;
-				}
-			}
-
-			for(FklHashTableItem* prod_hash_item=group->prods.first
-					;prod_hash_item
-					;prod_hash_item=prod_hash_item->next)
-			{
-				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
-				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
-				{
-					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
-					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
-					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
-					{
-						fklDestroyGrammerProduction(prod);
-						goto reader_macro_error;
-					}
-				}
-			}
+			if(import_reader_macro(is_grammer_inited
+						,&is_grammer_inited
+						,codegen
+						,errorState
+						,curline
+						,lib
+						,group
+						,group->id
+						,group->id))
+				break;
 		}
-		if(add_all_group_to_grammer(codegen))
-			goto reader_macro_error;
+		if(!errorState->type&&add_all_group_to_grammer(codegen))
+		{
+			errorState->line=curline;
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+			errorState->place=NULL;
+			return NULL;
+		}
 	}
 
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
@@ -4192,31 +4236,7 @@ static inline FklByteCodelnt* process_import_imported_lib_prefix(uint32_t libId
 			,prefix);
 	if(lib->named_prod_groups.t)
 	{
-		FklGrammer* g=*codegen->g;
-		if(!g)
-		{
-			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
-			{
-reader_macro_error:
-				errorState->line=curline;
-				errorState->fid=codegen->fid;
-				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
-				errorState->place=NULL;
-				return NULL;
-			}
-		}
-		else
-		{
-			fklClearGrammer(g);
-			if(add_group_ignores(g,*codegen->builtin_ignores))
-				goto reader_macro_error;
-
-			if(add_group_prods(g,codegen->builtin_prods))
-				goto reader_macro_error;
-		}
-		g=*codegen->g;
-
-		FklSymbolTable* origin_table=lib->terminal_table;
+		int is_grammer_inited=0;
 		FklStringBuffer buffer;
 		fklInitStringBuffer(&buffer);
 		for(FklHashTableItem* prod_group_item=lib->named_prod_groups.first;prod_group_item;prod_group_item=prod_group_item->next)
@@ -4227,48 +4247,28 @@ reader_macro_error:
 
 			FklSid_t group_id_with_prefix=fklAddSymbolCharBufToPst(buffer.b,buffer.i)->id;
 
-			FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,group_id_with_prefix);
+			if(import_reader_macro(is_grammer_inited
+						,&is_grammer_inited
+						,codegen
+						,errorState
+						,curline
+						,lib
+						,group
+						,group->id
+						,group_id_with_prefix))
+				break;
 
-			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
-			{
-				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
-				FKL_ASSERT(ig);
-				ig->len=igs->len;
-				ig->next=NULL;
-				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
-
-				recompute_ignores_terminal_sid(ig,g->terminals);
-				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
-				{
-					fklUninitStringBuffer(&buffer);
-					free(ig);
-					goto reader_macro_error;
-				}
-			}
-
-			for(FklHashTableItem* prod_hash_item=group->prods.first
-					;prod_hash_item
-					;prod_hash_item=prod_hash_item->next)
-			{
-				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
-				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
-				{
-					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
-					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
-					replace_group_id(prod,group_id_with_prefix);
-					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
-					{
-						fklUninitStringBuffer(&buffer);
-						fklDestroyGrammerProduction(prod);
-						goto reader_macro_error;
-					}
-				}
-			}
 			fklStringBufferClear(&buffer);
 		}
 		fklUninitStringBuffer(&buffer);
-		if(add_all_group_to_grammer(codegen))
-			goto reader_macro_error;
+		if(!errorState->type&&add_all_group_to_grammer(codegen))
+		{
+			errorState->line=curline;
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+			errorState->place=NULL;
+			return NULL;
+		}
 	}
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
 	add_symbol_with_prefix_to_local_env_in_array(curEnv
@@ -4306,7 +4306,7 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
 
-	int is_inited_grammer=0;
+	int is_grammer_inited=0;
 	for(;only->type==FKL_NAST_PAIR;only=only->pair->cdr)
 	{
 		FklSid_t cur=only->pair->car->sym;
@@ -4335,70 +4335,17 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 		if(lib->named_prod_groups.t&&fklGetHashItem(&cur,&lib->named_prod_groups))
 		{
 			r=1;
-			FklGrammer* g=*codegen->g;
-			if(!is_inited_grammer)
-			{
-				if(!g)
-				{
-					if(init_builtin_grammer(codegen,fklGetPubSymTab()))
-					{
-reader_macro_error:
-						errorState->line=curline;
-						errorState->fid=codegen->fid;
-						errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
-						errorState->place=NULL;
-						break;
-					}
-				}
-				else
-				{
-					fklClearGrammer(g);
-					if(add_group_ignores(g,*codegen->builtin_ignores))
-						goto reader_macro_error;
-
-					if(add_group_prods(g,codegen->builtin_prods))
-						goto reader_macro_error;
-				}
-				is_inited_grammer=1;
-			}
-			g=*codegen->g;
-
-			FklSymbolTable* origin_table=lib->terminal_table;
 			FklGrammerProductionGroup* group=fklGetHashItem(&cur,&lib->named_prod_groups);
-			FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,cur);
-
-			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
-			{
-				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
-				FKL_ASSERT(ig);
-				ig->len=igs->len;
-				ig->next=NULL;
-				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
-
-				recompute_ignores_terminal_sid(ig,g->terminals);
-				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
-				{
-					free(ig);
-					goto reader_macro_error;
-				}
-			}
-
-			for(FklHashTableItem* prod_hash_item=group->prods.first
-					;prod_hash_item
-					;prod_hash_item=prod_hash_item->next)
-			{
-				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
-				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
-				{
-					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
-					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
-					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
-					{
-						fklDestroyGrammerProduction(prod);
-						goto reader_macro_error;
-					}
-				}
-			}
+			if(import_reader_macro(is_grammer_inited
+						,&is_grammer_inited
+						,codegen
+						,errorState
+						,curline
+						,lib
+						,group
+						,cur
+						,cur))
+				break;
 		}
 
 		uint32_t idl=0;
@@ -4420,8 +4367,13 @@ reader_macro_error:
 		}
 	}
 
-	if(is_inited_grammer&&add_all_group_to_grammer(codegen))
-		goto reader_macro_error;
+	if(!errorState->type&&is_grammer_inited&&add_all_group_to_grammer(codegen))
+	{
+		errorState->line=curline;
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+		errorState->place=NULL;
+	}
 	return importBc;
 }
 
@@ -4472,74 +4424,33 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 	}
 	if(lib->named_prod_groups.t)
 	{
-		FklGrammer* g=*codegen->g;
-		if(!g)
-		{
-			if(init_builtin_grammer(codegen,fklGetPubSymTab()))
-			{
-reader_macro_error:
-				errorState->line=curline;
-				errorState->fid=codegen->fid;
-				errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
-				errorState->place=NULL;
-				return NULL;
-			}
-		}
-		else
-		{
-			fklClearGrammer(g);
-			if(add_group_ignores(g,*codegen->builtin_ignores))
-				goto reader_macro_error;
-
-			if(add_group_prods(g,codegen->builtin_prods))
-				goto reader_macro_error;
-		}
-		g=*codegen->g;
-
-		FklSymbolTable* origin_table=lib->terminal_table;
+		int is_grammer_inited=0;
 		for(FklHashTableItem* prod_group_item=lib->named_prod_groups.first;prod_group_item;prod_group_item=prod_group_item->next)
 		{
 			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)prod_group_item->data;
 			if(!is_in_except_list(except,group->id))
 			{
-				FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,group->id);
+				if(import_reader_macro(is_grammer_inited
+							,&is_grammer_inited
+							,codegen
+							,errorState
+							,curline
+							,lib
+							,group
+							,group->id
+							,group->id))
+					break;
 
-				for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
-				{
-					FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
-					FKL_ASSERT(ig);
-					ig->len=igs->len;
-					ig->next=NULL;
-					memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
-
-					recompute_ignores_terminal_sid(ig,g->terminals);
-					if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
-					{
-						free(ig);
-						goto reader_macro_error;
-					}
-				}
-
-				for(FklHashTableItem* prod_hash_item=group->prods.first
-						;prod_hash_item
-						;prod_hash_item=prod_hash_item->next)
-				{
-					FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
-					for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
-					{
-						FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
-						recompute_prod_terminal_sid(prod,g->terminals,origin_table);
-						if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
-						{
-							fklDestroyGrammerProduction(prod);
-							goto reader_macro_error;
-						}
-					}
-				}
 			}
 		}
-		if(add_all_group_to_grammer(codegen))
-			goto reader_macro_error;
+		if(!errorState->type&&add_all_group_to_grammer(codegen))
+		{
+			errorState->line=curline;
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+			errorState->place=NULL;
+			return NULL;
+		}
 	}
 	
 	FklByteCodelnt* importBc=createBclnt(create5lenBc(FKL_OP_LOAD_LIB,libId),codegen->fid,curline);
@@ -4583,7 +4494,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 	FklHashTable* replace=lib->replacements;
 	FklCodegenMacro* head=lib->head;
 
-	int is_inited_grammer=0;
+	int is_grammer_inited=0;
 	for(;alias->type==FKL_NAST_PAIR;alias=alias->pair->cdr)
 	{
 		FklNastNode* curNode=alias->pair->car;
@@ -4621,73 +4532,17 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 		if(lib->named_prod_groups.t&&fklGetHashItem(&cur,&lib->named_prod_groups))
 		{
 			r=1;
-			FklGrammer* g=*codegen->g;
-			if(!is_inited_grammer)
-			{
-				if(!g)
-				{
-					if(init_builtin_grammer(codegen,fklGetPubSymTab()))
-					{
-reader_macro_error:
-						errorState->line=curline;
-						errorState->fid=codegen->fid;
-						errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
-						errorState->place=NULL;
-						break;
-					}
-				}
-				else
-				{
-					fklClearGrammer(g);
-					if(add_group_ignores(g,*codegen->builtin_ignores))
-						goto reader_macro_error;
-
-					if(add_group_prods(g,codegen->builtin_prods))
-						goto reader_macro_error;
-				}
-				is_inited_grammer=1;
-			}
-
-			g=*codegen->g;
-
-			FklSymbolTable* origin_table=lib->terminal_table;
 			FklGrammerProductionGroup* group=fklGetHashItem(&cur,&lib->named_prod_groups);
-
-			FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,cur0);
-
-			for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
-			{
-				FklGrammerIgnore* ig=(FklGrammerIgnore*)malloc(sizeof(FklGrammerIgnore)+igs->len*sizeof(FklGrammerIgnoreSym));
-				FKL_ASSERT(ig);
-				ig->len=igs->len;
-				ig->next=NULL;
-				memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
-
-				recompute_ignores_terminal_sid(ig,g->terminals);
-				if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
-				{
-					free(ig);
-					goto reader_macro_error;
-				}
-			}
-
-			for(FklHashTableItem* prod_hash_item=group->prods.first
-					;prod_hash_item
-					;prod_hash_item=prod_hash_item->next)
-			{
-				FklGrammerProdHashItem* item=(FklGrammerProdHashItem*)prod_hash_item->data;
-				for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
-				{
-					FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
-					recompute_prod_terminal_sid(prod,g->terminals,origin_table);
-					replace_group_id(prod,cur0);
-					if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
-					{
-						fklDestroyGrammerProduction(prod);
-						goto reader_macro_error;
-					}
-				}
-			}
+			if(import_reader_macro(is_grammer_inited
+						,&is_grammer_inited
+						,codegen
+						,errorState
+						,curline
+						,lib
+						,group
+						,cur
+						,cur0))
+				break;
 		}
 
 		FklSid_t targetId=fklAddSymbol(fklGetSymbolWithIdFromPst(cur)->symbol,globalSymTable)->id;
@@ -4709,10 +4564,14 @@ reader_macro_error:
 			break;
 		}
 	}
-	
-	if(is_inited_grammer&&add_all_group_to_grammer(codegen))
-		goto reader_macro_error;
 
+	if(!errorState->type&&is_grammer_inited&&add_all_group_to_grammer(codegen))
+	{
+		errorState->line=curline;
+		errorState->fid=codegen->fid;
+		errorState->type=FKL_ERR_IMPORT_READER_MACRO_ERROR;
+		errorState->place=NULL;
+	}
 	return importBc;
 }
 
@@ -6038,8 +5897,9 @@ struct ReaderMacroCtx
 	struct CustomActionCtx* action_ctx;
 };
 
-static FklNastNode* custom_action(void* c
-		,FklNastNode* nodes[]
+static void* custom_action(void* c
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6247,8 +6107,9 @@ static ReplacementFunc findBuiltInReplacementWithId(FklSid_t id)
 	return NULL;
 }
 
-static FklNastNode* codegen_prod_action_nil(void* ctx
-		,FklNastNode* nodes[]
+static void* codegen_prod_action_nil(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6256,8 +6117,9 @@ static FklNastNode* codegen_prod_action_nil(void* ctx
 	return fklCreateNastNode(FKL_NAST_NIL,line);
 }
 
-static FklNastNode* codegen_prod_action_first(void* ctx
-		,FklNastNode* nodes[]
+static void* codegen_prod_action_first(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6267,8 +6129,9 @@ static FklNastNode* codegen_prod_action_first(void* ctx
 	return fklMakeNastNodeRef(nodes[0]);
 }
 
-static FklNastNode* codegen_prod_action_symbol(void* ctx
-		,FklNastNode* nodes[]
+static void* codegen_prod_action_symbol(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6283,8 +6146,9 @@ static FklNastNode* codegen_prod_action_symbol(void* ctx
 	return sym;
 }
 
-static FklNastNode* codegen_prod_action_second(void* ctx
-		,FklNastNode* nodes[]
+static void* codegen_prod_action_second(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6294,8 +6158,9 @@ static FklNastNode* codegen_prod_action_second(void* ctx
 	return fklMakeNastNodeRef(nodes[1]);
 }
 
-static FklNastNode* codegen_prod_action_third(void* ctx
-		,FklNastNode* nodes[]
+static void* codegen_prod_action_third(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6305,8 +6170,9 @@ static FklNastNode* codegen_prod_action_third(void* ctx
 	return fklMakeNastNodeRef(nodes[2]);
 }
 
-static inline FklNastNode* codegen_prod_action_pair(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_pair(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6322,8 +6188,9 @@ static inline FklNastNode* codegen_prod_action_pair(void* ctx
 	return pair;
 }
 
-static inline FklNastNode* codegen_prod_action_cons(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_cons(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6351,8 +6218,9 @@ static inline FklNastNode* codegen_prod_action_cons(void* ctx
 		return NULL;
 }
 
-static inline FklNastNode* codegen_prod_action_box(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_box(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6364,8 +6232,9 @@ static inline FklNastNode* codegen_prod_action_box(void* ctx
 	return box;
 }
 
-static inline FklNastNode* codegen_prod_action_vector(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_vector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6383,8 +6252,9 @@ static inline FklNastNode* codegen_prod_action_vector(void* ctx
 	return r;
 }
 
-static inline FklNastNode* codegen_prod_action_quote(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_quote(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6399,8 +6269,9 @@ static inline FklNastNode* codegen_prod_action_quote(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* codegen_prod_action_unquote(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_unquote(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6415,8 +6286,9 @@ static inline FklNastNode* codegen_prod_action_unquote(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* codegen_prod_action_qsquote(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_qsquote(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6431,8 +6303,9 @@ static inline FklNastNode* codegen_prod_action_qsquote(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* codegen_prod_action_unqtesp(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_unqtesp(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6447,8 +6320,9 @@ static inline FklNastNode* codegen_prod_action_unqtesp(void* ctx
 	return create_nast_list(s_exps,2,line);
 }
 
-static inline FklNastNode* codegen_prod_action_hasheq(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_hasheq(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6471,8 +6345,9 @@ static inline FklNastNode* codegen_prod_action_hasheq(void* ctx
 	return r;
 }
 
-static inline FklNastNode* codegen_prod_action_hasheqv(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_hasheqv(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6495,8 +6370,9 @@ static inline FklNastNode* codegen_prod_action_hasheqv(void* ctx
 	return r;
 }
 
-static inline FklNastNode* codegen_prod_action_hashequal(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_hashequal(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6519,8 +6395,9 @@ static inline FklNastNode* codegen_prod_action_hashequal(void* ctx
 	return r;
 }
 
-static inline FklNastNode* codegen_prod_action_bytevector(void* ctx
-		,FklNastNode** nodes
+static inline void* codegen_prod_action_bytevector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6548,7 +6425,7 @@ static struct CstrIdProdAction
 {
 	const char* name;
 	FklSid_t id;
-	FklBuiltinProdAction func;
+	FklProdActionFunc func;
 }CodegenProdActions[]=
 {
 	{"nil",       0, codegen_prod_action_nil,       },
@@ -6577,7 +6454,7 @@ static inline void init_builtin_prod_action_list(void)
 		l->id=fklAddSymbolCstrToPst(l->name)->id;
 }
 
-static inline FklBuiltinProdAction find_builtin_prod_action(FklSid_t id)
+static inline FklProdActionFunc find_builtin_prod_action(FklSid_t id)
 {
 	for(struct CstrIdProdAction* l=CodegenProdActions;l->name;l++)
 		if(l->id==id)
@@ -6597,8 +6474,9 @@ static void* simple_action_nth_create(FklNastNode* rest[],size_t rest_len,int* f
 	return (void*)(rest[0]->fix);
 }
 
-static FklNastNode* simple_action_nth(void* ctx
-		,FklNastNode* nodes[]
+static void* simple_action_nth(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6641,8 +6519,9 @@ static void* simple_action_cons_copy(const void* c)
 	return ctx;
 }
 
-static FklNastNode* simple_action_cons(void* c
-		,FklNastNode* nodes[]
+static void* simple_action_cons(void* c
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6665,8 +6544,9 @@ struct SimpleActionHeadCtx
 	uint64_t idx[];
 };
 
-static FklNastNode* simple_action_head(void* c
-		,FklNastNode* nodes[]
+static void* simple_action_head(void* c
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6725,8 +6605,9 @@ static void simple_action_head_destroy(void* cc)
 	free(ctx);
 }
 
-static inline FklNastNode* simple_action_box(void* ctx
-		,FklNastNode** nodes
+static inline void* simple_action_box(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6739,8 +6620,9 @@ static inline FklNastNode* simple_action_box(void* ctx
 	return box;
 }
 
-static inline FklNastNode* simple_action_vector(void* ctx
-		,FklNastNode** nodes
+static inline void* simple_action_vector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6759,8 +6641,9 @@ static inline FklNastNode* simple_action_vector(void* ctx
 	return r;
 }
 
-static inline FklNastNode* simple_action_hasheq(void* ctx
-		,FklNastNode** nodes
+static inline void* simple_action_hasheq(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6784,8 +6667,9 @@ static inline FklNastNode* simple_action_hasheq(void* ctx
 	return r;
 }
 
-static inline FklNastNode* simple_action_hasheqv(void* ctx
-		,FklNastNode** nodes
+static inline void* simple_action_hasheqv(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6809,8 +6693,9 @@ static inline FklNastNode* simple_action_hasheqv(void* ctx
 	return r;
 }
 
-static inline FklNastNode* simple_action_hashequal(void* ctx
-		,FklNastNode** nodes
+static inline void* simple_action_hashequal(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6834,8 +6719,9 @@ static inline FklNastNode* simple_action_hashequal(void* ctx
 	return r;
 }
 
-static inline FklNastNode* simple_action_bytevector(void* ctx
-		,FklNastNode** nodes
+static inline void* simple_action_bytevector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6928,8 +6814,9 @@ static void simple_action_symbol_destroy(void* cc)
 	free(ctx);
 }
 
-static FklNastNode* simple_action_symbol(void* c
-		,FklNastNode* nodes[]
+static void* simple_action_symbol(void* c
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -6993,8 +6880,9 @@ static FklNastNode* simple_action_symbol(void* c
 	return sym;
 }
 
-static inline FklNastNode* simple_action_string(void* c
-		,FklNastNode** nodes
+static inline void* simple_action_string(void* c
+		,void* outerCtx
+		,void* nodes[]
 		,size_t num
 		,size_t line
 		,FklSymbolTable* st)
@@ -7028,7 +6916,7 @@ static struct CstrIdCreatorProdAction
 {
 	const char* name;
 	FklSid_t id;
-	FklBuiltinProdAction func;
+	FklProdActionFunc func;
 	void* (*creator)(FklNastNode* rest[],size_t rest_len,int* failed);
 	void* (*ctx_copyer)(const void*);
 	void (*ctx_destroy)(void*);
@@ -7245,7 +7133,7 @@ static inline FklGrammerProduction* nast_vector_to_production(const FklNastVecto
 	{
 		if(action_ast->type!=FKL_NAST_SYM)
 			return NULL;
-		FklBuiltinProdAction action=find_builtin_prod_action(action_ast->sym);
+		FklProdActionFunc action=find_builtin_prod_action(action_ast->sym);
 		if(!action)
 			return NULL;
 		return fklCreateProduction(left_group
@@ -7637,6 +7525,7 @@ static inline int process_add_production(FklSid_t group_id
 	{
 		if(init_builtin_grammer(codegen,st))
 			goto reader_macro_error;
+		g=*codegen->g;
 	}
 	else
 	{
@@ -7647,7 +7536,6 @@ static inline int process_add_production(FklSid_t group_id
 		if(add_group_prods(g,codegen->builtin_prods))
 			goto reader_macro_error;
 	}
-	g=*codegen->g;
 	FklNastVector* vec=vector_node->vec;
 	if(vec->size==1)
 	{
@@ -9357,6 +9245,7 @@ typedef struct
 	size_t offset;
 	FklPtrStack stateStack;
 	FklPtrStack symbolStack;
+	FklUintStack lineStack;
 }NastCreatCtx;
 
 typedef struct
@@ -9531,7 +9420,7 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx* cc,FklStringBuffer*
 		free(s);
 	}
 	cc->stateStack.top=0;
-	fklPushState0ToStack(&cc->stateStack);
+	fklNastPushState0ToStack(&cc->stateStack);
 }
 
 static void repl_frame_step(FklCallObjData data,FklVM* exe)
@@ -9564,7 +9453,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	FklStringBuffer* s=ctx->buf;
 	int ch=fklVMfpNonBlockGetline(vfp,s);
 	FklNastNode* ast=NULL;
-	FklGrammerMatchOuterCtx outerCtx=FKL_GRAMMER_MATCH_OUTER_CTX_INIT;
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 	outerCtx.line=codegen->curline;
 	size_t restLen=fklStringBufferLen(s)-cc->offset;
 	if(fklVMfpEof(vfp)||ch=='\n')
@@ -9579,104 +9468,104 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 				,&err
 				,&errLine
 				,&cc->symbolStack
+				,&cc->lineStack
 				,&cc->stateStack);
 		cc->offset=fklStringBufferLen(s)-restLen;
 		codegen->curline=outerCtx.line;
 		fklUnLockVMfp(ctx->stdinVal);
 		if(!restLen&&cc->symbolStack.top==0&&ch==-1)
 			ctx->state=DONE;
-		else
+		else if((err==FKL_PARSE_WAITING_FOR_MORE
+					||(err=FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
+				&&fklVMfpEof(vfp))
 		{
-			if(err==FKL_PARSE_WAITING_FOR_MORE&&fklVMfpEof(vfp))
-			{
-				repl_nast_ctx_and_buf_reset(cc,s);
-				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
-			}
-			else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
-			{
-				repl_nast_ctx_and_buf_reset(cc,s);
-				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-			}
-			else if(err==FKL_PARSE_REDUCE_FAILED)
-			{
-				repl_nast_ctx_and_buf_reset(cc,s);
-				FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-			}
-			else if(ast)
-			{
-				if(restLen)
-					fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
-				ctx->state=DONE;
-				repl_nast_ctx_and_buf_reset(cc,s);
+			repl_nast_ctx_and_buf_reset(cc,s);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
+		}
+		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
+		{
+			repl_nast_ctx_and_buf_reset(cc,s);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		}
+		else if(err==FKL_PARSE_REDUCE_FAILED)
+		{
+			repl_nast_ctx_and_buf_reset(cc,s);
+			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		}
+		else if(ast)
+		{
+			if(restLen)
+				fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
+			ctx->state=DONE;
+			repl_nast_ctx_and_buf_reset(cc,s);
 
-				fklMakeNastNodeRef(ast);
-				size_t libNum=codegen->loadedLibStack->top;
-				FklByteCodelnt* mainCode=fklGenExpressionCode(ast,codegen->globalEnv,codegen);
-				fklDestroyNastNode(ast);
-				size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
-				if(unloadlibNum)
+			fklMakeNastNodeRef(ast);
+			size_t libNum=codegen->loadedLibStack->top;
+			FklByteCodelnt* mainCode=fklGenExpressionCode(ast,codegen->globalEnv,codegen);
+			fklDestroyNastNode(ast);
+			size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
+			if(unloadlibNum)
+			{
+				FklVMproc* proc=FKL_VM_PROC(ctx->mainProc);
+				libNum+=unloadlibNum;
+				FklVMlib* nlibs=(FklVMlib*)calloc((libNum+1),sizeof(FklVMlib));
+				FKL_ASSERT(nlibs);
+				memcpy(nlibs,exe->libs,sizeof(FklVMlib)*(exe->libNum+1));
+				for(size_t i=exe->libNum;i<libNum;i++)
 				{
-					FklVMproc* proc=FKL_VM_PROC(ctx->mainProc);
-					libNum+=unloadlibNum;
-					FklVMlib* nlibs=(FklVMlib*)calloc((libNum+1),sizeof(FklVMlib));
-					FKL_ASSERT(nlibs);
-					memcpy(nlibs,exe->libs,sizeof(FklVMlib)*(exe->libNum+1));
-					for(size_t i=exe->libNum;i<libNum;i++)
-					{
-						FklVMlib* curVMlib=&nlibs[i+1];
-						FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
-						fklInitVMlibWithCodegenLibRefs(curCGlib
-								,curVMlib
-								,exe
-								,proc->closure
-								,proc->rcount
-								,0
-								,exe->pts);
-					}
-					FklVMlib* prev=exe->libs;
-					exe->libs=nlibs;
-					exe->libNum=libNum;
-					free(prev);
+					FklVMlib* curVMlib=&nlibs[i+1];
+					FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
+					fklInitVMlibWithCodegenLibRefs(curCGlib
+							,curVMlib
+							,exe
+							,proc->closure
+							,proc->rcount
+							,0
+							,exe->pts);
 				}
-				if(mainCode)
-				{
-					uint32_t o_lcount=ctx->lcount;
-					fklUnLockVMfp(ctx->stdinVal);
-					ctx->state=READY;
-
-					update_prototype_lcount(codegen->pts,codegen->globalEnv);
-
-					update_prototype_ref(codegen->pts
-							,codegen->globalEnv
-							,codegen->globalSymTable);
-					FklVMvalue* mainProc=fklCreateVMvalueProc(exe,NULL,0,FKL_VM_NIL,1);
-					FklVMproc* proc=FKL_VM_PROC(mainProc);
-					init_with_main_proc(proc,FKL_VM_PROC(ctx->mainProc));
-					ctx->mainProc=mainProc;
-
-					FklVMvalue* mainCodeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-					ctx->lcount=codegen->pts->pts[1].lcount;
-
-					mainCode=FKL_VM_CO(mainCodeObj);
-					proc->lcount=ctx->lcount;
-					proc->codeObj=mainCodeObj;
-					proc->spc=mainCode->bc->code;
-					proc->end=proc->spc+mainCode->bc->size;
-
-					FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
-					FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
-					f->base=0;
-					f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
-					f->lcount=proc->lcount;
-					alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
-
-					process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
-
-					exe->frames=mainframe;
-				}
-				else
-					ctx->state=WAITING;
+				FklVMlib* prev=exe->libs;
+				exe->libs=nlibs;
+				exe->libNum=libNum;
+				free(prev);
 			}
+			if(mainCode)
+			{
+				uint32_t o_lcount=ctx->lcount;
+				fklUnLockVMfp(ctx->stdinVal);
+				ctx->state=READY;
+
+				update_prototype_lcount(codegen->pts,codegen->globalEnv);
+
+				update_prototype_ref(codegen->pts
+						,codegen->globalEnv
+						,codegen->globalSymTable);
+				FklVMvalue* mainProc=fklCreateVMvalueProc(exe,NULL,0,FKL_VM_NIL,1);
+				FklVMproc* proc=FKL_VM_PROC(mainProc);
+				init_with_main_proc(proc,FKL_VM_PROC(ctx->mainProc));
+				ctx->mainProc=mainProc;
+
+				FklVMvalue* mainCodeObj=fklCreateVMvalueCodeObj(exe,mainCode);
+				ctx->lcount=codegen->pts->pts[1].lcount;
+
+				mainCode=FKL_VM_CO(mainCodeObj);
+				proc->lcount=ctx->lcount;
+				proc->codeObj=mainCodeObj;
+				proc->spc=mainCode->bc->code;
+				proc->end=proc->spc+mainCode->bc->size;
+
+				FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
+				FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
+				f->base=0;
+				f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
+				f->lcount=proc->lcount;
+				alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
+
+				process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
+
+				exe->frames=mainframe;
+			}
+			else
+				ctx->state=WAITING;
 		}
 	}
 	fklUnLockVMfp(ctx->stdinVal);
@@ -9712,6 +9601,7 @@ static inline void destroyNastCreatCtx(NastCreatCtx* cc)
 		fklDestroyNastNode(s->ast);
 		free(s);
 	}
+	fklUninitUintStack(&cc->lineStack);
 	fklUninitPtrStack(&cc->symbolStack);
 	free(cc);
 }
@@ -9739,8 +9629,9 @@ static inline NastCreatCtx* createNastCreatCtx(void)
 	FKL_ASSERT(cc);
 	cc->offset=0;
 	fklInitPtrStack(&cc->symbolStack,16,16);
+	fklInitUintStack(&cc->lineStack,16,16);
 	fklInitPtrStack(&cc->stateStack,16,16);
-	fklPushState0ToStack(&cc->stateStack);
+	fklNastPushState0ToStack(&cc->stateStack);
 	return cc;
 }
 

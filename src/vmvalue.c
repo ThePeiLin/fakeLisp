@@ -42,7 +42,6 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 		,const FklNastNode* node
 		,FklHashTable* lineHash)
 {
-	FklVMgc* gc=vm->gc;
 	FklPtrStack nodeStack=FKL_STACK_INIT;
 	fklInitPtrStack(&nodeStack,32,16);
 	FklUintStack reftypeStack=FKL_STACK_INIT;
@@ -91,7 +90,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 						{
 							FklVMvalue* key=cStack->base[i-1];
 							FklVMvalue* v=cStack->base[i-2];
-							fklVMhashTableSet(key,v,hash,gc);
+							fklVMhashTableSet(key,v,hash);
 						}
 					}
 					break;
@@ -462,7 +461,6 @@ static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 {
 	FklVMudata* src=FKL_VM_UD(obj);
 	FklVMvalue* dst=fklCreateVMvalueUdata(vm
-			,src->type
 			,src->t
 			,src->rel);
 	if(fklCopyVMudata(src,FKL_VM_UD(dst)))
@@ -479,7 +477,7 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	for(FklHashTableItem* list=ht->first;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
-		fklVMhashTableSet(item->key,item->v,nht,vm->gc);
+		fklVMhashTableSet(item->key,item->v,nht);
 	}
 	return r;
 }
@@ -1350,7 +1348,7 @@ FklVMvalue* fklVMhashTableGet(FklVMvalue* key,FklHashTable* ht,int* ok)
 	return r;
 }
 
-void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht,FklVMgc* gc)
+void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht)
 {
 	FklVMhashTableItem* i=fklPutHashItem(&key,ht);
 	i->v=v;
@@ -1528,6 +1526,36 @@ FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM* exe
 	err->type=type;
 	err->who=fklCreateStringFromCstr(who);
 	err->message=message;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigIntWithDecString(FklVM* exe,const FklString* str)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklInitBigIntFromDecString(FKL_VM_BI(r),str);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigIntWithHexString(FklVM* exe,const FklString* str)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklInitBigIntFromHexString(FKL_VM_BI(r),str);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBigIntWithOctString(FklVM* exe,const FklString* str)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	fklInitBigIntFromOctString(FKL_VM_BI(r),str);
 	fklAddToGC(r,exe);
 	return r;
 }
@@ -1720,7 +1748,6 @@ FklVMvalue* fklCreateVMvalueDlproc(FklVM* exe
 }
 
 FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
-		,FklSid_t type
 		,const FklVMudMetaTable* t
 		,FklVMvalue* rel)
 {
@@ -1728,7 +1755,6 @@ FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_USERDATA;
 	FklVMudata* ud=FKL_VM_UD(r);
-	ud->type=type;
 	ud->t=t;
 	ud->rel=rel;
 	fklAddToGC(r,exe);
@@ -1855,13 +1881,14 @@ inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 		princ(u,fp,table);
 	else
 	{
-		fprintf(fp,"#<");
-		if(u->type)
-		{
-			fklPrintString(fklGetSymbolWithId(u->type,table)->symbol,fp);
-			fputc(' ',fp);
-		}
-		fprintf(fp,"%p>",u);
+		fprintf(fp,"#<userdata %p>",u);
+		// fprintf(fp,"#<");
+		// if(u->type)
+		// {
+		// 	fklPrintString(fklGetSymbolWithId(u->type,table)->symbol,fp);
+		// 	fputc(' ',fp);
+		// }
+		// fprintf(fp,"%p>",u);
 	}
 }
 
@@ -1872,13 +1899,13 @@ inline void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 		prin1(u,fp,table);
 	else
 	{
-		fprintf(fp,"#<");
-		if(u->type)
-		{
-			fklPrintRawSymbol(fklGetSymbolWithId(u->type,table)->symbol,fp);
-			fputc(' ',fp);
-		}
-		fprintf(fp,"%p>",u);
+		fprintf(fp,"#<userdata %p>",u);
+		// if(u->type)
+		// {
+		// 	fklPrintRawSymbol(fklGetSymbolWithId(u->type,table)->symbol,fp);
+		// 	fputc(' ',fp);
+		// }
+		// fprintf(fp,"%p>",u);
 	}
 }
 
@@ -1939,3 +1966,15 @@ inline int fklCopyVMudata(const FklVMudata* a,FklVMudata* dst)
 	}
 	return 1;
 }
+
+void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx)
+{
+	FklVM* exe=(FklVM*)ctx;
+	FklString* str=fklCreateString(len,s);
+	return fklCreateVMvalueStr(exe,str);
+}
+
+void fklVMvalueTerminalDestroy(void* ast)
+{
+}
+

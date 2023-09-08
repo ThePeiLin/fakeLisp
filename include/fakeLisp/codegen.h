@@ -108,20 +108,24 @@ typedef struct FklCodegen
 	uint64_t curline;
 	FklSid_t fid;
 
-	FklGrammer* g;
+
 
 	struct
 	{
-		FklHashTable builtin_prods;
-		FklGrammerIgnore* builtin_ignores;
-	};
-	struct
-	{
-		FklHashTable unnamed_prods;
-		FklGrammerIgnore* unnamed_ignores;
+		FklGrammer* self_g;
+		FklHashTable self_builtin_prods;
+		FklGrammerIgnore* self_builtin_ignores;
+		FklHashTable self_unnamed_prods;
+		FklGrammerIgnore* self_unnamed_ignores;
+		FklHashTable self_named_prod_groups;
 	};
 
-	FklHashTable named_prod_groups;
+	FklGrammer** g;
+	FklHashTable* builtin_prods;
+	FklGrammerIgnore** builtin_ignores;
+	FklHashTable* unnamed_prods;
+	FklGrammerIgnore** unnamed_ignores;
+	FklHashTable* named_prod_groups;
 
 	uint32_t builtinSymbolNum;
 	uint8_t* builtinSymModiMark;

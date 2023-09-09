@@ -53,242 +53,152 @@ FklSymbolTable* fklGetPubSymTab(void)
 	return PubSymTab;
 }
 
-FklSymTabNode* fklAddSymbolToPst(const FklString* sym)
+FklSymbolHashItem* fklAddSymbolToPst(const FklString* sym)
 {
 	if(!PubSymTab)
 		init_public_symbol_table();
 	wrlock_pub_sym_lock();
-	FklSymTabNode* r=fklAddSymbol(sym,PubSymTab);
+	FklSymbolHashItem* r=fklAddSymbol(sym,PubSymTab);
 	unlock_pub_sym_lock();
 	return r;
 }
 
-FklSymTabNode* fklAddSymbolCstrToPst(const char* sym)
+FklSymbolHashItem* fklAddSymbolCstrToPst(const char* sym)
 {
 	if(!PubSymTab)
 		init_public_symbol_table();
 	wrlock_pub_sym_lock();
-	FklSymTabNode* r=fklAddSymbolCstr(sym,PubSymTab);
+	FklSymbolHashItem* r=fklAddSymbolCstr(sym,PubSymTab);
 	unlock_pub_sym_lock();
 	return r;
 }
 
-FklSymTabNode* fklAddSymbolCharBufToPst(const char* buf,size_t len)
+FklSymbolHashItem* fklAddSymbolCharBufToPst(const char* buf,size_t len)
 {
 	if(!PubSymTab)
 		init_public_symbol_table();
 	wrlock_pub_sym_lock();
-	FklSymTabNode* r=fklAddSymbolCharBuf(buf,len,PubSymTab);
+	FklSymbolHashItem* r=fklAddSymbolCharBuf(buf,len,PubSymTab);
 	unlock_pub_sym_lock();
 	return r;
 }
 
-FklSymTabNode* fklGetSymbolWithIdFromPst(FklSid_t id)
+FklSymbolHashItem* fklGetSymbolWithIdFromPst(FklSid_t id)
 {
 	if(id==0)
 		return NULL;
 	if(!PubSymTab)
 		init_public_symbol_table();
 	rdlock_pub_sym_lock();
-	FklSymTabNode* r=fklGetSymbolWithId(id,PubSymTab);
+	FklSymbolHashItem* r=fklGetSymbolWithId(id,PubSymTab);
 	unlock_pub_sym_lock();
 	return r;
 }
+
+typedef struct
+{
+	size_t len;
+	const char* buf;
+}SymbolTableKey;
+
+static void symbol_hash_set_val(void* d0,const void* d1)
+{
+	*(FklSymbolHashItem*)d0=*(const FklSymbolHashItem*)d1;
+}
+
+static void symbol_other_hash_set_val(void* d0,const void* d1)
+{
+	FklSymbolHashItem* n=(FklSymbolHashItem*)d0;
+	const SymbolTableKey* k=(const SymbolTableKey*)d1;
+	n->symbol=fklCreateString(k->len,k->buf);
+	n->id=0;
+}
+
+static int symbol_hash_key_equal(const void* k0,const void* k1)
+{
+	return fklStringEqual(*(const FklString**)k0,*(const FklString**)k1);
+}
+
+static int symbol_other_hash_key_equal(const void* k0,const void* k1)
+{
+	const SymbolTableKey* k=(const SymbolTableKey*)k1;
+	return !fklStringCharBufCmp(*(const FklString**)k0,k->len,k->buf);
+}
+
+static uintptr_t symbol_hash_func(const void* k0)
+{
+	return fklStringHash(*(const FklString**)k0);
+}
+
+static uintptr_t symbol_other_hash_func(const void* k0)
+{
+	const SymbolTableKey* k=(const SymbolTableKey*)k0;
+	return fklCharBufHash(k->buf,k->len);
+}
+
+static void symbol_hash_uninit(void* d)
+{
+	FklSymbolHashItem* dd=(FklSymbolHashItem*)d;
+	free(dd->symbol);
+}
+
+static const FklHashTableMetaTable SymbolHashMetaTable=
+{
+	.size=sizeof(FklSymbolHashItem),
+	.__getKey=fklHashDefaultGetKey,
+	.__setKey=fklHashDefaultSetPtrKey,
+	.__setVal=symbol_hash_set_val,
+	.__keyEqual=symbol_hash_key_equal,
+	.__hashFunc=symbol_hash_func,
+	.__uninitItem=symbol_hash_uninit,
+};
 
 FklSymbolTable* fklCreateSymbolTable()
 {
 	FklSymbolTable* tmp=(FklSymbolTable*)malloc(sizeof(FklSymbolTable));
 	FKL_ASSERT(tmp);
-	tmp->list=NULL;
 	tmp->idl=NULL;
 	tmp->num=0;
+	tmp->idl_size=0;
+	fklInitHashTable(&tmp->ht,&SymbolHashMetaTable);
 	return tmp;
 }
 
-FklSymTabNode* fklCreateSymTabNodeCstr(const char* symbol)
+inline FklSymbolHashItem* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 {
-	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
-	FKL_ASSERT(tmp);
-	tmp->id=0;
-	tmp->symbol=fklCreateStringFromCstr(symbol);
-	return tmp;
+	return fklAddSymbolCharBuf(sym->str,sym->size,table);
 }
 
-FklSymTabNode* fklCreateSymTabNodeCharBuf(size_t len,const char* buf)
+inline FklSymbolHashItem* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 {
-	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
-	FKL_ASSERT(tmp);
-	tmp->id=0;
-	tmp->symbol=fklCreateString(len,buf);
-	return tmp;
+	return fklAddSymbolCharBuf(sym,strlen(sym),table);
 }
 
-FklSymTabNode* fklCreateSymTabNode(const FklString* symbol)
+inline FklSymbolHashItem* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* table)
 {
-	FklSymTabNode* tmp=(FklSymTabNode*)malloc(sizeof(FklSymTabNode));
-	FKL_ASSERT(tmp);
-	tmp->id=0;
-	tmp->symbol=fklCopyString(symbol);
-	return tmp;
-}
-
-FklSymTabNode* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
-{
-	FklSymTabNode* node=NULL;
-	if(!table->list)
+	FklHashTable* ht=&table->ht;
+	SymbolTableKey key={.len=len,.buf=buf};
+	FklSymbolHashItem* node=fklGetOrPutWithOtherKey(&key
+			,symbol_other_hash_func
+			,symbol_other_hash_key_equal
+			,symbol_other_hash_set_val
+			,ht);
+	if(node->id==0)
 	{
-		node=fklCreateSymTabNode(sym);
-		table->num=1;
-		node->id=table->num;
-		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->list);
-		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->idl);
-		table->list[0]=node;
-		table->idl[0]=node;
-	}
-	else
-	{
-		int64_t l=0;
-		int64_t h=table->num-1;
-		int64_t mid=0;
-		while(l<=h)
+		node->id=ht->num;
+		table->num++;
+		if(table->num>=table->idl_size)
 		{
-			mid=l+(h-l)/2;
-			int r=fklStringCmp(table->list[mid]->symbol,sym);
-			if(r>0)
-				h=mid-1;
-			else if(r<0)
-				l=mid+1;
-			else
-			{
-				node=table->list[mid];
-				return node;
-			}
+			table->idl_size+=FKL_DEFAULT_INC;
+			table->idl=(FklSymbolHashItem**)fklRealloc(table->idl,sizeof(FklSymbolHashItem*)*table->idl_size);
+			FKL_ASSERT(table->idl);
 		}
-		if(fklStringCmp(table->list[mid]->symbol,sym)<=0)
-			mid++;
-		table->num+=1;
-		int64_t i=table->num-1;
-		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->list);
-		node=fklCreateSymTabNode(sym);
-		for(;i>mid;i--)
-			table->list[i]=table->list[i-1];
-		table->list[mid]=node;
-		node->id=table->num;
-		table->idl=(FklSymTabNode**)fklRealloc(table->idl,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->idl);
 		table->idl[table->num-1]=node;
 	}
 	return node;
 }
 
-FklSymTabNode* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
-{
-	FklSymTabNode* node=NULL;
-	if(!table->list)
-	{
-		node=fklCreateSymTabNodeCstr(sym);
-		table->num=1;
-		node->id=table->num;
-		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->list);
-		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->idl);
-		table->list[0]=node;
-		table->idl[0]=node;
-	}
-	else
-	{
-		int64_t l=0;
-		int64_t h=table->num-1;
-		int64_t mid=0;
-		while(l<=h)
-		{
-			mid=l+(h-l)/2;
-			int r=fklStringCstrCmp(table->list[mid]->symbol,sym);
-			if(r>0)
-				h=mid-1;
-			else if(r<0)
-				l=mid+1;
-			else
-			{
-				node=table->list[mid];
-				return node;
-			}
-		}
-		if(fklStringCstrCmp(table->list[mid]->symbol,sym)<=0)
-			mid++;
-		table->num+=1;
-		int64_t i=table->num-1;
-		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->list);
-		node=fklCreateSymTabNodeCstr(sym);
-		for(;i>mid;i--)
-			table->list[i]=table->list[i-1];
-		table->list[mid]=node;
-		node->id=table->num;
-		table->idl=(FklSymTabNode**)fklRealloc(table->idl,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->idl);
-		table->idl[table->num-1]=node;
-	}
-	return node;
-}
-
-FklSymTabNode* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* table)
-{
-	FklSymTabNode* node=NULL;
-	if(!table->list)
-	{
-		node=fklCreateSymTabNodeCharBuf(len,buf);
-		table->num=1;
-		node->id=table->num;
-		table->list=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->list);
-		table->idl=(FklSymTabNode**)malloc(sizeof(FklSymTabNode*)*1);
-		FKL_ASSERT(table->idl);
-		table->list[0]=node;
-		table->idl[0]=node;
-	}
-	else
-	{
-		int64_t l=0;
-		int64_t h=table->num-1;
-		int64_t mid=0;
-		while(l<=h)
-		{
-			mid=l+(h-l)/2;
-			int r=fklStringCharBufCmp(table->list[mid]->symbol,len,buf);
-			if(r>0)
-				h=mid-1;
-			else if(r<0)
-				l=mid+1;
-			else
-			{
-				node=table->list[mid];
-				return node;
-			}
-		}
-		if(fklStringCharBufCmp(table->list[mid]->symbol,len,buf)<=0)
-			mid++;
-		table->num+=1;
-		int64_t i=table->num-1;
-		table->list=(FklSymTabNode**)fklRealloc(table->list,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->list);
-		node=fklCreateSymTabNodeCharBuf(len,buf);
-		for(;i>mid;i--)
-			table->list[i]=table->list[i-1];
-		table->list[mid]=node;
-		node->id=table->num;
-		table->idl=(FklSymTabNode**)fklRealloc(table->idl,sizeof(FklSymTabNode*)*table->num);
-		FKL_ASSERT(table->idl);
-		table->idl[table->num-1]=node;
-	}
-	return node;
-}
-
-void fklDestroySymTabNode(FklSymTabNode* node)
+void fklDestroySymTabNode(FklSymbolHashItem* node)
 {
 	free(node->symbol);
 	free(node);
@@ -296,14 +206,12 @@ void fklDestroySymTabNode(FklSymTabNode* node)
 
 void fklDestroySymbolTable(FklSymbolTable* table)
 {
-	for(uint32_t i=0;i<table->num;i++)
-		fklDestroySymTabNode(table->list[i]);
-	free(table->list);
+	fklUninitHashTable(&table->ht);
 	free(table->idl);
 	free(table);
 }
 
-FklSymTabNode* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable* table)
+FklSymbolHashItem* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable* table)
 {
 	if(id==0)
 		return NULL;
@@ -314,7 +222,7 @@ void fklPrintSymbolTable(const FklSymbolTable* table,FILE* fp)
 {
 	for(uint32_t i=0;i<table->num;i++)
 	{
-		FklSymTabNode* cur=table->list[i];
+		FklSymbolHashItem* cur=table->idl[i];
 		fprintf(fp,"symbol:");
 		fklPrintString(cur->symbol,fp);
 		fprintf(fp," id:%lu\n",cur->id);

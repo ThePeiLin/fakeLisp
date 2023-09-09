@@ -27,6 +27,7 @@ void fklStringCstrCat(FklString**,const char*);
 void fklStringCharBufCat(FklString**,const char* buf,size_t s);
 char* fklCstrStringCat(char*,const FklString*);
 int fklStringCmp(const FklString*,const FklString*);
+int fklStringEqual(const FklString* fir,const FklString* sec);
 
 int fklStringCharBufCmp(const FklString*,size_t len,const char* buf);
 int fklStringCstrCmp(const FklString*,const char*);
@@ -40,6 +41,10 @@ void fklPrintString(const FklString* str,FILE* fp);
 void fklPrintRawSymbol(const FklString* str,FILE* fp);
 FklString* fklStringAppend(const FklString*,const FklString*);
 void fklWriteStringToCstr(char*,const FklString*);
+
+uintptr_t fklStringHash(const FklString* s);
+
+uintptr_t fklCharBufHash(const char* str,size_t len);
 
 struct FklStringBuffer;
 void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s,const FklString* fstr,char se);
@@ -88,6 +93,8 @@ void fklPrintRawBytevector(const FklBytevector* str,FILE* fp);
 FklString* fklBytevectorToString(const FklBytevector*);
 void fklPrintBytevectorToStringBuffer(FklStringBuffer*,const FklBytevector* bvec);
 
+uintptr_t fklBytevectorHash(const FklBytevector* bv);
+
 typedef struct FklHashTableItem
 {
 	struct FklHashTableItem* prev;
@@ -130,6 +137,12 @@ int fklPtrKeyEqual(const void* k0,const void* k1);
 
 void fklInitPtrSet(FklHashTable*);
 FklHashTable* fklCreatPtrSet(void);
+
+	void* fklGetOrPutWithOtherKey(void* pkey
+		,uintptr_t (*hashv)(const void* key)
+		,int (*keq)(const void* k0,const void* k1)
+		,void (*setVal)(void* d0,const void* d1)
+		,FklHashTable* ht);
 
 void* fklGetHashItem(const void* key,const FklHashTable*);
 void* fklPutHashItem(const void* key,FklHashTable*);

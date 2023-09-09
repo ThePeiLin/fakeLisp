@@ -1283,7 +1283,7 @@ static inline void sort_reachable_terminals(FklGrammer* g)
 	{
 		terms=(const FklString**)malloc(sizeof(FklString*)*num);
 		FKL_ASSERT(terms);
-		FklSymTabNode** symList=g->reachable_terminals->list;
+		FklSymbolHashItem** symList=g->reachable_terminals->idl;
 		for(size_t i=0;i<num;i++)
 			terms[i]=symList[i]->symbol;
 		qsort(terms,num,sizeof(FklString*),string_len_cmp);

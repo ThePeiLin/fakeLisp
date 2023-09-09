@@ -1115,19 +1115,13 @@ static size_t _big_int_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	const FklString* str=FKL_VM_STR(v);
-	size_t sum=str->size;
-	for(size_t i=0;i<str->size;i++)
-		sum+=str->str[i];
-	return sum;
+	return fklStringHash(str);
 }
 
 static size_t _bytevector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	const FklBytevector* bvec=FKL_VM_BVEC(v);
-	size_t sum=bvec->size;
-	for(size_t i=0;i<bvec->size;i++)
-		sum+=bvec->ptr[i];
-	return sum;
+	return fklBytevectorHash(bvec);
 }
 
 static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)

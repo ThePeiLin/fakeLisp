@@ -26,6 +26,7 @@ typedef HMODULE FklDllHandle;
 typedef void* FklDllHandle;
 #endif
 
+#define FKL_DEFAULT_INC (32)
 #define FKL_THRESHOLD_SIZE (2048)
 #define FKL_MAX_STRING_SIZE (64)
 #define FKL_STATIC_SYMBOL_INIT {0,NULL,NULL}

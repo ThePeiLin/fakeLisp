@@ -1567,6 +1567,13 @@ inline FklString* fklCreateString(size_t size,const char* str)
 	return tmp;
 }
 
+int fklStringEqual(const FklString* fir,const FklString* sec)
+{
+	if(fir->size==sec->size)
+		return !memcmp(fir->str,sec->str,fir->size);
+	return 0;
+}
+
 int fklStringCmp(const FklString* fir,const FklString* sec)
 {
 	return strcmp(fir->str,sec->str);
@@ -1786,6 +1793,19 @@ void fklWriteStringToCstr(char* c_str,const FklString* str)
 		len++;
 	}
 	c_str[len]='\0';
+}
+
+uintptr_t fklCharBufHash(const char* str,size_t len)
+{
+	uintptr_t h=0;
+	for(size_t i=0;i<len;i++)
+		h=31*h+str[i];
+	return h;
+}
+
+inline uintptr_t fklStringHash(const FklString* s)
+{
+	return fklCharBufHash(s->str,s->size);
 }
 
 size_t fklCountCharInString(FklString* s,char c)
@@ -2135,6 +2155,42 @@ void* fklPutHashItem(const void* pkey,FklHashTable* ht)
 	return d1;
 }
 
+void* fklGetOrPutWithOtherKey(void* pkey
+		,uintptr_t (*hashv)(const void* key)
+		,int (*keq)(const void* k0,const void* k1)
+		,void (*setVal)(void* d0,const void* d1)
+		,FklHashTable* ht)
+{
+	void* (*key)(void*)=ht->t->__getKey;
+	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	int i=0;
+	void* d1=NULL;
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
+		if(keq(key(pn->data),pkey))
+		{
+			d1=pn->data;
+			break;
+		}
+	if(!d1)
+	{
+		FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);
+		setVal(node->data,pkey);
+		d1=node->data;
+		*pp=node;
+		if(ht->first)
+		{
+			node->prev=ht->last;
+			ht->last->next=node;
+		}
+		else
+			ht->first=node;
+		ht->last=node;
+		ht->num++;
+		REHASH();
+	}
+	return d1;
+}
+
 void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 {
 	HASH_FUNC_HEADER();
@@ -2144,7 +2200,10 @@ void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 	void* d1=NULL;
 	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
 		if(keq(key(pn->data),pkey))
+		{
 			d1=pn->data;
+			break;
+		}
 	if(!d1)
 	{
 		FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);
@@ -2278,6 +2337,16 @@ FklBytevector* fklCopyBytevector(const FklBytevector* obj)
 	memcpy(tmp->ptr,obj->ptr,obj->size);
 	tmp->size=obj->size;
 	return tmp;
+}
+
+inline uintptr_t fklBytevectorHash(const FklBytevector* bv)
+{
+	uintptr_t h=0;
+	const uint8_t* val=bv->ptr;
+	size_t size=bv->size;
+	for(size_t i=0;i<size;i++)
+		h=31*h+val[i];
+	return h;
 }
 
 void fklInitU8Stack(FklU8Stack* r,size_t size,uint32_t inc)

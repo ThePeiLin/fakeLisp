@@ -11,17 +11,18 @@ extern "C" {
 
 typedef uint64_t FklSid_t;
 
-typedef struct FklSymTabNode
+typedef struct
 {
 	FklString* symbol;
 	FklSid_t id;
-}FklSymTabNode;
+}FklSymbolHashItem;
 
-typedef struct FklSymbolTable
+typedef struct FklSymboTable
 {
 	FklSid_t num;
-	FklSymTabNode** list;
-	FklSymTabNode** idl;
+	size_t idl_size;
+	FklSymbolHashItem** idl;
+	FklHashTable ht;
 }FklSymbolTable;
 
 void fklSetSidKey(void* k0,const void* k1);
@@ -30,27 +31,23 @@ int fklSidKeyEqual(const void* k0,const void* k1);
 
 FklSymbolTable* fklCreateSymbolTable();
 
-FklSymTabNode* fklCreateSymTabNode(const FklString*);
-FklSymTabNode* fklCreateSymTabNodeCstr(const char*);
-FklSymTabNode* fklCreateSymTabNodeCharBuf(size_t len,const char* buf);
+FklSymbolHashItem* fklAddSymbol(const FklString*,FklSymbolTable*);
+FklSymbolHashItem* fklAddSymbolCstr(const char*,FklSymbolTable*);
+FklSymbolHashItem* fklAddSymbolCharBuf(const char*,size_t,FklSymbolTable*);
 
-FklSymTabNode* fklAddSymbol(const FklString*,FklSymbolTable*);
-FklSymTabNode* fklAddSymbolCstr(const char*,FklSymbolTable*);
-FklSymTabNode* fklAddSymbolCharBuf(const char*,size_t,FklSymbolTable*);
+FklSymbolHashItem* fklAddSymbolToPst(const FklString*);
+FklSymbolHashItem* fklAddSymbolCstrToPst(const char*);
+FklSymbolHashItem* fklAddSymbolCharBufToPst(const char*,size_t);
 
-FklSymTabNode* fklAddSymbolToPst(const FklString*);
-FklSymTabNode* fklAddSymbolCstrToPst(const char*);
-FklSymTabNode* fklAddSymbolCharBufToPst(const char*,size_t);
-
-FklSymTabNode* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable*);
-FklSymTabNode* fklGetSymbolWithIdFromPst(FklSid_t id);
+FklSymbolHashItem* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable*);
+FklSymbolHashItem* fklGetSymbolWithIdFromPst(FklSid_t id);
 
 FklSymbolTable* fklGetPubSymTab(void);
 void fklUninitPubSymTab(void);
 
 void fklPrintSymbolTable(const FklSymbolTable*,FILE*);
 
-void fklDestroySymTabNode(FklSymTabNode*);
+void fklDestroySymTabNode(FklSymbolHashItem*);
 void fklDestroySymbolTable(FklSymbolTable*);
 
 void fklWriteSymbolTable(const FklSymbolTable*,FILE*);

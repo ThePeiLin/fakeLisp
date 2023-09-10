@@ -451,7 +451,7 @@ static inline void* init_builtin_grammer_sym(const FklLalrBuiltinMatch* m
 			*failed=1;
 			return NULL;
 		}
-		const FklString* next=sym?fklGetSymbolWithId(sym->nt.sid,g->terminals)->symbol:NULL;
+		const FklString* next=sym?fklGetSymbolWithId(sym->nt.sid,&g->terminals)->symbol:NULL;
 		return m->ctx_create(next,failed);
 	}
 	return NULL;
@@ -1276,14 +1276,14 @@ static int string_len_cmp(const void* a,const void* b)
 
 static inline void sort_reachable_terminals(FklGrammer* g)
 {
-	size_t num=g->reachable_terminals->num;
+	size_t num=g->reachable_terminals.num;
 	g->sortedTerminalsNum=num;
 	const FklString** terms=NULL;
 	if(num)
 	{
 		terms=(const FklString**)malloc(sizeof(FklString*)*num);
 		FKL_ASSERT(terms);
-		FklSymbolHashItem** symList=g->reachable_terminals->idl;
+		FklSymbolHashItem** symList=g->reachable_terminals.idl;
 		for(size_t i=0;i<num;i++)
 			terms[i]=symList[i]->symbol;
 		qsort(terms,num,sizeof(FklString*),string_len_cmp);
@@ -1661,7 +1661,7 @@ static void* s_number_ctx_global_create(size_t idx
 			*failed=1;
 			return NULL;
 		}
-		start=fklGetSymbolWithId(prod->syms[1].nt.sid,g->terminals)->symbol;
+		start=fklGetSymbolWithId(prod->syms[1].nt.sid,&g->terminals)->symbol;
 	}
 	prod->len=1;
 	SymbolNumberCtx* ctx=(SymbolNumberCtx*)malloc(sizeof(SymbolNumberCtx));
@@ -1975,7 +1975,7 @@ static void* s_char_ctx_global_create(size_t idx
 		*failed=1;
 		return NULL;
 	}
-	start=fklGetSymbolWithId(prod->syms[1].nt.sid,g->terminals)->symbol;
+	start=fklGetSymbolWithId(prod->syms[1].nt.sid,&g->terminals)->symbol;
 	prod->len=1;
 	SymbolNumberCtx* ctx=(SymbolNumberCtx*)malloc(sizeof(SymbolNumberCtx));
 	FKL_ASSERT(ctx);
@@ -2246,7 +2246,7 @@ static void* builtin_match_symbol_global_create(size_t idx
 			*failed=1;
 			return NULL;
 		}
-		start=fklGetSymbolWithId(prod->syms[1].nt.sid,g->terminals)->symbol;
+		start=fklGetSymbolWithId(prod->syms[1].nt.sid,&g->terminals)->symbol;
 		end=start;
 	}
 	else if(prod->len==3)
@@ -2261,8 +2261,8 @@ static void* builtin_match_symbol_global_create(size_t idx
 			*failed=1;
 			return NULL;
 		}
-		start=fklGetSymbolWithId(prod->syms[1].nt.sid,g->terminals)->symbol;
-		end=fklGetSymbolWithId(prod->syms[2].nt.sid,g->terminals)->symbol;
+		start=fklGetSymbolWithId(prod->syms[1].nt.sid,&g->terminals)->symbol;
+		end=fklGetSymbolWithId(prod->syms[2].nt.sid,&g->terminals)->symbol;
 	}
 	prod->len=1;
 	MatchSymbolCtx* ctx=(MatchSymbolCtx*)malloc(sizeof(MatchSymbolCtx));
@@ -2425,7 +2425,7 @@ static void* builtin_match_string_global_create(size_t idx
 			*failed=1;
 			return NULL;
 		}
-		start=fklGetSymbolWithId(prod->syms[1].nt.sid,g->terminals)->symbol;
+		start=fklGetSymbolWithId(prod->syms[1].nt.sid,&g->terminals)->symbol;
 		end=start;
 	}
 	else if(prod->len==3)
@@ -2440,8 +2440,8 @@ static void* builtin_match_string_global_create(size_t idx
 			*failed=1;
 			return NULL;
 		}
-		start=fklGetSymbolWithId(prod->syms[1].nt.sid,g->terminals)->symbol;
-		end=fklGetSymbolWithId(prod->syms[2].nt.sid,g->terminals)->symbol;
+		start=fklGetSymbolWithId(prod->syms[1].nt.sid,&g->terminals)->symbol;
+		end=fklGetSymbolWithId(prod->syms[2].nt.sid,&g->terminals)->symbol;
 	}
 	prod->len=1;
 	MatchStringCtx* ctx=(MatchStringCtx*)malloc(sizeof(MatchStringCtx));
@@ -2658,8 +2658,8 @@ void fklDestroyGrammer(FklGrammer* g)
 	fklUninitHashTable(&g->productions);
 	fklUninitHashTable(&g->builtins);
 	fklUninitHashTable(&g->firstSets);
-	fklDestroySymbolTable(g->terminals);
-	fklDestroySymbolTable(g->reachable_terminals);
+	fklUninitSymbolTable(&g->terminals);
+	fklUninitSymbolTable(&g->reachable_terminals);
 	clear_analysis_table(g,g->aTable.num-1);
 	free(g->sortedTerminals);
 	FklGrammerIgnore* ig=g->ignores;
@@ -2798,7 +2798,7 @@ static const FklHashTableMetaTable LookAheadHashMetaTable=
 static inline int compute_all_first_set(FklGrammer* g)
 {
 	FklHashTable* firsetSets=&g->firstSets;
-	const FklSymbolTable* tt=g->terminals;
+	const FklSymbolTable* tt=&g->terminals;
 
 	for(const FklHashTableItem* sidl=g->productions.first;sidl;sidl=sidl->next)
 	{
@@ -2913,8 +2913,8 @@ inline FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)
 {
 	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
 	FKL_ASSERT(r);
-	r->terminals=fklCreateSymbolTable();
-	r->reachable_terminals=fklCreateSymbolTable();
+	fklInitSymbolTable(&r->terminals);
+	fklInitSymbolTable(&r->reachable_terminals);
 	r->ignores=NULL;
 	r->sortedTerminals=NULL;
 	r->sortedTerminalsNum=0;
@@ -2943,7 +2943,7 @@ static inline int add_reachable_terminal(FklGrammer* g)
 			{
 				const FklGrammerSym* cur=&syms[i];
 				if(cur->isterm&&!cur->isbuiltin&&!cur->end_with_terminal)
-					fklAddSymbol(fklGetSymbolWithId(cur->nt.sid,g->terminals)->symbol,g->reachable_terminals);
+					fklAddSymbol(fklGetSymbolWithId(cur->nt.sid,&g->terminals)->symbol,&g->reachable_terminals);
 				if(!cur->isterm&&!fklGetHashItem(&cur->nt,&nonterm_set))
 				{
 					FklGrammerNonterm left={.group=cur->nt.group,.sid=cur->nt.sid};
@@ -2962,7 +2962,7 @@ static inline int add_reachable_terminal(FklGrammer* g)
 		{
 			FklGrammerIgnoreSym* cur=&igss[i];
 			if(!cur->isbuiltin)
-				fklAddSymbol(cur->str,g->reachable_terminals);
+				fklAddSymbol(cur->str,&g->reachable_terminals);
 		}
 	}
 	return 0;
@@ -2999,7 +2999,7 @@ inline int fklInitGrammer(FklGrammer* g)
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 {
 	FklGrammer* grammer=fklCreateEmptyGrammer(st);
-	FklSymbolTable* tt=grammer->terminals;
+	FklSymbolTable* tt=&grammer->terminals;
 	FklHashTable* builtins=&grammer->builtins;
 	for(;*str;str++)
 	{
@@ -3040,7 +3040,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSymbolTable* st)
 {
 	FklGrammer* grammer=fklCreateEmptyGrammer(st);
-	FklSymbolTable* tt=grammer->terminals;
+	FklSymbolTable* tt=&grammer->terminals;
 	FklHashTable* builtins=&grammer->builtins;
 	for(;pa->cstr;pa++)
 	{
@@ -3486,7 +3486,7 @@ static inline void print_item(FILE* fp
 
 void fklPrintItemSet(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp)
 {
-	FklSymbolTable* tt=g->terminals;
+	const FklSymbolTable* tt=&g->terminals;
 	FklLalrItem* curItem=NULL;
 	for(FklHashTableItem* list=itemSet->first;list;list=list->next)
 	{
@@ -3705,7 +3705,7 @@ static inline int get_first_set_from_first_sets(const FklGrammer* g
 	if(idx>=len)
 		return 1;
 	size_t lastIdx=len-1;
-	FklSymbolTable* tt=g->terminals;
+	const FklSymbolTable* tt=&g->terminals;
 	int hasEpsilon=0;
 	const FklHashTable* firstSets=&g->firstSets;
 	for(uint32_t i=idx;i<len;i++)
@@ -4080,7 +4080,7 @@ static inline void print_item_as_dot(FILE* fp
 
 static inline void print_item_set_as_dot(const FklHashTable* itemSet,const FklGrammer* g,const FklSymbolTable* st,FILE* fp)
 {
-	FklSymbolTable* tt=g->terminals;
+	const FklSymbolTable* tt=&g->terminals;
 	FklLalrItem* curItem=NULL;
 	for(FklHashTableItem* list=itemSet->first;list;list=list->next)
 	{
@@ -4135,7 +4135,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 			FklLalrItemSet* dst=l->dst;
 			ItemStateIdx* c=fklGetHashItem(&dst,&idxTable);
 			fprintf(fp,"\tI%lu->I%lu[fontname=\"Courier\" label=\"",idx,c->idx);
-			print_prod_sym_as_dot(fp,&l->sym,st,g->terminals);
+			print_prod_sym_as_dot(fp,&l->sym,st,&g->terminals);
 			fputs("\"]\n",fp);
 		}
 		putc('\n',fp);
@@ -4481,7 +4481,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 {
 	int hasConflict=0;
 	grammer->aTable.num=states->num;
-	FklSymbolTable* tt=grammer->terminals;
+	FklSymbolTable* tt=&grammer->terminals;
 	FklAnalysisState* astates=(FklAnalysisState*)malloc(sizeof(FklAnalysisState)*states->num);
 	FKL_ASSERT(astates);
 	grammer->aTable.states=astates;
@@ -5355,7 +5355,7 @@ void fklPrintItemStateSet(const FklHashTable* i
 			FklLalrItemSet* dst=l->dst;
 			ItemStateIdx* c=fklGetHashItem(&dst,&idxTable);
 			fprintf(fp,"I%lu--{ ",idx);
-			print_prod_sym(fp,&l->sym,st,g->terminals);
+			print_prod_sym(fp,&l->sym,st,&g->terminals);
 			fprintf(fp," }-->I%lu\n",c->idx);
 		}
 		putc('\n',fp);
@@ -5435,7 +5435,7 @@ static inline void print_ignores(const FklGrammerIgnore* ig,FILE* fp)
 
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st)
 {
-	FklSymbolTable* tt=grammer->terminals;
+	const FklSymbolTable* tt=&grammer->terminals;
 	for(FklHashTableItem* list=grammer->productions.first;list;list=list->next)
 	{
 		FklGrammerProduction* prods=((FklGrammerProdHashItem*)list->data)->prods;

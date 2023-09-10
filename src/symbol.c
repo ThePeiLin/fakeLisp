@@ -153,14 +153,19 @@ static const FklHashTableMetaTable SymbolHashMetaTable=
 	.__uninitItem=symbol_hash_uninit,
 };
 
-FklSymbolTable* fklCreateSymbolTable()
+inline void fklInitSymbolTable(FklSymbolTable* tmp)
 {
-	FklSymbolTable* tmp=(FklSymbolTable*)malloc(sizeof(FklSymbolTable));
-	FKL_ASSERT(tmp);
 	tmp->idl=NULL;
 	tmp->num=0;
 	tmp->idl_size=0;
 	fklInitHashTable(&tmp->ht,&SymbolHashMetaTable);
+}
+
+FklSymbolTable* fklCreateSymbolTable()
+{
+	FklSymbolTable* tmp=(FklSymbolTable*)malloc(sizeof(FklSymbolTable));
+	FKL_ASSERT(tmp);
+	fklInitSymbolTable(tmp);
 	return tmp;
 }
 
@@ -204,10 +209,15 @@ void fklDestroySymTabNode(FklSymbolHashItem* node)
 	free(node);
 }
 
-void fklDestroySymbolTable(FklSymbolTable* table)
+inline void fklUninitSymbolTable(FklSymbolTable* table)
 {
 	fklUninitHashTable(&table->ht);
 	free(table->idl);
+}
+
+void fklDestroySymbolTable(FklSymbolTable* table)
+{
+	fklUninitSymbolTable(table);
 	free(table);
 }
 

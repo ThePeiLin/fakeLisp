@@ -4120,7 +4120,7 @@ reader_macro_error:
 		ig->next=NULL;
 		memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
 
-		recompute_ignores_terminal_sid(ig,g->terminals);
+		recompute_ignores_terminal_sid(ig,&g->terminals);
 		if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
 		{
 			free(ig);
@@ -4136,7 +4136,7 @@ reader_macro_error:
 		for(FklGrammerProduction* prods=item->prods;prods;prods=prods->next)
 		{
 			FklGrammerProduction* prod=fklCopyUninitedGrammerProduction(prods);
-			recompute_prod_terminal_sid(prod,g->terminals,origin_table);
+			recompute_prod_terminal_sid(prod,&g->terminals,origin_table);
 			if(origin_group_id!=new_group_id)
 				replace_group_id(prod,new_group_id);
 			if(fklAddProdToProdTable(&target_group->prods,&g->builtins,prod))
@@ -7449,7 +7449,7 @@ static inline int init_builtin_grammer(FklCodegen* codegen,FklSymbolTable* st)
 	codegen->self_unnamed_ignores=NULL;
 	*codegen->builtin_ignores=fklInitBuiltinProductionSet(codegen->builtin_prods
 			,st
-			,g->terminals
+			,&g->terminals
 			,&g->builtins);
 
 	g->ignores=NULL;
@@ -7543,7 +7543,7 @@ static inline int process_add_production(FklSid_t group_id
 			goto reader_macro_error;
 		FklGrammerIgnore* ignore=nast_vector_to_ignore(vec->base[0]->vec
 				,&g->builtins
-				,g->terminals);
+				,&g->terminals);
 		if(!ignore)
 		{
 reader_macro_error:
@@ -7580,7 +7580,7 @@ reader_macro_error:
 		{
 			FklGrammerProduction* prod=nast_vector_to_production(base[1]->vec
 					,&g->builtins
-					,g->terminals
+					,&g->terminals
 					,0
 					,0
 					,base[2]->sym
@@ -7621,7 +7621,7 @@ reader_macro_error:
 				goto reader_macro_error;
 			FklGrammerProduction* prod=nast_vector_to_production(vect
 					,&g->builtins
-					,g->terminals
+					,&g->terminals
 					,group_id
 					,sid
 					,base[2]->sym
@@ -7673,7 +7673,7 @@ reader_macro_error:
 				goto reader_macro_error;
 			FklGrammerProduction* prod=nast_vector_to_production(vect
 					,&g->builtins
-					,g->terminals
+					,&g->terminals
 					,group_id
 					,sid
 					,base[2]->sym
@@ -8700,8 +8700,8 @@ void fklUninitCodegener(FklCodegen* codegen)
 	{
 		FklGrammer* g=*codegen->g;
 		fklClearGrammer(g);
-		fklDestroySymbolTable(g->terminals);
-		fklDestroySymbolTable(g->reachable_terminals);
+		fklUninitSymbolTable(&g->terminals);
+		fklUninitSymbolTable(&g->reachable_terminals);
 		fklUninitHashTable(&g->builtins);
 		fklUninitHashTable(&g->firstSets);
 		fklUninitHashTable(&g->productions);
@@ -8784,7 +8784,7 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 						fklAddProdToProdTable(&target_group->prods,&g->builtins,prod);
 					}
 				}
-				recompute_all_terminal_sid(target_group,lib->terminal_table,g->terminals);
+				recompute_all_terminal_sid(target_group,lib->terminal_table,&g->terminals);
 			}
 		}
 	}

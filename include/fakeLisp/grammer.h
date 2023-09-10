@@ -240,9 +240,9 @@ typedef struct FklGrammerIgnore
 
 typedef struct FklGrammer
 {
-	FklSymbolTable* terminals;
+	FklSymbolTable terminals;
 
-	FklSymbolTable* reachable_terminals;
+	FklSymbolTable reachable_terminals;
 
 	size_t sortedTerminalsNum;
 	const FklString** sortedTerminals;

@@ -29,6 +29,7 @@ void fklSetSidKey(void* k0,const void* k1);
 uintptr_t fklSidHashFunc(const void* k);
 int fklSidKeyEqual(const void* k0,const void* k1);
 
+void fklInitSymbolTable(FklSymbolTable* st);
 FklSymbolTable* fklCreateSymbolTable();
 
 FklSymbolHashItem* fklAddSymbol(const FklString*,FklSymbolTable*);
@@ -49,6 +50,7 @@ void fklPrintSymbolTable(const FklSymbolTable*,FILE*);
 
 void fklDestroySymTabNode(FklSymbolHashItem*);
 void fklDestroySymbolTable(FklSymbolTable*);
+void fklUninitSymbolTable(FklSymbolTable*);
 
 void fklWriteSymbolTable(const FklSymbolTable*,FILE*);
 

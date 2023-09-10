@@ -486,7 +486,7 @@ FklBigInt* fklCopyBigInt(const FklBigInt* bigint)
 	return t;
 }
 
-void fklInitBigIntFromDecString(FklBigInt* r,const FklString* str)
+inline void fklInitBigIntFromDecString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -501,7 +501,7 @@ void fklInitBigIntFromDecString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
-void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
+inline void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -516,7 +516,7 @@ void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
-void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
+inline void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -531,7 +531,7 @@ void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
-void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
+inline void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;

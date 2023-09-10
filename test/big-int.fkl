@@ -1,4 +1,9 @@
+(import (only (.. lib utils m) assert))
+
 (define n 1152921504606846976)
-(println (big-int? n) #\\n
-         n #\\n
-         (big-int? (string->number "0x111")) #\\n)
+(define s"1152921504606846976")
+(assert (big-int? n))
+(assert (big-int? (string->number s)))
+(assert (not (big-int? (string->number "0x111"))))
+(assert (eqv n (string->number s)))
+(println "big-int test done")

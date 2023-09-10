@@ -1524,6 +1524,16 @@ FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM* exe
 	return r;
 }
 
+FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int base)
+{
+	if(base==10)
+		return fklCreateVMvalueBigIntWithDecString(exe,str);
+	else if(base==16)
+		return fklCreateVMvalueBigIntWithHexString(exe,str);
+	else
+		return fklCreateVMvalueBigIntWithOctString(exe,str);
+}
+
 FklVMvalue* fklCreateVMvalueBigIntWithDecString(FklVM* exe,const FklString* str)
 {
 	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);

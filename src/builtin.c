@@ -1161,18 +1161,12 @@ static void builtin_string_to_number(FKL_DL_PROC_ARGL)
 			r=fklCreateVMvalueF64(exe,fklStringToDouble(str));
 		else
 		{
-			FklBigInt bi=FKL_BIG_INT_INIT;
-			fklInitBigIntFromString(&bi,str);
-			if(!fklIsGtLtFixBigInt(&bi))
-			{
-				r=FKL_MAKE_VM_FIX(fklBigIntToI64(&bi));
-				fklUninitBigInt(&bi);
-			}
+			int base=0;
+			int64_t i=fklStringToInt(str->str,str->size,&base);
+			if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
+				r=fklCreateVMvalueBigIntWithString(exe,str,base);
 			else
-			{
-				r=fklCreateVMvalueBigInt(exe,NULL);
-				*FKL_VM_BI(r)=bi;
-			}
+				r=FKL_MAKE_VM_FIX(i);
 		}
 	}
 	fklPushVMvalue(exe,r);

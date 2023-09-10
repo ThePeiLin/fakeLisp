@@ -44,6 +44,8 @@ int fklIsDecFloat(const char* cstr,size_t maxLen);
 int fklIsHexFloat(const char* cstr,size_t maxLen);
 int fklIsFloat(const char* cstr,size_t maxLen);
 
+int64_t fklStringToInt(const char* cstr,size_t maxLen,int* base);
+
 int fklIsNumberString(const FklString*);
 int fklIsNumberCstr(const char*);
 int fklIsNumberCharBuf(const char*,size_t);

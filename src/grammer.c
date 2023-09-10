@@ -2909,10 +2909,8 @@ static inline int compute_all_first_set(FklGrammer* g)
 	return 0;
 }
 
-inline FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)
+inline void fklInitEmptyGrammer(FklGrammer* r,FklSymbolTable* st)
 {
-	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
-	FKL_ASSERT(r);
 	fklInitSymbolTable(&r->terminals);
 	fklInitSymbolTable(&r->reachable_terminals);
 	r->ignores=NULL;
@@ -2921,6 +2919,13 @@ inline FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)
 	fklInitHashTable(&r->firstSets,&FirstSetHashMetaTable);
 	fklInitGrammerProductionTable(&r->productions);
 	init_builtin_grammer_sym_table(&r->builtins,st);
+}
+
+inline FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)
+{
+	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
+	FKL_ASSERT(r);
+	fklInitEmptyGrammer(r,st);
 	return r;
 }
 

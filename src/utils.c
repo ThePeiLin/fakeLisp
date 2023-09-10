@@ -1160,3 +1160,25 @@ int fklIsFloat(const char *cstr,size_t maxLen)
 	return fklIsDecFloat(cstr,maxLen)
 		||fklIsHexFloat(cstr,maxLen);
 }
+
+inline int64_t fklStringToInt(const char* cstr,size_t maxLen,int* base)
+{
+	if(base)
+	{
+		if(fklIsDecInt(cstr,maxLen))
+			return strtoll(cstr,NULL,(*base=10));
+		else if(fklIsHexInt(cstr,maxLen))
+			return strtoll(cstr,NULL,(*base=16));
+		else
+			return strtoll(cstr,NULL,(*base=8));
+	}
+	else
+	{
+		if(fklIsDecInt(cstr,maxLen))
+			return strtoll(cstr,NULL,10);
+		else if(fklIsHexInt(cstr,maxLen))
+			return strtoll(cstr,NULL,16);
+		else
+			return strtoll(cstr,NULL,8);
+	}
+}

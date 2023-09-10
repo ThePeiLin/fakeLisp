@@ -423,6 +423,7 @@ FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 		,FklSymbolTable* tt
 		,FklHashTable* builtins);
 
+void fklInitEmptyGrammer(FklGrammer* g,FklSymbolTable* st);
 FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st);
 FklGrammer* fklCreateBuiltinGrammer(FklSymbolTable* st);
 

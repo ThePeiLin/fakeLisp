@@ -507,10 +507,10 @@ void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
 	size_t len=str->size;
 	int neg=buf[0]=='-';
 	int offset=neg||buf[0]=='+';
-	uint64_t i=offset;
-	for(;i<len&&isdigit(buf[i]);i++)
+	uint64_t i=1+offset;
+	for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
 	{
-		fklMulBigIntI(r,10);
+		fklMulBigIntI(r,8);
 		fklAddBigIntI(r,buf[i]-'0');
 	}
 	r->neg=neg;
@@ -522,10 +522,10 @@ void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 	size_t len=str->size;
 	int neg=buf[0]=='-';
 	int offset=neg||buf[0]=='+';
-	uint64_t i=1+offset;
-	for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
+	uint64_t i=2+offset;
+	for(;i<len&&isxdigit(buf[i]);i++)
 	{
-		fklMulBigIntI(r,8);
+		fklMulBigIntI(r,16);
 		fklAddBigIntI(r,buf[i]-'0');
 	}
 	r->neg=neg;
@@ -536,41 +536,11 @@ void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 	const char* buf=str->str;
 	size_t len=str->size;
 	if(fklIsHexInt(buf,len))
-	{
-		int neg=buf[0]=='-';
-		int offset=neg||buf[0]=='+';
-		uint64_t i=2+offset;
-		for(;i<len&&isxdigit(buf[i]);i++)
-		{
-			fklMulBigIntI(r,16);
-			fklAddBigIntI(r,isdigit(buf[i])?buf[i]-'0':toupper(buf[i])-'A'+10);
-		}
-		r->neg=neg;
-	}
+		fklInitBigIntFromHexString(r,str);
 	else if(fklIsOctInt(buf,len))
-	{
-		int neg=buf[0]=='-';
-		int offset=neg||buf[0]=='+';
-		uint64_t i=1+offset;
-		for(;i<len&&isdigit(buf[i])&&buf[i]<'9';i++)
-		{
-			fklMulBigIntI(r,8);
-			fklAddBigIntI(r,buf[i]-'0');
-		}
-		r->neg=neg;
-	}
+		fklInitBigIntFromOctString(r,str);
 	else
-	{
-		int neg=buf[0]=='-';
-		int offset=neg||buf[0]=='+';
-		uint64_t i=offset;
-		for(;i<len&&isdigit(buf[i]);i++)
-		{
-			fklMulBigIntI(r,10);
-			fklAddBigIntI(r,buf[i]-'0');
-		}
-		r->neg=neg;
-	}
+		fklInitBigIntFromDecString(r,str);
 }
 
 void fklInitBigIntFromMem(FklBigInt* t,const void* mem,size_t size)

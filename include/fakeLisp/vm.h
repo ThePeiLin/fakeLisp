@@ -683,6 +683,8 @@ FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM*,FklSid_t type,const char* who,F
 
 FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const FklBigInt*);
 
+FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int base);
+
 FklVMvalue* fklCreateVMvalueBigIntWithDecString(FklVM* exe,const FklString* str);
 
 FklVMvalue* fklCreateVMvalueBigIntWithOctString(FklVM* exe,const FklString* str);

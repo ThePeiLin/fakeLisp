@@ -1,0 +1,4 @@
+(define n 1152921504606846976)
+(println (big-int? n) #\\n
+         n #\\n
+         (big-int? (string->number "0x111")) #\\n)

@@ -31,16 +31,10 @@ typedef struct
 	FklByteCode* bc;
 }FklByteCodelnt;
 
-typedef struct FklLineNumberTable
-{
-	uint32_t num;
-	FklLineNumTabNode* list;
-}FklLineNumberTable;
-
 FklByteCode* fklCreateByteCode(size_t);
 FklByteCode* fklCreateByteCodeAndInit(size_t,const uint8_t*);
-void fklCodeCat(FklByteCode*,const FklByteCode*);
-void fklReCodeCat(const FklByteCode*,FklByteCode*);
+void fklCodeConcat(FklByteCode*,const FklByteCode*);
+void fklCodeReverseConcat(const FklByteCode*,FklByteCode*);
 FklByteCode* fklCopyByteCode(const FklByteCode*);
 FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt*);
 void fklDestroyByteCode(FklByteCode*);
@@ -50,8 +44,8 @@ FklByteCodelnt* fklCreateByteCodelnt(FklByteCode* bc);
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable*);
 void fklDestroyByteCodelnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
-void fklCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
-void fklReCodeLntCat(FklByteCodelnt*,FklByteCodelnt*);
+void fklCodeLntConcat(FklByteCodelnt*,FklByteCodelnt*);
+void fklCodeLntReverseConcat(FklByteCodelnt*,FklByteCodelnt*);
 
 void fklBclBcAppendToBcl(FklByteCodelnt* bcl
 		,const FklByteCode* bc
@@ -63,7 +57,6 @@ void fklBcBclAppendToBcl(const FklByteCode* bc
 		,FklSid_t fid
 		,uint64_t line);
 
-FklLineNumberTable* fklCreateLineNumTable();
 void fklInitLineNumTabNode(FklLineNumTabNode*
 		,FklSid_t fid
 		,uint64_t scp
@@ -76,10 +69,7 @@ FklLineNumTabNode* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint32_t line
 		,FklSymbolTable* table);
 FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumTabNode* l);
-void fklDestroyLineNumTabNode(FklLineNumTabNode*);
-void fklDestroyLineNumberTable(FklLineNumberTable*);
-void fklLntCat(FklLineNumberTable* t,uint64_t bs,FklLineNumTabNode* l2,uint64_t s2);
-void fklWriteLineNumberTable(FklLineNumberTable*,FILE*);
+void fklWriteLineNumberTable(FklLineNumTabNode*,size_t num,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE*);
 
 int16_t fklGetI16FromByteCode(uint8_t* code);

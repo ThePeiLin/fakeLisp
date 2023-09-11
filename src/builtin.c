@@ -4092,7 +4092,7 @@ static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 {
 	uint8_t op[1]={opc};
 	FklByteCode bc={1,op};
-	fklReCodeLntCat(bcs[1],bcs[0]);
+	fklCodeLntReverseConcat(bcs[1],bcs[0]);
 	fklBclBcAppendToBcl(bcs[0],&bc,fid,line);
 	fklDestroyByteCodelnt(bcs[1]);
 	return bcs[0];
@@ -4192,8 +4192,8 @@ static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 {
 	uint8_t op[1]={opc};
 	FklByteCode bc={1,op};
-	fklReCodeLntCat(bcs[1],bcs[0]);
-	fklReCodeLntCat(bcs[2],bcs[0]);
+	fklCodeLntReverseConcat(bcs[1],bcs[0]);
+	fklCodeLntReverseConcat(bcs[2],bcs[0]);
 	fklBclBcAppendToBcl(bcs[0],&bc,fid,line);
 	fklDestroyByteCodelnt(bcs[1]);
 	fklDestroyByteCodelnt(bcs[2]);

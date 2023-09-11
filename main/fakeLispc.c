@@ -48,9 +48,8 @@ static inline int compile(const char* filename,int argc,char* argv[])
 		fklDestroyMainFileRealPath();
 		return EXIT_FAILURE;
 	}
-	FklLineNumberTable globalLnt={mainByteCode->ls,mainByteCode->l};
 	fklWriteSymbolTable(codegen.globalSymTable,outfp);
-	fklWriteLineNumberTable(&globalLnt,outfp);
+	fklWriteLineNumberTable(mainByteCode->l,mainByteCode->ls,outfp);
 	uint64_t sizeOfMain=mainByteCode->bc->size;
 	uint8_t* code=mainByteCode->bc->code;
 	fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
@@ -66,8 +65,7 @@ static inline int compile(const char* filename,int argc,char* argv[])
 		{
 			fwrite(&lib->prototypeId,sizeof(lib->prototypeId),1,outfp);
 			FklByteCodelnt* bcl=lib->bcl;
-			FklLineNumberTable tmpLnt={bcl->ls,bcl->l};
-			fklWriteLineNumberTable(&tmpLnt,outfp);
+			fklWriteLineNumberTable(bcl->l,bcl->ls,outfp);
 			uint64_t libSize=bcl->bc->size;
 			uint8_t* libCode=bcl->bc->code;
 			fwrite(&libSize,sizeof(uint64_t),1,outfp);

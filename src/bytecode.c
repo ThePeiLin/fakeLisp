@@ -50,7 +50,7 @@ void fklDestroyByteCode(FklByteCode* obj)
 	free(obj);
 }
 
-void fklCodeCat(FklByteCode* fir,const FklByteCode* sec)
+void fklCodeConcat(FklByteCode* fir,const FklByteCode* sec)
 {
 	int32_t size=fir->size;
 	fir->size=sec->size+fir->size;
@@ -59,7 +59,7 @@ void fklCodeCat(FklByteCode* fir,const FklByteCode* sec)
 	memcpy(fir->code+size,sec->code,sec->size);
 }
 
-void fklReCodeCat(const FklByteCode* fir,FklByteCode* sec)
+void fklCodeReverseConcat(const FklByteCode* fir,FklByteCode* sec)
 {
 	int32_t size=fir->size;
 	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*(fir->size+sec->size));
@@ -518,7 +518,7 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt* o,uint64_t size)
 }
 
 #define FKL_INCREASE_ALL_SCP(l,ls,s) for(size_t i=0;i<(ls);i++)(l)[i].scp+=(s)
-void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
+void fklCodeLntConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
 	if(s->bc->size)
 	{
@@ -550,11 +550,11 @@ void fklCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 				f->ls+=s->ls;
 			}
 		}
-		fklCodeCat(f->bc,s->bc);
+		fklCodeConcat(f->bc,s->bc);
 	}
 }
 
-void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
+void fklCodeLntReverseConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
 	if(f->bc->size)
 	{
@@ -591,7 +591,7 @@ void fklReCodeLntCat(FklByteCodelnt* f,FklByteCodelnt* s)
 				s->ls+=f->ls;
 			}
 		}
-		fklReCodeCat(f->bc,s->bc);
+		fklCodeReverseConcat(f->bc,s->bc);
 	}
 }
 
@@ -606,11 +606,11 @@ void fklBclBcAppendToBcl(FklByteCodelnt* bcl
 		bcl->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
 		FKL_ASSERT(bcl->l);
 		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
-		fklCodeCat(bcl->bc,bc);
+		fklCodeConcat(bcl->bc,bc);
 	}
 	else
 	{
-		fklCodeCat(bcl->bc,bc);
+		fklCodeConcat(bcl->bc,bc);
 		bcl->l[bcl->ls-1].cpc+=bc->size;
 	}
 }
@@ -626,23 +626,14 @@ void fklBcBclAppendToBcl(const FklByteCode* bc
 		bcl->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
 		FKL_ASSERT(bcl->l);
 		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
-		fklCodeCat(bcl->bc,bc);
+		fklCodeConcat(bcl->bc,bc);
 	}
 	else
 	{
-		fklReCodeCat(bc,bcl->bc);
+		fklCodeReverseConcat(bc,bcl->bc);
 		bcl->l[0].cpc+=bc->size;
 		FKL_INCREASE_ALL_SCP(bcl->l+1,bcl->ls-1,bc->size);
 	}
-}
-
-FklLineNumberTable* fklCreateLineNumTable()
-{
-	FklLineNumberTable* t=(FklLineNumberTable*)malloc(sizeof(FklLineNumberTable));
-	FKL_ASSERT(t);
-	t->num=0;
-	t->list=NULL;
-	return t;
 }
 
 void fklInitLineNumTabNode(FklLineNumTabNode* n
@@ -680,67 +671,32 @@ FklLineNumTabNode* fklCreateLineNumTabNodeWithFilename(const char* filename
 	return t;
 }
 
-void fklDestroyLineNumTabNode(FklLineNumTabNode* n)
+inline FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumTabNode* line_numbers)
 {
-	free(n);
-}
-
-void fklDestroyLineNumberTable(FklLineNumberTable* t)
-{
-	free(t->list);
-	free(t);
-}
-
-FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumTabNode* l)
-{
-	for(uint32_t i=0;i<ls;i++)
+	int64_t l=0;
+	int64_t h=ls-1;
+	int64_t mid=0;
+	while(l<=h)
 	{
-		if(l[i].scp<=cp&&cp<(l[i].scp+l[i].cpc))
-			return &l[i];
-	}
-	return &l[ls-1];
-}
-
-void fklLntCat(FklLineNumberTable* t,uint64_t bs,FklLineNumTabNode* l2,uint64_t s2)
-{
-	if(!t->list)
-	{
-		t->num=s2;
-		t->list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*s2);
-		FKL_ASSERT(t->list);
-		l2[0].cpc+=bs;
-		FKL_INCREASE_ALL_SCP(l2+1,s2-1,bs);
-		memcpy(t->list,l2,(s2)*sizeof(FklLineNumTabNode));
-	}
-	else
-	{
-		FKL_INCREASE_ALL_SCP(l2,s2,bs);
-		if(t->list[t->num-1].line==l2[0].line&&t->list[t->num-1].fid==l2[0].fid)
-		{
-			t->list[t->num-1].cpc+=l2[0].cpc;
-			t->list=(FklLineNumTabNode*)fklRealloc(t->list,sizeof(FklLineNumTabNode)*(t->num+s2-1));
-			FKL_ASSERT(t->list);
-			memcpy(&t->list[t->num],l2+1,(s2-1)*sizeof(FklLineNumTabNode));
-			t->num+=s2-1;
-		}
+		mid=l+(h-l)/2;
+		FklLineNumTabNode* cur=&line_numbers[mid];
+		if(cp<cur->scp)
+			h=mid-1;
+		else if(cp>(cur->scp+cur->cpc))
+			l=mid+1;
 		else
-		{
-			t->list=(FklLineNumTabNode*)fklRealloc(t->list,sizeof(FklLineNumTabNode)*(t->num+s2));
-			FKL_ASSERT(t->list);
-			memcpy(&t->list[t->num],l2,(s2)*sizeof(FklLineNumTabNode));
-			t->num+=s2;
-		}
+			return cur;
 	}
+	return NULL;
 }
 
-void fklWriteLineNumberTable(FklLineNumberTable* lnt,FILE* fp)
+void fklWriteLineNumberTable(FklLineNumTabNode* line_numbers,size_t size,FILE* fp)
 {
-	uint32_t size=lnt->num;
 	fwrite(&size,sizeof(size),1,fp);
 	uint32_t i=0;
 	for(;i<size;i++)
 	{
-		FklLineNumTabNode* n=&lnt->list[i];
+		FklLineNumTabNode* n=&line_numbers[i];
 		fwrite(&n->fid,sizeof(n->fid),1,fp);
 		fwrite(&n->scp,sizeof(n->scp),1,fp);
 		fwrite(&n->cpc,sizeof(n->cpc),1,fp);

@@ -843,7 +843,6 @@ static void builtin_vector_to_list(FKL_DL_PROC_ARGL)
 	{
 		fklSetRef(cur,fklCreateVMvaluePairWithCar(exe,vec->base[i]),gc);
 		cur=&FKL_VM_CDR(*cur);
-		fklDropTop(exe);
 	}
 	fklPushVMvalue(exe,r);
 }
@@ -1957,6 +1956,521 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 #undef FKL_VM_FP_R_MASK
 #undef FKL_VM_FP_W_MASK
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print,parser);
+FKL_VM_USER_DATA_DEFAULT_TO_STRING(custom_parser_to_string,parser);
+
+static void custom_parser_finalizer(FklVMudata* p)
+{
+	FKL_DECL_UD_DATA(grammer,FklGrammer,p);
+	fklUninitGrammer(grammer);
+}
+
+static void custom_parser_atomic(const FklVMudata* p,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(g,FklGrammer,p);
+	for(FklHashTableItem* item=g->productions.first;item;item=item->next)
+	{
+		FklGrammerProdHashItem* prod_item=(FklGrammerProdHashItem*)item->data;
+		for(FklGrammerProduction* prod=prod_item->prods;prod;prod=prod->next)
+			fklGC_toGrey(prod->ctx,gc);
+	}
+}
+
+static void* custom_parser_prod_action(void* ctx
+		,void* outerCtx
+		,void* asts[]
+		,size_t num
+		,size_t line
+		,FklSymbolTable* st)
+{
+	FklVMvalue* proc=(FklVMvalue*)ctx;
+	FklVM* exe=(FklVM*)outerCtx;
+	FklVMvalue* vect=fklCreateVMvalueVec(exe,num);
+	FklVMvec* vec=FKL_VM_VEC(vect);
+	for(size_t i=0;i<num;i++)
+		vec->base[i]=asts[i];
+	fklSetBp(exe);
+	fklPushVMvalue(exe,vect);
+	fklCallObj(proc,exe);
+	return NULL;
+}
+
+static int do_custom_parser_reduce_action(FklPtrStack* stateStack
+		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
+		,const FklGrammerProduction* prod
+		,FklGrammerMatchOuterCtx* outerCtx
+		,FklSymbolTable* st
+		,size_t* errLine)
+{
+	size_t len=prod->len;
+	stateStack->top-=len;
+	FklAnalysisStateGoto* gt=((const FklAnalysisState*)fklTopPtrStack(stateStack))->state.gt;
+	const FklAnalysisState* state=NULL;
+	FklSid_t left=prod->left.sid;
+	for(;gt;gt=gt->next)
+		if(gt->nt.sid==left)
+			state=gt->state;
+	if(!state)
+		return 1;
+	symbolStack->top-=len;
+	void** nodes=NULL;
+	if(len)
+	{
+		nodes=(void**)malloc(sizeof(void*)*len);
+		FKL_ASSERT(nodes);
+		FklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];
+		for(size_t i=0;i<len;i++)
+		{
+			FklAnalysisSymbol* as=base[i];
+			nodes[i]=as->ast;
+			free(as);
+		}
+	}
+	size_t line=fklGetFirstNthLine(lineStack,len,outerCtx->line);
+	lineStack->top-=len;
+	prod->func(prod->ctx,outerCtx->ctx,nodes,len,line,st);
+	if(len)
+	{
+		for(size_t i=0;i<len;i++)
+			outerCtx->destroy(nodes[i]);
+		free(nodes);
+	}
+	fklPushUintStack(line,lineStack);
+	fklPushPtrStack((void*)state,stateStack);
+	return 0;
+}
+
+typedef struct
+{
+	FklVMvalue* parser;
+	FklVMvalue* str;
+	FklPtrStack* symbolStack;
+	FklUintStack* lineStack;
+	FklPtrStack* stateStack;
+	size_t offset;
+	enum
+	{
+		PARSE_CONTINUE=0,
+		PARSE_DONE,
+		PARSE_REDUCING,
+	}state;
+	FklSid_t reducing_sid;
+}CustomParseCtx;
+
+static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
+		,const char* cstr
+		,size_t len
+		,size_t* restLen
+		,FklGrammerMatchOuterCtx* outerCtx
+		,FklSymbolTable* st
+		,int* err
+		,size_t* errLine
+		,FklPtrStack* symbolStack
+		,FklUintStack* lineStack
+		,FklPtrStack* stateStack
+		,FklVM* exe
+		,int* accept
+		,CustomParseCtx* parse_ctx)
+{
+	*restLen=len;
+	const char* start=cstr;
+	size_t matchLen=0;
+	int waiting_for_more_err=0;
+	for(;;)
+	{
+		int is_waiting_for_more=0;
+		const FklAnalysisState* state=fklTopPtrStack(stateStack);
+		const FklAnalysisStateAction* action=state->state.action;
+		for(;action;action=action->next)
+			if(fklIsStateActionMatch(&action->match,start,cstr,*restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
+				break;
+		waiting_for_more_err|=is_waiting_for_more;
+		if(action)
+		{
+			switch(action->action)
+			{
+				case FKL_ANALYSIS_IGNORE:
+					outerCtx->line+=fklCountCharInBuf(cstr,matchLen,'\n');
+					cstr+=matchLen;
+					(*restLen)-=matchLen;
+					continue;
+					break;
+				case FKL_ANALYSIS_SHIFT:
+					fklPushPtrStack((void*)action->state,stateStack);
+					fklPushPtrStack(fklCreateTerminalAnalysisSymbol(cstr,matchLen,outerCtx),symbolStack);
+					fklPushUintStack(outerCtx->line,lineStack);
+					outerCtx->line+=fklCountCharInBuf(cstr,matchLen,'\n');
+					cstr+=matchLen;
+					(*restLen)-=matchLen;
+					break;
+				case FKL_ANALYSIS_ACCEPT:
+					*accept=1;
+					return;
+					break;
+				case FKL_ANALYSIS_REDUCE:
+					parse_ctx->state=PARSE_REDUCING;
+					parse_ctx->reducing_sid=action->prod->left.sid;
+					if(do_custom_parser_reduce_action(stateStack
+								,symbolStack
+								,lineStack
+								,action->prod
+								,outerCtx
+								,st
+								,errLine))
+						*err=FKL_PARSE_REDUCE_FAILED;
+					return;
+					break;
+			}
+		}
+		else
+		{
+			*err=waiting_for_more_err?FKL_PARSE_WAITING_FOR_MORE:FKL_PARSE_TERMINAL_MATCH_FAILED;
+			break;
+		}
+	}
+	return;
+}
+
+static const FklVMudMetaTable CustomParserMetaTable=
+{
+	.size=sizeof(FklGrammer),
+	.__princ=custom_parser_print,
+	.__prin1=custom_parser_print,
+	.__to_string=custom_parser_to_string,
+	.__atomic=custom_parser_atomic,
+	.__finalizer=custom_parser_finalizer,
+};
+
+static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
+		,FklHashTable* builtin_term
+		,FklSymbolTable* tt
+		,FklSid_t left)
+{
+
+	FklPtrStack valid_items;
+	fklInitPtrStack(&valid_items,vec->size,8);
+
+	uint8_t* delim=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
+	FKL_ASSERT(delim);
+	memset(delim,1,sizeof(uint8_t)*vec->size);
+
+	uint8_t* end_with_terminal=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
+	memset(end_with_terminal,0,sizeof(uint8_t)*vec->size);
+
+	FklGrammerProduction* prod=NULL;
+
+	for(size_t i=0;i<vec->size;i++)
+	{
+		FklVMvalue* cur=vec->base[i];
+		if(FKL_IS_STR(cur))
+			fklPushPtrStack((void*)cur,&valid_items);
+		else if(FKL_IS_SYM(cur))
+			fklPushPtrStack((void*)cur,&valid_items);
+		else if(cur==FKL_VM_NIL)
+		{
+			delim[valid_items.top]=0;
+			continue;
+		}
+		else if(cur==FKL_VM_TRUE)
+		{
+			end_with_terminal[valid_items.top]=1;
+			continue;
+		}
+		else
+			goto end;
+	}
+	FklGrammerSym* syms=NULL;
+	if(valid_items.top)
+	{
+		size_t top=valid_items.top;
+		syms=(FklGrammerSym*)malloc(sizeof(FklGrammerSym)*valid_items.top);
+		FKL_ASSERT(syms);
+		FklVMvalue** base=(FklVMvalue**)valid_items.base;
+		for(size_t i=0;i<top;i++)
+		{
+			FklVMvalue* cur=base[i];
+			FklGrammerSym* ss=&syms[i];
+			ss->delim=delim[i];
+			ss->end_with_terminal=0;
+			if(FKL_IS_STR(cur))
+			{
+				ss->isterm=1;
+				ss->isbuiltin=0;
+				ss->nt.group=0;
+				ss->nt.sid=fklAddSymbol(FKL_VM_STR(cur),tt)->id;
+				ss->end_with_terminal=end_with_terminal[i];
+			}
+			else
+			{
+				FklSid_t id=FKL_GET_SYM(cur);
+				const FklLalrBuiltinMatch* builtin_match=fklGetBuiltinMatch(builtin_term,id);
+				if(builtin_match)
+				{
+					ss->isterm=1;
+					ss->isbuiltin=1;
+					ss->b.t=builtin_match;
+					ss->b.c=NULL;
+				}
+				else
+				{
+					ss->isterm=0;
+					ss->isbuiltin=0;
+					ss->nt.group=0;
+					ss->nt.sid=id;
+				}
+			}
+		}
+	}
+	prod=fklCreateProduction(0
+			,left
+			,valid_items.top
+			,syms
+			,NULL
+			,custom_parser_prod_action
+			,NULL
+			,fklProdCtxDestroyDoNothing
+			,fklProdCtxCopyerDoNothing);
+
+end:
+	fklUninitPtrStack(&valid_items);
+	free(delim);
+	free(end_with_terminal);
+	return prod;
+}
+
+static void builtin_make_parser(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.make-parser";
+	DECL_AND_CHECK_ARG(start,Pname);
+	FKL_CHECK_TYPE(start,FKL_IS_SYM,Pname,exe);
+	FklVMvalue* retval=fklCreateVMvalueUdata(exe,&CustomParserMetaTable,FKL_VM_NIL);
+	FKL_DECL_UD_DATA(grammer,FklGrammer,FKL_VM_UD(retval));
+	fklInitEmptyGrammer(grammer,exe->symbolTable);
+	grammer->start=(FklGrammerNonterm){.group=0,.sid=FKL_GET_SYM(start)};
+
+	if(fklAddExtraProdToGrammer(grammer))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_GRAMMER_CREATE_FAILED,exe);
+
+#define EXCEPT_NEXT_ARG_SYMBOL (0)
+#define EXCEPT_NEXT_ARG_VECTOR (1)
+#define EXCEPT_NEXT_ARG_CALLABLE (2)
+
+	int next=EXCEPT_NEXT_ARG_SYMBOL;
+	FklVMvalue* next_arg=fklPopArg(exe);
+	FklGrammerProduction* prod=NULL;
+	int is_adding_ignore=0;
+	FklSid_t sid=0;
+	FklSymbolTable* tt=&grammer->terminals;
+	FklHashTable* builtins=&grammer->builtins;
+	for(;next_arg;next_arg=fklPopArg(exe))
+	{
+		switch(next)
+		{
+			case EXCEPT_NEXT_ARG_SYMBOL:
+				next=EXCEPT_NEXT_ARG_VECTOR;
+				if(next_arg==FKL_VM_NIL)
+				{
+					is_adding_ignore=1;
+					sid=0;
+				}
+				else if(FKL_IS_SYM(next_arg))
+				{
+					is_adding_ignore=0;
+					sid=FKL_GET_SYM(next_arg);
+				}
+				else
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				break;
+			case EXCEPT_NEXT_ARG_VECTOR:
+				if(FKL_IS_VECTOR(next_arg))
+				{
+					prod=vm_vec_to_prod(FKL_VM_VEC(next_arg),builtins,tt,sid);
+					next=EXCEPT_NEXT_ARG_CALLABLE;
+					if(is_adding_ignore)
+					{
+						FklGrammerIgnore* ig=fklGrammerSymbolsToIgnore(prod->syms,prod->len,tt);
+						fklDestroyGrammerProduction(prod);
+						next_arg=EXCEPT_NEXT_ARG_SYMBOL;
+						if(fklAddIgnoreToIgnoreList(&grammer->ignores,ig))
+						{
+							fklDestroyIgnore(ig);
+							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_GRAMMER_CREATE_FAILED,exe);
+						}
+						next=EXCEPT_NEXT_ARG_SYMBOL;
+					}
+				}
+				else
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				break;
+			case EXCEPT_NEXT_ARG_CALLABLE:
+				next=EXCEPT_NEXT_ARG_SYMBOL;
+				if(fklIsCallable(next_arg))
+				{
+					prod->ctx=next_arg;
+					if(fklAddProdAndExtraToGrammer(grammer,prod))
+					{
+						fklDestroyGrammerProduction(prod);
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_GRAMMER_CREATE_FAILED,exe);
+					}
+				}
+				else
+				{
+					fklDestroyGrammerProduction(prod);
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				}
+				break;
+		}
+	}
+	if(next!=EXCEPT_NEXT_ARG_SYMBOL)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	fklResBp(exe);
+
+#undef EXCEPT_NEXT_ARG_SYMBOL
+#undef EXCEPT_NEXT_ARG_VECTOR
+#undef EXCEPT_NEXT_ARG_CALLABLE
+
+	if(fklCheckAndInitGrammerSymbols(grammer))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_GRAMMER_CREATE_FAILED,exe);
+
+	FklHashTable* itemSet=fklGenerateLr0Items(grammer);
+	fklLr0ToLalrItems(itemSet,grammer);
+
+	if(fklGenerateLalrAnalyzeTable(grammer,itemSet))
+	{
+		fklDestroyHashTable(itemSet);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,exe);
+	}
+	fklDestroyHashTable(itemSet);
+	fklPushVMvalue(exe,retval);
+}
+
+static inline int is_custom_parser(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&CustomParserMetaTable;
+}
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(CustomParseCtx);
+
+static void custom_parse_frame_atomic(FklCallObjData data,FklVMgc* gc)
+{
+	CustomParseCtx* c=(CustomParseCtx*)data;
+	fklGC_toGrey(c->parser,gc);
+	fklGC_toGrey(c->str,gc);
+	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
+	size_t len=c->symbolStack->top;
+	for(size_t i=0;i<len;i++)
+		fklGC_toGrey(base[i]->ast,gc);
+}
+
+static void custom_parse_frame_finalizer(FklCallObjData data)
+{
+	CustomParseCtx* c=(CustomParseCtx*)data;
+	FklPtrStack* ss=c->symbolStack;
+	while(!fklIsPtrStackEmpty(ss))
+		free(fklPopPtrStack(ss));
+	fklDestroyPtrStack(ss);
+	fklDestroyUintStack(c->lineStack);
+	fklDestroyPtrStack(c->stateStack);
+}
+
+static int custom_parse_frame_end(FklCallObjData d)
+{
+	return ((CustomParseCtx*)d)->state==PARSE_DONE;
+}
+
+static inline FklAnalysisSymbol* create_nonterm_analyzing_symbol(FklSid_t id,FklVMvalue* ast)
+{
+	FklAnalysisSymbol* sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));
+	FKL_ASSERT(sym);
+	sym->nt.group=0;
+	sym->nt.sid=id;
+	sym->ast=ast;
+	return sym;
+}
+
+static void custom_parse_frame_step(FklCallObjData d,FklVM* exe)
+{
+	CustomParseCtx* ctx=(CustomParseCtx*)d;
+	if(ctx->state==PARSE_REDUCING)
+	{
+		FklVMvalue* ast=fklPopTopValue(exe);
+		fklPushPtrStack(create_nonterm_analyzing_symbol(ctx->reducing_sid,ast),ctx->symbolStack);
+		ctx->state=PARSE_CONTINUE;
+	}
+	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(ctx->parser));
+	FklString* str=FKL_VM_STR(ctx->str);
+	int err=0;
+	uint64_t errLine=0;
+	int accept=0;
+	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+	size_t restLen;
+	parse_with_custom_parser_for_char_buf(g
+			,str->str+ctx->offset
+			,str->size-ctx->offset
+			,&restLen
+			,&outerCtx
+			,exe->symbolTable
+			,&err
+			,&errLine
+			,ctx->symbolStack
+			,ctx->lineStack
+			,ctx->stateStack
+			,exe
+			,&accept
+			,ctx);
+	if(err)
+	{
+		if(err==FKL_PARSE_WAITING_FOR_MORE||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
+			FKL_RAISE_BUILTIN_ERROR_CSTR("parsing",FKL_ERR_UNEXPECTED_EOF,exe);
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR("parsing",FKL_ERR_INVALIDEXPR,exe);
+	}
+	if(accept)
+	{
+		ctx->state=PARSE_DONE;
+		FklAnalysisSymbol* top=fklPopPtrStack(ctx->symbolStack);
+		fklPushVMvalue(exe,top->ast);
+		free(top);
+	}
+	else
+		ctx->offset=str->size-restLen;
+}
+
+static inline void init_custom_parse_ctx(FklCallObjData data
+		,FklVMvalue* parser
+		,FklVMvalue* str)
+{
+	CustomParseCtx* ctx=(CustomParseCtx*)data;
+	ctx->parser=parser;
+	ctx->str=str;
+	ctx->symbolStack=fklCreatePtrStack(16,16);
+	ctx->stateStack=fklCreatePtrStack(16,16);
+	ctx->lineStack=fklCreateUintStack(16,16);
+	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(parser));
+	fklPushPtrStack(&g->aTable.states[0],ctx->stateStack);
+	ctx->state=PARSE_CONTINUE;
+	ctx->offset=0;
+}
+
+
+static const FklVMframeContextMethodTable CustomParseContextMethodTable=
+{
+	.atomic=custom_parse_frame_atomic,
+	.finalizer=custom_parse_frame_finalizer,
+	.print_backtrace=do_nothing_print_backtrace,
+	.step=custom_parse_frame_step,
+	.end=custom_parse_frame_end,
+};
+
+static inline void init_custom_parse_frame(FklVM* exe,FklVMvalue* parser,FklVMvalue* stream)
+{
+	FklVMframe* f=exe->frames;
+	f->type=FKL_FRAME_OTHEROBJ;
+	f->t=&CustomParseContextMethodTable;
+	init_custom_parse_ctx(f->data,parser,stream);
+}
+
 #define CHECK_FP_READABLE(V,I,E) if(!isVMfpReadable(V))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(I,FKL_ERR_UNSUPPORTED_OP,E)
 
@@ -2016,6 +2530,10 @@ static void builtin_unqstr(FKL_DL_PROC_ARGL)
 	size_t start_size=FKL_IS_CHR(start)?1:FKL_VM_STR(start)->size;
 	size_t end_size=FKL_IS_CHR(end)?1:FKL_VM_STR(end)->size;
 	size_t size=0;
+
+	if(ss->size<start_size+end_size)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
+
 	char* s=fklCastEscapeCharBuf(&cstr[start_size],ss->size-end_size-start_size,&size);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklCreateString(size,s));
 	free(s);
@@ -2026,51 +2544,63 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.parse";
 	DECL_AND_CHECK_ARG(stream,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_STR(stream))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
-	FklString* ss=FKL_VM_STR(stream);
+	FklVMvalue* custom_parser=fklPopArg(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
 
-	int err=0;
-	size_t errorLine=0;
-	FklPtrStack symbolStack;
-	FklPtrStack stateStack;
-	FklUintStack lineStack;
-	fklInitPtrStack(&symbolStack,16,16);
-	fklInitPtrStack(&stateStack,16,16);
-	fklInitUintStack(&lineStack,16,16);
-	fklVMvaluePushState0ToStack(&stateStack);
-
-	size_t restLen=ss->size;
-	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
-	FklVMvalue* node=fklDefaultParseForCharBuf(ss->str
-			,restLen
-			,&restLen
-			,&outerCtx
-			,exe->symbolTable
-			,&err
-			,&errorLine
-			,&symbolStack
-			,&lineStack
-			,&stateStack);
-
-	if(node==NULL)
+	if(custom_parser)
 	{
+		FKL_CHECK_TYPE(custom_parser,is_custom_parser,Pname,exe);
+		FklVMframe* sf=exe->frames;
+		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
+		exe->frames=nf;
+		init_custom_parse_frame(exe,custom_parser,stream);
+	}
+	else
+	{
+		FklString* ss=FKL_VM_STR(stream);
+		int err=0;
+		size_t errorLine=0;
+		FklPtrStack symbolStack;
+		FklPtrStack stateStack;
+		FklUintStack lineStack;
+		fklInitPtrStack(&symbolStack,16,16);
+		fklInitPtrStack(&stateStack,16,16);
+		fklInitUintStack(&lineStack,16,16);
+		fklVMvaluePushState0ToStack(&stateStack);
+
+		size_t restLen=ss->size;
+		FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+		FklVMvalue* node=fklDefaultParseForCharBuf(ss->str
+				,restLen
+				,&restLen
+				,&outerCtx
+				,exe->symbolTable
+				,&err
+				,&errorLine
+				,&symbolStack
+				,&lineStack
+				,&stateStack);
+
+		if(node==NULL)
+		{
+			while(!fklIsPtrStackEmpty(&symbolStack))
+				free(fklPopPtrStack(&symbolStack));
+			fklUninitPtrStack(&symbolStack);
+			fklUninitPtrStack(&stateStack);
+			fklUninitUintStack(&lineStack);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDEXPR,exe);
+		}
+
 		while(!fklIsPtrStackEmpty(&symbolStack))
 			free(fklPopPtrStack(&symbolStack));
 		fklUninitPtrStack(&symbolStack);
 		fklUninitPtrStack(&stateStack);
 		fklUninitUintStack(&lineStack);
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDEXPR,exe);
+		fklPushVMvalue(exe,node);
 	}
-
-	while(!fklIsPtrStackEmpty(&symbolStack))
-		free(fklPopPtrStack(&symbolStack));
-	fklUninitPtrStack(&symbolStack);
-	fklUninitPtrStack(&stateStack);
-	fklUninitUintStack(&lineStack);
-	fklPushVMvalue(exe,node);
 }
 
 typedef enum
@@ -2676,7 +3206,6 @@ static void builtin_chanl_msg_to_list(FKL_DL_PROC_ARGL)
 			FklVMvalue* msg=h->data;
 			fklSetRef(cur,fklCreateVMvaluePairWithCar(exe,msg),gc);
 			cur=&FKL_VM_CDR(*cur);
-			fklDropTop(exe);
 		}
 	}
 	else
@@ -2921,7 +3450,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 				topFrame=topFrame->prev;
 				fklDestroyVMframe(cur,exe);
 			}
-			fklTailCallObj(c->errorHandlers[i],f,exe);
+			fklTailCallObj(c->errorHandlers[i],exe);
 			return 1;
 		}
 	}
@@ -2996,13 +3525,13 @@ static void builtin_call_eh(FKL_DL_PROC_ARGL)
 		FKL_ASSERT(t);
 		c->errorHandlers=t;
 		c->tp=exe->tp;
-		fklCallObj(proc,nf,exe);
+		fklCallObj(proc,exe);
 	}
 	else
 	{
 		fklUninitPtrStack(&errSymbolLists);
 		fklUninitPtrStack(&errHandlers);
-		fklTailCallObj(proc,exe->frames,exe);
+		fklTailCallObj(proc,exe);
 	}
 	fklSetBp(exe);
 #undef GET_PROC
@@ -3012,7 +3541,6 @@ static void builtin_call_eh(FKL_DL_PROC_ARGL)
 static void builtin_apply(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.apply";
-	FklVMframe* frame=exe->frames;
 	DECL_AND_CHECK_ARG(proc,Pname);
 	FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
 	FklPtrStack stack1=FKL_STACK_INIT;
@@ -3059,7 +3587,7 @@ static void builtin_apply(FKL_DL_PROC_ARGL)
 		fklPushVMvalue(exe,t);
 	}
 	fklUninitPtrStack(&stack1);
-	fklTailCallObj(proc,frame,exe);
+	fklTailCallObj(proc,exe);
 }
 
 typedef struct
@@ -4296,7 +4824,8 @@ static const struct SymbolFuncStruct
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"read",                  builtin_read,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"parse",                 builtin_parse,                   {NULL,         NULL,          NULL,          NULL,          }, },
-	{"unqstr",                builtin_unqstr,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"unqstr",                builtin_unqstr,                  {NULL,         NULL,          NULL,          NULL,          }, },
+	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,          NULL,          }, },
 	{"stringify",             builtin_stringify,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"prin1",                 builtin_prin1,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"princ",                 builtin_princ,                   {NULL,         NULL,          NULL,          NULL,          }, },

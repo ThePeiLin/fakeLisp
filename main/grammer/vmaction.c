@@ -45,7 +45,7 @@ static inline void* prod_action_symbol(void* outerCtx
 		cstr+=len;
 		cstr_size-=len;
 	}
-	FklSid_t id=fklAddSymbolCharBuf(buffer.b,buffer.i,st)->id;
+	FklSid_t id=fklAddSymbolCharBuf(buffer.buf,buffer.index,st)->id;
 	fklUninitStringBuffer(&buffer);
 	FklVMvalue* retval=FKL_MAKE_VM_SYM(id);
 	return retval;

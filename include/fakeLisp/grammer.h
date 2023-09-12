@@ -274,8 +274,8 @@ typedef struct FklAnalysisSymbol
 	void* ast;
 }FklAnalysisSymbol;
 
-int fklInitGrammer(FklGrammer* g);
-void fklDestroyAnayzingSymbol(FklAnalysisSymbol*);
+int fklCheckAndInitGrammerSymbols(FklGrammer* g);
+void fklDestroyAnaysisSymbol(FklAnalysisSymbol*);
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
@@ -285,12 +285,23 @@ int fklAddProdAndExtraToGrammer(FklGrammer* g,FklGrammerProduction* prod);
 int fklAddProdToProdTable(FklHashTable* productions
 		,FklHashTable* builtins
 		,FklGrammerProduction* prod);
+
+void fklUninitGrammer(FklGrammer*);
 void fklDestroyGrammer(FklGrammer*);
 void fklClearGrammer(FklGrammer*);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
-FklAnalysisSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
+int fklIsStateActionMatch(const FklAnalysisStateActionMatch* match
+		,const char* start
+		,const char* cstr
+		,size_t restLen
+		,size_t* matchLen
+		,FklGrammerMatchOuterCtx* outerCtx
+		,int* is_waiting_for_more
+		,const FklGrammer* g);
+
+FklAnalysisSymbol* fklCreateTerminalAnalysisSymbol(const char* s
 		,size_t len
 		,FklGrammerMatchOuterCtx* outerCtx);
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states);
@@ -313,6 +324,7 @@ void fklPrintItemStateSet(const FklHashTable* i
 		,const FklSymbolTable* st
 		,FILE* fp);
 
+int fklAddExtraProdToGrammer(FklGrammer* grammer);
 void fklPrintItemStateSetAsDot(const FklHashTable* i
 		,const FklGrammer* g
 		,const FklSymbolTable* st

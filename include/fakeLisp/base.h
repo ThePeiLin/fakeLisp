@@ -53,9 +53,9 @@ FklString* fklStringToRawSymbol(const FklString* str);
 
 typedef struct FklStringBuffer
 {
-	uint32_t s;
-	uint32_t i;
-	char* b;
+	uint32_t size;
+	uint32_t index;
+	char* buf;
 }FklStringBuffer;
 
 #define FKL_STRING_BUFFER_INIT {0,0,NULL}

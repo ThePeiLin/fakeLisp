@@ -1001,6 +1001,19 @@ void fklUninitVMlib(FklVMlib*);
 
 #define FKL_DL_PROC_ARGL FklVM* exe,FklVMvalue* rel,FklVMvalue* pd
 
+#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMudata* ud,FILE* fp,FklSymbolTable* table) {\
+	fprintf(fp,"#<"#DATA_TYPE_NAME" %p>",ud);\
+}
+
+#define FKL_VM_USER_DATA_DEFAULT_TO_STRING(NAME,DATA_TYPE_NAME) static FklString* NAME(const FklVMudata* ud) {\
+	FklStringBuffer buf;\
+	fklInitStringBuffer(&buf);\
+	fklStringBufferPrintf(&buf,"#<"#DATA_TYPE_NAME" %p>",ud);\
+	FklString* str=fklCreateString(buf.index,buf.buf);\
+	fklUninitStringBuffer(&buf);\
+	return str;\
+}
+
 #ifdef __cplusplus
 }
 #endif

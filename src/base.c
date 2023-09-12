@@ -1786,45 +1786,45 @@ size_t fklCountCharInString(FklString* s,char c)
 
 inline void fklInitStringBuffer(FklStringBuffer* b)
 {
-	b->i=0;
-	b->s=0;
-	b->b=NULL;
+	b->index=0;
+	b->size=0;
+	b->buf=NULL;
 	fklStringBufferReverse(b,64);
 }
 
 inline uint32_t fklStringBufferLen(FklStringBuffer* b)
 {
-	return b->i;
+	return b->index;
 }
 
 inline char* fklStringBufferBody(FklStringBuffer* b)
 {
-	return b->b;
+	return b->buf;
 }
 
 inline void fklStringBufferPutc(FklStringBuffer* b,char c)
 {
 	fklStringBufferReverse(b,2);
-	b->b[b->i++]=c;
-	b->b[b->i]='\0';
+	b->buf[b->index++]=c;
+	b->buf[b->index]='\0';
 }
 
 inline void fklStringBufferBincpy(FklStringBuffer* b,const void* p,size_t l)
 {
 	fklStringBufferReverse(b,l+1);
-	memcpy(&b->b[b->i],p,l);
-	b->i+=l;
-	b->b[b->i]='\0';
+	memcpy(&b->buf[b->index],p,l);
+	b->index+=l;
+	b->buf[b->index]='\0';
 }
 
 inline FklString* fklStringBufferToString(FklStringBuffer* b)
 {
-	return fklCreateString(b->i,b->b);
+	return fklCreateString(b->index,b->buf);
 }
 
 inline FklBytevector* fklStringBufferToBytevector(FklStringBuffer* b)
 {
-	return fklCreateBytevector(b->i,(uint8_t*)b->b);
+	return fklCreateBytevector(b->index,(uint8_t*)b->buf);
 }
 
 inline FklStringBuffer* fklCreateStringBuffer(void)
@@ -1837,10 +1837,10 @@ inline FklStringBuffer* fklCreateStringBuffer(void)
 
 inline void fklUninitStringBuffer(FklStringBuffer* b)
 {
-	b->s=0;
-	b->i=0;
-	free(b->b);
-	b->b=NULL;
+	b->size=0;
+	b->index=0;
+	free(b->buf);
+	b->buf=NULL;
 }
 
 inline void fklDestroyStringBuffer(FklStringBuffer* b)
@@ -1851,22 +1851,22 @@ inline void fklDestroyStringBuffer(FklStringBuffer* b)
 
 inline void fklStringBufferClear(FklStringBuffer* b)
 {
-	b->i=0;
+	b->index=0;
 }
 
 inline void fklStringBufferFill(FklStringBuffer* b,char c)
 {
-	memset(b->b,c,b->i);
+	memset(b->buf,c,b->index);
 }
 
 inline void fklStringBufferReverse(FklStringBuffer* b,size_t s)
 {
-	if((b->s-b->i)<s)
+	if((b->size-b->index)<s)
 	{
-		b->s+=s;
-		char* t=(char*)fklRealloc(b->b,b->s);
+		b->size+=s;
+		char* t=(char*)fklRealloc(b->buf,b->size);
 		FKL_ASSERT(t);
-		b->b=t;
+		b->buf=t;
 	}
 }
 
@@ -1881,17 +1881,17 @@ static inline void string_buffer_printf_va(FklStringBuffer* b,const char* fmt,va
 #else
 		va_copy(cp,ap);
 #endif
-		n=vsnprintf(&b->b[b->i],b->s-b->i,fmt,cp);
+		n=vsnprintf(&b->buf[b->index],b->size-b->index,fmt,cp);
 		va_end(cp);
-		if((n>-1)&&n<(b->s-b->i))
+		if((n>-1)&&n<(b->size-b->index))
 		{
-			b->i+=n;
+			b->index+=n;
 			return;
 		}
 		if(n>-1)
 			fklStringBufferReverse(b,n+1);
 		else
-			fklStringBufferReverse(b,(b->s)*2);
+			fklStringBufferReverse(b,(b->size)*2);
 	}
 }
 
@@ -1915,7 +1915,7 @@ inline void fklStringBufferConcatWithString(FklStringBuffer* b,const FklString* 
 
 inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklStringBuffer* b)
 {
-	fklStringBufferBincpy(a,b->b,b->i);
+	fklStringBufferBincpy(a,b->buf,b->index);
 }
 
 #define DEFAULT_HASH_TABLE_SIZE (4)

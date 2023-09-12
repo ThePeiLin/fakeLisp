@@ -2653,7 +2653,7 @@ void fklClearGrammer(FklGrammer* g)
 	g->ignores=NULL;
 }
 
-void fklDestroyGrammer(FklGrammer* g)
+void fklUninitGrammer(FklGrammer* g)
 {
 	fklUninitHashTable(&g->productions);
 	fklUninitHashTable(&g->builtins);
@@ -2669,6 +2669,11 @@ void fklDestroyGrammer(FklGrammer* g)
 		fklDestroyIgnore(ig);
 		ig=next;
 	}
+}
+
+inline void fklDestroyGrammer(FklGrammer* g)
+{
+	fklUninitGrammer(g);
 	free(g);
 }
 
@@ -2993,7 +2998,7 @@ static inline int check_undefined_nonterm(FklGrammer* g)
 	return 0;
 }
 
-inline int fklInitGrammer(FklGrammer* g)
+inline int fklCheckAndInitGrammerSymbols(FklGrammer* g)
 {
 	return check_undefined_nonterm(g)
 		||add_reachable_terminal(g)
@@ -3034,12 +3039,27 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 			}
 		}
 	}
-	if(fklInitGrammer(grammer))
+	if(fklCheckAndInitGrammerSymbols(grammer))
 	{
 		fklDestroyGrammer(grammer);
 		return NULL;
 	}
 	return grammer;
+}
+
+inline int fklAddExtraProdToGrammer(FklGrammer* g)
+{
+	FklGrammerNonterm left=g->start;
+	const FklHashTable* builtins=&g->builtins;
+	if(left.group==0&&fklGetBuiltinMatch(builtins,left.sid))
+		return 1;
+	FklGrammerProduction* extra_prod=create_extra_production(left.group,left.sid);
+	extra_prod->next=NULL;
+	FklGrammerProdHashItem* item=fklPutHashItem(&extra_prod->left,&g->productions);
+	item->prods=extra_prod;
+	item->prods->idx=g->prodNum;
+	g->prodNum++;
+	return 0;
 }
 
 FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSymbolTable* st)
@@ -3076,7 +3096,7 @@ FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSy
 			}
 		}
 	}
-	if(fklInitGrammer(grammer))
+	if(fklCheckAndInitGrammerSymbols(grammer))
 	{
 		fklDestroyGrammer(grammer);
 		return NULL;
@@ -5516,7 +5536,7 @@ void* fklDefaultParseForCharBuf(const char* cstr
 	return ast;
 }
 
-static inline int is_state_action_match(const FklAnalysisStateActionMatch* match
+inline int fklIsStateActionMatch(const FklAnalysisStateActionMatch* match
 		,const char* start
 		,const char* cstr
 		,size_t restLen
@@ -5574,7 +5594,7 @@ static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisStat
 	fputc('\n',stderr);
 }
 
-inline FklAnalysisSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
+inline FklAnalysisSymbol* fklCreateTerminalAnalysisSymbol(const char* s
 		,size_t len
 		,FklGrammerMatchOuterCtx* outerCtx)
 {
@@ -5591,7 +5611,7 @@ static inline FklAnalysisSymbol* create_nonterm_analyzing_symbol(FklSid_t group,
 {
 	FklAnalysisSymbol* sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));
 	FKL_ASSERT(sym);
-	sym->nt.group=id;
+	sym->nt.group=group;
 	sym->nt.sid=id;
 	sym->ast=ast;
 	return sym;
@@ -5605,7 +5625,6 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 		,FklSymbolTable* st
 		,size_t* errLine)
 {
-
 	size_t len=prod->len;
 	stateStack->top-=len;
 	FklAnalysisStateGoto* gt=((const FklAnalysisState*)fklTopPtrStack(stateStack))->state.gt;
@@ -5677,7 +5696,7 @@ void* fklParseWithTableForCstrDbg(const FklGrammer* g
 		const FklAnalysisStateAction* action=state->state.action;
 		dbg_print_state_stack(&stateStack,t->states);
 		for(;action;action=action->next)
-			if(is_state_action_match(&action->match,start,cstr,restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
+			if(fklIsStateActionMatch(&action->match,start,cstr,restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
 				break;
 		waiting_for_more_err|=is_waiting_for_more;
 		if(action)
@@ -5694,7 +5713,7 @@ void* fklParseWithTableForCstrDbg(const FklGrammer* g
 				case FKL_ANALYSIS_SHIFT:
 					{
 						fklPushPtrStack((void*)action->state,&stateStack);
-						fklPushPtrStack(fklCreateTerminalAnalyzingSymbol(cstr,matchLen,outerCtx),&symbolStack);
+						fklPushPtrStack(fklCreateTerminalAnalysisSymbol(cstr,matchLen,outerCtx),&symbolStack);
 						fklPushUintStack(outerCtx->line,&lineStack);
 						outerCtx->line+=fklCountCharInBuf(cstr,matchLen,'\n');
 						cstr+=matchLen;
@@ -5768,7 +5787,7 @@ void* fklParseWithTableForCstr(const FklGrammer* g
 		const FklAnalysisState* state=fklTopPtrStack(&stateStack);
 		const FklAnalysisStateAction* action=state->state.action;
 		for(;action;action=action->next)
-			if(is_state_action_match(&action->match,start,cstr,restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
+			if(fklIsStateActionMatch(&action->match,start,cstr,restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
 				break;
 		waiting_for_more_err|=is_waiting_for_more;
 		if(action)
@@ -5784,7 +5803,7 @@ void* fklParseWithTableForCstr(const FklGrammer* g
 				case FKL_ANALYSIS_SHIFT:
 					{
 						fklPushPtrStack((void*)action->state,&stateStack);
-						fklPushPtrStack(fklCreateTerminalAnalyzingSymbol(cstr,matchLen,outerCtx),&symbolStack);
+						fklPushPtrStack(fklCreateTerminalAnalysisSymbol(cstr,matchLen,outerCtx),&symbolStack);
 						fklPushUintStack(outerCtx->line,&lineStack);
 						outerCtx->line+=fklCountCharInBuf(cstr,matchLen,'\n');
 						cstr+=matchLen;
@@ -5855,7 +5874,7 @@ void* fklParseWithTableForCharBuf(const FklGrammer* g
 		const FklAnalysisState* state=fklTopPtrStack(stateStack);
 		const FklAnalysisStateAction* action=state->state.action;
 		for(;action;action=action->next)
-			if(is_state_action_match(&action->match,start,cstr,*restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
+			if(fklIsStateActionMatch(&action->match,start,cstr,*restLen,&matchLen,outerCtx,&is_waiting_for_more,g))
 				break;
 		waiting_for_more_err|=is_waiting_for_more;
 		if(action)
@@ -5871,7 +5890,7 @@ void* fklParseWithTableForCharBuf(const FklGrammer* g
 				case FKL_ANALYSIS_SHIFT:
 					{
 						fklPushPtrStack((void*)action->state,stateStack);
-						fklPushPtrStack(fklCreateTerminalAnalyzingSymbol(cstr,matchLen,outerCtx),symbolStack);
+						fklPushPtrStack(fklCreateTerminalAnalysisSymbol(cstr,matchLen,outerCtx),symbolStack);
 						fklPushUintStack(outerCtx->line,lineStack);
 						outerCtx->line+=fklCountCharInBuf(cstr,matchLen,'\n');
 						cstr+=matchLen;
@@ -5918,7 +5937,7 @@ uint64_t fklGetFirstNthLine(FklUintStack* lineStack,size_t num,size_t line)
 		return line;
 }
 
-void fklDestroyAnayzingSymbol(FklAnalysisSymbol* s)
+void fklDestroyAnaysisSymbol(FklAnalysisSymbol* s)
 {
 	fklDestroyNastNode(s->ast);
 	free(s);
@@ -5969,7 +5988,7 @@ static inline void* prod_action_symbol(void* ctx
 		cstr+=len;
 		cstr_size-=len;
 	}
-	FklSid_t id=fklAddSymbolCharBuf(buffer.b,buffer.i,st)->id;
+	FklSid_t id=fklAddSymbolCharBuf(buffer.buf,buffer.index,st)->id;
 	FklNastNode* node=fklCreateNastNode(FKL_NAST_SYM,nodes[0]->curline);
 	node->sym=id;
 	fklUninitStringBuffer(&buffer);

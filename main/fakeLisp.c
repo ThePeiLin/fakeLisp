@@ -196,8 +196,8 @@ int main(int argc,char** argv)
 			fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
 			fklStringBufferConcatWithCstr(&buffer,"main.fkl");
 
-			if(fklIsAccessableRegFile(buffer.b))
-				exitState=compileAndRun(buffer.b);
+			if(fklIsAccessableRegFile(buffer.buf))
+				exitState=compileAndRun(buffer.buf);
 			else
 			{
 				exitState=FKL_EXIT_FAILURE;

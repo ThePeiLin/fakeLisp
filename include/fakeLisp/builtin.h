@@ -47,6 +47,7 @@ typedef enum
 	FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP,
 	FKL_ERR_IMPORT_READER_MACRO_ERROR,
 	FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,
+	FKL_ERR_GRAMMER_CREATE_FAILED,
 }FklBuiltInErrorType;
 
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);

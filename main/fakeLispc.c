@@ -139,7 +139,7 @@ int main(int argc,char** argv)
 					fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
 					fklStringBufferConcatWithCstr(&buffer,"main.fkl");
 
-					if(!fklIsAccessableRegFile(buffer.b)||compile(buffer.b,argc,argv))
+					if(!fklIsAccessableRegFile(buffer.buf)||compile(buffer.buf,argc,argv))
 					{
 						fklDestroyMainFileRealPath();
 						fprintf(stderr,"error: It is not a correct file.\n");

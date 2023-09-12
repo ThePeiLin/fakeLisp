@@ -818,7 +818,7 @@ inline size_t fklVMfpNonBlockGets(FklVMfp* vfp,FklStringBuffer* b,size_t l)
 
 int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer* b,size_t j)
 {
-	return fklRewindStream(vfp->fp,b->b+j,b->i-j);
+	return fklRewindStream(vfp->fp,b->buf+j,b->index-j);
 }
 
 inline int fklUninitVMfp(FklVMfp* vfp)

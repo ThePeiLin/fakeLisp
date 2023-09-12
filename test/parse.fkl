@@ -1,57 +1,46 @@
-(define (first $$)
-  (vref $$ 0))
-(define (second $$)
-  (vref $$ 1))
+(import (.. lib json))
 
-(define (first->symbol $$)
-  (string->symbol (vref $$ 0)))
+(prin1 json-parser)
 
-(define (first->number $$)
-  (string->number (vref $$ 0)))
+(newline)
 
-(define (cons-0-2 $$)
-  (cons (vref $$ 0) (vref $$ 2)))
+(prin1 (parse "{\"foo\":1}" json-parser))
 
-(define (return-nil $$)
-  nil)
+(newline)
 
-(define (cons-0 $$)
-  (cons (vref $$ 0) nil))
+(prin1 (parse "[]" json-parser))
 
-(define json-parser
-  (make-parser
-    'json-value
-    'json-value #[null] first
-    'json-value #[bool] first
-    'json-value #[string] first
-    'json-value #[integer] first
-    'json-value #[float] first
-    'json-value #[object] first
-    'json-value #[array] first
+(newline)
 
-    'null #[1 "null"] first->symbol
-    'bool #[1 "true"] first->symbol
-    'bool #[1 "false"] first->symbol
-    'string #[%string "\"" "\""] (lambda ($$) (unqstr (vref $$ 0) #\"))
-    'integer #[%dec-int] first->number
-    'integer #[%hex-int] first->number
-    'integer #[%oct-int] first->number
-    'float #[%dec-float] first->number
-    'float #[%hex-float] first->number
+(prin1 (parse "[1,2,3]" json-parser))
 
-    'array #["[" array-items "]"] (lambda ($$) (list->vector (vref $$ 1)))
-    'array-items #[] return-nil
-    'array-items #[json-value] cons-0
-    'array-items #[json-value "," array-items] cons-0-2
+(newline)
 
-    'object #["{" object-items "}"] (lambda ($$) (apply hashequal $$))
-    'object-item #[string ":" json-value] cons-0-2
-    'object-items #[] return-nil
-    'object-items #[object-item] cons-0
-    'object-items #[object-item "," object-items] cons-0-2
-    () #[%space]))
+(prin1 (parse "{}" json-parser))
+
+(newline)
 
 (prin1 (parse "{\"foo\":1,\"bar\":2}" json-parser))
+
+(newline)
+
+(prin1 (parse "\"foobar\"" json-parser))
+
+(newline)
+
+(prin1 (parse "true" json-parser))
+
+(newline)
+
+(prin1 (parse "false" json-parser))
+
+(newline)
+
+(prin1 (parse "null" json-parser))
+
+(newline)
+
+(prin1 (parse "114514" json-parser))
 
 (newline)
 

@@ -3622,7 +3622,7 @@ static void _codegen_load_finalizer(void* pcontext)
 	CodegenLoadContext* context=pcontext;
 	FklPtrStack* symbolStack=&context->symbolStack;
 	while(!fklIsPtrStackEmpty(symbolStack))
-		fklDestroyAnayzingSymbol(fklPopPtrStack(symbolStack));
+		fklDestroyAnaysisSymbol(fklPopPtrStack(symbolStack));
 	fklUninitPtrStack(symbolStack);
 	fklUninitPtrStack(&context->stateStack);
 	fklUninitUintStack(&context->lineStack);
@@ -3680,7 +3680,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegen* codegen
 	if(*unexpectEOF)
 		begin=NULL;
 	while(!fklIsPtrStackEmpty(symbolStack))
-		fklDestroyAnayzingSymbol(fklPopPtrStack(symbolStack));
+		fklDestroyAnaysisSymbol(fklPopPtrStack(symbolStack));
 	return begin;
 }
 
@@ -4245,7 +4245,7 @@ static inline FklByteCodelnt* process_import_imported_lib_prefix(uint32_t libId
 			fklStringBufferConcatWithString(&buffer,prefix);
 			fklStringBufferConcatWithString(&buffer,fklGetSymbolWithIdFromPst(group->id)->symbol);
 
-			FklSid_t group_id_with_prefix=fklAddSymbolCharBufToPst(buffer.b,buffer.i)->id;
+			FklSid_t group_id_with_prefix=fklAddSymbolCharBufToPst(buffer.buf,buffer.index)->id;
 
 			if(import_reader_macro(is_grammer_inited
 						,&is_grammer_inited
@@ -6887,7 +6887,7 @@ static void* simple_action_symbol(void* c
 			cstr+=len;
 			cstr_size-=len;
 		}
-		FklSid_t id=fklAddSymbolCharBuf(buffer.b,buffer.i,st)->id;
+		FklSid_t id=fklAddSymbolCharBuf(buffer.buf,buffer.index,st)->id;
 		sym=fklCreateNastNode(FKL_NAST_SYM,node->curline);
 		sym->sym=id;
 		fklUninitStringBuffer(&buffer);
@@ -7406,7 +7406,7 @@ static inline int add_all_group_to_grammer(FklCodegen* codegen)
 
 	FklGrammer* g=*codegen->g;
 
-	if(fklInitGrammer(g))
+	if(fklCheckAndInitGrammerSymbols(g))
 		return 1;
 
 	FklHashTable* itemSet=fklGenerateLr0Items(g);

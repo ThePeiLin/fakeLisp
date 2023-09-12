@@ -1,0 +1,50 @@
+(define (first $$)
+  (vref $$ 0))
+(define (second $$)
+  (vref $$ 1))
+
+(define (first->number $$)
+  (string->number (vref $$ 0)))
+
+(define (cons-0-2 $$)
+  (cons (vref $$ 0) (vref $$ 2)))
+
+(define (return-nil $$)
+  nil)
+
+(define (cons-0 $$)
+  (cons (vref $$ 0) nil))
+
+(export
+  (define json-parser
+    (make-parser
+      'json-value
+      'json-value #[null] first
+      'json-value #[bool] first
+      'json-value #[string] first
+      'json-value #[integer] first
+      'json-value #[float] first
+      'json-value #[object] first
+      'json-value #[array] first
+
+      'null #[1 "null"] (lambda ($$) 'null)
+      'bool #[1 "true"] (lambda ($$) 'true)
+      'bool #[1 "false"] (lambda ($$) 'false)
+      'string #[%string "\"" "\""] (lambda ($$) (unqstr (vref $$ 0) #\"))
+      'integer #[%dec-int] first->number
+      'integer #[%hex-int] first->number
+      'integer #[%oct-int] first->number
+      'float #[%dec-float] first->number
+      'float #[%hex-float] first->number
+
+      'array #["[" array-items "]"] (lambda ($$) (list->vector (vref $$ 1)))
+      'array-items #[] return-nil
+      'array-items #[json-value] cons-0
+      'array-items #[json-value "," array-items] cons-0-2
+
+      'object #["{" object-items "}"] (lambda ($$) (apply hashequal (vref $$ 1)))
+      'object-item #[string ":" json-value] cons-0-2
+      'object-items #[] return-nil
+      'object-items #[object-item] cons-0
+      'object-items #[object-item "," object-items] cons-0-2
+      () #[%space])))

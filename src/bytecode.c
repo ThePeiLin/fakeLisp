@@ -680,7 +680,7 @@ inline FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLi
 	{
 		mid=l+(h-l)/2;
 		FklLineNumberTableItem* cur=&line_numbers[mid];
-		if(cp<cur->scp)
+		if(cp<=cur->scp)
 			h=mid-1;
 		else if(cp>(cur->scp+cur->cpc))
 			l=mid+1;

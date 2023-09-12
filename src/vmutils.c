@@ -190,7 +190,7 @@ inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 			else
 				fprintf(stderr,"at <top>");
 			FklByteCodelnt* codeObj=FKL_VM_CO(get_compound_frame_code_obj(cur));
-			FklLineNumTabNode* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
+			FklLineNumberTableItem* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code
 					,codeObj->ls
 					,codeObj->l);
 			if(node->fid)

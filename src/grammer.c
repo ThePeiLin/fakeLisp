@@ -5092,14 +5092,14 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			if(ac->prod->len)
 				fprintf(fp,"\t\t\tvoid** nodes=(void**)malloc(sizeof(void*)*%lu);\n"
 						"\t\t\tFKL_ASSERT(nodes);\n"
-						"\t\t\tFklAnalyzingSymbol** base=(FklAnalyzingSymbol**)&symbolStack->base[symbolStack->top];\n",ac->prod->len);
+						"\t\t\tFklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];\n",ac->prod->len);
 			else
 				fputs("\t\t\tvoid** nodes=NULL;\n",fp);
 
 			if(ac->prod->len)
 				fprintf(fp,"\t\t\tfor(size_t i=0;i<%lu;i++)\n"
 						"\t\t\t{\n"
-						"\t\t\t\tFklAnalyzingSymbol* as=base[i];\n"
+						"\t\t\t\tFklAnalysisSymbol* as=base[i];\n"
 						"\t\t\t\tnodes[i]=as->ast;\n"
 						"\t\t\t\tfree(as);\n"
 						"\t\t\t}\n",ac->prod->len);
@@ -5267,9 +5267,9 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 		,FILE* fp)
 {
 	static const char* create_term_analyzing_symbol_src=
-		"static inline FklAnalyzingSymbol* create_term_analyzing_symbol(const char* s,size_t len,size_t line,void* ctx)"
+		"static inline FklAnalysisSymbol* create_term_analyzing_symbol(const char* s,size_t len,size_t line,void* ctx)"
 		"{\n"
-		"\tFklAnalyzingSymbol* sym=(FklAnalyzingSymbol*)malloc(sizeof(FklAnalyzingSymbol));\n"
+		"\tFklAnalysisSymbol* sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));\n"
 		"\tFKL_ASSERT(sym);\n"
 		"\tvoid* ast=%s(s,len,line,ctx);\n"
 		"\tsym->nt.group=0;\n"
@@ -5279,9 +5279,9 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 		"}\n\n";
 
 	static const char* create_nonterm_analyzing_symbol_src=
-		"static inline FklAnalyzingSymbol* create_nonterm_analyzing_symbol(FklSid_t id,void* ast)\n"
+		"static inline FklAnalysisSymbol* create_nonterm_analyzing_symbol(FklSid_t id,void* ast)\n"
 		"{\n"
-		"\tFklAnalyzingSymbol* sym=(FklAnalyzingSymbol*)malloc(sizeof(FklAnalyzingSymbol));\n"
+		"\tFklAnalysisSymbol* sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));\n"
 		"\tFKL_ASSERT(sym);\n"
 		"\tsym->nt.group=0;\n"
 		"\tsym->nt.sid=id;\n"
@@ -5475,7 +5475,7 @@ void* fklDefaultParseForCstr(const char* cstr
 			break;
 		if(accept)
 		{
-			FklAnalyzingSymbol* s=fklPopPtrStack(symbolStack);
+			FklAnalysisSymbol* s=fklPopPtrStack(symbolStack);
 			ast=s->ast;
 			free(s);
 			break;
@@ -5507,7 +5507,7 @@ void* fklDefaultParseForCharBuf(const char* cstr
 			break;
 		if(accept)
 		{
-			FklAnalyzingSymbol* s=fklPopPtrStack(symbolStack);
+			FklAnalysisSymbol* s=fklPopPtrStack(symbolStack);
 			ast=s->ast;
 			free(s);
 			break;
@@ -5574,11 +5574,11 @@ static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisStat
 	fputc('\n',stderr);
 }
 
-inline FklAnalyzingSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
+inline FklAnalysisSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
 		,size_t len
 		,FklGrammerMatchOuterCtx* outerCtx)
 {
-	FklAnalyzingSymbol* sym=(FklAnalyzingSymbol*)malloc(sizeof(FklAnalyzingSymbol));
+	FklAnalysisSymbol* sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));
 	FKL_ASSERT(sym);
 	void* ast=outerCtx->create(s,len,outerCtx->line,outerCtx->ctx);
 	sym->nt.group=0;
@@ -5587,9 +5587,9 @@ inline FklAnalyzingSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
 	return sym;
 }
 
-static inline FklAnalyzingSymbol* create_nonterm_analyzing_symbol(FklSid_t group,FklSid_t id,FklNastNode* ast)
+static inline FklAnalysisSymbol* create_nonterm_analyzing_symbol(FklSid_t group,FklSid_t id,FklNastNode* ast)
 {
-	FklAnalyzingSymbol* sym=(FklAnalyzingSymbol*)malloc(sizeof(FklAnalyzingSymbol));
+	FklAnalysisSymbol* sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));
 	FKL_ASSERT(sym);
 	sym->nt.group=id;
 	sym->nt.sid=id;
@@ -5622,10 +5622,10 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 	{
 		nodes=(void**)malloc(sizeof(void*)*len);
 		FKL_ASSERT(nodes);
-		FklAnalyzingSymbol** base=(FklAnalyzingSymbol**)&symbolStack->base[symbolStack->top];
+		FklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];
 		for(size_t i=0;i<len;i++)
 		{
-			FklAnalyzingSymbol* as=base[i];
+			FklAnalysisSymbol* as=base[i];
 			nodes[i]=as->ast;
 			free(as);
 		}
@@ -5703,7 +5703,7 @@ void* fklParseWithTableForCstrDbg(const FklGrammer* g
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					{
-						FklAnalyzingSymbol* top=fklPopPtrStack(&symbolStack);
+						FklAnalysisSymbol* top=fklPopPtrStack(&symbolStack);
 						ast=top->ast;
 						free(top);
 					}
@@ -5734,7 +5734,7 @@ break_for:
 	fklUninitPtrStack(&stateStack);
 	while(!fklIsPtrStackEmpty(&symbolStack))
 	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		FklAnalysisSymbol* s=fklPopPtrStack(&symbolStack);
 		fklDestroyNastNode(s->ast);
 		free(s);
 	}
@@ -5793,7 +5793,7 @@ void* fklParseWithTableForCstr(const FklGrammer* g
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					{
-						FklAnalyzingSymbol* top=fklPopPtrStack(&symbolStack);
+						FklAnalysisSymbol* top=fklPopPtrStack(&symbolStack);
 						ast=top->ast;
 						free(top);
 					}
@@ -5824,7 +5824,7 @@ break_for:
 	fklUninitPtrStack(&stateStack);
 	while(!fklIsPtrStackEmpty(&symbolStack))
 	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		FklAnalysisSymbol* s=fklPopPtrStack(&symbolStack);
 		fklDestroyNastNode(s->ast);
 		free(s);
 	}
@@ -5880,7 +5880,7 @@ void* fklParseWithTableForCharBuf(const FklGrammer* g
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					{
-						FklAnalyzingSymbol* top=fklPopPtrStack(symbolStack);
+						FklAnalysisSymbol* top=fklPopPtrStack(symbolStack);
 						ast=top->ast;
 						free(top);
 						return ast;
@@ -5918,7 +5918,7 @@ uint64_t fklGetFirstNthLine(FklUintStack* lineStack,size_t num,size_t line)
 		return line;
 }
 
-void fklDestroyAnayzingSymbol(FklAnalyzingSymbol* s)
+void fklDestroyAnayzingSymbol(FklAnalysisSymbol* s)
 {
 	fklDestroyNastNode(s->ast);
 	free(s);

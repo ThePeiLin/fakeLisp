@@ -22,12 +22,12 @@ typedef struct
 	uint64_t scp;
 	uint64_t cpc;
 	uint32_t line;
-}FklLineNumTabNode;
+}FklLineNumberTableItem;
 
 typedef struct
 {
 	size_t ls;
-	FklLineNumTabNode* l;
+	FklLineNumberTableItem* l;
 	FklByteCode* bc;
 }FklByteCodelnt;
 
@@ -57,19 +57,19 @@ void fklBcBclAppendToBcl(const FklByteCode* bc
 		,FklSid_t fid
 		,uint64_t line);
 
-void fklInitLineNumTabNode(FklLineNumTabNode*
+void fklInitLineNumTabNode(FklLineNumberTableItem*
 		,FklSid_t fid
 		,uint64_t scp
 		,uint64_t cpc
 		,uint64_t line);
-FklLineNumTabNode* fklCreateLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line);
-FklLineNumTabNode* fklCreateLineNumTabNodeWithFilename(const char* filename
+FklLineNumberTableItem* fklCreateLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line);
+FklLineNumberTableItem* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint64_t scp
 		,uint64_t cpc
 		,uint32_t line
 		,FklSymbolTable* table);
-FklLineNumTabNode* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumTabNode* l);
-void fklWriteLineNumberTable(FklLineNumTabNode*,size_t num,FILE*);
+FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumberTableItem* l);
+void fklWriteLineNumberTable(FklLineNumberTableItem*,size_t num,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE*);
 
 int16_t fklGetI16FromByteCode(uint8_t* code);
@@ -102,7 +102,7 @@ FklByteCode* fklCreatePushNilByteCode(void);
 FklByteCode* fklCreatePushStrByteCode(const FklString* str);
 FklByteCode* fklCreatePushBvecByteCode(const FklBytevector* bvec);
 
-void fklLoadLineNumberTable(FILE* fp,FklLineNumTabNode** plist,size_t* pnum);
+void fklLoadLineNumberTable(FILE* fp,FklLineNumberTableItem** plist,size_t* pnum);
 
 #ifdef __cplusplus
 }

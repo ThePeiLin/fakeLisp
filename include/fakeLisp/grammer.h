@@ -15,7 +15,7 @@ extern "C"{
 struct FklGrammerProduction;
 struct FklGrammer;
 struct FklGrammerSym;
-struct FklAnalyzingSymbol;
+struct FklAnalysisSymbol;
 
 typedef struct
 {
@@ -268,14 +268,14 @@ typedef struct
 	FklProdActionFunc func;
 }FklGrammerCstrAction;
 
-typedef struct FklAnalyzingSymbol
+typedef struct FklAnalysisSymbol
 {
 	FklGrammerNonterm nt;
 	void* ast;
-}FklAnalyzingSymbol;
+}FklAnalysisSymbol;
 
 int fklInitGrammer(FklGrammer* g);
-void fklDestroyAnayzingSymbol(FklAnalyzingSymbol*);
+void fklDestroyAnayzingSymbol(FklAnalysisSymbol*);
 FklHashTable* fklCreateTerminalIndexSet(FklString* const* terminals,size_t num);
 
 FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st);
@@ -290,7 +290,7 @@ void fklClearGrammer(FklGrammer*);
 
 FklHashTable* fklGenerateLr0Items(FklGrammer* grammer);
 
-FklAnalyzingSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
+FklAnalysisSymbol* fklCreateTerminalAnalyzingSymbol(const char* s
 		,size_t len
 		,FklGrammerMatchOuterCtx* outerCtx);
 int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states);

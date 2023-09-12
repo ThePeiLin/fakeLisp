@@ -546,13 +546,6 @@ FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,Fk
 
 void fklSetBp(FklVM* s);
 int fklResBp(FklVM*);
-// FklVMvalue* fklDlprocGetArg(uint32_t* ap,FklVM*);
-// FklVMvalue** fklDlprocReturn(FklVMvalue*,uint32_t* ap,FklVM*);
-// void fklDlprocSetBpWithTp(FklVM* s);
-// uint32_t fklDlprocSetBp(uint32_t nbp,FklVM* s);
-// int fklDlprocResBp(uint32_t* ap,FklVM*);
-// void fklDlprocEnd(uint32_t* ap,FklVM*);
-// void fklDlprocBegin(uint32_t* ap,FklVM*);
 
 #define FKL_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
 #define FKL_CHECK_REST_ARG(EXE,ERR_INFO) if(fklResBp((EXE)))\

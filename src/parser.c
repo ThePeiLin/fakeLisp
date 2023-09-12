@@ -31,7 +31,7 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,FklSymbolTable* publicSy
 
 	while(!fklIsPtrStackEmpty(&symbolStack))
 	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(&symbolStack);
+		FklAnalysisSymbol* s=fklPopPtrStack(&symbolStack);
 		fklDestroyNastNode(s->ast);
 		free(s);
 	}

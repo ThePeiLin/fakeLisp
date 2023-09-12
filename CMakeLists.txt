@@ -14,7 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 if(MSVC)
 	add_compile_options(/Wall)
 else()
-	add_compile_options(-Wall -Wextra -Wno-unused-parameter)# -fsanitize=thread)
+	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
 endif()
 set(CMAKE_C_STANDARD 11)
 

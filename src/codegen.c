@@ -168,7 +168,7 @@ static FklByteCodelnt* createBclnt(FklByteCode* bc
 {
 	FklByteCodelnt* r=fklCreateByteCodelnt(bc);
 	r->ls=1;
-	r->l=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*1);
+	r->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*1);
 	FKL_ASSERT(r->l);
 	fklInitLineNumTabNode(&r->l[0],fid,0,bc->size,line);
 	return r;
@@ -5801,6 +5801,26 @@ static CODEGEN_FUNC(codegen_import_except)
 			,except);
 }
 
+static CODEGEN_FUNC(codegen_import_common)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(builtInPatternVar_name,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(builtInPatternVar_args,ht);
+
+	codegen_import_helper(origExp
+			,name
+			,rest
+			,codegen
+			,errorState
+			,curEnv
+			,scope
+			,macroScope
+			,codegenQuestStack
+			,NULL
+			,NULL
+			,NULL
+			,NULL);
+}
+
 typedef struct
 {
 	FklPtrStack* stack;
@@ -8029,6 +8049,7 @@ typedef enum
 	PATTERN_IMPORT_ONLY,
 	PATTERN_IMPORT_ALIAS,
 	PATTERN_IMPORT_EXCEPT,
+	PATTERN_IMPORT_COMMON,
 	PATTERN_IMPORT,
 	PATTERN_MACROEXPAND,
 	PATTERN_DEFMACRO,
@@ -8086,6 +8107,7 @@ static struct PatternAndFunc
 	{"~(import (only ~name,~rest),~args)",                     NULL, codegen_import_only,         },
 	{"~(import (alias ~name,~rest),~args)",                    NULL, codegen_import_alias,        },
 	{"~(import (except ~name,~rest),~args)",                   NULL, codegen_import_except,       },
+	{"~(import (common ~name),~args)",                         NULL, codegen_import_common,       },
 	{"~(import ~name,~args)",                                  NULL, codegen_import,              },
 	{"~(macroexpand ~value)",                                  NULL, codegen_macroexpand,         },
 	{"~(defmacro ~name ~value)",                               NULL, codegen_defmacro,            },
@@ -8134,6 +8156,7 @@ static inline int isExportImportExp(FklNastNode* c)
 		||fklPatternMatch(builtInPattern[PATTERN_IMPORT_ONLY].pn,c,NULL)
 		||fklPatternMatch(builtInPattern[PATTERN_IMPORT_ALIAS].pn,c,NULL)
 		||fklPatternMatch(builtInPattern[PATTERN_IMPORT_EXCEPT].pn,c,NULL)
+		||fklPatternMatch(builtInPattern[PATTERN_IMPORT_COMMON].pn,c,NULL)
 		||fklPatternMatch(builtInPattern[PATTERN_IMPORT].pn,c,NULL)
 		||fklPatternMatch(builtInPattern[PATTERN_IMPORT_NONE].pn,c,NULL);
 }
@@ -9415,7 +9438,7 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx* cc,FklStringBuffer*
 	FklPtrStack* ss=&cc->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
 	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(ss);
+		FklAnalysisSymbol* s=fklPopPtrStack(ss);
 		fklDestroyNastNode(s->ast);
 		free(s);
 	}
@@ -9597,7 +9620,7 @@ static inline void destroyNastCreatCtx(NastCreatCtx* cc)
 	fklUninitPtrStack(&cc->stateStack);
 	while(!fklIsPtrStackEmpty(&cc->symbolStack))
 	{
-		FklAnalyzingSymbol* s=fklPopPtrStack(&cc->symbolStack);
+		FklAnalysisSymbol* s=fklPopPtrStack(&cc->symbolStack);
 		fklDestroyNastNode(s->ast);
 		free(s);
 	}

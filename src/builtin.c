@@ -119,6 +119,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"import-missing",
 		"export-outer-ref-prod-group",
 		"import-reader-macro-error",
+		"analysis-table-genrate-failed",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)
@@ -1835,7 +1836,7 @@ static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
 	fklGC_toGrey(c->fpv,gc);
-	FklAnalyzingSymbol** base=(FklAnalyzingSymbol**)c->symbolStack->base;
+	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
 	size_t len=c->symbolStack->top;
 	for(size_t i=0;i<len;i++)
 		fklGC_toGrey(base[i]->ast,gc);

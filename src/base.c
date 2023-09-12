@@ -543,8 +543,9 @@ inline void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 		fklInitBigIntFromDecString(r,str);
 }
 
-void fklInitBigIntFromMem(FklBigInt* t,const void* mem,size_t size)
+void fklInitBigIntFromMem(FklBigInt* t,const void* memptr,size_t size)
 {
+	const uint8_t* mem=(const uint8_t*)memptr;
 	uint8_t neg=((uint8_t*)mem)[0];
 	mem++;
 	uint64_t num=size-1;

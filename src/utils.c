@@ -662,44 +662,6 @@ int fklIsAllSpace(const char* str)
 	return 1;
 }
 
-void mergeSort(void* _base,size_t num,size_t size,int (*cmpf)(const void*,const void*))
-{
-	void* base0=_base;
-	void* base1=malloc(size*num);
-	FKL_ASSERT(base1||!num||!size);
-	unsigned int seg=1;
-	unsigned int start=0;
-	for(;seg<num;seg+=seg)
-	{
-		for(start=0;start<num;start+=seg*2)
-		{
-			unsigned int l=start;
-			unsigned int mid=FKL_MIN(start+seg,num);
-			unsigned int h=FKL_MIN(start+seg*2,num);
-			unsigned int k=l;
-			unsigned int start1=l;
-			unsigned int end1=mid;
-			unsigned int start2=mid;
-			unsigned int end2=h;
-			while(start1<end1&&start2<end2)
-				memcpy(base1+(k++)*size,(cmpf(base0+start1*size,base0+start2*size)<0)?base0+(start1++)*size:base0+(start2++)*size,size);
-			while(start1<end1)
-				memcpy(base1+(k++)*size,base0+(start1++)*size,size);
-			while(start2<end2)
-				memcpy(base1+(k++)*size,base0+(start2++)*size,size);
-		}
-		void* tmp=base0;
-		base0=base1;
-		base1=tmp;
-	}
-	if(base0!=_base)
-	{
-		memcpy(base1,base0,num*size);
-		base1=base0;
-	}
-	free(base1);
-}
-
 char* fklStrCat(char* s1,const char* s2)
 {
 	s1=(char*)fklRealloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));

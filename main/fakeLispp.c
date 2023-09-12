@@ -11,7 +11,7 @@
 #endif
 
 static FklByteCode* loadByteCode(FILE*);
-static FklLineNumTabNode* loadLineNumberTable(uint32_t* size,FILE* fp);
+static FklLineNumberTableItem* loadLineNumberTable(uint32_t* size,FILE* fp);
 static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs,FklSymbolTable*);
 
 FklByteCode* loadByteCode(FILE* fp)
@@ -42,12 +42,12 @@ static void loadSymbolTable(FILE* fp,FklSymbolTable* table)
 	}
 }
 
-static inline FklLineNumTabNode* loadLineNumberTable(uint32_t* psize,FILE* fp)
+static inline FklLineNumberTableItem* loadLineNumberTable(uint32_t* psize,FILE* fp)
 {
 	uint32_t size=0;
 	uint32_t i=0;
 	fread(&size,sizeof(uint32_t),1,fp);
-	FklLineNumTabNode* list=(FklLineNumTabNode*)malloc(sizeof(FklLineNumTabNode)*size);
+	FklLineNumberTableItem* list=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*size);
 	FKL_ASSERT(list||!size);
 	for(;i<size;i++)
 	{
@@ -97,7 +97,7 @@ int main(int argc,char** argv)
 		fklSetMainFileRealPath(rp);
 		free(rp);
 		uint32_t line_numbers_num=0;
-		FklLineNumTabNode* line_numbers=loadLineNumberTable(&line_numbers_num,fp);
+		FklLineNumberTableItem* line_numbers=loadLineNumberTable(&line_numbers_num,fp);
 		FklByteCode* mainCode=loadByteCode(fp);
 		FklByteCodelnt bytecodelnt=
 		{

@@ -320,8 +320,8 @@ typedef struct FklVMframe
 }FklVMframe;
 
 void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table);
-void fklCallObj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
-void fklTailCallObj(FklVMvalue*,FklVMframe*,struct FklVM* exe);
+void fklCallObj(FklVMvalue*,struct FklVM* exe);
+void fklTailCallObj(FklVMvalue*,struct FklVM* exe);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
 void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
 void** fklGetFrameData(FklVMframe* f);

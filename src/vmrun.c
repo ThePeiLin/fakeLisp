@@ -640,9 +640,10 @@ static inline void callCallableObj(FklVMvalue* v,FklVM* exe)
 	}
 }
 
-static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* frame)
+static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc)
 {
-	FklVMframe* prevProc=fklHasSameProc(proc,exe->frames);
+	FklVMframe* frame=exe->frames;
+	FklVMframe* prevProc=fklHasSameProc(proc,frame);
 	if(frame&&frame->type==FKL_FRAME_COMPOUND
 			&&(frame->c.tail=is_last_expression(frame))
 			&&prevProc
@@ -663,12 +664,12 @@ static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc,FklVMframe* fra
 	}
 }
 
-void fklCallObj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
+void fklCallObj(FklVMvalue* proc,FklVM* exe)
 {
 	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
-			applyCompoundProc(exe,proc,frame);
+			applyCompoundProc(exe,proc);
 			break;
 		default:
 			callCallableObj(proc,exe);
@@ -676,11 +677,12 @@ void fklCallObj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
 	}
 }
 
-void fklTailCallObj(FklVMvalue* proc,FklVMframe* frame,FklVM* exe)
+void fklTailCallObj(FklVMvalue* proc,FklVM* exe)
 {
+	FklVMframe* frame=exe->frames;
 	exe->frames=frame->prev;
 	fklDoFinalizeObjFrame(frame,&exe->sf);
-	fklCallObj(proc,exe->frames,exe);
+	fklCallObj(proc,exe);
 }
 
 inline void fklCallFuncK(FklVMFuncK kf
@@ -2257,7 +2259,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->ltp=0;
 	exe->locv=NULL;
 	exe->state=FKL_VM_READY;
-	fklCallObj(nextCall,NULL,exe);
+	fklCallObj(nextCall,exe);
 	return exe;
 }
 

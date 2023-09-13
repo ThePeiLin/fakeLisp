@@ -1,20 +1,6 @@
 (import (.. lib utils m))
 
-(define code nil)
-
-(define (read-code fp)
-  (let loop [(s "")
-             (c (fgetc fp))]
-    (if c
-      (loop (append s (string c)) (fgetc fp))
-      s)))
-(if (<= (length (argv)) 1)
-  (setq code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
-  (setq code
-    (let* ((fp (fopen (nth 1 (argv)) "rb"))
-           (code (read-code fp)))
-      (fclose fp)
-      code)))
+(define code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
 
 (define m #(0))
 

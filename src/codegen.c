@@ -9474,122 +9474,119 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	FklCodegen* codegen=ctx->codegen;
 	FklVMfp* vfp=FKL_VM_FP(ctx->stdinVal);
 	FklStringBuffer* s=ctx->buf;
-	int ch=fklVMfpNonBlockGetline(vfp,s);
+	fklVMfpNonBlockGetline(vfp,s);
 	FklNastNode* ast=NULL;
 	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 	outerCtx.line=codegen->curline;
 	size_t restLen=fklStringBufferLen(s)-cc->offset;
-	if(fklVMfpEof(vfp)||ch=='\n')
+	int err=0;
+	size_t errLine=0;
+	ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+cc->offset
+			,restLen
+			,&restLen
+			,&outerCtx
+			,exe->symbolTable
+			,&err
+			,&errLine
+			,&cc->symbolStack
+			,&cc->lineStack
+			,&cc->stateStack);
+	cc->offset=fklStringBufferLen(s)-restLen;
+	codegen->curline=outerCtx.line;
+	fklUnLockVMfp(ctx->stdinVal);
+	if(!restLen&&cc->symbolStack.top==0&&fklVMfpEof(vfp))
+		ctx->state=DONE;
+	else if((err==FKL_PARSE_WAITING_FOR_MORE
+				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
+			&&fklVMfpEof(vfp))
 	{
-		int err=0;
-		size_t errLine=0;
-		ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+cc->offset
-				,restLen
-				,&restLen
-				,&outerCtx
-				,exe->symbolTable
-				,&err
-				,&errLine
-				,&cc->symbolStack
-				,&cc->lineStack
-				,&cc->stateStack);
-		cc->offset=fklStringBufferLen(s)-restLen;
-		codegen->curline=outerCtx.line;
-		fklUnLockVMfp(ctx->stdinVal);
-		if(!restLen&&cc->symbolStack.top==0&&ch==-1)
-			ctx->state=DONE;
-		else if((err==FKL_PARSE_WAITING_FOR_MORE
-					||(err=FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
-				&&fklVMfpEof(vfp))
-		{
-			repl_nast_ctx_and_buf_reset(cc,s);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
-		}
-		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
-		{
-			repl_nast_ctx_and_buf_reset(cc,s);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-		}
-		else if(err==FKL_PARSE_REDUCE_FAILED)
-		{
-			repl_nast_ctx_and_buf_reset(cc,s);
-			FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
-		}
-		else if(ast)
-		{
-			if(restLen)
-				fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
-			ctx->state=DONE;
-			repl_nast_ctx_and_buf_reset(cc,s);
+		repl_nast_ctx_and_buf_reset(cc,s);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
+	}
+	else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
+	{
+		repl_nast_ctx_and_buf_reset(cc,s);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+	}
+	else if(err==FKL_PARSE_REDUCE_FAILED)
+	{
+		repl_nast_ctx_and_buf_reset(cc,s);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+	}
+	else if(ast)
+	{
+		if(restLen)
+			fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
+		ctx->state=DONE;
+		repl_nast_ctx_and_buf_reset(cc,s);
 
-			fklMakeNastNodeRef(ast);
-			size_t libNum=codegen->loadedLibStack->top;
-			FklByteCodelnt* mainCode=fklGenExpressionCode(ast,codegen->globalEnv,codegen);
-			fklDestroyNastNode(ast);
-			size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
-			if(unloadlibNum)
+		fklMakeNastNodeRef(ast);
+		size_t libNum=codegen->loadedLibStack->top;
+		FklByteCodelnt* mainCode=fklGenExpressionCode(ast,codegen->globalEnv,codegen);
+		fklDestroyNastNode(ast);
+		size_t unloadlibNum=codegen->loadedLibStack->top-libNum;
+		if(unloadlibNum)
+		{
+			FklVMproc* proc=FKL_VM_PROC(ctx->mainProc);
+			libNum+=unloadlibNum;
+			FklVMlib* nlibs=(FklVMlib*)calloc((libNum+1),sizeof(FklVMlib));
+			FKL_ASSERT(nlibs);
+			memcpy(nlibs,exe->libs,sizeof(FklVMlib)*(exe->libNum+1));
+			for(size_t i=exe->libNum;i<libNum;i++)
 			{
-				FklVMproc* proc=FKL_VM_PROC(ctx->mainProc);
-				libNum+=unloadlibNum;
-				FklVMlib* nlibs=(FklVMlib*)calloc((libNum+1),sizeof(FklVMlib));
-				FKL_ASSERT(nlibs);
-				memcpy(nlibs,exe->libs,sizeof(FklVMlib)*(exe->libNum+1));
-				for(size_t i=exe->libNum;i<libNum;i++)
-				{
-					FklVMlib* curVMlib=&nlibs[i+1];
-					FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
-					fklInitVMlibWithCodegenLibRefs(curCGlib
-							,curVMlib
-							,exe
-							,proc->closure
-							,proc->rcount
-							,0
-							,exe->pts);
-				}
-				FklVMlib* prev=exe->libs;
-				exe->libs=nlibs;
-				exe->libNum=libNum;
-				free(prev);
+				FklVMlib* curVMlib=&nlibs[i+1];
+				FklCodegenLib* curCGlib=codegen->loadedLibStack->base[i];
+				fklInitVMlibWithCodegenLibRefs(curCGlib
+						,curVMlib
+						,exe
+						,proc->closure
+						,proc->rcount
+						,0
+						,exe->pts);
 			}
-			if(mainCode)
-			{
-				uint32_t o_lcount=ctx->lcount;
-				fklUnLockVMfp(ctx->stdinVal);
-				ctx->state=READY;
-
-				update_prototype_lcount(codegen->pts,codegen->globalEnv);
-
-				update_prototype_ref(codegen->pts
-						,codegen->globalEnv
-						,codegen->globalSymTable);
-				FklVMvalue* mainProc=fklCreateVMvalueProc(exe,NULL,0,FKL_VM_NIL,1);
-				FklVMproc* proc=FKL_VM_PROC(mainProc);
-				init_with_main_proc(proc,FKL_VM_PROC(ctx->mainProc));
-				ctx->mainProc=mainProc;
-
-				FklVMvalue* mainCodeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-				ctx->lcount=codegen->pts->pts[1].lcount;
-
-				mainCode=FKL_VM_CO(mainCodeObj);
-				proc->lcount=ctx->lcount;
-				proc->codeObj=mainCodeObj;
-				proc->spc=mainCode->bc->code;
-				proc->end=proc->spc+mainCode->bc->size;
-
-				FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
-				FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
-				f->base=0;
-				f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
-				f->lcount=proc->lcount;
-				alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
-
-				process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
-
-				exe->frames=mainframe;
-			}
-			else
-				ctx->state=WAITING;
+			FklVMlib* prev=exe->libs;
+			exe->libs=nlibs;
+			exe->libNum=libNum;
+			free(prev);
 		}
+		if(mainCode)
+		{
+			uint32_t o_lcount=ctx->lcount;
+			fklUnLockVMfp(ctx->stdinVal);
+			ctx->state=READY;
+
+			update_prototype_lcount(codegen->pts,codegen->globalEnv);
+
+			update_prototype_ref(codegen->pts
+					,codegen->globalEnv
+					,codegen->globalSymTable);
+			FklVMvalue* mainProc=fklCreateVMvalueProc(exe,NULL,0,FKL_VM_NIL,1);
+			FklVMproc* proc=FKL_VM_PROC(mainProc);
+			init_with_main_proc(proc,FKL_VM_PROC(ctx->mainProc));
+			ctx->mainProc=mainProc;
+
+			FklVMvalue* mainCodeObj=fklCreateVMvalueCodeObj(exe,mainCode);
+			ctx->lcount=codegen->pts->pts[1].lcount;
+
+			mainCode=FKL_VM_CO(mainCodeObj);
+			proc->lcount=ctx->lcount;
+			proc->codeObj=mainCodeObj;
+			proc->spc=mainCode->bc->code;
+			proc->end=proc->spc+mainCode->bc->size;
+
+			FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
+			FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
+			f->base=0;
+			f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
+			f->lcount=proc->lcount;
+			alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
+
+			process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
+
+			exe->frames=mainframe;
+		}
+		else
+			ctx->state=WAITING;
 	}
 	fklUnLockVMfp(ctx->stdinVal);
 }

@@ -1,5 +1,7 @@
 (import (.. lib json))
 
+(import (only (.. lib utils m) assert))
+
 (prin1 json-parser)
 
 (newline)
@@ -44,3 +46,7 @@
 
 (newline)
 
+(assert (equal (println (parse "{\"foo\":1,\"bar\":2}" json-parser))
+               #hashequal(("foo",1) ("bar",2))))
+
+(newline)

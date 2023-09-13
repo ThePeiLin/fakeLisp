@@ -17,6 +17,7 @@
         (test-except)
         (big-int)
         (parse)
+        (read)
         (bigloop))
 
 (println "\ntest done!")

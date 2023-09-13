@@ -1,0 +1,20 @@
+(import (.. lib json))
+
+(import (only (.. lib utils m) assert))
+
+(define cmd-argv (argv))
+
+(when (> (length cmd-argv) 1)
+  (println "testing custom reader")
+
+  (define path (nth 1 cmd-argv))
+
+  (define fp (fopen path "r"))
+
+  (assert (equal (println (read fp json-parser))
+                 #hashequal(("foo",1) ("bar",2))))
+
+  (assert (equal (println (read fp json-parser))
+                 ()))
+
+  (println "test done"))

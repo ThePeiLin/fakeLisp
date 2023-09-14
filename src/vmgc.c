@@ -33,7 +33,7 @@ static inline Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 
 inline void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
-	if(FKL_IS_PTR(v)&&v!=NULL&&v->mark!=FKL_MARK_B)
+	if(v&&FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
 	{
 		v->mark=FKL_MARK_G;
 		Greylink* volatile* pgl=get_grey_link(gc);

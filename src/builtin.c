@@ -2233,6 +2233,7 @@ static void* custom_parser_prod_action(void* ctx
 
 typedef struct
 {
+	FklVMvalue* box;
 	FklVMvalue* parser;
 	FklVMvalue* str;
 	FklPtrStack* symbolStack;
@@ -2466,6 +2467,7 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(CustomParseCtx);
 static void custom_parse_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	CustomParseCtx* c=(CustomParseCtx*)data;
+	fklGC_toGrey(c->box,gc);
 	fklGC_toGrey(c->parser,gc);
 	fklGC_toGrey(c->str,gc);
 	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
@@ -2534,6 +2536,14 @@ static void custom_parse_frame_step(FklCallObjData d,FklVM* exe)
 		FklAnalysisSymbol* top=fklPopPtrStack(ctx->symbolStack);
 		fklPushVMvalue(exe,top->ast);
 		free(top);
+		if(ctx->box)
+		{
+			uint64_t offset=ctx->offset=str->size-restLen;
+			if(offset>FKL_FIX_INT_MAX)
+				FKL_VM_BOX(ctx->box)=fklCreateVMvalueBigIntWithU64(exe,offset);
+			else
+				FKL_VM_BOX(ctx->box)=FKL_MAKE_VM_FIX(offset);
+		}
 	}
 	else
 		ctx->offset=str->size-restLen;
@@ -2541,9 +2551,11 @@ static void custom_parse_frame_step(FklCallObjData d,FklVM* exe)
 
 static inline void init_custom_parse_ctx(FklCallObjData data
 		,FklVMvalue* parser
-		,FklVMvalue* str)
+		,FklVMvalue* str
+		,FklVMvalue* box)
 {
 	CustomParseCtx* ctx=(CustomParseCtx*)data;
+	ctx->box=box;
 	ctx->parser=parser;
 	ctx->str=str;
 	ctx->symbolStack=fklCreatePtrStack(16,16);
@@ -2564,12 +2576,15 @@ static const FklVMframeContextMethodTable CustomParseContextMethodTable=
 	.end=custom_parse_frame_end,
 };
 
-static inline void init_custom_parse_frame(FklVM* exe,FklVMvalue* parser,FklVMvalue* stream)
+static inline void init_custom_parse_frame(FklVM* exe
+		,FklVMvalue* parser
+		,FklVMvalue* str
+		,FklVMvalue* box)
 {
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomParseContextMethodTable;
-	init_custom_parse_ctx(f->data,parser,stream);
+	init_custom_parse_ctx(f->data,parser,str,box);
 }
 
 #define CHECK_FP_READABLE(V,I,E) if(!isVMfpReadable(V))\
@@ -2653,11 +2668,33 @@ static void builtin_unqstr(FKL_DL_PROC_ARGL)
 static void builtin_parse(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.parse";
-	DECL_AND_CHECK_ARG(stream,Pname);
-	if(!FKL_IS_STR(stream))
+	DECL_AND_CHECK_ARG(str,Pname);
+	if(!FKL_IS_STR(str))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
-	FklVMvalue* custom_parser=fklPopArg(exe);
+	FklVMvalue* custom_parser=NULL;
+	FklVMvalue* box=NULL;
+	FklVMvalue* next_arg=fklPopArg(exe);
+	if(next_arg)
+	{
+		if(FKL_IS_BOX(next_arg)&&!box)
+			box=next_arg;
+		else if(is_custom_parser(next_arg)&&!custom_parser)
+			custom_parser=next_arg;
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
+	next_arg=fklPopArg(exe);
+	if(next_arg)
+	{
+		if(FKL_IS_BOX(next_arg)&&!box)
+			box=next_arg;
+		else if(is_custom_parser(next_arg)&&!custom_parser)
+			custom_parser=next_arg;
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
+
 	FKL_CHECK_REST_ARG(exe,Pname);
 
 	if(custom_parser)
@@ -2666,11 +2703,11 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 		FklVMframe* sf=exe->frames;
 		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
 		exe->frames=nf;
-		init_custom_parse_frame(exe,custom_parser,stream);
+		init_custom_parse_frame(exe,custom_parser,str,box);
 	}
 	else
 	{
-		FklString* ss=FKL_VM_STR(stream);
+		FklString* ss=FKL_VM_STR(str);
 		int err=0;
 		size_t errorLine=0;
 		FklPtrStack symbolStack;
@@ -2710,6 +2747,14 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 		fklUninitPtrStack(&stateStack);
 		fklUninitUintStack(&lineStack);
 		fklPushVMvalue(exe,node);
+		if(box)
+		{
+			uint64_t offset=ss->size-restLen;
+			if(offset>FKL_FIX_INT_MAX)
+				FKL_VM_BOX(box)=fklCreateVMvalueBigIntWithU64(exe,offset);
+			else
+				FKL_VM_BOX(box)=FKL_MAKE_VM_FIX(offset);
+		}
 	}
 }
 
@@ -4246,19 +4291,18 @@ static void builtin_get_time(FKL_DL_PROC_ARGL)
 	static const char Pname[]="builtin.get-time";
 	FKL_CHECK_REST_ARG(exe,Pname);
 	time_t timer=time(NULL);
-	struct tm* tblock=NULL;
-	tblock=localtime(&timer);
+	const struct tm* tblock=localtime(&timer);
 
 	FklStringBuffer buf;
 	fklInitStringBuffer(&buf);
 
 	fklStringBufferPrintf(&buf,"%u-%u-%u_%u_%u_%u"
-			,tblock->tm_sec
-			,tblock->tm_min
-			,tblock->tm_hour
-			,tblock->tm_mday
+			,tblock->tm_year+1900
 			,tblock->tm_mon+1
-			,tblock->tm_year+1900);
+			,tblock->tm_mday
+			,tblock->tm_hour
+			,tblock->tm_min
+			,tblock->tm_sec);
 
 	FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
 	fklUninitStringBuffer(&buf);

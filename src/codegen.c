@@ -5936,10 +5936,18 @@ static void* custom_action(void* c
 	struct CustomActionCtx* ctx=(struct CustomActionCtx*)c;
 
 	FklNastNode* r=NULL;
+	char* cwd=fklCopyCstr(fklGetCwd());
+	fklDestroyCwd();
+	fklSetCwd(fklGetMainFileRealPath());
 	FklVM* anotherVM=fklInitMacroExpandVM(ctx->bcl,ctx->pts,&ht,&lineHash,ctx->macroLibStack,&r,line);
 	FklVMgc* gc=anotherVM->gc;
 
 	int e=fklRunVM(anotherVM);
+
+	fklDestroyCwd();
+	fklSetCwd(cwd);
+	free(cwd);
+
 	anotherVM->pts=NULL;
 	if(e)
 		fklDeleteCallChain(anotherVM);
@@ -9155,6 +9163,11 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklNastNode* retval=NULL;
 		FklHashTable lineHash;
 		fklInitLineNumHashTable(&lineHash);
+
+		char* cwd=fklCopyCstr(fklGetCwd());
+		fklDestroyCwd();
+		fklSetCwd(fklGetMainFileRealPath());
+
 		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl
 				,macro->pts
 				,ht
@@ -9164,6 +9177,11 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 				,r->curline);
 		FklVMgc* gc=anotherVM->gc;
 		int e=fklRunVM(anotherVM);
+
+		fklDestroyCwd();
+		fklSetCwd(cwd);
+		free(cwd);
+
 		anotherVM->pts=NULL;
 		if(e)
 		{

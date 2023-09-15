@@ -2221,11 +2221,13 @@ static void* custom_parser_prod_action(void* ctx
 {
 	FklVMvalue* proc=(FklVMvalue*)ctx;
 	FklVM* exe=(FklVM*)outerCtx;
+	FklVMvalue* line_value=line>FKL_FIX_INT_MAX?fklCreateVMvalueBigIntWithU64(exe,line):FKL_MAKE_VM_FIX(line);
 	FklVMvalue* vect=fklCreateVMvalueVec(exe,num);
 	FklVMvec* vec=FKL_VM_VEC(vect);
 	for(size_t i=0;i<num;i++)
 		vec->base[i]=asts[i];
 	fklSetBp(exe);
+	fklPushVMvalue(exe,line_value);
 	fklPushVMvalue(exe,vect);
 	fklCallObj(proc,exe);
 	return NULL;

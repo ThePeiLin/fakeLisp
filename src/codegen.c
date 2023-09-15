@@ -5932,7 +5932,20 @@ static void* custom_action(void* c
 	fklInitLineNumHashTable(&lineHash);
 	FklHashTable ht;
 	fklInitPatternMatchHashTable(&ht);
+	FklNastNode* line_node=NULL;
+	if(line>FKL_FIX_INT_MAX)
+	{
+		line_node=fklCreateNastNode(FKL_NAST_BIG_INT,line);
+		line_node->bigInt=fklCreateBigIntU(line);
+	}
+	else
+	{
+		line_node=fklCreateNastNode(FKL_NAST_FIX,line);
+		line_node->fix=line;
+	}
+
 	fklPatternMatchingHashTableSet(fklAddSymbolCstrToPst("$$")->id,nodes_vector,&ht);
+	fklPatternMatchingHashTableSet(fklAddSymbolCstrToPst("line")->id,line_node,&ht);
 	struct CustomActionCtx* ctx=(struct CustomActionCtx*)c;
 
 	FklNastNode* r=NULL;
@@ -5953,6 +5966,8 @@ static void* custom_action(void* c
 		fklDeleteCallChain(anotherVM);
 
 	fklDestroyNastNode(nodes_vector);
+	fklDestroyNastNode(line_node);
+
 	fklUninitHashTable(&ht);
 	fklUninitHashTable(&lineHash);
 	fklDestroyVMgc(gc);

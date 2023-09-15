@@ -13,6 +13,7 @@ typedef struct GcCoCtx
 	uint32_t count;
 	volatile FklGCstate* ps;
 	struct Greylink* volatile greylink;
+	FklVMvalue* white;
 }GcCoCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(GcCoCtx);
@@ -247,23 +248,23 @@ inline void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 //	return NULL;
 //}
 
-void* fklGC_threadFunc(void* arg)
-{
-	FklVM* exe=arg;
-	FklVMgc* gc=exe->gc;
-	gc->running=FKL_GC_MARK_ROOT;
-	fklGC_markAllRootToGrey(exe);
-	gc->running=FKL_GC_PROPAGATE;
-	while(!fklGC_propagate(gc));
-	FklVMvalue* white=NULL;
-	gc->running=FKL_GC_COLLECT;
-	fklGC_collect(gc,&white);
-	gc->running=FKL_GC_SWEEP;
-	gc->running=FKL_GC_SWEEPING;
-	fklGC_sweep(white);
-	gc->running=FKL_GC_NONE;
-	return NULL;
-}
+// void* fklGC_threadFunc(void* arg)
+// {
+// 	FklVM* exe=arg;
+// 	FklVMgc* gc=exe->gc;
+// 	gc->running=FKL_GC_MARK_ROOT;
+// 	fklGC_markAllRootToGrey(exe);
+// 	gc->running=FKL_GC_PROPAGATE;
+// 	while(!fklGC_propagate(gc));
+// 	FklVMvalue* white=NULL;
+// 	gc->running=FKL_GC_COLLECT;
+// 	fklGC_collect(gc,&white);
+// 	gc->running=FKL_GC_SWEEP;
+// 	gc->running=FKL_GC_SWEEPING;
+// 	fklGC_sweep(white);
+// 	gc->running=FKL_GC_NONE;
+// 	return NULL;
+// }
 
 static inline void initFrameCtxToGcCoCtx(FklCallObjData data,FklVMgc* gc)
 {
@@ -271,6 +272,7 @@ static inline void initFrameCtxToGcCoCtx(FklCallObjData data,FklVMgc* gc)
 	c->num=gc->num;
 	c->gc=gc;
 	c->ps=&gc->running;
+	c->white=NULL;
 }
 
 static void gc_frame_atomic(FklCallObjData data,FklVMgc* gc)
@@ -279,19 +281,24 @@ static void gc_frame_atomic(FklCallObjData data,FklVMgc* gc)
 
 static void gc_frame_step(FklCallObjData data,FklVM* exe)
 {
-	// fprintf(stderr,"gc step\n");
 	FklVMgc* gc=exe->gc;
-	gc->running=FKL_GC_MARK_ROOT;
-	fklGC_markAllRootToGrey(exe);
-	gc->running=FKL_GC_PROPAGATE;
-	while(!fklGC_propagate(gc));
-	FklVMvalue* white=NULL;
-	gc->running=FKL_GC_COLLECT;
-	fklGC_collect(gc,&white);
-	gc->running=FKL_GC_SWEEP;
-	gc->running=FKL_GC_SWEEPING;
-	fklGC_sweep(white);
-	gc->running=FKL_GC_DONE;
+	GcCoCtx* ctx=(GcCoCtx*)data;
+	if(gc->running==FKL_GC_SWEEP)
+	{
+		gc->running=FKL_GC_SWEEPING;
+		fklGC_sweep(ctx->white);
+		gc->running=FKL_GC_DONE;
+	}
+	else
+	{
+		gc->running=FKL_GC_MARK_ROOT;
+		fklGC_markAllRootToGrey(exe);
+		gc->running=FKL_GC_PROPAGATE;
+		while(!fklGC_propagate(gc));
+		gc->running=FKL_GC_COLLECT;
+		fklGC_collect(gc,&ctx->white);
+		gc->running=FKL_GC_SWEEP;
+	}
 }
 
 static int gc_frame_end(FklCallObjData data)

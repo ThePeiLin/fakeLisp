@@ -69,7 +69,7 @@ FklLineNumberTableItem* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint32_t line
 		,FklSymbolTable* table);
 FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumberTableItem* l);
-void fklWriteLineNumberTable(FklLineNumberTableItem*,size_t num,FILE*);
+void fklWriteLineNumberTable(FklLineNumberTableItem*,uint32_t num,FILE*);
 void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE*);
 
 int16_t fklGetI16FromByteCode(uint8_t* code);

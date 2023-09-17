@@ -55,14 +55,11 @@ FklBuiltinInlineFunc fklGetBuiltInInlineFunc(uint32_t idx,uint32_t argNum);
 
 uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t*);
 #define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)
-//typedef struct FklCompEnv FklCompEnv;
 typedef struct FklCodegenEnv FklCodegenEnv;
 typedef struct FklVM FklVM;
 struct FklVMframe;
 typedef struct FklVMproc FklVMproc;
-//void fklInitCompEnv(FklCompEnv* curEnv);
-void fklInitGlobCodegenEnv(FklCodegenEnv*);
-//void fklInitGlobEnv(FklVMenv*,FklVMgc*,FklSymbolTable*);
+void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable* pst);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);

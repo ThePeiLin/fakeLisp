@@ -690,11 +690,10 @@ inline FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLi
 	return NULL;
 }
 
-void fklWriteLineNumberTable(FklLineNumberTableItem* line_numbers,size_t size,FILE* fp)
+void fklWriteLineNumberTable(FklLineNumberTableItem* line_numbers,uint32_t size,FILE* fp)
 {
 	fwrite(&size,sizeof(size),1,fp);
-	uint32_t i=0;
-	for(;i<size;i++)
+	for(uint32_t i=0;i<size;i++)
 	{
 		FklLineNumberTableItem* n=&line_numbers[i];
 		fwrite(&n->fid,sizeof(n->fid),1,fp);

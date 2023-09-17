@@ -13,15 +13,16 @@
 #include<glob.h>
 #endif
 
-static inline int compile(const char* filename,int argc,char* argv[])
+static inline int compile(const char* filename,int argc,char* argv[],FklCodegenOuterCtx* outer_ctx)
 {
-	fklAddSymbolCstrToPst(filename);
+	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
+	fklAddSymbolCstr(filename,pst);
 	FILE* fp=fopen(filename,"r");
 	FklCodegen codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
 	fklSetMainFileRealPath(rp);
 	chdir(fklGetMainFileRealPath());
-	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0);
+	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	fklInitVMargs(argc,argv);
 	if(mainByteCode==NULL)
@@ -32,8 +33,8 @@ static inline int compile(const char* filename,int argc,char* argv[])
 		fklDestroyMainFileRealPath();
 		return EXIT_FAILURE;
 	}
-	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable);
-	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable);
+	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
+	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 	strcpy(outputname,rp);
@@ -97,6 +98,8 @@ int main(int argc,char** argv)
 		fprintf(stderr,"error:Not input file!\n");
 		return EXIT_FAILURE;
 	}
+	FklCodegenOuterCtx outer_ctx;
+	fklInitCodegenOuterCtx(&outer_ctx);
 	for(int i=1;i<argc;i++)
 	{
 		const char* pattern=argv[i];
@@ -104,7 +107,6 @@ int main(int argc,char** argv)
 		glob(pattern,GLOB_NOSORT,NULL,&buf);
 		if(buf.gl_pathc>0)
 		{
-			fklInitCodegen();
 			char* cwd=getcwd(NULL,0);
 			fklSetCwd(cwd);
 			free(cwd);
@@ -118,12 +120,12 @@ int main(int argc,char** argv)
 					{
 						perror(filename);
 						fklDestroyCwd();
-						fklUninitCodegen();
+						fklUninitCodegenOuterCtx(&outer_ctx);
 						return EXIT_FAILURE;
 					}
-					if(compile(filename,argc,argv))
+					if(compile(filename,argc,argv,&outer_ctx))
 					{
-						fklUninitCodegen();
+						fklUninitCodegenOuterCtx(&outer_ctx);
 						fklDestroyMainFileRealPath();
 						fklDestroyCwd();
 						globfree(&buf);
@@ -139,13 +141,13 @@ int main(int argc,char** argv)
 					fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
 					fklStringBufferConcatWithCstr(&buffer,"main.fkl");
 
-					if(!fklIsAccessableRegFile(buffer.buf)||compile(buffer.buf,argc,argv))
+					if(!fklIsAccessableRegFile(buffer.buf)||compile(buffer.buf,argc,argv,&outer_ctx))
 					{
 						fklDestroyMainFileRealPath();
 						fprintf(stderr,"error: It is not a correct file.\n");
 						fklDestroyCwd();
 						globfree(&buf);
-						fklUninitCodegen();
+						fklUninitCodegenOuterCtx(&outer_ctx);
 						return EXIT_FAILURE;
 					}
 					fklUninitStringBuffer(&buffer);
@@ -153,8 +155,8 @@ int main(int argc,char** argv)
 			}
 			fklDestroyCwd();
 			globfree(&buf);
-			fklUninitCodegen();
 		}
+		fklUninitCodegenOuterCtx(&outer_ctx);
 	}
 	return 0;
 }

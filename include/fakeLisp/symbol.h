@@ -35,16 +35,16 @@ FklSymbolTable* fklCreateSymbolTable();
 FklSymbolHashItem* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymbolHashItem* fklAddSymbolCstr(const char*,FklSymbolTable*);
 FklSymbolHashItem* fklAddSymbolCharBuf(const char*,size_t,FklSymbolTable*);
-
-FklSymbolHashItem* fklAddSymbolToPst(const FklString*);
-FklSymbolHashItem* fklAddSymbolCstrToPst(const char*);
-FklSymbolHashItem* fklAddSymbolCharBufToPst(const char*,size_t);
-
 FklSymbolHashItem* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable*);
-FklSymbolHashItem* fklGetSymbolWithIdFromPst(FklSid_t id);
 
-FklSymbolTable* fklGetPubSymTab(void);
-void fklUninitPubSymTab(void);
+// FklSymbolHashItem* fklAddSymbolToPst(const FklString*);
+// FklSymbolHashItem* fklAddSymbolCstrToPst(const char*);
+// FklSymbolHashItem* fklAddSymbolCharBufToPst(const char*,size_t);
+//
+// FklSymbolHashItem* fklGetSymbolWithIdFromPst(FklSid_t id);
+
+// FklSymbolTable* fklGetPubSymTab(void);
+// void fklUninitPubSymTab(void);
 
 void fklPrintSymbolTable(const FklSymbolTable*,FILE*);
 

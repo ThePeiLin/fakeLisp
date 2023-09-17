@@ -36,25 +36,28 @@ static inline int compileAndRun(char* filename)
 		perror(filename);
 		return FKL_EXIT_FAILURE;
 	}
-	fklAddSymbolCstrToPst(filename);
-	fklInitCodegen();
+	FklCodegenOuterCtx outer_ctx;
+	fklInitCodegenOuterCtx(&outer_ctx);
+	FklSymbolTable* pst=&outer_ctx.public_symbol_table;
+	fklAddSymbolCstr(filename,pst);
 	FklCodegen codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
 	fklSetMainFileRealPath(rp);
-	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0);
+	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
 	{
 		fklDestroyFuncPrototypes(codegen.pts);
 		fklUninitCodegener(&codegen);
-		fklUninitCodegen();
+		fklUninitCodegenOuterCtx(&outer_ctx);
 		return FKL_EXIT_FAILURE;
 	}
 	fklUpdatePrototype(codegen.pts
 			,codegen.globalEnv
-			,codegen.globalSymTable);
-	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable);
+			,codegen.globalSymTable
+			,pst);
+	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	chdir(fklGetCwd());
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
@@ -85,7 +88,7 @@ static inline int compileAndRun(char* filename)
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
 	fklUninitCodegener(&codegen);
-	fklUninitCodegen();
+	fklUninitCodegenOuterCtx(&outer_ctx);
 	return r;
 }
 
@@ -163,10 +166,12 @@ int main(int argc,char** argv)
 	fklInitVMargs(argc,argv);
 	if(!filename)
 	{
+		FklCodegenOuterCtx outer_ctx;
 		fklSetMainFileRealPathWithCwd();
 		FklCodegen codegen={.fid=0,};
-		fklInitCodegen();
-		fklInitGlobalCodegener(&codegen,NULL,fklGetPubSymTab(),0);
+		fklInitCodegenOuterCtx(&outer_ctx);
+		FklSymbolTable* pst=&outer_ctx.public_symbol_table;
+		fklInitGlobalCodegener(&codegen,NULL,pst,0,&outer_ctx);
 		runRepl(&codegen);
 		codegen.globalSymTable=NULL;
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
@@ -180,7 +185,7 @@ int main(int argc,char** argv)
 			free(lib);
 		}
 		fklUninitCodegener(&codegen);
-		fklUninitCodegen();
+		fklUninitCodegenOuterCtx(&outer_ctx);
 	}
 	else
 	{

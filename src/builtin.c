@@ -5218,12 +5218,12 @@ uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t* p)
 //	}
 //}
 
-void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv)
+void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* pst)
 {
 	for(const struct SymbolFuncStruct* list=builtInSymbolList
 			;list->s!=NULL
 			;list++)
-		fklAddCodegenBuiltinRefBySid(fklAddSymbolCstrToPst(list->s)->id,curEnv);
+		fklAddCodegenBuiltinRefBySid(fklAddSymbolCstr(list->s,pst)->id,curEnv);
 }
 
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)

@@ -182,7 +182,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			FKL_ASSERT(rp);
 			fread(rp,len,1,fp);
 			strcat(rp,FKL_DLL_FILE_TYPE);
-			fklInitCodegenDllLib(&libs[i],rp,NULL,table,dll_init);
+			fklInitCodegenDllLib(&libs[i],rp,NULL,table,dll_init,NULL);
 		}
 	}
 }

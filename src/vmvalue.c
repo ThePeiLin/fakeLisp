@@ -544,19 +544,8 @@ inline FklVMvalue* fklCreateNilValue()
 
 int fklVMvalueEqv(const FklVMvalue* fir,const FklVMvalue* sec)
 {
-	if(fklIsInt(fir)&&fklIsInt(sec))
-	{
-		int b0=FKL_IS_FIX(fir);
-		int b1=FKL_IS_FIX(sec);
-		if(b0&&b1)
-			return fir==sec;
-		else if(b0)
-			return fklCmpBigIntI(FKL_VM_BI(sec),FKL_GET_FIX(fir))==0;
-		else if(b1)
-			return fklCmpBigIntI(FKL_VM_BI(fir),FKL_GET_FIX(sec))==0;
-		else
-			return fklCmpBigInt(FKL_VM_BI(fir),FKL_VM_BI(sec))==0;
-	}
+	if(FKL_IS_BIG_INT(fir)&&FKL_IS_BIG_INT(sec))
+		return fklCmpBigInt(FKL_VM_BI(fir),FKL_VM_BI(sec))==0;
 	else
 		return fir==sec;
 }
@@ -579,11 +568,9 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 	{
 		FklVMvalue* root1=fklPopPtrStack(&s1);
 		FklVMvalue* root2=fklPopPtrStack(&s2);
-		if(fklIsInt(root1)&&fklIsInt(root2))
-			r=fklVMvalueEqv(root1,root2);
-		else if(!FKL_IS_PTR(root1)&&!FKL_IS_PTR(root2)&&root1!=root2)
+		if(FKL_GET_TAG(root1)!=FKL_GET_TAG(root2))
 			r=0;
-		else if(FKL_GET_TAG(root1)!=FKL_GET_TAG(root2))
+		else if(!FKL_IS_PTR(root1)&&!FKL_IS_PTR(root2)&&root1!=root2)
 			r=0;
 		else if(FKL_IS_PTR(root1)&&FKL_IS_PTR(root2))
 		{
@@ -692,19 +679,14 @@ inline int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 			(isless(af,bf)?-1
 			 :0);
 	}
-	else if(fklIsInt(a)&&fklIsInt(b))
-	{
-		int b0=FKL_IS_FIX(a);
-		int b1=FKL_IS_FIX(b);
-		if(b0&&b1)
-			r=FKL_GET_FIX(a)-FKL_GET_FIX(b);
-		else if(b0)
-			r=fklCmpBigIntI(FKL_VM_BI(b),FKL_GET_FIX(a))*-1;
-		else if(b1)
-			r=fklCmpBigIntI(FKL_VM_BI(a),FKL_GET_FIX(b));
-		else
-			r=fklCmpBigInt(FKL_VM_BI(a),FKL_VM_BI(b));
-	}
+	else if(FKL_IS_FIX(a)&&FKL_IS_FIX(b))
+		r=FKL_GET_FIX(a)-FKL_GET_FIX(b);
+	else if(FKL_IS_BIG_INT(a)&&FKL_IS_BIG_INT(b))
+		r=fklCmpBigInt(FKL_VM_BI(a),FKL_VM_BI(b));
+	else if(FKL_IS_BIG_INT(a)&&FKL_IS_FIX(b))
+		r=1;
+	else if(FKL_IS_FIX(a)&&FKL_IS_BIG_INT(b))
+		return -1;
 	else if(FKL_IS_STR(a)&&FKL_IS_STR(b))
 		r=fklStringCmp(FKL_VM_STR(a),FKL_VM_STR(b));
 	else if(FKL_IS_BYTEVECTOR(a)&&FKL_IS_BYTEVECTOR(a))
@@ -1079,7 +1061,7 @@ static size_t integerHashFunc(const FklVMvalue* v)
 static uintptr_t _vmhashtableEqv_hashFunc(const void* key)
 {
 	FklVMvalue* v=*(FklVMvalue**)key;
-	if(fklIsInt(v))
+	if(fklIsVMint(v))
 		return integerHashFunc(v);
 	else
 		return (uintptr_t)(*(const void**)key)>>FKL_UNUSEDBITNUM;
@@ -1192,7 +1174,7 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 	{
 		const FklVMvalue* root=fklPopPtrStack(&stack);
 		size_t (*valueHashFunc)(const FklVMvalue*,FklPtrStack*)=NULL;
-		if(fklIsInt(root))
+		if(fklIsVMint(root))
 			sum+=integerHashFunc(root);
 		else if(FKL_IS_PTR(root)&&(valueHashFunc=valueHashFuncTable[v->type]))
 			sum+=valueHashFunc(root,&stack);
@@ -1206,7 +1188,7 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 static uintptr_t _vmhashtable_hashFunc(const void* key)
 {
 	const FklVMvalue* v=*(const FklVMvalue**)key;
-	if(fklIsInt(v))
+	if(fklIsVMint(v))
 		return integerHashFunc(v);
 	else
 		return VMvalueHashFunc(v);

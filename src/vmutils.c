@@ -40,14 +40,14 @@ inline int fklIsFixint(const FklVMvalue* p)
 	return FKL_IS_FIX(p);
 }
 
-inline int fklIsInt(const FklVMvalue* p)
+inline int fklIsVMint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)||FKL_IS_BIG_INT(p);
 }
 
 inline int fklIsVMnumber(const FklVMvalue* p)
 {
-	return fklIsInt(p)||FKL_IS_F64(p);
+	return FKL_IS_FIX(p)||FKL_IS_BIG_INT(p)||FKL_IS_F64(p);
 }
 
 static inline FklVMvalue* get_initial_fast_value(const FklVMvalue* pr)
@@ -1580,60 +1580,55 @@ inline int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,FklBigInt* bi)
 
 inline FklVMvalue* fklProcessVMnumInc(FklVM* exe,FklVMvalue* arg)
 {
-	if(FKL_IS_F64(arg))
-		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)+1.0);
-	else
+	if(FKL_IS_FIX(arg))
 	{
-		if(FKL_IS_BIG_INT(arg))
-		{
-			FklBigInt* bigint=FKL_VM_BI(arg);
-			if(fklIsBigIntAdd1InFixIntRange(bigint))
-				return FKL_MAKE_VM_FIX(fklBigIntToI64(bigint)+1);
-			else
-			{
-				FklVMvalue* r=fklCreateVMvalueBigInt(exe,bigint);
-				fklAddBigIntI(FKL_VM_BI(r),1);
-				return r;
-			}
-		}
+		int64_t i=FKL_GET_FIX(arg)+1;
+		if(i>FKL_FIX_INT_MAX)
+			return fklCreateVMvalueBigIntWithI64(exe,i);
+		else
+			return FKL_MAKE_VM_FIX(i);
+	}
+	else if(FKL_IS_BIG_INT(arg))
+	{
+		FklBigInt* bigint=FKL_VM_BI(arg);
+		if(fklIsBigIntAdd1InFixIntRange(bigint))
+			return FKL_MAKE_VM_FIX(fklBigIntToI64(bigint)+1);
 		else
 		{
-			int64_t i=FKL_GET_FIX(arg)+1;
-			if(i>FKL_FIX_INT_MAX)
-				return fklCreateVMvalueBigIntWithI64(exe,i);
-			else
-				return FKL_MAKE_VM_FIX(i);
+			FklVMvalue* r=fklCreateVMvalueBigInt(exe,bigint);
+			fklAddBigIntI(FKL_VM_BI(r),1);
+			return r;
 		}
 	}
+	else if(FKL_IS_FIX(arg))
+		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)+1.0);
+	return NULL;
 }
 
 inline FklVMvalue* fklProcessVMnumDec(FklVM* exe,FklVMvalue* arg)
 {
-	if(FKL_IS_F64(arg))
-		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)-1.0);
-	else
+	if(FKL_IS_FIX(arg))
 	{
-		if(FKL_IS_BIG_INT(arg))
-		{
-			FklBigInt* bigint=FKL_VM_BI(arg);
-			if(fklIsBigIntSub1InFixIntRange(bigint))
-				return FKL_MAKE_VM_FIX(fklBigIntToI64(bigint)-1);
-			else
-			{
-				FklVMvalue* r=fklCreateVMvalueBigInt(exe,bigint);
-				fklSubBigIntI(FKL_VM_BI(r),1);
-				return r;
-			}
-		}
+		int64_t i=FKL_GET_FIX(arg)-1;
+		if(i<FKL_FIX_INT_MIN)
+			return fklCreateVMvalueBigIntWithI64(exe,i);
+		else
+			return FKL_MAKE_VM_FIX(i);
+	}
+	else if(FKL_IS_BIG_INT(arg))
+	{
+		FklBigInt* bigint=FKL_VM_BI(arg);
+		if(fklIsBigIntSub1InFixIntRange(bigint))
+			return FKL_MAKE_VM_FIX(fklBigIntToI64(bigint)-1);
 		else
 		{
-			int64_t i=FKL_GET_FIX(arg)-1;
-			if(i<FKL_FIX_INT_MIN)
-				return fklCreateVMvalueBigIntWithI64(exe,i);
-			else
-				return FKL_MAKE_VM_FIX(i);
+			FklVMvalue* r=fklCreateVMvalueBigInt(exe,bigint);
+			fklSubBigIntI(FKL_VM_BI(r),1);
+			return r;
 		}
 	}
+	else
+		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)-1.0);
 }
 
 

@@ -555,7 +555,7 @@ FklVMvalue* fklMakeVMint(int64_t r64,FklVM*);
 FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM*);
 FklVMvalue* fklMakeVMintD(double r64,FklVM*);
 int fklIsVMnumber(const FklVMvalue* p);
-int fklIsInt(const FklVMvalue* p);
+int fklIsVMint(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
 int fklIsSymbolList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
@@ -753,6 +753,18 @@ FklVMvalue* fklCreateTrueValue(void);
 FklVMvalue* fklCreateNilValue(void);
 
 void fklDropTop(FklVM* s);
+
+#define FKL_VM_POP_ARG(S) (((S)->tp>(S)->bp)?(S)->base[--(S)->tp]:NULL)
+
+#define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp-1])
+
+#define FKL_VM_PUSH_VALUE(S,V) (((S)->tp>=(S)->last?\
+		((S)->last+=FKL_VM_STACK_INC_NUM,\
+		 (S)->size+=FKL_VM_STACK_INC_SIZE,\
+		 (S)->base=(FklVMvalue**)fklRealloc((S)->base,(S)->size),\
+		 (FKL_ASSERT((S)->base)),NULL):NULL),(S)->base[(S)->tp++]=(V))
+
+
 FklVMvalue* fklPopArg(FklVM*);
 FklVMvalue* fklGetTopValue(FklVM*);
 FklVMvalue* fklPopTopValue(FklVM*);
@@ -895,8 +907,6 @@ void fklAddCompoundFrameCp(FklVMframe*,int64_t a);
 
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);
-int fklIsCompoundFrameReachEnd(FklVMframe*);
-void fklDoCompoundFrameStep(FklVMframe* curframe,FklVM* exe);
 
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev,FklVMgc*);
 FklVMframe* fklCopyVMframe(FklVMframe*,FklVMframe* prev,FklVM*);

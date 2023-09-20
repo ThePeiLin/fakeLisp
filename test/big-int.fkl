@@ -6,4 +6,5 @@
 (assert (big-int? (string->number s)))
 (assert (not (big-int? (string->number "0x111"))))
 (assert (eqv n (string->number s)))
+(println 18446744073709551617)
 (println "big-int test done")

@@ -4684,14 +4684,11 @@ static void builtin_even_p(FKL_DL_PROC_ARGL)
 
 static inline FklByteCodelnt* inl_0_arg_func(FklOpcode opc,FklSid_t fid,uint64_t line)
 {
-	uint8_t op[1]={opc};
-	FklByteCode bc={1,op};
-	FklByteCodelnt* r=fklCreateByteCodelnt(fklCreateByteCode(0));
-	fklBclBcAppendToBcl(r,&bc,fid,line);
-	return r;
+	FklInstruction ins={.op=opc};
+	return fklCreateSingleInsBclnt(ins,fid,line);
 }
 
-static FklByteCodelnt* inlfunc_box0(INL_FUNC_ARGS)
+static inline FklByteCodelnt* inlfunc_box0(INL_FUNC_ARGS)
 {
 	return inl_0_arg_func(FKL_OP_BOX0,fid,line);
 }
@@ -4708,9 +4705,8 @@ static inline FklByteCodelnt* inlfunc_mul0(INL_FUNC_ARGS)
 
 static inline FklByteCodelnt* inl_1_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
 {
-	uint8_t op[1]={opc};
-	FklByteCode bc={1,op};
-	fklBclBcAppendToBcl(bcs[0],&bc,fid,line);
+	FklInstruction bc={.op=opc};
+	fklBclInsAppendToBcl(bcs[0],&bc,fid,line);
 	return bcs[0];
 }
 
@@ -4776,10 +4772,9 @@ static FklByteCodelnt* inlfunc_unbox(INL_FUNC_ARGS)
 
 static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
 {
-	uint8_t op[1]={opc};
-	FklByteCode bc={1,op};
+	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
-	fklBclBcAppendToBcl(bcs[0],&bc,fid,line);
+	fklBclInsAppendToBcl(bcs[0],&bc,fid,line);
 	fklDestroyByteCodelnt(bcs[1]);
 	return bcs[0];
 }
@@ -4876,11 +4871,10 @@ static FklByteCodelnt* inlfunc_le(INL_FUNC_ARGS)
 
 static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
 {
-	uint8_t op[1]={opc};
-	FklByteCode bc={1,op};
+	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
 	fklCodeLntReverseConcat(bcs[2],bcs[0]);
-	fklBclBcAppendToBcl(bcs[0],&bc,fid,line);
+	fklBclInsAppendToBcl(bcs[0],&bc,fid,line);
 	fklDestroyByteCodelnt(bcs[1]);
 	fklDestroyByteCodelnt(bcs[2]);
 	return bcs[0];

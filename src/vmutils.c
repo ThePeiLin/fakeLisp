@@ -117,7 +117,7 @@ inline double fklGetDouble(const FklVMvalue* p)
 		:FKL_VM_F64(p);
 }
 
-FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,uint8_t* spc,uint64_t cpc)
+FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t errTypeNum,FklInstruction* spc,uint64_t cpc)
 {
 	FklVMerrorHandler* t=(FklVMerrorHandler*)malloc(sizeof(FklVMerrorHandler));
 	FKL_ASSERT(t);

@@ -276,7 +276,7 @@ static FklByteCode* loadByteCode(FILE* fp)
 	fread(&size,sizeof(uint64_t),1,fp);
 	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
 	FKL_ASSERT(tmp);
-	tmp->size=size;
+	tmp->len=size;
 	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
 	FKL_ASSERT(tmp->code||!size);
 	fread(tmp->code,size,1,fp);

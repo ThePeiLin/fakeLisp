@@ -1609,7 +1609,7 @@ FklVMvalue* fklCreateVMvalueBigIntWithF64(FklVM* exe
 }
 
 FklVMvalue* fklCreateVMvalueProc(FklVM* exe
-		,uint8_t* spc
+		,FklInstruction* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,uint32_t pid)
@@ -1645,7 +1645,7 @@ FklVMvalue* fklCreateVMvalueProcWithWholeCodeObj(FklVM* exe
 
  	FklByteCode* bc=FKL_VM_CO(codeObj)->bc;
 	proc->spc=bc->code;
-	proc->end=bc->code+bc->size;
+	proc->end=bc->code+bc->len;
 	proc->sid=pt->sid;
 	proc->protoId=pid;
 	proc->lcount=pt->lcount;

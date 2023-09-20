@@ -5,24 +5,13 @@
 #include<string.h>
 #include<stdlib.h>
 
-FklByteCode* fklCreateByteCode(size_t size)
+FklByteCode* fklCreateByteCode(size_t len)
 {
 	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
 	FKL_ASSERT(tmp);
-	tmp->size=size;
-	tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t));
-	FKL_ASSERT(tmp->code);
-	return tmp;
-}
-
-FklByteCode* fklCreateByteCodeAndInit(size_t size,const uint8_t* ptr)
-{
-	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
-	FKL_ASSERT(tmp);
-	tmp->size=size;
-	tmp->code=(uint8_t*)malloc(size*sizeof(uint8_t));
-	FKL_ASSERT(tmp->code);
-	memcpy(tmp->code,ptr,size);
+	tmp->len=len;
+	tmp->code=len?(FklInstruction*)malloc(len*sizeof(FklInstruction)):NULL;
+	FKL_ASSERT(tmp->code||!len);
 	return tmp;
 }
 
@@ -34,6 +23,20 @@ FklByteCodelnt* fklCreateByteCodelnt(FklByteCode* bc)
 	t->l=NULL;
 	t->bc=bc;
 	return t;
+}
+
+inline FklByteCodelnt* fklCreateSingleInsBclnt(FklInstruction ins
+		,FklSid_t fid
+		,uint64_t line)
+{
+	FklByteCode* bc=fklCreateByteCode(1);
+	bc->code[0]=ins;
+	FklByteCodelnt* r=fklCreateByteCodelnt(bc);
+	r->ls=1;
+	r->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*1);
+	FKL_ASSERT(r->l);
+	fklInitLineNumTabNode(&r->l[0],fid,0,bc->len,line);
+	return r;
 }
 
 void fklDestroyByteCodelnt(FklByteCodelnt* t)
@@ -52,29 +55,29 @@ void fklDestroyByteCode(FklByteCode* obj)
 
 void fklCodeConcat(FklByteCode* fir,const FklByteCode* sec)
 {
-	int32_t size=fir->size;
-	fir->size=sec->size+fir->size;
-	fir->code=(uint8_t*)fklRealloc(fir->code,sizeof(uint8_t)*fir->size);
-	FKL_ASSERT(fir->code||!fir->size);
-	memcpy(fir->code+size,sec->code,sec->size);
+	uint32_t len=fir->len;
+	fir->len=sec->len+fir->len;
+	fir->code=(FklInstruction*)fklRealloc(fir->code,sizeof(FklInstruction)*fir->len);
+	FKL_ASSERT(fir->code||!fir->len);
+	memcpy(&fir->code[len],sec->code,sizeof(FklInstruction)*sec->len);
 }
 
 void fklCodeReverseConcat(const FklByteCode* fir,FklByteCode* sec)
 {
-	int32_t size=fir->size;
-	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*(fir->size+sec->size));
+	uint32_t len=fir->len;
+	FklInstruction* tmp=(FklInstruction*)malloc(sizeof(FklInstruction)*(fir->len+sec->len));
 	FKL_ASSERT(tmp);
-	memcpy(tmp,fir->code,fir->size);
-	memcpy(tmp+size,sec->code,sec->size);
+	memcpy(tmp,fir->code,sizeof(FklInstruction)*fir->len);
+	memcpy(&tmp[len],sec->code,sizeof(FklInstruction)*sec->len);
 	free(sec->code);
 	sec->code=tmp;
-	sec->size=fir->size+sec->size;
+	sec->len=fir->len+sec->len;
 }
 
 FklByteCode* fklCopyByteCode(const FklByteCode* obj)
 {
-	FklByteCode* tmp=fklCreateByteCode(obj->size);
-	memcpy(tmp->code,obj->code,obj->size);
+	FklByteCode* tmp=fklCreateByteCode(obj->len);
+	memcpy(tmp->code,obj->code,sizeof(FklInstruction)*obj->len);
 	return tmp;
 }
 
@@ -89,48 +92,21 @@ FklByteCodelnt* fklCopyByteCodelnt(const FklByteCodelnt* obj)
 	return tmp;
 }
 
-typedef enum{BP_NONE,BP_ERROR_HANLER} BPtype;
-
 typedef struct ByteCodePrintState
 {
-	BPtype type;
 	uint32_t tc;
 	uint64_t cp;
 	uint64_t cpc;
 }ByteCodePrintState;
 
-static ByteCodePrintState* createByteCodePrintState(BPtype type,uint32_t tc,uint64_t cp,uint64_t cpc)
+static ByteCodePrintState* createByteCodePrintState(uint32_t tc,uint64_t cp,uint64_t cpc)
 {
 	ByteCodePrintState* t=(ByteCodePrintState*)malloc(sizeof(ByteCodePrintState));
 	FKL_ASSERT(t);
-	t->type=type;
 	t->tc=tc;
 	t->cp=cp;
 	t->cpc=cpc;
 	return t;
-}
-static inline uint64_t printErrorHandlerHead(const FklByteCode* tmpCode,uint64_t i,FILE* fp,FklSymbolTable* table)
-{
-	uint64_t r=0;
-	uint32_t errTypeNum=fklGetU32FromByteCode(tmpCode->code+i);
-	i+=sizeof(uint32_t);
-	r+=sizeof(uint32_t);
-	fputc('(',fp);
-	for(uint32_t k=0;k<errTypeNum;k++)
-	{
-		FklSid_t type=fklGetSidFromByteCode(tmpCode->code+i);
-		fklPrintString(fklGetSymbolWithId(type,table)->symbol,fp);
-		i+=sizeof(FklSid_t);
-		r+=sizeof(FklSid_t);
-		if(k+1<errTypeNum)
-			fputc(' ',fp);
-	}
-	fputc(')',fp);
-	uint64_t pCpc=fklGetU64FromByteCode(tmpCode->code+i);
-	fprintf(fp," %ld\n",pCpc);
-	i+=sizeof(uint64_t);
-	r+=sizeof(uint64_t);
-	return r;
 }
 
 static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
@@ -142,75 +118,53 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		,FklSymbolTable* table
 		,const char* format)
 {
-	uint32_t tc=cState->tc;
-	uint32_t r=0;
-	if(cState->type==BP_ERROR_HANLER)
-	{
-		fprintf(fp,"EH:");
-		for(uint32_t i=0;i<tc-1;i++)
-			fputc('\t',fp);
-		r+=printErrorHandlerHead(tmpCode,i,fp,table);
-		i+=r;
-		cState->type=BP_NONE;
-	}
+	uint32_t tab_count=cState->tc;
+	uint32_t proc_len=0;
 	fprintf(fp,format,i);
 	putc(':',fp);
-	for(uint32_t i=0;i<tc;i++)
+	for(uint32_t i=0;i<tab_count;i++)
 		fputs("    ",fp);
-	fprintf(fp," %s",fklGetOpcodeName((FklOpcode)(tmpCode->code[i])));
-	int opcodeArgLen=fklGetOpcodeArgLen((FklOpcode)(tmpCode->code[i]));
+	const FklInstruction* ins=&tmpCode->code[i];
+	FklOpcode op=ins->op;
+	fprintf(fp," %s",fklGetOpcodeName(op));
+	int opcodeArgLen=fklGetOpcodeArgLen(op);
 	if(opcodeArgLen)
 		fputc(' ',fp);
 	switch(opcodeArgLen)
 	{
 		case -1:
 			{
-				FklOpcode op=tmpCode->code[i];
 				switch(op)
 				{
 					case FKL_OP_PUSH_PROC:
 						{
-							uint32_t offset=sizeof(uint32_t)+sizeof(char);
-							fprintf(fp,"%u ",fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)));
-							uint64_t ncpc=fklGetU64FromByteCode(tmpCode->code+i+offset);
-							fprintf(fp,"%lu",ncpc);
-							fklPushPtrStack(createByteCodePrintState(cState->type,cState->tc,i+offset+sizeof(uint64_t)+ncpc,cState->cpc),s);
-							fklPushPtrStack(createByteCodePrintState(BP_NONE,tc+1,i+offset+sizeof(uint64_t),i+offset+sizeof(uint64_t)+ncpc),s);
-							r+=offset+sizeof(uint64_t);
+							fprintf(fp,"%u ",ins->imm);
+							fprintf(fp,"%lu",ins->imm_u64);
+							fklPushPtrStack(createByteCodePrintState(cState->tc,i+ins->imm_u64,cState->cpc),s);
+							fklPushPtrStack(createByteCodePrintState(tab_count+1,i+1,i+ins->imm_u64),s);
+							proc_len=ins->imm_u64;
 							*needBreak=1;
 						}
 						break;
 					case FKL_OP_PUSH_STR:
 						{
+							const FklString* str=ins->str;
 							fprintf(fp,"%lu "
-									,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
-							fklPrintRawCharBuf(tmpCode->code+i+sizeof(char)+sizeof(uint64_t)
-									,'"'
-									,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char))
-									,fp);
-							r+=sizeof(char)
-								+sizeof(uint64_t)
-								+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
+									,str->size);
+							fklPrintRawString(str,fp);
 						}
 						break;
 					case FKL_OP_PUSH_BYTEVECTOR:
 						{
-							fprintf(fp,"%lu "
-									,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
-							fklPrintRawByteBuf(tmpCode->code+i+sizeof(char)+sizeof(uint64_t),fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)),fp);
-							r+=sizeof(char)
-								+sizeof(uint64_t)
-								+fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
+							const FklBytevector* bvec=ins->bvec;
+							fprintf(fp,"%lu ",bvec->size);
+							fklPrintRawBytevector(bvec,fp);
 						}
 						break;
 					case FKL_OP_PUSH_BIG_INT:
 						{
-							uint64_t num=fklGetU64FromByteCode(tmpCode->code+i+sizeof(char));
-							FklBigInt bi=FKL_BIG_INT_INIT;
-							fklInitBigIntFromMem(&bi,tmpCode->code+i+sizeof(char)+sizeof(num),num);
-							fklPrintBigInt(&bi,fp);
-							r+=sizeof(char)+sizeof(bi.num)+sizeof(uint8_t)*num;
-							fklUninitBigInt(&bi);
+							const FklBigInt* bi=ins->bi;
+							fklPrintBigInt(bi,fp);
 						}
 						break;
 					default:
@@ -220,67 +174,54 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			}
 			break;
 		case 0:
-			r+=sizeof(char);
 			break;
 		case 1:
 			{
-				FklOpcode op=tmpCode->code[i];
 				if(op==FKL_OP_PUSH_CHAR)
-					fklPrintRawChar(tmpCode->code[i+1],fp);
+					fklPrintRawChar(ins->chr,fp);
 				else
-					fprintf(fp,"%d",tmpCode->code[i+1]);
+					fprintf(fp,"%d",ins->imm_i8);
 			}
-			r+=sizeof(char)+sizeof(char);
 			break;
 		case 2:
-			fprintf(fp,"%d",fklGetI16FromByteCode(tmpCode->code+i+sizeof(char)));
-			r+=sizeof(char)+sizeof(int16_t);
+			fprintf(fp,"%d",ins->imm_i16);
 			break;
 		case 4:
-			fprintf(fp,"%d"
-					,fklGetI32FromByteCode(tmpCode->code+i+sizeof(char)));
-			r+=sizeof(char)+sizeof(int32_t);
+			fprintf(fp,"%d",ins->imm_i32);
 			break;
 		case 8:
-			switch(tmpCode->code[i])
+			switch(op)
 			{
 				case FKL_OP_PUSH_F64:
-					fprintf(fp,"%lf"
-							,fklGetF64FromByteCode(tmpCode->code+i+sizeof(char)));
+					fprintf(fp,"%lf",ins->f64);
 					break;
 				case FKL_OP_PUSH_VECTOR:
 				case FKL_OP_PUSH_HASHTABLE_EQ:
 				case FKL_OP_PUSH_HASHTABLE_EQV:
 				case FKL_OP_PUSH_HASHTABLE_EQUAL:
 				case FKL_OP_PUSH_LIST:
-					fprintf(fp,"%lu"
-							,fklGetU64FromByteCode(tmpCode->code+i+sizeof(char)));
+					fprintf(fp,"%lu",ins->imm_u64);
 					break;
 				case FKL_OP_PUSH_I64:
 				case FKL_OP_JMP:
 				case FKL_OP_JMP_IF_FALSE:
 				case FKL_OP_JMP_IF_TRUE:
-					fprintf(fp,"%ld"
-							,fklGetI64FromByteCode(tmpCode->code+i+sizeof(char)));
+					fprintf(fp,"%ld",ins->imm_i64);
 					break;
-				case FKL_OP_POP_ARG:
 				case FKL_OP_PUSH_SYM:
-				case FKL_OP_POP_REST_ARG:
-					fklPrintRawSymbol(fklGetSymbolWithId(fklGetSidFromByteCode(tmpCode->code+i+sizeof(char)),table)->symbol,fp);
+					fklPrintRawSymbol(fklGetSymbolWithId(ins->sid,table)->symbol,fp);
 					break;
 				case FKL_OP_IMPORT:
 				case FKL_OP_CLOSE_REF:
-					{
-						uint32_t locIdx=fklGetU32FromByteCode(tmpCode->code+i+sizeof(char));
-						uint32_t libIdx=fklGetU32FromByteCode(tmpCode->code+i+sizeof(char)+sizeof(locIdx));
-						fprintf(fp,"%u %u",locIdx,libIdx);
-					}
+					fprintf(fp,"%u %u",ins->imm,ins->imm_u32);
+					break;
+				default:
+					FKL_ASSERT(0);
 					break;
 			}
-			r+=sizeof(char)+sizeof(int64_t);
 			break;
 	}
-	return r;
+	return proc_len+1;
 }
 
 #include<math.h>
@@ -290,8 +231,8 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 {
 	FklPtrStack s=FKL_STACK_INIT;
 	fklInitPtrStack(&s,32,16);
-	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
-	uint64_t codeLen=tmpCode->size;
+	fklPushPtrStack(createByteCodePrintState(0,0,tmpCode->len),&s);
+	uint64_t codeLen=tmpCode->len;
 	int numLen=codeLen?(int)(log10(codeLen)+1):1;
 	char format[FKL_MAX_STRING_SIZE]="";
 	snprintf(format,FKL_MAX_STRING_SIZE,"%%-%dld",numLen);
@@ -335,63 +276,40 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 {
 	uint64_t r=0;
-	while(index+r<bc->size&&bc->code[index+r]!=FKL_OP_CALL)
+	const FklInstruction* ins=NULL;
+	while(index+r<bc->len&&(ins=&bc->code[index+r])->op!=FKL_OP_CALL)
 	{
-		int len=fklGetOpcodeArgLen((FklOpcode)(bc->code[index+r]));
-		if(len<0)
-		{
-			FklOpcode op=bc->code[index+r];
-			switch(op)
-			{
-				case FKL_OP_PUSH_STR:
-				case FKL_OP_PUSH_BIG_INT:
-				case FKL_OP_PUSH_BYTEVECTOR:
-					r+=sizeof(char)
-						+sizeof(uint64_t)
-						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char));
-					break;
-				case FKL_OP_PUSH_PROC:
-					r+=sizeof(char)
-						+sizeof(uint32_t)
-						+sizeof(uint64_t)
-						+fklGetU64FromByteCode(bc->code+index+r+sizeof(char)+sizeof(uint32_t));
-					break;
-				default:
-					FKL_ASSERT(0);
-					break;
-			}
-		}
+		if(ins->op==FKL_OP_PUSH_PROC)
+			r+=ins->imm_u64;
 		else
-			r+=sizeof(char)+len;
+			r++;
 	}
 	return r;
 }
 
-static inline int64_t get_next(uint64_t i,uint8_t* code)
+static inline int64_t get_next(uint64_t i,FklInstruction* code)
 {
-	if(code[i]==FKL_OP_JMP)
-		return fklGetI64FromByteCode(code+i+sizeof(char))+sizeof(char)+sizeof(int64_t);
-	else if(code[i]==FKL_OP_CLOSE_REF)
-		return sizeof(char)+sizeof(uint32_t)+sizeof(uint32_t);
+	if(code[i].op==FKL_OP_JMP)
+		return code[i].imm_i64+1;
 	return 1;
 }
 
 static int fklIsTheLastExpression(uint64_t index,FklByteCode* bc)
 {
-	uint64_t size=bc->size;
-	uint8_t* code=bc->code;
+	uint64_t size=bc->len;
+	FklInstruction* code=bc->code;
 	for(uint64_t i=index;i<size;i+=get_next(i,code))
-		if(code[i]!=FKL_OP_JMP&&code[i]!=FKL_OP_CLOSE_REF)
+		if(code[i].op!=FKL_OP_JMP&&code[i].op!=FKL_OP_CLOSE_REF&&code[i].op!=FKL_OP_RET)
 			return 0;
 	return 1;
 }
 
 void fklScanAndSetTailCall(FklByteCode* bc)
 {
-	for(uint64_t i=skipToCall(0,bc);i<bc->size;i+=skipToCall(i,bc))
+	for(uint64_t i=skipToCall(0,bc);i<bc->len;i+=skipToCall(i,bc))
 	{
 		if(fklIsTheLastExpression(++i,bc))
-			bc->code[i-1]=FKL_OP_TAIL_CALL;
+			bc->code[i-1].op=FKL_OP_TAIL_CALL;
 	}
 }
 
@@ -400,12 +318,12 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
 	FklByteCode* tmpCode=obj->bc;
 	FklPtrStack s=FKL_STACK_INIT;
 	fklInitPtrStack(&s,32,16);
-	fklPushPtrStack(createByteCodePrintState(BP_NONE,0,0,tmpCode->size),&s);
+	fklPushPtrStack(createByteCodePrintState(0,0,tmpCode->len),&s);
 	uint64_t j=0;
 	FklSid_t fid=0;
 	uint64_t line=0;
 
-	uint64_t codeLen=tmpCode->size;
+	uint64_t codeLen=tmpCode->len;
 	int numLen=codeLen?(int)(log10(codeLen)+1):1;
 	char format[FKL_MAX_STRING_SIZE]="";
 	snprintf(format,FKL_MAX_STRING_SIZE,"%%-%dld",numLen);
@@ -520,20 +438,20 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt* o,uint64_t size)
 #define FKL_INCREASE_ALL_SCP(l,ls,s) for(size_t i=0;i<(ls);i++)(l)[i].scp+=(s)
 void fklCodeLntConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
-	if(s->bc->size)
+	if(s->bc->len)
 	{
 		if(!f->l)
 		{
 			f->ls=s->ls;
 			f->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*s->ls);
 			FKL_ASSERT(f->l);
-			s->l[0].cpc+=f->bc->size;
-			FKL_INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->size);
+			s->l[0].cpc+=f->bc->len;
+			FKL_INCREASE_ALL_SCP(s->l+1,s->ls-1,f->bc->len);
 			memcpy(f->l,s->l,(s->ls)*sizeof(FklLineNumberTableItem));
 		}
 		else
 		{
-			FKL_INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
+			FKL_INCREASE_ALL_SCP(s->l,s->ls,f->bc->len);
 			if(f->l[f->ls-1].line==s->l[0].line&&f->l[f->ls-1].fid==s->l[0].fid)
 			{
 				f->l[f->ls-1].cpc+=s->l[0].cpc;
@@ -556,19 +474,19 @@ void fklCodeLntConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 
 void fklCodeLntReverseConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 {
-	if(f->bc->size)
+	if(f->bc->len)
 	{
 		if(!s->l)
 		{
 			s->ls=f->ls;
 			s->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*f->ls);
 			FKL_ASSERT(s->l);
-			f->l[f->ls-1].cpc+=s->bc->size;
+			f->l[f->ls-1].cpc+=s->bc->len;
 			memcpy(s->l,f->l,(f->ls)*sizeof(FklLineNumberTableItem));
 		}
 		else
 		{
-			FKL_INCREASE_ALL_SCP(s->l,s->ls,f->bc->size);
+			FKL_INCREASE_ALL_SCP(s->l,s->ls,f->bc->len);
 			if(f->l[f->ls-1].line==s->l[0].line&&f->l[f->ls-1].fid==s->l[0].fid)
 			{
 				FklLineNumberTableItem* l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*(f->ls+s->ls-1));
@@ -595,8 +513,27 @@ void fklCodeLntReverseConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 	}
 }
 
-void fklBclBcAppendToBcl(FklByteCodelnt* bcl
-		,const FklByteCode* bc
+void fklByteCodeInsertFront(FklInstruction ins,FklByteCode* bc)
+{
+	FklInstruction* code=(FklInstruction*)malloc(sizeof(FklInstruction)*(bc->len+1));
+	FKL_ASSERT(code);
+	memcpy(&code[1],bc->code,sizeof(FklInstruction)*bc->len);
+	free(bc->code);
+	code[0]=ins;
+	bc->len++;
+	bc->code=code;
+}
+
+void fklByteCodePushBack(FklByteCode* bc,FklInstruction ins)
+{
+	bc->code=(FklInstruction*)fklRealloc(bc->code,sizeof(FklInstruction)*(bc->len+1));
+	FKL_ASSERT(bc->code);
+	bc->code[bc->len]=ins;
+	bc->len++;
+}
+
+void fklBclInsAppendToBcl(FklByteCodelnt* bcl
+		,const FklInstruction* ins
 		,FklSid_t fid
 		,uint64_t line)
 {
@@ -605,17 +542,17 @@ void fklBclBcAppendToBcl(FklByteCodelnt* bcl
 		bcl->ls=1;
 		bcl->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*1);
 		FKL_ASSERT(bcl->l);
-		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
-		fklCodeConcat(bcl->bc,bc);
+		fklInitLineNumTabNode(&bcl->l[0],fid,0,1,line);
+		fklByteCodePushBack(bcl->bc,*ins);
 	}
 	else
 	{
-		fklCodeConcat(bcl->bc,bc);
-		bcl->l[bcl->ls-1].cpc+=bc->size;
+		fklByteCodePushBack(bcl->bc,*ins);
+		bcl->l[bcl->ls-1].cpc+=1;
 	}
 }
 
-void fklBcBclAppendToBcl(const FklByteCode* bc
+void fklInsBclAppendToBcl(const FklInstruction* ins
 		,FklByteCodelnt* bcl
 		,FklSid_t fid
 		,uint64_t line)
@@ -625,14 +562,14 @@ void fklBcBclAppendToBcl(const FklByteCode* bc
 		bcl->ls=1;
 		bcl->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*1);
 		FKL_ASSERT(bcl->l);
-		fklInitLineNumTabNode(&bcl->l[0],fid,0,bc->size,line);
-		fklCodeConcat(bcl->bc,bc);
+		fklInitLineNumTabNode(&bcl->l[0],fid,0,1,line);
+		fklByteCodePushBack(bcl->bc,*ins);
 	}
 	else
 	{
-		fklCodeReverseConcat(bc,bcl->bc);
-		bcl->l[0].cpc+=bc->size;
-		FKL_INCREASE_ALL_SCP(bcl->l+1,bcl->ls-1,bc->size);
+		fklByteCodeInsertFront(*ins,bcl->bc);
+		bcl->l[0].cpc+=1;
+		FKL_INCREASE_ALL_SCP(bcl->l+1,bcl->ls-1,1);
 	}
 }
 
@@ -703,7 +640,7 @@ void fklWriteLineNumberTable(FklLineNumberTableItem* line_numbers,uint32_t size,
 	}
 }
 
-void fklDBG_printByteCode(uint8_t* code,uint64_t s,uint64_t c,FILE* fp)
+void fklDBG_printByteCode(FklInstruction* code,uint64_t s,uint64_t c,FILE* fp)
 {
 	FklByteCode t={c,code+s};
 	fklPrintByteCode(&t,fp,NULL);
@@ -799,75 +736,42 @@ inline void fklSetSidToByteCode(uint8_t* code,FklSid_t i)
 	memcpy(code,&i,sizeof(i));
 }
 
-static void fklSetCharToByteCode(uint8_t* code,char c)
+#define NEW_PUSH_FIX_OBJ_BYTECODE(OPCODE,OBJ,FIELD) return (FklInstruction){.op=OPCODE,.FIELD=OBJ}
+
+FklInstruction fklCreatePushI8Ins(int8_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I8,a,imm_i8);}
+FklInstruction fklCreatePushI16Ins(int16_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I16,a,imm_i16);}
+FklInstruction fklCreatePushI32Ins(int32_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I32,a,imm_i32);}
+FklInstruction fklCreatePushI64Ins(int64_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I64,a,imm_i64);}
+FklInstruction fklCreatePushSidIns(FklSid_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_SYM,a,sid);}
+FklInstruction fklCreatePushCharIns(char a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_CHAR,a,chr);}
+FklInstruction fklCreatePushF64Ins(double a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_F64,a,f64);}
+FklInstruction fklCreatePushStrIns(const FklString* str)
 {
-	code[0]=(uint8_t)c;
+	NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_STR,fklCopyString(str),str);
 }
 
-#define NEW_PUSH_FIX_OBJ_BYTECODE(OPCODE,OBJ,OBJ_SETTER) FklByteCode* t=fklCreateByteCode(sizeof(char)+sizeof(OBJ));\
-	t->code[0]=(OPCODE);\
-	(OBJ_SETTER)(t->code+sizeof(char),(OBJ));\
-	return t
-
-FklByteCode* fklCreatePushI8ByteCode(int8_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I8,a,fklSetI8ToByteCode);}
-FklByteCode* fklCreatePushI16ByteCode(int16_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I16,a,fklSetI16ToByteCode);}
-FklByteCode* fklCreatePushI32ByteCode(int32_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I32,a,fklSetI32ToByteCode);}
-FklByteCode* fklCreatePushI64ByteCode(int64_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_I64,a,fklSetI64ToByteCode);}
-FklByteCode* fklCreatePushSidByteCode(FklSid_t a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_SYM,a,fklSetSidToByteCode);}
-FklByteCode* fklCreatePushCharByteCode(char a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_CHAR,a,fklSetCharToByteCode);}
-FklByteCode* fklCreatePushF64ByteCode(double a) {NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_F64,a,fklSetF64ToByteCode);}
-FklByteCode* fklCreatePushStrByteCode(const FklString* str)
+FklInstruction fklCreatePushBvecIns(const FklBytevector* bvec)
 {
-	FklByteCode* tmp=fklCreateByteCode(sizeof(char)+sizeof(str->size)+str->size);
-	tmp->code[0]=FKL_OP_PUSH_STR;
-	fklSetU64ToByteCode(tmp->code+sizeof(char),str->size);
-	memcpy(tmp->code+sizeof(char)+sizeof(str->size)
-			,str->str
-			,str->size);
-	return tmp;
+	NEW_PUSH_FIX_OBJ_BYTECODE(FKL_OP_PUSH_BYTEVECTOR,fklCopyBytevector(bvec),bvec);
 }
 
-FklByteCode* fklCreatePushBvecByteCode(const FklBytevector* bvec)
+FklInstruction fklCreatePushBigIntIns(const FklBigInt* bigInt)
 {
-	FklByteCode* tmp=fklCreateByteCode(sizeof(char)+sizeof(bvec->size)+bvec->size);
-	tmp->code[0]=FKL_OP_PUSH_BYTEVECTOR;
-	fklSetU64ToByteCode(tmp->code+sizeof(char),bvec->size);
-	memcpy(tmp->code+sizeof(char)+sizeof(bvec->size)
-			,bvec->ptr
-			,bvec->size);
-	return tmp;
-}
-
-FklByteCode* fklCreatePushBigIntByteCode(const FklBigInt* bigInt)
-{
-	FklByteCode* tmp=NULL;
+	FklInstruction r;
 	if(fklIsGtLtI64BigInt(bigInt))
 	{
-		tmp=fklCreateByteCode(sizeof(char)+sizeof(char)+sizeof(bigInt->size)+bigInt->num);
-		tmp->code[0]=FKL_OP_PUSH_BIG_INT;
-		fklSetU64ToByteCode(tmp->code+sizeof(char),bigInt->num+1);
-		tmp->code[sizeof(char)+sizeof(bigInt->num)]=bigInt->neg;
-		memcpy(tmp->code+sizeof(char)+sizeof(bigInt->num)+sizeof(char)
-				,bigInt->digits
-				,bigInt->num);
+		r.op=FKL_OP_PUSH_BIG_INT;
+		r.bi=fklCopyBigInt(bigInt);
 	}
 	else
 	{
-		tmp=fklCreateByteCode(sizeof(char)+sizeof(int64_t));
-		tmp->code[0]=FKL_OP_PUSH_I64_BIG;
-		fklSetI64ToByteCode(tmp->code+sizeof(char),fklBigIntToI64(bigInt));
+		r.op=FKL_OP_PUSH_I64_BIG;
+		r.imm_i64=fklBigIntToI64(bigInt);
 	}
-	return tmp;
-}
-
-FklByteCode* fklCreatePushNilByteCode(void)
-{
-	FklByteCode* r=fklCreateByteCode(sizeof(char));
-	r->code[0]=FKL_OP_PUSH_NIL;
 	return r;
 }
 
-void fklLoadLineNumberTable(FILE* fp,FklLineNumberTableItem** plist,size_t* pnum)
+void fklLoadLineNumberTable(FILE* fp,FklLineNumberTableItem** plist,uint32_t* pnum)
 {
 	size_t size=0;
 	fread(&size,sizeof(uint32_t),1,fp);

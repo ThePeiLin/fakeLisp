@@ -51,9 +51,9 @@ static inline int compile(const char* filename,int argc,char* argv[],FklCodegenO
 	}
 	fklWriteSymbolTable(codegen.globalSymTable,outfp);
 	fklWriteLineNumberTable(mainByteCode->l,mainByteCode->ls,outfp);
-	uint64_t sizeOfMain=mainByteCode->bc->size;
+	uint64_t sizeOfMain=mainByteCode->bc->len;
 	uint8_t* code=mainByteCode->bc->code;
-	fwrite(&sizeOfMain,sizeof(mainByteCode->bc->size),1,outfp);
+	fwrite(&sizeOfMain,sizeof(mainByteCode->bc->len),1,outfp);
 	fwrite(code,sizeOfMain,1,outfp);
 	fklWriteFuncPrototypes(codegen.pts,outfp);
 	uint64_t num=loadedLibStack->top;
@@ -67,7 +67,7 @@ static inline int compile(const char* filename,int argc,char* argv[],FklCodegenO
 			fwrite(&lib->prototypeId,sizeof(lib->prototypeId),1,outfp);
 			FklByteCodelnt* bcl=lib->bcl;
 			fklWriteLineNumberTable(bcl->l,bcl->ls,outfp);
-			uint64_t libSize=bcl->bc->size;
+			uint64_t libSize=bcl->bc->len;
 			uint8_t* libCode=bcl->bc->code;
 			fwrite(&libSize,sizeof(uint64_t),1,outfp);
 			fwrite(libCode,libSize,1,outfp);

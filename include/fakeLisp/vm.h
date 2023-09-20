@@ -196,8 +196,8 @@ typedef struct FklVMvarRef
 
 typedef struct FklVMproc
 {
-	uint8_t* spc;
-	uint8_t* end;
+	FklInstruction* spc;
+	FklInstruction* end;
 	FklSid_t sid;
 	uint32_t protoId;
 	uint32_t lcount;
@@ -261,10 +261,10 @@ typedef struct FklVMCompoundFrameData
 	unsigned int tail:1;
 	unsigned int mark:2;
 	FklVMvalue* proc;
-	uint8_t* spc;
-	uint8_t* pc;
-	uint8_t* end;
 	FklVMCompoundFrameVarRef lr;
+	FklInstruction* spc;
+	FklInstruction* pc;
+	FklInstruction* end;
 }FklVMCompoundFrameData;
 
 typedef void* FklCallObjData[10];
@@ -567,7 +567,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 void fklInitLineNumHashTable(FklHashTable* ht);
 FklVMvalue* fklGetTopValue(FklVM*);
 
-FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,uint8_t* spc,uint64_t cpc);
+FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,FklInstruction* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 void fklPrintErrBacktrace(FklVMvalue*,FklVM*);
@@ -639,7 +639,7 @@ FklVMvalue* fklCreateVMvalueVecWithPtr(FklVM*,size_t,FklVMvalue* const*);
 FklVMvalue* fklCreateVMvalueF64(FklVM*,double f64);
 
 FklVMvalue* fklCreateVMvalueProc(FklVM*
-		,uint8_t* spc
+		,FklInstruction* spc
 		,uint64_t cpc
 		,FklVMvalue* codeObj
 		,uint32_t pid);
@@ -885,13 +885,11 @@ FklVMCompoundFrameVarRef* fklGetCompoundFrameLocRef(FklVMframe* f);
 FklVMvalue* fklGetCompoundFrameProc(const FklVMframe*);
 FklFuncPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe*,FklVM* exe);
 
-uint8_t* fklGetCompoundFrameCode(const FklVMframe*);
+FklInstruction* fklGetCompoundFrameCode(const FklVMframe*);
 
-uint8_t* fklGetCompoundFrameEnd(const FklVMframe*);
+FklInstruction* fklGetCompoundFrameEnd(const FklVMframe*);
 
-uint8_t* fklGetCompoundFrameCodeAndAdd(FklVMframe*,size_t a);
-
-uint8_t fklGetCompoundFrameOpAndInc(FklVMframe* frame);
+FklOpcode fklGetCompoundFrameOp(FklVMframe* frame);
 
 void fklAddCompoundFrameCp(FklVMframe*,int64_t a);
 

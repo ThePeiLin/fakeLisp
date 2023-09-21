@@ -127,7 +127,6 @@ inline FklGrammerProduction* fklCreateProduction(FklSid_t group
 	r->ctx_destroyer=destroy;
 	r->ctx_copyer=copyer;
 	r->syms=syms;;
-	r->isBuiltin=1;
 	return r;
 }
 
@@ -151,7 +150,6 @@ inline FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
 	r->ctx_destroyer=destroy;
 	r->ctx_copyer=copyer;
 	r->syms=(FklGrammerSym*)calloc(len,sizeof(FklGrammerSym));
-	r->isBuiltin=1;
 	FKL_ASSERT(r->syms);
 	return r;
 }
@@ -189,7 +187,7 @@ static void builtin_match_any_print_c_match_cond(void* c,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_any=
 {
-	.name="any",
+	.name="%any",
 	.match=builtin_match_any_func,
 	.print_src=default_builtin_match_print_src,
 	.print_c_match_cond=builtin_match_any_print_c_match_cond,
@@ -227,7 +225,7 @@ static int builtin_match_hex2_func(void* ctx
 
 static const FklLalrBuiltinMatch builtin_match_hex2=
 {
-	.name="hex2",
+	.name="%hex2",
 	.match=builtin_match_hex2_func,
 	.print_src=builtin_match_hex2_print_src,
 	.print_c_match_cond=builtin_match_hex2_print_c_match_cond,
@@ -274,7 +272,7 @@ static void builtin_match_oct3_print_src(const FklGrammer* g,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_oct3=
 {
-	.name="oct3",
+	.name="%oct3",
 	.match=builtin_match_oct3_func,
 	.print_src=builtin_match_oct3_print_src,
 	.print_c_match_cond=builtin_match_oct3_print_c_match_cond,
@@ -321,7 +319,7 @@ static void builtin_match_dec3_print_src(const FklGrammer* g,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_dec3=
 {
-	.name="dec3",
+	.name="%dec3",
 	.match=builtin_match_dec3_func,
 	.print_src=builtin_match_dec3_print_src,
 	.print_c_match_cond=builtin_match_dec3_print_c_match_cond,
@@ -360,7 +358,7 @@ static void builtin_match_space_print_src(const FklGrammer* g,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_space=
 {
-	.name="space",
+	.name="%space",
 	.match=builtin_match_func_space,
 	.print_src=builtin_match_space_print_src,
 	.print_c_match_cond=builtin_match_space_print_c_match_cond,
@@ -400,7 +398,7 @@ DEFINE_DEFAULT_C_MATCH_COND(eol);
 
 static const FklLalrBuiltinMatch builtin_match_eol=
 {
-	.name="eol",
+	.name="%eol",
 	.match=builtin_match_func_eol,
 	.print_src=builtin_match_eol_print_src,
 	.print_c_match_cond=builtin_match_eol_print_c_match_cond,
@@ -1065,8 +1063,8 @@ static void builtin_match_qstr_print_c_match_cond(void* c,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_qstr=
 {
+	.name="%qstr",
 	.match=builtin_match_qstr_match,
-	.name="qstr",
 	.ctx_cmp=builtin_match_qstr_cmp,
 	.ctx_equal=builtin_match_qstr_equal,
 	.ctx_hash=builtin_match_qstr_hash,
@@ -1147,8 +1145,8 @@ static void builtin_match_until_print_c_match_cond(void* c,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_until=
 {
+	.name="%until",
 	.match=builtin_match_until_match,
-	.name="until",
 	.ctx_cmp=builtin_match_qstr_cmp,
 	.ctx_equal=builtin_match_qstr_equal,
 	.ctx_hash=builtin_match_qstr_hash,
@@ -1326,8 +1324,8 @@ static void builtin_match_dec_int_print_src(const FklGrammer* g,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_dec_int=
 {
+	.name="%dec-int",
 	.match=builtin_match_dec_int_func,
-	.name="dec-int",
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_dec_int_print_src,
 	.print_c_match_cond=builtin_match_dec_int_print_c_match_cond,
@@ -1378,7 +1376,7 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_int);
 
 static const FklLalrBuiltinMatch builtin_match_hex_int=
 {
-	.name="hex-int",
+	.name="%hex-int",
 	.match=builtin_match_hex_int_func,
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_hex_int_print_src,
@@ -1430,7 +1428,7 @@ DEFINE_DEFAULT_C_MATCH_COND(oct_int);
 
 static const FklLalrBuiltinMatch builtin_match_oct_int=
 {
-	.name="oct-int",
+	.name="%oct-int",
 	.match=builtin_match_oct_int_func,
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_oct_int_print_src,
@@ -1482,7 +1480,7 @@ DEFINE_DEFAULT_C_MATCH_COND(dec_float);
 
 static const FklLalrBuiltinMatch builtin_match_dec_float=
 {
-	.name="dec-float",
+	.name="%dec-float",
 	.match=builtin_match_dec_float_func,
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_dec_float_print_src,
@@ -1534,7 +1532,7 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_float);
 
 static const FklLalrBuiltinMatch builtin_match_hex_float=
 {
-	.name="hex-float",
+	.name="%hex-float",
 	.match=builtin_match_hex_float_func,
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_hex_float_print_src,
@@ -1586,7 +1584,7 @@ DEFINE_DEFAULT_C_MATCH_COND(identifier);
 
 static const FklLalrBuiltinMatch builtin_match_identifier=
 {
-	.name="identifier",
+	.name="%identifier",
 	.match=builtin_match_identifier_func,
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_identifier_print_src,
@@ -1628,7 +1626,7 @@ static int builtin_match_noterm_func(void* c
 
 static const FklLalrBuiltinMatch builtin_match_noterm=
 {
-	.name="noterm",
+	.name="%noterm",
 	.match=builtin_match_noterm_func,
 	.ctx_global_create=builtin_match_number_global_create,
 	.print_src=builtin_match_noterm_print_src,
@@ -1841,7 +1839,7 @@ static int builtin_match_s_xfloat_func(void* c
 
 static const FklLalrBuiltinMatch builtin_match_s_dint=
 {
-	.name="s-dint",
+	.name="%s-dint",
 	.match=builtin_match_s_dint_func,
 	.ctx_global_create=s_number_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -1854,7 +1852,7 @@ static const FklLalrBuiltinMatch builtin_match_s_dint=
 
 static const FklLalrBuiltinMatch builtin_match_s_xint=
 {
-	.name="s-xint",
+	.name="%s-xint",
 	.match=builtin_match_s_xint_func,
 	.ctx_global_create=s_number_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -1867,7 +1865,7 @@ static const FklLalrBuiltinMatch builtin_match_s_xint=
 
 static const FklLalrBuiltinMatch builtin_match_s_oint=
 {
-	.name="s-oint",
+	.name="%s-oint",
 	.match=builtin_match_s_oint_func,
 	.ctx_global_create=s_number_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -1880,7 +1878,7 @@ static const FklLalrBuiltinMatch builtin_match_s_oint=
 
 static const FklLalrBuiltinMatch builtin_match_s_dfloat=
 {
-	.name="s-dfloat",
+	.name="%s-dfloat",
 	.match=builtin_match_s_dfloat_func,
 	.ctx_global_create=s_number_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -1893,7 +1891,7 @@ static const FklLalrBuiltinMatch builtin_match_s_dfloat=
 
 static const FklLalrBuiltinMatch builtin_match_s_xfloat=
 {
-	.name="s-xfloat",
+	.name="%s-xfloat",
 	.match=builtin_match_s_xfloat_func,
 	.ctx_global_create=s_number_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -1988,7 +1986,7 @@ static void* s_char_ctx_global_create(size_t idx
 
 static const FklLalrBuiltinMatch builtin_match_s_char=
 {
-	.name="s-char",
+	.name="%s-char",
 	.match=builtin_match_s_char_func,
 	.ctx_global_create=s_char_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -2283,7 +2281,7 @@ static uintptr_t builtin_match_symbol_hash(const void* c)
 
 static const FklLalrBuiltinMatch builtin_match_symbol=
 {
-	.name="symbol",
+	.name="%symbol",
 	.match=builtin_match_symbol_func,
 	.ctx_cmp=builtin_match_symbol_cmp,
 	.ctx_equal=builtin_match_symbol_equal,
@@ -2351,7 +2349,7 @@ static void builtin_match_esc_print_src(const FklGrammer* g,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_esc=
 {
-	.name="esc",
+	.name="%esc",
 	.match=builtin_match_esc_func,
 	.print_src=builtin_match_esc_print_src,
 	.print_c_match_cond=builtin_match_esc_print_c_match_cond,
@@ -2529,7 +2527,7 @@ static void builtin_match_string_print_c_match_cond(void* c,FILE* fp)
 
 static const FklLalrBuiltinMatch builtin_match_string=
 {
-	.name="string",
+	.name="%string",
 	.match=builtin_match_string_func,
 	.ctx_cmp=builtin_match_string_cmp,
 	.ctx_equal=builtin_match_string_equal,

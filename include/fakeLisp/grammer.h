@@ -91,7 +91,6 @@ typedef struct FklGrammerProduction
 	size_t idx;
 	FklGrammerSym* syms;
 	struct FklGrammerProduction* next;
-	int isBuiltin;
 	const char* name;
 	void* ctx;
 	FklProdActionFunc func;

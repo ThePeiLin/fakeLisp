@@ -262,20 +262,22 @@ typedef struct FklBigInt
 	uint8_t* digits;
 	uint64_t num;
 	uint64_t size;
-	int neg;
+	uint8_t neg;
 }FklBigInt;
 
 #define FKL_BIG_INT_INIT {NULL,0,0,0}
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
-#define FKL_IS_N_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)
-//#define FKL_IS_1_N_1_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==1)
+#define FKL_IS_N_1_BIG_INT(I) ((I)->num==1&&(I)->neg==1&&(I)->digits[0]==1)
+#define FKL_IS_1_N_1_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==1)
 
 FklBigInt* fklCreateBigInt(int64_t v);
 FklBigInt* fklCreateBigIntD(double v);
 FklBigInt* fklCreateBigIntU(uint64_t v);
 FklBigInt* fklCreateBigIntFromCstr(const char* str);
-FklBigInt* fklCreateBigIntFromMem(const void* mem,size_t size);
+FklBigInt* fklCreateBigIntFromMemCopy(uint8_t,const uint8_t* mem,size_t size);
+FklBigInt* fklCreateBigIntFromMem(uint8_t neg,uint8_t* mem,size_t size);
+
 FklBigInt* fklCreateBigIntFromString(const FklString*);
 FklBigInt* fklCreateBigInt0(void);
 FklBigInt* fklCreateBigInt1(void);
@@ -286,7 +288,10 @@ void fklInitBigIntI(FklBigInt*,int64_t v);
 void fklInitBigInt0(FklBigInt*);
 void fklInitBigInt1(FklBigInt*);
 void fklInitBigIntU(FklBigInt*,uint64_t v);
-void fklInitBigIntFromMem(FklBigInt*,const void*mem,size_t size);
+
+void fklInitBigIntFromMemCopy(FklBigInt*,uint8_t,const uint8_t* mem,size_t size);
+void fklInitBigIntFromMem(FklBigInt* t,uint8_t neg,uint8_t* memptr,size_t num);
+
 void fklInitBigIntFromString(FklBigInt*,const FklString*);
 void fklInitBigIntFromDecString(FklBigInt*,const FklString*);
 void fklInitBigIntFromHexString(FklBigInt*,const FklString*);

@@ -59,6 +59,8 @@ typedef struct FklCodegenEnv FklCodegenEnv;
 typedef struct FklVM FklVM;
 struct FklVMframe;
 typedef struct FklVMproc FklVMproc;
+
+uint32_t fklGetBuiltinSymbolNum(void);
 void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable* pst);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);

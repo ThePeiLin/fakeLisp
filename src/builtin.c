@@ -4712,7 +4712,7 @@ static inline FklByteCodelnt* inlfunc_mul0(INL_FUNC_ARGS)
 static inline FklByteCodelnt* inl_1_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
 {
 	FklInstruction bc={.op=opc};
-	fklBclInsAppendToBcl(bcs[0],&bc,fid,line);
+	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line);
 	return bcs[0];
 }
 
@@ -4780,7 +4780,7 @@ static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 {
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
-	fklBclInsAppendToBcl(bcs[0],&bc,fid,line);
+	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line);
 	fklDestroyByteCodelnt(bcs[1]);
 	return bcs[0];
 }
@@ -4880,7 +4880,7 @@ static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
 	fklCodeLntReverseConcat(bcs[2],bcs[0]);
-	fklBclInsAppendToBcl(bcs[0],&bc,fid,line);
+	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line);
 	fklDestroyByteCodelnt(bcs[1]);
 	fklDestroyByteCodelnt(bcs[2]);
 	return bcs[0];
@@ -5217,6 +5217,11 @@ uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t* p)
 //		fputs("(/)\n",stderr);
 //	}
 //}
+
+uint32_t fklGetBuiltinSymbolNum(void)
+{
+	return BuiltinSymbolNum;
+}
 
 void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* pst)
 {

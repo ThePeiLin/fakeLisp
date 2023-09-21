@@ -543,22 +543,14 @@ inline void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 		fklInitBigIntFromDecString(r,str);
 }
 
-void fklInitBigIntFromMem(FklBigInt* t,const void* memptr,size_t size)
+void fklInitBigIntFromMemCopy(FklBigInt* t,uint8_t neg,const uint8_t* memptr,size_t num)
 {
-	const uint8_t* mem=(const uint8_t*)memptr;
-	uint8_t neg=((uint8_t*)mem)[0];
-	mem++;
-	uint64_t num=size-1;
 	t->num=num;
 	t->size=num;
 	t->neg=neg;
 	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*num);
 	FKL_ASSERT(t->digits||!num);
-	for(uint64_t i=0;i<num;i++)
-	{
-		uint8_t n=((uint8_t*)mem)[i];
-		t->digits[i]=n;
-	}
+	memcpy(t->digits,memptr,num);
 }
 
 void fklUninitBigInt(FklBigInt* bi)
@@ -570,15 +562,35 @@ void fklUninitBigInt(FklBigInt* bi)
 	bi->size=0;
 }
 
-FklBigInt* fklCreateBigIntFromMem(const void* mem,size_t size)
+FklBigInt* fklCreateBigIntFromMemCopy(uint8_t neg,const uint8_t* mem,size_t size)
 {
-	if(size<2)
+	if(size<1)
 		return NULL;
-	if(((uint8_t*)mem)[0]>1)
+	if(neg>1)
 		return NULL;
 	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
 	FKL_ASSERT(t);
-	fklInitBigIntFromMem(t,mem,size);
+	fklInitBigIntFromMemCopy(t,neg,mem,size);
+	return t;
+}
+
+void fklInitBigIntFromMem(FklBigInt* t,uint8_t neg,uint8_t* memptr,size_t num)
+{
+	t->num=num;
+	t->size=num;
+	t->neg=neg;
+	t->digits=memptr;
+}
+
+FklBigInt* fklCreateBigIntFromMem(uint8_t neg,uint8_t* mem,size_t size)
+{
+	if(size<1)
+		return NULL;
+	if(neg>1)
+		return NULL;
+	FklBigInt* t=(FklBigInt*)malloc(sizeof(FklBigInt));
+	FKL_ASSERT(t);
+	fklInitBigIntFromMem(t,neg,mem,size);
 	return t;
 }
 

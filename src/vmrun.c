@@ -100,8 +100,8 @@ static int is_last_expression(FklVMframe* frame)
 		FklInstruction* end=fklGetCompoundFrameEnd(frame);
 
 		if(pc[-1].op!=FKL_OP_TAIL_CALL)
-			for(;pc<end;pc+=get_next_code(pc))
-				if(pc->op!=FKL_OP_JMP&&pc->op!=FKL_OP_CLOSE_REF&&pc->op!=FKL_OP_RET)
+			for(;pc<end&&pc->op!=FKL_OP_RET;pc+=get_next_code(pc))
+				if(pc->op!=FKL_OP_JMP&&pc->op!=FKL_OP_CLOSE_REF)
 					return 0;
 		frame->c.tail=1;
 	}
@@ -1386,12 +1386,6 @@ static inline void B_list_push(BYTE_CODE_ARGS)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-push",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 }
 
-static inline void init_import_env(FklVMframe* frame,FklVMlib* plib,FklVM* exe)
-{
-	fklAddCompoundFrameCp(frame,-1);
-	callCompoundProcdure(exe,plib->proc);
-}
-
 static inline void B_import(BYTE_CODE_ARGS)
 {
 	uint32_t locIdx=ins->imm;
@@ -1412,7 +1406,7 @@ static inline void B_load_lib(BYTE_CODE_ARGS)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	}
 	else
-		init_import_env(exe->frames,plib,exe);
+		callCompoundProcdure(exe,plib->proc);
 }
 
 static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
@@ -1559,6 +1553,8 @@ static inline void B_export(BYTE_CODE_ARGS)
 	for(uint32_t i=0;i<rcount;i++)
 		fklDestroyVMvarRef(refs[i]);
 	free(refs);
+	exe->importingLib=lib;
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
 static inline void B_true(BYTE_CODE_ARGS)

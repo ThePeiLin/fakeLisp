@@ -157,6 +157,21 @@ void fklWriteSymbolTable(const FklSymbolTable* table,FILE* fp)
 		fwrite(table->idl[i]->symbol,table->idl[i]->symbol->size+sizeof(table->idl[i]->symbol->size),1,fp);
 }
 
+void fklLoadSymbolTable(FILE* fp,FklSymbolTable* table)
+{
+	uint64_t size=0;
+	fread(&size,sizeof(size),1,fp);
+	for(uint64_t i=0;i<size;i++)
+	{
+		uint64_t len=0;
+		fread(&len,sizeof(len),1,fp);
+		FklString* buf=fklCreateString(len,NULL);
+		fread(buf->str,len,1,fp);
+		fklAddSymbol(buf,table);
+		free(buf);
+	}
+}
+
 static inline void init_as_empty_pt(FklFuncPrototype* pt)
 {
 	pt->refs=NULL;
@@ -175,18 +190,6 @@ inline FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
 	return r;
 }
 
-FklSymbolDef* fklCreateSymbolDef(FklSid_t key,uint32_t scope,uint32_t idx,uint32_t cidx,uint8_t isLocal)
-{
-	FklSymbolDef* r=(FklSymbolDef*)malloc(sizeof(FklSymbolDef));
-	FKL_ASSERT(r);
-	r->k.id=key;
-	r->k.scope=scope;
-	r->idx=idx;
-	r->cidx=cidx;
-	r->isLocal=isLocal;
-	return r;
-}
-
 void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
@@ -198,8 +201,8 @@ void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 	if(p)
 	{
 		FklFuncPrototype* pts=p->pts;
-		uint32_t count=p->count;
-		for(uint32_t i=1;i<=count;i++)
+		uint32_t end=p->count+1;
+		for(uint32_t i=1;i<end;i++)
 			fklUninitFuncPrototype(&pts[i]);
 		free(pts);
 		free(p);
@@ -215,27 +218,34 @@ static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
 	fwrite(&def->isLocal,sizeof(def->isLocal),1,fp);
 }
 
-static inline void write_prototype(const FklFuncPrototype* pt,FILE* fp)
+static inline void write_prototype(const FklFuncPrototype* pt
+		,uint32_t builtin_symbol_num
+		,FILE* fp)
 {
+	uint8_t is_top=pt->is_top;
+	fwrite(&is_top,sizeof(is_top),1,fp);
 	uint32_t count=pt->lcount;
 	fwrite(&count,sizeof(count),1,fp);
 	count=pt->rcount;
-	 FklSymbolDef* defs=pt->refs;
+	FklSymbolDef* defs=pt->refs;
 	fwrite(&count,sizeof(count),1,fp);
-	for(uint32_t i=0;i<count;i++)
+	for(uint32_t i=is_top?builtin_symbol_num:0;i<count;i++)
 		write_symbol_def(&defs[i],fp);
 	fwrite(&pt->sid,sizeof(pt->sid),1,fp);
 	fwrite(&pt->fid,sizeof(pt->fid),1,fp);
 	fwrite(&pt->line,sizeof(pt->line),1,fp);
 }
 
-inline void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp)
+inline void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
+		,uint32_t builtin_symbol_num
+		,FILE* fp)
 {
 	uint32_t count=pts->count;
 	FklFuncPrototype* pta=pts->pts;
 	fwrite(&count,sizeof(count),1,fp);
-	for(uint32_t i=1;i<=count;i++)
-		write_prototype(&pta[i],fp);
+	uint32_t end=count+1;
+	for(uint32_t i=1;i<end;i++)
+		write_prototype(&pta[i],builtin_symbol_num,fp);
 }
 
 static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
@@ -247,24 +257,31 @@ static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
 	fread(&def->isLocal,sizeof(def->isLocal),1,fp);
 }
 
-static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
+static inline void load_prototype(FklFuncPrototype* pt
+		,uint32_t builtin_symbol_num
+		,FILE* fp)
 {
 	uint32_t count=0;
+	uint8_t is_top=0;
+	fread(&is_top,sizeof(is_top),1,fp);
+
+	pt->is_top=is_top;
 	fread(&count,sizeof(count),1,fp);
 	pt->lcount=count;
 	fread(&count,sizeof(count),1,fp);
 	pt->rcount=count;
-	FklSymbolDef* defs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*count);
+	FklSymbolDef* defs=(FklSymbolDef*)calloc(count,sizeof(FklSymbolDef));
 	FKL_ASSERT(defs||!count);
 	pt->refs=defs;
-	for(uint32_t i=0;i<count;i++)
+	for(uint32_t i=is_top?builtin_symbol_num:0;i<count;i++)
 		load_symbol_def(&defs[i],fp);
+
 	fread(&pt->sid,sizeof(pt->sid),1,fp);
 	fread(&pt->fid,sizeof(pt->fid),1,fp);
 	fread(&pt->line,sizeof(pt->line),1,fp);
 }
 
-inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
+inline FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp)
 {
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
@@ -272,7 +289,7 @@ inline FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 	FklFuncPrototype* pta=pts->pts;
 	FKL_ASSERT(pts||!count);
 	for(uint32_t i=1;i<=count;i++)
-		load_prototype(&pta[i],fp);
+		load_prototype(&pta[i],builtin_symbol_num,fp);
 	return pts;
 }
 

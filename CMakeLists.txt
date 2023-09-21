@@ -16,6 +16,7 @@ if(MSVC)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
 endif()
+
 set(CMAKE_C_STANDARD 11)
 
 if(WIN32)
@@ -36,6 +37,10 @@ set(VMPARSE vmparse)
 #project setting
 project(${INTERPRETER_TARGET_NAME})
 include_directories("${PROJECT_SOURCE_DIR}/include")
+
+#argtable3
+include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 
 #set source file for taget
 file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")
@@ -90,7 +95,7 @@ add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 #linking
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${GRAMMER_GEN} ${LINK_TARGET})
 

@@ -473,40 +473,26 @@ char* fklCopyCstr(const char* str)
 
 }
 
-
-
-int fklIsscript(const char* filename)
+static inline int check_file_ext(const char* filename,const char* ext)
 {
 	size_t i=strlen(filename);
-	for(;i>0;i--)
-		if(filename[i-1]=='.')
-			break;
-	size_t lenOfExtension=strlen(filename+i);
-	if(lenOfExtension!=3)
-		return 0;
-	else
-		return !strcmp(filename+i,"fkl");
+	for(;i>0&&filename[i-1]!='.';i--);
+	return i>0&&!strcmp(filename+i-1,ext);
 }
 
-int fklIscode(const char* filename)
+int fklIsScriptFile(const char* filename)
 {
-	int i;
-	int len=strlen(filename);
-	for(i=len;i>=0;i--)if(filename[i]=='.')break;
-	int lenOfExtension=strlen(filename+i);
-	if(lenOfExtension!=5)return 0;
-	else return !strcmp(filename+i,".fklc");
+	return check_file_ext(filename,FKL_SCRIPT_FILE_EXTENSION);
 }
 
-uint8_t fklCastCharInt(char ch)
+int fklIsByteCodeFile(const char* filename)
 {
-	if(isdigit(ch))return ch-'0';
-	else if(isxdigit(ch))
-	{
-		if(ch>='a'&&ch<='f')return 10+ch-'a';
-		else if(ch>='A'&&ch<='F')return 10+ch-'A';
-	}
-	return 0;
+	return check_file_ext(filename,FKL_BYTECODE_FILE_EXTENSION);
+}
+
+int fklIsPrecompileFile(const char* filename)
+{
+	return check_file_ext(filename,FKL_PRE_COMPILE_FILE_EXTENSION);
 }
 
 void* fklCopyMemory(const void* pm,size_t size)
@@ -575,7 +561,7 @@ char* fklGetStringFromFile(FILE* file)
 	return tmp;
 }
 
-char* fklRelpath(const char* abs,const char* relto)
+char* fklRelpath(const char* real_dir,const char* relative)
 {
 	char divstr[]=FKL_PATH_SEPARATOR_STR;
 #ifdef _WIN32
@@ -583,8 +569,8 @@ char* fklRelpath(const char* abs,const char* relto)
 #else
 	char upperDir[]="../";
 #endif
-	char* cabs=fklCopyCstr(abs);
-	char* crelto=fklCopyCstr(relto);
+	char* cabs=fklCopyCstr(real_dir);
+	char* crelto=fklCopyCstr(relative);
 	int lengthOfAbs=0;
 	int lengthOfRelto=0;
 	char** absDirs=fklSplit(cabs,divstr,&lengthOfAbs);
@@ -652,14 +638,6 @@ size_t fklCountCharInBuf(const char* buf,size_t n,char c)
 		if(buf[i]==c)
 			num++;
 	return num;
-}
-
-int fklIsAllSpace(const char* str)
-{
-	for(;*str;str++)
-		if(!isspace(*str))
-			return 0;
-	return 1;
 }
 
 char* fklStrCat(char* s1,const char* s2)
@@ -872,6 +850,11 @@ int fklIsAccessableDirectory(const char* p)
 int fklIsAccessableRegFile(const char* p)
 {
 	return !access(p,R_OK)&&fklIsRegFile(p);
+}
+
+int fklMkdir(const char* dir)
+{
+	return mkdir(dir,S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH);
 }
 
 void fklDestroyDll(FklDllHandle handle)

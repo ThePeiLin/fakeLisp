@@ -66,11 +66,13 @@ typedef struct FklNastNode
 
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line);
 
+FklNastNode* fklCopyNastNode(const FklNastNode*);
+
 void fklDestroyNastNode(FklNastNode*);
 
 void fklPrintNastNode(const FklNastNode* node
 		,FILE* fp
-		,FklSymbolTable*);
+		,const FklSymbolTable*);
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
 

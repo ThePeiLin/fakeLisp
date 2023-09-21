@@ -684,9 +684,9 @@ inline int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	else if(FKL_IS_BIG_INT(a)&&FKL_IS_BIG_INT(b))
 		r=fklCmpBigInt(FKL_VM_BI(a),FKL_VM_BI(b));
 	else if(FKL_IS_BIG_INT(a)&&FKL_IS_FIX(b))
-		r=1;
+		r=fklCmpBigIntI(FKL_VM_BI(a),FKL_GET_FIX(b));
 	else if(FKL_IS_FIX(a)&&FKL_IS_BIG_INT(b))
-		return -1;
+		r=-1*(fklCmpBigIntI(FKL_VM_BI(b),FKL_GET_FIX(a)));
 	else if(FKL_IS_STR(a)&&FKL_IS_STR(b))
 		r=fklStringCmp(FKL_VM_STR(a),FKL_VM_STR(b));
 	else if(FKL_IS_BYTEVECTOR(a)&&FKL_IS_BYTEVECTOR(a))

@@ -23,3 +23,8 @@
 *.fklc
 !README.md
 !README_ZH.md
+
+!/3rd/
+!/3rd/*
+!/3rd/**/
+!/3rd/**/*

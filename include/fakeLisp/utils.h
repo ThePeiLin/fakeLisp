@@ -15,16 +15,34 @@ extern "C" {
 #ifdef _WIN32
 #define FKL_PATH_SEPARATOR ('\\')
 #define FKL_PATH_SEPARATOR_STR ("\\")
+#define FKL_PATH_SEPARATOR_STR_LEN (1)
+
 #define FKL_DLL_FILE_TYPE (".dll")
+#define FKL_DLL_FILE_TYPE_STR_LEN (4)
+
 #include<windows.h>
 typedef HMODULE FklDllHandle;
 #else
 #define FKL_PATH_SEPARATOR ('/')
 #define FKL_PATH_SEPARATOR_STR ("/")
+#define FKL_PATH_SEPARATOR_STR_LEN (1)
+#endif
+
+#define FKL_PACKAGE_MAIN_FILE ("main.fkl")
+#define FKL_PRE_COMPILE_PACKAGE_MAIN_FILE ("main.fklp")
+
+#define FKL_SCRIPT_FILE_EXTENSION (".fkl")
+#define FKL_BYTECODE_FILE_EXTENSION (".fklc")
+#define FKL_PRE_COMPILE_FILE_EXTENSION (".fklp")
+
+#define FKL_BYTECODE_FKL_SUFFIX ("c")
+#define FKL_PRE_COMPILE_FKL_SUFFIX ("p")
+
 #define FKL_DLL_FILE_TYPE (".so")
+#define FKL_DLL_FILE_TYPE_STR_LEN (3)
+
 #include<dlfcn.h>
 typedef void* FklDllHandle;
-#endif
 
 #define FKL_DEFAULT_INC (32)
 #define FKL_THRESHOLD_SIZE (2048)
@@ -78,10 +96,10 @@ int fklCharBufToChar(const char*,size_t);
 
 char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize);
 
-uint8_t fklCastCharInt(char);
-int fklIsscript(const char*);
-int fklIscode(const char*);
-int fklIsAllSpace(const char*);
+int fklIsScriptFile(const char*);
+int fklIsByteCodeFile(const char*);
+int fklIsPrecompileFile(const char* filename);
+
 char* fklCopyCstr(const char*);
 void* fklCopyMemory(const void*,size_t);
 int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n);
@@ -90,7 +108,7 @@ char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char*,char*,int*);
 char* fklRealpath(const char*);
-char* fklRelpath(const char*,const char*);
+char* fklRelpath(const char* real_dir,const char* relative);
 
 int fklIsI64AddOverflow(int64_t a,int64_t b);
 int fklIsI64MulOverflow(int64_t a,int64_t b);
@@ -114,6 +132,7 @@ void fklSetMainFileRealPathWithCwd(void);
 int fklIsRegFile(const char* s);
 int fklIsDirectory(const char* s);
 
+int fklMkdir(const char* dir);
 int fklIsAccessableRegFile(const char* s);
 int fklIsAccessableDirectory(const char* s);
 

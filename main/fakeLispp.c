@@ -10,37 +10,7 @@
 #include<unistd.h>
 #endif
 
-static FklByteCode* loadByteCode(FILE*);
-static FklLineNumberTableItem* loadLineNumberTable(uint32_t* size,FILE* fp);
 static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs,FklSymbolTable*);
-
-FklByteCode* loadByteCode(FILE* fp)
-{
-	uint64_t size=0;
-	fread(&size,sizeof(uint64_t),1,fp);
-	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
-	FKL_ASSERT(tmp);
-	tmp->len=size;
-	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp->code||!size);
-	fread(tmp->code,size,1,fp);
-	return tmp;
-}
-
-static void loadSymbolTable(FILE* fp,FklSymbolTable* table)
-{
-	uint64_t size=0;
-	fread(&size,sizeof(size),1,fp);
-	for(uint64_t i=0;i<size;i++)
-	{
-		uint64_t len=0;
-		fread(&len,sizeof(len),1,fp);
-		FklString* buf=fklCreateString(len,NULL);
-		fread(buf->str,len,1,fp);
-		fklAddSymbol(buf,table);
-		free(buf);
-	}
-}
 
 static inline FklLineNumberTableItem* loadLineNumberTable(uint32_t* psize,FILE* fp)
 {
@@ -73,7 +43,7 @@ int main(int argc,char** argv)
 		return EXIT_FAILURE;
 	}
 	char* filename=argv[1];
-	if(fklIscode(filename))
+	if(fklIsByteCodeFile(filename))
 	{
 		if(!fklIsAccessableRegFile(filename))
 		{
@@ -92,26 +62,18 @@ int main(int argc,char** argv)
 			return EXIT_FAILURE;
 		}
 		FklSymbolTable* table=fklCreateSymbolTable();
-		loadSymbolTable(fp,table);
+		fklLoadSymbolTable(fp,table);
+		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp));
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
 		free(rp);
-		uint32_t line_numbers_num=0;
-		FklLineNumberTableItem* line_numbers=loadLineNumberTable(&line_numbers_num,fp);
-		FklByteCode* mainCode=loadByteCode(fp);
-		FklByteCodelnt bytecodelnt=
-		{
-			.ls=line_numbers_num,
-			.l=line_numbers,
-			.bc=mainCode,
-		};
-		fklPrintByteCodelnt(&bytecodelnt,stdout,table);
+
+		FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
+		fklPrintByteCodelnt(bcl,stdout,table);
 		fputc('\n',stdout);
-		fklDestroyByteCode(mainCode);
-		free(line_numbers);
+		fklDestroyByteCodelnt(bcl);
 		FklCodegenLib* libs=NULL;
 		size_t num=0;
-		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
 		loadLib(fp,&num,&libs,table);
 		for(size_t i=0;i<num;i++)
 		{
@@ -144,7 +106,7 @@ int main(int argc,char** argv)
 	return 0;
 }
 
-static void dll_init(size_t* _,FklSid_t** __,FklSymbolTable* ___)
+static void dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
 {
 }
 
@@ -152,7 +114,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 {
 	fread(pnum,sizeof(uint64_t),1,fp);
 	size_t num=*pnum;
-	FklCodegenLib* libs=(FklCodegenLib*)malloc(sizeof(FklCodegen)*num);
+	FklCodegenLib* libs=(FklCodegenLib*)malloc(sizeof(FklCodegenInfo)*num);
 	FKL_ASSERT(libs||!num);
 	*plibs=libs;
 	for(size_t i=0;i<num;i++)
@@ -165,7 +127,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			fread(&protoId,sizeof(protoId),1,fp);
 			FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
 			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
-			FklByteCode* bc=loadByteCode(fp);
+			FklByteCode* bc=fklLoadByteCode(fp);
 			bcl->bc=bc;
 			fklInitCodegenScriptLib(&libs[i]
 					,NULL
@@ -182,7 +144,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			FKL_ASSERT(rp);
 			fread(rp,len,1,fp);
 			strcat(rp,FKL_DLL_FILE_TYPE);
-			fklInitCodegenDllLib(&libs[i],rp,NULL,table,dll_init,NULL);
+			fklInitCodegenDllLib(&libs[i],rp,NULL,NULL,dll_init,table);
 		}
 	}
 }

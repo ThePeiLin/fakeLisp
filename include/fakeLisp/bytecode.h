@@ -77,9 +77,9 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
 void fklCodeLntConcat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodeLntReverseConcat(FklByteCodelnt*,FklByteCodelnt*);
 
-void fklBclInsAppendToBcl(FklByteCodelnt* bcl,const FklInstruction* ins,FklSid_t fid,uint64_t line);
+void fklBytecodeLntPushFrontIns(FklByteCodelnt* bcl,const FklInstruction* ins,FklSid_t fid,uint64_t line);
 
-void fklInsBclAppendToBcl(const FklInstruction* ins,FklByteCodelnt* bcl,FklSid_t fid,uint64_t line);
+void fklBytecodeLntPushBackIns(const FklInstruction* ins,FklByteCodelnt* bcl,FklSid_t fid,uint64_t line);
 
 void fklByteCodeInsertFront(FklInstruction,FklByteCode* bc);
 
@@ -94,8 +94,8 @@ FklLineNumberTableItem* fklCreateLineNumTabNodeWithFilename(const char* filename
 		,uint64_t cpc
 		,uint32_t line
 		,FklSymbolTable* table);
-FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,FklLineNumberTableItem* l);
-void fklWriteLineNumberTable(FklLineNumberTableItem*,uint32_t num,FILE*);
+const FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,const FklLineNumberTableItem* l);
+void fklWriteLineNumberTable(const FklLineNumberTableItem*,uint32_t num,FILE*);
 void fklDBG_printByteCode(FklInstruction* code,uint64_t s,uint64_t c,FILE*);
 
 int16_t fklGetI16FromByteCode(uint8_t* code);
@@ -128,7 +128,14 @@ FklInstruction fklCreatePushNilIns(void);
 FklInstruction fklCreatePushStrIns(const FklString* str);
 FklInstruction fklCreatePushBvecIns(const FklBytevector* bvec);
 
+
 void fklLoadLineNumberTable(FILE* fp,FklLineNumberTableItem** plist,uint32_t* pnum);
+
+void fklWriteByteCode(const FklByteCode* bc,FILE* fp);
+FklByteCode* fklLoadByteCode(FILE* fp);
+
+void fklWriteByteCodelnt(const FklByteCodelnt* bcl,FILE* fp);
+FklByteCodelnt* fklLoadByteCodelnt(FILE* fp);
 
 #ifdef __cplusplus
 }

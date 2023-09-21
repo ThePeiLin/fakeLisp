@@ -1,5 +1,6 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
+#include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/codegen.h>
@@ -15,9 +16,7 @@
 #include<unistd.h>
 #endif
 
-static void runRepl(FklCodegen*);
-static FklByteCode* loadByteCode(FILE*);
-static void loadSymbolTable(FILE*,FklSymbolTable* table);
+static void runRepl(FklCodegenInfo*);
 static void loadLib(FILE*,uint64_t*,FklVMlib**,FklVM*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
 
@@ -40,16 +39,15 @@ static inline int compileAndRun(char* filename)
 	fklInitCodegenOuterCtx(&outer_ctx);
 	FklSymbolTable* pst=&outer_ctx.public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
-	FklCodegen codegen={.fid=0,};
+	FklCodegenInfo codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
 	fklSetMainFileRealPath(rp);
-	fklInitGlobalCodegener(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx);
+	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
 	{
-		fklDestroyFuncPrototypes(codegen.pts);
-		fklUninitCodegener(&codegen);
+		fklUninitCodegenInfo(&codegen);
 		fklUninitCodegenOuterCtx(&outer_ctx);
 		return FKL_EXIT_FAILURE;
 	}
@@ -62,6 +60,8 @@ static inline int compileAndRun(char* filename)
 	chdir(fklGetCwd());
 	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts);
+	codegen.globalSymTable=NULL;
+	codegen.pts=NULL;
 	anotherVM->libNum=codegen.loadedLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((loadedLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
@@ -84,11 +84,13 @@ static inline int compileAndRun(char* filename)
 			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
 	}
 
+	fklUninitCodegenInfo(&codegen);
+	fklUninitCodegenOuterCtx(&outer_ctx);
+
 	int r=fklRunVM(anotherVM);
+	fklDestroySymbolTable(anotherVM->symbolTable);
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
-	fklUninitCodegener(&codegen);
-	fklUninitCodegenOuterCtx(&outer_ctx);
 	return r;
 }
 
@@ -120,16 +122,14 @@ static inline int runCode(char* filename)
 		return FKL_EXIT_FAILURE;
 	}
 	FklSymbolTable* table=fklCreateSymbolTable();
-	loadSymbolTable(fp,table);
+	fklLoadSymbolTable(fp,table);
 	char* rp=fklRealpath(filename);
 	fklSetMainFileRealPath(rp);
 	free(rp);
-	FklByteCodelnt* mainCodelnt=fklCreateByteCodelnt(NULL);
-	fklLoadLineNumberTable(fp,&mainCodelnt->l,&mainCodelnt->ls);
-	FklByteCode* mainCode=loadByteCode(fp);
-	mainCodelnt->bc=mainCode;
+	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
+	FklByteCodelnt* mainCodelnt=fklLoadByteCodelnt(fp);
 
-	FklVM* anotherVM=fklCreateVM(mainCodelnt,table,fklLoadFuncPrototypes(fp));
+	FklVM* anotherVM=fklCreateVM(mainCodelnt,table,prototypes);
 
 	FklVMgc* gc=anotherVM->gc;
 	FklVMframe* mainframe=anotherVM->frames;
@@ -168,10 +168,10 @@ int main(int argc,char** argv)
 	{
 		FklCodegenOuterCtx outer_ctx;
 		fklSetMainFileRealPathWithCwd();
-		FklCodegen codegen={.fid=0,};
+		FklCodegenInfo codegen={.fid=0,};
 		fklInitCodegenOuterCtx(&outer_ctx);
 		FklSymbolTable* pst=&outer_ctx.public_symbol_table;
-		fklInitGlobalCodegener(&codegen,NULL,pst,0,&outer_ctx);
+		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx);
 		runRepl(&codegen);
 		codegen.globalSymTable=NULL;
 		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
@@ -184,14 +184,14 @@ int main(int argc,char** argv)
 			fklUninitCodegenLibInfo(lib);
 			free(lib);
 		}
-		fklUninitCodegener(&codegen);
+		fklUninitCodegenInfo(&codegen);
 		fklUninitCodegenOuterCtx(&outer_ctx);
 	}
 	else
 	{
-		if(fklIsscript(filename))
+		if(fklIsScriptFile(filename))
 			exitState=compileAndRun(filename);
-		else if(fklIscode(filename))
+		else if(fklIsByteCodeFile(filename))
 			exitState=runCode(filename);
 		else
 		{
@@ -216,7 +216,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-static void runRepl(FklCodegen* codegen)
+static void runRepl(FklCodegenInfo* codegen)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,codegen->pts);
 	anotherVM->libs=(FklVMlib*)calloc(1,sizeof(FklVMlib));
@@ -229,6 +229,7 @@ static void runRepl(FklCodegen* codegen)
 	FklVMgc* gc=anotherVM->gc;
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
+	codegen->pts=NULL;
 }
 
 static void loadLib(FILE* fp
@@ -250,10 +251,7 @@ static void loadLib(FILE* fp
 		{
 			uint32_t protoId=0;
 			fread(&protoId,sizeof(protoId),1,fp);
-			FklByteCodelnt* bcl=fklCreateByteCodelnt(NULL);
-			fklLoadLineNumberTable(fp,&bcl->l,&bcl->ls);
-			FklByteCode* bc=loadByteCode(fp);
-			bcl->bc=bc;
+			FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
 			FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,bcl);
 			fklInitVMlibWithCodeObj(&libs[i],codeObj,exe,protoId);
 			fklInitMainProcRefs(FKL_VM_PROC(libs[i].proc),lr->ref,lr->rcount);
@@ -270,30 +268,3 @@ static void loadLib(FILE* fp
 	}
 }
 
-static FklByteCode* loadByteCode(FILE* fp)
-{
-	uint64_t size=0;
-	fread(&size,sizeof(uint64_t),1,fp);
-	FklByteCode* tmp=(FklByteCode*)malloc(sizeof(FklByteCode));
-	FKL_ASSERT(tmp);
-	tmp->len=size;
-	tmp->code=(uint8_t*)malloc(sizeof(uint8_t)*size);
-	FKL_ASSERT(tmp->code||!size);
-	fread(tmp->code,size,1,fp);
-	return tmp;
-}
-
-static void loadSymbolTable(FILE* fp,FklSymbolTable* table)
-{
-	uint64_t size=0;
-	fread(&size,sizeof(size),1,fp);
-	for(uint64_t i=0;i<size;i++)
-	{
-		uint64_t len=0;
-		fread(&len,sizeof(len),1,fp);
-		FklString* buf=fklCreateString(len,NULL);
-		fread(buf->str,len,1,fp);
-		fklAddSymbol(buf,table);
-		free(buf);
-	}
-}

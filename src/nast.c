@@ -13,6 +13,84 @@ FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line)
 	return r;
 }
 
+FklNastNode* fklCopyNastNode(const FklNastNode* orig)
+{
+	FklPtrStack pending0;
+	FklPtrStack pending1;
+	fklInitPtrStack(&pending0,16,16);
+	fklInitPtrStack(&pending1,16,16);
+	FklNastNode* retval=NULL;
+	fklPushPtrStack((void*)orig,&pending0);
+	fklPushPtrStack(&retval,&pending1);
+	while(!fklIsPtrStackEmpty(&pending0))
+	{
+		const FklNastNode* top=fklPopPtrStack(&pending0);
+		FklNastNode** retval=fklPopPtrStack(&pending1);
+		FklNastNode* node=fklCreateNastNode(top->type,top->curline);
+		*retval=node;
+		switch(top->type)
+		{
+			case FKL_NAST_NIL:
+				break;
+			case FKL_NAST_CHR:
+				node->chr=top->chr;
+				break;
+			case FKL_NAST_FIX:
+				node->fix=top->fix;
+				break;
+			case FKL_NAST_F64:
+				node->f64=top->f64;
+				break;
+			case FKL_NAST_SLOT:
+			case FKL_NAST_SYM:
+				node->sym=top->sym;
+				break;
+			case FKL_NAST_STR:
+				node->str=fklCopyString(top->str);
+				break;
+			case FKL_NAST_BYTEVECTOR:
+				node->bvec=fklCopyBytevector(top->bvec);
+				break;
+			case FKL_NAST_BIG_INT:
+				node->bigInt=fklCopyBigInt(top->bigInt);
+				break;
+
+			case FKL_NAST_BOX:
+				fklPushPtrStack(top->box,&pending0);
+				fklPushPtrStack(&node->box,&pending1);
+				break;
+			case FKL_NAST_PAIR:
+				node->pair=fklCreateNastPair();
+				fklPushPtrStack(top->pair->car,&pending0);
+				fklPushPtrStack(top->pair->cdr,&pending0);
+				fklPushPtrStack(&node->pair->car,&pending1);
+				fklPushPtrStack(&node->pair->cdr,&pending1);
+				break;
+			case FKL_NAST_VECTOR:
+				node->vec=fklCreateNastVector(top->vec->size);
+				for(size_t i=0;i<top->vec->size;i++)
+				{
+					fklPushPtrStack(top->vec->base[i],&pending0);
+					fklPushPtrStack(&node->vec->base[i],&pending1);
+				}
+				break;
+			case FKL_NAST_HASHTABLE:
+				node->hash=fklCreateNastHash(top->hash->type,top->hash->num);
+				for(size_t i=0;i<top->hash->num;i++)
+				{
+					fklPushPtrStack(top->hash->items[i].car,&pending0);
+					fklPushPtrStack(top->hash->items[i].cdr,&pending0);
+					fklPushPtrStack(&node->hash->items[i].car,&pending1);
+					fklPushPtrStack(&node->hash->items[i].cdr,&pending1);
+				}
+				break;
+		}
+	}
+	fklUninitPtrStack(&pending0);
+	fklUninitPtrStack(&pending1);
+	return retval;
+}
+
 FklNastPair* fklCreateNastPair(void)
 {
 	FklNastPair* pair=(FklNastPair*)malloc(sizeof(FklNastPair));
@@ -167,7 +245,7 @@ static void destroyNastElem(NastElem* n)
 
 void fklPrintNastNode(const FklNastNode* exp
 		,FILE* fp
-		,FklSymbolTable* table)
+		,const FklSymbolTable* table)
 {
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack queueStack=FKL_STACK_INIT;

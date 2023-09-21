@@ -218,7 +218,7 @@ FklNastNode* fklCreatePatternFromNast(FklNastNode* node,FklHashTable** psymbolTa
 			&&is_valid_pattern_nast(node->pair->cdr->pair->car))
 	{
 		FklHashTable* symbolTable=fklCreateSidSet();
-		FklNastNode* exp=node->pair->cdr->pair->car;
+		FklNastNode* exp=fklCopyNastNode(node->pair->cdr->pair->car);
 		FklSid_t slotId=node->pair->car->sym;
 		FklNastNode* rest=exp->pair->cdr;
 
@@ -238,7 +238,8 @@ FklNastNode* fklCreatePatternFromNast(FklNastNode* node,FklHashTable** psymbolTa
 						fklDestroyHashTable(symbolTable);
 						fklUninitPtrStack(&stack);
 						*psymbolTable=NULL;
-						return 0;
+						fklDestroyNastNode(exp);
+						return NULL;
 					}
 					fklDestroyNastNode(c->pair->car);
 					fklDestroyNastNode(c->pair->cdr);

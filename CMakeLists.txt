@@ -144,6 +144,9 @@ add_test(NAME test-parser
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json)
 
+add_test(NAME test-pre-compile
+	COMMAND ${COMPILER_TARGET_NAME} -p test -d test-pre)
+
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)

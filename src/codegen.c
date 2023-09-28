@@ -9939,11 +9939,10 @@ static inline char* load_script_lib_path(const char* main_dir,FILE* fp)
 {
 	uint64_t len=0;
 	fread(&len,sizeof(len),1,fp);
-	uint64_t main_dir_len=strlen(main_dir)+FKL_PATH_SEPARATOR_STR_LEN;
+	uint64_t main_dir_len=strlen(main_dir);
 	char* relpath=(char*)calloc(1,sizeof(char)*(main_dir_len+len+1+1));
 	FKL_ASSERT(relpath);
 	strcpy(relpath,main_dir);
-	strcat(relpath,FKL_PATH_SEPARATOR_STR);
 	fread(&relpath[main_dir_len],len,1,fp);
 	strcat(relpath,FKL_PRE_COMPILE_FKL_SUFFIX);
 
@@ -10234,6 +10233,7 @@ inline int fklLoadPreCompile(FklCodegenInfo* info,FklSymbolTable* pst,const char
 	FILE* fp=fopen(rp,"rb");
 	FklSymbolTable ost;
 	char* main_dir=fklGetDir(rp);
+	main_dir=fklStrCat(main_dir,FKL_PATH_SEPARATOR_STR);
 
 	FklPtrStack loadedLibStack=FKL_STACK_INIT;
 	FklPtrStack macroLibStack=FKL_STACK_INIT;

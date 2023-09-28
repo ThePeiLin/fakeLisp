@@ -309,6 +309,9 @@ typedef struct FklCodegenQuest
 	FklCodegenNextExpression* nextExpression;
 }FklCodegenQuest;
 
+void fklInitExportSidIdxTable(FklHashTable* ht);
+FklHashTable* fklCreateCodegenReplacementTable(void);
+
 void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,const char* rp
 		,FklSymbolTable* globalSymTable

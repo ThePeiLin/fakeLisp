@@ -536,8 +536,8 @@ inline void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 	recompute_sid_for_prototypes(codegen->pts,origin_table,target_table);
 	recompute_sid_for_prototypes(codegen->macro_pts,origin_table,target_table);
 	recompute_sid_for_main_file(codegen,bcl,origin_table,target_table);
-	recompute_sid_for_lib_stack(codegen->loadedLibStack,origin_table,target_table);
-	recompute_sid_for_lib_stack(codegen->macroLibStack,origin_table,target_table);
+	recompute_sid_for_lib_stack(codegen->scriptLibStack,origin_table,target_table);
+	recompute_sid_for_lib_stack(codegen->macroScriptLibStack,origin_table,target_table);
 }
 
 static void _codegen_replacement_uninitItem(void* item)
@@ -911,11 +911,15 @@ inline int fklLoadPreCompile(FklCodegenInfo* info,FklSymbolTable* pst,const char
 	fklLoadSymbolTable(fp,&ost);
 
 	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
-	FklFuncPrototypes* pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
-	FklFuncPrototypes* macro_pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
+	FklFuncPrototypes* pts=NULL;
+	FklFuncPrototypes* macro_pts=NULL;
+
+	pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
 
 	if(load_imported_lib_stack(&loadedLibStack,&ost,main_dir,fp))
 		goto error;
+
+	macro_pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
 	if(load_macro_lib_stack(&macroLibStack,&ost,main_dir,fp))
 	{
 		while(!fklIsPtrStackEmpty(&macroLibStack))
@@ -936,16 +940,16 @@ error:
 
 	increase_prototype_and_lib_id(info->pts->count
 			,info->macro_pts->count
-			,info->loadedLibStack->top
-			,info->macroLibStack->top
+			,info->scriptLibStack->top
+			,info->macroScriptLibStack->top
 			,&loadedLibStack
 			,&macroLibStack);
 
 	for(uint32_t i=0;i<loadedLibStack.top;i++)
-		fklPushPtrStack(loadedLibStack.base[i],info->loadedLibStack);
+		fklPushPtrStack(loadedLibStack.base[i],info->scriptLibStack);
 
 	for(uint32_t i=0;i<macroLibStack.top;i++)
-		fklPushPtrStack(macroLibStack.base[i],info->macroLibStack);
+		fklPushPtrStack(macroLibStack.base[i],info->macroScriptLibStack);
 
 	merge_prototypes(info->pts,pts);
 	merge_prototypes(info->macro_pts,macro_pts);
@@ -955,7 +959,8 @@ exit:
 	fclose(fp);
 	free(main_dir);
 	fklDestroyFuncPrototypes(pts);
-	fklDestroyFuncPrototypes(macro_pts);
+	if(macro_pts)
+		fklDestroyFuncPrototypes(macro_pts);
 	fklUninitSymbolTable(&ost);
 	fklUninitPtrStack(&loadedLibStack);
 	return err;

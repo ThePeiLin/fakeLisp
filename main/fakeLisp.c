@@ -58,11 +58,11 @@ static inline int compileAndRun(char* filename)
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	chdir(fklGetCwd());
-	FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+	FklPtrStack* loadedLibStack=codegen.scriptLibStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts);
 	codegen.globalSymTable=NULL;
 	codegen.pts=NULL;
-	anotherVM->libNum=codegen.loadedLibStack->top;
+	anotherVM->libNum=codegen.scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((loadedLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 	FklVMframe* mainframe=anotherVM->frames;
@@ -174,7 +174,7 @@ int main(int argc,char** argv)
 		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx);
 		runRepl(&codegen);
 		codegen.globalSymTable=NULL;
-		FklPtrStack* loadedLibStack=codegen.loadedLibStack;
+		FklPtrStack* loadedLibStack=codegen.scriptLibStack;
 		while(!fklIsPtrStackEmpty(loadedLibStack))
 		{
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);

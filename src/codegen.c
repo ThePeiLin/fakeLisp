@@ -5292,7 +5292,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
 	char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
 	packageMainFileName=fklStrCat(packageMainFileName,FKL_PACKAGE_MAIN_FILE);
 
-	char* preCompileFileName=fklStrCat(fklCopyCstr(packageMainFileName),FKL_PRE_COMPILE_FKL_SUFFIX);
+	char* preCompileFileName=fklStrCat(fklCopyCstr(packageMainFileName),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
 	char* scriptFileName=fklStrCat(fklCopyCstr(filename),FKL_SCRIPT_FILE_EXTENSION);
 

@@ -204,7 +204,7 @@ static inline int pre_compile(const char* main_file_name
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 	FKL_ASSERT(outputname);
 	strcpy(outputname,rp);
-	strcat(outputname,FKL_PRE_COMPILE_FKL_SUFFIX);
+	strcat(outputname,FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 	if(output_dir)
 	{
 		if(!fklIsAccessableDirectory(output_dir))
@@ -266,7 +266,7 @@ static inline int compile(const char* filename,int argc,char* argv[],FklCodegenO
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 	FKL_ASSERT(outputname);
 	strcpy(outputname,rp);
-	strcat(outputname,FKL_BYTECODE_FKL_SUFFIX);
+	strcat(outputname,FKL_BYTECODE_FKL_SUFFIX_STR);
 	free(rp);
 	FILE* outfp=fopen(outputname,"wb");
 	if(!outfp)
@@ -317,6 +317,8 @@ struct arg_file* precompile;
 
 struct arg_file* dir;
 
+struct arg_file* output;
+
 struct arg_file* file;
 
 struct arg_end* end;
@@ -332,6 +334,7 @@ int main(int argc,char** argv)
 		help=arg_lit0("h","help","display this help and exit"),
 		precompile=arg_file0("p","pre","<package-name>","pre-compile package"),
 		dir=arg_file0("d","dir","<target-dir>","set pre-compile file target directory"),
+		output=arg_file0("o",NULL,"<file-name>","set bytecode file name"),
 		file=arg_filen(NULL,NULL,NULL,0,argc+2,"compile files"),
 		end=arg_end(20),
 	};

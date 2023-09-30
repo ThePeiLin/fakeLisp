@@ -613,7 +613,7 @@ static inline char* load_script_lib_path(const char* main_dir,FILE* fp)
 	FKL_ASSERT(relpath);
 	strcpy(relpath,main_dir);
 	fread(&relpath[main_dir_len],len,1,fp);
-	strcat(relpath,FKL_PRE_COMPILE_FKL_SUFFIX);
+	strcat(relpath,FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
 	return relpath;
 }

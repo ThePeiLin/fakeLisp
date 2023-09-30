@@ -35,8 +35,11 @@ typedef HMODULE FklDllHandle;
 #define FKL_BYTECODE_FILE_EXTENSION (".fklc")
 #define FKL_PRE_COMPILE_FILE_EXTENSION (".fklp")
 
-#define FKL_BYTECODE_FKL_SUFFIX ("c")
-#define FKL_PRE_COMPILE_FKL_SUFFIX ("p")
+#define FKL_BYTECODE_FKL_SUFFIX_STR ("c")
+#define FKL_PRE_COMPILE_FKL_SUFFIX_STR ("p")
+
+#define FKL_BYTECODE_FKL_SUFFIX ('c')
+#define FKL_PRE_COMPILE_FKL_SUFFIX ('p')
 
 #define FKL_DLL_FILE_TYPE (".so")
 #define FKL_DLL_FILE_TYPE_STR_LEN (3)

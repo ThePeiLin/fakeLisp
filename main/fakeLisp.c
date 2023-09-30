@@ -24,11 +24,6 @@ static int exitState=0;
 
 static inline int compileAndRun(char* filename)
 {
-	if(!fklIsAccessableRegFile(filename))
-	{
-		perror(filename);
-		return FKL_EXIT_FAILURE;
-	}
 	FILE* fp=fopen(filename,"r");
 	if(fp==NULL)
 	{
@@ -110,11 +105,6 @@ static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncProtot
 
 static inline int runCode(char* filename)
 {
-	if(!fklIsAccessableRegFile(filename))
-	{
-		perror(filename);
-		return FKL_EXIT_FAILURE;
-	}
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
 	{
@@ -157,6 +147,54 @@ static inline int runCode(char* filename)
 	return r;
 }
 
+static inline int runPreCompile(char* filename)
+{
+	FILE* fp=fopen(filename,"rb");
+	if(fp==NULL)
+	{
+		perror(filename);
+		return FKL_EXIT_FAILURE;
+	}
+	FklSymbolTable origin_table;
+	fklInitSymbolTable(&origin_table);
+	fklLoadSymbolTable(fp,&origin_table);
+	char* rp=fklRealpath(filename);
+	fklSetMainFileRealPath(rp);
+	free(rp);
+
+	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
+
+	FklByteCodelnt* main_byte_code=fklLoadByteCodelnt(fp);
+
+	fklUninitSymbolTable(&origin_table);
+
+	FklVM* anotherVM=fklCreateVM(main_byte_code,&origin_table,prototypes);
+
+	FklVMgc* gc=anotherVM->gc;
+	FklVMframe* mainframe=anotherVM->frames;
+
+	fklInitGlobalVMclosure(mainframe,anotherVM);
+	loadLib(fp
+			,&anotherVM->libNum
+			,&anotherVM->libs
+			,anotherVM
+			,fklGetCompoundFrameLocRef(anotherVM->frames));
+
+	fklInitMainVMframeWithProc(anotherVM
+			,mainframe
+			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
+			,NULL
+			,anotherVM->pts);
+
+	fclose(fp);
+
+	initLibWithPrototype(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
+	int r=fklRunVM(anotherVM);
+	fklDestroyAllVMs(anotherVM);
+	fklDestroyVMgc(gc);
+	return r;
+}
+
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:NULL;
@@ -189,26 +227,46 @@ int main(int argc,char** argv)
 	}
 	else
 	{
-		if(fklIsScriptFile(filename))
-			exitState=compileAndRun(filename);
-		else if(fklIsByteCodeFile(filename))
-			exitState=runCode(filename);
-		else
+		if(fklIsAccessableRegFile(filename))
 		{
-			FklStringBuffer buffer;
-			fklInitStringBuffer(&buffer);
-			fklStringBufferConcatWithCstr(&buffer,filename);
-			fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
-			fklStringBufferConcatWithCstr(&buffer,"main.fkl");
-
-			if(fklIsAccessableRegFile(buffer.buf))
-				exitState=compileAndRun(buffer.buf);
+			if(fklIsScriptFile(filename))
+				exitState=compileAndRun(filename);
+			else if(fklIsByteCodeFile(filename))
+				exitState=runCode(filename);
+			else if(fklIsPrecompileFile(filename))
+				exitState=runPreCompile(filename);
 			else
 			{
 				exitState=FKL_EXIT_FAILURE;
 				fprintf(stderr,"%s: It is not a correct file.\n",filename);
 			}
-			fklUninitStringBuffer(&buffer);
+		}
+		else
+		{
+			FklStringBuffer main_script_buf;
+			fklInitStringBuffer(&main_script_buf);
+
+			fklStringBufferConcatWithCstr(&main_script_buf,filename);
+			fklStringBufferConcatWithCstr(&main_script_buf,FKL_PATH_SEPARATOR_STR);
+			fklStringBufferConcatWithCstr(&main_script_buf,"main.fkl");
+
+			char* main_code_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_BYTECODE_FKL_SUFFIX_STR);
+			char* main_pre_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+
+			if(fklIsAccessableRegFile(main_script_buf.buf))
+				exitState=compileAndRun(main_script_buf.buf);
+			else if(fklIsAccessableRegFile(main_code_file))
+				exitState=runCode(main_code_file);
+			else if(fklIsAccessableRegFile(main_pre_file))
+				exitState=runPreCompile(main_pre_file);
+			else
+			{
+				exitState=FKL_EXIT_FAILURE;
+				fprintf(stderr,"%s: It is not a correct file.\n",filename);
+			}
+			fklUninitStringBuffer(&main_script_buf);
+			free(main_code_file);
+			free(main_pre_file);
 		}
 	}
 	fklDestroyMainFileRealPath();

@@ -50,10 +50,6 @@ typedef struct
 	FklVMvalue* sysErr;
 }PublicBuiltInData;
 
-static void _public_builtin_userdata_finalizer(FklVMudata* p)
-{
-}
-
 static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(d,PublicBuiltInData,ud);
@@ -67,7 +63,7 @@ static FklVMudMetaTable PublicBuiltInDataMetaTable=
 	.size=sizeof(PublicBuiltInData),
 	.__princ=NULL,
 	.__prin1=NULL,
-	.__finalizer=_public_builtin_userdata_finalizer,
+	.__finalizer=NULL,
 	.__equal=NULL,
 	.__call=NULL,
 	.__cmp=NULL,
@@ -1846,6 +1842,37 @@ static void do_nothing_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTab
 {
 }
 
+typedef struct
+{
+}EofUserData;
+
+static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklSymbolTable* table)
+{
+	fprintf(fp,"#<eof>");
+}
+
+static FklVMudMetaTable EofUserDataMetaTable=
+{
+	.size=sizeof(EofUserData),
+	.__princ=_eof_userdata_princ,
+	.__prin1=_eof_userdata_princ,
+	.__finalizer=NULL,
+	.__equal=NULL,
+	.__call=NULL,
+	.__cmp=NULL,
+	.__write=NULL,
+	.__atomic=NULL,
+	.__append=NULL,
+	.__copy=NULL,
+	.__length=NULL,
+	.__hash=NULL,
+};
+
+FklVMvalue* create_eof_value(FklVM* exe)
+{
+	return fklCreateVMvalueUdata(exe,&EofUserDataMetaTable,NULL);
+}
+
 static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
@@ -1901,7 +1928,7 @@ static void read_frame_step(FklCallObjData d,FklVM* exe)
 	if(rctx->symbolStack->top==0&&fklVMfpEof(vfp))
 	{
 		rctx->state=PARSE_DONE;
-		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		FKL_VM_PUSH_VALUE(exe,create_eof_value(exe));
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
@@ -4646,6 +4673,10 @@ static void builtin_hasheq_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQ(va
 static void builtin_hasheqv_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQV(val),"builtin.hash?")}
 static void builtin_hashequal_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQUAL(val),"builtin.hash?")}
 
+static void builtin_eof_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL_VM_UD(val)->t==&EofUserDataMetaTable,"builtin.eof?")}
+
+static void builtin_parser_p(FKL_DL_PROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL_VM_UD(val)->t==&CustomParserMetaTable,"builtin.parser?")}
+
 static void builtin_odd_p(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.odd?";
@@ -4983,6 +5014,7 @@ static const struct SymbolFuncStruct
 	{"parse",                 builtin_parse,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"unqstr",                builtin_unqstr,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,          NULL,          }, },
+	{"parser?",               builtin_parser_p,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"stringify",             builtin_stringify,               {NULL,         NULL,          NULL,          NULL,          }, },
 	{"prin1",                 builtin_prin1,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"princ",                 builtin_princ,                   {NULL,         NULL,          NULL,          NULL,          }, },
@@ -5014,6 +5046,7 @@ static const struct SymbolFuncStruct
 	{"reverse!",              builtin_reverse1,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof",                  builtin_feof,                    {NULL,         NULL,          NULL,          NULL,          }, },
+	{"eof?",                  builtin_eof_p,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"nthcdr",                builtin_nthcdr,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"tail",                  builtin_tail,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"char?",                 builtin_char_p,                  {NULL,         NULL,          NULL,          NULL,          }, },

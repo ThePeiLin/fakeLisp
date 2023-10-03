@@ -490,7 +490,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	{
 		for(;isspace(*ss);ss++);
 		for(len=0;ss[len]&&!isspace(ss[len]);len++);
-		if(ss[0]=='+')
+		if(ss[0]=='+'||ss[0]=='-')
 			joint_num++;
 		if(len)
 			fklPushPtrStack(fklCreateString(len,ss),&st);
@@ -499,19 +499,21 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	size_t prod_len=st.top-joint_num;
 	FklGrammerProduction* prod=fklCreateEmptyProduction(0,left,prod_len,name,func,NULL,fklProdCtxDestroyDoNothing,fklProdCtxCopyerDoNothing);
 	int next_delim=1;
+	int next_end_with_term=0;
 	size_t symIdx=0;
 	for(uint32_t i=0;i<st.top;i++)
 	{
 		FklGrammerSym* u=&prod->syms[symIdx];
 		u->isbuiltin=0;
-		u->delim=next_delim;
-		u->end_with_terminal=0;
-		next_delim=1;
 		FklString* s=st.base[i];
 		switch(*(s->str))
 		{
 			case '+':
 				next_delim=0;
+				continue;
+				break;
+			case '-':
+				next_end_with_term=1;
 				continue;
 				break;
 			case '#':
@@ -539,6 +541,10 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 				}
 				break;
 		}
+		u->delim=next_delim;
+		u->end_with_terminal=next_end_with_term;
+		next_end_with_term=0;
+		next_delim=1;
 		symIdx++;
 	}
 	while(!fklIsPtrStackEmpty(&st))
@@ -1239,6 +1245,37 @@ break_loop:
 		return len;
 	}
 	return 0;
+}
+
+static inline int is_terminal(const FklGrammer* g
+		,FklGrammerMatchOuterCtx* ctx
+		,const char* start
+		,const char* cur
+		,size_t restLen)
+{
+	if(restLen)
+	{
+		if(start==ctx->start&&cur==ctx->cur)
+			return ctx->maxNonterminalLen==0;
+		ctx->start=start;
+		ctx->cur=cur;
+		FklGrammerIgnore* ignores=g->ignores;
+		const FklString** terms=g->sortedTerminals;
+		size_t num=g->sortedTerminalsNum;
+		size_t len=0;
+		int is_waiting_for_more=0;
+		for(FklGrammerIgnore* ig=ignores;ig;ig=ig->next)
+		{
+			size_t matchLen=0;
+			if(ignore_match(ig,start,cur,restLen-len,&matchLen,ctx,&is_waiting_for_more))
+				return 1;
+		}
+		for(size_t i=0;i<num;i++)
+			if(fklStringCharBufMatch(terms[i],cur,restLen-len))
+				return 1;
+		return 0;
+	}
+	return 1;
 }
 
 static int builtin_match_dec_int_func(void* ctx
@@ -5052,6 +5089,70 @@ static inline void print_get_max_non_term_length_to_c_file(const FklGrammer* g,F
 			,fp);
 }
 
+static inline void print_is_terminal_prototype_to_c_file(FILE* fp)
+{
+	fputs("static inline int is_terminal(FklGrammerMatchOuterCtx*"
+			",const char*"
+			",const char*"
+			",size_t);\n",fp);
+}
+
+static inline void print_is_terminal_to_c_file(const FklGrammer* g,FILE* fp)
+{
+	fputs("static inline int is_terminal(FklGrammerMatchOuterCtx* outerCtx\n"
+			"\t\t,const char* start\n"
+			"\t\t,const char* cur\n"
+			"\t\t,size_t rLen)\n{\n"
+			"\tif(rLen)\n\t{\n"
+			"\t\tif(start==outerCtx->start&&cur==outerCtx->cur)\n\t\t\treturn outerCtx->maxNonterminalLen==0;\n"
+			"\t\touterCtx->start=start;\n\t\touterCtx->cur=cur;\n"
+			"\t\tsize_t matchLen=0;\n"
+			"\t\tsize_t otherMatchLen=0;\n"
+			"\t\tsize_t* restLen=&rLen;\n"
+			"\t\tconst char** in=&cur;\n"
+			"\t\tint is_waiting_for_more=0;\n"
+			"\t\t(void)is_waiting_for_more;\n"
+			"\t\t(void)otherMatchLen;\n"
+			"\t\t(void)restLen;\n"
+			"\t\t(void)in;\n"
+			"\t\tif(",fp);
+	if(g->ignores)
+	{
+		const FklGrammerIgnore* igns=g->ignores;
+		ignore_print_c_match_cond(igns,fp);
+		igns=igns->next;
+		for(;igns;igns=igns->next)
+		{
+			fputs("\n\t\t\t\t\t||",fp);
+			ignore_print_c_match_cond(igns,fp);
+		}
+	}
+	if(g->ignores&&g->sortedTerminalsNum)
+		fputs("\n\t\t\t\t\t||",fp);
+	if(g->sortedTerminalsNum)
+	{
+		size_t num=g->sortedTerminalsNum;
+		const FklString** terminals=g->sortedTerminals;
+		const FklString* cur=terminals[0];
+		fputs("(matchLen=fklCharBufMatch(\"",fp);
+		print_string_in_hex(cur,fp);
+		fprintf(fp,"\",%lu,*in+otherMatchLen,*restLen-otherMatchLen))",cur->size);
+		for(size_t i=1;i<num;i++)
+		{
+			fputs("\n\t\t\t\t\t||",fp);
+			const FklString* cur=terminals[i];
+			fputs("(matchLen=fklCharBufMatch(\"",fp);
+			print_string_in_hex(cur,fp);
+			fprintf(fp,"\",%lu,*in+otherMatchLen,*restLen-otherMatchLen))",cur->size);
+		}
+	}
+	fputs(")\n",fp);
+	fputs("\t\t\t\treturn 1;\n"
+			"\t\treturn 0;\n"
+			"\t}\n\treturn 1;\n}\n"
+			,fp);
+}
+
 static inline void print_state_action_match_to_c_file(const FklAnalysisStateAction* ac,FILE* fp)
 {
 	switch(ac->match.t)
@@ -5059,7 +5160,10 @@ static inline void print_state_action_match_to_c_file(const FklAnalysisStateActi
 		case FKL_LALR_MATCH_STRING_END_WITH_TERMINAL:
 			fputs("(matchLen=fklCharBufMatch(\"",fp);
 			print_string_in_hex(ac->match.str,fp);
-			fprintf(fp,"\",%lu,*in+otherMatchLen,*restLen-otherMatchLen)&&!get_max_non_term_length(outerCtx,start,*in+matchLen,*restLen-matchLen))",ac->match.str->size);
+			fprintf(fp,"\",%lu,*in+otherMatchLen,*restLen-otherMatchLen)&&is_terminal(outerCtx,start+%lu,*in+matchLen,*restLen-matchLen-%lu))"
+					,ac->match.str->size
+					,ac->match.str->size
+					,ac->match.str->size);
 			break;
 		case FKL_LALR_MATCH_STRING:
 			fputs("(matchLen=fklCharBufMatch(\"",fp);
@@ -5324,6 +5428,12 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 		fputc('\n',fp);
 	}
 
+	if(g->sortedTerminalsNum!=g->terminals.num)
+	{
+		print_is_terminal_prototype_to_c_file(fp);
+		fputc('\n',fp);
+	}
+
 	print_all_builtin_match_func(g,fp);
 	size_t stateNum=g->aTable.num;
 	const FklAnalysisState* states=g->aTable.states;
@@ -5332,6 +5442,13 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 		print_get_max_non_term_length_to_c_file(g,fp);
 		fputc('\n',fp);
 	}
+	
+	if(g->sortedTerminalsNum!=g->terminals.num)
+	{
+		print_is_terminal_to_c_file(g,fp);
+		fputc('\n',fp);
+	}
+
 	for(size_t i=0;i<stateNum;i++)
 		print_state_prototype_to_c_file(states,i,fp);
 	fputc('\n',fp);
@@ -5559,7 +5676,7 @@ inline int fklIsStateActionMatch(const FklAnalysisStateActionMatch* match
 			{
 				const FklString* laString=match->str;
 				if(fklStringCharBufMatch(laString,cstr,restLen)
-						&&!get_max_non_term_length(g,outerCtx,start,cstr+laString->size,restLen-laString->size))
+						&&is_terminal(g,outerCtx,start,cstr+laString->size,restLen-laString->size))
 				{
 					*matchLen=laString->size;
 					return 1;
@@ -6430,7 +6547,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*unqtesp* #~@ &*s-exp*",                                "prod_action_unqtesp",       prod_action_unqtesp,       },
 
 	{"*symbol* &%symbol + #|",                                "prod_action_symbol",        prod_action_symbol,        },
-	{"*string* &%string + #\"",                                "prod_action_string",       prod_action_string,        },
+	{"*string* &%string + #\"",                               "prod_action_string",        prod_action_string,        },
 
 	{"*integer* &%s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer,   },
 	{"*integer* &%s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer,   },

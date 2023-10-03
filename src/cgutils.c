@@ -3,7 +3,7 @@
 static inline FklSymbolDef* get_def_by_id_in_scope(FklSid_t id,uint32_t scopeId,FklCodegenEnvScope* scope)
 {
 	FklSidScope key={id,scopeId};
-	return fklGetHashItem(&key,scope->defs);
+	return fklGetHashItem(&key,&scope->defs);
 }
 
 FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
@@ -121,7 +121,7 @@ inline void fklPrintCodegenError(FklNastNode* obj
 
 uint32_t fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env)
 {
-	FklHashTable* ht=env->refs;
+	FklHashTable* ht=&env->refs;
 	uint32_t idx=ht->num;
 	FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 	FklSymbolDef* el=fklGetOrPutHashItem(&def,ht);
@@ -154,19 +154,19 @@ static void initSymbolDef(FklSymbolDef* def,uint32_t idx)
 	def->isLocal=0;
 }
 
-static inline FklSymbolDef* add_ref_per_penv(FklSid_t id
+static inline FklSymbolDef* add_ref_to_all_penv(FklSid_t id
 		,FklCodegenEnv* cur
 		,FklCodegenEnv* targetEnv)
 {
-	uint32_t idx=cur->refs->num;
+	uint32_t idx=cur->refs.num;
 	FklSymbolDef def=INIT_SYMBOL_DEF(id,cur->pscope,idx);
-	FklSymbolDef* cel=fklGetOrPutHashItem(&def,cur->refs);
+	FklSymbolDef* cel=fklGetOrPutHashItem(&def,&cur->refs);
 	for(cur=cur->prev;cur!=targetEnv;cur=cur->prev)
 	{
-		uint32_t idx=cur->refs->num;
+		uint32_t idx=cur->refs.num;
 		def.k.scope=cur->pscope;
 		initSymbolDef(&def,idx);
-		FklSymbolDef* nel=fklGetOrPutHashItem(&def,cur->refs);
+		FklSymbolDef* nel=fklGetOrPutHashItem(&def,&cur->refs);
 		cel->cidx=nel->idx;
 		cel=nel;
 	}
@@ -182,7 +182,7 @@ static inline FklSymbolDef* has_outer_ref(FklCodegenEnv* cur
 	for(;cur;cur=cur->prev)
 	{
 		key.scope=cur->pscope;
-		ref=fklGetHashItem(&key,cur->refs);
+		ref=fklGetHashItem(&key,&cur->refs);
 		if(ref)
 		{
 			*targetEnv=cur;
@@ -228,7 +228,7 @@ static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id
 
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
 {
-	FklHashTable* ht=env->refs;
+	FklHashTable* ht=&env->refs;
 	FklSidScope key={id,env->pscope};
 	FklSymbolDef* el=fklGetHashItem(&key,ht);
 	if(el)
@@ -236,32 +236,32 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 	else
 	{
 		uint32_t idx=ht->num;
-		FklCodegenEnv* cur=env->prev;
-		if(cur)
+		FklCodegenEnv* prev=env->prev;
+		if(prev)
 		{
 			FklCodegenEnv* targetEnv=NULL;
-			FklSymbolDef* targetDef=has_outer_def(cur,id,env->pscope,&targetEnv);
+			FklSymbolDef* targetDef=has_outer_def(prev,id,env->pscope,&targetEnv);
 			if(targetDef)
 			{
-				FklSymbolDef* cel=add_ref_per_penv(id,env,targetEnv);
+				FklSymbolDef* cel=add_ref_to_all_penv(id,env,targetEnv);
 				cel->isLocal=1;
 				cel->cidx=targetDef->idx;
 				targetEnv->slotFlags[targetDef->idx]=FKL_CODEGEN_ENV_SLOT_REF;
 			}
 			else
 			{
-				FklSymbolDef* targetRef=has_outer_ref(cur
+				FklSymbolDef* targetRef=has_outer_ref(prev
 						,id
 						,&targetEnv);
 				if(targetRef&&is_ref_solved(targetRef,targetEnv->prev))
-					add_ref_per_penv(id,env,targetEnv->prev);
+					add_ref_to_all_penv(id,env,targetEnv->prev);
 				else
 				{
 					FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 					FklSymbolDef* cel=fklGetOrPutHashItem(&def,ht);
-					cel->cidx=cur->refs->num;
+					cel->cidx=prev->refs.num;
 					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,def.k.scope,env->prototypeId,fid,line);
-					fklPushPtrStack(unref,&cur->uref);
+					fklPushPtrStack(unref,&prev->uref);
 				}
 			}
 		}
@@ -304,7 +304,7 @@ static inline uint32_t get_next_empty(uint32_t empty,uint8_t* flags,uint32_t lco
 uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* env)
 {
 	FklCodegenEnvScope* scope=&env->scopes[scopeId-1];
-	FklHashTable* ht=scope->defs;
+	FklHashTable* ht=&scope->defs;
 	FklSidScope key={id,scopeId};
 	FklSymbolDef* el=fklGetHashItem(&key,ht);
 	if(!el)

@@ -365,7 +365,7 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 	FklSymbolDef* ref=NULL;
 	while(env)
 	{
-		FklHashTableItem* list=env->refs->first;
+		FklHashTableItem* list=env->refs.first;
 		for(;list;list=list->next)
 		{
 			FklSymbolDef* def=(FklSymbolDef*)list->data;
@@ -548,11 +548,11 @@ static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
 	env->scopes=scopes;
 	FklCodegenEnvScope* newScope=&scopes[r-1];
 	newScope->p=p;
-	newScope->defs=fklCreateHashTable(&CodegenEnvHashMethodTable);
+	fklInitHashTable(&newScope->defs,&CodegenEnvHashMethodTable);
 	newScope->start=0;
 	newScope->end=0;
 	if(p)
-		newScope->start=scopes[p-1].defs->num+scopes[p-1].start;
+		newScope->start=scopes[p-1].defs.num+scopes[p-1].start;
 	newScope->empty=newScope->start;
 	return r;
 }
@@ -594,7 +594,7 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 	fklUninitPtrStack(&urefs1);
 }
 
-static inline int has_var_be_ref(uint8_t* flags
+static inline int reset_flag_and_check_var_be_refed(uint8_t* flags
 		,FklCodegenEnvScope* sc
 		,FklCodegenEnv* env
 		,FklFuncPrototypes* cp
@@ -638,17 +638,17 @@ static inline void append_close_ref(FklByteCodelnt* retval
 	fklBytecodeLntPushFrontIns(retval,&ins,fid,line);
 }
 
-static inline void close_ref_to_local_scope(FklByteCodelnt* retval
+static inline void check_and_close_ref(FklByteCodelnt* retval
 		,uint32_t scope
 		,FklCodegenEnv* env
-		,FklCodegenInfo* codegen
+		,FklFuncPrototypes* pts
 		,FklSid_t fid
 		,uint64_t line)
 {
 	FklCodegenEnvScope* cur=&env->scopes[scope-1];
 	uint32_t start=cur->start;
 	uint32_t end=start+1;
-	if(has_var_be_ref(env->slotFlags,cur,env,codegen->pts,&start,&end))
+	if(reset_flag_and_check_var_be_refed(env->slotFlags,cur,env,pts,&start,&end))
 		append_close_ref(retval,start,end,fid,line);
 }
 
@@ -656,7 +656,7 @@ BC_PROCESS(_local_exp_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* retval=sequnce_exp_bc_process(stack,fid,line);
-	close_ref_to_local_scope(retval,scope,env,codegen,fid,line);
+	check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
 	return retval;
 }
 
@@ -1347,7 +1347,7 @@ BC_PROCESS(_do1_bc_process)
 
 	fklCodeLntReverseConcat(init,value);
 	fklDestroyByteCodelnt(init);
-	close_ref_to_local_scope(value,scope,env,codegen,fid,line);
+	check_and_close_ref(value,scope,env,codegen->pts,fid,line);
 	return value;
 }
 
@@ -1501,7 +1501,7 @@ static inline FklSid_t get_sid_with_idx(FklCodegenEnvScope* sc
 		,FklSymbolTable* gs
 		,FklSymbolTable* ps)
 {
-	for(FklHashTableItem* l=sc->defs->first;l;l=l->next)
+	for(FklHashTableItem* l=sc->defs.first;l;l=l->next)
 	{
 		FklSymbolDef* def=(FklSymbolDef*)l->data;
 		if(def->idx==idx)
@@ -1550,7 +1550,7 @@ BC_PROCESS(_set_var_exp_bc_process)
 				uint32_t prototypeId=cur_ins->imm;
 				uint32_t idx=popVar_ins->imm_u32;
 				if(!codegen->pts->pts[prototypeId].sid)
-					codegen->pts->pts[prototypeId].sid=get_sid_with_ref_idx(env->refs
+					codegen->pts->pts[prototypeId].sid=get_sid_with_ref_idx(&env->refs
 							,idx
 							,codegen->globalSymTable
 							,&outer_ctx->public_symbol_table);
@@ -1721,8 +1721,8 @@ static inline void create_and_insert_to_pool(FklFuncPrototypes* cp
 	FklFuncPrototype* cpt=&pts[cp->count];
 	env->prototypeId=cp->count;
 	cpt->lcount=env->lcount;
-	cpt->refs=sid_ht_to_idx_key_ht(env->refs,globalSymTable,pst);
-	cpt->rcount=env->refs->num;
+	cpt->refs=sid_ht_to_idx_key_ht(&env->refs,globalSymTable,pst);
+	cpt->rcount=env->refs.num;
 	cpt->sid=sid;
 	cpt->fid=fid;
 	cpt->line=line;
@@ -1745,7 +1745,7 @@ BC_PROCESS(_named_let_set_var_exp_bc_process)
 		FklInstruction pushNil=create_op_ins(FKL_OP_PUSH_NIL);
 		fklBytecodeLntPushBackIns(&pushNil,popVar,fid,line);
 	}
-	close_ref_to_local_scope(popVar,scope,env,codegen,fid,line);
+	check_and_close_ref(popVar,scope,env,codegen->pts,fid,line);
 	return popVar;
 }
 
@@ -2038,7 +2038,7 @@ inline void fklUpdatePrototype(FklFuncPrototypes* cp
 	FklHashTable* eht=NULL;
 	pts->lcount=env->lcount;
 	process_unresolve_ref(env,cp);
-	eht=env->refs;
+	eht=&env->refs;
 	uint32_t count=eht->num;
 	FklSymbolDef* refs=(FklSymbolDef*)fklRealloc(pts->refs,sizeof(FklSymbolDef)*count);
 	FKL_ASSERT(refs||!count);
@@ -2072,7 +2072,7 @@ FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev
 	r->refcount=0;
 	r->lcount=0;
 	r->slotFlags=NULL;
-	r->refs=fklCreateHashTable(&CodegenEnvHashMethodTable);
+	fklInitHashTable(&r->refs,&CodegenEnvHashMethodTable);
 	fklInitPtrStack(&r->uref,8,8);
 	r->macros=make_macro_scope_ref(fklCreateCodegenMacroScope(macroScope));
 	if(prev)
@@ -2092,10 +2092,10 @@ void fklDestroyCodegenEnv(FklCodegenEnv* env)
 			uint32_t sc=cur->sc;
 			FklCodegenEnvScope* scopes=cur->scopes;
 			for(uint32_t i=0;i<sc;i++)
-				fklDestroyHashTable(scopes[i].defs);
+				fklUninitHashTable(&scopes[i].defs);
 			free(scopes);
 			free(cur->slotFlags);
-			fklDestroyHashTable(cur->refs);
+			fklUninitHashTable(&cur->refs);
 			FklPtrStack* unref=&cur->uref;
 			while(!fklIsPtrStackEmpty(unref))
 				free(fklPopPtrStack(unref));
@@ -2268,7 +2268,7 @@ static inline void mark_modify_builtin_ref(uint32_t idx
 	FklSymbolDef* ref=NULL;
 	while(env)
 	{
-		FklHashTableItem* list=env->refs->first;
+		FklHashTableItem* list=env->refs.first;
 		for(;list;list=list->next)
 		{
 			FklSymbolDef* def=(FklSymbolDef*)list->data;
@@ -2866,7 +2866,7 @@ BC_PROCESS(_cond_exp_bc_process_1)
 			fklDestroyByteCodelnt(cur);
 		}
 
-		close_ref_to_local_scope(retval,scope,env,codegen,fid,line);
+		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
 
 		fklBytecodeLntPushFrontIns(retval,&jmp,fid,line);
 		FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
@@ -3199,7 +3199,7 @@ BC_PROCESS(_when_exp_bc_process)
 			fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line);
 		fklCodeLntReverseConcat(cond,retval);
 		fklDestroyByteCodelnt(cond);
-		close_ref_to_local_scope(retval,scope,env,codegen,fid,line);
+		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
 		return retval;
 	}
 	else
@@ -3228,7 +3228,7 @@ BC_PROCESS(_unless_exp_bc_process)
 			fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line);
 		fklCodeLntReverseConcat(cond,retval);
 		fklDestroyByteCodelnt(cond);
-		close_ref_to_local_scope(retval,scope,env,codegen,fid,line);
+		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
 		return retval;
 	}
 	else
@@ -4454,7 +4454,7 @@ BC_PROCESS(_export_import_bc_process)
 	FklByteCodelnt* bcl=sequnce_exp_bc_process(stack,fid,line);
 	FklCodegenEnv* targetEnv=d->env;
 
-	FklHashTable* defs=env->scopes[0].defs;
+	FklHashTable* defs=&env->scopes[0].defs;
 
 	FklUintStack idPstack=FKL_STACK_INIT;
 	fklInitUintStack(&idPstack,defs->num,16);
@@ -9030,7 +9030,7 @@ static inline void update_prototype_ref(FklFuncPrototypes* cp
 		,FklSymbolTable* pst)
 {
 	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
-	FklHashTable* eht=env->refs;
+	FklHashTable* eht=&env->refs;
 	uint32_t count=eht->num;
 	FklSymbolDef* refs=(FklSymbolDef*)fklRealloc(pts->refs,sizeof(FklSymbolDef)*count);
 	FKL_ASSERT(refs||!count);

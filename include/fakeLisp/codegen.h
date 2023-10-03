@@ -20,7 +20,7 @@ typedef struct FklCodegenEnvScope
 	uint32_t start;
 	uint32_t empty;
 	uint32_t end;
-	FklHashTable* defs;
+	FklHashTable defs;
 }FklCodegenEnvScope;
 
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
@@ -38,7 +38,7 @@ typedef struct FklCodegenEnv
 	uint32_t prototypeId;
 
 	struct FklCodegenEnv* prev;
-	FklHashTable* refs;
+	FklHashTable refs;
 	struct FklCodegenMacroScope* macros;
 	size_t refcount;
 }FklCodegenEnv;

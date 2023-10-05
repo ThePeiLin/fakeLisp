@@ -179,34 +179,44 @@ static inline void init_as_empty_pt(FklFuncPrototype* pt)
 	pt->rcount=0;
 }
 
-inline FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
+inline void fklInitFuncPrototypes(FklFuncPrototypes* r,uint32_t count)
 {
-	FklFuncPrototypes* r=(FklFuncPrototypes*)malloc(sizeof(*r));
-	FKL_ASSERT(r);
 	r->count=count;
 	r->pts=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*(count+1));
 	FKL_ASSERT(r->pts);
 	init_as_empty_pt(r->pts);
+}
+
+inline FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
+{
+	FklFuncPrototypes* r=(FklFuncPrototypes*)malloc(sizeof(*r));
+	FKL_ASSERT(r);
+	fklInitFuncPrototypes(r,count);
 	return r;
 }
 
-void fklUninitFuncPrototype(FklFuncPrototype* p)
+inline void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
 	p->rcount=0;
 }
 
-void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
+inline void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 {
 	if(p)
 	{
-		FklFuncPrototype* pts=p->pts;
-		uint32_t end=p->count+1;
-		for(uint32_t i=1;i<end;i++)
-			fklUninitFuncPrototype(&pts[i]);
-		free(pts);
+		fklUninitFuncPrototypes(p);
 		free(p);
 	}
+}
+
+inline void fklUninitFuncPrototypes(FklFuncPrototypes* p)
+{
+	FklFuncPrototype* pts=p->pts;
+	uint32_t end=p->count+1;
+	for(uint32_t i=1;i<end;i++)
+		fklUninitFuncPrototype(&pts[i]);
+	free(pts);
 }
 
 static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)

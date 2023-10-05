@@ -427,6 +427,7 @@ FklCodegenLib* fklCreateCodegenDllLib(char* rp
 		,FklCodegenDllLibInitExportFunc init
 		,FklSymbolTable* pst);
 
+void fklDestroyCodegenLibExceptBclAndDll(FklCodegenLib* clib);
 void fklDestroyCodegenLib(FklCodegenLib*);
 
 FklCodegenMacro* fklCreateCodegenMacro(FklNastNode* pattern
@@ -488,7 +489,14 @@ void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* target_table);
 
-int fklLoadPreCompile(FklCodegenInfo* info,FklSymbolTable* pst,const char* rp);
+int fklLoadPreCompile(FklFuncPrototypes* pts
+		,FklFuncPrototypes* macro_pts
+		,FklPtrStack* scriptLibStack
+		,FklPtrStack* macroScriptLibStack
+		,FklSymbolTable* gst
+		,FklSymbolTable* pst
+		,const char* rp
+		,FILE* fp);
 
 #ifdef __cplusplus
 }

@@ -5333,7 +5333,14 @@ static inline void codegen_import_helper(FklNastNode* origExp
 		size_t libId=check_loaded_lib(preCompileFileName,codegen->scriptLibStack);
 		if(!libId)
 		{
-			if(fklLoadPreCompile(codegen,pst,preCompileFileName))
+			if(fklLoadPreCompile(codegen->pts
+						,codegen->macro_pts
+						,codegen->scriptLibStack
+						,codegen->macroScriptLibStack
+						,codegen->globalSymTable
+						,pst
+						,preCompileFileName
+						,NULL))
 			{
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_IMPORTFAILED;
@@ -8871,6 +8878,13 @@ inline void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
 	fklInitVMlib(vlib,val);
 }
 
+inline void fklDestroyCodegenLibExceptBclAndDll(FklCodegenLib* clib)
+{
+	fklDestroyCodegenLibMacroScope(clib);
+	fklUninitCodegenLibInfo(clib);
+	free(clib);
+}
+
 inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
@@ -8891,9 +8905,7 @@ inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	}
 	fklInitVMlib(vlib,val);
 
-	fklDestroyCodegenLibMacroScope(clib);
-	fklUninitCodegenLibInfo(clib);
-	free(clib);
+	fklDestroyCodegenLibExceptBclAndDll(clib);
 }
 
 typedef struct

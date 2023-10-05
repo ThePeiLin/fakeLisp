@@ -87,6 +87,9 @@ typedef struct //unresolved symbol ref
 	uint64_t line;
 }FklUnReSymbolRef;
 
+void fklInitFuncPrototypes(FklFuncPrototypes* pts,uint32_t count);
+void fklUninitFuncPrototypes(FklFuncPrototypes* pts);
+
 FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count);
 
 void fklWriteFuncPrototypes(const FklFuncPrototypes* pts

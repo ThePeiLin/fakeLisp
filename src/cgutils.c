@@ -896,16 +896,29 @@ static inline void merge_prototypes(FklFuncPrototypes* o,const FklFuncPrototypes
 	}
 }
 
-inline int fklLoadPreCompile(FklCodegenInfo* info,FklSymbolTable* pst,const char* rp)
+inline int fklLoadPreCompile(FklFuncPrototypes* info_pts
+		,FklFuncPrototypes* info_macro_pts
+		,FklPtrStack* info_scriptLibStack
+		,FklPtrStack* info_macroScriptLibStack
+		,FklSymbolTable* gst
+		,FklSymbolTable* pst
+		,const char* rp
+		,FILE* fp)
 {
+	int need_open=fp==NULL;
+	if(need_open)
+	{
+		fp=fopen(rp,"rb");
+		if(fp==NULL)
+			return 1;
+	}
 	int err=0;
-	FILE* fp=fopen(rp,"rb");
 	FklSymbolTable ost;
 	char* main_dir=fklGetDir(rp);
 	main_dir=fklStrCat(main_dir,FKL_PATH_SEPARATOR_STR);
 
-	FklPtrStack loadedLibStack=FKL_STACK_INIT;
-	FklPtrStack macroLibStack=FKL_STACK_INIT;
+	FklPtrStack scriptLibStack=FKL_STACK_INIT;
+	FklPtrStack macroScriptLibStack=FKL_STACK_INIT;
 
 	fklInitSymbolTable(&ost);
 	fklLoadSymbolTable(fp,&ost);
@@ -916,53 +929,54 @@ inline int fklLoadPreCompile(FklCodegenInfo* info,FklSymbolTable* pst,const char
 
 	pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
 
-	if(load_imported_lib_stack(&loadedLibStack,&ost,main_dir,fp))
+	if(load_imported_lib_stack(&scriptLibStack,&ost,main_dir,fp))
 		goto error;
 
 	macro_pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
-	if(load_macro_lib_stack(&macroLibStack,&ost,main_dir,fp))
+	if(load_macro_lib_stack(&macroScriptLibStack,&ost,main_dir,fp))
 	{
-		while(!fklIsPtrStackEmpty(&macroLibStack))
-			fklDestroyCodegenLib(fklPopPtrStack(&macroLibStack));
-		fklUninitPtrStack(&macroLibStack);
+		while(!fklIsPtrStackEmpty(&macroScriptLibStack))
+			fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
+		fklUninitPtrStack(&macroScriptLibStack);
 error:
-		while(!fklIsPtrStackEmpty(&loadedLibStack))
-			fklDestroyCodegenLib(fklPopPtrStack(&loadedLibStack));
+		while(!fklIsPtrStackEmpty(&scriptLibStack))
+			fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
 		err=1;
 		goto exit;
 	}
 
-	recompute_sid_for_prototypes(pts,&ost,info->globalSymTable);
+	recompute_sid_for_prototypes(pts,&ost,gst);
 	recompute_sid_for_prototypes(macro_pts,&ost,pst);
 
-	recompute_sid_for_double_st_lib_stack(&loadedLibStack,&ost,info->globalSymTable,pst);
-	recompute_sid_for_lib_stack(&macroLibStack,&ost,pst);
+	recompute_sid_for_double_st_lib_stack(&scriptLibStack,&ost,gst,pst);
+	recompute_sid_for_lib_stack(&macroScriptLibStack,&ost,pst);
 
-	increase_prototype_and_lib_id(info->pts->count
-			,info->macro_pts->count
-			,info->scriptLibStack->top
-			,info->macroScriptLibStack->top
-			,&loadedLibStack
-			,&macroLibStack);
+	increase_prototype_and_lib_id(info_pts->count
+			,info_macro_pts->count
+			,info_scriptLibStack->top
+			,info_macroScriptLibStack->top
+			,&scriptLibStack
+			,&macroScriptLibStack);
 
-	for(uint32_t i=0;i<loadedLibStack.top;i++)
-		fklPushPtrStack(loadedLibStack.base[i],info->scriptLibStack);
+	for(uint32_t i=0;i<scriptLibStack.top;i++)
+		fklPushPtrStack(scriptLibStack.base[i],info_scriptLibStack);
 
-	for(uint32_t i=0;i<macroLibStack.top;i++)
-		fklPushPtrStack(macroLibStack.base[i],info->macroScriptLibStack);
+	for(uint32_t i=0;i<macroScriptLibStack.top;i++)
+		fklPushPtrStack(macroScriptLibStack.base[i],info_macroScriptLibStack);
 
-	merge_prototypes(info->pts,pts);
-	merge_prototypes(info->macro_pts,macro_pts);
+	merge_prototypes(info_pts,pts);
+	merge_prototypes(info_macro_pts,macro_pts);
 
-	fklUninitPtrStack(&macroLibStack);
+	fklUninitPtrStack(&macroScriptLibStack);
 exit:
-	fclose(fp);
+	if(need_open)
+		fclose(fp);
 	free(main_dir);
 	fklDestroyFuncPrototypes(pts);
 	if(macro_pts)
 		fklDestroyFuncPrototypes(macro_pts);
 	fklUninitSymbolTable(&ost);
-	fklUninitPtrStack(&loadedLibStack);
+	fklUninitPtrStack(&scriptLibStack);
 	return err;
 }
 

@@ -4,6 +4,7 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/codegen.h>
+#include<fakeLisp/symbol.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -53,12 +54,12 @@ static inline int compileAndRun(char* filename)
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	chdir(fklGetCwd());
-	FklPtrStack* loadedLibStack=codegen.scriptLibStack;
+	FklPtrStack* scriptLibStack=codegen.scriptLibStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts);
 	codegen.globalSymTable=NULL;
 	codegen.pts=NULL;
-	anotherVM->libNum=codegen.scriptLibStack->top;
-	anotherVM->libs=(FklVMlib*)calloc((loadedLibStack->top+1),sizeof(FklVMlib));
+	anotherVM->libNum=scriptLibStack->top;
+	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 	FklVMframe* mainframe=anotherVM->frames;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
@@ -69,10 +70,10 @@ static inline int compileAndRun(char* filename)
 	FklVMCompoundFrameVarRef* lr=&mainframe->c.lr;
 
 	FklVMgc* gc=anotherVM->gc;
-	while(!fklIsPtrStackEmpty(loadedLibStack))
+	while(!fklIsPtrStackEmpty(scriptLibStack))
 	{
-		FklVMlib* curVMlib=&anotherVM->libs[loadedLibStack->top];
-		FklCodegenLib* cur=fklPopPtrStack(loadedLibStack);
+		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack->top];
+		FklCodegenLib* cur=fklPopPtrStack(scriptLibStack);
 		FklCodegenLibType type=cur->type;
 		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
@@ -155,43 +156,72 @@ static inline int runPreCompile(char* filename)
 		perror(filename);
 		return FKL_EXIT_FAILURE;
 	}
-	FklSymbolTable origin_table;
-	fklInitSymbolTable(&origin_table);
-	fklLoadSymbolTable(fp,&origin_table);
+	FklSymbolTable gst;
+	fklInitSymbolTable(&gst);
+	FklSymbolTable pst;
+	fklInitSymbolTable(&pst);
+
+	FklFuncPrototypes* pts=fklCreateFuncPrototypes(0);
+
+	FklFuncPrototypes macro_pts;
+	fklInitFuncPrototypes(&macro_pts,0);
+
+	FklPtrStack scriptLibStack;
+	fklInitPtrStack(&scriptLibStack,8,16);
+
+	FklPtrStack macroScriptLibStack;
+	fklInitPtrStack(&macroScriptLibStack,8,16);
+
 	char* rp=fklRealpath(filename);
-	fklSetMainFileRealPath(rp);
+	fklLoadPreCompile(pts
+			,&macro_pts
+			,&scriptLibStack
+			,&macroScriptLibStack
+			,&gst
+			,&pst
+			,rp
+			,fp);
+	fklUninitFuncPrototypes(&macro_pts);
+	while(!fklIsPtrStackEmpty(&macroScriptLibStack))
+		fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
+	fklUninitPtrStack(&macroScriptLibStack);
 	free(rp);
+	fclose(fp);
+	fklUninitSymbolTable(&pst);
 
-	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
+	FklCodegenLib* main_lib=fklPopPtrStack(&scriptLibStack);
+	FklByteCodelnt* main_byte_code=main_lib->bcl;
+	fklDestroyCodegenLibExceptBclAndDll(main_lib);
 
-	FklByteCodelnt* main_byte_code=fklLoadByteCodelnt(fp);
+	FklVM* anotherVM=fklCreateVM(main_byte_code,&gst,pts);
 
-	fklUninitSymbolTable(&origin_table);
-
-	FklVM* anotherVM=fklCreateVM(main_byte_code,&origin_table,prototypes);
-
-	FklVMgc* gc=anotherVM->gc;
+	anotherVM->libNum=scriptLibStack.top;
+	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack.top+1),sizeof(FklVMlib));
+	FKL_ASSERT(anotherVM->libs);
 	FklVMframe* mainframe=anotherVM->frames;
-
 	fklInitGlobalVMclosure(mainframe,anotherVM);
-	loadLib(fp
-			,&anotherVM->libNum
-			,&anotherVM->libs
-			,anotherVM
-			,fklGetCompoundFrameLocRef(anotherVM->frames));
-
-	fklInitMainVMframeWithProc(anotherVM
-			,mainframe
+	fklInitMainVMframeWithProc(anotherVM,mainframe
 			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
 			,NULL
 			,anotherVM->pts);
+	FklVMCompoundFrameVarRef* lr=&mainframe->c.lr;
 
-	fclose(fp);
+	FklVMgc* gc=anotherVM->gc;
+	while(!fklIsPtrStackEmpty(&scriptLibStack))
+	{
+		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack.top];
+		FklCodegenLib* cur=fklPopPtrStack(&scriptLibStack);
+		FklCodegenLibType type=cur->type;
+		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
+		if(type==FKL_CODEGEN_LIB_SCRIPT)
+			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
+	}
+	fklUninitPtrStack(&scriptLibStack);
 
-	initLibWithPrototype(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
 	int r=fklRunVM(anotherVM);
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
+	fklUninitSymbolTable(&gst);
 	return r;
 }
 

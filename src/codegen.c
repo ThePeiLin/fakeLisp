@@ -552,7 +552,7 @@ static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
 	newScope->start=0;
 	newScope->end=0;
 	if(p)
-		newScope->start=scopes[p-1].defs.num+scopes[p-1].start;
+		newScope->start=scopes[p-1].start+scopes[p-1].end;
 	newScope->empty=newScope->start;
 	return r;
 }

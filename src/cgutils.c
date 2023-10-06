@@ -606,16 +606,28 @@ void fklInitExportSidIdxTable(FklHashTable* ht)
 
 static inline char* load_script_lib_path(const char* main_dir,FILE* fp)
 {
-	uint64_t len=0;
-	fread(&len,sizeof(len),1,fp);
-	uint64_t main_dir_len=strlen(main_dir);
-	char* relpath=(char*)calloc(1,sizeof(char)*(main_dir_len+len+1+1));
-	FKL_ASSERT(relpath);
-	strcpy(relpath,main_dir);
-	fread(&relpath[main_dir_len],len,1,fp);
-	strcat(relpath,FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
+	fklStringBufferConcatWithCstr(&buf,main_dir);
+	int ch=fgetc(fp);
+	for(;;)
+	{
+		while(ch)
+		{
+			fklStringBufferPutc(&buf,ch);
+			ch=fgetc(fp);
+		}
+		fklStringBufferPutc(&buf,FKL_PATH_SEPARATOR);
+		ch=fgetc(fp);
+		if(!ch)
+			break;
+	}
 
-	return relpath;
+	fklStringBufferPutc(&buf,FKL_PRE_COMPILE_FKL_SUFFIX);
+
+	char* path=fklCopyCstr(buf.buf);
+	fklUninitStringBuffer(&buf);
+	return path;
 }
 
 static inline void load_export_sid_idx_table(FklHashTable* t,FILE* fp)
@@ -700,20 +712,28 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib* lib,FklSymbol
 
 static inline char* load_dll_lib_path(const char* main_dir,FILE* fp)
 {
-	uint64_t len=0;
-	fread(&len,sizeof(len),1,fp);
-	uint64_t main_dir_len=strlen(main_dir);
-	char* relpath=(char*)malloc(sizeof(char)*(main_dir_len+len+FKL_DLL_FILE_TYPE_STR_LEN+1));
-	FKL_ASSERT(relpath);
-	relpath[main_dir_len+len]='\0';
-	relpath[main_dir_len+len+FKL_DLL_FILE_TYPE_STR_LEN]='\0';
-	strcpy(relpath,main_dir);
-	fread(&relpath[main_dir_len],len,1,fp);
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
+	fklStringBufferConcatWithCstr(&buf,main_dir);
+	int ch=fgetc(fp);
+	for(;;)
+	{
+		while(ch)
+		{
+			fklStringBufferPutc(&buf,ch);
+			ch=fgetc(fp);
+		}
+		fklStringBufferPutc(&buf,FKL_PATH_SEPARATOR);
+		ch=fgetc(fp);
+		if(!ch)
+			break;
+	}
 
-	strcat(relpath,FKL_DLL_FILE_TYPE);
-	char* rp=fklRealpath(relpath);
-	free(relpath);
-	return rp;
+	fklStringBufferConcatWithCstr(&buf,FKL_DLL_FILE_TYPE);
+
+	char* path=fklCopyCstr(buf.buf);
+	fklUninitStringBuffer(&buf);
+	return path;
 }
 
 static inline int load_dll_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTable* st,const char* main_dir,FILE* fp)

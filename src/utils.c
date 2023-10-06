@@ -571,37 +571,38 @@ char* fklRelpath(const char* real_dir,const char* relative)
 #endif
 	char* cabs=fklCopyCstr(real_dir);
 	char* crelto=fklCopyCstr(relative);
-	int lengthOfAbs=0;
-	int lengthOfRelto=0;
-	char** absDirs=fklSplit(cabs,divstr,&lengthOfAbs);
-	char** reltoDirs=fklSplit(crelto,divstr,&lengthOfRelto);
-	int length=(lengthOfAbs<lengthOfRelto)?lengthOfAbs:lengthOfRelto;
-	int lastCommonRoot=-1;
-	int index;
+	size_t abs_path_part_count=0;
+	size_t rel_to_path_part_count=0;
+	char** absDirs=fklSplit(cabs,divstr,&abs_path_part_count);
+	char** reltoDirs=fklSplit(crelto,divstr,&rel_to_path_part_count);
+	size_t length=(abs_path_part_count<rel_to_path_part_count)?abs_path_part_count:rel_to_path_part_count;
+	size_t lastCommonRoot=0;
+	size_t index;
 	for(index=0;index<length;index++)
 	{
 		if(!strcmp(absDirs[index],reltoDirs[index]))
-			lastCommonRoot=index;
-		else break;
+			lastCommonRoot=index+1;
+		else
+			break;
 	}
 #ifdef _WIN32
-	if(lastCommonRoot==-1)
+	if(lastCommonRoot==0)
 	{
 		fprintf(stderr,"%s:Cant get relative path.\n",abs);
 		exit(EXIT_FAILURE);
 	}
 #endif
 	char rp[PATH_MAX]={0};
-	for(index=lastCommonRoot+1;index<lengthOfAbs;index++)
-		if(lengthOfAbs>0)
+	for(index=lastCommonRoot;index<abs_path_part_count;index++)
+		if(abs_path_part_count>0)
 			strcat(rp,upperDir);
-	for(index=lastCommonRoot+1;index<lengthOfRelto-1;index++)
+	for(index=lastCommonRoot;index<rel_to_path_part_count-1;index++)
 	{
 		strcat(rp,reltoDirs[index]);
 		strcat(rp,divstr);
 	}
 	if(reltoDirs!=NULL)
-		strcat(rp,reltoDirs[lengthOfRelto-1]);
+		strcat(rp,reltoDirs[rel_to_path_part_count-1]);
 	char* trp=fklCopyCstr(rp);
 	free(cabs);
 	free(crelto);
@@ -610,25 +611,23 @@ char* fklRelpath(const char* real_dir,const char* relative)
 	return trp;
 }
 
-char** fklSplit(char* str,char* divstr,int* length)
+char** fklSplit(char* str,const char* divstr,size_t* pcount)
 {
 	int count=0;
 	char* context=NULL;
 	char* pNext=NULL;
-	char** strArry=(char**)malloc(0);
-	FKL_ASSERT(strArry);
+	char** str_slices=NULL;
 	pNext=strtok_r(str,divstr,&context);
 	while(pNext!=NULL)
 	{
-		count++;
-		char** tstrArry=(char**)fklRealloc(strArry,sizeof(char*)*count);
+		char** tstrArry=(char**)fklRealloc(str_slices,sizeof(char*)*(count+1));
 		FKL_ASSERT(tstrArry);
-		strArry=tstrArry;
-		strArry[count-1]=pNext;
+		str_slices=tstrArry;
+		str_slices[count++]=pNext;
 		pNext=strtok_r(NULL,divstr,&context);
 	}
-	*length=count;
-	return strArry;
+	*pcount=count;
+	return str_slices;
 }
 
 size_t fklCountCharInBuf(const char* buf,size_t n,char c)

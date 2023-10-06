@@ -61,10 +61,17 @@ static inline void write_replacements(const FklHashTable* ht,const FklSymbolTabl
 static inline void write_codegen_script_lib_path(const char* rp,const char* main_dir,FILE* outfp)
 {
 	char* relpath=fklRelpath(main_dir,rp);
-	uint64_t len=strlen(relpath);
-	fwrite(&len,sizeof(uint64_t),1,outfp);
-	fwrite(relpath,len,1,outfp);
+	size_t count=0;
+	char** slices=fklSplit(relpath,FKL_PATH_SEPARATOR_STR,&count);
+
+	for(size_t i=0;i<count;i++)
+	{
+		fputs(slices[i],outfp);
+		fputc('\0',outfp);
+	}
+	fputc('\0',outfp);
 	free(relpath);
+	free(slices);
 }
 
 static inline void write_codegen_script_lib(const FklCodegenLib* lib,const FklSymbolTable* st,const char* main_dir,FILE* outfp)
@@ -80,10 +87,21 @@ static inline void write_codegen_script_lib(const FklCodegenLib* lib,const FklSy
 static inline void write_codegen_dll_lib_path(const FklCodegenLib* lib,const char* main_dir,FILE* outfp)
 {
 	char* relpath=fklRelpath(main_dir,lib->rp);
-	uint64_t len=strlen(relpath)-FKL_DLL_FILE_TYPE_STR_LEN;
-	fwrite(&len,sizeof(uint64_t),1,outfp);
-	fwrite(relpath,len,1,outfp);
+	size_t count=0;
+	char** slices=fklSplit(relpath,FKL_PATH_SEPARATOR_STR,&count);
+	count--;
+
+	for(size_t i=0;i<count;i++)
+	{
+		fputs(slices[i],outfp);
+		fputc('\0',outfp);
+	}
+	uint64_t len=strlen(slices[count])-FKL_DLL_FILE_TYPE_STR_LEN;
+	fwrite(slices[count],len,1,outfp);
+	fputc('\0',outfp);
+	fputc('\0',outfp);
 	free(relpath);
+	free(slices);
 }
 
 static inline void write_codegen_dll_lib(const FklCodegenLib* lib

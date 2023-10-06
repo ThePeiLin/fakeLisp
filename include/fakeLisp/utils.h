@@ -109,7 +109,7 @@ int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32
 int fklChangeWorkPath(const char*);
 char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
-char** fklSplit(char*,char*,int*);
+char** fklSplit(char* str,const char* divider,size_t*);
 char* fklRealpath(const char*);
 char* fklRelpath(const char* real_dir,const char* relative);
 

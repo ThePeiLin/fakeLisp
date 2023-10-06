@@ -82,6 +82,10 @@ static inline void write_codegen_script_lib(const FklCodegenLib* lib,const FklSy
 	write_export_sid_idx_table(&lib->exports,outfp);
 	write_compiler_macros(lib->head,st,outfp);
 	write_replacements(lib->replacements,st,outfp);
+	fklWriteNamedProds(lib->terminal_table
+			,&lib->named_prod_groups
+			,st
+			,outfp);
 }
 
 static inline void write_codegen_dll_lib_path(const FklCodegenLib* lib,const char* main_dir,FILE* outfp)
@@ -352,7 +356,7 @@ int main(int argc,char** argv)
 		help=arg_lit0("h","help","display this help and exit"),
 		precompile=arg_file0("p","pre","<package-name>","pre-compile package"),
 		dir=arg_file0("d","dir","<target-dir>","set pre-compile file target directory"),
-		output=arg_file0("o",NULL,"<file-name>","set bytecode file name"),
+		output=arg_file0("o",NULL,"<file-name>","set bytecode file base name"),
 		file=arg_filen(NULL,NULL,NULL,0,argc+2,"compile files"),
 		end=arg_end(20),
 	};

@@ -473,6 +473,11 @@ int fklLoadPreCompile(FklFuncPrototypes* pts
 		,const char* rp
 		,FILE* fp);
 
+void fklWriteNamedProds(const FklSymbolTable* tt
+		,const FklHashTable* named_prod_groups
+		,const FklSymbolTable* st
+		,FILE* fp);
+
 #ifdef __cplusplus
 }
 #endif

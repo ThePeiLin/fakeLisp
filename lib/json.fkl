@@ -30,7 +30,7 @@
       'null #[1 "null"] (lambda ($$ line) 'null)
       'bool #[1 "true"] (lambda ($$ line) 'true)
       'bool #[1 "false"] (lambda ($$ line) 'false)
-      'string #[%string "\"" "\""] (lambda ($$ line) (unqstr (vref $$ 0) #\"))
+      'string #[%string "\"" "\""] (lambda ($$ line) (parse (vref $$ 0)))
       'integer #[%dec-int] first->number
       'integer #[%hex-int] first->number
       'integer #[%oct-int] first->number

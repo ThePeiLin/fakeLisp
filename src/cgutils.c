@@ -536,8 +536,8 @@ inline void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 	recompute_sid_for_prototypes(codegen->pts,origin_table,target_table);
 	recompute_sid_for_prototypes(codegen->macro_pts,origin_table,target_table);
 	recompute_sid_for_main_file(codegen,bcl,origin_table,target_table);
-	recompute_sid_for_lib_stack(codegen->scriptLibStack,origin_table,target_table);
-	recompute_sid_for_lib_stack(codegen->macroScriptLibStack,origin_table,target_table);
+	recompute_sid_for_lib_stack(codegen->libStack,origin_table,target_table);
+	recompute_sid_for_lib_stack(codegen->macroLibStack,origin_table,target_table);
 }
 
 static void _codegen_replacement_uninitItem(void* item)
@@ -617,10 +617,10 @@ static inline char* load_script_lib_path(const char* main_dir,FILE* fp)
 			fklStringBufferPutc(&buf,ch);
 			ch=fgetc(fp);
 		}
-		fklStringBufferPutc(&buf,FKL_PATH_SEPARATOR);
 		ch=fgetc(fp);
 		if(!ch)
 			break;
+		fklStringBufferPutc(&buf,FKL_PATH_SEPARATOR);
 	}
 
 	fklStringBufferPutc(&buf,FKL_PRE_COMPILE_FKL_SUFFIX);
@@ -723,23 +723,25 @@ static inline char* load_dll_lib_path(const char* main_dir,FILE* fp)
 			fklStringBufferPutc(&buf,ch);
 			ch=fgetc(fp);
 		}
-		fklStringBufferPutc(&buf,FKL_PATH_SEPARATOR);
 		ch=fgetc(fp);
 		if(!ch)
 			break;
+		fklStringBufferPutc(&buf,FKL_PATH_SEPARATOR);
 	}
 
 	fklStringBufferConcatWithCstr(&buf,FKL_DLL_FILE_TYPE);
 
 	char* path=fklCopyCstr(buf.buf);
 	fklUninitStringBuffer(&buf);
-	return path;
+	char* rp=fklRealpath(path);
+	free(path);
+	return rp;
 }
 
 static inline int load_dll_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTable* st,const char* main_dir,FILE* fp)
 {
 	lib->rp=load_dll_lib_path(main_dir,fp);
-	if(!fklIsAccessableRegFile(lib->rp))
+	if(!lib->rp||!fklIsAccessableRegFile(lib->rp))
 	{
 		free(lib->rp);
 		return 1;

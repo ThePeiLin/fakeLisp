@@ -4381,7 +4381,7 @@ BC_PROCESS(_library_bc_process)
 	ExportContextData* data=context->data;
 	FklByteCodelnt* libBc=sequnce_exp_bc_process(data->stack,fid,line);
 
-	FklInstruction exportOpBc=create_op_imm_u32_ins(FKL_OP_EXPORT,codegen->scriptLibStack->top+1);
+	FklInstruction exportOpBc=create_op_imm_u32_ins(FKL_OP_EXPORT,codegen->libStack->top+1);
 	FklInstruction ret=create_op_ins(FKL_OP_RET);
 
 	fklBytecodeLntPushFrontIns(libBc,&exportOpBc,fid,line);
@@ -4395,13 +4395,13 @@ BC_PROCESS(_library_bc_process)
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
 	print_undefined_symbol(&env->uref,codegen->globalSymTable,pst);
 
-	fklPushPtrStack(lib,codegen->scriptLibStack);
+	fklPushPtrStack(lib,codegen->libStack);
 
 	codegen->realpath=NULL;
 
 	codegen->export_macro=NULL;
 	codegen->export_replacement=NULL;
-	return process_import_imported_lib(codegen->scriptLibStack->top
+	return process_import_imported_lib(codegen->libStack->top
 				,data->codegen
 				,lib
 				,data->env
@@ -4715,7 +4715,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 		fklDestroyCodegenInfo(nextCodegen);
 		return;
 	}
-	size_t libId=check_loaded_lib(nextCodegen->realpath,codegen->scriptLibStack);
+	size_t libId=check_loaded_lib(nextCodegen->realpath,codegen->libStack);
 	if(!libId)
 	{
 		FILE* fp=fopen(filename,"r");
@@ -4751,7 +4751,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 	{
 		fklDestroyHashTable(nextCodegen->export_replacement);
 		nextCodegen->export_replacement=NULL;
-		FklCodegenLib* lib=codegen->scriptLibStack->base[libId-1];
+		FklCodegenLib* lib=codegen->libStack->base[libId-1];
 
 		FklByteCodelnt* importBc=process_import_imported_lib(libId
 				,codegen
@@ -4796,7 +4796,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 		,FklSymbolTable* pst)
 {
 	char* realpath=fklRealpath(filename);
-	size_t libId=check_loaded_lib(realpath,codegen->scriptLibStack);
+	size_t libId=check_loaded_lib(realpath,codegen->libStack);
 	FklDllHandle dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
@@ -4826,12 +4826,12 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 				,codegen->globalSymTable
 				,initExport
 				,pst);
-		fklPushPtrStack(lib,codegen->scriptLibStack);
-		libId=codegen->scriptLibStack->top;
+		fklPushPtrStack(lib,codegen->libStack);
+		libId=codegen->libStack->top;
 	}
 	else
 	{
-		lib=codegen->scriptLibStack->base[libId-1];
+		lib=codegen->libStack->base[libId-1];
 		dll=lib->dll;
 		free(realpath);
 	}
@@ -4876,7 +4876,7 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 		,FklSymbolTable* pst)
 {
 	char* realpath=fklRealpath(filename);
-	size_t libId=check_loaded_lib(realpath,codegen->scriptLibStack);
+	size_t libId=check_loaded_lib(realpath,codegen->libStack);
 	FklDllHandle dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
@@ -4906,12 +4906,12 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 				,codegen->globalSymTable
 				,initExport
 				,pst);
-		fklPushPtrStack(lib,codegen->scriptLibStack);
-		libId=codegen->scriptLibStack->top;
+		fklPushPtrStack(lib,codegen->libStack);
+		libId=codegen->libStack->top;
 	}
 	else
 	{
-		lib=codegen->scriptLibStack->base[libId-1];
+		lib=codegen->libStack->base[libId-1];
 		dll=lib->dll;
 		free(realpath);
 	}
@@ -4951,7 +4951,7 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 		,FklSymbolTable* pst)
 {
 	char* realpath=fklRealpath(filename);
-	size_t libId=check_loaded_lib(realpath,codegen->scriptLibStack);
+	size_t libId=check_loaded_lib(realpath,codegen->libStack);
 	FklDllHandle dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
@@ -4981,12 +4981,12 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 				,codegen->globalSymTable
 				,initExport
 				,pst);
-		fklPushPtrStack(lib,codegen->scriptLibStack);
-		libId=codegen->scriptLibStack->top;
+		fklPushPtrStack(lib,codegen->libStack);
+		libId=codegen->libStack->top;
 	}
 	else
 	{
-		lib=codegen->scriptLibStack->base[libId-1];
+		lib=codegen->libStack->base[libId-1];
 		dll=lib->dll;
 		free(realpath);
 	}
@@ -5013,7 +5013,7 @@ static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origEx
 		,FklSymbolTable* pst)
 {
 	char* realpath=fklRealpath(filename);
-	size_t libId=check_loaded_lib(realpath,codegen->scriptLibStack);
+	size_t libId=check_loaded_lib(realpath,codegen->libStack);
 	FklDllHandle dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
@@ -5043,12 +5043,12 @@ static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origEx
 				,codegen->globalSymTable
 				,initExport
 				,pst);
-		fklPushPtrStack(lib,codegen->scriptLibStack);
-		libId=codegen->scriptLibStack->top;
+		fklPushPtrStack(lib,codegen->libStack);
+		libId=codegen->libStack->top;
 	}
 	else
 	{
-		lib=codegen->scriptLibStack->base[libId-1];
+		lib=codegen->libStack->base[libId-1];
 		dll=lib->dll;
 		free(realpath);
 	}
@@ -5080,7 +5080,7 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 		,FklSymbolTable* pst)
 {
 	char* realpath=fklRealpath(filename);
-	size_t libId=check_loaded_lib(realpath,codegen->scriptLibStack);
+	size_t libId=check_loaded_lib(realpath,codegen->libStack);
 	FklDllHandle dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
@@ -5110,12 +5110,12 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 				,codegen->globalSymTable
 				,initExport
 				,pst);
-		fklPushPtrStack(lib,codegen->scriptLibStack);
-		libId=codegen->scriptLibStack->top;
+		fklPushPtrStack(lib,codegen->libStack);
+		libId=codegen->libStack->top;
 	}
 	else
 	{
-		lib=codegen->scriptLibStack->base[libId-1];
+		lib=codegen->libStack->base[libId-1];
 		dll=lib->dll;
 		free(realpath);
 	}
@@ -5330,13 +5330,13 @@ static inline void codegen_import_helper(FklNastNode* origExp
 				,pst);
 	else if(fklIsAccessableRegFile(preCompileFileName))
 	{
-		size_t libId=check_loaded_lib(preCompileFileName,codegen->scriptLibStack);
+		size_t libId=check_loaded_lib(preCompileFileName,codegen->libStack);
 		if(!libId)
 		{
 			if(fklLoadPreCompile(codegen->pts
 						,codegen->macro_pts
-						,codegen->scriptLibStack
-						,codegen->macroScriptLibStack
+						,codegen->libStack
+						,codegen->macroLibStack
 						,codegen->globalSymTable
 						,pst
 						,preCompileFileName
@@ -5347,9 +5347,9 @@ static inline void codegen_import_helper(FklNastNode* origExp
 				errorState->place=fklMakeNastNodeRef(name);
 				goto exit;
 			}
-			libId=codegen->scriptLibStack->top;
+			libId=codegen->libStack->top;
 		}
-		FklCodegenLib* lib=codegen->scriptLibStack->base[libId-1];
+		FklCodegenLib* lib=codegen->libStack->base[libId-1];
 
 		FklByteCodelnt* importBc=process_import_imported_lib(libId
 				,codegen
@@ -6898,8 +6898,8 @@ static inline FklCodegenInfo* macro_compile_prepare(FklCodegenInfo* codegen
 
 	macroCodegen->globalSymTable=pst;
 	macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,pst)->id:0;
-	macroCodegen->scriptLibStack=macroCodegen->macroScriptLibStack;
-	macroCodegen->macroScriptLibStack=fklCreatePtrStack(8,16);
+	macroCodegen->libStack=macroCodegen->macroLibStack;
+	macroCodegen->macroLibStack=fklCreatePtrStack(8,16);
 	fklInitGlobCodegenEnv(macroEnv,pst);
 
 	*pmacroEnv=macroEnv;
@@ -6998,7 +6998,7 @@ static inline FklGrammerProduction* nast_vector_to_production(const FklNastVecto
 		FKL_ASSERT(ctx);
 		ctx->prototype_id=macroEnv->prototypeId;
 		ctx->pst=pst;
-		ctx->macroLibStack=codegen->macroScriptLibStack;
+		ctx->macroLibStack=codegen->macroLibStack;
 
 		fklPushPtrQueue(fklMakeNastNodeRef(action_ast),queue);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process
@@ -8216,8 +8216,8 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	codegen->refcount=0;
 
 
-	codegen->scriptLibStack=fklCreatePtrStack(8,8);
-	codegen->macroScriptLibStack=fklCreatePtrStack(8,8);
+	codegen->libStack=fklCreatePtrStack(8,8);
+	codegen->macroLibStack=fklCreatePtrStack(8,8);
 	codegen->pts=fklCreateFuncPrototypes(0);
 	codegen->macro_pts=fklCreateFuncPrototypes(0);
 	codegen->builtinSymModiMark=fklGetBuiltinSymbolModifyMark(&codegen->builtinSymbolNum);
@@ -8286,8 +8286,8 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	init_codegen_grammer_ptr(codegen);
 	if(prev)
 	{
-		codegen->scriptLibStack=prev->scriptLibStack;
-		codegen->macroScriptLibStack=prev->macroScriptLibStack;
+		codegen->libStack=prev->libStack;
+		codegen->macroLibStack=prev->macroLibStack;
 		codegen->pts=prev->pts;
 		codegen->macro_pts=prev->macro_pts;
 		codegen->builtinSymModiMark=prev->builtinSymModiMark;
@@ -8295,8 +8295,8 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	}
 	else
 	{
-		codegen->scriptLibStack=fklCreatePtrStack(8,8);
-		codegen->macroScriptLibStack=fklCreatePtrStack(8,8);
+		codegen->libStack=fklCreatePtrStack(8,8);
+		codegen->macroLibStack=fklCreatePtrStack(8,8);
 		codegen->pts=fklCreateFuncPrototypes(0);
 		codegen->macro_pts=fklCreateFuncPrototypes(0);
 		codegen->builtinSymModiMark=fklGetBuiltinSymbolModifyMark(&codegen->builtinSymbolNum);
@@ -8311,7 +8311,7 @@ void fklUninitCodegenInfo(FklCodegenInfo* codegen)
 	if(!codegen->destroyAbleMark||codegen->macroMark)
 	{
 		fklDestroyFuncPrototypes(codegen->macro_pts);
-		FklPtrStack* macroLibStack=codegen->macroScriptLibStack;
+		FklPtrStack* macroLibStack=codegen->macroLibStack;
 		while(!fklIsPtrStackEmpty(macroLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(macroLibStack));
 		fklDestroyPtrStack(macroLibStack);
@@ -8322,9 +8322,9 @@ void fklUninitCodegenInfo(FklCodegenInfo* codegen)
 	{
 		if(codegen->globalSymTable&&codegen->globalSymTable!=&codegen->outer_ctx->public_symbol_table)
 			fklDestroySymbolTable(codegen->globalSymTable);
-		while(!fklIsPtrStackEmpty(codegen->scriptLibStack))
-			fklDestroyCodegenLib(fklPopPtrStack(codegen->scriptLibStack));
-		fklDestroyPtrStack(codegen->scriptLibStack);
+		while(!fklIsPtrStackEmpty(codegen->libStack))
+			fklDestroyCodegenLib(fklPopPtrStack(codegen->libStack));
+		fklDestroyPtrStack(codegen->libStack);
 
 		if(codegen->pts)
 			fklDestroyFuncPrototypes(codegen->pts);
@@ -8496,6 +8496,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	lib->head=NULL;
 	lib->replacements=NULL;
 	lib->exports.t=NULL;
+	lib->named_prod_groups.t=NULL;
 
 	uint32_t num=0;
 	FklSid_t* exports=NULL;
@@ -8793,7 +8794,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 				,macro->prototype_id
 				,ht
 				,&lineHash
-				,codegen->macroScriptLibStack
+				,codegen->macroLibStack
 				,&retval
 				,r->curline
 				,pst);
@@ -9168,10 +9169,10 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 		repl_nast_ctx_and_buf_reset(cc,s);
 
 		fklMakeNastNodeRef(ast);
-		size_t libNum=codegen->scriptLibStack->top;
+		size_t libNum=codegen->libStack->top;
 		FklByteCodelnt* mainCode=fklGenExpressionCode(ast,codegen->globalEnv,codegen);
 		fklDestroyNastNode(ast);
-		size_t unloadlibNum=codegen->scriptLibStack->top-libNum;
+		size_t unloadlibNum=codegen->libStack->top-libNum;
 		if(unloadlibNum)
 		{
 			FklVMproc* proc=FKL_VM_PROC(ctx->mainProc);
@@ -9182,7 +9183,7 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 			for(size_t i=exe->libNum;i<libNum;i++)
 			{
 				FklVMlib* curVMlib=&nlibs[i+1];
-				FklCodegenLib* curCGlib=codegen->scriptLibStack->base[i];
+				FklCodegenLib* curCGlib=codegen->libStack->base[i];
 				fklInitVMlibWithCodegenLibRefs(curCGlib
 						,curVMlib
 						,exe

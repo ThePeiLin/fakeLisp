@@ -1435,7 +1435,6 @@ static inline void B_load_dll(BYTE_CODE_ARGS)
 		plib->imported=1;
 		plib->belong=1;
 		plib->proc=FKL_VM_NIL;
-		free(realpath);
 		exe->tp=tp;
 	}
 	exe->importingLib=plib;

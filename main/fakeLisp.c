@@ -54,7 +54,7 @@ static inline int compileAndRun(char* filename)
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	chdir(fklGetCwd());
-	FklPtrStack* scriptLibStack=codegen.scriptLibStack;
+	FklPtrStack* scriptLibStack=codegen.libStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts);
 	codegen.globalSymTable=NULL;
 	codegen.pts=NULL;
@@ -173,7 +173,7 @@ static inline int runPreCompile(char* filename)
 	fklInitPtrStack(&macroScriptLibStack,8,16);
 
 	char* rp=fklRealpath(filename);
-	fklLoadPreCompile(pts
+	int load_result=fklLoadPreCompile(pts
 			,&macro_pts
 			,&scriptLibStack
 			,&macroScriptLibStack
@@ -188,6 +188,14 @@ static inline int runPreCompile(char* filename)
 	free(rp);
 	fclose(fp);
 	fklUninitSymbolTable(&pst);
+	if(load_result)
+	{
+		while(!fklIsPtrStackEmpty(&scriptLibStack))
+			fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
+		fklUninitPtrStack(&scriptLibStack);
+		fprintf(stderr,"%s: Load pre-compile file failed.\n",filename);
+		return 1;
+	}
 
 	FklCodegenLib* main_lib=fklPopPtrStack(&scriptLibStack);
 	FklByteCodelnt* main_byte_code=main_lib->bcl;
@@ -242,7 +250,7 @@ int main(int argc,char** argv)
 		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx);
 		runRepl(&codegen);
 		codegen.globalSymTable=NULL;
-		FklPtrStack* loadedLibStack=codegen.scriptLibStack;
+		FklPtrStack* loadedLibStack=codegen.libStack;
 		while(!fklIsPtrStackEmpty(loadedLibStack))
 		{
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);

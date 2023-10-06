@@ -2672,34 +2672,6 @@ static void builtin_stringify(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,retval);
 }
 
-static void builtin_unqstr(FKL_DL_PROC_ARGL)
-{
-	static const char Pname[]="builtin.unqstr";
-	DECL_AND_CHECK_ARG2(stream,start,Pname);
-	FklVMvalue* end=FKL_VM_POP_ARG(exe);
-	if(!end)
-		end=start;
-	FKL_CHECK_REST_ARG(exe,Pname);
-	if(!FKL_IS_STR(stream)
-			||(!FKL_IS_STR(start)&&!FKL_IS_CHR(start))
-			||(!FKL_IS_STR(end)&&!FKL_IS_CHR(end)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-
-	FklString* ss=FKL_VM_STR(stream);
-	const char* cstr=ss->str;
-	size_t start_size=FKL_IS_CHR(start)?1:FKL_VM_STR(start)->size;
-	size_t end_size=FKL_IS_CHR(end)?1:FKL_VM_STR(end)->size;
-	size_t size=0;
-
-	if(ss->size<start_size+end_size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
-
-	char* s=fklCastEscapeCharBuf(&cstr[start_size],ss->size-end_size-start_size,&size);
-	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklCreateString(size,s));
-	free(s);
-	FKL_VM_PUSH_VALUE(exe,retval);
-}
-
 static void builtin_parse(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.parse";
@@ -5012,7 +4984,6 @@ static const struct SymbolFuncStruct
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"read",                  builtin_read,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"parse",                 builtin_parse,                   {NULL,         NULL,          NULL,          NULL,          }, },
-	{"unqstr",                builtin_unqstr,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,          NULL,          }, },
 	{"parser?",               builtin_parser_p,                {NULL,         NULL,          NULL,          NULL,          }, },
 	{"stringify",             builtin_stringify,               {NULL,         NULL,          NULL,          NULL,          }, },

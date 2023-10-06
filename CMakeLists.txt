@@ -91,13 +91,21 @@ add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 
-
 #linking
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE})
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${GRAMMER_GEN} ${LINK_TARGET})
+
+#test-dll
+add_library(test-dll
+	SHARED
+	"main/test/dll.c")
+set_target_properties(test-dll PROPERTIES PREFIX "")
+set_target_properties(test-dll PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
+target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
 
 #testing
 enable_testing()

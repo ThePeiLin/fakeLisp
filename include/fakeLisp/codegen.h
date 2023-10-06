@@ -86,29 +86,6 @@ typedef struct
 
 typedef struct
 {
-	char* rp;
-	FklByteCodelnt* bcl;
-
-	FklHashTable exports;
-
-	FklCodegenMacro* head;
-	FklHashTable* replacements;
-
-	FklHashTable named_prod_groups;
-	FklSymbolTable* terminal_table;
-
-	uint32_t prototypeId;
-}FklCodegenScriptLib;
-
-typedef struct
-{
-	char* rp;
-	FklDllHandle dll;
-	FklHashTable exports;
-}FklCodegenDllLib;
-
-typedef struct
-{
 	FklCodegenLibType type;
 	union
 	{
@@ -264,11 +241,9 @@ typedef struct FklCodegenInfo
 
 	FklHashTable* export_named_prod_groups;
 
-	FklPtrStack* scriptLibStack;
-	FklPtrStack* dllLibStack;
+	FklPtrStack* libStack;
 
-	FklPtrStack* macroScriptLibStack;
-	FklPtrStack* macroDllLibStack;
+	FklPtrStack* macroLibStack;
 
 	FklFuncPrototypes* pts;
 	FklFuncPrototypes* macro_pts;

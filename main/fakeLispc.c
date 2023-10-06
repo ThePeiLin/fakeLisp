@@ -182,11 +182,11 @@ static inline void write_pre_compile(FklCodegenInfo* codegen
 	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
 
 	fklWriteFuncPrototypes(codegen->pts,builtin_symbol_num,outfp);
-	write_lib_stack(codegen->scriptLibStack,&target_st,main_dir,target_dir,outfp);
+	write_lib_stack(codegen->libStack,&target_st,main_dir,target_dir,outfp);
 	write_lib_main_file(codegen,bcl,&target_st,main_dir,outfp);
 
 	fklWriteFuncPrototypes(codegen->macro_pts,builtin_symbol_num,outfp);
-	write_lib_stack(codegen->macroScriptLibStack,&target_st,main_dir,target_dir,outfp);
+	write_lib_stack(codegen->macroLibStack,&target_st,main_dir,target_dir,outfp);
 
 	fklUninitSymbolTable(&target_st);
 }
@@ -280,7 +280,7 @@ static inline int compile(const char* filename,int argc,char* argv[],FklCodegenO
 	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
-	FklPtrStack* loadedLibStack=codegen.scriptLibStack;
+	FklPtrStack* loadedLibStack=codegen.libStack;
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 	FKL_ASSERT(outputname);
 	strcpy(outputname,rp);

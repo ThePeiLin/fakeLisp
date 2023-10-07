@@ -205,10 +205,13 @@ static FklByteCodelnt* create_bc_lnt(FklByteCode* bc
 	return r;
 }
 
-static FklByteCodelnt* makePutLoc(const FklNastNode* sym,uint32_t idx,FklCodegenInfo* codegen)
+static FklByteCodelnt* makePutLoc(uint64_t line
+		,FklSid_t sym
+		,uint32_t idx
+		,FklCodegenInfo* codegen)
 {
-	fklAddSymbol(fklGetSymbolWithId(sym->sym,&codegen->outer_ctx->public_symbol_table)->symbol,codegen->globalSymTable);
-	FklByteCodelnt* r=fklCreateSingleInsBclnt(create_op_imm_u32_ins(FKL_OP_PUT_LOC,idx),codegen->fid,sym->curline);
+	fklAddSymbol(fklGetSymbolWithId(sym,&codegen->outer_ctx->public_symbol_table)->symbol,codegen->globalSymTable);
+	FklByteCodelnt* r=fklCreateSingleInsBclnt(create_op_imm_u32_ins(FKL_OP_PUT_LOC,idx),codegen->fid,line);
 	return r;
 }
 
@@ -1524,9 +1527,14 @@ static inline FklSid_t get_sid_with_ref_idx(FklHashTable* refs
 	return 0;
 }
 
-BC_PROCESS(_set_var_exp_bc_process)
+static inline FklByteCodelnt* process_set_var(FklPtrStack* stack
+		,FklCodegenInfo* codegen
+		,FklCodegenOuterCtx* outer_ctx
+		,FklCodegenEnv* env
+		,uint32_t scope
+		,FklSid_t fid
+		,uint64_t line)
 {
-	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* cur=fklPopPtrStack(stack);
 	FklByteCodelnt* popVar=fklPopPtrStack(stack);
 	if(cur&&popVar)
@@ -1566,6 +1574,69 @@ BC_PROCESS(_set_var_exp_bc_process)
 		fklBytecodeLntPushBackIns(&pushNil,popVar,fid,line);
 	}
 	return popVar;
+}
+
+typedef struct
+{
+	FklSid_t id;
+	uint32_t scope;
+	uint64_t line;
+	FklPtrStack stack;
+}DefineVarContext;
+
+static void _def_var_context_finalizer(void* data)
+{
+	DefineVarContext* ctx=data;
+	FklPtrStack* s=&ctx->stack;
+	while(!fklIsPtrStackEmpty(s))
+		fklDestroyByteCodelnt(fklPopPtrStack(s));
+	fklUninitPtrStack(s);
+	free(ctx);
+}
+
+static void _def_var_context_put_bcl(void* data,FklByteCodelnt* bcl)
+{
+	DefineVarContext* ctx=data;
+	FklPtrStack* s=&ctx->stack;
+	fklPushPtrStack(bcl,s);
+}
+
+static FklPtrStack* _def_var_context_get_bcl_stack(void* data)
+{
+	return &((DefineVarContext*)data)->stack;
+}
+
+static const FklCodegenQuestContextMethodTable DefineVarContextMethodTable=
+{
+	.__finalizer=_def_var_context_finalizer,
+	.__put_bcl=_def_var_context_put_bcl,
+	.__get_bcl_stack=_def_var_context_get_bcl_stack,
+};
+
+static inline FklCodegenQuestContext* create_def_var_context(FklSid_t id,uint32_t scope,uint64_t line)
+{
+	DefineVarContext* ctx=(DefineVarContext*)malloc(sizeof(DefineVarContext));
+	FKL_ASSERT(ctx);
+	ctx->id=id;
+	ctx->scope=scope;
+	ctx->line=line;
+	fklInitPtrStack(&ctx->stack,2,8);
+	return createCodegenQuestContext(ctx,&DefineVarContextMethodTable);
+}
+
+BC_PROCESS(_def_var_exp_bc_process)
+{
+	DefineVarContext* ctx=context->data;
+	FklPtrStack* stack=&ctx->stack;
+	uint32_t idx=fklAddCodegenDefBySid(ctx->id,ctx->scope,env);
+	fklPushFrontPtrStack(makePutLoc(ctx->line,ctx->id,idx,codegen),stack);
+	return process_set_var(stack,codegen,outer_ctx,env,scope,fid,line);
+}
+
+BC_PROCESS(_set_var_exp_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	return process_set_var(stack,codegen,outer_ctx,env,scope,fid,line);
 }
 
 BC_PROCESS(_lambda_exp_bc_process)
@@ -1776,7 +1847,7 @@ static CODEGEN_FUNC(codegen_named_let0)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
 	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv);
-	fklPushPtrStack(makePutLoc(name,idx,codegen),stack);
+	fklPushPtrStack(makePutLoc(name->curline,name->sym,idx,codegen),stack);
 
 	fklAddReplacementBySid(fklAddSymbolCstr("*func*",pst)->id
 			,name
@@ -1880,7 +1951,7 @@ static CODEGEN_FUNC(codegen_named_let1)
 
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
 	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv);
-	fklPushPtrStack(makePutLoc(name,idx,codegen),stack);
+	fklPushPtrStack(makePutLoc(name->curline,name->sym,idx,codegen),stack);
 
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddReplacementBySid(fklAddSymbolCstr("*func*",pst)->id
@@ -2178,12 +2249,9 @@ static CODEGEN_FUNC(codegen_define)
 		return;
 	}
 	FklPtrQueue* queue=fklCreatePtrQueue();
-	FklPtrStack* stack=fklCreatePtrStack(2,1);
-	uint32_t idx=fklAddCodegenDefBySid(name->sym,scope,curEnv);
-	fklPushPtrStack(makePutLoc(name,idx,codegen),stack);
 	fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
-	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_set_var_exp_bc_process
-			,createDefaultStackContext(stack)
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_def_var_exp_bc_process
+			,create_def_var_context(name->sym,scope,name->curline)
 			,createDefaultQueueNextExpression(queue)
 			,scope
 			,macroScope
@@ -2218,12 +2286,12 @@ static CODEGEN_FUNC(codegen_defun)
 		return;
 	}
 
-	FklPtrStack* setqStack=fklCreatePtrStack(2,1);
-	uint32_t idx=fklAddCodegenDefBySid(name->sym,scope,curEnv);
-	fklPushPtrStack(makePutLoc(name,idx,codegen),setqStack);
+	// FklPtrStack* setqStack=fklCreatePtrStack(2,1);
+	// uint32_t idx=fklAddCodegenDefBySid(name->sym,scope,curEnv);
+	// fklPushPtrStack(makePutLoc(name,idx,codegen),setqStack);
 
-	FklCodegenQuest* prevQuest=createCodegenQuest(_set_var_exp_bc_process
-			,createDefaultStackContext(setqStack)
+	FklCodegenQuest* prevQuest=createCodegenQuest(_def_var_exp_bc_process
+			,create_def_var_context(name->sym,scope,name->curline)
 			,NULL
 			,scope
 			,macroScope
@@ -2310,7 +2378,7 @@ static CODEGEN_FUNC(codegen_setq)
 	fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(name->sym,scope,curEnv);
 	if(def)
-		fklPushPtrStack(makePutLoc(name,def->idx,codegen),stack);
+		fklPushPtrStack(makePutLoc(name->curline,name->sym,def->idx,codegen),stack);
 	else
 	{
 		uint32_t idx=fklAddCodegenRefBySid(name->sym,curEnv,codegen->fid,name->curline);
@@ -9347,3 +9415,9 @@ inline void fklInitFrameToReplFrame(FklVM* exe,FklCodegenInfo* codegen)
 	ctx->buf=fklCreateStringBuffer();
 }
 
+void fklWriteNamedProds(const FklSymbolTable* tt
+		,const FklHashTable* named_prod_groups
+		,const FklSymbolTable* st
+		,FILE* fp)
+{
+}

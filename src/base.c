@@ -41,6 +41,21 @@ void fklPushPtrStack(void* data,FklPtrStack* stack)
 	stack->top+=1;
 }
 
+void fklPushFrontPtrStack(void* data,FklPtrStack* stack)
+{
+	if(stack->top==stack->size)
+	{
+		void** tmpData=(void**)fklRealloc(stack->base,(stack->size+stack->inc)*sizeof(void*));
+		FKL_ASSERT(tmpData);
+		stack->base=tmpData;
+		stack->size+=stack->inc;
+	}
+	for(uint32_t top=stack->top;top>0;top--)
+		stack->base[top]=stack->base[top-1];
+	stack->base[0]=data;
+	stack->top+=1;
+}
+
 void* fklPopPtrStack(FklPtrStack* stack)
 {
 	if(fklIsPtrStackEmpty(stack))

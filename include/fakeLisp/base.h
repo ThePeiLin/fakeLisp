@@ -170,6 +170,8 @@ void fklInitPtrStack(FklPtrStack*,uint32_t size,uint32_t inc);
 void fklUninitPtrStack(FklPtrStack*);
 FklPtrStack* fklCreatePtrStack(uint32_t size,uint32_t inc);
 void fklPushPtrStack(void* data,FklPtrStack*);
+void fklPushFrontPtrStack(void* data,FklPtrStack*);
+
 void* fklPopPtrStack(FklPtrStack*);
 void* fklTopPtrStack(FklPtrStack*);
 void fklDestroyPtrStack(FklPtrStack*);

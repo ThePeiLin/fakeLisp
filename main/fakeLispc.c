@@ -262,7 +262,12 @@ static inline int pre_compile(const char* main_file_name
 	return 0;
 }
 
-static inline int compile(const char* filename,int argc,char* argv[],FklCodegenOuterCtx* outer_ctx)
+static inline int compile(const char* filename
+		,const char* output
+		,const char* cwd
+		,int argc
+		,char* argv[]
+		,FklCodegenOuterCtx* outer_ctx)
 {
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
@@ -285,15 +290,25 @@ static inline int compile(const char* filename,int argc,char* argv[],FklCodegenO
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	FklPtrStack* loadedLibStack=codegen.libStack;
-	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
-	FKL_ASSERT(outputname);
-	strcpy(outputname,rp);
-	strcat(outputname,FKL_BYTECODE_FKL_SUFFIX_STR);
+	char* outputname=NULL;
+	if(output)
+	{
+		outputname=fklStrCat(fklCopyCstr(cwd),FKL_PATH_SEPARATOR_STR);
+		outputname=fklStrCat(outputname,output);
+		outputname=fklStrCat(outputname,FKL_BYTECODE_FILE_EXTENSION);
+	}
+	else
+	{
+		outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
+		FKL_ASSERT(outputname);
+		strcpy(outputname,rp);
+		strcat(outputname,FKL_BYTECODE_FKL_SUFFIX_STR);
+	}
 	free(rp);
 	FILE* outfp=fopen(outputname,"wb");
 	if(!outfp)
 	{
-		fprintf(stderr,"%s:Can't create byte code file!",outputname);
+		fprintf(stderr,"%s:Can't create byte code file!\n",outputname);
 		fklUninitCodegenInfo(&codegen);
 		fklDestroyMainFileRealPath();
 		return EXIT_FAILURE;
@@ -389,7 +404,7 @@ error:
 
 	if(precompile->count>0)
 	{
-		if(file->count>0)
+		if(file->count>0||output->count>0)
 			goto error;
 		const char* package_name=precompile->filename[0];
 		FklStringBuffer buffer;
@@ -421,7 +436,7 @@ error:
 		goto exit;
 	}
 
-	if(file->count<1)
+	if(file->count<1||(file->count>1&&output->count>0))
 		goto error;
 
 	for(int i=0;i<file->count;i++)
@@ -431,7 +446,12 @@ error:
 		chdir(fklGetCwd());
 		if(fklIsScriptFile(filename)&&fklIsAccessableRegFile(filename))
 		{
-			if(compile(filename,argc,argv,&outer_ctx))
+			if(compile(filename
+						,output->count>0?output->filename[0]:NULL
+						,cwd
+						,argc
+						,argv
+						,&outer_ctx))
 			{
 compile_error:
 				fklDestroyMainFileRealPath();
@@ -454,7 +474,12 @@ compile_error:
 				fklUninitStringBuffer(&buffer);
 				goto compile_error;
 			}
-			if(compile(buffer.buf,argc,argv,&outer_ctx))
+			if(compile(buffer.buf
+						,output->count>0?output->filename[0]:NULL
+						,cwd
+						,argc
+						,argv
+						,&outer_ctx))
 			{
 				fklUninitStringBuffer(&buffer);
 				goto compile_error;

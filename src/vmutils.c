@@ -1933,6 +1933,6 @@ inline FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec
 			fklUninitBigInt(&rem);
 		}
 	}
-	return NULL;
+	return r;
 }
 

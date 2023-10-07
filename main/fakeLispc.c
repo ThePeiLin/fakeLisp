@@ -82,8 +82,7 @@ static inline void write_codegen_script_lib(const FklCodegenLib* lib,const FklSy
 	write_export_sid_idx_table(&lib->exports,outfp);
 	write_compiler_macros(lib->head,st,outfp);
 	write_replacements(lib->replacements,st,outfp);
-	fklWriteNamedProds(lib->terminal_table
-			,&lib->named_prod_groups
+	fklWriteNamedProds(&lib->named_prod_groups
 			,st
 			,outfp);
 }
@@ -150,6 +149,10 @@ static inline void write_lib_main_file(const FklCodegenInfo* codegen
 	write_export_sid_idx_table(&codegen->exports,outfp);
 	write_compiler_macros(codegen->export_macro,st,outfp);
 	write_replacements(codegen->export_replacement,st,outfp);
+	fklWriteExportNamedProds(codegen->export_named_prod_groups
+			,codegen->named_prod_groups
+			,st
+			,outfp);
 }
 
 static inline void write_lib_stack(FklPtrStack* loadedLibStack

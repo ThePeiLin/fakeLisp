@@ -72,11 +72,11 @@ inline void fklPrintCodegenError(FklNastNode* obj
 			fprintf(stderr," undefined");
 			break;
 		case FKL_ERR_FILEFAILURE:
-			fprintf(stderr,"Failed for file:");
+			fprintf(stderr,"Failed for file: ");
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_IMPORTFAILED:
-			fprintf(stderr,"Failed for importing module:");
+			fprintf(stderr,"Failed for importing module: ");
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_UNEXPECTED_EOF:
@@ -93,7 +93,7 @@ inline void fklPrintCodegenError(FklNastNode* obj
 			fputs("Failed to import reader macro",stderr);
 			break;
 		default:
-			fprintf(stderr,"Unknown compiling error.");
+			fprintf(stderr,"Unknown compiling error");
 			break;
 	}
 	if(obj)
@@ -449,6 +449,40 @@ static inline void recompute_sid_for_replacements(FklHashTable* t
 	}
 }
 
+static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
+		,const FklSymbolTable* origin_table
+		,FklSymbolTable* target_table)
+{
+	if(ht&&ht->t)
+	{
+		for(FklHashTableItem* list=ht->first;list;list=list->next)
+		{
+			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)list->data;
+			uint32_t top=group->prod_printing.top;
+			for(uint32_t i=0;i<top;i++)
+			{
+				FklCodegenProdPrinting* p=(FklCodegenProdPrinting*)group->prod_printing.base[i];
+				if(p->group_id)
+					replace_sid(&p->group_id,origin_table,target_table);
+				if(p->sid)
+					replace_sid(&p->sid,origin_table,target_table);
+				recompute_sid_for_nast(p->vec,origin_table,target_table);
+				if(p->type==FKL_CODEGEN_PROD_CUSTOM)
+					recompute_sid_for_bytecodelnt(p->bcl,origin_table,target_table);
+				else
+					recompute_sid_for_nast(p->forth,origin_table,target_table);
+			}
+
+			top=group->ignore_printing.top;
+			for(uint32_t i=0;i<top;i++)
+			{
+				FklNastNode* node=group->ignore_printing.base[i];
+				recompute_sid_for_nast(node,origin_table,target_table);
+			}
+		}
+	}
+}
+
 static inline void recompute_sid_for_script_lib(FklCodegenLib* lib
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* target_table)
@@ -457,6 +491,7 @@ static inline void recompute_sid_for_script_lib(FklCodegenLib* lib
 	recompute_sid_for_export_sid_index(&lib->exports,origin_table,target_table);
 	recompute_sid_for_compiler_macros(lib->head,origin_table,target_table);
 	recompute_sid_for_replacements(lib->replacements,origin_table,target_table);
+	recompute_sid_for_named_prod_groups(&lib->named_prod_groups,origin_table,target_table);
 }
 
 static inline void recompute_sid_for_dll_lib(FklCodegenLib* lib
@@ -494,6 +529,7 @@ static inline void recompute_sid_for_double_st_script_lib(FklCodegenLib* lib
 	recompute_sid_for_export_sid_index(&lib->exports,origin_table,pst);
 	recompute_sid_for_compiler_macros(lib->head,origin_table,pst);
 	recompute_sid_for_replacements(lib->replacements,origin_table,pst);
+	recompute_sid_for_named_prod_groups(&lib->named_prod_groups,origin_table,pst);
 }
 
 static inline void recompute_sid_for_double_st_lib_stack(FklPtrStack* loadedLibStack
@@ -516,7 +552,6 @@ static inline void recompute_sid_for_double_st_lib_stack(FklPtrStack* loadedLibS
 	}
 }
 
-
 static inline void recompute_sid_for_main_file(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table
@@ -526,6 +561,7 @@ static inline void recompute_sid_for_main_file(FklCodegenInfo* codegen
 	recompute_sid_for_export_sid_index(&codegen->exports,origin_table,target_table);
 	recompute_sid_for_compiler_macros(codegen->export_macro,origin_table,target_table);
 	recompute_sid_for_replacements(codegen->export_replacement,origin_table,target_table);
+	recompute_sid_for_named_prod_groups(codegen->named_prod_groups,origin_table,target_table);
 }
 
 inline void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
@@ -699,6 +735,8 @@ static inline FklHashTable* load_replacements(FklSymbolTable* st,FILE* fp)
 	return ht;
 }
 
+static void load_named_prods(FklSymbolTable* tt,FklHashTable* ht,FklSymbolTable* st,FILE* fp);
+
 static inline void load_script_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTable* st,const char* main_dir,FILE* fp)
 {
 	lib->rp=load_script_lib_path(main_dir,fp);
@@ -708,6 +746,8 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib* lib,FklSymbol
 	lib->head=load_compiler_macros(st,fp);
 	lib->replacements=load_replacements(st,fp);
 	lib->named_prod_groups.t=NULL;
+	lib->terminal_table.ht.t=NULL;
+	load_named_prods(&lib->terminal_table,&lib->named_prod_groups,st,fp);
 }
 
 static inline char* load_dll_lib_path(const char* main_dir,FILE* fp)
@@ -797,6 +837,7 @@ static inline int load_imported_lib_stack(FklPtrStack* libStack,FklSymbolTable* 
 	main_lib->head=load_compiler_macros(st,fp);
 	main_lib->replacements=load_replacements(st,fp);
 	fklPushPtrStack(main_lib,libStack);
+	load_named_prods(&main_lib->terminal_table,&main_lib->named_prod_groups,st,fp);
 	return 0;
 }
 
@@ -851,6 +892,29 @@ static inline void increase_compiler_macros_lib_prototype_id(FklCodegenMacro* he
 	}
 }
 
+static inline void increase_reader_macro_lib_prototype_id(FklHashTable* named_prod_groups
+		,uint32_t lib_count
+		,uint32_t count)
+{
+	if(named_prod_groups->t)
+	{
+		for(FklHashTableItem* list=named_prod_groups->first;list;list=list->next)
+		{
+			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)list->data;
+			uint32_t top=group->prod_printing.top;
+			for(uint32_t i=0;i<top;i++)
+			{
+				FklCodegenProdPrinting* p=group->prod_printing.base[i];
+				if(p->type==FKL_CODEGEN_PROD_CUSTOM)
+				{
+					p->prototype_id+=count;
+					increase_bcl_lib_prototype_id(p->bcl,lib_count,count);
+				}
+			}
+		}
+	}
+}
+
 static inline void increase_lib_id_and_prototype_id(FklCodegenLib* lib
 		,uint32_t lib_count
 		,uint32_t macro_lib_count
@@ -863,6 +927,7 @@ static inline void increase_lib_id_and_prototype_id(FklCodegenLib* lib
 			lib->prototypeId+=pts_count;
 			increase_bcl_lib_prototype_id(lib->bcl,lib_count,pts_count);
 			increase_compiler_macros_lib_prototype_id(lib->head,macro_lib_count,macro_pts_count);
+			increase_reader_macro_lib_prototype_id(&lib->named_prod_groups,macro_lib_count,macro_pts_count);
 			break;
 		case FKL_CODEGEN_LIB_DLL:
 			break;
@@ -918,15 +983,134 @@ static inline void merge_prototypes(FklFuncPrototypes* o,const FklFuncPrototypes
 	}
 }
 
+static inline void load_printing_ignores(FklPtrStack* stack,FklSymbolTable* st,FILE* fp)
+{
+	uint32_t count=0;
+	fread(&count,sizeof(count),1,fp);
+	for(;count>0;count--)
+	{
+		FklNastNode* node=load_nast_node_with_null_chr(st,fp);
+		fklPushPtrStack(node,stack);
+	}
+}
+
+static inline void load_printing_prods(FklPtrStack* stack,FklSymbolTable* st,FILE* fp)
+{
+	uint32_t count=0;
+	fread(&count,sizeof(count),1,fp);
+	for(;count>0;count--)
+	{
+		FklCodegenProdPrinting* p=(FklCodegenProdPrinting*)malloc(sizeof(FklCodegenProdPrinting));
+		FKL_ASSERT(p);
+		fread(&p->group_id,sizeof(p->group_id),1,fp);
+		fread(&p->sid,sizeof(p->sid),1,fp);
+		p->vec=load_nast_node_with_null_chr(st,fp);
+		fread(&p->add_extra,sizeof(p->add_extra),1,fp);
+		fread(&p->type,sizeof(p->type),1,fp);
+		if(p->type==FKL_CODEGEN_PROD_CUSTOM)
+		{
+			uint32_t prototype_id=0;
+			fread(&prototype_id,sizeof(prototype_id),1,fp);
+			p->prototype_id=prototype_id;
+			p->bcl=fklLoadByteCodelnt(fp);
+		}
+		else
+			p->forth=load_nast_node_with_null_chr(st,fp);
+		fklPushPtrStack(p,stack);
+	}
+}
+
+static inline FklGrammerProductionGroup* add_production_group(FklHashTable* named_prod_groups,FklSid_t group_id)
+{
+	FklGrammerProductionGroup group_init={.id=group_id,.ignore=NULL,.is_ref_outer=0,.prods.t=NULL};
+	FklGrammerProductionGroup* group=fklGetOrPutHashItem(&group_init,named_prod_groups);
+	if(!group->prods.t)
+	{
+		fklInitGrammerProductionTable(&group->prods);
+		fklInitPtrStack(&group->prod_printing,8,16);
+		fklInitPtrStack(&group->ignore_printing,8,16);
+	}
+	return group;
+}
+
+static inline void load_named_prods(FklSymbolTable* tt
+		,FklHashTable* ht
+		,FklSymbolTable* st
+		,FILE* fp)
+
+{
+	uint8_t has_named_prod=0;
+	fread(&has_named_prod,sizeof(has_named_prod),1,fp);
+	if(has_named_prod)
+	{
+		fklInitSymbolTable(tt);
+		fklInitCodegenProdGroupTable(ht);
+		uint32_t num=0;
+		fread(&num,sizeof(num),1,fp);
+		for(;num>0;num--)
+		{
+			FklSid_t group_id=0;
+			fread(&group_id,sizeof(group_id),1,fp);
+			FklGrammerProductionGroup* group=add_production_group(ht,group_id);
+			load_printing_prods(&group->prod_printing,st,fp);
+			load_printing_ignores(&group->ignore_printing,st,fp);
+		}
+	}
+}
+
+static inline void init_pre_lib_reader_macros(FklHashTable* builtin_terms
+		,FklPtrStack* libStack
+		,FklSymbolTable* st
+		,FklCodegenOuterCtx* outer_ctx
+		,FklFuncPrototypes* pts
+		,FklPtrStack* macroLibStack)
+{
+	uint32_t top=libStack->top;
+	for(uint32_t i=0;i<top;i++)
+	{
+		FklCodegenLib* lib=libStack->base[i];
+		if(lib->named_prod_groups.t)
+		{
+			FklSymbolTable* tt=&lib->terminal_table;
+			for(FklHashTableItem* l=lib->named_prod_groups.first;l;l=l->next)
+			{
+				FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)l->data;
+				FklPtrStack* stack=&group->ignore_printing;
+				uint32_t top=stack->top;
+				for(uint32_t i=0;i<top;i++)
+				{
+					FklNastNode* node=stack->base[i];
+					FklGrammerIgnore* ig=fklNastVectorToIgnore(node,tt,builtin_terms);
+					fklAddIgnoreToIgnoreList(&group->ignore,ig);
+				}
+				stack=&group->prod_printing;
+				top=stack->top;
+				for(uint32_t i=0;i<top;i++)
+				{
+					FklCodegenProdPrinting* p=stack->base[i];
+					FklGrammerProduction* prod=fklCodegenProdPrintingToProduction(p,tt,builtin_terms,outer_ctx,pts,macroLibStack);
+					fklAddProdToProdTableNoRepeat(&group->prods,builtin_terms,prod);
+					if(p->add_extra)
+					{
+						FklGrammerProduction* extra_prod=fklCreateExtraStartProduction(p->group_id,p->sid);
+						fklAddProdToProdTable(&group->prods,builtin_terms,extra_prod);
+					}
+				}
+			}
+		}
+	}
+}
+
 inline int fklLoadPreCompile(FklFuncPrototypes* info_pts
 		,FklFuncPrototypes* info_macro_pts
 		,FklPtrStack* info_scriptLibStack
 		,FklPtrStack* info_macroScriptLibStack
 		,FklSymbolTable* gst
-		,FklSymbolTable* pst
+		,FklCodegenOuterCtx* outer_ctx
 		,const char* rp
 		,FILE* fp)
 {
+	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	int need_open=fp==NULL;
 	if(need_open)
 	{
@@ -980,14 +1164,32 @@ error:
 			,&scriptLibStack
 			,&macroScriptLibStack);
 
+	merge_prototypes(info_pts,pts);
+	merge_prototypes(info_macro_pts,macro_pts);
+
+	FklHashTable builtin_terms;
+	fklInitBuiltinGrammerSymTable(&builtin_terms,pst);
+
+	init_pre_lib_reader_macros(&builtin_terms
+			,&scriptLibStack
+			,pst
+			,outer_ctx
+			,info_macro_pts
+			,info_macroScriptLibStack);
+	init_pre_lib_reader_macros(&builtin_terms
+			,&macroScriptLibStack
+			,pst
+			,outer_ctx
+			,info_macro_pts
+			,info_macroScriptLibStack);
+
+	fklUninitHashTable(&builtin_terms);
+
 	for(uint32_t i=0;i<scriptLibStack.top;i++)
 		fklPushPtrStack(scriptLibStack.base[i],info_scriptLibStack);
 
 	for(uint32_t i=0;i<macroScriptLibStack.top;i++)
 		fklPushPtrStack(macroScriptLibStack.base[i],info_macroScriptLibStack);
-
-	merge_prototypes(info_pts,pts);
-	merge_prototypes(info_macro_pts,macro_pts);
 
 	fklUninitPtrStack(&macroScriptLibStack);
 exit:

@@ -99,10 +99,35 @@ typedef struct
 	FklHashTable* replacements;
 
 	FklHashTable named_prod_groups;
-	FklSymbolTable* terminal_table;
+	FklSymbolTable terminal_table;
 
 	uint32_t prototypeId;
 }FklCodegenLib;
+
+typedef enum
+{
+	FKL_CODEGEN_PROD_BUILTIN=0,
+	FKL_CODEGEN_PROD_SIMPLE,
+	FKL_CODEGEN_PROD_CUSTOM,
+}FklCodegenProdActionType;
+
+typedef struct
+{
+	FklSid_t group_id;
+	FklSid_t sid;
+	FklNastNode* vec;
+	uint8_t add_extra;
+	uint8_t type;
+	union
+	{
+		FklNastNode* forth;
+		struct
+		{
+			uint32_t prototype_id;
+			FklByteCodelnt* bcl;
+		};
+	};
+}FklCodegenProdPrinting;
 
 typedef struct
 {
@@ -110,6 +135,8 @@ typedef struct
 	int is_ref_outer;
 	FklHashTable prods;
 	FklGrammerIgnore* ignore;
+	FklPtrStack ignore_printing;
+	FklPtrStack prod_printing;
 }FklGrammerProductionGroup;
 
 typedef enum
@@ -464,16 +491,35 @@ void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* target_table);
 
-int fklLoadPreCompile(FklFuncPrototypes* pts
-		,FklFuncPrototypes* macro_pts
-		,FklPtrStack* scriptLibStack
-		,FklPtrStack* macroScriptLibStack
+int fklLoadPreCompile(FklFuncPrototypes* info_pts
+		,FklFuncPrototypes* info_macro_pts
+		,FklPtrStack* info_scriptLibStack
+		,FklPtrStack* info_macroScriptLibStack
 		,FklSymbolTable* gst
-		,FklSymbolTable* pst
+		,FklCodegenOuterCtx* outer_ctx
 		,const char* rp
 		,FILE* fp);
 
-void fklWriteNamedProds(const FklSymbolTable* tt
+void fklInitCodegenProdGroupTable(FklHashTable* ht);
+
+void fklWriteNamedProds(const FklHashTable* named_prod_groups
+		,const FklSymbolTable* st
+		,FILE* fp);
+
+FklGrammerProduction* fklCreateExtraStartProduction(FklSid_t group,FklSid_t sid);
+
+FklGrammerIgnore* fklNastVectorToIgnore(FklNastNode* ast
+		,FklSymbolTable* tt
+		,FklHashTable* builtin_terms);
+
+FklGrammerProduction* fklCodegenProdPrintingToProduction(FklCodegenProdPrinting* p
+		,FklSymbolTable* tt
+		,FklHashTable* builtin_terms
+		,FklCodegenOuterCtx* outer_ctx
+		,FklFuncPrototypes* pts
+		,FklPtrStack* macroLibStack);
+
+void fklWriteExportNamedProds(const FklHashTable* export_named_prod_groups
 		,const FklHashTable* named_prod_groups
 		,const FklSymbolTable* st
 		,FILE* fp);

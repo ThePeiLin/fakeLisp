@@ -866,6 +866,44 @@ inline int fklAddProdToProdTable(FklHashTable* productions
 	return 0;
 }
 
+inline int fklAddProdToProdTableNoRepeat(FklHashTable* productions
+		,FklHashTable* builtins
+		,FklGrammerProduction* prod)
+{
+	const FklGrammerNonterm* left=&prod->left;
+	if(left->group==0&&fklGetBuiltinMatch(builtins,left->sid))
+		return 1;
+	FklGrammerProdHashItem* item=fklGetHashItem(left,productions);
+	if(item)
+	{
+		FklGrammerProduction** pp=&item->prods;
+		FklGrammerProduction* cur=NULL;
+		for(;*pp;pp=&((*pp)->next))
+			if(prod_equal(*pp,prod))
+				return 1;
+		if(cur)
+		{
+			prod->next=cur->next;
+			*pp=prod;
+			fklDestroyGrammerProduction(cur);
+		}
+		else
+		{
+			prod->idx=0;
+			prod->next=NULL;
+			*pp=prod;
+		}
+	}
+	else
+	{
+		prod->next=NULL;
+		item=fklPutHashItem(left,productions);
+		prod->idx=0;
+		item->prods=prod;
+	}
+	return 0;
+}
+
 static inline int builtin_grammer_sym_cmp(const FklLalrBuiltinGrammerSym* b0,const FklLalrBuiltinGrammerSym* b1)
 {
 	if(b0->t->ctx_cmp)
@@ -2616,7 +2654,7 @@ static const struct BuiltinGrammerSymList
 	{NULL,          NULL,                      },
 };
 
-static inline void init_builtin_grammer_sym_table(FklHashTable* s,FklSymbolTable* st)
+inline void fklInitBuiltinGrammerSymTable(FklHashTable* s,FklSymbolTable* st)
 {
 	fklInitHashTable(s,&SidBuiltinHashMetaTable);
 	for(const struct BuiltinGrammerSymList* l=&builtin_grammer_sym_list[0];l->name;l++)
@@ -2958,7 +2996,7 @@ inline void fklInitEmptyGrammer(FklGrammer* r,FklSymbolTable* st)
 	r->sortedTerminalsNum=0;
 	fklInitHashTable(&r->firstSets,&FirstSetHashMetaTable);
 	fklInitGrammerProductionTable(&r->productions);
-	init_builtin_grammer_sym_table(&r->builtins,st);
+	fklInitBuiltinGrammerSymTable(&r->builtins,st);
 }
 
 inline FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)

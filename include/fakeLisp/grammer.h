@@ -3,7 +3,6 @@
 
 #include"base.h"
 #include"symbol.h"
-#include"nast.h"
 #include<stddef.h>
 #include<stdio.h>
 
@@ -285,6 +284,10 @@ int fklAddProdToProdTable(FklHashTable* productions
 		,FklHashTable* builtins
 		,FklGrammerProduction* prod);
 
+int fklAddProdToProdTableNoRepeat(FklHashTable* productions
+		,FklHashTable* builtins
+		,FklGrammerProduction* prod);
+
 void fklUninitGrammer(FklGrammer*);
 void fklDestroyGrammer(FklGrammer*);
 void fklClearGrammer(FklGrammer*);
@@ -434,6 +437,7 @@ FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 		,FklSymbolTable* tt
 		,FklHashTable* builtins);
 
+void fklInitBuiltinGrammerSymTable(FklHashTable* s,FklSymbolTable* st);
 void fklInitEmptyGrammer(FklGrammer* g,FklSymbolTable* st);
 FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st);
 FklGrammer* fklCreateBuiltinGrammer(FklSymbolTable* st);

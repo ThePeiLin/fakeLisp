@@ -71,7 +71,7 @@ FklByteCodelnt* fklCreateSingleInsBclnt(FklInstruction ins
 		,FklSid_t fid
 		,uint64_t line);
 
-void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable*);
+void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable*);
 void fklDestroyByteCodelnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
 void fklCodeLntConcat(FklByteCodelnt*,FklByteCodelnt*);

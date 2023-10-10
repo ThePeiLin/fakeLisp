@@ -8762,6 +8762,18 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 					memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
 					fklAddIgnoreToIgnoreList(&target_group->ignore,ig);
 				}
+				uint32_t top=group->ignore_printing.top;
+				void** base=group->ignore_printing.base;
+				for(uint32_t i=0;i<top;i++)
+					fklPushPtrStack(base[i],&target_group->ignore_printing);
+				group->ignore_printing.top=0;
+
+				top=group->prod_printing.top;
+				base=group->prod_printing.base;
+				for(uint32_t i=0;i<top;i++)
+					fklPushPtrStack(base[i],&target_group->prod_printing);
+				group->prod_printing.top=0;
+
 				for(FklHashTableItem* prod_hash_item_list=group->prods.first
 						;prod_hash_item_list
 						;prod_hash_item_list=prod_hash_item_list->next)
@@ -9786,7 +9798,7 @@ void fklWriteExportNamedProds(const FklHashTable* export_named_prod_groups
 	{
 		FklSid_t id=*(FklSid_t*)list->data;
 		FklGrammerProductionGroup* group=get_production_group(named_prod_groups,id);
-		fwrite(&id,sizeof(id),1,fp);
+		fwrite(&group->id,sizeof(group->id),1,fp);
 		write_prods(&group->prod_printing,st,fp);
 		write_ignores(&group->ignore_printing,st,fp);
 	}

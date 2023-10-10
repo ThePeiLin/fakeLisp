@@ -12,6 +12,10 @@
 
 static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs,FklSymbolTable*);
 
+static void print_compiler_macros(FklCodegenMacro* head,const FklSymbolTable* pst,FILE* fp);
+
+static void print_reader_macros(const FklHashTable* named_prod_groups,const FklSymbolTable* pst,FILE* fp);
+
 int main(int argc,char** argv)
 {
 	if(argc<2)
@@ -130,16 +134,71 @@ int main(int argc,char** argv)
 			goto exit;
 		}
 
+		FklSymbolTable* pst=&ctx.public_symbol_table;
+		uint32_t num=scriptLibStack.top;
+		for(size_t i=0;i<num;i++)
+		{
+			FklCodegenLib* cur=scriptLibStack.base[i];
+			fputc('\n',stdout);
+			printf("lib %lu:\n",i+1);
+			switch(cur->type)
+			{
+				case FKL_CODEGEN_LIB_SCRIPT:
+					fklPrintByteCodelnt(cur->bcl,stdout,&gst);
+					if(cur->head)
+						print_compiler_macros(cur->head,pst,stdout);
+					if(cur->named_prod_groups.t)
+						print_reader_macros(&cur->named_prod_groups
+								,pst
+								,stdout);
+					break;
+				case FKL_CODEGEN_LIB_DLL:
+					fputs(cur->rp,stdout);
+					break;
+			}
+			fputc('\n',stdout);
+		}
+
+		if(macroScriptLibStack.top>0)
+		{
+			fputc('\n',stdout);
+			puts("macro loaded libs:\n");
+			num=macroScriptLibStack.top;
+			for(size_t i=0;i<num;i++)
+			{
+				FklCodegenLib* cur=macroScriptLibStack.base[i];
+				putchar('\n');
+				printf("lib %lu:\n",i+1);
+				switch(cur->type)
+				{
+					case FKL_CODEGEN_LIB_SCRIPT:
+						fklPrintByteCodelnt(cur->bcl,stdout,pst);
+						if(cur->head)
+							print_compiler_macros(cur->head,pst,stdout);
+						if(cur->named_prod_groups.t)
+							print_reader_macros(&cur->named_prod_groups
+									,pst
+									,stdout);
+						break;
+					case FKL_CODEGEN_LIB_DLL:
+						fputs(cur->rp,stdout);
+						break;
+				}
+				fputc('\n',stdout);
+			}
+		}
 exit:
-		fklUninitSymbolTable(&gst);
+		fklUninitFuncPrototypes(&pts);
+		fklUninitFuncPrototypes(&macro_pts);
+
 		while(!fklIsPtrStackEmpty(&scriptLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
 		fklUninitPtrStack(&scriptLibStack);
-		fklUninitFuncPrototypes(&pts);
-		fklUninitFuncPrototypes(&macro_pts);
 		while(!fklIsPtrStackEmpty(&macroScriptLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
 		fklUninitPtrStack(&macroScriptLibStack);
+
+		fklUninitSymbolTable(&gst);
 		fklUninitSymbolTable(&ctx.public_symbol_table);
 		fklDestroyCwd();
 		fklDestroyMainFileRealPath();
@@ -193,5 +252,72 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			strcat(rp,FKL_DLL_FILE_TYPE);
 			fklInitCodegenDllLib(&libs[i],rp,NULL,NULL,dll_init,table);
 		}
+	}
+}
+
+static void print_compiler_macros(FklCodegenMacro* head,const FklSymbolTable* pst,FILE* fp)
+{
+	fputs("\ncompiler macros:\n",fp);
+	for(;head;head=head->next)
+	{
+		fputs("pattern:\n",fp);
+		fklPrintNastNode(head->origin_exp,fp,pst);
+		fputc('\n',fp);
+		fklPrintByteCodelnt(head->bcl,fp,pst);
+		fputc('\n',fp);
+	}
+}
+
+static void print_reader_macros(const FklHashTable* ht,const FklSymbolTable* pst,FILE* fp)
+{
+	fputs("\n\nreader macros:\n",fp);
+	for(FklHashTableItem* l=ht->first;l;l=l->next)
+	{
+		FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)l->data;
+		fputs("group name:",fp);
+		fklPrintRawSymbol(fklGetSymbolWithId(group->id,pst)->symbol,fp);
+		if(group->ignore_printing.top)
+		{
+			fputs("\nignores:\n",fp);
+			uint32_t top=group->ignore_printing.top;
+			void** base=group->ignore_printing.base;
+			for(uint32_t i=0;i<top;i++)
+			{
+				fklPrintNastNode(base[i],fp,pst);
+				fputc('\n',fp);
+			}
+		}
+		if(group->prod_printing.top)
+		{
+			fputs("\nprods:\n\n",fp);
+			uint32_t top=group->prod_printing.top;
+			void** base=group->prod_printing.base;
+			for(uint32_t i=0;i<top;i++)
+			{
+				FklCodegenProdPrinting* p=base[i];
+				if(p->sid)
+					fklPrintRawSymbol(fklGetSymbolWithId(p->sid,pst)->symbol,fp);
+				else
+					fputs("()",fp);
+				fputc(' ',fp);
+				fklPrintNastNode(p->vec,fp,pst);
+				fputc(' ',fp);
+				fputs(p->add_extra?"start":"not-start",fp);
+				fputc(' ',fp);
+				fputs("\naction: ",fp);
+				if(p->type==FKL_CODEGEN_PROD_CUSTOM)
+				{
+					fputs("custom\n",fp);
+					fklPrintByteCodelnt(p->bcl,fp,pst);
+				}
+				else
+				{
+					fputs(p->type==FKL_CODEGEN_PROD_SIMPLE?"simple\n":"builtin\n",fp);
+					fklPrintNastNode(p->forth,fp,pst);
+				}
+				fputc('\n',fp);
+			}
+		}
+		fputc('\n',fp);
 	}
 }

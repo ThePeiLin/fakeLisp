@@ -458,6 +458,7 @@ static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
 		for(FklHashTableItem* list=ht->first;list;list=list->next)
 		{
 			FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)list->data;
+			replace_sid(&group->id,origin_table,target_table);
 			uint32_t top=group->prod_printing.top;
 			for(uint32_t i=0;i<top;i++)
 			{
@@ -480,6 +481,7 @@ static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
 				recompute_sid_for_nast(node,origin_table,target_table);
 			}
 		}
+		fklRehashTable(ht);
 	}
 }
 
@@ -552,6 +554,16 @@ static inline void recompute_sid_for_double_st_lib_stack(FklPtrStack* loadedLibS
 	}
 }
 
+static inline void recompute_sid_for_sid_set(FklHashTable* ht,const FklSymbolTable* ost,FklSymbolTable* tst)
+{
+	for(FklHashTableItem* l=ht->first;l;l=l->next)
+	{
+		FklSid_t* id=(FklSid_t*)l->data;
+		replace_sid(id,ost,tst);
+	}
+	fklRehashTable(ht);
+}
+
 static inline void recompute_sid_for_main_file(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table
@@ -561,6 +573,7 @@ static inline void recompute_sid_for_main_file(FklCodegenInfo* codegen
 	recompute_sid_for_export_sid_index(&codegen->exports,origin_table,target_table);
 	recompute_sid_for_compiler_macros(codegen->export_macro,origin_table,target_table);
 	recompute_sid_for_replacements(codegen->export_replacement,origin_table,target_table);
+	recompute_sid_for_sid_set(codegen->export_named_prod_groups,origin_table,target_table);
 	recompute_sid_for_named_prod_groups(codegen->named_prod_groups,origin_table,target_table);
 }
 

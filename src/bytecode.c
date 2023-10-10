@@ -171,7 +171,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		,ByteCodePrintState* cState
 		,FklPtrStack* s
 		,int* needBreak
-		,FklSymbolTable* table
+		,const FklSymbolTable* table
 		,const char* format)
 {
 	uint32_t tab_count=cState->tc;
@@ -354,7 +354,7 @@ void fklScanAndSetTailCall(FklByteCode* bc)
 	}
 }
 
-void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,FklSymbolTable* table)
+void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* table)
 {
 	FklByteCode* tmpCode=obj->bc;
 	FklPtrStack s=FKL_STACK_INIT;

@@ -2092,6 +2092,14 @@ static inline void expandHashTable(FklHashTable* table)
 		putHashNode(list,table);
 }
 
+inline void fklRehashTable(FklHashTable* table)
+{
+	FklHashTableItem* list=table->first;
+	memset(table->base,0,sizeof(FklHashTableItem*)*table->size);
+	for(;list;list=list->next)
+		putHashNode(list,table);
+}
+
 int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 {
 	HASH_FUNC_HEADER();

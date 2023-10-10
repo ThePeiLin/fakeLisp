@@ -5,13 +5,8 @@ if(MSVC)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
 endif()
-set(CMAKE_C_STANDARD 11)
 
-if(WIN32)
-	set(LINK_TARGET m pthread)
-else()
-	set(LINK_TARGET m pthread dl)# tsan)
-endif()
+set(CMAKE_C_STANDARD 11)
 
 set(ARGTABLE3_TARGET_NAME argtable3)
 

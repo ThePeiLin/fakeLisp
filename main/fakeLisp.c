@@ -158,8 +158,6 @@ static inline int runPreCompile(char* filename)
 	}
 	FklSymbolTable gst;
 	fklInitSymbolTable(&gst);
-	FklSymbolTable pst;
-	fklInitSymbolTable(&pst);
 
 	FklFuncPrototypes* pts=fklCreateFuncPrototypes(0);
 
@@ -172,13 +170,16 @@ static inline int runPreCompile(char* filename)
 	FklPtrStack macroScriptLibStack;
 	fklInitPtrStack(&macroScriptLibStack,8,16);
 
+	FklCodegenOuterCtx ctx;
+	fklInitCodegenOuterCtxExceptPattern(&ctx);
+
 	char* rp=fklRealpath(filename);
 	int load_result=fklLoadPreCompile(pts
 			,&macro_pts
 			,&scriptLibStack
 			,&macroScriptLibStack
 			,&gst
-			,&pst
+			,&ctx
 			,rp
 			,fp);
 	fklUninitFuncPrototypes(&macro_pts);
@@ -187,7 +188,7 @@ static inline int runPreCompile(char* filename)
 	fklUninitPtrStack(&macroScriptLibStack);
 	free(rp);
 	fclose(fp);
-	fklUninitSymbolTable(&pst);
+	fklUninitSymbolTable(&ctx.public_symbol_table);
 	if(load_result)
 	{
 		while(!fklIsPtrStackEmpty(&scriptLibStack))

@@ -12,29 +12,6 @@
 
 static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs,FklSymbolTable*);
 
-static inline FklLineNumberTableItem* loadLineNumberTable(uint32_t* psize,FILE* fp)
-{
-	uint32_t size=0;
-	uint32_t i=0;
-	fread(&size,sizeof(uint32_t),1,fp);
-	FklLineNumberTableItem* list=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*size);
-	FKL_ASSERT(list||!size);
-	for(;i<size;i++)
-	{
-		FklSid_t fid=0;
-		uint64_t scp=0;
-		uint64_t cpc=0;
-		uint32_t line=0;
-		fread(&fid,sizeof(fid),1,fp);
-		fread(&scp,sizeof(scp),1,fp);
-		fread(&cpc,sizeof(cpc),1,fp);
-		fread(&line,sizeof(line),1,fp);
-		fklInitLineNumTabNode(&list[i],fid,scp,cpc,line);
-	}
-	*psize=size;
-	return list;
-}
-
 int main(int argc,char** argv)
 {
 	if(argc<2)
@@ -61,20 +38,21 @@ int main(int argc,char** argv)
 			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
-		FklSymbolTable* table=fklCreateSymbolTable();
-		fklLoadSymbolTable(fp,table);
+		FklSymbolTable table;
+		fklInitSymbolTable(&table);
+		fklLoadSymbolTable(fp,&table);
 		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp));
 		char* rp=fklRealpath(filename);
 		fklSetMainFileRealPath(rp);
 		free(rp);
 
 		FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
-		fklPrintByteCodelnt(bcl,stdout,table);
+		fklPrintByteCodelnt(bcl,stdout,&table);
 		fputc('\n',stdout);
 		fklDestroyByteCodelnt(bcl);
 		FklCodegenLib* libs=NULL;
 		size_t num=0;
-		loadLib(fp,&num,&libs,table);
+		loadLib(fp,&num,&libs,&table);
 		for(size_t i=0;i<num;i++)
 		{
 			FklCodegenLib* cur=&libs[i];
@@ -83,7 +61,7 @@ int main(int argc,char** argv)
 			switch(cur->type)
 			{
 				case FKL_CODEGEN_LIB_SCRIPT:
-					fklPrintByteCodelnt(cur->bcl,stdout,table);
+					fklPrintByteCodelnt(cur->bcl,stdout,&table);
 					break;
 				case FKL_CODEGEN_LIB_DLL:
 					fputs(cur->rp,stdout);
@@ -96,7 +74,76 @@ int main(int argc,char** argv)
 		fclose(fp);
 		fklDestroyCwd();
 		fklDestroyMainFileRealPath();
-		fklDestroySymbolTable(table);
+		fklUninitSymbolTable(&table);
+	}
+	else if(fklIsPrecompileFile(filename))
+	{
+		if(!fklIsAccessableRegFile(filename))
+		{
+			perror(filename);
+			fklDestroyCwd();
+			return EXIT_FAILURE;
+		}
+		char* cwd=getcwd(NULL,0);
+		fklSetCwd(cwd);
+		free(cwd);
+		FILE* fp=fopen(argv[1],"rb");
+		if(fp==NULL)
+		{
+			perror(filename);
+			fklDestroyCwd();
+			return EXIT_FAILURE;
+		}
+		FklSymbolTable gst;
+		fklInitSymbolTable(&gst);
+
+		FklFuncPrototypes pts;
+		fklInitFuncPrototypes(&pts,0);
+
+		FklFuncPrototypes macro_pts;
+		fklInitFuncPrototypes(&macro_pts,0);
+
+		FklPtrStack scriptLibStack;
+		fklInitPtrStack(&scriptLibStack,8,16);
+
+		FklPtrStack macroScriptLibStack;
+		fklInitPtrStack(&macroScriptLibStack,8,16);
+
+		FklCodegenOuterCtx ctx;
+		fklInitCodegenOuterCtxExceptPattern(&ctx);
+
+		char* rp=fklRealpath(filename);
+		int load_result=fklLoadPreCompile(&pts
+				,&macro_pts
+				,&scriptLibStack
+				,&macroScriptLibStack
+				,&gst
+				,&ctx
+				,rp
+				,fp);
+		free(rp);
+		fclose(fp);
+		int exit_state=0;
+		if(load_result)
+		{
+			exit_state=1;
+			goto exit;
+		}
+
+exit:
+		fklUninitSymbolTable(&gst);
+		while(!fklIsPtrStackEmpty(&scriptLibStack))
+			fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
+		fklUninitPtrStack(&scriptLibStack);
+		fklUninitFuncPrototypes(&pts);
+		fklUninitFuncPrototypes(&macro_pts);
+		while(!fklIsPtrStackEmpty(&macroScriptLibStack))
+			fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
+		fklUninitPtrStack(&macroScriptLibStack);
+		fklUninitSymbolTable(&ctx.public_symbol_table);
+		fklDestroyCwd();
+		fklDestroyMainFileRealPath();
+		return exit_state;
 	}
 	else
 	{

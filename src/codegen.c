@@ -4602,7 +4602,7 @@ static CODEGEN_FUNC(codegen_export)
 	FklPtrQueue* exportQueue=fklCreatePtrQueue();
 	FklCodegenInfo* libCodegen=get_lib_codegen(codegen);
 
-	if(libCodegen&&curEnv==codegen->globalEnv&&macroScope==codegen->globalEnv->macros)
+	if(libCodegen&&scope==1&&curEnv==codegen->globalEnv&&macroScope==codegen->globalEnv->macros)
 	{
 		FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
 		add_export_symbol(libCodegen
@@ -4643,7 +4643,7 @@ static CODEGEN_FUNC(codegen_export_single)
 	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
 	FklCodegenInfo* libCodegen=get_lib_codegen(codegen);
 
-	if(!libCodegen||curEnv!=codegen->globalEnv||macroScope!=codegen->globalEnv->macros)
+	if(!libCodegen||curEnv!=codegen->globalEnv||scope>1||macroScope!=codegen->globalEnv->macros)
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_INVALIDEXPR;
@@ -8205,7 +8205,7 @@ static struct PatternAndFunc
 	{NULL,                                                     NULL,                      },
 };
 
-void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx)
+void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx)
 {
 	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
 	fklInitSymbolTable(publicSymbolTable);
@@ -8221,6 +8221,15 @@ void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx)
 	outerCtx->builtInPatternVar_custom=fklAddSymbolCstr("custom",publicSymbolTable)->id;
 	outerCtx->builtInPatternVar_builtin=fklAddSymbolCstr("builtin",publicSymbolTable)->id;
 	outerCtx->builtInPatternVar_simple=fklAddSymbolCstr("simple",publicSymbolTable)->id;
+
+	init_builtin_prod_action_list(outerCtx->builtin_prod_action_id,publicSymbolTable);
+	init_simple_prod_action_list(outerCtx->simple_prod_action_id,publicSymbolTable);
+}
+
+void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx)
+{
+	fklInitCodegenOuterCtxExceptPattern(outerCtx);
+	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
 
 	FklNastNode** builtin_pattern_node=outerCtx->builtin_pattern_node;
 	for(size_t i=0;i<FKL_CODEGEN_PATTERN_NUM;i++)
@@ -8241,8 +8250,6 @@ void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx)
 		fklDestroyNastNode(node);
 	}
 
-	init_builtin_prod_action_list(outerCtx->builtin_prod_action_id,publicSymbolTable);
-	init_simple_prod_action_list(outerCtx->simple_prod_action_id,publicSymbolTable);
 }
 
 void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* outer_ctx)

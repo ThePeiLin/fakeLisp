@@ -360,6 +360,7 @@ void fklUninitCodegenInfo(FklCodegenInfo* codegen);
 void fklDestroyCodegenInfo(FklCodegenInfo* codegen);
 
 void fklInitCodegenOuterCtx(FklCodegenOuterCtx* ctx);
+void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx);
 
 void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* ctx);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegenInfo* codegen);

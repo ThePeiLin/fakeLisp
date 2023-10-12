@@ -42,6 +42,10 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 
+#Crossline
+include_directories("${PROJECT_SOURCE_DIR}/3rd/Crossline")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/Crossline")
+
 #set source file for taget
 file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")
 

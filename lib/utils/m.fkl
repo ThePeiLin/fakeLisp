@@ -49,5 +49,8 @@
                    ,~(cdr carc))
                 `(~carc,(~x))))]
         [(null c) r]
-        (setq carc (car c))))))
+        (setq carc (car c)))))
+
+  (defmacro ~(static-strcat,~rest)
+    (apply append! rest)))
 

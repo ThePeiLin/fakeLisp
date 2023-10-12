@@ -745,9 +745,9 @@ ret:
 #include<fcntl.h>
 #define SET_NON_BLOCK() int fd=fileno(fp);\
 	int attr=fcntl(fd,F_GETFL);\
-	fcntl(fd,F_SETFL,attr|O_NONBLOCK);\
+	fcntl(fd,F_SETFL,attr|O_NONBLOCK)\
 
-#define RESET_NON_BLOCK() fcntl(fd,F_SETFL,attr);
+#define RESET_NON_BLOCK() fcntl(fd,F_SETFL,attr)
 
 inline int fklVMfpNonBlockGetc(FklVMfp* vfp)
 {
@@ -766,7 +766,7 @@ inline int fklVMfpEof(FklVMfp* vfp)
 inline int fklVMfpNonBlockGetdelim(FklVMfp* vfp,FklStringBuffer* b,char d)
 {
 	FILE* fp=vfp->fp;
-	SET_NON_BLOCK()
+	SET_NON_BLOCK();
 	int ch;
 	while((ch=fgetc(fp))>0)
 	{

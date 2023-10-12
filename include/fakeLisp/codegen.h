@@ -485,8 +485,6 @@ void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,struct FklVM* vm
 		,FklFuncPrototypes*);
 
-void fklInitFrameToReplFrame(FklVM*,FklCodegenInfo* codegen);
-
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table

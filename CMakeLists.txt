@@ -42,9 +42,9 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 
-#Crossline
-include_directories("${PROJECT_SOURCE_DIR}/3rd/Crossline")
-add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/Crossline")
+#replxx
+include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
 
 #set source file for taget
 file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")
@@ -97,7 +97,7 @@ add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 
 #linking
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE})
-target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 target_link_libraries(${GRAMMER_GEN} ${LINK_TARGET})

@@ -483,7 +483,7 @@ typedef struct FklVMerrorHandler
 
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
-FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*);
+FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
 FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* prev
 		,FklVM* next
@@ -586,7 +586,7 @@ void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 
 void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM*);
+FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM*,uint32_t pid);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 
 FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref);

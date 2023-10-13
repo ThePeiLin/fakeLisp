@@ -488,7 +488,8 @@ static FklSid_t* createBuiltinErrorTypeIdList(void)
 
 FklVM* fklCreateVM(FklByteCodelnt* mainCode
 		,FklSymbolTable* globalSymTable
-		,FklFuncPrototypes* pts)
+		,FklFuncPrototypes* pts
+		,uint32_t pid)
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -502,7 +503,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-		exe->frames=fklCreateVMframeWithCodeObj(codeObj,exe);
+		exe->frames=fklCreateVMframeWithCodeObj(codeObj,exe,pid);
 	}
 	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();

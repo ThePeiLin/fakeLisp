@@ -9102,7 +9102,8 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 {
 	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl)
 			,publicSymbolTable
-			,pts);
+			,pts
+			,prototype_id);
 	insert_macro_expand_frame(anotherVM->frames
 			,pr
 			,lineHash
@@ -9144,8 +9145,9 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		fklDestroyCwd();
 		fklSetCwd(fklGetMainFileRealPath());
 
+		FklFuncPrototypes* pts=codegen->prev&&codegen->prev->macro_pts==codegen->pts?codegen->pts:codegen->macro_pts;
 		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl
-				,codegen->macro_pts
+				,pts
 				,macro->prototype_id
 				,ht
 				,&lineHash

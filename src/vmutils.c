@@ -286,9 +286,9 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	return tmp;
 }
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM* vm)
+FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM* vm,uint32_t pid)
 {
-	FklVMvalue* r=fklCreateVMvalueProcWithWholeCodeObj(vm,codeObj,1);
+	FklVMvalue* r=fklCreateVMvalueProcWithWholeCodeObj(vm,codeObj,pid);
 	return fklCreateVMframeWithProcValue(r,NULL);
 }
 

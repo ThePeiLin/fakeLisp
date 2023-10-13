@@ -3566,7 +3566,7 @@ static CODEGEN_FUNC(codegen_load)
 	}
 
 	const FklString* filenameStr=filename->str;
-	if(!fklIsAccessableRegFile(filenameStr->str))
+	if(!fklIsAccessibleRegFile(filenameStr->str))
 	{
 		errorState->fid=codegen->fid;
 		errorState->type=FKL_ERR_FILEFAILURE;
@@ -5366,7 +5366,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
 
 	char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
 
-	if(fklIsAccessableRegFile(packageMainFileName))
+	if(fklIsAccessibleRegFile(packageMainFileName))
 		process_import_script_common_header(origExp
 				,name
 				,packageMainFileName
@@ -5381,7 +5381,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
 				,alias
 				,except
 				,pst);
-	else if(fklIsAccessableRegFile(scriptFileName))
+	else if(fklIsAccessibleRegFile(scriptFileName))
 		process_import_script_common_header(origExp
 				,name
 				,scriptFileName
@@ -5396,7 +5396,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
 				,alias
 				,except
 				,pst);
-	else if(fklIsAccessableRegFile(preCompileFileName))
+	else if(fklIsAccessibleRegFile(preCompileFileName))
 	{
 		size_t libId=check_loaded_lib(preCompileFileName,codegen->libStack);
 		if(!libId)
@@ -5444,7 +5444,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
 				,codegen
 				,codegenQuestStack);
 	}
-	else if(fklIsAccessableRegFile(dllFileName))
+	else if(fklIsAccessibleRegFile(dllFileName))
 	{
 		FklByteCodelnt* bc=process_import_from_dll(origExp
 				,name

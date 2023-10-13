@@ -267,7 +267,7 @@ int main(int argc,char** argv)
 	}
 	else
 	{
-		if(fklIsAccessableRegFile(filename))
+		if(fklIsAccessibleRegFile(filename))
 		{
 			if(fklIsScriptFile(filename))
 				exitState=compileAndRun(filename);
@@ -293,11 +293,11 @@ int main(int argc,char** argv)
 			char* main_code_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_BYTECODE_FKL_SUFFIX_STR);
 			char* main_pre_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
-			if(fklIsAccessableRegFile(main_script_buf.buf))
+			if(fklIsAccessibleRegFile(main_script_buf.buf))
 				exitState=compileAndRun(main_script_buf.buf);
-			else if(fklIsAccessableRegFile(main_code_file))
+			else if(fklIsAccessibleRegFile(main_code_file))
 				exitState=runCode(main_code_file);
-			else if(fklIsAccessableRegFile(main_pre_file))
+			else if(fklIsAccessibleRegFile(main_pre_file))
 				exitState=runPreCompile(main_pre_file);
 			else
 			{

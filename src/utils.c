@@ -882,7 +882,7 @@ int fklIsAccessableDirectory(const char* p)
 	return !access(p,R_OK)&&fklIsDirectory(p);
 }
 
-int fklIsAccessableRegFile(const char* p)
+int fklIsAccessibleRegFile(const char* p)
 {
 	return !access(p,R_OK)&&fklIsRegFile(p);
 }

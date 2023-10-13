@@ -26,7 +26,7 @@ int main(int argc,char** argv)
 	char* filename=argv[1];
 	if(fklIsByteCodeFile(filename))
 	{
-		if(!fklIsAccessableRegFile(filename))
+		if(!fklIsAccessibleRegFile(filename))
 		{
 			perror(filename);
 			fklDestroyCwd();
@@ -82,7 +82,7 @@ int main(int argc,char** argv)
 	}
 	else if(fklIsPrecompileFile(filename))
 	{
-		if(!fklIsAccessableRegFile(filename))
+		if(!fklIsAccessibleRegFile(filename))
 		{
 			perror(filename);
 			fklDestroyCwd();

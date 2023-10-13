@@ -416,7 +416,7 @@ error:
 		fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
 		fklStringBufferConcatWithCstr(&buffer,FKL_PACKAGE_MAIN_FILE);
 
-		if(!fklIsAccessableRegFile(buffer.buf))
+		if(!fklIsAccessibleRegFile(buffer.buf))
 		{
 			perror(buffer.buf);
 			fklUninitStringBuffer(&buffer);
@@ -447,7 +447,7 @@ error:
 		const char* filename=file->filename[i];
 		fklSetCwd(cwd);
 		chdir(fklGetCwd());
-		if(fklIsScriptFile(filename)&&fklIsAccessableRegFile(filename))
+		if(fklIsScriptFile(filename)&&fklIsAccessibleRegFile(filename))
 		{
 			if(compile(filename
 						,output->count>0?output->filename[0]:NULL
@@ -471,7 +471,7 @@ compile_error:
 			fklStringBufferConcatWithCstr(&buffer,FKL_PATH_SEPARATOR_STR);
 			fklStringBufferConcatWithCstr(&buffer,"main.fkl");
 
-			if(!fklIsAccessableRegFile(buffer.buf))
+			if(!fklIsAccessibleRegFile(buffer.buf))
 			{
 				perror(buffer.buf);
 				fklUninitStringBuffer(&buffer);

@@ -138,7 +138,7 @@ int fklIsRegFile(const char* s);
 int fklIsDirectory(const char* s);
 
 int fklMkdir(const char* dir);
-int fklIsAccessableRegFile(const char* s);
+int fklIsAccessibleRegFile(const char* s);
 int fklIsAccessableDirectory(const char* s);
 
 FklDllHandle fklLoadDll(const char* path);

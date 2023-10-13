@@ -794,7 +794,7 @@ static inline char* load_dll_lib_path(const char* main_dir,FILE* fp)
 static inline int load_dll_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTable* st,const char* main_dir,FILE* fp)
 {
 	lib->rp=load_dll_lib_path(main_dir,fp);
-	if(!lib->rp||!fklIsAccessableRegFile(lib->rp))
+	if(!lib->rp||!fklIsAccessibleRegFile(lib->rp))
 	{
 		free(lib->rp);
 		return 1;

@@ -48,6 +48,9 @@ typedef struct
 	FklVMvalue* sysIn;
 	FklVMvalue* sysOut;
 	FklVMvalue* sysErr;
+	FklSid_t seek_cur;
+	FklSid_t seek_set;
+	FklSid_t seek_end;
 }PublicBuiltInData;
 
 static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
@@ -1788,18 +1791,19 @@ static void builtin_length(FKL_DL_PROC_ARGL)
 static void builtin_fopen(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fopen";
-	DECL_AND_CHECK_ARG2(filename,mode,Pname);
+	DECL_AND_CHECK_ARG(filename,Pname);
+	FklVMvalue* mode=fklPopArg(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	if(!FKL_IS_STR(filename)||!FKL_IS_STR(mode))
+	if(!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklString* filenameStr=FKL_VM_STR(filename);
-	FklString* modeStr=FKL_VM_STR(mode);
-	FILE* file=fopen(filenameStr->str,modeStr->str);
+	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
+	FILE* fp=fopen(filenameStr->str,modeStr);
 	FklVMvalue* obj=NULL;
-	if(!file)
+	if(!fp)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
 	else
-		obj=fklCreateVMvalueFp(exe,file,fklGetVMfpRwFromCstr(modeStr->str));
+		obj=fklCreateVMvalueFp(exe,fp,fklGetVMfpRwFromCstr(modeStr));
 	FKL_VM_PUSH_VALUE(exe,obj);
 }
 
@@ -4078,7 +4082,7 @@ static void builtin_reverse1(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,retval);
 }
 
-static void builtin_feof(FKL_DL_PROC_ARGL)
+static void builtin_feof_p(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.feof";
 	DECL_AND_CHECK_ARG(fp,Pname);
@@ -4086,6 +4090,78 @@ static void builtin_feof(FKL_DL_PROC_ARGL)
 	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(fp,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,feof(FKL_VM_FP(fp)->fp)?FKL_VM_TRUE:FKL_VM_NIL);
+}
+
+static void builtin_fclerr(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fclerr";
+	DECL_AND_CHECK_ARG(fp,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(fp,Pname,exe);
+	clearerr(FKL_VM_FP(fp)->fp);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+}
+
+static void builtin_facce_p(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.facce?";
+	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+}
+
+static void builtin_ftell(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.ftell";
+	DECL_AND_CHECK_ARG(fp,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(fp,Pname,exe);
+	int64_t pos=ftell(FKL_VM_FP(fp)->fp);
+	if(pos<0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	FklVMvalue* r=pos>FKL_FIX_INT_MAX
+		?fklCreateVMvalueBigIntWithI64(exe,pos)
+		:FKL_MAKE_VM_FIX(pos);
+	FKL_VM_PUSH_VALUE(exe,r);
+}
+
+static void builtin_fseek(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fseek";
+	DECL_AND_CHECK_ARG2(vfp,offset,Pname);
+	FklVMvalue* whence_v=fklPopArg(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
+	FKL_CHECK_TYPE(offset,fklIsVMint,Pname,exe);
+	if(whence_v)
+		FKL_CHECK_TYPE(whence_v,FKL_IS_SYM,Pname,exe);
+	CHECK_FP_OPEN(vfp,Pname,exe);
+	FILE* fp=FKL_VM_FP(vfp)->fp;
+	const FklSid_t seek_set=FKL_GET_UD_DATA(PublicBuiltInData,FKL_VM_UD(pd))->seek_set;
+	const FklSid_t seek_cur=FKL_GET_UD_DATA(PublicBuiltInData,FKL_VM_UD(pd))->seek_cur;
+	const FklSid_t seek_end=FKL_GET_UD_DATA(PublicBuiltInData,FKL_VM_UD(pd))->seek_end;
+	const FklSid_t whence_sid=whence_v?FKL_GET_SYM(whence_v):seek_set;
+	int whence=whence_sid==seek_set?0
+		:whence_sid==seek_cur?1
+		:whence_sid==seek_end?2:-1;
+
+	if(whence==-1)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	if(fseek(fp,fklGetInt(offset),whence))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	else
+	{
+		int64_t pos=ftell(fp);
+		FklVMvalue* r=pos>FKL_FIX_INT_MAX
+			?fklCreateVMvalueBigIntWithI64(exe,pos)
+			:FKL_MAKE_VM_FIX(pos);
+		FKL_VM_PUSH_VALUE(exe,r);
+	}
 }
 
 static void builtin_vector(FKL_DL_PROC_ARGL)
@@ -4318,7 +4394,7 @@ static void builtin_get_time(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 }
 
-static void builtin_remove_file(FKL_DL_PROC_ARGL)
+static void builtin_fremove(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.remove-file";
 	DECL_AND_CHECK_ARG(name,Pname);
@@ -4982,7 +5058,6 @@ static const struct SymbolFuncStruct
 	{"length",                builtin_length,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"apply",                 builtin_apply,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"call/eh",               builtin_call_eh,                 {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"read",                  builtin_read,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"parse",                 builtin_parse,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,          NULL,          }, },
@@ -5016,9 +5091,7 @@ static const struct SymbolFuncStruct
 	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"reverse",               builtin_reverse,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"reverse!",              builtin_reverse1,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
-	{"feof",                  builtin_feof,                    {NULL,         NULL,          NULL,          NULL,          }, },
-	{"eof?",                  builtin_eof_p,                    {NULL,         NULL,          NULL,          NULL,          }, },
+
 	{"nthcdr",                builtin_nthcdr,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"tail",                  builtin_tail,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"char?",                 builtin_char_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
@@ -5113,12 +5186,23 @@ static const struct SymbolFuncStruct
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"getcwd",                builtin_getcwd,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"cd",                    builtin_cd,                      {NULL,         NULL,          NULL,          NULL,          }, },
+
 	{"fgetc",                 builtin_fgetc,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgeti",                 builtin_fgeti,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgets",                 builtin_fgets,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgetd",                 builtin_fgetd,                   {NULL,         NULL,          NULL,          NULL,          }, },
+
+	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
+	{"feof?",                 builtin_feof_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
+	{"eof?",                  builtin_eof_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"facce?",                builtin_facce_p,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"ftell",                 builtin_ftell,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fseek",                 builtin_fseek,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fclerr",                builtin_fclerr,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"car-set!",              builtin_car_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"cdr-set!",              builtin_cdr_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
@@ -5149,7 +5233,6 @@ static const struct SymbolFuncStruct
 	{"srand",                 builtin_srand,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"rand",                  builtin_rand,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"get-time",              builtin_get_time,                {NULL,         NULL,          NULL,          NULL,          }, },
-	{"remove-file",           builtin_remove_file,             {NULL,         NULL,          NULL,          NULL,          }, },
 	{"time",                  builtin_time,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"system",                builtin_system,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
@@ -5252,6 +5335,10 @@ static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 	pd->sysIn=builtInStdin;
 	pd->sysOut=builtInStdout;
 	pd->sysErr=builtInStderr;
+
+	pd->seek_set=fklAddSymbolCstr("set",exe->symbolTable)->id;
+	pd->seek_cur=fklAddSymbolCstr("cur",exe->symbolTable)->id;
+	pd->seek_end=fklAddSymbolCstr("end",exe->symbolTable)->id;
 }
 
 void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)

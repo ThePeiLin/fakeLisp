@@ -9124,10 +9124,11 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	return anotherVM;
 }
 
-static inline FklFuncPrototypes* get_macro_pts(FklCodegenInfo* info)
+static inline void get_macro_pts_and_lib(FklCodegenInfo* info,FklFuncPrototypes** ppts,FklPtrStack** plib)
 {
 	for(;info->prev;info=info->prev);
-	return info->macro_pts;
+	*ppts=info->macro_pts;
+	*plib=info->macroLibStack;
 }
 
 FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
@@ -9151,13 +9152,15 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		fklDestroyCwd();
 		fklSetCwd(fklGetMainFileRealPath());
 
-		FklFuncPrototypes* pts=get_macro_pts(codegen);
+		FklFuncPrototypes* pts=NULL;
+		FklPtrStack* macroLibStack=NULL;
+		get_macro_pts_and_lib(codegen,&pts,&macroLibStack);
 		FklVM* anotherVM=fklInitMacroExpandVM(macro->bcl
 				,pts
 				,macro->prototype_id
 				,ht
 				,&lineHash
-				,codegen->macroLibStack
+				,macroLibStack
 				,&retval
 				,r->curline
 				,pst);

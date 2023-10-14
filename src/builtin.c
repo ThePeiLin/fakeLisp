@@ -4164,6 +4164,23 @@ static void builtin_fseek(FKL_DL_PROC_ARGL)
 	}
 }
 
+static void builtin_fflush(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fflush";
+	FklVMvalue* fp=fklPopArg(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(fp)
+	{
+		FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+		CHECK_FP_OPEN(fp,Pname,exe);
+		if(fflush(FKL_VM_FP(fp)->fp))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	}
+	else if(fflush(NULL))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+}
+
 static void builtin_vector(FKL_DL_PROC_ARGL)
 {
 	size_t size=exe->tp-exe->bp;
@@ -5203,6 +5220,7 @@ static const struct SymbolFuncStruct
 	{"ftell",                 builtin_ftell,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fseek",                 builtin_fseek,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fclerr",                builtin_fclerr,                  {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fflush",                builtin_fflush,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"car-set!",              builtin_car_set,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"cdr-set!",              builtin_cdr_set,                 {NULL,         NULL,          NULL,          NULL,          }, },

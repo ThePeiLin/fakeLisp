@@ -5769,12 +5769,16 @@ static void* custom_action(void* c
 	FklNastNode* r=NULL;
 	char* cwd=fklCopyCstr(fklGetCwd());
 	fklDestroyCwd();
-	fklSetCwd(fklGetMainFileRealPath());
+	const char* main_file_dir=fklGetMainFileRealPath();
+	fklSetCwd(main_file_dir);
+	chdir(main_file_dir);
+
 	FklVM* anotherVM=fklInitMacroExpandVM(ctx->bcl,ctx->pts,ctx->prototype_id,&ht,&lineHash,ctx->macroLibStack,&r,line,ctx->pst);
 	FklVMgc* gc=anotherVM->gc;
 
 	int e=fklRunVM(anotherVM);
 
+	chdir(cwd);
 	fklDestroyCwd();
 	fklSetCwd(cwd);
 	free(cwd);
@@ -9150,7 +9154,9 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 		char* cwd=fklCopyCstr(fklGetCwd());
 		fklDestroyCwd();
-		fklSetCwd(fklGetMainFileRealPath());
+		const char* main_file_dir=fklGetMainFileRealPath();
+		fklSetCwd(main_file_dir);
+		chdir(main_file_dir);
 
 		FklFuncPrototypes* pts=NULL;
 		FklPtrStack* macroLibStack=NULL;
@@ -9167,6 +9173,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklVMgc* gc=anotherVM->gc;
 		int e=fklRunVM(anotherVM);
 
+		chdir(cwd);
 		fklDestroyCwd();
 		fklSetCwd(cwd);
 		free(cwd);

@@ -66,5 +66,21 @@
       (define fp (fopen filename "rb"))
       (define len (fseek fp 0 'end))
       (fseek fp 0)
-      (fgetb len fp))))
+      (fgetb len fp)))
+
+  (defmacro ~(load-as-list ~filename)
+    (begin
+      (define fp (fopen filename "r"))
+      `'~(reverse!
+           (do [(retval '() (cons cur retval))
+                (cur (read fp) (read fp))]
+             [(eof? cur) retval]))))
+
+  (defmacro ~(load-as-vec ~filename)
+    (begin
+      (define fp (fopen filename "r"))
+      `#(~@(reverse!
+             (do [(retval '() (cons cur retval))
+                  (cur (read fp) (read fp))]
+               [(eof? cur) retval]))))))
 

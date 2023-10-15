@@ -4,7 +4,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#include<pthread.h>
 #ifndef _WIN32
 #include<dlfcn.h>
 #else

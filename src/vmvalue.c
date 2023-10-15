@@ -742,12 +742,16 @@ ret:
 	return FKL_VM_FP_R;
 }
 
+#ifdef WIN32
+#include<winsock.h>
+#else
 #include<fcntl.h>
 #define SET_NON_BLOCK() int fd=fileno(fp);\
 	int attr=fcntl(fd,F_GETFL);\
 	fcntl(fd,F_SETFL,attr|O_NONBLOCK)\
 
 #define RESET_NON_BLOCK() fcntl(fd,F_SETFL,attr)
+#endif
 
 inline int fklVMfpNonBlockGetc(FklVMfp* vfp)
 {
@@ -1692,7 +1696,11 @@ FklVMvalue* fklCreateVMvalueCodeObj(FklVM* exe,FklByteCodelnt* bcl)
 FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
 {
 	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
+#ifdef _WIN32
+	char* realDllName=(char*)_malloca(len);
+#else
 	char realDllName[len];
+#endif
 	strcpy(realDllName,dllName);
 	strcat(realDllName,FKL_DLL_FILE_TYPE);
 	char* rpath=fklRealpath(realDllName);

@@ -84,7 +84,7 @@ inline FklSymbolHashItem* fklAddSymbol(const FklString* sym,FklSymbolTable* tabl
 	return fklAddSymbolCharBuf(sym->str,sym->size,table);
 }
 
-inline FklSymbolHashItem* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
+FklSymbolHashItem* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 {
 	return fklAddSymbolCharBuf(sym,strlen(sym),table);
 }

@@ -19,7 +19,7 @@ typedef struct FklString
 
 FklString* fklCreateString(size_t,const char*);
 FklString* fklCopyString(const FklString*);
-FklString* fklCreateEmptyString();
+FklString* fklCreateEmptyString(void);
 FklString* fklCreateStringFromCstr(const char*);
 size_t fklCountCharInString(FklString* s,char c);
 void fklStringCat(FklString**,const FklString*);

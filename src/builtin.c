@@ -1844,6 +1844,7 @@ static void do_nothing_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTab
 
 typedef struct
 {
+	uint8_t fill[];
 }EofUserData;
 
 static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklSymbolTable* table)

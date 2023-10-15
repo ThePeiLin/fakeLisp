@@ -108,7 +108,7 @@ inline void fklDestroyQueueNode(FklQueueNode* tmp)
 	free(tmp);
 }
 
-inline void fklInitPtrQueue(FklPtrQueue* q)
+void fklInitPtrQueue(FklPtrQueue* q)
 {
 	q->head=NULL;
 	q->tail=&q->head;
@@ -124,7 +124,7 @@ inline FklPtrQueue* fklCreatePtrQueue(void)
 	return tmp;
 }
 
-inline void fklUninitPtrQueue(FklPtrQueue* q)
+void fklUninitPtrQueue(FklPtrQueue* q)
 {
 	FklQueueNode* cur=q->head;
 	while(cur)
@@ -135,18 +135,18 @@ inline void fklUninitPtrQueue(FklPtrQueue* q)
 	}
 }
 
-inline void fklDestroyPtrQueue(FklPtrQueue* tmp)
+void fklDestroyPtrQueue(FklPtrQueue* tmp)
 {
 	fklUninitPtrQueue(tmp);
 	free(tmp);
 }
 
-inline int fklIsPtrQueueEmpty(FklPtrQueue* queue)
+int fklIsPtrQueueEmpty(FklPtrQueue* queue)
 {
 	return queue->head==NULL;
 }
 
-inline uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
+uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* cur=tmp->head;
 	uint64_t i=0;
@@ -154,7 +154,7 @@ inline uint64_t fklLengthPtrQueue(FklPtrQueue* tmp)
 	return i;
 }
 
-inline void* fklPopPtrQueue(FklPtrQueue* tmp)
+void* fklPopPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* head=tmp->head;
 	if(!head)
@@ -186,9 +186,9 @@ void fklPushPtrQueueToFront(void* data,FklPtrQueue* tmp)
 {
 	FklQueueNode* tmpNode=fklCreateQueueNode(data);
 	tmpNode->next=tmp->head;
-	tmp->head=tmpNode;
 	if(!tmp->head)
 		tmp->tail=&tmpNode->next;
+	tmp->head=tmpNode;
 }
 
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue* q)
@@ -668,9 +668,10 @@ void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res)
 		fklSetBigIntU(&bigBase,base*base);
 		size_t bigPow=2;
 		size_t targetLen=sqrt(digits.num);
+		uint8_t* t=(uint8_t*)malloc(bigBase.num);
+		FKL_ASSERT(t);
 		while(bigBase.num<targetLen)
 		{
-			uint8_t t[bigBase.num];
 			FklBigInt tmp=
 			{
 				.num=0,
@@ -682,6 +683,7 @@ void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res)
 			fklMulBigInt(&bigBase,&tmp);
 			bigPow*=2;
 		}
+		free(t);
 		while(fklCmpBigInt(&digits,&bigBase)>0)
 		{
 			FklBigInt bigR=FKL_BIG_INT_INIT;
@@ -1140,10 +1142,12 @@ int fklDivModBigInt(FklBigInt* a,FklBigInt* rem,const FklBigInt* divider)
 	}
 	else
 	{
-		uint8_t res[a->num];
+		uint8_t* res=(uint8_t*)malloc(a->num);
+		FKL_ASSERT(res);
 		uint64_t num=0;
 		FklBigInt s=FKL_BIG_INT_INIT;
-		uint8_t sdigits[a->num+1];
+		uint8_t* sdigits=(uint8_t*)malloc(a->num+1);
+		FKL_ASSERT(sdigits);
 		s.digits=&sdigits[a->num+1];
 		s.size=a->num+1;
 		for(uint64_t i=0;i<a->num;i++)
@@ -1168,6 +1172,8 @@ int fklDivModBigInt(FklBigInt* a,FklBigInt* rem,const FklBigInt* divider)
 			a->digits[i]=res[num-i-1];
 		a->num=num;
 		a->neg^=divider->neg;
+		free(res);
+		free(sdigits);
 	}
 	return 0;
 }
@@ -1190,10 +1196,12 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 	}
 	else
 	{
-		uint8_t res[a->num];
+		uint8_t* res=(uint8_t*)malloc(a->num);
+		FKL_ASSERT(res);
 		uint64_t num=0;
 		FklBigInt s=FKL_BIG_INT_INIT;
-		uint8_t sdigits[a->num+1];
+		uint8_t* sdigits=(uint8_t*)malloc(a->num+1);
+		FKL_ASSERT(sdigits);
 		s.digits=&sdigits[a->num+1];
 		s.size=a->num+1;
 		for(uint64_t i=0;i<a->num;i++)
@@ -1215,6 +1223,8 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 			a->digits[i]=res[num-i-1];
 		a->num=num;
 		a->neg^=divider->neg;
+		free(res);
+		free(sdigits);
 	}
 	return 0;
 }
@@ -1261,7 +1271,8 @@ int fklModBigInt(FklBigInt* a,const FklBigInt* divider)
 	{
 		int neg=a->neg;
 		FklBigInt s=FKL_BIG_INT_INIT;
-		uint8_t sdigits[a->num+1];
+		uint8_t* sdigits=(uint8_t*)malloc(a->num+1);
+		FKL_ASSERT(sdigits);
 		s.digits=&sdigits[a->num+1];
 		s.size=a->num+1;
 		for(uint64_t i=0;i<a->num;i++)
@@ -1274,6 +1285,7 @@ int fklModBigInt(FklBigInt* a,const FklBigInt* divider)
 		}
 		fklSetBigInt(a,&s);
 		a->neg=neg;
+		free(sdigits);
 	}
 	return 0;
 }
@@ -1801,7 +1813,7 @@ uintptr_t fklCharBufHash(const char* str,size_t len)
 	return h;
 }
 
-inline uintptr_t fklStringHash(const FklString* s)
+uintptr_t fklStringHash(const FklString* s)
 {
 	return fklCharBufHash(s->str,s->size);
 }
@@ -2059,7 +2071,7 @@ static inline uint32_t next_pow2(uint32_t n)
 	return n+1;
 }
 
-inline void fklClearHashTable(FklHashTable* ht)
+void fklClearHashTable(FklHashTable* ht)
 {
 	void (*uninitFunc)(void*)=ht->t->__uninitItem;
 	for(FklHashTableItem* list=ht->first;list;)

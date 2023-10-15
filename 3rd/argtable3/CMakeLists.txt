@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.18)
 
-if(MSVC)
-	add_compile_options(/Wall)
-else()
-	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
-endif()
-
 set(CMAKE_C_STANDARD 11)
 
 set(ARGTABLE3_TARGET_NAME argtable3)
 
 project(${ARGTABLE3_TARGET_NAME})
+
+if(MSVC)
+	add_compile_options(/Wall)
+else()
+	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
+endif()
 
 add_library(${ARGTABLE3_TARGET_NAME}
 	STATIC

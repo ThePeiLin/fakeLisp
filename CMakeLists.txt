@@ -10,19 +10,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
-#warnnig setting
-if(MSVC)
-	add_compile_options(/Wall)
-else()
-	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
-endif()
-
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 
-if(WIN32)
-	set(LINK_TARGET m pthread)
+if(NOT WIN32)
+	set(LINK_TARGET m dl)# tsan)
 else()
-	set(LINK_TARGET m pthread dl)# tsan)
+	set(LINK_TARGET "")
 endif()
 
 #target names
@@ -37,6 +31,13 @@ set(VMPARSE vmparse)
 #project setting
 project(${INTERPRETER_TARGET_NAME})
 include_directories("${PROJECT_SOURCE_DIR}/include")
+
+#warnnig setting
+if(MSVC)
+	add_compile_options(/Wall)
+else()
+	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
+endif()
 
 #argtable3
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
@@ -55,9 +56,9 @@ file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 
 file(GLOB GRAMMER_GEN_SOURCE
 	"main/grammer/grammer.c"
-	"src/grammer.c"
 	"src/base.c"
 	"src/utils.c"
+	"src/grammer.c"
 	"src/symbol.c"
 	"src/nast.c")
 
@@ -77,17 +78,6 @@ file(GLOB LIBFKL_SOURCE "src/*.c")
 add_library(${LIBFKL_TARGET_NAME}
 	STATIC
 	${LIBFKL_SOURCE})
-
-#libfkl.so
-set(FKL_SHARED_LIB_NAME ${LIBFKL_TARGET_NAME}-shared)
-add_library(${FKL_SHARED_LIB_NAME}
-	SHARED
-	$<TARGET_OBJECTS:${LIBFKL_TARGET_NAME}>)
-set_target_properties(${FKL_SHARED_LIB_NAME} PROPERTIES OUTPUT_NAME ${LIBFKL_TARGET_NAME})
-target_link_libraries(${FKL_SHARED_LIB_NAME} ${LINK_TARGET})
-
-set_property(TARGET ${LIBFKL_TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-
 
 #fakeLisp, fakeLispc, fakeLispp, grammer
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})

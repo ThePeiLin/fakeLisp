@@ -30,7 +30,7 @@ uintptr_t fklSidHashFunc(const void* k);
 int fklSidKeyEqual(const void* k0,const void* k1);
 
 void fklInitSymbolTable(FklSymbolTable* st);
-FklSymbolTable* fklCreateSymbolTable();
+FklSymbolTable* fklCreateSymbolTable(void);
 
 FklSymbolHashItem* fklAddSymbol(const FklString*,FklSymbolTable*);
 FklSymbolHashItem* fklAddSymbolCstr(const char*,FklSymbolTable*);

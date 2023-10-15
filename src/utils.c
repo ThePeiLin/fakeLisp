@@ -10,9 +10,11 @@
 #include<limits.h>
 #include<time.h>
 #ifdef WIN32
+#include<libloaderapi.h>
 #include<io.h>
 #include<process.h>
-#include<tchar.h>
+#include<direct.h>
+#include<timeapi.h>
 #else
 #include<unistd.h>
 #include<dlfcn.h>
@@ -127,7 +129,7 @@ char* fklGetStringAfterBackslashInStr(const char* str)
 FklString* fklDoubleToString(double num)
 {
 	char numString[256]={0};
-	int lenOfNum=sprintf(numString,"%lf",num);
+	int lenOfNum=snprintf(numString,256,"%lf",num);
 	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }
@@ -141,7 +143,7 @@ double fklStringToDouble(const FklString* str)
 FklString* fklIntToString(int64_t num)
 {
 	char numString[256]={0};
-	int lenOfNum=sprintf(numString,"%ld",num);
+	int lenOfNum=snprintf(numString,256,"%ld",num);
 	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }
@@ -149,7 +151,7 @@ FklString* fklIntToString(int64_t num)
 char* fklIntToCstr(int64_t num)
 {
 	char numString[256]={0};
-	sprintf(numString,"%ld",num);
+	snprintf(numString,256,"%ld",num);
 	return fklCopyCstr(numString);
 }
 
@@ -508,7 +510,11 @@ int fklChangeWorkPath(const char* filename)
 {
 	char* p=fklRealpath(filename);
 	char* wp=fklGetDir(p);
+#ifndef WIN32
 	int r=chdir(wp);
+#else
+	int r=_chdir(wp);
+#endif
 	free(p);
 	free(wp);
 	return r;
@@ -566,7 +572,9 @@ char* fklRelpath(const char* real_dir,const char* relative)
 	char divstr[]=FKL_PATH_SEPARATOR_STR;
 #ifdef _WIN32
 	char upperDir[]="..\\";
+	char rp[MAX_PATH]={0};
 #else
+	char rp[PATH_MAX]={0};
 	char upperDir[]="../";
 #endif
 	char* cabs=fklCopyCstr(real_dir);
@@ -592,7 +600,6 @@ char* fklRelpath(const char* real_dir,const char* relative)
 		exit(EXIT_FAILURE);
 	}
 #endif
-	char rp[PATH_MAX]={0};
 	for(index=lastCommonRoot;index<abs_path_part_count;index++)
 		if(abs_path_part_count>0)
 			strcat(rp,upperDir);
@@ -611,6 +618,7 @@ char* fklRelpath(const char* real_dir,const char* relative)
 	return trp;
 }
 
+#ifndef WIN32
 char** fklSplit(char* str,const char* divstr,size_t* pcount)
 {
 	int count=0;
@@ -629,6 +637,26 @@ char** fklSplit(char* str,const char* divstr,size_t* pcount)
 	*pcount=count;
 	return str_slices;
 }
+#else
+char** fklSplit(char* str,const char* divstr,size_t* pcount)
+{
+	int count=0;
+	char* context=NULL;
+	char* pNext=NULL;
+	char** str_slices=NULL;
+	pNext=strtok_s(str,divstr,&context);
+	while(pNext!=NULL)
+	{
+		char** tstrArry=(char**)fklRealloc(str_slices,sizeof(char*)*(count+1));
+		FKL_ASSERT(tstrArry);
+		str_slices=tstrArry;
+		str_slices[count++]=pNext;
+		pNext=strtok_s(NULL,divstr,&context);
+	}
+	*pcount=count;
+	return str_slices;
+}
+#endif
 
 size_t fklCountCharInBuf(const char* buf,size_t n,char c)
 {
@@ -784,6 +812,7 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 	uint64_t strSize=0;
 	uint64_t memSize=FKL_MAX_STRING_SIZE;
 	char* tmp=(char*)malloc(sizeof(char)*memSize);
+	FKL_ASSERT(tmp);
 	for(size_t i=0;i<size;)
 	{
 		int ch=0;
@@ -827,6 +856,12 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 
 #include<sys/stat.h>
 #include<sys/types.h>
+
+#ifdef WIN32
+#define S_ISREG(m) ((S_IFMT&m)==S_IFREG)
+#define S_ISDIR(m) ((S_IFMT&m)==S_IFDIR)
+#endif
+
 int fklIsRegFile(const char* p)
 {
 	struct stat buf;
@@ -841,6 +876,7 @@ int fklIsDirectory(const char* p)
 	return S_ISDIR(buf.st_mode);
 }
 
+#ifndef WIN32
 int fklIsAccessableDirectory(const char* p)
 {
 	return !access(p,R_OK)&&fklIsDirectory(p);
@@ -856,10 +892,43 @@ int fklMkdir(const char* dir)
 	return mkdir(dir,S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH);
 }
 
+inline int64_t fklGetTicks(void)
+{
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC,&t);
+	uint64_t ticks=t.tv_sec*1000+t.tv_nsec/1000000;
+	return ticks;
+}
+#else
+#define R_OK 4
+#define W_OK 2
+#define F_OK 0
+
+int fklIsAccessableDirectory(const char* p)
+{
+	return !_access(p,R_OK)&&fklIsDirectory(p);
+}
+
+int fklIsAccessableRegFile(const char* p)
+{
+	return !_access(p,R_OK)&&fklIsRegFile(p);
+}
+
+int fklMkdir(const char* dir)
+{
+	return _mkdir(dir);
+}
+
+inline int64_t fklGetTicks(void)
+{
+	return timeGetTime();
+}
+#endif
+
 void fklDestroyDll(FklDllHandle handle)
 {
 #ifdef _WIN32
-	DestroyLibrary(handle);
+	FreeLibrary(handle);
 #else
 	dlclose(handle);
 #endif
@@ -883,14 +952,6 @@ FklDllHandle fklLoadDll(const char* path)
 #else
 	return dlopen(path,RTLD_LAZY);
 #endif
-}
-
-inline int64_t fklGetTicks(void)
-{
-	struct timespec t;
-	clock_gettime(CLOCK_MONOTONIC,&t);
-	uint64_t ticks=t.tv_sec*1000+t.tv_nsec/1000000;
-	return ticks;
 }
 
 inline int fklRewindStream(FILE* fp,const char* buf,ssize_t len)

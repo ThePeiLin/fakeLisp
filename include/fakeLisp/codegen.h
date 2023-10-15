@@ -278,7 +278,7 @@ typedef struct FklCodegenInfo
 	unsigned int destroyAbleMark:1;
 	unsigned int libMark:1;
 	unsigned int macroMark:1;
-	unsigned long refcount:61;
+	uint64_t refcount:61;
 }FklCodegenInfo;
 
 typedef struct

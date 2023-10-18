@@ -47,6 +47,10 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
 
+#libuv
+include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
+
 #set source file for taget
 file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")
 
@@ -88,7 +92,7 @@ add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 
 #linking
-target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE})
+target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})

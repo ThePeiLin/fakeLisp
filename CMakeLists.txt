@@ -78,6 +78,8 @@ file(GLOB LIBFKL_SOURCE "src/*.c")
 add_library(${LIBFKL_TARGET_NAME}
 	STATIC
 	${LIBFKL_SOURCE})
+set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
 
 #fakeLisp, fakeLispc, fakeLispp, grammer
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
@@ -96,8 +98,8 @@ target_link_libraries(${GRAMMER_GEN} ${LINK_TARGET})
 add_library(test-dll
 	SHARED
 	"main/test/dll.c")
-set_target_properties(test-dll PROPERTIES PREFIX "")
 set_target_properties(test-dll PROPERTIES
+	PREFIX ""
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
 

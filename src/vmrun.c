@@ -897,8 +897,9 @@ static inline int do_alarm_VM(FklVM* exe)
 	return r;
 }
 
-int fklRunVM(FklVM* volatile exe)
+static void uv_idle_run_vm(uv_idle_t* handle)
 {
+	FklVM* volatile exe=uv_handle_get_data((uv_handle_t*)handle);
 	while(exe)
 	{
 		switch(exe->state)
@@ -921,7 +922,11 @@ int fklRunVM(FklVM* volatile exe)
 						continue;
 					}
 					else
-						return 255;
+					{
+						*(int*)(handle->loop->data)=255;
+						uv_close((uv_handle_t*)handle,NULL);
+						return;
+					}
 				}
 				exe->state=FKL_VM_RUNNING;
 				continue;
@@ -931,11 +936,32 @@ int fklRunVM(FklVM* volatile exe)
 					continue;
 				break;
 			case FKL_VM_WAITING:
+				if(uv_loop_alive(handle->loop)>0)
+				{
+					handle->data=exe->next;
+					return;
+				}
 				break;
 		}
 		exe=exe->next;
 	}
-	return 0;
+	uv_close((uv_handle_t*)handle,NULL);
+}
+
+int fklRunVM(FklVM* volatile exe)
+{
+	int err=0;
+	uv_idle_t idler;
+	uv_loop_t loop;
+	exe->loop=&loop;
+	uv_loop_init(&loop);
+	uv_idle_init(&loop,&idler);
+	uv_handle_set_data((uv_handle_t*)&loop,&err);
+	uv_handle_set_data((uv_handle_t*)&idler,exe);
+	uv_idle_start(&idler,uv_idle_run_vm);
+	uv_run(&loop,UV_RUN_DEFAULT);
+	uv_loop_close(&loop);
+	return err;
 }
 
 void fklChangeGCstate(FklGCstate state,FklVMgc* gc)

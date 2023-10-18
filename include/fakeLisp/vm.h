@@ -95,7 +95,6 @@ typedef enum
 
 typedef struct FklVMfp
 {
-	uv_file fd;
 	FILE* fp;
 	FklPtrQueue next;
 	FklVMfpRW rw:2;

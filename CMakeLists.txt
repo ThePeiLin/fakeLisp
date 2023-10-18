@@ -48,8 +48,10 @@ include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
 
 #libuv
+set(LIBUV_BUILD_SHARED OFF)
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
+set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #set source file for taget
 file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")

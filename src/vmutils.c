@@ -34,17 +34,17 @@ FklVMvalue* fklMakeVMintD(double r64,FklVM* vm)
 		return FKL_MAKE_VM_FIX(r64);
 }
 
-inline int fklIsFixint(const FklVMvalue* p)
+int fklIsFixint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p);
 }
 
-inline int fklIsVMint(const FklVMvalue* p)
+int fklIsVMint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)||FKL_IS_BIG_INT(p);
 }
 
-inline int fklIsVMnumber(const FklVMvalue* p)
+int fklIsVMnumber(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)||FKL_IS_BIG_INT(p)||FKL_IS_F64(p);
 }
@@ -84,21 +84,21 @@ int fklIsSymbolList(const FklVMvalue* p)
 	return 1;
 }
 
-inline int64_t fklGetInt(const FklVMvalue* p)
+int64_t fklGetInt(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)
 		:fklBigIntToI64(FKL_VM_BI(p));
 }
 
-inline uint64_t fklGetUint(const FklVMvalue* p)
+uint64_t fklGetUint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?(uint64_t)FKL_GET_FIX(p)
 		:fklBigIntToU64(FKL_VM_BI(p));
 }
 
-inline int fklVMnumberLt0(const FklVMvalue* p)
+int fklVMnumberLt0(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)<0
@@ -107,7 +107,7 @@ inline int fklVMnumberLt0(const FklVMvalue* p)
 		:fklIsBigIntLt0(FKL_VM_BI(p));
 }
 
-inline double fklGetDouble(const FklVMvalue* p)
+double fklGetDouble(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)
@@ -139,7 +139,7 @@ static inline FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 	return FKL_VM_PROC(frame->c.proc)->codeObj;
 }
 
-inline void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
+void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 {
 	FklVMerror* err=FKL_VM_ERR(ev);
 	fprintf(stderr,"error in ");
@@ -291,7 +291,7 @@ FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM* vm,uint32_t p
 	return fklCreateVMframeWithProcValue(r,NULL);
 }
 
-inline void fklInitMainVMframeWithProc(FklVM* exe
+void fklInitMainVMframeWithProc(FklVM* exe
 		,FklVMframe* tmp
 		,FklVMproc* code
 		,FklVMframe* prev
@@ -331,7 +331,7 @@ inline void fklInitMainVMframeWithProc(FklVM* exe
 		init_frame_var_ref(&f->lr);
 }
 
-inline void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
+void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
 {
 	for(;f;f=f->prev)
 		if(f->type==FKL_FRAME_COMPOUND)
@@ -1488,7 +1488,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 	return retval;
 }
 
-inline FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
+FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 {
 	FklVMvalue* ref=*pref;
 	*pref=v;
@@ -1501,19 +1501,19 @@ inline FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* g
 	return ref;
 }
 
-inline FklVMvalue* fklGetTopValue(FklVM* exe)
+FklVMvalue* fklGetTopValue(FklVM* exe)
 {
 	return exe->base[exe->tp-1];
 }
 
-inline size_t fklVMlistLength(FklVMvalue* v)
+size_t fklVMlistLength(FklVMvalue* v)
 {
 	size_t len=0;
 	for(;FKL_IS_PAIR(v);v=FKL_VM_CDR(v))len++;
 	return len;
 }
 
-inline int fklProcessVMnumAdd(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi)
+int fklProcessVMnumAdd(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi)
 {
 	if(FKL_IS_FIX(cur))
 	{
@@ -1535,7 +1535,7 @@ inline int fklProcessVMnumAdd(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigI
 	return 0;
 }
 
-inline int fklProcessVMnumMul(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi)
+int fklProcessVMnumMul(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi)
 {
 	if(FKL_IS_FIX(cur))
 	{
@@ -1557,7 +1557,7 @@ inline int fklProcessVMnumMul(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigI
 	return 0;
 }
 
-inline int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,FklBigInt* bi)
+int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,FklBigInt* bi)
 {
 	if(FKL_IS_FIX(cur))
 	{
@@ -1577,7 +1577,7 @@ inline int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,FklBigInt* bi)
 	return 0;
 }
 
-inline FklVMvalue* fklProcessVMnumInc(FklVM* exe,FklVMvalue* arg)
+FklVMvalue* fklProcessVMnumInc(FklVM* exe,FklVMvalue* arg)
 {
 	if(FKL_IS_FIX(arg))
 	{
@@ -1604,7 +1604,7 @@ inline FklVMvalue* fklProcessVMnumInc(FklVM* exe,FklVMvalue* arg)
 	return NULL;
 }
 
-inline FklVMvalue* fklProcessVMnumDec(FklVM* exe,FklVMvalue* arg)
+FklVMvalue* fklProcessVMnumDec(FklVM* exe,FklVMvalue* arg)
 {
 	if(FKL_IS_FIX(arg))
 	{
@@ -1631,7 +1631,7 @@ inline FklVMvalue* fklProcessVMnumDec(FklVM* exe,FklVMvalue* arg)
 }
 
 
-inline FklVMvalue* fklProcessVMnumAddResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
+FklVMvalue* fklProcessVMnumAddResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
 {
 	FklVMvalue* r=NULL;
 	if(rd!=0.0)
@@ -1661,7 +1661,7 @@ inline FklVMvalue* fklProcessVMnumAddResult(FklVM* exe,int64_t r64,double rd,Fkl
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumSubResult(FklVM* exe,FklVMvalue* prev,int64_t r64,double rd,FklBigInt* bi)
+FklVMvalue* fklProcessVMnumSubResult(FklVM* exe,FklVMvalue* prev,int64_t r64,double rd,FklBigInt* bi)
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(prev)||rd!=0.0)
@@ -1707,7 +1707,7 @@ inline FklVMvalue* fklProcessVMnumSubResult(FklVM* exe,FklVMvalue* prev,int64_t 
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumNeg(FklVM* exe,FklVMvalue* prev)
+FklVMvalue* fklProcessVMnumNeg(FklVM* exe,FklVMvalue* prev)
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(prev))
@@ -1740,7 +1740,7 @@ inline FklVMvalue* fklProcessVMnumNeg(FklVM* exe,FklVMvalue* prev)
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumMulResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
+FklVMvalue* fklProcessVMnumMulResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
 {
 	FklVMvalue* r=NULL;
 	if(rd!=1.0)
@@ -1770,7 +1770,7 @@ inline FklVMvalue* fklProcessVMnumMulResult(FklVM* exe,int64_t r64,double rd,Fkl
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,FklBigInt* bi)
+FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,FklBigInt* bi)
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_BIG_INT(prev)||!FKL_IS_1_BIG_INT(bi))
@@ -1799,7 +1799,7 @@ inline FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumDivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,double rd,FklBigInt* bi)
+FklVMvalue* fklProcessVMnumDivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,double rd,FklBigInt* bi)
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(prev)
@@ -1837,7 +1837,7 @@ inline FklVMvalue* fklProcessVMnumDivResult(FklVM* exe,FklVMvalue* prev,int64_t 
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumRec(FklVM* exe,FklVMvalue* prev)
+FklVMvalue* fklProcessVMnumRec(FklVM* exe,FklVMvalue* prev)
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(prev))
@@ -1875,7 +1875,7 @@ inline FklVMvalue* fklProcessVMnumRec(FklVM* exe,FklVMvalue* prev)
 	return r;
 }
 
-inline FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
+FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(fir)||FKL_IS_F64(sec))

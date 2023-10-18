@@ -7,6 +7,7 @@
 #include"builtin.h"
 #include"pattern.h"
 #include"utils.h"
+#include<uv.h>
 #include<stdio.h>
 #include<stdint.h>
 #include<setjmp.h>
@@ -94,6 +95,7 @@ typedef enum
 
 typedef struct FklVMfp
 {
+	uv_file fd;
 	FILE* fp;
 	FklPtrQueue next;
 	FklVMfpRW rw:2;
@@ -355,6 +357,7 @@ typedef enum
 
 typedef struct FklVM
 {
+	uv_loop_t* loop;
 
 	uint32_t ltp;
 	uint32_t llast;
@@ -387,6 +390,7 @@ typedef struct FklVM
 
 	int64_t alarmtime;
 	FklVMstate state;
+
 }FklVM;
 
 //typedef struct

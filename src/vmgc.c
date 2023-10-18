@@ -32,7 +32,7 @@ static inline Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
 	return g;
 }
 
-inline void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
+void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
 {
 	if(v&&FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
 	{
@@ -160,7 +160,7 @@ static inline void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 	gc->num-=count;
 }
 
-inline void fklGC_sweep(FklVMvalue* head)
+void fklGC_sweep(FklVMvalue* head)
 {
 	FklVMvalue** phead=&head;
 	while(*phead)
@@ -171,7 +171,7 @@ inline void fklGC_sweep(FklVMvalue* head)
 	}
 }
 
-inline void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
+void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 {
 	*s=gc->running;
 	*cr=gc->num>gc->threshold;
@@ -333,7 +333,7 @@ static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
 	initFrameCtxToGcCoCtx(f->data,gc);
 }
 
-inline FklVMgc* fklCreateVMgc()
+FklVMgc* fklCreateVMgc()
 {
 	FklVMgc* tmp=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(tmp);

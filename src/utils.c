@@ -594,11 +594,7 @@ char* fklRelpath(const char* real_dir,const char* relative)
 			break;
 	}
 #ifdef _WIN32
-	if(lastCommonRoot==0)
-	{
-		fprintf(stderr,"%s:Cant get relative path.\n",abs);
-		exit(EXIT_FAILURE);
-	}
+	FKL_ASSERT(lastCommonRoot);
 #endif
 	for(index=lastCommonRoot;index<abs_path_part_count;index++)
 		if(abs_path_part_count>0)
@@ -754,7 +750,7 @@ void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out)
 	fprintf(out,")");
 }
 
-inline int fklIsI64AddOverflow(int64_t a,int64_t b)
+int fklIsI64AddOverflow(int64_t a,int64_t b)
 {
 	int64_t sum=a+b;
 	return (a<0&&b<0&&sum>0)||(a>0&&b>0&&sum<0);
@@ -770,14 +766,14 @@ union Fixu
 	int64_t i;
 };
 
-inline int fklIsFixAddOverflow(int64_t a,int64_t b)
+int fklIsFixAddOverflow(int64_t a,int64_t b)
 {
 	union Fixu us={.fix=a+b};
 	int64_t sum=us.fix;
 	return (a<0&&b<0&&sum>0)||(a>0&&b>0&&sum<0);
 }
 
-inline int fklIsI64MulOverflow(int64_t a,int64_t b)
+int fklIsI64MulOverflow(int64_t a,int64_t b)
 {
 	if(b==0||a==0)
 		return 0;
@@ -792,7 +788,7 @@ inline int fklIsI64MulOverflow(int64_t a,int64_t b)
 	return a!=t;
 }
 
-inline int fklIsFixMulOverflow(int64_t a,int64_t b)
+int fklIsFixMulOverflow(int64_t a,int64_t b)
 {
 	if(b==0||a==0)
 		return 0;
@@ -892,7 +888,7 @@ int fklMkdir(const char* dir)
 	return mkdir(dir,S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH);
 }
 
-inline int64_t fklGetTicks(void)
+int64_t fklGetTicks(void)
 {
 	struct timespec t;
 	clock_gettime(CLOCK_MONOTONIC,&t);
@@ -919,7 +915,7 @@ int fklMkdir(const char* dir)
 	return _mkdir(dir);
 }
 
-inline int64_t fklGetTicks(void)
+int64_t fklGetTicks(void)
 {
 	return timeGetTime();
 }
@@ -954,7 +950,7 @@ FklDllHandle fklLoadDll(const char* path)
 #endif
 }
 
-inline int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
+int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
 {
 	if(fp==stdin)
 	{
@@ -966,12 +962,12 @@ inline int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
 	return fseek(fp,-len,SEEK_CUR);
 }
 
-inline void* fklRealloc(void* ptr,size_t ns)
+void* fklRealloc(void* ptr,size_t ns)
 {
 	return ns?realloc(ptr,ns):(free(ptr),NULL);
 }
 
-inline int fklIsDecInt(const char* cstr,size_t maxLen)
+int fklIsDecInt(const char* cstr,size_t maxLen)
 {
 	// [-+]?(0|[1-9]\d*)
 	if(!maxLen)
@@ -996,7 +992,7 @@ inline int fklIsDecInt(const char* cstr,size_t maxLen)
 	return 1;
 }
 
-inline int fklIsOctInt(const char* cstr,size_t maxLen)
+int fklIsOctInt(const char* cstr,size_t maxLen)
 {
 	// [-+]?0[0-7]+
 	if(maxLen<2)
@@ -1016,7 +1012,7 @@ inline int fklIsOctInt(const char* cstr,size_t maxLen)
 	return 1;
 }
 
-inline int fklIsHexInt(const char* cstr,size_t maxLen)
+int fklIsHexInt(const char* cstr,size_t maxLen)
 {
 	// [-+]?0[xX][0-9a-fA-F]+
 	if(maxLen<3)
@@ -1040,7 +1036,7 @@ inline int fklIsHexInt(const char* cstr,size_t maxLen)
 	return 1;
 }
 
-inline int fklIsDecFloat(const char* cstr,size_t maxLen)
+int fklIsDecFloat(const char* cstr,size_t maxLen)
 {
 	// [-+]?(\.\d+([eE][-+]?\d+)?|\d+(\.\d*([eE][-+]?\d+)?|[eE][-+]?\d+))
 	if(maxLen<2)
@@ -1096,7 +1092,7 @@ after_e:
 	return 1;
 }
 
-inline int fklIsHexFloat(const char* cstr,size_t maxLen)
+int fklIsHexFloat(const char* cstr,size_t maxLen)
 {
 	// [-+]?0[xX](\.[0-9a-fA-F]+[pP][-+]?[0-9a-fA-F]+|[0-9a-fA-F]+(\.[0-9a-fA-F]*[pP][-+]?[0-9a-fA-F]+|[pP][-+]?[0-9a-fA-F]+))
 	if(maxLen<5)
@@ -1166,7 +1162,7 @@ int fklIsFloat(const char *cstr,size_t maxLen)
 		||fklIsHexFloat(cstr,maxLen);
 }
 
-inline int64_t fklStringToInt(const char* cstr,size_t maxLen,int* base)
+int64_t fklStringToInt(const char* cstr,size_t maxLen,int* base)
 {
 	if(base)
 	{

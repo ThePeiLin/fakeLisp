@@ -176,7 +176,7 @@ static inline int is_partly_covered(const FklNastNode* pattern,const FklNastNode
 	return r;
 }
 
-inline int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
+int fklPatternCoverState(const FklNastNode* p0,const FklNastNode* p1)
 {
 	if(is_pattern_equal(p0,p1))
 		return FKL_PATTERN_EQUAL;

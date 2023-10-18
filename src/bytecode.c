@@ -25,7 +25,7 @@ FklByteCodelnt* fklCreateByteCodelnt(FklByteCode* bc)
 	return t;
 }
 
-inline FklByteCodelnt* fklCreateSingleInsBclnt(FklInstruction ins
+FklByteCodelnt* fklCreateSingleInsBclnt(FklInstruction ins
 		,FklSid_t fid
 		,uint64_t line)
 {
@@ -649,7 +649,7 @@ FklLineNumberTableItem* fklCreateLineNumTabNodeWithFilename(const char* filename
 	return t;
 }
 
-inline const FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,const FklLineNumberTableItem* line_numbers)
+const FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,const FklLineNumberTableItem* line_numbers)
 {
 	int64_t l=0;
 	int64_t h=ls-1;
@@ -687,7 +687,7 @@ void fklDBG_printByteCode(FklInstruction* code,uint64_t s,uint64_t c,FILE* fp)
 	fklPrintByteCode(&t,fp,NULL);
 }
 
-inline int16_t fklGetI16FromByteCode(uint8_t* code)
+int16_t fklGetI16FromByteCode(uint8_t* code)
 {
 	int16_t i=0;
 	((uint8_t*)&i)[0]=code[0];
@@ -695,84 +695,84 @@ inline int16_t fklGetI16FromByteCode(uint8_t* code)
 	return i;
 }
 
-inline int32_t fklGetI32FromByteCode(uint8_t* code)
+int32_t fklGetI32FromByteCode(uint8_t* code)
 {
 	int32_t i;
 	memcpy(&i,code,sizeof(i));
 	return i;
 }
 
-inline uint32_t fklGetU32FromByteCode(uint8_t* code)
+uint32_t fklGetU32FromByteCode(uint8_t* code)
 {
 	uint32_t i;
 	memcpy(&i,code,sizeof(i));
 	return i;
 }
 
-inline int64_t fklGetI64FromByteCode(uint8_t* code)
+int64_t fklGetI64FromByteCode(uint8_t* code)
 {
 	int64_t i;
 	memcpy(&i,code,sizeof(i));
 	return i;
 }
 
-inline uint64_t fklGetU64FromByteCode(uint8_t* code)
+uint64_t fklGetU64FromByteCode(uint8_t* code)
 {
 	uint64_t i;
 	memcpy(&i,code,sizeof(i));
 	return i;
 }
 
-inline double fklGetF64FromByteCode(uint8_t* code)
+double fklGetF64FromByteCode(uint8_t* code)
 {
 	double d;
 	memcpy(&d,code,sizeof(d));
 	return d;
 }
 
-inline FklSid_t fklGetSidFromByteCode(uint8_t* code)
+FklSid_t fklGetSidFromByteCode(uint8_t* code)
 {
 	FklSid_t i;
 	memcpy(&i,code,sizeof(i));
 	return i;
 }
 
-inline void fklSetI8ToByteCode(uint8_t* code,int8_t i)
+void fklSetI8ToByteCode(uint8_t* code,int8_t i)
 {
 	code[0]=i;
 }
 
-inline void fklSetI16ToByteCode(uint8_t* code,int16_t i)
+void fklSetI16ToByteCode(uint8_t* code,int16_t i)
 {
 	memcpy(code,&i,sizeof(i));
 }
 
-inline void fklSetI32ToByteCode(uint8_t* code,int32_t i)
+void fklSetI32ToByteCode(uint8_t* code,int32_t i)
 {
 	memcpy(code,&i,sizeof(i));
 }
 
-inline void fklSetU32ToByteCode(uint8_t* code,uint32_t i)
+void fklSetU32ToByteCode(uint8_t* code,uint32_t i)
 {
 	memcpy(code,&i,sizeof(i));
 }
 
-inline void fklSetI64ToByteCode(uint8_t* code,int64_t i)
+void fklSetI64ToByteCode(uint8_t* code,int64_t i)
 {
 	memcpy(code,&i,sizeof(i));
 }
 
-inline void fklSetU64ToByteCode(uint8_t* code,uint64_t i)
+void fklSetU64ToByteCode(uint8_t* code,uint64_t i)
 {
 	memcpy(code,&i,sizeof(i));
 }
 
-inline void fklSetF64ToByteCode(uint8_t* code,double i)
+void fklSetF64ToByteCode(uint8_t* code,double i)
 {
 	memcpy(code,&i,sizeof(i));
 }
 
-inline void fklSetSidToByteCode(uint8_t* code,FklSid_t i)
+void fklSetSidToByteCode(uint8_t* code,FklSid_t i)
 {
 	memcpy(code,&i,sizeof(i));
 }

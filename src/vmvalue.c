@@ -532,12 +532,12 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 	return tmp;
 }
 
-inline FklVMvalue* fklCreateTrueValue()
+FklVMvalue* fklCreateTrueValue()
 {
 	return FKL_MAKE_VM_FIX(1);
 }
 
-inline FklVMvalue* fklCreateNilValue()
+FklVMvalue* fklCreateNilValue()
 {
 	return FKL_VM_NIL;
 }
@@ -550,7 +550,7 @@ int fklVMvalueEqv(const FklVMvalue* fir,const FklVMvalue* sec)
 		return fir==sec;
 }
 
-inline int fklVMvalueEq(const FklVMvalue* fir,const FklVMvalue* sec)
+int fklVMvalueEq(const FklVMvalue* fir,const FklVMvalue* sec)
 {
 	return fir==sec;
 }
@@ -666,7 +666,7 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 	return r;
 }
 
-inline int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
+int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 {
 	int r=0;
 	*err=0;
@@ -702,7 +702,7 @@ inline int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	return r;
 }
 
-inline FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
+FklVMfpRW fklGetVMfpRwFromCstr(const char* mode)
 {
 	int hasPlus=0;
 	int hasW=0;
@@ -753,7 +753,7 @@ ret:
 #define RESET_NON_BLOCK() fcntl(fd,F_SETFL,attr)
 #endif
 
-inline int fklVMfpNonBlockGetc(FklVMfp* vfp)
+int fklVMfpNonBlockGetc(FklVMfp* vfp)
 {
 	FILE* fp=vfp->fp;
 	SET_NON_BLOCK();
@@ -762,12 +762,12 @@ inline int fklVMfpNonBlockGetc(FklVMfp* vfp)
 	return ch;
 }
 
-inline int fklVMfpEof(FklVMfp* vfp)
+int fklVMfpEof(FklVMfp* vfp)
 {
 	return feof(vfp->fp);
 }
 
-inline int fklVMfpNonBlockGetdelim(FklVMfp* vfp,FklStringBuffer* b,char d)
+int fklVMfpNonBlockGetdelim(FklVMfp* vfp,FklStringBuffer* b,char d)
 {
 	FILE* fp=vfp->fp;
 	SET_NON_BLOCK();
@@ -782,12 +782,12 @@ inline int fklVMfpNonBlockGetdelim(FklVMfp* vfp,FklStringBuffer* b,char d)
 	return ch;
 }
 
-inline int fklVMfpNonBlockGetline(FklVMfp* vfp,FklStringBuffer* b)
+int fklVMfpNonBlockGetline(FklVMfp* vfp,FklStringBuffer* b)
 {
 	return fklVMfpNonBlockGetdelim(vfp,b,'\n');
 }
 
-inline size_t fklVMfpNonBlockGets(FklVMfp* vfp,FklStringBuffer* b,size_t l)
+size_t fklVMfpNonBlockGets(FklVMfp* vfp,FklStringBuffer* b,size_t l)
 {
 	size_t r=l;
 	FILE* fp=vfp->fp;
@@ -807,7 +807,7 @@ int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer* b,size_t j)
 	return fklRewindStream(vfp->fp,b->buf+j,b->index-j);
 }
 
-inline int fklUninitVMfp(FklVMfp* vfp)
+int fklUninitVMfp(FklVMfp* vfp)
 {
 	int r=0;
 	FILE* fp=vfp->fp;
@@ -969,13 +969,13 @@ FklVMrecv* fklCreateVMrecv(FklVMvalue** slot,FklVM* exe)
 	return tmp;
 }
 
-inline void fklDestroyVMrecv(FklVMrecv* r)
+void fklDestroyVMrecv(FklVMrecv* r)
 {
 	free(r);
 }
 
 
-inline void fklResumeThread(FklVM* exe)
+void fklResumeThread(FklVM* exe)
 {
 	exe->state=FKL_VM_READY;
 }
@@ -995,13 +995,13 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r)
 		return 0;
 }
 
-inline void fklSleepThread(FklVM* exe,uint64_t sec)
+void fklSleepThread(FklVM* exe,uint64_t sec)
 {
 	exe->alarmtime=fklGetTicks()+sec*1000;
 	exe->state=FKL_VM_SLEEPING;
 }
 
-inline void fklSuspendThread(FklVM* exe)
+void fklSuspendThread(FklVM* exe)
 {
 	exe->state=FKL_VM_WAITING;
 }
@@ -1266,27 +1266,27 @@ void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 	}
 }
 
-inline int fklIsVMhashEq(FklHashTable* ht)
+int fklIsVMhashEq(FklHashTable* ht)
 {
 	return ht->t==EqHashTableT;
 }
 
-inline int fklIsVMhashEqv(FklHashTable* ht)
+int fklIsVMhashEqv(FklHashTable* ht)
 {
 	return ht->t==EqvHashTableT;
 }
 
-inline int fklIsVMhashEqual(FklHashTable* ht)
+int fklIsVMhashEqual(FklHashTable* ht)
 {
 	return ht->t==EqualHashTableT;
 }
 
-inline uintptr_t fklGetVMhashTableType(FklHashTable* ht)
+uintptr_t fklGetVMhashTableType(FklHashTable* ht)
 {
 	return ht->t-EqHashTableT;
 }
 
-inline const char* fklGetVMhashTablePrefix(FklHashTable* ht)
+const char* fklGetVMhashTablePrefix(FklHashTable* ht)
 {
 	static const char* prefix[]=
 	{
@@ -1825,7 +1825,7 @@ void fklVMvecConcat(FklVMvec* fir,const FklVMvec* sec)
 		nbase[firSize+i]=sec->base[i];
 }
 
-inline int fklIsCallableUd(const FklVMudata* ud)
+int fklIsCallableUd(const FklVMudata* ud)
 {
 	return ud->t->__call!=NULL;
 }
@@ -1840,7 +1840,7 @@ static inline int is_appendable_userdata(FklVMudata* ud)
 	return ud->t->__append!=NULL;
 }
 
-inline int fklIsAppendable(FklVMvalue* v)
+int fklIsAppendable(FklVMvalue* v)
 {
 	return FKL_IS_STR(v)
 		||FKL_IS_BYTEVECTOR(v)
@@ -1848,27 +1848,27 @@ inline int fklIsAppendable(FklVMvalue* v)
 		||(FKL_IS_USERDATA(v)&&is_appendable_userdata(FKL_VM_UD(v)));
 }
 
-inline int fklIsCmpableUd(const FklVMudata* u)
+int fklIsCmpableUd(const FklVMudata* u)
 {
 	return u->t->__cmp!=NULL;
 }
 
-inline int fklIsWritableUd(const FklVMudata* u)
+int fklIsWritableUd(const FklVMudata* u)
 {
 	return u->t->__write!=NULL;
 }
 
-inline int fklIsAbleToStringUd(const FklVMudata* u)
+int fklIsAbleToStringUd(const FklVMudata* u)
 {
 	return u->t->__to_string!=NULL;
 }
 
-inline int fklUdHasLength(const FklVMudata* u)
+int fklUdHasLength(const FklVMudata* u)
 {
 	return u->t->__length!=NULL;
 }
 
-inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
+void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 {
 	void (*princ)(const FklVMudata*,FILE*,FklSymbolTable*)=u->t->__princ;
 	if(princ)
@@ -1886,7 +1886,7 @@ inline void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	}
 }
 
-inline void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
+void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 {
 	void (*prin1)(const FklVMudata*,FILE*,FklSymbolTable*)=u->t->__prin1;
 	if(prin1)
@@ -1903,7 +1903,7 @@ inline void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	}
 }
 
-inline int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)
+int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)
 {
 	void (*append)(FklVMudata*,const FklVMudata*)=a->t->__append;
 	if(append)
@@ -1914,27 +1914,27 @@ inline int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)
 	return 1;
 }
 
-inline int fklCmpVMudata(const FklVMudata* a,const FklVMvalue* b,int* r)
+int fklCmpVMudata(const FklVMudata* a,const FklVMvalue* b,int* r)
 {
 	return a->t->__cmp(a,b,r);
 }
 
-inline size_t fklLengthVMudata(const FklVMudata* a)
+size_t fklLengthVMudata(const FklVMudata* a)
 {
 	return a->t->__length(a);
 }
 
-inline FklString* fklUdToString(const FklVMudata* a)
+FklString* fklUdToString(const FklVMudata* a)
 {
 	return a->t->__to_string(a);
 }
 
-inline void fklWriteVMudata(const FklVMudata* a,FILE* fp)
+void fklWriteVMudata(const FklVMudata* a,FILE* fp)
 {
 	a->t->__write(a,fp);
 }
 
-inline size_t fklHashvVMudata(const FklVMudata* a)
+size_t fklHashvVMudata(const FklVMudata* a)
 {
 	size_t (*hashv)(const FklVMudata*)=a->t->__hash;
 	if(hashv)
@@ -1943,14 +1943,14 @@ inline size_t fklHashvVMudata(const FklVMudata* a)
 		return ((uintptr_t)a->data>>FKL_UNUSEDBITNUM);
 }
 
-inline void fklFinalizeVMudata(FklVMudata* a)
+void fklFinalizeVMudata(FklVMudata* a)
 {
 	void (*finalize)(FklVMudata*)=a->t->__finalizer;
 	if(finalize)
 		finalize(a);
 }
 
-inline int fklCopyVMudata(const FklVMudata* a,FklVMudata* dst)
+int fklCopyVMudata(const FklVMudata* a,FklVMudata* dst)
 {
 	void (*copyer)(const FklVMudata* a,FklVMudata* dst)=a->t->__copy;
 	if(copyer)

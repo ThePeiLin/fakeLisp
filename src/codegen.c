@@ -2100,7 +2100,7 @@ static CODEGEN_FUNC(codegen_or)
 			,codegenQuestStack);
 }
 
-inline void fklUpdatePrototype(FklFuncPrototypes* cp
+void fklUpdatePrototype(FklFuncPrototypes* cp
 		,FklCodegenEnv* env
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst)
@@ -4848,7 +4848,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 	}
 }
 
-inline FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll)
+FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll)
 {
 	return fklGetAddress("_fklExportSymbolInit",dll);
 }
@@ -7121,7 +7121,7 @@ static inline int check_group_outer_ref(FklCodegenInfo* codegen
 	return is_ref_outer;
 }
 
-inline FklGrammerProduction* fklCreateExtraStartProduction(FklSid_t group,FklSid_t sid)
+FklGrammerProduction* fklCreateExtraStartProduction(FklSid_t group,FklSid_t sid)
 {
 	FklGrammerProduction* prod=fklCreateEmptyProduction(0,0,1,NULL,NULL,NULL
 			,fklProdCtxDestroyDoNothing
@@ -8891,7 +8891,7 @@ void fklDestroyCodegenLibMacroScope(FklCodegenLib* lib)
 		fklDestroyHashTable(lib->replacements);
 }
 
-inline void fklUninitCodegenLibInfo(FklCodegenLib* lib)
+void fklUninitCodegenLibInfo(FklCodegenLib* lib)
 {
 	if(lib->exports.t)
 		fklUninitHashTable(&lib->exports);
@@ -8903,7 +8903,7 @@ inline void fklUninitCodegenLibInfo(FklCodegenLib* lib)
 	}
 }
 
-inline void fklUninitCodegenLib(FklCodegenLib* lib)
+void fklUninitCodegenLib(FklCodegenLib* lib)
 {
 	switch(lib->type)
 	{
@@ -9211,7 +9211,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	return r;
 }
 
-inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
+void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
 		,FklVMvarRef** refs
@@ -9233,7 +9233,7 @@ inline void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 	fklInitVMlib(vlib,val);
 }
 
-inline void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
+void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
 		,int needCopy
@@ -9252,14 +9252,14 @@ inline void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
 	fklInitVMlib(vlib,val);
 }
 
-inline void fklDestroyCodegenLibExceptBclAndDll(FklCodegenLib* clib)
+void fklDestroyCodegenLibExceptBclAndDll(FklCodegenLib* clib)
 {
 	fklDestroyCodegenLibMacroScope(clib);
 	fklUninitCodegenLibInfo(clib);
 	free(clib);
 }
 
-inline void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
+void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
 		,FklFuncPrototypes* pts)

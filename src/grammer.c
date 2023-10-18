@@ -58,7 +58,7 @@ static void prod_hash_set_val(void* d0,const void* d1)
 	*(FklGrammerProdHashItem*)d0=*(const FklGrammerProdHashItem*)d1;
 }
 
-inline void fklUninitGrammerSymbols(FklGrammerSym* syms,size_t len)
+void fklUninitGrammerSymbols(FklGrammerSym* syms,size_t len)
 {
 	for(size_t i=0;i<len;i++)
 	{
@@ -68,7 +68,7 @@ inline void fklUninitGrammerSymbols(FklGrammerSym* syms,size_t len)
 	}
 }
 
-inline void fklDestroyGrammerProduction(FklGrammerProduction* h)
+void fklDestroyGrammerProduction(FklGrammerProduction* h)
 {
 	h->ctx_destroyer(h->ctx);
 	fklUninitGrammerSymbols(h->syms,h->len);
@@ -106,7 +106,7 @@ static const FklHashTableMetaTable ProdHashMetaTable=
 	.__getKey=fklHashDefaultGetKey,
 };
 
-inline FklGrammerProduction* fklCreateProduction(FklSid_t group
+FklGrammerProduction* fklCreateProduction(FklSid_t group
 		,FklSid_t sid
 		,size_t len
 		,FklGrammerSym* syms
@@ -130,7 +130,7 @@ inline FklGrammerProduction* fklCreateProduction(FklSid_t group
 	return r;
 }
 
-inline FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
+FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
 		,FklSid_t sid
 		,size_t len
 		,const char* name
@@ -553,7 +553,7 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	return prod;
 }
 
-inline FklGrammerIgnore* fklGrammerSymbolsToIgnore(FklGrammerSym* syms,size_t len,const FklSymbolTable* tt)
+FklGrammerIgnore* fklGrammerSymbolsToIgnore(FklGrammerSym* syms,size_t len,const FklSymbolTable* tt)
 {
 	for(size_t i=len;i>0;i--)
 	{
@@ -768,7 +768,7 @@ FklGrammerProduction* fklCopyUninitedGrammerProduction(FklGrammerProduction* pro
 	return r;
 }
 
-inline int fklAddProdAndExtraToGrammer(FklGrammer* g,FklGrammerProduction* prod)
+int fklAddProdAndExtraToGrammer(FklGrammer* g,FklGrammerProduction* prod)
 {
 	const FklHashTable* builtins=&g->builtins;
 	FklHashTable* productions=&g->productions;
@@ -823,7 +823,7 @@ inline int fklAddProdAndExtraToGrammer(FklGrammer* g,FklGrammerProduction* prod)
 	return 0;
 }
 
-inline int fklAddProdToProdTable(FklHashTable* productions
+int fklAddProdToProdTable(FklHashTable* productions
 		,FklHashTable* builtins
 		,FklGrammerProduction* prod)
 {
@@ -866,7 +866,7 @@ inline int fklAddProdToProdTable(FklHashTable* productions
 	return 0;
 }
 
-inline int fklAddProdToProdTableNoRepeat(FklHashTable* productions
+int fklAddProdToProdTableNoRepeat(FklHashTable* productions
 		,FklHashTable* builtins
 		,FklGrammerProduction* prod)
 {
@@ -2654,7 +2654,7 @@ static const struct BuiltinGrammerSymList
 	{NULL,          NULL,                      },
 };
 
-inline void fklInitBuiltinGrammerSymTable(FklHashTable* s,FklSymbolTable* st)
+void fklInitBuiltinGrammerSymTable(FklHashTable* s,FklSymbolTable* st)
 {
 	fklInitHashTable(s,&SidBuiltinHashMetaTable);
 	for(const struct BuiltinGrammerSymList* l=&builtin_grammer_sym_list[0];l->name;l++)
@@ -2693,7 +2693,7 @@ static inline void clear_analysis_table(FklGrammer* g,size_t last)
 	g->aTable.num=0;
 }
 
-inline void fklDestroyIgnore(FklGrammerIgnore* ig)
+void fklDestroyIgnore(FklGrammerIgnore* ig)
 {
 	size_t len=ig->len;
 	for(size_t i=0;i<len;i++)
@@ -2744,7 +2744,7 @@ void fklUninitGrammer(FklGrammer* g)
 	}
 }
 
-inline void fklDestroyGrammer(FklGrammer* g)
+void fklDestroyGrammer(FklGrammer* g)
 {
 	fklUninitGrammer(g);
 	free(g);
@@ -2788,7 +2788,7 @@ static inline int init_all_builtin_grammer_sym(FklGrammer* g)
 	return failed;
 }
 
-inline int fklAddIgnoreToIgnoreList(FklGrammerIgnore** pp,FklGrammerIgnore* ig)
+int fklAddIgnoreToIgnoreList(FklGrammerIgnore** pp,FklGrammerIgnore* ig)
 {
 	for(;*pp;pp=&(*pp)->next)
 	{
@@ -2987,7 +2987,7 @@ static inline int compute_all_first_set(FklGrammer* g)
 	return 0;
 }
 
-inline void fklInitEmptyGrammer(FklGrammer* r,FklSymbolTable* st)
+void fklInitEmptyGrammer(FklGrammer* r,FklSymbolTable* st)
 {
 	fklInitSymbolTable(&r->terminals);
 	fklInitSymbolTable(&r->reachable_terminals);
@@ -2999,7 +2999,7 @@ inline void fklInitEmptyGrammer(FklGrammer* r,FklSymbolTable* st)
 	fklInitBuiltinGrammerSymTable(&r->builtins,st);
 }
 
-inline FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)
+FklGrammer* fklCreateEmptyGrammer(FklSymbolTable* st)
 {
 	FklGrammer* r=(FklGrammer*)calloc(1,sizeof(FklGrammer));
 	FKL_ASSERT(r);
@@ -3071,7 +3071,7 @@ static inline int check_undefined_nonterm(FklGrammer* g)
 	return 0;
 }
 
-inline int fklCheckAndInitGrammerSymbols(FklGrammer* g)
+int fklCheckAndInitGrammerSymbols(FklGrammer* g)
 {
 	return check_undefined_nonterm(g)
 		||add_reachable_terminal(g)
@@ -3120,7 +3120,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 	return grammer;
 }
 
-inline int fklAddExtraProdToGrammer(FklGrammer* g)
+int fklAddExtraProdToGrammer(FklGrammer* g)
 {
 	FklGrammerNonterm left=g->start;
 	const FklHashTable* builtins=&g->builtins;
@@ -5573,12 +5573,12 @@ int fklIsNonterminalExist(FklHashTable* prods,FklSid_t group_id,FklSid_t sid)
 	return item!=NULL;
 }
 
-inline FklGrammerProduction* fklGetGrammerProductions(const FklGrammer* g,FklSid_t group,FklSid_t sid)
+FklGrammerProduction* fklGetGrammerProductions(const FklGrammer* g,FklSid_t group,FklSid_t sid)
 {
 	return fklGetProductions(&g->productions,group,sid);
 }
 
-inline FklGrammerProduction* fklGetProductions(const FklHashTable* prods,FklSid_t group,FklSid_t sid)
+FklGrammerProduction* fklGetProductions(const FklHashTable* prods,FklSid_t group,FklSid_t sid)
 {
 	FklGrammerNonterm left={.group=group,.sid=sid};
 	FklGrammerProdHashItem* item=fklGetHashItem(&left,prods);
@@ -5689,7 +5689,7 @@ void* fklDefaultParseForCharBuf(const char* cstr
 	return ast;
 }
 
-inline int fklIsStateActionMatch(const FklAnalysisStateActionMatch* match
+int fklIsStateActionMatch(const FklAnalysisStateActionMatch* match
 		,const char* start
 		,const char* cstr
 		,size_t restLen
@@ -5747,7 +5747,7 @@ static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisStat
 	fputc('\n',stderr);
 }
 
-inline FklAnalysisSymbol* fklCreateTerminalAnalysisSymbol(const char* s
+FklAnalysisSymbol* fklCreateTerminalAnalysisSymbol(const char* s
 		,size_t len
 		,FklGrammerMatchOuterCtx* outerCtx)
 {

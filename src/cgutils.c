@@ -18,7 +18,7 @@ FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegen
 	return NULL;
 }
 
-inline void fklPrintCodegenError(FklNastNode* obj
+void fklPrintCodegenError(FklNastNode* obj
 		,FklBuiltInErrorType type
 		,FklSid_t sid
 		,FklSymbolTable* symbolTable
@@ -577,7 +577,7 @@ static inline void recompute_sid_for_main_file(FklCodegenInfo* codegen
 	recompute_sid_for_named_prod_groups(codegen->named_prod_groups,origin_table,target_table);
 }
 
-inline void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
+void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* target_table)
@@ -1114,7 +1114,7 @@ static inline void init_pre_lib_reader_macros(FklHashTable* builtin_terms
 	}
 }
 
-inline int fklLoadPreCompile(FklFuncPrototypes* info_pts
+int fklLoadPreCompile(FklFuncPrototypes* info_pts
 		,FklFuncPrototypes* info_macro_pts
 		,FklPtrStack* info_scriptLibStack
 		,FklPtrStack* info_macroScriptLibStack

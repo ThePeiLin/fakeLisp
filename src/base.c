@@ -94,7 +94,7 @@ void fklRecyclePtrStack(FklPtrStack* stack)
 	}
 }
 
-inline FklQueueNode* fklCreateQueueNode(void* data)
+FklQueueNode* fklCreateQueueNode(void* data)
 {
 	FklQueueNode* tmp=(FklQueueNode*)malloc(sizeof(FklQueueNode));
 	FKL_ASSERT(tmp);
@@ -103,7 +103,7 @@ inline FklQueueNode* fklCreateQueueNode(void* data)
 	return tmp;
 }
 
-inline void fklDestroyQueueNode(FklQueueNode* tmp)
+void fklDestroyQueueNode(FklQueueNode* tmp)
 {
 	free(tmp);
 }
@@ -114,7 +114,7 @@ void fklInitPtrQueue(FklPtrQueue* q)
 	q->tail=&q->head;
 }
 
-inline FklPtrQueue* fklCreatePtrQueue(void)
+FklPtrQueue* fklCreatePtrQueue(void)
 {
 	FklPtrQueue* tmp=(FklPtrQueue*)malloc(sizeof(FklPtrQueue));
 	FKL_ASSERT(tmp);
@@ -501,7 +501,7 @@ FklBigInt* fklCopyBigInt(const FklBigInt* bigint)
 	return t;
 }
 
-inline void fklInitBigIntFromDecString(FklBigInt* r,const FklString* str)
+void fklInitBigIntFromDecString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -516,7 +516,7 @@ inline void fklInitBigIntFromDecString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
-inline void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
+void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -531,7 +531,7 @@ inline void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
-inline void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
+void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -546,7 +546,7 @@ inline void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
-inline void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
+void fklInitBigIntFromString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
 	size_t len=str->size;
@@ -1371,62 +1371,62 @@ static const uint8_t FKL_BIG_INT_FIX_ADD_1_MIN_BIT[8]={0x01,0x00,0x00,0x00,0x00,
 static const FklBigInt FKL_BIG_INT_FIX_SUB_1_MAX={(uint8_t*)FKL_BIG_INT_FIX_SUB_1_MAX_BIT,8,8,0};
 static const FklBigInt FKL_BIG_INT_FIX_ADD_1_MIN={(uint8_t*)FKL_BIG_INT_FIX_ADD_1_MIN_BIT,8,8,1};
 
-inline int fklIsBigIntAdd1InFixIntRange(const FklBigInt* a)
+int fklIsBigIntAdd1InFixIntRange(const FklBigInt* a)
 {
 	return fklCmpBigInt(a,&FKL_BIG_INT_FIX_ADD_1_MIN)==0;
 }
 
-inline int fklIsBigIntSub1InFixIntRange(const FklBigInt* a)
+int fklIsBigIntSub1InFixIntRange(const FklBigInt* a)
 {
 	return fklCmpBigInt(a,&FKL_BIG_INT_FIX_SUB_1_MAX)==0;
 }
 
-inline int fklIsGtLtFixBigInt(const FklBigInt* a)
+int fklIsGtLtFixBigInt(const FklBigInt* a)
 {
 	return (fklCmpBigInt(a,&FKL_BIG_INT_FIX_MAX)>0||fklCmpBigInt(a,&FKL_BIG_INT_FIX_MIN)<0);
 }
 
-inline int fklIsGeLeFixBigInt(const FklBigInt* a)
+int fklIsGeLeFixBigInt(const FklBigInt* a)
 {
 	return (fklCmpBigInt(a,&FKL_BIG_INT_FIX_MAX)>=0||fklCmpBigInt(a,&FKL_BIG_INT_FIX_MIN)<=0);
 }
 
-inline int fklIsGeLeI64BigInt(const FklBigInt* a)
+int fklIsGeLeI64BigInt(const FklBigInt* a)
 {
 	return (fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>=0||fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<=0);
 }
 
-inline int fklIsGtLtI64BigInt(const FklBigInt* a)
+int fklIsGtLtI64BigInt(const FklBigInt* a)
 {
 	return (fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>0||fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<0);
 }
 
-inline int fklIsGtU64MaxBigInt(const FklBigInt* a)
+int fklIsGtU64MaxBigInt(const FklBigInt* a)
 {
 	return fklCmpBigInt(a,&FKL_BIG_INT_U64_MAX)>0;
 }
 
-inline int fklIsGtI64MaxBigInt(const FklBigInt* a)
+int fklIsGtI64MaxBigInt(const FklBigInt* a)
 {
 	return fklCmpBigInt(a,&FKL_BIG_INT_I64_MAX)>0;
 }
 
-inline int fklIsLtI64MinBigInt(const FklBigInt* a)
+int fklIsLtI64MinBigInt(const FklBigInt* a)
 {
 	return fklCmpBigInt(a,&FKL_BIG_INT_I64_MIN)<0;
 }
 
-inline int fklIsBigIntOdd(const FklBigInt* a)
+int fklIsBigIntOdd(const FklBigInt* a)
 {
 	return a->digits[0]%2;
 }
 
-inline int fklIsBigIntEven(const FklBigInt* a)
+int fklIsBigIntEven(const FklBigInt* a)
 {
 	return !fklIsBigIntOdd(a);
 }
 
-inline int fklIsBigIntLt0(const FklBigInt *a)
+int fklIsBigIntLt0(const FklBigInt *a)
 {
 	return !FKL_IS_0_BIG_INT(a)&&a->neg;
 }
@@ -1566,7 +1566,7 @@ int fklCmpIBigInt(int64_t i,const FklBigInt* bi)
 	return -fklCmpBigIntI(bi,i);
 }
 
-inline FklString* fklCreateString(size_t size,const char* str)
+FklString* fklCreateString(size_t size,const char* str)
 {
 	FklString* tmp=(FklString*)malloc(sizeof(FklString)+size*sizeof(uint8_t));
 	FKL_ASSERT(tmp);
@@ -1636,7 +1636,7 @@ FklString* fklCreateStringFromCstr(const char* cStr)
 	return fklCreateString(strlen(cStr),cStr);
 }
 
-inline void fklStringCharBufCat(FklString** a,const char* buf,size_t s)
+void fklStringCharBufCat(FklString** a,const char* buf,size_t s)
 {
 	size_t aSize=(*a)->size;
 	FklString* prev=*a;
@@ -1680,7 +1680,7 @@ void fklPrintString(const FklString* str,FILE* fp)
 	fwrite(str->str,str->size,1,fp);
 }
 
-inline int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch)
+int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch)
 {
 	int r=0;
 	if((r=ch=='\n'))
@@ -1702,7 +1702,7 @@ inline int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch)
 	return r;
 }
 
-inline void fklPrintRawStringToStringBuffer(FklStringBuffer* s,const FklString* fstr,char se)
+void fklPrintRawStringToStringBuffer(FklStringBuffer* s,const FklString* fstr,char se)
 {
 	char buf[7]={0};
 	fklStringBufferPutc(s,se);
@@ -1823,7 +1823,7 @@ size_t fklCountCharInString(FklString* s,char c)
 	return fklCountCharInBuf(s->str,s->size,c);
 }
 
-inline void fklInitStringBuffer(FklStringBuffer* b)
+void fklInitStringBuffer(FklStringBuffer* b)
 {
 	b->index=0;
 	b->size=0;
@@ -1831,24 +1831,24 @@ inline void fklInitStringBuffer(FklStringBuffer* b)
 	fklStringBufferReverse(b,64);
 }
 
-inline uint32_t fklStringBufferLen(FklStringBuffer* b)
+uint32_t fklStringBufferLen(FklStringBuffer* b)
 {
 	return b->index;
 }
 
-inline char* fklStringBufferBody(FklStringBuffer* b)
+char* fklStringBufferBody(FklStringBuffer* b)
 {
 	return b->buf;
 }
 
-inline void fklStringBufferPutc(FklStringBuffer* b,char c)
+void fklStringBufferPutc(FklStringBuffer* b,char c)
 {
 	fklStringBufferReverse(b,2);
 	b->buf[b->index++]=c;
 	b->buf[b->index]='\0';
 }
 
-inline void fklStringBufferBincpy(FklStringBuffer* b,const void* p,size_t l)
+void fklStringBufferBincpy(FklStringBuffer* b,const void* p,size_t l)
 {
 	fklStringBufferReverse(b,l+1);
 	memcpy(&b->buf[b->index],p,l);
@@ -1856,17 +1856,17 @@ inline void fklStringBufferBincpy(FklStringBuffer* b,const void* p,size_t l)
 	b->buf[b->index]='\0';
 }
 
-inline FklString* fklStringBufferToString(FklStringBuffer* b)
+FklString* fklStringBufferToString(FklStringBuffer* b)
 {
 	return fklCreateString(b->index,b->buf);
 }
 
-inline FklBytevector* fklStringBufferToBytevector(FklStringBuffer* b)
+FklBytevector* fklStringBufferToBytevector(FklStringBuffer* b)
 {
 	return fklCreateBytevector(b->index,(uint8_t*)b->buf);
 }
 
-inline FklStringBuffer* fklCreateStringBuffer(void)
+FklStringBuffer* fklCreateStringBuffer(void)
 {
 	FklStringBuffer* r=(FklStringBuffer*)malloc(sizeof(FklStringBuffer));
 	FKL_ASSERT(r);
@@ -1874,7 +1874,7 @@ inline FklStringBuffer* fklCreateStringBuffer(void)
 	return r;
 }
 
-inline void fklUninitStringBuffer(FklStringBuffer* b)
+void fklUninitStringBuffer(FklStringBuffer* b)
 {
 	b->size=0;
 	b->index=0;
@@ -1882,23 +1882,23 @@ inline void fklUninitStringBuffer(FklStringBuffer* b)
 	b->buf=NULL;
 }
 
-inline void fklDestroyStringBuffer(FklStringBuffer* b)
+void fklDestroyStringBuffer(FklStringBuffer* b)
 {
 	fklUninitStringBuffer(b);
 	free(b);
 }
 
-inline void fklStringBufferClear(FklStringBuffer* b)
+void fklStringBufferClear(FklStringBuffer* b)
 {
 	b->index=0;
 }
 
-inline void fklStringBufferFill(FklStringBuffer* b,char c)
+void fklStringBufferFill(FklStringBuffer* b,char c)
 {
 	memset(b->buf,c,b->index);
 }
 
-inline void fklStringBufferReverse(FklStringBuffer* b,size_t s)
+void fklStringBufferReverse(FklStringBuffer* b,size_t s)
 {
 	if((b->size-b->index)<s)
 	{
@@ -1934,7 +1934,7 @@ static inline void string_buffer_printf_va(FklStringBuffer* b,const char* fmt,va
 	}
 }
 
-inline void fklStringBufferPrintf(FklStringBuffer* b,const char* fmt,...)
+void fklStringBufferPrintf(FklStringBuffer* b,const char* fmt,...)
 {
 	va_list ap;
 	va_start(ap,fmt);
@@ -1942,24 +1942,24 @@ inline void fklStringBufferPrintf(FklStringBuffer* b,const char* fmt,...)
 	va_end(ap);
 }
 
-inline void fklStringBufferConcatWithCstr(FklStringBuffer* b,const char* s)
+void fklStringBufferConcatWithCstr(FklStringBuffer* b,const char* s)
 {
 	fklStringBufferBincpy(b,s,strlen(s));
 }
 
-inline void fklStringBufferConcatWithString(FklStringBuffer* b,const FklString* s)
+void fklStringBufferConcatWithString(FklStringBuffer* b,const FklString* s)
 {
 	fklStringBufferBincpy(b,s->str,s->size);
 }
 
-inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklStringBuffer* b)
+void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklStringBuffer* b)
 {
 	fklStringBufferBincpy(a,b->buf,b->index);
 }
 
 #define DEFAULT_HASH_TABLE_SIZE (4)
 
-inline void fklInitHashTable(FklHashTable* r,const FklHashTableMetaTable* t)
+void fklInitHashTable(FklHashTable* r,const FklHashTableMetaTable* t)
 {
 	FklHashTableItem** base=(FklHashTableItem**)calloc(DEFAULT_HASH_TABLE_SIZE,sizeof(FklHashTableItem*));
 	FKL_ASSERT(base);
@@ -2104,7 +2104,7 @@ static inline void expandHashTable(FklHashTable* table)
 		putHashNode(list,table);
 }
 
-inline void fklRehashTable(FklHashTable* table)
+void fklRehashTable(FklHashTable* table)
 {
 	FklHashTableItem* list=table->first;
 	memset(table->base,0,sizeof(FklHashTableItem*)*table->size);
@@ -2260,7 +2260,7 @@ void fklHashDefaultSetPtrKey(void* k0,const void* k1)
 #undef REHASH
 #undef HASH_FUNC_HEADER
 
-inline void fklUninitHashTable(FklHashTable* table)
+void fklUninitHashTable(FklHashTable* table)
 {
 	void (*uninitFunc)(void*)=table->t->__uninitItem;
 	FklHashTableItem* list=table->first;
@@ -2323,7 +2323,7 @@ void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
 	fklPrintRawByteBuf(bv->ptr,bv->size,fp);
 }
 
-inline void fklPrintBytevectorToStringBuffer(FklStringBuffer* s,const FklBytevector* bvec)
+void fklPrintBytevectorToStringBuffer(FklStringBuffer* s,const FklBytevector* bvec)
 {
 	size_t size=bvec->size;
 	const uint8_t* ptr=bvec->ptr;
@@ -2357,7 +2357,7 @@ FklBytevector* fklCopyBytevector(const FklBytevector* obj)
 	return tmp;
 }
 
-inline uintptr_t fklBytevectorHash(const FklBytevector* bv)
+uintptr_t fklBytevectorHash(const FklBytevector* bv)
 {
 	uintptr_t h=0;
 	const uint8_t* val=bv->ptr;
@@ -2384,12 +2384,12 @@ FklU8Stack* fklCreateU8Stack(size_t size,uint32_t inc)
 	return tmp;
 }
 
-inline void fklUninitU8Stack(FklU8Stack* r)
+void fklUninitU8Stack(FklU8Stack* r)
 {
 	free(r->base);
 }
 
-inline void fklDestroyU8Stack(FklU8Stack* r)
+void fklDestroyU8Stack(FklU8Stack* r)
 {
 	fklUninitU8Stack(r);
 	free(r);
@@ -2408,14 +2408,14 @@ void fklPushU8Stack(uint8_t data,FklU8Stack* stack)
 	stack->top+=1;
 }
 
-inline uint8_t fklPopU8Stack(FklU8Stack* s)
+uint8_t fklPopU8Stack(FklU8Stack* s)
 {
 	if(fklIsU8StackEmpty(s))
 		return 0;
 	return s->base[s->top--];
 }
 
-inline uint8_t fklTopU8Stack(FklU8Stack* s)
+uint8_t fklTopU8Stack(FklU8Stack* s)
 {
 	if(fklIsU8StackEmpty(s))
 		return 0;
@@ -2423,7 +2423,7 @@ inline uint8_t fklTopU8Stack(FklU8Stack* s)
 
 }
 
-inline int fklIsU8StackEmpty(FklU8Stack* s)
+int fklIsU8StackEmpty(FklU8Stack* s)
 {
 	return s->top==0;
 }

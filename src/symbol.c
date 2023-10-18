@@ -63,7 +63,7 @@ static const FklHashTableMetaTable SymbolHashMetaTable=
 	.__uninitItem=symbol_hash_uninit,
 };
 
-inline void fklInitSymbolTable(FklSymbolTable* tmp)
+void fklInitSymbolTable(FklSymbolTable* tmp)
 {
 	tmp->idl=NULL;
 	tmp->num=0;
@@ -79,7 +79,7 @@ FklSymbolTable* fklCreateSymbolTable()
 	return tmp;
 }
 
-inline FklSymbolHashItem* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
+FklSymbolHashItem* fklAddSymbol(const FklString* sym,FklSymbolTable* table)
 {
 	return fklAddSymbolCharBuf(sym->str,sym->size,table);
 }
@@ -89,7 +89,7 @@ FklSymbolHashItem* fklAddSymbolCstr(const char* sym,FklSymbolTable* table)
 	return fklAddSymbolCharBuf(sym,strlen(sym),table);
 }
 
-inline FklSymbolHashItem* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* table)
+FklSymbolHashItem* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable* table)
 {
 	FklHashTable* ht=&table->ht;
 	SymbolTableKey key={.len=len,.buf=buf};
@@ -119,7 +119,7 @@ void fklDestroySymTabNode(FklSymbolHashItem* node)
 	free(node);
 }
 
-inline void fklUninitSymbolTable(FklSymbolTable* table)
+void fklUninitSymbolTable(FklSymbolTable* table)
 {
 	fklUninitHashTable(&table->ht);
 	free(table->idl);
@@ -179,7 +179,7 @@ static inline void init_as_empty_pt(FklFuncPrototype* pt)
 	pt->rcount=0;
 }
 
-inline void fklInitFuncPrototypes(FklFuncPrototypes* r,uint32_t count)
+void fklInitFuncPrototypes(FklFuncPrototypes* r,uint32_t count)
 {
 	r->count=count;
 	r->pts=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*(count+1));
@@ -187,7 +187,7 @@ inline void fklInitFuncPrototypes(FklFuncPrototypes* r,uint32_t count)
 	init_as_empty_pt(r->pts);
 }
 
-inline FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
+FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
 {
 	FklFuncPrototypes* r=(FklFuncPrototypes*)malloc(sizeof(*r));
 	FKL_ASSERT(r);
@@ -195,13 +195,13 @@ inline FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
 	return r;
 }
 
-inline void fklUninitFuncPrototype(FklFuncPrototype* p)
+void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);
 	p->rcount=0;
 }
 
-inline void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
+void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 {
 	if(p)
 	{
@@ -210,7 +210,7 @@ inline void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 	}
 }
 
-inline void fklUninitFuncPrototypes(FklFuncPrototypes* p)
+void fklUninitFuncPrototypes(FklFuncPrototypes* p)
 {
 	FklFuncPrototype* pts=p->pts;
 	uint32_t end=p->count+1;
@@ -246,7 +246,7 @@ static inline void write_prototype(const FklFuncPrototype* pt
 	fwrite(&pt->line,sizeof(pt->line),1,fp);
 }
 
-inline void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
+void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
 		,uint32_t builtin_symbol_num
 		,FILE* fp)
 {
@@ -291,7 +291,7 @@ static inline void load_prototype(FklFuncPrototype* pt
 	fread(&pt->line,sizeof(pt->line),1,fp);
 }
 
-inline FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp)
+FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp)
 {
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);

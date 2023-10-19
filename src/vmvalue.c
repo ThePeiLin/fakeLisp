@@ -1488,6 +1488,21 @@ FklVMvalue* fklCreateVMvalueFp(FklVM* exe,FILE* fp,FklVMfpRW rw)
 	return r;
 }
 
+FklVMvalue* fklCreateVMvalueFd(FklVM* exe,uv_file fd,FklVMfpRW rw)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueFp);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_FP;
+	FklVMfp* vfp=FKL_VM_FP(r);
+	vfp->fd=fd;
+	vfp->fp=NULL;
+	vfp->rw=rw;
+	vfp->mutex=0;
+	fklInitPtrQueue(&vfp->next);
+	fklAddToGC(r,exe);
+	return r;
+}
+
 FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM* exe
 		,FklSid_t type
 		,const char* who

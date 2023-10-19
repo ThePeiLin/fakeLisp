@@ -1807,6 +1807,27 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,obj);
 }
 
+static void builtin_fopena(FKL_DL_PROC_ARGL)
+{
+	unsigned int arg_num=1;
+	static const char Pname[]="builtin.fopena";
+	DECL_AND_CHECK_ARG(filename,Pname);
+	FklVMvalue* mode=fklPopArg(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_VM_PUSH_VALUE(exe,filename);
+	if(mode)
+	{
+		FKL_VM_PUSH_VALUE(exe,mode);
+		arg_num++;
+	}
+	const char* filenameStr=FKL_VM_STR(filename)->str;
+	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
+	if(fklVMfopen(exe,filenameStr,modeStr,Pname,arg_num))
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,(char*)filenameStr,0,FKL_ERR_FILEFAILURE,exe);
+}
+
 static void builtin_fclose(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fclose";
@@ -4355,8 +4376,10 @@ static void builtin_sleep(FKL_DL_PROC_ARGL)
 	DECL_AND_CHECK_ARG(second,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(second,fklIsVMint,Pname,exe);
+	if(fklVMnumberLt0(second))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	uint64_t sec=fklGetUint(second);
-	fklThreadSleep(exe,sec*1000);
+	fklVMsleep(exe,sec*1000);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
@@ -5208,6 +5231,9 @@ static const struct SymbolFuncStruct
 
 	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
+
+	{"fopena",                builtin_fopena,                   {NULL,         NULL,          NULL,          NULL,          }, },
+
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof?",                 builtin_feof_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"eof?",                  builtin_eof_p,                   {NULL,         NULL,          NULL,          NULL,          }, },

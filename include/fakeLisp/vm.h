@@ -95,6 +95,7 @@ typedef enum
 
 typedef struct FklVMfp
 {
+	uv_file fd;
 	FILE* fp;
 	FklPtrQueue next;
 	FklVMfpRW rw:2;
@@ -655,6 +656,8 @@ FklVMvalue* fklCreateVMvalueDlproc(FklVM*
 
 FklVMvalue* fklCreateVMvalueFp(FklVM*,FILE*,FklVMfpRW);
 
+FklVMvalue* fklCreateVMvalueFd(FklVM*,uv_file,FklVMfpRW);
+
 FklVMvalue* fklCreateVMvalueHash(FklVM*,FklHashTableEqType);
 
 FklVMvalue* fklCreateVMvalueHashEq(FklVM*);
@@ -795,7 +798,13 @@ void fklInitVMdll(FklVMvalue* rel,FklVM*);
 FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
 void fklDestroyVMrecv(FklVMrecv*);
 
-int fklThreadSleep(FklVM*,uint64_t ms);
+int fklVMsleep(FklVM*,uint64_t ms);
+int fklVMfopen(FklVM*
+		,const char* path
+		,const char* mode
+		,const char* caller
+		,unsigned int arg_num);
+
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);
 void fklChanlSend(FklVMvalue* msg,FklVMchanl*,FklVM*);

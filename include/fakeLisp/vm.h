@@ -96,6 +96,7 @@ typedef enum
 typedef struct FklVMfp
 {
 	uv_file fd;
+	uv_buf_t buf;
 	FILE* fp;
 	FklPtrQueue next;
 	FklVMfpRW rw:2;
@@ -805,6 +806,13 @@ int fklVMfopen(FklVM*
 		,const char* caller
 		,unsigned int arg_num);
 int fklVMfclose(FklVM*,FklVMvalue*,const char* caller);
+
+#define FKL_UV_R_OK (4)
+#define FKL_UV_W_OK (2)
+#define FKL_UV_X_OK (1)
+#define FKL_UV_F_OK (0)
+
+int fklVMfacceReg(FklVM*,const char* path);
 
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);

@@ -4141,6 +4141,15 @@ static void builtin_facce_p(FKL_DL_PROC_ARGL)
 			:FKL_VM_NIL);
 }
 
+static void builtin_freg_p(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fregular?";
+	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
+	fklVMfacceReg(exe,FKL_VM_STR(filename)->str);
+}
+
 static void builtin_ftell(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.ftell";
@@ -5245,6 +5254,7 @@ static const struct SymbolFuncStruct
 
 	{"fopena",                builtin_fopena,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fclosea",               builtin_fclosea,                 {NULL,         NULL,          NULL,          NULL,          }, },
+	{"freg?",                 builtin_freg_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof?",                 builtin_feof_p,                  {NULL,         NULL,          NULL,          NULL,          }, },

@@ -151,3 +151,42 @@ int fklVMfclose(FklVM* exe
 	return uv_fs_close(exe->loop,(uv_fs_t*)req,fd,vm_close_file_cb);
 }
 
+static void vm_reg_file_cb(uv_fs_t* fs)
+{
+	FklVM* exe=uv_req_get_data((uv_req_t*)fs);
+	int result=S_ISREG(fs->statbuf.st_mode);
+	uv_fs_req_cleanup(fs);
+	free(fs);
+	fklResumeThread(exe);
+	FKL_VM_PUSH_VALUE(exe,result?FKL_VM_TRUE:FKL_VM_NIL);
+}
+
+static void vm_access_file_cb(uv_fs_t* fs)
+{
+	uv_file result=fs->result;
+	FklVM* exe=uv_req_get_data((uv_req_t*)fs);
+	const char* path=fs->path;
+	fs->path=NULL;
+	uv_fs_req_cleanup(fs);
+	if(result<0)
+	{
+		free(fs);
+		fklResumeThread(exe);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		return;
+	}
+	uv_req_set_data((uv_req_t*)fs,exe);
+	uv_fs_stat(exe->loop,fs,path,vm_reg_file_cb);
+	free((void*)path);
+}
+
+int fklVMfacceReg(FklVM* exe
+		,const char* path)
+{
+	uv_fs_t* req=(uv_fs_t*)malloc(sizeof(uv_fs_t));
+	FKL_ASSERT(req);
+	uv_req_set_data((uv_req_t*)req,exe);
+	fklSuspendThread(exe);
+	return uv_fs_access(exe->loop,req,path,FKL_UV_R_OK,vm_access_file_cb);
+}
+

@@ -268,8 +268,6 @@ typedef struct FklVMCompoundFrameData
 	FklInstruction* end;
 }FklVMCompoundFrameData;
 
-typedef void* FklCallObjData[10];
-
 typedef enum
 {
 	FKL_DLPROC_READY=0,
@@ -296,12 +294,12 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklDlprocFrameContext);
 struct FklVMgc;
 typedef struct
 {
-	int (*end)(FklCallObjData data);
-	void (*step)(FklCallObjData data,struct FklVM*);
-	void (*print_backtrace)(FklCallObjData data,FILE* fp,FklSymbolTable*);
-	void (*atomic)(FklCallObjData data,struct FklVMgc*);
-	void (*finalizer)(FklCallObjData data);
-	void (*copy)(FklCallObjData dst,const FklCallObjData src,struct FklVM*);
+	int (*end)(void* data);
+	void (*step)(void* data,struct FklVM*);
+	void (*print_backtrace)(void* data,FILE* fp,FklSymbolTable*);
+	void (*atomic)(void* data,struct FklVMgc*);
+	void (*finalizer)(void* data);
+	void (*copy)(void* dst,const void* src,struct FklVM*);
 }FklVMframeContextMethodTable;
 
 typedef struct FklVMframe
@@ -315,7 +313,7 @@ typedef struct FklVMframe
 		struct
 		{
 			const FklVMframeContextMethodTable* t;
-			FklCallObjData data;
+			uint8_t data[1];
 		};
 	};
 }FklVMframe;
@@ -325,7 +323,7 @@ void fklCallObj(FklVMvalue*,struct FklVM* exe);
 void fklTailCallObj(FklVMvalue*,struct FklVM* exe);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
 void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
-void** fklGetFrameData(FklVMframe* f);
+void* fklGetFrameData(FklVMframe* f);
 int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
@@ -348,7 +346,6 @@ typedef enum
 	FKL_VM_READY,
 	FKL_VM_RUNNING,
 	FKL_VM_WAITING,
-	FKL_VM_SLEEPING,
 }FklVMstate;
 
 #define FKL_VM_STACK_INC_NUM (128)
@@ -387,7 +384,6 @@ typedef struct FklVM
 	FklFuncPrototypes* pts;
 	FklVMlib* importingLib;
 
-	int64_t alarmtime;
 	FklVMstate state;
 
 }FklVM;
@@ -799,7 +795,7 @@ void fklInitVMdll(FklVMvalue* rel,FklVM*);
 FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
 void fklDestroyVMrecv(FklVMrecv*);
 
-void fklSleepThread(FklVM*,uint64_t sec);
+int fklThreadSleep(FklVM*,uint64_t ms);
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);
 void fklChanlSend(FklVMvalue* msg,FklVMchanl*,FklVM*);

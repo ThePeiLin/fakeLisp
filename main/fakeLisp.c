@@ -568,7 +568,7 @@ static inline const char* replxx_input_string_buffer(Replxx* replxx
 	return next;
 }
 
-static void repl_frame_step(FklCallObjData data,FklVM* exe)
+static void repl_frame_step(void* data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 	NastCreatCtx* cc=ctx->cc;
@@ -742,17 +742,17 @@ static void repl_frame_step(FklCallObjData data,FklVM* exe)
 	fklUnLockVMfp(ctx->stdinVal);
 }
 
-static int repl_frame_end(FklCallObjData data)
+static int repl_frame_end(void* data)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 	return ctx->state==DONE;
 }
 
-static void repl_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
+static void repl_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
 {
 }
 
-static void repl_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void repl_frame_atomic(void* data,FklVMgc* gc)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 	fklGC_toGrey(ctx->stdinVal,gc);
@@ -777,7 +777,7 @@ static inline void destroyNastCreatCtx(NastCreatCtx* cc)
 	free(cc);
 }
 
-static void repl_frame_finalizer(FklCallObjData data)
+static void repl_frame_finalizer(void* data)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
 	fklDestroyStringBuffer(ctx->buf);

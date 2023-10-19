@@ -995,12 +995,6 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r)
 		return 0;
 }
 
-void fklSleepThread(FklVM* exe,uint64_t sec)
-{
-	exe->alarmtime=fklGetTicks()+sec*1000;
-	exe->state=FKL_VM_SLEEPING;
-}
-
 void fklSuspendThread(FklVM* exe)
 {
 	exe->state=FKL_VM_WAITING;

@@ -888,13 +888,7 @@ int fklMkdir(const char* dir)
 	return mkdir(dir,S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH);
 }
 
-int64_t fklGetTicks(void)
-{
-	struct timespec t;
-	clock_gettime(CLOCK_MONOTONIC,&t);
-	uint64_t ticks=t.tv_sec*1000+t.tv_nsec/1000000;
-	return ticks;
-}
+
 #else
 #define R_OK 4
 #define W_OK 2
@@ -915,10 +909,6 @@ int fklMkdir(const char* dir)
 	return _mkdir(dir);
 }
 
-int64_t fklGetTicks(void)
-{
-	return timeGetTime();
-}
 #endif
 
 void fklDestroyDll(FklDllHandle handle)

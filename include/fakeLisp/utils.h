@@ -145,8 +145,6 @@ FklDllHandle fklLoadDll(const char* path);
 void* fklGetAddress(const char*,FklDllHandle);
 void fklDestroyDll(FklDllHandle);
 
-int64_t fklGetTicks(void);
-
 int fklRewindStream(FILE* fp,const char* buf,ssize_t len);
 
 void* fklRealloc(void* ptr,size_t nsize);

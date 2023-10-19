@@ -266,7 +266,7 @@ void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 // 	return NULL;
 // }
 
-static inline void initFrameCtxToGcCoCtx(FklCallObjData data,FklVMgc* gc)
+static inline void initFrameCtxToGcCoCtx(void* data,FklVMgc* gc)
 {
 	GcCoCtx* c=(GcCoCtx*)data;
 	c->num=gc->num;
@@ -275,11 +275,11 @@ static inline void initFrameCtxToGcCoCtx(FklCallObjData data,FklVMgc* gc)
 	c->white=NULL;
 }
 
-static void gc_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void gc_frame_atomic(void* data,FklVMgc* gc)
 {
 }
 
-static void gc_frame_step(FklCallObjData data,FklVM* exe)
+static void gc_frame_step(void* data,FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	GcCoCtx* ctx=(GcCoCtx*)data;
@@ -301,7 +301,7 @@ static void gc_frame_step(FklCallObjData data,FklVM* exe)
 	}
 }
 
-static int gc_frame_end(FklCallObjData data)
+static int gc_frame_end(void* data)
 {
 	GcCoCtx* ctx=(GcCoCtx*)data;
 	FklVMgc* gc=ctx->gc;
@@ -311,7 +311,7 @@ static int gc_frame_end(FklCallObjData data)
 	return r;
 }
 
-static void gc_frame_finalizer(FklCallObjData data)
+static void gc_frame_finalizer(void* data)
 {
 }
 

@@ -169,7 +169,7 @@ static inline void dlproc_init_ccc(FklDlprocFrameContext* ccc,FklVMFuncK kFunc,v
 	ccc->size=size;
 }
 
-static void dlproc_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
+static void dlproc_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	FklVMdlproc* dlproc=FKL_VM_DLPROC(c->proc);
@@ -184,19 +184,19 @@ static void dlproc_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolT
 		fputs("at <dlproc>\n",fp);
 }
 
-static void dlproc_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void dlproc_frame_atomic(void* data,FklVMgc* gc)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	fklGC_toGrey(c->proc,gc);
 }
 
-static void dlproc_frame_finalizer(FklCallObjData data)
+static void dlproc_frame_finalizer(void* data)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	free(c->ctx);
 }
 
-static void dlproc_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe)
+static void dlproc_frame_copy(void* d,const void* s,FklVM* exe)
 {
 	FklDlprocFrameContext const* const sc=(FklDlprocFrameContext*)s;
 	FklDlprocFrameContext* dc=(FklDlprocFrameContext*)d;
@@ -212,13 +212,13 @@ static void dlproc_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe
 
 }
 
-static int dlproc_frame_end(FklCallObjData data)
+static int dlproc_frame_end(void* data)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	return c->state==FKL_DLPROC_DONE;
 }
 
-static void dlproc_frame_step(FklCallObjData data,FklVM* exe)
+static void dlproc_frame_step(void* data,FklVM* exe)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	FklVMdlproc* dlproc=FKL_VM_DLPROC(c->proc);
@@ -247,7 +247,7 @@ static const FklVMframeContextMethodTable DlprocContextMethodTable=
 	.step=dlproc_frame_step,
 };
 
-static inline void initDlprocFrameContext(FklCallObjData data,FklVMvalue* proc,FklVM* exe)
+static inline void initDlprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe)
 {
 	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
 	fklSetRef(&c->proc,proc,exe->gc);
@@ -518,7 +518,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	return exe;
 }
 
-void** fklGetFrameData(FklVMframe* f)
+void* fklGetFrameData(FklVMframe* f)
 {
 	return f->data;
 }
@@ -530,7 +530,7 @@ int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 
 void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table)
 {
-	void (*backtrace)(FklCallObjData data,FILE*,FklSymbolTable*)=f->t->print_backtrace;
+	void (*backtrace)(void* data,FILE*,FklSymbolTable*)=f->t->print_backtrace;
 	if(backtrace)
 		backtrace(f->data,fp,table);
 	else
@@ -884,19 +884,6 @@ static inline FklVM* do_exit_VM(FklVM* exe)
 	return next;
 }
 
-static inline int is_reach_alarmtime(clock_t alarmtime)
-{
-	return fklGetTicks()>=alarmtime;
-}
-
-static inline int do_alarm_VM(FklVM* exe)
-{
-	int r=is_reach_alarmtime(exe->alarmtime);
-	if(r)
-		exe->state=FKL_VM_READY;
-	return r;
-}
-
 static void uv_idle_run_vm(uv_idle_t* handle)
 {
 	FklVM* volatile exe=uv_handle_get_data((uv_handle_t*)handle);
@@ -930,10 +917,6 @@ static void uv_idle_run_vm(uv_idle_t* handle)
 				}
 				exe->state=FKL_VM_RUNNING;
 				continue;
-				break;
-			case FKL_VM_SLEEPING:
-				if(do_alarm_VM(exe))
-					continue;
 				break;
 			case FKL_VM_WAITING:
 				if(uv_loop_alive(handle->loop)>0)

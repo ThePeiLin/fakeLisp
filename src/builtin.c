@@ -1842,7 +1842,7 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
 
-static void do_nothing_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
+static void do_nothing_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
 {
 }
 
@@ -1873,7 +1873,7 @@ FklVMvalue* create_eof_value(FklVM* exe)
 	return fklCreateVMvalueUdata(exe,&EofUserDataMetaTable,NULL);
 }
 
-static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void read_frame_atomic(void* data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
 	fklGC_toGrey(c->fpv,gc);
@@ -1884,7 +1884,7 @@ static void read_frame_atomic(FklCallObjData data,FklVMgc* gc)
 		fklGC_toGrey(base[i]->ast,gc);
 }
 
-static void read_frame_finalizer(FklCallObjData data)
+static void read_frame_finalizer(void* data)
 {
 	ReadCtx* c=(ReadCtx*)data;
 	fklUnLockVMfp(c->fpv);
@@ -1897,12 +1897,12 @@ static void read_frame_finalizer(FklCallObjData data)
 	fklDestroyPtrStack(c->stateStack);
 }
 
-static int read_frame_end(FklCallObjData d)
+static int read_frame_end(void* d)
 {
 	return ((ReadCtx*)d)->state==PARSE_DONE;
 }
 
-static void read_frame_step(FklCallObjData d,FklVM* exe)
+static void read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->fpv);
@@ -1974,7 +1974,7 @@ static inline void push_state0_of_custom_parser(FklVMvalue* parser,FklPtrStack* 
 	fklPushPtrStack(&g->aTable.states[0],stack);
 }
 
-static inline void initReadCtx(FklCallObjData data
+static inline void initReadCtx(void* data
 		,FklVMvalue* fpv
 		,FklVMvalue* parser)
 {
@@ -2115,7 +2115,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
 	return;
 }
 
-static void custom_read_frame_step(FklCallObjData d,FklVM* exe)
+static void custom_read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->fpv);
@@ -2499,7 +2499,7 @@ static inline int is_custom_parser(FklVMvalue* v)
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(CustomParseCtx);
 
-static void custom_parse_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void custom_parse_frame_atomic(void* data,FklVMgc* gc)
 {
 	CustomParseCtx* c=(CustomParseCtx*)data;
 	fklGC_toGrey(c->box,gc);
@@ -2511,7 +2511,7 @@ static void custom_parse_frame_atomic(FklCallObjData data,FklVMgc* gc)
 		fklGC_toGrey(base[i]->ast,gc);
 }
 
-static void custom_parse_frame_finalizer(FklCallObjData data)
+static void custom_parse_frame_finalizer(void* data)
 {
 	CustomParseCtx* c=(CustomParseCtx*)data;
 	FklPtrStack* ss=c->symbolStack;
@@ -2522,12 +2522,12 @@ static void custom_parse_frame_finalizer(FklCallObjData data)
 	fklDestroyPtrStack(c->stateStack);
 }
 
-static int custom_parse_frame_end(FklCallObjData d)
+static int custom_parse_frame_end(void* d)
 {
 	return ((CustomParseCtx*)d)->state==PARSE_DONE;
 }
 
-static void custom_parse_frame_step(FklCallObjData d,FklVM* exe)
+static void custom_parse_frame_step(void* d,FklVM* exe)
 {
 	CustomParseCtx* ctx=(CustomParseCtx*)d;
 	if(ctx->state==PARSE_REDUCING)
@@ -2584,7 +2584,7 @@ static void custom_parse_frame_step(FklCallObjData d,FklVM* exe)
 		ctx->offset=str->size-restLen;
 }
 
-static inline void init_custom_parse_ctx(FklCallObjData data
+static inline void init_custom_parse_ctx(void* data
 		,FklVMvalue* parser
 		,FklVMvalue* str
 		,FklVMvalue* box)
@@ -2787,7 +2787,7 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FgetCtx);
 
-static inline void initFgetCtx(FklCallObjData d
+static inline void initFgetCtx(void* d
 		,FklVMvalue* fpv
 		,FgetMode mode
 		,size_t len
@@ -2804,25 +2804,25 @@ static inline void initFgetCtx(FklCallObjData d
 	fklInitStringBuffer(&ctx->buf);
 }
 
-static void fget_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void fget_frame_atomic(void* data,FklVMgc* gc)
 {
 	FgetCtx* c=(FgetCtx*)data;
 	fklGC_toGrey(c->fpv,gc);
 }
 
-static void fget_frame_finalizer(FklCallObjData data)
+static void fget_frame_finalizer(void* data)
 {
 	FgetCtx* c=(FgetCtx*)data;
 	fklUninitStringBuffer(&c->buf);
 	fklUnLockVMfp(c->fpv);
 }
 
-static int fget_frame_end(FklCallObjData d)
+static int fget_frame_end(void* d)
 {
 	return ((FgetCtx*)d)->done;
 }
 
-static void fget_frame_step(FklCallObjData d,FklVM* exe)
+static void fget_frame_step(void* d,FklVM* exe)
 {
 	FgetCtx* ctx=(FgetCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(ctx->fpv);
@@ -3504,7 +3504,7 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
 
-static void error_handler_frame_print_backtrace(FklCallObjData data,FILE* fp,FklSymbolTable* table)
+static void error_handler_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	FklVMdlproc* dlproc=FKL_VM_DLPROC(c->proc);
@@ -3519,7 +3519,7 @@ static void error_handler_frame_print_backtrace(FklCallObjData data,FILE* fp,Fkl
 		fputs("at <dlproc>\n",fp);
 }
 
-static void error_handler_frame_atomic(FklCallObjData data,FklVMgc* gc)
+static void error_handler_frame_atomic(void* data,FklVMgc* gc)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	fklGC_toGrey(c->proc,gc);
@@ -3531,14 +3531,14 @@ static void error_handler_frame_atomic(FklCallObjData data,FklVMgc* gc)
 	}
 }
 
-static void error_handler_frame_finalizer(FklCallObjData data)
+static void error_handler_frame_finalizer(void* data)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	free(c->errorSymbolLists);
 	free(c->errorHandlers);
 }
 
-static void error_handler_frame_copy(FklCallObjData d,const FklCallObjData s,FklVM* exe)
+static void error_handler_frame_copy(void* d,const void* s,FklVM* exe)
 {
 	const EhFrameContext* const sc=(const EhFrameContext*)s;
 	EhFrameContext* dc=(EhFrameContext*)d;
@@ -3557,12 +3557,12 @@ static void error_handler_frame_copy(FklCallObjData d,const FklCallObjData s,Fkl
 	}
 }
 
-static int error_handler_frame_end(FklCallObjData data)
+static int error_handler_frame_end(void* data)
 {
 	return 1;
 }
 
-static void error_handler_frame_step(FklCallObjData data,FklVM* exe)
+static void error_handler_frame_step(void* data,FklVM* exe)
 {
 	return;
 }
@@ -4356,8 +4356,8 @@ static void builtin_sleep(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(second,fklIsVMint,Pname,exe);
 	uint64_t sec=fklGetUint(second);
-	fklSleepThread(exe,sec);
-	FKL_VM_PUSH_VALUE(exe,second);
+	fklThreadSleep(exe,sec*1000);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
 static void builtin_srand(FKL_DL_PROC_ARGL)

@@ -115,3 +115,39 @@ int fklVMfopen(FklVM* exe
 	return uv_fs_open(exe->loop,(uv_fs_t*)req,path,omode,oflags,vm_create_file_cb);
 }
 
+struct VMfileCloseReq
+{
+	uv_fs_t req;
+	const char* caller;
+};
+
+static void vm_close_file_cb(uv_fs_t* fs)
+{
+	struct VMfileCloseReq* req=(struct VMfileCloseReq*)fs;
+	uv_file result=fs->result;
+	FklVM* exe=uv_req_get_data((uv_req_t*)fs);
+	const char* caller=req->caller;
+	uv_fs_req_cleanup(fs);
+	free(fs);
+	fklResumeThread(exe);
+	if(result<0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(caller,FKL_ERR_INVALIDACCESS,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+}
+
+int fklVMfclose(FklVM* exe
+		,FklVMvalue* vfp
+		,const char* caller)
+{
+	FklVMfp* fp=FKL_VM_FP(vfp);
+	fklUninitPtrQueue(&fp->next);
+	struct VMfileCloseReq* req=(struct VMfileCloseReq*)malloc(sizeof(struct VMfileCloseReq));
+	FKL_ASSERT(req);
+	req->caller=caller;
+	uv_file fd=fp->fd;
+	fp->fd=-1;
+	uv_req_set_data((uv_req_t*)req,exe);
+	fklSuspendThread(exe);
+	return uv_fs_close(exe->loop,(uv_fs_t*)req,fd,vm_close_file_cb);
+}
+

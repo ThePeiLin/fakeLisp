@@ -804,6 +804,7 @@ int fklVMfopen(FklVM*
 		,const char* mode
 		,const char* caller
 		,unsigned int arg_num);
+int fklVMfclose(FklVM*,FklVMvalue*,const char* caller);
 
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);

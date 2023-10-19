@@ -1841,6 +1841,17 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
+static void builtin_fclosea(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fclosea";
+	DECL_AND_CHECK_ARG(vfp,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
+	FklVMfp* fp=FKL_VM_FP(vfp);
+	if(fp->fd<3||fp->mutex||fklVMfclose(exe,vfp,Pname))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
+}
+
 typedef enum
 {
 	PARSE_CONTINUE=0,
@@ -5232,7 +5243,8 @@ static const struct SymbolFuncStruct
 	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
 
-	{"fopena",                builtin_fopena,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fopena",                builtin_fopena,                  {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fclosea",               builtin_fclosea,                 {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof?",                 builtin_feof_p,                  {NULL,         NULL,          NULL,          NULL,          }, },

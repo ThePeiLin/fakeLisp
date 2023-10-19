@@ -1696,21 +1696,18 @@ FklVMvalue* fklCreateVMvalueCodeObj(FklVM* exe,FklByteCodelnt* bcl)
 FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
 {
 	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
-#ifdef _WIN32
-	char* realDllName=(char*)_malloca(len);
-#else
-	char realDllName[len];
-#endif
+	char* realDllName=(char*)malloc(len);
+	FKL_ASSERT(realDllName);
 	strcpy(realDllName,dllName);
 	strcat(realDllName,FKL_DLL_FILE_TYPE);
 	char* rpath=fklRealpath(realDllName);
 	if(!rpath)
-		return NULL;
+		goto err;
 	FklDllHandle handle=fklLoadDll(rpath);
 	if(!handle)
 	{
 		free(rpath);
-		return NULL;
+		goto err;
 	}
 	free(rpath);
 	FklVMvalue* r=NEW_OBJ(FklVMvalueDll);
@@ -1720,7 +1717,11 @@ FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
 	dll->handle=handle;
 	dll->pd=FKL_VM_NIL;
 	fklAddToGC(r,exe);
+	free(realDllName);
 	return r;
+err:
+	free(realDllName);
+	return NULL;
 }
 
 FklVMvalue* fklCreateVMvalueDlproc(FklVM* exe

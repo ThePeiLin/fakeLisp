@@ -89,14 +89,23 @@ char* fklReadWithBuiltinParser(FILE* fp
 		{
 			if(restLen)
 			{
-				*errLine=fklIsUintStackEmpty(lineStack)?fklTopUintStack(lineStack):outerCtx.line;
+				*errLine=fklIsUintStackEmpty(lineStack)?outerCtx.line:fklTopUintStack(lineStack);
 				*unexpectEOF=FKL_PARSE_REDUCE_FAILED;
 				free(tmp);
 				tmp=NULL;
 				break;
 			}
 			else if(feof(fp))
+			{
+				if(!fklIsPtrStackEmpty(symbolStack))
+				{
+					*errLine=fklTopUintStack(lineStack);
+					*unexpectEOF=FKL_PARSE_TERMINAL_MATCH_FAILED;
+					free(tmp);
+					tmp=NULL;
+				}
 				break;
+			}
 		}
 		else if(err==FKL_PARSE_REDUCE_FAILED)
 		{
@@ -179,14 +188,23 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		{
 			if(restLen)
 			{
-				*errLine=fklIsUintStackEmpty(lineStack)?fklTopUintStack(lineStack):outerCtx.line;
+				*errLine=fklIsUintStackEmpty(lineStack)?outerCtx.line:fklTopUintStack(lineStack);
 				*unexpectEOF=FKL_PARSE_REDUCE_FAILED;
 				free(tmp);
 				tmp=NULL;
 				break;
 			}
 			else if(feof(fp))
+			{
+				if(!fklIsPtrStackEmpty(symbolStack))
+				{
+					*errLine=fklTopUintStack(lineStack);
+					*unexpectEOF=FKL_PARSE_TERMINAL_MATCH_FAILED;
+					free(tmp);
+					tmp=NULL;
+				}
 				break;
+			}
 		}
 		else if(err==FKL_PARSE_REDUCE_FAILED)
 		{

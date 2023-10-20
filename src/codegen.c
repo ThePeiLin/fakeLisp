@@ -9025,7 +9025,7 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 		,FklFuncPrototypes* pts
 		,uint32_t prototype_id)
 {
-	FklFuncPrototype* mainPts=&pts->pts[1];
+	FklFuncPrototype* mainPts=&pts->pts[prototype_id];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
 	uint32_t count=mainPts->lcount;

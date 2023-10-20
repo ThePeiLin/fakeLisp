@@ -1,0 +1,118 @@
+(defmacro ~(defstruct ~name ~fields,~methods)
+  (begin
+    (if (or (not (symbol? name))
+          (not (andmap symbol? fields)))
+      (throw 'incorrect-type
+             'defining-struct
+             "type of name or fields should be symbol"))
+    (define field-idx-ht #hash())
+    (do [(cur fields (cdr cur))
+         (idx 1 (1+ idx))]
+      [(null cur)]
+      (define field (car cur))
+      (if (eq field name)
+        (throw 'invalid-member-name
+               'defining-struct
+               (append! "member name cannot be " (stringify name))))
+      (if (href field-idx-ht field ())
+        (throw 'duplicate-member
+               'defining-struct
+               (append! "duplicate member " (stringify field))))
+      (href-set! field-idx-ht field idx))
+    (define name-str (symbol->string name))
+    (define type-checker-name (string->symbol (append name-str "?")))
+    (define method-names #hash())
+
+    (define method-head-process-func
+      (make-hash
+        'from
+        (lambda
+          (from-type)
+          (string->symbol (append! (symbol->string from-type) "->" name-str)))))
+
+    (define (process-method-define def)
+      (define head (car def))
+      (define args (car (cdr def)))
+      (define body (cdr (cdr def)))
+      (define method-name
+        (cond
+          [(symbol? head)
+           (string->symbol
+             (append name-str
+                     "-"
+                     (symbol->string head)))]
+          [(list? head)
+           (define type (car head))
+           (apply
+             (href method-head-process-func type)
+             (cdr head))]
+          [1 (throw 'incorrect-method-head
+                    'process-method-head
+                    "method head should be list or symbol")]))
+      (if (href method-names method-name ())
+        (throw 'duplicate-member
+               'defining-struct
+               (append! "duplicate member " (stringify method-name))))
+      (href-set! method-names method-name 1)
+      `(define (~method-name,~args),~body))
+
+    `(begin
+       (define
+         (~(string->symbol (append! "make-" name-str)),~fields)
+         (vector (quote ~name),~(copy fields)))
+       (define (~type-checker-name ~name)
+         (and
+           (eq (vref ~name 0) (quote ~name))
+           (eqv (length ~name) ~(1+ (hash-num field-idx-ht)))))
+       ~@(map
+           (lambda (kv)
+             (define field-name (symbol->string (car kv)))
+             (define idx (cdr kv))
+             (define func-name (string->symbol (append name-str "-" field-name)))
+             (href! method-names func-name 1)
+             `(define (~func-name ~name)
+                (unless (~type-checker-name ~name)
+                  (throw 'incorrect-type
+                         (quote ~func-name)
+                         "Incorrect type of values"))
+                (vref ~name ~idx)))
+           (hash->list field-idx-ht))
+       ~@(map
+           (lambda (kv)
+             (define field (car kv))
+             (define field-name (symbol->string (car kv)))
+             (define idx (cdr kv))
+             (define func-name (string->symbol (append name-str "-" field-name "-set!")))
+             (href! method-names func-name 1)
+             `(define (~func-name ~name ~field)
+                (unless (~type-checker-name ~name)
+                  (throw 'incorrect-type
+                         (quote ~func-name)
+                         "Incorrect type of values"))
+                (vref-set! ~name ~idx ~field)))
+           (hash->list field-idx-ht))
+       ~@(map process-method-define
+              methods))))
+
+(defstruct mypair
+  [car cdr]
+  [(from pair)
+   (pair)
+   (unless (pair? pair)
+     (throw 'incorrect-type
+            *func*
+            "Incorrect type of values"))
+   (make-mypair (car pair) (cdr pair))])
+
+(define foo (make-mypair 114 514))
+(println foo)
+(println (mypair? foo))
+(println (mypair-car foo))
+(println (mypair-cdr foo))
+
+(mypair-car-set! foo 'foo)
+(mypair-cdr-set! foo 'bar)
+(println foo)
+
+(define bar (cons 'foobar 114514))
+(println (pair->mypair bar))

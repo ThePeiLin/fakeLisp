@@ -19,6 +19,7 @@
         (parse)
         (read)
         (bigloop)
-        (dll))
+        (dll)
+        (complex-macro))
 
 (println "\ntest done!")

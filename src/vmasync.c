@@ -1,5 +1,12 @@
 #include<fakeLisp/vm.h>
-#include<unistd.h>
+
+
+#ifdef WIN32
+#include<sys/stat.h>
+#include<sys/types.h>
+#define S_ISREG(m) ((S_IFMT&m)==S_IFREG)
+#define S_ISDIR(m) ((S_IFMT&m)==S_IFDIR)
+#endif
 
 static void sleep_timer_close_cb(uv_handle_t* h)
 {

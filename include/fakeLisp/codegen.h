@@ -206,6 +206,7 @@ typedef struct
 {
 	FklSymbolTable public_symbol_table;
 
+	FklSid_t builtInPatternVar_orig;
 	FklSid_t builtInPatternVar_rest;
 	FklSid_t builtInPatternVar_name;
 	FklSid_t builtInPatternVar_value;

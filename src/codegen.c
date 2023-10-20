@@ -7871,6 +7871,15 @@ static CODEGEN_FUNC(codegen_defmacro)
 			errorState->place=fklMakeNastNodeRef(name);
 			return;
 		}
+		if(fklGetHashItem(&outer_ctx->builtInPatternVar_orig,symbolSet))
+		{
+			fklDestroyNastNode(pattern);
+			errorState->fid=codegen->fid;
+			errorState->type=FKL_ERR_INVALID_MACRO_PATTERN;
+			errorState->place=fklMakeNastNodeRef(name);
+			return;
+		}
+		fklPutHashItem(&outer_ctx->builtInPatternVar_orig,symbolSet);
 
 		FklCodegenEnv* macroEnv=NULL;
 		FklCodegenInfo* macroCodegen=macro_compile_prepare(codegen,curEnv,macroScope,symbolSet,&macroEnv,pst);
@@ -8214,6 +8223,7 @@ void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx)
 	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
 	fklInitSymbolTable(publicSymbolTable);
 
+	outerCtx->builtInPatternVar_orig=fklAddSymbolCstr("orig",publicSymbolTable)->id;
 	outerCtx->builtInPatternVar_rest=fklAddSymbolCstr("rest",publicSymbolTable)->id;
 	outerCtx->builtInPatternVar_name=fklAddSymbolCstr("name",publicSymbolTable)->id;
 	outerCtx->builtInPatternVar_cond=fklAddSymbolCstr("cond",publicSymbolTable)->id;
@@ -9145,9 +9155,10 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 	FklHashTable* ht=NULL;
 	uint64_t curline=exp->curline;
 	for(FklCodegenMacro* macro=findMacro(r,macros,&ht)
-			;macro
+			;!errorState->type&&macro
 			;macro=findMacro(r,macros,&ht))
 	{
+		fklPatternMatchingHashTableSet(codegen->outer_ctx->builtInPatternVar_orig,exp,ht);
 		FklNastNode* retval=NULL;
 		FklHashTable lineHash;
 		fklInitLineNumHashTable(&lineHash);

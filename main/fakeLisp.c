@@ -17,7 +17,7 @@
 #include<unistd.h>
 #endif
 
-static void runRepl(FklCodegenInfo*);
+static int runRepl(FklCodegenInfo*);
 static void init_frame_to_repl_frame(FklVM*,FklCodegenInfo* codegen);
 static void loadLib(FILE*,uint64_t*,FklVMlib**,FklVM*,FklVMCompoundFrameVarRef* lr);
 static int exitState=0;
@@ -250,7 +250,7 @@ int main(int argc,char** argv)
 		fklInitCodegenOuterCtx(&outer_ctx);
 		FklSymbolTable* pst=&outer_ctx.public_symbol_table;
 		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx);
-		runRepl(&codegen);
+		exitState=runRepl(&codegen);
 		codegen.globalSymTable=NULL;
 		FklPtrStack* loadedLibStack=codegen.libStack;
 		while(!fklIsPtrStackEmpty(loadedLibStack))
@@ -314,7 +314,7 @@ int main(int argc,char** argv)
 	return exitState;
 }
 
-static void runRepl(FklCodegenInfo* codegen)
+static int runRepl(FklCodegenInfo* codegen)
 {
 	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,codegen->pts,1);
 	anotherVM->libs=(FklVMlib*)calloc(1,sizeof(FklVMlib));
@@ -322,12 +322,13 @@ static void runRepl(FklCodegenInfo* codegen)
 
 	init_frame_to_repl_frame(anotherVM,codegen);
 
-	fklRunVM(anotherVM);
+	int err=fklRunVM(anotherVM);
 
 	FklVMgc* gc=anotherVM->gc;
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
 	codegen->pts=NULL;
+	return err;
 }
 
 static void loadLib(FILE* fp

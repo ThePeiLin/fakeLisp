@@ -2259,6 +2259,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	FKL_ASSERT(exe);
 	exe->importingLib=NULL;
 	exe->gc=prev->gc;
+	exe->loop=prev->loop;
 	exe->prev=exe;
 	exe->next=exe;
 	insert_to_VM_chain(exe,prev,next);

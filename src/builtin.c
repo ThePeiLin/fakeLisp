@@ -4815,6 +4815,19 @@ static void builtin_even_p(FKL_DL_PROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
+static void builtin_exit(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.exit";
+	FklVMvalue* exit_no=fklPopArg(exe);
+	if(exit_no)
+		FKL_CHECK_TYPE(exit_no,FKL_IS_FIX,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	exe->state=FKL_VM_EXIT;
+	if(exe->chan==NULL)
+		*(int*)(exe->loop->data)=exit_no?FKL_GET_FIX(exit_no):0;
+	FKL_VM_PUSH_VALUE(exe,exit_no?FKL_MAKE_VM_FIX(0):exit_no);
+}
+
 #undef K_FUNC_ARGL
 #undef PREDICATE
 //end
@@ -5324,6 +5337,8 @@ static const struct SymbolFuncStruct
 
 	{"odd?",                  builtin_odd_p,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"even?",                 builtin_even_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
+
+	{"exit",                  builtin_exit,                    {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{NULL,                    NULL,                            {NULL,         NULL,          NULL,          NULL,          }, },
 };

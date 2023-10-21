@@ -28,7 +28,11 @@
         'from
         (lambda
           (from-type)
-          (string->symbol (append! (symbol->string from-type) "->" name-str)))))
+          (string->symbol (append! (symbol->string from-type) "->" name-str)))
+        'to
+        (lambda
+          (from-type)
+          (string->symbol (append name-str "->" (symbol->string from-type))))))
 
     (define (process-method-define def)
       (define head (car def))
@@ -102,7 +106,15 @@
      (throw 'incorrect-type
             *func*
             "Incorrect type of values"))
-   (make-mypair (car pair) (cdr pair))])
+   (make-mypair (car pair) (cdr pair))]
+  [(to pair)
+   (mypair)
+   (unless (mypair? mypair)
+     (throw 'incorrect-type
+            *func*
+            "Incorrect type of values"))
+   (cons (mypair-car mypair)
+         (mypair-cdr mypair))])
 
 (define foo (make-mypair 114 514))
 (println foo)
@@ -116,3 +128,5 @@
 
 (define bar (cons 'foobar 114514))
 (println (pair->mypair bar))
+
+(println (mypair->pair foo))

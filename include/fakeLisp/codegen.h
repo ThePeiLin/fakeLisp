@@ -323,6 +323,7 @@ typedef struct
 {
 	const FklNextExpressionMethodTable* t;
 	void* context;
+	uint8_t must_has_retval;
 }FklCodegenNextExpression;
 
 typedef struct FklCodegenQuest

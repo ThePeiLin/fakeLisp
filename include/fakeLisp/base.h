@@ -64,6 +64,7 @@ FklStringBuffer* fklCreateStringBuffer(void);
 char* fklStringBufferBody(FklStringBuffer*);
 uint32_t fklStringBufferLen(FklStringBuffer*);
 void fklInitStringBuffer(FklStringBuffer*);
+void fklInitStringBufferWithCapacity(FklStringBuffer*,size_t s);
 void fklStringBufferReverse(FklStringBuffer*,size_t s);
 void fklUninitStringBuffer(FklStringBuffer*);
 void fklDestroyStringBuffer(FklStringBuffer*);

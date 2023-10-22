@@ -1807,27 +1807,6 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,obj);
 }
 
-static void builtin_fopena(FKL_DL_PROC_ARGL)
-{
-	unsigned int arg_num=1;
-	static const char Pname[]="builtin.fopena";
-	DECL_AND_CHECK_ARG(filename,Pname);
-	FklVMvalue* mode=fklPopArg(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	if(!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_VM_PUSH_VALUE(exe,filename);
-	if(mode)
-	{
-		FKL_VM_PUSH_VALUE(exe,mode);
-		arg_num++;
-	}
-	const char* filenameStr=FKL_VM_STR(filename)->str;
-	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
-	if(fklVMfopen(exe,filenameStr,modeStr,Pname,arg_num))
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,(char*)filenameStr,0,FKL_ERR_FILEFAILURE,exe);
-}
-
 static void builtin_fclose(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fclose";
@@ -1839,17 +1818,6 @@ static void builtin_fclose(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
 	fp->fp=NULL;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-}
-
-static void builtin_fclosea(FKL_DL_PROC_ARGL)
-{
-	static const char Pname[]="builtin.fclosea";
-	DECL_AND_CHECK_ARG(vfp,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
-	FklVMfp* fp=FKL_VM_FP(vfp);
-	if(fp->fd<3||fp->mutex||fklVMfclose(exe,vfp,Pname))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
 }
 
 typedef enum
@@ -2797,131 +2765,306 @@ static void builtin_parse(FKL_DL_PROC_ARGL)
 	}
 }
 
-typedef enum
-{
-	FGETC=0,
-	FGETI,
-	FGETS,
-	FGETB,
-	FGETD,
-}FgetMode;
+// typedef enum
+// {
+// 	FGETC=0,
+// 	FGETI,
+// 	FGETS,
+// 	FGETB,
+// 	FGETD,
+// }FgetMode;
+//
+// typedef struct
+// {
+// 	FklVMvalue* fpv;
+// 	FklStringBuffer buf;
+// 	FgetMode mode:16;
+// 	uint16_t done;
+// 	uint32_t ap;
+// 	size_t len;
+// 	char delim;
+// }FgetCtx;
+//
+// FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FgetCtx);
+
+// static inline void initFgetCtx(void* d
+// 		,FklVMvalue* fpv
+// 		,FgetMode mode
+// 		,size_t len
+// 		,char del
+// 		,uint32_t ap)
+// {
+// 	FgetCtx* ctx=(FgetCtx*)d;
+// 	ctx->fpv=fpv;
+// 	ctx->mode=mode;
+// 	ctx->len=len;
+// 	ctx->ap=ap;
+// 	ctx->done=0;
+// 	ctx->delim=del;
+// 	fklInitStringBuffer(&ctx->buf);
+// }
+
+// static void fget_frame_atomic(void* data,FklVMgc* gc)
+// {
+// 	FgetCtx* c=(FgetCtx*)data;
+// 	fklGC_toGrey(c->fpv,gc);
+// }
+//
+// static void fget_frame_finalizer(void* data)
+// {
+// 	FgetCtx* c=(FgetCtx*)data;
+// 	fklUninitStringBuffer(&c->buf);
+// 	fklUnLockVMfp(c->fpv);
+// }
+//
+// static int fget_frame_end(void* d)
+// {
+// 	return ((FgetCtx*)d)->done;
+// }
+
+// static void fget_frame_step(void* d,FklVM* exe)
+// {
+// 	FgetCtx* ctx=(FgetCtx*)d;
+// 	FklVMfp* vfp=FKL_VM_FP(ctx->fpv);
+// 	int ch=0;
+// 	FklStringBuffer* s=&ctx->buf;
+// 	switch(ctx->mode)
+// 	{
+// 		case FGETC:
+// 		case FGETI:
+// 			ch=fklVMfpNonBlockGetc(vfp);
+// 			if(fklVMfpEof(vfp))
+// 			{
+// 				ctx->done=1;
+// 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+// 			}
+// 			else if(ch>0)
+// 			{
+// 				ctx->done=1;
+// 				FklVMvalue* retval=ctx->mode==FGETC?FKL_MAKE_VM_CHR(ch):FKL_MAKE_VM_FIX(ch);
+// 				FKL_VM_PUSH_VALUE(exe,retval);
+// 			}
+// 			break;
+// 		case FGETD:
+// 			fklVMfpNonBlockGetdelim(vfp,s,ctx->delim);
+// 			if(fklVMfpEof(vfp)||ch==ctx->delim)
+// 			{
+// 				ctx->done=1;
+// 				FklVMvalue* retval=fklCreateVMvalueStr(exe,fklStringBufferToString(s));
+// 				FKL_VM_PUSH_VALUE(exe,retval);
+// 			}
+// 			break;
+// 		case FGETS:
+// 		case FGETB:
+// 			ctx->len-=fklVMfpNonBlockGets(vfp,s,ctx->len);
+// 			if(!ctx->len||fklVMfpEof(vfp))
+// 			{
+// 				ctx->done=1;
+// 				FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueStr(exe,fklStringBufferToString(s))
+// 					:fklCreateVMvalueBvec(exe,fklStringBufferToBytevector(s));
+// 				FKL_VM_PUSH_VALUE(exe,retval);
+// 			}
+// 			break;
+// 	}
+// }
+
+// static const FklVMframeContextMethodTable FgetContextMethodTable=
+// {
+// 	.atomic=fget_frame_atomic,
+// 	.finalizer=fget_frame_finalizer,
+// 	.copy=NULL,
+// 	.print_backtrace=do_nothing_print_backtrace,
+// 	.step=fget_frame_step,
+// 	.end=fget_frame_end,
+// };
+
+// static inline void initFrameToFgetFrame(FklVM* exe
+// 		,FklVMvalue* fpv
+// 		,FgetMode mode
+// 		,size_t len
+// 		,char del
+// 		,uint32_t ap)
+// {
+// 	FklVMframe* f=exe->frames;
+// 	fklLockVMfp(fpv,exe);
+// 	f->type=FKL_FRAME_OTHEROBJ;
+// 	f->t=&FgetContextMethodTable;
+// 	initFgetCtx(f->data,fpv,mode,len,del,ap);
+// }
+
+// static void builtin_fgetd(FKL_DL_PROC_ARGL)
+// {
+// 	static const char Pname[]="builtin.fgetd";
+// 	FklVMvalue* del=FKL_VM_POP_ARG(exe);
+// 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
+// 	FKL_CHECK_REST_ARG(exe,Pname);
+// 	if(!del)
+// 		del=FKL_MAKE_VM_CHR('\n');
+// 	GET_OR_USE_STDIN(file);
+// 	if(!FKL_IS_FP(file)||!FKL_IS_CHR(del))
+// 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+// 	CHECK_FP_OPEN(file,Pname,exe);
+// 	CHECK_FP_READABLE(file,Pname,exe);
+// 	initFrameToFgetFrame(exe,file,FGETD,0,FKL_GET_CHR(del),0);
+// }
+//
+// static void builtin_fgets(FKL_DL_PROC_ARGL)
+// {
+// 	static const char Pname[]="builtin.fgets";
+// 	DECL_AND_CHECK_ARG(psize,Pname);
+// 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
+// 	FKL_CHECK_REST_ARG(exe,Pname);
+// 	GET_OR_USE_STDIN(file);
+// 	if(!FKL_IS_FP(file)||!fklIsVMint(psize))
+// 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+// 	if(fklVMnumberLt0(psize))
+// 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+// 	CHECK_FP_OPEN(file,Pname,exe);
+// 	CHECK_FP_READABLE(file,Pname,exe);
+// 	initFrameToFgetFrame(exe,file,FGETS,fklGetUint(psize),0,0);
+// }
+//
+// static void builtin_fgetb(FKL_DL_PROC_ARGL)
+// {
+// 	static const char Pname[]="builtin.fgetb";
+// 	DECL_AND_CHECK_ARG(psize,Pname);
+// 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
+// 	FKL_CHECK_REST_ARG(exe,Pname);
+// 	GET_OR_USE_STDIN(file);
+// 	if(!FKL_IS_FP(file)||!fklIsVMint(psize))
+// 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+// 	if(fklVMnumberLt0(psize))
+// 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+// 	CHECK_FP_OPEN(file,Pname,exe);
+// 	CHECK_FP_READABLE(file,Pname,exe);
+// 	initFrameToFgetFrame(exe,file,FGETB,fklGetUint(psize),0,0);
+// }
 
 typedef struct
 {
-	FklVMvalue* fpv;
+	FklVMvalue* vfp;
 	FklStringBuffer buf;
-	FgetMode mode:16;
-	uint16_t done;
-	uint32_t ap;
-	size_t len;
-	char delim;
-}FgetCtx;
+	FklVMasyncReadCtx* ctx;
+	FklVMvalue* (*retval_creator)(FklVM*,FklStringBuffer*);
+	int done;
+}AsyncFgetCtx;
 
-FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FgetCtx);
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(AsyncFgetCtx);
 
-static inline void initFgetCtx(void* d
-		,FklVMvalue* fpv
-		,FgetMode mode
-		,size_t len
-		,char del
-		,uint32_t ap)
+static void async_fget_frame_atomic(void* data,FklVMgc* gc)
 {
-	FgetCtx* ctx=(FgetCtx*)d;
-	ctx->fpv=fpv;
-	ctx->mode=mode;
-	ctx->len=len;
-	ctx->ap=ap;
-	ctx->done=0;
-	ctx->delim=del;
-	fklInitStringBuffer(&ctx->buf);
+	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
+	fklGC_toGrey(c->vfp,gc);
 }
 
-static void fget_frame_atomic(void* data,FklVMgc* gc)
+static void async_fget_frame_finalizer(void* data)
 {
-	FgetCtx* c=(FgetCtx*)data;
-	fklGC_toGrey(c->fpv,gc);
-}
-
-static void fget_frame_finalizer(void* data)
-{
-	FgetCtx* c=(FgetCtx*)data;
+	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
 	fklUninitStringBuffer(&c->buf);
-	fklUnLockVMfp(c->fpv);
+	fklUnLockVMfp(c->vfp);
+	free(c->ctx);
 }
 
-static int fget_frame_end(void* d)
+static void async_fget_frame_step(void* data,FklVM* exe)
 {
-	return ((FgetCtx*)d)->done;
+	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
+	FKL_VM_PUSH_VALUE(exe,c->retval_creator(exe,&c->buf));
+	fklUnLockVMfp(c->vfp);
+	c->done=1;
 }
 
-static void fget_frame_step(void* d,FklVM* exe)
+static int async_fget_frame_end(void* data)
 {
-	FgetCtx* ctx=(FgetCtx*)d;
-	FklVMfp* vfp=FKL_VM_FP(ctx->fpv);
-	int ch=0;
-	FklStringBuffer* s=&ctx->buf;
-	switch(ctx->mode)
-	{
-		case FGETC:
-		case FGETI:
-			ch=fklVMfpNonBlockGetc(vfp);
-			if(fklVMfpEof(vfp))
-			{
-				ctx->done=1;
-				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-			}
-			else if(ch>0)
-			{
-				ctx->done=1;
-				FklVMvalue* retval=ctx->mode==FGETC?FKL_MAKE_VM_CHR(ch):FKL_MAKE_VM_FIX(ch);
-				FKL_VM_PUSH_VALUE(exe,retval);
-			}
-			break;
-		case FGETD:
-			fklVMfpNonBlockGetdelim(vfp,s,ctx->delim);
-			if(fklVMfpEof(vfp)||ch==ctx->delim)
-			{
-				ctx->done=1;
-				FklVMvalue* retval=fklCreateVMvalueStr(exe,fklStringBufferToString(s));
-				FKL_VM_PUSH_VALUE(exe,retval);
-			}
-			break;
-		case FGETS:
-		case FGETB:
-			ctx->len-=fklVMfpNonBlockGets(vfp,s,ctx->len);
-			if(!ctx->len||fklVMfpEof(vfp))
-			{
-				ctx->done=1;
-				FklVMvalue* retval=ctx->mode==FGETS?fklCreateVMvalueStr(exe,fklStringBufferToString(s))
-					:fklCreateVMvalueBvec(exe,fklStringBufferToBytevector(s));
-				FKL_VM_PUSH_VALUE(exe,retval);
-			}
-			break;
-	}
+	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
+	return c->done;
 }
 
-static const FklVMframeContextMethodTable FgetContextMethodTable=
+static const FklVMframeContextMethodTable AsyncFgetContextMethodTable=
 {
-	.atomic=fget_frame_atomic,
-	.finalizer=fget_frame_finalizer,
+	.atomic=async_fget_frame_atomic,
+	.finalizer=async_fget_frame_finalizer,
 	.copy=NULL,
 	.print_backtrace=do_nothing_print_backtrace,
-	.step=fget_frame_step,
-	.end=fget_frame_end,
+	.step=async_fget_frame_step,
+	.end=async_fget_frame_end,
 };
 
-static inline void initFrameToFgetFrame(FklVM* exe
-		,FklVMvalue* fpv
-		,FgetMode mode
-		,size_t len
-		,char del
-		,uint32_t ap)
+static void initAsyncFgetCtx(void* data
+		,FklVM* exe
+		,FklVMvalue* vfp
+		,uint64_t len
+		,int d
+		,FklVMvalue* (*retval_creator)(FklVM* exe,FklStringBuffer* buf))
+{
+	AsyncFgetCtx* ctx=(AsyncFgetCtx*)data;
+	ctx->vfp=vfp;
+	ctx->done=0;
+	ctx->retval_creator=retval_creator;
+	FklStringBuffer* buf=&ctx->buf;
+	fklInitStringBufferWithCapacity(buf,len);
+	ctx->ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,buf,len,d);
+	fklVMread(exe,ctx->ctx);
+}
+
+static FklVMvalue* async_char_creator(FklVM* exe,FklStringBuffer* buf)
+{
+	if(buf->index)
+		return FKL_MAKE_VM_CHR(*(buf->buf));
+	return FKL_VM_NIL;
+}
+
+static FklVMvalue* async_integer_creator(FklVM* exe,FklStringBuffer* buf)
+{
+	if(buf->index)
+		return FKL_MAKE_VM_FIX(*(buf->buf));
+	return FKL_VM_NIL;
+}
+
+static FklVMvalue* async_string_creator(FklVM* exe,FklStringBuffer* buf)
+{
+	return fklCreateVMvalueStr(exe,fklStringBufferToString(buf));
+}
+
+static FklVMvalue* async_bvec_creator(FklVM* exe,FklStringBuffer* buf)
+{
+	return fklCreateVMvalueBvec(exe,fklStringBufferToBytevector(buf));
+}
+
+static void initFrameToAsyncFgetFrame(FklVM* exe
+		,FklVMvalue* vfp
+		,uint64_t len
+		,int d
+		,FklVMvalue* (*retval_creator)(FklVM* exe,FklStringBuffer* buf))
 {
 	FklVMframe* f=exe->frames;
-	fklLockVMfp(fpv,exe);
+	fklLockVMfp(vfp,exe);
 	f->type=FKL_FRAME_OTHEROBJ;
-	f->t=&FgetContextMethodTable;
-	initFgetCtx(f->data,fpv,mode,len,del,ap);
+	f->t=&AsyncFgetContextMethodTable;
+	initAsyncFgetCtx(f->data,exe,vfp,len,d,retval_creator);
+}
+
+static void builtin_fgetc(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fgetc";
+	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	GET_OR_USE_STDIN(stream);
+	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(stream,Pname,exe);
+	CHECK_FP_READABLE(stream,Pname,exe);
+	initFrameToAsyncFgetFrame(exe,stream,1,EOF,async_char_creator);
+}
+
+static void builtin_fgeti(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fgeti";
+	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	GET_OR_USE_STDIN(stream);
+	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(stream,Pname,exe);
+	CHECK_FP_READABLE(stream,Pname,exe);
+	initFrameToAsyncFgetFrame(exe,stream,1,EOF,async_integer_creator);
 }
 
 static void builtin_fgetd(FKL_DL_PROC_ARGL)
@@ -2930,14 +3073,19 @@ static void builtin_fgetd(FKL_DL_PROC_ARGL)
 	FklVMvalue* del=FKL_VM_POP_ARG(exe);
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	if(!del)
-		del=FKL_MAKE_VM_CHR('\n');
+	int d=EOF;
+	if(del)
+	{
+		FKL_CHECK_TYPE(del,FKL_IS_CHR,Pname,exe);
+		d=FKL_GET_CHR(del);
+	}
+	else
+		d='\n';
 	GET_OR_USE_STDIN(file);
-	if(!FKL_IS_FP(file)||!FKL_IS_CHR(del))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_CHECK_TYPE(file,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(file,Pname,exe);
 	CHECK_FP_READABLE(file,Pname,exe);
-	initFrameToFgetFrame(exe,file,FGETD,0,FKL_GET_CHR(del),0);
+	initFrameToAsyncFgetFrame(exe,file,1,d,async_string_creator);
 }
 
 static void builtin_fgets(FKL_DL_PROC_ARGL)
@@ -2953,7 +3101,7 @@ static void builtin_fgets(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	CHECK_FP_OPEN(file,Pname,exe);
 	CHECK_FP_READABLE(file,Pname,exe);
-	initFrameToFgetFrame(exe,file,FGETS,fklGetUint(psize),0,0);
+	initFrameToAsyncFgetFrame(exe,file,fklGetUint(psize),EOF,async_string_creator);
 }
 
 static void builtin_fgetb(FKL_DL_PROC_ARGL)
@@ -2969,7 +3117,7 @@ static void builtin_fgetb(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	CHECK_FP_OPEN(file,Pname,exe);
 	CHECK_FP_READABLE(file,Pname,exe);
-	initFrameToFgetFrame(exe,file,FGETB,fklGetUint(psize),0,0);
+	initFrameToAsyncFgetFrame(exe,file,fklGetUint(psize),EOF,async_bvec_creator);
 }
 
 static void builtin_prin1(FKL_DL_PROC_ARGL)
@@ -4147,7 +4295,10 @@ static void builtin_freg_p(FKL_DL_PROC_ARGL)
 	DECL_AND_CHECK_ARG(filename,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
-	fklVMfacceReg(exe,FKL_VM_STR(filename)->str);
+	FKL_VM_PUSH_VALUE(exe
+			,fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
 }
 
 static void builtin_ftell(FKL_DL_PROC_ARGL)
@@ -4249,29 +4400,29 @@ static void builtin_cd(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
-static void builtin_fgetc(FKL_DL_PROC_ARGL)
-{
-	static const char Pname[]="builtin.fgetc";
-	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	GET_OR_USE_STDIN(stream);
-	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
-	CHECK_FP_OPEN(stream,Pname,exe);
-	CHECK_FP_READABLE(stream,Pname,exe);
-	initFrameToFgetFrame(exe,stream,FGETC,1,0,0);
-}
-
-static void builtin_fgeti(FKL_DL_PROC_ARGL)
-{
-	static const char Pname[]="builtin.fgeti";
-	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	GET_OR_USE_STDIN(stream);
-	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
-	CHECK_FP_OPEN(stream,Pname,exe);
-	CHECK_FP_READABLE(stream,Pname,exe);
-	initFrameToFgetFrame(exe,stream,FGETI,1,0,0);
-}
+// static void builtin_fgetc(FKL_DL_PROC_ARGL)
+// {
+// 	static const char Pname[]="builtin.fgetc";
+// 	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
+// 	FKL_CHECK_REST_ARG(exe,Pname);
+// 	GET_OR_USE_STDIN(stream);
+// 	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
+// 	CHECK_FP_OPEN(stream,Pname,exe);
+// 	CHECK_FP_READABLE(stream,Pname,exe);
+// 	initFrameToFgetFrame(exe,stream,FGETC,1,0,0);
+// }
+//
+// static void builtin_fgeti(FKL_DL_PROC_ARGL)
+// {
+// 	static const char Pname[]="builtin.fgeti";
+// 	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
+// 	FKL_CHECK_REST_ARG(exe,Pname);
+// 	GET_OR_USE_STDIN(stream);
+// 	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
+// 	CHECK_FP_OPEN(stream,Pname,exe);
+// 	CHECK_FP_READABLE(stream,Pname,exe);
+// 	initFrameToFgetFrame(exe,stream,FGETI,1,0,0);
+// }
 
 static void builtin_fwrite(FKL_DL_PROC_ARGL)
 {
@@ -5255,18 +5406,25 @@ static const struct SymbolFuncStruct
 	{"getcwd",                builtin_getcwd,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"cd",                    builtin_cd,                      {NULL,         NULL,          NULL,          NULL,          }, },
 
-	{"fgetc",                 builtin_fgetc,                   {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fgeti",                 builtin_fgeti,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,          NULL,          }, },
+
+	// {"fgetc",                 builtin_fgetc,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	// {"fgeti",                 builtin_fgeti,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	// {"fgets",                 builtin_fgets,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	// {"fgetb",                 builtin_fgetb,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	// {"fgetd",                 builtin_fgetd,                   {NULL,         NULL,          NULL,          NULL,          }, },
+
 	{"fgets",                 builtin_fgets,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,          NULL,          NULL,          }, },
+
 	{"fgetd",                 builtin_fgetd,                   {NULL,         NULL,          NULL,          NULL,          }, },
+
+	{"fgetc",                 builtin_fgetc,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"fgeti",                 builtin_fgeti,                   {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
 
-	{"fopena",                builtin_fopena,                  {NULL,         NULL,          NULL,          NULL,          }, },
-	{"fclosea",               builtin_fclosea,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"freg?",                 builtin_freg_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },

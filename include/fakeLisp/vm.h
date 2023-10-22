@@ -95,8 +95,6 @@ typedef enum
 
 typedef struct FklVMfp
 {
-	uv_file fd;
-	uv_buf_t buf;
 	FILE* fp;
 	FklPtrQueue next;
 	FklVMfpRW rw:2;
@@ -482,6 +480,15 @@ typedef struct FklVMerrorHandler
 	uint32_t num;
 }FklVMerrorHandler;
 
+typedef struct
+{
+	uv_work_t req;
+	FILE* fp;
+	FklStringBuffer* buf;
+	uint64_t len;
+	int d;
+}FklVMasyncReadCtx;
+
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
@@ -657,8 +664,6 @@ FklVMvalue* fklCreateVMvalueDlproc(FklVM*
 
 FklVMvalue* fklCreateVMvalueFp(FklVM*,FILE*,FklVMfpRW);
 
-FklVMvalue* fklCreateVMvalueFd(FklVM*,uv_file,FklVMfpRW);
-
 FklVMvalue* fklCreateVMvalueHash(FklVM*,FklHashTableEqType);
 
 FklVMvalue* fklCreateVMvalueHashEq(FklVM*);
@@ -782,8 +787,9 @@ FklVMfpRW fklGetVMfpRwFromCstr(const char* mode);
 
 int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer*,size_t j);
 int fklVMfpEof(FklVMfp*);
-int fklVMfpNonBlockGetc(FklVMfp* fp);
-size_t fklVMfpNonBlockGets(FklVMfp* fp,FklStringBuffer*,size_t len);
+
+// int fklVMfpNonBlockGetc(FklVMfp* fp);
+// size_t fklVMfpNonBlockGets(FklVMfp* fp,FklStringBuffer*,size_t len);
 int fklVMfpNonBlockGetline(FklVMfp* fp,FklStringBuffer*);
 int fklVMfpNonBlockGetdelim(FklVMfp* fp,FklStringBuffer*,char ch);
 
@@ -800,19 +806,13 @@ FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
 void fklDestroyVMrecv(FklVMrecv*);
 
 int fklVMsleep(FklVM*,uint64_t ms);
-int fklVMfopen(FklVM*
-		,const char* path
-		,const char* mode
-		,const char* caller
-		,unsigned int arg_num);
-int fklVMfclose(FklVM*,FklVMvalue*,const char* caller);
 
-#define FKL_UV_R_OK (4)
-#define FKL_UV_W_OK (2)
-#define FKL_UV_X_OK (1)
-#define FKL_UV_F_OK (0)
-
-int fklVMfacceReg(FklVM*,const char* path);
+FklVMasyncReadCtx* fklCreateVMasyncReadCtx(FklVM* exe
+		,FILE* fp
+		,FklStringBuffer* buf
+		,uint64_t len
+		,int d);
+int fklVMread(FklVM*,FklVMasyncReadCtx* ctx);
 
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);

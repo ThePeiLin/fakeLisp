@@ -753,14 +753,14 @@ ret:
 #define RESET_NON_BLOCK() fcntl(fd,F_SETFL,attr)
 #endif
 
-int fklVMfpNonBlockGetc(FklVMfp* vfp)
-{
-	FILE* fp=vfp->fp;
-	SET_NON_BLOCK();
-	int ch=fgetc(fp);
-	RESET_NON_BLOCK();
-	return ch;
-}
+// int fklVMfpNonBlockGetc(FklVMfp* vfp)
+// {
+// 	FILE* fp=vfp->fp;
+// 	SET_NON_BLOCK();
+// 	int ch=fgetc(fp);
+// 	RESET_NON_BLOCK();
+// 	return ch;
+// }
 
 int fklVMfpEof(FklVMfp* vfp)
 {
@@ -787,20 +787,20 @@ int fklVMfpNonBlockGetline(FklVMfp* vfp,FklStringBuffer* b)
 	return fklVMfpNonBlockGetdelim(vfp,b,'\n');
 }
 
-size_t fklVMfpNonBlockGets(FklVMfp* vfp,FklStringBuffer* b,size_t l)
-{
-	size_t r=l;
-	FILE* fp=vfp->fp;
-	SET_NON_BLOCK();
-	int ch;
-	while(l>0&&(ch=fgetc(fp))>0)
-	{
-		fklStringBufferPutc(b,ch);
-		l--;
-	}
-	RESET_NON_BLOCK();
-	return r-l;
-}
+// size_t fklVMfpNonBlockGets(FklVMfp* vfp,FklStringBuffer* b,size_t l)
+// {
+// 	size_t r=l;
+// 	FILE* fp=vfp->fp;
+// 	SET_NON_BLOCK();
+// 	int ch;
+// 	while(l>0&&(ch=fgetc(fp))>0)
+// 	{
+// 		fklStringBufferPutc(b,ch);
+// 		l--;
+// 	}
+// 	RESET_NON_BLOCK();
+// 	return r-l;
+// }
 
 int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer* b,size_t j)
 {
@@ -1481,21 +1481,6 @@ FklVMvalue* fklCreateVMvalueFp(FklVM* exe,FILE* fp,FklVMfpRW rw)
 	r->type=FKL_TYPE_FP;
 	FklVMfp* vfp=FKL_VM_FP(r);
 	vfp->fp=fp;
-	vfp->rw=rw;
-	vfp->mutex=0;
-	fklInitPtrQueue(&vfp->next);
-	fklAddToGC(r,exe);
-	return r;
-}
-
-FklVMvalue* fklCreateVMvalueFd(FklVM* exe,uv_file fd,FklVMfpRW rw)
-{
-	FklVMvalue* r=NEW_OBJ(FklVMvalueFp);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_FP;
-	FklVMfp* vfp=FKL_VM_FP(r);
-	vfp->fd=fd;
-	vfp->fp=NULL;
 	vfp->rw=rw;
 	vfp->mutex=0;
 	fklInitPtrQueue(&vfp->next);

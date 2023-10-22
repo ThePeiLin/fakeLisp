@@ -1831,6 +1831,14 @@ void fklInitStringBuffer(FklStringBuffer* b)
 	fklStringBufferReverse(b,64);
 }
 
+void fklInitStringBufferWithCapacity(FklStringBuffer* b,size_t len)
+{
+	b->index=0;
+	b->size=0;
+	b->buf=NULL;
+	fklStringBufferReverse(b,len);
+}
+
 uint32_t fklStringBufferLen(FklStringBuffer* b)
 {
 	return b->index;

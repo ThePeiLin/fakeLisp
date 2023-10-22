@@ -1173,3 +1173,16 @@ int64_t fklStringToInt(const char* cstr,size_t maxLen,int* base)
 			return strtoll(cstr,NULL,8);
 	}
 }
+
+int fklGetDelim(FILE *fp,FklStringBuffer *b,char d)
+{
+	int c;
+	while((c=fgetc(fp))!=EOF)
+	{
+		fklStringBufferPutc(b,c);
+		if(c==d)
+			break;
+	}
+	return c;
+}
+

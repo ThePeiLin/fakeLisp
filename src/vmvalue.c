@@ -742,65 +742,10 @@ ret:
 	return FKL_VM_FP_R;
 }
 
-#ifdef WIN32
-#include<winsock.h>
-#else
-#include<fcntl.h>
-#define SET_NON_BLOCK() int fd=fileno(fp);\
-	int attr=fcntl(fd,F_GETFL);\
-	fcntl(fd,F_SETFL,attr|O_NONBLOCK)\
-
-#define RESET_NON_BLOCK() fcntl(fd,F_SETFL,attr)
-#endif
-
-// int fklVMfpNonBlockGetc(FklVMfp* vfp)
-// {
-// 	FILE* fp=vfp->fp;
-// 	SET_NON_BLOCK();
-// 	int ch=fgetc(fp);
-// 	RESET_NON_BLOCK();
-// 	return ch;
-// }
-
 int fklVMfpEof(FklVMfp* vfp)
 {
 	return feof(vfp->fp);
 }
-
-int fklVMfpNonBlockGetdelim(FklVMfp* vfp,FklStringBuffer* b,char d)
-{
-	FILE* fp=vfp->fp;
-	SET_NON_BLOCK();
-	int ch;
-	while((ch=fgetc(fp))>0)
-	{
-		fklStringBufferPutc(b,ch);
-		if(ch==d)
-			break;
-	}
-	RESET_NON_BLOCK();
-	return ch;
-}
-
-int fklVMfpNonBlockGetline(FklVMfp* vfp,FklStringBuffer* b)
-{
-	return fklVMfpNonBlockGetdelim(vfp,b,'\n');
-}
-
-// size_t fklVMfpNonBlockGets(FklVMfp* vfp,FklStringBuffer* b,size_t l)
-// {
-// 	size_t r=l;
-// 	FILE* fp=vfp->fp;
-// 	SET_NON_BLOCK();
-// 	int ch;
-// 	while(l>0&&(ch=fgetc(fp))>0)
-// 	{
-// 		fklStringBufferPutc(b,ch);
-// 		l--;
-// 	}
-// 	RESET_NON_BLOCK();
-// 	return r-l;
-// }
 
 int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer* b,size_t j)
 {

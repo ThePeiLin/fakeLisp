@@ -1830,14 +1830,15 @@ typedef enum
 typedef struct
 {
 	FklStringBuffer buf;
-	FklVMvalue* fpv;
+	FklVMvalue* vfp;
 	FklVMvalue* parser;
 	FklPtrStack* symbolStack;
 	FklUintStack* lineStack;
 	FklPtrStack* stateStack;
 	FklSid_t reducing_sid;
-	size_t offset;
-	ParsingState state;
+	FklVMasyncReadCtx* async_read_ctx;
+	uint32_t offset;
+	uint32_t state;
 }ReadCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
@@ -1876,7 +1877,7 @@ FklVMvalue* create_eof_value(FklVM* exe)
 static void read_frame_atomic(void* data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
-	fklGC_toGrey(c->fpv,gc);
+	fklGC_toGrey(c->vfp,gc);
 	fklGC_toGrey(c->parser,gc);
 	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
 	size_t len=c->symbolStack->top;
@@ -1887,7 +1888,7 @@ static void read_frame_atomic(void* data,FklVMgc* gc)
 static void read_frame_finalizer(void* data)
 {
 	ReadCtx* c=(ReadCtx*)data;
-	fklUnLockVMfp(c->fpv);
+	fklUnLockVMfp(c->vfp);
 	fklUninitStringBuffer(&c->buf);
 	FklPtrStack* ss=c->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
@@ -1895,6 +1896,7 @@ static void read_frame_finalizer(void* data)
 	fklDestroyPtrStack(ss);
 	fklDestroyUintStack(c->lineStack);
 	fklDestroyPtrStack(c->stateStack);
+	free(c->async_read_ctx);
 }
 
 static int read_frame_end(void* d)
@@ -1905,9 +1907,8 @@ static int read_frame_end(void* d)
 static void read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
-	FklVMfp* vfp=FKL_VM_FP(rctx->fpv);
+	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
 	FklStringBuffer* s=&rctx->buf;
-	fklVMfpNonBlockGetline(vfp,s);
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 
 	int err=0;
@@ -1945,7 +1946,8 @@ static void read_frame_step(void* d,FklVM* exe)
 		rctx->state=PARSE_DONE;
 		FKL_VM_PUSH_VALUE(exe,ast);
 	}
-
+	else
+		fklVMread(exe,rctx->async_read_ctx);
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable=
@@ -1975,12 +1977,13 @@ static inline void push_state0_of_custom_parser(FklVMvalue* parser,FklPtrStack* 
 }
 
 static inline void initReadCtx(void* data
-		,FklVMvalue* fpv
+		,FklVM* exe
+		,FklVMvalue* vfp
 		,FklVMvalue* parser)
 {
 	ReadCtx* ctx=(ReadCtx*)data;
 	ctx->parser=parser;
-	ctx->fpv=fpv;
+	ctx->vfp=vfp;
 	ctx->symbolStack=fklCreatePtrStack(16,16);
 	ctx->stateStack=fklCreatePtrStack(16,16);
 	ctx->lineStack=fklCreateUintStack(16,16);
@@ -1992,6 +1995,8 @@ static inline void initReadCtx(void* data
 	ctx->state=PARSE_CONTINUE;
 	ctx->offset=0;
 	ctx->reducing_sid=0;
+	ctx->async_read_ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,&ctx->buf,1,'\n');
+	fklVMread(exe,ctx->async_read_ctx);
 }
 
 static inline int do_custom_parser_reduce_action(FklPtrStack* stateStack
@@ -2118,7 +2123,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
 static void custom_read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
-	FklVMfp* vfp=FKL_VM_FP(rctx->fpv);
+	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
 	FklStringBuffer* s=&rctx->buf;
 
 	if(rctx->state==PARSE_REDUCING)
@@ -2127,8 +2132,6 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 		fklPushPtrStack(create_nonterm_analyzing_symbol(rctx->reducing_sid,ast),rctx->symbolStack);
 		rctx->state=PARSE_CONTINUE;
 	}
-	else
-		fklVMfpNonBlockGetline(vfp,s);
 
 	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(rctx->parser));
 
@@ -2178,7 +2181,11 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	else if(err==FKL_PARSE_REDUCE_FAILED)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
 	else
+	{
 		rctx->offset=fklStringBufferLen(s)-restLen;
+		if(rctx->state==PARSE_CONTINUE)
+			fklVMread(exe,rctx->async_read_ctx);
+	}
 }
 
 static const FklVMframeContextMethodTable CustomReadContextMethodTable=
@@ -2191,22 +2198,22 @@ static const FklVMframeContextMethodTable CustomReadContextMethodTable=
 	.end=read_frame_end,
 };
 
-static inline void init_custom_read_frame(FklVM* exe,FklVMvalue* parser,FklVMvalue* fpv)
+static inline void init_custom_read_frame(FklVM* exe,FklVMvalue* parser,FklVMvalue* vfp)
 {
-	fklLockVMfp(fpv,exe);
+	fklLockVMfp(vfp,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomReadContextMethodTable;
-	initReadCtx(f->data,fpv,parser);
+	initReadCtx(f->data,exe,vfp,parser);
 }
 
-static inline void initFrameToReadFrame(FklVM* exe,FklVMvalue* fpv)
+static inline void initFrameToReadFrame(FklVM* exe,FklVMvalue* vfp)
 {
-	fklLockVMfp(fpv,exe);
+	fklLockVMfp(vfp,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&ReadContextMethodTable;
-	initReadCtx(f->data,fpv,FKL_VM_NIL);
+	initReadCtx(f->data,exe,vfp,FKL_VM_NIL);
 }
 
 #define FKL_VM_FP_R_MASK (1)
@@ -2944,7 +2951,7 @@ typedef struct
 {
 	FklVMvalue* vfp;
 	FklStringBuffer buf;
-	FklVMasyncReadCtx* ctx;
+	FklVMasyncReadCtx* async_read_ctx;
 	FklVMvalue* (*retval_creator)(FklVM*,FklStringBuffer*);
 	int done;
 }AsyncFgetCtx;
@@ -2962,7 +2969,7 @@ static void async_fget_frame_finalizer(void* data)
 	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
 	fklUninitStringBuffer(&c->buf);
 	fklUnLockVMfp(c->vfp);
-	free(c->ctx);
+	free(c->async_read_ctx);
 }
 
 static void async_fget_frame_step(void* data,FklVM* exe)
@@ -3002,8 +3009,8 @@ static void initAsyncFgetCtx(void* data
 	ctx->retval_creator=retval_creator;
 	FklStringBuffer* buf=&ctx->buf;
 	fklInitStringBufferWithCapacity(buf,len);
-	ctx->ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,buf,len,d);
-	fklVMread(exe,ctx->ctx);
+	ctx->async_read_ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,buf,len,d);
+	fklVMread(exe,ctx->async_read_ctx);
 }
 
 static FklVMvalue* async_char_creator(FklVM* exe,FklStringBuffer* buf)

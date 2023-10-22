@@ -5,6 +5,7 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/symbol.h>
+#include<uv.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -379,12 +380,20 @@ typedef struct
 
 typedef struct
 {
+	uv_work_t req;
+	FklStringBuffer* buf;
+	int eof;
+	Replxx* replxx;
+}AsyncReplCtx;
+
+typedef struct
+{
 	FklCodegenInfo* codegen;
 	NastCreatCtx* cc;
 	FklVM* exe;
 	FklVMvalue* stdinVal;
 	FklVMvalue* mainProc;
-	FklStringBuffer* buf;
+	FklStringBuffer buf;
 	enum
 	{
 		READY,
@@ -394,6 +403,7 @@ typedef struct
 	}state:8;
 	uint32_t lcount;
 	Replxx* replxx;
+	AsyncReplCtx* async_repl_ctx;
 }ReplCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplCtx);
@@ -569,6 +579,24 @@ static inline const char* replxx_input_string_buffer(Replxx* replxx
 	return next;
 }
 
+static void async_repl_cb(uv_work_t* req)
+{
+	AsyncReplCtx* repl_ctx=(AsyncReplCtx*)req;
+	repl_ctx->eof=replxx_input_string_buffer(repl_ctx->replxx,repl_ctx->buf)==NULL;
+}
+
+static void async_after_repl_cb(uv_work_t* req,int status)
+{
+	FklVM* exe=uv_req_get_data((uv_req_t*)req);
+	fklResumeThread(exe);
+}
+
+static int async_repl_start(FklVM* exe,AsyncReplCtx* ctx)
+{
+	fklSuspendThread(exe);
+	return uv_queue_work(exe->loop,(uv_work_t*)ctx,async_repl_cb,async_after_repl_cb);
+}
+
 static void repl_frame_step(void* data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
@@ -590,15 +618,17 @@ static void repl_frame_step(void* data,FklVM* exe)
 			fklDBG_printVMstack(exe,stdout,0,exe->symbolTable);
 		}
 		exe->tp=0;
-
+		async_repl_start(exe,ctx->async_repl_ctx);
+		return;
 		// printf(">>>");
 	}
+	else
+		ctx->state=WAITING;
 
 	FklCodegenInfo* codegen=ctx->codegen;
 	FklSymbolTable* pst=&codegen->outer_ctx->public_symbol_table;
-	FklVMfp* vfp=FKL_VM_FP(ctx->stdinVal);
-	FklStringBuffer* s=ctx->buf;
-	int is_eof=replxx_input_string_buffer(ctx->replxx,s)==NULL;
+	FklStringBuffer* s=&ctx->buf;
+	int is_eof=ctx->async_repl_ctx->eof;
 	FklNastNode* ast=NULL;
 	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
 	outerCtx.line=codegen->curline;
@@ -635,7 +665,6 @@ static void repl_frame_step(void* data,FklVM* exe)
 	}
 	cc->offset=fklStringBufferLen(s)-restLen;
 	codegen->curline=outerCtx.line;
-	fklUnLockVMfp(ctx->stdinVal);
 	if(!restLen&&cc->symbolStack.top==0&&is_eof)
 		ctx->state=DONE;
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
@@ -660,7 +689,6 @@ static void repl_frame_step(void* data,FklVM* exe)
 		if(restLen)
 		{
 			size_t idx=fklStringBufferLen(s)-restLen;
-			fklVMfpRewind(vfp,s,idx);
 			replxx_set_preload_buffer(ctx->replxx,&s->buf[idx]);
 			s->buf[idx]='\0';
 		}
@@ -736,11 +764,10 @@ static void repl_frame_step(void* data,FklVM* exe)
 			exe->frames=mainframe;
 		}
 		else
-			ctx->state=WAITING;
+			return;
 	}
 	else
-		fklStringBufferPutc(ctx->buf,'\n');
-	fklUnLockVMfp(ctx->stdinVal);
+		fklStringBufferPutc(&ctx->buf,'\n');
 }
 
 static int repl_frame_end(void* data)
@@ -781,9 +808,10 @@ static inline void destroyNastCreatCtx(NastCreatCtx* cc)
 static void repl_frame_finalizer(void* data)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
-	fklDestroyStringBuffer(ctx->buf);
+	fklUninitStringBuffer(&ctx->buf);
 	destroyNastCreatCtx(ctx->cc);
 	replxx_end(ctx->replxx);
+	free(ctx->async_repl_ctx);
 }
 
 static const FklVMframeContextMethodTable ReplContextMethodTable=
@@ -849,7 +877,14 @@ static inline void init_frame_to_repl_frame(FklVM* exe,FklCodegenInfo* codegen)
 	NastCreatCtx* cc=createNastCreatCtx();
 	ctx->cc=cc;
 	ctx->state=READY;
-	ctx->buf=fklCreateStringBuffer();
+	fklInitStringBuffer(&ctx->buf);
+	AsyncReplCtx* repl_ctx=(AsyncReplCtx*)malloc(sizeof(AsyncReplCtx));
+	FKL_ASSERT(repl_ctx);
+	repl_ctx->buf=&ctx->buf;
+	repl_ctx->eof=0;
+	repl_ctx->replxx=ctx->replxx;
+	uv_req_set_data((uv_req_t*)&repl_ctx->req,exe);
+	ctx->async_repl_ctx=repl_ctx;
 }
 
 

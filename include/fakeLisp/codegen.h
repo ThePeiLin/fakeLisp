@@ -1,7 +1,6 @@
 #ifndef FKL_CODEGEN_H
 #define FKL_CODEGEN_H
 
-#include"utils.h"
 #include"symbol.h"
 #include"pattern.h"
 #include"grammer.h"
@@ -9,6 +8,7 @@
 #include"nast.h"
 #include"bytecode.h"
 #include"builtin.h"
+#include<uv.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,7 +90,8 @@ typedef struct
 	union
 	{
 		FklByteCodelnt* bcl;
-		FklDllHandle dll;
+		uv_lib_t dll;
+		// FklDllHandle dll;
 	};
 	char* rp;
 	FklHashTable exports;
@@ -409,11 +410,11 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 #define FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS uint32_t* num,FklSid_t** exports,FklSymbolTable* st
 typedef void (*FklCodegenDllLibInitExportFunc)(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS);
 
-FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll);
+FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t* dll);
 
 void fklInitCodegenDllLib(FklCodegenLib* lib
 		,char* rp
-		,FklDllHandle dll
+		,uv_lib_t dll
 		,FklSymbolTable* table
 		,FklCodegenDllLibInitExportFunc init
 		,FklSymbolTable* pst);
@@ -427,7 +428,7 @@ FklCodegenLib* fklCreateCodegenScriptLib(FklCodegenInfo* codegen
 		,FklCodegenEnv* env);
 
 FklCodegenLib* fklCreateCodegenDllLib(char* rp
-		,FklDllHandle dll
+		,uv_lib_t dll
 		,FklSymbolTable* table
 		,FklCodegenDllLibInitExportFunc init
 		,FklSymbolTable* pst);
@@ -499,7 +500,8 @@ int fklLoadPreCompile(FklFuncPrototypes* info_pts
 		,FklSymbolTable* gst
 		,FklCodegenOuterCtx* outer_ctx
 		,const char* rp
-		,FILE* fp);
+		,FILE* fp
+		,char** errorStr);
 
 void fklInitCodegenProdGroupTable(FklHashTable* ht);
 

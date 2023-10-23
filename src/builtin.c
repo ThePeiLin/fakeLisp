@@ -3062,9 +3062,14 @@ static void builtin_dlopen(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dllName,FKL_IS_STR,Pname,exe);
 	FklString* dllNameStr=FKL_VM_STR(dllName);
-	FklVMvalue* ndll=fklCreateVMvalueDll(exe,dllNameStr->str);
+	char* errorStr=NULL;
+	FklVMvalue* ndll=fklCreateVMvalueDll(exe,dllNameStr->str,&errorStr);
 	if(!ndll)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dllNameStr->str,0,FKL_ERR_LOADDLLFAILD,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname
+				,errorStr?errorStr:dllNameStr->str
+				,errorStr!=NULL
+				,FKL_ERR_LOADDLLFAILD
+				,exe);
 	fklInitVMdll(ndll,exe);
 	FKL_VM_PUSH_VALUE(exe,ndll);
 }
@@ -3078,8 +3083,8 @@ static void builtin_dlsym(FKL_DL_PROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklString* ss=FKL_VM_STR(symbol);
 	FklVMdll* dll=FKL_VM_DLL(ndll);
-	FklVMdllFunc funcAddress=fklGetAddress(ss->str,dll->handle);
-	if(!funcAddress)
+	FklVMdllFunc funcAddress=NULL;
+	if(uv_dlsym(&dll->dll,ss->str,(void**)&funcAddress))
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,ss->str,0,FKL_ERR_INVALIDSYMBOL,exe);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueDlproc(exe,funcAddress,ndll,dll->pd,0));
 }

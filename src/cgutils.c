@@ -1,4 +1,5 @@
 #include<fakeLisp/codegen.h>
+#include<fakeLisp/utils.h>
 
 static inline FklSymbolDef* get_def_by_id_in_scope(FklSid_t id,uint32_t scopeId,FklCodegenEnvScope* scope)
 {
@@ -791,7 +792,11 @@ static inline char* load_dll_lib_path(const char* main_dir,FILE* fp)
 	return rp;
 }
 
-static inline int load_dll_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTable* st,const char* main_dir,FILE* fp)
+static inline int load_dll_lib_from_pre_compile(FklCodegenLib* lib
+		,FklSymbolTable* st
+		,const char* main_dir
+		,FILE* fp
+		,char** errorStr)
 {
 	lib->rp=load_dll_lib_path(main_dir,fp);
 	if(!lib->rp||!fklIsAccessibleRegFile(lib->rp))
@@ -799,12 +804,22 @@ static inline int load_dll_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTabl
 		free(lib->rp);
 		return 1;
 	}
-	lib->dll=fklLoadDll(lib->rp);
+
+	if(uv_dlopen(lib->rp,&lib->dll))
+	{
+		*errorStr=fklCopyCstr(uv_dlerror(&lib->dll));
+		uv_dlclose(&lib->dll);
+		free(lib->rp);
+		return 1;
+	}
 	load_export_sid_idx_table(&lib->exports,fp);
 	return 0;
 }
 
-static inline FklCodegenLib* load_lib_from_pre_compile(FklSymbolTable* st,const char* main_dir,FILE* fp)
+static inline FklCodegenLib* load_lib_from_pre_compile(FklSymbolTable* st
+		,const char* main_dir
+		,FILE* fp
+		,char** errorStr)
 {
 	FklCodegenLib* lib=(FklCodegenLib*)calloc(1,sizeof(FklCodegenLib));
 	FKL_ASSERT(lib);
@@ -817,7 +832,7 @@ static inline FklCodegenLib* load_lib_from_pre_compile(FklSymbolTable* st,const 
 			load_script_lib_from_pre_compile(lib,st,main_dir,fp);
 			break;
 		case FKL_CODEGEN_LIB_DLL:
-			if(load_dll_lib_from_pre_compile(lib,st,main_dir,fp))
+			if(load_dll_lib_from_pre_compile(lib,st,main_dir,fp,errorStr))
 			{
 				free(lib);
 				return NULL;
@@ -827,14 +842,18 @@ static inline FklCodegenLib* load_lib_from_pre_compile(FklSymbolTable* st,const 
 	return lib;
 }
 
-static inline int load_imported_lib_stack(FklPtrStack* libStack,FklSymbolTable* st,const char* main_dir,FILE* fp)
+static inline int load_imported_lib_stack(FklPtrStack* libStack
+		,FklSymbolTable* st
+		,const char* main_dir
+		,FILE* fp
+		,char** errorStr)
 {
 	uint64_t num=0;
 	fread(&num,sizeof(num),1,fp);
 	fklInitPtrStack(libStack,num+1,16);
 	for(size_t i=0;i<num;i++)
 	{
-		FklCodegenLib* lib=load_lib_from_pre_compile(st,main_dir,fp);
+		FklCodegenLib* lib=load_lib_from_pre_compile(st,main_dir,fp,errorStr);
 		if(!lib)
 			return 1;
 		fklPushPtrStack(lib,libStack);
@@ -857,14 +876,15 @@ static inline int load_imported_lib_stack(FklPtrStack* libStack,FklSymbolTable* 
 static inline int load_macro_lib_stack(FklPtrStack* libStack
 		,FklSymbolTable* st
 		,const char* main_dir
-		,FILE* fp)
+		,FILE* fp
+		,char** errorStr)
 {
 	uint64_t num=0;
 	fread(&num,sizeof(num),1,fp);
 	fklInitPtrStack(libStack,num,16);
 	for(size_t i=0;i<num;i++)
 	{
-		FklCodegenLib* lib=load_lib_from_pre_compile(st,main_dir,fp);
+		FklCodegenLib* lib=load_lib_from_pre_compile(st,main_dir,fp,errorStr);
 		if(!lib)
 			return 1;
 		fklPushPtrStack(lib,libStack);
@@ -1121,7 +1141,8 @@ int fklLoadPreCompile(FklFuncPrototypes* info_pts
 		,FklSymbolTable* gst
 		,FklCodegenOuterCtx* outer_ctx
 		,const char* rp
-		,FILE* fp)
+		,FILE* fp
+		,char** errorStr)
 {
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	int need_open=fp==NULL;
@@ -1148,11 +1169,11 @@ int fklLoadPreCompile(FklFuncPrototypes* info_pts
 
 	pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
 
-	if(load_imported_lib_stack(&scriptLibStack,&ost,main_dir,fp))
+	if(load_imported_lib_stack(&scriptLibStack,&ost,main_dir,fp,errorStr))
 		goto error;
 
 	macro_pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
-	if(load_macro_lib_stack(&macroScriptLibStack,&ost,main_dir,fp))
+	if(load_macro_lib_stack(&macroScriptLibStack,&ost,main_dir,fp,errorStr))
 	{
 		while(!fklIsPtrStackEmpty(&macroScriptLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));

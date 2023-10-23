@@ -911,34 +911,25 @@ int fklMkdir(const char* dir)
 
 #endif
 
-void fklDestroyDll(FklDllHandle handle)
-{
-#ifdef _WIN32
-	FreeLibrary(handle);
-#else
-	dlclose(handle);
-#endif
-}
+// void fklDestroyDll(FklDllHandle handle)
+// {
+// #ifdef _WIN32
+// 	FreeLibrary(handle);
+// #else
+// 	dlclose(handle);
+// #endif
+// }
+//
 
-void* fklGetAddress(const char* funcname,FklDllHandle dlhandle)
-{
-	void* pfunc=NULL;
-#ifdef _WIN32
-		pfunc=GetProcAddress(dlhandle,funcname);
-#else
-		pfunc=dlsym(dlhandle,funcname);
-#endif
-	return pfunc;
-}
-
-FklDllHandle fklLoadDll(const char* path)
-{
-#ifdef _WIN32
-	return LoadLibraryExA(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
-#else
-	return dlopen(path,RTLD_LAZY);
-#endif
-}
+//
+// FklDllHandle fklLoadDll(const char* path)
+// {
+// #ifdef _WIN32
+// 	return LoadLibraryExA(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
+// #else
+// 	return dlopen(path,RTLD_LAZY);
+// #endif
+// }
 
 int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
 {

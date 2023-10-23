@@ -787,8 +787,7 @@ void fklUnLockVMfp(FklVMvalue* fpv)
 void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
 {
 	FklVMdll* dll=FKL_VM_DLL(rel);
-	FklDllHandle handle=dll->handle;
-	void (*init)(FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",handle);
+	void (*init)(FklVMdll* dll,FklVM* exe)=fklGetAddress("_fklInit",&dll->dll);
 	if(init)
 		init(dll,exe);
 }
@@ -850,13 +849,10 @@ static inline void uninit_fp_value(FklVMvalue* v)
 static inline void uninit_dll_value(FklVMvalue* v)
 {
 	FklVMdll* dll=FKL_VM_DLL(v);
-	if(dll->handle)
-	{
-		void (*uninit)(void)=fklGetAddress("_fklUninit",dll->handle);
-		if(uninit)
-			uninit();
-		fklDestroyDll(dll->handle);
-	}
+	void (*uninit)(void)=fklGetAddress("_fklUninit",&dll->dll);
+	if(uninit)
+		uninit();
+	uv_dlclose(&dll->dll);
 }
 
 static inline void uninit_err_value(FklVMvalue* v)
@@ -1632,7 +1628,7 @@ FklVMvalue* fklCreateVMvalueCodeObj(FklVM* exe,FklByteCodelnt* bcl)
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
+FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName,char** errorStr)
 {
 	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
 	char* realDllName=(char*)malloc(len);
@@ -1642,9 +1638,11 @@ FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
 	char* rpath=fklRealpath(realDllName);
 	if(!rpath)
 		goto err;
-	FklDllHandle handle=fklLoadDll(rpath);
-	if(!handle)
+	uv_lib_t lib;
+	if(uv_dlopen(rpath,&lib))
 	{
+		*errorStr=fklCopyCstr(uv_dlerror(&lib));
+		uv_dlclose(&lib);
 		free(rpath);
 		goto err;
 	}
@@ -1653,7 +1651,7 @@ FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName)
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_DLL;
 	FklVMdll* dll=FKL_VM_DLL(r);
-	dll->handle=handle;
+	dll->dll=lib;
 	dll->pd=FKL_VM_NIL;
 	fklAddToGC(r,exe);
 	free(realDllName);

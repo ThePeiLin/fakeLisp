@@ -4,9 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-#ifndef _WIN32
-#include<dlfcn.h>
-#else
+#ifdef _WIN32
 #include<tchar.h>
 #endif
 
@@ -410,9 +408,8 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorTy
 			break;
 		case FKL_ERR_LOADDLLFAILD:
 			{
-				char* errStr=dlerror();
-				if(errStr)
-					fklStringCstrCat(&t,errStr);
+				if(_free)
+					fklStringCstrCat(&t,str);
 				else
 				{
 					fklStringCstrCat(&t,"Faild to load dll \"");
@@ -1935,3 +1932,10 @@ FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
 	return r;
 }
 
+void* fklGetAddress(const char* funcname,uv_lib_t* dll)
+{
+	void* pfunc=NULL;
+	if(uv_dlsym(dll,funcname,&pfunc))
+		return NULL;
+	return pfunc;
+}

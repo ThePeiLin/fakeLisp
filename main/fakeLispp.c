@@ -117,6 +117,7 @@ int main(int argc,char** argv)
 		fklInitCodegenOuterCtxExceptPattern(&ctx);
 
 		char* rp=fklRealpath(filename);
+		char* errorStr=NULL;
 		int load_result=fklLoadPreCompile(&pts
 				,&macro_pts
 				,&scriptLibStack
@@ -124,12 +125,18 @@ int main(int argc,char** argv)
 				,&gst
 				,&ctx
 				,rp
-				,fp);
+				,fp
+				,&errorStr);
 		free(rp);
 		fclose(fp);
 		int exit_state=0;
 		if(load_result)
 		{
+			if(errorStr)
+			{
+				fprintf(stderr,"%s\n",errorStr);
+				free(errorStr);
+			}
 			exit_state=1;
 			goto exit;
 		}
@@ -243,6 +250,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 		}
 		else
 		{
+			uv_lib_t lib={0};
 			uint64_t len=0;
 			uint64_t typelen=strlen(FKL_DLL_FILE_TYPE);
 			fread(&len,sizeof(uint64_t),1,fp);
@@ -250,7 +258,7 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 			FKL_ASSERT(rp);
 			fread(rp,len,1,fp);
 			strcat(rp,FKL_DLL_FILE_TYPE);
-			fklInitCodegenDllLib(&libs[i],rp,NULL,NULL,dll_init,table);
+			fklInitCodegenDllLib(&libs[i],rp,lib,NULL,dll_init,table);
 		}
 	}
 }

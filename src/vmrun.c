@@ -1419,7 +1419,7 @@ static inline void B_load_lib(BYTE_CODE_ARGS)
 		callCompoundProcdure(exe,plib->proc);
 }
 
-static inline FklImportDllInitFunc getImportInit(FklDllHandle handle)
+static inline FklImportDllInitFunc getImportInit(uv_lib_t* handle)
 {
 	return fklGetAddress("_fklImportInit",handle);
 }
@@ -1431,12 +1431,13 @@ static inline void B_load_dll(BYTE_CODE_ARGS)
 	if(!plib->imported)
 	{
 		FklString* realpath=FKL_VM_STR(plib->proc);
-		FklVMvalue* dll=fklCreateVMvalueDll(exe,realpath->str);
+		char* errorStr=NULL;
+		FklVMvalue* dll=fklCreateVMvalueDll(exe,realpath->str,&errorStr);
 		FklImportDllInitFunc initFunc=NULL;
 		if(dll)
-			initFunc=getImportInit(FKL_VM_DLL(dll)->handle);
+			initFunc=getImportInit(&(FKL_VM_DLL(dll)->dll));
 		else
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath->str,0,FKL_ERR_IMPORTFAILED,exe);
+			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",errorStr?errorStr:realpath->str,errorStr!=NULL,FKL_ERR_IMPORTFAILED,exe);
 		if(!initFunc)
 			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.load-dll",realpath->str,0,FKL_ERR_IMPORTFAILED,exe);
 		uint32_t tp=exe->tp;

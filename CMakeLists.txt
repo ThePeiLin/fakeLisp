@@ -14,7 +14,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
 if(NOT WIN32)
-	set(LINK_TARGET m dl)# tsan)
+	set(LINK_TARGET m)# tsan)
 else()
 	set(LINK_TARGET "")
 endif()

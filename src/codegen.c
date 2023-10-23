@@ -4869,7 +4869,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 	}
 }
 
-FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(FklDllHandle dll)
+FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t* dll)
 {
 	return fklGetAddress("_fklExportSymbolInit",dll);
 }
@@ -4886,24 +4886,24 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->libStack);
-	FklDllHandle dll;
+	uv_lib_t dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
 	{
-		dll=fklLoadDll(realpath);
-		if(!dll)
+		if(uv_dlopen(realpath,&dll))
 		{
-			fprintf(stderr,"%s\n",dlerror());
+			fprintf(stderr,"%s\n",uv_dlerror(&dll));
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
 			free(realpath);
+			uv_dlclose(&dll);
 			return NULL;
 		}
-		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(&dll);
 		if(!initExport)
 		{
-			fklDestroyDll(dll);
+			uv_dlclose(&dll);
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_IMPORTFAILED;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -4966,24 +4966,24 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->libStack);
-	FklDllHandle dll;
+	uv_lib_t dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
 	{
-		dll=fklLoadDll(realpath);
-		if(!dll)
+		if(uv_dlopen(realpath,&dll))
 		{
-			fprintf(stderr,"%s\n",dlerror());
+			fprintf(stderr,"%s\n",uv_dlerror(&dll));
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
 			free(realpath);
+			uv_dlclose(&dll);
 			return NULL;
 		}
-		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(&dll);
 		if(!initExport)
 		{
-			fklDestroyDll(dll);
+			uv_dlclose(&dll);
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_IMPORTFAILED;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -5041,24 +5041,24 @@ static inline FklByteCodelnt* process_import_from_dll_common(FklNastNode* origEx
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->libStack);
-	FklDllHandle dll;
+	uv_lib_t dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
 	{
-		dll=fklLoadDll(realpath);
-		if(!dll)
+		if(uv_dlopen(realpath,&dll))
 		{
-			fprintf(stderr,"%s\n",dlerror());
+			fprintf(stderr,"%s\n",uv_dlerror(&dll));
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
 			free(realpath);
+			uv_dlclose(&dll);
 			return NULL;
 		}
-		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(&dll);
 		if(!initExport)
 		{
-			fklDestroyDll(dll);
+			uv_dlclose(&dll);
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_IMPORTFAILED;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -5103,24 +5103,24 @@ static inline FklByteCodelnt* process_import_from_dll_prefix(FklNastNode* origEx
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->libStack);
-	FklDllHandle dll;
+	uv_lib_t dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
 	{
-		dll=fklLoadDll(realpath);
-		if(!dll)
+		if(uv_dlopen(realpath,&dll))
 		{
-			fprintf(stderr,"%s\n",dlerror());
+			fprintf(stderr,"%s\n",uv_dlerror(&dll));
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
 			free(realpath);
+			uv_dlclose(&dll);
 			return NULL;
 		}
-		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(&dll);
 		if(!initExport)
 		{
-			fklDestroyDll(dll);
+			uv_dlclose(&dll);
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_IMPORTFAILED;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -5170,24 +5170,24 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 {
 	char* realpath=fklRealpath(filename);
 	size_t libId=check_loaded_lib(realpath,codegen->libStack);
-	FklDllHandle dll;
+	uv_lib_t dll;
 	FklCodegenLib* lib=NULL;
 	if(!libId)
 	{
-		dll=fklLoadDll(realpath);
-		if(!dll)
+		if(uv_dlopen(realpath,&dll))
 		{
-			fprintf(stderr,"%s\n",dlerror());
+			fprintf(stderr,"%s\n",uv_dlerror(&dll));
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_FILEFAILURE;
 			errorState->place=fklMakeNastNodeRef(name);
 			free(realpath);
+			uv_dlclose(&dll);
 			return NULL;
 		}
-		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(dll);
+		FklCodegenDllLibInitExportFunc initExport=fklGetCodegenInitExportFunc(&dll);
 		if(!initExport)
 		{
-			fklDestroyDll(dll);
+			uv_dlclose(&dll);
 			errorState->fid=codegen->fid;
 			errorState->type=FKL_ERR_IMPORTFAILED;
 			errorState->place=fklMakeNastNodeRef(name);
@@ -5422,6 +5422,7 @@ static inline void codegen_import_helper(FklNastNode* origExp
 		size_t libId=check_loaded_lib(preCompileFileName,codegen->libStack);
 		if(!libId)
 		{
+			char* errorStr=NULL;
 			if(fklLoadPreCompile(codegen->pts
 						,codegen->macro_pts
 						,codegen->libStack
@@ -5429,8 +5430,14 @@ static inline void codegen_import_helper(FklNastNode* origExp
 						,codegen->globalSymTable
 						,codegen->outer_ctx
 						,preCompileFileName
-						,NULL))
+						,NULL
+						,&errorStr))
 			{
+				if(errorStr)
+				{
+					fprintf(stderr,"%s\n",errorStr);
+					free(errorStr);
+				}
 				errorState->fid=codegen->fid;
 				errorState->type=FKL_ERR_IMPORTFAILED;
 				errorState->place=fklMakeNastNodeRef(name);
@@ -8876,7 +8883,7 @@ FklCodegenLib* fklCreateCodegenScriptLib(FklCodegenInfo* codegen
 }
 
 FklCodegenLib* fklCreateCodegenDllLib(char* rp
-		,FklDllHandle dll
+		,uv_lib_t dll
 		,FklSymbolTable* table
 		,FklCodegenDllLibInitExportFunc init
 		,FklSymbolTable* pst)
@@ -8889,7 +8896,7 @@ FklCodegenLib* fklCreateCodegenDllLib(char* rp
 
 void fklInitCodegenDllLib(FklCodegenLib* lib
 		,char* rp
-		,FklDllHandle dll
+		,uv_lib_t dll
 		,FklSymbolTable* table
 		,FklCodegenDllLibInitExportFunc init
 		,FklSymbolTable* pst)
@@ -8956,8 +8963,7 @@ void fklUninitCodegenLib(FklCodegenLib* lib)
 			fklDestroyByteCodelnt(lib->bcl);
 			break;
 		case FKL_CODEGEN_LIB_DLL:
-			if(lib->dll)
-				fklDestroyDll(lib->dll);
+			uv_dlclose(&lib->dll);
 			break;
 	}
 	fklUninitCodegenLibInfo(lib);
@@ -9321,7 +9327,7 @@ void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
 	else
 	{
 		val=fklCreateVMvalueStr(exe,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp));
-		fklDestroyDll(clib->dll);
+		uv_dlclose(&clib->dll);
 	}
 	fklInitVMlib(vlib,val);
 

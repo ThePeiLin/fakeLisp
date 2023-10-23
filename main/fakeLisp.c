@@ -175,6 +175,7 @@ static inline int runPreCompile(char* filename)
 	FklCodegenOuterCtx ctx;
 	fklInitCodegenOuterCtxExceptPattern(&ctx);
 
+	char* errorStr=NULL;
 	char* rp=fklRealpath(filename);
 	int load_result=fklLoadPreCompile(pts
 			,&macro_pts
@@ -183,7 +184,8 @@ static inline int runPreCompile(char* filename)
 			,&gst
 			,&ctx
 			,rp
-			,fp);
+			,fp
+			,&errorStr);
 	fklUninitFuncPrototypes(&macro_pts);
 	while(!fklIsPtrStackEmpty(&macroScriptLibStack))
 		fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
@@ -193,9 +195,16 @@ static inline int runPreCompile(char* filename)
 	fklUninitSymbolTable(&ctx.public_symbol_table);
 	if(load_result)
 	{
+		fklUninitSymbolTable(&gst);
+		fklDestroyFuncPrototypes(pts);
 		while(!fklIsPtrStackEmpty(&scriptLibStack))
 			fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
 		fklUninitPtrStack(&scriptLibStack);
+		if(errorStr)
+		{
+			fprintf(stderr,"%s\n",errorStr);
+			free(errorStr);
+		}
 		fprintf(stderr,"%s: Load pre-compile file failed.\n",filename);
 		return 1;
 	}
@@ -259,7 +268,7 @@ int main(int argc,char** argv)
 			FklCodegenLib* lib=fklPopPtrStack(loadedLibStack);
 			fklDestroyCodegenLibMacroScope(lib);
 			if(lib->type==FKL_CODEGEN_LIB_DLL)
-				fklDestroyDll(lib->dll);
+				uv_dlclose(&lib->dll);
 			fklUninitCodegenLibInfo(lib);
 			free(lib);
 		}
@@ -764,7 +773,10 @@ static void repl_frame_step(void* data,FklVM* exe)
 			exe->frames=mainframe;
 		}
 		else
+		{
+			ctx->state=WAITING;
 			return;
+		}
 	}
 	else
 		fklStringBufferPutc(&ctx->buf,'\n');

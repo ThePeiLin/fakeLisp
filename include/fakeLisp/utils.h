@@ -2,6 +2,7 @@
 #define FKL_SRC_UTILS_H
 
 #include"base.h"
+#include<uv.h>
 #include<stdint.h>
 #include<stddef.h>
 #include<stdio.h>
@@ -20,9 +21,6 @@ extern "C" {
 #define FKL_DLL_FILE_TYPE (".dll")
 #define FKL_DLL_FILE_TYPE_STR_LEN (4)
 
-#include<windows.h>
-typedef HMODULE FklDllHandle;
-
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 
@@ -30,8 +28,6 @@ typedef SSIZE_T ssize_t;
 #define FKL_PATH_SEPARATOR ('/')
 #define FKL_PATH_SEPARATOR_STR ("/")
 #define FKL_PATH_SEPARATOR_STR_LEN (1)
-#include<dlfcn.h>
-typedef void* FklDllHandle;
 #define FKL_DLL_FILE_TYPE (".so")
 #define FKL_DLL_FILE_TYPE_STR_LEN (3)
 #endif
@@ -143,9 +139,9 @@ int fklMkdir(const char* dir);
 int fklIsAccessibleRegFile(const char* s);
 int fklIsAccessableDirectory(const char* s);
 
-FklDllHandle fklLoadDll(const char* path);
-void* fklGetAddress(const char*,FklDllHandle);
-void fklDestroyDll(FklDllHandle);
+// int fklLoadDll(const char* path,uv_lib_t*);
+// void* fklGetAddress(const char*,uv_lib_t*);
+// void fklDestroyDll(uv_lib_t*);
 
 int fklRewindStream(FILE* fp,const char* buf,ssize_t len);
 

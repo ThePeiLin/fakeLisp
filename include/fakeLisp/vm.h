@@ -61,7 +61,7 @@ typedef enum
 
 typedef struct FklVMdll
 {
-	FklDllHandle handle;
+	uv_lib_t dll;
 	struct FklVMvalue* pd;
 }FklVMdll;
 
@@ -654,7 +654,8 @@ FklVMvalue* fklCreateVMvalueProc(FklVM*
 FklVMvalue* fklCreateVMvalueProcWithWholeCodeObj(FklVM*,FklVMvalue* codeObj,uint32_t pid);
 FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM*,FklVMframe* f,size_t,uint32_t pid);
 
-FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*);
+FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*,char**);
+void* fklGetAddress(const char* funcname,uv_lib_t* dll);
 
 FklVMvalue* fklCreateVMvalueDlproc(FklVM*
 		,FklVMdllFunc

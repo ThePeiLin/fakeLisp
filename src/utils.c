@@ -873,7 +873,7 @@ int fklIsDirectory(const char* p)
 }
 
 #ifndef WIN32
-int fklIsAccessableDirectory(const char* p)
+int fklIsAccessibleDirectory(const char* p)
 {
 	return !access(p,R_OK)&&fklIsDirectory(p);
 }

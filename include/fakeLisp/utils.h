@@ -137,7 +137,7 @@ int fklIsDirectory(const char* s);
 
 int fklMkdir(const char* dir);
 int fklIsAccessibleRegFile(const char* s);
-int fklIsAccessableDirectory(const char* s);
+int fklIsAccessibleDirectory(const char* s);
 
 // int fklLoadDll(const char* path,uv_lib_t*);
 // void* fklGetAddress(const char*,uv_lib_t*);

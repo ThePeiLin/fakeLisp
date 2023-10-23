@@ -1295,8 +1295,6 @@ static inline int is_terminal(const FklGrammer* g
 	{
 		if(start==ctx->start&&cur==ctx->cur)
 			return ctx->maxNonterminalLen==0;
-		ctx->start=start;
-		ctx->cur=cur;
 		FklGrammerIgnore* ignores=g->ignores;
 		const FklString** terms=g->sortedTerminals;
 		size_t num=g->sortedTerminalsNum;
@@ -5143,7 +5141,6 @@ static inline void print_is_terminal_to_c_file(const FklGrammer* g,FILE* fp)
 			"\t\t,size_t rLen)\n{\n"
 			"\tif(rLen)\n\t{\n"
 			"\t\tif(start==outerCtx->start&&cur==outerCtx->cur)\n\t\t\treturn outerCtx->maxNonterminalLen==0;\n"
-			"\t\touterCtx->start=start;\n\t\touterCtx->cur=cur;\n"
 			"\t\tsize_t matchLen=0;\n"
 			"\t\tsize_t otherMatchLen=0;\n"
 			"\t\tsize_t* restLen=&rLen;\n"

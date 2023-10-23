@@ -93,6 +93,9 @@ void fklPrintCodegenError(FklNastNode* obj
 		case FKL_ERR_IMPORT_READER_MACRO_ERROR:
 			fputs("Failed to import reader macro",stderr);
 			break;
+		case FKL_ERR_GRAMMER_CREATE_FAILED:
+			fputs("Failed to create grammer",stderr);
+			break;
 		default:
 			fprintf(stderr,"Unknown compiling error");
 			break;

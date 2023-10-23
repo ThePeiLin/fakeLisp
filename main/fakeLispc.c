@@ -425,12 +425,14 @@ error:
 		}
 
 		char* output_dir=dir->count>0?fklStrCat(fklStrCat(fklCopyCstr(cwd),FKL_PATH_SEPARATOR_STR),dir->filename[0]):NULL;
+		fklSetCwd(cwd);
 		if(pre_compile(buffer.buf
 					,output_dir
 					,argc
 					,argv
 					,&outer_ctx))
 		{
+			fklDestroyCwd();
 			free(output_dir);
 			fklUninitStringBuffer(&buffer);
 			goto compile_error;

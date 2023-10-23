@@ -8,6 +8,7 @@
 #include"nast.h"
 #include"bytecode.h"
 #include"builtin.h"
+#include"vm.h"
 #include<uv.h>
 
 #ifdef __cplusplus
@@ -407,9 +408,6 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 		,FklByteCodelnt* bcl
 		,FklCodegenEnv* env);
 
-#define FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS uint32_t* num,FklSid_t** exports,FklSymbolTable* st
-typedef void (*FklCodegenDllLibInitExportFunc)(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS);
-
 FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t* dll);
 
 void fklInitCodegenDllLib(FklCodegenLib* lib
@@ -453,8 +451,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		,FklCodegenMacroScope* macros
 		,FklCodegenErrorState*);
 
-struct FklVM;
-struct FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
+FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklFuncPrototypes* pts
 		,uint32_t prototype_id
 		,FklHashTable* ht

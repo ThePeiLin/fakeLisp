@@ -105,9 +105,21 @@ add_library(test-dll
 	SHARED
 	"main/test/dll.c")
 set_target_properties(test-dll PROPERTIES
-	PREFIX ""
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
+	PREFIX "")
 target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET test-dll
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:test-dll>	
+	"${CMAKE_BINARY_DIR}/test/"
+	DEPENDS test-dll
+	VERBATIM)
+else()
+set_target_properties(test-dll PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
+endif()
+
 
 #testing
 enable_testing()
@@ -146,22 +158,28 @@ add_custom_command(OUTPUT "vmparse.c"
 	VERBATIM)
 
 add_test(NAME test-lexer
-	COMMAND $<TARGET_FILE:test-lexer>)
+	COMMAND $<TARGET_FILE:test-lexer>
+	VERBATIM)
 
 add_test(NAME test-parser
-	COMMAND $<TARGET_FILE:test-parser>)
+	COMMAND $<TARGET_FILE:test-parser>
+	VERBATIM)
 
 add_test(NAME test-script
-	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json)
+	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json
+	VERBATIM)
 
 add_test(NAME test-pre-compile
-	COMMAND ${COMPILER_TARGET_NAME} -p test -d test-pre)
+	COMMAND ${COMPILER_TARGET_NAME} -p test -d test-pre
+	VERBATIM)
 
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib
+	VERBATIM)
 
 #copy test
 add_custom_target(COPY_TEST ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/)
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/
+	VERBATIM)
 

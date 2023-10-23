@@ -13,32 +13,33 @@ struct SymFunc
 {
 	const char* sym;
 	FklVMdllFunc f;
-}exports[]=
+}exports_and_func[]=
 {
 	{"test-func",test_func},
 };
 
-static const size_t EXPORT_NUM=sizeof(exports)/sizeof(struct SymFunc);
+static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);
 
-void _fklExportSymbolInit(size_t* pnum,FklSid_t** psyms,FklSymbolTable* table)
+FKL_DLL_EXPORT void _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
 {
-	*pnum=EXPORT_NUM;
+	*num=EXPORT_NUM;
 	FklSid_t* symbols=(FklSid_t*)malloc(sizeof(FklSid_t)*EXPORT_NUM);
 	FKL_ASSERT(symbols);
 	for(size_t i=0;i<EXPORT_NUM;i++)
-		symbols[i]=fklAddSymbolCstr(exports[i].sym,table)->id;
-	*psyms=symbols;
+		symbols[i]=fklAddSymbolCstr(exports_and_func[i].sym,st)->id;
+	*exports=symbols;
 }
 
-FklVMvalue** _fklImportInit(FklVM* exe,FklVMvalue* dll,uint32_t* pcount)
+FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 {
 	FklSymbolTable* table=exe->symbolTable;
-	*pcount=EXPORT_NUM;
+	*count=EXPORT_NUM;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);
+	FKL_ASSERT(loc);
 	for(size_t i=0;i<EXPORT_NUM;i++)
 	{
-		FklSid_t id=fklAddSymbolCstr(exports[i].sym,table)->id;
-		FklVMdllFunc func=exports[i].f;
+		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,table)->id;
+		FklVMdllFunc func=exports_and_func[i].f;
 		FklVMvalue* dlproc=fklCreateVMvalueDlproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;
 	}

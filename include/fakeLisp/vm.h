@@ -654,6 +654,12 @@ FklVMvalue* fklCreateVMvalueProc(FklVM*
 FklVMvalue* fklCreateVMvalueProcWithWholeCodeObj(FklVM*,FklVMvalue* codeObj,uint32_t pid);
 FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM*,FklVMframe* f,size_t,uint32_t pid);
 
+#ifdef WIN32
+#define FKL_DLL_EXPORT __declspec( dllexport )
+#else
+#define FKL_DLL_EXPORT
+#endif
+
 FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*,char**);
 void* fklGetAddress(const char* funcname,uv_lib_t* dll);
 
@@ -755,7 +761,6 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx);
 void fklVMvalueTerminalDestroy(void*);
-void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
 
 void fklAddToGC(FklVMvalue*,FklVM*);
 FklVMvalue* fklCreateTrueValue(void);
@@ -799,7 +804,11 @@ int fklUninitVMfp(FklVMfp*);
 void fklLockVMfp(FklVMvalue* fpv,FklVM*);
 void fklUnLockVMfp(FklVMvalue* vfp);
 
-typedef FklVMvalue** (*FklImportDllInitFunc)(FklVM* exe,FklVMvalue* dll,uint32_t* count);
+#define FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS uint32_t* num,FklSid_t** exports,FklSymbolTable* st
+typedef void (*FklCodegenDllLibInitExportFunc)(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS);
+
+#define FKL_IMPORT_DLL_INIT_FUNC_ARGS FklVM* exe,FklVMvalue* dll,uint32_t* count
+typedef FklVMvalue** (*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
 
 void fklInitVMdll(FklVMvalue* rel,FklVM*);
 

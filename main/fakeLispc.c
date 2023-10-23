@@ -10,6 +10,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #ifdef _WIN32
+#include<direct.h>
 #include<io.h>
 #include<process.h>
 #else
@@ -232,7 +233,7 @@ static inline int pre_compile(const char* main_file_name
 	strcat(outputname,FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 	if(output_dir)
 	{
-		if(!fklIsAccessableDirectory(output_dir))
+		if(!fklIsAccessibleDirectory(output_dir))
 			fklMkdir(output_dir);
 		char* new_output_name=fklStrCat(fklCopyCstr(output_dir),FKL_PATH_SEPARATOR_STR);
 		char* rel_new_output_name=fklRelpath(main_dir,outputname);

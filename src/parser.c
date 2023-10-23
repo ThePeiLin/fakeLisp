@@ -55,8 +55,8 @@ char* fklReadWithBuiltinParser(FILE* fp
 		,FklPtrStack* stateStack)
 {
 	size_t size=0;
-	char* nextline=NULL;
-	size_t nextlen=0;
+	FklStringBuffer next_buf;
+	fklInitStringBuffer(&next_buf);
 	char* tmp=NULL;
 	*unexpectEOF=0;
 	FklNastNode* ast=NULL;
@@ -124,18 +124,20 @@ char* fklReadWithBuiltinParser(FILE* fp
 			*output=ast;
 			break;
 		}
-		ssize_t nextSize=getline(&nextline,&nextlen,fp);
+		fklGetDelim(fp,&next_buf,'\n');
+		size_t nextSize=next_buf.index;
 		offset=size-restLen;
-		if(nextSize==-1)
+		if(nextSize==0)
 			continue;
 		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
 		FKL_ASSERT(tmp);
-		memcpy(&tmp[size],nextline,nextSize);
+		memcpy(&tmp[size],next_buf.buf,nextSize);
 		size+=nextSize;
+		next_buf.index=0;
 	}
 	*pline=outerCtx.line;
 	*psize=size;
-	free(nextline);
+	fklUninitStringBuffer(&next_buf);
 	return tmp;
 }
 
@@ -153,8 +155,8 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		,FklPtrStack* stateStack)
 {
 	size_t size=0;
-	char* nextline=NULL;
-	size_t nextlen=0;
+	FklStringBuffer next_buf;
+	fklInitStringBuffer(&next_buf);
 	char* tmp=NULL;
 	*unexpectEOF=0;
 	FklNastNode* ast=NULL;
@@ -223,18 +225,20 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 			*output=ast;
 			break;
 		}
-		ssize_t nextSize=getline(&nextline,&nextlen,fp);
+		fklGetDelim(fp,&next_buf,'\n');
+		size_t nextSize=next_buf.index;
 		offset=size-restLen;
-		if(nextSize==-1)
+		if(nextSize==0)
 			continue;
 		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
 		FKL_ASSERT(tmp);
-		memcpy(&tmp[size],nextline,nextSize);
+		memcpy(&tmp[size],next_buf.buf,nextSize);
 		size+=nextSize;
+		next_buf.index=0;
 	}
 	*pline=outerCtx.line;
 	*psize=size;
-	free(nextline);
+	fklUninitStringBuffer(&next_buf);
 	return tmp;
 }
 

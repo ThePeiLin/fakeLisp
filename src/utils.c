@@ -894,12 +894,12 @@ int fklMkdir(const char* dir)
 #define W_OK 2
 #define F_OK 0
 
-int fklIsAccessableDirectory(const char* p)
+int fklIsAccessibleDirectory(const char* p)
 {
 	return !_access(p,R_OK)&&fklIsDirectory(p);
 }
 
-int fklIsAccessableRegFile(const char* p)
+int fklIsAccessibleRegFile(const char* p)
 {
 	return !_access(p,R_OK)&&fklIsRegFile(p);
 }

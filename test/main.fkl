@@ -7,7 +7,7 @@
         (hello)
         (internationale)
         (test-loc)
-        (test-lex)
+        (lex)
         (reader-macro)
         (compiler-macro)
         (test)

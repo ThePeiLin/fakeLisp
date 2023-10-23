@@ -4362,6 +4362,19 @@ static void builtin_sleep(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
 
+static void builtin_msleep(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.msleep";
+	DECL_AND_CHECK_ARG(second,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(second,fklIsVMint,Pname,exe);
+	if(fklVMnumberLt0(second))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	uint64_t ms=fklGetUint(second);
+	fklVMsleep(exe,ms);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+}
+
 static void builtin_srand(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.srand";
@@ -5264,6 +5277,8 @@ static const struct SymbolFuncStruct
 	{"filter",                builtin_filter,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"sleep",                 builtin_sleep,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"msleep",                builtin_msleep,                  {NULL,         NULL,          NULL,          NULL,          }, },
+
 	{"srand",                 builtin_srand,                   {NULL,         NULL,          NULL,          NULL,          }, },
 	{"rand",                  builtin_rand,                    {NULL,         NULL,          NULL,          NULL,          }, },
 	{"get-time",              builtin_get_time,                {NULL,         NULL,          NULL,          NULL,          }, },

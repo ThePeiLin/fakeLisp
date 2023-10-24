@@ -1792,7 +1792,7 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fopen";
 	DECL_AND_CHECK_ARG(filename,Pname);
-	FklVMvalue* mode=fklPopArg(exe);
+	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -4158,7 +4158,7 @@ static void builtin_fseek(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fseek";
 	DECL_AND_CHECK_ARG2(vfp,offset,Pname);
-	FklVMvalue* whence_v=fklPopArg(exe);
+	FklVMvalue* whence_v=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
 	FKL_CHECK_TYPE(offset,fklIsVMint,Pname,exe);
@@ -4191,7 +4191,7 @@ static void builtin_fseek(FKL_DL_PROC_ARGL)
 static void builtin_fflush(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fflush";
-	FklVMvalue* fp=fklPopArg(exe);
+	FklVMvalue* fp=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(fp)
 	{
@@ -4795,7 +4795,7 @@ static void builtin_even_p(FKL_DL_PROC_ARGL)
 static void builtin_exit(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.exit";
-	FklVMvalue* exit_no=fklPopArg(exe);
+	FklVMvalue* exit_no=FKL_VM_POP_ARG(exe);
 	if(exit_no)
 		FKL_CHECK_TYPE(exit_no,FKL_IS_FIX,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -5402,7 +5402,7 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	FklVMCompoundFrameVarRef* f=&frame->c.lr;
 	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
 	f->rcount=RefCount;
-	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*f->rcount);
+	FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*RefCount);
 	FKL_ASSERT(closure);
 	f->ref=closure;
 	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe

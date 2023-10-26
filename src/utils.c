@@ -1,6 +1,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/symbol.h>
+#include<fakeLisp/common.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
@@ -17,7 +18,6 @@
 #include<timeapi.h>
 #else
 #include<unistd.h>
-#include<dlfcn.h>
 #endif
 
 static char* CurWorkDir=NULL;
@@ -38,6 +38,28 @@ const char* fklGetCwd(void)
 {
 	return CurWorkDir;
 }
+
+#ifdef WIN32
+char* fklSysgetcwd(void)
+{
+	return _getcwd(NULL,0);
+}
+
+int fklChdir(const char* dir)
+{
+	return _chdir(dir);
+}
+#else
+char* fklSysgetcwd(void)
+{
+	return getcwd(NULL,0);
+}
+
+int fklChdir(const char* dir)
+{
+	return chdir(dir);
+}
+#endif
 
 void fklSetMainFileRealPath(const char* path)
 {
@@ -143,7 +165,7 @@ double fklStringToDouble(const FklString* str)
 FklString* fklIntToString(int64_t num)
 {
 	char numString[256]={0};
-	int lenOfNum=snprintf(numString,256,"%ld",num);
+	int lenOfNum=snprintf(numString,256,"%"PRT64D"",num);
 	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }
@@ -151,7 +173,7 @@ FklString* fklIntToString(int64_t num)
 char* fklIntToCstr(int64_t num)
 {
 	char numString[256]={0};
-	snprintf(numString,256,"%ld",num);
+	snprintf(numString,256,"%"PRT64D"",num);
 	return fklCopyCstr(numString);
 }
 
@@ -506,7 +528,7 @@ void* fklCopyMemory(const void* pm,size_t size)
 	return tmp;
 }
 
-int fklChangeWorkPath(const char* filename)
+int fklChangeWorkDir(const char* filename)
 {
 	char* p=fklRealpath(filename);
 	char* wp=fklGetDir(p);

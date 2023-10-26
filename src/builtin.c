@@ -4231,7 +4231,7 @@ static void builtin_cd(FKL_DL_PROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
 	FklString* dirstr=FKL_VM_STR(dir);
-	int r=fklChangeWorkPath(dirstr->str);
+	int r=fklChangeWorkDir(dirstr->str);
 	if(r)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

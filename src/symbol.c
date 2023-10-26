@@ -1,5 +1,6 @@
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/common.h>
 #include<ctype.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -145,9 +146,9 @@ void fklPrintSymbolTable(const FklSymbolTable* table,FILE* fp)
 		FklSymbolHashItem* cur=table->idl[i];
 		fprintf(fp,"symbol:");
 		fklPrintString(cur->symbol,fp);
-		fprintf(fp," id:%lu\n",cur->id);
+		fprintf(fp," id:%"PRT64U"\n",cur->id);
 	}
-	fprintf(fp,"size:%lu\n",table->num);
+	fprintf(fp,"size:%"PRT64U"\n",table->num);
 }
 
 void fklWriteSymbolTable(const FklSymbolTable* table,FILE* fp)

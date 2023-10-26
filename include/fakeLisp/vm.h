@@ -592,8 +592,6 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);
 void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 
-void fklInitVMframeWithProc(FklVMframe* tmp,FklVMproc* code,FklVMframe* prev);
-
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM*,uint32_t pid);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 

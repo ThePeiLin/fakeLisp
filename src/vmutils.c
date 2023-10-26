@@ -1,5 +1,6 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/opcode.h>
+#include<fakeLisp/common.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -180,7 +181,7 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 							fklPrintRawString(fklGetSymbolWithId(pt->fid,exe->symbolTable)->symbol,stderr);
 						else
 							fputs("stdin",stderr);
-						fprintf(stderr,":%lu>",pt->line);
+						fprintf(stderr,":%"PRT64U">",pt->line);
 					}
 				}
 			}
@@ -751,7 +752,7 @@ static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"%ld",FKL_GET_FIX(v));
+	fprintf(fp,"%"PRT64D"",FKL_GET_FIX(v));
 }
 
 static void vmvalue_sym_ptr_princ(VMVALUE_PRINTER_ARGS)
@@ -899,7 +900,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				fputc(',',fp);
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
 			{
-				fprintf(fp,"#%lu#",(uintptr_t)e->v);
+				fprintf(fp,"#%"PRT64U"#",(uintptr_t)e->v);
 				free(e);
 			}
 			else if(e->state==PRT_HASH_ITEM)
@@ -924,7 +925,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				{
 					size_t i=0;
 					if(isInValueSet(v,recValueSet,&i))
-						fprintf(fp,"#%lu=",i);
+						fprintf(fp,"#%"PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
 						fputs("#(",fp);
@@ -1132,7 +1133,7 @@ static void nil_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 
 static void fix_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"%ld",FKL_GET_FIX(v));
+	fklStringBufferPrintf(result,"%"PRT64D"",FKL_GET_FIX(v));
 }
 
 static void sym_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1314,7 +1315,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 			if(e->state==PRT_CDR||e->state==PRT_REC_CDR)
 				fklStringBufferPutc(&result,',');
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
-				fklStringBufferPrintf(&result,"#%lu",(uintptr_t)e->v);
+				fklStringBufferPrintf(&result,"#%"PRT64U"",(uintptr_t)e->v);
 			else if(e->state==PRT_HASH_ITEM)
 			{
 				fklStringBufferPutc(&result,'(');
@@ -1337,7 +1338,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 				{
 					size_t i=0;
 					if(isInValueSet(v,recValueSet,&i))
-						fklStringBufferPrintf(&result,"#%lu=",i);
+						fklStringBufferPrintf(&result,"#%"PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
 						fklStringBufferConcatWithCstr(&result,"#(");

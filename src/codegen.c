@@ -3,6 +3,7 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/vm.h>
+#include<fakeLisp/common.h>
 #include<ctype.h>
 #include<string.h>
 #ifdef _WIN32
@@ -3701,7 +3702,7 @@ static inline void print_undefined_symbol(const FklPtrStack* urefs
 		FklUnReSymbolRef* ref=urefs->base[i];
 		fprintf(stderr,"warning in compiling: Symbol \"");
 		fklPrintString(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
-		fprintf(stderr,"\" is undefined at line %lu of ",ref->line);
+		fprintf(stderr,"\" is undefined at line %"PRT64U" of ",ref->line);
 		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
 		fputc('\n',stderr);
 	}
@@ -5800,14 +5801,14 @@ static void* custom_action(void* c
 	fklDestroyCwd();
 	const char* main_file_dir=fklGetMainFileRealPath();
 	fklSetCwd(main_file_dir);
-	chdir(main_file_dir);
+	fklChdir(main_file_dir);
 
 	FklVM* anotherVM=fklInitMacroExpandVM(ctx->bcl,ctx->pts,ctx->prototype_id,&ht,&lineHash,ctx->macroLibStack,&r,line,ctx->pst);
 	FklVMgc* gc=anotherVM->gc;
 
 	int e=fklRunVM(anotherVM);
 
-	chdir(cwd);
+	fklChdir(cwd);
 	fklDestroyCwd();
 	fklSetCwd(cwd);
 	free(cwd);
@@ -8165,7 +8166,7 @@ static int matchAndCall(FklCodegenFunc func
 	int r=fklPatternMatch(pattern,exp,ht);
 	if(r)
 	{
-		chdir(codegenr->curDir);
+		fklChdir(codegenr->curDir);
 		func(exp
 				,ht
 				,codegenQuestStack
@@ -8600,7 +8601,7 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	}
 	else
 	{
-		codegen->curDir=getcwd(NULL,0);
+		codegen->curDir=fklSysgetcwd();
 		codegen->filename=NULL;
 		codegen->realpath=NULL;
 		codegen->fid=0;
@@ -8659,7 +8660,7 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	}
 	else
 	{
-		codegen->curDir=getcwd(NULL,0);
+		codegen->curDir=fklSysgetcwd();
 		codegen->filename=NULL;
 		codegen->realpath=NULL;
 		codegen->fid=0;
@@ -9209,7 +9210,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		fklDestroyCwd();
 		const char* main_file_dir=fklGetMainFileRealPath();
 		fklSetCwd(main_file_dir);
-		chdir(main_file_dir);
+		fklChdir(main_file_dir);
 
 		FklFuncPrototypes* pts=NULL;
 		FklPtrStack* macroLibStack=NULL;
@@ -9226,7 +9227,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklVMgc* gc=anotherVM->gc;
 		int e=fklRunVM(anotherVM);
 
-		chdir(cwd);
+		fklChdir(cwd);
 		fklDestroyCwd();
 		fklSetCwd(cwd);
 		free(cwd);

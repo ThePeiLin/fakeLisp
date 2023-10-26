@@ -34,7 +34,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 
 #warnnig setting
 if(MSVC)
-	add_compile_options(/Wall)
+	add_compile_options(/W4)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
 endif()

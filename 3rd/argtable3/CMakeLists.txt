@@ -7,7 +7,7 @@ set(ARGTABLE3_TARGET_NAME argtable3)
 project(${ARGTABLE3_TARGET_NAME})
 
 if(MSVC)
-	add_compile_options(/Wall)
+	add_compile_options(/W4)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
 endif()

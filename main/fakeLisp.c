@@ -56,7 +56,7 @@ static inline int compileAndRun(char* filename)
 			,pst);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
-	chdir(fklGetCwd());
+	fklChdir(fklGetCwd());
 	FklPtrStack* scriptLibStack=codegen.libStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);
 	codegen.globalSymTable=NULL;
@@ -249,7 +249,7 @@ static inline int runPreCompile(char* filename)
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:NULL;
-	char* cwd=getcwd(NULL,0);
+	char* cwd=fklSysgetcwd();
 	fklSetCwd(cwd);
 	free(cwd);
 	fklInitVMargs(argc,argv);

@@ -1,5 +1,6 @@
 #include<fakeLisp/nast.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/common.h>
 #include<ctype.h>
 
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line)
@@ -286,7 +287,7 @@ void fklPrintNastNode(const FklNastNode* exp
 					fklPrintRawString(node->str,fp);
 					break;
 				case FKL_NAST_FIX:
-					fprintf(fp,"%ld",node->fix);
+					fprintf(fp,"%"PRT64D"",node->fix);
 					break;
 				case FKL_NAST_F64:
 					fprintf(fp,"%lf",node->f64);

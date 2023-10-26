@@ -1,6 +1,7 @@
 #include<fakeLisp/opcode.h>
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
+#include<fakeLisp/common.h>
 #include<string.h>
 #include<math.h>
 #ifdef _WIN32
@@ -11,7 +12,6 @@
 #include<process.h>
 #else
 #include<termios.h>
-#include<dlfcn.h>
 #include<unistd.h>
 #endif
 #include<time.h>
@@ -2193,7 +2193,7 @@ void fklDBG_printVMstack(FklVM* stack,FILE* fp,int mode,FklSymbolTable* table)
 		{
 			if(mode&&stack->bp==i)
 				fputs("->",stderr);
-			if(fp!=stdout)fprintf(fp,"%ld:",i);
+			if(fp!=stdout)fprintf(fp,"%"PRT64D":",i);
 			FklVMvalue* tmp=stack->base[i];
 			fklPrin1VMvalue(tmp,fp,table);
 			putc('\n',fp);

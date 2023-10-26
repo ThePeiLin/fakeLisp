@@ -1,5 +1,6 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/utils.h>
+#include<fakeLisp/common.h>
 
 static inline FklSymbolDef* get_def_by_id_in_scope(FklSid_t id,uint32_t scopeId,FklCodegenEnvScope* scope)
 {
@@ -104,16 +105,16 @@ void fklPrintCodegenError(FklNastNode* obj
 	{
 		if(sid)
 		{
-			fprintf(stderr," at line %lu of file ",obj->curline);
+			fprintf(stderr," at line %"PRT64U" of file ",obj->curline);
 			fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
 			fputc('\n',stderr);
 		}
 		else
-			fprintf(stderr," at line %lu\n",obj->curline);
+			fprintf(stderr," at line %"PRT64U"\n",obj->curline);
 	}
 	else
 	{
-		fprintf(stderr," at line %lu of file ",line);
+		fprintf(stderr," at line %"PRT64U" of file ",line);
 		fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
 		fputc('\n',stderr);
 	}

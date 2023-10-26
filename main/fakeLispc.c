@@ -213,7 +213,7 @@ static inline int pre_compile(const char* main_file_name
 
 	fklSetMainFileRealPath(rp);
 	const char* main_dir=fklGetMainFileRealPath();
-	chdir(main_dir);
+	fklChdir(main_dir);
 	fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx);
 	fklInitVMargs(argc,argv);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
@@ -279,7 +279,7 @@ static inline int compile(const char* filename
 	FklCodegenInfo codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
 	fklSetMainFileRealPath(rp);
-	chdir(fklGetMainFileRealPath());
+	fklChdir(fklGetMainFileRealPath());
 	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx);
 	fklInitVMargs(argc,argv);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
@@ -383,7 +383,7 @@ int main(int argc,char** argv)
 	int exitcode=0;
 	int nerrors=arg_parse(argc,argv,argtable);
 
-	char* cwd=getcwd(NULL,0);
+	char* cwd=fklSysgetcwd();
 
 	if(help->count>0)
 	{
@@ -449,7 +449,7 @@ error:
 	{
 		const char* filename=file->filename[i];
 		fklSetCwd(cwd);
-		chdir(fklGetCwd());
+		fklChdir(fklGetCwd());
 		if(fklIsScriptFile(filename)&&fklIsAccessibleRegFile(filename))
 		{
 			if(compile(filename

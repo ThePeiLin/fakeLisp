@@ -80,9 +80,7 @@ void fklPrintRawCstring(const char*,char se,FILE*);
 void fklPrintRawChar(char,FILE*);
 void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
 
-char* fklDoubleToCstr(double);
 FklString* fklDoubleToString(double);
-double fklCstrToDouble(const char*);
 double fklStringToDouble(const FklString*);
 
 unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max);
@@ -106,7 +104,7 @@ int fklGetDelim(FILE* fp,FklStringBuffer* b,char d);
 char* fklCopyCstr(const char*);
 void* fklCopyMemory(const void*,size_t);
 int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n);
-int fklChangeWorkPath(const char*);
+int fklChangeWorkDir(const char*);
 char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char* str,const char* divider,size_t*);
@@ -126,6 +124,10 @@ char* fklCharBufToCstr(const char* buf,size_t size);
 
 const char* fklGetMainFileRealPath(void);
 const char* fklGetCwd(void);
+
+int fklChdir(const char*);
+char* fklSysgetcwd(void);
+
 void fklSetCwd(const char*);
 void fklDestroyCwd(void);
 void fklSetMainFileRealPath(const char* path);
@@ -138,10 +140,6 @@ int fklIsDirectory(const char* s);
 int fklMkdir(const char* dir);
 int fklIsAccessibleRegFile(const char* s);
 int fklIsAccessibleDirectory(const char* s);
-
-// int fklLoadDll(const char* path,uv_lib_t*);
-// void* fklGetAddress(const char*,uv_lib_t*);
-// void fklDestroyDll(uv_lib_t*);
 
 int fklRewindStream(FILE* fp,const char* buf,ssize_t len);
 

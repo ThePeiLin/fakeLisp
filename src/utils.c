@@ -25,7 +25,10 @@ static char* MainFileRealPath=NULL;
 
 void fklSetCwd(const char* path)
 {
+	if(CurWorkDir)
+		free(CurWorkDir);
 	CurWorkDir=fklCopyCstr(path);
+	fklChdir(CurWorkDir);
 }
 
 void fklDestroyCwd(void)
@@ -61,7 +64,7 @@ int fklChdir(const char* dir)
 }
 #endif
 
-void fklSetMainFileRealPath(const char* path)
+void fklSetMainFileRealDir(const char* path)
 {
 	MainFileRealPath=fklGetDir(path);
 }
@@ -71,13 +74,13 @@ void fklSetMainFileRealPathWithCwd(void)
 	MainFileRealPath=fklCopyCstr(CurWorkDir);
 }
 
-void fklDestroyMainFileRealPath(void)
+void fklDestroyMainFileRealDir(void)
 {
 	free(MainFileRealPath);
 	MainFileRealPath=NULL;
 }
 
-const char* fklGetMainFileRealPath(void)
+const char* fklGetMainFileRealDir(void)
 {
 	return MainFileRealPath;
 }

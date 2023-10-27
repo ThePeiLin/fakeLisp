@@ -40,7 +40,7 @@ static inline int compileAndRun(char* filename)
 	fklAddSymbolCstr(filename,pst);
 	FklCodegenInfo codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
-	fklSetMainFileRealPath(rp);
+	fklSetMainFileRealDir(rp);
 	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
@@ -56,7 +56,6 @@ static inline int compileAndRun(char* filename)
 			,pst);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
-	fklChdir(fklGetCwd());
 	FklPtrStack* scriptLibStack=codegen.libStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);
 	codegen.globalSymTable=NULL;
@@ -118,7 +117,7 @@ static inline int runCode(char* filename)
 	FklSymbolTable* table=fklCreateSymbolTable();
 	fklLoadSymbolTable(fp,table);
 	char* rp=fklRealpath(filename);
-	fklSetMainFileRealPath(rp);
+	fklSetMainFileRealDir(rp);
 	free(rp);
 	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
 	FklByteCodelnt* mainCodelnt=fklLoadByteCodelnt(fp);
@@ -320,7 +319,7 @@ int main(int argc,char** argv)
 			free(main_pre_file);
 		}
 	}
-	fklDestroyMainFileRealPath();
+	fklDestroyMainFileRealDir();
 	fklDestroyCwd();
 	return exitState;
 }

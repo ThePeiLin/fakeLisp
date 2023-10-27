@@ -5799,17 +5799,14 @@ static void* custom_action(void* c
 	FklNastNode* r=NULL;
 	char* cwd=fklCopyCstr(fklGetCwd());
 	fklDestroyCwd();
-	const char* main_file_dir=fklGetMainFileRealPath();
+	const char* main_file_dir=fklGetMainFileRealDir();
 	fklSetCwd(main_file_dir);
-	fklChdir(main_file_dir);
 
 	FklVM* anotherVM=fklInitMacroExpandVM(ctx->bcl,ctx->pts,ctx->prototype_id,&ht,&lineHash,ctx->macroLibStack,&r,line,ctx->pst);
 	FklVMgc* gc=anotherVM->gc;
 
 	int e=fklRunVM(anotherVM);
 
-	fklChdir(cwd);
-	fklDestroyCwd();
 	fklSetCwd(cwd);
 	free(cwd);
 
@@ -8595,7 +8592,7 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	if(rp!=NULL)
 	{
 		codegen->curDir=fklGetDir(rp);
-		codegen->filename=fklRelpath(fklGetMainFileRealPath(),rp);
+		codegen->filename=fklRelpath(fklGetMainFileRealDir(),rp);
 		codegen->realpath=fklCopyCstr(rp);
 		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
@@ -8654,7 +8651,7 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	{
 		char* rp=fklRealpath(filename);
 		codegen->curDir=fklGetDir(rp);
-		codegen->filename=fklRelpath(fklGetMainFileRealPath(),rp);
+		codegen->filename=fklRelpath(fklGetMainFileRealDir(),rp);
 		codegen->realpath=rp;
 		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
@@ -9207,10 +9204,8 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		fklInitLineNumHashTable(&lineHash);
 
 		char* cwd=fklCopyCstr(fklGetCwd());
-		fklDestroyCwd();
-		const char* main_file_dir=fklGetMainFileRealPath();
+		const char* main_file_dir=fklGetMainFileRealDir();
 		fklSetCwd(main_file_dir);
-		fklChdir(main_file_dir);
 
 		FklFuncPrototypes* pts=NULL;
 		FklPtrStack* macroLibStack=NULL;
@@ -9227,8 +9222,6 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklVMgc* gc=anotherVM->gc;
 		int e=fklRunVM(anotherVM);
 
-		fklChdir(cwd);
-		fklDestroyCwd();
 		fklSetCwd(cwd);
 		free(cwd);
 

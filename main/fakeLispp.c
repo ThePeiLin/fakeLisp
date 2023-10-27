@@ -49,7 +49,7 @@ int main(int argc,char** argv)
 		fklLoadSymbolTable(fp,&table);
 		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp));
 		char* rp=fklRealpath(filename);
-		fklSetMainFileRealPath(rp);
+		fklSetMainFileRealDir(rp);
 		free(rp);
 
 		FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
@@ -79,7 +79,7 @@ int main(int argc,char** argv)
 		free(libs);
 		fclose(fp);
 		fklDestroyCwd();
-		fklDestroyMainFileRealPath();
+		fklDestroyMainFileRealDir();
 		fklUninitSymbolTable(&table);
 	}
 	else if(fklIsPrecompileFile(filename))
@@ -210,7 +210,7 @@ exit:
 		fklUninitSymbolTable(&gst);
 		fklUninitSymbolTable(&ctx.public_symbol_table);
 		fklDestroyCwd();
-		fklDestroyMainFileRealPath();
+		fklDestroyMainFileRealDir();
 		return exit_state;
 	}
 	else

@@ -122,7 +122,7 @@ uint8_t* fklCreateByteArry(int32_t);
 
 char* fklCharBufToCstr(const char* buf,size_t size);
 
-const char* fklGetMainFileRealPath(void);
+const char* fklGetMainFileRealDir(void);
 const char* fklGetCwd(void);
 
 int fklChdir(const char*);
@@ -130,8 +130,8 @@ char* fklSysgetcwd(void);
 
 void fklSetCwd(const char*);
 void fklDestroyCwd(void);
-void fklSetMainFileRealPath(const char* path);
-void fklDestroyMainFileRealPath(void);
+void fklSetMainFileRealDir(const char* path);
+void fklDestroyMainFileRealDir(void);
 void fklSetMainFileRealPathWithCwd(void);
 
 int fklIsRegFile(const char* s);

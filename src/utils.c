@@ -775,6 +775,12 @@ void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out)
 	fprintf(out,")");
 }
 
+void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp)
+{
+	for(const char* end=buf+len;buf<end;buf++)
+		fprintf(fp,"%X",(uint8_t)(*buf));
+}
+
 int fklIsI64AddOverflow(int64_t a,int64_t b)
 {
 	int64_t sum=a+b;
@@ -1159,6 +1165,14 @@ after_p:
 		else
 			return 0;
 	}
+	return 1;
+}
+
+int fklIsAllDigit(const char* cstr,size_t len)
+{
+	for(const char* end=cstr+len;cstr<end;cstr++)
+		if(!isdigit(*cstr))
+			return 0;
 	return 1;
 }
 

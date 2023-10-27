@@ -132,8 +132,8 @@ typedef struct FklHashTableMetaTable
 void fklInitHashTable(FklHashTable*,const FklHashTableMetaTable*);
 FklHashTable* fklCreateHashTable(const FklHashTableMetaTable*);
 
-void fklSetPtrKey(void* k0,const void* k1);
-uintptr_t fklPtrHashFunc(const void* k);
+void fklPtrKeySet(void* k0,const void* k1);
+uintptr_t fklPtrKeyHashFunc(const void* k);
 int fklPtrKeyEqual(const void* k0,const void* k1);
 
 void fklInitPtrSet(FklHashTable*);
@@ -156,8 +156,6 @@ void fklDestroyHashTable(FklHashTable*);
 
 void fklDoNothingUninitHashItem(void*);
 void* fklHashDefaultGetKey(void* i);
-int fklHashPtrKeyEqual(const void* a,const void* b);
-void fklHashDefaultSetPtrKey(void* k0,const void* k1);
 
 #define FKL_STACK_INIT {NULL,0,0,0}
 typedef struct

@@ -62,6 +62,7 @@ int fklIsHexInt(const char* cstr,size_t maxLen);
 int fklIsDecFloat(const char* cstr,size_t maxLen);
 int fklIsHexFloat(const char* cstr,size_t maxLen);
 int fklIsFloat(const char* cstr,size_t maxLen);
+int fklIsAllDigit(const char* cstr,size_t maxLen);
 
 int64_t fklStringToInt(const char* cstr,size_t maxLen,int* base);
 
@@ -79,6 +80,7 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out);
 void fklPrintRawCstring(const char*,char se,FILE*);
 void fklPrintRawChar(char,FILE*);
 void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
+void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp);
 
 FklString* fklDoubleToString(double);
 double fklStringToDouble(const FklString*);

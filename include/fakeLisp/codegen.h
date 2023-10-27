@@ -102,6 +102,7 @@ typedef struct
 
 	FklHashTable named_prod_groups;
 	FklSymbolTable terminal_table;
+	FklRegexTable regexes;
 
 	uint32_t prototypeId;
 }FklCodegenLib;
@@ -300,7 +301,7 @@ typedef struct FklCodegenQuestContext
 typedef struct FklCodegenErrorState
 {
 	FklSid_t fid;
-	FklBuiltInErrorType type;
+	FklBuiltinErrorType type;
 	FklNastNode* place;
 	size_t line;
 }FklCodegenErrorState;
@@ -379,7 +380,7 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
 
 void fklPrintCodegenError(FklNastNode* obj
-		,FklBuiltInErrorType type
+		,FklBuiltinErrorType type
 		,FklSid_t sid
 		,FklSymbolTable* symbolTable
 		,size_t line
@@ -510,10 +511,12 @@ FklGrammerProduction* fklCreateExtraStartProduction(FklSid_t group,FklSid_t sid)
 
 FklGrammerIgnore* fklNastVectorToIgnore(FklNastNode* ast
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklHashTable* builtin_terms);
 
 FklGrammerProduction* fklCodegenProdPrintingToProduction(FklCodegenProdPrinting* p
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklHashTable* builtin_terms
 		,FklCodegenOuterCtx* outer_ctx
 		,FklFuncPrototypes* pts

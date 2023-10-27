@@ -119,13 +119,15 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"export-outer-ref-prod-group",
 		"import-reader-macro-error",
 		"analysis-table-genrate-failed",
+		"regex-compile-failed",
+		"grammer-create-failed",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)
 		errorTypeId[i]=fklAddSymbolCstr(builtInErrorType[i],table)->id;
 }
 
-FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE])
+FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE])
 {
 	return errorTypeId[type];
 }
@@ -2299,6 +2301,7 @@ static const FklVMudMetaTable CustomParserMetaTable=
 static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 		,FklHashTable* builtin_term
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklSid_t left)
 {
 
@@ -2320,6 +2323,8 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 		if(FKL_IS_STR(cur))
 			fklPushPtrStack((void*)cur,&valid_items);
 		else if(FKL_IS_SYM(cur))
+			fklPushPtrStack((void*)cur,&valid_items);
+		else if(FKL_IS_BOX(cur)&&FKL_IS_STR(FKL_VM_BOX(cur)))
 			fklPushPtrStack((void*)cur,&valid_items);
 		else if(cur==FKL_VM_NIL)
 		{
@@ -2350,10 +2355,23 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 			if(FKL_IS_STR(cur))
 			{
 				ss->isterm=1;
-				ss->isbuiltin=0;
+				ss->term_type=FKL_TERM_STRING;
 				ss->nt.group=0;
 				ss->nt.sid=fklAddSymbol(FKL_VM_STR(cur),tt)->id;
 				ss->end_with_terminal=end_with_terminal[i];
+			}
+			else if(FKL_IS_BOX(cur))
+			{
+				const FklString* str=FKL_VM_STR(FKL_VM_BOX(cur));
+				ss->isterm=1;
+				ss->term_type=FKL_TERM_REGEX;
+				const FklRegexCode* re=fklAddRegexStr(rt,str);
+				if(!re)
+				{
+					free(syms);
+					goto end;
+				}
+				ss->re=re;
 			}
 			else
 			{
@@ -2362,14 +2380,14 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 				if(builtin_match)
 				{
 					ss->isterm=1;
-					ss->isbuiltin=1;
+					ss->term_type=FKL_TERM_BUILTIN;
 					ss->b.t=builtin_match;
 					ss->b.c=NULL;
 				}
 				else
 				{
 					ss->isterm=0;
-					ss->isbuiltin=0;
+					ss->term_type=FKL_TERM_STRING;
 					ss->nt.group=0;
 					ss->nt.sid=id;
 				}
@@ -2416,6 +2434,7 @@ static void builtin_make_parser(FKL_DL_PROC_ARGL)
 	int is_adding_ignore=0;
 	FklSid_t sid=0;
 	FklSymbolTable* tt=&grammer->terminals;
+	FklRegexTable* rt=&grammer->regexes;
 	FklHashTable* builtins=&grammer->builtins;
 	for(;next_arg;next_arg=FKL_VM_POP_ARG(exe))
 	{
@@ -2439,12 +2458,16 @@ static void builtin_make_parser(FKL_DL_PROC_ARGL)
 			case EXCEPT_NEXT_ARG_VECTOR:
 				if(FKL_IS_VECTOR(next_arg))
 				{
-					prod=vm_vec_to_prod(FKL_VM_VEC(next_arg),builtins,tt,sid);
+					prod=vm_vec_to_prod(FKL_VM_VEC(next_arg),builtins,tt,rt,sid);
+					if(!prod)
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_REGEX_COMPILE_FAILED,exe);
 					next=EXCEPT_NEXT_ARG_CALLABLE;
 					if(is_adding_ignore)
 					{
 						FklGrammerIgnore* ig=fklGrammerSymbolsToIgnore(prod->syms,prod->len,tt);
 						fklDestroyGrammerProduction(prod);
+						if(!ig)
+							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_GRAMMER_CREATE_FAILED,exe);
 						next_arg=EXCEPT_NEXT_ARG_SYMBOL;
 						if(fklAddIgnoreToIgnoreList(&grammer->ignores,ig))
 						{
@@ -5325,7 +5348,7 @@ static const struct SymbolFuncStruct
 
 static const size_t BuiltinSymbolNum=sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct)-1;
 
-FklBuiltinInlineFunc fklGetBuiltInInlineFunc(uint32_t idx,uint32_t argNum)
+FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum)
 {
 	if(idx>=BuiltinSymbolNum)
 		return NULL;

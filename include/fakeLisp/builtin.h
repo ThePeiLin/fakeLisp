@@ -47,14 +47,15 @@ typedef enum
 	FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP,
 	FKL_ERR_IMPORT_READER_MACRO_ERROR,
 	FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,
+	FKL_ERR_REGEX_COMPILE_FAILED,
 	FKL_ERR_GRAMMER_CREATE_FAILED,
-}FklBuiltInErrorType;
+}FklBuiltinErrorType;
 
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint64_t);
-FklBuiltinInlineFunc fklGetBuiltInInlineFunc(uint32_t idx,uint32_t argNum);
+FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum);
 
 uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t*);
-#define FKL_BUILTIN_ERR_NUM (FKL_ERR_CIR_REF+1)
+#define FKL_BUILTIN_ERR_NUM (FKL_ERR_GRAMMER_CREATE_FAILED+1)
 typedef struct FklCodegenEnv FklCodegenEnv;
 typedef struct FklVM FklVM;
 struct FklVMframe;
@@ -64,7 +65,7 @@ uint32_t fklGetBuiltinSymbolNum(void);
 void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable* pst);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
-FklSid_t fklGetBuiltInErrorType(FklBuiltInErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
+FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
 void fklInitGlobalVMclosure(struct FklVMframe* frame,FklVM*);
 void fklInitGlobalVMclosureForProc(FklVMproc*,FklVM*);
 

@@ -30,12 +30,12 @@
       'null #[1 "null"] (lambda ($$ line) 'null)
       'bool #[1 "true"] (lambda ($$ line) 'true)
       'bool #[1 "false"] (lambda ($$ line) 'false)
-      'string #[%string "\"" "\""] (lambda ($$ line) (parse (vref $$ 0)))
-      'integer #[%dec-int] first->number
-      'integer #[%hex-int] first->number
-      'integer #[%oct-int] first->number
-      'float #[%dec-float] first->number
-      'float #[%hex-float] first->number
+      'string #[#&"^\"(\\\\.|.)*\"$"] (lambda ($$ line) (parse (vref $$ 0)))
+      'integer #[?dint] first->number
+      'integer #[?xint] first->number
+      'integer #[?oint] first->number
+      'float #[?dfloat] first->number
+      'float #[?xfloat] first->number
 
       'array #["[" array-items "]"] (lambda ($$ line) (list->vector (vref $$ 1)))
       'array-items #[] return-nil
@@ -47,4 +47,4 @@
       'object-items #[] return-nil
       'object-items #[object-item] cons-0
       'object-items #[object-item "," object-items] cons-0-2
-      () #[%space])))
+      () #[#&"\\s+"])))

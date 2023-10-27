@@ -1988,7 +1988,7 @@ FklHashTable* fklCreateHashTable(const FklHashTableMetaTable* t)
 	return r;
 }
 
-void fklSetPtrKey(void* k0,const void* k1)
+void fklPtrKeySet(void* k0,const void* k1)
 {
 	*(void**)k0=*(void* const*)k1;
 }
@@ -1998,7 +1998,7 @@ int fklPtrKeyEqual(const void* k0,const void* k1)
 	return *(void* const*)k0==*(void* const*)k1;
 }
 
-uintptr_t fklPtrHashFunc(const void* k)
+uintptr_t fklPtrKeyHashFunc(const void* k)
 {
 	return (uintptr_t)*(void* const*)k;
 }
@@ -2006,9 +2006,9 @@ uintptr_t fklPtrHashFunc(const void* k)
 static const FklHashTableMetaTable PtrSetMetaTable=
 {
 	.size=sizeof(void*),
-	.__setKey=fklSetPtrKey,
-	.__setVal=fklSetPtrKey,
-	.__hashFunc=fklPtrHashFunc,
+	.__setKey=fklPtrKeySet,
+	.__setVal=fklPtrKeySet,
+	.__hashFunc=fklPtrKeyHashFunc,
 	.__keyEqual=fklPtrKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
 	.__uninitItem=fklDoNothingUninitHashItem,
@@ -2253,16 +2253,6 @@ void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 void* fklHashDefaultGetKey(void* i)
 {
 	return i;
-}
-
-int fklHashPtrKeyEqual(const void* a,const void* b)
-{
-	return *(const void**)a==*(const void**)b;
-}
-
-void fklHashDefaultSetPtrKey(void* k0,const void* k1)
-{
-	*(void**)k0=*(void* const*)k1;
 }
 
 #undef REHASH

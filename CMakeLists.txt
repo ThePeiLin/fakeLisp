@@ -39,6 +39,40 @@ else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
 endif()
 
+#testing
+enable_testing()
+
+add_library(test_lib
+	OBJECT
+	"src/base.c"
+	"src/utils.c"
+	"src/grammer.c"
+	"src/symbol.c"
+	"src/nast.c"
+	"src/regex.c")
+
+add_executable(test-lexer "main/test/lexer.c")
+target_link_libraries(test-lexer test_lib ${LINK_TARGET})
+
+add_executable(test-lexer2 "main/test/lexer2.c")
+target_link_libraries(test-lexer2 test_lib ${LINK_TARGET})
+
+add_executable(test-regex "main/test/regex.c")
+target_link_libraries(test-regex test_lib ${LINK_TARGET})
+
+add_executable(test-grammer "main/test/grammer.c")
+target_link_libraries(test-grammer test_lib ${LINK_TARGET})
+
+add_executable(test-parser "main/test/parser.c")
+target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
+
+#grammer
+file(GLOB GRAMMER_GEN_SOURCE
+	"main/grammer/grammer.c")
+
+add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
+target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
+
 #argtable3
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
@@ -60,14 +94,6 @@ file(GLOB COMPILER_SOURCE "main/fakeLispc.c")
 
 file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 
-file(GLOB GRAMMER_GEN_SOURCE
-	"main/grammer/grammer.c"
-	"src/base.c"
-	"src/utils.c"
-	"src/grammer.c"
-	"src/symbol.c"
-	"src/nast.c")
-
 #parser.o
 add_library(${PARSE}
 	OBJECT
@@ -87,18 +113,16 @@ add_library(${LIBFKL_TARGET_NAME}
 set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 
-#fakeLisp, fakeLispc, fakeLispp, grammer
+#fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
-add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 
 #linking
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
-target_link_libraries(${GRAMMER_GEN} ${LINK_TARGET})
 
 #test-dll
 add_library(test-dll
@@ -120,18 +144,6 @@ set_target_properties(test-dll PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 endif()
 
-
-#testing
-enable_testing()
-
-add_executable(test-lexer "main/test/lexer.c")
-target_link_libraries(test-lexer ${LIBFKL_TARGET_NAME})
-
-add_executable(test-lexer2 "main/test/lexer2.c")
-target_link_libraries(test-lexer2 ${LIBFKL_TARGET_NAME})
-
-add_executable(test-parser "main/test/parser.c")
-target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND ${GRAMMER_GEN}
@@ -158,20 +170,19 @@ add_custom_command(OUTPUT "vmparse.c"
 	VERBATIM)
 
 add_test(NAME test-lexer
-	COMMAND $<TARGET_FILE:test-lexer>
-	VERBATIM)
+	COMMAND $<TARGET_FILE:test-lexer>)
 
 add_test(NAME test-parser
-	COMMAND $<TARGET_FILE:test-parser>
-	VERBATIM)
+	COMMAND $<TARGET_FILE:test-parser>)
+
+add_test(NAME test-regex
+	COMMAND $<TARGET_FILE:test-regex>)
 
 add_test(NAME test-script
-	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json
-	VERBATIM)
+	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json)
 
 add_test(NAME test-pre-compile
-	COMMAND ${COMPILER_TARGET_NAME} -p test -d test-pre
-	VERBATIM)
+	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p test -d test-pre)
 
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL

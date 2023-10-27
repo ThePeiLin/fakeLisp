@@ -24,11 +24,11 @@ static void _LineNumHash_setVal(void* d0,const void* d1)
 static FklHashTableMetaTable LineNumHashMetaTable=
 {
 	.size=sizeof(LineNumHashItem),
-	.__setKey=fklHashDefaultSetPtrKey,
+	.__setKey=fklPtrKeySet,
 	.__setVal=_LineNumHash_setVal,
 	.__hashFunc=_LineNumHash_hashFunc,
 	.__uninitItem=fklDoNothingUninitHashItem,
-	.__keyEqual=fklHashPtrKeyEqual,
+	.__keyEqual=fklPtrKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
 };
 
@@ -1157,17 +1157,17 @@ static const FklHashTableMetaTable VMhashTableMetaTableTable[]=
 	//eq
 	{
 		.size=sizeof(FklVMhashTableItem),
-		.__setKey=fklHashDefaultSetPtrKey,
+		.__setKey=fklPtrKeySet,
 		.__setVal=_vmhashtable_setVal,
 		.__hashFunc=_vmhashtableEq_hashFunc,
 		.__uninitItem=fklDoNothingUninitHashItem,
-		.__keyEqual=fklHashPtrKeyEqual,
+		.__keyEqual=fklPtrKeyEqual,
 		.__getKey=fklHashDefaultGetKey,
 	},
 	//eqv
 	{
 		.size=sizeof(FklVMhashTableItem),
-		.__setKey=fklHashDefaultSetPtrKey,
+		.__setKey=fklPtrKeySet,
 		.__setVal=_vmhashtable_setVal,
 		.__hashFunc=_vmhashtableEqv_hashFunc,
 		.__uninitItem=fklDoNothingUninitHashItem,
@@ -1177,7 +1177,7 @@ static const FklHashTableMetaTable VMhashTableMetaTableTable[]=
 	//equal
 	{
 		.size=sizeof(FklVMhashTableItem),
-		.__setKey=fklHashDefaultSetPtrKey,
+		.__setKey=fklPtrKeySet,
 		.__setVal=_vmhashtable_setVal,
 		.__hashFunc=_vmhashtable_hashFunc,
 		.__uninitItem=fklDoNothingUninitHashItem,

@@ -601,8 +601,8 @@ FklVMvarRef* fklCreateClosedVMvarRef(FklVMvalue* v);
 void fklDestroyVMvarRef(FklVMvarRef*);
 
 void fklDestroyVMframe(FklVMframe*,FklVM* exe);
-FklString* fklGenErrorMessage(FklBuiltInErrorType type);
-FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType);
+FklString* fklGenErrorMessage(FklBuiltinErrorType type);
+FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltinErrorType);
 
 int fklIsVMhashEq(FklHashTable*);
 int fklIsVMhashEqv(FklHashTable*);
@@ -966,7 +966,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueError((EXE)\
-			,fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
+			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
 			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
@@ -976,7 +976,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueErrorWithCstr((EXE)\
-			,fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
+			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
 			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
@@ -986,7 +986,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueErrorWithCstr((EXE)\
-			,fklGetBuiltInErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
+			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
 			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\

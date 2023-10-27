@@ -3,6 +3,7 @@
 
 #include"base.h"
 #include"symbol.h"
+#include"regex.h"
 #include<stddef.h>
 #include<stdio.h>
 
@@ -44,7 +45,7 @@ typedef struct
 	void (*ctx_destroy)(void*);
 	const char* name;
 	void (*print_src)(const struct FklGrammer* g,FILE* fp);
-	void (*print_c_match_cond)(void* ctx,FILE* fp);
+	void (*print_c_match_cond)(void* ctx,const struct FklGrammer* g,FILE* fp);
 }FklLalrBuiltinMatch;
 
 typedef struct
@@ -59,16 +60,24 @@ typedef struct
 	FklSid_t sid;
 }FklGrammerNonterm;
 
+enum FklGrammerTermType
+{
+	FKL_TERM_STRING=0,
+	FKL_TERM_BUILTIN,
+	FKL_TERM_REGEX,
+};
+
 typedef struct FklGrammerSym
 {
-	unsigned int delim:1;
-	unsigned int isterm:1;
-	unsigned int isbuiltin:1;
-	unsigned int end_with_terminal:1;
+	uint16_t delim;
+	uint16_t isterm;
+	uint16_t term_type;
+	uint16_t end_with_terminal;
 	union
 	{
 		FklGrammerNonterm nt;
 		FklLalrBuiltinGrammerSym b;
+		const FklRegexCode* re;
 	};
 }FklGrammerSym;
 
@@ -114,6 +123,7 @@ typedef enum
 	FKL_LALR_MATCH_STRING,
 	FKL_LALR_MATCH_BUILTIN,
 	FKL_LALR_MATCH_STRING_END_WITH_TERMINAL,
+	FKL_LALR_MATCH_REGEX,
 }FklLalrMatchType;
 
 #define FKL_LALR_MATCH_NONE_INIT ((FklLalrItemLookAhead){.t=FKL_LALR_MATCH_NONE,})
@@ -128,6 +138,7 @@ typedef struct
 	{
 		const FklString* s;
 		FklLalrBuiltinGrammerSym b;
+		const FklRegexCode* re;
 	};
 }FklLalrItemLookAhead;
 
@@ -182,6 +193,7 @@ typedef struct
 	{
 		const FklString* str;
 		FklLalrBuiltinGrammerSym func;
+		const FklRegexCode* re;
 	};
 }FklAnalysisStateActionMatch;
 
@@ -225,8 +237,9 @@ typedef struct
 	{
 		const FklString* str;
 		FklLalrBuiltinGrammerSym b;
+		const FklRegexCode* re;
 	};
-	unsigned int isbuiltin:1;
+	uint32_t term_type;
 }FklGrammerIgnoreSym;
 
 typedef struct FklGrammerIgnore
@@ -241,6 +254,8 @@ typedef struct FklGrammer
 	FklSymbolTable terminals;
 
 	FklSymbolTable reachable_terminals;
+
+	FklRegexTable regexes;
 
 	size_t sortedTerminalsNum;
 	const FklString** sortedTerminals;
@@ -367,7 +382,11 @@ int fklIsNonterminalExist(FklHashTable* prods,FklSid_t group,FklSid_t id);
 FklGrammerProduction* fklGetProductions(const FklHashTable* prod,FklSid_t group,FklSid_t id);
 FklGrammerProduction* fklGetGrammerProductions(const FklGrammer* g,FklSid_t group,FklSid_t id);
 
-void fklPrintGrammerProduction(FILE* fp,const FklGrammerProduction* prod,const FklSymbolTable* st,const FklSymbolTable* tt);
+void fklPrintGrammerProduction(FILE* fp
+		,const FklGrammerProduction* prod
+		,const FklSymbolTable* st
+		,const FklSymbolTable* tt
+		,const FklRegexTable* rt);
 void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st);
 
 void* fklParseWithTableForCstr(const FklGrammer*
@@ -435,6 +454,7 @@ void* fklDefaultParseForCharBuf(const char* str
 FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 		,FklSymbolTable* st
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklHashTable* builtins);
 
 void fklInitBuiltinGrammerSymTable(FklHashTable* s,FklSymbolTable* st);

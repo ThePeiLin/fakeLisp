@@ -21,7 +21,7 @@ FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegen
 }
 
 void fklPrintCodegenError(FklNastNode* obj
-		,FklBuiltInErrorType type
+		,FklBuiltinErrorType type
 		,FklSid_t sid
 		,FklSymbolTable* symbolTable
 		,size_t line
@@ -29,23 +29,23 @@ void fklPrintCodegenError(FklNastNode* obj
 {
 	if(type==FKL_ERR_DUMMY)
 		return;
-	fprintf(stderr,"error in compiling: ");
+	fputs("error in compiling: ",stderr);
 	switch(type)
 	{
 		case FKL_ERR_CIR_REF:
-			fprintf(stderr,"Circular reference occur in expanding macro");
+			fputs("Circular reference occur in expanding macro",stderr);
 			break;
 		case FKL_ERR_SYMUNDEFINE:
-			fprintf(stderr,"Symbol ");
+			fputs("Symbol ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
-			fprintf(stderr," is undefined");
+			fputs(" is undefined",stderr);
 			break;
 		case FKL_ERR_SYNTAXERROR:
-			fprintf(stderr,"Invalid syntax ");
+			fputs("Invalid syntax ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_INVALIDEXPR:
-			fprintf(stderr,"Invalid expression");
+			fputs("Invalid expression",stderr);
 			if(obj!=NULL)
 			{
 				fputc(' ',stderr);
@@ -53,39 +53,39 @@ void fklPrintCodegenError(FklNastNode* obj
 			}
 			break;
 		case FKL_ERR_CIRCULARLOAD:
-			fprintf(stderr,"Circular load file ");
+			fputs("Circular load file ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_INVALIDPATTERN:
-			fprintf(stderr,"Invalid string match pattern ");
+			fputs("Invalid string match pattern ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_INVALID_MACRO_PATTERN:
-			fprintf(stderr,"Invalid macro pattern ");
+			fputs("Invalid macro pattern ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_MACROEXPANDFAILED:
-			fprintf(stderr,"Failed to expand macro in ");
+			fputs("Failed to expand macro in ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_LIBUNDEFINED:
-			fprintf(stderr,"Library ");
+			fputs("Library ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
-			fprintf(stderr," undefined");
+			fputs(" undefined",stderr);
 			break;
 		case FKL_ERR_FILEFAILURE:
-			fprintf(stderr,"Failed for file: ");
+			fputs("Failed for file: ",stderr);
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_IMPORTFAILED:
-			fprintf(stderr,"Failed for importing module: ");
+			fputs("Failed for importing module: ",stderr);
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_UNEXPECTED_EOF:
-			fprintf(stderr,"Unexpected eof");
+			fputs("Unexpected eof",stderr);
 			break;
 		case FKL_ERR_IMPORT_MISSING:
-			fprintf(stderr,"Missing import for ");
+			fputs("Missing import for ",stderr);
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
 		case FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP:
@@ -97,8 +97,12 @@ void fklPrintCodegenError(FklNastNode* obj
 		case FKL_ERR_GRAMMER_CREATE_FAILED:
 			fputs("Failed to create grammer",stderr);
 			break;
+		case FKL_ERR_REGEX_COMPILE_FAILED:
+			fputs("Failed to compile regex in ",stderr);
+			fklPrintNastNode(obj,stderr,publicSymbolTable);
+			break;
 		default:
-			fprintf(stderr,"Unknown compiling error");
+			fputs("Unknown compiling error",stderr);
 			break;
 	}
 	if(obj)
@@ -114,9 +118,14 @@ void fklPrintCodegenError(FklNastNode* obj
 	}
 	else
 	{
-		fprintf(stderr," at line %"PRT64U" of file ",line);
-		fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
-		fputc('\n',stderr);
+		if(sid)
+		{
+			fprintf(stderr," at line %"PRT64U" of file ",line);
+			fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
+			fputc('\n',stderr);
+		}
+		else
+			fprintf(stderr," at line %"PRT64U" of file ",line);
 	}
 	if(obj)
 		fklDestroyNastNode(obj);
@@ -753,7 +762,7 @@ static inline FklHashTable* load_replacements(FklSymbolTable* st,FILE* fp)
 	return ht;
 }
 
-static void load_named_prods(FklSymbolTable* tt,FklHashTable* ht,FklSymbolTable* st,FILE* fp);
+static void load_named_prods(FklSymbolTable* tt,FklRegexTable* rt,FklHashTable* ht,FklSymbolTable* st,FILE* fp);
 
 static inline void load_script_lib_from_pre_compile(FklCodegenLib* lib,FklSymbolTable* st,const char* main_dir,FILE* fp)
 {
@@ -765,7 +774,7 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib* lib,FklSymbol
 	lib->replacements=load_replacements(st,fp);
 	lib->named_prod_groups.t=NULL;
 	lib->terminal_table.ht.t=NULL;
-	load_named_prods(&lib->terminal_table,&lib->named_prod_groups,st,fp);
+	load_named_prods(&lib->terminal_table,&lib->regexes,&lib->named_prod_groups,st,fp);
 }
 
 static inline char* load_dll_lib_path(const char* main_dir,FILE* fp)
@@ -873,7 +882,7 @@ static inline int load_imported_lib_stack(FklPtrStack* libStack
 	main_lib->head=load_compiler_macros(st,fp);
 	main_lib->replacements=load_replacements(st,fp);
 	fklPushPtrStack(main_lib,libStack);
-	load_named_prods(&main_lib->terminal_table,&main_lib->named_prod_groups,st,fp);
+	load_named_prods(&main_lib->terminal_table,&main_lib->regexes,&main_lib->named_prod_groups,st,fp);
 	return 0;
 }
 
@@ -1071,6 +1080,7 @@ static inline FklGrammerProductionGroup* add_production_group(FklHashTable* name
 }
 
 static inline void load_named_prods(FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklHashTable* ht
 		,FklSymbolTable* st
 		,FILE* fp)
@@ -1081,6 +1091,7 @@ static inline void load_named_prods(FklSymbolTable* tt
 	if(has_named_prod)
 	{
 		fklInitSymbolTable(tt);
+		fklInitRegexTable(rt);
 		fklInitCodegenProdGroupTable(ht);
 		uint32_t num=0;
 		fread(&num,sizeof(num),1,fp);
@@ -1109,6 +1120,7 @@ static inline void init_pre_lib_reader_macros(FklHashTable* builtin_terms
 		if(lib->named_prod_groups.t)
 		{
 			FklSymbolTable* tt=&lib->terminal_table;
+			FklRegexTable* rt=&lib->regexes;
 			for(FklHashTableItem* l=lib->named_prod_groups.first;l;l=l->next)
 			{
 				FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)l->data;
@@ -1117,7 +1129,7 @@ static inline void init_pre_lib_reader_macros(FklHashTable* builtin_terms
 				for(uint32_t i=0;i<top;i++)
 				{
 					FklNastNode* node=stack->base[i];
-					FklGrammerIgnore* ig=fklNastVectorToIgnore(node,tt,builtin_terms);
+					FklGrammerIgnore* ig=fklNastVectorToIgnore(node,tt,rt,builtin_terms);
 					fklAddIgnoreToIgnoreList(&group->ignore,ig);
 				}
 				stack=&group->prod_printing;
@@ -1125,7 +1137,7 @@ static inline void init_pre_lib_reader_macros(FklHashTable* builtin_terms
 				for(uint32_t i=0;i<top;i++)
 				{
 					FklCodegenProdPrinting* p=stack->base[i];
-					FklGrammerProduction* prod=fklCodegenProdPrintingToProduction(p,tt,builtin_terms,outer_ctx,pts,macroLibStack);
+					FklGrammerProduction* prod=fklCodegenProdPrintingToProduction(p,tt,rt,builtin_terms,outer_ctx,pts,macroLibStack);
 					fklAddProdToProdTableNoRepeat(&group->prods,builtin_terms,prod);
 					if(p->add_extra)
 					{

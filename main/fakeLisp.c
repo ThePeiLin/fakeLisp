@@ -85,6 +85,7 @@ static inline int compileAndRun(char* filename)
 	fklUninitCodegenInfo(&codegen);
 	fklUninitCodegenOuterCtx(&outer_ctx);
 
+	fklChdir(fklGetCwd());
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(anotherVM->symbolTable);
 	fklDestroyAllVMs(anotherVM);
@@ -860,6 +861,7 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 		fklDestroyVMframe(cur,exe);
 	}
 	ReplCtx* ctx=(ReplCtx*)exe->frames->data;
+	fklUnLockVMfp(ctx->stdinVal);
 	ctx->state=READY;
 	return 1;
 }

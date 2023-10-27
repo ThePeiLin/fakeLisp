@@ -57,7 +57,7 @@ static const FklHashTableMetaTable SymbolHashMetaTable=
 {
 	.size=sizeof(FklSymbolHashItem),
 	.__getKey=fklHashDefaultGetKey,
-	.__setKey=fklHashDefaultSetPtrKey,
+	.__setKey=fklPtrKeySet,
 	.__setVal=symbol_hash_set_val,
 	.__keyEqual=symbol_hash_key_equal,
 	.__hashFunc=symbol_hash_func,

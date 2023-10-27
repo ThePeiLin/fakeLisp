@@ -397,7 +397,7 @@ void fklDestroyVMframe(FklVMframe* frame,FklVM* exe)
 		fklDoFinalizeCompoundFrame(frame,exe);
 }
 
-FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorType type)
+FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltinErrorType type)
 {
 	FklString* t=fklCreateEmptyString();
 	switch(type)
@@ -441,7 +441,7 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltInErrorTy
 	return t;
 }
 
-FklString* fklGenErrorMessage(FklBuiltInErrorType type)
+FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 {
 	static const char* builtinErrorMessages[]=
 	{
@@ -481,6 +481,9 @@ FklString* fklGenErrorMessage(FklBuiltInErrorType type)
 		NULL,
 		NULL,
 		NULL,
+		"Analysis table generate failed",
+		"Regex compile failed",
+		"Grammer create failed",
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);
@@ -531,11 +534,11 @@ static void _VMvalue_setVal(void* d0,const void* d1)
 static FklHashTableMetaTable VMvalueHashMetaTable=
 {
 	.size=sizeof(VMvalueHashItem),
-	.__setKey=fklHashDefaultSetPtrKey,
+	.__setKey=fklPtrKeySet,
 	.__setVal=_VMvalue_setVal,
 	.__hashFunc=_VMvalue_hashFunc,
 	.__uninitItem=fklDoNothingUninitHashItem,
-	.__keyEqual=fklHashPtrKeyEqual,
+	.__keyEqual=fklPtrKeyEqual,
 	.__getKey=fklHashDefaultGetKey,
 };
 

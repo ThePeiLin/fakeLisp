@@ -1,10 +1,17 @@
 #include<fakeLisp/grammer.h>
 #include<fakeLisp/base.h>
-#include<fakeLisp/parser.h>
+#include<fakeLisp/nast.h>
 #include<fakeLisp/utils.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
+
+static void* fklNastTerminalCreate(const char* s,size_t len,size_t line,void* ctx)
+{
+	FklNastNode* ast=fklCreateNastNode(FKL_NAST_STR,line);
+	ast->str=fklCreateString(len,s);
+	return ast;
+}
 
 static inline void* prod_action_symbol(void* ctx
 		,void* outerCtx
@@ -623,10 +630,10 @@ int main()
 	};
 
 	int retval=0;
+	FklGrammerMatchOuterCtx outerCtx={.maxNonterminalLen=0,.line=1,.start=NULL,.cur=NULL,.create=fklNastTerminalCreate,.destroy=(void(*)(void*))fklDestroyNastNode,};
+
 	for(const char** exp=&exps[0];*exp;exp++)
 	{
-		FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
-
 		FklNastNode* ast=fklParseWithTableForCstr(g,*exp,&outerCtx,st,&retval);
 
 		if(retval)

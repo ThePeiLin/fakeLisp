@@ -419,7 +419,7 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 			break;
 	}
 	if(ref&&idx<codegen->builtinSymbolNum&&!codegen->builtinSymModiMark[idx])
-		return fklGetBuiltInInlineFunc(idx,argNum);
+		return fklGetBuiltinInlineFunc(idx,argNum);
 	return NULL;
 }
 
@@ -3767,7 +3767,10 @@ static const FklCodegenQuestContextMethodTable ExportContextMethodTable=
 	.__put_bcl=export_context_data_put_bcl,
 };
 
-static inline void recompute_ignores_terminal_sid(FklGrammerIgnore* igs,FklSymbolTable* target_table)
+static inline void recompute_ignores_terminal_sid_and_regex(FklGrammerIgnore* igs
+		,FklSymbolTable* target_table
+		,FklRegexTable* target_rt
+		,FklRegexTable* orig_rt)
 {
 	FklGrammerIgnoreSym* syms=igs->ig;
 	size_t len=igs->len;
@@ -3775,11 +3778,13 @@ static inline void recompute_ignores_terminal_sid(FklGrammerIgnore* igs,FklSymbo
 	{
 		size_t idx=i-1;
 		FklGrammerIgnoreSym* cur=&syms[idx];
-		if(cur->isbuiltin)
+		if(cur->term_type==FKL_TERM_BUILTIN)
 		{
 			int failed=0;
 			cur->b.c=cur->b.t->ctx_create(idx+1<len?syms[idx+1].str:NULL,&failed);
 		}
+		else if(cur->term_type==FKL_TERM_REGEX)
+			cur->re=fklAddRegexStr(target_rt,fklGetStringWithRegex(orig_rt,cur->re));
 		else
 			cur->str=fklAddSymbol(cur->str,target_table)->symbol;
 	}
@@ -3794,7 +3799,7 @@ static inline void recompute_prod_terminal_sid(FklGrammerProduction* prod
 	for(size_t i=0;i<len;i++)
 	{
 		FklGrammerSym* cur=&sym[i];
-		if(cur->isterm&&!cur->isbuiltin)
+		if(cur->isterm&&cur->term_type!=FKL_TERM_BUILTIN)
 			cur->nt.sid=fklAddSymbol(fklGetSymbolWithId(cur->nt.sid,origin_table)->symbol,target_table)->id;
 	}
 }
@@ -3859,6 +3864,7 @@ reader_macro_error:
 	}
 
 	FklSymbolTable* origin_table=&lib->terminal_table;
+	FklRegexTable* orig_rt=&lib->regexes;
 	FklGrammerProductionGroup* target_group=add_production_group(codegen->named_prod_groups,new_group_id);
 
 	for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
@@ -3869,7 +3875,7 @@ reader_macro_error:
 		ig->next=NULL;
 		memcpy(ig->ig,igs->ig,sizeof(FklGrammerIgnoreSym)*ig->len);
 
-		recompute_ignores_terminal_sid(ig,&g->terminals);
+		recompute_ignores_terminal_sid_and_regex(ig,&g->terminals,&g->regexes,orig_rt);
 		if(fklAddIgnoreToIgnoreList(&target_group->ignore,ig))
 		{
 			free(ig);
@@ -6845,6 +6851,7 @@ static inline struct CstrIdCreatorProdAction* find_simple_prod_action(FklSid_t i
 static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastVector* vec
 		,FklHashTable* builtin_term
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,size_t* num
 		,int* failed)
 {
@@ -6866,6 +6873,8 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 		if(cur->type==FKL_NAST_STR)
 			fklPushPtrStack((void*)cur,&valid_items);
 		else if(cur->type==FKL_NAST_SYM)
+			fklPushPtrStack((void*)cur,&valid_items);
+		else if(cur->type==FKL_NAST_BOX&&cur->box->type==FKL_NAST_STR)
 			fklPushPtrStack((void*)cur,&valid_items);
 		else if(cur->type==FKL_NAST_NIL)
 		{
@@ -6902,7 +6911,7 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 			if(cur->type==FKL_NAST_STR)
 			{
 				ss->isterm=1;
-				ss->isbuiltin=0;
+				ss->term_type=FKL_TERM_STRING;
 				ss->nt.group=0;
 				ss->nt.sid=fklAddSymbol(cur->str,tt)->id;
 				ss->end_with_terminal=end_with_terminal[i];
@@ -6910,23 +6919,37 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 			else if(cur->type==FKL_NAST_PAIR)
 			{
 				ss->isterm=0;
-				ss->isbuiltin=0;
+				ss->term_type=FKL_TERM_STRING;
 				ss->nt.group=cur->pair->car->sym;
 				ss->nt.sid=cur->pair->cdr->sym;
+			}
+			else if(cur->type==FKL_NAST_BOX)
+			{
+				ss->isterm=1;
+				ss->term_type=FKL_TERM_REGEX;
+				const FklRegexCode* re=fklAddRegexStr(rt,cur->box->str);
+				if(!re)
+				{
+					*failed=2;
+					free(retval);
+					retval=NULL;
+					goto end;
+				}
+				ss->re=re;
 			}
 			else
 			{
 				if(fklGetBuiltinMatch(builtin_term,cur->sym))
 				{
 					ss->isterm=1;
-					ss->isbuiltin=1;
+					ss->term_type=FKL_TERM_BUILTIN;
 					ss->b.t=fklGetBuiltinMatch(builtin_term,cur->sym);
 					ss->b.c=NULL;
 				}
 				else
 				{
 					ss->isterm=0;
-					ss->isbuiltin=0;
+					ss->term_type=FKL_TERM_STRING;
 					ss->nt.group=0;
 					ss->nt.sid=cur->sym;
 				}
@@ -6944,16 +6967,18 @@ end:
 
 static inline FklGrammerIgnore* nast_vector_to_ignore(const FklNastVector* vec
 		,FklHashTable* builtin_term
-		,FklSymbolTable* tt)
+		,FklSymbolTable* tt
+		,FklRegexTable* rt
+		,int* failed)
 {
 	size_t num=0;
-	int failed=0;
 	FklGrammerSym* syms=nast_vector_to_production_right_part(vec
 			,builtin_term
 			,tt
+			,rt
 			,&num
-			,&failed);
-	if(failed)
+			,failed);
+	if(*failed)
 		return NULL;
 	FklGrammerIgnore* ig=fklGrammerSymbolsToIgnore(syms,num,tt);
 	fklUninitGrammerSymbols(syms,num);
@@ -6963,13 +6988,16 @@ static inline FklGrammerIgnore* nast_vector_to_ignore(const FklNastVector* vec
 
 FklGrammerIgnore* fklNastVectorToIgnore(FklNastNode* ast
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklHashTable* builtin)
 {
-	return nast_vector_to_ignore(ast->vec,builtin,tt);
+	int failed=0;
+	return nast_vector_to_ignore(ast->vec,builtin,tt,rt,&failed);
 }
 
 FklGrammerProduction* fklCodegenProdPrintingToProduction(FklCodegenProdPrinting* p
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklHashTable* builtin_terms
 		,FklCodegenOuterCtx* outer_ctx
 		,FklFuncPrototypes* pts
@@ -6980,7 +7008,7 @@ FklGrammerProduction* fklCodegenProdPrintingToProduction(FklCodegenProdPrinting*
 	int failed=0;
 	FklGrammerSym* syms=nast_vector_to_production_right_part(vec
 			,builtin_terms
-			,tt,&len,&failed);
+			,tt,rt,&len,&failed);
 	FklGrammerProduction* prod=fklCreateProduction(p->sid==0?0:p->group_id
 			,p->sid
 			,len
@@ -7157,7 +7185,7 @@ FklGrammerProduction* fklCreateExtraStartProduction(FklSid_t group,FklSid_t sid)
 	prod->idx=0;
 	FklGrammerSym* u=&prod->syms[0];
 	u->delim=1;
-	u->isbuiltin=0;
+	u->term_type=FKL_TERM_STRING;
 	u->isterm=0;
 	u->nt.group=group;
 	u->nt.sid=sid;
@@ -7283,6 +7311,7 @@ static inline FklGrammerProduction* nast_vector_to_production(FklNastNode* vec_n
 		,uint8_t add_extra
 		,FklHashTable* builtin_term
 		,FklSymbolTable* tt
+		,FklRegexTable* rt
 		,FklSid_t left_group
 		,FklSid_t sid
 		,FklSid_t action_type
@@ -7292,17 +7321,18 @@ static inline FklGrammerProduction* nast_vector_to_production(FklNastNode* vec_n
 		,FklCodegenEnv* curEnv
 		,FklCodegenMacroScope* macroScope
 		,FklPtrStack* codegenQuestStack
-		,FklSymbolTable* pst)
+		,FklSymbolTable* pst
+		,int* failed)
 {
-	int failed=0;
 	size_t len=0;
 	const FklNastVector* vec=vec_node->vec;
 	FklGrammerSym* syms=nast_vector_to_production_right_part(vec
 			,builtin_term
 			,tt
+			,rt
 			,&len
-			,&failed);
-	if(failed)
+			,failed);
+	if(*failed)
 		return NULL;
 	if(action_type==codegen->outer_ctx->builtInPatternVar_builtin)
 	{
@@ -7696,6 +7726,7 @@ static inline int init_builtin_grammer(FklCodegenInfo* codegen,FklSymbolTable* s
 	*codegen->builtin_ignores=fklInitBuiltinProductionSet(codegen->builtin_prods
 			,st
 			,&g->terminals
+			,&g->regexes
 			,&g->builtins);
 
 	g->ignores=NULL;
@@ -7724,11 +7755,22 @@ static inline int process_add_production(FklSid_t group_id
 	{
 		if(vec->base[0]->type!=FKL_NAST_VECTOR||vec->base[0]->vec->size==0)
 			goto reader_macro_error;
+		int failed=0;
 		FklGrammerIgnore* ignore=nast_vector_to_ignore(vec->base[0]->vec
 				,&g->builtins
-				,&g->terminals);
+				,&g->terminals
+				,&g->regexes
+				,&failed);
 		if(!ignore)
 		{
+			if(failed==2)
+			{
+regex_compile_error:
+				errorState->type=FKL_ERR_REGEX_COMPILE_FAILED;
+				errorState->place=fklMakeNastNodeRef(vector_node);
+				errorState->fid=codegen->fid;
+				return 1;
+			}
 reader_macro_error:
 			errorState->type=FKL_ERR_SYNTAXERROR;
 			errorState->place=fklMakeNastNodeRef(vector_node);
@@ -7762,11 +7804,13 @@ reader_macro_error:
 		if(base[0]->type==FKL_NAST_NIL
 				&&base[1]->type==FKL_NAST_VECTOR)
 		{
+			int failed=0;
 			FklGrammerProduction* prod=nast_vector_to_production(base[1]
 					,vector_node->curline
 					,0
 					,&g->builtins
 					,&g->terminals
+					,&g->regexes
 					,0
 					,0
 					,base[2]->sym
@@ -7776,7 +7820,10 @@ reader_macro_error:
 					,curEnv
 					,macroScope
 					,codegenQuestStack
-					,pst);
+					,pst
+					,&failed);
+			if(failed==2)
+				goto regex_compile_error;
 			if(!prod)
 				goto reader_macro_error;
 		}
@@ -7788,11 +7835,13 @@ reader_macro_error:
 			if(group_id==0&&(fklGetHashItem(&sid,&g->builtins)
 						||fklIsNonterminalExist(codegen->builtin_prods,group_id,sid)))
 				goto reader_macro_error;
+			int failed=0;
 			FklGrammerProduction* prod=nast_vector_to_production(vect
 					,vector_node->curline
 					,1
 					,&g->builtins
 					,&g->terminals
+					,&g->regexes
 					,group_id
 					,sid
 					,base[2]->sym
@@ -7802,7 +7851,10 @@ reader_macro_error:
 					,curEnv
 					,macroScope
 					,codegenQuestStack
-					,pst);
+					,pst
+					,&failed);
+			if(failed==2)
+				goto regex_compile_error;
 			if(!prod)
 				goto reader_macro_error;
 		}
@@ -7814,11 +7866,13 @@ reader_macro_error:
 			if(group_id==0&&(fklGetHashItem(&sid,&g->builtins)
 						||fklIsNonterminalExist(codegen->builtin_prods,group_id,sid)))
 				goto reader_macro_error;
+			int failed=0;
 			FklGrammerProduction* prod=nast_vector_to_production(vect
 					,vector_node->curline
 					,0
 					,&g->builtins
 					,&g->terminals
+					,&g->regexes
 					,group_id
 					,sid
 					,base[2]->sym
@@ -7828,7 +7882,10 @@ reader_macro_error:
 					,curEnv
 					,macroScope
 					,codegenQuestStack
-					,pst);
+					,pst
+					,&failed);
+			if(failed==2)
+				goto regex_compile_error;
 			if(!prod)
 				goto reader_macro_error;
 		}
@@ -8748,6 +8805,7 @@ void fklUninitCodegenInfo(FklCodegenInfo* codegen)
 	{
 		FklGrammer* g=*codegen->g;
 		fklClearGrammer(g);
+		fklUninitRegexTable(&g->regexes);
 		fklUninitSymbolTable(&g->terminals);
 		fklUninitSymbolTable(&g->reachable_terminals);
 		fklUninitHashTable(&g->builtins);
@@ -8765,10 +8823,12 @@ void fklUninitCodegenInfo(FklCodegenInfo* codegen)
 
 static inline void recompute_all_terminal_sid(FklGrammerProductionGroup* group
 		,FklSymbolTable* target_table
-		,FklSymbolTable* origin_table)
+		,FklSymbolTable* origin_table
+		,FklRegexTable* target_rt
+		,FklRegexTable* orig_rt)
 {
 	for(FklGrammerIgnore* igs=group->ignore;igs;igs=igs->next)
-		recompute_ignores_terminal_sid(igs,target_table);
+		recompute_ignores_terminal_sid_and_regex(igs,target_table,target_rt,orig_rt);
 	for(FklHashTableItem* prod_hash_item_list=group->prods.first
 			;prod_hash_item_list
 			;prod_hash_item_list=prod_hash_item_list->next)
@@ -8799,6 +8859,7 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 		if(codegen->export_named_prod_groups&&codegen->export_named_prod_groups->num)
 		{
 			fklInitSymbolTable(&lib->terminal_table);
+			fklInitRegexTable(&lib->regexes);
 			FklGrammer* g=*codegen->g;
 			fklInitCodegenProdGroupTable(&lib->named_prod_groups);
 			for(FklHashTableItem* sid_list=codegen->export_named_prod_groups->first
@@ -8840,7 +8901,11 @@ void fklInitCodegenScriptLib(FklCodegenLib* lib
 						fklAddProdToProdTable(&target_group->prods,&g->builtins,prod);
 					}
 				}
-				recompute_all_terminal_sid(target_group,&lib->terminal_table,&g->terminals);
+				recompute_all_terminal_sid(target_group
+						,&lib->terminal_table
+						,&g->terminals
+						,&lib->regexes
+						,&g->regexes);
 			}
 		}
 	}
@@ -8951,6 +9016,7 @@ void fklUninitCodegenLibInfo(FklCodegenLib* lib)
 	{
 		fklUninitHashTable(&lib->named_prod_groups);
 		fklUninitSymbolTable(&lib->terminal_table);
+		fklUninitRegexTable(&lib->regexes);
 	}
 }
 

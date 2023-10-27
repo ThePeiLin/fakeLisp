@@ -111,7 +111,7 @@ target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
 if(MSVC)
 add_custom_command(TARGET test-dll
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:test-dll>	
+	$<TARGET_FILE:test-dll>
 	"${CMAKE_BINARY_DIR}/test/"
 	DEPENDS test-dll
 	VERBATIM)

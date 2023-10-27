@@ -759,6 +759,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx);
 void fklVMvalueTerminalDestroy(void*);
+void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
 
 void fklAddToGC(FklVMvalue*,FklVM*);
 FklVMvalue* fklCreateTrueValue(void);

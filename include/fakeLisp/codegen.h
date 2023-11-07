@@ -300,7 +300,7 @@ typedef struct FklCodegenQuestContext
 
 typedef struct FklCodegenErrorState
 {
-	FklSid_t fid;
+	// FklSid_t fid;
 	FklBuiltinErrorType type;
 	FklNastNode* place;
 	size_t line;
@@ -381,10 +381,10 @@ FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegen
 
 void fklPrintCodegenError(FklNastNode* obj
 		,FklBuiltinErrorType type
-		,FklSid_t sid
-		,FklSymbolTable* symbolTable
+		,const FklCodegenInfo* info
+		,const FklSymbolTable* symbolTable
 		,size_t line
-		,FklSymbolTable* publicSymbolTable);
+		,const FklSymbolTable* publicSymbolTable);
 
 void fklPrintUndefinedRef(const FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* pst);
 

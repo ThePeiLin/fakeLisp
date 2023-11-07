@@ -22,10 +22,10 @@ FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegen
 
 void fklPrintCodegenError(FklNastNode* obj
 		,FklBuiltinErrorType type
-		,FklSid_t sid
-		,FklSymbolTable* symbolTable
+		,const FklCodegenInfo* info
+		,const FklSymbolTable* symbolTable
 		,size_t line
-		,FklSymbolTable* publicSymbolTable)
+		,const FklSymbolTable* publicSymbolTable)
 {
 	if(type==FKL_ERR_DUMMY)
 		return;
@@ -107,10 +107,9 @@ void fklPrintCodegenError(FklNastNode* obj
 	}
 	if(obj)
 	{
-		if(sid)
+		if(info->filename)
 		{
-			fprintf(stderr," at line %"PRT64U" of file ",obj->curline);
-			fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
+			fprintf(stderr," at line %"PRT64U" of file %s",obj->curline,info->filename);
 			fputc('\n',stderr);
 		}
 		else
@@ -118,10 +117,9 @@ void fklPrintCodegenError(FklNastNode* obj
 	}
 	else
 	{
-		if(sid)
+		if(info->filename)
 		{
-			fprintf(stderr," at line %"PRT64U" of file ",line);
-			fklPrintString(fklGetSymbolWithId(sid,symbolTable)->symbol,stderr);
+			fprintf(stderr," at line %"PRT64U" of file %s",line,info->filename);
 			fputc('\n',stderr);
 		}
 		else

@@ -1,3 +1,6 @@
+(check (eq *platform* "win32")
+  (system "chcp 65001"))
+
 (import (ascii-art)
         (bf)
         (coroutine)
@@ -20,6 +23,7 @@
         (read)
         (bigloop)
         (dll)
-        (complex-macro))
+        (complex-macro)
+        (compile-check))
 
 (println "\ntest done!")

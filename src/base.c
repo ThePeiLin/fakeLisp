@@ -2410,7 +2410,7 @@ uint8_t fklPopU8Stack(FklU8Stack* s)
 {
 	if(fklIsU8StackEmpty(s))
 		return 0;
-	return s->base[s->top--];
+	return s->base[--s->top];
 }
 
 uint8_t fklTopU8Stack(FklU8Stack* s)

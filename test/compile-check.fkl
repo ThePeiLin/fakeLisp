@@ -1,0 +1,128 @@
+(println "\ncompile check test")
+
+;; 1
+(println (check *main?*))
+
+;; 1
+(println (check (and)))
+
+;; ()
+(println
+  (check
+    (and (not bar)
+      (and *main?* (not foo))
+      (and (not *main?*) (not foo)))))
+
+;; 1
+(println
+  (check
+    (and (not bar)
+      (and *main?* (not foo)))))
+
+;; 1
+(println
+  (check
+    (not (and (not bar)
+           (and *main?* (not foo))
+           (and (not *main?*) (not foo))))))
+
+;; ()
+(println (check (or)))
+
+;; 1
+(println
+  (check
+    (or bar
+      (or *main?* foo))))
+
+;; ()
+(println
+  (check
+    (or bar
+      (or (not *main?*) foo))))
+
+;; 1
+(println (check (import (.. lib json))))
+
+;; ()
+(println (check (import (foobar))))
+
+(defmacro foo 'bar)
+(defmacro ~(foobar) 'foobar)
+
+(defmacro
+  #(#[#&"^/\\*.*\\*/$"])
+  foobar)
+
+(println (check (defmacro foo))) ;; 1
+(println (check (defmacro (foobar)))) ;; 1
+(println (check (defmacro #(foobar)))) ;; 1
+
+;; 1
+(println (check (and
+                  (defmacro foo)
+                  (defmacro (foobar))
+                  (defmacro #(foobar)))))
+
+(println (check (defmacro bar))) ;; ()
+(println (check (defmacro (barfoo)))) ;;()
+(println (check (defmacro #(barfoo)))) ;;()
+
+;; ()
+(println (check (or
+                  (defmacro bar)
+                  (defmacro (barfoo))
+                  (defmacro #(barfoo)))))
+
+;; main!
+(check *main?* (println "main!"))
+
+;; 1
+(println (check (eq *main?* 1)))
+
+;; main
+(check
+  *main?* (println "main")
+  (define foo) (println foo)
+  (import (lib json)) (println '(lib json))
+  (defmacro foo) (println foo)
+  (defmacro (cc)) (println '(cc))
+  (defmacro #(cc)) (println '#(cc))
+  (or (import (lib json))
+    (define foo)
+    *main?*)
+  (println "json or main or foo")
+  (and (import (lib json))
+    (define foo)
+    *main?*)
+  (println "json and main and foo")
+  (not (import (lib json)))
+  (println "not has (lib json)"))
+
+(check (eq *platform* "win32") (println "win32!")
+  1 (println "not win32!"))
+
+(check
+  (eq *platform* "linux") (println "linux!")
+  1 (println "not linux!"))
+
+;; always
+(check 1 (println "always"))
+
+(println "done!")
+
+(defmacro foobar (foo))
+
+(defmacro version #(114 514 19))
+
+(defmacro manifest #hash((foo,114) (bar,514)))
+
+(println (check (match foobar ~(foo))))
+
+(println (check (match foobar ~(~*))))
+
+(println (check (match version ~#(114 ~* ~*))))
+
+(println (check (match version ~#(514 ~* ~*))))
+
+(println (check (match manifest ~#hash((foo,~*) (bar,~*)))))

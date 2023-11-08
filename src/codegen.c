@@ -193,6 +193,14 @@ static const char* builtInSubPattern[]=
 {
 	"~(unquote ~value)",
 	"~(unqtesp ~value)",
+	"~(define ~value)",
+	"~(defmacro ~value)",
+	"~(import ~value)",
+	"~(and,~rest)",
+	"~(or,~rest)",
+	"~(not ~value)",
+	"~(eq ~arg0 ~arg1)",
+	"~(match ~arg0 ~arg1)",
 	NULL,
 };                                      
 
@@ -2560,21 +2568,493 @@ static inline void push_single_bcl_codegen_quest(FklByteCodelnt* bcl
 	fklPushPtrStack(quest,codegenQuestStack);
 }
 
+typedef FklNastNode* (*ReplacementFunc)(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen);
+
+static inline ReplacementFunc findBuiltInReplacementWithId(FklSid_t id,const FklSid_t builtin_replacement_id[]);
+
+static inline int is_replacement_define(const FklNastNode* value
+		,const FklCodegenInfo* info
+		,const FklCodegenOuterCtx* ctx
+		,const FklCodegenMacroScope* macroScope
+		,const FklCodegenEnv* curEnv)
+{
+	FklNastNode* replacement=NULL;
+	ReplacementFunc f=NULL;
+	for(const FklCodegenMacroScope* cs=macroScope;cs&&!replacement;cs=cs->prev)
+		replacement=fklGetReplacement(value->sym,cs->replacements);
+	if(replacement)
+	{
+		fklDestroyNastNode(replacement);
+		return 1;
+	}
+	else if((f=findBuiltInReplacementWithId(value->sym,ctx->builtin_replacement_id)))
+		return 1;
+	else
+		return 0;
+}
+
+static inline int is_replacement_true(const FklNastNode* value
+		,const FklCodegenInfo* info
+		,const FklCodegenOuterCtx* ctx
+		,const FklCodegenMacroScope* macroScope
+		,const FklCodegenEnv* curEnv)
+{
+	FklNastNode* replacement=NULL;
+	ReplacementFunc f=NULL;
+	for(const FklCodegenMacroScope* cs=macroScope;cs&&!replacement;cs=cs->prev)
+		replacement=fklGetReplacement(value->sym,cs->replacements);
+	if(replacement)
+	{
+		int r=replacement->type!=FKL_NAST_NIL;
+		fklDestroyNastNode(replacement);
+		return r;
+	}
+	else if((f=findBuiltInReplacementWithId(value->sym,ctx->builtin_replacement_id)))
+	{
+		FklNastNode* t=f(value,curEnv,info);
+		int r=t->type!=FKL_NAST_NIL;
+		fklDestroyNastNode(t);
+		return r;
+	}
+	else
+		return 0;
+}
+
+static inline FklNastNode* get_replacement(const FklNastNode* value
+		,const FklCodegenInfo* info
+		,const FklCodegenOuterCtx* ctx
+		,const FklCodegenMacroScope* macroScope
+		,const FklCodegenEnv* curEnv)
+{
+	FklNastNode* replacement=NULL;
+	ReplacementFunc f=NULL;
+	for(const FklCodegenMacroScope* cs=macroScope;cs&&!replacement;cs=cs->prev)
+		replacement=fklGetReplacement(value->sym,cs->replacements);
+	if(replacement)
+		return replacement;
+	else if((f=findBuiltInReplacementWithId(value->sym,ctx->builtin_replacement_id)))
+		return f(value,curEnv,info);
+	else
+		return NULL;
+}
+
+static inline char* combineFileNameFromList(const FklNastNode* list,const FklSymbolTable* pst);
+
+static inline int is_valid_compile_check_pattern(const FklNastNode* p)
+{
+	return p->type==FKL_NAST_PAIR
+		&&p->type!=FKL_NAST_NIL
+		&&p->pair->car->type==FKL_NAST_SYM
+		&&p->pair->cdr->type==FKL_NAST_PAIR
+		&&p->pair->cdr->pair->cdr->type==FKL_NAST_NIL;
+}
+
+static inline int is_compile_check_pattern_slot_node(FklSid_t slot_id,const FklNastNode* n)
+{
+	return n->type==FKL_NAST_PAIR
+		&&n->type!=FKL_NAST_NIL
+		&&n->pair->car->type==FKL_NAST_SYM
+		&&n->pair->car->sym==slot_id
+		&&n->pair->cdr->type==FKL_NAST_PAIR
+		&&n->pair->cdr->pair->cdr->type==FKL_NAST_NIL;
+}
+
+static inline int is_compile_check_pattern_matched(const FklNastNode* p,const FklNastNode* e)
+{
+	FklPtrStack s0;
+	fklInitPtrStack(&s0,4,8);
+	FklPtrStack s1;
+	fklInitPtrStack(&s1,4,8);
+	fklPushPtrStack((void*)cadr_nast_node(p),&s0);
+	fklPushPtrStack((void*)e,&s1);
+	FklSid_t slot_id=p->pair->car->sym;
+	int r=1;
+	while(!fklIsPtrStackEmpty(&s0))
+	{
+		const FklNastNode* p=fklPopPtrStack(&s0);
+		const FklNastNode* e=fklPopPtrStack(&s1);
+		if(is_compile_check_pattern_slot_node(slot_id,p))
+			continue;
+		else if(p->type==e->type)
+		{
+			switch(p->type)
+			{
+				case FKL_NAST_BOX:
+					fklPushPtrStack((void*)p->box,&s0);
+					fklPushPtrStack((void*)e->box,&s1);
+					break;
+				case FKL_NAST_PAIR:
+					fklPushPtrStack((void*)p->pair->car,&s0);
+					fklPushPtrStack((void*)p->pair->cdr,&s0);
+					fklPushPtrStack((void*)e->pair->car,&s1);
+					fklPushPtrStack((void*)e->pair->cdr,&s1);
+					break;
+				case FKL_NAST_VECTOR:
+					if(p->vec->size!=e->vec->size)
+					{
+						r=0;
+						goto exit;
+					}
+					for(size_t i=0;i<p->vec->size;i++)
+					{
+						fklPushPtrStack((void*)p->vec->base[i],&s0);
+						fklPushPtrStack((void*)e->vec->base[i],&s1);
+					}
+					break;
+				case FKL_NAST_HASHTABLE:
+					if(p->hash->num!=e->hash->num)
+					{
+						r=0;
+						goto exit;
+					}
+					for(size_t i=0;i<p->hash->num;i++)
+					{
+						fklPushPtrStack((void*)p->hash->items[i].car,&s0);
+						fklPushPtrStack((void*)p->hash->items[i].cdr,&s0);
+						fklPushPtrStack((void*)e->hash->items[i].car,&s1);
+						fklPushPtrStack((void*)e->hash->items[i].cdr,&s1);
+					}
+					break;
+				default:
+					if(!fklNastNodeEqual(p,e))
+					{
+						r=0;
+						goto exit;
+					}
+			}
+		}
+		else
+		{
+			r=0;
+			goto exit;
+		}
+	}
+
+exit:
+	fklUninitPtrStack(&s0);
+	fklUninitPtrStack(&s1);
+	return r;
+}
+
+static inline int is_check_subpattern_true(const FklNastNode* value
+		,const FklCodegenInfo* info
+		,const FklCodegenOuterCtx* ctx
+		,uint32_t scope
+		,const FklCodegenMacroScope* macroScope
+		,const FklCodegenEnv* curEnv
+		,FklCodegenErrorState* errorState)
+{
+	if(value->type==FKL_NAST_PAIR)
+	{
+#define COND_COMPILE_CHECK_OP_TRUE (0)
+#define COND_COMPILE_CHECK_OP_NOT (1)
+#define COND_COMPILE_CHECK_OP_AND (2)
+#define COND_COMPILE_CHECK_OP_OR (3)
+
+		FklHashTable ht;
+		fklInitPatternMatchHashTable(&ht);
+
+		FklPtrStack expStack;
+		fklInitPtrStack(&expStack,1,8);
+		fklPushPtrStack(NULL,&expStack);
+		fklPushPtrStack((void*)value,&expStack);
+
+		FklU8Stack boolStack;
+		fklInitU8Stack(&boolStack,1,8);
+		fklPushU8Stack(255,&boolStack);
+
+		FklU8Stack opStack;
+		fklInitU8Stack(&opStack,1,8);
+		fklPushU8Stack(COND_COMPILE_CHECK_OP_TRUE,&opStack);
+
+		FklPtrStack tmpStack;
+		fklInitPtrStack(&tmpStack,1,8);
+		uint8_t r=0;
+		while(!fklIsU8StackEmpty(&opStack))
+		{
+			uint8_t r=fklPopU8Stack(&boolStack);
+			FklNastNode* cur=NULL;
+			if(r==255)
+			{
+				cur=fklPopPtrStack(&expStack);
+				if(cur)
+				{
+					if(cur->type==FKL_NAST_PAIR)
+					{
+						if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_DEFINE],cur,&ht))
+						{
+							const FklNastNode* value=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_value,&ht);
+							if(value->type!=FKL_NAST_SYM)
+								goto exit;
+							r=fklFindSymbolDefByIdAndScope(value->sym,scope,curEnv)!=NULL;
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_IMPORT],cur,&ht))
+						{
+							const FklNastNode* value=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_value,&ht);
+							if(value->type==FKL_NAST_NIL||!fklIsNastNodeListAndHasSameType(value,FKL_NAST_SYM))
+							{
+								errorState->type=FKL_ERR_SYNTAXERROR;
+								errorState->place=fklMakeNastNodeRef(cur);
+								goto exit;
+							}
+							char* filename=combineFileNameFromList(value,&ctx->public_symbol_table);
+
+							char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
+							packageMainFileName=fklStrCat(packageMainFileName,FKL_PACKAGE_MAIN_FILE);
+
+							char* preCompileFileName=fklStrCat(fklCopyCstr(packageMainFileName),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+
+							char* scriptFileName=fklStrCat(fklCopyCstr(filename),FKL_SCRIPT_FILE_EXTENSION);
+
+							char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+
+							r=fklIsAccessibleRegFile(packageMainFileName)
+								||fklIsAccessibleRegFile(scriptFileName)
+								||fklIsAccessibleRegFile(preCompileFileName)
+								||fklIsAccessibleRegFile(dllFileName);
+							free(filename);
+							free(scriptFileName);
+							free(dllFileName);
+							free(packageMainFileName);
+							free(preCompileFileName);
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_DEFMACRO],cur,&ht))
+						{
+							const FklNastNode* value=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_value,&ht);
+							if(value->type==FKL_NAST_SYM)
+								r=is_replacement_define(value,info,ctx,macroScope,curEnv);
+							else if(value->type==FKL_NAST_PAIR
+									&&value->pair->cdr->type==FKL_NAST_NIL
+									&&value->pair->car->type==FKL_NAST_SYM)
+							{
+								r=0;
+								FklSid_t id=value->pair->car->sym;
+								for(const FklCodegenMacroScope* macros=macroScope
+										;macros
+										;macros=macros->prev)
+								{
+									for(const FklCodegenMacro* cur=macros->head
+											;cur
+											;cur=cur->next)
+									{
+										if(id==cur->pattern->pair->car->sym)
+										{
+											r=1;
+											break;
+										}
+									}
+									if(r==1)
+										break;
+								}
+							}
+							else if(value->type==FKL_NAST_VECTOR
+									&&value->vec->size==1
+									&&value->vec->base[0]->type==FKL_NAST_SYM)
+							{
+								FklSid_t id=value->vec->base[0]->sym;
+								r=*(info->g)!=NULL
+									&&fklGetHashItem(&id,info->named_prod_groups)!=NULL;
+							}
+							else
+							{
+								errorState->type=FKL_ERR_SYNTAXERROR;
+								errorState->place=fklMakeNastNodeRef(cur);
+								goto exit;
+							}
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_EQ],cur,&ht))
+						{
+							const FklNastNode* arg0=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_arg0,&ht);
+							const FklNastNode* arg1=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_arg1,&ht);
+							if(arg0->type!=FKL_NAST_SYM)
+							{
+								errorState->type=FKL_ERR_SYNTAXERROR;
+								errorState->place=fklMakeNastNodeRef(cur);
+								goto exit;
+							}
+							FklNastNode* node=get_replacement(arg0,info,ctx,macroScope,curEnv);
+							if(node)
+							{
+								r=fklNastNodeEqual(node,arg1);
+								fklDestroyNastNode(node);
+							}
+							else
+								r=0;
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_MATCH],cur,&ht))
+						{
+							const FklNastNode* arg0=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_arg0,&ht);
+							const FklNastNode* arg1=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_arg1,&ht);
+							if(arg0->type!=FKL_NAST_SYM||!is_valid_compile_check_pattern(arg1))
+							{
+								errorState->type=FKL_ERR_SYNTAXERROR;
+								errorState->place=fklMakeNastNodeRef(cur);
+								goto exit;
+							}
+							FklNastNode* node=get_replacement(arg0,info,ctx,macroScope,curEnv);
+							if(node)
+							{
+								r=is_compile_check_pattern_matched(arg1,node);
+								fklDestroyNastNode(node);
+							}
+							else
+								r=0;
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_NOT],cur,&ht))
+						{
+							fklPushU8Stack(255,&boolStack);
+							fklPushU8Stack(COND_COMPILE_CHECK_OP_NOT,&opStack);
+							fklPushPtrStack((void*)fklPatternMatchingHashTableRef(ctx->builtInPatternVar_value,&ht),&expStack);
+							continue;
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_AND],cur,&ht))
+						{
+							const FklNastNode* rest=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_rest,&ht);
+							if(rest->type==FKL_NAST_NIL)
+								r=1;
+							else if(fklIsNastNodeList(rest))
+							{
+								fklPushU8Stack(255,&boolStack);
+								fklPushPtrStack(NULL,&expStack);
+								fklPushU8Stack(COND_COMPILE_CHECK_OP_AND,&opStack);
+								for(;rest->type==FKL_NAST_PAIR;rest=rest->pair->cdr)
+									fklPushPtrStack((void*)rest->pair->car,&tmpStack);
+								while(!fklIsPtrStackEmpty(&tmpStack))
+									fklPushPtrStack(fklPopPtrStack(&tmpStack),&expStack);
+								continue;
+							}
+							else
+							{
+								errorState->type=FKL_ERR_SYNTAXERROR;
+								errorState->place=fklMakeNastNodeRef(cur);
+								goto exit;
+							}
+						}
+						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_OR],cur,&ht))
+						{
+							const FklNastNode* rest=fklPatternMatchingHashTableRef(ctx->builtInPatternVar_rest,&ht);
+							if(rest->type==FKL_NAST_NIL)
+								r=0;
+							else if(fklIsNastNodeList(rest))
+							{
+								fklPushU8Stack(255,&boolStack);
+								fklPushPtrStack(NULL,&expStack);
+								fklPushU8Stack(COND_COMPILE_CHECK_OP_OR,&opStack);
+								for(;rest->type==FKL_NAST_PAIR;rest=rest->pair->cdr)
+									fklPushPtrStack((void*)rest->pair->car,&tmpStack);
+								while(!fklIsPtrStackEmpty(&tmpStack))
+									fklPushPtrStack(fklPopPtrStack(&tmpStack),&expStack);
+								continue;
+							}
+							else
+							{
+								errorState->type=FKL_ERR_SYNTAXERROR;
+								errorState->place=fklMakeNastNodeRef(cur);
+								goto exit;
+							}
+						}
+						else
+						{
+							errorState->type=FKL_ERR_SYNTAXERROR;
+							errorState->place=fklMakeNastNodeRef(cur);
+							goto exit;
+						}
+					}
+					else if(cur->type==FKL_NAST_NIL)
+						r=0;
+					else if(cur->type==FKL_NAST_SYM)
+						r=is_replacement_true(cur,info,ctx,macroScope,curEnv);
+					else
+						r=1;
+				}
+			}
+			if(r==255)
+				fklPushU8Stack(255,&boolStack);
+			uint8_t cond_compile_check_op=fklTopU8Stack(&opStack);
+			switch(cond_compile_check_op)
+			{
+				case COND_COMPILE_CHECK_OP_TRUE:
+					fklPushU8Stack(r,&boolStack);
+					break;
+				case COND_COMPILE_CHECK_OP_NOT:
+					fklPushU8Stack(!r,&boolStack);
+					break;
+				case COND_COMPILE_CHECK_OP_AND:
+					if(r==255)
+					{
+						fklPopU8Stack(&boolStack);
+						fklPushU8Stack(1,&boolStack);
+					}
+					else if(r==0)
+					{
+						for(;cur;cur=fklPopPtrStack(&expStack));
+						fklPushU8Stack(0,&boolStack);
+					}
+					else
+					{
+						fklPushU8Stack(255,&boolStack);
+						continue;
+					}
+					break;
+				case COND_COMPILE_CHECK_OP_OR:
+					if(r==255)
+					{
+						fklPopU8Stack(&boolStack);
+						fklPushU8Stack(0,&boolStack);
+					}
+					else if(r==1)
+					{
+						for(;cur;cur=fklPopPtrStack(&expStack));
+						fklPushU8Stack(1,&boolStack);
+					}
+					else
+					{
+						fklPushU8Stack(255,&boolStack);
+						continue;
+					}
+					break;
+			}
+			fklPopU8Stack(&opStack);
+		}
+
+#undef COND_COMPILE_CHECK_OP_OR
+#undef COND_COMPILE_CHECK_OP_AND
+#undef COND_COMPILE_CHECK_OP_NOT
+#undef COND_COMPILE_CHECK_OP_TRUE
+
+		r=fklPopU8Stack(&boolStack);
+exit:
+		fklUninitU8Stack(&boolStack);
+		fklUninitU8Stack(&opStack);
+		fklUninitPtrStack(&tmpStack);
+		fklUninitPtrStack(&expStack);
+		fklUninitHashTable(&ht);
+		return r;
+	}
+	else if(value->type==FKL_NAST_NIL)
+		return 0;
+	else if(value->type==FKL_NAST_SYM)
+		return is_replacement_true(value,info,ctx,macroScope,curEnv);
+	else
+		return 1;
+}
+
 static CODEGEN_FUNC(codegen_check)
 {
-	FklNastNode* name=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name,ht);
-	if(name->type!=FKL_NAST_SYM)
-	{
-		// errorState->fid=codegen->fid;
-		errorState->type=FKL_ERR_SYNTAXERROR;
-		errorState->place=fklMakeNastNodeRef(origExp);
+	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
+	int r=is_check_subpattern_true(value
+			,codegen
+			,outer_ctx
+			,scope
+			,macroScope
+			,curEnv
+			,errorState);
+	if(errorState->type)
 		return;
-	}
 	FklByteCodelnt* bcl=NULL;
-	FklOpcode op=FKL_OP_PUSH_NIL;
-	if(fklFindSymbolDefByIdAndScope(name->sym,scope,curEnv))
-		op=FKL_OP_PUSH_1;
-	bcl=fklCreateSingleInsBclnt(create_op_ins(op),codegen->fid,origExp->curline);
+	bcl=fklCreateSingleInsBclnt(create_op_ins(r?FKL_OP_PUSH_1:FKL_OP_PUSH_NIL),codegen->fid,origExp->curline);
 	push_single_bcl_codegen_quest(bcl
 			,codegenQuestStack
 			,scope
@@ -2583,6 +3063,76 @@ static CODEGEN_FUNC(codegen_check)
 			,NULL
 			,codegen
 			,origExp->curline);
+}
+
+static CODEGEN_FUNC(codegen_cond_compile)
+{
+	FklNastNode* cond=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_cond,ht);
+	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
+	if(fklNastListLength(rest)%2==1)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	int r=is_check_subpattern_true(cond
+			,codegen
+			,outer_ctx
+			,scope
+			,macroScope
+			,curEnv
+			,errorState);
+	if(errorState->type)
+		return;
+	if(r)
+	{
+		FklPtrQueue* q=fklCreatePtrQueue();
+		fklPushPtrQueue(fklMakeNastNodeRef(value),q);
+		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+				,createDefaultStackContext(fklCreatePtrStack(1,16))
+				,createDefaultQueueNextExpression(q)
+				,scope
+				,macroScope
+				,curEnv
+				,value->curline
+				,codegen
+				,codegenQuestStack);
+	}
+	else
+	{
+		while(rest->type==FKL_NAST_PAIR)
+		{
+			FklNastNode* cond=rest->pair->car;
+			rest=rest->pair->cdr;
+			FklNastNode* value=rest->pair->car;
+			rest=rest->pair->cdr;
+			int r=is_check_subpattern_true(cond
+					,codegen
+					,outer_ctx
+					,scope
+					,macroScope
+					,curEnv
+					,errorState);
+			if(errorState->type)
+				return;
+			if(r)
+			{
+				FklPtrQueue* q=fklCreatePtrQueue();
+				fklPushPtrQueue(fklMakeNastNodeRef(value),q);
+				FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
+						,createDefaultStackContext(fklCreatePtrStack(1,16))
+						,createDefaultQueueNextExpression(q)
+						,scope
+						,macroScope
+						,curEnv
+						,value->curline
+						,codegen
+						,codegenQuestStack);
+				break;
+			}
+		}
+	}
 }
 
 static CODEGEN_FUNC(codegen_quote)
@@ -3582,10 +4132,10 @@ static CODEGEN_FUNC(codegen_load)
 			,codegenQuestStack);
 }
 
-static inline char* combineFileNameFromList(FklNastNode* list,FklSymbolTable* pst)
+static inline char* combineFileNameFromList(const FklNastNode* list,const FklSymbolTable* pst)
 {
 	char* r=NULL;
-	for(FklNastNode* curPair=list;curPair->type==FKL_NAST_PAIR;curPair=curPair->pair->cdr)
+	for(const FklNastNode* curPair=list;curPair->type==FKL_NAST_PAIR;curPair=curPair->pair->cdr)
 	{
 		FklNastNode* cur=curPair->pair->car;
 		r=fklCstrStringCat(r,fklGetSymbolWithId(cur->sym,pst)->symbol);
@@ -5923,14 +6473,16 @@ static inline FklCodegenQuestContext* createReaderMacroQuestContext(struct Custo
 	return createCodegenQuestContext(createReaderMacroContext(ctx,pts),&ReaderMacroStackContextMethodTable);
 }
 
-typedef FklNastNode* (*ReplacementFunc)(const FklNastNode* orig,FklCodegenEnv* env,FklCodegenInfo* codegen);
-
-static FklNastNode* _nil_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegenInfo* codegen)
+static FklNastNode* _nil_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
 {
 	return fklCreateNastNode(FKL_NAST_NIL,orig->curline);
 }
 
-static FklNastNode* _is_main_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegenInfo* codegen)
+static FklNastNode* _is_main_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
 {
 	FklNastNode* n=fklCreateNastNode(FKL_NAST_FIX,orig->curline);
 	if(env->prototypeId==1)
@@ -5940,7 +6492,28 @@ static FklNastNode* _is_main_replacement(const FklNastNode* orig,FklCodegenEnv* 
 	return n;
 }
 
-static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegenInfo* codegen)
+static FklNastNode* _platform_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
+{
+
+#if __linux__
+	static const char* platform="linux";
+#elif __unix__
+	static const char* platform="unix";
+#elif defined _WIN32
+	static const char* platform="win32";
+#elif __APPLE__
+	static const char* platform="apple";
+#endif
+	FklNastNode* n=fklCreateNastNode(FKL_NAST_STR,orig->curline);
+	n->str=fklCreateStringFromCstr(platform);
+	return n;
+}
+
+static FklNastNode* _file_dir_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
 {
 	FklString* s=NULL;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
@@ -5953,7 +6526,9 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig,FklCodegenEnv*
 	return r;
 }
 
-static FklNastNode* _file_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegenInfo* codegen)
+static FklNastNode* _file_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
 {
 	FklNastNode* r=NULL;
 	if(codegen->filename==NULL)
@@ -5968,7 +6543,9 @@ static FklNastNode* _file_replacement(const FklNastNode* orig,FklCodegenEnv* env
 	return r;
 }
 
-static FklNastNode* _line_replacement(const FklNastNode* orig,FklCodegenEnv* env,FklCodegenInfo* codegen)
+static FklNastNode* _line_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
 {
 	uint64_t line=orig->curline;
 	FklNastNode* r=NULL;
@@ -5996,9 +6573,10 @@ static struct SymbolReplacement
 	{"*file*",      _file_replacement,     },
 	{"*file-dir*",  _file_dir_replacement, },
 	{"*main?*",     _is_main_replacement,  },
+	{"*platform*",  _platform_replacement, },
 };
 
-static inline ReplacementFunc findBuiltInReplacementWithId(FklSid_t id,FklSid_t builtin_replacement_id[])
+static inline ReplacementFunc findBuiltInReplacementWithId(FklSid_t id,const FklSid_t builtin_replacement_id[])
 {
 	for(size_t i=0;i<FKL_BUILTIN_REPLACEMENT_NUM;i++)
 	{
@@ -8268,7 +8846,7 @@ static struct PatternAndFunc
 	{"~(define (~name,~args),~rest)",                          codegen_defun,             },
 	{"~(define ~name ~value)",                                 codegen_define,            },
 	{"~(setq ~name ~value)",                                   codegen_setq,              },
-	{"~(check ~name)",                                         codegen_check,             },
+	{"~(check ~value)",                                        codegen_check,             },
 	{"~(quote ~value)",                                        codegen_quote,             },
 	{"`(unquote `value)",                                      codegen_unquote,           },
 	{"~(qsquote ~value)",                                      codegen_qsquote,           },
@@ -8293,6 +8871,7 @@ static struct PatternAndFunc
 	{"~(export ~value)",                                       codegen_export_single,     },
 	{"~(export,~rest)",                                        codegen_export,            },
 	{"~(defmacro ~arg0 ~arg1,~rest)",                          codegen_def_reader_macros, },
+	{"~(check ~cond ~value,~rest)",                            codegen_cond_compile,      },
 	{NULL,                                                     NULL,                      },
 };
 

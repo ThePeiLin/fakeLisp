@@ -1904,12 +1904,12 @@ static inline void B_vec_ref(BYTE_CODE_ARGS)
 	FklVMvalue* vec=FKL_VM_POP_ARG(exe);
 	FklVMvalue* place=FKL_VM_POP_ARG(exe);
 	if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vec-ref",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	size_t index=fklGetUint(place);
 	FklVMvec* vv=FKL_VM_VEC(vec);
 	size_t size=vv->size;
 	if(fklVMnumberLt0(place)||index>=size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vref",FKL_ERR_INVALIDACCESS,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vec-ref",FKL_ERR_INVALIDACCESS,exe);
 	FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 }
 
@@ -1918,12 +1918,12 @@ static inline void B_str_ref(BYTE_CODE_ARGS)
 	FklVMvalue* str=FKL_VM_POP_ARG(exe);
 	FklVMvalue* place=FKL_VM_POP_ARG(exe);
 	if(!fklIsVMint(place)||!FKL_IS_STR(str))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.str-ref",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	size_t index=fklGetUint(place);
 	FklString* ss=FKL_VM_STR(str);
 	size_t size=ss->size;
 	if(fklVMnumberLt0(place)||index>=size)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.sref",FKL_ERR_INVALIDACCESS,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.str-ref",FKL_ERR_INVALIDACCESS,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ss->str[index]));
 }
 

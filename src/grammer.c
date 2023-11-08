@@ -6988,8 +6988,8 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*bytevector-items* &*integer* &*bytevector-items*",     "prod_action_list",          prod_action_list,          },
 
 	{"+ /\\s+",                                               NULL,                        NULL,                      },
-	{"+ /^;[^\\n]*\\n?",                                      NULL,                        NULL,                      },
-	{"+ /^#![^\\n]*\\n?",                                     NULL,                        NULL,                      },
+	{"+ /^;.*\\n?",                                           NULL,                        NULL,                      },
+	{"+ /^#!.*\\n?",                                          NULL,                        NULL,                      },
 	{NULL,                                                    NULL,                        NULL,                      },
 };
 

@@ -8,7 +8,7 @@ static inline FklSymbolDef* get_def_by_id_in_scope(FklSid_t id,uint32_t scopeId,
 	return fklGetHashItem(&key,&scope->defs);
 }
 
-FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
+FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,const FklCodegenEnv* env)
 {
 	FklCodegenEnvScope* scopes=env->scopes;
 	for(;scope;scope=scopes[scope-1].p)

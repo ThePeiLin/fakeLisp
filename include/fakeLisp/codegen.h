@@ -191,6 +191,7 @@ typedef enum
 	FKL_CODEGEN_PATTERN_EXPORT_SINGLE,
 	FKL_CODEGEN_PATTERN_EXPORT,
 	FKL_CODEGEN_PATTERN_DEF_READER_MACROS,
+	FKL_CODEGEN_PATTERN_COND_COMPILE,
 	FKL_CODEGEN_PATTERN_NUM,
 }FklCodegenPatternEnum;
 
@@ -198,10 +199,18 @@ typedef enum
 {
 	FKL_CODEGEN_SUB_PATTERN_UNQUOTE=0,
 	FKL_CODEGEN_SUB_PATTERN_UNQTESP,
+	FKL_CODEGEN_SUB_PATTERN_DEFINE,
+	FKL_CODEGEN_SUB_PATTERN_DEFMACRO,
+	FKL_CODEGEN_SUB_PATTERN_IMPORT,
+	FKL_CODEGEN_SUB_PATTERN_AND,
+	FKL_CODEGEN_SUB_PATTERN_OR,
+	FKL_CODEGEN_SUB_PATTERN_NOT,
+	FKL_CODEGEN_SUB_PATTERN_EQ,
+	FKL_CODEGEN_SUB_PATTERN_MATCH,
 	FKL_CODEGEN_SUB_PATTERN_NUM,
 }FklCodegenSubPatternEnum;
 
-#define FKL_BUILTIN_REPLACEMENT_NUM (5)
+#define FKL_BUILTIN_REPLACEMENT_NUM (6)
 #define FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM (17)
 #define FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM (11)
 
@@ -377,7 +386,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegenInfo* codegen);
 
-FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,const FklCodegenEnv* env);
 
 void fklPrintCodegenError(FklNastNode* obj
 		,FklBuiltinErrorType type

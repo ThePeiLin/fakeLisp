@@ -9187,12 +9187,18 @@ static int macro_expand_frame_end(void* data)
 	return ((MacroExpandCtx*)data)->done;
 }
 
+static void macro_expand_frame_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+{
+	fputs("at <macroexpand>\n",fp);
+}
+
 static const FklVMframeContextMethodTable MacroExpandMethodTable=
 {
 	.step=macro_expand_frame_step,
 	.end=macro_expand_frame_end,
 	.atomic=macro_expand_frame_atomic,
-	.finalizer=macro_expand_frame_finalizer
+	.finalizer=macro_expand_frame_finalizer,
+	.print_backtrace=macro_expand_frame_backtrace,
 };
 
 static void insert_macro_expand_frame(FklVMframe* mainframe

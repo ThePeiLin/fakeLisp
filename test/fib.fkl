@@ -4,9 +4,9 @@
     (define (fib-cached n)
       (define len (length fib-cache))
       (if (<= len n) (append! fib-cache (make-vector (- n -1 len) nil)))
-      (define r (vref fib-cache n))
+      (define r (vec-ref fib-cache n))
       (if r r
-        (vref-set! fib-cache
+        (vec-set! fib-cache
                 n
                 (+ (fib-cached (-1+ n))
                    (fib-cached (- n 2))))))))

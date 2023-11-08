@@ -14,11 +14,11 @@
         (throw 'invalid-member-name
                'defining-struct
                (append! "member name cannot be " (stringify name))))
-      (if (href field-idx-ht field ())
+      (if (hash-ref field-idx-ht field ())
         (throw 'duplicate-member
                'defining-struct
                (append! "duplicate member " (stringify field))))
-      (href-set! field-idx-ht field idx))
+      (hash-set! field-idx-ht field idx))
     (define name-str (symbol->string name))
     (define type-checker-name (string->symbol (append name-str "?")))
     (define method-names #hash())
@@ -48,16 +48,16 @@
           [(list? head)
            (define type (car head))
            (apply
-             (href method-head-process-func type)
+             (hash-ref method-head-process-func type)
              (cdr head))]
           [1 (throw 'incorrect-method-head
                     'process-method-head
                     "method head should be list or symbol")]))
-      (if (href method-names method-name ())
+      (if (hash-ref method-names method-name ())
         (throw 'duplicate-member
                'defining-struct
                (append! "duplicate member " (stringify method-name))))
-      (href-set! method-names method-name 1)
+      (hash-set! method-names method-name 1)
       `(define (~method-name,~args),~body))
 
     `(begin
@@ -66,20 +66,20 @@
          (vector (quote ~name),~(copy fields)))
        (define (~type-checker-name ~name)
          (and
-           (eq (vref ~name 0) (quote ~name))
+           (eq (vec-ref ~name 0) (quote ~name))
            (eqv (length ~name) ~(1+ (hash-num field-idx-ht)))))
        ~@(map
            (lambda (kv)
              (define field-name (symbol->string (car kv)))
              (define idx (cdr kv))
              (define func-name (string->symbol (append name-str "-" field-name)))
-             (href! method-names func-name 1)
+             (hash-ref! method-names func-name 1)
              `(define (~func-name ~name)
                 (unless (~type-checker-name ~name)
                   (throw 'incorrect-type
                          (quote ~func-name)
                          "Incorrect type of values"))
-                (vref ~name ~idx)))
+                (vec-ref ~name ~idx)))
            (hash->list field-idx-ht))
        ~@(map
            (lambda (kv)
@@ -87,13 +87,13 @@
              (define field-name (symbol->string (car kv)))
              (define idx (cdr kv))
              (define func-name (string->symbol (append name-str "-" field-name "-set!")))
-             (href! method-names func-name 1)
+             (hash-ref! method-names func-name 1)
              `(define (~func-name ~name ~field)
                 (unless (~type-checker-name ~name)
                   (throw 'incorrect-type
                          (quote ~func-name)
                          "Incorrect type of values"))
-                (vref-set! ~name ~idx ~field)))
+                (vec-set! ~name ~idx ~field)))
            (hash->list field-idx-ht))
        ~@(map process-method-define
               methods))))

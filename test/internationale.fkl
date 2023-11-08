@@ -6,7 +6,7 @@
         (Spanish,"La Internacional")])
 (define my-language 'Chinese)
 (println internationle-in-some-language)
-(println (href internationle-in-some-language
+(println (hash-ref internationle-in-some-language
              my-language ()))
 (prin1 (stringify internationle-in-some-language))
 (newline)

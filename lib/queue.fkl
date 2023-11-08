@@ -11,19 +11,19 @@
 ;*  queue?
 
 (define (type q)
-  (vref q 0))
+  (vec-ref q 0))
 
 (define (q-tail q)
-  (vref q 2))
+  (vec-ref q 2))
 
 (define (rear-set! q r)
-  (vref-set! q 2 r))
+  (vec-set! q 2 r))
 
 (define (new-tail-set! q n)
   (cdr-set! (q-tail q) n))
 
 (define (base-set! q f)
-  (vref-set! q 1 f))
+  (vec-set! q 1 f))
 
 (define (queue-empty? queue)
   (null (queue-base queue)))
@@ -41,7 +41,7 @@
       (eq (type queue) 'queue)))
 
   (define (queue-base queue)
-    (vref queue 1))
+    (vec-ref queue 1))
 
   (define (queue-front queue)
     (car (queue-base queue)))

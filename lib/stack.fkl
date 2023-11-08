@@ -9,11 +9,11 @@
 ;*  stack-count
 ;*  stack-base
 
-(export (define (stack-base s) (vref s 1)))
+(export (define (stack-base s) (vec-ref s 1)))
 
-(define (base-set! s b) (vref-set! s 1 b))
+(define (base-set! s b) (vec-set! s 1 b))
 
-(define (type s) (vref s 0))
+(define (type s) (vec-ref s 0))
 
 (export
   (define (make-stack,elems)

@@ -51,7 +51,7 @@
 
   #(my-lambda
      #[*symbol* "=>" *s-exp*]
-     custom `(lambda (~(vref $$ 0)) ~(vref $$ 2)))
+     custom `(lambda (~(vec-ref $$ 0)) ~(vec-ref $$ 2)))
 
   #(my-fn-call
      #["#'" *s-exp* "(" my-fn-call-args ")"]
@@ -83,12 +83,12 @@
   #(my-fn-def
      #[1 "def" *symbol* "(" my-fn-arg-list ")" "{" func-body "}"]
      custom
-     `(define (~(vref $$ 1),~(vref $$ 3)),~(vref $$ 6)))
+     `(define (~(vec-ref $$ 1),~(vec-ref $$ 3)),~(vec-ref $$ 6)))
 
   #(my-fn-def
      #[1 "def" *symbol* *symbol* "{" func-body "}"]
      custom
-     `(define (~(vref $$ 1),~(vref $$ 2)),~(vref $$ 4)))
+     `(define (~(vec-ref $$ 1),~(vec-ref $$ 2)),~(vec-ref $$ 4)))
   custom)
 
 /*

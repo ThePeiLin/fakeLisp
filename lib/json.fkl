@@ -1,19 +1,19 @@
 (define (first $$ line)
-  (vref $$ 0))
+  (vec-ref $$ 0))
 (define (second $$ line)
-  (vref $$ 1))
+  (vec-ref $$ 1))
 
 (define (first->number $$ line)
-  (string->number (vref $$ 0)))
+  (string->number (vec-ref $$ 0)))
 
 (define (cons-0-2 $$ line)
-  (cons (vref $$ 0) (vref $$ 2)))
+  (cons (vec-ref $$ 0) (vec-ref $$ 2)))
 
 (define (return-nil $$ line)
   nil)
 
 (define (cons-0 $$ line)
-  (cons (vref $$ 0) nil))
+  (cons (vec-ref $$ 0) nil))
 
 (export
   (define json-parser
@@ -30,19 +30,19 @@
       'null #[1 "null"] (lambda ($$ line) 'null)
       'bool #[1 "true"] (lambda ($$ line) 'true)
       'bool #[1 "false"] (lambda ($$ line) 'false)
-      'string #[#&"^\"(\\\\.|.)*\"$"] (lambda ($$ line) (parse (vref $$ 0)))
+      'string #[#&"^\"(\\\\.|.)*\"$"] (lambda ($$ line) (parse (vec-ref $$ 0)))
       'integer #[?dint] first->number
       'integer #[?xint] first->number
       'integer #[?oint] first->number
       'float #[?dfloat] first->number
       'float #[?xfloat] first->number
 
-      'array #["[" array-items "]"] (lambda ($$ line) (list->vector (vref $$ 1)))
+      'array #["[" array-items "]"] (lambda ($$ line) (list->vector (vec-ref $$ 1)))
       'array-items #[] return-nil
       'array-items #[json-value] cons-0
       'array-items #[json-value "," array-items] cons-0-2
 
-      'object #["{" object-items "}"] (lambda ($$ line) (apply hashequal (vref $$ 1)))
+      'object #["{" object-items "}"] (lambda ($$ line) (apply hashequal (vec-ref $$ 1)))
       'object-item #[string ":" json-value] cons-0-2
       'object-items #[] return-nil
       'object-items #[object-item] cons-0

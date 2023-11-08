@@ -2317,9 +2317,12 @@ static CODEGEN_FUNC(codegen_defun)
 			,codegen->fid
 			,origExp->curline
 			,pst);
+	FklNastNode* name_str=fklCreateNastNode(FKL_NAST_STR,name->curline);
+	name_str->str=fklCopyString(fklGetSymbolWithId(name->sym,pst)->symbol);
 	fklAddReplacementBySid(fklAddSymbolCstr("*func*",pst)->id
-			,name
+			,name_str
 			,lambdaCodegenEnv->macros->replacements);
+	fklDestroyNastNode(name_str);
 	FklCodegenQuest* cur=createCodegenQuest(_lambda_exp_bc_process
 			,createDefaultStackContext(lStack)
 			,createDefaultQueueNextExpression(queue)
@@ -7916,23 +7919,23 @@ static CODEGEN_FUNC(codegen_defmacro)
 	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
 	if(name->type==FKL_NAST_SYM)
 	{
-		if(value->type==FKL_NAST_SYM)
-		{
-			FklNastNode* replacement=NULL;
-			for(FklCodegenMacroScope* cs=macroScope;cs&&!replacement;cs=cs->prev)
-				replacement=fklGetReplacement(value->sym,cs->replacements);
-			if(replacement)
-				value=replacement;
-			else
-			{
-				ReplacementFunc f=findBuiltInReplacementWithId(value->sym,outer_ctx->builtin_replacement_id);
-				if(f)
-				{
-					FklNastNode* t=f(value,curEnv,codegen);
-					value=t;
-				}
-			}
-		}
+		// if(value->type==FKL_NAST_SYM)
+		// {
+		// 	FklNastNode* replacement=NULL;
+		// 	for(FklCodegenMacroScope* cs=macroScope;cs&&!replacement;cs=cs->prev)
+		// 		replacement=fklGetReplacement(value->sym,cs->replacements);
+		// 	if(replacement)
+		// 		value=replacement;
+		// 	else
+		// 	{
+		// 		ReplacementFunc f=findBuiltInReplacementWithId(value->sym,outer_ctx->builtin_replacement_id);
+		// 		if(f)
+		// 		{
+		// 			FklNastNode* t=f(value,curEnv,codegen);
+		// 			value=t;
+		// 		}
+		// 	}
+		// }
 		fklAddReplacementBySid(name->sym,value,macroScope->replacements);
 	}
 	else if(name->type==FKL_NAST_PAIR)
@@ -8443,6 +8446,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 					;curExp
 					;curExp=get_next_expression(nextExpression->context,&errorState))
 			{
+skip:
 				if(curExp->type==FKL_NAST_PAIR)
 				{
 					FklNastNode* orig_cur_exp=fklMakeNastNodeRef(curExp);
@@ -8475,6 +8479,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 				if(curExp->type==FKL_NAST_SYM)
 				{
 					FklNastNode* replacement=NULL;
+					ReplacementFunc f=NULL;
 					for(FklCodegenMacroScope* cs=curCodegenQuest->macroScope;cs&&!replacement;cs=cs->prev)
 						replacement=fklGetReplacement(curExp->sym,cs->replacements);
 					if(replacement)
@@ -8483,30 +8488,27 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 						curExp=replacement;
 						goto skip;
 					}
+					else if((f=findBuiltInReplacementWithId(curExp->sym,outer_ctx->builtin_replacement_id)))
+					{
+						FklNastNode* t=f(curExp,curEnv,curCodegen);
+						fklDestroyNastNode(curExp);
+						curExp=t;
+						goto skip;
+					}
 					else
 					{
-						ReplacementFunc f=findBuiltInReplacementWithId(curExp->sym,outer_ctx->builtin_replacement_id);
-						if(f)
-						{
-							FklNastNode* t=f(curExp,curEnv,curCodegen);
-							fklDestroyNastNode(curExp);
-							curExp=t;
-						}
+						FklByteCodelnt* bcl=NULL;
+						FklSymbolDef* def=fklFindSymbolDefByIdAndScope(curExp->sym,curCodegenQuest->scope,curEnv);
+						if(def)
+							bcl=makeGetLocBc(def->idx,curCodegen->fid,curExp->curline);
 						else
 						{
-							FklByteCodelnt* bcl=NULL;
-							FklSymbolDef* def=fklFindSymbolDefByIdAndScope(curExp->sym,curCodegenQuest->scope,curEnv);
-							if(def)
-								bcl=makeGetLocBc(def->idx,curCodegen->fid,curExp->curline);
-							else
-							{
-								uint32_t idx=fklAddCodegenRefBySid(curExp->sym,curEnv,curCodegen->fid,curExp->curline);
-								bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline);
-							}
-							curContext->t->__put_bcl(curContext->data,bcl);
-							fklDestroyNastNode(curExp);
-							continue;
+							uint32_t idx=fklAddCodegenRefBySid(curExp->sym,curEnv,curCodegen->fid,curExp->curline);
+							bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline);
 						}
+						curContext->t->__put_bcl(curContext->data,bcl);
+						fklDestroyNastNode(curExp);
+						continue;
 					}
 				}
 				r=mapAllBuiltInPattern(curExp
@@ -8518,7 +8520,6 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 						,&errorState);
 				if(r)
 				{
-skip:
 					curContext->t->__put_bcl(curContext->data
 							,create_bc_lnt(fklCodegenNode(curExp,curCodegen)
 								,curCodegen->fid

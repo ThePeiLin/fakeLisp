@@ -501,17 +501,17 @@ static const FklGrammerCstrAction example_grammer_action[]=
 	{"unquote #~ &s-exp",             "prod_action_unquote",       prod_action_unquote,       },
 	{"unqtesp #~@ &s-exp",            "prod_action_unqtesp",       prod_action_unqtesp,       },
 
-	{"symbol &%symbol + #|",          "prod_action_symbol",        prod_action_symbol,        },
-	{"string &%string + #\"",         "prod_action_string",        prod_action_string,        },
+	{"symbol &?symbol + #|",          "prod_action_symbol",        prod_action_symbol,        },
+	{"string /^\"(\\\\.|.)*\"$",      "prod_action_string",        prod_action_string,        },
 
-	{"integer &%s-dint + #|",         "prod_action_dec_integer",   prod_action_dec_integer,   },
-	{"integer &%s-xint + #|",         "prod_action_hex_integer",   prod_action_hex_integer,   },
-	{"integer &%s-oint + #|",         "prod_action_oct_integer",   prod_action_oct_integer,   },
+	{"integer &?s-dint + #|",         "prod_action_dec_integer",   prod_action_dec_integer,   },
+	{"integer &?s-xint + #|",         "prod_action_hex_integer",   prod_action_hex_integer,   },
+	{"integer &?s-oint + #|",         "prod_action_oct_integer",   prod_action_oct_integer,   },
 
-	{"float &%s-dfloat + #|",         "prod_action_float",         prod_action_float,         },
-	{"float &%s-xfloat + #|",         "prod_action_float",         prod_action_float,         },
+	{"float &?s-dfloat + #|",         "prod_action_float",         prod_action_float,         },
+	{"float &?s-xfloat + #|",         "prod_action_float",         prod_action_float,         },
 
-	{"char &%s-char + ##\\",          "prod_action_char",      prod_action_char,      },
+	{"char &?char + ##\\",            "prod_action_char",          prod_action_char,          },
 
 	{"box ##& &s-exp",                "prod_action_box",           prod_action_box,           },
 
@@ -547,9 +547,9 @@ static const FklGrammerCstrAction example_grammer_action[]=
 	{"v8 ",                           "prod_action_nil",           prod_action_nil,           },
 	{"v8 &integer &v8",               "prod_action_list",          prod_action_list,          },
 
-	{"+ &%space",                     NULL,                        NULL,                      },
-	{"+ #; &%eol",                    NULL,                        NULL,                      },
-	{"+ ##! &%eol",                   NULL,                        NULL,                      },
+	{"+ /\\s+",                       NULL,                        NULL,                      },
+	{"+ /^;[^\\n]*\\n?",              NULL,                        NULL,                      },
+	{"+ /^#![^\\n]*\\n?",             NULL,                        NULL,                      },
 	{NULL,                            NULL,                        NULL,                      },
 };
 

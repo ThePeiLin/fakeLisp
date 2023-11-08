@@ -2163,7 +2163,7 @@ static void* s_char_ctx_global_create(size_t idx
 
 static const FklLalrBuiltinMatch builtin_match_s_char=
 {
-	.name="?s-char",
+	.name="?char",
 	.match=builtin_match_s_char_func,
 	.ctx_global_create=s_char_ctx_global_create,
 	.ctx_cmp=s_number_ctx_cmp,
@@ -2752,10 +2752,10 @@ static const struct BuiltinGrammerSymList
 	{"?s-oint",     &builtin_match_s_oint,     },
 	{"?s-dfloat",   &builtin_match_s_dfloat,   },
 	{"?s-xfloat",   &builtin_match_s_xfloat,   },
-	{"?s-char",     &builtin_match_s_char,     },
+
 
 	{"?symbol",     &builtin_match_symbol,     },
-
+	{"?char",       &builtin_match_s_char,     },
 	{"?identifier", &builtin_match_identifier, },
 	{"?noterm",     &builtin_match_noterm,     },
 
@@ -6942,8 +6942,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 
 	{"*symbol* &?symbol + #|",                                "prod_action_symbol",        prod_action_symbol,        },
 
-	// {"*string* &%string + #\"",                               "prod_action_string",        prod_action_string,        },
-	{"*string* /^\"(\\\\.|.)*\"$",                               "prod_action_string",        prod_action_string,        },
+	{"*string* /^\"(\\\\.|.)*\"$",                            "prod_action_string",        prod_action_string,        },
 
 	{"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer,   },
 	{"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer,   },
@@ -6952,7 +6951,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*float* &?s-dfloat + #|",                               "prod_action_float",         prod_action_float,         },
 	{"*float* &?s-xfloat + #|",                               "prod_action_float",         prod_action_float,         },
 
-	{"*char* &?s-char ##\\",                                  "prod_action_char",          prod_action_char,          },
+	{"*char* &?char + ##\\",                                  "prod_action_char",          prod_action_char,          },
 
 	{"*box* ##& &*s-exp*",                                    "prod_action_box",           prod_action_box,           },
 

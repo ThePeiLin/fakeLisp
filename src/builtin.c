@@ -1809,6 +1809,30 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,obj);
 }
 
+static void builtin_freopen1(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.freopen!";
+	DECL_AND_CHECK_ARG2(stream,filename,Pname);
+	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(!FKL_IS_FP(stream)||!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FklVMfp* vfp=FKL_VM_FP(stream);
+	if(vfp->mutex)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
+	FklString* filenameStr=FKL_VM_STR(filename);
+	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
+	FILE* fp=freopen(filenameStr->str,modeStr,vfp->fp);
+	if(!fp)
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
+	else
+	{
+		vfp->fp=fp;
+		vfp->rw=fklGetVMfpRwFromCstr(modeStr);
+	}
+	FKL_VM_PUSH_VALUE(exe,stream);
+}
+
 static void builtin_fclose(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.fclose";
@@ -4151,12 +4175,24 @@ static void builtin_facce_p(FKL_DL_PROC_ARGL)
 
 static void builtin_freg_p(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.fregular?";
+	static const char Pname[]="builtin.freg?";
 	DECL_AND_CHECK_ARG(filename,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe
 			,fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+}
+
+static void builtin_fdir_p(FKL_DL_PROC_ARGL)
+{
+	static const char Pname[]="builtin.fdir?";
+	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe
+			,fklIsAccessibleDirectory(FKL_VM_STR(filename)->str)
 			?FKL_VM_TRUE
 			:FKL_VM_NIL);
 }
@@ -5267,8 +5303,11 @@ static const struct SymbolFuncStruct
 
 	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,          NULL,          }, },
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,          NULL,          }, },
+	{"freopen!",              builtin_freopen1,                {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"freg?",                 builtin_freg_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
+
+	{"fdir?",                 builtin_fdir_p,                  {NULL,         NULL,          NULL,          NULL,          }, },
 
 	{"fclose",                builtin_fclose,                  {NULL,         NULL,          NULL,          NULL,          }, },
 	{"feof?",                 builtin_feof_p,                  {NULL,         NULL,          NULL,          NULL,          }, },

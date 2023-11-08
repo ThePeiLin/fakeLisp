@@ -885,8 +885,7 @@ static inline void init_frame_to_repl_frame(FklVM* exe,FklCodegenInfo* codegen)
 	ctx->mainProc=mainProc;
 	ctx->lcount=0;
 
-	FklVMvalue* stdinVal=proc->closure[FKL_VM_STDIN_IDX]->v;
-	ctx->stdinVal=stdinVal;
+	ctx->stdinVal=proc->closure[FKL_VM_STDIN_IDX]->v;
 	ctx->codegen=codegen;
 	NastCreatCtx* cc=createNastCreatCtx();
 	ctx->cc=cc;

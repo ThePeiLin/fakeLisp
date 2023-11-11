@@ -18,10 +18,10 @@ static inline void print_match_res(const char* str,uint32_t len,uint32_t pos)
 }
 
 #define MATCH_INT "^[-+]?(0|[1-9]\\d*)$"
-// #define MATCH_STRING "^\"(\\\\.|[^\"\\\\])*\"$"
-#define MATCH_STRING "^\"(\\\\.|.)*\"$"
+// #define MATCH_STRING "^\"(\\\\.|[^\"\\\\])*\""
+#define MATCH_STRING "\"\"|^\"(\\\\.|.)*\"$"
 #define MATCH_BRANCH "(ab|cd|ef)"
-#define MATCH_UTF_STRING "^“(\\\\.|.)*”$"
+#define MATCH_UTF_STRING "“”|^“(\\\\.|.)*”$"
 
 static const struct PatternAndText
 {
@@ -46,6 +46,8 @@ static const struct PatternAndText
 	{MATCH_STRING,     "\"ab\\\"cd",   1, 8,                   .last_is_true=1, },
 	{MATCH_STRING,     "\"ab\\\"cd\"", 1, 8,                   .last_is_true=1, },
 	{MATCH_STRING,     "\"ab\\",       0, 5,                   .pos=0,          },
+	{MATCH_STRING,     "\"\"",         0, 2,                   .pos=0,          },
+	{MATCH_STRING,     "\"\"abcd",     0, 2,                   .pos=0,          },
 	{"\\(a+\\)",       "(",            1, 2,                   .last_is_true=1, },
 	{"\\(a+\\)",       "(a",           1, 3,                   .last_is_true=1, },
 	{"ab+$",           "abbc",         1, 3,                   .last_is_true=1, },
@@ -55,6 +57,7 @@ static const struct PatternAndText
 	{MATCH_BRANCH,     "abcd",         0, 2,                   .pos=0,          },
 	{MATCH_BRANCH,     "cd",           0, 2,                   .pos=0,          },
 	{MATCH_UTF_STRING, "“cd”",         0, sizeof("“cd”")-1,    .pos=0,          },
+	{MATCH_UTF_STRING, "“”",           0, sizeof("“”")-1,      .pos=0,          },
 	{MATCH_UTF_STRING, "“c\\”d”",      0, sizeof("“c\\”d”")-1, .pos=0,          },
 
 	{NULL,             NULL,           0, 0,                   .pos=0,          },

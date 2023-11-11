@@ -233,6 +233,7 @@ void* fklProdCtxCopyerDoNothing(const void* c)
 static inline void find_and_add_terminal_in_regex(const FklRegexCode* re,FklSymbolTable* tt)
 {
 	const FklRegexObj* objs=re->data;
+	for(;objs->type!=FKL_REGEX_UNUSED&&objs->type!=FKL_REGEX_BEGIN;objs++);
 	if(objs->type==FKL_REGEX_BEGIN)
 	{
 		uint32_t len=0;
@@ -6239,7 +6240,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 
 	{"*symbol* &?symbol + #|",                                "prod_action_symbol",        prod_action_symbol,        },
 
-	{"*string* /^\"(\\\\.|.)*\"$",                            "prod_action_string",        prod_action_string,        },
+	{"*string* /\"\"|^\"(\\\\.|.)*\"$",                       "prod_action_string",        prod_action_string,        },
 
 	{"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer,   },
 	{"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer,   },

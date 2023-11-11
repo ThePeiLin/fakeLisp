@@ -51,7 +51,7 @@
 (defmacro ~(foobar) 'foobar)
 
 (defmacro
-  #(#[#&"^/\\*.*\\*/$"])
+  #(#[#&"/\\*\\*/|^/\\*.*\\*/$"])
   foobar)
 
 (println (check (defmacro foo))) ;; 1

@@ -214,10 +214,7 @@ static inline int compile_count(struct ReCompileCtx* ctx
 	if(brcnt)
 		return 1;
 	ctx->objs++;
-	if(pat[i-1]=='$')
-		ctx->inst[0].failoff=ctx->objs-2;
-	else
-		ctx->inst[0].failoff=ctx->objs-1;
+	ctx->inst[0].failoff=ctx->objs-1;
 	return 0;
 }
 

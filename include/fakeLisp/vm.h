@@ -793,11 +793,6 @@ FklVMfpRW fklGetVMfpRwFromCstr(const char* mode);
 int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer*,size_t j);
 int fklVMfpEof(FklVMfp*);
 
-// int fklVMfpNonBlockGetc(FklVMfp* fp);
-// size_t fklVMfpNonBlockGets(FklVMfp* fp,FklStringBuffer*,size_t len);
-// int fklVMfpNonBlockGetline(FklVMfp* fp,FklStringBuffer*);
-// int fklVMfpNonBlockGetdelim(FklVMfp* fp,FklStringBuffer*,char ch);
-
 int fklUninitVMfp(FklVMfp*);
 
 void fklLockVMfp(FklVMvalue* fpv,FklVM*);

@@ -1,12 +1,13 @@
 #include<fakeLisp/vm.h>
 
-static void test_func(FKL_DL_PROC_ARGL)
+static int test_func(FKL_DL_PROC_ARGL)
 {
 	static const char* pname="test-func";
 	if(fklResBp(exe))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(pname,FKL_ERR_TOOFEWARG,exe);
 	fputs("testing dll\n",stdout);
 	fklPushVMvalue(exe,FKL_VM_NIL);
+	return 0;
 }
 
 struct SymFunc

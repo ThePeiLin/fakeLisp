@@ -3939,6 +3939,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegenInfo* codegen
 		begin=NULL;
 	while(!fklIsPtrStackEmpty(symbolStack))
 		fklDestroyAnaysisSymbol(fklPopPtrStack(symbolStack));
+	lineStack->top=0;
 	return begin;
 }
 

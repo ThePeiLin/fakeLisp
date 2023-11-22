@@ -99,7 +99,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 			{
 				if(!fklIsPtrStackEmpty(symbolStack))
 				{
-					*errLine=fklTopUintStack(lineStack);
+					*errLine=lineStack->base[0];
 					*unexpectEOF=FKL_PARSE_TERMINAL_MATCH_FAILED;
 					free(tmp);
 					tmp=NULL;
@@ -200,7 +200,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 			{
 				if(!fklIsPtrStackEmpty(symbolStack))
 				{
-					*errLine=fklTopUintStack(lineStack);
+					*errLine=lineStack->base[0];
 					*unexpectEOF=FKL_PARSE_TERMINAL_MATCH_FAILED;
 					free(tmp);
 					tmp=NULL;

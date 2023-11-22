@@ -581,6 +581,7 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx* cc
 		free(s);
 	}
 	cc->stateStack.top=0;
+	cc->lineStack.top=0;
 	if(g&&g->aTable.num)
 		fklPushPtrStack(&g->aTable.states[0],&cc->stateStack);
 	else

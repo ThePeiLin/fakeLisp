@@ -207,15 +207,17 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe)
 
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
-	FklVMframe* frame=exe->frames;
-	for(;frame;frame=frame->prev)
-		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
-			break;
-	if(frame==NULL)
-	{
-		fklPrintErrBacktrace(ev,exe);
-		longjmp(exe->buf,1);
-	}
+	FKL_VM_PUSH_VALUE(exe,ev);
+	longjmp(exe->buf,1);
+	// FklVMframe* frame=exe->frames;
+	// for(;frame;frame=frame->prev)
+	// 	if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
+	// 		break;
+	// if(frame==NULL)
+	// {
+	// 	fklPrintErrBacktrace(ev,exe);
+	// 	longjmp(exe->buf,1);
+	// }
 	return 255;
 }
 
@@ -1513,6 +1515,16 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 FklVMvalue* fklGetTopValue(FklVM* exe)
 {
 	return exe->base[exe->tp-1];
+}
+
+FklVMvalue* fklGetValue(FklVM* exe,uint32_t i)
+{
+	return exe->base[exe->tp-i];
+}
+
+FklVMvalue** fklGetStackSlot(FklVM* exe,uint32_t i)
+{
+	return &exe->base[exe->tp-i];
 }
 
 size_t fklVMlistLength(FklVMvalue* v)

@@ -397,6 +397,8 @@ void fklDestroyVMframe(FklVMframe* frame,FklVM* exe)
 		fklDoFinalizeCompoundFrame(frame,exe);
 }
 
+static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f);
+
 FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltinErrorType type)
 {
 	FklString* t=fklCreateEmptyString();
@@ -429,9 +431,15 @@ FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltinErrorTy
 			fklStringCstrCat(&t,"\"");
 			break;
 		case FKL_ERR_SYMUNDEFINE:
-			fklStringCstrCat(&t,"Symbol ");
-			fklStringCstrCat(&t,str);
-			fklStringCstrCat(&t," is undefined");
+			{
+				FklStringBuffer buf;
+				fklInitStringBuffer(&buf);
+				fklPrintRawCstrToStringBuffer(&buf,str,'|');
+				fklStringCstrCat(&t,"Symbol ");
+				fklStringCstrCat(&t,buf.buf);
+				fklStringCstrCat(&t," is undefined");
+				fklUninitStringBuffer(&buf);
+			}
 			break;
 		default:
 			break;

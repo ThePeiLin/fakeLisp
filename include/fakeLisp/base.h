@@ -47,6 +47,7 @@ uintptr_t fklStringHash(const FklString* s);
 uintptr_t fklCharBufHash(const char* str,size_t len);
 
 struct FklStringBuffer;
+void fklPrintRawCstrToStringBuffer(struct FklStringBuffer* s,const char* str,char se);
 void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s,const FklString* fstr,char se);
 FklString* fklStringToRawString(const FklString* str);
 FklString* fklStringToRawSymbol(const FklString* str);

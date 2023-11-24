@@ -226,6 +226,14 @@ static inline int pre_compile(const char* main_file_name
 	}
 	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
+	if(codegen.globalEnv->uref.top)
+	{
+		free(rp);
+		fklUninitCodegenInfo(&codegen);
+		fklDestroyMainFileRealDir();
+		fklDestroyByteCodelnt(mainByteCode);
+		return EXIT_FAILURE;
+	}
 
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 	FKL_ASSERT(outputname);
@@ -292,6 +300,14 @@ static inline int compile(const char* filename
 	}
 	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
+	if(codegen.globalEnv->uref.top)
+	{
+		free(rp);
+		fklUninitCodegenInfo(&codegen);
+		fklDestroyMainFileRealDir();
+		fklDestroyByteCodelnt(mainByteCode);
+		return EXIT_FAILURE;
+	}
 
 	FklPtrStack* loadedLibStack=codegen.libStack;
 	char* outputname=NULL;

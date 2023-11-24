@@ -27,7 +27,7 @@ void fklPrintCodegenError(FklNastNode* obj
 		,size_t line
 		,const FklSymbolTable* publicSymbolTable)
 {
-	if(type==FKL_ERR_DUMMY)
+	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
 		return;
 	fputs("error in compiling: ",stderr);
 	switch(type)
@@ -36,9 +36,6 @@ void fklPrintCodegenError(FklNastNode* obj
 			fputs("Circular reference occur in expanding macro",stderr);
 			break;
 		case FKL_ERR_SYMUNDEFINE:
-			fputs("Symbol ",stderr);
-			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
-			fputs(" is undefined",stderr);
 			break;
 		case FKL_ERR_SYNTAXERROR:
 			fputs("Invalid syntax ",stderr);

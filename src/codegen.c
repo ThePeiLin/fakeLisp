@@ -4195,26 +4195,35 @@ static inline void export_replacement_with_prefix(FklHashTable* replacements
 	}
 }
 
-static inline void print_undefined_symbol(const FklPtrStack* urefs
-		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* pst)
-{
-	for(uint32_t i=0;i<urefs->top;i++)
-	{
-		FklUnReSymbolRef* ref=urefs->base[i];
-		fprintf(stderr,"warning in compiling: Symbol \"");
-		fklPrintString(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
-		fprintf(stderr,"\" is undefined at line %"PRT64U" of ",ref->line);
-		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
-		fputc('\n',stderr);
-	}
-}
+// static inline void print_undefined_symbol(const FklPtrStack* urefs
+// 		,FklSymbolTable* globalSymTable
+// 		,FklSymbolTable* pst)
+// {
+// 	for(uint32_t i=0;i<urefs->top;i++)
+// 	{
+// 		FklUnReSymbolRef* ref=urefs->base[i];
+// 		fprintf(stderr,"error in compiling: Symbol \"");
+// 		fklPrintString(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
+// 		fprintf(stderr,"\" is undefined at line %"PRT64U" of ",ref->line);
+// 		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
+// 		fputc('\n',stderr);
+// 	}
+// }
 
 void fklPrintUndefinedRef(const FklCodegenEnv* env
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst)
 {
-	print_undefined_symbol(&env->uref,globalSymTable,pst);
+	const FklPtrStack* urefs=&env->uref;
+	for(uint32_t i=0;i<urefs->top;i++)
+	{
+		FklUnReSymbolRef* ref=urefs->base[i];
+		fprintf(stderr,"error in compiling: Symbol ");
+		fklPrintRawSymbol(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
+		fprintf(stderr," is undefined at line %"PRT64U" of ",ref->line);
+		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
+		fputc('\n',stderr);
+	}
 }
 
 typedef struct
@@ -4919,6 +4928,18 @@ BC_PROCESS(_library_bc_process)
 		errorState->place=NULL;
 		return NULL;
 	}
+	
+	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
+	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
+	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
+	if(env->uref.top)
+	{
+		errorState->type=FKL_ERR_SYMUNDEFINE;
+		errorState->line=line;
+		errorState->place=NULL;
+		return NULL;
+	}
+
 	ExportContextData* data=context->data;
 	FklByteCodelnt* libBc=sequnce_exp_bc_process(data->stack,fid,line);
 
@@ -4931,10 +4952,6 @@ BC_PROCESS(_library_bc_process)
 	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen
 			,libBc
 			,env);
-
-	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
-	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
-	print_undefined_symbol(&env->uref,codegen->globalSymTable,pst);
 
 	fklPushPtrStack(lib,codegen->libStack);
 
@@ -6158,6 +6175,16 @@ static inline MacroContext* createMacroContext(FklNastNode* origin_exp
 
 BC_PROCESS(_compiler_macro_bc_process)
 {
+	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
+	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
+	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
+	if(env->uref.top)
+	{
+		errorState->type=FKL_ERR_SYMUNDEFINE;
+		errorState->line=line;
+		errorState->place=NULL;
+		return NULL;
+	}
 	MacroContext* d=(MacroContext*)(context->data);
 	FklPtrStack* stack=d->stack;
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
@@ -6168,9 +6195,6 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklCodegenMacroScope* macros=d->macroScope;
 	uint32_t prototype_id=d->prototype_id;
 
-	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
-	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
-	print_undefined_symbol(&env->uref,codegen->globalSymTable,pst);
 	add_compiler_macro(&macros->head
 			,fklMakeNastNodeRef(pattern)
 			,fklMakeNastNodeRef(d->origin_exp)
@@ -6329,11 +6353,6 @@ static inline struct ReaderMacroCtx* createReaderMacroContext(struct CustomActio
 BC_PROCESS(_reader_macro_bc_process)
 {
 	struct ReaderMacroCtx* d=(struct ReaderMacroCtx*)(context->data);
-	FklPtrStack* stack=d->stack;
-	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
-	FklInstruction ret=create_op_ins(FKL_OP_RET);
-	fklBytecodeLntPushFrontIns(macroBcl,&ret,fid,line);
-
 	FklFuncPrototypes* pts=d->pts;
 	struct CustomActionCtx* custom_ctx=d->action_ctx;
 	d->pts=NULL;
@@ -6342,7 +6361,19 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	custom_action_ctx_destroy(custom_ctx);
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
-	print_undefined_symbol(&env->uref,codegen->globalSymTable,pst);
+	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
+	if(env->uref.top)
+	{
+		errorState->type=FKL_ERR_SYMUNDEFINE;
+		errorState->line=line;
+		errorState->place=NULL;
+		return NULL;
+	}
+
+	FklPtrStack* stack=d->stack;
+	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
+	FklInstruction ret=create_op_ins(FKL_OP_RET);
+	fklBytecodeLntPushFrontIns(macroBcl,&ret,fid,line);
 
 	custom_ctx->pts=pts;
 	custom_ctx->bcl=macroBcl;

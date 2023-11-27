@@ -451,7 +451,7 @@ typedef struct FklVMvalueDlproc
 typedef struct FklVMerror
 {
 	FklSid_t type;
-	FklString* who;
+	FklString* where;
 	FklString* message;
 }FklVMerror;
 

@@ -1472,7 +1472,7 @@ static void builtin_str_ref(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(s->str[index]));
 }
 
-#define BV_U_S_8_REF(TYPE,WHO) static const char Pname[]=(WHO);\
+#define BV_U_S_8_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
 	DECL_AND_CHECK_ARG2(bvec,place,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
@@ -1486,7 +1486,7 @@ static void builtin_str_ref(FKL_DL_PROC_ARGL)
 	r=bv->ptr[index];\
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));\
 
-#define BV_REF(TYPE,WHO,MAKER) static const char Pname[]=(WHO);\
+#define BV_REF(TYPE,WHERE,MAKER) static const char Pname[]=(WHERE);\
 	DECL_AND_CHECK_ARG2(bvec,place,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
@@ -1500,8 +1500,8 @@ static void builtin_str_ref(FKL_DL_PROC_ARGL)
 	memcpy(&r,&bv->ptr[index],sizeof(r));\
 	FKL_VM_PUSH_VALUE(exe,MAKER(r,exe));\
 
-#define BV_S_REF(TYPE,WHO) BV_REF(TYPE,WHO,fklMakeVMint)
-#define BV_U_REF(TYPE,WHO) BV_REF(TYPE,WHO,fklMakeVMuint)
+#define BV_S_REF(TYPE,WHERE) BV_REF(TYPE,WHERE,fklMakeVMint)
+#define BV_U_REF(TYPE,WHERE) BV_REF(TYPE,WHERE,fklMakeVMuint)
 
 static void builtin_bvs8ref(FKL_DL_PROC_ARGL) {BV_U_S_8_REF(int8_t,"builtin.bvs8ref")}
 static void builtin_bvs16ref(FKL_DL_PROC_ARGL) {BV_S_REF(int16_t,"builtin.bvs16ref")}
@@ -1518,7 +1518,7 @@ static void builtin_bvu64ref(FKL_DL_PROC_ARGL) {BV_U_REF(uint64_t,"builtin.bvu64
 #undef BV_U_REF
 #undef BV_U_S_8_REF
 
-#define BV_F_REF(TYPE,WHO) static const char Pname[]=(WHO);\
+#define BV_F_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
 	DECL_AND_CHECK_ARG2(bvec,place,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
@@ -1536,7 +1536,7 @@ static void builtin_bvf32ref(FKL_DL_PROC_ARGL) {BV_F_REF(float,"builtin.bvf32ref
 static void builtin_bvf64ref(FKL_DL_PROC_ARGL) {BV_F_REF(double,"builtin.bvf32ref")}
 #undef BV_F_REF
 
-#define SET_BV_S_U_8_REF(TYPE,WHO) static const char Pname[]=(WHO);\
+#define SET_BV_S_U_8_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
 	DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))\
@@ -1550,7 +1550,7 @@ static void builtin_bvf64ref(FKL_DL_PROC_ARGL) {BV_F_REF(double,"builtin.bvf32re
 	bv->ptr[index]=r;\
 	FKL_VM_PUSH_VALUE(exe,target);\
 
-#define SET_BV_REF(TYPE,WHO) static const char Pname[]=(WHO);\
+#define SET_BV_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
 	DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))\
@@ -1577,7 +1577,7 @@ static void builtin_bvu64set1(FKL_DL_PROC_ARGL) {SET_BV_REF(uint64_t,"builtin.bv
 #undef SET_BV_S_U_8_REF
 #undef SET_BV_REF
 
-#define SET_BV_F_REF(TYPE,WHO) static const char Pname[]=(WHO);\
+#define SET_BV_F_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
 	DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!FKL_IS_F64(target))\
@@ -3487,16 +3487,16 @@ static void builtin_recv7(FKL_DL_PROC_ARGL)
 static void builtin_error(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.error";
-	DECL_AND_CHECK_ARG3(type,who,message,Pname);
+	DECL_AND_CHECK_ARG3(type,where,message,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
+	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(where)&&!FKL_IS_STR(where)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe
 			,fklCreateVMvalueError(exe
 				,FKL_GET_SYM(type)
-				,(FKL_IS_SYM(who))
-				?fklGetSymbolWithId(FKL_GET_SYM(who),exe->symbolTable)->symbol
-				:FKL_VM_STR(who)
+				,(FKL_IS_SYM(where))
+				?fklGetSymbolWithId(FKL_GET_SYM(where),exe->symbolTable)->symbol
+				:FKL_VM_STR(where)
 				,fklCopyString(FKL_VM_STR(message))));
 }
 
@@ -3510,14 +3510,14 @@ static void builtin_error_type(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(error->type));
 }
 
-static void builtin_error_who(FKL_DL_PROC_ARGL)
+static void builtin_error_where(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.error-who";
+	static const char Pname[]="builtin.error-where";
 	DECL_AND_CHECK_ARG(err,Pname);
 	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMerror* error=FKL_VM_ERR(err);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(error->who)));
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(error->where)));
 }
 
 static void builtin_error_msg(FKL_DL_PROC_ARGL)
@@ -3543,15 +3543,15 @@ static void builtin_raise(FKL_DL_PROC_ARGL)
 static void builtin_throw(FKL_DL_PROC_ARGL)
 {
 	static const char Pname[]="builtin.throw";
-	DECL_AND_CHECK_ARG3(type,who,message,Pname);
+	DECL_AND_CHECK_ARG3(type,where,message,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(who)&&!FKL_IS_STR(who)))
+	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(where)&&!FKL_IS_STR(where)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMvalue* err=fklCreateVMvalueError(exe
 			,FKL_GET_SYM(type)
-			,(FKL_IS_SYM(who))
-			?fklGetSymbolWithId(FKL_GET_SYM(who),exe->symbolTable)->symbol
-			:FKL_VM_STR(who)
+			,(FKL_IS_SYM(where))
+			?fklGetSymbolWithId(FKL_GET_SYM(where),exe->symbolTable)->symbol
+			:FKL_VM_STR(where)
 			,fklCopyString(FKL_VM_STR(message)));
 	fklPopVMframe(exe);
 	fklRaiseVMerror(err,exe);
@@ -4283,9 +4283,9 @@ static void builtin_getcwd(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,s);
 }
 
-static void builtin_cd(FKL_DL_PROC_ARGL)
+static void builtin_chdir(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.cd";
+	static const char Pname[]="builtin.chdir";
 	DECL_AND_CHECK_ARG(dir,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
@@ -5189,7 +5189,7 @@ static const struct SymbolFuncStruct
 	{"recv&",                 builtin_recv7,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"error",                 builtin_error,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"error-type",            builtin_error_type,              {NULL,         NULL,          NULL,            NULL,          }, },
-	{"error-who",             builtin_error_who,               {NULL,         NULL,          NULL,            NULL,          }, },
+	{"error-where",           builtin_error_where,             {NULL,         NULL,          NULL,            NULL,          }, },
 	{"error-msg",             builtin_error_msg,               {NULL,         NULL,          NULL,            NULL,          }, },
 	{"raise",                 builtin_raise,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,            NULL,          }, },
@@ -5290,7 +5290,7 @@ static const struct SymbolFuncStruct
 	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"getcwd",                builtin_getcwd,                  {NULL,         NULL,          NULL,            NULL,          }, },
-	{"cd",                    builtin_cd,                      {NULL,         NULL,          NULL,            NULL,          }, },
+	{"chdir",                 builtin_chdir,                   {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,            NULL,          }, },
 

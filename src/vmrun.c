@@ -1789,8 +1789,8 @@ static inline void B_dec(BYTE_CODE_ARGS)
 
 #define PROCESS_ADD_RES() FKL_VM_PUSH_VALUE(exe,fklProcessVMnumAddResult(exe,r64,rd,&bi))
 
-#define PROCESS_ADD(VAR,WHO) if(fklProcessVMnumAdd(VAR,&r64,&rd,&bi))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,FKL_ERR_INCORRECT_TYPE_VALUE,exe)
+#define PROCESS_ADD(VAR,WHERE) if(fklProcessVMnumAdd(VAR,&r64,&rd,&bi))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHERE,FKL_ERR_INCORRECT_TYPE_VALUE,exe)
 
 static inline void B_add(BYTE_CODE_ARGS)
 {
@@ -1975,8 +1975,8 @@ static inline void B_rec(BYTE_CODE_ARGS)
 #undef PROCESS_ADD
 #undef PROCESS_ADD_RES
 
-#define PROCESS_MUL(VAR,ERR) if(fklProcessVMnumMul(VAR,&r64,&rd,&bi))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR,FKL_ERR_INCORRECT_TYPE_VALUE,exe)
+#define PROCESS_MUL(VAR,WHERE) if(fklProcessVMnumMul(VAR,&r64,&rd,&bi))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(WHERE,FKL_ERR_INCORRECT_TYPE_VALUE,exe)
 
 #define PROCESS_MUL_RES() FKL_VM_PUSH_VALUE(exe,fklProcessVMnumMulResult(exe,r64,rd,&bi))
 

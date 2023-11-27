@@ -1809,9 +1809,9 @@ static void builtin_fopen(FKL_DL_PROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,obj);
 }
 
-static void builtin_freopen1(FKL_DL_PROC_ARGL)
+static void builtin_freopen(FKL_DL_PROC_ARGL)
 {
-	static const char Pname[]="builtin.freopen!";
+	static const char Pname[]="builtin.freopen";
 	DECL_AND_CHECK_ARG2(stream,filename,Pname);
 	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -5304,7 +5304,7 @@ static const struct SymbolFuncStruct
 
 	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"freopen!",              builtin_freopen1,                {NULL,         NULL,          NULL,            NULL,          }, },
+	{"freopen",               builtin_freopen,                 {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"freg?",                 builtin_freg_p,                  {NULL,         NULL,          NULL,            NULL,          }, },
 

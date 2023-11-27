@@ -555,9 +555,8 @@ static inline void close_var_ref(FklVMvarRef* ref)
 	ref->ref=&ref->v;
 }
 
-void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe)
+static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
 {
-	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
 	for(FklVMvarRefList* l=lr->lrefl;l;)
 	{
 		close_var_ref(l->ref);
@@ -566,6 +565,12 @@ void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe)
 		l=c->next;
 		free(c);
 	}
+}
+
+void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe)
+{
+	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
+	close_all_var_ref(lr);
 	free(lr->lref);
 	exe->ltp-=lr->lcount;
 }
@@ -2140,6 +2145,9 @@ static inline void B_ret(BYTE_CODE_ARGS)
 	FklVMframe* f=exe->frames;
 	if(f->c.mark)
 	{
+		close_all_var_ref(&f->c.lr);
+		f->c.lr.lrefl=NULL;
+		memset(f->c.lr.lref,0,sizeof(FklVMvarRef*)*f->c.lr.lcount);
 		f->c.pc=f->c.spc;
 		f->c.mark=0;
 		f->c.tail=0;

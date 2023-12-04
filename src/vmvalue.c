@@ -916,11 +916,6 @@ void fklDestroyVMrecv(FklVMrecv* r)
 }
 
 
-void fklResumeThread(FklVM* exe)
-{
-	exe->state=FKL_VM_READY;
-}
-
 int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r)
 {
 	if(ch->messageNum)
@@ -934,11 +929,6 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** r)
 	}
 	else
 		return 0;
-}
-
-void fklSuspendThread(FklVM* exe)
-{
-	exe->state=FKL_VM_WAITING;
 }
 
 void fklChanlRecv(FklVMvalue** slot,FklVMchanl* ch,FklVM* exe)

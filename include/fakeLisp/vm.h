@@ -8,6 +8,7 @@
 #include"pattern.h"
 #include"utils.h"
 #include<uv.h>
+#include<stdatomic.h>
 #include<stdio.h>
 #include<stdint.h>
 #include<setjmp.h>
@@ -344,8 +345,18 @@ typedef enum
 #define FKL_VM_STACK_INC_NUM (128)
 #define FKL_VM_STACK_INC_SIZE (sizeof(FklVMvalue*)*128)
 
+typedef struct
+{
+	uv_mutex_t pre_running_lock;
+	FklPtrQueue pre_running_q;
+	atomic_size_t running_count;
+
+}FklVMqueue;
+
 typedef struct FklVM
 {
+	uv_thread_t tid;
+	FklVMqueue* vmq;
 	uv_loop_t* loop;
 
 	uint32_t ltp;
@@ -377,7 +388,8 @@ typedef struct FklVM
 	FklFuncPrototypes* pts;
 	FklVMlib* importingLib;
 
-	FklVMstate state;
+	FklVMstate volatile state;
+	uv_mutex_t lock;
 
 }FklVM;
 
@@ -424,6 +436,8 @@ typedef struct FklVMgc
 	size_t volatile num;
 	uint32_t threshold;
 	FklVMvalue* head;
+	FklVMqueue q;
+	FklVM* vms;
 	FklVM GcCo;
 }FklVMgc;
 
@@ -484,6 +498,8 @@ typedef struct
 
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
+
+void fklVMworkStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
 FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* prev

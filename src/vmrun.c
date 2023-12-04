@@ -478,6 +478,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->frames=NULL;
 	exe->gc=fklCreateVMgc();
 	exe->state=FKL_VM_READY;
+	uv_mutex_init(&exe->lock);
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
@@ -744,40 +745,115 @@ static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
 		fklUninitVMlib(&libs[i]);
 }
 
-static inline FklVM* do_exit_VM(FklVM* exe)
+// static inline FklVM* do_exit_VM(FklVM* exe)
+// {
+// 	FklVM* prev=exe->prev;
+// 	FklVM* next=exe->next;
+//
+// 	prev->next=next;
+// 	next->prev=prev;
+// 	exe->prev=exe;
+// 	exe->next=exe;
+//
+// 	if(exe->chan)
+// 	{
+// 		FklVMchanl* tmpCh=FKL_VM_CHANL(exe->chan);
+// 		FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
+// 		FklVMvalue* resultBox=fklCreateVMvalueBox(next,v);
+// 		fklChanlSend(resultBox,tmpCh,exe);
+//
+// 		fklDeleteCallChain(exe);
+// 		fklUninitVMstack(exe);
+// 		uninit_all_vm_lib(exe->libs,exe->libNum);
+// 		free(exe->locv);
+// 		free(exe->libs);
+// 		free(exe);
+// 	}
+//
+// 	if(next==prev&&next==exe)
+// 		return NULL;
+// 	return next;
+// }
+
+// static void uv_idle_run_vm(uv_idle_t* handle)
+// {
+// 	FklVM* volatile exe=uv_handle_get_data((uv_handle_t*)handle);
+// 	while(exe)
+// 	{
+// 		switch(exe->state)
+// 		{
+// 			case FKL_VM_RUNNING:
+// 				DO_STEP_VM(exe);
+// 				break;
+// 			case FKL_VM_EXIT:
+// 				exe=do_exit_VM(exe);
+// 				continue;
+// 				break;
+// 			case FKL_VM_READY:
+// 				if(setjmp(exe->buf)==1)
+// 				{
+// 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
+// 					FklVMframe* frame=exe->frames;
+// 					for(;frame;frame=frame->prev)
+// 						if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
+// 							break;
+// 					if(frame==NULL)
+// 					{
+// 						fklPrintErrBacktrace(ev,exe);
+// 						if(exe->chan)
+// 						{
+// 							FklVMvalue* err=FKL_VM_GET_TOP_VALUE(exe);
+// 							fklChanlSend(err,FKL_VM_CHANL(exe->chan),exe);
+// 							exe->state=FKL_VM_EXIT;
+// 							continue;
+// 						}
+// 						else
+// 						{
+// 							*(int*)(handle->loop->data)=255;
+// 							uv_close((uv_handle_t*)handle,NULL);
+// 							return;
+// 						}
+// 					}
+// 				}
+// 				exe->state=FKL_VM_RUNNING;
+// 				continue;
+// 				break;
+// 			case FKL_VM_WAITING:
+// 				if(uv_loop_alive(handle->loop)>0)
+// 				{
+// 					handle->data=exe->next;
+// 					return;
+// 				}
+// 				break;
+// 		}
+// 		exe=exe->next;
+// 	}
+// 	uv_close((uv_handle_t*)handle,NULL);
+// }
+
+static inline void vm_running_thread_push(FklVM* v)
 {
-	FklVM* prev=exe->prev;
-	FklVM* next=exe->next;
-
-	prev->next=next;
-	next->prev=prev;
-	exe->prev=exe;
-	exe->next=exe;
-
-	if(exe->chan)
-	{
-		FklVMchanl* tmpCh=FKL_VM_CHANL(exe->chan);
-		FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-		FklVMvalue* resultBox=fklCreateVMvalueBox(next,v);
-		fklChanlSend(resultBox,tmpCh,exe);
-
-		fklDeleteCallChain(exe);
-		fklUninitVMstack(exe);
-		uninit_all_vm_lib(exe->libs,exe->libNum);
-		free(exe->locv);
-		free(exe->libs);
-		free(exe);
-	}
-
-	if(next==prev&&next==exe)
-		return NULL;
-	return next;
+	FklVMqueue* q=v->vmq;
+	uv_mutex_lock(&q->pre_running_lock);
+	fklPushPtrQueue(v,&q->pre_running_q);
+	uv_mutex_unlock(&q->pre_running_lock);
 }
 
-static void uv_idle_run_vm(uv_idle_t* handle)
+void fklResumeThread(FklVM* exe)
 {
-	FklVM* volatile exe=uv_handle_get_data((uv_handle_t*)handle);
-	while(exe)
+	exe->state=FKL_VM_READY;
+}
+
+void fklSuspendThread(FklVM* exe)
+{
+	uv_mutex_unlock(&exe->lock);
+	exe->state=FKL_VM_WAITING;
+}
+
+static void vm_thread_cb(void* arg)
+{
+	FklVM* volatile exe=(FklVM*)arg;
+	for(;;)
 	{
 		switch(exe->state)
 		{
@@ -785,10 +861,21 @@ static void uv_idle_run_vm(uv_idle_t* handle)
 				DO_STEP_VM(exe);
 				break;
 			case FKL_VM_EXIT:
-				exe=do_exit_VM(exe);
-				continue;
+				atomic_fetch_sub(&exe->vmq->running_count,1);
+				if(exe->chan)
+				{
+					FklVMchanl* tmpCh=FKL_VM_CHANL(exe->chan);
+					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
+					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
+					fklChanlSend(resultBox,tmpCh,exe);
+				}
+				uv_mutex_unlock(&exe->lock);
+				return;
+				// exe=do_exit_VM(exe);
+				// continue;
 				break;
 			case FKL_VM_READY:
+				uv_mutex_lock(&exe->lock);
 				if(setjmp(exe->buf)==1)
 				{
 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
@@ -808,9 +895,9 @@ static void uv_idle_run_vm(uv_idle_t* handle)
 						}
 						else
 						{
-							*(int*)(handle->loop->data)=255;
-							uv_close((uv_handle_t*)handle,NULL);
-							return;
+							*(int*)(exe->loop->data)=255;
+							exe->state=FKL_VM_EXIT;
+							continue;
 						}
 					}
 				}
@@ -818,29 +905,65 @@ static void uv_idle_run_vm(uv_idle_t* handle)
 				continue;
 				break;
 			case FKL_VM_WAITING:
-				if(uv_loop_alive(handle->loop)>0)
-				{
-					handle->data=exe->next;
-					return;
-				}
+				continue;
 				break;
 		}
-		exe=exe->next;
 	}
-	uv_close((uv_handle_t*)handle,NULL);
+}
+
+void fklVMworkStart(FklVM* exe,FklVMqueue* q)
+{
+	exe->vmq=q;
+	vm_running_thread_push(exe);
+}
+
+static void join_all_vm_thread(uv_handle_t* handle)
+{
+	FklVMgc* gc=uv_handle_get_data(handle);
+	FklVM* vm=gc->vms;
+	uv_thread_join(&vm->tid);
+	for(FklVM* cur=vm->next;cur!=vm;cur=cur->next)
+		uv_thread_join(&cur->tid);
+}
+
+static void vm_idle(uv_idle_t* handle)
+{
+	FklVMgc* gc=uv_handle_get_data((uv_handle_t*)handle);
+	if(gc->running==FKL_GC_MARK_ROOT)
+	{
+		return;
+	}
+	FklVMqueue* q=&gc->q;
+	uv_mutex_lock(&q->pre_running_lock);
+	while(!fklIsPtrQueueEmpty(&q->pre_running_q))
+	{
+		FklVM* exe=fklPopPtrQueue(&q->pre_running_q);
+		uv_thread_create(&exe->tid,vm_thread_cb,exe);
+		atomic_fetch_add(&q->running_count,1);
+	}
+	uv_mutex_unlock(&q->pre_running_lock);
+	if(atomic_load(&q->running_count)==0)
+		uv_close((uv_handle_t*)handle,join_all_vm_thread);
+	return;
 }
 
 int fklRunVM(FklVM* volatile exe)
 {
+	FklVMgc* gc=exe->gc;
 	int err=0;
-	uv_idle_t idler;
 	uv_loop_t loop;
 	exe->loop=&loop;
 	uv_loop_init(&loop);
-	uv_idle_init(&loop,&idler);
 	uv_handle_set_data((uv_handle_t*)&loop,&err);
-	uv_handle_set_data((uv_handle_t*)&idler,exe);
-	uv_idle_start(&idler,uv_idle_run_vm);
+	gc->vms=exe;
+	fklVMworkStart(exe,&gc->q);
+
+	uv_idle_t idler;
+	uv_idle_init(&loop,&idler);
+	uv_handle_set_data((uv_handle_t*)&idler,gc);
+	// uv_idle_start(&idler,uv_idle_run_vm);
+	uv_idle_start(&idler,vm_idle);
+
 	uv_run(&loop,UV_RUN_DEFAULT);
 	uv_loop_close(&loop);
 	return err;
@@ -2186,6 +2309,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->ltp=0;
 	exe->locv=NULL;
 	exe->state=FKL_VM_READY;
+	uv_mutex_init(&exe->lock);
 	fklCallObj(exe,nextCall);
 	return exe;
 }

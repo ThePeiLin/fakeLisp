@@ -334,17 +334,32 @@ static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
 	initFrameCtxToGcCoCtx(f->data,gc);
 }
 
+static inline void init_vm_queue(FklVMqueue* q)
+{
+	uv_mutex_init(&q->pre_running_lock);
+	fklInitPtrQueue(&q->pre_running_q);
+	atomic_init(&q->running_count,0);
+}
+
+static inline void uninit_vm_queue(FklVMqueue* q)
+{
+	uv_mutex_destroy(&q->pre_running_lock);
+	fklUninitPtrQueue(&q->pre_running_q);
+}
+
 FklVMgc* fklCreateVMgc()
 {
-	FklVMgc* tmp=(FklVMgc*)calloc(1,sizeof(FklVMgc));
-	FKL_ASSERT(tmp);
-	tmp->threshold=FKL_THRESHOLD_SIZE;
-	FklVM* gcvm=&tmp->GcCo;
-	gcvm->gc=tmp;
+	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
+	FKL_ASSERT(gc);
+	gc->threshold=FKL_THRESHOLD_SIZE;
+	gc->vms=NULL;
+	FklVM* gcvm=&gc->GcCo;
+	gcvm->gc=gc;
 	gcvm->state=FKL_VM_WAITING;
 	gcvm->prev=gcvm;
 	gcvm->next=gcvm;
-	return tmp;
+	init_vm_queue(&gc->q);
+	return gc;
 }
 
 static inline void insert_gc_vm(FklVM* prev,FklVMgc* gc)
@@ -360,14 +375,14 @@ static inline void insert_gc_vm(FklVM* prev,FklVMgc* gc)
 
 void fklTryGC(FklVM* vm)
 {
-	FklVMgc* gc=vm->gc;
-	FklVM* gcvm=&gc->GcCo;
-	if(gc->num>gc->threshold&&gcvm->next==gcvm&&gc->running==FKL_GC_NONE)
-	{
-		gc->running=FKL_GC_MARK_ROOT;
-		initGcCoVM(&gc->GcCo,gc);
-		insert_gc_vm(vm,gc);
-	}
+	// FklVMgc* gc=vm->gc;
+	// FklVM* gcvm=&gc->GcCo;
+	// if(gc->num>gc->threshold&&gcvm->next==gcvm&&gc->running==FKL_GC_NONE)
+	// {
+	// 	gc->running=FKL_GC_MARK_ROOT;
+	// 	initGcCoVM(&gc->GcCo,gc);
+	// 	insert_gc_vm(vm,gc);
+	// }
 }
 
 void fklAddToGC(FklVMvalue* v,FklVM* vm)
@@ -390,6 +405,7 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 void fklDestroyVMgc(FklVMgc* gc)
 {
 	fklDestroyAllValues(gc);
+	uninit_vm_queue(&gc->q);
 	free(gc);
 }
 

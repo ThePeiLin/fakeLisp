@@ -3965,7 +3965,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 
 				FklVMvalue* resultBox=fklCreateVMvalueBox(exe,FKL_VM_NIL);
 				ctx->context=(uintptr_t)&FKL_VM_BOX(resultBox);
-				fklCprocYield(exe,rtp);
+				fklCprocRestituteSframe(exe,rtp);
 				FKL_VM_GET_VALUE(exe,arg_num+1)=resultBox;
 				FKL_VM_PUSH_VALUE(exe,proc);
 				fklSetBp(exe);
@@ -4036,7 +4036,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 					return 0;\
 				}\
 				ctx->context=1;\
-				fklCprocYield(exe,rtp);\
+				fklCprocRestituteSframe(exe,rtp);\
 				FKL_VM_GET_VALUE(exe,arg_num+1)=FKL_VM_NIL;\
 				FKL_VM_PUSH_VALUE(exe,proc);\
 				fklSetBp(exe);\
@@ -4139,7 +4139,7 @@ static int builtin_member(FKL_CPROC_ARGL)
 						return 0;
 					}
 					ctx->context=1;
-					fklCprocYield(exe,exe->tp);
+					fklCprocRestituteSframe(exe,exe->tp);
 					FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 					FKL_VM_PUSH_VALUE(exe,proc);
 					FKL_VM_PUSH_VALUE(exe,obj);
@@ -4206,7 +4206,7 @@ static int builtin_memp(FKL_CPROC_ARGL)
 					return 0;
 				}
 				ctx->context=1;
-				fklCprocYield(exe,exe->tp);
+				fklCprocRestituteSframe(exe,exe->tp);
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				FKL_VM_PUSH_VALUE(exe,proc);
 				FKL_VM_PUSH_VALUE(exe,list);
@@ -4264,7 +4264,7 @@ static int builtin_filter(FKL_CPROC_ARGL)
 				}
 				FklVMvalue* resultBox=fklCreateVMvalueBoxNil(exe);
 				ctx->context=(uintptr_t)&FKL_VM_BOX(resultBox);
-				fklCprocYield(exe,exe->tp);
+				fklCprocRestituteSframe(exe,exe->tp);
 				FKL_VM_PUSH_VALUE(exe,resultBox);
 				FKL_VM_PUSH_VALUE(exe,proc);
 				FKL_VM_PUSH_VALUE(exe,list);

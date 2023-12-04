@@ -863,7 +863,7 @@ uint64_t fklGetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 
-void fklCprocYield(FklVM* v,uint32_t rtp);
+void fklCprocRestituteSframe(FklVM* v,uint32_t rtp);
 
 void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 

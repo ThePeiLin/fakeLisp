@@ -676,7 +676,7 @@ void fklTailCallObj(FklVM* exe,FklVMvalue* proc)
 	fklCallObj(exe,proc);
 }
 
-void fklCprocYield(FklVM* v,uint32_t rtp)
+void fklCprocRestituteSframe(FklVM* v,uint32_t rtp)
 {
 	FklVMframe* sf=v->frames;
 	if(&v->sf==sf)

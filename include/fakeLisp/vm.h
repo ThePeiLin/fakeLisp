@@ -30,7 +30,7 @@ typedef enum
 	FKL_TYPE_CHAN,
 	FKL_TYPE_FP,
 	FKL_TYPE_DLL,
-	FKL_TYPE_DLPROC,
+	FKL_TYPE_CPROC,
 	FKL_TYPE_ERR,
 	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_CODE_OBJ,
@@ -40,13 +40,10 @@ typedef enum
 
 struct FklVM;
 struct FklVMvalue;
+struct FklCprocFrameContext;
+#define FKL_CPROC_ARGL FklVM* exe,struct FklCprocFrameContext* ctx
 
-// #define FKL_DL_PROC_ARGL FklVM* exe,struct FklVMvalue* rel,struct FklVMvalue* pd,uintptr_t* context
-
-struct FklDlprocFrameContext;
-#define FKL_DL_PROC_ARGL FklVM* exe,struct FklDlprocFrameContext* ctx
-
-typedef int (*FklVMdllFunc)(FKL_DL_PROC_ARGL);
+typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
 typedef struct FklVMvalue* FklVMptr;
 typedef enum
 {
@@ -59,13 +56,13 @@ typedef enum
 
 #define FKL_PTR_TAG_NUM (FKL_TAG_CHR+1)
 
-typedef struct FklVMdll
+typedef struct
 {
 	uv_lib_t dll;
 	struct FklVMvalue* pd;
 }FklVMdll;
 
-typedef struct FklVMchanl
+typedef struct
 {
 	size_t max;
 	volatile size_t messageNum;
@@ -80,7 +77,7 @@ typedef struct
 	struct FklVMvalue** slot;
 }FklVMrecv;
 
-typedef struct FklVMpair
+typedef struct
 {
 	struct FklVMvalue* car;
 	struct FklVMvalue* cdr;
@@ -93,7 +90,7 @@ typedef enum
 	FKL_VM_FP_RW=3,
 }FklVMfpRW;
 
-typedef struct FklVMfp
+typedef struct
 {
 	FILE* fp;
 	FklPtrQueue next;
@@ -101,7 +98,7 @@ typedef struct FklVMfp
 	uint32_t mutex:1;
 }FklVMfp;
 
-typedef struct FklVMvec
+typedef struct
 {
 	size_t size;
 	struct FklVMvalue** base;
@@ -110,7 +107,7 @@ typedef struct FklVMvec
 #define FKL_VM_UDATA_COMMON_HEADER struct FklVMvalue* rel;\
 	const struct FklVMudMetaTable* t
 
-typedef struct FklVMudata
+typedef struct
 {
 	FKL_VM_UDATA_COMMON_HEADER;
 	void* data[];
@@ -133,49 +130,49 @@ typedef struct FklVMvalue
 }FklVMvalue;
 
 // builtin values
-typedef struct FklVMvalueF64
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	double f64;
 }FklVMvalueF64;
 
-typedef struct FklVMvalueBigInt
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklBigInt bi;
 }FklVMvalueBigInt;
 
-typedef struct FklVMvalueStr
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklString* str;
 }FklVMvalueStr;
 
-typedef struct FklVMvalueVec
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMvec vec;
 }FklVMvalueVec;
 
-typedef struct FklVMvaluePair
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMpair pair;
 }FklVMvaluePair;
 
-typedef struct FklVMvalueBox
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMvalue* box;
 }FklVMvalueBox;
 
-typedef struct FklVMvalueBvec
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklBytevector* bvec;
 }FklVMvalueBvec;
 
-typedef struct FklVMvalueUd
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMudata ud;
@@ -207,25 +204,25 @@ typedef struct FklVMproc
 	FklVMvalue* codeObj;
 }FklVMproc;
 
-typedef struct FklVMvalueProc
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMproc proc;
 }FklVMvalueProc;
 
-typedef struct FklVMvalueChanl
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMchanl chanl;
 }FklVMvalueChanl;
 
-typedef struct FklVMvalueFp
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMfp fp;
 }FklVMvalueFp;
 
-typedef struct FklVMvalueDll
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMdll dll;
@@ -243,7 +240,7 @@ typedef struct FklVMvarRefList
 	struct FklVMvarRefList* next;
 }FklVMvarRefList;
 
-typedef struct FklVMCompoundFrameVarRef
+typedef struct
 {
 	FklVMvarRef** lref;
 	FklVMvarRefList* lrefl;
@@ -254,7 +251,7 @@ typedef struct FklVMCompoundFrameVarRef
 	uint32_t rcount;
 }FklVMCompoundFrameVarRef;
 
-typedef struct FklVMCompoundFrameData
+typedef struct
 {
 	FklSid_t sid:61;
 	unsigned int tail:1;
@@ -268,24 +265,24 @@ typedef struct FklVMCompoundFrameData
 
 typedef enum
 {
-	FKL_DLPROC_READY=0,
-	FKL_DLPROC_DONE,
-}FklDlprocFrameState;
+	FKL_CPROC_READY=0,
+	FKL_CPROC_DONE,
+}FklCprocFrameState;
 
-typedef struct FklDlprocFrameContext
+typedef struct FklCprocFrameContext
 {
 	FklVMvalue* proc;
-	FklDlprocFrameState state;
+	FklCprocFrameState state;
 	uint32_t rtp;
 	uintptr_t context;
-	FklVMdllFunc func;
+	FklVMcFunc func;
 	FklVMvalue* pd;
-}FklDlprocFrameContext;
+}FklCprocFrameContext;
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
 		,#TYPE" is too big")
 
-FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklDlprocFrameContext);
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 
 struct FklVMgc;
 typedef struct
@@ -362,7 +359,7 @@ typedef struct FklVM
 	uint32_t bp;
 	FklVMvalue** base;
 
-	//static stack frame,only for dlproc and callable obj;
+	//static stack frame,only for cproc and callable obj;
 	//如果这个栈帧不会再进行调用，那么就会直接使用这个
 	FklVMframe sf;
 
@@ -430,46 +427,46 @@ typedef struct FklVMgc
 	FklVM GcCo;
 }FklVMgc;
 
-typedef struct FklVMdlproc
+typedef struct
 {
-	FklVMdllFunc func;
+	FklVMcFunc func;
 	FklVMvalue* dll;
 	FklSid_t sid;
 	FklVMvalue* pd;
-}FklVMdlproc;
+}FklVMcproc;
 
-typedef struct FklVMvalueDlproc
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
-	FklVMdlproc dlproc;
-}FklVMvalueDlproc;
+	FklVMcproc cproc;
+}FklVMvalueCproc;
 
-typedef struct FklVMerror
+typedef struct
 {
 	FklSid_t type;
 	FklString* where;
 	FklString* message;
 }FklVMerror;
 
-typedef struct FklVMvalueErr
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMerror err;
 }FklVMvalueErr;
 
-typedef struct FklVMvalueHash
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklHashTable hash;
 }FklVMvalueHash;
 
-typedef struct FklVMvalueCodeObj
+typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklByteCodelnt bcl;
 }FklVMvalueCodeObj;
 
-typedef struct FklVMerrorHandler
+typedef struct
 {
 	FklSid_t* typeIds;
 	FklVMproc proc;
@@ -619,7 +616,7 @@ void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
 void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
 void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
-void fklAtomicVMdlproc(FklVMvalue*,FklVMgc*);
+void fklAtomicVMcproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMchan(FklVMvalue*,FklVMgc*);
 
 FklVMvalue* fklCopyVMlistOrAtom(FklVMvalue*,FklVM*);
@@ -657,8 +654,8 @@ FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM*,FklVMframe* f,size_t,uint32_t p
 FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*,char**);
 void* fklGetAddress(const char* funcname,uv_lib_t* dll);
 
-FklVMvalue* fklCreateVMvalueDlproc(FklVM*
-		,FklVMdllFunc
+FklVMvalue* fklCreateVMvalueCproc(FklVM*
+		,FklVMcFunc
 		,FklVMvalue* dll
 		,FklVMvalue* pd
 		,FklSid_t sid);
@@ -731,7 +728,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 #define FKL_VM_DLL(V) (&(((FklVMvalueDll*)(V))->dll))
 
-#define FKL_VM_DLPROC(V) (&(((FklVMvalueDlproc*)(V))->dlproc))
+#define FKL_VM_CPROC(V) (&(((FklVMvalueCproc*)(V))->cproc))
 
 #define FKL_VM_FP(V) (&(((FklVMvalueFp*)(V))->fp))
 
@@ -866,7 +863,7 @@ uint64_t fklGetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 
-void fklDlprocYield(FklVM* v,uint32_t rtp);
+void fklCprocYield(FklVM* v,uint32_t rtp);
 
 void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 
@@ -959,7 +956,7 @@ void fklUninitVMlib(FklVMlib*);
 #define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_FP)
 #define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DLL)
 #define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_PROC)
-#define FKL_IS_DLPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DLPROC)
+#define FKL_IS_CPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CPROC)
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)

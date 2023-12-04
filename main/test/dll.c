@@ -1,6 +1,6 @@
 #include<fakeLisp/vm.h>
 
-static int test_func(FKL_DL_PROC_ARGL)
+static int test_func(FKL_CPROC_ARGL)
 {
 	static const char* pname="test-func";
 	if(fklResBp(exe))
@@ -13,7 +13,7 @@ static int test_func(FKL_DL_PROC_ARGL)
 struct SymFunc
 {
 	const char* sym;
-	FklVMdllFunc f;
+	FklVMcFunc f;
 }exports_and_func[]=
 {
 	{"test-func",test_func},
@@ -40,8 +40,8 @@ FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 	for(size_t i=0;i<EXPORT_NUM;i++)
 	{
 		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,table)->id;
-		FklVMdllFunc func=exports_and_func[i].f;
-		FklVMvalue* dlproc=fklCreateVMvalueDlproc(exe,func,dll,NULL,id);
+		FklVMcFunc func=exports_and_func[i].f;
+		FklVMvalue* dlproc=fklCreateVMvalueCproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;
 	}
 	return loc;

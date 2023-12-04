@@ -102,7 +102,7 @@ static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		fklAtomicVMchan,
 		NULL,
 		fklAtomicVMdll,
-		fklAtomicVMdlproc,
+		fklAtomicVMcproc,
 		NULL,
 		fklAtomicVMhashTable,
 		NULL,

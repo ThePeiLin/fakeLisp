@@ -710,17 +710,17 @@ static void vmvalue_dll_printer(VMVALUE_PRINTER_ARGS)
 	fprintf(fp,"#<dll %p>",FKL_VM_DLL(v));
 }
 
-static void vmvalue_dlproc_printer(VMVALUE_PRINTER_ARGS)
+static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS)
 {
-	FklVMdlproc* dlproc=FKL_VM_DLPROC(v);
-	if(dlproc->sid)
+	FklVMcproc* cproc=FKL_VM_CPROC(v);
+	if(cproc->sid)
 	{
-		fprintf(fp,"#<dlproc ");
-		fklPrintRawSymbol(fklGetSymbolWithId(dlproc->sid,table)->symbol,fp);
+		fprintf(fp,"#<cproc ");
+		fklPrintRawSymbol(fklGetSymbolWithId(cproc->sid,table)->symbol,fp);
 		fputc('>',fp);
 	}
 	else
-		fprintf(fp,"#<dlproc %p>",dlproc);
+		fprintf(fp,"#<cproc %p>",cproc);
 }
 
 static void vmvalue_error_princ(VMVALUE_PRINTER_ARGS)
@@ -747,7 +747,7 @@ static void (*VMvaluePtrPrincTable[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,
 	vmvalue_chanl_printer,
 	vmvalue_fp_printer,
 	vmvalue_dll_printer,
-	vmvalue_dlproc_printer,
+	vmvalue_cproc_printer,
 	vmvalue_error_princ,
 	NULL,
 	vmvalue_code_obj_printer,
@@ -838,7 +838,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,
 	vmvalue_chanl_printer,
 	vmvalue_fp_printer,
 	vmvalue_dll_printer,
-	vmvalue_dlproc_printer,
+	vmvalue_cproc_printer,
 	vmvalue_error_prin1,
 	NULL,
 	vmvalue_code_obj_printer,
@@ -1237,17 +1237,17 @@ static void vmvalue_dll_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
 }
 
-static void vmvalue_dlproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_cproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	FklVMdlproc* dlproc=FKL_VM_DLPROC(v);
-	if(dlproc->sid)
+	FklVMcproc* cproc=FKL_VM_CPROC(v);
+	if(cproc->sid)
 	{
-		fklStringBufferConcatWithCstr(result,"#<dlproc ");
-		print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(dlproc->sid,table)->symbol);
+		fklStringBufferConcatWithCstr(result,"#<cproc ");
+		print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(cproc->sid,table)->symbol);
 		fklStringBufferPutc(result,'>');
 	}
 	else
-		fklStringBufferPrintf(result,"#<dlproc %p>",dlproc);
+		fklStringBufferPrintf(result,"#<cproc %p>",cproc);
 }
 
 static void vmvalue_error_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1281,7 +1281,7 @@ static void (*atom_ptr_ptr_to_string_buffer_printer_table[FKL_VMVALUE_PTR_TYPE_N
 	vmvalue_chanl_to_string_buffer,
 	vmvalue_fp_to_string_buffer,
 	vmvalue_dll_to_string_buffer,
-	vmvalue_dlproc_to_string_buffer,
+	vmvalue_cproc_to_string_buffer,
 	vmvalue_error_to_string_buffer,
 	NULL,
 	vmvalue_code_obj_to_string_buffer,

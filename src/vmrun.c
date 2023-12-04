@@ -162,91 +162,86 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc)
 	}
 }
 
-static void dlproc_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+static void cproc_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
 {
-	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
-	FklVMdlproc* dlproc=FKL_VM_DLPROC(c->proc);
-	if(dlproc->sid)
+	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
+	FklVMcproc* cproc=FKL_VM_CPROC(c->proc);
+	if(cproc->sid)
 	{
-		fprintf(fp,"at dlproc:");
-		fklPrintString(fklGetSymbolWithId(dlproc->sid,table)->symbol
+		fprintf(fp,"at cproc:");
+		fklPrintString(fklGetSymbolWithId(cproc->sid,table)->symbol
 				,stderr);
 		fputc('\n',fp);
 	}
 	else
-		fputs("at <dlproc>\n",fp);
+		fputs("at <cproc>\n",fp);
 }
 
-static void dlproc_frame_atomic(void* data,FklVMgc* gc)
+static void cproc_frame_atomic(void* data,FklVMgc* gc)
 {
-	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
+	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
 	fklGC_toGrey(c->proc,gc);
 }
 
-static void dlproc_frame_finalizer(void* data)
+static void cproc_frame_finalizer(void* data)
 {
 }
 
-static void dlproc_frame_copy(void* d,const void* s,FklVM* exe)
+static void cproc_frame_copy(void* d,const void* s,FklVM* exe)
 {
-	FklDlprocFrameContext const* const sc=(FklDlprocFrameContext*)s;
-	FklDlprocFrameContext* dc=(FklDlprocFrameContext*)d;
+	FklCprocFrameContext const* const sc=(FklCprocFrameContext*)s;
+	FklCprocFrameContext* dc=(FklCprocFrameContext*)d;
 	*dc=*sc;
-	// FklVMgc* gc=exe->gc;
-	// fklSetRef(&dc->proc,sc->proc,gc);
-	// fklSetRef(&dc->pd,sc->proc,gc);
 }
 
-static int dlproc_frame_end(void* data)
+static int cproc_frame_end(void* data)
 {
-	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
-	return c->state==FKL_DLPROC_DONE;
+	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
+	return c->state==FKL_CPROC_DONE;
 }
 
-static void dlproc_frame_step(void* data,FklVM* exe)
+static void cproc_frame_step(void* data,FklVM* exe)
 {
-	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
-	// FklVMdlproc* dlproc=FKL_VM_DLPROC(c->proc);
+	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
 	switch(c->state)
 	{
-		case FKL_DLPROC_READY:
-			// if(!c->func(exe,dlproc->dll,c->pd,&c->context))
+		case FKL_CPROC_READY:
 			if(!c->func(exe,c))
-				c->state=FKL_DLPROC_DONE;
+				c->state=FKL_CPROC_DONE;
 			break;
-		case FKL_DLPROC_DONE:
+		case FKL_CPROC_DONE:
 			break;
 	}
 }
 
-static const FklVMframeContextMethodTable DlprocContextMethodTable=
+static const FklVMframeContextMethodTable CprocContextMethodTable=
 {
-	.atomic=dlproc_frame_atomic,
-	.finalizer=dlproc_frame_finalizer,
-	.copy=dlproc_frame_copy,
-	.print_backtrace=dlproc_frame_print_backtrace,
-	.end=dlproc_frame_end,
-	.step=dlproc_frame_step,
+	.atomic=cproc_frame_atomic,
+	.finalizer=cproc_frame_finalizer,
+	.copy=cproc_frame_copy,
+	.print_backtrace=cproc_frame_print_backtrace,
+	.end=cproc_frame_end,
+	.step=cproc_frame_step,
 };
 
-static inline void initDlprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe)
+static inline void initCprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe)
 {
-	FklDlprocFrameContext* c=(FklDlprocFrameContext*)data;
+	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
 	fklSetRef(&c->proc,proc,exe->gc);
-	c->state=FKL_DLPROC_READY;
+	c->state=FKL_CPROC_READY;
 	c->rtp=exe->tp;
 	c->context=0;
-	c->func=FKL_VM_DLPROC(proc)->func;
-	c->pd=FKL_VM_DLPROC(proc)->pd;
+	c->func=FKL_VM_CPROC(proc)->func;
+	c->pd=FKL_VM_CPROC(proc)->pd;
 }
 
-static inline void callDlProc(FklVM* exe,FklVMvalue* dlproc)
+static inline void callCproc(FklVM* exe,FklVMvalue* cproc)
 {
 	FklVMframe* f=&exe->sf;
 	f->type=FKL_FRAME_OTHEROBJ;
-	f->t=&DlprocContextMethodTable;
+	f->t=&CprocContextMethodTable;
 	f->errorCallBack=NULL;
-	initDlprocFrameContext(f->data,dlproc,exe);
+	initCprocFrameContext(f->data,cproc,exe);
 	fklPushVMframe(f,exe);
 }
 
@@ -614,8 +609,8 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	}
 }
 
-#define CALL_CALLABLE_OBJ(EXE,V) case FKL_TYPE_DLPROC:\
-		callDlProc(EXE,V);\
+#define CALL_CALLABLE_OBJ(EXE,V) case FKL_TYPE_CPROC:\
+		callCproc(EXE,V);\
 		break;\
 	case FKL_TYPE_USERDATA:\
 		FKL_VM_UD(V)->t->__call(V,EXE);\
@@ -627,8 +622,8 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 // {
 // 	switch(v->type)
 // 	{
-// 		case FKL_TYPE_DLPROC:
-// 			callDlProc(exe,v);
+// 		case FKL_TYPE_CPROC:
+// 			callCproc(exe,v);
 // 			break;
 // 		case FKL_TYPE_USERDATA:
 // 			FKL_VM_UD(v)->t->__call(v,exe);
@@ -670,9 +665,6 @@ void fklCallObj(FklVM* exe,FklVMvalue* proc)
 			applyCompoundProc(exe,proc);
 			break;
 			CALL_CALLABLE_OBJ(exe,proc);
-			// default:
-			// 	callCallableObj(exe,proc);
-			// break;
 	}
 }
 
@@ -684,7 +676,7 @@ void fklTailCallObj(FklVM* exe,FklVMvalue* proc)
 	fklCallObj(exe,proc);
 }
 
-void fklDlprocYield(FklVM* v,uint32_t rtp)
+void fklCprocYield(FklVM* v,uint32_t rtp)
 {
 	FklVMframe* sf=v->frames;
 	if(&v->sf==sf)
@@ -693,7 +685,7 @@ void fklDlprocYield(FklVM* v,uint32_t rtp)
 		nf->errorCallBack=sf->errorCallBack;
 		fklDoCopyObjFrameContext(sf,nf,v);
 		v->frames=nf;
-		((FklDlprocFrameContext*)(nf->data))->rtp=rtp;
+		((FklCprocFrameContext*)(nf->data))->rtp=rtp;
 	}
 }
 
@@ -1108,41 +1100,37 @@ static inline void B_res_bp(BYTE_CODE_ARGS)
 
 static inline void B_call(BYTE_CODE_ARGS)
 {
-	FklVMvalue* tmpValue=FKL_VM_POP_ARG(exe);
-	if(!tmpValue)
+	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
+	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
-	if(!fklIsCallable(tmpValue))
+	if(!fklIsCallable(proc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,exe);
-	switch(tmpValue->type)
+	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
-			callCompoundProcdure(exe,tmpValue);
+			callCompoundProcdure(exe,proc);
 			break;
-			CALL_CALLABLE_OBJ(exe,tmpValue);
-			// default:
-			// 	callCallableObj(exe,tmpValue);
-			// 	break;
+			CALL_CALLABLE_OBJ(exe,proc);
 	}
 }
 
 static inline void B_tail_call(BYTE_CODE_ARGS)
 {
-	FklVMvalue* tmpValue=FKL_VM_POP_ARG(exe);
-	if(!tmpValue)
+	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
+	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_TOOFEWARG,exe);
-	if(!fklIsCallable(tmpValue))
+	if(!fklIsCallable(proc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,exe);
-	switch(tmpValue->type)
+	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
-			tailCallCompoundProcdure(exe,tmpValue);
+			tailCallCompoundProcdure(exe,proc);
 			break;
-			CALL_CALLABLE_OBJ(exe,tmpValue);
-			// default:
-			// 	callCallableObj(exe,tmpValue);
-			// 	break;
+			CALL_CALLABLE_OBJ(exe,proc);
 	}
 }
+
+#undef CALL_CALLABLE_OBJ
 
 static inline void B_jmp_if_true(BYTE_CODE_ARGS)
 {

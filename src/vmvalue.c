@@ -276,9 +276,9 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_SYM;
 								cur->sym=fklAddSymbolCstr("#<proc>",table)->id;
 								break;
-							case FKL_TYPE_DLPROC:
+							case FKL_TYPE_CPROC:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<dlproc>",table)->id;
+								cur->sym=fklAddSymbolCstr("#<cproc>",table)->id;
 								break;
 							case FKL_TYPE_CHAN:
 								cur->type=FKL_NAST_SYM;
@@ -891,7 +891,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_chanl_value,    //chanl
 		uninit_fp_value,       //fp
 		uninit_dll_value,      //dll
-		uninit_nothing_value,  //dlproc
+		uninit_nothing_value,  //cproc
 		uninit_err_value,      //error
 		uninit_hash_value,     //hash
 		uninit_code_obj_value, //code-obj
@@ -1661,16 +1661,16 @@ err:
 	return NULL;
 }
 
-FklVMvalue* fklCreateVMvalueDlproc(FklVM* exe
-		,FklVMdllFunc func
+FklVMvalue* fklCreateVMvalueCproc(FklVM* exe
+		,FklVMcFunc func
 		,FklVMvalue* dll
 		,FklVMvalue* pd
 		,FklSid_t sid)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueDlproc);
+	FklVMvalue* r=NEW_OBJ(FklVMvalueCproc);
 	FKL_ASSERT(r);
-	r->type=FKL_TYPE_DLPROC;
-	FklVMdlproc* dlp=FKL_VM_DLPROC(r);
+	r->type=FKL_TYPE_CPROC;
+	FklVMcproc* dlp=FKL_VM_CPROC(r);
 	dlp->func=func;
 	dlp->dll=dll;
 	dlp->pd=pd;
@@ -1731,11 +1731,11 @@ void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
 	fklGC_toGrey(FKL_VM_DLL(root)->pd,gc);
 }
 
-void fklAtomicVMdlproc(FklVMvalue* root,FklVMgc* gc)
+void fklAtomicVMcproc(FklVMvalue* root,FklVMgc* gc)
 {
-	FklVMdlproc* dlproc=FKL_VM_DLPROC(root);
-	fklGC_toGrey(dlproc->dll,gc);
-	fklGC_toGrey(dlproc->pd,gc);
+	FklVMcproc* cproc=FKL_VM_CPROC(root);
+	fklGC_toGrey(cproc->dll,gc);
+	fklGC_toGrey(cproc->pd,gc);
 }
 
 void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
@@ -1770,7 +1770,7 @@ int fklIsCallableUd(const FklVMudata* ud)
 
 int fklIsCallable(FklVMvalue* v)
 {
-	return FKL_IS_PROC(v)||FKL_IS_DLPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(FKL_VM_UD(v)));
+	return FKL_IS_PROC(v)||FKL_IS_CPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(FKL_VM_UD(v)));
 }
 
 static inline int is_appendable_userdata(FklVMudata* ud)

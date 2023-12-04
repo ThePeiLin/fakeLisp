@@ -240,7 +240,7 @@ static inline void initDlprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe
 	c->pd=FKL_VM_DLPROC(proc)->pd;
 }
 
-void callDlProc(FklVM* exe,FklVMvalue* dlproc)
+static inline void callDlProc(FklVM* exe,FklVMvalue* dlproc)
 {
 	FklVMframe* f=&exe->sf;
 	f->type=FKL_FRAME_OTHEROBJ;
@@ -614,20 +614,29 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	}
 }
 
-static inline void callCallableObj(FklVM* exe,FklVMvalue* v)
-{
-	switch(v->type)
-	{
-		case FKL_TYPE_DLPROC:
-			callDlProc(exe,v);
-			break;
-		case FKL_TYPE_USERDATA:
-			FKL_VM_UD(v)->t->__call(v,exe);
-			break;
-		default:
-			break;
-	}
-}
+#define CALL_CALLABLE_OBJ(EXE,V) case FKL_TYPE_DLPROC:\
+		callDlProc(EXE,V);\
+		break;\
+	case FKL_TYPE_USERDATA:\
+		FKL_VM_UD(V)->t->__call(V,EXE);\
+		break;\
+	default:\
+		break;
+
+// static inline void callCallableObj(FklVM* exe,FklVMvalue* v)
+// {
+// 	switch(v->type)
+// 	{
+// 		case FKL_TYPE_DLPROC:
+// 			callDlProc(exe,v);
+// 			break;
+// 		case FKL_TYPE_USERDATA:
+// 			FKL_VM_UD(v)->t->__call(v,exe);
+// 			break;
+// 		default:
+// 			break;
+// 	}
+// }
 
 static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc)
 {
@@ -660,9 +669,10 @@ void fklCallObj(FklVM* exe,FklVMvalue* proc)
 		case FKL_TYPE_PROC:
 			applyCompoundProc(exe,proc);
 			break;
-		default:
-			callCallableObj(exe,proc);
-			break;
+			CALL_CALLABLE_OBJ(exe,proc);
+			// default:
+			// 	callCallableObj(exe,proc);
+			// break;
 	}
 }
 
@@ -1108,9 +1118,10 @@ static inline void B_call(BYTE_CODE_ARGS)
 		case FKL_TYPE_PROC:
 			callCompoundProcdure(exe,tmpValue);
 			break;
-		default:
-			callCallableObj(exe,tmpValue);
-			break;
+			CALL_CALLABLE_OBJ(exe,tmpValue);
+			// default:
+			// 	callCallableObj(exe,tmpValue);
+			// 	break;
 	}
 }
 
@@ -1126,9 +1137,10 @@ static inline void B_tail_call(BYTE_CODE_ARGS)
 		case FKL_TYPE_PROC:
 			tailCallCompoundProcdure(exe,tmpValue);
 			break;
-		default:
-			callCallableObj(exe,tmpValue);
-			break;
+			CALL_CALLABLE_OBJ(exe,tmpValue);
+			// default:
+			// 	callCallableObj(exe,tmpValue);
+			// 	break;
 	}
 }
 

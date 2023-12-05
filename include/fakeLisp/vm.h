@@ -42,7 +42,7 @@ typedef enum
 struct FklVM;
 struct FklVMvalue;
 struct FklCprocFrameContext;
-#define FKL_CPROC_ARGL FklVM* exe,struct FklCprocFrameContext* ctx
+#define FKL_CPROC_ARGL struct FklVM* exe,struct FklCprocFrameContext* ctx
 
 typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
 typedef struct FklVMvalue* FklVMptr;
@@ -74,7 +74,7 @@ typedef struct
 
 typedef struct
 {
-	FklVM* exe;
+	struct FklVM* exe;
 	struct FklVMvalue** slot;
 }FklVMrecv;
 
@@ -330,8 +330,8 @@ int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
 
-void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe);
-void fklDoFinalizeCompoundFrame(FklVMframe* frame,FklVM* exe);
+void fklDoUninitCompoundFrame(FklVMframe* frame,struct FklVM* exe);
+void fklDoFinalizeCompoundFrame(FklVMframe* frame,struct FklVM* exe);
 
 typedef struct FklVMlib
 {
@@ -367,6 +367,9 @@ typedef struct FklVMlocvList
 	uint32_t llast;
 	FklVMvalue** locv;
 }FklVMlocvList;
+
+#define FKL_VM_INS_FUNC_ARGL struct FklVM* exe,FklInstruction* ins
+typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
 
 typedef struct FklVM
 {
@@ -410,6 +413,9 @@ typedef struct FklVM
 	FklVMlib* importingLib;
 
 	FklVMstate volatile state;
+
+	int notice_lock;
+	FklVMinsFunc ins_table[FKL_OP_LAST_OPCODE];
 }FklVM;
 
 //typedef struct
@@ -553,7 +559,7 @@ void fklShrinkStack(FklVM*);
 int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
-FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast);
+FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast,uint32_t* pllast);
 
 void fklDestroyVMgc(FklVMgc*);
 

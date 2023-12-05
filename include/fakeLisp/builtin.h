@@ -56,18 +56,18 @@ FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum);
 
 uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t*);
 #define FKL_BUILTIN_ERR_NUM (FKL_ERR_GRAMMER_CREATE_FAILED+1)
-typedef struct FklCodegenEnv FklCodegenEnv;
-typedef struct FklVM FklVM;
+struct FklCodegenEnv;
+struct FklVM;
 struct FklVMframe;
-typedef struct FklVMproc FklVMproc;
+struct FklVMproc;
 
 uint32_t fklGetBuiltinSymbolNum(void);
-void fklInitGlobCodegenEnv(FklCodegenEnv*,FklSymbolTable* pst);
+void fklInitGlobCodegenEnv(struct FklCodegenEnv*,FklSymbolTable* pst);
 void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* symbolTable);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
-void fklInitGlobalVMclosure(struct FklVMframe* frame,FklVM*);
-void fklInitGlobalVMclosureForProc(FklVMproc*,FklVM*);
+void fklInitGlobalVMclosure(struct FklVMframe* frame,struct FklVM*);
+void fklInitGlobalVMclosureForProc(struct FklVMproc*,struct FklVM*);
 
 #define FKL_VM_STDIN_IDX (0)
 #define FKL_VM_STDOUT_IDX (1)

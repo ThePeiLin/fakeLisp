@@ -471,7 +471,8 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
-	exe->objlist=NULL;
+	exe->obj_head=NULL;
+	exe->obj_tail=NULL;
 	exe->prev=exe;
 	exe->next=exe;
 	exe->pts=pts;
@@ -532,7 +533,8 @@ void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
 static inline void close_var_ref(FklVMvarRef* ref)
 {
 	ref->v=*(ref->ref);
-	ref->ref=&ref->v;
+	atomic_store(&ref->ref,&ref->v);
+	// ref->ref=&ref->v;
 }
 
 static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
@@ -1519,7 +1521,7 @@ static inline void B_put_loc(BYTE_CODE_ARGS)
 static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
-	FklVMvalue* v=idx<lr->rcount?*(lr->ref[idx]->ref):NULL;
+	FklVMvalue* v=idx<lr->rcount?*atomic_load(&lr->ref[idx]->ref):NULL;
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
@@ -2293,7 +2295,8 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
-	exe->objlist=NULL;
+	exe->obj_head=NULL;
+	exe->obj_tail=NULL;
 	exe->importingLib=NULL;
 	exe->gc=prev->gc;
 	exe->loop=prev->loop;

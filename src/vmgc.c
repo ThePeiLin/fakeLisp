@@ -396,8 +396,10 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 	// FklVMgc* gc=vm->gc;
 	if(FKL_IS_PTR(v))
 	{
-		v->next=vm->objlist;
-		vm->objlist=v;
+		v->next=vm->obj_head;
+		vm->obj_head=v;
+		if(!vm->obj_tail)
+			vm->obj_tail=v;
 		// FklGCstate running=fklGetGCstate(gc);
 		// if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
 		// 	fklGC_toGrey(v,gc);

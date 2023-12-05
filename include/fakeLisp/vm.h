@@ -197,7 +197,7 @@ typedef struct FklVMvarRef
 {
 	uint32_t refc;
 	uint32_t idx;
-	FklVMvalue** ref;
+	_Atomic(FklVMvalue**) ref;
 	FklVMvalue* v;
 }FklVMvarRef;
 
@@ -367,7 +367,8 @@ typedef struct FklVM
 	uv_mutex_t lock;
 	FklVMqueue* vmq;
 	uv_loop_t* loop;
-	FklVMvalue* objlist;
+	FklVMvalue* obj_head;
+	FklVMvalue* obj_tail;
 
 	uint32_t ltp;
 	uint32_t llast;

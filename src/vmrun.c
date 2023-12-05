@@ -22,8 +22,6 @@ static char** VMargv=NULL;
 
 /*procedure call functions*/
 
-#define FKL_VM_LOCV_INC_NUM (32)
-
 static inline void push_old_locv(FklVM* exe,uint32_t llast,FklVMvalue** locv)
 {
 	if(llast)
@@ -51,7 +49,7 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 	{
 		uint32_t old_llast=exe->llast;
 		exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
-		FklVMvalue** locv=(FklVMvalue**)malloc(exe->llast*sizeof(FklVMvalue*));
+		FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast);
 		FKL_ASSERT(locv);
 		memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
 		// FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
@@ -76,7 +74,7 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 		{
 			uint32_t old_llast=exe->llast;
 			exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
-			FklVMvalue** locv=(FklVMvalue**)malloc(exe->llast*sizeof(FklVMvalue*));
+			FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast);
 			FKL_ASSERT(locv);
 			memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
 			// FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
@@ -526,6 +524,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->libs=NULL;
 	exe->locv=NULL;
 	exe->old_locv_list=NULL;
+	exe->old_locv_count=0;
 	exe->ltp=0;
 	exe->llast=0;
 	return exe;
@@ -2350,6 +2349,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->ltp=0;
 	exe->locv=NULL;
 	exe->old_locv_list=NULL;
+	exe->old_locv_count=0;
 	exe->state=FKL_VM_READY;
 	uv_mutex_init(&exe->lock);
 	fklCallObj(exe,nextCall);

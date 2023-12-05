@@ -350,6 +350,7 @@ typedef enum
 	FKL_VM_WAITING,
 }FklVMstate;
 
+#define FKL_VM_LOCV_INC_NUM (32)
 #define FKL_VM_STACK_INC_NUM (128)
 #define FKL_VM_STACK_INC_SIZE (sizeof(FklVMvalue*)*128)
 
@@ -448,6 +449,9 @@ typedef enum
 	FKL_GC_DONE,
 }FklGCstate;
 
+#define FKL_VM_GC_LOCV_CACHE_NUM (8)
+#define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
+
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
@@ -457,6 +461,17 @@ typedef struct FklVMgc
 	FklVMqueue q;
 
 	FklVM* vms;
+
+	struct FklLocvCacheLevel
+	{
+		uv_mutex_t lock;
+		struct FklLocvCache
+		{
+			uint32_t llast;
+			FklVMvalue** locv;
+		}locv[FKL_VM_GC_LOCV_CACHE_NUM];
+	}locv_cache[FKL_VM_GC_LOCV_CACHE_LEVEL_NUM];
+
 	FklVM GcCo;
 }FklVMgc;
 
@@ -538,6 +553,8 @@ void fklShrinkStack(FklVM*);
 int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
+FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast);
+
 void fklDestroyVMgc(FklVMgc*);
 
 void fklDestroyAllVMs(FklVM* cur);

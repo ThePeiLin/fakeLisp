@@ -353,19 +353,77 @@ static inline void uninit_vm_queue(FklVMqueue* q)
 	fklUninitPtrQueue(&q->pre_running_q);
 }
 
+static inline void init_locv_cache(FklVMgc* gc)
+{
+	uv_mutex_init(&gc->locv_cache[0].lock);
+	uv_mutex_init(&gc->locv_cache[1].lock);
+	uv_mutex_init(&gc->locv_cache[2].lock);
+	uv_mutex_init(&gc->locv_cache[3].lock);
+	uv_mutex_init(&gc->locv_cache[4].lock);
+}
+
 FklVMgc* fklCreateVMgc()
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_THRESHOLD_SIZE;
 	gc->vms=NULL;
+
 	FklVM* gcvm=&gc->GcCo;
 	gcvm->gc=gc;
 	gcvm->state=FKL_VM_WAITING;
 	gcvm->prev=gcvm;
 	gcvm->next=gcvm;
 	init_vm_queue(&gc->q);
+	init_locv_cache(gc);
 	return gc;
+}
+
+static inline uint32_t compute_level_idx(uint32_t llast)
+{
+	uint32_t l=(llast/FKL_VM_LOCV_INC_NUM)-1;
+	if(l>=8)
+		return 4;
+	else if(l&0x4)
+		return 3;
+	else if(l&0x2)
+		return 2;
+	else if(l&0x1)
+		return 1;
+	else
+		return 0;
+}
+
+FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc* gc,uint32_t llast,uint32_t* pllast)
+{
+	uint32_t idx=compute_level_idx(llast);
+	FklVMvalue** r=NULL;
+	for(uint8_t i=idx;r&&i<FKL_VM_GC_LOCV_CACHE_LEVEL_NUM;i++)
+	{
+		struct FklLocvCacheLevel* l=&gc->locv_cache[idx];
+		uv_mutex_lock(&l->lock);
+		struct FklLocvCache* ll=l->locv;
+		for(uint8_t i=0;i<FKL_VM_GC_LOCV_CACHE_NUM;i++)
+		{
+			if(ll[i].llast>=llast)
+			{
+				*pllast=ll[i].llast;
+				r=ll[i].locv;
+				ll[i].locv=NULL;
+				ll[i].llast=0;
+				break;
+			}
+		}
+		uv_mutex_unlock(&l->lock);
+	}
+	if(!r)
+	{
+		*pllast=llast;
+		r=(FklVMvalue**)malloc(llast*sizeof(FklVMvalue*));
+		FKL_ASSERT(r);
+		atomic_fetch_add(&gc->num,llast);
+	}
+	return r;
 }
 
 static inline void insert_gc_vm(FklVM* prev,FklVMgc* gc)

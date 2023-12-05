@@ -359,6 +359,7 @@ typedef struct
 	uv_mutex_t pre_running_lock;
 	FklPtrQueue pre_running_q;
 	atomic_size_t running_count;
+	FklPtrQueue running_q;
 }FklVMqueue;
 
 typedef struct FklVMlocvList
@@ -457,6 +458,7 @@ typedef enum
 
 #define FKL_VM_GC_LOCV_CACHE_NUM (8)
 #define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
+#define FKL_VM_GC_THRESHOLD_SIZE (2048)
 
 typedef struct FklVMgc
 {

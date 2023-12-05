@@ -202,7 +202,11 @@ int fklIsPtrQueueEmpty(FklPtrQueue*);
 uint64_t fklLengthPtrQueue(FklPtrQueue*);
 void* fklFirstPtrQueue(FklPtrQueue*);
 void* fklPopPtrQueue(FklPtrQueue*);
+
+FklQueueNode* fklPopPtrQueueNode(FklPtrQueue*);
+
 void fklPushPtrQueue(void*,FklPtrQueue*);
+void fklPushPtrQueueNode(FklPtrQueue*,FklQueueNode*);
 void fklPushPtrQueueToFront(void*,FklPtrQueue*);
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue*);
 

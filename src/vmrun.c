@@ -730,7 +730,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 		case FKL_FRAME_COMPOUND:\
 			{\
 				FklInstruction* cur=curframe->c.pc++;\
-				ByteCodes[cur->op](exe,cur);\
+				ins_table[cur->op](exe,cur);\
 			}\
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
@@ -880,7 +880,7 @@ void fklSuspendThread(FklVM* exe)
 static void vm_thread_cb(void* arg)
 {
 	FklVM* volatile exe=(FklVM*)arg;
-	FklVMinsFunc* ByteCodes=exe->ins_table;
+	FklVMinsFunc* const ins_table=exe->ins_table;
 	for(;;)
 	{
 		switch(exe->state)
@@ -954,24 +954,111 @@ static void join_all_vm_thread(uv_handle_t* handle)
 		uv_thread_join(&cur->tid);
 }
 
+static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
+{
+	uv_mutex_unlock(&exe->lock);
+	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
+	uv_mutex_lock(&exe->lock);
+	if(!proc)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
+	if(!fklIsCallable(proc))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_CALL_ERROR,exe);
+	switch(proc->type)
+	{
+		case FKL_TYPE_PROC:
+			callCompoundProcdure(exe,proc);
+			break;
+			CALL_CALLABLE_OBJ(exe,proc);
+	}
+}
+
+static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
+{
+	uv_mutex_unlock(&exe->lock);
+	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
+	uv_mutex_lock(&exe->lock);
+	if(!proc)
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_TOOFEWARG,exe);
+	if(!fklIsCallable(proc))
+		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_CALL_ERROR,exe);
+	switch(proc->type)
+	{
+		case FKL_TYPE_PROC:
+			tailCallCompoundProcdure(exe,proc);
+			break;
+			CALL_CALLABLE_OBJ(exe,proc);
+	}
+}
+
+static inline void B_notice_lock_jmp(FKL_VM_INS_FUNC_ARGL)
+{
+	int r=ins->imm_i64<0;
+	if(r)
+		uv_mutex_unlock(&exe->lock);
+	exe->frames->c.pc+=ins->imm_i64;
+	if(r)
+		uv_mutex_lock(&exe->lock);
+}
+
+static inline void switch_notice_lock_ins(FklPtrQueue* q)
+{
+	for(FklQueueNode* n=q->head;n;n=n->next)
+	{
+		FklVM* exe=n->data;
+		exe->notice_lock=1;
+		exe->ins_table[FKL_OP_CALL]=B_notice_lock_call;
+		exe->ins_table[FKL_OP_TAIL_CALL]=B_notice_lock_tail_call;
+		exe->ins_table[FKL_OP_JMP]=B_notice_lock_jmp;
+	}
+}
+
+static inline void switch_un_notice_lock_ins(FklPtrQueue* q)
+{
+	for(FklQueueNode* n=q->head;n;n=n->next)
+	{
+		FklVM* exe=n->data;
+		exe->notice_lock=1;
+		exe->ins_table[FKL_OP_CALL]=B_call;
+		exe->ins_table[FKL_OP_TAIL_CALL]=B_tail_call;
+		exe->ins_table[FKL_OP_JMP]=B_jmp;
+	}
+}
+
+static inline void lock_all_vm(FklPtrQueue* q)
+{
+	for(FklQueueNode* n=q->head;n;n=n->next)
+		uv_mutex_lock(&((FklVM*)(n->data))->lock);
+}
+
+static inline void unlock_all_vm(FklPtrQueue* q)
+{
+	for(FklQueueNode* n=q->head;n;n=n->next)
+		uv_mutex_unlock(&((FklVM*)(n->data))->lock);
+}
+
 static void vm_idler_cb(uv_idle_t* handle)
 {
 	FklVMgc* gc=uv_handle_get_data((uv_handle_t*)handle);
+	FklVMqueue* q=&gc->q;
 	if(atomic_load(&gc->num)>gc->threshold)
 	{
 #warning stw and gc
+		switch_notice_lock_ins(&q->running_q);
+
+		lock_all_vm(&q->running_q);
+
+		switch_un_notice_lock_ins(&q->running_q);
+		unlock_all_vm(&q->running_q);
 		//TODO stw and gc
-		abort();
-		return;
 	}
-	FklVMqueue* q=&gc->q;
 	uv_mutex_lock(&q->pre_running_lock);
-	while(!fklIsPtrQueueEmpty(&q->pre_running_q))
+	for(FklQueueNode* n=fklPopPtrQueueNode(&q->pre_running_q);n;n=fklPopPtrQueueNode(&q->pre_running_q))
 	{
-		FklVM* exe=fklPopPtrQueue(&q->pre_running_q);
+		FklVM* exe=n->data;
 		if(uv_thread_create(&exe->tid,vm_thread_cb,exe))
 			abort();
 		atomic_fetch_add(&q->running_count,1);
+		fklPushPtrQueueNode(&q->running_q,n);
 	}
 	uv_mutex_unlock(&q->pre_running_lock);
 	if(atomic_load(&q->running_count)==0)
@@ -2328,7 +2415,6 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->loop=prev->loop;
 	exe->prev=exe;
 	exe->next=exe;
-	insert_to_VM_chain(exe,prev,next);
 	exe->chan=fklCreateVMvalueChanl(exe,0);
 	fklInitVMstack(exe);
 	exe->symbolTable=table;
@@ -2347,6 +2433,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));
 	uv_mutex_init(&exe->lock);
 	fklCallObj(exe,nextCall);
+	insert_to_VM_chain(exe,prev,next);
 	return exe;
 }
 

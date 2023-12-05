@@ -345,6 +345,7 @@ static inline void init_vm_queue(FklVMqueue* q)
 	uv_mutex_init(&q->pre_running_lock);
 	fklInitPtrQueue(&q->pre_running_q);
 	atomic_init(&q->running_count,0);
+	fklInitPtrQueue(&q->running_q);
 }
 
 static inline void uninit_vm_queue(FklVMqueue* q)
@@ -366,7 +367,7 @@ FklVMgc* fklCreateVMgc()
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(gc);
-	gc->threshold=FKL_THRESHOLD_SIZE;
+	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
 	gc->vms=NULL;
 
 	FklVM* gcvm=&gc->GcCo;

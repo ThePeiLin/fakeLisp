@@ -46,7 +46,6 @@ typedef SSIZE_T ssize_t;
 #define FKL_PRE_COMPILE_FKL_SUFFIX ('p')
 
 #define FKL_DEFAULT_INC (32)
-#define FKL_THRESHOLD_SIZE (2048)
 #define FKL_MAX_STRING_SIZE (64)
 #define FKL_STATIC_SYMBOL_INIT {0,NULL,NULL}
 #define FKL_MIN(a,b) (((a)<(b))?(a):(b))

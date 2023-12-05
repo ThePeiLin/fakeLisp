@@ -167,6 +167,17 @@ void* fklPopPtrQueue(FklPtrQueue* tmp)
 	return retval;
 }
 
+FklQueueNode* fklPopPtrQueueNode(FklPtrQueue* q)
+{
+	FklQueueNode* head=q->head;
+	if(!head)
+		return NULL;
+	q->head=head->next;
+	if(!q->head)
+		q->tail=&q->head;
+	return head;
+}
+
 void* fklFirstPtrQueue(FklPtrQueue* tmp)
 {
 	FklQueueNode* head=tmp->head;
@@ -180,6 +191,13 @@ void fklPushPtrQueue(void* data,FklPtrQueue* tmp)
 	FklQueueNode* tmpNode=fklCreateQueueNode(data);
 	*(tmp->tail)=tmpNode;
 	tmp->tail=&tmpNode->next;
+}
+
+void fklPushPtrQueueNode(FklPtrQueue* q,FklQueueNode* n)
+{
+	n->next=NULL;
+	*(q->tail)=n;
+	q->tail=&n->next;
 }
 
 void fklPushPtrQueueToFront(void* data,FklPtrQueue* tmp)

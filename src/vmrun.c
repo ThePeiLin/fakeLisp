@@ -471,6 +471,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
+	exe->objlist=NULL;
 	exe->prev=exe;
 	exe->next=exe;
 	exe->pts=pts;
@@ -938,7 +939,8 @@ static void vm_idle(uv_idle_t* handle)
 	while(!fklIsPtrQueueEmpty(&q->pre_running_q))
 	{
 		FklVM* exe=fklPopPtrQueue(&q->pre_running_q);
-		uv_thread_create(&exe->tid,vm_thread_cb,exe);
+		if(uv_thread_create(&exe->tid,vm_thread_cb,exe))
+			abort();
 		atomic_fetch_add(&q->running_count,1);
 	}
 	uv_mutex_unlock(&q->pre_running_lock);
@@ -983,7 +985,7 @@ FklGCstate fklGetGCstate(FklVMgc* gc)
 
 static inline void B_dummy(BYTE_CODE_ARGS)
 {
-	FKL_ASSERT(0);
+	abort();
 }
 
 static inline void B_push_nil(BYTE_CODE_ARGS)
@@ -2291,6 +2293,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 {
 	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
 	FKL_ASSERT(exe);
+	exe->objlist=NULL;
 	exe->importingLib=NULL;
 	exe->gc=prev->gc;
 	exe->loop=prev->loop;

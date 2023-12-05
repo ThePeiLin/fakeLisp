@@ -4794,7 +4794,7 @@ static inline void print_state_action_match_to_c_file(const FklAnalysisStateActi
 			fputs("(matchLen=1)",fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
-			FKL_ASSERT(0);
+			abort();
 			break;
 	}
 }
@@ -5383,7 +5383,7 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch* match
 			}
 			break;
 		case FKL_LALR_MATCH_NONE:
-			FKL_ASSERT(0);
+			abort();
 			break;
 	}
 	return 0;

@@ -212,7 +212,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					fklPrintBigInt(ins->bi,fp);
 					break;
 				default:
-					FKL_ASSERT(0);
+					abort();
 					break;
 			}
 			break;
@@ -258,7 +258,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					fprintf(fp,"%u %u",ins->imm,ins->imm_u32);
 					break;
 				default:
-					FKL_ASSERT(0);
+					abort();
 					break;
 			}
 			break;
@@ -861,7 +861,7 @@ void fklWriteByteCode(const FklByteCode* bc,FILE* outfp)
 						fwrite(code->bi->digits,code->bi->num,1,outfp);
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				break;
@@ -894,7 +894,7 @@ void fklWriteByteCode(const FklByteCode* bc,FILE* outfp)
 						fwrite(&code->imm_i32,sizeof(code->imm_i32),1,outfp);
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				break;
@@ -927,7 +927,7 @@ void fklWriteByteCode(const FklByteCode* bc,FILE* outfp)
 						fwrite(&code->imm_u64,sizeof(code->imm_u64),1,outfp);
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				break;
@@ -998,7 +998,7 @@ FklByteCode* fklLoadByteCode(FILE* fp)
 						}
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				break;
@@ -1031,7 +1031,7 @@ FklByteCode* fklLoadByteCode(FILE* fp)
 						fread(&code->imm_i32,sizeof(code->imm_i32),1,fp);
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				break;
@@ -1064,7 +1064,7 @@ FklByteCode* fklLoadByteCode(FILE* fp)
 						fread(&code->imm_u64,sizeof(code->imm_u64),1,fp);
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				break;

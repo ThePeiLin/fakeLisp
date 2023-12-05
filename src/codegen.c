@@ -8693,7 +8693,7 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegenInfo* codegenr)
 				}
 				break;
 			default:
-				FKL_ASSERT(0);
+				abort();
 				break;
 		}
 		fklByteCodeInsertFront(tmp,retval);

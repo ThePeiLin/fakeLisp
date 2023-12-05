@@ -85,10 +85,15 @@ static inline void fklGC_markAllRootToGrey(FklVM* curVM)
 // 	fklGC_markAllRootToGrey(exe);
 // }
 
+static void atomic_var_ref(FklVMvalue* ref,FklVMgc* gc)
+{
+	fklGC_toGrey(*(FKL_VM_VAR_REF(ref)->ref),gc);
+}
+
 static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 {
-	FKL_ASSERT(root->type<=FKL_TYPE_CODE_OBJ);
-	static void(* const fkl_atomic_value_method_table[FKL_TYPE_CODE_OBJ+1])(FklVMvalue*,FklVMgc*)=
+	FKL_ASSERT(root->type<FKL_VM_VALUE_GC_TYPE_NUM);
+	static void(* const fkl_atomic_value_method_table[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue*,FklVMgc*)=
 	{
 		NULL,
 		NULL,
@@ -106,6 +111,7 @@ static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		NULL,
 		fklAtomicVMhashTable,
 		NULL,
+		atomic_var_ref,
 	};
 	void (*atomic_value_func)(FklVMvalue*,FklVMgc*)=fkl_atomic_value_method_table[root->type];
 	if(atomic_value_func)
@@ -387,18 +393,20 @@ void fklTryGC(FklVM* vm)
 
 void fklAddToGC(FklVMvalue* v,FklVM* vm)
 {
-	FklVMgc* gc=vm->gc;
+	// FklVMgc* gc=vm->gc;
 	if(FKL_IS_PTR(v))
 	{
-		FklGCstate running=fklGetGCstate(gc);
-		if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
-			fklGC_toGrey(v,gc);
-		else
-			v->mark=FKL_MARK_W;
-		gc->num+=1;
-		v->next=gc->head;
-		gc->head=v;
-		fklTryGC(vm);
+		v->next=vm->objlist;
+		vm->objlist=v;
+		// FklGCstate running=fklGetGCstate(gc);
+		// if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
+		// 	fklGC_toGrey(v,gc);
+		// else
+		// 	v->mark=FKL_MARK_W;
+		// gc->num+=1;
+		// v->next=gc->head;
+		// gc->head=v;
+		// fklTryGC(vm);
 	}
 }
 

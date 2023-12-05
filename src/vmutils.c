@@ -733,7 +733,7 @@ static void vmvalue_code_obj_printer(VMVALUE_PRINTER_ARGS)
 	fprintf(fp,"#<code-obj %p>",FKL_VM_CO(v));
 }
 
-static void (*VMvaluePtrPrincTable[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
+static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
 {
 	vmvalue_f64_printer,
 	vmvalue_big_int_printer,
@@ -751,6 +751,7 @@ static void (*VMvaluePtrPrincTable[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,
 	vmvalue_error_princ,
 	NULL,
 	vmvalue_code_obj_printer,
+	NULL,
 };
 
 static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS)
@@ -824,7 +825,7 @@ static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
 	fprintf(fp,">");
 }
 
-static void (*VMvaluePtrPrin1Table[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
+static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue*,FILE*,FklSymbolTable*)=
 {
 	vmvalue_f64_printer,
 	vmvalue_big_int_printer,
@@ -842,6 +843,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VMVALUE_PTR_TYPE_NUM])(FklVMvalue*,FILE*,
 	vmvalue_error_prin1,
 	NULL,
 	vmvalue_code_obj_printer,
+	NULL,
 };
 
 static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS)
@@ -1267,7 +1269,7 @@ static void vmvalue_code_obj_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	fklStringBufferPrintf(result,"#<code-obj %p>",FKL_VM_CO(v));
 }
 
-static void (*atom_ptr_ptr_to_string_buffer_printer_table[FKL_VMVALUE_PTR_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+static void (*atom_ptr_ptr_to_string_buffer_printer_table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
 	vmvalue_f64_to_string_buffer,
 	vmvalue_big_int_to_string_buffer,
@@ -1285,6 +1287,7 @@ static void (*atom_ptr_ptr_to_string_buffer_printer_table[FKL_VMVALUE_PTR_TYPE_N
 	vmvalue_error_to_string_buffer,
 	NULL,
 	vmvalue_code_obj_to_string_buffer,
+	NULL,
 };
 
 static void ptr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)

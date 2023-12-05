@@ -216,7 +216,7 @@ static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 	return fklAppendVMudata(FKL_VM_UD(retval),FKL_VM_UD(cur));
 }
 
-static int (*const valueAppend[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* retval,FklVMvalue* cur)=
+static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,FklVMvalue* cur)=
 {
 	NULL,
 	NULL,

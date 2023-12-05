@@ -35,9 +35,9 @@ typedef enum
 	FKL_TYPE_ERR,
 	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_CODE_OBJ,
+	FKL_TYPE_VAR_REF,
+	FKL_VM_VALUE_GC_TYPE_NUM,
 }FklValueType;
-
-#define FKL_VMVALUE_PTR_TYPE_NUM (FKL_TYPE_CODE_OBJ+1)
 
 struct FklVM;
 struct FklVMvalue;
@@ -184,6 +184,14 @@ typedef struct
 	FklVMvalue* key;
 	FklVMvalue* v;
 }FklVMhashTableItem;
+
+typedef struct
+{
+	FKL_VM_VALUE_COMMON_HEADER;
+	uint32_t idx;
+	FklVMvalue** ref;
+	FklVMvalue* v;
+}FklVMvalueVarRef;
 
 typedef struct FklVMvarRef
 {
@@ -356,8 +364,10 @@ typedef struct
 typedef struct FklVM
 {
 	uv_thread_t tid;
+	uv_mutex_t lock;
 	FklVMqueue* vmq;
 	uv_loop_t* loop;
+	FklVMvalue* objlist;
 
 	uint32_t ltp;
 	uint32_t llast;
@@ -389,8 +399,6 @@ typedef struct FklVM
 	FklVMlib* importingLib;
 
 	FklVMstate volatile state;
-	uv_mutex_t lock;
-
 }FklVM;
 
 //typedef struct
@@ -761,6 +769,8 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 #define FKL_VM_BOX(V) (((FklVMvalueBox*)(V))->box)
 
 #define FKL_VM_CO(V) (&(((FklVMvalueCodeObj*)(V))->bcl))
+
+#define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
 
 // vmparser
 

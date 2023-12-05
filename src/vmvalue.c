@@ -95,7 +95,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 					}
 					break;
 				default:
-					FKL_ASSERT(0);
+					abort();
 					break;
 			}
 			fklPushPtrStack(v,tStack);
@@ -194,7 +194,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 					}
 					break;
 				default:
-					FKL_ASSERT(0);
+					abort();
 					break;
 			}
 		}
@@ -354,6 +354,9 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 									}
 								}
 								break;
+							default:
+								abort();
+								break;
 						}
 					}
 					break;
@@ -482,7 +485,7 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	return r;
 }
 
-static FklVMvalue* (*const valueCopyers[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* obj,FklVM* vm)=
+static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* obj,FklVM* vm)=
 {
 	__fkl_f64_copyer,
 	__fkl_bigint_copyer,
@@ -499,6 +502,7 @@ static FklVMvalue* (*const valueCopyers[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* obj,Fk
 	NULL,
 	NULL,
 	__fkl_hashtable_copyer,
+	NULL,
 	NULL,
 };
 
@@ -526,7 +530,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 			}
 			break;
 		default:
-			FKL_ASSERT(0);
+			abort();
 			break;
 	}
 	return tmp;
@@ -877,7 +881,7 @@ static inline void uninit_code_obj_value(FklVMvalue* v)
 
 void fklDestroyVMvalue(FklVMvalue* cur)
 {
-	static void (*fkl_value_uniniters[FKL_TYPE_CODE_OBJ+1])(FklVMvalue* v)=
+	static void (*fkl_value_uniniters[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* v)=
 	{
 		uninit_nothing_value,  //f64
 		uninit_big_int_value,  //big-int
@@ -895,6 +899,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_err_value,      //error
 		uninit_hash_value,     //hash
 		uninit_code_obj_value, //code-obj
+		uninit_nothing_value,  //var-ref
 	};
 
 	fkl_value_uniniters[cur->type](cur);
@@ -1073,7 +1078,7 @@ static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	return hash->num+fklGetVMhashTableType(hash);
 }
 
-static size_t (*const valueHashFuncTable[FKL_TYPE_CODE_OBJ+1])(const FklVMvalue*,FklPtrStack* s)=
+static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(const FklVMvalue*,FklPtrStack* s)=
 {
 	_f64_hashFunc,
 	_big_int_hashFunc,
@@ -1090,6 +1095,7 @@ static size_t (*const valueHashFuncTable[FKL_TYPE_CODE_OBJ+1])(const FklVMvalue*
 	NULL,
 	NULL,
 	_hashTable_hashFunc,
+	NULL,
 	NULL,
 };
 

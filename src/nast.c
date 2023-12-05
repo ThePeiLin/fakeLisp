@@ -204,7 +204,7 @@ void fklDestroyNastNode(FklNastNode* node)
 						destroyNastHash(cur->hash);
 						break;
 					default:
-						FKL_ASSERT(0);
+						abort();
 						break;
 				}
 				free(cur);
@@ -361,7 +361,7 @@ void fklPrintNastNode(const FklNastNode* exp
 					}
 					break;
 				default:
-					FKL_ASSERT(0);
+					abort();
 					break;
 			}
 			if(fklLengthPtrQueue(cQueue)&&((NastElem*)fklFirstPtrQueue(cQueue))->place!=NAST_CDR&&((NastElem*)fklFirstPtrQueue(cQueue))->place!=NAST_BOX)

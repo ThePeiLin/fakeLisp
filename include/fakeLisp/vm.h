@@ -358,8 +358,14 @@ typedef struct
 	uv_mutex_t pre_running_lock;
 	FklPtrQueue pre_running_q;
 	atomic_size_t running_count;
-
 }FklVMqueue;
+
+typedef struct FklVMlocvList
+{
+	struct FklVMlocvList* next;
+	uint32_t llast;
+	FklVMvalue** locv;
+}FklVMlocvList;
 
 typedef struct FklVM
 {
@@ -372,7 +378,10 @@ typedef struct FklVM
 
 	uint32_t ltp;
 	uint32_t llast;
+	uint32_t old_locv_count;
 	FklVMvalue** locv;
+	FklVMlocvList old_locv_cache[8];
+	FklVMlocvList* old_locv_list;
 	//op stack
 	
 	size_t size;
@@ -442,10 +451,11 @@ typedef enum
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
-	size_t volatile num;
+	atomic_size_t num;
 	uint32_t threshold;
 	FklVMvalue* head;
 	FklVMqueue q;
+
 	FklVM* vms;
 	FklVM GcCo;
 }FklVMgc;

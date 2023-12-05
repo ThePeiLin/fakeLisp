@@ -400,12 +400,12 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 		vm->obj_head=v;
 		if(!vm->obj_tail)
 			vm->obj_tail=v;
+		atomic_fetch_add(&vm->gc->num,1);
 		// FklGCstate running=fklGetGCstate(gc);
 		// if(running>FKL_GC_NONE&&running<FKL_GC_SWEEPING)
 		// 	fklGC_toGrey(v,gc);
 		// else
 		// 	v->mark=FKL_MARK_W;
-		// gc->num+=1;
 		// v->next=gc->head;
 		// gc->head=v;
 		// fklTryGC(vm);

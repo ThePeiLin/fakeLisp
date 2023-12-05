@@ -23,16 +23,42 @@ static char** VMargv=NULL;
 /*procedure call functions*/
 
 #define FKL_VM_LOCV_INC_NUM (32)
+
+static inline void push_old_locv(FklVM* exe,uint32_t llast,FklVMvalue** locv)
+{
+	if(llast)
+	{
+		FklVMlocvList* n=NULL;
+		if(exe->old_locv_count<8)
+			n=&exe->old_locv_cache[exe->old_locv_count];
+		else
+		{
+			n=(FklVMlocvList*)malloc(sizeof(FklVMlocvList));
+			FKL_ASSERT(n);
+		}
+		n->next=exe->old_locv_list;
+		n->llast=llast;
+		n->locv=locv;
+		exe->old_locv_list=n;
+		exe->old_locv_count++;
+	}
+}
+
 FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 {
 	uint32_t nltp=exe->ltp+count;
 	if(exe->llast<nltp)
 	{
+		uint32_t old_llast=exe->llast;
 		exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
-		FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
+		FklVMvalue** locv=(FklVMvalue**)malloc(exe->llast*sizeof(FklVMvalue*));
 		FKL_ASSERT(locv);
-		if(exe->locv!=locv)
-			fklUpdateAllVarRef(exe->frames,locv);
+		memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
+		// FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
+		// FKL_ASSERT(locv);
+		// if(exe->locv!=locv)
+		fklUpdateAllVarRef(exe->frames,locv);
+		push_old_locv(exe,old_llast,exe->locv);
 		exe->locv=locv;
 	}
 	FklVMvalue** r=&exe->locv[exe->ltp];
@@ -48,11 +74,16 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 		uint32_t nltp=count;
 		if(exe->llast<nltp)
 		{
+			uint32_t old_llast=exe->llast;
 			exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
-			FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
+			FklVMvalue** locv=(FklVMvalue**)malloc(exe->llast*sizeof(FklVMvalue*));
 			FKL_ASSERT(locv);
-			if(exe->locv!=locv)
-				fklUpdateAllVarRef(exe->frames,locv);
+			memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
+			// FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
+			// FKL_ASSERT(locv);
+			// if(exe->locv!=locv)
+			fklUpdateAllVarRef(exe->frames,locv);
+			push_old_locv(exe,old_llast,exe->locv);
 			exe->locv=locv;
 		}
 		FklVMvalue** r=&exe->locv[exe->ltp];
@@ -494,6 +525,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->libNum=0;
 	exe->libs=NULL;
 	exe->locv=NULL;
+	exe->old_locv_list=NULL;
 	exe->ltp=0;
 	exe->llast=0;
 	return exe;
@@ -929,11 +961,14 @@ static void join_all_vm_thread(uv_handle_t* handle)
 		uv_thread_join(&cur->tid);
 }
 
-static void vm_idle(uv_idle_t* handle)
+static void vm_idler_cb(uv_idle_t* handle)
 {
 	FklVMgc* gc=uv_handle_get_data((uv_handle_t*)handle);
-	if(gc->running==FKL_GC_MARK_ROOT)
+	if(atomic_load(&gc->num)>gc->threshold)
 	{
+#warning stw and gc
+		//TODO stw and gc
+		abort();
 		return;
 	}
 	FklVMqueue* q=&gc->q;
@@ -966,7 +1001,7 @@ int fklRunVM(FklVM* volatile exe)
 	uv_idle_init(&loop,&idler);
 	uv_handle_set_data((uv_handle_t*)&idler,gc);
 	// uv_idle_start(&idler,uv_idle_run_vm);
-	uv_idle_start(&idler,vm_idle);
+	uv_idle_start(&idler,vm_idler_cb);
 
 	uv_run(&loop,UV_RUN_DEFAULT);
 	uv_loop_close(&loop);
@@ -2314,6 +2349,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->llast=0;
 	exe->ltp=0;
 	exe->locv=NULL;
+	exe->old_locv_list=NULL;
 	exe->state=FKL_VM_READY;
 	uv_mutex_init(&exe->lock);
 	fklCallObj(exe,nextCall);

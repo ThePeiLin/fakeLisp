@@ -804,12 +804,12 @@ static void repl_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table
 static void repl_frame_atomic(void* data,FklVMgc* gc)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
-	fklGC_toGrey(ctx->stdinVal,gc);
-	fklGC_toGrey(ctx->mainProc,gc);
+	fklVMgcToGray(ctx->stdinVal,gc);
+	fklVMgcToGray(ctx->mainProc,gc);
 	FklVMvalue** locv=ctx->exe->locv;
 	uint32_t lcount=ctx->lcount;
 	for(uint32_t i=0;i<lcount;i++)
-		fklGC_toGrey(locv[i],gc);
+		fklVMgcToGray(locv[i],gc);
 }
 
 static inline void destroyNastCreatCtx(NastCreatCtx* cc)

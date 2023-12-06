@@ -1,50 +1,70 @@
 #include<fakeLisp/vm.h>
 
-typedef struct Greylink
-{
-	FklVMvalue* v;
-	struct Greylink* next;
-}Greylink;
+// typedef struct Greylink
+// {
+// 	FklVMvalue* v;
+// 	struct Greylink* next;
+// }Greylink;
+//
+// typedef struct GcCoCtx
+// {
+// 	FklVMgc* gc;
+// 	uint32_t num;
+// 	uint32_t count;
+// 	volatile FklGCstate* ps;
+// 	struct Greylink* volatile greylink;
+// 	FklVMvalue* white;
+// }GcCoCtx;
+//
+// FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(GcCoCtx);
 
-typedef struct GcCoCtx
-{
-	FklVMgc* gc;
-	uint32_t num;
-	uint32_t count;
-	volatile FklGCstate* ps;
-	struct Greylink* volatile greylink;
-	FklVMvalue* white;
-}GcCoCtx;
+// static inline Greylink* volatile* get_grey_link(FklVMgc* gc)
+// {
+// 	return &((GcCoCtx*)(gc->GcCo.sf.data))->greylink;
+// }
+//
+// static inline Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
+// {
+// 	Greylink* g=(Greylink*)malloc(sizeof(Greylink));
+// 	FKL_ASSERT(g);
+// 	g->v=v;
+// 	g->next=next;
+// 	return g;
+// }
 
-FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(GcCoCtx);
-
-static inline Greylink* volatile* get_grey_link(FklVMgc* gc)
+static inline struct FklVMgcGrayList* createGrayList(FklVMvalue* v,FklVMgc* gc)
 {
-	return &((GcCoCtx*)(gc->GcCo.sf.data))->greylink;
-}
-
-static inline Greylink* createGreylink(FklVMvalue* v,struct Greylink* next)
-{
-	Greylink* g=(Greylink*)malloc(sizeof(Greylink));
-	FKL_ASSERT(g);
+	struct FklVMgcGrayList* next=gc->gray_list;
+	struct FklVMgcGrayList* g=NULL;
+	if(gc->gray_list_cache)
+	{
+		g=gc->gray_list_cache;
+		gc->gray_list_cache=g->next;
+	}
+	else
+	{
+		g=(struct FklVMgcGrayList*)malloc(sizeof(struct FklVMgcGrayList));
+		FKL_ASSERT(g);
+	}
 	g->v=v;
 	g->next=next;
 	return g;
 }
 
-void fklGC_toGrey(FklVMvalue* v,FklVMgc* gc)
+void fklVMgcToGray(FklVMvalue* v,FklVMgc* gc)
 {
 	if(v&&FKL_IS_PTR(v)&&v->mark!=FKL_MARK_B)
 	{
 		v->mark=FKL_MARK_G;
-		Greylink* volatile* pgl=get_grey_link(gc);
-		*pgl=createGreylink(v,*pgl);
+		gc->gray_list=createGrayList(v,gc);
+		// Greylink* volatile* pgl=get_grey_link(gc);
+		// *pgl=createGreylink(v,*pgl);
 		// gc->grey=createGreylink(v,gc->grey);
 		// gc->greyNum++;
 	}
 }
 
-static inline void fklGC_markRootToGrey(FklVM* exe)
+static inline void fklGC_markRootToGray(FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 
@@ -54,30 +74,30 @@ static inline void fklGC_markRootToGrey(FklVM* exe)
 	uint32_t count=exe->ltp;
 	FklVMvalue** loc=exe->locv;
 	for(uint32_t i=0;i<count;i++)
-		fklGC_toGrey(loc[i],gc);
+		fklVMgcToGray(loc[i],gc);
 
 	for(size_t i=1;i<=exe->libNum;i++)
 	{
 		FklVMlib* lib=&exe->libs[i];
-		fklGC_toGrey(lib->proc,gc);
+		fklVMgcToGray(lib->proc,gc);
 		if(lib->imported)
 		{
 			for(uint32_t i=0;i<lib->count;i++)
-				fklGC_toGrey(lib->loc[i],gc);
+				fklVMgcToGray(lib->loc[i],gc);
 		}
 	}
 	FklVMvalue** base=exe->base;
 	for(uint32_t i=0;i<exe->tp;i++)
-		fklGC_toGrey(base[i],gc);
-	fklGC_toGrey(exe->chan,gc);
+		fklVMgcToGray(base[i],gc);
+	fklVMgcToGray(exe->chan,gc);
 }
 
-static inline void fklGC_markAllRootToGrey(FklVM* curVM)
+void fklVMgcMarkAllRootToGray(FklVM* curVM)
 {
-	fklGC_markRootToGrey(curVM);
+	fklGC_markRootToGray(curVM);
 
 	for(FklVM* cur=curVM->next;cur!=curVM;cur=cur->next)
-		fklGC_markRootToGrey(cur);
+		fklGC_markRootToGray(cur);
 }
 
 // static inline void fklGC_pause(FklVM* exe)
@@ -87,7 +107,7 @@ static inline void fklGC_markAllRootToGrey(FklVM* curVM)
 
 static void atomic_var_ref(FklVMvalue* ref,FklVMgc* gc)
 {
-	fklGC_toGrey(*(FKL_VM_VAR_REF(ref)->ref),gc);
+	fklVMgcToGray(*(FKL_VM_VAR_REF(ref)->ref),gc);
 }
 
 static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
@@ -118,27 +138,35 @@ static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		atomic_value_func(root,gc);
 }
 
-static inline int fklGC_propagate(FklVMgc* gc)
+int fklVMgcPropagate(FklVMgc* gc)
 {
-	Greylink* volatile* pgl=get_grey_link(gc);
+	struct FklVMgcGrayList* gl=gc->gray_list;
+	// Greylink* volatile* pgl=get_grey_link(gc);
 	FklVMvalue* v=FKL_VM_NIL;
-	Greylink* c=*pgl;
-	if(c)
+	// Greylink* c=*pgl;
+	// if(c)
+	// {
+	// 	// gc->greyNum--;
+	// 	*pgl=c->next;
+	// 	v=c->v;
+	// 	free(c);
+	// }
+	if(gl)
 	{
-		// gc->greyNum--;
-		*pgl=c->next;
-		v=c->v;
-		free(c);
+		gc->gray_list=gl->next;
+		v=gl->v;
+		gl->next=gc->gray_list_cache;
+		gc->gray_list_cache=gl;
 	}
-	if(FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
+	if(v&&FKL_IS_PTR(v)&&v->mark==FKL_MARK_G)
 	{
 		v->mark=FKL_MARK_B;
 		propagateMark(v,gc);
 	}
-	return *pgl==NULL;
+	return gc->gray_list==NULL;
 }
 
-static inline void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
+void fklVMgcCollect(FklVMgc* gc,FklVMvalue** pw)
 {
 	size_t count=0;
 	FklVMvalue* head=gc->head;
@@ -166,7 +194,7 @@ static inline void fklGC_collect(FklVMgc* gc,FklVMvalue** pw)
 	gc->num-=count;
 }
 
-void fklGC_sweep(FklVMvalue* head)
+void fklVMgcSweep(FklVMvalue* head)
 {
 	FklVMvalue** phead=&head;
 	while(*phead)
@@ -272,73 +300,73 @@ void fklGetGCstateAndGCNum(FklVMgc* gc,FklGCstate* s,int* cr)
 // 	return NULL;
 // }
 
-static inline void initFrameCtxToGcCoCtx(void* data,FklVMgc* gc)
-{
-	GcCoCtx* c=(GcCoCtx*)data;
-	c->num=gc->num;
-	c->gc=gc;
-	c->ps=&gc->running;
-	c->white=NULL;
-}
+// static inline void initFrameCtxToGcCoCtx(void* data,FklVMgc* gc)
+// {
+// 	GcCoCtx* c=(GcCoCtx*)data;
+// 	c->num=gc->num;
+// 	c->gc=gc;
+// 	c->ps=&gc->running;
+// 	c->white=NULL;
+// }
 
-static void gc_frame_atomic(void* data,FklVMgc* gc)
-{
-}
+// static void gc_frame_atomic(void* data,FklVMgc* gc)
+// {
+// }
 
-static void gc_frame_step(void* data,FklVM* exe)
-{
-	FklVMgc* gc=exe->gc;
-	GcCoCtx* ctx=(GcCoCtx*)data;
-	if(gc->running==FKL_GC_SWEEP)
-	{
-		gc->running=FKL_GC_SWEEPING;
-		fklGC_sweep(ctx->white);
-		gc->running=FKL_GC_DONE;
-	}
-	else
-	{
-		gc->running=FKL_GC_MARK_ROOT;
-		fklGC_markAllRootToGrey(exe);
-		gc->running=FKL_GC_PROPAGATE;
-		while(!fklGC_propagate(gc));
-		gc->running=FKL_GC_COLLECT;
-		fklGC_collect(gc,&ctx->white);
-		gc->running=FKL_GC_SWEEP;
-		gc->threshold=gc->num+FKL_THRESHOLD_SIZE;
-	}
-}
-
-static int gc_frame_end(void* data)
-{
-	GcCoCtx* ctx=(GcCoCtx*)data;
-	FklVMgc* gc=ctx->gc;
-	int r=gc->running==FKL_GC_DONE;
-	if(r)
-		gc->running=FKL_GC_NONE;
-	return r;
-}
-
-static void gc_frame_finalizer(void* data)
-{
-}
-
-static const FklVMframeContextMethodTable GcCoMethodTable=
-{
-	.step=gc_frame_step,
-	.end=gc_frame_end,
-	.atomic=gc_frame_atomic,
-	.finalizer=gc_frame_finalizer
-};
-
-static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
-{
-	FklVMframe* f=&exe->sf;
-	f->prev=NULL;
-	f->type=FKL_FRAME_OTHEROBJ;
-	f->t=&GcCoMethodTable;
-	exe->frames=f;
-	initFrameCtxToGcCoCtx(f->data,gc);
-}
+// static void gc_frame_step(void* data,FklVM* exe)
+// {
+// 	FklVMgc* gc=exe->gc;
+// 	GcCoCtx* ctx=(GcCoCtx*)data;
+// 	if(gc->running==FKL_GC_SWEEP)
+// 	{
+// 		gc->running=FKL_GC_SWEEPING;
+// 		fklGC_sweep(ctx->white);
+// 		gc->running=FKL_GC_DONE;
+// 	}
+// 	else
+// 	{
+// 		gc->running=FKL_GC_MARK_ROOT;
+// 		fklGC_markAllRootToGrey(exe);
+// 		gc->running=FKL_GC_PROPAGATE;
+// 		while(!fklGC_propagate(gc));
+// 		gc->running=FKL_GC_COLLECT;
+// 		fklGC_collect(gc,&ctx->white);
+// 		gc->running=FKL_GC_SWEEP;
+// 		gc->threshold=gc->num+FKL_THRESHOLD_SIZE;
+// 	}
+// }
+//
+// static int gc_frame_end(void* data)
+// {
+// 	GcCoCtx* ctx=(GcCoCtx*)data;
+// 	FklVMgc* gc=ctx->gc;
+// 	int r=gc->running==FKL_GC_DONE;
+// 	if(r)
+// 		gc->running=FKL_GC_NONE;
+// 	return r;
+// }
+//
+// static void gc_frame_finalizer(void* data)
+// {
+// }
+//
+// static const FklVMframeContextMethodTable GcCoMethodTable=
+// {
+// 	.step=gc_frame_step,
+// 	.end=gc_frame_end,
+// 	.atomic=gc_frame_atomic,
+// 	.finalizer=gc_frame_finalizer
+// };
+//
+// static inline void initGcCoVM(FklVM* exe,FklVMgc* gc)
+// {
+// 	FklVMframe* f=&exe->sf;
+// 	f->prev=NULL;
+// 	f->type=FKL_FRAME_OTHEROBJ;
+// 	f->t=&GcCoMethodTable;
+// 	exe->frames=f;
+// 	initFrameCtxToGcCoCtx(f->data,gc);
+// }
 
 static inline void init_vm_queue(FklVMqueue* q)
 {
@@ -352,6 +380,7 @@ static inline void uninit_vm_queue(FklVMqueue* q)
 {
 	uv_mutex_destroy(&q->pre_running_lock);
 	fklUninitPtrQueue(&q->pre_running_q);
+	fklUninitPtrQueue(&q->running_q);
 }
 
 static inline void init_locv_cache(FklVMgc* gc)
@@ -368,13 +397,12 @@ FklVMgc* fklCreateVMgc()
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
-	gc->vms=NULL;
 
-	FklVM* gcvm=&gc->GcCo;
-	gcvm->gc=gc;
-	gcvm->state=FKL_VM_WAITING;
-	gcvm->prev=gcvm;
-	gcvm->next=gcvm;
+	// FklVM* gcvm=&gc->GcCo;
+	// gcvm->gc=gc;
+	// gcvm->state=FKL_VM_WAITING;
+	// gcvm->prev=gcvm;
+	// gcvm->next=gcvm;
 	init_vm_queue(&gc->q);
 	init_locv_cache(gc);
 	return gc;
@@ -433,16 +461,16 @@ FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc* gc,uint32_t llast,uint32_t* pl
 	return r;
 }
 
-static inline void insert_gc_vm(FklVM* prev,FklVMgc* gc)
-{
-	FklVM* gcvm=&gc->GcCo;
-	gcvm->state=FKL_VM_READY;
-	FklVM* next=prev->next;
-	gcvm->prev=prev;
-	gcvm->next=next;
-	prev->next=gcvm;
-	next->prev=gcvm;
-}
+// static inline void insert_gc_vm(FklVM* prev,FklVMgc* gc)
+// {
+// 	FklVM* gcvm=&gc->GcCo;
+// 	gcvm->state=FKL_VM_READY;
+// 	FklVM* next=prev->next;
+// 	gcvm->prev=prev;
+// 	gcvm->next=next;
+// 	prev->next=gcvm;
+// 	next->prev=gcvm;
+// }
 
 void fklTryGC(FklVM* vm)
 {
@@ -494,8 +522,21 @@ static inline void destroy_all_locv_cache(FklVMgc* gc)
 	}
 }
 
+static inline void destroy_all_gray_cache(FklVMgc* gc)
+{
+	struct FklVMgcGrayList* h=gc->gray_list_cache;
+	while(h)
+	{
+		struct FklVMgcGrayList* p=h;
+		h=h->next;
+		free(p);
+	}
+	gc->gray_list_cache=NULL;
+}
+
 void fklDestroyVMgc(FklVMgc* gc)
 {
+	destroy_all_gray_cache(gc);
 	destroy_all_locv_cache(gc);
 	fklDestroyAllValues(gc);
 	uninit_vm_queue(&gc->q);

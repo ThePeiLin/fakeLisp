@@ -468,9 +468,18 @@ typedef struct FklVMgc
 	atomic_size_t num;
 	uint32_t threshold;
 	FklVMvalue* head;
+
+	struct FklVMgcGrayList
+	{
+		struct FklVMgcGrayList* next;
+		FklVMvalue* v;
+	}* gray_list;
+
+	struct FklVMgcGrayList* gray_list_cache;
+
 	FklVMqueue q;
 
-	FklVM* vms;
+	FklVM* main_thread;
 
 	struct FklLocvCacheLevel
 	{
@@ -483,7 +492,6 @@ typedef struct FklVMgc
 		}locv[FKL_VM_GC_LOCV_CACHE_NUM];
 	}locv_cache[FKL_VM_GC_LOCV_CACHE_LEVEL_NUM];
 
-	FklVM GcCo;
 }FklVMgc;
 
 typedef struct
@@ -566,6 +574,11 @@ FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc();
 FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast,uint32_t* pllast);
 
+void fklVMgcMarkAllRootToGray(FklVM* curVM);
+int fklVMgcPropagate(FklVMgc* gc);
+void fklVMgcCollect(FklVMgc* gc,FklVMvalue** pw);
+void fklVMgcSweep(FklVMvalue*);
+
 void fklDestroyVMgc(FklVMgc*);
 
 void fklDestroyAllVMs(FklVM* cur);
@@ -573,10 +586,9 @@ void fklDeleteCallChain(FklVM*);
 
 FklGCstate fklGetGCstate(FklVMgc*);
 void fklTryGC(FklVM*);
-void fklGC_toGrey(FklVMvalue*,FklVMgc*);
+void fklVMgcToGray(FklVMvalue*,FklVMgc*);
 
 void fklDestroyAllValues(FklVMgc*);
-void fklGC_sweep(FklVMvalue*);
 
 void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
 void fklDBG_printVMstack(FklVM*,FILE*,int,FklSymbolTable* table);

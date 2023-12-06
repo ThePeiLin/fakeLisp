@@ -1192,8 +1192,8 @@ void fklAtomicVMhashTable(FklVMvalue* pht,FklVMgc* gc)
 	for(FklHashTableItem* list=table->first;list;list=list->next)
 	{
 		FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
-		fklGC_toGrey(item->key,gc);
-		fklGC_toGrey(item->v,gc);
+		fklVMgcToGray(item->key,gc);
+		fklVMgcToGray(item->v,gc);
 	}
 }
 
@@ -1695,23 +1695,23 @@ void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
 {
 	FklVMvec* vec=FKL_VM_VEC(pVec);
 	for(size_t i=0;i<vec->size;i++)
-		fklGC_toGrey(vec->base[i],gc);
+		fklVMgcToGray(vec->base[i],gc);
 }
 
 void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(FKL_VM_CAR(root),gc);
-	fklGC_toGrey(FKL_VM_CDR(root),gc);
+	fklVMgcToGray(FKL_VM_CAR(root),gc);
+	fklVMgcToGray(FKL_VM_CDR(root),gc);
 }
 
 void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMproc* proc=FKL_VM_PROC(root);
-	fklGC_toGrey(proc->codeObj,gc);
+	fklVMgcToGray(proc->codeObj,gc);
 	uint32_t count=proc->rcount;
 	FklVMvarRef** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
-		fklGC_toGrey(*(ref[i]->ref),gc);
+		fklVMgcToGray(*(ref[i]->ref),gc);
 }
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
@@ -1719,30 +1719,30 @@ void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 	for(FklQueueNode* head=FKL_VM_CHANL(root)->messages.head
 		;head
 		;head=head->next)
-		fklGC_toGrey(head->data,gc);
+		fklVMgcToGray(head->data,gc);
 }
 
 void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(FKL_VM_DLL(root)->pd,gc);
+	fklVMgcToGray(FKL_VM_DLL(root)->pd,gc);
 }
 
 void fklAtomicVMcproc(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMcproc* cproc=FKL_VM_CPROC(root);
-	fklGC_toGrey(cproc->dll,gc);
-	fklGC_toGrey(cproc->pd,gc);
+	fklVMgcToGray(cproc->dll,gc);
+	fklVMgcToGray(cproc->pd,gc);
 }
 
 void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
 {
-	fklGC_toGrey(FKL_VM_BOX(root),gc);
+	fklVMgcToGray(FKL_VM_BOX(root),gc);
 }
 
 void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMudata* ud=FKL_VM_UD(root);
-	fklGC_toGrey(ud->rel,gc);
+	fklVMgcToGray(ud->rel,gc);
 	if(ud->t->__atomic)
 		ud->t->__atomic(ud,gc);
 }

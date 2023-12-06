@@ -1509,8 +1509,8 @@ FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
 	FklGCstate running=fklGetGCstate(gc);
 	if(running==FKL_GC_PROPAGATE||running==FKL_GC_COLLECT)
 	{
-		fklGC_toGrey(ref,gc);
-		fklGC_toGrey(v,gc);
+		fklVMgcToGray(ref,gc);
+		fklVMgcToGray(v,gc);
 	}
 	return ref;
 }

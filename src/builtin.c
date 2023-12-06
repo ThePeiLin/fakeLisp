@@ -56,9 +56,9 @@ typedef struct
 static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(d,PublicBuiltInData,ud);
-	fklGC_toGrey(d->sysIn,gc);
-	fklGC_toGrey(d->sysOut,gc);
-	fklGC_toGrey(d->sysErr,gc);
+	fklVMgcToGray(d->sysIn,gc);
+	fklVMgcToGray(d->sysOut,gc);
+	fklVMgcToGray(d->sysErr,gc);
 }
 
 static FklVMudMetaTable PublicBuiltInDataMetaTable=
@@ -1986,12 +1986,12 @@ FklVMvalue* create_eof_value(FklVM* exe)
 static void read_frame_atomic(void* data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
-	fklGC_toGrey(c->vfp,gc);
-	fklGC_toGrey(c->parser,gc);
+	fklVMgcToGray(c->vfp,gc);
+	fklVMgcToGray(c->parser,gc);
 	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
 	size_t len=c->symbolStack->top;
 	for(size_t i=0;i<len;i++)
-		fklGC_toGrey(base[i]->ast,gc);
+		fklVMgcToGray(base[i]->ast,gc);
 }
 
 static void read_frame_finalizer(void* data)
@@ -2357,7 +2357,7 @@ static void custom_parser_atomic(const FklVMudata* p,FklVMgc* gc)
 	{
 		FklGrammerProdHashItem* prod_item=(FklGrammerProdHashItem*)item->data;
 		for(FklGrammerProduction* prod=prod_item->prods;prod;prod=prod->next)
-			fklGC_toGrey(prod->ctx,gc);
+			fklVMgcToGray(prod->ctx,gc);
 	}
 }
 
@@ -2640,13 +2640,13 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(CustomParseCtx);
 static void custom_parse_frame_atomic(void* data,FklVMgc* gc)
 {
 	CustomParseCtx* c=(CustomParseCtx*)data;
-	fklGC_toGrey(c->box,gc);
-	fklGC_toGrey(c->parser,gc);
-	fklGC_toGrey(c->str,gc);
+	fklVMgcToGray(c->box,gc);
+	fklVMgcToGray(c->parser,gc);
+	fklVMgcToGray(c->str,gc);
 	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
 	size_t len=c->symbolStack->top;
 	for(size_t i=0;i<len;i++)
-		fklGC_toGrey(base[i]->ast,gc);
+		fklVMgcToGray(base[i]->ast,gc);
 }
 
 static void custom_parse_frame_finalizer(void* data)
@@ -2921,7 +2921,7 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(AsyncFgetCtx);
 static void async_fget_frame_atomic(void* data,FklVMgc* gc)
 {
 	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
-	fklGC_toGrey(c->vfp,gc);
+	fklVMgcToGray(c->vfp,gc);
 }
 
 static void async_fget_frame_finalizer(void* data)
@@ -3704,12 +3704,12 @@ static void error_handler_frame_print_backtrace(void* data,FILE* fp,FklSymbolTab
 static void error_handler_frame_atomic(void* data,FklVMgc* gc)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
-	fklGC_toGrey(c->proc,gc);
+	fklVMgcToGray(c->proc,gc);
 	size_t num=c->num;
 	for(size_t i=0;i<num;i++)
 	{
-		fklGC_toGrey(c->errorSymbolLists[i],gc);
-		fklGC_toGrey(c->errorHandlers[i],gc);
+		fklVMgcToGray(c->errorSymbolLists[i],gc);
+		fklVMgcToGray(c->errorHandlers[i],gc);
 	}
 }
 

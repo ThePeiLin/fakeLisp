@@ -954,11 +954,12 @@ static void join_all_vm_thread(uv_handle_t* handle)
 		uv_thread_join(&cur->tid);
 }
 
+#define NOTICE_LOCK(EXE) {uv_mutex_unlock(&(EXE)->lock);uv_mutex_lock(&(EXE)->lock);}
+
 static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 {
-	uv_mutex_unlock(&exe->lock);
+	NOTICE_LOCK(exe);
 	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
-	uv_mutex_lock(&exe->lock);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(proc))
@@ -974,9 +975,8 @@ static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
 {
-	uv_mutex_unlock(&exe->lock);
+	NOTICE_LOCK(exe);
 	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
-	uv_mutex_lock(&exe->lock);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_TOOFEWARG,exe);
 	if(!fklIsCallable(proc))
@@ -992,13 +992,32 @@ static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_notice_lock_jmp(FKL_VM_INS_FUNC_ARGL)
 {
-	int r=ins->imm_i64<0;
-	if(r)
-		uv_mutex_unlock(&exe->lock);
+	if(ins->imm_i64<0)
+		NOTICE_LOCK(exe);
 	exe->frames->c.pc+=ins->imm_i64;
-	if(r)
-		uv_mutex_lock(&exe->lock);
 }
+
+static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
+{
+	NOTICE_LOCK(exe);
+	FklVMframe* f=exe->frames;
+	if(f->c.mark)
+	{
+		close_all_var_ref(&f->c.lr);
+		if(f->c.lr.lrefl)
+		{
+			f->c.lr.lrefl=NULL;
+			memset(f->c.lr.lref,0,sizeof(FklVMvarRef*)*f->c.lr.lcount);
+		}
+		f->c.pc=f->c.spc;
+		f->c.mark=0;
+		f->c.tail=0;
+	}
+	else
+		fklDoFinalizeCompoundFrame(popFrame(exe),exe);
+}
+
+#undef NOTICE_LOCK
 
 static inline void switch_notice_lock_ins(FklPtrQueue* q)
 {
@@ -1011,6 +1030,7 @@ static inline void switch_notice_lock_ins(FklPtrQueue* q)
 		atomic_store(&exe->ins_table[FKL_OP_CALL],B_notice_lock_call);
 		atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_notice_lock_tail_call);
 		atomic_store(&exe->ins_table[FKL_OP_JMP],B_notice_lock_jmp);
+		atomic_store(&exe->ins_table[FKL_OP_RET],B_notice_lock_ret);
 	}
 }
 
@@ -1025,6 +1045,7 @@ static inline void switch_un_notice_lock_ins(FklPtrQueue* q)
 			atomic_store(&exe->ins_table[FKL_OP_CALL],B_call);
 			atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_tail_call);
 			atomic_store(&exe->ins_table[FKL_OP_JMP],B_jmp);
+			atomic_store(&exe->ins_table[FKL_OP_RET],B_ret);
 		}
 	}
 }

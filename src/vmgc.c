@@ -477,8 +477,26 @@ void fklAddToGC(FklVMvalue* v,FklVM* vm)
 	}
 }
 
+static inline void destroy_all_locv_cache(FklVMgc* gc)
+{
+	struct FklLocvCacheLevel* levels=gc->locv_cache;
+	for(uint8_t i=0;i<FKL_VM_GC_LOCV_CACHE_LEVEL_NUM;i++)
+	{
+		struct FklLocvCacheLevel* cur_level=&levels[i];
+		uv_mutex_destroy(&cur_level->lock);
+		struct FklLocvCache* cache=cur_level->locv;
+		for(uint8_t j=0;j<FKL_VM_GC_LOCV_CACHE_NUM;j++)
+		{
+			struct FklLocvCache* cur_cache=&cache[j];
+			if(cur_cache->llast)
+				free(cur_cache->locv);
+		}
+	}
+}
+
 void fklDestroyVMgc(FklVMgc* gc)
 {
+	destroy_all_locv_cache(gc);
 	fklDestroyAllValues(gc);
 	uninit_vm_queue(&gc->q);
 	free(gc);

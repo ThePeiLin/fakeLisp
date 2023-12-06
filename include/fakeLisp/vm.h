@@ -344,6 +344,7 @@ typedef struct FklVMlib
 
 typedef enum
 {
+	FKL_VM_DEAD,
 	FKL_VM_EXIT,
 	FKL_VM_READY,
 	FKL_VM_RUNNING,
@@ -372,6 +373,8 @@ typedef struct FklVMlocvList
 #define FKL_VM_INS_FUNC_ARGL struct FklVM* exe,FklInstruction* ins
 typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
 
+#define FKL_VM_GC_LOCV_CACHE_NUM (8)
+
 typedef struct FklVM
 {
 	uv_thread_t tid;
@@ -385,7 +388,7 @@ typedef struct FklVM
 	uint32_t llast;
 	uint32_t old_locv_count;
 	FklVMvalue** locv;
-	FklVMlocvList old_locv_cache[8];
+	FklVMlocvList old_locv_cache[FKL_VM_GC_LOCV_CACHE_NUM];
 	FklVMlocvList* old_locv_list;
 	//op stack
 	
@@ -456,7 +459,6 @@ typedef enum
 	FKL_GC_DONE,
 }FklGCstate;
 
-#define FKL_VM_GC_LOCV_CACHE_NUM (8)
 #define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
 #define FKL_VM_GC_THRESHOLD_SIZE (2048)
 

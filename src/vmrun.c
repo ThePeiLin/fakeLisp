@@ -730,7 +730,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 		case FKL_FRAME_COMPOUND:\
 			{\
 				FklInstruction* cur=curframe->c.pc++;\
-				ins_table[cur->op](exe,cur);\
+				atomic_load(&ins_table[cur->op])(exe,cur);\
 			}\
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
@@ -880,7 +880,7 @@ void fklSuspendThread(FklVM* exe)
 static void vm_thread_cb(void* arg)
 {
 	FklVM* volatile exe=(FklVM*)arg;
-	FklVMinsFunc* const ins_table=exe->ins_table;
+	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{
 		switch(exe->state)
@@ -1005,10 +1005,12 @@ static inline void switch_notice_lock_ins(FklPtrQueue* q)
 	for(FklQueueNode* n=q->head;n;n=n->next)
 	{
 		FklVM* exe=n->data;
+		if(exe->notice_lock)
+			continue;
 		exe->notice_lock=1;
-		exe->ins_table[FKL_OP_CALL]=B_notice_lock_call;
-		exe->ins_table[FKL_OP_TAIL_CALL]=B_notice_lock_tail_call;
-		exe->ins_table[FKL_OP_JMP]=B_notice_lock_jmp;
+		atomic_store(&exe->ins_table[FKL_OP_CALL],B_notice_lock_call);
+		atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_notice_lock_tail_call);
+		atomic_store(&exe->ins_table[FKL_OP_JMP],B_notice_lock_jmp);
 	}
 }
 
@@ -1017,10 +1019,13 @@ static inline void switch_un_notice_lock_ins(FklPtrQueue* q)
 	for(FklQueueNode* n=q->head;n;n=n->next)
 	{
 		FklVM* exe=n->data;
-		exe->notice_lock=1;
-		exe->ins_table[FKL_OP_CALL]=B_call;
-		exe->ins_table[FKL_OP_TAIL_CALL]=B_tail_call;
-		exe->ins_table[FKL_OP_JMP]=B_jmp;
+		if(exe->notice_lock)
+		{
+			exe->notice_lock=0;
+			atomic_store(&exe->ins_table[FKL_OP_CALL],B_call);
+			atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_tail_call);
+			atomic_store(&exe->ins_table[FKL_OP_JMP],B_jmp);
+		}
 	}
 }
 

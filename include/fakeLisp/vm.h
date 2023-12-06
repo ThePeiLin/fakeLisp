@@ -416,7 +416,7 @@ typedef struct FklVM
 	FklVMstate volatile state;
 
 	int notice_lock;
-	FklVMinsFunc ins_table[FKL_OP_LAST_OPCODE];
+	_Atomic(FklVMinsFunc) ins_table[FKL_OP_LAST_OPCODE];
 }FklVM;
 
 //typedef struct
@@ -473,6 +473,7 @@ typedef struct FklVMgc
 	struct FklLocvCacheLevel
 	{
 		uv_mutex_t lock;
+		uint32_t num;
 		struct FklLocvCache
 		{
 			uint32_t llast;

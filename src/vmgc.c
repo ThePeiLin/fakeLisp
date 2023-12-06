@@ -298,6 +298,7 @@ static void gc_frame_step(void* data,FklVM* exe)
 		gc->running=FKL_GC_COLLECT;
 		fklGC_collect(gc,&ctx->white);
 		gc->running=FKL_GC_SWEEP;
+		gc->threshold=gc->num+FKL_THRESHOLD_SIZE;
 	}
 }
 

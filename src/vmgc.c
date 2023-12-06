@@ -401,18 +401,24 @@ FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc* gc,uint32_t llast,uint32_t* pl
 	FklVMvalue** r=NULL;
 	for(uint8_t i=idx;r&&i<FKL_VM_GC_LOCV_CACHE_LEVEL_NUM;i++)
 	{
-		struct FklLocvCacheLevel* l=&gc->locv_cache[idx];
+		struct FklLocvCacheLevel* l=&gc->locv_cache[i];
 		uv_mutex_lock(&l->lock);
-		struct FklLocvCache* ll=l->locv;
-		for(uint8_t i=0;i<FKL_VM_GC_LOCV_CACHE_NUM;i++)
+		if(l->num)
 		{
-			if(ll[i].llast>=llast)
+			struct FklLocvCache* ll=l->locv;
+			for(uint8_t j=0;j<FKL_VM_GC_LOCV_CACHE_NUM;j++)
 			{
-				*pllast=ll[i].llast;
-				r=ll[i].locv;
-				ll[i].locv=NULL;
-				ll[i].llast=0;
-				break;
+				if(ll[j].llast>=llast)
+				{
+					*pllast=ll[j].llast;
+					r=ll[j].locv;
+					l->num--;
+					for(uint8_t k=j;k<l->num;k++)
+						ll[k]=ll[k+1];
+					ll[l->num].llast=0;
+					ll[l->num].locv=0;
+					break;
+				}
 			}
 		}
 		uv_mutex_unlock(&l->lock);

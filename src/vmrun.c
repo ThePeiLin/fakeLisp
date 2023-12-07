@@ -1015,8 +1015,8 @@ static inline void move_thread_old_locv_to_gc(FklVM* vm,FklVMgc* gc)
 		{
 			if(num==FKL_VM_GC_LOCV_CACHE_NUM)
 			{
-				atomic_fetch_sub(&gc->num,locvs[FKL_VM_GC_LOCV_CACHE_NUM].llast);
-				free(locvs[FKL_VM_GC_LOCV_CACHE_NUM-1].locv);
+				atomic_fetch_sub(&gc->num,locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
+				free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
 				num--;
 			}
 			else
@@ -1062,8 +1062,8 @@ static inline void move_thread_old_locv_to_gc(FklVM* vm,FklVMgc* gc)
 		{
 			if(num==FKL_VM_GC_LOCV_CACHE_NUM)
 			{
-				atomic_fetch_sub(&gc->num,locvs[FKL_VM_GC_LOCV_CACHE_NUM].llast);
-				free(locvs[FKL_VM_GC_LOCV_CACHE_NUM-1].locv);
+				atomic_fetch_sub(&gc->num,locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
+				free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
 				num--;
 			}
 			else

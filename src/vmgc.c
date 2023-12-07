@@ -215,7 +215,7 @@ FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc* gc,uint32_t llast,uint32_t* pl
 {
 	uint32_t idx=compute_level_idx(llast);
 	FklVMvalue** r=NULL;
-	for(uint8_t i=idx;r&&i<FKL_VM_GC_LOCV_CACHE_LEVEL_NUM;i++)
+	for(uint8_t i=idx;!r&&i<FKL_VM_GC_LOCV_CACHE_LEVEL_NUM;i++)
 	{
 		struct FklLocvCacheLevel* l=&gc->locv_cache[i];
 		uv_mutex_lock(&l->lock);

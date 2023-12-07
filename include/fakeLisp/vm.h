@@ -373,6 +373,7 @@ typedef struct FklVMlocvList
 typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
 
 #define FKL_VM_GC_LOCV_CACHE_NUM (8)
+#define FKL_VM_GC_LOCV_CACHE_LAST_IDX (FKL_VM_GC_LOCV_CACHE_NUM-1)
 
 typedef struct FklVM
 {

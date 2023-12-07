@@ -840,21 +840,6 @@ static inline void remove_exited_thread(FklVMgc* gc)
 	}
 }
 
-static void join_all_vm_thread(uv_handle_t* handle)
-{
-	FklVMgc* gc=uv_handle_get_data(handle);
-	FklVMqueue* q=&gc->q;
-	for(FklQueueNode* n=fklPopPtrQueueNode(&q->running_q);n;n=fklPopPtrQueueNode(&q->running_q))
-	{
-		FklVM* exe=n->data;
-		if(exe->state==FKL_VM_EXIT)
-		{
-			uv_thread_join(&exe->tid);
-			free(n);
-		}
-	}
-}
-
 #define NOTICE_LOCK(EXE) {uv_mutex_unlock(&(EXE)->lock);uv_mutex_lock(&(EXE)->lock);}
 
 static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
@@ -1098,66 +1083,7 @@ static inline void move_all_thread_objects_and_old_locv_to_gc(FklVMgc* gc)
 	}
 }
 
-static void vm_idler_cb(uv_idle_t* handle)
-{
-	FklVMgc* gc=uv_handle_get_data((uv_handle_t*)handle);
-	FklVMqueue* q=&gc->q;
-	if(atomic_load(&gc->num)>gc->threshold)
-	{
-		switch_notice_lock_ins(&q->running_q);
-		lock_all_vm(&q->running_q);
-
-		move_all_thread_objects_and_old_locv_to_gc(gc);
-
-		FklVM* exe=gc->main_thread;
-		fklVMgcMarkAllRootToGray(exe);
-		while(!fklVMgcPropagate(gc));
-		FklVMvalue* white=NULL;
-		fklVMgcCollect(gc,&white);
-		fklVMgcSweep(white);
-		fklVMgcRemoveUnusedGrayCache(gc);
-
-		gc->threshold=gc->num+FKL_VM_GC_THRESHOLD_SIZE;
-
-		FklPtrQueue other_running_q;
-		fklInitPtrQueue(&other_running_q);
-
-		for(FklQueueNode* n=fklPopPtrQueueNode(&q->running_q);n;n=fklPopPtrQueueNode(&q->running_q))
-		{
-			FklVM* exe=n->data;
-			if(exe->state==FKL_VM_EXIT)
-			{
-				uv_thread_join(&exe->tid);
-				free(n);
-			}
-			else
-				fklPushPtrQueueNode(&other_running_q,n);
-		}
-
-		for(FklQueueNode* n=fklPopPtrQueueNode(&other_running_q);n;n=fklPopPtrQueueNode(&other_running_q))
-			fklPushPtrQueueNode(&q->running_q,n);
-
-		remove_exited_thread(gc);
-
-		switch_un_notice_lock_ins(&q->running_q);
-		unlock_all_vm(&q->running_q);
-	}
-	uv_mutex_lock(&q->pre_running_lock);
-	for(FklQueueNode* n=fklPopPtrQueueNode(&q->pre_running_q);n;n=fklPopPtrQueueNode(&q->pre_running_q))
-	{
-		FklVM* exe=n->data;
-		if(uv_thread_create(&exe->tid,vm_thread_cb,exe))
-			abort();
-		atomic_fetch_add(&q->running_count,1);
-		fklPushPtrQueueNode(&q->running_q,n);
-	}
-	uv_mutex_unlock(&q->pre_running_lock);
-	if(atomic_load(&q->running_count)==0)
-		uv_close((uv_handle_t*)handle,join_all_vm_thread);
-	return;
-}
-
-static inline void vm_main_loop(FklVMgc* gc)
+static inline void vm_idler_loop(FklVMgc* gc)
 {
 	FklVMqueue* q=&gc->q;
 	for(;;)
@@ -1218,11 +1144,8 @@ static inline void vm_main_loop(FklVMgc* gc)
 			for(FklQueueNode* n=fklPopPtrQueueNode(&q->running_q);n;n=fklPopPtrQueueNode(&q->running_q))
 			{
 				FklVM* exe=n->data;
-				if(exe->state==FKL_VM_EXIT)
-				{
-					uv_thread_join(&exe->tid);
-					free(n);
-				}
+				uv_thread_join(&exe->tid);
+				free(n);
 			}
 			return;
 		}
@@ -1232,22 +1155,9 @@ static inline void vm_main_loop(FklVMgc* gc)
 int fklRunVM(FklVM* volatile exe)
 {
 	FklVMgc* gc=exe->gc;
-	// int err=0;
-	// uv_loop_t loop;
-	// exe->loop=&loop;
-	// uv_loop_init(&loop);
-	// uv_handle_set_data((uv_handle_t*)&loop,&err);
 	gc->main_thread=exe;
 	fklVMworkStart(exe,&gc->q);
-
-	// uv_idle_t idler;
-	// uv_idle_init(&loop,&idler);
-	// uv_handle_set_data((uv_handle_t*)&idler,gc);
-	// uv_idle_start(&idler,vm_idler_cb);
-
-	// uv_run(&loop,UV_RUN_DEFAULT);
-	// uv_loop_close(&loop);
-	vm_main_loop(gc);
+	vm_idler_loop(gc);
 	return gc->exit_code;
 }
 

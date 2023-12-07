@@ -250,7 +250,7 @@ static const FklVMframeContextMethodTable CprocContextMethodTable=
 static inline void initCprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe)
 {
 	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
-	fklSetRef(&c->proc,proc,exe->gc);
+	c->proc=proc;
 	c->state=FKL_CPROC_READY;
 	c->rtp=exe->tp;
 	c->context=0;
@@ -1103,7 +1103,6 @@ static void vm_idler_cb(uv_idle_t* handle)
 	FklVMqueue* q=&gc->q;
 	if(atomic_load(&gc->num)>gc->threshold)
 	{
-#warning stw and gc
 		switch_notice_lock_ins(&q->running_q);
 		lock_all_vm(&q->running_q);
 
@@ -1494,7 +1493,7 @@ static inline void B_list_append(FKL_VM_INS_FUNC_ARGL)
 			lastcdr=&FKL_VM_CDR(*lastcdr);
 		if(*lastcdr!=FKL_VM_NIL)
 			FKL_RAISE_BUILTIN_ERROR_CSTR("b.list-append",FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		fklSetRef(lastcdr,fir,exe->gc);
+		*lastcdr=fir;
 		FKL_VM_PUSH_VALUE(exe,sec);
 	}
 }
@@ -1505,7 +1504,7 @@ static inline void B_push_vector(FKL_VM_INS_FUNC_ARGL)
 	FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
 	FklVMvec* v=FKL_VM_VEC(vec);
 	for(uint64_t i=size;i>0;i--)
-		fklSetRef(&v->base[i-1],FKL_VM_POP_ARG(exe),exe->gc);
+		v->base[i-1]=FKL_VM_POP_ARG(exe);
 	FKL_VM_PUSH_VALUE(exe,vec);
 }
 
@@ -1590,7 +1589,7 @@ static inline void B_push_list_0(FKL_VM_INS_FUNC_ARGL)
 		*pcur=fklCreateVMvaluePairWithCar(exe,exe->base[i]);
 		pcur=&FKL_VM_CDR(*pcur);
 	}
-	fklSetRef(pcur,last,exe->gc);
+	*pcur=last;
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,pair);
 }
@@ -1608,7 +1607,7 @@ static inline void B_push_list(FKL_VM_INS_FUNC_ARGL)
 		pcur=&FKL_VM_CDR(*pcur);
 	}
 	exe->tp-=size;
-	fklSetRef(pcur,last,exe->gc);
+	*pcur=last;
 	FKL_VM_PUSH_VALUE(exe,pair);
 }
 
@@ -1618,7 +1617,7 @@ static inline void B_push_vector_0(FKL_VM_INS_FUNC_ARGL)
 	FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
 	FklVMvec* vv=FKL_VM_VEC(vec);
 	for(size_t i=size;i>0;i--)
-		fklSetRef(&vv->base[i-1],FKL_VM_POP_ARG(exe),exe->gc);
+		vv->base[i-1]=FKL_VM_POP_ARG(exe);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,vec);
 }

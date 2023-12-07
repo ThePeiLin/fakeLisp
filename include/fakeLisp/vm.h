@@ -933,10 +933,6 @@ void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
 
-FklVMvalue* fklSetRef(FklVMvalue* volatile*
-		,FklVMvalue* v
-		,FklVMgc*);
-
 int fklVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);
 

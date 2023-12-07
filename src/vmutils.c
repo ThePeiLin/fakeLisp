@@ -264,7 +264,7 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	fd->spc=pfd->spc;
 	fd->end=pfd->end;
 	fd->proc=FKL_VM_NIL;
-	fklSetRef(&fd->proc,pfd->proc,gc);
+	fd->proc=pfd->proc;
 	fd->mark=pfd->mark;
 	fd->tail=pfd->tail;
 	FklVMCompoundFrameVarRef* lr=&fd->lr;
@@ -1500,19 +1500,6 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 	FklString* retval=fklStringBufferToString(&result);
 	fklUninitStringBuffer(&result);
 	return retval;
-}
-
-FklVMvalue* fklSetRef(FklVMvalue* volatile* pref,FklVMvalue* v,FklVMgc* gc)
-{
-	FklVMvalue* ref=*pref;
-	*pref=v;
-	FklGCstate running=fklGetGCstate(gc);
-	if(running==FKL_GC_PROPAGATE||running==FKL_GC_COLLECT)
-	{
-		fklVMgcToGray(ref,gc);
-		fklVMgcToGray(v,gc);
-	}
-	return ref;
 }
 
 FklVMvalue* fklGetTopValue(FklVM* exe)

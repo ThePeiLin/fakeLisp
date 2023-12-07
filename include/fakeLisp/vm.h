@@ -584,7 +584,6 @@ void fklDestroyAllVMs(FklVM* cur);
 void fklDeleteCallChain(FklVM*);
 
 FklGCstate fklGetGCstate(FklVMgc*);
-void fklTryGC(FklVM*);
 void fklVMgcToGray(FklVMvalue*,FklVMgc*);
 
 void fklDestroyAllValues(FklVMgc*);

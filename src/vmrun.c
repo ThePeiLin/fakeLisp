@@ -52,9 +52,6 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 		FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast,&exe->llast);
 		FKL_ASSERT(locv);
 		memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
-		// FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
-		// FKL_ASSERT(locv);
-		// if(exe->locv!=locv)
 		fklUpdateAllVarRef(exe->frames,locv);
 		push_old_locv(exe,old_llast,exe->locv);
 		exe->locv=locv;
@@ -77,9 +74,6 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 			FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast,&exe->llast);
 			FKL_ASSERT(locv);
 			memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
-			// FklVMvalue** locv=(FklVMvalue**)fklRealloc(exe->locv,sizeof(FklVMvalue*)*exe->llast);
-			// FKL_ASSERT(locv);
-			// if(exe->locv!=locv)
 			fklUpdateAllVarRef(exe->frames,locv);
 			push_old_locv(exe,old_llast,exe->locv);
 			exe->locv=locv;
@@ -558,7 +552,6 @@ static inline void close_var_ref(FklVMvarRef* ref)
 {
 	ref->v=*(ref->ref);
 	atomic_store(&ref->ref,&ref->v);
-	// ref->ref=&ref->v;
 }
 
 static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
@@ -646,21 +639,6 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	default:\
 		break;
 
-// static inline void callCallableObj(FklVM* exe,FklVMvalue* v)
-// {
-// 	switch(v->type)
-// 	{
-// 		case FKL_TYPE_CPROC:
-// 			callCproc(exe,v);
-// 			break;
-// 		case FKL_TYPE_USERDATA:
-// 			FKL_VM_UD(v)->t->__call(v,exe);
-// 			break;
-// 		default:
-// 			break;
-// 	}
-// }
-
 static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc)
 {
 	FklVMframe* frame=exe->frames;
@@ -744,119 +722,11 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 		exe->state=FKL_VM_EXIT;\
 }
 
-// static inline void do_step_VM(FklVM* exe)
-// {
-// 	FklVMframe* curframe=exe->frames;
-// 	switch(curframe->type)
-// 	{
-// 		case FKL_FRAME_COMPOUND:
-// 			{
-// 				FklInstruction* cur=curframe->c.pc++;
-// 				ByteCodes[cur->op](exe,cur);
-// 			}
-// 			break;
-// 		case FKL_FRAME_OTHEROBJ:
-// 			if(fklIsCallableObjFrameReachEnd(curframe))
-// 				fklDoFinalizeObjFrame(popFrame(exe),&exe->sf);
-// 			else
-// 				fklDoCallableObjFrameStep(curframe,exe);
-// 			break;
-// 	}
-// 	if(exe->frames==NULL)
-// 		exe->state=FKL_VM_EXIT;
-// }
-
 static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
 {
 	for(size_t i=1;i<=num;i++)
 		fklUninitVMlib(&libs[i]);
 }
-
-// static inline FklVM* do_exit_VM(FklVM* exe)
-// {
-// 	FklVM* prev=exe->prev;
-// 	FklVM* next=exe->next;
-//
-// 	prev->next=next;
-// 	next->prev=prev;
-// 	exe->prev=exe;
-// 	exe->next=exe;
-//
-// 	if(exe->chan)
-// 	{
-// 		FklVMchanl* tmpCh=FKL_VM_CHANL(exe->chan);
-// 		FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-// 		FklVMvalue* resultBox=fklCreateVMvalueBox(next,v);
-// 		fklChanlSend(resultBox,tmpCh,exe);
-//
-// 		fklDeleteCallChain(exe);
-// 		fklUninitVMstack(exe);
-// 		uninit_all_vm_lib(exe->libs,exe->libNum);
-// 		free(exe->locv);
-// 		free(exe->libs);
-// 		free(exe);
-// 	}
-//
-// 	if(next==prev&&next==exe)
-// 		return NULL;
-// 	return next;
-// }
-
-// static void uv_idle_run_vm(uv_idle_t* handle)
-// {
-// 	FklVM* volatile exe=uv_handle_get_data((uv_handle_t*)handle);
-// 	while(exe)
-// 	{
-// 		switch(exe->state)
-// 		{
-// 			case FKL_VM_RUNNING:
-// 				DO_STEP_VM(exe);
-// 				break;
-// 			case FKL_VM_EXIT:
-// 				exe=do_exit_VM(exe);
-// 				continue;
-// 				break;
-// 			case FKL_VM_READY:
-// 				if(setjmp(exe->buf)==1)
-// 				{
-// 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
-// 					FklVMframe* frame=exe->frames;
-// 					for(;frame;frame=frame->prev)
-// 						if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
-// 							break;
-// 					if(frame==NULL)
-// 					{
-// 						fklPrintErrBacktrace(ev,exe);
-// 						if(exe->chan)
-// 						{
-// 							FklVMvalue* err=FKL_VM_GET_TOP_VALUE(exe);
-// 							fklChanlSend(err,FKL_VM_CHANL(exe->chan),exe);
-// 							exe->state=FKL_VM_EXIT;
-// 							continue;
-// 						}
-// 						else
-// 						{
-// 							*(int*)(handle->loop->data)=255;
-// 							uv_close((uv_handle_t*)handle,NULL);
-// 							return;
-// 						}
-// 					}
-// 				}
-// 				exe->state=FKL_VM_RUNNING;
-// 				continue;
-// 				break;
-// 			case FKL_VM_WAITING:
-// 				if(uv_loop_alive(handle->loop)>0)
-// 				{
-// 					handle->data=exe->next;
-// 					return;
-// 				}
-// 				break;
-// 		}
-// 		exe=exe->next;
-// 	}
-// 	uv_close((uv_handle_t*)handle,NULL);
-// }
 
 static inline void vm_running_thread_push(FklVM* v)
 {
@@ -943,7 +813,7 @@ void fklVMworkStart(FklVM* exe,FklVMqueue* q)
 	vm_running_thread_push(exe);
 }
 
-static inline void remove_dead_thread(FklVMgc* gc)
+static inline void remove_exited_thread(FklVMgc* gc)
 {
 	FklVM* main=gc->main_thread;
 	FklVM* cur=main->next;
@@ -1268,7 +1138,7 @@ static void vm_idler_cb(uv_idle_t* handle)
 		for(FklQueueNode* n=fklPopPtrQueueNode(&other_running_q);n;n=fklPopPtrQueueNode(&other_running_q))
 			fklPushPtrQueueNode(&q->running_q,n);
 
-		remove_dead_thread(gc);
+		remove_exited_thread(gc);
 
 		switch_un_notice_lock_ins(&q->running_q);
 		unlock_all_vm(&q->running_q);
@@ -1302,7 +1172,6 @@ int fklRunVM(FklVM* volatile exe)
 	uv_idle_t idler;
 	uv_idle_init(&loop,&idler);
 	uv_handle_set_data((uv_handle_t*)&idler,gc);
-	// uv_idle_start(&idler,uv_idle_run_vm);
 	uv_idle_start(&idler,vm_idler_cb);
 
 	uv_run(&loop,UV_RUN_DEFAULT);
@@ -2729,12 +2598,6 @@ char** fklGetVMargv(void)
 {
 	return VMargv;
 }
-
-//void fklGC_joinGCthread(FklVMgc* gc)
-//{
-//	pthread_join(GCthreadId,NULL);
-//	gc->running=FKL_GC_NONE;
-//}
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v)
 {

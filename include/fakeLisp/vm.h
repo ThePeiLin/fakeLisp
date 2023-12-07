@@ -189,7 +189,7 @@ typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
 	uint32_t idx;
-	FklVMvalue** ref;
+	_Atomic(FklVMvalue**) ref;
 	FklVMvalue* v;
 }FklVMvalueVarRef;
 
@@ -422,13 +422,6 @@ typedef struct FklVM
 	_Atomic(FklVMinsFunc) ins_table[FKL_OP_LAST_OPCODE];
 }FklVM;
 
-//typedef struct
-//{
-//	FklVM* run;
-//	FklVM* io;
-//	FklVM* sleep;
-//}FklVMscheduler;
-
 typedef struct FklVMudMetaTable
 {
 	size_t size;
@@ -482,6 +475,7 @@ typedef struct FklVMgc
 	FklVMqueue q;
 
 	FklVM* main_thread;
+	int exit_code;
 
 	struct FklLocvCacheLevel
 	{
@@ -563,8 +557,6 @@ FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVMlib* libs
 		,FklSymbolTable*
 		,FklSid_t* builtinErrorTypeId);
-
-//FklVM* fklGetNextRunningVM(FklVMscheduler* sc);
 
 void fklDestroyVMvalue(FklVMvalue*);
 void fklInitVMstack(FklVM*);

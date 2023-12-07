@@ -380,7 +380,6 @@ typedef struct FklVM
 	uv_thread_t tid;
 	uv_mutex_t lock;
 	FklVMqueue* vmq;
-	uv_loop_t* loop;
 	FklVMvalue* obj_head;
 	FklVMvalue* obj_tail;
 

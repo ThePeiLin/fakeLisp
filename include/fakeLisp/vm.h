@@ -344,7 +344,6 @@ typedef struct FklVMlib
 
 typedef enum
 {
-	FKL_VM_DEAD,
 	FKL_VM_EXIT,
 	FKL_VM_READY,
 	FKL_VM_RUNNING,

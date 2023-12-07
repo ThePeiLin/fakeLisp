@@ -888,9 +888,6 @@ static void vm_thread_cb(void* arg)
 			case FKL_VM_RUNNING:
 				DO_STEP_VM(exe);
 				break;
-			case FKL_VM_DEAD:
-				return;
-				break;
 			case FKL_VM_EXIT:
 				if(exe->chan)
 				{
@@ -899,9 +896,9 @@ static void vm_thread_cb(void* arg)
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(resultBox,tmpCh,exe);
 				}
-				exe->state=FKL_VM_DEAD;
 				atomic_fetch_sub(&exe->vmq->running_count,1);
 				uv_mutex_unlock(&exe->lock);
+				return;
 				break;
 			case FKL_VM_READY:
 				uv_mutex_lock(&exe->lock);
@@ -952,7 +949,7 @@ static inline void remove_dead_thread(FklVMgc* gc)
 	FklVM* cur=main->next;
 	while(cur!=main)
 	{
-		if(cur->state==FKL_VM_DEAD)
+		if(cur->state==FKL_VM_EXIT)
 		{
 			FklVM* prev=cur->prev;
 			FklVM* next=cur->next;
@@ -979,7 +976,7 @@ static void join_all_vm_thread(uv_handle_t* handle)
 	for(FklQueueNode* n=fklPopPtrQueueNode(&q->running_q);n;n=fklPopPtrQueueNode(&q->running_q))
 	{
 		FklVM* exe=n->data;
-		if(exe->state==FKL_VM_DEAD)
+		if(exe->state==FKL_VM_EXIT)
 		{
 			uv_thread_join(&exe->tid);
 			free(n);
@@ -1259,7 +1256,7 @@ static void vm_idler_cb(uv_idle_t* handle)
 		for(FklQueueNode* n=fklPopPtrQueueNode(&q->running_q);n;n=fklPopPtrQueueNode(&q->running_q))
 		{
 			FklVM* exe=n->data;
-			if(exe->state==FKL_VM_DEAD)
+			if(exe->state==FKL_VM_EXIT)
 			{
 				uv_thread_join(&exe->tid);
 				free(n);

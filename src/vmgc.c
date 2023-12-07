@@ -4,10 +4,16 @@ static inline struct FklVMgcGrayList* createGrayList(FklVMvalue* v,FklVMgc* gc)
 {
 	struct FklVMgcGrayList* next=gc->gray_list;
 	struct FklVMgcGrayList* g=NULL;
+
 	if(gc->gray_list_cache)
 	{
 		g=gc->gray_list_cache;
 		gc->gray_list_cache=g->next;
+	}
+	else if(gc->unused_gray_list_cache)
+	{
+		g=gc->unused_gray_list_cache;
+		gc->unused_gray_list_cache=g->next;
 	}
 	else
 	{
@@ -278,6 +284,18 @@ static inline void destroy_all_locv_cache(FklVMgc* gc)
 	}
 }
 
+static inline void destroy_unused_gray_cache(FklVMgc* gc)
+{
+	struct FklVMgcGrayList* h=gc->unused_gray_list_cache;
+	while(h)
+	{
+		struct FklVMgcGrayList* p=h;
+		h=h->next;
+		free(p);
+	}
+	gc->unused_gray_list_cache=NULL;
+}
+
 static inline void destroy_all_gray_cache(FklVMgc* gc)
 {
 	struct FklVMgcGrayList* h=gc->gray_list_cache;
@@ -287,6 +305,14 @@ static inline void destroy_all_gray_cache(FklVMgc* gc)
 		h=h->next;
 		free(p);
 	}
+	gc->gray_list_cache=NULL;
+	destroy_unused_gray_cache(gc);
+}
+
+void fklVMgcRemoveUnusedGrayCache(FklVMgc* gc)
+{
+	destroy_unused_gray_cache(gc);
+	gc->unused_gray_list_cache=gc->gray_list_cache;
 	gc->gray_list_cache=NULL;
 }
 

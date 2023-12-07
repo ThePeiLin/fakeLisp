@@ -1107,8 +1107,6 @@ static void vm_idler_cb(uv_idle_t* handle)
 		switch_notice_lock_ins(&q->running_q);
 		lock_all_vm(&q->running_q);
 
-		//TODO stw and gc
-
 		move_all_thread_objects_and_old_locv_to_gc(gc);
 
 		FklVM* exe=gc->main_thread;
@@ -1117,6 +1115,7 @@ static void vm_idler_cb(uv_idle_t* handle)
 		FklVMvalue* white=NULL;
 		fklVMgcCollect(gc,&white);
 		fklVMgcSweep(white);
+		fklVMgcRemoveUnusedGrayCache(gc);
 
 		gc->threshold=gc->num+FKL_VM_GC_THRESHOLD_SIZE;
 

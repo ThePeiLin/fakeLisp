@@ -466,7 +466,7 @@ typedef struct FklVMgc
 {
 	FklGCstate volatile running;
 	atomic_size_t num;
-	uint32_t threshold;
+	size_t threshold;
 	FklVMvalue* head;
 
 	struct FklVMgcGrayList
@@ -476,6 +476,8 @@ typedef struct FklVMgc
 	}* gray_list;
 
 	struct FklVMgcGrayList* gray_list_cache;
+
+	struct FklVMgcGrayList* unused_gray_list_cache;
 
 	FklVMqueue q;
 
@@ -578,6 +580,7 @@ void fklVMgcMarkAllRootToGray(FklVM* curVM);
 int fklVMgcPropagate(FklVMgc* gc);
 void fklVMgcCollect(FklVMgc* gc,FklVMvalue** pw);
 void fklVMgcSweep(FklVMvalue*);
+void fklVMgcRemoveUnusedGrayCache(FklVMgc* gc);
 
 void fklDestroyVMgc(FklVMgc*);
 

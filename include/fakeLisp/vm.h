@@ -533,15 +533,6 @@ typedef struct
 	uint32_t num;
 }FklVMerrorHandler;
 
-// typedef struct
-// {
-// 	uv_work_t req;
-// 	FILE* fp;
-// 	FklStringBuffer* buf;
-// 	uint64_t len;
-// 	int d;
-// }FklVMasyncReadCtx;
-
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 
@@ -885,6 +876,7 @@ void fklVMread(FklVM*
 
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);
+
 void fklChanlSend(FklVMvalue* msg,FklVMchanl*,FklVM*);
 int fklChanlRecvOk(FklVMchanl*,FklVMvalue**);
 void fklChanlRecv(FklVMvalue**,FklVMchanl*,FklVM*);

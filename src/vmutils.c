@@ -209,15 +209,6 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
 	FKL_VM_PUSH_VALUE(exe,ev);
 	longjmp(exe->buf,1);
-	// FklVMframe* frame=exe->frames;
-	// for(;frame;frame=frame->prev)
-	// 	if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
-	// 		break;
-	// if(frame==NULL)
-	// {
-	// 	fklPrintErrBacktrace(ev,exe);
-	// 	longjmp(exe->buf,1);
-	// }
 	return 255;
 }
 
@@ -1191,16 +1182,7 @@ static void vmvalue_userdata_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 		free(s);
 	}
 	else
-	{
 		fklStringBufferPrintf(result,"#<userdata %p>",ud);
-		// fklStringBufferConcatWithCstr(result,"#<");
-		// if(ud->type)
-		// {
-		// 	print_raw_symbol_to_string_buffer(result,fklGetSymbolWithId(ud->type,table)->symbol);
-		// 	fklStringBufferPutc(result,' ');
-		// }
-		// fklStringBufferPrintf(result,"%p>",ud);
-	}
 }
 
 static void vmvalue_proc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)

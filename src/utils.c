@@ -942,26 +942,6 @@ int fklMkdir(const char* dir)
 
 #endif
 
-// void fklDestroyDll(FklDllHandle handle)
-// {
-// #ifdef _WIN32
-// 	FreeLibrary(handle);
-// #else
-// 	dlclose(handle);
-// #endif
-// }
-//
-
-//
-// FklDllHandle fklLoadDll(const char* path)
-// {
-// #ifdef _WIN32
-// 	return LoadLibraryExA(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
-// #else
-// 	return dlopen(path,RTLD_LAZY);
-// #endif
-// }
-
 int fklRewindStream(FILE* fp,const char* buf,ssize_t len)
 {
 	if(fp==stdin)

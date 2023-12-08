@@ -655,7 +655,6 @@ static inline uint32_t matchpattern(const FklRegexCode* re
 	const FklRegexObj* objs=re->data;
 	const FklRegexObj* cur_obj=NULL;
 	const uint8_t* patrns=(const uint8_t*)re->data;
-	// uint32_t stackrealcnt=re->pstsize;
 	struct ReMatchState* state=(struct ReMatchState*)calloc(re->pstsize
 			,sizeof(struct ReMatchState));
 	FKL_ASSERT(state);
@@ -712,15 +711,6 @@ static inline uint32_t matchpattern(const FklRegexCode* re
 							if(tr)
 							{
 								STP.st0=STP.st;
-								// uint32_t new_sp=sp+1;
-								// if(new_sp>=stackrealcnt)
-								// {
-								// 	stackrealcnt=new_sp+1;
-								// 	struct ReMatchState* new_state=(struct ReMatchState*)fklRealloc(state
-								// 			,sizeof(struct ReMatchState)*stackrealcnt);
-								// 	FKL_ASSERT(new_state);
-								// 	state=new_state;
-								// }
 								PUSH();
 								STP.st0=IMPOSSIBLE_IDX;
 								STP.offset=cur_obj0->trueoffset;
@@ -806,7 +796,6 @@ static inline uint32_t lex_matchpattern(const FklRegexCode* re
 	const FklRegexObj* objs=re->data;
 	const FklRegexObj* cur_obj=NULL;
 	const uint8_t* patrns=(const uint8_t*)re->data;
-	// uint32_t stackrealcnt=re->pstsize;
 	struct ReMatchState* state=(struct ReMatchState*)calloc(re->pstsize
 			,sizeof(struct ReMatchState));
 	FKL_ASSERT(state);
@@ -860,15 +849,6 @@ static inline uint32_t lex_matchpattern(const FklRegexCode* re
 							if(tr)
 							{
 								STP.st0=STP.st;
-								// uint32_t new_sp=sp+1;
-								// if(new_sp>=stackrealcnt)
-								// {
-								// 	stackrealcnt=new_sp+1;
-								// 	struct ReMatchState* new_state=(struct ReMatchState*)fklRealloc(state
-								// 			,sizeof(struct ReMatchState)*stackrealcnt);
-								// 	FKL_ASSERT(new_state);
-								// 	state=new_state;
-								// }
 								PUSH();
 								STP.st0=IMPOSSIBLE_IDX;
 								STP.offset=cur_obj0->trueoffset;

@@ -395,13 +395,6 @@ typedef struct
 
 #include<replxx.h>
 
-// typedef struct
-// {
-// 	FklStringBuffer* buf;
-// 	int eof;
-// 	Replxx* replxx;
-// }AsyncReplCtx;
-
 typedef struct
 {
 	FklCodegenInfo* codegen;
@@ -596,24 +589,6 @@ static inline const char* replxx_input_string_buffer(Replxx* replxx
 	return next;
 }
 
-// static void async_repl_cb(uv_work_t* req)
-// {
-// 	AsyncReplCtx* repl_ctx=(AsyncReplCtx*)req;
-// 	repl_ctx->eof=replxx_input_string_buffer(repl_ctx->replxx,repl_ctx->buf)==NULL;
-// }
-//
-// static void async_after_repl_cb(uv_work_t* req,int status)
-// {
-// 	FklVM* exe=uv_req_get_data((uv_req_t*)req);
-// 	fklResumeThread(exe);
-// }
-
-// static int async_repl_start(FklVM* exe,AsyncReplCtx* ctx)
-// {
-// 	fklSuspendThread(exe);
-// 	return uv_queue_work(exe->loop,(uv_work_t*)ctx,async_repl_cb,async_after_repl_cb);
-// }
-
 static void repl_frame_step(void* data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
@@ -639,7 +614,6 @@ static void repl_frame_step(void* data,FklVM* exe)
 		ctx->eof=replxx_input_string_buffer(ctx->replxx,&ctx->buf)==NULL;
 		fklResumeThread(exe);
 		return;
-		// printf(">>>");
 	}
 	else
 		ctx->state=WAITING;
@@ -832,7 +806,6 @@ static void repl_frame_finalizer(void* data)
 	fklUninitStringBuffer(&ctx->buf);
 	destroyNastCreatCtx(ctx->cc);
 	replxx_end(ctx->replxx);
-	// free(ctx->async_repl_ctx);
 }
 
 static const FklVMframeContextMethodTable ReplContextMethodTable=
@@ -898,13 +871,5 @@ static inline void init_frame_to_repl_frame(FklVM* exe,FklCodegenInfo* codegen)
 	ctx->cc=cc;
 	ctx->state=READY;
 	fklInitStringBuffer(&ctx->buf);
-	// AsyncReplCtx* repl_ctx=(AsyncReplCtx*)malloc(sizeof(AsyncReplCtx));
-	// FKL_ASSERT(repl_ctx);
-	// repl_ctx->buf=&ctx->buf;
-	// repl_ctx->eof=0;
-	// repl_ctx->replxx=ctx->replxx;
-	// uv_req_set_data((uv_req_t*)&repl_ctx->req,exe);
-	// ctx->async_repl_ctx=repl_ctx;
 }
-
 

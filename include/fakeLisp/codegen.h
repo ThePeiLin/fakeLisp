@@ -92,7 +92,6 @@ typedef struct
 	{
 		FklByteCodelnt* bcl;
 		uv_lib_t dll;
-		// FklDllHandle dll;
 	};
 	char* rp;
 	FklHashTable exports;
@@ -309,7 +308,6 @@ typedef struct FklCodegenQuestContext
 
 typedef struct FklCodegenErrorState
 {
-	// FklSid_t fid;
 	FklBuiltinErrorType type;
 	FklNastNode* place;
 	size_t line;

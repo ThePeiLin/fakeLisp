@@ -1783,16 +1783,7 @@ void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	if(princ)
 		princ(u,fp,table);
 	else
-	{
 		fprintf(fp,"#<userdata %p>",u);
-		// fprintf(fp,"#<");
-		// if(u->type)
-		// {
-		// 	fklPrintString(fklGetSymbolWithId(u->type,table)->symbol,fp);
-		// 	fputc(' ',fp);
-		// }
-		// fprintf(fp,"%p>",u);
-	}
 }
 
 void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
@@ -1801,15 +1792,7 @@ void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
 	if(prin1)
 		prin1(u,fp,table);
 	else
-	{
 		fprintf(fp,"#<userdata %p>",u);
-		// if(u->type)
-		// {
-		// 	fklPrintRawSymbol(fklGetSymbolWithId(u->type,table)->symbol,fp);
-		// 	fputc(' ',fp);
-		// }
-		// fprintf(fp,"%p>",u);
-	}
 }
 
 int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)

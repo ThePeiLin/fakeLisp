@@ -4196,21 +4196,6 @@ static inline void export_replacement_with_prefix(FklHashTable* replacements
 	}
 }
 
-// static inline void print_undefined_symbol(const FklPtrStack* urefs
-// 		,FklSymbolTable* globalSymTable
-// 		,FklSymbolTable* pst)
-// {
-// 	for(uint32_t i=0;i<urefs->top;i++)
-// 	{
-// 		FklUnReSymbolRef* ref=urefs->base[i];
-// 		fprintf(stderr,"error in compiling: Symbol \"");
-// 		fklPrintString(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
-// 		fprintf(stderr,"\" is undefined at line %"PRT64U" of ",ref->line);
-// 		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
-// 		fputc('\n',stderr);
-// 	}
-// }
-
 void fklPrintUndefinedRef(const FklCodegenEnv* env
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst)

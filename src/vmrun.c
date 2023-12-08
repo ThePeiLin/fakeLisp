@@ -738,13 +738,14 @@ static inline void vm_running_thread_push(FklVM* v)
 
 void fklResumeThread(FklVM* exe)
 {
+	uv_mutex_lock(&exe->lock);
 	exe->state=FKL_VM_READY;
 }
 
 void fklSuspendThread(FklVM* exe)
 {
-	uv_mutex_unlock(&exe->lock);
 	exe->state=FKL_VM_WAITING;
+	uv_mutex_unlock(&exe->lock);
 }
 
 static void vm_thread_cb(void* arg)
@@ -792,7 +793,6 @@ static void vm_thread_cb(void* arg)
 						else
 						{
 							exe->gc->exit_code=255;
-							// *(int*)(exe->loop->data)=255;
 							exe->state=FKL_VM_EXIT;
 							continue;
 						}
@@ -2485,7 +2485,6 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->obj_tail=NULL;
 	exe->importingLib=NULL;
 	exe->gc=prev->gc;
-	// exe->loop=prev->loop;
 	exe->prev=exe;
 	exe->next=exe;
 	exe->chan=fklCreateVMvalueChanl(exe,0);

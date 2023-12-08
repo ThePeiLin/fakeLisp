@@ -1953,3 +1953,25 @@ void* fklGetAddress(const char* funcname,uv_lib_t* dll)
 		return NULL;
 	return pfunc;
 }
+
+void fklVMsleep(FklVM* exe,uint64_t ms)
+{
+	fklSuspendThread(exe);
+	uv_sleep(ms);
+	fklResumeThread(exe);
+}
+
+void fklVMread(FklVM* exe
+		,FILE* fp
+		,FklStringBuffer* buf
+		,uint64_t len
+		,int d)
+{
+	fklSuspendThread(exe);
+	if(d!=EOF)
+		fklGetDelim(fp,buf,d);
+	else
+		buf->index=fread(buf->buf,sizeof(char),len,fp);
+	fklResumeThread(exe);
+}
+

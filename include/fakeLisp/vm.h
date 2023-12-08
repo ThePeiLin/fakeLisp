@@ -94,9 +94,7 @@ typedef enum
 typedef struct
 {
 	FILE* fp;
-	FklPtrQueue next;
-	FklVMfpRW rw:2;
-	uint32_t mutex:1;
+	FklVMfpRW rw;
 }FklVMfp;
 
 typedef struct
@@ -535,14 +533,14 @@ typedef struct
 	uint32_t num;
 }FklVMerrorHandler;
 
-typedef struct
-{
-	uv_work_t req;
-	FILE* fp;
-	FklStringBuffer* buf;
-	uint64_t len;
-	int d;
-}FklVMasyncReadCtx;
+// typedef struct
+// {
+// 	uv_work_t req;
+// 	FILE* fp;
+// 	FklStringBuffer* buf;
+// 	uint64_t len;
+// 	int d;
+// }FklVMasyncReadCtx;
 
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
@@ -878,14 +876,18 @@ void fklInitVMdll(FklVMvalue* rel,FklVM*);
 FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
 void fklDestroyVMrecv(FklVMrecv*);
 
-int fklVMsleep(FklVM*,uint64_t ms);
+void fklVMsleep(FklVM*,uint64_t ms);
 
-FklVMasyncReadCtx* fklCreateVMasyncReadCtx(FklVM* exe
+// FklVMasyncReadCtx* fklCreateVMasyncReadCtx(FklVM* exe
+// 		,FILE* fp
+// 		,FklStringBuffer* buf
+// 		,uint64_t len
+// 		,int d);
+void fklVMread(FklVM*
 		,FILE* fp
 		,FklStringBuffer* buf
 		,uint64_t len
 		,int d);
-int fklVMread(FklVM*,FklVMasyncReadCtx* ctx);
 
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);

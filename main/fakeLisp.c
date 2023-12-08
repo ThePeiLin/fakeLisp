@@ -863,7 +863,7 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 {
 	exe->tp=0;
 	exe->bp=0;
-	fklPrintErrBacktrace(errValue,exe);
+	fklPrintErrBacktrace(errValue,exe,stderr);
 	while(exe->frames->prev)
 	{
 		FklVMframe* cur=exe->frames;

@@ -190,7 +190,7 @@ void fklDoPrintCprocBacktrace(FklSid_t sid,FILE* fp,FklSymbolTable* st)
 	if(sid)
 	{
 		fprintf(fp,"at cproc: ");
-		fklPrintString(fklGetSymbolWithId(sid,st)->symbol,fp);
+		fklPrintRawSymbol(fklGetSymbolWithId(sid,st)->symbol,fp);
 		fputc('\n',fp);
 	}
 	else
@@ -786,7 +786,7 @@ static void vm_thread_cb(void* arg)
 							break;
 					if(frame==NULL)
 					{
-						fklPrintErrBacktrace(ev,exe);
+						fklPrintErrBacktrace(ev,exe,stderr);
 						if(exe->chan)
 						{
 							FklVMvalue* err=FKL_VM_GET_TOP_VALUE(exe);

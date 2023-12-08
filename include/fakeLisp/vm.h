@@ -864,9 +864,6 @@ int fklVMfpEof(FklVMfp*);
 
 int fklUninitVMfp(FklVMfp*);
 
-void fklLockVMfp(FklVMvalue* fpv,FklVM*);
-void fklUnLockVMfp(FklVMvalue* vfp);
-
 #define FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS uint32_t* num,FklSid_t** exports,FklSymbolTable* st
 typedef void (*FklCodegenDllLibInitExportFunc)(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS);
 

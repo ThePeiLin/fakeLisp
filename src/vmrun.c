@@ -1092,7 +1092,6 @@ static inline void vm_idler_loop(FklVMgc* gc)
 	FklVMqueue* q=&gc->q;
 	for(;;)
 	{
-
 		if(atomic_load(&gc->num)>gc->threshold)
 		{
 			switch_notice_lock_ins(&q->running_q);

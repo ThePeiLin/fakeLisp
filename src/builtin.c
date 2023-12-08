@@ -1988,7 +1988,6 @@ static void read_frame_atomic(void* data,FklVMgc* gc)
 static void read_frame_finalizer(void* data)
 {
 	ReadCtx* c=(ReadCtx*)data;
-	fklUnLockVMfp(c->vfp);
 	fklDestroyStringBuffer(c->buf);
 	FklPtrStack* ss=c->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
@@ -2315,7 +2314,6 @@ static inline void init_custom_read_frame(FklVM* exe
 		,FklVMvalue* parser
 		,FklVMvalue* vfp)
 {
-	fklLockVMfp(vfp,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomReadContextMethodTable;
@@ -2327,7 +2325,6 @@ static inline void initFrameToReadFrame(FklVM* exe
 		,const char* func_name
 		,FklVMvalue* vfp)
 {
-	fklLockVMfp(vfp,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&ReadContextMethodTable;

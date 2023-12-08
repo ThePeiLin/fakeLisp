@@ -622,7 +622,6 @@ static void repl_frame_step(void* data,FklVM* exe)
 	if(ctx->state==READY)
 	{
 		ctx->state=WAITING;
-		fklLockVMfp(ctx->stdinVal,exe);
 		return;
 	}
 	else if(ctx->state==WAITING)
@@ -749,7 +748,6 @@ static void repl_frame_step(void* data,FklVM* exe)
 		if(mainCode)
 		{
 			uint32_t o_lcount=ctx->lcount;
-			fklUnLockVMfp(ctx->stdinVal);
 			ctx->state=READY;
 
 			update_prototype_lcount(codegen->pts,codegen->globalEnv);
@@ -871,7 +869,6 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 		fklDestroyVMframe(cur,exe);
 	}
 	ReplCtx* ctx=(ReplCtx*)exe->frames->data;
-	fklUnLockVMfp(ctx->stdinVal);
 	ctx->state=READY;
 	return 1;
 }

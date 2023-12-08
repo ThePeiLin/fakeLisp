@@ -765,16 +765,6 @@ int fklUninitVMfp(FklVMfp* vfp)
 	return r;
 }
 
-void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
-{
-	FklVMfp* vfp=FKL_VM_FP(fpv);
-}
-
-void fklUnLockVMfp(FklVMvalue* fpv)
-{
-	FklVMfp* vfp=FKL_VM_FP(fpv);
-}
-
 void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
 {
 	FklVMdll* dll=FKL_VM_DLL(rel);

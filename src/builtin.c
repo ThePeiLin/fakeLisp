@@ -1891,8 +1891,6 @@ static int builtin_freopen(FKL_CPROC_ARGL)
 	if(!FKL_IS_FP(stream)||!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMfp* vfp=FKL_VM_FP(stream);
-	if(vfp->mutex)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
 	FklString* filenameStr=FKL_VM_STR(filename);
 	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
 	FILE* fp=freopen(filenameStr->str,modeStr,vfp->fp);
@@ -1914,7 +1912,7 @@ static int builtin_fclose(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
 	FklVMfp* fp=FKL_VM_FP(vfp);
-	if(fp->fp==NULL||fp->mutex||fklUninitVMfp(fp))
+	if(fp->fp==NULL||fklUninitVMfp(fp))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDACCESS,exe);
 	fp->fp=NULL;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

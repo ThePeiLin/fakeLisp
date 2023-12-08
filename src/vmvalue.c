@@ -762,30 +762,17 @@ int fklUninitVMfp(FklVMfp* vfp)
 	FILE* fp=vfp->fp;
 	if(!(fp!=NULL&&fp!=stdin&&fp!=stdout&&fp!=stderr&&fclose(fp)!=EOF))
 		r=1;
-	fklUninitPtrQueue(&vfp->next);
 	return r;
 }
 
 void fklLockVMfp(FklVMvalue* fpv,FklVM* exe)
 {
 	FklVMfp* vfp=FKL_VM_FP(fpv);
-	if(vfp->mutex)
-	{
-		exe->state=FKL_VM_WAITING;
-		fklPushPtrQueue(exe,&vfp->next);
-	}
-	else
-		vfp->mutex=1;
 }
 
 void fklUnLockVMfp(FklVMvalue* fpv)
 {
 	FklVMfp* vfp=FKL_VM_FP(fpv);
-	FklVM* next=fklPopPtrQueue(&vfp->next);
-	if(next)
-		next->state=FKL_VM_READY;
-	else
-		vfp->mutex=0;
 }
 
 void fklInitVMdll(FklVMvalue* rel,FklVM* exe)
@@ -1419,8 +1406,6 @@ FklVMvalue* fklCreateVMvalueFp(FklVM* exe,FILE* fp,FklVMfpRW rw)
 	FklVMfp* vfp=FKL_VM_FP(r);
 	vfp->fp=fp;
 	vfp->rw=rw;
-	vfp->mutex=0;
-	fklInitPtrQueue(&vfp->next);
 	fklAddToGC(r,exe);
 	return r;
 }

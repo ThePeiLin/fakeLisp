@@ -1928,14 +1928,15 @@ typedef enum
 
 typedef struct
 {
-	FklStringBuffer buf;
+	FklSid_t sid;
+	const char* func_name;
+	FklStringBuffer* buf;
 	FklVMvalue* vfp;
 	FklVMvalue* parser;
 	FklPtrStack* symbolStack;
 	FklUintStack* lineStack;
 	FklPtrStack* stateStack;
 	FklSid_t reducing_sid;
-	// FklVMasyncReadCtx* async_read_ctx;
 	uint32_t offset;
 	uint32_t state;
 }ReadCtx;
@@ -1988,14 +1989,13 @@ static void read_frame_finalizer(void* data)
 {
 	ReadCtx* c=(ReadCtx*)data;
 	fklUnLockVMfp(c->vfp);
-	fklUninitStringBuffer(&c->buf);
+	fklDestroyStringBuffer(c->buf);
 	FklPtrStack* ss=c->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
 		free(fklPopPtrStack(ss));
 	fklDestroyPtrStack(ss);
 	fklDestroyUintStack(c->lineStack);
 	fklDestroyPtrStack(c->stateStack);
-	// free(c->async_read_ctx);
 }
 
 static int read_frame_end(void* d)
@@ -2007,7 +2007,7 @@ static void read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
-	FklStringBuffer* s=&rctx->buf;
+	FklStringBuffer* s=rctx->buf;
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 
 	int err=0;
@@ -2033,11 +2033,11 @@ static void read_frame_step(void* d,FklVM* exe)
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
 			&&fklVMfpEof(vfp))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(rctx->func_name,FKL_ERR_UNEXPECTED_EOF,exe);
 	else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(rctx->func_name,FKL_ERR_INVALIDEXPR,exe);
 	else if(err==FKL_PARSE_REDUCE_FAILED)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(rctx->func_name,FKL_ERR_INVALIDEXPR,exe);
 	else if(ast)
 	{
 		if(restLen)
@@ -2046,7 +2046,12 @@ static void read_frame_step(void* d,FklVM* exe)
 		FKL_VM_PUSH_VALUE(exe,ast);
 	}
 	else
-		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
+		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,rctx->buf,1,'\n');
+}
+
+static void read_frame_print_backtrace(void* d,FILE* fp,FklSymbolTable* st)
+{
+	fklDoPrintCprocBacktrace(((ReadCtx*)d)->sid,fp,st);
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable=
@@ -2054,7 +2059,7 @@ static const FklVMframeContextMethodTable ReadContextMethodTable=
 	.atomic=read_frame_atomic,
 	.finalizer=read_frame_finalizer,
 	.copy=NULL,
-	.print_backtrace=do_nothing_print_backtrace,
+	.print_backtrace=read_frame_print_backtrace,
 	.step=read_frame_step,
 	.end=read_frame_end,
 };
@@ -2076,11 +2081,15 @@ static inline void push_state0_of_custom_parser(FklVMvalue* parser,FklPtrStack* 
 }
 
 static inline void initReadCtx(void* data
+		,FklSid_t sid
+		,const char* func_name
 		,FklVM* exe
 		,FklVMvalue* vfp
 		,FklVMvalue* parser)
 {
 	ReadCtx* ctx=(ReadCtx*)data;
+	ctx->sid=sid;
+	ctx->func_name=func_name;
 	ctx->parser=parser;
 	ctx->vfp=vfp;
 	ctx->symbolStack=fklCreatePtrStack(16,16);
@@ -2090,14 +2099,13 @@ static inline void initReadCtx(void* data
 		fklVMvaluePushState0ToStack(ctx->stateStack);
 	else
 		push_state0_of_custom_parser(parser,ctx->stateStack);
-	fklInitStringBuffer(&ctx->buf);
+	ctx->buf=fklCreateStringBuffer();
 	ctx->state=PARSE_CONTINUE;
 	ctx->offset=0;
 	ctx->reducing_sid=0;
-	// ctx->async_read_ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,&ctx->buf,1,'\n');
 	fklVMread(exe
 			,FKL_VM_FP(vfp)->fp
-			,&ctx->buf
+			,ctx->buf
 			,1
 			,'\n');
 }
@@ -2227,7 +2235,7 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
-	FklStringBuffer* s=&rctx->buf;
+	FklStringBuffer* s=rctx->buf;
 
 	if(rctx->state==PARSE_REDUCING)
 	{
@@ -2278,17 +2286,16 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
 			&&fklVMfpEof(vfp))
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(rctx->func_name,FKL_ERR_UNEXPECTED_EOF,exe);
 	else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(rctx->func_name,FKL_ERR_INVALIDEXPR,exe);
 	else if(err==FKL_PARSE_REDUCE_FAILED)
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(rctx->func_name,FKL_ERR_INVALIDEXPR,exe);
 	else
 	{
 		rctx->offset=fklStringBufferLen(s)-restLen;
 		if(rctx->state==PARSE_CONTINUE)
-			// fklVMread(exe,rctx->async_read_ctx);
-			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
+			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,rctx->buf,1,'\n');
 	}
 }
 
@@ -2297,27 +2304,34 @@ static const FklVMframeContextMethodTable CustomReadContextMethodTable=
 	.atomic=read_frame_atomic,
 	.finalizer=read_frame_finalizer,
 	.copy=NULL,
-	.print_backtrace=do_nothing_print_backtrace,
+	.print_backtrace=read_frame_print_backtrace,
 	.step=custom_read_frame_step,
 	.end=read_frame_end,
 };
 
-static inline void init_custom_read_frame(FklVM* exe,FklVMvalue* parser,FklVMvalue* vfp)
+static inline void init_custom_read_frame(FklVM* exe
+		,FklSid_t sid
+		,const char* func_name
+		,FklVMvalue* parser
+		,FklVMvalue* vfp)
 {
 	fklLockVMfp(vfp,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomReadContextMethodTable;
-	initReadCtx(f->data,exe,vfp,parser);
+	initReadCtx(f->data,sid,func_name,exe,vfp,parser);
 }
 
-static inline void initFrameToReadFrame(FklVM* exe,FklVMvalue* vfp)
+static inline void initFrameToReadFrame(FklVM* exe
+		,FklSid_t sid
+		,const char* func_name
+		,FklVMvalue* vfp)
 {
 	fklLockVMfp(vfp,exe);
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&ReadContextMethodTable;
-	initReadCtx(f->data,exe,vfp,FKL_VM_NIL);
+	initReadCtx(f->data,sid,func_name,exe,vfp,FKL_VM_NIL);
 }
 
 #define FKL_VM_FP_R_MASK (1)
@@ -2789,10 +2803,10 @@ static int builtin_read(FKL_CPROC_ARGL)
 			FklVMframe* sf=exe->frames;
 			FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
 			exe->frames=nf;
-			init_custom_read_frame(exe,parser,stream);
+			init_custom_read_frame(exe,FKL_VM_CPROC(ctx->proc)->sid,Pname,parser,stream);
 		}
 		else
-			initFrameToReadFrame(exe,fpv);
+			initFrameToReadFrame(exe,FKL_VM_CPROC(ctx->proc)->sid,Pname,fpv);
 	}
 	return 1;
 }
@@ -5619,28 +5633,6 @@ uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t* p)
 	FKL_ASSERT(r);
 	return r;
 }
-
-//void print_refs(FklHashTable* ht,FklSymbolTable* publicSymbolTable)
-//{
-//	uint32_t size=ht->size;
-//	FklHashTableNode** base=ht->base;
-//	for(uint32_t i=0;i<size;i++)
-//	{
-//		uint32_t c=0;
-//		for(FklHashTableNode* h=base[i];h;h=h->next)
-//			c++;
-//		fprintf(stderr,"%4u:",c);
-//		for(FklHashTableNode* h=base[i];h;h=h->next)
-//		{
-//			FklSymbolDef* def=(FklSymbolDef*)h->data;
-//			fputc('|',stderr);
-//			fklPrintString(fklGetSymbolWithId(def->k.id,publicSymbolTable)->symbol,stderr);
-//			fputc('|',stderr);
-//			fputs(" -> ",stderr);
-//		}
-//		fputs("(/)\n",stderr);
-//	}
-//}
 
 uint32_t fklGetBuiltinSymbolNum(void)
 {

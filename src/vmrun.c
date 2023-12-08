@@ -185,19 +185,23 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc)
 	}
 }
 
-static void cproc_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+void fklDoPrintCprocBacktrace(FklSid_t sid,FILE* fp,FklSymbolTable* st)
 {
-	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
-	FklVMcproc* cproc=FKL_VM_CPROC(c->proc);
-	if(cproc->sid)
+	if(sid)
 	{
-		fprintf(fp,"at cproc:");
-		fklPrintString(fklGetSymbolWithId(cproc->sid,table)->symbol
-				,stderr);
+		fprintf(fp,"at cproc: ");
+		fklPrintString(fklGetSymbolWithId(sid,st)->symbol,fp);
 		fputc('\n',fp);
 	}
 	else
 		fputs("at <cproc>\n",fp);
+}
+
+static void cproc_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+{
+	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
+	FklVMcproc* cproc=FKL_VM_CPROC(c->proc);
+	fklDoPrintCprocBacktrace(cproc->sid,fp,table);
 }
 
 static void cproc_frame_atomic(void* data,FklVMgc* gc)

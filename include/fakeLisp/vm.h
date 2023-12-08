@@ -726,6 +726,8 @@ FklVMvalue* fklCreateVMvalueCproc(FklVM*
 		,FklVMvalue* pd
 		,FklSid_t sid);
 
+void fklDoPrintCprocBacktrace(FklSid_t,FILE* fp,FklSymbolTable* st);
+
 FklVMvalue* fklCreateVMvalueFp(FklVM*,FILE*,FklVMfpRW);
 
 FklVMvalue* fklCreateVMvalueHash(FklVM*,FklHashTableEqType);
@@ -878,11 +880,6 @@ void fklDestroyVMrecv(FklVMrecv*);
 
 void fklVMsleep(FklVM*,uint64_t ms);
 
-// FklVMasyncReadCtx* fklCreateVMasyncReadCtx(FklVM* exe
-// 		,FILE* fp
-// 		,FklStringBuffer* buf
-// 		,uint64_t len
-// 		,int d);
 void fklVMread(FklVM*
 		,FILE* fp
 		,FklStringBuffer* buf

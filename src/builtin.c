@@ -3439,7 +3439,7 @@ static int builtin_chanl_send_num(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if(FKL_IS_CHAN(obj))
-		len=fklLengthPtrQueue(&FKL_VM_CHANL(obj)->sendq);
+		len=fklVMchanlSendqLen(FKL_VM_CHANL(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));
@@ -3453,7 +3453,7 @@ static int builtin_chanl_recv_num(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if(FKL_IS_CHAN(obj))
-		len=fklLengthPtrQueue(&FKL_VM_CHANL(obj)->recvq);
+		len=fklVMchanlRecvqLen(FKL_VM_CHANL(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));
@@ -3509,8 +3509,11 @@ static int builtin_send(FKL_CPROC_ARGL)
 	DECL_AND_CHECK_ARG2(ch,message,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,Pname,exe);
-	fklChanlSend(message,FKL_VM_CHANL(ch),exe);
+	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,message);
+	FKL_VM_PUSH_VALUE(exe,ch);
+	fklChanlSend(FKL_VM_CHANL(ch),message,exe);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,message);
 	return 0;
 }
 
@@ -3530,7 +3533,14 @@ static int builtin_recv(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		fklChanlRecv(fklPushVMvalue(exe,FKL_VM_NIL),chanl,exe);
+	{
+		uint32_t rtp=exe->tp;
+		FKL_VM_PUSH_VALUE(exe,ch);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		fklChanlRecv(chanl,&FKL_VM_GET_VALUE(exe,1),exe);
+		FklVMvalue* r=FKL_VM_GET_VALUE(exe,1);
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,r);
+	}
 	return 0;
 }
 

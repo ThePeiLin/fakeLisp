@@ -65,18 +65,40 @@ typedef struct
 
 typedef struct
 {
+	uv_mutex_t lock;
 	size_t max;
 	volatile size_t messageNum;
 	FklPtrQueue messages;
-	FklPtrQueue recvq;
-	FklPtrQueue sendq;
+	FklQueueNode* msg_cache;
+
+	struct FklVMchanlRecvq
+	{
+		struct FklVMchanlRecv* head;
+		struct FklVMchanlRecv** tail;
+		struct FklVMchanlRecv* cache;
+	}recvq;
+
+	struct FklVMchanlSendq
+	{
+		struct FklVMchanlSend* head;
+		struct FklVMchanlSend** tail;
+		struct FklVMchanlSend* cache;
+	}sendq;
 }FklVMchanl;
 
-typedef struct
+typedef struct FklVMchanlSend
 {
-	struct FklVM* exe;
+	struct FklVMchanlSend* next;
+	uv_cond_t* cond;
+	struct FklVMvalue* msg;
+}FklVMchanlSend;
+
+typedef struct FklVMchanlRecv
+{
+	struct FklVMchanlRecv* next;
+	uv_cond_t* cond;
 	struct FklVMvalue** slot;
-}FklVMrecv;
+}FklVMchanlRecv;
 
 typedef struct
 {
@@ -863,8 +885,8 @@ typedef FklVMvalue** (*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
 
 void fklInitVMdll(FklVMvalue* rel,FklVM*);
 
-FklVMrecv* fklCreateVMrecv(FklVMvalue**,FklVM* exe);
-void fklDestroyVMrecv(FklVMrecv*);
+uint64_t fklVMchanlRecvqLen(FklVMchanl* ch);
+uint64_t fklVMchanlSendqLen(FklVMchanl* ch);
 
 void fklVMsleep(FklVM*,uint64_t ms);
 
@@ -877,9 +899,9 @@ void fklVMread(FklVM*
 void fklSuspendThread(FklVM*);
 void fklResumeThread(FklVM*);
 
-void fklChanlSend(FklVMvalue* msg,FklVMchanl*,FklVM*);
+void fklChanlSend(FklVMchanl*,FklVMvalue* msg,FklVM*);
+void fklChanlRecv(FklVMchanl*,FklVMvalue**,FklVM*);
 int fklChanlRecvOk(FklVMchanl*,FklVMvalue**);
-void fklChanlRecv(FklVMvalue**,FklVMchanl*,FklVM*);
 
 void fklVMvecConcat(FklVMvec*,const FklVMvec*);
 

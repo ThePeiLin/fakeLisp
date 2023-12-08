@@ -770,7 +770,7 @@ static void vm_thread_cb(void* arg)
 					FklVMchanl* tmpCh=FKL_VM_CHANL(exe->chan);
 					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
-					fklChanlSend(resultBox,tmpCh,exe);
+					fklChanlSend(tmpCh,resultBox,exe);
 				}
 				atomic_fetch_sub(&exe->vmq->running_count,1);
 				uv_mutex_unlock(&exe->lock);
@@ -790,7 +790,7 @@ static void vm_thread_cb(void* arg)
 						if(exe->chan)
 						{
 							FklVMvalue* err=FKL_VM_GET_TOP_VALUE(exe);
-							fklChanlSend(err,FKL_VM_CHANL(exe->chan),exe);
+							fklChanlSend(FKL_VM_CHANL(exe->chan),err,exe);
 							exe->state=FKL_VM_EXIT;
 							continue;
 						}
@@ -2490,7 +2490,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->gc=prev->gc;
 	exe->prev=exe;
 	exe->next=exe;
-	exe->chan=fklCreateVMvalueChanl(exe,0);
+	exe->chan=fklCreateVMvalueChanl(exe,1);
 	fklInitVMstack(exe);
 	exe->symbolTable=table;
 	exe->libNum=libNum;

@@ -751,6 +751,7 @@ void fklSuspendThread(FklVM* exe)
 static void vm_thread_cb(void* arg)
 {
 	FklVM* volatile exe=(FklVM*)arg;
+	uv_mutex_lock(&exe->lock);
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{
@@ -772,7 +773,6 @@ static void vm_thread_cb(void* arg)
 				return;
 				break;
 			case FKL_VM_READY:
-				uv_mutex_lock(&exe->lock);
 				if(setjmp(exe->buf)==1)
 				{
 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);

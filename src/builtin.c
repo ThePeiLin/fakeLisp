@@ -1935,7 +1935,7 @@ typedef struct
 	FklUintStack* lineStack;
 	FklPtrStack* stateStack;
 	FklSid_t reducing_sid;
-	FklVMasyncReadCtx* async_read_ctx;
+	// FklVMasyncReadCtx* async_read_ctx;
 	uint32_t offset;
 	uint32_t state;
 }ReadCtx;
@@ -1995,7 +1995,7 @@ static void read_frame_finalizer(void* data)
 	fklDestroyPtrStack(ss);
 	fklDestroyUintStack(c->lineStack);
 	fklDestroyPtrStack(c->stateStack);
-	free(c->async_read_ctx);
+	// free(c->async_read_ctx);
 }
 
 static int read_frame_end(void* d)
@@ -2046,7 +2046,7 @@ static void read_frame_step(void* d,FklVM* exe)
 		FKL_VM_PUSH_VALUE(exe,ast);
 	}
 	else
-		fklVMread(exe,rctx->async_read_ctx);
+		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable=
@@ -2094,8 +2094,12 @@ static inline void initReadCtx(void* data
 	ctx->state=PARSE_CONTINUE;
 	ctx->offset=0;
 	ctx->reducing_sid=0;
-	ctx->async_read_ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,&ctx->buf,1,'\n');
-	fklVMread(exe,ctx->async_read_ctx);
+	// ctx->async_read_ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,&ctx->buf,1,'\n');
+	fklVMread(exe
+			,FKL_VM_FP(vfp)->fp
+			,&ctx->buf
+			,1
+			,'\n');
 }
 
 static inline int do_custom_parser_reduce_action(FklPtrStack* stateStack
@@ -2283,7 +2287,8 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	{
 		rctx->offset=fklStringBufferLen(s)-restLen;
 		if(rctx->state==PARSE_CONTINUE)
-			fklVMread(exe,rctx->async_read_ctx);
+			// fklVMread(exe,rctx->async_read_ctx);
+			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 	}
 }
 
@@ -2897,107 +2902,14 @@ static int builtin_parse(FKL_CPROC_ARGL)
 	}
 }
 
-typedef struct
+static inline FklVMvalue* vm_fgetc(FklVM* exe,FILE* fp)
 {
-	FklVMvalue* vfp;
-	FklStringBuffer buf;
-	FklVMasyncReadCtx* async_read_ctx;
-	FklVMvalue* (*retval_creator)(FklVM*,FklStringBuffer*);
-	int done;
-}AsyncFgetCtx;
-
-FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(AsyncFgetCtx);
-
-static void async_fget_frame_atomic(void* data,FklVMgc* gc)
-{
-	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
-	fklVMgcToGray(c->vfp,gc);
-}
-
-static void async_fget_frame_finalizer(void* data)
-{
-	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
-	fklUninitStringBuffer(&c->buf);
-	fklUnLockVMfp(c->vfp);
-	free(c->async_read_ctx);
-}
-
-static void async_fget_frame_step(void* data,FklVM* exe)
-{
-	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
-	FKL_VM_PUSH_VALUE(exe,c->retval_creator(exe,&c->buf));
-	fklUnLockVMfp(c->vfp);
-	c->done=1;
-}
-
-static int async_fget_frame_end(void* data)
-{
-	AsyncFgetCtx* c=(AsyncFgetCtx*)data;
-	return c->done;
-}
-
-static const FklVMframeContextMethodTable AsyncFgetContextMethodTable=
-{
-	.atomic=async_fget_frame_atomic,
-	.finalizer=async_fget_frame_finalizer,
-	.copy=NULL,
-	.print_backtrace=do_nothing_print_backtrace,
-	.step=async_fget_frame_step,
-	.end=async_fget_frame_end,
-};
-
-static void initAsyncFgetCtx(void* data
-		,FklVM* exe
-		,FklVMvalue* vfp
-		,uint64_t len
-		,int d
-		,FklVMvalue* (*retval_creator)(FklVM* exe,FklStringBuffer* buf))
-{
-	AsyncFgetCtx* ctx=(AsyncFgetCtx*)data;
-	ctx->vfp=vfp;
-	ctx->done=0;
-	ctx->retval_creator=retval_creator;
-	FklStringBuffer* buf=&ctx->buf;
-	fklInitStringBufferWithCapacity(buf,len);
-	ctx->async_read_ctx=fklCreateVMasyncReadCtx(exe,FKL_VM_FP(vfp)->fp,buf,len,d);
-	fklVMread(exe,ctx->async_read_ctx);
-}
-
-static FklVMvalue* async_char_creator(FklVM* exe,FklStringBuffer* buf)
-{
-	if(buf->index)
-		return FKL_MAKE_VM_CHR(*(buf->buf));
-	return FKL_VM_NIL;
-}
-
-static FklVMvalue* async_integer_creator(FklVM* exe,FklStringBuffer* buf)
-{
-	if(buf->index)
-		return FKL_MAKE_VM_FIX(*(buf->buf));
-	return FKL_VM_NIL;
-}
-
-static FklVMvalue* async_string_creator(FklVM* exe,FklStringBuffer* buf)
-{
-	return fklCreateVMvalueStr(exe,fklStringBufferToString(buf));
-}
-
-static FklVMvalue* async_bvec_creator(FklVM* exe,FklStringBuffer* buf)
-{
-	return fklCreateVMvalueBvec(exe,fklStringBufferToBytevector(buf));
-}
-
-static void initFrameToAsyncFgetFrame(FklVM* exe
-		,FklVMvalue* vfp
-		,uint64_t len
-		,int d
-		,FklVMvalue* (*retval_creator)(FklVM* exe,FklStringBuffer* buf))
-{
-	FklVMframe* f=exe->frames;
-	fklLockVMfp(vfp,exe);
-	f->type=FKL_FRAME_OTHEROBJ;
-	f->t=&AsyncFgetContextMethodTable;
-	initAsyncFgetCtx(f->data,exe,vfp,len,d,retval_creator);
+	fklSuspendThread(exe);
+	int ch=fgetc(fp);
+	fklResumeThread(exe);
+	if(ch==EOF)
+		return FKL_VM_NIL;
+	return FKL_MAKE_VM_CHR(ch);
 }
 
 static int builtin_fgetc(FKL_CPROC_ARGL)
@@ -3009,8 +2921,20 @@ static int builtin_fgetc(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(stream,Pname,exe);
 	CHECK_FP_READABLE(stream,Pname,exe);
-	initFrameToAsyncFgetFrame(exe,stream,1,EOF,async_char_creator);
-	return 1;
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,stream);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,vm_fgetc(exe,FKL_VM_FP(stream)->fp));
+	return 0;
+}
+
+static inline FklVMvalue* vm_fgeti(FklVM* exe,FILE* fp)
+{
+	fklSuspendThread(exe);
+	int ch=fgetc(fp);
+	fklResumeThread(exe);
+	if(ch==EOF)
+		return FKL_VM_NIL;
+	return FKL_MAKE_VM_FIX(ch);
 }
 
 static int builtin_fgeti(FKL_CPROC_ARGL)
@@ -3022,8 +2946,10 @@ static int builtin_fgeti(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(stream,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(stream,Pname,exe);
 	CHECK_FP_READABLE(stream,Pname,exe);
-	initFrameToAsyncFgetFrame(exe,stream,1,EOF,async_integer_creator);
-	return 1;
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,stream);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,vm_fgeti(exe,FKL_VM_FP(stream)->fp));
+	return 0;
 }
 
 static int builtin_fgetd(FKL_CPROC_ARGL)
@@ -3044,8 +2970,16 @@ static int builtin_fgetd(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(file,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(file,Pname,exe);
 	CHECK_FP_READABLE(file,Pname,exe);
-	initFrameToAsyncFgetFrame(exe,file,1,d,async_string_creator);
-	return 1;
+
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,file);
+	FklStringBuffer buf;
+	fklInitStringBufferWithCapacity(&buf,80);
+	fklVMread(exe,FKL_VM_FP(file)->fp,&buf,80,d);
+	FklVMvalue* r=fklCreateVMvalueStr(exe,fklStringBufferToString(&buf));
+	fklUninitStringBuffer(&buf);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,r);
+	return 0;
 }
 
 static int builtin_fgets(FKL_CPROC_ARGL)
@@ -3061,8 +2995,17 @@ static int builtin_fgets(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	CHECK_FP_OPEN(file,Pname,exe);
 	CHECK_FP_READABLE(file,Pname,exe);
-	initFrameToAsyncFgetFrame(exe,file,fklGetUint(psize),EOF,async_string_creator);
-	return 1;
+
+	uint64_t len=fklGetUint(psize);
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,file);
+	FklStringBuffer buf;
+	fklInitStringBufferWithCapacity(&buf,len);
+	fklVMread(exe,FKL_VM_FP(file)->fp,&buf,len,EOF);
+	FklVMvalue* r=fklCreateVMvalueStr(exe,fklStringBufferToString(&buf));
+	fklUninitStringBuffer(&buf);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,r);
+	return 0;
 }
 
 static int builtin_fgetb(FKL_CPROC_ARGL)
@@ -3078,8 +3021,18 @@ static int builtin_fgetb(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	CHECK_FP_OPEN(file,Pname,exe);
 	CHECK_FP_READABLE(file,Pname,exe);
-	initFrameToAsyncFgetFrame(exe,file,fklGetUint(psize),EOF,async_bvec_creator);
-	return 1;
+	
+	uint64_t len=fklGetUint(psize);
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,file);
+
+	FklStringBuffer buf;
+	fklInitStringBufferWithCapacity(&buf,len);
+	fklVMread(exe,FKL_VM_FP(file)->fp,&buf,len,EOF);
+	FklVMvalue* r=fklCreateVMvalueBvec(exe,fklStringBufferToBytevector(&buf));
+	fklUninitStringBuffer(&buf);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,r);
+	return 0;
 }
 
 static int builtin_prin1(FKL_CPROC_ARGL)

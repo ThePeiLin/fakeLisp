@@ -87,14 +87,14 @@ typedef struct
 typedef struct FklVMchanlSend
 {
 	struct FklVMchanlSend* next;
-	uv_cond_t* cond;
+	uv_cond_t cond;
 	struct FklVMvalue* msg;
 }FklVMchanlSend;
 
 typedef struct FklVMchanlRecv
 {
 	struct FklVMchanlRecv* next;
-	uv_cond_t* cond;
+	uv_cond_t cond;
 	struct FklVMvalue** slot;
 }FklVMchanlRecv;
 

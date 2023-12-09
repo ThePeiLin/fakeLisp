@@ -3470,7 +3470,7 @@ static int builtin_chanl(FKL_CPROC_ARGL)
 
 static int builtin_chanl_msg_num(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="builtin.chanl#msg";
+	static const char Pname[]="builtin.chanl-msg-num";
 	DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
@@ -3484,7 +3484,7 @@ static int builtin_chanl_msg_num(FKL_CPROC_ARGL)
 
 static int builtin_chanl_send_num(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="builtin.chanl#send";
+	static const char Pname[]="builtin.chanl-send-num";
 	DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
@@ -3498,7 +3498,7 @@ static int builtin_chanl_send_num(FKL_CPROC_ARGL)
 
 static int builtin_chanl_recv_num(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="builtin.chanl#recv";
+	static const char Pname[]="builtin.chanl-recv-num";
 	DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
@@ -3512,7 +3512,7 @@ static int builtin_chanl_recv_num(FKL_CPROC_ARGL)
 
 static int builtin_chanl_full_p(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="builtin.chanl#recv";
+	static const char Pname[]="builtin.chanl-full?";
 	DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=NULL;
@@ -5467,9 +5467,9 @@ static const struct SymbolFuncStruct
 	{"argv",                  builtin_argv,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"go",                    builtin_go,                      {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl",                 builtin_chanl,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"chanl#msg",             builtin_chanl_msg_num,           {NULL,         NULL,          NULL,            NULL,          }, },
-	{"chanl#recv",            builtin_chanl_recv_num,          {NULL,         NULL,          NULL,            NULL,          }, },
-	{"chanl#send",            builtin_chanl_send_num,          {NULL,         NULL,          NULL,            NULL,          }, },
+	{"chanl-msg-num",         builtin_chanl_msg_num,           {NULL,         NULL,          NULL,            NULL,          }, },
+	{"chanl-recv-num",        builtin_chanl_recv_num,          {NULL,         NULL,          NULL,            NULL,          }, },
+	{"chanl-send-num",        builtin_chanl_send_num,          {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-full?",           builtin_chanl_full_p,            {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-msg->list",       builtin_chanl_msg_to_list,       {NULL,         NULL,          NULL,            NULL,          }, },
 	{"send",                  builtin_send,                    {NULL,         NULL,          NULL,            NULL,          }, },

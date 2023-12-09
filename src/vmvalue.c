@@ -1031,33 +1031,34 @@ static inline FklVMvalue* chanl_pop_msg(FklVMchanl* ch)
 	return n->data;
 }
 
-int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** pval)
+int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** slot)
 {
 	uv_mutex_lock(&ch->lock);
-	int r=ch->messageNum>0;
-	if(ch->messageNum)
+	FklVMchanlSend* send=chanl_pop_send(ch);
+	if(send)
 	{
-		ch->messageNum--;
-		*pval=chanl_pop_msg(ch);
-		FklVMchanlSend* s=chanl_pop_send(ch);
-		if(s)
+		if(ch->messageNum)
 		{
-			chanl_push_msg(ch,s->msg);
-			uv_cond_signal(s->cond);
+			*slot=chanl_pop_msg(ch);
+			chanl_push_msg(ch,send->msg);
 		}
+		else
+			*slot=send->msg;
+		uv_cond_signal(send->cond);
+		uv_mutex_unlock(&ch->lock);
+		return 1;
+	}
+	else if(ch->messageNum)
+	{
+		*slot=chanl_pop_msg(ch);
+		uv_mutex_unlock(&ch->lock);
+		return 1;
 	}
 	else
 	{
-		FklVMchanlSend* send=chanl_pop_send(ch);
-		r=send!=NULL;
-		if(r)
-		{
-			*pval=send->msg;
-			uv_cond_signal(send->cond);
-		}
+		uv_mutex_unlock(&ch->lock);
+		return 0;
 	}
-	uv_mutex_unlock(&ch->lock);
-	return r;
 }
 
 void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
@@ -1146,6 +1147,24 @@ uint64_t fklVMchanlSendqLen(FklVMchanl* ch)
 	uv_mutex_lock(&ch->lock);
 	for(FklVMchanlSend* r=ch->sendq.head;r;r=r->next)
 		r++;
+	uv_mutex_unlock(&ch->lock);
+	return r;
+}
+
+uint64_t fklVMchanlMessageNum(FklVMchanl* ch)
+{
+	uint64_t r=0;
+	uv_mutex_lock(&ch->lock);
+	r=ch->messageNum;
+	uv_mutex_unlock(&ch->lock);
+	return r;
+}
+
+int fklVMchanlFull(FklVMchanl* ch)
+{
+	int r=0;
+	uv_mutex_lock(&ch->lock);
+	r=ch->messageNum>=ch->max;
 	uv_mutex_unlock(&ch->lock);
 	return r;
 }

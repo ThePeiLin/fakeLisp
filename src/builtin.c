@@ -3425,7 +3425,7 @@ static int builtin_chanl_msg_num(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if(FKL_IS_CHAN(obj))
-		len=FKL_VM_CHANL(obj)->messageNum;
+		len=fklVMchanlMessageNum(FKL_VM_CHANL(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));
@@ -3467,10 +3467,7 @@ static int builtin_chanl_full_p(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=NULL;
 	if(FKL_IS_CHAN(obj))
-	{
-		FklVMchanl* ch=FKL_VM_CHANL(obj);
-		retval=ch->max>0&&ch->messageNum>=ch->max?FKL_MAKE_VM_FIX(1):FKL_VM_NIL;
-	}
+		retval=fklVMchanlFull(FKL_VM_CHANL(obj))?FKL_VM_TRUE:FKL_VM_NIL;
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,retval);
@@ -3486,7 +3483,9 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 	FklVMvalue** cur=&r;
 	if(FKL_IS_CHAN(obj))
 	{
-		for(FklQueueNode* h=FKL_VM_CHANL(obj)->messages.head
+		FklVMchanl* ch=FKL_VM_CHANL(obj);
+		uv_mutex_lock(&ch->lock);
+		for(FklQueueNode* h=ch->messages.head
 				;h
 				;h=h->next)
 		{
@@ -3494,6 +3493,7 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 			*cur=fklCreateVMvaluePairWithCar(exe,msg);
 			cur=&FKL_VM_CDR(*cur);
 		}
+		uv_mutex_unlock(&ch->lock);
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);

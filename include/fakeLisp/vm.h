@@ -887,6 +887,8 @@ void fklInitVMdll(FklVMvalue* rel,FklVM*);
 
 uint64_t fklVMchanlRecvqLen(FklVMchanl* ch);
 uint64_t fklVMchanlSendqLen(FklVMchanl* ch);
+uint64_t fklVMchanlMessageNum(FklVMchanl* ch);
+int fklVMchanlFull(FklVMchanl* ch);
 
 void fklVMsleep(FklVM*,uint64_t ms);
 

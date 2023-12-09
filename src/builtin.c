@@ -1926,9 +1926,8 @@ typedef enum
 	PARSE_REDUCING,
 }ParsingState;
 
-struct ReadParseCtx
+struct ParseCtx
 {
-	FklStringBuffer buf;
 	FklPtrStack symbolStack;
 	FklUintStack lineStack;
 	FklPtrStack stateStack;
@@ -1942,8 +1941,9 @@ typedef struct
 	const char* func_name;
 	FklVMvalue* vfp;
 	FklVMvalue* parser;
-	struct ReadParseCtx* pctx;
-	uint32_t state;
+	FklStringBuffer buf;
+	struct ParseCtx* pctx;
+	ParsingState state;
 }ReadCtx;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
@@ -1980,7 +1980,7 @@ static void read_frame_atomic(void* data,FklVMgc* gc)
 	ReadCtx* c=(ReadCtx*)data;
 	fklVMgcToGray(c->vfp,gc);
 	fklVMgcToGray(c->parser,gc);
-	struct ReadParseCtx* pctx=c->pctx;
+	struct ParseCtx* pctx=c->pctx;
 	FklAnalysisSymbol** base=(FklAnalysisSymbol**)pctx->symbolStack.base;
 	size_t len=pctx->symbolStack.top;
 	for(size_t i=0;i<len;i++)
@@ -1990,8 +1990,8 @@ static void read_frame_atomic(void* data,FklVMgc* gc)
 static void read_frame_finalizer(void* data)
 {
 	ReadCtx* c=(ReadCtx*)data;
-	struct ReadParseCtx* pctx=c->pctx;
-	fklUninitStringBuffer(&pctx->buf);
+	struct ParseCtx* pctx=c->pctx;
+	fklUninitStringBuffer(&c->buf);
 	FklPtrStack* ss=&pctx->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
 		free(fklPopPtrStack(ss));
@@ -2009,8 +2009,8 @@ static void read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
-	struct ReadParseCtx* pctx=rctx->pctx;
-	FklStringBuffer* s=&pctx->buf;
+	struct ParseCtx* pctx=rctx->pctx;
+	FklStringBuffer* s=&rctx->buf;
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 
 	int err=0;
@@ -2049,7 +2049,7 @@ static void read_frame_step(void* d,FklVM* exe)
 		FKL_VM_PUSH_VALUE(exe,ast);
 	}
 	else
-		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&pctx->buf,1,'\n');
+		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 }
 
 static void read_frame_print_backtrace(void* d,FILE* fp,FklSymbolTable* st)
@@ -2083,11 +2083,10 @@ static inline void push_state0_of_custom_parser(FklVMvalue* parser,FklPtrStack* 
 	fklPushPtrStack(&g->aTable.states[0],stack);
 }
 
-static inline struct ReadParseCtx* create_read_parse_ctx(void)
+static inline struct ParseCtx* create_read_parse_ctx(void)
 {
-	struct ReadParseCtx* pctx=(struct ReadParseCtx*)malloc(sizeof(struct ReadParseCtx));
+	struct ParseCtx* pctx=(struct ParseCtx*)malloc(sizeof(struct ParseCtx));
 	FKL_ASSERT(pctx);
-	fklInitStringBuffer(&pctx->buf);
 	pctx->offset=0;
 	pctx->reducing_sid=0;
 	fklInitPtrStack(&pctx->stateStack,16,16);
@@ -2108,7 +2107,8 @@ static inline void initReadCtx(void* data
 	ctx->func_name=func_name;
 	ctx->parser=parser;
 	ctx->vfp=vfp;
-	struct ReadParseCtx* pctx=create_read_parse_ctx();
+	fklInitStringBuffer(&ctx->buf);
+	struct ParseCtx* pctx=create_read_parse_ctx();
 	ctx->pctx=pctx;
 	if(parser==FKL_VM_NIL)
 		fklVMvaluePushState0ToStack(&pctx->stateStack);
@@ -2117,7 +2117,7 @@ static inline void initReadCtx(void* data
 	ctx->state=PARSE_CONTINUE;
 	fklVMread(exe
 			,FKL_VM_FP(vfp)->fp
-			,&pctx->buf
+			,&ctx->buf
 			,1
 			,'\n');
 }
@@ -2247,8 +2247,8 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 {
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
-	struct ReadParseCtx* pctx=rctx->pctx;
-	FklStringBuffer* s=&pctx->buf;
+	struct ParseCtx* pctx=rctx->pctx;
+	FklStringBuffer* s=&rctx->buf;
 
 	if(rctx->state==PARSE_REDUCING)
 	{
@@ -2308,7 +2308,7 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	{
 		pctx->offset=fklStringBufferLen(s)-restLen;
 		if(rctx->state==PARSE_CONTINUE)
-			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&pctx->buf,1,'\n');
+			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 	}
 }
 
@@ -2404,15 +2404,13 @@ static void* custom_parser_prod_action(void* ctx
 
 typedef struct
 {
+	FklSid_t sid;
+	const char* func_name;
 	FklVMvalue* box;
 	FklVMvalue* parser;
 	FklVMvalue* str;
-	FklPtrStack* symbolStack;
-	FklUintStack* lineStack;
-	FklPtrStack* stateStack;
-	size_t offset;
+	struct ParseCtx* pctx;
 	ParsingState state;
-	FklSid_t reducing_sid;
 }CustomParseCtx;
 
 static const FklVMudMetaTable CustomParserMetaTable=
@@ -2663,8 +2661,8 @@ static void custom_parse_frame_atomic(void* data,FklVMgc* gc)
 	fklVMgcToGray(c->box,gc);
 	fklVMgcToGray(c->parser,gc);
 	fklVMgcToGray(c->str,gc);
-	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->symbolStack->base;
-	size_t len=c->symbolStack->top;
+	FklAnalysisSymbol** base=(FklAnalysisSymbol**)c->pctx->symbolStack.base;
+	size_t len=c->pctx->symbolStack.top;
 	for(size_t i=0;i<len;i++)
 		fklVMgcToGray(base[i]->ast,gc);
 }
@@ -2672,12 +2670,12 @@ static void custom_parse_frame_atomic(void* data,FklVMgc* gc)
 static void custom_parse_frame_finalizer(void* data)
 {
 	CustomParseCtx* c=(CustomParseCtx*)data;
-	FklPtrStack* ss=c->symbolStack;
+	FklPtrStack* ss=&c->pctx->symbolStack;
 	while(!fklIsPtrStackEmpty(ss))
 		free(fklPopPtrStack(ss));
-	fklDestroyPtrStack(ss);
-	fklDestroyUintStack(c->lineStack);
-	fklDestroyPtrStack(c->stateStack);
+	fklUninitPtrStack(ss);
+	fklUninitUintStack(&c->pctx->lineStack);
+	fklUninitPtrStack(&c->pctx->stateStack);
 }
 
 static int custom_parse_frame_end(void* d)
@@ -2688,10 +2686,11 @@ static int custom_parse_frame_end(void* d)
 static void custom_parse_frame_step(void* d,FklVM* exe)
 {
 	CustomParseCtx* ctx=(CustomParseCtx*)d;
+	struct ParseCtx* pctx=ctx->pctx;
 	if(ctx->state==PARSE_REDUCING)
 	{
 		FklVMvalue* ast=fklPopTopValue(exe);
-		fklPushPtrStack(create_nonterm_analyzing_symbol(ctx->reducing_sid,ast),ctx->symbolStack);
+		fklPushPtrStack(create_nonterm_analyzing_symbol(pctx->reducing_sid,ast),&pctx->symbolStack);
 		ctx->state=PARSE_CONTINUE;
 	}
 	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(ctx->parser));
@@ -2700,38 +2699,38 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 	uint64_t errLine=0;
 	int accept=0;
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
-	size_t restLen=str->size-ctx->offset;
+	size_t restLen=str->size-pctx->offset;
 	parse_with_custom_parser_for_char_buf(g
-			,str->str+ctx->offset
+			,str->str+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
 			,exe->symbolTable
 			,&err
 			,&errLine
-			,ctx->symbolStack
-			,ctx->lineStack
-			,ctx->stateStack
+			,&pctx->symbolStack
+			,&pctx->lineStack
+			,&pctx->stateStack
 			,exe
 			,&accept
 			,&ctx->state
-			,&ctx->reducing_sid);
+			,&pctx->reducing_sid);
 	if(err)
 	{
 		if(err==FKL_PARSE_WAITING_FOR_MORE||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
-			FKL_RAISE_BUILTIN_ERROR_CSTR("parsing",FKL_ERR_UNEXPECTED_EOF,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(ctx->func_name,FKL_ERR_UNEXPECTED_EOF,exe);
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR("parsing",FKL_ERR_INVALIDEXPR,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(ctx->func_name,FKL_ERR_INVALIDEXPR,exe);
 	}
 	if(accept)
 	{
 		ctx->state=PARSE_DONE;
-		FklAnalysisSymbol* top=fklPopPtrStack(ctx->symbolStack);
+		FklAnalysisSymbol* top=fklPopPtrStack(&pctx->symbolStack);
 		FKL_VM_PUSH_VALUE(exe,top->ast);
 		free(top);
 		if(ctx->box)
 		{
-			uint64_t offset=ctx->offset=str->size-restLen;
+			uint64_t offset=pctx->offset=str->size-restLen;
 			if(offset>FKL_FIX_INT_MAX)
 				FKL_VM_BOX(ctx->box)=fklCreateVMvalueBigIntWithU64(exe,offset);
 			else
@@ -2739,10 +2738,12 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 		}
 	}
 	else
-		ctx->offset=str->size-restLen;
+		pctx->offset=str->size-restLen;
 }
 
 static inline void init_custom_parse_ctx(void* data
+		,FklSid_t sid
+		,const char* func_name
 		,FklVMvalue* parser
 		,FklVMvalue* str
 		,FklVMvalue* box)
@@ -2751,24 +2752,29 @@ static inline void init_custom_parse_ctx(void* data
 	ctx->box=box;
 	ctx->parser=parser;
 	ctx->str=str;
-	ctx->symbolStack=fklCreatePtrStack(16,16);
-	ctx->stateStack=fklCreatePtrStack(16,16);
-	ctx->lineStack=fklCreateUintStack(16,16);
-	push_state0_of_custom_parser(parser,ctx->stateStack);
+	struct ParseCtx* pctx=create_read_parse_ctx();
+	ctx->pctx=pctx;
+	push_state0_of_custom_parser(parser,&pctx->stateStack);
 	ctx->state=PARSE_CONTINUE;
-	ctx->offset=0;
+}
+
+static inline void custom_parse_frame_print_backtrace(void* d,FILE* fp,FklSymbolTable* st)
+{
+	fklDoPrintCprocBacktrace(((CustomParseCtx*)d)->sid,fp,st);
 }
 
 static const FklVMframeContextMethodTable CustomParseContextMethodTable=
 {
 	.atomic=custom_parse_frame_atomic,
 	.finalizer=custom_parse_frame_finalizer,
-	// .print_backtrace=custom_parse_frame_print_backtrace,
+	.print_backtrace=custom_parse_frame_print_backtrace,
 	.step=custom_parse_frame_step,
 	.end=custom_parse_frame_end,
 };
 
 static inline void init_custom_parse_frame(FklVM* exe
+		,FklSid_t sid
+		,const char* func_name
 		,FklVMvalue* parser
 		,FklVMvalue* str
 		,FklVMvalue* box)
@@ -2776,7 +2782,7 @@ static inline void init_custom_parse_frame(FklVM* exe
 	FklVMframe* f=exe->frames;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomParseContextMethodTable;
-	init_custom_parse_ctx(f->data,parser,str,box);
+	init_custom_parse_ctx(f->data,sid,func_name,parser,str,box);
 }
 
 #define CHECK_FP_READABLE(V,I,E) if(!isVMfpReadable(V))\
@@ -2869,7 +2875,7 @@ static int builtin_parse(FKL_CPROC_ARGL)
 		FklVMframe* sf=exe->frames;
 		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
 		exe->frames=nf;
-		init_custom_parse_frame(exe,custom_parser,str,box);
+		init_custom_parse_frame(exe,FKL_VM_CPROC(ctx->proc)->sid,Pname,custom_parser,str,box);
 		return 1;
 	}
 	else

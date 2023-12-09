@@ -1,21 +1,41 @@
-(define max 10)
-(define buf (chanl max))
+(define max 100)
+(define buf (chanl 100))
 
-(define (producer)
+(define (producer no.)
+  (define number-str (number->string no.))
+  (princ (append! "producer no."
+                  number-str
+                  " start!\n"))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (println "produce:" c)
+    (princ (append! "producer no."
+                    number-str
+                    ": "
+                    (number->string c)
+                    "\n"))
     (send buf c))
-  (println "producer exit"))
+  (princ (append! "producer no."
+                  number-str
+                  " exit\n")))
 
-(define (consumer)
+(define (consumer no.)
+  (define number-str (number->string no.))
+  (princ (append! "consumer no."
+                  number-str
+                  " start!\n"))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (println "consume:" (recv buf)))
-  (println "consumer exit"))
+    (princ (append! "consumer no."
+                    number-str
+                    ": "
+                    (number->string (recv buf))
+                    "\n")))
+  (princ (append! "consumer no."
+                  number-str
+                  " exit\n")))
 
 (do [(c 0 (1+ c))]
   [(>= c max)]
-  (go producer)
-  (go consumer))
+  (go producer c)
+  (go consumer c))
 

@@ -680,6 +680,7 @@ int fklIsVMhashEqual(FklHashTable*);
 uintptr_t fklGetVMhashTableType(FklHashTable*);
 const char* fklGetVMhashTablePrefix(FklHashTable*);
 
+uintptr_t fklVMvalueHashv(const FklVMvalue* v);
 void fklVMhashTableSet(FklVMvalue* key,FklVMvalue* v,FklHashTable* ht);
 FklVMhashTableItem* fklVMhashTableRef1(FklVMvalue* key,FklVMvalue* toSet,FklHashTable* ht,FklVMgc*);
 FklVMhashTableItem* fklVMhashTableRef(FklVMvalue* key,FklHashTable* ht);

@@ -4783,6 +4783,16 @@ static int builtin_system(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_hashv(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.hashv";
+	DECL_AND_CHECK_ARG(value,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	uint64_t hashv=fklVMvalueHashv(value);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(hashv,exe));
+	return 0;
+}
+
 static int builtin_hash(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash";
@@ -5641,6 +5651,7 @@ static const struct SymbolFuncStruct
 	{"time",                  builtin_time,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"system",                builtin_system,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
+	{"hashv",                 builtin_hashv,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"hash",                  builtin_hash,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"hash-num",              builtin_hash_num,                {NULL,         NULL,          NULL,            NULL,          }, },
 	{"make-hash",             builtin_make_hash,               {NULL,         NULL,          NULL,            NULL,          }, },

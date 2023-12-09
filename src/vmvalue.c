@@ -1230,13 +1230,18 @@ static size_t VMvalueHashFunc(const FklVMvalue* v)
 	return sum;
 }
 
-static uintptr_t _vmhashtable_hashFunc(const void* key)
+uintptr_t fklVMvalueHashv(const FklVMvalue* v)
 {
-	const FklVMvalue* v=*(const FklVMvalue**)key;
 	if(fklIsVMint(v))
 		return integerHashFunc(v);
 	else
 		return VMvalueHashFunc(v);
+}
+
+static uintptr_t _vmhashtable_hashFunc(const void* key)
+{
+	const FklVMvalue* v=*(const FklVMvalue**)key;
+	return fklVMvalueHashv(v);
 }
 
 static void _vmhashtable_setVal(void* d0,const void* d1)

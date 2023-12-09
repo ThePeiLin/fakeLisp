@@ -62,7 +62,7 @@
   #(#[*s-exp* "," my-fn-call-args] my-fn-call-args builtin pair)
 
   #(my-var-def
-     #[1 "var" *symbol* ":=" *s-exp*]
+     #[#("var") *symbol* ":=" *s-exp*]
      simple #(head define 1 3))
 
   #(my-var-assign
@@ -78,15 +78,15 @@
   #(#[] my-fn-arg-list builtin nil)
   #(#[*symbol*] my-fn-arg-list builtin cons)
   #(#[*symbol* "," my-fn-arg-list] my-fn-arg-list builtin pair)
-  #(#[*symbol* "," *symbol* 1 "..."] my-fn-arg-list builtin pair)
+  #(#[*symbol* "," *symbol* #("...")] my-fn-arg-list builtin pair)
 
   #(my-fn-def
-     #[1 "def" *symbol* "(" my-fn-arg-list ")" "{" func-body "}"]
+     #[#("def") *symbol* "(" my-fn-arg-list ")" "{" func-body "}"]
      custom
      `(define (~(vec-ref $$ 1),~(vec-ref $$ 3)),~(vec-ref $$ 6)))
 
   #(my-fn-def
-     #[1 "def" *symbol* *symbol* "{" func-body "}"]
+     #[#("def") *symbol* *symbol* "{" func-body "}"]
      custom
      `(define (~(vec-ref $$ 1),~(vec-ref $$ 2)),~(vec-ref $$ 4)))
   custom)

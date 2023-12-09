@@ -1,11 +1,11 @@
 (defmacro
   #(json #["#json'" json-value] builtin second)
 
-  #(#[1 "null"] json-value builtin symbol)
+  #(#[#("null")] json-value builtin symbol)
 
-  #(#[1 "true"] json-value builtin symbol)
+  #(#[#("true")] json-value builtin symbol)
 
-  #(#[1 "false"] json-value builtin symbol)
+  #(#[#("false")] json-value builtin symbol)
 
   #(#[*string*] json-value builtin first)
 
@@ -50,7 +50,7 @@
   #(() #[?symbol "《" "》"] simple #(symbol 0 "《" "》"))
   #(() #[#&"“”|^“(\\\\.|.)*”$"] simple #(string 0 "“" "”"))
   #(() #["#other-json'" (json,json-value)] builtin second)
-  #(() #[1 "var" *symbol* 1 "=" *s-exp*] simple #(head define 1 3))
+  #(() #[#("var") *symbol* #("=") *s-exp*] simple #(head define 1 3))
   other)
 
 (prin1 '#4th' foo bar foobar barfoo)

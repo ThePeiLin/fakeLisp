@@ -1998,6 +1998,7 @@ static void read_frame_finalizer(void* data)
 	fklUninitPtrStack(ss);
 	fklUninitUintStack(&pctx->lineStack);
 	fklUninitPtrStack(&pctx->stateStack);
+	free(pctx);
 }
 
 static int read_frame_end(void* d)
@@ -2423,11 +2424,15 @@ static const FklVMudMetaTable CustomParserMetaTable=
 	.__finalizer=custom_parser_finalizer,
 };
 
+#define REGEX_COMPILE_ERROR (1)
+#define INVALID_PROD_PART (2)
+
 static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 		,FklHashTable* builtin_term
 		,FklSymbolTable* tt
 		,FklRegexTable* rt
-		,FklSid_t left)
+		,FklSid_t left
+		,int* error_type)
 {
 
 	FklPtrStack valid_items;
@@ -2437,8 +2442,8 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 	FKL_ASSERT(delim);
 	memset(delim,1,sizeof(uint8_t)*vec->size);
 
-	uint8_t* end_with_terminal=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
-	memset(end_with_terminal,0,sizeof(uint8_t)*vec->size);
+	// uint8_t* end_with_terminal=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
+	// memset(end_with_terminal,0,sizeof(uint8_t)*vec->size);
 
 	FklGrammerProduction* prod=NULL;
 
@@ -2451,18 +2456,25 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 			fklPushPtrStack((void*)cur,&valid_items);
 		else if(FKL_IS_BOX(cur)&&FKL_IS_STR(FKL_VM_BOX(cur)))
 			fklPushPtrStack((void*)cur,&valid_items);
+		else if(FKL_IS_VECTOR(cur)
+				&&FKL_VM_VEC(cur)->size==1
+				&&FKL_IS_STR(FKL_VM_VEC(cur)->base[0]))
+			fklPushPtrStack((void*)cur,&valid_items);
 		else if(cur==FKL_VM_NIL)
 		{
 			delim[valid_items.top]=0;
 			continue;
 		}
-		else if(cur==FKL_VM_TRUE)
-		{
-			end_with_terminal[valid_items.top]=1;
-			continue;
-		}
+		// else if(cur==FKL_VM_TRUE)
+		// {
+		// 	end_with_terminal[valid_items.top]=1;
+		// 	continue;
+		// }
 		else
+		{
+			*error_type=INVALID_PROD_PART;
 			goto end;
+		}
 	}
 	FklGrammerSym* syms=NULL;
 	if(valid_items.top)
@@ -2483,7 +2495,15 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 				ss->term_type=FKL_TERM_STRING;
 				ss->nt.group=0;
 				ss->nt.sid=fklAddSymbol(FKL_VM_STR(cur),tt)->id;
-				ss->end_with_terminal=end_with_terminal[i];
+				ss->end_with_terminal=0;
+			}
+			else if(FKL_IS_VECTOR(cur))
+			{
+				ss->isterm=1;
+				ss->term_type=FKL_TERM_STRING;
+				ss->nt.group=0;
+				ss->nt.sid=fklAddSymbol(FKL_VM_STR(FKL_VM_VEC(cur)->base[0]),tt)->id;
+				ss->end_with_terminal=1;
 			}
 			else if(FKL_IS_BOX(cur))
 			{
@@ -2494,6 +2514,7 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 				if(!re)
 				{
 					free(syms);
+					*error_type=REGEX_COMPILE_ERROR;
 					goto end;
 				}
 				ss->re=re;
@@ -2532,7 +2553,7 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 end:
 	fklUninitPtrStack(&valid_items);
 	free(delim);
-	free(end_with_terminal);
+	// free(end_with_terminal);
 	return prod;
 }
 
@@ -2583,9 +2604,15 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 			case EXCEPT_NEXT_ARG_VECTOR:
 				if(FKL_IS_VECTOR(next_arg))
 				{
-					prod=vm_vec_to_prod(FKL_VM_VEC(next_arg),builtins,tt,rt,sid);
+					int error_type=0;
+					prod=vm_vec_to_prod(FKL_VM_VEC(next_arg),builtins,tt,rt,sid,&error_type);
 					if(!prod)
-						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_REGEX_COMPILE_FAILED,exe);
+					{
+						if(error_type==REGEX_COMPILE_ERROR)
+							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_REGEX_COMPILE_FAILED,exe);
+						else
+							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_GRAMMER_CREATE_FAILED,exe);
+					}
 					next=EXCEPT_NEXT_ARG_CALLABLE;
 					if(is_adding_ignore)
 					{
@@ -2648,6 +2675,9 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 	return 0;
 }
 
+#undef REGEX_COMPILE_ERROR
+#undef INVALID_PROD_PART
+
 static inline int is_custom_parser(FklVMvalue* v)
 {
 	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&CustomParserMetaTable;
@@ -2676,6 +2706,7 @@ static void custom_parse_frame_finalizer(void* data)
 	fklUninitPtrStack(ss);
 	fklUninitUintStack(&c->pctx->lineStack);
 	fklUninitPtrStack(&c->pctx->stateStack);
+	free(c->pctx);
 }
 
 static int custom_parse_frame_end(void* d)

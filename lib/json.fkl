@@ -27,9 +27,9 @@
       'json-value #[object] first
       'json-value #[array] first
 
-      'null #[1 "null"] (lambda ($$ line) 'null)
-      'bool #[1 "true"] (lambda ($$ line) 'true)
-      'bool #[1 "false"] (lambda ($$ line) 'false)
+      'null #[#("null")] (lambda ($$ line) 'null)
+      'bool #[#("true")] (lambda ($$ line) 'true)
+      'bool #[#("false")] (lambda ($$ line) 'false)
       'string #[#&"^\"(\\\\.|.)*\"$"] (lambda ($$ line) (parse (vec-ref $$ 0)))
       'integer #[?dint] first->number
       'integer #[?xint] first->number

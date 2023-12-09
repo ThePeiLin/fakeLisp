@@ -1019,7 +1019,7 @@ static inline void chanl_push_msg(FklVMchanl* ch,FklVMvalue* msg)
 	else
 		n=fklCreateQueueNode(msg);
 	fklPushPtrQueueNode(&ch->messages,n);
-	ch->messageNum++;
+	ch->msg_num++;
 }
 
 static inline FklVMvalue* chanl_pop_msg(FklVMchanl* ch)
@@ -1027,7 +1027,7 @@ static inline FklVMvalue* chanl_pop_msg(FklVMchanl* ch)
 	FklQueueNode* n=fklPopPtrQueueNode(&ch->messages);
 	n->next=ch->msg_cache;
 	ch->msg_cache=n;
-	ch->messageNum--;
+	ch->msg_num--;
 	return n->data;
 }
 
@@ -1037,7 +1037,7 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** slot)
 	FklVMchanlSend* send=chanl_pop_send(ch);
 	if(send)
 	{
-		if(ch->messageNum)
+		if(ch->msg_num)
 		{
 			*slot=chanl_pop_msg(ch);
 			chanl_push_msg(ch,send->msg);
@@ -1048,7 +1048,7 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** slot)
 		uv_mutex_unlock(&ch->lock);
 		return 1;
 	}
-	else if(ch->messageNum)
+	else if(ch->msg_num)
 	{
 		*slot=chanl_pop_msg(ch);
 		uv_mutex_unlock(&ch->lock);
@@ -1067,7 +1067,7 @@ void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
 	FklVMchanlSend* send=chanl_pop_send(ch);
 	if(send)
 	{
-		if(ch->messageNum)
+		if(ch->msg_num)
 		{
 			*slot=chanl_pop_msg(ch);
 			chanl_push_msg(ch,send->msg);
@@ -1078,7 +1078,7 @@ void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
 		uv_mutex_unlock(&ch->lock);
 		return;
 	}
-	else if(ch->messageNum)
+	else if(ch->msg_num)
 	{
 		*slot=chanl_pop_msg(ch);
 		uv_mutex_unlock(&ch->lock);
@@ -1110,7 +1110,7 @@ void fklChanlSend(FklVMchanl* ch,FklVMvalue* msg,FklVM* exe)
 		uv_mutex_unlock(&ch->lock);
 		return;
 	}
-	else if(ch->messageNum<ch->max)
+	else if(ch->msg_num<ch->max)
 	{
 		chanl_push_msg(ch,msg);
 		uv_mutex_unlock(&ch->lock);
@@ -1155,7 +1155,7 @@ uint64_t fklVMchanlMessageNum(FklVMchanl* ch)
 {
 	uint64_t r=0;
 	uv_mutex_lock(&ch->lock);
-	r=ch->messageNum;
+	r=ch->msg_num;
 	uv_mutex_unlock(&ch->lock);
 	return r;
 }
@@ -1164,7 +1164,7 @@ int fklVMchanlFull(FklVMchanl* ch)
 {
 	int r=0;
 	uv_mutex_lock(&ch->lock);
-	r=ch->messageNum>=ch->max;
+	r=ch->msg_num>=ch->max;
 	uv_mutex_unlock(&ch->lock);
 	return r;
 }
@@ -1613,7 +1613,7 @@ FklVMvalue* fklCreateVMvalueChanl(FklVM* exe,size_t max)
 	r->type=FKL_TYPE_CHAN;
 	FklVMchanl* ch=FKL_VM_CHANL(r);
 	ch->max=max;
-	ch->messageNum=0;
+	ch->msg_num=0;
 	fklInitPtrQueue(&ch->messages);
 	ch->msg_cache=NULL;
 	uv_mutex_init(&ch->lock);

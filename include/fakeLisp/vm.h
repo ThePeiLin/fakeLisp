@@ -67,7 +67,7 @@ typedef struct
 {
 	uv_mutex_t lock;
 	size_t max;
-	volatile size_t messageNum;
+	volatile size_t msg_num;
 	FklPtrQueue messages;
 	FklQueueNode* msg_cache;
 

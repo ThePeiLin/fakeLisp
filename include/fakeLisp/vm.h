@@ -211,13 +211,13 @@ typedef struct
 	FklVMvalue* v;
 }FklVMvalueVarRef;
 
-typedef struct FklVMvarRef
-{
-	uint32_t refc;
-	uint32_t idx;
-	_Atomic(FklVMvalue**) ref;
-	FklVMvalue* v;
-}FklVMvarRef;
+// typedef struct FklVMvarRef
+// {
+// 	uint32_t refc;
+// 	uint32_t idx;
+// 	_Atomic(FklVMvalue**) ref;
+// 	FklVMvalue* v;
+// }FklVMvarRef;
 
 typedef struct FklVMproc
 {
@@ -227,7 +227,7 @@ typedef struct FklVMproc
 	uint32_t protoId;
 	uint32_t lcount;
 	uint32_t rcount;
-	FklVMvarRef** closure;
+	FklVMvalue** closure;
 	FklVMvalue* codeObj;
 }FklVMproc;
 
@@ -263,16 +263,16 @@ typedef enum
 
 typedef struct FklVMvarRefList
 {
-	FklVMvarRef* ref;
+	FklVMvalue* ref;
 	struct FklVMvarRefList* next;
 }FklVMvarRefList;
 
 typedef struct
 {
-	FklVMvarRef** lref;
+	FklVMvalue** lref;
 	FklVMvarRefList* lrefl;
 	FklVMvalue** loc;
-	FklVMvarRef** ref;
+	FklVMvalue** ref;
 	uint32_t base;
 	uint32_t lcount;
 	uint32_t rcount;
@@ -650,7 +650,7 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 void fklPrintErrBacktrace(FklVMvalue*,FklVM*,FILE* fp);
 
-void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count);
+void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count);
 
 void fklInitMainVMframeWithProc(FklVM*
 		,FklVMframe* tmp
@@ -665,10 +665,10 @@ void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM*,uint32_t pid);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 
-FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref);
-FklVMvarRef* fklCreateVMvarRef(FklVMvalue** loc,uint32_t idx);
-FklVMvarRef* fklCreateClosedVMvarRef(FklVMvalue* v);
-void fklDestroyVMvarRef(FklVMvarRef*);
+// FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref);
+FklVMvalue* fklCreateVMvalueVarRef(FklVM* exe,FklVMvalue** loc,uint32_t idx);
+FklVMvalue* fklCreateClosedVMvalueVarRef(FklVM* exe,FklVMvalue* v);
+// void fklDestroyVMvarRef(FklVMvarRef*);
 
 void fklDestroyVMframe(FklVMframe*,FklVM* exe);
 FklString* fklGenErrorMessage(FklBuiltinErrorType type);

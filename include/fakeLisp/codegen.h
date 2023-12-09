@@ -469,28 +469,23 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,uint64_t curline
 		,FklSymbolTable* pst);
 
-struct FklVMlib;
-struct FklVMvalue;
-typedef struct FklVMvarRef FklVMvarRef;
-
 void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
-		,struct FklVMlib* vlib
+		,FklVMlib* vlib
 		,FklVM* exe
-		,FklVMvarRef** refs
+		,FklVMvalue** refs
 		,uint32_t count
 		,int needCopy
 		,FklFuncPrototypes*);
 
-struct FklVMgc;
 void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
-		,struct FklVMlib* vlib
-		,struct FklVM* vm
+		,FklVMlib* vlib
+		,FklVM* vm
 		,int needCopy
 		,FklFuncPrototypes*);
 
 void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
-		,struct FklVMlib* vlib
-		,struct FklVM* vm
+		,FklVMlib* vlib
+		,FklVM* vm
 		,FklFuncPrototypes*);
 
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen

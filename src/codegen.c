@@ -9810,7 +9810,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
-		,FklVMvarRef** refs
+		,FklVMvalue** refs
 		,uint32_t count
 		,int needCopy
 		,FklFuncPrototypes* pts)

@@ -805,11 +805,7 @@ static inline void uninit_ud_value(FklVMvalue* v)
 static inline void uninit_proc_value(FklVMvalue* v)
 {
 	FklVMproc* proc=FKL_VM_PROC(v);
-	uint32_t count=proc->rcount;
-	FklVMvarRef** refs=proc->closure;
-	for(uint32_t i=0;i<count;i++)
-		fklDestroyVMvarRef(refs[i]);
-	free(refs);
+	free(proc->closure);
 }
 
 static inline void destroy_all_queue_node(FklQueueNode* head)
@@ -1835,9 +1831,9 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 	FklVMproc* proc=FKL_VM_PROC(root);
 	fklVMgcToGray(proc->codeObj,gc);
 	uint32_t count=proc->rcount;
-	FklVMvarRef** ref=proc->closure;
+	FklVMvalue** ref=proc->closure;
 	for(uint32_t i=0;i<count;i++)
-		fklVMgcToGray(*(ref[i]->ref),gc);
+		fklVMgcToGray((ref[i]),gc);
 }
 
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)

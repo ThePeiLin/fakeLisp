@@ -552,10 +552,12 @@ void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
 		free(f);
 }
 
-static inline void close_var_ref(FklVMvarRef* ref)
+static inline void close_var_ref(FklVMvalue* ref)
 {
-	ref->v=*(ref->ref);
-	atomic_store(&ref->ref,&ref->v);
+	((FklVMvalueVarRef*)ref)->v=*(((FklVMvalueVarRef*)ref)->ref);
+	atomic_store(&(((FklVMvalueVarRef*)ref)->ref),&(((FklVMvalueVarRef*)ref)->v));
+	// ref->v=*(ref->ref);
+	// atomic_store(&ref->ref,&ref->v);
 }
 
 static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
@@ -563,7 +565,7 @@ static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
 	for(FklVMvarRefList* l=lr->lrefl;l;)
 	{
 		close_var_ref(l->ref);
-		fklDestroyVMvarRef(l->ref);
+		// fklDestroyVMvarRef(l->ref);
 		FklVMvarRefList* c=l;
 		l=c->next;
 		free(c);
@@ -897,7 +899,7 @@ static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
 		if(f->c.lr.lrefl)
 		{
 			f->c.lr.lrefl=NULL;
-			memset(f->c.lr.lref,0,sizeof(FklVMvarRef*)*f->c.lr.lcount);
+			memset(f->c.lr.lref,0,sizeof(FklVMvalue*)*f->c.lr.lcount);
 		}
 		f->c.pc=f->c.spc;
 		f->c.mark=0;
@@ -1232,57 +1234,59 @@ static inline void B_dup(FKL_VM_INS_FUNC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,val);
 }
 
-FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref)
-{
-	ref->refc++;
-	return ref;
-}
+// FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref)
+// {
+// 	ref->refc++;
+// 	return ref;
+// }
 
-void fklDestroyVMvarRef(FklVMvarRef* ref)
-{
-	if(ref->refc)
-		ref->refc--;
-	else
-		free(ref);
-}
+// void fklDestroyVMvarRef(FklVMvarRef* ref)
+// {
+// 	if(ref->refc)
+// 		ref->refc--;
+// 	else
+// 		free(ref);
+// }
 
-FklVMvarRef* fklCreateVMvarRef(FklVMvalue** loc,uint32_t idx)
+FklVMvalue* fklCreateVMvalueVarRef(FklVM* exe,FklVMvalue** loc,uint32_t idx)
 {
-	FklVMvarRef* ref=(FklVMvarRef*)malloc(sizeof(FklVMvarRef));
+	FklVMvalueVarRef* ref=(FklVMvalueVarRef*)calloc(1,sizeof(FklVMvalueVarRef));
 	FKL_ASSERT(ref);
+	ref->type=FKL_TYPE_VAR_REF;
 	ref->ref=&loc[idx];
 	ref->v=NULL;
-	ref->refc=0;
 	ref->idx=idx;
-	return ref;
+	fklAddToGC((FklVMvalue*)ref,exe);
+	return (FklVMvalue*)ref;
 }
 
-FklVMvarRef* fklCreateClosedVMvarRef(FklVMvalue* v)
+FklVMvalue* fklCreateClosedVMvalueVarRef(FklVM* exe,FklVMvalue* v)
 {
-	FklVMvarRef* ref=(FklVMvarRef*)malloc(sizeof(FklVMvarRef));
+	FklVMvalueVarRef* ref=(FklVMvalueVarRef*)calloc(1,sizeof(FklVMvalueVarRef));
 	FKL_ASSERT(ref);
-	ref->refc=0;
+	ref->type=FKL_TYPE_VAR_REF;
 	ref->v=v;
 	ref->ref=&ref->v;
-	return ref;
+	fklAddToGC((FklVMvalue*)ref,exe);
+	return (FklVMvalue*)ref;
 }
 
 static inline void inc_lref(FklVMCompoundFrameVarRef* lr,uint32_t lcount)
 {
 	if(!lr->lref)
 	{
-		lr->lref=(FklVMvarRef**)calloc(lcount,sizeof(FklVMvarRef*));
+		lr->lref=(FklVMvalue**)calloc(lcount,sizeof(FklVMvalue*));
 		FKL_ASSERT(lr->lref);
 	}
 }
 
-static inline FklVMvarRef* insert_local_ref(FklVMCompoundFrameVarRef* lr
-		,FklVMvarRef* ref
+static inline FklVMvalue* insert_local_ref(FklVMCompoundFrameVarRef* lr
+		,FklVMvalue* ref
 		,uint32_t cidx)
 {
 	FklVMvarRefList* rl=(FklVMvarRefList*)malloc(sizeof(FklVMvarRefList));
 	FKL_ASSERT(rl);
-	rl->ref=fklMakeVMvarRefRef(ref);
+	rl->ref=ref;
 	rl->next=lr->lrefl;
 	lr->lrefl=rl;
 	lr->lref[cidx]=ref;
@@ -1307,8 +1311,8 @@ FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM* exe
 	FklVMproc* proc=FKL_VM_PROC(r);
 	if(count)
 	{
-		FklVMvarRef** ref=lr->ref;
-		FklVMvarRef** closure=(FklVMvarRef**)malloc(sizeof(FklVMvarRef*)*count);
+		FklVMvalue** ref=lr->ref;
+		FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*count);
 		FKL_ASSERT(closure);
 		for(uint32_t i=0;i<count;i++)
 		{
@@ -1317,16 +1321,18 @@ FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM* exe
 			{
 				inc_lref(lr,lr->lcount);
 				if(lr->lref[c->cidx])
-					closure[i]=fklMakeVMvarRefRef(lr->lref[c->cidx]);
+					// closure[i]=fklMakeVMvarRefRef(lr->lref[c->cidx]);
+					closure[i]=lr->lref[c->cidx];
 				else
-					closure[i]=insert_local_ref(lr,fklCreateVMvarRef(lr->loc,c->cidx),c->cidx);
+					closure[i]=insert_local_ref(lr,fklCreateVMvalueVarRef(exe,lr->loc,c->cidx),c->cidx);
 			}
 			else
 			{
 				if(c->cidx>=lr->rcount)
-					closure[i]=fklCreateClosedVMvarRef(NULL);
+					closure[i]=fklCreateClosedVMvalueVarRef(exe,NULL);
 				else
-					closure[i]=fklMakeVMvarRefRef(ref[c->cidx]);
+					// closure[i]=fklMakeVMvarRefRef(ref[c->cidx]);
+					closure[i]=ref[c->cidx];
 			}
 		}
 		proc->closure=closure;
@@ -1712,7 +1718,7 @@ static inline void B_put_loc(FKL_VM_INS_FUNC_ARGL)
 static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
-	FklVMvalue* v=idx<lr->rcount?*atomic_load(&lr->ref[idx]->ref):NULL;
+	FklVMvalue* v=idx<lr->rcount?*atomic_load(&(((FklVMvalueVarRef*)lr->ref[idx])->ref)):NULL;
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
@@ -1739,8 +1745,10 @@ static inline void B_get_var_ref(FKL_VM_INS_FUNC_ARGL)
 static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
-	FklVMvarRef** refs=lr->ref;
-	FklVMvalue* volatile* v=(idx>=lr->rcount||!(refs[idx]->ref))?NULL:refs[idx]->ref;
+	FklVMvalue** refs=lr->ref;
+	FklVMvalue* volatile* v=(idx>=lr->rcount||!(((FklVMvalueVarRef*)refs[idx])->ref))
+		?NULL
+		:atomic_load(&(((FklVMvalueVarRef*)lr->ref[idx])->ref));
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
@@ -1778,13 +1786,9 @@ static inline void B_export(FKL_VM_INS_FUNC_ARGL)
 	lib->imported=1;
 	lib->belong=1;
 	FklVMproc* proc=FKL_VM_PROC(lib->proc);
-	uint32_t rcount=proc->rcount;
 	proc->rcount=0;
-	FklVMvarRef** refs=proc->closure;
+	free(proc->closure);
 	proc->closure=NULL;
-	for(uint32_t i=0;i<rcount;i++)
-		fklDestroyVMvarRef(refs[i]);
-	free(refs);
 	exe->importingLib=lib;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }
@@ -2336,12 +2340,12 @@ static inline void B_idiv3(FKL_VM_INS_FUNC_ARGL)
 #undef PROCESS_MUL_RES
 #undef PROCESS_SUB_RES
 
-static inline void close_var_ref_between(FklVMvarRef** lref,uint32_t sIdx,uint32_t eIdx)
+static inline void close_var_ref_between(FklVMvalue** lref,uint32_t sIdx,uint32_t eIdx)
 {
 	if(lref)
 		for(;sIdx<eIdx;sIdx++)
 		{
-			FklVMvarRef* ref=lref[sIdx];
+			FklVMvalue* ref=lref[sIdx];
 			if(ref)
 			{
 				close_var_ref(ref);
@@ -2366,7 +2370,7 @@ static inline void B_ret(FKL_VM_INS_FUNC_ARGL)
 		if(f->c.lr.lrefl)
 		{
 			f->c.lr.lrefl=NULL;
-			memset(f->c.lr.lref,0,sizeof(FklVMvarRef*)*f->c.lr.lcount);
+			memset(f->c.lr.lref,0,sizeof(FklVMvalue*)*f->c.lr.lcount);
 		}
 		f->c.pc=f->c.spc;
 		f->c.mark=0;
@@ -2687,12 +2691,12 @@ FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 	return f->c.sid;
 }
 
-void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvarRef** closure,uint32_t count)
+void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count)
 {
 	mainProc->rcount=count;
 	mainProc->closure=fklCopyMemory(closure,sizeof(FklVMvalue*)*mainProc->rcount);
-	for(uint32_t i=0;i<count;i++)
-		fklMakeVMvarRefRef(closure[i]);
+	// for(uint32_t i=0;i<count;i++)
+	// 	fklMakeVMvarRefRef(closure[i]);
 }
 
 void fklSetBp(FklVM* s)

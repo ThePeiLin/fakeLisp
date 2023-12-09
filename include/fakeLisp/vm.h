@@ -75,14 +75,12 @@ typedef struct
 	{
 		struct FklVMchanlRecv* head;
 		struct FklVMchanlRecv** tail;
-		struct FklVMchanlRecv* cache;
 	}recvq;
 
 	struct FklVMchanlSendq
 	{
 		struct FklVMchanlSend* head;
 		struct FklVMchanlSend** tail;
-		struct FklVMchanlSend* cache;
 	}sendq;
 }FklVMchanl;
 

@@ -812,42 +812,6 @@ static inline void uninit_proc_value(FklVMvalue* v)
 	free(refs);
 }
 
-static inline void destroy_all_recv(FklVMchanl* ch)
-{
-	FklVMchanlRecv* head=ch->recvq.head;
-	while(head)
-	{
-		FklVMchanlRecv* prev=head;
-		head=head->next;
-		free(prev);
-	}
-	head=ch->recvq.cache;
-	while(head)
-	{
-		FklVMchanlRecv* prev=head;
-		head=head->next;
-		free(prev);
-	}
-}
-
-static inline void destroy_all_send(FklVMchanl* ch)
-{
-	FklVMchanlSend* head=ch->sendq.head;
-	while(head)
-	{
-		FklVMchanlSend* prev=head;
-		head=head->next;
-		free(prev);
-	}
-	head=ch->sendq.cache;
-	while(head)
-	{
-		FklVMchanlSend* prev=head;
-		head=head->next;
-		free(prev);
-	}
-}
-
 static inline void destroy_all_queue_node(FklQueueNode* head)
 {
 	while(head)
@@ -863,8 +827,6 @@ static inline void uninit_chanl_value(FklVMvalue* v)
 	FklVMchanl* ch=FKL_VM_CHANL(v);
 	fklUninitPtrQueue(&ch->messages);
 	destroy_all_queue_node(ch->msg_cache);
-	destroy_all_recv(ch);
-	destroy_all_send(ch);
 }
 
 static inline void uninit_fp_value(FklVMvalue* v)
@@ -928,28 +890,8 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 	free((void*)cur);
 }
 
-static inline FklVMchanlRecv* create_recv(FklVMchanl* ch,uv_cond_t* cond,FklVMvalue** slot)
+static inline void chanl_push_recv(FklVMchanl* ch,FklVMchanlRecv* recv)
 {
-	FklVMchanlRecv* recv=NULL;
-	if(ch->recvq.cache)
-	{
-		recv=ch->recvq.cache;
-		ch->recvq.cache=recv->next;
-	}
-	else
-	{
-		recv=(FklVMchanlRecv*)malloc(sizeof(FklVMchanlRecv));
-		FKL_ASSERT(recv);
-	}
-	recv->next=NULL;
-	recv->slot=slot;
-	recv->cond=cond;
-	return recv;
-}
-
-static inline void chanl_push_recv(FklVMchanl* ch,uv_cond_t* cond,FklVMvalue** slot)
-{
-	FklVMchanlRecv* recv=create_recv(ch,cond,slot);
 	*(ch->recvq.tail)=recv;
 	ch->recvq.tail=&recv->next;
 }
@@ -962,34 +904,12 @@ static inline FklVMchanlRecv* chanl_pop_recv(FklVMchanl* ch)
 		ch->recvq.head=r->next;
 		if(r->next==NULL)
 			ch->recvq.tail=&ch->recvq.head;
-		r->next=ch->recvq.cache;
-		ch->recvq.cache=r;
 	}
 	return r;
 }
 
-static inline FklVMchanlSend* create_send(FklVMchanl* ch,uv_cond_t* cond,FklVMvalue* msg)
+static inline void chanl_push_send(FklVMchanl* ch,FklVMchanlSend* send)
 {
-	FklVMchanlSend* send=NULL;
-	if(ch->sendq.cache)
-	{
-		send=ch->sendq.cache;
-		ch->sendq.cache=send->next;
-	}
-	else
-	{
-		send=(FklVMchanlSend*)malloc(sizeof(FklVMchanlSend));
-		FKL_ASSERT(send);
-	}
-	send->next=NULL;
-	send->msg=msg;
-	send->cond=cond;
-	return send;
-}
-
-static inline void chanl_push_send(FklVMchanl* ch,uv_cond_t* cond,FklVMvalue* msg)
-{
-	FklVMchanlSend* send=create_send(ch,cond,msg);
 	*(ch->sendq.tail)=send;
 	ch->sendq.tail=&send->next;
 }
@@ -1002,8 +922,6 @@ static inline FklVMchanlSend* chanl_pop_send(FklVMchanl* ch)
 		ch->sendq.head=s->next;
 		if(s->next==NULL)
 			ch->sendq.tail=&ch->sendq.head;
-		s->next=ch->sendq.cache;
-		ch->sendq.cache=s;
 	}
 	return s;
 }
@@ -1089,7 +1007,8 @@ void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
 		uv_cond_t cond;
 		if(uv_cond_init(&cond))
 			abort();
-		chanl_push_recv(ch,&cond,slot);
+		FklVMchanlRecv r={.slot=slot,.cond=&cond,};
+		chanl_push_recv(ch,&r);
 		fklSuspendThread(exe);
 		uv_cond_wait(&cond,&ch->lock);
 		uv_mutex_unlock(&ch->lock);
@@ -1121,7 +1040,8 @@ void fklChanlSend(FklVMchanl* ch,FklVMvalue* msg,FklVM* exe)
 		uv_cond_t cond;
 		if(uv_cond_init(&cond))
 			abort();
-		chanl_push_send(ch,&cond,msg);
+		FklVMchanlSend s={.msg=msg,.cond=&cond,};
+		chanl_push_send(ch,&s);
 		fklSuspendThread(exe);
 		uv_cond_wait(&cond,&ch->lock);
 		uv_mutex_unlock(&ch->lock);
@@ -1596,14 +1516,12 @@ static inline void init_chanl_sendq(struct FklVMchanlSendq* q)
 {
 	q->head=NULL;
 	q->tail=&q->head;
-	q->cache=NULL;
 }
 
 static inline void init_chanl_recvq(struct FklVMchanlRecvq* q)
 {
 	q->head=NULL;
 	q->tail=&q->head;
-	q->cache=NULL;
 }
 
 FklVMvalue* fklCreateVMvalueChanl(FklVM* exe,size_t max)

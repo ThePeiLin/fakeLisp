@@ -2109,7 +2109,7 @@ static inline void B_nth(FKL_VM_INS_FUNC_ARGL)
 	FklVMvalue* place=FKL_VM_POP_ARG(exe);
 	FklVMvalue* objlist=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_TYPE(place,fklIsVMint,"builtin.nth",exe);
-	if(fklVMnumberLt0(place))
+	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.nth",FKL_ERR_INVALIDACCESS,exe);
 	size_t index=fklGetUint(place);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
@@ -2134,7 +2134,7 @@ static inline void B_vec_ref(FKL_VM_INS_FUNC_ARGL)
 	size_t index=fklGetUint(place);
 	FklVMvec* vv=FKL_VM_VEC(vec);
 	size_t size=vv->size;
-	if(fklVMnumberLt0(place)||index>=size)
+	if(fklIsVMnumberLt0(place)||index>=size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.vec-ref",FKL_ERR_INVALIDACCESS,exe);
 	FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 }
@@ -2148,7 +2148,7 @@ static inline void B_str_ref(FKL_VM_INS_FUNC_ARGL)
 	size_t index=fklGetUint(place);
 	FklString* ss=FKL_VM_STR(str);
 	size_t size=ss->size;
-	if(fklVMnumberLt0(place)||index>=size)
+	if(fklIsVMnumberLt0(place)||index>=size)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("builtin.str-ref",FKL_ERR_INVALIDACCESS,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ss->str[index]));
 }

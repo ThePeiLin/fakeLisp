@@ -938,7 +938,7 @@ void fklInitVMargs(int argc,char** argv);
 int fklGetVMargc(void);
 char** fklGetVMargv(void);
 
-int fklVMnumberLt0(const FklVMvalue*);
+int fklIsVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);

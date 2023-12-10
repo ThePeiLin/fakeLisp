@@ -147,7 +147,11 @@ void* fklGetOrPutWithOtherKey(void* pkey
 	,FklHashTable* ht);
 
 void* fklGetHashItem(const void* key,const FklHashTable*);
+FklHashTableItem** fklGetHashItemSlot(FklHashTable*,uintptr_t);
+
 void* fklPutHashItem(const void* key,FklHashTable*);
+void* fklPutHashItemInSlot(FklHashTable*,FklHashTableItem**);
+
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
 int fklDelHashItem(void* key,FklHashTable*,void* v);
 void fklRehashTable(FklHashTable* table);

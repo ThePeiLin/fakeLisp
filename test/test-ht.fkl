@@ -1,16 +1,27 @@
 (import (.. lib ht))
 
 (define hash-table (make-ht equal-hashv equal))
+
 (prin1 (ht-hashv hash-table))
 (newline)
 (prin1 (ht-equal hash-table))
 (newline)
+
+(ht-set! hash-table 'foo 'bar)
+(ht-set! hash-table 'foo 'foobar)
+(princ "before clear")
+(newline)
 (prin1 (ht->list hash-table))
 (newline)
-
-(prin1 (ht-clear! hash-table))
+(prin1 (ht-keys hash-table))
+(newline)
+(prin1 (ht-values hash-table))
 (newline)
 
+(princ "after clear")
+(ht-clear! hash-table)
+(prin1 (ht->list hash-table))
+(newline)
 (prin1 (ht-keys hash-table))
 (newline)
 (prin1 (ht-values hash-table))

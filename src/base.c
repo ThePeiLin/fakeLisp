@@ -2116,6 +2116,11 @@ void* fklGetHashItem(const void* pkey,const FklHashTable* ht)
 	return NULL;
 }
 
+FklHashTableItem** fklGetHashItemSlot(FklHashTable* ht,uintptr_t hashv)
+{
+	return &ht->base[hash32shift(hashv,ht->mask)];
+}
+
 #define REHASH() if(isgreater((double)ht->num/ht->size,FKL_DEFAULT_HASH_LOAD_FACTOR))\
 	expandHashTable(ht);
 
@@ -2218,14 +2223,30 @@ int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 	return 0;
 }
 
+void* fklPutHashItemInSlot(FklHashTable* ht,FklHashTableItem** pp)
+{
+	FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);
+	*pp=node;
+	if(ht->first)
+	{
+		node->prev=ht->last;
+		ht->last->next=node;
+	}
+	else
+		ht->first=node;
+	ht->last=node;
+	ht->num++;
+	REHASH();
+	return node->data;
+}
+
 void* fklPutHashItem(const void* pkey,FklHashTable* ht)
 {
 	HASH_FUNC_HEADER();
 
 	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
-	int i=0;
 	void* d1=NULL;
-	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni)
 		if(keq(key(pn->data),pkey))
 			d1=pn->data;
 	if(!d1)
@@ -2256,9 +2277,8 @@ void* fklGetOrPutWithOtherKey(void* pkey
 {
 	void* (*key)(void*)=ht->t->__getKey;
 	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
-	int i=0;
 	void* d1=NULL;
-	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni)
 		if(keq(key(pn->data),pkey))
 		{
 			d1=pn->data;
@@ -2289,9 +2309,8 @@ void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 	HASH_FUNC_HEADER();
 	void* pkey=key(data);
 	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
-	int i=0;
 	void* d1=NULL;
-	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni,i++)
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni)
 		if(keq(key(pn->data),pkey))
 		{
 			d1=pn->data;

@@ -97,7 +97,7 @@ uint64_t fklGetUint(const FklVMvalue* p)
 		:fklBigIntToU64(FKL_VM_BI(p));
 }
 
-int fklVMnumberLt0(const FklVMvalue* p)
+int fklIsVMnumberLt0(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)<0

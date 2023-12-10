@@ -118,24 +118,24 @@ add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 
-#hash-table.so
+#ht.so
 
-add_library(hash-table
+add_library(ht
 	SHARED
-	"main/hash-table.c")
-set_target_properties(hash-table PROPERTIES
+	"main/ht.c")
+set_target_properties(ht PROPERTIES
 	PREFIX "")
-target_link_libraries(hash-table ${LIBFKL_TARGET_NAME})
+target_link_libraries(ht ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET hash-tbale
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:hash-table>
+	$<TARGET_FILE:ht>
 	"${CMAKE_BINARY_DIR}/lib/"
-	DEPENDS hash-table
+	DEPENDS ht
 	VERBATIM)
 else()
-set_target_properties(hash-table PROPERTIES
+set_target_properties(ht PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 

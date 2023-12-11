@@ -90,6 +90,29 @@ int64_t fklGetInt(const FklVMvalue* p)
 		:fklBigIntToI64(FKL_VM_BI(p));
 }
 
+static inline uint64_t big_int_to_hashv(const FklBigInt* b)
+{
+	uint64_t hashv=0;
+	const uint8_t* end=&b->digits[b->num];
+	for(const uint8_t* cur=b->digits
+			;cur<end
+			;cur++)
+	{
+		hashv*=(UINT8_MAX+1);
+		hashv+=*cur;
+	}
+	if(b->neg)
+		hashv=-hashv;
+	return hashv;
+}
+
+uint64_t fklVMintToHashv(const FklVMvalue* p)
+{
+	return FKL_IS_FIX(p)
+		?(uint64_t)FKL_GET_FIX(p)
+		:big_int_to_hashv(FKL_VM_BI(p));
+}
+
 uint64_t fklGetUint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)

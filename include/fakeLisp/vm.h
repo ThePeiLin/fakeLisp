@@ -638,6 +638,7 @@ int fklIsVMint(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
 int fklIsSymbolList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
+uint64_t fklVMintToHashv(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
 
 FklHashTable* fklCreateValueSetHashtable(void);

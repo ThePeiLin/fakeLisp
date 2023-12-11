@@ -5000,17 +5000,18 @@ static int builtin_hash_set8(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.hash-set*!";
 	DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
+	size_t arg_num=exe->tp-exe->bp;
+	if(arg_num%2)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 	FklVMvalue* value=NULL;
 	FklHashTable* hash=FKL_VM_HASH(ht);
 	for(FklVMvalue* key=FKL_VM_POP_ARG(exe);key;key=FKL_VM_POP_ARG(exe))
 	{
 		value=FKL_VM_POP_ARG(exe);
-		if(!value)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 		fklVMhashTableSet(key,value,hash);
 	}
 	fklResBp(exe);
-	FKL_VM_PUSH_VALUE(exe,value);
+	FKL_VM_PUSH_VALUE(exe,(value?value:ht));
 	return 0;
 }
 

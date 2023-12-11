@@ -24,6 +24,7 @@
         (bigloop)
         (dll)
         (complex-macro)
-        (compile-check))
+        (compile-check)
+        (test-ht))
 
 (println "\ntest done!")

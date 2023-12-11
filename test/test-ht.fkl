@@ -11,7 +11,15 @@
 (ht-set! hash-table 'foo 'bar)
 (ht-set! hash-table 'foo 'foobar)
 (ht-set! hash-table 'bar 'barfoo)
-(ht-set*! hash-table 'fizz 'buzz 114 514)
+
+(assert (eq (ht-set*! hash-table)
+            hash-table))
+
+(assert (equal (ht-set*! hash-table 'buzz 'fizz)
+               'fizz))
+
+(assert (equal (ht-set*! hash-table 'fizz 'buzz 114 514)
+               514))
 
 (princ "\nht-ref 'foo")
 (newline)

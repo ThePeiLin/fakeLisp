@@ -1120,6 +1120,7 @@ static inline void vm_idler_loop(FklVMgc* gc)
 				if(exe->state==FKL_VM_EXIT)
 				{
 					uv_thread_join(&exe->tid);
+					uv_mutex_unlock(&exe->lock);
 					free(n);
 				}
 				else

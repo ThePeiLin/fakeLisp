@@ -9,6 +9,18 @@
 
 (ht-set! hash-table 'foo 'bar)
 (ht-set! hash-table 'foo 'foobar)
+(ht-set! hash-table 'bar 'barfoo)
+
+(princ "\nht-ref 'foo")
+(newline)
+
+(println (ht-ref hash-table 'foo))
+
+(princ "\nht-ref 'foobar 'foofoo")
+(newline)
+(println (ht-ref hash-table 'foobar 'foofoo))
+
+(newline)
 (princ "before clear")
 (newline)
 (prin1 (ht->list hash-table))
@@ -19,6 +31,7 @@
 (newline)
 
 (princ "after clear")
+(newline)
 (ht-clear! hash-table)
 (prin1 (ht->list hash-table))
 (newline)

@@ -628,6 +628,10 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	switch(f->type)
 	{
 		case FKL_FRAME_COMPOUND:
+			for(FklVMvarRefList* l=fklGetCompoundFrameLocRef(f)->lrefl
+					;l
+					;l=l->next)
+				fklVMgcToGray(l->ref,gc);
 			fklVMgcToGray(fklGetCompoundFrameProc(f),gc);
 			break;
 		case FKL_FRAME_OTHEROBJ:

@@ -911,6 +911,7 @@ void fklVMvecConcat(FklVMvec*,const FklVMvec*);
 
 #define FKL_GET_UD_DATA(TYPE,UD) ((TYPE*)(UD)->data)
 #define FKL_DECL_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,UD)
+#define FKL_DECL_VM_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,FKL_VM_UD(UD))
 
 int fklIsCallableUd(const FklVMudata*);
 int fklIsCmpableUd(const FklVMudata*);

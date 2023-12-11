@@ -2080,7 +2080,7 @@ static inline FklAnalysisSymbol* create_nonterm_analyzing_symbol(FklSid_t id,Fkl
 
 static inline void push_state0_of_custom_parser(FklVMvalue* parser,FklPtrStack* stack)
 {
-	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(parser));
+	FKL_DECL_VM_UD_DATA(g,FklGrammer,parser);
 	fklPushPtrStack(&g->aTable.states[0],stack);
 }
 
@@ -2258,7 +2258,7 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 		rctx->state=PARSE_CONTINUE;
 	}
 
-	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(rctx->parser));
+	FKL_DECL_VM_UD_DATA(g,FklGrammer,rctx->parser);
 
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 
@@ -2563,7 +2563,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 	DECL_AND_CHECK_ARG(start,Pname);
 	FKL_CHECK_TYPE(start,FKL_IS_SYM,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueUdata(exe,&CustomParserMetaTable,FKL_VM_NIL);
-	FKL_DECL_UD_DATA(grammer,FklGrammer,FKL_VM_UD(retval));
+	FKL_DECL_VM_UD_DATA(grammer,FklGrammer,retval);
 	fklInitEmptyGrammer(grammer,exe->symbolTable);
 	grammer->start=(FklGrammerNonterm){.group=0,.sid=FKL_GET_SYM(start)};
 
@@ -2724,7 +2724,7 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 		fklPushPtrStack(create_nonterm_analyzing_symbol(pctx->reducing_sid,ast),&pctx->symbolStack);
 		ctx->state=PARSE_CONTINUE;
 	}
-	FKL_DECL_UD_DATA(g,FklGrammer,FKL_VM_UD(ctx->parser));
+	FKL_DECL_VM_UD_DATA(g,FklGrammer,ctx->parser);
 	FklString* str=FKL_VM_STR(ctx->str);
 	int err=0;
 	uint64_t errLine=0;
@@ -2841,7 +2841,7 @@ static int builtin_read(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(!stream||FKL_IS_FP(stream))
 	{
-		FKL_DECL_UD_DATA(pbd,PublicBuiltInData,FKL_VM_UD(ctx->pd));
+		FKL_DECL_VM_UD_DATA(pbd,PublicBuiltInData,ctx->pd);
 		FklVMvalue* fpv=stream?stream:pbd->sysIn;
 		CHECK_FP_READABLE(fpv,Pname,exe);
 		CHECK_FP_OPEN(fpv,Pname,exe);
@@ -5737,8 +5737,7 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe
 			,&PublicBuiltInDataMetaTable
 			,FKL_VM_NIL);
-	FklVMudata* pud=FKL_VM_UD(publicUserData);
-	FKL_DECL_UD_DATA(pd,PublicBuiltInData,pud);
+	FKL_DECL_VM_UD_DATA(pd,PublicBuiltInData,publicUserData);
 	init_vm_public_data(pd,exe);
 
 	closure[FKL_VM_STDIN_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysIn);
@@ -5768,8 +5767,7 @@ void fklInitGlobalVMclosureForProc(FklVMproc* proc,FklVM* exe)
 			,&PublicBuiltInDataMetaTable
 			,FKL_VM_NIL);
 
-	FklVMudata* pud=FKL_VM_UD(publicUserData);
-	FKL_DECL_UD_DATA(pd,PublicBuiltInData,pud);
+	FKL_DECL_VM_UD_DATA(pd,PublicBuiltInData,publicUserData);
 	init_vm_public_data(pd,exe);
 
 	closure[FKL_VM_STDIN_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysIn);

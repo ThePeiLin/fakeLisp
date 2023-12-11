@@ -34,8 +34,15 @@
                   number-str
                   " exit\n")))
 
+(define chanls '())
+
 (do [(c 0 (1+ c))]
   [(>= c max)]
-  (go producer c)
-  (go consumer c))
+  (setq chanls
+    (cons (go producer c)
+          chanls))
+  (setq chanls (cons (go consumer c) chanls)))
+
+(foreach (lambda (ch) (recv ch))
+         chanls)
 

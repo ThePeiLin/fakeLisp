@@ -36,6 +36,14 @@
 (newline)
 (println (ht-ref& hash-table 'foofoo))
 
+(princ "\nht-ref$ 'foobar")
+(newline)
+(println (ht-ref$ hash-table 'foobar))
+
+(princ "\nht-ref$ 'foofoo")
+(newline)
+(println (ht-ref$ hash-table 'foofoo))
+
 (newline)
 (princ "before clear")
 (newline)

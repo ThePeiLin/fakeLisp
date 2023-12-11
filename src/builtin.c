@@ -4755,7 +4755,7 @@ static int builtin_get_time(FKL_CPROC_ARGL)
 
 static int builtin_fremove(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="builtin.remove-file";
+	static const char Pname[]="builtin.fremove";
 	DECL_AND_CHECK_ARG(name,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);

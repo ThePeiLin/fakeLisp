@@ -553,6 +553,84 @@ static int ht_ht_ref1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int ht_ht_ref7(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="ht.ht-ref!";
+	switch(ctx->context)
+	{
+		case 0:
+			{
+				DECL_AND_CHECK_ARG2(ht_ud,key,Pname);
+				FKL_CHECK_REST_ARG(exe,Pname);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				ctx->context=1;
+				fklCprocRestituteSframe(exe,exe->tp);
+				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+				FKL_VM_PUSH_VALUE(exe,key);
+				FKL_VM_PUSH_VALUE(exe,ht_ud);
+				fklSetBp(exe);
+				FKL_VM_PUSH_VALUE(exe,key);
+				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
+				fklCallObj(exe,ht->hash_func);
+				return 1;
+			}
+			break;
+		case 1:
+			{
+				FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+				uintptr_t hashv=(uintptr_t)fklGetInt(hash_value);
+				FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
+				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
+				FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
+				if(*slot)
+				{
+					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
+					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
+					ctx->context=(uintptr_t)slot;
+					fklSetBp(exe);
+					FKL_VM_PUSH_VALUE(exe,i->key);
+					FKL_VM_PUSH_VALUE(exe,key);
+					fklCallObj(exe,ht->eq_func);
+					return 1;
+				}
+				else
+					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
+			}
+			break;
+		default:
+			{
+				FklHashTableItem** slot=(FklHashTableItem**)ctx->context;
+				FklVMvalue* equal_result=FKL_VM_POP_TOP_VALUE(exe);
+				if(equal_result==FKL_VM_NIL)
+				{
+					FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
+					FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
+					slot=&(*slot)->ni;
+					if(*slot)
+					{
+						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
+						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
+						fklSetBp(exe);
+						FKL_VM_PUSH_VALUE(exe,i->key);
+						FKL_VM_PUSH_VALUE(exe,key);
+						fklCallObj(exe,ht->eq_func);
+						return 1;
+					}
+					else
+						FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
+				}
+				else
+				{
+					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
+					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,fklCreateVMvalueBox(exe,i->v));
+				}
+			}
+			break;
+	}
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -568,7 +646,7 @@ struct SymFunc
 	{"ht-equal",    ht_ht_equal,    },
 	{"ht?",         ht_ht_p,        },
 	{"ht-ref",      ht_ht_ref,      },
-	// {"ht-ref&",     ht_ht_ref7,     },
+	{"ht-ref&",     ht_ht_ref7,     },
 	// {"ht-ref$",     ht_ht_ref4,     },
 	{"ht-ref!",     ht_ht_ref1,     },
 	{"ht-set!",     ht_ht_set1,     },

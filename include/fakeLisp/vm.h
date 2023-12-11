@@ -435,7 +435,7 @@ typedef struct FklVM
 
 	FklVMstate volatile state;
 
-	int notice_lock;
+	atomic_int notice_lock;
 	_Atomic(FklVMinsFunc) ins_table[FKL_OP_LAST_OPCODE];
 }FklVM;
 

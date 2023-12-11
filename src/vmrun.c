@@ -707,6 +707,8 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 	exe->base[rtp]=retval;
 }
 
+#define NOTICE_LOCK(EXE) {uv_mutex_unlock(&(EXE)->lock);uv_mutex_lock(&(EXE)->lock);}
+
 #define DO_STEP_VM(exe) {\
 	FklVMframe* curframe=exe->frames;\
 	switch(curframe->type)\
@@ -719,7 +721,11 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
 			if(fklIsCallableObjFrameReachEnd(curframe))\
+			{\
+				if(atomic_load(&(exe)->notice_lock))\
+					NOTICE_LOCK(exe);\
 				fklDoFinalizeObjFrame(popFrame(exe),&exe->sf);\
+			}\
 			else\
 				fklDoCallableObjFrameStep(curframe,exe);\
 			break;\
@@ -846,8 +852,6 @@ static inline void remove_exited_thread(FklVMgc* gc)
 	}
 }
 
-#define NOTICE_LOCK(EXE) {uv_mutex_unlock(&(EXE)->lock);uv_mutex_lock(&(EXE)->lock);}
-
 static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 {
 	NOTICE_LOCK(exe);
@@ -918,7 +922,7 @@ static inline void switch_notice_lock_ins(FklPtrQueue* q)
 		FklVM* exe=n->data;
 		if(exe->notice_lock)
 			continue;
-		exe->notice_lock=1;
+		atomic_store(&exe->notice_lock,1);
 		atomic_store(&exe->ins_table[FKL_OP_CALL],B_notice_lock_call);
 		atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_notice_lock_tail_call);
 		atomic_store(&exe->ins_table[FKL_OP_JMP],B_notice_lock_jmp);
@@ -933,7 +937,7 @@ static inline void switch_un_notice_lock_ins(FklPtrQueue* q)
 		FklVM* exe=n->data;
 		if(exe->notice_lock)
 		{
-			exe->notice_lock=0;
+			atomic_store(&exe->notice_lock,0);
 			atomic_store(&exe->ins_table[FKL_OP_CALL],B_call);
 			atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_tail_call);
 			atomic_store(&exe->ins_table[FKL_OP_JMP],B_jmp);

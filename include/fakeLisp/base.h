@@ -214,6 +214,7 @@ FklQueueNode* fklPopPtrQueueNode(FklPtrQueue*);
 void fklPushPtrQueue(void*,FklPtrQueue*);
 void fklPushPtrQueueNode(FklPtrQueue*,FklQueueNode*);
 void fklPushPtrQueueToFront(void*,FklPtrQueue*);
+void fklPushPtrQueueNodeToFront(FklPtrQueue* q,FklQueueNode* n);
 FklPtrQueue* fklCopyPtrQueue(FklPtrQueue*);
 
 typedef struct

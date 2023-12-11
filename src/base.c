@@ -2223,6 +2223,26 @@ int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 	return 0;
 }
 
+void fklRemoveHashItem(FklHashTable* ht,FklHashTableItem** p)
+{
+	FklHashTableItem* item=*p;
+	if(item)
+	{
+		*p=item->ni;
+		if(item->prev)
+			item->prev->next=item->next;
+		if(item->next)
+			item->next->prev=item->prev;
+		if(ht->last==item)
+			ht->last=item->prev;
+		if(ht->first==item)
+			ht->first=item->next;
+		void (*uninitFunc)(void*)=ht->t->__uninitItem;
+		uninitFunc(item->data);
+		free(item);
+	}
+}
+
 void* fklPutHashItemInSlot(FklHashTable* ht,FklHashTableItem** pp)
 {
 	FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);

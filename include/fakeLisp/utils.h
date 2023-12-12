@@ -105,7 +105,6 @@ int fklGetDelim(FILE* fp,FklStringBuffer* b,char d);
 char* fklCopyCstr(const char*);
 void* fklCopyMemory(const void*,size_t);
 int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32_t n);
-int fklChangeWorkDir(const char*);
 char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char* str,const char* divider,size_t*);

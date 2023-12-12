@@ -60,60 +60,6 @@ static FklVMudMetaTable PublicBuiltInDataMetaTable=
 	.__hash=NULL,
 };
 
-void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table)
-{
-	static const char* builtInErrorType[]=
-	{
-		"dummy",
-		"symbol-undefined",
-		"syntax-error",
-		"invalid-expression",
-		"circular-load",
-		"invalid-pattern",
-		"incorrect-types-of-values",
-		"stack-error",
-		"too-many-arguements",
-		"too-few-arguements",
-		"cant-create-threads",
-		"thread-error",
-		"macro-expand-error",
-		"call-error",
-		"load-dll-faild",
-		"invalid-symbol",
-		"library-undefined",
-		"unexpected-eof",
-		"div-zero-error",
-		"file-failure",
-		"invalid-value",
-		"invalid-assign",
-		"invalid-access",
-		"import-failed",
-		"invalid-macro-pattern",
-		"faild-to-create-big-int-from-mem",
-		"differ-list-in-list",
-		"cross-c-call-continuation",
-		"invalid-radix",
-		"no-value-for-key",
-		"number-should-not-be-less-than-0",
-		"cir-ref",
-		"unsupported-operation",
-		"import-missing",
-		"export-outer-ref-prod-group",
-		"import-reader-macro-error",
-		"analysis-table-genrate-failed",
-		"regex-compile-failed",
-		"grammer-create-failed",
-	};
-
-	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)
-		errorTypeId[i]=fklAddSymbolCstr(builtInErrorType[i],table)->id;
-}
-
-FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE])
-{
-	return errorTypeId[type];
-}
-
 //builtin functions
 
 static int builtin_car(FKL_CPROC_ARGL)

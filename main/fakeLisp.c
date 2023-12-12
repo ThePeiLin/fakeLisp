@@ -616,7 +616,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 	FklStringBuffer* s=&ctx->buf;
 	int is_eof=ctx->eof;
 	FklNastNode* ast=NULL;
-	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT;
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(NULL);
 	outerCtx.line=codegen->curline;
 	size_t restLen=fklStringBufferLen(s)-cc->offset;
 	int err=0;

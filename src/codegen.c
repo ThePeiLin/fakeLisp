@@ -3916,7 +3916,8 @@ static inline FklNastNode* getExpressionFromFile(FklCodegenInfo* codegen
 				,&begin
 				,symbolStack
 				,lineStack
-				,stateStack);
+				,stateStack
+				,codegen->curDir);
 	}
 	else
 	{
@@ -6280,8 +6281,8 @@ static void* custom_action(void* c
 
 	FklNastNode* r=NULL;
 	const char* cwd=ctx->codegen_outer_ctx->cwd;
-	const char* main_file_dir=ctx->codegen_outer_ctx->main_file_real_path_dir;
-	fklChdir(main_file_dir);
+	const char* file_dir=(const char*)outerCtx;
+	fklChdir(file_dir);
 
 	FklVM* anotherVM=fklInitMacroExpandVM(ctx->bcl,ctx->pts,ctx->prototype_id,&ht,&lineHash,ctx->macroLibStack,&r,line,ctx->pst);
 	FklVMgc* gc=anotherVM->gc;

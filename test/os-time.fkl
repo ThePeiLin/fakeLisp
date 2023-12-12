@@ -1,0 +1,8 @@
+(import (.. lib os))
+
+(define fmt "%Y-%m-%d %H:%M:%S")
+(define time-stamp (time))
+(println (date fmt time-stamp))
+(println (date fmt))
+(println (date time-stamp))
+(println (date))

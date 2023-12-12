@@ -27,6 +27,7 @@
         (dll)
         (complex-macro)
         (compile-check)
-        (test-ht))
+        (test-ht)
+        (os-time))
 
 (println "\ntest done!")

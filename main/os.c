@@ -28,28 +28,98 @@ static int os_clock(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int os_get_time(FKL_CPROC_ARGL)
+static int os_date(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.get-time";
+	static const char Pname[]="os.date";
+	FklVMvalue* arg1=FKL_VM_POP_ARG(exe);
+	FklVMvalue* arg2=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	time_t timer=time(NULL);
-	const struct tm* tblock=localtime(&timer);
+	if(arg1==NULL&&arg2==NULL)
+	{
+		time_t stamp=time(NULL);
+		const struct tm* tblock=localtime(&stamp);
 
-	FklStringBuffer buf;
-	fklInitStringBuffer(&buf);
+		FklStringBuffer buf;
+		fklInitStringBuffer(&buf);
 
-	fklStringBufferPrintf(&buf,"%u-%u-%u_%u_%u_%u"
-			,tblock->tm_year+1900
-			,tblock->tm_mon+1
-			,tblock->tm_mday
-			,tblock->tm_hour
-			,tblock->tm_min
-			,tblock->tm_sec);
+		fklStringBufferPrintf(&buf,"%u-%u-%u_%u_%u_%u"
+				,tblock->tm_year+1900
+				,tblock->tm_mon+1
+				,tblock->tm_mday
+				,tblock->tm_hour
+				,tblock->tm_min
+				,tblock->tm_sec);
 
-	FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
-	fklUninitStringBuffer(&buf);
+		FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+		fklUninitStringBuffer(&buf);
 
-	FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
+		FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
+	}
+	else if(arg1&&arg2)
+	{
+		if(FKL_IS_STR(arg1)&&fklIsVMint(arg2))
+		{
+			FklVMvalue* fmt=arg1;
+			FklVMvalue* timestamp=arg2;
+			FklStringBuffer buf;
+			fklInitStringBuffer(&buf);
+			int64_t stamp=fklGetInt(timestamp);
+			const struct tm* tblock=localtime(&stamp);
+			const char* format=FKL_VM_STR(fmt)->str;
+			size_t n=0;
+			while(!(n=strftime(buf.buf,buf.size,format,tblock)))
+				fklStringBufferReverse(&buf,buf.size*2);
+			fklStringBufferReverse(&buf,n+1);
+			buf.index=n;
+
+			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+			fklUninitStringBuffer(&buf);
+			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
+		}
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
+	else
+	{
+		if(FKL_IS_STR(arg1))
+		{
+			FklVMvalue* fmt=arg1;
+			FklStringBuffer buf;
+			fklInitStringBuffer(&buf);
+			time_t stamp=time(NULL);
+			const struct tm* tblock=localtime(&stamp);
+			const char* format=FKL_VM_STR(fmt)->str;
+			size_t n=0;
+			while(!(n=strftime(buf.buf,buf.size,format,tblock)))
+				fklStringBufferReverse(&buf,buf.size*2);
+			fklStringBufferReverse(&buf,n+1);
+			buf.index=n;
+
+			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+			fklUninitStringBuffer(&buf);
+			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
+		}
+		else if(fklIsVMint(arg1))
+		{
+			static const char default_fmt[]="%Y-%m-%d_%H_%M_%S";
+			FklVMvalue* timestamp=arg1;
+			FklStringBuffer buf;
+			fklInitStringBuffer(&buf);
+			int64_t stamp=fklGetInt(timestamp);
+			const struct tm* tblock=localtime(&stamp);
+			size_t n=0;
+			while(!(n=strftime(buf.buf,buf.size,default_fmt,tblock)))
+				fklStringBufferReverse(&buf,buf.size*2);
+			fklStringBufferReverse(&buf,n+1);
+			buf.index=n;
+
+			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+			fklUninitStringBuffer(&buf);
+			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
+		}
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
 	return 0;
 }
 
@@ -123,7 +193,7 @@ struct SymFunc
 	{"rename",   os_rename,   },
 	{"clock",    os_clock,    },
 	{"time",     os_time,     },
-	{"get-time", os_get_time, },
+	{"date",     os_date,     },
 	{"chdir",    os_chdir,    },
 	{"getcwd",   os_getcwd,   },
 	{"getenv",   os_getenv,   },

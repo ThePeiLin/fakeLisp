@@ -27,7 +27,7 @@ set(LIBFKL_TARGET_NAME fkl)
 
 set(LIBFKL_SHARED_TARGET_NAME fkl-shared)
 
-set(LIBFKL_MOD_TARGET_NAME libfkl-mod)
+set(LIBFKL_MOD_TARGET_NAME fkl-mod)
 
 set(GRAMMER_GEN grammer)
 set(PARSE parse)

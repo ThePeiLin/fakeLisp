@@ -31,17 +31,12 @@ int main(int argc,char** argv)
 		if(!fklIsAccessibleRegFile(filename))
 		{
 			perror(filename);
-			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
-		char* cwd=fklSysgetcwd();
-		fklSetCwd(cwd);
-		free(cwd);
 		FILE* fp=fopen(argv[1],"rb");
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		FklSymbolTable table;
@@ -49,7 +44,6 @@ int main(int argc,char** argv)
 		fklLoadSymbolTable(fp,&table);
 		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp));
 		char* rp=fklRealpath(filename);
-		fklSetMainFileRealDir(rp);
 		free(rp);
 
 		FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
@@ -78,8 +72,6 @@ int main(int argc,char** argv)
 		}
 		free(libs);
 		fclose(fp);
-		fklDestroyCwd();
-		fklDestroyMainFileRealDir();
 		fklUninitSymbolTable(&table);
 	}
 	else if(fklIsPrecompileFile(filename))
@@ -87,17 +79,14 @@ int main(int argc,char** argv)
 		if(!fklIsAccessibleRegFile(filename))
 		{
 			perror(filename);
-			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		char* cwd=fklSysgetcwd();
-		fklSetCwd(cwd);
 		free(cwd);
 		FILE* fp=fopen(argv[1],"rb");
 		if(fp==NULL)
 		{
 			perror(filename);
-			fklDestroyCwd();
 			return EXIT_FAILURE;
 		}
 		FklSymbolTable gst;
@@ -209,8 +198,6 @@ exit:
 
 		fklUninitSymbolTable(&gst);
 		fklUninitSymbolTable(&ctx.public_symbol_table);
-		fklDestroyCwd();
-		fklDestroyMainFileRealDir();
 		return exit_state;
 	}
 	else

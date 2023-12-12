@@ -165,7 +165,9 @@ static int os_getcwd(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.getcwd";
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* s=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetCwd()));
+	char* cwd=fklSysgetcwd();
+	FklVMvalue* s=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(cwd));
+	free(cwd);
 	FKL_VM_PUSH_VALUE(exe,s);
 	return 0;
 }

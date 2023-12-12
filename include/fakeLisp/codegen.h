@@ -215,6 +215,9 @@ typedef enum
 
 typedef struct
 {
+	char* cwd;
+	char* main_file_real_path_dir;
+
 	FklSymbolTable public_symbol_table;
 
 	FklSid_t builtInPatternVar_orig;
@@ -371,8 +374,10 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 void fklUninitCodegenInfo(FklCodegenInfo* codegen);
 void fklDestroyCodegenInfo(FklCodegenInfo* codegen);
 
-void fklInitCodegenOuterCtx(FklCodegenOuterCtx* ctx);
+void fklInitCodegenOuterCtx(FklCodegenOuterCtx* ctx,char* main_file_real_path_dir);
 void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx);
+
+void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx* ctx,char* main_file_real_path_dir);
 
 void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* ctx);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegenInfo* codegen);

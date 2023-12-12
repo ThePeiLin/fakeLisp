@@ -6235,6 +6235,7 @@ struct CustomActionCtx
 	FklByteCodelnt* bcl;
 	FklFuncPrototypes* pts;
 	FklPtrStack* macroLibStack;
+	FklCodegenOuterCtx* codegen_outer_ctx;
 	FklSymbolTable* pst;
 	uint32_t prototype_id;
 };
@@ -6278,18 +6279,16 @@ static void* custom_action(void* c
 	fklPatternMatchingHashTableSet(fklAddSymbolCstr("line",ctx->pst)->id,line_node,&ht);
 
 	FklNastNode* r=NULL;
-	char* cwd=fklCopyCstr(fklGetCwd());
-	fklDestroyCwd();
-	const char* main_file_dir=fklGetMainFileRealDir();
-	fklSetCwd(main_file_dir);
+	const char* cwd=ctx->codegen_outer_ctx->cwd;
+	const char* main_file_dir=ctx->codegen_outer_ctx->main_file_real_path_dir;
+	fklChdir(main_file_dir);
 
 	FklVM* anotherVM=fklInitMacroExpandVM(ctx->bcl,ctx->pts,ctx->prototype_id,&ht,&lineHash,ctx->macroLibStack,&r,line,ctx->pst);
 	FklVMgc* gc=anotherVM->gc;
 
 	int e=fklRunVM(anotherVM);
 
-	fklSetCwd(cwd);
-	free(cwd);
+	fklChdir(cwd);
 
 	anotherVM->pts=NULL;
 	if(e)
@@ -6447,7 +6446,7 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig
 	FklString* s=NULL;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
 	if(codegen->filename==NULL)
-		s=fklCreateStringFromCstr(fklGetCwd());
+		s=fklCreateStringFromCstr(codegen->outer_ctx->cwd);
 	else
 		s=fklCreateStringFromCstr(codegen->curDir);
 	fklStringCstrCat(&s,FKL_PATH_SEPARATOR_STR);
@@ -7562,6 +7561,7 @@ FklGrammerProduction* fklCodegenProdPrintingToProduction(FklCodegenProdPrinting*
 	{
 		struct CustomActionCtx* ctx=(struct CustomActionCtx*)calloc(1,sizeof(struct CustomActionCtx));
 		FKL_ASSERT(ctx);
+		ctx->codegen_outer_ctx=outer_ctx;
 		ctx->prototype_id=p->prototype_id;
 		ctx->pst=&outer_ctx->public_symbol_table;
 		ctx->macroLibStack=macroLibStack;
@@ -7953,6 +7953,7 @@ static inline FklGrammerProduction* nast_vector_to_production(FklNastNode* vec_n
 		FklPtrQueue* queue=fklCreatePtrQueue();
 		struct CustomActionCtx* ctx=(struct CustomActionCtx*)calloc(1,sizeof(struct CustomActionCtx));
 		FKL_ASSERT(ctx);
+		ctx->codegen_outer_ctx=codegen->outer_ctx;
 		ctx->prototype_id=macroEnv->prototypeId;
 		ctx->pst=pst;
 		ctx->macroLibStack=codegen->macroLibStack;
@@ -8811,8 +8812,10 @@ void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx)
 	init_simple_prod_action_list(outerCtx->simple_prod_action_id,publicSymbolTable);
 }
 
-void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx)
+void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx,char* main_file_real_path_dir)
 {
+	outerCtx->cwd=fklSysgetcwd();
+	outerCtx->main_file_real_path_dir=main_file_real_path_dir?main_file_real_path_dir:fklCopyCstr(outerCtx->cwd);
 	fklInitCodegenOuterCtxExceptPattern(outerCtx);
 	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
 
@@ -8837,6 +8840,13 @@ void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx)
 
 }
 
+void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx* outer_ctx,char* dir)
+{
+	if(outer_ctx->main_file_real_path_dir)
+		free(outer_ctx->main_file_real_path_dir);
+	outer_ctx->main_file_real_path_dir=dir;
+}
+
 void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* outer_ctx)
 {
 	fklUninitSymbolTable(&outer_ctx->public_symbol_table);
@@ -8846,6 +8856,8 @@ void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* outer_ctx)
 	nodes=outer_ctx->builtin_sub_pattern_node;
 	for(size_t i=0;i<FKL_CODEGEN_SUB_PATTERN_NUM;i++)
 		fklDestroyNastNode(nodes[i]);
+	free(outer_ctx->cwd);
+	free(outer_ctx->main_file_real_path_dir);
 }
 
 void fklDestroyCodegenInfo(FklCodegenInfo* codegen)
@@ -9142,7 +9154,7 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	if(rp!=NULL)
 	{
 		codegen->curDir=fklGetDir(rp);
-		codegen->filename=fklRelpath(fklGetMainFileRealDir(),rp);
+		codegen->filename=fklRelpath(outer_ctx->main_file_real_path_dir,rp);
 		codegen->realpath=fklCopyCstr(rp);
 		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
@@ -9201,7 +9213,7 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	{
 		char* rp=fklRealpath(filename);
 		codegen->curDir=fklGetDir(rp);
-		codegen->filename=fklRelpath(fklGetMainFileRealDir(),rp);
+		codegen->filename=fklRelpath(outer_ctx->main_file_real_path_dir,rp);
 		codegen->realpath=rp;
 		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
@@ -9768,9 +9780,10 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklHashTable lineHash;
 		fklInitLineNumHashTable(&lineHash);
 
-		char* cwd=fklCopyCstr(fklGetCwd());
-		const char* main_file_dir=fklGetMainFileRealDir();
-		fklSetCwd(main_file_dir);
+		FklCodegenOuterCtx* outer_ctx=codegen->outer_ctx;
+		const char* cwd=outer_ctx->cwd;
+		const char* main_file_dir=outer_ctx->main_file_real_path_dir;
+		fklChdir(main_file_dir);
 
 		FklFuncPrototypes* pts=NULL;
 		FklPtrStack* macroLibStack=NULL;
@@ -9787,8 +9800,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 		FklVMgc* gc=anotherVM->gc;
 		int e=fklRunVM(anotherVM);
 
-		fklSetCwd(cwd);
-		free(cwd);
+		fklChdir(cwd);
 
 		anotherVM->pts=NULL;
 		if(e)

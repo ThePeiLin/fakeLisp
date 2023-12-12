@@ -210,10 +210,9 @@ static inline int pre_compile(const char* main_file_name
 	FILE* fp=fopen(main_file_name,"r");
 	FklCodegenInfo codegen={.fid=0,};
 	char* rp=fklRealpath(main_file_name);
-
-	fklSetMainFileRealDir(rp);
-	const char* main_dir=fklGetMainFileRealDir();
-	fklChdir(main_dir);
+	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
+	const char* main_dir=outer_ctx->main_file_real_path_dir;
+	fklChdir(outer_ctx->main_file_real_path_dir);
 	fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx);
 	fklInitVMargs(argc,argv);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
@@ -221,7 +220,6 @@ static inline int pre_compile(const char* main_file_name
 	{
 		free(rp);
 		fklUninitCodegenInfo(&codegen);
-		fklDestroyMainFileRealDir();
 		return EXIT_FAILURE;
 	}
 	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
@@ -230,7 +228,6 @@ static inline int pre_compile(const char* main_file_name
 	{
 		free(rp);
 		fklUninitCodegenInfo(&codegen);
-		fklDestroyMainFileRealDir();
 		fklDestroyByteCodelnt(mainByteCode);
 		return EXIT_FAILURE;
 	}
@@ -256,7 +253,6 @@ static inline int pre_compile(const char* main_file_name
 	{
 		fprintf(stderr,"%s:Can't create pre-compile file!",outputname);
 		fklUninitCodegenInfo(&codegen);
-		fklDestroyMainFileRealDir();
 		return EXIT_FAILURE;
 	}
 
@@ -267,8 +263,6 @@ static inline int pre_compile(const char* main_file_name
 			,outfp);
 	fklDestroyByteCodelnt(mainByteCode);
 	fclose(outfp);
-	fklDestroyMainFileRealDir();
-	fklDestroyCwd();
 	fklUninitCodegenInfo(&codegen);
 	free(outputname);
 	return 0;
@@ -286,8 +280,8 @@ static inline int compile(const char* filename
 	FILE* fp=fopen(filename,"r");
 	FklCodegenInfo codegen={.fid=0,};
 	char* rp=fklRealpath(filename);
-	fklSetMainFileRealDir(rp);
-	fklChdir(fklGetMainFileRealDir());
+	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
+	fklChdir(outer_ctx->main_file_real_path_dir);
 	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx);
 	fklInitVMargs(argc,argv);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
@@ -295,7 +289,6 @@ static inline int compile(const char* filename
 	{
 		free(rp);
 		fklUninitCodegenInfo(&codegen);
-		fklDestroyMainFileRealDir();
 		return EXIT_FAILURE;
 	}
 	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
@@ -304,7 +297,6 @@ static inline int compile(const char* filename
 	{
 		free(rp);
 		fklUninitCodegenInfo(&codegen);
-		fklDestroyMainFileRealDir();
 		fklDestroyByteCodelnt(mainByteCode);
 		return EXIT_FAILURE;
 	}
@@ -330,7 +322,6 @@ static inline int compile(const char* filename
 	{
 		fprintf(stderr,"%s:Can't create byte code file!\n",outputname);
 		fklUninitCodegenInfo(&codegen);
-		fklDestroyMainFileRealDir();
 		return EXIT_FAILURE;
 	}
 	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
@@ -361,8 +352,6 @@ static inline int compile(const char* filename
 	}
 	fklDestroyByteCodelnt(mainByteCode);
 	fclose(outfp);
-	fklDestroyMainFileRealDir();
-	fklDestroyCwd();
 	fklUninitCodegenInfo(&codegen);
 	free(outputname);
 	return 0;
@@ -385,7 +374,7 @@ int main(int argc,char** argv)
 	const char* progname=argv[0];
 
 	FklCodegenOuterCtx outer_ctx;
-	fklInitCodegenOuterCtx(&outer_ctx);
+	fklInitCodegenOuterCtx(&outer_ctx,NULL);
 
 	void* argtable[]={
 		help=arg_lit0("h","help","display this help and exit"),
@@ -441,14 +430,12 @@ error:
 		}
 
 		char* output_dir=dir->count>0?fklStrCat(fklStrCat(fklCopyCstr(cwd),FKL_PATH_SEPARATOR_STR),dir->filename[0]):NULL;
-		fklSetCwd(cwd);
 		if(pre_compile(buffer.buf
 					,output_dir
 					,argc
 					,argv
 					,&outer_ctx))
 		{
-			fklDestroyCwd();
 			free(output_dir);
 			fklUninitStringBuffer(&buffer);
 			goto compile_error;
@@ -464,7 +451,6 @@ error:
 	for(int i=0;i<file->count;i++)
 	{
 		const char* filename=file->filename[i];
-		fklSetCwd(cwd);
 		if(fklIsScriptFile(filename)&&fklIsAccessibleRegFile(filename))
 		{
 			if(compile(filename
@@ -475,8 +461,6 @@ error:
 						,&outer_ctx))
 			{
 compile_error:
-				fklDestroyMainFileRealDir();
-				fklDestroyCwd();
 				exitcode=255;
 				goto exit;
 			}

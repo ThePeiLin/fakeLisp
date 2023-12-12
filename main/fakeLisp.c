@@ -35,12 +35,11 @@ static inline int compileAndRun(char* filename)
 		return FKL_EXIT_FAILURE;
 	}
 	FklCodegenOuterCtx outer_ctx;
-	fklInitCodegenOuterCtx(&outer_ctx);
+	char* rp=fklRealpath(filename);
+	fklInitCodegenOuterCtx(&outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx.public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
 	FklCodegenInfo codegen={.fid=0,};
-	char* rp=fklRealpath(filename);
-	fklSetMainFileRealDir(rp);
 	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
@@ -90,9 +89,10 @@ static inline int compileAndRun(char* filename)
 	}
 
 	fklUninitCodegenInfo(&codegen);
+
+	fklChdir(outer_ctx.cwd);
 	fklUninitCodegenOuterCtx(&outer_ctx);
 
-	fklChdir(fklGetCwd());
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(anotherVM->symbolTable);
 	fklDestroyAllVMs(anotherVM);
@@ -124,9 +124,6 @@ static inline int runCode(char* filename)
 	}
 	FklSymbolTable* table=fklCreateSymbolTable();
 	fklLoadSymbolTable(fp,table);
-	char* rp=fklRealpath(filename);
-	fklSetMainFileRealDir(rp);
-	free(rp);
 	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
 	FklByteCodelnt* mainCodelnt=fklLoadByteCodelnt(fp);
 
@@ -256,16 +253,12 @@ static inline int runPreCompile(char* filename)
 int main(int argc,char** argv)
 {
 	char* filename=(argc>1)?argv[1]:NULL;
-	char* cwd=fklSysgetcwd();
-	fklSetCwd(cwd);
-	free(cwd);
 	fklInitVMargs(argc,argv);
 	if(!filename)
 	{
 		FklCodegenOuterCtx outer_ctx;
-		fklSetMainFileRealPathWithCwd();
 		FklCodegenInfo codegen={.fid=0,};
-		fklInitCodegenOuterCtx(&outer_ctx);
+		fklInitCodegenOuterCtx(&outer_ctx,NULL);
 		FklSymbolTable* pst=&outer_ctx.public_symbol_table;
 		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx);
 		exitState=runRepl(&codegen);
@@ -327,8 +320,6 @@ int main(int argc,char** argv)
 			free(main_pre_file);
 		}
 	}
-	fklDestroyMainFileRealDir();
-	fklDestroyCwd();
 	return exitState;
 }
 

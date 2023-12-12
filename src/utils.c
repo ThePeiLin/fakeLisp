@@ -20,28 +20,6 @@
 #include<unistd.h>
 #endif
 
-static char* CurWorkDir=NULL;
-static char* MainFileRealPath=NULL;
-
-void fklSetCwd(const char* path)
-{
-	if(CurWorkDir)
-		free(CurWorkDir);
-	CurWorkDir=fklCopyCstr(path);
-	fklChdir(CurWorkDir);
-}
-
-void fklDestroyCwd(void)
-{
-	free(CurWorkDir);
-	CurWorkDir=NULL;
-}
-
-const char* fklGetCwd(void)
-{
-	return CurWorkDir;
-}
-
 #ifdef WIN32
 char* fklSysgetcwd(void)
 {
@@ -63,28 +41,6 @@ int fklChdir(const char* dir)
 	return chdir(dir);
 }
 #endif
-
-void fklSetMainFileRealDir(const char* path)
-{
-	MainFileRealPath=fklGetDir(path);
-}
-
-void fklSetMainFileRealPathWithCwd(void)
-{
-	MainFileRealPath=fklCopyCstr(CurWorkDir);
-}
-
-void fklDestroyMainFileRealDir(void)
-{
-	free(MainFileRealPath);
-	MainFileRealPath=NULL;
-}
-
-const char* fklGetMainFileRealDir(void)
-{
-	return MainFileRealPath;
-}
-
 
 char* fklGetStringFromList(const char* str)
 {

@@ -4663,28 +4663,6 @@ static int builtin_msleep(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_srand(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.srand";
-	FklVMvalue* s=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(s,fklIsVMint,Pname,exe);
-	srand(fklGetInt(s));
-	FKL_VM_PUSH_VALUE(exe,s);
-	return 0;
-}
-
-static int builtin_rand(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.rand";
-	FklVMvalue*  lim=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	if(lim&&!fklIsVMint(lim))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))));
-	return 0;
-}
-
 static int builtin_hash(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash";
@@ -5534,9 +5512,6 @@ static const struct SymbolFuncStruct
 
 	{"sleep",                 builtin_sleep,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"msleep",                builtin_msleep,                  {NULL,         NULL,          NULL,            NULL,          }, },
-
-	{"srand",                 builtin_srand,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"rand",                  builtin_rand,                    {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"hash",                  builtin_hash,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"hash-num",              builtin_hash_num,                {NULL,         NULL,          NULL,            NULL,          }, },

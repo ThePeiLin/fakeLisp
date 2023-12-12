@@ -24,6 +24,7 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(LIBFKL_TARGET_NAME fkl)
+set(LIBFKL_SHARED_TARGET_NAME fkl-shared)
 set(GRAMMER_GEN grammer)
 set(PARSE parse)
 set(VMPARSE vmparse)
@@ -113,6 +114,13 @@ add_library(${LIBFKL_TARGET_NAME}
 set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 
+#libfkldll.so
+add_library(${LIBFKL_SHARED_TARGET_NAME}
+	SHARED
+	${LIBFKL_SOURCE})
+set_target_properties(${LIBFKL_SHARED_TARGET_NAME} PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
+
 #fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
@@ -124,7 +132,7 @@ add_library(ht
 	"main/ht.c")
 set_target_properties(ht PROPERTIES
 	PREFIX "")
-target_link_libraries(ht ${LIBFKL_TARGET_NAME})
+target_link_libraries(ht ${LIBFKL_SHARED_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET ht
@@ -144,7 +152,7 @@ add_library(os
 	"main/os.c")
 set_target_properties(os PROPERTIES
 	PREFIX "")
-target_link_libraries(os ${LIBFKL_TARGET_NAME})
+target_link_libraries(os ${LIBFKL_SHARED_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET os
@@ -155,6 +163,26 @@ add_custom_command(TARGET os
 	VERBATIM)
 else()
 set_target_properties(os PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
+#math.so
+add_library(math
+	SHARED
+	"main/math.c")
+set_target_properties(math PROPERTIES
+	PREFIX "")
+target_link_libraries(math ${LIBFKL_SHARED_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET math
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:math>
+	"${CMAKE_BINARY_DIR}/lib/"
+	DEPENDS math
+	VERBATIM)
+else()
+set_target_properties(math PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 

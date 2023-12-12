@@ -9782,8 +9782,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 		FklCodegenOuterCtx* outer_ctx=codegen->outer_ctx;
 		const char* cwd=outer_ctx->cwd;
-		const char* main_file_dir=outer_ctx->main_file_real_path_dir;
-		fklChdir(main_file_dir);
+		fklChdir(codegen->curDir);
 
 		FklFuncPrototypes* pts=NULL;
 		FklPtrStack* macroLibStack=NULL;

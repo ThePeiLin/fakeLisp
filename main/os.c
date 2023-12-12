@@ -20,6 +20,14 @@ static int os_time(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int os_clock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="os.clock";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMint((int64_t)clock(),exe));
+	return 0;
+}
+
 static int os_get_time(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.get-time";
@@ -111,9 +119,10 @@ struct SymFunc
 }exports_and_func[]=
 {
 	{"system",   os_system,   },
-	{"time",     os_time,     },
 	{"remove",   os_remove,   },
 	{"rename",   os_rename,   },
+	{"clock",    os_clock,    },
+	{"time",     os_time,     },
 	{"get-time", os_get_time, },
 	{"chdir",    os_chdir,    },
 	{"getcwd",   os_getcwd,   },

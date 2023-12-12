@@ -2,10 +2,8 @@
 #define FKL_VM_H
 
 #include"base.h"
-#include"bytecode.h"
 #include"nast.h"
 #include"builtin.h"
-#include"pattern.h"
 #include"utils.h"
 #include<uv.h>
 #include<stdatomic.h>

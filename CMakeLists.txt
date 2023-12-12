@@ -24,7 +24,11 @@ set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
 set(LIBFKL_TARGET_NAME fkl)
+
 set(LIBFKL_SHARED_TARGET_NAME fkl-shared)
+
+set(LIBFKL_MOD_TARGET_NAME libfkl-mod)
+
 set(GRAMMER_GEN grammer)
 set(PARSE parse)
 set(VMPARSE vmparse)
@@ -121,6 +125,19 @@ add_library(${LIBFKL_SHARED_TARGET_NAME}
 set_target_properties(${LIBFKL_SHARED_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 
+#libfkl-mod.a
+file(GLOB LIBFKL_MOD_SOURCE
+	"src/base.c"
+	"src/symbol.c"
+	"src/utils.c"
+	"src/vm*.c")
+
+add_library(${LIBFKL_MOD_TARGET_NAME}
+	STATIC
+	${LIBFKL_MOD_SOURCE})
+set_target_properties(${LIBFKL_MOD_TARGET_NAME} PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
+
 #fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
@@ -132,7 +149,7 @@ add_library(ht
 	"main/ht.c")
 set_target_properties(ht PROPERTIES
 	PREFIX "")
-target_link_libraries(ht ${LIBFKL_SHARED_TARGET_NAME})
+target_link_libraries(ht ${LIBFKL_MOD_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET ht
@@ -152,7 +169,7 @@ add_library(os
 	"main/os.c")
 set_target_properties(os PROPERTIES
 	PREFIX "")
-target_link_libraries(os ${LIBFKL_SHARED_TARGET_NAME})
+target_link_libraries(os ${LIBFKL_MOD_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET os
@@ -172,7 +189,7 @@ add_library(math
 	"main/math.c")
 set_target_properties(math PROPERTIES
 	PREFIX "")
-target_link_libraries(math ${LIBFKL_SHARED_TARGET_NAME})
+target_link_libraries(math ${LIBFKL_MOD_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET math

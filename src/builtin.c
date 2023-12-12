@@ -4510,29 +4510,6 @@ static int builtin_vector(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_getcwd(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.getcwd";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* s=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetCwd()));
-	FKL_VM_PUSH_VALUE(exe,s);
-	return 0;
-}
-
-static int builtin_chdir(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.chdir";
-	FKL_DECL_AND_CHECK_ARG(dir,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
-	FklString* dirstr=FKL_VM_STR(dir);
-	int r=fklChangeWorkDir(dirstr->str);
-	if(r)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-	return 0;
-}
-
 static int builtin_fwrite(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fwrite";
@@ -4705,61 +4682,6 @@ static int builtin_rand(FKL_CPROC_ARGL)
 	if(lim&&!fklIsVMint(lim))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))));
-	return 0;
-}
-
-static int builtin_get_time(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.get-time";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	time_t timer=time(NULL);
-	const struct tm* tblock=localtime(&timer);
-
-	FklStringBuffer buf;
-	fklInitStringBuffer(&buf);
-
-	fklStringBufferPrintf(&buf,"%u-%u-%u_%u_%u_%u"
-			,tblock->tm_year+1900
-			,tblock->tm_mon+1
-			,tblock->tm_mday
-			,tblock->tm_hour
-			,tblock->tm_min
-			,tblock->tm_sec);
-
-	FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
-	fklUninitStringBuffer(&buf);
-
-	FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
-	return 0;
-}
-
-static int builtin_fremove(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.fremove";
-	FKL_DECL_AND_CHECK_ARG(name,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
-	FklString* nameStr=FKL_VM_STR(name);
-	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(remove(nameStr->str)));
-	return 0;
-}
-
-static int builtin_time(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.time";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklMakeVMint((int64_t)time(NULL),exe));
-	return 0;
-}
-
-static int builtin_system(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.system";
-	FKL_DECL_AND_CHECK_ARG(name,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
-	FklString* nameStr=FKL_VM_STR(name);
-	FKL_VM_PUSH_VALUE(exe,fklMakeVMint(system(nameStr->str),exe));
 	return 0;
 }
 
@@ -5558,8 +5480,6 @@ static const struct SymbolFuncStruct
 
 	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"getcwd",                builtin_getcwd,                  {NULL,         NULL,          NULL,            NULL,          }, },
-	{"chdir",                 builtin_chdir,                   {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
@@ -5571,7 +5491,6 @@ static const struct SymbolFuncStruct
 	{"fgetc",                 builtin_fgetc,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"fgeti",                 builtin_fgeti,                   {NULL,         NULL,          NULL,            NULL,          }, },
 
-	{"fremove",               builtin_fremove,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"fopen",                 builtin_fopen,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"freopen",               builtin_freopen,                 {NULL,         NULL,          NULL,            NULL,          }, },
 
@@ -5618,9 +5537,6 @@ static const struct SymbolFuncStruct
 
 	{"srand",                 builtin_srand,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"rand",                  builtin_rand,                    {NULL,         NULL,          NULL,            NULL,          }, },
-	{"get-time",              builtin_get_time,                {NULL,         NULL,          NULL,            NULL,          }, },
-	{"time",                  builtin_time,                    {NULL,         NULL,          NULL,            NULL,          }, },
-	{"system",                builtin_system,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"hash",                  builtin_hash,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"hash-num",              builtin_hash_num,                {NULL,         NULL,          NULL,            NULL,          }, },

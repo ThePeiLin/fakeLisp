@@ -1,5 +1,7 @@
 (check (eq *platform* "win32")
-  (system "chcp 65001"))
+  (begin
+    (import (lib os))
+    (system "chcp 65001")))
 
 (import (ascii-art)
         (bf)

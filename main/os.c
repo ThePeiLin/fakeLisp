@@ -42,7 +42,7 @@ static int os_date(FKL_CPROC_ARGL)
 		FklStringBuffer buf;
 		fklInitStringBuffer(&buf);
 
-		fklStringBufferPrintf(&buf,"%u-%u-%u_%u_%u_%u"
+		fklStringBufferPrintf(&buf,"%04u-%02u-%02u_%02u_%02u_%02u"
 				,tblock->tm_year+1900
 				,tblock->tm_mon+1
 				,tblock->tm_mday

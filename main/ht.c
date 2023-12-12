@@ -279,6 +279,15 @@ static int ht_ht_values(FKL_CPROC_ARGL)
 	return 0;
 }
 
+#define KEY_EQUAL() FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);\
+	FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);\
+    ctx->context=(uintptr_t)slot;\
+	fklSetBp(exe);\
+	FKL_VM_PUSH_VALUE(exe,i->key);\
+	FKL_VM_PUSH_VALUE(exe,key);\
+	fklCallObj(exe,ht->eq_func);\
+    return 1
+
 static int ht_ht_set1(FKL_CPROC_ARGL)
 {
     static const char Pname[]="ht.ht-set!";
@@ -311,16 +320,9 @@ static int ht_ht_set1(FKL_CPROC_ARGL)
                 FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
                 FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
                 if(*slot)
-                {
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-                    ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-                    return 1;
-                }
+				{
+					KEY_EQUAL();
+				}
                 else
                 {
                     FklVMhashTableItem* item=fklPutHashItemInSlot(&ht->ht,slot);
@@ -341,14 +343,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else
 					{
@@ -411,16 +406,9 @@ static int ht_ht_set8(FKL_CPROC_ARGL)
                 FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
                 FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
                 if(*slot)
-                {
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-                    ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-                    return 1;
-                }
+				{
+					KEY_EQUAL();
+				}
                 else
 				{
 #define CONTINUE_ARG_NUM (4)
@@ -455,14 +443,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else
 					{
@@ -545,14 +526,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 				FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
 				if(*slot)
 				{
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-					ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-					return 1;
+					KEY_EQUAL();
 				}
 				else if(exe->tp-ctx->rtp>ARG_NUM_WITHOUT_DEFAULT_VALUE)
 				{
@@ -574,14 +548,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else if(exe->tp-ctx->rtp>ARG_NUM_WITHOUT_DEFAULT_VALUE)
 					{
@@ -637,14 +604,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL)
 				FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
 				if(*slot)
 				{
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-					ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-					return 1;
+					KEY_EQUAL();
 				}
 				else
 				{
@@ -666,14 +626,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else
 					{
@@ -726,14 +679,7 @@ static int ht_ht_ref7(FKL_CPROC_ARGL)
 				FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
 				if(*slot)
 				{
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-					ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-					return 1;
+					KEY_EQUAL();
 				}
 				else
 					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
@@ -750,14 +696,7 @@ static int ht_ht_ref7(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else
 						FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
@@ -805,14 +744,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL)
 				FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
 				if(*slot)
 				{
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-					ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-					return 1;
+					KEY_EQUAL();
 				}
 				else
 					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
@@ -829,14 +761,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else
 						FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
@@ -884,14 +809,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL)
 				FklHashTableItem** slot=fklGetHashItemSlot(&ht->ht,hashv);
 				if(*slot)
 				{
-					FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-					FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-					ctx->context=(uintptr_t)slot;
-					fklSetBp(exe);
-					FKL_VM_PUSH_VALUE(exe,i->key);
-					FKL_VM_PUSH_VALUE(exe,key);
-					fklCallObj(exe,ht->eq_func);
-					return 1;
+					KEY_EQUAL();
 				}
 				else
 					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);
@@ -908,14 +826,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL)
 					slot=&(*slot)->ni;
 					if(*slot)
 					{
-						FklVMhashTableItem* i=(FklVMhashTableItem*)((*slot)->data);
-						FklVMvalue* key=FKL_VM_GET_VALUE(exe,2);
-						ctx->context=(uintptr_t)slot;
-						fklSetBp(exe);
-						FKL_VM_PUSH_VALUE(exe,i->key);
-						FKL_VM_PUSH_VALUE(exe,key);
-						fklCallObj(exe,ht->eq_func);
-						return 1;
+						KEY_EQUAL();
 					}
 					else
 						FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,FKL_VM_NIL);

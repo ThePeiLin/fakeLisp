@@ -119,7 +119,6 @@ add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 
 #ht.so
-
 add_library(ht
 	SHARED
 	"main/ht.c")
@@ -128,7 +127,7 @@ set_target_properties(ht PROPERTIES
 target_link_libraries(ht ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
-add_custom_command(TARGET hash-tbale
+add_custom_command(TARGET ht
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
 	$<TARGET_FILE:ht>
 	"${CMAKE_BINARY_DIR}/lib/"
@@ -136,6 +135,26 @@ add_custom_command(TARGET hash-tbale
 	VERBATIM)
 else()
 set_target_properties(ht PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
+#os.so
+add_library(os
+	SHARED
+	"main/os.c")
+set_target_properties(os PROPERTIES
+	PREFIX "")
+target_link_libraries(os ${LIBFKL_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET os
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:os>
+	"${CMAKE_BINARY_DIR}/lib/"
+	DEPENDS os
+	VERBATIM)
+else()
+set_target_properties(os PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 

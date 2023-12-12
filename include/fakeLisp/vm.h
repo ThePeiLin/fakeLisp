@@ -862,6 +862,24 @@ void fklDropTop(FklVM* s);
 
 #define FKL_VM_SET_TP_AND_PUSH_VALUE(S,T,V) (((S)->tp=(T)+1),((S)->base[(T)]=(V)))
 
+#define FKL_DECL_AND_CHECK_ARG(a,Pname) \
+	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
+	if(!a)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+
+#define FKL_DECL_AND_CHECK_ARG2(a,b,Pname) \
+	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
+	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
+	if(!b||!a)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+
+#define FKL_DECL_AND_CHECK_ARG3(a,b,c,Pname) \
+	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
+	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
+	FklVMvalue* c=FKL_VM_POP_ARG(exe);\
+	if(!c||!b||!a)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+
 FklVMvalue* fklPopArg(FklVM*);
 FklVMvalue* fklGetTopValue(FklVM*);
 FklVMvalue* fklPopTopValue(FklVM*);

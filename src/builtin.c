@@ -20,24 +20,6 @@
 #include<unistd.h>
 #endif
 
-#define DECL_AND_CHECK_ARG(a,Pname) \
-	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
-	if(!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-
-#define DECL_AND_CHECK_ARG2(a,b,Pname) \
-	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
-	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
-	if(!b||!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-
-#define DECL_AND_CHECK_ARG3(a,b,c,Pname) \
-	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
-	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
-	FklVMvalue* c=FKL_VM_POP_ARG(exe);\
-	if(!c||!b||!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
-
 #define DECL_AND_SET_DEFAULT(a,v) \
 	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
 	if(!a)\
@@ -137,7 +119,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 static int builtin_car(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.car";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_PAIR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_CAR(obj));
@@ -147,7 +129,7 @@ static int builtin_car(FKL_CPROC_ARGL)
 static int builtin_car_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.car-set!";
-	DECL_AND_CHECK_ARG2(obj,target,Pname);
+	FKL_DECL_AND_CHECK_ARG2(obj,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_PAIR,Pname,exe);
 	FKL_VM_CAR(obj)=target;
@@ -158,7 +140,7 @@ static int builtin_car_set(FKL_CPROC_ARGL)
 static int builtin_cdr(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.cdr";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_PAIR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_CDR(obj));
@@ -168,7 +150,7 @@ static int builtin_cdr(FKL_CPROC_ARGL)
 static int builtin_cdr_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.cdr-set!";
-	DECL_AND_CHECK_ARG2(obj,target,Pname);
+	FKL_DECL_AND_CHECK_ARG2(obj,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_PAIR,Pname,exe);
 	FKL_VM_CDR(obj)=target;
@@ -179,7 +161,7 @@ static int builtin_cdr_set(FKL_CPROC_ARGL)
 static int builtin_cons(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.cons";
-	DECL_AND_CHECK_ARG2(car,cdr,Pname);
+	FKL_DECL_AND_CHECK_ARG2(car,cdr,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,car,cdr));
 	return 0;
@@ -239,7 +221,7 @@ static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,Fkl
 static int builtin_copy(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.copy";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=fklCopyVMvalue(obj,exe);
 	if(!retval)
@@ -345,7 +327,7 @@ static int builtin_append1(FKL_CPROC_ARGL)
 static int builtin_eq(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.eq";
-	DECL_AND_CHECK_ARG2(fir,sec,Pname);
+	FKL_DECL_AND_CHECK_ARG2(fir,sec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe
 			,fklVMvalueEq(fir,sec)
@@ -357,7 +339,7 @@ static int builtin_eq(FKL_CPROC_ARGL)
 static int builtin_eqv(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.eqv";
-	DECL_AND_CHECK_ARG2(fir,sec,Pname);
+	FKL_DECL_AND_CHECK_ARG2(fir,sec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe
 			,(fklVMvalueEqv(fir,sec))
@@ -369,7 +351,7 @@ static int builtin_eqv(FKL_CPROC_ARGL)
 static int builtin_equal(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.equal";
-	DECL_AND_CHECK_ARG2(fir,sec,Pname);
+	FKL_DECL_AND_CHECK_ARG2(fir,sec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe
 			,(fklVMvalueEqual(fir,sec))
@@ -397,7 +379,7 @@ static int builtin_add(FKL_CPROC_ARGL)
 static int builtin_add_1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.1+";
-	DECL_AND_CHECK_ARG(arg,Pname);
+	FKL_DECL_AND_CHECK_ARG(arg,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* r=fklProcessVMnumInc(exe,arg);
 	if(r)
@@ -410,7 +392,7 @@ static int builtin_add_1(FKL_CPROC_ARGL)
 static int builtin_sub(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.-";
-	DECL_AND_CHECK_ARG(prev,Pname);
+	FKL_DECL_AND_CHECK_ARG(prev,Pname);
 	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
 	double rd=0.0;
 	int64_t r64=0;
@@ -436,7 +418,7 @@ static int builtin_sub(FKL_CPROC_ARGL)
 static int builtin_abs(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.abs";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
 	if(FKL_IS_F64(obj))
@@ -464,7 +446,7 @@ static int builtin_abs(FKL_CPROC_ARGL)
 static int builtin_sub_1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.-1+";
-	DECL_AND_CHECK_ARG(arg,Pname);
+	FKL_DECL_AND_CHECK_ARG(arg,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* r=fklProcessVMnumDec(exe,arg);
 	if(r)
@@ -493,7 +475,7 @@ static int builtin_mul(FKL_CPROC_ARGL)
 static int builtin_idiv(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.//";
-	DECL_AND_CHECK_ARG2(prev,cur,Pname);
+	FKL_DECL_AND_CHECK_ARG2(prev,cur,Pname);
 	int64_t r64=1;
 	FKL_CHECK_TYPE(prev,fklIsVMint,Pname,exe);
 	FklBigInt bi=FKL_BIG_INT_INIT;
@@ -514,7 +496,7 @@ static int builtin_idiv(FKL_CPROC_ARGL)
 static int builtin_div(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin./";
-	DECL_AND_CHECK_ARG(prev,Pname);
+	FKL_DECL_AND_CHECK_ARG(prev,Pname);
 	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
 	int64_t r64=1;
 	double rd=1.0;
@@ -548,7 +530,7 @@ static int builtin_div(FKL_CPROC_ARGL)
 static int builtin_mod(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.%";
-	DECL_AND_CHECK_ARG2(fir,sec,Pname);
+	FKL_DECL_AND_CHECK_ARG2(fir,sec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(fir,fklIsVMnumber,Pname,exe);
 	FKL_CHECK_TYPE(sec,fklIsVMnumber,Pname,exe);
@@ -564,7 +546,7 @@ static int builtin_eqn(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.=";
 	int r=1;
 	int err=0;
-	DECL_AND_CHECK_ARG(cur,Pname);
+	FKL_DECL_AND_CHECK_ARG(cur,Pname);
 	FklVMvalue* prev=NULL;
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 	{
@@ -592,7 +574,7 @@ static int builtin_gt(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.>";
 	int r=1;
 	int err=0;
-	DECL_AND_CHECK_ARG(cur,Pname);
+	FKL_DECL_AND_CHECK_ARG(cur,Pname);
 	FklVMvalue* prev=NULL;
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 	{
@@ -620,7 +602,7 @@ static int builtin_ge(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.>=";
 	int err=0;
 	int r=1;
-	DECL_AND_CHECK_ARG(cur,Pname);
+	FKL_DECL_AND_CHECK_ARG(cur,Pname);
 	FklVMvalue* prev=NULL;
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 	{
@@ -648,7 +630,7 @@ static int builtin_lt(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.<";
 	int err=0;
 	int r=1;
-	DECL_AND_CHECK_ARG(cur,Pname);
+	FKL_DECL_AND_CHECK_ARG(cur,Pname);
 	FklVMvalue* prev=NULL;
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 	{
@@ -676,7 +658,7 @@ static int builtin_le(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.<=";
 	int err=0;
 	int r=1;
-	DECL_AND_CHECK_ARG(cur,Pname);
+	FKL_DECL_AND_CHECK_ARG(cur,Pname);
 	FklVMvalue* prev=NULL;
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 	{
@@ -702,7 +684,7 @@ static int builtin_le(FKL_CPROC_ARGL)
 static int builtin_char_to_integer(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.char->integer";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_CHR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(FKL_GET_CHR(obj)));
@@ -712,7 +694,7 @@ static int builtin_char_to_integer(FKL_CPROC_ARGL)
 static int builtin_integer_to_char(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.integer->char";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsVMint,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(fklGetInt(obj)));
@@ -722,7 +704,7 @@ static int builtin_integer_to_char(FKL_CPROC_ARGL)
 static int builtin_list_to_vector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.list->vector";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsList,Pname,exe);
 	size_t len=fklVMlistLength(obj);
@@ -737,7 +719,7 @@ static int builtin_list_to_vector(FKL_CPROC_ARGL)
 static int builtin_string_to_vector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.string->vector";
-	DECL_AND_CHECK_ARG(obj,Pname)
+	FKL_DECL_AND_CHECK_ARG(obj,Pname)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_STR,Pname,exe);
 	FklString* str=FKL_VM_STR(obj);
@@ -753,7 +735,7 @@ static int builtin_string_to_vector(FKL_CPROC_ARGL)
 static int builtin_make_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.make-list";
-	DECL_AND_CHECK_ARG(size,Pname);
+	FKL_DECL_AND_CHECK_ARG(size,Pname);
 	FKL_CHECK_TYPE(size,fklIsVMint,Pname,exe);
 	FklVMvalue* content=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -775,7 +757,7 @@ static int builtin_make_list(FKL_CPROC_ARGL)
 static int builtin_string_to_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.string->list";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_STR,Pname,exe);
 	FklVMvalue* r=FKL_VM_NIL;
@@ -793,7 +775,7 @@ static int builtin_string_to_list(FKL_CPROC_ARGL)
 static int builtin_bytevector_to_s8_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.bytevector->s8-list";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,Pname,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(obj);
@@ -813,7 +795,7 @@ static int builtin_bytevector_to_s8_list(FKL_CPROC_ARGL)
 static int builtin_bytevector_to_u8_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.bytevector->s8-list";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,Pname,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(obj);
@@ -833,7 +815,7 @@ static int builtin_bytevector_to_u8_list(FKL_CPROC_ARGL)
 static int builtin_bytevector_to_s8_vector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.bytevector->s8-vector";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,Pname,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(obj);
@@ -850,7 +832,7 @@ static int builtin_bytevector_to_s8_vector(FKL_CPROC_ARGL)
 static int builtin_bytevector_to_u8_vector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.bytevector->u8-vector";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,Pname,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(obj);
@@ -867,7 +849,7 @@ static int builtin_bytevector_to_u8_vector(FKL_CPROC_ARGL)
 static int builtin_vector_to_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.vector->list";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_VECTOR,Pname,exe);
 	FklVMvec* vec=FKL_VM_VEC(obj);
@@ -904,7 +886,7 @@ static int builtin_string(FKL_CPROC_ARGL)
 static int builtin_make_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.make-string";
-	DECL_AND_CHECK_ARG(size,Pname);
+	FKL_DECL_AND_CHECK_ARG(size,Pname);
 	FKL_CHECK_TYPE(size,fklIsVMint,Pname,exe);
 	FklVMvalue* content=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -925,7 +907,7 @@ static int builtin_make_string(FKL_CPROC_ARGL)
 static int builtin_make_vector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.make-vector";
-	DECL_AND_CHECK_ARG(size,Pname);
+	FKL_DECL_AND_CHECK_ARG(size,Pname);
 	FKL_CHECK_TYPE(size,fklIsVMint,Pname,exe);
 	FklVMvalue* content=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -946,7 +928,7 @@ static int builtin_make_vector(FKL_CPROC_ARGL)
 static int builtin_substring(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.substring";
-	DECL_AND_CHECK_ARG3(ostr,vstart,vend,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ostr,vstart,vend,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ostr,FKL_IS_STR,Pname,exe);
 	FKL_CHECK_TYPE(vstart,fklIsVMint,Pname,exe);
@@ -970,7 +952,7 @@ static int builtin_substring(FKL_CPROC_ARGL)
 static int builtin_sub_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.sub-string";
-	DECL_AND_CHECK_ARG3(ostr,vstart,vsize,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ostr,vstart,vsize,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ostr,FKL_IS_STR,Pname,exe);
 	FKL_CHECK_TYPE(vstart,fklIsVMint,Pname,exe);
@@ -993,7 +975,7 @@ static int builtin_sub_string(FKL_CPROC_ARGL)
 static int builtin_subbytevector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.subbytevector";
-	DECL_AND_CHECK_ARG3(ostr,vstart,vend,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ostr,vstart,vend,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ostr,FKL_IS_BYTEVECTOR,Pname,exe);
 	FKL_CHECK_TYPE(vstart,fklIsVMint,Pname,exe);
@@ -1017,7 +999,7 @@ static int builtin_subbytevector(FKL_CPROC_ARGL)
 static int builtin_sub_bytevector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.sub-bytevector";
-	DECL_AND_CHECK_ARG3(ostr,vstart,vsize,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ostr,vstart,vsize,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ostr,FKL_IS_BYTEVECTOR,Pname,exe);
 	FKL_CHECK_TYPE(vstart,fklIsVMint,Pname,exe);
@@ -1040,7 +1022,7 @@ static int builtin_sub_bytevector(FKL_CPROC_ARGL)
 static int builtin_subvector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.subvector";
-	DECL_AND_CHECK_ARG3(ovec,vstart,vend,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ovec,vstart,vend,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ovec,FKL_IS_VECTOR,Pname,exe);
 	FKL_CHECK_TYPE(vstart,fklIsVMint,Pname,exe);
@@ -1064,7 +1046,7 @@ static int builtin_subvector(FKL_CPROC_ARGL)
 static int builtin_sub_vector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.sub-vector";
-	DECL_AND_CHECK_ARG3(ovec,vstart,vsize,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ovec,vstart,vsize,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ovec,FKL_IS_VECTOR,Pname,exe);
 	FKL_CHECK_TYPE(vstart,fklIsVMint,Pname,exe);
@@ -1087,7 +1069,7 @@ static int builtin_sub_vector(FKL_CPROC_ARGL)
 static int builtin_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.->string";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(FKL_IS_SYM(obj))
@@ -1164,7 +1146,7 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 static int builtin_symbol_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.symbol->string";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_SYM,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe
@@ -1176,7 +1158,7 @@ static int builtin_symbol_to_string(FKL_CPROC_ARGL)
 static int builtin_string_to_symbol(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.string->symbol";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(fklAddSymbol(FKL_VM_STR(obj),exe->symbolTable)->id));
@@ -1186,7 +1168,7 @@ static int builtin_string_to_symbol(FKL_CPROC_ARGL)
 static int builtin_symbol_to_integer(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.symbol->integer";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_SYM,Pname,exe);
 	FklVMvalue* r=fklMakeVMint(FKL_GET_SYM(obj),exe);
@@ -1197,7 +1179,7 @@ static int builtin_symbol_to_integer(FKL_CPROC_ARGL)
 static int builtin_string_to_number(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.string->number";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_STR,Pname,exe);
 	FklVMvalue* r=FKL_VM_NIL;
@@ -1223,7 +1205,7 @@ static int builtin_string_to_number(FKL_CPROC_ARGL)
 static int builtin_number_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.number->string";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FklVMvalue* radix=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
@@ -1266,7 +1248,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 static int builtin_integer_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.integer->string";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FklVMvalue* radix=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsVMint,Pname,exe);
@@ -1298,7 +1280,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 static int builtin_f64_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.f64->string";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_F64,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe,NULL);
@@ -1312,7 +1294,7 @@ static int builtin_f64_to_string(FKL_CPROC_ARGL)
 static int builtin_vector_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.vector->string";
-	DECL_AND_CHECK_ARG(vec,Pname);
+	FKL_DECL_AND_CHECK_ARG(vec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vec,FKL_IS_VECTOR,Pname,exe);
 	FklVMvec* v=FKL_VM_VEC(vec);
@@ -1331,7 +1313,7 @@ static int builtin_vector_to_string(FKL_CPROC_ARGL)
 static int builtin_bytevector_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.bytevector->string";
-	DECL_AND_CHECK_ARG(vec,Pname);
+	FKL_DECL_AND_CHECK_ARG(vec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vec,FKL_IS_BYTEVECTOR,Pname,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(vec);
@@ -1343,7 +1325,7 @@ static int builtin_bytevector_to_string(FKL_CPROC_ARGL)
 static int builtin_string_to_bytevector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.string->bytevector";
-	DECL_AND_CHECK_ARG(str,Pname);
+	FKL_DECL_AND_CHECK_ARG(str,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(str,FKL_IS_STR,Pname,exe);
 	FklString* s=FKL_VM_STR(str);
@@ -1355,7 +1337,7 @@ static int builtin_string_to_bytevector(FKL_CPROC_ARGL)
 static int builtin_vector_to_bytevector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.vector->bytevector";
-	DECL_AND_CHECK_ARG(vec,Pname);
+	FKL_DECL_AND_CHECK_ARG(vec,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vec,FKL_IS_VECTOR,Pname,exe);
 	FklVMvec* v=FKL_VM_VEC(vec);
@@ -1376,7 +1358,7 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL)
 static int builtin_list_to_bytevector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.list->bytevector";
-	DECL_AND_CHECK_ARG(list,Pname);
+	FKL_DECL_AND_CHECK_ARG(list,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
 	FklVMvalue* r=fklCreateVMvalueBvec(exe,fklCreateBytevector(fklVMlistLength(list),NULL));
@@ -1394,7 +1376,7 @@ static int builtin_list_to_bytevector(FKL_CPROC_ARGL)
 static int builtin_list_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.list->string";
-	DECL_AND_CHECK_ARG(list,Pname);
+	FKL_DECL_AND_CHECK_ARG(list,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
 	size_t size=fklVMlistLength(list);
@@ -1413,7 +1395,7 @@ static int builtin_list_to_string(FKL_CPROC_ARGL)
 static int builtin_number_to_f64(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.integer->f64";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=fklCreateVMvalueF64(exe,0.0);
 	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
@@ -1432,7 +1414,7 @@ static int builtin_number_to_f64(FKL_CPROC_ARGL)
 static int builtin_number_to_integer(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.number->integer";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
 	if(FKL_IS_F64(obj))
@@ -1465,7 +1447,7 @@ static int builtin_number_to_integer(FKL_CPROC_ARGL)
 static int builtin_nth(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.nth";
-	DECL_AND_CHECK_ARG2(place,objlist,Pname);
+	FKL_DECL_AND_CHECK_ARG2(place,objlist,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(place,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(place))
@@ -1488,7 +1470,7 @@ static int builtin_nth(FKL_CPROC_ARGL)
 static int builtin_nth_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.nth-set!";
-	DECL_AND_CHECK_ARG3(place,objlist,target,Pname);
+	FKL_DECL_AND_CHECK_ARG3(place,objlist,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(place,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(place))
@@ -1514,7 +1496,7 @@ static int builtin_nth_set(FKL_CPROC_ARGL)
 static int builtin_str_ref(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.str-ref";
-	DECL_AND_CHECK_ARG2(str,place,Pname);
+	FKL_DECL_AND_CHECK_ARG2(str,place,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!fklIsVMint(place)||!FKL_IS_STR(str))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -1528,7 +1510,7 @@ static int builtin_str_ref(FKL_CPROC_ARGL)
 }
 
 #define BV_U_S_8_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
-	DECL_AND_CHECK_ARG2(bvec,place,Pname);\
+	FKL_DECL_AND_CHECK_ARG2(bvec,place,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
@@ -1543,7 +1525,7 @@ static int builtin_str_ref(FKL_CPROC_ARGL)
 	return 0;
 
 #define BV_REF(TYPE,WHERE,MAKER) static const char Pname[]=(WHERE);\
-	DECL_AND_CHECK_ARG2(bvec,place,Pname);\
+	FKL_DECL_AND_CHECK_ARG2(bvec,place,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
@@ -1576,7 +1558,7 @@ static int builtin_bvu64ref(FKL_CPROC_ARGL) {BV_U_REF(uint64_t,"builtin.bvu64ref
 #undef BV_U_S_8_REF
 
 #define BV_F_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
-	DECL_AND_CHECK_ARG2(bvec,place,Pname);\
+	FKL_DECL_AND_CHECK_ARG2(bvec,place,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
@@ -1595,7 +1577,7 @@ static int builtin_bvf64ref(FKL_CPROC_ARGL) {BV_F_REF(double,"builtin.bvf32ref")
 #undef BV_F_REF
 
 #define SET_BV_S_U_8_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
-	DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
+	FKL_DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
@@ -1610,7 +1592,7 @@ static int builtin_bvf64ref(FKL_CPROC_ARGL) {BV_F_REF(double,"builtin.bvf32ref")
 	return 0;
 
 #define SET_BV_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
-	DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
+	FKL_DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
@@ -1638,7 +1620,7 @@ static int builtin_bvu64set1(FKL_CPROC_ARGL) {SET_BV_REF(uint64_t,"builtin.bvu64
 #undef SET_BV_REF
 
 #define SET_BV_F_REF(TYPE,WHERE) static const char Pname[]=(WHERE);\
-	DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
+	FKL_DECL_AND_CHECK_ARG3(bvec,place,target,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!FKL_IS_F64(target))\
 	FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
@@ -1659,7 +1641,7 @@ static int builtin_bvf64set1(FKL_CPROC_ARGL) {SET_BV_F_REF(double,"builtin.bvf64
 static int builtin_str_set1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.str-set!";
-	DECL_AND_CHECK_ARG3(str,place,target,Pname);
+	FKL_DECL_AND_CHECK_ARG3(str,place,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!fklIsVMint(place)||!FKL_IS_STR(str))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -1678,7 +1660,7 @@ static int builtin_str_set1(FKL_CPROC_ARGL)
 static int builtin_string_fill(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.string-fill!";
-	DECL_AND_CHECK_ARG2(str,content,Pname);
+	FKL_DECL_AND_CHECK_ARG2(str,content,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_CHR(content)||!FKL_IS_STR(str))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -1691,7 +1673,7 @@ static int builtin_string_fill(FKL_CPROC_ARGL)
 static int builtin_bytevector_fill(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.bytevector-fill!";
-	DECL_AND_CHECK_ARG2(bvec,content,Pname);
+	FKL_DECL_AND_CHECK_ARG2(bvec,content,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!fklIsVMint(content)||!FKL_IS_BYTEVECTOR(bvec))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -1704,7 +1686,7 @@ static int builtin_bytevector_fill(FKL_CPROC_ARGL)
 static int builtin_vec_ref(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.vec-ref";
-	DECL_AND_CHECK_ARG2(vec,place,Pname);
+	FKL_DECL_AND_CHECK_ARG2(vec,place,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -1720,7 +1702,7 @@ static int builtin_vec_ref(FKL_CPROC_ARGL)
 static int builtin_vec_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.vec-set!";
-	DECL_AND_CHECK_ARG3(vec,place,target,Pname);
+	FKL_DECL_AND_CHECK_ARG3(vec,place,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -1737,7 +1719,7 @@ static int builtin_vec_set(FKL_CPROC_ARGL)
 static int builtin_vector_fill(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.vector-fill!";
-	DECL_AND_CHECK_ARG2(vec,content,Pname)
+	FKL_DECL_AND_CHECK_ARG2(vec,content,Pname)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vec,FKL_IS_VECTOR,Pname,exe);
 	FklVMvec* v=FKL_VM_VEC(vec);
@@ -1778,7 +1760,7 @@ static int builtin_vec_cas(FKL_CPROC_ARGL)
 static int builtin_nthcdr(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.nthcdr";
-	DECL_AND_CHECK_ARG2(place,objlist,Pname);
+	FKL_DECL_AND_CHECK_ARG2(place,objlist,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(place,fklIsVMint,Pname,exe);
 	size_t index=fklGetUint(place);
@@ -1801,7 +1783,7 @@ static int builtin_nthcdr(FKL_CPROC_ARGL)
 static int builtin_tail(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.tail";
-	DECL_AND_CHECK_ARG(objlist,Pname);
+	FKL_DECL_AND_CHECK_ARG(objlist,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
@@ -1817,7 +1799,7 @@ static int builtin_tail(FKL_CPROC_ARGL)
 static int builtin_nthcdr_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.nthcdr-set!";
-	DECL_AND_CHECK_ARG3(place,objlist,target,Pname);
+	FKL_DECL_AND_CHECK_ARG3(place,objlist,target,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(place,fklIsVMint,Pname,exe);
 	size_t index=fklGetUint(place);
@@ -1843,7 +1825,7 @@ static int builtin_nthcdr_set(FKL_CPROC_ARGL)
 static int builtin_length(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.length";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if((obj==FKL_VM_NIL||FKL_IS_PAIR(obj))&&fklIsList(obj))
@@ -1865,7 +1847,7 @@ static int builtin_length(FKL_CPROC_ARGL)
 static int builtin_fopen(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fopen";
-	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,Pname);
 	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
@@ -1885,7 +1867,7 @@ static int builtin_fopen(FKL_CPROC_ARGL)
 static int builtin_freopen(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.freopen";
-	DECL_AND_CHECK_ARG2(stream,filename,Pname);
+	FKL_DECL_AND_CHECK_ARG2(stream,filename,Pname);
 	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_FP(stream)||!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
@@ -1908,7 +1890,7 @@ static int builtin_freopen(FKL_CPROC_ARGL)
 static int builtin_fclose(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fclose";
-	DECL_AND_CHECK_ARG(vfp,Pname);
+	FKL_DECL_AND_CHECK_ARG(vfp,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
 	FklVMfp* fp=FKL_VM_FP(vfp);
@@ -2560,7 +2542,7 @@ end:
 static int builtin_make_parser(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.make-parser";
-	DECL_AND_CHECK_ARG(start,Pname);
+	FKL_DECL_AND_CHECK_ARG(start,Pname);
 	FKL_CHECK_TYPE(start,FKL_IS_SYM,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueUdata(exe,&CustomParserMetaTable,FKL_VM_NIL);
 	FKL_DECL_VM_UD_DATA(grammer,FklGrammer,retval);
@@ -2861,7 +2843,7 @@ static int builtin_read(FKL_CPROC_ARGL)
 static int builtin_stringify(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.stringify";
-	DECL_AND_CHECK_ARG(v,Pname);
+	FKL_DECL_AND_CHECK_ARG(v,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklStringify(v,exe->symbolTable));
 	FKL_VM_PUSH_VALUE(exe,retval);
@@ -2871,7 +2853,7 @@ static int builtin_stringify(FKL_CPROC_ARGL)
 static int builtin_parse(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.parse";
-	DECL_AND_CHECK_ARG(str,Pname);
+	FKL_DECL_AND_CHECK_ARG(str,Pname);
 	if(!FKL_IS_STR(str))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
@@ -3046,7 +3028,7 @@ static int builtin_fgetd(FKL_CPROC_ARGL)
 static int builtin_fgets(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fgets";
-	DECL_AND_CHECK_ARG(psize,Pname);
+	FKL_DECL_AND_CHECK_ARG(psize,Pname);
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	GET_OR_USE_STDIN(file);
@@ -3072,7 +3054,7 @@ static int builtin_fgets(FKL_CPROC_ARGL)
 static int builtin_fgetb(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fgetb";
-	DECL_AND_CHECK_ARG(psize,Pname);
+	FKL_DECL_AND_CHECK_ARG(psize,Pname);
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	GET_OR_USE_STDIN(file);
@@ -3099,7 +3081,7 @@ static int builtin_fgetb(FKL_CPROC_ARGL)
 static int builtin_prin1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.prin1";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	GET_OR_USE_STDOUT(file);
@@ -3118,7 +3100,7 @@ static int builtin_prin1(FKL_CPROC_ARGL)
 static int builtin_princ(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.princ";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	GET_OR_USE_STDOUT(file);
@@ -3159,7 +3141,7 @@ static int builtin_print(FKL_CPROC_ARGL)
 static int builtin_fprint(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fprint";
-	DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);
@@ -3176,7 +3158,7 @@ static int builtin_fprint(FKL_CPROC_ARGL)
 static int builtin_fprin1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fprin1";
-	DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);
@@ -3209,7 +3191,7 @@ static int builtin_newline(FKL_CPROC_ARGL)
 static int builtin_dlopen(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.dlopen";
-	DECL_AND_CHECK_ARG(dllName,Pname);
+	FKL_DECL_AND_CHECK_ARG(dllName,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dllName,FKL_IS_STR,Pname,exe);
 	FklString* dllNameStr=FKL_VM_STR(dllName);
@@ -3229,7 +3211,7 @@ static int builtin_dlopen(FKL_CPROC_ARGL)
 static int builtin_dlsym(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.dlsym";
-	DECL_AND_CHECK_ARG2(ndll,symbol,Pname);
+	FKL_DECL_AND_CHECK_ARG2(ndll,symbol,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(ndll))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3414,7 +3396,7 @@ static int isValidSyntaxPattern(const FklVMvalue* p)
 static int builtin_pmatch(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.pmatch";
-	DECL_AND_CHECK_ARG2(pattern,exp,Pname);
+	FKL_DECL_AND_CHECK_ARG2(pattern,exp,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!isValidSyntaxPattern(pattern))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDPATTERN,exe);
@@ -3430,7 +3412,7 @@ static int builtin_pmatch(FKL_CPROC_ARGL)
 static int builtin_go(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.go";
-	DECL_AND_CHECK_ARG(threadProc,Pname);
+	FKL_DECL_AND_CHECK_ARG(threadProc,Pname);
 	if(!fklIsCallable(threadProc))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVM* threadVM=fklCreateThreadVM(threadProc
@@ -3459,7 +3441,7 @@ static int builtin_go(FKL_CPROC_ARGL)
 static int builtin_chanl(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chanl";
-	DECL_AND_CHECK_ARG(maxSize,Pname);
+	FKL_DECL_AND_CHECK_ARG(maxSize,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(maxSize,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(maxSize))
@@ -3471,7 +3453,7 @@ static int builtin_chanl(FKL_CPROC_ARGL)
 static int builtin_chanl_msg_num(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chanl-msg-num";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if(FKL_IS_CHAN(obj))
@@ -3485,7 +3467,7 @@ static int builtin_chanl_msg_num(FKL_CPROC_ARGL)
 static int builtin_chanl_send_num(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chanl-send-num";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if(FKL_IS_CHAN(obj))
@@ -3499,7 +3481,7 @@ static int builtin_chanl_send_num(FKL_CPROC_ARGL)
 static int builtin_chanl_recv_num(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chanl-recv-num";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	size_t len=0;
 	if(FKL_IS_CHAN(obj))
@@ -3513,7 +3495,7 @@ static int builtin_chanl_recv_num(FKL_CPROC_ARGL)
 static int builtin_chanl_full_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chanl-full?";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=NULL;
 	if(FKL_IS_CHAN(obj))
@@ -3527,7 +3509,7 @@ static int builtin_chanl_full_p(FKL_CPROC_ARGL)
 static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chanl-msg->list";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* r=NULL;
 	FklVMvalue** cur=&r;
@@ -3556,7 +3538,7 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 static int builtin_send(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.send";
-	DECL_AND_CHECK_ARG2(ch,message,Pname);
+	FKL_DECL_AND_CHECK_ARG2(ch,message,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,Pname,exe);
 	uint32_t rtp=exe->tp;
@@ -3570,7 +3552,7 @@ static int builtin_send(FKL_CPROC_ARGL)
 static int builtin_recv(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.recv";
-	DECL_AND_CHECK_ARG(ch,Pname);
+	FKL_DECL_AND_CHECK_ARG(ch,Pname);
 	FklVMvalue* okBox=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,Pname,exe);
@@ -3597,7 +3579,7 @@ static int builtin_recv(FKL_CPROC_ARGL)
 static int builtin_recv7(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.recv&";
-	DECL_AND_CHECK_ARG(ch,Pname);
+	FKL_DECL_AND_CHECK_ARG(ch,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,Pname,exe);
 	FklVMchanl* chanl=FKL_VM_CHANL(ch);
@@ -3612,7 +3594,7 @@ static int builtin_recv7(FKL_CPROC_ARGL)
 static int builtin_error(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.error";
-	DECL_AND_CHECK_ARG3(type,where,message,Pname);
+	FKL_DECL_AND_CHECK_ARG3(type,where,message,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(where)&&!FKL_IS_STR(where)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3629,7 +3611,7 @@ static int builtin_error(FKL_CPROC_ARGL)
 static int builtin_error_type(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.error-type";
-	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_DECL_AND_CHECK_ARG(err,Pname);
 	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMerror* error=FKL_VM_ERR(err);
@@ -3640,7 +3622,7 @@ static int builtin_error_type(FKL_CPROC_ARGL)
 static int builtin_error_where(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.error-where";
-	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_DECL_AND_CHECK_ARG(err,Pname);
 	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMerror* error=FKL_VM_ERR(err);
@@ -3651,7 +3633,7 @@ static int builtin_error_where(FKL_CPROC_ARGL)
 static int builtin_error_msg(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.error-msg";
-	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_DECL_AND_CHECK_ARG(err,Pname);
 	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMerror* error=FKL_VM_ERR(err);
@@ -3662,7 +3644,7 @@ static int builtin_error_msg(FKL_CPROC_ARGL)
 static int builtin_raise(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.raise";
-	DECL_AND_CHECK_ARG(err,Pname);
+	FKL_DECL_AND_CHECK_ARG(err,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(err,FKL_IS_ERR,Pname,exe);
 	fklPopVMframe(exe);
@@ -3673,7 +3655,7 @@ static int builtin_raise(FKL_CPROC_ARGL)
 static int builtin_throw(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.throw";
-	DECL_AND_CHECK_ARG3(type,where,message,Pname);
+	FKL_DECL_AND_CHECK_ARG3(type,where,message,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_SYM(type)||!FKL_IS_STR(message)||(!FKL_IS_SYM(where)&&!FKL_IS_STR(where)))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3819,7 +3801,7 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 #define GET_LIST (0)
 #define GET_PROC (1)
 
-	DECL_AND_CHECK_ARG(proc,Pname);
+	FKL_DECL_AND_CHECK_ARG(proc,Pname);
 	FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
 	FklPtrStack errSymbolLists=FKL_STACK_INIT;
 	FklPtrStack errHandlers=FKL_STACK_INIT;
@@ -3898,7 +3880,7 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 static int builtin_apply(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.apply";
-	DECL_AND_CHECK_ARG(proc,Pname);
+	FKL_DECL_AND_CHECK_ARG(proc,Pname);
 	FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
 	FklPtrStack stack1=FKL_STACK_INIT;
 	fklInitPtrStack(&stack1,32,16);
@@ -3955,7 +3937,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 	{
 		case 0:
 			{
-				DECL_AND_CHECK_ARG(proc,Pname);
+				FKL_DECL_AND_CHECK_ARG(proc,Pname);
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
 				size_t arg_num=exe->tp-exe->bp;
 				if(arg_num==0)
@@ -4027,7 +4009,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 	{\
 		case 0:\
 			{\
-				DECL_AND_CHECK_ARG(proc,Pname);\
+				FKL_DECL_AND_CHECK_ARG(proc,Pname);\
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);\
 				size_t arg_num=exe->tp-exe->bp;\
 				if(arg_num==0)\
@@ -4121,7 +4103,7 @@ static int builtin_ormap(FKL_CPROC_ARGL)
 static int builtin_memq(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.memq";
-	DECL_AND_CHECK_ARG2(obj,list,Pname);
+	FKL_DECL_AND_CHECK_ARG2(obj,list,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
 	FklVMvalue* r=list;
@@ -4139,7 +4121,7 @@ static int builtin_member(FKL_CPROC_ARGL)
 	{
 		case 0:
 			{
-				DECL_AND_CHECK_ARG2(obj,list,Pname);
+				FKL_DECL_AND_CHECK_ARG2(obj,list,Pname);
 				FklVMvalue* proc=FKL_VM_POP_ARG(exe);
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
@@ -4208,7 +4190,7 @@ static int builtin_memp(FKL_CPROC_ARGL)
 	{
 		case 0:
 			{
-				DECL_AND_CHECK_ARG2(proc,list,Pname);
+				FKL_DECL_AND_CHECK_ARG2(proc,list,Pname);
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
 				FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
@@ -4266,7 +4248,7 @@ static int builtin_filter(FKL_CPROC_ARGL)
 	{
 		case 0:
 			{
-				DECL_AND_CHECK_ARG2(proc,list,Pname);
+				FKL_DECL_AND_CHECK_ARG2(proc,list,Pname);
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
 				FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
@@ -4337,7 +4319,7 @@ static int builtin_list(FKL_CPROC_ARGL)
 
 static int builtin_list8(FKL_CPROC_ARGL)
 {
-	DECL_AND_CHECK_ARG(r,"builtin.list*");
+	FKL_DECL_AND_CHECK_ARG(r,"builtin.list*");
 	FklVMvalue** pcur=&r;
 	for(FklVMvalue* cur=FKL_VM_POP_ARG(exe)
 			;cur
@@ -4354,7 +4336,7 @@ static int builtin_list8(FKL_CPROC_ARGL)
 static int builtin_reverse(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.reverse";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsList,Pname,exe);
 	FklVMvalue* retval=FKL_VM_NIL;
@@ -4367,7 +4349,7 @@ static int builtin_reverse(FKL_CPROC_ARGL)
 static int builtin_reverse1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.reverse!";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsList,Pname,exe);
 	FklVMvalue* retval=FKL_VM_NIL;
@@ -4388,7 +4370,7 @@ static int builtin_reverse1(FKL_CPROC_ARGL)
 static int builtin_feof_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.feof";
-	DECL_AND_CHECK_ARG(fp,Pname);
+	FKL_DECL_AND_CHECK_ARG(fp,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(fp,Pname,exe);
@@ -4399,7 +4381,7 @@ static int builtin_feof_p(FKL_CPROC_ARGL)
 static int builtin_fclerr(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fclerr";
-	DECL_AND_CHECK_ARG(fp,Pname);
+	FKL_DECL_AND_CHECK_ARG(fp,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(fp,Pname,exe);
@@ -4411,7 +4393,7 @@ static int builtin_fclerr(FKL_CPROC_ARGL)
 static int builtin_facce_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.facce?";
-	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
@@ -4423,7 +4405,7 @@ static int builtin_facce_p(FKL_CPROC_ARGL)
 static int builtin_freg_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.freg?";
-	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe
@@ -4436,7 +4418,7 @@ static int builtin_freg_p(FKL_CPROC_ARGL)
 static int builtin_fdir_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fdir?";
-	DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe
@@ -4449,7 +4431,7 @@ static int builtin_fdir_p(FKL_CPROC_ARGL)
 static int builtin_ftell(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.ftell";
-	DECL_AND_CHECK_ARG(fp,Pname);
+	FKL_DECL_AND_CHECK_ARG(fp,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(fp,Pname,exe);
@@ -4466,7 +4448,7 @@ static int builtin_ftell(FKL_CPROC_ARGL)
 static int builtin_fseek(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fseek";
-	DECL_AND_CHECK_ARG2(vfp,offset,Pname);
+	FKL_DECL_AND_CHECK_ARG2(vfp,offset,Pname);
 	FklVMvalue* whence_v=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
@@ -4540,7 +4522,7 @@ static int builtin_getcwd(FKL_CPROC_ARGL)
 static int builtin_chdir(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.chdir";
-	DECL_AND_CHECK_ARG(dir,Pname);
+	FKL_DECL_AND_CHECK_ARG(dir,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
 	FklString* dirstr=FKL_VM_STR(dir);
@@ -4554,7 +4536,7 @@ static int builtin_chdir(FKL_CPROC_ARGL)
 static int builtin_fwrite(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fwrite";
-	DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 
@@ -4593,7 +4575,7 @@ static int builtin_box(FKL_CPROC_ARGL)
 static int builtin_unbox(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.unbox";
-	DECL_AND_CHECK_ARG(box,Pname);
+	FKL_DECL_AND_CHECK_ARG(box,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(box,FKL_IS_BOX,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_BOX(box));
@@ -4603,7 +4585,7 @@ static int builtin_unbox(FKL_CPROC_ARGL)
 static int builtin_box_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.box-set!";
-	DECL_AND_CHECK_ARG2(box,obj,Pname);
+	FKL_DECL_AND_CHECK_ARG2(box,obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(box,FKL_IS_BOX,Pname,exe);
 	FKL_VM_BOX(box)=obj;
@@ -4614,7 +4596,7 @@ static int builtin_box_set(FKL_CPROC_ARGL)
 static int builtin_box_cas(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.box-cas!";
-	DECL_AND_CHECK_ARG3(box,old,new,Pname);
+	FKL_DECL_AND_CHECK_ARG3(box,old,new,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(box,FKL_IS_BOX,Pname,exe);
 	if(FKL_VM_BOX(box)==old)
@@ -4648,7 +4630,7 @@ static int builtin_bytevector(FKL_CPROC_ARGL)
 static int builtin_make_bytevector(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.make-bytevector";
-	DECL_AND_CHECK_ARG(size,Pname);
+	FKL_DECL_AND_CHECK_ARG(size,Pname);
 	FKL_CHECK_TYPE(size,fklIsVMint,Pname,exe);
 	FklVMvalue* content=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -4668,7 +4650,7 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL)
 	return 0;
 }
 
-#define PREDICATE(condtion,err_infor) DECL_AND_CHECK_ARG(val,err_infor);\
+#define PREDICATE(condtion,err_infor) FKL_DECL_AND_CHECK_ARG(val,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
 	if(condtion)\
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);\
@@ -4679,7 +4661,7 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL)
 static int builtin_sleep(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.sleep";
-	DECL_AND_CHECK_ARG(second,Pname);
+	FKL_DECL_AND_CHECK_ARG(second,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(second,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(second))
@@ -4693,7 +4675,7 @@ static int builtin_sleep(FKL_CPROC_ARGL)
 static int builtin_msleep(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.msleep";
-	DECL_AND_CHECK_ARG(second,Pname);
+	FKL_DECL_AND_CHECK_ARG(second,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(second,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(second))
@@ -4726,8 +4708,6 @@ static int builtin_rand(FKL_CPROC_ARGL)
 	return 0;
 }
 
-#include<time.h>
-
 static int builtin_get_time(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.get-time";
@@ -4756,7 +4736,7 @@ static int builtin_get_time(FKL_CPROC_ARGL)
 static int builtin_fremove(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.fremove";
-	DECL_AND_CHECK_ARG(name,Pname);
+	FKL_DECL_AND_CHECK_ARG(name,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
 	FklString* nameStr=FKL_VM_STR(name);
@@ -4775,7 +4755,7 @@ static int builtin_time(FKL_CPROC_ARGL)
 static int builtin_system(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.system";
-	DECL_AND_CHECK_ARG(name,Pname);
+	FKL_DECL_AND_CHECK_ARG(name,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
 	FklString* nameStr=FKL_VM_STR(name);
@@ -4804,7 +4784,7 @@ static int builtin_hash(FKL_CPROC_ARGL)
 static int builtin_hash_num(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-num";
-	DECL_AND_CHECK_ARG(ht,Pname);
+	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(FKL_VM_HASH(ht)->num,exe));
@@ -4901,7 +4881,7 @@ static int builtin_make_hashequal(FKL_CPROC_ARGL)
 static int builtin_hash_ref(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-ref";
-	DECL_AND_CHECK_ARG2(ht,key,Pname);
+	FKL_DECL_AND_CHECK_ARG2(ht,key,Pname);
 	FklVMvalue* defa=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
@@ -4922,7 +4902,7 @@ static int builtin_hash_ref(FKL_CPROC_ARGL)
 static int builtin_hash_ref4(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-ref$";
-	DECL_AND_CHECK_ARG2(ht,key,Pname);
+	FKL_DECL_AND_CHECK_ARG2(ht,key,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklVMhashTableItem* i=fklVMhashTableGetItem(key,FKL_VM_HASH(ht));
@@ -4936,7 +4916,7 @@ static int builtin_hash_ref4(FKL_CPROC_ARGL)
 static int builtin_hash_ref7(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-ref&";
-	DECL_AND_CHECK_ARG2(ht,key,Pname);
+	FKL_DECL_AND_CHECK_ARG2(ht,key,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	int ok=0;
@@ -4951,7 +4931,7 @@ static int builtin_hash_ref7(FKL_CPROC_ARGL)
 static int builtin_hash_ref1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-ref!";
-	DECL_AND_CHECK_ARG3(ht,key,toSet,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ht,key,toSet,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklVMhashTableItem* item=fklVMhashTableRef1(key,toSet,FKL_VM_HASH(ht),exe->gc);
@@ -4962,7 +4942,7 @@ static int builtin_hash_ref1(FKL_CPROC_ARGL)
 static int builtin_hash_clear(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-clear!";
-	DECL_AND_CHECK_ARG(ht,Pname);
+	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	fklClearHashTable(FKL_VM_HASH(ht));
@@ -4973,7 +4953,7 @@ static int builtin_hash_clear(FKL_CPROC_ARGL)
 static int builtin_hash_set(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-set!";
-	DECL_AND_CHECK_ARG3(ht,key,value,Pname);
+	FKL_DECL_AND_CHECK_ARG3(ht,key,value,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	fklVMhashTableSet(key,value,FKL_VM_HASH(ht));
@@ -4984,7 +4964,7 @@ static int builtin_hash_set(FKL_CPROC_ARGL)
 static int builtin_hash_del1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-del!";
-	DECL_AND_CHECK_ARG2(ht,key,Pname);
+	FKL_DECL_AND_CHECK_ARG2(ht,key,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklVMhashTableItem i;
@@ -4998,7 +4978,7 @@ static int builtin_hash_del1(FKL_CPROC_ARGL)
 static int builtin_hash_set8(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-set*!";
-	DECL_AND_CHECK_ARG(ht,Pname);
+	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	size_t arg_num=exe->tp-exe->bp;
 	if(arg_num%2)
@@ -5018,7 +4998,7 @@ static int builtin_hash_set8(FKL_CPROC_ARGL)
 static int builtin_hash_to_list(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash->list";
-	DECL_AND_CHECK_ARG(ht,Pname);
+	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklHashTable* hash=FKL_VM_HASH(ht);
@@ -5038,7 +5018,7 @@ static int builtin_hash_to_list(FKL_CPROC_ARGL)
 static int builtin_hash_keys(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-keys";
-	DECL_AND_CHECK_ARG(ht,Pname);
+	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklHashTable* hash=FKL_VM_HASH(ht);
@@ -5057,7 +5037,7 @@ static int builtin_hash_keys(FKL_CPROC_ARGL)
 static int builtin_hash_values(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.hash-values";
-	DECL_AND_CHECK_ARG(ht,Pname);
+	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
 	FklHashTable* hash=FKL_VM_HASH(ht);
@@ -5107,7 +5087,7 @@ static int builtin_parser_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL
 static int builtin_odd_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.odd?";
-	DECL_AND_CHECK_ARG(val,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
 	int r=0;
@@ -5125,7 +5105,7 @@ static int builtin_odd_p(FKL_CPROC_ARGL)
 static int builtin_even_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.even?";
-	DECL_AND_CHECK_ARG(val,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
 	int r=0;

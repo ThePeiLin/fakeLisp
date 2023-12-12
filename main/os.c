@@ -154,7 +154,7 @@ static int os_chdir(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
 	FklString* dirstr=FKL_VM_STR(dir);
-	int r=fklChangeWorkDir(dirstr->str);
+	int r=fklChdir(dirstr->str);
 	if(r)
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

@@ -2024,6 +2024,8 @@ static inline struct ParseCtx* create_read_parse_ctx(void)
 	return pctx;
 }
 
+extern void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
+
 static inline void initReadCtx(void* data
 		,FklSid_t sid
 		,const char* func_name

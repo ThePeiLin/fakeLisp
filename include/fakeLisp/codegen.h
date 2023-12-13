@@ -250,7 +250,7 @@ typedef struct FklCodegenInfo
 
 	char* filename;
 	char* realpath;
-	char* curDir;
+	char* dir;
 	uint64_t curline;
 	FklSid_t fid;
 

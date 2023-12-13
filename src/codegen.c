@@ -3917,7 +3917,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegenInfo* codegen
 				,symbolStack
 				,lineStack
 				,stateStack
-				,codegen->curDir);
+				,codegen->dir);
 	}
 	else
 	{
@@ -6449,7 +6449,7 @@ static FklNastNode* _file_dir_replacement(const FklNastNode* orig
 	if(codegen->filename==NULL)
 		s=fklCreateStringFromCstr(codegen->outer_ctx->cwd);
 	else
-		s=fklCreateStringFromCstr(codegen->curDir);
+		s=fklCreateStringFromCstr(codegen->dir);
 	fklStringCstrCat(&s,FKL_PATH_SEPARATOR_STR);
 	r->str=s;
 	return r;
@@ -7602,8 +7602,8 @@ static inline FklCodegenInfo* macro_compile_prepare(FklCodegenInfo* codegen
 	macroCodegen->builtinSymModiMark=fklGetBuiltinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
 	fklDestroyCodegenEnv(macroEnv->prev);
 	macroEnv->prev=NULL;
-	free(macroCodegen->curDir);
-	macroCodegen->curDir=fklCopyCstr(codegen->curDir);
+	free(macroCodegen->dir);
+	macroCodegen->dir=fklCopyCstr(codegen->dir);
 	macroCodegen->filename=fklCopyCstr(codegen->filename);
 	macroCodegen->realpath=fklCopyCstr(codegen->realpath);
 	macroCodegen->pts=codegen->macro_pts;
@@ -8717,7 +8717,7 @@ static int matchAndCall(FklCodegenFunc func
 	int r=fklPatternMatch(pattern,exp,ht);
 	if(r)
 	{
-		fklChdir(codegenr->curDir);
+		fklChdir(codegenr->dir);
 		func(exp
 				,ht
 				,codegenQuestStack
@@ -9154,14 +9154,14 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	codegen->outer_ctx=outer_ctx;
 	if(rp!=NULL)
 	{
-		codegen->curDir=fklGetDir(rp);
+		codegen->dir=fklGetDir(rp);
 		codegen->filename=fklRelpath(outer_ctx->main_file_real_path_dir,rp);
 		codegen->realpath=fklCopyCstr(rp);
 		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
 	else
 	{
-		codegen->curDir=fklSysgetcwd();
+		codegen->dir=fklSysgetcwd();
 		codegen->filename=NULL;
 		codegen->realpath=NULL;
 		codegen->fid=0;
@@ -9213,14 +9213,14 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	if(filename!=NULL)
 	{
 		char* rp=fklRealpath(filename);
-		codegen->curDir=fklGetDir(rp);
+		codegen->dir=fklGetDir(rp);
 		codegen->filename=fklRelpath(outer_ctx->main_file_real_path_dir,rp);
 		codegen->realpath=rp;
 		codegen->fid=fklAddSymbolCstr(codegen->filename,globalSymTable)->id;
 	}
 	else
 	{
-		codegen->curDir=fklSysgetcwd();
+		codegen->dir=fklSysgetcwd();
 		codegen->filename=NULL;
 		codegen->realpath=NULL;
 		codegen->fid=0;
@@ -9290,7 +9290,7 @@ void fklUninitCodegenInfo(FklCodegenInfo* codegen)
 		if(codegen->pts)
 			fklDestroyFuncPrototypes(codegen->pts);
 	}
-	free(codegen->curDir);
+	free(codegen->dir);
 	if(codegen->filename)
 		free(codegen->filename);
 	if(codegen->realpath)
@@ -9783,7 +9783,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 		FklCodegenOuterCtx* outer_ctx=codegen->outer_ctx;
 		const char* cwd=outer_ctx->cwd;
-		fklChdir(codegen->curDir);
+		fklChdir(codegen->dir);
 
 		FklFuncPrototypes* pts=NULL;
 		FklPtrStack* macroLibStack=NULL;

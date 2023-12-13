@@ -28,6 +28,7 @@
         (complex-macro)
         (compile-check)
         (test-ht)
-        (os-time))
+        (os)
+        (fs))
 
 (println "\ntest done!")

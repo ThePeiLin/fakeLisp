@@ -122,6 +122,19 @@ static int fs_relpath(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_mkdir(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.mkdir";
+	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
+	char* filename_str=FKL_VM_STR(filename)->str;
+	if(fklMkdir(filename_str))
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,filename_str,0,FKL_ERR_FILEFAILURE,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -134,6 +147,7 @@ struct SymFunc
 	{"freopen",  fs_freopen,  },
 	{"realpath", fs_realpath, },
 	{"relpath",  fs_relpath,  },
+	{"mkdir",  fs_mkdir,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

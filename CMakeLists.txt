@@ -203,6 +203,26 @@ set_target_properties(math PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
+#fs.so
+add_library(fs
+	SHARED
+	"main/fs.c")
+set_target_properties(fs PROPERTIES
+	PREFIX "")
+target_link_libraries(fs ${LIBFKL_MOD_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET fs
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:fs>
+	"${CMAKE_BINARY_DIR}/lib/"
+	DEPENDS fs
+	VERBATIM)
+else()
+set_target_properties(fs PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
 #linking
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)

@@ -6472,6 +6472,23 @@ static FklNastNode* _file_replacement(const FklNastNode* orig
 	return r;
 }
 
+static FklNastNode* _file_rp_replacement(const FklNastNode* orig
+		,const FklCodegenEnv* env
+		,const FklCodegenInfo* codegen)
+{
+	FklNastNode* r=NULL;
+	if(codegen->realpath==NULL)
+		r=fklCreateNastNode(FKL_NAST_NIL,orig->curline);
+	else
+	{
+		r=fklCreateNastNode(FKL_NAST_STR,orig->curline);
+		FklString* s=NULL;
+		s=fklCreateStringFromCstr(codegen->realpath);
+		r->str=s;
+	}
+	return r;
+}
+
 static FklNastNode* _line_replacement(const FklNastNode* orig
 		,const FklCodegenEnv* env
 		,const FklCodegenInfo* codegen)
@@ -6497,12 +6514,13 @@ static struct SymbolReplacement
 	ReplacementFunc func;
 }builtInSymbolReplacement[FKL_BUILTIN_REPLACEMENT_NUM]=
 {
-	{"nil",         _nil_replacement,      },
-	{"*line*",      _line_replacement,     },
-	{"*file*",      _file_replacement,     },
-	{"*file-dir*",  _file_dir_replacement, },
-	{"*main?*",     _is_main_replacement,  },
-	{"*platform*",  _platform_replacement, },
+	{"nil",        _nil_replacement,      },
+	{"*line*",     _line_replacement,     },
+	{"*file*",     _file_replacement,     },
+	{"*file-rp*",  _file_rp_replacement,  },
+	{"*file-dir*", _file_dir_replacement, },
+	{"*main?*",    _is_main_replacement,  },
+	{"*platform*", _platform_replacement, },
 };
 
 static inline ReplacementFunc findBuiltInReplacementWithId(FklSid_t id,const FklSid_t builtin_replacement_id[])

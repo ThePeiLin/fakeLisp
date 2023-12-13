@@ -1,0 +1,13 @@
+(import (.. lib fs))
+(import (.. lib utils))
+
+(assert (facce? *file-rp*))
+(assert (freg? *file-rp*))
+(assert (fdir? *file-dir*))
+
+(assert (freopen stdin *file-rp*))
+
+(do [(cur (read) (read))]
+  [(eof? cur)]
+  (prin1 cur)
+  (newline))

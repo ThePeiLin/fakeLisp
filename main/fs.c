@@ -78,18 +78,62 @@ static int fs_realpath(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_relpath(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.relpath";
+	FKL_DECL_AND_CHECK_ARG(path,Pname);
+	FklVMvalue* start=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(path,FKL_IS_STR,Pname,exe);
+
+	if(start)
+		FKL_CHECK_TYPE(start,FKL_IS_STR,Pname,exe);
+
+	char* path_rp=fklRealpath(FKL_VM_STR(path)->str);
+	if(!path_rp)
+	{
+		path_rp=fklStrCat(fklSysgetcwd(),FKL_PATH_SEPARATOR_STR);
+		path_rp=fklStrCat(path_rp,FKL_VM_STR(path)->str);
+	}
+
+	char* start_rp=start?fklRealpath(FKL_VM_STR(start)->str):fklRealpath(".");
+	if(!start_rp)
+	{
+		start_rp=fklStrCat(fklSysgetcwd(),FKL_PATH_SEPARATOR_STR);
+		start_rp=fklStrCat(start_rp,FKL_VM_STR(start)->str);
+	}
+
+	char* relpath_cstr=fklRelpath(start_rp
+			?start_rp
+			:FKL_VM_STR(start)->str
+			,path_rp
+			?path_rp
+			:FKL_VM_STR(path)->str);
+
+	if(relpath_cstr)
+	{
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(relpath_cstr)));
+		free(relpath_cstr);
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	free(start_rp);
+	free(path_rp);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"facce?",  fs_facce_p, },
-	{"freg?",   fs_freg_p,  },
-	{"fdir?",   fs_fdir_p,  },
-	{"freopen", fs_freopen, },
-	{"realpath",fs_realpath, },
-	// {"relpath",fs_relpath, },
+	{"facce?",   fs_facce_p,  },
+	{"freg?",    fs_freg_p,   },
+	{"fdir?",    fs_fdir_p,   },
+	{"freopen",  fs_freopen,  },
+	{"realpath", fs_realpath, },
+	{"relpath",  fs_relpath,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

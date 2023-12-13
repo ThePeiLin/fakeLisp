@@ -10,6 +10,7 @@
 
 (define prev-cwd (getcwd))
 (chdir *file-dir*)
+
 (assert (equal (println (realpath *file*))
                *file-rp*))
 (chdir prev-cwd)
@@ -18,3 +19,30 @@
   [(eof? cur)]
   (prin1 cur)
   (newline))
+
+(newline)
+
+(println (append! "path= " (stringify *file-rp*)))
+(println (append! "start= " (stringify *file-rp*)))
+(println (append! "relpath= " (stringify (relpath *file-rp* *file-rp*))))
+(newline)
+
+(println (append! "path= " (stringify *file-rp*)))
+(println (append! "start= " (stringify "test")))
+(println (append! "relpath= " (stringify (relpath *file-rp* "test"))))
+(newline)
+
+(println (append! "path= " (stringify "foo/foobar/foo")))
+(println (append! "start= " (stringify "foobar")))
+(println (append! "relpath= " (stringify (relpath "foo/foobar/foo" "foobar"))))
+(newline)
+
+(println (append! "path= " (stringify "/foobar/foobar/foo")))
+(println (append! "start= " (stringify "foobar/foo")))
+(println (append! "relpath= " (stringify (relpath "/foobar/foobar/foo" "foobar/foo"))))
+(newline)
+
+(println (append! "path= " (stringify *file-rp*)))
+(println (append! "start= " (stringify ".")))
+(println (append! "relpath= " (stringify (relpath *file-rp*))))
+(newline)

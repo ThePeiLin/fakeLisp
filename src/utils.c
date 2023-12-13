@@ -534,52 +534,130 @@ char* fklGetStringFromFile(FILE* file)
 	return tmp;
 }
 
-char* fklRelpath(const char* real_dir,const char* relative)
+#ifdef _WIN32
+char* fklRelpath(const char* start,const char* path)
 {
 	char divstr[]=FKL_PATH_SEPARATOR_STR;
-#ifdef _WIN32
 	char upperDir[]="..\\";
 	char rp[MAX_PATH]={0};
-#else
-	char rp[PATH_MAX]={0};
-	char upperDir[]="../";
-#endif
-	char* cabs=fklCopyCstr(real_dir);
-	char* crelto=fklCopyCstr(relative);
-	size_t abs_path_part_count=0;
-	size_t rel_to_path_part_count=0;
-	char** absDirs=fklSplit(cabs,divstr,&abs_path_part_count);
-	char** reltoDirs=fklSplit(crelto,divstr,&rel_to_path_part_count);
-	size_t length=(abs_path_part_count<rel_to_path_part_count)?abs_path_part_count:rel_to_path_part_count;
-	size_t lastCommonRoot=0;
-	size_t index;
-	for(index=0;index<length;index++)
+	char* c_start=fklCopyCstr(start);
+	char* c_path=fklCopyCstr(path);
+
+	size_t start_part_count=0;
+	size_t path_part_count=0;
+
+	char** start_parts=fklSplit(c_start,divstr,&start_part_count);
+	char** path_parts=fklSplit(c_path,divstr,&path_part_count);
+
+	size_t length=(start_part_count<path_part_count)?start_part_count:path_part_count;
+	size_t common_prefix_len=0;
+
+	size_t index=1;
+	for(;index<length;index++)
 	{
-		if(!strcmp(absDirs[index],reltoDirs[index]))
-			lastCommonRoot=index+1;
+		if(!strcmp(start_parts[index],path_parts[index]))
+			common_prefix_len=index+1;
 		else
 			break;
 	}
-#ifdef _WIN32
-	FKL_ASSERT(lastCommonRoot);
-#endif
-	for(index=lastCommonRoot;index<abs_path_part_count;index++)
-		if(abs_path_part_count>0)
-			strcat(rp,upperDir);
-	for(index=lastCommonRoot;index<rel_to_path_part_count-1;index++)
+	char* trp=NULL;
+	if(length)
 	{
-		strcat(rp,reltoDirs[index]);
+		char* start_drive=start_parts[0];
+		char* path_drive=path_drive[0];
+
+		while(*start_drive&&isspace(*start_drive))
+			start_drive++;
+
+		while(*path_drive&&isspace(*path_drive))
+			path_drive++;
+
+		if(toupper(*start_drive)!=toupper(*path_drive))
+			goto exit;
+	}
+
+	if(!lastCommonRoot)
+		goto exit;
+
+	if(common_prefix_len==(length-1)&&start_part_count==path_part_count)
+	{
+		trp=fklCopyCstr(".");
+		goto exit;
+	}
+	for(index=common_prefix_len;index<start_part_count;index++)
+		if(start_part_count>0)
+			strcat(rp,upperDir);
+	for(index=common_prefix_len;index<path_part_count-1;index++)
+	{
+		strcat(rp,path_parts[index]);
 		strcat(rp,divstr);
 	}
-	if(reltoDirs!=NULL)
-		strcat(rp,reltoDirs[rel_to_path_part_count-1]);
-	char* trp=fklCopyCstr(rp);
-	free(cabs);
-	free(crelto);
-	free(absDirs);
-	free(reltoDirs);
+	if(path_parts!=NULL)
+		strcat(rp,path_parts[path_part_count-1]);
+	trp=fklCopyCstr(rp);
+exit:
+	free(c_start);
+	free(c_path);
+	free(start_parts);
+	free(path_parts);
 	return trp;
 }
+
+#else
+
+char* fklRelpath(const char* start,const char* path)
+{
+	char divstr[]=FKL_PATH_SEPARATOR_STR;
+	char rp[PATH_MAX]={0};
+	char upperDir[]="../";
+
+	char* c_start=fklCopyCstr(start);
+	char* c_path=fklCopyCstr(path);
+
+	size_t start_part_count=0;
+	size_t path_part_count=0;
+
+	char** start_parts=fklSplit(c_start,divstr,&start_part_count);
+	char** path_parts=fklSplit(c_path,divstr,&path_part_count);
+
+	size_t length=(start_part_count<path_part_count)?start_part_count:path_part_count;
+	size_t common_prefix_len=0;
+
+	size_t index=0;
+	for(;index<length;index++)
+	{
+		if(!strcmp(start_parts[index],path_parts[index]))
+			common_prefix_len=index+1;
+		else
+			break;
+	}
+	char* trp=NULL;
+
+	if(common_prefix_len==length&&start_part_count==path_part_count)
+	{
+		trp=fklCopyCstr(".");
+		goto exit;
+	}
+	for(index=common_prefix_len;index<start_part_count;index++)
+		if(start_part_count>0)
+			strcat(rp,upperDir);
+	for(index=common_prefix_len;index<path_part_count-1;index++)
+	{
+		strcat(rp,path_parts[index]);
+		strcat(rp,divstr);
+	}
+	if(path_parts!=NULL)
+		strcat(rp,path_parts[path_part_count-1]);
+	trp=fklCopyCstr(rp);
+exit:
+	free(c_start);
+	free(c_path);
+	free(start_parts);
+	free(path_parts);
+	return trp;
+}
+
+#endif
 
 #ifndef WIN32
 char** fklSplit(char* str,const char* divstr,size_t* pcount)

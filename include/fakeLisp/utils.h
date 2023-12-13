@@ -109,7 +109,7 @@ char* fklGetDir(const char*);
 char* fklGetStringFromFile(FILE*);
 char** fklSplit(char* str,const char* divider,size_t*);
 char* fklRealpath(const char*);
-char* fklRelpath(const char* real_dir,const char* relative);
+char* fklRelpath(const char* start,const char* path);
 
 int fklIsI64AddOverflow(int64_t a,int64_t b);
 int fklIsI64MulOverflow(int64_t a,int64_t b);

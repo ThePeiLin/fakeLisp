@@ -1,4 +1,5 @@
 (import (.. lib fs))
+(import (.. lib os))
 (import (.. lib utils))
 
 (assert (facce? *file-rp*))
@@ -6,6 +7,12 @@
 (assert (fdir? *file-dir*))
 
 (assert (freopen stdin *file-rp*))
+
+(define prev-cwd (getcwd))
+(chdir *file-dir*)
+(assert (equal (println (realpath *file*))
+               *file-rp*))
+(chdir prev-cwd)
 
 (do [(cur (read) (read))]
   [(eof? cur)]

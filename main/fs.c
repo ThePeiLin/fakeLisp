@@ -61,6 +61,23 @@ static int fs_freopen(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_realpath(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.realpath";
+	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
+	char* rp=fklRealpath(FKL_VM_STR(filename)->str);
+	if(rp)
+	{
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(rp)));
+		free(rp);
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -71,7 +88,8 @@ struct SymFunc
 	{"freg?",   fs_freg_p,  },
 	{"fdir?",   fs_fdir_p,  },
 	{"freopen", fs_freopen, },
-	// {"realpath",fs_realpath, },
+	{"realpath",fs_realpath, },
+	// {"relpath",fs_relpath, },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

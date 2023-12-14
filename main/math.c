@@ -25,7 +25,7 @@ static int math_rand(FKL_CPROC_ARGL)
 
 static int math_sqrt(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="math.rand";
+	static const char Pname[]="math.sqrt";
 	FKL_DECL_AND_CHECK_ARG(num,Pname);
 	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
@@ -145,6 +145,76 @@ static int math_2_PI(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_rad(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.rad";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,fklGetDouble(num)*(M_PI/180.0)));
+	return 0;
+}
+
+static int math_sin(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.sin";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,sin(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_cos(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.cos";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,cos(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_tan(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.tan";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,tan(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_asin(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.asin";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,asin(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_acos(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.acos";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,acos(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_atan(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.atan";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,atan(fklGetDouble(num))));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -161,7 +231,6 @@ struct SymFunc
 	{"abs",   math_abs,    },
 
 	{"rad",   math_rad,    },
-	{"angle", math_angle,  },
 
 	{"asin",  math_asin,   },
 	{"acos",  math_acos,   },

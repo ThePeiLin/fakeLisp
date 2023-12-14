@@ -215,6 +215,46 @@ static int math_atan(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_ceil(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.ceil";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ceil(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_floor(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.floor";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,floor(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_round(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.round";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,round(fklGetDouble(num))));
+	return 0;
+}
+
+static int math_trunc(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.round";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,trunc(fklGetDouble(num))));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -231,6 +271,7 @@ struct SymFunc
 	{"abs",   math_abs,    },
 
 	{"rad",   math_rad,    },
+	// {"deg",   math_deg,    },
 
 	{"asin",  math_asin,   },
 	{"acos",  math_acos,   },
@@ -239,6 +280,11 @@ struct SymFunc
 	{"sin",   math_sin,    },
 	{"cos",   math_cos,    },
 	{"tan",   math_tan,    },
+
+	{"ceil",  math_ceil,   },
+	{"floor", math_floor,  },
+	{"trunc", math_trunc,  },
+	{"round", math_round,  },
 
 	{"E",     math_E,      },
 	{"PI",    math_PI,     },

@@ -33,15 +33,83 @@ static int math_sqrt(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_abs(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.abs";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
+	if(FKL_IS_F64(obj))
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,fabs(FKL_VM_F64(obj))));
+	else
+	{
+		if(FKL_IS_FIX(obj))
+		{
+			int64_t i=llabs(FKL_GET_FIX(obj));
+			if(i>FKL_FIX_INT_MAX)
+				FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,i));
+			else
+				FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(i));
+		}
+		else
+		{
+			FklVMvalue* r=fklCreateVMvalueBigInt(exe,FKL_VM_BI(obj));
+			FKL_VM_BI(r)->neg=0;
+			FKL_VM_PUSH_VALUE(exe,r);
+		}
+	}
+	return 0;
+}
+
+static int math_odd_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.odd?";
+	FKL_DECL_AND_CHECK_ARG(val,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
+	int r=0;
+	if(FKL_IS_FIX(val))
+		r=FKL_GET_FIX(val)%2;
+	else
+		r=fklIsBigIntOdd(FKL_VM_BI(val));
+	if(r)
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int math_even_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.even?";
+	FKL_DECL_AND_CHECK_ARG(val,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
+	int r=0;
+	if(FKL_IS_FIX(val))
+		r=FKL_GET_FIX(val)%2==0;
+	else
+		r=fklIsBigIntEven(FKL_VM_BI(val));
+	if(r)
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+
 struct SymFunc
 {
 	const char* sym;
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"srand", math_srand, },
-	{"rand",  math_rand,  },
-	{"sqrt",  math_sqrt,  },
+	{"srand", math_srand,  },
+	{"rand",  math_rand,   },
+	{"sqrt",  math_sqrt,   },
+	{"abs",   math_abs,    },
+	{"even?", math_even_p, },
+	{"odd?",  math_odd_p,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

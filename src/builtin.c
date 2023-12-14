@@ -361,34 +361,6 @@ static int builtin_sub(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_abs(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.abs";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
-	if(FKL_IS_F64(obj))
-		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,fabs(FKL_VM_F64(obj))));
-	else
-	{
-		if(FKL_IS_FIX(obj))
-		{
-			int64_t i=llabs(FKL_GET_FIX(obj));
-			if(i>FKL_FIX_INT_MAX)
-				FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,i));
-			else
-				FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(i));
-		}
-		else
-		{
-			FklVMvalue* r=fklCreateVMvalueBigInt(exe,FKL_VM_BI(obj));
-			FKL_VM_BI(r)->neg=0;
-			FKL_VM_PUSH_VALUE(exe,r);
-		}
-	}
-	return 0;
-}
-
 static int builtin_sub_1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.-1+";
@@ -4871,42 +4843,6 @@ static int builtin_eof_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL_VM
 
 static int builtin_parser_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL_VM_UD(val)->t==&CustomParserMetaTable,"builtin.parser?")}
 
-static int builtin_odd_p(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.odd?";
-	FKL_DECL_AND_CHECK_ARG(val,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
-	int r=0;
-	if(FKL_IS_FIX(val))
-		r=FKL_GET_FIX(val)%2;
-	else
-		r=fklIsBigIntOdd(FKL_VM_BI(val));
-	if(r)
-		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
-	else
-		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-	return 0;
-}
-
-static int builtin_even_p(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.even?";
-	FKL_DECL_AND_CHECK_ARG(val,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
-	int r=0;
-	if(FKL_IS_FIX(val))
-		r=FKL_GET_FIX(val)%2==0;
-	else
-		r=fklIsBigIntEven(FKL_VM_BI(val));
-	if(r)
-		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
-	else
-		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-	return 0;
-}
-
 static int builtin_exit(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.exit";
@@ -5209,7 +5145,6 @@ static const struct SymbolFuncStruct
 	{"/",                     builtin_div,                     {NULL,         inlfunc_rec,   inlfunc_div,     inlfunc_div3,  }, },
 	{"//",                    builtin_idiv,                    {NULL,         NULL,          inlfunc_idiv,    inlfunc_idiv3, }, },
 	{"%",                     builtin_mod,                     {NULL,         NULL,          inlfunc_mod,     NULL,          }, },
-	{"abs",                   builtin_abs,                     {NULL,         NULL,          NULL,            NULL,          }, },
 	{">",                     builtin_gt,                      {NULL,         inlfunc_true,  inlfunc_gt,      inlfunc_gt3,   }, },
 	{">=",                    builtin_ge,                      {NULL,         inlfunc_true,  inlfunc_ge,      inlfunc_ge3,   }, },
 	{"<",                     builtin_lt,                      {NULL,         inlfunc_true,  inlfunc_lt,      inlfunc_lt3,   }, },
@@ -5418,9 +5353,6 @@ static const struct SymbolFuncStruct
 	{"hash-values",           builtin_hash_values,             {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"pmatch",                builtin_pmatch,                  {NULL,         NULL,          NULL,            NULL,          }, },
-
-	{"odd?",                  builtin_odd_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"even?",                 builtin_even_p,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"exit",                  builtin_exit,                    {NULL,         NULL,          NULL,            NULL,          }, },
 

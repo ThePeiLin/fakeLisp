@@ -151,13 +151,27 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"srand", math_srand,  },
-	{"rand",  math_rand,   },
-	{"sqrt",  math_sqrt,   },
-	{"abs",   math_abs,    },
 	{"even?", math_even_p, },
 	{"odd?",  math_odd_p,  },
-	{"E",     math_E,     },
+
+	{"srand", math_srand,  },
+	{"rand",  math_rand,   },
+
+	{"sqrt",  math_sqrt,   },
+	{"abs",   math_abs,    },
+
+	{"rad",   math_rad,    },
+	{"angle", math_angle,  },
+
+	{"asin",  math_asin,   },
+	{"acos",  math_acos,   },
+	{"atan",  math_atan,   },
+
+	{"sin",   math_sin,    },
+	{"cos",   math_cos,    },
+	{"tan",   math_tan,    },
+
+	{"E",     math_E,      },
 	{"PI",    math_PI,     },
 	{"PI/2",  math_PI_2,   },
 	{"PI/4",  math_PI_4,   },

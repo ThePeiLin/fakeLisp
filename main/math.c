@@ -1,9 +1,10 @@
 #include<fakeLisp/vm.h>
+#include<math.h>
 
 static int math_srand(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.srand";
-	FklVMvalue* s=FKL_VM_POP_ARG(exe);
+	FKL_DECL_AND_CHECK_ARG(s,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(s,fklIsVMint,Pname,exe);
 	srand(fklGetInt(s));
@@ -22,6 +23,16 @@ static int math_rand(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_sqrt(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.rand";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,sqrt(fklGetDouble(num))));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -30,6 +41,7 @@ struct SymFunc
 {
 	{"srand", math_srand, },
 	{"rand",  math_rand,  },
+	{"sqrt",  math_sqrt,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

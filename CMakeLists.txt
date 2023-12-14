@@ -189,7 +189,7 @@ add_library(math
 	"main/math.c")
 set_target_properties(math PROPERTIES
 	PREFIX "")
-target_link_libraries(math ${LIBFKL_MOD_TARGET_NAME})
+target_link_libraries(math ${LIBFKL_MOD_TARGET_NAME} ${LINK_TARGET})
 
 if(MSVC)
 add_custom_command(TARGET math

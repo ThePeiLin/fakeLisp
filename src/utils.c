@@ -107,15 +107,6 @@ char* fklGetStringAfterBackslashInStr(const char* str)
 	return tmp;
 }
 
-FklString* fklDoubleToString(double num)
-{
-	char numString[256]={0};
-	int lenOfNum=snprintf(numString,256,"%.14g",num);
-	FklString* tmp=fklCreateString(lenOfNum,numString);
-	return tmp;
-}
-
-
 double fklStringToDouble(const FklString* str)
 {
 	return atof(str->str);

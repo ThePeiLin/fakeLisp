@@ -57,7 +57,7 @@ int main(int argc,char** argv)
 		{
 			FklCodegenLib* cur=&libs[i];
 			fputc('\n',stdout);
-			printf("lib %"PRT64U":\n",i+1);
+			printf("lib %"FKL_PRT64U":\n",i+1);
 			switch(cur->type)
 			{
 				case FKL_CODEGEN_LIB_SCRIPT:
@@ -138,7 +138,7 @@ int main(int argc,char** argv)
 		{
 			FklCodegenLib* cur=scriptLibStack.base[i];
 			fputc('\n',stdout);
-			printf("lib %"PRT64U":\n",i+1);
+			printf("lib %"FKL_PRT64U":\n",i+1);
 			switch(cur->type)
 			{
 				case FKL_CODEGEN_LIB_SCRIPT:
@@ -166,7 +166,7 @@ int main(int argc,char** argv)
 			{
 				FklCodegenLib* cur=macroScriptLibStack.base[i];
 				putchar('\n');
-				printf("lib %"PRT64U":\n",i+1);
+				printf("lib %"FKL_PRT64U":\n",i+1);
 				switch(cur->type)
 				{
 					case FKL_CODEGEN_LIB_SCRIPT:

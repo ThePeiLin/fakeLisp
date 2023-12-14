@@ -2432,7 +2432,7 @@ void fklDBG_printVMstack(FklVM* stack,FILE* fp,int mode,FklSymbolTable* table)
 		{
 			if(mode&&stack->bp==i)
 				fputs("->",stderr);
-			if(fp!=stdout)fprintf(fp,"%"PRT64D":",i);
+			if(fp!=stdout)fprintf(fp,"%"FKL_PRT64D":",i);
 			FklVMvalue* tmp=stack->base[i];
 			fklPrin1VMvalue(tmp,fp,table);
 			putc('\n',fp);

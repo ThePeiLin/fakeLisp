@@ -194,18 +194,18 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			{
 				case FKL_OP_PUSH_PROC:
 					fprintf(fp,"%u ",ins->imm);
-					fprintf(fp,"%"PRT64U"",ins->imm_u64);
+					fprintf(fp,"%"FKL_PRT64U"",ins->imm_u64);
 					fklPushPtrStack(createByteCodePrintState(cState->tc,i+1+ins->imm_u64,cState->cpc),s);
 					fklPushPtrStack(createByteCodePrintState(tab_count+1,i+1,i+1+ins->imm_u64),s);
 					proc_len=ins->imm_u64;
 					*needBreak=1;
 					break;
 				case FKL_OP_PUSH_STR:
-					fprintf(fp,"%"PRT64U" ",ins->str->size);
+					fprintf(fp,"%"FKL_PRT64U" ",ins->str->size);
 					fklPrintRawString(ins->str,fp);
 					break;
 				case FKL_OP_PUSH_BYTEVECTOR:
-					fprintf(fp,"%"PRT64U" ",ins->bvec->size);
+					fprintf(fp,"%"FKL_PRT64U" ",ins->bvec->size);
 					fklPrintRawBytevector(ins->bvec,fp);
 					break;
 				case FKL_OP_PUSH_BIG_INT:
@@ -234,21 +234,21 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			switch(op)
 			{
 				case FKL_OP_PUSH_F64:
-					fprintf(fp,"%.14g",ins->f64);
+					fprintf(fp,FKL_DOUBLE_FMT,ins->f64);
 					break;
 				case FKL_OP_PUSH_VECTOR:
 				case FKL_OP_PUSH_HASHTABLE_EQ:
 				case FKL_OP_PUSH_HASHTABLE_EQV:
 				case FKL_OP_PUSH_HASHTABLE_EQUAL:
 				case FKL_OP_PUSH_LIST:
-					fprintf(fp,"%"PRT64U"",ins->imm_u64);
+					fprintf(fp,"%"FKL_PRT64U"",ins->imm_u64);
 					break;
 				case FKL_OP_PUSH_I64:
 				case FKL_OP_PUSH_I64_BIG:
 				case FKL_OP_JMP:
 				case FKL_OP_JMP_IF_FALSE:
 				case FKL_OP_JMP_IF_TRUE:
-					fprintf(fp,"%"PRT64D"",ins->imm_i64);
+					fprintf(fp,"%"FKL_PRT64D"",ins->imm_i64);
 					break;
 				case FKL_OP_PUSH_SYM:
 					fklPrintRawSymbol(fklGetSymbolWithId(ins->sid,table)->symbol,fp);
@@ -389,10 +389,10 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 				{
 					fprintf(fp,"    ;");
 					fklPrintString(fklGetSymbolWithId(obj->l[j].fid,table)->symbol,fp);
-					fprintf(fp,":%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,":%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 				}
 				else
-					fprintf(fp,"\t%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,"\t%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 			}
 		}
 		while(i<cpc&&!needBreak)
@@ -409,10 +409,10 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 				{
 					fprintf(fp,"    ;");
 					fklPrintString(fklGetSymbolWithId(obj->l[j].fid,table)->symbol,fp);
-					fprintf(fp,":%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,":%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 				}
 				else
-					fprintf(fp,"\t%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,"\t%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 			}
 		}
 		free(cState);
@@ -437,10 +437,10 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 				{
 					fprintf(fp,"    ;");
 					fklPrintString(fklGetSymbolWithId(obj->l[j].fid,table)->symbol,fp);
-					fprintf(fp,":%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,":%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 				}
 				else
-					fprintf(fp,"\t%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,"\t%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 			}
 		}
 		while(i<cpc&&!needBreak)
@@ -457,10 +457,10 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 				{
 					fprintf(fp,"    ;");
 					fklPrintString(fklGetSymbolWithId(obj->l[j].fid,table)->symbol,fp);
-					fprintf(fp,":%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,":%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 				}
 				else
-					fprintf(fp,"\t%u:%"PRT64U"",obj->l[j].line,obj->l[j].cpc);
+					fprintf(fp,"\t%u:%"FKL_PRT64U"",obj->l[j].line,obj->l[j].cpc);
 			}
 			if(needBreak)
 				break;

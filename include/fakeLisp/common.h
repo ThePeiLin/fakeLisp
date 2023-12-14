@@ -6,12 +6,14 @@ extern "C" {
 #endif
 
 #ifdef WIN32
-#define PRT64D "lld"
-#define PRT64U "llu"
+#define FKL_PRT64D "lld"
+#define FKL_PRT64U "llu"
 #else
-#define PRT64D "ld"
-#define PRT64U "lu"
+#define FKL_PRT64D "ld"
+#define FKL_PRT64U "lu"
 #endif
+
+#define FKL_DOUBLE_FMT "%.14g"
 
 #ifdef __cplusplus
 }

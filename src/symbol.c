@@ -146,9 +146,9 @@ void fklPrintSymbolTable(const FklSymbolTable* table,FILE* fp)
 		FklSymbolHashItem* cur=table->idl[i];
 		fprintf(fp,"symbol:");
 		fklPrintString(cur->symbol,fp);
-		fprintf(fp," id:%"PRT64U"\n",cur->id);
+		fprintf(fp," id:%"FKL_PRT64U"\n",cur->id);
 	}
-	fprintf(fp,"size:%"PRT64U"\n",table->num);
+	fprintf(fp,"size:%"FKL_PRT64U"\n",table->num);
 }
 
 void fklWriteSymbolTable(const FklSymbolTable* table,FILE* fp)

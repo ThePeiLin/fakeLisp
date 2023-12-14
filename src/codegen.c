@@ -4207,7 +4207,7 @@ void fklPrintUndefinedRef(const FklCodegenEnv* env
 		FklUnReSymbolRef* ref=urefs->base[i];
 		fprintf(stderr,"error in compiling: Symbol ");
 		fklPrintRawSymbol(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
-		fprintf(stderr," is undefined at line %"PRT64U" of ",ref->line);
+		fprintf(stderr," is undefined at line %"FKL_PRT64U" of ",ref->line);
 		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
 		fputc('\n',stderr);
 	}

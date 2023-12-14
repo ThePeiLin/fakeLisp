@@ -115,7 +115,7 @@ double fklStringToDouble(const FklString* str)
 FklString* fklIntToString(int64_t num)
 {
 	char numString[256]={0};
-	int lenOfNum=snprintf(numString,256,"%"PRT64D"",num);
+	int lenOfNum=snprintf(numString,256,"%"FKL_PRT64D"",num);
 	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }
@@ -123,7 +123,7 @@ FklString* fklIntToString(int64_t num)
 char* fklIntToCstr(int64_t num)
 {
 	char numString[256]={0};
-	snprintf(numString,256,"%"PRT64D"",num);
+	snprintf(numString,256,"%"FKL_PRT64D"",num);
 	return fklCopyCstr(numString);
 }
 

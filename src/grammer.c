@@ -1502,7 +1502,7 @@ static int builtin_match_s_dint_func(void* c
 		fputc('\"',fp);\
 		print_string_in_hex(ctx->start,fp);\
 		fputc('\"',fp);\
-		fprintf(fp,",%"PRT64U"",ctx->start->size);\
+		fprintf(fp,",%"FKL_PRT64U"",ctx->start->size);\
 	}\
 	else\
 		fputs("NULL,0",fp);\
@@ -1927,9 +1927,9 @@ static void builtin_match_symbol_print_c_match_cond(void* c,const FklGrammer* g,
 	fputs("builtin_match_symbol(start,*in+otherMatchLen,*restLen-otherMatchLen,&matchLen,outerCtx,&is_waiting_for_more,",fp);
 	fputc('\"',fp);
 	print_string_in_hex(start,fp);
-	fprintf(fp,"\",%"PRT64U",\"",start->size);
+	fprintf(fp,"\",%"FKL_PRT64U",\"",start->size);
 	print_string_in_hex(end,fp);
-	fprintf(fp,"\",%"PRT64U")",end->size);
+	fprintf(fp,"\",%"FKL_PRT64U")",end->size);
 }
 
 static int builtin_match_symbol_cmp(const void* c0,const void* c1)
@@ -3765,7 +3765,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 		const FklHashTable* i=&s->items;
 		ItemStateIdx* c=fklGetHashItem(&s,&idxTable);
 		idx=c->idx;
-		fprintf(fp,"\t\"I%"PRT64U"\"[fontname=\"Courier\" nojustify=true shape=\"box\" label=\"I%"PRT64U"\\l\\\n"
+		fprintf(fp,"\t\"I%"FKL_PRT64U"\"[fontname=\"Courier\" nojustify=true shape=\"box\" label=\"I%"FKL_PRT64U"\\l\\\n"
 				,idx
 				,idx);
 		print_item_set_as_dot(i,g,st,fp);
@@ -3774,7 +3774,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 		{
 			FklLalrItemSet* dst=l->dst;
 			ItemStateIdx* c=fklGetHashItem(&dst,&idxTable);
-			fprintf(fp,"\tI%"PRT64U"->I%"PRT64U"[fontname=\"Courier\" label=\"",idx,c->idx);
+			fprintf(fp,"\tI%"FKL_PRT64U"->I%"FKL_PRT64U"[fontname=\"Courier\" label=\"",idx,c->idx);
 			print_prod_sym_as_dot(fp,&l->sym,st,&g->terminals,&g->regexes);
 			fputs("\"]\n",fp);
 		}
@@ -4055,7 +4055,7 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore* ig
 	{
 		fputs("(matchLen=fklCharBufMatch(\"",fp);
 		print_string_in_hex(igs->str,fp);
-		fprintf(fp,"\",%"PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",igs->str->size);
+		fprintf(fp,"\",%"FKL_PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",igs->str->size);
 	}
 	fputs("&&((otherMatchLen+=matchLen)||1)",fp);
 
@@ -4077,7 +4077,7 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore* ig
 		{
 			fputs("(matchLen+=fklCharBufMatch(\"",fp);
 			print_string_in_hex(igs->str,fp);
-			fprintf(fp,"\",%"PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",igs->str->size);
+			fprintf(fp,"\",%"FKL_PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",igs->str->size);
 		}
 		fputs("&&((otherMatchLen+=matchLen)||1)",fp);
 	}
@@ -4293,7 +4293,7 @@ void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FI
 
 	for(size_t i=0;i<num;i++)
 	{
-		fprintf(fp,"%"PRT64U": ",i);
+		fprintf(fp,"%"FKL_PRT64U": ",i);
 		FklAnalysisState* curState=&states[i];
 		for(FklAnalysisStateAction* actions=curState->state.action
 				;actions
@@ -4306,13 +4306,13 @@ void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FI
 					print_look_ahead_of_analysis_table(fp,&actions->match);
 					{
 						uintptr_t idx=actions->state-states;
-						fprintf(fp," , %"PRT64U" )",idx);
+						fprintf(fp," , %"FKL_PRT64U" )",idx);
 					}
 					break;
 				case FKL_ANALYSIS_REDUCE:
 					fputs("R(",fp);
 					print_look_ahead_of_analysis_table(fp,&actions->match);
-					fprintf(fp," , %"PRT64U" )",actions->prod->idx);
+					fprintf(fp," , %"FKL_PRT64U" )",actions->prod->idx);
 					break;
 				case FKL_ANALYSIS_ACCEPT:
 					fputs("acc(",fp);
@@ -4330,7 +4330,7 @@ void fklPrintAnalysisTable(const FklGrammer* grammer,const FklSymbolTable* st,FI
 			uintptr_t idx=gt->state-states;
 			fputc('(',fp);
 			fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid,st)->symbol,fp);
-			fprintf(fp," , %"PRT64U")",idx);
+			fprintf(fp," , %"FKL_PRT64U")",idx);
 			fputc('\t',fp);
 		}
 		fputc('\n',fp);
@@ -4616,7 +4616,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
 	for(size_t i=0;i<num;i++)
 	{
 		const FklAnalysisState* curState=&states[i];
-		fprintf(fp,"%"PRT64U": |",i);
+		fprintf(fp,"%"FKL_PRT64U": |",i);
 		for(FklHashTableItem* al=laList;al;al=al->next)
 		{
 			FklAnalysisStateActionMatch* match=(FklAnalysisStateActionMatch*)al->data;
@@ -4628,11 +4628,11 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
 					case FKL_ANALYSIS_SHIFT:
 						{
 							uintptr_t idx=action->state-states;
-							fprintf(fp,"s%"PRT64U"",idx);
+							fprintf(fp,"s%"FKL_PRT64U"",idx);
 						}
 						break;
 					case FKL_ANALYSIS_REDUCE:
-						fprintf(fp,"r%"PRT64U"",action->prod->idx);
+						fprintf(fp,"r%"FKL_PRT64U"",action->prod->idx);
 						break;
 					case FKL_ANALYSIS_ACCEPT:
 						fputs("acc",fp);
@@ -4654,7 +4654,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
 			if(gt)
 			{
 				uintptr_t idx=gt->state-states;
-				fprintf(fp,"%"PRT64U"",idx);
+				fprintf(fp,"%"FKL_PRT64U"",idx);
 			}
 			else
 				fputs("\\n",fp);
@@ -4715,14 +4715,14 @@ static inline void print_get_max_non_term_length_to_c_file(const FklGrammer* g,F
 		const FklString* cur=terminals[0];
 		fputs("(matchLen=fklCharBufMatch(\"",fp);
 		print_string_in_hex(cur,fp);
-		fprintf(fp,"\",%"PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",cur->size);
+		fprintf(fp,"\",%"FKL_PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",cur->size);
 		for(size_t i=1;i<num;i++)
 		{
 			fputs("\n\t\t\t\t\t||",fp);
 			const FklString* cur=terminals[i];
 			fputs("(matchLen=fklCharBufMatch(\"",fp);
 			print_string_in_hex(cur,fp);
-			fprintf(fp,"\",%"PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",cur->size);
+			fprintf(fp,"\",%"FKL_PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",cur->size);
 		}
 	}
 	fputs(")\n",fp);
@@ -4770,13 +4770,13 @@ static inline void print_state_action_match_to_c_file(const FklAnalysisStateActi
 		case FKL_LALR_MATCH_STRING_END_WITH_TERMINAL:
 			fputs("(matchLen=match_char_buf_end_with_terminal(\"",fp);
 			print_string_in_hex(ac->match.str,fp);
-			fprintf(fp,"\",%"PRT64U",*in+otherMatchLen,*restLen-otherMatchLen,outerCtx,start))"
+			fprintf(fp,"\",%"FKL_PRT64U",*in+otherMatchLen,*restLen-otherMatchLen,outerCtx,start))"
 					,ac->match.str->size);
 			break;
 		case FKL_LALR_MATCH_STRING:
 			fputs("(matchLen=fklCharBufMatch(\"",fp);
 			print_string_in_hex(ac->match.str,fp);
-			fprintf(fp,"\",%"PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",ac->match.str->size);
+			fprintf(fp,"\",%"FKL_PRT64U",*in+otherMatchLen,*restLen-otherMatchLen))",ac->match.str->size);
 			break;
 		case FKL_LALR_MATCH_REGEX:
 			{
@@ -4808,7 +4808,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 	switch(ac->action)
 	{
 		case FKL_ANALYSIS_SHIFT:
-			fprintf(fp,"\t\t\tfklPushPtrStack((void*)state_%"PRT64U",stateStack);\n",ac->state-states);
+			fprintf(fp,"\t\t\tfklPushPtrStack((void*)state_%"FKL_PRT64U",stateStack);\n",ac->state-states);
 			fputs("\t\t\tfklPushPtrStack(create_term_analyzing_symbol(*in,matchLen,outerCtx->line,outerCtx->ctx),symbolStack);\n"
 					"\t\t\tfklPushUintStack(outerCtx->line,lineStack);\n"
 					"\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
@@ -4820,23 +4820,23 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			fputs("\t\t\t*accept=1;\n",fp);
 			break;
 		case FKL_ANALYSIS_REDUCE:
-			fprintf(fp,"\t\t\tstateStack->top-=%"PRT64U";\n",ac->prod->len);
-			fprintf(fp,"\t\t\tsymbolStack->top-=%"PRT64U";\n",ac->prod->len);
+			fprintf(fp,"\t\t\tstateStack->top-=%"FKL_PRT64U";\n",ac->prod->len);
+			fprintf(fp,"\t\t\tsymbolStack->top-=%"FKL_PRT64U";\n",ac->prod->len);
 			fputs("\t\t\tFklStateFuncPtr func=(FklStateFuncPtr)fklTopPtrStack(stateStack);\n",fp);
 			fputs("\t\t\tFklStateFuncPtr nextState=NULL;\n",fp);
-			fprintf(fp,"\t\t\tfunc(NULL,NULL,NULL,0,%"PRT64U",(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL,NULL);\n",ac->prod->left.sid);
+			fprintf(fp,"\t\t\tfunc(NULL,NULL,NULL,0,%"FKL_PRT64U",(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL,NULL);\n",ac->prod->left.sid);
 			fputs("\t\t\tif(!nextState)\n\t\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n",fp);
 			fputs("\t\t\tfklPushPtrStack((void*)nextState,stateStack);\n",fp);
 
 			if(ac->prod->len)
-				fprintf(fp,"\t\t\tvoid** nodes=(void**)malloc(sizeof(void*)*%"PRT64U");\n"
+				fprintf(fp,"\t\t\tvoid** nodes=(void**)malloc(sizeof(void*)*%"FKL_PRT64U");\n"
 						"\t\t\tFKL_ASSERT(nodes);\n"
 						"\t\t\tFklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];\n",ac->prod->len);
 			else
 				fputs("\t\t\tvoid** nodes=NULL;\n",fp);
 
 			if(ac->prod->len)
-				fprintf(fp,"\t\t\tfor(size_t i=0;i<%"PRT64U";i++)\n"
+				fprintf(fp,"\t\t\tfor(size_t i=0;i<%"FKL_PRT64U";i++)\n"
 						"\t\t\t{\n"
 						"\t\t\t\tFklAnalysisSymbol* as=base[i];\n"
 						"\t\t\t\tnodes[i]=as->ast;\n"
@@ -4845,24 +4845,24 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 
 			if(ac->prod->len)
 			{
-				fprintf(fp,"\t\t\tsize_t line=fklGetFirstNthLine(lineStack,%"PRT64U",outerCtx->line);\n",ac->prod->len);
-				fprintf(fp,"\t\t\tlineStack->top-=%"PRT64U";\n",ac->prod->len);
+				fprintf(fp,"\t\t\tsize_t line=fklGetFirstNthLine(lineStack,%"FKL_PRT64U",outerCtx->line);\n",ac->prod->len);
+				fprintf(fp,"\t\t\tlineStack->top-=%"FKL_PRT64U";\n",ac->prod->len);
 			}
 			else
 				fputs("\t\t\tsize_t line=outerCtx->line;\n",fp);
 
-			fprintf(fp,"\t\t\tvoid* ast=%s(outerCtx->ctx,nodes,%"PRT64U",line,st);\n"
+			fprintf(fp,"\t\t\tvoid* ast=%s(outerCtx->ctx,nodes,%"FKL_PRT64U",line,st);\n"
 					,ac->prod->name
 					,ac->prod->len);
 
 			if(ac->prod->len)
-				fprintf(fp,"\t\t\tfor(size_t i=0;i<%"PRT64U";i++)\n"
+				fprintf(fp,"\t\t\tfor(size_t i=0;i<%"FKL_PRT64U";i++)\n"
 						"\t\t\t\t%s(nodes[i]);\n"
 						"\t\t\tfree(nodes);\n"
 						,ac->prod->len
 						,ast_destroyer_name);
 			fputs("\t\t\tif(!ast)\n\t\t\t{\n\t\t\t\t*errLine=line;\n\t\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n\t\t\t}\n",fp);
-			fprintf(fp,"\t\t\tfklPushPtrStack((void*)create_nonterm_analyzing_symbol(%"PRT64U",ast),symbolStack);\n",ac->prod->left.sid);
+			fprintf(fp,"\t\t\tfklPushPtrStack((void*)create_nonterm_analyzing_symbol(%"FKL_PRT64U",ast),symbolStack);\n",ac->prod->left.sid);
 			fputs("\t\t\tfklPushUintStack(line,lineStack);\n",fp);
 			break;
 		case FKL_ANALYSIS_IGNORE:
@@ -4877,7 +4877,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 
 static inline void print_state_prototype_to_c_file(const FklAnalysisState* states,size_t idx,FILE* fp)
 {
-	fprintf(fp,"static int state_%"PRT64U"(FklPtrStack*"
+	fprintf(fp,"static int state_%"FKL_PRT64U"(FklPtrStack*"
 			",FklPtrStack*"
 			",FklUintStack*"
 			",int"
@@ -4899,7 +4899,7 @@ static inline void print_state_to_c_file(const FklAnalysisState* states
 		,FILE* fp)
 {
 	const FklAnalysisState* state=&states[idx];
-	fprintf(fp,"static int state_%"PRT64U"(FklPtrStack* stateStack\n"
+	fprintf(fp,"static int state_%"FKL_PRT64U"(FklPtrStack* stateStack\n"
 			"\t\t,FklPtrStack* symbolStack\n"
 			"\t\t,FklUintStack* lineStack\n"
 			"\t\t,int is_action\n"
@@ -4947,13 +4947,13 @@ static inline void print_state_to_c_file(const FklAnalysisState* states
 	const FklAnalysisStateGoto* gt=state->state.gt;
 	if(gt)
 	{
-		fprintf(fp,"\t\tif(left==%"PRT64U")\n\t\t{\n",gt->nt.sid);
-		fprintf(fp,"\t\t\t*pfunc=(void*)state_%"PRT64U";\n\t\t\treturn 0;\n\t\t}\n",gt->state-states);
+		fprintf(fp,"\t\tif(left==%"FKL_PRT64U")\n\t\t{\n",gt->nt.sid);
+		fprintf(fp,"\t\t\t*pfunc=(void*)state_%"FKL_PRT64U";\n\t\t\treturn 0;\n\t\t}\n",gt->state-states);
 		gt=gt->next;
 		for(;gt;gt=gt->next)
 		{
-			fprintf(fp,"\t\telse if(left==%"PRT64U")\n\t\t{\n",gt->nt.sid);
-			fprintf(fp,"\t\t\t*pfunc=(void*)state_%"PRT64U";\n\t\t\treturn 0;\n\t\t}\n",gt->state-states);
+			fprintf(fp,"\t\telse if(left==%"FKL_PRT64U")\n\t\t{\n",gt->nt.sid);
+			fprintf(fp,"\t\t\t*pfunc=(void*)state_%"FKL_PRT64U";\n\t\t\treturn 0;\n\t\t}\n",gt->state-states);
 		}
 		fputs("\t\telse\n\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n",fp);
 	}
@@ -5139,7 +5139,7 @@ void fklPrintItemStateSet(const FklHashTable* i
 		const FklHashTable* i=&s->items;
 		ItemStateIdx* c=fklGetHashItem(&s,&idxTable);
 		idx=c->idx;
-		fprintf(fp,"===\nI%"PRT64U": ",idx);
+		fprintf(fp,"===\nI%"FKL_PRT64U": ",idx);
 		putc('\n',fp);
 		fklPrintItemSet(i,g,st,fp);
 		putc('\n',fp);
@@ -5147,9 +5147,9 @@ void fklPrintItemStateSet(const FklHashTable* i
 		{
 			FklLalrItemSet* dst=l->dst;
 			ItemStateIdx* c=fklGetHashItem(&dst,&idxTable);
-			fprintf(fp,"I%"PRT64U"--{ ",idx);
+			fprintf(fp,"I%"FKL_PRT64U"--{ ",idx);
 			print_prod_sym(fp,&l->sym,st,&g->terminals,&g->regexes);
-			fprintf(fp," }-->I%"PRT64U"\n",c->idx);
+			fprintf(fp," }-->I%"FKL_PRT64U"\n",c->idx);
 		}
 		putc('\n',fp);
 	}
@@ -5244,7 +5244,7 @@ void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st)
 		FklGrammerProduction* prods=((FklGrammerProdHashItem*)list->data)->prods;
 		for(;prods;prods=prods->next)
 		{
-			fprintf(fp,"(%"PRT64U") ",prods->idx);
+			fprintf(fp,"(%"FKL_PRT64U") ",prods->idx);
 			fklPrintGrammerProduction(fp,prods,st,tt,rt);
 		}
 	}
@@ -5394,7 +5394,7 @@ static inline void dbg_print_state_stack(FklPtrStack* stateStack,FklAnalysisStat
 	for(size_t i=0;i<stateStack->top;i++)
 	{
 		const FklAnalysisState* curState=stateStack->base[i];
-		fprintf(stderr,"%"PRT64U" ",curState-states);
+		fprintf(stderr,"%"FKL_PRT64U" ",curState-states);
 	}
 	fputc('\n',stderr);
 }

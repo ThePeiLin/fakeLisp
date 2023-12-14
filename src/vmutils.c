@@ -204,7 +204,7 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 							fklPrintRawString(fklGetSymbolWithId(pt->fid,exe->symbolTable)->symbol,fp);
 						else
 							fputs("stdin",fp);
-						fprintf(fp,":%"PRT64U">",pt->line);
+						fprintf(fp,":%"FKL_PRT64U">",pt->line);
 					}
 				}
 			}
@@ -662,7 +662,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 #define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklSymbolTable* table
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"%.14g",FKL_VM_F64(v));
+	fprintf(fp,FKL_DOUBLE_FMT,FKL_VM_F64(v));
 }
 
 static void vmvalue_big_int_printer(VMVALUE_PRINTER_ARGS)
@@ -779,7 +779,7 @@ static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"%"PRT64D"",FKL_GET_FIX(v));
+	fprintf(fp,"%"FKL_PRT64D"",FKL_GET_FIX(v));
 }
 
 static void vmvalue_sym_ptr_princ(VMVALUE_PRINTER_ARGS)
@@ -928,7 +928,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				fputc(',',fp);
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
 			{
-				fprintf(fp,"#%"PRT64U"#",(uintptr_t)e->v);
+				fprintf(fp,"#%"FKL_PRT64U"#",(uintptr_t)e->v);
 				free(e);
 			}
 			else if(e->state==PRT_HASH_ITEM)
@@ -953,7 +953,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				{
 					size_t i=0;
 					if(isInValueSet(v,recValueSet,&i))
-						fprintf(fp,"#%"PRT64U"=",i);
+						fprintf(fp,"#%"FKL_PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
 						fputs("#(",fp);
@@ -1161,7 +1161,7 @@ static void nil_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 
 static void fix_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"%"PRT64D"",FKL_GET_FIX(v));
+	fklStringBufferPrintf(result,"%"FKL_PRT64D"",FKL_GET_FIX(v));
 }
 
 static void sym_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1176,7 +1176,7 @@ static void chr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_f64_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"%.14g",FKL_VM_F64(v));
+	fklStringBufferPrintf(result,FKL_DOUBLE_FMT,FKL_VM_F64(v));
 }
 
 static void vmvalue_big_int_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
@@ -1335,7 +1335,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 			if(e->state==PRT_CDR||e->state==PRT_REC_CDR)
 				fklStringBufferPutc(&result,',');
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
-				fklStringBufferPrintf(&result,"#%"PRT64U"",(uintptr_t)e->v);
+				fklStringBufferPrintf(&result,"#%"FKL_PRT64U"",(uintptr_t)e->v);
 			else if(e->state==PRT_HASH_ITEM)
 			{
 				fklStringBufferPutc(&result,'(');
@@ -1358,7 +1358,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 				{
 					size_t i=0;
 					if(isInValueSet(v,recValueSet,&i))
-						fklStringBufferPrintf(&result,"#%"PRT64U"=",i);
+						fklStringBufferPrintf(&result,"#%"FKL_PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
 						fklStringBufferConcatWithCstr(&result,"#(");

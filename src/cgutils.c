@@ -106,21 +106,21 @@ void fklPrintCodegenError(FklNastNode* obj
 	{
 		if(info->filename)
 		{
-			fprintf(stderr," at line %"PRT64U" of file %s",obj->curline,info->filename);
+			fprintf(stderr," at line %"FKL_PRT64U" of file %s",obj->curline,info->filename);
 			fputc('\n',stderr);
 		}
 		else
-			fprintf(stderr," at line %"PRT64U"\n",obj->curline);
+			fprintf(stderr," at line %"FKL_PRT64U"\n",obj->curline);
 	}
 	else
 	{
 		if(info->filename)
 		{
-			fprintf(stderr," at line %"PRT64U" of file %s",line,info->filename);
+			fprintf(stderr," at line %"FKL_PRT64U" of file %s",line,info->filename);
 			fputc('\n',stderr);
 		}
 		else
-			fprintf(stderr," at line %"PRT64U" of file ",line);
+			fprintf(stderr," at line %"FKL_PRT64U" of file ",line);
 	}
 	if(obj)
 		fklDestroyNastNode(obj);

@@ -986,6 +986,17 @@ static int builtin_sub_vector(FKL_CPROC_ARGL)
 
 #include<fakeLisp/common.h>
 
+static inline size_t write_double_to_buf(char* buf,size_t max,double f64)
+{
+	size_t size=snprintf(buf,64,FKL_DOUBLE_FMT,f64);
+	if(buf[strspn(buf,"-0123456789")]=='\0')
+	{
+		buf[size++]='.';
+		buf[size++]='0';
+	}
+	return size;
+}
+
 static int builtin_to_string(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.->string";
@@ -1022,7 +1033,7 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 		else
 		{
 			char buf[64]={0};
-			size_t size=snprintf(buf,64,FKL_DOUBLE_FMT,FKL_VM_F64(obj));
+			size_t size=write_double_to_buf(buf,64,FKL_VM_F64(obj));
 			FKL_VM_STR(retval)=fklCreateString(size,buf);
 		}
 	}
@@ -1155,10 +1166,21 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 	}
 	else
 	{
-		char buf[64]={0};
+		uint32_t base=10;
 		if(radix)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
-		size_t size=snprintf(buf,64,FKL_DOUBLE_FMT,FKL_VM_F64(obj));
+		{
+			FKL_CHECK_TYPE(radix,fklIsVMint,Pname,exe);
+			int64_t t=fklGetInt(radix);
+			if(t!=10&&t!=16)
+				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX,exe);
+			base=t;
+		}
+		char buf[64]={0};
+		size_t size=0;
+		if(base==10)
+			size=write_double_to_buf(buf,64,FKL_VM_F64(obj));
+		else
+			size=snprintf(buf,64,"%a",FKL_VM_F64(obj));
 		FKL_VM_STR(retval)=fklCreateString(size,buf);
 	}
 	FKL_VM_PUSH_VALUE(exe,retval);
@@ -1205,7 +1227,7 @@ static int builtin_f64_to_string(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,FKL_IS_F64,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe,NULL);
 	char buf[64]={0};
-	size_t size=snprintf(buf,64,FKL_DOUBLE_FMT,FKL_VM_F64(obj));
+	size_t size=write_double_to_buf(buf,64,FKL_VM_F64(obj));
 	FKL_VM_STR(retval)=fklCreateString(size,buf);
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;

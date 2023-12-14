@@ -23,16 +23,6 @@ static int math_rand(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int math_sqrt(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.sqrt";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,sqrt(fklGetDouble(num))));
-	return 0;
-}
-
 static int math_abs(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.abs";
@@ -155,105 +145,31 @@ static int math_rad(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int math_sin(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.sin";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,sin(fklGetDouble(num))));
-	return 0;
+#define SINGLE_ARG_MATH_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
+{\
+	static const char Pname[]="math."#ERROR_NAME;\
+	FKL_DECL_AND_CHECK_ARG(num,Pname);\
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);\
+	FKL_CHECK_REST_ARG(exe,Pname);\
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FUNC(fklGetDouble(num))));\
+	return 0;\
 }
 
-static int math_cos(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.cos";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,cos(fklGetDouble(num))));
-	return 0;
-}
+SINGLE_ARG_MATH_FUNC(sqrt,sqrt,sqrt);
+SINGLE_ARG_MATH_FUNC(sin,sin,sin);
+SINGLE_ARG_MATH_FUNC(cos,cos,cos);
+SINGLE_ARG_MATH_FUNC(tan,tan,tan);
 
-static int math_tan(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.tan";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,tan(fklGetDouble(num))));
-	return 0;
-}
+SINGLE_ARG_MATH_FUNC(asin,asin,asin);
+SINGLE_ARG_MATH_FUNC(acos,acos,acos);
+SINGLE_ARG_MATH_FUNC(atan,atan,atan);
 
-static int math_asin(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.asin";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,asin(fklGetDouble(num))));
-	return 0;
-}
+SINGLE_ARG_MATH_FUNC(ceil,ceil,ceil);
+SINGLE_ARG_MATH_FUNC(floor,floor,floor);
+SINGLE_ARG_MATH_FUNC(round,round,round);
+SINGLE_ARG_MATH_FUNC(trunc,trunc,trunc);
 
-static int math_acos(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.acos";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,acos(fklGetDouble(num))));
-	return 0;
-}
-
-static int math_atan(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.atan";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,atan(fklGetDouble(num))));
-	return 0;
-}
-
-static int math_ceil(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.ceil";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ceil(fklGetDouble(num))));
-	return 0;
-}
-
-static int math_floor(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.floor";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,floor(fklGetDouble(num))));
-	return 0;
-}
-
-static int math_round(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.round";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,round(fklGetDouble(num))));
-	return 0;
-}
-
-static int math_trunc(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.round";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
-	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,trunc(fklGetDouble(num))));
-	return 0;
-}
+#undef SINGLE_ARG_MATH_FUNC
 
 struct SymFunc
 {

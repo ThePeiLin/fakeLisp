@@ -110,7 +110,7 @@ char* fklGetStringAfterBackslashInStr(const char* str)
 FklString* fklDoubleToString(double num)
 {
 	char numString[256]={0};
-	int lenOfNum=snprintf(numString,256,"%lf",num);
+	int lenOfNum=snprintf(numString,256,"%.14g",num);
 	FklString* tmp=fklCreateString(lenOfNum,numString);
 	return tmp;
 }

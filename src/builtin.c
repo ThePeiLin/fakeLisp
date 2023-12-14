@@ -1020,7 +1020,7 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 		else
 		{
 			char buf[64]={0};
-			size_t size=snprintf(buf,64,"%lf",FKL_VM_F64(obj));
+			size_t size=snprintf(buf,64,"%.14g",FKL_VM_F64(obj));
 			FKL_VM_STR(retval)=fklCreateString(size,buf);
 		}
 	}
@@ -1156,7 +1156,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 		char buf[64]={0};
 		if(radix)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
-		size_t size=snprintf(buf,64,"%lf",FKL_VM_F64(obj));
+		size_t size=snprintf(buf,64,"%.14g",FKL_VM_F64(obj));
 		FKL_VM_STR(retval)=fklCreateString(size,buf);
 	}
 	FKL_VM_PUSH_VALUE(exe,retval);
@@ -1203,7 +1203,7 @@ static int builtin_f64_to_string(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,FKL_IS_F64,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe,NULL);
 	char buf[64]={0};
-	size_t size=snprintf(buf,64,"%lf",FKL_VM_F64(obj));
+	size_t size=snprintf(buf,64,"%.14g",FKL_VM_F64(obj));
 	FKL_VM_STR(retval)=fklCreateString(size,buf);
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;

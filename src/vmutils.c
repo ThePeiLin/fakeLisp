@@ -662,7 +662,7 @@ void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
 #define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklSymbolTable* table
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS)
 {
-	fprintf(fp,"%lf",FKL_VM_F64(v));
+	fprintf(fp,"%.14g",FKL_VM_F64(v));
 }
 
 static void vmvalue_big_int_printer(VMVALUE_PRINTER_ARGS)
@@ -1176,7 +1176,7 @@ static void chr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_f64_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 {
-	fklStringBufferPrintf(result,"%lf",FKL_VM_F64(v));
+	fklStringBufferPrintf(result,"%.14g",FKL_VM_F64(v));
 }
 
 static void vmvalue_big_int_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)

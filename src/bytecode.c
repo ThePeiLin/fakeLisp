@@ -234,7 +234,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			switch(op)
 			{
 				case FKL_OP_PUSH_F64:
-					fprintf(fp,"%lf",ins->f64);
+					fprintf(fp,"%.14g",ins->f64);
 					break;
 				case FKL_OP_PUSH_VECTOR:
 				case FKL_OP_PUSH_HASHTABLE_EQ:

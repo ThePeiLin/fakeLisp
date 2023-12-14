@@ -290,7 +290,7 @@ void fklPrintNastNode(const FklNastNode* exp
 					fprintf(fp,"%"PRT64D"",node->fix);
 					break;
 				case FKL_NAST_F64:
-					fprintf(fp,"%lf",node->f64);
+					fprintf(fp,"%.14g",node->f64);
 					break;
 				case FKL_NAST_CHR:
 					fklPrintRawChar(node->chr,fp);

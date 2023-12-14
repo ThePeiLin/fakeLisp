@@ -87,6 +87,14 @@ static int math_even_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_HUGE(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.HUGE";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,HUGE_VAL));
+	return 0;
+}
+
 static int math_E(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.E";
@@ -145,6 +153,16 @@ static int math_rad(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_deg(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.deg";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,fklGetDouble(num)*(180.0/M_PI)));
+	return 0;
+}
+
 #define SINGLE_ARG_MATH_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
 {\
 	static const char Pname[]="math."#ERROR_NAME;\
@@ -187,7 +205,7 @@ struct SymFunc
 	{"abs",   math_abs,    },
 
 	{"rad",   math_rad,    },
-	// {"deg",   math_deg,    },
+	{"deg",   math_deg,    },
 
 	{"asin",  math_asin,   },
 	{"acos",  math_acos,   },
@@ -202,6 +220,7 @@ struct SymFunc
 	{"trunc", math_trunc,  },
 	{"round", math_round,  },
 
+	{"HUGE",  math_HUGE,      },
 	{"E",     math_E,      },
 	{"PI",    math_PI,     },
 	{"PI/2",  math_PI_2,   },

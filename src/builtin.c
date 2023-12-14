@@ -434,7 +434,7 @@ static int builtin_div(FKL_CPROC_ARGL)
 		for(;cur;cur=FKL_VM_POP_ARG(exe))
 			if(fklProcessVMnumMul(cur,&r64,&rd,&bi))
 				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		if(r64==0||FKL_IS_0_BIG_INT(&bi)||!islessgreater(rd,0.0))
+		if(r64==0||FKL_IS_0_BIG_INT(&bi))
 		{
 			fklUninitBigInt(&bi);
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_DIVZEROERROR,exe);

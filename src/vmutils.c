@@ -1858,8 +1858,6 @@ FklVMvalue* fklProcessVMnumRec(FklVM* exe,FklVMvalue* prev)
 	if(FKL_IS_F64(prev))
 	{
 		double d=FKL_VM_F64(prev);
-		if(!islessgreater(d,0.0))
-			return NULL;
 		r=fklCreateVMvalueF64(exe,1.0/d);
 	}
 	else
@@ -1897,8 +1895,6 @@ FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
 	{
 		double af=fklGetDouble(fir);
 		double as=fklGetDouble(sec);
-		if(!islessgreater(as,0.0))
-			return NULL;
 		r=fklCreateVMvalueF64(exe,fmod(af,as));
 	}
 	else if(FKL_IS_FIX(fir)&&FKL_IS_FIX(sec))

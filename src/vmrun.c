@@ -2254,7 +2254,7 @@ static inline void B_mul3(FKL_VM_INS_FUNC_ARGL)
 	PROCESS_MUL_RES();
 }
 
-#define PROCESS_DIV_RES() if(r64==0||FKL_IS_0_BIG_INT(&bi)||!islessgreater(rd,0.0))\
+#define PROCESS_DIV_RES() if(r64==0||FKL_IS_0_BIG_INT(&bi))\
 {\
 	fklUninitBigInt(&bi);\
 	FKL_RAISE_BUILTIN_ERROR_CSTR("builtin./",FKL_ERR_DIVZEROERROR,exe);\

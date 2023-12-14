@@ -189,6 +189,21 @@ SINGLE_ARG_MATH_FUNC(trunc,trunc,trunc);
 
 #undef SINGLE_ARG_MATH_FUNC
 
+static int math_modf(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.modf";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	double car=0.0;
+	double cdr=modf(fklGetDouble(num),&car);
+	FKL_VM_PUSH_VALUE(exe
+			,fklCreateVMvaluePair(exe
+				,fklCreateVMvalueF64(exe,car)
+				,fklCreateVMvalueF64(exe,cdr)));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -220,7 +235,9 @@ struct SymFunc
 	{"trunc", math_trunc,  },
 	{"round", math_round,  },
 
-	{"HUGE",  math_HUGE,      },
+	{"modf",  math_modf,   },
+
+	{"HUGE",  math_HUGE,   },
 	{"E",     math_E,      },
 	{"PI",    math_PI,     },
 	{"PI/2",  math_PI_2,   },

@@ -1149,7 +1149,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 			FKL_CHECK_TYPE(radix,fklIsVMint,Pname,exe);
 			int64_t t=fklGetInt(radix);
 			if(t!=8&&t!=10&&t!=16)
-				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX_FOR_INTEGER,exe);
 			base=t;
 		}
 		if(FKL_IS_BIG_INT(obj))
@@ -1172,7 +1172,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 			FKL_CHECK_TYPE(radix,fklIsVMint,Pname,exe);
 			int64_t t=fklGetInt(radix);
 			if(t!=10&&t!=16)
-				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX,exe);
+				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX_FOR_FLOAT,exe);
 			base=t;
 		}
 		char buf[64]={0};
@@ -1201,7 +1201,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(radix,fklIsVMint,Pname,exe);
 		int64_t t=fklGetInt(radix);
 		if(t!=8&&t!=10&&t!=16)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALIDRADIX_FOR_INTEGER,exe);
 		base=t;
 	}
 	if(FKL_IS_BIG_INT(obj))

@@ -496,7 +496,7 @@ FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 		"Failed to create big-int from mem",
 		"List differ in length",
 		"Attempt to get a continuation cross C-call boundary",
-		"Radix should be 8,10 or 16",
+		"Radix for integer should be 8, 10 or 16",
 		"No value for key",
 		"Number should not be less than 0",
 		"Circular reference occurs",
@@ -507,6 +507,7 @@ FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 		"Analysis table generate failed",
 		"Regex compile failed",
 		"Grammer create failed",
+		"Radix for float should be 10 or 16 for float",
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);
@@ -2007,7 +2008,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"faild-to-create-big-int-from-mem",
 		"differ-list-in-list",
 		"cross-c-call-continuation",
-		"invalid-radix",
+		"invalid-radix-for-integer",
 		"no-value-for-key",
 		"number-should-not-be-less-than-0",
 		"cir-ref",
@@ -2018,6 +2019,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"analysis-table-genrate-failed",
 		"regex-compile-failed",
 		"grammer-create-failed",
+		"invalid-radix-for-float",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)

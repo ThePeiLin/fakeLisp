@@ -234,7 +234,11 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 			switch(op)
 			{
 				case FKL_OP_PUSH_F64:
-					fprintf(fp,FKL_DOUBLE_FMT,ins->f64);
+					{
+						char buf[64]={0};
+						fklWriteDoubleToBuf(buf,64,ins->f64);
+						fputs(buf,fp);
+					}
 					break;
 				case FKL_OP_PUSH_VECTOR:
 				case FKL_OP_PUSH_HASHTABLE_EQ:

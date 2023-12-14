@@ -82,6 +82,7 @@ void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
 void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp);
 
 double fklStringToDouble(const FklString*);
+size_t fklWriteDoubleToBuf(char* buf,size_t max,double f64);
 
 unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max);
 int fklWriteCharAsCstr(char,char*,size_t);

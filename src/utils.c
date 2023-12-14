@@ -112,6 +112,17 @@ double fklStringToDouble(const FklString* str)
 	return atof(str->str);
 }
 
+size_t fklWriteDoubleToBuf(char* buf,size_t max,double f64)
+{
+	size_t size=snprintf(buf,64,FKL_DOUBLE_FMT,f64);
+	if(buf[strspn(buf,"-0123456789")]=='\0')
+	{
+		buf[size++]='.';
+		buf[size++]='0';
+	}
+	return size;
+}
+
 FklString* fklIntToString(int64_t num)
 {
 	char numString[256]={0};

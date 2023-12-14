@@ -290,7 +290,11 @@ void fklPrintNastNode(const FklNastNode* exp
 					fprintf(fp,"%"FKL_PRT64D"",node->fix);
 					break;
 				case FKL_NAST_F64:
-					fprintf(fp,FKL_DOUBLE_FMT,node->f64);
+					{
+						char buf[64]={0};
+						fklWriteDoubleToBuf(buf,64,node->f64);
+						fputs(buf,fp);
+					}
 					break;
 				case FKL_NAST_CHR:
 					fklPrintRawChar(node->chr,fp);

@@ -97,6 +97,53 @@ static int math_even_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_E(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.E";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_E));
+	return 0;
+}
+
+static int math_PI(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.PI";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_PI));
+	return 0;
+}
+
+static int math_PI_2(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.PI/2";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_PI_2));
+	return 0;
+}
+
+static int math_PI_4(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.PI/4";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_PI_4));
+	return 0;
+}
+
+static int math_1_PI(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.1/PI";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_1_PI));
+	return 0;
+}
+
+static int math_2_PI(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.2/PI";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_2_PI));
+	return 0;
+}
 
 struct SymFunc
 {
@@ -110,6 +157,12 @@ struct SymFunc
 	{"abs",   math_abs,    },
 	{"even?", math_even_p, },
 	{"odd?",  math_odd_p,  },
+	{"E",     math_E,     },
+	{"PI",    math_PI,     },
+	{"PI/2",  math_PI_2,   },
+	{"PI/4",  math_PI_4,   },
+	{"1/PI",  math_1_PI,   },
+	{"2/PI",  math_2_PI,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

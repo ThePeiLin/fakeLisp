@@ -186,8 +186,32 @@ SINGLE_ARG_MATH_FUNC(ceil,ceil,ceil);
 SINGLE_ARG_MATH_FUNC(floor,floor,floor);
 SINGLE_ARG_MATH_FUNC(round,round,round);
 SINGLE_ARG_MATH_FUNC(trunc,trunc,trunc);
+SINGLE_ARG_MATH_FUNC(exp,exp,exp);
+SINGLE_ARG_MATH_FUNC(cbrt,cbrt,cbrt);
 
 #undef SINGLE_ARG_MATH_FUNC
+
+static int math_pow(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.pow";
+	FKL_DECL_AND_CHECK_ARG2(base,exponent,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(base,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(exponent,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,pow(fklGetDouble(base),fklGetDouble(exponent))));
+	return 0;
+}
+
+static int math_hypot(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.hypot";
+	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,hypot(fklGetDouble(x),fklGetDouble(y))));
+	return 0;
+}
 
 static int math_modf(FKL_CPROC_ARGL)
 {
@@ -217,6 +241,10 @@ struct SymFunc
 	{"rand",  math_rand,   },
 
 	{"sqrt",  math_sqrt,   },
+	{"cbrt",  math_cbrt,   },
+	{"pow",   math_pow,    },
+	{"hypot",   math_hypot,    },
+
 	{"abs",   math_abs,    },
 
 	{"rad",   math_rad,    },
@@ -236,6 +264,9 @@ struct SymFunc
 	{"round", math_round,  },
 
 	{"modf",  math_modf,   },
+
+	// {"log",   math_log,    },
+	{"exp",   math_exp,    },
 
 	{"HUGE",  math_HUGE,   },
 	{"E",     math_E,      },

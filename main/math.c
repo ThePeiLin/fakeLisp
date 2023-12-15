@@ -255,6 +255,21 @@ static int math_modf(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_frexp(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.frexp";
+	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
+	int32_t cdr=0;
+	double car=frexp(fklGetDouble(num),&cdr);
+	FKL_VM_PUSH_VALUE(exe
+			,fklCreateVMvaluePair(exe
+				,fklCreateVMvalueF64(exe,car)
+				,FKL_MAKE_VM_FIX(cdr)));
+	return 0;
+}
+
 static int math_log(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.log";
@@ -334,7 +349,7 @@ struct SymFunc
 	{"exp2",  math_exp2,   },
 	{"expm1", math_expm1,  },
 
-	// {"frexp", math_frexp,  },
+	{"frexp", math_frexp,  },
 	// {"ldexp", math_ldexp,  },
 
 	{"HUGE",  math_HUGE,   },

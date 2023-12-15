@@ -229,6 +229,17 @@ static int math_hypot(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_atan2(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.atan2";
+	FKL_DECL_AND_CHECK_ARG2(y,x,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,atan2(fklGetDouble(y),fklGetDouble(x))));
+	return 0;
+}
+
 static int math_modf(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.modf";
@@ -241,6 +252,29 @@ static int math_modf(FKL_CPROC_ARGL)
 			,fklCreateVMvaluePair(exe
 				,fklCreateVMvalueF64(exe,car)
 				,fklCreateVMvalueF64(exe,cdr)));
+	return 0;
+}
+
+static int math_log(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.log";
+	FKL_DECL_AND_CHECK_ARG(x,Pname);
+	FklVMvalue* base=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
+	if(base)
+	{
+		FKL_CHECK_TYPE(base,fklIsVMnumber,Pname,exe);
+		double b=fklGetDouble(base);
+		if(!islessgreater(b,2.0))
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,log2(fklGetDouble(x))));
+		else if(!islessgreater(b,10.0))
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,log10(fklGetDouble(x))));
+		else
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,log(fklGetDouble(x))/log(b)));
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,log(fklGetDouble(x))));
 	return 0;
 }
 
@@ -269,6 +303,7 @@ struct SymFunc
 	{"asin",  math_asin,   },
 	{"acos",  math_acos,   },
 	{"atan",  math_atan,   },
+	{"atan2",  math_atan2,   },
 
 	{"asinh",  math_asinh,   },
 	{"acosh",  math_acosh,   },
@@ -289,7 +324,8 @@ struct SymFunc
 
 	{"modf",  math_modf,   },
 
-	// {"log",   math_log,    },
+	{"log",   math_log,    },
+
 	{"log2",  math_log2,   },
 	{"log10", math_log10,  },
 	{"log1p", math_log1p,  },
@@ -297,6 +333,9 @@ struct SymFunc
 	{"exp",   math_exp,    },
 	{"exp2",  math_exp2,   },
 	{"expm1", math_expm1,  },
+
+	// {"frexp", math_frexp,  },
+	// {"ldexp", math_ldexp,  },
 
 	{"HUGE",  math_HUGE,   },
 	{"E",     math_E,      },

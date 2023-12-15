@@ -240,6 +240,17 @@ static int math_atan2(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_ldexp(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.ldexp";
+	FKL_DECL_AND_CHECK_ARG2(x,i,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(i,fklIsVMint,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ldexp(fklGetDouble(x),fklGetInt(i))));
+	return 0;
+}
+
 static int math_modf(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.modf";
@@ -337,10 +348,11 @@ struct SymFunc
 	{"trunc", math_trunc,  },
 	{"round", math_round,  },
 
+	{"frexp", math_frexp,  },
+	{"ldexp", math_ldexp,  },
 	{"modf",  math_modf,   },
 
 	{"log",   math_log,    },
-
 	{"log2",  math_log2,   },
 	{"log10", math_log10,  },
 	{"log1p", math_log1p,  },
@@ -348,9 +360,6 @@ struct SymFunc
 	{"exp",   math_exp,    },
 	{"exp2",  math_exp2,   },
 	{"expm1", math_expm1,  },
-
-	{"frexp", math_frexp,  },
-	// {"ldexp", math_ldexp,  },
 
 	{"HUGE",  math_HUGE,   },
 	{"E",     math_E,      },

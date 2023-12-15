@@ -1,14 +1,66 @@
 #include<fakeLisp/vm.h>
 #include<math.h>
 
+#define TRIM64(X) ((X)&0xffffffffffffffffu)
+
+static inline uint64_t rotl(uint64_t x,int n)
+{
+	return (x<<n)|(TRIM64(x)>>(64-n));
+}
+
+static inline uint64_t next_rand(uint64_t s[4])
+{
+	uint64_t s0=s[0];
+	uint64_t s1=s[1];
+	uint64_t s2=s[2]^s0;
+	uint64_t s3=s[3]^s1;
+	uint64_t res=rotl(s1*5,7)*9;
+	s[0]=s0^s3;
+	s[1]=s1^s2;
+	s[2]=s2^(s1<<17);
+	s[3]=rotl(s3,45);
+	return res;
+}
+
+static inline void set_seed(uint64_t s[4],uint32_t n1,uint32_t n2)
+{
+	s[0]=(uint64_t)n1;
+	s[1]=0xff;
+	s[2]=(uint64_t)n2;
+	s[3]=0;
+	for(int i=0;i<16;i++)
+		next_rand(s);
+}
+
 static int math_srand(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.srand";
-	FKL_DECL_AND_CHECK_ARG(s,Pname);
+	FklVMvalue* x=FKL_VM_POP_ARG(exe);
+	FklVMvalue* y=FKL_VM_POP_ARG(exe);
+	uint32_t seed1=0;
+	uint32_t seed2=0;
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(s,fklIsVMint,Pname,exe);
-	srand(fklGetInt(s));
-	FKL_VM_PUSH_VALUE(exe,s);
+	if(x)
+	{
+		FKL_CHECK_TYPE(x,fklIsVMint,Pname,exe);
+		seed1=fklGetInt(x);
+		if(y)
+		{
+			FKL_CHECK_TYPE(y,fklIsVMint,Pname,exe);
+			seed2=fklGetInt(y);
+		}
+		set_seed(exe->rand_state,seed1,seed2);
+	}
+	else
+	{
+		seed1=(uint32_t)time(NULL);
+		seed2=(uint32_t)(uintptr_t)exe;
+		set_seed(exe->rand_state,seed1,seed2);
+	}
+	FKL_VM_PUSH_VALUE(exe
+			,fklCreateVMvaluePair(exe
+				,FKL_MAKE_VM_FIX(seed1)
+				,FKL_MAKE_VM_FIX(seed2)));
 	return 0;
 }
 

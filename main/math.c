@@ -87,69 +87,24 @@ static int math_even_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int math_HUGE(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.HUGE";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,HUGE_VAL));
-	return 0;
+#define CONSTANT_FUNCTION(NAME,ERROR_NAME,VAL) static int math_##NAME(FKL_CPROC_ARGL)\
+{\
+	static const char Pname[]="math."#ERROR_NAME;\
+	FKL_CHECK_REST_ARG(exe,Pname);\
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,VAL));\
+	return 0;\
 }
 
-static int math_NAN(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.NAN";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,NAN));
-	return 0;
-}
+CONSTANT_FUNCTION(HUGE,HUGE,HUGE_VAL);
+CONSTANT_FUNCTION(NAN,NAN,NAN);
+CONSTANT_FUNCTION(E,E,M_E);
+CONSTANT_FUNCTION(PI,PI,M_PI);
+CONSTANT_FUNCTION(PI_2,PI/2,M_PI_2);
+CONSTANT_FUNCTION(PI_4,PI/4,M_PI_4);
+CONSTANT_FUNCTION(1_PI,1/PI,M_1_PI);
+CONSTANT_FUNCTION(2_PI,2/PI,M_2_PI);
 
-static int math_E(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.E";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_E));
-	return 0;
-}
-
-static int math_PI(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.PI";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_PI));
-	return 0;
-}
-
-static int math_PI_2(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.PI/2";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_PI_2));
-	return 0;
-}
-
-static int math_PI_4(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.PI/4";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_PI_4));
-	return 0;
-}
-
-static int math_1_PI(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.1/PI";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_1_PI));
-	return 0;
-}
-
-static int math_2_PI(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.2/PI";
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,M_2_PI));
-	return 0;
-}
+#undef CONSTANT_FUNCTION
 
 static int math_rad(FKL_CPROC_ARGL)
 {

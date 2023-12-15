@@ -95,6 +95,14 @@ static int math_HUGE(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_NAN(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.NAN";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,NAN));
+	return 0;
+}
+
 static int math_E(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.E";
@@ -371,6 +379,7 @@ struct SymFunc
 	{"gamma",  math_gamma,  },
 	{"lgamma", math_lgamma, },
 
+	{"NAN",    math_NAN,    },
 	{"HUGE",   math_HUGE,   },
 	{"E",      math_E,      },
 	{"PI",     math_PI,     },

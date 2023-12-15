@@ -336,7 +336,7 @@ struct SymFunc
 	{"unordered?", math_unordered_p, },
 
 	{"NAN",        NULL,             },
-	{"HUGE",       NULL,             },
+	{"INF",        NULL,             },
 	{"E",          NULL,             },
 	{"PI",         NULL,             },
 	{"PI/2",       NULL,             },
@@ -375,7 +375,7 @@ FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 	}
 
 	loc[i++]=fklCreateVMvalueF64(exe,NAN);
-	loc[i++]=fklCreateVMvalueF64(exe,HUGE_VAL);
+	loc[i++]=fklCreateVMvalueF64(exe,INFINITY);
 	loc[i++]=fklCreateVMvalueF64(exe,M_E);
 	loc[i++]=fklCreateVMvalueF64(exe,M_PI);
 	loc[i++]=fklCreateVMvalueF64(exe,M_PI_2);

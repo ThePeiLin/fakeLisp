@@ -173,11 +173,11 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 		,FklPtrStack* s
 		,int* needBreak
 		,const FklSymbolTable* table
-		,const char* format)
+		,int numLen)
 {
 	uint32_t tab_count=cState->tc;
 	uint32_t proc_len=0;
-	fprintf(fp,format,i);
+	fprintf(fp,"%-*ld",numLen,i);
 	putc(':',fp);
 	for(uint32_t i=0;i<tab_count;i++)
 		fputs("    ",fp);
@@ -280,8 +280,6 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 	fklPushPtrStack(createByteCodePrintState(0,0,tmpCode->len),&s);
 	uint64_t codeLen=tmpCode->len;
 	int numLen=codeLen?(int)(log10(codeLen)+1):1;
-	char format[FKL_MAX_STRING_SIZE]="";
-	snprintf(format,FKL_MAX_STRING_SIZE,"%%-%dld",numLen);
 
 	if(!fklIsPtrStackEmpty(&s))
 	{
@@ -290,11 +288,11 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 		uint64_t cpc=cState->cpc;
 		int needBreak=0;
 		if(i<cpc)
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 		}
 		free(cState);
 	}
@@ -307,12 +305,12 @@ void fklPrintByteCode(const FklByteCode* tmpCode
 		if(i<cpc)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 		}
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 		}
 		free(cState);
 	}
@@ -371,8 +369,6 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 
 	uint64_t codeLen=tmpCode->len;
 	int numLen=codeLen?(int)(log10(codeLen)+1):1;
-	char format[FKL_MAX_STRING_SIZE]="";
-	snprintf(format,FKL_MAX_STRING_SIZE,"%%-%dld",numLen);
 
 	if(!fklIsPtrStackEmpty(&s))
 	{
@@ -382,7 +378,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 		int needBreak=0;
 		if(i<cpc)
 		{
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -402,7 +398,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -430,7 +426,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 		if(i<cpc)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)
@@ -450,7 +446,7 @@ void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable* tabl
 		while(i<cpc&&!needBreak)
 		{
 			putc('\n',fp);
-			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,format);
+			i+=printSingleByteCode(tmpCode,i,fp,cState,&s,&needBreak,table,numLen);
 			if(obj->l[j].scp+obj->l[j].cpc<i)
 				j++;
 			if(obj->l[j].fid!=fid||obj->l[j].line!=line)

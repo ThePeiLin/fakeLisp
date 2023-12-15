@@ -187,6 +187,8 @@ SINGLE_ARG_MATH_FUNC(floor,floor,floor);
 SINGLE_ARG_MATH_FUNC(round,round,round);
 SINGLE_ARG_MATH_FUNC(trunc,trunc,trunc);
 SINGLE_ARG_MATH_FUNC(exp,exp,exp);
+SINGLE_ARG_MATH_FUNC(exp2,exp2,exp2);
+SINGLE_ARG_MATH_FUNC(expm1,expm1,expm1);
 SINGLE_ARG_MATH_FUNC(cbrt,cbrt,cbrt);
 
 #undef SINGLE_ARG_MATH_FUNC
@@ -243,7 +245,7 @@ struct SymFunc
 	{"sqrt",  math_sqrt,   },
 	{"cbrt",  math_cbrt,   },
 	{"pow",   math_pow,    },
-	{"hypot",   math_hypot,    },
+	{"hypot", math_hypot,  },
 
 	{"abs",   math_abs,    },
 
@@ -267,6 +269,8 @@ struct SymFunc
 
 	// {"log",   math_log,    },
 	{"exp",   math_exp,    },
+	{"exp2",  math_exp2,   },
+	{"expm1", math_expm1,  },
 
 	{"HUGE",  math_HUGE,   },
 	{"E",     math_E,      },

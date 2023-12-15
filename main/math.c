@@ -250,85 +250,99 @@ PREDICATE_FUNC(normal_p,"normal?",isnormal);
 
 #undef PREDICATE_FUNC
 
+static int math_unordered_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.unordered?";
+	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,isunordered(fklGetDouble(x),fklGetDouble(y))
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"even?",     math_even_p,    },
-	{"odd?",      math_odd_p,     },
+	{"even?",      math_even_p,      },
+	{"odd?",       math_odd_p,       },
 
-	{"srand",     math_srand,     },
-	{"rand",      math_rand,      },
+	{"srand",      math_srand,       },
+	{"rand",       math_rand,        },
 
-	{"sqrt",      math_sqrt,      },
-	{"cbrt",      math_cbrt,      },
-	{"pow",       math_pow,       },
-	{"hypot",     math_hypot,     },
+	{"sqrt",       math_sqrt,        },
+	{"cbrt",       math_cbrt,        },
+	{"pow",        math_pow,         },
+	{"hypot",      math_hypot,       },
 
-	{"abs",       math_abs,       },
-	{"remainder", math_remainder, },
+	{"abs",        math_abs,         },
+	{"remainder",  math_remainder,   },
 
-	{"rad",       math_rad,       },
-	{"deg",       math_deg,       },
+	{"rad",        math_rad,         },
+	{"deg",        math_deg,         },
 
-	{"asin",      math_asin,      },
-	{"acos",      math_acos,      },
-	{"atan",      math_atan,      },
-	{"atan2",     math_atan2,     },
+	{"asin",       math_asin,        },
+	{"acos",       math_acos,        },
+	{"atan",       math_atan,        },
+	{"atan2",      math_atan2,       },
 
-	{"asinh",     math_asinh,     },
-	{"acosh",     math_acosh,     },
-	{"atanh",     math_atanh,     },
+	{"asinh",      math_asinh,       },
+	{"acosh",      math_acosh,       },
+	{"atanh",      math_atanh,       },
 
-	{"sinh",      math_sinh,      },
-	{"cosh",      math_cosh,      },
-	{"tanh",      math_tanh,      },
+	{"sinh",       math_sinh,        },
+	{"cosh",       math_cosh,        },
+	{"tanh",       math_tanh,        },
 
-	{"sin",       math_sin,       },
-	{"cos",       math_cos,       },
-	{"tan",       math_tan,       },
+	{"sin",        math_sin,         },
+	{"cos",        math_cos,         },
+	{"tan",        math_tan,         },
 
-	{"ceil",      math_ceil,      },
-	{"floor",     math_floor,     },
-	{"trunc",     math_trunc,     },
-	{"round",     math_round,     },
+	{"ceil",       math_ceil,        },
+	{"floor",      math_floor,       },
+	{"trunc",      math_trunc,       },
+	{"round",      math_round,       },
 
-	{"frexp",     math_frexp,     },
-	{"ldexp",     math_ldexp,     },
-	{"modf",      math_modf,      },
-	{"nextafter", math_nextafter, },
-	{"copysign",  math_copysign,  },
+	{"frexp",      math_frexp,       },
+	{"ldexp",      math_ldexp,       },
+	{"modf",       math_modf,        },
+	{"nextafter",  math_nextafter,   },
+	{"copysign",   math_copysign,    },
 
-	{"log",       math_log,       },
-	{"log2",      math_log2,      },
-	{"log10",     math_log10,     },
-	{"log1p",     math_log1p,     },
+	{"log",        math_log,         },
+	{"log2",       math_log2,        },
+	{"log10",      math_log10,       },
+	{"log1p",      math_log1p,       },
 
-	{"exp",       math_exp,       },
-	{"exp2",      math_exp2,      },
-	{"expm1",     math_expm1,     },
+	{"exp",        math_exp,         },
+	{"exp2",       math_exp2,        },
+	{"expm1",      math_expm1,       },
 
-	{"erf",       math_erf,       },
-	{"erfc",      math_erfc,      },
-	{"gamma",     math_gamma,     },
-	{"lgamma",    math_lgamma,    },
+	{"erf",        math_erf,         },
+	{"erfc",       math_erfc,        },
+	{"gamma",      math_gamma,       },
+	{"lgamma",     math_lgamma,      },
 
-	{"signbit",   math_signbit,   },
-	{"nan?",      math_nan_p,     },
-	{"finite?",   math_finite_p,  },
-	{"inf?",      math_inf_p,     },
-	{"normal?",   math_normal_p,  },
+	{"signbit",    math_signbit,     },
+	{"nan?",       math_nan_p,       },
+	{"finite?",    math_finite_p,    },
+	{"inf?",       math_inf_p,       },
+	{"normal?",    math_normal_p,    },
+	{"unordered?", math_unordered_p, },
 
-	{"NAN",       NULL,           },
-	{"HUGE",      NULL,           },
-	{"E",         NULL,           },
-	{"PI",        NULL,           },
-	{"PI/2",      NULL,           },
-	{"PI/4",      NULL,           },
-	{"1/PI",      NULL,           },
-	{"2/PI",      NULL,           },
+	{"NAN",        NULL,             },
+	{"HUGE",       NULL,             },
+	{"E",          NULL,             },
+	{"PI",         NULL,             },
+	{"PI/2",       NULL,             },
+	{"PI/4",       NULL,             },
+	{"1/PI",       NULL,             },
+	{"2/PI",       NULL,             },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

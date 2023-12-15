@@ -230,17 +230,25 @@ DOUBLE_ARG_MATH_FUNC(copysign,copysign,copysign);
 
 #undef DOUBLE_ARG_MATH_FUNC
 
-static int math_signbit(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.sigbit";
-	FKL_DECL_AND_CHECK_ARG(val,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(val,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,signbit(fklGetDouble(val))
-			?FKL_VM_TRUE
-			:FKL_VM_NIL);
-	return 0;
+#define PREDICATE_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
+{\
+	static const char Pname[]="math."ERROR_NAME;\
+	FKL_DECL_AND_CHECK_ARG(val,Pname);\
+	FKL_CHECK_REST_ARG(exe,Pname);\
+	FKL_CHECK_TYPE(val,fklIsVMnumber,Pname,exe);\
+	FKL_VM_PUSH_VALUE(exe,FUNC(fklGetDouble(val))\
+			?FKL_VM_TRUE\
+			:FKL_VM_NIL);\
+	return 0;\
 }
+
+PREDICATE_FUNC(signbit,"signbit",signbit);
+PREDICATE_FUNC(nan_p,"nan?",isnan);
+PREDICATE_FUNC(finite_p,"finite?",isfinite);
+PREDICATE_FUNC(inf_p,"inf?",isinf);
+PREDICATE_FUNC(normal_p,"normal?",isnormal);
+
+#undef PREDICATE_FUNC
 
 struct SymFunc
 {
@@ -307,7 +315,11 @@ struct SymFunc
 	{"gamma",     math_gamma,     },
 	{"lgamma",    math_lgamma,    },
 
-	{"signbit",    math_signbit,    },
+	{"signbit",   math_signbit,   },
+	{"nan?",      math_nan_p,     },
+	{"finite?",   math_finite_p,  },
+	{"inf?",      math_inf_p,     },
+	{"normal?",   math_normal_p,  },
 
 	{"NAN",       NULL,           },
 	{"HUGE",      NULL,           },

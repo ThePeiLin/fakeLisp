@@ -87,25 +87,6 @@ static int math_even_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
-#define CONSTANT_FUNCTION(NAME,ERROR_NAME,VAL) static int math_##NAME(FKL_CPROC_ARGL)\
-{\
-	static const char Pname[]="math."#ERROR_NAME;\
-	FKL_CHECK_REST_ARG(exe,Pname);\
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,VAL));\
-	return 0;\
-}
-
-CONSTANT_FUNCTION(HUGE,HUGE,HUGE_VAL);
-CONSTANT_FUNCTION(NAN,NAN,NAN);
-CONSTANT_FUNCTION(E,E,M_E);
-CONSTANT_FUNCTION(PI,PI,M_PI);
-CONSTANT_FUNCTION(PI_2,PI/2,M_PI_2);
-CONSTANT_FUNCTION(PI_4,PI/4,M_PI_4);
-CONSTANT_FUNCTION(1_PI,1/PI,M_1_PI);
-CONSTANT_FUNCTION(2_PI,2/PI,M_2_PI);
-
-#undef CONSTANT_FUNCTION
-
 static int math_rad(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.rad";
@@ -346,14 +327,14 @@ struct SymFunc
 	{"gamma",     math_gamma,     },
 	{"lgamma",    math_lgamma,    },
 
-	{"NAN",       math_NAN,       },
-	{"HUGE",      math_HUGE,      },
-	{"E",         math_E,         },
-	{"PI",        math_PI,        },
-	{"PI/2",      math_PI_2,      },
-	{"PI/4",      math_PI_4,      },
-	{"1/PI",      math_1_PI,      },
-	{"2/PI",      math_2_PI,      },
+	{"NAN",       NULL,           },
+	{"HUGE",      NULL,           },
+	{"E",         NULL,           },
+	{"PI",        NULL,           },
+	{"PI/2",      NULL,           },
+	{"PI/4",      NULL,           },
+	{"1/PI",      NULL,           },
+	{"2/PI",      NULL,           },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);
@@ -374,12 +355,24 @@ FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 	*count=EXPORT_NUM;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);
 	FKL_ASSERT(loc);
-	for(size_t i=0;i<EXPORT_NUM;i++)
+	size_t i=0;
+	for(;i<EXPORT_NUM;i++)
 	{
-		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,table)->id;
 		FklVMcFunc func=exports_and_func[i].f;
+		if(func==NULL)
+			break;
+		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,table)->id;
 		FklVMvalue* dlproc=fklCreateVMvalueCproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;
 	}
+
+	loc[i++]=fklCreateVMvalueF64(exe,NAN);
+	loc[i++]=fklCreateVMvalueF64(exe,HUGE_VAL);
+	loc[i++]=fklCreateVMvalueF64(exe,M_E);
+	loc[i++]=fklCreateVMvalueF64(exe,M_PI);
+	loc[i++]=fklCreateVMvalueF64(exe,M_PI_2);
+	loc[i++]=fklCreateVMvalueF64(exe,M_PI_4);
+	loc[i++]=fklCreateVMvalueF64(exe,M_1_PI);
+	loc[i++]=fklCreateVMvalueF64(exe,M_2_PI);
 	return loc;
 }

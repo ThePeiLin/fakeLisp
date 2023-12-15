@@ -13,7 +13,7 @@ extern "C" {
 #define FKL_PRT64U "lu"
 #endif
 
-#define FKL_DOUBLE_FMT "%.14g"
+#define FKL_DOUBLE_FMT "%.17g"
 
 #ifdef __cplusplus
 }

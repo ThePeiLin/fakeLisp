@@ -264,6 +264,17 @@ static int math_log(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_nextafter(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.remainder";
+	FKL_DECL_AND_CHECK_ARG2(from,to,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(from,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(to,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,nextafter(fklGetDouble(from),fklGetDouble(to))));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -312,6 +323,7 @@ struct SymFunc
 	{"frexp",     math_frexp,     },
 	{"ldexp",     math_ldexp,     },
 	{"modf",      math_modf,      },
+	{"nextafter", math_nextafter, },
 
 	{"log",       math_log,       },
 	{"log2",      math_log2,      },

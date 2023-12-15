@@ -174,9 +174,18 @@ static int math_deg(FKL_CPROC_ARGL)
 }
 
 SINGLE_ARG_MATH_FUNC(sqrt,sqrt,sqrt);
+SINGLE_ARG_MATH_FUNC(exp,exp,exp);
+SINGLE_ARG_MATH_FUNC(exp2,exp2,exp2);
+SINGLE_ARG_MATH_FUNC(expm1,expm1,expm1);
+SINGLE_ARG_MATH_FUNC(cbrt,cbrt,cbrt);
+
 SINGLE_ARG_MATH_FUNC(sin,sin,sin);
 SINGLE_ARG_MATH_FUNC(cos,cos,cos);
 SINGLE_ARG_MATH_FUNC(tan,tan,tan);
+
+SINGLE_ARG_MATH_FUNC(sinh,sinh,sinh);
+SINGLE_ARG_MATH_FUNC(cosh,cosh,cosh);
+SINGLE_ARG_MATH_FUNC(tanh,tanh,tanh);
 
 SINGLE_ARG_MATH_FUNC(asin,asin,asin);
 SINGLE_ARG_MATH_FUNC(acos,acos,acos);
@@ -186,10 +195,6 @@ SINGLE_ARG_MATH_FUNC(ceil,ceil,ceil);
 SINGLE_ARG_MATH_FUNC(floor,floor,floor);
 SINGLE_ARG_MATH_FUNC(round,round,round);
 SINGLE_ARG_MATH_FUNC(trunc,trunc,trunc);
-SINGLE_ARG_MATH_FUNC(exp,exp,exp);
-SINGLE_ARG_MATH_FUNC(exp2,exp2,exp2);
-SINGLE_ARG_MATH_FUNC(expm1,expm1,expm1);
-SINGLE_ARG_MATH_FUNC(cbrt,cbrt,cbrt);
 
 SINGLE_ARG_MATH_FUNC(log2,log2,log2);
 SINGLE_ARG_MATH_FUNC(log10,log10,log10);
@@ -259,6 +264,10 @@ struct SymFunc
 	{"asin",  math_asin,   },
 	{"acos",  math_acos,   },
 	{"atan",  math_atan,   },
+
+	{"sinh",   math_sinh,    },
+	{"cosh",   math_cosh,    },
+	{"tanh",   math_tanh,    },
 
 	{"sin",   math_sin,    },
 	{"cos",   math_cos,    },

@@ -205,6 +205,11 @@ SINGLE_ARG_MATH_FUNC(log2,log2,log2);
 SINGLE_ARG_MATH_FUNC(log10,log10,log10);
 SINGLE_ARG_MATH_FUNC(log1p,log1p,log1p);
 
+SINGLE_ARG_MATH_FUNC(erf,erf,erf);
+SINGLE_ARG_MATH_FUNC(erfc,erfc,erfc);
+SINGLE_ARG_MATH_FUNC(gamma,gamma,tgamma);
+SINGLE_ARG_MATH_FUNC(lgamma,lgamma,lgamma);
+
 #undef SINGLE_ARG_MATH_FUNC
 
 static int math_pow(FKL_CPROC_ARGL)
@@ -310,64 +315,69 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"even?", math_even_p, },
-	{"odd?",  math_odd_p,  },
+	{"even?",  math_even_p, },
+	{"odd?",   math_odd_p,  },
 
-	{"srand", math_srand,  },
-	{"rand",  math_rand,   },
+	{"srand",  math_srand,  },
+	{"rand",   math_rand,   },
 
-	{"sqrt",  math_sqrt,   },
-	{"cbrt",  math_cbrt,   },
-	{"pow",   math_pow,    },
-	{"hypot", math_hypot,  },
+	{"sqrt",   math_sqrt,   },
+	{"cbrt",   math_cbrt,   },
+	{"pow",    math_pow,    },
+	{"hypot",  math_hypot,  },
 
-	{"abs",   math_abs,    },
+	{"abs",    math_abs,    },
 
-	{"rad",   math_rad,    },
-	{"deg",   math_deg,    },
+	{"rad",    math_rad,    },
+	{"deg",    math_deg,    },
 
-	{"asin",  math_asin,   },
-	{"acos",  math_acos,   },
-	{"atan",  math_atan,   },
-	{"atan2",  math_atan2,   },
+	{"asin",   math_asin,   },
+	{"acos",   math_acos,   },
+	{"atan",   math_atan,   },
+	{"atan2",  math_atan2,  },
 
-	{"asinh",  math_asinh,   },
-	{"acosh",  math_acosh,   },
-	{"atanh",  math_atanh,   },
+	{"asinh",  math_asinh,  },
+	{"acosh",  math_acosh,  },
+	{"atanh",  math_atanh,  },
 
-	{"sinh",   math_sinh,    },
-	{"cosh",   math_cosh,    },
-	{"tanh",   math_tanh,    },
+	{"sinh",   math_sinh,   },
+	{"cosh",   math_cosh,   },
+	{"tanh",   math_tanh,   },
 
-	{"sin",   math_sin,    },
-	{"cos",   math_cos,    },
-	{"tan",   math_tan,    },
+	{"sin",    math_sin,    },
+	{"cos",    math_cos,    },
+	{"tan",    math_tan,    },
 
-	{"ceil",  math_ceil,   },
-	{"floor", math_floor,  },
-	{"trunc", math_trunc,  },
-	{"round", math_round,  },
+	{"ceil",   math_ceil,   },
+	{"floor",  math_floor,  },
+	{"trunc",  math_trunc,  },
+	{"round",  math_round,  },
 
-	{"frexp", math_frexp,  },
-	{"ldexp", math_ldexp,  },
-	{"modf",  math_modf,   },
+	{"frexp",  math_frexp,  },
+	{"ldexp",  math_ldexp,  },
+	{"modf",   math_modf,   },
 
-	{"log",   math_log,    },
-	{"log2",  math_log2,   },
-	{"log10", math_log10,  },
-	{"log1p", math_log1p,  },
+	{"log",    math_log,    },
+	{"log2",   math_log2,   },
+	{"log10",  math_log10,  },
+	{"log1p",  math_log1p,  },
 
-	{"exp",   math_exp,    },
-	{"exp2",  math_exp2,   },
-	{"expm1", math_expm1,  },
+	{"exp",    math_exp,    },
+	{"exp2",   math_exp2,   },
+	{"expm1",  math_expm1,  },
 
-	{"HUGE",  math_HUGE,   },
-	{"E",     math_E,      },
-	{"PI",    math_PI,     },
-	{"PI/2",  math_PI_2,   },
-	{"PI/4",  math_PI_4,   },
-	{"1/PI",  math_1_PI,   },
-	{"2/PI",  math_2_PI,   },
+	{"erf",    math_erf,    },
+	{"erfc",   math_erfc,   },
+	{"gamma",  math_gamma,  },
+	{"lgamma", math_lgamma, },
+
+	{"HUGE",   math_HUGE,   },
+	{"E",      math_E,      },
+	{"PI",     math_PI,     },
+	{"PI/2",   math_PI_2,   },
+	{"PI/4",   math_PI_4,   },
+	{"1/PI",   math_1_PI,   },
+	{"2/PI",   math_2_PI,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

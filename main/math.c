@@ -242,6 +242,17 @@ static int math_hypot(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int math_remainder(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.remainder";
+	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
+	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,remainder(fklGetDouble(x),fklGetDouble(y))));
+	return 0;
+}
+
 static int math_atan2(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.atan2";
@@ -323,70 +334,71 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"even?",  math_even_p, },
-	{"odd?",   math_odd_p,  },
+	{"even?",     math_even_p,    },
+	{"odd?",      math_odd_p,     },
 
-	{"srand",  math_srand,  },
-	{"rand",   math_rand,   },
+	{"srand",     math_srand,     },
+	{"rand",      math_rand,      },
 
-	{"sqrt",   math_sqrt,   },
-	{"cbrt",   math_cbrt,   },
-	{"pow",    math_pow,    },
-	{"hypot",  math_hypot,  },
+	{"sqrt",      math_sqrt,      },
+	{"cbrt",      math_cbrt,      },
+	{"pow",       math_pow,       },
+	{"hypot",     math_hypot,     },
 
-	{"abs",    math_abs,    },
+	{"abs",       math_abs,       },
+	{"remainder", math_remainder, },
 
-	{"rad",    math_rad,    },
-	{"deg",    math_deg,    },
+	{"rad",       math_rad,       },
+	{"deg",       math_deg,       },
 
-	{"asin",   math_asin,   },
-	{"acos",   math_acos,   },
-	{"atan",   math_atan,   },
-	{"atan2",  math_atan2,  },
+	{"asin",      math_asin,      },
+	{"acos",      math_acos,      },
+	{"atan",      math_atan,      },
+	{"atan2",     math_atan2,     },
 
-	{"asinh",  math_asinh,  },
-	{"acosh",  math_acosh,  },
-	{"atanh",  math_atanh,  },
+	{"asinh",     math_asinh,     },
+	{"acosh",     math_acosh,     },
+	{"atanh",     math_atanh,     },
 
-	{"sinh",   math_sinh,   },
-	{"cosh",   math_cosh,   },
-	{"tanh",   math_tanh,   },
+	{"sinh",      math_sinh,      },
+	{"cosh",      math_cosh,      },
+	{"tanh",      math_tanh,      },
 
-	{"sin",    math_sin,    },
-	{"cos",    math_cos,    },
-	{"tan",    math_tan,    },
+	{"sin",       math_sin,       },
+	{"cos",       math_cos,       },
+	{"tan",       math_tan,       },
 
-	{"ceil",   math_ceil,   },
-	{"floor",  math_floor,  },
-	{"trunc",  math_trunc,  },
-	{"round",  math_round,  },
+	{"ceil",      math_ceil,      },
+	{"floor",     math_floor,     },
+	{"trunc",     math_trunc,     },
+	{"round",     math_round,     },
 
-	{"frexp",  math_frexp,  },
-	{"ldexp",  math_ldexp,  },
-	{"modf",   math_modf,   },
+	{"frexp",     math_frexp,     },
+	{"ldexp",     math_ldexp,     },
+	{"modf",      math_modf,      },
 
-	{"log",    math_log,    },
-	{"log2",   math_log2,   },
-	{"log10",  math_log10,  },
-	{"log1p",  math_log1p,  },
+	{"log",       math_log,       },
+	{"log2",      math_log2,      },
+	{"log10",     math_log10,     },
+	{"log1p",     math_log1p,     },
 
-	{"exp",    math_exp,    },
-	{"exp2",   math_exp2,   },
-	{"expm1",  math_expm1,  },
+	{"exp",       math_exp,       },
+	{"exp2",      math_exp2,      },
+	{"expm1",     math_expm1,     },
 
-	{"erf",    math_erf,    },
-	{"erfc",   math_erfc,   },
-	{"gamma",  math_gamma,  },
-	{"lgamma", math_lgamma, },
+	{"erf",       math_erf,       },
+	{"erfc",      math_erfc,      },
+	{"gamma",     math_gamma,     },
+	{"lgamma",    math_lgamma,    },
 
-	{"NAN",    math_NAN,    },
-	{"HUGE",   math_HUGE,   },
-	{"E",      math_E,      },
-	{"PI",     math_PI,     },
-	{"PI/2",   math_PI_2,   },
-	{"PI/4",   math_PI_4,   },
-	{"1/PI",   math_1_PI,   },
-	{"2/PI",   math_2_PI,   },
+	{"NAN",       math_NAN,       },
+	{"HUGE",      math_HUGE,      },
+	{"E",         math_E,         },
+	{"PI",        math_PI,        },
+	{"PI/2",      math_PI_2,      },
+	{"PI/4",      math_PI_4,      },
+	{"1/PI",      math_1_PI,      },
+	{"2/PI",      math_2_PI,      },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

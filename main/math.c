@@ -230,6 +230,18 @@ DOUBLE_ARG_MATH_FUNC(copysign,copysign,copysign);
 
 #undef DOUBLE_ARG_MATH_FUNC
 
+static int math_signbit(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="math.sigbit";
+	FKL_DECL_AND_CHECK_ARG(val,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(val,fklIsVMnumber,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,signbit(fklGetDouble(val))
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -294,6 +306,8 @@ struct SymFunc
 	{"erfc",      math_erfc,      },
 	{"gamma",     math_gamma,     },
 	{"lgamma",    math_lgamma,    },
+
+	{"signbit",    math_signbit,    },
 
 	{"NAN",       NULL,           },
 	{"HUGE",      NULL,           },

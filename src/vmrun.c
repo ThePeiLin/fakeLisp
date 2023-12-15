@@ -487,15 +487,11 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 		,FklFuncPrototypes* pts
 		,uint32_t pid)
 {
-	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
+	FklVM* exe=(FklVM*)calloc(1,sizeof(FklVM));
 	FKL_ASSERT(exe);
-	exe->obj_head=NULL;
-	exe->obj_tail=NULL;
 	exe->prev=exe;
 	exe->next=exe;
 	exe->pts=pts;
-	exe->importingLib=NULL;
-	exe->frames=NULL;
 	exe->gc=fklCreateVMgc();
 	if(mainCode!=NULL)
 	{
@@ -505,17 +501,8 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
 	fklInitBuiltinErrorType(exe->builtinErrorTypeId,globalSymTable);
-	exe->chan=NULL;
 	fklInitVMstack(exe);
-	exe->libNum=0;
-	exe->libs=NULL;
-	exe->locv=NULL;
-	exe->ltp=0;
-	exe->llast=0;
-	exe->old_locv_list=NULL;
-	exe->old_locv_count=0;
 	exe->state=FKL_VM_READY;
-	exe->notice_lock=0;
 	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));
 	uv_mutex_init(&exe->lock);
 	return exe;
@@ -2495,11 +2482,8 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 		,FklSymbolTable* table
 		,FklSid_t* builtinErrorTypeId)
 {
-	FklVM* exe=(FklVM*)malloc(sizeof(FklVM));
+	FklVM* exe=(FklVM*)calloc(1,sizeof(FklVM));
 	FKL_ASSERT(exe);
-	exe->obj_head=NULL;
-	exe->obj_tail=NULL;
-	exe->importingLib=NULL;
 	exe->gc=prev->gc;
 	exe->prev=exe;
 	exe->next=exe;
@@ -2509,15 +2493,9 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=copy_vm_libs(libs,libNum+1);
-	exe->frames=NULL;
 	exe->pts=prev->pts;
-	exe->llast=0;
-	exe->ltp=0;
-	exe->locv=NULL;
-	exe->old_locv_list=NULL;
-	exe->old_locv_count=0;
 	exe->state=FKL_VM_READY;
-	exe->notice_lock=0;
+	memcpy(exe->rand_state,prev->rand_state,sizeof(uint64_t[4]));
 	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));
 	uv_mutex_init(&exe->lock);
 	fklCallObj(exe,nextCall);

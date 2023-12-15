@@ -435,6 +435,8 @@ typedef struct FklVM
 
 	atomic_int notice_lock;
 	_Atomic(FklVMinsFunc) ins_table[FKL_OP_LAST_OPCODE];
+
+	uint64_t rand_state[4];
 }FklVM;
 
 typedef struct FklVMudMetaTable

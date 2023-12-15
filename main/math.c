@@ -191,6 +191,10 @@ SINGLE_ARG_MATH_FUNC(exp2,exp2,exp2);
 SINGLE_ARG_MATH_FUNC(expm1,expm1,expm1);
 SINGLE_ARG_MATH_FUNC(cbrt,cbrt,cbrt);
 
+SINGLE_ARG_MATH_FUNC(log2,log2,log2);
+SINGLE_ARG_MATH_FUNC(log10,log10,log10);
+SINGLE_ARG_MATH_FUNC(log1p,log1p,log1p);
+
 #undef SINGLE_ARG_MATH_FUNC
 
 static int math_pow(FKL_CPROC_ARGL)
@@ -268,6 +272,10 @@ struct SymFunc
 	{"modf",  math_modf,   },
 
 	// {"log",   math_log,    },
+	{"log2",  math_log2,   },
+	{"log10", math_log10,  },
+	{"log1p", math_log1p,  },
+
 	{"exp",   math_exp,    },
 	{"exp2",  math_exp2,   },
 	{"expm1", math_expm1,  },

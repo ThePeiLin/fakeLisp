@@ -156,61 +156,6 @@ SINGLE_ARG_MATH_FUNC(lgamma,lgamma,lgamma);
 
 #undef SINGLE_ARG_MATH_FUNC
 
-static int math_pow(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.pow";
-	FKL_DECL_AND_CHECK_ARG2(base,exponent,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(base,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(exponent,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,pow(fklGetDouble(base),fklGetDouble(exponent))));
-	return 0;
-}
-
-static int math_hypot(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.hypot";
-	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,hypot(fklGetDouble(x),fklGetDouble(y))));
-	return 0;
-}
-
-static int math_remainder(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.remainder";
-	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,remainder(fklGetDouble(x),fklGetDouble(y))));
-	return 0;
-}
-
-static int math_atan2(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.atan2";
-	FKL_DECL_AND_CHECK_ARG2(y,x,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,atan2(fklGetDouble(y),fklGetDouble(x))));
-	return 0;
-}
-
-static int math_ldexp(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.ldexp";
-	FKL_DECL_AND_CHECK_ARG2(x,i,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(i,fklIsVMint,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ldexp(fklGetDouble(x),fklGetInt(i))));
-	return 0;
-}
-
 static int math_modf(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.modf";
@@ -264,27 +209,26 @@ static int math_log(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int math_nextafter(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.remainder";
-	FKL_DECL_AND_CHECK_ARG2(from,to,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(from,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(to,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,nextafter(fklGetDouble(from),fklGetDouble(to))));
-	return 0;
+#define DOUBLE_ARG_MATH_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
+{\
+	static const char Pname[]="math."#ERROR_NAME;\
+	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);\
+	FKL_CHECK_REST_ARG(exe,Pname);\
+	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);\
+	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);\
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FUNC(fklGetDouble(x),fklGetDouble(y))));\
+	return 0;\
 }
 
-static int math_copysign(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="math.copysign";
-	FKL_DECL_AND_CHECK_ARG2(from,to,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(from,fklIsVMnumber,Pname,exe);
-	FKL_CHECK_TYPE(to,fklIsVMnumber,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,copysign(fklGetDouble(from),fklGetDouble(to))));
-	return 0;
-}
+DOUBLE_ARG_MATH_FUNC(remainder,remainder,remainder);
+DOUBLE_ARG_MATH_FUNC(hypot,hypot,hypot);
+DOUBLE_ARG_MATH_FUNC(atan2,atan2,atan2);
+DOUBLE_ARG_MATH_FUNC(pow,pow,pow);
+DOUBLE_ARG_MATH_FUNC(ldexp,ldexp,ldexp);
+DOUBLE_ARG_MATH_FUNC(nextafter,nextafter,nextafter);
+DOUBLE_ARG_MATH_FUNC(copysign,copysign,copysign);
+
+#undef DOUBLE_ARG_MATH_FUNC
 
 struct SymFunc
 {

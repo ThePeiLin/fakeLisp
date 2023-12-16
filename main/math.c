@@ -1,5 +1,6 @@
 #include<fakeLisp/vm.h>
 #include<math.h>
+#include<float.h>
 
 #define TRIM64(X) ((X)&0xffffffffffffffffu)
 
@@ -64,14 +65,29 @@ static int math_srand(FKL_CPROC_ARGL)
 	return 0;
 }
 
+#define FIGS DBL_MANT_DIG
+#define SHIFT64_FIG (64-FIGS)
+#define SCALE_FIG (0.5/((uint64_t)1<<(FIGS-1)))
+#define INT_TO_DOUBLE(X) ((double)(TRIM64(X)>>SHIFT64_FIG)*SCALE_FIG)
+
 static int math_rand(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.rand";
-	FklVMvalue*  lim=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	if(lim&&!fklIsVMint(lim))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(rand()%((lim==NULL)?RAND_MAX:fklGetInt(lim))));
+	uint64_t rv=next_rand(exe->rand_state);
+	switch(FKL_VM_GET_ARG_NUM(exe))
+	{
+		case 0:
+			fklResBp(exe);
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,INT_TO_DOUBLE(rv)));
+			break;
+		case 1:
+			break;
+		case 2:
+			break;
+		default:
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+			break;
+	}
 	return 0;
 }
 

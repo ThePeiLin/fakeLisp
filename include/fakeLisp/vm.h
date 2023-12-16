@@ -890,6 +890,8 @@ FklVMvalue* fklCreateNilValue(void);
 
 void fklDropTop(FklVM* s);
 
+#define FKL_VM_GET_ARG_NUM(S) ((S)->tp-(S)->bp)
+
 #define FKL_VM_POP_ARG(S) (((S)->tp>(S)->bp)?(S)->base[--(S)->tp]:NULL)
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp-1])

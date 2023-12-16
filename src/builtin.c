@@ -3333,7 +3333,7 @@ static int builtin_go(FKL_CPROC_ARGL)
 			,exe->symbolTable
 			,exe->builtinErrorTypeId);
 	fklSetBp(threadVM);
-	size_t arg_num=exe->tp-exe->bp;
+	size_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	if(arg_num)
 	{
 		FklVMvalue** base=&FKL_VM_GET_VALUE(exe,arg_num);
@@ -3849,7 +3849,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 			{
 				FKL_DECL_AND_CHECK_ARG(proc,Pname);
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
-				size_t arg_num=exe->tp-exe->bp;
+				size_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 				if(arg_num==0)
 					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 				FklVMvalue** base=&FKL_VM_GET_VALUE(exe,arg_num);
@@ -3921,7 +3921,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 			{\
 				FKL_DECL_AND_CHECK_ARG(proc,Pname);\
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);\
-				size_t arg_num=exe->tp-exe->bp;\
+				size_t arg_num=FKL_VM_GET_ARG_NUM(exe);\
 				if(arg_num==0)\
 					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);\
 				FklVMvalue** base=&FKL_VM_GET_VALUE(exe,arg_num);\
@@ -4752,7 +4752,7 @@ static int builtin_hash_set8(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.hash-set*!";
 	FKL_DECL_AND_CHECK_ARG(ht,Pname);
 	FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,Pname,exe);
-	size_t arg_num=exe->tp-exe->bp;
+	size_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	if(arg_num%2)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 	FklVMvalue* value=NULL;

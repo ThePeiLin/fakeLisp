@@ -23,7 +23,7 @@ static inline uint64_t next_rand(uint64_t s[4])
 	return res;
 }
 
-static inline void set_seed(uint64_t s[4],uint32_t n1,uint32_t n2)
+static inline void set_seed(uint64_t s[4],uint64_t n1,uint64_t n2)
 {
 	s[0]=(uint64_t)n1;
 	s[1]=0xff;
@@ -38,8 +38,8 @@ static int math_srand(FKL_CPROC_ARGL)
 	static const char Pname[]="math.srand";
 	FklVMvalue* x=FKL_VM_POP_ARG(exe);
 	FklVMvalue* y=FKL_VM_POP_ARG(exe);
-	uint32_t seed1=0;
-	uint32_t seed2=0;
+	int64_t seed1=0;
+	int64_t seed2=0;
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(x)
 	{
@@ -54,14 +54,14 @@ static int math_srand(FKL_CPROC_ARGL)
 	}
 	else
 	{
-		seed1=(uint32_t)time(NULL);
-		seed2=(uint32_t)(uintptr_t)exe;
+		seed1=(int64_t)time(NULL);
+		seed2=(int64_t)(uintptr_t)exe;
 		set_seed(exe->rand_state,seed1,seed2);
 	}
 	FKL_VM_PUSH_VALUE(exe
 			,fklCreateVMvaluePair(exe
-				,FKL_MAKE_VM_FIX(seed1)
-				,FKL_MAKE_VM_FIX(seed2)));
+				,fklMakeVMint(seed1,exe)
+				,fklMakeVMint(seed2,exe)));
 	return 0;
 }
 
@@ -70,24 +70,74 @@ static int math_srand(FKL_CPROC_ARGL)
 #define SCALE_FIG (0.5/((uint64_t)1<<(FIGS-1)))
 #define INT_TO_DOUBLE(X) ((double)(TRIM64(X)>>SHIFT64_FIG)*SCALE_FIG)
 
+static inline uint64_t project(uint64_t rv,uint64_t n,uint64_t s[4])
+{
+	if((n&(n+1))==0)
+		return rv&n;
+	else
+	{
+		uint64_t lim=n;
+		lim|=(lim>>1);
+		lim|=(lim>>2);
+		lim|=(lim>>4);
+		lim|=(lim>>8);
+		lim|=(lim>>16);
+		lim|=(lim>>32);
+		FKL_ASSERT((lim&(lim+1))==0
+				&&lim>=n
+				&&(lim>>1)<n);
+		while((rv&=lim)>n)
+			rv=next_rand(s);
+		return rv;
+	}
+}
+
 static int math_rand(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.rand";
 	uint64_t rv=next_rand(exe->rand_state);
+	int64_t low=0;
+	int64_t up=0;
 	switch(FKL_VM_GET_ARG_NUM(exe))
 	{
 		case 0:
 			fklResBp(exe);
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,INT_TO_DOUBLE(rv)));
+			return 0;
 			break;
 		case 1:
+			{
+				low=1;
+				FklVMvalue* up_v=FKL_VM_POP_ARG(exe);
+				fklResBp(exe);
+				FKL_CHECK_TYPE(up_v,fklIsVMint,Pname,exe);
+				up=fklGetInt(up_v);
+				if(up==0)
+				{
+					FKL_VM_PUSH_VALUE(exe,fklMakeVMint(TRIM64(rv),exe));
+					return 0;
+				}
+			}
 			break;
 		case 2:
+			{
+				FklVMvalue* low_v=FKL_VM_POP_ARG(exe);
+				FklVMvalue* up_v=FKL_VM_POP_ARG(exe);
+				fklResBp(exe);
+				FKL_CHECK_TYPE(low_v,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(up_v,fklIsVMint,Pname,exe);
+				low=fklGetInt(low_v);
+				up=fklGetInt(up_v);
+			}
 			break;
 		default:
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
 			break;
 	}
+	if(low>up)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	uint64_t p=project(rv,(uint64_t)up-(uint64_t)low,exe->rand_state);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMint(p+(uint64_t)low,exe));
 	return 0;
 }
 

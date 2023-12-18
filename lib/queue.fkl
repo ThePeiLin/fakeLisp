@@ -9,28 +9,32 @@
 ;*  queue-length
 ;*  make-queue
 ;*  queue?
+;*  queue-empty?
 
 (define (type q)
   (vec-ref q 0))
 
-(define (q-tail q)
+(define (q-front queue)
+  (vec-ref queue 1))
+
+(define (q-rear q)
   (vec-ref q 2))
 
 (define (rear-set! q r)
   (vec-set! q 2 r))
 
 (define (new-tail-set! q n)
-  (cdr-set! (q-tail q) n))
+  (cdr-set! (q-rear q) n))
 
-(define (base-set! q f)
+(define (front-set! q f)
   (vec-set! q 1 f))
 
-(define (queue-empty? queue)
-  (null (queue-base queue)))
-
 (export
+  (define (queue-empty? queue)
+    (null (cdr (q-front queue))))
+
   (define (make-queue,elems)
-    (define front (copy elems))
+    (define front (cons nil (copy elems)))
     (define rear (tail front))
     `#(queue ~front
              ~rear))
@@ -40,37 +44,38 @@
       (eqv (length queue) 3)
       (eq (type queue) 'queue)))
 
-  (define (queue-base queue)
-    (vec-ref queue 1))
-
   (define (queue-front queue)
-    (car (queue-base queue)))
+    (define base (cdr (q-front queue)))
+    (if base
+      (box (car base))
+      nil))
 
   (define (queue-rear queue)
-    (car (q-tail queue)))
+    (if (cdr (q-front queue))
+      (box (car (q-rear queue)))
+      nil))
 
   (define (queue-length queue)
-    (length (queue-base queue)))
+    (length (cdr (q-front queue))))
 
   (define (enqueue! q e)
     (define n `(~e))
-    (if (queue-empty? q)
-      (base-set! q n)
-      (new-tail-set! q n))
-    (rear-set! q n))
+    (new-tail-set! q n)
+    (rear-set! q n)
+    e)
 
   (define (queue-push! q e)
-    (define n (cons e (queue-base q)))
-    (base-set! q n)
-    (when (null (q-tail q))
-      (rear-set! q n)))
+    (define front (q-front q))
+    (car-set! front e)
+    (front-set! q (cons nil front))
+    e)
 
   (define (queue-pop! q)
     (define r (queue-front q))
-    (base-set! q (cdr (queue-base q)))
-    (when
-      (queue-empty? q)
-      (rear-set! q nil))
+    (when r
+      (define next (cdr (q-front q)))
+      (front-set! q next)
+      (car-set! next nil))
     r)
 
   (define dequeue! queue-pop!))

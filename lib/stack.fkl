@@ -17,38 +17,33 @@
 
 (export
   (define (make-stack,elems)
-    `#(stack ~(reverse elems))))
+    `#(stack ~(reverse elems)))
 
-(export
   (define (stack->list stack)
-    (copy (stack-base stack))))
+    (copy (stack-base stack)))
 
-(export
   (define (stack? stack)
     (and (vector? stack)
       (eq (type stack) 'stack)
-      (eqv (length stack) 2))))
+      (eqv (length stack) 2)))
 
-(export
   (define (stack-push! s e)
     (base-set! s (cons e (stack-base s)))
-    e))
+    e)
 
-(export
   (define (stack-top s)
-    (car (stack-base s))))
+    (define base (stack-base s))
+    (if base
+      (box (car base))
+      nil))
 
-(export
   (define (stack-pop! s)
     (define r (stack-top s))
-    (base-set! s (cdr (stack-base s)))
-    r))
+    (if r (base-set! s (cdr (stack-base s))))
+    r)
 
-(export
   (define (stack-count s)
-    (length (stack-base s))))
+    (length (stack-base s)))
 
-(export
   (define (stack-empty? s)
     (null (stack-base s))))
-

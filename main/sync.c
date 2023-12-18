@@ -52,10 +52,21 @@ static int sync_mutex_unlock(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_MUTEX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,obj);
-	FKL_VM_PUSH_VALUE(exe,obj);
-	fklSuspendThread(exe);
 	uv_mutex_unlock(mutex);
-	fklResumeThread(exe);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	return 0;
+}
+
+static int sync_mutex_trylock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.mutex-trylock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_MUTEX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,obj);
+	FKL_VM_PUSH_VALUE(exe,uv_mutex_trylock(mutex)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
 	return 0;
 }
 
@@ -65,9 +76,10 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"make-mutex",   sync_make_mutex,   },
-	{"mutex-lock",   sync_mutex_lock,   },
-	{"mutex-unlock", sync_mutex_unlock, },
+	{"make-mutex",    sync_make_mutex,    },
+	{"mutex-lock",    sync_mutex_lock,    },
+	{"mutex-trylock", sync_mutex_trylock, },
+	{"mutex-unlock",  sync_mutex_unlock,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

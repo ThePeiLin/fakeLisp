@@ -70,6 +70,100 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL)
 	return 0;
 }
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(cond_print,cond);
+
+static void cond_finalizer(FklVMudata* ud)
+{
+	FKL_DECL_UD_DATA(cond,uv_cond_t,ud);
+	uv_cond_destroy(cond);
+}
+
+static FklVMudMetaTable CondUdMetaTable=
+{
+	.size=sizeof(uv_cond_t),
+	.__prin1=cond_print,
+	.__princ=cond_print,
+	.__finalizer=cond_finalizer,
+};
+
+#define IS_COND_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&CondUdMetaTable)
+
+static int sync_make_cond(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.make-cond";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&CondUdMetaTable,ctx->proc);
+	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,ud);
+	if(uv_cond_init(cond))
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	else
+		FKL_VM_PUSH_VALUE(exe,ud);
+	return 0;
+}
+
+static int sync_cond_signal(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.cond-signal";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_COND_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,obj);
+	uv_cond_signal(cond);
+	return 0;
+}
+
+static int sync_cond_broadcast(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.cond-broadcast";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_COND_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,obj);
+	uv_cond_broadcast(cond);
+	return 0;
+}
+
+static int sync_cond_wait(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.cond-wait";
+	FKL_DECL_AND_CHECK_ARG2(cond_obj,mutex_obj,Pname);
+	FklVMvalue* timeout_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(cond_obj,IS_COND_UD,Pname,exe);
+	FKL_CHECK_TYPE(mutex_obj,IS_MUTEX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,cond_obj);
+	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,mutex_obj);
+	if(timeout_obj)
+	{
+		FKL_CHECK_TYPE(timeout_obj,fklIsVMint,Pname,exe);
+		if(fklIsVMnumberLt0(timeout_obj))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		uint64_t timeout=fklGetUint(timeout_obj);
+		uint32_t rtp=exe->tp;
+		FKL_VM_PUSH_VALUE(exe,mutex_obj);
+		FKL_VM_PUSH_VALUE(exe,cond_obj);
+		fklSuspendThread(exe);
+		if(uv_cond_timedwait(cond,mutex,timeout))
+		{
+			fklResumeThread(exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+		}
+		fklResumeThread(exe);
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
+	}
+	else
+	{
+		uint32_t rtp=exe->tp;
+		FKL_VM_PUSH_VALUE(exe,mutex_obj);
+		FKL_VM_PUSH_VALUE(exe,cond_obj);
+		fklSuspendThread(exe);
+		uv_cond_wait(cond,mutex);
+		fklResumeThread(exe);
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
+	}
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -80,6 +174,11 @@ struct SymFunc
 	{"mutex-lock",    sync_mutex_lock,    },
 	{"mutex-trylock", sync_mutex_trylock, },
 	{"mutex-unlock",  sync_mutex_unlock,  },
+
+	{"make-cond",     sync_make_cond,     },
+	{"cond-signal",     sync_cond_signal,     },
+	{"cond-broadcast",     sync_cond_broadcast,     },
+	{"cond-wait",     sync_cond_wait,     },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

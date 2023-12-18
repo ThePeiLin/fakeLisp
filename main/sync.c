@@ -170,15 +170,15 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"make-mutex",    sync_make_mutex,    },
-	{"mutex-lock",    sync_mutex_lock,    },
-	{"mutex-trylock", sync_mutex_trylock, },
-	{"mutex-unlock",  sync_mutex_unlock,  },
+	{"make-mutex",     sync_make_mutex,     },
+	{"mutex-lock",     sync_mutex_lock,     },
+	{"mutex-trylock",  sync_mutex_trylock,  },
+	{"mutex-unlock",   sync_mutex_unlock,   },
 
-	{"make-cond",     sync_make_cond,     },
-	{"cond-signal",     sync_cond_signal,     },
-	{"cond-broadcast",     sync_cond_broadcast,     },
-	{"cond-wait",     sync_cond_wait,     },
+	{"make-cond",      sync_make_cond,      },
+	{"cond-signal",    sync_cond_signal,    },
+	{"cond-broadcast", sync_cond_broadcast, },
+	{"cond-wait",      sync_cond_wait,      },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

@@ -1,47 +1,213 @@
 (import (.. lib sync))
 (import (.. lib queue))
 
-(define (make-concurrent-queue,elems)
-  (cons (make-mutex)
-        (apply make-queue elems)))
+; (define (make-concurrent-queue,elems)
+;   (cons (make-mutex)
+;         (apply make-queue elems)))
+;
+; (define (concurrent-enqueue! q e)
+;   (define mutex (car q))
+;   (mutex-lock mutex)
+;   (enqueue! (cdr q) e)
+;   (mutex-unlock mutex))
+;
+; (define (concurrent-queue->list q)
+;   (define mutex (car q))
+;   (mutex-lock mutex)
+;   (define r (copy (queue-head (cdr q))))
+;   (mutex-unlock mutex)
+;   r)
+;
+; (defmacro MAX 40)
+;
+; (define (thread-func q max)
+;   (do [(n 10 (1+ n))]
+;     [(>= n max)]
+;     (concurrent-enqueue! q n)))
+;
+; (define thread-chanls ())
+;
+; (define con-queue (make-concurrent-queue))
+;
+; (do [(n 0 (1+ n))]
+;   [(>= n MAX)]
+;   (setq thread-chanls
+;     (cons (go thread-func con-queue MAX)
+;           thread-chanls)))
+;
+; (foreach recv thread-chanls)
 
-(define (concurrent-enqueue! q e)
-  (define mutex (car q))
-  (mutex-lock mutex)
-  (enqueue! (cdr q) e)
-  (mutex-unlock mutex))
+; (let [(c 0)]
+;   (foreach (lambda (n)
+;              (print n " ")
+;              (setq c (1+ c))
+;              (if (= (% c MAX) 0)
+;                (newline)))
+;            (concurrent-queue->list con-queue)))
 
-(define (concurrent-queue->list q)
-  (define mutex (car q))
-  (mutex-lock mutex)
-  (define r (copy (queue-base (cdr q))))
-  (mutex-unlock mutex)
+(define (my-chanl-mutex ch)
+  (vec-ref ch 1))
+
+(define (my-chanl-max ch)
+  (vec-ref ch 2))
+
+(define (inc-my-chanl-msg-num ch)
+  (vec-set! ch 3 (1+ (vec-ref ch 3))))
+
+(define (dec-my-chanl-msg-num ch)
+  (vec-set! ch 3 (-1+ (vec-ref ch 3))))
+
+(define (my-chanl-msg-num ch)
+  (vec-ref ch 3))
+
+(define (my-chanl-not-full? ch)
+  (< (my-chanl-msg-num ch)
+     (my-chanl-max ch)))
+
+(define (my-chanl-not-empty? ch)
+  (> (my-chanl-msg-num ch) 0))
+
+(define (my-chanl-pop-msg ch)
+  (define r (dequeue! (vec-ref ch 4)))
+  (if r (dec-my-chanl-msg-num ch))
   r)
 
-(defmacro MAX 40)
+(define (my-chanl-push-msg ch msg)
+  (inc-my-chanl-msg-num ch)
+  (enqueue! (vec-ref ch 4) msg))
 
-(define (thread-func q max)
-  (do [(n 10 (1+ n))]
-    [(>= n max)]
-    (concurrent-enqueue! q n)))
+(define (pop-my-recv ch)
+  (dequeue! (vec-ref ch 5)))
 
-(define thread-chanls ())
+(define (pop-my-send ch)
+  (dequeue! (vec-ref ch 6)))
 
-(define con-queue (make-concurrent-queue))
+(define (make-my-chanl max)
+  `#(my-chanl
+      ;; mutex
+      ~(make-mutex)
+      ;; max-msg-num
+      ~max
+      ;; msg-num
+      0
+      ;; msg-queue
+      ~(make-queue)
+      ;; recv-queue
+      ~(make-queue)
+      ;; send-queue
+      ~(make-queue)))
 
-(do [(n 0 (1+ n))]
-  [(>= n MAX)]
-  (setq thread-chanls
-    (cons (go thread-func con-queue MAX)
-          thread-chanls)))
+(define (push-my-recv ch cnd)
+  (enqueue! (vec-ref ch 5)`#(~cnd ())))
 
-(foreach recv thread-chanls)
+(define (push-my-send ch msg cnd)
+  (enqueue! (vec-ref ch 6) `#(~cnd ~msg)))
 
-(let [(c 0)]
-  (foreach (lambda (n)
-             (print n " ")
-             (setq c (1+ c))
-             (if (= (% c MAX) 0)
-               (newline)))
-           (concurrent-queue->list con-queue)))
+(define (my-recv-set-msg r msg)
+  (vec-set! r 1 msg))
+
+(define (my-recv-signal r)
+  (cond-signal (vec-ref r 0)))
+
+(define (my-send-signal s)
+  (cond-signal (vec-ref s 0)))
+
+(define (my-send-msg s)
+  (vec-ref s 1))
+
+(define (my-chanl-send ch msg)
+  (define mutex (my-chanl-mutex ch))
+  (mutex-lock mutex)
+  (define re (pop-my-recv ch))
+  (cond
+    [re
+      (define re (unbox re))
+      (my-recv-set-msg re msg)
+      (my-recv-signal re)
+      (mutex-unlock mutex)]
+    [(my-chanl-not-full? ch)
+     (my-chanl-push-msg ch msg)
+     (mutex-unlock mutex)]
+    [1
+     (define cnd (make-cond))
+     (push-my-send ch msg cnd)
+     (cond-wait cnd mutex)
+     (mutex-unlock mutex)]))
+
+(define (my-chanl-recv ch)
+  (define mutex (my-chanl-mutex ch))
+  (mutex-lock mutex)
+  (define sd (pop-my-send ch))
+  (cond
+    [sd
+      (define sd (unbox sd))
+      (define r nil)
+      (cond
+        [(my-chanl-not-empty? ch)
+         (setq r (unbox (my-chanl-pop-msg ch)))
+         (my-chanl-push-msg ch (my-send-msg sd))]
+        [1
+         (setq r (my-send-msg sd))])
+      (my-send-signal sd)
+      (mutex-unlock mutex)
+      r]
+    [(my-chanl-not-empty? ch)
+     (define r (unbox (my-chanl-pop-msg ch)))
+     (mutex-unlock mutex)
+     r]
+    [1
+     (define cnd (make-cond))
+     (define re (push-my-recv ch cnd))
+     (cond-wait cnd mutex)
+     (mutex-unlock mutex)
+     (vec-ref re 1)]))
+
+(define max 100)
+(define buf (make-my-chanl 100))
+
+(newline)
+
+(define (producer no.)
+  (define number-str (number->string no.))
+  (princ (append! "producer no."
+                  number-str
+                  " start!\n"))
+  (do [(c 0 (1+ c))]
+    [(>= c max)]
+    (princ (append! "producer no."
+                    number-str
+                    ": "
+                    (number->string c)
+                    "\n"))
+    (my-chanl-send buf c))
+  (princ (append! "producer no."
+                  number-str
+                  " exit\n")))
+
+(define (consumer no.)
+  (define number-str (number->string no.))
+  (princ (append! "consumer no."
+                  number-str
+                  " start!\n"))
+  (do [(c 0 (1+ c))]
+    [(>= c max)]
+    (princ (append! "consumer no."
+                    number-str
+                    ": "
+                    (number->string (my-chanl-recv buf))
+                    "\n")))
+  (princ (append! "consumer no."
+                  number-str
+                  " exit\n")))
+
+(define chanls '())
+
+(do [(c 0 (1+ c))]
+  [(>= c max)]
+  (setq chanls
+    (cons (go producer c)
+          chanls))
+  (setq chanls (cons (go consumer c) chanls)))
+
+(foreach recv chanls)
 

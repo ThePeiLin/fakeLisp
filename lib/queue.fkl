@@ -44,6 +44,9 @@
       (eqv (length queue) 3)
       (eq (type queue) 'queue)))
 
+  (define (queue-head q)
+    (cdr (q-front q)))
+
   (define (queue-front queue)
     (define base (cdr (q-front queue)))
     (if base

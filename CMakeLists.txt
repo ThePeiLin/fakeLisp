@@ -203,6 +203,26 @@ set_target_properties(math PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
+#math.so
+add_library(sync
+	SHARED
+	"main/sync.c")
+set_target_properties(sync PROPERTIES
+	PREFIX "")
+target_link_libraries(sync ${LIBFKL_MOD_TARGET_NAME} ${LINK_TARGET} uv_a)
+
+if(MSVC)
+add_custom_command(TARGET sync
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:sync>
+	"${CMAKE_BINARY_DIR}/lib/"
+	DEPENDS sync
+	VERBATIM)
+else()
+set_target_properties(sync PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
 #fs.so
 add_library(fs
 	SHARED

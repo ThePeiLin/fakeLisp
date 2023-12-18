@@ -852,7 +852,7 @@ struct SymFunc
 	{"ht-set!",     ht_ht_set1,     },
 	{"ht-set*!",    ht_ht_set8,     },
 	{"ht-del!",     ht_ht_del1,     },
-	{"ht-clear!",   ht_ht_clear,   },
+	{"ht-clear!",   ht_ht_clear,    },
 	{"ht->list",    ht_ht_to_list,  },
 	{"ht-keys",     ht_ht_keys,     },
 	{"ht-values",   ht_ht_values,   },

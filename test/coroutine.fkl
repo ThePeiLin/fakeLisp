@@ -43,6 +43,5 @@
           chanls))
   (setq chanls (cons (go consumer c) chanls)))
 
-(foreach (lambda (ch) (recv ch))
-         chanls)
+(foreach recv chanls)
 

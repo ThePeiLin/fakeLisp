@@ -1,0 +1,47 @@
+(import (.. lib sync))
+(import (.. lib queue))
+
+(define (make-concurrent-queue,elems)
+  (cons (make-mutex)
+        (apply make-queue elems)))
+
+(define (concurrent-enqueue! q e)
+  (define mutex (car q))
+  (mutex-lock mutex)
+  (enqueue! (cdr q) e)
+  (mutex-unlock mutex))
+
+(define (concurrent-queue->list q)
+  (define mutex (car q))
+  (mutex-lock mutex)
+  (define r (copy (queue-base (cdr q))))
+  (mutex-unlock mutex)
+  r)
+
+(defmacro MAX 40)
+
+(define (thread-func q max)
+  (do [(n 10 (1+ n))]
+    [(>= n max)]
+    (concurrent-enqueue! q n)))
+
+(define thread-chanls ())
+
+(define con-queue (make-concurrent-queue))
+
+(do [(n 0 (1+ n))]
+  [(>= n MAX)]
+  (setq thread-chanls
+    (cons (go thread-func con-queue MAX)
+          thread-chanls)))
+
+(foreach recv thread-chanls)
+
+(let [(c 0)]
+  (foreach (lambda (n)
+             (print n " ")
+             (setq c (1+ c))
+             (if (= (% c MAX) 0)
+               (newline)))
+           (concurrent-queue->list con-queue)))
+

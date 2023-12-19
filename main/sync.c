@@ -18,6 +18,17 @@ static FklVMudMetaTable MutexUdMetaTable=
 
 #define IS_MUTEX_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&MutexUdMetaTable)
 
+static int sync_mutex_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.mutex?";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,IS_MUTEX_UD(obj)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
 static int sync_make_mutex(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-mutex";
@@ -88,6 +99,17 @@ static FklVMudMetaTable CondUdMetaTable=
 
 #define IS_COND_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&CondUdMetaTable)
 
+static int sync_cond_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.cond?";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,IS_COND_UD(obj)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
 static int sync_make_cond(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-cond";
@@ -109,6 +131,7 @@ static int sync_cond_signal(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_COND_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,obj);
 	uv_cond_signal(cond);
+	FKL_VM_PUSH_VALUE(exe,obj);
 	return 0;
 }
 
@@ -120,6 +143,7 @@ static int sync_cond_broadcast(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_COND_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,obj);
 	uv_cond_broadcast(cond);
+	FKL_VM_PUSH_VALUE(exe,obj);
 	return 0;
 }
 
@@ -170,11 +194,13 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
+	{"mutex?",         sync_mutex_p,        },
 	{"make-mutex",     sync_make_mutex,     },
 	{"mutex-lock",     sync_mutex_lock,     },
 	{"mutex-trylock",  sync_mutex_trylock,  },
 	{"mutex-unlock",   sync_mutex_unlock,   },
 
+	{"cond?",          sync_cond_p,         },
 	{"make-cond",      sync_make_cond,      },
 	{"cond-signal",    sync_cond_signal,    },
 	{"cond-broadcast", sync_cond_broadcast, },

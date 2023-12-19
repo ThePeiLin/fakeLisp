@@ -188,23 +188,152 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 	return 0;
 }
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(rwlock_print,rwlock);
+
+static void rwlock_finalizer(FklVMudata* ud)
+{
+	FKL_DECL_UD_DATA(rwlock,uv_rwlock_t,ud);
+	uv_rwlock_destroy(rwlock);
+}
+
+static FklVMudMetaTable RwlockUdMetaTable=
+{
+	.size=sizeof(uv_rwlock_t),
+	.__prin1=rwlock_print,
+	.__princ=rwlock_print,
+	.__finalizer=rwlock_finalizer,
+};
+
+#define IS_RWLOCK_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&RwlockUdMetaTable)
+
+static int sync_rwlock_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock?";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,IS_RWLOCK_UD(obj)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int sync_make_rwlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.make-rwlock";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&RwlockUdMetaTable,ctx->proc);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,ud);
+	if(uv_rwlock_init(rwlock))
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	else
+		FKL_VM_PUSH_VALUE(exe,ud);
+	return 0;
+}
+
+static int sync_rwlock_rdlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock-rdlock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	fklSuspendThread(exe);
+	uv_rwlock_rdlock(rwlock);
+	fklResumeThread(exe);
+	return 0;
+}
+
+static int sync_rwlock_rdunlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock-rdunlock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
+	uv_rwlock_rdunlock(rwlock);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	return 0;
+}
+
+static int sync_rwlock_tryrdlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock-tryrdlock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
+	FKL_VM_PUSH_VALUE(exe,uv_rwlock_tryrdlock(rwlock)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int sync_rwlock_wrlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock-wrlock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	fklSuspendThread(exe);
+	uv_rwlock_wrlock(rwlock);
+	fklResumeThread(exe);
+	return 0;
+}
+
+static int sync_rwlock_wrunlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock-wrunlock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
+	uv_rwlock_wrunlock(rwlock);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	return 0;
+}
+
+static int sync_rwlock_trywrlock(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.rwlock-trywrlock";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
+	FKL_VM_PUSH_VALUE(exe,uv_rwlock_trywrlock(rwlock)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"mutex?",         sync_mutex_p,        },
-	{"make-mutex",     sync_make_mutex,     },
-	{"mutex-lock",     sync_mutex_lock,     },
-	{"mutex-trylock",  sync_mutex_trylock,  },
-	{"mutex-unlock",   sync_mutex_unlock,   },
+	{"mutex?",           sync_mutex_p,          },
+	{"make-mutex",       sync_make_mutex,       },
+	{"mutex-lock",       sync_mutex_lock,       },
+	{"mutex-trylock",    sync_mutex_trylock,    },
+	{"mutex-unlock",     sync_mutex_unlock,     },
 
-	{"cond?",          sync_cond_p,         },
-	{"make-cond",      sync_make_cond,      },
-	{"cond-signal",    sync_cond_signal,    },
-	{"cond-broadcast", sync_cond_broadcast, },
-	{"cond-wait",      sync_cond_wait,      },
+	{"rwlock?",          sync_rwlock_p,         },
+	{"make-rwlock",      sync_make_rwlock,      },
+	{"rwlock-rdlock",    sync_rwlock_rdlock,    },
+	{"rwlock-tryrdlock", sync_rwlock_tryrdlock, },
+	{"rwlock-rdunlock",  sync_rwlock_rdunlock,  },
+	{"rwlock-wrlock",    sync_rwlock_wrlock,    },
+	{"rwlock-trywrlock", sync_rwlock_trywrlock, },
+	{"rwlock-wrunlock",  sync_rwlock_wrunlock,  },
+
+	{"cond?",            sync_cond_p,           },
+	{"make-cond",        sync_make_cond,        },
+	{"cond-signal",      sync_cond_signal,      },
+	{"cond-broadcast",   sync_cond_broadcast,   },
+	{"cond-wait",        sync_cond_wait,        },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

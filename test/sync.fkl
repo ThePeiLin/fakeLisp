@@ -211,3 +211,49 @@
 
 (foreach recv chanls)
 
+(define rwlock (make-rwlock))
+
+(define count 0)
+
+(define (print-count no. max)
+  (do [(n 0 (1+ n))]
+    [(>= n max)]
+    (rwlock-rdlock rwlock)
+    (princ (append! "count: "
+                    (stringify count)
+                    " in thread no."
+                    (stringify no.)
+                    "\n"))
+    (rwlock-rdunlock rwlock))
+  (princ (append! "print-count thread no."
+                  (stringify no.)
+                  " exit\n")))
+
+(define (inc-count no. max)
+  (do [(n 0 (1+ n))]
+    [(>= n max)]
+    (rwlock-wrlock rwlock)
+    (define before count)
+    (setq count (1+ count))
+    (princ (append! "inc count from "
+                    (stringify before)
+                    " to "
+                    (stringify count)
+                    " in thread no."
+                    (stringify no.)
+                    "\n"))
+    (rwlock-wrunlock rwlock))
+  (princ (append! "inc-count thread no."
+                  (stringify no.)
+                  " exit\n")))
+
+(define chanls '())
+
+(do [(c 0 (1+ c))]
+  [(>= c max)]
+  (setq chanls (cons (go print-count c max) chanls))
+  (setq chanls (cons (go inc-count c max) chanls)))
+
+(foreach recv chanls)
+
+(println "the count is " count)

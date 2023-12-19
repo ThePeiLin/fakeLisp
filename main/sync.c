@@ -308,6 +308,91 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL)
 	return 0;
 }
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(sem_print,sem);
+
+static void sem_finalizer(FklVMudata* ud)
+{
+	FKL_DECL_UD_DATA(sem,uv_sem_t,ud);
+	uv_sem_destroy(sem);
+}
+
+static FklVMudMetaTable SemUdMetaTable=
+{
+	.size=sizeof(uv_sem_t),
+	.__prin1=sem_print,
+	.__princ=sem_print,
+	.__finalizer=sem_finalizer,
+};
+
+#define IS_SEM_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&SemUdMetaTable)
+
+static int sync_sem_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.sem?";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,IS_SEM_UD(obj)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int sync_make_sem(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.make-sem";
+	FKL_DECL_AND_CHECK_ARG(value_obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(value_obj,fklIsVMint,Pname,exe);
+	if(fklIsVMnumberLt0(value_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&SemUdMetaTable,ctx->proc);
+	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,ud);
+	if(uv_sem_init(sem,fklGetUint(value_obj)))
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	else
+		FKL_VM_PUSH_VALUE(exe,ud);
+	return 0;
+}
+
+static int sync_sem_wait(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.sem-wait";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	fklSuspendThread(exe);
+	uv_sem_wait(sem);
+	fklResumeThread(exe);
+	return 0;
+}
+
+static int sync_sem_post(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.sem-post";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
+	uv_sem_post(sem);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	return 0;
+}
+
+static int sync_sem_trywait(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.sem-trywait";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
+	FKL_VM_PUSH_VALUE(exe,uv_sem_trywait(sem)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -334,6 +419,12 @@ struct SymFunc
 	{"cond-signal",      sync_cond_signal,      },
 	{"cond-broadcast",   sync_cond_broadcast,   },
 	{"cond-wait",        sync_cond_wait,        },
+
+	{"sem?",             sync_sem_p,            },
+	{"make-sem",         sync_make_sem,         },
+	{"sem-wait",         sync_sem_wait,         },
+	{"sem-trywait",      sync_sem_trywait,      },
+	{"sem-post",         sync_sem_post,         },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

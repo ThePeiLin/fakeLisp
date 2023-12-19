@@ -257,3 +257,35 @@
 (foreach recv chanls)
 
 (println "the count is " count)
+(newline)
+
+(define sem (make-sem 10))
+
+(define count 0)
+
+(define barrier (make-barrier max))
+
+(define (wait-sem-func no.)
+  (barrier-wait barrier)
+  (unless (sem-trywait sem)
+    (rwlock-wrlock rwlock)
+    (define before count)
+    (setq count (1+ count))
+    (princ (append! "inc count from "
+                    (stringify before)
+                    " to "
+                    (stringify count)
+                    " in thread no."
+                    (stringify no.)
+                    "\n"))
+    (rwlock-wrunlock rwlock)))
+
+(define chanls '())
+
+(do [(c 0 (1+ c))]
+  [(>= c max)]
+  (setq chanls (cons (go wait-sem-func c) chanls)))
+
+(foreach recv chanls)
+
+(println "the count is " count)

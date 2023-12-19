@@ -393,6 +393,66 @@ static int sync_sem_trywait(FKL_CPROC_ARGL)
 	return 0;
 }
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(barrier_print,barrier);
+
+static void barrier_finalizer(FklVMudata* ud)
+{
+	FKL_DECL_UD_DATA(barrier,uv_barrier_t,ud);
+	uv_barrier_destroy(barrier);
+}
+
+static FklVMudMetaTable BarrierUdMetaTable=
+{
+	.size=sizeof(uv_barrier_t),
+	.__prin1=barrier_print,
+	.__princ=barrier_print,
+	.__finalizer=barrier_finalizer,
+};
+
+#define IS_BARRIER_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&BarrierUdMetaTable)
+
+static int sync_barrier_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.barrier?";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,IS_BARRIER_UD(obj)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int sync_make_barrier(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.make-barrier";
+	FKL_DECL_AND_CHECK_ARG(count_obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(count_obj,fklIsVMint,Pname,exe);
+	if(fklIsVMnumberLt0(count_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&BarrierUdMetaTable,ctx->proc);
+	FKL_DECL_VM_UD_DATA(barrier,uv_barrier_t,ud);
+	if(uv_barrier_init(barrier,fklGetUint(count_obj)))
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	else
+		FKL_VM_PUSH_VALUE(exe,ud);
+	return 0;
+}
+
+static int sync_barrier_wait(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="sync.barrier-wait";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_BARRIER_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(barrier,uv_barrier_t,obj);
+	FKL_VM_PUSH_VALUE(exe,obj);
+	fklSuspendThread(exe);
+	uv_barrier_wait(barrier);
+	fklResumeThread(exe);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -425,6 +485,10 @@ struct SymFunc
 	{"sem-wait",         sync_sem_wait,         },
 	{"sem-trywait",      sync_sem_trywait,      },
 	{"sem-post",         sync_sem_post,         },
+
+	{"barrier?",         sync_barrier_p,        },
+	{"make-barrier",     sync_make_barrier,     },
+	{"barrier-wait",     sync_barrier_wait,     },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

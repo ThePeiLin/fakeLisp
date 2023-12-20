@@ -1961,9 +1961,9 @@ void* fklGetAddress(const char* funcname,uv_lib_t* dll)
 
 void fklVMsleep(FklVM* exe,uint64_t ms)
 {
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	uv_sleep(ms);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 }
 
 void fklVMread(FklVM* exe
@@ -1972,12 +1972,12 @@ void fklVMread(FklVM* exe
 		,uint64_t len
 		,int d)
 {
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	if(d!=EOF)
 		fklGetDelim(fp,buf,d);
 	else
 		buf->index=fread(buf->buf,sizeof(char),len,fp);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 }
 
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table)

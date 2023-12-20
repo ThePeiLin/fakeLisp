@@ -2857,9 +2857,9 @@ static int builtin_parse(FKL_CPROC_ARGL)
 
 static inline FklVMvalue* vm_fgetc(FklVM* exe,FILE* fp)
 {
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	int ch=fgetc(fp);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	if(ch==EOF)
 		return FKL_VM_NIL;
 	return FKL_MAKE_VM_CHR(ch);
@@ -2882,9 +2882,9 @@ static int builtin_fgetc(FKL_CPROC_ARGL)
 
 static inline FklVMvalue* vm_fgeti(FklVM* exe,FILE* fp)
 {
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	int ch=fgetc(fp);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	if(ch==EOF)
 		return FKL_VM_NIL;
 	return FKL_MAKE_VM_FIX(ch);

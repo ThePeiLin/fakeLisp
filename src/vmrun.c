@@ -739,15 +739,13 @@ static inline void vm_running_thread_push(FklVM* v)
 	uv_mutex_unlock(&q->pre_running_lock);
 }
 
-void fklResumeThread(FklVM* exe)
+void fklLockThread(FklVM* exe)
 {
 	uv_mutex_lock(&exe->lock);
-	exe->state=FKL_VM_READY;
 }
 
-void fklSuspendThread(FklVM* exe)
+void fklUnlockThread(FklVM* exe)
 {
-	exe->state=FKL_VM_WAITING;
 	uv_mutex_unlock(&exe->lock);
 }
 

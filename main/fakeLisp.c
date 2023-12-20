@@ -603,9 +603,9 @@ static void repl_frame_step(void* data,FklVM* exe)
 		}
 		exe->tp=0;
 
-		fklSuspendThread(exe);
+		fklUnlockThread(exe);
 		ctx->eof=replxx_input_string_buffer(ctx->replxx,&ctx->buf)==NULL;
-		fklResumeThread(exe);
+		fklLockThread(exe);
 		return;
 	}
 	else

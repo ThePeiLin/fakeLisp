@@ -965,8 +965,8 @@ void fklVMread(FklVM*
 		,uint64_t len
 		,int d);
 
-void fklSuspendThread(FklVM*);
-void fklResumeThread(FklVM*);
+void fklUnlockThread(FklVM*);
+void fklLockThread(FklVM*);
 
 void fklChanlSend(FklVMchanl*,FklVMvalue* msg,FklVM*);
 void fklChanlRecv(FklVMchanl*,FklVMvalue**,FklVM*);

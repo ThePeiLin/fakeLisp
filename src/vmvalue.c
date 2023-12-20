@@ -1004,10 +1004,10 @@ void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
 		if(uv_cond_init(&r.cond))
 			abort();
 		chanl_push_recv(ch,&r);
-		fklSuspendThread(exe);
+		fklUnlockThread(exe);
 		uv_cond_wait(&r.cond,&ch->lock);
 		uv_mutex_unlock(&ch->lock);
-		fklResumeThread(exe);
+		fklLockThread(exe);
 		uv_cond_destroy(&r.cond);
 		return;
 	}
@@ -1036,10 +1036,10 @@ void fklChanlSend(FklVMchanl* ch,FklVMvalue* msg,FklVM* exe)
 		if(uv_cond_init(&s.cond))
 			abort();
 		chanl_push_send(ch,&s);
-		fklSuspendThread(exe);
+		fklUnlockThread(exe);
 		uv_cond_wait(&s.cond,&ch->lock);
 		uv_mutex_unlock(&ch->lock);
-		fklResumeThread(exe);
+		fklLockThread(exe);
 		uv_cond_destroy(&s.cond);
 		return;
 	}

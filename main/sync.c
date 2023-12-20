@@ -50,9 +50,9 @@ static int sync_mutex_lock(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_MUTEX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,obj);
 	FKL_VM_PUSH_VALUE(exe,obj);
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	uv_mutex_lock(mutex);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	return 0;
 }
 
@@ -166,13 +166,13 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 		uint32_t rtp=exe->tp;
 		FKL_VM_PUSH_VALUE(exe,mutex_obj);
 		FKL_VM_PUSH_VALUE(exe,cond_obj);
-		fklSuspendThread(exe);
+		fklUnlockThread(exe);
 		if(uv_cond_timedwait(cond,mutex,timeout))
 		{
-			fklResumeThread(exe);
+			fklLockThread(exe);
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 		}
-		fklResumeThread(exe);
+		fklLockThread(exe);
 		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
 	}
 	else
@@ -180,9 +180,9 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 		uint32_t rtp=exe->tp;
 		FKL_VM_PUSH_VALUE(exe,mutex_obj);
 		FKL_VM_PUSH_VALUE(exe,cond_obj);
-		fklSuspendThread(exe);
+		fklUnlockThread(exe);
 		uv_cond_wait(cond,mutex);
-		fklResumeThread(exe);
+		fklLockThread(exe);
 		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
 	}
 	return 0;
@@ -238,9 +238,9 @@ static int sync_rwlock_rdlock(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
 	FKL_VM_PUSH_VALUE(exe,obj);
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	uv_rwlock_rdlock(rwlock);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	return 0;
 }
 
@@ -277,9 +277,9 @@ static int sync_rwlock_wrlock(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
 	FKL_VM_PUSH_VALUE(exe,obj);
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	uv_rwlock_wrlock(rwlock);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	return 0;
 }
 
@@ -362,9 +362,9 @@ static int sync_sem_wait(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
 	FKL_VM_PUSH_VALUE(exe,obj);
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	uv_sem_wait(sem);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	return 0;
 }
 
@@ -447,9 +447,9 @@ static int sync_barrier_wait(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_BARRIER_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(barrier,uv_barrier_t,obj);
 	FKL_VM_PUSH_VALUE(exe,obj);
-	fklSuspendThread(exe);
+	fklUnlockThread(exe);
 	uv_barrier_wait(barrier);
-	fklResumeThread(exe);
+	fklLockThread(exe);
 	return 0;
 }
 

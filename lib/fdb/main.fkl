@@ -1,0 +1,11 @@
+(import (bin debug))
+
+(define arg-list (argv))
+
+(define file-name (car arg-list))
+
+(define rest-arg (cdr arg-list))
+
+(define debug-ctx (make-dbg-ctx file-name rest-arg))
+
+

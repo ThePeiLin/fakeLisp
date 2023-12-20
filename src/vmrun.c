@@ -1148,6 +1148,7 @@ static inline void vm_idler_loop(FklVMgc* gc)
 			}
 			return;
 		}
+		uv_sleep(0);
 	}
 }
 

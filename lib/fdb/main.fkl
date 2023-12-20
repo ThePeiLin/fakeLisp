@@ -1,6 +1,11 @@
 (import (bin debug))
 
-(define arg-list (argv))
+(define arg-list (cdr (argv)))
+
+(define prompt "(fdb)"))
+
+(if (null arg-list)
+  (exit))
 
 (define file-name (car arg-list))
 
@@ -8,4 +13,7 @@
 
 (define debug-ctx (make-dbg-ctx file-name rest-arg))
 
-
+(do [(cmd (dbg-read debug-ctx prompt)
+          (dbg-read debug-ctx prompt))]
+  [(dbg-ctx-exit? debug-ctx)]
+  )

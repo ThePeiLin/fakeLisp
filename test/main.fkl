@@ -29,6 +29,7 @@
         (compile-check)
         (test-ht)
         (os)
-        (fs))
+        (fs)
+        (sync))
 
 (println "\ntest done!")

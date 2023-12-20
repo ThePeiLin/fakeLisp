@@ -15,6 +15,16 @@
     "step: run the program until next line, but step in function"
     "return: run the program until function return"))
 
+(define help-doc-hash
+  (make-hash
+    'exit "TODO"
+    'continue "TODO"
+    'break "TODO"
+    'delete "TODO"
+    'next "TODO"
+    'step "TODO"
+    'help "TODO"))
+
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
@@ -33,11 +43,11 @@
 (define (debug-ctx-run ctx prompt line-prefix)
   (do []
     [(debug-ctx-end? ctx)]
-    (debug-ctx-list-curline ctx line-prefix)
+    (println line-prefix (debug-ctx-get-curline ctx))
     (define cmd (debug-ctx-cmd-read ctx prompt))
     (define cmd-func (hash-ref debug-cmd-func (car cmd) '()))
     (when cmd-func
-      (cmd-func ctx (cdr cmd)))))
+      (apply cmd-func ctx (cdr cmd)))))
 
 (define (fdb-main)
 

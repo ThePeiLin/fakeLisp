@@ -249,18 +249,18 @@ add_library(debug
 	"main/debug.c")
 set_target_properties(debug PROPERTIES
 	PREFIX "")
-target_link_libraries(debug ${LIBFKL_MOD_TARGET_NAME})
+target_link_libraries(debug ${LIBFKL_MOD_TARGET_NAME} uv_a replxx)
 
 if(MSVC)
 add_custom_command(TARGET debug
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
 	$<TARGET_FILE:debug>
-	"${CMAKE_BINARY_DIR}/lib/bin"
+	"${CMAKE_BINARY_DIR}/lib/fdb/bin"
 	DEPENDS debug
 	VERBATIM)
 else()
 set_target_properties(debug PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/bin")
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/fdb/bin")
 endif()
 
 #linking

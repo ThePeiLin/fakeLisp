@@ -1,4 +1,27 @@
 #include<fakeLisp/vm.h>
+#include<fakeLisp/codegen.h>
+
+typedef struct
+{
+	int end;
+	FklCodegenOuterCtx outer_ctx;
+	FklVM* main_thread;
+	FklVMgc* gc;
+}DebugCtx;
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(debug_ctx_print,debug-ctx);
+
+static FklVMudMetaTable DebugCtxUdMetaTable=
+{
+	.size=sizeof(DebugCtx),
+	.__prin1=debug_ctx_print,
+	.__princ=debug_ctx_print,
+};
+
+static int debug_make_debug_ctx(FKL_CPROC_ARGL)
+{
+	abort();
+}
 
 struct SymFunc
 {
@@ -6,6 +29,16 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
+	{"make-debug-ctx",        debug_make_debug_ctx, },
+	{"debug-ctx-cmd-read",    debug_make_debug_ctx, },
+	{"debug-ctx-get-curline", debug_make_debug_ctx, },
+	{"debug-ctx-end?",        debug_make_debug_ctx, },
+	{"debug-ctx-step",        debug_make_debug_ctx, },
+	{"debug-ctx-next",        debug_make_debug_ctx, },
+	{"debug-ctx-del-break",   debug_make_debug_ctx, },
+	{"debug-ctx-set-break",   debug_make_debug_ctx, },
+	{"debug-ctx-continue",    debug_make_debug_ctx, },
+	{"debug-ctx-exit",        debug_make_debug_ctx, },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

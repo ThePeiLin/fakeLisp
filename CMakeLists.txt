@@ -203,7 +203,7 @@ set_target_properties(math PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
-#math.so
+#sync.so
 add_library(sync
 	SHARED
 	"main/sync.c")
@@ -241,6 +241,26 @@ add_custom_command(TARGET fs
 else()
 set_target_properties(fs PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
+#debug.so
+add_library(debug
+	SHARED
+	"main/debug.c")
+set_target_properties(debug PROPERTIES
+	PREFIX "")
+target_link_libraries(debug ${LIBFKL_MOD_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET debug
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:debug>
+	"${CMAKE_BINARY_DIR}/lib/bin"
+	DEPENDS debug
+	VERBATIM)
+else()
+set_target_properties(debug PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/bin")
 endif()
 
 #linking

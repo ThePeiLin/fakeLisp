@@ -1,19 +1,64 @@
+(import (only (.. utils m) static-strcat))
+
 (import (bin debug))
 
-(define arg-list (cdr (argv)))
+(define line-prefix "\n-> ")
 
-(define prompt "(fdb)"))
+(define help-doc
+  (static-strcat
+    "help: print this help doc or print the help of command"
+    "exit: exit"
+    "continue: continue the program until end or reach break point"
+    "break: set break point"
+    "delete: delete break point"
+    "next: run the program until next line"
+    "step: run the program until next line, but step in function"
+    "return: run the program until function return"))
 
-(if (null arg-list)
-  (exit))
+(define debug-cmd-func
+  (make-hash
+    'exit debug-ctx-exit
+    'continue debug-ctx-continue
+    'break debug-ctx-set-break
+    'delete debug-ctx-del-break
+    'next debug-ctx-next
+    'step debug-ctx-step
+    'help (lambda (_,rest)
+            (if rest
+              (if (cdr rest)
+                (println "invalid command")
+                (println (hash-ref help-doc-hash (car rest) "do not have such a command")))
+              (println help-doc)))))
 
-(define file-name (car arg-list))
+(define (debug-ctx-run ctx prompt line-prefix)
+  (do []
+    [(debug-ctx-end? ctx)]
+    (debug-ctx-list-curline ctx line-prefix)
+    (define cmd (debug-ctx-cmd-read ctx prompt))
+    (define cmd-func (hash-ref debug-cmd-func (car cmd) '()))
+    (when cmd-func
+      (cmd-func ctx (cdr cmd)))))
 
-(define rest-arg (cdr arg-list))
+(define (fdb-main)
 
-(define debug-ctx (make-dbg-ctx file-name rest-arg))
+  (define arg-list (cdr (argv)))
 
-(do [(cmd (dbg-read debug-ctx prompt)
-          (dbg-read debug-ctx prompt))]
-  [(dbg-ctx-exit? debug-ctx)]
-  )
+  (if (null arg-list)
+    (exit))
+
+  (define file-name (car arg-list))
+
+  (define dbg-ctx (make-debug-ctx file-name arg-list))
+
+  (when (error? dbg-ctx)
+    (raise dbg-ctx))
+
+  (define prompt "(fdb)")
+  
+  (define cmd-func-table
+    (make-hash))
+
+  (debug-ctx-run dbg-ctx prompt line-prefix))
+
+(if *main?*
+  (fdb-main))

@@ -9500,10 +9500,10 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	uint32_t num=0;
 	FklSid_t* exports=NULL;
 	init(&num,&exports,pst);
+	FklHashTable* exports_idx=&lib->exports;
+	fklInitExportSidIdxTable(exports_idx);
 	if(num)
 	{
-		FklHashTable* exports_idx=&lib->exports;
-		fklInitExportSidIdxTable(exports_idx);
 		for(uint32_t i=0;i<num;i++)
 		{
 			FklCodegenExportSidIndexHashItem* item=fklPutHashItem(&exports[i],exports_idx);

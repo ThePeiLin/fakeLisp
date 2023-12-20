@@ -184,6 +184,32 @@ static int os_getenv(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int os_setenv(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="os.setenv";
+	FKL_DECL_AND_CHECK_ARG(name,Pname);
+	FklVMvalue* value=FKL_VM_POP_ARG(exe);
+	FklVMvalue* overwrite=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
+	const FklString* name_str=FKL_VM_STR(name);
+	if(value)
+	{
+		FKL_CHECK_TYPE(value,FKL_IS_STR,Pname,exe);
+		int o=(overwrite&&overwrite!=FKL_VM_NIL)?1:0;
+		if(setenv(name_str->str,FKL_VM_STR(value)->str,o))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	}
+	else
+	{
+		if(unsetenv(name_str->str))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	}
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -199,6 +225,7 @@ struct SymFunc
 	{"chdir",    os_chdir,    },
 	{"getcwd",   os_getcwd,   },
 	{"getenv",   os_getenv,   },
+	{"setenv",   os_setenv,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

@@ -1,6 +1,6 @@
 (import (only (.. utils m) static-strcat))
 
-(import (bin debug))
+(import (bin bdb))
 
 (define line-prefix "\n-> ")
 
@@ -17,13 +17,14 @@
 
 (define help-doc-hash
   (make-hash
-    'exit "TODO"
-    'continue "TODO"
-    'break "TODO"
-    'delete "TODO"
-    'next "TODO"
-    'step "TODO"
-    'help "TODO"))
+    'exit "exit"
+    'continue "continue the program until end or reach break point"
+    'break "set break point"
+    'delete "delete break point"
+    'next "run the program until next line, but step in function"
+    'step "run the program until next line, but step in function"
+    'return "run the program until function return"
+    'help "print this help doc or print the help of command"))
 
 (define debug-cmd-func
   (make-hash

@@ -243,23 +243,23 @@ set_target_properties(fs PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
-#debug.so
-add_library(debug
+#bdb.so
+add_library(bdb
 	SHARED
-	"main/debug.c")
-set_target_properties(debug PROPERTIES
+	"main/bdb.c")
+set_target_properties(bdb PROPERTIES
 	PREFIX "")
-target_link_libraries(debug ${LIBFKL_MOD_TARGET_NAME} uv_a replxx)
+target_link_libraries(bdb ${LIBFKL_MOD_TARGET_NAME} uv_a replxx)
 
 if(MSVC)
-add_custom_command(TARGET debug
+add_custom_command(TARGET bdb
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:debug>
+	$<TARGET_FILE:bdb>
 	"${CMAKE_BINARY_DIR}/lib/fdb/bin"
-	DEPENDS debug
+	DEPENDS bdb
 	VERBATIM)
 else()
-set_target_properties(debug PROPERTIES
+set_target_properties(bdb PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/fdb/bin")
 endif()
 

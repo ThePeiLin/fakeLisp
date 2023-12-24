@@ -39,14 +39,28 @@ static void uninit_all_alive_debug_ctx(void)
 	abort();
 }
 
-static void init_debug_ctx(void)
+static void init_alive_debug_ctx(void)
 {
 	atexit(uninit_all_alive_debug_ctx);
 	uv_mutex_init(&alive_debug_lock);
 	fklInitPtrStack(&alive_debug_ctxs,16,16);
 }
 
-static inline DebugCtx* create_debug_ctx(FklVM* exe,const char* file_dir)
+static inline void set_argv_with_list(FklVMgc* gc,FklVMvalue* argv_list)
+{
+	int argc=fklVMlistLength(argv_list);
+	gc->argc=argc;
+	char** argv=(char**)malloc(sizeof(char*)*argc);
+	FKL_ASSERT(argv);
+	for(int i=0;i<argc;i++)
+	{
+		argv[i]=fklStringToCstr(FKL_VM_STR(FKL_VM_CAR(argv_list)));
+		argv_list=FKL_VM_CDR(argv_list);
+	}
+	gc->argv=argv;
+}
+
+static inline DebugCtx* create_debug_ctx(FklVM* exe,const char* file_dir,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
 	FKL_ASSERT(ctx);
@@ -124,7 +138,7 @@ FKL_DLL_EXPORT void _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_AR
 
 FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 {
-	uv_once(&debug_ctx_inited,init_debug_ctx);
+	uv_once(&debug_ctx_inited,init_alive_debug_ctx);
 	FklSymbolTable* table=exe->symbolTable;
 	*count=EXPORT_NUM;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);

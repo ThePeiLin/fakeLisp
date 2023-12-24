@@ -46,10 +46,14 @@ static void init_debug_ctx(void)
 	fklInitPtrStack(&alive_debug_ctxs,16,16);
 }
 
-static inline DebugCtx* create_debug_ctx(void)
+static inline DebugCtx* create_debug_ctx(FklVM* exe,const char* file_dir)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
 	FKL_ASSERT(ctx);
+	ctx->idler_thread_id=exe->tid;
+	fklInitCodegenOuterCtx(&ctx->outer_ctx,fklCopyCstr(file_dir));
+	uv_mutex_init(&ctx->reach_breakpoint_lock);
+
 	uv_mutex_lock(&alive_debug_lock);
 	fklPushPtrStack(ctx,&alive_debug_ctxs);
 	uv_mutex_unlock(&alive_debug_lock);

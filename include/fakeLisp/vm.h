@@ -479,6 +479,9 @@ typedef struct FklVMgc
 	size_t threshold;
 	FklVMvalue* head;
 
+	int argc;
+	const char* const* argv;
+
 	struct FklVMgcGrayList
 	{
 		struct FklVMgcGrayList* next;
@@ -1000,9 +1003,7 @@ FklBytevector* fklUdToBytevector(const FklVMudata*);
 
 int fklIsCallable(FklVMvalue*);
 int fklIsAppendable(FklVMvalue*);
-void fklInitVMargs(int argc,char** argv);
-int fklGetVMargc(void);
-char** fklGetVMargv(void);
+void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv);
 
 int fklIsVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);

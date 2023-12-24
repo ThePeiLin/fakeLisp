@@ -26,7 +26,7 @@ static int exitState=0;
 
 #define FKL_EXIT_FAILURE (255)
 
-static inline int compileAndRun(char* filename)
+static inline int compileAndRun(const char* filename,int argc,const char* const* argv)
 {
 	FILE* fp=fopen(filename,"r");
 	if(fp==NULL)
@@ -93,6 +93,7 @@ static inline int compileAndRun(char* filename)
 	fklChdir(outer_ctx.cwd);
 	fklUninitCodegenOuterCtx(&outer_ctx);
 
+	fklInitVMargs(anotherVM->gc,argc,argv);
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(anotherVM->symbolTable);
 	fklDestroyAllVMs(anotherVM);
@@ -114,7 +115,7 @@ static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncProtot
 	}
 }
 
-static inline int runCode(char* filename)
+static inline int runCode(const char* filename,int argc,const char* const* argv)
 {
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
@@ -148,6 +149,7 @@ static inline int runCode(char* filename)
 	fclose(fp);
 
 	initLibWithPrototype(anotherVM->libs,anotherVM->libNum,anotherVM->pts);
+	fklInitVMargs(anotherVM->gc,argc,argv);
 	int r=fklRunVM(anotherVM);
 	fklDestroySymbolTable(table);
 	fklDestroyAllVMs(anotherVM);
@@ -155,7 +157,7 @@ static inline int runCode(char* filename)
 	return r;
 }
 
-static inline int runPreCompile(char* filename)
+static inline int runPreCompile(const char* filename,int argc,const char* const* argv)
 {
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
@@ -243,6 +245,7 @@ static inline int runPreCompile(char* filename)
 	}
 	fklUninitPtrStack(&scriptLibStack);
 
+	fklInitVMargs(anotherVM->gc,argc,argv);
 	int r=fklRunVM(anotherVM);
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
@@ -250,10 +253,9 @@ static inline int runPreCompile(char* filename)
 	return r;
 }
 
-int main(int argc,char** argv)
+int main(int argc,const char* const* argv)
 {
-	char* filename=(argc>1)?argv[1]:NULL;
-	fklInitVMargs(argc,argv);
+	const char* filename=(argc>1)?argv[1]:NULL;
 	if(!filename)
 	{
 		FklCodegenOuterCtx outer_ctx;
@@ -281,11 +283,11 @@ int main(int argc,char** argv)
 		if(fklIsAccessibleRegFile(filename))
 		{
 			if(fklIsScriptFile(filename))
-				exitState=compileAndRun(filename);
+				exitState=compileAndRun(filename,argc,argv);
 			else if(fklIsByteCodeFile(filename))
-				exitState=runCode(filename);
+				exitState=runCode(filename,argc,argv);
 			else if(fklIsPrecompileFile(filename))
-				exitState=runPreCompile(filename);
+				exitState=runPreCompile(filename,argc,argv);
 			else
 			{
 				exitState=FKL_EXIT_FAILURE;
@@ -305,11 +307,11 @@ int main(int argc,char** argv)
 			char* main_pre_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
 			if(fklIsAccessibleRegFile(main_script_buf.buf))
-				exitState=compileAndRun(main_script_buf.buf);
+				exitState=compileAndRun(main_script_buf.buf,argc,argv);
 			else if(fklIsAccessibleRegFile(main_code_file))
-				exitState=runCode(main_code_file);
+				exitState=runCode(main_code_file,argc,argv);
 			else if(fklIsAccessibleRegFile(main_pre_file))
-				exitState=runPreCompile(main_pre_file);
+				exitState=runPreCompile(main_pre_file,argc,argv);
 			else
 			{
 				exitState=FKL_EXIT_FAILURE;

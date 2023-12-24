@@ -17,9 +17,6 @@
 #include<time.h>
 #include<setjmp.h>
 
-static int VMargc=0;
-static char** VMargv=NULL;
-
 /*procedure call functions*/
 
 static inline void push_old_locv(FklVM* exe,uint32_t llast,FklVMvalue** locv)
@@ -2556,21 +2553,10 @@ void fklDeleteCallChain(FklVM* exe)
 	}
 }
 
-void fklInitVMargs(int argc,char** argv)
+void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
 {
-	VMargc=argc-1;
-	if(VMargc)
-		VMargv=argv+1;
-}
-
-int fklGetVMargc(void)
-{
-	return VMargc;
-}
-
-char** fklGetVMargv(void)
-{
-	return VMargv;
+	gc->argc=argc-1;
+	gc->argv=argv+1;
 }
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v)

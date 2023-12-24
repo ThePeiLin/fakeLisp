@@ -214,7 +214,6 @@ static inline int pre_compile(const char* main_file_name
 	const char* main_dir=outer_ctx->main_file_real_path_dir;
 	fklChdir(outer_ctx->main_file_real_path_dir);
 	fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx);
-	fklInitVMargs(argc,argv);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
 	{
@@ -283,7 +282,6 @@ static inline int compile(const char* filename
 	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
 	fklChdir(outer_ctx->main_file_real_path_dir);
 	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx);
-	fklInitVMargs(argc,argv);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
 	{

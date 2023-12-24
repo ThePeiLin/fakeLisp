@@ -480,7 +480,7 @@ typedef struct FklVMgc
 	FklVMvalue* head;
 
 	int argc;
-	const char* const* argv;
+	char** argv;
 
 	struct FklVMgcGrayList
 	{

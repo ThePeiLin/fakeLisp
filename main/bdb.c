@@ -71,7 +71,13 @@ static FklVMudMetaTable DebugCtxUdMetaTable=
 
 static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 {
+	static const char Pname[]="bdb.make-debug-ctx";
+	FKL_DECL_AND_CHECK_ARG2(filename_obj,argv_obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(filename_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(argv_obj,fklIsList,Pname,exe);
 	abort();
+	return 0;
 }
 
 static int bdb_debug_ctx_p(FKL_CPROC_ARGL)

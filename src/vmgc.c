@@ -1,4 +1,5 @@
 #include<fakeLisp/vm.h>
+#include<string.h>
 
 static inline struct FklVMgcGrayList* createGrayList(FklVMvalue* v,FklVMgc* gc)
 {
@@ -191,6 +192,18 @@ static inline void init_locv_cache(FklVMgc* gc)
 	uv_mutex_init(&gc->locv_cache[4].lock);
 }
 
+void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
+{
+	gc->argc=argc-1;
+	argv++;
+	size_t size=sizeof(const char*)*gc->argc;
+	char** argv_v=(char**)malloc(size);
+	FKL_ASSERT(argv);
+	for(int i=0;i<gc->argc;i++)
+		argv_v[i]=fklCopyCstr(argv[i]);
+	gc->argv=argv_v;
+}
+
 FklVMgc* fklCreateVMgc()
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
@@ -316,8 +329,20 @@ void fklVMgcRemoveUnusedGrayCache(FklVMgc* gc)
 	gc->gray_list_cache=NULL;
 }
 
+static inline void destroy_argv(FklVMgc* gc)
+{
+	if(gc->argc)
+	{
+		char** const end=&gc->argv[gc->argc];
+		for(char** cur=gc->argv;cur<end;cur++)
+			free(*cur);
+		free(gc->argv);
+	}
+}
+
 void fklDestroyVMgc(FklVMgc* gc)
 {
+	destroy_argv(gc);
 	destroy_all_gray_cache(gc);
 	destroy_all_locv_cache(gc);
 	fklDestroyAllValues(gc);

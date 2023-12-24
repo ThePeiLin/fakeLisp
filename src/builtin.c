@@ -3143,7 +3143,7 @@ static int builtin_argv(FKL_CPROC_ARGL)
 	FklVMvalue** tmp=&retval;
 	int32_t i=0;
 	int argc=exe->gc->argc;
-	const char* const* argv=exe->gc->argv;
+	char* const* const argv=exe->gc->argv;
 	for(;i<argc;i++,tmp=&FKL_VM_CDR(*tmp))
 		*tmp=fklCreateVMvaluePairWithCar(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(argv[i])));
 	FKL_VM_PUSH_VALUE(exe,retval);

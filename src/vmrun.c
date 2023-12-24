@@ -2553,12 +2553,6 @@ void fklDeleteCallChain(FklVM* exe)
 	}
 }
 
-void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
-{
-	gc->argc=argc-1;
-	gc->argv=argv+1;
-}
-
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v)
 {
 	fklAllocMoreStack(s);

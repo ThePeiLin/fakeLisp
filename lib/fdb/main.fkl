@@ -45,7 +45,7 @@
   (do []
     [(debug-ctx-end? ctx)]
     (println line-prefix (debug-ctx-get-curline ctx))
-    (define cmd (debug-ctx-cmd-read ctx prompt))
+    (define cmd (debug-ctx-repl ctx prompt))
     (define cmd-func (hash-ref debug-cmd-func (car cmd) '()))
     (when cmd-func
       (apply cmd-func ctx (cdr cmd)))))
@@ -64,7 +64,7 @@
   (when (error? dbg-ctx)
     (raise dbg-ctx))
 
-  (define prompt "(fdb)")
+  (define prompt "(fdb) ")
   
   (define cmd-func-table
     (make-hash))

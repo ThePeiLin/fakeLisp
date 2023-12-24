@@ -414,8 +414,6 @@ static inline void init_with_main_proc(FklVMproc* d,const FklVMproc* s)
 {
 	uint32_t count=s->rcount;
 	FklVMvalue** refs=fklCopyMemory(s->closure,count*sizeof(FklVMvalue*));
-	// for(uint32_t i=0;i<count;i++)
-	// 	fklMakeVMvarRefRef(refs[i]);
 	d->closure=refs;
 	d->rcount=count;
 	d->protoId=1;
@@ -437,7 +435,6 @@ static inline FklVMvalue* insert_local_ref(FklVMCompoundFrameVarRef* lr
 {
 	FklVMvarRefList* rl=(FklVMvarRefList*)malloc(sizeof(FklVMvarRefList));
 	FKL_ASSERT(rl);
-	// rl->ref=fklMakeVMvarRefRef(ref);
 	rl->ref=ref;
 	rl->next=lr->lrefl;
 	lr->lrefl=rl;
@@ -477,11 +474,7 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 					FklVMproc* proc=FKL_VM_PROC(v);
 					FklVMvalue* ref=proc->closure[idx];
 					if(lr->lref[def->idx])
-					{
-						// proc->closure[idx]=fklMakeVMvarRefRef(lr->lref[def->idx]);
 						proc->closure[idx]=lr->lref[def->idx];
-						// fklDestroyVMvarRef(ref);
-					}
 					else
 					{
 						((FklVMvalueVarRef*)ref)->idx=def->idx;

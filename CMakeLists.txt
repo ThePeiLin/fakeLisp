@@ -85,6 +85,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 #replxx
 include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
+set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #libuv
 set(LIBUV_BUILD_SHARED OFF)

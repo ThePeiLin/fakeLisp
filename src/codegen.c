@@ -9899,7 +9899,7 @@ void fklDestroyCodegenLibExceptBclAndDll(FklCodegenLib* clib)
 	free(clib);
 }
 
-void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
+void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* exe
 		,FklFuncPrototypes* pts)

@@ -83,7 +83,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack->top];
 		FklCodegenLib* cur=fklPopPtrStack(scriptLibStack);
 		FklCodegenLibType type=cur->type;
-		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
+		fklInitVMlibWithCodegenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
 			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
 	}
@@ -239,7 +239,7 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack.top];
 		FklCodegenLib* cur=fklPopPtrStack(&scriptLibStack);
 		FklCodegenLibType type=cur->type;
-		fklInitVMlibWithCodgenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
+		fklInitVMlibWithCodegenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
 			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
 	}

@@ -488,7 +488,7 @@ void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
 		,int needCopy
 		,FklFuncPrototypes*);
 
-void fklInitVMlibWithCodgenLibAndDestroy(FklCodegenLib* clib
+void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 		,FklVMlib* vlib
 		,FklVM* vm
 		,FklFuncPrototypes*);

@@ -249,7 +249,7 @@ add_library(bdb
 	"main/bdb.c")
 set_target_properties(bdb PROPERTIES
 	PREFIX "")
-target_link_libraries(bdb ${LIBFKL_MOD_TARGET_NAME} uv_a replxx)
+target_link_libraries(bdb ${LIBFKL_TARGET_NAME} uv_a replxx)
 
 if(MSVC)
 add_custom_command(TARGET bdb

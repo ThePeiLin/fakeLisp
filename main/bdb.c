@@ -10,10 +10,15 @@ typedef struct
 	uv_thread_t idler_thread_id;
 	int end;
 	FklCodegenOuterCtx outer_ctx;
+	FklCodegenInfo main_info;
+
+	FklPtrStack envs;
+	FklPtrStack codegen_infos;
+	FklPtrStack code_objs;
+
 	FklVM* main_thread;
 	FklVMgc* gc;
 	FklHashTable break_points;
-	FklPtrStack code_objs;
 
 	uv_mutex_t reach_breakpoint_lock;
 	struct ReachBreakPoints
@@ -36,7 +41,7 @@ static void uninit_all_alive_debug_ctx(void)
 {
 	uv_mutex_destroy(&alive_debug_lock);
 	fklUninitPtrStack(&alive_debug_ctxs);
-	abort();
+#warning INCOMPLETE
 }
 
 static void init_alive_debug_ctx(void)
@@ -60,13 +65,107 @@ static inline void set_argv_with_list(FklVMgc* gc,FklVMvalue* argv_list)
 	gc->argv=argv;
 }
 
-static inline DebugCtx* create_debug_ctx(FklVM* exe,const char* file_dir,FklVMvalue* argv)
+static inline char* get_valid_file_name(const char* filename)
+{
+	if(fklIsAccessibleRegFile(filename))
+	{
+		if(fklIsScriptFile(filename))
+			return fklCopyCstr(filename);
+		return NULL;
+	}
+	else
+	{
+		char* r=NULL;
+		FklStringBuffer main_script_buf;
+		fklInitStringBuffer(&main_script_buf);
+
+		fklStringBufferConcatWithCstr(&main_script_buf,filename);
+		fklStringBufferConcatWithCstr(&main_script_buf,FKL_PATH_SEPARATOR_STR);
+		fklStringBufferConcatWithCstr(&main_script_buf,"main.fkl");
+
+		if(fklIsAccessibleRegFile(main_script_buf.buf))
+			r=fklCopyCstr(main_script_buf.buf);
+		fklUninitStringBuffer(&main_script_buf);
+		return r;
+	}
+}
+
+static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
+{
+	FILE* fp=fopen(filename,"r");
+	char* rp=fklRealpath(filename);
+	FklCodegenOuterCtx* outer_ctx=&ctx->outer_ctx;
+	FklCodegenInfo* codegen=&ctx->main_info;
+	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
+	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
+	fklAddSymbolCstr(filename,pst);
+	fklInitGlobalCodegenInfo(codegen,rp,fklCreateSymbolTable(),0,outer_ctx);
+	free(rp);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,codegen);
+	if(mainByteCode==NULL)
+	{
+		fklUninitCodegenInfo(codegen);
+		fklUninitCodegenOuterCtx(outer_ctx);
+		return 1;
+	}
+	fklUpdatePrototype(codegen->pts
+			,codegen->globalEnv
+			,codegen->globalSymTable
+			,pst);
+	fklPrintUndefinedRef(codegen->globalEnv,codegen->globalSymTable,pst);
+	if(codegen->globalEnv->uref.top)
+	{
+		fklUninitCodegenInfo(codegen);
+		fklUninitCodegenOuterCtx(outer_ctx);
+		fklDestroyByteCodelnt(mainByteCode);
+		return 1;
+	}
+
+	FklPtrStack* scriptLibStack=codegen->libStack;
+	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen->globalSymTable,codegen->pts,1);
+	anotherVM->libNum=scriptLibStack->top;
+	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
+	FKL_ASSERT(anotherVM->libs);
+	FklVMframe* mainframe=anotherVM->frames;
+	fklInitGlobalVMclosure(mainframe,anotherVM);
+	fklInitMainVMframeWithProc(anotherVM,mainframe
+			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
+			,NULL
+			,anotherVM->pts);
+	FklVMCompoundFrameVarRef* lr=&mainframe->c.lr;
+
+	FklVMgc* gc=anotherVM->gc;
+	while(!fklIsPtrStackEmpty(scriptLibStack))
+	{
+		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack->top];
+		FklCodegenLib* cur=fklPopPtrStack(scriptLibStack);
+		FklCodegenLibType type=cur->type;
+		fklInitVMlibWithCodegenLib(cur,curVMlib,anotherVM,1,anotherVM->pts);
+		if(type==FKL_CODEGEN_LIB_SCRIPT)
+			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
+	}
+	fklChdir(outer_ctx->cwd);
+
+	ctx->gc=gc;
+	ctx->main_thread=anotherVM;
+
+	return 0;
+}
+
+static inline DebugCtx* create_debug_ctx(FklVM* exe,const char* filename,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
 	FKL_ASSERT(ctx);
+#warning END
+	ctx->end=1;
 	ctx->idler_thread_id=exe->tid;
-	fklInitCodegenOuterCtx(&ctx->outer_ctx,fklCopyCstr(file_dir));
+	if(init_debug_codegen_outer_ctx(ctx,filename))
+	{
+		free(ctx);
+		return NULL;
+	}
 	uv_mutex_init(&ctx->reach_breakpoint_lock);
+	set_argv_with_list(ctx->gc,argv);
 
 	uv_mutex_lock(&alive_debug_lock);
 	fklPushPtrStack(ctx,&alive_debug_ctxs);
@@ -83,14 +182,40 @@ static FklVMudMetaTable DebugCtxUdMetaTable=
 
 #define IS_DEBUG_CTX_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&DebugCtxUdMetaTable)
 
+#define RAISE_DBG_ERROR(WHO,ERR,EXE) abort()
+
 static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.make-debug-ctx";
 	FKL_DECL_AND_CHECK_ARG2(filename_obj,argv_obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename_obj,FKL_IS_STR,Pname,exe);
-	FKL_CHECK_TYPE(argv_obj,fklIsList,Pname,exe);
-	abort();
+	{
+		FklVMvalue* l=argv_obj;
+		for(;FKL_IS_PAIR(l);l=FKL_VM_CDR(l))
+		{
+			FklVMvalue* cur=FKL_VM_CAR(l);
+			FKL_CHECK_TYPE(cur,FKL_IS_STR,Pname,exe);
+		}
+		FKL_CHECK_TYPE(l,fklIsList,Pname,exe);
+	}
+	FklString* filename_str=FKL_VM_STR(filename_obj);
+	char* valid_filename=get_valid_file_name(filename_str->str);
+	if(!valid_filename)
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,filename_str->str,0,FKL_ERR_FILEFAILURE,exe);
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,filename_obj);
+	FKL_VM_PUSH_VALUE(exe,argv_obj);
+	fklUnlockThread(exe);
+	DebugCtx* debug_ctx=create_debug_ctx(exe,valid_filename,argv_obj);
+	fklLockThread(exe);
+	free(valid_filename);
+	if(!debug_ctx)
+		RAISE_DBG_ERROR(Pname,DBG_ERR_CODEGEN_FAILED,exe);
+	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&DebugCtxUdMetaTable,ctx->proc);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,ud);
+	debug_ud->ctx=debug_ctx;
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,ud);
 	return 0;
 }
 
@@ -105,23 +230,41 @@ static int bdb_debug_ctx_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int bdb_debug_ctx_end_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-end?";
+	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	FKL_VM_PUSH_VALUE(exe,debug_ud->ctx->end
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_incomplete(FKL_CPROC_ARGL)
+{
+	abort();
+}
+
 struct SymFunc
 {
 	const char* sym;
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"debug-ctx?",            bdb_debug_ctx_p, },
-	{"make-debug-ctx",        bdb_make_debug_ctx, },
-	{"debug-ctx-cmd-read",    bdb_make_debug_ctx, },
-	{"debug-ctx-get-curline", bdb_make_debug_ctx, },
-	{"debug-ctx-end?",        bdb_make_debug_ctx, },
-	{"debug-ctx-step",        bdb_make_debug_ctx, },
-	{"debug-ctx-next",        bdb_make_debug_ctx, },
-	{"debug-ctx-del-break",   bdb_make_debug_ctx, },
-	{"debug-ctx-set-break",   bdb_make_debug_ctx, },
-	{"debug-ctx-continue",    bdb_make_debug_ctx, },
-	{"debug-ctx-exit",        bdb_make_debug_ctx, },
+	{"debug-ctx?",            bdb_debug_ctx_p,      },
+	{"make-debug-ctx",        bdb_make_debug_ctx,   },
+	{"debug-ctx-cmd-read",    bdb_debug_incomplete, },
+	{"debug-ctx-get-curline", bdb_debug_incomplete, },
+	{"debug-ctx-end?",        bdb_debug_ctx_end_p,  },
+	{"debug-ctx-step",        bdb_debug_incomplete, },
+	{"debug-ctx-next",        bdb_debug_incomplete, },
+	{"debug-ctx-del-break",   bdb_debug_incomplete, },
+	{"debug-ctx-set-break",   bdb_debug_incomplete, },
+	{"debug-ctx-continue",    bdb_debug_incomplete, },
+	{"debug-ctx-exit",        bdb_debug_incomplete, },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

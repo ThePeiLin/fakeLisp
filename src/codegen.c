@@ -4205,10 +4205,14 @@ void fklPrintUndefinedRef(const FklCodegenEnv* env
 	for(uint32_t i=0;i<urefs->top;i++)
 	{
 		FklUnReSymbolRef* ref=urefs->base[i];
-		fprintf(stderr,"error in compiling: Symbol ");
+		fprintf(stderr,"|symbol-error| in compiling: Symbol ");
 		fklPrintRawSymbol(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
-		fprintf(stderr," is undefined at line %"FKL_PRT64U" of ",ref->line);
-		fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
+		fprintf(stderr," is undefined at line %"FKL_PRT64U,ref->line);
+		if(ref->fid)
+		{
+			fputs(" of ",stderr);
+			fklPrintString(fklGetSymbolWithId(ref->fid,globalSymTable)->symbol,stderr);
+		}
 		fputc('\n',stderr);
 	}
 }

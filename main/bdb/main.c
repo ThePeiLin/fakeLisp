@@ -20,10 +20,16 @@ typedef struct
 {
 	uv_thread_t idler_thread_id;
 	CmdReadCtx read_ctx;
-	int end;
 	FklCodegenOuterCtx outer_ctx;
 	FklCodegenInfo main_info;
 
+	int end;
+	uint32_t curline;
+
+	const char* cur_file_realpath;
+	const char* curline_str;
+
+	FklHashTable source_code_table;
 	FklPtrStack envs;
 	FklPtrStack codegen_infos;
 	FklPtrStack code_objs;

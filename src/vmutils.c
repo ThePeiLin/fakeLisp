@@ -572,14 +572,14 @@ FklHashTable* fklCreateValueSetHashtable(void)
 	return fklCreateHashTable(&VMvalueHashMetaTable);
 }
 
-static void putValueInSet(FklHashTable* s,FklVMvalue* v)
+static inline void putValueInSet(FklHashTable* s,FklVMvalue* v)
 {
 	uint32_t num=s->num;
 	VMvalueHashItem* h=fklPutHashItem(&v,s);
 	h->w=num;
 }
 
-static int isInValueSet(FklVMvalue* v,FklHashTable* t,size_t* w)
+static inline int isInValueSet(FklVMvalue* v,FklHashTable* t,size_t* w)
 {
 	VMvalueHashItem* item=fklGetHashItem(&v,t);
 	if(item&&w)

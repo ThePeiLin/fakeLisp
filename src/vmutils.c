@@ -164,7 +164,8 @@ static inline FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 {
 	FklVMerror* err=FKL_VM_ERR(ev);
-	fprintf(fp,"error in ");
+	fklPrintRawSymbol(fklGetSymbolWithId(err->type,exe->symbolTable)->symbol,fp);
+	fprintf(fp," in ");
 	fklPrintString(err->where,fp);
 	fprintf(fp,": ");
 	fklPrintString(err->message,fp);

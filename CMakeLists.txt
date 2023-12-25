@@ -245,9 +245,11 @@ set_target_properties(fs PROPERTIES
 endif()
 
 #bdb.so
+file(GLOB BDB_SOURCE "main/bdb/*.c")
+
 add_library(bdb
 	SHARED
-	"main/bdb.c")
+	${BDB_SOURCE})
 set_target_properties(bdb PROPERTIES
 	PREFIX "")
 target_link_libraries(bdb ${LIBFKL_TARGET_NAME} uv_a replxx)

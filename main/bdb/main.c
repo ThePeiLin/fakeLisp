@@ -395,17 +395,17 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"debug-ctx?",            bdb_debug_ctx_p,        },
-	{"make-debug-ctx",        bdb_make_debug_ctx,     },
-	{"debug-ctx-repl",    bdb_debug_ctx_repl, },
-	{"debug-ctx-get-curline", bdb_debug_incomplete,   },
-	{"debug-ctx-end?",        bdb_debug_ctx_end_p,    },
-	{"debug-ctx-step",        bdb_debug_incomplete,   },
-	{"debug-ctx-next",        bdb_debug_incomplete,   },
-	{"debug-ctx-del-break",   bdb_debug_incomplete,   },
-	{"debug-ctx-set-break",   bdb_debug_incomplete,   },
-	{"debug-ctx-continue",    bdb_debug_incomplete,   },
-	{"debug-ctx-exit",        bdb_debug_incomplete,   },
+	{"debug-ctx?",            bdb_debug_ctx_p,      },
+	{"make-debug-ctx",        bdb_make_debug_ctx,   },
+	{"debug-ctx-repl",        bdb_debug_ctx_repl,   },
+	{"debug-ctx-get-curline", bdb_debug_incomplete, },
+	{"debug-ctx-end?",        bdb_debug_ctx_end_p,  },
+	{"debug-ctx-step",        bdb_debug_incomplete, },
+	{"debug-ctx-next",        bdb_debug_incomplete, },
+	{"debug-ctx-del-break",   bdb_debug_incomplete, },
+	{"debug-ctx-set-break",   bdb_debug_incomplete, },
+	{"debug-ctx-continue",    bdb_debug_incomplete, },
+	{"debug-ctx-exit",        bdb_debug_incomplete, },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

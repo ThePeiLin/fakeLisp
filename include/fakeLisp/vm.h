@@ -690,6 +690,7 @@ uint64_t fklVMintToHashv(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
 
 FklHashTable* fklCreateValueSetHashtable(void);
+void fklInitValueSetHashTable(FklHashTable* ht);
 void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
 
 void fklInitLineNumHashTable(FklHashTable* ht);

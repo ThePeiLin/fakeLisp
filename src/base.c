@@ -2221,6 +2221,7 @@ int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 		if(ht->first==item)
 			ht->first=item->next;
 
+		ht->num--;
 		if(deleted)
 			ht->t->__setVal(deleted,item->data);
 		void (*uninitFunc)(void*)=ht->t->__uninitItem;
@@ -2248,6 +2249,8 @@ void fklRemoveHashItem(FklHashTable* ht,FklHashTableItem** p)
 		void (*uninitFunc)(void*)=ht->t->__uninitItem;
 		uninitFunc(item->data);
 		free(item);
+
+		ht->num--;
 	}
 }
 

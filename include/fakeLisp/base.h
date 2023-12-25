@@ -153,7 +153,7 @@ void* fklPutHashItem(const void* key,FklHashTable*);
 void* fklPutHashItemInSlot(FklHashTable*,FklHashTableItem**);
 
 void* fklGetOrPutHashItem(void* data,FklHashTable*);
-int fklDelHashItem(void* key,FklHashTable*,void* v);
+int fklDelHashItem(void* key,FklHashTable*,void* deleted);
 void fklRemoveHashItem(FklHashTable* ht,FklHashTableItem** slot);
 
 void fklRehashTable(FklHashTable* table);

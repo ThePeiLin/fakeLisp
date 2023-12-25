@@ -568,10 +568,13 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx* cc
 		fklNastPushState0ToStack(&cc->stateStack);
 }
 
+#define REPL_PROMPT ">>> "
+#define RETVAL_PREFIX ";=> "
+
 static inline const char* replxx_input_string_buffer(Replxx* replxx
 		,FklStringBuffer* buf)
 {
-	const char* next=replxx_input(replxx,buf->index?"":">>>");
+	const char* next=replxx_input(replxx,buf->index?"":REPL_PROMPT);
 	if(next)
 		fklStringBufferConcatWithCstr(buf,next);
 	return next;
@@ -593,7 +596,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 		ctx->state=READING;
 		if(exe->tp!=0)
 		{
-			printf(";=>");
+			fputs(RETVAL_PREFIX,stdout);
 			fklDBG_printVMstack(exe,stdout,0,exe->symbolTable);
 		}
 		exe->tp=0;

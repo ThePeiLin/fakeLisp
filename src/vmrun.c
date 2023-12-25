@@ -828,6 +828,7 @@ static inline void remove_exited_thread(FklVMgc* gc)
 			fklDeleteCallChain(cur);
 			fklUninitVMstack(cur);
 			uninit_all_vm_lib(cur->libs,cur->libNum);
+			uv_mutex_destroy(&cur->lock);
 			free(cur->locv);
 			free(cur->libs);
 			free(cur);
@@ -2537,6 +2538,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 		}
 		if(t->obj_head)
 			move_thread_objects_to_gc(t,t->gc);
+		uv_mutex_destroy(&t->lock);
 		free(t->locv);
 		free(t->libs);
 		free(t);

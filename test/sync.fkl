@@ -14,7 +14,7 @@
 (define (concurrent-queue->list q)
   (define mutex (car q))
   (mutex-lock mutex)
-  (define r (copy (queue-head (cdr q))))
+  (define r (queue->list (cdr q)))
   (mutex-unlock mutex)
   r)
 

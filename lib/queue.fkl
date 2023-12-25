@@ -10,6 +10,7 @@
 ;*  make-queue
 ;*  queue?
 ;*  queue-empty?
+;*  queue->list
 
 (define (type q)
   (vec-ref q 0))
@@ -46,6 +47,9 @@
 
   (define (queue-head q)
     (cdr (q-front q)))
+
+  (define (queue->list q)
+    (copy (queue-head q)))
 
   (define (queue-front queue)
     (define base (cdr (q-front queue)))

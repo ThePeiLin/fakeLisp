@@ -739,71 +739,62 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 		}
 	}while(!fklIsPtrStackEmpty(&stack));
 
-	// get circel heads
+	// get all circle heads
 
 	fklClearHashTable(circle_heads);
 	while(ht->num)
 	{
-		FklVMvalue* v=((struct VMvalueDegreeHashItem*)ht->first->data)->v;
+		struct VMvalueDegreeHashItem* value_degree=((struct VMvalueDegreeHashItem*)ht->first->data);
+		FklVMvalue* v=value_degree->v;
 		putValueInSet(circle_heads,v);
-		if(FKL_IS_PAIR(v))
+		value_degree->degree=0;
+
+		do
 		{
-			fklPushPtrStack(FKL_VM_CAR(v),&stack);
-			fklPushPtrStack(FKL_VM_CDR(v),&stack);
-		}
-		else if(FKL_IS_VECTOR(v))
-		{
-			FklVMvec* vec=FKL_VM_VEC(v);
-			FklVMvalue** base=vec->base;
-			FklVMvalue** const end=&base[vec->size];
-			for(;base<end;base++)
-				fklPushPtrStack(*base,&stack);
-		}
-		else if(FKL_IS_BOX(v))
-				fklPushPtrStack(FKL_VM_BOX(v),&stack);
-		else if(FKL_IS_HASHTABLE(v))
-		{
-			for(FklHashTableItem* list=FKL_VM_HASH(v)->first
+			stack.top=0;
+			for(FklHashTableItem* list=ht->first
 					;list
 					;list=list->next)
 			{
-				FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
-				fklPushPtrStack(item->key,&stack);
-				fklPushPtrStack(item->v,&stack);
-			}
-		}
-
-		while(!fklIsPtrStackEmpty(&stack))
-		{
-			FklVMvalue* v=fklPopPtrStack(&stack);
-			fklDelHashItem(&v,ht,NULL);
-			if(FKL_IS_PAIR(v)&&!isInValueSet(v,circle_heads,NULL))
-			{
-				fklPushPtrStack(FKL_VM_CAR(v),&stack);
-				fklPushPtrStack(FKL_VM_CDR(v),&stack);
-			}
-			else if(FKL_IS_VECTOR(v)&&!isInValueSet(v,circle_heads,NULL))
-			{
-				FklVMvec* vec=FKL_VM_VEC(v);
-				FklVMvalue** base=vec->base;
-				FklVMvalue** const end=&base[vec->size];
-				for(;base<end;base++)
-					fklPushPtrStack(*base,&stack);
-			}
-			else if(FKL_IS_BOX(v)&&!isInValueSet(v,circle_heads,NULL))
-				fklPushPtrStack(FKL_VM_BOX(v),&stack);
-			else if(FKL_IS_HASHTABLE(v)&&!isInValueSet(v,circle_heads,NULL))
-			{
-				for(FklHashTableItem* list=FKL_VM_HASH(v)->first
-						;list
-						;list=list->next)
-				{
-					FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
-					fklPushPtrStack(item->key,&stack);
+				struct VMvalueDegreeHashItem* item=(struct VMvalueDegreeHashItem*)list->data;
+				if(!item->degree)
 					fklPushPtrStack(item->v,&stack);
+			}
+			FklVMvalue** base=(FklVMvalue**)stack.base;
+			FklVMvalue** const end=&base[stack.top];
+			for(;base<end;base++)
+			{
+				fklDelHashItem(base,ht,NULL);
+				FklVMvalue* v=*base;
+				if(FKL_IS_PAIR(v))
+				{
+					dec_value_degree(ht,FKL_VM_CAR(v));
+					dec_value_degree(ht,FKL_VM_CDR(v));
+				}
+				else if(FKL_IS_VECTOR(v))
+				{
+					FklVMvec* vec=FKL_VM_VEC(v);
+					FklVMvalue** base=vec->base;
+					FklVMvalue** const end=&base[vec->size];
+					for(;base<end;base++)
+						dec_value_degree(ht,*base);
+				}
+				else if(FKL_IS_BOX(v))
+					dec_value_degree(ht,FKL_VM_BOX(v));
+				else if(FKL_IS_HASHTABLE(v))
+				{
+					for(FklHashTableItem* list=FKL_VM_HASH(v)->first
+							;list
+							;list=list->next)
+					{
+						FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
+						dec_value_degree(ht,item->key);
+						dec_value_degree(ht,item->v);
+					}
 				}
 			}
-		}
+		}while(!fklIsPtrStackEmpty(&stack));
+
 	}
 	fklUninitPtrStack(&stack);
 }

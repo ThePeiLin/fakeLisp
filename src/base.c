@@ -2246,11 +2246,11 @@ void fklRemoveHashItem(FklHashTable* ht,FklHashTableItem** p)
 			ht->last=item->prev;
 		if(ht->first==item)
 			ht->first=item->next;
+
+		ht->num--;
 		void (*uninitFunc)(void*)=ht->t->__uninitItem;
 		uninitFunc(item->data);
 		free(item);
-
-		ht->num--;
 	}
 }
 

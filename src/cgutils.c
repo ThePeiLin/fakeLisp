@@ -27,9 +27,54 @@ void fklPrintCodegenError(FklNastNode* obj
 		,size_t line
 		,const FklSymbolTable* publicSymbolTable)
 {
+	static const char* builtInErrorType[]=
+	{
+		"dummy",
+		"symbol-error",
+		"syntax-error",
+		"read-error",
+		"load-error",
+		"pattern-error",
+		"type-error",
+		"stack-error",
+		"call-error",
+		"call-error",
+		"thread-error",
+		"thread-error",
+		"macro-error",
+		"call-error",
+		"load-error",
+		"symbol-error",
+		"library-error",
+		"eof-error",
+		"div-zero-error",
+		"file-error",
+		"value-error",
+		"access-error",
+		"access-error",
+		"import-error",
+		"macro-error",
+		"type-error",
+		"type-error",
+		"call-error",
+		"value-error",
+		"value-error",
+		"value-error",
+		"value-error",
+		"operation-error",
+		"import-error",
+		"export-error",
+		"import-error",
+		"grammer-error",
+		"grammer-error",
+		"grammer-error",
+		"value-error",
+	};;
+
 	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
 		return;
-	fputs("error in compiling: ",stderr);
+	fklPrintRawCstr(builtInErrorType[type],'|',stderr);
+	fputs(" in compiling: ",stderr);
 	switch(type)
 	{
 		case FKL_ERR_CIR_REF:

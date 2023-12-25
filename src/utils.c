@@ -146,7 +146,7 @@ int fklPower(int first,int second)
 	return result;
 }
 
-void fklPrintRawCstring(const char* objStr,char se,FILE* out)
+void fklPrintRawCstr(const char* objStr,char se,FILE* out)
 {
 	fklPrintRawCharBuf((const uint8_t*)objStr,se,strlen(objStr),out);
 }

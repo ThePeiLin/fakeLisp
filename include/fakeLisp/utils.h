@@ -76,7 +76,7 @@ int fklPower(int,int);
 
 int fklIsSpecialCharAndPrint(uint8_t ch,FILE* out);
 void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out);
-void fklPrintRawCstring(const char*,char se,FILE*);
+void fklPrintRawCstr(const char*,char se,FILE*);
 void fklPrintRawChar(char,FILE*);
 void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
 void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp);

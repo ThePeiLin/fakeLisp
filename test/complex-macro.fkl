@@ -63,7 +63,7 @@
     `(begin
        (define
          (~(string->symbol (append! "make-" name-str)),~fields)
-         (vector (quote ~name),~(copy fields)))
+         (vector (quote ~name),~fields))
        (define (~type-checker-name ~name)
          (and
            (eq (vec-ref ~name 0) (quote ~name))

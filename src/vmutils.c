@@ -677,8 +677,9 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 			inc_value_degree(ht,v);
 			if(!isInValueSet(v,circle_heads,NULL))
 			{
-				FklHashTable* ht=FKL_VM_HASH(v);
-				for(FklHashTableItem* tail=ht->last;tail;tail=tail->prev)
+				for(FklHashTableItem* tail=FKL_VM_HASH(v)->last
+						;tail
+						;tail=tail->prev)
 				{
 					FklVMhashTableItem* item=(FklVMhashTableItem*)tail->data;
 					fklPushPtrStack(item->v,&stack);
@@ -807,12 +808,141 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 	fklUninitPtrStack(&stack);
 }
 
-void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet)
+void fklScanCirRef(FklVMvalue* s,FklHashTable* circle_head_set)
 {
 	FklHashTable degree_table;
 	init_vmvalue_degree_hash_table(&degree_table);
-	scan_value_and_find_value_in_circle(&degree_table,recValueSet,s);
+	scan_value_and_find_value_in_circle(&degree_table,circle_head_set,s);
 	fklUninitHashTable(&degree_table);
+}
+
+static inline int is_ptr_in_set(FklHashTable* ht,void* ptr)
+{
+	return fklGetHashItem(&ptr,ht)!=NULL;
+}
+
+static inline void put_ptr_in_set(FklHashTable* ht,void* ptr)
+{
+	fklPutHashItem(&ptr,ht);
+}
+
+int fklHasCircleRef(FklVMvalue* first_value)
+{
+	FklHashTable value_set;
+	fklInitPtrSet(&value_set);
+
+	FklHashTable degree_table;
+	init_vmvalue_degree_hash_table(&degree_table);
+
+	FklPtrStack stack;
+	fklInitPtrStack(&stack,16,16);
+
+	fklPushPtrStack(first_value,&stack);
+	while(!fklIsPtrStackEmpty(&stack))
+	{
+		FklVMvalue* v=fklPopPtrStack(&stack);
+		if(FKL_IS_PAIR(v))
+		{
+			inc_value_degree(&degree_table,v);
+			if(!is_ptr_in_set(&value_set,v))
+			{
+				fklPushPtrStack(FKL_VM_CDR(v),&stack);
+				fklPushPtrStack(FKL_VM_CAR(v),&stack);
+				put_ptr_in_set(&value_set,v);
+			}
+		}
+		else if(FKL_IS_VECTOR(v))
+		{
+			inc_value_degree(&degree_table,v);
+			if(!is_ptr_in_set(&value_set,v))
+			{
+				FklVMvec* vec=FKL_VM_VEC(v);
+				for(size_t i=vec->size;i>0;i--)
+					fklPushPtrStack(vec->base[i-1],&stack);
+				put_ptr_in_set(&value_set,v);
+			}
+		}
+		else if(FKL_IS_BOX(v))
+		{
+			inc_value_degree(&degree_table,v);
+			if(!is_ptr_in_set(&value_set,v))
+			{
+				fklPushPtrStack(FKL_VM_BOX(v),&stack);
+				put_ptr_in_set(&value_set,v);
+			}
+		}
+		else if(FKL_IS_HASHTABLE(v))
+		{
+			inc_value_degree(&degree_table,v);
+			if(!is_ptr_in_set(&value_set,v))
+			{
+				for(FklHashTableItem* tail=FKL_VM_HASH(v)->last
+						;tail
+						;tail=tail->prev)
+				{
+					FklVMhashTableItem* item=(FklVMhashTableItem*)tail->data;
+					fklPushPtrStack(item->v,&stack);
+					fklPushPtrStack(item->key,&stack);
+				}
+				put_ptr_in_set(&value_set,v);
+			}
+		}
+	}
+	dec_value_degree(&degree_table,first_value);
+	fklUninitHashTable(&value_set);
+
+	//remove value not in circle
+
+	do
+	{
+		stack.top=0;
+		for(FklHashTableItem* list=degree_table.first
+				;list
+				;list=list->next)
+		{
+			struct VMvalueDegreeHashItem* item=(struct VMvalueDegreeHashItem*)list->data;
+			if(!item->degree)
+				fklPushPtrStack(item->v,&stack);
+		}
+		FklVMvalue** base=(FklVMvalue**)stack.base;
+		FklVMvalue** const end=&base[stack.top];
+		for(;base<end;base++)
+		{
+			fklDelHashItem(base,&degree_table,NULL);
+			FklVMvalue* v=*base;
+			if(FKL_IS_PAIR(v))
+			{
+				dec_value_degree(&degree_table,FKL_VM_CAR(v));
+				dec_value_degree(&degree_table,FKL_VM_CDR(v));
+			}
+			else if(FKL_IS_VECTOR(v))
+			{
+				FklVMvec* vec=FKL_VM_VEC(v);
+				FklVMvalue** base=vec->base;
+				FklVMvalue** const end=&base[vec->size];
+				for(;base<end;base++)
+					dec_value_degree(&degree_table,*base);
+			}
+			else if(FKL_IS_BOX(v))
+				dec_value_degree(&degree_table,FKL_VM_BOX(v));
+			else if(FKL_IS_HASHTABLE(v))
+			{
+				for(FklHashTableItem* list=FKL_VM_HASH(v)->first
+						;list
+						;list=list->next)
+				{
+					FklVMhashTableItem* item=(FklVMhashTableItem*)list->data;
+					dec_value_degree(&degree_table,item->key);
+					dec_value_degree(&degree_table,item->v);
+				}
+			}
+		}
+	}while(!fklIsPtrStackEmpty(&stack));
+
+	int r=degree_table.num>0;
+	fklUninitHashTable(&degree_table);
+
+	return r;
 }
 
 #define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklSymbolTable* table
@@ -1062,28 +1192,18 @@ static HashPrtElem* createHashPrtElem(PrtElem* key,PrtElem* v)
 	return r;
 }
 
-static inline int is_ptr_in_set(FklHashTable* ht,void* ptr)
-{
-	return fklGetHashItem(&ptr,ht)!=NULL;
-}
-
-static inline void put_ptr_in_set(FklHashTable* ht,void* ptr)
-{
-	fklPutHashItem(&ptr,ht);
-}
-
 void fklPrintVMvalue(FklVMvalue* value
 		,FILE* fp
 		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
 		,FklSymbolTable* table)
 {
-	FklHashTable recValueSet;
-	fklInitValueSetHashTable(&recValueSet);
+	FklHashTable circel_head_set;
+	fklInitValueSetHashTable(&circel_head_set);
 
 	FklHashTable has_print_circle_head_set;
 	fklInitPtrSet(&has_print_circle_head_set);
 
-	fklScanCirRef(value,&recValueSet);
+	fklScanCirRef(value,&circel_head_set);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
@@ -1124,7 +1244,7 @@ void fklPrintVMvalue(FklVMvalue* value
 				else
 				{
 					size_t i=0;
-					if(isInValueSet(v,&recValueSet,&i))
+					if(isInValueSet(v,&circel_head_set,&i))
 						fprintf(fp,"#%"FKL_PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
@@ -1134,7 +1254,7 @@ void fklPrintVMvalue(FklVMvalue* value
 						for(size_t i=0;i<vec->size;i++)
 						{
 							size_t w=0;
-							int is_in_rec_set=isInValueSet(vec->base[i],&recValueSet,&w);
+							int is_in_rec_set=isInValueSet(vec->base[i],&circel_head_set,&w);
 							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
 								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
 										,vQueue);
@@ -1155,7 +1275,7 @@ void fklPrintVMvalue(FklVMvalue* value
 						fputs("#&",fp);
 						size_t w=0;
 						FklVMvalue* box=FKL_VM_BOX(v);
-						int is_in_rec_set=isInValueSet(box,&recValueSet,&w);
+						int is_in_rec_set=isInValueSet(box,&circel_head_set,&w);
 						if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,box))||box==v)
 							fklPushPtrQueueToFront(createPrtElem(PRT_REC_BOX,(void*)w),cQueue);
 						else
@@ -1177,7 +1297,7 @@ void fklPrintVMvalue(FklVMvalue* value
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;
-							int is_in_rec_set=isInValueSet(item->key,&recValueSet,&w);
+							int is_in_rec_set=isInValueSet(item->key,&circel_head_set,&w);
 							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,item->key))||item->key==v)
 								keyElem=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
@@ -1186,7 +1306,7 @@ void fklPrintVMvalue(FklVMvalue* value
 								if(is_in_rec_set)
 									put_ptr_in_set(&has_print_circle_head_set,item->key);
 							}
-							is_in_rec_set=isInValueSet(item->v,&recValueSet,&w);
+							is_in_rec_set=isInValueSet(item->v,&circel_head_set,&w);
 							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,item->key))||item->v==v)
 								vElem=createPrtElem(PRT_REC_CDR,(void*)w);
 							else
@@ -1211,7 +1331,7 @@ void fklPrintVMvalue(FklVMvalue* value
 						{
 							PrtElem* ce=NULL;
 							size_t w=0;
-							int is_in_rec_set=isInValueSet(car,&recValueSet,&w);
+							int is_in_rec_set=isInValueSet(car,&circel_head_set,&w);
 							if(is_in_rec_set&&(is_ptr_in_set(&has_print_circle_head_set,car)||car==v))
 								ce=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
@@ -1221,7 +1341,7 @@ void fklPrintVMvalue(FklVMvalue* value
 									put_ptr_in_set(&has_print_circle_head_set,car);
 							}
 							fklPushPtrQueue(ce,lQueue);
-							if(isInValueSet(cdr,&recValueSet,&w))
+							if(isInValueSet(cdr,&circel_head_set,&w))
 							{
 								PrtElem* cdre=NULL;
 								if(cdr!=v&&!is_ptr_in_set(&has_print_circle_head_set,cdr))
@@ -1276,7 +1396,7 @@ void fklPrintVMvalue(FklVMvalue* value
 		}
 	}
 	fklUninitPtrStack(&queueStack);
-	fklUninitHashTable(&recValueSet);
+	fklUninitHashTable(&circel_head_set);
 	fklUninitHashTable(&has_print_circle_head_set);
 }
 
@@ -1501,13 +1621,14 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 {
 	FklStringBuffer result;
 	fklInitStringBuffer(&result);
-	FklHashTable recValueSet;
-	fklInitValueSetHashTable(&recValueSet);
+
+	FklHashTable circle_head_set;
+	fklInitValueSetHashTable(&circle_head_set);
 
 	FklHashTable has_print_circle_head_set;
 	fklInitPtrSet(&has_print_circle_head_set);
 
-	fklScanCirRef(value,&recValueSet);
+	fklScanCirRef(value,&circle_head_set);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
@@ -1548,7 +1669,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 				else
 				{
 					size_t i=0;
-					if(isInValueSet(v,&recValueSet,&i))
+					if(isInValueSet(v,&circle_head_set,&i))
 						fklStringBufferPrintf(&result,"#%"FKL_PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
@@ -1558,7 +1679,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						for(size_t i=0;i<vec->size;i++)
 						{
 							size_t w=0;
-							int is_in_rec_set=isInValueSet(vec->base[i],&recValueSet,&w);
+							int is_in_rec_set=isInValueSet(vec->base[i],&circle_head_set,&w);
 							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
 								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
 										,vQueue);
@@ -1579,7 +1700,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						fklStringBufferConcatWithCstr(&result,"#&");
 						size_t w=0;
 						FklVMvalue* box=FKL_VM_BOX(v);
-						int is_in_rec_set=isInValueSet(box,&recValueSet,&w);
+						int is_in_rec_set=isInValueSet(box,&circle_head_set,&w);
 						if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,box))||box==v)
 							fklPushPtrQueueToFront(createPrtElem(PRT_REC_BOX,(void*)w),cQueue);
 						else
@@ -1601,7 +1722,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 							PrtElem* keyElem=NULL;
 							PrtElem* vElem=NULL;
 							size_t w=0;
-							int is_in_rec_set=isInValueSet(item->key,&recValueSet,&w);
+							int is_in_rec_set=isInValueSet(item->key,&circle_head_set,&w);
 							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,item->key))||item->key==v)
 								keyElem=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
@@ -1610,7 +1731,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 								if(is_in_rec_set)
 									put_ptr_in_set(&has_print_circle_head_set,item->key);
 							}
-							is_in_rec_set=isInValueSet(item->v,&recValueSet,&w);
+							is_in_rec_set=isInValueSet(item->v,&circle_head_set,&w);
 							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,item->key))||item->v==v)
 								vElem=createPrtElem(PRT_REC_CDR,(void*)w);
 							else
@@ -1635,7 +1756,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 						{
 							PrtElem* ce=NULL;
 							size_t w=0;
-							int is_in_rec_set=isInValueSet(car,&recValueSet,&w);
+							int is_in_rec_set=isInValueSet(car,&circle_head_set,&w);
 							if(is_in_rec_set&&(is_ptr_in_set(&has_print_circle_head_set,car)||car==v))
 								ce=createPrtElem(PRT_REC_CAR,(void*)w);
 							else
@@ -1645,7 +1766,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 									put_ptr_in_set(&has_print_circle_head_set,car);
 							}
 							fklPushPtrQueue(ce,lQueue);
-							if(isInValueSet(cdr,&recValueSet,&w))
+							if(isInValueSet(cdr,&circle_head_set,&w))
 							{
 								PrtElem* cdre=NULL;
 								if(cdr!=v&&!is_ptr_in_set(&has_print_circle_head_set,cdr))
@@ -1700,7 +1821,7 @@ FklString* fklStringify(FklVMvalue* value,FklSymbolTable* table)
 		}
 	}
 	fklUninitPtrStack(&queueStack);
-	fklUninitHashTable(&recValueSet);
+	fklUninitHashTable(&circle_head_set);
 	fklUninitHashTable(&has_print_circle_head_set);
 	FklString* retval=fklStringBufferToString(&result);
 	fklUninitStringBuffer(&result);

@@ -691,7 +691,8 @@ double fklGetDouble(const FklVMvalue* p);
 
 FklHashTable* fklCreateValueSetHashtable(void);
 void fklInitValueSetHashTable(FklHashTable* ht);
-void fklScanCirRef(FklVMvalue* s,FklHashTable* recValueSet);
+int fklHasCircleRef(FklVMvalue* first_value);
+void fklScanCirRef(FklVMvalue* s,FklHashTable* circle_head_set);
 
 void fklInitLineNumHashTable(FklHashTable* ht);
 

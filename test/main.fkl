@@ -30,6 +30,7 @@
         (test-ht)
         (os)
         (fs)
-        (sync))
+        (sync)
+        (cir-ref))
 
 (println "\ntest done!")

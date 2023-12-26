@@ -1,0 +1,40 @@
+(define i '(1,2))
+
+(define b (cons i i))
+(prin1 b)
+(newline)
+
+(define b (list i i))
+(prin1 b)
+(newline)
+
+(car-set! i i)
+(prin1 i)
+(newline)
+
+(cdr-set! i i)
+(prin1 i)
+(newline)
+
+(define i '(1 2 3 4))
+(nth-set! 2 i i)
+(prin1 i)
+(newline)
+
+(define j '(5 6 7 8))
+(nthcdr-set! 3 j j)
+(prin1 j)
+(newline)
+
+(define b (list i j))
+(prin1 b)
+(newline)
+
+(println (stringify b))
+
+(define f '(1 2 3 4 5 6 7 8))
+(nth-set! 4 f f)
+(nth-set! 7 f f)
+(nth-set! 3 f j)
+(prin1 f)
+(newline)

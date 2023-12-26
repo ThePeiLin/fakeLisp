@@ -69,7 +69,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 	anotherVM->libNum=scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
-	FklVMframe* mainframe=anotherVM->frames;
+	FklVMframe* mainframe=anotherVM->top_frame;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	fklInitMainVMframeWithProc(anotherVM,mainframe
 			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
@@ -131,14 +131,14 @@ static inline int runCode(const char* filename,int argc,const char* const* argv)
 	FklVM* anotherVM=fklCreateVM(mainCodelnt,table,prototypes,1);
 
 	FklVMgc* gc=anotherVM->gc;
-	FklVMframe* mainframe=anotherVM->frames;
+	FklVMframe* mainframe=anotherVM->top_frame;
 
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	loadLib(fp
 			,&anotherVM->libNum
 			,&anotherVM->libs
 			,anotherVM
-			,fklGetCompoundFrameLocRef(anotherVM->frames));
+			,fklGetCompoundFrameLocRef(anotherVM->top_frame));
 
 	fklInitMainVMframeWithProc(anotherVM
 			,mainframe
@@ -225,7 +225,7 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 	anotherVM->libNum=scriptLibStack.top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack.top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
-	FklVMframe* mainframe=anotherVM->frames;
+	FklVMframe* mainframe=anotherVM->top_frame;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	fklInitMainVMframeWithProc(anotherVM,mainframe
 			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
@@ -735,7 +735,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 			proc->spc=mainCode->bc->code;
 			proc->end=proc->spc+mainCode->bc->len;
 
-			FklVMframe* mainframe=fklCreateVMframeWithProcValue(ctx->mainProc,exe->frames);
+			FklVMframe* mainframe=fklCreateVMframeWithProcValue(exe,ctx->mainProc,exe->top_frame);
 			FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
 			f->base=0;
 			f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount);
@@ -744,7 +744,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 
 			process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
 
-			exe->frames=mainframe;
+			exe->top_frame=mainframe;
 		}
 		else
 		{
@@ -826,13 +826,13 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 	exe->tp=0;
 	exe->bp=0;
 	fklPrintErrBacktrace(errValue,exe,stderr);
-	while(exe->frames->prev)
+	while(exe->top_frame->prev)
 	{
-		FklVMframe* cur=exe->frames;
-		exe->frames=cur->prev;
+		FklVMframe* cur=exe->top_frame;
+		exe->top_frame=cur->prev;
 		fklDestroyVMframe(cur,exe);
 	}
-	ReplCtx* ctx=(ReplCtx*)exe->frames->data;
+	ReplCtx* ctx=(ReplCtx*)exe->top_frame->data;
 	ctx->state=READY;
 	return 1;
 }
@@ -843,7 +843,7 @@ static inline void init_frame_to_repl_frame(FklVM* exe,FklCodegenInfo* codegen)
 	FKL_ASSERT(replFrame);
 	replFrame->prev=NULL;
 	replFrame->errorCallBack=replErrorCallBack;
-	exe->frames=replFrame;
+	exe->top_frame=replFrame;
 	replFrame->type=FKL_FRAME_OTHEROBJ;
 	replFrame->t=&ReplContextMethodTable;
 	ReplCtx* ctx=(ReplCtx*)replFrame->data;

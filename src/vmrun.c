@@ -49,7 +49,7 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 		FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast,&exe->llast);
 		FKL_ASSERT(locv);
 		memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
-		fklUpdateAllVarRef(exe->frames,locv);
+		fklUpdateAllVarRef(exe->top_frame,locv);
 		push_old_locv(exe,old_llast,exe->locv);
 		exe->locv=locv;
 	}
@@ -71,7 +71,7 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 			FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast,&exe->llast);
 			FKL_ASSERT(locv);
 			memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
-			fklUpdateAllVarRef(exe->frames,locv);
+			fklUpdateAllVarRef(exe->top_frame,locv);
 			push_old_locv(exe,old_llast,exe->locv);
 			exe->locv=locv;
 		}
@@ -84,7 +84,7 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 
 static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc)
 {
-	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
+	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(exe,proc,exe->top_frame);
 	uint32_t lcount=FKL_VM_PROC(proc)->lcount;
 	FklVMCompoundFrameVarRef* f=&tmpFrame->c.lr;
 	f->base=exe->ltp;
@@ -160,7 +160,7 @@ void fkl_dbg_print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
 
 static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc)
 {
-	FklVMframe* frame=exe->frames;
+	FklVMframe* frame=exe->top_frame;
 	FklVMframe* topframe=frame;
 	topframe->c.tail=1;
 	if(fklGetCompoundFrameProc(frame)==proc)
@@ -172,7 +172,7 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc)
 	}
 	else
 	{
-		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames->prev);
+		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(exe,proc,exe->top_frame->prev);
 		uint32_t lcount=FKL_VM_PROC(proc)->lcount;
 		FklVMCompoundFrameVarRef* f=&tmpFrame->c.lr;
 		f->base=exe->ltp;
@@ -261,10 +261,7 @@ static inline void initCprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe)
 
 static inline void callCproc(FklVM* exe,FklVMvalue* cproc)
 {
-	FklVMframe* f=&exe->sf;
-	f->type=FKL_FRAME_OTHEROBJ;
-	f->t=&CprocContextMethodTable;
-	f->errorCallBack=NULL;
+	FklVMframe* f=fklCreateOtherObjVMframe(exe,&CprocContextMethodTable,NULL);
 	initCprocFrameContext(f->data,cproc,exe);
 	fklPushVMframe(f,exe);
 }
@@ -490,10 +487,11 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->next=exe;
 	exe->pts=pts;
 	exe->gc=fklCreateVMgc();
+	exe->frame_cache=&exe->static_frame;
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-		exe->frames=fklCreateVMframeWithCodeObj(codeObj,exe,pid);
+		exe->top_frame=fklCreateVMframeWithCodeObj(exe,codeObj,pid,exe->top_frame);
 	}
 	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
@@ -529,11 +527,11 @@ void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 	f->t->step(fklGetFrameData(f),exe);
 }
 
-void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf)
+void fklDoFinalizeObjFrame(FklVM* vm,FklVMframe* f)
 {
 	f->t->finalizer(fklGetFrameData(f));
-	if(f!=sf)
-		free(f);
+	f->prev=vm->frame_cache;
+	vm->frame_cache=f;
 }
 
 static inline void close_var_ref(FklVMvalue* ref)
@@ -553,18 +551,14 @@ static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
 	}
 }
 
-void fklDoUninitCompoundFrame(FklVMframe* frame,FklVM* exe)
+void fklDoFinalizeCompoundFrame(FklVM* exe,FklVMframe* frame)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
 	close_all_var_ref(lr);
 	free(lr->lref);
 	exe->ltp-=lr->lcount;
-}
-
-void fklDoFinalizeCompoundFrame(FklVMframe* frame,FklVM* exe)
-{
-	fklDoUninitCompoundFrame(frame,exe);
-	free(frame);
+	frame->prev=exe->frame_cache;
+	exe->frame_cache=frame;
 }
 
 void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
@@ -574,14 +568,14 @@ void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
 
 void fklPushVMframe(FklVMframe* f,FklVM* exe)
 {
-	f->prev=exe->frames;
-	exe->frames=f;
+	f->prev=exe->top_frame;
+	exe->top_frame=f;
 }
 
 static inline FklVMframe* popFrame(FklVM* exe)
 {
-	FklVMframe* frame=exe->frames;
-	exe->frames=frame->prev;
+	FklVMframe* frame=exe->top_frame;
+	exe->top_frame=frame->prev;
 	return frame;
 }
 
@@ -591,10 +585,10 @@ void fklPopVMframe(FklVM* exe)
 	switch(f->type)
 	{
 		case FKL_FRAME_COMPOUND:
-			fklDoFinalizeCompoundFrame(f,exe);
+			fklDoFinalizeCompoundFrame(exe,f);
 			break;
 		case FKL_FRAME_OTHEROBJ:
-			fklDoFinalizeObjFrame(f,&exe->sf);
+			fklDoFinalizeObjFrame(exe,f);
 			break;
 	}
 }
@@ -632,7 +626,7 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 
 static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc)
 {
-	FklVMframe* frame=exe->frames;
+	FklVMframe* frame=exe->top_frame;
 	FklVMframe* prevProc=fklHasSameProc(proc,frame);
 	if(frame&&frame->type==FKL_FRAME_COMPOUND
 			&&(frame->c.tail=is_last_expression(frame))
@@ -644,7 +638,7 @@ static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc)
 	}
 	else
 	{
-		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(proc,exe->frames);
+		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(exe,proc,exe->top_frame);
 		uint32_t lcount=FKL_VM_PROC(proc)->lcount;
 		FklVMCompoundFrameVarRef* f=&tmpFrame->c.lr;
 		f->base=exe->ltp;
@@ -667,23 +661,10 @@ void fklCallObj(FklVM* exe,FklVMvalue* proc)
 
 void fklTailCallObj(FklVM* exe,FklVMvalue* proc)
 {
-	FklVMframe* frame=exe->frames;
-	exe->frames=frame->prev;
-	fklDoFinalizeObjFrame(frame,&exe->sf);
+	FklVMframe* frame=exe->top_frame;
+	exe->top_frame=frame->prev;
+	fklDoFinalizeObjFrame(exe,frame);
 	fklCallObj(exe,proc);
-}
-
-void fklCprocRestituteSframe(FklVM* v,uint32_t rtp)
-{
-	FklVMframe* sf=v->frames;
-	if(&v->sf==sf)
-	{
-		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
-		nf->errorCallBack=sf->errorCallBack;
-		fklDoCopyObjFrameContext(sf,nf,v);
-		v->frames=nf;
-		((FklCprocFrameContext*)(nf->data))->rtp=rtp;
-	}
 }
 
 void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
@@ -695,7 +676,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 #define NOTICE_LOCK(EXE) {uv_mutex_unlock(&(EXE)->lock);uv_mutex_lock(&(EXE)->lock);}
 
 #define DO_STEP_VM(exe) {\
-	FklVMframe* curframe=exe->frames;\
+	FklVMframe* curframe=exe->top_frame;\
 	switch(curframe->type)\
 	{\
 		case FKL_FRAME_COMPOUND:\
@@ -709,13 +690,13 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			{\
 				if(atomic_load(&(exe)->notice_lock))\
 					NOTICE_LOCK(exe);\
-				fklDoFinalizeObjFrame(popFrame(exe),&exe->sf);\
+				fklDoFinalizeObjFrame(exe,popFrame(exe));\
 			}\
 			else\
 				fklDoCallableObjFrameStep(curframe,exe);\
 			break;\
 	}\
-	if(exe->frames==NULL)\
+	if(exe->top_frame==NULL)\
 		exe->state=FKL_VM_EXIT;\
 }
 
@@ -771,7 +752,7 @@ static void vm_thread_cb(void* arg)
 				if(setjmp(exe->buf)==1)
 				{
 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
-					FklVMframe* frame=exe->frames;
+					FklVMframe* frame=exe->top_frame;
 					for(;frame;frame=frame->prev)
 						if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
 							break;
@@ -809,6 +790,22 @@ void fklVMworkStart(FklVM* exe,FklVMqueue* q)
 	vm_running_thread_push(exe);
 }
 
+static inline void remove_thread_frame_cache(FklVM* exe)
+{
+	FklVMframe** phead=&exe->frame_cache;
+	while(*phead)
+	{
+		FklVMframe* prev=*phead;
+		if(prev==&exe->static_frame)
+			phead=&prev->prev;
+		else
+		{
+			*phead=prev->prev;
+			free(prev);
+		}
+	}
+}
+
 static inline void remove_exited_thread(FklVMgc* gc)
 {
 	FklVM* main=gc->main_thread;
@@ -826,6 +823,7 @@ static inline void remove_exited_thread(FklVMgc* gc)
 			fklUninitVMstack(cur);
 			uninit_all_vm_lib(cur->libs,cur->libNum);
 			uv_mutex_destroy(&cur->lock);
+			remove_thread_frame_cache(cur);
 			free(cur->locv);
 			free(cur->libs);
 			free(cur);
@@ -874,13 +872,13 @@ static inline void B_notice_lock_jmp(FKL_VM_INS_FUNC_ARGL)
 {
 	if(ins->imm_i64<0)
 		NOTICE_LOCK(exe);
-	exe->frames->c.pc+=ins->imm_i64;
+	exe->top_frame->c.pc+=ins->imm_i64;
 }
 
 static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
 {
 	NOTICE_LOCK(exe);
-	FklVMframe* f=exe->frames;
+	FklVMframe* f=exe->top_frame;
 	if(f->c.mark)
 	{
 		close_all_var_ref(&f->c.lr);
@@ -894,7 +892,7 @@ static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
 		f->c.tail=0;
 	}
 	else
-		fklDoFinalizeCompoundFrame(popFrame(exe),exe);
+		fklDoFinalizeCompoundFrame(exe,popFrame(exe));
 }
 
 #undef NOTICE_LOCK
@@ -1065,7 +1063,7 @@ static inline void move_thread_old_locv_to_gc(FklVM* vm,FklVMgc* gc)
 	vm->old_locv_count=0;
 }
 
-static inline void move_all_thread_objects_and_old_locv_to_gc(FklVMgc* gc)
+static inline void move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(FklVMgc* gc)
 {
 	FklVM* vm=gc->main_thread;
 	move_thread_objects_to_gc(vm,gc);
@@ -1074,6 +1072,7 @@ static inline void move_all_thread_objects_and_old_locv_to_gc(FklVMgc* gc)
 	{
 		move_thread_objects_to_gc(cur,gc);
 		move_thread_old_locv_to_gc(cur,gc);
+		remove_thread_frame_cache(cur);
 	}
 }
 
@@ -1087,7 +1086,7 @@ static inline void vm_idler_loop(FklVMgc* gc)
 			switch_notice_lock_ins(&q->running_q);
 			lock_all_vm(&q->running_q);
 
-			move_all_thread_objects_and_old_locv_to_gc(gc);
+			move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(gc);
 
 			FklVM* exe=gc->main_thread;
 			fklVMgcMarkAllRootToGray(exe);
@@ -1321,10 +1320,10 @@ static inline void B_push_proc(FKL_VM_INS_FUNC_ARGL)
 	uint64_t sizeOfProc=ins->imm_u64;
 	FKL_VM_PUSH_VALUE(exe
 			,fklCreateVMvalueProcWithFrame(exe
-				,exe->frames
+				,exe->top_frame
 				,sizeOfProc
 				,prototypeId));
-	fklAddCompoundFrameCp(exe->frames,sizeOfProc);
+	fklAddCompoundFrameCp(exe->top_frame,sizeOfProc);
 }
 
 void fklDropTop(FklVM* s)
@@ -1346,7 +1345,7 @@ static inline void B_pop_arg(FKL_VM_INS_FUNC_ARGL)
 	if(exe->tp<=exe->bp)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.pop-arg",FKL_ERR_TOOFEWARG,exe);
 	FklVMvalue* v=FKL_VM_POP_ARG(exe);
-	GET_COMPOUND_FRAME_LOC(exe->frames,ins->imm_u32)=v;
+	GET_COMPOUND_FRAME_LOC(exe->top_frame,ins->imm_u32)=v;
 }
 
 static inline void B_pop_rest_arg(FKL_VM_INS_FUNC_ARGL)
@@ -1355,7 +1354,7 @@ static inline void B_pop_rest_arg(FKL_VM_INS_FUNC_ARGL)
 	FklVMvalue* volatile* pValue=&obj;
 	for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
 		*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
-	GET_COMPOUND_FRAME_LOC(exe->frames,ins->imm_u32)=obj;
+	GET_COMPOUND_FRAME_LOC(exe->top_frame,ins->imm_u32)=obj;
 }
 
 static inline void B_set_bp(FKL_VM_INS_FUNC_ARGL)
@@ -1433,18 +1432,18 @@ static inline void B_tail_call(FKL_VM_INS_FUNC_ARGL)
 static inline void B_jmp_if_true(FKL_VM_INS_FUNC_ARGL)
 {
 	if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
-		exe->frames->c.pc+=ins->imm_i64;
+		exe->top_frame->c.pc+=ins->imm_i64;
 }
 
 static inline void B_jmp_if_false(FKL_VM_INS_FUNC_ARGL)
 {
 	if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
-		exe->frames->c.pc+=ins->imm_i64;
+		exe->top_frame->c.pc+=ins->imm_i64;
 }
 
 static inline void B_jmp(FKL_VM_INS_FUNC_ARGL)
 {
-	exe->frames->c.pc+=ins->imm_i64;
+	exe->top_frame->c.pc+=ins->imm_i64;
 }
 
 static inline void B_list_append(FKL_VM_INS_FUNC_ARGL)
@@ -1605,7 +1604,7 @@ static inline void B_import(FKL_VM_INS_FUNC_ARGL)
 	FklVMlib* plib=exe->importingLib;
 	uint32_t count=plib->count;
 	FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
-	GET_COMPOUND_FRAME_LOC(exe->frames,locIdx)=v;
+	GET_COMPOUND_FRAME_LOC(exe->top_frame,locIdx)=v;
 }
 
 static inline void B_load_lib(FKL_VM_INS_FUNC_ARGL)
@@ -1681,12 +1680,12 @@ static inline void B_push_i64_big(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_get_loc(FKL_VM_INS_FUNC_ARGL)
 {
-	FKL_VM_PUSH_VALUE(exe,exe->frames->c.lr.loc[ins->imm_u32]);
+	FKL_VM_PUSH_VALUE(exe,exe->top_frame->c.lr.loc[ins->imm_u32]);
 }
 
 static inline void B_put_loc(FKL_VM_INS_FUNC_ARGL)
 {
-	GET_COMPOUND_FRAME_LOC(exe->frames,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
+	GET_COMPOUND_FRAME_LOC(exe->top_frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
 }
 
 static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
@@ -1707,7 +1706,7 @@ static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncProt
 static inline void B_get_var_ref(FKL_VM_INS_FUNC_ARGL)
 {
 	FklSid_t id=0;
-	FklVMvalue* v=get_var_val(exe->frames,ins->imm_u32,exe->pts,&id);
+	FklVMvalue* v=get_var_val(exe->top_frame,ins->imm_u32,exe->pts,&id);
 	if(id)
 	{
 		FklString* str=fklGetSymbolWithId(id,exe->symbolTable)->symbol;
@@ -1737,7 +1736,7 @@ static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 static inline void B_put_var_ref(FKL_VM_INS_FUNC_ARGL)
 {
 	FklSid_t id=0;
-	FklVMvalue* volatile* pv=get_var_ref(exe->frames,ins->imm_u32,exe->pts,&id);
+	FklVMvalue* volatile* pv=get_var_ref(exe->top_frame,ins->imm_u32,exe->pts,&id);
 	if(!pv)
 	{
 		FklString* str=fklGetSymbolWithId(id,exe->symbolTable)->symbol;
@@ -1751,7 +1750,7 @@ static inline void B_export(FKL_VM_INS_FUNC_ARGL)
 {
 	uint32_t libId=ins->imm_u32;
 	FklVMlib* lib=&exe->libs[libId];
-	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(exe->frames);
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(exe->top_frame);
 	uint32_t count=lr->lcount;
 	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*count);
 	DROP_TOP(exe);
@@ -2332,12 +2331,12 @@ static inline void B_close_ref(FKL_VM_INS_FUNC_ARGL)
 {
 	uint32_t sIdx=ins->imm;
 	uint32_t eIdx=ins->imm_u32;
-	close_var_ref_between(fklGetCompoundFrameLocRef(exe->frames)->lref,sIdx,eIdx);
+	close_var_ref_between(fklGetCompoundFrameLocRef(exe->top_frame)->lref,sIdx,eIdx);
 }
 
 static inline void B_ret(FKL_VM_INS_FUNC_ARGL)
 {
-	FklVMframe* f=exe->frames;
+	FklVMframe* f=exe->top_frame;
 	if(f->c.mark)
 	{
 		close_all_var_ref(&f->c.lr);
@@ -2351,7 +2350,7 @@ static inline void B_ret(FKL_VM_INS_FUNC_ARGL)
 		f->c.tail=0;
 	}
 	else
-		fklDoFinalizeCompoundFrame(popFrame(exe),exe);
+		fklDoFinalizeCompoundFrame(exe,popFrame(exe));
 }
 
 void fklInitVMstack(FklVM* tmp)
@@ -2472,6 +2471,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=copy_vm_libs(libs,libNum+1);
 	exe->pts=prev->pts;
+	exe->frame_cache=&exe->static_frame;
 	exe->state=FKL_VM_READY;
 	memcpy(exe->rand_state,prev->rand_state,sizeof(uint64_t[4]));
 	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));
@@ -2520,6 +2520,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 		if(t->obj_head)
 			move_thread_objects_to_gc(t,t->gc);
 		uv_mutex_destroy(&t->lock);
+		remove_thread_frame_cache(t);
 		free(t->locv);
 		free(t->libs);
 		free(t);
@@ -2528,10 +2529,10 @@ void fklDestroyAllVMs(FklVM* curVM)
 
 void fklDeleteCallChain(FklVM* exe)
 {
-	while(exe->frames)
+	while(exe->top_frame)
 	{
-		FklVMframe* cur=exe->frames;
-		exe->frames=cur->prev;
+		FklVMframe* cur=exe->top_frame;
+		exe->top_frame=cur->prev;
 		fklDestroyVMframe(cur,exe);
 	}
 }

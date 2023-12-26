@@ -2221,7 +2221,7 @@ static inline void init_custom_read_frame(FklVM* exe
 		,FklVMvalue* parser
 		,FklVMvalue* vfp)
 {
-	FklVMframe* f=exe->frames;
+	FklVMframe* f=exe->top_frame;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomReadContextMethodTable;
 	initReadCtx(f->data,sid,func_name,exe,vfp,parser);
@@ -2232,7 +2232,7 @@ static inline void initFrameToReadFrame(FklVM* exe
 		,const char* func_name
 		,FklVMvalue* vfp)
 {
-	FklVMframe* f=exe->frames;
+	FklVMframe* f=exe->top_frame;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&ReadContextMethodTable;
 	initReadCtx(f->data,sid,func_name,exe,vfp,FKL_VM_NIL);
@@ -2688,7 +2688,7 @@ static inline void init_custom_parse_frame(FklVM* exe
 		,FklVMvalue* str
 		,FklVMvalue* box)
 {
-	FklVMframe* f=exe->frames;
+	FklVMframe* f=exe->top_frame;
 	f->type=FKL_FRAME_OTHEROBJ;
 	f->t=&CustomParseContextMethodTable;
 	init_custom_parse_ctx(f->data,sid,func_name,parser,str,box);
@@ -2724,12 +2724,7 @@ static int builtin_read(FKL_CPROC_ARGL)
 		CHECK_FP_READABLE(fpv,Pname,exe);
 		CHECK_FP_OPEN(fpv,Pname,exe);
 		if(parser)
-		{
-			FklVMframe* sf=exe->frames;
-			FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
-			exe->frames=nf;
 			init_custom_read_frame(exe,FKL_VM_CPROC(ctx->proc)->sid,Pname,parser,stream);
-		}
 		else
 			initFrameToReadFrame(exe,FKL_VM_CPROC(ctx->proc)->sid,Pname,fpv);
 	}
@@ -2781,9 +2776,6 @@ static int builtin_parse(FKL_CPROC_ARGL)
 	if(custom_parser)
 	{
 		FKL_CHECK_TYPE(custom_parser,is_custom_parser,Pname,exe);
-		FklVMframe* sf=exe->frames;
-		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
-		exe->frames=nf;
 		init_custom_parse_frame(exe,FKL_VM_CPROC(ctx->proc)->sid,Pname,custom_parser,str,box);
 		return 1;
 	}
@@ -3664,8 +3656,8 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 			exe->tp=c->tp;
 			fklSetBp(exe);
 			FKL_VM_PUSH_VALUE(exe,errValue);
-			FklVMframe* topFrame=exe->frames;
-			exe->frames=f;
+			FklVMframe* topFrame=exe->top_frame;
+			exe->top_frame=f;
 			while(topFrame!=f)
 			{
 				FklVMframe* cur=topFrame;
@@ -3732,13 +3724,10 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 	fklResBp(exe);
 	if(errSymbolLists.top)
 	{
-		FklVMframe* sf=exe->frames;
-		FklVMframe* nf=fklCreateOtherObjVMframe(sf->t,sf->prev);
-		nf->errorCallBack=errorCallBackWithErrorHandler;
-		fklDoCopyObjFrameContext(sf,nf,exe);
-		exe->frames=nf;
-		nf->t=&ErrorHandlerContextMethodTable;
-		EhFrameContext* c=(EhFrameContext*)nf->data;
+		FklVMframe* top_frame=exe->top_frame;
+		top_frame->errorCallBack=errorCallBackWithErrorHandler;
+		top_frame->t=&ErrorHandlerContextMethodTable;
+		EhFrameContext* c=(EhFrameContext*)top_frame->data;
 		c->num=errSymbolLists.top;
 		FklVMvalue** t=(FklVMvalue**)fklRealloc(errSymbolLists.base,errSymbolLists.top*sizeof(FklVMvalue*));
 		FKL_ASSERT(t);
@@ -3844,7 +3833,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 
 				FklVMvalue* resultBox=fklCreateVMvalueBox(exe,FKL_VM_NIL);
 				ctx->context=(uintptr_t)&FKL_VM_BOX(resultBox);
-				fklCprocRestituteSframe(exe,rtp);
+				ctx->rtp=rtp;
 				FKL_VM_GET_VALUE(exe,arg_num+1)=resultBox;
 				FKL_VM_PUSH_VALUE(exe,proc);
 				fklSetBp(exe);
@@ -3915,7 +3904,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 					return 0;\
 				}\
 				ctx->context=1;\
-				fklCprocRestituteSframe(exe,rtp);\
+				ctx->rtp=rtp;\
 				FKL_VM_GET_VALUE(exe,arg_num+1)=FKL_VM_NIL;\
 				FKL_VM_PUSH_VALUE(exe,proc);\
 				fklSetBp(exe);\
@@ -4018,7 +4007,7 @@ static int builtin_member(FKL_CPROC_ARGL)
 						return 0;
 					}
 					ctx->context=1;
-					fklCprocRestituteSframe(exe,exe->tp);
+					ctx->rtp=exe->tp;
 					FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 					FKL_VM_PUSH_VALUE(exe,proc);
 					FKL_VM_PUSH_VALUE(exe,obj);
@@ -4085,7 +4074,7 @@ static int builtin_memp(FKL_CPROC_ARGL)
 					return 0;
 				}
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				FKL_VM_PUSH_VALUE(exe,proc);
 				FKL_VM_PUSH_VALUE(exe,list);
@@ -4143,7 +4132,7 @@ static int builtin_filter(FKL_CPROC_ARGL)
 				}
 				FklVMvalue* resultBox=fklCreateVMvalueBoxNil(exe);
 				ctx->context=(uintptr_t)&FKL_VM_BOX(resultBox);
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,resultBox);
 				FKL_VM_PUSH_VALUE(exe,proc);
 				FKL_VM_PUSH_VALUE(exe,list);

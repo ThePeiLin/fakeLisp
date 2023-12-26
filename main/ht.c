@@ -281,7 +281,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL)
                 FKL_CHECK_REST_ARG(exe,Pname);
                 FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
                 ctx->context=1;
-                fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
                 FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
                 FKL_VM_PUSH_VALUE(exe,val);
                 FKL_VM_PUSH_VALUE(exe,key);
@@ -369,7 +369,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL)
 				FklVMvalue* first_key=FKL_VM_GET_TOP_VALUE(exe);
 				uint32_t rtp=fklResBpIn(exe,arg_num);
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,rtp);
+				ctx->rtp=rtp;
 				FKL_VM_GET_VALUE(exe,arg_num+1)=FKL_VM_NIL;
 				FKL_VM_PUSH_VALUE(exe,ht_ud);
 				fklSetBp(exe);
@@ -485,7 +485,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				if(default_value)
 					FKL_VM_PUSH_VALUE(exe,default_value);
@@ -564,7 +564,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL)
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				FKL_VM_PUSH_VALUE(exe,val);
 				FKL_VM_PUSH_VALUE(exe,key);
@@ -640,7 +640,7 @@ static int ht_ht_ref7(FKL_CPROC_ARGL)
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				FKL_VM_PUSH_VALUE(exe,key);
 				FKL_VM_PUSH_VALUE(exe,ht_ud);
@@ -705,7 +705,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL)
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				FKL_VM_PUSH_VALUE(exe,key);
 				FKL_VM_PUSH_VALUE(exe,ht_ud);
@@ -770,7 +770,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL)
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
 				ctx->context=1;
-				fklCprocRestituteSframe(exe,exe->tp);
+				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				FKL_VM_PUSH_VALUE(exe,key);
 				FKL_VM_PUSH_VALUE(exe,ht_ud);

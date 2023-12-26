@@ -145,7 +145,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	anotherVM->libNum=scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
-	FklVMframe* mainframe=anotherVM->frames;
+	FklVMframe* mainframe=anotherVM->top_frame;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	fklInitMainVMframeWithProc(anotherVM,mainframe
 			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))

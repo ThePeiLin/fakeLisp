@@ -347,10 +347,8 @@ void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
 void* fklGetFrameData(FklVMframe* f);
 int fklIsCallableObjFrameReachEnd(FklVMframe* f);
 void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
-void fklDoFinalizeObjFrame(FklVMframe* f,FklVMframe* sf);
-
-void fklDoUninitCompoundFrame(FklVMframe* frame,struct FklVM* exe);
-void fklDoFinalizeCompoundFrame(FklVMframe* frame,struct FklVM* exe);
+void fklDoFinalizeObjFrame(struct FklVM*,FklVMframe* f);
+void fklDoFinalizeCompoundFrame(struct FklVM* exe,FklVMframe* frame);
 
 typedef struct FklVMlib
 {
@@ -416,11 +414,9 @@ typedef struct FklVM
 	uint32_t bp;
 	FklVMvalue** base;
 
-	//static stack frame,only for cproc and callable obj;
-	//如果这个栈帧不会再进行调用，那么就会直接使用这个
-	FklVMframe sf;
-
-	FklVMframe* frames;
+	FklVMframe static_frame;
+	FklVMframe* frame_cache;
+	FklVMframe* top_frame;
 
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;
@@ -716,8 +712,8 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);
 void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM*,uint32_t pid);
-FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
+FklVMframe* fklCreateVMframeWithCodeObj(FklVM* exe,FklVMvalue* codeObj,uint32_t pid,FklVMframe*);
+FklVMframe* fklCreateVMframeWithProcValue(FklVM* exe,FklVMvalue*,FklVMframe*);
 
 FklVMvalue* fklCreateVMvalueVarRef(FklVM* exe,FklVMvalue** loc,uint32_t idx);
 FklVMvalue* fklCreateClosedVMvalueVarRef(FklVM* exe,FklVMvalue* v);
@@ -1013,14 +1009,13 @@ uint64_t fklGetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 
-void fklCprocRestituteSframe(FklVM* v,uint32_t rtp);
-
 void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 
 size_t fklVMlistLength(FklVMvalue*);
 
 void fklPushVMframe(FklVMframe*,FklVM* exe);
-FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev);
+FklVMframe* fklCreateOtherObjVMframe(FklVM* exe,const FklVMframeContextMethodTable* t,FklVMframe* prev);
+FklVMframe* fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev);
 
 void fklSwapCompoundFrame(FklVMframe*,FklVMframe*);
 unsigned int fklGetCompoundFrameMark(const FklVMframe*);
@@ -1042,8 +1037,8 @@ void fklAddCompoundFrameCp(FklVMframe*,int64_t a);
 uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
 FklSid_t fklGetCompoundFrameSid(const FklVMframe*);
 
-FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev,FklVMgc*);
-FklVMframe* fklCopyVMframe(FklVMframe*,FklVMframe* prev,FklVM*);
+FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev);
+FklVMframe* fklCopyVMframe(FklVM*,FklVMframe*,FklVMframe* prev);
 void fklDestroyVMframes(FklVMframe* h);
 
 void fklDestroyVMlib(FklVMlib* lib);

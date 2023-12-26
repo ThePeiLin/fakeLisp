@@ -9718,13 +9718,13 @@ static const FklVMframeContextMethodTable MacroExpandMethodTable=
 	.print_backtrace=macro_expand_frame_backtrace,
 };
 
-static void insert_macro_expand_frame(FklVMframe* mainframe
+static void insert_macro_expand_frame(FklVM* exe,FklVMframe* mainframe
 		,FklNastNode** ptr
 		,FklHashTable* lineHash
 		,FklSymbolTable* symbolTable
 		,uint64_t curline)
 {
-	FklVMframe* f=fklCreateOtherObjVMframe(&MacroExpandMethodTable,mainframe->prev);
+	FklVMframe* f=fklCreateOtherObjVMframe(exe,&MacroExpandMethodTable,mainframe->prev);
 	mainframe->prev=f;
 	MacroExpandCtx* ctx=(MacroExpandCtx*)f->data;
 	ctx->done=0;
@@ -9748,7 +9748,8 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 			,publicSymbolTable
 			,pts
 			,prototype_id);
-	insert_macro_expand_frame(anotherVM->frames
+	insert_macro_expand_frame(anotherVM
+			,anotherVM->top_frame
 			,pr
 			,lineHash
 			,publicSymbolTable
@@ -9762,7 +9763,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		FklCodegenLib* cur=macroLibStack->base[i];
 		fklInitVMlibWithCodegenLib(cur,&anotherVM->libs[i+1],anotherVM,1,pts);
 	}
-	FklVMframe* mainframe=anotherVM->frames;
+	FklVMframe* mainframe=anotherVM->top_frame;
 	fklInitGlobalVMclosure(mainframe,anotherVM);
 	initVMframeFromPatternMatchTable(anotherVM,mainframe,ht,lineHash,pts,prototype_id);
 	return anotherVM;

@@ -170,7 +170,7 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 	fprintf(fp,": ");
 	fklPrintString(err->message,fp);
 	fprintf(fp,"\n");
-	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
+	for(FklVMframe* cur=exe->top_frame;cur;cur=cur->prev)
 	{
 		if(cur->type==FKL_FRAME_COMPOUND)
 		{
@@ -236,36 +236,7 @@ int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 	return 255;
 }
 
-FklVMframe* fklCopyVMframe(FklVMframe* f,FklVMframe* prev,FklVM* exe)
-{
-	switch(f->type)
-	{
-		case FKL_FRAME_COMPOUND:
-			return fklCreateVMframeWithCompoundFrame(f,prev,exe->gc);
-			break;
-		case FKL_FRAME_OTHEROBJ:
-			{
-				FklVMframe* r=fklCreateOtherObjVMframe(f->t,prev);
-				fklDoCopyObjFrameContext(f,r,exe);
-				return r;
-			}
-			break;
-	}
-	return NULL;
-}
-
-static inline void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
-{
-	lr->base=0;
-	lr->lcount=0;
-	lr->loc=NULL;
-	lr->lref=NULL;
-	lr->ref=NULL;
-	lr->rcount=0;
-	lr->lrefl=NULL;
-}
-
-FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* prev,FklVMgc* gc)
+FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* prev)
 {
 	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
 	FKL_ASSERT(tmp);
@@ -300,10 +271,39 @@ FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe* f,FklVMframe* pr
 	return tmp;
 }
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM* vm,uint32_t pid)
+FklVMframe* fklCopyVMframe(FklVM* target_vm,FklVMframe* f,FklVMframe* prev)
 {
-	FklVMvalue* r=fklCreateVMvalueProcWithWholeCodeObj(vm,codeObj,pid);
-	return fklCreateVMframeWithProcValue(r,NULL);
+	switch(f->type)
+	{
+		case FKL_FRAME_COMPOUND:
+			return fklCreateVMframeWithCompoundFrame(f,prev);
+			break;
+		case FKL_FRAME_OTHEROBJ:
+			{
+				FklVMframe* r=fklCreateNewOtherObjVMframe(f->t,prev);
+				fklDoCopyObjFrameContext(f,r,target_vm);
+				return r;
+			}
+			break;
+	}
+	return NULL;
+}
+
+static inline void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
+{
+	lr->base=0;
+	lr->lcount=0;
+	lr->loc=NULL;
+	lr->lref=NULL;
+	lr->ref=NULL;
+	lr->rcount=0;
+	lr->lrefl=NULL;
+}
+
+FklVMframe* fklCreateVMframeWithCodeObj(FklVM* exe,FklVMvalue* codeObj,uint32_t pid,FklVMframe* prev)
+{
+	FklVMvalue* r=fklCreateVMvalueProcWithWholeCodeObj(exe,codeObj,pid);
+	return fklCreateVMframeWithProcValue(exe,r,prev);
 }
 
 void fklInitMainVMframeWithProc(FklVM* exe
@@ -363,16 +363,25 @@ void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
 		}
 }
 
-FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
+FklVMframe* fklCreateVMframeWithProcValue(FklVM* exe,FklVMvalue* proc,FklVMframe* prev)
 {
 	FklVMproc* code=FKL_VM_PROC(proc);
-	FklVMframe* tmp=(FklVMframe*)malloc(sizeof(FklVMframe));
-	FKL_ASSERT(tmp);
-	tmp->errorCallBack=NULL;
-	tmp->type=FKL_FRAME_COMPOUND;
-	tmp->prev=prev;
+	FklVMframe* frame;
+	if(exe->frame_cache)
+	{
+		frame=exe->frame_cache;
+		exe->frame_cache=frame->prev;
+	}
+	else
+	{
+		frame=(FklVMframe*)malloc(sizeof(FklVMframe));
+		FKL_ASSERT(frame);
+	}
+	frame->errorCallBack=NULL;
+	frame->type=FKL_FRAME_COMPOUND;
+	frame->prev=prev;
 
-	FklVMCompoundFrameData* f=&tmp->c;
+	FklVMCompoundFrameData* f=&frame->c;
 	f->sid=0;
 	f->pc=NULL;
 	f->spc=NULL;
@@ -391,10 +400,30 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue* proc,FklVMframe* prev)
 		f->sid=code->sid;
 		f->proc=proc;
 	}
-	return tmp;
+	return frame;
 }
 
-FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev)
+FklVMframe* fklCreateOtherObjVMframe(FklVM* exe,const FklVMframeContextMethodTable* t,FklVMframe* prev)
+{
+	FklVMframe* r;
+	if(exe->frame_cache)
+	{
+		r=exe->frame_cache;
+		exe->frame_cache=r->prev;
+	}
+	else
+	{
+		r=(FklVMframe*)malloc(sizeof(FklVMframe));
+		FKL_ASSERT(r);
+	}
+	r->prev=prev;
+	r->errorCallBack=NULL;
+	r->type=FKL_FRAME_OTHEROBJ;
+	r->t=t;
+	return r;
+}
+
+FklVMframe* fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev)
 {
 	FklVMframe* r=(FklVMframe*)calloc(1,sizeof(FklVMframe));
 	FKL_ASSERT(r);
@@ -408,9 +437,9 @@ FklVMframe* fklCreateOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVM
 void fklDestroyVMframe(FklVMframe* frame,FklVM* exe)
 {
 	if(frame->type==FKL_FRAME_OTHEROBJ)
-		fklDoFinalizeObjFrame(frame,&exe->sf);
+		fklDoFinalizeObjFrame(exe,frame);
 	else
-		fklDoFinalizeCompoundFrame(frame,exe);
+		fklDoFinalizeCompoundFrame(exe,frame);
 }
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f);
@@ -933,6 +962,7 @@ int fklHasCircleRef(FklVMvalue* first_value)
 	int r=degree_table.num>0;
 	fklUninitHashTable(&degree_table);
 
+	fklUninitPtrStack(&stack);
 	return r;
 }
 

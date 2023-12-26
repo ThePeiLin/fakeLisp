@@ -39,7 +39,7 @@ static inline void fklGC_markRootToGray(FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 
-	for(FklVMframe* cur=exe->frames;cur;cur=cur->prev)
+	for(FklVMframe* cur=exe->top_frame;cur;cur=cur->prev)
 		fklDoAtomicFrame(cur,gc);
 
 	uint32_t count=exe->ltp;

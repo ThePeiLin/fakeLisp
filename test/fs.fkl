@@ -17,8 +17,7 @@
 
 (do [(cur (read) (read))]
   [(eof? cur)]
-  (prin1 cur)
-  (newline))
+  (prin1n cur))
 
 (newline)
 

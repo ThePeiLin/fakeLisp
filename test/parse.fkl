@@ -2,49 +2,27 @@
 
 (import (only (.. lib utils m) assert))
 
-(prin1 json-parser)
+(prin1n json-parser)
 
-(newline)
+(prin1n (parse "{\"foo\":1}" json-parser))
 
-(prin1 (parse "{\"foo\":1}" json-parser))
+(prin1n (parse "[]" json-parser))
 
-(newline)
+(prin1n (parse "[1,2,3]" json-parser))
 
-(prin1 (parse "[]" json-parser))
+(prin1n (parse "{}" json-parser))
 
-(newline)
+(prin1n (parse "{\"foo\":1,\"bar\":2}" json-parser))
 
-(prin1 (parse "[1,2,3]" json-parser))
+(prin1n (parse "\"foobar\"" json-parser))
 
-(newline)
+(prin1n (parse "true" json-parser))
 
-(prin1 (parse "{}" json-parser))
+(prin1n (parse "false" json-parser))
 
-(newline)
+(prin1n (parse "null" json-parser))
 
-(prin1 (parse "{\"foo\":1,\"bar\":2}" json-parser))
-
-(newline)
-
-(prin1 (parse "\"foobar\"" json-parser))
-
-(newline)
-
-(prin1 (parse "true" json-parser))
-
-(newline)
-
-(prin1 (parse "false" json-parser))
-
-(newline)
-
-(prin1 (parse "null" json-parser))
-
-(newline)
-
-(prin1 (parse "114514" json-parser))
-
-(newline)
+(prin1n (parse "114514" json-parser))
 
 (assert (equal (println (parse "{\"foo\":1,\"bar\":2}" json-parser))
                #hashequal(("foo",1) ("bar",2))))

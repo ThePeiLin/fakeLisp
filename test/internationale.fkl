@@ -8,5 +8,4 @@
 (println internationle-in-some-language)
 (println (hash-ref internationle-in-some-language
              my-language ()))
-(prin1 (stringify internationle-in-some-language))
-(newline)
+(prin1n (stringify internationle-in-some-language))

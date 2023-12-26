@@ -4333,36 +4333,6 @@ static int builtin_vector(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_fwrite(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.fwrite";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
-	FklVMvalue* file=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-
-	GET_OR_USE_STDOUT(file);
-	FKL_CHECK_TYPE(file,FKL_IS_FP,Pname,exe);
-	CHECK_FP_OPEN(file,Pname,exe);
-	CHECK_FP_WRITABLE(file,Pname,exe);
-	FILE* fp=FKL_VM_FP(file)->fp;
-	if(FKL_IS_STR(obj))
-	{
-		FklString* str=FKL_VM_STR(obj);
-		fwrite(str->str,str->size,1,fp);
-	}
-	if(FKL_IS_BYTEVECTOR(obj))
-	{
-		FklBytevector* bvec=FKL_VM_BVEC(obj);
-		fwrite(bvec->ptr,bvec->size,1,fp);
-	}
-	else if(FKL_IS_USERDATA(obj)&&fklIsWritableUd(FKL_VM_UD(obj)))
-		fklWriteVMudata(FKL_VM_UD(obj),fp);
-	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FKL_VM_PUSH_VALUE(exe,obj);
-	return 0;
-}
-
 static int builtin_box(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.box";
@@ -5243,8 +5213,6 @@ static const struct SymbolFuncStruct
 
 	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
-
-	{"fwrite",                builtin_fwrite,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"fgets",                 builtin_fgets,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,          NULL,            NULL,          }, },

@@ -181,6 +181,39 @@ static int fs_fprin1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_fwrite(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fwrite";
+	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(f,Pname,exe);
+	CHECK_FP_WRITABLE(f,Pname,exe);
+
+	FILE* fp=FKL_VM_FP(f)->fp;
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	FklVMvalue* r=FKL_VM_NIL;
+	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
+	{
+		if(FKL_IS_STR(obj))
+		{
+			FklString* str=FKL_VM_STR(obj);
+			fwrite(str->str,str->size,1,fp);
+		}
+		else if(FKL_IS_BYTEVECTOR(obj))
+		{
+			FklBytevector* bvec=FKL_VM_BVEC(obj);
+			fwrite(bvec->ptr,bvec->size,1,fp);
+		}
+		else if(FKL_IS_USERDATA(obj)&&fklIsWritableUd(FKL_VM_UD(obj)))
+			fklWriteVMudata(FKL_VM_UD(obj),fp);
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
+	fklResBp(exe);
+	FKL_VM_PUSH_VALUE(exe,r);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -196,6 +229,7 @@ struct SymFunc
 	{"mkdir",    fs_mkdir,    },
 	{"fprint",   fs_fprint,   },
 	{"fprin1",   fs_fprin1,   },
+	{"fwrite",   fs_fwrite,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

@@ -3034,6 +3034,29 @@ static int builtin_print(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_prin1n(FKL_CPROC_ARGL)
+{
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	FklVMvalue* r=FKL_VM_NIL;
+	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
+		fklPrin1VMvalue(obj,stdout,exe->symbolTable);
+	fputc('\n',stdout);
+	fklResBp(exe);
+	FKL_VM_PUSH_VALUE(exe,r);
+	return 0;
+}
+
+static int builtin_prin1v(FKL_CPROC_ARGL)
+{
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	FklVMvalue* r=FKL_VM_NIL;
+	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
+		fklPrin1VMvalue(obj,stdout,exe->symbolTable);
+	fklResBp(exe);
+	FKL_VM_PUSH_VALUE(exe,r);
+	return 0;
+}
+
 static int builtin_newline(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.newline";
@@ -5092,10 +5115,15 @@ static const struct SymbolFuncStruct
 	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,            NULL,          }, },
 	{"parser?",               builtin_parser_p,                {NULL,         NULL,          NULL,            NULL,          }, },
 	{"stringify",             builtin_stringify,               {NULL,         NULL,          NULL,            NULL,          }, },
+
 	{"prin1",                 builtin_prin1,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"princ",                 builtin_princ,                   {NULL,         NULL,          NULL,            NULL,          }, },
+
 	{"println",               builtin_println,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"print",                 builtin_print,                   {NULL,         NULL,          NULL,            NULL,          }, },
+
+	{"prin1n",                builtin_prin1n,                  {NULL,         NULL,          NULL,            NULL,          }, },
+	{"prin1v",                builtin_prin1v,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"newline",               builtin_newline,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dlopen",                builtin_dlopen,                  {NULL,         NULL,          NULL,            NULL,          }, },

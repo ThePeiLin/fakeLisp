@@ -39,7 +39,6 @@ FklSymbolHashItem* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable*);
 
 void fklPrintSymbolTable(const FklSymbolTable*,FILE*);
 
-void fklDestroySymTabNode(FklSymbolHashItem*);
 void fklDestroySymbolTable(FklSymbolTable*);
 void fklUninitSymbolTable(FklSymbolTable*);
 

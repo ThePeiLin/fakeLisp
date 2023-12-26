@@ -3552,7 +3552,8 @@ typedef struct
 	FklVMvalue** errorSymbolLists;
 	FklVMvalue** errorHandlers;
 	size_t num;
-	size_t tp;
+	uint32_t tp;
+	uint32_t bp;
 }EhFrameContext;
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
@@ -3653,6 +3654,7 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 	{
 		if(isShouldBeHandle(errSymbolLists[i],err->type))
 		{
+			exe->bp=c->bp;
 			exe->tp=c->tp;
 			fklSetBp(exe);
 			FKL_VM_PUSH_VALUE(exe,errValue);
@@ -3736,6 +3738,7 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 		FKL_ASSERT(t);
 		c->errorHandlers=t;
 		c->tp=exe->tp;
+		c->bp=exe->bp;
 		fklCallObj(exe,proc);
 	}
 	else

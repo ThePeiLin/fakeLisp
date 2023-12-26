@@ -114,12 +114,6 @@ FklSymbolHashItem* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable
 	return node;
 }
 
-void fklDestroySymTabNode(FklSymbolHashItem* node)
-{
-	free(node->symbol);
-	free(node);
-}
-
 void fklUninitSymbolTable(FklSymbolTable* table)
 {
 	fklUninitHashTable(&table->ht);

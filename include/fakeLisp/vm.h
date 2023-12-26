@@ -102,6 +102,9 @@ typedef struct
 	struct FklVMvalue* cdr;
 }FklVMpair;
 
+#define FKL_VM_FP_R_MASK (1)
+#define FKL_VM_FP_W_MASK (2)
+
 typedef enum
 {
 	FKL_VM_FP_R=1,

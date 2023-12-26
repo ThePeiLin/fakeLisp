@@ -2238,8 +2238,6 @@ static inline void initFrameToReadFrame(FklVM* exe
 	initReadCtx(f->data,sid,func_name,exe,vfp,FKL_VM_NIL);
 }
 
-#define FKL_VM_FP_R_MASK (1)
-#define FKL_VM_FP_W_MASK (2)
 
 static inline int isVMfpReadable(const FklVMvalue* fp)
 {
@@ -2250,9 +2248,6 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 {
 	return FKL_VM_FP(fp)->rw&FKL_VM_FP_W_MASK;
 }
-
-#undef FKL_VM_FP_R_MASK
-#undef FKL_VM_FP_W_MASK
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print,parser);
 FKL_VM_USER_DATA_DEFAULT_TO_STRING(custom_parser_to_string,parser);
@@ -3034,41 +3029,6 @@ static int builtin_print(FKL_CPROC_ARGL)
 	FklVMvalue* r=FKL_VM_NIL;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
 		fklPrincVMvalue(obj,stdout,exe->symbolTable);
-	fklResBp(exe);
-	FKL_VM_PUSH_VALUE(exe,r);
-	return 0;
-}
-
-static int builtin_fprint(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.fprint";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
-	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
-	CHECK_FP_OPEN(f,Pname,exe);
-	CHECK_FP_WRITABLE(f,Pname,exe);
-	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
-	FklVMvalue* r=FKL_VM_NIL;
-	FILE* fp=FKL_VM_FP(f)->fp;
-	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrincVMvalue(obj,fp,exe->symbolTable);
-	fklResBp(exe);
-	FKL_VM_PUSH_VALUE(exe,r);
-	return 0;
-}
-
-static int builtin_fprin1(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.fprin1";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
-	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
-	CHECK_FP_OPEN(f,Pname,exe);
-	CHECK_FP_WRITABLE(f,Pname,exe);
-
-	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
-	FklVMvalue* r=FKL_VM_NIL;
-	FILE* fp=FKL_VM_FP(f)->fp;
-	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrin1VMvalue(obj,fp,exe->symbolTable);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -5166,8 +5126,7 @@ static const struct SymbolFuncStruct
 	{"princ",                 builtin_princ,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"println",               builtin_println,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"print",                 builtin_print,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"fprint",                builtin_fprint,                  {NULL,         NULL,          NULL,            NULL,          }, },
-	{"fprin1",                builtin_fprin1,                  {NULL,         NULL,          NULL,            NULL,          }, },
+
 	{"newline",               builtin_newline,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dlopen",                builtin_dlopen,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dlsym",                 builtin_dlsym,                   {NULL,         NULL,          NULL,            NULL,          }, },

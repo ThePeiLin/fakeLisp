@@ -163,6 +163,24 @@ static int fs_fprint(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_fprintln(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fprintln";
+	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(f,Pname,exe);
+	CHECK_FP_WRITABLE(f,Pname,exe);
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	FklVMvalue* r=FKL_VM_NIL;
+	FILE* fp=FKL_VM_FP(f)->fp;
+	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
+		fklPrincVMvalue(obj,fp,exe->symbolTable);
+	fputc('\n',stdout);
+	fklResBp(exe);
+	FKL_VM_PUSH_VALUE(exe,r);
+	return 0;
+}
+
 static int fs_fprin1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fprin1";
@@ -176,6 +194,25 @@ static int fs_fprin1(FKL_CPROC_ARGL)
 	FILE* fp=FKL_VM_FP(f)->fp;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
 		fklPrin1VMvalue(obj,fp,exe->symbolTable);
+	fklResBp(exe);
+	FKL_VM_PUSH_VALUE(exe,r);
+	return 0;
+}
+
+static int fs_fprin1n(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fprin1n";
+	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(f,Pname,exe);
+	CHECK_FP_WRITABLE(f,Pname,exe);
+
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	FklVMvalue* r=FKL_VM_NIL;
+	FILE* fp=FKL_VM_FP(f)->fp;
+	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
+		fklPrin1VMvalue(obj,fp,exe->symbolTable);
+	fputc('\n',stdout);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -228,7 +265,9 @@ struct SymFunc
 	{"relpath",  fs_relpath,  },
 	{"mkdir",    fs_mkdir,    },
 	{"fprint",   fs_fprint,   },
+	{"fprintln", fs_fprintln, },
 	{"fprin1",   fs_fprin1,   },
+	{"fprin1n",  fs_fprin1n,  },
 	{"fwrite",   fs_fwrite,   },
 };
 

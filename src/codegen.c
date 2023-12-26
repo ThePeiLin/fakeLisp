@@ -7396,9 +7396,6 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 	FKL_ASSERT(delim);
 	memset(delim,1,sizeof(uint8_t)*vec->size);
 
-	// uint8_t* end_with_terminal=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
-	// memset(end_with_terminal,0,sizeof(uint8_t)*vec->size);
-
 	for(size_t i=0;i<vec->size;i++)
 	{
 		const FklNastNode* cur=vec->base[i];
@@ -7417,11 +7414,6 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 			delim[valid_items.top]=0;
 			continue;
 		}
-		// else if(cur->type==FKL_NAST_FIX&&cur->fix==1)
-		// {
-		// 	end_with_terminal[valid_items.top]=1;
-		// 	continue;
-		// }
 		else if(cur->type==FKL_NAST_PAIR
 				&&cur->pair->car->type==FKL_NAST_SYM
 				&&cur->pair->cdr->type==FKL_NAST_SYM)
@@ -7451,7 +7443,6 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 				ss->nt.group=0;
 				ss->nt.sid=fklAddSymbol(cur->str,tt)->id;
 				ss->end_with_terminal=0;
-				// ss->end_with_terminal=end_with_terminal[i];
 			}
 			else if(cur->type==FKL_NAST_PAIR)
 			{
@@ -7507,7 +7498,6 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 end:
 	fklUninitPtrStack(&valid_items);
 	free(delim);
-	// free(end_with_terminal);
 	return retval;
 }
 

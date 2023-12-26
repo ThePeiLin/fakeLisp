@@ -2334,9 +2334,6 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 	FKL_ASSERT(delim);
 	memset(delim,1,sizeof(uint8_t)*vec->size);
 
-	// uint8_t* end_with_terminal=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
-	// memset(end_with_terminal,0,sizeof(uint8_t)*vec->size);
-
 	FklGrammerProduction* prod=NULL;
 
 	for(size_t i=0;i<vec->size;i++)
@@ -2357,11 +2354,6 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 			delim[valid_items.top]=0;
 			continue;
 		}
-		// else if(cur==FKL_VM_TRUE)
-		// {
-		// 	end_with_terminal[valid_items.top]=1;
-		// 	continue;
-		// }
 		else
 		{
 			*error_type=INVALID_PROD_PART;
@@ -2445,7 +2437,6 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 end:
 	fklUninitPtrStack(&valid_items);
 	free(delim);
-	// free(end_with_terminal);
 	return prod;
 }
 

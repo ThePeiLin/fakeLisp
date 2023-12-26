@@ -716,10 +716,8 @@ void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 FklVMframe* fklCreateVMframeWithCodeObj(FklVMvalue* codeObj,FklVM*,uint32_t pid);
 FklVMframe* fklCreateVMframeWithProcValue(FklVMvalue*,FklVMframe*);
 
-// FklVMvarRef* fklMakeVMvarRefRef(FklVMvarRef* ref);
 FklVMvalue* fklCreateVMvalueVarRef(FklVM* exe,FklVMvalue** loc,uint32_t idx);
 FklVMvalue* fklCreateClosedVMvalueVarRef(FklVM* exe,FklVMvalue* v);
-// void fklDestroyVMvarRef(FklVMvarRef*);
 
 void fklDestroyVMframe(FklVMframe*,FklVM* exe);
 FklString* fklGenErrorMessage(FklBuiltinErrorType type);

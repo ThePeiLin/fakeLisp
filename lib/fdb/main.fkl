@@ -13,6 +13,7 @@
     "delete: delete break point"
     "next: run the program until next line"
     "step: run the program until next line, but step in function"
+    "restart: restart the debugger"
     "return: run the program until function return"))
 
 (define help-doc-hash
@@ -24,6 +25,7 @@
     'next "run the program until next line, but step in function"
     'step "run the program until next line, but step in function"
     'return "run the program until function return"
+    'restart "restart the debugger"
     'help "print this help doc or print the help of command"))
 
 (define debug-cmd-func
@@ -40,6 +42,14 @@
                 (println "invalid command")
                 (println (hash-ref help-doc-hash (car rest) "do not have such a command")))
               (println help-doc)))))
+
+(define cmd-abbr-map
+  #hash((b,break)
+        (c,continue)
+        (n,next)
+        (s,step)
+        (r,return)
+        (h,help)))
 
 (define (debug-ctx-run ctx prompt line-prefix)
   (do []

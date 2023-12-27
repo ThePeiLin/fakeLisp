@@ -23,11 +23,9 @@ endif()
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
 set(BYTECODE_PRINTER_TARGET_NAME fakeLispp)
+
+set(LIBFKL_STATIC_TARGET_NAME fkl_a)
 set(LIBFKL_TARGET_NAME fkl)
-
-set(LIBFKL_SHARED_TARGET_NAME fkl-shared)
-
-set(LIBFKL_MOD_TARGET_NAME fkl-mod)
 
 set(GRAMMER_GEN grammer)
 set(PARSE parse)
@@ -113,30 +111,17 @@ add_library(${VMPARSE}
 #libfkl.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
 
-add_library(${LIBFKL_TARGET_NAME}
+add_library(${LIBFKL_STATIC_TARGET_NAME}
 	STATIC
 	${LIBFKL_SOURCE})
-set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES
+set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 
 #libfkldll.so
-add_library(${LIBFKL_SHARED_TARGET_NAME}
+add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})
-set_target_properties(${LIBFKL_SHARED_TARGET_NAME} PROPERTIES
-	POSITION_INDEPENDENT_CODE ON)
-
-#libfkl-mod.a
-file(GLOB LIBFKL_MOD_SOURCE
-	"src/base.c"
-	"src/symbol.c"
-	"src/utils.c"
-	"src/vm*.c")
-
-add_library(${LIBFKL_MOD_TARGET_NAME}
-	STATIC
-	${LIBFKL_MOD_SOURCE})
-set_target_properties(${LIBFKL_MOD_TARGET_NAME} PROPERTIES
+set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 
 #fakeLisp, fakeLispc, fakeLispp
@@ -150,7 +135,7 @@ add_library(ht
 	"main/ht.c")
 set_target_properties(ht PROPERTIES
 	PREFIX "")
-target_link_libraries(ht ${LIBFKL_MOD_TARGET_NAME})
+target_link_libraries(ht ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET ht
@@ -170,7 +155,7 @@ add_library(os
 	"main/os.c")
 set_target_properties(os PROPERTIES
 	PREFIX "")
-target_link_libraries(os ${LIBFKL_MOD_TARGET_NAME})
+target_link_libraries(os ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET os
@@ -190,7 +175,7 @@ add_library(math
 	"main/math.c")
 set_target_properties(math PROPERTIES
 	PREFIX "")
-target_link_libraries(math ${LIBFKL_MOD_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(math ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
 if(MSVC)
 add_custom_command(TARGET math
@@ -210,7 +195,7 @@ add_library(sync
 	"main/sync.c")
 set_target_properties(sync PROPERTIES
 	PREFIX "")
-target_link_libraries(sync ${LIBFKL_MOD_TARGET_NAME} ${LINK_TARGET} uv_a)
+target_link_libraries(sync ${LIBFKL_TARGET_NAME} ${LINK_TARGET} uv_a)
 
 if(MSVC)
 add_custom_command(TARGET sync
@@ -230,7 +215,7 @@ add_library(fs
 	"main/fs.c")
 set_target_properties(fs PROPERTIES
 	PREFIX "")
-target_link_libraries(fs ${LIBFKL_MOD_TARGET_NAME})
+target_link_libraries(fs ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET fs
@@ -252,7 +237,7 @@ add_library(bdb
 	${BDB_SOURCE})
 set_target_properties(bdb PROPERTIES
 	PREFIX "")
-target_link_libraries(bdb ${LIBFKL_TARGET_NAME} uv_a replxx)
+target_link_libraries(bdb ${LIBFKL_TARGET_NAME} replxx)
 
 if(MSVC)
 add_custom_command(TARGET bdb
@@ -267,6 +252,7 @@ set_target_properties(bdb PROPERTIES
 endif()
 
 #linking
+target_link_libraries(${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)

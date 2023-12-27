@@ -317,7 +317,7 @@ typedef struct
 {
 	int (*end)(void* data);
 	void (*step)(void* data,struct FklVM*);
-	void (*print_backtrace)(void* data,FILE* fp,FklSymbolTable*);
+	void (*print_backtrace)(void* data,FILE* fp,struct FklVMgc*);
 	void (*atomic)(void* data,struct FklVMgc*);
 	void (*finalizer)(void* data);
 	void (*copy)(void* dst,const void* src,struct FklVM*);
@@ -339,7 +339,7 @@ typedef struct FklVMframe
 	};
 }FklVMframe;
 
-void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table);
+void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,struct FklVMgc* table);
 void fklCallObj(struct FklVM* exe,FklVMvalue*);
 void fklTailCallObj(struct FklVM* exe,FklVMvalue*);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
@@ -425,7 +425,7 @@ typedef struct FklVM
 	struct FklVM* prev;
 	struct FklVM* next;
 	jmp_buf buf;
-	FklSymbolTable* symbolTable;
+
 	FklSid_t* builtinErrorTypeId;
 	FklFuncPrototypes* pts;
 	FklVMlib* importingLib;
@@ -441,8 +441,8 @@ typedef struct FklVM
 typedef struct FklVMudMetaTable
 {
 	size_t size;
-	void (*__princ)(const FklVMudata*,FILE*,FklSymbolTable* table);
-	void (*__prin1)(const FklVMudata*,FILE*,FklSymbolTable* table);
+	void (*__princ)(const FklVMudata*,FILE*,struct FklVMgc* table);
+	void (*__prin1)(const FklVMudata*,FILE*,struct FklVMgc* table);
 	void (*__finalizer)(FklVMudata*);
 	int  (*__equal)(const FklVMudata*,const FklVMudata*);
 	void (*__call)(FklVMvalue*,FklVM*);
@@ -507,6 +507,8 @@ typedef struct FklVMgc
 		}locv[FKL_VM_GC_LOCV_CACHE_NUM];
 	}locv_cache[FKL_VM_GC_LOCV_CACHE_LEVEL_NUM];
 
+	uv_rwlock_t st_lock;
+	FklSymbolTable* st;
 }FklVMgc;
 
 typedef struct
@@ -610,7 +612,6 @@ FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* next
 		,size_t libNum
 		,FklVMlib* libs
-		,FklSymbolTable*
 		,FklSid_t* builtinErrorTypeId);
 
 void fklDestroyVMvalue(FklVMvalue*);
@@ -620,8 +621,15 @@ void fklAllocMoreStack(FklVM*);
 void fklShrinkStack(FklVM*);
 int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
-FklVMgc* fklCreateVMgc();
+FklVMgc* fklCreateVMgc(FklSymbolTable* st);
 FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast,uint32_t* pllast);
+
+void fklVMacquireSt(FklVMgc*);
+void fklVMreleaseSt(FklVMgc*);
+FklSymbolHashItem* fklVMaddSymbol(FklVMgc*,const FklString* str);
+FklSymbolHashItem* fklVMaddSymbolCstr(FklVMgc*,const char* str);
+FklSymbolHashItem* fklVMaddSymbolCharBuf(FklVMgc*,const char* str,size_t);
+FklSymbolHashItem* fklVMgetSymbolWithId(FklVMgc*,FklSid_t id);
 
 void fklVMgcMarkAllRootToGray(FklVM* curVM);
 int fklVMgcPropagate(FklVMgc* gc);
@@ -639,16 +647,16 @@ void fklVMgcToGray(FklVMvalue*,FklVMgc*);
 
 void fklDestroyAllValues(FklVMgc*);
 
-void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
-void fklDBG_printVMstack(FklVM*,FILE*,int,FklSymbolTable* table);
+void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
+void fklDBG_printVMstack(FklVM*,FILE*,int,FklVMgc* gc);
 
-FklString* fklStringify(FklVMvalue*,FklSymbolTable*);
+FklString* fklVMstringify(FklVMvalue*,FklVMgc*);
 void fklPrintVMvalue(FklVMvalue* value
 		,FILE* fp
-		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
-		,FklSymbolTable* table);
-void fklPrin1VMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
-void fklPrincVMvalue(FklVMvalue*,FILE*,FklSymbolTable* table);
+		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklVMgc* gc)
+		,FklVMgc* gc);
+void fklPrin1VMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
+void fklPrincVMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
 
 FklVMvalue* fklProcessVMnumInc(FklVM*,FklVMvalue*);
 FklVMvalue* fklProcessVMnumDec(FklVM*,FklVMvalue*);
@@ -789,7 +797,7 @@ FklVMvalue* fklCreateVMvalueCproc(FklVM*
 		,FklVMvalue* pd
 		,FklSid_t sid);
 
-void fklDoPrintCprocBacktrace(FklSid_t,FILE* fp,FklSymbolTable* st);
+void fklDoPrintCprocBacktrace(FklSid_t,FILE* fp,FklVMgc* gc);
 
 FklVMvalue* fklCreateVMvalueFp(FklVM*,FILE*,FklVMfpRW);
 
@@ -840,7 +848,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,uint64_t curline
 		,FklHashTable*
-		,FklSymbolTable* symbolTable);
+		,FklVMgc* gc);
 
 // value getters
 
@@ -986,8 +994,8 @@ int fklIsWritableUd(const FklVMudata*);
 int fklIsAbleToStringUd(const FklVMudata*);
 int fklUdHasLength(const FklVMudata*);
 
-void fklPrincVMudata(const FklVMudata*,FILE*,FklSymbolTable*);
-void fklPrin1VMudata(const FklVMudata*,FILE*,FklSymbolTable*);
+void fklPrincVMudata(const FklVMudata*,FILE*,FklVMgc*);
+void fklPrin1VMudata(const FklVMudata*,FILE*,FklVMgc*);
 void fklFinalizeVMudata(FklVMudata*);
 int fklEqualVMudata(const FklVMudata*,const FklVMudata*);
 void fklCallVMudata(const FklVMudata*,const FklVMudata*);
@@ -1119,7 +1127,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqv(FKL_VM_HASH(P)))
 #define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqual(FKL_VM_HASH(P)))
 
-#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMudata* ud,FILE* fp,FklSymbolTable* table) {\
+#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMudata* ud,FILE* fp,FklVMgc* gc) {\
 	fprintf(fp,"#<"#DATA_TYPE_NAME" %p>",ud);\
 }
 

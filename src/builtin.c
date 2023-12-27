@@ -993,7 +993,7 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FklVMvalue* retval=FKL_VM_NIL;
 	if(FKL_IS_SYM(obj))
-		retval=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(FKL_GET_SYM(obj),exe->symbolTable)->symbol));
+		retval=fklCreateVMvalueStr(exe,fklCopyString(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(obj))->symbol));
 	else if(FKL_IS_STR(obj))
 		retval=fklCreateVMvalueStr(exe,fklCopyString(FKL_VM_STR(obj)));
 	else if(FKL_IS_CHR(obj))
@@ -1070,7 +1070,7 @@ static int builtin_symbol_to_string(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_SYM,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueStr(exe
-			,fklCopyString(fklGetSymbolWithId(FKL_GET_SYM(obj),exe->symbolTable)->symbol));
+			,fklCopyString(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(obj))->symbol));
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }
@@ -1081,7 +1081,7 @@ static int builtin_string_to_symbol(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,FKL_IS_STR,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(fklAddSymbol(FKL_VM_STR(obj),exe->symbolTable)->id));
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(fklVMaddSymbol(exe->gc,FKL_VM_STR(obj))->id));
 	return 0;
 }
 
@@ -1838,7 +1838,7 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
 
-static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklSymbolTable* table)
+static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* table)
 {
 	fprintf(fp,"#<eof>");
 }
@@ -1907,16 +1907,18 @@ static void read_frame_step(void* d,FklVM* exe)
 	int err=0;
 	size_t restLen=fklStringBufferLen(s)-pctx->offset;
 	size_t errLine=0;
+	fklVMacquireSt(exe->gc);
 	FklVMvalue* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
-			,exe->symbolTable
+			,exe->gc->st
 			,&err
 			,&errLine
 			,&pctx->symbolStack
 			,&pctx->lineStack
 			,&pctx->stateStack);
+	fklVMreleaseSt(exe->gc);
 	pctx->offset=fklStringBufferLen(s)-restLen;
 
 	if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
@@ -1943,9 +1945,9 @@ static void read_frame_step(void* d,FklVM* exe)
 		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 }
 
-static void read_frame_print_backtrace(void* d,FILE* fp,FklSymbolTable* st)
+static void read_frame_print_backtrace(void* d,FILE* fp,FklVMgc* gc)
 {
-	fklDoPrintCprocBacktrace(((ReadCtx*)d)->sid,fp,st);
+	fklDoPrintCprocBacktrace(((ReadCtx*)d)->sid,fp,gc);
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable=
@@ -2159,12 +2161,13 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	size_t restLen=fklStringBufferLen(s)-pctx->offset;
 	size_t errLine=0;
 
+	fklVMacquireSt(exe->gc);
 	parse_with_custom_parser_for_char_buf(g
 			,fklStringBufferBody(s)+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
-			,exe->symbolTable
+			,exe->gc->st
 			,&err
 			,&errLine
 			,&pctx->symbolStack
@@ -2174,6 +2177,7 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 			,&accept
 			,&rctx->state
 			,&pctx->reducing_sid);
+	fklVMreleaseSt(exe->gc);
 
 	if(accept)
 	{
@@ -2442,7 +2446,9 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(start,FKL_IS_SYM,Pname,exe);
 	FklVMvalue* retval=fklCreateVMvalueUdata(exe,&CustomParserMetaTable,FKL_VM_NIL);
 	FKL_DECL_VM_UD_DATA(grammer,FklGrammer,retval);
-	fklInitEmptyGrammer(grammer,exe->symbolTable);
+	fklVMacquireSt(exe->gc);
+	fklInitEmptyGrammer(grammer,exe->gc->st);
+	fklVMreleaseSt(exe->gc);
 	grammer->start=(FklGrammerNonterm){.group=0,.sid=FKL_GET_SYM(start)};
 
 	if(fklAddExtraProdToGrammer(grammer))
@@ -2609,12 +2615,14 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 	int accept=0;
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 	size_t restLen=str->size-pctx->offset;
+
+	fklVMacquireSt(exe->gc);
 	parse_with_custom_parser_for_char_buf(g
 			,str->str+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
-			,exe->symbolTable
+			,exe->gc->st
 			,&err
 			,&errLine
 			,&pctx->symbolStack
@@ -2624,6 +2632,8 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 			,&accept
 			,&ctx->state
 			,&pctx->reducing_sid);
+	fklVMreleaseSt(exe->gc);
+
 	if(err)
 	{
 		if(err==FKL_PARSE_WAITING_FOR_MORE||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
@@ -2667,9 +2677,9 @@ static inline void init_custom_parse_ctx(void* data
 	ctx->state=PARSE_CONTINUE;
 }
 
-static inline void custom_parse_frame_print_backtrace(void* d,FILE* fp,FklSymbolTable* st)
+static inline void custom_parse_frame_print_backtrace(void* d,FILE* fp,FklVMgc* gc)
 {
-	fklDoPrintCprocBacktrace(((CustomParseCtx*)d)->sid,fp,st);
+	fklDoPrintCprocBacktrace(((CustomParseCtx*)d)->sid,fp,gc);
 }
 
 static const FklVMframeContextMethodTable CustomParseContextMethodTable=
@@ -2736,7 +2746,7 @@ static int builtin_stringify(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.stringify";
 	FKL_DECL_AND_CHECK_ARG(v,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklStringify(v,exe->symbolTable));
+	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklVMstringify(v,exe->gc));
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }
@@ -2794,16 +2804,19 @@ static int builtin_parse(FKL_CPROC_ARGL)
 
 		size_t restLen=ss->size;
 		FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+
+		fklVMacquireSt(exe->gc);
 		FklVMvalue* node=fklDefaultParseForCharBuf(ss->str
 				,restLen
 				,&restLen
 				,&outerCtx
-				,exe->symbolTable
+				,exe->gc->st
 				,&err
 				,&errorLine
 				,&symbolStack
 				,&lineStack
 				,&stateStack);
+		fklVMreleaseSt(exe->gc);
 
 		if(node==NULL)
 		{
@@ -2980,7 +2993,7 @@ static int builtin_prin1(FKL_CPROC_ARGL)
 	CHECK_FP_WRITABLE(file,Pname,exe);
 
 	FILE* fp=FKL_VM_FP(file)->fp;
-	fklPrin1VMvalue(obj,fp,exe->symbolTable);
+	fklPrin1VMvalue(obj,fp,exe->gc);
 	FKL_VM_PUSH_VALUE(exe,obj);
 	return 0;
 }
@@ -2998,7 +3011,7 @@ static int builtin_princ(FKL_CPROC_ARGL)
 	CHECK_FP_WRITABLE(file,Pname,exe);
 
 	FILE* fp=FKL_VM_FP(file)->fp;
-	fklPrincVMvalue(obj,fp,exe->symbolTable);
+	fklPrincVMvalue(obj,fp,exe->gc);
 	FKL_VM_PUSH_VALUE(exe,obj);
 	return 0;
 }
@@ -3008,7 +3021,7 @@ static int builtin_println(FKL_CPROC_ARGL)
 	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
 	FklVMvalue* r=FKL_VM_NIL;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrincVMvalue(obj,stdout,exe->symbolTable);
+		fklPrincVMvalue(obj,stdout,exe->gc);
 	fputc('\n',stdout);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -3020,7 +3033,7 @@ static int builtin_print(FKL_CPROC_ARGL)
 	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
 	FklVMvalue* r=FKL_VM_NIL;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrincVMvalue(obj,stdout,exe->symbolTable);
+		fklPrincVMvalue(obj,stdout,exe->gc);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -3031,7 +3044,7 @@ static int builtin_prin1n(FKL_CPROC_ARGL)
 	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
 	FklVMvalue* r=FKL_VM_NIL;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrin1VMvalue(obj,stdout,exe->symbolTable);
+		fklPrin1VMvalue(obj,stdout,exe->gc);
 	fputc('\n',stdout);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -3043,7 +3056,7 @@ static int builtin_prin1v(FKL_CPROC_ARGL)
 	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
 	FklVMvalue* r=FKL_VM_NIL;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrin1VMvalue(obj,stdout,exe->symbolTable);
+		fklPrin1VMvalue(obj,stdout,exe->gc);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -3296,7 +3309,6 @@ static int builtin_go(FKL_CPROC_ARGL)
 			,exe->next
 			,exe->libNum
 			,exe->libs
-			,exe->symbolTable
 			,exe->builtinErrorTypeId);
 	fklSetBp(threadVM);
 	size_t arg_num=FKL_VM_GET_ARG_NUM(exe);
@@ -3478,7 +3490,7 @@ static int builtin_error(FKL_CPROC_ARGL)
 			,fklCreateVMvalueError(exe
 				,FKL_GET_SYM(type)
 				,(FKL_IS_SYM(where))
-				?fklGetSymbolWithId(FKL_GET_SYM(where),exe->symbolTable)->symbol
+				?fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(where))->symbol
 				:FKL_VM_STR(where)
 				,fklCopyString(FKL_VM_STR(message))));
 	return 0;
@@ -3538,7 +3550,7 @@ static int builtin_throw(FKL_CPROC_ARGL)
 	FklVMvalue* err=fklCreateVMvalueError(exe
 			,FKL_GET_SYM(type)
 			,(FKL_IS_SYM(where))
-			?fklGetSymbolWithId(FKL_GET_SYM(where),exe->symbolTable)->symbol
+			?fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(where))->symbol
 			:FKL_VM_STR(where)
 			,fklCopyString(FKL_VM_STR(message)));
 	fklPopVMframe(exe);
@@ -3558,14 +3570,14 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
 
-static void error_handler_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+static void error_handler_frame_print_backtrace(void* data,FILE* fp,FklVMgc* gc)
 {
 	EhFrameContext* c=(EhFrameContext*)data;
 	FklVMcproc* cproc=FKL_VM_CPROC(c->proc);
 	if(cproc->sid)
 	{
 		fprintf(fp,"at cproc:");
-		fklPrintString(fklGetSymbolWithId(cproc->sid,table)->symbol
+		fklPrintString(fklVMgetSymbolWithId(gc,cproc->sid)->symbol
 				,fp);
 		fputc('\n',fp);
 	}
@@ -5357,9 +5369,9 @@ static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 	pd->sysOut=builtInStdout;
 	pd->sysErr=builtInStderr;
 
-	pd->seek_set=fklAddSymbolCstr("set",exe->symbolTable)->id;
-	pd->seek_cur=fklAddSymbolCstr("cur",exe->symbolTable)->id;
-	pd->seek_end=fklAddSymbolCstr("end",exe->symbolTable)->id;
+	pd->seek_set=fklVMaddSymbolCstr(exe->gc,"set")->id;
+	pd->seek_cur=fklVMaddSymbolCstr(exe->gc,"cur")->id;
+	pd->seek_end=fklVMaddSymbolCstr(exe->gc,"end")->id;
 }
 
 void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
@@ -5380,14 +5392,13 @@ void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
 	closure[FKL_VM_STDOUT_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysOut);
 	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysErr);
 
-	FklSymbolTable* table=exe->symbolTable;
 	for(size_t i=3;i<RefCount;i++)
 	{
 		FklVMvalue* v=fklCreateVMvalueCproc(exe
 				,builtInSymbolList[i].f
 				,NULL
 				,publicUserData
-				,fklAddSymbolCstr(builtInSymbolList[i].s,table)->id);
+				,fklVMaddSymbolCstr(exe->gc,builtInSymbolList[i].s)->id);
 		closure[i]=fklCreateClosedVMvalueVarRef(exe,v);
 	}
 }
@@ -5410,14 +5421,13 @@ void fklInitGlobalVMclosureForProc(FklVMproc* proc,FklVM* exe)
 	closure[FKL_VM_STDOUT_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysOut);
 	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysErr);
 
-	FklSymbolTable* table=exe->symbolTable;
 	for(size_t i=3;i<RefCount;i++)
 	{
 		FklVMvalue* v=fklCreateVMvalueCproc(exe
 				,builtInSymbolList[i].f
 				,NULL
 				,publicUserData
-				,fklAddSymbolCstr(builtInSymbolList[i].s,table)->id);
+				,fklVMaddSymbolCstr(exe->gc,builtInSymbolList[i].s)->id);
 		closure[i]=fklCreateClosedVMvalueVarRef(exe,v);
 	}
 }

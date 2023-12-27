@@ -327,16 +327,20 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 		is_eof=debug_ctx_replxx_input_string_buffer(ctx->replxx,s,prompt)==NULL;
 		fklLockThread(exe);
 		size_t restLen=fklStringBufferLen(s)-ctx->offset;
+
+		fklVMacquireSt(exe->gc);
 		FklVMvalue* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+ctx->offset
 				,restLen
 				,&restLen
 				,&outerCtx
-				,exe->symbolTable
+				,exe->gc->st
 				,&err
 				,&errLine
 				,&ctx->symbolStack
 				,&ctx->lineStack
 				,&ctx->stateStack);
+		fklVMreleaseSt(exe->gc);
+
 		ctx->offset=fklStringBufferLen(s)-restLen;
 
 		if(!restLen&&ctx->symbolStack.top==0&&is_eof)
@@ -429,13 +433,12 @@ FKL_DLL_EXPORT void _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_AR
 FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 {
 	uv_once(&debug_ctx_inited,init_alive_debug_ctx);
-	FklSymbolTable* table=exe->symbolTable;
 	*count=EXPORT_NUM;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);
 	FKL_ASSERT(loc);
 	for(size_t i=0;i<EXPORT_NUM;i++)
 	{
-		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,table)->id;
+		FklSid_t id=fklVMaddSymbolCstr(exe->gc,exports_and_func[i].sym)->id;
 		FklVMcFunc func=exports_and_func[i].f;
 		FklVMvalue* dlproc=fklCreateVMvalueCproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;

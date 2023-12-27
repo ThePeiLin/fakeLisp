@@ -9688,10 +9688,12 @@ static void macro_expand_frame_atomic(void* data,FklVMgc* gc)
 static void macro_expand_frame_step(void* data,FklVM* exe)
 {
 	MacroExpandCtx* ctx=(MacroExpandCtx*)data;
+	fklVMacquireSt(exe->gc);
 	*(ctx->retval)=fklCreateNastNodeFromVMvalue(fklGetTopValue(exe)
 			,ctx->curline
 			,ctx->lineHash
-			,ctx->symbolTable);
+			,exe->gc);
+	fklVMreleaseSt(exe->gc);
 	ctx->done=1;
 }
 
@@ -9704,7 +9706,7 @@ static int macro_expand_frame_end(void* data)
 	return ((MacroExpandCtx*)data)->done;
 }
 
-static void macro_expand_frame_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+static void macro_expand_frame_backtrace(void* data,FILE* fp,FklVMgc* gc)
 {
 	fputs("at <macroexpand>\n",fp);
 }

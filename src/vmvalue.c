@@ -210,7 +210,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,uint64_t curline
 		,FklHashTable* lineHash
-		,FklSymbolTable* table)
+		,FklVMgc* gc)
 {
 	FklNastNode* retval=NULL;
 	if(!fklHasCircleRef(v))
@@ -272,35 +272,35 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								break;
 							case FKL_TYPE_PROC:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<proc>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<proc>")->id;
 								break;
 							case FKL_TYPE_CPROC:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<cproc>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<cproc>")->id;
 								break;
 							case FKL_TYPE_CHAN:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<chan>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<chan>")->id;
 								break;
 							case FKL_TYPE_FP:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<fp>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<fp>")->id;
 								break;
 							case FKL_TYPE_ERR:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<err>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<err>")->id;
 								break;
 							case FKL_TYPE_CODE_OBJ:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<code-obj>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<code-obj>")->id;
 								break;
 							case FKL_TYPE_USERDATA:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<userdata>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<userdata>")->id;
 								break;
 							case FKL_TYPE_DLL:
 								cur->type=FKL_NAST_SYM;
-								cur->sym=fklAddSymbolCstr("#<dll>",table)->id;
+								cur->sym=fklVMaddSymbolCstr(gc,"#<dll>")->id;
 								break;
 							case FKL_TYPE_BOX:
 								cur->type=FKL_NAST_BOX;
@@ -1939,20 +1939,20 @@ int fklUdHasLength(const FklVMudata* u)
 	return u->t->__length!=NULL;
 }
 
-void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
+void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklVMgc* gc)
 {
-	void (*princ)(const FklVMudata*,FILE*,FklSymbolTable*)=u->t->__princ;
+	void (*princ)(const FklVMudata*,FILE*,FklVMgc*)=u->t->__princ;
 	if(princ)
-		princ(u,fp,table);
+		princ(u,fp,gc);
 	else
 		fprintf(fp,"#<userdata %p>",u);
 }
 
-void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklSymbolTable* table)
+void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklVMgc* gc)
 {
-	void (*prin1)(const FklVMudata*,FILE*,FklSymbolTable*)=u->t->__prin1;
+	void (*prin1)(const FklVMudata*,FILE*,FklVMgc*)=u->t->__prin1;
 	if(prin1)
-		prin1(u,fp,table);
+		prin1(u,fp,gc);
 	else
 		fprintf(fp,"#<userdata %p>",u);
 }

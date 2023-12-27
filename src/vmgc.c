@@ -204,11 +204,13 @@ void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
 	gc->argv=argv_v;
 }
 
-FklVMgc* fklCreateVMgc()
+FklVMgc* fklCreateVMgc(FklSymbolTable* st)
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
+	uv_rwlock_init(&gc->st_lock);
+	gc->st=st;
 
 	init_vm_queue(&gc->q);
 	init_locv_cache(gc);
@@ -342,11 +344,48 @@ static inline void destroy_argv(FklVMgc* gc)
 
 void fklDestroyVMgc(FklVMgc* gc)
 {
+	uv_rwlock_destroy(&gc->st_lock);
 	destroy_argv(gc);
 	destroy_all_gray_cache(gc);
 	destroy_all_locv_cache(gc);
 	fklDestroyAllValues(gc);
 	uninit_vm_queue(&gc->q);
 	free(gc);
+}
+
+void fklVMacquireSt(FklVMgc* gc)
+{
+	uv_rwlock_wrlock(&gc->st_lock);
+}
+
+void fklVMreleaseSt(FklVMgc* gc)
+{
+	uv_rwlock_wrunlock(&gc->st_lock);
+}
+
+FklSymbolHashItem* fklVMaddSymbol(FklVMgc* gc,const FklString* str)
+{
+	return fklVMaddSymbolCharBuf(gc,str->str,str->size);
+}
+
+FklSymbolHashItem* fklVMaddSymbolCstr(FklVMgc* gc,const char* str)
+{
+	return fklVMaddSymbolCharBuf(gc,str,strlen(str));
+}
+
+FklSymbolHashItem* fklVMaddSymbolCharBuf(FklVMgc* gc,const char* str,size_t size)
+{
+	uv_rwlock_wrlock(&gc->st_lock);
+	FklSymbolHashItem* r=fklAddSymbolCharBuf(str,size,gc->st);
+	uv_rwlock_wrunlock(&gc->st_lock);
+	return r;
+}
+
+FklSymbolHashItem* fklVMgetSymbolWithId(FklVMgc* gc,FklSid_t id)
+{
+	uv_rwlock_rdlock(&gc->st_lock);
+	FklSymbolHashItem* r=fklGetSymbolWithId(id,gc->st);
+	uv_rwlock_rdunlock(&gc->st_lock);
+	return r;
 }
 

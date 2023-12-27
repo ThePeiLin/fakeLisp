@@ -182,23 +182,23 @@ static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc)
 	}
 }
 
-void fklDoPrintCprocBacktrace(FklSid_t sid,FILE* fp,FklSymbolTable* st)
+void fklDoPrintCprocBacktrace(FklSid_t sid,FILE* fp,FklVMgc* gc)
 {
 	if(sid)
 	{
 		fprintf(fp,"at cproc: ");
-		fklPrintRawSymbol(fklGetSymbolWithId(sid,st)->symbol,fp);
+		fklPrintRawSymbol(fklVMgetSymbolWithId(gc,sid)->symbol,fp);
 		fputc('\n',fp);
 	}
 	else
 		fputs("at <cproc>\n",fp);
 }
 
-static void cproc_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+static void cproc_frame_print_backtrace(void* data,FILE* fp,FklVMgc* gc)
 {
 	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
 	FklVMcproc* cproc=FKL_VM_CPROC(c->proc);
-	fklDoPrintCprocBacktrace(cproc->sid,fp,table);
+	fklDoPrintCprocBacktrace(cproc->sid,fp,gc);
 }
 
 static void cproc_frame_atomic(void* data,FklVMgc* gc)
@@ -486,14 +486,13 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->prev=exe;
 	exe->next=exe;
 	exe->pts=pts;
-	exe->gc=fklCreateVMgc();
+	exe->gc=fklCreateVMgc(globalSymTable);
 	exe->frame_cache=&exe->static_frame;
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
 		exe->top_frame=fklCreateVMframeWithCodeObj(exe,codeObj,pid,exe->top_frame);
 	}
-	exe->symbolTable=globalSymTable;
 	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
 	fklInitBuiltinErrorType(exe->builtinErrorTypeId,globalSymTable);
 	fklInitVMstack(exe);
@@ -513,11 +512,11 @@ int fklIsCallableObjFrameReachEnd(FklVMframe* f)
 	return f->t->end(fklGetFrameData(f));
 }
 
-void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklSymbolTable* table)
+void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklVMgc* gc)
 {
-	void (*backtrace)(void* data,FILE*,FklSymbolTable*)=f->t->print_backtrace;
+	void (*backtrace)(void* data,FILE*,FklVMgc*)=f->t->print_backtrace;
 	if(backtrace)
-		backtrace(f->data,fp,table);
+		backtrace(f->data,fp,gc);
 	else
 		fprintf(fp,"at callable-obj\n");
 }
@@ -1709,7 +1708,7 @@ static inline void B_get_var_ref(FKL_VM_INS_FUNC_ARGL)
 	FklVMvalue* v=get_var_val(exe->top_frame,ins->imm_u32,exe->pts,&id);
 	if(id)
 	{
-		FklString* str=fklGetSymbolWithId(id,exe->symbolTable)->symbol;
+		FklString* str=fklVMgetSymbolWithId(exe->gc,id)->symbol;
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.get-var-ref",str->str,0,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	FKL_VM_PUSH_VALUE(exe,v);
@@ -1739,7 +1738,7 @@ static inline void B_put_var_ref(FKL_VM_INS_FUNC_ARGL)
 	FklVMvalue* volatile* pv=get_var_ref(exe->top_frame,ins->imm_u32,exe->pts,&id);
 	if(!pv)
 	{
-		FklString* str=fklGetSymbolWithId(id,exe->symbolTable)->symbol;
+		FklString* str=fklVMgetSymbolWithId(exe->gc,id)->symbol;
 		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR("b.put-var-ref",str->str,0,FKL_ERR_SYMUNDEFINE,exe);
 	}
 	FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
@@ -2385,7 +2384,7 @@ void fklShrinkStack(FklVM* stack)
 	}
 }
 
-void fklDBG_printVMstack(FklVM* stack,FILE* fp,int mode,FklSymbolTable* table)
+void fklDBG_printVMstack(FklVM* stack,FILE* fp,int mode,FklVMgc* gc)
 {
 	if(fp!=stdout)fprintf(fp,"Current stack:\n");
 	if(stack->tp==0)fprintf(fp,"[#EMPTY]\n");
@@ -2398,15 +2397,15 @@ void fklDBG_printVMstack(FklVM* stack,FILE* fp,int mode,FklSymbolTable* table)
 				fputs("->",stderr);
 			if(fp!=stdout)fprintf(fp,"%"FKL_PRT64D":",i);
 			FklVMvalue* tmp=stack->base[i];
-			fklPrin1VMvalue(tmp,fp,table);
+			fklPrin1VMvalue(tmp,fp,gc);
 			putc('\n',fp);
 		}
 	}
 }
 
-void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp,FklSymbolTable* table)
+void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp,FklVMgc* gc)
 {
-	fklPrin1VMvalue(v,fp,table);
+	fklPrin1VMvalue(v,fp,gc);
 }
 
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe* frames)
@@ -2456,7 +2455,6 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 		,FklVM* next
 		,size_t libNum
 		,FklVMlib* libs
-		,FklSymbolTable* table
 		,FklSid_t* builtinErrorTypeId)
 {
 	FklVM* exe=(FklVM*)calloc(1,sizeof(FklVM));
@@ -2466,7 +2464,6 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->next=exe;
 	exe->chan=fklCreateVMvalueChanl(exe,1);
 	fklInitVMstack(exe);
-	exe->symbolTable=table;
 	exe->libNum=libNum;
 	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=copy_vm_libs(libs,libNum+1);

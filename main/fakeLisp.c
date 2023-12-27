@@ -93,9 +93,9 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 	fklChdir(outer_ctx.cwd);
 	fklUninitCodegenOuterCtx(&outer_ctx);
 
-	fklInitVMargs(anotherVM->gc,argc,argv);
+	fklInitVMargs(gc,argc,argv);
 	int r=fklRunVM(anotherVM);
-	fklDestroySymbolTable(anotherVM->symbolTable);
+	fklDestroySymbolTable(gc->st);
 	fklDestroyAllVMs(anotherVM);
 	fklDestroyVMgc(gc);
 	return r;
@@ -597,7 +597,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 		if(exe->tp!=0)
 		{
 			fputs(RETVAL_PREFIX,stdout);
-			fklDBG_printVMstack(exe,stdout,0,exe->symbolTable);
+			fklDBG_printVMstack(exe,stdout,0,exe->gc);
 		}
 		exe->tp=0;
 
@@ -622,30 +622,34 @@ static void repl_frame_step(void* data,FklVM* exe)
 	FklGrammer* g=*(codegen->g);
 	if(g&&g->aTable.num)
 	{
+		fklVMacquireSt(exe->gc);
 		ast=fklParseWithTableForCharBuf(g
 				,fklStringBufferBody(s)+cc->offset
 				,restLen
 				,&restLen
 				,&outerCtx
-				,exe->symbolTable
+				,exe->gc->st
 				,&err
 				,&errLine
 				,&cc->symbolStack
 				,&cc->lineStack
 				,&cc->stateStack);
+		fklVMreleaseSt(exe->gc);
 	}
 	else
 	{
+		fklVMacquireSt(exe->gc);
 		ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+cc->offset
 				,restLen
 				,&restLen
 				,&outerCtx
-				,exe->symbolTable
+				,exe->gc->st
 				,&err
 				,&errLine
 				,&cc->symbolStack
 				,&cc->lineStack
 				,&cc->stateStack);
+		fklVMreleaseSt(exe->gc);
 	}
 	cc->offset=fklStringBufferLen(s)-restLen;
 	codegen->curline=outerCtx.line;
@@ -762,7 +766,7 @@ static int repl_frame_end(void* data)
 	return ctx->state==DONE;
 }
 
-static void repl_frame_print_backtrace(void* data,FILE* fp,FklSymbolTable* table)
+static void repl_frame_print_backtrace(void* data,FILE* fp,FklVMgc* gc)
 {
 }
 

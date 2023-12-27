@@ -157,7 +157,7 @@ static int fs_fprint(FKL_CPROC_ARGL)
 	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=FKL_VM_FP(f)->fp;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrincVMvalue(obj,fp,exe->symbolTable);
+		fklPrincVMvalue(obj,fp,exe->gc);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -174,7 +174,7 @@ static int fs_fprintln(FKL_CPROC_ARGL)
 	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=FKL_VM_FP(f)->fp;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrincVMvalue(obj,fp,exe->symbolTable);
+		fklPrincVMvalue(obj,fp,exe->gc);
 	fputc('\n',stdout);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -193,7 +193,7 @@ static int fs_fprin1(FKL_CPROC_ARGL)
 	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=FKL_VM_FP(f)->fp;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrin1VMvalue(obj,fp,exe->symbolTable);
+		fklPrin1VMvalue(obj,fp,exe->gc);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -211,7 +211,7 @@ static int fs_fprin1n(FKL_CPROC_ARGL)
 	FklVMvalue* r=FKL_VM_NIL;
 	FILE* fp=FKL_VM_FP(f)->fp;
 	for(;obj;r=obj,obj=FKL_VM_POP_ARG(exe))
-		fklPrin1VMvalue(obj,fp,exe->symbolTable);
+		fklPrin1VMvalue(obj,fp,exe->gc);
 	fputc('\n',stdout);
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -285,13 +285,12 @@ FKL_DLL_EXPORT void _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_AR
 
 FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 {
-	FklSymbolTable* table=exe->symbolTable;
 	*count=EXPORT_NUM;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);
 	FKL_ASSERT(loc);
 	for(size_t i=0;i<EXPORT_NUM;i++)
 	{
-		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,table)->id;
+		FklSid_t id=fklVMaddSymbolCstr(exe->gc,exports_and_func[i].sym)->id;
 		FklVMcFunc func=exports_and_func[i].f;
 		FklVMvalue* dlproc=fklCreateVMvalueCproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;

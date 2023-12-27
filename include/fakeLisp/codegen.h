@@ -217,6 +217,7 @@ typedef struct
 {
 	char* cwd;
 	char* main_file_real_path_dir;
+	const char* cur_file_dir;
 
 	FklSymbolTable public_symbol_table;
 

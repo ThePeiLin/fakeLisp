@@ -89,8 +89,7 @@ typedef void* (*FklProdActionFunc)(void* ctx
 		,void* outerCtx
 		,void* asts[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st);
+		,size_t line);
 
 typedef struct FklGrammerProduction
 {
@@ -327,7 +326,6 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* grammer,const FklSymbol
 void fklPrintAnalysisTableAsCfunc(const FklGrammer* grammer
 		,const FklSymbolTable* st
 		,FILE* action_src_fp
-		,const char* other_head_file_name
 		,const char* ast_creator_name
 		,const char* ast_destroy_name
 		,const char* state_0_push_func_name
@@ -427,13 +425,11 @@ typedef int (*FklStateFuncPtr)(FklPtrStack*
 		,const char**
 		,size_t*
 		,FklGrammerMatchOuterCtx*
-		,FklSymbolTable*
 		,int*
 		,size_t* errLine);
 
 void* fklDefaultParseForCstr(const char* str
 		,FklGrammerMatchOuterCtx*
-		,FklSymbolTable* st
 		,int* err
 		,size_t* errLine
 		,FklPtrStack* symbols
@@ -444,7 +440,6 @@ void* fklDefaultParseForCharBuf(const char* str
 		,size_t len
 		,size_t* restLen
 		,FklGrammerMatchOuterCtx*
-		,FklSymbolTable* st
 		,int* err
 		,size_t* errLine
 		,FklPtrStack* symbols

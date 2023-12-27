@@ -4,8 +4,7 @@
 static inline void* prod_action_symbol(void* outerCtx
 		,void* ast[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVMvalue** values=(FklVMvalue**)ast;
 	const char* start="|";
@@ -45,7 +44,7 @@ static inline void* prod_action_symbol(void* outerCtx
 		cstr+=len;
 		cstr_size-=len;
 	}
-	FklSid_t id=fklAddSymbolCharBuf(buffer.buf,buffer.index,st)->id;
+	FklSid_t id=fklVMaddSymbolCharBuf(((FklVM*)outerCtx)->gc,buffer.buf,buffer.index)->id;
 	fklUninitStringBuffer(&buffer);
 	FklVMvalue* retval=FKL_MAKE_VM_SYM(id);
 	return retval;
@@ -54,8 +53,7 @@ static inline void* prod_action_symbol(void* outerCtx
 static inline void* prod_action_return_first(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	return nodes[0];
 }
@@ -63,8 +61,7 @@ static inline void* prod_action_return_first(void* outerCtx
 static inline void* prod_action_return_second(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	return nodes[1];
 }
@@ -72,8 +69,7 @@ static inline void* prod_action_return_second(void* outerCtx
 static inline void* prod_action_string(void* outerCtx
 		,void* ast[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVMvalue** values=(FklVMvalue**)ast;
 	size_t start_size=1;
@@ -96,8 +92,7 @@ static inline void* prod_action_string(void* outerCtx
 static inline void* prod_action_nil(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	return FKL_VM_NIL;
 }
@@ -105,8 +100,7 @@ static inline void* prod_action_nil(void* outerCtx
 static inline void* prod_action_pair(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	FklVMvalue* car=nodes[0];
@@ -118,8 +112,7 @@ static inline void* prod_action_pair(void* outerCtx
 static inline void* prod_action_list(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	FklVMvalue* car=nodes[0];
@@ -131,8 +124,7 @@ static inline void* prod_action_list(void* outerCtx
 static inline void* prod_action_dec_integer(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	const FklString* str=FKL_VM_STR((FklVMvalue*)nodes[0]);
@@ -146,8 +138,7 @@ static inline void* prod_action_dec_integer(void* outerCtx
 static inline void* prod_action_hex_integer(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	const FklString* str=FKL_VM_STR((FklVMvalue*)nodes[0]);
@@ -161,8 +152,7 @@ static inline void* prod_action_hex_integer(void* outerCtx
 static inline void* prod_action_oct_integer(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	const FklString* str=FKL_VM_STR((FklVMvalue*)nodes[0]);
@@ -176,8 +166,7 @@ static inline void* prod_action_oct_integer(void* outerCtx
 static inline void* prod_action_float(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	const FklString* str=FKL_VM_STR((FklVMvalue*)nodes[0]);
@@ -187,8 +176,7 @@ static inline void* prod_action_float(void* outerCtx
 static inline void* prod_action_char(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	const FklString* str=FKL_VM_STR((FklVMvalue*)nodes[0]);
 	if(!fklIsValidCharBuf(str->str+2,str->size-2))
@@ -199,8 +187,7 @@ static inline void* prod_action_char(void* outerCtx
 static inline void* prod_action_box(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	return fklCreateVMvalueBox(exe,nodes[1]);
@@ -209,8 +196,7 @@ static inline void* prod_action_box(void* outerCtx
 static inline void* prod_action_vector(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	FklVMvalue* list=nodes[1];
@@ -238,15 +224,14 @@ static inline FklVMvalue* create_vmvalue_list(FklVM* exe,FklVMvalue** a,size_t n
 static inline void* prod_action_quote(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("quote",st)->id;
+	FklVM* exe=(FklVM*)outerCtx;
+	FklSid_t id=fklVMaddSymbolCstr(exe->gc,"quote")->id;
 	FklVMvalue* rest=nodes[1];
 	FklVMvalue* head=FKL_MAKE_VM_SYM(id);
 
 	FklVMvalue* items[]={head,rest};
-	FklVM* exe=(FklVM*)outerCtx;
 
 	return create_vmvalue_list(exe,items,2);
 }
@@ -254,15 +239,14 @@ static inline void* prod_action_quote(void* outerCtx
 static inline void* prod_action_unquote(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("unquote",st)->id;
+	FklVM* exe=(FklVM*)outerCtx;
+	FklSid_t id=fklVMaddSymbolCstr(exe->gc,"unquote")->id;
 	FklVMvalue* rest=nodes[1];
 	FklVMvalue* head=FKL_MAKE_VM_SYM(id);
 
 	FklVMvalue* items[]={head,rest};
-	FklVM* exe=(FklVM*)outerCtx;
 
 	return create_vmvalue_list(exe,items,2);
 }
@@ -270,15 +254,14 @@ static inline void* prod_action_unquote(void* outerCtx
 static inline void* prod_action_qsquote(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("qsquote",st)->id;
+	FklVM* exe=(FklVM*)outerCtx;
+	FklSid_t id=fklVMaddSymbolCstr(exe->gc,"qsquote")->id;
 	FklVMvalue* rest=nodes[1];
 	FklVMvalue* head=FKL_MAKE_VM_SYM(id);
 
 	FklVMvalue* items[]={head,rest};
-	FklVM* exe=(FklVM*)outerCtx;
 
 	return create_vmvalue_list(exe,items,2);
 }
@@ -286,15 +269,14 @@ static inline void* prod_action_qsquote(void* outerCtx
 static inline void* prod_action_unqtesp(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("unqtesp",st)->id;
+	FklVM* exe=(FklVM*)outerCtx;
+	FklSid_t id=fklVMaddSymbolCstr(exe->gc,"unqtesp")->id;
 	FklVMvalue* rest=nodes[1];
 	FklVMvalue* head=FKL_MAKE_VM_SYM(id);
 
 	FklVMvalue* items[]={head,rest};
-	FklVM* exe=(FklVM*)outerCtx;
 
 	return create_vmvalue_list(exe,items,2);
 }
@@ -302,8 +284,7 @@ static inline void* prod_action_unqtesp(void* outerCtx
 static inline void* prod_action_kv_list(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 
@@ -320,8 +301,7 @@ static inline void* prod_action_kv_list(void* outerCtx
 static inline void* prod_action_hasheq(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	FklVMvalue* list=nodes[1];
@@ -337,8 +317,7 @@ static inline void* prod_action_hasheq(void* outerCtx
 static inline void* prod_action_hasheqv(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	FklVMvalue* list=nodes[1];
@@ -354,8 +333,7 @@ static inline void* prod_action_hasheqv(void* outerCtx
 static inline void* prod_action_hashequal(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 	FklVMvalue* list=nodes[1];
@@ -371,8 +349,7 @@ static inline void* prod_action_hashequal(void* outerCtx
 static inline void* prod_action_bytevector(void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVM* exe=(FklVM*)outerCtx;
 

@@ -212,14 +212,6 @@ typedef struct
 	FklVMvalue* v;
 }FklVMvalueVarRef;
 
-// typedef struct FklVMvarRef
-// {
-// 	uint32_t refc;
-// 	uint32_t idx;
-// 	_Atomic(FklVMvalue**) ref;
-// 	FklVMvalue* v;
-// }FklVMvarRef;
-
 typedef struct FklVMproc
 {
 	FklInstruction* spc;

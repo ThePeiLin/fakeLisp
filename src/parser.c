@@ -19,10 +19,9 @@ FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,FklSymbolTable* publicSy
 
 	int err=0;
 	size_t errLine=0;
-	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(NULL);
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(publicSymbolTable);
 	FklNastNode* node=fklDefaultParseForCstr(cStr
 			,&outerCtx
-			,publicSymbolTable
 			,&err
 			,&errLine
 			,&symbolStack
@@ -60,7 +59,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 	char* tmp=NULL;
 	*unexpectEOF=0;
 	FklNastNode* ast=NULL;
-	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(NULL);
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(st);
 	outerCtx.line=line;
 	size_t offset=0;
 	for(;;)
@@ -71,7 +70,6 @@ char* fklReadWithBuiltinParser(FILE* fp
 				,restLen
 				,&restLen
 				,&outerCtx
-				,st
 				,&err
 				,errLine
 				,symbolStack

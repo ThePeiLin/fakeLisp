@@ -6,15 +6,14 @@
 
 int main(int argc,char* argv[])
 {
-	if(argc<7)
+	if(argc<6)
 		return 1;
 
 	const char* outer_file_name=argv[1];
 	const char* action_file_name=argv[2];
-	const char* other_head_file_name=argv[3];
-	const char* ast_creator_name=argv[4];
-	const char* ast_destroy_name=argv[5];
-	const char* state_0_push_name=argv[6];
+	const char* ast_creator_name=argv[3];
+	const char* ast_destroy_name=argv[4];
+	const char* state_0_push_name=argv[5];
 
 	FklSymbolTable* st=fklCreateSymbolTable();
 	FklGrammer* g=fklCreateBuiltinGrammer(st);
@@ -42,7 +41,6 @@ int main(int argc,char* argv[])
 	fklPrintAnalysisTableAsCfunc(g
 			,st
 			,action_file
-			,other_head_file_name
 			,ast_creator_name
 			,ast_destroy_name
 			,state_0_push_name

@@ -328,18 +328,15 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 		fklLockThread(exe);
 		size_t restLen=fklStringBufferLen(s)-ctx->offset;
 
-		fklVMacquireSt(exe->gc);
 		FklVMvalue* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+ctx->offset
 				,restLen
 				,&restLen
 				,&outerCtx
-				,exe->gc->st
 				,&err
 				,&errLine
 				,&ctx->symbolStack
 				,&ctx->lineStack
 				,&ctx->stateStack);
-		fklVMreleaseSt(exe->gc);
 
 		ctx->offset=fklStringBufferLen(s)-restLen;
 

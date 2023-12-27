@@ -44,7 +44,7 @@ int main()
 	int retval=0;
 	for(const char** exp=&exps[0];*exp;exp++)
 	{
-		FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(NULL);
+		FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(st);
 
 		FklPtrStack stateStack;
 		FklPtrStack symbolStack;
@@ -55,7 +55,7 @@ int main()
 		fklInitPtrStack(&symbolStack,8,16);
 		fklInitUintStack(&lineStack,8,16);
 		size_t errLine=0;
-		FklNastNode* ast=fklDefaultParseForCstr(*exp,&outerCtx,st,&retval,&errLine,&symbolStack,&lineStack,&stateStack);
+		FklNastNode* ast=fklDefaultParseForCstr(*exp,&outerCtx,&retval,&errLine,&symbolStack,&lineStack,&stateStack);
 
 		while(!fklIsPtrStackEmpty(&symbolStack))
 			free(fklPopPtrStack(&symbolStack));

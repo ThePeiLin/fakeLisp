@@ -1907,18 +1907,17 @@ static void read_frame_step(void* d,FklVM* exe)
 	int err=0;
 	size_t restLen=fklStringBufferLen(s)-pctx->offset;
 	size_t errLine=0;
-	fklVMacquireSt(exe->gc);
+
 	FklVMvalue* ast=fklDefaultParseForCharBuf(fklStringBufferBody(s)+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
-			,exe->gc->st
 			,&err
 			,&errLine
 			,&pctx->symbolStack
 			,&pctx->lineStack
 			,&pctx->stateStack);
-	fklVMreleaseSt(exe->gc);
+
 	pctx->offset=fklStringBufferLen(s)-restLen;
 
 	if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
@@ -2022,7 +2021,6 @@ static inline int do_custom_parser_reduce_action(FklPtrStack* stateStack
 		,FklUintStack* lineStack
 		,const FklGrammerProduction* prod
 		,FklGrammerMatchOuterCtx* outerCtx
-		,FklSymbolTable* st
 		,size_t* errLine)
 {
 	size_t len=prod->len;
@@ -2051,7 +2049,7 @@ static inline int do_custom_parser_reduce_action(FklPtrStack* stateStack
 	}
 	size_t line=fklGetFirstNthLine(lineStack,len,outerCtx->line);
 	lineStack->top-=len;
-	prod->func(prod->ctx,outerCtx->ctx,nodes,len,line,st);
+	prod->func(prod->ctx,outerCtx->ctx,nodes,len,line);
 	if(len)
 	{
 		for(size_t i=0;i<len;i++)
@@ -2068,7 +2066,6 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
 		,size_t len
 		,size_t* restLen
 		,FklGrammerMatchOuterCtx* outerCtx
-		,FklSymbolTable* st
 		,int* err
 		,size_t* errLine
 		,FklPtrStack* symbolStack
@@ -2122,7 +2119,6 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
 								,lineStack
 								,action->prod
 								,outerCtx
-								,st
 								,errLine))
 						*err=FKL_PARSE_REDUCE_FAILED;
 					return;
@@ -2161,13 +2157,11 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	size_t restLen=fklStringBufferLen(s)-pctx->offset;
 	size_t errLine=0;
 
-	fklVMacquireSt(exe->gc);
 	parse_with_custom_parser_for_char_buf(g
 			,fklStringBufferBody(s)+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
-			,exe->gc->st
 			,&err
 			,&errLine
 			,&pctx->symbolStack
@@ -2177,7 +2171,6 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 			,&accept
 			,&rctx->state
 			,&pctx->reducing_sid);
-	fklVMreleaseSt(exe->gc);
 
 	if(accept)
 	{
@@ -2277,8 +2270,7 @@ static void* custom_parser_prod_action(void* ctx
 		,void* outerCtx
 		,void* asts[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklVMvalue* proc=(FklVMvalue*)ctx;
 	FklVM* exe=(FklVM*)outerCtx;
@@ -2616,13 +2608,11 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 	size_t restLen=str->size-pctx->offset;
 
-	fklVMacquireSt(exe->gc);
 	parse_with_custom_parser_for_char_buf(g
 			,str->str+pctx->offset
 			,restLen
 			,&restLen
 			,&outerCtx
-			,exe->gc->st
 			,&err
 			,&errLine
 			,&pctx->symbolStack
@@ -2632,7 +2622,6 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 			,&accept
 			,&ctx->state
 			,&pctx->reducing_sid);
-	fklVMreleaseSt(exe->gc);
 
 	if(err)
 	{
@@ -2805,18 +2794,15 @@ static int builtin_parse(FKL_CPROC_ARGL)
 		size_t restLen=ss->size;
 		FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 
-		fklVMacquireSt(exe->gc);
 		FklVMvalue* node=fklDefaultParseForCharBuf(ss->str
 				,restLen
 				,&restLen
 				,&outerCtx
-				,exe->gc->st
 				,&err
 				,&errorLine
 				,&symbolStack
 				,&lineStack
 				,&stateStack);
-		fklVMreleaseSt(exe->gc);
 
 		if(node==NULL)
 		{

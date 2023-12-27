@@ -283,7 +283,6 @@ add_custom_command(OUTPUT "parse.c"
 	COMMAND ${GRAMMER_GEN}
 	"parse.c"
 	${PROJECT_SOURCE_DIR}/main/grammer/action.c
-	"<fakeLisp/parser.h>"
 	"fklNastTerminalCreate"
 	"fklDestroyNastNode"
 	"fklNastPushState0ToStack"
@@ -295,7 +294,6 @@ add_custom_command(OUTPUT "vmparse.c"
 	COMMAND ${GRAMMER_GEN}
 	"vmparse.c"
 	${PROJECT_SOURCE_DIR}/main/grammer/vmaction.c
-	"<fakeLisp/vm.h>"
 	"fklVMvalueTerminalCreate"
 	"fklVMvalueTerminalDestroy"
 	"fklVMvaluePushState0ToStack"

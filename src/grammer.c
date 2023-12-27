@@ -4824,7 +4824,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			fprintf(fp,"\t\t\tsymbolStack->top-=%"FKL_PRT64U";\n",ac->prod->len);
 			fputs("\t\t\tFklStateFuncPtr func=(FklStateFuncPtr)fklTopPtrStack(stateStack);\n",fp);
 			fputs("\t\t\tFklStateFuncPtr nextState=NULL;\n",fp);
-			fprintf(fp,"\t\t\tfunc(NULL,NULL,NULL,0,%"FKL_PRT64U",(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL,NULL);\n",ac->prod->left.sid);
+			fprintf(fp,"\t\t\tfunc(NULL,NULL,NULL,0,%"FKL_PRT64U",(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL);\n",ac->prod->left.sid);
 			fputs("\t\t\tif(!nextState)\n\t\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n",fp);
 			fputs("\t\t\tfklPushPtrStack((void*)nextState,stateStack);\n",fp);
 
@@ -4851,7 +4851,7 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			else
 				fputs("\t\t\tsize_t line=outerCtx->line;\n",fp);
 
-			fprintf(fp,"\t\t\tvoid* ast=%s(outerCtx->ctx,nodes,%"FKL_PRT64U",line,st);\n"
+			fprintf(fp,"\t\t\tvoid* ast=%s(outerCtx->ctx,nodes,%"FKL_PRT64U",line);\n"
 					,ac->prod->name
 					,ac->prod->len);
 
@@ -4887,7 +4887,6 @@ static inline void print_state_prototype_to_c_file(const FklAnalysisState* state
 			",const char**"
 			",size_t*"
 			",FklGrammerMatchOuterCtx*"
-			",FklSymbolTable*"
 			",int*"
 			",size_t*);\n",idx);
 }
@@ -4909,7 +4908,6 @@ static inline void print_state_to_c_file(const FklAnalysisState* states
 			"\t\t,const char** in\n"
 			"\t\t,size_t* restLen\n"
 			"\t\t,FklGrammerMatchOuterCtx* outerCtx\n"
-			"\t\t,FklSymbolTable* st\n"
 			"\t\t,int* accept\n"
 			"\t\t,size_t* errLine)\n{\n",idx);
 	fputs("\tif(is_action)\n\t{\n",fp);
@@ -5028,7 +5026,6 @@ static inline void print_regex_lex_match_for_parser_in_c_to_c_file(FILE* fp)
 void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 		,const FklSymbolTable* st
 		,FILE* action_src_fp
-		,const char* other_head_file_name
 		,const char* ast_creator_name
 		,const char* ast_destroyer_name
 		,const char* state_0_push_func_name
@@ -5060,8 +5057,16 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 	fputs("// Do not edit!\n\n",fp);
 	fputs("#include<fakeLisp/grammer.h>\n",fp);
 	fputs("#include<fakeLisp/utils.h>\n",fp);
-	fprintf(fp,"#include%s\n",other_head_file_name);
 	fputs("#include<ctype.h>\n",fp);
+
+#define BUFFER_SIZE (512)
+	char buffer[BUFFER_SIZE];
+	size_t size=0;
+	while((size=fread(buffer,1,BUFFER_SIZE,action_src_fp)))
+		fwrite(buffer,size,1,fp);
+#undef BUFFER_SIZE
+	fputc('\n',fp);
+
 	fputc('\n',fp);
 	fputc('\n',fp);
 	fprintf(fp,create_term_analyzing_symbol_src,ast_creator_name);
@@ -5104,14 +5109,6 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer* g
 
 	for(size_t i=0;i<stateNum;i++)
 		print_state_prototype_to_c_file(states,i,fp);
-	fputc('\n',fp);
-
-#define BUFFER_SIZE (512)
-	char buffer[BUFFER_SIZE];
-	size_t size=0;
-	while((size=fread(buffer,1,BUFFER_SIZE,action_src_fp)))
-		fwrite(buffer,size,1,fp);
-#undef BUFFER_SIZE
 	fputc('\n',fp);
 
 	for(size_t i=0;i<stateNum;i++)
@@ -5254,7 +5251,6 @@ void fklPrintGrammer(FILE* fp,const FklGrammer* grammer,FklSymbolTable* st)
 
 void* fklDefaultParseForCstr(const char* cstr
 		,FklGrammerMatchOuterCtx* outerCtx
-		,FklSymbolTable* st
 		,int* err
 		,uint64_t* errLine
 		,FklPtrStack* symbolStack
@@ -5268,7 +5264,7 @@ void* fklDefaultParseForCstr(const char* cstr
 	{
 		int accept=0;
 		FklStateFuncPtr state=fklTopPtrStack(stateStack);
-		*err=state(stateStack,symbolStack,lineStack,1,0,NULL,start,&cstr,&restLen,outerCtx,st,&accept,errLine);
+		*err=state(stateStack,symbolStack,lineStack,1,0,NULL,start,&cstr,&restLen,outerCtx,&accept,errLine);
 		if(*err)
 			break;
 		if(accept)
@@ -5286,7 +5282,6 @@ void* fklDefaultParseForCharBuf(const char* cstr
 		,size_t len
 		,size_t* restLen
 		,FklGrammerMatchOuterCtx* outerCtx
-		,FklSymbolTable* st
 		,int* err
 		,uint64_t* errLine
 		,FklPtrStack* symbolStack
@@ -5300,7 +5295,7 @@ void* fklDefaultParseForCharBuf(const char* cstr
 	{
 		int accept=0;
 		FklStateFuncPtr state=fklTopPtrStack(stateStack);
-		*err=state(stateStack,symbolStack,lineStack,1,0,NULL,start,&cstr,restLen,outerCtx,st,&accept,errLine);
+		*err=state(stateStack,symbolStack,lineStack,1,0,NULL,start,&cstr,restLen,outerCtx,&accept,errLine);
 		if(*err)
 			break;
 		if(accept)
@@ -5456,7 +5451,7 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 	}
 	size_t line=fklGetFirstNthLine(lineStack,len,outerCtx->line);
 	lineStack->top-=len;
-	void* ast=prod->func(prod->ctx,outerCtx->ctx,nodes,len,line,st);
+	void* ast=prod->func(prod->ctx,outerCtx->ctx,nodes,len,line);
 	if(len)
 	{
 		for(size_t i=0;i<len;i++)
@@ -5754,8 +5749,7 @@ static inline void* prod_action_symbol(void* ctx
 		,void* outerCtx
 		,void* ast[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode** nodes=(FklNastNode**)ast;
 	const char* start="|";
@@ -5795,7 +5789,7 @@ static inline void* prod_action_symbol(void* ctx
 		cstr+=len;
 		cstr_size-=len;
 	}
-	FklSid_t id=fklAddSymbolCharBuf(buffer.buf,buffer.index,st)->id;
+	FklSid_t id=fklAddSymbolCharBuf(buffer.buf,buffer.index,outerCtx)->id;
 	FklNastNode* node=fklCreateNastNode(FKL_NAST_SYM,nodes[0]->curline);
 	node->sym=id;
 	fklUninitStringBuffer(&buffer);
@@ -5806,8 +5800,7 @@ static inline void* prod_action_return_first(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	return fklMakeNastNodeRef(nodes[0]);
 }
@@ -5816,8 +5809,7 @@ static inline void* prod_action_return_second(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	return fklMakeNastNodeRef(nodes[1]);
 }
@@ -5826,8 +5818,7 @@ static inline void* prod_action_string(void* ctx
 		,void* outerCtx
 		,void* ast[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode** nodes=(FklNastNode**)ast;
 	size_t start_size=1;
@@ -5848,8 +5839,7 @@ static inline void* prod_action_nil(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	return fklCreateNastNode(FKL_NAST_NIL,line);
 }
@@ -5858,8 +5848,7 @@ static inline void* prod_action_pair(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* car=nodes[0];
 	FklNastNode* cdr=nodes[2];
@@ -5874,8 +5863,7 @@ static inline void* prod_action_list(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* car=nodes[0];
 	FklNastNode* cdr=nodes[1];
@@ -5890,8 +5878,7 @@ static inline void* prod_action_dec_integer(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	const FklString* str=((FklNastNode*)nodes[0])->str;
 	int64_t i=strtoll(str->str,NULL,10);
@@ -5918,8 +5905,7 @@ static inline void* prod_action_hex_integer(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	const FklString* str=((FklNastNode*)nodes[0])->str;
 	int64_t i=strtoll(str->str,NULL,16);
@@ -5946,8 +5932,7 @@ static inline void* prod_action_oct_integer(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	const FklString* str=((FklNastNode*)nodes[0])->str;
 	int64_t i=strtoll(str->str,NULL,8);
@@ -5974,8 +5959,7 @@ static inline void* prod_action_float(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	const FklString* str=((FklNastNode*)nodes[0])->str;
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_F64,line);
@@ -5988,8 +5972,7 @@ static inline void* prod_action_char(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	const FklString* str=((FklNastNode*)nodes[0])->str;
 	if(!fklIsValidCharBuf(str->str+2,str->size-2))
@@ -6003,8 +5986,7 @@ static inline void* prod_action_box(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* box=fklCreateNastNode(FKL_NAST_BOX,line);
 	box->box=fklMakeNastNodeRef(nodes[1]);
@@ -6015,8 +5997,7 @@ static inline void* prod_action_vector(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* list=nodes[1];
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_VECTOR,line);
@@ -6048,10 +6029,9 @@ static inline void* prod_action_quote(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("quote",st)->id;
+	FklSid_t id=fklAddSymbolCstr("quote",outerCtx)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
 	head->sym=id;
@@ -6063,10 +6043,9 @@ static inline void* prod_action_unquote(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("unquote",st)->id;
+	FklSid_t id=fklAddSymbolCstr("unquote",outerCtx)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
 	head->sym=id;
@@ -6078,10 +6057,9 @@ static inline void* prod_action_qsquote(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("qsquote",st)->id;
+	FklSid_t id=fklAddSymbolCstr("qsquote",outerCtx)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
 	head->sym=id;
@@ -6093,10 +6071,9 @@ static inline void* prod_action_unqtesp(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
-	FklSid_t id=fklAddSymbolCstr("unqtesp",st)->id;
+	FklSid_t id=fklAddSymbolCstr("unqtesp",outerCtx)->id;
 	FklNastNode* s_exp=fklMakeNastNodeRef(nodes[1]);
 	FklNastNode* head=fklCreateNastNode(FKL_NAST_SYM,line);
 	head->sym=id;
@@ -6108,8 +6085,7 @@ static inline void* prod_action_kv_list(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* car=nodes[1];
 	FklNastNode* cdr=nodes[3];
@@ -6131,8 +6107,7 @@ static inline void* prod_action_hasheq(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* list=nodes[1];
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
@@ -6152,8 +6127,7 @@ static inline void* prod_action_hasheqv(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* list=nodes[1];
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
@@ -6173,8 +6147,7 @@ static inline void* prod_action_hashequal(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* list=nodes[1];
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_HASHTABLE,line);
@@ -6194,8 +6167,7 @@ static inline void* prod_action_bytevector(void* ctx
 		,void* outerCtx
 		,void* nodes[]
 		,size_t num
-		,size_t line
-		,FklSymbolTable* st)
+		,size_t line)
 {
 	FklNastNode* list=nodes[1];
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);

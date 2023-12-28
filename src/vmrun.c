@@ -708,14 +708,6 @@ static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
 		fklUninitVMlib(&libs[i]);
 }
 
-static inline void vm_running_thread_push(FklVM* v)
-{
-	FklVMqueue* q=v->vmq;
-	uv_mutex_lock(&q->pre_running_lock);
-	fklPushPtrQueue(v,&q->pre_running_q);
-	uv_mutex_unlock(&q->pre_running_lock);
-}
-
 void fklLockThread(FklVM* exe)
 {
 	uv_mutex_lock(&exe->lock);
@@ -746,7 +738,7 @@ static void vm_thread_cb(void* arg)
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(tmpCh,resultBox,exe);
 				}
-				atomic_fetch_sub(&exe->vmq->running_count,1);
+				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;
 				break;
@@ -788,8 +780,9 @@ static void vm_thread_cb(void* arg)
 
 void fklVMworkStart(FklVM* exe,FklVMqueue* q)
 {
-	exe->vmq=q;
-	vm_running_thread_push(exe);
+	uv_mutex_lock(&q->pre_running_lock);
+	fklPushPtrQueue(exe,&q->pre_running_q);
+	uv_mutex_unlock(&q->pre_running_lock);
 }
 
 static inline void remove_thread_frame_cache(FklVM* exe)

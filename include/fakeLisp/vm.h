@@ -388,7 +388,6 @@ typedef struct FklVM
 {
 	uv_thread_t tid;
 	uv_mutex_t lock;
-	FklVMqueue* vmq;
 	FklVMvalue* obj_head;
 	FklVMvalue* obj_tail;
 

@@ -3307,7 +3307,7 @@ static int builtin_go(FKL_CPROC_ARGL)
 	fklResBp(exe);
 	FklVMvalue* chan=threadVM->chan;
 	FKL_VM_PUSH_VALUE(exe,chan); 
-	fklVMworkStart(threadVM,exe->vmq);
+	fklVMworkStart(threadVM,&exe->gc->q);
 	return 0;
 }
 

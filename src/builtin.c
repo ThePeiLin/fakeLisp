@@ -5337,14 +5337,6 @@ void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* pst)
 		fklAddCodegenBuiltinRefBySid(fklAddSymbolCstr(list->s,pst)->id,curEnv);
 }
 
-void fklInitSymbolTableWithBuiltinSymbol(FklSymbolTable* table)
-{
-	for(const struct SymbolFuncStruct* list=builtInSymbolList
-			;list->s!=NULL
-			;list++)
-		fklAddSymbolCstr(list->s,table);
-}
-
 static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 {
 	FklVMvalue* builtInStdin=fklCreateVMvalueFp(exe,stdin,FKL_VM_FP_R);

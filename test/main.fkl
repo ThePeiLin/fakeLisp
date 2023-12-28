@@ -5,7 +5,7 @@
 
 (import (ascii-art)
         (bf)
-        (coroutine)
+        (threading)
         (demo1)
         (demo2)
         (fib)

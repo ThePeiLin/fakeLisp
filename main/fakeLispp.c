@@ -70,6 +70,9 @@ int main(int argc,char** argv)
 			fputc('\n',stdout);
 			fklUninitCodegenLib(cur);
 		}
+		puts("\nglobal symbol table:");
+		fklPrintSymbolTable(&table,stdout);
+
 		free(libs);
 		fclose(fp);
 		fklUninitSymbolTable(&table);
@@ -185,6 +188,12 @@ int main(int argc,char** argv)
 				fputc('\n',stdout);
 			}
 		}
+		puts("\nglobal symbol table:");
+		fklPrintSymbolTable(&gst,stdout);
+
+		puts("\npublic symbol table:");
+		fklPrintSymbolTable(&ctx.public_symbol_table,stdout);
+
 exit:
 		fklUninitFuncPrototypes(&pts);
 		fklUninitFuncPrototypes(&macro_pts);

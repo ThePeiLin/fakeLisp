@@ -133,16 +133,18 @@ FklSymbolHashItem* fklGetSymbolWithId(FklSid_t id,const FklSymbolTable* table)
 	return table->idl[id-1];
 }
 
+#include<math.h>
 void fklPrintSymbolTable(const FklSymbolTable* table,FILE* fp)
 {
+	int numLen=table->num?(int)(log10(table->num)+1):1;
+	fprintf(fp,"size:%"FKL_PRT64U"\n",table->num);
 	for(uint32_t i=0;i<table->num;i++)
 	{
 		FklSymbolHashItem* cur=table->idl[i];
-		fprintf(fp,"symbol:");
-		fklPrintString(cur->symbol,fp);
-		fprintf(fp," id:%"FKL_PRT64U"\n",cur->id);
+		fprintf(fp,"%-*"FKL_PRT64U":\t",numLen,cur->id);
+		fklPrintRawSymbol(cur->symbol,fp);
+		fputc('\n',fp);
 	}
-	fprintf(fp,"size:%"FKL_PRT64U"\n",table->num);
 }
 
 void fklWriteSymbolTable(const FklSymbolTable* table,FILE* fp)

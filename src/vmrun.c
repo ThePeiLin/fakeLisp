@@ -469,13 +469,6 @@ static inline void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
 		next->prev=cur;
 }
 
-static FklSid_t* createBuiltinErrorTypeIdList(void)
-{
-	FklSid_t* r=(FklSid_t*)malloc(sizeof(FklSid_t)*FKL_BUILTIN_ERR_NUM);
-	FKL_ASSERT(r);
-	return r;
-}
-
 FklVM* fklCreateVM(FklByteCodelnt* mainCode
 		,FklSymbolTable* globalSymTable
 		,FklFuncPrototypes* pts
@@ -493,8 +486,6 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
 		exe->top_frame=fklCreateVMframeWithCodeObj(exe,codeObj,pid,exe->top_frame);
 	}
-	exe->builtinErrorTypeId=createBuiltinErrorTypeIdList();
-	fklInitBuiltinErrorType(exe->builtinErrorTypeId,globalSymTable);
 	fklInitVMstack(exe);
 	exe->state=FKL_VM_READY;
 	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));
@@ -2454,8 +2445,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 		,FklVM* prev
 		,FklVM* next
 		,size_t libNum
-		,FklVMlib* libs
-		,FklSid_t* builtinErrorTypeId)
+		,FklVMlib* libs)
 {
 	FklVM* exe=(FklVM*)calloc(1,sizeof(FklVM));
 	FKL_ASSERT(exe);
@@ -2465,7 +2455,6 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->chan=fklCreateVMvalueChanl(exe,1);
 	fklInitVMstack(exe);
 	exe->libNum=libNum;
-	exe->builtinErrorTypeId=builtinErrorTypeId;
 	exe->libs=copy_vm_libs(libs,libNum+1);
 	exe->pts=prev->pts;
 	exe->frame_cache=&exe->static_frame;
@@ -2489,7 +2478,6 @@ void fklUninitVMstack(FklVM* s)
 
 void fklDestroyAllVMs(FklVM* curVM)
 {
-	free(curVM->builtinErrorTypeId);
 	fklDestroyFuncPrototypes(curVM->pts);
 	curVM->prev->next=NULL;
 	curVM->prev=NULL;

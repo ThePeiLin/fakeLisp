@@ -3294,8 +3294,7 @@ static int builtin_go(FKL_CPROC_ARGL)
 			,exe
 			,exe->next
 			,exe->libNum
-			,exe->libs
-			,exe->builtinErrorTypeId);
+			,exe->libs);
 	fklSetBp(threadVM);
 	size_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	if(arg_num)

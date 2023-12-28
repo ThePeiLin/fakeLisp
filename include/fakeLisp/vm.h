@@ -418,7 +418,6 @@ typedef struct FklVM
 	struct FklVM* next;
 	jmp_buf buf;
 
-	FklSid_t* builtinErrorTypeId;
 	FklFuncPrototypes* pts;
 	FklVMlib* importingLib;
 
@@ -463,6 +462,51 @@ typedef enum
 #define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
 #define FKL_VM_GC_THRESHOLD_SIZE (2048)
 
+typedef enum
+{
+	FKL_ERR_DUMMY=0,
+	FKL_ERR_SYMUNDEFINE,
+	FKL_ERR_SYNTAXERROR,
+	FKL_ERR_INVALIDEXPR,
+	FKL_ERR_CIRCULARLOAD,
+	FKL_ERR_INVALIDPATTERN,
+	FKL_ERR_INCORRECT_TYPE_VALUE,
+	FKL_ERR_STACKERROR,
+	FKL_ERR_TOOMANYARG,
+	FKL_ERR_TOOFEWARG,
+	FKL_ERR_CANTCREATETHREAD,
+	FKL_ERR_THREADERROR,
+	FKL_ERR_MACROEXPANDFAILED,
+	FKL_ERR_CALL_ERROR,
+	FKL_ERR_LOADDLLFAILD,
+	FKL_ERR_INVALIDSYMBOL,
+	FKL_ERR_LIBUNDEFINED,
+	FKL_ERR_UNEXPECTED_EOF,
+	FKL_ERR_DIVZEROERROR,
+	FKL_ERR_FILEFAILURE,
+	FKL_ERR_INVALID_VALUE,
+	FKL_ERR_INVALIDASSIGN,
+	FKL_ERR_INVALIDACCESS,
+	FKL_ERR_IMPORTFAILED,
+	FKL_ERR_INVALID_MACRO_PATTERN,
+	FKL_ERR_FAILD_TO_CREATE_BIG_INT_FROM_MEM,
+	FKL_ERR_LIST_DIFFER_IN_LENGTH,
+	FKL_ERR_CROSS_C_CALL_CONTINUATION,
+	FKL_ERR_INVALIDRADIX_FOR_INTEGER,
+	FKL_ERR_NO_VALUE_FOR_KEY,
+	FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
+	FKL_ERR_CIR_REF,
+	FKL_ERR_UNSUPPORTED_OP,
+	FKL_ERR_IMPORT_MISSING,
+	FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP,
+	FKL_ERR_IMPORT_READER_MACRO_ERROR,
+	FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,
+	FKL_ERR_REGEX_COMPILE_FAILED,
+	FKL_ERR_GRAMMER_CREATE_FAILED,
+	FKL_ERR_INVALIDRADIX_FOR_FLOAT,
+	FKL_BUILTIN_ERR_NUM,
+}FklBuiltinErrorType;
+
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
@@ -501,6 +545,8 @@ typedef struct FklVMgc
 
 	uv_rwlock_t st_lock;
 	FklSymbolTable* st;
+
+	FklSid_t builtinErrorTypeId[FKL_BUILTIN_ERR_NUM];
 }FklVMgc;
 
 typedef struct
@@ -549,51 +595,6 @@ typedef struct
 	uint32_t num;
 }FklVMerrorHandler;
 
-typedef enum
-{
-	FKL_ERR_DUMMY=0,
-	FKL_ERR_SYMUNDEFINE,
-	FKL_ERR_SYNTAXERROR,
-	FKL_ERR_INVALIDEXPR,
-	FKL_ERR_CIRCULARLOAD,
-	FKL_ERR_INVALIDPATTERN,
-	FKL_ERR_INCORRECT_TYPE_VALUE,
-	FKL_ERR_STACKERROR,
-	FKL_ERR_TOOMANYARG,
-	FKL_ERR_TOOFEWARG,
-	FKL_ERR_CANTCREATETHREAD,
-	FKL_ERR_THREADERROR,
-	FKL_ERR_MACROEXPANDFAILED,
-	FKL_ERR_CALL_ERROR,
-	FKL_ERR_LOADDLLFAILD,
-	FKL_ERR_INVALIDSYMBOL,
-	FKL_ERR_LIBUNDEFINED,
-	FKL_ERR_UNEXPECTED_EOF,
-	FKL_ERR_DIVZEROERROR,
-	FKL_ERR_FILEFAILURE,
-	FKL_ERR_INVALID_VALUE,
-	FKL_ERR_INVALIDASSIGN,
-	FKL_ERR_INVALIDACCESS,
-	FKL_ERR_IMPORTFAILED,
-	FKL_ERR_INVALID_MACRO_PATTERN,
-	FKL_ERR_FAILD_TO_CREATE_BIG_INT_FROM_MEM,
-	FKL_ERR_LIST_DIFFER_IN_LENGTH,
-	FKL_ERR_CROSS_C_CALL_CONTINUATION,
-	FKL_ERR_INVALIDRADIX_FOR_INTEGER,
-	FKL_ERR_NO_VALUE_FOR_KEY,
-	FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
-	FKL_ERR_CIR_REF,
-	FKL_ERR_UNSUPPORTED_OP,
-	FKL_ERR_IMPORT_MISSING,
-	FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP,
-	FKL_ERR_IMPORT_READER_MACRO_ERROR,
-	FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,
-	FKL_ERR_REGEX_COMPILE_FAILED,
-	FKL_ERR_GRAMMER_CREATE_FAILED,
-	FKL_ERR_INVALIDRADIX_FOR_FLOAT,
-	FKL_BUILTIN_ERR_NUM,
-}FklBuiltinErrorType;
-
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 
@@ -603,8 +604,7 @@ FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* prev
 		,FklVM* next
 		,size_t libNum
-		,FklVMlib* libs
-		,FklSid_t* builtinErrorTypeId);
+		,FklVMlib* libs);
 
 void fklDestroyVMvalue(FklVMvalue*);
 void fklInitVMstack(FklVM*);
@@ -1055,7 +1055,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueError((EXE)\
-			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
+			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->gc->builtinErrorTypeId)\
 			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
@@ -1064,7 +1064,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueErrorWithCstr((EXE)\
-			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
+			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->gc->builtinErrorTypeId)\
 			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
@@ -1073,7 +1073,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueErrorWithCstr((EXE)\
-			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->builtinErrorTypeId)\
+			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->gc->builtinErrorTypeId)\
 			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\

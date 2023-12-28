@@ -211,6 +211,7 @@ FklVMgc* fklCreateVMgc(FklSymbolTable* st)
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
 	uv_rwlock_init(&gc->st_lock);
 	gc->st=st;
+	fklInitBuiltinErrorType(gc->builtinErrorTypeId,st);
 
 	init_vm_queue(&gc->q);
 	init_locv_cache(gc);

@@ -132,13 +132,6 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 			,codegen->globalSymTable
 			,pst);
 	fklPrintUndefinedRef(codegen->globalEnv,codegen->globalSymTable,pst);
-	if(codegen->globalEnv->uref.top)
-	{
-		fklUninitCodegenInfo(codegen);
-		fklUninitCodegenOuterCtx(outer_ctx);
-		fklDestroyByteCodelnt(mainByteCode);
-		return 1;
-	}
 
 	FklPtrStack* scriptLibStack=codegen->libStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen->globalSymTable,codegen->pts,1);

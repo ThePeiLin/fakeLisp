@@ -4206,10 +4206,10 @@ void fklPrintUndefinedRef(const FklCodegenEnv* env
 		,FklSymbolTable* pst)
 {
 	const FklPtrStack* urefs=&env->uref;
-	for(uint32_t i=0;i<urefs->top;i++)
+	for(uint32_t i=urefs->top;i>0;i--)
 	{
-		FklUnReSymbolRef* ref=urefs->base[i];
-		fprintf(stderr,"|symbol-error| in compiling: Symbol ");
+		FklUnReSymbolRef* ref=urefs->base[i-1];
+		fprintf(stderr,"warning in compiling: Symbol ");
 		fklPrintRawSymbol(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
 		fprintf(stderr," is undefined at line %"FKL_PRT64U,ref->line);
 		if(ref->fid)
@@ -4927,13 +4927,6 @@ BC_PROCESS(_library_bc_process)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
 	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
-	if(env->uref.top)
-	{
-		errorState->type=FKL_ERR_SYMUNDEFINE;
-		errorState->line=line;
-		errorState->place=NULL;
-		return NULL;
-	}
 
 	ExportContextData* data=context->data;
 	FklByteCodelnt* libBc=sequnce_exp_bc_process(data->stack,fid,line);
@@ -6173,13 +6166,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
 	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
-	if(env->uref.top)
-	{
-		errorState->type=FKL_ERR_SYMUNDEFINE;
-		errorState->line=line;
-		errorState->place=NULL;
-		return NULL;
-	}
+
 	MacroContext* d=(MacroContext*)(context->data);
 	FklPtrStack* stack=d->stack;
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
@@ -6355,13 +6342,6 @@ BC_PROCESS(_reader_macro_bc_process)
 	custom_action_ctx_destroy(custom_ctx);
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
 	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
-	if(env->uref.top)
-	{
-		errorState->type=FKL_ERR_SYMUNDEFINE;
-		errorState->line=line;
-		errorState->place=NULL;
-		return NULL;
-	}
 
 	FklPtrStack* stack=d->stack;
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);

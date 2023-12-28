@@ -54,13 +54,6 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 			,codegen.globalSymTable
 			,pst);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
-	if(codegen.globalEnv->uref.top)
-	{
-		fklUninitCodegenInfo(&codegen);
-		fklUninitCodegenOuterCtx(&outer_ctx);
-		fklDestroyByteCodelnt(mainByteCode);
-		return FKL_EXIT_FAILURE;
-	}
 
 	FklPtrStack* scriptLibStack=codegen.libStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);

@@ -398,6 +398,16 @@ void fklDestroyVMgc(FklVMgc* gc)
 	free(gc);
 }
 
+void fklVMacquireWq(FklVMgc* gc)
+{
+	uv_mutex_lock(&gc->workq_lock);
+}
+
+void fklVMreleaseWq(FklVMgc* gc)
+{
+	uv_mutex_unlock(&gc->workq_lock);
+}
+
 void fklVMacquireSt(FklVMgc* gc)
 {
 	uv_rwlock_wrlock(&gc->st_lock);

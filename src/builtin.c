@@ -3750,6 +3750,59 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 	return 1;
 }
 
+struct IdleQueueWorkArg
+{
+	uv_cond_t cond;
+};
+
+static void idle_queue_work_cb(FklVM* exe,void* a)
+{
+	fklDontNoticeThreadLock(exe);
+	struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)a;
+
+	fklVMreleaseWq(exe->gc);
+	uv_cond_wait(&arg->cond,&exe->lock);
+	fklVMacquireWq(exe->gc);
+
+	free(a);
+}
+
+static inline struct IdleQueueWorkArg* create_idle_queue_work_arg(void)
+{
+	struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)malloc(sizeof(struct IdleQueueWorkArg));
+	FKL_ASSERT(arg);
+	if(uv_cond_init(&arg->cond))
+		abort();
+	return arg;
+}
+
+static int builtin_call_wq(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.call/wq";
+	switch(ctx->context)
+	{
+		case 0:
+			{
+				FKL_DECL_AND_CHECK_ARG(proc,Pname);
+				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
+				FKL_VM_PUSH_VALUE(exe,proc);
+				struct IdleQueueWorkArg* arg=create_idle_queue_work_arg();
+				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,arg);
+				ctx->context=(uintptr_t)arg;
+				exe->tp--;
+				fklCallObj(exe,proc);
+				return 1;
+			}
+		default:
+			{
+				struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)ctx->context;
+				uv_cond_signal(&arg->cond);
+			}
+			break;
+	}
+	return 0;
+}
+
 static int builtin_apply(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.apply";
@@ -5099,6 +5152,7 @@ static const struct SymbolFuncStruct
 	{"length",                builtin_length,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"apply",                 builtin_apply,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"call/eh",               builtin_call_eh,                 {NULL,         NULL,          NULL,            NULL,          }, },
+	{"call/wq",               builtin_call_wq,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"read",                  builtin_read,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"parse",                 builtin_parse,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,            NULL,          }, },

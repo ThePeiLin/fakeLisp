@@ -984,9 +984,14 @@ void fklVMread(FklVM*
 		,uint64_t len
 		,int d);
 
+void fklVMacquireWq(FklVMgc*);
+void fklVMreleaseWq(FklVMgc*);
 void fklQueueWorkInIdleThread(FklVM* vm
 		,void (*cb)(FklVM*,void*)
 		,void* arg);
+
+void fklNoticeThreadLock(FklVM*);
+void fklDontNoticeThreadLock(FklVM*);
 void fklUnlockThread(FklVM*);
 void fklLockThread(FklVM*);
 

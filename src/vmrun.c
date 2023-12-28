@@ -903,6 +903,11 @@ static inline void switch_notice_lock_ins(FklVM* exe)
 	atomic_store(&exe->ins_table[FKL_OP_RET],B_notice_lock_ret);
 }
 
+void fklNoticeThreadLock(FklVM* exe)
+{
+	switch_notice_lock_ins(exe);
+}
+
 static inline void switch_notice_lock_ins_for_running_threads(FklPtrQueue* q)
 {
 	for(FklQueueNode* n=q->head;n;n=n->next)
@@ -919,6 +924,11 @@ static inline void switch_un_notice_lock_ins(FklVM* exe)
 		atomic_store(&exe->ins_table[FKL_OP_JMP],B_jmp);
 		atomic_store(&exe->ins_table[FKL_OP_RET],B_ret);
 	}
+}
+
+void fklDontNoticeThreadLock(FklVM* exe)
+{
+	switch_un_notice_lock_ins(exe);
 }
 
 static inline void switch_un_notice_lock_ins_for_running_threads(FklPtrQueue* q)
@@ -1205,10 +1215,8 @@ static inline void vm_idle_loop(FklVMgc* gc)
 			for(struct FklVMidleWork* w=pop_idle_work(gc);w;w=pop_idle_work(gc))
 			{
 				atomic_fetch_sub(&gc->work_num,1);
-				uv_mutex_unlock(&w->vm->lock);
-				w->cb(w->vm,w->arg);
 				uv_cond_signal(&w->cond);
-				uv_mutex_lock(&w->vm->lock);
+				w->cb(w->vm,w->arg);
 			}
 			switch_un_notice_lock_ins_for_running_threads(&q->running_q);
 			unlock_all_vm(&q->running_q);

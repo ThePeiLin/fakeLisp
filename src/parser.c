@@ -150,8 +150,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		,FklNastNode** output
 		,FklPtrStack* symbolStack
 		,FklUintStack* lineStack
-		,FklPtrStack* stateStack
-		,void* outer_ctx_ctx)
+		,FklPtrStack* stateStack)
 {
 	size_t size=0;
 	FklStringBuffer next_buf;
@@ -159,7 +158,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 	char* tmp=NULL;
 	*unexpectEOF=0;
 	FklNastNode* ast=NULL;
-	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(outer_ctx_ctx);
+	FklGrammerMatchOuterCtx outerCtx=FKL_NAST_PARSE_OUTER_CTX_INIT(st);
 	outerCtx.line=line;
 	size_t offset=0;
 	for(;;)

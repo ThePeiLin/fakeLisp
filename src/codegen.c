@@ -3917,8 +3917,7 @@ static inline FklNastNode* getExpressionFromFile(FklCodegenInfo* codegen
 				,&begin
 				,symbolStack
 				,lineStack
-				,stateStack
-				,pst);
+				,stateStack);
 	}
 	else
 	{

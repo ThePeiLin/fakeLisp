@@ -778,7 +778,7 @@ static void vm_thread_cb(void* arg)
 	}
 }
 
-void fklVMworkStart(FklVM* exe,FklVMqueue* q)
+void fklVMthreadStart(FklVM* exe,FklVMqueue* q)
 {
 	uv_mutex_lock(&q->pre_running_lock);
 	fklPushPtrQueue(exe,&q->pre_running_q);
@@ -892,35 +892,39 @@ static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
 
 #undef NOTICE_LOCK
 
-static inline void switch_notice_lock_ins(FklPtrQueue* q)
+static inline void switch_notice_lock_ins(FklVM* exe)
+{
+	if(atomic_load(&exe->notice_lock))
+		return;
+	atomic_store(&exe->notice_lock,1);
+	atomic_store(&exe->ins_table[FKL_OP_CALL],B_notice_lock_call);
+	atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_notice_lock_tail_call);
+	atomic_store(&exe->ins_table[FKL_OP_JMP],B_notice_lock_jmp);
+	atomic_store(&exe->ins_table[FKL_OP_RET],B_notice_lock_ret);
+}
+
+static inline void switch_notice_lock_ins_for_running_threads(FklPtrQueue* q)
 {
 	for(FklQueueNode* n=q->head;n;n=n->next)
+		switch_notice_lock_ins(n->data);
+}
+
+static inline void switch_un_notice_lock_ins(FklVM* exe)
+{
+	if(atomic_load(&exe->notice_lock))
 	{
-		FklVM* exe=n->data;
-		if(exe->notice_lock)
-			continue;
-		atomic_store(&exe->notice_lock,1);
-		atomic_store(&exe->ins_table[FKL_OP_CALL],B_notice_lock_call);
-		atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_notice_lock_tail_call);
-		atomic_store(&exe->ins_table[FKL_OP_JMP],B_notice_lock_jmp);
-		atomic_store(&exe->ins_table[FKL_OP_RET],B_notice_lock_ret);
+		atomic_store(&exe->notice_lock,0);
+		atomic_store(&exe->ins_table[FKL_OP_CALL],B_call);
+		atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_tail_call);
+		atomic_store(&exe->ins_table[FKL_OP_JMP],B_jmp);
+		atomic_store(&exe->ins_table[FKL_OP_RET],B_ret);
 	}
 }
 
-static inline void switch_un_notice_lock_ins(FklPtrQueue* q)
+static inline void switch_un_notice_lock_ins_for_running_threads(FklPtrQueue* q)
 {
 	for(FklQueueNode* n=q->head;n;n=n->next)
-	{
-		FklVM* exe=n->data;
-		if(exe->notice_lock)
-		{
-			atomic_store(&exe->notice_lock,0);
-			atomic_store(&exe->ins_table[FKL_OP_CALL],B_call);
-			atomic_store(&exe->ins_table[FKL_OP_TAIL_CALL],B_tail_call);
-			atomic_store(&exe->ins_table[FKL_OP_JMP],B_jmp);
-			atomic_store(&exe->ins_table[FKL_OP_RET],B_ret);
-		}
-	}
+		switch_un_notice_lock_ins(n->data);
 }
 
 static inline void lock_all_vm(FklPtrQueue* q)
@@ -1081,14 +1085,59 @@ static inline void shrink_locv_and_stack(FklPtrQueue* q)
 	}
 }
 
-static inline void vm_idler_loop(FklVMgc* gc)
+static inline void push_idle_work(FklVMgc* gc,struct FklVMidleWork* w)
+{
+	*(gc->workq.tail)=w;
+	gc->workq.tail=&w->next;
+}
+
+void fklQueueWorkInIdleThread(FklVM* vm
+		,void (*cb)(FklVM* exe,void*)
+		,void* arg)
+{
+	FklVMgc* gc=vm->gc;
+	struct FklVMidleWork work=
+	{
+		.vm=vm,
+		.arg=arg,
+		.cb=cb,
+	};
+	if(uv_cond_init(&work.cond))
+		abort();
+	uv_mutex_unlock(&vm->lock);
+	uv_mutex_lock(&gc->workq_lock);
+
+	push_idle_work(gc,&work);
+
+	atomic_fetch_add(&gc->work_num,1);
+
+	uv_cond_wait(&work.cond,&gc->workq_lock);
+	uv_mutex_unlock(&gc->workq_lock);
+
+	uv_mutex_lock(&vm->lock);
+	uv_cond_destroy(&work.cond);
+}
+
+static inline struct FklVMidleWork* pop_idle_work(FklVMgc* gc)
+{
+	struct FklVMidleWork* r=gc->workq.head;
+	if(r)
+	{
+		gc->workq.head=r->next;
+		if(r->next==NULL)
+			gc->workq.tail=&gc->workq.head;
+	}
+	return r;
+}
+
+static inline void vm_idle_loop(FklVMgc* gc)
 {
 	FklVMqueue* q=&gc->q;
 	for(;;)
 	{
 		if(atomic_load(&gc->num)>gc->threshold)
 		{
-			switch_notice_lock_ins(&q->running_q);
+			switch_notice_lock_ins_for_running_threads(&q->running_q);
 			lock_all_vm(&q->running_q);
 
 			move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(gc);
@@ -1125,7 +1174,7 @@ static inline void vm_idler_loop(FklVMgc* gc)
 			remove_exited_thread(gc);
 			shrink_locv_and_stack(&q->running_q);
 
-			switch_un_notice_lock_ins(&q->running_q);
+			switch_un_notice_lock_ins_for_running_threads(&q->running_q);
 			unlock_all_vm(&q->running_q);
 		}
 		uv_mutex_lock(&q->pre_running_lock);
@@ -1148,6 +1197,23 @@ static inline void vm_idler_loop(FklVMgc* gc)
 			}
 			return;
 		}
+		if(atomic_load(&gc->work_num))
+		{
+			uv_mutex_lock(&gc->workq_lock);
+			switch_notice_lock_ins_for_running_threads(&q->running_q);
+			lock_all_vm(&q->running_q);
+			for(struct FklVMidleWork* w=pop_idle_work(gc);w;w=pop_idle_work(gc))
+			{
+				atomic_fetch_sub(&gc->work_num,1);
+				uv_mutex_unlock(&w->vm->lock);
+				w->cb(w->vm,w->arg);
+				uv_cond_signal(&w->cond);
+				uv_mutex_lock(&w->vm->lock);
+			}
+			switch_un_notice_lock_ins_for_running_threads(&q->running_q);
+			unlock_all_vm(&q->running_q);
+			uv_mutex_unlock(&gc->workq_lock);
+		}
 		uv_sleep(0);
 	}
 }
@@ -1156,8 +1222,8 @@ int fklRunVM(FklVM* volatile exe)
 {
 	FklVMgc* gc=exe->gc;
 	gc->main_thread=exe;
-	fklVMworkStart(exe,&gc->q);
-	vm_idler_loop(gc);
+	fklVMthreadStart(exe,&gc->q);
+	vm_idle_loop(gc);
 	return gc->exit_code;
 }
 

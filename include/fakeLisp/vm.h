@@ -546,6 +546,22 @@ typedef struct FklVMgc
 	FklSymbolTable* st;
 
 	FklSid_t builtinErrorTypeId[FKL_BUILTIN_ERR_NUM];
+
+	uv_mutex_t workq_lock;
+	struct FklVMworkq
+	{
+		struct FklVMidleWork
+		{
+			struct FklVMidleWork* next;
+			uv_cond_t cond;
+			FklVM* vm;
+			void* arg;
+			void (*cb)(FklVM*,void*);
+		}* head;
+		struct FklVMidleWork** tail;
+	}workq;
+
+	atomic_uint work_num;
 }FklVMgc;
 
 typedef struct
@@ -597,7 +613,7 @@ typedef struct
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 
-void fklVMworkStart(FklVM*,FklVMqueue* q);
+void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
 FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* prev
@@ -968,6 +984,9 @@ void fklVMread(FklVM*
 		,uint64_t len
 		,int d);
 
+void fklQueueWorkInIdleThread(FklVM* vm
+		,void (*cb)(FklVM*,void*)
+		,void* arg);
 void fklUnlockThread(FklVM*);
 void fklLockThread(FklVM*);
 

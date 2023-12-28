@@ -204,6 +204,12 @@ void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
 	gc->argv=argv_v;
 }
 
+static inline void init_idle_work_queue(FklVMgc* gc)
+{
+	uv_mutex_init(&gc->workq_lock);
+	gc->workq.tail=&gc->workq.head;
+}
+
 FklVMgc* fklCreateVMgc(FklSymbolTable* st)
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
@@ -213,6 +219,7 @@ FklVMgc* fklCreateVMgc(FklSymbolTable* st)
 	gc->st=st;
 	fklInitBuiltinErrorType(gc->builtinErrorTypeId,st);
 
+	init_idle_work_queue(gc);
 	init_vm_queue(&gc->q);
 	init_locv_cache(gc);
 	return gc;
@@ -382,6 +389,7 @@ static inline void destroy_argv(FklVMgc* gc)
 void fklDestroyVMgc(FklVMgc* gc)
 {
 	uv_rwlock_destroy(&gc->st_lock);
+	uv_mutex_destroy(&gc->workq_lock);
 	destroy_argv(gc);
 	destroy_all_gray_cache(gc);
 	destroy_all_locv_cache(gc);

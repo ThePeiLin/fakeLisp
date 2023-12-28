@@ -435,9 +435,86 @@ static inline FklVMvalue* insert_local_ref(FklVMCompoundFrameVarRef* lr
 	return ref;
 }
 
+static inline void process_unresolve_work_func(FklVM* exe
+		,FklSymbolDef* def
+		,uint32_t prototypeId
+		,uint32_t idx
+		,FklVMvalue** loc
+		,FklVMCompoundFrameVarRef* lr)
+{
+	for(FklVMvalue* v=exe->gc->head;v;v=v->next)
+		if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
+		{
+			FklVMproc* proc=FKL_VM_PROC(v);
+			FklVMvalue* ref=proc->closure[idx];
+			if(lr->lref[def->idx])
+				proc->closure[idx]=lr->lref[def->idx];
+			else
+			{
+				((FklVMvalueVarRef*)ref)->idx=def->idx;
+				((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+				insert_local_ref(lr,ref,def->idx);
+			}
+		}
+
+	for(FklVMvalue* v=exe->obj_head;v;v=v->next)
+		if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
+		{
+			FklVMproc* proc=FKL_VM_PROC(v);
+			FklVMvalue* ref=proc->closure[idx];
+			if(lr->lref[def->idx])
+				proc->closure[idx]=lr->lref[def->idx];
+			else
+			{
+				((FklVMvalueVarRef*)ref)->idx=def->idx;
+				((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+				insert_local_ref(lr,ref,def->idx);
+			}
+		}
+
+	for(FklVM* cur=exe->next;cur!=exe;cur=cur->next)
+	{
+		for(FklVMvalue* v=cur->obj_head;v;v=v->next)
+			if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
+			{
+				FklVMproc* proc=FKL_VM_PROC(v);
+				FklVMvalue* ref=proc->closure[idx];
+				if(lr->lref[def->idx])
+					proc->closure[idx]=lr->lref[def->idx];
+				else
+				{
+					((FklVMvalueVarRef*)ref)->idx=def->idx;
+					((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+					insert_local_ref(lr,ref,def->idx);
+				}
+			}
+	}
+}
+
+struct ProcessUnresolveRefArg
+{
+	FklSymbolDef* def;
+	uint32_t prototypeId;
+	uint32_t idx;
+	FklVMvalue** loc;
+	FklVMCompoundFrameVarRef* lr;
+};
+
+static void process_unresolve_ref_cb(FklVM* exe,void* arg)
+{
+	struct ProcessUnresolveRefArg* aarg=(struct ProcessUnresolveRefArg*)arg;
+	process_unresolve_work_func(exe
+			,aarg->def
+			,aarg->prototypeId
+			,aarg->idx
+			,aarg->loc
+			,aarg->lr);
+}
+
+
 static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 		,FklFuncPrototypes* cp
-		,FklVMgc* gc
+		,FklVM* exe
 		,FklVMvalue** loc
 		,FklVMframe* mainframe)
 {
@@ -461,7 +538,17 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 			uint32_t prototypeId=uref->prototypeId;
 			uint32_t idx=ref->idx;
 			inc_lref(lr,lr->lcount);
-			for(FklVMvalue* v=gc->head;v;v=v->next)
+			struct ProcessUnresolveRefArg arg=
+			{
+				.def=def,
+				.prototypeId=prototypeId,
+				.idx=idx,
+				.loc=loc,
+				.lr=lr,
+			};
+
+			fklQueueWorkInIdleThread(exe,process_unresolve_ref_cb,&arg);
+			for(FklVMvalue* v=exe->gc->head;v;v=v->next)
 				if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
 				{
 					FklVMproc* proc=FKL_VM_PROC(v);
@@ -475,6 +562,22 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 						insert_local_ref(lr,ref,def->idx);
 					}
 				}
+
+			for(FklVMvalue* v=exe->obj_head;v;v=v->next)
+				if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
+				{
+					FklVMproc* proc=FKL_VM_PROC(v);
+					FklVMvalue* ref=proc->closure[idx];
+					if(lr->lref[def->idx])
+						proc->closure[idx]=lr->lref[def->idx];
+					else
+					{
+						((FklVMvalueVarRef*)ref)->idx=def->idx;
+						((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+						insert_local_ref(lr,ref,def->idx);
+					}
+				}
+
 			free(uref);
 		}
 		else if(env->prev)
@@ -738,7 +841,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 			f->lcount=proc->lcount;
 			alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
 
-			process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe->gc,exe->locv,mainframe);
+			process_unresolve_ref_for_repl(codegen->globalEnv,codegen->pts,exe,exe->locv,mainframe);
 
 			exe->top_frame=mainframe;
 		}

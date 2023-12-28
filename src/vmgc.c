@@ -271,6 +271,42 @@ FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc* gc,uint32_t llast,uint32_t* pl
 	return r;
 }
 
+FklVMvalue** fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc* gc,uint32_t llast,uint32_t* pllast)
+{
+	uint32_t idx=compute_level_idx(llast);
+	FklVMvalue** r=NULL;
+	for(uint8_t i=idx;!r&&i<FKL_VM_GC_LOCV_CACHE_LEVEL_NUM;i++)
+	{
+		struct FklLocvCacheLevel* l=&gc->locv_cache[i];
+		if(l->num)
+		{
+			struct FklLocvCache* ll=l->locv;
+			for(uint8_t j=0;j<FKL_VM_GC_LOCV_CACHE_NUM;j++)
+			{
+				if(ll[j].llast>=llast)
+				{
+					*pllast=ll[j].llast;
+					r=ll[j].locv;
+					l->num--;
+					for(uint8_t k=j;k<l->num;k++)
+						ll[k]=ll[k+1];
+					ll[l->num].llast=0;
+					ll[l->num].locv=0;
+					break;
+				}
+			}
+		}
+	}
+	if(!r)
+	{
+		*pllast=llast;
+		r=(FklVMvalue**)malloc(llast*sizeof(FklVMvalue*));
+		FKL_ASSERT(r);
+		atomic_fetch_add(&gc->num,llast);
+	}
+	return r;
+}
+
 void fklAddToGC(FklVMvalue* v,FklVM* vm)
 {
 	if(FKL_IS_PTR(v))

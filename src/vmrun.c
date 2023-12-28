@@ -47,8 +47,7 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM* exe,uint32_t count)
 		uint32_t old_llast=exe->llast;
 		exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
 		FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast,&exe->llast);
-		FKL_ASSERT(locv);
-		memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
+		memcpy(locv,exe->locv,exe->ltp*sizeof(FklVMvalue*));
 		fklUpdateAllVarRef(exe->top_frame,locv);
 		push_old_locv(exe,old_llast,exe->locv);
 		exe->locv=locv;
@@ -69,8 +68,7 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 			uint32_t old_llast=exe->llast;
 			exe->llast=nltp+FKL_VM_LOCV_INC_NUM;
 			FklVMvalue** locv=fklAllocLocalVarSpaceFromGC(exe->gc,exe->llast,&exe->llast);
-			FKL_ASSERT(locv);
-			memcpy(locv,exe->locv,old_llast*sizeof(FklVMvalue*));
+			memcpy(locv,exe->locv,exe->ltp*sizeof(FklVMvalue*));
 			fklUpdateAllVarRef(exe->top_frame,locv);
 			push_old_locv(exe,old_llast,exe->locv);
 			exe->locv=locv;
@@ -80,6 +78,20 @@ FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM* exe,uint32_t count)
 		exe->ltp=nltp;
 	}
 	return exe->locv;
+}
+
+void fklShrinkLocv(FklVM* exe)
+{
+	if(exe->llast-exe->ltp>FKL_VM_LOCV_INC_NUM)
+	{
+		uint32_t nlast=exe->ltp+FKL_VM_LOCV_INC_NUM;
+		FklVMvalue** locv=fklAllocLocalVarSpaceFromGCwithoutLock(exe->gc,nlast,&nlast);
+		memcpy(locv,exe->locv,exe->ltp*sizeof(FklVMvalue*));
+		fklUpdateAllVarRef(exe->top_frame,locv);
+		push_old_locv(exe,exe->llast,exe->locv);
+		exe->locv=locv;
+		exe->llast=nlast;
+	}
 }
 
 static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc)
@@ -1066,6 +1078,16 @@ static inline void move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_c
 	}
 }
 
+static inline void shrink_locv_and_stack(FklPtrQueue* q)
+{
+	for(FklQueueNode* n=q->head;n;n=n->next)
+	{
+		FklVM* exe=n->data;
+		fklShrinkLocv(exe);
+		fklShrinkStack(exe);
+	}
+}
+
 static inline void vm_idler_loop(FklVMgc* gc)
 {
 	FklVMqueue* q=&gc->q;
@@ -1108,6 +1130,7 @@ static inline void vm_idler_loop(FklVMgc* gc)
 				fklPushPtrQueueNode(&q->running_q,n);
 
 			remove_exited_thread(gc);
+			shrink_locv_and_stack(&q->running_q);
 
 			switch_un_notice_lock_ins(&q->running_q);
 			unlock_all_vm(&q->running_q);
@@ -2368,8 +2391,10 @@ void fklShrinkStack(FklVM* stack)
 {
 	if(stack->last-stack->tp>FKL_VM_STACK_INC_NUM)
 	{
-		stack->last-=FKL_VM_STACK_INC_NUM;
-		stack->size-=FKL_VM_STACK_INC_SIZE;
+		uint32_t i=1;
+		for(;stack->last-stack->tp>(FKL_VM_STACK_INC_NUM*i);i++);
+		stack->last-=i*FKL_VM_STACK_INC_NUM;
+		stack->size-=i*FKL_VM_STACK_INC_SIZE;
 		stack->base=(FklVMvalue**)fklRealloc(stack->base,stack->size);
 		FKL_ASSERT(stack->base);
 	}

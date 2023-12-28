@@ -615,6 +615,7 @@ int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 FklVMgc* fklCreateVMgc(FklSymbolTable* st);
 FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast,uint32_t* pllast);
+FklVMvalue** fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc*,uint32_t llast,uint32_t* pllast);
 
 void fklVMacquireSt(FklVMgc*);
 void fklVMreleaseSt(FklVMgc*);
@@ -708,6 +709,7 @@ void fklInitMainVMframeWithProc(FklVM*
 		,FklVMframe* prev
 		,FklFuncPrototypes* pts);
 
+void fklShrinkLocv(FklVM*);
 FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);
 void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);

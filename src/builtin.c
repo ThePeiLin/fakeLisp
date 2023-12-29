@@ -3757,12 +3757,9 @@ struct IdleQueueWorkArg
 
 static void idle_queue_work_cb(FklVM* exe,void* a)
 {
-	fklDontNoticeThreadLock(exe);
 	struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)a;
 
-	fklVMreleaseWq(exe->gc);
-	uv_cond_wait(&arg->cond,&exe->lock);
-	fklVMacquireWq(exe->gc);
+	fklResumeQueueWorkThread(exe,&arg->cond);
 
 	free(a);
 }
@@ -3796,7 +3793,7 @@ static int builtin_call_wq(FKL_CPROC_ARGL)
 		default:
 			{
 				struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)ctx->context;
-				uv_cond_signal(&arg->cond);
+				fklResumeQueueIdleThread(exe,&arg->cond);
 			}
 			break;
 	}

@@ -1209,21 +1209,37 @@ static inline void vm_idle_loop(FklVMgc* gc)
 		}
 		if(atomic_load(&gc->work_num))
 		{
-			uv_mutex_lock(&gc->workq_lock);
 			switch_notice_lock_ins_for_running_threads(&q->running_q);
 			lock_all_vm(&q->running_q);
+			uv_mutex_lock(&gc->workq_lock);
+
 			for(struct FklVMidleWork* w=pop_idle_work(gc);w;w=pop_idle_work(gc))
 			{
 				atomic_fetch_sub(&gc->work_num,1);
 				uv_cond_signal(&w->cond);
 				w->cb(w->vm,w->arg);
 			}
+
+			uv_mutex_unlock(&gc->workq_lock);
 			switch_un_notice_lock_ins_for_running_threads(&q->running_q);
 			unlock_all_vm(&q->running_q);
-			uv_mutex_unlock(&gc->workq_lock);
 		}
 		uv_sleep(0);
 	}
+}
+
+void fklResumeQueueWorkThread(FklVM* exe,uv_cond_t* cond)
+{
+	fklDontNoticeThreadLock(exe);
+	fklVMreleaseWq(exe->gc);
+	uv_cond_wait(cond,&exe->lock);
+	fklNoticeThreadLock(exe);
+	fklVMacquireWq(exe->gc);
+}
+
+void fklResumeQueueIdleThread(FklVM* exe,uv_cond_t* cond)
+{
+	uv_cond_signal(cond);
 }
 
 int fklRunVM(FklVM* volatile exe)

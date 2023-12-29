@@ -989,6 +989,8 @@ void fklVMreleaseWq(FklVMgc*);
 void fklQueueWorkInIdleThread(FklVM* vm
 		,void (*cb)(FklVM*,void*)
 		,void* arg);
+void fklResumeQueueWorkThread(FklVM*,uv_cond_t*);
+void fklResumeQueueIdleThread(FklVM*,uv_cond_t*);
 
 void fklNoticeThreadLock(FklVM*);
 void fklDontNoticeThreadLock(FklVM*);

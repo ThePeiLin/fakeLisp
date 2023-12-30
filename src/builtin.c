@@ -3750,34 +3750,23 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 	return 1;
 }
 
-struct IdleQueueWorkArg
-{
-	jmp_buf buf;
-};
-
 #define IDLE_WORK_DONE (2)
 
 static void idle_queue_work_cb(FklVM* exe,void* a)
 {
-	struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)a;
+	FklCprocFrameContext* ctx=(FklCprocFrameContext*)a;
+	jmp_buf buf;
+	ctx->context=(uintptr_t)&buf;
 	fklDontNoticeThreadLock(exe);
 	exe->state=FKL_VM_READY;
-	if(setjmp(arg->buf)==IDLE_WORK_DONE)
+	if(setjmp(buf)==IDLE_WORK_DONE)
 		goto exit;
 	exe->is_single_thread=1;
 	fklRunVMinSingleThread(exe);
 exit:
 	fklNoticeThreadLock(exe);
 	exe->is_single_thread=0;
-	free(a);
 	return;
-}
-
-static inline struct IdleQueueWorkArg* create_idle_queue_work_arg(void)
-{
-	struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)malloc(sizeof(struct IdleQueueWorkArg));
-	FKL_ASSERT(arg);
-	return arg;
 }
 
 static int builtin_idle(FKL_CPROC_ARGL)
@@ -3792,9 +3781,7 @@ static int builtin_idle(FKL_CPROC_ARGL)
 				FKL_VM_PUSH_VALUE(exe,proc);
 				exe->tp--;
 				fklCallObj(exe,proc);
-				struct IdleQueueWorkArg* arg=create_idle_queue_work_arg();
-				ctx->context=(uintptr_t)arg;
-				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,arg);
+				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,ctx);
 				return 1;
 			}
 		case 1:
@@ -3802,9 +3789,9 @@ static int builtin_idle(FKL_CPROC_ARGL)
 			break;
 		default:
 			{
-				struct IdleQueueWorkArg* arg=(struct IdleQueueWorkArg*)ctx->context;
+				jmp_buf* buf=(jmp_buf*)ctx->context;
 				ctx->context=1;
-				longjmp(arg->buf,IDLE_WORK_DONE);
+				longjmp(*buf,IDLE_WORK_DONE);
 				return 1;
 			}
 			break;

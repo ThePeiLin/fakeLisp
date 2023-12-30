@@ -677,6 +677,27 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 
 #define NOTICE_LOCK(EXE) {uv_mutex_unlock(&(EXE)->lock);uv_mutex_lock(&(EXE)->lock);}
 
+#define DO_STEP_VM_SINGLE_THREAD(exe) {\
+	FklVMframe* curframe=exe->top_frame;\
+	switch(curframe->type)\
+	{\
+		case FKL_FRAME_COMPOUND:\
+			{\
+				FklInstruction* cur=curframe->c.pc++;\
+				ins_table[cur->op](exe,cur);\
+			}\
+			break;\
+		case FKL_FRAME_OTHEROBJ:\
+			if(fklIsCallableObjFrameReachEnd(curframe))\
+				fklDoFinalizeObjFrame(exe,popFrame(exe));\
+			else\
+				fklDoCallableObjFrameStep(curframe,exe);\
+			break;\
+	}\
+	if(exe->top_frame==NULL)\
+		exe->state=FKL_VM_EXIT;\
+}
+
 #define DO_STEP_VM(exe) {\
 	FklVMframe* curframe=exe->top_frame;\
 	switch(curframe->type)\
@@ -730,7 +751,7 @@ void fklRunVMinSingleThread(FklVM* volatile exe)
 		switch(exe->state)
 		{
 			case FKL_VM_RUNNING:
-				DO_STEP_VM(exe);
+				DO_STEP_VM_SINGLE_THREAD(exe);
 				break;
 			case FKL_VM_EXIT:
 				if(exe->chan)

@@ -232,7 +232,7 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)
 {
 	FKL_VM_PUSH_VALUE(exe,ev);
-	longjmp(exe->buf,1);
+	longjmp(exe->buf,FKL_VM_ERR_RAISE);
 	return 255;
 }
 

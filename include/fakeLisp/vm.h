@@ -351,6 +351,8 @@ typedef struct FklVMlib
 	uint8_t belong;
 }FklVMlib;
 
+#define FKL_VM_ERR_RAISE (1)
+
 typedef enum
 {
 	FKL_VM_EXIT,
@@ -391,6 +393,7 @@ typedef struct FklVM
 	FklVMvalue* obj_head;
 	FklVMvalue* obj_tail;
 
+	int is_single_thread;
 	uint32_t ltp;
 	uint32_t llast;
 	uint32_t old_locv_count;
@@ -613,6 +616,7 @@ typedef struct
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 
+void fklRunVMinSingleThread(FklVM* exe);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
 FklVM* fklCreateThreadVM(FklVMvalue*

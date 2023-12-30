@@ -66,8 +66,8 @@ target_link_libraries(test-regex test_lib ${LINK_TARGET})
 add_executable(test-grammer "main/test/grammer.c")
 target_link_libraries(test-grammer test_lib ${LINK_TARGET})
 
-add_executable(test-parser "main/test/parser.c")
-target_link_libraries(test-parser ${LIBFKL_TARGET_NAME})
+add_executable(test-parser "main/test/parser.c" "src/parser.c" ${PARSE})
+target_link_libraries(test-parser test_lib ${LINK_TARGET})
 
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE

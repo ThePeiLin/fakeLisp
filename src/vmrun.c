@@ -1172,7 +1172,7 @@ void fklQueueWorkInIdleThread(FklVM* vm
 	};
 	if(uv_cond_init(&work.cond))
 		abort();
-	uv_mutex_unlock(&vm->lock);
+	fklUnlockThread(vm);
 	uv_mutex_lock(&gc->workq_lock);
 
 	push_idle_work(gc,&work);
@@ -1182,7 +1182,7 @@ void fklQueueWorkInIdleThread(FklVM* vm
 	uv_cond_wait(&work.cond,&gc->workq_lock);
 	uv_mutex_unlock(&gc->workq_lock);
 
-	uv_mutex_lock(&vm->lock);
+	fklLockThread(vm);
 	uv_cond_destroy(&work.cond);
 }
 

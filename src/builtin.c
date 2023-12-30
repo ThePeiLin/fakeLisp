@@ -3780,9 +3780,9 @@ static inline struct IdleQueueWorkArg* create_idle_queue_work_arg(void)
 	return arg;
 }
 
-static int builtin_call_wq(FKL_CPROC_ARGL)
+static int builtin_idle(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="builtin.call/wq";
+	static const char Pname[]="builtin.idle";
 	switch(ctx->context)
 	{
 		case 0:
@@ -5161,7 +5161,6 @@ static const struct SymbolFuncStruct
 	{"length",                builtin_length,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"apply",                 builtin_apply,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"call/eh",               builtin_call_eh,                 {NULL,         NULL,          NULL,            NULL,          }, },
-	{"call/wq",               builtin_call_wq,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"read",                  builtin_read,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"parse",                 builtin_parse,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"make-parser",           builtin_make_parser,             {NULL,         NULL,          NULL,            NULL,          }, },
@@ -5181,7 +5180,10 @@ static const struct SymbolFuncStruct
 	{"dlopen",                builtin_dlopen,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"dlsym",                 builtin_dlsym,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"argv",                  builtin_argv,                    {NULL,         NULL,          NULL,            NULL,          }, },
+
+	{"idle",                  builtin_idle,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"go",                    builtin_go,                      {NULL,         NULL,          NULL,            NULL,          }, },
+
 	{"chanl",                 builtin_chanl,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-msg-num",         builtin_chanl_msg_num,           {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-recv-num",        builtin_chanl_recv_num,          {NULL,         NULL,          NULL,            NULL,          }, },

@@ -1,0 +1,27 @@
+(define count 0)
+
+(defmacro THREAD-NUM 100)
+
+(define (f bar)
+  (barrier-wait bar)
+  (idle
+    (lambda ()
+      (print "count=1+count\n")
+      (setq count (1+ count)))))
+
+(import (.. lib sync))
+
+(define bar (make-barrier THREAD-NUM))
+
+(define ch '())
+
+(do [(n 0 (1+ n))]
+  [(>= n THREAD-NUM)]
+  (setq ch (cons (go f bar) ch)))
+
+(foreach recv ch)
+
+(import (only (.. lib utils m) assert))
+
+(assert (eqv (println count) THREAD-NUM))
+

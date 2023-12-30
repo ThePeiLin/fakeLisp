@@ -6,6 +6,7 @@
 (import (ascii-art)
         (bf)
         (threading)
+        (idle)
         (demo1)
         (demo2)
         (fib)

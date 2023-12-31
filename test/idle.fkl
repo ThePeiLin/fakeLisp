@@ -2,12 +2,17 @@
 
 (defmacro THREAD-NUM 100)
 
+(defmacro INC 2)
+
+(defmacro TOTAL (* THREAD-NUM INC))
+
+(define (f1 a)
+  (print "count=1+count\n")
+  (setq count (+ count INC)))
+
 (define (f bar)
   (barrier-wait bar)
-  (idle
-    (lambda ()
-      (print "count=1+count\n")
-      (setq count (1+ count)))))
+  (idle f1 1))
 
 (import (.. lib sync))
 
@@ -23,5 +28,5 @@
 
 (import (only (.. lib utils m) assert))
 
-(assert (eqv (println count) THREAD-NUM))
+(assert (eqv (println count) TOTAL))
 

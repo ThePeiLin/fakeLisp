@@ -1076,6 +1076,56 @@ void fklRegexPrintAsC(const FklRegexCode* re
 	fputs("};\n",fp);
 }
 
+#include<fakeLisp/common.h>
+
+void fklRegexPrintAsCwithNum(const FklRegexCode* re
+		,const char* prefix
+		,uint64_t num
+		,FILE* fp)
+{
+	uint32_t objs_num=1;
+	uint32_t totalsize=re->totalsize;
+	const FklRegexObj* objs=re->data;
+	for(uint32_t i=0;objs[i].type!=FKL_REGEX_UNUSED;i++)
+		objs_num++;
+	uint32_t objs_size=objs_num*sizeof(FklRegexObj);
+	uint32_t strln=totalsize-objs_size;
+	if(strln)
+		fprintf(fp,"struct{\n"
+				"\tuint32_t totalsize;\n"
+				"\tuint32_t pstsize;\n"
+				"\tFklRegexObj objs[%u];\n"
+				"\tuint8_t patrns[%u];\n"
+				"}"
+				,objs_num
+				,strln);
+	else
+		fprintf(fp,"struct{\n"
+				"\tuint32_t totalsize;\n"
+				"\tuint32_t pstsize;\n"
+				"\tFklRegexObj objs[%u];\n"
+				"}"
+				,objs_num);
+	fputs(prefix?prefix:"regex_",fp);
+	fprintf(fp,"%"FKL_PRT64X"={\n"
+			"\t.totalsize=%u,\n"
+			"\t.pstsize=%u,\n"
+			"\t.objs={\n"
+			,num
+			,totalsize
+			,re->pstsize);
+	print_objs(objs,objs_num,fp);
+	fputs("\t},\n",fp);
+	if(strln)
+	{
+		const uint8_t* patrns=&((const uint8_t*)re->data)[objs_size];
+		fputs("\t.patrns={\n",fp);
+		print_patrns(patrns,strln,fp);
+		fputs("\t},\n",fp);
+	}
+	fputs("};\n",fp);
+}
+
 typedef struct
 {
 	FklRegexCode* re;
@@ -1180,6 +1230,7 @@ const FklRegexCode* fklAddRegexCharBuf(FklRegexTable* t
 		item->re=re;
 		((RegexStrHashItem*)fklPutHashItem(&item->re,&t->re_str))->str=item->str;
 		t->num++;
+		item->num=t->num;
 	}
 	else
 		fklDelHashItem(&item->str,ht,NULL);
@@ -1208,11 +1259,20 @@ FklRegexTable* fklCreateRegexTable(void)
 	return r;
 }
 
-const FklString* fklGetStringWithRegex(const FklRegexTable* t,const FklRegexCode* re)
+const FklString* fklGetStringWithRegex(const FklRegexTable* t
+		,const FklRegexCode* re
+		,uint64_t* pnum)
 {
 	RegexStrHashItem* item=fklGetHashItem(&re,&t->re_str);
 	if(item)
+	{
+		if(pnum)
+		{
+			FklStrRegexHashItem* str_re=fklGetHashItem(&item->str,&t->str_re);
+			*pnum=str_re->num;
+		}
 		return item->str;
+	}
 	return NULL;
 }
 

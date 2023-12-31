@@ -4290,7 +4290,7 @@ static inline void recompute_ignores_terminal_sid_and_regex(FklGrammerIgnore* ig
 			cur->b.c=cur->b.t->ctx_create(idx+1<len?syms[idx+1].str:NULL,&failed);
 		}
 		else if(cur->term_type==FKL_TERM_REGEX)
-			cur->re=fklAddRegexStr(target_rt,fklGetStringWithRegex(orig_rt,cur->re));
+			cur->re=fklAddRegexStr(target_rt,fklGetStringWithRegex(orig_rt,cur->re,NULL));
 		else
 			cur->str=fklAddSymbol(cur->str,target_table)->symbol;
 	}

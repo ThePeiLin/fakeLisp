@@ -86,9 +86,15 @@ void fklRegexPrintAsC(const FklRegexCode*
 		,uint32_t pattern_len
 		,FILE* fp);
 
+void fklRegexPrintAsCwithNum(const FklRegexCode*
+		,const char* prefix
+		,uint64_t num
+		,FILE* fp);
+
 typedef struct
 {
 	FklString* str;
+	uint64_t num;
 	FklRegexCode* re;
 }FklStrRegexHashItem;
 
@@ -106,7 +112,9 @@ const FklRegexCode* fklAddRegexCharBuf(FklRegexTable* table
 const FklRegexCode* fklAddRegexCstr(FklRegexTable* table
 		,const char* str);
 
-const FklString* fklGetStringWithRegex(const FklRegexTable* t,const FklRegexCode*);
+const FklString* fklGetStringWithRegex(const FklRegexTable* t
+		,const FklRegexCode*
+		,uint64_t* num);
 
 #ifdef __cplusplus
 }

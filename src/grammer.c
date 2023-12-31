@@ -2673,7 +2673,7 @@ static inline void print_prod_sym(FILE* fp
 		else if(u->term_type==FKL_TERM_REGEX)
 		{
 			putc('/',fp);
-			fklPrintString(fklGetStringWithRegex(rt,u->re),fp);
+			fklPrintString(fklGetStringWithRegex(rt,u->re,NULL),fp);
 		}
 		else
 		{
@@ -2745,7 +2745,7 @@ static inline void print_prod_sym_as_dot(FILE* fp
 		}
 		else if(u->term_type==FKL_TERM_REGEX)
 		{
-			const FklString* str=fklGetStringWithRegex(rt,u->re);
+			const FklString* str=fklGetStringWithRegex(rt,u->re,NULL);
 			fputs("\\/'",fp);
 			print_string_as_dot((const uint8_t*)str->str,'"',str->size,fp);
 			fputs("'\\/",fp);
@@ -3058,7 +3058,7 @@ static inline void print_look_ahead(FILE* fp
 			fputs("()",fp);
 			break;
 		case FKL_LALR_MATCH_REGEX:
-			fprintf(fp,"/%s/",fklGetStringWithRegex(rt,la->re)->str);
+			fprintf(fp,"/%s/",fklGetStringWithRegex(rt,la->re,NULL)->str);
 			break;
 	}
 }
@@ -3673,7 +3673,7 @@ static inline void print_look_ahead_as_dot(FILE* fp
 		case FKL_LALR_MATCH_REGEX:
 			{
 				fputs("\\/\'",fp);
-				const FklString* str=fklGetStringWithRegex(rt,la->re);
+				const FklString* str=fklGetStringWithRegex(rt,la->re,NULL);
 				print_string_as_dot((const uint8_t*)str->str,'\'',str->size,fp);
 				fputs("\\/\'",fp);
 			}
@@ -4045,10 +4045,10 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore* ig
 		igs->b.t->print_c_match_cond(igs->b.c,g,fp);
 	else if(igs->term_type==FKL_TERM_REGEX)
 	{
-		const FklString* str=fklGetStringWithRegex(&g->regexes,igs->re);
+		uint64_t num=0;
+		fklGetStringWithRegex(&g->regexes,igs->re,&num);
 		fputs("regex_lex_match_for_parser_in_c((const FklRegexCode*)&",fp);
-		fputs(PRINT_C_REGEX_PREFIX,fp);
-		fklPrintCharBufInHex(str->str,str->size,fp);
+		fprintf(fp,PRINT_C_REGEX_PREFIX"%"FKL_PRT64X,num);
 		fputs(",*in+otherMatchLen,*restLen-otherMatchLen,&matchLen,&is_waiting_for_more)",fp);
 	}
 	else
@@ -4067,10 +4067,10 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore* ig
 			igs->b.t->print_c_match_cond(igs->b.c,g,fp);
 		else if(igs->term_type==FKL_TERM_REGEX)
 		{
-			const FklString* str=fklGetStringWithRegex(&g->regexes,igs->re);
+			uint64_t num=0;
+			fklGetStringWithRegex(&g->regexes,igs->re,&num);
 			fputs("regex_lex_match_for_parser_in_c((const FklRegexCode*)&",fp);
-			fputs(PRINT_C_REGEX_PREFIX,fp);
-			fklPrintCharBufInHex(str->str,str->size,fp);
+			fprintf(fp,PRINT_C_REGEX_PREFIX"%"FKL_PRT64X,num);
 			fputs(",*in+otherMatchLen,*restLen-otherMatchLen,&matchLen,&is_waiting_for_more)",fp);
 		}
 		else
@@ -4780,10 +4780,10 @@ static inline void print_state_action_match_to_c_file(const FklAnalysisStateActi
 			break;
 		case FKL_LALR_MATCH_REGEX:
 			{
-				const FklString* str=fklGetStringWithRegex(&g->regexes,ac->match.re);
+				uint64_t num=0;
+				fklGetStringWithRegex(&g->regexes,ac->match.re,&num);
 				fputs("regex_lex_match_for_parser_in_c((const FklRegexCode*)&",fp);
-				fputs(PRINT_C_REGEX_PREFIX,fp);
-				fklPrintCharBufInHex(str->str,str->size,fp);
+				fprintf(fp,PRINT_C_REGEX_PREFIX"%"FKL_PRT64X,num);
 				fputs(",*in+otherMatchLen,*restLen-otherMatchLen,&matchLen,&is_waiting_for_more)",fp);
 			}
 			break;
@@ -5001,7 +5001,7 @@ static inline void print_all_regex(const FklRegexTable* rt,FILE* fp)
 	{
 		fputs("static const ",fp);
 		const FklStrRegexHashItem* i=(const FklStrRegexHashItem*)l->data;
-		fklRegexPrintAsC(i->re,PRINT_C_REGEX_PREFIX,i->str->str,i->str->size,fp);
+		fklRegexPrintAsCwithNum(i->re,PRINT_C_REGEX_PREFIX,i->num,fp);
 		fputc('\n',fp);
 	}
 }
@@ -5217,7 +5217,7 @@ static inline void print_ignores(const FklGrammerIgnore* ig
 			else if(igs->term_type==FKL_TERM_REGEX)
 			{
 				fputs("/'",fp);
-				print_string_for_grapheasy(fklGetStringWithRegex(rt,igs->re),fp);
+				print_string_for_grapheasy(fklGetStringWithRegex(rt,igs->re,NULL),fp);
 				fputs("'/",fp);
 			}
 			else

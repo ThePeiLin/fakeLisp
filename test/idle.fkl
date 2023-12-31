@@ -30,3 +30,4 @@
 
 (assert (eqv (println count) TOTAL))
 
+(idle println "hello, world in idle thread")

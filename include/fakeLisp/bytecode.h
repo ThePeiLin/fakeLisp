@@ -20,6 +20,7 @@ typedef struct
 		FklString* str;
 		FklBytevector* bvec;
 		FklBigInt* bi;
+		void* ptr;
 		FklSid_t sid;
 
 		uint32_t imm_u32;

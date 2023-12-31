@@ -118,7 +118,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
-	fklInitGlobalCodegenInfo(codegen,rp,fklCreateSymbolTable(),0,outer_ctx);
+	fklInitGlobalCodegenInfo(codegen,rp,pst,0,outer_ctx);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,codegen);
 	if(mainByteCode==NULL)

@@ -409,8 +409,10 @@ typedef struct FklVM
 	FklVMvalue** base;
 
 	FklVMframe static_frame;
-	FklVMframe* frame_cache;
 	FklVMframe* top_frame;
+
+	FklVMframe* frame_cache_head;
+	FklVMframe** frame_cache_tail;
 
 	struct FklVMvalue* chan;
 	struct FklVMgc* gc;

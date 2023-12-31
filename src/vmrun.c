@@ -492,7 +492,8 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->next=exe;
 	exe->pts=pts;
 	exe->gc=fklCreateVMgc(globalSymTable);
-	exe->frame_cache=&exe->static_frame;
+	exe->frame_cache_head=&exe->static_frame;
+	exe->frame_cache_tail=&exe->frame_cache_head->prev;
 	if(mainCode!=NULL)
 	{
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
@@ -532,8 +533,11 @@ void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 void fklDoFinalizeObjFrame(FklVM* vm,FklVMframe* f)
 {
 	f->t->finalizer(fklGetFrameData(f));
-	f->prev=vm->frame_cache;
-	vm->frame_cache=f;
+	f->prev=NULL;
+	*(vm->frame_cache_tail)=f;
+	vm->frame_cache_tail=&f->prev;
+	// f->prev=vm->frame_cache;
+	// vm->frame_cache=f;
 }
 
 static inline void close_var_ref(FklVMvalue* ref)
@@ -559,8 +563,12 @@ void fklDoFinalizeCompoundFrame(FklVM* exe,FklVMframe* frame)
 	close_all_var_ref(lr);
 	free(lr->lref);
 	exe->ltp-=lr->lcount;
-	frame->prev=exe->frame_cache;
-	exe->frame_cache=frame;
+
+	frame->prev=NULL;
+	*(exe->frame_cache_tail)=frame;
+	exe->frame_cache_tail=&frame->prev;
+	// frame->prev=exe->frame_cache;
+	// exe->frame_cache=frame;
 }
 
 void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
@@ -866,7 +874,7 @@ void fklVMthreadStart(FklVM* exe,FklVMqueue* q)
 
 static inline void remove_thread_frame_cache(FklVM* exe)
 {
-	FklVMframe** phead=&exe->frame_cache;
+	FklVMframe** phead=&exe->frame_cache_head;
 	while(*phead)
 	{
 		FklVMframe* prev=*phead;
@@ -878,6 +886,9 @@ static inline void remove_thread_frame_cache(FklVM* exe)
 			free(prev);
 		}
 	}
+	exe->frame_cache_tail=exe->frame_cache_head
+		?&exe->frame_cache_head->prev
+		:&exe->frame_cache_head;
 }
 
 static inline void remove_exited_thread(FklVMgc* gc)
@@ -2630,7 +2641,8 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->libNum=libNum;
 	exe->libs=copy_vm_libs(libs,libNum+1);
 	exe->pts=prev->pts;
-	exe->frame_cache=&exe->static_frame;
+	exe->frame_cache_head=&exe->static_frame;
+	exe->frame_cache_tail=&exe->frame_cache_head->prev;
 	exe->state=FKL_VM_READY;
 	memcpy(exe->rand_state,prev->rand_state,sizeof(uint64_t[4]));
 	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));

@@ -367,10 +367,12 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVM* exe,FklVMvalue* proc,FklVMframe
 {
 	FklVMproc* code=FKL_VM_PROC(proc);
 	FklVMframe* frame;
-	if(exe->frame_cache)
+	if(exe->frame_cache_head)
 	{
-		frame=exe->frame_cache;
-		exe->frame_cache=frame->prev;
+		frame=exe->frame_cache_head;
+		exe->frame_cache_head=frame->prev;
+		if(frame->prev==NULL)
+			exe->frame_cache_tail=&exe->frame_cache_head;
 	}
 	else
 	{
@@ -406,10 +408,12 @@ FklVMframe* fklCreateVMframeWithProcValue(FklVM* exe,FklVMvalue* proc,FklVMframe
 FklVMframe* fklCreateOtherObjVMframe(FklVM* exe,const FklVMframeContextMethodTable* t,FklVMframe* prev)
 {
 	FklVMframe* r;
-	if(exe->frame_cache)
+	if(exe->frame_cache_head)
 	{
-		r=exe->frame_cache;
-		exe->frame_cache=r->prev;
+		r=exe->frame_cache_head;
+		exe->frame_cache_head=r->prev;
+		if(r->prev==NULL)
+			exe->frame_cache_tail=&exe->frame_cache_head;
 	}
 	else
 	{

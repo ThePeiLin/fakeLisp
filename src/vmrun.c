@@ -1255,7 +1255,7 @@ static inline void vm_idle_loop(FklVMgc* gc)
 			fklVMgcSweep(white);
 			fklVMgcRemoveUnusedGrayCache(gc);
 
-			gc->threshold=gc->num+FKL_VM_GC_THRESHOLD_SIZE;
+			gc->threshold=gc->num*2;
 
 			FklPtrQueue other_running_q;
 			fklInitPtrQueue(&other_running_q);

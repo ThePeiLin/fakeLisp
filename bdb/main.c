@@ -87,7 +87,7 @@ static inline void push_debug_ctx(DebugCtx* ctx)
 static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.make-debug-ctx";
-	FKL_DECL_AND_CHECK_ARG2(filename_obj,argv_obj,Pname);
+	FKL_DECL_AND_CHECK_ARG2(filename_obj,argv_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename_obj,FKL_IS_STR,Pname,exe);
 	{
@@ -123,7 +123,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 static int bdb_debug_ctx_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,IS_DEBUG_CTX_UD(obj)
 			?FKL_VM_TRUE
@@ -134,7 +134,7 @@ static int bdb_debug_ctx_p(FKL_CPROC_ARGL)
 static int bdb_debug_ctx_end_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-end?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
@@ -233,7 +233,7 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 static int bdb_debug_ctx_repl(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-repl";
-	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,prompt_obj,Pname);
+	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,prompt_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_CHECK_TYPE(prompt_obj,FKL_IS_STR,Pname,exe);
@@ -250,7 +250,7 @@ static int bdb_debug_ctx_repl(FKL_CPROC_ARGL)
 static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-repl";
-	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
 
@@ -270,6 +270,24 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 	const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
 	FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,file_str_value,line_str_value));
+	return 0;
+}
+
+static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-continue";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
+	fklUnlockThread(exe);
+	fklVMidleLoop(dctx->gc);
+	fklLockThread(exe);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
 	return 0;
 }
 
@@ -293,7 +311,7 @@ struct SymFunc
 	{"debug-ctx-next",        bdb_debug_incomplete,      },
 	{"debug-ctx-del-break",   bdb_debug_incomplete,      },
 	{"debug-ctx-set-break",   bdb_debug_incomplete,      },
-	{"debug-ctx-continue",    bdb_debug_incomplete,      },
+	{"debug-ctx-continue",    bdb_debug_ctx_continue,    },
 	{"debug-ctx-exit",        bdb_debug_incomplete,      },
 };
 

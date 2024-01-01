@@ -21,7 +21,7 @@ static FklVMudMetaTable MutexUdMetaTable=
 static int sync_mutex_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.mutex?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,IS_MUTEX_UD(obj)
 			?FKL_VM_TRUE
@@ -45,7 +45,7 @@ static int sync_make_mutex(FKL_CPROC_ARGL)
 static int sync_mutex_lock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.mutex-lock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_MUTEX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,obj);
@@ -59,7 +59,7 @@ static int sync_mutex_lock(FKL_CPROC_ARGL)
 static int sync_mutex_unlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.mutex-unlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_MUTEX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,obj);
@@ -71,7 +71,7 @@ static int sync_mutex_unlock(FKL_CPROC_ARGL)
 static int sync_mutex_trylock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.mutex-trylock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_MUTEX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,obj);
@@ -102,7 +102,7 @@ static FklVMudMetaTable CondUdMetaTable=
 static int sync_cond_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.cond?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,IS_COND_UD(obj)
 			?FKL_VM_TRUE
@@ -126,7 +126,7 @@ static int sync_make_cond(FKL_CPROC_ARGL)
 static int sync_cond_signal(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.cond-signal";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_COND_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,obj);
@@ -138,7 +138,7 @@ static int sync_cond_signal(FKL_CPROC_ARGL)
 static int sync_cond_broadcast(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.cond-broadcast";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_COND_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,obj);
@@ -150,7 +150,7 @@ static int sync_cond_broadcast(FKL_CPROC_ARGL)
 static int sync_cond_wait(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.cond-wait";
-	FKL_DECL_AND_CHECK_ARG2(cond_obj,mutex_obj,Pname);
+	FKL_DECL_AND_CHECK_ARG2(cond_obj,mutex_obj,exe,Pname);
 	FklVMvalue* timeout_obj=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(cond_obj,IS_COND_UD,Pname,exe);
@@ -209,7 +209,7 @@ static FklVMudMetaTable RwlockUdMetaTable=
 static int sync_rwlock_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,IS_RWLOCK_UD(obj)
 			?FKL_VM_TRUE
@@ -233,7 +233,7 @@ static int sync_make_rwlock(FKL_CPROC_ARGL)
 static int sync_rwlock_rdlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock-rdlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
@@ -247,7 +247,7 @@ static int sync_rwlock_rdlock(FKL_CPROC_ARGL)
 static int sync_rwlock_rdunlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock-rdunlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
@@ -259,7 +259,7 @@ static int sync_rwlock_rdunlock(FKL_CPROC_ARGL)
 static int sync_rwlock_tryrdlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock-tryrdlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
@@ -272,7 +272,7 @@ static int sync_rwlock_tryrdlock(FKL_CPROC_ARGL)
 static int sync_rwlock_wrlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock-wrlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
@@ -286,7 +286,7 @@ static int sync_rwlock_wrlock(FKL_CPROC_ARGL)
 static int sync_rwlock_wrunlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock-wrunlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
@@ -298,7 +298,7 @@ static int sync_rwlock_wrunlock(FKL_CPROC_ARGL)
 static int sync_rwlock_trywrlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.rwlock-trywrlock";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_RWLOCK_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,obj);
@@ -329,7 +329,7 @@ static FklVMudMetaTable SemUdMetaTable=
 static int sync_sem_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.sem?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,IS_SEM_UD(obj)
 			?FKL_VM_TRUE
@@ -340,7 +340,7 @@ static int sync_sem_p(FKL_CPROC_ARGL)
 static int sync_make_sem(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-sem";
-	FKL_DECL_AND_CHECK_ARG(value_obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(value_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(value_obj,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(value_obj))
@@ -357,7 +357,7 @@ static int sync_make_sem(FKL_CPROC_ARGL)
 static int sync_sem_wait(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.sem-wait";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
@@ -371,7 +371,7 @@ static int sync_sem_wait(FKL_CPROC_ARGL)
 static int sync_sem_post(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.sem-post";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
@@ -383,7 +383,7 @@ static int sync_sem_post(FKL_CPROC_ARGL)
 static int sync_sem_trywait(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.sem-trywait";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_SEM_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,obj);
@@ -414,7 +414,7 @@ static FklVMudMetaTable BarrierUdMetaTable=
 static int sync_barrier_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.barrier?";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,IS_BARRIER_UD(obj)
 			?FKL_VM_TRUE
@@ -425,7 +425,7 @@ static int sync_barrier_p(FKL_CPROC_ARGL)
 static int sync_make_barrier(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-barrier";
-	FKL_DECL_AND_CHECK_ARG(count_obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(count_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(count_obj,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(count_obj))
@@ -442,7 +442,7 @@ static int sync_make_barrier(FKL_CPROC_ARGL)
 static int sync_barrier_wait(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.barrier-wait";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_BARRIER_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(barrier,uv_barrier_t,obj);

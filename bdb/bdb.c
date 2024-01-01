@@ -106,6 +106,8 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	ctx->gc=gc;
 	ctx->cur_thread=anotherVM;
 
+	gc->main_thread=anotherVM;
+	fklVMthreadStart(anotherVM,&gc->q);
 	return 0;
 }
 

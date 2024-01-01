@@ -1323,6 +1323,11 @@ static inline void vm_idle_loop(FklVMgc* gc)
 	}
 }
 
+void fklVMidleLoop(FklVMgc* gc)
+{
+	vm_idle_loop(gc);
+}
+
 int fklRunVM(FklVM* volatile exe)
 {
 	FklVMgc* gc=exe->gc;

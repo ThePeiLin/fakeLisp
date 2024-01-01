@@ -4,7 +4,7 @@
 static int os_system(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.system";
-	FKL_DECL_AND_CHECK_ARG(cmd,Pname);
+	FKL_DECL_AND_CHECK_ARG(cmd,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(cmd,FKL_IS_STR,Pname,exe);
 	const FklString* cmd_str=FKL_VM_STR(cmd);
@@ -126,7 +126,7 @@ static int os_date(FKL_CPROC_ARGL)
 static int os_remove(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.remove";
-	FKL_DECL_AND_CHECK_ARG(name,Pname);
+	FKL_DECL_AND_CHECK_ARG(name,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
 	const FklString* name_str=FKL_VM_STR(name);
@@ -137,7 +137,7 @@ static int os_remove(FKL_CPROC_ARGL)
 static int os_rename(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.rename";
-	FKL_DECL_AND_CHECK_ARG2(old_name,new_name,Pname);
+	FKL_DECL_AND_CHECK_ARG2(old_name,new_name,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(old_name,FKL_IS_STR,Pname,exe);
 	FKL_CHECK_TYPE(new_name,FKL_IS_STR,Pname,exe);
@@ -150,7 +150,7 @@ static int os_rename(FKL_CPROC_ARGL)
 static int os_chdir(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.chdir";
-	FKL_DECL_AND_CHECK_ARG(dir,Pname);
+	FKL_DECL_AND_CHECK_ARG(dir,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
 	FklString* dirstr=FKL_VM_STR(dir);
@@ -175,7 +175,7 @@ static int os_getcwd(FKL_CPROC_ARGL)
 static int os_getenv(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.getenv";
-	FKL_DECL_AND_CHECK_ARG(name,Pname);
+	FKL_DECL_AND_CHECK_ARG(name,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
 	const FklString* name_str=FKL_VM_STR(name);
@@ -187,7 +187,7 @@ static int os_getenv(FKL_CPROC_ARGL)
 static int os_setenv(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="os.setenv";
-	FKL_DECL_AND_CHECK_ARG(name,Pname);
+	FKL_DECL_AND_CHECK_ARG(name,exe,Pname);
 	FklVMvalue* value=FKL_VM_POP_ARG(exe);
 	FklVMvalue* overwrite=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);

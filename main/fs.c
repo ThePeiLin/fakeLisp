@@ -3,7 +3,7 @@
 static int fs_facce_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.facce?";
-	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
@@ -15,7 +15,7 @@ static int fs_facce_p(FKL_CPROC_ARGL)
 static int fs_freg_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.freg?";
-	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe
@@ -28,7 +28,7 @@ static int fs_freg_p(FKL_CPROC_ARGL)
 static int fs_fdir_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fdir?";
-	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe
@@ -41,7 +41,7 @@ static int fs_fdir_p(FKL_CPROC_ARGL)
 static int fs_freopen(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.freopen";
-	FKL_DECL_AND_CHECK_ARG2(stream,filename,Pname);
+	FKL_DECL_AND_CHECK_ARG2(stream,filename,exe,Pname);
 	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	if(!FKL_IS_FP(stream)||!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
@@ -64,7 +64,7 @@ static int fs_freopen(FKL_CPROC_ARGL)
 static int fs_realpath(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.realpath";
-	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	char* rp=fklRealpath(FKL_VM_STR(filename)->str);
@@ -81,7 +81,7 @@ static int fs_realpath(FKL_CPROC_ARGL)
 static int fs_relpath(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.relpath";
-	FKL_DECL_AND_CHECK_ARG(path,Pname);
+	FKL_DECL_AND_CHECK_ARG(path,exe,Pname);
 	FklVMvalue* start=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(path,FKL_IS_STR,Pname,exe);
@@ -125,7 +125,7 @@ static int fs_relpath(FKL_CPROC_ARGL)
 static int fs_mkdir(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.mkdir";
-	FKL_DECL_AND_CHECK_ARG(filename,Pname);
+	FKL_DECL_AND_CHECK_ARG(filename,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,Pname,exe);
 	char* filename_str=FKL_VM_STR(filename)->str;
@@ -149,7 +149,7 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 static int fs_fprint(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fprint";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,exe,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);
@@ -166,7 +166,7 @@ static int fs_fprint(FKL_CPROC_ARGL)
 static int fs_fprintln(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fprintln";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,exe,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);
@@ -184,7 +184,7 @@ static int fs_fprintln(FKL_CPROC_ARGL)
 static int fs_fprin1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fprin1";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,exe,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);
@@ -202,7 +202,7 @@ static int fs_fprin1(FKL_CPROC_ARGL)
 static int fs_fprin1n(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fprin1n";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,exe,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);
@@ -221,7 +221,7 @@ static int fs_fprin1n(FKL_CPROC_ARGL)
 static int fs_fwrite(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fs.fwrite";
-	FKL_DECL_AND_CHECK_ARG(f,Pname);
+	FKL_DECL_AND_CHECK_ARG(f,exe,Pname);
 	FKL_CHECK_TYPE(f,FKL_IS_FP,Pname,exe);
 	CHECK_FP_OPEN(f,Pname,exe);
 	CHECK_FP_WRITABLE(f,Pname,exe);

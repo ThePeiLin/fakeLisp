@@ -144,7 +144,7 @@ static int math_rand(FKL_CPROC_ARGL)
 static int math_abs(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.abs";
-	FKL_DECL_AND_CHECK_ARG(obj,Pname);
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,fklIsVMnumber,Pname,exe);
 	if(FKL_IS_F64(obj))
@@ -172,7 +172,7 @@ static int math_abs(FKL_CPROC_ARGL)
 static int math_odd_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.odd?";
-	FKL_DECL_AND_CHECK_ARG(val,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
 	int r=0;
@@ -190,7 +190,7 @@ static int math_odd_p(FKL_CPROC_ARGL)
 static int math_even_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.even?";
-	FKL_DECL_AND_CHECK_ARG(val,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(val,fklIsVMint,Pname,exe);
 	int r=0;
@@ -208,7 +208,7 @@ static int math_even_p(FKL_CPROC_ARGL)
 static int math_rad(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.rad";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_DECL_AND_CHECK_ARG(num,exe,Pname);
 	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,fklGetDouble(num)*(M_PI/180.0)));
@@ -218,7 +218,7 @@ static int math_rad(FKL_CPROC_ARGL)
 static int math_deg(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.deg";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_DECL_AND_CHECK_ARG(num,exe,Pname);
 	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,fklGetDouble(num)*(180.0/M_PI)));
@@ -228,7 +228,7 @@ static int math_deg(FKL_CPROC_ARGL)
 #define SINGLE_ARG_MATH_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
 {\
 	static const char Pname[]="math."#ERROR_NAME;\
-	FKL_DECL_AND_CHECK_ARG(num,Pname);\
+	FKL_DECL_AND_CHECK_ARG(num,exe,Pname);\
 	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FUNC(fklGetDouble(num))));\
@@ -277,7 +277,7 @@ SINGLE_ARG_MATH_FUNC(lgamma,lgamma,lgamma);
 static int math_modf(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.modf";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_DECL_AND_CHECK_ARG(num,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
 	double car=0.0;
@@ -292,7 +292,7 @@ static int math_modf(FKL_CPROC_ARGL)
 static int math_frexp(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.frexp";
-	FKL_DECL_AND_CHECK_ARG(num,Pname);
+	FKL_DECL_AND_CHECK_ARG(num,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(num,fklIsVMnumber,Pname,exe);
 	int32_t cdr=0;
@@ -307,7 +307,7 @@ static int math_frexp(FKL_CPROC_ARGL)
 static int math_log(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.log";
-	FKL_DECL_AND_CHECK_ARG(x,Pname);
+	FKL_DECL_AND_CHECK_ARG(x,exe,Pname);
 	FklVMvalue* base=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
@@ -330,7 +330,7 @@ static int math_log(FKL_CPROC_ARGL)
 #define DOUBLE_ARG_MATH_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
 {\
 	static const char Pname[]="math."#ERROR_NAME;\
-	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);\
+	FKL_DECL_AND_CHECK_ARG2(x,y,exe,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);\
 	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);\
@@ -351,7 +351,7 @@ DOUBLE_ARG_MATH_FUNC(copysign,copysign,copysign);
 #define PREDICATE_FUNC(NAME,ERROR_NAME,FUNC) static int math_##NAME(FKL_CPROC_ARGL)\
 {\
 	static const char Pname[]="math."ERROR_NAME;\
-	FKL_DECL_AND_CHECK_ARG(val,Pname);\
+	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);\
 	FKL_CHECK_REST_ARG(exe,Pname);\
 	FKL_CHECK_TYPE(val,fklIsVMnumber,Pname,exe);\
 	FKL_VM_PUSH_VALUE(exe,FUNC(fklGetDouble(val))\
@@ -371,7 +371,7 @@ PREDICATE_FUNC(normal_p,"normal?",isnormal);
 static int math_unordered_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="math.unordered?";
-	FKL_DECL_AND_CHECK_ARG2(x,y,Pname);
+	FKL_DECL_AND_CHECK_ARG2(x,y,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(x,fklIsVMnumber,Pname,exe);
 	FKL_CHECK_TYPE(y,fklIsVMnumber,Pname,exe);

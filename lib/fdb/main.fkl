@@ -2,19 +2,20 @@
 
 (import (bin bdb))
 
+(define file-prefix "> ")
 (define line-prefix "\n-> ")
 
 (define help-doc
   (static-strcat
-    "help: print this help doc or print the help of command"
-    "exit: exit"
-    "continue: continue the program until end or reach break point"
-    "break: set break point"
-    "delete: delete break point"
-    "next: run the program until next line"
-    "step: run the program until next line, but step in function"
-    "restart: restart the debugger"
-    "return: run the program until function return"))
+    "help: print this help doc or print the help of command\n"
+    "exit: exit\n"
+    "continue: continue the program until end or reach break point\n"
+    "break: set break point\n"
+    "delete: delete break point\n"
+    "next: run the program until next line\n"
+    "step: run the program until next line, but step in function\n"
+    "restart: restart the debugger\n"
+    "return: run the program until function return\n"))
 
 (define help-doc-hash
   (make-hash
@@ -39,8 +40,11 @@
     'help (lambda (_,rest)
             (if rest
               (if (cdr rest)
-                (println "invalid command")
-                (println (hash-ref help-doc-hash (car rest) "do not have such a command")))
+                (println "invalid command\n")
+                (println (hash-ref help-doc-hash
+                                   (car rest)
+                                   "do not have such a command")
+                         #\\n))
               (println help-doc)))))
 
 (define cmd-abbr-map
@@ -52,9 +56,11 @@
         (h,help)))
 
 (define (debug-ctx-run ctx prompt line-prefix)
+  (define cur-file-line (debug-ctx-get-curline ctx))
+  (print file-prefix (car cur-file-line))
+  (print line-prefix (cdr cur-file-line))
   (do []
     [(debug-ctx-end? ctx)]
-    (println line-prefix (debug-ctx-get-curline ctx))
     (define cmd (debug-ctx-repl ctx prompt))
     (define cmd-func (hash-ref debug-cmd-func (car cmd) '()))
     (when cmd-func

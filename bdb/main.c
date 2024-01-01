@@ -247,6 +247,32 @@ static int bdb_debug_ctx_repl(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-repl";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	FklVM* cur_thread=dctx->cur_thread;
+	FklVMframe* frame=cur_thread->top_frame;
+	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
+	FklVMproc* proc=FKL_VM_PROC(frame->c.proc);
+	FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
+	const FklLineNumberTableItem* ln=fklFindLineNumTabNode(
+			fklGetCompoundFrameCode(frame)-code->bc->code
+			,code->ls
+			,code->l);
+	const FklString* line_str=GetCurLineStr(dctx,ln->fid,ln->line);
+	FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+	const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
+	FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,file_str_value,line_str_value));
+	return 0;
+}
+
 static int bdb_debug_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -258,17 +284,17 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"debug-ctx?",            bdb_debug_ctx_p,      },
-	{"make-debug-ctx",        bdb_make_debug_ctx,   },
-	{"debug-ctx-repl",        bdb_debug_ctx_repl,   },
-	{"debug-ctx-get-curline", bdb_debug_incomplete, },
-	{"debug-ctx-end?",        bdb_debug_ctx_end_p,  },
-	{"debug-ctx-step",        bdb_debug_incomplete, },
-	{"debug-ctx-next",        bdb_debug_incomplete, },
-	{"debug-ctx-del-break",   bdb_debug_incomplete, },
-	{"debug-ctx-set-break",   bdb_debug_incomplete, },
-	{"debug-ctx-continue",    bdb_debug_incomplete, },
-	{"debug-ctx-exit",        bdb_debug_incomplete, },
+	{"debug-ctx?",            bdb_debug_ctx_p,           },
+	{"make-debug-ctx",        bdb_make_debug_ctx,        },
+	{"debug-ctx-repl",        bdb_debug_ctx_repl,        },
+	{"debug-ctx-get-curline", bdb_debug_ctx_get_curline, },
+	{"debug-ctx-end?",        bdb_debug_ctx_end_p,       },
+	{"debug-ctx-step",        bdb_debug_incomplete,      },
+	{"debug-ctx-next",        bdb_debug_incomplete,      },
+	{"debug-ctx-del-break",   bdb_debug_incomplete,      },
+	{"debug-ctx-set-break",   bdb_debug_incomplete,      },
+	{"debug-ctx-continue",    bdb_debug_incomplete,      },
+	{"debug-ctx-exit",        bdb_debug_incomplete,      },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

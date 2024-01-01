@@ -25,11 +25,12 @@ typedef struct
 	FklCodegenOuterCtx outer_ctx;
 	FklCodegenInfo main_info;
 
+    FklSymbolTable* st;
 	int end;
 	uint32_t curline;
-
-	const char* cur_file_realpath;
-	const char* curline_str;
+	FklSid_t curline_file;
+	const FklString* curline_str;
+	const FklPtrStack* curfile_lines;
 
 	FklHashTable source_code_table;
 	FklPtrStack envs;
@@ -51,9 +52,16 @@ typedef struct
 
 }DebugCtx;
 
+typedef struct
+{
+	FklSid_t sid;
+	FklPtrStack lines;
+}SourceCodeHashItem;
+
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
+const FklString* GetCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 
 #ifdef __cplusplus
 }

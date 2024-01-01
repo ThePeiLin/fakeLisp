@@ -102,6 +102,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	}
 	fklChdir(outer_ctx->cwd);
 
+    ctx->st=&outer_ctx->public_symbol_table;
 	ctx->gc=gc;
 	ctx->cur_thread=anotherVM;
 
@@ -122,6 +123,88 @@ static inline void set_argv_with_list(FklVMgc* gc,FklVMvalue* argv_list)
 	gc->argv=argv;
 }
 
+static void source_hash_item_uninit(void* d0)
+{
+	SourceCodeHashItem* item=(SourceCodeHashItem*)d0;
+	void** base=item->lines.base;
+	void** const end=item->lines.base[item->lines.top];
+	for(;base<end;base++)
+		free(*base);
+	fklUninitPtrStack(&item->lines);
+}
+
+static const FklHashTableMetaTable SourceCodeHashMetaTable=
+{
+	.size=sizeof(SourceCodeHashItem),
+	.__setKey=fklSetSidKey,
+	.__setVal=fklSetSidKey,
+	.__hashFunc=fklSidHashFunc,
+	.__keyEqual=fklSidKeyEqual,
+	.__getKey=fklHashDefaultGetKey,
+	.__uninitItem=source_hash_item_uninit,
+};
+
+static inline void load_source_code_to_source_code_hash_item(SourceCodeHashItem* item
+		,const char* rp)
+{
+	FILE* fp=fopen(rp,"r");
+	FKL_ASSERT(fp);
+	FklPtrStack* lines=&item->lines;
+	fklInitPtrStack(lines,16,16);
+	FklStringBuffer buffer;
+	fklInitStringBuffer(&buffer);
+	while(!feof(fp))
+	{
+		fklGetDelim(fp,&buffer,'\n');
+		if(!buffer.index||buffer.buf[buffer.index-1]!='\n')
+			fklStringBufferPutc(&buffer,'\n');
+		FklString* cur_line=fklCreateString(buffer.index,buffer.buf);
+		fklPushPtrStack(cur_line,lines);
+		buffer.index=0;
+	}
+}
+
+static inline void init_source_codes(DebugCtx* ctx)
+{
+	fklInitHashTable(&ctx->source_code_table,&SourceCodeHashMetaTable);
+	FklCodegenInfo* info=&ctx->main_info;
+	FklHashTable* source_code_table=&ctx->source_code_table;
+	SourceCodeHashItem* item=fklPutHashItem(&info->fid,source_code_table);
+	load_source_code_to_source_code_hash_item(item,info->realpath);
+}
+
+const SourceCodeHashItem* get_source_with_fid(FklHashTable* t,FklSid_t id)
+{
+	return fklGetHashItem(&id,t);
+}
+
+const FklString* GetCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
+{
+	if(fid==ctx->curline_file&&line==ctx->curline)
+		return ctx->curline_str;
+	else if(fid==ctx->curline_file)
+	{
+		if(line>ctx->curfile_lines->top)
+			return NULL;
+		ctx->curline=line;
+		ctx->curline_str=ctx->curfile_lines->base[line-1];
+		return ctx->curline_str;
+	}
+	else
+	{
+		const SourceCodeHashItem* item=get_source_with_fid(&ctx->source_code_table,fid);
+		if(item&&line<=item->lines.top)
+		{
+			ctx->curline_file=fid;
+			ctx->curline=line;
+			ctx->curfile_lines=&item->lines;
+			ctx->curline_str=item->lines.base[line-1];
+			return ctx->curline_str;
+		}
+		return NULL;
+	}
+}
+
 DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
@@ -130,9 +213,15 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	fklInitPtrStack(&ctx->codegen_infos,16,16);
 	if(init_debug_codegen_outer_ctx(ctx,filename))
 	{
+		fklUninitPtrStack(&ctx->envs);
+		fklUninitPtrStack(&ctx->codegen_infos);
 		free(ctx);
 		return NULL;
 	}
+
+	init_source_codes(ctx);
+	ctx->curline_str=GetCurLineStr(ctx,ctx->main_info.fid,1);
+
 	uv_mutex_init(&ctx->reach_breakpoint_lock);
 	set_argv_with_list(ctx->gc,argv);
 	init_cmd_read_ctx(&ctx->read_ctx);

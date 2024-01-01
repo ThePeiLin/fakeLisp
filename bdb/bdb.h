@@ -11,7 +11,7 @@ extern "C"{
 
 enum
 {
-	DBG_REACH_BP=1,
+	DBG_REACH_BREAKPOINT=1,
 	DBG_ERROR_OCCUR
 };
 
@@ -48,16 +48,22 @@ typedef struct
 	FklVMgc* gc;
 	FklHashTable break_points;
 
-	uv_mutex_t reach_breakpoint_lock;
-	struct ReachBreakPoints
-	{
-		struct ReachBreakPoints* next;
-		FklVM* vm;
-		uv_cond_t cond;
-	}* head;
-	struct ReachBreakPoints** tail;
-
 }DebugCtx;
+
+typedef struct
+{
+	FklSid_t fid;
+	uint32_t line;
+}BreakPointHashKey;
+
+typedef struct
+{
+	BreakPointHashKey key;
+	uint64_t num;
+	DebugCtx* ctx;
+	FklInstruction* ins;
+	FklInstruction origin_ins;
+}BreakPointHashItem;
 
 typedef struct
 {

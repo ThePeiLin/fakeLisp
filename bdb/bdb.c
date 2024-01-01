@@ -46,15 +46,31 @@ static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx
 	}
 }
 
-static void int3_queue_work_cb(FklVM* vm,void* arg)
+struct Int3Arg
 {
-	DebugCtx* ctx=(DebugCtx*)arg;
-	longjmp(ctx->jmpb,DBG_REACH_BP);
+	BreakPointHashItem* bp;
+};
+
+static void int3_queue_work_cb(FklVM* vm,void* a)
+{
+	struct Int3Arg* arg=(struct Int3Arg*)a;
+	BreakPointHashItem* bp=arg->bp;
+	FklVMframe* frame=vm->top_frame;
+	frame->c.pc--;
+	*(bp->ins)=bp->origin_ins;
+	DebugCtx* ctx=bp->ctx;
+	ctx->cur_thread=vm;
+	GetCurLineStr(ctx,bp->key.fid,bp->key.line);
+	longjmp(arg->bp->ctx->jmpb,DBG_REACH_BREAKPOINT);
 }
 
 static void B_int3(FKL_VM_INS_FUNC_ARGL)
 {
-	fklQueueWorkInIdleThread(exe,int3_queue_work_cb,ins->ptr);
+	struct Int3Arg arg=
+	{
+		.bp=ins->ptr,
+	};
+	fklQueueWorkInIdleThread(exe,int3_queue_work_cb,&arg);
 }
 
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
@@ -236,7 +252,6 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	init_source_codes(ctx);
 	ctx->curline_str=GetCurLineStr(ctx,ctx->main_info.fid,1);
 
-	uv_mutex_init(&ctx->reach_breakpoint_lock);
 	set_argv_with_list(ctx->gc,argv);
 	init_cmd_read_ctx(&ctx->read_ctx);
 

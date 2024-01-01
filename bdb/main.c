@@ -285,7 +285,11 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	fklUnlockThread(exe);
-	fklVMidleLoop(dctx->gc);
+	if(setjmp(dctx->jmpb)==DBG_REACH_BP)
+	{
+	}
+	else
+		fklVMidleLoop(dctx->gc);
 	fklLockThread(exe);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
 	return 0;

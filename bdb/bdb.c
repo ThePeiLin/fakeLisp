@@ -46,6 +46,17 @@ static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx
 	}
 }
 
+static void int3_queue_work_cb(FklVM* vm,void* arg)
+{
+	DebugCtx* ctx=(DebugCtx*)arg;
+	longjmp(ctx->jmpb,DBG_REACH_BP);
+}
+
+static void B_int3(FKL_VM_INS_FUNC_ARGL)
+{
+	fklQueueWorkInIdleThread(exe,int3_queue_work_cb,ins->ptr);
+}
+
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
 {
 	FILE* fp=fopen(filename,"r");
@@ -106,6 +117,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	ctx->gc=gc;
 	ctx->cur_thread=anotherVM;
 
+	anotherVM->ins_table[0]=B_int3;
 	gc->main_thread=anotherVM;
 	fklVMthreadStart(anotherVM,&gc->q);
 	return 0;

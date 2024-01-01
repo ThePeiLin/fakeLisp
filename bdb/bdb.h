@@ -9,6 +9,12 @@
 extern "C"{
 #endif
 
+enum
+{
+	DBG_REACH_BP=1,
+	DBG_ERROR_OCCUR
+};
+
 typedef struct
 {
 	Replxx* replxx;
@@ -37,6 +43,7 @@ typedef struct
 	FklPtrStack codegen_infos;
 	FklPtrStack code_objs;
 
+	jmp_buf jmpb;
 	FklVM* cur_thread;
 	FklVMgc* gc;
 	FklHashTable break_points;

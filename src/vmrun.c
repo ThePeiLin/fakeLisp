@@ -1195,6 +1195,11 @@ void fklQueueWorkInIdleThread(FklVM* vm
 		,void (*cb)(FklVM* exe,void*)
 		,void* arg)
 {
+	if(vm->is_single_thread)
+	{
+		cb(vm,arg);
+		return;
+	}
 	FklVMgc* gc=vm->gc;
 	struct FklVMidleWork work=
 	{

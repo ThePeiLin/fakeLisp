@@ -21,7 +21,6 @@ typedef struct
 
 typedef struct
 {
-	uv_thread_t idler_thread_id;
 	CmdReadCtx read_ctx;
 	FklCodegenOuterCtx outer_ctx;
 	FklCodegenInfo main_info;
@@ -37,7 +36,7 @@ typedef struct
 	FklPtrStack codegen_infos;
 	FklPtrStack code_objs;
 
-	FklVM* main_thread;
+	FklVM* cur_thread;
 	FklVMgc* gc;
 	FklHashTable break_points;
 
@@ -55,6 +54,7 @@ typedef struct
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
+
 #ifdef __cplusplus
 }
 #endif

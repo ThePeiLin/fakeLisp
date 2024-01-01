@@ -242,6 +242,16 @@ typedef struct
 
 }FklCodegenOuterCtx;
 
+typedef enum
+{
+	FKL_CODEGEN_INFO_WORK_START,
+	FKL_CODEGEN_INFO_WORK_FINAL,
+}FklCodegenInfoWorkState;
+
+struct FklCodegenInfo;
+typedef void (*FklCodegenInfoWorkCb)(struct FklCodegenInfo* self,FklCodegenInfoWorkState,void*);
+typedef void (*FklCodegenInfoEnvWorkCb)(struct FklCodegenInfo* self,FklCodegenEnv*,void*);
+
 typedef struct FklCodegenInfo
 {
 	FklCodegenOuterCtx* outer_ctx;
@@ -294,6 +304,13 @@ typedef struct FklCodegenInfo
 	unsigned int libMark:1;
 	unsigned int macroMark:1;
 	uint64_t refcount:61;
+
+	struct
+	{
+		void* work_ctx;
+		FklCodegenInfoWorkCb work_cb;
+		FklCodegenInfoEnvWorkCb env_work_cb;
+	}work;
 }FklCodegenInfo;
 
 typedef struct
@@ -359,7 +376,20 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,const char* rp
 		,FklSymbolTable* globalSymTable
 		,int destroyAbleMark
-		,FklCodegenOuterCtx* outer_ctx);
+		,FklCodegenOuterCtx* outer_ctx
+		,FklCodegenInfoWorkCb work_cb
+		,FklCodegenInfoEnvWorkCb evn_work_cb
+		,void* ctx);
+
+FklCodegenQuest* fklCreateCodegenQuest(FklByteCodeProcesser f
+		,FklCodegenQuestContext* context
+		,FklCodegenNextExpression* nextExpression
+		,uint32_t scope
+		,FklCodegenMacroScope* macroScope
+		,FklCodegenEnv* env
+		,uint64_t curline
+		,FklCodegenQuest* prev
+		,FklCodegenInfo* codegen);
 
 void fklInitCodegenInfo(FklCodegenInfo* codegen
 		,const char* filename

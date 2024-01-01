@@ -41,7 +41,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 	FklSymbolTable* pst=&outer_ctx.public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
 	FklCodegenInfo codegen={.fid=0,};
-	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx);
+	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,&outer_ctx,NULL,NULL,NULL);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
@@ -256,7 +256,7 @@ int main(int argc,const char* const* argv)
 		FklCodegenInfo codegen={.fid=0,};
 		fklInitCodegenOuterCtx(&outer_ctx,NULL);
 		FklSymbolTable* pst=&outer_ctx.public_symbol_table;
-		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx);
+		fklInitGlobalCodegenInfo(&codegen,NULL,pst,0,&outer_ctx,NULL,NULL,NULL);
 		exitState=runRepl(&codegen);
 		codegen.globalSymTable=NULL;
 		FklPtrStack* loadedLibStack=codegen.libStack;

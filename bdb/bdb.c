@@ -11,6 +11,41 @@ static inline void init_cmd_read_ctx(CmdReadCtx* ctx)
 	fklVMvaluePushState0ToStack(&ctx->stateStack);
 }
 
+static inline void replace_info_fid_with_realpath(FklCodegenInfo* info)
+{
+	FklSid_t rpsid=fklAddSymbolCstr(info->realpath,info->globalSymTable)->id;
+	info->fid=rpsid;
+}
+
+static void info_work_cb(FklCodegenInfo* info,FklCodegenInfoWorkState state,void* ctx)
+{
+	switch(state)
+	{
+		case FKL_CODEGEN_INFO_WORK_START:
+			replace_info_fid_with_realpath(info);
+			if(info->prev&&!info->macroMark)
+				info->refcount++;
+			break;
+		case FKL_CODEGEN_INFO_WORK_FINAL:
+			{
+				DebugCtx* dctx=(DebugCtx*)ctx;
+				if(info->prev&&!info->macroMark)
+					fklPushPtrStack(info,&dctx->codegen_infos);
+			}
+			break;
+	}
+}
+
+static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx)
+{
+	if(!info->macroMark)
+	{
+		env->refcount++;
+		DebugCtx* dctx=(DebugCtx*)ctx;
+		fklPushPtrStack(env,&dctx->envs);
+	}
+}
+
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
 {
 	FILE* fp=fopen(filename,"r");
@@ -20,7 +55,14 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
-	fklInitGlobalCodegenInfo(codegen,rp,pst,0,outer_ctx);
+	fklInitGlobalCodegenInfo(codegen
+			,rp
+			,pst
+			,0
+			,outer_ctx
+			,info_work_cb
+			,create_env_work_cb
+			,ctx);
 	free(rp);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,codegen);
 	if(mainByteCode==NULL)
@@ -61,7 +103,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	fklChdir(outer_ctx->cwd);
 
 	ctx->gc=gc;
-	ctx->main_thread=anotherVM;
+	ctx->cur_thread=anotherVM;
 
 	return 0;
 }
@@ -84,7 +126,8 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
 	FKL_ASSERT(ctx);
-	ctx->idler_thread_id=exe->tid;
+	fklInitPtrStack(&ctx->envs,16,16);
+	fklInitPtrStack(&ctx->codegen_infos,16,16);
 	if(init_debug_codegen_outer_ctx(ctx,filename))
 	{
 		free(ctx);

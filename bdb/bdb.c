@@ -48,16 +48,18 @@ static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx
 
 struct Int3Arg
 {
-	BreakPointHashItem* bp;
+	BreakpointHashItem* bp;
 };
+
+static void B_int3(FKL_VM_INS_FUNC_ARGL);
+static void B_int33(FKL_VM_INS_FUNC_ARGL);
 
 static void int3_queue_work_cb(FklVM* vm,void* a)
 {
 	struct Int3Arg* arg=(struct Int3Arg*)a;
-	BreakPointHashItem* bp=arg->bp;
+	BreakpointHashItem* bp=arg->bp;
 	FklVMframe* frame=vm->top_frame;
 	frame->c.pc--;
-	*(bp->ins)=bp->origin_ins;
 	DebugCtx* ctx=bp->ctx;
 	ctx->cur_thread=vm;
 	GetCurLineStr(ctx,bp->key.fid,bp->key.line);
@@ -70,7 +72,15 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 	{
 		.bp=ins->ptr,
 	};
+	exe->ins_table[0]=B_int33;
 	fklQueueWorkInIdleThread(exe,int3_queue_work_cb,&arg);
+}
+
+static void B_int33(FKL_VM_INS_FUNC_ARGL)
+{
+	exe->ins_table[0]=B_int3;
+	FklInstruction* oins=((BreakpointHashItem*)ins->ptr)->ins;
+	exe->ins_table[oins->op](exe,oins);
 }
 
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)

@@ -54,16 +54,16 @@ typedef struct
 {
 	FklSid_t fid;
 	uint32_t line;
-}BreakPointHashKey;
+}BreakpointHashKey;
 
 typedef struct
 {
-	BreakPointHashKey key;
+	BreakpointHashKey key;
 	uint64_t num;
 	DebugCtx* ctx;
 	FklInstruction* ins;
 	FklInstruction origin_ins;
-}BreakPointHashItem;
+}BreakpointHashItem;
 
 typedef struct
 {

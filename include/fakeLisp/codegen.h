@@ -7,7 +7,6 @@
 #include"base.h"
 #include"nast.h"
 #include"bytecode.h"
-#include"builtin.h"
 #include"vm.h"
 #include<uv.h>
 

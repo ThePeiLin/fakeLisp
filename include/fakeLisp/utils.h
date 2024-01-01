@@ -1,5 +1,5 @@
-#ifndef FKL_SRC_UTILS_H
-#define FKL_SRC_UTILS_H
+#ifndef FKL_UTILS_H
+#define FKL_UTILS_H
 
 #include"base.h"
 #include<uv.h>

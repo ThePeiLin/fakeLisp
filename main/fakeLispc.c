@@ -2,6 +2,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/codegen.h>
+#include<fakeLisp/builtin.h>
 
 #include<argtable3.h>
 

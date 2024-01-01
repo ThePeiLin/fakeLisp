@@ -904,6 +904,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 
 // vmparser
 
+void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
 #define FKL_VMVALUE_PARSE_OUTER_CTX_INIT(EXE) {.maxNonterminalLen=0,.line=1,.start=NULL,.cur=NULL,.create=fklVMvalueTerminalCreate,.destroy=fklVMvalueTerminalDestroy,.ctx=(void*)(EXE)}
 
 void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx);

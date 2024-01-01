@@ -2,6 +2,7 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/common.h>
+#include<fakeLisp/builtin.h>
 #include<stdio.h>
 #include<string.h>
 #ifdef _WIN32

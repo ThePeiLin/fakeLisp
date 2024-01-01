@@ -230,7 +230,7 @@ set_target_properties(fs PROPERTIES
 endif()
 
 #bdb.so
-file(GLOB BDB_SOURCE "main/bdb/*.c")
+file(GLOB BDB_SOURCE "bdb/*.c")
 
 add_library(bdb
 	SHARED

@@ -1,53 +1,9 @@
-#include<fakeLisp/vm.h>
-#include<fakeLisp/codegen.h>
-#include<replxx.h>
+#include"bdb.h"
+#include<fakeLisp/builtin.h>
 
 static uv_once_t debug_ctx_inited=UV_ONCE_INIT;
 uv_mutex_t alive_debug_lock;
 static FklPtrStack alive_debug_ctxs;
-
-typedef struct
-{
-	Replxx* replxx;
-	FklStringBuffer buf;
-	uint32_t offset;
-	FklPtrStack symbolStack;
-	FklUintStack lineStack;
-	FklPtrStack stateStack;
-}CmdReadCtx;
-
-typedef struct
-{
-	uv_thread_t idler_thread_id;
-	CmdReadCtx read_ctx;
-	FklCodegenOuterCtx outer_ctx;
-	FklCodegenInfo main_info;
-
-	int end;
-	uint32_t curline;
-
-	const char* cur_file_realpath;
-	const char* curline_str;
-
-	FklHashTable source_code_table;
-	FklPtrStack envs;
-	FklPtrStack codegen_infos;
-	FklPtrStack code_objs;
-
-	FklVM* main_thread;
-	FklVMgc* gc;
-	FklHashTable break_points;
-
-	uv_mutex_t reach_breakpoint_lock;
-	struct ReachBreakPoints
-	{
-		struct ReachBreakPoints* next;
-		FklVM* vm;
-		uv_cond_t cond;
-	}* head;
-	struct ReachBreakPoints** tail;
-
-}DebugCtx;
 
 typedef struct
 {
@@ -68,20 +24,6 @@ static void init_alive_debug_ctx(void)
 	atexit(uninit_all_alive_debug_ctx);
 	uv_mutex_init(&alive_debug_lock);
 	fklInitPtrStack(&alive_debug_ctxs,16,16);
-}
-
-static inline void set_argv_with_list(FklVMgc* gc,FklVMvalue* argv_list)
-{
-	int argc=fklVMlistLength(argv_list);
-	gc->argc=argc;
-	char** argv=(char**)malloc(sizeof(char*)*argc);
-	FKL_ASSERT(argv);
-	for(int i=0;i<argc;i++)
-	{
-		argv[i]=fklStringToCstr(FKL_VM_STR(FKL_VM_CAR(argv_list)));
-		argv_list=FKL_VM_CDR(argv_list);
-	}
-	gc->argv=argv;
 }
 
 static inline char* get_valid_file_name(const char* filename)
@@ -107,93 +49,6 @@ static inline char* get_valid_file_name(const char* filename)
 		fklUninitStringBuffer(&main_script_buf);
 		return r;
 	}
-}
-
-static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
-{
-	FILE* fp=fopen(filename,"r");
-	char* rp=fklRealpath(filename);
-	FklCodegenOuterCtx* outer_ctx=&ctx->outer_ctx;
-	FklCodegenInfo* codegen=&ctx->main_info;
-	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
-	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
-	fklAddSymbolCstr(filename,pst);
-	fklInitGlobalCodegenInfo(codegen,rp,pst,0,outer_ctx);
-	free(rp);
-	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,codegen);
-	if(mainByteCode==NULL)
-	{
-		fklUninitCodegenInfo(codegen);
-		fklUninitCodegenOuterCtx(outer_ctx);
-		return 1;
-	}
-	fklUpdatePrototype(codegen->pts
-			,codegen->globalEnv
-			,codegen->globalSymTable
-			,pst);
-	fklPrintUndefinedRef(codegen->globalEnv,codegen->globalSymTable,pst);
-
-	FklPtrStack* scriptLibStack=codegen->libStack;
-	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen->globalSymTable,codegen->pts,1);
-	anotherVM->libNum=scriptLibStack->top;
-	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
-	FKL_ASSERT(anotherVM->libs);
-	FklVMframe* mainframe=anotherVM->top_frame;
-	fklInitGlobalVMclosure(mainframe,anotherVM);
-	fklInitMainVMframeWithProc(anotherVM,mainframe
-			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
-			,NULL
-			,anotherVM->pts);
-	FklVMCompoundFrameVarRef* lr=&mainframe->c.lr;
-
-	FklVMgc* gc=anotherVM->gc;
-	while(!fklIsPtrStackEmpty(scriptLibStack))
-	{
-		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack->top];
-		FklCodegenLib* cur=fklPopPtrStack(scriptLibStack);
-		FklCodegenLibType type=cur->type;
-		fklInitVMlibWithCodegenLib(cur,curVMlib,anotherVM,1,anotherVM->pts);
-		if(type==FKL_CODEGEN_LIB_SCRIPT)
-			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
-	}
-	fklChdir(outer_ctx->cwd);
-
-	ctx->gc=gc;
-	ctx->main_thread=anotherVM;
-
-	return 0;
-}
-
-extern void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
-
-static inline void init_cmd_read_ctx(CmdReadCtx* ctx)
-{
-	ctx->replxx=replxx_init();
-	fklInitStringBuffer(&ctx->buf);
-	fklInitPtrStack(&ctx->symbolStack,16,16);
-	fklInitPtrStack(&ctx->stateStack,16,16);
-	fklInitUintStack(&ctx->lineStack,16,16);
-	fklVMvaluePushState0ToStack(&ctx->stateStack);
-}
-
-static inline DebugCtx* create_debug_ctx(FklVM* exe,const char* filename,FklVMvalue* argv)
-{
-	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
-	FKL_ASSERT(ctx);
-	ctx->idler_thread_id=exe->tid;
-	if(init_debug_codegen_outer_ctx(ctx,filename))
-	{
-		free(ctx);
-		return NULL;
-	}
-	uv_mutex_init(&ctx->reach_breakpoint_lock);
-	set_argv_with_list(ctx->gc,argv);
-	init_cmd_read_ctx(&ctx->read_ctx);
-
-	uv_mutex_lock(&alive_debug_lock);
-	fklPushPtrStack(ctx,&alive_debug_ctxs);
-	uv_mutex_unlock(&alive_debug_lock);
-	return ctx;
 }
 
 static inline void atomic_cmd_read_ctx(const CmdReadCtx* ctx,FklVMgc* gc)
@@ -222,6 +77,13 @@ static FklVMudMetaTable DebugCtxUdMetaTable=
 
 #define RAISE_DBG_ERROR(WHO,ERR,EXE) abort()
 
+static inline void push_debug_ctx(DebugCtx* ctx)
+{
+	uv_mutex_lock(&alive_debug_lock);
+	fklPushPtrStack(ctx,&alive_debug_ctxs);
+	uv_mutex_unlock(&alive_debug_lock);
+}
+
 static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.make-debug-ctx";
@@ -245,7 +107,8 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,filename_obj);
 	FKL_VM_PUSH_VALUE(exe,argv_obj);
 	fklUnlockThread(exe);
-	DebugCtx* debug_ctx=create_debug_ctx(exe,valid_filename,argv_obj);
+	DebugCtx* debug_ctx=createDebugCtx(exe,valid_filename,argv_obj);
+	push_debug_ctx(debug_ctx);
 	fklLockThread(exe);
 	free(valid_filename);
 	if(!debug_ctx)

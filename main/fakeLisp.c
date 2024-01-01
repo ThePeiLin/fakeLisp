@@ -5,6 +5,7 @@
 #include<fakeLisp/parser.h>
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/symbol.h>
+#include<fakeLisp/builtin.h>
 #include<uv.h>
 #include<stdio.h>
 #include<stdlib.h>

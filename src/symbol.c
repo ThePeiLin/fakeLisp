@@ -335,3 +335,9 @@ void fklInitSidSet(FklHashTable* t)
 {
 	fklInitHashTable(t,&SidSetMetaTable);
 }
+
+void fklPutSidToSidSet(FklHashTable* t,FklSid_t id)
+{
+	fklPutHashItem(&id,t);
+}
+

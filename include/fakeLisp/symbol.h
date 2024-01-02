@@ -101,6 +101,7 @@ void fklDestroyFuncPrototypes(FklFuncPrototypes* p);
 
 FklHashTable* fklCreateSidSet(void);
 void fklInitSidSet(FklHashTable* t);
+void fklPutSidToSidSet(FklHashTable* t,FklSid_t);
 #ifdef __cplusplus
 }
 #endif

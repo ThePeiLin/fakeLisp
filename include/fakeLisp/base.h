@@ -105,18 +105,7 @@ typedef struct FklHashTableItem
 	uint8_t data[];
 }FklHashTableItem;
 
-typedef struct FklHashTable
-{
-	const struct FklHashTableMetaTable* t;
-	FklHashTableItem** base;
-	FklHashTableItem* first;
-	FklHashTableItem* last;
-	uint32_t num;
-	uint32_t size;
-	uint32_t mask;
-}FklHashTable;
-
-typedef struct FklHashTableMetaTable
+typedef struct
 {
 	uint8_t size;
 	void (*__setKey)(void*,const void*);
@@ -127,7 +116,23 @@ typedef struct FklHashTableMetaTable
 	void* (*__getKey)(void*);
 }FklHashTableMetaTable;
 
-#define FKL_HASH_GET_KEY(name,type,field) void* name(void* item){return &((type*)item)->field;}
+typedef struct FklHashTable
+{
+	const FklHashTableMetaTable* t;
+	FklHashTableItem** base;
+	FklHashTableItem* first;
+	FklHashTableItem* last;
+	uint32_t num;
+	uint32_t size;
+	uint32_t mask;
+}FklHashTable;
+
+#define FKL_HASH_GET_KEY(name,type,field) void* name(void* item)\
+{return &((type*)item)->field;}
+
+#define FKL_HASH_SET_KEY_VAL(name,type) void name(void* a,const void* b)\
+{*(type*)a=*(const type*)b;}
+
 #define FKL_DEFAULT_HASH_LOAD_FACTOR (2.0)
 
 void fklInitHashTable(FklHashTable*,const FklHashTableMetaTable*);

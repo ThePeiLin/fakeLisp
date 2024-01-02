@@ -265,7 +265,7 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 			fklGetCompoundFrameCode(frame)-code->bc->code
 			,code->ls
 			,code->l);
-	const FklString* line_str=GetCurLineStr(dctx,ln->fid,ln->line);
+	const FklString* line_str=getCurLineStr(dctx,ln->fid,ln->line);
 	FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
 	const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
 	FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));

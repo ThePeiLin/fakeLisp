@@ -62,7 +62,7 @@ static void int3_queue_work_cb(FklVM* vm,void* a)
 	frame->c.pc--;
 	DebugCtx* ctx=bp->ctx;
 	ctx->cur_thread=vm;
-	GetCurLineStr(ctx,bp->key.fid,bp->key.line);
+	getCurLineStr(ctx,bp->key.fid,bp->key.line);
 	longjmp(arg->bp->ctx->jmpb,DBG_REACH_BREAKPOINT);
 }
 
@@ -218,7 +218,7 @@ const SourceCodeHashItem* get_source_with_fid(FklHashTable* t,FklSid_t id)
 	return fklGetHashItem(&id,t);
 }
 
-const FklString* GetCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
+const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
 {
 	if(fid==ctx->curline_file&&line==ctx->curline)
 		return ctx->curline_str;
@@ -260,7 +260,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	}
 
 	init_source_codes(ctx);
-	ctx->curline_str=GetCurLineStr(ctx,ctx->main_info.fid,1);
+	ctx->curline_str=getCurLineStr(ctx,ctx->main_info.fid,1);
 
 	set_argv_with_list(ctx->gc,argv);
 	init_cmd_read_ctx(&ctx->read_ctx);

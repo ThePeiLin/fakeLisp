@@ -74,8 +74,9 @@ typedef struct
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
-const FklString* GetCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
+const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 
+void initBreakpointTable(FklHashTable*);
 #ifdef __cplusplus
 }
 #endif

@@ -2224,8 +2224,11 @@ int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 		ht->num--;
 		if(deleted)
 			ht->t->__setVal(deleted,item->data);
-		void (*uninitFunc)(void*)=ht->t->__uninitItem;
-		uninitFunc(item->data);
+		else
+		{
+			void (*uninitFunc)(void*)=ht->t->__uninitItem;
+			uninitFunc(item->data);
+		}
 		free(item);
 		return 1;
 	}

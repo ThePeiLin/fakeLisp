@@ -17,22 +17,13 @@ static inline void replace_info_fid_with_realpath(FklCodegenInfo* info)
 	info->fid=rpsid;
 }
 
-static void info_work_cb(FklCodegenInfo* info,FklCodegenInfoWorkState state,void* ctx)
+static void info_work_cb(FklCodegenInfo* info,void* ctx)
 {
-	switch(state)
+	if(!info->macroMark)
 	{
-		case FKL_CODEGEN_INFO_WORK_START:
-			replace_info_fid_with_realpath(info);
-			if(info->prev&&!info->macroMark)
-				info->refcount++;
-			break;
-		case FKL_CODEGEN_INFO_WORK_FINAL:
-			{
-				DebugCtx* dctx=(DebugCtx*)ctx;
-				if(info->prev&&!info->macroMark)
-					fklPushPtrStack(info,&dctx->codegen_infos);
-			}
-			break;
+		DebugCtx* dctx=(DebugCtx*)ctx;
+		replace_info_fid_with_realpath(info);
+		fklPutSidToSidSet(&dctx->file_sid_set,info->fid);
 	}
 }
 
@@ -88,11 +79,11 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	FILE* fp=fopen(filename,"r");
 	char* rp=fklRealpath(filename);
 	FklCodegenOuterCtx* outer_ctx=&ctx->outer_ctx;
-	FklCodegenInfo* codegen=&ctx->main_info;
+	FklCodegenInfo codegen;
 	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
-	fklInitGlobalCodegenInfo(codegen
+	fklInitGlobalCodegenInfo(&codegen
 			,rp
 			,pst
 			,0
@@ -101,21 +92,21 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 			,create_env_work_cb
 			,ctx);
 	free(rp);
-	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,codegen);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
 	if(mainByteCode==NULL)
 	{
-		fklUninitCodegenInfo(codegen);
+		fklUninitCodegenInfo(&codegen);
 		fklUninitCodegenOuterCtx(outer_ctx);
 		return 1;
 	}
-	fklUpdatePrototype(codegen->pts
-			,codegen->globalEnv
-			,codegen->globalSymTable
+	fklUpdatePrototype(codegen.pts
+			,codegen.globalEnv
+			,codegen.globalSymTable
 			,pst);
-	fklPrintUndefinedRef(codegen->globalEnv,codegen->globalSymTable,pst);
+	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
-	FklPtrStack* scriptLibStack=codegen->libStack;
-	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen->globalSymTable,codegen->pts,1);
+	FklPtrStack* scriptLibStack=codegen.libStack;
+	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);
 	anotherVM->libNum=scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
@@ -207,10 +198,16 @@ static inline void load_source_code_to_source_code_hash_item(SourceCodeHashItem*
 static inline void init_source_codes(DebugCtx* ctx)
 {
 	fklInitHashTable(&ctx->source_code_table,&SourceCodeHashMetaTable);
-	FklCodegenInfo* info=&ctx->main_info;
 	FklHashTable* source_code_table=&ctx->source_code_table;
-	SourceCodeHashItem* item=fklPutHashItem(&info->fid,source_code_table);
-	load_source_code_to_source_code_hash_item(item,info->realpath);
+	for(FklHashTableItem* sid_list=ctx->file_sid_set.first
+			;sid_list
+			;sid_list=sid_list->next)
+	{
+		FklSid_t fid=*((FklSid_t*)sid_list->data);
+		const FklString* str=fklGetSymbolWithId(fid,ctx->st)->symbol;
+		SourceCodeHashItem* item=fklPutHashItem(&fid,source_code_table);
+		load_source_code_to_source_code_hash_item(item,str->str);
+	}
 }
 
 const SourceCodeHashItem* get_source_with_fid(FklHashTable* t,FklSid_t id)
@@ -250,21 +247,36 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
 	FKL_ASSERT(ctx);
 	fklInitPtrStack(&ctx->envs,16,16);
-	fklInitPtrStack(&ctx->codegen_infos,16,16);
+	fklInitSidSet(&ctx->file_sid_set);
 	if(init_debug_codegen_outer_ctx(ctx,filename))
 	{
 		fklUninitPtrStack(&ctx->envs);
-		fklUninitPtrStack(&ctx->codegen_infos);
+		fklUninitHashTable(&ctx->file_sid_set);
 		free(ctx);
 		return NULL;
 	}
 
 	init_source_codes(ctx);
-	ctx->curline_str=getCurLineStr(ctx,ctx->main_info.fid,1);
+	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->cur_thread->top_frame);
+	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 
 	set_argv_with_list(ctx->gc,argv);
 	init_cmd_read_ctx(&ctx->read_ctx);
 
 	return ctx;
+}
+
+const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe* frame)
+{
+	if(frame->type==FKL_FRAME_COMPOUND)
+	{
+		FklVMproc* proc=FKL_VM_PROC(frame->c.proc);
+		FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
+		return fklFindLineNumTabNode(
+				fklGetCompoundFrameCode(frame)-code->bc->code
+				,code->ls
+				,code->l);
+	}
+	return NULL;
 }
 

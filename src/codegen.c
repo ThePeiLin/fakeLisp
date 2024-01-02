@@ -8822,11 +8822,6 @@ void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* outer_ctx)
 
 void fklDestroyCodegenInfo(FklCodegenInfo* codegen)
 {
-	if(codegen->work.work_cb)
-		codegen->work.work_cb(codegen
-				,FKL_CODEGEN_INFO_WORK_FINAL
-				,codegen->work.work_ctx);
-
 	while(codegen&&codegen->destroyAbleMark)
 	{
 		codegen->refcount-=1;
@@ -9161,7 +9156,7 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	codegen->work.env_work_cb=env_work_cb;
 
 	if(work_cb)
-		work_cb(codegen,FKL_CODEGEN_INFO_WORK_START,work_ctx);
+		work_cb(codegen,work_ctx);
 
 	create_and_insert_to_pool(codegen
 			,0
@@ -9200,7 +9195,6 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 
 	codegen->curline=1;
 	codegen->prev=prev;
-	codegen->work=prev->work;
 
 	prev->refcount+=1;
 	codegen->globalEnv=env;
@@ -9222,6 +9216,7 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	init_codegen_grammer_ptr(codegen);
 	if(prev)
 	{
+		codegen->work=prev->work;
 		codegen->libStack=prev->libStack;
 		codegen->macroLibStack=prev->macroLibStack;
 		codegen->pts=prev->pts;
@@ -9231,6 +9226,10 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	}
 	else
 	{
+		codegen->work.work_cb=NULL;
+		codegen->work.env_work_cb=NULL;
+		codegen->work.work_ctx=NULL;
+
 		codegen->libStack=fklCreatePtrStack(8,8);
 		codegen->macroLibStack=fklCreatePtrStack(8,8);
 		codegen->pts=fklCreateFuncPrototypes(0);
@@ -9238,6 +9237,10 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 		codegen->builtinSymModiMark=fklGetBuiltinSymbolModifyMark(&codegen->builtinSymbolNum);
 	}
 	codegen->outer_ctx=outer_ctx;
+
+	if(codegen->work.work_cb)
+		codegen->work.work_cb(codegen
+				,codegen->work.work_ctx);
 }
 
 void fklUninitCodegenInfo(FklCodegenInfo* codegen)

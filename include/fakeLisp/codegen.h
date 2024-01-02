@@ -242,14 +242,8 @@ typedef struct
 
 }FklCodegenOuterCtx;
 
-typedef enum
-{
-	FKL_CODEGEN_INFO_WORK_START,
-	FKL_CODEGEN_INFO_WORK_FINAL,
-}FklCodegenInfoWorkState;
-
 struct FklCodegenInfo;
-typedef void (*FklCodegenInfoWorkCb)(struct FklCodegenInfo* self,FklCodegenInfoWorkState,void*);
+typedef void (*FklCodegenInfoWorkCb)(struct FklCodegenInfo* self,void*);
 typedef void (*FklCodegenInfoEnvWorkCb)(struct FklCodegenInfo* self,FklCodegenEnv*,void*);
 
 typedef struct FklCodegenInfo

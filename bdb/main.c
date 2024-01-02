@@ -258,13 +258,7 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 	FklVM* cur_thread=dctx->cur_thread;
 	FklVMframe* frame=cur_thread->top_frame;
-	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
-	FklVMproc* proc=FKL_VM_PROC(frame->c.proc);
-	FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
-	const FklLineNumberTableItem* ln=fklFindLineNumTabNode(
-			fklGetCompoundFrameCode(frame)-code->bc->code
-			,code->ls
-			,code->l);
+	const FklLineNumberTableItem* ln=getCurFrameLineNumber(frame);
 	const FklString* line_str=getCurLineStr(dctx,ln->fid,ln->line);
 	FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
 	const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
@@ -282,7 +276,6 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
-	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	fklUnlockThread(exe);
 	if(setjmp(dctx->jmpb)==DBG_REACH_BREAKPOINT)
@@ -291,7 +284,20 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	else
 		fklVMidleLoop(dctx->gc);
 	fklLockThread(exe);
-	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-continue";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
+	putBreakpoint(dctx,dctx->curline_file,dctx->curline);
 	return 0;
 }
 
@@ -314,7 +320,7 @@ struct SymFunc
 	{"debug-ctx-step",        bdb_debug_incomplete,      },
 	{"debug-ctx-next",        bdb_debug_incomplete,      },
 	{"debug-ctx-del-break",   bdb_debug_incomplete,      },
-	{"debug-ctx-set-break",   bdb_debug_incomplete,      },
+	{"debug-ctx-set-break",   bdb_debug_ctx_set_break,   },
 	{"debug-ctx-continue",    bdb_debug_ctx_continue,    },
 	{"debug-ctx-exit",        bdb_debug_incomplete,      },
 };

@@ -29,8 +29,8 @@ typedef struct
 {
 	CmdReadCtx read_ctx;
 	FklCodegenOuterCtx outer_ctx;
-	FklCodegenInfo main_info;
 
+	FklHashTable file_sid_set;
     FklSymbolTable* st;
 	int end;
 	uint32_t curline;
@@ -40,7 +40,6 @@ typedef struct
 
 	FklHashTable source_code_table;
 	FklPtrStack envs;
-	FklPtrStack codegen_infos;
 	FklPtrStack code_objs;
 
 	jmp_buf jmpb;
@@ -77,6 +76,11 @@ DebugCtx* createDebugCtx(FklVM* exe
 const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 
 void initBreakpointTable(FklHashTable*);
+
+void putBreakpoint(DebugCtx* ctx,FklSid_t fid,uint32_t line);
+void delBreakpoint(DebugCtx* ctx,uint64_t num);
+const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
+
 #ifdef __cplusplus
 }
 #endif

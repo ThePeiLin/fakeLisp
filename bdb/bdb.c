@@ -54,6 +54,7 @@ static void int3_queue_work_cb(FklVM* vm,void* a)
 	DebugCtx* ctx=bp->ctx;
 	ctx->cur_thread=vm;
 	getCurLineStr(ctx,bp->key.fid,bp->key.line);
+	ctx->is_reach_breakpoint=1;
 	longjmp(arg->bp->ctx->jmpb,DBG_REACH_BREAKPOINT);
 }
 

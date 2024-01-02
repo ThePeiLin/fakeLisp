@@ -32,6 +32,7 @@ typedef struct
 
 	FklHashTable file_sid_set;
     FklSymbolTable* st;
+	int is_reach_breakpoint;
 	int end;
 	uint32_t curline;
 	FklSid_t curline_file;

@@ -1351,7 +1351,7 @@ FklGCstate fklGetGCstate(FklVMgc* gc)
 
 static inline void B_dummy(FKL_VM_INS_FUNC_ARGL)
 {
-	abort();
+	FKL_RAISE_BUILTIN_ERROR_CSTR("b.dummy",FKL_ERR_INVALIDACCESS,exe);
 }
 
 static inline void B_push_nil(FKL_VM_INS_FUNC_ARGL)

@@ -29,10 +29,20 @@
     'restart "restart the debugger"
     'help "print this help doc or print the help of command"))
 
+(define (print-cur-line ctx file-prefix line-prefix)
+  (define cur-file-line (debug-ctx-get-curline ctx))
+  (print file-prefix (car cur-file-line))
+  (print line-prefix (cdr cur-file-line)))
+
+(define (unknown-cmd-func,_)
+  (println "unknown command"))
+
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
-    'continue debug-ctx-continue
+    'continue (lambda (ctx)
+                (when (debug-ctx-continue ctx)
+                  (print-cur-line ctx file-prefix line-prefix)))
     'break debug-ctx-set-break
     'delete debug-ctx-del-break
     'next debug-ctx-next
@@ -55,16 +65,15 @@
         (r,return)
         (h,help)))
 
-(define (debug-ctx-run ctx prompt line-prefix)
-  (define cur-file-line (debug-ctx-get-curline ctx))
-  (print file-prefix (car cur-file-line))
-  (print line-prefix (cdr cur-file-line))
+(define (debug-ctx-run ctx prompt file-prefix line-prefix)
+  (print-cur-line ctx file-prefix line-prefix)
   (do []
     [(debug-ctx-end? ctx)]
     (define cmd (debug-ctx-repl ctx prompt))
-    (define cmd-func (hash-ref debug-cmd-func (car cmd) '()))
-    (when cmd-func
-      (apply cmd-func ctx (cdr cmd)))))
+    (define cmd-func (hash-ref debug-cmd-func
+                               (car cmd)
+                               unknown-cmd-func))
+    (apply cmd-func ctx (cdr cmd))))
 
 (define (fdb-main)
 
@@ -85,7 +94,7 @@
   (define cmd-func-table
     (make-hash))
 
-  (debug-ctx-run dbg-ctx prompt line-prefix))
+  (debug-ctx-run dbg-ctx prompt file-prefix line-prefix))
 
 (if *main?*
   (fdb-main))

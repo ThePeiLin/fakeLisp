@@ -276,14 +276,22 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
+	uint32_t rtp=exe->tp;
+	int reach_break_point=0;
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	fklUnlockThread(exe);
 	if(setjmp(dctx->jmpb)==DBG_REACH_BREAKPOINT)
 	{
+		reach_break_point=1;
 	}
 	else
 		fklVMidleLoop(dctx->gc);
 	fklLockThread(exe);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe
+			,rtp
+			,reach_break_point
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
 	return 0;
 }
 

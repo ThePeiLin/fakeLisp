@@ -200,7 +200,7 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 					}
 					else
 					{
-						fprintf(fp,"at <proc ");
+						fprintf(fp,"at proc: <");
 						if(pt->fid)
 							fklPrintRawString(fklVMgetSymbolWithId(exe->gc,pt->fid)->symbol,fp);
 						else

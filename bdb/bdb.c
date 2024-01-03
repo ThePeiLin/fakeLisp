@@ -80,7 +80,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	FILE* fp=fopen(filename,"r");
 	char* rp=fklRealpath(filename);
 	FklCodegenOuterCtx* outer_ctx=&ctx->outer_ctx;
-	FklCodegenInfo codegen;
+	FklCodegenInfo codegen={.fid=0};
 	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
@@ -108,6 +108,8 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 
 	FklPtrStack* scriptLibStack=codegen.libStack;
 	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);
+	codegen.globalSymTable=NULL;
+	codegen.pts=NULL;
 	anotherVM->libNum=scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
@@ -129,6 +131,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
 			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
 	}
+	fklUninitCodegenInfo(&codegen);
 	fklChdir(outer_ctx->cwd);
 
     ctx->st=&outer_ctx->public_symbol_table;

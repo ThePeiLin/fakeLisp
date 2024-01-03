@@ -12,9 +12,23 @@ typedef struct
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(debug_ctx_print,debug-ctx);
 
+static void uninit_cmd_read_ctx(CmdReadCtx* ctx)
+{
+	fklUninitPtrStack(&ctx->stateStack);
+	fklUninitPtrStack(&ctx->symbolStack);
+	fklUninitUintStack(&ctx->lineStack);
+	fklUninitStringBuffer(&ctx->buf);
+	replxx_end(ctx->replxx);
+}
+
 static void uninit_all_alive_debug_ctx(void)
 {
 	uv_mutex_destroy(&alive_debug_lock);
+	while(!fklIsPtrStackEmpty(&alive_debug_ctxs))
+	{
+		DebugCtx* ctx=fklPopPtrStack(&alive_debug_ctxs);
+		uninit_cmd_read_ctx(&ctx->read_ctx);
+	}
 	fklUninitPtrStack(&alive_debug_ctxs);
 #warning INCOMPLETE
 }
@@ -281,9 +295,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	fklUnlockThread(exe);
 	if(setjmp(dctx->jmpb)==DBG_REACH_BREAKPOINT)
-	{
 		reach_break_point=1;
-	}
 	else
 		fklVMidleLoop(dctx->gc);
 	fklLockThread(exe);
@@ -299,13 +311,44 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-continue";
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
-
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+
+	FklSid_t fid=0;
+	uint32_t line=0;
+	switch(arg_num)
+	{
+		case 1:
+			{
+				FklVMvalue* line_obj=FKL_VM_POP_ARG(exe);
+				FKL_CHECK_TYPE(line_obj,fklIsVMint,Pname,exe);
+				if(fklIsVMnumberLt0(line_obj))
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				line=fklGetUint(line_obj);
+				fid=dctx->curline_file;
+			}
+			break;
+		case 2:
+			{
+				FklVMvalue* filename_obj=FKL_VM_POP_ARG(exe);
+				FklVMvalue* line_obj=FKL_VM_POP_ARG(exe);
+				FKL_CHECK_TYPE(line_obj,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(filename_obj,FKL_IS_STR,Pname,exe);
+				if(fklIsVMnumberLt0(line_obj))
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				line=fklGetUint(line_obj);
+				fid=fklAddSymbol(FKL_VM_STR(filename_obj),dctx->st)->id;
+			}
+			break;
+		default:
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
+			break;
+	}
+
+	putBreakpoint(dctx,fid,line);
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
-	putBreakpoint(dctx,dctx->curline_file,dctx->curline);
 	return 0;
 }
 

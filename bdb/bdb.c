@@ -394,12 +394,40 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 	return msgs[t];
 }
 
-uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid)
+FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 {
 	abort();
-	// FklVMvalue* cur=ctx->gc->head;
-	// for(;cur;cur=cur->next)
-	// {
-	// }
+}
+
+FklVMvalue* findClosureVar(DebugCtx* ctx,FklSid_t id)
+{
+	abort();
+}
+
+static inline const FklLineNumberTableItem* get_proc_start_line_number(const FklVMproc* proc)
+{
+	FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
+	return fklFindLineNumTabNode(
+			proc->spc-code->bc->code
+			,code->ls
+			,code->l);
+}
+
+uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid)
+{
+	FklVMvalue* var_value=findLocalVar(ctx,name_sid);
+	if(var_value==NULL)
+		var_value=findClosureVar(ctx,name_sid);
+	if(FKL_IS_PROC(var_value))
+	{
+		const FklLineNumberTableItem* ln=get_proc_start_line_number(FKL_VM_PROC(var_value));
+		*file_sid=ln->fid;
+		return ln->line;
+	}
+	else
+	{
+		*file_sid=0;
+		return 0;
+	}
 }
 

@@ -20,7 +20,7 @@ struct FklAnalysisSymbol;
 typedef struct
 {
 	size_t maxNonterminalLen;
-	size_t line;
+	uint32_t line;
 	const char* start;
 	const char* cur;
 	void* ctx;

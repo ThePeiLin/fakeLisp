@@ -44,8 +44,8 @@ typedef struct
 {
 	FklSid_t fid;
 	uint64_t scp;
-	uint64_t cpc;
 	uint32_t line;
+	uint32_t scope;
 }FklLineNumberTableItem;
 
 typedef struct
@@ -70,7 +70,8 @@ FklByteCodelnt* fklCreateByteCodelnt(FklByteCode* bc);
 
 FklByteCodelnt* fklCreateSingleInsBclnt(FklInstruction ins
 		,FklSid_t fid
-		,uint64_t line);
+		,uint32_t line
+		,uint32_t scope);
 
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable*);
 void fklDestroyByteCodelnt(FklByteCodelnt*);
@@ -78,23 +79,26 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
 void fklCodeLntConcat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodeLntReverseConcat(FklByteCodelnt*,FklByteCodelnt*);
 
-void fklBytecodeLntPushFrontIns(FklByteCodelnt* bcl,const FklInstruction* ins,FklSid_t fid,uint64_t line);
+void fklBytecodeLntPushFrontIns(FklByteCodelnt* bcl
+		,const FklInstruction* ins
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope);
 
-void fklBytecodeLntPushBackIns(const FklInstruction* ins,FklByteCodelnt* bcl,FklSid_t fid,uint64_t line);
+void fklBytecodeLntPushBackIns(const FklInstruction* ins
+		,FklByteCodelnt* bcl
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope);
 
 void fklByteCodeInsertFront(FklInstruction,FklByteCode* bc);
 
 void fklInitLineNumTabNode(FklLineNumberTableItem*
 		,FklSid_t fid
 		,uint64_t scp
-		,uint64_t cpc
-		,uint64_t line);
-FklLineNumberTableItem* fklCreateLineNumTabNode(FklSid_t fid,uint64_t scp,uint64_t cpc,uint64_t line);
-FklLineNumberTableItem* fklCreateLineNumTabNodeWithFilename(const char* filename
-		,uint64_t scp
-		,uint64_t cpc
 		,uint32_t line
-		,FklSymbolTable* table);
+		,uint32_t scope);
+
 const FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,const FklLineNumberTableItem* l);
 void fklWriteLineNumberTable(const FklLineNumberTableItem*,uint32_t num,FILE*);
 void fklDBG_printByteCode(FklInstruction* code,uint64_t s,uint64_t c,FILE*);

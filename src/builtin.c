@@ -4855,201 +4855,216 @@ static int builtin_exit(FKL_CPROC_ARGL)
 
 #include<fakeLisp/opcode.h>
 
-#define INL_FUNC_ARGS FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line
+#define INL_FUNC_ARGS FklByteCodelnt* bcs[],FklSid_t fid,uint32_t line,uint32_t scope
 
-static inline FklByteCodelnt* inl_0_arg_func(FklOpcode opc,FklSid_t fid,uint64_t line)
+static inline FklByteCodelnt* inl_0_arg_func(FklOpcode opc
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
 {
 	FklInstruction ins={.op=opc};
-	return fklCreateSingleInsBclnt(ins,fid,line);
+	return fklCreateSingleInsBclnt(ins,fid,line,scope);
 }
 
 static inline FklByteCodelnt* inlfunc_box0(INL_FUNC_ARGS)
 {
-	return inl_0_arg_func(FKL_OP_BOX0,fid,line);
+	return inl_0_arg_func(FKL_OP_BOX0,fid,line,scope);
 }
 
 static inline FklByteCodelnt* inlfunc_add0(INL_FUNC_ARGS)
 {
-	return inl_0_arg_func(FKL_OP_PUSH_0,fid,line);
+	return inl_0_arg_func(FKL_OP_PUSH_0,fid,line,scope);
 }
 
 static inline FklByteCodelnt* inlfunc_mul0(INL_FUNC_ARGS)
 {
-	return inl_0_arg_func(FKL_OP_PUSH_1,fid,line);
+	return inl_0_arg_func(FKL_OP_PUSH_1,fid,line,scope);
 }
 
-static inline FklByteCodelnt* inl_1_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
+static inline FklByteCodelnt* inl_1_arg_func(FklOpcode opc
+		,FklByteCodelnt* bcs[]
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
 {
 	FklInstruction bc={.op=opc};
-	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line);
+	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line,scope);
 	return bcs[0];
 }
 
 static FklByteCodelnt* inlfunc_true(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_TRUE,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_TRUE,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_not(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_NOT,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_NOT,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_car(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_PUSH_CAR,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_PUSH_CAR,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_cdr(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_PUSH_CDR,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_PUSH_CDR,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_add_1(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_INC,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_INC,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_sub_1(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_DEC,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_DEC,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_neg(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_NEG,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_NEG,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_rec(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_REC,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_REC,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_add1(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_ADD1,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_ADD1,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_mul1(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_MUL1,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_MUL1,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_box(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_BOX,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_BOX,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_unbox(INL_FUNC_ARGS)
 {
-	return inl_1_arg_func(FKL_OP_UNBOX,bcs,fid,line);
+	return inl_1_arg_func(FKL_OP_UNBOX,bcs,fid,line,scope);
 }
 
-static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
+static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc
+		,FklByteCodelnt* bcs[]
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
 {
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
-	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line);
+	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line,scope);
 	fklDestroyByteCodelnt(bcs[1]);
 	return bcs[0];
 }
 
 static FklByteCodelnt* inlfunc_cons(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_CONS,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_CONS,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_eq(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_EQ,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_EQ,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_eqv(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_EQV,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_EQV,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_equal(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_EQUAL,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_EQUAL,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_eqn(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_EQN,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_EQN,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_mul(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_MUL,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_MUL,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_div(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_DIV,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_DIV,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_idiv(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_IDIV,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_IDIV,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_mod(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_MOD,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_MOD,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_nth(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_NTH,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_NTH,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_vec_ref(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_VEC_REF,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_VEC_REF,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_str_ref(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_STR_REF,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_STR_REF,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_add(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_ADD,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_ADD,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_sub(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_SUB,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_SUB,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_gt(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_GT,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_GT,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_lt(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_LT,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_LT,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_ge(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_GE,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_GE,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_le(INL_FUNC_ARGS)
 {
-	return inl_2_arg_func(FKL_OP_LE,bcs,fid,line);
+	return inl_2_arg_func(FKL_OP_LE,bcs,fid,line,scope);
 }
 
-static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc,FklByteCodelnt* bcs[],FklSid_t fid,uint64_t line)
+static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc
+		,FklByteCodelnt* bcs[]
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
 {
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
 	fklCodeLntReverseConcat(bcs[2],bcs[0]);
-	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line);
+	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line,scope);
 	fklDestroyByteCodelnt(bcs[1]);
 	fklDestroyByteCodelnt(bcs[2]);
 	return bcs[0];
@@ -5057,52 +5072,52 @@ static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc,FklByteCodelnt* bcs[]
 
 static FklByteCodelnt* inlfunc_eqn3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_EQN3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_EQN3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_gt3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_GT3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_GT3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_lt3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_LT3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_LT3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_ge3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_GE3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_GE3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_le3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_LE3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_LE3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_add3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_ADD3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_ADD3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_sub3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_SUB3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_SUB3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_mul3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_MUL3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_MUL3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_div3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_DIV3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_DIV3,bcs,fid,line,scope);
 }
 
 static FklByteCodelnt* inlfunc_idiv3(INL_FUNC_ARGS)
 {
-	return inl_3_arg_func(FKL_OP_IDIV3,bcs,fid,line);
+	return inl_3_arg_func(FKL_OP_IDIV3,bcs,fid,line,scope);
 }
 
 #undef INL_FUNC_ARGS

@@ -31,8 +31,11 @@
 
 (define (print-cur-line ctx file-prefix line-prefix)
   (define cur-file-line (debug-ctx-get-curline ctx))
-  (print file-prefix (car cur-file-line))
-  (print line-prefix (cdr cur-file-line)))
+  (print file-prefix
+         (vec-ref cur-file-line 0)
+         ":"
+         (vec-ref cur-file-line 1))
+  (print line-prefix (vec-ref cur-file-line 2)))
 
 (define (unknown-cmd-func,_)
   (println "unknown command"))

@@ -320,16 +320,11 @@ const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe* frame)
 	return NULL;
 }
 
-BreakpointHashItem* putBreakpoint(DebugCtx* ctx
+BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx
 		,FklSid_t fid
 		,uint32_t line
 		,PutBreakpointErrorType* err)
 {
-	BreakpointHashKey key={.fid=fid,.line=line};
-	BreakpointHashItem* item=fklGetHashItem(&key,&ctx->break_points);
-	if(item)
-		return item;
-
 	const SourceCodeHashItem* sc_item=get_source_with_fid(&ctx->source_code_table,fid);
 	if(!sc_item)
 	{
@@ -342,6 +337,7 @@ BreakpointHashItem* putBreakpoint(DebugCtx* ctx
 		return NULL;
 	}
 
+	uint64_t scp=0;
 	FklInstruction* ins=NULL;
 	for(FklVMvalue* cur=ctx->code_objs
 			;cur
@@ -362,6 +358,7 @@ BreakpointHashItem* putBreakpoint(DebugCtx* ctx
 break_loop:
 	if(ins)
 	{
+		BreakpointHashKey key={.fid=fid,.line=line,.pc=scp};
 		BreakpointHashItem t={.key=key,.num=0};
 		BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->break_points);
 		if(item->ctx)
@@ -389,7 +386,7 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 		"end of file",
 		"file is invalid",
 		"blank or comment",
-		"the specified symbol is not a procedure or undefined",
+		"the specified symbol is undefined or not a procedure",
 	};
 	return msgs[t];
 }
@@ -437,21 +434,41 @@ static inline const FklLineNumberTableItem* get_proc_start_line_number(const Fkl
 			,code->l);
 }
 
-uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid)
+static inline BreakpointHashItem* put_breakpoint_with_pc(DebugCtx* ctx
+		,uint64_t pc
+		,FklInstruction* ins
+		,const FklLineNumberTableItem* ln)
+{
+	BreakpointHashKey key={.fid=ln->fid,.line=ln->line,.pc=pc};
+	BreakpointHashItem t={.key=key,.num=0};
+	BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->break_points);
+	if(item->ctx)
+		return item;
+	else
+	{
+		item->num=ctx->break_points.num;
+		item->ctx=ctx;
+		item->origin_ins=*ins;
+		item->ins=ins;
+		ins->op=0;
+		ins->ptr=item;
+		return item;
+	}
+}
+
+BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
 {
 	FklVMvalue* var_value=findLocalVar(ctx,name_sid);
 	if(var_value==NULL)
 		var_value=findClosureVar(ctx,name_sid);
 	if(var_value&&FKL_IS_PROC(var_value))
 	{
-		const FklLineNumberTableItem* ln=get_proc_start_line_number(FKL_VM_PROC(var_value));
-		*file_sid=ln->fid;
-		return ln->line;
+		FklVMproc* proc=FKL_VM_PROC(var_value);
+		FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
+		uint64_t pc=proc->spc-code->bc->code;
+		const FklLineNumberTableItem* ln=get_proc_start_line_number(proc);
+		return put_breakpoint_with_pc(ctx,pc,proc->spc,ln);
 	}
-	else
-	{
-		*file_sid=0;
-		return 0;
-	}
+	return NULL;
 }
 

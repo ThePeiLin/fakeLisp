@@ -54,6 +54,7 @@ typedef struct
 typedef struct
 {
 	FklSid_t fid;
+	uint64_t pc;
 	uint32_t line;
 }BreakpointHashKey;
 
@@ -87,8 +88,8 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 
 void initBreakpointTable(FklHashTable*);
 
-uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid);
-BreakpointHashItem* putBreakpoint(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
+BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
+BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid);
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 void delBreakpoint(DebugCtx* ctx,uint64_t num);
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);

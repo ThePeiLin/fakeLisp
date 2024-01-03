@@ -278,7 +278,15 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 	FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
 	const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
 	FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,file_str_value,line_str_value));
+
+	FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
+	FklVMvalue* r=fklCreateVMvalueVec(exe,3);
+	FklVMvec* vec=FKL_VM_VEC(r);
+
+	vec->base[0]=file_str_value;
+	vec->base[1]=line_num_value;
+	vec->base[2]=line_str_value;
+	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }
 
@@ -327,6 +335,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 	FklSid_t fid=0;
 	uint32_t line=0;
 	PutBreakpointErrorType err=0;
+	BreakpointHashItem* item=NULL;
 	switch(arg_num)
 	{
 		case 1:
@@ -335,8 +344,10 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 				if(FKL_IS_SYM(line_sym_obj))
 				{
 					FklSid_t id=fklAddSymbol(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(line_sym_obj))->symbol,dctx->st)->id;
-					line=getProcPos(dctx,id,&fid);
-					if(fid==0)
+					item=putBreakpointForProcedure(dctx,id);
+					if(item)
+						goto done;
+					else
 					{
 						err=PUT_BP_NOT_A_PROC;
 						goto error;
@@ -383,7 +394,8 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 			break;
 	}
 
-	BreakpointHashItem* item=putBreakpoint(dctx,fid,line,&err);
+	item=putBreakpointWithFileAndLine(dctx,fid,line,&err);
+done:
 	if(item)
 	{
 		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));

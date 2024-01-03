@@ -8,14 +8,14 @@ static FKL_HASH_SET_KEY_VAL(breakpoint_set_val,BreakpointHashItem);
 static uintptr_t breakpoint_hash_func(const void* k)
 {
 	const BreakpointHashKey* kk=(const BreakpointHashKey*)k;
-	return (kk->fid<<32)+kk->line;
+	return (kk->fid<<32)+kk->line+kk->pc;
 }
 
 static int breakpoint_key_equal(const void* a,const void* b)
 {
 	const BreakpointHashKey* aa=(const BreakpointHashKey*)a;
 	const BreakpointHashKey* bb=(const BreakpointHashKey*)b;
-	return aa->fid==bb->fid&&aa->line==bb->line;
+	return aa->fid==bb->fid&&aa->line==bb->line&&aa->pc==bb->pc;
 }
 
 static void breakpoint_uninit(void* a)

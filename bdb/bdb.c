@@ -389,7 +389,17 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 		"end of file",
 		"file is invalid",
 		"blank or comment",
+		"the specified symbol is not a procedure",
 	};
 	return msgs[t];
+}
+
+uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid)
+{
+	abort();
+	// FklVMvalue* cur=ctx->gc->head;
+	// for(;cur;cur=cur->next)
+	// {
+	// }
 }
 

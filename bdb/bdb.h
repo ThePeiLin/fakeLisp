@@ -77,6 +77,7 @@ typedef enum
 	PUT_BP_AT_END_OF_FILE=1,
 	PUT_BP_FILE_INVALID,
 	PUT_BP_IN_BLANK_OR_COMMENT,
+	PUT_BP_NOT_A_PROC,
 }PutBreakpointErrorType;
 
 DebugCtx* createDebugCtx(FklVM* exe
@@ -86,6 +87,7 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 
 void initBreakpointTable(FklHashTable*);
 
+uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid);
 BreakpointHashItem* putBreakpoint(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 void delBreakpoint(DebugCtx* ctx,uint64_t num);

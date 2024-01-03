@@ -326,16 +326,31 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 
 	FklSid_t fid=0;
 	uint32_t line=0;
+	PutBreakpointErrorType err=0;
 	switch(arg_num)
 	{
 		case 1:
 			{
-				FklVMvalue* line_obj=FKL_VM_POP_ARG(exe);
-				FKL_CHECK_TYPE(line_obj,fklIsVMint,Pname,exe);
-				if(fklIsVMnumberLt0(line_obj))
-					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				line=fklGetUint(line_obj);
-				fid=dctx->curline_file;
+				FklVMvalue* line_sym_obj=FKL_VM_POP_ARG(exe);
+				if(FKL_IS_SYM(line_sym_obj))
+				{
+					FklSid_t id=fklAddSymbol(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(line_sym_obj))->symbol,dctx->st)->id;
+					line=getProcPos(dctx,id,&fid);
+					if(fid==0)
+					{
+						err=PUT_BP_NOT_A_PROC;
+						goto error;
+					}
+				}
+				else if(fklIsVMint(line_sym_obj))
+				{
+					if(fklIsVMnumberLt0(line_sym_obj))
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+					line=fklGetUint(line_sym_obj);
+					fid=dctx->curline_file;
+				}
+				else
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 			}
 			break;
 		case 2:
@@ -368,7 +383,6 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 			break;
 	}
 
-	PutBreakpointErrorType err=0;
 	BreakpointHashItem* item=putBreakpoint(dctx,fid,line,&err);
 	if(item)
 	{
@@ -384,9 +398,12 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
+	{
+error:
 		FKL_VM_PUSH_VALUE(exe
 				,fklCreateVMvalueStr(exe
 					,fklCreateStringFromCstr(getPutBreakpointErrorInfo(err))));
+	}
 	return 0;
 }
 

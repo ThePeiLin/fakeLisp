@@ -238,6 +238,7 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 				replxx_set_preload_buffer(ctx->replxx,&s->buf[idx]);
 				s->buf[idx]='\0';
 			}
+			replxx_history_add(ctx->replxx,s->buf);
 			debug_repl_parse_ctx_and_buf_reset(ctx,s);
 			return ast;
 		}
@@ -297,7 +298,14 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	if(setjmp(dctx->jmpb)==DBG_REACH_BREAKPOINT)
 		reach_break_point=1;
 	else
+	{
+		if(dctx->is_reach_breakpoint)
+		{
+			fklVMreleaseWq(dctx->gc);
+			fklVMcontinueTheWorld(dctx->gc);
+		}
 		fklVMidleLoop(dctx->gc);
+	}
 	fklLockThread(exe);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe
 			,rtp

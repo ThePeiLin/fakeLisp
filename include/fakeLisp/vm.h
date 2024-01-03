@@ -1004,6 +1004,8 @@ void fklNoticeThreadLock(FklVM*);
 void fklDontNoticeThreadLock(FklVM*);
 void fklUnlockThread(FklVM*);
 void fklLockThread(FklVM*);
+void fklVMstopTheWorld(FklVMgc*);
+void fklVMcontinueTheWorld(FklVMgc*);
 
 void fklChanlSend(FklVMchanl*,FklVMvalue* msg,FklVM*);
 void fklChanlRecv(FklVMchanl*,FklVMvalue**,FklVM*);

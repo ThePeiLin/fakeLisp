@@ -1323,6 +1323,20 @@ static inline void vm_idle_loop(FklVMgc* gc)
 	}
 }
 
+void fklVMstopTheWorld(FklVMgc* gc)
+{
+	FklVMqueue* q=&gc->q;
+	switch_notice_lock_ins_for_running_threads(&q->running_q);
+	lock_all_vm(&q->running_q);
+}
+
+void fklVMcontinueTheWorld(FklVMgc* gc)
+{
+	FklVMqueue* q=&gc->q;
+	switch_un_notice_lock_ins_for_running_threads(&q->running_q);
+	unlock_all_vm(&q->running_q);
+}
+
 void fklVMidleLoop(FklVMgc* gc)
 {
 	vm_idle_loop(gc);

@@ -71,7 +71,7 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 static void B_int33(FKL_VM_INS_FUNC_ARGL)
 {
 	exe->ins_table[0]=B_int3;
-	FklInstruction* oins=((BreakpointHashItem*)ins->ptr)->ins;
+	FklInstruction* oins=&((BreakpointHashItem*)ins->ptr)->origin_ins;
 	exe->ins_table[oins->op](exe,oins);
 }
 

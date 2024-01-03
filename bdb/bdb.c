@@ -389,19 +389,43 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 		"end of file",
 		"file is invalid",
 		"blank or comment",
-		"the specified symbol is not a procedure",
+		"the specified symbol is not a procedure or undefined",
 	};
 	return msgs[t];
 }
 
 FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 {
-	abort();
+	FklVM* cur_thread=ctx->cur_thread;
+	FklVMframe* frame=cur_thread->top_frame;
+	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
+	if(!frame)
+		return NULL;
+	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId;
+	uint32_t scope=getCurFrameLineNumber(frame)->scope;
+	FklCodegenEnv* env=ctx->envs.base[prototype_id-1];
+	const FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,env);
+	if(def)
+		return cur_thread->locv[def->idx];
+	return NULL;
 }
 
 FklVMvalue* findClosureVar(DebugCtx* ctx,FklSid_t id)
 {
-	abort();
+	FklVM* cur_thread=ctx->cur_thread;
+	FklVMframe* frame=cur_thread->top_frame;
+	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
+	if(!frame)
+		return NULL;
+	FklVMproc* proc=FKL_VM_PROC(frame->c.proc);
+	uint32_t prototype_id=proc->protoId;
+	FklFuncPrototype* pt=&ctx->cur_thread->pts->pts[prototype_id];
+	FklSymbolDef* def=pt->refs;
+	FklSymbolDef* const end=&def[pt->rcount];
+	for(;def<end;def++)
+		if(def->k.id==id)
+			return *(FKL_VM_VAR_REF(proc->closure[def->idx])->ref);
+	return NULL;
 }
 
 static inline const FklLineNumberTableItem* get_proc_start_line_number(const FklVMproc* proc)
@@ -418,7 +442,7 @@ uint32_t getProcPos(DebugCtx* ctx,FklSid_t name_sid,FklSid_t* file_sid)
 	FklVMvalue* var_value=findLocalVar(ctx,name_sid);
 	if(var_value==NULL)
 		var_value=findClosureVar(ctx,name_sid);
-	if(FKL_IS_PROC(var_value))
+	if(var_value&&FKL_IS_PROC(var_value))
 	{
 		const FklLineNumberTableItem* ln=get_proc_start_line_number(FKL_VM_PROC(var_value));
 		*file_sid=ln->fid;

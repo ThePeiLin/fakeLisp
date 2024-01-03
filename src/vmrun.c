@@ -542,8 +542,8 @@ void fklDoFinalizeObjFrame(FklVM* vm,FklVMframe* f)
 
 static inline void close_var_ref(FklVMvalue* ref)
 {
-	((FklVMvalueVarRef*)ref)->v=*(((FklVMvalueVarRef*)ref)->ref);
-	atomic_store(&(((FklVMvalueVarRef*)ref)->ref),&(((FklVMvalueVarRef*)ref)->v));
+	FKL_VM_VAR_REF(ref)->v=*(FKL_VM_VAR_REF(ref)->ref);
+	atomic_store(&(FKL_VM_VAR_REF(ref)->ref),&(FKL_VM_VAR_REF(ref)->v));
 }
 
 static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
@@ -1887,7 +1887,7 @@ static inline void B_put_loc(FKL_VM_INS_FUNC_ARGL)
 static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
-	FklVMvalue* v=idx<lr->rcount?*atomic_load(&(((FklVMvalueVarRef*)lr->ref[idx])->ref)):NULL;
+	FklVMvalue* v=idx<lr->rcount?*atomic_load(&(FKL_VM_VAR_REF(lr->ref[idx])->ref)):NULL;
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
@@ -1915,9 +1915,9 @@ static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
 	FklVMvalue** refs=lr->ref;
-	FklVMvalue* volatile* v=(idx>=lr->rcount||!(((FklVMvalueVarRef*)refs[idx])->ref))
+	FklVMvalue* volatile* v=(idx>=lr->rcount||!(FKL_VM_VAR_REF(refs[idx])->ref))
 		?NULL
-		:atomic_load(&(((FklVMvalueVarRef*)lr->ref[idx])->ref));
+		:atomic_load(&(FKL_VM_VAR_REF(lr->ref[idx])->ref));
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));

@@ -355,7 +355,7 @@ void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
 			FklVMvalue** loc=&locv[lr->base];
 			for(FklVMvarRefList* ll=lr->lrefl;ll;ll=ll->next)
 			{
-				FklVMvalueVarRef* ref=(FklVMvalueVarRef*)ll->ref;
+				FklVMvalueVarRef* ref=FKL_VM_VAR_REF(ll->ref);
 				if(ref->ref!=&ref->v)
 					ref->ref=&loc[ref->idx];
 			}

@@ -452,8 +452,8 @@ static inline void process_unresolve_work_func(FklVM* exe
 				proc->closure[idx]=lr->lref[def->idx];
 			else
 			{
-				((FklVMvalueVarRef*)ref)->idx=def->idx;
-				((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+				FKL_VM_VAR_REF(ref)->idx=def->idx;
+				FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
 				insert_local_ref(lr,ref,def->idx);
 			}
 		}
@@ -467,8 +467,8 @@ static inline void process_unresolve_work_func(FklVM* exe
 				proc->closure[idx]=lr->lref[def->idx];
 			else
 			{
-				((FklVMvalueVarRef*)ref)->idx=def->idx;
-				((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+				FKL_VM_VAR_REF(ref)->idx=def->idx;
+				FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
 				insert_local_ref(lr,ref,def->idx);
 			}
 		}
@@ -484,8 +484,8 @@ static inline void process_unresolve_work_func(FklVM* exe
 					proc->closure[idx]=lr->lref[def->idx];
 				else
 				{
-					((FklVMvalueVarRef*)ref)->idx=def->idx;
-					((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+					FKL_VM_VAR_REF(ref)->idx=def->idx;
+					FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
 					insert_local_ref(lr,ref,def->idx);
 				}
 			}
@@ -558,8 +558,8 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 						proc->closure[idx]=lr->lref[def->idx];
 					else
 					{
-						((FklVMvalueVarRef*)ref)->idx=def->idx;
-						((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+						FKL_VM_VAR_REF(ref)->idx=def->idx;
+						FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
 						insert_local_ref(lr,ref,def->idx);
 					}
 				}
@@ -573,8 +573,8 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 						proc->closure[idx]=lr->lref[def->idx];
 					else
 					{
-						((FklVMvalueVarRef*)ref)->idx=def->idx;
-						((FklVMvalueVarRef*)ref)->ref=&loc[def->idx];
+						FKL_VM_VAR_REF(ref)->idx=def->idx;
+						FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
 						insert_local_ref(lr,ref,def->idx);
 					}
 				}
@@ -956,7 +956,7 @@ static inline void init_frame_to_repl_frame(FklVM* exe,FklCodegenInfo* codegen)
 	ctx->mainProc=mainProc;
 	ctx->lcount=0;
 
-	ctx->stdinVal=((FklVMvalueVarRef*)proc->closure[FKL_VM_STDIN_IDX])->v;
+	ctx->stdinVal=FKL_VM_VAR_REF(proc->closure[FKL_VM_STDIN_IDX])->v;
 	ctx->codegen=codegen;
 	NastCreatCtx* cc=createNastCreatCtx();
 	ctx->cc=cc;

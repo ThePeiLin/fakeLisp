@@ -41,7 +41,8 @@ typedef struct
 
 	FklHashTable source_code_table;
 	FklPtrStack envs;
-	FklPtrStack code_objs;
+
+	FklVMvalue* code_objs;
 
 	jmp_buf jmpb;
 	FklVM* cur_thread;

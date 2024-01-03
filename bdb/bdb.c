@@ -246,6 +246,40 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
 	}
 }
 
+static inline void get_all_code_objs(DebugCtx* ctx)
+{
+	FklVMvalue** phead=&ctx->gc->head;
+	for(;;)
+	{
+		FklVMvalue* cur=*phead;
+		if(cur==NULL)
+			break;
+		if(cur->type==FKL_TYPE_CODE_OBJ)
+		{
+			*phead=cur->next;
+			cur->next=ctx->code_objs;
+			ctx->code_objs=cur;
+		}
+		else
+			phead=&cur->next;
+	}
+	phead=&ctx->cur_thread->obj_head;
+	for(;;)
+	{
+		FklVMvalue* cur=*phead;
+		if(cur==NULL)
+			break;
+		if(cur->type==FKL_TYPE_CODE_OBJ)
+		{
+			*phead=cur->next;
+			cur->next=ctx->code_objs;
+			ctx->code_objs=cur;
+		}
+		else
+			phead=&cur->next;
+	}
+}
+
 DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
@@ -261,6 +295,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	}
 
 	init_source_codes(ctx);
+	get_all_code_objs(ctx);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->cur_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 

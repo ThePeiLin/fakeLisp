@@ -37,13 +37,27 @@
 (define (unknown-cmd-func,_)
   (println "unknown command"))
 
+(define (debug-continue ctx)
+  (when (debug-ctx-continue ctx)
+    (print-cur-line ctx file-prefix line-prefix)))
+
+(define (debug-set-breakpoint ctx,rest)
+  (define breakpoint (apply debug-ctx-set-break ctx rest))
+  (if (vector? breakpoint)
+    (println "breakpoint "
+             (vec-ref breakpoint 0)
+             " at "
+             (vec-ref breakpoint 1)
+             ":"
+             (vec-ref breakpoint 2))
+    (println breakpoint)))
+  
+
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
-    'continue (lambda (ctx)
-                (when (debug-ctx-continue ctx)
-                  (print-cur-line ctx file-prefix line-prefix)))
-    'break debug-ctx-set-break
+    'continue debug-continue
+    'break debug-set-breakpoint
     'delete debug-ctx-del-break
     'next debug-ctx-next
     'step debug-ctx-step

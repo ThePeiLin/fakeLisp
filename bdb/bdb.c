@@ -296,6 +296,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 
 	init_source_codes(ctx);
 	get_all_code_objs(ctx);
+	initBreakpointTable(&ctx->break_points);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->cur_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 
@@ -317,5 +318,78 @@ const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe* frame)
 				,code->l);
 	}
 	return NULL;
+}
+
+BreakpointHashItem* putBreakpoint(DebugCtx* ctx
+		,FklSid_t fid
+		,uint32_t line
+		,PutBreakpointErrorType* err)
+{
+	BreakpointHashKey key={.fid=fid,.line=line};
+	BreakpointHashItem* item=fklGetHashItem(&key,&ctx->break_points);
+	if(item)
+		return item;
+
+	const SourceCodeHashItem* sc_item=get_source_with_fid(&ctx->source_code_table,fid);
+	if(!sc_item)
+	{
+		*err=PUT_BP_FILE_INVALID;
+		return NULL;
+	}
+	if(!line||line>sc_item->lines.top)
+	{
+		*err=PUT_BP_AT_END_OF_FILE;
+		return NULL;
+	}
+
+	FklInstruction* ins=NULL;
+	for(FklVMvalue* cur=ctx->code_objs
+			;cur
+			;cur=cur->next)
+	{
+		FklByteCodelnt* bclnt=FKL_VM_CO(cur);
+		FklLineNumberTableItem* item=bclnt->l;
+		FklLineNumberTableItem* const end=&item[bclnt->ls];
+		for(;item<end;item++)
+		{
+			if(item->fid==fid&&item->line==line)
+			{
+				ins=&bclnt->bc->code[item->scp];
+				goto break_loop;
+			}
+		}
+	}
+break_loop:
+	if(ins)
+	{
+		BreakpointHashItem t={.key=key,.num=0};
+		BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->break_points);
+		if(item->ctx)
+			return item;
+		else
+		{
+			item->num=ctx->break_points.num;
+			item->ctx=ctx;
+			item->origin_ins=*ins;
+			item->ins=ins;
+			ins->op=0;
+			ins->ptr=item;
+			return item;
+		}
+	}
+	*err=PUT_BP_IN_BLANK_OR_COMMENT;
+	return NULL;
+}
+
+const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
+{
+	static const char* msgs[]=
+	{
+		NULL,
+		"end of file",
+		"file is invalid",
+		"blank or comment",
+	};
+	return msgs[t];
 }
 

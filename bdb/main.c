@@ -339,7 +339,20 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 				if(fklIsVMnumberLt0(line_obj))
 					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				line=fklGetUint(line_obj);
-				fid=fklAddSymbol(FKL_VM_STR(filename_obj),dctx->st)->id;
+				FklString* str=FKL_VM_STR(filename_obj);
+				if(fklIsAccessibleRegFile(str->str))
+				{
+					char* rp=fklRealpath(str->str);
+					fid=fklAddSymbolCstr(rp,dctx->st)->id;
+					free(rp);
+				}
+				else
+				{
+					char* filename_with_dir=fklStrCat(fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir),str->str);
+					if(fklIsAccessibleRegFile(str->str))
+						fid=fklAddSymbolCstr(filename_with_dir,dctx->st)->id;
+					free(filename_with_dir);
+				}
 			}
 			break;
 		default:
@@ -347,8 +360,25 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 			break;
 	}
 
-	putBreakpoint(dctx,fid,line);
-	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
+	PutBreakpointErrorType err=0;
+	BreakpointHashItem* item=putBreakpoint(dctx,fid,line,&err);
+	if(item)
+	{
+		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
+		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+		FklVMvalue* r=fklCreateVMvalueVec(exe,3);
+		FklVMvec* vec=FKL_VM_VEC(r);
+		vec->base[0]=num;
+		vec->base[1]=filename;
+		vec->base[2]=line;
+
+		FKL_VM_PUSH_VALUE(exe,r);
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe
+				,fklCreateVMvalueStr(exe
+					,fklCreateStringFromCstr(getPutBreakpointErrorInfo(err))));
 	return 0;
 }
 

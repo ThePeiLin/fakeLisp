@@ -72,6 +72,13 @@ typedef struct
 	FklPtrStack lines;
 }SourceCodeHashItem;
 
+typedef enum
+{
+	PUT_BP_AT_END_OF_FILE=1,
+	PUT_BP_FILE_INVALID,
+	PUT_BP_IN_BLANK_OR_COMMENT,
+}PutBreakpointErrorType;
+
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
@@ -79,7 +86,8 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 
 void initBreakpointTable(FklHashTable*);
 
-void putBreakpoint(DebugCtx* ctx,FklSid_t fid,uint32_t line);
+BreakpointHashItem* putBreakpoint(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
+const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 void delBreakpoint(DebugCtx* ctx,uint64_t num);
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 

@@ -2378,3 +2378,231 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 	return errorTypeId[type];
 }
 
+FklBuiltinErrorType fklVMprintf(FklVM* exe,FILE* fp,const FklString* fmt_str)
+{
+#define C_TO_D(c) ((c)-'0')
+
+	int64_t length;
+	int64_t prec;
+	int ladjust;
+	char padc;
+	long n;
+	unsigned long u;
+	int plus_sign;
+	int sign_char;
+	int altfmt;
+	int truncate;
+	int base;
+	char c;
+	int capitals;
+
+	const char* fmt=fmt_str->str;
+	const char* const end=&fmt[fmt_str->size];
+
+	while(fmt<end)
+	{
+		c=*fmt;
+		if(c!='%')
+		{
+			fputc(c,fp);
+			fmt++;
+			continue;
+		}
+		fmt++;
+		length=0;
+		prec=-1;
+		ladjust=0;
+		padc=' ';
+		plus_sign=0;
+		sign_char=0;
+		altfmt=0;
+		for(;;)
+		{
+			c=*fmt;
+			if(c=='#')
+			{
+				altfmt=1;
+			}
+			else if(c=='-')
+			{
+				ladjust=1;
+			}
+			else if(c==' ')
+			{
+				if(plus_sign==0)
+					plus_sign=' ';
+			}
+			else
+				break;
+			fmt++;
+		}
+
+		if(c=='0')
+		{
+			padc='0';
+			fmt++;
+		}
+
+		if(isdigit(c))
+		{
+			while(isdigit(c))
+			{
+				length=10*length+C_TO_D(c);
+				c=*++fmt;
+			}
+		}
+		else if(c=='*')
+		{
+			c=*++fmt;
+			FklVMvalue* length_obj=FKL_VM_POP_ARG(exe);
+			if(length_obj==NULL)
+				return FKL_ERR_TOOFEWARG;
+			else if(FKL_IS_FIX(length_obj))
+			{
+				length=FKL_GET_FIX(length_obj);
+				if(length<0)
+				{
+					ladjust=!ladjust;
+					length=-length;
+				}
+			}
+			else
+				return FKL_ERR_INCORRECT_TYPE_VALUE;
+		}
+
+		if(c=='.')
+		{
+			c=*++fmt;
+			if(isdigit(c))
+			{
+				prec=0;
+				while(isdigit(c))
+				{
+					prec=10*prec+C_TO_D(c);
+					c=*++fmt;
+				}
+			}
+			else if(c=='*')
+			{
+				c=*++fmt;
+				FklVMvalue* prec_obj=FKL_VM_POP_ARG(exe);
+				if(prec_obj==NULL)
+					return FKL_ERR_TOOFEWARG;
+				else if(FKL_IS_FIX(prec_obj))
+				{
+					prec=FKL_GET_FIX(prec_obj);
+					if(prec<0)
+						return FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0;
+				}
+				else
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+			}
+		}
+
+		truncate=0;
+		capitals=0;
+		switch(c)
+		{
+			case 'o':
+			case 'O':
+				base=8;
+				goto print_integer;
+				break;
+
+			case 'X':
+				capitals=16;
+			case 'x':
+				base=16;
+				goto print_integer;
+				break;
+
+			case 'D':
+			case 'd':
+				base=10;
+print_integer:
+				{
+					FklVMvalue* integer_obj=FKL_VM_POP_ARG(exe);
+					if(integer_obj==NULL)
+						return FKL_ERR_TOOFEWARG;
+					else if(fklIsVMint(integer_obj))
+					{
+						if(FKL_IS_FIX(integer_obj))
+						{
+							static const char digits[]="0123456789abcdef0123456789ABCDEF";
+#define MAXBUF (sizeof(int64_t)*8)
+							int64_t integer_val=FKL_GET_FIX(integer_obj);
+							if(integer_val<0)
+							{
+								sign_char='-';
+								integer_val=-integer_val;
+							}
+							char buf[MAXBUF];
+
+							const char* prefix=NULL;
+							char* p=&buf[MAXBUF-1];
+							if(integer_val!=0&&altfmt)
+							{
+								if(base==8)
+									prefix="0";
+								else if(base==16)
+									prefix="0x";
+							}
+
+							do
+							{
+								*p--=digits[(integer_val%base)+capitals];
+								integer_val/=base;
+							}while(integer_val);
+
+							length-=(&buf[MAXBUF-1]-p);
+
+							if(sign_char)
+								length--;
+
+							if(prefix)
+								length-=strlen(prefix);
+							if(padc==' '&&!ladjust)
+							{
+								while(--length>=0)
+									fputc(' ',fp);
+							}
+
+							if(sign_char)
+								fputc(sign_char,fp);
+							if(prefix)
+							{
+								while(*prefix)
+									fputc(*(prefix++),fp);
+							}
+							if(padc=='0')
+							{
+								while(--length>=0)
+									fputc('0',fp);
+							}
+							while(++p!=&buf[MAXBUF])
+								fputc(*p,fp);
+							if(ladjust)
+							{
+								while(--length>=0)
+									fputc(' ',fp);
+							}
+#undef MAXBUF
+						}
+						else
+						{
+						}
+					}
+					else
+						return FKL_ERR_INCORRECT_TYPE_VALUE;
+				}
+				break;
+			default:
+				fputc(c,fp);
+		}
+		fmt++;
+	}
+	return 0;
+
+#undef CtoD
+}
+

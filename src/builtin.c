@@ -3008,6 +3008,18 @@ static int builtin_print(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_printf(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.printf";
+	FKL_DECL_AND_CHECK_ARG(fmt_obj,exe,Pname);
+	FKL_CHECK_TYPE(fmt_obj,FKL_IS_STR,Pname,exe);
+
+	fklVMprintf(exe,stdout,FKL_VM_STR(fmt_obj));
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 static int builtin_prin1n(FKL_CPROC_ARGL)
 {
 	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
@@ -5227,6 +5239,8 @@ static const struct SymbolFuncStruct
 
 	{"println",               builtin_println,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"print",                 builtin_print,                   {NULL,         NULL,          NULL,            NULL,          }, },
+
+	{"printf",                builtin_printf,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"prin1n",                builtin_prin1n,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"prin1v",                builtin_prin1v,                  {NULL,         NULL,          NULL,            NULL,          }, },

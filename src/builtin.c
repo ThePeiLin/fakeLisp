@@ -997,7 +997,7 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 		if(fklIsVMint(obj))
 		{
 			if(FKL_IS_BIG_INT(obj))
-				FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj),10);
+				FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj),10,1,1);
 			else
 			{
 				FklBigInt bi=FKL_BIG_INT_INIT;
@@ -1005,7 +1005,7 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 				bi.size=64;
 				bi.digits=t;
 				fklSetBigIntI(&bi,fklGetInt(obj));
-				FKL_VM_STR(retval)=fklBigIntToString(&bi,10);
+				FKL_VM_STR(retval)=fklBigIntToString(&bi,10,1,1);
 			}
 		}
 		else
@@ -1131,7 +1131,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 			base=t;
 		}
 		if(FKL_IS_BIG_INT(obj))
-			FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj),base);
+			FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj),base,1,1);
 		else
 		{
 			FklBigInt bi=FKL_BIG_INT_INIT;
@@ -1139,7 +1139,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 			bi.size=64;
 			bi.digits=t;
 			fklSetBigIntI(&bi,fklGetInt(obj));
-			FKL_VM_STR(retval)=fklBigIntToString(&bi,base);
+			FKL_VM_STR(retval)=fklBigIntToString(&bi,base,1,1);
 		}
 	}
 	else
@@ -1183,7 +1183,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 		base=t;
 	}
 	if(FKL_IS_BIG_INT(obj))
-		FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj),base);
+		FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj),base,1,1);
 	else
 	{
 		FklBigInt bi=FKL_BIG_INT_INIT;
@@ -1191,7 +1191,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 		bi.size=64;
 		bi.digits=t;
 		fklSetBigIntI(&bi,fklGetInt(obj));
-		FKL_VM_STR(retval)=fklBigIntToString(&bi,base);
+		FKL_VM_STR(retval)=fklBigIntToString(&bi,base,1,1);
 	}
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;

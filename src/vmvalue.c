@@ -1642,7 +1642,8 @@ FklVMvalue* fklCreateVMvalueBigInt(FklVM* exe
 	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_BIG_INT;
-	fklSetBigInt(FKL_VM_BI(r),bi);
+	if(bi)
+		fklSetBigInt(FKL_VM_BI(r),bi);
 	fklAddToGC(r,exe);
 	return r;
 }

@@ -1524,14 +1524,13 @@ void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 	}
 }
 
-FklString* fklBigIntToString(const FklBigInt* a,int radix)
+FklString* fklBigIntToString(const FklBigInt* a
+		,int radix
+		,int need_prefix
+		,int capitals)
 {
 	if(FKL_IS_0_BIG_INT(a))
-	{
-		FklString* s=fklCreateString(sizeof(char)*1,NULL);
-		s->str[0]='0';
-		return s;
-	}
+		return fklCreateStringFromCstr("0");
 	else
 	{
 		size_t len=0;
@@ -1547,31 +1546,53 @@ FklString* fklBigIntToString(const FklBigInt* a,int radix)
 		else if(radix==16)
 		{
 			toBitWiseDigitsLe(a,4,&res);
-			len+=2;
-			j+=2;
+			if(need_prefix)
+			{
+				len+=2;
+				j+=2;
+			}
 		}
 		else if(radix==8)
 		{
-			len++;
-			j++;
 			toInexactBitWiseDigitsLe(a,3,&res);
+
+			if(need_prefix)
+			{
+				len++;
+				j++;
+			}
 		}
 		len+=res.top;
 		FklString* s=fklCreateString(sizeof(char)*len,NULL);
 		char* buf=s->str;
 		if(a->neg)
 			buf[0]='-';
-		if(radix==16)
+		if(need_prefix)
 		{
-			buf[a->neg]='0';
-			buf[a->neg+1]='x';
+			if(radix==16)
+			{
+				buf[a->neg]='0';
+				buf[a->neg+1]='x';
+			}
+			else if(radix==8)
+				buf[a->neg]='0';
+
 		}
-		else if(radix==8)
-			buf[a->neg]='0';
-		for(size_t i=res.top;i>0;i--,j++)
+		if(capitals)
 		{
-			uint64_t c=res.base[i-1];
-			buf[j]=c<10?c+'0':c-10+'A';
+			for(size_t i=res.top;i>0;i--,j++)
+			{
+				uint64_t c=res.base[i-1];
+				buf[j]=c<10?c+'0':c-10+'A';
+			}
+		}
+		else
+		{
+			for(size_t i=res.top;i>0;i--,j++)
+			{
+				uint64_t c=res.base[i-1];
+				buf[j]=c<10?c+'0':c-10+'a';
+			}
 		}
 		fklUninitU8Stack(&res);
 		return s;

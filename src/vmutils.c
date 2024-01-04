@@ -2590,6 +2590,52 @@ print_integer:
 						}
 						else
 						{
+							const FklBigInt* bi=FKL_VM_BI(integer_obj);
+							if(bi->neg)
+								sign_char='-';
+							FklString* int_str=fklBigIntToString(bi
+									,base
+									,altfmt
+									,capitals);
+							length-=(int_str->size-1);
+							if(padc==' '&&!ladjust)
+							{
+								while(--length>=0)
+									fputc(' ',fp);
+							}
+
+							const char* p=int_str->str;
+							if(sign_char)
+							{
+								fputc(sign_char,fp);
+								p++;
+							}
+
+							if(altfmt)
+							{
+								if(base==8)
+									fputc(*p++,fp);
+								else if(base==16)
+								{
+									fputc(*p++,fp);
+									fputc(*p++,fp);
+								}
+							}
+
+							if(padc=='0')
+							{
+								while(--length>=0)
+									fputc('0',fp);
+							}
+							const char* const end=&int_str->str[int_str->size];
+							while(p<end)
+								fputc(*(p++),fp);
+							if(ladjust)
+							{
+								while(--length>=0)
+									fputc(' ',fp);
+							}
+							free(int_str);
 						}
 					}
 					else

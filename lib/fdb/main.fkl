@@ -63,6 +63,24 @@
      (define breakpoints (debug-ctx-list-break ctx))
      (when breakpoints
        (foreach print-break-point breakpoints))]))
+
+(define (debug-del-breakpoint ctx,rest)
+  (foreach
+    (lambda (num)
+      (define bp (debug-ctx-del-break ctx num))
+      (if (vector? bp)
+        (begin
+          (print "deleted ")
+          (print-break-point bp))
+        (begin
+          (if (> num bp)
+            (println "breakpoint number "
+                     num
+                     " out of range")
+            (println "breakpoint number "
+                     num
+                     " already be deleted")))))
+    rest))
   
 
 (define debug-cmd-func
@@ -70,7 +88,7 @@
     'exit debug-ctx-exit
     'continue debug-continue
     'break debug-breakpoint
-    'delete debug-ctx-del-break
+    'delete debug-del-breakpoint
     'next debug-ctx-next
     'step debug-ctx-step
     'help (lambda (_,rest)

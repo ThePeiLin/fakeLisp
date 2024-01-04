@@ -821,7 +821,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL)
 
 					FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
 					FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
-					fklRemoveHashItem(&ht->ht,(FklHashTableItem**)slot);
+					fklRemoveHashItem(&ht->ht,slot);
 
 					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,fklCreateVMvaluePair(exe,key,val));
 				}

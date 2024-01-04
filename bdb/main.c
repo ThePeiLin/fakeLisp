@@ -454,6 +454,54 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-del-break";
+	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,bp_num_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(bp_num_obj,FKL_IS_FIX,Pname,exe);
+
+	if(fklIsVMnumberLt0(bp_num_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	uint64_t num=fklGetUint(bp_num_obj);
+	FklVMvalue* r=NULL;
+	for(FklHashTableItem* list=dctx->breakpoints.first
+			;list
+			;list=list->next)
+	{
+		BreakpointHashItem* item=(BreakpointHashItem*)list->data;
+		if(item->num==num)
+		{
+			FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
+			FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+			FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+
+			FklVMvalue* vec_val=fklCreateVMvalueVec(exe,3);
+			FklVMvec* vec=FKL_VM_VEC(vec_val);
+			vec->base[0]=num;
+			vec->base[1]=filename;
+			vec->base[2]=line;
+			r=vec_val;
+
+			BreakpointHashKey key=item->key;
+			fklDelHashItem(&key,&dctx->breakpoints,NULL);
+			break;
+		}
+	}
+
+	if(r==NULL)
+		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
+	else
+		FKL_VM_PUSH_VALUE(exe,r);
+
+	return 0;
+}
+
 static int bdb_debug_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -472,7 +520,7 @@ struct SymFunc
 	{"debug-ctx-end?",        bdb_debug_ctx_end_p,       },
 	{"debug-ctx-step",        bdb_debug_incomplete,      },
 	{"debug-ctx-next",        bdb_debug_incomplete,      },
-	{"debug-ctx-del-break",   bdb_debug_incomplete,      },
+	{"debug-ctx-del-break",   bdb_debug_ctx_del_break,   },
 	{"debug-ctx-set-break",   bdb_debug_ctx_set_break,   },
 	{"debug-ctx-list-break",  bdb_debug_ctx_list_break,  },
 	{"debug-ctx-continue",    bdb_debug_ctx_continue,    },

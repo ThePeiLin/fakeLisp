@@ -658,7 +658,6 @@ void fklWriteLineNumberTable(const FklLineNumberTableItem* line_numbers,uint32_t
 		fwrite(&n->fid,sizeof(n->fid),1,fp);
 		fwrite(&n->scp,sizeof(n->scp),1,fp);
 		fwrite(&n->line,sizeof(n->line),1,fp);
-		fwrite(&n->scope,sizeof(n->scope),1,fp);
 	}
 }
 
@@ -797,12 +796,10 @@ void fklLoadLineNumberTable(FILE* fp,FklLineNumberTableItem** plist,uint32_t* pn
 		FklSid_t fid=0;
 		uint64_t scp=0;
 		uint32_t line=0;
-		uint32_t scope=0;
 		fread(&fid,sizeof(fid),1,fp);
 		fread(&scp,sizeof(scp),1,fp);
 		fread(&line,sizeof(line),1,fp);
-		fread(&scope,sizeof(scope),1,fp);
-		fklInitLineNumTabNode(&list[i],fid,scp,line,scope);
+		fklInitLineNumTabNode(&list[i],fid,scp,line,0);
 	}
 	*plist=list;
 	*pnum=size;

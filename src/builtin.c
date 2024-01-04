@@ -4839,14 +4839,21 @@ static int builtin_parser_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL
 static int builtin_exit(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.exit";
-	FklVMvalue* exit_no=FKL_VM_POP_ARG(exe);
-	if(exit_no)
-		FKL_CHECK_TYPE(exit_no,FKL_IS_FIX,Pname,exe);
+	FklVMvalue* exit_val=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	exe->state=FKL_VM_EXIT;
 	if(exe->chan==NULL)
-		exe->gc->exit_code=exit_no?FKL_GET_FIX(exit_no):0;
-	FKL_VM_PUSH_VALUE(exe,exit_no?exit_no:FKL_MAKE_VM_FIX(0));
+	{
+		if(exit_val)
+		{
+			exe->gc->exit_code=exit_val==FKL_VM_NIL
+				?0
+				:(FKL_IS_FIX(exit_val)?FKL_GET_FIX(exit_val):255);
+		}
+		else
+			exe->gc->exit_code=0;
+	}
+	exe->state=FKL_VM_EXIT;
+	FKL_VM_PUSH_VALUE(exe,exit_val?exit_val:FKL_VM_NIL);
 	return 0;
 }
 

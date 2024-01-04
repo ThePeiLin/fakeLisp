@@ -4221,6 +4221,99 @@ static int builtin_filter(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_remq1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.remq!";
+	FKL_DECL_AND_CHECK_ARG2(obj,list,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+
+	FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
+	if(list==FKL_VM_NIL)
+	{
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		return 0;
+	}
+
+	FklVMvalue* r=list;
+	FklVMvalue** pr=&r;
+
+	FklVMvalue* cur_pair=*pr;
+	while(FKL_IS_PAIR(cur_pair))
+	{
+		FklVMvalue* cur=FKL_VM_CAR(cur_pair);
+		if(fklVMvalueEq(obj,cur))
+			*pr=FKL_VM_CDR(cur_pair);
+		else
+			pr=&FKL_VM_CDR(cur_pair);
+		cur_pair=*pr;
+	}
+	FKL_VM_PUSH_VALUE(exe,r);
+
+	return 0;
+}
+
+static int builtin_remv1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.remv!";
+	FKL_DECL_AND_CHECK_ARG2(obj,list,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+
+	FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
+	if(list==FKL_VM_NIL)
+	{
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		return 0;
+	}
+
+	FklVMvalue* r=list;
+	FklVMvalue** pr=&r;
+
+	FklVMvalue* cur_pair=*pr;
+	while(FKL_IS_PAIR(cur_pair))
+	{
+		FklVMvalue* cur=FKL_VM_CAR(cur_pair);
+		if(fklVMvalueEqv(obj,cur))
+			*pr=FKL_VM_CDR(cur_pair);
+		else
+			pr=&FKL_VM_CDR(cur_pair);
+		cur_pair=*pr;
+	}
+	FKL_VM_PUSH_VALUE(exe,r);
+
+	return 0;
+}
+
+static int builtin_remove1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.remove!";
+	FKL_DECL_AND_CHECK_ARG2(obj,list,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+
+	FKL_CHECK_TYPE(list,fklIsList,Pname,exe);
+	if(list==FKL_VM_NIL)
+	{
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		return 0;
+	}
+
+	FklVMvalue* r=list;
+	FklVMvalue** pr=&r;
+
+	FklVMvalue* cur_pair=*pr;
+	while(FKL_IS_PAIR(cur_pair))
+	{
+		FklVMvalue* cur=FKL_VM_CAR(cur_pair);
+		if(fklVMvalueEqual(obj,cur))
+			*pr=FKL_VM_CDR(cur_pair);
+		else
+			pr=&FKL_VM_CDR(cur_pair);
+		cur_pair=*pr;
+	}
+	FKL_VM_PUSH_VALUE(exe,r);
+
+	return 0;
+}
+
 static int builtin_list(FKL_CPROC_ARGL)
 {
 	FklVMvalue* r=FKL_VM_NIL;
@@ -5345,6 +5438,10 @@ static const struct SymbolFuncStruct
 	{"member",                builtin_member,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"memp",                  builtin_memp,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"filter",                builtin_filter,                  {NULL,         NULL,          NULL,            NULL,          }, },
+
+	{"remq!",                 builtin_remq1,                   {NULL,         NULL,          NULL,            NULL,          }, },
+	{"remv!",                 builtin_remv1,                   {NULL,         NULL,          NULL,            NULL,          }, },
+	{"remove!",               builtin_remove1,                 {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"sleep",                 builtin_sleep,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"msleep",                builtin_msleep,                  {NULL,         NULL,          NULL,            NULL,          }, },

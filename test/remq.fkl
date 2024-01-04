@@ -1,0 +1,16 @@
+(import (only (.. lib utils m) assert))
+
+(assert (equal (remq! 'a '(a b a c d a e))
+               '(b c d e)))
+
+(assert (equal (remv! 'a '(a b a c d a e))
+               '(b c d e)))
+
+(assert (not (equal (remq! '(a) '((a) (b) (a) (c) (d) (a) (e)))
+                    '((b) (c) (d) (e)))))
+
+(assert (not (equal (remv! '(a) '((a) (b) (a) (c) (d) (a) (e)))
+                    '((b) (c) (d) (e)))))
+
+(assert (equal (remove! '(a) '((a) (b) (a) (c) (d) (a) (e)))
+               '((b) (c) (d) (e))))

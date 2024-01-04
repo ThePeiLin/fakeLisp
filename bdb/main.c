@@ -280,12 +280,11 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 	FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
 
 	FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
-	FklVMvalue* r=fklCreateVMvalueVec(exe,3);
-	FklVMvec* vec=FKL_VM_VEC(r);
+	FklVMvalue* r=fklCreateVMvalueVec3(exe
+			,file_str_value
+			,line_num_value
+			,line_str_value);
 
-	vec->base[0]=file_str_value;
-	vec->base[1]=line_num_value;
-	vec->base[2]=line_str_value;
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }
@@ -401,11 +400,10 @@ done:
 		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
-		FklVMvalue* r=fklCreateVMvalueVec(exe,3);
-		FklVMvec* vec=FKL_VM_VEC(r);
-		vec->base[0]=num;
-		vec->base[1]=filename;
-		vec->base[2]=line;
+		FklVMvalue* r=fklCreateVMvalueVec3(exe
+				,num
+				,filename
+				,line);
 
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
@@ -440,11 +438,10 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-		FklVMvalue* vec_val=fklCreateVMvalueVec(exe,3);
-		FklVMvec* vec=FKL_VM_VEC(vec_val);
-		vec->base[0]=num;
-		vec->base[1]=filename;
-		vec->base[2]=line;
+		FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
+				,num
+				,filename
+				,line);
 
 		*pr=fklCreateVMvaluePairWithCar(exe,vec_val);
 		pr=&FKL_VM_CDR(*pr);
@@ -481,11 +478,10 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 			FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
 			FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-			FklVMvalue* vec_val=fklCreateVMvalueVec(exe,3);
-			FklVMvec* vec=FKL_VM_VEC(vec_val);
-			vec->base[0]=num;
-			vec->base[1]=filename;
-			vec->base[2]=line;
+			FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
+					,num
+					,filename
+					,line);
 			r=vec_val;
 
 			BreakpointHashKey key=item->key;
@@ -499,6 +495,36 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 	else
 		FKL_VM_PUSH_VALUE(exe,r);
 
+	return 0;
+}
+
+static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-list-src";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	if(dctx->curlist_line<=dctx->curfile_lines->top)
+	{
+		uint32_t curline_num=dctx->curlist_line;
+		const FklString* line_str=dctx->curfile_lines->base[curline_num-1];
+
+		FklVMvalue* num_val=FKL_MAKE_VM_FIX(curline_num);
+		FklVMvalue* is_cur_line=curline_num==dctx->curline?FKL_VM_TRUE:FKL_VM_NIL;
+		FklVMvalue* str_val=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
+					,num_val
+					,is_cur_line
+					,str_val));
+		dctx->curlist_line++;
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -517,6 +543,7 @@ struct SymFunc
 	{"make-debug-ctx",        bdb_make_debug_ctx,        },
 	{"debug-ctx-repl",        bdb_debug_ctx_repl,        },
 	{"debug-ctx-get-curline", bdb_debug_ctx_get_curline, },
+	{"debug-ctx-list-src",    bdb_debug_ctx_list_src,    },
 	{"debug-ctx-end?",        bdb_debug_ctx_end_p,       },
 	{"debug-ctx-step",        bdb_debug_incomplete,      },
 	{"debug-ctx-next",        bdb_debug_incomplete,      },

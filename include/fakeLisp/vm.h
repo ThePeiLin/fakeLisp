@@ -787,6 +787,7 @@ FklVMvalue* fklCreateVMvalueBvec(FklVM*,FklBytevector* bvec);
 
 FklVMvalue* fklCreateVMvalueVec(FklVM*,size_t);
 FklVMvalue* fklCreateVMvalueVecWithPtr(FklVM*,size_t,FklVMvalue* const*);
+FklVMvalue* fklCreateVMvalueVec3(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c);
 
 FklVMvalue* fklCreateVMvalueF64(FklVM*,double f64);
 

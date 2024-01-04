@@ -34,6 +34,7 @@ typedef struct
     FklSymbolTable* st;
 	int is_reach_breakpoint;
 	int end;
+	uint32_t curlist_line;
 	uint32_t curline;
 	FklSid_t curline_file;
 	const FklString* curline_str;

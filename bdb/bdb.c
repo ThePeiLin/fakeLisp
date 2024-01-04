@@ -236,6 +236,7 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
 		const SourceCodeHashItem* item=get_source_with_fid(&ctx->source_code_table,fid);
 		if(item&&line<=item->lines.top)
 		{
+			ctx->curlist_line=line;
 			ctx->curline_file=fid;
 			ctx->curline=line;
 			ctx->curfile_lines=&item->lines;

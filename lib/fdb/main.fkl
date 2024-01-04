@@ -3,12 +3,13 @@
 (import (bin bdb))
 
 (define file-prefix "> ")
-(define line-prefix "\n-> ")
+(define line-prefix "-> ")
 
 (define help-doc
   (static-strcat
     "help: print this help doc or print the help of command\n"
     "exit: exit\n"
+    "list: list source code\n"
     "continue: continue the program until end or reach break point\n"
     "break: set break point\n"
     "delete: delete break point\n"
@@ -20,6 +21,7 @@
 (define help-doc-hash
   (make-hash
     'exit "exit"
+    'list "list source code"
     'continue "continue the program until end or reach break point"
     'break "set break point"
     'delete "delete break point"
@@ -31,7 +33,7 @@
 
 (define (print-cur-line ctx file-prefix line-prefix)
   (define cur-file-line (debug-ctx-get-curline ctx))
-  (print file-prefix
+  (println file-prefix
          (vec-ref cur-file-line 0)
          ":"
          (vec-ref cur-file-line 1))
@@ -81,7 +83,13 @@
                      num
                      " already be deleted")))))
     rest))
-  
+
+(define (debug-list-src ctx,rest)
+  (let loop [(n 0)]
+    (define cur (debug-ctx-list-src ctx))
+    (when (and (< n 11) cur)
+      (prin1n cur)
+      (loop (1+ n)))))
 
 (define debug-cmd-func
   (make-hash
@@ -89,6 +97,7 @@
     'continue debug-continue
     'break debug-breakpoint
     'delete debug-del-breakpoint
+    'list debug-list-src
     'next debug-ctx-next
     'step debug-ctx-step
     'help (lambda (_,rest)

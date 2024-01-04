@@ -325,7 +325,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 
 static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="bdb.debug-ctx-continue";
+	static const char Pname[]="bdb.debug-ctx-set-break";
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
@@ -419,6 +419,41 @@ error:
 	return 0;
 }
 
+static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-list-break";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	FklVMvalue* r=FKL_VM_NIL;
+	FklVMvalue** pr=&r;
+	for(FklHashTableItem* list=dctx->breakpoints.first
+			;list
+			;list=list->next)
+	{
+		BreakpointHashItem* item=(BreakpointHashItem*)list->data;
+		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
+		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+
+		FklVMvalue* vec_val=fklCreateVMvalueVec(exe,3);
+		FklVMvec* vec=FKL_VM_VEC(vec_val);
+		vec->base[0]=num;
+		vec->base[1]=filename;
+		vec->base[2]=line;
+
+		*pr=fklCreateVMvaluePairWithCar(exe,vec_val);
+		pr=&FKL_VM_CDR(*pr);
+	}
+	FKL_VM_PUSH_VALUE(exe,r);
+
+	return 0;
+}
+
 static int bdb_debug_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -439,6 +474,7 @@ struct SymFunc
 	{"debug-ctx-next",        bdb_debug_incomplete,      },
 	{"debug-ctx-del-break",   bdb_debug_incomplete,      },
 	{"debug-ctx-set-break",   bdb_debug_ctx_set_break,   },
+	{"debug-ctx-list-break",  bdb_debug_ctx_list_break,  },
 	{"debug-ctx-continue",    bdb_debug_ctx_continue,    },
 	{"debug-ctx-exit",        bdb_debug_incomplete,      },
 };

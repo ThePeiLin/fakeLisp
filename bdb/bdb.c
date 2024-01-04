@@ -296,7 +296,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 
 	init_source_codes(ctx);
 	get_all_code_objs(ctx);
-	initBreakpointTable(&ctx->break_points);
+	initBreakpointTable(&ctx->breakpoints);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->cur_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 
@@ -360,12 +360,13 @@ break_loop:
 	{
 		BreakpointHashKey key={.fid=fid,.line=line,.pc=scp};
 		BreakpointHashItem t={.key=key,.num=0};
-		BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->break_points);
+		BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
 		if(item->ctx)
 			return item;
 		else
 		{
-			item->num=ctx->break_points.num;
+			ctx->breakpoint_num++;
+			item->num=ctx->breakpoint_num;
 			item->ctx=ctx;
 			item->origin_ins=*ins;
 			item->ins=ins;
@@ -441,12 +442,13 @@ static inline BreakpointHashItem* put_breakpoint_with_pc(DebugCtx* ctx
 {
 	BreakpointHashKey key={.fid=ln->fid,.line=ln->line,.pc=pc};
 	BreakpointHashItem t={.key=key,.num=0};
-	BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->break_points);
+	BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
 	if(item->ctx)
 		return item;
 	else
 	{
-		item->num=ctx->break_points.num;
+		ctx->breakpoint_num++;
+		item->num=ctx->breakpoint_num;
 		item->ctx=ctx;
 		item->origin_ins=*ins;
 		item->ins=ins;

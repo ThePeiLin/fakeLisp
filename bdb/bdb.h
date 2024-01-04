@@ -47,7 +47,8 @@ typedef struct
 	jmp_buf jmpb;
 	FklVM* cur_thread;
 	FklVMgc* gc;
-	FklHashTable break_points;
+	FklHashTable breakpoints;
+	uint32_t breakpoint_num;
 
 }DebugCtx;
 

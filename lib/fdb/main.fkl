@@ -44,23 +44,32 @@
   (when (debug-ctx-continue ctx)
     (print-cur-line ctx file-prefix line-prefix)))
 
-(define (debug-set-breakpoint ctx,rest)
-  (define breakpoint (apply debug-ctx-set-break ctx rest))
-  (if (vector? breakpoint)
-    (println "breakpoint "
-             (vec-ref breakpoint 0)
-             " at "
-             (vec-ref breakpoint 1)
-             ":"
-             (vec-ref breakpoint 2))
-    (println breakpoint)))
+(define (print-break-point breakpoint)
+  (println "breakpoint "
+           (vec-ref breakpoint 0)
+           " at "
+           (vec-ref breakpoint 1)
+           ":"
+           (vec-ref breakpoint 2)))
+
+(define (debug-breakpoint ctx,rest)
+  (cond
+    [rest
+      (define breakpoint (apply debug-ctx-set-break ctx rest))
+      (if (vector? breakpoint)
+        (print-break-point breakpoint)
+        (println breakpoint))]
+    [1
+     (define breakpoints (debug-ctx-list-break ctx))
+     (when breakpoints
+       (foreach print-break-point breakpoints))]))
   
 
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
     'continue debug-continue
-    'break debug-set-breakpoint
+    'break debug-breakpoint
     'delete debug-ctx-del-break
     'next debug-ctx-next
     'step debug-ctx-step

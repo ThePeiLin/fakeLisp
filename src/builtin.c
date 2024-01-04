@@ -46,18 +46,7 @@ static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
 static FklVMudMetaTable PublicBuiltInDataMetaTable=
 {
 	.size=sizeof(PublicBuiltInData),
-	.__princ=NULL,
-	.__prin1=NULL,
-	.__finalizer=NULL,
-	.__equal=NULL,
-	.__call=NULL,
-	.__cmp=NULL,
-	.__write=NULL,
 	.__atomic=_public_builtin_userdata_atomic,
-	.__append=NULL,
-	.__copy=NULL,
-	.__length=NULL,
-	.__hash=NULL,
 };
 
 //builtin functions
@@ -1843,21 +1832,17 @@ static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* ta
 	fprintf(fp,"#<eof>");
 }
 
+static FklString* _eof_userdata_to_string(const FklVMudata* ud)
+{
+	return fklCreateStringFromCstr("#<eof>");
+}
+
 static FklVMudMetaTable EofUserDataMetaTable=
 {
 	.size=0,
 	.__princ=_eof_userdata_princ,
 	.__prin1=_eof_userdata_princ,
-	.__finalizer=NULL,
-	.__equal=NULL,
-	.__call=NULL,
-	.__cmp=NULL,
-	.__write=NULL,
-	.__atomic=NULL,
-	.__append=NULL,
-	.__copy=NULL,
-	.__length=NULL,
-	.__hash=NULL,
+	.__to_string=_eof_userdata_to_string,
 };
 
 FklVMvalue* create_eof_value(FklVM* exe)
@@ -4391,18 +4376,6 @@ static int builtin_feof_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_fclerr(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.fclerr";
-	FKL_DECL_AND_CHECK_ARG(fp,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
-	CHECK_FP_OPEN(fp,Pname,exe);
-	clearerr(FKL_VM_FP(fp)->fp);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-	return 0;
-}
-
 static int builtin_ftell(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.ftell";
@@ -4452,24 +4425,6 @@ static int builtin_fseek(FKL_CPROC_ARGL)
 			:FKL_MAKE_VM_FIX(pos);
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
-	return 0;
-}
-
-static int builtin_fflush(FKL_CPROC_ARGL)
-{
-	static const char Pname[]="builtin.fflush";
-	FklVMvalue* fp=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	if(fp)
-	{
-		FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
-		CHECK_FP_OPEN(fp,Pname,exe);
-		if(fflush(FKL_VM_FP(fp)->fp))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
-	}
-	else if(fflush(NULL))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -5411,8 +5366,6 @@ static const struct SymbolFuncStruct
 	{"eof?",                  builtin_eof_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"ftell",                 builtin_ftell,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"fseek",                 builtin_fseek,                   {NULL,         NULL,          NULL,            NULL,          }, },
-	{"fclerr",                builtin_fclerr,                  {NULL,         NULL,          NULL,            NULL,          }, },
-	{"fflush",                builtin_fflush,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"car-set!",              builtin_car_set,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"cdr-set!",              builtin_cdr_set,                 {NULL,         NULL,          NULL,            NULL,          }, },

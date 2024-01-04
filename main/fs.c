@@ -251,6 +251,36 @@ static int fs_fwrite(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_fflush(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fflush";
+	FklVMvalue* fp=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(fp)
+	{
+		FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+		CHECK_FP_OPEN(fp,Pname,exe);
+		if(fflush(FKL_VM_FP(fp)->fp))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	}
+	else if(fflush(NULL))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fs_fclerr(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fclerr";
+	FKL_DECL_AND_CHECK_ARG(fp,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+	CHECK_FP_OPEN(fp,Pname,exe);
+	clearerr(FKL_VM_FP(fp)->fp);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -269,6 +299,8 @@ struct SymFunc
 	{"fprin1",   fs_fprin1,   },
 	{"fprin1n",  fs_fprin1n,  },
 	{"fwrite",   fs_fwrite,   },
+	{"fflush",   fs_fflush,   },
+	{"fclerr",   fs_fclerr,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

@@ -449,6 +449,7 @@ typedef struct FklVMudMetaTable
 	void (*__copy)(const FklVMudata* src,FklVMudata* dst);
 	size_t (*__hash)(const FklVMudata*);
 	FklString* (*__to_string)(const FklVMudata*);
+	FklString* (*__fmt_func)(const FklVMudata*);
 	FklBytevector* (*__to_bvec)(const FklVMudata*);
 }FklVMudMetaTable;
 

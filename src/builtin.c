@@ -4846,7 +4846,7 @@ static int builtin_exit(FKL_CPROC_ARGL)
 	exe->state=FKL_VM_EXIT;
 	if(exe->chan==NULL)
 		exe->gc->exit_code=exit_no?FKL_GET_FIX(exit_no):0;
-	FKL_VM_PUSH_VALUE(exe,exit_no?FKL_MAKE_VM_FIX(0):exit_no);
+	FKL_VM_PUSH_VALUE(exe,exit_no?exit_no:FKL_MAKE_VM_FIX(0));
 	return 0;
 }
 

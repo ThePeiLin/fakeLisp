@@ -2378,146 +2378,406 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 	return errorTypeId[type];
 }
 
+#define FLAGS_ZEROPAD   (1u<<0u)
+#define FLAGS_LEFT      (1u<<1u)
+#define FLAGS_PLUS      (1u<<2u)
+#define FLAGS_SPACE     (1u<<3u)
+#define FLAGS_HASH      (1u<<4u)
+#define FLAGS_UPPERCASE (1u<<5u)
+#define FLAGS_CHAR      (1u<<6u)
+#define FLAGS_SHORT     (1u<<7u)
+#define FLAGS_LONG      (1u<<8u)
+#define FLAGS_LONG_LONG (1u<<9u)
+#define FLAGS_PRECISION (1u<<10u)
+#define FLAGS_ADAPT_EXP (1u<<11u)
+
+static inline void printf_fix_int(int64_t integer_val
+		,uint32_t flags
+		,uint32_t base
+		,uint64_t width
+		,uint64_t precision
+		,FILE* fp)
+{
+	static const char digits[]="0123456789abcdef0123456789ABCDEF";
+#define MAXBUF (sizeof(int64_t)*8)
+	uint64_t length=0;
+	if(integer_val==0)
+		flags&=~FLAGS_HASH;
+
+	char sign_char=0;
+	if(integer_val<0)
+	{
+		integer_val=-integer_val;
+		sign_char='-';
+	}
+	char buf[MAXBUF];
+
+	const char* prefix=NULL;
+	char* p=&buf[MAXBUF-1];
+	if(integer_val!=0&&(flags&FLAGS_HASH))
+	{
+		if(base==8)
+			prefix="0";
+		else if(base==16)
+			prefix=(flags&FLAGS_UPPERCASE)?"0X":"0x";
+	}
+
+	uint32_t capitals=(flags&FLAGS_UPPERCASE)?16:0;
+	do
+	{
+		*p--=digits[(integer_val%base)+capitals];
+		integer_val/=base;
+	}while(integer_val);
+
+	length+=(&buf[MAXBUF-1]-p);
+	if(prefix)
+		length+=strlen(prefix);
+	if(sign_char)
+		length++;
+	else if(flags&FLAGS_PLUS)
+	{
+		sign_char='+';
+		length++;
+	}
+
+	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
+		while(length++<width)
+			fputc(' ',fp);
+
+	if(sign_char)
+		fputc(sign_char,fp);
+	if(prefix)
+		fputs(prefix,fp);
+
+	if((flags&FLAGS_PRECISION)&&length<precision)
+	{
+		while(length++<precision)
+			fputc('0',fp);
+	}
+
+	if(flags&FLAGS_ZEROPAD&&length<width)
+	{
+		while(length++<width)
+			fputc('0',fp);
+	}
+
+	while(++p!=&buf[MAXBUF])
+		fputc(*p,fp);
+
+	if(flags&FLAGS_LEFT&&length<width)
+		while(length++<width)
+			fputc(' ',fp);
+#undef MAXBUF
+}
+
+static inline void printf_big_int(FklStringBuffer* buf
+		,const FklBigInt* bi
+		,uint32_t flags
+		,uint32_t base
+		,uint64_t width
+		,uint64_t precision
+		,FILE* fp)
+{
+	uint64_t length=0;
+	if(FKL_IS_0_BIG_INT(bi))
+		flags&=~FLAGS_HASH;
+
+	fklBigIntToStringBuffer(buf
+			,bi
+			,base
+			,flags&FLAGS_HASH
+			,flags&FLAGS_UPPERCASE);
+
+	const char* p=buf->buf;
+	length+=buf->index;
+
+	int print_plus=!bi->neg&&(flags&FLAGS_PLUS);
+
+	if(print_plus)
+		length++;
+
+	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
+		while(length++<width)
+			fputc(' ',fp);
+
+	if(bi->neg)
+		fputc(*p++,fp);
+	else if(print_plus)
+		fputc('+',fp);
+
+	if(flags&FLAGS_HASH)
+	{
+		if(base==8)
+			fputc(*p++,fp);
+		else if(base==16)
+		{
+			fputc(*p++,fp);
+			fputc(*p++,fp);
+		}
+	}
+
+	if((flags&FLAGS_PRECISION)&&length<precision)
+	{
+		while(length++<precision)
+			fputc('0',fp);
+	}
+
+	if(flags&FLAGS_ZEROPAD&&length<width)
+	{
+		while(length++<width)
+			fputc('0',fp);
+	}
+
+	const char* const end=&buf->buf[buf->index];
+	while(p<end)
+		fputc(*p++,fp);
+
+	if(flags&FLAGS_LEFT&&length<width)
+		while(length++<width)
+			fputc(' ',fp);
+	buf->index=0;
+}
+
+static inline void printf_f64(FklStringBuffer* buf
+		,char ch
+		,double value
+		,uint32_t flags
+		,uint64_t width
+		,uint64_t precision
+		,FILE* fp)
+{
+
+	if(isnan(value))
+	{
+		fputs(isupper(ch)?"NAN":"nan",fp);
+		return;
+	}
+	int neg=signbit(value);
+	if(isinf(value))
+	{
+		if(isupper(ch))
+		{
+			if(neg)
+				fputs("-inf",fp);
+			else if(flags&FLAGS_PLUS)
+				fputs("+inf",fp);
+			else
+				fputs("inf",fp);
+		}
+		else
+		{
+			if(neg)
+				fputs("-INF",fp);
+			else if(flags&FLAGS_PLUS)
+				fputs("+INF",fp);
+			else
+				fputs("INF",fp);
+		}
+		return;
+	}
+
+	uint64_t length=0;
+	if(ch=='a'||ch=='A')
+	{
+		if(!(flags&FLAGS_PRECISION))
+		{
+			char fmt[]="%*a";
+			fmt[sizeof(fmt)-2]=ch;
+			fklStringBufferPrintf(buf,fmt,width,value);
+		}
+		else
+		{
+			char fmt[]="%.*a";
+			fmt[sizeof(fmt)-2]=ch;
+			fklStringBufferPrintf(buf,fmt,precision,value);
+		}
+	}
+	else
+	{
+		char fmt[]="%.*f";
+		fmt[sizeof(fmt)-2]=ch;
+		if(!(flags&FLAGS_PRECISION))
+			precision=6;
+
+		fklStringBufferPrintf(buf,fmt,precision,value);
+	}
+	const char* p=buf->buf;
+	length+=buf->index;
+
+	int print_plus=!neg&&(flags&FLAGS_PLUS);
+	if(print_plus)
+		length++;
+
+	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
+		while(length++<width)
+			fputc(' ',fp);
+
+	if(neg)
+		fputc(*p++,fp);
+	else if(print_plus)
+		fputc('+',fp);
+
+	if(ch=='a'||ch=='A')
+	{
+		fputc(*p++,fp);
+		fputc(*p++,fp);
+	}
+
+	if(flags&FLAGS_ZEROPAD
+			&&precision<width
+			&&length<width)
+	{
+		if(length<width)
+		{
+			while(length++<width)
+				fputc('0',fp);
+		}
+	}
+
+	const char* const end=&buf->buf[buf->index];
+	const char* dot_idx=strchr(buf->buf,'.');
+	uint64_t prec_len=(end-dot_idx)+(dot_idx-p-1);
+
+	while(p<end)
+		fputc(*p++,fp);
+
+	if((flags&FLAGS_HASH)&&prec_len<precision)
+	{
+		while(prec_len++<precision)
+		{
+			length++;
+			fputc('0',fp);
+		}
+	}
+
+	if(flags&FLAGS_LEFT&&length<width)
+		while(length++<width)
+			fputc(' ',fp);
+
+	buf->index=0;
+}
+
 FklBuiltinErrorType fklVMprintf(FklVM* exe,FILE* fp,const FklString* fmt_str)
 {
-#define C_TO_D(c) ((c)-'0')
+	uint32_t base;
+	uint32_t flags;
+	uint64_t width;
+	uint64_t precision;
+	uint32_t n=0;
+	size_t idx=0;
 
-	int64_t length;
-	int64_t prec;
-	int ladjust;
-	char padc;
-	long n;
-	unsigned long u;
-	int plus_sign;
-	int sign_char;
-	int altfmt;
-	int truncate;
-	int base;
-	char c;
-	int capitals;
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
 
 	const char* fmt=fmt_str->str;
 	const char* const end=&fmt[fmt_str->size];
-
 	while(fmt<end)
 	{
-		c=*fmt;
-		if(c!='%')
+		if(*fmt!='%')
 		{
-			fputc(c,fp);
+			fputc(*fmt,fp);
 			fmt++;
 			continue;
 		}
+
 		fmt++;
-		length=0;
-		prec=-1;
-		ladjust=0;
-		padc=' ';
-		plus_sign=0;
-		sign_char=0;
-		altfmt=0;
+
+		flags=0;
 		for(;;)
 		{
-			c=*fmt;
-			if(c=='#')
+			switch(*fmt)
 			{
-				altfmt=1;
-			}
-			else if(c=='-')
-			{
-				ladjust=1;
-			}
-			else if(c==' ')
-			{
-				if(plus_sign==0)
-					plus_sign=' ';
-			}
-			else
-				break;
-			fmt++;
-		}
-
-		if(c=='0')
-		{
-			padc='0';
-			fmt++;
-		}
-
-		if(isdigit(c))
-		{
-			while(isdigit(c))
-			{
-				length=10*length+C_TO_D(c);
-				c=*++fmt;
+				case '0':
+					flags|=FLAGS_ZEROPAD;
+					fmt++;
+					break;
+				case '-':
+					flags|=FLAGS_LEFT;
+					fmt++;
+					break;
+				case '+':
+					flags|=FLAGS_PLUS;
+					fmt++;
+					break;
+				case ' ':
+					flags|=FLAGS_SPACE;
+					fmt++;
+					break;
+				case '#':
+					flags|=FLAGS_HASH;
+					fmt++;
+					break;
+				default:
+					goto break_loop;
+					break;
 			}
 		}
-		else if(c=='*')
+break_loop:
+		width=0;
+		if(isdigit(*fmt))
+			width=strtol(fmt,(char**)&fmt,10);
+		else if(*fmt=='*')
 		{
-			c=*++fmt;
-			FklVMvalue* length_obj=FKL_VM_POP_ARG(exe);
-			if(length_obj==NULL)
+			FklVMvalue* width_obj=FKL_VM_POP_ARG(exe);
+			if(width_obj==NULL)
 				return FKL_ERR_TOOFEWARG;
-			else if(FKL_IS_FIX(length_obj))
+			else if(FKL_IS_FIX(width_obj))
 			{
-				length=FKL_GET_FIX(length_obj);
-				if(length<0)
+				int64_t w=FKL_GET_FIX(width_obj);
+				if(w<0)
 				{
-					ladjust=!ladjust;
-					length=-length;
+					flags|=FLAGS_LEFT;
+					width=-w;
 				}
+				else
+					width=w;
 			}
 			else
 				return FKL_ERR_INCORRECT_TYPE_VALUE;
+			fmt++;
 		}
 
-		if(c=='.')
+		precision=0;
+		if(*fmt=='.')
 		{
-			c=*++fmt;
-			if(isdigit(c))
+			flags|=FLAGS_PRECISION;
+			fmt++;
+			if(isdigit(*fmt))
+				precision=strtol(fmt,(char**)&fmt,10);
+			else if(*fmt=='*')
 			{
-				prec=0;
-				while(isdigit(c))
-				{
-					prec=10*prec+C_TO_D(c);
-					c=*++fmt;
-				}
-			}
-			else if(c=='*')
-			{
-				c=*++fmt;
 				FklVMvalue* prec_obj=FKL_VM_POP_ARG(exe);
 				if(prec_obj==NULL)
 					return FKL_ERR_TOOFEWARG;
 				else if(FKL_IS_FIX(prec_obj))
 				{
-					prec=FKL_GET_FIX(prec_obj);
+					int64_t prec=FKL_GET_FIX(prec_obj);
 					if(prec<0)
 						return FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0;
+					else
+						precision=prec;
 				}
 				else
 					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				fmt++;
 			}
 		}
 
-		truncate=0;
-		capitals=0;
-		switch(c)
+		switch(*fmt)
 		{
-			case 'o':
-			case 'O':
-				base=8;
-				goto print_integer;
-				break;
-
 			case 'X':
-				capitals=16;
 			case 'x':
+				if(*fmt=='X')
+					flags|=FLAGS_UPPERCASE;
 				base=16;
 				goto print_integer;
 				break;
-
-			case 'D':
+			case 'o':
+				base=8;
+				goto print_integer;
+				break;
 			case 'd':
+			case 'i':
 				base=10;
 print_integer:
 				{
@@ -2527,128 +2787,56 @@ print_integer:
 					else if(fklIsVMint(integer_obj))
 					{
 						if(FKL_IS_FIX(integer_obj))
-						{
-							static const char digits[]="0123456789abcdef0123456789ABCDEF";
-#define MAXBUF (sizeof(int64_t)*8)
-							int64_t integer_val=FKL_GET_FIX(integer_obj);
-							if(integer_val<0)
-							{
-								sign_char='-';
-								integer_val=-integer_val;
-							}
-							char buf[MAXBUF];
-
-							const char* prefix=NULL;
-							char* p=&buf[MAXBUF-1];
-							if(integer_val!=0&&altfmt)
-							{
-								if(base==8)
-									prefix="0";
-								else if(base==16)
-									prefix="0x";
-							}
-
-							do
-							{
-								*p--=digits[(integer_val%base)+capitals];
-								integer_val/=base;
-							}while(integer_val);
-
-							length-=(&buf[MAXBUF-1]-p);
-
-							if(sign_char)
-								length--;
-
-							if(prefix)
-								length-=strlen(prefix);
-							if(padc==' '&&!ladjust)
-							{
-								while(--length>=0)
-									fputc(' ',fp);
-							}
-
-							if(sign_char)
-								fputc(sign_char,fp);
-							if(prefix)
-							{
-								while(*prefix)
-									fputc(*(prefix++),fp);
-							}
-							if(padc=='0')
-							{
-								while(--length>=0)
-									fputc('0',fp);
-							}
-							while(++p!=&buf[MAXBUF])
-								fputc(*p,fp);
-							if(ladjust)
-							{
-								while(--length>=0)
-									fputc(' ',fp);
-							}
-#undef MAXBUF
-						}
-						else
-						{
-							const FklBigInt* bi=FKL_VM_BI(integer_obj);
-							if(bi->neg)
-								sign_char='-';
-							FklString* int_str=fklBigIntToString(bi
+							printf_fix_int(FKL_GET_FIX(integer_obj)
+									,flags
 									,base
-									,altfmt
-									,capitals);
-							length-=(int_str->size-1);
-							if(padc==' '&&!ladjust)
-							{
-								while(--length>=0)
-									fputc(' ',fp);
-							}
-
-							const char* p=int_str->str;
-							if(sign_char)
-							{
-								fputc(sign_char,fp);
-								p++;
-							}
-
-							if(altfmt)
-							{
-								if(base==8)
-									fputc(*p++,fp);
-								else if(base==16)
-								{
-									fputc(*p++,fp);
-									fputc(*p++,fp);
-								}
-							}
-
-							if(padc=='0')
-							{
-								while(--length>=0)
-									fputc('0',fp);
-							}
-							const char* const end=&int_str->str[int_str->size];
-							while(p<end)
-								fputc(*(p++),fp);
-							if(ladjust)
-							{
-								while(--length>=0)
-									fputc(' ',fp);
-							}
-							free(int_str);
-						}
+									,width
+									,precision
+									,fp);
+						else
+							printf_big_int(&buf
+									,FKL_VM_BI(integer_obj)
+									,flags
+									,base
+									,width
+									,precision
+									,fp);
 					}
 					else
 						return FKL_ERR_INCORRECT_TYPE_VALUE;
 				}
 				break;
+			case 'f':
+			case 'F':
+			case 'G':
+			case 'g':
+			case 'e':
+			case 'E':
+			case 'a':
+			case 'A':
+				{
+					FklVMvalue* f64_obj=FKL_VM_POP_ARG(exe);
+					if(f64_obj==NULL)
+						return FKL_ERR_TOOFEWARG;
+					else if(FKL_IS_F64(f64_obj))
+						printf_f64(&buf
+								,*fmt
+								,FKL_VM_F64(f64_obj)
+								,flags
+								,width
+								,precision
+								,fp);
+					else
+						return FKL_ERR_INCORRECT_TYPE_VALUE;
+				}
+				break;
 			default:
-				fputc(c,fp);
+				fputc(*fmt,fp);
+				break;
 		}
 		fmt++;
 	}
-	return 0;
 
-#undef CtoD
+	return 0;
 }
 

@@ -368,6 +368,8 @@ double fklBigIntToDouble(const FklBigInt*);
 void fklDestroyBigInt(FklBigInt*);
 void fklPrintBigInt(const FklBigInt*,FILE*);
 FklString* fklBigIntToString(const FklBigInt*,int radix,int need_prefix,int capitals);
+
+void fklBigIntToStringBuffer(FklStringBuffer* buf,const FklBigInt*,int radix,int need_prefix,int capitals);
 void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res);
 
 #ifdef __cplusplus

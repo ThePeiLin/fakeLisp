@@ -1572,7 +1572,7 @@ FklString* fklBigIntToString(const FklBigInt* a
 			if(radix==16)
 			{
 				buf[a->neg]='0';
-				buf[a->neg+1]='x';
+				buf[a->neg+1]=capitals?'X':'x';
 			}
 			else if(radix==8)
 				buf[a->neg]='0';
@@ -1598,6 +1598,62 @@ FklString* fklBigIntToString(const FklBigInt* a
 		return s;
 	}
 }
+
+void fklBigIntToStringBuffer(FklStringBuffer* buf
+		,const FklBigInt* a
+		,int radix
+		,int need_prefix
+		,int capitals)
+{
+	if(FKL_IS_0_BIG_INT(a))
+	{
+		fklStringBufferPutc(buf,'0');
+		return;
+	}
+	else
+	{
+		FklU8Stack res=FKL_STACK_INIT;
+		if(radix==10)
+			fklBigIntToRadixDigitsLe(a,radix,&res);
+		else if(radix==16)
+			toBitWiseDigitsLe(a,4,&res);
+		else if(radix==8)
+			toInexactBitWiseDigitsLe(a,3,&res);
+		if(a->neg)
+			fklStringBufferPutc(buf,'-');
+		if(need_prefix)
+		{
+			if(radix==16)
+			{
+				fklStringBufferPutc(buf,'0');
+				fklStringBufferPutc(buf,capitals?'X':'x');
+			}
+			else if(radix==8)
+				fklStringBufferPutc(buf,'0');
+
+		}
+		if(capitals)
+		{
+			for(size_t i=res.top;i>0;i--)
+			{
+				uint64_t c=res.base[i-1];
+				fklStringBufferPutc(buf,c<10?c+'0':c-10+'A');
+			}
+		}
+		else
+		{
+			for(size_t i=res.top;i>0;i--)
+			{
+				uint64_t c=res.base[i-1];
+				fklStringBufferPutc(buf,c<10?c+'0':c-10+'a');
+			}
+		}
+		fklUninitU8Stack(&res);
+		return;
+	}
+}
+
+
 
 int fklCmpBigIntI(const FklBigInt* bi,int64_t i)
 {

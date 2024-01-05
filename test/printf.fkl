@@ -1,3 +1,5 @@
+(import (only (lib utils m) assert))
+
 (println "dec:")
 
 (printf "%5d\n" 42)

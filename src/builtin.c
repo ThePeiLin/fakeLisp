@@ -3025,12 +3025,13 @@ static int builtin_printf(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(fmt_obj,exe,Pname);
 	FKL_CHECK_TYPE(fmt_obj,FKL_IS_STR,Pname,exe);
 
-	FklBuiltinErrorType err_type=fklVMprintf(exe,stdout,FKL_VM_STR(fmt_obj));
+	uint64_t len=0;
+	FklBuiltinErrorType err_type=fklVMprintf(exe,stdout,FKL_VM_STR(fmt_obj),&len);
 	if(err_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));
 	return 0;
 }
 

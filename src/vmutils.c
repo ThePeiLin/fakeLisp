@@ -2457,7 +2457,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FLAGS_CHAR      (1u<<6u)
 #define FLAGS_PRECISION (1u<<7u)
 
-static inline void printf_fix_int(int64_t integer_val
+static inline uint64_t printf_fix_int(int64_t integer_val
 		,uint32_t flags
 		,uint32_t base
 		,uint64_t width
@@ -2534,9 +2534,10 @@ static inline void printf_fix_int(int64_t integer_val
 		while(length++<width)
 			fputc(' ',fp);
 #undef MAXBUF
+	return length;
 }
 
-static inline void printf_big_int(FklStringBuffer* buf
+static inline uint64_t printf_big_int(FklStringBuffer* buf
 		,const FklBigInt* bi
 		,uint32_t flags
 		,uint32_t base
@@ -2602,9 +2603,10 @@ static inline void printf_big_int(FklStringBuffer* buf
 		while(length++<width)
 			fputc(' ',fp);
 	buf->index=0;
+	return length;
 }
 
-static inline void printf_f64(FklStringBuffer* buf
+static inline uint64_t printf_f64(FklStringBuffer* buf
 		,char ch
 		,double value
 		,uint32_t flags
@@ -2616,7 +2618,7 @@ static inline void printf_f64(FklStringBuffer* buf
 	if(isnan(value))
 	{
 		fputs(isupper(ch)?"NAN":"nan",fp);
-		return;
+		return 3;
 	}
 	int neg=signbit(value);
 	if(isinf(value))
@@ -2639,7 +2641,7 @@ static inline void printf_f64(FklStringBuffer* buf
 			else
 				fputs("INF",fp);
 		}
-		return;
+		return (neg||flags&FLAGS_PLUS)?4:3;
 	}
 
 	uint64_t length=0;
@@ -2721,9 +2723,13 @@ static inline void printf_f64(FklStringBuffer* buf
 			fputc(' ',fp);
 
 	buf->index=0;
+	return length;
 }
 
-FklBuiltinErrorType fklVMprintf(FklVM* exe,FILE* fp,const FklString* fmt_str)
+FklBuiltinErrorType fklVMprintf(FklVM* exe
+		,FILE* fp
+		,const FklString* fmt_str
+		,uint64_t* plen)
 {
 	uint32_t base;
 	uint32_t flags;
@@ -2736,11 +2742,13 @@ FklBuiltinErrorType fklVMprintf(FklVM* exe,FILE* fp,const FklString* fmt_str)
 
 	const char* fmt=fmt_str->str;
 	const char* const end=&fmt[fmt_str->size];
+	uint64_t length=0;
 	while(fmt<end)
 	{
 		if(*fmt!='%')
 		{
 			fputc(*fmt,fp);
+			length++;
 			fmt++;
 			continue;
 		}
@@ -2870,14 +2878,14 @@ print_integer:
 					else if(fklIsVMint(integer_obj))
 					{
 						if(FKL_IS_FIX(integer_obj))
-							printf_fix_int(FKL_GET_FIX(integer_obj)
+							length+=printf_fix_int(FKL_GET_FIX(integer_obj)
 									,flags
 									,base
 									,width
 									,precision
 									,fp);
 						else
-							printf_big_int(&buf
+							length+=printf_big_int(&buf
 									,FKL_VM_BI(integer_obj)
 									,flags
 									,base
@@ -2908,7 +2916,7 @@ print_integer:
 						goto exit;
 					}
 					else if(FKL_IS_F64(f64_obj))
-						printf_f64(&buf
+						length+=printf_f64(&buf
 								,*fmt
 								,FKL_VM_F64(f64_obj)
 								,flags
@@ -2933,15 +2941,17 @@ print_integer:
 					else if(FKL_IS_CHR(chr_obj))
 					{
 						int ch=FKL_GET_CHR(chr_obj);
-						uint64_t length=1;
-						if(!(flags&FLAGS_LEFT)&&length<width)
-							while(length++<width)
+						uint64_t len=1;
+
+						if(!(flags&FLAGS_LEFT)&&len<width)
+							while(len++<width)
 								fputc(' ',fp);
 						fputc(ch,fp);
 
-						if(flags&FLAGS_LEFT&&length<width)
-							while(length++<width)
+						if(flags&FLAGS_LEFT&&len<width)
+							while(len++<width)
 								fputc(' ',fp);
+						length+=len;
 					}
 					else
 					{
@@ -2962,19 +2972,21 @@ print_integer:
 					{
 						stringify_value_to_string_buffer(obj,&buf,atom_as_prin1_string,exe->gc);
 
-						uint64_t length=buf.index;
+						uint64_t len=buf.index;
 
-						if(!(flags&FLAGS_LEFT)&&length<width)
-							while(length++<width)
+						if(!(flags&FLAGS_LEFT)&&len<width)
+							while(len++<width)
 								fputc(' ',fp);
 
 						fwrite(buf.buf,buf.index,1,fp);
 
-						if(flags&FLAGS_LEFT&&length<width)
-							while(length++<width)
+						if(flags&FLAGS_LEFT&&len<width)
+							while(len++<width)
 								fputc(' ',fp);
 
 						buf.index=0;
+
+						length+=len;
 					}
 				}
 				break;
@@ -2990,29 +3002,33 @@ print_integer:
 					{
 						stringify_value_to_string_buffer(obj,&buf,atom_as_princ_string,exe->gc);
 
-						uint64_t length=buf.index;
+						uint64_t len=buf.index;
 
-						if(!(flags&FLAGS_LEFT)&&length<width)
-							while(length++<width)
+						if(!(flags&FLAGS_LEFT)&&len<width)
+							while(len++<width)
 								fputc(' ',fp);
 
 						fwrite(buf.buf,buf.index,1,fp);
 
-						if(flags&FLAGS_LEFT&&length<width)
-							while(length++<width)
+						if(flags&FLAGS_LEFT&&len<width)
+							while(len++<width)
 								fputc(' ',fp);
 
 						buf.index=0;
+
+						length+=len;
 					}
 				}
 				break;
 			default:
 				fputc(*fmt,fp);
+				length++;
 				break;
 		}
 		fmt++;
 	}
 
+	*plen=length;
 exit:
 	fklUninitStringBuffer(&buf);
 	return err;

@@ -675,7 +675,10 @@ void fklPrintVMvalue(FklVMvalue* value
 		,FklVMgc* gc);
 void fklPrin1VMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
 void fklPrincVMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
-FklBuiltinErrorType fklVMprintf(FklVM*,FILE* fp,const FklString* fmt);
+FklBuiltinErrorType fklVMprintf(FklVM*
+		,FILE* fp
+		,const FklString* fmt
+		,uint64_t* plen);
 
 FklVMvalue* fklProcessVMnumInc(FklVM*,FklVMvalue*);
 FklVMvalue* fklProcessVMnumDec(FklVM*,FklVMvalue*);

@@ -1,7 +1,7 @@
 #include<fakeLisp/vm.h>
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(mutex_print,mutex);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(mutex_to_string,mutex);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print,mutex);
 
 static void mutex_finalizer(FklVMudata* ud)
 {
@@ -12,9 +12,12 @@ static void mutex_finalizer(FklVMudata* ud)
 static FklVMudMetaTable MutexUdMetaTable=
 {
 	.size=sizeof(uv_mutex_t),
+
 	.__prin1=mutex_print,
 	.__princ=mutex_print,
-	.__to_string=mutex_to_string,
+	.__as_princ=mutex_as_print,
+	.__as_prin1=mutex_as_print,
+
 	.__finalizer=mutex_finalizer,
 };
 
@@ -84,7 +87,7 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL)
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(cond_print,cond);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(cond_to_string,cond);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print,cond);
 
 static void cond_finalizer(FklVMudata* ud)
 {
@@ -95,9 +98,12 @@ static void cond_finalizer(FklVMudata* ud)
 static FklVMudMetaTable CondUdMetaTable=
 {
 	.size=sizeof(uv_cond_t),
+
 	.__prin1=cond_print,
 	.__princ=cond_print,
-	.__to_string=cond_to_string,
+	.__as_prin1=cond_as_print,
+	.__as_princ=cond_as_print,
+
 	.__finalizer=cond_finalizer,
 };
 
@@ -193,7 +199,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(rwlock_print,rwlock);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(rwlock_to_string,rwlock);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print,rwlock);
 
 static void rwlock_finalizer(FklVMudata* ud)
 {
@@ -204,9 +210,12 @@ static void rwlock_finalizer(FklVMudata* ud)
 static FklVMudMetaTable RwlockUdMetaTable=
 {
 	.size=sizeof(uv_rwlock_t),
+
 	.__prin1=rwlock_print,
 	.__princ=rwlock_print,
-	.__to_string=rwlock_to_string,
+	.__as_prin1=rwlock_as_print,
+	.__as_princ=rwlock_as_print,
+
 	.__finalizer=rwlock_finalizer,
 };
 
@@ -315,7 +324,7 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL)
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(sem_print,sem);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(sem_to_string,sem);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print,sem);
 
 static void sem_finalizer(FklVMudata* ud)
 {
@@ -328,7 +337,10 @@ static FklVMudMetaTable SemUdMetaTable=
 	.size=sizeof(uv_sem_t),
 	.__prin1=sem_print,
 	.__princ=sem_print,
-	.__to_string=sem_to_string,
+
+	.__as_prin1=sem_as_print,
+	.__as_princ=sem_as_print,
+
 	.__finalizer=sem_finalizer,
 };
 
@@ -402,7 +414,7 @@ static int sync_sem_trywait(FKL_CPROC_ARGL)
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(barrier_print,barrier);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(barrier_to_string,barrier);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print,barrier);
 
 static void barrier_finalizer(FklVMudata* ud)
 {
@@ -413,9 +425,12 @@ static void barrier_finalizer(FklVMudata* ud)
 static FklVMudMetaTable BarrierUdMetaTable=
 {
 	.size=sizeof(uv_barrier_t),
+
 	.__prin1=barrier_print,
 	.__princ=barrier_print,
-	.__to_string=barrier_to_string,
+	.__as_prin1=barrier_as_print,
+	.__as_princ=barrier_as_print,
+
 	.__finalizer=barrier_finalizer,
 };
 

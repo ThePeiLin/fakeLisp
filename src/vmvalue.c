@@ -1953,7 +1953,12 @@ int fklIsWritableUd(const FklVMudata* u)
 
 int fklIsAbleToStringUd(const FklVMudata* u)
 {
-	return u->t->__to_string!=NULL;
+	return u->t->__as_prin1!=NULL;
+}
+
+int fklIsAbleAsPrincUd(const FklVMudata* u)
+{
+	return u->t->__as_princ!=NULL;
 }
 
 int fklUdHasLength(const FklVMudata* u)
@@ -2000,9 +2005,14 @@ size_t fklLengthVMudata(const FklVMudata* a)
 	return a->t->__length(a);
 }
 
-FklString* fklUdToString(const FklVMudata* a)
+void fklUdToString(const FklVMudata* a,FklStringBuffer* buf,FklVMgc* gc)
 {
-	return a->t->__to_string(a);
+	a->t->__as_prin1(a,buf,gc);
+}
+
+void fklUdAsPrinc(const FklVMudata* a,FklStringBuffer* buf,FklVMgc* gc)
+{
+	a->t->__as_princ(a,buf,gc);
 }
 
 void fklWriteVMudata(const FklVMudata* a,FILE* fp)

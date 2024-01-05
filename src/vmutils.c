@@ -1482,62 +1482,58 @@ static inline void print_big_int_to_string_buffer(FklStringBuffer* s,FklBigInt* 
 
 #define VMVALUE_TO_UTSTRING_ARGS FklStringBuffer* result,FklVMvalue* v,FklVMgc* gc
 
-static void nil_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void nil_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferConcatWithCstr(result,"()");
 }
 
-static void fix_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void fix_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"%"FKL_PRT64D"",FKL_GET_FIX(v));
 }
 
-static void sym_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void sym_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
 	print_raw_symbol_to_string_buffer(result,fklVMgetSymbolWithId(gc,FKL_GET_SYM(v))->symbol);
 }
 
-static void chr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void chr_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
 	print_raw_char_to_string_buffer(result,FKL_GET_CHR(v));
 }
 
-static void vmvalue_f64_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_f64_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	char buf[64]={0};
 	fklWriteDoubleToBuf(buf,64,FKL_VM_F64(v));
 	fklStringBufferConcatWithCstr(result,buf);
 }
 
-static void vmvalue_big_int_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_big_int_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	print_big_int_to_string_buffer(result,FKL_VM_BI(v));
 }
 
-static void vmvalue_string_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_string_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
 	print_raw_string_to_string_buffer(result,FKL_VM_STR(v));
 }
 
-static void vmvalue_bytevector_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_bytevector_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklPrintBytevectorToStringBuffer(result,FKL_VM_BVEC(v));
 }
 
-static void vmvalue_userdata_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_userdata_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMudata* ud=FKL_VM_UD(v);
 	if(fklIsAbleToStringUd(ud))
-	{
-		FklString* s=fklUdToString(ud);
-		fklStringBufferConcatWithString(result,s);
-		free(s);
-	}
+		fklUdToString(ud,result,gc);
 	else
 		fklStringBufferPrintf(result,"#<userdata %p>",ud);
 }
 
-static void vmvalue_proc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_proc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMproc* proc=FKL_VM_PROC(v);
 	if(proc->sid)
@@ -1550,12 +1546,12 @@ static void vmvalue_proc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<proc %p>",proc);
 }
 
-static void vmvalue_chanl_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_chanl_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"#<chanl %p>",FKL_VM_CHANL(v));
 }
 
-static void vmvalue_fp_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_fp_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMfp* vfp=FKL_VM_FP(v);
 	if(vfp->fp==stdin)
@@ -1568,12 +1564,12 @@ static void vmvalue_fp_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<fp %p>",vfp);
 }
 
-static void vmvalue_dll_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_dll_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
 }
 
-static void vmvalue_cproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_cproc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMcproc* cproc=FKL_VM_CPROC(v);
 	if(cproc->sid)
@@ -1586,7 +1582,7 @@ static void vmvalue_cproc_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<cproc %p>",cproc);
 }
 
-static void vmvalue_error_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_error_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMerror* err=FKL_VM_ERR(v);
 	fklStringBufferConcatWithCstr(result,"#<err t:");
@@ -1598,56 +1594,120 @@ static void vmvalue_error_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
 	fklStringBufferPutc(result,'>');
 }
 
-static void vmvalue_code_obj_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_code_obj_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	fklStringBufferPrintf(result,"#<code-obj %p>",FKL_VM_CO(v));
 }
 
-static void (*atom_ptr_ptr_to_string_buffer_printer_table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
-	vmvalue_f64_to_string_buffer,
-	vmvalue_big_int_to_string_buffer,
-	vmvalue_string_to_string_buffer,
+	vmvalue_f64_as_print,
+	vmvalue_big_int_as_print,
+	vmvalue_string_as_prin1,
 	NULL,
 	NULL,
 	NULL,
-	vmvalue_bytevector_to_string_buffer,
-	vmvalue_userdata_to_string_buffer,
-	vmvalue_proc_to_string_buffer,
-	vmvalue_chanl_to_string_buffer,
-	vmvalue_fp_to_string_buffer,
-	vmvalue_dll_to_string_buffer,
-	vmvalue_cproc_to_string_buffer,
-	vmvalue_error_to_string_buffer,
+	vmvalue_bytevector_as_print,
+	vmvalue_userdata_as_prin1,
+	vmvalue_proc_as_print,
+	vmvalue_chanl_as_print,
+	vmvalue_fp_as_print,
+	vmvalue_dll_as_print,
+	vmvalue_cproc_as_print,
+	vmvalue_error_as_print,
 	NULL,
-	vmvalue_code_obj_to_string_buffer,
+	vmvalue_code_obj_as_print,
 	NULL,
 };
 
-static void ptr_ptr_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void ptr_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
-	atom_ptr_ptr_to_string_buffer_printer_table[v->type](result,v,gc);
+	atom_ptr_ptr_to_string_buffer_prin1_table[v->type](result,v,gc);
 }
 
-static void (*atom_ptr_to_string_buffer_printer_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+static void (*atom_ptr_to_string_buffer_prin1_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
-	ptr_ptr_to_string_buffer,
-	nil_ptr_to_string_buffer,
-	fix_ptr_to_string_buffer,
-	sym_ptr_to_string_buffer,
-	chr_ptr_to_string_buffer,
+	ptr_ptr_as_prin1,
+	nil_ptr_as_print,
+	fix_ptr_as_print,
+	sym_ptr_as_prin1,
+	chr_ptr_as_prin1,
 };
 
-static inline void print_atom_to_string_buffer(VMVALUE_TO_UTSTRING_ARGS)
+static void atom_as_prin1_string(VMVALUE_TO_UTSTRING_ARGS)
 {
-	atom_ptr_to_string_buffer_printer_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,gc);
+	atom_ptr_to_string_buffer_prin1_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,gc);
 }
 
-FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
+static void vmvalue_string_as_princ(VMVALUE_TO_UTSTRING_ARGS)
 {
-	FklStringBuffer result;
-	fklInitStringBuffer(&result);
+	fklStringBufferConcatWithString(result,FKL_VM_STR(v));
+}
 
+static void vmvalue_userdata_as_princ(VMVALUE_TO_UTSTRING_ARGS)
+{
+	FklVMudata* ud=FKL_VM_UD(v);
+	if(fklIsAbleAsPrincUd(ud))
+		fklUdAsPrinc(ud,result,gc);
+	else
+		fklStringBufferPrintf(result,"#<userdata %p>",ud);
+}
+
+static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+{
+	vmvalue_f64_as_print,
+	vmvalue_big_int_as_print,
+	vmvalue_string_as_princ,
+	NULL,
+	NULL,
+	NULL,
+	vmvalue_bytevector_as_print,
+	vmvalue_userdata_as_princ,
+	vmvalue_proc_as_print,
+	vmvalue_chanl_as_print,
+	vmvalue_fp_as_print,
+	vmvalue_dll_as_print,
+	vmvalue_cproc_as_print,
+	vmvalue_error_as_print,
+	NULL,
+	vmvalue_code_obj_as_print,
+	NULL,
+};
+
+static void ptr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS)
+{
+	atom_ptr_ptr_to_string_buffer_princ_table[v->type](result,v,gc);
+}
+
+static void sym_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS)
+{
+	fklStringBufferConcatWithString(result,fklVMgetSymbolWithId(gc,FKL_GET_SYM(v))->symbol);
+}
+
+static void chr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS)
+{
+	fklStringBufferPutc(result,FKL_GET_CHR(v));
+}
+
+static void (*atom_ptr_to_string_buffer_princ_table[FKL_PTR_TAG_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
+{
+	ptr_ptr_as_princ,
+	nil_ptr_as_print,
+	fix_ptr_as_print,
+	sym_ptr_as_princ,
+	chr_ptr_as_princ,
+};
+
+static void atom_as_princ_string(VMVALUE_TO_UTSTRING_ARGS)
+{
+	atom_ptr_to_string_buffer_princ_table[(FklVMptrTag)FKL_GET_TAG(v)](result,v,gc);
+}
+
+static inline void stringify_value_to_string_buffer(FklVMvalue* value
+		,FklStringBuffer* result
+		,void(*atom_stringifier)(VMVALUE_TO_UTSTRING_ARGS)
+		,FklVMgc* gc)
+{
 	FklHashTable circle_head_set;
 	fklInitValueSetHashTable(&circle_head_set);
 
@@ -1668,15 +1728,15 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 			PrtElem* e=fklPopPtrQueue(cQueue);
 			FklVMvalue* v=e->v;
 			if(e->state==PRT_CDR||e->state==PRT_REC_CDR)
-				fklStringBufferPutc(&result,',');
+				fklStringBufferPutc(result,',');
 			if(e->state==PRT_REC_CAR||e->state==PRT_REC_CDR||e->state==PRT_REC_BOX)
 			{
-				fklStringBufferPrintf(&result,"#%"FKL_PRT64U"#",(uintptr_t)e->v);
+				fklStringBufferPrintf(result,"#%"FKL_PRT64U"#",(uintptr_t)e->v);
 				free(e);
 			}
 			else if(e->state==PRT_HASH_ITEM)
 			{
-				fklStringBufferPutc(&result,'(');
+				fklStringBufferPutc(result,'(');
 				FklPtrQueue* iQueue=fklCreatePtrQueue();
 				HashPrtElem* elem=(void*)e->v;
 				fklPushPtrQueue(elem->key,iQueue);
@@ -1691,15 +1751,15 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 			{
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
-					print_atom_to_string_buffer(&result,v,gc);
+					atom_stringifier(result,v,gc);
 				else
 				{
 					size_t i=0;
 					if(isInValueSet(v,&circle_head_set,&i))
-						fklStringBufferPrintf(&result,"#%"FKL_PRT64U"=",i);
+						fklStringBufferPrintf(result,"#%"FKL_PRT64U"=",i);
 					if(FKL_IS_VECTOR(v))
 					{
-						fklStringBufferConcatWithCstr(&result,"#(");
+						fklStringBufferConcatWithCstr(result,"#(");
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						FklVMvec* vec=FKL_VM_VEC(v);
 						for(size_t i=0;i<vec->size;i++)
@@ -1723,7 +1783,7 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 					}
 					else if(FKL_IS_BOX(v))
 					{
-						fklStringBufferConcatWithCstr(&result,"#&");
+						fklStringBufferConcatWithCstr(result,"#&");
 						size_t w=0;
 						FklVMvalue* box=FKL_VM_BOX(v);
 						int is_in_rec_set=isInValueSet(box,&circle_head_set,&w);
@@ -1740,7 +1800,7 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 					else if(FKL_IS_HASHTABLE(v))
 					{
 						FklHashTable* hash=FKL_VM_HASH(v);
-						fklStringBufferConcatWithCstr(&result,fklGetVMhashTablePrefix(hash));
+						fklStringBufferConcatWithCstr(result,fklGetVMhashTablePrefix(hash));
 						FklPtrQueue* hQueue=fklCreatePtrQueue();
 						for(FklHashTableItem* list=hash->first;list;list=list->next)
 						{
@@ -1774,7 +1834,7 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 					}
 					else
 					{
-						fklStringBufferPutc(&result,'(');
+						fklStringBufferPutc(result,'(');
 						FklPtrQueue* lQueue=fklCreatePtrQueue();
 						FklVMvalue* car=FKL_VM_CAR(v);
 						FklVMvalue* cdr=FKL_VM_CDR(v);
@@ -1830,25 +1890,35 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
-				fklStringBufferPutc(&result,' ');
+				fklStringBufferPutc(result,' ');
 		}
 		fklPopPtrStack(&queueStack);
 		fklDestroyPtrQueue(cQueue);
 		if(!fklIsPtrStackEmpty(&queueStack))
 		{
-			fklStringBufferPutc(&result,')');
+			fklStringBufferPutc(result,')');
 			cQueue=fklTopPtrStack(&queueStack);
 			if(fklLengthPtrQueue(cQueue)
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_CDR
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_BOX
 					&&((PrtElem*)fklFirstPtrQueue(cQueue))->state!=PRT_REC_BOX)
-				fklStringBufferPutc(&result,' ');
+				fklStringBufferPutc(result,' ');
 		}
 	}
 	fklUninitPtrStack(&queueStack);
 	fklUninitHashTable(&circle_head_set);
 	fklUninitHashTable(&has_print_circle_head_set);
+}
+
+FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
+{
+	FklStringBuffer result;
+	fklInitStringBuffer(&result);
+	stringify_value_to_string_buffer(value
+			,&result
+			,atom_as_prin1_string
+			,gc);
 	FklString* retval=fklStringBufferToString(&result);
 	fklUninitStringBuffer(&result);
 	return retval;
@@ -2659,8 +2729,7 @@ FklBuiltinErrorType fklVMprintf(FklVM* exe,FILE* fp,const FklString* fmt_str)
 	uint32_t flags;
 	uint64_t width;
 	uint64_t precision;
-	uint32_t n=0;
-	size_t idx=0;
+	FklBuiltinErrorType err=0;
 
 	FklStringBuffer buf;
 	fklInitStringBuffer(&buf);
@@ -2716,7 +2785,10 @@ break_loop:
 		{
 			FklVMvalue* width_obj=FKL_VM_POP_ARG(exe);
 			if(width_obj==NULL)
-				return FKL_ERR_TOOFEWARG;
+			{
+				err=FKL_ERR_TOOFEWARG;
+				goto exit;
+			}
 			else if(FKL_IS_FIX(width_obj))
 			{
 				int64_t w=FKL_GET_FIX(width_obj);
@@ -2729,7 +2801,10 @@ break_loop:
 					width=w;
 			}
 			else
-				return FKL_ERR_INCORRECT_TYPE_VALUE;
+			{
+				err=FKL_ERR_INCORRECT_TYPE_VALUE;
+				goto exit;
+			}
 			fmt++;
 		}
 
@@ -2744,17 +2819,26 @@ break_loop:
 			{
 				FklVMvalue* prec_obj=FKL_VM_POP_ARG(exe);
 				if(prec_obj==NULL)
-					return FKL_ERR_TOOFEWARG;
+				{
+					err=FKL_ERR_TOOFEWARG;
+					goto exit;
+				}
 				else if(FKL_IS_FIX(prec_obj))
 				{
 					int64_t prec=FKL_GET_FIX(prec_obj);
 					if(prec<0)
-						return FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0;
+					{
+						err=FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0;
+						goto exit;
+					}
 					else
 						precision=prec;
 				}
 				else
-					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				{
+					err=FKL_ERR_INCORRECT_TYPE_VALUE;
+					goto exit;
+				}
 				fmt++;
 			}
 		}
@@ -2779,7 +2863,10 @@ print_integer:
 				{
 					FklVMvalue* integer_obj=FKL_VM_POP_ARG(exe);
 					if(integer_obj==NULL)
-						return FKL_ERR_TOOFEWARG;
+					{
+						err=FKL_ERR_TOOFEWARG;
+						goto exit;
+					}
 					else if(fklIsVMint(integer_obj))
 					{
 						if(FKL_IS_FIX(integer_obj))
@@ -2799,7 +2886,10 @@ print_integer:
 									,fp);
 					}
 					else
-						return FKL_ERR_INCORRECT_TYPE_VALUE;
+					{
+						err=FKL_ERR_INCORRECT_TYPE_VALUE;
+						goto exit;
+					}
 				}
 				break;
 			case 'f':
@@ -2813,7 +2903,10 @@ print_integer:
 				{
 					FklVMvalue* f64_obj=FKL_VM_POP_ARG(exe);
 					if(f64_obj==NULL)
-						return FKL_ERR_TOOFEWARG;
+					{
+						err=FKL_ERR_TOOFEWARG;
+						goto exit;
+					}
 					else if(FKL_IS_F64(f64_obj))
 						printf_f64(&buf
 								,*fmt
@@ -2823,14 +2916,20 @@ print_integer:
 								,precision
 								,fp);
 					else
-						return FKL_ERR_INCORRECT_TYPE_VALUE;
+					{
+						err=FKL_ERR_INCORRECT_TYPE_VALUE;
+						goto exit;
+					}
 				}
 				break;
 			case 'c':
 				{
 					FklVMvalue* chr_obj=FKL_VM_POP_ARG(exe);
 					if(chr_obj==NULL)
-						return FKL_ERR_TOOFEWARG;
+					{
+						err=FKL_ERR_TOOFEWARG;
+						goto exit;
+					}
 					else if(FKL_IS_CHR(chr_obj))
 					{
 						int ch=FKL_GET_CHR(chr_obj);
@@ -2845,7 +2944,66 @@ print_integer:
 								fputc(' ',fp);
 					}
 					else
-						return FKL_ERR_INCORRECT_TYPE_VALUE;
+					{
+						err=FKL_ERR_INCORRECT_TYPE_VALUE;
+						goto exit;
+					}
+				}
+				break;
+			case 'S':
+				{
+					FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+					if(obj==NULL)
+					{
+						err=FKL_ERR_TOOFEWARG;
+						goto exit;
+					}
+					else
+					{
+						stringify_value_to_string_buffer(obj,&buf,atom_as_prin1_string,exe->gc);
+
+						uint64_t length=buf.index;
+
+						if(!(flags&FLAGS_LEFT)&&length<width)
+							while(length++<width)
+								fputc(' ',fp);
+
+						fwrite(buf.buf,buf.index,1,fp);
+
+						if(flags&FLAGS_LEFT&&length<width)
+							while(length++<width)
+								fputc(' ',fp);
+
+						buf.index=0;
+					}
+				}
+				break;
+			case 's':
+				{
+					FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+					if(obj==NULL)
+					{
+						err=FKL_ERR_TOOFEWARG;
+						goto exit;
+					}
+					else
+					{
+						stringify_value_to_string_buffer(obj,&buf,atom_as_princ_string,exe->gc);
+
+						uint64_t length=buf.index;
+
+						if(!(flags&FLAGS_LEFT)&&length<width)
+							while(length++<width)
+								fputc(' ',fp);
+
+						fwrite(buf.buf,buf.index,1,fp);
+
+						if(flags&FLAGS_LEFT&&length<width)
+							while(length++<width)
+								fputc(' ',fp);
+
+						buf.index=0;
+					}
 				}
 				break;
 			default:
@@ -2855,6 +3013,8 @@ print_integer:
 		fmt++;
 	}
 
-	return 0;
+exit:
+	fklUninitStringBuffer(&buf);
+	return err;
 }
 

@@ -448,9 +448,11 @@ typedef struct FklVMudMetaTable
 	void (*__append)(FklVMudata*,const FklVMudata*);
 	void (*__copy)(const FklVMudata* src,FklVMudata* dst);
 	size_t (*__hash)(const FklVMudata*);
-	FklString* (*__to_string)(const FklVMudata*);
-	FklString* (*__fmt_func)(const FklVMudata*);
+
 	FklBytevector* (*__to_bvec)(const FklVMudata*);
+
+	void (*__as_princ)(const FklVMudata*,FklStringBuffer* buf,struct FklVMgc* gc);
+	void (*__as_prin1)(const FklVMudata*,FklStringBuffer* buf,struct FklVMgc* gc);
 }FklVMudMetaTable;
 
 typedef enum
@@ -1024,6 +1026,7 @@ int fklIsCallableUd(const FklVMudata*);
 int fklIsCmpableUd(const FklVMudata*);
 int fklIsWritableUd(const FklVMudata*);
 int fklIsAbleToStringUd(const FklVMudata*);
+int fklIsAbleAsPrincUd(const FklVMudata*);
 int fklUdHasLength(const FklVMudata*);
 
 void fklPrincVMudata(const FklVMudata*,FILE*,FklVMgc*);
@@ -1037,7 +1040,8 @@ size_t fklLengthVMudata(const FklVMudata*);
 int fklAppendVMudata(FklVMudata*,const FklVMudata*);
 int fklCopyVMudata(const FklVMudata*,FklVMudata* dst);
 size_t fklHashvVMudata(const FklVMudata*);
-FklString* fklUdToString(const FklVMudata*);
+void fklUdToString(const FklVMudata*,FklStringBuffer*,FklVMgc*);
+void fklUdAsPrinc(const FklVMudata*,FklStringBuffer*,FklVMgc*);
 FklBytevector* fklUdToBytevector(const FklVMudata*);
 
 int fklIsCallable(FklVMvalue*);
@@ -1163,13 +1167,8 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 	fprintf(fp,"#<"#DATA_TYPE_NAME" %p>",ud);\
 }
 
-#define FKL_VM_USER_DATA_DEFAULT_TO_STRING(NAME,DATA_TYPE_NAME) static FklString* NAME(const FklVMudata* ud) {\
-	FklStringBuffer buf;\
-	fklInitStringBuffer(&buf);\
-	fklStringBufferPrintf(&buf,"#<"#DATA_TYPE_NAME" %p>",ud);\
-	FklString* str=fklCreateString(buf.index,buf.buf);\
-	fklUninitStringBuffer(&buf);\
-	return str;\
+#define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc) {\
+	fklStringBufferPrintf(buf,"#<"#DATA_TYPE_NAME" %p>",ud);\
 }
 
 #ifdef __cplusplus

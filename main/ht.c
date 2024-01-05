@@ -66,7 +66,7 @@ static void ht_atomic(const FklVMudata* ud,FklVMgc* gc)
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(ht_print,ht);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(ht_to_string,ht);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(ht_as_print,ht);
 
 static int ht_equal(const FklVMudata* a,const FklVMudata* b)
 {
@@ -108,9 +108,12 @@ static FklVMudMetaTable HtUdMetaTable=
 	.size=sizeof(HashTable),
 	.__atomic=ht_atomic,
 	.__equal=ht_equal,
+
 	.__prin1=ht_print,
 	.__princ=ht_print,
-	.__to_string=ht_to_string,
+	.__as_prin1=ht_as_print,
+	.__as_princ=ht_as_print,
+
 	.__finalizer=ht_finalizer,
 };
 

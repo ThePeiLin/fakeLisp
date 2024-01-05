@@ -1045,7 +1045,14 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 		}
 	}
 	else if(FKL_IS_USERDATA(obj)&&fklIsAbleToStringUd(FKL_VM_UD(obj)))
-		retval=fklCreateVMvalueStr(exe,fklUdToString(FKL_VM_UD(obj)));
+	{
+		FklStringBuffer buf;
+		fklInitStringBuffer(&buf);
+		fklUdToString(FKL_VM_UD(obj),&buf,exe->gc);
+		FklString* str=fklStringBufferToString(&buf);
+		fklUninitStringBuffer(&buf);
+		retval=fklCreateVMvalueStr(exe,str);
+	}
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,retval);
@@ -1832,9 +1839,9 @@ static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* ta
 	fprintf(fp,"#<eof>");
 }
 
-static FklString* _eof_userdata_to_string(const FklVMudata* ud)
+static void _eof_userdata_as_print(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc)
 {
-	return fklCreateStringFromCstr("#<eof>");
+	fklStringBufferConcatWithCstr(buf,"#<eof>");
 }
 
 static FklVMudMetaTable EofUserDataMetaTable=
@@ -1842,7 +1849,8 @@ static FklVMudMetaTable EofUserDataMetaTable=
 	.size=0,
 	.__princ=_eof_userdata_princ,
 	.__prin1=_eof_userdata_princ,
-	.__to_string=_eof_userdata_to_string,
+	.__as_princ=_eof_userdata_as_print,
+	.__as_prin1=_eof_userdata_as_print,
 };
 
 FklVMvalue* create_eof_value(FklVM* exe)
@@ -2230,7 +2238,7 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print,parser);
-FKL_VM_USER_DATA_DEFAULT_TO_STRING(custom_parser_to_string,parser);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print,parser);
 
 static void custom_parser_finalizer(FklVMudata* p)
 {
@@ -2283,9 +2291,12 @@ typedef struct
 static const FklVMudMetaTable CustomParserMetaTable=
 {
 	.size=sizeof(FklGrammer),
+
 	.__princ=custom_parser_print,
 	.__prin1=custom_parser_print,
-	.__to_string=custom_parser_to_string,
+	.__as_princ=custom_parser_as_print,
+	.__as_prin1=custom_parser_as_print,
+
 	.__atomic=custom_parser_atomic,
 	.__finalizer=custom_parser_finalizer,
 };
@@ -3014,7 +3025,10 @@ static int builtin_printf(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(fmt_obj,exe,Pname);
 	FKL_CHECK_TYPE(fmt_obj,FKL_IS_STR,Pname,exe);
 
-	fklVMprintf(exe,stdout,FKL_VM_STR(fmt_obj));
+	FklBuiltinErrorType err_type=fklVMprintf(exe,stdout,FKL_VM_STR(fmt_obj));
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;

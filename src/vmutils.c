@@ -2385,11 +2385,7 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FLAGS_HASH      (1u<<4u)
 #define FLAGS_UPPERCASE (1u<<5u)
 #define FLAGS_CHAR      (1u<<6u)
-#define FLAGS_SHORT     (1u<<7u)
-#define FLAGS_LONG      (1u<<8u)
-#define FLAGS_LONG_LONG (1u<<9u)
-#define FLAGS_PRECISION (1u<<10u)
-#define FLAGS_ADAPT_EXP (1u<<11u)
+#define FLAGS_PRECISION (1u<<7u)
 
 static inline void printf_fix_int(int64_t integer_val
 		,uint32_t flags
@@ -2826,6 +2822,28 @@ print_integer:
 								,width
 								,precision
 								,fp);
+					else
+						return FKL_ERR_INCORRECT_TYPE_VALUE;
+				}
+				break;
+			case 'c':
+				{
+					FklVMvalue* chr_obj=FKL_VM_POP_ARG(exe);
+					if(chr_obj==NULL)
+						return FKL_ERR_TOOFEWARG;
+					else if(FKL_IS_CHR(chr_obj))
+					{
+						int ch=FKL_GET_CHR(chr_obj);
+						uint64_t length=1;
+						if(!(flags&FLAGS_LEFT)&&length<width)
+							while(length++<width)
+								fputc(' ',fp);
+						fputc(ch,fp);
+
+						if(flags&FLAGS_LEFT&&length<width)
+							while(length++<width)
+								fputc(' ',fp);
+					}
 					else
 						return FKL_ERR_INCORRECT_TYPE_VALUE;
 				}

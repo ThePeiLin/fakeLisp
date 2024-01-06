@@ -669,6 +669,7 @@ void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
 void fklDBG_printVMstack(FklVM*,FILE*,int,FklVMgc* gc);
 
 FklString* fklVMstringify(FklVMvalue*,FklVMgc*);
+FklString* fklVMstringifyAsPrinc(FklVMvalue*,FklVMgc*);
 void fklPrintVMvalue(FklVMvalue* value
 		,FILE* fp
 		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklVMgc* gc)

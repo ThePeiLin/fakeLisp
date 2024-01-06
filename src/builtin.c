@@ -2728,8 +2728,13 @@ static int builtin_stringify(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.stringify";
 	FKL_DECL_AND_CHECK_ARG(v,exe,Pname);
+	FklVMvalue* is_princ=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklVMstringify(v,exe->gc));
+	FklVMvalue* retval=NULL;
+	if(is_princ&&is_princ!=FKL_VM_NIL)
+		retval=fklCreateVMvalueStr(exe,fklVMstringifyAsPrinc(v,exe->gc));
+	else
+		retval=fklCreateVMvalueStr(exe,fklVMstringify(v,exe->gc));
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }

@@ -1924,6 +1924,19 @@ FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
 	return retval;
 }
 
+FklString* fklVMstringifyAsPrinc(FklVMvalue* value,FklVMgc* gc)
+{
+	FklStringBuffer result;
+	fklInitStringBuffer(&result);
+	stringify_value_to_string_buffer(value
+			,&result
+			,atom_as_princ_string
+			,gc);
+	FklString* retval=fklStringBufferToString(&result);
+	fklUninitStringBuffer(&result);
+	return retval;
+}
+
 FklVMvalue* fklGetTopValue(FklVM* exe)
 {
 	return exe->base[exe->tp-1];

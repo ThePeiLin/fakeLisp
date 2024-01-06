@@ -134,10 +134,12 @@
                         last-line)]
     [(setq cur (debug-ctx-list-src ctx))
      (setq 1st-line (vec-ref cur 0))
+     (define last-line (+ 1st-line default-list-line-num))
      (print-src-from-to ctx
                         cur
                         1st-line
-                        (+ 1st-line default-list-line-num))]
+                        last-line)
+     (debug-ctx-set-list-src ctx last-line)]
     [1 (println "[EOF]")]))
 
 (define debug-cmd-func

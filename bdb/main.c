@@ -498,6 +498,24 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int bdb_debug_ctx_set_list_src(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-set-list-src";
+	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,line_num_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	FKL_CHECK_TYPE(line_num_obj,FKL_IS_FIX,Pname,exe);
+	int64_t line_num=FKL_GET_FIX(line_num_obj);
+	if(line_num>0&&line_num<=dctx->curfile_lines->top)
+		dctx->curlist_line=line_num;
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-list-src";
@@ -528,7 +546,6 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 						,num_val
 						,is_cur_line
 						,str_val));
-			dctx->curlist_line++;
 		}
 	}
 	else if(dctx->curlist_line<=dctx->curfile_lines->top)
@@ -544,7 +561,6 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 					,num_val
 					,is_cur_line
 					,str_val));
-		dctx->curlist_line++;
 	}
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -562,19 +578,20 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"debug-ctx?",            bdb_debug_ctx_p,           },
-	{"make-debug-ctx",        bdb_make_debug_ctx,        },
-	{"debug-ctx-repl",        bdb_debug_ctx_repl,        },
-	{"debug-ctx-get-curline", bdb_debug_ctx_get_curline, },
-	{"debug-ctx-list-src",    bdb_debug_ctx_list_src,    },
-	{"debug-ctx-end?",        bdb_debug_ctx_end_p,       },
-	{"debug-ctx-step",        bdb_debug_incomplete,      },
-	{"debug-ctx-next",        bdb_debug_incomplete,      },
-	{"debug-ctx-del-break",   bdb_debug_ctx_del_break,   },
-	{"debug-ctx-set-break",   bdb_debug_ctx_set_break,   },
-	{"debug-ctx-list-break",  bdb_debug_ctx_list_break,  },
-	{"debug-ctx-continue",    bdb_debug_ctx_continue,    },
-	{"debug-ctx-exit",        bdb_debug_incomplete,      },
+	{"debug-ctx?",             bdb_debug_ctx_p,            },
+	{"make-debug-ctx",         bdb_make_debug_ctx,         },
+	{"debug-ctx-repl",         bdb_debug_ctx_repl,         },
+	{"debug-ctx-get-curline",  bdb_debug_ctx_get_curline,  },
+	{"debug-ctx-list-src",     bdb_debug_ctx_list_src,     },
+	{"debug-ctx-set-list-src", bdb_debug_ctx_set_list_src, },
+	{"debug-ctx-end?",         bdb_debug_ctx_end_p,        },
+	{"debug-ctx-step",         bdb_debug_incomplete,       },
+	{"debug-ctx-next",         bdb_debug_incomplete,       },
+	{"debug-ctx-del-break",    bdb_debug_ctx_del_break,    },
+	{"debug-ctx-set-break",    bdb_debug_ctx_set_break,    },
+	{"debug-ctx-list-break",   bdb_debug_ctx_list_break,   },
+	{"debug-ctx-continue",     bdb_debug_ctx_continue,     },
+	{"debug-ctx-exit",         bdb_debug_incomplete,       },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

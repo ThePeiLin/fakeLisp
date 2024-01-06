@@ -1834,30 +1834,6 @@ typedef struct
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReadCtx);
 
-static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* table)
-{
-	fprintf(fp,"#<eof>");
-}
-
-static void _eof_userdata_as_print(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc)
-{
-	fklStringBufferConcatWithCstr(buf,"#<eof>");
-}
-
-static FklVMudMetaTable EofUserDataMetaTable=
-{
-	.size=0,
-	.__princ=_eof_userdata_princ,
-	.__prin1=_eof_userdata_princ,
-	.__as_princ=_eof_userdata_as_print,
-	.__as_prin1=_eof_userdata_as_print,
-};
-
-FklVMvalue* create_eof_value(FklVM* exe)
-{
-	return fklCreateVMvalueUdata(exe,&EofUserDataMetaTable,NULL);
-}
-
 static void read_frame_atomic(void* data,FklVMgc* gc)
 {
 	ReadCtx* c=(ReadCtx*)data;
@@ -1916,7 +1892,7 @@ static void read_frame_step(void* d,FklVM* exe)
 	if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
 	{
 		rctx->state=PARSE_DONE;
-		FKL_VM_PUSH_VALUE(exe,create_eof_value(exe));
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueEof(exe));
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
@@ -4935,7 +4911,7 @@ static int builtin_hasheq_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQ(val),
 static int builtin_hasheqv_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQV(val),"builtin.hash?")}
 static int builtin_hashequal_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE_EQUAL(val),"builtin.hash?")}
 
-static int builtin_eof_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL_VM_UD(val)->t==&EofUserDataMetaTable,"builtin.eof?")}
+static int builtin_eof_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMeofUd(val),"builtin.eof?")}
 
 static int builtin_parser_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_USERDATA(val)&&FKL_VM_UD(val)->t==&CustomParserMetaTable,"builtin.parser?")}
 

@@ -880,6 +880,8 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,FklHashTable*
 		,FklVMgc* gc);
 
+FklVMvalue* fklCreateVMvalueEof(FklVM* exe);
+int fklIsVMeofUd(FklVMvalue* v);
 // value getters
 
 #define FKL_VM_CAR(V) (((FklVMvaluePair*)(V))->pair.car)

@@ -182,10 +182,11 @@ static inline const char* debug_ctx_replxx_input_string_buffer(Replxx* replxx
 }
 
 static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
-		,CmdReadCtx* ctx
+		,DebugCtx* dctx
 		,const char* prompt
 		,const char* func_name)
 {
+	CmdReadCtx* ctx=&dctx->read_ctx;
 	FklGrammerMatchOuterCtx outerCtx=FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 	FklStringBuffer* s=&ctx->buf;
 	int err=0;
@@ -211,7 +212,10 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 		ctx->offset=fklStringBufferLen(s)-restLen;
 
 		if(!restLen&&ctx->symbolStack.top==0&&is_eof)
-			exit(0);
+		{
+			dctx->end=1;
+			return fklCreateVMvalueEof(exe);
+		}
 		else if((err==FKL_PARSE_WAITING_FOR_MORE
 					||(err==FKL_PARSE_TERMINAL_MATCH_FAILED
 						&&!restLen))
@@ -257,7 +261,7 @@ static int bdb_debug_ctx_repl(FKL_CPROC_ARGL)
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	FKL_VM_PUSH_VALUE(exe,prompt_obj);
-	FklVMvalue* cmd=debug_ctx_replxx_input(exe,&debug_ctx_ud->ctx->read_ctx,FKL_VM_STR(prompt_obj)->str,Pname);
+	FklVMvalue* cmd=debug_ctx_replxx_input(exe,debug_ctx_ud->ctx,FKL_VM_STR(prompt_obj)->str,Pname);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,cmd);
 	return 0;
 }
@@ -585,10 +589,10 @@ struct SymFunc
 	{"debug-ctx-list-src",     bdb_debug_ctx_list_src,     },
 	{"debug-ctx-set-list-src", bdb_debug_ctx_set_list_src, },
 	{"debug-ctx-end?",         bdb_debug_ctx_end_p,        },
-	{"debug-ctx-step",         bdb_debug_incomplete,       },
-	{"debug-ctx-next",         bdb_debug_incomplete,       },
 	{"debug-ctx-del-break",    bdb_debug_ctx_del_break,    },
 	{"debug-ctx-set-break",    bdb_debug_ctx_set_break,    },
+	{"debug-ctx-step",         bdb_debug_incomplete,       },
+	{"debug-ctx-next",         bdb_debug_incomplete,       },
 	{"debug-ctx-list-break",   bdb_debug_ctx_list_break,   },
 	{"debug-ctx-continue",     bdb_debug_ctx_continue,     },
 	{"debug-ctx-exit",         bdb_debug_incomplete,       },

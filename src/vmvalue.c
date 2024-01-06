@@ -1847,6 +1847,36 @@ FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
 
 #undef NEW_OBJ
 
+static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* table)
+{
+	fprintf(fp,"#<eof>");
+}
+
+static void _eof_userdata_as_print(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc)
+{
+	fklStringBufferConcatWithCstr(buf,"#<eof>");
+}
+
+static FklVMudMetaTable EofUserDataMetaTable=
+{
+	.size=0,
+	.__princ=_eof_userdata_princ,
+	.__prin1=_eof_userdata_princ,
+	.__as_princ=_eof_userdata_as_print,
+	.__as_prin1=_eof_userdata_as_print,
+};
+
+FklVMvalue* fklCreateVMvalueEof(FklVM* exe)
+{
+	return fklCreateVMvalueUdata(exe,&EofUserDataMetaTable,NULL);
+}
+
+int fklIsVMeofUd(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)
+		&&FKL_VM_UD(v)->t==&EofUserDataMetaTable;
+}
+
 void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
 {
 	FklVMvec* vec=FKL_VM_VEC(pVec);

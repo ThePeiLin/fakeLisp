@@ -174,10 +174,11 @@
   (do []
     [(debug-ctx-end? ctx)]
     (define cmd (debug-ctx-repl ctx prompt))
-    (define cmd-func (hash-ref debug-cmd-func
-                               (car cmd)
-                               unknown-cmd-func))
-    (apply cmd-func ctx (cdr cmd))))
+    (unless (eof? cmd)
+      (define cmd-func (hash-ref debug-cmd-func
+                                 (car cmd)
+                                 unknown-cmd-func))
+      (apply cmd-func ctx (cdr cmd)))))
 
 (define (fdb-main)
 

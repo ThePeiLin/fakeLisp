@@ -84,14 +84,16 @@
                      " already be deleted")))))
     rest))
 
-(define (print-list-src ctx cur)
+(define default-list-line-num 11)
+
+(define (print-src-from-to ctx cur 1st last)
   (define not-curline-prefix (make-string (length line-prefix) #\\s))
   (define line-list '())
   (define number-len 0)
   (setq line-list (cons cur line-list))
-  (let loop [(n 1)]
-    (define cur (debug-ctx-list-src ctx))
-    (when (and (< n 11) cur)
+  (let loop [(n (1+ 1st))]
+    (define cur (debug-ctx-list-src ctx n))
+    (when (and (< n last) cur)
       (setq line-list (cons cur line-list))
       (loop (1+ n))))
 
@@ -116,10 +118,27 @@
     line-list))
 
 (define (debug-list-src ctx,rest)
-  (define cur (debug-ctx-list-src ctx))
-  (if cur
-    (print-list-src ctx cur)
-    (println "[EOF]")))
+  (define 1st-line nil)
+  (define cur nil)
+  (cond
+    [(and rest
+       (setq 1st-line (car rest))
+       (setq cur (debug-ctx-list-src ctx 1st-line)))
+     (define last-line (and (cdr rest) (car (cdr rest))))
+     (if last-line
+       (setq last-line (1+ last-line))
+       (setq last-line (+ 1st-line default-list-line-num)))
+     (print-src-from-to ctx
+                        cur
+                        1st-line
+                        last-line)]
+    [(setq cur (debug-ctx-list-src ctx))
+     (setq 1st-line (vec-ref cur 0))
+     (print-src-from-to ctx
+                        cur
+                        1st-line
+                        (+ 1st-line default-list-line-num))]
+    [1 (println "[EOF]")]))
 
 (define debug-cmd-func
   (make-hash

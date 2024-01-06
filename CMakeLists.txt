@@ -243,12 +243,12 @@ if(MSVC)
 add_custom_command(TARGET bdb
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
 	$<TARGET_FILE:bdb>
-	"${CMAKE_BINARY_DIR}/lib/fdb/bin"
+	"${CMAKE_BINARY_DIR}/lib"
 	DEPENDS bdb
 	VERBATIM)
 else()
 set_target_properties(bdb PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/fdb/bin")
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
 #linking

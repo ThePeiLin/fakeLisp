@@ -1,6 +1,6 @@
 (import (only (.. utils m) static-strcat))
 
-(import (bin bdb))
+(import (.. bdb))
 
 (define file-prefix "> ")
 (define line-prefix "-> ")

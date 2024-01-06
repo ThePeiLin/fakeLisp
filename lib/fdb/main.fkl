@@ -85,11 +85,35 @@
     rest))
 
 (define (debug-list-src ctx,rest)
+  (define not-curline-prefix (make-string (length line-prefix) #\\s))
+  (define line-list '())
+  (define number-len 0)
+
   (let loop [(n 0)]
     (define cur (debug-ctx-list-src ctx))
     (when (and (< n 11) cur)
-      (prin1n cur)
-      (loop (1+ n)))))
+      (setq line-list (cons cur line-list))
+      (loop (1+ n))))
+
+  (setq line-list (reverse! line-list))
+
+  (foreach
+    (lambda (x)
+      (define cur-len (length (number->string (vec-ref x 0))))
+      (if (> cur-len number-len)
+        (setq number-len cur-len)))
+    line-list)
+
+  (foreach
+    (lambda (x)
+      (printf "%*s %s%s"
+              number-len
+              (vec-ref x 0)
+              (if (vec-ref x 1)
+                line-prefix
+                not-curline-prefix)
+              (vec-ref x 2)))
+    line-list))
 
 (define debug-cmd-func
   (make-hash

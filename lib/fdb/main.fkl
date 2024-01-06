@@ -84,12 +84,12 @@
                      " already be deleted")))))
     rest))
 
-(define (debug-list-src ctx,rest)
+(define (print-list-src ctx cur)
   (define not-curline-prefix (make-string (length line-prefix) #\\s))
   (define line-list '())
   (define number-len 0)
-
-  (let loop [(n 0)]
+  (setq line-list (cons cur line-list))
+  (let loop [(n 1)]
     (define cur (debug-ctx-list-src ctx))
     (when (and (< n 11) cur)
       (setq line-list (cons cur line-list))
@@ -114,6 +114,12 @@
                 not-curline-prefix)
               (vec-ref x 2)))
     line-list))
+
+(define (debug-list-src ctx,rest)
+  (define cur (debug-ctx-list-src ctx))
+  (if cur
+    (print-list-src ctx cur)
+    (println "[EOF]")))
 
 (define debug-cmd-func
   (make-hash

@@ -3040,6 +3040,29 @@ static int builtin_printf(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_format(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.format";
+	FKL_DECL_AND_CHECK_ARG(fmt_obj,exe,Pname);
+	FKL_CHECK_TYPE(fmt_obj,FKL_IS_STR,Pname,exe);
+
+	uint64_t len=0;
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
+	FklBuiltinErrorType err_type=fklVMformat(exe,&buf,FKL_VM_STR(fmt_obj),&len);
+	if(err_type)
+	{
+		fklUninitStringBuffer(&buf);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	}
+
+	FklVMvalue* str_value=fklCreateVMvalueStr(exe,fklStringBufferToString(&buf));
+	fklUninitStringBuffer(&buf);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,str_value);
+	return 0;
+}
+
 static int builtin_prin1n(FKL_CPROC_ARGL)
 {
 	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
@@ -5261,6 +5284,7 @@ static const struct SymbolFuncStruct
 	{"print",                 builtin_print,                   {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"printf",                builtin_printf,                  {NULL,         NULL,          NULL,            NULL,          }, },
+	{"format",                builtin_format,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"prin1n",                builtin_prin1n,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"prin1v",                builtin_prin1v,                  {NULL,         NULL,          NULL,            NULL,          }, },

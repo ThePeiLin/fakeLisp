@@ -681,6 +681,11 @@ FklBuiltinErrorType fklVMprintf(FklVM*
 		,const FklString* fmt
 		,uint64_t* plen);
 
+FklBuiltinErrorType fklVMformat(FklVM*
+		,FklStringBuffer* buf
+		,const FklString* fmt
+		,uint64_t* plen);
+
 FklVMvalue* fklProcessVMnumInc(FklVM*,FklVMvalue*);
 FklVMvalue* fklProcessVMnumDec(FklVM*,FklVMvalue*);
 

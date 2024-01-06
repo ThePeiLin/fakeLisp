@@ -2470,12 +2470,31 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FLAGS_CHAR      (1u<<6u)
 #define FLAGS_PRECISION (1u<<7u)
 
-static inline uint64_t printf_fix_int(int64_t integer_val
+static void print_out_char(void* arg,char c)
+{
+	FILE* fp=arg;
+	fputc(c,fp);
+}
+
+static void format_out_char(void* arg,char c)
+{
+	FklStringBuffer* buf=arg;
+	fklStringBufferPutc(buf,c);
+}
+
+static inline void outs(void (*outc)(void*,char),void* arg,const char* s)
+{
+	while(*s)
+		outc(arg,*s++);
+}
+
+static inline uint64_t format_fix_int(int64_t integer_val
 		,uint32_t flags
 		,uint32_t base
 		,uint64_t width
 		,uint64_t precision
-		,FILE* fp)
+		,void (*outc)(void*,char c)
+		,void* arg)
 {
 	static const char digits[]="0123456789abcdef0123456789ABCDEF";
 #define MAXBUF (sizeof(int64_t)*8)
@@ -2527,40 +2546,41 @@ static inline uint64_t printf_fix_int(int64_t integer_val
 	uint64_t space_len=0;
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
 		for(;length<width;length++,space_len++)
-			fputc(' ',fp);
+			outc(arg,' ');
 
 	if(sign_char)
-		fputc(sign_char,fp);
+		outc(arg,sign_char);
 	if(prefix)
-		fputs(prefix,fp);
+		outs(outc,arg,prefix);
 
 	if((flags&FLAGS_PRECISION))
 		for(uint64_t len=precision+space_len
 				;length<len
 				;length++)
-			fputc('0',fp);
+			outc(arg,'0');
 
 	if(flags&FLAGS_ZEROPAD)
 		for(;length<width;length++)
-			fputc('0',fp);
+			outc(arg,'0');
 
 	while(++p!=&buf[MAXBUF])
-		fputc(*p,fp);
+		outc(arg,*p);
 
 	if(flags&FLAGS_LEFT)
 		for(;length<width;length++)
-			fputc(' ',fp);
+			outc(arg,' ');
 #undef MAXBUF
 	return length;
 }
 
-static inline uint64_t printf_big_int(FklStringBuffer* buf
+static inline uint64_t format_big_int(FklStringBuffer* buf
 		,const FklBigInt* bi
 		,uint32_t flags
 		,uint32_t base
 		,uint64_t width
 		,uint64_t precision
-		,FILE* fp)
+		,void (outc)(void*,char)
+		,void* arg)
 {
 	uint64_t length=0;
 	if(FKL_IS_0_BIG_INT(bi))
@@ -2588,21 +2608,21 @@ static inline uint64_t printf_big_int(FklStringBuffer* buf
 	uint64_t space_len=0;
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
 		for(;length<width;length++,space_len++)
-			fputc(' ',fp);
+			outc(arg,' ');
 
 	if(bi->neg)
-		fputc(*p++,fp);
+		outc(arg,*p++);
 	else if(print_plus)
-		fputc('+',fp);
+		outc(arg,'+');
 
 	if(flags&FLAGS_HASH)
 	{
 		if(base==8)
-			fputc(*p++,fp);
+			outc(arg,*p++);
 		else if(base==16)
 		{
-			fputc(*p++,fp);
-			fputc(*p++,fp);
+			outc(arg,*p++);
+			outc(arg,*p++);
 		}
 	}
 
@@ -2610,34 +2630,35 @@ static inline uint64_t printf_big_int(FklStringBuffer* buf
 		for(uint64_t len=precision+space_len
 				;length<len
 				;length++)
-			fputc('0',fp);
+			outc(arg,'0');
 
 	if(flags&FLAGS_ZEROPAD)
 		for(;length<width;length++)
-			fputc('0',fp);
+			outc(arg,'0');
 
 	const char* const end=&buf->buf[buf->index];
 	while(p<end)
-		fputc(*p++,fp);
+		outc(arg,*p++);
 
 	if(flags&FLAGS_LEFT)
 		for(;length<width;length++)
-			fputc(' ',fp);
+			outc(arg,' ');
 	buf->index=0;
 	return length;
 }
 
-static inline uint64_t printf_f64(FklStringBuffer* buf
+static inline uint64_t format_f64(FklStringBuffer* buf
 		,char ch
 		,double value
 		,uint32_t flags
 		,uint64_t width
 		,uint64_t precision
-		,FILE* fp)
+		,void (*outc)(void*,char)
+		,void* arg)
 {
 	if(isnan(value))
 	{
-		fputs(isupper(ch)?"NAN":"nan",fp);
+		outs(outc,arg,isupper(ch)?"NAN":"nan");
 		return 3;
 	}
 	int neg=signbit(value);
@@ -2646,20 +2667,20 @@ static inline uint64_t printf_f64(FklStringBuffer* buf
 		if(isupper(ch))
 		{
 			if(neg)
-				fputs("-inf",fp);
+				outs(outc,arg,"-inf");
 			else if(flags&FLAGS_PLUS)
-				fputs("+inf",fp);
+				outs(outc,arg,"+inf");
 			else
-				fputs("inf",fp);
+				outs(outc,arg,"inf");
 		}
 		else
 		{
 			if(neg)
-				fputs("-INF",fp);
+				outs(outc,arg,"-INF");
 			else if(flags&FLAGS_PLUS)
-				fputs("+INF",fp);
+				outs(outc,arg,"+INF");
 			else
-				fputs("INF",fp);
+				outs(outc,arg,"INF");
 		}
 		return (neg||flags&FLAGS_PLUS)?4:3;
 	}
@@ -2698,46 +2719,48 @@ static inline uint64_t printf_f64(FklStringBuffer* buf
 
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
 		for(;length<width;length++)
-			fputc(' ',fp);
+			outc(arg,' ');
 
 	if(neg)
-		fputc(*p++,fp);
+		outc(arg,*p++);
 	else if(print_plus)
-		fputc('+',fp);
+		outc(arg,'+');
 
 	if(ch=='a'||ch=='A')
 	{
-		fputc(*p++,fp);
-		fputc(*p++,fp);
+		outc(arg,*p++);
+		outc(arg,*p++);
 	}
 
 	if(flags&FLAGS_ZEROPAD&&precision<width)
 		for(;length<width;length++)
-			fputc('0',fp);
+			outc(arg,'0');
 
 	const char* const end=&buf->buf[buf->index];
 	const char* dot_idx=strchr(buf->buf,'.');
 	uint64_t prec_len=(end-dot_idx)+(dot_idx-p-1);
 
 	while(p<end)
-		fputc(*p++,fp);
+		outc(arg,*p++);
 
 	if((flags&FLAGS_HASH))
 		for(;prec_len<precision
 				;prec_len++,length++)
-			fputc('0',fp);
+			outc(arg,'0');
 
 	if(flags&FLAGS_LEFT)
 		for(;length<width;length++)
-			fputc(' ',fp);
+			outc(arg,' ');
 
 	buf->index=0;
 	return length;
 }
 
-FklBuiltinErrorType fklVMprintf(FklVM* exe
-		,FILE* fp
+static inline FklBuiltinErrorType vm_format_to_buf(FklVM* exe
 		,const FklString* fmt_str
+		,void (*outc)(void*,char)
+		,void (*outs)(void*,const char*,size_t len)
+		,void* arg
 		,uint64_t* plen)
 {
 	uint32_t base;
@@ -2756,7 +2779,7 @@ FklBuiltinErrorType fklVMprintf(FklVM* exe
 	{
 		if(*fmt!='%')
 		{
-			fputc(*fmt,fp);
+			outc(arg,*fmt);
 			length++;
 			fmt++;
 			continue;
@@ -2887,20 +2910,22 @@ print_integer:
 					else if(fklIsVMint(integer_obj))
 					{
 						if(FKL_IS_FIX(integer_obj))
-							length+=printf_fix_int(FKL_GET_FIX(integer_obj)
+							length+=format_fix_int(FKL_GET_FIX(integer_obj)
 									,flags
 									,base
 									,width
 									,precision
-									,fp);
+									,outc
+									,(void*)arg);
 						else
-							length+=printf_big_int(&buf
+							length+=format_big_int(&buf
 									,FKL_VM_BI(integer_obj)
 									,flags
 									,base
 									,width
 									,precision
-									,fp);
+									,outc
+									,(void*)arg);
 					}
 					else
 					{
@@ -2925,13 +2950,14 @@ print_integer:
 						goto exit;
 					}
 					else if(FKL_IS_F64(f64_obj))
-						length+=printf_f64(&buf
+						length+=format_f64(&buf
 								,*fmt
 								,FKL_VM_F64(f64_obj)
 								,flags
 								,width
 								,precision
-								,fp);
+								,outc
+								,(void*)arg);
 					else
 					{
 						err=FKL_ERR_INCORRECT_TYPE_VALUE;
@@ -2954,12 +2980,12 @@ print_integer:
 
 						if(!(flags&FLAGS_LEFT))
 							for(;len<width;len++)
-								fputc(' ',fp);
-						fputc(ch,fp);
+								outc(arg,' ');
+						outc(arg,ch);
 
 						if(flags&FLAGS_LEFT)
 							for(;len<width;len++)
-								fputc(' ',fp);
+								outc(arg,' ');
 						length+=len;
 					}
 					else
@@ -2985,13 +3011,13 @@ print_integer:
 
 						if(!(flags&FLAGS_LEFT))
 							for(;len<width;len++)
-								fputc(' ',fp);
+								outc(arg,' ');
 
-						fwrite(buf.buf,buf.index,1,fp);
+						outs(arg,buf.buf,buf.index);
 
 						if(flags&FLAGS_LEFT)
 							for(;len<width;len++)
-								fputc(' ',fp);
+								outc(arg,' ');
 
 						buf.index=0;
 
@@ -3015,13 +3041,13 @@ print_integer:
 
 						if(!(flags&FLAGS_LEFT))
 							for(;len<width;len++)
-								fputc(' ',fp);
+								outc(arg,' ');
 
-						fwrite(buf.buf,buf.index,1,fp);
+						outs(arg,buf.buf,buf.index);
 
 						if(flags&FLAGS_LEFT)
 							for(;len<width;len++)
-								fputc(' ',fp);
+								outc(arg,' ');
 
 						buf.index=0;
 
@@ -3050,7 +3076,7 @@ print_integer:
 				}
 				break;
 			default:
-				fputc(*fmt,fp);
+				outc(arg,*fmt);
 				length++;
 				break;
 		}
@@ -3061,5 +3087,43 @@ print_integer:
 exit:
 	fklUninitStringBuffer(&buf);
 	return err;
+}
+
+static void print_out_str_buf(void* arg,const char* buf,size_t len)
+{
+	FILE* fp=arg;
+	fwrite(buf,len,1,fp);
+}
+
+FklBuiltinErrorType fklVMprintf(FklVM* exe
+		,FILE* fp
+		,const FklString* fmt_str
+		,uint64_t* plen)
+{
+	return vm_format_to_buf(exe
+			,fmt_str
+			,print_out_char
+			,print_out_str_buf
+			,(void*)fp
+			,plen);
+}
+
+static void format_out_str_buf(void* arg,const char* buf,size_t len)
+{
+	FklStringBuffer* result=arg;
+	fklStringBufferBincpy(result,buf,len);
+}
+
+FklBuiltinErrorType fklVMformat(FklVM* exe
+		,FklStringBuffer* result
+		,const FklString* fmt_str
+		,uint64_t* plen)
+{
+	return vm_format_to_buf(exe
+			,fmt_str
+			,format_out_char
+			,format_out_str_buf
+			,(void*)result
+			,plen);
 }
 

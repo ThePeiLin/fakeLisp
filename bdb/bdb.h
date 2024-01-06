@@ -11,7 +11,7 @@ extern "C"{
 
 enum
 {
-	DBG_REACH_BREAKPOINT=1,
+	DBG_INTERRUPTED=1,
 	DBG_ERROR_OCCUR
 };
 
@@ -27,13 +27,31 @@ typedef struct
 
 typedef struct
 {
+	FklSid_t fid;
+	uint64_t pc;
+	uint32_t line;
+}BreakpointHashKey;
+
+typedef struct
+{
+	BreakpointHashKey key;
+	uint64_t num;
+	struct DebugCtx* ctx;
+	FklInstruction* ins;
+	FklInstruction origin_ins;
+}BreakpointHashItem;
+
+typedef struct DebugCtx
+{
 	CmdReadCtx read_ctx;
 	FklCodegenOuterCtx outer_ctx;
 
 	FklHashTable file_sid_set;
-    FklSymbolTable* st;
-	int is_reach_breakpoint;
+	FklSymbolTable* st;
+
 	int end;
+	int interrupted_by_debugger;
+
 	uint32_t curlist_line;
 	uint32_t curline;
 	FklSid_t curline_file;
@@ -46,28 +64,33 @@ typedef struct
 	FklVMvalue* code_objs;
 
 	jmp_buf jmpb;
-	FklVM* cur_thread;
+	FklVM* reached_thread;
+	const BreakpointHashItem* reached_breakpoint;
+
+
 	FklVMgc* gc;
 	FklHashTable breakpoints;
+
 	uint32_t breakpoint_num;
 
+	struct SteppingCtx
+	{
+		enum
+		{
+			STEP_OUT,
+			STEP_INTO,
+			STEP_OVER,
+			STEP_UNTIL,
+		}stepping_mode;
+		FklVM* vm;
+		const FklLineNumberTableItem* ln;
+		FklVMvalue* stepping_proc;
+		FklVMframe* stepping_frame;
+
+		FklSid_t cur_fid;
+		uint64_t target_line;
+	}stepping_ctx;
 }DebugCtx;
-
-typedef struct
-{
-	FklSid_t fid;
-	uint64_t pc;
-	uint32_t line;
-}BreakpointHashKey;
-
-typedef struct
-{
-	BreakpointHashKey key;
-	uint64_t num;
-	DebugCtx* ctx;
-	FklInstruction* ins;
-	FklInstruction origin_ins;
-}BreakpointHashItem;
 
 typedef struct
 {
@@ -82,19 +105,49 @@ typedef enum
 	PUT_BP_NOT_A_PROC,
 }PutBreakpointErrorType;
 
+typedef struct
+{
+	const BreakpointHashItem* bp;
+	const FklLineNumberTableItem* ln;
+	DebugCtx* ctx;
+}DbgInterruptArg;
+
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
 const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
+const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp,FklByteCodelnt* code);
 
 void initBreakpointTable(FklHashTable*);
 
+void toggleVMint3(FklVM*);
 BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
 BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid);
+
+typedef struct
+{
+	const BreakpointHashItem* bp;
+}BreakpointWrapper;
+
+FklVMvalue* createBreakpointWrapper(FklVM* exe,const BreakpointHashItem* bp);
+int isBreakpointWrapper(FklVMvalue* v);
+const BreakpointHashItem* getBreakpointFromWrapper(FklVMvalue* v);
+
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 void delBreakpoint(DebugCtx* ctx,uint64_t num);
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 
+void unsetStepping(DebugCtx*);
+void setStepInto(DebugCtx*);
+void setStepOver(DebugCtx*);
+void setStepOut(DebugCtx*);
+void setStepUntil(DebugCtx*,uint32_t line);
+
+void dbgInterrupt(FklVM*,DbgInterruptArg* arg);
+int dbgInterruptHandler(FklVMgc* gc
+		,FklVM*
+		,FklVMvalue* ev
+		,void* arg);
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,6 @@
 #include"bdb.h"
 #include<fakeLisp/builtin.h>
+#include<string.h>
 
 static inline void init_cmd_read_ctx(CmdReadCtx* ctx)
 {
@@ -37,35 +38,22 @@ static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx
 	}
 }
 
-struct Int3Arg
-{
-	BreakpointHashItem* bp;
-};
-
 static void B_int3(FKL_VM_INS_FUNC_ARGL);
 static void B_int33(FKL_VM_INS_FUNC_ARGL);
 
-static void int3_queue_work_cb(FklVM* vm,void* a)
-{
-	struct Int3Arg* arg=(struct Int3Arg*)a;
-	BreakpointHashItem* bp=arg->bp;
-	FklVMframe* frame=vm->top_frame;
-	frame->c.pc--;
-	DebugCtx* ctx=bp->ctx;
-	ctx->cur_thread=vm;
-	getCurLineStr(ctx,bp->key.fid,bp->key.line);
-	ctx->is_reach_breakpoint=1;
-	longjmp(arg->bp->ctx->jmpb,DBG_REACH_BREAKPOINT);
-}
-
 static void B_int3(FKL_VM_INS_FUNC_ARGL)
 {
-	struct Int3Arg arg=
+	if(exe->is_single_thread)
 	{
-		.bp=ins->ptr,
-	};
-	exe->ins_table[0]=B_int33;
-	fklQueueWorkInIdleThread(exe,int3_queue_work_cb,&arg);
+		FklInstruction* oins=&((BreakpointHashItem*)ins->ptr)->origin_ins;
+		exe->ins_table[oins->op](exe,oins);
+	}
+	else
+	{
+		exe->ins_table[0]=B_int33;
+		exe->top_frame->c.pc--;
+		fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr));
+	}
 }
 
 static void B_int33(FKL_VM_INS_FUNC_ARGL)
@@ -136,10 +124,12 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 
     ctx->st=&outer_ctx->public_symbol_table;
 	ctx->gc=gc;
-	ctx->cur_thread=anotherVM;
+	ctx->reached_thread=anotherVM;
 
 	anotherVM->ins_table[0]=B_int3;
+
 	gc->main_thread=anotherVM;
+	fklVMpushInterruptHandler(gc,dbgInterruptHandler,ctx);
 	fklVMthreadStart(anotherVM,&gc->q);
 	return 0;
 }
@@ -236,7 +226,7 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
 		const SourceCodeHashItem* item=get_source_with_fid(&ctx->source_code_table,fid);
 		if(item&&line<=item->lines.top)
 		{
-			ctx->curlist_line=line;
+			ctx->curlist_line=1;
 			ctx->curline_file=fid;
 			ctx->curline=line;
 			ctx->curfile_lines=&item->lines;
@@ -264,7 +254,7 @@ static inline void get_all_code_objs(DebugCtx* ctx)
 		else
 			phead=&cur->next;
 	}
-	phead=&ctx->cur_thread->obj_head;
+	phead=&ctx->reached_thread->obj_head;
 	for(;;)
 	{
 		FklVMvalue* cur=*phead;
@@ -298,7 +288,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	init_source_codes(ctx);
 	get_all_code_objs(ctx);
 	initBreakpointTable(&ctx->breakpoints);
-	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->cur_thread->top_frame);
+	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->reached_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 
 	set_argv_with_list(ctx->gc,argv);
@@ -307,18 +297,33 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	return ctx;
 }
 
+const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp
+		,FklByteCodelnt* code)
+{
+	return fklFindLineNumTabNode(cp-code->bc->code
+			,code->ls
+			,code->l);
+}
+
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe* frame)
 {
 	if(frame->type==FKL_FRAME_COMPOUND)
 	{
 		FklVMproc* proc=FKL_VM_PROC(frame->c.proc);
 		FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
-		return fklFindLineNumTabNode(
-				fklGetCompoundFrameCode(frame)-code->bc->code
-				,code->ls
-				,code->l);
+		return getCurLineNumberItemWithCp(
+				fklGetCompoundFrameCode(frame)
+				,code);
 	}
 	return NULL;
+}
+
+void toggleVMint3(FklVM* exe)
+{
+	if(exe->ins_table[0]==B_int33)
+		exe->ins_table[0]=B_int3;
+	else
+		exe->ins_table[0]=B_int33;
 }
 
 BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx
@@ -397,9 +402,9 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 
 FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 {
-	FklVM* cur_thread=ctx->cur_thread;
+	FklVM* cur_thread=ctx->reached_thread;
 	FklVMframe* frame=cur_thread->top_frame;
-	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
+	for(;frame->type==FKL_FRAME_OTHEROBJ;frame=frame->prev);
 	if(!frame)
 		return NULL;
 	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId;
@@ -413,14 +418,14 @@ FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 
 FklVMvalue* findClosureVar(DebugCtx* ctx,FklSid_t id)
 {
-	FklVM* cur_thread=ctx->cur_thread;
+	FklVM* cur_thread=ctx->reached_thread;
 	FklVMframe* frame=cur_thread->top_frame;
-	for(;frame->type!=FKL_FRAME_COMPOUND;frame=frame->prev);
+	for(;frame->type==FKL_FRAME_OTHEROBJ;frame=frame->prev);
 	if(!frame)
 		return NULL;
 	FklVMproc* proc=FKL_VM_PROC(frame->c.proc);
 	uint32_t prototype_id=proc->protoId;
-	FklFuncPrototype* pt=&ctx->cur_thread->pts->pts[prototype_id];
+	FklFuncPrototype* pt=&ctx->reached_thread->pts->pts[prototype_id];
 	FklSymbolDef* def=pt->refs;
 	FklSymbolDef* const end=&def[pt->rcount];
 	for(;def<end;def++)

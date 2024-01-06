@@ -142,6 +142,26 @@
      (debug-ctx-set-list-src ctx last-line)]
     [1 (println "[EOF]")]))
 
+(define (debug-return ctx)
+  (debug-ctx-set-step-out ctx)
+  (when (debug-ctx-continue ctx)
+    (print-cur-line ctx file-prefix line-prefix)))
+
+(define (debug-step ctx)
+  (debug-ctx-set-step-into ctx)
+  (when (debug-ctx-continue ctx)
+    (print-cur-line ctx file-prefix line-prefix)))
+
+(define (debug-next ctx)
+  (debug-ctx-set-step-over ctx)
+  (when (debug-ctx-continue ctx)
+    (print-cur-line ctx file-prefix line-prefix)))
+
+(define (debug-until ctx,rest)
+  (apply debug-ctx-set-until ctx rest)
+  (when (debug-ctx-continue ctx)
+    (print-cur-line ctx file-prefix line-prefix)))
+
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
@@ -149,8 +169,10 @@
     'break debug-breakpoint
     'delete debug-del-breakpoint
     'list debug-list-src
-    'next debug-ctx-next
-    'step debug-ctx-step
+    'next debug-next
+    'step debug-step
+    'return debug-return
+    'until debug-until
     'help (lambda (_,rest)
             (if rest
               (if (cdr rest)

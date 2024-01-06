@@ -1849,7 +1849,7 @@ FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
 
 static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* table)
 {
-	fprintf(fp,"#<eof>");
+	fputs("#<eof>",fp);
 }
 
 static void _eof_userdata_as_print(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc)

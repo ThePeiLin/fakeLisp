@@ -40,3 +40,30 @@ void initBreakpointTable(FklHashTable* ht)
 	fklInitHashTable(ht,&BreakpointHashMetaTable);
 }
 
+#include<fakeLisp/common.h>
+
+static FklVMudMetaTable BreakpointWrapperMetaTable=
+{
+	.size=sizeof(BreakpointWrapper),
+};
+
+FklVMvalue* createBreakpointWrapper(FklVM* vm,const BreakpointHashItem* bp)
+{
+	FklVMvalue* r=fklCreateVMvalueUdata(vm,&BreakpointWrapperMetaTable,NULL);
+	FKL_DECL_VM_UD_DATA(bpw,BreakpointWrapper,r);
+	bpw->bp=bp;
+	return r;
+}
+
+int isBreakpointWrapper(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)
+		&&FKL_VM_UD(v)->t==&BreakpointWrapperMetaTable;
+}
+
+const BreakpointHashItem* getBreakpointFromWrapper(FklVMvalue* v)
+{
+	FKL_DECL_VM_UD_DATA(bpw,BreakpointWrapper,v);
+	return bpw->bp;
+}
+

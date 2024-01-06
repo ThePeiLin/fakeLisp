@@ -393,7 +393,8 @@ typedef struct FklVM
 	FklVMvalue* obj_head;
 	FklVMvalue* obj_tail;
 
-	int is_single_thread;
+	int16_t trapping;
+	int16_t is_single_thread;
 	uint32_t ltp;
 	uint32_t llast;
 	uint32_t old_locv_count;
@@ -514,6 +515,8 @@ typedef enum
 	FKL_BUILTIN_ERR_NUM,
 }FklBuiltinErrorType;
 
+typedef int (*FklVMinterruptHandler)(struct FklVMgc*,FklVM* exe,FklVMvalue* ev,void*);
+
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
@@ -570,6 +573,13 @@ typedef struct FklVMgc
 	}workq;
 
 	atomic_uint work_num;
+
+	struct FklVMinterruptHandleList
+	{
+		struct FklVMinterruptHandleList* next;
+		FklVMinterruptHandler int_handler;
+		void* int_handle_arg;
+	}* int_list;
 }FklVMgc;
 
 typedef struct
@@ -621,6 +631,10 @@ typedef struct
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
 void fklVMidleLoop(FklVMgc* gc);
+void fklVMtrappingIdleLoop(FklVMgc* gc);
+
+void fklVMinterrupt(FklVM*,FklVMvalue*);
+void fklVMpushInterruptHandler(FklVMgc*,FklVMinterruptHandler,void*);
 
 void fklRunVMinSingleThread(FklVM* exe);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);

@@ -386,10 +386,21 @@ static inline void destroy_argv(FklVMgc* gc)
 	}
 }
 
+static inline void destroy_interrupt_handle_list(struct FklVMinterruptHandleList* l)
+{
+	while(l)
+	{
+		struct FklVMinterruptHandleList* c=l;
+		l=l->next;
+		free(c);
+	}
+}
+
 void fklDestroyVMgc(FklVMgc* gc)
 {
 	uv_rwlock_destroy(&gc->st_lock);
 	uv_mutex_destroy(&gc->workq_lock);
+	destroy_interrupt_handle_list(gc->int_list);
 	destroy_argv(gc);
 	destroy_all_gray_cache(gc);
 	destroy_all_locv_cache(gc);
@@ -442,5 +453,27 @@ FklSymbolHashItem* fklVMgetSymbolWithId(FklVMgc* gc,FklSid_t id)
 	FklSymbolHashItem* r=fklGetSymbolWithId(id,gc->st);
 	uv_rwlock_rdunlock(&gc->st_lock);
 	return r;
+}
+
+void fklVMinterrupt(FklVM* vm,FklVMvalue* ev)
+{
+	FklVMgc* gc=vm->gc;
+	for(struct FklVMinterruptHandleList* l=gc->int_list;l;l=l->next)
+	{
+		if(!l->int_handler(gc,vm,ev,l->int_handle_arg))
+			break;
+	}
+}
+
+void fklVMpushInterruptHandler(FklVMgc* gc
+		,FklVMinterruptHandler func
+		,void* arg)
+{
+	struct FklVMinterruptHandleList* l=(struct FklVMinterruptHandleList*)malloc(sizeof(struct FklVMinterruptHandleList));
+	FKL_ASSERT(l);
+	l->int_handler=func;
+	l->int_handle_arg=arg;
+	l->next=gc->int_list;
+	gc->int_list=l;
 }
 

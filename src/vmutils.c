@@ -3016,6 +3016,26 @@ print_integer:
 					}
 				}
 				break;
+			case 'n':
+				{
+					FklVMvalue* box_obj=FKL_VM_POP_ARG(exe);
+					if(box_obj==NULL)
+					{
+						err=FKL_ERR_TOOFEWARG;;
+						goto exit;
+					}
+					else if(FKL_IS_BOX(box_obj))
+					{
+						FklVMvalue* len_obj=fklMakeVMuint(length,exe);
+						FKL_VM_BOX(box_obj)=len_obj;
+					}
+					else
+					{
+						err=FKL_ERR_INCORRECT_TYPE_VALUE;
+						goto exit;
+					}
+				}
+				break;
 			default:
 				fputc(*fmt,fp);
 				length++;

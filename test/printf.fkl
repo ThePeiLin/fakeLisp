@@ -164,3 +164,7 @@
 (printf-and-len "%s\n" "hello, world")
 (printf-and-len "%30s\n" "hello, world")
 (printf-and-len "%-30s\n" "hello, world")
+
+(define b #&())
+(printf-and-len "%#0.16A\n%n" -114.514 b)
+(println "unbox: " (unbox b))

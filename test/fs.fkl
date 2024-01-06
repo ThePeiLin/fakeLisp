@@ -45,3 +45,6 @@
 (println "start= " (stringify "."))
 (println "relpath= " (stringify (relpath *file-rp*)))
 (newline)
+
+(fprintf stdout "%s\n" "hello, world")
+(newline)

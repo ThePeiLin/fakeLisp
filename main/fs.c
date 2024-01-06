@@ -281,6 +281,28 @@ static int fs_fclerr(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_fprintf(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fprintf";
+	FKL_DECL_AND_CHECK_ARG2(fp,fmt_obj,exe,Pname);
+	FKL_CHECK_TYPE(fp,FKL_IS_FP,Pname,exe);
+	FKL_CHECK_TYPE(fmt_obj,FKL_IS_STR,Pname,exe);
+	CHECK_FP_OPEN(fp,Pname,exe);
+	CHECK_FP_WRITABLE(fp,Pname,exe);
+
+	uint64_t len=0;
+	FklBuiltinErrorType err_type=fklVMprintf(exe
+			,FKL_VM_FP(fp)->fp
+			,FKL_VM_STR(fmt_obj)
+			,&len);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -301,6 +323,7 @@ struct SymFunc
 	{"fwrite",   fs_fwrite,   },
 	{"fflush",   fs_fflush,   },
 	{"fclerr",   fs_fclerr,   },
+	{"fprintf",  fs_fprintf,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

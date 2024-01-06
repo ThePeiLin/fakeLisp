@@ -2506,8 +2506,14 @@ static inline uint64_t printf_fix_int(int64_t integer_val
 		length++;
 	}
 
+	if(flags&FLAGS_PRECISION
+			&&width>=precision
+			&&precision>=length)
+		width-=(precision-length);
+
+	uint64_t space_len=0;
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
-		while(length++<width)
+		for(;length<width;length++,space_len++)
 			fputc(' ',fp);
 
 	if(sign_char)
@@ -2515,23 +2521,21 @@ static inline uint64_t printf_fix_int(int64_t integer_val
 	if(prefix)
 		fputs(prefix,fp);
 
-	if((flags&FLAGS_PRECISION)&&length<precision)
-	{
-		while(length++<precision)
+	if((flags&FLAGS_PRECISION))
+		for(uint64_t len=precision+space_len
+				;length<len
+				;length++)
 			fputc('0',fp);
-	}
 
-	if(flags&FLAGS_ZEROPAD&&length<width)
-	{
-		while(length++<width)
+	if(flags&FLAGS_ZEROPAD)
+		for(;length<width;length++)
 			fputc('0',fp);
-	}
 
 	while(++p!=&buf[MAXBUF])
 		fputc(*p,fp);
 
-	if(flags&FLAGS_LEFT&&length<width)
-		while(length++<width)
+	if(flags&FLAGS_LEFT)
+		for(;length<width;length++)
 			fputc(' ',fp);
 #undef MAXBUF
 	return length;
@@ -2563,8 +2567,14 @@ static inline uint64_t printf_big_int(FklStringBuffer* buf
 	if(print_plus)
 		length++;
 
+	if(flags&FLAGS_PRECISION
+			&&width>=precision
+			&&precision>=length)
+		width-=(precision-length);
+
+	uint64_t space_len=0;
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
-		while(length++<width)
+		for(;length<width;length++,space_len++)
 			fputc(' ',fp);
 
 	if(bi->neg)
@@ -2583,24 +2593,22 @@ static inline uint64_t printf_big_int(FklStringBuffer* buf
 		}
 	}
 
-	if((flags&FLAGS_PRECISION)&&length<precision)
-	{
-		while(length++<precision)
+	if((flags&FLAGS_PRECISION))
+		for(uint64_t len=precision+space_len
+				;length<len
+				;length++)
 			fputc('0',fp);
-	}
 
-	if(flags&FLAGS_ZEROPAD&&length<width)
-	{
-		while(length++<width)
+	if(flags&FLAGS_ZEROPAD)
+		for(;length<width;length++)
 			fputc('0',fp);
-	}
 
 	const char* const end=&buf->buf[buf->index];
 	while(p<end)
 		fputc(*p++,fp);
 
-	if(flags&FLAGS_LEFT&&length<width)
-		while(length++<width)
+	if(flags&FLAGS_LEFT)
+		for(;length<width;length++)
 			fputc(' ',fp);
 	buf->index=0;
 	return length;
@@ -2614,7 +2622,6 @@ static inline uint64_t printf_f64(FklStringBuffer* buf
 		,uint64_t precision
 		,FILE* fp)
 {
-
 	if(isnan(value))
 	{
 		fputs(isupper(ch)?"NAN":"nan",fp);
@@ -2677,7 +2684,7 @@ static inline uint64_t printf_f64(FklStringBuffer* buf
 		length++;
 
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
-		while(length++<width)
+		for(;length<width;length++)
 			fputc(' ',fp);
 
 	if(neg)
@@ -2691,16 +2698,9 @@ static inline uint64_t printf_f64(FklStringBuffer* buf
 		fputc(*p++,fp);
 	}
 
-	if(flags&FLAGS_ZEROPAD
-			&&precision<width
-			&&length<width)
-	{
-		if(length<width)
-		{
-			while(length++<width)
-				fputc('0',fp);
-		}
-	}
+	if(flags&FLAGS_ZEROPAD&&precision<width)
+		for(;length<width;length++)
+			fputc('0',fp);
 
 	const char* const end=&buf->buf[buf->index];
 	const char* dot_idx=strchr(buf->buf,'.');
@@ -2709,17 +2709,13 @@ static inline uint64_t printf_f64(FklStringBuffer* buf
 	while(p<end)
 		fputc(*p++,fp);
 
-	if((flags&FLAGS_HASH)&&prec_len<precision)
-	{
-		while(prec_len++<precision)
-		{
-			length++;
+	if((flags&FLAGS_HASH))
+		for(;prec_len<precision
+				;prec_len++,length++)
 			fputc('0',fp);
-		}
-	}
 
-	if(flags&FLAGS_LEFT&&length<width)
-		while(length++<width)
+	if(flags&FLAGS_LEFT)
+		for(;length<width;length++)
 			fputc(' ',fp);
 
 	buf->index=0;
@@ -2943,13 +2939,13 @@ print_integer:
 						int ch=FKL_GET_CHR(chr_obj);
 						uint64_t len=1;
 
-						if(!(flags&FLAGS_LEFT)&&len<width)
-							while(len++<width)
+						if(!(flags&FLAGS_LEFT))
+							for(;len<width;len++)
 								fputc(' ',fp);
 						fputc(ch,fp);
 
-						if(flags&FLAGS_LEFT&&len<width)
-							while(len++<width)
+						if(flags&FLAGS_LEFT)
+							for(;len<width;len++)
 								fputc(' ',fp);
 						length+=len;
 					}
@@ -2974,14 +2970,14 @@ print_integer:
 
 						uint64_t len=buf.index;
 
-						if(!(flags&FLAGS_LEFT)&&len<width)
-							while(len++<width)
+						if(!(flags&FLAGS_LEFT))
+							for(;len<width;len++)
 								fputc(' ',fp);
 
 						fwrite(buf.buf,buf.index,1,fp);
 
-						if(flags&FLAGS_LEFT&&len<width)
-							while(len++<width)
+						if(flags&FLAGS_LEFT)
+							for(;len<width;len++)
 								fputc(' ',fp);
 
 						buf.index=0;
@@ -3004,14 +3000,14 @@ print_integer:
 
 						uint64_t len=buf.index;
 
-						if(!(flags&FLAGS_LEFT)&&len<width)
-							while(len++<width)
+						if(!(flags&FLAGS_LEFT))
+							for(;len<width;len++)
 								fputc(' ',fp);
 
 						fwrite(buf.buf,buf.index,1,fp);
 
-						if(flags&FLAGS_LEFT&&len<width)
-							while(len++<width)
+						if(flags&FLAGS_LEFT)
+							for(;len<width;len++)
 								fputc(' ',fp);
 
 						buf.index=0;

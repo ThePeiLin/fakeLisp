@@ -502,13 +502,36 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-list-src";
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FklVMvalue* line_num_obj=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 
-	if(dctx->curlist_line<=dctx->curfile_lines->top)
+	if(line_num_obj)
+	{
+		FKL_CHECK_TYPE(line_num_obj,FKL_IS_FIX,Pname,exe);
+		int64_t line_num=FKL_GET_FIX(line_num_obj);
+		if(line_num<0||line_num>=dctx->curfile_lines->top)
+			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		else
+		{
+			uint32_t curline_num=line_num;
+			const FklString* line_str=dctx->curfile_lines->base[curline_num-1];
+
+			FklVMvalue* num_val=FKL_MAKE_VM_FIX(curline_num);
+			FklVMvalue* is_cur_line=curline_num==dctx->curline?FKL_VM_TRUE:FKL_VM_NIL;
+			FklVMvalue* str_val=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
+						,num_val
+						,is_cur_line
+						,str_val));
+			dctx->curlist_line++;
+		}
+	}
+	else if(dctx->curlist_line<=dctx->curfile_lines->top)
 	{
 		uint32_t curline_num=dctx->curlist_line;
 		const FklString* line_str=dctx->curfile_lines->base[curline_num-1];

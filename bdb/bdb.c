@@ -340,19 +340,22 @@ BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx
 
 	uint64_t scp=0;
 	FklInstruction* ins=NULL;
-	for(FklVMvalue* cur=ctx->code_objs
-			;cur
-			;cur=cur->next)
+	for(;line<=sc_item->lines.top;line++)
 	{
-		FklByteCodelnt* bclnt=FKL_VM_CO(cur);
-		FklLineNumberTableItem* item=bclnt->l;
-		FklLineNumberTableItem* const end=&item[bclnt->ls];
-		for(;item<end;item++)
+		for(FklVMvalue* cur=ctx->code_objs
+				;cur
+				;cur=cur->next)
 		{
-			if(item->fid==fid&&item->line==line)
+			FklByteCodelnt* bclnt=FKL_VM_CO(cur);
+			FklLineNumberTableItem* item=bclnt->l;
+			FklLineNumberTableItem* const end=&item[bclnt->ls];
+			for(;item<end;item++)
 			{
-				ins=&bclnt->bc->code[item->scp];
-				goto break_loop;
+				if(item->fid==fid&&item->line==line)
+				{
+					ins=&bclnt->bc->code[item->scp];
+					goto break_loop;
+				}
 			}
 		}
 	}
@@ -376,7 +379,7 @@ break_loop:
 			return item;
 		}
 	}
-	*err=PUT_BP_IN_BLANK_OR_COMMENT;
+	*err=PUT_BP_AT_END_OF_FILE;
 	return NULL;
 }
 
@@ -387,7 +390,6 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 		NULL,
 		"end of file",
 		"file is invalid",
-		"blank or comment",
 		"the specified symbol is undefined or not a procedure",
 	};
 	return msgs[t];

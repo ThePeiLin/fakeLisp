@@ -79,7 +79,6 @@ typedef enum
 {
 	PUT_BP_AT_END_OF_FILE=1,
 	PUT_BP_FILE_INVALID,
-	PUT_BP_IN_BLANK_OR_COMMENT,
 	PUT_BP_NOT_A_PROC,
 }PutBreakpointErrorType;
 

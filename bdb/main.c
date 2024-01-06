@@ -157,6 +157,17 @@ static int bdb_debug_ctx_end_p(FKL_CPROC_ARGL)
 			:FKL_VM_NIL);
 	return 0;
 }
+static int bdb_debug_ctx_exit(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-exit";
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	debug_ud->ctx->end=1;
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
 
 static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx* cc,FklStringBuffer* s)
 {
@@ -588,14 +599,14 @@ struct SymFunc
 	{"debug-ctx-get-curline",  bdb_debug_ctx_get_curline,  },
 	{"debug-ctx-list-src",     bdb_debug_ctx_list_src,     },
 	{"debug-ctx-set-list-src", bdb_debug_ctx_set_list_src, },
-	{"debug-ctx-end?",         bdb_debug_ctx_end_p,        },
 	{"debug-ctx-del-break",    bdb_debug_ctx_del_break,    },
 	{"debug-ctx-set-break",    bdb_debug_ctx_set_break,    },
 	{"debug-ctx-step",         bdb_debug_incomplete,       },
 	{"debug-ctx-next",         bdb_debug_incomplete,       },
 	{"debug-ctx-list-break",   bdb_debug_ctx_list_break,   },
 	{"debug-ctx-continue",     bdb_debug_ctx_continue,     },
-	{"debug-ctx-exit",         bdb_debug_incomplete,       },
+	{"debug-ctx-end?",         bdb_debug_ctx_end_p,        },
+	{"debug-ctx-exit",         bdb_debug_ctx_exit,         },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

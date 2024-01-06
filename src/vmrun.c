@@ -859,6 +859,7 @@ static void vm_thread_cb(void* arg)
 				continue;
 				break;
 			case FKL_VM_WAITING:
+				uv_sleep(0);
 				continue;
 				break;
 		}

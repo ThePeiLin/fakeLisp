@@ -169,4 +169,6 @@
 (printf-and-len "%#0.16A\n%n" -114.514 b)
 (println "unbox: " (unbox b))
 
-(println (format "%s %s%S%s" b n 'foo 'bar))
+(println (format "%s %s%n%S%s" b n b 'foo 'bar))
+
+(println "unbox: " (unbox b))

@@ -2482,7 +2482,7 @@ static void format_out_char(void* arg,char c)
 	fklStringBufferPutc(buf,c);
 }
 
-static inline void outs(void (*outc)(void*,char),void* arg,const char* s)
+static inline void out_cstr(void (*outc)(void*,char),void* arg,const char* s)
 {
 	while(*s)
 		outc(arg,*s++);
@@ -2494,7 +2494,7 @@ static inline uint64_t format_fix_int(int64_t integer_val
 		,uint64_t width
 		,uint64_t precision
 		,void (*outc)(void*,char c)
-		,void* arg)
+		,void* buffer)
 {
 	static const char digits[]="0123456789abcdef0123456789ABCDEF";
 #define MAXBUF (sizeof(int64_t)*8)
@@ -2546,29 +2546,29 @@ static inline uint64_t format_fix_int(int64_t integer_val
 	uint64_t space_len=0;
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
 		for(;length<width;length++,space_len++)
-			outc(arg,' ');
+			outc(buffer,' ');
 
 	if(sign_char)
-		outc(arg,sign_char);
+		outc(buffer,sign_char);
 	if(prefix)
-		outs(outc,arg,prefix);
+		out_cstr(outc,buffer,prefix);
 
 	if((flags&FLAGS_PRECISION))
 		for(uint64_t len=precision+space_len
 				;length<len
 				;length++)
-			outc(arg,'0');
+			outc(buffer,'0');
 
 	if(flags&FLAGS_ZEROPAD)
 		for(;length<width;length++)
-			outc(arg,'0');
+			outc(buffer,'0');
 
 	while(++p!=&buf[MAXBUF])
-		outc(arg,*p);
+		outc(buffer,*p);
 
 	if(flags&FLAGS_LEFT)
 		for(;length<width;length++)
-			outc(arg,' ');
+			outc(buffer,' ');
 #undef MAXBUF
 	return length;
 }
@@ -2654,11 +2654,11 @@ static inline uint64_t format_f64(FklStringBuffer* buf
 		,uint64_t width
 		,uint64_t precision
 		,void (*outc)(void*,char)
-		,void* arg)
+		,void* buffer)
 {
 	if(isnan(value))
 	{
-		outs(outc,arg,isupper(ch)?"NAN":"nan");
+		out_cstr(outc,buffer,isupper(ch)?"NAN":"nan");
 		return 3;
 	}
 	int neg=signbit(value);
@@ -2667,20 +2667,20 @@ static inline uint64_t format_f64(FklStringBuffer* buf
 		if(isupper(ch))
 		{
 			if(neg)
-				outs(outc,arg,"-inf");
+				out_cstr(outc,buffer,"-inf");
 			else if(flags&FLAGS_PLUS)
-				outs(outc,arg,"+inf");
+				out_cstr(outc,buffer,"+inf");
 			else
-				outs(outc,arg,"inf");
+				out_cstr(outc,buffer,"inf");
 		}
 		else
 		{
 			if(neg)
-				outs(outc,arg,"-INF");
+				out_cstr(outc,buffer,"-INF");
 			else if(flags&FLAGS_PLUS)
-				outs(outc,arg,"+INF");
+				out_cstr(outc,buffer,"+INF");
 			else
-				outs(outc,arg,"INF");
+				out_cstr(outc,buffer,"INF");
 		}
 		return (neg||flags&FLAGS_PLUS)?4:3;
 	}
@@ -2719,38 +2719,38 @@ static inline uint64_t format_f64(FklStringBuffer* buf
 
 	if(!(flags&FLAGS_LEFT)&&!(flags&FLAGS_ZEROPAD))
 		for(;length<width;length++)
-			outc(arg,' ');
+			outc(buffer,' ');
 
 	if(neg)
-		outc(arg,*p++);
+		outc(buffer,*p++);
 	else if(print_plus)
-		outc(arg,'+');
+		outc(buffer,'+');
 
 	if(ch=='a'||ch=='A')
 	{
-		outc(arg,*p++);
-		outc(arg,*p++);
+		outc(buffer,*p++);
+		outc(buffer,*p++);
 	}
 
 	if(flags&FLAGS_ZEROPAD&&precision<width)
 		for(;length<width;length++)
-			outc(arg,'0');
+			outc(buffer,'0');
 
 	const char* const end=&buf->buf[buf->index];
 	const char* dot_idx=strchr(buf->buf,'.');
 	uint64_t prec_len=(end-dot_idx)+(dot_idx-p-1);
 
 	while(p<end)
-		outc(arg,*p++);
+		outc(buffer,*p++);
 
 	if((flags&FLAGS_HASH))
 		for(;prec_len<precision
 				;prec_len++,length++)
-			outc(arg,'0');
+			outc(buffer,'0');
 
 	if(flags&FLAGS_LEFT)
 		for(;length<width;length++)
-			outc(arg,' ');
+			outc(buffer,' ');
 
 	buf->index=0;
 	return length;

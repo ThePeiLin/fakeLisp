@@ -291,19 +291,26 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 	if(cur_thread)
 	{
 		FklVMframe* frame=cur_thread->top_frame;
-		const FklLineNumberTableItem* ln=getCurFrameLineNumber(frame);
-		const FklString* line_str=getCurLineStr(dctx,ln->fid,ln->line);
-		FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
-		const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
-		FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
+		for(;frame&&frame->type==FKL_FRAME_OTHEROBJ;frame=frame->prev);
+		if(frame)
+		{
+			const FklLineNumberTableItem* ln=getCurFrameLineNumber(frame);
+			const FklString* line_str=getCurLineStr(dctx,ln->fid,ln->line);
+			FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+			const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
+			FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
 
-		FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
-		FklVMvalue* r=fklCreateVMvalueVec3(exe
-				,file_str_value
-				,line_num_value
-				,line_str_value);
+			FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
+			FklVMvalue* r=fklCreateVMvalueVec3(exe
+					,file_str_value
+					,line_num_value
+					,line_str_value);
 
-		FKL_VM_PUSH_VALUE(exe,r);
+			FKL_VM_PUSH_VALUE(exe,r);
+		}
+		else
+			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+
 	}
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -648,15 +655,16 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
+	DebugCtx* dctx=debug_ctx_ud->ctx;
 	if(lineno_obj==NULL)
-		setStepOver(debug_ctx_ud->ctx);
+		setStepOver(dctx);
 	else
 	{
 		FKL_CHECK_TYPE(lineno_obj,FKL_IS_FIX,Pname,exe);
 		int64_t line=FKL_GET_FIX(lineno_obj);
-		if(line<((int64_t)debug_ctx_ud->ctx->curline))
+		if(line<((int64_t)dctx->curline))
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
-		setStepUntil(debug_ctx_ud->ctx,line);
+		setStepUntil(dctx,line);
 	}
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
@@ -664,7 +672,30 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL)
 
 static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 {
-	abort();
+	static const char Pname[]="bdb.debug-ctx-eval";
+	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,expression_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
+	fklVMacquireSt(exe->gc);
+	fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+	fklVMreleaseSt(exe->gc);
+	FklVMvalue* proc=compileExpression(dctx,expression);
+	if(proc)
+	{
+		FklVMvalue* value=callEvalProc(dctx,proc);
+		if(value)
+		{
+			fputs(";=> ",stdout);
+			fklPrin1VMvalue(value,stdout,dctx->gc);
+			fputc('\n',stdout);
+		}
+	}
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
 }
 
 struct SymFunc

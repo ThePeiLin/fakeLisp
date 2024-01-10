@@ -1805,6 +1805,21 @@ static inline void create_and_insert_to_pool(FklCodegenInfo* info
 		info->work.env_work_cb(info,env,info->work.work_ctx);
 }
 
+void fklCreateFuncPrototypeAndInsertToPool(FklCodegenInfo* info
+		,uint32_t p
+		,FklCodegenEnv* env
+		,FklSid_t sid
+		,uint32_t line
+		,FklSymbolTable* pst)
+{
+	create_and_insert_to_pool(info
+		,p
+		,env
+		,sid
+		,line
+		,pst);
+}
+
 BC_PROCESS(_named_let_set_var_exp_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
@@ -9133,7 +9148,7 @@ FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp
 }
 
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
-		,FklCodegenEnv* globalEnv
+		,FklCodegenEnv* cur_env
 		,FklCodegenInfo* codegenr)
 {
 	FklPtrQueue* queue=fklCreatePtrQueue();
@@ -9142,8 +9157,8 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createDefaultQueueNextExpression(queue)
 			,1
-			,globalEnv->macros
-			,globalEnv
+			,cur_env->macros
+			,cur_env
 			,exp->curline
 			,NULL
 			,codegenr);
@@ -9255,9 +9270,9 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	codegen->curline=1;
 	codegen->prev=prev;
 
-	prev->refcount+=1;
 	codegen->globalEnv=env;
-	env->refcount+=1;
+	if(env)
+		env->refcount+=1;
 	codegen->globalSymTable=globalSymTable;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
@@ -9275,6 +9290,7 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	init_codegen_grammer_ptr(codegen);
 	if(prev)
 	{
+		prev->refcount+=1;
 		codegen->work=prev->work;
 		codegen->libStack=prev->libStack;
 		codegen->macroLibStack=prev->macroLibStack;

@@ -517,6 +517,8 @@ typedef enum
 
 typedef int (*FklVMinterruptHandler)(struct FklVMgc*,FklVM* exe,FklVMvalue* ev,void*);
 
+typedef void (*FklVMextraMarkFunc)(struct FklVMgc*,void* arg);
+
 typedef struct FklVMgc
 {
 	FklGCstate volatile running;
@@ -580,6 +582,13 @@ typedef struct FklVMgc
 		FklVMinterruptHandler int_handler;
 		void* int_handle_arg;
 	}* int_list;
+
+	struct FklVMextraMarkObjList
+	{
+		struct FklVMextraMarkObjList* next;
+		FklVMextraMarkFunc func;
+		void* arg;
+	}* extra_mark_list;
 }FklVMgc;
 
 typedef struct
@@ -635,6 +644,9 @@ void fklVMtrappingIdleLoop(FklVMgc* gc);
 
 void fklVMinterrupt(FklVM*,FklVMvalue*);
 void fklVMpushInterruptHandler(FklVMgc*,FklVMinterruptHandler,void*);
+
+void fklVMgcExtraMark(FklVMgc*);
+void fklVMpushExtraMarkFunc(FklVMgc*,FklVMextraMarkFunc,void*);
 
 void fklRunVMinSingleThread(FklVM* exe);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
@@ -825,6 +837,7 @@ FklVMvalue* fklCreateVMvalueProc(FklVM*
 		,uint32_t pid);
 FklVMvalue* fklCreateVMvalueProcWithWholeCodeObj(FklVM*,FklVMvalue* codeObj,uint32_t pid);
 FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM*,FklVMframe* f,size_t,uint32_t pid);
+void fklCreateVMvalueClosureFrom(FklVM*,FklVMvalue** closure,FklVMframe* f,uint32_t from,FklFuncPrototype* pt);
 
 #ifdef WIN32
 #define FKL_DLL_EXPORT __declspec( dllexport )

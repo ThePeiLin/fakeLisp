@@ -61,6 +61,7 @@ typedef struct DebugCtx
 	FklHashTable source_code_table;
 	FklPtrStack envs;
 
+	FklPtrStack extra_mark_value;
 	FklVMvalue* code_objs;
 
 	jmp_buf jmpb;
@@ -148,6 +149,11 @@ int dbgInterruptHandler(FklVMgc* gc
 		,FklVM*
 		,FklVMvalue* ev
 		,void* arg);
+
+FklVMvalue* getMainProc(DebugCtx* ctx);
+FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* v);
+FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc);
+
 #ifdef __cplusplus
 }
 #endif

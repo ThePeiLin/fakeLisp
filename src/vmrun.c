@@ -537,8 +537,6 @@ void fklDoFinalizeObjFrame(FklVM* vm,FklVMframe* f)
 	f->prev=NULL;
 	*(vm->frame_cache_tail)=f;
 	vm->frame_cache_tail=&f->prev;
-	// f->prev=vm->frame_cache;
-	// vm->frame_cache=f;
 }
 
 static inline void close_var_ref(FklVMvalue* ref)
@@ -786,6 +784,31 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 	}\
 }\
 
+#define DO_ERROR_HANDLING_IN_SINGLE_THREAD(exe) {\
+	FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);\
+	FklVMframe* frame=exe->top_frame;\
+	for(;frame;frame=frame->prev)\
+		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))\
+			break;\
+	if(frame==NULL)\
+	{\
+		fklPrintErrBacktrace(ev,exe,stderr);\
+		if(exe->chan)\
+		{\
+			fklChanlSend(FKL_VM_CHANL(exe->chan),ev,exe);\
+			exe->state=FKL_VM_EXIT;\
+			exe->chan=NULL;\
+			continue;\
+		}\
+		else\
+		{\
+			exe->gc->exit_code=255;\
+			exe->state=FKL_VM_EXIT;\
+			continue;\
+		}\
+	}\
+}\
+
 static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
 {
 	for(size_t i=1;i<=num;i++)
@@ -827,7 +850,7 @@ void fklRunVMinSingleThread(FklVM* volatile exe)
 				break;
 			case FKL_VM_READY:
 				if(setjmp(exe->buf)==FKL_VM_ERR_RAISE)
-					DO_ERROR_HANDLING(exe);
+					DO_ERROR_HANDLING_IN_SINGLE_THREAD(exe);
 				exe->state=FKL_VM_RUNNING;
 				continue;
 				break;
@@ -1602,6 +1625,32 @@ static inline FklVMvalue* insert_local_ref(FklVMCompoundFrameVarRef* lr
 static inline FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 {
 	return FKL_VM_PROC(frame->c.proc)->codeObj;
+}
+
+void fklCreateVMvalueClosureFrom(FklVM * vm, FklVMvalue **closure, FklVMframe *f, uint32_t i, FklFuncPrototype *pt)
+{
+	uint32_t count=pt->rcount;
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(f);
+	FklVMvalue** ref=lr->ref;
+	for(;i<count;i++)
+	{
+		FklSymbolDef* c=&pt->refs[i];
+		if(c->isLocal)
+		{
+			inc_lref(lr,lr->lcount);
+			if(lr->lref[c->cidx])
+				closure[i]=lr->lref[c->cidx];
+			else
+				closure[i]=insert_local_ref(lr,fklCreateVMvalueVarRef(vm,lr->loc,c->cidx),c->cidx);
+		}
+		else
+		{
+			if(c->cidx>=lr->rcount)
+				closure[i]=fklCreateClosedVMvalueVarRef(vm,NULL);
+			else
+				closure[i]=ref[c->cidx];
+		}
+	}
 }
 
 FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM* exe

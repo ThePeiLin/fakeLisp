@@ -271,6 +271,39 @@ static inline void get_all_code_objs(DebugCtx* ctx)
 	}
 }
 
+static void dbg_extra_mark(FklVMgc* gc,void* arg)
+{
+	DebugCtx* ctx=(DebugCtx*)arg;
+	FklVMvalue** base=(FklVMvalue**)ctx->extra_mark_value.base;
+	FklVMvalue** const last=&base[ctx->extra_mark_value.top];
+	for(;base<last;base++)
+		fklVMgcToGray(*base,gc);
+	for(FklVMvalue* head=ctx->code_objs;head;head=head->next)
+	{
+		head->mark=FKL_MARK_W;
+		fklVMgcToGray(head,gc);
+	}
+}
+
+FklVMvalue* getMainProc(DebugCtx* ctx)
+{
+	return ctx->extra_mark_value.base[0];
+}
+
+static inline void push_extra_mark_value(DebugCtx* ctx)
+{
+	FklVM* vm=ctx->reached_thread;
+	fklInitPtrStack(&ctx->extra_mark_value,vm->libNum+1,16);
+	fklPushPtrStack(vm->top_frame->c.proc,&ctx->extra_mark_value);
+	const uint64_t last=vm->libNum+1;
+	for(uint64_t i=1;i<last;i++)
+	{
+		FklVMlib* cur=&vm->libs[i];
+		fklPushPtrStack(cur->proc,&ctx->extra_mark_value);
+	}
+	fklVMpushExtraMarkFunc(ctx->gc,dbg_extra_mark,ctx);
+}
+
 DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
@@ -287,6 +320,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 
 	init_source_codes(ctx);
 	get_all_code_objs(ctx);
+	push_extra_mark_value(ctx);
 	initBreakpointTable(&ctx->breakpoints);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->reached_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);

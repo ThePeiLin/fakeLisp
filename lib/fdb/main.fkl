@@ -172,6 +172,7 @@
     'next debug-next
     'step debug-step
     'return debug-return
+    'eval debug-ctx-eval
     'until debug-until
     'help (lambda (_,rest)
             (if rest

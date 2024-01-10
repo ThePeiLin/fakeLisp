@@ -406,7 +406,7 @@ void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx* ctx,char* main
 void fklUninitCodegenOuterCtx(FklCodegenOuterCtx* ctx);
 FklByteCode* fklCodegenNode(const FklNastNode*,FklCodegenInfo* codegen);
 FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
-		,FklCodegenEnv* globalEnv
+		,FklCodegenEnv* cur_env
 		,FklCodegenInfo* codegen);
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 		,FklCodegenInfo* codegen);
@@ -438,6 +438,12 @@ FklNastNode* fklGetReplacement(FklSid_t sid,FklHashTable*);
 void fklAddReplacementBySid(FklSid_t sid,FklNastNode*,FklHashTable*);
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev,uint32_t pscope,FklCodegenMacroScope*);
+void fklCreateFuncPrototypeAndInsertToPool(FklCodegenInfo* info
+		,uint32_t p
+		,FklCodegenEnv* env
+		,FklSid_t sid
+		,uint32_t line
+		,FklSymbolTable* pst);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
 
 void fklInitCodegenScriptLib(FklCodegenLib* lib
@@ -519,6 +525,10 @@ void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
+		,const FklSymbolTable* origin_table
+		,FklSymbolTable* target_table);
+
+void fklRecomputeSidForNastNode(FklNastNode* node
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* target_table);
 

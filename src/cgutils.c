@@ -409,7 +409,7 @@ static inline void recompute_sid_for_bytecodelnt(FklByteCodelnt* bcl
 		replace_sid(&lnt_start->fid,origin_st,target_st);
 }
 
-static inline void recompute_sid_for_nast(FklNastNode* node
+void fklRecomputeSidForNastNode(FklNastNode* node
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* target_table)
 {
@@ -487,7 +487,7 @@ static inline void recompute_sid_for_compiler_macros(FklCodegenMacro* m
 {
 	for(;m;m=m->next)
 	{
-		recompute_sid_for_nast(m->origin_exp,origin_table,target_table);
+		fklRecomputeSidForNastNode(m->origin_exp,origin_table,target_table);
 		recompute_sid_for_bytecodelnt(m->bcl,origin_table,target_table);
 	}
 }
@@ -500,7 +500,7 @@ static inline void recompute_sid_for_replacements(FklHashTable* t
 	{
 		FklCodegenReplacement* rep=(FklCodegenReplacement*)rep_list->data;
 		replace_sid(&rep->id,origin_table,target_table);
-		recompute_sid_for_nast(rep->node,origin_table,target_table);
+		fklRecomputeSidForNastNode(rep->node,origin_table,target_table);
 	}
 }
 
@@ -522,18 +522,18 @@ static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
 					replace_sid(&p->group_id,origin_table,target_table);
 				if(p->sid)
 					replace_sid(&p->sid,origin_table,target_table);
-				recompute_sid_for_nast(p->vec,origin_table,target_table);
+				fklRecomputeSidForNastNode(p->vec,origin_table,target_table);
 				if(p->type==FKL_CODEGEN_PROD_CUSTOM)
 					recompute_sid_for_bytecodelnt(p->bcl,origin_table,target_table);
 				else
-					recompute_sid_for_nast(p->forth,origin_table,target_table);
+					fklRecomputeSidForNastNode(p->forth,origin_table,target_table);
 			}
 
 			top=group->ignore_printing.top;
 			for(uint32_t i=0;i<top;i++)
 			{
 				FklNastNode* node=group->ignore_printing.base[i];
-				recompute_sid_for_nast(node,origin_table,target_table);
+				fklRecomputeSidForNastNode(node,origin_table,target_table);
 			}
 		}
 		fklRehashTable(ht);

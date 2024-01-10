@@ -35,7 +35,7 @@ void fklVMgcToGray(FklVMvalue* v,FklVMgc* gc)
 	}
 }
 
-static inline void fklGC_markRootToGray(FklVM* exe)
+static inline void gc_mark_root_to_gray(FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 
@@ -65,10 +65,11 @@ static inline void fklGC_markRootToGray(FklVM* exe)
 
 void fklVMgcMarkAllRootToGray(FklVM* curVM)
 {
-	fklGC_markRootToGray(curVM);
+	fklVMgcExtraMark(curVM->gc);
+	gc_mark_root_to_gray(curVM);
 
 	for(FklVM* cur=curVM->next;cur!=curVM;cur=cur->next)
-		fklGC_markRootToGray(cur);
+		gc_mark_root_to_gray(cur);
 }
 
 static void atomic_var_ref(FklVMvalue* ref,FklVMgc* gc)
@@ -396,11 +397,22 @@ static inline void destroy_interrupt_handle_list(struct FklVMinterruptHandleList
 	}
 }
 
+static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList* l)
+{
+	while(l)
+	{
+		struct FklVMextraMarkObjList* c=l;
+		l=l->next;
+		free(c);
+	}
+}
+
 void fklDestroyVMgc(FklVMgc* gc)
 {
 	uv_rwlock_destroy(&gc->st_lock);
 	uv_mutex_destroy(&gc->workq_lock);
 	destroy_interrupt_handle_list(gc->int_list);
+	destroy_extra_mark_list(gc->extra_mark_list);
 	destroy_argv(gc);
 	destroy_all_gray_cache(gc);
 	destroy_all_locv_cache(gc);
@@ -475,5 +487,23 @@ void fklVMpushInterruptHandler(FklVMgc* gc
 	l->int_handle_arg=arg;
 	l->next=gc->int_list;
 	gc->int_list=l;
+}
+
+void fklVMpushExtraMarkFunc(FklVMgc* gc
+		,FklVMextraMarkFunc func
+		,void* arg)
+{
+	struct FklVMextraMarkObjList* l=(struct FklVMextraMarkObjList*)malloc(sizeof(struct FklVMextraMarkObjList));
+	FKL_ASSERT(l);
+	l->func=func;
+	l->arg=arg;
+	l->next=gc->extra_mark_list;
+	gc->extra_mark_list=l;
+}
+
+void fklVMgcExtraMark(FklVMgc* gc)
+{
+	for(struct FklVMextraMarkObjList* l=gc->extra_mark_list;l;l=l->next)
+		l->func(gc,l->arg);
 }
 

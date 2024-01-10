@@ -11,7 +11,6 @@
 #include<stdlib.h>
 #include<string.h>
 #include<ctype.h>
-#include<setjmp.h>
 #ifdef _WIN32
 #include<direct.h>
 #include<io.h>

@@ -698,6 +698,42 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int bdb_debug_ctx_back_trace(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-back-trace";
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	printBacktrace(debug_ud->ctx,stderr);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_up(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-up";
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	printBacktrace(debug_ud->ctx,stderr);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_down(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-down";
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	printBacktrace(debug_ud->ctx,stderr);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -723,6 +759,10 @@ struct SymFunc
 	{"debug-ctx-end?",          bdb_debug_ctx_end_p,         },
 	{"debug-ctx-exit",          bdb_debug_ctx_exit,          },
 	{"debug-ctx-eval",          bdb_debug_ctx_eval,          },
+
+	{"debug-ctx-back-trace",    bdb_debug_ctx_back_trace,    },
+	{"debug-ctx-up",            bdb_debug_ctx_up,            },
+	{"debug-ctx-down",          bdb_debug_ctx_down,          },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

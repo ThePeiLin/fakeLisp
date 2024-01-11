@@ -516,3 +516,9 @@ BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
 	return NULL;
 }
 
+void printBacktrace(DebugCtx* ctx,FILE* fp)
+{
+	if(ctx->reached_thread)
+		fklPrintBacktrace(ctx->reached_thread,fp);
+}
+

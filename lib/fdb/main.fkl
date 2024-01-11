@@ -174,6 +174,9 @@
     'return debug-return
     'eval debug-ctx-eval
     'until debug-until
+    'where debug-ctx-back-trace
+    'up debug-ctx-up
+    'down debug-ctx-down
     'help (lambda (_,rest)
             (if rest
               (if (cdr rest)

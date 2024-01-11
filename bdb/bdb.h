@@ -154,6 +154,8 @@ FklVMvalue* getMainProc(DebugCtx* ctx);
 FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* v);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc);
 
+void printBacktrace(DebugCtx* ctx,FILE* fp);
+
 #ifdef __cplusplus
 }
 #endif

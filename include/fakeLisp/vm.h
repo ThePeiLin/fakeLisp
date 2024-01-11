@@ -760,7 +760,9 @@ void fklInitLineNumHashTable(FklHashTable* ht);
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,FklInstruction* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
+
 void fklPrintErrBacktrace(FklVMvalue*,FklVM*,FILE* fp);
+void fklPrintBacktrace(FklVM*,FILE* fp);
 
 void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count);
 

@@ -161,6 +161,72 @@ static inline FklVMvalue* get_compound_frame_code_obj(FklVMframe* frame)
 	return FKL_VM_PROC(frame->c.proc)->codeObj;
 }
 
+void fklPrintFrame(FklVMframe* cur,FklVM* exe,FILE* fp)
+{
+	if(cur->type==FKL_FRAME_COMPOUND)
+	{
+		if(cur->prev)
+		{
+			FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(cur));
+			if(proc->sid)
+			{
+				fprintf(fp,"at proc: ");
+				fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,proc->sid)->symbol
+						,fp);
+			}
+			else
+			{
+				FklFuncPrototype* pt=NULL;fklGetCompoundFrameProcPrototype(cur,exe);
+				FklSid_t sid=fklGetCompoundFrameSid(cur);
+				if(!sid)
+				{
+					pt=fklGetCompoundFrameProcPrototype(cur,exe);
+					sid=pt->sid;
+				}
+				if(pt->sid)
+				{
+					fprintf(fp,"at proc: ");
+					fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,pt->sid)->symbol
+							,fp);
+				}
+				else
+				{
+					fprintf(fp,"at proc: <");
+					if(pt->fid)
+						fklPrintRawString(fklVMgetSymbolWithId(exe->gc,pt->fid)->symbol,fp);
+					else
+						fputs("stdin",fp);
+					fprintf(fp,":%"FKL_PRT64U">",pt->line);
+				}
+			}
+		}
+		else
+			fprintf(fp,"at <top>");
+		FklByteCodelnt* codeObj=FKL_VM_CO(get_compound_frame_code_obj(cur));
+		const FklLineNumberTableItem* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code-1
+				,codeObj->ls
+				,codeObj->l);
+		if(node->fid)
+		{
+			fprintf(fp," (%u:",node->line);
+			fklPrintString(fklVMgetSymbolWithId(exe->gc,node->fid)->symbol,fp);
+			fprintf(fp,")\n");
+		}
+		else
+			fprintf(fp," (%u)\n",node->line);
+	}
+	else
+		fklDoPrintBacktrace(cur,fp,exe->gc);
+
+}
+
+void fklPrintBacktrace(FklVM* exe,FILE* fp)
+{
+	for(FklVMframe* cur=exe->top_frame;cur;cur=cur->prev)
+		fklPrintFrame(cur,exe,fp);
+}
+
+
 void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 {
 	FklVMerror* err=FKL_VM_ERR(ev);
@@ -170,63 +236,7 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 	fprintf(fp,": ");
 	fklPrintString(err->message,fp);
 	fprintf(fp,"\n");
-	for(FklVMframe* cur=exe->top_frame;cur;cur=cur->prev)
-	{
-		if(cur->type==FKL_FRAME_COMPOUND)
-		{
-			if(cur->prev)
-			{
-				FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(cur));
-				if(proc->sid)
-				{
-					fprintf(fp,"at proc: ");
-					fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,proc->sid)->symbol
-							,fp);
-				}
-				else
-				{
-					FklFuncPrototype* pt=NULL;fklGetCompoundFrameProcPrototype(cur,exe);
-					FklSid_t sid=fklGetCompoundFrameSid(cur);
-					if(!sid)
-					{
-						pt=fklGetCompoundFrameProcPrototype(cur,exe);
-						sid=pt->sid;
-					}
-					if(pt->sid)
-					{
-						fprintf(fp,"at proc: ");
-						fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,pt->sid)->symbol
-								,fp);
-					}
-					else
-					{
-						fprintf(fp,"at proc: <");
-						if(pt->fid)
-							fklPrintRawString(fklVMgetSymbolWithId(exe->gc,pt->fid)->symbol,fp);
-						else
-							fputs("stdin",fp);
-						fprintf(fp,":%"FKL_PRT64U">",pt->line);
-					}
-				}
-			}
-			else
-				fprintf(fp,"at <top>");
-			FklByteCodelnt* codeObj=FKL_VM_CO(get_compound_frame_code_obj(cur));
-			const FklLineNumberTableItem* node=fklFindLineNumTabNode(fklGetCompoundFrameCode(cur)-codeObj->bc->code-1
-					,codeObj->ls
-					,codeObj->l);
-			if(node->fid)
-			{
-				fprintf(fp," (%u:",node->line);
-				fklPrintString(fklVMgetSymbolWithId(exe->gc,node->fid)->symbol,fp);
-				fprintf(fp,")\n");
-			}
-			else
-				fprintf(fp," (%u)\n",node->line);
-		}
-		else
-			fklDoPrintBacktrace(cur,fp,exe->gc);
-	}
+	fklPrintBacktrace(exe,fp);
 }
 
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)

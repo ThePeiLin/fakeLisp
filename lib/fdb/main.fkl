@@ -162,6 +162,31 @@
   (when (debug-ctx-continue ctx)
     (print-cur-line ctx file-prefix line-prefix)))
 
+(define (debug-where ctx)
+  (debug-ctx-back-trace ctx line-prefix))
+
+(define (debug-up ctx,rest)
+  (define count (if (and rest (> (car rest) 0)) (car rest) 1))
+  (define last-result nil)
+  (do [(c 0 (1+ c))]
+    [(or (>= c count)
+       (not (if (define cur-result (debug-ctx-up ctx))
+              (setq last-result cur-result))))])
+
+  (when last-result
+    (debug-ctx-print-cur-frame ctx line-prefix)))
+
+(define (debug-down ctx,rest)
+  (define count (if (and rest (> (car rest) 0)) (car rest) 1))
+  (define last-result nil)
+  (do [(c 0 (1+ c))]
+    [(or (>= c count)
+       (not (if (define cur-result (debug-ctx-down ctx))
+              (setq last-result cur-result))))])
+
+  (when last-result
+    (debug-ctx-print-cur-frame ctx line-prefix)))
+
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
@@ -174,9 +199,9 @@
     'return debug-return
     'eval debug-ctx-eval
     'until debug-until
-    'where debug-ctx-back-trace
-    'up debug-ctx-up
-    'down debug-ctx-down
+    'where debug-where
+    'up debug-up
+    'down debug-down
     'help (lambda (_,rest)
             (if rest
               (if (cdr rest)

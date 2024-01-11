@@ -66,6 +66,10 @@ typedef struct DebugCtx
 
 	jmp_buf jmpb;
 	FklVM* reached_thread;
+
+	FklPtrStack reached_thread_frames;
+	uint32_t curframe_idx;
+
 	const BreakpointHashItem* reached_breakpoint;
 
 
@@ -154,7 +158,10 @@ FklVMvalue* getMainProc(DebugCtx* ctx);
 FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* v);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc);
 
-void printBacktrace(DebugCtx* ctx,FILE* fp);
+void setReachedThread(DebugCtx* ctx,FklVM*);
+void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp);
+void printCurFrame(DebugCtx* ctx,const FklString* prefix,FILE* fp);
+FklVMframe* getCurrentFrame(DebugCtx* ctx);
 
 #ifdef __cplusplus
 }

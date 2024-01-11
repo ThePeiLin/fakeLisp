@@ -318,6 +318,8 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 		return NULL;
 	}
 
+	fklInitPtrStack(&ctx->reached_thread_frames,16,16);
+	setReachedThread(ctx,ctx->reached_thread);
 	init_source_codes(ctx);
 	get_all_code_objs(ctx);
 	push_extra_mark_value(ctx);
@@ -516,9 +518,50 @@ BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
 	return NULL;
 }
 
-void printBacktrace(DebugCtx* ctx,FILE* fp)
+void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp)
 {
 	if(ctx->reached_thread)
-		fklPrintBacktrace(ctx->reached_thread,fp);
+	{
+		FklVM* vm=ctx->reached_thread;
+		uint32_t top=ctx->reached_thread_frames.top;
+		void** base=ctx->reached_thread_frames.base;
+		for(uint32_t i=0;i<top;i++)
+		{
+			FklVMframe* cur=base[i];
+			if(i==ctx->curframe_idx)
+				fklPrintString(prefix,fp);
+			else
+				for(uint32_t i=0;i<prefix->size;i++)
+					fputc(' ',fp);
+			fklPrintFrame(cur,vm,fp);
+		}
+	}
+}
+
+FklVMframe* getCurrentFrame(DebugCtx* ctx)
+{
+	void** base=ctx->reached_thread_frames.base;
+	FklVMframe* cur=base[ctx->curframe_idx];
+	return cur;
+}
+
+void printCurFrame(DebugCtx* ctx,const FklString* prefix,FILE* fp)
+{
+	if(ctx->reached_thread)
+	{
+		FklVM* vm=ctx->reached_thread;
+		FklVMframe* cur=getCurrentFrame(ctx);
+		fklPrintString(prefix,fp);
+		fklPrintFrame(cur,vm,fp);
+	}
+}
+
+void setReachedThread(DebugCtx* ctx,FklVM* vm)
+{
+	ctx->reached_thread=vm;
+	ctx->reached_thread_frames.top=0;
+	ctx->curframe_idx=0;
+	for(FklVMframe* f=vm->top_frame;f;f=f->prev)
+		fklPushPtrStack(f,&ctx->reached_thread_frames);
 }
 

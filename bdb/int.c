@@ -4,7 +4,7 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 {
 	DbgInterruptArg* arg=(DbgInterruptArg*)a;
 	DebugCtx* ctx=arg->ctx;
-	ctx->reached_thread=vm;
+	setReachedThread(ctx,vm);
 	if(arg->bp)
 	{
 		const BreakpointHashItem* bp=arg->bp;

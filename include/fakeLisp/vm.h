@@ -762,6 +762,7 @@ void fklDestroyVMerrorHandler(FklVMerrorHandler*);
 int fklRaiseVMerror(FklVMvalue* err,FklVM*);
 
 void fklPrintErrBacktrace(FklVMvalue*,FklVM*,FILE* fp);
+void fklPrintFrame(FklVMframe* cur,FklVM* exe,FILE* fp);
 void fklPrintBacktrace(FklVM*,FILE* fp);
 
 void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count);

@@ -701,11 +701,25 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 static int bdb_debug_ctx_back_trace(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-back-trace";
-	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
+	FKL_DECL_AND_CHECK_ARG2(obj,prefix_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(prefix_obj,FKL_IS_STR,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	printBacktrace(debug_ud->ctx,stderr);
+	printBacktrace(debug_ud->ctx,FKL_VM_STR(prefix_obj),stderr);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_print_cur_frame(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-print-cur-frame";
+	FKL_DECL_AND_CHECK_ARG2(obj,prefix_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(prefix_obj,FKL_IS_STR,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	printCurFrame(debug_ud->ctx,FKL_VM_STR(prefix_obj),stderr);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -717,8 +731,16 @@ static int bdb_debug_ctx_up(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	printBacktrace(debug_ud->ctx,stderr);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+
+	DebugCtx* dctx=debug_ud->ctx;
+	if(dctx->reached_thread
+			&&(dctx->curframe_idx+1)<dctx->reached_thread_frames.top)
+	{
+		dctx->curframe_idx++;
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -729,8 +751,16 @@ static int bdb_debug_ctx_down(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	printBacktrace(debug_ud->ctx,stderr);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+
+	DebugCtx* dctx=debug_ud->ctx;
+	if(dctx->reached_thread
+			&&dctx->curframe_idx>0)
+	{
+		dctx->curframe_idx--;
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -740,29 +770,30 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
-	{"debug-ctx?",              bdb_debug_ctx_p,             },
-	{"make-debug-ctx",          bdb_make_debug_ctx,          },
-	{"debug-ctx-repl",          bdb_debug_ctx_repl,          },
-	{"debug-ctx-get-curline",   bdb_debug_ctx_get_curline,   },
-	{"debug-ctx-list-src",      bdb_debug_ctx_list_src,      },
-	{"debug-ctx-set-list-src",  bdb_debug_ctx_set_list_src,  },
-	{"debug-ctx-del-break",     bdb_debug_ctx_del_break,     },
-	{"debug-ctx-set-break",     bdb_debug_ctx_set_break,     },
+	{"debug-ctx?",                bdb_debug_ctx_p,               },
+	{"make-debug-ctx",            bdb_make_debug_ctx,            },
+	{"debug-ctx-repl",            bdb_debug_ctx_repl,            },
+	{"debug-ctx-get-curline",     bdb_debug_ctx_get_curline,     },
+	{"debug-ctx-list-src",        bdb_debug_ctx_list_src,        },
+	{"debug-ctx-set-list-src",    bdb_debug_ctx_set_list_src,    },
+	{"debug-ctx-del-break",       bdb_debug_ctx_del_break,       },
+	{"debug-ctx-set-break",       bdb_debug_ctx_set_break,       },
 
-	{"debug-ctx-set-step-over", bdb_debug_ctx_set_step_over, },
-	{"debug-ctx-set-step-into", bdb_debug_ctx_set_step_into, },
-	{"debug-ctx-set-step-out",  bdb_debug_ctx_set_step_out,  },
-	{"debug-ctx-set-until",     bdb_debug_ctx_set_until,     },
+	{"debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over,   },
+	{"debug-ctx-set-step-into",   bdb_debug_ctx_set_step_into,   },
+	{"debug-ctx-set-step-out",    bdb_debug_ctx_set_step_out,    },
+	{"debug-ctx-set-until",       bdb_debug_ctx_set_until,       },
 
-	{"debug-ctx-list-break",    bdb_debug_ctx_list_break,    },
-	{"debug-ctx-continue",      bdb_debug_ctx_continue,      },
-	{"debug-ctx-end?",          bdb_debug_ctx_end_p,         },
-	{"debug-ctx-exit",          bdb_debug_ctx_exit,          },
-	{"debug-ctx-eval",          bdb_debug_ctx_eval,          },
+	{"debug-ctx-list-break",      bdb_debug_ctx_list_break,      },
+	{"debug-ctx-continue",        bdb_debug_ctx_continue,        },
+	{"debug-ctx-end?",            bdb_debug_ctx_end_p,           },
+	{"debug-ctx-exit",            bdb_debug_ctx_exit,            },
+	{"debug-ctx-eval",            bdb_debug_ctx_eval,            },
 
-	{"debug-ctx-back-trace",    bdb_debug_ctx_back_trace,    },
-	{"debug-ctx-up",            bdb_debug_ctx_up,            },
-	{"debug-ctx-down",          bdb_debug_ctx_down,          },
+	{"debug-ctx-print-cur-frame", bdb_debug_ctx_print_cur_frame, },
+	{"debug-ctx-back-trace",      bdb_debug_ctx_back_trace,      },
+	{"debug-ctx-up",              bdb_debug_ctx_up,              },
+	{"debug-ctx-down",            bdb_debug_ctx_down,            },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

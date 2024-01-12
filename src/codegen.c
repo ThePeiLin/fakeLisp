@@ -9041,7 +9041,7 @@ skip:
 						else
 						{
 							uint32_t idx=fklAddCodegenRefBySid(curExp->sym,curEnv,curCodegen->fid,curExp->curline);
-							bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline,curCodegenQuest->curline);
+							bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline,curCodegenQuest->scope);
 						}
 						curContext->t->__put_bcl(curContext->data,bcl);
 						fklDestroyNastNode(curExp);

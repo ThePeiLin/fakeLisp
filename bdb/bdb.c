@@ -318,6 +318,8 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 		return NULL;
 	}
 
+	ctx->temp_proc_prototype_id=ctx->envs.top+1;
+
 	fklInitPtrStack(&ctx->reached_thread_frames,16,16);
 	fklInitPtrStack(&ctx->threads,16,16);
 	setReachedThread(ctx,ctx->reached_thread);

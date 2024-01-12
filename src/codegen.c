@@ -1777,6 +1777,22 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht
 	return refs;
 }
 
+void fklInitFuncPrototypeWithEnv(FklFuncPrototype* cpt
+		,FklCodegenInfo* info
+		,FklCodegenEnv* env
+		,FklSid_t sid
+		,uint32_t line
+		,FklSymbolTable* pst)
+{
+	cpt->lcount=env->lcount;
+	cpt->is_top=env->prev==NULL;
+	cpt->refs=sid_ht_to_idx_key_ht(&env->refs,info->globalSymTable,pst,cpt->is_top);
+	cpt->rcount=env->refs.num;
+	cpt->sid=sid;
+	cpt->fid=info->fid;
+	cpt->line=line;
+}
+
 static inline void create_and_insert_to_pool(FklCodegenInfo* info
 		,uint32_t p
 		,FklCodegenEnv* env

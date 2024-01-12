@@ -69,6 +69,7 @@ typedef struct DebugCtx
 
 	FklPtrStack reached_thread_frames;
 	uint32_t curframe_idx;
+	uint32_t temp_proc_prototype_id;
 
 	FklPtrStack threads;
 	uint32_t curthread_idx;

@@ -2,6 +2,20 @@
 #include<fakeLisp/builtin.h>
 #include<string.h>
 
+static inline void replace_func_prototype(FklCodegenInfo* info
+		,uint32_t p
+		,FklCodegenEnv* env
+		,FklSid_t sid
+		,uint32_t line
+		,FklSymbolTable* pst
+		,uint32_t replaced_prototype_id)
+{
+	FklFuncPrototype* pt=&info->pts->pts[replaced_prototype_id];
+	fklUninitFuncPrototype(pt);
+	env->prototypeId=replaced_prototype_id;
+	fklInitFuncPrototypeWithEnv(pt,info,env,sid,line,pst);
+}
+
 static inline FklCodegenEnv* init_codegen_info_with_debug_ctx(DebugCtx* ctx
 		,FklCodegenInfo* info
 		,FklCodegenEnv** origin_outer_env
@@ -28,12 +42,21 @@ static inline FklCodegenEnv* init_codegen_info_with_debug_ctx(DebugCtx* ctx
 			,&ctx->outer_ctx);
 	fklDestroyFuncPrototypes(info->pts);
 	info->pts=ctx->reached_thread->pts;
-	fklCreateFuncPrototypeAndInsertToPool(info
-			,env->prototypeId
-			,new_env
-			,0
-			,ctx->curline
-			,ctx->st);
+	if(info->pts->count+1==ctx->temp_proc_prototype_id)
+		fklCreateFuncPrototypeAndInsertToPool(info
+				,env->prototypeId
+				,new_env
+				,0
+				,ctx->curline
+				,ctx->st);
+	else
+		replace_func_prototype(info
+				,env->prototypeId
+				,new_env
+				,0
+				,ctx->curline
+				,ctx->st
+				,ctx->temp_proc_prototype_id);
 	return new_env;
 }
 
@@ -84,7 +107,7 @@ FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_fra
 		fklUpdatePrototype(pts,tmp_env,ctx->st,ctx->st);
 
 		FklVM* vm=ctx->reached_thread;
-		FklFuncPrototype* pt=&vm->pts->pts[tmp_env->prototypeId];
+		FklFuncPrototype* pt=&pts->pts[tmp_env->prototypeId];
 		FklVMvalue* code_obj=fklCreateVMvalueCodeObj(vm,code);
 		proc=fklCreateVMvalueProcWithWholeCodeObj(vm
 				,code_obj

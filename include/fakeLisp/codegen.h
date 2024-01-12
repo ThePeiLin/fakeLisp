@@ -444,6 +444,12 @@ void fklCreateFuncPrototypeAndInsertToPool(FklCodegenInfo* info
 		,FklSid_t sid
 		,uint32_t line
 		,FklSymbolTable* pst);
+void fklInitFuncPrototypeWithEnv(FklFuncPrototype* cpt
+		,FklCodegenInfo* info
+		,FklCodegenEnv* env
+		,FklSid_t sid
+		,uint32_t line
+		,FklSymbolTable* pst);
 void fklDestroyCodegenEnv(FklCodegenEnv* env);
 
 void fklInitCodegenScriptLib(FklCodegenLib* lib

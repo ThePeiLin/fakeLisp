@@ -734,7 +734,7 @@ static int bdb_debug_ctx_up(FKL_CPROC_ARGL)
 
 	DebugCtx* dctx=debug_ud->ctx;
 	if(dctx->reached_thread
-			&&(dctx->curframe_idx+1)<dctx->reached_thread_frames.top)
+			&&dctx->curframe_idx<dctx->reached_thread_frames.top)
 	{
 		dctx->curframe_idx++;
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
@@ -754,7 +754,7 @@ static int bdb_debug_ctx_down(FKL_CPROC_ARGL)
 
 	DebugCtx* dctx=debug_ud->ctx;
 	if(dctx->reached_thread
-			&&dctx->curframe_idx>0)
+			&&dctx->curframe_idx>1)
 	{
 		dctx->curframe_idx--;
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
@@ -762,6 +762,26 @@ static int bdb_debug_ctx_down(FKL_CPROC_ARGL)
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
+}
+
+static int bdb_debug_ctx_list_thread(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-list-thread";
+	FKL_DECL_AND_CHECK_ARG2(obj,prefix_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(prefix_obj,FKL_IS_STR,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+
+	DebugCtx* dctx=debug_ud->ctx;
+	listThreads(dctx,FKL_VM_STR(prefix_obj),stderr);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL)
+{
+	abort();
 }
 
 struct SymFunc
@@ -776,15 +796,16 @@ struct SymFunc
 	{"debug-ctx-get-curline",     bdb_debug_ctx_get_curline,     },
 	{"debug-ctx-list-src",        bdb_debug_ctx_list_src,        },
 	{"debug-ctx-set-list-src",    bdb_debug_ctx_set_list_src,    },
+
 	{"debug-ctx-del-break",       bdb_debug_ctx_del_break,       },
 	{"debug-ctx-set-break",       bdb_debug_ctx_set_break,       },
+	{"debug-ctx-list-break",      bdb_debug_ctx_list_break,      },
 
 	{"debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over,   },
 	{"debug-ctx-set-step-into",   bdb_debug_ctx_set_step_into,   },
 	{"debug-ctx-set-step-out",    bdb_debug_ctx_set_step_out,    },
 	{"debug-ctx-set-until",       bdb_debug_ctx_set_until,       },
 
-	{"debug-ctx-list-break",      bdb_debug_ctx_list_break,      },
 	{"debug-ctx-continue",        bdb_debug_ctx_continue,        },
 	{"debug-ctx-end?",            bdb_debug_ctx_end_p,           },
 	{"debug-ctx-exit",            bdb_debug_ctx_exit,            },
@@ -794,6 +815,9 @@ struct SymFunc
 	{"debug-ctx-back-trace",      bdb_debug_ctx_back_trace,      },
 	{"debug-ctx-up",              bdb_debug_ctx_up,              },
 	{"debug-ctx-down",            bdb_debug_ctx_down,            },
+
+	{"debug-ctx-list-thread",     bdb_debug_ctx_list_thread,     },
+	{"debug-ctx-switch-thread",   bdb_debug_ctx_switch_thread,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

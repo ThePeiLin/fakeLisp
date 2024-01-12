@@ -70,6 +70,9 @@ typedef struct DebugCtx
 	FklPtrStack reached_thread_frames;
 	uint32_t curframe_idx;
 
+	FklPtrStack threads;
+	uint32_t curthread_idx;
+
 	const BreakpointHashItem* reached_breakpoint;
 
 
@@ -162,6 +165,10 @@ void setReachedThread(DebugCtx* ctx,FklVM*);
 void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp);
 void printCurFrame(DebugCtx* ctx,const FklString* prefix,FILE* fp);
 FklVMframe* getCurrentFrame(DebugCtx* ctx);
+
+FklVM* getCurThread(DebugCtx* ctx);
+void switchCurThread(DebugCtx* ctx,uint32_t idx);
+void listThreads(DebugCtx* ctx,const FklString* prefix,FILE* fp);
 
 #ifdef __cplusplus
 }

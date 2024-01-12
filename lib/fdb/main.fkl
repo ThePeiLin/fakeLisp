@@ -165,6 +165,11 @@
 (define (debug-where ctx)
   (debug-ctx-back-trace ctx line-prefix))
 
+(define (debug-thread ctx,rest)
+  (if rest
+    (println "switch thread")
+    (debug-ctx-list-thread ctx line-prefix)))
+
 (define (debug-up ctx,rest)
   (define count (if (and rest (> (car rest) 0)) (car rest) 1))
   (define last-result nil)
@@ -202,6 +207,7 @@
     'where debug-where
     'up debug-up
     'down debug-down
+    'thread debug-thread
     'help (lambda (_,rest)
             (if rest
               (if (cdr rest)

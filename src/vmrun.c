@@ -492,7 +492,7 @@ FklVM* fklCreateVM(FklByteCodelnt* mainCode
 	exe->prev=exe;
 	exe->next=exe;
 	exe->pts=pts;
-	exe->gc=fklCreateVMgc(globalSymTable);
+	exe->gc=fklCreateVMgc(globalSymTable,pts);
 	exe->frame_cache_head=&exe->static_frame;
 	exe->frame_cache_tail=&exe->frame_cache_head->prev;
 	if(mainCode!=NULL)
@@ -2871,7 +2871,7 @@ void fklUninitVMstack(FklVM* s)
 
 void fklDestroyAllVMs(FklVM* curVM)
 {
-	fklDestroyFuncPrototypes(curVM->pts);
+	// fklDestroyFuncPrototypes(curVM->pts);
 	curVM->prev->next=NULL;
 	curVM->prev=NULL;
 	for(FklVM* cur=curVM;cur;)

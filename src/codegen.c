@@ -6347,7 +6347,7 @@ static void* custom_action(void* c
 
 	fklChdir(cwd);
 
-	anotherVM->pts=NULL;
+	gc->pts=NULL;
 	if(e)
 		fklDeleteCallChain(anotherVM);
 
@@ -9858,7 +9858,7 @@ FklNastNode* fklTryExpandCodegenMacro(FklNastNode* exp
 
 		fklChdir(cwd);
 
-		anotherVM->pts=NULL;
+		gc->pts=NULL;
 		if(e)
 		{
 			errorState->type=FKL_ERR_MACROEXPANDFAILED;

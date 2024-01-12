@@ -557,6 +557,7 @@ typedef struct FklVMgc
 
 	uv_rwlock_t st_lock;
 	FklSymbolTable* st;
+	FklFuncPrototypes* pts;
 
 	FklSid_t builtinErrorTypeId[FKL_BUILTIN_ERR_NUM];
 
@@ -664,7 +665,8 @@ void fklAllocMoreStack(FklVM*);
 void fklShrinkStack(FklVM*);
 int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
-FklVMgc* fklCreateVMgc(FklSymbolTable* st);
+
+FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklFuncPrototypes* pts);
 FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast,uint32_t* pllast);
 FklVMvalue** fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc*,uint32_t llast,uint32_t* pllast);
 

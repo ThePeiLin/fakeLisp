@@ -211,13 +211,14 @@ static inline void init_idle_work_queue(FklVMgc* gc)
 	gc->workq.tail=&gc->workq.head;
 }
 
-FklVMgc* fklCreateVMgc(FklSymbolTable* st)
+FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklFuncPrototypes* pts)
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
 	uv_rwlock_init(&gc->st_lock);
 	gc->st=st;
+	gc->pts=pts;
 	fklInitBuiltinErrorType(gc->builtinErrorTypeId,st);
 
 	init_idle_work_queue(gc);
@@ -409,6 +410,7 @@ static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList* l)
 
 void fklDestroyVMgc(FklVMgc* gc)
 {
+	fklDestroyFuncPrototypes(gc->pts);
 	uv_rwlock_destroy(&gc->st_lock);
 	uv_mutex_destroy(&gc->workq_lock);
 	destroy_interrupt_handle_list(gc->int_list);

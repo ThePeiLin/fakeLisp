@@ -521,7 +521,7 @@ BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
 
 void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp)
 {
-	if(ctx->reached_thread)
+	if(ctx->reached_thread_frames.top)
 	{
 		FklVM* vm=ctx->reached_thread;
 		uint32_t top=ctx->reached_thread_frames.top;
@@ -537,31 +537,40 @@ void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp)
 			fklPrintFrame(cur,vm,fp);
 		}
 	}
+	else
+		printThreadAlreadyExited(ctx,fp);
+
 }
 
 FklVMframe* getCurrentFrame(DebugCtx* ctx)
 {
-	void** base=ctx->reached_thread_frames.base;
-	FklVMframe* cur=base[ctx->curframe_idx-1];
-	return cur;
+	if(ctx->reached_thread_frames.top)
+	{
+		void** base=ctx->reached_thread_frames.base;
+		FklVMframe* cur=base[ctx->curframe_idx-1];
+		return cur;
+	}
+	return NULL;
 }
 
 void printCurFrame(DebugCtx* ctx,const FklString* prefix,FILE* fp)
 {
-	if(ctx->reached_thread)
+	if(ctx->reached_thread_frames.top)
 	{
 		FklVM* vm=ctx->reached_thread;
 		FklVMframe* cur=getCurrentFrame(ctx);
 		fklPrintString(prefix,fp);
 		fklPrintFrame(cur,vm,fp);
 	}
+	else
+		printThreadAlreadyExited(ctx,fp);
 }
 
 void setReachedThread(DebugCtx* ctx,FklVM* vm)
 {
 	ctx->reached_thread=vm;
-	ctx->reached_thread_frames.top=0;
 	ctx->curframe_idx=1;
+	ctx->reached_thread_frames.top=0;
 	for(FklVMframe* f=vm->top_frame;f;f=f->prev)
 		fklPushPtrStack(f,&ctx->reached_thread_frames);
 	ctx->curthread_idx=1;
@@ -589,5 +598,33 @@ void listThreads(DebugCtx* ctx,const FklString* prefix,FILE* fp)
 		else
 			fputs("exited\n",fp);
 	}
+}
+
+void switchCurThread(DebugCtx* ctx,uint32_t idx)
+{
+	ctx->curthread_idx=idx;
+	ctx->curframe_idx=1;
+	ctx->reached_thread_frames.top=0;
+	FklVM* vm=getCurThread(ctx);
+	ctx->reached_thread=vm;
+	for(FklVMframe* f=vm->top_frame;f;f=f->prev)
+		fklPushPtrStack(f,&ctx->reached_thread_frames);
+}
+
+FklVM* getCurThread(DebugCtx* ctx)
+{
+	if(ctx->threads.top)
+		return (FklVM*)ctx->threads.base[ctx->curthread_idx-1];
+	return NULL;
+}
+
+void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp)
+{
+	fprintf(fp,"*** thread %u already exited ***\n",ctx->curthread_idx);
+}
+
+void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp)
+{
+	fprintf(stdout,"*** can't evaluate expression in thread %u ***\n",ctx->curthread_idx);
 }
 

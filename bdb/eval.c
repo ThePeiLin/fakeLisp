@@ -7,38 +7,34 @@ static inline FklCodegenEnv* init_codegen_info_with_debug_ctx(DebugCtx* ctx
 		,FklCodegenEnv** origin_outer_env
 		,FklVMframe* f)
 {
-	for(;f&&f->type==FKL_FRAME_OTHEROBJ;f=f->prev);
-	if(f)
-	{
-		FklVMproc* proc=FKL_VM_PROC(f->c.proc);
-		FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
-		const FklLineNumberTableItem* ln=getCurLineNumberItemWithCp(f->c.pc,code);
-		FklCodegenEnv* env=ctx->envs.base[proc->protoId-1];
-		*origin_outer_env=env->prev;
-		env->prev=NULL;
-		FklCodegenEnv* new_env=fklCreateCodegenEnv(env,ln->scope,NULL);
-		fklInitGlobCodegenEnv(new_env
-				,ctx->st);
-		fklInitCodegenInfo(info
-				,NULL
-				,new_env
-				,NULL
-				,ctx->st
-				,0
-				,0
-				,0
-				,&ctx->outer_ctx);
-		fklDestroyFuncPrototypes(info->pts);
-		info->pts=ctx->reached_thread->pts;
-		fklCreateFuncPrototypeAndInsertToPool(info
-				,env->prototypeId
-				,new_env
-				,0
-				,ctx->curline
-				,ctx->st);
-		return new_env;
-	}
-	return NULL;
+
+	FklVMproc* proc=FKL_VM_PROC(f->c.proc);
+	FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
+	const FklLineNumberTableItem* ln=getCurLineNumberItemWithCp(f->c.pc,code);
+	FklCodegenEnv* env=ctx->envs.base[proc->protoId-1];
+	*origin_outer_env=env->prev;
+	env->prev=NULL;
+	FklCodegenEnv* new_env=fklCreateCodegenEnv(env,ln->scope,NULL);
+	fklInitGlobCodegenEnv(new_env
+			,ctx->st);
+	fklInitCodegenInfo(info
+			,NULL
+			,new_env
+			,NULL
+			,ctx->st
+			,0
+			,0
+			,0
+			,&ctx->outer_ctx);
+	fklDestroyFuncPrototypes(info->pts);
+	info->pts=ctx->reached_thread->pts;
+	fklCreateFuncPrototypeAndInsertToPool(info
+			,env->prototypeId
+			,new_env
+			,0
+			,ctx->curline
+			,ctx->st);
+	return new_env;
 }
 
 static inline void set_back_origin_prev_env(FklCodegenEnv* new_env,FklCodegenEnv* origin_outer_env)
@@ -69,9 +65,8 @@ static inline void resolve_reference(DebugCtx* ctx
 	fklCreateVMvalueClosureFrom(vm,proc->closure,cur_frame,main_proc->rcount,pt);
 }
 
-FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* exp)
+FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame)
 {
-	FklVMframe* cur_frame=getCurrentFrame(ctx);
 	FklCodegenInfo info;
 	FklCodegenEnv* origin_outer_env=NULL;
 	fklMakeNastNodeRef(exp);
@@ -137,7 +132,7 @@ static int eval_frame_error_callback(FklVMframe* f
 		,FklVM* exe)
 {
 	EvalFrameCtx* c=(EvalFrameCtx*)f->data;
-	fklPrintErrBacktrace(ev,exe,stderr);
+	fklPrintErrBacktrace(ev,exe,stdout);
 	longjmp(c->ctx->jmpb,DBG_ERROR_OCCUR);
 	return 0;
 }
@@ -160,11 +155,10 @@ static inline FklVMframe* create_eval_frame(DebugCtx* ctx
 	return f;
 }
 
-FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc)
+FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* origin_cur_frame)
 {
 	FklVM* vm=ctx->reached_thread;
 	FklVMframe* origin_top_frame=vm->top_frame;
-	FklVMframe* origin_cur_frame=getCurrentFrame(ctx);
 	FklVMvalue* retval=NULL;
 	int r=setjmp(ctx->jmpb);
 	if(r)

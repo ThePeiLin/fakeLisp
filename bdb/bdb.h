@@ -158,8 +158,8 @@ int dbgInterruptHandler(FklVMgc* gc
 		,void* arg);
 
 FklVMvalue* getMainProc(DebugCtx* ctx);
-FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* v);
-FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc);
+FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* v,FklVMframe* frame);
+FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* frame);
 
 void setReachedThread(DebugCtx* ctx,FklVM*);
 void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp);
@@ -169,6 +169,8 @@ FklVMframe* getCurrentFrame(DebugCtx* ctx);
 FklVM* getCurThread(DebugCtx* ctx);
 void switchCurThread(DebugCtx* ctx,uint32_t idx);
 void listThreads(DebugCtx* ctx,const FklString* prefix,FILE* fp);
+void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp);
+void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp);
 
 #ifdef __cplusplus
 }

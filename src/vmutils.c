@@ -165,39 +165,36 @@ void fklPrintFrame(FklVMframe* cur,FklVM* exe,FILE* fp)
 {
 	if(cur->type==FKL_FRAME_COMPOUND)
 	{
-		if(cur->prev)
+		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(cur));
+		if(proc->sid)
 		{
-			FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(cur));
-			if(proc->sid)
+			fprintf(fp,"at proc: ");
+			fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,proc->sid)->symbol
+					,fp);
+		}
+		else if(cur->prev)
+		{
+			FklFuncPrototype* pt=NULL;fklGetCompoundFrameProcPrototype(cur,exe);
+			FklSid_t sid=fklGetCompoundFrameSid(cur);
+			if(!sid)
+			{
+				pt=fklGetCompoundFrameProcPrototype(cur,exe);
+				sid=pt->sid;
+			}
+			if(pt->sid)
 			{
 				fprintf(fp,"at proc: ");
-				fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,proc->sid)->symbol
+				fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,pt->sid)->symbol
 						,fp);
 			}
 			else
 			{
-				FklFuncPrototype* pt=NULL;fklGetCompoundFrameProcPrototype(cur,exe);
-				FklSid_t sid=fklGetCompoundFrameSid(cur);
-				if(!sid)
-				{
-					pt=fklGetCompoundFrameProcPrototype(cur,exe);
-					sid=pt->sid;
-				}
-				if(pt->sid)
-				{
-					fprintf(fp,"at proc: ");
-					fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,pt->sid)->symbol
-							,fp);
-				}
+				fprintf(fp,"at proc: <");
+				if(pt->fid)
+					fklPrintRawString(fklVMgetSymbolWithId(exe->gc,pt->fid)->symbol,fp);
 				else
-				{
-					fprintf(fp,"at proc: <");
-					if(pt->fid)
-						fklPrintRawString(fklVMgetSymbolWithId(exe->gc,pt->fid)->symbol,fp);
-					else
-						fputs("stdin",fp);
-					fprintf(fp,":%"FKL_PRT64U">",pt->line);
-				}
+					fputs("stdin",fp);
+				fprintf(fp,":%"FKL_PRT64U">",pt->line);
 			}
 		}
 		else

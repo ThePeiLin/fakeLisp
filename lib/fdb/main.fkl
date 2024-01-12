@@ -167,7 +167,8 @@
 
 (define (debug-thread ctx,rest)
   (if rest
-    (println "switch thread")
+    (if (debug-ctx-switch-thread ctx (car rest))
+      (debug-ctx-print-cur-frame ctx line-prefix))
     (debug-ctx-list-thread ctx line-prefix)))
 
 (define (debug-up ctx,rest)

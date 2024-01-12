@@ -679,21 +679,34 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
 	DebugCtx* dctx=debug_ctx_ud->ctx;
-	FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
-	fklVMacquireSt(exe->gc);
-	fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
-	fklVMreleaseSt(exe->gc);
-	FklVMvalue* proc=compileExpression(dctx,expression);
-	if(proc)
+	if(dctx->reached_thread_frames.top)
 	{
-		FklVMvalue* value=callEvalProc(dctx,proc);
-		if(value)
+		FklVMframe* cur_frame=getCurrentFrame(dctx);
+		for(;cur_frame&&cur_frame->type==FKL_FRAME_OTHEROBJ;cur_frame=cur_frame->prev);
+
+		if(cur_frame)
 		{
-			fputs(";=> ",stdout);
-			fklPrin1VMvalue(value,stdout,dctx->gc);
-			fputc('\n',stdout);
+			FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
+			fklVMacquireSt(exe->gc);
+			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+			fklVMreleaseSt(exe->gc);
+			FklVMvalue* proc=compileExpression(dctx,expression,cur_frame);
+			if(proc)
+			{
+				FklVMvalue* value=callEvalProc(dctx,proc,cur_frame);
+				if(value)
+				{
+					fputs(";=> ",stdout);
+					fklPrin1VMvalue(value,stdout,dctx->gc);
+					fputc('\n',stdout);
+				}
+			}
 		}
+		else
+			printThreadCantEvaluate(dctx,stdout);
 	}
+	else
+		printThreadAlreadyExited(dctx,stdout);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -706,7 +719,7 @@ static int bdb_debug_ctx_back_trace(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_CHECK_TYPE(prefix_obj,FKL_IS_STR,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	printBacktrace(debug_ud->ctx,FKL_VM_STR(prefix_obj),stderr);
+	printBacktrace(debug_ud->ctx,FKL_VM_STR(prefix_obj),stdout);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -719,7 +732,7 @@ static int bdb_debug_ctx_print_cur_frame(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_CHECK_TYPE(prefix_obj,FKL_IS_STR,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	printCurFrame(debug_ud->ctx,FKL_VM_STR(prefix_obj),stderr);
+	printCurFrame(debug_ud->ctx,FKL_VM_STR(prefix_obj),stdout);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -774,14 +787,30 @@ static int bdb_debug_ctx_list_thread(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
 
 	DebugCtx* dctx=debug_ud->ctx;
-	listThreads(dctx,FKL_VM_STR(prefix_obj),stderr);
+	listThreads(dctx,FKL_VM_STR(prefix_obj),stdout);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
 static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL)
 {
-	abort();
+	static const char Pname[]="bdb.debug-ctx-list-thread";
+	FKL_DECL_AND_CHECK_ARG2(obj,id_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(id_obj,FKL_IS_FIX,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+
+	DebugCtx* dctx=debug_ud->ctx;
+	int64_t id=FKL_GET_FIX(id_obj);
+	if(id>0&&id<=(int64_t)dctx->threads.top)
+	{
+		switchCurThread(dctx,FKL_GET_FIX(id_obj));
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
 }
 
 struct SymFunc

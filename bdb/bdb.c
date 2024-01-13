@@ -283,6 +283,14 @@ static void dbg_extra_mark(FklVMgc* gc,void* arg)
 		head->mark=FKL_MARK_W;
 		fklVMgcToGray(head,gc);
 	}
+	for(FklHashTableItem* l=ctx->breakpoints.first
+			;l
+			;l=l->next)
+	{
+		BreakpointHashItem* i=(BreakpointHashItem*)l->data;
+		if(i->compiled)
+			fklVMgcToGray(i->proc,gc);
+	}
 }
 
 FklVMvalue* getMainProc(DebugCtx* ctx)

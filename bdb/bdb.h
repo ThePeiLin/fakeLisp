@@ -39,6 +39,13 @@ typedef struct
 	struct DebugCtx* ctx;
 	FklInstruction* ins;
 	FklInstruction origin_ins;
+
+	union
+	{
+		FklNastNode* cond_exp;
+		FklVMvalue* proc;
+	};
+	int compiled;
 }BreakpointHashItem;
 
 typedef struct DebugCtx

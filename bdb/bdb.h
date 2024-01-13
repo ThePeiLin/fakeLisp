@@ -73,6 +73,7 @@ typedef struct DebugCtx
 	FklVMvalue* code_objs;
 
 	jmp_buf jmpb;
+	jmp_buf jmpe;
 	FklVM* reached_thread;
 
 	FklPtrStack reached_thread_frames;
@@ -171,10 +172,9 @@ int dbgInterruptHandler(FklVMgc* gc
 		,void* arg);
 
 FklVMvalue* getMainProc(DebugCtx* ctx);
-FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* v,FklVMframe* frame);
-FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* frame);
-FklVMvalue* callConditionProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* frame);
-FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame);
+FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame);
+FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklVM*,FklNastNode* v,FklVMframe* frame);
+FklVMvalue* callEvalProc(DebugCtx* ctx,FklVM*,FklVMvalue* proc,FklVMframe* frame);
 
 void setReachedThread(DebugCtx* ctx,FklVM*);
 void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp);

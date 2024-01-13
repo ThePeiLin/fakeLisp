@@ -84,8 +84,20 @@ BreakpointHashItem* delBreakpoint(DebugCtx* dctx,uint64_t num)
 
 			fklRemoveHashItem(&dctx->breakpoints,list);
 
-			list->ni=dctx->deleted_breakpoints;
+			list->next=dctx->deleted_breakpoints;
 			dctx->deleted_breakpoints=list;
+			item->compiled=0;
+			if(item->cond_exp)
+			{
+				fklDestroyNastNode(item->cond_exp);
+				item->cond_exp=NULL;
+			}
+			if(item->proc)
+			{
+				FklVMproc* proc=FKL_VM_PROC(item->proc);
+				fklPushUintStack(proc->protoId,&dctx->unused_prototype_id_for_cond_bp);
+				item->proc=NULL;
+			}
 			return item;
 			break;
 		}
@@ -96,6 +108,14 @@ BreakpointHashItem* delBreakpoint(DebugCtx* dctx,uint64_t num)
 void markBreakpointCondExpObj(DebugCtx* dctx,FklVMgc* gc)
 {
 	for(FklHashTableItem* list=dctx->breakpoints.first
+			;list
+			;list=list->next)
+	{
+		BreakpointHashItem* item=(BreakpointHashItem*)list->data;
+		if(item->cond_exp_obj)
+			fklVMgcToGray(item->cond_exp_obj,gc);
+	}
+	for(FklHashTableItem* list=dctx->deleted_breakpoints
 			;list
 			;list=list->next)
 	{

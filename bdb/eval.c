@@ -79,7 +79,10 @@ static inline void resolve_reference(DebugCtx* ctx
 	fklCreateVMvalueClosureFrom(vm,proc->closure,cur_frame,main_proc->rcount,pt);
 }
 
-FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame)
+FklVMvalue* compileEvalExpression(DebugCtx* ctx
+		,FklVM* vm
+		,FklNastNode* exp
+		,FklVMframe* cur_frame)
 {
 	FklCodegenInfo info;
 	FklCodegenEnv* origin_outer_env=NULL;
@@ -97,7 +100,6 @@ FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur
 		FklFuncPrototypes* pts=info.pts;
 		fklUpdatePrototype(pts,tmp_env,ctx->st,ctx->st);
 
-		FklVM* vm=ctx->reached_thread;
 		FklFuncPrototype* pt=&pts->pa[tmp_env->prototypeId];
 		FklVMvalue* code_obj=fklCreateVMvalueCodeObj(vm,code);
 		proc=fklCreateVMvalueProcWithWholeCodeObj(vm
@@ -155,7 +157,10 @@ static inline FklCodegenEnv* init_codegen_info_for_cond_bp_with_debug_ctx(DebugC
 	return new_env;
 }
 
-FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame)
+FklVMvalue* compileConditionExpression(DebugCtx* ctx
+		,FklVM* vm
+		,FklNastNode* exp
+		,FklVMframe* cur_frame)
 {
 	FklCodegenInfo info;
 	FklCodegenEnv* origin_outer_env=NULL;
@@ -173,7 +178,6 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe
 		FklFuncPrototypes* pts=info.pts;
 		fklUpdatePrototype(pts,tmp_env,ctx->st,ctx->st);
 
-		FklVM* vm=ctx->reached_thread;
 		FklFuncPrototype* pt=&pts->pa[tmp_env->prototypeId];
 		FklVMvalue* code_obj=fklCreateVMvalueCodeObj(vm,code);
 		proc=fklCreateVMvalueProcWithWholeCodeObj(vm
@@ -204,7 +208,7 @@ static void eval_frame_step(void* data,FklVM* exe)
 {
 	EvalFrameCtx* c=(EvalFrameCtx*)data;
 	*(c->store_retval)=FKL_VM_POP_TOP_VALUE(exe);
-	longjmp(c->ctx->jmpb,DBG_INTERRUPTED);
+	longjmp(c->ctx->jmpe,DBG_INTERRUPTED);
 	return;
 }
 
@@ -225,7 +229,7 @@ static int eval_frame_error_callback(FklVMframe* f
 {
 	EvalFrameCtx* c=(EvalFrameCtx*)f->data;
 	fklPrintErrBacktrace(ev,exe,stdout);
-	longjmp(c->ctx->jmpb,DBG_ERROR_OCCUR);
+	longjmp(c->ctx->jmpe,DBG_ERROR_OCCUR);
 	return 0;
 }
 
@@ -237,22 +241,24 @@ static inline void init_eval_frame(FklVMframe* f,DebugCtx* ctx,FklVMvalue** stor
 }
 
 static inline FklVMframe* create_eval_frame(DebugCtx* ctx
+		,FklVM* vm
 		,FklVMvalue** store_retval
 		,FklVMframe* cur_frame)
 {
-	FklVM* vm=ctx->reached_thread;
 	FklVMframe* f=fklCreateOtherObjVMframe(vm,&EvalFrameCtxMethodTable,cur_frame);
 	init_eval_frame(f,ctx,store_retval);
 	f->errorCallBack=eval_frame_error_callback;
 	return f;
 }
 
-FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* origin_cur_frame)
+FklVMvalue* callEvalProc(DebugCtx* ctx
+		,FklVM* vm
+		,FklVMvalue* proc
+		,FklVMframe* origin_cur_frame)
 {
-	FklVM* vm=ctx->reached_thread;
 	FklVMframe* origin_top_frame=vm->top_frame;
 	FklVMvalue* retval=NULL;
-	int r=setjmp(ctx->jmpb);
+	int r=setjmp(ctx->jmpe);
 	if(r)
 	{
 		vm->state=FKL_VM_READY;
@@ -270,7 +276,7 @@ FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* origin_cur_f
 	{
 		vm->state=FKL_VM_READY;
 		vm->is_single_thread=1;
-		vm->top_frame=create_eval_frame(ctx,&retval,origin_cur_frame);
+		vm->top_frame=create_eval_frame(ctx,vm,&retval,origin_cur_frame);
 		fklCallObj(vm,proc);
 		fklRunVMinSingleThread(vm);
 	}

@@ -315,10 +315,13 @@ typedef struct
 	void (*copy)(void* dst,const void* src,struct FklVM*);
 }FklVMframeContextMethodTable;
 
+struct FklVMframe;
+typedef int (*FklVMerrorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
+
 typedef struct FklVMframe
 {
 	FklFrameType type;
-	int (*errorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
+	FklVMerrorCallBack errorCallBack;
 	struct FklVMframe* prev;
 	union
 	{

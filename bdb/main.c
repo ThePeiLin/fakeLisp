@@ -488,10 +488,18 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-		FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
-				,num
-				,filename
-				,line);
+		FklVMvalue* vec_val=NULL;
+		if(item->cond_exp_obj)
+			vec_val=fklCreateVMvalueVec4(exe
+					,num
+					,filename
+					,line
+					,item->cond_exp_obj);
+		else
+			vec_val=fklCreateVMvalueVec3(exe
+					,num
+					,filename
+					,line);
 
 		*pr=fklCreateVMvaluePairWithCar(exe,vec_val);
 		pr=&FKL_VM_CDR(*pr);
@@ -524,10 +532,19 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-		FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
-				,num
-				,filename
-				,line);
+		FklVMvalue* vec_val=NULL;
+		if(item->cond_exp_obj)
+			vec_val=fklCreateVMvalueVec4(exe
+					,num
+					,filename
+					,line
+					,item->cond_exp_obj);
+		else
+			vec_val=fklCreateVMvalueVec3(exe
+					,num
+					,filename
+					,line);
+
 		r=vec_val;
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
@@ -690,10 +707,16 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 			fklVMacquireSt(exe->gc);
 			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
 			fklVMreleaseSt(exe->gc);
-			FklVMvalue* proc=compileEvalExpression(dctx,expression,cur_frame);
+			FklVMvalue* proc=compileEvalExpression(dctx
+					,dctx->reached_thread
+					,expression
+					,cur_frame);
 			if(proc)
 			{
-				FklVMvalue* value=callEvalProc(dctx,proc,cur_frame);
+				FklVMvalue* value=callEvalProc(dctx
+						,dctx->reached_thread
+						,proc
+						,cur_frame);
 				if(value)
 				{
 					fputs(";=> ",stdout);

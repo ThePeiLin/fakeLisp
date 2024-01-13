@@ -4,32 +4,36 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 {
 	DbgInterruptArg* arg=(DbgInterruptArg*)a;
 	DebugCtx* ctx=arg->ctx;
-	setReachedThread(ctx,vm);
 	if(arg->bp)
 	{
 		BreakpointHashItem* bp=arg->bp;
-		getCurLineStr(ctx,bp->key.fid,bp->key.line);
 		ctx->reached_breakpoint=bp;
 		if(bp->cond_exp_obj)
 		{
 			if(!bp->compiled)
 			{
 				bp->compiled=1;
-				FklVMvalue* proc=compileConditionExpression(ctx,bp->cond_exp,vm->top_frame);;
+				FklVMvalue* proc=compileConditionExpression(ctx
+						,vm
+						,bp->cond_exp
+						,vm->top_frame);;
 				bp->cond_exp=NULL;
 				bp->proc=proc;
 			}
 			if(bp->proc)
 			{
-				FklVMvalue* value=callConditionProc(ctx,bp->proc,vm->top_frame);
+				FklVMvalue* value=callEvalProc(ctx,vm,bp->proc,vm->top_frame);
 				if(value==FKL_VM_NIL)
 					return;
 			}
 		}
+		setReachedThread(ctx,vm);
+		getCurLineStr(ctx,bp->key.fid,bp->key.line);
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else
 	{
+		setReachedThread(ctx,vm);
 		getCurLineStr(ctx,arg->ln->fid,arg->ln->line);
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}

@@ -86,6 +86,7 @@ typedef struct DebugCtx
 
 	FklVMgc* gc;
 	FklHashTable breakpoints;
+	FklUintStack unused_prototype_id_for_cond_bp;
 
 	uint32_t breakpoint_num;
 

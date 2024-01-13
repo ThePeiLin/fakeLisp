@@ -328,6 +328,8 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 
 	fklInitPtrStack(&ctx->reached_thread_frames,16,16);
 	fklInitPtrStack(&ctx->threads,16,16);
+	fklInitUintStack(&ctx->unused_prototype_id_for_cond_bp,16,16);
+
 	setReachedThread(ctx,ctx->reached_thread);
 	init_source_codes(ctx);
 	ctx->temp_proc_prototype_id=fklInsertEmptyFuncPrototype(ctx->gc->pts);

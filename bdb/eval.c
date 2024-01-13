@@ -109,6 +109,82 @@ FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur
 	return proc;
 }
 
+static inline FklCodegenEnv* init_codegen_info_for_cond_bp_with_debug_ctx(DebugCtx* ctx
+		,FklCodegenInfo* info
+		,FklCodegenEnv** origin_outer_env
+		,FklVMframe* f)
+{
+	FklVMproc* proc=FKL_VM_PROC(f->c.proc);
+	FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
+	const FklLineNumberTableItem* ln=getCurLineNumberItemWithCp(f->c.pc,code);
+	FklCodegenEnv* env=ctx->envs.base[proc->protoId-1];
+	*origin_outer_env=env->prev;
+	env->prev=NULL;
+	FklCodegenEnv* new_env=fklCreateCodegenEnv(env,ln->scope,NULL);
+	fklInitGlobCodegenEnv(new_env
+			,ctx->st);
+	fklInitCodegenInfo(info
+			,NULL
+			,new_env
+			,NULL
+			,ctx->st
+			,0
+			,0
+			,0
+			,&ctx->outer_ctx);
+	fklDestroyFuncPrototypes(info->pts);
+	info->pts=ctx->gc->pts;
+	if(fklIsUintStackEmpty(&ctx->unused_prototype_id_for_cond_bp))
+		fklCreateFuncPrototypeAndInsertToPool(info
+				,env->prototypeId
+				,new_env
+				,0
+				,ctx->curline
+				,ctx->st);
+	else
+	{
+		uint32_t pid=fklPopUintStack(&ctx->unused_prototype_id_for_cond_bp);
+		replace_func_prototype(info
+				,env->prototypeId
+				,new_env
+				,0
+				,ctx->curline
+				,ctx->st
+				,pid);
+	}
+	return new_env;
+}
+
+FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame)
+{
+	FklCodegenInfo info;
+	FklCodegenEnv* origin_outer_env=NULL;
+	fklMakeNastNodeRef(exp);
+	FklCodegenEnv* tmp_env=init_codegen_info_for_cond_bp_with_debug_ctx(ctx,&info,&origin_outer_env,cur_frame);
+	tmp_env->refcount++;
+	FklByteCodelnt* code=fklGenExpressionCode(exp
+			,tmp_env
+			,&info);
+	fklDestroyNastNode(exp);
+	set_back_origin_prev_env(tmp_env,origin_outer_env);
+	FklVMvalue* proc=NULL;
+	if(code)
+	{
+		FklFuncPrototypes* pts=info.pts;
+		fklUpdatePrototype(pts,tmp_env,ctx->st,ctx->st);
+
+		FklVM* vm=ctx->reached_thread;
+		FklFuncPrototype* pt=&pts->pa[tmp_env->prototypeId];
+		FklVMvalue* code_obj=fklCreateVMvalueCodeObj(vm,code);
+		proc=fklCreateVMvalueProcWithWholeCodeObj(vm
+				,code_obj
+				,tmp_env->prototypeId);
+		resolve_reference(ctx,vm,pt,proc,cur_frame);
+	}
+	fklDestroyCodegenEnv(tmp_env);
+	return proc;
+}
+
 typedef struct
 {
 	DebugCtx* ctx;

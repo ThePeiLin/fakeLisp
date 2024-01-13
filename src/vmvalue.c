@@ -1692,7 +1692,7 @@ FklVMvalue* fklCreateVMvalueProc(FklVM* exe
 	r->type=FKL_TYPE_PROC;
 	FklVMproc* proc=FKL_VM_PROC(r);
 
-	FklFuncPrototype* pt=&exe->pts->pts[pid];
+	FklFuncPrototype* pt=&exe->pts->pa[pid];
 
 	proc->spc=spc;
 	proc->end=spc+cpc;
@@ -1714,7 +1714,7 @@ FklVMvalue* fklCreateVMvalueProcWithWholeCodeObj(FklVM* exe
 	r->type=FKL_TYPE_PROC;
 	FklVMproc* proc=FKL_VM_PROC(r);
 
-	FklFuncPrototype* pt=&exe->pts->pts[pid];
+	FklFuncPrototype* pt=&exe->pts->pa[pid];
 
  	FklByteCode* bc=FKL_VM_CO(codeObj)->bc;
 	proc->spc=bc->code;

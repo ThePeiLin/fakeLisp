@@ -58,7 +58,7 @@ typedef struct FklFuncPrototype
 
 typedef struct
 {
-	FklFuncPrototype* pts;
+	FklFuncPrototype* pa;
 	uint32_t count;
 }FklFuncPrototypes;
 

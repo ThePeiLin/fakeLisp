@@ -690,7 +690,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 			fklVMacquireSt(exe->gc);
 			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
 			fklVMreleaseSt(exe->gc);
-			FklVMvalue* proc=compileExpression(dctx,expression,cur_frame);
+			FklVMvalue* proc=compileEvalExpression(dctx,expression,cur_frame);
 			if(proc)
 			{
 				FklVMvalue* value=callEvalProc(dctx,proc,cur_frame);

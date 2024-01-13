@@ -460,7 +460,7 @@ static inline void recompute_sid_for_prototypes(FklFuncPrototypes* pts
 	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
 	for(uint32_t i=1;i<end;i++)
 	{
-		FklFuncPrototype* cur=&pts->pts[i];
+		FklFuncPrototype* cur=&pts->pa[i];
 		replace_sid(&cur->fid,origin_table,target_table);
 		if(cur->sid)
 			replace_sid(&cur->sid,origin_table,target_table);
@@ -1057,11 +1057,11 @@ static inline void merge_prototypes(FklFuncPrototypes* o,const FklFuncPrototypes
 {
 	uint32_t o_count=o->count;
 	o->count+=pts->count;
-	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(o->pts,sizeof(FklFuncPrototype)*(o->count+1));
+	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(o->pa,sizeof(FklFuncPrototype)*(o->count+1));
 	FKL_ASSERT(pa);
-	o->pts=pa;
+	o->pa=pa;
 	uint32_t i=o_count+1;
-	memcpy(&pa[i],&pts->pts[1],sizeof(FklFuncPrototype)*pts->count);
+	memcpy(&pa[i],&pts->pa[1],sizeof(FklFuncPrototype)*pts->count);
 	uint32_t end=o->count+1;
 	for(;i<end;i++)
 	{

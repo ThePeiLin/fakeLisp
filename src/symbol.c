@@ -179,9 +179,9 @@ static inline void init_as_empty_pt(FklFuncPrototype* pt)
 void fklInitFuncPrototypes(FklFuncPrototypes* r,uint32_t count)
 {
 	r->count=count;
-	r->pts=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*(count+1));
-	FKL_ASSERT(r->pts);
-	init_as_empty_pt(r->pts);
+	r->pa=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*(count+1));
+	FKL_ASSERT(r->pa);
+	init_as_empty_pt(r->pa);
 }
 
 FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
@@ -209,7 +209,7 @@ void fklDestroyFuncPrototypes(FklFuncPrototypes* p)
 
 void fklUninitFuncPrototypes(FklFuncPrototypes* p)
 {
-	FklFuncPrototype* pts=p->pts;
+	FklFuncPrototype* pts=p->pa;
 	uint32_t end=p->count+1;
 	for(uint32_t i=1;i<end;i++)
 		fklUninitFuncPrototype(&pts[i]);
@@ -248,7 +248,7 @@ void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
 		,FILE* fp)
 {
 	uint32_t count=pts->count;
-	FklFuncPrototype* pta=pts->pts;
+	FklFuncPrototype* pta=pts->pa;
 	fwrite(&count,sizeof(count),1,fp);
 	uint32_t end=count+1;
 	for(uint32_t i=1;i<end;i++)
@@ -293,7 +293,7 @@ FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp)
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
 	FklFuncPrototypes* pts=fklCreateFuncPrototypes(count);
-	FklFuncPrototype* pta=pts->pts;
+	FklFuncPrototype* pta=pts->pa;
 	FKL_ASSERT(pts||!count);
 	for(uint32_t i=1;i<=count;i++)
 		load_prototype(&pta[i],builtin_symbol_num,fp);

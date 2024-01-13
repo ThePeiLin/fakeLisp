@@ -10,7 +10,7 @@ static inline void replace_func_prototype(FklCodegenInfo* info
 		,FklSymbolTable* pst
 		,uint32_t replaced_prototype_id)
 {
-	FklFuncPrototype* pt=&info->pts->pts[replaced_prototype_id];
+	FklFuncPrototype* pt=&info->pts->pa[replaced_prototype_id];
 	fklUninitFuncPrototype(pt);
 	env->prototypeId=replaced_prototype_id;
 	fklInitFuncPrototypeWithEnv(pt,info,env,sid,line,pst);
@@ -21,7 +21,6 @@ static inline FklCodegenEnv* init_codegen_info_with_debug_ctx(DebugCtx* ctx
 		,FklCodegenEnv** origin_outer_env
 		,FklVMframe* f)
 {
-
 	FklVMproc* proc=FKL_VM_PROC(f->c.proc);
 	FklByteCodelnt* code=FKL_VM_CO(proc->codeObj);
 	const FklLineNumberTableItem* ln=getCurLineNumberItemWithCp(f->c.pc,code);
@@ -41,22 +40,14 @@ static inline FklCodegenEnv* init_codegen_info_with_debug_ctx(DebugCtx* ctx
 			,0
 			,&ctx->outer_ctx);
 	fklDestroyFuncPrototypes(info->pts);
-	info->pts=ctx->reached_thread->pts;
-	if(info->pts->count+1==ctx->temp_proc_prototype_id)
-		fklCreateFuncPrototypeAndInsertToPool(info
-				,env->prototypeId
-				,new_env
-				,0
-				,ctx->curline
-				,ctx->st);
-	else
-		replace_func_prototype(info
-				,env->prototypeId
-				,new_env
-				,0
-				,ctx->curline
-				,ctx->st
-				,ctx->temp_proc_prototype_id);
+	info->pts=ctx->gc->pts;
+	replace_func_prototype(info
+			,env->prototypeId
+			,new_env
+			,0
+			,ctx->curline
+			,ctx->st
+			,ctx->temp_proc_prototype_id);
 	return new_env;
 }
 
@@ -88,7 +79,7 @@ static inline void resolve_reference(DebugCtx* ctx
 	fklCreateVMvalueClosureFrom(vm,proc->closure,cur_frame,main_proc->rcount,pt);
 }
 
-FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame)
+FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame)
 {
 	FklCodegenInfo info;
 	FklCodegenEnv* origin_outer_env=NULL;
@@ -107,7 +98,7 @@ FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_fra
 		fklUpdatePrototype(pts,tmp_env,ctx->st,ctx->st);
 
 		FklVM* vm=ctx->reached_thread;
-		FklFuncPrototype* pt=&pts->pts[tmp_env->prototypeId];
+		FklFuncPrototype* pt=&pts->pa[tmp_env->prototypeId];
 		FklVMvalue* code_obj=fklCreateVMvalueCodeObj(vm,code);
 		proc=fklCreateVMvalueProcWithWholeCodeObj(vm
 				,code_obj

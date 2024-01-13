@@ -166,7 +166,7 @@ int dbgInterruptHandler(FklVMgc* gc
 		,void* arg);
 
 FklVMvalue* getMainProc(DebugCtx* ctx);
-FklVMvalue* compileExpression(DebugCtx* ctx,FklNastNode* v,FklVMframe* frame);
+FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* v,FklVMframe* frame);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* frame);
 
 void setReachedThread(DebugCtx* ctx,FklVM*);

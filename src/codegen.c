@@ -591,14 +591,14 @@ static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
 static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* cp)
 {
 	FklPtrStack* urefs=&env->uref;
-	FklFuncPrototype* pts=cp->pts;
+	FklFuncPrototype* pa=cp->pa;
 	FklPtrStack urefs1=FKL_STACK_INIT;
 	fklInitPtrStack(&urefs1,16,8);
 	uint32_t count=urefs->top;
 	for(uint32_t i=0;i<count;i++)
 	{
 		FklUnReSymbolRef* uref=urefs->base[i];
-		FklFuncPrototype* cpt=&pts[uref->prototypeId];
+		FklFuncPrototype* cpt=&pa[uref->prototypeId];
 		FklSymbolDef* ref=&cpt->refs[uref->idx];
 		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
 		if(def)
@@ -673,14 +673,14 @@ static inline void append_close_ref(FklByteCodelnt* retval
 static inline void check_and_close_ref(FklByteCodelnt* retval
 		,uint32_t scope
 		,FklCodegenEnv* env
-		,FklFuncPrototypes* pts
+		,FklFuncPrototypes* pa
 		,FklSid_t fid
 		,uint32_t line)
 {
 	FklCodegenEnvScope* cur=&env->scopes[scope-1];
 	uint32_t start=cur->start;
 	uint32_t end=start+1;
-	if(reset_flag_and_check_var_be_refed(env->slotFlags,cur,env,pts,&start,&end))
+	if(reset_flag_and_check_var_be_refed(env->slotFlags,cur,env,pa,&start,&end))
 		append_close_ref(retval,start,end,fid,line,scope);
 }
 
@@ -1549,8 +1549,8 @@ static inline FklByteCodelnt* process_set_var(FklPtrStack* stack
 			{
 				uint32_t prototypeId=cur_ins->imm;;
 				uint32_t idx=popVar_ins->imm_u32;
-				if(!codegen->pts->pts[prototypeId].sid)
-					codegen->pts->pts[prototypeId].sid=get_sid_with_idx(&env->scopes[scope-1]
+				if(!codegen->pts->pa[prototypeId].sid)
+					codegen->pts->pa[prototypeId].sid=get_sid_with_idx(&env->scopes[scope-1]
 							,idx
 							,codegen->globalSymTable
 							,&outer_ctx->public_symbol_table);
@@ -1559,8 +1559,8 @@ static inline FklByteCodelnt* process_set_var(FklPtrStack* stack
 			{
 				uint32_t prototypeId=cur_ins->imm;
 				uint32_t idx=popVar_ins->imm_u32;
-				if(!codegen->pts->pts[prototypeId].sid)
-					codegen->pts->pts[prototypeId].sid=get_sid_with_ref_idx(&env->refs
+				if(!codegen->pts->pa[prototypeId].sid)
+					codegen->pts->pa[prototypeId].sid=get_sid_with_ref_idx(&env->refs
 							,idx
 							,codegen->globalSymTable
 							,&outer_ctx->public_symbol_table);
@@ -1804,9 +1804,9 @@ static inline void create_and_insert_to_pool(FklCodegenInfo* info
 	FklSymbolTable* gst=info->globalSymTable;
 	FklFuncPrototypes* cp=info->pts;
 	cp->count+=1;
-	FklFuncPrototype* pts=(FklFuncPrototype*)fklRealloc(cp->pts,sizeof(FklFuncPrototype)*(cp->count+1));
+	FklFuncPrototype* pts=(FklFuncPrototype*)fklRealloc(cp->pa,sizeof(FklFuncPrototype)*(cp->count+1));
 	FKL_ASSERT(pts);
-	cp->pts=pts;
+	cp->pa=pts;
 	FklFuncPrototype* cpt=&pts[cp->count];
 	env->prototypeId=cp->count;
 	cpt->lcount=env->lcount;
@@ -2136,7 +2136,7 @@ void fklUpdatePrototype(FklFuncPrototypes* cp
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst)
 {
-	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
+	FklFuncPrototype* pts=&cp->pa[env->prototypeId];
 	FklHashTable* eht=NULL;
 	pts->lcount=env->lcount;
 	process_unresolve_ref(env,cp);
@@ -9706,7 +9706,7 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 		,FklFuncPrototypes* pts
 		,uint32_t prototype_id)
 {
-	FklFuncPrototype* mainPts=&pts->pts[prototype_id];
+	FklFuncPrototype* mainPts=&pts->pa[prototype_id];
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 	FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
 	uint32_t count=mainPts->lcount;

@@ -96,7 +96,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 
 static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncPrototypes* pts)
 {
-	FklFuncPrototype* pta=pts->pts;
+	FklFuncPrototype* pta=pts->pa;
 	for(uint32_t i=1;i<=num;i++)
 	{
 		FklVMlib* cur=&lib[i];
@@ -520,7 +520,7 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 {
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(mainframe);
 	FklPtrStack* urefs=&env->uref;
-	FklFuncPrototype* pts=cp->pts;
+	FklFuncPrototype* pts=cp->pa;
 	FklPtrStack urefs1=FKL_STACK_INIT;
 	fklInitPtrStack(&urefs1,16,8);
 	uint32_t count=urefs->top;
@@ -597,7 +597,7 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 static inline void update_prototype_lcount(FklFuncPrototypes* cp
 		,FklCodegenEnv* env)
 {
-	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
+	FklFuncPrototype* pts=&cp->pa[env->prototypeId];
 	pts->lcount=env->lcount;
 }
 
@@ -606,7 +606,7 @@ static inline void update_prototype_ref(FklFuncPrototypes* cp
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst)
 {
-	FklFuncPrototype* pts=&cp->pts[env->prototypeId];
+	FklFuncPrototype* pts=&cp->pa[env->prototypeId];
 	FklHashTable* eht=&env->refs;
 	uint32_t count=eht->num;
 	FklSymbolDef* refs=(FklSymbolDef*)fklRealloc(pts->refs,sizeof(FklSymbolDef)*count);
@@ -826,7 +826,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 			ctx->mainProc=mainProc;
 
 			FklVMvalue* mainCodeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-			ctx->lcount=codegen->pts->pts[1].lcount;
+			ctx->lcount=codegen->pts->pa[1].lcount;
 
 			mainCode=FKL_VM_CO(mainCodeObj);
 			proc->lcount=ctx->lcount;

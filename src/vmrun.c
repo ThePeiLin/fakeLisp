@@ -1659,7 +1659,7 @@ FklVMvalue* fklCreateVMvalueProcWithFrame(FklVM* exe
 		,uint32_t pid)
 {
 	FklVMvalue* codeObj=get_compound_frame_code_obj(f);
-	FklFuncPrototype* pt=&exe->pts->pts[pid];
+	FklFuncPrototype* pt=&exe->pts->pa[pid];
 	FklVMvalue* r=fklCreateVMvalueProc(exe,fklGetCompoundFrameCode(f),cpc,codeObj,pid);
 	uint32_t count=pt->rcount;
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(f);
@@ -2075,7 +2075,7 @@ static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncProt
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
-		FklFuncPrototype* pt=&pts->pts[proc->protoId];
+		FklFuncPrototype* pt=&pts->pa[proc->protoId];
 		FklSymbolDef* def=&pt->refs[idx];
 		*psid=def->k.id;
 		return NULL;
@@ -2105,7 +2105,7 @@ static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 	if(!v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
-		FklFuncPrototype* pt=&pts->pts[proc->protoId];
+		FklFuncPrototype* pt=&pts->pa[proc->protoId];
 		FklSymbolDef* def=&pt->refs[idx];
 		*psid=def->k.id;
 		return NULL;
@@ -2991,7 +2991,7 @@ FklVMvalue* fklGetCompoundFrameProc(const FklVMframe* f)
 FklFuncPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe* f,FklVM* exe)
 {
 	uint32_t pId=FKL_VM_PROC(f->c.proc)->protoId;
-	return &exe->pts->pts[pId];
+	return &exe->pts->pa[pId];
 }
 
 FklInstruction* fklGetCompoundFrameCode(const FklVMframe* f)

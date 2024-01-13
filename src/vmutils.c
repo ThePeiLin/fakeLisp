@@ -339,7 +339,7 @@ void fklInitMainVMframeWithProc(FklVM* exe
 		FklVMCompoundFrameVarRef* lr=&f->lr;
 		code->closure=lr->ref;
 		code->rcount=lr->rcount;
-		FklFuncPrototype* pt=&pts->pts[code->protoId];
+		FklFuncPrototype* pt=&pts->pa[code->protoId];
 		uint32_t count=pt->lcount;
 		code->lcount=count;
 		FklVMvalue** loc=fklAllocSpaceForLocalVar(exe,count);

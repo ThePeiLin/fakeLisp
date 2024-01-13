@@ -7,13 +7,32 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 	setReachedThread(ctx,vm);
 	if(arg->bp)
 	{
-		const BreakpointHashItem* bp=arg->bp;
+		BreakpointHashItem* bp=arg->bp;
 		getCurLineStr(ctx,bp->key.fid,bp->key.line);
 		ctx->reached_breakpoint=bp;
+		if(bp->cond_exp_obj)
+		{
+			if(!bp->compiled)
+			{
+				bp->compiled=1;
+				FklVMvalue* proc=compileConditionExpression(ctx,bp->cond_exp,vm->top_frame);;
+				bp->cond_exp=NULL;
+				bp->proc=proc;
+			}
+			if(bp->proc)
+			{
+				FklVMvalue* value=callConditionProc(ctx,bp->proc,vm->top_frame);
+				if(value==FKL_VM_NIL)
+					return;
+			}
+		}
+		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else
+	{
 		getCurLineStr(ctx,arg->ln->fid,arg->ln->line);
-	longjmp(ctx->jmpb,DBG_INTERRUPTED);
+		longjmp(ctx->jmpb,DBG_INTERRUPTED);
+	}
 }
 
 void dbgInterrupt(FklVM* exe,DbgInterruptArg* arg)
@@ -42,7 +61,7 @@ int dbgInterruptHandler(FklVMgc* gc
 	DebugCtx* ctx=(DebugCtx*)arg;
 	if(isBreakpointWrapper(int_val))
 	{
-		const BreakpointHashItem* bp=getBreakpointFromWrapper(int_val);
+		BreakpointHashItem* bp=getBreakpointFromWrapper(int_val);
 		DbgInterruptArg arg=
 		{
 			.bp=bp,

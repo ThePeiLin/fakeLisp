@@ -40,6 +40,7 @@ typedef struct
 	FklInstruction* ins;
 	FklInstruction origin_ins;
 
+	FklVMvalue* cond_exp_obj;
 	union
 	{
 		FklNastNode* cond_exp;
@@ -125,7 +126,7 @@ typedef enum
 
 typedef struct
 {
-	const BreakpointHashItem* bp;
+	BreakpointHashItem* bp;
 	const FklLineNumberTableItem* ln;
 	DebugCtx* ctx;
 }DbgInterruptArg;
@@ -139,17 +140,19 @@ const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* c
 void initBreakpointTable(FklHashTable*);
 
 void toggleVMint3(FklVM*);
+
+void markBreakpointCondExpObj(DebugCtx* ctx,FklVMgc* gc);
 BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
 BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid);
 
 typedef struct
 {
-	const BreakpointHashItem* bp;
+	BreakpointHashItem* bp;
 }BreakpointWrapper;
 
-FklVMvalue* createBreakpointWrapper(FklVM* exe,const BreakpointHashItem* bp);
+FklVMvalue* createBreakpointWrapper(FklVM* exe,BreakpointHashItem* bp);
 int isBreakpointWrapper(FklVMvalue* v);
-const BreakpointHashItem* getBreakpointFromWrapper(FklVMvalue* v);
+BreakpointHashItem* getBreakpointFromWrapper(FklVMvalue* v);
 
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 BreakpointHashItem* delBreakpoint(DebugCtx* ctx,uint64_t num);
@@ -170,6 +173,8 @@ int dbgInterruptHandler(FklVMgc* gc
 FklVMvalue* getMainProc(DebugCtx* ctx);
 FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklNastNode* v,FklVMframe* frame);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* frame);
+FklVMvalue* callConditionProc(DebugCtx* ctx,FklVMvalue* proc,FklVMframe* frame);
+FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe* cur_frame);
 
 void setReachedThread(DebugCtx* ctx,FklVM*);
 void printBacktrace(DebugCtx* ctx,const FklString* prefix,FILE* fp);

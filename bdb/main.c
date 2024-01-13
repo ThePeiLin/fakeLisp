@@ -77,6 +77,7 @@ static void debug_ctx_atomic(const FklVMudata* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(debug_ctx,DebugUdCtx,ud);
 	atomic_cmd_read_ctx(&debug_ctx->ctx->read_ctx,gc);
+	markBreakpointCondExpObj(debug_ctx->ctx,gc);
 }
 
 static FklVMudMetaTable DebugCtxUdMetaTable=
@@ -364,81 +365,95 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
-	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 
 	FklSid_t fid=0;
 	uint32_t line=0;
 	PutBreakpointErrorType err=0;
 	BreakpointHashItem* item=NULL;
-	switch(arg_num)
+
+	FKL_DECL_AND_CHECK_ARG(file_line_sym_obj,exe,Pname);
+
+	if(FKL_IS_SYM(file_line_sym_obj))
 	{
-		case 1:
-			{
-				FklVMvalue* line_sym_obj=FKL_VM_POP_ARG(exe);
-				if(FKL_IS_SYM(line_sym_obj))
-				{
-					FklSid_t id=fklAddSymbol(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(line_sym_obj))->symbol,dctx->st)->id;
-					item=putBreakpointForProcedure(dctx,id);
-					if(item)
-						goto done;
-					else
-					{
-						err=PUT_BP_NOT_A_PROC;
-						goto error;
-					}
-				}
-				else if(fklIsVMint(line_sym_obj))
-				{
-					if(fklIsVMnumberLt0(line_sym_obj))
-						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-					line=fklGetUint(line_sym_obj);
-					fid=dctx->curline_file;
-				}
-				else
-					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			}
-			break;
-		case 2:
-			{
-				FklVMvalue* filename_obj=FKL_VM_POP_ARG(exe);
-				FklVMvalue* line_obj=FKL_VM_POP_ARG(exe);
-				FKL_CHECK_TYPE(line_obj,fklIsVMint,Pname,exe);
-				FKL_CHECK_TYPE(filename_obj,FKL_IS_STR,Pname,exe);
-				if(fklIsVMnumberLt0(line_obj))
-					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				line=fklGetUint(line_obj);
-				FklString* str=FKL_VM_STR(filename_obj);
-				if(fklIsAccessibleRegFile(str->str))
-				{
-					char* rp=fklRealpath(str->str);
-					fid=fklAddSymbolCstr(rp,dctx->st)->id;
-					free(rp);
-				}
-				else
-				{
-					char* filename_with_dir=fklStrCat(fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir),str->str);
-					if(fklIsAccessibleRegFile(str->str))
-						fid=fklAddSymbolCstr(filename_with_dir,dctx->st)->id;
-					free(filename_with_dir);
-				}
-			}
-			break;
-		default:
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOMANYARG,exe);
-			break;
+		FklSid_t id=fklAddSymbol(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(file_line_sym_obj))->symbol,dctx->st)->id;
+		item=putBreakpointForProcedure(dctx,id);
+		if(item)
+			goto done;
+		else
+		{
+			err=PUT_BP_NOT_A_PROC;
+			goto error;
+		}
 	}
+	else if(fklIsVMint(file_line_sym_obj))
+	{
+		if(fklIsVMnumberLt0(file_line_sym_obj))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		line=fklGetUint(file_line_sym_obj);
+		fid=dctx->curline_file;
+	}
+	else if(FKL_IS_STR(file_line_sym_obj))
+	{
+		FKL_DECL_AND_CHECK_ARG(line_obj,exe,Pname);
+		FKL_CHECK_TYPE(line_obj,fklIsVMint,Pname,exe);
+		if(fklIsVMnumberLt0(line_obj))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		line=fklGetUint(line_obj);
+		FklString* str=FKL_VM_STR(file_line_sym_obj);
+		if(fklIsAccessibleRegFile(str->str))
+		{
+			char* rp=fklRealpath(str->str);
+			fid=fklAddSymbolCstr(rp,dctx->st)->id;
+			free(rp);
+		}
+		else
+		{
+			char* filename_with_dir=fklStrCat(fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir),str->str);
+			if(fklIsAccessibleRegFile(str->str))
+				fid=fklAddSymbolCstr(filename_with_dir,dctx->st)->id;
+			free(filename_with_dir);
+		}
+	}
+	else 
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	item=putBreakpointWithFileAndLine(dctx,fid,line,&err);
+	FklVMvalue* cond_exp_obj=NULL;
+
 done:
+
+	cond_exp_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
 	if(item)
 	{
+		if(cond_exp_obj)
+		{
+			FklNastNode* expression=fklCreateNastNodeFromVMvalue(cond_exp_obj,dctx->curline,NULL,exe->gc);
+			if(!expression)
+				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_CIR_REF,exe);
+			fklVMacquireSt(exe->gc);
+			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+			fklVMreleaseSt(exe->gc);
+			item->cond_exp=expression;
+		}
+		item->cond_exp_obj=cond_exp_obj;
+
 		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
-		FklVMvalue* r=fklCreateVMvalueVec3(exe
-				,num
-				,filename
-				,line);
+		FklVMvalue* r=NULL;
+		if(cond_exp_obj)
+			r=fklCreateVMvalueVec4(exe
+					,num
+					,filename
+					,line
+					,cond_exp_obj);
+		else
+			r=fklCreateVMvalueVec3(exe
+					,num
+					,filename
+					,line);
+
 
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
@@ -514,41 +529,10 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 				,filename
 				,line);
 		r=vec_val;
-	}
-
-	// for(FklHashTableItem* list=dctx->breakpoints.first
-	// 		;list
-	// 		;list=list->next)
-	// {
-	// 	BreakpointHashItem* item=(BreakpointHashItem*)list->data;
-	// 	if(item->num==num)
-	// 	{
-	// 		if(dctx->reached_breakpoint==item)
-	// 		{
-	// 			dctx->reached_breakpoint=NULL;
-	// 			toggleVMint3(dctx->reached_thread);
-	// 		}
-	// 		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
-	// 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
-	// 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
-	//
-	// 		FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
-	// 				,num
-	// 				,filename
-	// 				,line);
-	// 		r=vec_val;
-	//
-	// 		BreakpointHashKey key=item->key;
-	// 		fklDelHashItem(&key,&dctx->breakpoints,NULL);
-	// 		break;
-	// 	}
-	// }
-
-	if(r==NULL)
-		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
-	else
 		FKL_VM_PUSH_VALUE(exe,r);
-
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
 	return 0;
 }
 
@@ -701,6 +685,8 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 		if(cur_frame)
 		{
 			FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
+			if(!expression)
+				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
 			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
 			fklVMreleaseSt(exe->gc);

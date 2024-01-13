@@ -181,6 +181,8 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklNastNode* exp,FklVMframe
 				,tmp_env->prototypeId);
 		resolve_reference(ctx,vm,pt,proc,cur_frame);
 	}
+	if(!proc)
+		fklPushUintStack(tmp_env->prototypeId,&ctx->unused_prototype_id_for_cond_bp);
 	fklDestroyCodegenEnv(tmp_env);
 	return proc;
 }

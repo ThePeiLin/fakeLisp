@@ -67,3 +67,29 @@ const BreakpointHashItem* getBreakpointFromWrapper(FklVMvalue* v)
 	return bpw->bp;
 }
 
+BreakpointHashItem* delBreakpoint(DebugCtx* dctx,uint64_t num)
+{
+	for(FklHashTableItem* list=dctx->breakpoints.first
+			;list
+			;list=list->next)
+	{
+		BreakpointHashItem* item=(BreakpointHashItem*)list->data;
+		if(item->num==num)
+		{
+			if(dctx->reached_breakpoint==item)
+			{
+				dctx->reached_breakpoint=NULL;
+				toggleVMint3(dctx->reached_thread);
+			}
+
+			fklRemoveHashItem(&dctx->breakpoints,list);
+
+			list->ni=dctx->deleted_breakpoints;
+			dctx->deleted_breakpoints=list;
+			return item;
+			break;
+		}
+	}
+	return NULL;
+}
+

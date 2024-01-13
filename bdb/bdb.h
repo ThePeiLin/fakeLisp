@@ -86,6 +86,7 @@ typedef struct DebugCtx
 
 	FklVMgc* gc;
 	FklHashTable breakpoints;
+	FklHashTableItem* deleted_breakpoints;
 	FklUintStack unused_prototype_id_for_cond_bp;
 
 	uint32_t breakpoint_num;
@@ -151,7 +152,7 @@ int isBreakpointWrapper(FklVMvalue* v);
 const BreakpointHashItem* getBreakpointFromWrapper(FklVMvalue* v);
 
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
-void delBreakpoint(DebugCtx* ctx,uint64_t num);
+BreakpointHashItem* delBreakpoint(DebugCtx* ctx,uint64_t num);
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 
 void unsetStepping(DebugCtx*);

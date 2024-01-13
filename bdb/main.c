@@ -502,33 +502,47 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 
 	uint64_t num=fklGetUint(bp_num_obj);
 	FklVMvalue* r=NULL;
-	for(FklHashTableItem* list=dctx->breakpoints.first
-			;list
-			;list=list->next)
+	BreakpointHashItem* item=delBreakpoint(dctx,num);
+	if(item)
 	{
-		BreakpointHashItem* item=(BreakpointHashItem*)list->data;
-		if(item->num==num)
-		{
-			if(dctx->reached_breakpoint==item)
-			{
-				dctx->reached_breakpoint=NULL;
-				toggleVMint3(dctx->reached_thread);
-			}
-			FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
-			FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
-			FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
+		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-			FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
-					,num
-					,filename
-					,line);
-			r=vec_val;
-
-			BreakpointHashKey key=item->key;
-			fklDelHashItem(&key,&dctx->breakpoints,NULL);
-			break;
-		}
+		FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
+				,num
+				,filename
+				,line);
+		r=vec_val;
 	}
+
+	// for(FklHashTableItem* list=dctx->breakpoints.first
+	// 		;list
+	// 		;list=list->next)
+	// {
+	// 	BreakpointHashItem* item=(BreakpointHashItem*)list->data;
+	// 	if(item->num==num)
+	// 	{
+	// 		if(dctx->reached_breakpoint==item)
+	// 		{
+	// 			dctx->reached_breakpoint=NULL;
+	// 			toggleVMint3(dctx->reached_thread);
+	// 		}
+	// 		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
+	// 		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+	// 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+	//
+	// 		FklVMvalue* vec_val=fklCreateVMvalueVec3(exe
+	// 				,num
+	// 				,filename
+	// 				,line);
+	// 		r=vec_val;
+	//
+	// 		BreakpointHashKey key=item->key;
+	// 		fklDelHashItem(&key,&dctx->breakpoints,NULL);
+	// 		break;
+	// 	}
+	// }
 
 	if(r==NULL)
 		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));

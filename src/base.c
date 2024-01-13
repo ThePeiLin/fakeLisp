@@ -2312,7 +2312,34 @@ int fklDelHashItem(void* pkey,FklHashTable* ht,void* deleted)
 	return 0;
 }
 
-void fklRemoveHashItem(FklHashTable* ht,FklHashTableItem** p)
+void fklRemoveHashItem(FklHashTable* ht,FklHashTableItem* hi)
+{
+	uintptr_t (*hashv)(const void*)=ht->t->__hashFunc;
+	void* (*key)(void*)=ht->t->__getKey;
+	void* data=hi->data;
+
+	void* pkey=key(data);
+	FklHashTableItem** p=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	for(;*p;p=&(*p)->ni)
+		if(*p==hi)
+			break;
+
+	if(*p)
+	{
+		*p=hi->ni;
+		if(hi->prev)
+			hi->prev->next=hi->next;
+		if(hi->next)
+			hi->next->prev=hi->prev;
+		if(ht->last==hi)
+			ht->last=hi->prev;
+		if(ht->first==hi)
+			ht->first=hi->next;
+		ht->num--;
+	}
+}
+
+void fklRemoveHashItemWithSlot(FklHashTable* ht,FklHashTableItem** p)
 {
 	FklHashTableItem* item=*p;
 	if(item)

@@ -192,6 +192,17 @@ FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
 	return r;
 }
 
+uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes* pts)
+{
+	pts->count++;
+	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(pts->pa,sizeof(FklFuncPrototype)*(pts->count+1));
+	FKL_ASSERT(pts);
+	pts->pa=pa;
+	FklFuncPrototype* cpt=&pa[pts->count];
+	memset(cpt,0,sizeof(FklFuncPrototype));
+	return pts->count;
+}
+
 void fklUninitFuncPrototype(FklFuncPrototype* p)
 {
 	free(p->refs);

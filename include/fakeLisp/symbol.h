@@ -90,6 +90,7 @@ void fklInitFuncPrototypes(FklFuncPrototypes* pts,uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes* pts);
 
 FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count);
+uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes* pts);
 
 void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
 		,uint32_t builtin_symbol_num

@@ -837,6 +837,7 @@ FklVMvalue* fklCreateVMvalueVecWithPtr(FklVM*,size_t,FklVMvalue* const*);
 FklVMvalue* fklCreateVMvalueVec3(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c);
 FklVMvalue* fklCreateVMvalueVec4(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d);
 FklVMvalue* fklCreateVMvalueVec5(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d,FklVMvalue* f);
+FklVMvalue* fklCreateVMvalueVec6(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d,FklVMvalue* f,FklVMvalue* e);
 
 FklVMvalue* fklCreateVMvalueF64(FklVM*,double f64);
 

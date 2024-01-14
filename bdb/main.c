@@ -318,6 +318,24 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline FklVMvalue* create_breakpoint_vec(FklVM* exe
+		,DebugCtx* dctx
+		,const Breakpoint* item)
+{
+	FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
+	FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
+	FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+
+	FklVMvalue* r=fklCreateVMvalueVec6(exe
+			,num
+			,filename
+			,line
+			,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
+			,fklMakeVMuint(item->count,exe)
+			,item->is_temporary?FKL_VM_TRUE:FKL_VM_NIL);
+	return r;
+}
+
 static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-continue";
@@ -352,8 +370,8 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	fklLockThread(exe);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe
 			,rtp
-			,dctx->interrupted_by_debugger
-			?FKL_VM_TRUE
+			,dctx->reached_breakpoint
+			?create_breakpoint_vec(exe,dctx,dctx->reached_breakpoint)
 			:FKL_VM_NIL);
 	return 0;
 }
@@ -438,18 +456,100 @@ done:
 		}
 		item->cond_exp_obj=cond_exp_obj;
 
-		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
-		FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
-		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
+	}
+	else
+	{
+error:
+		FKL_VM_PUSH_VALUE(exe
+				,fklCreateVMvalueStr(exe
+					,fklCreateStringFromCstr(getPutBreakpointErrorInfo(err))));
+	}
+	return 0;
+}
 
-		FklVMvalue* r=fklCreateVMvalueVec5(exe
-				,num
-				,filename
-				,line
-				,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
-				,fklMakeVMuint(item->count,exe));
+static int bdb_debug_ctx_set_tbreak(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-set-tbreak";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
 
-		FKL_VM_PUSH_VALUE(exe,r);
+	FklSid_t fid=0;
+	uint32_t line=0;
+	PutBreakpointErrorType err=0;
+	Breakpoint* item=NULL;
+
+	FKL_DECL_AND_CHECK_ARG(file_line_sym_obj,exe,Pname);
+
+	if(FKL_IS_SYM(file_line_sym_obj))
+	{
+		FklSid_t id=fklAddSymbol(fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(file_line_sym_obj))->symbol,dctx->st)->id;
+		item=putBreakpointForProcedure(dctx,id);
+		if(item)
+			goto done;
+		else
+		{
+			err=PUT_BP_NOT_A_PROC;
+			goto error;
+		}
+	}
+	else if(fklIsVMint(file_line_sym_obj))
+	{
+		if(fklIsVMnumberLt0(file_line_sym_obj))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		line=fklGetUint(file_line_sym_obj);
+		fid=dctx->curline_file;
+	}
+	else if(FKL_IS_STR(file_line_sym_obj))
+	{
+		FKL_DECL_AND_CHECK_ARG(line_obj,exe,Pname);
+		FKL_CHECK_TYPE(line_obj,fklIsVMint,Pname,exe);
+		if(fklIsVMnumberLt0(line_obj))
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		line=fklGetUint(line_obj);
+		FklString* str=FKL_VM_STR(file_line_sym_obj);
+		if(fklIsAccessibleRegFile(str->str))
+		{
+			char* rp=fklRealpath(str->str);
+			fid=fklAddSymbolCstr(rp,dctx->st)->id;
+			free(rp);
+		}
+		else
+		{
+			char* filename_with_dir=fklStrCat(fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir),str->str);
+			if(fklIsAccessibleRegFile(str->str))
+				fid=fklAddSymbolCstr(filename_with_dir,dctx->st)->id;
+			free(filename_with_dir);
+		}
+	}
+	else 
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	item=putBreakpointWithFileAndLine(dctx,fid,line,&err);
+	FklVMvalue* cond_exp_obj=NULL;
+
+done:
+
+	cond_exp_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(item)
+	{
+		if(cond_exp_obj)
+		{
+			FklNastNode* expression=fklCreateNastNodeFromVMvalue(cond_exp_obj,dctx->curline,NULL,exe->gc);
+			if(!expression)
+				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_CIR_REF,exe);
+			fklVMacquireSt(exe->gc);
+			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+			fklVMreleaseSt(exe->gc);
+			item->cond_exp=expression;
+		}
+		item->is_temporary=1;
+		item->cond_exp_obj=cond_exp_obj;
+
+		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
 	}
 	else
 	{
@@ -478,18 +578,8 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
 			;list=list->next)
 	{
 		Breakpoint* item=((BreakpointHashItem*)list->data)->bp;
-		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
-		FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
-		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-		FklVMvalue* vec_val=fklCreateVMvalueVec5(exe
-				,num
-				,filename
-				,line
-				,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
-				,fklMakeVMuint(item->count,exe));
-
-		*pr=fklCreateVMvaluePairWithCar(exe,vec_val);
+		*pr=fklCreateVMvaluePairWithCar(exe,create_breakpoint_vec(exe,dctx,item));
 		pr=&FKL_VM_CDR(*pr);
 	}
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -512,24 +602,9 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 
 	uint64_t num=fklGetUint(bp_num_obj);
-	FklVMvalue* r=NULL;
 	Breakpoint* item=delBreakpoint(dctx,num);
 	if(item)
-	{
-		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
-		FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
-		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
-
-		FklVMvalue* vec_val=fklCreateVMvalueVec5(exe
-				,num
-				,filename
-				,line
-				,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
-				,fklMakeVMuint(item->count,exe));
-
-		r=vec_val;
-		FKL_VM_PUSH_VALUE(exe,r);
-	}
+		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
 	return 0;
@@ -833,6 +908,7 @@ struct SymFunc
 
 	{"debug-ctx-del-break",       bdb_debug_ctx_del_break,       },
 	{"debug-ctx-set-break",       bdb_debug_ctx_set_break,       },
+	{"debug-ctx-set-tbreak",      bdb_debug_ctx_set_tbreak,      },
 	{"debug-ctx-list-break",      bdb_debug_ctx_list_break,      },
 
 	{"debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over,   },

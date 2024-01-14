@@ -33,24 +33,27 @@
 
 (define (print-cur-line ctx file-prefix line-prefix)
   (define cur-file-line (debug-ctx-get-curline ctx))
-  (println file-prefix
-         (vec-ref cur-file-line 0)
-         ":"
-         (vec-ref cur-file-line 1))
-  (print line-prefix (vec-ref cur-file-line 2)))
+  (when cur-file-line
+    (println file-prefix
+             (vec-ref cur-file-line 0)
+             ":"
+             (vec-ref cur-file-line 1))
+    (print line-prefix (vec-ref cur-file-line 2))))
 
 (define (unknown-cmd-func,_)
   (println "unknown command"))
 
-(define (debug-continue ctx)
-  (when (debug-ctx-continue ctx)
-    (print-cur-line ctx file-prefix line-prefix)))
-
-(define (print-break-point breakpoint)
-  (printf "breakpoint %d at %s:%d\n"
+(define (print-break-point-brief breakpoint)
+  (printf "%s %d at %s:%d\n"
+          (if (vec-ref breakpoint 5)
+            "temp-break"
+            "breakpoint")
           (vec-ref breakpoint 0)
           (vec-ref breakpoint 1)
-          (vec-ref breakpoint 2))
+          (vec-ref breakpoint 2)))
+
+(define (print-break-point breakpoint)
+  (print-break-point-brief breakpoint)
 
   (define cond-exp (vec-ref breakpoint 3))
   (if cond-exp
@@ -60,10 +63,29 @@
   (if (> count 0)
     (printf "\tbreakpoint already hit %d time(s)\n" count)))
 
+(define (debug-continue ctx)
+  (define bp (debug-ctx-continue ctx))
+  (when bp
+    (print "reached ")
+    (print-break-point-brief bp))
+  (print-cur-line ctx file-prefix line-prefix))
+
 (define (debug-breakpoint ctx,rest)
   (cond
     [rest
       (define breakpoint (apply debug-ctx-set-break ctx rest))
+      (if (vector? breakpoint)
+        (print-break-point breakpoint)
+        (println breakpoint))]
+    [1
+     (define breakpoints (debug-ctx-list-break ctx))
+     (when breakpoints
+       (foreach print-break-point breakpoints))]))
+
+(define (debug-temporary-breakpoint ctx,rest)
+  (cond
+    [rest
+      (define breakpoint (apply debug-ctx-set-tbreak ctx rest))
       (if (vector? breakpoint)
         (print-break-point breakpoint)
         (println breakpoint))]
@@ -150,23 +172,19 @@
 
 (define (debug-return ctx)
   (debug-ctx-set-step-out ctx)
-  (when (debug-ctx-continue ctx)
-    (print-cur-line ctx file-prefix line-prefix)))
+  (debug-continue ctx))
 
 (define (debug-step ctx)
   (debug-ctx-set-step-into ctx)
-  (when (debug-ctx-continue ctx)
-    (print-cur-line ctx file-prefix line-prefix)))
+  (debug-continue ctx))
 
 (define (debug-next ctx)
   (debug-ctx-set-step-over ctx)
-  (when (debug-ctx-continue ctx)
-    (print-cur-line ctx file-prefix line-prefix)))
+  (debug-continue ctx))
 
 (define (debug-until ctx,rest)
   (apply debug-ctx-set-until ctx rest)
-  (when (debug-ctx-continue ctx)
-    (print-cur-line ctx file-prefix line-prefix)))
+  (debug-continue ctx))
 
 (define (debug-where ctx)
   (debug-ctx-back-trace ctx line-prefix))
@@ -204,6 +222,7 @@
     'exit debug-ctx-exit
     'continue debug-continue
     'break debug-breakpoint
+    'tbreak debug-temporary-breakpoint
     'delete debug-del-breakpoint
     'list debug-list-src
     'next debug-next

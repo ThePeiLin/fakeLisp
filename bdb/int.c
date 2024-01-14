@@ -30,6 +30,8 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 		setReachedThread(ctx,vm);
 		getCurLineStr(ctx,bp->fid,bp->line);
 		bp->count++;
+		if(bp->is_temporary)
+			delBreakpoint(ctx,bp->num);
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else

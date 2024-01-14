@@ -7,6 +7,9 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 	if(arg->bp)
 	{
 		Breakpoint* bp=arg->bp;
+		for(;bp&&bp->is_disabled;bp=bp->next);
+		if(bp==NULL)
+			return;
 		ctx->reached_breakpoint=bp;
 		if(bp->cond_exp_obj)
 		{

@@ -332,7 +332,7 @@ static inline FklVMvalue* create_breakpoint_vec(FklVM* exe
 			,line
 			,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
 			,fklMakeVMuint(item->count,exe)
-			,item->is_temporary?FKL_VM_TRUE:FKL_VM_NIL);
+			,fklCreateVMvaluePair(exe,item->is_disabled?FKL_VM_NIL:FKL_VM_TRUE,item->is_temporary?FKL_VM_TRUE:FKL_VM_NIL));
 	return r;
 }
 
@@ -603,6 +603,29 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 
 	uint64_t num=fklGetUint(bp_num_obj);
 	Breakpoint* item=delBreakpoint(dctx,num);
+	if(item)
+		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
+	return 0;
+}
+
+static int bdb_debug_ctx_dis_break(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-dis-break";
+	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,bp_num_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(bp_num_obj,FKL_IS_FIX,Pname,exe);
+
+	if(fklIsVMnumberLt0(bp_num_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	uint64_t num=fklGetUint(bp_num_obj);
+	Breakpoint* item=disBreakpoint(dctx,num);
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
 	else
@@ -907,6 +930,7 @@ struct SymFunc
 	{"debug-ctx-set-list-src",    bdb_debug_ctx_set_list_src,    },
 
 	{"debug-ctx-del-break",       bdb_debug_ctx_del_break,       },
+	{"debug-ctx-dis-break",       bdb_debug_ctx_dis_break,       },
 	{"debug-ctx-set-break",       bdb_debug_ctx_set_break,       },
 	{"debug-ctx-set-tbreak",      bdb_debug_ctx_set_tbreak,      },
 	{"debug-ctx-list-break",      bdb_debug_ctx_list_break,      },

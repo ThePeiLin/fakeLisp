@@ -67,6 +67,17 @@ Breakpoint* getBreakpointFromWrapper(FklVMvalue* v)
 	return bpw->bp;
 }
 
+Breakpoint* disBreakpoint(DebugCtx* dctx,uint64_t num)
+{
+	BreakpointHashItem* i=fklGetHashItem(&num,&dctx->breakpoints);
+	if(i)
+	{
+		i->bp->is_disabled=1;
+		return i->bp;
+	}
+	return NULL;
+}
+
 Breakpoint* delBreakpoint(DebugCtx* dctx,uint64_t num)
 {
 	BreakpointHashItem item={.num=0,.bp=NULL,};
@@ -143,7 +154,7 @@ Breakpoint* delBreakpoint(DebugCtx* dctx,uint64_t num)
 	// 		break;
 	// 	}
 	// }
-	return NULL;
+	// return NULL;
 }
 
 void markBreakpointCondExpObj(DebugCtx* dctx,FklVMgc* gc)

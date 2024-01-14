@@ -62,6 +62,7 @@ typedef struct Breakpoint
 	uint8_t compiled;
 	uint8_t is_temporary;
 	uint8_t is_deleted;
+	uint8_t is_disabled;
 
 	struct DebugCtx* ctx;
 	FklInstruction* ins;
@@ -190,6 +191,7 @@ int isBreakpointWrapper(FklVMvalue* v);
 Breakpoint* getBreakpointFromWrapper(FklVMvalue* v);
 
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
+Breakpoint* disBreakpoint(DebugCtx* ctx,uint64_t num);
 Breakpoint* delBreakpoint(DebugCtx* ctx,uint64_t num);
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 

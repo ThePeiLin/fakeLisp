@@ -192,6 +192,7 @@ Breakpoint* getBreakpointFromWrapper(FklVMvalue* v);
 
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 Breakpoint* disBreakpoint(DebugCtx* ctx,uint64_t num);
+Breakpoint* enableBreakpoint(DebugCtx* ctx,uint64_t num);
 Breakpoint* delBreakpoint(DebugCtx* ctx,uint64_t num);
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 

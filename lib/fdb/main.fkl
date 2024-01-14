@@ -14,6 +14,7 @@
     "break: set break point\n"
     "delete: delete break point\n"
     "disable: disable break point\n"
+    "enable: enable break point\n"
     "next: run the program until next line\n"
     "step: run the program until next line, but step in function\n"
     "restart: restart the debugger\n"
@@ -26,7 +27,7 @@
     'continue "continue the program until end or reach break point"
     'break "set break point"
     'delete "delete break point"
-    'disable "disable break point"
+    'enable "enable break point"
     'next "run the program until next line, but step in function"
     'step "run the program until next line, but step in function"
     'return "run the program until function return"
@@ -105,7 +106,7 @@
       (if (vector? bp)
         (begin
           (print "deleted ")
-          (print-break-point bp))
+          (print-break-point-brief bp))
         (begin
           (if (> num bp)
             (println "breakpoint number "
@@ -122,6 +123,24 @@
       (define bp (debug-ctx-dis-break ctx num))
       (if (vector? bp)
         (print-break-point-brief bp)
+        (begin
+          (if (> num bp)
+            (println "breakpoint number "
+                     num
+                     " out of range")
+            (println "breakpoint number "
+                     num
+                     " already be deleted")))))
+    rest))
+
+(define (debug-enable-breakpoint ctx,rest)
+  (foreach
+    (lambda (num)
+      (define bp (debug-ctx-enable-break ctx num))
+      (if (vector? bp)
+        (begin
+          (print "enabled ")
+          (print-break-point-brief bp))
         (begin
           (if (> num bp)
             (println "breakpoint number "
@@ -245,6 +264,7 @@
     'tbreak debug-temporary-breakpoint
     'delete debug-del-breakpoint
     'disable debug-dis-breakpoint
+    'enable debug-enable-breakpoint
     'list debug-list-src
     'next debug-next
     'step debug-step

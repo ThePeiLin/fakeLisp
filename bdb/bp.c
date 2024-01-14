@@ -78,6 +78,17 @@ Breakpoint* disBreakpoint(DebugCtx* dctx,uint64_t num)
 	return NULL;
 }
 
+Breakpoint* enableBreakpoint(DebugCtx* dctx,uint64_t num)
+{
+	BreakpointHashItem* i=fklGetHashItem(&num,&dctx->breakpoints);
+	if(i)
+	{
+		i->bp->is_disabled=0;
+		return i->bp;
+	}
+	return NULL;
+}
+
 Breakpoint* delBreakpoint(DebugCtx* dctx,uint64_t num)
 {
 	BreakpointHashItem item={.num=0,.bp=NULL,};

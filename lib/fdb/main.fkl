@@ -47,16 +47,18 @@
     (print-cur-line ctx file-prefix line-prefix)))
 
 (define (print-break-point breakpoint)
-  (if (> (length breakpoint) 3)
-    (printf "breakpoint %d at %s:%d\n\t stop only if %S\n"
-            (vec-ref breakpoint 0)
-            (vec-ref breakpoint 1)
-            (vec-ref breakpoint 2)
-            (vec-ref breakpoint 3))
-    (printf "breakpoint %d at %s:%d\n"
-            (vec-ref breakpoint 0)
-            (vec-ref breakpoint 1)
-            (vec-ref breakpoint 2))))
+  (printf "breakpoint %d at %s:%d\n"
+          (vec-ref breakpoint 0)
+          (vec-ref breakpoint 1)
+          (vec-ref breakpoint 2))
+
+  (define cond-exp (vec-ref breakpoint 3))
+  (if cond-exp
+    (printf "\tstop only if %S\n" (unbox cond-exp)))
+
+  (define count (vec-ref breakpoint 4))
+  (if (> count 0)
+    (printf "\tbreakpoint already hit %d time(s)\n" count)))
 
 (define (debug-breakpoint ctx,rest)
   (cond

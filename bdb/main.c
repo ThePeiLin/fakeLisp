@@ -369,7 +369,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 	FklSid_t fid=0;
 	uint32_t line=0;
 	PutBreakpointErrorType err=0;
-	BreakpointHashItem* item=NULL;
+	Breakpoint* item=NULL;
 
 	FKL_DECL_AND_CHECK_ARG(file_line_sym_obj,exe,Pname);
 
@@ -438,22 +438,16 @@ done:
 		}
 		item->cond_exp_obj=cond_exp_obj;
 
-		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
-		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
+		FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
-		FklVMvalue* r=NULL;
-		if(cond_exp_obj)
-			r=fklCreateVMvalueVec4(exe
-					,num
-					,filename
-					,line
-					,cond_exp_obj);
-		else
-			r=fklCreateVMvalueVec3(exe
-					,num
-					,filename
-					,line);
 
+		FklVMvalue* r=fklCreateVMvalueVec5(exe
+				,num
+				,filename
+				,line
+				,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
+				,fklMakeVMuint(item->count,exe));
 
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
@@ -483,23 +477,17 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
 			;list
 			;list=list->next)
 	{
-		BreakpointHashItem* item=(BreakpointHashItem*)list->data;
-		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
-		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+		Breakpoint* item=((BreakpointHashItem*)list->data)->bp;
+		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
+		FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-		FklVMvalue* vec_val=NULL;
-		if(item->cond_exp_obj)
-			vec_val=fklCreateVMvalueVec4(exe
-					,num
-					,filename
-					,line
-					,item->cond_exp_obj);
-		else
-			vec_val=fklCreateVMvalueVec3(exe
-					,num
-					,filename
-					,line);
+		FklVMvalue* vec_val=fklCreateVMvalueVec5(exe
+				,num
+				,filename
+				,line
+				,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
+				,fklMakeVMuint(item->count,exe));
 
 		*pr=fklCreateVMvaluePairWithCar(exe,vec_val);
 		pr=&FKL_VM_CDR(*pr);
@@ -525,25 +513,19 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 
 	uint64_t num=fklGetUint(bp_num_obj);
 	FklVMvalue* r=NULL;
-	BreakpointHashItem* item=delBreakpoint(dctx,num);
+	Breakpoint* item=delBreakpoint(dctx,num);
 	if(item)
 	{
-		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->key.fid,dctx->st)->symbol));
-		FklVMvalue* line=FKL_MAKE_VM_FIX(item->key.line);
+		FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
+		FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
 		FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
 
-		FklVMvalue* vec_val=NULL;
-		if(item->cond_exp_obj)
-			vec_val=fklCreateVMvalueVec4(exe
-					,num
-					,filename
-					,line
-					,item->cond_exp_obj);
-		else
-			vec_val=fklCreateVMvalueVec3(exe
-					,num
-					,filename
-					,line);
+		FklVMvalue* vec_val=fklCreateVMvalueVec5(exe
+				,num
+				,filename
+				,line
+				,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
+				,fklMakeVMuint(item->count,exe));
 
 		r=vec_val;
 		FKL_VM_PUSH_VALUE(exe,r);

@@ -45,7 +45,7 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 {
 	if(exe->is_single_thread)
 	{
-		FklInstruction* oins=&((BreakpointHashItem*)ins->ptr)->origin_ins;
+		FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
 		exe->ins_table[oins->op](exe,oins);
 	}
 	else
@@ -59,7 +59,7 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 static void B_int33(FKL_VM_INS_FUNC_ARGL)
 {
 	exe->ins_table[0]=B_int3;
-	FklInstruction* oins=&((BreakpointHashItem*)ins->ptr)->origin_ins;
+	FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
 	exe->ins_table[oins->op](exe,oins);
 }
 
@@ -287,7 +287,7 @@ static void dbg_extra_mark(FklVMgc* gc,void* arg)
 			;l
 			;l=l->next)
 	{
-		BreakpointHashItem* i=(BreakpointHashItem*)l->data;
+		Breakpoint* i=((BreakpointHashItem*)l->data)->bp;
 		if(i->compiled)
 			fklVMgcToGray(i->proc,gc);
 	}
@@ -374,7 +374,7 @@ void toggleVMint3(FklVM* exe)
 		exe->ins_table[0]=B_int33;
 }
 
-BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx
+Breakpoint* putBreakpointWithFileAndLine(DebugCtx* ctx
 		,FklSid_t fid
 		,uint32_t line
 		,PutBreakpointErrorType* err)
@@ -391,7 +391,7 @@ BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx
 		return NULL;
 	}
 
-	uint64_t scp=0;
+	// uint64_t scp=0;
 	FklInstruction* ins=NULL;
 	for(;line<=sc_item->lines.top;line++)
 	{
@@ -415,22 +415,28 @@ BreakpointHashItem* putBreakpointWithFileAndLine(DebugCtx* ctx
 break_loop:
 	if(ins)
 	{
-		BreakpointHashKey key={.fid=fid,.line=line,.pc=scp};
-		BreakpointHashItem t={.key=key,.num=0};
-		BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
-		if(item->ctx)
-			return item;
-		else
-		{
-			ctx->breakpoint_num++;
-			item->num=ctx->breakpoint_num;
-			item->ctx=ctx;
-			item->origin_ins=*ins;
-			item->ins=ins;
-			ins->op=0;
-			ins->ptr=item;
-			return item;
-		}
+		ctx->breakpoint_num++;
+		BreakpointHashItem* item=fklPutHashItem(&ctx->breakpoint_num,&ctx->breakpoints);
+		// item->bp=createBreakpoint(fid,line,scp,ctx,ins);
+		item->bp=createBreakpoint(ctx->breakpoint_num,fid,line,ins,ctx);
+		return item->bp;
+
+		// BreakpointHashKey key={.fid=fid,.line=line,.pc=scp};
+		// BreakpointHashItem t={.key=key,.num=0};
+		// BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
+		// if(item->ctx)
+		// 	return item;
+		// else
+		// {
+		// 	ctx->breakpoint_num++;
+		// 	item->num=ctx->breakpoint_num;
+		// 	item->ctx=ctx;
+		// 	item->origin_ins=*ins;
+		// 	item->ins=ins;
+		// 	ins->op=0;
+		// 	ins->ptr=item;
+		// 	return item;
+		// }
 	}
 	*err=PUT_BP_AT_END_OF_FILE;
 	return NULL;
@@ -491,30 +497,34 @@ static inline const FklLineNumberTableItem* get_proc_start_line_number(const Fkl
 			,code->l);
 }
 
-static inline BreakpointHashItem* put_breakpoint_with_pc(DebugCtx* ctx
+static inline Breakpoint* put_breakpoint_with_pc(DebugCtx* ctx
 		,uint64_t pc
 		,FklInstruction* ins
 		,const FklLineNumberTableItem* ln)
 {
-	BreakpointHashKey key={.fid=ln->fid,.line=ln->line,.pc=pc};
-	BreakpointHashItem t={.key=key,.num=0};
-	BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
-	if(item->ctx)
-		return item;
-	else
-	{
-		ctx->breakpoint_num++;
-		item->num=ctx->breakpoint_num;
-		item->ctx=ctx;
-		item->origin_ins=*ins;
-		item->ins=ins;
-		ins->op=0;
-		ins->ptr=item;
-		return item;
-	}
+	ctx->breakpoint_num++;
+	BreakpointHashItem* item=fklPutHashItem(&ctx->breakpoint_num,&ctx->breakpoints);
+	item->bp=createBreakpoint(ctx->breakpoint_num,ln->fid,ln->line,ins,ctx);
+	return item->bp;
+	// // BreakpointHashKey key={.fid=ln->fid,.line=ln->line,.pc=pc};
+	// // BreakpointHashItem t={.key=key,.num=0};
+	// // BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
+	// if(item->ctx)
+	// 	return item;
+	// else
+	// {
+	// 	ctx->breakpoint_num++;
+	// 	item->num=ctx->breakpoint_num;
+	// 	item->ctx=ctx;
+	// 	item->origin_ins=*ins;
+	// 	item->ins=ins;
+	// 	ins->op=0;
+	// 	ins->ptr=item;
+	// 	return item;
+	// }
 }
 
-BreakpointHashItem* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
+Breakpoint* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
 {
 	FklVMvalue* var_value=findLocalVar(ctx,name_sid);
 	if(var_value==NULL)

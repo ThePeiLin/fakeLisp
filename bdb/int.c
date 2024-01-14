@@ -6,7 +6,7 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 	DebugCtx* ctx=arg->ctx;
 	if(arg->bp)
 	{
-		BreakpointHashItem* bp=arg->bp;
+		Breakpoint* bp=arg->bp;
 		ctx->reached_breakpoint=bp;
 		if(bp->cond_exp_obj)
 		{
@@ -28,7 +28,8 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 			}
 		}
 		setReachedThread(ctx,vm);
-		getCurLineStr(ctx,bp->key.fid,bp->key.line);
+		getCurLineStr(ctx,bp->fid,bp->line);
+		bp->count++;
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else
@@ -65,7 +66,7 @@ int dbgInterruptHandler(FklVMgc* gc
 	DebugCtx* ctx=(DebugCtx*)arg;
 	if(isBreakpointWrapper(int_val))
 	{
-		BreakpointHashItem* bp=getBreakpointFromWrapper(int_val);
+		Breakpoint* bp=getBreakpointFromWrapper(int_val);
 		DbgInterruptArg arg=
 		{
 			.bp=bp,

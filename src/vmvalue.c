@@ -1496,6 +1496,31 @@ FklVMvalue* fklCreateVMvalueVec4(FklVM* exe
 	return r;
 }
 
+FklVMvalue* fklCreateVMvalueVec5(FklVM* exe
+		,FklVMvalue* a
+		,FklVMvalue* b
+		,FklVMvalue* c
+		,FklVMvalue* d
+		,FklVMvalue* f)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_VECTOR;
+	FklVMvec* v=FKL_VM_VEC(r);
+	size_t ss=5*sizeof(FklVMvalue*);
+	FklVMvalue** base=(FklVMvalue**)malloc(ss);
+	FKL_ASSERT(base);
+	base[0]=a;
+	base[1]=b;
+	base[2]=c;
+	base[3]=d;
+	base[4]=f;
+	v->base=base;
+	v->size=5;
+	fklAddToGC(r,exe);
+	return r;
+}
+
 FklVMvalue* fklCreateVMvalueBox(FklVM* exe,FklVMvalue* b)
 {
 	FklVMvalue* r=NEW_OBJ(FklVMvalueBox);

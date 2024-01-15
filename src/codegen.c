@@ -9803,7 +9803,7 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,uint64_t curline
 		,FklSymbolTable* publicSymbolTable)
 {
-	FklVM* anotherVM=fklCreateVM(fklCopyByteCodelnt(bcl)
+	FklVM* anotherVM=fklCreateVMwithByteCode(fklCopyByteCodelnt(bcl)
 			,publicSymbolTable
 			,pts
 			,prototype_id);

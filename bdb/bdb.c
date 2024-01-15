@@ -1,4 +1,5 @@
 #include"bdb.h"
+#include "fakeLisp/vm.h"
 #include<fakeLisp/builtin.h>
 #include<string.h>
 
@@ -95,7 +96,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	FklPtrStack* scriptLibStack=codegen.libStack;
-	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);
+	FklVM* anotherVM=fklCreateVMwithByteCode(mainByteCode,codegen.globalSymTable,codegen.pts,1);
 	codegen.globalSymTable=NULL;
 	codegen.pts=NULL;
 	anotherVM->libNum=scriptLibStack->top;
@@ -271,9 +272,8 @@ static inline void get_all_code_objs(DebugCtx* ctx)
 	}
 }
 
-static void dbg_extra_mark(FklVMgc* gc,void* arg)
+static inline void internal_dbg_extra_mark(DebugCtx* ctx,FklVMgc* gc)
 {
-	DebugCtx* ctx=(DebugCtx*)arg;
 	FklVMvalue** base=(FklVMvalue**)ctx->extra_mark_value.base;
 	FklVMvalue** const last=&base[ctx->extra_mark_value.top];
 	for(;base<last;base++)
@@ -291,6 +291,12 @@ static void dbg_extra_mark(FklVMgc* gc,void* arg)
 		if(i->compiled)
 			fklVMgcToGray(i->proc,gc);
 	}
+}
+
+static void dbg_extra_mark(FklVMgc* gc,void* arg)
+{
+	DebugCtx* ctx=(DebugCtx*)arg;
+	internal_dbg_extra_mark(ctx,gc);
 }
 
 FklVMvalue* getMainProc(DebugCtx* ctx)
@@ -647,5 +653,51 @@ void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp)
 void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp)
 {
 	fprintf(stdout,"*** can't evaluate expression in thread %u ***\n",ctx->curthread_idx);
+}
+
+void setAllThreadReadyToExit(FklVM* head)
+{
+	fklSetThreadReadyToExit(head);
+	for(FklVM* cur=head->next;cur!=head;cur=cur->next)
+		fklSetThreadReadyToExit(cur);
+}
+
+void waitAllThreadExit(FklVM* head)
+{
+	FklVMgc* gc=head->gc;
+	fklVMreleaseWq(gc);
+	fklVMcontinueTheWorld(gc);
+	fklVMidleLoop(gc);
+	fklDestroyAllVMs(gc->main_thread);
+}
+
+void restartDebugging(DebugCtx* ctx)
+{
+	FklVMgc* gc=ctx->gc;
+	internal_dbg_extra_mark(ctx,gc);
+	while(!fklVMgcPropagate(gc));
+	FklVMvalue* white=NULL;
+	fklVMgcCollect(gc,&white);
+	fklVMgcSweep(white);
+	fklVMgcRemoveUnusedGrayCache(gc);
+	fklVMgcUpdateThreshold(gc);
+
+	FklVMvalue** base=(FklVMvalue**)ctx->extra_mark_value.base;
+	FklVMvalue** const end=&base[ctx->extra_mark_value.top];
+	FklVMvalue* main_proc=base[0];
+
+	base++;
+	uint64_t lib_num=ctx->extra_mark_value.top-1;
+	FklVMlib* libs=(FklVMlib*)calloc(lib_num+1,sizeof(FklVMlib));
+	FKL_ASSERT(libs);
+	for(uint64_t i=1;base<end;base++,i++)
+		fklInitVMlib(&libs[i],*base);
+
+	FklVM* main_thread=fklCreateVM(main_proc,gc,lib_num,libs);
+	ctx->reached_thread=main_thread;
+	ctx->running=0;
+	main_thread->ins_table[0]=B_int3;
+	gc->main_thread=main_thread;
+	fklVMthreadStart(main_thread,&gc->q);
 }
 

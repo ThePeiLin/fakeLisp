@@ -90,8 +90,8 @@ typedef struct DebugCtx
 	FklHashTable file_sid_set;
 	FklSymbolTable* st;
 
-	int end;
-	int interrupted_by_debugger;
+	int exit;
+	int running;
 
 	uint32_t curlist_line;
 	uint32_t curline;
@@ -209,6 +209,7 @@ FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 		,void* arg);
 void setAllThreadReadyToExit(FklVM* head);
 void waitAllThreadExit(FklVM* head);
+void restartDebugging(DebugCtx* ctx);
 
 FklVMvalue* getMainProc(DebugCtx* ctx);
 FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame);

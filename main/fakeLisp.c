@@ -56,7 +56,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	FklPtrStack* scriptLibStack=codegen.libStack;
-	FklVM* anotherVM=fklCreateVM(mainByteCode,codegen.globalSymTable,codegen.pts,1);
+	FklVM* anotherVM=fklCreateVMwithByteCode(mainByteCode,codegen.globalSymTable,codegen.pts,1);
 	codegen.globalSymTable=NULL;
 	codegen.pts=NULL;
 	anotherVM->libNum=scriptLibStack->top;
@@ -121,7 +121,7 @@ static inline int runCode(const char* filename,int argc,const char* const* argv)
 	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
 	FklByteCodelnt* mainCodelnt=fklLoadByteCodelnt(fp);
 
-	FklVM* anotherVM=fklCreateVM(mainCodelnt,table,prototypes,1);
+	FklVM* anotherVM=fklCreateVMwithByteCode(mainCodelnt,table,prototypes,1);
 
 	FklVMgc* gc=anotherVM->gc;
 	FklVMframe* mainframe=anotherVM->top_frame;
@@ -213,7 +213,7 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 	FklByteCodelnt* main_byte_code=main_lib->bcl;
 	fklDestroyCodegenLibExceptBclAndDll(main_lib);
 
-	FklVM* anotherVM=fklCreateVM(main_byte_code,&gst,pts,1);
+	FklVM* anotherVM=fklCreateVMwithByteCode(main_byte_code,&gst,pts,1);
 
 	anotherVM->libNum=scriptLibStack.top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack.top+1),sizeof(FklVMlib));
@@ -320,7 +320,7 @@ int main(int argc,const char* const* argv)
 
 static int runRepl(FklCodegenInfo* codegen)
 {
-	FklVM* anotherVM=fklCreateVM(NULL,codegen->globalSymTable,codegen->pts,1);
+	FklVM* anotherVM=fklCreateVMwithByteCode(NULL,codegen->globalSymTable,codegen->pts,1);
 	anotherVM->libs=(FklVMlib*)calloc(1,sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 

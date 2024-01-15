@@ -482,7 +482,7 @@ static inline void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
 		next->prev=cur;
 }
 
-FklVM* fklCreateVM(FklByteCodelnt* mainCode
+FklVM* fklCreateVMwithByteCode(FklByteCodelnt* mainCode
 		,FklSymbolTable* globalSymTable
 		,FklFuncPrototypes* pts
 		,uint32_t pid)
@@ -1331,8 +1331,7 @@ static inline void vm_idle_loop(FklVMgc* gc)
 			fklVMgcCollect(gc,&white);
 			fklVMgcSweep(white);
 			fklVMgcRemoveUnusedGrayCache(gc);
-
-			gc->threshold=gc->num*2;
+			fklVMgcUpdateThreshold(gc);
 
 			FklPtrQueue other_running_q;
 			fklInitPtrQueue(&other_running_q);
@@ -2838,6 +2837,26 @@ static inline FklVMlib* copy_vm_libs(FklVMlib* libs,size_t libNum)
 	for(size_t i=0;i<libNum;i++)
 		r[i].belong=0;
 	return r;
+}
+
+FklVM* fklCreateVM(FklVMvalue* proc,FklVMgc* gc,uint64_t lib_num,FklVMlib* libs)
+{
+	FklVM* exe=(FklVM*)calloc(1,sizeof(FklVM));
+	FKL_ASSERT(exe);
+	exe->gc=gc;
+	exe->prev=exe;
+	exe->next=exe;
+	fklInitVMstack(exe);
+	exe->libNum=lib_num;
+	exe->libs=libs;
+	exe->pts=gc->pts;
+	exe->frame_cache_head=&exe->static_frame;
+	exe->frame_cache_tail=&exe->frame_cache_head->prev;
+	exe->state=FKL_VM_READY;
+	memcpy(exe->ins_table,InsFuncTable,sizeof(InsFuncTable));
+	fklCallObj(exe,proc);
+	uv_mutex_init(&exe->lock);
+	return exe;
 }
 
 FklVM* fklCreateThreadVM(FklVMvalue* nextCall

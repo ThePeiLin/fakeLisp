@@ -146,16 +146,29 @@ static int bdb_debug_ctx_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int bdb_debug_ctx_end_p(FKL_CPROC_ARGL)
+static int bdb_debug_ctx_exit_p(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="bdb.debug-ctx-end?";
+	static const char Pname[]="bdb.debug-ctx-exit?";
 	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	FKL_VM_PUSH_VALUE(exe,debug_ud->ctx->end
+	FKL_VM_PUSH_VALUE(exe,debug_ud->ctx->exit
 			?FKL_VM_TRUE
 			:FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_done_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-done?";
+	FKL_DECL_AND_CHECK_ARG(obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
+	FKL_VM_PUSH_VALUE(exe,debug_ud->ctx->reached_thread
+			?FKL_VM_NIL
+			:FKL_VM_TRUE);
 	return 0;
 }
 
@@ -166,7 +179,7 @@ static int bdb_debug_ctx_exit(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(obj,IS_DEBUG_CTX_UD,Pname,exe);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,obj);
-	debug_ud->ctx->end=1;
+	debug_ud->ctx->exit=1;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -226,7 +239,7 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 
 		if(!restLen&&ctx->symbolStack.top==0&&is_eof)
 		{
-			dctx->end=1;
+			dctx->exit=1;
 			return fklCreateVMvalueEof(exe);
 		}
 		else if((err==FKL_PARSE_WAITING_FOR_MORE
@@ -348,32 +361,30 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	fklUnlockThread(exe);
+	dctx->running=1;
 	dctx->reached_breakpoint=NULL;
 	dctx->reached_thread=NULL;
 	int jmp_result=setjmp(dctx->jmpb);
 	if(jmp_result==DBG_INTERRUPTED)
 	{
-		dctx->interrupted_by_debugger=1;
 		if(dctx->reached_breakpoint)
 			unsetStepping(dctx);
 	}
 	else if(jmp_result==DBG_ERROR_OCCUR)
 	{
-		dctx->interrupted_by_debugger=1;
 		setAllThreadReadyToExit(dctx->reached_thread);
 		waitAllThreadExit(dctx->reached_thread);
 		dctx->reached_thread=NULL;
 	}
 	else
 	{
-		if(dctx->interrupted_by_debugger)
+		if(dctx->running)
 		{
 			dctx->reached_breakpoint=NULL;
 			fklVMreleaseWq(dctx->gc);
 			fklVMcontinueTheWorld(dctx->gc);
 		}
 		fklVMtrappingIdleLoop(dctx->gc);
-		dctx->interrupted_by_debugger=0;
 	}
 	fklLockThread(exe);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe
@@ -381,6 +392,34 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 			,dctx->reached_breakpoint
 			?create_breakpoint_vec(exe,dctx,dctx->reached_breakpoint)
 			:FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_restart(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-restart";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	uint32_t rtp=exe->tp;
+	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
+	if(dctx->running)
+	{
+		if(dctx->reached_thread)
+		{
+			fklUnlockThread(exe);
+			setAllThreadReadyToExit(dctx->reached_thread);
+			waitAllThreadExit(dctx->reached_thread);
+			fklLockThread(exe);
+		}
+		restartDebugging(dctx);
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_TRUE);
+	}
+	else
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
 	return 0;
 }
 
@@ -973,9 +1012,11 @@ struct SymFunc
 	{"debug-ctx-set-until",       bdb_debug_ctx_set_until,       },
 
 	{"debug-ctx-continue",        bdb_debug_ctx_continue,        },
-	{"debug-ctx-end?",            bdb_debug_ctx_end_p,           },
+	{"debug-ctx-exit?",           bdb_debug_ctx_exit_p,          },
+	{"debug-ctx-done?",           bdb_debug_ctx_done_p,          },
 	{"debug-ctx-exit",            bdb_debug_ctx_exit,            },
 	{"debug-ctx-eval",            bdb_debug_ctx_eval,            },
+	{"debug-ctx-restart",         bdb_debug_ctx_restart,         },
 
 	{"debug-ctx-print-cur-frame", bdb_debug_ctx_print_cur_frame, },
 	{"debug-ctx-back-trace",      bdb_debug_ctx_back_trace,      },

@@ -660,7 +660,8 @@ void fklVMpushExtraMarkFunc(FklVMgc*,FklVMextraMarkFunc,void*);
 
 void fklRunVMinSingleThread(FklVM* exe);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
-FklVM* fklCreateVM(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
+FklVM* fklCreateVMwithByteCode(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
+FklVM* fklCreateVM(FklVMvalue* proc,FklVMgc* gc,uint64_t lib_num,FklVMlib* libs);
 FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* prev
 		,FklVM* next
@@ -691,6 +692,7 @@ int fklVMgcPropagate(FklVMgc* gc);
 void fklVMgcCollect(FklVMgc* gc,FklVMvalue** pw);
 void fklVMgcSweep(FklVMvalue*);
 void fklVMgcRemoveUnusedGrayCache(FklVMgc* gc);
+void fklVMgcUpdateThreshold(FklVMgc*);
 
 void fklDestroyVMgc(FklVMgc*);
 

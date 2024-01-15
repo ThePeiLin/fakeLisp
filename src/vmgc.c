@@ -377,6 +377,11 @@ void fklVMgcRemoveUnusedGrayCache(FklVMgc* gc)
 	gc->gray_list_cache=NULL;
 }
 
+void fklVMgcUpdateThreshold(FklVMgc* gc)
+{
+	gc->threshold=gc->num*2;
+}
+
 static inline void destroy_argv(FklVMgc* gc)
 {
 	if(gc->argc)

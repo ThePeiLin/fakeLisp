@@ -11,13 +11,13 @@
     "exit: exit\n"
     "list: list source code\n"
     "continue: continue the program until end or reach break point\n"
+    "restart: restart debug with same arguement\n"
     "break: set break point\n"
     "delete: delete break point\n"
     "disable: disable break point\n"
     "enable: enable break point\n"
     "next: run the program until next line\n"
     "step: run the program until next line, but step in function\n"
-    "restart: restart the debugger\n"
     "return: run the program until function return\n"))
 
 (define help-doc-hash
@@ -25,13 +25,13 @@
     'exit "exit"
     'list "list source code"
     'continue "continue the program until end or reach break point"
+    'restart "restart debug with same arguement"
     'break "set break point"
     'delete "delete break point"
     'enable "enable break point"
     'next "run the program until next line, but step in function"
     'step "run the program until next line, but step in function"
     'return "run the program until function return"
-    'restart "restart the debugger"
     'help "print this help doc or print the help of command"))
 
 (define (print-cur-line ctx file-prefix line-prefix)
@@ -68,12 +68,20 @@
   (if (> count 0)
     (printf "\tbreakpoint already hit %d time(s)\n" count)))
 
+(define (debug-restart ctx)
+  (when (debug-ctx-restart ctx)
+    (print-cur-line ctx file-prefix line-prefix)))
+
 (define (debug-continue ctx)
-  (define bp (debug-ctx-continue ctx))
-  (when bp
-    (print "reached ")
-    (print-break-point-brief bp))
-  (print-cur-line ctx file-prefix line-prefix))
+  (cond
+    [(debug-ctx-done? ctx)
+     (debug-restart ctx)]
+    [1
+     (define bp (debug-ctx-continue ctx))
+     (when bp
+       (print "reached ")
+       (print-break-point-brief bp))
+     (print-cur-line ctx file-prefix line-prefix)]))
 
 (define (debug-breakpoint ctx,rest)
   (cond
@@ -260,6 +268,7 @@
   (make-hash
     'exit debug-ctx-exit
     'continue debug-continue
+    'restart debug-restart
     'break debug-breakpoint
     'tbreak debug-temporary-breakpoint
     'delete debug-del-breakpoint
@@ -293,10 +302,10 @@
         (r,return)
         (h,help)))
 
-(define (debug-ctx-run ctx prompt file-prefix line-prefix)
+(define (debug-run ctx prompt file-prefix line-prefix)
   (print-cur-line ctx file-prefix line-prefix)
   (do []
-    [(debug-ctx-end? ctx)]
+    [(debug-ctx-exit? ctx)]
     (define cmd (debug-ctx-repl ctx prompt))
     (unless (eof? cmd)
       (define cmd-func (hash-ref debug-cmd-func
@@ -323,7 +332,7 @@
   (define cmd-func-table
     (make-hash))
 
-  (debug-ctx-run dbg-ctx prompt file-prefix line-prefix))
+  (debug-run dbg-ctx prompt file-prefix line-prefix))
 
 (if *main?*
   (fdb-main))

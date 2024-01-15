@@ -358,7 +358,12 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 			unsetStepping(dctx);
 	}
 	else if(jmp_result==DBG_ERROR_OCCUR)
+	{
 		dctx->interrupted_by_debugger=1;
+		setAllThreadReadyToExit(dctx->reached_thread);
+		waitAllThreadExit(dctx->reached_thread);
+		dctx->reached_thread=NULL;
+	}
 	else
 	{
 		if(dctx->interrupted_by_debugger)

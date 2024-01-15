@@ -207,6 +207,8 @@ FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 		,FklVM*
 		,FklVMvalue* ev
 		,void* arg);
+void setAllThreadReadyToExit(FklVM* head);
+void waitAllThreadExit(FklVM* head);
 
 FklVMvalue* getMainProc(DebugCtx* ctx);
 FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame);

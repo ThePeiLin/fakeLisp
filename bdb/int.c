@@ -46,7 +46,10 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else
+	{
+		setReachedThread(ctx,vm);
 		longjmp(ctx->jmpb,DBG_ERROR_OCCUR);
+	}
 }
 
 void dbgInterrupt(FklVM* exe,DbgInterruptArg* arg)
@@ -208,8 +211,6 @@ FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 			};
 			unsetStepping(ctx);
 			dbgInterrupt(exe,&arg);
-
-			fklSetThreadReadyToExit(exe);
 		}
 	}
 	else

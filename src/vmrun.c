@@ -2144,10 +2144,7 @@ static inline void B_export(FKL_VM_INS_FUNC_ARGL)
 	lib->count=count;
 	lib->imported=1;
 	lib->belong=1;
-	FklVMproc* proc=FKL_VM_PROC(lib->proc);
-	proc->rcount=0;
-	free(proc->closure);
-	proc->closure=NULL;
+	lib->proc=FKL_VM_NIL;
 	exe->importingLib=lib;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 }

@@ -203,7 +203,7 @@ void setStepOut(DebugCtx*);
 void setStepUntil(DebugCtx*,uint32_t line);
 
 void dbgInterrupt(FklVM*,DbgInterruptArg* arg);
-int dbgInterruptHandler(FklVMgc* gc
+FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 		,FklVM*
 		,FklVMvalue* ev
 		,void* arg);

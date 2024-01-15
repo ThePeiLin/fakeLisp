@@ -350,12 +350,15 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	fklUnlockThread(exe);
 	dctx->reached_breakpoint=NULL;
 	dctx->reached_thread=NULL;
-	if(setjmp(dctx->jmpb)==DBG_INTERRUPTED)
+	int jmp_result=setjmp(dctx->jmpb);
+	if(jmp_result==DBG_INTERRUPTED)
 	{
 		dctx->interrupted_by_debugger=1;
 		if(dctx->reached_breakpoint)
 			unsetStepping(dctx);
 	}
+	else if(jmp_result==DBG_ERROR_OCCUR)
+		dctx->interrupted_by_debugger=1;
 	else
 	{
 		if(dctx->interrupted_by_debugger)

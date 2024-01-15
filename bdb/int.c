@@ -39,12 +39,14 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 			delBreakpoint(ctx,bp->num);
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
-	else
+	else if(arg->ln)
 	{
 		setReachedThread(ctx,vm);
 		getCurLineStr(ctx,arg->ln->fid,arg->ln->line);
 		longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
+	else
+		longjmp(ctx->jmpb,DBG_ERROR_OCCUR);
 }
 
 void dbgInterrupt(FklVM* exe,DbgInterruptArg* arg)
@@ -63,7 +65,7 @@ static inline FklVMframe* find_same_proc_frame(FklVMframe* f,FklVMvalue* proc)
 	return NULL;
 }
 
-int dbgInterruptHandler(FklVMgc* gc
+FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 		,FklVM* exe
 		,FklVMvalue* int_val
 		,void* arg)
@@ -193,17 +195,26 @@ int dbgInterruptHandler(FklVMgc* gc
 				break;
 		}
 	}
-
 	else if(FKL_IS_ERR(int_val))
 	{
 		if(exe->is_single_thread)
-			return 0;
+			return FKL_INT_NEXT;
 		else
-			abort();
+		{
+			fklPrintErrBacktrace(int_val,exe,stdout);
+			DbgInterruptArg arg=
+			{
+				.ctx=ctx,
+			};
+			unsetStepping(ctx);
+			dbgInterrupt(exe,&arg);
+
+			fklSetThreadReadyToExit(exe);
+		}
 	}
 	else
-		return 1;
-	return 0;
+		return FKL_INT_NEXT;
+	return FKL_INT_DONE;
 }
 
 void setStepInto(DebugCtx* ctx)

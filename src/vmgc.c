@@ -469,14 +469,15 @@ FklSymbolHashItem* fklVMgetSymbolWithId(FklVMgc* gc,FklSid_t id)
 	return r;
 }
 
-void fklVMinterrupt(FklVM* vm,FklVMvalue* ev)
+FklVMinterruptResult fklVMinterrupt(FklVM* vm,FklVMvalue* ev)
 {
 	FklVMgc* gc=vm->gc;
 	for(struct FklVMinterruptHandleList* l=gc->int_list;l;l=l->next)
 	{
-		if(!l->int_handler(gc,vm,ev,l->int_handle_arg))
-			break;
+		if(l->int_handler(gc,vm,ev,l->int_handle_arg)==FKL_INT_DONE)
+			return FKL_INT_DONE;
 	}
+	return FKL_INT_NEXT;
 }
 
 void fklVMpushInterruptHandler(FklVMgc* gc

@@ -518,7 +518,13 @@ typedef enum
 	FKL_BUILTIN_ERR_NUM,
 }FklBuiltinErrorType;
 
-typedef int (*FklVMinterruptHandler)(struct FklVMgc*,FklVM* exe,FklVMvalue* ev,void*);
+typedef enum
+{
+	FKL_INT_DONE=0,
+	FKL_INT_NEXT,
+}FklVMinterruptResult;
+
+typedef FklVMinterruptResult (*FklVMinterruptHandler)(struct FklVMgc*,FklVM* exe,FklVMvalue* ev,void*);
 
 typedef void (*FklVMextraMarkFunc)(struct FklVMgc*,void* arg);
 
@@ -646,7 +652,7 @@ int fklRunVM(FklVM* volatile);
 void fklVMidleLoop(FklVMgc* gc);
 void fklVMtrappingIdleLoop(FklVMgc* gc);
 
-void fklVMinterrupt(FklVM*,FklVMvalue*);
+FklVMinterruptResult fklVMinterrupt(FklVM*,FklVMvalue*);
 void fklVMpushInterruptHandler(FklVMgc*,FklVMinterruptHandler,void*);
 
 void fklVMgcExtraMark(FklVMgc*);
@@ -1058,6 +1064,7 @@ void fklNoticeThreadLock(FklVM*);
 void fklDontNoticeThreadLock(FklVM*);
 void fklUnlockThread(FklVM*);
 void fklLockThread(FklVM*);
+void fklSetThreadReadyToExit(FklVM*);
 void fklVMstopTheWorld(FklVMgc*);
 void fklVMcontinueTheWorld(FklVMgc*);
 

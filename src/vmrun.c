@@ -766,7 +766,8 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			break;\
 	if(frame==NULL)\
 	{\
-		fklVMinterrupt(exe,ev);\
+		if(fklVMinterrupt(exe,ev)==FKL_INT_DONE)\
+			continue;\
 		fklPrintErrBacktrace(ev,exe,stderr);\
 		if(exe->chan)\
 		{\
@@ -820,6 +821,12 @@ void fklLockThread(FklVM* exe)
 	if(exe->is_single_thread)
 		return;
 	uv_mutex_lock(&exe->lock);
+}
+
+void fklSetThreadReadyToExit(FklVM* exe)
+{
+	exe->chan=NULL;
+	exe->state=FKL_VM_EXIT;
 }
 
 void fklUnlockThread(FklVM* exe)
@@ -2871,7 +2878,6 @@ void fklUninitVMstack(FklVM* s)
 
 void fklDestroyAllVMs(FklVM* curVM)
 {
-	// fklDestroyFuncPrototypes(curVM->pts);
 	curVM->prev->next=NULL;
 	curVM->prev=NULL;
 	for(FklVM* cur=curVM;cur;)

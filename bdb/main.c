@@ -364,17 +364,10 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 	dctx->running=1;
 	dctx->reached_breakpoint=NULL;
 	dctx->reached_thread=NULL;
-	int jmp_result=setjmp(dctx->jmpb);
-	if(jmp_result==DBG_INTERRUPTED)
+	if(setjmp(dctx->jmpb))
 	{
 		if(dctx->reached_breakpoint)
 			unsetStepping(dctx);
-	}
-	else if(jmp_result==DBG_ERROR_OCCUR)
-	{
-		setAllThreadReadyToExit(dctx->reached_thread);
-		waitAllThreadExit(dctx->reached_thread);
-		dctx->reached_thread=NULL;
 	}
 	else
 	{

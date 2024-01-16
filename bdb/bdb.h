@@ -90,8 +90,8 @@ typedef struct DebugCtx
 	FklHashTable file_sid_set;
 	FklSymbolTable* st;
 
-	int exit;
-	int running;
+	int8_t exit;
+	int8_t running;
 
 	uint32_t curlist_line;
 	uint32_t curline;

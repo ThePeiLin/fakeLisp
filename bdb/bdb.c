@@ -699,5 +699,6 @@ void restartDebugging(DebugCtx* ctx)
 	main_thread->ins_table[0]=B_int3;
 	gc->main_thread=main_thread;
 	fklVMthreadStart(main_thread,&gc->q);
+	setReachedThread(ctx,main_thread);
 }
 

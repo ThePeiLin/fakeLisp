@@ -3880,7 +3880,6 @@ static CODEGEN_FUNC(codegen_unless)
 
 static FklCodegenInfo* createCodegenInfo(FklCodegenInfo* prev
 		,const char* filename
-		,FklCodegenEnv* env
 		,int libMark
 		,int macroMark
 		,FklCodegenOuterCtx* outer_ctx)
@@ -3889,7 +3888,6 @@ static FklCodegenInfo* createCodegenInfo(FklCodegenInfo* prev
 	FKL_ASSERT(r);
 	fklInitCodegenInfo(r
 			,filename
-			,env
 			,prev
 			,prev->globalSymTable
 			,1
@@ -4101,7 +4099,7 @@ static CODEGEN_FUNC(codegen_load)
 		errorState->place=fklMakeNastNodeRef(filename);
 		return;
 	}
-	FklCodegenInfo* nextCodegen=createCodegenInfo(codegen,filenameStr->str,curEnv,0,0,codegen->outer_ctx);
+	FklCodegenInfo* nextCodegen=createCodegenInfo(codegen,filenameStr->str,0,0,codegen->outer_ctx);
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
 		errorState->type=FKL_ERR_CIRCULARLOAD;
@@ -5159,7 +5157,7 @@ static CODEGEN_FUNC(codegen_export)
 {
 	FklCodegenInfo* libCodegen=get_lib_codegen(codegen);
 
-	if(libCodegen&&scope==1&&curEnv==codegen->globalEnv&&macroScope==codegen->globalEnv->macros)
+	if(libCodegen&&scope==1&&curEnv->prev==codegen->globalEnv&&macroScope->prev==codegen->globalEnv->macros)
 	{
 		FklPtrQueue* exportQueue=fklCreatePtrQueue();
 		FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
@@ -5180,7 +5178,7 @@ static CODEGEN_FUNC(codegen_export)
 	}
 	else
 	{
-		errorState->type=FKL_ERR_INVALIDEXPR;
+		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
@@ -5198,9 +5196,9 @@ static inline FklSid_t get_reader_macro_group_id(const FklNastNode* node)
 static CODEGEN_FUNC(codegen_export_single)
 {
 	FklCodegenInfo* libCodegen=get_lib_codegen(codegen);
-	if(!libCodegen||curEnv!=codegen->globalEnv||scope>1||macroScope!=codegen->globalEnv->macros)
+	if(!libCodegen||curEnv->prev!=codegen->globalEnv||scope>1||macroScope->prev!=codegen->globalEnv->macros)
 	{
-		errorState->type=FKL_ERR_INVALIDEXPR;
+		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
 		return;
 	}
@@ -5348,10 +5346,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 		,FklNastNode* except
 		,FklSymbolTable* pst)
 {
-	FklCodegenEnv* libEnv=fklCreateCodegenEnv(NULL,0,NULL);
-	FklCodegenInfo* nextCodegen=createCodegenInfo(codegen,filename,libEnv,1,0,codegen->outer_ctx);
-
-	fklInitGlobCodegenEnv(libEnv,pst);
+	FklCodegenInfo* nextCodegen=createCodegenInfo(codegen,filename,1,0,codegen->outer_ctx);
 
 	if(hasLoadSameFile(nextCodegen->realpath,codegen))
 	{
@@ -5373,6 +5368,7 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 			fklDestroyCodegenInfo(nextCodegen);
 			return;
 		}
+		FklCodegenEnv* libEnv=fklCreateCodegenEnv(codegen->globalEnv,0,codegen->globalEnv->macros);
 		create_and_insert_to_pool(nextCodegen
 				,0
 				,libEnv
@@ -5415,8 +5411,8 @@ static inline void process_import_script_common_header(FklNastNode* origExp
 				,createDefaultStackContext(bcStack)
 				,NULL
 				,1
-				,nextCodegen->globalEnv->macros
-				,nextCodegen->globalEnv
+				,codegen->globalEnv->macros
+				,codegen->globalEnv
 				,origExp->curline
 				,nextCodegen
 				,codegenQuestStack);
@@ -7623,30 +7619,24 @@ FklGrammerProduction* fklCodegenProdPrintingToProduction(FklCodegenProdPrinting*
 }
 
 static inline FklCodegenInfo* macro_compile_prepare(FklCodegenInfo* codegen
-		,FklCodegenEnv* curEnv
 		,FklCodegenMacroScope* macroScope
 		,FklHashTable* symbolSet
 		,FklCodegenEnv** pmacroEnv
 		,FklSymbolTable* pst)
 {
-	FklCodegenEnv* macroEnv=fklCreateCodegenEnv(curEnv,0,macroScope);
+	FklCodegenEnv* macro_glob_env=fklCreateCodegenEnv(NULL,0,macroScope);
+	fklInitGlobCodegenEnv(macro_glob_env,pst);
 
-	for(FklHashTableItem* list=symbolSet->first
-			;list
-			;list=list->next)
-	{
-		FklSid_t* id=(FklSid_t*)list->data;
-		fklAddCodegenDefBySid(*id,1,macroEnv);
-	}
 	FklCodegenInfo* macroCodegen=createCodegenInfo(codegen
 			,NULL
-			,macroEnv
 			,0
 			,1
 			,codegen->outer_ctx);
+	codegen->globalEnv->refcount--;
+	macroCodegen->globalEnv=macro_glob_env;
+	macro_glob_env->refcount++;
+
 	macroCodegen->builtinSymModiMark=fklGetBuiltinSymbolModifyMark(&macroCodegen->builtinSymbolNum);
-	fklDestroyCodegenEnv(macroEnv->prev);
-	macroEnv->prev=NULL;
 	free(macroCodegen->dir);
 	macroCodegen->dir=fklCopyCstr(codegen->dir);
 	macroCodegen->filename=fklCopyCstr(codegen->filename);
@@ -7658,9 +7648,17 @@ static inline FklCodegenInfo* macro_compile_prepare(FklCodegenInfo* codegen
 	macroCodegen->fid=macroCodegen->filename?fklAddSymbolCstr(macroCodegen->filename,pst)->id:0;
 	macroCodegen->libStack=macroCodegen->macroLibStack;
 	macroCodegen->macroLibStack=fklCreatePtrStack(8,16);
-	fklInitGlobCodegenEnv(macroEnv,pst);
 
-	*pmacroEnv=macroEnv;
+	FklCodegenEnv* macro_main_env=fklCreateCodegenEnv(macro_glob_env,1,macroScope);
+
+	for(FklHashTableItem* list=symbolSet->first
+			;list
+			;list=list->next)
+	{
+		FklSid_t* id=(FklSid_t*)list->data;
+		fklAddCodegenDefBySid(*id,1,macro_main_env);
+	}
+	*pmacroEnv=macro_main_env;
 	return macroCodegen;
 }
 
@@ -7981,7 +7979,6 @@ static inline FklGrammerProduction* nast_vector_to_production(FklNastNode* vec_n
 		fklPutHashItem(&fklAddSymbolCstr("$$",pst)->id,&symbolSet);
 		FklCodegenEnv* macroEnv=NULL;
 		FklCodegenInfo* macroCodegen=macro_compile_prepare(codegen
-				,curEnv
 				,macroScope
 				,&symbolSet
 				,&macroEnv
@@ -8500,7 +8497,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		fklPutHashItem(&outer_ctx->builtInPatternVar_orig,symbolSet);
 
 		FklCodegenEnv* macroEnv=NULL;
-		FklCodegenInfo* macroCodegen=macro_compile_prepare(codegen,curEnv,macroScope,symbolSet,&macroEnv,pst);
+		FklCodegenInfo* macroCodegen=macro_compile_prepare(codegen,macroScope,symbolSet,&macroEnv,pst);
 		fklDestroyHashTable(symbolSet);
 
 		create_and_insert_to_pool(macroCodegen
@@ -9149,14 +9146,15 @@ print_error:
 }
 
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp
-		,FklCodegenInfo* codegen)
+		,FklCodegenInfo* codegen
+		,FklCodegenEnv* cur_env)
 {
 	FklCodegenQuest* initialQuest=fklCreateCodegenQuest(_begin_exp_bc_process
 			,createDefaultStackContext(fklCreatePtrStack(32,16))
 			,createFpNextExpression(fp,codegen)
 			,1
-			,codegen->globalEnv->macros
-			,codegen->globalEnv
+			,cur_env->macros
+			,cur_env
 			,1
 			,NULL
 			,codegen);
@@ -9192,7 +9190,7 @@ static inline void init_codegen_grammer_ptr(FklCodegenInfo* codegen)
 	codegen->builtin_ignores=&codegen->self_builtin_ignores;
 }
 
-void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
+FklCodegenEnv* fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,const char* rp
 		,FklSymbolTable* globalSymTable
 		,int destroyAbleMark
@@ -9223,7 +9221,7 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	codegen->prev=NULL;
 	codegen->globalEnv=fklCreateCodegenEnv(NULL,0,NULL);
 	fklInitGlobCodegenEnv(codegen->globalEnv,&outer_ctx->public_symbol_table);
-	codegen->globalEnv->refcount+=1;
+	codegen->globalEnv->refcount++;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
 
@@ -9248,18 +9246,19 @@ void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 	if(work_cb)
 		work_cb(codegen,work_ctx);
 
+	FklCodegenEnv* main_env=fklCreateCodegenEnv(codegen->globalEnv,1,codegen->globalEnv->macros);
 	create_and_insert_to_pool(codegen
 			,0
-			,codegen->globalEnv
+			,main_env
 			,0
 			,1
 			,&outer_ctx->public_symbol_table);
-
+	main_env->refcount++;
+	return main_env;
 }
 
 void fklInitCodegenInfo(FklCodegenInfo* codegen
 		,const char* filename
-		,FklCodegenEnv* env
 		,FklCodegenInfo* prev
 		,FklSymbolTable* globalSymTable
 		,int destroyAbleMark
@@ -9286,9 +9285,6 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	codegen->curline=1;
 	codegen->prev=prev;
 
-	codegen->globalEnv=env;
-	if(env)
-		env->refcount+=1;
 	codegen->globalSymTable=globalSymTable;
 	codegen->destroyAbleMark=destroyAbleMark;
 	codegen->refcount=0;
@@ -9307,6 +9303,8 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	if(prev)
 	{
 		prev->refcount+=1;
+		codegen->globalEnv=prev->globalEnv;
+		codegen->globalEnv->refcount++;
 		codegen->work=prev->work;
 		codegen->libStack=prev->libStack;
 		codegen->macroLibStack=prev->macroLibStack;
@@ -9317,6 +9315,8 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	}
 	else
 	{
+		codegen->globalEnv=fklCreateCodegenEnv(NULL,0,NULL);
+		fklInitGlobCodegenEnv(codegen->globalEnv,&outer_ctx->public_symbol_table);
 		codegen->work.work_cb=NULL;
 		codegen->work.env_work_cb=NULL;
 		codegen->work.work_ctx=NULL;
@@ -9821,9 +9821,11 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 	{
 		FklCodegenLib* cur=macroLibStack->base[i];
 		fklInitVMlibWithCodegenLib(cur,&anotherVM->libs[i+1],anotherVM,1,pts);
+		if(cur->type==FKL_CODEGEN_LIB_SCRIPT)
+			fklInitMainProcRefs(anotherVM,anotherVM->libs[i+1].proc);
 	}
 	FklVMframe* mainframe=anotherVM->top_frame;
-	fklInitGlobalVMclosure(mainframe,anotherVM);
+	// fklInitGlobalVMclosure(mainframe,anotherVM);
 	initVMframeFromPatternMatchTable(anotherVM,mainframe,ht,lineHash,pts,prototype_id);
 	return anotherVM;
 }
@@ -9919,7 +9921,7 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		FklByteCode* bc=clib->bcl->bc;
 		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,needCopy?fklCopyByteCodelnt(clib->bcl):clib->bcl);
 		FklVMvalue* proc=fklCreateVMvalueProc(exe,bc->code,bc->len,codeObj,clib->prototypeId);
-		fklInitMainProcRefs(FKL_VM_PROC(proc),refs,count);
+		fklInitMainProcRefs(exe,proc);
 		val=proc;
 	}
 	else

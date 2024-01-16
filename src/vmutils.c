@@ -307,12 +307,6 @@ static inline void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
 	lr->lrefl=NULL;
 }
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVM* exe,FklVMvalue* codeObj,uint32_t pid,FklVMframe* prev)
-{
-	FklVMvalue* r=fklCreateVMvalueProcWithWholeCodeObj(exe,codeObj,pid);
-	return fklCreateVMframeWithProcValue(exe,r,prev);
-}
-
 void fklInitMainVMframeWithProc(FklVM* exe
 		,FklVMframe* tmp
 		,FklVMproc* code

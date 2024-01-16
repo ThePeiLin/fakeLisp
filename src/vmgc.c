@@ -65,6 +65,12 @@ static inline void gc_mark_root_to_gray(FklVM* exe)
 
 void fklVMgcMarkAllRootToGray(FklVM* curVM)
 {
+	FklVMgc* gc=curVM->gc;
+	FklVMvalue** ref=curVM->gc->builtin_refs;
+	FklVMvalue** end=&ref[FKL_BUILTIN_SYMBOL_NUM];
+	for(;ref<end
+			;ref++)
+		fklVMgcToGray(*ref,gc);
 	fklVMgcExtraMark(curVM->gc);
 	gc_mark_root_to_gray(curVM);
 

@@ -5,6 +5,7 @@
         (s,step)
         (r,return)
         (h,help)
+        (l,list)
         (bt,where)))
 
 (define help-doc-hash

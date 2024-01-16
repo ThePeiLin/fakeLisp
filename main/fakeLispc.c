@@ -214,15 +214,17 @@ static inline int pre_compile(const char* main_file_name
 	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
 	const char* main_dir=outer_ctx->main_file_real_path_dir;
 	fklChdir(outer_ctx->main_file_real_path_dir);
-	fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx,NULL,NULL,NULL);
-	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
+	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx,NULL,NULL,NULL);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
 		free(rp);
+		fklDestroyCodegenEnv(main_env);
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}
-	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
+	fklUpdatePrototype(codegen.pts,main_env,codegen.globalSymTable,pst);
+	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
@@ -275,15 +277,17 @@ static inline int compile(const char* filename
 	char* rp=fklRealpath(filename);
 	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
 	fklChdir(outer_ctx->main_file_real_path_dir);
-	fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx,NULL,NULL,NULL);
-	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
+	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx,NULL,NULL,NULL);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
 		free(rp);
+		fklDestroyCodegenEnv(main_env);
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}
-	fklUpdatePrototype(codegen.pts,codegen.globalEnv,codegen.globalSymTable,pst);
+	fklUpdatePrototype(codegen.pts,main_env,codegen.globalSymTable,pst);
+	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	FklPtrStack* loadedLibStack=codegen.libStack;

@@ -72,7 +72,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklAddSymbolCstr(filename,pst);
-	fklInitGlobalCodegenInfo(&codegen
+	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen
 			,rp
 			,pst
 			,0
@@ -81,7 +81,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 			,create_env_work_cb
 			,ctx);
 	free(rp);
-	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
 		fklUninitCodegenInfo(&codegen);
@@ -102,7 +102,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 	FklVMframe* mainframe=anotherVM->top_frame;
-	fklInitGlobalVMclosure(mainframe,anotherVM);
+	// fklInitGlobalVMclosure(mainframe,anotherVM);
 	fklInitMainVMframeWithProc(anotherVM,mainframe
 			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
 			,NULL
@@ -117,7 +117,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 		FklCodegenLibType type=cur->type;
 		fklInitVMlibWithCodegenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
-			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
+			fklInitMainProcRefs(anotherVM,curVMlib->proc);
 	}
 	fklUninitCodegenInfo(&codegen);
 	fklChdir(outer_ctx->cwd);

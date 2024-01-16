@@ -5,6 +5,7 @@
 #include"nast.h"
 #include"utils.h"
 #include"bytecode.h"
+#include"builtin.h"
 #include<uv.h>
 #include<stdatomic.h>
 #include<stdio.h>
@@ -599,6 +600,8 @@ typedef struct FklVMgc
 		FklVMextraMarkFunc func;
 		void* arg;
 	}* extra_mark_list;
+
+	FklVMvalue* builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
 }FklVMgc;
 
 typedef struct
@@ -778,7 +781,7 @@ void fklPrintErrBacktrace(FklVMvalue*,FklVM*,FILE* fp);
 void fklPrintFrame(FklVMframe* cur,FklVM* exe,FILE* fp);
 void fklPrintBacktrace(FklVM*,FILE* fp);
 
-void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count);
+void fklInitMainProcRefs(FklVM* exe,FklVMvalue* proc_obj);
 
 void fklInitMainVMframeWithProc(FklVM*
 		,FklVMframe* tmp
@@ -791,7 +794,6 @@ FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);
 void fklUpdateAllVarRef(FklVMframe*,FklVMvalue**);
 
-FklVMframe* fklCreateVMframeWithCodeObj(FklVM* exe,FklVMvalue* codeObj,uint32_t pid,FklVMframe*);
 FklVMframe* fklCreateVMframeWithProcValue(FklVM* exe,FklVMvalue*,FklVMframe*);
 
 FklVMvalue* fklCreateVMvalueVarRef(FklVM* exe,FklVMvalue** loc,uint32_t idx);

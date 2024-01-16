@@ -482,6 +482,25 @@ static inline void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
 		next->prev=cur;
 }
 
+static inline void init_builtin_symbol_ref(FklVM* exe,FklVMvalue* proc_obj)
+{
+	FklVMgc* gc=exe->gc;
+	FklVMproc* proc=FKL_VM_PROC(proc_obj);
+	FklFuncPrototype* pt=&gc->pts->pa[proc->protoId];
+	proc->rcount=pt->rcount;
+	FklVMvalue** closure=(FklVMvalue**)malloc(proc->rcount*sizeof(FklVMvalue*));
+	FKL_ASSERT(closure);
+	for(uint32_t i=0;i<proc->rcount;i++)
+	{
+		FklSymbolDef* cur_ref=&pt->refs[i];
+		if(cur_ref->cidx<FKL_BUILTIN_SYMBOL_NUM)
+			closure[i]=gc->builtin_refs[cur_ref->cidx];
+		else
+			closure[i]=fklCreateClosedVMvalueVarRef(exe,NULL);
+	}
+	proc->closure=closure;
+}
+
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt* mainCode
 		,FklSymbolTable* globalSymTable
 		,FklFuncPrototypes* pts
@@ -495,10 +514,14 @@ FklVM* fklCreateVMwithByteCode(FklByteCodelnt* mainCode
 	exe->gc=fklCreateVMgc(globalSymTable,pts);
 	exe->frame_cache_head=&exe->static_frame;
 	exe->frame_cache_tail=&exe->frame_cache_head->prev;
+	fklInitGlobalVMclosureForGC(exe);
 	if(mainCode!=NULL)
 	{
-		FklVMvalue* codeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-		exe->top_frame=fklCreateVMframeWithCodeObj(exe,codeObj,pid,exe->top_frame);
+		FklVMvalue* proc=fklCreateVMvalueProcWithWholeCodeObj(exe
+				,fklCreateVMvalueCodeObj(exe,mainCode)
+				,pid);
+		init_builtin_symbol_ref(exe,proc);
+		fklCallObj(exe,proc);
 	}
 	fklInitVMstack(exe);
 	exe->state=FKL_VM_READY;
@@ -2958,9 +2981,9 @@ void fklDestroyVMframes(FklVMframe* h)
 	}
 }
 
-void fklInitVMlib(FklVMlib* lib,FklVMvalue* proc)
+void fklInitVMlib(FklVMlib* lib,FklVMvalue* proc_obj)
 {
-	lib->proc=proc;
+	lib->proc=proc_obj;
 	lib->imported=0;
 	lib->belong=0;
 	lib->loc=NULL;
@@ -3041,10 +3064,9 @@ FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
 	return f->c.sid;
 }
 
-void fklInitMainProcRefs(FklVMproc* mainProc,FklVMvalue** closure,uint32_t count)
+void fklInitMainProcRefs(FklVM* exe,FklVMvalue* proc_obj)
 {
-	mainProc->rcount=count;
-	mainProc->closure=fklCopyMemory(closure,sizeof(FklVMvalue*)*mainProc->rcount);
+	init_builtin_symbol_ref(exe,proc_obj);
 }
 
 void fklSetBp(FklVM* s)

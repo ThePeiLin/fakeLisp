@@ -366,7 +366,7 @@ typedef struct FklCodegenQuest
 void fklInitExportSidIdxTable(FklHashTable* ht);
 FklHashTable* fklCreateCodegenReplacementTable(void);
 
-void fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
+FklCodegenEnv* fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,const char* rp
 		,FklSymbolTable* globalSymTable
 		,int destroyAbleMark
@@ -387,7 +387,6 @@ FklCodegenQuest* fklCreateCodegenQuest(FklByteCodeProcesser f
 
 void fklInitCodegenInfo(FklCodegenInfo* codegen
 		,const char* filename
-		,FklCodegenEnv* env
 		,FklCodegenInfo* prev
 		,FklSymbolTable* globalSymTable
 		,int destroyAbleMark
@@ -411,7 +410,8 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 		,FklCodegenInfo* codegen);
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
-		,FklCodegenInfo* codegen);
+		,FklCodegenInfo* codegen
+		,FklCodegenEnv* cur_env);
 
 FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,const FklCodegenEnv* env);
 

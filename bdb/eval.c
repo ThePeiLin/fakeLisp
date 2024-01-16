@@ -32,7 +32,6 @@ static inline FklCodegenEnv* init_codegen_info_with_debug_ctx(DebugCtx* ctx
 			,ctx->st);
 	fklInitCodegenInfo(info
 			,NULL
-			,new_env
 			,NULL
 			,ctx->st
 			,0
@@ -129,7 +128,6 @@ static inline FklCodegenEnv* init_codegen_info_for_cond_bp_with_debug_ctx(DebugC
 			,ctx->st);
 	fklInitCodegenInfo(info
 			,NULL
-			,new_env
 			,NULL
 			,ctx->st
 			,0

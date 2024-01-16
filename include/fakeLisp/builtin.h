@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+#define FKL_BUILTIN_SYMBOL_NUM (214)
+
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint32_t line,uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum);
 
@@ -19,8 +21,12 @@ struct FklVMproc;
 
 uint32_t fklGetBuiltinSymbolNum(void);
 void fklInitGlobCodegenEnv(struct FklCodegenEnv*,FklSymbolTable* pst);
-void fklInitGlobalVMclosure(struct FklVMframe* frame,struct FklVM*);
+
+// void fklInitGlobalVMclosure(struct FklVMframe* frame,struct FklVM*);
+
 void fklInitGlobalVMclosureForProc(struct FklVMproc*,struct FklVM*);
+
+void fklInitGlobalVMclosureForGC(struct FklVM*);
 
 #define FKL_VM_STDIN_IDX (0)
 #define FKL_VM_STDOUT_IDX (1)

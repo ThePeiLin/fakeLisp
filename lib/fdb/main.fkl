@@ -1,38 +1,9 @@
-(import (only (.. utils m) static-strcat))
-
 (import (.. bdb))
+
+(import (cmd))
 
 (define file-prefix "> ")
 (define line-prefix "-> ")
-
-(define help-doc
-  (static-strcat
-    "help: print this help doc or print the help of command\n"
-    "exit: exit\n"
-    "list: list source code\n"
-    "continue: continue the program until end or reach break point\n"
-    "restart: restart debug with same arguement\n"
-    "break: set break point\n"
-    "delete: delete break point\n"
-    "disable: disable break point\n"
-    "enable: enable break point\n"
-    "next: run the program until next line\n"
-    "step: run the program until next line, but step in function\n"
-    "return: run the program until function return\n"))
-
-(define help-doc-hash
-  (make-hash
-    'exit "exit"
-    'list "list source code"
-    'continue "continue the program until end or reach break point"
-    'restart "restart debug with same arguement"
-    'break "set break point"
-    'delete "delete break point"
-    'enable "enable break point"
-    'next "run the program until next line, but step in function"
-    'step "run the program until next line, but step in function"
-    'return "run the program until function return"
-    'help "print this help doc or print the help of command"))
 
 (define (print-cur-line ctx file-prefix line-prefix)
   (define cur-file-line (debug-ctx-get-curline ctx))
@@ -42,9 +13,6 @@
              ":"
              (vec-ref cur-file-line 1))
     (print line-prefix (vec-ref cur-file-line 2))))
-
-(define (unknown-cmd-func,_)
-  (println "unknown command"))
 
 (define (print-break-point-brief breakpoint)
   (define temp-dis (vec-ref breakpoint 5))
@@ -284,34 +252,21 @@
     'up debug-up
     'down debug-down
     'thread debug-thread
-    'help (lambda (_,rest)
-            (if rest
-              (if (cdr rest)
-                (println "invalid command\n")
-                (println (hash-ref help-doc-hash
-                                   (car rest)
-                                   "do not have such a command")
-                         #\\n))
-              (println help-doc)))))
-
-(define cmd-abbr-map
-  #hash((b,break)
-        (c,continue)
-        (n,next)
-        (s,step)
-        (r,return)
-        (h,help)))
+    'help debug-help))
 
 (define (debug-run ctx prompt file-prefix line-prefix)
   (print-cur-line ctx file-prefix line-prefix)
   (do []
     [(debug-ctx-exit? ctx)]
     (define cmd (debug-ctx-repl ctx prompt))
-    (unless (eof? cmd)
-      (define cmd-func (hash-ref debug-cmd-func
-                                 (car cmd)
-                                 unknown-cmd-func))
-      (apply cmd-func ctx (cdr cmd)))))
+    (call/eh
+      (lambda ()
+        (unless (eof? cmd)
+          (define cmd-head (if (symbol? cmd) cmd (car cmd)))
+          (define cmd-rest (if (symbol? cmd) nil (cdr cmd)))
+          (define cmd-func (get-cmd-func debug-cmd-func cmd-head))
+          (apply cmd-func ctx cmd-rest)))
+      nil (lambda (e) (println "*** invalid command ***")))))
 
 (define (fdb-main)
 

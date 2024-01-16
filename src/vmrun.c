@@ -825,7 +825,7 @@ void fklLockThread(FklVM* exe)
 
 void fklSetThreadReadyToExit(FklVM* exe)
 {
-	exe->chan=NULL;
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	exe->state=FKL_VM_EXIT;
 }
 

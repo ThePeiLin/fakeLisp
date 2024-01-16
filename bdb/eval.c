@@ -88,7 +88,7 @@ FklVMvalue* compileEvalExpression(DebugCtx* ctx
 	FklCodegenEnv* origin_outer_env=NULL;
 	fklMakeNastNodeRef(exp);
 	FklCodegenEnv* tmp_env=init_codegen_info_with_debug_ctx(ctx,&info,&origin_outer_env,cur_frame);
-	tmp_env->refcount++;
+	// tmp_env->refcount++;
 	FklByteCodelnt* code=fklGenExpressionCode(exp
 			,tmp_env
 			,&info);
@@ -107,7 +107,9 @@ FklVMvalue* compileEvalExpression(DebugCtx* ctx
 				,tmp_env->prototypeId);
 		resolve_reference(ctx,vm,pt,proc,cur_frame);
 	}
-	fklDestroyCodegenEnv(tmp_env);
+	// fklDestroyCodegenEnv(tmp_env);
+	info.pts=NULL;
+	fklUninitCodegenInfo(&info);
 	return proc;
 }
 
@@ -166,7 +168,7 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 	FklCodegenEnv* origin_outer_env=NULL;
 	fklMakeNastNodeRef(exp);
 	FklCodegenEnv* tmp_env=init_codegen_info_for_cond_bp_with_debug_ctx(ctx,&info,&origin_outer_env,cur_frame);
-	tmp_env->refcount++;
+	// tmp_env->refcount++;
 	FklByteCodelnt* code=fklGenExpressionCode(exp
 			,tmp_env
 			,&info);
@@ -187,7 +189,9 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 	}
 	if(!proc)
 		fklPushUintStack(tmp_env->prototypeId,&ctx->unused_prototype_id_for_cond_bp);
-	fklDestroyCodegenEnv(tmp_env);
+	// fklDestroyCodegenEnv(tmp_env);
+	info.pts=NULL;
+	fklUninitCodegenInfo(&info);
 	return proc;
 }
 

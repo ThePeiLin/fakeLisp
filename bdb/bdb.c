@@ -1,5 +1,4 @@
 #include"bdb.h"
-#include "fakeLisp/vm.h"
 #include<fakeLisp/builtin.h>
 #include<string.h>
 
@@ -116,7 +115,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 		FklVMlib* curVMlib=&anotherVM->libs[scriptLibStack->top];
 		FklCodegenLib* cur=fklPopPtrStack(scriptLibStack);
 		FklCodegenLibType type=cur->type;
-		fklInitVMlibWithCodegenLib(cur,curVMlib,anotherVM,1,anotherVM->pts);
+		fklInitVMlibWithCodegenLibAndDestroy(cur,curVMlib,anotherVM,anotherVM->pts);
 		if(type==FKL_CODEGEN_LIB_SCRIPT)
 			fklInitMainProcRefs(FKL_VM_PROC(curVMlib->proc),lr->ref,lr->rcount);
 	}
@@ -153,7 +152,7 @@ static void source_hash_item_uninit(void* d0)
 {
 	SourceCodeHashItem* item=(SourceCodeHashItem*)d0;
 	void** base=item->lines.base;
-	void** const end=item->lines.base[item->lines.top];
+	void** const end=&item->lines.base[item->lines.top];
 	for(;base<end;base++)
 		free(*base);
 	fklUninitPtrStack(&item->lines);
@@ -188,6 +187,8 @@ static inline void load_source_code_to_source_code_hash_item(SourceCodeHashItem*
 		fklPushPtrStack(cur_line,lines);
 		buffer.index=0;
 	}
+	fklUninitStringBuffer(&buffer);
+	fclose(fp);
 }
 
 static inline void init_source_codes(DebugCtx* ctx)
@@ -240,49 +241,33 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line)
 
 static inline void get_all_code_objs(DebugCtx* ctx)
 {
-	FklVMvalue** phead=&ctx->gc->head;
-	for(;;)
+	fklInitPtrStack(&ctx->code_objs,16,16);
+	FklVMvalue* head=ctx->gc->head;
+	for(;head;head=head->next)
 	{
-		FklVMvalue* cur=*phead;
-		if(cur==NULL)
-			break;
-		if(cur->type==FKL_TYPE_CODE_OBJ)
-		{
-			*phead=cur->next;
-			cur->next=ctx->code_objs;
-			ctx->code_objs=cur;
-		}
-		else
-			phead=&cur->next;
+		if(head->type==FKL_TYPE_CODE_OBJ)
+			fklPushPtrStack(head,&ctx->code_objs);
 	}
-	phead=&ctx->reached_thread->obj_head;
-	for(;;)
+	head=ctx->reached_thread->obj_head;
+	for(;head;head=head->next)
 	{
-		FklVMvalue* cur=*phead;
-		if(cur==NULL)
-			break;
-		if(cur->type==FKL_TYPE_CODE_OBJ)
-		{
-			*phead=cur->next;
-			cur->next=ctx->code_objs;
-			ctx->code_objs=cur;
-		}
-		else
-			phead=&cur->next;
+		if(head->type==FKL_TYPE_CODE_OBJ)
+			fklPushPtrStack(head,&ctx->code_objs);
 	}
 }
 
 static inline void internal_dbg_extra_mark(DebugCtx* ctx,FklVMgc* gc)
 {
 	FklVMvalue** base=(FklVMvalue**)ctx->extra_mark_value.base;
-	FklVMvalue** const last=&base[ctx->extra_mark_value.top];
+	FklVMvalue** last=&base[ctx->extra_mark_value.top];
 	for(;base<last;base++)
 		fklVMgcToGray(*base,gc);
-	for(FklVMvalue* head=ctx->code_objs;head;head=head->next)
-	{
-		head->mark=FKL_MARK_W;
-		fklVMgcToGray(head,gc);
-	}
+
+	base=(FklVMvalue**)ctx->code_objs.base;
+	last=&base[ctx->code_objs.top];
+	for(;base<last;base++)
+		fklVMgcToGray(*base,gc);
+
 	for(FklHashTableItem* l=ctx->breakpoints.first
 			;l
 			;l=l->next)
@@ -326,6 +311,11 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	fklInitSidSet(&ctx->file_sid_set);
 	if(init_debug_codegen_outer_ctx(ctx,filename))
 	{
+		while(!fklIsPtrStackEmpty(&ctx->envs))
+		{
+			FklCodegenEnv* env=fklPopPtrStack(&ctx->envs);
+			fklDestroyCodegenEnv(env);
+		}
 		fklUninitPtrStack(&ctx->envs);
 		fklUninitHashTable(&ctx->file_sid_set);
 		free(ctx);
@@ -349,6 +339,63 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	init_cmd_read_ctx(&ctx->read_ctx);
 
 	return ctx;
+}
+
+static inline void uninit_cmd_read_ctx(CmdReadCtx* ctx)
+{
+	fklUninitPtrStack(&ctx->stateStack);
+	fklUninitPtrStack(&ctx->symbolStack);
+	fklUninitUintStack(&ctx->lineStack);
+	fklUninitStringBuffer(&ctx->buf);
+	replxx_end(ctx->replxx);
+}
+
+static inline void destroy_all_deleted_breakpoint(DebugCtx* ctx)
+{
+	Breakpoint* bp=ctx->deleted_breakpoints;
+	while(bp)
+	{
+		Breakpoint* cur=bp;
+		bp=bp->next;
+		if(cur->cond_exp)
+			fklDestroyNastNode(cur->cond_exp);
+		free(cur);
+	}
+}
+
+void destroyDebugCtx(DebugCtx* ctx)
+{
+	while(!fklIsPtrStackEmpty(&ctx->envs))
+	{
+		FklCodegenEnv* env=fklPopPtrStack(&ctx->envs);
+		fklDestroyCodegenEnv(env);
+	}
+	fklUninitPtrStack(&ctx->envs);
+	fklUninitHashTable(&ctx->file_sid_set);
+
+	FklVMgc* gc=ctx->gc;
+	if(ctx->running&&ctx->reached_thread)
+	{
+		setAllThreadReadyToExit(ctx->reached_thread);
+		waitAllThreadExit(ctx->reached_thread);
+	}
+	else
+		fklDestroyAllVMs(gc->main_thread);
+
+	clearBreakpoint(ctx);
+	destroy_all_deleted_breakpoint(ctx);
+	fklUninitHashTable(&ctx->breakpoints);
+	fklUninitHashTable(&ctx->source_code_table);
+	fklUninitPtrStack(&ctx->extra_mark_value);
+	fklUninitPtrStack(&ctx->code_objs);
+	fklUninitPtrStack(&ctx->threads);
+	fklUninitPtrStack(&ctx->reached_thread_frames);
+	fklUninitUintStack(&ctx->unused_prototype_id_for_cond_bp);
+
+	fklDestroyVMgc(gc);
+	uninit_cmd_read_ctx(&ctx->read_ctx);
+	fklUninitCodegenOuterCtx(&ctx->outer_ctx);
+	free(ctx);
 }
 
 const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp
@@ -397,14 +444,15 @@ Breakpoint* putBreakpointWithFileAndLine(DebugCtx* ctx
 		return NULL;
 	}
 
-	// uint64_t scp=0;
 	FklInstruction* ins=NULL;
 	for(;line<=sc_item->lines.top;line++)
 	{
-		for(FklVMvalue* cur=ctx->code_objs
-				;cur
-				;cur=cur->next)
+		FklVMvalue** base=(FklVMvalue**)ctx->code_objs.base;
+		FklVMvalue** const end=&base[ctx->code_objs.top];
+
+		for(;base<end;base++)
 		{
+			FklVMvalue* cur=*base;
 			FklByteCodelnt* bclnt=FKL_VM_CO(cur);
 			FklLineNumberTableItem* item=bclnt->l;
 			FklLineNumberTableItem* const end=&item[bclnt->ls];
@@ -423,26 +471,8 @@ break_loop:
 	{
 		ctx->breakpoint_num++;
 		BreakpointHashItem* item=fklPutHashItem(&ctx->breakpoint_num,&ctx->breakpoints);
-		// item->bp=createBreakpoint(fid,line,scp,ctx,ins);
 		item->bp=createBreakpoint(ctx->breakpoint_num,fid,line,ins,ctx);
 		return item->bp;
-
-		// BreakpointHashKey key={.fid=fid,.line=line,.pc=scp};
-		// BreakpointHashItem t={.key=key,.num=0};
-		// BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
-		// if(item->ctx)
-		// 	return item;
-		// else
-		// {
-		// 	ctx->breakpoint_num++;
-		// 	item->num=ctx->breakpoint_num;
-		// 	item->ctx=ctx;
-		// 	item->origin_ins=*ins;
-		// 	item->ins=ins;
-		// 	ins->op=0;
-		// 	ins->ptr=item;
-		// 	return item;
-		// }
 	}
 	*err=PUT_BP_AT_END_OF_FILE;
 	return NULL;
@@ -696,6 +726,7 @@ void restartDebugging(DebugCtx* ctx)
 	FklVM* main_thread=fklCreateVM(main_proc,gc,lib_num,libs);
 	ctx->reached_thread=main_thread;
 	ctx->running=0;
+	ctx->done=0;
 	main_thread->ins_table[0]=B_int3;
 	gc->main_thread=main_thread;
 	fklVMthreadStart(main_thread,&gc->q);

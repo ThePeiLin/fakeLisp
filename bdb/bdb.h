@@ -92,6 +92,7 @@ typedef struct DebugCtx
 
 	int8_t exit;
 	int8_t running;
+	int8_t done;
 
 	uint32_t curlist_line;
 	uint32_t curline;
@@ -103,7 +104,7 @@ typedef struct DebugCtx
 	FklPtrStack envs;
 
 	FklPtrStack extra_mark_value;
-	FklVMvalue* code_objs;
+	FklPtrStack code_objs;
 
 	jmp_buf jmpb;
 	jmp_buf jmpe;
@@ -168,6 +169,7 @@ typedef struct
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
+void destroyDebugCtx(DebugCtx*);
 const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp,FklByteCodelnt* code);
 
@@ -194,6 +196,8 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 Breakpoint* disBreakpoint(DebugCtx* ctx,uint64_t num);
 Breakpoint* enableBreakpoint(DebugCtx* ctx,uint64_t num);
 Breakpoint* delBreakpoint(DebugCtx* ctx,uint64_t num);
+void clearBreakpoint(DebugCtx* ctx);
+
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 
 void unsetStepping(DebugCtx*);

@@ -17,12 +17,6 @@ static int breakpoint_key_equal(const void* a,const void* b)
 	return *aa==*bb;
 }
 
-// static void breakpoint_uninit(void* a)
-// {
-// 	BreakpointHashItem* item=(BreakpointHashItem*)a;
-// 	*(item->ins)=item->origin_ins;
-// }
-
 static const FklHashTableMetaTable BreakpointHashMetaTable=
 {
 	.size=sizeof(BreakpointHashItem),
@@ -31,7 +25,6 @@ static const FklHashTableMetaTable BreakpointHashMetaTable=
 	.__setVal=breakpoint_set_val,
 	.__hashFunc=breakpoint_hash_func,
 	.__keyEqual=breakpoint_key_equal,
-	// .__uninitItem=breakpoint_uninit,
 	.__uninitItem=fklDoNothingUninitHashItem,
 };
 
@@ -89,13 +82,8 @@ Breakpoint* enableBreakpoint(DebugCtx* dctx,uint64_t num)
 	return NULL;
 }
 
-Breakpoint* delBreakpoint(DebugCtx* dctx,uint64_t num)
+static inline void delete_breakpoint(Breakpoint* bp,DebugCtx* dctx)
 {
-	BreakpointHashItem item={.num=0,.bp=NULL,};
-	fklDelHashItem(&num,&dctx->breakpoints,&item);
-	if(item.bp==NULL)
-		return NULL;
-	Breakpoint* bp=item.bp;
 	Breakpoint* next=bp->next;
 	Breakpoint* prev=bp->prev;
 
@@ -130,42 +118,28 @@ Breakpoint* delBreakpoint(DebugCtx* dctx,uint64_t num)
 	bp->is_deleted=1;
 	bp->next=dctx->deleted_breakpoints;
 	dctx->deleted_breakpoints=bp;
+}
 
+void clearBreakpoint(DebugCtx* dctx)
+{
+	for(FklHashTableItem* l=dctx->breakpoints.first
+			;l
+			;l=l->next)
+	{
+		BreakpointHashItem* item=(BreakpointHashItem*)l->data;
+		delete_breakpoint(item->bp,dctx);
+	}
+}
+
+Breakpoint* delBreakpoint(DebugCtx* dctx,uint64_t num)
+{
+	BreakpointHashItem item={.num=0,.bp=NULL,};
+	fklDelHashItem(&num,&dctx->breakpoints,&item);
+	if(item.bp==NULL)
+		return NULL;
+	Breakpoint* bp=item.bp;
+	delete_breakpoint(item.bp,dctx);
 	return bp;
-	// for(FklHashTableItem* list=dctx->breakpoints.first
-	// 		;list
-	// 		;list=list->next)
-	// {
-	// 	BreakpointHashItem* item=(BreakpointHashItem*)list->data;
-	// 	if(item->num==num)
-	// 	{
-	// 		if(dctx->reached_breakpoint==item)
-	// 		{
-	// 			dctx->reached_breakpoint=NULL;
-	// 			toggleVMint3(dctx->reached_thread);
-	// 		}
-	//
-	// 		fklRemoveHashItem(&dctx->breakpoints,list);
-	//
-	// 		list->next=dctx->deleted_breakpoints;
-	// 		dctx->deleted_breakpoints=list;
-	// 		item->compiled=0;
-	// 		if(item->cond_exp)
-	// 		{
-	// 			fklDestroyNastNode(item->cond_exp);
-	// 			item->cond_exp=NULL;
-	// 		}
-	// 		if(item->proc)
-	// 		{
-	// 			FklVMproc* proc=FKL_VM_PROC(item->proc);
-	// 			fklPushUintStack(proc->protoId,&dctx->unused_prototype_id_for_cond_bp);
-	// 			item->proc=NULL;
-	// 		}
-	// 		return item;
-	// 		break;
-	// 	}
-	// }
-	// return NULL;
 }
 
 void markBreakpointCondExpObj(DebugCtx* dctx,FklVMgc* gc)

@@ -84,14 +84,16 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
+		fklDestroyCodegenEnv(main_env);
 		fklUninitCodegenInfo(&codegen);
 		fklUninitCodegenOuterCtx(outer_ctx);
 		return 1;
 	}
 	fklUpdatePrototype(codegen.pts
-			,codegen.globalEnv
+			,main_env
 			,codegen.globalSymTable
 			,pst);
+	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
 
 	FklPtrStack* scriptLibStack=codegen.libStack;
@@ -101,13 +103,6 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	anotherVM->libNum=scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
-	FklVMframe* mainframe=anotherVM->top_frame;
-	// fklInitGlobalVMclosure(mainframe,anotherVM);
-	fklInitMainVMframeWithProc(anotherVM,mainframe
-			,FKL_VM_PROC(fklGetCompoundFrameProc(mainframe))
-			,NULL
-			,anotherVM->pts);
-	FklVMCompoundFrameVarRef* lr=&mainframe->c.lr;
 
 	FklVMgc* gc=anotherVM->gc;
 	while(!fklIsPtrStackEmpty(scriptLibStack))
@@ -284,11 +279,6 @@ static void dbg_extra_mark(FklVMgc* gc,void* arg)
 	internal_dbg_extra_mark(ctx,gc);
 }
 
-FklVMvalue* getMainProc(DebugCtx* ctx)
-{
-	return ctx->extra_mark_value.base[0];
-}
-
 static inline void push_extra_mark_value(DebugCtx* ctx)
 {
 	FklVM* vm=ctx->reached_thread;
@@ -334,6 +324,10 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	initBreakpointTable(&ctx->breakpoints);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->reached_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
+
+	ctx->glob_env=fklCreateCodegenEnv(NULL,1,NULL);
+	fklInitGlobCodegenEnv(ctx->glob_env,ctx->st);
+	ctx->glob_env->refcount++;
 
 	set_argv_with_list(ctx->gc,argv);
 	init_cmd_read_ctx(&ctx->read_ctx);
@@ -395,6 +389,7 @@ void destroyDebugCtx(DebugCtx* ctx)
 	fklDestroyVMgc(gc);
 	uninit_cmd_read_ctx(&ctx->read_ctx);
 	fklUninitCodegenOuterCtx(&ctx->outer_ctx);
+	fklDestroyCodegenEnv(ctx->glob_env);
 	free(ctx);
 }
 

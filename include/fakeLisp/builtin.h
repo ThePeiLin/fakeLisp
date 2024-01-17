@@ -19,13 +19,7 @@ struct FklVM;
 struct FklVMframe;
 struct FklVMproc;
 
-uint32_t fklGetBuiltinSymbolNum(void);
 void fklInitGlobCodegenEnv(struct FklCodegenEnv*,FklSymbolTable* pst);
-
-// void fklInitGlobalVMclosure(struct FklVMframe* frame,struct FklVM*);
-
-void fklInitGlobalVMclosureForProc(struct FklVMproc*,struct FklVM*);
-
 void fklInitGlobalVMclosureForGC(struct FklVM*);
 
 #define FKL_VM_STDIN_IDX (0)

@@ -113,7 +113,7 @@ static inline int runCode(const char* filename,int argc,const char* const* argv)
 	}
 	FklSymbolTable* table=fklCreateSymbolTable();
 	fklLoadSymbolTable(fp,table);
-	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp);
+	FklFuncPrototypes* prototypes=fklLoadFuncPrototypes(fp);
 	FklByteCodelnt* mainCodelnt=fklLoadByteCodelnt(fp);
 
 	FklVM* anotherVM=fklCreateVMwithByteCode(mainCodelnt,table,prototypes,1);

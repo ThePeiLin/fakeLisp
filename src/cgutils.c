@@ -281,6 +281,14 @@ static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id
 	return r;
 }
 
+FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
+{
+	FklHashTable* ht=&env->refs;
+	FklSidScope key={id,env->pscope};
+	FklSymbolDef* el=fklGetHashItem(&key,ht);
+	return el;
+}
+
 uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
 {
 	FklHashTable* ht=&env->refs;
@@ -457,7 +465,6 @@ static inline void recompute_sid_for_prototypes(FklFuncPrototypes* pts
 {
 	uint32_t end=pts->count+1;
 
-	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
 	for(uint32_t i=1;i<end;i++)
 	{
 		FklFuncPrototype* cur=&pts->pa[i];
@@ -465,7 +472,7 @@ static inline void recompute_sid_for_prototypes(FklFuncPrototypes* pts
 		if(cur->sid)
 			replace_sid(&cur->sid,origin_table,target_table);
 
-		for(uint32_t i=cur->is_top?builtin_symbol_num:0;i<cur->rcount;i++)
+		for(uint32_t i=0;i<cur->rcount;i++)
 			replace_sid(&cur->refs[i].k.id,origin_table,target_table);
 	}
 }
@@ -1220,16 +1227,15 @@ int fklLoadPreCompile(FklFuncPrototypes* info_pts
 	fklInitSymbolTable(&ost);
 	fklLoadSymbolTable(fp,&ost);
 
-	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
 	FklFuncPrototypes* pts=NULL;
 	FklFuncPrototypes* macro_pts=NULL;
 
-	pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
+	pts=fklLoadFuncPrototypes(fp);
 
 	if(load_imported_lib_stack(&scriptLibStack,&ost,main_dir,fp,errorStr))
 		goto error;
 
-	macro_pts=fklLoadFuncPrototypes(builtin_symbol_num,fp);
+	macro_pts=fklLoadFuncPrototypes(fp);
 	if(load_macro_lib_stack(&macroScriptLibStack,&ost,main_dir,fp,errorStr))
 	{
 		while(!fklIsPtrStackEmpty(&macroScriptLibStack))

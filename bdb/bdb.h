@@ -85,6 +85,7 @@ typedef struct
 typedef struct DebugCtx
 {
 	CmdReadCtx read_ctx;
+	FklCodegenEnv* glob_env;
 	FklCodegenOuterCtx outer_ctx;
 
 	FklHashTable file_sid_set;
@@ -215,7 +216,6 @@ void setAllThreadReadyToExit(FklVM* head);
 void waitAllThreadExit(FklVM* head);
 void restartDebugging(DebugCtx* ctx);
 
-FklVMvalue* getMainProc(DebugCtx* ctx);
 FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame);
 FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklVM*,FklNastNode* v,FklVMframe* frame);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVM*,FklVMvalue* proc,FklVMframe* frame);

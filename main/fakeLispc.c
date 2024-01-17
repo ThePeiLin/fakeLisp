@@ -188,13 +188,12 @@ static inline void write_pre_compile(FklCodegenInfo* codegen
 	fklRecomputeSidForSingleTableInfo(codegen,bcl,origin_st,&target_st);
 
 	fklWriteSymbolTable(&target_st,outfp);
-	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
 
-	fklWriteFuncPrototypes(codegen->pts,builtin_symbol_num,outfp);
+	fklWriteFuncPrototypes(codegen->pts,outfp);
 	write_lib_stack(codegen->libStack,&target_st,main_dir,target_dir,outfp);
 	write_lib_main_file(codegen,bcl,&target_st,main_dir,outfp);
 
-	fklWriteFuncPrototypes(codegen->macro_pts,builtin_symbol_num,outfp);
+	fklWriteFuncPrototypes(codegen->macro_pts,outfp);
 	write_lib_stack(codegen->macroLibStack,&target_st,main_dir,target_dir,outfp);
 
 	fklUninitSymbolTable(&target_st);
@@ -313,9 +312,9 @@ static inline int compile(const char* filename
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}
-	uint32_t builtin_symbol_num=fklGetBuiltinSymbolNum();
+
 	fklWriteSymbolTable(codegen.globalSymTable,outfp);
-	fklWriteFuncPrototypes(codegen.pts,builtin_symbol_num,outfp);
+	fklWriteFuncPrototypes(codegen.pts,outfp);
 	fklWriteByteCodelnt(mainByteCode,outfp);
 	uint64_t num=loadedLibStack->top;
 	fwrite(&num,sizeof(uint64_t),1,outfp);

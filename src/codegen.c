@@ -1755,18 +1755,11 @@ static FklByteCodelnt* processArgsInStack(FklUintStack* stack
 
 static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht
 		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* pst
-		,int is_top)
+		,FklSymbolTable* pst)
 {
 	FklSymbolDef* refs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*sht->num);
 	FKL_ASSERT(refs);
 	FklHashTableItem* list=sht->first;
-	if(is_top)
-	{
-		uint32_t builtin_symbol_number=fklGetBuiltinSymbolNum();
-		for(uint32_t i=0;i<builtin_symbol_number;i++)
-			list=list->next;
-	}
 	for(;list;list=list->next)
 	{
 		FklSymbolDef* sd=(FklSymbolDef*)list->data;
@@ -1785,8 +1778,7 @@ void fklInitFuncPrototypeWithEnv(FklFuncPrototype* cpt
 		,FklSymbolTable* pst)
 {
 	cpt->lcount=env->lcount;
-	cpt->is_top=env->prev==NULL;
-	cpt->refs=sid_ht_to_idx_key_ht(&env->refs,info->globalSymTable,pst,cpt->is_top);
+	cpt->refs=sid_ht_to_idx_key_ht(&env->refs,info->globalSymTable,pst);
 	cpt->rcount=env->refs.num;
 	cpt->sid=sid;
 	cpt->fid=info->fid;
@@ -1810,8 +1802,7 @@ static inline void create_and_insert_to_pool(FklCodegenInfo* info
 	FklFuncPrototype* cpt=&pts[cp->count];
 	env->prototypeId=cp->count;
 	cpt->lcount=env->lcount;
-	cpt->is_top=env->prev==NULL;
-	cpt->refs=sid_ht_to_idx_key_ht(&env->refs,gst,pst,cpt->is_top);
+	cpt->refs=sid_ht_to_idx_key_ht(&env->refs,gst,pst);
 	cpt->rcount=env->refs.num;
 	cpt->sid=sid;
 	cpt->fid=fid;
@@ -2147,12 +2138,6 @@ void fklUpdatePrototype(FklFuncPrototypes* cp
 	pts->refs=refs;
 	pts->rcount=count;
 	FklHashTableItem* list=eht->first;
-	if(pts->is_top)
-	{
-		uint32_t builtin_symbol_number=fklGetBuiltinSymbolNum();
-		for(uint32_t i=0;i<builtin_symbol_number;i++)
-			list=list->next;
-	}
 	for(;list;list=list->next)
 	{
 		FklSymbolDef* sd=(FklSymbolDef*)list->data;
@@ -9315,8 +9300,7 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 	}
 	else
 	{
-		codegen->globalEnv=fklCreateCodegenEnv(NULL,0,NULL);
-		fklInitGlobCodegenEnv(codegen->globalEnv,&outer_ctx->public_symbol_table);
+		codegen->globalEnv=NULL;
 		codegen->work.work_cb=NULL;
 		codegen->work.env_work_cb=NULL;
 		codegen->work.work_ctx=NULL;

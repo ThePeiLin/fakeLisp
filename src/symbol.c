@@ -237,33 +237,28 @@ static inline void write_symbol_def(const FklSymbolDef* def,FILE* fp)
 }
 
 static inline void write_prototype(const FklFuncPrototype* pt
-		,uint32_t builtin_symbol_num
 		,FILE* fp)
 {
-	uint8_t is_top=pt->is_top;
-	fwrite(&is_top,sizeof(is_top),1,fp);
 	uint32_t count=pt->lcount;
 	fwrite(&count,sizeof(count),1,fp);
 	count=pt->rcount;
 	FklSymbolDef* defs=pt->refs;
 	fwrite(&count,sizeof(count),1,fp);
-	for(uint32_t i=is_top?builtin_symbol_num:0;i<count;i++)
+	for(uint32_t i=0;i<count;i++)
 		write_symbol_def(&defs[i],fp);
 	fwrite(&pt->sid,sizeof(pt->sid),1,fp);
 	fwrite(&pt->fid,sizeof(pt->fid),1,fp);
 	fwrite(&pt->line,sizeof(pt->line),1,fp);
 }
 
-void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
-		,uint32_t builtin_symbol_num
-		,FILE* fp)
+void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp)
 {
 	uint32_t count=pts->count;
 	FklFuncPrototype* pta=pts->pa;
 	fwrite(&count,sizeof(count),1,fp);
 	uint32_t end=count+1;
 	for(uint32_t i=1;i<end;i++)
-		write_prototype(&pta[i],builtin_symbol_num,fp);
+		write_prototype(&pta[i],fp);
 }
 
 static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
@@ -275,15 +270,10 @@ static inline void load_symbol_def(FklSymbolDef* def,FILE* fp)
 	fread(&def->isLocal,sizeof(def->isLocal),1,fp);
 }
 
-static inline void load_prototype(FklFuncPrototype* pt
-		,uint32_t builtin_symbol_num
-		,FILE* fp)
+static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 {
 	uint32_t count=0;
-	uint8_t is_top=0;
-	fread(&is_top,sizeof(is_top),1,fp);
 
-	pt->is_top=is_top;
 	fread(&count,sizeof(count),1,fp);
 	pt->lcount=count;
 	fread(&count,sizeof(count),1,fp);
@@ -291,7 +281,7 @@ static inline void load_prototype(FklFuncPrototype* pt
 	FklSymbolDef* defs=(FklSymbolDef*)calloc(count,sizeof(FklSymbolDef));
 	FKL_ASSERT(defs||!count);
 	pt->refs=defs;
-	for(uint32_t i=is_top?builtin_symbol_num:0;i<count;i++)
+	for(uint32_t i=0;i<count;i++)
 		load_symbol_def(&defs[i],fp);
 
 	fread(&pt->sid,sizeof(pt->sid),1,fp);
@@ -299,7 +289,7 @@ static inline void load_prototype(FklFuncPrototype* pt
 	fread(&pt->line,sizeof(pt->line),1,fp);
 }
 
-FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp)
+FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 {
 	uint32_t count=0;
 	fread(&count,sizeof(count),1,fp);
@@ -307,7 +297,7 @@ FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp)
 	FklFuncPrototype* pta=pts->pa;
 	FKL_ASSERT(pts||!count);
 	for(uint32_t i=1;i<=count;i++)
-		load_prototype(&pta[i],builtin_symbol_num,fp);
+		load_prototype(&pta[i],fp);
 	return pts;
 }
 

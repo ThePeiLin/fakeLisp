@@ -43,7 +43,7 @@ int main(int argc,char** argv)
 		FklSymbolTable table;
 		fklInitSymbolTable(&table);
 		fklLoadSymbolTable(fp,&table);
-		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fklGetBuiltinSymbolNum(),fp));
+		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
 		char* rp=fklRealpath(filename);
 		free(rp);
 

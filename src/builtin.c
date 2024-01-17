@@ -5463,26 +5463,19 @@ static const struct SymbolFuncStruct
 	{NULL,                    NULL,                            {NULL,         NULL,          NULL,            NULL,          }, },
 };
 
-static const size_t BuiltinSymbolNum=sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct)-1;
-
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum)
 {
-	if(idx>=BuiltinSymbolNum)
+	if(idx>=FKL_BUILTIN_SYMBOL_NUM)
 		return NULL;
 	return builtInSymbolList[idx].inlfunc[argNum];
 }
 
 uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t* p)
 {
-	*p=BuiltinSymbolNum;
-	uint8_t* r=(uint8_t*)calloc(BuiltinSymbolNum,sizeof(uint8_t));
+	*p=FKL_BUILTIN_SYMBOL_NUM;
+	uint8_t* r=(uint8_t*)calloc(FKL_BUILTIN_SYMBOL_NUM,sizeof(uint8_t));
 	FKL_ASSERT(r);
 	return r;
-}
-
-uint32_t fklGetBuiltinSymbolNum(void)
-{
-	return BuiltinSymbolNum;
 }
 
 void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* pst)
@@ -5507,35 +5500,6 @@ static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 	pd->seek_end=fklVMaddSymbolCstr(exe->gc,"end")->id;
 }
 
-// void fklInitGlobalVMclosure(FklVMframe* frame,FklVM* exe)
-// {
-// 	FklVMCompoundFrameVarRef* f=&frame->c.lr;
-// 	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
-// 	f->rcount=RefCount;
-// 	FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*RefCount);
-// 	FKL_ASSERT(closure);
-// 	f->ref=closure;
-// 	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe
-// 			,&PublicBuiltInDataMetaTable
-// 			,FKL_VM_NIL);
-// 	FKL_DECL_VM_UD_DATA(pd,PublicBuiltInData,publicUserData);
-// 	init_vm_public_data(pd,exe);
-//
-// 	closure[FKL_VM_STDIN_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysIn);
-// 	closure[FKL_VM_STDOUT_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysOut);
-// 	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysErr);
-//
-// 	for(size_t i=3;i<RefCount;i++)
-// 	{
-// 		FklVMvalue* v=fklCreateVMvalueCproc(exe
-// 				,builtInSymbolList[i].f
-// 				,NULL
-// 				,publicUserData
-// 				,fklVMaddSymbolCstr(exe->gc,builtInSymbolList[i].s)->id);
-// 		closure[i]=fklCreateClosedVMvalueVarRef(exe,v);
-// 	}
-// }
-
 void fklInitGlobalVMclosureForGC(FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
@@ -5552,35 +5516,6 @@ void fklInitGlobalVMclosureForGC(FklVM* exe)
 	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysErr);
 
 	for(size_t i=3;i<FKL_BUILTIN_SYMBOL_NUM;i++)
-	{
-		FklVMvalue* v=fklCreateVMvalueCproc(exe
-				,builtInSymbolList[i].f
-				,NULL
-				,publicUserData
-				,fklVMaddSymbolCstr(exe->gc,builtInSymbolList[i].s)->id);
-		closure[i]=fklCreateClosedVMvalueVarRef(exe,v);
-	}
-}
-
-void fklInitGlobalVMclosureForProc(FklVMproc* proc,FklVM* exe)
-{
-	static const size_t RefCount=(sizeof(builtInSymbolList)/sizeof(struct SymbolFuncStruct))-1;
-	proc->rcount=RefCount;
-	FklVMvalue** closure=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*proc->rcount);
-	FKL_ASSERT(closure);
-	proc->closure=closure;
-	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe
-			,&PublicBuiltInDataMetaTable
-			,FKL_VM_NIL);
-
-	FKL_DECL_VM_UD_DATA(pd,PublicBuiltInData,publicUserData);
-	init_vm_public_data(pd,exe);
-
-	closure[FKL_VM_STDIN_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysIn);
-	closure[FKL_VM_STDOUT_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysOut);
-	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysErr);
-
-	for(size_t i=3;i<RefCount;i++)
 	{
 		FklVMvalue* v=fklCreateVMvalueCproc(exe
 				,builtInSymbolList[i].f

@@ -7,37 +7,68 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 	if(arg->bp)
 	{
 		Breakpoint* bp=arg->bp;
-		if(bp->is_deleted)
-			return;
-		for(;bp&&bp->is_disabled;bp=bp->next);
-		if(bp==NULL)
-			return;
-		ctx->reached_breakpoint=bp;
-		if(bp->cond_exp_obj)
+		for(;bp;bp=bp->next)
 		{
-			if(!bp->compiled)
+			if(bp->is_deleted)
+				continue;
+			if(bp->cond_exp_obj)
 			{
-				bp->compiled=1;
-				FklVMvalue* proc=compileConditionExpression(ctx
-						,vm
-						,bp->cond_exp
-						,vm->top_frame);;
-				bp->cond_exp=NULL;
-				bp->proc=proc;
+				if(!bp->compiled)
+				{
+					bp->compiled=1;
+					FklVMvalue* proc=compileConditionExpression(ctx
+							,vm
+							,bp->cond_exp
+							,vm->top_frame);;
+					bp->cond_exp=NULL;
+					bp->proc=proc;
+				}
+				if(bp->proc)
+				{
+					FklVMvalue* value=callEvalProc(ctx,vm,bp->proc,vm->top_frame);
+					if(value==FKL_VM_NIL)
+						continue;
+				}
 			}
-			if(bp->proc)
-			{
-				FklVMvalue* value=callEvalProc(ctx,vm,bp->proc,vm->top_frame);
-				if(value==FKL_VM_NIL)
-					return;
-			}
+			ctx->reached_breakpoint=bp;
+			setReachedThread(ctx,vm);
+			getCurLineStr(ctx,bp->fid,bp->line);
+			bp->count++;
+			if(bp->is_temporary)
+				delBreakpoint(ctx,bp->num);
+			longjmp(ctx->jmpb,DBG_INTERRUPTED);
 		}
-		setReachedThread(ctx,vm);
-		getCurLineStr(ctx,bp->fid,bp->line);
-		bp->count++;
-		if(bp->is_temporary)
-			delBreakpoint(ctx,bp->num);
-		longjmp(ctx->jmpb,DBG_INTERRUPTED);
+		// if(bp->is_deleted)
+		// 	return;
+		// for(;bp&&bp->is_disabled;bp=bp->next);
+		// if(bp==NULL)
+		// 	return;
+		// if(bp->cond_exp_obj)
+		// {
+		// 	if(!bp->compiled)
+		// 	{
+		// 		bp->compiled=1;
+		// 		FklVMvalue* proc=compileConditionExpression(ctx
+		// 				,vm
+		// 				,bp->cond_exp
+		// 				,vm->top_frame);;
+		// 		bp->cond_exp=NULL;
+		// 		bp->proc=proc;
+		// 	}
+		// 	if(bp->proc)
+		// 	{
+		// 		FklVMvalue* value=callEvalProc(ctx,vm,bp->proc,vm->top_frame);
+		// 		if(value==FKL_VM_NIL)
+		// 			return;
+		// 	}
+		// }
+		// ctx->reached_breakpoint=bp;
+		// setReachedThread(ctx,vm);
+		// getCurLineStr(ctx,bp->fid,bp->line);
+		// bp->count++;
+		// if(bp->is_temporary)
+		// 	delBreakpoint(ctx,bp->num);
+		// longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else if(arg->ln)
 	{

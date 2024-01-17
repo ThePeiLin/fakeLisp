@@ -53,7 +53,6 @@ typedef struct FklFuncPrototype
 	FklSid_t sid;
 	FklSid_t fid;
 	uint64_t line;
-	uint8_t is_top;
 }FklFuncPrototype;
 
 typedef struct
@@ -92,10 +91,8 @@ void fklUninitFuncPrototypes(FklFuncPrototypes* pts);
 FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count);
 uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes* pts);
 
-void fklWriteFuncPrototypes(const FklFuncPrototypes* pts
-		,uint32_t builtin_symbol_num
-		,FILE* fp);
-FklFuncPrototypes* fklLoadFuncPrototypes(uint32_t builtin_symbol_num,FILE* fp);
+void fklWriteFuncPrototypes(const FklFuncPrototypes* pts,FILE* fp);
+FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp);
 
 void fklUninitFuncPrototype(FklFuncPrototype* p);
 void fklDestroyFuncPrototypes(FklFuncPrototypes* p);

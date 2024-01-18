@@ -1,4 +1,5 @@
 #include"bdb.h"
+#include "fakeLisp/vm.h"
 #include<fakeLisp/builtin.h>
 
 typedef struct
@@ -692,7 +693,7 @@ static int bdb_debug_ctx_set_list_src(FKL_CPROC_ARGL)
 
 	FKL_CHECK_TYPE(line_num_obj,FKL_IS_FIX,Pname,exe);
 	int64_t line_num=FKL_GET_FIX(line_num_obj);
-	if(line_num>0&&line_num<=dctx->curfile_lines->top)
+	if(line_num>0&&line_num<dctx->curfile_lines->top)
 		dctx->curlist_line=line_num;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
@@ -748,6 +749,64 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
+
+static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-list-file-src";
+	FKL_DECL_AND_CHECK_ARG3(debug_ctx_obj,filename_obj,line_num_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_CHECK_TYPE(filename_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(line_num_obj,FKL_IS_FIX,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	FklSid_t fid=0;
+	FklString* str=FKL_VM_STR(filename_obj);
+	if(fklIsAccessibleRegFile(str->str))
+	{
+		char* rp=fklRealpath(str->str);
+		fid=fklAddSymbolCstr(rp,dctx->st)->id;
+		free(rp);
+	}
+	else
+	{
+		char* filename_with_dir=fklStrCat(fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir),str->str);
+		if(fklIsAccessibleRegFile(str->str))
+			fid=fklAddSymbolCstr(filename_with_dir,dctx->st)->id;
+		free(filename_with_dir);
+	}
+
+	if(fid==0)
+	{
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		return 0;
+	}
+
+	const SourceCodeHashItem* item=getSourceWithFid(dctx,fid);
+	int64_t line_num=FKL_GET_FIX(line_num_obj);
+	if(item==NULL||line_num<0||line_num>=item->lines.top)
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	else
+	{
+		uint32_t target_line=line_num;
+		const FklString* line_str=item->lines.base[target_line-1];
+
+		FklVMvalue* num_val=FKL_MAKE_VM_FIX(target_line);
+		FklVMvalue* is_cur_line=(fid==dctx->curline_file&&target_line==dctx->curline)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL;
+		FklVMvalue* str_val=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
+					,num_val
+					,is_cur_line
+					,str_val));
+	}
+	return 0;
+}
+
 
 static int bdb_debug_ctx_set_step_into(FKL_CPROC_ARGL)
 {
@@ -812,6 +871,274 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline FklVMvalue* get_byte_code_frame_and_reset(DebugCtx* ctx,FklInstruction const** ppc)
+{
+	FklVMvalue* bc=NULL;
+	FklVMframe* curframe=getCurrentFrame(ctx);
+	for(;curframe;curframe=curframe->prev)
+	{
+		if(curframe->type==FKL_FRAME_COMPOUND)
+		{
+			FklVMvalue* v=FKL_VM_PROC(curframe->c.proc)->codeObj;
+			if(ctx->curlist_bytecode!=v)
+			{
+				ctx->curlist_bytecode=v;
+				ctx->curlist_ins_pc=0;
+			}
+			if(ppc)
+				*ppc=curframe->c.pc;
+			bc=v;
+			break;
+		}
+	}
+	return bc;
+}
+
+static inline FklVMvalue* create_ins_vec(FklVM* exe
+		,FklVMvalue* num_val
+		,FklVMvalue* is_cur_ins
+		,const FklInstruction* ins)
+{
+	FklVMvalue* opcode_str=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetOpcodeName(ins->op)));
+	FklVMvalue* imm1=NULL;
+	FklVMvalue* imm2=NULL;
+	int vec_len=3;
+	FklOpcode op=ins->op;
+	int open_arg_len=fklGetOpcodeArgLen(op);
+	switch(open_arg_len)
+	{
+		case -1:
+			switch(op)
+			{
+				case FKL_OP_PUSH_PROC:
+					vec_len=5;
+					imm1=FKL_MAKE_VM_FIX(ins->imm);
+					imm2=fklMakeVMuint(ins->imm_u64,exe);
+					break;
+				case FKL_OP_PUSH_STR:
+					vec_len=4;
+					imm1=fklCreateVMvalueStr(exe,fklCopyString(ins->str));
+					break;
+				case FKL_OP_PUSH_BYTEVECTOR:
+					vec_len=4;
+					imm1=fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec));
+					break;
+				case FKL_OP_PUSH_BIG_INT:
+					vec_len=4;
+					imm1=fklCreateVMvalueBigInt(exe,ins->bi);
+					break;
+				default:
+					abort();
+					break;
+			}
+			break;
+		case 0:
+			break;
+		case 1:
+			vec_len=4;
+			if(op==FKL_OP_PUSH_CHAR)
+				imm1=FKL_MAKE_VM_CHR(ins->chr);
+			else
+				imm1=FKL_MAKE_VM_FIX(ins->imm_i8);
+			break;
+		case 2:
+			vec_len=4;
+			imm1=FKL_MAKE_VM_FIX(ins->imm_i16);
+			break;
+		case 4:
+			vec_len=4;
+			imm1=FKL_MAKE_VM_FIX(ins->imm_i32);
+			break;
+		case 8:
+			switch(op)
+			{
+				case FKL_OP_PUSH_F64:
+					vec_len=4;
+					imm1=fklCreateVMvalueF64(exe,ins->f64);
+					break;
+				case FKL_OP_PUSH_VECTOR:
+				case FKL_OP_PUSH_HASHTABLE_EQ:
+				case FKL_OP_PUSH_HASHTABLE_EQV:
+				case FKL_OP_PUSH_HASHTABLE_EQUAL:
+				case FKL_OP_PUSH_LIST:
+					vec_len=4;
+					imm1=fklMakeVMuint(ins->imm_u64,exe);
+					break;
+				case FKL_OP_PUSH_I64:
+				case FKL_OP_PUSH_I64_BIG:
+				case FKL_OP_JMP:
+				case FKL_OP_JMP_IF_FALSE:
+				case FKL_OP_JMP_IF_TRUE:
+					vec_len=4;
+					imm1=fklMakeVMint(ins->imm_i64,exe);
+					break;
+				case FKL_OP_PUSH_SYM:
+					vec_len=4;
+					imm1=FKL_MAKE_VM_SYM(ins->sid);
+					break;
+				case FKL_OP_IMPORT:
+				case FKL_OP_CLOSE_REF:
+					vec_len=5;
+					imm1=FKL_MAKE_VM_FIX(ins->imm);
+					imm2=FKL_MAKE_VM_FIX(ins->imm_u32);
+					break;
+				default:
+					abort();
+					break;
+			}
+			break;
+	}
+	FklVMvalue* retval=NULL;
+	switch(vec_len)
+	{
+		case 3:
+			retval=fklCreateVMvalueVec3(exe,num_val,is_cur_ins,opcode_str);
+			break;
+		case 4:
+			retval=fklCreateVMvalueVec4(exe,num_val,is_cur_ins,opcode_str,imm1);
+			break;
+		case 5:
+			retval=fklCreateVMvalueVec5(exe,num_val,is_cur_ins,opcode_str,imm1,imm2);
+			break;
+	}
+	return retval;
+}
+
+static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-list-ins";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FklVMvalue* pc_num_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	const FklInstruction* cur_ins=NULL;
+	FklVMvalue* byte_code=get_byte_code_frame_and_reset(dctx,&cur_ins);
+	if(byte_code==NULL)
+	{
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		return 0;
+	}
+
+	FklByteCode* bc=FKL_VM_CO(byte_code)->bc;
+	uint64_t cur_pc=cur_ins-bc->code;
+	if(pc_num_obj)
+	{
+		FKL_CHECK_TYPE(pc_num_obj,fklIsVMint,Pname,exe);
+		if(fklIsVMnumberLt0(pc_num_obj))
+			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		else
+		{
+			uint64_t ins_pc=fklGetUint(pc_num_obj);
+			if(ins_pc>=bc->len)
+				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+			else
+			{
+				const FklInstruction* ins=&bc->code[ins_pc];
+				if(ins->op==0)
+					ins=&((Breakpoint*)ins->ptr)->origin_ins;
+
+				FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+				FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
+
+				FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+							,num_val
+							,is_cur_ins
+							,ins));
+			}
+		}
+	}
+	else if(dctx->curlist_ins_pc<bc->len)
+	{
+		uint64_t ins_pc=dctx->curlist_ins_pc;
+		const FklInstruction* ins=&bc->code[ins_pc];
+
+		FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+		FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
+
+		FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+					,num_val
+					,is_cur_ins
+					,ins));
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_set_list_ins(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-set-list-ins";
+	FKL_DECL_AND_CHECK_ARG2(debug_ctx_obj,pc_num_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	FKL_CHECK_TYPE(pc_num_obj,fklIsVMint,Pname,exe);
+
+	FklVMvalue* byte_code=get_byte_code_frame_and_reset(dctx,NULL);
+
+
+	if(byte_code&&!fklIsVMnumberLt0(pc_num_obj))
+	{
+		uint64_t ins_pc=fklGetUint(pc_num_obj);
+		dctx->curlist_ins_pc=ins_pc;
+	}
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-get-cur-ins";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+
+	const FklInstruction* ins=NULL;
+	FklVMvalue* byte_code=get_byte_code_frame_and_reset(dctx,&ins);
+
+
+	if(byte_code)
+	{
+		if(ins->op==0)
+			ins=&((Breakpoint*)ins->ptr)->origin_ins;
+		FklByteCode* bc=FKL_VM_CO(byte_code)->bc;
+		uint64_t ins_pc=ins-bc->code;
+		FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+		FklVMvalue* is_cur_ins=FKL_VM_TRUE;
+
+		FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+					,num_val
+					,is_cur_ins
+					,ins));
+	}
+	else
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int bdb_debug_ctx_set_single_ins(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="bdb.debug-ctx-set-step-out";
+	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
+	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
+
+	setSingleStep(debug_ctx_ud->ctx);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.debug-ctx-eval";
@@ -821,7 +1148,9 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
 	DebugCtx* dctx=debug_ctx_ud->ctx;
-	if(dctx->reached_thread_frames.top)
+	if(dctx->done)
+		printThreadAlreadyExited(dctx,stdout);
+	else
 	{
 		FklVMframe* cur_frame=getCurrentFrame(dctx);
 		for(;cur_frame&&cur_frame->type==FKL_FRAME_OTHEROBJ;cur_frame=cur_frame->prev);
@@ -855,8 +1184,6 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 		else
 			printThreadCantEvaluate(dctx,stdout);
 	}
-	else
-		printThreadAlreadyExited(dctx,stdout);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -974,7 +1301,12 @@ struct SymFunc
 	{"debug-ctx-repl",            bdb_debug_ctx_repl,            },
 	{"debug-ctx-get-curline",     bdb_debug_ctx_get_curline,     },
 	{"debug-ctx-list-src",        bdb_debug_ctx_list_src,        },
+	{"debug-ctx-list-file-src",   bdb_debug_ctx_list_file_src,   },
 	{"debug-ctx-set-list-src",    bdb_debug_ctx_set_list_src,    },
+
+	{"debug-ctx-list-ins",        bdb_debug_ctx_list_ins,        },
+	{"debug-ctx-set-list-ins",    bdb_debug_ctx_set_list_ins,    },
+	{"debug-ctx-get-cur-ins",     bdb_debug_ctx_get_cur_ins,     },
 
 	{"debug-ctx-del-break",       bdb_debug_ctx_del_break,       },
 	{"debug-ctx-dis-break",       bdb_debug_ctx_dis_break,       },
@@ -986,6 +1318,7 @@ struct SymFunc
 	{"debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over,   },
 	{"debug-ctx-set-step-into",   bdb_debug_ctx_set_step_into,   },
 	{"debug-ctx-set-step-out",    bdb_debug_ctx_set_step_out,    },
+	{"debug-ctx-set-single-ins",  bdb_debug_ctx_set_single_ins,  },
 	{"debug-ctx-set-until",       bdb_debug_ctx_set_until,       },
 
 	{"debug-ctx-continue",        bdb_debug_ctx_continue,        },

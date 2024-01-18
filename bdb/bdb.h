@@ -95,6 +95,9 @@ typedef struct DebugCtx
 	int8_t running;
 	int8_t done;
 
+	uint64_t curlist_ins_pc;
+	FklVMvalue* curlist_bytecode;
+
 	uint32_t curlist_line;
 	uint32_t curline;
 	FklSid_t curline_file;
@@ -136,6 +139,7 @@ typedef struct DebugCtx
 			STEP_INTO,
 			STEP_OVER,
 			STEP_UNTIL,
+			SINGLE_INS,
 		}stepping_mode;
 		FklVM* vm;
 		const FklLineNumberTableItem* ln;
@@ -165,6 +169,7 @@ typedef struct
 	Breakpoint* bp;
 	const FklLineNumberTableItem* ln;
 	DebugCtx* ctx;
+	int err;
 }DbgInterruptArg;
 
 DebugCtx* createDebugCtx(FklVM* exe
@@ -180,6 +185,7 @@ void toggleVMint3(FklVM*);
 
 void markBreakpointCondExpObj(DebugCtx* ctx,FklVMgc* gc);
 
+const SourceCodeHashItem* getSourceWithFid(DebugCtx* dctx,FklSid_t fid);
 Breakpoint* createBreakpoint(uint64_t,FklSid_t,uint32_t,FklInstruction* ins,DebugCtx* ctx);
 Breakpoint* putBreakpointWithFileAndLine(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
 Breakpoint* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid);
@@ -206,6 +212,7 @@ void setStepInto(DebugCtx*);
 void setStepOver(DebugCtx*);
 void setStepOut(DebugCtx*);
 void setStepUntil(DebugCtx*,uint32_t line);
+void setSingleStep(DebugCtx*);
 
 void dbgInterrupt(FklVM*,DbgInterruptArg* arg);
 FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc

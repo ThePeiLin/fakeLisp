@@ -3575,8 +3575,8 @@ static void error_handler_frame_print_backtrace(void* data,FILE* fp,FklVMgc* gc)
 	FklVMcproc* cproc=FKL_VM_CPROC(c->proc);
 	if(cproc->sid)
 	{
-		fprintf(fp,"at cproc:");
-		fklPrintString(fklVMgetSymbolWithId(gc,cproc->sid)->symbol
+		fprintf(fp,"at cproc: ");
+		fklPrintRawSymbol(fklVMgetSymbolWithId(gc,cproc->sid)->symbol
 				,fp);
 		fputc('\n',fp);
 	}

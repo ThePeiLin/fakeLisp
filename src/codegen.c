@@ -9829,7 +9829,6 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 			fklInitMainProcRefs(anotherVM,anotherVM->libs[i+1].proc);
 	}
 	FklVMframe* mainframe=anotherVM->top_frame;
-	// fklInitGlobalVMclosure(mainframe,anotherVM);
 	initVMframeFromPatternMatchTable(anotherVM,mainframe,ht,lineHash,pts,prototype_id);
 	return anotherVM;
 }

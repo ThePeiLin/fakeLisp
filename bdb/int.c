@@ -38,37 +38,6 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 				delBreakpoint(ctx,bp->num);
 			longjmp(ctx->jmpb,DBG_INTERRUPTED);
 		}
-		// if(bp->is_deleted)
-		// 	return;
-		// for(;bp&&bp->is_disabled;bp=bp->next);
-		// if(bp==NULL)
-		// 	return;
-		// if(bp->cond_exp_obj)
-		// {
-		// 	if(!bp->compiled)
-		// 	{
-		// 		bp->compiled=1;
-		// 		FklVMvalue* proc=compileConditionExpression(ctx
-		// 				,vm
-		// 				,bp->cond_exp
-		// 				,vm->top_frame);;
-		// 		bp->cond_exp=NULL;
-		// 		bp->proc=proc;
-		// 	}
-		// 	if(bp->proc)
-		// 	{
-		// 		FklVMvalue* value=callEvalProc(ctx,vm,bp->proc,vm->top_frame);
-		// 		if(value==FKL_VM_NIL)
-		// 			return;
-		// 	}
-		// }
-		// ctx->reached_breakpoint=bp;
-		// setReachedThread(ctx,vm);
-		// getCurLineStr(ctx,bp->fid,bp->line);
-		// bp->count++;
-		// if(bp->is_temporary)
-		// 	delBreakpoint(ctx,bp->num);
-		// longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 	else if(arg->ln)
 	{
@@ -79,7 +48,10 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 	else
 	{
 		setReachedThread(ctx,vm);
-		longjmp(ctx->jmpb,DBG_ERROR_OCCUR);
+		if(arg->err)
+			longjmp(ctx->jmpb,DBG_ERROR_OCCUR);
+		else
+			longjmp(ctx->jmpb,DBG_INTERRUPTED);
 	}
 }
 
@@ -227,6 +199,16 @@ FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 					}
 				}
 				break;
+			case SINGLE_INS:
+				{
+					DbgInterruptArg arg=
+					{
+						.ctx=ctx,
+					};
+					unsetStepping(ctx);
+					dbgInterrupt(exe,&arg);
+				}
+				break;
 		}
 	}
 	else if(FKL_IS_ERR(int_val))
@@ -238,6 +220,7 @@ FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
 			fklPrintErrBacktrace(int_val,exe,stdout);
 			DbgInterruptArg arg=
 			{
+				.err=1,
 				.ctx=ctx,
 			};
 			unsetStepping(ctx);
@@ -263,6 +246,17 @@ void setStepInto(DebugCtx* ctx)
 			const FklInstruction* ins=f->c.pc;
 			ctx->stepping_ctx.ln=getCurLineNumberItemWithCp(ins,FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
 		}
+		exe->trapping=1;
+	}
+}
+
+void setSingleStep(DebugCtx* ctx)
+{
+	FklVM* exe=ctx->reached_thread;
+	if(exe&&exe->top_frame)
+	{
+		ctx->stepping_ctx.vm=exe;
+		ctx->stepping_ctx.stepping_mode=SINGLE_INS;
 		exe->trapping=1;
 	}
 }

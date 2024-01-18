@@ -129,6 +129,84 @@
 
 (define default-list-line-num 11)
 
+(define (print-ins x number-len line-prefix not-curline-prefix)
+  (printf "%*s %s%s"
+          number-len
+          (vec-ref x 0)
+          (if (vec-ref x 1)
+            line-prefix
+            not-curline-prefix)
+          (vec-ref x 2))
+  (define len (length x))
+  (cond
+    [(> len 4)
+     (printf " %S, %S" (vec-ref x 3) (vec-ref x 4))]
+    [(> len 3)
+     (printf " %S" (vec-ref x 3))])
+  (newline))
+
+(define (print-single-ins ins)
+  (define number-len (length (number->string (vec-ref ins 0))))
+  (define not-curline-prefix (make-string (length line-prefix) #\\s))
+  (print-ins ins number-len line-prefix not-curline-prefix))
+
+(define (print-ins-from-to ctx cur 1st last)
+  (define not-curline-prefix (make-string (length line-prefix) #\\s))
+  (define ins-list '())
+
+  (setq ins-list (cons cur ins-list))
+  (let loop [(n (1+ 1st))]
+    (define cur (debug-ctx-list-ins ctx n))
+    (when (and (< n last) cur)
+      (setq ins-list (cons cur ins-list))
+      (loop (1+ n))))
+
+  (setq ins-list (reverse! ins-list))
+
+  (define number-len (length (number->string (vec-ref (car (tail ins-list)) 0))))
+
+  (foreach
+    (lambda (x)
+      (print-ins x
+                 number-len
+                 line-prefix
+                 not-curline-prefix))
+    ins-list))
+
+(define (debug-list-ins ctx,rest)
+  (define 1st-line nil)
+  (define cur nil)
+  (cond
+    [(and rest
+       (setq 1st-line (car rest))
+       (setq cur (debug-ctx-list-ins ctx 1st-line)))
+     (define last-line (and (cdr rest) (car (cdr rest))))
+     (if last-line
+       (setq last-line (1+ last-line))
+       (setq last-line (+ 1st-line default-list-line-num)))
+     (print-ins-from-to ctx
+                        cur
+                        1st-line
+                        last-line)]
+    [(setq cur (debug-ctx-list-ins ctx))
+     (setq 1st-line (vec-ref cur 0))
+     (define last-line (+ 1st-line default-list-line-num))
+     (print-ins-from-to ctx
+                        cur
+                        1st-line
+                        last-line)
+     (debug-ctx-set-list-ins ctx last-line)]
+    [1 (println "[END]")]))
+
+(define (print-single-line x number-len line-prefix not-curline-prefix)
+  (printf "%*s %s%s"
+          number-len
+          (vec-ref x 0)
+          (if (vec-ref x 1)
+            line-prefix
+            not-curline-prefix)
+          (vec-ref x 2)))
+
 (define (print-src-from-to ctx cur 1st last)
   (define not-curline-prefix (make-string (length line-prefix) #\\s))
   (define line-list '())
@@ -140,25 +218,56 @@
       (setq line-list (cons cur line-list))
       (loop (1+ n))))
 
-  (setq line-list (reverse! line-list))
+  (define number-len (length (number->string (vec-ref (car line-list) 0))))
 
-  (define number-len (length (number->string (vec-ref (car (tail line-list)) 0))))
+  (setq line-list (reverse! line-list))
 
   (foreach
     (lambda (x)
-      (printf "%*s %s%s"
-              number-len
-              (vec-ref x 0)
-              (if (vec-ref x 1)
-                line-prefix
-                not-curline-prefix)
-              (vec-ref x 2)))
+      (print-single-line x number-len line-prefix not-curline-prefix))
     line-list))
+
+(define (print-file-src-from-to ctx cur filename 1st last)
+  (define not-curline-prefix (make-string (length line-prefix) #\\s))
+  (define line-list '())
+
+  (setq line-list (cons cur line-list))
+  (let loop [(n (1+ 1st))]
+    (define cur (debug-ctx-list-file-src ctx filename n))
+    (when (and (< n last) cur)
+      (setq line-list (cons cur line-list))
+      (loop (1+ n))))
+
+  (define number-len (length (number->string (vec-ref (car line-list) 0))))
+
+  (setq line-list (reverse! line-list))
+
+  (foreach
+    (lambda (x)
+      (print-single-line x number-len line-prefix not-curline-prefix))
+    line-list))
+
+(define (debug-list-file-src ctx filename,rest)
+  (define 1st (if rest (car rest) 1))
+  (define last-line (if (and rest (cdr rest))
+                      (1+ (car (cdr rest)))
+                      (+ 1st default-list-line-num)))
+  (define cur (debug-ctx-list-file-src ctx filename 1st))
+  (cond
+    [cur
+      (print-file-src-from-to ctx
+                              cur
+                              filename
+                              1st
+                              last-line)]
+    [1 (println "[EOF]")]))
 
 (define (debug-list-src ctx,rest)
   (define 1st-line nil)
   (define cur nil)
   (cond
+    [(and rest (string? (car rest)))
+     (apply debug-list-file-src ctx rest)]
     [(and rest
        (setq 1st-line (car rest))
        (setq cur (debug-ctx-list-src ctx 1st-line)))
@@ -187,6 +296,13 @@
 (define (debug-step ctx)
   (debug-ctx-set-step-into ctx)
   (debug-continue ctx))
+
+(define (debug-next-ins ctx)
+  (debug-ctx-set-single-ins ctx)
+  (debug-continue ctx)
+  (define cur-ins (debug-ctx-get-cur-ins ctx))
+  (when cur-ins
+    (print-single-ins cur-ins)))
 
 (define (debug-next ctx)
   (debug-ctx-set-step-over ctx)
@@ -238,7 +354,9 @@
     'disable debug-dis-breakpoint
     'enable debug-enable-breakpoint
     'list debug-list-src
+    'list-ins debug-list-ins
     'next debug-next
+    'next-ins debug-next-ins
     'step debug-step
     'return debug-return
     'eval debug-ctx-eval

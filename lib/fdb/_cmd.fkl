@@ -6,12 +6,16 @@
         (r,return)
         (h,help)
         (l,list)
+        (li,list-ins)
+        (ni,next-ins)
         (bt,where)))
 
 (define help-doc-hash
   (make-hash
     'exit "exit"
     'list "list source code"
+    'list-ins "list instruction"
+    'next-ins "run the next instruction"
     'continue "continue the program until end or reach break point"
     'restart "restart debug with same arguement"
     'break "set break point"
@@ -76,9 +80,5 @@
                    (get-help-msg-with-abbr c))
                  (printf "%s: %s\n" c help-msg))
                rest)
-      (print-general-help-doc)
-      ; (foreach (lambda (c)
-      ;            (printf "%s: %s\n" (car c) (cdr c)))
-      ;          (hash->list help-doc-hash))
-      )))
+      (print-general-help-doc))))
 

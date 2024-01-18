@@ -271,6 +271,11 @@ static inline void internal_dbg_extra_mark(DebugCtx* ctx,FklVMgc* gc)
 		if(i->compiled)
 			fklVMgcToGray(i->proc,gc);
 	}
+
+	base=gc->builtin_refs;
+	last=&base[FKL_BUILTIN_SYMBOL_NUM];
+	for(;base<last;base++)
+		fklVMgcToGray(*base,gc);
 }
 
 static void dbg_extra_mark(FklVMgc* gc,void* arg)
@@ -324,6 +329,9 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	initBreakpointTable(&ctx->breakpoints);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->reached_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
+
+	ctx->curlist_ins_pc=0;
+	ctx->curlist_bytecode=ctx->reached_thread->top_frame->c.proc;
 
 	ctx->glob_env=fklCreateCodegenEnv(NULL,1,NULL);
 	fklInitGlobCodegenEnv(ctx->glob_env,ctx->st);
@@ -420,6 +428,11 @@ void toggleVMint3(FklVM* exe)
 		exe->ins_table[0]=B_int3;
 	else
 		exe->ins_table[0]=B_int33;
+}
+
+const SourceCodeHashItem* getSourceWithFid(DebugCtx* dctx,FklSid_t fid)
+{
+	return get_source_with_fid(&dctx->source_code_table,fid);
 }
 
 Breakpoint* putBreakpointWithFileAndLine(DebugCtx* ctx
@@ -537,22 +550,6 @@ static inline Breakpoint* put_breakpoint_with_pc(DebugCtx* ctx
 	BreakpointHashItem* item=fklPutHashItem(&ctx->breakpoint_num,&ctx->breakpoints);
 	item->bp=createBreakpoint(ctx->breakpoint_num,ln->fid,ln->line,ins,ctx);
 	return item->bp;
-	// // BreakpointHashKey key={.fid=ln->fid,.line=ln->line,.pc=pc};
-	// // BreakpointHashItem t={.key=key,.num=0};
-	// // BreakpointHashItem* item=fklGetOrPutHashItem(&t,&ctx->breakpoints);
-	// if(item->ctx)
-	// 	return item;
-	// else
-	// {
-	// 	ctx->breakpoint_num++;
-	// 	item->num=ctx->breakpoint_num;
-	// 	item->ctx=ctx;
-	// 	item->origin_ins=*ins;
-	// 	item->ins=ins;
-	// 	ins->op=0;
-	// 	ins->ptr=item;
-	// 	return item;
-	// }
 }
 
 Breakpoint* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
@@ -625,6 +622,19 @@ void setReachedThread(DebugCtx* ctx,FklVM* vm)
 	ctx->reached_thread_frames.top=0;
 	for(FklVMframe* f=vm->top_frame;f;f=f->prev)
 		fklPushPtrStack(f,&ctx->reached_thread_frames);
+	for(FklVMframe* f=vm->top_frame;f;f=f->prev)
+	{
+		if(f->type==FKL_FRAME_COMPOUND)
+		{
+			FklVMvalue* bytecode=FKL_VM_PROC(f->c.proc)->codeObj;
+			if(bytecode!=ctx->curlist_bytecode)
+			{
+				ctx->curlist_bytecode=bytecode;
+				ctx->curlist_ins_pc=0;
+			}
+			break;
+		}
+	}
 	ctx->curthread_idx=1;
 	ctx->threads.top=0;
 	fklPushPtrStack(vm,&ctx->threads);

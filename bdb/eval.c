@@ -30,8 +30,6 @@ static inline FklCodegenEnv* init_codegen_info_common_helper(DebugCtx* ctx
 	*origin_outer_env=env->prev;
 	env->prev=NULL;
 	FklCodegenEnv* new_env=fklCreateCodegenEnv(env,ln->scope,NULL);
-	// fklInitGlobCodegenEnv(new_env
-	// 		,ctx->st);
 	fklInitCodegenInfo(info
 			,NULL
 			,NULL
@@ -71,23 +69,6 @@ static inline void set_back_origin_prev_env(FklCodegenEnv* new_env,FklCodegenEnv
 	env->prev=origin_outer_env;
 }
 
-// static inline void copy_closure_from_gc(FklVMvalue** refs
-// 		,uint32_t i
-// 		,uint32_t to
-// 		,FklFuncPrototype* pt
-// 		,FklVM* vm)
-// {
-// 	FklVMgc* gc=vm->gc;
-// 	for(;i<to;i++)
-// 	{
-// 		FklSymbolDef* c=&pt->refs[i];
-// 		if(c->cidx<FKL_BUILTIN_SYMBOL_NUM)
-// 			refs[i]=gc->builtin_refs[c->cidx];
-// 		else
-// 			refs[i]=fklCreateClosedVMvalueVarRef(vm,NULL);
-// 	}
-// }
-
 static inline void resolve_reference(DebugCtx* ctx
 		,FklCodegenEnv* env
 		,FklVM* vm
@@ -111,7 +92,6 @@ static inline void resolve_reference(DebugCtx* ctx
 			proc->closure[uref->idx]=builtin_refs[ref->cidx];
 		free(uref);
 	}
-	// copy_closure_from_gc(proc->closure,start_count,rcount,pt,vm);
 }
 
 static inline FklVMvalue* compile_expression_common_helper(DebugCtx* ctx

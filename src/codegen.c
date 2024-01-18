@@ -6244,7 +6244,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 {
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
-	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
+	fklPrintUndefinedRef(env->prev,codegen->globalSymTable,pst);
 
 	MacroContext* d=(MacroContext*)(context->data);
 	FklPtrStack* stack=d->stack;
@@ -6420,7 +6420,7 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	custom_action_ctx_destroy(custom_ctx);
 	fklUpdatePrototype(codegen->pts,env,codegen->globalSymTable,pst);
-	fklPrintUndefinedRef(env,codegen->globalSymTable,pst);
+	fklPrintUndefinedRef(env->prev,codegen->globalSymTable,pst);
 
 	FklPtrStack* stack=d->stack;
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);

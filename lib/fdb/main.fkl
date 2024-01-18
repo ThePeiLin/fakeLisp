@@ -1,6 +1,6 @@
 (import (.. bdb))
 
-(import (cmd))
+(import (_cmd))
 
 (define file-prefix "> ")
 (define line-prefix "-> ")

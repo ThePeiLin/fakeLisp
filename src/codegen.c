@@ -2628,7 +2628,7 @@ static inline FklNastNode* get_replacement(const FklNastNode* value
 		return NULL;
 }
 
-static inline char* combineFileNameFromList(const FklNastNode* list,const FklSymbolTable* pst);
+static inline char* combineFileNameFromListAndCheckPrivate(const FklNastNode* list,const FklSymbolTable* pst);
 
 static inline int is_valid_compile_check_pattern(const FklNastNode* p)
 {
@@ -2787,26 +2787,31 @@ static inline int is_check_subpattern_true(const FklNastNode* value
 								errorState->place=fklMakeNastNodeRef(cur);
 								goto exit;
 							}
-							char* filename=combineFileNameFromList(value,&ctx->public_symbol_table);
+							char* filename=combineFileNameFromListAndCheckPrivate(value,&ctx->public_symbol_table);
 
-							char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
-							packageMainFileName=fklStrCat(packageMainFileName,FKL_PACKAGE_MAIN_FILE);
+							if(filename)
+							{
+								char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
+								packageMainFileName=fklStrCat(packageMainFileName,FKL_PACKAGE_MAIN_FILE);
 
-							char* preCompileFileName=fklStrCat(fklCopyCstr(packageMainFileName),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+								char* preCompileFileName=fklStrCat(fklCopyCstr(packageMainFileName),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
-							char* scriptFileName=fklStrCat(fklCopyCstr(filename),FKL_SCRIPT_FILE_EXTENSION);
+								char* scriptFileName=fklStrCat(fklCopyCstr(filename),FKL_SCRIPT_FILE_EXTENSION);
 
-							char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
+								char* dllFileName=fklStrCat(fklCopyCstr(filename),FKL_DLL_FILE_TYPE);
 
-							r=fklIsAccessibleRegFile(packageMainFileName)
-								||fklIsAccessibleRegFile(scriptFileName)
-								||fklIsAccessibleRegFile(preCompileFileName)
-								||fklIsAccessibleRegFile(dllFileName);
-							free(filename);
-							free(scriptFileName);
-							free(dllFileName);
-							free(packageMainFileName);
-							free(preCompileFileName);
+								r=fklIsAccessibleRegFile(packageMainFileName)
+									||fklIsAccessibleRegFile(scriptFileName)
+									||fklIsAccessibleRegFile(preCompileFileName)
+									||fklIsAccessibleRegFile(dllFileName);
+								free(filename);
+								free(scriptFileName);
+								free(dllFileName);
+								free(packageMainFileName);
+								free(preCompileFileName);
+							}
+							else
+								r=0;
 						}
 						else if(fklPatternMatch(ctx->builtin_sub_pattern_node[FKL_CODEGEN_SUB_PATTERN_DEFMACRO],cur,&ht))
 						{
@@ -4114,13 +4119,21 @@ static CODEGEN_FUNC(codegen_load)
 			,codegenQuestStack);
 }
 
-static inline char* combineFileNameFromList(const FklNastNode* list,const FklSymbolTable* pst)
+static inline char* combineFileNameFromListAndCheckPrivate(const FklNastNode* list,const FklSymbolTable* pst)
 {
 	char* r=NULL;
-	for(const FklNastNode* curPair=list;curPair->type==FKL_NAST_PAIR;curPair=curPair->pair->cdr)
+	for(const FklNastNode* curPair=list
+			;curPair->type==FKL_NAST_PAIR
+			;curPair=curPair->pair->cdr)
 	{
 		FklNastNode* cur=curPair->pair->car;
-		r=fklCstrStringCat(r,fklGetSymbolWithId(cur->sym,pst)->symbol);
+		const FklString* str=fklGetSymbolWithId(cur->sym,pst)->symbol;
+		if(curPair!=list&&str->str[0]=='_')
+		{
+			free(r);
+			return NULL;
+		}
+		r=fklCstrStringCat(r,str);
 		if(curPair->pair->cdr->type!=FKL_NAST_NIL)
 			r=fklStrCat(r,FKL_PATH_SEPARATOR_STR);
 	}
@@ -5915,7 +5928,14 @@ static inline void codegen_import_helper(FklNastNode* origExp
 				,codegenQuestStack);
 	}
 
-	char* filename=combineFileNameFromList(name,pst);
+	char* filename=combineFileNameFromListAndCheckPrivate(name,pst);
+
+	if(filename==NULL)
+	{
+		errorState->type=FKL_ERR_IMPORTFAILED;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 
 	char* packageMainFileName=fklStrCat(fklCopyCstr(filename),FKL_PATH_SEPARATOR_STR);
 	packageMainFileName=fklStrCat(packageMainFileName,FKL_PACKAGE_MAIN_FILE);

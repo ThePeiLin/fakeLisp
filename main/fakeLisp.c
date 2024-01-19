@@ -62,7 +62,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 	codegen.globalSymTable=NULL;
 	codegen.pts=NULL;
 	anotherVM->libNum=scriptLibStack->top;
-	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
+	anotherVM->libs=(FklVMlib*)calloc((anotherVM->libNum+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 
 	FklVMgc* gc=anotherVM->gc;
@@ -202,8 +202,8 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 
 	FklVM* anotherVM=fklCreateVMwithByteCode(main_byte_code,&gst,pts,1);
 
-	anotherVM->libNum=scriptLibStack.top;
-	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack.top+1),sizeof(FklVMlib));
+	anotherVM->libNum=scriptLibStack.top+1;
+	anotherVM->libs=(FklVMlib*)calloc((anotherVM->libNum+1),sizeof(FklVMlib));
 	FKL_ASSERT(anotherVM->libs);
 
 	FklVMgc* gc=anotherVM->gc;

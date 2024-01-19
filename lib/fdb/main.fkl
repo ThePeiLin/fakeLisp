@@ -1,6 +1,87 @@
 (import (.. bdb))
 
-(import (_cmd))
+(define cmd-abbr-map
+  #hash((b,break)
+        (c,continue)
+        (n,next)
+        (s,step)
+        (r,return)
+        (h,help)
+        (l,list)
+        (li,list-ins)
+        (ni,next-ins)
+        (bt,where)))
+
+(define help-doc-hash
+  (make-hash
+    'exit "exit"
+    'list "list source code"
+    'list-ins "list instruction"
+    'next-ins "run the next instruction"
+    'continue "continue the program until end or reach break point"
+    'restart "restart debug with same arguement"
+    'break "set break point"
+    'tbreak "set temporary break point"
+    'delete "delete break point"
+    'enable "enable break point"
+    'disable "disable break point"
+    'next "run the program until next line, but step in function"
+    'step "run the program until next line, but step in function"
+    'return "run the program until function return"
+    'until "run the program until next line or the specified line"
+    'help "print this help doc or print the help of command"
+    'where "show frames of the current thread"
+    'up "move to the older frame"
+    'down "move to the newer frame"
+    'thread "list threads or switch to other thread"
+    'eval "evaluate an expression in current frame"))
+
+(define general-help-doc
+  (append! (hash-keys cmd-abbr-map)
+           (hash-keys help-doc-hash)))
+
+(define (print-general-help-doc)
+  (print "type: (help <topic>)")
+  (define count 0)
+  (foreach (lambda (x)
+             (when (= (% count 4) 0)
+               (newline))
+             (setq count (1+ count))
+             (printf "%s\t" x))
+           general-help-doc)
+  (newline))
+
+(define
+    (cmd-abbr->cmd abbr)
+    (define r (hash-ref cmd-abbr-map abbr '()))
+    (if r r abbr))
+
+(define (get-help-msg-with-abbr abbr)
+  (define r (hash-ref help-doc-hash abbr '()))
+  (unless r
+    (setq r (hash-ref help-doc-hash
+                      (cmd-abbr->cmd abbr)
+                      "do not have such a command")))
+  r)
+
+(define (unknown-cmd-func,_)
+  (println "*** unknown command ***"))
+
+(define (get-cmd-func ht abbr)
+  (define r (hash-ref ht abbr '()))
+  (unless r
+    (setq r (hash-ref ht
+                      (cmd-abbr->cmd abbr)
+                      unknown-cmd-func))))
+
+(define (debug-help _,rest)
+  (if rest
+    (foreach (lambda (c)
+               (define help-msg
+                 (get-help-msg-with-abbr c))
+               (printf "%s: %s\n" c help-msg))
+             rest)
+    (print-general-help-doc)))
 
 (define file-prefix "> ")
 (define line-prefix "-> ")

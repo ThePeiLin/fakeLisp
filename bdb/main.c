@@ -261,7 +261,7 @@ static int bdb_debug_ctx_repl(FKL_CPROC_ARGL)
 
 static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="bdb.debug-ctx-repl";
+	static const char Pname[]="bdb.debug-ctx-get-curline";
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,Pname,exe);
@@ -277,17 +277,22 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 		{
 			const FklLineNumberTableItem* ln=getCurFrameLineNumber(frame);
 			const FklString* line_str=getCurLineStr(dctx,ln->fid,ln->line);
-			FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
-			const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
-			FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
+			if(line_str)
+			{
+				FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+				const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
+				FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
 
-			FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
-			FklVMvalue* r=fklCreateVMvalueVec3(exe
-					,file_str_value
-					,line_num_value
-					,line_str_value);
+				FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
+				FklVMvalue* r=fklCreateVMvalueVec3(exe
+						,file_str_value
+						,line_num_value
+						,line_str_value);
 
-			FKL_VM_PUSH_VALUE(exe,r);
+				FKL_VM_PUSH_VALUE(exe,r);
+			}
+			else
+				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 		}
 		else
 			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -978,6 +983,7 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 					break;
 				case FKL_OP_IMPORT:
 				case FKL_OP_CLOSE_REF:
+				case FKL_OP_EXPORT_TO:
 					vec_len=5;
 					imm1=FKL_MAKE_VM_FIX(ins->imm);
 					imm2=FKL_MAKE_VM_FIX(ins->imm_u32);

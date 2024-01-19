@@ -1,5 +1,4 @@
 #include"bdb.h"
-#include "fakeLisp/vm.h"
 #include<fakeLisp/builtin.h>
 
 typedef struct
@@ -719,7 +718,7 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 	{
 		FKL_CHECK_TYPE(line_num_obj,FKL_IS_FIX,Pname,exe);
 		int64_t line_num=FKL_GET_FIX(line_num_obj);
-		if(line_num<0||line_num>=dctx->curfile_lines->top)
+		if(line_num<=0||line_num>=dctx->curfile_lines->top)
 			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 		else
 		{
@@ -791,7 +790,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL)
 
 	const SourceCodeHashItem* item=getSourceWithFid(dctx,fid);
 	int64_t line_num=FKL_GET_FIX(line_num_obj);
-	if(item==NULL||line_num<0||line_num>=item->lines.top)
+	if(item==NULL||line_num<=0||line_num>=item->lines.top)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	else
 	{
@@ -900,6 +899,7 @@ static inline FklVMvalue* get_byte_code_frame_and_reset(DebugCtx* ctx,FklInstruc
 }
 
 static inline FklVMvalue* create_ins_vec(FklVM* exe
+		,DebugCtx* dctx
 		,FklVMvalue* num_val
 		,FklVMvalue* is_cur_ins
 		,const FklInstruction* ins)
@@ -979,7 +979,11 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 					break;
 				case FKL_OP_PUSH_SYM:
 					vec_len=4;
-					imm1=FKL_MAKE_VM_SYM(ins->sid);
+					{
+						FklSid_t id=fklVMaddSymbol(exe->gc
+								,fklGetSymbolWithId(ins->sid,dctx->st)->symbol)->id;
+						imm1=FKL_MAKE_VM_SYM(id);
+					}
 					break;
 				case FKL_OP_IMPORT:
 				case FKL_OP_CLOSE_REF:
@@ -1051,6 +1055,7 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 				FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
 
 				FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+							,dctx
 							,num_val
 							,is_cur_ins
 							,ins));
@@ -1066,6 +1071,7 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 		FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
 
 		FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+					,dctx
 					,num_val
 					,is_cur_ins
 					,ins));
@@ -1125,6 +1131,7 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 			FklVMvalue* is_cur_ins=FKL_VM_TRUE;
 
 			FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+						,dctx
 						,num_val
 						,is_cur_ins
 						,ins));
@@ -1159,7 +1166,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
 	DebugCtx* dctx=debug_ctx_ud->ctx;
-	if(dctx->done)
+	if(dctx->done&&dctx->reached_thread==NULL)
 		printThreadAlreadyExited(dctx,stdout);
 	else
 	{

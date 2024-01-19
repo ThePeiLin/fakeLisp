@@ -431,7 +431,7 @@
 (define debug-cmd-func
   (make-hash
     'exit debug-ctx-exit
-    'continue debug-continue
+    'continue (lambda (ctx) (debug-continue ctx 1))
     'restart debug-restart
     'break debug-breakpoint
     'tbreak debug-temporary-breakpoint

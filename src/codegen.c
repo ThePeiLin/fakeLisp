@@ -437,7 +437,9 @@ BC_PROCESS(_funcall_exp_bc_process)
 		uint32_t argNum=stack->top-1;
 		FklBuiltinInlineFunc inlFunc=NULL;
 		const FklInstruction* ins=&funcBc->code[0];
-		if(argNum<4
+		if(!codegen->do_not_inline_builtins
+				&&
+				argNum<4
 				&&ins->op==FKL_OP_GET_VAR_REF
 				&&(inlFunc=is_inlinable_func_ref(ins->imm_u32
 						,env
@@ -9259,6 +9261,7 @@ FklCodegenEnv* fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,FklCodegenInfoEnvWorkCb env_work_cb
 		,void* work_ctx)
 {
+	codegen->do_not_inline_builtins=0;
 	codegen->globalSymTable=globalSymTable;
 	codegen->outer_ctx=outer_ctx;
 	if(rp!=NULL)
@@ -9372,10 +9375,15 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 		codegen->macro_pts=prev->macro_pts;
 		codegen->builtinSymModiMark=prev->builtinSymModiMark;
 		codegen->builtinSymbolNum=prev->builtinSymbolNum;
+		codegen->do_not_inline_builtins=prev->do_not_inline_builtins;
 	}
 	else
 	{
-		codegen->globalEnv=NULL;
+		codegen->do_not_inline_builtins=0;
+		codegen->globalEnv=fklCreateCodegenEnv(NULL,1,NULL);
+		fklInitGlobCodegenEnv(codegen->globalEnv,&outer_ctx->public_symbol_table);
+		codegen->globalEnv->refcount++;
+
 		codegen->work.work_cb=NULL;
 		codegen->work.env_work_cb=NULL;
 		codegen->work.work_ctx=NULL;

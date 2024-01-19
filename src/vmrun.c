@@ -281,7 +281,6 @@ static inline void callCproc(FklVM* exe,FklVMvalue* cproc)
 /*--------------------------*/
 
 static void B_dummy(FKL_VM_INS_FUNC_ARGL);
-static void B_dummy(FKL_VM_INS_FUNC_ARGL);
 static void B_push_nil(FKL_VM_INS_FUNC_ARGL);
 static void B_push_pair(FKL_VM_INS_FUNC_ARGL);
 static void B_push_i32(FKL_VM_INS_FUNC_ARGL);

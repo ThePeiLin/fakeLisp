@@ -358,7 +358,7 @@ static FklByteCodelnt* sequnce_exp_bc_process(FklPtrStack* stack
 			{
 				fklCodeLntConcat(retval,cur);
 				if(i<top-1)
-					fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+					fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			}
 			fklDestroyByteCodelnt(cur);
 		}
@@ -459,9 +459,9 @@ BC_PROCESS(_funcall_exp_bc_process)
 			}
 			FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
 			FklInstruction call=create_op_ins(FKL_OP_CALL);
-			fklBytecodeLntPushBackIns(&setBp,retval,fid,line,scope);
+			fklBytecodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
 			fklCodeLntConcat(retval,func);
-			fklBytecodeLntPushFrontIns(retval,&call,fid,line,scope);
+			fklBytecodeLntPushBackIns(retval,&call,fid,line,scope);
 			return retval;
 		}
 	}
@@ -667,7 +667,7 @@ static inline void append_close_ref(FklByteCodelnt* retval
 		,uint32_t scope)
 {
 	FklInstruction ins={.op=FKL_OP_CLOSE_REF,.imm=s,.imm_u32=e};
-	fklBytecodeLntPushFrontIns(retval,&ins,fid,line,scope);
+	fklBytecodeLntPushBackIns(retval,&ins,fid,line,scope);
 }
 
 static inline void check_and_close_ref(FklByteCodelnt* retval
@@ -837,13 +837,13 @@ BC_PROCESS(_let1_exp_bc_process)
 	FklInstruction popArg=create_op_ins(FKL_OP_POP_ARG);
 
 	FklByteCodelnt* retval=fklPopPtrStack(bcls);
-	fklBytecodeLntPushBackIns(&resBp,retval,fid,line,scope);
+	fklBytecodeLntInsertFrontIns(&resBp,retval,fid,line,scope);
 	while(!fklIsUintStackEmpty(symbolStack))
 	{
 		FklSid_t id=fklPopUintStack(symbolStack);
 		uint32_t idx=fklAddCodegenDefBySid(id,scope,env);
 		popArg.imm_u32=idx;
-		fklBytecodeLntPushBackIns(&popArg,retval,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&popArg,retval,fid,line,scope);
 	}
 	if(!fklIsPtrStackEmpty(bcls))
 	{
@@ -851,7 +851,7 @@ BC_PROCESS(_let1_exp_bc_process)
 		fklCodeLntReverseConcat(args,retval);
 		fklDestroyByteCodelnt(args);
 	}
-	fklBytecodeLntPushBackIns(&setBp,retval,fid,line,scope);
+	fklBytecodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
 	return retval;
 }
 
@@ -1103,18 +1103,18 @@ BC_PROCESS(_do0_exp_bc_process)
 	FklInstruction jmpIfTrue=create_op_ins(FKL_OP_JMP_IF_TRUE);
 
 	if(rest->bc->len)
-		fklBytecodeLntPushBackIns(&pop,rest,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&pop,rest,fid,line,scope);
 
 	jmpIfTrue.imm_i64=rest->bc->len+1;
-	fklBytecodeLntPushFrontIns(cond,&jmpIfTrue,fid,line,scope);
+	fklBytecodeLntPushBackIns(cond,&jmpIfTrue,fid,line,scope);
 
 	jmp.imm_i64=-(rest->bc->len+cond->bc->len+1);
-	fklBytecodeLntPushFrontIns(rest,&jmp,fid,line,scope);
+	fklBytecodeLntPushBackIns(rest,&jmp,fid,line,scope);
 	fklCodeLntConcat(cond,rest);
 	fklDestroyByteCodelnt(rest);
 
 	if(value->bc->len)
-		fklBytecodeLntPushFrontIns(cond,&pop,fid,line,scope);
+		fklBytecodeLntPushBackIns(cond,&pop,fid,line,scope);
 	fklCodeLntReverseConcat(cond,value);
 	fklDestroyByteCodelnt(cond);
 
@@ -1128,7 +1128,7 @@ BC_PROCESS(_do_rest_exp_bc_process)
 	{
 		FklInstruction pop=create_op_ins(FKL_OP_DROP);
 		FklByteCodelnt* r=sequnce_exp_bc_process(s,fid,line,scope);
-		fklBytecodeLntPushFrontIns(r,&pop,fid,line,scope);
+		fklBytecodeLntPushBackIns(r,&pop,fid,line,scope);
 		return r;
 	}
 	return fklCreateByteCodelnt(fklCreateByteCode(0));
@@ -1289,8 +1289,8 @@ BC_PROCESS(_do1_init_val_bc_process)
 		uint32_t idx=idxbase[i];
 		FklByteCodelnt* curBcl=bclBase[i];
 		putLoc.imm_u32=idx;
-		fklBytecodeLntPushFrontIns(curBcl,&putLoc,fid,line,scope);
-		fklBytecodeLntPushFrontIns(curBcl,&pop,fid,line,scope);
+		fklBytecodeLntPushBackIns(curBcl,&putLoc,fid,line,scope);
+		fklBytecodeLntPushBackIns(curBcl,&pop,fid,line,scope);
 		fklCodeLntConcat(ret,curBcl);
 	}
 	return ret;
@@ -1317,8 +1317,8 @@ BC_PROCESS(_do1_next_val_bc_process)
 			uint32_t idx=idxbase[i];
 			FklByteCodelnt* curBcl=bclBase[i];
 			putLoc.imm_u32=idx;
-			fklBytecodeLntPushFrontIns(curBcl,&putLoc,fid,line,scope);
-			fklBytecodeLntPushFrontIns(curBcl,&pop,fid,line,scope);
+			fklBytecodeLntPushBackIns(curBcl,&putLoc,fid,line,scope);
+			fklBytecodeLntPushBackIns(curBcl,&pop,fid,line,scope);
 			fklCodeLntConcat(ret,curBcl);
 		}
 		return ret;
@@ -1339,7 +1339,7 @@ BC_PROCESS(_do1_bc_process)
 	FklInstruction jmp=create_op_ins(FKL_OP_JMP);
 	FklInstruction jmpIfTrue=create_op_ins(FKL_OP_JMP_IF_TRUE);
 
-	fklBytecodeLntPushFrontIns(rest,&pop,fid,line,scope);
+	fklBytecodeLntPushBackIns(rest,&pop,fid,line,scope);
 	if(next)
 	{
 		fklCodeLntConcat(rest,next);
@@ -1347,15 +1347,15 @@ BC_PROCESS(_do1_bc_process)
 	}
 
 	jmpIfTrue.imm_i64=rest->bc->len+1;
-	fklBytecodeLntPushFrontIns(cond,&jmpIfTrue,fid,line,scope);
+	fklBytecodeLntPushBackIns(cond,&jmpIfTrue,fid,line,scope);
 
 	jmp.imm_i64=-(rest->bc->len+cond->bc->len+1);
-	fklBytecodeLntPushFrontIns(rest,&jmp,fid,line,scope);
+	fklBytecodeLntPushBackIns(rest,&jmp,fid,line,scope);
 	fklCodeLntConcat(cond,rest);
 	fklDestroyByteCodelnt(rest);
 
 	if(value->bc->len)
-		fklBytecodeLntPushFrontIns(cond,&pop,fid,line,scope);
+		fklBytecodeLntPushBackIns(cond,&pop,fid,line,scope);
 	fklCodeLntReverseConcat(cond,value);
 	fklDestroyByteCodelnt(cond);
 
@@ -1573,7 +1573,7 @@ static inline FklByteCodelnt* process_set_var(FklPtrStack* stack
 	{
 		popVar=cur;
 		FklInstruction pushNil=create_op_ins(FKL_OP_PUSH_NIL);
-		fklBytecodeLntPushBackIns(&pushNil,popVar,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&pushNil,popVar,fid,line,scope);
 	}
 	return popVar;
 }
@@ -1658,16 +1658,16 @@ BC_PROCESS(_lambda_exp_bc_process)
 			{
 				fklCodeLntConcat(retval,cur);
 				if(i<top-1)
-					fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+					fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			}
 			fklDestroyByteCodelnt(cur);
 		}
-		fklBytecodeLntPushFrontIns(retval,&ret,fid,line,scope);
+		fklBytecodeLntPushBackIns(retval,&ret,fid,line,scope);
 	}
 	else
 	{
 		retval=fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),fid,line,scope);
-		fklBytecodeLntPushFrontIns(retval,&ret,fid,line,scope);
+		fklBytecodeLntPushBackIns(retval,&ret,fid,line,scope);
 	}
 	fklCodeLntReverseConcat(stack->base[0],retval);
 	fklDestroyByteCodelnt(stack->base[0]);
@@ -1676,7 +1676,7 @@ BC_PROCESS(_lambda_exp_bc_process)
 	FklFuncPrototypes* pts=codegen->pts;
 	fklUpdatePrototype(pts,env,codegen->globalSymTable,&outer_ctx->public_symbol_table);
 	FklInstruction pushProc=create_op_imm_u32_u64_ins(FKL_OP_PUSH_PROC,env->prototypeId,retval->bc->len);
-	fklBytecodeLntPushBackIns(&pushProc,retval,fid,line,scope);
+	fklBytecodeLntInsertFrontIns(&pushProc,retval,fid,line,scope);
 	return retval;
 }
 
@@ -1704,7 +1704,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args
 		uint32_t idx=fklAddCodegenDefBySid(cur->sym,1,curEnv);
 
 		popArg.imm_u32=idx;
-		fklBytecodeLntPushFrontIns(retval,&popArg,codegen->fid,cur->curline,1);
+		fklBytecodeLntPushBackIns(retval,&popArg,codegen->fid,cur->curline,1);
 
 	}
 	if(args->type!=FKL_NAST_NIL&&args->type!=FKL_NAST_SYM)
@@ -1722,11 +1722,11 @@ static FklByteCodelnt* processArgs(const FklNastNode* args
 		uint32_t idx=fklAddCodegenDefBySid(args->sym,1,curEnv);
 
 		popRestArg.imm_u32=idx;
-		fklBytecodeLntPushFrontIns(retval,&popRestArg,codegen->fid,args->curline,1);
+		fklBytecodeLntPushBackIns(retval,&popRestArg,codegen->fid,args->curline,1);
 
 	}
 	FklInstruction resBp=create_op_ins(FKL_OP_RES_BP);
-	fklBytecodeLntPushFrontIns(retval,&resBp,codegen->fid,args->curline,1);
+	fklBytecodeLntPushBackIns(retval,&resBp,codegen->fid,args->curline,1);
 	return retval;
 }
 
@@ -1746,10 +1746,10 @@ static FklByteCodelnt* processArgsInStack(FklUintStack* stack
 		uint32_t idx=fklAddCodegenDefBySid(curId,1,curEnv);
 
 		popArg.imm_u32=idx;
-		fklBytecodeLntPushFrontIns(retval,&popArg,codegen->fid,curline,1);
+		fklBytecodeLntPushBackIns(retval,&popArg,codegen->fid,curline,1);
 	}
 	FklInstruction resBp=create_op_ins(FKL_OP_RES_BP);
-	fklBytecodeLntPushFrontIns(retval,&resBp,codegen->fid,curline,1);
+	fklBytecodeLntPushBackIns(retval,&resBp,codegen->fid,curline,1);
 	return retval;
 }
 
@@ -1841,7 +1841,7 @@ BC_PROCESS(_named_let_set_var_exp_bc_process)
 	{
 		popVar=cur;
 		FklInstruction pushNil=create_op_ins(FKL_OP_PUSH_NIL);
-		fklBytecodeLntPushBackIns(&pushNil,popVar,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&pushNil,popVar,fid,line,scope);
 	}
 	check_and_close_ref(popVar,scope,env,codegen->pts,fid,line);
 	return popVar;
@@ -2043,9 +2043,9 @@ BC_PROCESS(_and_exp_bc_process)
 		{
 			if(retval->bc->len)
 			{
-				fklBytecodeLntPushBackIns(&drop,retval,fid,line,scope);
+				fklBytecodeLntInsertFrontIns(&drop,retval,fid,line,scope);
 				jmpIfFalse.imm_i64=retval->bc->len;
-				fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line,scope);
+				fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
 			}
 			FklByteCodelnt* cur=fklPopPtrStack(stack);
 			fklCodeLntReverseConcat(cur,retval);
@@ -2087,9 +2087,9 @@ BC_PROCESS(_or_exp_bc_process)
 		{
 			if(retval->bc->len)
 			{
-				fklBytecodeLntPushBackIns(&drop,retval,fid,line,scope);
+				fklBytecodeLntInsertFrontIns(&drop,retval,fid,line,scope);
 				jmpIfTrue.imm_i64=retval->bc->len;
-				fklBytecodeLntPushBackIns(&jmpIfTrue,retval,fid,line,scope);
+				fklBytecodeLntInsertFrontIns(&jmpIfTrue,retval,fid,line,scope);
 			}
 			FklByteCodelnt* cur=fklPopPtrStack(stack);
 			fklCodeLntReverseConcat(cur,retval);
@@ -3184,7 +3184,7 @@ BC_PROCESS(_qsquote_box_bc_process)
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
 	FklInstruction pushBox=create_op_ins(FKL_OP_PUSH_BOX);
-	fklBytecodeLntPushFrontIns(retval,&pushBox,fid,line,scope);
+	fklBytecodeLntPushBackIns(retval,&pushBox,fid,line,scope);
 	return retval;
 }
 
@@ -3201,8 +3201,8 @@ BC_PROCESS(_qsquote_vec_bc_process)
 	stack->top=0;
 	FklInstruction pushVec=create_op_ins(FKL_OP_PUSH_VECTOR_0);
 	FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
-	fklBytecodeLntPushBackIns(&setBp,retval,fid,line,scope);
-	fklBytecodeLntPushFrontIns(retval,&pushVec,fid,line,scope);
+	fklBytecodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
+	fklBytecodeLntPushBackIns(retval,&pushVec,fid,line,scope);
 	return retval;
 }
 
@@ -3223,7 +3223,7 @@ BC_PROCESS(_unqtesp_vec_bc_process)
 		fklDestroyByteCodelnt(other);
 	}
 	FklInstruction listPush=create_op_ins(FKL_OP_LIST_PUSH);
-	fklBytecodeLntPushFrontIns(retval,&listPush,fid,line,scope);
+	fklBytecodeLntPushBackIns(retval,&listPush,fid,line,scope);
 	return retval;
 }
 
@@ -3240,8 +3240,8 @@ BC_PROCESS(_qsquote_pair_bc_process)
 	stack->top=0;
 	FklInstruction pushPair=create_op_ins(FKL_OP_PUSH_LIST_0);
 	FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
-	fklBytecodeLntPushBackIns(&setBp,retval,fid,line,scope);
-	fklBytecodeLntPushFrontIns(retval,&pushPair,fid,line,scope);
+	fklBytecodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
+	fklBytecodeLntPushBackIns(retval,&pushPair,fid,line,scope);
 	return retval;
 }
 
@@ -3257,7 +3257,7 @@ BC_PROCESS(_qsquote_list_bc_process)
 	}
 	stack->top=0;
 	FklInstruction pushPair=create_op_ins(FKL_OP_LIST_APPEND);
-	fklBytecodeLntPushFrontIns(retval,&pushPair,fid,line,scope);
+	fklBytecodeLntPushBackIns(retval,&pushPair,fid,line,scope);
 	return retval;
 }
 
@@ -3467,7 +3467,7 @@ BC_PROCESS(_cond_exp_bc_process_1)
 
 		FklInstruction drop=create_op_ins(FKL_OP_DROP);
 
-		fklBytecodeLntPushBackIns(&drop,prev,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&drop,prev,fid,line,scope);
 
 		FklInstruction jmp=create_op_ins(FKL_OP_JMP);
 		jmp.imm_i64=prev->bc->len;
@@ -3475,17 +3475,17 @@ BC_PROCESS(_cond_exp_bc_process_1)
 		for(size_t i=2;i<stack->top;i++)
 		{
 			FklByteCodelnt* cur=stack->base[i];
-			fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+			fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			fklCodeLntConcat(retval,cur);
 			fklDestroyByteCodelnt(cur);
 		}
 
 		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
 
-		fklBytecodeLntPushFrontIns(retval,&jmp,fid,line,scope);
+		fklBytecodeLntPushBackIns(retval,&jmp,fid,line,scope);
 		FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
 
-		fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
 		fklCodeLntConcat(retval,prev);
 		fklDestroyByteCodelnt(prev);
 		fklCodeLntReverseConcat(first,retval);
@@ -3512,14 +3512,14 @@ BC_PROCESS(_cond_exp_bc_process_2)
 		for(size_t i=1;i<stack->top;i++)
 		{
 			FklByteCodelnt* cur=stack->base[i];
-			fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+			fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			fklCodeLntConcat(retval,cur);
 			fklDestroyByteCodelnt(cur);
 		}
 		if(retval->bc->len)
 		{
 			FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
-			fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line,scope);
+			fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
 		}
 		fklCodeLntReverseConcat(first,retval);
 		fklDestroyByteCodelnt(first);
@@ -3651,9 +3651,9 @@ BC_PROCESS(_if_exp_bc_process_0)
 	FklByteCodelnt* cond=fklPopPtrStack(stack);
 	if(exp&&cond)
 	{
-		fklBytecodeLntPushBackIns(&drop,exp,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&drop,exp,fid,line,scope);
 		jmpIfFalse.imm_i64=exp->bc->len;
-		fklBytecodeLntPushFrontIns(cond,&jmpIfFalse,fid,line,scope);
+		fklBytecodeLntPushBackIns(cond,&jmpIfFalse,fid,line,scope);
 		fklCodeLntConcat(cond,exp);
 		fklDestroyByteCodelnt(exp);
 		return cond;
@@ -3702,12 +3702,12 @@ BC_PROCESS(_if_exp_bc_process_1)
 	if(exp0&&cond&&exp1)
 	{
 
-		fklBytecodeLntPushBackIns(&drop,exp0,fid,line,scope);
-		fklBytecodeLntPushBackIns(&drop,exp1,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&drop,exp0,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&drop,exp1,fid,line,scope);
 		jmp.imm_i64=exp1->bc->len;
-		fklBytecodeLntPushFrontIns(exp0,&jmp,fid,line,scope);
+		fklBytecodeLntPushBackIns(exp0,&jmp,fid,line,scope);
 		jmpIfFalse.imm_i64=exp0->bc->len;
-		fklBytecodeLntPushFrontIns(cond,&jmpIfFalse,fid,line,scope);
+		fklBytecodeLntPushBackIns(cond,&jmpIfFalse,fid,line,scope);
 		fklCodeLntConcat(cond,exp0);
 		fklCodeLntConcat(cond,exp1);
 		fklDestroyByteCodelnt(exp0);
@@ -3716,9 +3716,9 @@ BC_PROCESS(_if_exp_bc_process_1)
 	}
 	else if(exp0&&cond)
 	{
-		fklBytecodeLntPushBackIns(&drop,exp0,fid,line,scope);
+		fklBytecodeLntInsertFrontIns(&drop,exp0,fid,line,scope);
 		jmpIfFalse.imm_i64=exp0->bc->len;
-		fklBytecodeLntPushFrontIns(cond,&jmpIfFalse,fid,line,scope);
+		fklBytecodeLntPushBackIns(cond,&jmpIfFalse,fid,line,scope);
 		fklCodeLntConcat(cond,exp0);
 		fklDestroyByteCodelnt(exp0);
 		return cond;
@@ -3781,14 +3781,14 @@ BC_PROCESS(_when_exp_bc_process)
 		for(size_t i=1;i<stack->top;i++)
 		{
 			FklByteCodelnt* cur=stack->base[i];
-			fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+			fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			fklCodeLntConcat(retval,cur);
 			fklDestroyByteCodelnt(cur);
 		}
 		stack->top=0;
 		FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
 		if(retval->bc->len)
-			fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line,scope);
+			fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
 		fklCodeLntReverseConcat(cond,retval);
 		fklDestroyByteCodelnt(cond);
 		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
@@ -3810,14 +3810,14 @@ BC_PROCESS(_unless_exp_bc_process)
 		for(size_t i=1;i<stack->top;i++)
 		{
 			FklByteCodelnt* cur=stack->base[i];
-			fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+			fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			fklCodeLntConcat(retval,cur);
 			fklDestroyByteCodelnt(cur);
 		}
 		stack->top=0;
 		FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_TRUE,retval->bc->len);
 		if(retval->bc->len)
-			fklBytecodeLntPushBackIns(&jmpIfFalse,retval,fid,line,scope);
+			fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
 		fklCodeLntReverseConcat(cond,retval);
 		fklDestroyByteCodelnt(cond);
 		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
@@ -4155,7 +4155,7 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 		const FklCodegenExportSidIndexHashItem* item=(const FklCodegenExportSidIndexHashItem*)l->data;
 		bc.imm=fklAddCodegenDefBySid(item->sid,scope,env);
 		bc.imm_u32=item->idx;
-		fklBytecodeLntPushFrontIns(bcl,&bc,fid,line,scope);
+		fklBytecodeLntPushBackIns(bcl,&bc,fid,line,scope);
 	}
 }
 
@@ -4183,7 +4183,7 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
 		bc.imm=idx;
 		bc.imm_u32=item->idx;
-		fklBytecodeLntPushFrontIns(bcl,&bc,fid,line,scope);
+		fklBytecodeLntPushBackIns(bcl,&bc,fid,line,scope);
 		fklStringBufferClear(&buf);
 	}
 	fklUninitStringBuffer(&buf);
@@ -4665,7 +4665,7 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
-			fklBytecodeLntPushFrontIns(importBc,&bc,codegen->fid,only->curline,scope);
+			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,only->curline,scope);
 		}
 		else if(!r)
 		{
@@ -4779,7 +4779,7 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 			uint32_t idx=fklAddCodegenDefBySid(item->sid,scope,curEnv);
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
-			fklBytecodeLntPushFrontIns(importBc
+			fklBytecodeLntPushBackIns(importBc
 					,&bc
 					,codegen->fid
 					,except->curline
@@ -4871,7 +4871,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
-			fklBytecodeLntPushFrontIns(importBc,&bc,codegen->fid,alias->curline,scope);
+			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,alias->curline,scope);
 
 		}
 		else if(!r)
@@ -4973,6 +4973,32 @@ static inline int is_exporting_outer_ref_group(FklCodegenInfo* codegen)
 	return 0;
 }
 
+static inline void process_export_bc(FklCodegenInfo* info
+		,FklByteCodelnt* libBc
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
+{
+	uint32_t export_num=info->exports.num;
+	FklInstruction exportToOpBc=
+	{
+		.op=FKL_OP_EXPORT_TO,
+		.imm=export_num,
+		.imm_u32=info->libStack->top+1,
+	};
+	FklInstruction exportBc={.op=FKL_OP_EXPORT,.imm=0,};
+
+	fklBytecodeLntPushBackIns(libBc,&exportToOpBc,fid,line,scope);
+	for(const FklHashTableItem* l=info->exports.first
+			;l
+			;l=l->next)
+	{
+		const FklCodegenExportSidIndexHashItem* item=(const FklCodegenExportSidIndexHashItem*)l->data;
+		exportBc.imm_u32=item->oidx;
+		fklBytecodeLntPushBackIns(libBc,&exportBc,fid,line,scope);
+	}
+}
+
 BC_PROCESS(_library_bc_process)
 {
 	if(is_exporting_outer_ref_group(codegen))
@@ -4989,12 +5015,11 @@ BC_PROCESS(_library_bc_process)
 
 	ExportContextData* data=context->data;
 	FklByteCodelnt* libBc=sequnce_exp_bc_process(data->stack,fid,line,scope);
+	process_export_bc(codegen,libBc,fid,line,scope);
 
-	FklInstruction exportOpBc=create_op_imm_u32_ins(FKL_OP_EXPORT,codegen->libStack->top+1);
 	FklInstruction ret=create_op_ins(FKL_OP_RET);
 
-	fklBytecodeLntPushFrontIns(libBc,&exportOpBc,fid,line,scope);
-	fklBytecodeLntPushFrontIns(libBc,&ret,fid,line,scope);
+	fklBytecodeLntPushBackIns(libBc,&ret,fid,line,scope);
 
 	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen
 			,libBc
@@ -5141,7 +5166,7 @@ BC_PROCESS(exports_bc_process)
 			{
 				fklCodeLntConcat(retval,cur);
 				if(i<top-1)
-					fklBytecodeLntPushFrontIns(retval,&drop,fid,line,scope);
+					fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			}
 			fklDestroyByteCodelnt(cur);
 		}
@@ -5243,8 +5268,14 @@ static CODEGEN_FUNC(codegen_export_single)
 process_def_in_lib:
 		if(name->type!=FKL_NAST_SYM)
 			goto error;
-		FklCodegenExportSidIndexHashItem* item=fklPutHashItem(&name->sym,&libCodegen->exports);
-		item->idx=fklAddCodegenDefBySid(name->sym,1,curEnv);
+		uint32_t idx=libCodegen->exports.num;
+		FklCodegenExportSidIndexHashItem* item=fklGetHashItem(&name->sym,&libCodegen->exports);
+		if(item==NULL)
+		{
+			item=fklPutHashItem(&name->sym,&libCodegen->exports);
+			item->idx=idx;
+			item->oidx=fklAddCodegenDefBySid(name->sym,1,curEnv);
+		}
 
 		fklPushPtrStack(fklCreateCodegenQuest(_begin_exp_bc_process
 					,createDefaultStackContext(fklCreatePtrStack(2,16))
@@ -5488,7 +5519,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
-			fklBytecodeLntPushFrontIns(importBc,&bc,codegen->fid,only->curline,scope);
+			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,only->curline,scope);
 		}
 		else
 		{
@@ -5572,7 +5603,7 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 			uint32_t idx=fklAddCodegenDefBySid(item->sid,scope,curEnv);
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
-			fklBytecodeLntPushFrontIns(importBc,&bc,codegen->fid
+			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid
 					,except->curline
 					,scope);
 		}
@@ -5780,7 +5811,7 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
-			fklBytecodeLntPushFrontIns(importBc,&bc,codegen->fid,alias->curline,scope);
+			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,alias->curline,scope);
 		}
 		else
 		{
@@ -6250,7 +6281,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklPtrStack* stack=d->stack;
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklInstruction ret=create_op_ins(FKL_OP_RET);
-	fklBytecodeLntPushFrontIns(macroBcl,&ret,fid,line,scope);
+	fklBytecodeLntPushBackIns(macroBcl,&ret,fid,line,scope);
 
 	FklNastNode* pattern=d->pattern;
 	FklCodegenMacroScope* macros=d->macroScope;
@@ -6425,7 +6456,7 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklPtrStack* stack=d->stack;
 	FklByteCodelnt* macroBcl=fklPopPtrStack(stack);
 	FklInstruction ret=create_op_ins(FKL_OP_RET);
-	fklBytecodeLntPushFrontIns(macroBcl,&ret,fid,line,scope);
+	fklBytecodeLntPushBackIns(macroBcl,&ret,fid,line,scope);
 
 	custom_ctx->pts=pts;
 	custom_ctx->bcl=macroBcl;
@@ -8644,6 +8675,14 @@ reader_macro_error:
 
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
+BC_PROCESS(pre_compile_main_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* bclnt=sequnce_exp_bc_process(stack,fid,line,scope);
+	process_export_bc(codegen,bclnt,fid,line,scope);
+	return bclnt;
+}
+
 #undef BC_PROCESS
 #undef GET_STACK
 #undef CODEGEN_ARGS
@@ -9145,9 +9184,25 @@ print_error:
 	if(retval)
 	{
 		FklInstruction ret=create_op_ins(FKL_OP_RET);
-		fklBytecodeLntPushFrontIns(retval,&ret,codegener->fid,codegener->curline,1);
+		fklBytecodeLntPushBackIns(retval,&ret,codegener->fid,codegener->curline,1);
 	}
 	return retval;
+}
+
+FklByteCodelnt* fklGenExpressionCodeWithFpForPrecompile(FILE* fp
+		,FklCodegenInfo* codegen
+		,FklCodegenEnv* cur_env)
+{
+	FklCodegenQuest* initialQuest=fklCreateCodegenQuest(pre_compile_main_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(32,16))
+			,createFpNextExpression(fp,codegen)
+			,1
+			,cur_env->macros
+			,cur_env
+			,1
+			,NULL
+			,codegen);
+	return fklGenExpressionCodeWithQuest(initialQuest,codegen);
 }
 
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE* fp

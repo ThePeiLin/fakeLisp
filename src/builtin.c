@@ -4974,7 +4974,7 @@ static inline FklByteCodelnt* inl_1_arg_func(FklOpcode opc
 		,uint32_t scope)
 {
 	FklInstruction bc={.op=opc};
-	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line,scope);
+	fklBytecodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
 	return bcs[0];
 }
 
@@ -5046,7 +5046,7 @@ static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc
 {
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
-	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line,scope);
+	fklBytecodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
 	fklDestroyByteCodelnt(bcs[1]);
 	return bcs[0];
 }
@@ -5150,7 +5150,7 @@ static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
 	fklCodeLntReverseConcat(bcs[2],bcs[0]);
-	fklBytecodeLntPushFrontIns(bcs[0],&bc,fid,line,scope);
+	fklBytecodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
 	fklDestroyByteCodelnt(bcs[1]);
 	fklDestroyByteCodelnt(bcs[2]);
 	return bcs[0];

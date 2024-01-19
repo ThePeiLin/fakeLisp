@@ -79,13 +79,13 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
 void fklCodeLntConcat(FklByteCodelnt*,FklByteCodelnt*);
 void fklCodeLntReverseConcat(FklByteCodelnt*,FklByteCodelnt*);
 
-void fklBytecodeLntPushFrontIns(FklByteCodelnt* bcl
+void fklBytecodeLntPushBackIns(FklByteCodelnt* bcl
 		,const FklInstruction* ins
 		,FklSid_t fid
 		,uint32_t line
 		,uint32_t scope);
 
-void fklBytecodeLntPushBackIns(const FklInstruction* ins
+void fklBytecodeLntInsertFrontIns(const FklInstruction* ins
 		,FklByteCodelnt* bcl
 		,FklSid_t fid
 		,uint32_t line

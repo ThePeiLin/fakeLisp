@@ -370,6 +370,7 @@ static void B_unbox(FKL_VM_INS_FUNC_ARGL);
 static void B_box0(FKL_VM_INS_FUNC_ARGL);
 static void B_close_ref(FKL_VM_INS_FUNC_ARGL);
 static void B_ret(FKL_VM_INS_FUNC_ARGL);
+static void B_export_to(FKL_VM_INS_FUNC_ARGL);
 
 static FklVMinsFunc InsFuncTable[FKL_OP_LAST_OPCODE]=
 {
@@ -470,6 +471,7 @@ static FklVMinsFunc InsFuncTable[FKL_OP_LAST_OPCODE]=
 
 	B_close_ref,
 	B_ret,
+	B_export_to,
 };
 
 static inline void insert_to_VM_chain(FklVM* cur,FklVM* prev,FklVM* next)
@@ -2155,21 +2157,29 @@ static inline void B_put_var_ref(FKL_VM_INS_FUNC_ARGL)
 	*pv=v;
 }
 
-static inline void B_export(FKL_VM_INS_FUNC_ARGL)
+static inline void B_export_to(FKL_VM_INS_FUNC_ARGL)
 {
 	uint32_t libId=ins->imm_u32;
+	uint32_t num=ins->imm;
 	FklVMlib* lib=&exe->libs[libId];
-	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(exe->top_frame);
-	uint32_t count=lr->lcount;
-	FklVMvalue** loc=fklCopyMemory(lr->loc,sizeof(FklVMvalue*)*count);
 	DROP_TOP(exe);
+	FklVMvalue** loc=(FklVMvalue**)malloc(num*sizeof(FklVMvalue*));
+	FKL_ASSERT(loc);
 	lib->loc=loc;
-	lib->count=count;
+	lib->count=0;
 	lib->imported=1;
 	lib->belong=1;
 	lib->proc=FKL_VM_NIL;
 	exe->importingLib=lib;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+}
+
+static inline void B_export(FKL_VM_INS_FUNC_ARGL)
+{
+	uint32_t idx=ins->imm_u32;
+	FklVMlib* lib=exe->importingLib;
+	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(exe->top_frame);
+	lib->loc[lib->count++]=lr->loc[idx];
 }
 
 static inline void B_true(FKL_VM_INS_FUNC_ARGL)

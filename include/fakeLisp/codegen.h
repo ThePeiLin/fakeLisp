@@ -82,6 +82,7 @@ typedef struct
 {
 	FklSid_t sid;
 	uint32_t idx;
+	uint32_t oidx;
 }FklCodegenExportSidIndexHashItem;
 
 typedef struct
@@ -410,6 +411,9 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 		,FklCodegenInfo* codegen);
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
+		,FklCodegenInfo* codegen
+		,FklCodegenEnv* cur_env);
+FklByteCodelnt* fklGenExpressionCodeWithFpForPrecompile(FILE* fp
 		,FklCodegenInfo* codegen
 		,FklCodegenEnv* cur_env);
 

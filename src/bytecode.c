@@ -259,6 +259,7 @@ static inline uint32_t printSingleByteCode(const FklByteCode* tmpCode
 					fklPrintRawSymbol(fklGetSymbolWithId(ins->sid,table)->symbol,fp);
 					break;
 				case FKL_OP_IMPORT:
+				case FKL_OP_EXPORT_TO:
 				case FKL_OP_CLOSE_REF:
 					fprintf(fp,"%u %u",ins->imm,ins->imm_u32);
 					break;
@@ -576,7 +577,7 @@ void fklByteCodePushBack(FklByteCode* bc,FklInstruction ins)
 	bc->len++;
 }
 
-void fklBytecodeLntPushFrontIns(FklByteCodelnt* bcl
+void fklBytecodeLntPushBackIns(FklByteCodelnt* bcl
 		,const FklInstruction* ins
 		,FklSid_t fid
 		,uint32_t line
@@ -596,7 +597,7 @@ void fklBytecodeLntPushFrontIns(FklByteCodelnt* bcl
 	}
 }
 
-void fklBytecodeLntPushBackIns(const FklInstruction* ins
+void fklBytecodeLntInsertFrontIns(const FklInstruction* ins
 		,FklByteCodelnt* bcl
 		,FklSid_t fid
 		,uint32_t line
@@ -886,6 +887,7 @@ void fklWriteByteCode(const FklByteCode* bc,FILE* outfp)
 						break;
 					case FKL_OP_IMPORT:
 					case FKL_OP_CLOSE_REF:
+					case FKL_OP_EXPORT_TO:
 						fwrite(&code->imm,sizeof(code->imm),1,outfp);
 						fwrite(&code->imm_u32,sizeof(code->imm_u32),1,outfp);
 						break;
@@ -1023,6 +1025,7 @@ FklByteCode* fklLoadByteCode(FILE* fp)
 						break;
 					case FKL_OP_IMPORT:
 					case FKL_OP_CLOSE_REF:
+					case FKL_OP_EXPORT_TO:
 						fread(&code->imm,sizeof(code->imm),1,fp);
 						fread(&code->imm_u32,sizeof(code->imm_u32),1,fp);
 						break;

@@ -32,6 +32,7 @@ static inline void write_export_sid_idx_table(const FklHashTable* t,FILE* fp)
 		FklCodegenExportSidIndexHashItem* sid_idx=(FklCodegenExportSidIndexHashItem*)sid_idx_list->data;
 		fwrite(&sid_idx->sid,sizeof(sid_idx->sid),1,fp);
 		fwrite(&sid_idx->idx,sizeof(sid_idx->idx),1,fp);
+		fwrite(&sid_idx->oidx,sizeof(sid_idx->oidx),1,fp);
 	}
 }
 
@@ -214,7 +215,7 @@ static inline int pre_compile(const char* main_file_name
 	const char* main_dir=outer_ctx->main_file_real_path_dir;
 	fklChdir(outer_ctx->main_file_real_path_dir);
 	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx,NULL,NULL,NULL);
-	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen,main_env);
+	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFpForPrecompile(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
 		free(rp);

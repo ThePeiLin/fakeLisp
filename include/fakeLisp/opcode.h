@@ -103,6 +103,7 @@ typedef enum
 	FKL_OP_CLOSE_REF,
 
 	FKL_OP_RET,
+	FKL_OP_EXPORT_TO,
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

@@ -752,6 +752,7 @@ static inline void load_export_sid_idx_table(FklHashTable* t,FILE* fp)
 		FklCodegenExportSidIndexHashItem sid_idx;
 		fread(&sid_idx.sid,sizeof(sid_idx.sid),1,fp);
 		fread(&sid_idx.idx,sizeof(sid_idx.idx),1,fp);
+		fread(&sid_idx.oidx,sizeof(sid_idx.oidx),1,fp);
 		fklGetOrPutHashItem(&sid_idx,t);
 	}
 }
@@ -963,7 +964,7 @@ static inline void increase_bcl_lib_prototype_id(FklByteCodelnt* bcl,uint32_t li
 		{
 			case FKL_OP_LOAD_DLL:
 			case FKL_OP_LOAD_LIB:
-			case FKL_OP_EXPORT:
+			case FKL_OP_EXPORT_TO:
 				ins->imm_u32+=lib_count;
 				break;
 			case FKL_OP_PUSH_PROC:

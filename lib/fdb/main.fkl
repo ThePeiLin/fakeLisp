@@ -86,14 +86,18 @@
 (define file-prefix "> ")
 (define line-prefix "-> ")
 
-(define (print-cur-line ctx file-prefix line-prefix)
+(define (print-cur-line ctx file-prefix line-prefix,print-ins?)
   (define cur-file-line (debug-ctx-get-curline ctx))
-  (when cur-file-line
-    (println file-prefix
-             (vec-ref cur-file-line 0)
-             ":"
-             (vec-ref cur-file-line 1))
-    (print line-prefix (vec-ref cur-file-line 2))))
+  (cond
+    [cur-file-line
+      (println file-prefix
+               (vec-ref cur-file-line 0)
+               ":"
+               (vec-ref cur-file-line 1))
+      (print line-prefix (vec-ref cur-file-line 2))]
+    [(or (not print-ins?) (car print-ins?))
+     (if (define cur-ins (debug-ctx-get-cur-ins ctx))
+       (print-single-ins cur-ins))]))
 
 (define (print-break-point-brief breakpoint)
   (define temp-dis (vec-ref breakpoint 5))
@@ -121,7 +125,7 @@
   (when (debug-ctx-restart ctx)
     (print-cur-line ctx file-prefix line-prefix)))
 
-(define (debug-continue ctx)
+(define (debug-continue ctx print-ins?)
   (cond
     [(debug-ctx-done? ctx)
      (debug-restart ctx)]
@@ -130,7 +134,7 @@
      (when bp
        (print "reached ")
        (print-break-point-brief bp))
-     (print-cur-line ctx file-prefix line-prefix)]))
+     (print-cur-line ctx file-prefix line-prefix print-ins?)]))
 
 (define (debug-breakpoint ctx,rest)
   (cond
@@ -372,26 +376,26 @@
 
 (define (debug-return ctx)
   (debug-ctx-set-step-out ctx)
-  (debug-continue ctx))
+  (debug-continue ctx 1))
 
 (define (debug-step ctx)
   (debug-ctx-set-step-into ctx)
-  (debug-continue ctx))
+  (debug-continue ctx 1))
 
 (define (debug-next-ins ctx)
   (debug-ctx-set-single-ins ctx)
-  (debug-continue ctx)
+  (debug-continue ctx nil)
   (define cur-ins (debug-ctx-get-cur-ins ctx))
   (when cur-ins
     (print-single-ins cur-ins)))
 
 (define (debug-next ctx)
   (debug-ctx-set-step-over ctx)
-  (debug-continue ctx))
+  (debug-continue ctx 1))
 
 (define (debug-until ctx,rest)
   (apply debug-ctx-set-until ctx rest)
-  (debug-continue ctx))
+  (debug-continue ctx 1))
 
 (define (debug-where ctx)
   (debug-ctx-back-trace ctx line-prefix))

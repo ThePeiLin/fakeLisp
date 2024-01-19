@@ -1115,17 +1115,22 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 
 	if(byte_code)
 	{
-		if(ins->op==0)
-			ins=&((Breakpoint*)ins->ptr)->origin_ins;
 		FklByteCode* bc=FKL_VM_CO(byte_code)->bc;
-		uint64_t ins_pc=ins-bc->code;
-		FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
-		FklVMvalue* is_cur_ins=FKL_VM_TRUE;
+		if(ins<&bc->code[bc->len])
+		{
+			if(ins->op==0)
+				ins=&((Breakpoint*)ins->ptr)->origin_ins;
+			uint64_t ins_pc=ins-bc->code;
+			FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+			FklVMvalue* is_cur_ins=FKL_VM_TRUE;
 
-		FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
-					,num_val
-					,is_cur_ins
-					,ins));
+			FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+						,num_val
+						,is_cur_ins
+						,ins));
+		}
+		else
+			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	}
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

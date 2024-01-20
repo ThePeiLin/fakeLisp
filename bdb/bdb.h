@@ -223,8 +223,8 @@ void setAllThreadReadyToExit(FklVM* head);
 void waitAllThreadExit(FklVM* head);
 void restartDebugging(DebugCtx* ctx);
 
-FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame);
-FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklVM*,FklNastNode* v,FklVMframe* frame);
+FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame,int* is_complie_unabled);
+FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklVM*,FklNastNode* v,FklVMframe* frame,int* is_complie_unabled);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVM*,FklVMvalue* proc,FklVMframe* frame);
 
 void setReachedThread(DebugCtx* ctx,FklVM*);
@@ -237,6 +237,7 @@ void switchCurThread(DebugCtx* ctx,uint32_t idx);
 void listThreads(DebugCtx* ctx,const FklString* prefix,FILE* fp);
 void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp);
 void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp);
+void printUnableToCompile(FILE* fp);
 
 #ifdef __cplusplus
 }

@@ -15,13 +15,17 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 			{
 				if(!bp->compiled)
 				{
+					int compile_unabled;
 					bp->compiled=1;
 					FklVMvalue* proc=compileConditionExpression(ctx
 							,vm
 							,bp->cond_exp
-							,vm->top_frame);;
+							,vm->top_frame
+							,&compile_unabled);;
 					bp->cond_exp=NULL;
 					bp->proc=proc;
+					if(compile_unabled)
+						printUnableToCompile(stdout);
 				}
 				if(bp->proc)
 				{

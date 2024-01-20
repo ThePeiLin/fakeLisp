@@ -505,8 +505,10 @@ FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 	for(;frame->type==FKL_FRAME_OTHEROBJ;frame=frame->prev);
 	if(!frame)
 		return NULL;
-	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId;
 	uint32_t scope=getCurFrameLineNumber(frame)->scope;
+	if(scope==0)
+		return NULL;
+	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId;
 	FklCodegenEnv* env=ctx->envs.base[prototype_id-1];
 	const FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,env);
 	if(def)
@@ -688,6 +690,11 @@ void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp)
 void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp)
 {
 	fprintf(stdout,"*** can't evaluate expression in thread %u ***\n",ctx->curthread_idx);
+}
+
+void printUnableToCompile(FILE* fp)
+{
+	fputs("*** can't compile expression in current frame ***\n",stdout);
 }
 
 void setAllThreadReadyToExit(FklVM* head)

@@ -1175,6 +1175,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 
 		if(cur_frame)
 		{
+			int compile_unabled;
 			FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
 			if(!expression)
 				FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_CIR_REF,exe);
@@ -1184,7 +1185,8 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 			FklVMvalue* proc=compileEvalExpression(dctx
 					,dctx->reached_thread
 					,expression
-					,cur_frame);
+					,cur_frame
+					,&compile_unabled);
 			if(proc)
 			{
 				FklVMvalue* value=callEvalProc(dctx
@@ -1198,6 +1200,8 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 					fputc('\n',stdout);
 				}
 			}
+			if(compile_unabled)
+				printUnableToCompile(stdout);
 		}
 		else
 			printThreadCantEvaluate(dctx,stdout);

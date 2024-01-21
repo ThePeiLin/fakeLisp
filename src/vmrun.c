@@ -1022,7 +1022,8 @@ static inline void remove_exited_thread(FklVMgc* gc)
 
 static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 {
-	NOTICE_LOCK(exe);
+	if(!exe->is_single_thread)
+		NOTICE_LOCK(exe);
 	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
@@ -1039,7 +1040,8 @@ static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
 {
-	NOTICE_LOCK(exe);
+	if(!exe->is_single_thread)
+		NOTICE_LOCK(exe);
 	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_TOOFEWARG,exe);
@@ -1056,14 +1058,15 @@ static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_notice_lock_jmp(FKL_VM_INS_FUNC_ARGL)
 {
-	if(ins->imm_i64<0)
+	if((!exe->is_single_thread)&&ins->imm_i64<0)
 		NOTICE_LOCK(exe);
 	exe->top_frame->c.pc+=ins->imm_i64;
 }
 
 static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
 {
-	NOTICE_LOCK(exe);
+	if(!exe->is_single_thread)
+		NOTICE_LOCK(exe);
 	FklVMframe* f=exe->top_frame;
 	if(f->c.mark)
 	{

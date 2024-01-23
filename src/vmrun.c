@@ -860,6 +860,14 @@ void fklUnlockThread(FklVM* exe)
 	uv_mutex_unlock(&exe->lock);
 }
 
+static inline void do_vm_atexit(FklVM* vm)
+{
+	for(struct FklVMatExit* cur=vm->atexit
+			;cur
+			;cur=cur->next)
+		cur->func(vm,cur->arg);
+}
+
 void fklRunVMinSingleThread(FklVM* volatile exe)
 {
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
@@ -877,6 +885,7 @@ void fklRunVMinSingleThread(FklVM* volatile exe)
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
 				}
+				do_vm_atexit(exe);
 				return;
 				break;
 			case FKL_VM_READY:
@@ -911,6 +920,7 @@ static void vm_thread_cb(void* arg)
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
 				}
+				do_vm_atexit(exe);
 				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;
@@ -948,6 +958,7 @@ static void vm_trapping_thread_cb(void* arg)
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
 				}
+				do_vm_atexit(exe);
 				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;
@@ -1443,6 +1454,32 @@ void fklVMcontinueTheWorld(FklVMgc* gc)
 void fklVMidleLoop(FklVMgc* gc)
 {
 	vm_idle_loop(gc);
+}
+
+void fklVMatExit(FklVM* vm
+		,FklVMatExitFunc func
+		,FklVMatExitMarkFunc mark
+		,void (*finalizer)(void*)
+		,void* arg)
+{
+	struct FklVMatExit* m=(struct FklVMatExit*)malloc(sizeof(struct FklVMatExit));
+	FKL_ASSERT(m);
+	m->func=func;
+	m->mark=mark;
+	m->arg=arg;
+	m->finalizer=finalizer;
+	m->next=vm->atexit;
+	vm->atexit=m;
+}
+
+void fklVMmarkAtExit(FklVM* vm)
+{
+	FklVMgc* gc=vm->gc;
+	for(struct FklVMatExit* c=vm->atexit
+			;c
+			;c=c->next)
+		if(c->mark)
+			c->mark(c->arg,gc);
 }
 
 void fklVMtrappingIdleLoop(FklVMgc* gc)
@@ -2927,6 +2964,20 @@ void fklUninitVMstack(FklVM* s)
 	s->bp=0;
 }
 
+static inline void destroy_vm_atexit(FklVM* vm)
+{
+	struct FklVMatExit* cur=vm->atexit;
+	vm->atexit=NULL;
+	while(cur)
+	{
+		struct FklVMatExit* next=cur->next;
+		if(cur->finalizer)
+			cur->finalizer(cur->arg);
+		free(cur);
+		cur=next;
+	}
+}
+
 void fklDestroyAllVMs(FklVM* curVM)
 {
 	curVM->prev->next=NULL;
@@ -2954,6 +3005,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 		}
 		if(t->obj_head)
 			move_thread_objects_to_gc(t,t->gc);
+		destroy_vm_atexit(t);
 		uv_mutex_destroy(&t->lock);
 		remove_thread_frame_cache(t);
 		free(t->locv);

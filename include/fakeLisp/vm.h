@@ -390,6 +390,9 @@ typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
 #define FKL_VM_GC_LOCV_CACHE_NUM (8)
 #define FKL_VM_GC_LOCV_CACHE_LAST_IDX (FKL_VM_GC_LOCV_CACHE_NUM-1)
 
+typedef void (*FklVMatExitFunc)(struct FklVM*,void*);
+typedef void (*FklVMatExitMarkFunc)(void*,struct FklVMgc*);
+
 typedef struct FklVM
 {
 	uv_thread_t tid;
@@ -436,6 +439,15 @@ typedef struct FklVM
 	_Atomic(FklVMinsFunc) ins_table[FKL_OP_LAST_OPCODE];
 
 	uint64_t rand_state[4];
+
+	struct FklVMatExit
+	{
+		struct FklVMatExit* next;
+		FklVMatExitFunc func;
+		FklVMatExitMarkFunc mark;
+		void (*finalizer)(void*);
+		void* arg;
+	}* atexit;
 }FklVM;
 
 typedef struct FklVMudMetaTable
@@ -652,6 +664,12 @@ typedef struct
 
 void fklPopVMframe(FklVM*);
 int fklRunVM(FklVM* volatile);
+void fklVMatExit(FklVM* vm
+		,FklVMatExitFunc func
+		,FklVMatExitMarkFunc mark
+		,void (*finalizer)(void*)
+		,void* arg);
+void fklVMmarkAtExit(FklVM* vm);
 void fklVMidleLoop(FklVMgc* gc);
 void fklVMtrappingIdleLoop(FklVMgc* gc);
 

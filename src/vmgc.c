@@ -37,6 +37,7 @@ void fklVMgcToGray(FklVMvalue* v,FklVMgc* gc)
 
 static inline void gc_mark_root_to_gray(FklVM* exe)
 {
+	fklVMmarkAtExit(exe);
 	FklVMgc* gc=exe->gc;
 
 	for(FklVMframe* cur=exe->top_frame;cur;cur=cur->prev)

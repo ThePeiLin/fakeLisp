@@ -80,7 +80,7 @@ typedef struct DebugCtx
 	const FklPtrStack* curfile_lines;
 
 	FklHashTable source_code_table;
-	FklPtrStack envs;
+	FklHashTable envs;
 
 	FklPtrStack extra_mark_value;
 	FklPtrStack code_objs;
@@ -147,6 +147,12 @@ typedef struct
 	int err;
 }DbgInterruptArg;
 
+typedef struct
+{
+	uint32_t id;
+	FklCodegenEnv* env;
+}EnvHashItem;
+
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
@@ -156,6 +162,9 @@ const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp,FklByteCodelnt* code);
 
 void initBreakpointTable(FklHashTable*);
+void initEnvTable(FklHashTable*);
+void putEnv(DebugCtx* ctx,FklCodegenEnv* env);
+FklCodegenEnv* getEnv(DebugCtx*,uint32_t id);
 
 void toggleVMint3(FklVM*);
 

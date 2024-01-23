@@ -32,9 +32,8 @@ static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx
 {
 	if(!info->macroMark)
 	{
-		env->refcount++;
 		DebugCtx* dctx=(DebugCtx*)ctx;
-		fklPushPtrStack(env,&dctx->envs);
+		putEnv(dctx,env);
 	}
 }
 
@@ -302,16 +301,11 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 {
 	DebugCtx* ctx=(DebugCtx*)calloc(1,sizeof(DebugCtx));
 	FKL_ASSERT(ctx);
-	fklInitPtrStack(&ctx->envs,16,16);
+	initEnvTable(&ctx->envs);
 	fklInitSidSet(&ctx->file_sid_set);
 	if(init_debug_codegen_outer_ctx(ctx,filename))
 	{
-		while(!fklIsPtrStackEmpty(&ctx->envs))
-		{
-			FklCodegenEnv* env=fklPopPtrStack(&ctx->envs);
-			fklDestroyCodegenEnv(env);
-		}
-		fklUninitPtrStack(&ctx->envs);
+		fklUninitHashTable(&ctx->envs);
 		fklUninitHashTable(&ctx->file_sid_set);
 		free(ctx);
 		return NULL;
@@ -372,6 +366,8 @@ void exitDebugCtx(DebugCtx* ctx)
 	{
 		setAllThreadReadyToExit(ctx->reached_thread);
 		waitAllThreadExit(ctx->reached_thread);
+		ctx->running=0;
+		ctx->reached_thread=NULL;
 	}
 	else
 		fklDestroyAllVMs(gc->main_thread);
@@ -379,12 +375,7 @@ void exitDebugCtx(DebugCtx* ctx)
 
 void destroyDebugCtx(DebugCtx* ctx)
 {
-	while(!fklIsPtrStackEmpty(&ctx->envs))
-	{
-		FklCodegenEnv* env=fklPopPtrStack(&ctx->envs);
-		fklDestroyCodegenEnv(env);
-	}
-	fklUninitPtrStack(&ctx->envs);
+	fklUninitHashTable(&ctx->envs);
 	fklUninitHashTable(&ctx->file_sid_set);
 
 	clearBreakpoint(ctx);
@@ -511,8 +502,10 @@ FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 	uint32_t scope=getCurFrameLineNumber(frame)->scope;
 	if(scope==0)
 		return NULL;
-	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId;
-	FklCodegenEnv* env=ctx->envs.base[prototype_id-1];
+	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId; 
+	FklCodegenEnv* env=getEnv(ctx,prototype_id);
+	if(env==NULL)
+		return NULL;
 	const FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,env);
 	if(def)
 		return cur_thread->locv[def->idx];

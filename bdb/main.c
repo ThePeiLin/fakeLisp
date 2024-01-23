@@ -66,6 +66,27 @@ static FklVMudMetaTable DebugCtxUdMetaTable=
 
 #define IS_DEBUG_CTX_UD(V) (FKL_IS_USERDATA(V)&&FKL_VM_UD(V)->t==&DebugCtxUdMetaTable)
 
+static void debug_ctx_atexit_mark(void* arg,FklVMgc* gc)
+{
+	fklVMgcToGray(arg,gc);
+}
+
+static void debug_ctx_atexit_func(FklVM* vm,void* arg)
+{
+	FklVMvalue* v=arg;
+	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,v);
+	exitDebugCtx(debug_ud->ctx);
+}
+
+static void insert_debug_ctx_atexit(FklVM* vm,FklVMvalue* v)
+{
+	fklVMatExit(vm
+			,debug_ctx_atexit_func
+			,debug_ctx_atexit_mark
+			,NULL
+			,v);
+}
+
 static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="bdb.make-debug-ctx";
@@ -97,6 +118,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&DebugCtxUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,ud);
 	debug_ud->ctx=debug_ctx;
+	insert_debug_ctx_atexit(exe,ud);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,ud);
 	return 0;
 }

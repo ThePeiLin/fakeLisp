@@ -25,31 +25,6 @@ typedef struct
 	FklPtrStack stateStack;
 }CmdReadCtx;
 
-// typedef struct
-// {
-// 	FklSid_t fid;
-// 	uint64_t pc;
-// 	uint32_t line;
-// }BreakpointHashKey;
-//
-// typedef struct
-// {
-// 	BreakpointHashKey key;
-// 	uint64_t num;
-// 	struct DebugCtx* ctx;
-// 	FklInstruction* ins;
-// 	FklInstruction origin_ins;
-//
-// 	FklVMvalue* cond_exp_obj;
-// 	union
-// 	{
-// 		FklNastNode* cond_exp;
-// 		FklVMvalue* proc;
-// 	};
-// 	int compiled;
-// 	int is_temporary;
-// }BreakpointHashItem;
-
 typedef struct Breakpoint
 {
 	uint64_t num;
@@ -175,6 +150,7 @@ typedef struct
 DebugCtx* createDebugCtx(FklVM* exe
 		,const char* filename
 		,FklVMvalue* argv);
+void exitDebugCtx(DebugCtx*);
 void destroyDebugCtx(DebugCtx*);
 const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp,FklByteCodelnt* code);

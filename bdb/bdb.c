@@ -365,6 +365,18 @@ static inline void destroy_all_deleted_breakpoint(DebugCtx* ctx)
 	}
 }
 
+void exitDebugCtx(DebugCtx* ctx)
+{
+	FklVMgc* gc=ctx->gc;
+	if(ctx->running&&ctx->reached_thread)
+	{
+		setAllThreadReadyToExit(ctx->reached_thread);
+		waitAllThreadExit(ctx->reached_thread);
+	}
+	else
+		fklDestroyAllVMs(gc->main_thread);
+}
+
 void destroyDebugCtx(DebugCtx* ctx)
 {
 	while(!fklIsPtrStackEmpty(&ctx->envs))
@@ -374,15 +386,6 @@ void destroyDebugCtx(DebugCtx* ctx)
 	}
 	fklUninitPtrStack(&ctx->envs);
 	fklUninitHashTable(&ctx->file_sid_set);
-
-	FklVMgc* gc=ctx->gc;
-	if(ctx->running&&ctx->reached_thread)
-	{
-		setAllThreadReadyToExit(ctx->reached_thread);
-		waitAllThreadExit(ctx->reached_thread);
-	}
-	else
-		fklDestroyAllVMs(gc->main_thread);
 
 	clearBreakpoint(ctx);
 	destroy_all_deleted_breakpoint(ctx);
@@ -394,7 +397,7 @@ void destroyDebugCtx(DebugCtx* ctx)
 	fklUninitPtrStack(&ctx->reached_thread_frames);
 	fklUninitUintStack(&ctx->unused_prototype_id_for_cond_bp);
 
-	fklDestroyVMgc(gc);
+	fklDestroyVMgc(ctx->gc);
 	uninit_cmd_read_ctx(&ctx->read_ctx);
 	fklUninitCodegenOuterCtx(&ctx->outer_ctx);
 	fklDestroyCodegenEnv(ctx->glob_env);

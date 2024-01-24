@@ -590,8 +590,6 @@ void fklDoFinalizeCompoundFrame(FklVM* exe,FklVMframe* frame)
 	frame->prev=NULL;
 	*(exe->frame_cache_tail)=frame;
 	exe->frame_cache_tail=&frame->prev;
-	// frame->prev=exe->frame_cache;
-	// exe->frame_cache=frame;
 }
 
 void fklDoCopyObjFrameContext(FklVMframe* s,FklVMframe* d,FklVM* exe)
@@ -862,10 +860,12 @@ void fklUnlockThread(FklVM* exe)
 
 static inline void do_vm_atexit(FklVM* vm)
 {
+	vm->state=FKL_VM_READY;
 	for(struct FklVMatExit* cur=vm->atexit
 			;cur
 			;cur=cur->next)
 		cur->func(vm,cur->arg);
+	vm->state=FKL_VM_EXIT;
 }
 
 void fklRunVMinSingleThread(FklVM* volatile exe)
@@ -879,13 +879,13 @@ void fklRunVMinSingleThread(FklVM* volatile exe)
 				DO_STEP_VM_SINGLE_THREAD(exe);
 				break;
 			case FKL_VM_EXIT:
+				do_vm_atexit(exe);
 				if(exe->chan)
 				{
 					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
 				}
-				do_vm_atexit(exe);
 				return;
 				break;
 			case FKL_VM_READY:
@@ -914,13 +914,13 @@ static void vm_thread_cb(void* arg)
 				DO_STEP_VM(exe);
 				break;
 			case FKL_VM_EXIT:
+				do_vm_atexit(exe);
 				if(exe->chan)
 				{
 					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
 				}
-				do_vm_atexit(exe);
 				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;
@@ -952,13 +952,13 @@ static void vm_trapping_thread_cb(void* arg)
 				DO_TRAPPING_STEP_VM(exe);
 				break;
 			case FKL_VM_EXIT:
+				do_vm_atexit(exe);
 				if(exe->chan)
 				{
 					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
 					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
 					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
 				}
-				do_vm_atexit(exe);
 				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;
@@ -1003,6 +1003,20 @@ static inline void remove_thread_frame_cache(FklVM* exe)
 		:&exe->frame_cache_head;
 }
 
+static inline void destroy_vm_atexit(FklVM* vm)
+{
+	struct FklVMatExit* cur=vm->atexit;
+	vm->atexit=NULL;
+	while(cur)
+	{
+		struct FklVMatExit* next=cur->next;
+		if(cur->finalizer)
+			cur->finalizer(cur->arg);
+		free(cur);
+		cur=next;
+	}
+}
+
 static inline void remove_exited_thread(FklVMgc* gc)
 {
 	FklVM* main=gc->main_thread;
@@ -1019,6 +1033,7 @@ static inline void remove_exited_thread(FklVMgc* gc)
 			fklDeleteCallChain(cur);
 			fklUninitVMstack(cur);
 			uninit_all_vm_lib(cur->libs,cur->libNum);
+			destroy_vm_atexit(cur);
 			uv_mutex_destroy(&cur->lock);
 			remove_thread_frame_cache(cur);
 			free(cur->locv);
@@ -1033,8 +1048,7 @@ static inline void remove_exited_thread(FklVMgc* gc)
 
 static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 {
-	if(!exe->is_single_thread)
-		NOTICE_LOCK(exe);
+	NOTICE_LOCK(exe);
 	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.call",FKL_ERR_TOOFEWARG,exe);
@@ -1051,8 +1065,7 @@ static void B_notice_lock_call(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
 {
-	if(!exe->is_single_thread)
-		NOTICE_LOCK(exe);
+	NOTICE_LOCK(exe);
 	FklVMvalue* proc=FKL_VM_POP_ARG(exe);
 	if(!proc)
 		FKL_RAISE_BUILTIN_ERROR_CSTR("b.tail-call",FKL_ERR_TOOFEWARG,exe);
@@ -1069,15 +1082,14 @@ static inline void B_notice_lock_tail_call(FKL_VM_INS_FUNC_ARGL)
 
 static inline void B_notice_lock_jmp(FKL_VM_INS_FUNC_ARGL)
 {
-	if((!exe->is_single_thread)&&ins->imm_i64<0)
+	if(ins->imm_i64<0)
 		NOTICE_LOCK(exe);
 	exe->top_frame->c.pc+=ins->imm_i64;
 }
 
 static inline void B_notice_lock_ret(FKL_VM_INS_FUNC_ARGL)
 {
-	if(!exe->is_single_thread)
-		NOTICE_LOCK(exe);
+	NOTICE_LOCK(exe);
 	FklVMframe* f=exe->top_frame;
 	if(f->c.mark)
 	{
@@ -2962,20 +2974,6 @@ void fklUninitVMstack(FklVM* s)
 	s->last=0;
 	s->tp=0;
 	s->bp=0;
-}
-
-static inline void destroy_vm_atexit(FklVM* vm)
-{
-	struct FklVMatExit* cur=vm->atexit;
-	vm->atexit=NULL;
-	while(cur)
-	{
-		struct FklVMatExit* next=cur->next;
-		if(cur->finalizer)
-			cur->finalizer(cur->arg);
-		free(cur);
-		cur=next;
-	}
 }
 
 void fklDestroyAllVMs(FklVM* curVM)

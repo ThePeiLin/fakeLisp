@@ -1,0 +1,33 @@
+(define count 0)
+
+(defmacro THREAD-NUM 100)
+
+(defmacro INC 2)
+
+(defmacro TOTAL (* THREAD-NUM INC))
+
+(define (f1 a)
+  (print "count=1+count\n")
+  (setq count (+ count INC)))
+
+(define (f bar)
+  (barrier-wait bar)
+  (atexit f1 1))
+
+(import (.. lib sync))
+
+(define bar (make-barrier THREAD-NUM))
+
+(define ch '())
+
+(do [(n 0 (1+ n))]
+  [(>= n THREAD-NUM)]
+  (setq ch (cons (go f bar) ch)))
+
+(foreach recv ch)
+
+(import (only (.. lib utils m) assert))
+
+(assert (eqv (println count) TOTAL))
+
+(atexit println "goodbye at main thread exit")

@@ -3813,6 +3813,134 @@ static int builtin_idle(FKL_CPROC_ARGL)
 	return 0;
 }
 
+struct AtExitArg
+{
+	FklVMvalue* proc;
+	uint32_t arg_num;
+	FklVMvalue* args[];
+};
+
+typedef struct
+{
+	jmp_buf* buf;
+}AtExitFrameCtx;
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(AtExitFrameCtx);
+
+static void at_exit_frame_step(void* d,FklVM* exe)
+{
+	AtExitFrameCtx* ctx=(AtExitFrameCtx*)d;
+	longjmp(*ctx->buf,IDLE_WORK_DONE);
+}
+
+static int at_exit_frame_end(void* d)
+{
+	return 0;
+}
+
+static void at_exit_frame_finalizer(void* d)
+{
+}
+
+static const FklVMframeContextMethodTable AtExitFrameCtxMethodTable=
+{
+	.atomic=NULL,
+	.finalizer=at_exit_frame_finalizer,
+	.copy=NULL,
+	.print_backtrace=NULL,
+	.step=at_exit_frame_step,
+	.end=at_exit_frame_end,
+};
+
+static int vm_atexit_error_cb(FklVMframe* f,FklVMvalue* ev,FklVM* exe)
+{
+	AtExitFrameCtx* c=(AtExitFrameCtx*)f->data;
+	fklPrintErrBacktrace(ev,exe,stderr);
+	longjmp(*c->buf,IDLE_WORK_DONE);
+	return 0;
+}
+
+static void vm_atexit_idle_queue_work_cb(FklVM* exe,void *a)
+{
+	struct AtExitArg* arg=(struct AtExitArg*)a;
+	jmp_buf buf;
+	fklDontNoticeThreadLock(exe);
+	FklVMframe* origin_top_frame=exe->top_frame;
+	FklVMframe* atexit_frame=fklCreateOtherObjVMframe(exe,&AtExitFrameCtxMethodTable,exe->top_frame);
+	atexit_frame->errorCallBack=vm_atexit_error_cb;
+	AtExitFrameCtx* ctx=(AtExitFrameCtx*)atexit_frame->data;
+	ctx->buf=&buf;
+	exe->top_frame=atexit_frame;
+	uint32_t tp=exe->tp;
+	uint32_t bp=exe->bp;
+	fklSetBp(exe);
+	for(uint32_t i=0;i<arg->arg_num;i++)
+		FKL_VM_PUSH_VALUE(exe,arg->args[i]);
+	fklCallObj(exe,arg->proc);
+	if(setjmp(buf)==IDLE_WORK_DONE)
+	{
+		while(exe->top_frame!=origin_top_frame)
+			fklPopVMframe(exe);
+		exe->state=FKL_VM_READY;
+		fklNoticeThreadLock(exe);
+		exe->is_single_thread=0;
+		exe->bp=bp;
+		exe->tp=tp;
+	}
+	else
+	{
+		exe->state=FKL_VM_READY;
+		exe->is_single_thread=1;
+		fklRunVMinSingleThread(exe);
+	}
+	return;
+}
+
+static void vm_atexit_func(FklVM* vm,void* a)
+{
+	fklQueueWorkInIdleThread(vm,vm_atexit_idle_queue_work_cb,a);
+}
+
+static void vm_atexit_mark(void* a,FklVMgc* gc)
+{
+	const struct AtExitArg* arg=(const struct AtExitArg*)a;
+	fklVMgcToGray(arg->proc,gc);
+	for(uint32_t i=0;i<arg->arg_num;i++)
+		fklVMgcToGray(arg->args[i],gc);
+}
+
+static void vm_atexit_finalizer(void* arg)
+{
+	free(arg);
+}
+
+static inline struct AtExitArg* create_at_exit_arg(FklVMvalue* proc
+		,uint32_t arg_num
+		,FklVMvalue** base)
+{
+	size_t size=arg_num*sizeof(FklVMvalue*);
+	struct AtExitArg* r=(struct AtExitArg*)calloc(1,sizeof(struct AtExitArg)+size);
+	FKL_ASSERT(r);
+	r->proc=proc;
+	r->arg_num=arg_num;
+	memcpy(r->args,base,size);
+	return r;
+}
+
+static int builtin_atexit(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.atexit";
+	FKL_DECL_AND_CHECK_ARG(proc,exe,Pname);
+	FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+	FklVMvalue** base=&FKL_VM_GET_VALUE(exe,arg_num);
+	struct AtExitArg* arg=create_at_exit_arg(proc,arg_num,base);
+	fklVMatExit(exe,vm_atexit_func,vm_atexit_mark,vm_atexit_finalizer,arg);
+	uint32_t rtp=fklResBpIn(exe,arg_num);
+	FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,proc);
+	return 0;
+}
+
 static int builtin_apply(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.apply";
@@ -5270,6 +5398,7 @@ static const struct SymbolFuncStruct
 	{"dlsym",                 builtin_dlsym,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"argv",                  builtin_argv,                    {NULL,         NULL,          NULL,            NULL,          }, },
 
+	{"atexit",                builtin_atexit,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"idle",                  builtin_idle,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"go",                    builtin_go,                      {NULL,         NULL,          NULL,            NULL,          }, },
 

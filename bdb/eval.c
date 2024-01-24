@@ -322,6 +322,7 @@ FklVMvalue* callEvalProc(DebugCtx* ctx
 		vm->ins_table[FKL_OP_LOAD_LIB]=o_load_lib;
 
 		vm->state=FKL_VM_READY;
+		fklNoticeThreadLock(vm);
 		vm->is_single_thread=0;
 		FklVMframe* f=vm->top_frame;
 		while(f!=origin_cur_frame)
@@ -340,6 +341,7 @@ FklVMvalue* callEvalProc(DebugCtx* ctx
 		vm->is_single_thread=1;
 		vm->top_frame=create_eval_frame(ctx,vm,&retval,origin_cur_frame);
 		fklCallObj(vm,proc);
+		fklDontNoticeThreadLock(vm);
 		fklRunVMinSingleThread(vm);
 	}
 	return retval;

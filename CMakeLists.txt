@@ -251,6 +251,28 @@ set_target_properties(bdb PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
+#fuv.so
+file(GLOB FUV_SOURCE "fuv/*.c")
+
+add_library(fuv
+	SHARED
+	${FUV_SOURCE})
+set_target_properties(fuv PROPERTIES
+	PREFIX "")
+target_link_libraries(fuv ${LIBFKL_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET fuv
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:fuv>
+	"${CMAKE_BINARY_DIR}/lib"
+	DEPENDS fuv
+	VERBATIM)
+else()
+set_target_properties(fuv PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
 #linking
 target_link_libraries(${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
 target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)

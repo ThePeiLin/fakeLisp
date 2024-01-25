@@ -192,6 +192,8 @@ static inline const char* debug_ctx_replxx_input_string_buffer(Replxx* replxx
 	const char* next=replxx_input(replxx,buf->index?"":prompt);
 	if(next)
 		fklStringBufferConcatWithCstr(buf,next);
+	else
+		fputc('\n',stdout);
 	return next;
 }
 

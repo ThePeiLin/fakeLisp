@@ -646,6 +646,8 @@ static inline const char* replxx_input_string_buffer(Replxx* replxx
 	const char* next=replxx_input(replxx,buf->index?"":REPL_PROMPT);
 	if(next)
 		fklStringBufferConcatWithCstr(buf,next);
+	else
+		fputc('\n',stdout);
 	return next;
 }
 

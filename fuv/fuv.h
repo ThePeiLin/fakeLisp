@@ -8,6 +8,11 @@
 extern "C"{
 #endif
 
+typedef enum
+{
+	FUV_EBUSY
+}FuvErrorType;
+
 typedef struct
 {
 	uv_loop_t loop;
@@ -15,7 +20,9 @@ typedef struct
 }FuvLoop;
 
 int isFuvLoop(FklVMvalue* v);
-FklVMvalue* createFuvLoop(FklVM*);
+FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
+
+#define RAISE_FUV_ERROR(WHO,TYPE,EXE) abort()
 
 #ifdef __cplusplus
 }

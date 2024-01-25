@@ -1,20 +1,36 @@
 #include"fuv.h"
 
-#define FUV_PREDICATE(condtion,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
+#define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
-	if(condtion)\
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);\
-	else\
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);\
+	FKL_VM_PUSH_VALUE(exe,(condition)\
+			?FKL_VM_TRUE\
+			:FKL_VM_NIL);\
 	return 0;
+
+static int fuv_loop_p(FKL_CPROC_ARGL){PREDICATE(isFuvLoop(val),"fuv.loop?")}
 
 static int fuv_make_loop(FKL_CPROC_ARGL)
 {
-	abort();
+	static const char Pname[]="fuv.make-loop";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FklVMvalue* r=createFuvLoop(exe,ctx->proc);
+	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }
 
-static int fuv_loop_p(FKL_CPROC_ARGL){FUV_PREDICATE(isFuvLoop(val),"fuv.loop?");}
+static int fuv_loop_close(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.loop-close";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_loop_close(&fuv_loop->loop);
+	if(r<0)
+		RAISE_FUV_ERROR(Pname,FUV_EBUSY,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));
+	return 0;
+}
 
 struct SymFunc
 {
@@ -23,8 +39,9 @@ struct SymFunc
 }exports_and_func[]=
 {
 	// uv_loop
-	{"make-loop", fuv_make_loop, },
-	{"loop?",     fuv_loop_p,    },
+	{"loop?",      fuv_loop_p,     },
+	{"make-loop",  fuv_make_loop,  },
+	{"loop-close", fuv_loop_close, },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

@@ -3,7 +3,7 @@
 FKL_VM_USER_DATA_DEFAULT_PRINT(mutex_print,mutex);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print,mutex);
 
-static void mutex_finalizer(FklVMudata* ud)
+static void mutex_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(mutex,uv_mutex_t,ud);
 	uv_mutex_destroy(mutex);
@@ -38,7 +38,7 @@ static int sync_make_mutex(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-mutex";
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&MutexUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&MutexUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(mutex,uv_mutex_t,ud);
 	if(uv_mutex_init(mutex))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -89,7 +89,7 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL)
 FKL_VM_USER_DATA_DEFAULT_PRINT(cond_print,cond);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print,cond);
 
-static void cond_finalizer(FklVMudata* ud)
+static void cond_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(cond,uv_cond_t,ud);
 	uv_cond_destroy(cond);
@@ -124,7 +124,7 @@ static int sync_make_cond(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-cond";
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&CondUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&CondUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(cond,uv_cond_t,ud);
 	if(uv_cond_init(cond))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -201,7 +201,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 FKL_VM_USER_DATA_DEFAULT_PRINT(rwlock_print,rwlock);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print,rwlock);
 
-static void rwlock_finalizer(FklVMudata* ud)
+static void rwlock_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(rwlock,uv_rwlock_t,ud);
 	uv_rwlock_destroy(rwlock);
@@ -236,7 +236,7 @@ static int sync_make_rwlock(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="sync.make-rwlock";
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&RwlockUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&RwlockUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(rwlock,uv_rwlock_t,ud);
 	if(uv_rwlock_init(rwlock))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -326,7 +326,7 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL)
 FKL_VM_USER_DATA_DEFAULT_PRINT(sem_print,sem);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print,sem);
 
-static void sem_finalizer(FklVMudata* ud)
+static void sem_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(sem,uv_sem_t,ud);
 	uv_sem_destroy(sem);
@@ -365,7 +365,7 @@ static int sync_make_sem(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(value_obj,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(value_obj))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&SemUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&SemUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,ud);
 	if(uv_sem_init(sem,fklGetUint(value_obj)))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -416,7 +416,7 @@ static int sync_sem_trywait(FKL_CPROC_ARGL)
 FKL_VM_USER_DATA_DEFAULT_PRINT(barrier_print,barrier);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print,barrier);
 
-static void barrier_finalizer(FklVMudata* ud)
+static void barrier_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(barrier,uv_barrier_t,ud);
 	uv_barrier_destroy(barrier);
@@ -455,7 +455,7 @@ static int sync_make_barrier(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(count_obj,fklIsVMint,Pname,exe);
 	if(fklIsVMnumberLt0(count_obj))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&BarrierUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&BarrierUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(barrier,uv_barrier_t,ud);
 	if(uv_barrier_init(barrier,fklGetUint(count_obj)))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

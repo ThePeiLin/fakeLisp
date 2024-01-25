@@ -41,14 +41,14 @@ static inline void atomic_cmd_read_ctx(const CmdReadCtx* ctx,FklVMgc* gc)
 		fklVMgcToGray((*base)->ast,gc);
 }
 
-static void debug_ctx_atomic(const FklVMudata* ud,FklVMgc* gc)
+static void debug_ctx_atomic(const FklVMud* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(debug_ctx,DebugUdCtx,ud);
 	atomic_cmd_read_ctx(&debug_ctx->ctx->read_ctx,gc);
 	markBreakpointCondExpObj(debug_ctx->ctx,gc);
 }
 
-static void debug_ctx_finalizer(FklVMudata* data)
+static void debug_ctx_finalizer(FklVMud* data)
 {
 	FKL_DECL_UD_DATA(ud_ctx,DebugUdCtx,data);
 	DebugCtx* dctx=ud_ctx->ctx;
@@ -115,7 +115,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 	free(valid_filename);
 	if(!debug_ctx)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&DebugCtxUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&DebugCtxUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,ud);
 	debug_ud->ctx=debug_ctx;
 	insert_debug_ctx_atexit(exe,ud);

@@ -125,14 +125,14 @@ typedef struct
 	struct FklVMvalue** base;
 }FklVMvec;
 
-#define FKL_VM_UDATA_COMMON_HEADER struct FklVMvalue* rel;\
+#define FKL_VM_UD_COMMON_HEADER struct FklVMvalue* rel;\
 	const struct FklVMudMetaTable* t
 
 typedef struct
 {
-	FKL_VM_UDATA_COMMON_HEADER;
+	FKL_VM_UD_COMMON_HEADER;
 	void* data[];
-}FklVMudata;
+}FklVMud;
 
 typedef enum{
 	FKL_MARK_W=0,
@@ -196,7 +196,7 @@ typedef struct
 typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
-	FklVMudata ud;
+	FklVMud ud;
 }FklVMvalueUd;
 
 typedef struct
@@ -453,23 +453,23 @@ typedef struct FklVM
 typedef struct FklVMudMetaTable
 {
 	size_t size;
-	void (*__princ)(const FklVMudata*,FILE*,struct FklVMgc* table);
-	void (*__prin1)(const FklVMudata*,FILE*,struct FklVMgc* table);
-	void (*__finalizer)(FklVMudata*);
-	int  (*__equal)(const FklVMudata*,const FklVMudata*);
+	void (*__princ)(const FklVMud*,FILE*,struct FklVMgc* table);
+	void (*__prin1)(const FklVMud*,FILE*,struct FklVMgc* table);
+	void (*__finalizer)(FklVMud*);
+	int  (*__equal)(const FklVMud*,const FklVMud*);
 	void (*__call)(FklVMvalue*,FklVM*);
-	int (*__cmp)(const FklVMudata*,const FklVMvalue*,int*);
-	void (*__write)(const FklVMudata*,FILE*);
-	void (*__atomic)(const FklVMudata*,struct FklVMgc*);
-	size_t (*__length)(const FklVMudata*);
-	void (*__append)(FklVMudata*,const FklVMudata*);
-	void (*__copy)(const FklVMudata* src,FklVMudata* dst);
-	size_t (*__hash)(const FklVMudata*);
+	int (*__cmp)(const FklVMud*,const FklVMvalue*,int*);
+	void (*__write)(const FklVMud*,FILE*);
+	void (*__atomic)(const FklVMud*,struct FklVMgc*);
+	size_t (*__length)(const FklVMud*);
+	void (*__append)(FklVMud*,const FklVMud*);
+	void (*__copy)(const FklVMud* src,FklVMud* dst);
+	size_t (*__hash)(const FklVMud*);
 
-	FklBytevector* (*__to_bvec)(const FklVMudata*);
+	FklBytevector* (*__to_bvec)(const FklVMud*);
 
-	void (*__as_princ)(const FklVMudata*,FklStringBuffer* buf,struct FklVMgc* gc);
-	void (*__as_prin1)(const FklVMudata*,FklStringBuffer* buf,struct FklVMgc* gc);
+	void (*__as_princ)(const FklVMud*,FklStringBuffer* buf,struct FklVMgc* gc);
+	void (*__as_prin1)(const FklVMud*,FklStringBuffer* buf,struct FklVMgc* gc);
 }FklVMudMetaTable;
 
 typedef enum
@@ -931,7 +931,7 @@ FklVMvalue* fklCreateVMvalueBigIntWithU64(FklVM*,uint64_t);
 
 FklVMvalue* fklCreateVMvalueBigIntWithF64(FklVM*,double);
 
-FklVMvalue* fklCreateVMvalueUdata(FklVM*
+FklVMvalue* fklCreateVMvalueUd(FklVM*
 		,const FklVMudMetaTable* t
 		,FklVMvalue* rel);
 
@@ -1100,27 +1100,27 @@ void fklVMvecConcat(FklVMvec*,const FklVMvec*);
 #define FKL_DECL_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,UD)
 #define FKL_DECL_VM_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,FKL_VM_UD(UD))
 
-int fklIsCallableUd(const FklVMudata*);
-int fklIsCmpableUd(const FklVMudata*);
-int fklIsWritableUd(const FklVMudata*);
-int fklIsAbleToStringUd(const FklVMudata*);
-int fklIsAbleAsPrincUd(const FklVMudata*);
-int fklUdHasLength(const FklVMudata*);
+int fklIsCallableUd(const FklVMud*);
+int fklIsCmpableUd(const FklVMud*);
+int fklIsWritableUd(const FklVMud*);
+int fklIsAbleToStringUd(const FklVMud*);
+int fklIsAbleAsPrincUd(const FklVMud*);
+int fklUdHasLength(const FklVMud*);
 
-void fklPrincVMudata(const FklVMudata*,FILE*,FklVMgc*);
-void fklPrin1VMudata(const FklVMudata*,FILE*,FklVMgc*);
-void fklFinalizeVMudata(FklVMudata*);
-int fklEqualVMudata(const FklVMudata*,const FklVMudata*);
-void fklCallVMudata(const FklVMudata*,const FklVMudata*);
-int fklCmpVMudata(const FklVMudata*,const FklVMvalue*,int*);
-void fklWriteVMudata(const FklVMudata*,FILE* fp);
-size_t fklLengthVMudata(const FklVMudata*);
-int fklAppendVMudata(FklVMudata*,const FklVMudata*);
-int fklCopyVMudata(const FklVMudata*,FklVMudata* dst);
-size_t fklHashvVMudata(const FklVMudata*);
-void fklUdToString(const FklVMudata*,FklStringBuffer*,FklVMgc*);
-void fklUdAsPrinc(const FklVMudata*,FklStringBuffer*,FklVMgc*);
-FklBytevector* fklUdToBytevector(const FklVMudata*);
+void fklPrincVMud(const FklVMud*,FILE*,FklVMgc*);
+void fklPrin1VMud(const FklVMud*,FILE*,FklVMgc*);
+void fklFinalizeVMud(FklVMud*);
+int fklEqualVMud(const FklVMud*,const FklVMud*);
+void fklCallVMud(const FklVMud*,const FklVMud*);
+int fklCmpVMud(const FklVMud*,const FklVMvalue*,int*);
+void fklWriteVMud(const FklVMud*,FILE* fp);
+size_t fklLengthVMud(const FklVMud*);
+int fklAppendVMud(FklVMud*,const FklVMud*);
+int fklCopyVMud(const FklVMud*,FklVMud* dst);
+size_t fklHashvVMud(const FklVMud*);
+void fklUdToString(const FklVMud*,FklStringBuffer*,FklVMgc*);
+void fklUdAsPrinc(const FklVMud*,FklStringBuffer*,FklVMgc*);
+FklBytevector* fklUdToBytevector(const FklVMud*);
 
 int fklIsCallable(FklVMvalue*);
 int fklIsAppendable(FklVMvalue*);
@@ -1241,11 +1241,11 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqv(FKL_VM_HASH(P)))
 #define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqual(FKL_VM_HASH(P)))
 
-#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMudata* ud,FILE* fp,FklVMgc* gc) {\
+#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMud* ud,FILE* fp,FklVMgc* gc) {\
 	fprintf(fp,"#<"#DATA_TYPE_NAME" %p>",ud);\
 }
 
-#define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc) {\
+#define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc) {\
 	fklStringBufferPrintf(buf,"#<"#DATA_TYPE_NAME" %p>",ud);\
 }
 

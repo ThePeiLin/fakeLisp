@@ -35,7 +35,7 @@ typedef struct
 	FklSid_t seek_end;
 }PublicBuiltInData;
 
-static void _public_builtin_userdata_atomic(const FklVMudata* ud,FklVMgc* gc)
+static void _public_builtin_userdata_atomic(const FklVMud* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(d,PublicBuiltInData,ud);
 	fklVMgcToGray(d->sysIn,gc);
@@ -130,7 +130,7 @@ static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 {
 	if(!FKL_IS_USERDATA(cur)||FKL_VM_UD(retval)->t!=FKL_VM_UD(cur)->t)
 		return 1;
-	return fklAppendVMudata(FKL_VM_UD(retval),FKL_VM_UD(cur));
+	return fklAppendVMud(FKL_VM_UD(retval),FKL_VM_UD(cur));
 }
 
 static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,FklVMvalue* cur)=
@@ -1764,7 +1764,7 @@ static int builtin_length(FKL_CPROC_ARGL)
 	else if(FKL_IS_BYTEVECTOR(obj))
 		len=FKL_VM_BVEC(obj)->size;
 	else if(FKL_IS_USERDATA(obj)&&fklUdHasLength(FKL_VM_UD(obj)))
-		len=fklLengthVMudata(FKL_VM_UD(obj));
+		len=fklLengthVMud(FKL_VM_UD(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));
@@ -2216,13 +2216,13 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print,parser);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print,parser);
 
-static void custom_parser_finalizer(FklVMudata* p)
+static void custom_parser_finalizer(FklVMud* p)
 {
 	FKL_DECL_UD_DATA(grammer,FklGrammer,p);
 	fklUninitGrammer(grammer);
 }
 
-static void custom_parser_atomic(const FklVMudata* p,FklVMgc* gc)
+static void custom_parser_atomic(const FklVMud* p,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(g,FklGrammer,p);
 	for(FklHashTableItem* item=g->productions.first;item;item=item->next)
@@ -2406,7 +2406,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 	static const char Pname[]="builtin.make-parser";
 	FKL_DECL_AND_CHECK_ARG(start,exe,Pname);
 	FKL_CHECK_TYPE(start,FKL_IS_SYM,Pname,exe);
-	FklVMvalue* retval=fklCreateVMvalueUdata(exe,&CustomParserMetaTable,FKL_VM_NIL);
+	FklVMvalue* retval=fklCreateVMvalueUd(exe,&CustomParserMetaTable,FKL_VM_NIL);
 	FKL_DECL_VM_UD_DATA(grammer,FklGrammer,retval);
 	fklVMacquireSt(exe->gc);
 	fklInitEmptyGrammer(grammer,exe->gc->st);
@@ -4686,12 +4686,11 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL)
 	return 0;
 }
 
-#define PREDICATE(condtion,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
+#define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
-	if(condtion)\
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);\
-	else\
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);\
+	FKL_VM_PUSH_VALUE(exe,(condition)\
+			?FKL_VM_TRUE\
+			:FKL_VM_NIL);\
 	return 0;
 
 static int builtin_sleep(FKL_CPROC_ARGL)
@@ -5633,7 +5632,7 @@ void fklInitGlobalVMclosureForGC(FklVM* exe)
 {
 	FklVMgc* gc=exe->gc;
 	FklVMvalue** closure=gc->builtin_refs;
-	FklVMvalue* publicUserData=fklCreateVMvalueUdata(exe
+	FklVMvalue* publicUserData=fklCreateVMvalueUd(exe
 			,&PublicBuiltInDataMetaTable
 			,FKL_VM_NIL);
 

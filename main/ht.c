@@ -51,7 +51,7 @@ static const FklHashTableMetaTable HtUdHashMetaTable=
 	.__getKey=fklHashDefaultGetKey,
 };
 
-static void ht_atomic(const FklVMudata* ud,FklVMgc* gc)
+static void ht_atomic(const FklVMud* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(ht,HashTable,ud);
 	fklVMgcToGray(ht->hash_func,gc);
@@ -68,7 +68,7 @@ static void ht_atomic(const FklVMudata* ud,FklVMgc* gc)
 FKL_VM_USER_DATA_DEFAULT_PRINT(ht_print,ht);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(ht_as_print,ht);
 
-static int ht_equal(const FklVMudata* a,const FklVMudata* b)
+static int ht_equal(const FklVMud* a,const FklVMud* b)
 {
 	FKL_DECL_UD_DATA(hta,HashTable,a);
 	FKL_DECL_UD_DATA(htb,HashTable,b);
@@ -97,7 +97,7 @@ static int ht_equal(const FklVMudata* a,const FklVMudata* b)
 		return 0;
 }
 
-static void ht_finalizer(FklVMudata* ud)
+static void ht_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(ht,HashTable,ud);
 	fklUninitHashTable(&ht->ht);
@@ -124,7 +124,7 @@ static int ht_make_ht(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(hashv,fklIsCallable,Pname,exe);
 	FKL_CHECK_TYPE(equal,fklIsCallable,Pname,exe);
-	FklVMvalue* ud=fklCreateVMvalueUdata(exe,&HtUdMetaTable,ctx->proc);
+	FklVMvalue* ud=fklCreateVMvalueUd(exe,&HtUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(ht,HashTable,ud);
 	ht->hash_func=hashv;
 	ht->eq_func=equal;

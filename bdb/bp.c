@@ -42,7 +42,7 @@ static FklVMudMetaTable BreakpointWrapperMetaTable=
 
 FklVMvalue* createBreakpointWrapper(FklVM* vm,Breakpoint* bp)
 {
-	FklVMvalue* r=fklCreateVMvalueUdata(vm,&BreakpointWrapperMetaTable,NULL);
+	FklVMvalue* r=fklCreateVMvalueUd(vm,&BreakpointWrapperMetaTable,NULL);
 	FKL_DECL_VM_UD_DATA(bpw,BreakpointWrapper,r);
 	bpw->bp=bp;
 	return r;

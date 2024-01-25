@@ -242,7 +242,7 @@ static int fs_fwrite(FKL_CPROC_ARGL)
 			fwrite(bvec->ptr,bvec->size,1,fp);
 		}
 		else if(FKL_IS_USERDATA(obj)&&fklIsWritableUd(FKL_VM_UD(obj)))
-			fklWriteVMudata(FKL_VM_UD(obj),fp);
+			fklWriteVMud(FKL_VM_UD(obj),fp);
 		else
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}

@@ -15,6 +15,8 @@ typedef struct
 }FuvLoop;
 
 int isFuvLoop(FklVMvalue* v);
+FklVMvalue* createFuvLoop(FklVM*);
+
 #ifdef __cplusplus
 }
 #endif

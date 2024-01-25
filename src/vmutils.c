@@ -997,7 +997,7 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS)
 {
-	fklPrincVMudata(FKL_VM_UD(v),fp,gc);
+	fklPrincVMud(FKL_VM_UD(v),fp,gc);
 }
 
 static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
@@ -1137,7 +1137,7 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS)
 {
-	fklPrin1VMudata(FKL_VM_UD(v),fp,gc);
+	fklPrin1VMud(FKL_VM_UD(v),fp,gc);
 }
 
 static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
@@ -1527,7 +1527,7 @@ static void vmvalue_bytevector_as_print(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_userdata_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
-	FklVMudata* ud=FKL_VM_UD(v);
+	FklVMud* ud=FKL_VM_UD(v);
 	if(fklIsAbleToStringUd(ud))
 		fklUdToString(ud,result,gc);
 	else
@@ -1647,7 +1647,7 @@ static void vmvalue_string_as_princ(VMVALUE_TO_UTSTRING_ARGS)
 
 static void vmvalue_userdata_as_princ(VMVALUE_TO_UTSTRING_ARGS)
 {
-	FklVMudata* ud=FKL_VM_UD(v);
+	FklVMud* ud=FKL_VM_UD(v);
 	if(fklIsAbleAsPrincUd(ud))
 		fklUdAsPrinc(ud,result,gc);
 	else

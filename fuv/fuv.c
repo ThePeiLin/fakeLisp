@@ -22,6 +22,7 @@ struct SymFunc
 	FklVMcFunc f;
 }exports_and_func[]=
 {
+	// uv_loop
 	{"make-loop", fuv_make_loop, },
 	{"loop?",     fuv_loop_p,    },
 };

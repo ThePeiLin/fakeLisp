@@ -459,11 +459,11 @@ static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklVMudata* src=FKL_VM_UD(obj);
-	FklVMvalue* dst=fklCreateVMvalueUdata(vm
+	FklVMud* src=FKL_VM_UD(obj);
+	FklVMvalue* dst=fklCreateVMvalueUd(vm
 			,src->t
 			,src->rel);
-	if(fklCopyVMudata(src,FKL_VM_UD(dst)))
+	if(fklCopyVMud(src,FKL_VM_UD(dst)))
 		return NULL;
 	return dst;
 }
@@ -623,8 +623,8 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 						break;
 					case FKL_TYPE_USERDATA:
 						{
-							FklVMudata* ud1=FKL_VM_UD(root1);
-							FklVMudata* ud2=FKL_VM_UD(root2);
+							FklVMud* ud1=FKL_VM_UD(root1);
+							FklVMud* ud2=FKL_VM_UD(root2);
 							if(ud1->t!=ud2->t||!ud1->t->__equal)
 								r=0;
 							else
@@ -695,9 +695,9 @@ int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	else if(FKL_IS_CHR(a)&&FKL_IS_CHR(b))
 		r=FKL_GET_CHR(a)-FKL_GET_CHR(b);
 	else if(FKL_IS_USERDATA(a)&&fklIsCmpableUd(FKL_VM_UD(a)))
-		r=fklCmpVMudata(FKL_VM_UD(a),b,err);
+		r=fklCmpVMud(FKL_VM_UD(a),b,err);
 	else if(FKL_IS_USERDATA(b)&&fklIsCmpableUd(FKL_VM_UD(b)))
-		r=fklCmpVMudata(FKL_VM_UD(b),a,err)*-1;
+		r=fklCmpVMud(FKL_VM_UD(b),a,err)*-1;
 	else
 		*err=1;
 	return r;
@@ -796,7 +796,7 @@ static inline void uninit_vector_value(FklVMvalue* v)
 
 static inline void uninit_ud_value(FklVMvalue* v)
 {
-	fklFinalizeVMudata(FKL_VM_UD(v));
+	fklFinalizeVMud(FKL_VM_UD(v));
 }
 
 static inline void uninit_proc_value(FklVMvalue* v)
@@ -1180,7 +1180,7 @@ static size_t _box_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	return fklHashvVMudata(FKL_VM_UD(v));
+	return fklHashvVMud(FKL_VM_UD(v));
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1906,14 +1906,14 @@ FklVMvalue* fklCreateVMvalueCproc(FklVM* exe
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
+FklVMvalue* fklCreateVMvalueUd(FklVM* exe
 		,const FklVMudMetaTable* t
 		,FklVMvalue* rel)
 {
 	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueUd)+t->size);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_USERDATA;
-	FklVMudata* ud=FKL_VM_UD(r);
+	FklVMud* ud=FKL_VM_UD(r);
 	ud->t=t;
 	ud->rel=rel;
 	fklAddToGC(r,exe);
@@ -1922,12 +1922,12 @@ FklVMvalue* fklCreateVMvalueUdata(FklVM* exe
 
 #undef NEW_OBJ
 
-static inline void _eof_userdata_princ(const FklVMudata* ud,FILE* fp,FklVMgc* table)
+static inline void _eof_userdata_princ(const FklVMud* ud,FILE* fp,FklVMgc* table)
 {
 	fputs("#<eof>",fp);
 }
 
-static void _eof_userdata_as_print(const FklVMudata* ud,FklStringBuffer* buf,FklVMgc* gc)
+static void _eof_userdata_as_print(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)
 {
 	fklStringBufferConcatWithCstr(buf,"#<eof>");
 }
@@ -1943,7 +1943,7 @@ static FklVMudMetaTable EofUserDataMetaTable=
 
 FklVMvalue* fklCreateVMvalueEof(FklVM* exe)
 {
-	return fklCreateVMvalueUdata(exe,&EofUserDataMetaTable,NULL);
+	return fklCreateVMvalueUd(exe,&EofUserDataMetaTable,NULL);
 }
 
 int fklIsVMeofUd(FklVMvalue* v)
@@ -2005,7 +2005,7 @@ void fklAtomicVMbox(FklVMvalue* root,FklVMgc* gc)
 
 void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 {
-	FklVMudata* ud=FKL_VM_UD(root);
+	FklVMud* ud=FKL_VM_UD(root);
 	fklVMgcToGray(ud->rel,gc);
 	if(ud->t->__atomic)
 		ud->t->__atomic(ud,gc);
@@ -2023,7 +2023,7 @@ void fklVMvecConcat(FklVMvec* fir,const FklVMvec* sec)
 		nbase[firSize+i]=sec->base[i];
 }
 
-int fklIsCallableUd(const FklVMudata* ud)
+int fklIsCallableUd(const FklVMud* ud)
 {
 	return ud->t->__call!=NULL;
 }
@@ -2033,7 +2033,7 @@ int fklIsCallable(FklVMvalue* v)
 	return FKL_IS_PROC(v)||FKL_IS_CPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(FKL_VM_UD(v)));
 }
 
-static inline int is_appendable_userdata(FklVMudata* ud)
+static inline int is_appendable_userdata(FklVMud* ud)
 {
 	return ud->t->__append!=NULL;
 }
@@ -2046,52 +2046,52 @@ int fklIsAppendable(FklVMvalue* v)
 		||(FKL_IS_USERDATA(v)&&is_appendable_userdata(FKL_VM_UD(v)));
 }
 
-int fklIsCmpableUd(const FklVMudata* u)
+int fklIsCmpableUd(const FklVMud* u)
 {
 	return u->t->__cmp!=NULL;
 }
 
-int fklIsWritableUd(const FklVMudata* u)
+int fklIsWritableUd(const FklVMud* u)
 {
 	return u->t->__write!=NULL;
 }
 
-int fklIsAbleToStringUd(const FklVMudata* u)
+int fklIsAbleToStringUd(const FklVMud* u)
 {
 	return u->t->__as_prin1!=NULL;
 }
 
-int fklIsAbleAsPrincUd(const FklVMudata* u)
+int fklIsAbleAsPrincUd(const FklVMud* u)
 {
 	return u->t->__as_princ!=NULL;
 }
 
-int fklUdHasLength(const FklVMudata* u)
+int fklUdHasLength(const FklVMud* u)
 {
 	return u->t->__length!=NULL;
 }
 
-void fklPrincVMudata(const FklVMudata* u,FILE* fp,FklVMgc* gc)
+void fklPrincVMud(const FklVMud* u,FILE* fp,FklVMgc* gc)
 {
-	void (*princ)(const FklVMudata*,FILE*,FklVMgc*)=u->t->__princ;
+	void (*princ)(const FklVMud*,FILE*,FklVMgc*)=u->t->__princ;
 	if(princ)
 		princ(u,fp,gc);
 	else
 		fprintf(fp,"#<userdata %p>",u);
 }
 
-void fklPrin1VMudata(const FklVMudata* u,FILE* fp,FklVMgc* gc)
+void fklPrin1VMud(const FklVMud* u,FILE* fp,FklVMgc* gc)
 {
-	void (*prin1)(const FklVMudata*,FILE*,FklVMgc*)=u->t->__prin1;
+	void (*prin1)(const FklVMud*,FILE*,FklVMgc*)=u->t->__prin1;
 	if(prin1)
 		prin1(u,fp,gc);
 	else
 		fprintf(fp,"#<userdata %p>",u);
 }
 
-int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)
+int fklAppendVMud(FklVMud* a,const FklVMud* b)
 {
-	void (*append)(FklVMudata*,const FklVMudata*)=a->t->__append;
+	void (*append)(FklVMud*,const FklVMud*)=a->t->__append;
 	if(append)
 	{
 		append(a,b);
@@ -2100,50 +2100,50 @@ int fklAppendVMudata(FklVMudata* a,const FklVMudata* b)
 	return 1;
 }
 
-int fklCmpVMudata(const FklVMudata* a,const FklVMvalue* b,int* r)
+int fklCmpVMud(const FklVMud* a,const FklVMvalue* b,int* r)
 {
 	return a->t->__cmp(a,b,r);
 }
 
-size_t fklLengthVMudata(const FklVMudata* a)
+size_t fklLengthVMud(const FklVMud* a)
 {
 	return a->t->__length(a);
 }
 
-void fklUdToString(const FklVMudata* a,FklStringBuffer* buf,FklVMgc* gc)
+void fklUdToString(const FklVMud* a,FklStringBuffer* buf,FklVMgc* gc)
 {
 	a->t->__as_prin1(a,buf,gc);
 }
 
-void fklUdAsPrinc(const FklVMudata* a,FklStringBuffer* buf,FklVMgc* gc)
+void fklUdAsPrinc(const FklVMud* a,FklStringBuffer* buf,FklVMgc* gc)
 {
 	a->t->__as_princ(a,buf,gc);
 }
 
-void fklWriteVMudata(const FklVMudata* a,FILE* fp)
+void fklWriteVMud(const FklVMud* a,FILE* fp)
 {
 	a->t->__write(a,fp);
 }
 
-size_t fklHashvVMudata(const FklVMudata* a)
+size_t fklHashvVMud(const FklVMud* a)
 {
-	size_t (*hashv)(const FklVMudata*)=a->t->__hash;
+	size_t (*hashv)(const FklVMud*)=a->t->__hash;
 	if(hashv)
 		return hashv(a);
 	else
 		return ((uintptr_t)a->data>>FKL_UNUSEDBITNUM);
 }
 
-void fklFinalizeVMudata(FklVMudata* a)
+void fklFinalizeVMud(FklVMud* a)
 {
-	void (*finalize)(FklVMudata*)=a->t->__finalizer;
+	void (*finalize)(FklVMud*)=a->t->__finalizer;
 	if(finalize)
 		finalize(a);
 }
 
-int fklCopyVMudata(const FklVMudata* a,FklVMudata* dst)
+int fklCopyVMud(const FklVMud* a,FklVMud* dst)
 {
-	void (*copyer)(const FklVMudata* a,FklVMudata* dst)=a->t->__copy;
+	void (*copyer)(const FklVMud* a,FklVMud* dst)=a->t->__copy;
 	if(copyer)
 	{
 		copyer(a,dst);

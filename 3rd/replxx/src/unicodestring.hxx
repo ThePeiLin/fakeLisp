@@ -49,7 +49,7 @@ public:
 		assign( src );
 	}
 
-	explicit UnicodeString( char8_t const* src )
+	explicit UnicodeString( uint8_t const* src )
 		: UnicodeString( reinterpret_cast<const char*>( src ) ) {
 	}
 

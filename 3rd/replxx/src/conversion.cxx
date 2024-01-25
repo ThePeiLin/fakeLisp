@@ -67,7 +67,7 @@ ConversionResult copyString8to32(char32_t* dst, int dstSize, int& dstCount, cons
 	return res;
 }
 
-ConversionResult copyString8to32(char32_t* dst, int dstSize, int& dstCount, const char8_t* src) {
+ConversionResult copyString8to32(char32_t* dst, int dstSize, int& dstCount, const uint8_t* src) {
 	return copyString8to32(
 		dst, dstSize, dstCount, reinterpret_cast<const char*>(src)
 	);

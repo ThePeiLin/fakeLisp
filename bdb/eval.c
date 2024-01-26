@@ -253,15 +253,10 @@ static void eval_frame_step(void* data,FklVM* exe)
 	return;
 }
 
-static void eval_frame_finalizer(void* data)
-{
-}
-
 static const FklVMframeContextMethodTable EvalFrameCtxMethodTable=
 {
 	.end=eval_frame_end,
 	.step=eval_frame_step,
-	.finalizer=eval_frame_finalizer,
 };
 
 static int eval_frame_error_callback(FklVMframe* f

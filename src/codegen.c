@@ -9821,10 +9821,6 @@ static void macro_expand_frame_step(void* data,FklVM* exe)
 	ctx->done=1;
 }
 
-static void macro_expand_frame_finalizer(void* data)
-{
-}
-
 static int macro_expand_frame_end(void* data)
 {
 	return ((MacroExpandCtx*)data)->done;
@@ -9840,7 +9836,7 @@ static const FklVMframeContextMethodTable MacroExpandMethodTable=
 	.step=macro_expand_frame_step,
 	.end=macro_expand_frame_end,
 	.atomic=macro_expand_frame_atomic,
-	.finalizer=macro_expand_frame_finalizer,
+	.finalizer=NULL,
 	.print_backtrace=macro_expand_frame_backtrace,
 };
 

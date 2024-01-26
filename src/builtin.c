@@ -3838,14 +3838,10 @@ static int at_exit_frame_end(void* d)
 	return 0;
 }
 
-static void at_exit_frame_finalizer(void* d)
-{
-}
-
 static const FklVMframeContextMethodTable AtExitFrameCtxMethodTable=
 {
 	.atomic=NULL,
-	.finalizer=at_exit_frame_finalizer,
+	.finalizer=NULL,
 	.copy=NULL,
 	.print_backtrace=NULL,
 	.step=at_exit_frame_step,

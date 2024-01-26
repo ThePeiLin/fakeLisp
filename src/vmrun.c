@@ -219,10 +219,6 @@ static void cproc_frame_atomic(void* data,FklVMgc* gc)
 	fklVMgcToGray(c->proc,gc);
 }
 
-static void cproc_frame_finalizer(void* data)
-{
-}
-
 static void cproc_frame_copy(void* d,const void* s,FklVM* exe)
 {
 	FklCprocFrameContext const* const sc=(FklCprocFrameContext*)s;
@@ -253,7 +249,6 @@ static void cproc_frame_step(void* data,FklVM* exe)
 static const FklVMframeContextMethodTable CprocContextMethodTable=
 {
 	.atomic=cproc_frame_atomic,
-	.finalizer=cproc_frame_finalizer,
 	.copy=cproc_frame_copy,
 	.print_backtrace=cproc_frame_print_backtrace,
 	.end=cproc_frame_end,
@@ -557,7 +552,8 @@ void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 
 void fklDoFinalizeObjFrame(FklVM* vm,FklVMframe* f)
 {
-	f->t->finalizer(fklGetFrameData(f));
+	if(f->t->finalizer)
+		f->t->finalizer(fklGetFrameData(f));
 	f->prev=NULL;
 	*(vm->frame_cache_tail)=f;
 	vm->frame_cache_tail=&f->prev;

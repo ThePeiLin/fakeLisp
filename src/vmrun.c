@@ -868,6 +868,15 @@ static inline void do_vm_atexit(FklVM* vm)
 	vm->state=FKL_VM_EXIT;
 }
 
+#define THREAD_EXIT(exe) do_vm_atexit(exe);\
+	if(exe->chan)\
+	{\
+		FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);\
+		FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);\
+		fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);\
+		exe->chan=NULL;\
+	}
+
 void fklRunVMinSingleThread(FklVM* volatile exe)
 {
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
@@ -879,13 +888,7 @@ void fklRunVMinSingleThread(FklVM* volatile exe)
 				DO_STEP_VM_SINGLE_THREAD(exe);
 				break;
 			case FKL_VM_EXIT:
-				do_vm_atexit(exe);
-				if(exe->chan)
-				{
-					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
-					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
-				}
+				THREAD_EXIT(exe);
 				return;
 				break;
 			case FKL_VM_READY:
@@ -914,13 +917,7 @@ static void vm_thread_cb(void* arg)
 				DO_STEP_VM(exe);
 				break;
 			case FKL_VM_EXIT:
-				do_vm_atexit(exe);
-				if(exe->chan)
-				{
-					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
-					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
-				}
+				THREAD_EXIT(exe);
 				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;
@@ -952,13 +949,7 @@ static void vm_trapping_thread_cb(void* arg)
 				DO_TRAPPING_STEP_VM(exe);
 				break;
 			case FKL_VM_EXIT:
-				do_vm_atexit(exe);
-				if(exe->chan)
-				{
-					FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-					FklVMvalue* resultBox=fklCreateVMvalueBox(exe,v);
-					fklChanlSend(FKL_VM_CHANL(exe->chan),resultBox,exe);
-				}
+				THREAD_EXIT(exe);
 				atomic_fetch_sub(&exe->gc->q.running_count,1);
 				uv_mutex_unlock(&exe->lock);
 				return;

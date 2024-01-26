@@ -27,8 +27,68 @@ static int fuv_loop_close(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 	int r=uv_loop_close(&fuv_loop->loop);
 	if(r<0)
-		RAISE_FUV_ERROR(Pname,FUV_EBUSY,exe);
+		RAISE_FUV_ERROR(Pname,r,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));
+	return 0;
+}
+
+static int fuv_loop_alive_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.loop-close";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_loop_alive(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,r?FKL_VM_TRUE:FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_backend_fd(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.backend-fd";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_backend_fd(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,r==-1?FKL_VM_NIL:FKL_MAKE_VM_FIX(r));
+	return 0;
+}
+
+static int fuv_backend_timeout(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.backend-timeout";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_backend_timeout(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,r==-1?FKL_VM_NIL:FKL_MAKE_VM_FIX(r));
+	return 0;
+}
+
+static int fuv_now(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.now";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uint64_t r=uv_now(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(r,exe));
+	return 0;
+}
+
+static int fuv_update_time(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.update-time";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_update_time(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -39,9 +99,14 @@ struct SymFunc
 }exports_and_func[]=
 {
 	// uv_loop
-	{"loop?",      fuv_loop_p,     },
-	{"make-loop",  fuv_make_loop,  },
-	{"loop-close", fuv_loop_close, },
+	{"loop?",           fuv_loop_p,          },
+	{"make-loop",       fuv_make_loop,       },
+	{"loop-close",      fuv_loop_close,      },
+	{"loop-alive?",     fuv_loop_alive_p,    },
+	{"backend-fd",      fuv_backend_fd,      },
+	{"backend-timeout", fuv_backend_timeout, },
+	{"now",             fuv_now,             },
+	{"update-time",     fuv_update_time,     },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

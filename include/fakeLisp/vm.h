@@ -395,6 +395,7 @@ typedef void (*FklVMatExitMarkFunc)(void*,struct FklVMgc*);
 
 typedef struct FklVM
 {
+	void (*thread_cb)(void*);
 	uv_thread_t tid;
 	uv_mutex_t lock;
 	FklVMvalue* obj_head;

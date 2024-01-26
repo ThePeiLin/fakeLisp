@@ -908,6 +908,7 @@ static void vm_thread_cb(void* arg)
 {
 	FklVM* volatile exe=(FklVM*)arg;
 	uv_mutex_lock(&exe->lock);
+	exe->thread_cb=vm_thread_cb;
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{
@@ -940,6 +941,7 @@ static void vm_trapping_thread_cb(void* arg)
 {
 	FklVM* volatile exe=(FklVM*)arg;
 	uv_mutex_lock(&exe->lock);
+	exe->thread_cb=vm_thread_cb;
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{

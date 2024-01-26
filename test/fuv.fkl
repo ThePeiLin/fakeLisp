@@ -1,0 +1,15 @@
+(import (prefix (.. lib fuv) uv-))
+
+(define loop (uv-make-loop))
+
+(define timer (uv-make-timer loop))
+
+(uv-timer-start! timer
+                 (lambda ()
+                   (println "time out!")
+                   (uv-timer-stop! timer)
+                   (uv-handle-close! timer))
+                 1000
+                 0)
+
+(uv-loop-run! loop)

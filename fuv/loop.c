@@ -35,6 +35,7 @@ FklVMvalue* createFuvLoop(FklVM* vm,FklVMvalue* rel)
 {
 	FklVMvalue* v=fklCreateVMvalueUd(vm,&FuvLoopMetaTable,rel);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,v);
+	fuv_loop->mode=-1;
 	uv_loop_init(&fuv_loop->loop);
 	fklInitPtrSet(&fuv_loop->gc_values);
 	return v;

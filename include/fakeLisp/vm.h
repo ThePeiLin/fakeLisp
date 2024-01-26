@@ -317,7 +317,9 @@ typedef struct
 }FklVMframeContextMethodTable;
 
 struct FklVMframe;
-typedef int (*FklVMerrorCallBack)(struct FklVMframe*,FklVMvalue*,struct FklVM*);
+
+#define FKL_VM_ERROR_CALLBACK_ARGL struct FklVMframe* f,FklVMvalue* ev,struct FklVM* vm
+typedef int (*FklVMerrorCallBack)(FKL_VM_ERROR_CALLBACK_ARGL);
 
 typedef struct FklVMframe
 {
@@ -395,7 +397,7 @@ typedef void (*FklVMatExitMarkFunc)(void*,struct FklVMgc*);
 
 typedef struct FklVM
 {
-	void (*thread_cb)(void*);
+	void (*thread_run_cb)(struct FklVM*);
 	uv_thread_t tid;
 	uv_mutex_t lock;
 	FklVMvalue* obj_head;

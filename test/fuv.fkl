@@ -4,12 +4,14 @@
 
 (define timer (uv-make-timer loop))
 
+(println (uv-handle-type timer))
+
 (uv-timer-start! timer
                  (lambda ()
                    (println "time out!")
                    (uv-timer-stop! timer)
                    (uv-handle-close! timer))
-                 1000
+                 500
                  0)
 
 (uv-loop-run! loop)

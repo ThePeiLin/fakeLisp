@@ -56,17 +56,82 @@ static int fuv_loop_close1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+typedef enum
+{
+	FUV_RUN_OK=0,
+	FUV_RUN_ERR_OCCUR,
+}FuvLoopRunStatus;
+
+static int fuv_loop_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
+{
+	FklCprocFrameContext* ctx=(FklCprocFrameContext*)f->data;
+	vm->tp=ctx->rtp;
+	FklVMvalue* loop_obj=FKL_VM_POP_TOP_VALUE(vm);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	FKL_VM_PUSH_VALUE(vm,ev);
+	longjmp(fuv_loop->data.buf,FUV_RUN_ERR_OCCUR);
+}
+
+typedef struct
+{
+	jmp_buf* buf;
+}FuvProcCallCtx;
+
+static int fuv_proc_call_frame_end(void* data)
+{
+	return 0;
+}
+
+static void fuv_proc_call_frame_step(void* data,FklVM* exe)
+{
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)data;
+	longjmp(*ctx->buf,1);
+}
+
+static const FklVMframeContextMethodTable FuvProcCallCtxMethodTable=
+{
+	.end=fuv_proc_call_frame_end,
+	.step=fuv_proc_call_frame_step,
+};
+
 static int fuv_loop_run1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.loop-run1";
-	abort();
-	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
-	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
-	int r=uv_run(&fuv_loop->loop,UV_RUN_DEFAULT);
-	CHECK_UV_RESULT(r,Pname,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	switch(ctx->context)
+	{
+		case 0:
+			{
+				FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+				FKL_CHECK_REST_ARG(exe,Pname);
+				FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+				FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+				FKL_VM_PUSH_VALUE(exe,loop_obj);
+				FklVMframe* origin_top_frame=exe->top_frame;
+				origin_top_frame->errorCallBack=fuv_loop_error_callback;
+				ctx->rtp=exe->tp;
+				fuv_loop->data.exe=exe;
+				int need_cont=0;
+				if(setjmp(fuv_loop->data.buf))
+				{
+					ctx->context=1;
+					need_cont=1;
+				}
+				else
+				{
+					exe->top_frame=fklCreateOtherObjVMframe(exe,&FuvProcCallCtxMethodTable,origin_top_frame);
+					int r=uv_run(&fuv_loop->loop,UV_RUN_DEFAULT);
+					CHECK_UV_RESULT(r,Pname,exe);
+				}
+				while(exe->top_frame!=origin_top_frame)
+					fklPopVMframe(exe);
+				exe->state=FKL_VM_READY;
+				return need_cont;
+			}
+			break;
+		case 1:
+			fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe),exe);
+			break;
+	}
 	return 0;
 }
 
@@ -89,7 +154,7 @@ static int fuv_loop_mode(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
-	int r=fuv_loop->mode;
+	int r=fuv_loop->data.mode;
 	if(r==-1)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	else
@@ -148,6 +213,142 @@ static int fuv_loop_update_time1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_handle_p(FKL_CPROC_ARGL){PREDICATE(isFuvHandle(val),"fuv.handle?")}
+
+static int fuv_handle_active_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-active?";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	FKL_VM_PUSH_VALUE(exe,uv_is_active(&fuv_handle->handle)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_handle_closing_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-closing?";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	FKL_VM_PUSH_VALUE(exe,uv_is_closing(&fuv_handle->handle)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_handle_ref_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-ref?";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	FKL_VM_PUSH_VALUE(exe,uv_has_ref(&fuv_handle->handle)
+			?FKL_VM_TRUE
+			:FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_handle_ref1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-ref!";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	uv_ref(&fuv_handle->handle);
+	FKL_VM_PUSH_VALUE(exe,handle_obj);
+	return 0;
+}
+
+static int fuv_handle_unref1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-unref!";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	uv_unref(&fuv_handle->handle);
+	FKL_VM_PUSH_VALUE(exe,handle_obj);
+	return 0;
+}
+
+static int fuv_handle_send_buffer_size1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-send-buffer-size!";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FklVMvalue* value_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	int value=0;
+	if(value_obj)
+	{
+		FKL_CHECK_TYPE(value_obj,fklIsVMint,Pname,exe);
+		value=fklGetInt(value_obj);
+	}
+	int r=uv_send_buffer_size(&fuv_handle->handle,&value);
+	CHECK_UV_RESULT(r,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(value));
+	return 0;
+}
+
+static int fuv_handle_recv_buffer_size1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-recv-buffer-size!";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FklVMvalue* value_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	int value=0;
+	if(value_obj)
+	{
+		FKL_CHECK_TYPE(value_obj,fklIsVMint,Pname,exe);
+		value=fklGetInt(value_obj);
+	}
+	int r=uv_recv_buffer_size(&fuv_handle->handle,&value);
+	CHECK_UV_RESULT(r,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(value));
+	return 0;
+}
+
+static int fuv_handle_fileno(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-fileno";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	uv_os_fd_t fd=0;
+	int r=uv_fileno(&fuv_handle->handle,&fd);
+	CHECK_UV_RESULT(r,Pname,exe);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint((int64_t)(ptrdiff_t)fd,exe));
+	return 0;
+}
+
+static int fuv_handle_type(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-fileno";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	uv_handle_type type_id=uv_handle_get_type(&fuv_handle->handle);
+	const char* name=uv_handle_type_name(type_id);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe
+				,name==NULL
+				?FKL_VM_NIL
+				:fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
+				,FKL_MAKE_VM_FIX(type_id)));
+	return 0;
+}
+
 static int fuv_timer_p(FKL_CPROC_ARGL){PREDICATE(isFuvTimer(val),"fuv.timer?")}
 
 static int fuv_make_timer(FKL_CPROC_ARGL)
@@ -156,10 +357,8 @@ static int fuv_make_timer(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
-	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
-	FklVMvalue* timer_obj=createFuvTimer(exe,ctx->proc,loop_obj);
-	FKL_DECL_VM_UD_DATA(timer,FuvTimer,timer_obj);
-	int r=uv_timer_init(&loop->loop,&timer->handle);
+	int r;
+	FklVMvalue* timer_obj=createFuvTimer(exe,ctx->proc,loop_obj,&r);
 	CHECK_UV_RESULT(r,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
@@ -167,7 +366,26 @@ static int fuv_make_timer(FKL_CPROC_ARGL)
 
 static void fuv_timer_cb(uv_timer_t* handle)
 {
-	abort();
+	FuvHandleData* handle_data=uv_handle_get_data((uv_handle_t*)handle);
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* loop_data=uv_loop_get_data(loop);
+	FklVM* exe=loop_data->exe;
+	exe->state=FKL_VM_READY;
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+	jmp_buf buf;
+	ctx->buf=&buf;
+	if(setjmp(buf))
+	{
+		exe->tp--;
+		return;
+	}
+	else
+	{
+		fklSetBp(exe);
+		fklCallObj(exe,handle_data->callbacks[0]);
+		exe->thread_run_cb(exe);
+	}
 }
 
 static int fuv_timer_start1(FKL_CPROC_ARGL)
@@ -189,6 +407,7 @@ static int fuv_timer_start1(FKL_CPROC_ARGL)
 	uint64_t timeout=fklGetUint(timeout_obj);
 	uint64_t repeat=fklGetUint(repeat_obj);
 	FKL_DECL_VM_UD_DATA(timer,FuvTimer,timer_obj);
+	timer->data.callbacks[0]=timer_cb;
 	int r=uv_timer_start(&timer->handle,fuv_timer_cb,timeout,repeat);
 	CHECK_UV_RESULT(r,Pname,exe);
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
@@ -271,29 +490,42 @@ struct SymFunc
 }exports_and_func[]=
 {
 	// loop
-	{"loop?",                fuv_loop_p,               },
-	{"make-loop",            fuv_make_loop,            },
-	{"loop-close!",          fuv_loop_close1,          },
-	{"loop-run!",            fuv_loop_run1,            },
-	{"loop-mode",            fuv_loop_mode,            },
-	{"loop-alive?",          fuv_loop_alive_p,         },
-	{"loop-stop!",           fuv_incomplete,           },
-	{"loop-backend-fd",      fuv_loop_backend_fd,      },
-	{"loop-backend-timeout", fuv_loop_backend_timeout, },
-	{"loop-now",             fuv_loop_now,             },
-	{"loop-update-time!",    fuv_loop_update_time1,    },
-	{"loop-walk!",           fuv_incomplete,           },
-	{"loop-configure!",      fuv_incomplete,           },
+	{"loop?",                    fuv_loop_p,                   },
+	{"make-loop",                fuv_make_loop,                },
+	{"loop-close!",              fuv_loop_close1,              },
+	{"loop-run!",                fuv_loop_run1,                },
+	{"loop-mode",                fuv_loop_mode,                },
+	{"loop-alive?",              fuv_loop_alive_p,             },
+	{"loop-stop!",               fuv_incomplete,               },
+	{"loop-backend-fd",          fuv_loop_backend_fd,          },
+	{"loop-backend-timeout",     fuv_loop_backend_timeout,     },
+	{"loop-now",                 fuv_loop_now,                 },
+	{"loop-update-time!",        fuv_loop_update_time1,        },
+	{"loop-walk!",               fuv_incomplete,               },
+	{"loop-configure!",          fuv_incomplete,               },
+
+	// handle
+	{"handle?",                  fuv_handle_p,                 },
+	{"handle-active?",           fuv_handle_active_p,          },
+	{"handle-closing?",          fuv_handle_closing_p,         },
+	{"handle-close!",            fuv_incomplete,               },
+	{"handle-ref?",              fuv_handle_ref_p,             },
+	{"handle-ref!",              fuv_handle_ref1,              },
+	{"handle-unref!",            fuv_handle_unref1,            },
+	{"handle-send-buffer-size!", fuv_handle_send_buffer_size1, },
+	{"handle-recv-buffer-size!", fuv_handle_recv_buffer_size1, },
+	{"handle-fileno",            fuv_handle_fileno,            },
+	{"handle-type",              fuv_handle_type,              },
 
 	// timer
-	{"timer?",               fuv_timer_p,              },
-	{"make-timer",           fuv_make_timer,           },
-	{"timer-start!",         fuv_timer_start1,         },
-	{"timer-stop!",          fuv_timer_stop1,          },
-	{"timer-again!",         fuv_timer_again1,         },
-	{"timer-due-in",         fuv_timer_due_in,         },
-	{"timer-repeat",         fuv_timer_repeat,         },
-	{"timer-repeat-set!",    fuv_timer_repeat_set1,    },
+	{"timer?",                   fuv_timer_p,                  },
+	{"make-timer",               fuv_make_timer,               },
+	{"timer-start!",             fuv_timer_start1,             },
+	{"timer-stop!",              fuv_timer_stop1,              },
+	{"timer-again!",             fuv_timer_again1,             },
+	{"timer-due-in",             fuv_timer_due_in,             },
+	{"timer-repeat",             fuv_timer_repeat,             },
+	{"timer-repeat-set!",        fuv_timer_repeat_set1,        },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

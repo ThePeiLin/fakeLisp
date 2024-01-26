@@ -900,11 +900,8 @@ void fklRunVMinSingleThread(FklVM* volatile exe)
 	}
 }
 
-static void vm_thread_cb(void* arg)
+static void vm_run_cb(FklVM* exe)
 {
-	FklVM* volatile exe=(FklVM*)arg;
-	uv_mutex_lock(&exe->lock);
-	exe->thread_cb=vm_thread_cb;
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{
@@ -933,11 +930,75 @@ static void vm_thread_cb(void* arg)
 	}
 }
 
+static void vm_thread_cb(void* arg)
+{
+	FklVM* volatile exe=(FklVM*)arg;
+	uv_mutex_lock(&exe->lock);
+	exe->thread_run_cb=vm_run_cb;
+	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
+	for(;;)
+	{
+		switch(exe->state)
+		{
+			case FKL_VM_RUNNING:
+				DO_STEP_VM(exe);
+				break;
+			case FKL_VM_EXIT:
+				THREAD_EXIT(exe);
+				atomic_fetch_sub(&exe->gc->q.running_count,1);
+				uv_mutex_unlock(&exe->lock);
+				return;
+				break;
+			case FKL_VM_READY:
+				if(setjmp(exe->buf)==FKL_VM_ERR_RAISE)
+					DO_ERROR_HANDLING(exe);
+				exe->state=FKL_VM_RUNNING;
+				continue;
+				break;
+			case FKL_VM_WAITING:
+				uv_sleep(0);
+				continue;
+				break;
+		}
+	}
+}
+
+static void vm_trapping_run_cb(FklVM* exe)
+{
+	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
+	for(;;)
+	{
+		switch(exe->state)
+		{
+			case FKL_VM_RUNNING:
+				DO_TRAPPING_STEP_VM(exe);
+				break;
+			case FKL_VM_EXIT:
+				THREAD_EXIT(exe);
+				atomic_fetch_sub(&exe->gc->q.running_count,1);
+				uv_mutex_unlock(&exe->lock);
+				return;
+				break;
+			case FKL_VM_READY:
+				if(setjmp(exe->buf)==FKL_VM_ERR_RAISE)
+					DO_ERROR_HANDLING(exe);
+				exe->state=FKL_VM_RUNNING;
+				continue;
+				break;
+			case FKL_VM_WAITING:
+				uv_sleep(0);
+				continue;
+				break;
+		}
+	}
+
+}
+
 static void vm_trapping_thread_cb(void* arg)
 {
 	FklVM* volatile exe=(FklVM*)arg;
 	uv_mutex_lock(&exe->lock);
-	exe->thread_cb=vm_thread_cb;
+	exe->thread_run_cb=vm_trapping_run_cb;
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{

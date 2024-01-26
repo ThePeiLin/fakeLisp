@@ -15,9 +15,16 @@ typedef enum
 
 typedef struct
 {
-	uv_loop_t loop;
-	int mode;
+	FklVM* exe;
 	FklHashTable gc_values;
+	jmp_buf buf;
+	int mode;
+}FuvLoopData;
+
+typedef struct
+{
+	uv_loop_t loop;
+	FuvLoopData data;
 }FuvLoop;
 
 typedef struct
@@ -41,9 +48,12 @@ typedef struct
 
 int isFuvLoop(FklVMvalue* v);
 FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
+void fuvLoopInsertFuvHandle(FklVMvalue* loop,FklVMvalue* handle);
 
+int isFuvHandle(FklVMvalue* v);
 int isFuvTimer(FklVMvalue* v);
-FklVMvalue* createFuvTimer(FklVM*,FklVMvalue* rel,FklVMvalue* loop);
+FklVMvalue* createFuvTimer(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
+void initFuvHandle(FklVMvalue* v,FuvHandle* h,FklVMvalue* loop);
 
 #define RAISE_FUV_ERROR(WHO,TYPE,EXE) abort()
 

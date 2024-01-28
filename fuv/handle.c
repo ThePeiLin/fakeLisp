@@ -101,7 +101,7 @@ void initFuvHandle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
 {
 	handle->data.loop=loop;
 	handle->data.callbacks[0]=FKL_VM_NIL;
-	handle->data.callbacks[1]=FKL_VM_NIL;
+	handle->data.callbacks[1]=NULL;
 	uv_handle_set_data(&handle->handle,&handle->data);
 	fuvLoopInsertFuvHandle(loop,v);
 }

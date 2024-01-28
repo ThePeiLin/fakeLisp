@@ -257,6 +257,66 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline void fuv_call_proc_in_loop(uv_handle_t* handle,int idx)
+{
+	FuvHandleData* handle_data=uv_handle_get_data(handle);
+	FklVMvalue* proc=handle_data->callbacks[idx];
+	if(proc)
+	{
+		uv_loop_t* loop=uv_handle_get_loop(handle);
+		FuvLoopData* loop_data=uv_loop_get_data(loop);
+		FklVM* exe=loop_data->exe;
+		exe->state=FKL_VM_READY;
+		FklVMframe* fuv_proc_call_frame=exe->top_frame;
+		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+		jmp_buf buf;
+		ctx->buf=&buf;
+		if(setjmp(buf))
+		{
+			exe->tp--;
+			return;
+		}
+		else
+		{
+			fklSetBp(exe);
+			fklCallObj(exe,proc);
+			exe->thread_run_cb(exe);
+		}
+	}
+}
+
+static void fuv_close_cb(uv_handle_t* handle)
+{
+	fuv_call_proc_in_loop(handle,1);
+	uv_loop_t* loop=uv_handle_get_loop(handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
+	FuvHandleData* hdata=uv_handle_get_data(handle);
+	FklVMvalue* handle_obj=hdata->handle;
+	hdata->loop=NULL;
+	fklDelHashItem(&handle_obj,&ldata->gc_values,NULL);
+}
+
+static int fuv_handle_close1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.handle-close!";
+	FKL_DECL_AND_CHECK_ARG(handle_obj,exe,Pname);
+	FklVMvalue* proc_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(handle_obj,isFuvHandle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_handle,FuvHandle,handle_obj);
+	if(!uv_is_closing(&fuv_handle->handle))
+	{
+		if(proc_obj)
+		{
+			FKL_CHECK_TYPE(proc_obj,fklIsCallable,Pname,exe);
+			fuv_handle->data.callbacks[1]=proc_obj;
+		}
+		uv_close(&fuv_handle->handle,fuv_close_cb);
+	}
+	FKL_VM_PUSH_VALUE(exe,handle_obj);
+	return 0;
+}
+
 static int fuv_handle_ref_p(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.handle-ref?";
@@ -382,26 +442,7 @@ static int fuv_make_timer(FKL_CPROC_ARGL)
 
 static void fuv_timer_cb(uv_timer_t* handle)
 {
-	FuvHandleData* handle_data=uv_handle_get_data((uv_handle_t*)handle);
-	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
-	FuvLoopData* loop_data=uv_loop_get_data(loop);
-	FklVM* exe=loop_data->exe;
-	exe->state=FKL_VM_READY;
-	FklVMframe* fuv_proc_call_frame=exe->top_frame;
-	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
-	jmp_buf buf;
-	ctx->buf=&buf;
-	if(setjmp(buf))
-	{
-		exe->tp--;
-		return;
-	}
-	else
-	{
-		fklSetBp(exe);
-		fklCallObj(exe,handle_data->callbacks[0]);
-		exe->thread_run_cb(exe);
-	}
+	fuv_call_proc_in_loop((uv_handle_t*)handle,0);
 }
 
 static int fuv_timer_start1(FKL_CPROC_ARGL)
@@ -524,7 +565,7 @@ struct SymFunc
 	{"handle?",                  fuv_handle_p,                 },
 	{"handle-active?",           fuv_handle_active_p,          },
 	{"handle-closing?",          fuv_handle_closing_p,         },
-	{"handle-close!",            fuv_incomplete,               },
+	{"handle-close!",            fuv_handle_close1,            },
 	{"handle-ref?",              fuv_handle_ref_p,             },
 	{"handle-ref!",              fuv_handle_ref1,              },
 	{"handle-unref!",            fuv_handle_unref1,            },

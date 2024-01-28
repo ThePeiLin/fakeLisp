@@ -6,12 +6,14 @@
 
 (println (uv-handle-type timer))
 
+(define (on-close) (println "im closing!"))
+
 (uv-timer-start! timer
                  (lambda ()
                    (println "time out!")
                    (uv-timer-stop! timer)
-                   (uv-handle-close! timer))
+                   (uv-handle-close! timer on-close))
                  500
-                 0)
+                 500)
 
 (uv-loop-run! loop 'default)

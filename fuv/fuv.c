@@ -96,21 +96,35 @@ static const FklVMframeContextMethodTable FuvProcCallCtxMethodTable=
 
 static int fuv_loop_run1(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="fuv.loop-run1";
+	static const char Pname[]="fuv.loop-run!";
 	switch(ctx->context)
 	{
 		case 0:
 			{
 				FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+				FklVMvalue* mode_obj=FKL_VM_POP_ARG(exe);
 				FKL_CHECK_REST_ARG(exe,Pname);
 				FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
 				FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 				FKL_VM_PUSH_VALUE(exe,loop_obj);
 				FklVMframe* origin_top_frame=exe->top_frame;
-				origin_top_frame->errorCallBack=fuv_loop_error_callback;
 				ctx->rtp=exe->tp;
 				fuv_loop->data.exe=exe;
 				int need_cont=0;
+				int mode=UV_RUN_DEFAULT;
+				if(mode_obj)
+				{
+					FKL_CHECK_TYPE(mode_obj,FKL_IS_SYM,Pname,exe);
+					FKL_DECL_VM_UD_DATA(pbd,FuvPublicData,ctx->pd);
+					FklSid_t mode_id=FKL_GET_SYM(mode_obj);
+					for(;mode<(int)(sizeof(pbd->loop_mode)/sizeof(FklSid_t))
+							;mode++)
+						if(pbd->loop_mode[mode]==mode_id)
+							break;
+					if(mode>UV_RUN_NOWAIT)
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+				}
+				origin_top_frame->errorCallBack=fuv_loop_error_callback;
 				if(setjmp(fuv_loop->data.buf))
 				{
 					ctx->context=1;
@@ -119,11 +133,13 @@ static int fuv_loop_run1(FKL_CPROC_ARGL)
 				else
 				{
 					exe->top_frame=fklCreateOtherObjVMframe(exe,&FuvProcCallCtxMethodTable,origin_top_frame);
-					int r=uv_run(&fuv_loop->loop,UV_RUN_DEFAULT);
+					fuv_loop->data.mode=mode;
+					int r=uv_run(&fuv_loop->loop,mode);
 					CHECK_UV_RESULT(r,Pname,exe);
 				}
 				while(exe->top_frame!=origin_top_frame)
 					fklPopVMframe(exe);
+				fuv_loop->data.mode=-1;
 				exe->state=FKL_VM_READY;
 				return need_cont;
 			}

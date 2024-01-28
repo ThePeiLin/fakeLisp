@@ -14,4 +14,4 @@
                  500
                  0)
 
-(uv-loop-run! loop)
+(uv-loop-run! loop 'default)

@@ -113,7 +113,7 @@ static int fuv_loop_run1(FKL_CPROC_ARGL)
 				FklVMframe* origin_top_frame=exe->top_frame;
 				ctx->rtp=exe->tp;
 				fuv_loop->data.exe=exe;
-				int need_cont=0;
+				int need_continue=0;
 				int mode=UV_RUN_DEFAULT;
 				if(mode_obj)
 				{
@@ -131,7 +131,7 @@ static int fuv_loop_run1(FKL_CPROC_ARGL)
 				if(setjmp(fuv_loop->data.buf))
 				{
 					ctx->context=1;
-					need_cont=1;
+					need_continue=1;
 				}
 				else
 				{
@@ -142,7 +142,7 @@ static int fuv_loop_run1(FKL_CPROC_ARGL)
 					{
 						FKL_VM_PUSH_VALUE(exe,createUvError(Pname,r,exe,ctx->pd));
 						ctx->context=1;
-						need_cont=1;
+						need_continue=1;
 					}
 				}
 				while(exe->top_frame!=origin_top_frame)
@@ -150,7 +150,74 @@ static int fuv_loop_run1(FKL_CPROC_ARGL)
 				fuv_loop->data.mode=-1;
 				exe->state=FKL_VM_READY;
 				origin_top_frame->errorCallBack=NULL;
-				return need_cont;
+				return need_continue;
+			}
+			break;
+		case 1:
+			fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe),exe);
+			break;
+	}
+	return 0;
+}
+
+static void fuv_loop_walk_cb(uv_handle_t* handle,void* arg)
+{
+	FklVM* exe=arg;
+	FklVMvalue* proc=FKL_VM_GET_TOP_VALUE(exe);
+	exe->state=FKL_VM_READY;
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+	jmp_buf buf;
+	ctx->buf=&buf;
+	if(setjmp(buf))
+	{
+		exe->tp--;
+		return;
+	}
+	else
+	{
+		FuvHandleData* handle_data=uv_handle_get_data(handle);
+		fklSetBp(exe);
+		FKL_VM_PUSH_VALUE(exe,handle_data->handle);
+		fklCallObj(exe,proc);
+		exe->thread_run_cb(exe);
+	}
+}
+
+static int fuv_loop_walk(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.loop-walk";
+	switch(ctx->context)
+	{
+		case 0:
+			{
+				FKL_DECL_AND_CHECK_ARG2(loop_obj,proc_obj,exe,Pname);
+				FKL_CHECK_REST_ARG(exe,Pname);
+				FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+				FKL_CHECK_TYPE(proc_obj,fklIsCallable,Pname,exe);
+				FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+				FKL_VM_PUSH_VALUE(exe,loop_obj);
+				uint32_t rtp=exe->tp;
+				FKL_VM_PUSH_VALUE(exe,proc_obj);
+				FklVMframe* origin_top_frame=exe->top_frame;
+				int need_continue=0;
+				origin_top_frame->errorCallBack=fuv_loop_error_callback;
+				if(setjmp(fuv_loop->data.buf))
+				{
+					ctx->context=1;
+					need_continue=1;
+				}
+				else
+				{
+					exe->top_frame=fklCreateOtherObjVMframe(exe,&FuvProcCallCtxMethodTable,origin_top_frame);
+					uv_walk(&fuv_loop->loop,fuv_loop_walk_cb,exe);
+				}
+				while(exe->top_frame!=origin_top_frame)
+					fklPopVMframe(exe);
+				exe->state=FKL_VM_READY;
+				origin_top_frame->errorCallBack=NULL;
+				exe->tp=rtp;
+				return need_continue;
 			}
 			break;
 		case 1:
@@ -278,7 +345,7 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static inline void fuv_call_proc_in_loop(uv_handle_t* handle,int idx)
+static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle,int idx)
 {
 	FuvHandleData* handle_data=uv_handle_get_data(handle);
 	FklVMvalue* proc=handle_data->callbacks[idx];
@@ -308,7 +375,7 @@ static inline void fuv_call_proc_in_loop(uv_handle_t* handle,int idx)
 
 static void fuv_close_cb(uv_handle_t* handle)
 {
-	fuv_call_proc_in_loop(handle,1);
+	fuv_call_handle_callback_in_loop(handle,1);
 	uv_loop_t* loop=uv_handle_get_loop(handle);
 	FuvLoopData* ldata=uv_loop_get_data(loop);
 	FuvHandleData* hdata=uv_handle_get_data(handle);
@@ -462,7 +529,7 @@ static int fuv_make_timer(FKL_CPROC_ARGL)
 
 static void fuv_timer_cb(uv_timer_t* handle)
 {
-	fuv_call_proc_in_loop((uv_handle_t*)handle,0);
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle,0);
 }
 
 static int fuv_timer_start1(FKL_CPROC_ARGL)
@@ -578,7 +645,7 @@ struct SymFunc
 	{"loop-backend-timeout",     fuv_loop_backend_timeout,     },
 	{"loop-now",                 fuv_loop_now,                 },
 	{"loop-update-time!",        fuv_loop_update_time1,        },
-	{"loop-walk!",               fuv_incomplete,               },
+	{"loop-walk",                fuv_loop_walk,                },
 	{"loop-configure!",          fuv_incomplete,               },
 
 	// handle

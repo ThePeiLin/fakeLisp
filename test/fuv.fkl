@@ -28,4 +28,6 @@
                  500
                  500)
 
+(uv-loop-walk loop println)
+
 (uv-loop-run! loop)

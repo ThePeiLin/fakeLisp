@@ -18,7 +18,6 @@ static void fuv_loop_atomic(const FklVMud* ud,FklVMgc* gc)
 static void fuv_loop_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(fuv_loop,FuvLoop,ud);
-	uv_loop_close(&fuv_loop->loop);
 	fklUninitHashTable(&fuv_loop->data.gc_values);
 }
 

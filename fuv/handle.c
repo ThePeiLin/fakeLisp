@@ -99,6 +99,7 @@ int isFuvTimer(FklVMvalue* v)
 
 void initFuvHandle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
 {
+	handle->data.handle=v;
 	handle->data.loop=loop;
 	handle->data.callbacks[0]=FKL_VM_NIL;
 	handle->data.callbacks[1]=NULL;

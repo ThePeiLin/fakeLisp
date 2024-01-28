@@ -17,3 +17,15 @@
                  500)
 
 (uv-loop-run! loop 'default)
+
+(define timer (uv-make-timer loop))
+
+(uv-timer-start! timer
+                 (lambda ()
+                   (println "time out again!")
+                   (uv-loop-stop! loop)
+                   (println "stop the loop!"))
+                 500
+                 500)
+
+(uv-loop-run! loop)

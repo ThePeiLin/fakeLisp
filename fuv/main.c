@@ -172,6 +172,18 @@ static int fuv_loop_alive_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_loop_stop1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.loop-stop!";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_stop(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,loop_obj);
+	return 0;
+}
+
 static int fuv_loop_mode(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.loop-mode";
@@ -561,7 +573,7 @@ struct SymFunc
 	{"loop-run!",                fuv_loop_run1,                },
 	{"loop-mode",                fuv_loop_mode,                },
 	{"loop-alive?",              fuv_loop_alive_p,             },
-	{"loop-stop!",               fuv_incomplete,               },
+	{"loop-stop!",               fuv_loop_stop1,               },
 	{"loop-backend-fd",          fuv_loop_backend_fd,          },
 	{"loop-backend-timeout",     fuv_loop_backend_timeout,     },
 	{"loop-now",                 fuv_loop_now,                 },

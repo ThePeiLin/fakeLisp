@@ -10,8 +10,19 @@ extern "C"{
 
 typedef enum
 {
-	FUV_EBUSY
+	FUV_ERR_DUMMY=0,
+	FUV_ERR_CLOSE_CLOSEING_HANDLE,
+	FUV_ERR_NUM,
 }FuvErrorType;
+
+typedef struct
+{
+	FklSid_t loop_mode[3];
+	FklSid_t fuv_err_sid[FUV_ERR_NUM];
+#define XX(code,_) FklSid_t uv_err_sid_##code;
+	UV_ERRNO_MAP(XX);
+#undef XX
+}FuvPublicData;
 
 typedef struct
 {
@@ -55,9 +66,12 @@ int isFuvTimer(FklVMvalue* v);
 FklVMvalue* createFuvTimer(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 void initFuvHandle(FklVMvalue* v,FuvHandle* h,FklVMvalue* loop);
 
-#define RAISE_FUV_ERROR(WHO,TYPE,EXE) abort()
+void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
+void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
+FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 
-#define CHECK_UV_RESULT(R,WHO,EXE) if((R)<0)RAISE_FUV_ERROR(WHO,R,EXE)
+#define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError(WHO,R,EXE,PD)
+
 #ifdef __cplusplus
 }
 #endif

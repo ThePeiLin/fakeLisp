@@ -13,6 +13,7 @@ typedef enum
 {
 	FUV_ERR_DUMMY=0,
 	FUV_ERR_CLOSE_CLOSEING_HANDLE,
+	FUV_ERR_HANDLE_CLOSED,
 	FUV_ERR_NUM,
 }FuvErrorType;
 
@@ -181,7 +182,8 @@ void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 
 int sigSymbolToSignum(FklSid_t,FuvPublicData* pd);
-#define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError(WHO,R,EXE,PD)
+#define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
+#define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) &((FUV_HANDLE)->handle)
 #define GET_TIMER_HANDLE(FUV_HANDLE) (uv_timer_t*)&((FUV_HANDLE)->handle)
 

@@ -44,6 +44,7 @@ void raiseFuvError(const char* who,FuvErrorType err,FklVM* exe,FklVMvalue* pd_ob
 	{
 		NULL,
 		"close closing handle",
+		"handle has been closed",
 	};
 	FklVMvalue* ev=fklCreateVMvalueErrorWithCstr(exe
 			,sid

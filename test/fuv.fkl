@@ -34,3 +34,22 @@
 (uv-loop-walk loop println)
 
 (uv-loop-run! loop)
+
+(uv-handle-close! timer)
+
+(define timer (uv-make-timer loop))
+
+(define count 0)
+
+(uv-timer-start! timer
+                 (lambda ()
+                   (printf "count is %d\n" count)
+                   (setq count (1+ count))
+                   (when (> count 9)
+                     (uv-handle-close! timer)))
+                 50
+                 50)
+
+(uv-loop-run! loop)
+
+(printf "count is %d in top\n" count)

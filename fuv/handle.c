@@ -1,5 +1,15 @@
 #include"fuv.h"
-#include"timer.h"
+
+static void fuv_handle_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_timer,FuvHandleUd,ud);
+	FuvHandle* handle=fuv_timer->handle;
+	if(handle)
+	{
+		fklVMgcToGray(handle->data.loop,gc);
+		fklVMgcToGray(handle->data.callbacks[0],gc);
+	}
+}
 
 static void fuv_handle_ud_finalizer(FklVMud* ud)
 {
@@ -16,6 +26,8 @@ static void fuv_handle_ud_finalizer(FklVMud* ud)
 		handle_ud->handle=NULL;
 	}
 }
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_timer_print,timer);
 
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
@@ -76,7 +88,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 		.size=sizeof(FuvHandleUd),
 		.__prin1=fuv_timer_print,
 		.__princ=fuv_timer_print,
-		.__atomic=fuv_timer_atomic,
+		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
 

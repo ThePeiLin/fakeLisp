@@ -873,6 +873,18 @@ static inline void do_vm_atexit(FklVM* vm)
 		exe->chan=NULL;\
 	}
 
+void fklSetVMsingleThread(FklVM* exe)
+{
+	exe->is_single_thread=1;
+	exe->thread_run_cb=fklRunVMinSingleThread;
+}
+
+void fklUnsetVMsingleThread(FklVM* exe)
+{
+	exe->is_single_thread=0;
+	exe->thread_run_cb=exe->run_cb;
+}
+
 void fklRunVMinSingleThread(FklVM* volatile exe)
 {
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
@@ -935,6 +947,7 @@ static void vm_thread_cb(void* arg)
 	FklVM* volatile exe=(FklVM*)arg;
 	uv_mutex_lock(&exe->lock);
 	exe->thread_run_cb=vm_run_cb;
+	exe->run_cb=vm_run_cb;
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{
@@ -999,6 +1012,7 @@ static void vm_trapping_thread_cb(void* arg)
 	FklVM* volatile exe=(FklVM*)arg;
 	uv_mutex_lock(&exe->lock);
 	exe->thread_run_cb=vm_trapping_run_cb;
+	exe->run_cb=vm_trapping_run_cb;
 	_Atomic(FklVMinsFunc)* const ins_table=exe->ins_table;
 	for(;;)
 	{

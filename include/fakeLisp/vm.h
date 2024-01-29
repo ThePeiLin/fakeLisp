@@ -394,10 +394,13 @@ typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
 
 typedef void (*FklVMatExitFunc)(struct FklVM*,void*);
 typedef void (*FklVMatExitMarkFunc)(void*,struct FklVMgc*);
+typedef void (*FklVMrunCb)(struct FklVM*);
 
 typedef struct FklVM
 {
-	void (*thread_run_cb)(struct FklVM*);
+	FklVMrunCb thread_run_cb;
+	FklVMrunCb run_cb;
+
 	uv_thread_t tid;
 	uv_mutex_t lock;
 	FklVMvalue* obj_head;
@@ -682,6 +685,8 @@ void fklVMpushInterruptHandler(FklVMgc*,FklVMinterruptHandler,void*);
 void fklVMgcExtraMark(FklVMgc*);
 void fklVMpushExtraMarkFunc(FklVMgc*,FklVMextraMarkFunc,void*);
 
+void fklSetVMsingleThread(FklVM* exe);
+void fklUnsetVMsingleThread(FklVM* exe);
 void fklRunVMinSingleThread(FklVM* exe);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);

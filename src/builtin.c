@@ -3775,11 +3775,11 @@ static void idle_queue_work_cb(FklVM* exe,void* a)
 	exe->state=FKL_VM_READY;
 	if(setjmp(buf)==IDLE_WORK_DONE)
 		goto exit;
-	exe->is_single_thread=1;
+	fklSetVMsingleThread(exe);
 	fklRunVMinSingleThread(exe);
 exit:
 	fklNoticeThreadLock(exe);
-	exe->is_single_thread=0;
+	fklUnsetVMsingleThread(exe);
 	return;
 }
 

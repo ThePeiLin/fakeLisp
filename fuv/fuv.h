@@ -20,6 +20,8 @@ typedef struct
 {
 	FklSid_t loop_mode[3];
 	FklSid_t fuv_err_sid[FUV_ERR_NUM];
+	FklSid_t loop_block_signal_sid;
+	FklSid_t metrics_idle_time_sid;
 #define XX(code,_) FklSid_t uv_err_sid_##code;
 	UV_ERRNO_MAP(XX);
 #undef XX
@@ -178,6 +180,7 @@ void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 
+int sigSymbolToSignum(FklSid_t,FuvPublicData* pd);
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError(WHO,R,EXE,PD)
 
 #ifdef __cplusplus

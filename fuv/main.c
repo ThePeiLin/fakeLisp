@@ -31,6 +31,15 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklVM* exe)
 	};
 	for(size_t i=0;i<FUV_ERR_NUM;i++)
 		pd->fuv_err_sid[i]=fklVMaddSymbolCstr(exe->gc,fuv_err_sym[i])->id;
+
+	static const char* loop_config_sym[]=
+	{
+		"loop-block-signal",
+		"metrics-idle-time",
+	};
+	pd->loop_block_signal_sid=fklVMaddSymbolCstr(exe->gc,loop_config_sym[UV_LOOP_BLOCK_SIGNAL])->id;
+	pd->metrics_idle_time_sid=fklVMaddSymbolCstr(exe->gc,loop_config_sym[UV_METRICS_IDLE_TIME])->id;
+
 #define XX(code,_) pd->uv_err_sid_##code=fklVMaddSymbolCstr(exe->gc,"UV-"#code)->id;
 	UV_ERRNO_MAP(XX);
 #undef XX
@@ -332,6 +341,65 @@ static int fuv_loop_walk(FKL_CPROC_ARGL)
 			fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe),exe);
 			break;
 	}
+	return 0;
+}
+
+static int fuv_loop_configure1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.loop-configure!";
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,option_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_CHECK_TYPE(option_obj,FKL_IS_SYM,Pname,exe);
+	FklSid_t option_id=FKL_GET_SYM(option_obj);
+	uv_loop_option option=UV_LOOP_BLOCK_SIGNAL;
+	FklVMvalue* pd=FKL_VM_CPROC(ctx->proc)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	if(option_id==fpd->loop_block_signal_sid)
+		option=UV_LOOP_BLOCK_SIGNAL;
+	else if(option_id==fpd->metrics_idle_time_sid)
+		option=UV_METRICS_IDLE_TIME;
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_loop_t* loop=&fuv_loop->loop;
+	switch(option)
+	{
+		case UV_LOOP_BLOCK_SIGNAL:
+			{
+				FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+				while(cur)
+				{
+					if(FKL_IS_FIX(cur))
+					{
+						int64_t i=FKL_GET_FIX(cur);
+						int r=uv_loop_configure(loop,UV_LOOP_BLOCK_SIGNAL,i);
+						CHECK_UV_RESULT(r,Pname,exe,pd);
+					}
+					else if(FKL_IS_SYM(cur))
+					{
+						FklSid_t sid=FKL_GET_SYM(cur);
+						int signum=sigSymbolToSignum(sid,fpd);
+						if(!signum)
+							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+						int r=uv_loop_configure(loop,UV_LOOP_BLOCK_SIGNAL,signum);
+						CHECK_UV_RESULT(r,Pname,exe,pd);
+					}
+					else
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+					cur=FKL_VM_POP_ARG(exe);
+				}
+				fklResBp(exe);
+			}
+			break;
+		case UV_METRICS_IDLE_TIME:
+			{
+				FKL_CHECK_REST_ARG(exe,Pname);
+				int r=uv_loop_configure(loop,UV_METRICS_IDLE_TIME);
+				CHECK_UV_RESULT(r,Pname,exe,pd);
+			}
+			break;
+	}
+	FKL_VM_PUSH_VALUE(exe,loop_obj);
 	return 0;
 }
 
@@ -754,7 +822,7 @@ struct SymFunc
 	{"loop-now",                 fuv_loop_now,                 },
 	{"loop-update-time!",        fuv_loop_update_time1,        },
 	{"loop-walk",                fuv_loop_walk,                },
-	{"loop-configure!",          fuv_incomplete,               },
+	{"loop-configure!",          fuv_loop_configure1,          },
 
 	// handle
 	{"handle?",                  fuv_handle_p,                 },

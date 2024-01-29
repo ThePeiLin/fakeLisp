@@ -28,6 +28,9 @@
                  500
                  500)
 
+(uv-loop-configure! loop 'loop-block-signal 'sigprof)
+(uv-loop-configure! loop 'metrics-idle-time)
+
 (uv-loop-walk loop println)
 
 (uv-loop-run! loop)

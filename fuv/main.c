@@ -23,9 +23,7 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklVM* exe)
 	pd->loop_mode[UV_RUN_DEFAULT]=fklVMaddSymbolCstr(exe->gc,loop_mode[UV_RUN_DEFAULT])->id;
 	pd->loop_mode[UV_RUN_ONCE]=fklVMaddSymbolCstr(exe->gc,loop_mode[UV_RUN_ONCE])->id;
 	pd->loop_mode[UV_RUN_NOWAIT]=fklVMaddSymbolCstr(exe->gc,loop_mode[UV_RUN_NOWAIT])->id;
-#define XX(code,_) pd->uv_err_sid_##code=fklVMaddSymbolCstr(exe->gc,"UV-"#code)->id;
-	UV_ERRNO_MAP(XX)
-#undef XX
+
 	static const char* fuv_err_sym[]=
 	{
 		"dummy",
@@ -33,6 +31,116 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklVM* exe)
 	};
 	for(size_t i=0;i<FUV_ERR_NUM;i++)
 		pd->fuv_err_sid[i]=fklVMaddSymbolCstr(exe->gc,fuv_err_sym[i])->id;
+#define XX(code,_) pd->uv_err_sid_##code=fklVMaddSymbolCstr(exe->gc,"UV-"#code)->id;
+	UV_ERRNO_MAP(XX);
+#undef XX
+
+#ifdef SIGHUP
+	pd->SIGHUP_sid=fklVMaddSymbolCstr(exe->gc,"sighup")->id;
+#endif
+#ifdef SIGINT
+	pd->SIGINT_sid=fklVMaddSymbolCstr(exe->gc,"sigint")->id;
+#endif
+#ifdef SIGQUIT
+	pd->SIGQUIT_sid=fklVMaddSymbolCstr(exe->gc,"sigquit")->id;
+#endif
+#ifdef SIGILL
+	pd->SIGILL_sid=fklVMaddSymbolCstr(exe->gc,"sigill")->id;
+#endif
+#ifdef SIGTRAP
+	pd->SIGTRAP_sid=fklVMaddSymbolCstr(exe->gc,"sigtrap")->id;
+#endif
+#ifdef SIGABRT
+	pd->SIGABRT_sid=fklVMaddSymbolCstr(exe->gc,"sigabrt")->id;
+#endif
+#ifdef SIGIOT
+	pd->SIGIOT_sid=fklVMaddSymbolCstr(exe->gc,"sigiot")->id;
+#endif
+#ifdef SIGBUS
+	pd->SIGBUS_sid=fklVMaddSymbolCstr(exe->gc,"sigbus")->id;
+#endif
+#ifdef SIGFPE
+	pd->SIGFPE_sid=fklVMaddSymbolCstr(exe->gc,"sigfpe")->id;
+#endif
+#ifdef SIGKILL
+	pd->SIGKILL_sid=fklVMaddSymbolCstr(exe->gc,"sigkill")->id;
+#endif
+#ifdef SIGUSR1
+	pd->SIGUSR1_sid=fklVMaddSymbolCstr(exe->gc,"sigusr1")->id;
+#endif
+#ifdef SIGSEGV
+	pd->SIGSEGV_sid=fklVMaddSymbolCstr(exe->gc,"sigsegv")->id;
+#endif
+#ifdef SIGUSR2
+	pd->SIGUSR2_sid=fklVMaddSymbolCstr(exe->gc,"sigusr2")->id;
+#endif
+#ifdef SIGPIPE
+	pd->SIGPIPE_sid=fklVMaddSymbolCstr(exe->gc,"sigpipe")->id;
+#endif
+#ifdef SIGALRM
+	pd->SIGALRM_sid=fklVMaddSymbolCstr(exe->gc,"sigalrm")->id;
+#endif
+#ifdef SIGTERM
+	pd->SIGTERM_sid=fklVMaddSymbolCstr(exe->gc,"sigterm")->id;
+#endif
+#ifdef SIGCHLD
+	pd->SIGCHLD_sid=fklVMaddSymbolCstr(exe->gc,"sigchld")->id;
+#endif
+#ifdef SIGSTKFLT
+	pd->SIGSTKFLT_sid=fklVMaddSymbolCstr(exe->gc,"sigstkflt")->id;
+#endif
+#ifdef SIGCONT
+	pd->SIGCONT_sid=fklVMaddSymbolCstr(exe->gc,"sigcont")->id;
+#endif
+#ifdef SIGSTOP
+	pd->SIGSTOP_sid=fklVMaddSymbolCstr(exe->gc,"sigstop")->id;
+#endif
+#ifdef SIGTSTP
+	pd->SIGTSTP_sid=fklVMaddSymbolCstr(exe->gc,"sigtstp")->id;
+#endif
+#ifdef SIGBREAK
+	pd->SIGBREAK_sid=fklVMaddSymbolCstr(exe->gc,"sigbreak")->id;
+#endif
+#ifdef SIGTTIN
+	pd->SIGTTIN_sid=fklVMaddSymbolCstr(exe->gc,"sigttin")->id;
+#endif
+#ifdef SIGTTOU
+	pd->SIGTTOU_sid=fklVMaddSymbolCstr(exe->gc,"sigttou")->id;
+#endif
+#ifdef SIGURG
+	pd->SIGURG_sid=fklVMaddSymbolCstr(exe->gc,"sigurg")->id;
+#endif
+#ifdef SIGXCPU
+	pd->SIGXCPU_sid=fklVMaddSymbolCstr(exe->gc,"sigxcpu")->id;
+#endif
+#ifdef SIGXFSZ
+	pd->SIGXFSZ_sid=fklVMaddSymbolCstr(exe->gc,"sigxfsz")->id;
+#endif
+#ifdef SIGVTALRM
+	pd->SIGVTALRM_sid=fklVMaddSymbolCstr(exe->gc,"sigvtalrm")->id;
+#endif
+#ifdef SIGPROF
+	pd->SIGPROF_sid=fklVMaddSymbolCstr(exe->gc,"sigprof")->id;
+#endif
+#ifdef SIGWINCH
+	pd->SIGWINCH_sid=fklVMaddSymbolCstr(exe->gc,"sigwinch")->id;
+#endif
+#ifdef SIGIO
+	pd->SIGIO_sid=fklVMaddSymbolCstr(exe->gc,"sigio")->id;
+#endif
+#ifdef SIGPOLL
+	pd->SIGPOLL_sid=fklVMaddSymbolCstr(exe->gc,"sigpoll")->id;
+#endif
+#ifdef SIGLOST
+	pd->SIGLOST_sid=fklVMaddSymbolCstr(exe->gc,"siglost")->id;
+#endif
+#ifdef SIGPWR
+	pd->SIGPWR_sid=fklVMaddSymbolCstr(exe->gc,"sigpwr")->id;
+#endif
+#ifdef SIGSYS
+	pd->SIGSYS_sid=fklVMaddSymbolCstr(exe->gc,"sigsys")->id;
+#endif
+
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL){PREDICATE(isFuvLoop(val),"fuv.loop?")}

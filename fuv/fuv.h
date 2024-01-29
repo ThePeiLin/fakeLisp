@@ -3,6 +3,7 @@
 
 #include<fakeLisp/vm.h>
 #include<uv.h>
+#include<signal.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -22,6 +23,113 @@ typedef struct
 #define XX(code,_) FklSid_t uv_err_sid_##code;
 	UV_ERRNO_MAP(XX);
 #undef XX
+
+#ifdef SIGHUP
+	FklSid_t SIGHUP_sid;
+#endif
+#ifdef SIGINT
+	FklSid_t SIGINT_sid;
+#endif
+#ifdef SIGQUIT
+	FklSid_t SIGQUIT_sid;
+#endif
+#ifdef SIGILL
+	FklSid_t SIGILL_sid;
+#endif
+#ifdef SIGTRAP
+	FklSid_t SIGTRAP_sid;
+#endif
+#ifdef SIGABRT
+	FklSid_t SIGABRT_sid;
+#endif
+#ifdef SIGIOT
+	FklSid_t SIGIOT_sid;
+#endif
+#ifdef SIGBUS
+	FklSid_t SIGBUS_sid;
+#endif
+#ifdef SIGFPE
+	FklSid_t SIGFPE_sid;
+#endif
+#ifdef SIGKILL
+	FklSid_t SIGKILL_sid;
+#endif
+#ifdef SIGUSR1
+	FklSid_t SIGUSR1_sid;
+#endif
+#ifdef SIGSEGV
+	FklSid_t SIGSEGV_sid;
+#endif
+#ifdef SIGUSR2
+	FklSid_t SIGUSR2_sid;
+#endif
+#ifdef SIGPIPE
+	FklSid_t SIGPIPE_sid;
+#endif
+#ifdef SIGALRM
+	FklSid_t SIGALRM_sid;
+#endif
+#ifdef SIGTERM
+	FklSid_t SIGTERM_sid;
+#endif
+#ifdef SIGCHLD
+	FklSid_t SIGCHLD_sid;
+#endif
+#ifdef SIGSTKFLT
+	FklSid_t SIGSTKFLT_sid;
+#endif
+#ifdef SIGCONT
+	FklSid_t SIGCONT_sid;
+#endif
+#ifdef SIGSTOP
+	FklSid_t SIGSTOP_sid;
+#endif
+#ifdef SIGTSTP
+	FklSid_t SIGTSTP_sid;
+#endif
+#ifdef SIGBREAK
+	FklSid_t SIGBREAK_sid;
+#endif
+#ifdef SIGTTIN
+	FklSid_t SIGTTIN_sid;
+#endif
+#ifdef SIGTTOU
+	FklSid_t SIGTTOU_sid;
+#endif
+#ifdef SIGURG
+	FklSid_t SIGURG_sid;
+#endif
+#ifdef SIGXCPU
+	FklSid_t SIGXCPU_sid;
+#endif
+#ifdef SIGXFSZ
+	FklSid_t SIGXFSZ_sid;
+#endif
+#ifdef SIGVTALRM
+	FklSid_t SIGVTALRM_sid;
+#endif
+#ifdef SIGPROF
+	FklSid_t SIGPROF_sid;
+#endif
+#ifdef SIGWINCH
+	FklSid_t SIGWINCH_sid;
+#endif
+#ifdef SIGIO
+	FklSid_t SIGIO_sid;
+#endif
+#ifdef SIGPOLL
+	FklSid_t SIGPOLL_sid;
+#endif
+#ifdef SIGLOST
+	FklSid_t SIGLOST_sid;
+#endif
+#ifdef SIGPWR
+	FklSid_t SIGPWR_sid;
+#endif
+#ifdef SIGSYS
+	FklSid_t SIGSYS_sid;
+#endif
+
 }FuvPublicData;
 
 typedef struct

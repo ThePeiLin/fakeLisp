@@ -3764,6 +3764,55 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 	return 1;
 }
 
+struct PcallCtx
+{
+	uint32_t ctx;
+	uint32_t bp;
+};
+
+static int pcall_error_handler(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
+{
+	while(exe->top_frame!=f)
+		fklPopVMframe(exe);
+	FklCprocFrameContext* ctx=(FklCprocFrameContext*)f->data;
+	struct PcallCtx* cctx=(void*)&ctx->context;
+	exe->tp=ctx->rtp;
+	exe->bp=cctx->bp;
+	cctx->ctx=2;
+	FKL_VM_PUSH_VALUE(exe,errValue);
+	return 1;
+}
+
+static int builtin_pcall(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="builtin.pcall";
+	struct PcallCtx* cctx=(void*)&ctx->context;
+	switch(cctx->ctx)
+	{
+		case 0:
+			{
+				FKL_DECL_AND_CHECK_ARG(proc,exe,Pname);
+				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
+				uint32_t cbp=exe->bp;
+				ctx->rtp=fklResBpIn(exe,FKL_VM_GET_ARG_NUM(exe));
+				cctx->bp=exe->bp;
+				exe->bp=cbp;
+				exe->top_frame->errorCallBack=pcall_error_handler;
+				fklCallObj(exe,proc);
+				cctx->ctx=1;
+				return 1;
+			}
+			break;
+		case 1:
+			{
+				FklVMvalue* top=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBox(exe,top));
+			}
+			break;
+	}
+	return 0;
+}
+
 #define IDLE_WORK_DONE (2)
 
 static void idle_queue_work_cb(FklVM* exe,void* a)
@@ -3792,8 +3841,6 @@ static int builtin_idle(FKL_CPROC_ARGL)
 			{
 				FKL_DECL_AND_CHECK_ARG(proc,exe,Pname);
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
-				FKL_VM_PUSH_VALUE(exe,proc);
-				exe->tp--;
 				fklCallObj(exe,proc);
 				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,ctx);
 				return 1;
@@ -5396,6 +5443,7 @@ static const struct SymbolFuncStruct
 	{"atexit",                builtin_atexit,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"idle",                  builtin_idle,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"go",                    builtin_go,                      {NULL,         NULL,          NULL,            NULL,          }, },
+	{"pcall",                 builtin_pcall,                   {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"chanl",                 builtin_chanl,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-msg-num",         builtin_chanl_msg_num,           {NULL,         NULL,          NULL,            NULL,          }, },

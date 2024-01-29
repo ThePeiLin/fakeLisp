@@ -837,6 +837,11 @@ struct SymFunc
 	{"handle-fileno",            fuv_handle_fileno,            },
 	{"handle-type",              fuv_handle_type,              },
 
+	// req
+	{"req?",                     fuv_incomplete,               },
+	{"req-cancel!",              fuv_incomplete,               },
+	{"req-type",                 fuv_incomplete,               },
+
 	// timer
 	{"timer?",                   fuv_timer_p,                  },
 	{"make-timer",               fuv_make_timer,               },

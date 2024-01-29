@@ -13,7 +13,7 @@
                    (println "time out!")
                    (uv-timer-stop! timer)
                    (uv-handle-close! timer on-close))
-                 500
+                 50
                  500)
 
 (uv-loop-run! loop 'default)
@@ -25,7 +25,7 @@
                    (println "time out again!")
                    (uv-loop-stop! loop)
                    (println "stop the loop!"))
-                 500
+                 50
                  500)
 
 (uv-loop-configure! loop 'loop-block-signal 'sigprof)

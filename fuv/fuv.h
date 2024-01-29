@@ -155,17 +155,17 @@ typedef struct
 	FklVMvalue* callbacks[2];
 }FuvHandleData;
 
-typedef struct
+typedef struct FuvHandle
 {
 	FuvHandleData data;
 	uv_handle_t handle;
 }FuvHandle;
 
+struct FuvHandle;
 typedef struct
 {
-	FuvHandleData data;
-	uv_timer_t handle;
-}FuvTimer;
+	FuvHandle* handle;
+}FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
 FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
@@ -182,6 +182,8 @@ FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 
 int sigSymbolToSignum(FklSid_t,FuvPublicData* pd);
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError(WHO,R,EXE,PD)
+#define GET_HANDLE(FUV_HANDLE) &((FUV_HANDLE)->handle)
+#define GET_TIMER_HANDLE(FUV_HANDLE) (uv_timer_t*)&((FUV_HANDLE)->handle)
 
 #ifdef __cplusplus
 }

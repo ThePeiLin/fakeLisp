@@ -1,6 +1,22 @@
 #include"fuv.h"
 #include"timer.h"
 
+static void fuv_handle_ud_finalizer(FklVMud* ud)
+{
+	FKL_DECL_UD_DATA(handle_ud,FuvHandleUd,ud);
+	if(handle_ud->handle)
+	{
+		FuvHandle* fuv_handle=handle_ud->handle;
+		uv_handle_t* handle=&fuv_handle->handle;
+		FuvHandleData* handle_data=&fuv_handle->data;
+		uv_loop_t* loop=uv_handle_get_loop(handle);
+		FuvLoopData* loop_data=uv_loop_get_data(loop);
+		fklDelHashItem(&handle_data->handle,&loop_data->gc_values,NULL);
+		fuv_handle->data.handle=NULL;
+		handle_ud->handle=NULL;
+	}
+}
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -57,10 +73,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_TIMER,
 	{
-		.size=sizeof(FuvTimer),
+		.size=sizeof(FuvHandleUd),
 		.__prin1=fuv_timer_print,
 		.__princ=fuv_timer_print,
 		.__atomic=fuv_timer_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_TTY,
@@ -103,9 +120,17 @@ void initFuvHandle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
 	handle->data.loop=loop;
 	handle->data.callbacks[0]=FKL_VM_NIL;
 	handle->data.callbacks[1]=NULL;
-	uv_handle_set_data(&handle->handle,&handle->data);
+	uv_handle_set_data(&handle->handle,handle);
 	fuvLoopInsertFuvHandle(loop,v);
 }
+
+struct FuvTimer
+{
+	FuvHandleData data;
+	uv_timer_t handle;
+};
+
+#define CREATE_HANDLE(TYPE) (TYPE*)malloc(sizeof(TYPE))
 
 FklVMvalue* createFuvTimer(FklVM* vm
 		,FklVMvalue* rel
@@ -113,10 +138,12 @@ FklVMvalue* createFuvTimer(FklVM* vm
 		,int* err)
 {
 	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_TIMER],rel);
-	FKL_DECL_VM_UD_DATA(h,FuvTimer,v);
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
-	initFuvHandle(v,(FuvHandle*)h,loop_obj);
-	*err=uv_timer_init(&loop->loop,&h->handle);
+	struct FuvTimer* handle=CREATE_HANDLE(struct FuvTimer);
+	hud->handle=(FuvHandle*)handle;
+	initFuvHandle(v,(FuvHandle*)handle,loop_obj);
+	*err=uv_timer_init(&loop->loop,&handle->handle);
 	return v;
 }
 

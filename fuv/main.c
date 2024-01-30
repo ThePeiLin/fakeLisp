@@ -1,3 +1,4 @@
+#include "fakeLisp/vm.h"
 #include"fuv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
@@ -380,7 +381,7 @@ static int fuv_loop_configure1(FKL_CPROC_ARGL)
 					else if(FKL_IS_SYM(cur))
 					{
 						FklSid_t sid=FKL_GET_SYM(cur);
-						int signum=sigSymbolToSignum(sid,fpd);
+						int signum=symbolToSignum(sid,fpd);
 						if(!signum)
 							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 						int r=uv_loop_configure(loop,UV_LOOP_BLOCK_SIGNAL,signum);
@@ -1019,6 +1020,137 @@ static int fuv_check_stop1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_signal_p(FKL_CPROC_ARGL){PREDICATE(isFuvSignal(val),"fuv.signal?")}
+
+static int fuv_make_signal(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-signal";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	int r;
+	FklVMvalue* signal=createFuvSignal(exe,ctx->proc,loop_obj,&r);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,signal);
+	return 0;
+}
+
+static inline void fuv_call_handle_callback_in_loop_1(uv_handle_t* handle
+		,FuvHandleData* handle_data
+		,FuvLoopData* loop_data
+		,int idx
+		,FklVMvalue* value)
+{
+	FklVMvalue* proc=handle_data->callbacks[idx];
+	if(proc)
+	{
+		FklVM* exe=loop_data->exe;
+		exe->state=FKL_VM_READY;
+		FklVMframe* fuv_proc_call_frame=exe->top_frame;
+		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+		jmp_buf buf;
+		ctx->buf=&buf;
+		if(setjmp(buf))
+		{
+			exe->tp--;
+			return;
+		}
+		else
+		{
+			fklSetBp(exe);
+			FKL_VM_PUSH_VALUE(exe,value);
+			fklCallObj(exe,proc);
+			exe->thread_run_cb(exe);
+		}
+	}
+}
+
+static void fuv_signal_cb(uv_signal_t* handle,int num)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	FklVMframe* run_loop_proc_frame=ldata->exe->top_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	FklVMvalue* signum_val=FKL_MAKE_VM_SYM(signumToSymbol(num,fpd));
+	fuv_call_handle_callback_in_loop_1((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0
+			,signum_val);
+}
+
+static int fuv_signal_start1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.signal-start!";
+	FKL_DECL_AND_CHECK_ARG3(signal_obj,signal_cb,signum_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(signal_obj,isFuvSignal,Pname,exe);
+	FKL_CHECK_TYPE(signal_cb,fklIsCallable,Pname,exe);
+	int signum=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	if(FKL_IS_FIX(signum_obj))
+		signum=FKL_GET_FIX(signum_obj);
+	else if(FKL_IS_SYM(signum_obj))
+		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(signum==0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+
+	FKL_DECL_VM_UD_DATA(signal,FuvHandleUd,signal_obj);
+	FuvHandle* fuv_handle=*signal;
+	CHECK_HANDLE_CLOSED(fuv_handle,Pname,exe,ctx->pd);
+	fuv_handle->data.callbacks[0]=signal_cb;
+	int r=uv_signal_start((uv_signal_t*)GET_HANDLE(fuv_handle),fuv_signal_cb,signum);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,signal_obj);
+	return 0;
+}
+
+static int fuv_signal_start_oneshot1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.signal-start-oneshot!";
+	FKL_DECL_AND_CHECK_ARG3(signal_obj,signal_cb,signum_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(signal_obj,isFuvSignal,Pname,exe);
+	FKL_CHECK_TYPE(signal_cb,fklIsCallable,Pname,exe);
+	int signum=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	if(FKL_IS_FIX(signum_obj))
+		signum=FKL_GET_FIX(signum_obj);
+	else if(FKL_IS_SYM(signum_obj))
+		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(signum==0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+
+	FKL_DECL_VM_UD_DATA(signal,FuvHandleUd,signal_obj);
+	FuvHandle* fuv_handle=*signal;
+	CHECK_HANDLE_CLOSED(fuv_handle,Pname,exe,ctx->pd);
+	fuv_handle->data.callbacks[0]=signal_cb;
+	int r=uv_signal_start_oneshot((uv_signal_t*)GET_HANDLE(fuv_handle),fuv_signal_cb,signum);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,signal_obj);
+	return 0;
+}
+
+static int fuv_signal_stop1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.signal-stop!";
+	FKL_DECL_AND_CHECK_ARG(signal_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(signal_obj,isFuvSignal,Pname,exe);
+	FKL_DECL_VM_UD_DATA(signal,FuvHandleUd,signal_obj);
+	FuvHandle* handle=*signal;
+	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
+	int r=uv_signal_stop((uv_signal_t*)GET_HANDLE(handle));
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,signal_obj);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -1090,6 +1222,13 @@ struct SymFunc
 	{"make-check",               fuv_make_check,               },
 	{"check-start!",             fuv_check_start1,             },
 	{"check-stop!",              fuv_check_stop1,              },
+
+	// signal
+	{"signal?",                  fuv_signal_p,                 },
+	{"make-signal",              fuv_make_signal,              },
+	{"signal-start!",            fuv_signal_start1,            },
+	{"signal-start-oneshot!",    fuv_signal_start_oneshot1,    },
+	{"signal-stop!",             fuv_signal_stop1,             },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

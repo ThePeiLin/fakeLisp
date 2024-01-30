@@ -35,6 +35,8 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_idle_print,idle);
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_check_print,check);
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_signal_print,signal);
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -123,6 +125,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_SIGNAL,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__prin1=fuv_signal_print,
+		.__princ=fuv_signal_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_FILE,
@@ -209,6 +216,15 @@ struct FuvCheck
 
 FUV_HANDLE_P(isFuvCheck,UV_CHECK);
 FUV_HANDLE_CREATOR(FuvCheck,check,UV_CHECK);
+
+struct FuvSignal
+{
+	FuvHandleData data;
+	uv_signal_t handle;
+};
+
+FUV_HANDLE_P(isFuvSignal,UV_SIGNAL);
+FUV_HANDLE_CREATOR(FuvSignal,signal,UV_SIGNAL);
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

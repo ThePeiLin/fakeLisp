@@ -113,3 +113,37 @@
                        (setq flags 'prepare))))))
 
 (printf "count is %d in top\n" count)
+
+(define signal0 (uv-make-signal loop))
+
+(assert (uv-signal? signal0))
+(assert (uv-handle? signal0))
+
+(println "testing signal")
+
+(define signal1 (uv-make-signal loop))
+
+(uv-handle-ref! signal0)
+
+(uv-signal-start-oneshot! signal0
+                          (lambda (signum)
+                            (printf "catch %S oneshot!\n" signum)
+                            (uv-signal-stop! signal0)
+                            (uv-handle-unref! signal0)
+                            (uv-signal-start! signal1
+                                              (lambda (signum)
+                                                (printf "catch %S!\n" signum)
+                                                (uv-loop-walk loop uv-handle-close!))
+                                              'sigint))
+                          'sigint)
+
+
+(define timer (uv-make-timer loop))
+
+(uv-timer-start! timer
+                 (lambda () (println "time out!"))
+                 50
+                 50)
+
+(uv-loop-walk loop println)
+(uv-loop-run! loop)

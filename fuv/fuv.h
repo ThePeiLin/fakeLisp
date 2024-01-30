@@ -183,11 +183,16 @@ FklVMvalue* createFuvIdle(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 int isFuvCheck(FklVMvalue* v);
 FklVMvalue* createFuvCheck(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 
+int isFuvSignal(FklVMvalue* v);
+FklVMvalue* createFuvSignal(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
+
 void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 
-int sigSymbolToSignum(FklSid_t,FuvPublicData* pd);
+int symbolToSignum(FklSid_t,FuvPublicData* pd);
+FklSid_t signumToSymbol(int,FuvPublicData* pd);
+
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) &((FUV_HANDLE)->handle)

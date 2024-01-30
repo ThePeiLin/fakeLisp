@@ -53,7 +53,7 @@ void raiseFuvError(const char* who,FuvErrorType err,FklVM* exe,FklVMvalue* pd_ob
 	fklRaiseVMerror(ev,exe);
 }
 
-int sigSymbolToSignum(FklSid_t id,FuvPublicData* pd)
+int symbolToSignum(FklSid_t id,FuvPublicData* pd)
 {
 #ifdef SIGHUP
 	if(id==pd->SIGHUP_sid)return SIGHUP;
@@ -159,6 +159,116 @@ int sigSymbolToSignum(FklSid_t id,FuvPublicData* pd)
 #endif
 #ifdef SIGSYS
 	if(id==pd->SIGSYS_sid)return SIGSYS;
+#endif
+	return 0;
+}
+
+FklSid_t signumToSymbol(int signum,FuvPublicData* pd)
+{
+#ifdef SIGHUP
+	if(signum==SIGHUP)return pd->SIGHUP_sid;
+#endif
+#ifdef SIGINT
+	if(signum==SIGINT)return pd->SIGINT_sid;
+#endif
+#ifdef SIGQUIT
+	if(signum==SIGQUIT)return pd->SIGQUIT_sid;
+#endif
+#ifdef SIGILL
+	if(signum==SIGILL)return pd->SIGILL_sid;
+#endif
+#ifdef SIGTRAP
+	if(signum==SIGTRAP)return pd->SIGTRAP_sid;
+#endif
+#ifdef SIGABRT
+	if(signum==SIGABRT)return pd->SIGABRT_sid;
+#endif
+#ifdef SIGIOT
+	if(signum==SIGIOT)return pd->SIGIOT_sid;
+#endif
+#ifdef SIGBUS
+	if(signum==SIGBUS)return pd->SIGBUS_sid;
+#endif
+#ifdef SIGFPE
+	if(signum==SIGFPE)return pd->SIGFPE_sid;
+#endif
+#ifdef SIGKILL
+	if(signum==SIGKILL)return pd->SIGKILL_sid;
+#endif
+#ifdef SIGUSR1
+	if(signum==SIGUSR1)return pd->SIGUSR1_sid;
+#endif
+#ifdef SIGSEGV
+	if(signum==SIGSEGV)return pd->SIGSEGV_sid;
+#endif
+#ifdef SIGUSR2
+	if(signum==SIGUSR2)return pd->SIGUSR2_sid;
+#endif
+#ifdef SIGPIPE
+	if(signum==SIGPIPE)return pd->SIGPIPE_sid;
+#endif
+#ifdef SIGALRM
+	if(signum==SIGALRM)return pd->SIGALRM_sid;
+#endif
+#ifdef SIGTERM
+	if(signum==SIGTERM)return pd->SIGTERM_sid;
+#endif
+#ifdef SIGCHLD
+	if(signum==SIGCHLD)return pd->SIGCHLD_sid;
+#endif
+#ifdef SIGSTKFLT
+	if(signum==SIGSTKFLT)return pd->SIGSTKFLT_sid;
+#endif
+#ifdef SIGCONT
+	if(signum==SIGCONT)return pd->SIGCONT_sid;
+#endif
+#ifdef SIGSTOP
+	if(signum==SIGSTOP)return pd->SIGSTOP_sid;
+#endif
+#ifdef SIGTSTP
+	if(signum==SIGTSTP)return pd->SIGTSTP_sid;
+#endif
+#ifdef SIGBREAK
+	if(signum==SIGBREAK)return pd->SIGBREAK_sid;
+#endif
+#ifdef SIGTTIN
+	if(signum==SIGTTIN)return pd->SIGTTIN_sid;
+#endif
+#ifdef SIGTTOU
+	if(signum==SIGTTOU)return pd->SIGTTOU_sid;
+#endif
+#ifdef SIGURG
+	if(signum==SIGURG)return pd->SIGURG_sid;
+#endif
+#ifdef SIGXCPU
+	if(signum==SIGXCPU)return pd->SIGXCPU_sid;
+#endif
+#ifdef SIGXFSZ
+	if(signum==SIGXFSZ)return pd->SIGXFSZ_sid;
+#endif
+#ifdef SIGVTALRM
+	if(signum==SIGVTALRM)return pd->SIGVTALRM_sid;
+#endif
+#ifdef SIGPROF
+	if(signum==SIGPROF)return pd->SIGPROF_sid;
+#endif
+#ifdef SIGWINCH
+	if(signum==SIGWINCH)return pd->SIGWINCH_sid;
+#endif
+#ifdef SIGIO
+	if(signum==SIGIO)return pd->SIGIO_sid;
+#endif
+#ifdef SIGPOLL
+	if(signum==SIGPOLL)return pd->SIGPOLL_sid;
+#endif
+#ifdef SIGLOST
+	if(signum==SIGLOST)return pd->SIGLOST_sid;
+#endif
+#ifdef SIGPWR
+	if(signum==SIGPWR)return pd->SIGPWR_sid;
+#endif
+#ifdef SIGSYS
+	if(signum==SIGSYS)return pd->SIGSYS_sid;
 #endif
 	return 0;
 }

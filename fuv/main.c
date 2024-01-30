@@ -873,7 +873,6 @@ static void fuv_prepare_cb(uv_prepare_t* handle)
 			,0);
 }
 
-
 static int fuv_prepare_start1(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.prepare-start!";
@@ -903,6 +902,63 @@ static int fuv_prepare_stop1(FKL_CPROC_ARGL)
 	int r=uv_prepare_stop((uv_prepare_t*)GET_HANDLE(handle));
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,prepare_obj);
+	return 0;
+}
+
+static int fuv_idle_p(FKL_CPROC_ARGL){PREDICATE(isFuvIdle(val),"fuv.idle?")}
+
+static int fuv_make_idle(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-idle";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	int r;
+	FklVMvalue* idle=createFuvIdle(exe,ctx->proc,loop_obj,&r);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,idle);
+	return 0;
+}
+
+static void fuv_idle_cb(uv_idle_t* handle)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0);
+}
+
+static int fuv_idle_start1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.idle-start!";
+	FKL_DECL_AND_CHECK_ARG2(idle_obj,idle_cb,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(idle_obj,isFuvIdle,Pname,exe);
+	FKL_CHECK_TYPE(idle_cb,fklIsCallable,Pname,exe);
+	FKL_DECL_VM_UD_DATA(idle,FuvHandleUd,idle_obj);
+	FuvHandle* fuv_handle=*idle;
+	CHECK_HANDLE_CLOSED(fuv_handle,Pname,exe,ctx->pd);
+	fuv_handle->data.callbacks[0]=idle_cb;
+	int r=uv_idle_start((uv_idle_t*)GET_HANDLE(fuv_handle),fuv_idle_cb);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,idle_obj);
+	return 0;
+}
+
+static int fuv_idle_stop1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.idle-stop!";
+	FKL_DECL_AND_CHECK_ARG(idle_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(idle_obj,isFuvIdle,Pname,exe);
+	FKL_DECL_VM_UD_DATA(idle,FuvHandleUd,idle_obj);
+	FuvHandle* handle=*idle;
+	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
+	int r=uv_idle_stop((uv_idle_t*)GET_HANDLE(handle));
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,idle_obj);
 	return 0;
 }
 
@@ -960,10 +1016,17 @@ struct SymFunc
 	{"timer-repeat",             fuv_timer_repeat,             },
 	{"timer-repeat-set!",        fuv_timer_repeat_set1,        },
 
+	// prepare
 	{"prepare?",                 fuv_prepare_p,                },
 	{"make-prepare",             fuv_make_prepare,             },
 	{"prepare-start!",           fuv_prepare_start1,           },
 	{"prepare-stop!",            fuv_prepare_stop1,            },
+
+	// idle
+	{"idle?",                    fuv_idle_p,                   },
+	{"make-idle",                fuv_make_idle,                },
+	{"idle-start!",              fuv_idle_start1,              },
+	{"idle-stop!",               fuv_idle_stop1,               },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

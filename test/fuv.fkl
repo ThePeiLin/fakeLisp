@@ -8,8 +8,20 @@
 
 (define prepare (uv-make-prepare loop))
 
+(define uv-idle (uv-make-idle loop))
+
+(assert (uv-timer? timer))
+(assert (uv-handle? timer))
+
+(assert (uv-prepare? prepare))
+(assert (uv-handle? prepare))
+
+(assert (uv-idle? uv-idle))
+(assert (uv-handle? uv-idle))
+
 (println (uv-handle-type timer))
 (println (uv-handle-type prepare))
+(println (uv-handle-type uv-idle))
 
 (uv-timer-start! timer
                  (lambda ()
@@ -19,15 +31,22 @@
                  50
                  500)
 
-(define flags 'prepare)
+(define flags 'idle)
 
 (uv-prepare-start! prepare
                    (lambda ()
                      (assert (eq flags 'prepare))
                      (println "preparing!")
                      (uv-prepare-stop! prepare)
-                     (uv-handle-close! prepare (lambda () (println "prepare closing!")))
-                     (setq flags 'idle)))
+                     (uv-handle-close! prepare (lambda () (println "prepare closing!")))))
+
+(uv-idle-start! uv-idle
+                (lambda ()
+                  (assert (eq flags 'idle))
+                  (println "in idle!")
+                  (uv-idle-stop! uv-idle)
+                  (uv-handle-close! uv-idle (lambda () (println "idle closing!")))
+                  (setq flags 'prepare)))
 
 (uv-loop-walk loop println)
 

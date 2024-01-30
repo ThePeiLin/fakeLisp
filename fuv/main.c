@@ -962,6 +962,63 @@ static int fuv_idle_stop1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_check_p(FKL_CPROC_ARGL){PREDICATE(isFuvCheck(val),"fuv.check?")}
+
+static int fuv_make_check(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-check";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	int r;
+	FklVMvalue* check=createFuvCheck(exe,ctx->proc,loop_obj,&r);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,check);
+	return 0;
+}
+
+static void fuv_check_cb(uv_check_t* handle)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0);
+}
+
+static int fuv_check_start1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.check-start!";
+	FKL_DECL_AND_CHECK_ARG2(check_obj,check_cb,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(check_obj,isFuvCheck,Pname,exe);
+	FKL_CHECK_TYPE(check_cb,fklIsCallable,Pname,exe);
+	FKL_DECL_VM_UD_DATA(check,FuvHandleUd,check_obj);
+	FuvHandle* fuv_handle=*check;
+	CHECK_HANDLE_CLOSED(fuv_handle,Pname,exe,ctx->pd);
+	fuv_handle->data.callbacks[0]=check_cb;
+	int r=uv_check_start((uv_check_t*)GET_HANDLE(fuv_handle),fuv_check_cb);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,check_obj);
+	return 0;
+}
+
+static int fuv_check_stop1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.check-stop!";
+	FKL_DECL_AND_CHECK_ARG(check_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(check_obj,isFuvCheck,Pname,exe);
+	FKL_DECL_VM_UD_DATA(check,FuvHandleUd,check_obj);
+	FuvHandle* handle=*check;
+	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
+	int r=uv_check_stop((uv_check_t*)GET_HANDLE(handle));
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,check_obj);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -1027,6 +1084,12 @@ struct SymFunc
 	{"make-idle",                fuv_make_idle,                },
 	{"idle-start!",              fuv_idle_start1,              },
 	{"idle-stop!",               fuv_idle_stop1,               },
+
+	// check
+	{"check?",                   fuv_check_p,                  },
+	{"make-check",               fuv_make_check,               },
+	{"check-start!",             fuv_check_start1,             },
+	{"check-stop!",              fuv_check_stop1,              },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

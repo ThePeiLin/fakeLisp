@@ -180,6 +180,9 @@ FklVMvalue* createFuvPrepare(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 int isFuvIdle(FklVMvalue* v);
 FklVMvalue* createFuvIdle(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 
+int isFuvCheck(FklVMvalue* v);
+FklVMvalue* createFuvCheck(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
+
 void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);

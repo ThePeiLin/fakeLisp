@@ -29,6 +29,10 @@ static void fuv_handle_ud_finalizer(FklVMud* ud)
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_timer_print,timer);
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_prepare_print,prepare);
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_idle_print,idle);
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -57,6 +61,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_IDLE,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__prin1=fuv_idle_print,
+		.__princ=fuv_idle_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_NAMED_TYPE,
@@ -69,6 +78,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_PREPARE,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__prin1=fuv_prepare_print,
+		.__princ=fuv_prepare_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_PROCESS,
@@ -120,12 +134,6 @@ int isFuvHandle(FklVMvalue* v)
 	return 0;
 }
 
-int isFuvTimer(FklVMvalue* v)
-{
-	return FKL_IS_USERDATA(v)
-		&&FKL_VM_UD(v)->t==&HandleMetaTables[UV_TIMER];
-}
-
 void initFuvHandle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
 {
 	handle->data.handle=v;
@@ -142,20 +150,50 @@ struct FuvTimer
 	uv_timer_t handle;
 };
 
-#define CREATE_HANDLE(TYPE) (TYPE*)malloc(sizeof(TYPE))
+#define CREATE_OBJ(TYPE) (TYPE*)malloc(sizeof(TYPE))
 
-FklVMvalue* createFuvTimer(FklVM* vm
-		,FklVMvalue* rel
-		,FklVMvalue* loop_obj
-		,int* err)
-{
-	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_TIMER],rel);
-	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
-	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
-	struct FuvTimer* handle=CREATE_HANDLE(struct FuvTimer);
-	*hud=(FuvHandle*)handle;
-	initFuvHandle(v,(FuvHandle*)handle,loop_obj);
-	*err=uv_timer_init(&loop->loop,&handle->handle);
-	return v;
+#define FUV_HANDLE_P(NAME,ENUM) int NAME(FklVMvalue* v)\
+{\
+	return FKL_IS_USERDATA(v)\
+		&&FKL_VM_UD(v)->t==&HandleMetaTables[ENUM];\
 }
 
+#define FUV_HANDLE_CREATOR(TYPE,NAME,ENUM) FklVMvalue* create##TYPE(FklVM* vm\
+		,FklVMvalue* rel\
+		,FklVMvalue* loop_obj\
+		,int* err)\
+{\
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[ENUM],rel);\
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);\
+	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);\
+	struct TYPE* handle=CREATE_OBJ(struct TYPE);\
+	*hud=(FuvHandle*)handle;\
+	initFuvHandle(v,(FuvHandle*)handle,loop_obj);\
+	*err=uv_##NAME##_init(&loop->loop,&handle->handle);\
+	return v;\
+}
+
+FUV_HANDLE_P(isFuvTimer,UV_TIMER);
+FUV_HANDLE_CREATOR(FuvTimer,timer,UV_TIMER);
+
+struct FuvPrepare
+{
+	FuvHandleData data;
+	uv_prepare_t handle;
+};
+
+FUV_HANDLE_P(isFuvPrepare,UV_PREPARE);
+FUV_HANDLE_CREATOR(FuvPrepare,prepare,UV_PREPARE);
+
+struct FuvIdle
+{
+	FuvHandleData data;
+	uv_idle_t handle;
+};
+
+FUV_HANDLE_P(isFuvIdle,UV_IDLE);
+FUV_HANDLE_CREATOR(FuvIdle,idle,UV_IDLE);
+
+#undef FUV_HANDLE_P
+#undef FUV_HANDLE_CREATOR
+#undef CREATE_OBJ

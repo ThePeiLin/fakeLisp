@@ -1,20 +1,35 @@
 (import (prefix (.. lib fuv) uv-))
 
+(import (only (.. lib utils m) assert))
+
 (define loop (uv-make-loop))
 
 (define timer (uv-make-timer loop))
 
-(println (uv-handle-type timer))
+(define prepare (uv-make-prepare loop))
 
-(define (on-close) (println "im closing!"))
+(println (uv-handle-type timer))
+(println (uv-handle-type prepare))
 
 (uv-timer-start! timer
                  (lambda ()
                    (println "time out!")
                    (uv-timer-stop! timer)
-                   (uv-handle-close! timer on-close))
+                   (uv-handle-close! timer (lambda () (println "timer closing!"))))
                  50
                  500)
+
+(define flags 'prepare)
+
+(uv-prepare-start! prepare
+                   (lambda ()
+                     (assert (eq flags 'prepare))
+                     (println "preparing!")
+                     (uv-prepare-stop! prepare)
+                     (uv-handle-close! prepare (lambda () (println "prepare closing!")))
+                     (setq flags 'idle)))
+
+(uv-loop-walk loop println)
 
 (uv-loop-run! loop 'default)
 

@@ -768,7 +768,7 @@ static int fuv_timer_start1(FKL_CPROC_ARGL)
 	FuvHandle* fuv_handle=*timer;
 	CHECK_HANDLE_CLOSED(fuv_handle,Pname,exe,ctx->pd);
 	fuv_handle->data.callbacks[0]=timer_cb;
-	int r=uv_timer_start(GET_TIMER_HANDLE(fuv_handle),fuv_timer_cb,timeout,repeat);
+	int r=uv_timer_start((uv_timer_t*)GET_HANDLE(fuv_handle),fuv_timer_cb,timeout,repeat);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
@@ -783,7 +783,7 @@ static int fuv_timer_stop1(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(timer,FuvHandleUd,timer_obj);
 	FuvHandle* handle=*timer;
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
-	int r=uv_timer_stop(GET_TIMER_HANDLE(handle));
+	int r=uv_timer_stop((uv_timer_t*)GET_HANDLE(handle));
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
@@ -798,7 +798,7 @@ static int fuv_timer_again1(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(timer,FuvHandleUd,timer_obj);
 	FuvHandle* handle=*timer;
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
-	int r=uv_timer_again(GET_TIMER_HANDLE(handle));
+	int r=uv_timer_again((uv_timer_t*)GET_HANDLE(handle));
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
@@ -813,7 +813,7 @@ static int fuv_timer_repeat(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(timer,FuvHandleUd,timer_obj);
 	FuvHandle* handle=*timer;
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(uv_timer_get_repeat(GET_TIMER_HANDLE(handle)),exe));
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(uv_timer_get_repeat((uv_timer_t*)GET_HANDLE(handle)),exe));
 	return 0;
 }
 
@@ -830,7 +830,7 @@ static int fuv_timer_repeat_set1(FKL_CPROC_ARGL)
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
 	if(fklIsVMnumberLt0(repeat_obj))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	uv_timer_set_repeat(GET_TIMER_HANDLE(handle),fklGetUint(repeat_obj));
+	uv_timer_set_repeat((uv_timer_t*)GET_HANDLE(handle),fklGetUint(repeat_obj));
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
 }
@@ -844,7 +844,65 @@ static int fuv_timer_due_in(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(timer,FuvHandleUd,timer_obj);
 	FuvHandle* handle=*timer;
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(uv_timer_get_due_in(GET_TIMER_HANDLE(handle)),exe));
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(uv_timer_get_due_in((uv_timer_t*)GET_HANDLE(handle)),exe));
+	return 0;
+}
+
+static int fuv_prepare_p(FKL_CPROC_ARGL){PREDICATE(isFuvPrepare(val),"fuv.prepare?")}
+
+static int fuv_make_prepare(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-prepare";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	int r;
+	FklVMvalue* prepare_obj=createFuvPrepare(exe,ctx->proc,loop_obj,&r);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,prepare_obj);
+	return 0;
+}
+
+static void fuv_prepare_cb(uv_prepare_t* handle)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0);
+}
+
+
+static int fuv_prepare_start1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.prepare-start!";
+	FKL_DECL_AND_CHECK_ARG2(prepare_obj,prepare_cb,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(prepare_obj,isFuvPrepare,Pname,exe);
+	FKL_CHECK_TYPE(prepare_cb,fklIsCallable,Pname,exe);
+	FKL_DECL_VM_UD_DATA(prepare,FuvHandleUd,prepare_obj);
+	FuvHandle* fuv_handle=*prepare;
+	CHECK_HANDLE_CLOSED(fuv_handle,Pname,exe,ctx->pd);
+	fuv_handle->data.callbacks[0]=prepare_cb;
+	int r=uv_prepare_start((uv_prepare_t*)GET_HANDLE(fuv_handle),fuv_prepare_cb);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,prepare_obj);
+	return 0;
+}
+
+static int fuv_prepare_stop1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.prepare-stop!";
+	FKL_DECL_AND_CHECK_ARG(prepare_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(prepare_obj,isFuvPrepare,Pname,exe);
+	FKL_DECL_VM_UD_DATA(prepare,FuvHandleUd,prepare_obj);
+	FuvHandle* handle=*prepare;
+	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
+	int r=uv_prepare_stop((uv_prepare_t*)GET_HANDLE(handle));
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,prepare_obj);
 	return 0;
 }
 
@@ -901,6 +959,11 @@ struct SymFunc
 	{"timer-due-in",             fuv_timer_due_in,             },
 	{"timer-repeat",             fuv_timer_repeat,             },
 	{"timer-repeat-set!",        fuv_timer_repeat_set1,        },
+
+	{"prepare?",                 fuv_prepare_p,                },
+	{"make-prepare",             fuv_make_prepare,             },
+	{"prepare-start!",           fuv_prepare_start1,           },
+	{"prepare-stop!",            fuv_prepare_stop1,            },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

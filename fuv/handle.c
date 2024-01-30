@@ -3,7 +3,7 @@
 static void fuv_handle_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(fuv_timer,FuvHandleUd,ud);
-	FuvHandle* handle=fuv_timer->handle;
+	FuvHandle* handle=*fuv_timer;
 	if(handle)
 	{
 		fklVMgcToGray(handle->data.loop,gc);
@@ -14,16 +14,16 @@ static void fuv_handle_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 static void fuv_handle_ud_finalizer(FklVMud* ud)
 {
 	FKL_DECL_UD_DATA(handle_ud,FuvHandleUd,ud);
-	if(handle_ud->handle)
+	FuvHandle* fuv_handle=*handle_ud;
+	if(fuv_handle)
 	{
-		FuvHandle* fuv_handle=handle_ud->handle;
 		uv_handle_t* handle=&fuv_handle->handle;
 		FuvHandleData* handle_data=&fuv_handle->data;
 		uv_loop_t* loop=uv_handle_get_loop(handle);
 		FuvLoopData* loop_data=uv_loop_get_data(loop);
 		fklDelHashItem(&handle_data->handle,&loop_data->gc_values,NULL);
 		fuv_handle->data.handle=NULL;
-		handle_ud->handle=NULL;
+		*handle_ud=NULL;
 	}
 }
 
@@ -153,7 +153,7 @@ FklVMvalue* createFuvTimer(FklVM* vm
 	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
 	struct FuvTimer* handle=CREATE_HANDLE(struct FuvTimer);
-	hud->handle=(FuvHandle*)handle;
+	*hud=(FuvHandle*)handle;
 	initFuvHandle(v,(FuvHandle*)handle,loop_obj);
 	*err=uv_timer_init(&loop->loop,&handle->handle);
 	return v;

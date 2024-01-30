@@ -162,11 +162,7 @@ typedef struct FuvHandle
 	uv_handle_t handle;
 }FuvHandle;
 
-struct FuvHandle;
-typedef struct
-{
-	FuvHandle* handle;
-}FuvHandleUd;
+typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
 FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);

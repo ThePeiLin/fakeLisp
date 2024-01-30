@@ -25,7 +25,7 @@ static void fuv_close_loop_handle_cb(uv_handle_t* handle)
 	if(handle_obj)
 	{
 		FKL_DECL_VM_UD_DATA(fuv_handle_ud,FuvHandleUd,handle_obj);
-		fuv_handle_ud->handle=NULL;
+		*fuv_handle_ud=NULL;
 	}
 }
 

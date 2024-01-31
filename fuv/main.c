@@ -1,4 +1,3 @@
-#include "fakeLisp/vm.h"
 #include"fuv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
@@ -194,11 +193,6 @@ static int fuv_loop_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
 	longjmp(fuv_loop->data.buf,FUV_RUN_ERR_OCCUR);
 }
 
-typedef struct
-{
-	jmp_buf* buf;
-}FuvProcCallCtx;
-
 static int fuv_proc_call_frame_end(void* data)
 {
 	return 0;
@@ -258,13 +252,13 @@ static int fuv_loop_run1(FKL_CPROC_ARGL)
 					fuv_loop->data.mode=mode;
 					fklUnlockThread(exe);
 					int r=uv_run(&fuv_loop->loop,mode);
+					fklLockThread(exe);
 					if(r<0)
 					{
 						FKL_VM_PUSH_VALUE(exe,createUvError(Pname,r,exe,ctx->pd));
 						ctx->context=1;
 						need_continue=1;
 					}
-					fklLockThread(exe);
 				}
 				while(exe->top_frame!=origin_top_frame)
 					fklPopVMframe(exe);
@@ -534,42 +528,12 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle
-		,FuvHandleData* handle_data
-		,FuvLoopData* loop_data
-		,int idx)
-{
-	FklVMvalue* proc=handle_data->callbacks[idx];
-	if(proc)
-	{
-		FklVM* exe=loop_data->exe;
-		fklLockThread(exe);
-		exe->state=FKL_VM_READY;
-		FklVMframe* fuv_proc_call_frame=exe->top_frame;
-		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
-		jmp_buf buf;
-		ctx->buf=&buf;
-		if(setjmp(buf))
-		{
-			exe->tp--;
-			fklUnlockThread(exe);
-			return;
-		}
-		else
-		{
-			fklSetBp(exe);
-			fklCallObj(exe,proc);
-			exe->thread_run_cb(exe);
-		}
-	}
-}
-
 static void fuv_close_cb(uv_handle_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop(handle));
 	FuvHandle* fuv_handle=uv_handle_get_data(handle);
 	FuvHandleData* hdata=&fuv_handle->data;
-	fuv_call_handle_callback_in_loop(handle
+	fuvCallHandleCallbackInLoop(handle
 			,hdata
 			,ldata
 			,1);
@@ -749,7 +713,7 @@ static void fuv_timer_cb(uv_timer_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -876,7 +840,7 @@ static void fuv_prepare_cb(uv_prepare_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -933,7 +897,7 @@ static void fuv_idle_cb(uv_idle_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -990,7 +954,7 @@ static void fuv_check_cb(uv_check_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
+	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -1161,6 +1125,37 @@ static int fuv_signal_stop1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_async_p(FKL_CPROC_ARGL){PREDICATE(isFuvAsync(val),"fuv.async?")}
+
+static int fuv_make_async(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-async";
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,proc_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_CHECK_TYPE(proc_obj,fklIsCallable,Pname,exe);
+	int r;
+	FklVMvalue* async=createFuvAsync(exe,ctx->proc,loop_obj,proc_obj,&r);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,async);
+	return 0;
+}
+
+static int fuv_async_send1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.async-send!";
+	FKL_DECL_AND_CHECK_ARG(async_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(async_obj,isFuvAsync,Pname,exe);
+	FKL_DECL_VM_UD_DATA(async,FuvHandleUd,async_obj);
+	FuvHandle* handle=*async;
+	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
+	int r=uv_async_send((uv_async_t*)GET_HANDLE(handle));
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,async_obj);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -1239,6 +1234,11 @@ struct SymFunc
 	{"signal-start!",            fuv_signal_start1,            },
 	{"signal-start-oneshot!",    fuv_signal_start_oneshot1,    },
 	{"signal-stop!",             fuv_signal_stop1,             },
+
+	// async
+	{"async?",                   fuv_async_p,                  },
+	{"make-async",               fuv_make_async,               },
+	{"async-send!",              fuv_async_send1,              },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

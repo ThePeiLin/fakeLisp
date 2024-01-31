@@ -37,6 +37,8 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_check_print,check);
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_signal_print,signal);
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_async_print,async);
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -45,6 +47,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_ASYNC,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__prin1=fuv_async_print,
+		.__princ=fuv_async_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_CHECK,
@@ -152,7 +159,7 @@ void initFuvHandle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
 {
 	handle->data.handle=v;
 	handle->data.loop=loop;
-	handle->data.callbacks[0]=FKL_VM_NIL;
+	handle->data.callbacks[0]=NULL;
 	handle->data.callbacks[1]=NULL;
 	uv_handle_set_data(&handle->handle,handle);
 	fuvLoopInsertFuvHandle(loop,v);
@@ -225,6 +232,41 @@ struct FuvSignal
 
 FUV_HANDLE_P(isFuvSignal,UV_SIGNAL);
 FUV_HANDLE_CREATOR(FuvSignal,signal,UV_SIGNAL);
+
+struct FuvAsync
+{
+	FuvHandleData data;
+	uv_async_t handle;
+};
+
+FUV_HANDLE_P(isFuvAsync,UV_ASYNC);
+
+static void fuv_async_cb(uv_async_t* handle)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0);
+}
+
+FklVMvalue* createFuvAsync(FklVM* vm
+		,FklVMvalue* rel
+		,FklVMvalue* loop_obj
+		,FklVMvalue* proc_obj
+		,int* err)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_ASYNC],rel);
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
+	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
+	struct FuvAsync* handle=CREATE_OBJ(struct FuvAsync);
+	*hud=(FuvHandle*)handle;
+	initFuvHandle(v,(FuvHandle*)handle,loop_obj);
+	handle->data.callbacks[0]=proc_obj;
+	*err=uv_async_init(&loop->loop,&handle->handle,fuv_async_cb);
+	return v;
+}
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

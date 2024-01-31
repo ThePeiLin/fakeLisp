@@ -186,12 +186,25 @@ FklVMvalue* createFuvCheck(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 int isFuvSignal(FklVMvalue* v);
 FklVMvalue* createFuvSignal(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 
+int isFuvAsync(FklVMvalue* v);
+FklVMvalue* createFuvAsync(FklVM*,FklVMvalue* rel,FklVMvalue* loop,FklVMvalue* proc_obj,int* err);
+
 void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 
 int symbolToSignum(FklSid_t,FuvPublicData* pd);
 FklSid_t signumToSymbol(int,FuvPublicData* pd);
+
+typedef struct
+{
+	jmp_buf* buf;
+}FuvProcCallCtx;
+
+void fuvCallHandleCallbackInLoop(uv_handle_t* handle
+		,FuvHandleData* handle_data
+		,FuvLoopData* loop_data
+		,int idx);
 
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))

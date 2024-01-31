@@ -528,12 +528,42 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle
+		,FuvHandleData* handle_data
+		,FuvLoopData* loop_data
+		,int idx)
+{
+	FklVMvalue* proc=handle_data->callbacks[idx];
+	if(proc)
+	{
+		FklVM* exe=loop_data->exe;
+		fklLockThread(exe);
+		exe->state=FKL_VM_READY;
+		FklVMframe* fuv_proc_call_frame=exe->top_frame;
+		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+		jmp_buf buf;
+		ctx->buf=&buf;
+		if(setjmp(buf))
+		{
+			exe->tp--;
+			fklUnlockThread(exe);
+			return;
+		}
+		else
+		{
+			fklSetBp(exe);
+			fklCallObj(exe,proc);
+			exe->thread_run_cb(exe);
+		}
+	}
+}
+
 static void fuv_close_cb(uv_handle_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop(handle));
 	FuvHandle* fuv_handle=uv_handle_get_data(handle);
 	FuvHandleData* hdata=&fuv_handle->data;
-	fuvCallHandleCallbackInLoop(handle
+	fuv_call_handle_callback_in_loop(handle
 			,hdata
 			,ldata
 			,1);
@@ -713,7 +743,7 @@ static void fuv_timer_cb(uv_timer_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -840,7 +870,7 @@ static void fuv_prepare_cb(uv_prepare_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -897,7 +927,7 @@ static void fuv_idle_cb(uv_idle_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -954,7 +984,7 @@ static void fuv_check_cb(uv_check_t* handle)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
+	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0);
@@ -1007,6 +1037,38 @@ static int fuv_make_signal(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline void fuv_call_handle_callback_in_loop_1(uv_handle_t* handle
+		,FuvHandleData* handle_data
+		,FuvLoopData* loop_data
+		,int idx
+		,FklVMvalue* value)
+{
+	FklVMvalue* proc=handle_data->callbacks[idx];
+	if(proc)
+	{
+		FklVM* exe=loop_data->exe;
+		fklLockThread(exe);
+		exe->state=FKL_VM_READY;
+		FklVMframe* fuv_proc_call_frame=exe->top_frame;
+		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+		jmp_buf buf;
+		ctx->buf=&buf;
+		if(setjmp(buf))
+		{
+			exe->tp--;
+			fklUnlockThread(exe);
+			return;
+		}
+		else
+		{
+			fklSetBp(exe);
+			FKL_VM_PUSH_VALUE(exe,value);
+			fklCallObj(exe,proc);
+			exe->thread_run_cb(exe);
+		}
+	}
+}
+
 static void fuv_signal_cb(uv_signal_t* handle,int num)
 {
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
@@ -1015,7 +1077,7 @@ static void fuv_signal_cb(uv_signal_t* handle,int num)
 	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
 	FklVMvalue* signum_val=FKL_MAKE_VM_SYM(signumToSymbol(num,fpd));
-	fuvCallHandleCallbackInLoop1((uv_handle_t*)handle
+	fuv_call_handle_callback_in_loop_1((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0
@@ -1113,13 +1175,31 @@ static int fuv_async_send(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.async-send";
 	FKL_DECL_AND_CHECK_ARG(async_obj,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(async_obj,isFuvAsync,Pname,exe);
 	FKL_DECL_VM_UD_DATA(async,FuvHandleUd,async_obj);
 	FuvHandle* handle=*async;
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
-	int r=uv_async_send((uv_async_t*)GET_HANDLE(handle));
-	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	struct FuvAsync* async_handle=(struct FuvAsync*)handle;
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+	if(atomic_flag_test_and_set(&async_handle->send))
+	{
+		exe->tp-=arg_num;
+		fklResBp(exe);
+	}
+	else
+	{
+		struct FuvAsyncExtraData extra=
+		{
+			.num=arg_num,
+			.base=&FKL_VM_GET_VALUE(exe,arg_num),
+		};
+		atomic_store(&async_handle->extra,&extra);
+		atomic_flag_clear(&async_handle->copy_start);
+		int r=uv_async_send(&async_handle->handle);
+		while(atomic_flag_test_and_set(&async_handle->copy_done));
+		atomic_flag_clear(&async_handle->send);
+		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	}
 	FKL_VM_PUSH_VALUE(exe,async_obj);
 	return 0;
 }

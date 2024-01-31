@@ -233,22 +233,43 @@ struct FuvSignal
 FUV_HANDLE_P(isFuvSignal,UV_SIGNAL);
 FUV_HANDLE_CREATOR(FuvSignal,signal,UV_SIGNAL);
 
-struct FuvAsync
-{
-	FuvHandleData data;
-	uv_async_t handle;
-};
-
 FUV_HANDLE_P(isFuvAsync,UV_ASYNC);
 
 static void fuv_async_cb(uv_async_t* handle)
 {
+	struct FuvAsync* async_handle=uv_handle_get_data((uv_handle_t*)handle);
+	while(atomic_flag_test_and_set(&async_handle->copy_start));
 	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
-	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
-	fuvCallHandleCallbackInLoop((uv_handle_t*)handle
-			,hdata
-			,ldata
-			,0);
+	FuvHandleData* hdata=&async_handle->data;
+	FklVMvalue* proc=hdata->callbacks[0];
+	if(proc)
+	{
+		FklVM* exe=ldata->exe;
+		fklLockThread(exe);
+		exe->state=FKL_VM_READY;
+		FklVMframe* fuv_proc_call_frame=exe->top_frame;
+		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+		jmp_buf buf;
+		ctx->buf=&buf;
+		if(setjmp(buf))
+		{
+			exe->tp--;
+			fklUnlockThread(exe);
+			return;
+		}
+		else
+		{
+			struct FuvAsyncExtraData* extra=atomic_load(&async_handle->extra);
+			fklSetBp(exe);
+			FklVMvalue** cur=extra->base;
+			FklVMvalue** const end=&cur[extra->num];
+			for(;cur<end;cur++)
+				FKL_VM_PUSH_VALUE(exe,*cur);
+			fklCallObj(exe,proc);
+			atomic_flag_clear(&async_handle->copy_done);
+			exe->thread_run_cb(exe);
+		}
+	}
 }
 
 FklVMvalue* createFuvAsync(FklVM* vm
@@ -261,6 +282,12 @@ FklVMvalue* createFuvAsync(FklVM* vm
 	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
 	struct FuvAsync* handle=CREATE_OBJ(struct FuvAsync);
+	handle->extra=NULL;
+	handle->send=(atomic_flag)ATOMIC_FLAG_INIT;
+	handle->copy_start=(atomic_flag)ATOMIC_FLAG_INIT;
+	handle->copy_done=(atomic_flag)ATOMIC_FLAG_INIT;
+	atomic_flag_test_and_set(&handle->copy_start);
+	atomic_flag_test_and_set(&handle->copy_done);
 	*hud=(FuvHandle*)handle;
 	initFuvHandle(v,(FuvHandle*)handle,loop_obj);
 	handle->data.callbacks[0]=proc_obj;

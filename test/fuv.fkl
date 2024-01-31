@@ -150,11 +150,18 @@
 (uv-loop-walk loop println)
 (uv-loop-run loop)
 
+(define signal1 (uv-make-signal loop))
+
+(uv-signal-start signal1
+                 (lambda (signum)
+                   (assert (eq signum 'sigint))
+                   (printf "catch %S!\n" signum)
+                   (uv-loop-walk loop uv-handle-close))
+                 'sigint)
 (define async
   (uv-make-async loop
-                 (lambda ()
-                   (println "async recv!")
-                   (uv-handle-close async))))
+                 (lambda args
+                   (printf "async recv %S!\n" args))))
 
 (uv-async? async)
 (uv-handle? async)
@@ -162,7 +169,16 @@
 (uv-loop-walk loop println)
 
 (go (lambda (async)
-      (uv-async-send async)
+      (uv-async-send async 'foo 'bar)
+      (println "other thread send!")
+      (go (lambda (async)
+            (uv-async-send async 'bar 'foo)
+            (println "other thread send!"))
+          async))
+    async)
+
+(go (lambda (async)
+      (uv-async-send async 'foobar)
       (println "other thread send!"))
     async)
 

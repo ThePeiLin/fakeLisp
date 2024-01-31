@@ -303,3 +303,35 @@ void fuvCallHandleCallbackInLoop(uv_handle_t* handle
 	}
 }
 
+void fuvCallHandleCallbackInLoop1(uv_handle_t* handle
+		,FuvHandleData* handle_data
+		,FuvLoopData* loop_data
+		,int idx
+		,FklVMvalue* value)
+{
+	FklVMvalue* proc=handle_data->callbacks[idx];
+	if(proc)
+	{
+		FklVM* exe=loop_data->exe;
+		fklLockThread(exe);
+		exe->state=FKL_VM_READY;
+		FklVMframe* fuv_proc_call_frame=exe->top_frame;
+		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+		jmp_buf buf;
+		ctx->buf=&buf;
+		if(setjmp(buf))
+		{
+			exe->tp--;
+			fklUnlockThread(exe);
+			return;
+		}
+		else
+		{
+			fklSetBp(exe);
+			FKL_VM_PUSH_VALUE(exe,value);
+			fklCallObj(exe,proc);
+			exe->thread_run_cb(exe);
+		}
+	}
+}
+

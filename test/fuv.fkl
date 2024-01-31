@@ -30,86 +30,86 @@
 
 (define count 0)
 
-(uv-timer-start! timer
-                 (lambda ()
-                   (printf "count is %d\n" count)
-                   (setq count (1+ count))
-                   (when (> count 9)
-                     (uv-handle-close! timer)))
-                 50
-                 50)
+(uv-timer-start timer
+                (lambda ()
+                  (printf "count is %d\n" count)
+                  (setq count (1+ count))
+                  (when (> count 9)
+                    (uv-handle-close timer)))
+                50
+                50)
 
 (define flags 'idle)
 
-(uv-prepare-start! prepare
-                   (lambda ()
-                     (assert (eq flags 'prepare))
-                     (println "preparing!")
-                     (uv-prepare-stop! prepare)
-                     (uv-handle-close! prepare (lambda () (println "prepare closing!")))
-                     (setq flags 'check)))
+(uv-prepare-start prepare
+                  (lambda ()
+                    (assert (eq flags 'prepare))
+                    (println "preparing!")
+                    (uv-prepare-stop prepare)
+                    (uv-handle-close prepare (lambda () (println "prepare closing!")))
+                    (setq flags 'check)))
 
-(uv-check-start! uv-check
+(uv-check-start uv-check
                 (lambda ()
                   (assert (eq flags 'check))
                   (println "in check!")
-                  (uv-check-stop! uv-check)
-                  (uv-handle-close! uv-check (lambda () (println "check closing!")))
+                  (uv-check-stop uv-check)
+                  (uv-handle-close uv-check (lambda () (println "check closing!")))
                   (setq flags 'idle)))
 
-(uv-idle-start! uv-idle
-                (lambda ()
-                  (assert (eq flags 'idle))
-                  (println "in idle!")
-                  (uv-idle-stop! uv-idle)
-                  (uv-handle-close! uv-idle (lambda () (println "idle closing!")))
-                  (setq flags 'prepare)))
+(uv-idle-start uv-idle
+               (lambda ()
+                 (assert (eq flags 'idle))
+                 (println "in idle!")
+                 (uv-idle-stop uv-idle)
+                 (uv-handle-close uv-idle (lambda () (println "idle closing!")))
+                 (setq flags 'prepare)))
 
 (uv-loop-walk loop println)
 
-(uv-loop-configure! loop 'loop-block-signal 'sigprof)
+(uv-loop-configure loop 'loop-block-signal 'sigprof)
 
-(uv-loop-configure! loop 'metrics-idle-time)
+(uv-loop-configure loop 'metrics-idle-time)
 
-(uv-loop-run! loop 'default)
+(uv-loop-run loop 'default)
 
 (assert (eq 'fuv-handle-error
-            (error-type (pcall uv-timer-start! timer
+            (error-type (pcall uv-timer-start timer
                                (lambda ()
                                  (println "time out again!")
-                                 (uv-loop-stop! loop)
+                                 (uv-loop-stop loop)
                                  (println "stop the loop!"))
                                50
                                500))))
 
 (assert (eq 'fuv-handle-error
             (error-type
-              (pcall uv-prepare-start! prepare
+              (pcall uv-prepare-start prepare
                      (lambda ()
                        (assert (eq flags 'prepare))
                        (println "preparing!")
-                       (uv-prepare-stop! prepare)
-                       (uv-handle-close! prepare (lambda () (println "prepare closing!")))
+                       (uv-prepare-stop prepare)
+                       (uv-handle-close prepare (lambda () (println "prepare closing!")))
                        (setq flags 'check))))))
 
 (assert (eq 'fuv-handle-error
             (error-type
-              (pcall uv-check-start! uv-check
+              (pcall uv-check-start uv-check
                      (lambda ()
                        (assert (eq flags 'check))
                        (println "in check!")
-                       (uv-check-stop! uv-check)
-                       (uv-handle-close! uv-check (lambda () (println "check closing!")))
+                       (uv-check-stop uv-check)
+                       (uv-handle-close uv-check (lambda () (println "check closing!")))
                        (setq flags 'idle))))))
 
 (assert (eq 'fuv-handle-error
             (error-type
-              (pcall uv-idle-start! uv-idle
+              (pcall uv-idle-start uv-idle
                      (lambda ()
                        (assert (eq flags 'idle))
                        (println "in idle!")
-                       (uv-idle-stop! uv-idle)
-                       (uv-handle-close! uv-idle (lambda () (println "idle closing!")))
+                       (uv-idle-stop uv-idle)
+                       (uv-handle-close uv-idle (lambda () (println "idle closing!")))
                        (setq flags 'prepare))))))
 
 (printf "count is %d in top\n" count)
@@ -123,45 +123,47 @@
 
 (define signal1 (uv-make-signal loop))
 
-(uv-handle-ref! signal0)
+(uv-handle-ref signal0)
 
-(uv-signal-start-oneshot! signal0
-                          (lambda (signum)
-                            (assert (eq signum 'sigint))
-                            (printf "catch %S oneshot!\n" signum)
-                            (uv-signal-stop! signal0)
-                            (uv-handle-unref! signal0)
-                            (uv-signal-start! signal1
-                                              (lambda (signum)
-                                                (assert (eq signum 'sigint))
-                                                (printf "catch %S!\n" signum)
-                                                (uv-loop-walk loop uv-handle-close!))
-                                              'sigint))
-                          'sigint)
+(uv-signal-start-oneshot signal0
+                         (lambda (signum)
+                           (assert (eq signum 'sigint))
+                           (printf "catch %S oneshot!\n" signum)
+                           (uv-signal-stop signal0)
+                           (uv-handle-unref signal0)
+                           (uv-signal-start signal1
+                                            (lambda (signum)
+                                              (assert (eq signum 'sigint))
+                                              (printf "catch %S!\n" signum)
+                                              (uv-loop-walk loop uv-handle-close))
+                                            'sigint))
+                         'sigint)
 
 
 (define timer (uv-make-timer loop))
 
-(uv-timer-start! timer
-                 (lambda () (println "time out!"))
-                 50
-                 50)
+(uv-timer-start timer
+                (lambda () (println "time out!"))
+                50
+                50)
 
 (uv-loop-walk loop println)
-(uv-loop-run! loop)
+(uv-loop-run loop)
 
 (define async
   (uv-make-async loop
                  (lambda ()
                    (println "async recv!")
-                   (uv-handle-close! async))))
+                   (uv-handle-close async))))
 
 (uv-async? async)
 (uv-handle? async)
 
+(uv-loop-walk loop println)
+
 (go (lambda (async)
-      (uv-async-send! async)
+      (uv-async-send async)
       (println "other thread send!"))
     async)
 
-(uv-loop-run! loop)
+(uv-loop-run loop)

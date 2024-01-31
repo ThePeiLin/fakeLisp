@@ -206,6 +206,12 @@ void fuvCallHandleCallbackInLoop(uv_handle_t* handle
 		,FuvLoopData* loop_data
 		,int idx);
 
+void fuvCallHandleCallbackInLoop1(uv_handle_t* handle
+		,FuvHandleData* handle_data
+		,FuvLoopData* loop_data
+		,int idx
+		,FklVMvalue* value);
+
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) &((FUV_HANDLE)->handle)

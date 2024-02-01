@@ -168,8 +168,13 @@
 
 (uv-loop-walk loop println)
 
+(import (.. lib sync))
+
+(define barrier (make-barrier 2))
+
 (go (lambda (async)
-      (uv-async-send async 'foo 'bar)
+      (barrier-wait barrier)
+      (uv-async-send async 'foobar)
       (println "other thread send!")
       (go (lambda (async)
             (uv-async-send async 'bar 'foo)
@@ -178,7 +183,8 @@
     async)
 
 (go (lambda (async)
-      (uv-async-send async 'foobar)
+      (barrier-wait barrier)
+      (uv-async-send async 'barfoo)
       (println "other thread send!"))
     async)
 

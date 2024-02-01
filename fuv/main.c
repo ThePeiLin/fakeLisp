@@ -1181,12 +1181,7 @@ static int fuv_async_send(FKL_CPROC_ARGL)
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
 	struct FuvAsync* async_handle=(struct FuvAsync*)handle;
 	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
-	if(atomic_flag_test_and_set(&async_handle->send))
-	{
-		exe->tp-=arg_num;
-		fklResBp(exe);
-	}
-	else
+	if(!atomic_flag_test_and_set(&async_handle->send_ready))
 	{
 		struct FuvAsyncExtraData extra=
 		{
@@ -1194,12 +1189,15 @@ static int fuv_async_send(FKL_CPROC_ARGL)
 			.base=&FKL_VM_GET_VALUE(exe,arg_num),
 		};
 		atomic_store(&async_handle->extra,&extra);
-		atomic_flag_clear(&async_handle->copy_start);
 		int r=uv_async_send(&async_handle->handle);
-		while(atomic_flag_test_and_set(&async_handle->copy_done));
-		atomic_flag_clear(&async_handle->send);
+		FKL_VM_PUSH_VALUE(exe,async_obj);
+		FUV_ASYNC_WAIT_COPY(exe,async_handle);
+		FUV_ASYNC_SEND_DONE(async_handle);
+		exe->tp-=1;
 		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	}
+	exe->tp-=arg_num;
+	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,async_obj);
 	return 0;
 }

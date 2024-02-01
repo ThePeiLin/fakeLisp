@@ -167,12 +167,12 @@ struct FuvAsync
 	FuvHandleData data;
 	uv_async_t handle;
 	_Atomic(struct FuvAsyncExtraData*) extra;
-	atomic_flag send;
-	atomic_flag copy_start;
+	atomic_flag send_ready;
 	atomic_flag copy_done;
+	atomic_flag send_done;
 };
 
-typedef struct FuvHandle
+typedef struct
 {
 	FuvHandleData data;
 	uv_handle_t handle;
@@ -204,6 +204,24 @@ FklVMvalue* createFuvSignal(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 
 int isFuvAsync(FklVMvalue* v);
 FklVMvalue* createFuvAsync(FklVM*,FklVMvalue* rel,FklVMvalue* loop,FklVMvalue* proc_obj,int* err);
+
+#define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
+#define FUV_ASYNC_SEND_DONE(async_handle) {\
+	atomic_flag_clear(&(async_handle)->send_done);\
+	atomic_flag_clear(&(async_handle)->send_ready);\
+}
+
+#define FUV_ASYNC_WAIT_COPY(exe,async_handle){\
+	fklUnlockThread(exe);\
+	while(atomic_flag_test_and_set(&async_handle->copy_done));\
+	fklLockThread(exe);\
+}
+
+#define FUV_ASYNC_WAIT_SEND(exe,async_handle){\
+	fklUnlockThread(exe);\
+	while(atomic_flag_test_and_set(&async_handle->send_done));\
+	fklLockThread(exe);\
+}
 
 void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);

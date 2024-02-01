@@ -58,6 +58,57 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->AI_NUMERICSERV_sid=fklAddSymbolCstr("numerserv",st)->id;
 	pd->AI_CANONNAME_sid=fklAddSymbolCstr("canonname",st)->id;
 
+	pd->aif_family_sid=fklAddSymbolCstr("family",st)->id;
+	pd->aif_socktype_sid=fklAddSymbolCstr("socktype",st)->id;
+	pd->aif_protocol_sid=fklAddSymbolCstr("protocol",st)->id;
+
+#ifdef AF_UNIX
+	pd->AF_UNIX_sid=fklAddSymbolCstr("unix",st)->id;
+#endif
+#ifdef AF_INET
+	pd->AF_INET_sid=fklAddSymbolCstr("inet",st)->id;
+#endif
+#ifdef AF_INET6
+	pd->AF_INET6_sid=fklAddSymbolCstr("inet6",st)->id;
+#endif
+#ifdef AF_IPX
+	pd->AF_IPX_sid=fklAddSymbolCstr("ipx",st)->id;
+#endif
+#ifdef AF_NETLINK
+	pd->AF_NETLINK_sid=fklAddSymbolCstr("netlink",st)->id;
+#endif
+#ifdef AF_X25
+	pd->AF_X25_sid=fklAddSymbolCstr("x25",st)->id;
+#endif
+#ifdef AF_AX25
+	pd->AF_AX25_sid=fklAddSymbolCstr("ax25",st)->id;
+#endif
+#ifdef AF_ATMPVC
+	pd->AF_ATMPVC_sid=fklAddSymbolCstr("atmpvc",st)->id;
+#endif
+#ifdef AF_APPLETALK
+	pd->AF_APPLETALK_sid=fklAddSymbolCstr("appletalk",st)->id;
+#endif
+#ifdef AF_PACKET
+	pd->AF_PACKET_sid=fklAddSymbolCstr("packet",st)->id;
+#endif
+
+#ifdef SOCK_STREAM
+	pd->SOCK_STREAM_sid=fklAddSymbolCstr("stream",st)->id;
+#endif
+#ifdef SOCK_DGRAM
+	pd->SOCK_DGRAM_sid=fklAddSymbolCstr("dgram",st)->id;
+#endif
+#ifdef SOCK_SEQPACKET
+	pd->SOCK_SEQPACKET_sid=fklAddSymbolCstr("seqpacket",st)->id;
+#endif
+#ifdef SOCK_RAW
+	pd->SOCK_RAW_sid=fklAddSymbolCstr("raw",st)->id;
+#endif
+#ifdef SOCK_RDM
+	pd->SOCK_RDM_sid=fklAddSymbolCstr("rdm",st)->id;
+#endif
+
 #ifdef SIGHUP
 	pd->SIGHUP_sid=fklAddSymbolCstr("sighup",st)->id;
 #endif
@@ -1254,10 +1305,138 @@ static int fuv_req_type(FKL_CPROC_ARGL)
 
 static int fuv_getaddrinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetaddrinfo(val),"fuv.getaddrinfo?")}
 
-static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe,FklVMvalue* fpd_obj)
+static int get_protonum_with_cstr(const char* name)
+{
+	const struct protoent* proto;
+	proto=getprotobyname(name);
+	if(proto)
+		return proto->p_proto;
+	return -1;
+}
+
+static inline FklBuiltinErrorType process_addrinfo_hints(struct addrinfo* hints,FklVM* exe,FklVMvalue* fpd_obj)
 {
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	while(cur)
+	{
+		if(FKL_IS_SYM(cur))
+		{
+			FklSid_t id=FKL_GET_SYM(cur);
+			if(id==fpd->aif_family_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_SYM(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				FklSid_t family_id=FKL_GET_SYM(cur);
+#ifdef AF_UNIX
+				if(family_id==fpd->AF_UNIX_sid){hints->ai_family=AF_UNIX;goto done;}
+#endif
+#ifdef AF_INET
+				if(family_id==fpd->AF_INET_sid){hints->ai_family=AF_INET;goto done;}
+#endif
+#ifdef AF_INET6
+				if(family_id==fpd->AF_INET6_sid){hints->ai_family=AF_INET6;goto done;}
+#endif
+#ifdef AF_IPX
+				if(family_id==fpd->AF_IPX_sid){hints->ai_family=AF_IPX;goto done;}
+#endif
+#ifdef AF_NETLINK
+				if(family_id==fpd->AF_NETLINK_sid){hints->ai_family=AF_NETLINK;goto done;}
+#endif
+#ifdef AF_X25
+				if(family_id==fpd->AF_X25_sid){hints->ai_family=AF_X25;goto done;}
+#endif
+#ifdef AF_AX25
+				if(family_id==fpd->AF_AX25_sid){hints->ai_family=AF_AX25;goto done;}
+#endif
+#ifdef AF_ATMPVC
+				if(family_id==fpd->AF_ATMPVC_sid){hints->ai_family=AF_ATMPVC;goto done;}
+#endif
+#ifdef AF_APPLETALK
+				if(family_id==fpd->AF_APPLETALK_sid){hints->ai_family=AF_APPLETALK;goto done;}
+#endif
+#ifdef AF_PACKET
+				if(family_id==fpd->AF_PACKET_sid){hints->ai_family=AF_PACKET;goto done;}
+#endif
+				return FKL_ERR_INVALID_VALUE;
+			}
+			else if(id==fpd->aif_socktype_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_SYM(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				FklSid_t socktype_id=FKL_GET_SYM(cur);
+#ifdef SOCK_STREAM
+				if(socktype_id==fpd->SOCK_STREAM_sid){hints->ai_socktype=SOCK_STREAM;goto done;}
+#endif
+#ifdef SOCK_DGRAM
+				if(socktype_id==fpd->SOCK_DGRAM_sid){hints->ai_socktype=SOCK_STREAM;goto done;}
+#endif
+#ifdef SOCK_SEQPACKET
+				if(socktype_id==fpd->SOCK_SEQPACKET_sid){hints->ai_socktype=SOCK_SEQPACKET;goto done;}
+#endif
+#ifdef SOCK_RAW
+				if(socktype_id==fpd->SOCK_RAW_sid){hints->ai_socktype=SOCK_RAW;goto done;}
+#endif
+#ifdef SOCK_RDM
+				if(socktype_id==fpd->SOCK_RDM_sid){hints->ai_socktype=SOCK_RDM;goto done;}
+#endif
+				return FKL_ERR_INVALID_VALUE;
+			}
+			else if(id==fpd->aif_protocol_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(FKL_IS_STR(cur))
+				{
+					const char* name=FKL_VM_STR(cur)->str;
+					int proto=get_protonum_with_cstr(name);
+					if(proto<0)
+						return FKL_ERR_INVALID_VALUE;
+					hints->ai_protocol=proto;
+				}
+				else if(FKL_IS_SYM(cur))
+				{
+					const char* name=fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(cur))->symbol->str;
+					int proto=get_protonum_with_cstr(name);
+					if(proto<0)
+						return FKL_ERR_INVALID_VALUE;
+					hints->ai_protocol=proto;
+				}
+				else
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				goto done;
+			}
+			if(id==fpd->AI_ADDRCONFIG_sid){hints->ai_flags|=AI_ADDRCONFIG;goto done;}
+#ifdef AI_V4MAPPED
+			if(id==fpd->AI_V4MAPPED_sid){hints->ai_flags|=AI_V4MAPPED;goto done;}
+#endif
+#ifdef AI_ALL
+			if(id==fpd->AI_ALL_sid){hints->ai_flags|=AI_ALL;goto done;}
+#endif
+			if(id==fpd->AI_NUMERICHOST_sid){hints->ai_flags|=AI_NUMERICHOST;goto done;}
+			if(id==fpd->AI_PASSIVE_sid){hints->ai_flags|=AI_PASSIVE;goto done;}
+			if(id==fpd->AI_NUMERICSERV_sid){hints->ai_flags|=AI_NUMERICSERV;goto done;}
+			if(id==fpd->AI_CANONNAME_sid){hints->ai_flags|=AI_CANONNAME;goto done;}
+			return FKL_ERR_INVALID_VALUE;
+		}
+		else
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+done:
+		cur=FKL_VM_POP_ARG(exe);
+	}
 	return 0;
+}
+
+static inline FklVMvalue* addrinfo_to_value(FklVM* exe,struct addrinfo* info)
+{
+	abort();
 }
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)
@@ -1280,11 +1459,28 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	struct addrinfo hints={.ai_flags=0,};
-	FklBuiltinErrorType err_type=process_addrinfo_hints(exe,ctx->pd);
+	FklBuiltinErrorType err_type=process_addrinfo_hints(&hints,exe,ctx->pd);
 	if(err_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 
 	fklResBp(exe);
+
+	if(hints.ai_flags&AI_NUMERICSERV)
+		service="00";
+
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	if(proc_obj==FKL_VM_NIL)
+	{
+		uv_getaddrinfo_t req;
+		int r=uv_getaddrinfo(&fuv_loop->loop,&req,NULL,node,service,&hints);
+		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+		FKL_VM_PUSH_VALUE(exe,addrinfo_to_value(exe,req.addrinfo));
+		uv_freeaddrinfo(req.addrinfo);
+	}
+	else
+	{
+		abort();
+	}
 	return 0;
 }
 

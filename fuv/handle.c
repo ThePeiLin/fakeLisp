@@ -2,12 +2,13 @@
 
 static void fuv_handle_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
-	FKL_DECL_UD_DATA(fuv_timer,FuvHandleUd,ud);
-	FuvHandle* handle=*fuv_timer;
+	FKL_DECL_UD_DATA(fuv_handle,FuvHandleUd,ud);
+	FuvHandle* handle=*fuv_handle;
 	if(handle)
 	{
 		fklVMgcToGray(handle->data.loop,gc);
 		fklVMgcToGray(handle->data.callbacks[0],gc);
+		fklVMgcToGray(handle->data.callbacks[1],gc);
 	}
 }
 
@@ -17,11 +18,9 @@ static void fuv_handle_ud_finalizer(FklVMud* ud)
 	FuvHandle* fuv_handle=*handle_ud;
 	if(fuv_handle)
 	{
-		uv_handle_t* handle=&fuv_handle->handle;
 		FuvHandleData* handle_data=&fuv_handle->data;
-		uv_loop_t* loop=uv_handle_get_loop(handle);
-		FuvLoopData* loop_data=uv_loop_get_data(loop);
-		fklDelHashItem(&handle_data->handle,&loop_data->gc_values,NULL);
+		FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,handle_data->loop);
+		fklDelHashItem(&handle_data->handle,&fuv_loop->data.gc_values,NULL);
 		fuv_handle->data.handle=NULL;
 		*handle_ud=NULL;
 	}

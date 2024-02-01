@@ -235,6 +235,24 @@ typedef struct
 	jmp_buf* buf;
 }FuvProcCallCtx;
 
+typedef struct
+{
+	FklVMvalue* req;
+	FklVMvalue* loop;
+	FklVMvalue* callback;
+	FklVMvalue* write_data;
+}FuvReqData;
+
+typedef struct
+{
+	FuvReqData data;
+	uv_req_t req;
+}FuvReq;
+
+typedef FuvReq* FuvReqUd;
+
+int isFuvReq(FklVMvalue* v);
+
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) &((FUV_HANDLE)->handle)

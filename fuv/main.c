@@ -46,6 +46,18 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklVM* exe)
 	UV_ERRNO_MAP(XX);
 #undef XX
 
+	pd->AI_ADDRCONFIG_sid=fklVMaddSymbolCstr(exe->gc,"addrconfig")->id;
+#ifdef AI_V4MAPPED
+	pd->AI_V4MAPPED_sid=fklVMaddSymbolCstr(exe->gc,"v4mapped")->id;
+#endif
+#ifdef AI_ALL
+	pd->AI_ALL_sid=fklVMaddSymbolCstr(exe->gc,"all")->id;
+#endif
+	pd->AI_NUMERICHOST_sid=fklVMaddSymbolCstr(exe->gc,"numerichost")->id;
+	pd->AI_PASSIVE_sid=fklVMaddSymbolCstr(exe->gc,"passive")->id;
+	pd->AI_NUMERICSERV_sid=fklVMaddSymbolCstr(exe->gc,"numerserv")->id;
+	pd->AI_CANONNAME_sid=fklVMaddSymbolCstr(exe->gc,"canonname")->id;
+
 #ifdef SIGHUP
 	pd->SIGHUP_sid=fklVMaddSymbolCstr(exe->gc,"sighup")->id;
 #endif
@@ -753,10 +765,7 @@ static void fuv_timer_cb(uv_timer_t* handle)
 static int fuv_timer_start(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.timer-start";
-	FKL_DECL_AND_CHECK_ARG3(timer_obj,timer_cb,timeout_obj,exe,Pname);
-	FklVMvalue* repeat_obj=FKL_VM_POP_ARG(exe);
-	if(repeat_obj==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FKL_DECL_AND_CHECK_ARG4(timer_obj,timer_cb,timeout_obj,repeat_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(timer_obj,isFuvTimer,Pname,exe);
 	FKL_CHECK_TYPE(timer_cb,fklIsCallable,Pname,exe);
@@ -1212,9 +1221,11 @@ static int fuv_req_cancel(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(req_obj,isFuvReq,Pname,exe);
 	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,req_obj);
-	CHECK_REQ_CANCELED(*fuv_req,Pname,exe,ctx->pd);
-	int r=cancelFuvReq(fuv_req);
+	FuvReq* req=*fuv_req;
+	CHECK_REQ_CANCELED(req,Pname,exe,ctx->pd);
+	int r=uv_cancel(GET_REQ(req));
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	uninitFuvReq(fuv_req);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -1238,6 +1249,42 @@ static int fuv_req_type(FKL_CPROC_ARGL)
 				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
 				,FKL_MAKE_VM_FIX(type_id)));
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_getaddrinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetaddrinfo(val),"fuv.getaddrinfo?")}
+
+static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe,FklVMvalue* fpd_obj)
+{
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	return 0;
+}
+
+static int fuv_getaddrinfo(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.getaddrinfo";
+	FKL_DECL_AND_CHECK_ARG4(loop_obj,node_obj,service_obj,proc_obj,exe,Pname);
+	const char* node=NULL;
+	const char* service=NULL;
+	if(FKL_IS_STR(node_obj))
+		node=FKL_VM_STR(node_obj)->str;
+	else if(node_obj!=FKL_VM_NIL)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	if(FKL_IS_STR(service_obj))
+		service=FKL_VM_STR(node_obj)->str;
+	else if(service_obj!=FKL_VM_NIL)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	if(proc_obj!=FKL_VM_NIL&&!fklIsCallable(proc_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	struct addrinfo hints={.ai_flags=0,};
+	FklBuiltinErrorType err_type=process_addrinfo_hints(exe,ctx->pd);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+
+	fklResBp(exe);
 	return 0;
 }
 
@@ -1326,8 +1373,8 @@ struct SymFunc
 	{"req-type",                fuv_req_type,                },
 
 	// getaddrinfo
-	{"getaddrinfo?",            fuv_incomplete,              },
-	{"getaddrinfo",             fuv_incomplete,              },
+	{"getaddrinfo?",            fuv_getaddrinfo_p,              },
+	{"getaddrinfo",             fuv_getaddrinfo,              },
 
 	// getnameinfo
 	{"getnameinfo?",            fuv_incomplete,              },

@@ -97,3 +97,10 @@ int isFuvReq(FklVMvalue* v)
 	return 0;
 }
 
+#define FUV_REQ_P(NAME,ENUM) int NAME(FklVMvalue* v)\
+{\
+	return FKL_IS_USERDATA(v)\
+		&&FKL_VM_UD(v)->t==&ReqMetaTables[ENUM];\
+}
+
+FUV_REQ_P(isFuvGetaddrinfo,UV_GETADDRINFO);

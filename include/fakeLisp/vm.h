@@ -1043,6 +1043,14 @@ void fklDropTop(FklVM* s);
 	if(!c||!b||!a)\
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 
+#define FKL_DECL_AND_CHECK_ARG4(a,b,c,d,exe,Pname) \
+	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
+	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
+	FklVMvalue* c=FKL_VM_POP_ARG(exe);\
+	FklVMvalue* d=FKL_VM_POP_ARG(exe);\
+	if(!d||!c||!b||!a)\
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+
 FklVMvalue* fklPopArg(FklVM*);
 FklVMvalue* fklGetTopValue(FklVM*);
 FklVMvalue* fklPopTopValue(FklVM*);

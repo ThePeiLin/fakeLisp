@@ -24,9 +24,73 @@ typedef struct
 	FklSid_t fuv_err_sid[FUV_ERR_NUM];
 	FklSid_t loop_block_signal_sid;
 	FklSid_t metrics_idle_time_sid;
+
 #define XX(code,_) FklSid_t uv_err_sid_##code;
 	UV_ERRNO_MAP(XX);
 #undef XX
+
+	FklSid_t AI_ADDRCONFIG_sid;
+#ifdef AI_V4MAPPED
+	FklSid_t AI_V4MAPPED_sid;
+#endif
+#ifdef AI_ALL
+	FklSid_t AI_ALL_sid;
+#endif
+	FklSid_t AI_NUMERICHOST_sid;
+	FklSid_t AI_PASSIVE_sid;
+	FklSid_t AI_NUMERICSERV_sid;
+	FklSid_t AI_CANONNAME_sid;
+
+	FklSid_t aif_protocol_sid;
+	FklSid_t aif_family_sid;
+	FklSid_t aif_socktype_sid;
+
+#ifdef AF_UNIX
+	FklSid_t AF_UNIX_sid;
+#endif
+#ifdef AF_INET
+	FklSid_t AF_INET_sid;
+#endif
+#ifdef AF_INET6
+	FklSid_t AF_INET6_sid;
+#endif
+#ifdef AF_IPX
+	FklSid_t AF_IPX_sid;
+#endif
+#ifdef AF_NETLINK
+	FklSid_t AF_NETLINK_sid;
+#endif
+#ifdef AF_X25
+	FklSid_t AF_X25_sid;
+#endif
+#ifdef AF_AX25
+	FklSid_t AF_AX25_sid;
+#endif
+#ifdef AF_ATMPVC
+	FklSid_t AF_ATMPVC_sid;
+#endif
+#ifdef AF_APPLETALK
+	FklSid_t AF_APPLETALK_sid;
+#endif
+#ifdef AF_PACKET
+	FklSid_t AF_PACKET_sid;
+#endif
+
+#ifdef SOCK_STREAM
+	FklSid_t SOCK_STREAM_sid;
+#endif
+#ifdef SOCK_DGRAM
+	FklSid_t SOCK_DGRAM_sid;
+#endif
+#ifdef SOCK_SEQPACKET
+	FklSid_t SOCK_SEQPACKET_sid;
+#endif
+#ifdef SOCK_RAW
+	FklSid_t SOCK_RAW_sid;
+#endif
+#ifdef SOCK_RDM
+	FklSid_t SOCK_RDM_sid;
+#endif
 
 #ifdef SIGHUP
 	FklSid_t SIGHUP_sid;
@@ -255,7 +319,9 @@ typedef struct
 typedef FuvReq* FuvReqUd;
 
 int isFuvReq(FklVMvalue* v);
-int cancelFuvReq(FuvReqUd*);
+int uninitFuvReq(FuvReqUd*);
+
+int isFuvGetaddrinfo(FklVMvalue* v);
 
 #define GET_REQ(FUV_REQ) (&((FUV_REQ)->req))
 #define CHECK_REQ_CANCELED(R,WHO,EXE,PD) if((R)==NULL)raiseFuvError((WHO),FUV_ERR_REQ_CANCELED,(EXE),(PD))

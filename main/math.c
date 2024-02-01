@@ -481,15 +481,18 @@ FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);
 	FKL_ASSERT(loc);
 	size_t i=0;
+	fklVMacquireSt(exe->gc);
+	FklSymbolTable* st=exe->gc->st;
 	for(;i<EXPORT_NUM;i++)
 	{
 		FklVMcFunc func=exports_and_func[i].f;
 		if(func==NULL)
 			break;
-		FklSid_t id=fklVMaddSymbolCstr(exe->gc,exports_and_func[i].sym)->id;
+		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,st)->id;
 		FklVMvalue* dlproc=fklCreateVMvalueCproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;
 	}
+	fklVMreleaseSt(exe->gc);
 
 	loc[i++]=fklCreateVMvalueF64(exe,NAN);
 	loc[i++]=fklCreateVMvalueF64(exe,INFINITY);

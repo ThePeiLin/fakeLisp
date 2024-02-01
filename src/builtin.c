@@ -5667,9 +5667,12 @@ static inline void init_vm_public_data(PublicBuiltInData* pd,FklVM* exe)
 	pd->sysOut=builtInStdout;
 	pd->sysErr=builtInStderr;
 
-	pd->seek_set=fklVMaddSymbolCstr(exe->gc,"set")->id;
-	pd->seek_cur=fklVMaddSymbolCstr(exe->gc,"cur")->id;
-	pd->seek_end=fklVMaddSymbolCstr(exe->gc,"end")->id;
+	fklVMacquireSt(exe->gc);
+	FklSymbolTable* st=exe->gc->st;
+	pd->seek_set=fklAddSymbolCstr("set",st)->id;
+	pd->seek_cur=fklAddSymbolCstr("cur",st)->id;
+	pd->seek_end=fklAddSymbolCstr("end",st)->id;
+	fklVMreleaseSt(exe->gc);
 }
 
 void fklInitGlobalVMclosureForGC(FklVM* exe)
@@ -5687,14 +5690,17 @@ void fklInitGlobalVMclosureForGC(FklVM* exe)
 	closure[FKL_VM_STDOUT_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysOut);
 	closure[FKL_VM_STDERR_IDX]=fklCreateClosedVMvalueVarRef(exe,pd->sysErr);
 
+	fklVMacquireSt(exe->gc);
+	FklSymbolTable* st=exe->gc->st;
 	for(size_t i=3;i<FKL_BUILTIN_SYMBOL_NUM;i++)
 	{
 		FklVMvalue* v=fklCreateVMvalueCproc(exe
 				,builtInSymbolList[i].f
 				,NULL
 				,publicUserData
-				,fklVMaddSymbolCstr(exe->gc,builtInSymbolList[i].s)->id);
+				,fklAddSymbolCstr(builtInSymbolList[i].s,st)->id);
 		closure[i]=fklCreateClosedVMvalueVarRef(exe,v);
 	}
+	fklVMreleaseSt(exe->gc);
 }
 

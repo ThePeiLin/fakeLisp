@@ -1400,12 +1400,15 @@ FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)
 	*count=EXPORT_NUM;
 	FklVMvalue** loc=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*EXPORT_NUM);
 	FKL_ASSERT(loc);
+	fklVMacquireSt(exe->gc);
+	FklSymbolTable* st=exe->gc->st;
 	for(size_t i=0;i<EXPORT_NUM;i++)
 	{
-		FklSid_t id=fklVMaddSymbolCstr(exe->gc,exports_and_func[i].sym)->id;
+		FklSid_t id=fklAddSymbolCstr(exports_and_func[i].sym,st)->id;
 		FklVMcFunc func=exports_and_func[i].f;
 		FklVMvalue* dlproc=fklCreateVMvalueCproc(exe,func,dll,NULL,id);
 		loc[i]=dlproc;
 	}
+	fklVMreleaseSt(exe->gc);
 	return loc;
 }

@@ -154,7 +154,7 @@ int isFuvHandle(FklVMvalue* v)
 	return 0;
 }
 
-void initFuvHandle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
+static inline void init_fuv_handle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
 {
 	handle->data.handle=v;
 	handle->data.loop=loop;
@@ -188,7 +188,7 @@ struct FuvTimer
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);\
 	struct TYPE* handle=CREATE_OBJ(struct TYPE);\
 	*hud=(FuvHandle*)handle;\
-	initFuvHandle(v,(FuvHandle*)handle,loop_obj);\
+	init_fuv_handle(v,(FuvHandle*)handle,loop_obj);\
 	*err=uv_##NAME##_init(&loop->loop,&handle->handle);\
 	return v;\
 }
@@ -287,7 +287,7 @@ FklVMvalue* createFuvAsync(FklVM* vm
 	atomic_flag_test_and_set(&handle->copy_done);
 	atomic_flag_test_and_set(&handle->send_done);
 	*hud=(FuvHandle*)handle;
-	initFuvHandle(v,(FuvHandle*)handle,loop_obj);
+	init_fuv_handle(v,(FuvHandle*)handle,loop_obj);
 	handle->data.callbacks[0]=proc_obj;
 	*err=uv_async_init(&loop->loop,&handle->handle,fuv_async_cb);
 	return v;

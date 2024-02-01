@@ -14,6 +14,7 @@ typedef enum
 	FUV_ERR_DUMMY=0,
 	FUV_ERR_CLOSE_CLOSEING_HANDLE,
 	FUV_ERR_HANDLE_CLOSED,
+	FUV_ERR_REQ_CANCELED,
 	FUV_ERR_NUM,
 }FuvErrorType;
 
@@ -185,7 +186,6 @@ FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
 void fuvLoopInsertFuvHandle(FklVMvalue* loop,FklVMvalue* handle);
 
 int isFuvHandle(FklVMvalue* v);
-void initFuvHandle(FklVMvalue* v,FuvHandle* h,FklVMvalue* loop);
 
 int isFuvTimer(FklVMvalue* v);
 FklVMvalue* createFuvTimer(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
@@ -204,6 +204,9 @@ FklVMvalue* createFuvSignal(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 
 int isFuvAsync(FklVMvalue* v);
 FklVMvalue* createFuvAsync(FklVM*,FklVMvalue* rel,FklVMvalue* loop,FklVMvalue* proc_obj,int* err);
+
+#define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
+#define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))
 
 #define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle) {\
@@ -252,10 +255,11 @@ typedef struct
 typedef FuvReq* FuvReqUd;
 
 int isFuvReq(FklVMvalue* v);
+int cancelFuvReq(FuvReqUd*);
 
-#define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
+#define GET_REQ(FUV_REQ) (&((FUV_REQ)->req))
+#define CHECK_REQ_CANCELED(R,WHO,EXE,PD) if((R)==NULL)raiseFuvError((WHO),FUV_ERR_REQ_CANCELED,(EXE),(PD))
 #define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))
-#define GET_HANDLE(FUV_HANDLE) &((FUV_HANDLE)->handle)
 
 #ifdef __cplusplus
 }

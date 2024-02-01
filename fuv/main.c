@@ -29,6 +29,7 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklVM* exe)
 		"dummy",
 		"fuv-handle-error",
 		"fuv-handle-error",
+		"fuv-req-error",
 	};
 	for(size_t i=0;i<FUV_ERR_NUM;i++)
 		pd->fuv_err_sid[i]=fklVMaddSymbolCstr(exe->gc,fuv_err_sym[i])->id;
@@ -715,8 +716,8 @@ static int fuv_handle_type(FKL_CPROC_ARGL)
 	CHECK_HANDLE_CLOSED(handle,Pname,exe,ctx->pd);
 	uv_handle_type type_id=uv_handle_get_type(GET_HANDLE(handle));
 	const char* name=uv_handle_type_name(type_id);
-	FKL_VM_PUSH_VALUE(exe,
-			name==NULL
+	FKL_VM_PUSH_VALUE(exe
+			,name==NULL
 			?FKL_VM_NIL
 			:fklCreateVMvaluePair(exe
 				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
@@ -1202,6 +1203,44 @@ static int fuv_async_send(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_req_p(FKL_CPROC_ARGL){PREDICATE(isFuvReq(val),"fuv.req?")}
+
+static int fuv_req_cancel(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.req-cancel";
+	FKL_DECL_AND_CHECK_ARG(req_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(req_obj,isFuvReq,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,req_obj);
+	CHECK_REQ_CANCELED(*fuv_req,Pname,exe,ctx->pd);
+	int r=cancelFuvReq(fuv_req);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_req_type(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.req-cancel";
+	FKL_DECL_AND_CHECK_ARG(req_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(req_obj,isFuvReq,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,req_obj);
+	FuvReq* req=*fuv_req;
+	CHECK_REQ_CANCELED(req,Pname,exe,ctx->pd);
+
+	uv_req_type type_id=uv_req_get_type(GET_REQ(req));
+	const char* name=uv_req_type_name(type_id);
+	FKL_VM_PUSH_VALUE(exe
+			,name==NULL
+			?FKL_VM_NIL
+			:fklCreateVMvaluePair(exe
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
+				,FKL_MAKE_VM_FIX(type_id)));
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -1240,11 +1279,6 @@ struct SymFunc
 	{"handle-recv-buffer-size", fuv_handle_recv_buffer_size, },
 	{"handle-fileno",           fuv_handle_fileno,           },
 	{"handle-type",             fuv_handle_type,             },
-
-	// req
-	{"req?",                    fuv_incomplete,              },
-	{"req-cancel",              fuv_incomplete,              },
-	{"req-type",                fuv_incomplete,              },
 
 	// timer
 	{"timer?",                  fuv_timer_p,                 },
@@ -1285,6 +1319,19 @@ struct SymFunc
 	{"async?",                  fuv_async_p,                 },
 	{"make-async",              fuv_make_async,              },
 	{"async-send",              fuv_async_send,              },
+
+	// req
+	{"req?",                    fuv_req_p,                   },
+	{"req-cancel",              fuv_req_cancel,              },
+	{"req-type",                fuv_req_type,                },
+
+	// getaddrinfo
+	{"getaddrinfo?",            fuv_incomplete,              },
+	{"getaddrinfo",             fuv_incomplete,              },
+
+	// getnameinfo
+	{"getnameinfo?",            fuv_incomplete,              },
+	{"getnameinfo",             fuv_incomplete,              },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

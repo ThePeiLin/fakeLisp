@@ -300,7 +300,7 @@ typedef struct FklCodegenInfo
 	unsigned int macroMark:1;
 	uint64_t refcount:61;
 
-	uint8_t do_not_inline_builtins;
+	// uint8_t do_not_inline_builtins;
 	struct
 	{
 		void* work_ctx;

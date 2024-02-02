@@ -20,6 +20,11 @@ else()
 	set(LINK_TARGET "")
 endif()
 
+if(ASAN)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+endif()
+
 #target names
 set(INTERPRETER_TARGET_NAME fakeLisp)
 set(COMPILER_TARGET_NAME fakeLispc)
@@ -103,13 +108,17 @@ file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 add_library(${PARSE}
 	OBJECT
 	"parse.c")
+set_target_properties(${PARSE} PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
 
 #vmparser.o
 add_library(${VMPARSE}
 	OBJECT
 	"vmparse.c")
+set_target_properties(${VMPARSE} PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
 
-#libfkl.a
+#libfkl_a.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
 
 add_library(${LIBFKL_STATIC_TARGET_NAME}
@@ -118,7 +127,7 @@ add_library(${LIBFKL_STATIC_TARGET_NAME}
 set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 
-#libfkldll.so
+#libfkl.so
 add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})

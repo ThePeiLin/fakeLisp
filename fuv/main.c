@@ -1655,7 +1655,8 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 	{
 		FklVMvalue* retval=NULL;
 		uv_getaddrinfo_t* req=createFuvGetaddrinfo(exe,&retval,ctx->proc,loop_obj,proc_obj);
-		uv_getaddrinfo(&fuv_loop->loop,req,fuv_getaddrinfo_cb,node,service,&hints);
+		int r=uv_getaddrinfo(&fuv_loop->loop,req,fuv_getaddrinfo_cb,node,service,&hints);
+		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 		FKL_VM_PUSH_VALUE(exe,retval);
 	}
 	return 0;
@@ -1746,8 +1747,8 @@ struct SymFunc
 	{"req-type",                fuv_req_type,                },
 
 	// getaddrinfo
-	{"getaddrinfo?",            fuv_getaddrinfo_p,              },
-	{"getaddrinfo",             fuv_getaddrinfo,              },
+	{"getaddrinfo?",            fuv_getaddrinfo_p,           },
+	{"getaddrinfo",             fuv_getaddrinfo,             },
 
 	// getnameinfo
 	{"getnameinfo?",            fuv_incomplete,              },

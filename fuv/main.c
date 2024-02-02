@@ -1,5 +1,6 @@
 #include "fakeLisp/vm.h"
 #include"fuv.h"
+#include "uv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
@@ -1561,6 +1562,49 @@ static inline FklVMvalue* addrinfo_to_value(FklVM* exe
 	return r;
 }
 
+#define FUV_GETADDRINFO_PNAME ("fuv.getaddrinfo")
+static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
+		,int status
+		,struct addrinfo* res)
+{
+	FuvReq* fuv_req=uv_req_get_data((uv_req_t*)req);
+	FuvReqData* rdata=&fuv_req->data;
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,rdata->loop);
+	FuvLoopData* ldata=&fuv_loop->data;
+	FklVM* exe=ldata->exe;
+	fklLockThread(exe);
+
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+
+	FklVMvalue* proc=fuv_req->data.callback;
+	FklVMvalue* err=status<0
+		?createUvError(FUV_GETADDRINFO_PNAME,status,exe,fpd_obj)
+		:FKL_VM_NIL;
+	exe->state=FKL_VM_READY;
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+	jmp_buf buf;
+	ctx->buf=&buf;
+	if(setjmp(buf))
+	{
+		exe->tp--;
+		fklUnlockThread(exe);
+		return;
+	}
+	else
+	{
+		FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+		fklSetBp(exe);
+		FKL_VM_PUSH_VALUE(exe,addrinfo_to_value(exe,res,fpd));
+		uv_freeaddrinfo(res);
+		uninitFuvReqValue(rdata->req);
+		FKL_VM_PUSH_VALUE(exe,err);
+		fklCallObj(exe,proc);
+		exe->thread_run_cb(exe);
+	}
+}
+
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.getaddrinfo";
@@ -1609,7 +1653,10 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 	}
 	else
 	{
-		abort();
+		FklVMvalue* retval=NULL;
+		uv_getaddrinfo_t* req=createFuvGetaddrinfo(exe,&retval,ctx->proc,loop_obj,proc_obj);
+		uv_getaddrinfo(&fuv_loop->loop,req,fuv_getaddrinfo_cb,node,service,&hints);
+		FKL_VM_PUSH_VALUE(exe,retval);
 	}
 	return 0;
 }

@@ -154,14 +154,18 @@ int isFuvHandle(FklVMvalue* v)
 	return 0;
 }
 
-static inline void init_fuv_handle(FklVMvalue* v,FuvHandle* handle,FklVMvalue* loop)
+static inline void init_fuv_handle(FuvHandleUd* h_ud
+		,FuvHandle* handle
+		,FklVMvalue* v
+		,FklVMvalue* loop)
 {
+	*h_ud=handle;
 	handle->data.handle=v;
 	handle->data.loop=loop;
 	handle->data.callbacks[0]=NULL;
 	handle->data.callbacks[1]=NULL;
 	uv_handle_set_data(&handle->handle,handle);
-	fuvLoopInsertFuvHandle(loop,v);
+	fuvLoopInsertFuvObj(loop,v);
 }
 
 struct FuvTimer
@@ -187,8 +191,8 @@ struct FuvTimer
 	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);\
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);\
 	struct TYPE* handle=CREATE_OBJ(struct TYPE);\
-	*hud=(FuvHandle*)handle;\
-	init_fuv_handle(v,(FuvHandle*)handle,loop_obj);\
+	FKL_ASSERT(handle);\
+	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);\
 	*err=uv_##NAME##_init(&loop->loop,&handle->handle);\
 	return v;\
 }
@@ -281,13 +285,13 @@ FklVMvalue* createFuvAsync(FklVM* vm
 	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
 	struct FuvAsync* handle=CREATE_OBJ(struct FuvAsync);
+	FKL_ASSERT(handle);
 	handle->extra=NULL;
 	handle->send_ready=(atomic_flag)ATOMIC_FLAG_INIT;
 	handle->copy_done=(atomic_flag)ATOMIC_FLAG_INIT;
 	atomic_flag_test_and_set(&handle->copy_done);
 	atomic_flag_test_and_set(&handle->send_done);
-	*hud=(FuvHandle*)handle;
-	init_fuv_handle(v,(FuvHandle*)handle,loop_obj);
+	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);
 	handle->data.callbacks[0]=proc_obj;
 	*err=uv_async_init(&loop->loop,&handle->handle,fuv_async_cb);
 	return v;

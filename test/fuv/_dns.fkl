@@ -8,4 +8,20 @@
 
 (assert res)
 
+(println "sync dns resolved")
+
 (foreach prin1n res)
+
+(newline)
+
+(define (on-resloved err res)
+  (assert (not err))
+  (println "async dns resolved")
+  (foreach prin1n res)
+  (assert (eqv (hash-ref (car res) 'port) 80)))
+
+(define req (uv-getaddrinfo loop nil "http" on-resloved))
+
+(assert (uv-req? req))
+(assert (uv-getaddrinfo? req))
+(uv-loop-run loop)

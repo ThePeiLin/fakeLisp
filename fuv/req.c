@@ -12,9 +12,8 @@ static void fuv_req_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 	}
 }
 
-static void fuv_req_ud_finalizer(FklVMud* ud)
+void uninitFuvReq(FuvReqUd* req_ud)
 {
-	FKL_DECL_UD_DATA(req_ud,FuvReqUd,ud);
 	FuvReq* fuv_req=*req_ud;
 	if(fuv_req)
 	{
@@ -22,8 +21,21 @@ static void fuv_req_ud_finalizer(FklVMud* ud)
 		FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,req_data->loop);
 		fklDelHashItem(&req_data->req,&fuv_loop->data.gc_values,NULL);
 		fuv_req->data.req=NULL;
+		free(fuv_req);
 		*req_ud=NULL;
 	}
+}
+
+void uninitFuvReqValue(FklVMvalue* v)
+{
+	FKL_DECL_VM_UD_DATA(req_ud,FuvReqUd,v);
+	uninitFuvReq(req_ud);
+}
+
+static void fuv_req_ud_finalizer(FklVMud* ud)
+{
+	FKL_DECL_UD_DATA(req_ud,FuvReqUd,ud);
+	uninitFuvReq(req_ud);
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_getaddrinfo_print,getaddrinfo);
@@ -97,6 +109,22 @@ int isFuvReq(FklVMvalue* v)
 	return 0;
 }
 
+static inline void init_fuv_req(FuvReqUd* r_ud
+		,FuvReq* req
+		,FklVMvalue* v
+		,FklVMvalue* loop
+		,FklVMvalue* callback)
+{
+	*r_ud=req;
+	req->data.req=v;
+	req->data.loop=loop;
+	req->data.callback=callback;
+	uv_req_set_data(&req->req,req);
+	fuvLoopInsertFuvObj(loop,v);
+}
+
+#define CREATE_OBJ(TYPE) (TYPE*)malloc(sizeof(TYPE))
+
 #define FUV_REQ_P(NAME,ENUM) int NAME(FklVMvalue* v)\
 {\
 	return FKL_IS_USERDATA(v)\
@@ -104,3 +132,25 @@ int isFuvReq(FklVMvalue* v)
 }
 
 FUV_REQ_P(isFuvGetaddrinfo,UV_GETADDRINFO);
+
+struct FuvGetaddrinfo
+{
+	FuvReqData data;
+	uv_getaddrinfo_t req;
+};
+
+uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
+		,FklVMvalue** ret
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_GETADDRINFO],rel);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
+	struct FuvGetaddrinfo* req=CREATE_OBJ(struct FuvGetaddrinfo);
+	FKL_ASSERT(req);
+	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
+	*ret=v;
+	return &req->req;
+}
+

@@ -74,9 +74,9 @@ int isFuvLoop(FklVMvalue* v)
 	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&FuvLoopMetaTable;
 }
 
-void fuvLoopInsertFuvHandle(FklVMvalue* loop_obj,FklVMvalue* h)
+void fuvLoopInsertFuvObj(FklVMvalue* loop_obj,FklVMvalue* v)
 {
 	FKL_DECL_VM_UD_DATA(loop,FuvLoop,loop_obj);
-	fklPutHashItem(&h,&loop->data.gc_values);
+	fklPutHashItem(&v,&loop->data.gc_values);
 }
 

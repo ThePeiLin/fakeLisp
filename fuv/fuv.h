@@ -250,7 +250,7 @@ typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
 FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
-void fuvLoopInsertFuvHandle(FklVMvalue* loop,FklVMvalue* handle);
+void fuvLoopInsertFuvObj(FklVMvalue* loop,FklVMvalue* handle);
 
 int isFuvHandle(FklVMvalue* v);
 
@@ -322,9 +322,16 @@ typedef struct
 typedef FuvReq* FuvReqUd;
 
 int isFuvReq(FklVMvalue* v);
-int uninitFuvReq(FuvReqUd*);
+void uninitFuvReqValue(FklVMvalue*);
+void uninitFuvReq(FuvReqUd*);
 
 int isFuvGetaddrinfo(FklVMvalue* v);
+
+uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback);
 
 #define GET_REQ(FUV_REQ) (&((FUV_REQ)->req))
 #define CHECK_REQ_CANCELED(R,WHO,EXE,PD) if((R)==NULL)raiseFuvError((WHO),FUV_ERR_REQ_CANCELED,(EXE),(PD))

@@ -1,0 +1,11 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define res (uv-getaddrinfo loop nil "http"))
+
+(assert res)
+
+(foreach prin1n res)

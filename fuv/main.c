@@ -1,3 +1,4 @@
+#include "fakeLisp/vm.h"
 #include"fuv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
@@ -58,9 +59,12 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->AI_NUMERICSERV_sid=fklAddSymbolCstr("numerserv",st)->id;
 	pd->AI_CANONNAME_sid=fklAddSymbolCstr("canonname",st)->id;
 
+	pd->aif_addr_sid=fklAddSymbolCstr("addr",st)->id;
+	pd->aif_port_sid=fklAddSymbolCstr("port",st)->id;
 	pd->aif_family_sid=fklAddSymbolCstr("family",st)->id;
 	pd->aif_socktype_sid=fklAddSymbolCstr("socktype",st)->id;
 	pd->aif_protocol_sid=fklAddSymbolCstr("protocol",st)->id;
+	pd->aif_canonname_sid=fklAddSymbolCstr("canonname",st)->id;
 
 #ifdef AF_UNIX
 	pd->AF_UNIX_sid=fklAddSymbolCstr("unix",st)->id;
@@ -1314,9 +1318,10 @@ static int get_protonum_with_cstr(const char* name)
 	return -1;
 }
 
-static inline FklBuiltinErrorType process_addrinfo_hints(struct addrinfo* hints,FklVM* exe,FklVMvalue* fpd_obj)
+static inline FklBuiltinErrorType process_addrinfo_hints(struct addrinfo* hints
+		,FklVM* exe
+		,FuvPublicData* fpd)
 {
-	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
 	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
 	while(cur)
 	{
@@ -1434,15 +1439,133 @@ done:
 	return 0;
 }
 
-static inline FklVMvalue* addrinfo_to_value(FklVM* exe,struct addrinfo* info)
+static inline FklVMvalue* af_num_to_symbol(int ai_family,FuvPublicData* fpd)
 {
-	abort();
+#ifdef AF_UNIX
+	if(ai_family==AF_UNIX)return FKL_MAKE_VM_SYM(fpd->AF_UNIX_sid);
+#endif
+#ifdef AF_INET
+	if(ai_family==AF_INET)return FKL_MAKE_VM_SYM(fpd->AF_INET_sid);
+#endif
+#ifdef AF_INET6
+	if(ai_family==AF_INET6)return FKL_MAKE_VM_SYM(fpd->AF_INET6_sid);
+#endif
+#ifdef AF_IPX
+	if(ai_family==AF_IPX)return FKL_MAKE_VM_SYM(fpd->AF_IPX_sid);
+#endif
+#ifdef AF_NETLINK
+	if(ai_family==AF_NETLINK)return FKL_MAKE_VM_SYM(fpd->AF_NETLINK_sid);
+#endif
+#ifdef AF_X25
+	if(ai_family==AF_X25)return FKL_MAKE_VM_SYM(fpd->AF_X25_sid);
+#endif
+#ifdef AF_AX25
+	if(ai_family==AF_AX25)return FKL_MAKE_VM_SYM(fpd->AF_AX25_sid);
+#endif
+#ifdef AF_ATMPVC
+	if(ai_family==AF_ATMPVC)return FKL_MAKE_VM_SYM(fpd->AF_ATMPVC_sid);
+#endif
+#ifdef AF_APPLETALK
+	if(ai_family==AF_APPLETALK)return FKL_MAKE_VM_SYM(fpd->AF_APPLETALK_sid);
+#endif
+#ifdef AF_PACKET
+	if(ai_family==AF_PACKET)return FKL_MAKE_VM_SYM(fpd->AF_PACKET_sid);
+#endif
+	return NULL;
+}
+
+static inline FklVMvalue* sock_num_to_symbol(int ai_socktype,FuvPublicData* fpd)
+{
+#ifdef SOCK_STREAM
+	if(ai_socktype==SOCK_STREAM)return FKL_MAKE_VM_SYM(fpd->SOCK_STREAM_sid);
+#endif
+#ifdef SOCK_DGRAM
+	if(ai_socktype==SOCK_DGRAM)return FKL_MAKE_VM_SYM(fpd->SOCK_DGRAM_sid);
+#endif
+#ifdef SOCK_SEQPACKET
+	if(ai_socktype==SOCK_SEQPACKET)return FKL_MAKE_VM_SYM(fpd->SOCK_SEQPACKET_sid);
+#endif
+#ifdef SOCK_RAW
+	if(ai_socktype==SOCK_RAW)return FKL_MAKE_VM_SYM(fpd->SOCK_RAW_sid);
+#endif
+#ifdef SOCK_RDM
+	if(ai_socktype==SOCK_RDM)return FKL_MAKE_VM_SYM(fpd->SOCK_RDM_sid);
+#endif
+	return NULL;
+}
+
+static inline FklVMvalue* proto_num_to_symbol(int num,FklVM* exe)
+{
+	struct protoent* proto=getprotobynumber(num);
+	if(proto)
+		return FKL_MAKE_VM_SYM(fklVMaddSymbolCstr(exe->gc,proto->p_name)->id);
+	return NULL;
+}
+
+static inline FklVMvalue* addrinfo_to_vmhash(FklVM* exe
+		,struct addrinfo* info
+		,FuvPublicData* fpd)
+{
+	char ip[INET6_ADDRSTRLEN];
+	FklVMvalue* v=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(v);
+	const char* addr=NULL;
+	int port=0;
+	if(info->ai_family==AF_INET||info->ai_family==AF_INET6)
+	{
+		addr=(const char*)&((struct sockaddr_in*)info->ai_addr)->sin_addr;
+		port=((struct sockaddr_in*)info->ai_addr)->sin_port;
+	}
+	else
+	{
+		addr=(const char*)&((struct sockaddr_in6*)info->ai_addr)->sin6_addr;
+		port=((struct sockaddr_in6*)info->ai_addr)->sin6_port;
+	}
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_family_sid)
+			,af_num_to_symbol(info->ai_family,fpd)
+			,ht);
+	uv_inet_ntop(info->ai_family,addr,ip,INET6_ADDRSTRLEN);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_addr_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(ip))
+			,ht);
+
+	if(ntohs(port))
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_port_sid)
+				,FKL_MAKE_VM_FIX(ntohs(port))
+				,ht);
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_socktype_sid)
+			,sock_num_to_symbol(info->ai_socktype,fpd)
+			,ht);
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_protocol_sid)
+			,proto_num_to_symbol(info->ai_protocol,exe)
+			,ht);
+	if(info->ai_canonname)
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_canonname_sid)
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(info->ai_canonname))
+				,ht);
+	return v;
+}
+
+static inline FklVMvalue* addrinfo_to_value(FklVM* exe
+		,struct addrinfo* info
+		,FuvPublicData* fpd)
+{
+	FklVMvalue* r=FKL_VM_NIL;
+	FklVMvalue** pr=&r;
+	for(;info;info=info->ai_next)
+	{
+		*pr=fklCreateVMvaluePairWithCar(exe,addrinfo_to_vmhash(exe,info,fpd));
+		pr=&FKL_VM_CDR(*pr);
+	}
+	return r;
 }
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.getaddrinfo";
-	FKL_DECL_AND_CHECK_ARG4(loop_obj,node_obj,service_obj,proc_obj,exe,Pname);
+	FKL_DECL_AND_CHECK_ARG3(loop_obj,node_obj,service_obj,exe,Pname);
+	FklVMvalue* proc_obj=FKL_VM_POP_ARG(exe);
 	const char* node=NULL;
 	const char* service=NULL;
 	if(FKL_IS_STR(node_obj))
@@ -1451,30 +1574,37 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	if(FKL_IS_STR(service_obj))
-		service=FKL_VM_STR(node_obj)->str;
+		service=FKL_VM_STR(service_obj)->str;
 	else if(service_obj!=FKL_VM_NIL)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
-	if(proc_obj!=FKL_VM_NIL&&!fklIsCallable(proc_obj))
+	if(proc_obj&&proc_obj!=FKL_VM_NIL&&!fklIsCallable(proc_obj))
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	struct addrinfo hints={.ai_flags=0,};
-	FklBuiltinErrorType err_type=process_addrinfo_hints(&hints,exe,ctx->pd);
+	FklBuiltinErrorType err_type=process_addrinfo_hints(&hints,exe,fpd);
 	if(err_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 
 	fklResBp(exe);
 
-	if(hints.ai_flags&AI_NUMERICSERV)
+	if(hints.ai_flags&AI_NUMERICSERV&&service==NULL)
 		service="00";
 
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
-	if(proc_obj==FKL_VM_NIL)
+	if(!proc_obj||proc_obj==FKL_VM_NIL)
 	{
 		uv_getaddrinfo_t req;
+		uint32_t rtp=exe->tp;
+		FKL_VM_PUSH_VALUE(exe,loop_obj);
+		FKL_VM_PUSH_VALUE(exe,node_obj);
+		FKL_VM_PUSH_VALUE(exe,service_obj);
+		fklUnlockThread(exe);
 		int r=uv_getaddrinfo(&fuv_loop->loop,&req,NULL,node,service,&hints);
+		fklLockThread(exe);
 		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
-		FKL_VM_PUSH_VALUE(exe,addrinfo_to_value(exe,req.addrinfo));
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,addrinfo_to_value(exe,req.addrinfo,fpd));
 		uv_freeaddrinfo(req.addrinfo);
 	}
 	else

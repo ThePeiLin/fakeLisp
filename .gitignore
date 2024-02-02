@@ -8,6 +8,8 @@
 !/test/
 !/test/**/
 !/test/*.fkl
+!/test/fuv/*
+!/test/fuv/*.fkl
 !/test/test.json
 !/lib/
 !/lib/**/

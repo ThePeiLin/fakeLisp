@@ -41,9 +41,12 @@ typedef struct
 	FklSid_t AI_NUMERICSERV_sid;
 	FklSid_t AI_CANONNAME_sid;
 
+	FklSid_t aif_addr_sid;
+	FklSid_t aif_port_sid;
 	FklSid_t aif_family_sid;
 	FklSid_t aif_socktype_sid;
 	FklSid_t aif_protocol_sid;
+	FklSid_t aif_canonname_sid;
 
 #ifdef AF_UNIX
 	FklSid_t AF_UNIX_sid;

@@ -1,6 +1,6 @@
-(import (prefix (.. lib fuv) uv-))
+(import (prefix (.. .. lib fuv) uv-))
 
-(import (only (.. lib utils m) assert))
+(import (only (.. .. lib utils m) assert))
 
 (define loop (uv-make-loop))
 
@@ -168,7 +168,7 @@
 
 (uv-loop-walk loop println)
 
-(import (.. lib sync))
+(import (.. .. lib sync))
 
 (define barrier (make-barrier 2))
 

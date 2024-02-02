@@ -392,6 +392,16 @@ static inline void pushListItemToStack(FklNastNode* list,FklPtrStack* stack,FklN
 		*last=list;
 }
 
+static inline int is_unresolved_ref(uint32_t idx,FklCodegenEnv* env)
+{
+	FklUnReSymbolRef** cur=(FklUnReSymbolRef**)env->uref.base;
+	FklUnReSymbolRef** const end=&cur[env->uref.top];
+	for(;cur<end;cur++)
+		if((*cur)->idx==idx)
+			return 1;
+	return 0;
+}
+
 static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 		,FklCodegenEnv* env
 		,uint32_t argNum
@@ -412,6 +422,8 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 				{
 					if(!env->prev)
 						ref=def;
+					else if(is_unresolved_ref(idx,env->prev))
+						return NULL;
 					else
 						idx=def->cidx;
 					env=env->prev;
@@ -438,8 +450,8 @@ BC_PROCESS(_funcall_exp_bc_process)
 		FklBuiltinInlineFunc inlFunc=NULL;
 		const FklInstruction* ins=&funcBc->code[0];
 		if(!codegen->do_not_inline_builtins
-				&&
-				argNum<4
+				&&funcBc->len==1
+				&&argNum<4
 				&&ins->op==FKL_OP_GET_VAR_REF
 				&&(inlFunc=is_inlinable_func_ref(ins->imm_u32
 						,env

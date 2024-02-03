@@ -2,7 +2,6 @@
 #define FKL_UTILS_H
 
 #include"base.h"
-#include<uv.h>
 #include<stdint.h>
 #include<stddef.h>
 #include<stdio.h>

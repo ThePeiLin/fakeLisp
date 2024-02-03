@@ -1,6 +1,4 @@
-#include "fakeLisp/vm.h"
 #include"fuv.h"
-#include "uv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\

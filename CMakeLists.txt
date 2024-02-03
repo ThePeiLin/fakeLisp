@@ -14,6 +14,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
 if(NOT WIN32)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 	set(LINK_TARGET m)# tsan)
 else()
@@ -92,7 +93,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
 set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #libuv
-set(LIBUV_BUILD_SHARED OFF)
+# set(LIBUV_BUILD_SHARED OFF)
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
 set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -108,15 +109,17 @@ file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 add_library(${PARSE}
 	OBJECT
 	"parse.c")
-set_target_properties(${PARSE} PROPERTIES
-	POSITION_INDEPENDENT_CODE ON)
-
 #vmparser.o
 add_library(${VMPARSE}
 	OBJECT
 	"vmparse.c")
+
+if(ASAN)
+set_target_properties(${PARSE} PROPERTIES
+	POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${VMPARSE} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
+endif()
 
 #libfkl_a.a
 file(GLOB LIBFKL_SOURCE "src/*.c")
@@ -131,8 +134,6 @@ set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
 add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})
-set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES
-	POSITION_INDEPENDENT_CODE ON)
 
 #fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
@@ -205,7 +206,7 @@ add_library(sync
 	"main/sync.c")
 set_target_properties(sync PROPERTIES
 	PREFIX "")
-target_link_libraries(sync ${LIBFKL_TARGET_NAME} ${LINK_TARGET} uv_a)
+target_link_libraries(sync ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 add_custom_command(TARGET sync
@@ -285,7 +286,8 @@ endif()
 
 #linking
 target_link_libraries(${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
-target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
+target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv)
+
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
@@ -309,7 +311,6 @@ else()
 set_target_properties(test-dll PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 endif()
-
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND ${GRAMMER_GEN}

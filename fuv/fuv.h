@@ -2,7 +2,6 @@
 #define FKL_FUV_FUV_H
 
 #include<fakeLisp/vm.h>
-#include<uv.h>
 #include<signal.h>
 
 #ifdef __cplusplus

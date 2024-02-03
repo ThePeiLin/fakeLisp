@@ -322,7 +322,7 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 				{
 					FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 					FklSymbolDef* cel=fklGetOrPutHashItem(&def,ht);
-					cel->cidx=prev->refs.num;
+					cel->cidx=UINT32_MAX;
 					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,def.k.scope,env->prototypeId,fid,line);
 					fklPushPtrStack(unref,&prev->uref);
 				}

@@ -2,13 +2,6 @@ cmake_minimum_required(VERSION 3.24)
 
 #cmake options
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-#set(CMAKE_BUILD_TYPE DEBUG)
-#set(CMAKE_BUILD_TYPE RELEASE)
-
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-#set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
@@ -17,14 +10,26 @@ if(NOT WIN32)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-	set(LINK_TARGET m)# tsan)
+	set(LINK_TARGET m)
 else()
 	set(LINK_TARGET "")
+endif()
+
+if(GPROF)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 endif()
 
 if(ASAN)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+endif()
+
+if(TSAN)
+	list(APPEND LINK_TARGET tsan)
+	add_compile_options(-fsanitize=thread)
 endif()
 
 #target names
@@ -47,7 +52,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 if(MSVC)
 	add_compile_options(/W4 /utf-8)
 else()
-	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)# -fsanitize=thread)
+	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()
 
 #testing
@@ -116,10 +121,10 @@ add_library(${VMPARSE}
 	"vmparse.c")
 
 if(ASAN)
-set_target_properties(${PARSE} PROPERTIES
-	POSITION_INDEPENDENT_CODE ON)
-set_target_properties(${VMPARSE} PROPERTIES
-	POSITION_INDEPENDENT_CODE ON)
+	set_target_properties(${PARSE} PROPERTIES
+		POSITION_INDEPENDENT_CODE ON)
+	set_target_properties(${VMPARSE} PROPERTIES
+		POSITION_INDEPENDENT_CODE ON)
 endif()
 
 #libfkl_a.a

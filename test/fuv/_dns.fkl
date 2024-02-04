@@ -4,24 +4,76 @@
 
 (define loop (uv-make-loop))
 
+;; get all local http addresses synchronously
 (define res (uv-getaddrinfo loop nil "http"))
-
 (assert res)
-
-(println "sync dns resolved")
-
+(println "get all local http addresses synchronously")
 (foreach prin1n res)
-
 (newline)
 
-(define (on-resloved err res)
-  (assert (not err))
-  (println "async dns resolved")
-  (foreach prin1n res)
-  (assert (eqv (hash-ref (car res) 'port) 80)))
+;; get all local http addresses asynchronously
+(define req-get-localhost
+  (uv-getaddrinfo loop
+                  nil
+                  "http"
+                  (lambda (err res)
+                    (when err (raise err))
+                    (assert (eqv (hash-ref (car res) 'port) 80))
+                    (println "get all local http addresses asynchronously")
+                    (foreach prin1n res)
+                    (newline))))
 
-(define req (uv-getaddrinfo loop nil "http" on-resloved))
+(assert (uv-req? req-get-localhost))
+(assert (uv-getaddrinfo? req-get-localhost))
 
-(assert (uv-req? req))
-(assert (uv-getaddrinfo? req))
+;; get only ipv4 tcp addresses for gitee.com asynchronously
+(uv-getaddrinfo loop
+                "gitee.com"
+                nil
+                (lambda (err res)
+                  (when err (raise err))
+                  (println "get only ipv4 tcp addresses for gitee.com asynchronously")
+                  (assert res)
+                  (foreach prin1n res)
+                  (newline))
+                'socktype 'stream
+                'family 'inet)
+
+;; get only ipv6 tcp addresses for gitee.com asynchronously
+(uv-getaddrinfo loop
+                  "gitee.com"
+                  nil
+                  (lambda (err res)
+                    (when (and err (not (eq (error-type err) 'UV_EAI_NODATA)))
+                      (raise err))
+                    (when res
+                      (println "get only ipv6 tcp addresses for gitee.com asynchronously")
+                      (foreach prin1n res)
+                      (newline)))
+                  'socktype 'stream
+                  'family 'inet6)
+
+;; get ipv4 and ipv6 tcp addresses for gitee.com asynchronously
+(uv-getaddrinfo loop
+                "gitee.com"
+                nil
+                (lambda (err res)
+                  (when err (raise err))
+                  (assert res)
+                  (println "get ipv4 and ipv6 tcp addresses for gitee.com asynchronously")
+                  (foreach prin1n res)
+                  (newline))
+                'socktype 'stream)
+
+;; get all addresses for gitee.com asynchronously
+(uv-getaddrinfo loop
+                "gitee.com"
+                nil
+                (lambda (err res)
+                  (when err (raise err))
+                  (assert res)
+                  (println "get all addresses for gitee.com asynchronously")
+                  (foreach prin1n res)
+                  (newline)))
+
 (uv-loop-run loop)

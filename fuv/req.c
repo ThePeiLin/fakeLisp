@@ -21,7 +21,7 @@ void uninitFuvReq(FuvReqUd* req_ud)
 		FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,req_data->loop);
 		fklDelHashItem(&req_data->req,&fuv_loop->data.gc_values,NULL);
 		fuv_req->data.req=NULL;
-		free(fuv_req);
+		fuv_req->data.callback=NULL;
 		*req_ud=NULL;
 	}
 }

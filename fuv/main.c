@@ -42,7 +42,7 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->loop_block_signal_sid=fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL],st)->id;
 	pd->metrics_idle_time_sid=fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME],st)->id;
 
-#define XX(code,_) pd->uv_err_sid_##code=fklAddSymbolCstr("UV-"#code,st)->id;
+#define XX(code,_) pd->uv_err_sid_##code=fklAddSymbolCstr("UV_"#code,st)->id;
 	UV_ERRNO_MAP(XX);
 #undef XX
 
@@ -312,6 +312,11 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 				{
 					ctx->context=1;
 					need_continue=1;
+					FklVMframe* prev=exe->top_frame;
+					while(prev->prev!=origin_top_frame)prev=prev->prev;
+					prev->prev=origin_top_frame->prev;
+					origin_top_frame->prev=exe->top_frame;
+					exe->top_frame=origin_top_frame;
 				}
 				else
 				{
@@ -326,10 +331,11 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 						ctx->context=1;
 						need_continue=1;
 					}
+					while(exe->top_frame!=origin_top_frame)
+						fklPopVMframe(exe);
 				}
-				while(exe->top_frame!=origin_top_frame)
-					fklPopVMframe(exe);
 				fuv_loop->data.mode=-1;
+				fuv_loop->data.exe=NULL;
 				exe->state=FKL_VM_READY;
 				origin_top_frame->errorCallBack=NULL;
 				return need_continue;
@@ -391,6 +397,11 @@ static int fuv_loop_walk(FKL_CPROC_ARGL)
 				{
 					ctx->context=1;
 					need_continue=1;
+					FklVMframe* prev=exe->top_frame;
+					while(prev->prev!=origin_top_frame)prev=prev->prev;
+					prev->prev=origin_top_frame->prev;
+					origin_top_frame->prev=exe->top_frame;
+					exe->top_frame=origin_top_frame;
 				}
 				else
 				{
@@ -398,9 +409,10 @@ static int fuv_loop_walk(FKL_CPROC_ARGL)
 					fklUnlockThread(exe);
 					uv_walk(&fuv_loop->loop,fuv_loop_walk_cb,exe);
 					fklLockThread(exe);
+					while(exe->top_frame!=origin_top_frame)
+						fklPopVMframe(exe);
 				}
-				while(exe->top_frame!=origin_top_frame)
-					fklPopVMframe(exe);
+				fuv_loop->data.exe=NULL;
 				exe->state=FKL_VM_READY;
 				origin_top_frame->errorCallBack=NULL;
 				exe->tp=rtp;
@@ -1280,6 +1292,7 @@ static int fuv_req_cancel(FKL_CPROC_ARGL)
 	int r=uv_cancel(GET_REQ(req));
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	uninitFuvReq(fuv_req);
+	req->data.callback=NULL;
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -1566,17 +1579,23 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 		,struct addrinfo* res)
 {
 	FuvReq* fuv_req=uv_req_get_data((uv_req_t*)req);
+	FklVMvalue* proc=fuv_req->data.callback;
 	FuvReqData* rdata=&fuv_req->data;
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,rdata->loop);
 	FuvLoopData* ldata=&fuv_loop->data;
 	FklVM* exe=ldata->exe;
+	if(proc==NULL||exe==NULL)
+	{
+		uv_freeaddrinfo(res);
+		free(fuv_req);
+		return;
+	}
 	fklLockThread(exe);
 
 	FklVMframe* fuv_proc_call_frame=exe->top_frame;
 	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
 	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
 
-	FklVMvalue* proc=fuv_req->data.callback;
 	FklVMvalue* err=status<0
 		?createUvError(FUV_GETADDRINFO_PNAME,status,exe,fpd_obj)
 		:FKL_VM_NIL;
@@ -1597,6 +1616,7 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 		FKL_VM_PUSH_VALUE(exe,addrinfo_to_value(exe,res,fpd));
 		uv_freeaddrinfo(res);
 		uninitFuvReqValue(rdata->req);
+		free(fuv_req);
 		FKL_VM_PUSH_VALUE(exe,err);
 		fklCallObj(exe,proc);
 		exe->thread_run_cb(exe);

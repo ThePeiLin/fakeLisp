@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.24)
 
 #cmake options
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -15,6 +15,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 if(NOT WIN32)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 	set(LINK_TARGET m)# tsan)
 else()
@@ -93,7 +94,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
 set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #libuv
-# set(LIBUV_BUILD_SHARED OFF)
+set(LIBUV_BUILD_SHARED OFF)
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
 set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -285,11 +286,16 @@ set_target_properties(fuv PROPERTIES
 endif()
 
 #linking
-target_link_libraries(${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv_a)
-target_link_libraries(${LIBFKL_TARGET_NAME} ${LINK_TARGET} ${PARSE} ${VMPARSE} uv)
+target_link_libraries(${LIBFKL_STATIC_TARGET_NAME}
+	PUBLIC ${PARSE} ${VMPARSE}
+	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+
+target_link_libraries(${LIBFKL_TARGET_NAME}
+	PUBLIC ${PARSE} ${VMPARSE}
+	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
-target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3)
+target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} ${LINK_TARGET} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 
 #test-dll

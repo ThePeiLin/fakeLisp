@@ -1744,11 +1744,10 @@ struct SymFunc
 	{"req-cancel",              fuv_req_cancel,              },
 	{"req-type",                fuv_req_type,                },
 
-	// getaddrinfo
+	// dns
 	{"getaddrinfo?",            fuv_getaddrinfo_p,           },
 	{"getaddrinfo",             fuv_getaddrinfo,             },
 
-	// getnameinfo
 	{"getnameinfo?",            fuv_incomplete,              },
 	{"getnameinfo",             fuv_incomplete,              },
 };

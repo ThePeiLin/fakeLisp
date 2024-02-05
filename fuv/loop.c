@@ -132,13 +132,12 @@ void startErrorHandle(uv_loop_t* loop
 		,FklVMframe* buttom_frame)
 {
 	struct FuvErrorRecoverData* rd=&ldata->error_recover_data;
-	rd->ltp=ltp;
 	rd->local_values_num=exe->ltp-ltp;
 	rd->stack_values_num=exe->tp-stp;
 
 	free(rd->local_values);
 	free(rd->stack_values);
-	rd->local_values=fklCopyMemory(&exe->locv[stp],sizeof(FklVMvalue*)*rd->local_values_num);
+	rd->local_values=fklCopyMemory(&exe->locv[ltp],sizeof(FklVMvalue*)*rd->local_values_num);
 	rd->stack_values=fklCopyMemory(&exe->base[stp],sizeof(FklVMvalue*)*rd->stack_values_num);
 
 	exe->tp=stp;

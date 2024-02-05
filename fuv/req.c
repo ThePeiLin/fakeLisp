@@ -131,13 +131,13 @@ static inline void init_fuv_req(FuvReqUd* r_ud
 		&&FKL_VM_UD(v)->t==&ReqMetaTables[ENUM];\
 }
 
-FUV_REQ_P(isFuvGetaddrinfo,UV_GETADDRINFO);
-
 struct FuvGetaddrinfo
 {
 	FuvReqData data;
 	uv_getaddrinfo_t req;
 };
+
+FUV_REQ_P(isFuvGetaddrinfo,UV_GETADDRINFO);
 
 uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
 		,FklVMvalue** ret
@@ -148,6 +148,29 @@ uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
 	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_GETADDRINFO],rel);
 	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
 	struct FuvGetaddrinfo* req=CREATE_OBJ(struct FuvGetaddrinfo);
+	FKL_ASSERT(req);
+	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
+	*ret=v;
+	return &req->req;
+}
+
+struct FuvGetnameinfo
+{
+	FuvReqData data;
+	uv_getnameinfo_t req;
+};
+
+FUV_REQ_P(isFuvGetnameinfo,UV_GETNAMEINFO);
+
+uv_getnameinfo_t* createFuvGetnameinfo(FklVM* exe
+		,FklVMvalue** ret
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_GETNAMEINFO],rel);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
+	struct FuvGetnameinfo* req=CREATE_OBJ(struct FuvGetnameinfo);
 	FKL_ASSERT(req);
 	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
 	*ret=v;

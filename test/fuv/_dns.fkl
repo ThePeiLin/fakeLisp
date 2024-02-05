@@ -25,6 +25,7 @@
 
 (assert (uv-req? req-get-localhost))
 (assert (uv-getaddrinfo? req-get-localhost))
+(assert (not (uv-getnameinfo? req-get-localhost)))
 
 ;; get only ipv4 tcp addresses for gitee.com asynchronously
 (uv-getaddrinfo loop
@@ -74,5 +75,79 @@
                   (println "get all addresses for gitee.com asynchronously")
                   (foreach prin1n res)
                   (newline)))
+
+;; look up local ipv4 address synchronously
+(define res (uv-getnameinfo loop nil 'family 'inet))
+(assert res)
+(println "look up local ipv4 address synchronously")
+(prin1n res)
+(newline)
+
+;; lookup local ipv4 address asynchronously
+(define req-lookup-localhost
+  (uv-getnameinfo loop
+                  (lambda (err hostname service)
+                    (when err (raise err))
+                    (assert hostname)
+                    (assert service)
+                    (println "lookup local ipv4 address asynchronously")
+                    (prin1n (make-hash 'hostname hostname
+                                       'serive service))
+                    (newline))
+                  'family 'inet))
+
+(assert (uv-req? req-lookup-localhost))
+(assert (uv-getnameinfo? req-lookup-localhost))
+(assert (not (uv-getaddrinfo? req-lookup-localhost)))
+
+;; lookup local 127.0.0.1 ipv4 address asynchronously
+(uv-getnameinfo loop
+                (lambda (err hostname service)
+                  (when err (raise err))
+                  (assert hostname)
+                  (assert service)
+                  (println "lookup local 127.0.0.1 ipv4 address asynchronously")
+                  (prin1n (make-hash 'hostname hostname
+                                     'service service))
+                  (newline))
+                'ip "127.0.0.1")
+
+;; lookup local ipv6 address asynchronously
+(uv-getnameinfo loop
+                (lambda (err hostname service)
+                  (when err (raise err))
+                  (assert hostname)
+                  (assert service)
+                  (println "lookup local ipv6 address asynchronously")
+                  (prin1n (make-hash 'hostname hostname
+                                     'service service))
+                  (newline))
+                'family 'inet6)
+
+;; lookup local ::1 ipv6 address asynchronously
+(uv-getnameinfo loop
+                (lambda (err hostname service)
+                  (when err (raise err))
+                  (assert hostname)
+                  (assert service)
+                  (println "lookup local ::1 ipv6 address asynchronously")
+                  (prin1n (make-hash 'hostname hostname
+                                     'service service))
+                  (newline))
+                'ip "::1")
+
+;; lookup port 80 service asynchronously
+(uv-getnameinfo loop
+                (lambda (err hostname service)
+                  (when err (raise err))
+                  (assert hostname)
+                  (assert service)
+                  (assert (equal service "http"))
+                  (println "lookup port 80 service asynchronously")
+                  (prin1n (make-hash 'hostname hostname
+                                     'service service))
+                  (newline))
+                'port 80
+                'family 'inet6)
 
 (uv-loop-run loop)

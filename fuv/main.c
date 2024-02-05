@@ -58,12 +58,15 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->AI_NUMERICSERV_sid=fklAddSymbolCstr("numerserv",st)->id;
 	pd->AI_CANONNAME_sid=fklAddSymbolCstr("canonname",st)->id;
 
+	pd->aif_ip_sid=fklAddSymbolCstr("ip",st)->id;
 	pd->aif_addr_sid=fklAddSymbolCstr("addr",st)->id;
 	pd->aif_port_sid=fklAddSymbolCstr("port",st)->id;
 	pd->aif_family_sid=fklAddSymbolCstr("family",st)->id;
 	pd->aif_socktype_sid=fklAddSymbolCstr("socktype",st)->id;
 	pd->aif_protocol_sid=fklAddSymbolCstr("protocol",st)->id;
 	pd->aif_canonname_sid=fklAddSymbolCstr("canonname",st)->id;
+	pd->aif_hostname_sid=fklAddSymbolCstr("hostname",st)->id;
+	pd->aif_service_sid=fklAddSymbolCstr("service",st)->id;
 
 #ifdef AF_UNIX
 	pd->AF_UNIX_sid=fklAddSymbolCstr("unix",st)->id;
@@ -218,6 +221,30 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->SIGSYS_sid=fklAddSymbolCstr("sigsys",st)->id;
 #endif
 
+#ifdef NI_NAMEREQD
+	pd->NI_NAMEREQD_sid=fklAddSymbolCstr("namereqd",st)->id;
+#endif
+#ifdef NI_DGRAM
+	pd->NI_DGRAM_sid=fklAddSymbolCstr("dgram",st)->id;
+#endif
+#ifdef NI_NOFQDN
+	pd->NI_NOFQDN_sid=fklAddSymbolCstr("nofqdn",st)->id;
+#endif
+#ifdef NI_NUMERICHOST
+	pd->NI_NUMERICHOST_sid=fklAddSymbolCstr("numerichost",st)->id;
+#endif
+#ifdef NI_NUMERICSERV
+	pd->NI_NUMERICSERV_sid=fklAddSymbolCstr("numericserv",st)->id;
+#endif
+#ifdef NI_IDN
+	pd->NI_IDN_sid=fklAddSymbolCstr("idn",st)->id;
+#endif
+#ifdef NI_IDN_ALLOW_UNASSIGNED
+	pd->NI_IDN_ALLOW_UNASSIGNED_sid=fklAddSymbolCstr("idn-allow-unassigned",st)->id;
+#endif
+#ifdef NI_IDN_USE_STD3_ASCII_RULES
+	pd->NI_IDN_USE_STD3_ASCII_RULES_sid=fklAddSymbolCstr("idn-use-std3-ascii-rules",st)->id;
+#endif
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL){PREDICATE(isFuvLoop(val),"fuv.loop?")}
@@ -1378,8 +1405,43 @@ static int get_protonum_with_cstr(const char* name)
 	return -1;
 }
 
-static inline FklBuiltinErrorType process_addrinfo_hints(struct addrinfo* hints
-		,FklVM* exe
+static inline int sid_to_af_name(FklSid_t family_id,FuvPublicData* fpd)
+{
+#ifdef AF_UNIX
+	if(family_id==fpd->AF_UNIX_sid)return AF_UNIX;
+#endif
+#ifdef AF_INET
+	if(family_id==fpd->AF_INET_sid)return AF_INET;
+#endif
+#ifdef AF_INET6
+	if(family_id==fpd->AF_INET6_sid)return AF_INET6;
+#endif
+#ifdef AF_IPX
+	if(family_id==fpd->AF_IPX_sid)return AF_IPX;
+#endif
+#ifdef AF_NETLINK
+	if(family_id==fpd->AF_NETLINK_sid)return AF_NETLINK;
+#endif
+#ifdef AF_X25
+	if(family_id==fpd->AF_X25_sid)return AF_X25;
+#endif
+#ifdef AF_AX25
+	if(family_id==fpd->AF_AX25_sid)return AF_AX25;
+#endif
+#ifdef AF_ATMPVC
+	if(family_id==fpd->AF_ATMPVC_sid)return AF_ATMPVC;
+#endif
+#ifdef AF_APPLETALK
+	if(family_id==fpd->AF_APPLETALK_sid)return AF_APPLETALK;
+#endif
+#ifdef AF_PACKET
+	if(family_id==fpd->AF_PACKET_sid)return AF_PACKET;
+#endif
+	return -1;
+}
+
+static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe
+		,struct addrinfo* hints
 		,FuvPublicData* fpd)
 {
 	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
@@ -1396,37 +1458,11 @@ static inline FklBuiltinErrorType process_addrinfo_hints(struct addrinfo* hints
 				if(!FKL_IS_SYM(cur))
 					return FKL_ERR_INCORRECT_TYPE_VALUE;
 				FklSid_t family_id=FKL_GET_SYM(cur);
-#ifdef AF_UNIX
-				if(family_id==fpd->AF_UNIX_sid){hints->ai_family=AF_UNIX;goto done;}
-#endif
-#ifdef AF_INET
-				if(family_id==fpd->AF_INET_sid){hints->ai_family=AF_INET;goto done;}
-#endif
-#ifdef AF_INET6
-				if(family_id==fpd->AF_INET6_sid){hints->ai_family=AF_INET6;goto done;}
-#endif
-#ifdef AF_IPX
-				if(family_id==fpd->AF_IPX_sid){hints->ai_family=AF_IPX;goto done;}
-#endif
-#ifdef AF_NETLINK
-				if(family_id==fpd->AF_NETLINK_sid){hints->ai_family=AF_NETLINK;goto done;}
-#endif
-#ifdef AF_X25
-				if(family_id==fpd->AF_X25_sid){hints->ai_family=AF_X25;goto done;}
-#endif
-#ifdef AF_AX25
-				if(family_id==fpd->AF_AX25_sid){hints->ai_family=AF_AX25;goto done;}
-#endif
-#ifdef AF_ATMPVC
-				if(family_id==fpd->AF_ATMPVC_sid){hints->ai_family=AF_ATMPVC;goto done;}
-#endif
-#ifdef AF_APPLETALK
-				if(family_id==fpd->AF_APPLETALK_sid){hints->ai_family=AF_APPLETALK;goto done;}
-#endif
-#ifdef AF_PACKET
-				if(family_id==fpd->AF_PACKET_sid){hints->ai_family=AF_PACKET;goto done;}
-#endif
-				return FKL_ERR_INVALID_VALUE;
+				int af_num=sid_to_af_name(family_id,fpd);
+				if(af_num<0)
+					return FKL_ERR_INVALID_VALUE;
+				hints->ai_family=af_num;
+				goto done;
 			}
 			else if(id==fpd->aif_socktype_sid)
 			{
@@ -1622,6 +1658,7 @@ static inline FklVMvalue* addrinfo_to_value(FklVM* exe
 }
 
 #define FUV_GETADDRINFO_PNAME ("fuv.getaddrinfo")
+
 static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 		,int status
 		,struct addrinfo* res)
@@ -1676,8 +1713,9 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="fuv.getaddrinfo";
+	static const char Pname[]=FUV_GETADDRINFO_PNAME;
 	FKL_DECL_AND_CHECK_ARG3(loop_obj,node_obj,service_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
 	FklVMvalue* proc_obj=FKL_VM_POP_ARG(exe);
 	const char* node=NULL;
 	const char* service=NULL;
@@ -1696,7 +1734,7 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	struct addrinfo hints={.ai_flags=0,};
-	FklBuiltinErrorType err_type=process_addrinfo_hints(&hints,exe,fpd);
+	FklBuiltinErrorType err_type=process_addrinfo_hints(exe,&hints,fpd);
 	if(err_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 
@@ -1725,6 +1763,228 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 		FklVMvalue* retval=NULL;
 		uv_getaddrinfo_t* req=createFuvGetaddrinfo(exe,&retval,ctx->proc,loop_obj,proc_obj);
 		int r=uv_getaddrinfo(&fuv_loop->loop,req,fuv_getaddrinfo_cb,node,service,&hints);
+		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+		FKL_VM_PUSH_VALUE(exe,retval);
+	}
+	return 0;
+}
+
+#undef FUV_GETADDRINFO_PNAME
+
+static int fuv_getnameinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetnameinfo(val),"fuv.getnameinfo?")}
+
+static inline FklBuiltinErrorType process_sockaddr_flags(FklVM* exe
+		,struct sockaddr_storage* addr
+		,int* flags
+		,FuvPublicData* fpd
+		,FklVMvalue** pip_obj
+		,FklVMvalue** pport_obj
+		,int* uv_err)
+{
+	const char* ip=NULL;
+	int port=0;
+	int has_af=0;
+	int af_num=0;
+	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	while(cur)
+	{
+		if(FKL_IS_SYM(cur))
+		{
+			FklSid_t id=FKL_GET_SYM(cur);
+			if(id==fpd->aif_family_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_SYM(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				FklSid_t family_id=FKL_GET_SYM(cur);
+				af_num=sid_to_af_name(family_id,fpd);
+				if(af_num<0)
+					return FKL_ERR_INVALID_VALUE;
+				has_af=1;
+				goto done;
+			}
+			if(id==fpd->aif_ip_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_STR(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				ip=FKL_VM_STR(cur)->str;
+				*pip_obj=cur;
+				goto done;
+			}
+			if(id==fpd->aif_port_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_FIX(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				port=FKL_GET_FIX(cur);
+				*pport_obj=cur;
+				goto done;
+			}
+#ifdef NI_NAMEREQD
+			if(id==fpd->NI_NAMEREQD_sid){(*flags)|=NI_NAMEREQD;goto done;}
+#endif
+#ifdef NI_DGRAM
+			if(id==fpd->NI_DGRAM_sid){(*flags)|=NI_DGRAM;goto done;}
+#endif
+#ifdef NI_NOFQDN
+			if(id==fpd->NI_NOFQDN_sid){(*flags)|=NI_NOFQDN;goto done;}
+#endif
+#ifdef NI_NUMERICHOST
+			if(id==fpd->NI_NUMERICHOST_sid){(*flags)|=NI_NUMERICHOST;goto done;}
+#endif
+#ifdef NI_NUMERICSERV
+			if(id==fpd->NI_NUMERICSERV_sid){(*flags)|=NI_NUMERICSERV;goto done;}
+#endif
+#ifdef NI_IDN
+			if(id==fpd->NI_IDN_sid){(*flags)|=NI_IDN;goto done;}
+#endif
+#ifdef NI_IDN_ALLOW_UNASSIGNED
+			if(id==fpd->NI_IDN_ALLOW_UNASSIGNED_sid){(*flags)|=NI_IDN_ALLOW_UNASSIGNED;goto done;}
+#endif
+#ifdef NI_IDN_USE_STD3_ASCII_RULES
+			if(id==fpd->NI_IDN_USE_STD3_ASCII_RULES_sid){(*flags)|=NI_IDN_USE_STD3_ASCII_RULES;goto done;}
+#endif
+			return FKL_ERR_INVALID_VALUE;
+		}
+		else
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+done:
+		cur=FKL_VM_POP_ARG(exe);
+	}
+	if(ip||port)
+	{
+		if(!ip)ip="0.0.0.0";
+		int r=0;
+		if(!(r=uv_ip4_addr(ip,port,(struct sockaddr_in*)addr)))
+		{
+			if(!has_af)
+				addr->ss_family=AF_INET;
+		}
+		else if(!(r=uv_ip6_addr(ip,port,(struct sockaddr_in6*)addr)))
+		{
+			if(!has_af)
+				addr->ss_family=AF_INET6;
+		}
+		*uv_err=r;
+	}
+	if(has_af)
+		addr->ss_family=af_num;
+	return 0;
+}
+
+static inline FklVMvalue* host_service_to_hash(FklVM* exe
+		,const char* hostname
+		,const char* service
+		,FuvPublicData* fpd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_hostname_sid)
+			,hostname?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(hostname)):FKL_VM_NIL
+			,ht);
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_service_sid)
+			,service?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(service)):FKL_VM_NIL
+			,ht);
+	return hash;
+}
+
+#define FUV_GETNAMEINFO_PNAME ("fuv.getnameinfo")
+
+static void fuv_getnameinfo_cb(uv_getnameinfo_t* req
+		,int status
+		,const char* hostname
+		,const char* service)
+{
+	FuvReq* fuv_req=uv_req_get_data((uv_req_t*)req);
+	FklVMvalue* proc=fuv_req->data.callback;
+	FuvReqData* rdata=&fuv_req->data;
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,rdata->loop);
+	FuvLoopData* ldata=&fuv_loop->data;
+	FklVM* exe=ldata->exe;
+	if(proc==NULL||exe==NULL)
+	{
+		free(fuv_req);
+		return;
+	}
+	fklLockThread(exe);
+
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+
+	FklVMvalue* err=status<0
+		?createUvError(FUV_GETNAMEINFO_PNAME,status,exe,fpd_obj)
+		:FKL_VM_NIL;
+	exe->state=FKL_VM_READY;
+	uint32_t stp=exe->tp;
+	uint32_t ltp=exe->ltp;
+	FklVMframe* buttom_frame=exe->top_frame;
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+	jmp_buf buf;
+	ctx->buf=&buf;
+	int r=setjmp(buf);
+	if(r==FUV_RUN_OK)
+		exe->tp--;
+	else if(r==FUV_RUN_ERR_OCCUR)
+		startErrorHandle(&fuv_loop->loop,ldata,exe,stp,ltp,buttom_frame);
+	else
+	{
+		fklSetBp(exe);
+		FKL_VM_PUSH_VALUE(exe,service?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(service)):FKL_VM_NIL);
+		FKL_VM_PUSH_VALUE(exe,hostname?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(hostname)):FKL_VM_NIL);
+		uninitFuvReqValue(rdata->req);
+		free(fuv_req);
+		FKL_VM_PUSH_VALUE(exe,err);
+		fklCallObj(exe,proc);
+		exe->thread_run_cb(exe);
+	}
+	fklUnlockThread(exe);
+}
+
+static int fuv_getnameinfo(FKL_CPROC_ARGL)
+{
+	static const char Pname[]=FUV_GETNAMEINFO_PNAME;
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FklVMvalue* proc_obj=FKL_VM_POP_ARG(exe);
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	struct sockaddr_storage addr={.ss_family=AF_UNSPEC};
+	int flags=0;
+
+	FklVMvalue* ip_obj=FKL_VM_NIL;
+	FklVMvalue* port_obj=FKL_VM_NIL;
+	int r=0;
+	FklBuiltinErrorType error_type=process_sockaddr_flags(exe,&addr,&flags,fpd,&ip_obj,&port_obj,&r);
+	if(error_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,error_type,exe);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	if(!proc_obj||proc_obj==FKL_VM_NIL)
+	{
+		uv_getnameinfo_t req;
+		uint32_t rtp=exe->tp;
+		FKL_VM_PUSH_VALUE(exe,loop_obj);
+		FKL_VM_PUSH_VALUE(exe,ip_obj);
+		FKL_VM_PUSH_VALUE(exe,port_obj);
+		fklUnlockThread(exe);
+		int r=uv_getnameinfo(&fuv_loop->loop,&req,NULL,(struct sockaddr*)&addr,flags);
+		fklLockThread(exe);
+		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,host_service_to_hash(exe,req.host,req.service,fpd));
+	}
+	else
+	{
+		FklVMvalue* retval=NULL;
+		uv_getnameinfo_t* req=createFuvGetnameinfo(exe,&retval,ctx->proc,loop_obj,proc_obj);
+		int r=uv_getnameinfo(&fuv_loop->loop,req,fuv_getnameinfo_cb,(struct sockaddr*)&addr,flags);
 		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 		FKL_VM_PUSH_VALUE(exe,retval);
 	}
@@ -1818,9 +2078,8 @@ struct SymFunc
 	// dns
 	{"getaddrinfo?",            fuv_getaddrinfo_p,           },
 	{"getaddrinfo",             fuv_getaddrinfo,             },
-
-	{"getnameinfo?",            fuv_incomplete,              },
-	{"getnameinfo",             fuv_incomplete,              },
+	{"getnameinfo?",            fuv_getnameinfo_p,           },
+	{"getnameinfo",             fuv_getnameinfo,             },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

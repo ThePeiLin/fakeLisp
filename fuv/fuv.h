@@ -40,12 +40,15 @@ typedef struct
 	FklSid_t AI_NUMERICSERV_sid;
 	FklSid_t AI_CANONNAME_sid;
 
+	FklSid_t aif_ip_sid;
 	FklSid_t aif_addr_sid;
 	FklSid_t aif_port_sid;
 	FklSid_t aif_family_sid;
 	FklSid_t aif_socktype_sid;
 	FklSid_t aif_protocol_sid;
 	FklSid_t aif_canonname_sid;
+	FklSid_t aif_hostname_sid;
+	FklSid_t aif_service_sid;
 
 #ifdef AF_UNIX
 	FklSid_t AF_UNIX_sid;
@@ -200,12 +203,35 @@ typedef struct
 	FklSid_t SIGSYS_sid;
 #endif
 
+#ifdef NI_NAMEREQD
+	FklSid_t NI_NAMEREQD_sid;
+#endif
+#ifdef NI_DGRAM
+	FklSid_t NI_DGRAM_sid;
+#endif
+#ifdef NI_NOFQDN
+	FklSid_t NI_NOFQDN_sid;
+#endif
+#ifdef NI_NUMERICHOST
+	FklSid_t NI_NUMERICHOST_sid;
+#endif
+#ifdef NI_NUMERICSERV
+	FklSid_t NI_NUMERICSERV_sid;
+#endif
+#ifdef NI_IDN
+	FklSid_t NI_IDN_sid;
+#endif
+#ifdef NI_IDN_ALLOW_UNASSIGNED
+	FklSid_t NI_IDN_ALLOW_UNASSIGNED_sid;
+#endif
+#ifdef NI_IDN_USE_STD3_ASCII_RULES
+	FklSid_t NI_IDN_USE_STD3_ASCII_RULES_sid;
+#endif
 }FuvPublicData;
 
 struct FuvErrorRecoverData
 {
 	FklVMframe* frame;
-	uint32_t ltp;
 	uint32_t stack_values_num;
 	uint32_t local_values_num;
 	FklVMvalue** stack_values;
@@ -349,8 +375,14 @@ void uninitFuvReqValue(FklVMvalue*);
 void uninitFuvReq(FuvReqUd*);
 
 int isFuvGetaddrinfo(FklVMvalue* v);
-
 uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback);
+
+int isFuvGetnameinfo(FklVMvalue* v);
+uv_getnameinfo_t* createFuvGetnameinfo(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
 		,FklVMvalue* loop

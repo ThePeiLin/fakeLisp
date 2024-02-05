@@ -322,7 +322,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 					need_continue=1;
 					buttom_frame->errorCallBack=NULL;
 					FklVMframe* prev=exe->top_frame;
-					while(prev->prev!=origin_top_frame)prev=prev->prev;
+					for(;prev&&prev->prev!=origin_top_frame;prev=prev->prev);
 					prev->prev=origin_top_frame->prev;
 					origin_top_frame->prev=exe->top_frame;
 					exe->top_frame=origin_top_frame;
@@ -349,7 +349,17 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 			}
 			break;
 		case 1:
-			fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe),exe);
+			{
+				FklVMframe* buttom_frame=exe->top_frame;
+				for(;buttom_frame->type==FKL_FRAME_COMPOUND
+						||buttom_frame->t!=&FuvProcCallCtxMethodTable
+						;buttom_frame=buttom_frame->prev);
+				FklVMframe* prev=exe->top_frame->prev;
+				exe->top_frame->prev=buttom_frame->prev;
+				buttom_frame->prev=exe->top_frame;
+				exe->top_frame=prev;
+				fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe),exe);
+			}
 			break;
 	}
 	return 0;

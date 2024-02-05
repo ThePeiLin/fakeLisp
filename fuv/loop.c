@@ -164,7 +164,7 @@ void startErrorHandle(uv_loop_t* loop
 	exe->top_frame=buttom_frame;
 
 	uv_idle_t* idle=&ldata->error_check_idle;
-	if(uv_is_active((uv_handle_t*)idle))
+	if(uv_is_active((uv_handle_t*)idle)||uv_is_closing((uv_handle_t*)idle))
 		return;
 	uv_idle_init(loop,idle);
 	uv_idle_start(&ldata->error_check_idle,error_check_idle_cb);

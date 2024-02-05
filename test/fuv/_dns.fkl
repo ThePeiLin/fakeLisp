@@ -40,18 +40,17 @@
                 'family 'inet)
 
 ;; get only ipv6 tcp addresses for gitee.com asynchronously
-(uv-getaddrinfo loop
+(check (defmacro test-ipv6)
+  (uv-getaddrinfo loop
                   "gitee.com"
                   nil
                   (lambda (err res)
-                    (when (and err (not (eq (error-type err) 'UV_EAI_NODATA)))
-                      (raise err))
-                    (when res
-                      (println "get only ipv6 tcp addresses for gitee.com asynchronously")
-                      (foreach prin1n res)
-                      (newline)))
+                    (when err (raise err))
+                    (println "get only ipv6 tcp addresses for gitee.com asynchronously")
+                    (foreach prin1n res)
+                    (newline))
                   'socktype 'stream
-                  'family 'inet6)
+                  'family 'inet6))
 
 ;; get ipv4 and ipv6 tcp addresses for gitee.com asynchronously
 (uv-getaddrinfo loop

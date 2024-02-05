@@ -244,13 +244,7 @@ static int fuv_loop_close(FKL_CPROC_ARGL)
 	return 0;
 }
 
-typedef enum
-{
-	FUV_RUN_OK=0,
-	FUV_RUN_ERR_OCCUR,
-}FuvLoopRunStatus;
-
-static int fuv_loop_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
+static int fuv_loop_walk_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
 {
 	FklCprocFrameContext* ctx=(FklCprocFrameContext*)f->data;
 	vm->tp=ctx->rtp;
@@ -258,6 +252,7 @@ static int fuv_loop_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 	FKL_VM_PUSH_VALUE(vm,ev);
 	longjmp(fuv_loop->data.buf,FUV_RUN_ERR_OCCUR);
+	return 1;
 }
 
 static int fuv_proc_call_frame_end(void* data)
@@ -265,10 +260,21 @@ static int fuv_proc_call_frame_end(void* data)
 	return 0;
 }
 
+static int fuv_proc_call_frame_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
+{
+	FklVMframe* run_loop_frame=f->prev;
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)f->data;
+	FklCprocFrameContext* run_loop_ctx=(FklCprocFrameContext*)run_loop_frame->data;
+	vm->tp=run_loop_ctx->rtp;
+	FKL_VM_PUSH_VALUE(vm,ev);
+	longjmp(*ctx->buf,FUV_RUN_ERR_OCCUR);
+	return 1;
+}
+
 static void fuv_proc_call_frame_step(void* data,FklVM* exe)
 {
 	FuvProcCallCtx* ctx=(FuvProcCallCtx*)data;
-	longjmp(*ctx->buf,1);
+	longjmp(*ctx->buf,FUV_RUN_OK);
 }
 
 static const FklVMframeContextMethodTable FuvProcCallCtxMethodTable=
@@ -307,11 +313,14 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 					if(mode>UV_RUN_NOWAIT)
 						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 				}
-				origin_top_frame->errorCallBack=fuv_loop_error_callback;
+				exe->top_frame=fklCreateOtherObjVMframe(exe,&FuvProcCallCtxMethodTable,origin_top_frame);
+				exe->top_frame->errorCallBack=fuv_proc_call_frame_error_callback;
+				FklVMframe* buttom_frame=exe->top_frame;
 				if(setjmp(fuv_loop->data.buf))
 				{
 					ctx->context=1;
 					need_continue=1;
+					buttom_frame->errorCallBack=NULL;
 					FklVMframe* prev=exe->top_frame;
 					while(prev->prev!=origin_top_frame)prev=prev->prev;
 					prev->prev=origin_top_frame->prev;
@@ -320,7 +329,6 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 				}
 				else
 				{
-					exe->top_frame=fklCreateOtherObjVMframe(exe,&FuvProcCallCtxMethodTable,origin_top_frame);
 					fuv_loop->data.mode=mode;
 					fklUnlockThread(exe);
 					int r=uv_run(&fuv_loop->loop,mode);
@@ -337,7 +345,6 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 				fuv_loop->data.mode=-1;
 				fuv_loop->data.exe=NULL;
 				exe->state=FKL_VM_READY;
-				origin_top_frame->errorCallBack=NULL;
 				return need_continue;
 			}
 			break;
@@ -350,6 +357,9 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 
 static void fuv_loop_walk_cb(uv_handle_t* handle,void* arg)
 {
+	FuvLoopData* floop_data=uv_loop_get_data(uv_handle_get_loop(handle));
+	if(handle==(uv_handle_t*)&floop_data->error_check_idle)
+		return;
 	FklVM* exe=arg;
 	fklLockThread(exe);
 	FklVMvalue* proc=FKL_VM_GET_TOP_VALUE(exe);
@@ -392,7 +402,7 @@ static int fuv_loop_walk(FKL_CPROC_ARGL)
 				FKL_VM_PUSH_VALUE(exe,proc_obj);
 				FklVMframe* origin_top_frame=exe->top_frame;
 				int need_continue=0;
-				origin_top_frame->errorCallBack=fuv_loop_error_callback;
+				origin_top_frame->errorCallBack=fuv_loop_walk_error_callback;
 				if(setjmp(fuv_loop->data.buf))
 				{
 					ctx->context=1;
@@ -412,7 +422,6 @@ static int fuv_loop_walk(FKL_CPROC_ARGL)
 					while(exe->top_frame!=origin_top_frame)
 						fklPopVMframe(exe);
 				}
-				fuv_loop->data.exe=NULL;
 				exe->state=FKL_VM_READY;
 				origin_top_frame->errorCallBack=NULL;
 				exe->tp=rtp;
@@ -609,6 +618,7 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL)
 
 static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle
 		,FuvHandleData* handle_data
+		,uv_loop_t* loop
 		,FuvLoopData* loop_data
 		,int idx)
 {
@@ -617,33 +627,38 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle
 	{
 		FklVM* exe=loop_data->exe;
 		fklLockThread(exe);
+		uint32_t stp=exe->tp;
+		uint32_t ltp=exe->ltp;
+		FklVMframe* buttom_frame=exe->top_frame;
 		exe->state=FKL_VM_READY;
 		FklVMframe* fuv_proc_call_frame=exe->top_frame;
 		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
 		jmp_buf buf;
 		ctx->buf=&buf;
-		if(setjmp(buf))
-		{
+		int r=setjmp(buf);
+		if(r==FUV_RUN_OK)
 			exe->tp--;
-			fklUnlockThread(exe);
-			return;
-		}
+		else if(r==FUV_RUN_ERR_OCCUR)
+			startErrorHandle(loop,loop_data,exe,stp,ltp,buttom_frame);
 		else
 		{
 			fklSetBp(exe);
 			fklCallObj(exe,proc);
 			exe->thread_run_cb(exe);
 		}
+		fklUnlockThread(exe);
 	}
 }
 
 static void fuv_close_cb(uv_handle_t* handle)
 {
-	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop(handle));
+	uv_loop_t* loop=uv_handle_get_loop(handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
 	FuvHandle* fuv_handle=uv_handle_get_data(handle);
 	FuvHandleData* hdata=&fuv_handle->data;
 	fuv_call_handle_callback_in_loop(handle
 			,hdata
+			,loop
 			,ldata
 			,1);
 	FklVMvalue* handle_obj=hdata->handle;
@@ -820,10 +835,12 @@ static int fuv_make_timer(FKL_CPROC_ARGL)
 
 static void fuv_timer_cb(uv_timer_t* handle)
 {
-	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
 	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
+			,loop
 			,ldata
 			,0);
 }
@@ -944,10 +961,12 @@ static int fuv_make_prepare(FKL_CPROC_ARGL)
 
 static void fuv_prepare_cb(uv_prepare_t* handle)
 {
-	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
 	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
+			,loop
 			,ldata
 			,0);
 }
@@ -1001,10 +1020,12 @@ static int fuv_make_idle(FKL_CPROC_ARGL)
 
 static void fuv_idle_cb(uv_idle_t* handle)
 {
-	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
 	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
+			,loop
 			,ldata
 			,0);
 }
@@ -1058,10 +1079,12 @@ static int fuv_make_check(FKL_CPROC_ARGL)
 
 static void fuv_check_cb(uv_check_t* handle)
 {
-	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
 	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
 	fuv_call_handle_callback_in_loop((uv_handle_t*)handle
 			,hdata
+			,loop
 			,ldata
 			,0);
 }
@@ -1124,17 +1147,25 @@ static inline void fuv_call_handle_callback_in_loop_1(uv_handle_t* handle
 	{
 		FklVM* exe=loop_data->exe;
 		fklLockThread(exe);
+		uint32_t stp=exe->tp;
+		uint32_t ltp=exe->ltp;
+		FklVMframe* buttom_frame=exe->top_frame;
+		exe->state=FKL_VM_READY;
 		exe->state=FKL_VM_READY;
 		FklVMframe* fuv_proc_call_frame=exe->top_frame;
 		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
 		jmp_buf buf;
 		ctx->buf=&buf;
-		if(setjmp(buf))
-		{
+		int r=setjmp(buf);
+		if(r==FUV_RUN_OK)
 			exe->tp--;
-			fklUnlockThread(exe);
-			return;
-		}
+		else if(r==FUV_RUN_ERR_OCCUR)
+			startErrorHandle(uv_handle_get_loop(handle)
+					,loop_data
+					,exe
+					,stp
+					,ltp
+					,buttom_frame);
 		else
 		{
 			fklSetBp(exe);
@@ -1142,6 +1173,7 @@ static inline void fuv_call_handle_callback_in_loop_1(uv_handle_t* handle
 			fklCallObj(exe,proc);
 			exe->thread_run_cb(exe);
 		}
+		fklUnlockThread(exe);
 	}
 }
 
@@ -1600,15 +1632,17 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 		?createUvError(FUV_GETADDRINFO_PNAME,status,exe,fpd_obj)
 		:FKL_VM_NIL;
 	exe->state=FKL_VM_READY;
+	uint32_t stp=exe->tp;
+	uint32_t ltp=exe->ltp;
+	FklVMframe* buttom_frame=exe->top_frame;
 	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
 	jmp_buf buf;
 	ctx->buf=&buf;
-	if(setjmp(buf))
-	{
+	int r=setjmp(buf);
+	if(r==FUV_RUN_OK)
 		exe->tp--;
-		fklUnlockThread(exe);
-		return;
-	}
+	else if(r==FUV_RUN_ERR_OCCUR)
+		startErrorHandle(&fuv_loop->loop,ldata,exe,stp,ltp,buttom_frame);
 	else
 	{
 		FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
@@ -1621,6 +1655,7 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 		fklCallObj(exe,proc);
 		exe->thread_run_cb(exe);
 	}
+	fklUnlockThread(exe);
 }
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)

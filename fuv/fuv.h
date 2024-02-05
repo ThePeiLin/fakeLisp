@@ -202,13 +202,31 @@ typedef struct
 
 }FuvPublicData;
 
+struct FuvErrorRecoverData
+{
+	FklVMframe* frame;
+	uint32_t ltp;
+	uint32_t stack_values_num;
+	uint32_t local_values_num;
+	FklVMvalue** stack_values;
+	FklVMvalue** local_values;
+};
+
 typedef struct
 {
 	FklVM* exe;
 	FklHashTable gc_values;
+	uv_idle_t error_check_idle;
+	struct FuvErrorRecoverData error_recover_data;
 	jmp_buf buf;
 	int mode;
 }FuvLoopData;
+
+typedef enum
+{
+	FUV_RUN_OK=1,
+	FUV_RUN_ERR_OCCUR,
+}FuvLoopRunStatus;
 
 typedef struct
 {
@@ -249,6 +267,12 @@ typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
 FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
+void startErrorHandle(uv_loop_t* loop
+		,FuvLoopData* ldata
+		,FklVM* exe
+		,uint32_t stp
+		,uint32_t ltp
+		,FklVMframe* buttom_frame);
 void fuvLoopInsertFuvObj(FklVMvalue* loop,FklVMvalue* handle);
 
 int isFuvHandle(FklVMvalue* v);

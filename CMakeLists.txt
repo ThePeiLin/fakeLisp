@@ -89,6 +89,9 @@ file(GLOB GRAMMER_GEN_SOURCE
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
 
+add_executable(test-dns "main/test/dns.c")
+target_link_libraries(test-dns uv_a)
+
 #argtable3
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")

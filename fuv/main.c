@@ -1179,11 +1179,14 @@ static int fuv_make_signal(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static inline void fuv_call_handle_callback_in_loop_1(uv_handle_t* handle
+typedef void (*CallbackValueCreator)(FklVM *exe,void* arg);
+
+static inline void fuv_call_handle_callback_in_loop_with_value_creator(uv_handle_t* handle
 		,FuvHandleData* handle_data
 		,FuvLoopData* loop_data
 		,int idx
-		,FklVMvalue* value)
+		,CallbackValueCreator creator
+		,void* arg)
 {
 	FklVMvalue* proc=handle_data->callbacks[idx];
 	if(proc)
@@ -1212,12 +1215,26 @@ static inline void fuv_call_handle_callback_in_loop_1(uv_handle_t* handle
 		else
 		{
 			fklSetBp(exe);
-			FKL_VM_PUSH_VALUE(exe,value);
+			if(creator)
+				creator(exe,arg);
 			fklCallObj(exe,proc);
 			exe->thread_run_cb(exe);
 		}
 		fklUnlockThread(exe);
 	}
+}
+
+struct SignalCbValueCreateArg
+{
+	FuvPublicData* fpd;
+	int num;
+};
+
+static void fuv_signal_cb_value_creator(FklVM* exe,void* a)
+{
+	struct SignalCbValueCreateArg* arg=a;
+	FklVMvalue* signum_val=FKL_MAKE_VM_SYM(signumToSymbol(arg->num,arg->fpd));
+	FKL_VM_PUSH_VALUE(exe,signum_val);
 }
 
 static void fuv_signal_cb(uv_signal_t* handle,int num)
@@ -1227,12 +1244,17 @@ static void fuv_signal_cb(uv_signal_t* handle,int num)
 	FklVMframe* run_loop_proc_frame=ldata->exe->top_frame->prev;
 	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
-	FklVMvalue* signum_val=FKL_MAKE_VM_SYM(signumToSymbol(num,fpd));
-	fuv_call_handle_callback_in_loop_1((uv_handle_t*)handle
+	struct SignalCbValueCreateArg arg=
+	{
+		.fpd=fpd,
+		.num=num,
+	};
+	fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t*)handle
 			,hdata
 			,ldata
 			,0
-			,signum_val);
+			,fuv_signal_cb_value_creator
+			,&arg);
 }
 
 static int fuv_signal_start(FKL_CPROC_ARGL)
@@ -1657,11 +1679,9 @@ static inline FklVMvalue* addrinfo_to_value(FklVM* exe
 	return r;
 }
 
-#define FUV_GETADDRINFO_PNAME ("fuv.getaddrinfo")
-
-static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
-		,int status
-		,struct addrinfo* res)
+static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t* req
+		,CallbackValueCreator creator
+		,void* arg)
 {
 	FuvReq* fuv_req=uv_req_get_data((uv_req_t*)req);
 	FklVMvalue* proc=fuv_req->data.callback;
@@ -1671,24 +1691,16 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 	FklVM* exe=ldata->exe;
 	if(proc==NULL||exe==NULL)
 	{
-		uv_freeaddrinfo(res);
 		free(fuv_req);
 		return;
 	}
 	fklLockThread(exe);
 
-	FklVMframe* fuv_proc_call_frame=exe->top_frame;
-	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
-	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
-
-	FklVMvalue* err=status<0
-		?createUvError(FUV_GETADDRINFO_PNAME,status,exe,fpd_obj)
-		:FKL_VM_NIL;
 	exe->state=FKL_VM_READY;
 	uint32_t stp=exe->tp;
 	uint32_t ltp=exe->ltp;
 	FklVMframe* buttom_frame=exe->top_frame;
-	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
+	FuvProcCallCtx* ctx=(FuvProcCallCtx*)exe->top_frame->data;
 	jmp_buf buf;
 	ctx->buf=&buf;
 	int r=setjmp(buf);
@@ -1698,17 +1710,54 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 		startErrorHandle(&fuv_loop->loop,ldata,exe,stp,ltp,buttom_frame);
 	else
 	{
-		FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
 		fklSetBp(exe);
-		FKL_VM_PUSH_VALUE(exe,addrinfo_to_value(exe,res,fpd));
-		uv_freeaddrinfo(res);
+		if(creator)
+			creator(exe,arg);
 		uninitFuvReqValue(rdata->req);
 		free(fuv_req);
-		FKL_VM_PUSH_VALUE(exe,err);
 		fklCallObj(exe,proc);
 		exe->thread_run_cb(exe);
 	}
 	fklUnlockThread(exe);
+}
+
+#define FUV_GETADDRINFO_PNAME ("fuv.getaddrinfo")
+
+struct GetaddrinfoValueCreateArg
+{
+	struct addrinfo* res;
+	int status;
+};
+
+static void fuv_getaddrinfo_cb_value_creator(FklVM* exe,void* a)
+{
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+
+	struct GetaddrinfoValueCreateArg* arg=a;
+	FklVMvalue* err=arg->status<0
+		?createUvErrorWithFpd(FUV_GETADDRINFO_PNAME,arg->status,exe,fpd)
+		:FKL_VM_NIL;
+	FklVMvalue* res=addrinfo_to_value(exe,arg->res,fpd);
+	FKL_VM_PUSH_VALUE(exe,res);
+	FKL_VM_PUSH_VALUE(exe,err);
+}
+
+static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
+		,int status
+		,struct addrinfo* res)
+{
+	struct GetaddrinfoValueCreateArg arg=
+	{
+		.res=res,
+		.status=status,
+	};
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req
+			,fuv_getaddrinfo_cb_value_creator
+			,&arg);
+	uv_freeaddrinfo(res);
 }
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)
@@ -1897,55 +1946,44 @@ static inline FklVMvalue* host_service_to_hash(FklVM* exe
 
 #define FUV_GETNAMEINFO_PNAME ("fuv.getnameinfo")
 
+struct GetnameinfoValueCreateArg
+{
+	const char* hostname;
+	const char* service;
+	int status;
+};
+
+static void fuv_getnameinfo_cb_value_creator(FklVM* exe,void* a)
+{
+	struct GetnameinfoValueCreateArg* arg=a;
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+
+	FklVMvalue* err=arg->status<0
+		?createUvError(FUV_GETNAMEINFO_PNAME,arg->status,exe,fpd_obj)
+		:FKL_VM_NIL;
+	FklVMvalue* hostname=arg->hostname?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(arg->hostname)):FKL_VM_NIL;
+	FklVMvalue* service=arg->service?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(arg->service)):FKL_VM_NIL;
+	FKL_VM_PUSH_VALUE(exe,service);
+	FKL_VM_PUSH_VALUE(exe,hostname);
+	FKL_VM_PUSH_VALUE(exe,err);
+}
+
 static void fuv_getnameinfo_cb(uv_getnameinfo_t* req
 		,int status
 		,const char* hostname
 		,const char* service)
 {
-	FuvReq* fuv_req=uv_req_get_data((uv_req_t*)req);
-	FklVMvalue* proc=fuv_req->data.callback;
-	FuvReqData* rdata=&fuv_req->data;
-	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,rdata->loop);
-	FuvLoopData* ldata=&fuv_loop->data;
-	FklVM* exe=ldata->exe;
-	if(proc==NULL||exe==NULL)
+	struct GetnameinfoValueCreateArg arg=
 	{
-		free(fuv_req);
-		return;
-	}
-	fklLockThread(exe);
-
-	FklVMframe* fuv_proc_call_frame=exe->top_frame;
-	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
-	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
-
-	FklVMvalue* err=status<0
-		?createUvError(FUV_GETNAMEINFO_PNAME,status,exe,fpd_obj)
-		:FKL_VM_NIL;
-	exe->state=FKL_VM_READY;
-	uint32_t stp=exe->tp;
-	uint32_t ltp=exe->ltp;
-	FklVMframe* buttom_frame=exe->top_frame;
-	FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
-	jmp_buf buf;
-	ctx->buf=&buf;
-	int r=setjmp(buf);
-	if(r==FUV_RUN_OK)
-		exe->tp--;
-	else if(r==FUV_RUN_ERR_OCCUR)
-		startErrorHandle(&fuv_loop->loop,ldata,exe,stp,ltp,buttom_frame);
-	else
-	{
-		fklSetBp(exe);
-		FKL_VM_PUSH_VALUE(exe,service?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(service)):FKL_VM_NIL);
-		FKL_VM_PUSH_VALUE(exe,hostname?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(hostname)):FKL_VM_NIL);
-		uninitFuvReqValue(rdata->req);
-		free(fuv_req);
-		FKL_VM_PUSH_VALUE(exe,err);
-		fklCallObj(exe,proc);
-		exe->thread_run_cb(exe);
-	}
-	fklUnlockThread(exe);
+		.hostname=hostname,
+		.service=service,
+		.status=status,
+	};
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req
+			,fuv_getnameinfo_cb_value_creator
+			,&arg);
 }
 
 static int fuv_getnameinfo(FKL_CPROC_ARGL)

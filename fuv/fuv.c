@@ -3,9 +3,8 @@
 static inline FklVMvalue* create_uv_error(const char* who
 		,int err_id
 		,FklVM* exe
-		,FklVMvalue* pd_obj)
+		,FuvPublicData* pd)
 {
-	FKL_DECL_VM_UD_DATA(pd,FuvPublicData,pd_obj);
 	FklSid_t id=0;
 	switch(err_id)
 	{
@@ -25,7 +24,16 @@ void raiseUvError(const char* who
 		,FklVM* exe
 		,FklVMvalue* pd_obj)
 {
-	fklRaiseVMerror(create_uv_error(who,err_id,exe,pd_obj),exe);
+	FKL_DECL_VM_UD_DATA(pd,FuvPublicData,pd_obj);
+	fklRaiseVMerror(create_uv_error(who,err_id,exe,pd),exe);
+}
+
+FklVMvalue* createUvErrorWithFpd(const char* who
+		,int err_id
+		,FklVM* exe
+		,FuvPublicData* fpd)
+{
+	return create_uv_error(who,err_id,exe,fpd);
 }
 
 FklVMvalue* createUvError(const char* who
@@ -33,7 +41,8 @@ FklVMvalue* createUvError(const char* who
 		,FklVM* exe
 		,FklVMvalue* pd_obj)
 {
-	return create_uv_error(who,err_id,exe,pd_obj);
+	FKL_DECL_VM_UD_DATA(pd,FuvPublicData,pd_obj);
+	return create_uv_error(who,err_id,exe,pd);
 }
 
 void raiseFuvError(const char* who,FuvErrorType err,FklVM* exe,FklVMvalue* pd_obj)

@@ -345,6 +345,7 @@ FklVMvalue* createFuvAsync(FklVM*,FklVMvalue* rel,FklVMvalue* loop,FklVMvalue* p
 void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
+FklVMvalue* createUvErrorWithFpd(const char* who,int err_id,FklVM* exe,FuvPublicData* fpd);
 
 int symbolToSignum(FklSid_t,FuvPublicData* pd);
 FklSid_t signumToSymbol(int,FuvPublicData* pd);

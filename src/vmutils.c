@@ -226,14 +226,23 @@ void fklPrintBacktrace(FklVM* exe,FILE* fp)
 
 void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 {
-	FklVMerror* err=FKL_VM_ERR(ev);
-	fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,err->type)->symbol,fp);
-	fprintf(fp," in ");
-	fklPrintString(err->where,fp);
-	fprintf(fp,": ");
-	fklPrintString(err->message,fp);
-	fprintf(fp,"\n");
-	fklPrintBacktrace(exe,fp);
+	if(FKL_IS_ERR(ev))
+	{
+		FklVMerror* err=FKL_VM_ERR(ev);
+		fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,err->type)->symbol,fp);
+		fputs(" in ",fp);
+		fklPrintString(err->where,fp);
+		fputs(": ",fp);
+		fklPrintString(err->message,fp);
+		fputc('\n',fp);
+		fklPrintBacktrace(exe,fp);
+	}
+	else
+	{
+		fprintf(fp,"interrupt with value: ");
+		fklPrin1VMvalue(ev,fp,exe->gc);
+		fputc('\n',fp);
+	}
 }
 
 int fklRaiseVMerror(FklVMvalue* ev,FklVM* exe)

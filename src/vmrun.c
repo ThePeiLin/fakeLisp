@@ -778,7 +778,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 
 #define DO_ERROR_HANDLING(exe) {\
 	FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);\
-	FklVMframe* frame=exe->top_frame;\
+	FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:NULL;\
 	for(;frame;frame=frame->prev)\
 		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))\
 			break;\
@@ -805,12 +805,14 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 
 #define DO_ERROR_HANDLING_IN_SINGLE_THREAD(exe) {\
 	FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);\
-	FklVMframe* frame=exe->top_frame;\
+	FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:NULL;\
 	for(;frame;frame=frame->prev)\
 		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))\
 			break;\
 	if(frame==NULL)\
 	{\
+		if(fklVMinterrupt(exe,ev)==FKL_INT_DONE)\
+			continue;\
 		fklPrintErrBacktrace(ev,exe,stderr);\
 		if(exe->chan)\
 		{\

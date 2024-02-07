@@ -35,6 +35,7 @@
         (sync)
         (cir-ref)
         (remq)
-        (fuv))
+        (fuv)
+        (int))
 
 (println "\ntest done!")

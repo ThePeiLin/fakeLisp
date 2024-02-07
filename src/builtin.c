@@ -3909,7 +3909,7 @@ static void vm_atexit_idle_queue_work_cb(FklVM* exe,void *a)
 	jmp_buf buf;
 	fklDontNoticeThreadLock(exe);
 	FklVMframe* origin_top_frame=exe->top_frame;
-	FklVMframe* atexit_frame=fklCreateOtherObjVMframe(exe,&AtExitFrameCtxMethodTable,exe->top_frame);
+	FklVMframe* atexit_frame=fklCreateOtherObjVMframe(exe,&AtExitFrameCtxMethodTable,origin_top_frame);
 	atexit_frame->errorCallBack=vm_atexit_error_cb;
 	AtExitFrameCtx* ctx=(AtExitFrameCtx*)atexit_frame->data;
 	ctx->buf=&buf;

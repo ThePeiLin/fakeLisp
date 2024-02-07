@@ -454,6 +454,8 @@ typedef struct FklVM
 		void (*finalizer)(void*);
 		void* arg;
 	}* atexit;
+
+	struct FklVMinterruptHandleList* int_list;
 }FklVM;
 
 typedef struct FklVMudMetaTable
@@ -543,7 +545,10 @@ typedef enum
 	FKL_INT_NEXT,
 }FklVMinterruptResult;
 
-typedef FklVMinterruptResult (*FklVMinterruptHandler)(struct FklVMgc*,FklVM* exe,FklVMvalue* ev,void*);
+typedef FklVMinterruptResult (*FklVMinterruptHandler)(FklVM* exe
+		,FklVMvalue* value
+		,FklVMvalue** pvalue
+		,void*);
 
 typedef void (*FklVMextraMarkFunc)(struct FklVMgc*,void* arg);
 
@@ -605,17 +610,22 @@ typedef struct FklVMgc
 
 	atomic_uint work_num;
 
+	uv_rwlock_t int_lock;
 	struct FklVMinterruptHandleList
 	{
 		struct FklVMinterruptHandleList* next;
 		FklVMinterruptHandler int_handler;
+		FklVMextraMarkFunc mark;
+		void (*finalizer)(void*);
 		void* int_handle_arg;
 	}* int_list;
 
+	uv_mutex_t extra_mark_lock;
 	struct FklVMextraMarkObjList
 	{
 		struct FklVMextraMarkObjList* next;
 		FklVMextraMarkFunc func;
+		void (*finalizer)(void*);
 		void* arg;
 	}* extra_mark_list;
 
@@ -675,15 +685,28 @@ void fklVMatExit(FklVM* vm
 		,FklVMatExitMarkFunc mark
 		,void (*finalizer)(void*)
 		,void* arg);
-void fklVMmarkAtExit(FklVM* vm);
 void fklVMidleLoop(FklVMgc* gc);
 void fklVMtrappingIdleLoop(FklVMgc* gc);
 
-FklVMinterruptResult fklVMinterrupt(FklVM*,FklVMvalue*);
-void fklVMpushInterruptHandler(FklVMgc*,FklVMinterruptHandler,void*);
+FklVMinterruptResult fklVMinterrupt(FklVM*,FklVMvalue* v,FklVMvalue** pv);
+void fklVMacquireInt(FklVMgc*);
+void fklVMreleaseInt(FklVMgc*);
+void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList* l);
+void fklVMpushInterruptHandler(FklVMgc*
+		,FklVMinterruptHandler
+		,FklVMextraMarkFunc
+		,void (*finalizer)(void*)
+		,void*);
+void fklVMpushInterruptHandlerLocal(FklVM*
+		,FklVMinterruptHandler
+		,FklVMextraMarkFunc
+		,void (*finalizer)(void*)
+		,void*);
 
-void fklVMgcExtraMark(FklVMgc*);
-void fklVMpushExtraMarkFunc(FklVMgc*,FklVMextraMarkFunc,void*);
+void fklVMpushExtraMarkFunc(FklVMgc*
+		,FklVMextraMarkFunc
+		,void (*finalizer)(void*)
+		,void*);
 
 void fklSetVMsingleThread(FklVM* exe);
 void fklUnsetVMsingleThread(FklVM* exe);

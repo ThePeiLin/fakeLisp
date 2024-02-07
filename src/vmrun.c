@@ -758,7 +758,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 				FklInstruction* cur=curframe->c.pc++;\
 				atomic_load(&ins_table[cur->op])(exe,cur);\
 				if(exe->trapping)\
-					fklVMinterrupt(exe,FKL_VM_NIL);\
+					fklVMinterrupt(exe,FKL_VM_NIL,NULL);\
 			}\
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
@@ -784,7 +784,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			break;\
 	if(frame==NULL)\
 	{\
-		if(fklVMinterrupt(exe,ev)==FKL_INT_DONE)\
+		if(fklVMinterrupt(exe,ev,&ev)==FKL_INT_DONE)\
 			continue;\
 		fklPrintErrBacktrace(ev,exe,stderr);\
 		if(exe->chan)\
@@ -811,7 +811,7 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			break;\
 	if(frame==NULL)\
 	{\
-		if(fklVMinterrupt(exe,ev)==FKL_INT_DONE)\
+		if(fklVMinterrupt(exe,ev,&ev)==FKL_INT_DONE)\
 			continue;\
 		fklPrintErrBacktrace(ev,exe,stderr);\
 		if(exe->chan)\
@@ -1083,6 +1083,32 @@ static inline void destroy_vm_atexit(FklVM* vm)
 	}
 }
 
+static inline void destroy_vm_interrupt_handler(FklVM* vm)
+{
+	struct FklVMinterruptHandleList* cur=vm->int_list;
+	vm->int_list=NULL;
+	while(cur)
+	{
+		struct FklVMinterruptHandleList* next=cur->next;
+		free(cur);
+		cur=next;
+	}
+}
+
+static inline void remove_exited_thread_common(FklVM* cur)
+{
+	fklDeleteCallChain(cur);
+	fklUninitVMstack(cur);
+	uninit_all_vm_lib(cur->libs,cur->libNum);
+	destroy_vm_atexit(cur);
+	destroy_vm_interrupt_handler(cur);
+	uv_mutex_destroy(&cur->lock);
+	remove_thread_frame_cache(cur);
+	free(cur->locv);
+	free(cur->libs);
+	free(cur);
+}
+
 static inline void remove_exited_thread(FklVMgc* gc)
 {
 	FklVM* main=gc->main_thread;
@@ -1096,15 +1122,7 @@ static inline void remove_exited_thread(FklVMgc* gc)
 			prev->next=next;
 			next->prev=prev;
 
-			fklDeleteCallChain(cur);
-			fklUninitVMstack(cur);
-			uninit_all_vm_lib(cur->libs,cur->libNum);
-			destroy_vm_atexit(cur);
-			uv_mutex_destroy(&cur->lock);
-			remove_thread_frame_cache(cur);
-			free(cur->locv);
-			free(cur->libs);
-			free(cur);
+			remove_exited_thread_common(cur);
 			cur=next;
 		}
 		else
@@ -1548,16 +1566,6 @@ void fklVMatExit(FklVM* vm
 	m->finalizer=finalizer;
 	m->next=vm->atexit;
 	vm->atexit=m;
-}
-
-void fklVMmarkAtExit(FklVM* vm)
-{
-	FklVMgc* gc=vm->gc;
-	for(struct FklVMatExit* c=vm->atexit
-			;c
-			;c=c->next)
-		if(c->mark)
-			c->mark(c->arg,gc);
 }
 
 void fklVMtrappingIdleLoop(FklVMgc* gc)
@@ -3048,9 +3056,6 @@ void fklDestroyAllVMs(FklVM* curVM)
 	curVM->prev=NULL;
 	for(FklVM* cur=curVM;cur;)
 	{
-		uninit_all_vm_lib(cur->libs,cur->libNum);
-		fklDeleteCallChain(cur);
-		fklUninitVMstack(cur);
 		FklVM* t=cur;
 		cur=cur->next;
 		if(t->old_locv_count)
@@ -3069,12 +3074,7 @@ void fklDestroyAllVMs(FklVM* curVM)
 		}
 		if(t->obj_head)
 			move_thread_objects_to_gc(t,t->gc);
-		destroy_vm_atexit(t);
-		uv_mutex_destroy(&t->lock);
-		remove_thread_frame_cache(t);
-		free(t->locv);
-		free(t->libs);
-		free(t);
+		remove_exited_thread_common(t);
 	}
 }
 

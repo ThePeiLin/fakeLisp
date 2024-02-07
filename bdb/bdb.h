@@ -200,9 +200,9 @@ void setStepUntil(DebugCtx*,uint32_t line);
 void setSingleStep(DebugCtx*);
 
 void dbgInterrupt(FklVM*,DbgInterruptArg* arg);
-FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
-		,FklVM*
+FklVMinterruptResult dbgInterruptHandler(FklVM*
 		,FklVMvalue* ev
+		,FklVMvalue** pv
 		,void* arg);
 void setAllThreadReadyToExit(FklVM* head);
 void waitAllThreadExit(FklVM* head);

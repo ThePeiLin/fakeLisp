@@ -1,0 +1,41 @@
+(import (.. lib int))
+(import (only (.. lib utils m) assert))
+
+(define (local-int-func v)
+  (if (vector? v)
+    (begin (printf "interrupt in %s with value: %S\n" *func* v) nil)
+    'next))
+
+(define (global-int-func v)
+  (if (vector? v)
+    (begin (printf "interrupt in %s with value: %S\n" *func* v) nil)
+    'next))
+
+(rgintrl local-int-func)
+
+(rgintrg global-int-func)
+
+(interrupt #(test interrupt value))
+
+(recv (go (lambda (v)
+            (interrupt v))
+          #(test interrupt value in child thread)))
+
+(define unreg-proc (unrgintrl))
+
+(assert (eq unreg-proc local-int-func))
+
+(define unreg-proc (unrgintrg))
+
+(assert (eq unreg-proc global-int-func))
+
+(assert (not (unrgintrl)))
+(assert (not (unrgintrg)))
+
+(rgintrl (lambda (v) (car v)))
+
+(interrupt nil)
+
+(assert (error? (interrupt nil)))
+
+(println "module (lib int) test done!")

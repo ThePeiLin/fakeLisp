@@ -75,9 +75,9 @@ static inline FklVMframe* find_same_proc_frame(FklVMframe* f,FklVMvalue* proc)
 	return NULL;
 }
 
-FklVMinterruptResult dbgInterruptHandler(FklVMgc* gc
-		,FklVM* exe
+FklVMinterruptResult dbgInterruptHandler(FklVM* exe
 		,FklVMvalue* int_val
+		,FklVMvalue** pv
 		,void* arg)
 {
 	FKL_ASSERT(int_val);

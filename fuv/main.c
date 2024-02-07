@@ -293,8 +293,14 @@ static void fuv_proc_call_frame_step(void* data,FklVM* exe)
 	longjmp(*ctx->buf,FUV_RUN_OK);
 }
 
+static void fuv_proc_call_frame_printbacktrace(void* data,FILE* fp,FklVMgc* gc)
+{
+	fputs("at <loop>\n",fp);
+}
+
 static const FklVMframeContextMethodTable FuvProcCallCtxMethodTable=
 {
+	.print_backtrace=fuv_proc_call_frame_printbacktrace,
 	.end=fuv_proc_call_frame_end,
 	.step=fuv_proc_call_frame_step,
 };

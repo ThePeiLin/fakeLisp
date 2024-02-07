@@ -189,6 +189,26 @@ set_target_properties(os PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
+#int.so
+add_library(int
+	SHARED
+	"main/int.c")
+set_target_properties(int PROPERTIES
+	PREFIX "")
+target_link_libraries(int ${LIBFKL_TARGET_NAME})
+
+if(MSVC)
+add_custom_command(TARGET int
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+	$<TARGET_FILE:int>
+	"${CMAKE_BINARY_DIR}/lib/"
+	DEPENDS int
+	VERBATIM)
+else()
+set_target_properties(int PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
 #math.so
 add_library(math
 	SHARED

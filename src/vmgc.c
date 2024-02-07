@@ -35,9 +35,27 @@ void fklVMgcToGray(FklVMvalue* v,FklVMgc* gc)
 	}
 }
 
+static inline void mark_atexit(FklVM* vm)
+{
+	FklVMgc* gc=vm->gc;
+	for(struct FklVMatExit* c=vm->atexit
+			;c
+			;c=c->next)
+		if(c->mark)
+			c->mark(c->arg,gc);
+}
+
+static inline void mark_interrupt_handler(FklVMgc* gc,struct FklVMinterruptHandleList* l)
+{
+	for(;l;l=l->next)
+		if(l->mark)
+			l->mark(l->int_handle_arg,gc);
+}
+
 static inline void gc_mark_root_to_gray(FklVM* exe)
 {
-	fklVMmarkAtExit(exe);
+	mark_atexit(exe);
+	mark_interrupt_handler(exe->gc,exe->int_list);
 	FklVMgc* gc=exe->gc;
 
 	for(FklVMframe* cur=exe->top_frame;cur;cur=cur->prev)
@@ -64,6 +82,12 @@ static inline void gc_mark_root_to_gray(FklVM* exe)
 	fklVMgcToGray(exe->chan,gc);
 }
 
+static inline void gc_extra_mark(FklVMgc* gc)
+{
+	for(struct FklVMextraMarkObjList* l=gc->extra_mark_list;l;l=l->next)
+		l->func(gc,l->arg);
+}
+
 void fklVMgcMarkAllRootToGray(FklVM* curVM)
 {
 	FklVMgc* gc=curVM->gc;
@@ -72,7 +96,8 @@ void fklVMgcMarkAllRootToGray(FklVM* curVM)
 	for(;ref<end
 			;ref++)
 		fklVMgcToGray(*ref,gc);
-	fklVMgcExtraMark(curVM->gc);
+	gc_extra_mark(curVM->gc);
+	mark_interrupt_handler(curVM->gc,curVM->gc->int_list);
 	gc_mark_root_to_gray(curVM);
 
 	for(FklVM* cur=curVM->next;cur!=curVM;cur=cur->next)
@@ -224,6 +249,8 @@ FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklFuncPrototypes* pts)
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
 	uv_rwlock_init(&gc->st_lock);
+	uv_rwlock_init(&gc->int_lock);
+	uv_mutex_init(&gc->extra_mark_lock);
 	gc->st=st;
 	gc->pts=pts;
 	fklInitBuiltinErrorType(gc->builtinErrorTypeId,st);
@@ -400,11 +427,20 @@ static inline void destroy_argv(FklVMgc* gc)
 	}
 }
 
+void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList* l)
+{
+	if(l->finalizer)
+		l->finalizer(l->int_handle_arg);
+	free(l);
+}
+
 static inline void destroy_interrupt_handle_list(struct FklVMinterruptHandleList* l)
 {
 	while(l)
 	{
 		struct FklVMinterruptHandleList* c=l;
+		if(l->finalizer)
+			l->finalizer(l->int_handle_arg);
 		l=l->next;
 		free(c);
 	}
@@ -415,6 +451,8 @@ static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList* l)
 	while(l)
 	{
 		struct FklVMextraMarkObjList* c=l;
+		if(l->finalizer)
+			l->finalizer(l->arg);
 		l=l->next;
 		free(c);
 	}
@@ -424,7 +462,9 @@ void fklDestroyVMgc(FklVMgc* gc)
 {
 	fklDestroyFuncPrototypes(gc->pts);
 	uv_rwlock_destroy(&gc->st_lock);
+	uv_rwlock_destroy(&gc->int_lock);
 	uv_mutex_destroy(&gc->workq_lock);
+	uv_mutex_destroy(&gc->extra_mark_lock);
 	destroy_interrupt_handle_list(gc->int_list);
 	destroy_extra_mark_list(gc->extra_mark_list);
 	destroy_argv(gc);
@@ -443,6 +483,16 @@ void fklVMacquireWq(FklVMgc* gc)
 void fklVMreleaseWq(FklVMgc* gc)
 {
 	uv_mutex_unlock(&gc->workq_lock);
+}
+
+void fklVMacquireInt(FklVMgc* gc)
+{
+	uv_rwlock_wrlock(&gc->int_lock);
+}
+
+void fklVMreleaseInt(FklVMgc* gc)
+{
+	uv_rwlock_wrunlock(&gc->int_lock);
 }
 
 void fklVMacquireSt(FklVMgc* gc)
@@ -481,44 +531,73 @@ FklSymbolHashItem* fklVMgetSymbolWithId(FklVMgc* gc,FklSid_t id)
 	return r;
 }
 
-FklVMinterruptResult fklVMinterrupt(FklVM* vm,FklVMvalue* ev)
+FklVMinterruptResult fklVMinterrupt(FklVM* vm,FklVMvalue* ev,FklVMvalue** pv)
 {
-	FklVMgc* gc=vm->gc;
-	for(struct FklVMinterruptHandleList* l=gc->int_list;l;l=l->next)
-	{
-		if(l->int_handler(gc,vm,ev,l->int_handle_arg)==FKL_INT_DONE)
+	struct FklVMinterruptHandleList* l=vm->int_list;
+	for(;l;l=l->next)
+		if(l->int_handler(vm,ev,&ev,l->int_handle_arg)==FKL_INT_DONE)
 			return FKL_INT_DONE;
-	}
+	FklVMgc* gc=vm->gc;
+	uv_rwlock_rdlock(&gc->int_lock);
+	for(l=gc->int_list;l;l=l->next)
+		if(l->int_handler(vm,ev,&ev,l->int_handle_arg)==FKL_INT_DONE)
+		{
+			uv_rwlock_rdunlock(&gc->int_lock);
+			return FKL_INT_DONE;
+		}
+	uv_rwlock_rdunlock(&gc->int_lock);
+	if(pv)
+		*pv=ev;
 	return FKL_INT_NEXT;
 }
 
 void fklVMpushInterruptHandler(FklVMgc* gc
 		,FklVMinterruptHandler func
+		,FklVMextraMarkFunc mark
+		,void (*finalizer)(void*)
 		,void* arg)
 {
 	struct FklVMinterruptHandleList* l=(struct FklVMinterruptHandleList*)malloc(sizeof(struct FklVMinterruptHandleList));
 	FKL_ASSERT(l);
 	l->int_handler=func;
 	l->int_handle_arg=arg;
+	l->mark=mark;
+	l->finalizer=finalizer;
+	uv_rwlock_wrlock(&gc->int_lock);
 	l->next=gc->int_list;
 	gc->int_list=l;
+	uv_rwlock_wrunlock(&gc->int_lock);
+}
+
+void fklVMpushInterruptHandlerLocal(FklVM* exe
+		,FklVMinterruptHandler func
+		,FklVMextraMarkFunc mark
+		,void (*finalizer)(void*)
+		,void* arg)
+{
+	struct FklVMinterruptHandleList* l=(struct FklVMinterruptHandleList*)malloc(sizeof(struct FklVMinterruptHandleList));
+	FKL_ASSERT(l);
+	l->int_handler=func;
+	l->int_handle_arg=arg;
+	l->mark=mark;
+	l->finalizer=finalizer;
+	l->next=exe->int_list;
+	exe->int_list=l;
 }
 
 void fklVMpushExtraMarkFunc(FklVMgc* gc
 		,FklVMextraMarkFunc func
+		,void (*finalizer)(void*)
 		,void* arg)
 {
 	struct FklVMextraMarkObjList* l=(struct FklVMextraMarkObjList*)malloc(sizeof(struct FklVMextraMarkObjList));
 	FKL_ASSERT(l);
 	l->func=func;
 	l->arg=arg;
+	l->finalizer=finalizer;
+	uv_mutex_lock(&gc->extra_mark_lock);
 	l->next=gc->extra_mark_list;
 	gc->extra_mark_list=l;
-}
-
-void fklVMgcExtraMark(FklVMgc* gc)
-{
-	for(struct FklVMextraMarkObjList* l=gc->extra_mark_list;l;l=l->next)
-		l->func(gc,l->arg);
+	uv_mutex_unlock(&gc->extra_mark_lock);
 }
 

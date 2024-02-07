@@ -51,7 +51,7 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 	{
 		exe->ins_table[0]=B_int33;
 		exe->top_frame->c.pc--;
-		fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr));
+		fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr),NULL);
 	}
 }
 
@@ -123,7 +123,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	anotherVM->ins_table[0]=B_int3;
 
 	gc->main_thread=anotherVM;
-	fklVMpushInterruptHandler(gc,dbgInterruptHandler,ctx);
+	fklVMpushInterruptHandler(gc,dbgInterruptHandler,NULL,NULL,ctx);
 	fklVMthreadStart(anotherVM,&gc->q);
 	return 0;
 }
@@ -294,7 +294,7 @@ static inline void push_extra_mark_value(DebugCtx* ctx)
 		FklVMlib* cur=&vm->libs[i];
 		fklPushPtrStack(cur->proc,&ctx->extra_mark_value);
 	}
-	fklVMpushExtraMarkFunc(ctx->gc,dbg_extra_mark,ctx);
+	fklVMpushExtraMarkFunc(ctx->gc,dbg_extra_mark,NULL,ctx);
 }
 
 DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)

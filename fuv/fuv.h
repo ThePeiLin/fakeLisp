@@ -321,6 +321,8 @@ FklVMvalue* createFuvSignal(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 int isFuvAsync(FklVMvalue* v);
 FklVMvalue* createFuvAsync(FklVM*,FklVMvalue* rel,FklVMvalue* loop,FklVMvalue* proc_obj,int* err);
 
+int isFuvProcess(FklVMvalue* v);
+
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))
 

@@ -38,6 +38,8 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_signal_print,signal);
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_async_print,async);
 
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_process_print,async);
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -102,6 +104,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_PROCESS,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__prin1=fuv_process_print,
+		.__princ=fuv_process_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_STREAM,
@@ -296,6 +303,14 @@ FklVMvalue* createFuvAsync(FklVM* vm
 	*err=uv_async_init(&loop->loop,&handle->handle,fuv_async_cb);
 	return v;
 }
+
+struct FuvProcess
+{
+	FuvHandleData data;
+	uv_process_t handle;
+};
+
+FUV_HANDLE_P(isFuvProcess,UV_PROCESS);
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

@@ -2031,6 +2031,23 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL)
 
 #undef FUV_GETNAMEINFO_PNAME
 
+static int fuv_process_p(FKL_CPROC_ARGL){PREDICATE(isFuvProcess(val),"fuv.process?")}
+
+static int fuv_process_spawn(FKL_CPROC_ARGL)
+{
+	abort();
+	return 0;
+}
+
+static int fuv_disable_stdio_inheritance(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.disable-stdio-inheritance";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	uv_disable_stdio_inheritance();
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 static int fuv_kill(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.kill";
@@ -2066,91 +2083,91 @@ struct SymFunc
 }exports_and_func[]=
 {
 	// loop
-	{"loop?",                     fuv_loop_p,                  },
-	{"make-loop",                 fuv_make_loop,               },
-	{"loop-close",                fuv_loop_close,              },
-	{"loop-run",                  fuv_loop_run,                },
-	{"loop-mode",                 fuv_loop_mode,               },
-	{"loop-alive?",               fuv_loop_alive_p,            },
-	{"loop-stop",                 fuv_loop_stop,               },
-	{"loop-backend-fd",           fuv_loop_backend_fd,         },
-	{"loop-backend-timeout",      fuv_loop_backend_timeout,    },
-	{"loop-now",                  fuv_loop_now,                },
-	{"loop-update-time",          fuv_loop_update_time,        },
-	{"loop-walk",                 fuv_loop_walk,               },
-	{"loop-configure",            fuv_loop_configure,          },
+	{"loop?",                     fuv_loop_p,                    },
+	{"make-loop",                 fuv_make_loop,                 },
+	{"loop-close",                fuv_loop_close,                },
+	{"loop-run",                  fuv_loop_run,                  },
+	{"loop-mode",                 fuv_loop_mode,                 },
+	{"loop-alive?",               fuv_loop_alive_p,              },
+	{"loop-stop",                 fuv_loop_stop,                 },
+	{"loop-backend-fd",           fuv_loop_backend_fd,           },
+	{"loop-backend-timeout",      fuv_loop_backend_timeout,      },
+	{"loop-now",                  fuv_loop_now,                  },
+	{"loop-update-time",          fuv_loop_update_time,          },
+	{"loop-walk",                 fuv_loop_walk,                 },
+	{"loop-configure",            fuv_loop_configure,            },
 
 	// handle
-	{"handle?",                   fuv_handle_p,                },
-	{"handle-active?",            fuv_handle_active_p,         },
-	{"handle-closing?",           fuv_handle_closing_p,        },
-	{"handle-close",              fuv_handle_close,            },
-	{"handle-ref?",               fuv_handle_ref_p,            },
-	{"handle-ref",                fuv_handle_ref,              },
-	{"handle-unref",              fuv_handle_unref,            },
-	{"handle-send-buffer-size",   fuv_handle_send_buffer_size, },
-	{"handle-recv-buffer-size",   fuv_handle_recv_buffer_size, },
-	{"handle-fileno",             fuv_handle_fileno,           },
-	{"handle-type",               fuv_handle_type,             },
+	{"handle?",                   fuv_handle_p,                  },
+	{"handle-active?",            fuv_handle_active_p,           },
+	{"handle-closing?",           fuv_handle_closing_p,          },
+	{"handle-close",              fuv_handle_close,              },
+	{"handle-ref?",               fuv_handle_ref_p,              },
+	{"handle-ref",                fuv_handle_ref,                },
+	{"handle-unref",              fuv_handle_unref,              },
+	{"handle-send-buffer-size",   fuv_handle_send_buffer_size,   },
+	{"handle-recv-buffer-size",   fuv_handle_recv_buffer_size,   },
+	{"handle-fileno",             fuv_handle_fileno,             },
+	{"handle-type",               fuv_handle_type,               },
 
 	// timer
-	{"timer?",                    fuv_timer_p,                 },
-	{"make-timer",                fuv_make_timer,              },
-	{"timer-start",               fuv_timer_start,             },
-	{"timer-stop",                fuv_timer_stop,              },
-	{"timer-again",               fuv_timer_again,             },
-	{"timer-due-in",              fuv_timer_due_in,            },
-	{"timer-repeat",              fuv_timer_repeat,            },
-	{"timer-repeat-set!",         fuv_timer_repeat_set1,       },
+	{"timer?",                    fuv_timer_p,                   },
+	{"make-timer",                fuv_make_timer,                },
+	{"timer-start",               fuv_timer_start,               },
+	{"timer-stop",                fuv_timer_stop,                },
+	{"timer-again",               fuv_timer_again,               },
+	{"timer-due-in",              fuv_timer_due_in,              },
+	{"timer-repeat",              fuv_timer_repeat,              },
+	{"timer-repeat-set!",         fuv_timer_repeat_set1,         },
 
 	// prepare
-	{"prepare?",                  fuv_prepare_p,               },
-	{"make-prepare",              fuv_make_prepare,            },
-	{"prepare-start",             fuv_prepare_start,           },
-	{"prepare-stop",              fuv_prepare_stop,            },
+	{"prepare?",                  fuv_prepare_p,                 },
+	{"make-prepare",              fuv_make_prepare,              },
+	{"prepare-start",             fuv_prepare_start,             },
+	{"prepare-stop",              fuv_prepare_stop,              },
 
 	// idle
-	{"idle?",                     fuv_idle_p,                  },
-	{"make-idle",                 fuv_make_idle,               },
-	{"idle-start",                fuv_idle_start,              },
-	{"idle-stop",                 fuv_idle_stop,               },
+	{"idle?",                     fuv_idle_p,                    },
+	{"make-idle",                 fuv_make_idle,                 },
+	{"idle-start",                fuv_idle_start,                },
+	{"idle-stop",                 fuv_idle_stop,                 },
 
 	// check
-	{"check?",                    fuv_check_p,                 },
-	{"make-check",                fuv_make_check,              },
-	{"check-start",               fuv_check_start,             },
-	{"check-stop",                fuv_check_stop,              },
+	{"check?",                    fuv_check_p,                   },
+	{"make-check",                fuv_make_check,                },
+	{"check-start",               fuv_check_start,               },
+	{"check-stop",                fuv_check_stop,                },
 
 	// signal
-	{"signal?",                   fuv_signal_p,                },
-	{"make-signal",               fuv_make_signal,             },
-	{"signal-start",              fuv_signal_start,            },
-	{"signal-start-oneshot",      fuv_signal_start_oneshot,    },
-	{"signal-stop",               fuv_signal_stop,             },
+	{"signal?",                   fuv_signal_p,                  },
+	{"make-signal",               fuv_make_signal,               },
+	{"signal-start",              fuv_signal_start,              },
+	{"signal-start-oneshot",      fuv_signal_start_oneshot,      },
+	{"signal-stop",               fuv_signal_stop,               },
 
 	// async
-	{"async?",                    fuv_async_p,                 },
-	{"make-async",                fuv_make_async,              },
-	{"async-send",                fuv_async_send,              },
+	{"async?",                    fuv_async_p,                   },
+	{"make-async",                fuv_make_async,                },
+	{"async-send",                fuv_async_send,                },
 
 	// process
-	{"process?",                  fuv_incomplete,              },
-	{"disable-stdio-inheritance", fuv_incomplete,              },
-	{"process-spawn",             fuv_incomplete,              },
-	{"process-kill",              fuv_incomplete,              },
-	{"process-get-pid",           fuv_incomplete,              },
-	{"kill",                      fuv_kill,                    },
+	{"process?",                  fuv_process_p,                 },
+	{"process-spawn",             fuv_process_spawn,             },
+	{"process-kill",              fuv_incomplete,                },
+	{"disable-stdio-inheritance", fuv_disable_stdio_inheritance, },
+	{"process-get-pid",           fuv_incomplete,                },
+	{"kill",                      fuv_kill,                      },
 
 	// req
-	{"req?",                      fuv_req_p,                   },
-	{"req-cancel",                fuv_req_cancel,              },
-	{"req-type",                  fuv_req_type,                },
+	{"req?",                      fuv_req_p,                     },
+	{"req-cancel",                fuv_req_cancel,                },
+	{"req-type",                  fuv_req_type,                  },
 
 	// dns
-	{"getaddrinfo?",              fuv_getaddrinfo_p,           },
-	{"getnameinfo?",              fuv_getnameinfo_p,           },
-	{"getaddrinfo",               fuv_getaddrinfo,             },
-	{"getnameinfo",               fuv_getnameinfo,             },
+	{"getaddrinfo?",              fuv_getaddrinfo_p,             },
+	{"getnameinfo?",              fuv_getnameinfo_p,             },
+	{"getaddrinfo",               fuv_getaddrinfo,               },
+	{"getnameinfo",               fuv_getnameinfo,               },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

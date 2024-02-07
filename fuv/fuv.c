@@ -170,7 +170,7 @@ int symbolToSignum(FklSid_t id,FuvPublicData* pd)
 #ifdef SIGSYS
 	if(id==pd->SIGSYS_sid)return SIGSYS;
 #endif
-	return 0;
+	return -1;
 }
 
 FklSid_t signumToSymbol(int signum,FuvPublicData* pd)

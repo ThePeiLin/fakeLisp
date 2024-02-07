@@ -513,7 +513,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL)
 					{
 						FklSid_t sid=FKL_GET_SYM(cur);
 						int signum=symbolToSignum(sid,fpd);
-						if(!signum)
+						if(signum<=0)
 							FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 						int r=uv_loop_configure(loop,UV_LOOP_BLOCK_SIGNAL,signum);
 						CHECK_UV_RESULT(r,Pname,exe,pd);
@@ -1272,7 +1272,7 @@ static int fuv_signal_start(FKL_CPROC_ARGL)
 		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	if(signum==0)
+	if(signum<=0)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 
 	FKL_DECL_VM_UD_DATA(signal,FuvHandleUd,signal_obj);
@@ -1300,7 +1300,7 @@ static int fuv_signal_start_oneshot(FKL_CPROC_ARGL)
 		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	if(signum==0)
+	if(signum<=0)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 
 	FKL_DECL_VM_UD_DATA(signal,FuvHandleUd,signal_obj);
@@ -2029,6 +2029,31 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL)
 	return 0;
 }
 
+#undef FUV_GETNAMEINFO_PNAME
+
+static int fuv_kill(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.kill";
+	FKL_DECL_AND_CHECK_ARG2(pid_obj,signum_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pid_obj,FKL_IS_FIX,Pname,exe);
+	int signum=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	if(FKL_IS_FIX(signum_obj))
+		signum=FKL_GET_FIX(signum_obj);
+	else if(FKL_IS_SYM(signum_obj))
+		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(signum<=0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	int pid=FKL_GET_FIX(pid_obj);
+	int r=uv_kill(pid,signum);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -2114,7 +2139,7 @@ struct SymFunc
 	{"process-spawn",             fuv_incomplete,              },
 	{"process-kill",              fuv_incomplete,              },
 	{"process-get-pid",           fuv_incomplete,              },
-	{"kill",                      fuv_incomplete,              },
+	{"kill",                      fuv_kill,                    },
 
 	// req
 	{"req?",                      fuv_req_p,                   },

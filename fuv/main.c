@@ -46,6 +46,12 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	UV_ERRNO_MAP(XX);
 #undef XX
 
+	pd->UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid=fklAddSymbolCstr("verbatim",st)->id;
+	pd->UV_PROCESS_DETACHED_sid=fklAddSymbolCstr("detached",st)->id;
+	pd->UV_PROCESS_WINDOWS_HIDE_sid=fklAddSymbolCstr("hide",st)->id;
+	pd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid=fklAddSymbolCstr("hide-console",st)->id;
+	pd->UV_PROCESS_WINDOWS_HIDE_GUI_sid=fklAddSymbolCstr("hide-gui",st)->id;
+
 	pd->AI_ADDRCONFIG_sid=fklAddSymbolCstr("addrconfig",st)->id;
 #ifdef AI_V4MAPPED
 	pd->AI_V4MAPPED_sid=fklAddSymbolCstr("v4mapped",st)->id;
@@ -58,15 +64,22 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->AI_NUMERICSERV_sid=fklAddSymbolCstr("numerserv",st)->id;
 	pd->AI_CANONNAME_sid=fklAddSymbolCstr("canonname",st)->id;
 
-	pd->aif_ip_sid=fklAddSymbolCstr("ip",st)->id;
-	pd->aif_addr_sid=fklAddSymbolCstr("addr",st)->id;
-	pd->aif_port_sid=fklAddSymbolCstr("port",st)->id;
-	pd->aif_family_sid=fklAddSymbolCstr("family",st)->id;
-	pd->aif_socktype_sid=fklAddSymbolCstr("socktype",st)->id;
-	pd->aif_protocol_sid=fklAddSymbolCstr("protocol",st)->id;
-	pd->aif_canonname_sid=fklAddSymbolCstr("canonname",st)->id;
-	pd->aif_hostname_sid=fklAddSymbolCstr("hostname",st)->id;
-	pd->aif_service_sid=fklAddSymbolCstr("service",st)->id;
+	pd->f_ip_sid=fklAddSymbolCstr("ip",st)->id;
+	pd->f_addr_sid=fklAddSymbolCstr("addr",st)->id;
+	pd->f_port_sid=fklAddSymbolCstr("port",st)->id;
+	pd->f_family_sid=fklAddSymbolCstr("family",st)->id;
+	pd->f_socktype_sid=fklAddSymbolCstr("socktype",st)->id;
+	pd->f_protocol_sid=fklAddSymbolCstr("protocol",st)->id;
+	pd->f_canonname_sid=fklAddSymbolCstr("canonname",st)->id;
+	pd->f_hostname_sid=fklAddSymbolCstr("hostname",st)->id;
+	pd->f_service_sid=fklAddSymbolCstr("service",st)->id;
+
+	pd->f_args_sid=fklAddSymbolCstr("args",st)->id;
+	pd->f_env_sid=fklAddSymbolCstr("env",st)->id;
+	pd->f_cwd_sid=fklAddSymbolCstr("cwd",st)->id;
+	pd->f_stdio_sid=fklAddSymbolCstr("stdio",st)->id;
+	pd->f_uid_sid=fklAddSymbolCstr("uid",st)->id;
+	pd->f_gid_sid=fklAddSymbolCstr("gid",st)->id;
 
 #ifdef AF_UNIX
 	pd->AF_UNIX_sid=fklAddSymbolCstr("unix",st)->id;
@@ -1468,7 +1481,7 @@ static inline int sid_to_af_name(FklSid_t family_id,FuvPublicData* fpd)
 	return -1;
 }
 
-static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe
+static inline FklBuiltinErrorType pop_addrinfo_hints(FklVM* exe
 		,struct addrinfo* hints
 		,FuvPublicData* fpd)
 {
@@ -1478,7 +1491,7 @@ static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe
 		if(FKL_IS_SYM(cur))
 		{
 			FklSid_t id=FKL_GET_SYM(cur);
-			if(id==fpd->aif_family_sid)
+			if(id==fpd->f_family_sid)
 			{
 				cur=FKL_VM_POP_ARG(exe);
 				if(cur==NULL)
@@ -1492,7 +1505,7 @@ static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe
 				hints->ai_family=af_num;
 				goto done;
 			}
-			else if(id==fpd->aif_socktype_sid)
+			else if(id==fpd->f_socktype_sid)
 			{
 				cur=FKL_VM_POP_ARG(exe);
 				if(cur==NULL)
@@ -1517,7 +1530,7 @@ static inline FklBuiltinErrorType process_addrinfo_hints(FklVM* exe
 #endif
 				return FKL_ERR_INVALID_VALUE;
 			}
-			else if(id==fpd->aif_protocol_sid)
+			else if(id==fpd->f_protocol_sid)
 			{
 				cur=FKL_VM_POP_ARG(exe);
 				if(cur==NULL)
@@ -1645,27 +1658,27 @@ static inline FklVMvalue* addrinfo_to_vmhash(FklVM* exe
 		addr=(const char*)&((struct sockaddr_in6*)info->ai_addr)->sin6_addr;
 		port=((struct sockaddr_in6*)info->ai_addr)->sin6_port;
 	}
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_family_sid)
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_family_sid)
 			,af_num_to_symbol(info->ai_family,fpd)
 			,ht);
 	uv_inet_ntop(info->ai_family,addr,ip,INET6_ADDRSTRLEN);
 
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_addr_sid)
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_addr_sid)
 			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(ip))
 			,ht);
 
 	if(ntohs(port))
-		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_port_sid)
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_port_sid)
 				,FKL_MAKE_VM_FIX(ntohs(port))
 				,ht);
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_socktype_sid)
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_socktype_sid)
 			,sock_num_to_symbol(info->ai_socktype,fpd)
 			,ht);
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_protocol_sid)
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_protocol_sid)
 			,proto_num_to_symbol(info->ai_protocol,exe)
 			,ht);
 	if(info->ai_canonname)
-		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_canonname_sid)
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_canonname_sid)
 				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(info->ai_canonname))
 				,ht);
 	return v;
@@ -1789,7 +1802,7 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	struct addrinfo hints={.ai_flags=0,};
-	FklBuiltinErrorType err_type=process_addrinfo_hints(exe,&hints,fpd);
+	FklBuiltinErrorType err_type=pop_addrinfo_hints(exe,&hints,fpd);
 	if(err_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 
@@ -1828,7 +1841,7 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 
 static int fuv_getnameinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetnameinfo(val),"fuv.getnameinfo?")}
 
-static inline FklBuiltinErrorType process_sockaddr_flags(FklVM* exe
+static inline FklBuiltinErrorType pop_sockaddr_flags(FklVM* exe
 		,struct sockaddr_storage* addr
 		,int* flags
 		,FuvPublicData* fpd
@@ -1846,7 +1859,7 @@ static inline FklBuiltinErrorType process_sockaddr_flags(FklVM* exe
 		if(FKL_IS_SYM(cur))
 		{
 			FklSid_t id=FKL_GET_SYM(cur);
-			if(id==fpd->aif_family_sid)
+			if(id==fpd->f_family_sid)
 			{
 				cur=FKL_VM_POP_ARG(exe);
 				if(cur==NULL)
@@ -1860,7 +1873,7 @@ static inline FklBuiltinErrorType process_sockaddr_flags(FklVM* exe
 				has_af=1;
 				goto done;
 			}
-			if(id==fpd->aif_ip_sid)
+			if(id==fpd->f_ip_sid)
 			{
 				cur=FKL_VM_POP_ARG(exe);
 				if(cur==NULL)
@@ -1871,7 +1884,7 @@ static inline FklBuiltinErrorType process_sockaddr_flags(FklVM* exe
 				*pip_obj=cur;
 				goto done;
 			}
-			if(id==fpd->aif_port_sid)
+			if(id==fpd->f_port_sid)
 			{
 				cur=FKL_VM_POP_ARG(exe);
 				if(cur==NULL)
@@ -1941,10 +1954,10 @@ static inline FklVMvalue* host_service_to_hash(FklVM* exe
 {
 	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 	FklHashTable* ht=FKL_VM_HASH(hash);
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_hostname_sid)
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_hostname_sid)
 			,hostname?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(hostname)):FKL_VM_NIL
 			,ht);
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->aif_service_sid)
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_service_sid)
 			,service?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(service)):FKL_VM_NIL
 			,ht);
 	return hash;
@@ -2005,10 +2018,11 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL)
 	FklVMvalue* ip_obj=FKL_VM_NIL;
 	FklVMvalue* port_obj=FKL_VM_NIL;
 	int r=0;
-	FklBuiltinErrorType error_type=process_sockaddr_flags(exe,&addr,&flags,fpd,&ip_obj,&port_obj,&r);
+	FklBuiltinErrorType error_type=pop_sockaddr_flags(exe,&addr,&flags,fpd,&ip_obj,&port_obj,&r);
 	if(error_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,error_type,exe);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	fklResBp(exe);
 
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 	if(!proc_obj||proc_obj==FKL_VM_NIL)
@@ -2039,9 +2053,274 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL)
 
 static int fuv_process_p(FKL_CPROC_ARGL){PREDICATE(isFuvProcess(val),"fuv.process?")}
 
+static inline int is_string_list_and_get_len(const FklVMvalue* p,uint64_t* plen)
+{
+	uint64_t len=0;
+	for(;p!=FKL_VM_NIL;p=FKL_VM_CDR(p))
+	{
+		if(!FKL_IS_PAIR(p)||!FKL_IS_STR(FKL_VM_CAR(p)))
+			return 0;
+		len++;
+	}
+	*plen=len;
+	return 1;
+}
+
+static inline FklBuiltinErrorType pop_process_options(FklVM* exe
+		,uv_process_options_t* options
+		,FuvPublicData* fpd
+		,int* uv_err
+		,FklVMvalue** args_obj
+		,FklVMvalue** env_obj
+		,FklVMvalue** stdio_obj
+		,FklVMvalue** cwd_obj)
+{
+	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	while(cur)
+	{
+		if(FKL_IS_SYM(cur))
+		{
+			FklSid_t id=FKL_GET_SYM(cur);
+			if(id==fpd->f_args_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				uint64_t len=0;
+				if(!is_string_list_and_get_len(cur,&len))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				free(options->args);
+				char** args=(char**)calloc(len+1,sizeof(char*));
+				FKL_ASSERT(args);
+				*args_obj=cur;
+				for(uint64_t i=0;i<len;i++)
+				{
+					args[i]=FKL_VM_STR(FKL_VM_CAR(cur))->str;
+					cur=FKL_VM_CDR(cur);
+				}
+				options->args=args;
+				goto done;
+			}
+			if(id==fpd->f_env_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				uint64_t len=0;
+				if(!is_string_list_and_get_len(cur,&len))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				free(options->env);
+				char** env=(char**)calloc(len+1,sizeof(char*));
+				FKL_ASSERT(env);
+				*env_obj=cur;
+				for(uint64_t i=0;i<len;i++)
+				{
+					env[i]=FKL_VM_STR(FKL_VM_CAR(cur))->str;
+					cur=FKL_VM_CDR(cur);
+				}
+				options->env=env;
+				goto done;
+			}
+			if(id==fpd->f_cwd_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_STR(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				options->cwd=FKL_VM_STR(cur)->str;
+				*cwd_obj=cur;
+				goto done;
+			}
+			if(id==fpd->f_stdio_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!fklIsList(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				free(options->stdio);
+				uint64_t len=fklVMlistLength(cur);
+				options->stdio_count=len;
+				uv_stdio_container_t* containers=(uv_stdio_container_t*)malloc(len*sizeof(*(options->stdio)));
+				FKL_ASSERT(containers);
+				options->stdio=containers;
+				*stdio_obj=cur;
+				for(uint64_t i=0;i<len;i++)
+				{
+					FklVMvalue* stream=FKL_VM_CAR(cur);
+					if(stream==FKL_VM_NIL)
+						containers[i].flags=UV_IGNORE;
+					else if(FKL_IS_FIX(stream))
+					{
+						int fd=FKL_GET_FIX(stream);
+						containers[i].data.fd=fd;
+						containers[i].flags=UV_INHERIT_FD;
+					}
+					else if(FKL_IS_FP(stream))
+					{
+						FklVMfp* fp=FKL_VM_FP(stream);
+						int fd=fklVMfpFileno(fp);
+						containers[i].data.fd=fd;
+						containers[i].flags=UV_INHERIT_FD;
+					}
+					else if(isFuvHandle(stream))
+					{
+						abort();
+					}
+					else
+						return FKL_ERR_INCORRECT_TYPE_VALUE;
+				}
+				goto done;
+			}
+			if(id==fpd->f_uid_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_FIX(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				options->flags|=UV_PROCESS_SETUID;
+				options->uid=FKL_GET_FIX(cur);
+				goto done;
+			}
+			if(id==fpd->f_gid_sid)
+			{
+				cur=FKL_VM_POP_ARG(exe);
+				if(cur==NULL)
+					return FKL_ERR_TOOFEWARG;
+				if(!FKL_IS_FIX(cur))
+					return FKL_ERR_INCORRECT_TYPE_VALUE;
+				options->flags|=UV_PROCESS_SETUID;
+				options->gid=FKL_GET_FIX(cur);
+				goto done;
+			}
+			if(id==fpd->UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid)
+			{
+				options->flags|=UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS;
+				goto done;
+			}
+			if(id==fpd->UV_PROCESS_DETACHED_sid)
+			{
+				options->flags|=UV_PROCESS_DETACHED;
+				goto done;
+			}
+			if(id==fpd->UV_PROCESS_WINDOWS_HIDE_sid)
+			{
+				options->flags|=UV_PROCESS_WINDOWS_HIDE;
+				goto done;
+			}
+			if(id==fpd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid)
+			{
+				options->flags|=UV_PROCESS_WINDOWS_HIDE_CONSOLE;
+				goto done;
+			}
+			if(id==fpd->UV_PROCESS_WINDOWS_HIDE_GUI_sid)
+			{
+				options->flags|=UV_PROCESS_WINDOWS_HIDE_GUI;
+				goto done;
+			}
+			return FKL_ERR_INVALID_VALUE;
+		}
+		else
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+done:
+		cur=FKL_VM_POP_ARG(exe);
+	}
+	return 0;
+}
+
+static inline void clean_options(uv_process_options_t* options)
+{
+	free(options->args);
+	free(options->env);
+	free(options->stdio);
+}
+
+struct ProcessExitValueCreateArg
+{
+	FuvPublicData* fpd;
+	int64_t exit_status;
+	int term_signal;
+};
+
+static void fuv_process_exit_cb_value_creator(FklVM* exe,void* a)
+{
+	struct ProcessExitValueCreateArg* arg=a;
+	FklSid_t id=signumToSymbol(arg->term_signal,arg->fpd);
+	FklVMvalue* signum_val=id?FKL_MAKE_VM_SYM(id):FKL_VM_NIL;
+	FklVMvalue* exit_status=fklMakeVMint(arg->exit_status,exe);
+	FKL_VM_PUSH_VALUE(exe,signum_val);
+	FKL_VM_PUSH_VALUE(exe,exit_status);
+}
+
+static void fuv_process_exit_cb(uv_process_t* handle,int64_t exit_status,int term_signal)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	FklVMframe* run_loop_proc_frame=ldata->exe->top_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	struct ProcessExitValueCreateArg arg=
+	{
+		.fpd=fpd,
+		.term_signal=term_signal,
+		.exit_status=exit_status,
+	};
+	fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0
+			,fuv_process_exit_cb_value_creator
+			,&arg);
+}
+
 static int fuv_process_spawn(FKL_CPROC_ARGL)
 {
-	abort();
+	static const char Pname[]="fuv.process-spawn";
+	FKL_DECL_AND_CHECK_ARG3(loop_obj,file_obj,exit_cb_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_CHECK_TYPE(file_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(exit_cb_obj,fklIsCallable,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	uv_process_options_t options=
+	{
+		.file=FKL_VM_STR(file_obj)->str,
+		.exit_cb=fuv_process_exit_cb,
+	};
+	int uv_err=0;
+	FklVMvalue* env_obj=NULL;
+	FklVMvalue* args_obj=NULL;
+	FklVMvalue* stdio_obj=NULL;
+	FklVMvalue* cwd_obj=NULL;
+	FklBuiltinErrorType fkl_err=pop_process_options(exe
+			,&options
+			,fpd
+			,&uv_err
+			,&env_obj
+			,&args_obj
+			,&stdio_obj
+			,&cwd_obj);
+	CHECK_UV_RESULT(uv_err,Pname,exe,ctx->pd);
+	if(fkl_err)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,fkl_err,exe);
+	fklResBp(exe);
+	FklVMvalue* retval=NULL;
+	uv_process_t* handle=createFuvProcess(exe
+			,&retval
+			,ctx->proc
+			,loop_obj
+			,exit_cb_obj
+			,args_obj
+			,env_obj
+			,file_obj
+			,stdio_obj
+			,cwd_obj);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_err=uv_spawn(&fuv_loop->loop,handle,&options);
+	clean_options(&options);
+	CHECK_UV_RESULT(uv_err,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }
 
@@ -2074,6 +2353,59 @@ static int fuv_kill(FKL_CPROC_ARGL)
 	int r=uv_kill(pid,signum);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_process_kill(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.process-kill";
+	FKL_DECL_AND_CHECK_ARG2(process_obj,signum_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(process_obj,isFuvProcess,Pname,exe);
+	int signum=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	if(FKL_IS_FIX(signum_obj))
+		signum=FKL_GET_FIX(signum_obj);
+	else if(FKL_IS_SYM(signum_obj))
+		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(signum<=0)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	FKL_DECL_VM_UD_DATA(process_ud,FuvHandleUd,process_obj);
+	uv_process_t* process=(uv_process_t*)&(*process_ud)->handle;
+	int r=uv_process_kill(process,signum);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_process_pid(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.process-kill";
+	FKL_DECL_AND_CHECK_ARG(process_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(process_obj,isFuvProcess,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(process_ud,FuvHandleUd,process_obj);
+	uv_process_t* process=(uv_process_t*)&(*process_ud)->handle;
+	int r=uv_process_get_pid(process);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));
+	return 0;
+}
+
+#include<fakeLisp/common.h>
+
+static int fuv_exepath(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.exepath";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	size_t size=2*FKL_PATH_MAX;
+	char exe_path[2*FKL_PATH_MAX];
+	int r=uv_exepath(exe_path,&size);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
 	return 0;
 }
 
@@ -2159,9 +2491,9 @@ struct SymFunc
 	// process
 	{"process?",                  fuv_process_p,                 },
 	{"process-spawn",             fuv_process_spawn,             },
-	{"process-kill",              fuv_incomplete,                },
+	{"process-kill",              fuv_process_kill,              },
+	{"process-pid",               fuv_process_pid,               },
 	{"disable-stdio-inheritance", fuv_disable_stdio_inheritance, },
-	{"process-get-pid",           fuv_incomplete,                },
 	{"kill",                      fuv_kill,                      },
 
 	// req
@@ -2174,6 +2506,9 @@ struct SymFunc
 	{"getnameinfo?",              fuv_getnameinfo_p,             },
 	{"getaddrinfo",               fuv_getaddrinfo,               },
 	{"getnameinfo",               fuv_getnameinfo,               },
+
+	// misc
+	{"exepath",                   fuv_exepath,                   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

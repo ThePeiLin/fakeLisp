@@ -40,6 +40,22 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_async_print,async);
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_process_print,async);
 
+static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_handle,FuvHandleUd,ud);
+	struct FuvProcess* handle=(struct FuvProcess*)*fuv_handle;
+	if(handle)
+	{
+		fklVMgcToGray(handle->data.loop,gc);
+		fklVMgcToGray(handle->data.callbacks[0],gc);
+		fklVMgcToGray(handle->data.callbacks[1],gc);
+		fklVMgcToGray(handle->env_obj,gc);
+		fklVMgcToGray(handle->args_obj,gc);
+		fklVMgcToGray(handle->file_obj,gc);
+		fklVMgcToGray(handle->stdio_obj,gc);
+	}
+}
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -107,7 +123,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 		.size=sizeof(FuvHandleUd),
 		.__prin1=fuv_process_print,
 		.__princ=fuv_process_print,
-		.__atomic=fuv_handle_ud_atomic,
+		.__atomic=fuv_process_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
@@ -304,13 +320,33 @@ FklVMvalue* createFuvAsync(FklVM* vm
 	return v;
 }
 
-struct FuvProcess
-{
-	FuvHandleData data;
-	uv_process_t handle;
-};
-
 FUV_HANDLE_P(isFuvProcess,UV_PROCESS);
+
+uv_process_t* createFuvProcess(FklVM* vm
+		,FklVMvalue** pr
+		,FklVMvalue* rel
+		,FklVMvalue* loop_obj
+		,FklVMvalue* proc_obj
+		,FklVMvalue* args_obj
+		,FklVMvalue* env_obj
+		,FklVMvalue* file_obj
+		,FklVMvalue* stdio_obj
+		,FklVMvalue* cwd_obj)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_PROCESS],rel);
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
+	struct FuvProcess* handle=CREATE_OBJ(struct FuvProcess);
+	FKL_ASSERT(handle);
+	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);
+	handle->data.callbacks[0]=proc_obj;
+	handle->args_obj=args_obj;
+	handle->env_obj=env_obj;
+	handle->file_obj=file_obj;
+	handle->stdio_obj=stdio_obj;
+	handle->cwd_obj=cwd_obj;
+	*pr=v;
+	return &handle->handle;
+}
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

@@ -1,5 +1,7 @@
 (import (prefix (.. .. lib fuv) uv-))
 
+(import (.. .. lib os))
+
 (import (only (.. .. lib utils m) assert))
 
 (define loop (uv-make-loop))
@@ -189,3 +191,6 @@
     async)
 
 (uv-loop-run loop)
+
+(printf "TEST=%S\n" (getenv "TEST"))
+(printf "cwd=%S\n" (getcwd))

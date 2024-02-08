@@ -17,6 +17,7 @@ extern "C" {
 #define FKL_PRT64X "lX"
 #endif
 
+#define FKL_PATH_MAX (4096)
 #define FKL_DOUBLE_FMT "%.17g"
 
 #ifdef __cplusplus

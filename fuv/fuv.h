@@ -40,15 +40,28 @@ typedef struct
 	FklSid_t AI_NUMERICSERV_sid;
 	FklSid_t AI_CANONNAME_sid;
 
-	FklSid_t aif_ip_sid;
-	FklSid_t aif_addr_sid;
-	FklSid_t aif_port_sid;
-	FklSid_t aif_family_sid;
-	FklSid_t aif_socktype_sid;
-	FklSid_t aif_protocol_sid;
-	FklSid_t aif_canonname_sid;
-	FklSid_t aif_hostname_sid;
-	FklSid_t aif_service_sid;
+	FklSid_t f_ip_sid;
+	FklSid_t f_addr_sid;
+	FklSid_t f_port_sid;
+	FklSid_t f_family_sid;
+	FklSid_t f_socktype_sid;
+	FklSid_t f_protocol_sid;
+	FklSid_t f_canonname_sid;
+	FklSid_t f_hostname_sid;
+	FklSid_t f_service_sid;
+
+	FklSid_t f_args_sid;
+	FklSid_t f_env_sid;
+	FklSid_t f_cwd_sid;
+	FklSid_t f_stdio_sid;
+	FklSid_t f_uid_sid;
+	FklSid_t f_gid_sid;
+
+	FklSid_t UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid;
+	FklSid_t UV_PROCESS_DETACHED_sid;
+	FklSid_t UV_PROCESS_WINDOWS_HIDE_sid;
+	FklSid_t UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid;
+	FklSid_t UV_PROCESS_WINDOWS_HIDE_GUI_sid;
 
 #ifdef AF_UNIX
 	FklSid_t AF_UNIX_sid;
@@ -227,6 +240,7 @@ typedef struct
 #ifdef NI_IDN_USE_STD3_ASCII_RULES
 	FklSid_t NI_IDN_USE_STD3_ASCII_RULES_sid;
 #endif
+
 }FuvPublicData;
 
 struct FuvErrorRecoverData
@@ -289,6 +303,17 @@ typedef struct
 	uv_handle_t handle;
 }FuvHandle;
 
+struct FuvProcess
+{
+	FuvHandleData data;
+	uv_process_t handle;
+	FklVMvalue* args_obj;
+	FklVMvalue* env_obj;
+	FklVMvalue* file_obj;
+	FklVMvalue* stdio_obj;
+	FklVMvalue* cwd_obj;
+};
+
 typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
@@ -322,6 +347,16 @@ int isFuvAsync(FklVMvalue* v);
 FklVMvalue* createFuvAsync(FklVM*,FklVMvalue* rel,FklVMvalue* loop,FklVMvalue* proc_obj,int* err);
 
 int isFuvProcess(FklVMvalue* v);
+uv_process_t* createFuvProcess(FklVM*
+		,FklVMvalue** pr
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* proc_obj
+		,FklVMvalue* args_obj
+		,FklVMvalue* env_obj
+		,FklVMvalue* file_obj
+		,FklVMvalue* stdio_obj
+		,FklVMvalue* cwd_obj);
 
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))

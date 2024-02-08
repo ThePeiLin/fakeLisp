@@ -753,6 +753,15 @@ int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer* b,size_t j)
 	return fklRewindStream(vfp->fp,b->buf+j,b->index-j);
 }
 
+int fklVMfpFileno(FklVMfp* vfp)
+{
+#ifdef WIN32
+	return _fileno(vfp->fp);
+#else
+	return fileno(vfp->fp);
+#endif
+}
+
 int fklUninitVMfp(FklVMfp* vfp)
 {
 	int r=0;

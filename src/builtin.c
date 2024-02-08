@@ -3684,6 +3684,14 @@ static int errorCallBackWithErrorHandler(FklVMframe* f,FklVMvalue* errValue,FklV
 	return 0;
 }
 
+static inline int is_symbol_list(const FklVMvalue* p)
+{
+	for(;p!=FKL_VM_NIL;p=FKL_VM_CDR(p))
+		if(!FKL_IS_PAIR(p)||!FKL_IS_SYM(FKL_VM_CAR(p)))
+			return 0;
+	return 1;
+}
+
 static int builtin_call_eh(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="builtin.call/eh";
@@ -3704,7 +3712,7 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 		switch(state)
 		{
 			case GET_LIST:
-				if(!fklIsSymbolList(v))
+				if(!is_symbol_list(v))
 				{
 					fklUninitPtrStack(&errSymbolLists);
 					fklUninitPtrStack(&errHandlers);

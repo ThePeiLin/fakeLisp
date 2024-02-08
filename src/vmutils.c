@@ -75,14 +75,6 @@ int fklIsList(const FklVMvalue* p)
 	return 1;
 }
 
-int fklIsSymbolList(const FklVMvalue* p)
-{
-	for(;p!=FKL_VM_NIL;p=FKL_VM_CDR(p))
-		if(!FKL_IS_PAIR(p)||!FKL_IS_SYM(FKL_VM_CAR(p)))
-			return 0;
-	return 1;
-}
-
 int64_t fklGetInt(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)

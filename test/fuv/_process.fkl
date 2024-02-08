@@ -1,0 +1,41 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define child
+  (uv-process-spawn loop
+                    (uv-exepath)
+                    (lambda (code signal)
+                      (printf "exited with %S\n"
+                              (make-hash 'code code
+                                         'signal signal))
+                      (uv-handle-close child))
+                    'cwd (append! *file-dir* "..")
+                    'args (list "fakeLisp" (append! *file-dir* "_handle.fkl"))
+                    'args (list "fakeLisp" (append! *file-dir* "_handle.fkl"))
+                    'env '("TEST=test_env_value")
+                    'stdio (list stdin stdout stderr)
+                    'stdio (list stdin stdout stderr)))
+
+(uv-process? child)
+(uv-handle? child)
+
+(define pid (uv-process-pid child))
+
+(printf "pid of child %S is %S\n" child pid)
+
+(sleep 1)
+
+(uv-process-kill child 'sigint)
+
+(sleep 1)
+
+(uv-kill pid 'sigint)
+
+(sleep 1)
+
+(uv-process-kill child 'sigint)
+
+(uv-loop-run loop)

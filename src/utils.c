@@ -541,7 +541,7 @@ char* fklRelpath(const char* start,const char* path)
 {
 	char divstr[]=FKL_PATH_SEPARATOR_STR;
 	char upperDir[]="..\\";
-	char rp[MAX_PATH]={0};
+	char rp[FKL_PATH_MAX]={0};
 	char* c_start=fklCopyCstr(start);
 	char* c_path=fklCopyCstr(path);
 
@@ -610,7 +610,7 @@ exit:
 char* fklRelpath(const char* start,const char* path)
 {
 	char divstr[]=FKL_PATH_SEPARATOR_STR;
-	char rp[PATH_MAX]={0};
+	char rp[FKL_PATH_MAX]={0};
 	char upperDir[]="../";
 
 	char* c_start=fklCopyCstr(start);

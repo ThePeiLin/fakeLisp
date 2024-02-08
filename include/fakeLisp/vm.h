@@ -810,7 +810,6 @@ FklVMvalue* fklMakeVMintD(double r64,FklVM*);
 int fklIsVMnumber(const FklVMvalue* p);
 int fklIsVMint(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
-int fklIsSymbolList(const FklVMvalue* p);
 int64_t fklGetInt(const FklVMvalue* p);
 uint64_t fklVMintToHashv(const FklVMvalue* p);
 double fklGetDouble(const FklVMvalue* p);
@@ -1089,6 +1088,7 @@ FklVMfpRW fklGetVMfpRwFromCstr(const char* mode);
 
 int fklVMfpRewind(FklVMfp* vfp,FklStringBuffer*,size_t j);
 int fklVMfpEof(FklVMfp*);
+int fklVMfpFileno(FklVMfp*);
 
 int fklUninitVMfp(FklVMfp*);
 

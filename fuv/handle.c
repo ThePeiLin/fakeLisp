@@ -26,19 +26,19 @@ static void fuv_handle_ud_finalizer(FklVMud* ud)
 	}
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_timer_print,timer);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_timer_as_print,timer);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_prepare_print,prepare);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_prepare_as_print,prepare);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_idle_print,idle);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_idle_as_print,idle);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_check_print,check);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_check_as_print,check);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_signal_print,signal);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_signal_as_print,signal);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_async_print,async);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_async_as_print,async);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_process_print,process);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_process_as_print,process);
 
 static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
@@ -65,8 +65,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_ASYNC,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_async_print,
-		.__princ=fuv_async_print,
+		.__as_prin1=fuv_async_as_print,
+		.__as_princ=fuv_async_as_print,
 		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
@@ -74,8 +74,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_CHECK,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_check_print,
-		.__princ=fuv_check_print,
+		.__as_prin1=fuv_check_as_print,
+		.__as_princ=fuv_check_as_print,
 		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
@@ -95,8 +95,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_IDLE,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_idle_print,
-		.__princ=fuv_idle_print,
+		.__as_prin1=fuv_idle_as_print,
+		.__as_princ=fuv_idle_as_print,
 		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
@@ -112,8 +112,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_PREPARE,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_prepare_print,
-		.__princ=fuv_prepare_print,
+		.__as_prin1=fuv_prepare_as_print,
+		.__as_princ=fuv_prepare_as_print,
 		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
@@ -121,8 +121,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_PROCESS,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_process_print,
-		.__princ=fuv_process_print,
+		.__as_prin1=fuv_process_as_print,
+		.__as_princ=fuv_process_as_print,
 		.__atomic=fuv_process_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
@@ -138,8 +138,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_TIMER,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_timer_print,
-		.__princ=fuv_timer_print,
+		.__as_prin1=fuv_timer_as_print,
+		.__as_princ=fuv_timer_as_print,
 		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
@@ -155,8 +155,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 	// UV_SIGNAL,
 	{
 		.size=sizeof(FuvHandleUd),
-		.__prin1=fuv_signal_print,
-		.__princ=fuv_signal_print,
+		.__as_prin1=fuv_signal_as_print,
+		.__as_princ=fuv_signal_as_print,
 		.__atomic=fuv_handle_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},

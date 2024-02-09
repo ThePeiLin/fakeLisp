@@ -38,8 +38,8 @@ static void fuv_req_ud_finalizer(FklVMud* ud)
 	uninitFuvReq(req_ud);
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_getaddrinfo_print,getaddrinfo);
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_getnameinfo_print,getnameinfo);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print,getaddrinfo);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print,getnameinfo);
 
 static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 {
@@ -78,8 +78,8 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 	// UV_GETADDRINFO
 	{
 		.size=sizeof(FuvReqUd),
-		.__prin1=fuv_getaddrinfo_print,
-		.__princ=fuv_getaddrinfo_print,
+		.__as_prin1=fuv_getaddrinfo_as_print,
+		.__as_princ=fuv_getaddrinfo_as_print,
 		.__atomic=fuv_req_ud_atomic,
 		.__finalizer=fuv_req_ud_finalizer,
 	},
@@ -87,8 +87,8 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 	// UV_GETNAMEINFO
 	{
 		.size=sizeof(FuvReqUd),
-		.__prin1=fuv_getnameinfo_print,
-		.__princ=fuv_getnameinfo_print,
+		.__as_prin1=fuv_getnameinfo_as_print,
+		.__as_princ=fuv_getnameinfo_as_print,
 		.__atomic=fuv_req_ud_atomic,
 		.__finalizer=fuv_req_ud_finalizer,
 	},

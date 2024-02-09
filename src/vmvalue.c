@@ -1931,11 +1931,6 @@ FklVMvalue* fklCreateVMvalueUd(FklVM* exe
 
 #undef NEW_OBJ
 
-static inline void _eof_userdata_princ(const FklVMud* ud,FILE* fp,FklVMgc* table)
-{
-	fputs("#<eof>",fp);
-}
-
 static void _eof_userdata_as_print(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)
 {
 	fklStringBufferConcatWithCstr(buf,"#<eof>");
@@ -1944,8 +1939,6 @@ static void _eof_userdata_as_print(const FklVMud* ud,FklStringBuffer* buf,FklVMg
 static FklVMudMetaTable EofUserDataMetaTable=
 {
 	.size=0,
-	.__princ=_eof_userdata_princ,
-	.__prin1=_eof_userdata_princ,
 	.__as_princ=_eof_userdata_as_print,
 	.__as_prin1=_eof_userdata_as_print,
 };
@@ -2078,24 +2071,6 @@ int fklIsAbleAsPrincUd(const FklVMud* u)
 int fklUdHasLength(const FklVMud* u)
 {
 	return u->t->__length!=NULL;
-}
-
-void fklPrincVMud(const FklVMud* u,FILE* fp,FklVMgc* gc)
-{
-	void (*princ)(const FklVMud*,FILE*,FklVMgc*)=u->t->__princ;
-	if(princ)
-		princ(u,fp,gc);
-	else
-		fprintf(fp,"#<userdata %p>",u);
-}
-
-void fklPrin1VMud(const FklVMud* u,FILE* fp,FklVMgc* gc)
-{
-	void (*prin1)(const FklVMud*,FILE*,FklVMgc*)=u->t->__prin1;
-	if(prin1)
-		prin1(u,fp,gc);
-	else
-		fprintf(fp,"#<userdata %p>",u);
 }
 
 int fklAppendVMud(FklVMud* a,const FklVMud* b)

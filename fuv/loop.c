@@ -3,7 +3,7 @@
 #include<string.h>
 
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_loop_print,loop);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print,loop);
 
 static void fuv_loop_atomic(const FklVMud* ud,FklVMgc* gc)
 {
@@ -67,8 +67,8 @@ static void fuv_loop_finalizer(FklVMud* ud)
 static FklVMudMetaTable FuvLoopMetaTable=
 {
 	.size=sizeof(FuvLoop),
-	.__prin1=fuv_loop_print,
-	.__princ=fuv_loop_print,
+	.__as_prin1=fuv_loop_as_print,
+	.__as_princ=fuv_loop_as_print,
 	.__atomic=fuv_loop_atomic,
 	.__finalizer=fuv_loop_finalizer,
 };

@@ -461,8 +461,8 @@ typedef struct FklVM
 typedef struct FklVMudMetaTable
 {
 	size_t size;
-	void (*__princ)(const FklVMud*,FILE*,struct FklVMgc* table);
-	void (*__prin1)(const FklVMud*,FILE*,struct FklVMgc* table);
+	void (*__as_princ)(const FklVMud*,FklStringBuffer* buf,struct FklVMgc* gc);
+	void (*__as_prin1)(const FklVMud*,FklStringBuffer* buf,struct FklVMgc* gc);
 	void (*__finalizer)(FklVMud*);
 	int  (*__equal)(const FklVMud*,const FklVMud*);
 	void (*__call)(FklVMvalue*,FklVM*);
@@ -475,9 +475,6 @@ typedef struct FklVMudMetaTable
 	size_t (*__hash)(const FklVMud*);
 
 	FklBytevector* (*__to_bvec)(const FklVMud*);
-
-	void (*__as_princ)(const FklVMud*,FklStringBuffer* buf,struct FklVMgc* gc);
-	void (*__as_prin1)(const FklVMud*,FklStringBuffer* buf,struct FklVMgc* gc);
 }FklVMudMetaTable;
 
 typedef enum
@@ -763,7 +760,7 @@ FklString* fklVMstringify(FklVMvalue*,FklVMgc*);
 FklString* fklVMstringifyAsPrinc(FklVMvalue*,FklVMgc*);
 void fklPrintVMvalue(FklVMvalue* value
 		,FILE* fp
-		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklVMgc* gc)
+		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklStringBuffer* buffer,FklVMgc* gc)
 		,FklVMgc* gc);
 void fklPrin1VMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
 void fklPrincVMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
@@ -1146,8 +1143,6 @@ int fklIsAbleToStringUd(const FklVMud*);
 int fklIsAbleAsPrincUd(const FklVMud*);
 int fklUdHasLength(const FklVMud*);
 
-void fklPrincVMud(const FklVMud*,FILE*,FklVMgc*);
-void fklPrin1VMud(const FklVMud*,FILE*,FklVMgc*);
 void fklFinalizeVMud(FklVMud*);
 int fklEqualVMud(const FklVMud*,const FklVMud*);
 void fklCallVMud(const FklVMud*,const FklVMud*);
@@ -1279,10 +1274,6 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 #define FKL_IS_HASHTABLE_EQ(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEq(FKL_VM_HASH(P)))
 #define FKL_IS_HASHTABLE_EQV(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqv(FKL_VM_HASH(P)))
 #define FKL_IS_HASHTABLE_EQUAL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_HASHTABLE&&fklIsVMhashEqual(FKL_VM_HASH(P)))
-
-#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMud* ud,FILE* fp,FklVMgc* gc) {\
-	fprintf(fp,"#<"#DATA_TYPE_NAME" %p>",ud);\
-}
 
 #define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc) {\
 	fklStringBufferPrintf(buf,"#<"#DATA_TYPE_NAME" %p>",ud);\

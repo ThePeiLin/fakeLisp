@@ -972,7 +972,7 @@ int fklHasCircleRef(FklVMvalue* first_value)
 	return r;
 }
 
-#define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklVMgc* gc
+#define VMVALUE_PRINTER_ARGS FklVMvalue* v,FILE* fp,FklStringBuffer* buffer,FklVMgc* gc
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS)
 {
 	char buf[64]={0};
@@ -998,7 +998,16 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS)
 {
-	fklPrincVMud(FKL_VM_UD(v),fp,gc);
+	const FklVMud* ud=FKL_VM_UD(v);
+	void (*as_princ)(const FklVMud*,FklStringBuffer*,FklVMgc*)=ud->t->__as_princ;
+	if(as_princ)
+	{
+		as_princ(ud,buffer,gc);
+		fputs(buffer->buf,fp);
+		buffer->index=0;
+	}
+	else
+		fprintf(fp,"#<userdata %p>",ud);
 }
 
 static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
@@ -1084,7 +1093,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 
 static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS)
 {
-	VMvaluePtrPrincTable[v->type](v,fp,gc);
+	VMvaluePtrPrincTable[v->type](v,fp,buffer,gc);
 }
 
 static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS)
@@ -1118,7 +1127,7 @@ static void (*VMvaluePrincTable[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS)=
 
 static void princVMatom(VMVALUE_PRINTER_ARGS)
 {
-	VMvaluePrincTable[(FklVMptrTag)FKL_GET_TAG(v)](v,fp,gc);
+	VMvaluePrincTable[(FklVMptrTag)FKL_GET_TAG(v)](v,fp,buffer,gc);
 }
 
 static void vmvalue_sym_ptr_prin1(VMVALUE_PRINTER_ARGS)
@@ -1138,7 +1147,16 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS)
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS)
 {
-	fklPrin1VMud(FKL_VM_UD(v),fp,gc);
+	const FklVMud* ud=FKL_VM_UD(v);
+	void (*as_prin1)(const FklVMud*,FklStringBuffer*,FklVMgc*)=ud->t->__as_prin1;
+	if(as_prin1)
+	{
+		as_prin1(ud,buffer,gc);
+		fputs(buffer->buf,fp);
+		buffer->index=0;
+	}
+	else
+		fprintf(fp,"#<userdata %p>",ud);
 }
 
 static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
@@ -1176,7 +1194,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 
 static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS)
 {
-	VMvaluePtrPrin1Table[v->type](v,fp,gc);
+	VMvaluePtrPrin1Table[v->type](v,fp,buffer,gc);
 }
 
 static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS)=
@@ -1190,15 +1208,15 @@ static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS)=
 
 static void prin1VMatom(VMVALUE_PRINTER_ARGS)
 {
-	VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v,fp,gc);
+	VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v,fp,buffer,gc);
 }
 
-void fklPrin1VMvalue(VMVALUE_PRINTER_ARGS)
+void fklPrin1VMvalue(FklVMvalue* v,FILE* fp,FklVMgc* gc)
 {
 	fklPrintVMvalue(v,fp,prin1VMatom,gc);
 }
 
-void fklPrincVMvalue(VMVALUE_PRINTER_ARGS)
+void fklPrincVMvalue(FklVMvalue* v,FILE* fp,FklVMgc* gc)
 {
 	fklPrintVMvalue(v,fp,princVMatom,gc);
 }
@@ -1224,6 +1242,9 @@ void fklPrintVMvalue(FklVMvalue* value
 		,void(*atomPrinter)(VMVALUE_PRINTER_ARGS)
 		,FklVMgc* gc)
 {
+	FklStringBuffer string_buffer;
+	fklInitStringBuffer(&string_buffer);
+
 	FklHashTable circel_head_set;
 	fklInitValueSetHashTable(&circel_head_set);
 
@@ -1267,7 +1288,7 @@ void fklPrintVMvalue(FklVMvalue* value
 			{
 				free(e);
 				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
-					atomPrinter(v,fp,gc);
+					atomPrinter(v,fp,&string_buffer,gc);
 				else
 				{
 					size_t i=0;
@@ -1425,6 +1446,7 @@ void fklPrintVMvalue(FklVMvalue* value
 	fklUninitPtrStack(&queueStack);
 	fklUninitHashTable(&circel_head_set);
 	fklUninitHashTable(&has_print_circle_head_set);
+	fklUninitStringBuffer(&string_buffer);
 }
 
 #undef VMVALUE_PRINTER_ARGS

@@ -2213,7 +2213,6 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 	return FKL_VM_FP(fp)->rw&FKL_VM_FP_W_MASK;
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print,parser);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print,parser);
 
 static void custom_parser_finalizer(FklVMud* p)
@@ -2267,12 +2266,8 @@ typedef struct
 static const FklVMudMetaTable CustomParserMetaTable=
 {
 	.size=sizeof(FklGrammer),
-
-	.__princ=custom_parser_print,
-	.__prin1=custom_parser_print,
 	.__as_princ=custom_parser_as_print,
 	.__as_prin1=custom_parser_as_print,
-
 	.__atomic=custom_parser_atomic,
 	.__finalizer=custom_parser_finalizer,
 };

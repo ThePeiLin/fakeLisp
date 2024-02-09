@@ -6,7 +6,7 @@ typedef struct
 	DebugCtx* ctx;
 }DebugUdCtx;
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(debug_ctx_print,debug-ctx);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(debug_ctx_as_print,debug-ctx);
 
 static inline char* get_valid_file_name(const char* filename)
 {
@@ -58,8 +58,8 @@ static void debug_ctx_finalizer(FklVMud* data)
 static FklVMudMetaTable DebugCtxUdMetaTable=
 {
 	.size=sizeof(DebugUdCtx),
-	.__prin1=debug_ctx_print,
-	.__princ=debug_ctx_print,
+	.__as_prin1=debug_ctx_as_print,
+	.__as_princ=debug_ctx_as_print,
 	.__atomic=debug_ctx_atomic,
 	.__finalizer=debug_ctx_finalizer,
 };

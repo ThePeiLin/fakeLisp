@@ -369,13 +369,13 @@ uv_process_t* createFuvProcess(FklVM*
 
 #define FUV_ASYNC_WAIT_COPY(exe,async_handle){\
 	fklUnlockThread(exe);\
-	while(atomic_flag_test_and_set(&async_handle->copy_done));\
+	while(atomic_flag_test_and_set(&async_handle->copy_done))uv_sleep(0);\
 	fklLockThread(exe);\
 }
 
 #define FUV_ASYNC_WAIT_SEND(exe,async_handle){\
 	fklUnlockThread(exe);\
-	while(atomic_flag_test_and_set(&async_handle->send_done));\
+	while(atomic_flag_test_and_set(&async_handle->send_done))uv_sleep(0);\
 	fklLockThread(exe);\
 }
 

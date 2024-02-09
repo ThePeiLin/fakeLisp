@@ -116,77 +116,19 @@
 
 (printf "count is %d in top\n" count)
 
-(define signal0 (uv-make-signal loop))
-
-(assert (uv-signal? signal0))
-(assert (uv-handle? signal0))
-
-(println "testing signal")
-
-(define signal1 (uv-make-signal loop))
-
-(uv-handle-ref signal0)
-
-(uv-signal-start-oneshot signal0
-                         (lambda (signum)
-                           (assert (eq signum 'sigint))
-                           (printf "catch %S oneshot!\n" signum)
-                           (uv-signal-stop signal0)
-                           (uv-handle-unref signal0)
-                           (uv-signal-start signal1
-                                            (lambda (signum)
-                                              (assert (eq signum 'sigint))
-                                              (printf "catch %S!\n" signum)
-                                              (uv-loop-walk loop uv-handle-close))
-                                            'sigint))
-                         'sigint)
-
-
-(define timer (uv-make-timer loop))
-
-(uv-timer-start timer
-                (lambda () (println "time out!"))
-                50
-                50)
-
-(uv-loop-walk loop println)
-(uv-loop-run loop)
-
-(define signal1 (uv-make-signal loop))
-
-(uv-signal-start signal1
-                 (lambda (signum)
-                   (assert (eq signum 'sigint))
-                   (printf "catch %S!\n" signum)
-                   (uv-loop-walk loop uv-handle-close))
-                 'sigint)
 (define async
   (uv-make-async loop
                  (lambda args
-                   (printf "async recv %S!\n" args))))
+                   (printf "async recv: %S\n" args)
+                   (uv-handle-close async))))
 
 (uv-async? async)
 (uv-handle? async)
 
 (uv-loop-walk loop println)
 
-(import (.. .. lib sync))
-
-(define barrier (make-barrier 2))
-
 (go (lambda (async)
-      (barrier-wait barrier)
-      (uv-async-send async 'foobar)
-      (println "other thread send!")
-      (go (lambda (async)
-            (uv-async-send async 'bar 'foo)
-            (println "other thread send!"))
-          async))
-    async)
-
-(go (lambda (async)
-      (barrier-wait barrier)
-      (uv-async-send async 'barfoo)
+      (uv-async-send async 'foor 'bar)
       (println "other thread send!"))
     async)
 

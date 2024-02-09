@@ -38,7 +38,7 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_signal_print,signal);
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_async_print,async);
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_process_print,async);
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_process_print,process);
 
 static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {

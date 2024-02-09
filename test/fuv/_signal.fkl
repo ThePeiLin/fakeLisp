@@ -1,0 +1,56 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (.. .. lib os))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define signal0 (uv-make-signal loop))
+
+(assert (uv-signal? signal0))
+(assert (uv-handle? signal0))
+
+(println "testing signal")
+
+(define signal1 (uv-make-signal loop))
+
+(uv-handle-ref signal0)
+
+(uv-signal-start-oneshot signal0
+                         (lambda (signum)
+                           (assert (eq signum 'sigint))
+                           (printf "catch %S oneshot!\n" signum)
+                           (uv-signal-stop signal0)
+                           (uv-handle-unref signal0)
+                           (uv-signal-start signal1
+                                            (lambda (signum)
+                                              (assert (eq signum 'sigint))
+                                              (printf "catch %S!\n" signum)
+                                              (uv-loop-walk loop uv-handle-close))
+                                            'sigint))
+                         'sigint)
+
+
+(define timer (uv-make-timer loop))
+
+(define count 0)
+
+(uv-timer-start timer
+                (lambda ()
+                  (printf "time out count is %S!\n" count)
+                  (setq count (1+ count)))
+                50
+                50)
+
+(uv-loop-walk loop println)
+(uv-loop-run loop)
+
+(define signal1 (uv-make-signal loop))
+
+(uv-signal-start signal1
+                 (lambda (signum)
+                   (assert (eq signum 'sigint))
+                   (printf "catch %S!\n" signum)
+                   (uv-loop-walk loop uv-handle-close))
+                 'sigint)

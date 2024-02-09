@@ -2166,6 +2166,7 @@ static inline FklBuiltinErrorType pop_process_options(FklVM* exe
 					}
 					else if(isFuvHandle(stream))
 					{
+#warning INCOMPLETE
 						abort();
 					}
 					else

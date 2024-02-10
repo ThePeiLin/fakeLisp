@@ -26,15 +26,15 @@
 
 (printf "pid of child %S is %S\n" child pid)
 
-(sleep 1)
+(msleep 500)
 
 (uv-process-kill child 'sigint)
 
-(sleep 1)
+(msleep 500)
 
 (uv-kill pid 'sigint)
 
-(sleep 1)
+(msleep 500)
 
 (uv-process-kill child 'sigint)
 

@@ -40,6 +40,22 @@ static void fuv_req_ud_finalizer(FklVMud* ud)
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print,getaddrinfo);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print,getnameinfo);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print,write);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print,shutdown);
+
+static void fuv_write_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_req,FuvReqUd,ud);
+	struct FuvWrite* req=(struct FuvWrite*)*fuv_req;
+	if(req)
+	{
+		fklVMgcToGray(req->data.loop,gc);
+		fklVMgcToGray(req->data.callback,gc);
+		fklVMgcToGray(req->data.write_data,gc);
+		for(FklVMvalue** cur=req->write_objs;*cur;cur++)
+			fklVMgcToGray(*cur,gc);
+	}
+}
 
 static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 {
@@ -57,10 +73,20 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 
 	// UV_WRITE
 	{
+		.size=sizeof(FuvReqUd),
+		.__as_prin1=fuv_write_as_print,
+		.__as_princ=fuv_write_as_print,
+		.__atomic=fuv_write_ud_atomic,
+		.__finalizer=fuv_req_ud_finalizer,
 	},
 
 	// UV_SHUTDOWN
 	{
+		.size=sizeof(FuvReqUd),
+		.__as_prin1=fuv_shutdown_as_print,
+		.__as_princ=fuv_shutdown_as_print,
+		.__atomic=fuv_req_ud_atomic,
+		.__finalizer=fuv_req_ud_finalizer,
 	},
 
 	// UV_UDP_SEND
@@ -139,20 +165,22 @@ struct FuvGetaddrinfo
 
 FUV_REQ_P(isFuvGetaddrinfo,UV_GETADDRINFO);
 
-uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
-		,FklVMvalue** ret
-		,FklVMvalue* rel
-		,FklVMvalue* loop
-		,FklVMvalue* callback)
-{
-	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_GETADDRINFO],rel);
-	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
-	struct FuvGetaddrinfo* req=CREATE_OBJ(struct FuvGetaddrinfo);
-	FKL_ASSERT(req);
-	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
-	*ret=v;
-	return &req->req;
+#define NORMAL_REQ_CREATOR(TYPE,NAME,ENUM) uv_##NAME##_t* create##TYPE(FklVM* vm\
+		,FklVMvalue** ret\
+		,FklVMvalue* rel\
+		,FklVMvalue* loop\
+		,FklVMvalue* callback)\
+{\
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&ReqMetaTables[ENUM],rel);\
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);\
+	struct TYPE* req=CREATE_OBJ(struct TYPE);\
+	FKL_ASSERT(req);\
+	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);\
+	*ret=v;\
+	return &req->req;\
 }
+
+NORMAL_REQ_CREATOR(FuvGetaddrinfo,getaddrinfo,UV_GETADDRINFO);
 
 struct FuvGetnameinfo
 {
@@ -162,18 +190,28 @@ struct FuvGetnameinfo
 
 FUV_REQ_P(isFuvGetnameinfo,UV_GETNAMEINFO);
 
-uv_getnameinfo_t* createFuvGetnameinfo(FklVM* exe
+NORMAL_REQ_CREATOR(FuvGetnameinfo,getnameinfo,UV_GETNAMEINFO);
+
+uv_write_t* createFuvWrite(FklVM* exe
 		,FklVMvalue** ret
 		,FklVMvalue* rel
 		,FklVMvalue* loop
-		,FklVMvalue* callback)
+		,FklVMvalue* callback
+		,uint32_t count)
 {
-	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_GETNAMEINFO],rel);
+	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_WRITE],rel);
 	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
-	struct FuvGetnameinfo* req=CREATE_OBJ(struct FuvGetnameinfo);
+	struct FuvWrite* req=(struct FuvWrite*)calloc(1,sizeof(struct FuvWrite)+sizeof(FklVMvalue*)*count);
 	FKL_ASSERT(req);
 	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
 	*ret=v;
 	return &req->req;
 }
 
+struct FuvShutdown
+{
+	FuvReqData data;
+	uv_shutdown_t req;
+};
+
+NORMAL_REQ_CREATOR(FuvShutdown,shutdown,UV_SHUTDOWN);

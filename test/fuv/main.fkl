@@ -1,3 +1,4 @@
 (import (_handle)
         (_dns)
-        (_process))
+        (_process)
+        (_pipe))

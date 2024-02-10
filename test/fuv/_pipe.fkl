@@ -12,3 +12,45 @@
 
 (uv-pipe-open pipe (cdr pipe-fd))
 
+(assert (uv-pipe? pipe))
+(assert (uv-stream? pipe))
+
+(printf "readable: %S, writable: %S\n"
+        (uv-stream-readable? pipe)
+        (uv-stream-writable? pipe))
+
+(printf "write queue size of %S is %S\n"
+        pipe
+        (uv-stream-write-queue-size pipe))
+
+(define err (pcall uv-pipe-peername pipe))
+(assert (error? err))
+(printf "error is %S\n" err)
+
+(define err (pcall uv-pipe-sockname pipe))
+(assert (error? err))
+(printf "error is %S\n" err)
+
+(printf "pending count is %S\n" (uv-pipe-pending-count pipe))
+
+(define (on-write err)
+  (when err (raise err))
+  (uv-stream-shutdown pipe))
+
+(uv-stream-write pipe
+                 on-write
+                 "114514"
+                 "1919810\n")
+
+(define child
+  (uv-process-spawn loop
+                    (uv-exepath)
+                    (lambda (code signal)
+                      (printf "exited with %S\n"
+                              (make-hash 'code code
+                                         'signal signal))
+                      (uv-handle-close child))
+                    'args (list "fakeLisp" (append! *file-dir* "_pipe-read.fkl"))
+                    'stdio (list (car pipe-fd) stdout stderr)))
+
+(uv-loop-run loop)

@@ -410,6 +410,13 @@ typedef struct
 	uv_req_t req;
 }FuvReq;
 
+struct FuvWrite
+{
+	FuvReqData data;
+	uv_write_t req;
+	FklVMvalue* write_objs[1];
+};
+
 typedef FuvReq* FuvReqUd;
 
 int isFuvReq(FklVMvalue* v);
@@ -425,6 +432,19 @@ uv_getaddrinfo_t* createFuvGetaddrinfo(FklVM* exe
 
 int isFuvGetnameinfo(FklVMvalue* v);
 uv_getnameinfo_t* createFuvGetnameinfo(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback);
+
+uv_write_t* createFuvWrite(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback
+		,uint32_t count);
+
+uv_shutdown_t* createFuvShutdown(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
 		,FklVMvalue* loop

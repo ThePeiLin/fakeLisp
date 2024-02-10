@@ -1,4 +1,7 @@
+#include "fakeLisp/vm.h"
 #include"fuv.h"
+#include "uv.h"
+#include <unistd.h>
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
@@ -1712,6 +1715,8 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t* req
 	FklVM* exe=ldata->exe;
 	if(proc==NULL||exe==NULL)
 	{
+		if(rdata->req)
+			uninitFuvReqValue(rdata->req);
 		free(fuv_req);
 		return;
 	}
@@ -2392,7 +2397,7 @@ static int fuv_process_pid(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(process_obj,isFuvProcess,Pname,exe);
 
 	FKL_DECL_VM_UD_DATA(process_ud,FuvHandleUd,process_obj);
-	uv_process_t* process=(uv_process_t*)&(*process_ud)->handle;
+	uv_process_t* process=(uv_process_t*)GET_HANDLE(*process_ud);
 	int r=uv_process_get_pid(process);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));
@@ -2400,6 +2405,187 @@ static int fuv_process_pid(FKL_CPROC_ARGL)
 }
 
 static int fuv_stream_p(FKL_CPROC_ARGL){PREDICATE(isFuvStream(val),"fuv.stream?")}
+
+static int fuv_stream_readable_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-readable?";
+	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	FKL_VM_PUSH_VALUE(exe,uv_is_readable(stream)?FKL_VM_TRUE:FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_stream_writable_p(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-writable?";
+	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	FKL_VM_PUSH_VALUE(exe,uv_is_writable(stream)?FKL_VM_TRUE:FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_stream_write_queue_size(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-write-queue-size";
+	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	uint64_t size=uv_stream_get_write_queue_size(stream);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(size,exe));
+	return 0;
+}
+
+static int fuv_stream_read_stop(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-read-stop";
+	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	int ret=uv_read_stop(stream);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	return 0;
+}
+
+#define STREAM_WRITE_PNAME ("fuv.stream-write")
+
+static void fuv_req_cb_error_value_creator(FklVM* exe,void* a)
+{
+	FklVMframe* fuv_proc_call_frame=exe->top_frame;
+	FklVMframe* run_loop_proc_frame=fuv_proc_call_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+
+	int status=*(int*)a;
+	FklVMvalue* err=status<0
+		?createUvErrorWithFpd(STREAM_WRITE_PNAME,status,exe,fpd)
+		:FKL_VM_NIL;
+	FKL_VM_PUSH_VALUE(exe,err);
+}
+
+static void fuv_write_cb(uv_write_t* req,int status)
+{
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req,fuv_req_cb_error_value_creator,&status);
+}
+
+static inline FklBuiltinErrorType setup_write_data(FklVM* exe
+		,uint32_t num
+		,FklVMvalue* write_obj
+		,uv_buf_t** pbufs)
+{
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,write_obj);
+	struct FuvWrite* req=(struct FuvWrite*)*fuv_req;
+	FklVMvalue** cur=req->write_objs;
+	uv_buf_t* bufs=(uv_buf_t*)malloc(num*sizeof(uv_buf_t));
+	FKL_ASSERT(bufs);
+	FklVMvalue* val=FKL_VM_POP_ARG(exe);
+	uint32_t i=0;
+	while(val)
+	{
+		if(FKL_IS_STR(val))
+		{
+			*cur=val;
+			FklString* str=FKL_VM_STR(val);
+			bufs[i].base=str->str;
+			bufs[i].len=str->size;
+		}
+		else if(FKL_IS_BYTEVECTOR(val))
+		{
+			*cur=val;
+			FklBytevector* bvec=FKL_VM_BVEC(val);
+			bufs[i].base=(char*)bvec->ptr;
+			bufs[i].len=bvec->size;
+		}
+		else
+		{
+			free(bufs);
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+		}
+		val=FKL_VM_POP_ARG(exe);
+		i++;
+		cur++;
+	}
+	*pbufs=bufs;
+	return 0;
+}
+
+static int fuv_stream_write(FKL_CPROC_ARGL)
+{
+	static const char Pname[]=STREAM_WRITE_PNAME;
+	FKL_DECL_AND_CHECK_ARG2(stream_obj,cb_obj,exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	if(cb_obj==FKL_VM_NIL)
+		cb_obj=NULL;
+	else if(!fklIsCallable(cb_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+	FuvHandle* handle=*stream_ud;
+	FklVMvalue* write_obj=NULL;
+	uv_write_t* write=createFuvWrite(exe,&write_obj,ctx->proc,handle->data.loop,cb_obj,arg_num);
+	uv_buf_t* bufs;
+	FklBuiltinErrorType err_type=setup_write_data(exe,arg_num,write_obj,&bufs);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	fklResBp(exe);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	int ret=uv_write(write,stream,bufs,arg_num,fuv_write_cb);
+	free(bufs);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	return 0;
+}
+
+#undef STREAM_WRITE_PNAME
+
+static void fuv_shutdown_cb(uv_shutdown_t* req,int status)
+{
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req,fuv_req_cb_error_value_creator,&status);
+}
+
+static int fuv_stream_shutdown(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-shutdown";
+	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
+	FklVMvalue* cb_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(cb_obj&&!fklIsCallable(cb_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	FuvHandle* handle=*stream_ud;
+	FklVMvalue* shutdown_obj=NULL;
+	uv_shutdown_t* write=createFuvShutdown(exe,&shutdown_obj,ctx->proc,handle->data.loop,cb_obj);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	int ret=uv_shutdown(write,stream,fuv_shutdown_cb);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_stream_blocking_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-blocking-set!";
+	FKL_DECL_AND_CHECK_ARG2(stream_obj,set_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	int ret=uv_stream_set_blocking(stream,set_obj==FKL_VM_NIL?0:1);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	return 0;
+}
 
 static int fuv_pipe_p(FKL_CPROC_ARGL){PREDICATE(isFuvPipe(val),"fuv.pipe?")}
 
@@ -2459,7 +2645,98 @@ static int fuv_pipe_open(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_pipe_chmod(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-chmod";
+	FKL_DECL_AND_CHECK_ARG2(pipe_obj,flags_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_CHECK_TYPE(flags_obj,FKL_IS_STR,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	int flags=0;
+	FklString* str=FKL_VM_STR(flags_obj);
+	if(!fklStringCstrCmp(str,"r"))
+		flags=UV_READABLE;
+	else if(!fklStringCstrCmp(str,"w"))
+		flags=UV_WRITABLE;
+	else if((!fklStringCstrCmp(str,"rw"))||(!fklStringCstrCmp(str,"wr")))
+		flags=UV_READABLE|UV_WRITABLE;
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	FKL_VM_PUSH_VALUE(exe,pipe_obj);
+	fklUnlockThread(exe);
+	int ret=uv_pipe_chmod(pipe,flags);
+	fklLockThread(exe);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	return 0;
+}
+
 #include<fakeLisp/common.h>
+
+static int fuv_pipe_peername(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-peername";
+	FKL_DECL_AND_CHECK_ARG(pipe_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	size_t len=2*FKL_PATH_MAX;
+	char buf[2*FKL_PATH_MAX];
+	int ret=uv_pipe_getpeername(pipe,buf,&len);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf)));
+	return 0;
+}
+
+static int fuv_pipe_sockname(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-sockname";
+	FKL_DECL_AND_CHECK_ARG(pipe_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	size_t len=2*FKL_PATH_MAX;
+	char buf[2*FKL_PATH_MAX];
+	int ret=uv_pipe_getsockname(pipe,buf,&len);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf)));
+	return 0;
+}
+
+static int fuv_pipe_pending_count(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-pending-count";
+	FKL_DECL_AND_CHECK_ARG(pipe_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	int ret=uv_pipe_pending_count(pipe);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ret));
+	return 0;
+}
+
+static int fuv_pipe_pending_instances(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-pending-instances";
+	FKL_DECL_AND_CHECK_ARG2(pipe_obj,count_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_CHECK_TYPE(count_obj,FKL_IS_FIX,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	uv_pipe_pending_instances(pipe,FKL_GET_FIX(count_obj));
+	FKL_VM_PUSH_VALUE(exe,pipe_obj);
+	return 0;
+}
 
 static int fuv_exepath(FKL_CPROC_ARGL)
 {
@@ -2562,6 +2839,18 @@ struct SymFunc
 
 	// stream
 	{"stream?",                   fuv_stream_p,                  },
+	{"stream-readable?",          fuv_stream_readable_p,         },
+	{"stream-writable?",          fuv_stream_writable_p,         },
+	{"stream-shutdown",           fuv_stream_shutdown,           },
+	{"stream-listen",             fuv_incomplete,                },
+	{"stream-accept",             fuv_incomplete,                },
+	{"stream-read-start",         fuv_incomplete,                },
+	{"stream-read-stop",          fuv_stream_read_stop,          },
+	{"stream-write",              fuv_stream_write,              },
+	{"stream-try-write",          fuv_incomplete,                },
+	{"stream-try-write",          fuv_incomplete,                },
+	{"stream-blocking-set!",      fuv_stream_blocking_set1,      },
+	{"stream-write-queue-size",   fuv_stream_write_queue_size,   },
 
 	// pipe
 	{"pipe?",                     fuv_pipe_p,                    },
@@ -2569,11 +2858,11 @@ struct SymFunc
 	{"pipe-open",                 fuv_pipe_open,                 },
 	{"pipe-bind",                 fuv_incomplete,                },
 	{"pipe-connect",              fuv_incomplete,                },
-	{"pipe-sockname",             fuv_incomplete,                },
-	{"pipe-peername",             fuv_incomplete,                },
-	{"pipe-pending-instance",     fuv_incomplete,                },
-	{"pipe-pending-count",        fuv_incomplete,                },
-	{"pipe-chmod",                fuv_incomplete,                },
+	{"pipe-sockname",             fuv_pipe_sockname,             },
+	{"pipe-peername",             fuv_pipe_peername,             },
+	{"pipe-pending-instances",    fuv_pipe_pending_instances,    },
+	{"pipe-pending-count",        fuv_pipe_pending_count,        },
+	{"pipe-chmod",                fuv_pipe_chmod,                },
 	{"pipe",                      fuv_pipe,                      },
 
 	// req

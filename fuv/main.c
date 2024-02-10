@@ -266,7 +266,9 @@ static int fuv_make_loop(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.make-loop";
 	FKL_CHECK_REST_ARG(exe,Pname);
-	FklVMvalue* r=createFuvLoop(exe,ctx->proc);
+	int err=0;
+	FklVMvalue* r=createFuvLoop(exe,ctx->proc,&err);
+	CHECK_UV_RESULT(err,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }
@@ -2171,6 +2173,7 @@ static inline FklBuiltinErrorType pop_process_options(FklVM* exe
 					}
 					else
 						return FKL_ERR_INCORRECT_TYPE_VALUE;
+					cur=FKL_VM_CDR(cur);
 				}
 				goto done;
 			}
@@ -2396,6 +2399,66 @@ static int fuv_process_pid(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_stream_p(FKL_CPROC_ARGL){PREDICATE(isFuvStream(val),"fuv.stream?")}
+
+static int fuv_pipe_p(FKL_CPROC_ARGL){PREDICATE(isFuvPipe(val),"fuv.pipe?")}
+
+static int fuv_make_pipe(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-pipe";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FklVMvalue* ipc_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	int ipc=ipc_obj&&ipc_obj!=FKL_VM_NIL?1:0;
+	FklVMvalue* retval=NULL;
+	uv_pipe_t* pipe=createFuvPipe(exe,&retval,ctx->proc,loop_obj);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_pipe_init(&fuv_loop->loop,pipe,ipc);
+	CHECK_UV_RESULT(r, Pname, exe, ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,retval);
+	return 0;
+}
+
+static int fuv_pipe(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe";
+	FKL_DECL_AND_CHECK_ARG2(read_flags_obj,write_flags_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	int read_flags=0;
+	int write_flags=0;
+	if(read_flags_obj!=FKL_VM_NIL)
+		read_flags|=UV_NONBLOCK_PIPE;
+	if(write_flags_obj!=FKL_VM_NIL)
+		write_flags|=UV_NONBLOCK_PIPE;
+	uv_file fds[2];
+	int ret=uv_pipe(fds,read_flags,write_flags);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,FKL_MAKE_VM_FIX(fds[0]),FKL_MAKE_VM_FIX(fds[1])));
+	return 0;
+}
+
+static int fuv_pipe_open(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-open";
+	FKL_DECL_AND_CHECK_ARG2(pipe_obj,fd_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	int ret=0;
+	if(FKL_IS_FP(fd_obj))
+		ret=uv_pipe_open(pipe,fklVMfpFileno(FKL_VM_FP(fd_obj)));
+	else if(FKL_IS_FIX(fd_obj))
+		ret=uv_pipe_open(pipe,FKL_GET_FIX(fd_obj));
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,pipe_obj);
+	return 0;
+}
+
 #include<fakeLisp/common.h>
 
 static int fuv_exepath(FKL_CPROC_ARGL)
@@ -2496,6 +2559,22 @@ struct SymFunc
 	{"process-pid",               fuv_process_pid,               },
 	{"disable-stdio-inheritance", fuv_disable_stdio_inheritance, },
 	{"kill",                      fuv_kill,                      },
+
+	// stream
+	{"stream?",                   fuv_stream_p,                  },
+
+	// pipe
+	{"pipe?",                     fuv_pipe_p,                    },
+	{"make-pipe",                 fuv_make_pipe,                 },
+	{"pipe-open",                 fuv_pipe_open,                 },
+	{"pipe-bind",                 fuv_incomplete,                },
+	{"pipe-connect",              fuv_incomplete,                },
+	{"pipe-sockname",             fuv_incomplete,                },
+	{"pipe-peername",             fuv_incomplete,                },
+	{"pipe-pending-instance",     fuv_incomplete,                },
+	{"pipe-pending-count",        fuv_incomplete,                },
+	{"pipe-chmod",                fuv_incomplete,                },
+	{"pipe",                      fuv_pipe,                      },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

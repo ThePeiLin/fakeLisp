@@ -317,7 +317,7 @@ struct FuvProcess
 typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
-FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel);
+FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel,int* err);
 void startErrorHandle(uv_loop_t* loop
 		,FuvLoopData* ldata
 		,FklVM* exe
@@ -357,6 +357,10 @@ uv_process_t* createFuvProcess(FklVM*
 		,FklVMvalue* file_obj
 		,FklVMvalue* stdio_obj
 		,FklVMvalue* cwd_obj);
+
+int isFuvStream(FklVMvalue* v);
+int isFuvPipe(FklVMvalue* v);
+uv_pipe_t* createFuvPipe(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
 
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))

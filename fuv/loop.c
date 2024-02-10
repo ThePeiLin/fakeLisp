@@ -112,12 +112,17 @@ static void error_check_idle_cb(uv_idle_t* idle)
 	uv_close((uv_handle_t*)idle,error_check_idle_close_cb);
 }
 
-FklVMvalue* createFuvLoop(FklVM* vm,FklVMvalue* rel)
+FklVMvalue* createFuvLoop(FklVM* vm,FklVMvalue* rel,int* err)
 {
 	FklVMvalue* v=fklCreateVMvalueUd(vm,&FuvLoopMetaTable,rel);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,v);
 	fuv_loop->data.mode=-1;
-	uv_loop_init(&fuv_loop->loop);
+	int r=uv_loop_init(&fuv_loop->loop);
+	if(r)
+	{
+		*err=r;
+		return NULL;
+	}
 	fklInitPtrSet(&fuv_loop->data.gc_values);
 	uv_loop_set_data(&fuv_loop->loop,&fuv_loop->data);
 	uv_handle_set_data((uv_handle_t*)&fuv_loop->data.error_check_idle,fuv_loop);

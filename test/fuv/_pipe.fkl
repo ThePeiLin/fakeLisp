@@ -1,0 +1,14 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define pipe-fd (uv-pipe 1 1))
+
+(prin1n pipe-fd)
+
+(define pipe (uv-make-pipe loop))
+
+(uv-pipe-open pipe (cdr pipe-fd))
+

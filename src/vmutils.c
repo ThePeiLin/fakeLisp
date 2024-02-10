@@ -1606,14 +1606,19 @@ static void vmvalue_cproc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<cproc %p>",cproc);
 }
 
-static void vmvalue_error_as_print(VMVALUE_TO_UTSTRING_ARGS)
+static void vmvalue_error_as_princ(VMVALUE_TO_UTSTRING_ARGS)
+{
+	fklStringBufferConcatWithString(result,FKL_VM_ERR(v)->message);
+}
+
+static void vmvalue_error_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMerror* err=FKL_VM_ERR(v);
-	fklStringBufferConcatWithCstr(result,"#<err t:");
+	fklStringBufferConcatWithCstr(result,"#<err t: ");
 	print_raw_symbol_to_string_buffer(result,fklVMgetSymbolWithId(gc,err->type)->symbol);
-	fklStringBufferConcatWithCstr(result,"w:");
+	fklStringBufferConcatWithCstr(result," w: ");
 	print_raw_string_to_string_buffer(result,err->where);
-	fklStringBufferConcatWithCstr(result,"m:");
+	fklStringBufferConcatWithCstr(result," m: ");
 	print_raw_string_to_string_buffer(result,err->message);
 	fklStringBufferPutc(result,'>');
 }
@@ -1638,7 +1643,7 @@ static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_fp_as_print,
 	vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,
-	vmvalue_error_as_print,
+	vmvalue_error_as_prin1,
 	NULL,
 	vmvalue_code_obj_as_print,
 	NULL,
@@ -1692,7 +1697,7 @@ static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_fp_as_print,
 	vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,
-	vmvalue_error_as_print,
+	vmvalue_error_as_princ,
 	NULL,
 	vmvalue_code_obj_as_print,
 	NULL,

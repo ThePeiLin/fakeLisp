@@ -2171,10 +2171,24 @@ static inline FklBuiltinErrorType pop_process_options(FklVM* exe
 						containers[i].data.fd=fd;
 						containers[i].flags=UV_INHERIT_FD;
 					}
-					else if(isFuvHandle(stream))
+					else if(isFuvStream(stream))
 					{
-#warning INCOMPLETE
-						abort();
+						FKL_DECL_VM_UD_DATA(s,FuvHandleUd,stream);
+						uv_os_fd_t fd;
+						uv_stream_t* ss=(uv_stream_t*)GET_HANDLE(*s);
+						int err=uv_fileno((uv_handle_t*)ss,&fd);
+						if(err)
+						{
+							int flags=UV_CREATE_PIPE;
+							if(i==0||i>2)
+								flags|=UV_READABLE_PIPE;
+							if(i>0)
+								flags|=UV_WRITABLE_PIPE;
+							containers[i].flags=(uv_stdio_flags)flags;
+						}
+						else
+							containers[i].flags=UV_INHERIT_STREAM;
+						containers[i].data.stream=ss;
 					}
 					else
 						return FKL_ERR_INCORRECT_TYPE_VALUE;

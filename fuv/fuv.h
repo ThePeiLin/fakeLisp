@@ -321,6 +321,7 @@ FklVMvalue* createFuvLoop(FklVM*,FklVMvalue* rel,int* err);
 void startErrorHandle(uv_loop_t* loop
 		,FuvLoopData* ldata
 		,FklVM* exe
+		,uint32_t sbp
 		,uint32_t stp
 		,uint32_t ltp
 		,FklVMframe* buttom_frame);
@@ -445,6 +446,12 @@ uv_write_t* createFuvWrite(FklVM* exe
 		,uint32_t count);
 
 uv_shutdown_t* createFuvShutdown(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback);
+
+uv_connect_t* createFuvConnect(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
 		,FklVMvalue* loop

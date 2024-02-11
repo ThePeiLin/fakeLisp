@@ -1,0 +1,29 @@
+(import (.. .. lib os))
+
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define fd (parse (getenv "PIPE_FD")))
+
+(define loop (uv-make-loop))
+
+
+(define pipe (uv-make-pipe loop 1))
+
+(uv-pipe-open pipe fd)
+
+(define (on-read err res)
+  (printf "read result in %S is %S\n" *file* res)
+  (when (> (uv-pipe-pending-count pipe) 0)
+    (assert (equal (car (uv-pipe-pending-type pipe)) "pipe"))
+    (define sended-pipe (uv-make-pipe loop))
+    (uv-stream-accept pipe sended-pipe)
+    (printf "sockname of %S is %S in file %S\n" sended-pipe (uv-pipe-sockname sended-pipe) *file*)
+    (uv-stream-read-stop pipe)))
+
+(uv-stream-read-start pipe on-read)
+
+(uv-loop-run loop)
+
+(exit 42)

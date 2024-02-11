@@ -1,7 +1,4 @@
-#include "fakeLisp/vm.h"
 #include"fuv.h"
-#include "uv.h"
-#include <unistd.h>
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
@@ -694,6 +691,7 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle
 	{
 		FklVM* exe=loop_data->exe;
 		fklLockThread(exe);
+		uint32_t sbp=exe->bp;
 		uint32_t stp=exe->tp;
 		uint32_t ltp=exe->ltp;
 		FklVMframe* buttom_frame=exe->top_frame;
@@ -706,7 +704,7 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t* handle
 		if(r==FUV_RUN_OK)
 			exe->tp--;
 		else if(r==FUV_RUN_ERR_OCCUR)
-			startErrorHandle(loop,loop_data,exe,stp,ltp,buttom_frame);
+			startErrorHandle(loop,loop_data,exe,sbp,stp,ltp,buttom_frame);
 		else
 		{
 			fklSetBp(exe);
@@ -1217,6 +1215,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(uv_handle
 	{
 		FklVM* exe=loop_data->exe;
 		fklLockThread(exe);
+		uint32_t sbp=exe->bp;
 		uint32_t stp=exe->tp;
 		uint32_t ltp=exe->ltp;
 		FklVMframe* buttom_frame=exe->top_frame;
@@ -1233,6 +1232,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(uv_handle
 			startErrorHandle(uv_handle_get_loop(handle)
 					,loop_data
 					,exe
+					,sbp
 					,stp
 					,ltp
 					,buttom_frame);
@@ -1723,6 +1723,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t* req
 	fklLockThread(exe);
 
 	exe->state=FKL_VM_READY;
+	uint32_t sbp=exe->bp;
 	uint32_t stp=exe->tp;
 	uint32_t ltp=exe->ltp;
 	FklVMframe* buttom_frame=exe->top_frame;
@@ -1733,7 +1734,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t* req
 	if(r==FUV_RUN_OK)
 		exe->tp--;
 	else if(r==FUV_RUN_ERR_OCCUR)
-		startErrorHandle(&fuv_loop->loop,ldata,exe,stp,ltp,buttom_frame);
+		startErrorHandle(&fuv_loop->loop,ldata,exe,sbp,stp,ltp,buttom_frame);
 	else
 	{
 		fklSetBp(exe);
@@ -2149,10 +2150,12 @@ static inline FklBuiltinErrorType pop_process_options(FklVM* exe
 				free(options->stdio);
 				uint64_t len=fklVMlistLength(cur);
 				options->stdio_count=len;
+				*stdio_obj=cur;
+				if(len==0)
+					goto done;
 				uv_stdio_container_t* containers=(uv_stdio_container_t*)malloc(len*sizeof(*(options->stdio)));
 				FKL_ASSERT(containers);
 				options->stdio=containers;
-				*stdio_obj=cur;
 				for(uint64_t i=0;i<len;i++)
 				{
 					FklVMvalue* stream=FKL_VM_CAR(cur);
@@ -2457,6 +2460,83 @@ static int fuv_stream_write_queue_size(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static void fuv_alloc_cb(uv_handle_t* handle,size_t suggested_size,uv_buf_t* buf)
+{
+	char* base=(char*)malloc(suggested_size);
+	FKL_ASSERT(base||!suggested_size);
+	buf->base=base;
+	buf->len=suggested_size;
+}
+
+struct ReadValueCreateArg
+{
+	FuvPublicData* fpd;
+	ssize_t nread;
+	const uv_buf_t* buf;
+};
+
+#define STREAM_READ_START_PNAME ("fuv.stream-read-start")
+
+static void fuv_read_cb_value_creator(FklVM* exe,void* a)
+{
+	struct ReadValueCreateArg* arg=(struct ReadValueCreateArg*)a;
+	ssize_t nread=arg->nread;
+	if(nread<0)
+	{
+		FklVMvalue* err=createUvErrorWithFpd(STREAM_READ_START_PNAME,nread,exe,arg->fpd);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		FKL_VM_PUSH_VALUE(exe,err);
+	}
+	else
+	{
+		const uv_buf_t* buf=arg->buf;
+		if(nread>0)
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateString(nread,buf->base)));
+		else
+			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	}
+	free(arg->buf->base);
+}
+
+static void fuv_read_cb(uv_stream_t* stream,ssize_t nread,const uv_buf_t* buf)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)stream));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)stream))->data;
+	FklVMframe* run_loop_proc_frame=ldata->exe->top_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	struct ReadValueCreateArg arg=
+	{
+		.fpd=fpd,
+		.nread=nread,
+		.buf=buf,
+	};
+	fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t*)stream
+			,hdata
+			,ldata
+			,0
+			,fuv_read_cb_value_creator
+			,&arg);
+}
+
+static int fuv_stream_read_start(FKL_CPROC_ARGL)
+{
+	static const char Pname[]=STREAM_READ_START_PNAME;
+	FKL_DECL_AND_CHECK_ARG2(stream_obj,cb_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_CHECK_TYPE(cb_obj,fklIsCallable,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	FuvHandle* handle=*stream_ud;
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(handle);
+	handle->data.callbacks[0]=cb_obj;
+	int ret=uv_read_start(stream,fuv_alloc_cb,fuv_read_cb);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	return 0;
+}
+
 static int fuv_stream_read_stop(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.stream-read-stop";
@@ -2547,13 +2627,34 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 	FuvHandle* handle=*stream_ud;
 	FklVMvalue* write_obj=NULL;
 	uv_write_t* write=createFuvWrite(exe,&write_obj,ctx->proc,handle->data.loop,cb_obj,arg_num);
-	uv_buf_t* bufs;
-	FklBuiltinErrorType err_type=setup_write_data(exe,arg_num,write_obj,&bufs);
-	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	FklVMvalue* send_handle_obj=NULL;
+	uv_buf_t* bufs=NULL;
+	if(arg_num)
+	{
+		FklVMvalue* top_value=FKL_VM_POP_TOP_VALUE(exe);
+		if(isFuvStream(top_value))
+		{
+			arg_num--;
+			send_handle_obj=top_value;
+		}
+		else
+			FKL_VM_PUSH_VALUE(exe,top_value);
+		FklBuiltinErrorType err_type=setup_write_data(exe,arg_num,write_obj,&bufs);
+		if(err_type)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	}
+	if(!arg_num)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
-	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
-	int ret=uv_write(write,stream,bufs,arg_num,fuv_write_cb);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(handle);
+	int ret=0;
+	if(send_handle_obj)
+	{
+		FKL_DECL_VM_UD_DATA(send_handle_ud,FuvHandleUd,send_handle_obj);
+		ret=uv_write2(write,stream,bufs,arg_num,(uv_stream_t*)GET_HANDLE(*send_handle_ud),fuv_write_cb);
+	}
+	else
+		ret=uv_write(write,stream,bufs,arg_num,fuv_write_cb);
 	free(bufs);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,stream_obj);
@@ -2561,6 +2662,79 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 }
 
 #undef STREAM_WRITE_PNAME
+
+static inline FklBuiltinErrorType setup_try_write_data(FklVM* exe
+		,uint32_t num
+		,uv_buf_t** pbufs)
+{
+	uv_buf_t* bufs=(uv_buf_t*)malloc(num*sizeof(uv_buf_t));
+	FKL_ASSERT(bufs);
+	FklVMvalue* val=FKL_VM_POP_ARG(exe);
+	uint32_t i=0;
+	while(val)
+	{
+		if(FKL_IS_STR(val))
+		{
+			FklString* str=FKL_VM_STR(val);
+			bufs[i].base=str->str;
+			bufs[i].len=str->size;
+		}
+		else if(FKL_IS_BYTEVECTOR(val))
+		{
+			FklBytevector* bvec=FKL_VM_BVEC(val);
+			bufs[i].base=(char*)bvec->ptr;
+			bufs[i].len=bvec->size;
+		}
+		else
+		{
+			free(bufs);
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+		}
+		val=FKL_VM_POP_ARG(exe);
+		i++;
+	}
+	*pbufs=bufs;
+	return 0;
+}
+
+static int fuv_stream_try_write(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-try-write";
+	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
+	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
+	FKL_DECL_VM_UD_DATA(stream_ud,FuvHandleUd,stream_obj);
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+	FklVMvalue* send_handle_obj=NULL;
+	uv_buf_t* bufs=NULL;
+	if(arg_num)
+	{
+		FklVMvalue* top_value=FKL_VM_POP_TOP_VALUE(exe);
+		if(isFuvStream(top_value))
+		{
+			arg_num--;
+			send_handle_obj=top_value;
+		}
+		else
+			FKL_VM_PUSH_VALUE(exe,top_value);
+		FklBuiltinErrorType err_type=setup_try_write_data(exe,arg_num,&bufs);
+		if(err_type)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	}
+	fklResBp(exe);
+	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
+	int ret=0;
+	if(send_handle_obj)
+	{
+		FKL_DECL_VM_UD_DATA(send_handle_ud,FuvHandleUd,send_handle_obj);
+		ret=uv_try_write2(stream,bufs,arg_num,(uv_stream_t*)GET_HANDLE(*send_handle_ud));
+	}
+	else
+		ret=uv_try_write(stream,bufs,arg_num);
+	free(bufs);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	return 0;
+}
 
 static void fuv_shutdown_cb(uv_shutdown_t* req,int status)
 {
@@ -2584,6 +2758,85 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL)
 	int ret=uv_shutdown(write,stream,fuv_shutdown_cb);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+struct ConnectionValueCreateArg
+{
+	FuvPublicData* fpd;
+	int status;
+};
+
+#define STREAM_LISTEN_PNAME ("fuv.stream-listen")
+
+static void fuv_connection_cb_value_creator(FklVM* exe,void* a)
+{
+	struct ConnectionValueCreateArg* arg=a;
+	FklVMvalue* err=arg->status<0
+		?createUvErrorWithFpd(STREAM_LISTEN_PNAME,arg->status,exe,arg->fpd)
+		:FKL_VM_NIL;
+	FKL_VM_PUSH_VALUE(exe,err);
+}
+
+static void fuv_connection_cb(uv_stream_t* handle,int status)
+{
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	FklVMframe* run_loop_proc_frame=ldata->exe->top_frame->prev;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)run_loop_proc_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	struct ConnectionValueCreateArg arg=
+	{
+		.fpd=fpd,
+		.status=status,
+	};
+	fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0
+			,fuv_connection_cb_value_creator
+			,&arg);
+}
+
+static int fuv_stream_listen(FKL_CPROC_ARGL)
+{
+	static const char Pname[]=STREAM_LISTEN_PNAME;
+	FKL_DECL_AND_CHECK_ARG3(server_obj,backlog_obj,cb_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(server_obj,isFuvStream,Pname,exe);
+	FKL_CHECK_TYPE(backlog_obj,FKL_IS_FIX,Pname,exe);
+	FKL_CHECK_TYPE(cb_obj,fklIsCallable,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(server_ud,FuvHandleUd,server_obj);
+	FuvHandle* handle=*server_ud;
+	uv_stream_t* server=(uv_stream_t*)GET_HANDLE(handle);
+
+	handle->data.callbacks[0]=cb_obj;
+	int ret=uv_listen(server,FKL_GET_FIX(backlog_obj),fuv_connection_cb);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,server_obj);
+	return 0;
+}
+
+#undef STREAM_LISTEN_PNAME
+
+static int fuv_stream_accept(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.stream-accept";
+	FKL_DECL_AND_CHECK_ARG2(server_obj,client_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(server_obj,isFuvStream,Pname,exe);
+	FKL_CHECK_TYPE(client_obj,isFuvStream,Pname,exe);
+
+	FKL_DECL_VM_UD_DATA(server_ud,FuvHandleUd,server_obj);
+	uv_stream_t* server=(uv_stream_t*)GET_HANDLE(*server_ud);
+
+	FKL_DECL_VM_UD_DATA(client_ud,FuvHandleUd,client_obj);
+	uv_stream_t* client=(uv_stream_t*)GET_HANDLE(*client_ud);
+
+	int ret=uv_accept(server,client);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,client_obj);
 	return 0;
 }
 
@@ -2654,6 +2907,55 @@ static int fuv_pipe_open(FKL_CPROC_ARGL)
 		ret=uv_pipe_open(pipe,FKL_GET_FIX(fd_obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,pipe_obj);
+	return 0;
+}
+
+static int fuv_pipe_bind(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-bind";
+	FKL_DECL_AND_CHECK_ARG2(pipe_obj,name_obj,exe,Pname);
+	FklVMvalue* no_truncate=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_CHECK_TYPE(name_obj,FKL_IS_STR,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	FklString* str=FKL_VM_STR(name_obj);
+	int flags=no_truncate&&no_truncate!=FKL_VM_NIL?UV_PIPE_NO_TRUNCATE:0;
+	int ret=uv_pipe_bind2(pipe,str->str,str->size,flags);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,pipe_obj);
+	return 0;
+}
+
+static void fuv_connect_cb(uv_connect_t* req,int status)
+{
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req,fuv_req_cb_error_value_creator,&status);
+}
+
+static int fuv_pipe_connect(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-connect";
+	FKL_DECL_AND_CHECK_ARG3(pipe_obj,name_obj,cb_obj,exe,Pname);
+	FklVMvalue* no_truncate=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	if(cb_obj==FKL_VM_NIL)
+		cb_obj=NULL;
+	else if(!fklIsCallable(cb_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_CHECK_TYPE(name_obj,FKL_IS_STR,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	FklVMvalue* connect_obj=NULL;
+	uv_connect_t* connect=createFuvConnect(exe,&connect_obj,ctx->proc,handle->data.loop,cb_obj);
+	FklString* str=FKL_VM_STR(name_obj);
+	int flags=no_truncate&&no_truncate!=FKL_VM_NIL?UV_PIPE_NO_TRUNCATE:0;
+	int ret=uv_pipe_connect2(connect,pipe,str->str,str->size,flags,fuv_connect_cb);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,pipe_obj);
 	return 0;
@@ -2734,6 +3036,26 @@ static int fuv_pipe_pending_count(FKL_CPROC_ARGL)
 	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
 	int ret=uv_pipe_pending_count(pipe);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ret));
+	return 0;
+}
+
+static int fuv_pipe_pending_type(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.pipe-pending-type";
+	FKL_DECL_AND_CHECK_ARG(pipe_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
+	FKL_DECL_VM_UD_DATA(handle_ud,FuvHandleUd,pipe_obj);
+	FuvHandle* handle=*handle_ud;
+	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
+	uv_handle_type type_id=uv_pipe_pending_type(pipe);
+	const char* name=uv_handle_type_name(type_id);
+	FKL_VM_PUSH_VALUE(exe
+			,name==NULL
+			?FKL_VM_NIL
+			:fklCreateVMvaluePair(exe
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
+				,FKL_MAKE_VM_FIX(type_id)));
 	return 0;
 }
 
@@ -2856,13 +3178,12 @@ struct SymFunc
 	{"stream-readable?",          fuv_stream_readable_p,         },
 	{"stream-writable?",          fuv_stream_writable_p,         },
 	{"stream-shutdown",           fuv_stream_shutdown,           },
-	{"stream-listen",             fuv_incomplete,                },
-	{"stream-accept",             fuv_incomplete,                },
-	{"stream-read-start",         fuv_incomplete,                },
+	{"stream-listen",             fuv_stream_listen,             },
+	{"stream-accept",             fuv_stream_accept,             },
+	{"stream-read-start",         fuv_stream_read_start,         },
 	{"stream-read-stop",          fuv_stream_read_stop,          },
 	{"stream-write",              fuv_stream_write,              },
-	{"stream-try-write",          fuv_incomplete,                },
-	{"stream-try-write",          fuv_incomplete,                },
+	{"stream-try-write",          fuv_stream_try_write,          },
 	{"stream-blocking-set!",      fuv_stream_blocking_set1,      },
 	{"stream-write-queue-size",   fuv_stream_write_queue_size,   },
 
@@ -2870,12 +3191,13 @@ struct SymFunc
 	{"pipe?",                     fuv_pipe_p,                    },
 	{"make-pipe",                 fuv_make_pipe,                 },
 	{"pipe-open",                 fuv_pipe_open,                 },
-	{"pipe-bind",                 fuv_incomplete,                },
-	{"pipe-connect",              fuv_incomplete,                },
+	{"pipe-bind",                 fuv_pipe_bind,                 },
+	{"pipe-connect",              fuv_pipe_connect,              },
 	{"pipe-sockname",             fuv_pipe_sockname,             },
 	{"pipe-peername",             fuv_pipe_peername,             },
 	{"pipe-pending-instances",    fuv_pipe_pending_instances,    },
 	{"pipe-pending-count",        fuv_pipe_pending_count,        },
+	{"pipe-pending-type",         fuv_pipe_pending_type,         },
 	{"pipe-chmod",                fuv_pipe_chmod,                },
 	{"pipe",                      fuv_pipe,                      },
 

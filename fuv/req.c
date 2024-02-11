@@ -42,6 +42,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print,getaddrinfo);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print,getnameinfo);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print,write);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print,shutdown);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print,connect);
 
 static void fuv_write_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
@@ -69,6 +70,11 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 
 	// UV_CONNECT
 	{
+		.size=sizeof(FuvReqUd),
+		.__as_prin1=fuv_connect_as_print,
+		.__as_princ=fuv_connect_as_print,
+		.__atomic=fuv_req_ud_atomic,
+		.__finalizer=fuv_req_ud_finalizer,
 	},
 
 	// UV_WRITE
@@ -214,4 +220,11 @@ struct FuvShutdown
 	uv_shutdown_t req;
 };
 
+struct FuvConnect
+{
+	FuvReqData data;
+	uv_connect_t req;
+};
+
 NORMAL_REQ_CREATOR(FuvShutdown,shutdown,UV_SHUTDOWN);
+NORMAL_REQ_CREATOR(FuvConnect,connect,UV_CONNECT);

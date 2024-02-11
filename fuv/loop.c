@@ -1,4 +1,3 @@
-#include "fakeLisp/vm.h"
 #include"fuv.h"
 #include<string.h>
 
@@ -132,6 +131,7 @@ FklVMvalue* createFuvLoop(FklVM* vm,FklVMvalue* rel,int* err)
 void startErrorHandle(uv_loop_t* loop
 		,FuvLoopData* ldata
 		,FklVM* exe
+		,uint32_t sbp
 		,uint32_t stp
 		,uint32_t ltp
 		,FklVMframe* buttom_frame)
@@ -145,6 +145,7 @@ void startErrorHandle(uv_loop_t* loop
 	rd->local_values=fklCopyMemory(&exe->locv[ltp],sizeof(FklVMvalue*)*rd->local_values_num);
 	rd->stack_values=fklCopyMemory(&exe->base[stp],sizeof(FklVMvalue*)*rd->stack_values_num);
 
+	exe->bp=sbp;
 	exe->tp=stp;
 	exe->ltp=ltp;
 

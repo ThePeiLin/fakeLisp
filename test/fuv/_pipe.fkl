@@ -10,6 +10,21 @@
 
 (define pipe (uv-make-pipe loop))
 
+(define TEST_PIPENAME "\\\\?\\pipe\\fuv-test")
+
+(uv-pipe-bind pipe TEST_PIPENAME)
+
+(println (uv-pipe-sockname pipe))
+
+(uv-pipe-chmod pipe "r")
+(uv-pipe-chmod pipe "w")
+(uv-pipe-chmod pipe "rw")
+(uv-pipe-chmod pipe "wr")
+
+(uv-handle-close pipe)
+
+(define pipe (uv-make-pipe loop))
+
 (uv-pipe-open pipe (cdr pipe-fd))
 
 (assert (uv-pipe? pipe))
@@ -32,6 +47,7 @@
 (printf "error is %S\n" err)
 
 (printf "pending count is %S\n" (uv-pipe-pending-count pipe))
+(printf "pending type is %S\n" (uv-pipe-pending-type pipe))
 
 (define (on-write err)
   (when err (raise err))
@@ -52,5 +68,85 @@
                       (uv-handle-close child))
                     'args (list "fakeLisp" (append! *file-dir* "_pipe-read.fkl"))
                     'stdio (list (car pipe-fd) stdout stderr)))
+
+(uv-loop-run loop)
+
+(define server (uv-make-pipe loop))
+
+(define TEST_PIPENAME "\\\\?\\pipe\\fuv-test")
+
+(uv-pipe-bind server TEST_PIPENAME)
+
+(println (uv-pipe-sockname server))
+
+(define (on-connection err)
+  (when err (raise err))
+  (define cli (uv-make-pipe loop))
+  (uv-stream-accept server cli)
+  (printf "incomming connection: %S\n" cli)
+  (uv-handle-close cli)
+  (uv-handle-close server))
+
+(uv-stream-listen server 128 on-connection)
+
+(define client (uv-make-pipe loop))
+
+(define (on-connect err)
+  (when err (raise err))
+  (printf "connect to pipe: %S\n" TEST_PIPENAME)
+  (uv-handle-close client))
+
+(uv-pipe-connect client TEST_PIPENAME on-connect)
+
+(uv-loop-run loop)
+
+(println "\ntest reading\n")
+
+(define pipe-fd (uv-pipe 1 1))
+
+(define rd-pipe (uv-make-pipe loop))
+
+(define wr-pipe (uv-make-pipe loop))
+
+(uv-pipe-open rd-pipe (car pipe-fd))
+
+(uv-pipe-open wr-pipe (cdr pipe-fd))
+
+(define (on-read err res)
+  (when err (raise err))
+  (printf "read result is: %S\n" res)
+  (uv-stream-read-stop rd-pipe))
+
+(define (on-write err)
+  (when err (raise err))
+  (uv-stream-read-start rd-pipe on-read)
+  (uv-stream-shutdown wr-pipe))
+
+(uv-stream-try-write wr-pipe "114514")
+(uv-stream-write wr-pipe on-write "abcd" "foobar")
+
+(uv-loop-run loop)
+
+(define pipe (uv-make-pipe loop 1))
+
+(define send-pipe (uv-make-pipe loop))
+
+(uv-pipe-bind send-pipe TEST_PIPENAME)
+
+(define input (uv-make-pipe loop))
+
+(define child
+  (uv-process-spawn loop
+                    (uv-exepath)
+                    (lambda (code signal)
+                      (assert (eqv code 42))
+                      (uv-handle-close child)
+                      (uv-handle-close input)
+                      (uv-handle-close pipe))
+                    'args (list "fakeLisp" (append! *file-dir* "_pipe-send.fkl"))
+                    'stdio (list input stdout stderr pipe)
+                    'env '("PIPE_FD=3")))
+
+(uv-stream-write pipe nil send-pipe "42")
 
 (uv-loop-run loop)

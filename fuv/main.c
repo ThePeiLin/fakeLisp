@@ -1,4 +1,6 @@
+#include "fakeLisp/vm.h"
 #include"fuv.h"
+#include "uv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
 	FKL_CHECK_REST_ARG(exe,err_infor);\
@@ -81,6 +83,9 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->f_uid_sid=fklAddSymbolCstr("uid",st)->id;
 	pd->f_gid_sid=fklAddSymbolCstr("gid",st)->id;
 
+#ifdef AF_UNSPEC
+	pd->AF_UNSPEC_sid=fklAddSymbolCstr("unspec",st)->id;
+#endif
 #ifdef AF_UNIX
 	pd->AF_UNIX_sid=fklAddSymbolCstr("unix",st)->id;
 #endif
@@ -1396,6 +1401,9 @@ static inline int sid_to_af_name(FklSid_t family_id,FuvPublicData* fpd)
 #endif
 #ifdef AF_PACKET
 	if(family_id==fpd->AF_PACKET_sid)return AF_PACKET;
+#endif
+#ifdef AF_UNSPEC
+	if(family_id==fpd->AF_UNSPEC_sid)return AF_UNSPEC;
 #endif
 	return -1;
 }
@@ -2983,6 +2991,46 @@ static int fuv_exepath(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_tcp_p(FKL_CPROC_ARGL){PREDICATE(isFuvTcp(val),"fuv.tcp?")}
+
+static inline FklBuiltinErrorType pop_tcp_flags(FklVM* exe,FuvPublicData* fpd,unsigned int* flags)
+{
+	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	while(cur)
+	{
+		if(FKL_IS_SYM(cur))
+		{
+			int af=sid_to_af_name(FKL_GET_SYM(cur),fpd);
+			if(af<0)
+				return FKL_ERR_INVALID_VALUE;
+			(*flags)|=af;
+		}
+		else
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+		cur=FKL_VM_POP_ARG(exe);
+	}
+	return 0;
+}
+
+static int fuv_make_tcp(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-tcp";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	unsigned int flags=AF_UNSPEC;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	FklBuiltinErrorType err_type=pop_tcp_flags(exe,fpd,&flags);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	fklResBp(exe);
+	FklVMvalue* retval=NULL;
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_tcp_t* tcp=createFuvTcp(exe,&retval,ctx->proc,loop_obj);
+	uv_tcp_init_ex(&fuv_loop->loop,tcp,flags);
+	FKL_VM_PUSH_VALUE(exe,retval);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -3097,6 +3145,20 @@ struct SymFunc
 	{"pipe-pending-type",         fuv_pipe_pending_type,         },
 	{"pipe-chmod",                fuv_pipe_chmod,                },
 	{"pipe",                      fuv_pipe,                      },
+
+	// tcp
+	{"tcp?",                      fuv_tcp_p,                     },
+	{"make-tcp",                  fuv_make_tcp,                  },
+	{"tcp-open",                  fuv_incomplete,                },
+	{"tcp-nodelay",               fuv_incomplete,                },
+	{"tcp-keepalive",             fuv_incomplete,                },
+	{"tcp-simultaneous-accepts",  fuv_incomplete,                },
+	{"tcp-bind",                  fuv_incomplete,                },
+	{"tcp-sockname",              fuv_incomplete,                },
+	{"tcp-peername",              fuv_incomplete,                },
+	{"tcp-connect",               fuv_incomplete,                },
+	{"tcp-close-reset",           fuv_incomplete,                },
+	{"socketpair",                fuv_incomplete,                },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

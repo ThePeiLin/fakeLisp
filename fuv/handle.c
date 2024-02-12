@@ -58,6 +58,8 @@ static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print,pipe);
 
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print,pipe);
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -140,6 +142,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_TCP,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__as_prin1=fuv_tcp_as_print,
+		.__as_princ=fuv_tcp_as_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_TIMER,
@@ -373,17 +380,30 @@ struct FuvPipe
 
 FUV_HANDLE_P(isFuvPipe,UV_NAMED_PIPE);
 
-uv_pipe_t* createFuvPipe(FklVM* vm,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj)
-{
-	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_NAMED_PIPE],rel);
-	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
-	struct FuvPipe* handle=CREATE_OBJ(struct FuvPipe);
-	FKL_ASSERT(handle);
-	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);
-	*pr=v;
-	return &handle->handle;
+#define OTHER_HANDLE_CREATOR(TYPE,NAME,ENUM) uv_##NAME##_t* create##TYPE(FklVM* vm,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj)\
+{\
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[ENUM],rel);\
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);\
+	struct TYPE* handle=CREATE_OBJ(struct TYPE);\
+	FKL_ASSERT(handle);\
+	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);\
+	*pr=v;\
+	return &handle->handle;\
 }
+
+OTHER_HANDLE_CREATOR(FuvPipe,pipe,UV_NAMED_PIPE);
+
+struct FuvTcp
+{
+	FuvHandleData data;
+	uv_tcp_t handle;
+};
+
+FUV_HANDLE_P(isFuvTcp,UV_TCP);
+
+OTHER_HANDLE_CREATOR(FuvTcp,tcp,UV_TCP);
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR
+#undef OTHER_HANDLE_CREATOR
 #undef CREATE_OBJ

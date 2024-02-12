@@ -1,0 +1,11 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define tcp (uv-make-tcp loop))
+
+(assert (uv-tcp? tcp))
+(assert (uv-stream? tcp))
+(assert (uv-handle? tcp))

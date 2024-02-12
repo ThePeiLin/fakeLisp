@@ -63,6 +63,9 @@ typedef struct
 	FklSid_t UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid;
 	FklSid_t UV_PROCESS_WINDOWS_HIDE_GUI_sid;
 
+#ifdef AF_UNSPEC
+	FklSid_t AF_UNSPEC_sid;
+#endif
 #ifdef AF_UNIX
 	FklSid_t AF_UNIX_sid;
 #endif
@@ -362,6 +365,9 @@ uv_process_t* createFuvProcess(FklVM*
 int isFuvStream(FklVMvalue* v);
 int isFuvPipe(FklVMvalue* v);
 uv_pipe_t* createFuvPipe(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
+
+int isFuvTcp(FklVMvalue* v);
+uv_tcp_t* createFuvTcp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
 
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))

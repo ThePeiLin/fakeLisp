@@ -1,51 +1,9 @@
 #include<fakeLisp/vm.h>
 
-enum IntCallCtxState
-{
-	INT_RUN_OK=1,
-	INT_RUN_ERR_OCCUR,
-};
-
-struct IntCallCtx
-{
-	jmp_buf* buf;
-};
-
 static void interrupt_handler_mark(FklVMgc* gc,void* arg)
 {
 	fklVMgcToGray(arg,gc);
 }
-
-static int int_call_frame_end(void* data)
-{
-	return 0;
-}
-
-static int int_call_frame_error_callback(FKL_VM_ERROR_CALLBACK_ARGL)
-{
-	struct IntCallCtx* ctx=(struct IntCallCtx*)f->data;
-	FKL_VM_PUSH_VALUE(vm,ev);
-	longjmp(*ctx->buf,INT_RUN_ERR_OCCUR);
-	return 1;
-}
-
-static void int_call_frame_step(void* data,FklVM* exe)
-{
-	struct IntCallCtx* ctx=(struct IntCallCtx*)data;
-	longjmp(*ctx->buf,INT_RUN_OK);
-}
-
-static void int_call_frame_printbacktrace(void* data,FILE* fp,FklVMgc* gc)
-{
-	fputs("at <interrupt>\n",fp);
-}
-
-static const FklVMframeContextMethodTable IntCallFrameCtxMethodTable=
-{
-	.print_backtrace=int_call_frame_printbacktrace,
-	.end=int_call_frame_end,
-	.step=int_call_frame_step,
-};
 
 static FklVMinterruptResult interrupt_handler(FklVM* exe
 		,FklVMvalue* value
@@ -54,43 +12,30 @@ static FklVMinterruptResult interrupt_handler(FklVM* exe
 {
 	FklVMvalue* proc=arg;
 	FklVMframe* origin_top_frame=exe->top_frame;
-	FklVMframe* int_frame=fklCreateOtherObjVMframe(exe,&IntCallFrameCtxMethodTable,origin_top_frame);
-	int_frame->errorCallBack=int_call_frame_error_callback;
-	struct IntCallCtx* ctx=(struct IntCallCtx*)int_frame->data;
-	jmp_buf buf;
-	ctx->buf=&buf;
-	exe->top_frame=int_frame;
 	uint32_t tp=exe->tp;
 	uint32_t bp=exe->bp;
 	fklSetBp(exe);
 	FKL_VM_PUSH_VALUE(exe,value);
 	fklCallObj(exe,proc);
 	FklVMinterruptResult result=FKL_INT_DONE;
-	int r=setjmp(buf);
+	exe->state=FKL_VM_READY;
+	int r=exe->thread_run_cb(exe,origin_top_frame);
+	exe->state=FKL_VM_READY;
+	while(exe->top_frame!=origin_top_frame)
+		fklPopVMframe(exe);
+	FklVMvalue* retval=FKL_VM_GET_TOP_VALUE(exe);
 	if(r)
 	{
-		exe->state=FKL_VM_READY;
-		while(exe->top_frame!=origin_top_frame)
-			fklPopVMframe(exe);
-		FklVMvalue* retval=FKL_VM_GET_TOP_VALUE(exe);
-		if(r==INT_RUN_OK)
-		{
-			if(retval!=FKL_VM_NIL)
-				result=FKL_INT_NEXT;
-		}
-		else
-		{
-			*pvalue=retval;
-			result=FKL_INT_NEXT;
-		}
-		exe->bp=bp;
-		exe->tp=tp;
+		*pvalue=retval;
+		result=FKL_INT_NEXT;
 	}
 	else
 	{
-		exe->state=FKL_VM_READY;
-		exe->thread_run_cb(exe);
+		if(retval!=FKL_VM_NIL)
+			result=FKL_INT_NEXT;
 	}
+	exe->bp=bp;
+	exe->tp=tp;
 	return result;
 }
 

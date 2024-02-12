@@ -294,10 +294,10 @@ typedef struct FklCprocFrameContext
 {
 	FklVMvalue* proc;
 	FklCprocFrameState state;
-	uint32_t rtp;
-	uintptr_t context;
 	FklVMcFunc func;
 	FklVMvalue* pd;
+	uintptr_t context;
+	uint32_t rtp;
 }FklCprocFrameContext;
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE) static_assert(sizeof(TYPE)<=(sizeof(FklVMCompoundFrameData)-sizeof(void*))\
@@ -394,7 +394,7 @@ typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
 
 typedef void (*FklVMatExitFunc)(struct FklVM*,void*);
 typedef void (*FklVMatExitMarkFunc)(void*,struct FklVMgc*);
-typedef void (*FklVMrunCb)(struct FklVM*);
+typedef int (*FklVMrunCb)(struct FklVM*,FklVMframe* const exit_frame);
 
 typedef struct FklVM
 {
@@ -707,7 +707,7 @@ void fklVMpushExtraMarkFunc(FklVMgc*
 
 void fklSetVMsingleThread(FklVM* exe);
 void fklUnsetVMsingleThread(FklVM* exe);
-void fklRunVMinSingleThread(FklVM* exe);
+int fklRunVMinSingleThread(FklVM* exe,FklVMframe* const exit_frame);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
 FklVM* fklCreateVM(FklVMvalue* proc,FklVMgc* gc,uint64_t lib_num,FklVMlib* libs);
@@ -1170,6 +1170,8 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 size_t fklVMlistLength(FklVMvalue*);
 
 void fklPushVMframe(FklVMframe*,FklVM* exe);
+FklVMframe* fklMoveVMframeToTop(FklVM* exe,FklVMframe* f);
+void fklInsertTopVMframeAsPrev(FklVM* exe,FklVMframe* f);
 FklVMframe* fklCreateOtherObjVMframe(FklVM* exe,const FklVMframeContextMethodTable* t,FklVMframe* prev);
 FklVMframe* fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable* t,FklVMframe* prev);
 

@@ -394,11 +394,6 @@ FklSid_t signumToSymbol(int,FuvPublicData* pd);
 
 typedef struct
 {
-	jmp_buf* buf;
-}FuvProcCallCtx;
-
-typedef struct
-{
 	FklVMvalue* req;
 	FklVMvalue* loop;
 	FklVMvalue* callback;

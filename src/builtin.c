@@ -3816,20 +3816,13 @@ static int builtin_pcall(FKL_CPROC_ARGL)
 	return 0;
 }
 
-#define IDLE_WORK_DONE (2)
-
 static void idle_queue_work_cb(FklVM* exe,void* a)
 {
 	FklCprocFrameContext* ctx=(FklCprocFrameContext*)a;
-	jmp_buf buf;
-	ctx->context=(uintptr_t)&buf;
 	fklDontNoticeThreadLock(exe);
 	exe->state=FKL_VM_READY;
-	if(setjmp(buf)==IDLE_WORK_DONE)
-		goto exit;
 	fklSetVMsingleThread(exe);
-	fklRunVMinSingleThread(exe);
-exit:
+	ctx->context=fklRunVMinSingleThread(exe,exe->top_frame->prev);
 	fklNoticeThreadLock(exe);
 	fklUnsetVMsingleThread(exe);
 	return;
@@ -3844,19 +3837,22 @@ static int builtin_idle(FKL_CPROC_ARGL)
 			{
 				FKL_DECL_AND_CHECK_ARG(proc,exe,Pname);
 				FKL_CHECK_TYPE(proc,fklIsCallable,Pname,exe);
+				FklVMframe* origin_top_frame=exe->top_frame;
 				fklCallObj(exe,proc);
 				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,ctx);
-				return 1;
+				if(ctx->context)
+				{
+					exe->state=FKL_VM_READY;
+					ctx->context=(uintptr_t)fklMoveVMframeToTop(exe,origin_top_frame);
+					return 1;
+				}
+				return 0;
 			}
-		case 1:
-			exe->state=FKL_VM_READY;
-			break;
 		default:
 			{
-				jmp_buf* buf=(jmp_buf*)ctx->context;
-				ctx->context=1;
-				longjmp(*buf,IDLE_WORK_DONE);
-				return 1;
+				FklVMframe* frame=(FklVMframe*)ctx->context;
+				fklInsertTopVMframeAsPrev(exe,frame);
+				fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe),exe);
 			}
 			break;
 	}
@@ -3870,75 +3866,28 @@ struct AtExitArg
 	FklVMvalue* args[];
 };
 
-typedef struct
-{
-	jmp_buf* buf;
-}AtExitFrameCtx;
-
-FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(AtExitFrameCtx);
-
-static void at_exit_frame_step(void* d,FklVM* exe)
-{
-	AtExitFrameCtx* ctx=(AtExitFrameCtx*)d;
-	longjmp(*ctx->buf,IDLE_WORK_DONE);
-}
-
-static int at_exit_frame_end(void* d)
-{
-	return 0;
-}
-
-static const FklVMframeContextMethodTable AtExitFrameCtxMethodTable=
-{
-	.atomic=NULL,
-	.finalizer=NULL,
-	.copy=NULL,
-	.print_backtrace=NULL,
-	.step=at_exit_frame_step,
-	.end=at_exit_frame_end,
-};
-
-static int vm_atexit_error_cb(FklVMframe* f,FklVMvalue* ev,FklVM* exe)
-{
-	AtExitFrameCtx* c=(AtExitFrameCtx*)f->data;
-	fklPrintErrBacktrace(ev,exe,stderr);
-	longjmp(*c->buf,IDLE_WORK_DONE);
-	return 0;
-}
-
 static void vm_atexit_idle_queue_work_cb(FklVM* exe,void *a)
 {
 	struct AtExitArg* arg=(struct AtExitArg*)a;
-	jmp_buf buf;
 	fklDontNoticeThreadLock(exe);
 	FklVMframe* origin_top_frame=exe->top_frame;
-	FklVMframe* atexit_frame=fklCreateOtherObjVMframe(exe,&AtExitFrameCtxMethodTable,origin_top_frame);
-	atexit_frame->errorCallBack=vm_atexit_error_cb;
-	AtExitFrameCtx* ctx=(AtExitFrameCtx*)atexit_frame->data;
-	ctx->buf=&buf;
-	exe->top_frame=atexit_frame;
 	uint32_t tp=exe->tp;
 	uint32_t bp=exe->bp;
 	fklSetBp(exe);
 	for(uint32_t i=0;i<arg->arg_num;i++)
 		FKL_VM_PUSH_VALUE(exe,arg->args[i]);
 	fklCallObj(exe,arg->proc);
-	if(setjmp(buf)==IDLE_WORK_DONE)
-	{
-		while(exe->top_frame!=origin_top_frame)
-			fklPopVMframe(exe);
-		exe->state=FKL_VM_READY;
-		fklNoticeThreadLock(exe);
-		exe->is_single_thread=0;
-		exe->bp=bp;
-		exe->tp=tp;
-	}
-	else
-	{
-		exe->state=FKL_VM_READY;
-		exe->is_single_thread=1;
-		fklRunVMinSingleThread(exe);
-	}
+	exe->state=FKL_VM_READY;
+	exe->is_single_thread=1;
+	if(fklRunVMinSingleThread(exe,origin_top_frame))
+		fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(exe),exe,stderr);
+	while(exe->top_frame!=origin_top_frame)
+		fklPopVMframe(exe);
+	exe->state=FKL_VM_READY;
+	fklNoticeThreadLock(exe);
+	exe->is_single_thread=0;
+	exe->bp=bp;
+	exe->tp=tp;
 	return;
 }
 

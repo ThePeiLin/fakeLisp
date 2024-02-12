@@ -270,7 +270,8 @@ FUV_HANDLE_P(isFuvAsync,UV_ASYNC);
 
 static void fuv_async_cb(uv_async_t* handle)
 {
-	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
 	struct FuvAsync* async_handle=uv_handle_get_data((uv_handle_t*)handle);
 	FuvHandleData* hdata=&async_handle->data;
 	FklVMvalue* proc=hdata->callbacks[0];
@@ -278,30 +279,26 @@ static void fuv_async_cb(uv_async_t* handle)
 	{
 		FklVM* exe=ldata->exe;
 		fklLockThread(exe);
+		uint32_t sbp=exe->bp;
+		uint32_t stp=exe->tp;
+		uint32_t ltp=exe->ltp;
 		exe->state=FKL_VM_READY;
-		FklVMframe* fuv_proc_call_frame=exe->top_frame;
-		FuvProcCallCtx* ctx=(FuvProcCallCtx*)fuv_proc_call_frame->data;
-		jmp_buf buf;
-		ctx->buf=&buf;
-		if(setjmp(buf))
-		{
-			exe->tp--;
-			fklUnlockThread(exe);
-			return;
-		}
+		FklVMframe* buttom_frame=exe->top_frame;
+		struct FuvAsyncExtraData* extra=atomic_load(&async_handle->extra);
+		fklSetBp(exe);
+		FklVMvalue** cur=extra->base;
+		FklVMvalue** const end=&cur[extra->num];
+		for(;cur<end;cur++)
+			FKL_VM_PUSH_VALUE(exe,*cur);
+		fklCallObj(exe,proc);
+		FUV_ASYNC_COPY_DONE(async_handle);
+		FUV_ASYNC_WAIT_SEND(exe,async_handle);
+		if(exe->thread_run_cb(exe,buttom_frame))
+			startErrorHandle(loop,ldata,exe,sbp,stp,ltp,buttom_frame);
 		else
-		{
-			struct FuvAsyncExtraData* extra=atomic_load(&async_handle->extra);
-			fklSetBp(exe);
-			FklVMvalue** cur=extra->base;
-			FklVMvalue** const end=&cur[extra->num];
-			for(;cur<end;cur++)
-				FKL_VM_PUSH_VALUE(exe,*cur);
-			fklCallObj(exe,proc);
-			FUV_ASYNC_COPY_DONE(async_handle);
-			FUV_ASYNC_WAIT_SEND(exe,async_handle);
-			exe->thread_run_cb(exe);
-		}
+			exe->tp--;
+		fklUnlockThread(exe);
+		return;
 	}
 }
 

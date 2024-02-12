@@ -42,7 +42,6 @@ static inline FklCodegenEnv* init_codegen_info_common_helper(DebugCtx* ctx
 			,0
 			,&ctx->outer_ctx);
 	memset(info->builtinSymModiMark,1,sizeof(*info->builtinSymModiMark)*info->builtinSymbolNum);
-	// info->do_not_inline_builtins=1;
 	fklDestroyFuncPrototypes(info->pts);
 	info->pts=ctx->gc->pts;
 	*penv=env;
@@ -229,73 +228,6 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 	return proc;
 }
 
-typedef struct
-{
-	uint32_t bp;
-	uint32_t tp;
-	DebugCtx* ctx;
-	FklVMvalue** store_retval;
-}EvalFrameCtx;
-
-FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EvalFrameCtx);
-
-static int eval_frame_end(void* data)
-{
-	return 0;
-}
-
-static void eval_frame_step(void* data,FklVM* exe)
-{
-	EvalFrameCtx* c=(EvalFrameCtx*)data;
-	*(c->store_retval)=FKL_VM_POP_TOP_VALUE(exe);
-	exe->tp=c->tp;
-	exe->bp=c->bp;
-	longjmp(c->ctx->jmpe,DBG_INTERRUPTED);
-	return;
-}
-
-static const FklVMframeContextMethodTable EvalFrameCtxMethodTable=
-{
-	.end=eval_frame_end,
-	.step=eval_frame_step,
-};
-
-static int eval_frame_error_callback(FklVMframe* f
-		,FklVMvalue* ev
-		,FklVM* exe)
-{
-	EvalFrameCtx* c=(EvalFrameCtx*)f->data;
-	fklPrintErrBacktrace(ev,exe,stdout);
-	exe->tp=c->tp;
-	exe->bp=c->bp;
-	longjmp(c->ctx->jmpe,DBG_ERROR_OCCUR);
-	return 0;
-}
-
-static inline void init_eval_frame(FklVMframe* f
-		,uint32_t tp
-		,uint32_t bp
-		,DebugCtx* ctx
-		,FklVMvalue** store_retval)
-{
-	EvalFrameCtx* c=(EvalFrameCtx*)f->data;
-	c->tp=tp;
-	c->bp=bp;
-	c->ctx=ctx;
-	c->store_retval=store_retval;
-}
-
-static inline FklVMframe* create_eval_frame(DebugCtx* ctx
-		,FklVM* vm
-		,FklVMvalue** store_retval
-		,FklVMframe* cur_frame)
-{
-	FklVMframe* f=fklCreateOtherObjVMframe(vm,&EvalFrameCtxMethodTable,cur_frame);
-	init_eval_frame(f,vm->tp,vm->bp,ctx,store_retval);
-	f->errorCallBack=eval_frame_error_callback;
-	return f;
-}
-
 static inline void B_eval_load_lib_dll(FKL_VM_INS_FUNC_ARGL)
 {
 	FKL_RAISE_BUILTIN_ERROR_CSTR("b.load-lib/dll",FKL_ERR_INVALIDACCESS,exe);
@@ -311,35 +243,36 @@ FklVMvalue* callEvalProc(DebugCtx* ctx
 
 	FklVMframe* origin_top_frame=vm->top_frame;
 	FklVMvalue* retval=NULL;
-	int r=setjmp(ctx->jmpe);
-	if(r)
-	{
-		vm->ins_table[FKL_OP_LOAD_DLL]=o_load_dll;
-		vm->ins_table[FKL_OP_LOAD_LIB]=o_load_lib;
-
-		vm->state=FKL_VM_READY;
-		fklNoticeThreadLock(vm);
-		fklUnsetVMsingleThread(vm);
-		FklVMframe* f=vm->top_frame;
-		while(f!=origin_cur_frame)
-		{
-			FklVMframe* cur=f;
-			f=f->prev;
-			fklDestroyVMframe(cur,vm);
-		}
-		vm->top_frame=origin_top_frame;
-	}
+	vm->ins_table[FKL_OP_LOAD_DLL]=B_eval_load_lib_dll;
+	vm->ins_table[FKL_OP_LOAD_LIB]=B_eval_load_lib_dll;
+	vm->state=FKL_VM_READY;
+	uint32_t tp=vm->tp;
+	uint32_t bp=vm->bp;
+	uint32_t ltp=vm->ltp;
+	fklSetVMsingleThread(vm);
+	fklCallObj(vm,proc);
+	fklDontNoticeThreadLock(vm);
+	if(fklRunVMinSingleThread(vm,origin_cur_frame))
+		fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(vm),vm,stderr);
 	else
+		retval=FKL_VM_POP_TOP_VALUE(vm);
+	vm->ins_table[FKL_OP_LOAD_DLL]=o_load_dll;
+	vm->ins_table[FKL_OP_LOAD_LIB]=o_load_lib;
+
+	vm->state=FKL_VM_READY;
+	fklNoticeThreadLock(vm);
+	fklUnsetVMsingleThread(vm);
+	FklVMframe* f=vm->top_frame;
+	while(f!=origin_cur_frame)
 	{
-		vm->ins_table[FKL_OP_LOAD_DLL]=B_eval_load_lib_dll;
-		vm->ins_table[FKL_OP_LOAD_LIB]=B_eval_load_lib_dll;
-		vm->state=FKL_VM_READY;
-		fklSetVMsingleThread(vm);
-		vm->top_frame=create_eval_frame(ctx,vm,&retval,origin_cur_frame);
-		fklCallObj(vm,proc);
-		fklDontNoticeThreadLock(vm);
-		fklRunVMinSingleThread(vm);
+		FklVMframe* cur=f;
+		f=f->prev;
+		fklDestroyVMframe(cur,vm);
 	}
+	vm->tp=tp;
+	vm->bp=bp;
+	vm->ltp=ltp;
+	vm->top_frame=origin_top_frame;
 	return retval;
 }
 

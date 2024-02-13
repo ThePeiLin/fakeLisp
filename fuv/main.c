@@ -2563,7 +2563,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 		ret=uv_write(write,stream,bufs,arg_num,fuv_write_cb);
 	free(bufs);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	FKL_VM_PUSH_VALUE(exe,write_obj);
 	return 0;
 }
 
@@ -2668,7 +2668,7 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL)
 	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
 	int ret=uv_shutdown(write,stream,fuv_shutdown_cb);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	FKL_VM_PUSH_VALUE(exe,shutdown_obj);
 	return 0;
 }
 
@@ -2867,7 +2867,7 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL)
 	int flags=no_truncate&&no_truncate!=FKL_VM_NIL?UV_PIPE_NO_TRUNCATE:0;
 	int ret=uv_pipe_connect2(connect,pipe,str->str,str->size,flags,fuv_connect_cb);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,pipe_obj);
+	FKL_VM_PUSH_VALUE(exe,connect_obj);
 	return 0;
 }
 
@@ -3207,7 +3207,34 @@ static int fuv_tcp_bind(FKL_CPROC_ARGL)
 	unsigned int flags=ipv6only_obj&&ipv6only_obj!=FKL_VM_NIL?UV_TCP_IPV6ONLY:0;
 	int ret=uv_tcp_bind((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&addr,flags);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&addr,ctx->pd));
+	FKL_VM_PUSH_VALUE(exe,tcp_obj);
+	return 0;
+}
+
+static int fuv_tcp_connect(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tcp-connect";
+	FKL_DECL_AND_CHECK_ARG3(tcp_obj,host_obj,port_obj,exe,Pname);
+	FklVMvalue* cb_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
+	FKL_CHECK_TYPE(host_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(port_obj,FKL_IS_FIX,Pname,exe);
+	if(cb_obj)
+		FKL_CHECK_TYPE(cb_obj,fklIsCallable,Pname,exe);
+	int port=FKL_GET_FIX(port_obj);
+	const char* host=FKL_VM_STR(host_obj)->str;
+	struct sockaddr_storage addr;
+	if(uv_ip4_addr(host,port,(struct sockaddr_in*)&addr)
+			&&uv_ip6_addr(host,port,(struct sockaddr_in6*)&addr))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
+	FuvHandle* handle=*handle_ud;
+	FklVMvalue* connect_obj=NULL;
+	uv_connect_t* connect=createFuvConnect(exe,&connect_obj,ctx->proc,handle->data.loop,cb_obj);
+	int ret=uv_tcp_connect(connect,(uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&addr,fuv_connect_cb);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,connect_obj);
 	return 0;
 }
 
@@ -3411,7 +3438,7 @@ struct SymFunc
 	{"tcp-bind",                  fuv_tcp_bind,                  },
 	{"tcp-sockname",              fuv_tcp_sockname,              },
 	{"tcp-peername",              fuv_tcp_peername,              },
-	{"tcp-connect",               fuv_incomplete,                },
+	{"tcp-connect",               fuv_tcp_connect,               },
 	{"tcp-close-reset",           fuv_tcp_close_reset,           },
 	{"socketpair",                fuv_socketpair,                },
 

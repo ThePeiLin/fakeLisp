@@ -4,10 +4,11 @@
 
 (import (only (.. .. lib utils m) assert))
 
-(define fd (parse (getenv "PIPE_FD")))
+(define fd (string->number (getenv "PIPE_FD")))
 
 (define loop (uv-make-loop))
 
+(define exit-code 0)
 
 (define pipe (uv-make-pipe loop 1))
 
@@ -15,6 +16,7 @@
 
 (define (on-read err res)
   (printf "read result in %S is %S\n" *file* res)
+  (when res (setq exit-code (string->number res)))
   (when (> (uv-pipe-pending-count pipe) 0)
     (assert (equal (car (uv-pipe-pending-type pipe)) "pipe"))
     (define sended-pipe (uv-make-pipe loop))
@@ -26,4 +28,4 @@
 
 (uv-loop-run loop)
 
-(exit 42)
+(exit exit-code)

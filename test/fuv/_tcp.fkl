@@ -35,12 +35,16 @@
 
 (uv-loop-run loop)
 
+(newline)
+;; basic tcp server and client (ipv4)
+(println "basic tcp server and client (ipv4)")
+
 (define server (uv-make-tcp loop))
 
 (uv-tcp-bind server "127.0.0.1" 0)
 
 (define (on-connection err)
-  (assert (not err))
+  (when err (raise err))
   (uv-handle-close server))
 
 (uv-stream-listen server
@@ -50,3 +54,114 @@
 (define addr (uv-tcp-sockname server))
 
 (printf "server=%S, address=%S\n" server addr)
+
+(define client (uv-make-tcp loop))
+
+(define (on-connect err)
+  (when err (raise err))
+  (printf "client %S on connect\n" client)
+  (define peername (uv-tcp-peername client))
+  (printf "peername=%S\n" peername)
+  (uv-stream-shutdown
+    client
+    (lambda (err)
+      (when err (raise err))
+      (uv-handle-close
+        client
+        (lambda ()
+          (printf "client %S on close\n" client))))))
+
+(define req
+  (uv-tcp-connect client
+                  "127.0.0.1"
+                  (hash-ref addr 'port)
+                  on-connect))
+(prin1n req)
+
+(uv-loop-run loop)
+
+(newline)
+;; basic tcp server and client (ipv6)
+(println "basic tcp server and client (ipv6)")
+
+(define server (uv-make-tcp loop))
+
+(uv-tcp-bind server "::1" 0)
+
+(uv-stream-listen server 128 on-connection)
+
+(define addr (uv-tcp-sockname server))
+
+(define client (uv-make-tcp loop))
+
+(printf "server=%S, address=%S\n" server addr)
+
+(define req
+  (uv-tcp-connect client
+                  "::1"
+                  (hash-ref addr 'port)
+                  on-connect))
+
+(prin1n req)
+
+(uv-loop-run loop)
+
+(newline)
+;; tcp echo server and client
+(println "tcp echo server and client")
+
+(define server (uv-make-tcp loop))
+
+(uv-tcp-bind server "127.0.0.1" 0)
+
+(define (not-uv-eof-err? err)
+  (and err (not (eq (error-type err) 'UV_EOF))))
+
+(define (on-connection err)
+  (when err (raise err))
+  (define client (uv-make-tcp loop))
+  (uv-stream-accept server client)
+  (uv-stream-read-start
+    client
+    (lambda (err data)
+      (printf "server read: %S\n" (cons data err))
+      (when (not-uv-eof-err? err)
+        (raise err))
+      (if data
+        (uv-stream-write client nil data)
+        (begin
+          (uv-stream-read-stop client)
+          (uv-handle-close client)
+          (uv-handle-close server))))))
+
+(uv-stream-listen server
+                  1
+                  on-connection)
+
+(define addr (uv-tcp-sockname server))
+
+(define socket (uv-make-tcp loop))
+
+(define (on-connect err)
+  (when err (raise err))
+  (uv-stream-read-start
+    socket
+    (lambda (err data)
+      (printf "client read: %S\n" (cons data err))
+      (when (not-uv-eof-err? err)
+        (raise err))
+      (uv-stream-read-stop socket)
+      (uv-handle-close socket)))
+  (define req (uv-stream-write
+                socket
+                (lambda (err)
+                  (when err (raise err)))
+                "Hello"))
+  (printf "write req=%S\n" req))
+
+(uv-tcp-connect socket
+                "127.0.0.1"
+                (hash-ref addr 'port)
+                on-connect)
+
+(uv-loop-run loop)

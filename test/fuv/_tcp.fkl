@@ -17,3 +17,5 @@
 (assert (eq (error-type (prin1n (pcall uv-tcp-keepalive tcp nil 114)))
             'call-error))
 (uv-tcp-keepalive tcp 1 114)
+
+(prin1n (uv-socketpair 'dgram nil 1 1))

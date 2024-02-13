@@ -1381,6 +1381,26 @@ static inline int sid_to_af_name(FklSid_t family_id,FuvPublicData* fpd)
 	return -1;
 }
 
+static inline int sid_to_socktype(FklSid_t socktype_id,FuvPublicData* fpd)
+{
+#ifdef SOCK_STREAM
+	if(socktype_id==fpd->SOCK_STREAM_sid)return SOCK_STREAM;
+#endif
+#ifdef SOCK_DGRAM
+	if(socktype_id==fpd->SOCK_DGRAM_sid)return SOCK_STREAM;
+#endif
+#ifdef SOCK_SEQPACKET
+	if(socktype_id==fpd->SOCK_SEQPACKET_sid)return SOCK_SEQPACKET;
+#endif
+#ifdef SOCK_RAW
+	if(socktype_id==fpd->SOCK_RAW_sid)return SOCK_RAW;
+#endif
+#ifdef SOCK_RDM
+	if(socktype_id==fpd->SOCK_RDM_sid)return SOCK_RDM;
+#endif
+	return -1;
+}
+
 static inline FklBuiltinErrorType pop_addrinfo_hints(FklVM* exe
 		,struct addrinfo* hints
 		,FuvPublicData* fpd)
@@ -1398,8 +1418,7 @@ static inline FklBuiltinErrorType pop_addrinfo_hints(FklVM* exe
 					return FKL_ERR_TOOFEWARG;
 				if(!FKL_IS_SYM(cur))
 					return FKL_ERR_INCORRECT_TYPE_VALUE;
-				FklSid_t family_id=FKL_GET_SYM(cur);
-				int af_num=sid_to_af_name(family_id,fpd);
+				int af_num=sid_to_af_name(FKL_GET_SYM(cur),fpd);
 				if(af_num<0)
 					return FKL_ERR_INVALID_VALUE;
 				hints->ai_family=af_num;
@@ -1412,23 +1431,11 @@ static inline FklBuiltinErrorType pop_addrinfo_hints(FklVM* exe
 					return FKL_ERR_TOOFEWARG;
 				if(!FKL_IS_SYM(cur))
 					return FKL_ERR_INCORRECT_TYPE_VALUE;
-				FklSid_t socktype_id=FKL_GET_SYM(cur);
-#ifdef SOCK_STREAM
-				if(socktype_id==fpd->SOCK_STREAM_sid){hints->ai_socktype=SOCK_STREAM;goto done;}
-#endif
-#ifdef SOCK_DGRAM
-				if(socktype_id==fpd->SOCK_DGRAM_sid){hints->ai_socktype=SOCK_STREAM;goto done;}
-#endif
-#ifdef SOCK_SEQPACKET
-				if(socktype_id==fpd->SOCK_SEQPACKET_sid){hints->ai_socktype=SOCK_SEQPACKET;goto done;}
-#endif
-#ifdef SOCK_RAW
-				if(socktype_id==fpd->SOCK_RAW_sid){hints->ai_socktype=SOCK_RAW;goto done;}
-#endif
-#ifdef SOCK_RDM
-				if(socktype_id==fpd->SOCK_RDM_sid){hints->ai_socktype=SOCK_RDM;goto done;}
-#endif
-				return FKL_ERR_INVALID_VALUE;
+				int socktype=sid_to_socktype(FKL_GET_SYM(cur),fpd);
+				if(socktype<0)
+					return FKL_ERR_INVALID_VALUE;
+				hints->ai_socktype=socktype;
+				goto done;
 			}
 			else if(id==fpd->f_protocol_sid)
 			{
@@ -3079,6 +3086,60 @@ static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_socketpair(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.socketpair";
+	FKL_DECL_AND_CHECK_ARG4(socktype_obj
+			,protocol_obj
+			,non_block_flags0_obj
+			,non_block_flags1_obj
+			,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	int socktype=SOCK_STREAM;
+	int protocol=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	if(FKL_IS_SYM(socktype_obj))
+	{
+		int type=sid_to_socktype(FKL_GET_SYM(socktype_obj),fpd);
+		if(type<0)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+		socktype=type;
+	}
+	else if(socktype_obj!=FKL_VM_NIL)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	if(FKL_IS_STR(protocol_obj))
+	{
+		const char* name=FKL_VM_STR(protocol_obj)->str;
+		int proto=get_protonum_with_cstr(name);
+		if(proto<0)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+		protocol=proto;
+	}
+	else if(FKL_IS_SYM(protocol_obj))
+	{
+		const char* name=fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(protocol_obj))->symbol->str;
+		int proto=get_protonum_with_cstr(name);
+		if(proto<0)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+		protocol=proto;
+	}
+	else if(protocol_obj!=FKL_VM_NIL)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	int flags0=non_block_flags0_obj!=FKL_VM_NIL?UV_NONBLOCK_PIPE:0;
+	int flags1=non_block_flags1_obj!=FKL_VM_NIL?UV_NONBLOCK_PIPE:0;
+
+	uv_os_sock_t socks[2];
+	int ret=uv_socketpair(socktype,protocol,socks,flags0,flags1);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe
+			,fklCreateVMvaluePair(exe
+				,FKL_MAKE_VM_FIX(socks[0])
+				,FKL_MAKE_VM_FIX(socks[1])));
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -3206,7 +3267,7 @@ struct SymFunc
 	{"tcp-peername",              fuv_incomplete,                },
 	{"tcp-connect",               fuv_incomplete,                },
 	{"tcp-close-reset",           fuv_incomplete,                },
-	{"socketpair",                fuv_incomplete,                },
+	{"socketpair",                fuv_socketpair,                },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

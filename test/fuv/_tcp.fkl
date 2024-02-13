@@ -9,3 +9,11 @@
 (assert (uv-tcp? tcp))
 (assert (uv-stream? tcp))
 (assert (uv-handle? tcp))
+
+(uv-tcp-nodelay tcp 1)
+(uv-tcp-simultaneous-accepts tcp 1)
+(assert (eq (error-type (prin1n (pcall uv-tcp-keepalive tcp 1)))
+            'call-error))
+(assert (eq (error-type (prin1n (pcall uv-tcp-keepalive tcp nil 114)))
+            'call-error))
+(uv-tcp-keepalive tcp 1 114)

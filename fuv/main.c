@@ -1,3 +1,5 @@
+#include<fakeLisp/vm.h>
+#include<uv.h>
 #include"fuv.h"
 
 #define PREDICATE(condition,err_infor) FKL_DECL_AND_CHECK_ARG(val,exe,err_infor);\
@@ -2906,13 +2908,11 @@ static int fuv_pipe_peername(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,pipe_obj,Pname,exe,ctx->pd);
-	FuvHandle* handle=*handle_ud;
-	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
 	size_t len=2*FKL_PATH_MAX;
 	char buf[2*FKL_PATH_MAX];
-	int ret=uv_pipe_getpeername(pipe,buf,&len);
+	int ret=uv_pipe_getpeername((uv_pipe_t*)GET_HANDLE(*handle_ud),buf,&len);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf)));
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateString(len,buf)));
 	return 0;
 }
 
@@ -2923,13 +2923,11 @@ static int fuv_pipe_sockname(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,pipe_obj,Pname,exe,ctx->pd);
-	FuvHandle* handle=*handle_ud;
-	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
 	size_t len=2*FKL_PATH_MAX;
 	char buf[2*FKL_PATH_MAX];
-	int ret=uv_pipe_getsockname(pipe,buf,&len);
+	int ret=uv_pipe_getsockname((uv_pipe_t*)GET_HANDLE(*handle_ud),buf,&len);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf)));
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateString(len,buf)));
 	return 0;
 }
 
@@ -2991,6 +2989,24 @@ static int fuv_exepath(FKL_CPROC_ARGL)
 	int r=uv_exepath(exe_path,&size);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
+static int fuv_guess_handle(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.guess-handle";
+	FKL_DECL_AND_CHECK_ARG(fd_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(fd_obj,FKL_IS_FIX,Pname,exe);
+	uv_file fd=FKL_GET_FIX(fd_obj);
+	uv_handle_type type_id=uv_guess_handle(fd);
+	const char* name=uv_handle_type_name(type_id);
+	FKL_VM_PUSH_VALUE(exe
+			,name==NULL
+			?FKL_VM_NIL
+			:fklCreateVMvaluePair(exe
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
+				,FKL_MAKE_VM_FIX(type_id)));
 	return 0;
 }
 
@@ -3101,6 +3117,74 @@ static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL)
 	int r=uv_tcp_simultaneous_accepts((uv_tcp_t*)GET_HANDLE(*handle_ud),enable);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,tcp_obj);
+	return 0;
+}
+
+static inline FklVMvalue* parse_sockaddr(FklVM* exe
+		,struct sockaddr_storage* address
+		,FklVMvalue* pd)
+{
+	char ip[INET6_ADDRSTRLEN];
+	int port=0;
+	if(address->ss_family==AF_INET)
+	{
+		struct sockaddr_in* addrin=(struct sockaddr_in*)address;
+		uv_inet_ntop(AF_INET,&(addrin->sin_addr),ip,INET6_ADDRSTRLEN);
+		port=ntohs(addrin->sin_port);
+	}
+	else if(address->ss_family==AF_INET6)
+	{
+		struct sockaddr_in6* addrin6=(struct sockaddr_in6*)address;
+		uv_inet_ntop(AF_INET6,&(addrin6->sin6_addr),ip,INET6_ADDRSTRLEN);
+		port=ntohs(addrin6->sin6_port);
+	}
+	else
+		return FKL_VM_NIL;
+	FKL_DECL_UD_DATA(fpd,FuvPublicData,pd);
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_family_sid)
+			,af_num_to_symbol(address->ss_family,fpd)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_port_sid)
+			,FKL_MAKE_VM_FIX(port)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_ip_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(ip))
+			,ht);
+	return hash;
+}
+
+static int fuv_tcp_sockname(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tcp-sockname";
+	FKL_DECL_AND_CHECK_ARG(tcp_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
+	struct sockaddr_storage address;
+	int addrlen = sizeof(address);
+	int ret=uv_tcp_getsockname((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&address,&addrlen);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&address,ctx->pd));
+	return 0;
+}
+
+static int fuv_tcp_peername(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tcp-peername";
+	FKL_DECL_AND_CHECK_ARG(tcp_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
+	struct sockaddr_storage address;
+	int addrlen = sizeof(address);
+	int ret=uv_tcp_getpeername((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&address,&addrlen);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&address,ctx->pd));
 	return 0;
 }
 
@@ -3281,8 +3365,8 @@ struct SymFunc
 	{"tcp-keepalive",             fuv_tcp_keepalive,             },
 	{"tcp-simultaneous-accepts",  fuv_tcp_simultaneous_accepts,  },
 	{"tcp-bind",                  fuv_incomplete,                },
-	{"tcp-sockname",              fuv_incomplete,                },
-	{"tcp-peername",              fuv_incomplete,                },
+	{"tcp-sockname",              fuv_tcp_sockname,              },
+	{"tcp-peername",              fuv_tcp_peername,              },
 	{"tcp-connect",               fuv_incomplete,                },
 	{"tcp-close-reset",           fuv_incomplete,                },
 	{"socketpair",                fuv_socketpair,                },
@@ -3300,6 +3384,7 @@ struct SymFunc
 
 	// misc
 	{"exepath",                   fuv_exepath,                   },
+	{"guess-handle",              fuv_guess_handle,              },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

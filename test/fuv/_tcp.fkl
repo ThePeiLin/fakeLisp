@@ -18,4 +18,13 @@
             'arg-error))
 (uv-tcp-keepalive tcp 1 114)
 
-(prin1n (uv-socketpair 'stream nil 1 1))
+(define socketpair (uv-socketpair 'stream nil 1 1))
+(prin1n socketpair)
+
+(define tcp (uv-make-tcp loop))
+
+(uv-tcp-open tcp (cdr socketpair))
+
+(prin1n (uv-tcp-sockname tcp))
+
+(prin1n (uv-tcp-peername tcp))

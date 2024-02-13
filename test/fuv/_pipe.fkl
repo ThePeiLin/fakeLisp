@@ -104,6 +104,9 @@
 
 (define pipe-fd (uv-pipe 1 1))
 
+(assert (equal (car (uv-guess-handle (car pipe-fd))) "pipe"))
+(assert (equal (car (uv-guess-handle (cdr pipe-fd))) "pipe"))
+
 (define rd-pipe (uv-make-pipe loop))
 
 (define wr-pipe (uv-make-pipe loop))

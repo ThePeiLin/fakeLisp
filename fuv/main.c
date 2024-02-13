@@ -1337,8 +1337,6 @@ static int fuv_req_type(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int fuv_getaddrinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetaddrinfo(val),"fuv.getaddrinfo?")}
-
 static int get_protonum_with_cstr(const char* name)
 {
 	const struct protoent* proto;
@@ -1744,7 +1742,11 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 
 #undef FUV_GETADDRINFO_PNAME
 
+static int fuv_getaddrinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetaddrinfo(val),"fuv.getaddrinfo?")}
 static int fuv_getnameinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetnameinfo(val),"fuv.getnameinfo?")}
+static int fuv_write_p(FKL_CPROC_ARGL){PREDICATE(isFuvWrite(val),"fuv.write?")}
+static int fuv_shutdown_p(FKL_CPROC_ARGL){PREDICATE(isFuvShutdown(val),"fuv.shutdown?")}
+static int fuv_connect_p(FKL_CPROC_ARGL){PREDICATE(isFuvConnect(val),"fuv.connect?")}
 
 static inline FklBuiltinErrorType pop_sockaddr_flags(FklVM* exe
 		,struct sockaddr_storage* addr
@@ -3308,8 +3310,8 @@ static int fuv_socketpair(FKL_CPROC_ARGL)
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe
 			,fklCreateVMvaluePair(exe
-				,fklMakeVMuint(socks[0],exe)
-				,fklMakeVMuint(socks[1],exe)));
+				,fklMakeVMint(socks[0],exe)
+				,fklMakeVMint(socks[1],exe)));
 	return 0;
 }
 
@@ -3447,9 +3449,13 @@ struct SymFunc
 	{"req-cancel",                fuv_req_cancel,                },
 	{"req-type",                  fuv_req_type,                  },
 
-	// dns
 	{"getaddrinfo?",              fuv_getaddrinfo_p,             },
 	{"getnameinfo?",              fuv_getnameinfo_p,             },
+	{"write?",                    fuv_write_p,                   },
+	{"shutdown?",                 fuv_shutdown_p,                },
+	{"connect?",                  fuv_connect_p,                 },
+
+	// dns
 	{"getaddrinfo",               fuv_getaddrinfo,               },
 	{"getnameinfo",               fuv_getnameinfo,               },
 

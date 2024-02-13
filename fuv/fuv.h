@@ -439,6 +439,7 @@ uv_getnameinfo_t* createFuvGetnameinfo(FklVM* exe
 		,FklVMvalue* loop
 		,FklVMvalue* callback);
 
+int isFuvWrite(FklVMvalue*);
 uv_write_t* createFuvWrite(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
@@ -446,12 +447,14 @@ uv_write_t* createFuvWrite(FklVM* exe
 		,FklVMvalue* callback
 		,uint32_t count);
 
+int isFuvShutdown(FklVMvalue*);
 uv_shutdown_t* createFuvShutdown(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
 		,FklVMvalue* loop
 		,FklVMvalue* callback);
 
+int isFuvConnect(FklVMvalue*);
 uv_connect_t* createFuvConnect(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel

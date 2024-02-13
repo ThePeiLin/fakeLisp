@@ -37,7 +37,7 @@
 
 (newline)
 ;; basic tcp server and client (ipv4)
-(println "basic tcp server and client (ipv4)")
+(println ";; basic tcp server and client (ipv4)")
 
 (define server (uv-make-tcp loop))
 
@@ -62,14 +62,17 @@
   (printf "client %S on connect\n" client)
   (define peername (uv-tcp-peername client))
   (printf "peername=%S\n" peername)
-  (uv-stream-shutdown
-    client
-    (lambda (err)
-      (when err (raise err))
-      (uv-handle-close
-        client
-        (lambda ()
-          (printf "client %S on close\n" client))))))
+  (define req
+    (uv-stream-shutdown
+      client
+      (lambda (err)
+        (when err (raise err))
+        (uv-handle-close
+          client
+          (lambda ()
+            (printf "client %S on close\n" client))))))
+  (assert (uv-req? req))
+  (assert (uv-shutdown? req)))
 
 (define req
   (uv-tcp-connect client
@@ -82,7 +85,7 @@
 
 (newline)
 ;; basic tcp server and client (ipv6)
-(println "basic tcp server and client (ipv6)")
+(println ";; basic tcp server and client (ipv6)")
 
 (define server (uv-make-tcp loop))
 
@@ -108,7 +111,7 @@
 
 (newline)
 ;; tcp echo server and client
-(println "tcp echo server and client")
+(println ";; tcp echo server and client")
 
 (define server (uv-make-tcp loop))
 
@@ -140,6 +143,8 @@
 
 (define addr (uv-tcp-sockname server))
 
+(prin1n addr)
+
 (define socket (uv-make-tcp loop))
 
 (define (on-connect err)
@@ -155,13 +160,144 @@
   (define req (uv-stream-write
                 socket
                 (lambda (err)
-                  (when err (raise err)))
+                  (when err (raise err))
+                  (printf "client onwrite %S %S\n" socket err))
                 "Hello"))
+  (assert (uv-req? req))
+  (assert (uv-write? req))
   (printf "write req=%S\n" req))
 
-(uv-tcp-connect socket
-                "127.0.0.1"
-                (hash-ref addr 'port)
-                on-connect)
+(define req
+  (uv-tcp-connect socket
+                  "127.0.0.1"
+                  (hash-ref addr 'port)
+                  on-connect))
+
+(assert (uv-req? req))
+(assert (uv-connect? req))
+
+(uv-loop-run loop)
+
+(newline)
+;; tcp invalid ip address
+(println ";; tcp invalid ip address")
+
+(define ip "127.0.0.100005")
+
+(define server (uv-make-tcp loop))
+
+(assert (error? (prin1n (pcall uv-tcp-bind server ip 1000))))
+
+(uv-handle-close server)
+
+(uv-loop-run loop)
+
+(newline)
+;; tcp close reset client
+(define server (uv-make-tcp loop))
+
+(uv-tcp-bind server "127.0.0.1" 0)
+
+(uv-stream-listen
+  server
+  1
+  (lambda (err)
+    (when err (raise err))
+    (define client (uv-make-tcp loop))
+    (uv-stream-accept server client)
+    (uv-stream-read-start
+      client
+      (lambda (err data)
+        (printf "server read %S\n" (cons data err))
+        (if data
+          (uv-stream-write client nil data)
+          (begin
+            (assert (eq (error-type err) 'UV_ECONNRESET))
+            (uv-stream-read-stop client)
+            (uv-handle-close client)
+            (uv-handle-close server)))))))
+
+(define addr (uv-tcp-sockname server))
+
+(prin1n addr)
+
+(define socket (uv-make-tcp loop))
+
+(uv-tcp-connect
+  socket
+  "127.0.0.1"
+  (hash-ref addr 'port)
+  (lambda (err)
+    (uv-stream-read-start
+      socket
+      (lambda (err data)
+        (when err (raise err))
+        (printf "client read %S\n" (cons data err))
+        (uv-stream-read-stop socket)
+        (uv-tcp-close-reset
+          socket
+          (lambda ()
+            (assert (uv-handle-closing? socket))
+            (assert (eq 'UV_ENOTCONN (error-type (pcall uv-stream-shutdown socket))))))))
+    (uv-stream-write
+      socket
+      (lambda (err)
+        (printf "client onwrite %S %S\n" socket err)
+        (when err (raise err)))
+      "Hello")))
+
+(uv-loop-run loop)
+
+(newline)
+;; socketpair ping ping
+(println ";; socketpair ping pong")
+
+(define PING "PING\n")
+(define PONG "PONG\n")
+(define NUM_PINGS 4)
+
+(define fds (uv-socketpair 'stream nil 1 1))
+
+(define pinger (uv-make-tcp loop))
+(uv-tcp-open pinger (cdr fds))
+
+(define ponger (uv-make-tcp loop))
+(uv-tcp-open ponger (car fds))
+
+(define (ping)
+  (uv-stream-write
+    pinger
+    (lambda (err) (when err (raise err)))
+    PING))
+
+(define pongs 0)
+
+(ping)
+
+(uv-stream-read-start
+  pinger
+  (lambda (err chunk)
+    (when (not-uv-eof-err? err) (raise err))
+    (when chunk
+      (assert (equal chunk PONG))
+      (print PONG)
+      (setq pongs (1+ pongs))
+      (if (eqv pongs NUM_PINGS)
+        (begin
+          (uv-handle-close ponger)
+          (uv-handle-close pinger))
+        (ping)))))
+
+(uv-stream-read-start
+  ponger
+  (lambda (err chunk)
+    (when (not-uv-eof-err? err) (raise err))
+    (when chunk
+      (assert (equal chunk PING))
+      (print PING)
+      (uv-stream-write
+        ponger
+        (lambda (err) (when err (raise err)))
+        PONG))))
 
 (uv-loop-run loop)

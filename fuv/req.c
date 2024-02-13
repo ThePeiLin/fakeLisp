@@ -198,6 +198,8 @@ FUV_REQ_P(isFuvGetnameinfo,UV_GETNAMEINFO);
 
 NORMAL_REQ_CREATOR(FuvGetnameinfo,getnameinfo,UV_GETNAMEINFO);
 
+FUV_REQ_P(isFuvWrite,UV_WRITE);
+
 uv_write_t* createFuvWrite(FklVM* exe
 		,FklVMvalue** ret
 		,FklVMvalue* rel
@@ -220,11 +222,16 @@ struct FuvShutdown
 	uv_shutdown_t req;
 };
 
+FUV_REQ_P(isFuvShutdown,UV_SHUTDOWN);
+
+NORMAL_REQ_CREATOR(FuvShutdown,shutdown,UV_SHUTDOWN);
+
 struct FuvConnect
 {
 	FuvReqData data;
 	uv_connect_t req;
 };
 
-NORMAL_REQ_CREATOR(FuvShutdown,shutdown,UV_SHUTDOWN);
+FUV_REQ_P(isFuvConnect,UV_CONNECT);
+
 NORMAL_REQ_CREATOR(FuvConnect,connect,UV_CONNECT);

@@ -3032,6 +3032,21 @@ static int fuv_make_tcp(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_tcp_open(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tcp-open";
+	FKL_DECL_AND_CHECK_ARG2(tcp_obj,sock_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
+	FKL_CHECK_TYPE(sock_obj,fklIsVMint,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
+	uv_os_sock_t sock=fklGetInt(sock_obj);
+	int r=uv_tcp_open((uv_tcp_t*)GET_HANDLE(*handle_ud),sock);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,tcp_obj);
+	return 0;
+}
+
 static int fuv_tcp_nodelay(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.tcp-nodelay";
@@ -3258,7 +3273,7 @@ struct SymFunc
 	// tcp
 	{"tcp?",                      fuv_tcp_p,                     },
 	{"make-tcp",                  fuv_make_tcp,                  },
-	{"tcp-open",                  fuv_incomplete,                },
+	{"tcp-open",                  fuv_tcp_open,                  },
 	{"tcp-nodelay",               fuv_tcp_nodelay,               },
 	{"tcp-keepalive",             fuv_tcp_keepalive,             },
 	{"tcp-simultaneous-accepts",  fuv_tcp_simultaneous_accepts,  },

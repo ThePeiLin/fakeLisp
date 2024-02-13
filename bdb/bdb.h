@@ -86,7 +86,6 @@ typedef struct DebugCtx
 	FklPtrStack code_objs;
 
 	jmp_buf jmpb;
-	jmp_buf jmpe;
 	FklVM* reached_thread;
 
 	FklPtrStack reached_thread_frames;

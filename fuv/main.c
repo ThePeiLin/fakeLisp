@@ -3135,8 +3135,8 @@ static int fuv_socketpair(FKL_CPROC_ARGL)
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe
 			,fklCreateVMvaluePair(exe
-				,FKL_MAKE_VM_FIX(socks[0])
-				,FKL_MAKE_VM_FIX(socks[1])));
+				,fklMakeVMint(socks[0],exe)
+				,fklMakeVMint(socks[1],exe)));
 	return 0;
 }
 

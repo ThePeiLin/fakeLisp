@@ -13,9 +13,9 @@
 (uv-tcp-nodelay tcp 1)
 (uv-tcp-simultaneous-accepts tcp 1)
 (assert (eq (error-type (prin1n (pcall uv-tcp-keepalive tcp 1)))
-            'call-error))
+            'arg-error))
 (assert (eq (error-type (prin1n (pcall uv-tcp-keepalive tcp nil 114)))
-            'call-error))
+            'arg-error))
 (uv-tcp-keepalive tcp 1 114)
 
-(prin1n (uv-socketpair 'dgram nil 1 1))
+(prin1n (uv-socketpair 'stream nil 1 1))

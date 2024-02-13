@@ -422,8 +422,11 @@ static int fuv_loop_walk(FKL_CPROC_ARGL)
 
 				}
 				else
+				{
 					while(exe->top_frame!=origin_top_frame)
 						fklPopVMframe(exe);
+					exe->tp--;
+				}
 				exe->state=FKL_VM_READY;
 				return need_continue;
 			}

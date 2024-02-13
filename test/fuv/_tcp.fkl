@@ -34,3 +34,19 @@
                       (assert (uv-handle-closing? tcp))))
 
 (uv-loop-run loop)
+
+(define server (uv-make-tcp loop))
+
+(uv-tcp-bind server "127.0.0.1" 0)
+
+(define (on-connection err)
+  (assert (not err))
+  (uv-handle-close server))
+
+(uv-stream-listen server
+                  128
+                  on-connection)
+
+(define addr (uv-tcp-sockname server))
+
+(printf "server=%S, address=%S\n" server addr)

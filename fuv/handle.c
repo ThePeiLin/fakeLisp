@@ -58,7 +58,7 @@ static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print,pipe);
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print,pipe);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print,tcp);
 
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {

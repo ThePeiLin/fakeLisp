@@ -3124,7 +3124,7 @@ static inline FklVMvalue* parse_sockaddr(FklVM* exe
 		,struct sockaddr_storage* address
 		,FklVMvalue* pd)
 {
-	char ip[INET6_ADDRSTRLEN];
+	char ip[INET6_ADDRSTRLEN]={0};
 	int port=0;
 	if(address->ss_family==AF_INET)
 	{
@@ -3138,9 +3138,8 @@ static inline FklVMvalue* parse_sockaddr(FklVM* exe
 		uv_inet_ntop(AF_INET6,&(addrin6->sin6_addr),ip,INET6_ADDRSTRLEN);
 		port=ntohs(addrin6->sin6_port);
 	}
-	else
-		return FKL_VM_NIL;
-	FKL_DECL_UD_DATA(fpd,FuvPublicData,pd);
+
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
 	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 	FklHashTable* ht=FKL_VM_HASH(hash);
 
@@ -3148,13 +3147,14 @@ static inline FklVMvalue* parse_sockaddr(FklVM* exe
 			,af_num_to_symbol(address->ss_family,fpd)
 			,ht);
 
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_ip_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(ip))
+			,ht);
+
 	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_port_sid)
 			,FKL_MAKE_VM_FIX(port)
 			,ht);
 
-	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_ip_sid)
-			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(ip))
-			,ht);
 	return hash;
 }
 
@@ -3165,11 +3165,11 @@ static int fuv_tcp_sockname(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
-	struct sockaddr_storage address;
-	int addrlen = sizeof(address);
-	int ret=uv_tcp_getsockname((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&address,&addrlen);
+	struct sockaddr_storage addr;
+	int addrlen = sizeof(addr);
+	int ret=uv_tcp_getsockname((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&addr,&addrlen);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&address,ctx->pd));
+	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&addr,ctx->pd));
 	return 0;
 }
 
@@ -3180,11 +3180,34 @@ static int fuv_tcp_peername(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
-	struct sockaddr_storage address;
-	int addrlen = sizeof(address);
-	int ret=uv_tcp_getpeername((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&address,&addrlen);
+	struct sockaddr_storage addr;
+	int addrlen = sizeof(addr);
+	int ret=uv_tcp_getpeername((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&addr,&addrlen);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&address,ctx->pd));
+	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&addr,ctx->pd));
+	return 0;
+}
+
+static int fuv_tcp_bind(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tcp-bind";
+	FKL_DECL_AND_CHECK_ARG3(tcp_obj,host_obj,port_obj,exe,Pname);
+	FklVMvalue* ipv6only_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
+	FKL_CHECK_TYPE(host_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(port_obj,FKL_IS_FIX,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
+	int port=FKL_GET_FIX(port_obj);
+	const char* host=FKL_VM_STR(host_obj)->str;
+	struct sockaddr_storage addr;
+	if(uv_ip4_addr(host,port,(struct sockaddr_in*)&addr)
+			&&uv_ip6_addr(host,port,(struct sockaddr_in6*)&addr))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	unsigned int flags=ipv6only_obj&&ipv6only_obj!=FKL_VM_NIL?UV_TCP_IPV6ONLY:0;
+	int ret=uv_tcp_bind((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&addr,flags);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&addr,ctx->pd));
 	return 0;
 }
 
@@ -3258,8 +3281,8 @@ static int fuv_socketpair(FKL_CPROC_ARGL)
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe
 			,fklCreateVMvaluePair(exe
-				,fklMakeVMint(socks[0],exe)
-				,fklMakeVMint(socks[1],exe)));
+				,fklMakeVMuint(socks[0],exe)
+				,fklMakeVMuint(socks[1],exe)));
 	return 0;
 }
 
@@ -3385,7 +3408,7 @@ struct SymFunc
 	{"tcp-nodelay",               fuv_tcp_nodelay,               },
 	{"tcp-keepalive",             fuv_tcp_keepalive,             },
 	{"tcp-simultaneous-accepts",  fuv_tcp_simultaneous_accepts,  },
-	{"tcp-bind",                  fuv_incomplete,                },
+	{"tcp-bind",                  fuv_tcp_bind,                  },
 	{"tcp-sockname",              fuv_tcp_sockname,              },
 	{"tcp-peername",              fuv_tcp_peername,              },
 	{"tcp-connect",               fuv_incomplete,                },

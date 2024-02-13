@@ -28,3 +28,9 @@
 (prin1n (uv-tcp-sockname tcp))
 
 (prin1n (uv-tcp-peername tcp))
+
+(uv-tcp-close-reset tcp
+                    (lambda ()
+                      (assert (uv-handle-closing? tcp))))
+
+(uv-loop-run loop)

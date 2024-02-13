@@ -3188,6 +3188,27 @@ static int fuv_tcp_peername(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_tcp_close_reset(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tcp-close-reset";
+	FKL_DECL_AND_CHECK_ARG(tcp_obj,exe,Pname);
+	FklVMvalue* proc_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,Pname,exe,ctx->pd);
+	FuvHandle* handle=*handle_ud;
+	uv_tcp_t* tcp=(uv_tcp_t*)GET_HANDLE(handle);
+	if(proc_obj)
+	{
+		FKL_CHECK_TYPE(proc_obj,fklIsCallable,Pname,exe);
+		handle->data.callbacks[1]=proc_obj;
+	}
+	int ret=uv_tcp_close_reset(tcp,fuv_close_cb);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,tcp_obj);
+	return 0;
+}
+
 static int fuv_socketpair(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.socketpair";
@@ -3368,7 +3389,7 @@ struct SymFunc
 	{"tcp-sockname",              fuv_tcp_sockname,              },
 	{"tcp-peername",              fuv_tcp_peername,              },
 	{"tcp-connect",               fuv_incomplete,                },
-	{"tcp-close-reset",           fuv_incomplete,                },
+	{"tcp-close-reset",           fuv_tcp_close_reset,           },
 	{"socketpair",                fuv_socketpair,                },
 
 	// req

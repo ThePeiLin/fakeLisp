@@ -441,7 +441,7 @@ uv_tty_t* createFuvTTY(FklVM* vm
 		,FklVMvalue* loop_obj
 		,FklVMvalue* fp_obj)
 {
-	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_PROCESS],rel);
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_TTY],rel);
 	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
 	struct FuvTTY* handle=CREATE_OBJ(struct FuvTTY);
 	FKL_ASSERT(handle);

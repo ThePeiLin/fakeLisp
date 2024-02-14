@@ -1,0 +1,24 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define tty (uv-make-tty loop stdin))
+
+(assert (uv-handle? tty))
+(assert (uv-tty? tty))
+
+(uv-tty-mode-set! tty 'normal)
+(uv-tty-mode-set! tty 'raw)
+(uv-tty-mode-set! tty 'io)
+
+(uv-tty-mode-reset!)
+
+(prin1n (uv-tty-winsize tty))
+
+(check (eq *platform* "win32")
+  (prin1n (uv-tty-vterm-state)))
+
+(uv-tty-vterm-state-set! 'supported)
+(uv-tty-vterm-state-set! 'unsupported)

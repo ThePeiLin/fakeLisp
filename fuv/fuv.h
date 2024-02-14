@@ -63,6 +63,13 @@ typedef struct
 	FklSid_t UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid;
 	FklSid_t UV_PROCESS_WINDOWS_HIDE_GUI_sid;
 
+	FklSid_t UV_TTY_MODE_NORMAL_sid;
+	FklSid_t UV_TTY_MODE_RAW_sid;
+	FklSid_t UV_TTY_MODE_IO_sid;
+
+	FklSid_t UV_TTY_SUPPORTED_sid;
+	FklSid_t UV_TTY_UNSUPPORTED_sid;
+
 #ifdef AF_UNSPEC
 	FklSid_t AF_UNSPEC_sid;
 #endif

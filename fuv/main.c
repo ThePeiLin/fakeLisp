@@ -53,8 +53,7 @@ static inline void cleanup_handle(FklVMvalue* handle_obj,FklVMvalue* loop_obj)
 	if(handle_obj)
 	{
 		fklDelHashItem(&handle_obj,&ldata->gc_values,NULL);
-		FKL_DECL_VM_UD_DATA(fuv_handle_ud,FuvHandleUd,handle_obj);
-		*fuv_handle_ud=NULL;
+		*handle_ud=NULL;
 	}
 }
 
@@ -97,6 +96,13 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->UV_PROCESS_WINDOWS_HIDE_sid=fklAddSymbolCstr("hide",st)->id;
 	pd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid=fklAddSymbolCstr("hide-console",st)->id;
 	pd->UV_PROCESS_WINDOWS_HIDE_GUI_sid=fklAddSymbolCstr("hide-gui",st)->id;
+
+	pd->UV_TTY_MODE_NORMAL_sid=fklAddSymbolCstr("normal",st)->id;
+	pd->UV_TTY_MODE_RAW_sid=fklAddSymbolCstr("raw",st)->id;
+	pd->UV_TTY_MODE_IO_sid=fklAddSymbolCstr("io",st)->id;
+
+	pd->UV_TTY_SUPPORTED_sid=fklAddSymbolCstr("supported",st)->id;
+	pd->UV_TTY_UNSUPPORTED_sid=fklAddSymbolCstr("unsupported",st)->id;
 
 	pd->AI_ADDRCONFIG_sid=fklAddSymbolCstr("addrconfig",st)->id;
 #ifdef AI_V4MAPPED
@@ -3365,6 +3371,7 @@ static int fuv_make_tty(FKL_CPROC_ARGL)
 {
 	static const char Pname[]="fuv.make-tty";
 	FKL_DECL_AND_CHECK_ARG2(loop_obj,fd_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
 	FklVMvalue* fp_obj=NULL;
 	uv_file fd=0;
@@ -3383,6 +3390,101 @@ static int fuv_make_tty(FKL_CPROC_ARGL)
 	int r=uv_tty_init(&fuv_loop->loop,tty,fd,0);
 	CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r,tty_obj,loop_obj,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,tty_obj);
+	return 0;
+}
+
+static int fuv_tty_mode_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tty-mode-set!";
+	FKL_DECL_AND_CHECK_ARG2(tty_obj,mode_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tty_obj,isFuvTTY,Pname,exe);
+	FKL_CHECK_TYPE(mode_obj,FKL_IS_SYM,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tty_obj,Pname,exe,ctx->pd);
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	uv_tty_mode_t mode=0;
+	FklSid_t mode_id=FKL_GET_SYM(mode_obj);
+	if(mode_id==fpd->UV_TTY_MODE_NORMAL_sid)
+		mode=UV_TTY_MODE_NORMAL;
+	else if(mode_id==fpd->UV_TTY_MODE_RAW_sid)
+		mode=UV_TTY_MODE_RAW;
+	else if(mode_id==fpd->UV_TTY_MODE_IO_sid)
+		mode=UV_TTY_MODE_IO;
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+
+	int r=uv_tty_set_mode((uv_tty_t*)GET_HANDLE(*handle_ud),mode);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,tty_obj);
+	return 0;
+}
+
+static int fuv_tty_winsize(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tty-winsize";
+	FKL_DECL_AND_CHECK_ARG(tty_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(tty_obj,isFuvTTY,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tty_obj,Pname,exe,ctx->pd);
+	int width=0;
+	int height=0;
+	int r=uv_tty_get_winsize((uv_tty_t*)GET_HANDLE(*handle_ud),&width,&height);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,FKL_MAKE_VM_FIX(width),FKL_MAKE_VM_FIX(height)));
+	return 0;
+}
+
+static int fuv_tty_vterm_state(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tty-vterm-state";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	uv_tty_vtermstate_t state;
+	int r=uv_tty_get_vterm_state(&state);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	FklSid_t id=0;
+	switch(state)
+	{
+		case UV_TTY_SUPPORTED:
+			id=fpd->UV_TTY_SUPPORTED_sid;
+			break;
+		case UV_TTY_UNSUPPORTED:
+			id=fpd->UV_TTY_UNSUPPORTED_sid;
+			break;
+	}
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(id));
+	return 0;
+}
+
+static int fuv_tty_vterm_state_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tty-vterm-state-set!";
+	FKL_DECL_AND_CHECK_ARG(state_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(state_obj,FKL_IS_SYM,Pname,exe);
+
+	FklSid_t state_id=FKL_GET_SYM(state_obj);
+	uv_tty_vtermstate_t state=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	if(state_id==fpd->UV_TTY_SUPPORTED_sid)
+		state=UV_TTY_SUPPORTED;
+	else if(state_id==fpd->UV_TTY_UNSUPPORTED_sid)
+		state=UV_TTY_UNSUPPORTED;
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+
+	uv_tty_set_vterm_state(state);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_tty_mode_reset1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.tty-mode-reset!";
+	FKL_CHECK_REST_ARG(exe,Pname);
+	int r=uv_tty_reset_mode();
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -3518,6 +3620,11 @@ struct SymFunc
 	// tty
 	{"tty?",                      fuv_tty_p,                     },
 	{"make-tty",                  fuv_make_tty,                  },
+	{"tty-mode-set!",             fuv_tty_mode_set1,             },
+	{"tty-mode-reset!",           fuv_tty_mode_reset1,           },
+	{"tty-winsize",               fuv_tty_winsize,               },
+	{"tty-vterm-state",           fuv_tty_vterm_state,           },
+	{"tty-vterm-state-set!",      fuv_tty_vterm_state_set1,      },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

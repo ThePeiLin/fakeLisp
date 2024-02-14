@@ -384,10 +384,7 @@ int isFuvTcp(FklVMvalue* v);
 uv_tcp_t* createFuvTcp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
 
 int isFuvTTY(FklVMvalue* v);
-uv_tty_t* createFuvTTY(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
-
-#define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
-#define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))
+uv_tty_t* createFuvTTY(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj,FklVMvalue* fp_obj);
 
 #define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle) {\
@@ -477,10 +474,6 @@ uv_connect_t* createFuvConnect(FklVM* exe
 		,FklVMvalue* rel
 		,FklVMvalue* loop
 		,FklVMvalue* callback);
-
-#define GET_REQ(FUV_REQ) (&((FUV_REQ)->req))
-#define CHECK_REQ_CANCELED(R,WHO,EXE,PD) if((R)==NULL)raiseFuvError((WHO),FUV_ERR_REQ_CANCELED,(EXE),(PD))
-#define CHECK_UV_RESULT(R,WHO,EXE,PD) if((R)<0)raiseUvError((WHO),(R),(EXE),(PD))
 
 #ifdef __cplusplus
 }

@@ -434,7 +434,22 @@ FUV_HANDLE_P(isFuvTcp,UV_TCP);
 OTHER_HANDLE_CREATOR(FuvTcp,tcp,UV_TCP);
 
 FUV_HANDLE_P(isFuvTTY,UV_TTY);
-OTHER_HANDLE_CREATOR(FuvTTY,tty,UV_TTY);
+
+uv_tty_t* createFuvTTY(FklVM* vm
+		,FklVMvalue** pr
+		,FklVMvalue* rel
+		,FklVMvalue* loop_obj
+		,FklVMvalue* fp_obj)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_PROCESS],rel);
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
+	struct FuvTTY* handle=CREATE_OBJ(struct FuvTTY);
+	FKL_ASSERT(handle);
+	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);
+	handle->fp=fp_obj;
+	*pr=v;
+	return &handle->handle;
+}
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

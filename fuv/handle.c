@@ -56,6 +56,19 @@ static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 	}
 }
 
+static void fuv_pipe_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_handle,FuvHandleUd,ud);
+	struct FuvPipe* handle=(struct FuvPipe*)*fuv_handle;
+	if(handle)
+	{
+		fklVMgcToGray(handle->data.loop,gc);
+		fklVMgcToGray(handle->data.callbacks[0],gc);
+		fklVMgcToGray(handle->data.callbacks[1],gc);
+		fklVMgcToGray(handle->fp,gc);
+	}
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print,pipe);
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print,tcp);
@@ -110,7 +123,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 		.size=sizeof(FuvHandleUd),
 		.__as_prin1=fuv_pipe_as_print,
 		.__as_princ=fuv_pipe_as_print,
-		.__atomic=fuv_handle_ud_atomic,
+		.__atomic=fuv_pipe_ud_atomic,
 		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
@@ -358,6 +371,7 @@ uv_process_t* createFuvProcess(FklVM* vm
 	*pr=v;
 	return &handle->handle;
 }
+#undef CREATE_OBJ
 
 int isFuvStream(FklVMvalue* v)
 {
@@ -372,13 +386,9 @@ int isFuvStream(FklVMvalue* v)
 	return 0;
 }
 
-struct FuvPipe
-{
-	FuvHandleData data;
-	uv_pipe_t handle;
-};
-
 FUV_HANDLE_P(isFuvPipe,UV_NAMED_PIPE);
+
+#define CREATE_OBJ(TYPE) (TYPE*)calloc(1,sizeof(TYPE))
 
 #define OTHER_HANDLE_CREATOR(TYPE,NAME,ENUM) uv_##NAME##_t* create##TYPE(FklVM* vm,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj)\
 {\

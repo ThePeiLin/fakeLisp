@@ -2834,11 +2834,14 @@ static int fuv_pipe_open(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,Pname,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,pipe_obj,Pname,exe,ctx->pd);
-	FuvHandle* handle=*handle_ud;
+	struct FuvPipe* handle=(struct FuvPipe*)*handle_ud;
 	uv_pipe_t* pipe=(uv_pipe_t*)GET_HANDLE(handle);
 	int ret=0;
 	if(FKL_IS_FP(fd_obj))
+	{
+		handle->fp=fd_obj;
 		ret=uv_pipe_open(pipe,fklVMfpFileno(FKL_VM_FP(fd_obj)));
+	}
 	else if(FKL_IS_FIX(fd_obj))
 		ret=uv_pipe_open(pipe,FKL_GET_FIX(fd_obj));
 	else
@@ -3471,6 +3474,10 @@ struct SymFunc
 	{"tcp-connect",               fuv_tcp_connect,               },
 	{"tcp-close-reset",           fuv_tcp_close_reset,           },
 	{"socketpair",                fuv_socketpair,                },
+
+	// tty
+	{"tty?",                      fuv_incomplete,                },
+	{"make-tty",                  fuv_incomplete,                },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

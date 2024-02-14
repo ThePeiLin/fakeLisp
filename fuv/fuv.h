@@ -317,6 +317,13 @@ struct FuvProcess
 	FklVMvalue* cwd_obj;
 };
 
+struct FuvPipe
+{
+	FuvHandleData data;
+	uv_pipe_t handle;
+	FklVMvalue* fp;
+};
+
 typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);

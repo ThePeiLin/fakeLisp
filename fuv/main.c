@@ -1682,6 +1682,14 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t* req
 	uv_freeaddrinfo(res);
 }
 
+static inline void cleanup_req(FklVMvalue* req_obj)
+{
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,req_obj);
+	FuvReq* req=*fuv_req;
+	uninitFuvReq(fuv_req);
+	free(req);
+}
+
 static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 {
 	static const char Pname[]=FUV_GETADDRINFO_PNAME;
@@ -1734,7 +1742,11 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 		FklVMvalue* retval=NULL;
 		uv_getaddrinfo_t* req=createFuvGetaddrinfo(exe,&retval,ctx->proc,loop_obj,proc_obj);
 		int r=uv_getaddrinfo(&fuv_loop->loop,req,fuv_getaddrinfo_cb,node,service,&hints);
-		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+		if(r<0)
+		{
+			cleanup_req(retval);
+			raiseUvError(Pname,r,exe,ctx->pd);
+		}
 		FKL_VM_PUSH_VALUE(exe,retval);
 	}
 	return 0;
@@ -1948,7 +1960,11 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL)
 		FklVMvalue* retval=NULL;
 		uv_getnameinfo_t* req=createFuvGetnameinfo(exe,&retval,ctx->proc,loop_obj,proc_obj);
 		int r=uv_getnameinfo(&fuv_loop->loop,req,fuv_getnameinfo_cb,(struct sockaddr*)&addr,flags);
-		CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+		if(r<0)
+		{
+			cleanup_req(retval);
+			raiseUvError(Pname,r,exe,ctx->pd);
+		}
 		FKL_VM_PUSH_VALUE(exe,retval);
 	}
 	return 0;
@@ -2564,7 +2580,11 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 	else
 		ret=uv_write(write,stream,bufs,arg_num,fuv_write_cb);
 	free(bufs);
-	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	if(ret<0)
+	{
+		cleanup_req(write_obj);
+		raiseUvError(Pname,ret,exe,ctx->pd);
+	}
 	FKL_VM_PUSH_VALUE(exe,write_obj);
 	return 0;
 }
@@ -2669,7 +2689,11 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL)
 	uv_shutdown_t* write=createFuvShutdown(exe,&shutdown_obj,ctx->proc,handle->data.loop,cb_obj);
 	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
 	int ret=uv_shutdown(write,stream,fuv_shutdown_cb);
-	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	if(ret<0)
+	{
+		cleanup_req(shutdown_obj);
+		raiseUvError(Pname,ret,exe,ctx->pd);
+	}
 	FKL_VM_PUSH_VALUE(exe,shutdown_obj);
 	return 0;
 }
@@ -2868,7 +2892,11 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL)
 	FklString* str=FKL_VM_STR(name_obj);
 	int flags=no_truncate&&no_truncate!=FKL_VM_NIL?UV_PIPE_NO_TRUNCATE:0;
 	int ret=uv_pipe_connect2(connect,pipe,str->str,str->size,flags,fuv_connect_cb);
-	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	if(ret<0)
+	{
+		cleanup_req(connect_obj);
+		raiseUvError(Pname,ret,exe,ctx->pd);
+	}
 	FKL_VM_PUSH_VALUE(exe,connect_obj);
 	return 0;
 }

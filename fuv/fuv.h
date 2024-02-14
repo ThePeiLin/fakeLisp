@@ -324,6 +324,13 @@ struct FuvPipe
 	FklVMvalue* fp;
 };
 
+struct FuvTTY
+{
+	FuvHandleData data;
+	uv_tty_t handle;
+	FklVMvalue* fp;
+};
+
 typedef FuvHandle* FuvHandleUd;
 
 int isFuvLoop(FklVMvalue* v);
@@ -375,6 +382,9 @@ uv_pipe_t* createFuvPipe(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop
 
 int isFuvTcp(FklVMvalue* v);
 uv_tcp_t* createFuvTcp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
+
+int isFuvTTY(FklVMvalue* v);
+uv_tty_t* createFuvTTY(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
 
 #define CHECK_HANDLE_CLOSED(H,WHO,EXE,PD) if((H)==NULL)raiseFuvError((WHO),FUV_ERR_HANDLE_CLOSED,(EXE),(PD))
 #define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))

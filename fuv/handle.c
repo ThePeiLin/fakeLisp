@@ -73,6 +73,21 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print,pipe);
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print,tcp);
 
+static void fuv_tty_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_handle,FuvHandleUd,ud);
+	struct FuvTTY* handle=(struct FuvTTY*)*fuv_handle;
+	if(handle)
+	{
+		fklVMgcToGray(handle->data.loop,gc);
+		fklVMgcToGray(handle->data.callbacks[0],gc);
+		fklVMgcToGray(handle->data.callbacks[1],gc);
+		fklVMgcToGray(handle->fp,gc);
+	}
+}
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tty_as_print,tcp);
+
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
@@ -173,6 +188,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_TTY,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__as_prin1=fuv_tty_as_print,
+		.__as_princ=fuv_tty_as_print,
+		.__atomic=fuv_tty_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_UDP,
@@ -412,6 +432,9 @@ struct FuvTcp
 FUV_HANDLE_P(isFuvTcp,UV_TCP);
 
 OTHER_HANDLE_CREATOR(FuvTcp,tcp,UV_TCP);
+
+FUV_HANDLE_P(isFuvTTY,UV_TTY);
+OTHER_HANDLE_CREATOR(FuvTTY,tty,UV_TTY);
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

@@ -3346,6 +3346,33 @@ static int fuv_socketpair(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_tty_p(FKL_CPROC_ARGL){PREDICATE(isFuvTTY(val),"fuv.tty?")}
+
+static int fuv_make_tty(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-tty";
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,fd_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FklVMvalue* tty_obj=NULL;
+	uv_tty_t* tty=createFuvTTY(exe,&tty_obj,ctx->proc,loop_obj);
+	struct FuvTTY* handle=uv_handle_get_data((uv_handle_t*)tty);
+	uv_file fd=0;
+	if(FKL_IS_FP(fd_obj))
+	{
+		handle->fp=fd_obj;
+		fd=fklVMfpFileno(FKL_VM_FP(fd_obj));
+	}
+	else if(FKL_IS_FIX(fd_obj))
+		fd=FKL_GET_FIX(fd_obj);
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_tty_init(&fuv_loop->loop,tty,fd,0);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,tty_obj);
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -3476,8 +3503,8 @@ struct SymFunc
 	{"socketpair",                fuv_socketpair,                },
 
 	// tty
-	{"tty?",                      fuv_incomplete,                },
-	{"make-tty",                  fuv_incomplete,                },
+	{"tty?",                      fuv_tty_p,                     },
+	{"make-tty",                  fuv_make_tty,                  },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

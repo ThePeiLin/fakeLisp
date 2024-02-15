@@ -78,6 +78,9 @@ typedef struct
 	FklSid_t UV_UDP_LINUX_RECVERR_sid;
 	FklSid_t UV_UDP_RECVMMSG_sid;
 
+	FklSid_t UV_LEAVE_GROUP_sid;
+	FklSid_t UV_JOIN_GROUP_sid;
+
 #ifdef AF_UNSPEC
 	FklSid_t AF_UNSPEC_sid;
 #endif
@@ -402,7 +405,7 @@ int isFuvTTY(FklVMvalue* v);
 uv_tty_t* createFuvTTY(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj,FklVMvalue* fp_obj);
 
 int isFuvUdp(FklVMvalue* v);
-uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
+uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj,int64_t);
 
 #define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle) {\
@@ -451,6 +454,20 @@ struct FuvWrite
 	FklVMvalue* write_objs[1];
 };
 
+struct FuvUdp
+{
+	FuvHandleData data;
+	uv_udp_t handle;
+	int64_t mmsg_num_msgs;
+};
+
+struct FuvUdpSend
+{
+	FuvReqData data;
+	uv_udp_send_t req;
+	FklVMvalue* send_objs[1];
+};
+
 typedef FuvReq* FuvReqUd;
 
 int isFuvReq(FklVMvalue* v);
@@ -492,6 +509,14 @@ uv_connect_t* createFuvConnect(FklVM* exe
 		,FklVMvalue* rel
 		,FklVMvalue* loop
 		,FklVMvalue* callback);
+
+int isFuvUdpSend(FklVMvalue*);
+uv_udp_send_t* createFuvUdpSend(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback
+		,uint32_t count);
 
 #ifdef __cplusplus
 }

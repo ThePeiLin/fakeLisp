@@ -43,6 +43,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print,getnameinfo);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print,write);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print,shutdown);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print,connect);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_send_as_print,udp-send);
 
 static void fuv_write_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
@@ -54,6 +55,20 @@ static void fuv_write_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 		fklVMgcToGray(req->data.callback,gc);
 		fklVMgcToGray(req->data.write_data,gc);
 		for(FklVMvalue** cur=req->write_objs;*cur;cur++)
+			fklVMgcToGray(*cur,gc);
+	}
+}
+
+static void fuv_udp_send_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_req,FuvReqUd,ud);
+	struct FuvUdpSend* req=(struct FuvUdpSend*)*fuv_req;
+	if(req)
+	{
+		fklVMgcToGray(req->data.loop,gc);
+		fklVMgcToGray(req->data.callback,gc);
+		fklVMgcToGray(req->data.write_data,gc);
+		for(FklVMvalue** cur=req->send_objs;*cur;cur++)
 			fklVMgcToGray(*cur,gc);
 	}
 }
@@ -97,6 +112,11 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 
 	// UV_UDP_SEND
 	{
+		.size=sizeof(FuvReqUd),
+		.__as_prin1=fuv_udp_send_as_print,
+		.__as_princ=fuv_udp_send_as_print,
+		.__atomic=fuv_udp_send_ud_atomic,
+		.__finalizer=fuv_req_ud_finalizer,
 	},
 
 	// UV_FS
@@ -235,3 +255,22 @@ struct FuvConnect
 FUV_REQ_P(isFuvConnect,UV_CONNECT);
 
 NORMAL_REQ_CREATOR(FuvConnect,connect,UV_CONNECT);
+
+FUV_REQ_P(isFuvUdpSend,UV_UDP_SEND);
+
+uv_udp_send_t* createFuvUdpSend(FklVM* exe
+		,FklVMvalue** ret
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback
+		,uint32_t count)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_UDP_SEND],rel);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
+	struct FuvUdpSend* req=(struct FuvUdpSend*)calloc(1,sizeof(struct FuvUdpSend)+sizeof(FklVMvalue*)*count);
+	FKL_ASSERT(req);
+	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
+	*ret=v;
+	return &req->req;
+}
+

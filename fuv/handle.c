@@ -450,7 +450,7 @@ uv_tty_t* createFuvTTY(FklVM* vm
 {
 	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_TTY],rel);
 	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
-	struct FuvTTY* handle=CREATE_OBJ(struct FuvTTY);
+	struct FuvTTY* handle=(struct FuvTTY*)malloc(sizeof(struct FuvTTY));
 	FKL_ASSERT(handle);
 	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);
 	handle->fp=fp_obj;
@@ -458,15 +458,23 @@ uv_tty_t* createFuvTTY(FklVM* vm
 	return &handle->handle;
 }
 
-struct FuvUdp
-{
-	FuvHandleData data;
-	uv_udp_t handle;
-};
-
 FUV_HANDLE_P(isFuvUdp,UV_UDP);
 
-OTHER_HANDLE_CREATOR(FuvUdp,udp,UV_UDP);
+uv_udp_t* createFuvUdp(FklVM* vm
+		,FklVMvalue** pr
+		,FklVMvalue* rel
+		,FklVMvalue* loop_obj
+		,int64_t mmsg_num_msgs)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(vm,&HandleMetaTables[UV_UDP],rel);
+	FKL_DECL_VM_UD_DATA(hud,FuvHandleUd,v);
+	struct FuvUdp* handle=(struct FuvUdp*)malloc(sizeof(struct FuvUdp));
+	FKL_ASSERT(handle);
+	init_fuv_handle(hud,(FuvHandle*)handle,v,loop_obj);
+	handle->mmsg_num_msgs=mmsg_num_msgs;
+	*pr=v;
+	return &handle->handle;
+}
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

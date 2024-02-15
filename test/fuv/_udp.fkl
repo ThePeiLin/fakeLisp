@@ -14,7 +14,9 @@
 (prin1n (uv-udp-send-queue-size udp))
 (prin1n (uv-udp-send-queue-count udp))
 
-(define udp (uv-make-udp loop 'recvmmsg))
+(define udp (uv-make-udp loop 'recvmmsg 114))
+(assert (uv-udp? udp))
+(assert (uv-handle? udp))
 (assert (uv-udp-using-recvmmsg? udp))
 
 (prin1n (pcall uv-udp-connect udp nil nil))

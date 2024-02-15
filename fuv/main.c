@@ -112,6 +112,9 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->UV_UDP_LINUX_RECVERR_sid=fklAddSymbolCstr("linux-recverr",st)->id;
 	pd->UV_UDP_RECVMMSG_sid=fklAddSymbolCstr("recvmmsg",st)->id;
 
+	pd->UV_LEAVE_GROUP_sid=fklAddSymbolCstr("leave",st)->id;
+	pd->UV_JOIN_GROUP_sid=fklAddSymbolCstr("join",st)->id;
+
 	pd->AI_ADDRCONFIG_sid=fklAddSymbolCstr("addrconfig",st)->id;
 #ifdef AI_V4MAPPED
 	pd->AI_V4MAPPED_sid=fklAddSymbolCstr("v4mapped",st)->id;
@@ -1802,6 +1805,7 @@ static int fuv_getnameinfo_p(FKL_CPROC_ARGL){PREDICATE(isFuvGetnameinfo(val),"fu
 static int fuv_write_p(FKL_CPROC_ARGL){PREDICATE(isFuvWrite(val),"fuv.write?")}
 static int fuv_shutdown_p(FKL_CPROC_ARGL){PREDICATE(isFuvShutdown(val),"fuv.shutdown?")}
 static int fuv_connect_p(FKL_CPROC_ARGL){PREDICATE(isFuvConnect(val),"fuv.connect?")}
+static int fuv_udp_send_p(FKL_CPROC_ARGL){PREDICATE(isFuvUdpSend(val),"fuv.udp-send?")}
 
 static inline FklBuiltinErrorType pop_sockaddr_flags(FklVM* exe
 		,struct sockaddr_storage* addr
@@ -2584,11 +2588,12 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	FuvHandle* handle=*stream_ud;
 	FklVMvalue* write_obj=NULL;
-	uv_write_t* write=createFuvWrite(exe,&write_obj,ctx->proc,handle->data.loop,cb_obj,arg_num);
+	uv_write_t* write=NULL;
 	FklVMvalue* send_handle_obj=NULL;
 	uv_buf_t* bufs=NULL;
 	if(arg_num)
 	{
+		write=createFuvWrite(exe,&write_obj,ctx->proc,handle->data.loop,cb_obj,arg_num);
 		FklVMvalue* top_value=FKL_VM_POP_TOP_VALUE(exe);
 		if(isFuvStream(top_value))
 		{
@@ -2601,7 +2606,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 		if(err_type)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 	}
-	if(!arg_num)
+	else
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
 	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(handle);
@@ -2683,6 +2688,8 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL)
 		if(err_type)
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
 	}
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
 	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
 	int ret=0;
@@ -2700,7 +2707,7 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL)
 		ret=uv_try_write(stream,bufs,arg_num);
 	free(bufs);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,stream_obj);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ret));
 	return 0;
 }
 
@@ -3082,6 +3089,7 @@ static inline FklBuiltinErrorType pop_tcp_flags(FklVM* exe,FuvPublicData* fpd,un
 			int af=sid_to_af_name(FKL_GET_SYM(cur),fpd);
 			if(af<0)
 				return FKL_ERR_INVALID_VALUE;
+			(*flags)&=~0xFF;
 			(*flags)|=af;
 		}
 		else
@@ -3180,9 +3188,9 @@ static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static inline FklVMvalue* parse_sockaddr(FklVM* exe
+static inline FklVMvalue* parse_sockaddr_with_fpd(FklVM* exe
 		,struct sockaddr_storage* address
-		,FklVMvalue* pd)
+		,FuvPublicData* fpd)
 {
 	char ip[INET6_ADDRSTRLEN]={0};
 	int port=0;
@@ -3199,7 +3207,6 @@ static inline FklVMvalue* parse_sockaddr(FklVM* exe
 		port=ntohs(addrin6->sin6_port);
 	}
 
-	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
 	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 	FklHashTable* ht=FKL_VM_HASH(hash);
 
@@ -3216,6 +3223,14 @@ static inline FklVMvalue* parse_sockaddr(FklVM* exe
 			,ht);
 
 	return hash;
+}
+
+static inline FklVMvalue* parse_sockaddr(FklVM* exe
+		,struct sockaddr_storage* address
+		,FklVMvalue* pd)
+{
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	return parse_sockaddr_with_fpd(exe,address,fpd);
 }
 
 static int fuv_tcp_sockname(FKL_CPROC_ARGL)
@@ -3506,6 +3521,7 @@ static int fuv_make_udp(FKL_CPROC_ARGL)
 	unsigned int flags=AF_UNSPEC;
 	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	int64_t mmsg_num_msgs=0;
 	while(cur)
 	{
 		if(FKL_IS_SYM(cur))
@@ -3515,12 +3531,25 @@ static int fuv_make_udp(FKL_CPROC_ARGL)
 			if(family<0)
 			{
 				if(id==fpd->UV_UDP_RECVMMSG_sid)
+				{
 					flags|=UV_UDP_RECVMMSG;
+					cur=FKL_VM_POP_ARG(exe);
+					if(cur==NULL)
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+					if(!FKL_IS_FIX(cur))
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+					mmsg_num_msgs=FKL_GET_FIX(cur);
+					if(mmsg_num_msgs<0)
+						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				}
 				else
 					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
 			}
 			else
+			{
+				flags&=~0xFF;
 				flags|=family;
+			}
 		}
 		else
 			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3528,7 +3557,7 @@ static int fuv_make_udp(FKL_CPROC_ARGL)
 	}
 	fklResBp(exe);
 	FklVMvalue* udp_obj=NULL;
-	uv_udp_t* udp=createFuvUdp(exe,&udp_obj,ctx->proc,loop_obj);
+	uv_udp_t* udp=createFuvUdp(exe,&udp_obj,ctx->proc,loop_obj,mmsg_num_msgs);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 	int r=uv_udp_init_ex(&fuv_loop->loop,udp,flags);
 	CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r,udp_obj,loop_obj,Pname,exe,ctx->pd);
@@ -3561,6 +3590,90 @@ static int fuv_udp_open(FKL_CPROC_ARGL)
 	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
 	uv_os_sock_t sock=fklGetInt(sock_obj);
 	int r=uv_udp_open(udp,sock);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_multicast_loop_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-multicast-loop-set!";
+	FKL_DECL_AND_CHECK_ARG2(udp_obj,on_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	int r=uv_udp_set_multicast_loop(udp,on_obj==FKL_VM_NIL?0:1);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_multicast_ttl_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-multicast-ttl-set!";
+	FKL_DECL_AND_CHECK_ARG2(udp_obj,ttl_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	FKL_CHECK_TYPE(ttl_obj,FKL_IS_FIX,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	int r=uv_udp_set_multicast_ttl(udp,FKL_GET_FIX(ttl_obj));
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_multicast_interface_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-multicast-interface-set!";
+	FKL_DECL_AND_CHECK_ARG(udp_obj,exe,Pname);
+	FklVMvalue* interface_addr_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	const char* interface_addr=NULL;
+	if(interface_addr_obj)
+	{
+		if(FKL_IS_STR(interface_addr_obj))
+			interface_addr=FKL_VM_STR(interface_addr_obj)->str;
+		else if(interface_addr_obj!=FKL_VM_NIL)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
+	int r=uv_udp_set_multicast_interface(udp,interface_addr);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+
+
+static int fuv_udp_broadcast_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-broadcast-set!";
+	FKL_DECL_AND_CHECK_ARG2(udp_obj,on_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	int r=uv_udp_set_broadcast(udp,on_obj==FKL_VM_NIL?0:1);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_ttl_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-ttl-set!";
+	FKL_DECL_AND_CHECK_ARG2(udp_obj,ttl_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	FKL_CHECK_TYPE(ttl_obj,FKL_IS_FIX,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	int r=uv_udp_set_ttl(udp,FKL_GET_FIX(ttl_obj));
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,udp_obj);
 	return 0;
@@ -3603,6 +3716,7 @@ static int fuv_udp_connect(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG3(udp_obj,host_obj,port_obj,exe,Pname);
 	FKL_CHECK_REST_ARG(exe,Pname);
 	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
 	struct sockaddr_storage addr;
 	FklBuiltinErrorType err_type=0;
 	struct sockaddr* addr_ptr=setup_udp_addr(exe
@@ -3612,8 +3726,74 @@ static int fuv_udp_connect(FKL_CPROC_ARGL)
 			,&err_type);
 	if(err_type)
 		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
-	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
 	int r=uv_udp_connect((uv_udp_t*)GET_HANDLE(*udp_ud),addr_ptr);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static inline int sid_to_uv_flag(FklSid_t id,FuvPublicData* fpd)
+{
+	if(id==fpd->UV_UDP_IPV6ONLY_sid)
+		return UV_UDP_IPV6ONLY;
+	if(id==fpd->UV_UDP_PARTIAL_sid)
+		return UV_UDP_PARTIAL;
+	if(id==fpd->UV_UDP_REUSEADDR_sid)
+		return UV_UDP_REUSEADDR;
+	if(id==fpd->UV_UDP_MMSG_CHUNK_sid)
+		return UV_UDP_MMSG_CHUNK;
+	if(id==fpd->UV_UDP_MMSG_FREE_sid)
+		return UV_UDP_MMSG_FREE;
+	if(id==fpd->UV_UDP_LINUX_RECVERR_sid)
+		return UV_UDP_LINUX_RECVERR;
+	if(id==fpd->UV_UDP_RECVMMSG_sid)
+		return UV_UDP_RECVMMSG;
+	return -1;
+}
+
+static inline FklBuiltinErrorType pop_udp_flags(FklVM* exe
+		,unsigned int* flags
+		,FuvPublicData* fpd)
+{
+	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	while(cur)
+	{
+		if(FKL_IS_SYM(cur))
+		{
+			FklSid_t id=FKL_GET_SYM(cur);
+			int flag=sid_to_uv_flag(id,fpd);
+			if(flag<0)
+				return FKL_ERR_INVALID_VALUE;
+			*flags|=flag;
+		}
+		else
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+		cur=FKL_VM_POP_ARG(exe);
+	}
+	return 0;
+}
+
+static int fuv_udp_bind(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-bind";
+	FKL_DECL_AND_CHECK_ARG3(udp_obj,host_obj,port_obj,exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	FKL_CHECK_TYPE(host_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(port_obj,FKL_IS_FIX,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	struct sockaddr_storage addr;
+	const char* host=FKL_VM_STR(host_obj)->str;
+	int port=FKL_GET_FIX(port_obj);
+	if(uv_ip4_addr(host,port,(struct sockaddr_in*)&addr)
+			&&uv_ip6_addr(host,port,(struct sockaddr_in6*)&addr))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	unsigned int flags=0;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	FklBuiltinErrorType err_type=pop_udp_flags(exe,&flags,fpd);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	fklResBp(exe);
+	int r=uv_udp_bind((uv_udp_t*)GET_HANDLE(*udp_ud),(struct sockaddr*)&addr,flags);
 	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,udp_obj);
 	return 0;
@@ -3685,6 +3865,361 @@ static int fuv_udp_sockname(FKL_CPROC_ARGL)
 	int ret=uv_udp_getsockname((uv_udp_t*)GET_HANDLE(*udp_ud),(struct sockaddr*)&addr,&addrlen);
 	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,parse_sockaddr(exe,&addr,ctx->pd));
+	return 0;
+}
+
+static inline int sid_to_membership(FklSid_t id,FuvPublicData* fpd,uv_membership* membership)
+{
+	if(id==fpd->UV_LEAVE_GROUP_sid)
+	{
+		*membership=UV_LEAVE_GROUP;
+		return 0;
+	}
+	if(id==fpd->UV_JOIN_GROUP_sid)
+	{
+		*membership=UV_JOIN_GROUP;
+		return 0;
+	}
+	return 1;
+}
+
+static int fuv_udp_membership_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-membership-set!";
+	FKL_DECL_AND_CHECK_ARG4(udp_obj
+			,multicast_addr_obj
+			,interface_addr_obj
+			,membership_obj
+			,exe
+			,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	FKL_CHECK_TYPE(multicast_addr_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(membership_obj,FKL_IS_SYM,Pname,exe);
+	if(interface_addr_obj!=FKL_VM_NIL&&!FKL_IS_STR(interface_addr_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	const char* multicast_addr=FKL_VM_STR(multicast_addr_obj)->str;
+	const char* interface_addr=interface_addr_obj==FKL_VM_NIL?NULL:FKL_VM_STR(interface_addr_obj)->str;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	FklSid_t id=FKL_GET_SYM(membership_obj);
+	uv_membership membership;
+	if(sid_to_membership(id,fpd,&membership))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	int ret=uv_udp_set_membership((uv_udp_t*)GET_HANDLE(*udp_ud)
+			,multicast_addr
+			,interface_addr
+			,membership);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-source-membership-set!";
+	FKL_DECL_AND_CHECK_ARG4(udp_obj
+			,multicast_addr_obj
+			,interface_addr_obj
+			,source_addr_obj
+			,exe
+			,Pname);
+	FklVMvalue* membership_obj=FKL_VM_POP_ARG(exe);
+	if(membership_obj==NULL)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	FKL_CHECK_TYPE(multicast_addr_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(source_addr_obj,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_TYPE(membership_obj,FKL_IS_SYM,Pname,exe);
+	if(interface_addr_obj!=FKL_VM_NIL&&!FKL_IS_STR(interface_addr_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	const char* multicast_addr=FKL_VM_STR(multicast_addr_obj)->str;
+	const char* interface_addr=interface_addr_obj==FKL_VM_NIL?NULL:FKL_VM_STR(interface_addr_obj)->str;
+	const char* source_addr=FKL_VM_STR(source_addr_obj)->str;
+
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	FklSid_t id=FKL_GET_SYM(membership_obj);
+	uv_membership membership;
+	if(sid_to_membership(id,fpd,&membership))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+	int ret=uv_udp_set_source_membership((uv_udp_t*)GET_HANDLE(*udp_ud)
+			,multicast_addr
+			,interface_addr
+			,source_addr
+			,membership);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static inline FklBuiltinErrorType setup_udp_send_data(FklVM* exe
+		,uint32_t num
+		,FklVMvalue* write_obj
+		,uv_buf_t** pbufs)
+{
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,write_obj);
+	struct FuvUdpSend* req=(struct FuvUdpSend*)*fuv_req;
+	FklVMvalue** cur=req->send_objs;
+	uv_buf_t* bufs=(uv_buf_t*)malloc(num*sizeof(uv_buf_t));
+	FKL_ASSERT(bufs);
+	FklVMvalue* val=FKL_VM_POP_ARG(exe);
+	uint32_t i=0;
+	while(val)
+	{
+		if(FKL_IS_STR(val))
+		{
+			*cur=val;
+			FklString* str=FKL_VM_STR(val);
+			bufs[i].base=str->str;
+			bufs[i].len=str->size;
+		}
+		else if(FKL_IS_BYTEVECTOR(val))
+		{
+			*cur=val;
+			FklBytevector* bvec=FKL_VM_BVEC(val);
+			bufs[i].base=(char*)bvec->ptr;
+			bufs[i].len=bvec->size;
+		}
+		else
+		{
+			free(bufs);
+			return FKL_ERR_INCORRECT_TYPE_VALUE;
+		}
+		val=FKL_VM_POP_ARG(exe);
+		i++;
+		cur++;
+	}
+	*pbufs=bufs;
+	return 0;
+}
+
+static void fuv_udp_send_cb(uv_udp_send_t* req,int status)
+{
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req,fuv_req_cb_error_value_creator,&status);
+}
+
+static int fuv_udp_send(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-send";
+	FKL_DECL_AND_CHECK_ARG4(udp_obj,host_obj,port_obj,cb_obj,exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	if(cb_obj==FKL_VM_NIL)
+		cb_obj=NULL;
+	else if(!fklIsCallable(cb_obj))
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+
+	struct sockaddr_storage addr;
+	FklBuiltinErrorType err_type=0;
+	struct sockaddr* addr_ptr=setup_udp_addr(exe
+			,&addr
+			,host_obj
+			,port_obj
+			,&err_type);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+
+	FuvHandle* handle=*udp_ud;
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+	uv_buf_t* bufs=NULL;
+	FklVMvalue* udp_send_obj=NULL;
+	uv_udp_send_t* udp_send=NULL;
+	if(arg_num)
+	{
+		udp_send=createFuvUdpSend(exe,&udp_send_obj,ctx->proc,handle->data.loop,cb_obj,arg_num);
+		err_type=setup_udp_send_data(exe,arg_num,udp_send_obj,&bufs);
+		if(err_type)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	fklResBp(exe);
+
+	int ret=uv_udp_send(udp_send,(uv_udp_t*)GET_HANDLE(handle),bufs,arg_num,addr_ptr,fuv_udp_send_cb);
+	free(bufs);
+	CHECK_UV_RESULT_AND_CLEANUP_REQ(ret,udp_send_obj,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_send_obj);
+	return 0;
+}
+
+#define MAX_DGRAM_SIZE (64*1024)
+
+static void fuv_udp_alloc_cb(uv_handle_t* handle,size_t suggested_size,uv_buf_t* buf)
+{
+	size_t buffer_size=suggested_size;
+	struct FuvUdp* udp_handle=(struct FuvUdp*)uv_handle_get_data(handle);
+	if(uv_udp_using_recvmmsg((uv_udp_t*)handle))
+	{
+		int64_t num_msgs=udp_handle->mmsg_num_msgs;
+		buffer_size=MAX_DGRAM_SIZE*num_msgs;
+	}
+	char* base=(char*)malloc(buffer_size);
+	FKL_ASSERT(base||!buffer_size);
+	buf->base=base;
+	buf->len=buffer_size;
+}
+
+struct UdpRecvArg
+{
+	ssize_t nread;
+	const struct sockaddr* addr;
+	const uv_buf_t* buf;
+	unsigned flags;
+	FuvPublicData* fpd;
+};
+
+static void fuv_udp_recv_cb_value_creator(FklVM* exe,void* a)
+{
+	struct UdpRecvArg* arg=(struct UdpRecvArg*)a;
+	ssize_t nread=arg->nread;
+	FklVMvalue* err=nread<0
+		?createUvErrorWithFpd("fuv.udp-recv-start",nread,exe,arg->fpd)
+		:FKL_VM_NIL;
+	FklVMvalue* res=FKL_VM_NIL;
+	if(nread==0)
+	{
+		if(arg->addr)
+			res=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(""));
+	}
+	else if(nread>0)
+		res=fklCreateVMvalueStr(exe,fklCreateString(nread,arg->buf->base));
+
+	if(arg->buf&&!(arg->flags&UV_UDP_MMSG_CHUNK))
+		free(arg->buf->base);
+
+	FuvPublicData* fpd=arg->fpd;
+	FklVMvalue* addr=arg->addr
+		?parse_sockaddr_with_fpd(exe,(struct sockaddr_storage*)arg->addr,fpd)
+		:FKL_VM_NIL;
+
+	FklVMvalue* flags=FKL_VM_NIL;
+
+	FklVMvalue** pcur=&flags;
+	if(arg->flags&UV_UDP_IPV6ONLY)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_IPV6ONLY_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	if(arg->flags&UV_UDP_PARTIAL)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_PARTIAL_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	if(arg->flags&UV_UDP_REUSEADDR)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_REUSEADDR_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	if(arg->flags&UV_UDP_MMSG_CHUNK)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_CHUNK_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	if(arg->flags&UV_UDP_MMSG_FREE)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_FREE_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	if(arg->flags&UV_UDP_LINUX_RECVERR)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_LINUX_RECVERR_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	if(arg->flags&UV_UDP_RECVMMSG)
+	{
+		*pcur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_SYM(fpd->UV_UDP_RECVMMSG_sid));
+		pcur=&FKL_VM_CDR(*pcur);
+	}
+	FKL_VM_PUSH_VALUE(exe,flags);
+	FKL_VM_PUSH_VALUE(exe,addr);
+	FKL_VM_PUSH_VALUE(exe,res);
+	FKL_VM_PUSH_VALUE(exe,err);
+}
+
+static void fuv_udp_recv_cb(uv_udp_t* handle
+		,ssize_t nread
+		,const uv_buf_t* buf
+		,const struct sockaddr* addr
+		,unsigned flags)
+{
+	if(flags&UV_UDP_MMSG_FREE)
+	{
+		free(buf->base);
+		return;
+	}
+	FuvLoopData* ldata=uv_loop_get_data(uv_handle_get_loop((uv_handle_t*)handle));
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)ldata->exe->top_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+	struct UdpRecvArg arg=
+	{
+		.nread=nread,
+		.addr=addr,
+		.buf=buf,
+		.flags=flags,
+		.fpd=fpd,
+	};
+	fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0
+			,fuv_udp_recv_cb_value_creator
+			,&arg);
+}
+
+static int fuv_udp_recv_start(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-recv-start";
+	FKL_DECL_AND_CHECK_ARG2(udp_obj,cb_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	FKL_CHECK_TYPE(cb_obj,fklIsCallable,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	FuvHandle* handle=*udp_ud;
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(handle);
+	handle->data.callbacks[0]=cb_obj;
+	int ret=uv_udp_recv_start(udp,fuv_udp_alloc_cb,fuv_udp_recv_cb);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_try_send(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-try-send";
+	FKL_DECL_AND_CHECK_ARG3(udp_obj,host_obj,port_obj,exe,Pname);
+	FKL_CHECK_TYPE(udp_obj,isFuvUdp,Pname,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+
+	struct sockaddr_storage addr;
+	FklBuiltinErrorType err_type=0;
+	struct sockaddr* addr_ptr=setup_udp_addr(exe
+			,&addr
+			,host_obj
+			,port_obj
+			,&err_type);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+
+	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+	uv_buf_t* bufs=NULL;
+	if(arg_num)
+	{
+		err_type=setup_try_write_data(exe,arg_num,&bufs);
+		if(err_type)
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,err_type,exe);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+	fklResBp(exe);
+
+	int ret=uv_udp_try_send((uv_udp_t*)GET_HANDLE(*udp_ud),bufs,arg_num,addr_ptr);
+	free(bufs);
+	CHECK_UV_RESULT(ret,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ret));
 	return 0;
 }
 
@@ -3830,19 +4365,20 @@ struct SymFunc
 	{"udp?",                      fuv_udp_p,                     },
 	{"make-udp",                  fuv_make_udp,                  },
 	{"udp-open",                  fuv_udp_open,                  },
-	{"udp-bind",                  fuv_incomplete,                  },
+	{"udp-bind",                  fuv_udp_bind,                  },
 	{"udp-connect",                  fuv_udp_connect,                  },
 	{"udp-peername",                  fuv_udp_peername,                  },
 	{"udp-sockname",                  fuv_udp_sockname,                  },
-	{"udp-membership-set!",                  fuv_incomplete,                  },
-	{"udp-source-membership-set!",                  fuv_incomplete,                  },
-	{"udp-multicast-loop-set!",                  fuv_incomplete,                  },
-	{"udp-multicast-ttl-set!",                  fuv_incomplete,                  },
-	{"udp-multicast-interface-set!",                  fuv_incomplete,                  },
-	{"udp-boardcast-set!",                  fuv_incomplete,                  },
-	{"udp-send",                  fuv_incomplete,                  },
-	{"udp-try-send",                  fuv_incomplete,                  },
-	{"udp-recv-start",                  fuv_incomplete,                  },
+	{"udp-membership-set!",                  fuv_udp_membership_set1,                  },
+	{"udp-source-membership-set!",                  fuv_udp_source_membership_set1,                  },
+	{"udp-multicast-loop-set!",                  fuv_udp_multicast_loop_set1,                  },
+	{"udp-multicast-ttl-set!",                  fuv_udp_multicast_ttl_set1,                  },
+	{"udp-multicast-interface-set!",                  fuv_udp_multicast_interface_set1,                  },
+	{"udp-broadcast-set!",                  fuv_udp_broadcast_set1,                  },
+	{"udp-ttl-set!",                  fuv_udp_ttl_set1,                  },
+	{"udp-send",                  fuv_udp_send,                  },
+	{"udp-try-send",                  fuv_udp_try_send,                  },
+	{"udp-recv-start",                  fuv_udp_recv_start,                  },
 	{"udp-using-recvmmsg?",                  fuv_udp_using_recvmmsg_p,                  },
 	{"udp-recv-stop",                  fuv_udp_recv_stop,                  },
 	{"udp-send-queue-size",                  fuv_udp_send_queue_size,                  },
@@ -3858,6 +4394,7 @@ struct SymFunc
 	{"write?",                    fuv_write_p,                   },
 	{"shutdown?",                 fuv_shutdown_p,                },
 	{"connect?",                  fuv_connect_p,                 },
+	{"udp-send?",                  fuv_udp_send_p,                 },
 
 	// dns
 	{"getaddrinfo",               fuv_getaddrinfo,               },

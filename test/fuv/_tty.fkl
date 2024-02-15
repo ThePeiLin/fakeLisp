@@ -17,8 +17,7 @@
 
 (prin1n (uv-tty-winsize tty))
 
-(check (eq *platform* "win32")
-  (prin1n (uv-tty-vterm-state)))
+(prin1n (pcall uv-tty-vterm-state))
 
 (uv-tty-vterm-state-set! 'supported)
 (uv-tty-vterm-state-set! 'unsupported)

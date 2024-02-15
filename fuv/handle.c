@@ -73,6 +73,8 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print,pipe);
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print,tcp);
 
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_as_print,udp);
+
 static void fuv_tty_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(fuv_handle,FuvHandleUd,ud);
@@ -197,6 +199,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_UDP,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__as_prin1=fuv_udp_as_print,
+		.__as_princ=fuv_udp_as_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_SIGNAL,
@@ -450,6 +457,16 @@ uv_tty_t* createFuvTTY(FklVM* vm
 	*pr=v;
 	return &handle->handle;
 }
+
+struct FuvUdp
+{
+	FuvHandleData data;
+	uv_udp_t handle;
+};
+
+FUV_HANDLE_P(isFuvUdp,UV_UDP);
+
+OTHER_HANDLE_CREATOR(FuvUdp,udp,UV_UDP);
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

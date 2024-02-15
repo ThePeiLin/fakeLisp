@@ -1,0 +1,10 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(define udp (uv-make-udp loop))
+
+(assert (uv-udp? udp))
+(assert (uv-handle? udp))

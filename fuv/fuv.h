@@ -70,6 +70,14 @@ typedef struct
 	FklSid_t UV_TTY_SUPPORTED_sid;
 	FklSid_t UV_TTY_UNSUPPORTED_sid;
 
+	FklSid_t UV_UDP_IPV6ONLY_sid;
+	FklSid_t UV_UDP_PARTIAL_sid;
+	FklSid_t UV_UDP_REUSEADDR_sid;
+	FklSid_t UV_UDP_MMSG_CHUNK_sid;
+	FklSid_t UV_UDP_MMSG_FREE_sid;
+	FklSid_t UV_UDP_LINUX_RECVERR_sid;
+	FklSid_t UV_UDP_RECVMMSG_sid;
+
 #ifdef AF_UNSPEC
 	FklSid_t AF_UNSPEC_sid;
 #endif
@@ -392,6 +400,9 @@ uv_tcp_t* createFuvTcp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_o
 
 int isFuvTTY(FklVMvalue* v);
 uv_tty_t* createFuvTTY(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj,FklVMvalue* fp_obj);
+
+int isFuvUdp(FklVMvalue* v);
+uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj);
 
 #define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle) {\

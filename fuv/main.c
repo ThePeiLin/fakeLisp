@@ -104,6 +104,14 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->UV_TTY_SUPPORTED_sid=fklAddSymbolCstr("supported",st)->id;
 	pd->UV_TTY_UNSUPPORTED_sid=fklAddSymbolCstr("unsupported",st)->id;
 
+	pd->UV_UDP_IPV6ONLY_sid=fklAddSymbolCstr("ipv6only",st)->id;
+	pd->UV_UDP_PARTIAL_sid=fklAddSymbolCstr("partial",st)->id;
+	pd->UV_UDP_REUSEADDR_sid=fklAddSymbolCstr("reuseaddr",st)->id;
+	pd->UV_UDP_MMSG_CHUNK_sid=fklAddSymbolCstr("mmsg-chunk",st)->id;
+	pd->UV_UDP_MMSG_FREE_sid=fklAddSymbolCstr("mmsg-free",st)->id;
+	pd->UV_UDP_LINUX_RECVERR_sid=fklAddSymbolCstr("linux-recverr",st)->id;
+	pd->UV_UDP_RECVMMSG_sid=fklAddSymbolCstr("recvmmsg",st)->id;
+
 	pd->AI_ADDRCONFIG_sid=fklAddSymbolCstr("addrconfig",st)->id;
 #ifdef AI_V4MAPPED
 	pd->AI_V4MAPPED_sid=fklAddSymbolCstr("v4mapped",st)->id;
@@ -3488,6 +3496,83 @@ static int fuv_tty_mode_reset1(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_udp_p(FKL_CPROC_ARGL){PREDICATE(isFuvUdp(val),"fuv.udp?")}
+
+static int fuv_make_udp(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.make-udp";
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	unsigned int flags=AF_UNSPEC;
+	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	while(cur)
+	{
+		if(FKL_IS_SYM(cur))
+		{
+			FklSid_t id=FKL_GET_SYM(cur);
+			int family=sid_to_af_name(id,fpd);
+			if(family<0)
+			{
+				if(id==fpd->UV_UDP_RECVMMSG_sid)
+					flags|=UV_UDP_RECVMMSG;
+				else
+					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+			}
+			else
+				flags|=family;
+		}
+		else
+			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		cur=FKL_VM_POP_ARG(exe);
+	}
+	fklResBp(exe);
+	FklVMvalue* udp_obj=NULL;
+	uv_udp_t* udp=createFuvUdp(exe,&udp_obj,ctx->proc,loop_obj);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	int r=uv_udp_init_ex(&fuv_loop->loop,udp,flags);
+	CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r,udp_obj,loop_obj,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_recv_stop(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-recv-stop";
+	FKL_DECL_AND_CHECK_ARG(udp_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	int r=uv_udp_recv_stop(udp);
+	CHECK_UV_RESULT(r,Pname,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,udp_obj);
+	return 0;
+}
+
+static int fuv_udp_send_queue_size(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-send-queue-size";
+	FKL_DECL_AND_CHECK_ARG(udp_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	size_t size=uv_udp_get_send_queue_size(udp);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(size,exe));
+	return 0;
+}
+
+static int fuv_udp_send_queue_count(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fuv.udp-send-queue-count";
+	FKL_DECL_AND_CHECK_ARG(udp_obj,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,Pname,exe,ctx->pd);
+	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
+	size_t size=uv_udp_get_send_queue_count(udp);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(size,exe));
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -3625,6 +3710,28 @@ struct SymFunc
 	{"tty-winsize",               fuv_tty_winsize,               },
 	{"tty-vterm-state",           fuv_tty_vterm_state,           },
 	{"tty-vterm-state-set!",      fuv_tty_vterm_state_set1,      },
+
+	// udp
+	{"udp?",                      fuv_udp_p,                     },
+	{"make-udp",                  fuv_make_udp,                  },
+	{"udp-open",                  fuv_incomplete,                  },
+	{"udp-bind",                  fuv_incomplete,                  },
+	{"udp-connect",                  fuv_incomplete,                  },
+	{"udp-peername",                  fuv_incomplete,                  },
+	{"udp-sockname",                  fuv_incomplete,                  },
+	{"udp-membership-set!",                  fuv_incomplete,                  },
+	{"udp-source-membership-set!",                  fuv_incomplete,                  },
+	{"udp-multicast-loop-set!",                  fuv_incomplete,                  },
+	{"udp-multicast-ttl-set!",                  fuv_incomplete,                  },
+	{"udp-multicast-interface-set!",                  fuv_incomplete,                  },
+	{"udp-boardcast-set!",                  fuv_incomplete,                  },
+	{"udp-send",                  fuv_incomplete,                  },
+	{"udp-try-send",                  fuv_incomplete,                  },
+	{"udp-recv-start",                  fuv_incomplete,                  },
+	{"udp-using-recvmmsg",                  fuv_incomplete,                  },
+	{"udp-recv-stop",                  fuv_udp_recv_stop,                  },
+	{"udp-send-queue-size",                  fuv_udp_send_queue_size,                  },
+	{"udp-send-queue-count",                  fuv_udp_send_queue_count,                  },
 
 	// req
 	{"req?",                      fuv_req_p,                     },

@@ -2,4 +2,5 @@
         (_dns)
         (_process)
         (_pipe)
-        (_tcp))
+        (_tcp)
+        (_udp))

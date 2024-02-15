@@ -20,3 +20,318 @@
 (assert (uv-udp-using-recvmmsg? udp))
 
 (prin1n (pcall uv-udp-connect udp nil nil))
+
+(uv-handle-close udp)
+
+(define TEST_PORT 8080)
+
+(newline)
+;; basic udp server and client (ipv4)
+(println ";; basic udp server and client (ipv4)")
+
+(define server (uv-make-udp loop))
+
+(uv-udp-bind server "0.0.0.0" TEST_PORT)
+
+(define (on-recv err data addr flags)
+  (printf "server on recv: %S\n" (list server data addr flags))
+  (when err (raise err))
+  (assert (equal data "PING"))
+  (uv-handle-close server (lambda () (printf "server on close %S\n" server))))
+
+(uv-udp-recv-start server on-recv)
+
+(define client (uv-make-udp loop))
+
+(define (on-send err)
+  (printf "client on send: %S\n" (list client err))
+  (when err (raise err))
+  (uv-handle-close client (lambda () (printf "client on close %S\n" client))))
+
+(define req (uv-udp-send client "127.0.0.1" TEST_PORT on-send "PING"))
+
+(assert (uv-udp-send? req))
+(assert (uv-req? req))
+(printf "req=%S\n" req)
+
+(uv-loop-run loop)
+
+(newline)
+;; basic udp send from list
+(println ";; basic udp send from list")
+
+(define server (uv-make-udp loop))
+
+(uv-udp-bind server "0.0.0.0" TEST_PORT)
+
+(define (on-recv err data addr flags)
+  (printf "server on recv: %S\n" (list server data addr flags))
+  (when err (raise err))
+  (assert (equal data "PING"))
+  (uv-handle-close server (lambda () (printf "server on close %S\n" server))))
+
+(uv-udp-recv-start server on-recv)
+
+(define client (uv-make-udp loop))
+
+(define (on-send err)
+  (printf "client on send: %S\n" (list client err))
+  (when err (raise err))
+  (uv-handle-close client (lambda () (printf "client on close %S\n" client))))
+
+(define send-data '("P" "I" "NG"))
+
+(define req (apply uv-udp-send client "127.0.0.1" TEST_PORT on-send send-data))
+
+(assert (uv-udp-send? req))
+(assert (uv-req? req))
+(printf "req=%S\n" req)
+
+(uv-loop-run loop)
+
+(newline)
+;; basic udp server and client (ipv6)
+(println ";; basic udp server and client (ipv6)")
+
+(define server (uv-make-udp loop))
+
+(uv-udp-bind server "::1" TEST_PORT)
+
+(define (on-recv err data addr flags)
+  (printf "server on recv: %S\n" (list server data addr flags))
+  (when err (raise err))
+  (assert (equal data "PING"))
+  (uv-handle-close server (lambda () (printf "server on close %S\n" server))))
+
+(uv-udp-recv-start server on-recv)
+
+(define client (uv-make-udp loop))
+
+(define (on-send err)
+  (printf "client on send: %S\n" (list client err))
+  (when err (raise err))
+  (uv-handle-close client (lambda () (printf "client on close %S\n" client))))
+
+(define req (uv-udp-send client "::1" TEST_PORT on-send "PING"))
+
+(assert (uv-udp-send? req))
+(assert (uv-req? req))
+(printf "req=%S\n" req)
+
+(uv-loop-run loop)
+
+(newline)
+;; udp send args
+(println ";; udp send args")
+
+(define udp (uv-make-udp loop))
+
+(define err (pcall uv-udp-send udp 5 5 nil "PING"))
+(assert (prin1n err))
+(setq err (pcall uv-udp-send udp "host" "port" nil "PING"))
+(assert (prin1n err))
+(setq err (pcall uv-udp-send udp "host" nil nil "PING"))
+(assert (prin1n err))
+(setq err (pcall uv-udp-send udp nil 5 nil "PING"))
+(assert (prin1n err))
+(uv-handle-close udp)
+
+(newline)
+;; udp connect
+(println ";; udp connect")
+
+(define server (uv-make-udp loop))
+(define client (uv-make-udp loop))
+
+(uv-udp-bind server "0.0.0.0" TEST_PORT)
+
+(define recvs-num 0)
+
+(define (on-recv err data addr flags)
+  (printf "server on recv %S\n" (list server data addr flags))
+  (when err (raise err))
+  (when data
+    (assert (equal data "PING"))
+    (setq recvs-num (1+ recvs-num))
+    (when (eqv recvs-num 4)
+      (uv-handle-close server (lambda () (printf "server on close %S\n" server)))
+      (uv-handle-close client (lambda () (printf "client on close %S\n" client))))))
+
+(uv-udp-recv-start server on-recv)
+
+(uv-udp-connect client "127.0.0.1" TEST_PORT)
+(define err (pcall uv-udp-connect client "8.8.8.8" TEST_PORT))
+(assert (and err (eq (error-type err) 'UV_EISCONN)))
+
+(define addr (uv-udp-peername client))
+(prin1n addr)
+(assert (equal (hash-ref addr 'ip) "127.0.0.1"))
+(assert (equal (hash-ref addr 'port) TEST_PORT))
+
+(define err (pcall uv-udp-try-send client "127.0.0.1" TEST_PORT "PING"))
+(assert (and err (eq (error-type err) 'UV_EISCONN)))
+
+(define r (uv-udp-try-send client nil nil "PING"))
+(assert (equal r 4))
+
+(define err (pcall uv-udp-try-send client "8.8.8.8" TEST_PORT "PING"))
+(assert (and err (eq (error-type err) 'UV_EISCONN)))
+
+(uv-udp-connect client nil nil)
+(define err (pcall uv-udp-connect client nil nil))
+(assert (and err (eq (error-type err) 'UV_ENOTCONN)))
+
+(define err (pcall uv-udp-peername client))
+(assert (and err (eq (error-type err) 'UV_ENOTCONN)))
+
+(define r (uv-udp-try-send client "127.0.0.1" TEST_PORT "PING"))
+(assert (equal r 4))
+
+(define err (pcall uv-udp-try-send client nil nil "PING"))
+(assert (and err (eq (error-type err) 'UV_EDESTADDRREQ)))
+
+(uv-udp-connect client "127.0.0.1" TEST_PORT)
+(define err (pcall uv-udp-send client
+                   "127.0.0.1"
+                   TEST_PORT
+                   (lambda (err) (println "this send should fail")) 
+                   "PING"))
+(assert (and err (eq (error-type err) 'UV_EISCONN)))
+
+(uv-udp-send client nil nil
+             (lambda (err)
+               (when err (raise err))
+               (uv-udp-connect client nil nil)
+               (define err (pcall uv-udp-send client nil nil
+                                  (lambda () (println "this send should faild"))
+                                  "PING"))
+               (assert (and err (eq (error-type err) 'UV_EDESTADDRREQ)))
+               (uv-udp-send client "127.0.0.1" TEST_PORT
+                            (lambda (err) (when err (raise err)))
+                            "PING"))
+             "PING")
+
+(uv-loop-run loop)
+
+(newline)
+;; udp recvmmsg
+(println ";; udp recvmmsg")
+
+(define NUM_SENDS 8)
+(define NUM_MSGS_PER_ALLOC 4)
+
+(define recver (uv-make-udp loop 'recvmmsg NUM_MSGS_PER_ALLOC))
+(uv-udp-bind recver "0.0.0.0" TEST_PORT)
+
+(define sender (uv-make-udp loop))
+
+(define msgs-recved 0)
+
+(define (recv-cb err data addr flags)
+  (when err (raise err))
+  (printf "%S %S\n" data addr)
+  (unless (and (null data) (null addr))
+    (assert addr)
+    (assert (equal data "PING"))
+    (setq msgs-recved (1+ msgs-recved))
+    (when (eqv msgs-recved NUM_SENDS)
+      (uv-handle-close sender)
+      (uv-handle-close recver))))
+
+(uv-udp-recv-start recver recv-cb)
+
+(do [(c 0 (1+ c))]
+  [(>= c NUM_SENDS)]
+  (uv-udp-try-send sender "127.0.0.1" TEST_PORT "PING"))
+
+(uv-loop-run loop)
+
+(define (multicast-join-test bind-addr multicast-addr inteface-addr)
+  (lambda ()
+    (define server (uv-make-udp loop))
+    (define timeout (uv-make-timer loop))
+    (define TIMEOUT_TIME 1000)
+    (uv-udp-bind server bind-addr TEST_PORT)
+    (define err (pcall uv-udp-membership-set! server multicast-addr inteface-addr 'join))
+    (when (error? err)
+      (define err-type (error-type err))
+      (cond
+        [(eq err-type 'UV_ENODEV)
+         (uv-handle-close server)
+         (uv-handle-close timeout)]
+        [(and (eq err-type 'UV_EADDRNOTAVAIL)
+           (equal multicast-addr "ff02::1"))
+         (setq multicast-addr "ff02::1%lo0")
+         (setq inteface-addr "::1%lo0")
+         (uv-udp-membership-set! server multicast-addr inteface-addr 'join)]
+        [1 (raise err)]))
+    (define client (uv-make-udp loop))
+    (define recv-cb-called 0)
+    (define (recv-cb err data addr flags)
+      (when err (raise err))
+      (printf "%S %S\n" data addr)
+      (unless (and (null data)
+                (null addr))
+        (assert addr)
+        (assert (equal data "PING"))
+        (setq recv-cb-called (1+ recv-cb-called))
+        (cond
+          [(equal recv-cb-called 2)
+           (uv-handle-close server)
+           (uv-handle-close timeout)]
+          [1
+           (define source-addr (hash-ref addr 'ip))
+           (uv-udp-membership-set! server multicast-addr inteface-addr 'leave)
+           (define err (pcall uv-udp-source-membership-set! server
+                              multicast-addr
+                              inteface-addr
+                              source-addr
+                              'join))
+           (when (error? err)
+             (define err-type (error-type err))
+             (if (eq err-type 'UV_ENOSYS)
+               (uv-udp-membership-set! server multicast-addr inteface-addr 'join)
+               (raise err)))
+           (uv-udp-send client multicast-addr TEST_PORT
+                        (lambda (err)
+                          (uv-handle-close client)
+                          (when err (raise err)))
+                        "PING")])))
+    (uv-udp-recv-start server recv-cb)
+    (uv-udp-send client multicast-addr TEST_PORT
+                 (lambda (err)
+                   (when err
+                     (cond
+                       [(eq (error-type err) 'UV_EPERM)
+                        (println "sned to multicast ip was likely denied by firewall")
+                        (uv-handle-close client)
+                        (uv-handle-close server)
+                        (uv-handle-close timeout)]
+                       [1
+                        (raise err)])))
+                 "PING")
+    (uv-timer-start timeout
+                    (lambda ()
+                      (println "timeout!")
+                      (uv-handle-close client)
+                      (uv-handle-close server)
+                      (uv-handle-close timeout))
+                    TIMEOUT_TIME
+                    0)
+    (uv-loop-run loop)))
+
+(newline)
+;; udp multicast join ipv4
+(println ";; udp multicast join ipv4")
+
+(define test-fn (multicast-join-test "0.0.0.0" "239.255.0.1" nil))
+
+(test-fn)
+
+(newline)
+;; udp multicast join ipv6
+(println ";; udp multicast join ipv6")
+
+(define test-fn (multicast-join-test "::" "ff02::1" nil))
+
+(test-fn)

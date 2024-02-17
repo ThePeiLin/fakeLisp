@@ -518,6 +518,13 @@ uv_udp_send_t* createFuvUdpSend(FklVM* exe
 		,FklVMvalue* callback
 		,uint32_t count);
 
+int isFuvFs(FklVMvalue* v);
+uv_fs_t* createFuvFs(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback);
+
 #ifdef __cplusplus
 }
 #endif

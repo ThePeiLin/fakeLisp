@@ -1806,6 +1806,7 @@ static int fuv_write_p(FKL_CPROC_ARGL){PREDICATE(isFuvWrite(val),"fuv.write?")}
 static int fuv_shutdown_p(FKL_CPROC_ARGL){PREDICATE(isFuvShutdown(val),"fuv.shutdown?")}
 static int fuv_connect_p(FKL_CPROC_ARGL){PREDICATE(isFuvConnect(val),"fuv.connect?")}
 static int fuv_udp_send_p(FKL_CPROC_ARGL){PREDICATE(isFuvUdpSend(val),"fuv.udp-send?")}
+static int fuv_fs_p(FKL_CPROC_ARGL){PREDICATE(isFuvFs(val),"fuv.fs?")}
 
 static inline FklBuiltinErrorType pop_sockaddr_flags(FklVM* exe
 		,struct sockaddr_storage* addr
@@ -4395,6 +4396,12 @@ struct SymFunc
 	{"shutdown?",                    fuv_shutdown_p,                   },
 	{"connect?",                     fuv_connect_p,                    },
 	{"udp-send?",                    fuv_udp_send_p,                   },
+	{"fs?",                          fuv_fs_p,                         },
+
+	// fs
+	{"fs-close",                      fuv_incomplete,                   },
+	{"fs-open",                      fuv_incomplete,                   },
+	{"fs-read",                      fuv_incomplete,                   },
 
 	// dns
 	{"getaddrinfo",                  fuv_getaddrinfo,                  },

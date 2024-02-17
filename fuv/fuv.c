@@ -1,5 +1,18 @@
 #include"fuv.h"
 
+FklSid_t uvErrToSid(int err_id,FuvPublicData* pd)
+{
+	FklSid_t id=0;
+	switch(err_id)
+	{
+#define XX(code,_) case UV_##code: id=pd->uv_err_sid_##code;break;
+		UV_ERRNO_MAP(XX);
+		default:
+		id=pd->uv_err_sid_UNKNOWN;
+	}
+	return id;
+}
+
 static inline FklVMvalue* create_uv_error(const char* who
 		,int err_id
 		,FklVM* exe

@@ -44,7 +44,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print,write);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print,shutdown);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print,connect);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_send_as_print,udp-send);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_as_print,fs);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_req_as_print,fs-req);
 
 static void fuv_write_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
@@ -71,6 +71,19 @@ static void fuv_udp_send_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 		fklVMgcToGray(req->data.write_data,gc);
 		for(FklVMvalue** cur=req->send_objs;*cur;cur++)
 			fklVMgcToGray(*cur,gc);
+	}
+}
+
+static void fuv_fs_req_ud_atomic(const FklVMud* ud,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(fuv_req,FuvReqUd,ud);
+	struct FuvFsReq* req=(struct FuvFsReq*)*fuv_req;
+	if(req)
+	{
+		fklVMgcToGray(req->data.loop,gc);
+		fklVMgcToGray(req->data.callback,gc);
+		fklVMgcToGray(req->data.write_data,gc);
+		fklVMgcToGray(req->dest_path,gc);
 	}
 }
 
@@ -123,9 +136,9 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 	// UV_FS
 	{
 		.size=sizeof(FuvReqUd),
-		.__as_prin1=fuv_fs_as_print,
-		.__as_princ=fuv_fs_as_print,
-		.__atomic=fuv_req_ud_atomic,
+		.__as_prin1=fuv_fs_req_as_print,
+		.__as_princ=fuv_fs_req_as_print,
+		.__atomic=fuv_fs_req_ud_atomic,
 		.__finalizer=fuv_req_ud_finalizer,
 	},
 
@@ -280,12 +293,21 @@ uv_udp_send_t* createFuvUdpSend(FklVM* exe
 	return &req->req;
 }
 
-struct FuvFs
+FUV_REQ_P(isFuvFsReq,UV_FS);
+
+uv_fs_t* createFuvFsReq(FklVM* exe
+		,FklVMvalue** ret
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback
+		,FklVMvalue* dest_path)
 {
-	FuvReqData data;
-	uv_fs_t req;
-};
-
-FUV_REQ_P(isFuvFs,UV_FS);
-
-NORMAL_REQ_CREATOR(FuvFs,fs,UV_FS);
+	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_FS],rel);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
+	struct FuvFsReq* req=(struct FuvFsReq*)malloc(sizeof(struct FuvFsReq));
+	FKL_ASSERT(req);
+	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
+	req->dest_path=dest_path;
+	*ret=v;
+	return &req->req;
+}

@@ -31,12 +31,20 @@ static FklVMudMetaTable FuvPublicDataMetaTable=
 	.size=sizeof(FuvPublicData),
 };
 
+static inline void destroy_req(FuvReq* fuv_req)
+{
+	uv_req_t* req=&fuv_req->req;
+	if(req->type==UV_FS)
+		uv_fs_req_cleanup((uv_fs_t*)req);
+	free(fuv_req);
+}
+
 static inline void cleanup_req(FklVMvalue* req_obj)
 {
 	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,req_obj);
 	FuvReq* req=*fuv_req;
 	uninitFuvReq(fuv_req);
-	free(req);
+	destroy_req(req);
 }
 
 static inline void cleanup_handle(FklVMvalue* handle_obj,FklVMvalue* loop_obj)
@@ -1680,7 +1688,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t* req
 	{
 		if(rdata->req)
 			uninitFuvReqValue(rdata->req);
-		free(fuv_req);
+		destroy_req(fuv_req);
 		return;
 	}
 	fklLockThread(exe);
@@ -1694,7 +1702,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t* req
 	if(creator)
 		creator(exe,arg);
 	uninitFuvReqValue(rdata->req);
-	free(fuv_req);
+	destroy_req(fuv_req);
 	fklCallObj(exe,proc);
 	if(exe->thread_run_cb(exe,buttom_frame))
 		startErrorHandle(&fuv_loop->loop,ldata,exe,sbp,stp,ltp,buttom_frame);
@@ -1806,7 +1814,7 @@ static int fuv_write_p(FKL_CPROC_ARGL){PREDICATE(isFuvWrite(val),"fuv.write?")}
 static int fuv_shutdown_p(FKL_CPROC_ARGL){PREDICATE(isFuvShutdown(val),"fuv.shutdown?")}
 static int fuv_connect_p(FKL_CPROC_ARGL){PREDICATE(isFuvConnect(val),"fuv.connect?")}
 static int fuv_udp_send_p(FKL_CPROC_ARGL){PREDICATE(isFuvUdpSend(val),"fuv.udp-send?")}
-static int fuv_fs_p(FKL_CPROC_ARGL){PREDICATE(isFuvFs(val),"fuv.fs?")}
+static int fuv_fs_req_p(FKL_CPROC_ARGL){PREDICATE(isFuvFsReq(val),"fuv.fs-req?")}
 
 static inline FklBuiltinErrorType pop_sockaddr_flags(FklVM* exe
 		,struct sockaddr_storage* addr
@@ -2723,8 +2731,8 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(stream_obj,exe,Pname);
 	FklVMvalue* cb_obj=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe,Pname);
-	if(cb_obj&&!fklIsCallable(cb_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(cb_obj)
+		FKL_CHECK_TYPE(cb_obj,fklIsCallable,Pname,exe);
 	FKL_CHECK_TYPE(stream_obj,isFuvStream,Pname,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud,stream_obj,Pname,exe,ctx->pd);
 	FuvHandle* handle=*stream_ud;
@@ -4224,6 +4232,186 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline FklVMvalue* create_fs_uv_err(FklVM* exe
+		,int r
+		,uv_fs_t* req
+		,FklVMvalue* dest_path
+		,FklVMvalue* pd
+		,const char* where)
+{
+	FklVMvalue* err=NULL;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	if(dest_path)
+	{
+		FklStringBuffer buf;
+		fklInitStringBuffer(&buf);
+		fklStringBufferPrintf(&buf,"%s: %s -> %s"
+				,uv_strerror(r)
+				,req->path
+				,FKL_VM_STR(dest_path)->str);
+		err=fklCreateVMvalueErrorWithCstr(exe
+				,uvErrToSid(r,fpd)
+				,where
+				,fklStringBufferToString(&buf));
+		fklUninitStringBuffer(&buf);
+	}
+	else if(req->path)
+	{
+		FklStringBuffer buf;
+		fklInitStringBuffer(&buf);
+		fklStringBufferPrintf(&buf,"%s: %s",uv_strerror(r),req->path);
+		err=fklCreateVMvalueErrorWithCstr(exe
+				,uvErrToSid(r,fpd)
+				,where
+				,fklStringBufferToString(&buf));
+		fklUninitStringBuffer(&buf);
+	}
+	else
+		err=createUvErrorWithFpd(where,r,exe,fpd);
+	return err;
+}
+
+static inline void check_fs_uv_result(int r
+		,uv_fs_t* req
+		,FklVMvalue* dest_path
+		,const char* where
+		,FklVM* exe
+		,FklVMvalue* pd
+		,FklVMvalue* req_obj
+		,int sync)
+{
+	FklVMvalue* err=NULL;
+	if(r<0)
+	{
+		err=create_fs_uv_err(exe,r,req,dest_path,pd,where);
+		if(req_obj)
+			cleanup_req(req_obj);
+	}
+	if(sync)
+		uv_fs_req_cleanup(req);
+	if(NULL)
+		fklRaiseVMerror(err,exe);
+	return;
+}
+
+struct FsCbValueCreatorArg
+{
+	uv_fs_type fs_type;
+	ssize_t result;
+	const char* path;
+	uv_stat_t statbuf;
+	void* ptr;
+};
+
+static const char* fuv_fs_proc_name[UV_FS_LUTIME+1]=
+{
+  NULL,//UV_FS_CUSTOM,
+  NULL,//UV_FS_OPEN,
+  "fuv.fs-close",//UV_FS_CLOSE,
+  NULL,//UV_FS_READ,
+  NULL,//UV_FS_WRITE,
+  NULL,//UV_FS_SENDFILE,
+  NULL,//UV_FS_STAT,
+  NULL,//UV_FS_LSTAT,
+  NULL,//UV_FS_FSTAT,
+  NULL,//UV_FS_FTRUNCATE,
+  NULL,//UV_FS_UTIME,
+  NULL,//UV_FS_FUTIME,
+  NULL,//UV_FS_ACCESS,
+  NULL,//UV_FS_CHMOD,
+  NULL,//UV_FS_FCHMOD,
+  NULL,//UV_FS_FSYNC,
+  NULL,//UV_FS_FDATASYNC,
+  NULL,//UV_FS_UNLINK,
+  NULL,//UV_FS_RMDIR,
+  NULL,//UV_FS_MKDIR,
+  NULL,//UV_FS_MKDTEMP,
+  NULL,//UV_FS_RENAME,
+  NULL,//UV_FS_SCANDIR,
+  NULL,//UV_FS_LINK,
+  NULL,//UV_FS_SYMLINK,
+  NULL,//UV_FS_READLINK,
+  NULL,//UV_FS_CHOWN,
+  NULL,//UV_FS_FCHOWN,
+  NULL,//UV_FS_REALPATH,
+  NULL,//UV_FS_COPYFILE,
+  NULL,//UV_FS_LCHOWN,
+  NULL,//UV_FS_OPENDIR,
+  NULL,//UV_FS_READDIR,
+  NULL,//UV_FS_CLOSEDIR,
+  NULL,//UV_FS_STATFS,
+  NULL,//UV_FS_MKSTEMP,
+  NULL,//UV_FS_LUTIME
+};
+
+static void fuv_fs_cb_value_creator(FklVM* exe,void* a)
+{
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)exe->top_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+
+	struct FsCbValueCreatorArg* arg=a;
+	FklVMvalue* err=FKL_VM_NIL;
+	const char* Pname=fuv_fs_proc_name[arg->fs_type];
+	switch(arg->fs_type)
+	{
+		case UV_FS_CLOSE:
+			if(arg->result<0)
+				err=createUvErrorWithFpd(Pname,arg->result,exe,fpd);
+			break;
+		default:
+#warning incomplete
+			abort();
+			break;
+	}
+	FKL_VM_PUSH_VALUE(exe,err);
+}
+
+static void fuv_fs_cb(uv_fs_t* req)
+{
+	struct FsCbValueCreatorArg arg=
+	{
+		.fs_type=req->fs_type,
+		.result=req->result,
+		.path=req->path,
+		.statbuf=req->statbuf,
+		.ptr=req->ptr,
+	};
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req
+			,fuv_fs_cb_value_creator
+			,&arg);
+}
+
+static int fuv_fs_close(FKL_CPROC_ARGL)
+{
+#define Pname (fuv_fs_proc_name[UV_FS_CLOSE])
+
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,fd_obj,exe,Pname);
+	FklVMvalue* cb_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,Pname,exe);
+	FKL_CHECK_TYPE(fd_obj,FKL_IS_FIX,Pname,exe);
+	if(cb_obj)
+		FKL_CHECK_TYPE(cb_obj,fklIsCallable,Pname,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	if(cb_obj)
+	{
+		FklVMvalue* req_obj=NULL;
+		uv_fs_t* req=createFuvFsReq(exe,&req_obj,ctx->proc,loop_obj,cb_obj,NULL);
+		int r=uv_fs_close(&fuv_loop->loop,req,FKL_GET_FIX(fd_obj),fuv_fs_cb);
+		check_fs_uv_result(r,req,NULL,Pname,exe,ctx->pd,req_obj,0);
+		FKL_VM_PUSH_VALUE(exe,req_obj);
+	}
+	else
+	{
+		uv_fs_t req;
+		int r=uv_fs_close(&fuv_loop->loop,&req,FKL_GET_FIX(fd_obj),NULL);
+		check_fs_uv_result(r,&req,NULL,Pname,exe,ctx->pd,NULL,1);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	}
+	return 0;
+#undef Pname
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -4396,12 +4584,22 @@ struct SymFunc
 	{"shutdown?",                    fuv_shutdown_p,                   },
 	{"connect?",                     fuv_connect_p,                    },
 	{"udp-send?",                    fuv_udp_send_p,                   },
-	{"fs?",                          fuv_fs_p,                         },
+	{"fs-req?",                          fuv_fs_req_p,                         },
 
 	// fs
-	{"fs-close",                      fuv_incomplete,                   },
+	{"fs-close",                      fuv_fs_close,                   },
 	{"fs-open",                      fuv_incomplete,                   },
 	{"fs-read",                      fuv_incomplete,                   },
+	{"fs-unlink",                      fuv_incomplete,                   },
+	{"fs-write",                      fuv_incomplete,                   },
+	{"fs-mkdir",                      fuv_incomplete,                   },
+	{"fs-mkdtemp",                      fuv_incomplete,                   },
+	{"fs-mkstemp",                      fuv_incomplete,                   },
+	{"fs-rmdir",                      fuv_incomplete,                   },
+	{"fs-opendir",                      fuv_incomplete,                   },
+	{"fs-closedir",                      fuv_incomplete,                   },
+	{"fs-readdir",                      fuv_incomplete,                   },
+	{"fs-scandir",                      fuv_incomplete,                   },
 
 	// dns
 	{"getaddrinfo",                  fuv_getaddrinfo,                  },

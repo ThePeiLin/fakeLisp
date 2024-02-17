@@ -427,6 +427,7 @@ uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_o
 
 void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
 void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
+FklSid_t uvErrToSid(int err_id,FuvPublicData* pd);
 FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvErrorWithFpd(const char* who,int err_id,FklVM* exe,FuvPublicData* fpd);
 
@@ -466,6 +467,13 @@ struct FuvUdpSend
 	FuvReqData data;
 	uv_udp_send_t req;
 	FklVMvalue* send_objs[1];
+};
+
+struct FuvFsReq
+{
+	FuvReqData data;
+	uv_fs_t req;
+	FklVMvalue* dest_path;
 };
 
 typedef FuvReq* FuvReqUd;
@@ -518,12 +526,13 @@ uv_udp_send_t* createFuvUdpSend(FklVM* exe
 		,FklVMvalue* callback
 		,uint32_t count);
 
-int isFuvFs(FklVMvalue* v);
-uv_fs_t* createFuvFs(FklVM* exe
+int isFuvFsReq(FklVMvalue* v);
+uv_fs_t* createFuvFsReq(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
 		,FklVMvalue* loop
-		,FklVMvalue* callback);
+		,FklVMvalue* callback
+		,FklVMvalue* dest_path);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,13 @@
+(import (prefix (.. .. lib fuv) uv-))
+
+(import (only (.. .. lib utils m) assert))
+
+(define loop (uv-make-loop))
+
+(import (only (.. .. lib fs) fileno))
+
+(uv-fs-close loop (fileno stdin)
+             (lambda (err)
+               (prin1n err)))
+
+(uv-loop-run loop)

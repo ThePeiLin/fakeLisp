@@ -303,6 +303,18 @@ static int fs_fprintf(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fs_fileno(FKL_CPROC_ARGL)
+{
+	static const char Pname[]="fs.fileno";
+	FKL_DECL_AND_CHECK_ARG(vfp,exe,Pname);
+	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_TYPE(vfp,FKL_IS_FP,Pname,exe);
+	FklVMfp* fp=FKL_VM_FP(vfp);
+	int fileno=fklVMfpFileno(fp);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(fileno));
+	return 0;
+}
+
 struct SymFunc
 {
 	const char* sym;
@@ -324,6 +336,7 @@ struct SymFunc
 	{"fflush",   fs_fflush,   },
 	{"fclerr",   fs_fclerr,   },
 	{"fprintf",  fs_fprintf,  },
+	{"fileno",  fs_fileno,  },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

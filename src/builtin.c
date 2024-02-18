@@ -4353,7 +4353,7 @@ static int builtin_ftell(FKL_CPROC_ARGL)
 	CHECK_FP_OPEN(fp,exe);
 	int64_t pos=ftell(FKL_VM_FP(fp)->fp);
 	if(pos<0)
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMvalue* r=pos>FKL_FIX_INT_MAX
 		?fklCreateVMvalueBigIntWithI64(exe,pos)
 		:FKL_MAKE_VM_FIX(pos);

@@ -9802,10 +9802,6 @@ typedef struct MacroExpandCtx
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(MacroExpandCtx);
 
-static void macro_expand_frame_atomic(void* data,FklVMgc* gc)
-{
-}
-
 static int macro_expand_frame_step(void* data,FklVM* exe)
 {
 	MacroExpandCtx* ctx=(MacroExpandCtx*)data;
@@ -9826,7 +9822,6 @@ static void macro_expand_frame_backtrace(void* data,FILE* fp,FklVMgc* gc)
 static const FklVMframeContextMethodTable MacroExpandMethodTable=
 {
 	.step=macro_expand_frame_step,
-	.atomic=macro_expand_frame_atomic,
 	.finalizer=NULL,
 	.print_backtrace=macro_expand_frame_backtrace,
 };

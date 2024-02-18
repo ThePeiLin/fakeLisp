@@ -1778,7 +1778,6 @@ static void read_frame_finalizer(void* data)
 
 static int read_frame_step(void* d,FklVM* exe)
 {
-	int done=0;
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
 	struct ParseCtx* pctx=rctx->pctx;
@@ -1803,8 +1802,8 @@ static int read_frame_step(void* d,FklVM* exe)
 
 	if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
 	{
-		done=1;
 		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueEof(exe));
+		return 0;
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
@@ -1818,12 +1817,12 @@ static int read_frame_step(void* d,FklVM* exe)
 	{
 		if(restLen)
 			fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
-		done=1;
 		FKL_VM_PUSH_VALUE(exe,ast);
+		return 0;
 	}
 	else
 		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
-	return done;
+	return 1;
 }
 
 static void read_frame_print_backtrace(void* d,FILE* fp,FklVMgc* gc)
@@ -2013,7 +2012,6 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
 
 static int custom_read_frame_step(void* d,FklVM* exe)
 {
-	int done=0;
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
 	struct ParseCtx* pctx=rctx->pctx;
@@ -2054,15 +2052,15 @@ static int custom_read_frame_step(void* d,FklVM* exe)
 	{
 		if(restLen)
 			fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
-		done=1;
 		FklAnalysisSymbol* top=fklPopPtrStack(&pctx->symbolStack);
 		FKL_VM_PUSH_VALUE(exe,top->ast);
 		free(top);
+		return 0;
 	}
 	else if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
 	{
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
-		done=1;
+		return 0;
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
@@ -2078,7 +2076,7 @@ static int custom_read_frame_step(void* d,FklVM* exe)
 		if(rctx->state==PARSE_CONTINUE)
 			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 	}
-	return done;
+	return 1;
 }
 
 static const FklVMframeContextMethodTable CustomReadContextMethodTable=
@@ -2460,7 +2458,6 @@ static void custom_parse_frame_finalizer(void* data)
 
 static int custom_parse_frame_step(void* d,FklVM* exe)
 {
-	int done=0;
 	CustomParseCtx* ctx=(CustomParseCtx*)d;
 	struct ParseCtx* pctx=ctx->pctx;
 	if(ctx->state==PARSE_REDUCING)
@@ -2501,7 +2498,6 @@ static int custom_parse_frame_step(void* d,FklVM* exe)
 	}
 	if(accept)
 	{
-		done=1;
 		FklAnalysisSymbol* top=fklPopPtrStack(&pctx->symbolStack);
 		FKL_VM_PUSH_VALUE(exe,top->ast);
 		free(top);
@@ -2513,10 +2509,11 @@ static int custom_parse_frame_step(void* d,FklVM* exe)
 			else
 				FKL_VM_BOX(ctx->box)=FKL_MAKE_VM_FIX(offset);
 		}
+		return 0;
 	}
 	else
 		pctx->offset=str->size-restLen;
-	return done;
+	return 1;
 }
 
 static inline void init_custom_parse_ctx(void* data
@@ -3470,7 +3467,7 @@ static void error_handler_frame_copy(void* d,const void* s,FklVM* exe)
 
 static int error_handler_frame_step(void* data,FklVM* exe)
 {
-	return 1;
+	return 0;
 }
 
 static const FklVMframeContextMethodTable ErrorHandlerContextMethodTable=

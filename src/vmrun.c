@@ -229,7 +229,7 @@ static void cproc_frame_copy(void* d,const void* s,FklVM* exe)
 static int cproc_frame_step(void* data,FklVM* exe)
 {
 	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
-	return !c->func(exe,c);
+	return c->func(exe,c);
 }
 
 static const FklVMframeContextMethodTable CprocContextMethodTable=
@@ -712,11 +712,10 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
 			if(fklDoCallableObjFrameStep(curframe,exe))\
-			{\
-				if(atomic_load(&(exe)->notice_lock))\
-					NOTICE_LOCK(exe);\
-				fklDoFinalizeObjFrame(exe,popFrame(exe));\
-			}\
+				continue;\
+			if(atomic_load(&(exe)->notice_lock))\
+				NOTICE_LOCK(exe);\
+			fklDoFinalizeObjFrame(exe,popFrame(exe));\
 			break;\
 	}\
 	if(exe->top_frame==NULL)\
@@ -737,11 +736,10 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
 			if(fklDoCallableObjFrameStep(curframe,exe))\
-			{\
-				if(atomic_load(&(exe)->notice_lock))\
-					NOTICE_LOCK(exe);\
-				fklDoFinalizeObjFrame(exe,popFrame(exe));\
-			}\
+				continue;\
+			if(atomic_load(&(exe)->notice_lock))\
+				NOTICE_LOCK(exe);\
+			fklDoFinalizeObjFrame(exe,popFrame(exe));\
 			break;\
 	}\
 	if(exe->top_frame==NULL)\
@@ -879,7 +877,8 @@ int fklRunVMinSingleThread(FklVM* volatile exe,FklVMframe* const exit_frame)
 							break;
 						case FKL_FRAME_OTHEROBJ:
 							if(fklDoCallableObjFrameStep(curframe,exe))
-								fklDoFinalizeObjFrame(exe,popFrame(exe));
+								continue;
+							fklDoFinalizeObjFrame(exe,popFrame(exe));
 							break;
 					}
 					if(exe->top_frame==exit_frame)
@@ -936,11 +935,10 @@ static int vm_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 							break;
 						case FKL_FRAME_OTHEROBJ:
 							if(fklDoCallableObjFrameStep(curframe,exe))
-							{
-								if(atomic_load(&(exe)->notice_lock))
-									NOTICE_LOCK(exe);
-								fklDoFinalizeObjFrame(exe,popFrame(exe));
-							}
+								continue;
+							if(atomic_load(&(exe)->notice_lock))
+								NOTICE_LOCK(exe);
+							fklDoFinalizeObjFrame(exe,popFrame(exe));
 							break;
 					}
 					if(exe->top_frame==exit_frame)
@@ -1034,11 +1032,10 @@ static int vm_trapping_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 							break;
 						case FKL_FRAME_OTHEROBJ:
 							if(fklDoCallableObjFrameStep(curframe,exe))
-							{
-								if(atomic_load(&(exe)->notice_lock))
-									NOTICE_LOCK(exe);
-								fklDoFinalizeObjFrame(exe,popFrame(exe));
-							}
+								continue;
+							if(atomic_load(&(exe)->notice_lock))
+								NOTICE_LOCK(exe);
+							fklDoFinalizeObjFrame(exe,popFrame(exe));
 							break;
 					}
 					if(exe->top_frame==exit_frame)

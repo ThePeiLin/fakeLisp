@@ -9815,7 +9815,7 @@ static int macro_expand_frame_step(void* data,FklVM* exe)
 			,ctx->lineHash
 			,exe->gc);
 	fklVMreleaseSt(exe->gc);
-	return 1;
+	return 0;
 }
 
 static void macro_expand_frame_backtrace(void* data,FILE* fp,FklVMgc* gc)

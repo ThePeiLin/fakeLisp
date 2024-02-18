@@ -652,14 +652,13 @@ static inline const char* replxx_input_string_buffer(Replxx* replxx
 
 static int repl_frame_step(void* data,FklVM* exe)
 {
-	int done=0;
 	ReplCtx* ctx=(ReplCtx*)data;
 	NastCreatCtx* cc=ctx->cc;
 
 	if(ctx->state==READY)
 	{
 		ctx->state=WAITING;
-		return 0;
+		return 1;
 	}
 	else if(ctx->state==WAITING)
 	{
@@ -675,7 +674,7 @@ static int repl_frame_step(void* data,FklVM* exe)
 		fklUnlockThread(exe);
 		ctx->eof=replxx_input_string_buffer(ctx->replxx,&ctx->buf)==NULL;
 		fklLockThread(exe);
-		return 0;
+		return 1;
 	}
 	else
 		ctx->state=WAITING;
@@ -725,7 +724,7 @@ static int repl_frame_step(void* data,FklVM* exe)
 	cc->offset=fklStringBufferLen(s)-restLen;
 	codegen->curline=outerCtx.line;
 	if(!restLen&&cc->symbolStack.top==0&&is_eof)
-		done=1;
+		return 0;
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
 			&&is_eof)
@@ -824,17 +823,17 @@ static int repl_frame_step(void* data,FklVM* exe)
 					,mainframe);
 
 			exe->top_frame=mainframe;
-			return 0;
+			return 1;
 		}
 		else
 		{
 			ctx->state=WAITING;
-			return 0;
+			return 1;
 		}
 	}
 	else
 		fklStringBufferPutc(&ctx->buf,'\n');
-	return done;
+	return 1;
 }
 
 static void repl_frame_print_backtrace(void* data,FILE* fp,FklVMgc* gc)

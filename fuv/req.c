@@ -18,10 +18,18 @@ void uninitFuvReq(FuvReqUd* req_ud)
 	if(fuv_req)
 	{
 		FuvReqData* req_data=&fuv_req->data;
-		FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,req_data->loop);
-		fklDelHashItem(&req_data->req,&fuv_loop->data.gc_values,NULL);
-		fuv_req->data.req=NULL;
-		fuv_req->data.callback=NULL;
+		if(req_data->loop)
+		{
+			FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,req_data->loop);
+			fklDelHashItem(&req_data->req,&fuv_loop->data.gc_values,NULL);
+			fuv_req->data.req=NULL;
+			fuv_req->data.callback=NULL;
+		}
+		else
+		{
+			uv_fs_req_cleanup((uv_fs_t*)&fuv_req->req);
+			free(fuv_req);
+		}
 		*req_ud=NULL;
 	}
 }
@@ -191,7 +199,8 @@ static inline void init_fuv_req(FuvReqUd* r_ud
 	req->data.loop=loop;
 	req->data.callback=callback;
 	uv_req_set_data(&req->req,req);
-	fuvLoopInsertFuvObj(loop,v);
+	if(loop)
+		fuvLoopInsertFuvObj(loop,v);
 }
 
 #define CREATE_OBJ(TYPE) (TYPE*)calloc(1,sizeof(TYPE))
@@ -295,19 +304,19 @@ uv_udp_send_t* createFuvUdpSend(FklVM* exe
 
 FUV_REQ_P(isFuvFsReq,UV_FS);
 
-uv_fs_t* createFuvFsReq(FklVM* exe
+struct FuvFsReq* createFuvFsReq(FklVM* exe
 		,FklVMvalue** ret
 		,FklVMvalue* rel
 		,FklVMvalue* loop
 		,FklVMvalue* callback
-		,FklVMvalue* dest_path)
+		,unsigned int len)
 {
 	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_FS],rel);
 	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
-	struct FuvFsReq* req=(struct FuvFsReq*)malloc(sizeof(struct FuvFsReq));
+	struct FuvFsReq* req=(struct FuvFsReq*)calloc(1,sizeof(struct FuvFsReq)+len*sizeof(char));
 	FKL_ASSERT(req);
 	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
-	req->dest_path=dest_path;
+	req->buf=uv_buf_init(req->base,len);
 	*ret=v;
-	return &req->req;
+	return req;
 }

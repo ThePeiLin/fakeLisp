@@ -3,6 +3,7 @@
 
 #include<fakeLisp/vm.h>
 #include<signal.h>
+#include<uv.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -14,6 +15,8 @@ typedef enum
 	FUV_ERR_CLOSE_CLOSEING_HANDLE,
 	FUV_ERR_HANDLE_CLOSED,
 	FUV_ERR_REQ_CANCELED,
+	FUV_ERR_CLOSE_USING_DIR,
+	FUV_ERR_NUMBER_SHOULD_NOT_BE_LT_1,
 	FUV_ERR_NUM,
 }FuvErrorType;
 
@@ -262,6 +265,84 @@ typedef struct
 	FklSid_t NI_IDN_USE_STD3_ASCII_RULES_sid;
 #endif
 
+	FklSid_t UV_FS_O_APPEND_sid;
+	FklSid_t UV_FS_O_CREAT_sid;
+	FklSid_t UV_FS_O_EXCL_sid;
+	FklSid_t UV_FS_O_FILEMAP_sid;
+	FklSid_t UV_FS_O_RANDOM_sid;
+	FklSid_t UV_FS_O_RDONLY_sid;
+	FklSid_t UV_FS_O_RDWR_sid;
+	FklSid_t UV_FS_O_SEQUENTIAL_sid;
+	FklSid_t UV_FS_O_SHORT_LIVED_sid;
+	FklSid_t UV_FS_O_TEMPORARY_sid;
+	FklSid_t UV_FS_O_TRUNC_sid;
+	FklSid_t UV_FS_O_WRONLY_sid;
+	FklSid_t UV_FS_O_DIRECT_sid;
+	FklSid_t UV_FS_O_DIRECTORY_sid;
+	FklSid_t UV_FS_O_DSYNC_sid;
+	FklSid_t UV_FS_O_EXLOCK_sid;
+	FklSid_t UV_FS_O_NOATIME_sid;
+	FklSid_t UV_FS_O_NOCTTY_sid;
+	FklSid_t UV_FS_O_NOFOLLOW_sid;
+	FklSid_t UV_FS_O_NONBLOCK_sid;
+	FklSid_t UV_FS_O_SYMLINK_sid;
+	FklSid_t UV_FS_O_SYNC_sid;
+
+	FklSid_t UV_FS_SYMLINK_DIR_sid;
+	FklSid_t UV_FS_SYMLINK_JUNCTION_sid;
+
+	FklSid_t UV_FS_COPYFILE_EXCL_sid;
+	FklSid_t UV_FS_COPYFILE_FICLONE_sid;
+	FklSid_t UV_FS_COPYFILE_FICLONE_FORCE_sid;
+
+	FklSid_t stat_f_dev_sid;
+	FklSid_t stat_f_mode_sid;
+	FklSid_t stat_f_nlink_sid;
+	FklSid_t stat_f_uid_sid;
+	FklSid_t stat_f_gid_sid;
+	FklSid_t stat_f_rdev_sid;
+	FklSid_t stat_f_ino_sid;
+	FklSid_t stat_f_size_sid;
+	FklSid_t stat_f_blksize_sid;
+	FklSid_t stat_f_blocks_sid;
+	FklSid_t stat_f_flags_sid;
+	FklSid_t stat_f_gen_sid;
+	FklSid_t stat_f_atime_sid;
+	FklSid_t stat_f_mtime_sid;
+	FklSid_t stat_f_ctime_sid;
+	FklSid_t stat_f_birthtime_sid;
+	FklSid_t stat_f_type_sid;
+
+	FklSid_t stat_type_file_sid;
+	FklSid_t stat_type_directory_sid;
+	FklSid_t stat_type_link_sid;
+	FklSid_t stat_type_fifo_sid;
+	FklSid_t stat_type_socket_sid;
+	FklSid_t stat_type_char_sid;
+	FklSid_t stat_type_block_sid;
+
+	FklSid_t timespec_f_sec_sid;
+	FklSid_t timespec_f_nsec_sid;
+
+	FklSid_t statfs_f_type_sid;
+	FklSid_t statfs_f_bsize_sid;
+	FklSid_t statfs_f_blocks_sid;
+	FklSid_t statfs_f_bfree_sid;
+	FklSid_t statfs_f_bavail_sid;
+	FklSid_t statfs_f_files_sid;
+	FklSid_t statfs_f_ffree_sid;
+
+	FklSid_t dirent_f_name_sid;
+	FklSid_t dirent_f_type_sid;
+
+	FklSid_t UV_DIRENT_UNKNOWN_sid;
+	FklSid_t UV_DIRENT_FILE_sid;
+	FklSid_t UV_DIRENT_DIR_sid;
+	FklSid_t UV_DIRENT_LINK_sid;
+	FklSid_t UV_DIRENT_FIFO_sid;
+	FklSid_t UV_DIRENT_SOCKET_sid;
+	FklSid_t UV_DIRENT_CHAR_sid;
+	FklSid_t UV_DIRENT_BLOCK_sid;
 }FuvPublicData;
 
 struct FuvErrorRecoverData
@@ -469,11 +550,23 @@ struct FuvUdpSend
 	FklVMvalue* send_objs[1];
 };
 
+typedef struct FuvDir
+{
+	uv_dir_t* dir;
+	atomic_uint ref;
+}FuvDir;
+
+typedef FuvDir* FuvDirUd;
+
 struct FuvFsReq
 {
 	FuvReqData data;
 	uv_fs_t req;
 	FklVMvalue* dest_path;
+	size_t nentries;
+	FuvDir* dir;
+	uv_buf_t buf;
+	char base[1];
 };
 
 typedef FuvReq* FuvReqUd;
@@ -527,12 +620,21 @@ uv_udp_send_t* createFuvUdpSend(FklVM* exe
 		,uint32_t count);
 
 int isFuvFsReq(FklVMvalue* v);
-uv_fs_t* createFuvFsReq(FklVM* exe
+struct FuvFsReq* createFuvFsReq(FklVM* exe
 		,FklVMvalue** r
 		,FklVMvalue* rel
 		,FklVMvalue* loop
 		,FklVMvalue* callback
-		,FklVMvalue* dest_path);
+		,unsigned int len);
+
+int isFuvDir(FklVMvalue* v);
+FklVMvalue* createFuvDir(FklVM* vm,FklVMvalue* rel,uv_fs_t* dir,size_t nentries);
+
+int isFuvDirUsing(FuvDir* dir);
+
+FuvDir* refFuvDir(FuvDir* dir);
+
+void unrefFuvDir(FuvDir* dir_obj);
 
 #ifdef __cplusplus
 }

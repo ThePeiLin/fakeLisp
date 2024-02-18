@@ -315,7 +315,7 @@ struct SymFunc
 	{"fflush",   fs_fflush,   },
 	{"fclerr",   fs_fclerr,   },
 	{"fprintf",  fs_fprintf,  },
-	{"fileno",  fs_fileno,  },
+	{"fileno",   fs_fileno,   },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

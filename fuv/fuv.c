@@ -63,6 +63,8 @@ void raiseFuvError(FuvErrorType err,FklVM* exe,FklVMvalue* pd_obj)
 		"close closing handle",
 		"handle has been closed",
 		"request has been canceled",
+		"can't close a using dir",
+		"Number should not be less than 1",
 	};
 	FklVMvalue* ev=fklCreateVMvalueError(exe
 			,sid

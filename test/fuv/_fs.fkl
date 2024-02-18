@@ -6,8 +6,272 @@
 
 (import (only (.. .. lib fs) fileno))
 
-(uv-fs-close loop (fileno stdin)
+(import (alias (.. .. lib os) (remove os-remove)))
+
+(define fd (uv-fs-open loop *file-rp* "r" nil))
+
+(printf "uv-fs-open: %S\n" fd)
+
+(printf "uv-fs-read: %S\n" (uv-fs-read loop fd 4 nil))
+
+(uv-fs-read loop fd
+            4 nil
+            (lambda (err res)
+              (printf "async uv-fs-read: %S %S\n" err res)
+              (when err (raise err))))
+
+(define req (uv-fs-open loop *file-rp* "r" nil
+                    (lambda (err fd)
+                      (printf "async uv-fs-open: %S %S\n" err fd)
+                      (when err (raise err)))))
+
+(assert (uv-fs-req? req))
+(assert (uv-req? req))
+
+(printf "uv-fs-mkdir: %S\n" (uv-fs-mkdir loop "test-dir" nil))
+
+(printf "uv-fs-rmdir: %S\n" (uv-fs-rmdir loop "test-dir"))
+
+(uv-fs-mkdir loop "test-dir-async" nil
              (lambda (err)
-               (prin1n err)))
+               (printf "async uv-fs-mkdir: %S\n" err)
+               (when err (raise err))
+               (uv-fs-rmdir loop "test-dir-async"
+                            (lambda (err)
+                              (printf "async uv-fs-rmdir %S\n" err)
+                              (when err (raise err))))))
+
+(define fd (uv-fs-open loop "test-write.txt" "w" nil))
+(printf "uv-fs-write: %S\n" (uv-fs-write loop fd nil nil "foobar"))
+
+(uv-fs-write loop fd nil
+             (lambda (err res)
+               (printf "async uv-fs-write: %S %S\n" err res)
+               (when err (raise err)))
+             "114514")
+
+(define dir-name (uv-fs-mkdtemp loop "fuv-dir-XXXXXX"))
+(printf "uv-fs-mkdtemp: %S\n" dir-name)
+
+(uv-fs-rmdir loop dir-name)
+
+(uv-fs-mkdtemp loop "fuv-dir-XXXXXX"
+               (lambda (err path)
+                 (printf "async uv-fs-mkdtemp: %S %S\n" err path)
+                 (uv-fs-rmdir loop path)))
+
+(define fd-path (uv-fs-mkstemp loop "fuv-file-XXXXXX"))
+(printf "uv-fs-mkstemp: %S %S\n" (car fd-path) (cdr fd-path))
+
+(uv-fs-close loop (car fd-path))
+(os-remove (cdr fd-path))
+
+(uv-fs-mkstemp loop "fuv-file-XXXXXX"
+               (lambda (err fd path)
+                 (printf "async uv-fs-mkstemp: %S %S %S\n" err fd path)
+                 (uv-fs-close loop fd)
+                 (os-remove path)
+                 (when err (raise err))))
+
+(printf "uv-fs-realpath: %S\n" (uv-fs-realpath loop *file-rp*))
+
+(uv-fs-realpath loop *file-rp*
+                (lambda (err res)
+                  (printf "async uv-fs-realpath: %S %S\n" err res)
+                  (when err (raise err))))
+
+(define fd-path (uv-fs-mkstemp loop "fuv-file-XXXXXX"))
+
+(uv-fs-close loop (car fd-path))
+
+(define rename-to-filename "rename-to-filename")
+
+(printf "uv-fs-rename: %S -> %S %S\n"
+        (cdr fd-path)
+        rename-to-filename
+        (uv-fs-rename loop (cdr fd-path) rename-to-filename))
+
+(os-remove rename-to-filename)
+
+(define fd-path (uv-fs-mkstemp loop "fuv-file-XXXXXX"))
+
+(uv-fs-close loop (car fd-path))
+
+(uv-fs-rename loop (cdr fd-path) rename-to-filename
+              (lambda (err)
+                (printf "async uv-fs-rename: %S -> %S %S\n"
+                        (cdr fd-path)
+                        rename-to-filename
+                        err)
+                (os-remove rename-to-filename)
+                (when err (raise err))))
+
+(uv-loop-run loop)
+
+(define link-to-path (append! *file-rp* ".link"))
+
+(printf "uv-fs-link: %S -> %S %S\n" *file-rp* link-to-path (uv-fs-link loop *file-rp* link-to-path))
+
+(printf "uv-fs-unlink: %S %S\n" link-to-path (uv-fs-unlink loop link-to-path))
+
+(uv-fs-link loop *file-rp* link-to-path
+            (lambda (err)
+              (printf "async uv-fs-link: %S -> %S %S\n" *file-rp* link-to-path err)
+              (when err (raise err))
+              (uv-fs-unlink loop link-to-path
+                            (lambda (err)
+                              (printf "async uv-fs-unlink: %S %S\n" link-to-path err)
+                              (when err (raise err))))))
+
+(uv-loop-run loop)
+
+(printf "uv-fs-symlink: %S -> %S %S\n" *file-rp* link-to-path (uv-fs-symlink loop *file-rp* link-to-path))
+
+(os-remove link-to-path)
+
+(printf "uv-fs-symlink: %S -> %S %S\n" *file-rp* link-to-path (uv-fs-symlink loop *file-rp* link-to-path nil))
+
+(printf "uv-fs-readlink: %S -> %S\n" (uv-fs-readlink loop link-to-path) link-to-path)
+
+(uv-fs-readlink loop link-to-path
+                (lambda (err res)
+                  (printf "async uv-fs-readlink: %S -> %S %S\n" res link-to-path err)
+                  (when err (raise err))))
+
+(uv-loop-run loop)
+
+(os-remove link-to-path)
+
+(uv-fs-symlink loop *file-rp* link-to-path
+               (lambda (err)
+                 (printf "async uv-fs-symlink: %S -> %S %S\n" *file-rp* link-to-path err)
+                 (when err (raise err))
+                 (os-remove link-to-path)))
+
+(uv-loop-run loop)
+
+(uv-fs-symlink loop *file-rp* link-to-path nil
+               (lambda (err)
+                 (printf "async uv-fs-symlink: %S -> %S %S\n" *file-rp* link-to-path err)
+                 (when err (raise err))
+                 (os-remove link-to-path)))
+
+(uv-loop-run loop)
+
+(define path1 "_test_")
+(define path2 "_test2_")
+
+(define fd (uv-fs-open loop path1 "w" 0644))
+
+(uv-fs-write loop fd nil nil "hello, world\n")
+
+(uv-fs-close loop fd)
+
+(printf "uv-fs-copyfile: %S -> %S %S\n" path1 path2 (uv-fs-copyfile loop path1 path2))
+
+(uv-fs-unlink loop path1)
+
+(uv-fs-unlink loop path2)
+
+(uv-loop-run loop)
+
+(printf "uv-fs-stat: %S \n" *file-rp* )
+
+(define (pretty-print-table ht)
+  (define kv (hash->list ht))
+  (println #\{)
+  (foreach (lambda (kv)
+             (printf "\t%S : %S\n" (car kv) (cdr kv)))
+           kv)
+  (println #\}))
+
+(pretty-print-table (uv-fs-stat loop *file-rp*))
+(newline)
+
+(uv-fs-stat loop *file-rp*
+            (lambda (err res)
+              (printf "async uv-fs-stat: %S %S\n" *file-rp* err)
+              (pretty-print-table res)
+              (when err (raise err))))
+
+(define err (pcall uv-fs-stat loop "BAD_FILE!"))
+(assert (error? err))
+
+(printf "uv-fs-stat err: %S\n" err)
+
+(uv-fs-stat loop "BAD_FILE!"
+            (lambda (err res)
+              (printf "async uv-fs-stat err: %S\n" err)
+              (assert (not res))
+              (assert (error? err))))
+
+(printf "uv-fs-statfs: %S\n" *file-rp*)
+
+(pretty-print-table (uv-fs-statfs loop *file-rp*))
+
+(define stat (uv-fs-statfs loop *file-dir*))
+
+(assert (> (hash-ref stat 'bavail 0)))
+
+(printf "uv-fs-statfs: %S\n" *file-dir*)
+
+(pretty-print-table stat)
+
+(uv-fs-statfs loop *file-dir*
+              (lambda (err stat)
+                (printf "async uv-fs-statfs: %S %S\n" *file-dir* err)
+                (when err (raise err))
+                (assert (> (hash-ref stat 'bavail 0)))
+                (pretty-print-table stat)))
+
+(define err (pcall uv-fs-statfs loop "BAD_FILE!"))
+
+(assert (error? err))
+
+(printf "uv-fs-statfs err: %S\n" err)
+
+(uv-fs-statfs loop "BAD_FILE@"
+              (lambda (err res)
+                (printf "async uv-fs-statfs err: %S\n" err)
+                (assert (not res))
+                (assert (error? err))))
+
+(uv-loop-run loop)
+
+(define dir (uv-fs-opendir loop *file-dir* 1))
+
+(assert (uv-dir? dir))
+
+(prin1n dir)
+
+(uv-fs-opendir loop *file-dir*
+               (lambda (err res)
+                 (printf "async uv-fs-opendir: %S %S\n" res err)
+                 (assert (uv-dir? res))))
+
+(uv-fs-readdir loop dir
+               (lambda (err res)
+                 (assert (null (cdr res)))
+                 (uv-fs-closedir loop dir)
+                 (foreach pretty-print-table res)))
+
+(uv-loop-run loop)
+
+(define req (uv-fs-scandir loop *file-dir*))
+
+(prin1n req)
+
+(pretty-print-table (uv-fs-scandir-next req))
+
+(uv-fs-scandir loop *file-dir*
+               (lambda (err req)
+                 (pretty-print-table (uv-fs-scandir-next req))))
+
+(uv-loop-run loop)
+
+(uv-fs-scandir loop "BAD_FILE!"
+               (lambda (err req)
+                 (assert (error? err))
+                 (prin1n err)))
 
 (uv-loop-run loop)

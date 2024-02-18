@@ -450,7 +450,7 @@ static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklStrin
 
 FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 {
-	static const char* builtinErrorMessages[]=
+	static const char* builtinErrorMessages[FKL_BUILTIN_ERR_NUM]=
 	{
 		NULL,
 		"Symbol undefined",
@@ -2381,7 +2381,7 @@ void fklVMread(FklVM* exe
 
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table)
 {
-	static const char* builtInErrorType[]=
+	static const char* builtInErrorType[FKL_BUILTIN_ERR_NUM]=
 	{
 		"dummy",
 		"symbol-error",

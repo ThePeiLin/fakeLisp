@@ -284,16 +284,9 @@ typedef struct
 	FklInstruction* end;
 }FklVMCompoundFrameData;
 
-typedef enum
-{
-	FKL_CPROC_READY=0,
-	FKL_CPROC_DONE,
-}FklCprocFrameState;
-
 typedef struct FklCprocFrameContext
 {
 	FklVMvalue* proc;
-	FklCprocFrameState state;
 	FklVMcFunc func;
 	FklVMvalue* pd;
 	uintptr_t context;
@@ -308,8 +301,7 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 struct FklVMgc;
 typedef struct
 {
-	int (*end)(void* data);
-	void (*step)(void* data,struct FklVM*);
+	int (*step)(void* data,struct FklVM*);
 	void (*print_backtrace)(void* data,FILE* fp,struct FklVMgc*);
 	void (*atomic)(void* data,struct FklVMgc*);
 	void (*finalizer)(void* data);
@@ -343,8 +335,7 @@ void fklTailCallObj(struct FklVM* exe,FklVMvalue*);
 void fklDoAtomicFrame(FklVMframe* f,struct FklVMgc*);
 void fklDoCopyObjFrameContext(FklVMframe*,FklVMframe*,struct FklVM* exe);
 void* fklGetFrameData(FklVMframe* f);
-int fklIsCallableObjFrameReachEnd(FklVMframe* f);
-void fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
+int fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(struct FklVM*,FklVMframe* f);
 void fklDoFinalizeCompoundFrame(struct FklVM* exe,FklVMframe* frame);
 
@@ -939,8 +930,6 @@ FklVMvalue* fklCreateVMvalueBoxNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,FklString* message);
 
-// FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM*,FklSid_t type,const char* who,FklString* message);
-
 FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const FklBigInt*);
 
 FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int base);
@@ -1208,17 +1197,6 @@ void fklUninitVMlib(FklVMlib*);
 
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
-
-/*
-#define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
-	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueError((EXE)\
-			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->gc->builtinErrorTypeId)\
-			,(WHO)\
-			,errorMessage);\
-	fklRaiseVMerror(err,(EXE));\
-}while(0)
-*/
 
 #define FKL_RAISE_BUILTIN_ERROR_CSTR(ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\

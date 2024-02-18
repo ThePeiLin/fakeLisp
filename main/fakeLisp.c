@@ -376,7 +376,6 @@ typedef struct
 		READY,
 		WAITING,
 		READING,
-		DONE,
 	}state:8;
 	int8_t eof;
 	uint32_t lcount;
@@ -651,15 +650,16 @@ static inline const char* replxx_input_string_buffer(Replxx* replxx
 	return next;
 }
 
-static void repl_frame_step(void* data,FklVM* exe)
+static int repl_frame_step(void* data,FklVM* exe)
 {
+	int done=0;
 	ReplCtx* ctx=(ReplCtx*)data;
 	NastCreatCtx* cc=ctx->cc;
 
 	if(ctx->state==READY)
 	{
 		ctx->state=WAITING;
-		return;
+		return 0;
 	}
 	else if(ctx->state==WAITING)
 	{
@@ -675,7 +675,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 		fklUnlockThread(exe);
 		ctx->eof=replxx_input_string_buffer(ctx->replxx,&ctx->buf)==NULL;
 		fklLockThread(exe);
-		return;
+		return 0;
 	}
 	else
 		ctx->state=WAITING;
@@ -725,7 +725,7 @@ static void repl_frame_step(void* data,FklVM* exe)
 	cc->offset=fklStringBufferLen(s)-restLen;
 	codegen->curline=outerCtx.line;
 	if(!restLen&&cc->symbolStack.top==0&&is_eof)
-		ctx->state=DONE;
+		done=1;
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
 			&&is_eof)
@@ -751,7 +751,6 @@ static void repl_frame_step(void* data,FklVM* exe)
 			replxx_set_preload_buffer(ctx->replxx,&s->buf[idx]);
 			s->buf[idx]='\0';
 		}
-		ctx->state=DONE;
 
 		fklMakeNastNodeRef(ast);
 		size_t libNum=codegen->libStack->top;
@@ -825,21 +824,17 @@ static void repl_frame_step(void* data,FklVM* exe)
 					,mainframe);
 
 			exe->top_frame=mainframe;
+			return 0;
 		}
 		else
 		{
 			ctx->state=WAITING;
-			return;
+			return 0;
 		}
 	}
 	else
 		fklStringBufferPutc(&ctx->buf,'\n');
-}
-
-static int repl_frame_end(void* data)
-{
-	ReplCtx* ctx=(ReplCtx*)data;
-	return ctx->state==DONE;
+	return done;
 }
 
 static void repl_frame_print_backtrace(void* data,FILE* fp,FklVMgc* gc)
@@ -886,7 +881,6 @@ static const FklVMframeContextMethodTable ReplContextMethodTable=
 	.copy=NULL,
 	.print_backtrace=repl_frame_print_backtrace,
 	.step=repl_frame_step,
-	.end=repl_frame_end,
 };
 
 static inline NastCreatCtx* createNastCreatCtx(void)

@@ -75,7 +75,7 @@ void fklPrintCodegenError(FklNastNode* obj
 	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
 		return;
 	fklPrintRawCstr(builtInErrorType[type],'|',stderr);
-	fputs(" in compiling: ",stderr);
+	fputs(": ",stderr);
 	switch(type)
 	{
 		case FKL_ERR_CIR_REF:

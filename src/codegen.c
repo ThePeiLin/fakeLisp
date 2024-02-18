@@ -440,7 +440,6 @@ BC_PROCESS(_funcall_exp_bc_process)
 		FklBuiltinInlineFunc inlFunc=NULL;
 		const FklInstruction* ins=&funcBc->code[0];
 		if(funcBc->len==1
-				// &&!codegen->do_not_inline_builtins
 				&&argNum<4
 				&&ins->op==FKL_OP_GET_VAR_REF
 				&&(inlFunc=is_inlinable_func_ref(ins->imm_u32
@@ -4253,7 +4252,7 @@ void fklPrintUndefinedRef(const FklCodegenEnv* env
 	for(uint32_t i=urefs->top;i>0;i--)
 	{
 		FklUnReSymbolRef* ref=urefs->base[i-1];
-		fprintf(stderr,"warning in compiling: Symbol ");
+		fprintf(stderr,"warning: Symbol ");
 		fklPrintRawSymbol(fklGetSymbolWithId(ref->id,pst)->symbol,stderr);
 		fprintf(stderr," is undefined at line %"FKL_PRT64U,ref->line);
 		if(ref->fid)
@@ -9263,7 +9262,6 @@ FklCodegenEnv* fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,FklCodegenInfoEnvWorkCb env_work_cb
 		,void* work_ctx)
 {
-	// codegen->do_not_inline_builtins=0;
 	codegen->globalSymTable=globalSymTable;
 	codegen->outer_ctx=outer_ctx;
 	if(rp!=NULL)
@@ -9377,11 +9375,9 @@ void fklInitCodegenInfo(FklCodegenInfo* codegen
 		codegen->macro_pts=prev->macro_pts;
 		codegen->builtinSymModiMark=prev->builtinSymModiMark;
 		codegen->builtinSymbolNum=prev->builtinSymbolNum;
-		// codegen->do_not_inline_builtins=prev->do_not_inline_builtins;
 	}
 	else
 	{
-		// codegen->do_not_inline_builtins=0;
 		codegen->globalEnv=fklCreateCodegenEnv(NULL,1,NULL);
 		fklInitGlobCodegenEnv(codegen->globalEnv,&outer_ctx->public_symbol_table);
 		codegen->globalEnv->refcount++;
@@ -9798,7 +9794,6 @@ static void initVMframeFromPatternMatchTable(FklVM* exe
 
 typedef struct MacroExpandCtx
 {
-	int done;
 	FklNastNode** retval;
 	FklHashTable* lineHash;
 	FklSymbolTable* symbolTable;
@@ -9811,7 +9806,7 @@ static void macro_expand_frame_atomic(void* data,FklVMgc* gc)
 {
 }
 
-static void macro_expand_frame_step(void* data,FklVM* exe)
+static int macro_expand_frame_step(void* data,FklVM* exe)
 {
 	MacroExpandCtx* ctx=(MacroExpandCtx*)data;
 	fklVMacquireSt(exe->gc);
@@ -9820,12 +9815,7 @@ static void macro_expand_frame_step(void* data,FklVM* exe)
 			,ctx->lineHash
 			,exe->gc);
 	fklVMreleaseSt(exe->gc);
-	ctx->done=1;
-}
-
-static int macro_expand_frame_end(void* data)
-{
-	return ((MacroExpandCtx*)data)->done;
+	return 1;
 }
 
 static void macro_expand_frame_backtrace(void* data,FILE* fp,FklVMgc* gc)
@@ -9836,7 +9826,6 @@ static void macro_expand_frame_backtrace(void* data,FILE* fp,FklVMgc* gc)
 static const FklVMframeContextMethodTable MacroExpandMethodTable=
 {
 	.step=macro_expand_frame_step,
-	.end=macro_expand_frame_end,
 	.atomic=macro_expand_frame_atomic,
 	.finalizer=NULL,
 	.print_backtrace=macro_expand_frame_backtrace,
@@ -9851,7 +9840,6 @@ static void insert_macro_expand_frame(FklVM* exe,FklVMframe* mainframe
 	FklVMframe* f=fklCreateOtherObjVMframe(exe,&MacroExpandMethodTable,mainframe->prev);
 	mainframe->prev=f;
 	MacroExpandCtx* ctx=(MacroExpandCtx*)f->data;
-	ctx->done=0;
 	ctx->retval=ptr;
 	ctx->lineHash=lineHash;
 	ctx->symbolTable=symbolTable;

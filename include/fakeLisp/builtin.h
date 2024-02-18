@@ -8,7 +8,6 @@
 extern "C" {
 #endif
 
-// #define FKL_BUILTIN_SYMBOL_NUM (216)
 #define FKL_BUILTIN_SYMBOL_NUM (215)
 
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint32_t line,uint32_t scope);

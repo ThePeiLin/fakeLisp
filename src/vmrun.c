@@ -226,24 +226,10 @@ static void cproc_frame_copy(void* d,const void* s,FklVM* exe)
 	*dc=*sc;
 }
 
-static int cproc_frame_end(void* data)
+static int cproc_frame_step(void* data,FklVM* exe)
 {
 	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
-	return c->state==FKL_CPROC_DONE;
-}
-
-static void cproc_frame_step(void* data,FklVM* exe)
-{
-	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
-	switch(c->state)
-	{
-		case FKL_CPROC_READY:
-			if(!c->func(exe,c))
-				c->state=FKL_CPROC_DONE;
-			break;
-		case FKL_CPROC_DONE:
-			break;
-	}
+	return !c->func(exe,c);
 }
 
 static const FklVMframeContextMethodTable CprocContextMethodTable=
@@ -251,7 +237,6 @@ static const FklVMframeContextMethodTable CprocContextMethodTable=
 	.atomic=cproc_frame_atomic,
 	.copy=cproc_frame_copy,
 	.print_backtrace=cproc_frame_print_backtrace,
-	.end=cproc_frame_end,
 	.step=cproc_frame_step,
 };
 
@@ -259,7 +244,6 @@ static inline void initCprocFrameContext(void* data,FklVMvalue* proc,FklVM* exe)
 {
 	FklCprocFrameContext* c=(FklCprocFrameContext*)data;
 	c->proc=proc;
-	c->state=FKL_CPROC_READY;
 	c->rtp=exe->tp;
 	c->context=0;
 	c->func=FKL_VM_CPROC(proc)->func;
@@ -531,11 +515,6 @@ void* fklGetFrameData(FklVMframe* f)
 	return f->data;
 }
 
-int fklIsCallableObjFrameReachEnd(FklVMframe* f)
-{
-	return f->t->end(fklGetFrameData(f));
-}
-
 void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklVMgc* gc)
 {
 	void (*backtrace)(void* data,FILE*,FklVMgc*)=f->t->print_backtrace;
@@ -545,9 +524,9 @@ void fklDoPrintBacktrace(FklVMframe* f,FILE* fp,FklVMgc* gc)
 		fprintf(fp,"at callable-obj\n");
 }
 
-void fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
+int fklDoCallableObjFrameStep(FklVMframe* f,FklVM* exe)
 {
-	f->t->step(fklGetFrameData(f),exe);
+	return f->t->step(fklGetFrameData(f),exe);
 }
 
 void fklDoFinalizeObjFrame(FklVM* vm,FklVMframe* f)
@@ -732,14 +711,12 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			}\
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
-			if(fklIsCallableObjFrameReachEnd(curframe))\
+			if(fklDoCallableObjFrameStep(curframe,exe))\
 			{\
 				if(atomic_load(&(exe)->notice_lock))\
 					NOTICE_LOCK(exe);\
 				fklDoFinalizeObjFrame(exe,popFrame(exe));\
 			}\
-			else\
-				fklDoCallableObjFrameStep(curframe,exe);\
 			break;\
 	}\
 	if(exe->top_frame==NULL)\
@@ -759,14 +736,12 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 			}\
 			break;\
 		case FKL_FRAME_OTHEROBJ:\
-			if(fklIsCallableObjFrameReachEnd(curframe))\
+			if(fklDoCallableObjFrameStep(curframe,exe))\
 			{\
 				if(atomic_load(&(exe)->notice_lock))\
 					NOTICE_LOCK(exe);\
 				fklDoFinalizeObjFrame(exe,popFrame(exe));\
 			}\
-			else\
-				fklDoCallableObjFrameStep(curframe,exe);\
 			break;\
 	}\
 	if(exe->top_frame==NULL)\
@@ -903,10 +878,8 @@ int fklRunVMinSingleThread(FklVM* volatile exe,FklVMframe* const exit_frame)
 							}
 							break;
 						case FKL_FRAME_OTHEROBJ:
-							if(fklIsCallableObjFrameReachEnd(curframe))
+							if(fklDoCallableObjFrameStep(curframe,exe))
 								fklDoFinalizeObjFrame(exe,popFrame(exe));
-							else
-								fklDoCallableObjFrameStep(curframe,exe);
 							break;
 					}
 					if(exe->top_frame==exit_frame)
@@ -962,14 +935,12 @@ static int vm_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 							}
 							break;
 						case FKL_FRAME_OTHEROBJ:
-							if(fklIsCallableObjFrameReachEnd(curframe))
+							if(fklDoCallableObjFrameStep(curframe,exe))
 							{
 								if(atomic_load(&(exe)->notice_lock))
 									NOTICE_LOCK(exe);
 								fklDoFinalizeObjFrame(exe,popFrame(exe));
 							}
-							else
-								fklDoCallableObjFrameStep(curframe,exe);
 							break;
 					}
 					if(exe->top_frame==exit_frame)
@@ -1062,14 +1033,12 @@ static int vm_trapping_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 							}
 							break;
 						case FKL_FRAME_OTHEROBJ:
-							if(fklIsCallableObjFrameReachEnd(curframe))
+							if(fklDoCallableObjFrameStep(curframe,exe))
 							{
 								if(atomic_load(&(exe)->notice_lock))
 									NOTICE_LOCK(exe);
 								fklDoFinalizeObjFrame(exe,popFrame(exe));
 							}
-							else
-								fklDoCallableObjFrameStep(curframe,exe);
 							break;
 					}
 					if(exe->top_frame==exit_frame)

@@ -222,8 +222,6 @@ void fklPrintErrBacktrace(FklVMvalue* ev,FklVM* exe,FILE* fp)
 	{
 		FklVMerror* err=FKL_VM_ERR(ev);
 		fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc,err->type)->symbol,fp);
-		// fputs(" in ",fp);
-		// fklPrintString(err->where,fp);
 		fputs(": ",fp);
 		fklPrintString(err->message,fp);
 		fputc('\n',fp);
@@ -1164,8 +1162,6 @@ static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
 	FklVMerror* err=FKL_VM_ERR(v);
 	fprintf(fp,"#<err t:");
 	fklPrintRawSymbol(fklVMgetSymbolWithId(gc,err->type)->symbol,fp);
-	// fprintf(fp," w:");
-	// fklPrintRawString(err->where,fp);
 	fprintf(fp," m:");
 	fklPrintRawString(err->message,fp);
 	fprintf(fp,">");
@@ -1616,8 +1612,6 @@ static void vmvalue_error_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 	FklVMerror* err=FKL_VM_ERR(v);
 	fklStringBufferConcatWithCstr(result,"#<err t: ");
 	print_raw_symbol_to_string_buffer(result,fklVMgetSymbolWithId(gc,err->type)->symbol);
-	// fklStringBufferConcatWithCstr(result," w: ");
-	// print_raw_string_to_string_buffer(result,err->where);
 	fklStringBufferConcatWithCstr(result," m: ");
 	print_raw_string_to_string_buffer(result,err->message);
 	fklStringBufferPutc(result,'>');

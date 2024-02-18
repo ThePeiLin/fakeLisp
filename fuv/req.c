@@ -194,7 +194,7 @@ static inline void init_fuv_req(FuvReqUd* r_ud
 	fuvLoopInsertFuvObj(loop,v);
 }
 
-#define CREATE_OBJ(TYPE) (TYPE*)malloc(sizeof(TYPE))
+#define CREATE_OBJ(TYPE) (TYPE*)calloc(1,sizeof(TYPE))
 
 #define FUV_REQ_P(NAME,ENUM) int NAME(FklVMvalue* v)\
 {\

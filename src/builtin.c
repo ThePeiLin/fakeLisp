@@ -1726,7 +1726,6 @@ static int builtin_fclose(FKL_CPROC_ARGL)
 typedef enum
 {
 	PARSE_CONTINUE=0,
-	PARSE_DONE,
 	PARSE_REDUCING,
 }ParsingState;
 
@@ -1777,13 +1776,9 @@ static void read_frame_finalizer(void* data)
 	free(pctx);
 }
 
-static int read_frame_end(void* d)
+static int read_frame_step(void* d,FklVM* exe)
 {
-	return ((ReadCtx*)d)->state==PARSE_DONE;
-}
-
-static void read_frame_step(void* d,FklVM* exe)
-{
+	int done=0;
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
 	struct ParseCtx* pctx=rctx->pctx;
@@ -1808,7 +1803,7 @@ static void read_frame_step(void* d,FklVM* exe)
 
 	if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
 	{
-		rctx->state=PARSE_DONE;
+		done=1;
 		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueEof(exe));
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
@@ -1823,11 +1818,12 @@ static void read_frame_step(void* d,FklVM* exe)
 	{
 		if(restLen)
 			fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
-		rctx->state=PARSE_DONE;
+		done=1;
 		FKL_VM_PUSH_VALUE(exe,ast);
 	}
 	else
 		fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
+	return done;
 }
 
 static void read_frame_print_backtrace(void* d,FILE* fp,FklVMgc* gc)
@@ -1842,7 +1838,6 @@ static const FklVMframeContextMethodTable ReadContextMethodTable=
 	.copy=NULL,
 	.print_backtrace=read_frame_print_backtrace,
 	.step=read_frame_step,
-	.end=read_frame_end,
 };
 
 static inline FklAnalysisSymbol* create_nonterm_analyzing_symbol(FklSid_t id,FklVMvalue* ast)
@@ -2016,8 +2011,9 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer* g
 	return;
 }
 
-static void custom_read_frame_step(void* d,FklVM* exe)
+static int custom_read_frame_step(void* d,FklVM* exe)
 {
+	int done=0;
 	ReadCtx* rctx=(ReadCtx*)d;
 	FklVMfp* vfp=FKL_VM_FP(rctx->vfp);
 	struct ParseCtx* pctx=rctx->pctx;
@@ -2058,15 +2054,15 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 	{
 		if(restLen)
 			fklVMfpRewind(vfp,s,fklStringBufferLen(s)-restLen);
-		rctx->state=PARSE_DONE;
+		done=1;
 		FklAnalysisSymbol* top=fklPopPtrStack(&pctx->symbolStack);
 		FKL_VM_PUSH_VALUE(exe,top->ast);
 		free(top);
 	}
 	else if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
 	{
-		rctx->state=PARSE_DONE;
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+		done=1;
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE
 				||(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&!restLen))
@@ -2082,6 +2078,7 @@ static void custom_read_frame_step(void* d,FklVM* exe)
 		if(rctx->state==PARSE_CONTINUE)
 			fklVMread(exe,FKL_VM_FP(rctx->vfp)->fp,&rctx->buf,1,'\n');
 	}
+	return done;
 }
 
 static const FklVMframeContextMethodTable CustomReadContextMethodTable=
@@ -2091,7 +2088,6 @@ static const FklVMframeContextMethodTable CustomReadContextMethodTable=
 	.copy=NULL,
 	.print_backtrace=read_frame_print_backtrace,
 	.step=custom_read_frame_step,
-	.end=read_frame_end,
 };
 
 static inline void init_custom_read_frame(FklVM* exe
@@ -2462,13 +2458,9 @@ static void custom_parse_frame_finalizer(void* data)
 	free(c->pctx);
 }
 
-static int custom_parse_frame_end(void* d)
+static int custom_parse_frame_step(void* d,FklVM* exe)
 {
-	return ((CustomParseCtx*)d)->state==PARSE_DONE;
-}
-
-static void custom_parse_frame_step(void* d,FklVM* exe)
-{
+	int done=0;
 	CustomParseCtx* ctx=(CustomParseCtx*)d;
 	struct ParseCtx* pctx=ctx->pctx;
 	if(ctx->state==PARSE_REDUCING)
@@ -2509,7 +2501,7 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 	}
 	if(accept)
 	{
-		ctx->state=PARSE_DONE;
+		done=1;
 		FklAnalysisSymbol* top=fklPopPtrStack(&pctx->symbolStack);
 		FKL_VM_PUSH_VALUE(exe,top->ast);
 		free(top);
@@ -2524,6 +2516,7 @@ static void custom_parse_frame_step(void* d,FklVM* exe)
 	}
 	else
 		pctx->offset=str->size-restLen;
+	return done;
 }
 
 static inline void init_custom_parse_ctx(void* data
@@ -2553,7 +2546,6 @@ static const FklVMframeContextMethodTable CustomParseContextMethodTable=
 	.finalizer=custom_parse_frame_finalizer,
 	.print_backtrace=custom_parse_frame_print_backtrace,
 	.step=custom_parse_frame_step,
-	.end=custom_parse_frame_end,
 };
 
 static inline void init_custom_parse_frame(FklVM* exe
@@ -3378,17 +3370,6 @@ static int builtin_error_type(FKL_CPROC_ARGL)
 	return 0;
 }
 
-// static int builtin_error_where(FKL_CPROC_ARGL)
-// {
-// 	static const char Pname[]="builtin.error-where";
-// 	FKL_DECL_AND_CHECK_ARG(err,exe);
-// 	FKL_CHECK_TYPE(err,FKL_IS_ERR,exe);
-// 	FKL_CHECK_REST_ARG(exe);
-// 	FklVMerror* error=FKL_VM_ERR(err);
-// 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(error->where)));
-// 	return 0;
-// }
-
 static int builtin_error_msg(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(err,exe);
@@ -3487,14 +3468,9 @@ static void error_handler_frame_copy(void* d,const void* s,FklVM* exe)
 	}
 }
 
-static int error_handler_frame_end(void* data)
+static int error_handler_frame_step(void* data,FklVM* exe)
 {
 	return 1;
-}
-
-static void error_handler_frame_step(void* data,FklVM* exe)
-{
-	return;
 }
 
 static const FklVMframeContextMethodTable ErrorHandlerContextMethodTable=
@@ -3503,7 +3479,6 @@ static const FklVMframeContextMethodTable ErrorHandlerContextMethodTable=
 	.finalizer=error_handler_frame_finalizer,
 	.copy=error_handler_frame_copy,
 	.print_backtrace=error_handler_frame_print_backtrace,
-	.end=error_handler_frame_end,
 	.step=error_handler_frame_step,
 };
 
@@ -3706,9 +3681,9 @@ static int builtin_idle(FKL_CPROC_ARGL)
 				FklVMframe* origin_top_frame=exe->top_frame;
 				fklCallObj(exe,proc);
 				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,ctx);
+				exe->state=FKL_VM_READY;
 				if(ctx->context)
 				{
-					exe->state=FKL_VM_READY;
 					ctx->context=(uintptr_t)fklMoveVMframeToTop(exe,origin_top_frame);
 					return 1;
 				}
@@ -5230,7 +5205,6 @@ static const struct SymbolFuncStruct
 	{"recv&",                 builtin_recv7,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"error",                 builtin_error,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"error-type",            builtin_error_type,              {NULL,         NULL,          NULL,            NULL,          }, },
-	// {"error-where",           builtin_error_where,             {NULL,         NULL,          NULL,            NULL,          }, },
 	{"error-msg",             builtin_error_msg,               {NULL,         NULL,          NULL,            NULL,          }, },
 	{"raise",                 builtin_raise,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"throw",                 builtin_throw,                   {NULL,         NULL,          NULL,            NULL,          }, },

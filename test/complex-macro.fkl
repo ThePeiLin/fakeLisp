@@ -3,7 +3,6 @@
     (if (or (not (symbol? name))
           (not (andmap symbol? fields)))
       (throw 'incorrect-type
-             'defining-struct
              "type of name or fields should be symbol"))
     (define field-idx-ht #hash())
     (do [(cur fields (cdr cur))
@@ -12,11 +11,9 @@
       (define field (car cur))
       (if (eq field name)
         (throw 'invalid-member-name
-               'defining-struct
                (append! "member name cannot be " (stringify name))))
       (if (hash-ref field-idx-ht field ())
         (throw 'duplicate-member
-               'defining-struct
                (append! "duplicate member " (stringify field))))
       (hash-set! field-idx-ht field idx))
     (define name-str (symbol->string name))
@@ -51,11 +48,9 @@
              (hash-ref method-head-process-func type)
              (cdr head))]
           [1 (throw 'incorrect-method-head
-                    'process-method-head
                     "method head should be list or symbol")]))
       (if (hash-ref method-names method-name ())
         (throw 'duplicate-member
-               'defining-struct
                (append! "duplicate member " (stringify method-name))))
       (hash-set! method-names method-name 1)
       `(define (~method-name,~args),~body))
@@ -77,7 +72,6 @@
              `(define (~func-name ~name)
                 (unless (~type-checker-name ~name)
                   (throw 'incorrect-type
-                         (quote ~func-name)
                          "Incorrect type of values"))
                 (vec-ref ~name ~idx)))
            (hash->list field-idx-ht))
@@ -91,7 +85,6 @@
              `(define (~func-name ~name ~field)
                 (unless (~type-checker-name ~name)
                   (throw 'incorrect-type
-                         (quote ~func-name)
                          "Incorrect type of values"))
                 (vec-set! ~name ~idx ~field)))
            (hash->list field-idx-ht))
@@ -104,14 +97,12 @@
    (pair)
    (unless (pair? pair)
      (throw 'incorrect-type
-            *func*
             "Incorrect type of values"))
    (make-mypair (car pair) (cdr pair))]
   [(to pair)
    (mypair)
    (unless (mypair? mypair)
      (throw 'incorrect-type
-            *func*
             "Incorrect type of values"))
    (cons (mypair-car mypair)
          (mypair-cdr mypair))])

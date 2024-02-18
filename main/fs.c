@@ -43,16 +43,12 @@ static int fs_freopen(FKL_CPROC_ARGL)
 	if(!FKL_IS_FP(stream)||!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMfp* vfp=FKL_VM_FP(stream);
-	FklString* filenameStr=FKL_VM_STR(filename);
 	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
-	FILE* fp=freopen(filenameStr->str,modeStr,vfp->fp);
+	FILE* fp=freopen(FKL_VM_STR(filename)->str,modeStr,vfp->fp);
 	if(!fp)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
-	else
-	{
-		vfp->fp=fp;
-		vfp->rw=fklGetVMfpRwFromCstr(modeStr);
-	}
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,exe,"Failed for file: %s",filename);
+	vfp->fp=fp;
+	vfp->rw=fklGetVMfpRwFromCstr(modeStr);
 	FKL_VM_PUSH_VALUE(exe,stream);
 	return 0;
 }
@@ -121,9 +117,8 @@ static int fs_mkdir(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(filename,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,exe);
-	char* filename_str=FKL_VM_STR(filename)->str;
-	if(fklMkdir(filename_str))
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filename_str,0,FKL_ERR_FILEFAILURE,exe);
+	if(fklMkdir(FKL_VM_STR(filename)->str))
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,exe,"Failed to make dir: %s",filename);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }

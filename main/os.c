@@ -146,10 +146,9 @@ static int os_chdir(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(dir,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(dir,FKL_IS_STR,exe);
-	FklString* dirstr=FKL_VM_STR(dir);
-	int r=fklChdir(dirstr->str);
+	int r=fklChdir(FKL_VM_STR(dir)->str);
 	if(r)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,exe,"Failed to Change dir to: %s",dir);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }

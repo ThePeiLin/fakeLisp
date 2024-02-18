@@ -764,6 +764,10 @@ FklBuiltinErrorType fklVMformat(FklVM*
 		,const FklString* fmt
 		,uint64_t* plen);
 
+void fklVMformatToBuf(FklVM* exe,FklStringBuffer* buf,const char* fmt,FklVMvalue** base,size_t len);
+
+FklString* fklVMformatToString(FklVM* exe,const char* fmt,FklVMvalue** base,size_t len);
+
 FklVMvalue* fklProcessVMnumInc(FklVM*,FklVMvalue*);
 FklVMvalue* fklProcessVMnumDec(FklVM*,FklVMvalue*);
 
@@ -836,7 +840,6 @@ FklVMvalue* fklCreateClosedVMvalueVarRef(FklVM* exe,FklVMvalue* v);
 
 void fklDestroyVMframe(FklVMframe*,FklVM* exe);
 FklString* fklGenErrorMessage(FklBuiltinErrorType type);
-FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltinErrorType);
 
 int fklIsVMhashEq(FklHashTable*);
 int fklIsVMhashEqv(FklHashTable*);
@@ -901,7 +904,7 @@ void fklCreateVMvalueClosureFrom(FklVM*,FklVMvalue** closure,FklVMframe* f,uint3
 #define FKL_DLL_EXPORT
 #endif
 
-FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*,char**);
+FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*,FklVMvalue**);
 void* fklGetAddress(const char* funcname,uv_lib_t* dll);
 
 FklVMvalue* fklCreateVMvalueCproc(FklVM*
@@ -1205,13 +1208,14 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 	fklRaiseVMerror(err,(EXE));\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(STR,FREE,ERRORTYPE,EXE) do{\
-	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
+#define FKL_RAISE_BUILTIN_ERROR_FMT(ERRORTYPE,EXE,FMT,...){\
+	FklVMvalue* values[]={__VA_ARGS__};\
+	FklString* errorMessage=fklVMformatToString((EXE),(FMT),values,sizeof(values)/sizeof(FklVMvalue*));\
 	FklVMvalue* err=fklCreateVMvalueError((EXE)\
 			,(EXE)->gc->builtinErrorTypeId[(ERRORTYPE)]\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
-}while(0)
+}
 
 #define FKL_UNUSEDBITNUM (3)
 #define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)

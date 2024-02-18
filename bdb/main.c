@@ -101,10 +101,9 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 		}
 		FKL_CHECK_TYPE(l,fklIsList,exe);
 	}
-	FklString* filename_str=FKL_VM_STR(filename_obj);
-	char* valid_filename=get_valid_file_name(filename_str->str);
+	char* valid_filename=get_valid_file_name(FKL_VM_STR(filename_obj)->str);
 	if(!valid_filename)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filename_str->str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,exe,"Failed for file: %s",filename_obj);
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,filename_obj);
 	FKL_VM_PUSH_VALUE(exe,argv_obj);

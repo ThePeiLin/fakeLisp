@@ -1698,14 +1698,12 @@ static int builtin_fopen(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklString* filenameStr=FKL_VM_STR(filename);
 	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
-	FILE* fp=fopen(filenameStr->str,modeStr);
+	FILE* fp=fopen(FKL_VM_STR(filename)->str,modeStr);
 	FklVMvalue* obj=NULL;
 	if(!fp)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
-	else
-		obj=fklCreateVMvalueFp(exe,fp,fklGetVMfpRwFromCstr(modeStr));
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,exe,"Failed for file: %s",filename);
+	obj=fklCreateVMvalueFp(exe,fp,fklGetVMfpRwFromCstr(modeStr));
 	FKL_VM_PUSH_VALUE(exe,obj);
 	return 0;
 }
@@ -2963,14 +2961,10 @@ static int builtin_dlopen(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(dllName,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(dllName,FKL_IS_STR,exe);
-	FklString* dllNameStr=FKL_VM_STR(dllName);
-	char* errorStr=NULL;
-	FklVMvalue* ndll=fklCreateVMvalueDll(exe,dllNameStr->str,&errorStr);
+	FklVMvalue* errorStr=NULL;
+	FklVMvalue* ndll=fklCreateVMvalueDll(exe,FKL_VM_STR(dllName)->str,&errorStr);
 	if(!ndll)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(errorStr?errorStr:dllNameStr->str
-				,errorStr!=NULL
-				,FKL_ERR_LOADDLLFAILD
-				,exe);
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD,exe,FKL_VM_STR(errorStr)->str);
 	fklInitVMdll(ndll,exe);
 	FKL_VM_PUSH_VALUE(exe,ndll);
 	return 0;
@@ -2982,11 +2976,10 @@ static int builtin_dlsym(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(ndll))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	FklString* ss=FKL_VM_STR(symbol);
 	FklVMdll* dll=FKL_VM_DLL(ndll);
 	FklVMcFunc funcAddress=NULL;
-	if(uv_dlsym(&dll->dll,ss->str,(void**)&funcAddress))
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(ss->str,0,FKL_ERR_INVALIDSYMBOL,exe);
+	if(uv_dlsym(&dll->dll,FKL_VM_STR(symbol)->str,(void**)&funcAddress))
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD,exe,uv_dlerror(&dll->dll));
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueCproc(exe,funcAddress,ndll,dll->pd,0));
 	return 0;
 }

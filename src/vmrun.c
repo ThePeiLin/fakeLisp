@@ -2234,16 +2234,15 @@ static inline void B_load_dll(FKL_VM_INS_FUNC_ARGL)
 	FklVMlib* plib=&exe->libs[libId];
 	if(!plib->imported)
 	{
-		FklString* realpath=FKL_VM_STR(plib->proc);
-		char* errorStr=NULL;
-		FklVMvalue* dll=fklCreateVMvalueDll(exe,realpath->str,&errorStr);
+		FklVMvalue* errorStr=NULL;
+		FklVMvalue* dll=fklCreateVMvalueDll(exe,FKL_VM_STR(plib->proc)->str,&errorStr);
 		FklImportDllInitFunc initFunc=NULL;
 		if(dll)
 			initFunc=getImportInit(&(FKL_VM_DLL(dll)->dll));
 		else
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(errorStr?errorStr:realpath->str,errorStr!=NULL,FKL_ERR_IMPORTFAILED,exe);
+			FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,exe,FKL_VM_STR(errorStr)->str);
 		if(!initFunc)
-			FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(realpath->str,0,FKL_ERR_IMPORTFAILED,exe);
+			FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,exe,"Failed to import dll: %s",plib->proc);
 		uint32_t tp=exe->tp;
 		fklInitVMdll(dll,exe);
 		plib->loc=initFunc(exe,dll,&plib->count);
@@ -2311,10 +2310,7 @@ static inline void B_get_var_ref(FKL_VM_INS_FUNC_ARGL)
 	FklSid_t id=0;
 	FklVMvalue* v=get_var_val(exe->top_frame,ins->imm_u32,exe->pts,&id);
 	if(id)
-	{
-		FklString* str=fklVMgetSymbolWithId(exe->gc,id)->symbol;
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(str->str,0,FKL_ERR_SYMUNDEFINE,exe);
-	}
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 	FKL_VM_PUSH_VALUE(exe,v);
 }
 
@@ -2341,10 +2337,7 @@ static inline void B_put_var_ref(FKL_VM_INS_FUNC_ARGL)
 	FklSid_t id=0;
 	FklVMvalue* volatile* pv=get_var_ref(exe->top_frame,ins->imm_u32,exe->pts,&id);
 	if(!pv)
-	{
-		FklString* str=fklVMgetSymbolWithId(exe->gc,id)->symbol;
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(str->str,0,FKL_ERR_SYMUNDEFINE,exe);
-	}
+		FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 	FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
 	*pv=v;
 }

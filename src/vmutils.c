@@ -448,56 +448,6 @@ void fklDestroyVMframe(FklVMframe* frame,FklVM* exe)
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f);
 
-FklString* fklGenInvalidSymbolErrorMessage(char* str,int _free,FklBuiltinErrorType type)
-{
-	FklString* t=fklCreateEmptyString();
-	switch(type)
-	{
-		case FKL_ERR_IMPORTFAILED:
-			fklStringCstrCat(&t,"Failed to import dll:\"");
-			fklStringCstrCat(&t,str);
-			fklStringCstrCat(&t,"\"");
-			break;
-		case FKL_ERR_LOADDLLFAILD:
-			{
-				if(_free)
-					fklStringCstrCat(&t,str);
-				else
-				{
-					fklStringCstrCat(&t,"Faild to load dll \"");
-					fklStringCstrCat(&t,str);
-					fklStringCstrCat(&t,"\"");
-				}
-			}
-			break;
-		case FKL_ERR_INVALIDSYMBOL:
-			fklStringCstrCat(&t,"Invalid symbol ");
-			fklStringCstrCat(&t,str);
-			break;
-		case FKL_ERR_FILEFAILURE:
-			fklStringCstrCat(&t,"Failed for file:\"");
-			fklStringCstrCat(&t,str);
-			fklStringCstrCat(&t,"\"");
-			break;
-		case FKL_ERR_SYMUNDEFINE:
-			{
-				FklStringBuffer buf;
-				fklInitStringBuffer(&buf);
-				fklPrintRawCstrToStringBuffer(&buf,str,'|');
-				fklStringCstrCat(&t,"Symbol ");
-				fklStringCstrCat(&t,buf.buf);
-				fklStringCstrCat(&t," is undefined");
-				fklUninitStringBuffer(&buf);
-			}
-			break;
-		default:
-			break;
-	}
-	if(_free)
-		free(str);
-	return t;
-}
-
 FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 {
 	static const char* builtinErrorMessages[]=
@@ -2775,7 +2725,8 @@ static inline uint64_t format_f64(FklStringBuffer* buf
 }
 
 static inline FklBuiltinErrorType vm_format_to_buf(FklVM* exe
-		,const FklString* fmt_str
+		,const char* fmt
+		,const char* end
 		,void (*outc)(void*,char)
 		,void (*outs)(void*,const char*,size_t len)
 		,void* arg
@@ -2790,8 +2741,6 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM* exe
 	FklStringBuffer buf;
 	fklInitStringBuffer(&buf);
 
-	const char* fmt=fmt_str->str;
-	const char* const end=&fmt[fmt_str->size];
 	uint64_t length=0;
 	while(fmt<end)
 	{
@@ -3119,7 +3068,8 @@ FklBuiltinErrorType fklVMprintf(FklVM* exe
 		,uint64_t* plen)
 {
 	return vm_format_to_buf(exe
-			,fmt_str
+			,fmt_str->str
+			,&fmt_str->str[fmt_str->size]
 			,print_out_char
 			,print_out_str_buf
 			,(void*)fp
@@ -3138,10 +3088,363 @@ FklBuiltinErrorType fklVMformat(FklVM* exe
 		,uint64_t* plen)
 {
 	return vm_format_to_buf(exe
-			,fmt_str
+			,fmt_str->str
+			,&fmt_str->str[fmt_str->size]
 			,format_out_char
 			,format_out_str_buf
 			,(void*)result
 			,plen);
+}
+
+static inline void vformat(FklVM* exe
+		,FklStringBuffer* arg
+		,const char* fmt
+		,const char* end
+		,FklVMvalue** cur_val
+		,FklVMvalue** const end_val)
+{
+#define GET_NEXT_VAL() (cur_val<end_val?*(cur_val++):NULL)
+	uint32_t base;
+	uint32_t flags;
+	uint64_t width;
+	uint64_t precision;
+
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
+
+	uint64_t length=0;
+	while(fmt<end)
+	{
+		if(*fmt!='%')
+		{
+			fklStringBufferPutc(arg,*fmt);
+			length++;
+			fmt++;
+			continue;
+		}
+
+		fmt++;
+
+		flags=0;
+		for(;;)
+		{
+			switch(*fmt)
+			{
+				case '0':
+					flags|=FLAGS_ZEROPAD;
+					fmt++;
+					break;
+				case '-':
+					flags|=FLAGS_LEFT;
+					fmt++;
+					break;
+				case '+':
+					flags|=FLAGS_PLUS;
+					fmt++;
+					break;
+				case ' ':
+					flags|=FLAGS_SPACE;
+					fmt++;
+					break;
+				case '#':
+					flags|=FLAGS_HASH;
+					fmt++;
+					break;
+				default:
+					goto break_loop;
+					break;
+			}
+		}
+break_loop:
+		width=0;
+		if(isdigit(*fmt))
+			width=strtol(fmt,(char**)&fmt,10);
+		else if(*fmt=='*')
+		{
+			FklVMvalue* width_obj=GET_NEXT_VAL();
+			if(width_obj==NULL)
+			{
+				fklStringBufferConcatWithCstr(arg,"#<err>");
+				goto exit;
+			}
+			else if(FKL_IS_FIX(width_obj))
+			{
+				int64_t w=FKL_GET_FIX(width_obj);
+				if(w<0)
+				{
+					flags|=FLAGS_LEFT;
+					width=-w;
+				}
+				else
+					width=w;
+			}
+			else
+			{
+				fklStringBufferConcatWithCstr(arg,"#<err>");
+				goto exit;
+			}
+			fmt++;
+		}
+
+		precision=0;
+		if(*fmt=='.')
+		{
+			flags|=FLAGS_PRECISION;
+			fmt++;
+			if(isdigit(*fmt))
+				precision=strtol(fmt,(char**)&fmt,10);
+			else if(*fmt=='*')
+			{
+				FklVMvalue* prec_obj=GET_NEXT_VAL();
+				if(prec_obj==NULL)
+				{
+					fklStringBufferConcatWithCstr(arg,"#<err>");
+					goto exit;
+				}
+				else if(FKL_IS_FIX(prec_obj))
+				{
+					int64_t prec=FKL_GET_FIX(prec_obj);
+					if(prec<0)
+
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else
+						precision=prec;
+				}
+				else
+				{
+					fklStringBufferConcatWithCstr(arg,"#<err>");
+					goto exit;
+				}
+				fmt++;
+			}
+		}
+
+		switch(*fmt)
+		{
+			case 'X':
+			case 'x':
+				if(*fmt=='X')
+					flags|=FLAGS_UPPERCASE;
+				base=16;
+				goto print_integer;
+				break;
+			case 'o':
+				base=8;
+				goto print_integer;
+				break;
+			case 'd':
+			case 'i':
+				base=10;
+print_integer:
+				{
+					FklVMvalue* integer_obj=GET_NEXT_VAL();
+					if(integer_obj==NULL)
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else if(fklIsVMint(integer_obj))
+					{
+						if(FKL_IS_FIX(integer_obj))
+							length+=format_fix_int(FKL_GET_FIX(integer_obj)
+									,flags
+									,base
+									,width
+									,precision
+									,format_out_char
+									,(void*)arg);
+						else
+							length+=format_big_int(&buf
+									,FKL_VM_BI(integer_obj)
+									,flags
+									,base
+									,width
+									,precision
+									,format_out_char
+									,(void*)arg);
+					}
+					else
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+				}
+				break;
+			case 'f':
+			case 'F':
+			case 'G':
+			case 'g':
+			case 'e':
+			case 'E':
+			case 'a':
+			case 'A':
+				{
+					FklVMvalue* f64_obj=GET_NEXT_VAL();
+					if(f64_obj==NULL)
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else if(FKL_IS_F64(f64_obj))
+						length+=format_f64(&buf
+								,*fmt
+								,FKL_VM_F64(f64_obj)
+								,flags
+								,width
+								,precision
+								,format_out_char
+								,(void*)arg);
+					else
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+				}
+				break;
+			case 'c':
+				{
+					FklVMvalue* chr_obj=GET_NEXT_VAL();
+					if(chr_obj==NULL)
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else if(FKL_IS_CHR(chr_obj))
+					{
+						int ch=FKL_GET_CHR(chr_obj);
+						uint64_t len=1;
+
+						if(!(flags&FLAGS_LEFT))
+							for(;len<width;len++)
+								format_out_char(arg,' ');
+						format_out_char(arg,ch);
+
+						if(flags&FLAGS_LEFT)
+							for(;len<width;len++)
+								format_out_char(arg,' ');
+						length+=len;
+					}
+					else
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+				}
+				break;
+			case 'S':
+				{
+					FklVMvalue* obj=GET_NEXT_VAL();
+					if(obj==NULL)
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else
+					{
+						stringify_value_to_string_buffer(obj,&buf,atom_as_prin1_string,exe->gc);
+
+						uint64_t len=buf.index;
+
+						if(!(flags&FLAGS_LEFT))
+							for(;len<width;len++)
+								format_out_char(arg,' ');
+
+						format_out_str_buf(arg,buf.buf,buf.index);
+
+						if(flags&FLAGS_LEFT)
+							for(;len<width;len++)
+								format_out_char(arg,' ');
+
+						buf.index=0;
+
+						length+=len;
+					}
+				}
+				break;
+			case 's':
+				{
+					FklVMvalue* obj=GET_NEXT_VAL();
+					if(obj==NULL)
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else
+					{
+						stringify_value_to_string_buffer(obj,&buf,atom_as_princ_string,exe->gc);
+
+						uint64_t len=buf.index;
+
+						if(!(flags&FLAGS_LEFT))
+							for(;len<width;len++)
+								format_out_char(arg,' ');
+
+						format_out_str_buf(arg,buf.buf,buf.index);
+
+						if(flags&FLAGS_LEFT)
+							for(;len<width;len++)
+								format_out_char(arg,' ');
+
+						buf.index=0;
+
+						length+=len;
+					}
+				}
+				break;
+			case 'n':
+				{
+					FklVMvalue* box_obj=GET_NEXT_VAL();
+					if(box_obj==NULL)
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+					else if(FKL_IS_BOX(box_obj))
+					{
+						FklVMvalue* len_obj=fklMakeVMuint(length,exe);
+						FKL_VM_BOX(box_obj)=len_obj;
+					}
+					else
+					{
+						fklStringBufferConcatWithCstr(arg,"#<err>");
+						goto exit;
+					}
+				}
+				break;
+			default:
+				format_out_char(arg,*fmt);
+				length++;
+				break;
+		}
+		fmt++;
+	}
+
+exit:
+	fklUninitStringBuffer(&buf);
+}
+
+void fklVMformatToBuf(FklVM* exe
+		,FklStringBuffer* buf
+		,const char* fmt
+		,FklVMvalue** base
+		,size_t len)
+{
+	vformat(exe,buf,fmt,&fmt[strlen(fmt)],base,&base[len]);
+}
+
+FklString* fklVMformatToString(FklVM* exe
+		,const char* fmt
+		,FklVMvalue** base
+		,size_t len)
+{
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
+	fklVMformatToBuf(exe,&buf,fmt,base,len);
+	FklString* s=fklStringBufferToString(&buf);
+	fklUninitStringBuffer(&buf);
+	return s;
 }
 

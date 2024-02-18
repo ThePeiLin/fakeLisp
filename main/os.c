@@ -3,10 +3,9 @@
 
 static int os_system(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.system";
-	FKL_DECL_AND_CHECK_ARG(cmd,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(cmd,FKL_IS_STR,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG(cmd,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(cmd,FKL_IS_STR,exe);
 	const FklString* cmd_str=FKL_VM_STR(cmd);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMint(system(cmd_str->str),exe));
 	return 0;
@@ -14,26 +13,23 @@ static int os_system(FKL_CPROC_ARGL)
 
 static int os_time(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.time";
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_REST_ARG(exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMint((int64_t)time(NULL),exe));
 	return 0;
 }
 
 static int os_clock(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.clock";
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_REST_ARG(exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMint((int64_t)clock(),exe));
 	return 0;
 }
 
 static int os_date(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.date";
 	FklVMvalue* arg1=FKL_VM_POP_ARG(exe);
 	FklVMvalue* arg2=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_REST_ARG(exe);
 	if(arg1==NULL&&arg2==NULL)
 	{
 		time_t stamp=time(NULL);
@@ -77,7 +73,7 @@ static int os_date(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	else
 	{
@@ -118,17 +114,16 @@ static int os_date(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	return 0;
 }
 
 static int os_remove(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.remove";
-	FKL_DECL_AND_CHECK_ARG(name,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG(name,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(name,FKL_IS_STR,exe);
 	const FklString* name_str=FKL_VM_STR(name);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(remove(name_str->str)));
 	return 0;
@@ -136,11 +131,10 @@ static int os_remove(FKL_CPROC_ARGL)
 
 static int os_rename(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.rename";
-	FKL_DECL_AND_CHECK_ARG2(old_name,new_name,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(old_name,FKL_IS_STR,Pname,exe);
-	FKL_CHECK_TYPE(new_name,FKL_IS_STR,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG2(old_name,new_name,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(old_name,FKL_IS_STR,exe);
+	FKL_CHECK_TYPE(new_name,FKL_IS_STR,exe);
 	const FklString* old_name_str=FKL_VM_STR(old_name);
 	const FklString* new_name_str=FKL_VM_STR(new_name);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(rename(old_name_str->str,new_name_str->str)));
@@ -149,22 +143,20 @@ static int os_rename(FKL_CPROC_ARGL)
 
 static int os_chdir(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.chdir";
-	FKL_DECL_AND_CHECK_ARG(dir,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(dir,FKL_IS_STR,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG(dir,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(dir,FKL_IS_STR,exe);
 	FklString* dirstr=FKL_VM_STR(dir);
 	int r=fklChdir(dirstr->str);
 	if(r)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(Pname,dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
 static int os_getcwd(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.getcwd";
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_REST_ARG(exe);
 	char* cwd=fklSysgetcwd();
 	FklVMvalue* s=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(cwd));
 	free(cwd);
@@ -174,10 +166,9 @@ static int os_getcwd(FKL_CPROC_ARGL)
 
 static int os_getenv(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.getenv";
-	FKL_DECL_AND_CHECK_ARG(name,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG(name,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(name,FKL_IS_STR,exe);
 	const FklString* name_str=FKL_VM_STR(name);
 	char* env_var=getenv(name_str->str);
 	FKL_VM_PUSH_VALUE(exe,env_var?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(env_var)):FKL_VM_NIL);
@@ -186,25 +177,24 @@ static int os_getenv(FKL_CPROC_ARGL)
 
 static int os_setenv(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="os.setenv";
-	FKL_DECL_AND_CHECK_ARG(name,exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(name,exe);
 	FklVMvalue* value=FKL_VM_POP_ARG(exe);
 	FklVMvalue* overwrite=FKL_VM_POP_ARG(exe);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(name,FKL_IS_STR,Pname,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(name,FKL_IS_STR,exe);
 	const FklString* name_str=FKL_VM_STR(name);
 	if(value)
 	{
-		FKL_CHECK_TYPE(value,FKL_IS_STR,Pname,exe);
+		FKL_CHECK_TYPE(value,FKL_IS_STR,exe);
 		int o=(overwrite&&overwrite!=FKL_VM_NIL)?1:0;
 		if(setenv(name_str->str,FKL_VM_STR(value)->str,o))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	}
 	else
 	{
 		if(unsetenv(name_str->str))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	}
 	return 0;

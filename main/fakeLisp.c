@@ -731,17 +731,17 @@ static void repl_frame_step(void* data,FklVM* exe)
 			&&is_eof)
 	{
 		repl_nast_ctx_and_buf_reset(cc,s,g);
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_UNEXPECTED_EOF,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_UNEXPECTED_EOF,exe);
 	}
 	else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
 	{
 		repl_nast_ctx_and_buf_reset(cc,s,g);
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALIDEXPR,exe);
 	}
 	else if(err==FKL_PARSE_REDUCE_FAILED)
 	{
 		repl_nast_ctx_and_buf_reset(cc,s,g);
-		FKL_RAISE_BUILTIN_ERROR_CSTR("reading",FKL_ERR_INVALIDEXPR,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALIDEXPR,exe);
 	}
 	else if(ast)
 	{

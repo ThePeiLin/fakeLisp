@@ -2,9 +2,8 @@
 
 static int test_func(FKL_CPROC_ARGL)
 {
-	static const char* pname="test-func";
 	if(fklResBp(exe))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(pname,FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
 	fputs("testing dll\n",stdout);
 	fklPushVMvalue(exe,FKL_VM_NIL);
 	return 0;

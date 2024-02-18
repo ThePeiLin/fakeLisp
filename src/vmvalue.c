@@ -848,7 +848,6 @@ static inline void uninit_dll_value(FklVMvalue* v)
 static inline void uninit_err_value(FklVMvalue* v)
 {
 	FklVMerror* err=FKL_VM_ERR(v);
-	free(err->where);
 	free(err->message);
 }
 
@@ -1609,7 +1608,6 @@ FklVMvalue* fklCreateVMvalueBvec(FklVM* exe,FklBytevector* b)
 
 FklVMvalue* fklCreateVMvalueError(FklVM* exe
 		,FklSid_t type
-		,const FklString* where
 		,FklString* message)
 {
 	FklVMvalue* r=NEW_OBJ(FklVMvalueErr);
@@ -1617,7 +1615,6 @@ FklVMvalue* fklCreateVMvalueError(FklVM* exe
 	r->type=FKL_TYPE_ERR;
 	FklVMerror* err=FKL_VM_ERR(r);
 	err->type=type;
-	err->where=fklCopyString(where);
 	err->message=message;
 	fklAddToGC(r,exe);
 	return r;
@@ -1674,7 +1671,6 @@ FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM* exe
 	r->type=FKL_TYPE_ERR;
 	FklVMerror* err=FKL_VM_ERR(r);
 	err->type=type;
-	err->where=fklCreateStringFromCstr(where);
 	err->message=message;
 	fklAddToGC(r,exe);
 	return r;

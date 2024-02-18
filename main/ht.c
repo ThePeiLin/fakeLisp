@@ -2,9 +2,8 @@
 
 static int ht_hashv(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.hashv";
-	FKL_DECL_AND_CHECK_ARG(key,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(key,exe);
+	FKL_CHECK_REST_ARG(exe);
 	uint64_t hashv=fklVMvalueEqHashv(key);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(hashv,exe));
 	return 0;
@@ -12,9 +11,8 @@ static int ht_hashv(FKL_CPROC_ARGL)
 
 static int ht_eqv_hashv(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.hashv";
-	FKL_DECL_AND_CHECK_ARG(key,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(key,exe);
+	FKL_CHECK_REST_ARG(exe);
 	uint64_t hashv=fklVMvalueEqvHashv(key);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(hashv,exe));
 	return 0;
@@ -22,9 +20,8 @@ static int ht_eqv_hashv(FKL_CPROC_ARGL)
 
 static int ht_equal_hashv(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.equal-hashv";
-	FKL_DECL_AND_CHECK_ARG(key,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(key,exe);
+	FKL_CHECK_REST_ARG(exe);
 	uint64_t hashv=fklVMvalueEqualHashv(key);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(hashv,exe));
 	return 0;
@@ -114,11 +111,10 @@ static FklVMudMetaTable HtUdMetaTable=
 
 static int ht_make_ht(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.make-ht";
-	FKL_DECL_AND_CHECK_ARG2(hashv,equal,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(hashv,fklIsCallable,Pname,exe);
-	FKL_CHECK_TYPE(equal,fklIsCallable,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG2(hashv,equal,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(hashv,fklIsCallable,exe);
+	FKL_CHECK_TYPE(equal,fklIsCallable,exe);
 	FklVMvalue* ud=fklCreateVMvalueUd(exe,&HtUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(ht,HashTable,ud);
 	ht->hash_func=hashv;
@@ -132,9 +128,8 @@ static int ht_make_ht(FKL_CPROC_ARGL)
 
 static int ht_ht_p(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht?";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
 	else
@@ -144,39 +139,36 @@ static int ht_ht_p(FKL_CPROC_ARGL)
 
 static int ht_ht_hashv(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-hashv";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 	{
 		FKL_DECL_VM_UD_DATA(ht,HashTable,val);
 		FKL_VM_PUSH_VALUE(exe,ht->hash_func);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
 static int ht_ht_equal(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-equal";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 	{
 		FKL_DECL_VM_UD_DATA(ht,HashTable,val);
 		FKL_VM_PUSH_VALUE(exe,ht->eq_func);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
 static int ht_ht_clear(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-clear!";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 	{
 		FKL_DECL_VM_UD_DATA(ht,HashTable,val);
@@ -184,15 +176,14 @@ static int ht_ht_clear(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,val);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
 static int ht_ht_to_list(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht->list";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 	{
 		FKL_DECL_VM_UD_DATA(ht,HashTable,val);
@@ -209,15 +200,14 @@ static int ht_ht_to_list(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
 static int ht_ht_keys(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-keys";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 	{
 		FKL_DECL_VM_UD_DATA(ht,HashTable,val);
@@ -233,15 +223,14 @@ static int ht_ht_keys(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
 static int ht_ht_values(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-values";
-	FKL_DECL_AND_CHECK_ARG(val,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(val,exe);
+	FKL_CHECK_REST_ARG(exe);
 	if(IS_HASH_UD(val))
 	{
 		FKL_DECL_VM_UD_DATA(ht,HashTable,val);
@@ -257,7 +246,7 @@ static int ht_ht_values(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -272,14 +261,13 @@ static int ht_ht_values(FKL_CPROC_ARGL)
 
 static int ht_ht_set1(FKL_CPROC_ARGL)
 {
-    static const char Pname[]="ht.ht-set!";
     switch(ctx->context)
     {
         case 0:
             {
-                FKL_DECL_AND_CHECK_ARG3(ht_ud,key,val,exe,Pname);
-                FKL_CHECK_REST_ARG(exe,Pname);
-                FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+                FKL_DECL_AND_CHECK_ARG3(ht_ud,key,val,exe);
+                FKL_CHECK_REST_ARG(exe);
+                FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
                 ctx->context=1;
 				ctx->rtp=exe->tp;
                 FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -296,7 +284,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL)
         case 1:
             {
                 FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-                FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+                FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
                 uintptr_t hashv=fklVMintToHashv(hash_value);
                 FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
                 FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
@@ -350,13 +338,12 @@ static int ht_ht_set1(FKL_CPROC_ARGL)
 
 static int ht_ht_set8(FKL_CPROC_ARGL)
 {
-    static const char Pname[]="ht.ht-set*!";
     switch(ctx->context)
     {
         case 0:
 			{
-				FKL_DECL_AND_CHECK_ARG(ht_ud,exe,Pname);
-				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				FKL_DECL_AND_CHECK_ARG(ht_ud,exe);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
 				size_t arg_num=exe->tp-exe->bp;
 				if(arg_num==0)
 				{
@@ -365,7 +352,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL)
 					return 0;
 				}
 				if(arg_num%2)
-					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
 				FklVMvalue* first_key=FKL_VM_GET_TOP_VALUE(exe);
 				uint32_t rtp=fklResBpIn(exe,arg_num);
 				ctx->context=1;
@@ -382,7 +369,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL)
         case 1:
             {
                 FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-                FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+                FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
                 uintptr_t hashv=fklVMintToHashv(hash_value);
                 FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
                 FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
@@ -475,15 +462,14 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 {
 #define ARG_NUM_WITHOUT_DEFAULT_VALUE (3)
 
-	static const char Pname[]="ht.ht-ref";
 	switch(ctx->context)
 	{
 		case 0:
 			{
-				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe,Pname);
+				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe);
 				FklVMvalue* default_value=FKL_VM_POP_ARG(exe);
-				FKL_CHECK_REST_ARG(exe,Pname);
-				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				FKL_CHECK_REST_ARG(exe);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
 				ctx->context=1;
 				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -501,7 +487,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 		case 1:
 			{
 				FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-				FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
 				uintptr_t hashv=fklVMintToHashv(hash_value);
 				FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
 				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
@@ -516,7 +502,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,default_value);
 				}
 				else
-					FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NO_VALUE_FOR_KEY,exe);
+					FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NO_VALUE_FOR_KEY,exe);
 			}
 			break;
 		default:
@@ -538,7 +524,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 						FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,default_value);
 					}
 					else
-						FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_NO_VALUE_FOR_KEY,exe);
+						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NO_VALUE_FOR_KEY,exe);
 				}
 				else
 				{
@@ -555,14 +541,13 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 
 static int ht_ht_ref1(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-ref!";
 	switch(ctx->context)
 	{
 		case 0:
 			{
-				FKL_DECL_AND_CHECK_ARG3(ht_ud,key,val,exe,Pname);
-				FKL_CHECK_REST_ARG(exe,Pname);
-				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				FKL_DECL_AND_CHECK_ARG3(ht_ud,key,val,exe);
+				FKL_CHECK_REST_ARG(exe);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
 				ctx->context=1;
 				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -579,7 +564,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL)
 		case 1:
 			{
 				FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-				FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
 				uintptr_t hashv=fklVMintToHashv(hash_value);
 				FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
 				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
@@ -631,14 +616,13 @@ static int ht_ht_ref1(FKL_CPROC_ARGL)
 
 static int ht_ht_ref7(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-ref&";
 	switch(ctx->context)
 	{
 		case 0:
 			{
-				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe,Pname);
-				FKL_CHECK_REST_ARG(exe,Pname);
-				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe);
+				FKL_CHECK_REST_ARG(exe);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
 				ctx->context=1;
 				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -654,7 +638,7 @@ static int ht_ht_ref7(FKL_CPROC_ARGL)
 		case 1:
 			{
 				FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-				FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
 				uintptr_t hashv=fklVMintToHashv(hash_value);
 				FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
 				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
@@ -696,14 +680,13 @@ static int ht_ht_ref7(FKL_CPROC_ARGL)
 
 static int ht_ht_ref4(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-ref$";
 	switch(ctx->context)
 	{
 		case 0:
 			{
-				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe,Pname);
-				FKL_CHECK_REST_ARG(exe,Pname);
-				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe);
+				FKL_CHECK_REST_ARG(exe);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
 				ctx->context=1;
 				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -719,7 +702,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL)
 		case 1:
 			{
 				FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-				FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
 				uintptr_t hashv=fklVMintToHashv(hash_value);
 				FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
 				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);
@@ -761,14 +744,13 @@ static int ht_ht_ref4(FKL_CPROC_ARGL)
 
 static int ht_ht_del1(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="ht.ht-del!";
 	switch(ctx->context)
 	{
 		case 0:
 			{
-				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe,Pname);
-				FKL_CHECK_REST_ARG(exe,Pname);
-				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,Pname,exe);
+				FKL_DECL_AND_CHECK_ARG2(ht_ud,key,exe);
+				FKL_CHECK_REST_ARG(exe);
+				FKL_CHECK_TYPE(ht_ud,IS_HASH_UD,exe);
 				ctx->context=1;
 				ctx->rtp=exe->tp;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -784,7 +766,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL)
 		case 1:
 			{
 				FklVMvalue* hash_value=FKL_VM_POP_TOP_VALUE(exe);
-				FKL_CHECK_TYPE(hash_value,fklIsVMint,Pname,exe);
+				FKL_CHECK_TYPE(hash_value,fklIsVMint,exe);
 				uintptr_t hashv=fklVMintToHashv(hash_value);
 				FklVMvalue* ht_ud=FKL_VM_GET_TOP_VALUE(exe);
 				FKL_DECL_VM_UD_DATA(ht,HashTable,ht_ud);

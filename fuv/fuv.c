@@ -13,8 +13,7 @@ FklSid_t uvErrToSid(int err_id,FuvPublicData* pd)
 	return id;
 }
 
-static inline FklVMvalue* create_uv_error(const char* who
-		,int err_id
+static inline FklVMvalue* create_uv_error(int err_id
 		,FklVM* exe
 		,FuvPublicData* pd)
 {
@@ -26,39 +25,35 @@ static inline FklVMvalue* create_uv_error(const char* who
 		default:
 		id=pd->uv_err_sid_UNKNOWN;
 	}
-	return fklCreateVMvalueErrorWithCstr(exe
+	return fklCreateVMvalueError(exe
 			,id
-			,who
 			,fklCreateStringFromCstr(uv_strerror(err_id)));
 }
 
-void raiseUvError(const char* who
-		,int err_id
+void raiseUvError(int err_id
 		,FklVM* exe
 		,FklVMvalue* pd_obj)
 {
 	FKL_DECL_VM_UD_DATA(pd,FuvPublicData,pd_obj);
-	fklRaiseVMerror(create_uv_error(who,err_id,exe,pd),exe);
+	fklRaiseVMerror(create_uv_error(err_id,exe,pd),exe);
 }
 
-FklVMvalue* createUvErrorWithFpd(const char* who
-		,int err_id
+FklVMvalue* createUvErrorWithFpd(int err_id
 		,FklVM* exe
 		,FuvPublicData* fpd)
 {
-	return create_uv_error(who,err_id,exe,fpd);
+	return create_uv_error(err_id,exe,fpd);
 }
 
-FklVMvalue* createUvError(const char* who
-		,int err_id
+FklVMvalue* createUvError(int err_id
 		,FklVM* exe
 		,FklVMvalue* pd_obj)
 {
 	FKL_DECL_VM_UD_DATA(pd,FuvPublicData,pd_obj);
-	return create_uv_error(who,err_id,exe,pd);
+	return create_uv_error(err_id,exe,pd);
 }
 
-void raiseFuvError(const char* who,FuvErrorType err,FklVM* exe,FklVMvalue* pd_obj)
+void raiseFuvError(FuvErrorType err,FklVM* exe,FklVMvalue* pd_obj)
 {
 	FKL_DECL_VM_UD_DATA(pd,FuvPublicData,pd_obj);
 	FklSid_t sid=pd->fuv_err_sid[err];
@@ -69,9 +64,8 @@ void raiseFuvError(const char* who,FuvErrorType err,FklVM* exe,FklVMvalue* pd_ob
 		"handle has been closed",
 		"request has been canceled",
 	};
-	FklVMvalue* ev=fklCreateVMvalueErrorWithCstr(exe
+	FklVMvalue* ev=fklCreateVMvalueError(exe
 			,sid
-			,who
 			,fklCreateStringFromCstr(fuv_err_msg[err]));
 	fklRaiseVMerror(ev,exe);
 }

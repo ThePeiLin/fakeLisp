@@ -646,7 +646,6 @@ typedef struct
 typedef struct
 {
 	FklSid_t type;
-	FklString* where;
 	FklString* message;
 }FklVMerror;
 
@@ -797,9 +796,9 @@ void fklSetBp(FklVM* s);
 int fklResBp(FklVM*);
 uint32_t fklResBpIn(FklVM*,uint32_t);
 
-#define FKL_CHECK_TYPE(V,P,ERR_INFO,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
-#define FKL_CHECK_REST_ARG(EXE,ERR_INFO) if(fklResBp((EXE)))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(ERR_INFO,FKL_ERR_TOOMANYARG,EXE)
+#define FKL_CHECK_TYPE(V,P,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
+#define FKL_CHECK_REST_ARG(EXE) if(fklResBp((EXE)))\
+	FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOMANYARG,EXE)
 
 FklVMvalue* fklMakeVMint(int64_t r64,FklVM*);
 FklVMvalue* fklMakeVMuint(uint64_t r64,FklVM*);
@@ -938,9 +937,9 @@ FklVMvalue* fklCreateVMvalueBox(FklVM*,FklVMvalue*);
 
 FklVMvalue* fklCreateVMvalueBoxNil(FklVM*);
 
-FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,const FklString*,FklString* message);
+FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,FklString* message);
 
-FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM*,FklSid_t type,const char* who,FklString* message);
+// FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM*,FklSid_t type,const char* who,FklString* message);
 
 FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const FklBigInt*);
 
@@ -1044,31 +1043,31 @@ void fklDropTop(FklVM* s);
 
 #define FKL_VM_SET_TP_AND_PUSH_VALUE(S,T,V) (((S)->tp=(T)+1),((S)->base[(T)]=(V)))
 
-#define FKL_DECL_AND_CHECK_ARG(a,exe,Pname) \
+#define FKL_DECL_AND_CHECK_ARG(a,exe) \
 	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
 	if(!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
 
-#define FKL_DECL_AND_CHECK_ARG2(a,b,exe,Pname) \
+#define FKL_DECL_AND_CHECK_ARG2(a,b,exe) \
 	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
 	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
 	if(!b||!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
 
-#define FKL_DECL_AND_CHECK_ARG3(a,b,c,exe,Pname) \
+#define FKL_DECL_AND_CHECK_ARG3(a,b,c,exe) \
 	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
 	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
 	FklVMvalue* c=FKL_VM_POP_ARG(exe);\
 	if(!c||!b||!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
 
-#define FKL_DECL_AND_CHECK_ARG4(a,b,c,d,exe,Pname) \
+#define FKL_DECL_AND_CHECK_ARG4(a,b,c,d,exe) \
 	FklVMvalue* a=FKL_VM_POP_ARG(exe);\
 	FklVMvalue* b=FKL_VM_POP_ARG(exe);\
 	FklVMvalue* c=FKL_VM_POP_ARG(exe);\
 	FklVMvalue* d=FKL_VM_POP_ARG(exe);\
 	if(!d||!c||!b||!a)\
-		FKL_RAISE_BUILTIN_ERROR_CSTR(Pname,FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
 
 FklVMvalue* fklPopArg(FklVM*);
 FklVMvalue* fklGetTopValue(FklVM*);
@@ -1210,6 +1209,7 @@ void fklUninitVMlib(FklVMlib*);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbolTable* table);
 FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE]);
 
+/*
 #define FKL_RAISE_BUILTIN_ERROR(WHO,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
 	FklVMvalue* err=fklCreateVMvalueError((EXE)\
@@ -1218,21 +1218,20 @@ FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FK
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 }while(0)
+*/
 
-#define FKL_RAISE_BUILTIN_ERROR_CSTR(WHO,ERRORTYPE,EXE) do{\
+#define FKL_RAISE_BUILTIN_ERROR_CSTR(ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenErrorMessage((ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueErrorWithCstr((EXE)\
+	FklVMvalue* err=fklCreateVMvalueError((EXE)\
 			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->gc->builtinErrorTypeId)\
-			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 }while(0)
 
-#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(WHO,STR,FREE,ERRORTYPE,EXE) do{\
+#define FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(STR,FREE,ERRORTYPE,EXE) do{\
 	FklString* errorMessage=fklGenInvalidSymbolErrorMessage((STR),(FREE),(ERRORTYPE));\
-	FklVMvalue* err=fklCreateVMvalueErrorWithCstr((EXE)\
+	FklVMvalue* err=fklCreateVMvalueError((EXE)\
 			,fklGetBuiltinErrorType(ERRORTYPE,(EXE)->gc->builtinErrorTypeId)\
-			,(WHO)\
 			,errorMessage);\
 	fklRaiseVMerror(err,(EXE));\
 }while(0)

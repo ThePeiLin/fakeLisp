@@ -425,11 +425,11 @@ uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_o
 	fklLockThread(exe);\
 }
 
-void raiseUvError(const char* who,int err,FklVM* exe,FklVMvalue* pd);
-void raiseFuvError(const char* who,FuvErrorType,FklVM* exe,FklVMvalue* pd);
+void raiseUvError(int err,FklVM* exe,FklVMvalue* pd);
+void raiseFuvError(FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklSid_t uvErrToSid(int err_id,FuvPublicData* pd);
-FklVMvalue* createUvError(const char* who,int err_id,FklVM* exe,FklVMvalue* pd);
-FklVMvalue* createUvErrorWithFpd(const char* who,int err_id,FklVM* exe,FuvPublicData* fpd);
+FklVMvalue* createUvError(int err_id,FklVM* exe,FklVMvalue* pd);
+FklVMvalue* createUvErrorWithFpd(int err_id,FklVM* exe,FuvPublicData* fpd);
 
 int symbolToSignum(FklSid_t,FuvPublicData* pd);
 FklSid_t signumToSymbol(int,FuvPublicData* pd);

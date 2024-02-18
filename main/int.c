@@ -41,10 +41,9 @@ static FklVMinterruptResult interrupt_handler(FklVM* exe
 
 static int int_rgintrl(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="int.rgintrl";
-	FKL_DECL_AND_CHECK_ARG(proc_obj,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(proc_obj,fklIsCallable,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG(proc_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(proc_obj,fklIsCallable,exe);
 	fklVMpushInterruptHandlerLocal(exe,interrupt_handler,interrupt_handler_mark,NULL,proc_obj);
 	FKL_VM_PUSH_VALUE(exe,proc_obj);
 	return 0;
@@ -52,10 +51,9 @@ static int int_rgintrl(FKL_CPROC_ARGL)
 
 static int int_rgintrg(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="int.rgintrg";
-	FKL_DECL_AND_CHECK_ARG(proc_obj,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
-	FKL_CHECK_TYPE(proc_obj,fklIsCallable,Pname,exe);
+	FKL_DECL_AND_CHECK_ARG(proc_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(proc_obj,fklIsCallable,exe);
 	fklVMpushInterruptHandler(exe->gc,interrupt_handler,interrupt_handler_mark,NULL,proc_obj);
 	FKL_VM_PUSH_VALUE(exe,proc_obj);
 	return 0;
@@ -63,9 +61,8 @@ static int int_rgintrg(FKL_CPROC_ARGL)
 
 static int int_interrupt(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="int.interrupt";
-	FKL_DECL_AND_CHECK_ARG(value,exe,Pname);
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_DECL_AND_CHECK_ARG(value,exe);
+	FKL_CHECK_REST_ARG(exe);
 	fklVMinterrupt(exe,value,&value);
 	FKL_VM_PUSH_VALUE(exe,value);
 	return 0;
@@ -73,8 +70,7 @@ static int int_interrupt(FKL_CPROC_ARGL)
 
 static int int_unrgintrl(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="int.unrgintrl";
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_REST_ARG(exe);
 	struct FklVMinterruptHandleList** l=&exe->int_list;
 	struct FklVMinterruptHandleList* cur=*l;
 	while(cur&&cur->int_handler!=interrupt_handler)
@@ -96,8 +92,7 @@ static int int_unrgintrl(FKL_CPROC_ARGL)
 
 static int int_unrgintrg(FKL_CPROC_ARGL)
 {
-	static const char Pname[]="int.unrgintrg";
-	FKL_CHECK_REST_ARG(exe,Pname);
+	FKL_CHECK_REST_ARG(exe);
 	fklVMacquireInt(exe->gc);
 	struct FklVMinterruptHandleList** l=&exe->gc->int_list;
 	struct FklVMinterruptHandleList* cur=*l;

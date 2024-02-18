@@ -2479,11 +2479,6 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		errorTypeId[i]=fklAddSymbolCstr(builtInErrorType[i],table)->id;
 }
 
-FklSid_t fklGetBuiltinErrorType(FklBuiltinErrorType type,FklSid_t errorTypeId[FKL_ERR_INCORRECT_TYPE_VALUE])
-{
-	return errorTypeId[type];
-}
-
 #define FLAGS_ZEROPAD   (1u<<0u)
 #define FLAGS_LEFT      (1u<<1u)
 #define FLAGS_PLUS      (1u<<2u)

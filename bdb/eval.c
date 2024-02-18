@@ -230,7 +230,10 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 
 static inline void B_eval_load_lib_dll(FKL_VM_INS_FUNC_ARGL)
 {
-	FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALIDACCESS,exe);
+	FklVMvalue* err=fklCreateVMvalueError(exe
+			,exe->gc->builtinErrorTypeId[FKL_ERR_INVALIDACCESS]
+			,fklCreateStringFromCstr("not allow to import lib in debug evaluation"));
+	fklRaiseVMerror(err,exe);
 }
 
 FklVMvalue* callEvalProc(DebugCtx* ctx

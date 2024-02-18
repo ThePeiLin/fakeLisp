@@ -41,13 +41,13 @@ static int fs_freopen(FKL_CPROC_ARGL)
 	FklVMvalue* mode=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	if(!FKL_IS_FP(stream)||!FKL_IS_STR(filename)||(mode&&!FKL_IS_STR(mode)))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMfp* vfp=FKL_VM_FP(stream);
 	FklString* filenameStr=FKL_VM_STR(filename);
 	const char* modeStr=mode?FKL_VM_STR(mode)->str:"r";
 	FILE* fp=freopen(filenameStr->str,modeStr,vfp->fp);
 	if(!fp)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filenameStr->str,0,FKL_ERR_FILEFAILURE,exe);
 	else
 	{
 		vfp->fp=fp;
@@ -123,7 +123,7 @@ static int fs_mkdir(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(filename,FKL_IS_STR,exe);
 	char* filename_str=FKL_VM_STR(filename)->str;
 	if(fklMkdir(filename_str))
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(filename_str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filename_str,0,FKL_ERR_FILEFAILURE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -134,10 +134,10 @@ static inline int isVMfpWritable(const FklVMvalue* fp)
 }
 
 #define CHECK_FP_WRITABLE(V,E) if(!isVMfpWritable(V))\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_UNSUPPORTED_OP,E)
+	FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNSUPPORTED_OP,E)
 
 #define CHECK_FP_OPEN(V,E) if(!FKL_VM_FP(V)->fp)\
-	FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALIDACCESS,E)
+	FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,E)
 
 static int fs_fprint(FKL_CPROC_ARGL)
 {
@@ -232,7 +232,7 @@ static int fs_fwrite(FKL_CPROC_ARGL)
 		else if(FKL_IS_USERDATA(obj)&&fklIsWritableUd(FKL_VM_UD(obj)))
 			fklWriteVMud(FKL_VM_UD(obj),fp);
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -248,10 +248,10 @@ static int fs_fflush(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(fp,FKL_IS_FP,exe);
 		CHECK_FP_OPEN(fp,exe);
 		if(fflush(FKL_VM_FP(fp)->fp))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	}
 	else if(fflush(NULL))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -281,7 +281,7 @@ static int fs_fprintf(FKL_CPROC_ARGL)
 			,FKL_VM_STR(fmt_obj)
 			,&len);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 
 	FKL_CHECK_REST_ARG(exe);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(len,exe));

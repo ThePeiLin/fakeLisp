@@ -3,7 +3,7 @@
 static int test_func(FKL_CPROC_ARGL)
 {
 	if(fklResBp(exe))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 	fputs("testing dll\n",stdout);
 	fklPushVMvalue(exe,FKL_VM_NIL);
 	return 0;

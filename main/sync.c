@@ -151,7 +151,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 	{
 		FKL_CHECK_TYPE(timeout_obj,fklIsVMint,exe);
 		if(fklIsVMnumberLt0(timeout_obj))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 		uint64_t timeout=fklGetUint(timeout_obj);
 		uint32_t rtp=exe->tp;
 		FKL_VM_PUSH_VALUE(exe,mutex_obj);
@@ -160,7 +160,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL)
 		if(uv_cond_timedwait(cond,mutex,timeout))
 		{
 			fklLockThread(exe);
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		}
 		fklLockThread(exe);
 		FKL_VM_SET_TP_AND_PUSH_VALUE(exe,rtp,FKL_VM_NIL);
@@ -324,7 +324,7 @@ static int sync_make_sem(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(value_obj,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(value_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMvalue* ud=fklCreateVMvalueUd(exe,&SemUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(sem,uv_sem_t,ud);
 	if(uv_sem_init(sem,fklGetUint(value_obj)))
@@ -404,7 +404,7 @@ static int sync_make_barrier(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(count_obj,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(count_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMvalue* ud=fklCreateVMvalueUd(exe,&BarrierUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(barrier,uv_barrier_t,ud);
 	if(uv_barrier_init(barrier,fklGetUint(count_obj)))

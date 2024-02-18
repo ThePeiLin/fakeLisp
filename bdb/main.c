@@ -104,7 +104,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 	FklString* filename_str=FKL_VM_STR(filename_obj);
 	char* valid_filename=get_valid_file_name(filename_str->str);
 	if(!valid_filename)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(filename_str->str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(filename_str->str,0,FKL_ERR_FILEFAILURE,exe);
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,filename_obj);
 	FKL_VM_PUSH_VALUE(exe,argv_obj);
@@ -113,7 +113,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL)
 	fklLockThread(exe);
 	free(valid_filename);
 	if(!debug_ctx)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	FklVMvalue* ud=fklCreateVMvalueUd(exe,&DebugCtxUdMetaTable,ctx->proc);
 	FKL_DECL_VM_UD_DATA(debug_ud,DebugUdCtx,ud);
 	debug_ud->ctx=debug_ctx;
@@ -232,17 +232,17 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 				&&is_eof)
 		{
 			debug_repl_parse_ctx_and_buf_reset(ctx,s);
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_UNEXPECTED_EOF,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF,exe);
 		}
 		else if(err==FKL_PARSE_TERMINAL_MATCH_FAILED&&restLen)
 		{
 			debug_repl_parse_ctx_and_buf_reset(ctx,s);
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALIDEXPR,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR,exe);
 		}
 		else if(err==FKL_PARSE_REDUCE_FAILED)
 		{
 			debug_repl_parse_ctx_and_buf_reset(ctx,s);
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALIDEXPR,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR,exe);
 		}
 		else if(ast)
 		{
@@ -448,7 +448,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 	else if(fklIsVMint(file_line_sym_obj))
 	{
 		if(fklIsVMnumberLt0(file_line_sym_obj))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 		line=fklGetUint(file_line_sym_obj);
 		fid=dctx->curline_file;
 	}
@@ -457,7 +457,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 		FKL_DECL_AND_CHECK_ARG(line_obj,exe);
 		FKL_CHECK_TYPE(line_obj,fklIsVMint,exe);
 		if(fklIsVMnumberLt0(line_obj))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 		line=fklGetUint(line_obj);
 		FklString* str=FKL_VM_STR(file_line_sym_obj);
 		if(fklIsAccessibleRegFile(str->str))
@@ -475,7 +475,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 		}
 	}
 	else 
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	item=putBreakpointWithFileAndLine(dctx,fid,line,&err);
 	FklVMvalue* cond_exp_obj=NULL;
@@ -490,7 +490,7 @@ done:
 		{
 			FklNastNode* expression=fklCreateNastNodeFromVMvalue(cond_exp_obj,dctx->curline,NULL,exe->gc);
 			if(!expression)
-				FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_CIR_REF,exe);
+				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
 			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
 			fklVMreleaseSt(exe->gc);
@@ -539,7 +539,7 @@ static int bdb_debug_ctx_set_tbreak(FKL_CPROC_ARGL)
 	else if(fklIsVMint(file_line_sym_obj))
 	{
 		if(fklIsVMnumberLt0(file_line_sym_obj))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 		line=fklGetUint(file_line_sym_obj);
 		fid=dctx->curline_file;
 	}
@@ -548,7 +548,7 @@ static int bdb_debug_ctx_set_tbreak(FKL_CPROC_ARGL)
 		FKL_DECL_AND_CHECK_ARG(line_obj,exe);
 		FKL_CHECK_TYPE(line_obj,fklIsVMint,exe);
 		if(fklIsVMnumberLt0(line_obj))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 		line=fklGetUint(line_obj);
 		FklString* str=FKL_VM_STR(file_line_sym_obj);
 		if(fklIsAccessibleRegFile(str->str))
@@ -566,7 +566,7 @@ static int bdb_debug_ctx_set_tbreak(FKL_CPROC_ARGL)
 		}
 	}
 	else 
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	item=putBreakpointWithFileAndLine(dctx,fid,line,&err);
 	FklVMvalue* cond_exp_obj=NULL;
@@ -581,7 +581,7 @@ done:
 		{
 			FklNastNode* expression=fklCreateNastNodeFromVMvalue(cond_exp_obj,dctx->curline,NULL,exe->gc);
 			if(!expression)
-				FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_CIR_REF,exe);
+				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
 			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
 			fklVMreleaseSt(exe->gc);
@@ -635,7 +635,7 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(bp_num_obj,FKL_IS_FIX,exe);
 
 	if(fklIsVMnumberLt0(bp_num_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
@@ -657,7 +657,7 @@ static int bdb_debug_ctx_dis_break(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(bp_num_obj,FKL_IS_FIX,exe);
 
 	if(fklIsVMnumberLt0(bp_num_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
@@ -679,7 +679,7 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(bp_num_obj,FKL_IS_FIX,exe);
 
 	if(fklIsVMnumberLt0(bp_num_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
@@ -869,7 +869,7 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(lineno_obj,FKL_IS_FIX,exe);
 		int64_t line=FKL_GET_FIX(lineno_obj);
 		if(line<((int64_t)dctx->curline))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		setStepUntil(dctx,line);
 	}
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -1174,7 +1174,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 			int compile_unabled;
 			FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
 			if(!expression)
-				FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_CIR_REF,exe);
+				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
 			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
 			fklVMreleaseSt(exe->gc);

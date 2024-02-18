@@ -147,7 +147,7 @@ static int ht_ht_hashv(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,ht->hash_func);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -161,7 +161,7 @@ static int ht_ht_equal(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,ht->eq_func);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -176,7 +176,7 @@ static int ht_ht_clear(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,val);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -200,7 +200,7 @@ static int ht_ht_to_list(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -223,7 +223,7 @@ static int ht_ht_keys(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -246,7 +246,7 @@ static int ht_ht_values(FKL_CPROC_ARGL)
 		FKL_VM_PUSH_VALUE(exe,r);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
@@ -352,7 +352,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL)
 					return 0;
 				}
 				if(arg_num%2)
-					FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				FklVMvalue* first_key=FKL_VM_GET_TOP_VALUE(exe);
 				uint32_t rtp=fklResBpIn(exe,arg_num);
 				ctx->context=1;
@@ -502,7 +502,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 					FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,default_value);
 				}
 				else
-					FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NO_VALUE_FOR_KEY,exe);
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NO_VALUE_FOR_KEY,exe);
 			}
 			break;
 		default:
@@ -524,7 +524,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL)
 						FKL_VM_SET_TP_AND_PUSH_VALUE(exe,ctx->rtp,default_value);
 					}
 					else
-						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NO_VALUE_FOR_KEY,exe);
+						FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NO_VALUE_FOR_KEY,exe);
 				}
 				else
 				{

@@ -73,7 +73,7 @@ static int os_date(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	else
 	{
@@ -114,7 +114,7 @@ static int os_date(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	return 0;
 }
@@ -149,7 +149,7 @@ static int os_chdir(FKL_CPROC_ARGL)
 	FklString* dirstr=FKL_VM_STR(dir);
 	int r=fklChdir(dirstr->str);
 	if(r)
-		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR_CSTR(dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
+		FKL_RAISE_BUILTIN_INVALIDSYMBOL_ERROR(dirstr->str,0,FKL_ERR_FILEFAILURE,exe);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -188,13 +188,13 @@ static int os_setenv(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(value,FKL_IS_STR,exe);
 		int o=(overwrite&&overwrite!=FKL_VM_NIL)?1:0;
 		if(setenv(name_str->str,FKL_VM_STR(value)->str,o))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	}
 	else
 	{
 		if(unsetenv(name_str->str))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	}
 	return 0;

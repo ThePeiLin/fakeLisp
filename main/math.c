@@ -129,11 +129,11 @@ static int math_rand(FKL_CPROC_ARGL)
 			}
 			break;
 		default:
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOMANYARG,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG,exe);
 			break;
 	}
 	if(low>up)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	uint64_t p=project(rv,(uint64_t)up-(uint64_t)low,exe->rand_state);
 	FKL_VM_PUSH_VALUE(exe,fklMakeVMint(p+(uint64_t)low,exe));
 	return 0;

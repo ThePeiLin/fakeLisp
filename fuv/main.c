@@ -385,7 +385,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL)
 						if(pbd->loop_mode[mode]==mode_id)
 							break;
 					if(mode>UV_RUN_NOWAIT)
-						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+						FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 				}
 				if(setjmp(fuv_loop->data.buf))
 				{
@@ -520,7 +520,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL)
 	else if(option_id==fpd->metrics_idle_time_sid)
 		option=UV_METRICS_IDLE_TIME;
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 	uv_loop_t* loop=&fuv_loop->loop;
 	switch(option)
@@ -541,12 +541,12 @@ static int fuv_loop_configure(FKL_CPROC_ARGL)
 						FklSid_t sid=FKL_GET_SYM(cur);
 						int signum=symbolToSignum(sid,fpd);
 						if(signum<=0)
-							FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+							FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 						int r=uv_loop_configure(loop,UV_LOOP_BLOCK_SIGNAL,signum);
 						CHECK_UV_RESULT(r,exe,pd);
 					}
 					else
-						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+						FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 					cur=FKL_VM_POP_ARG(exe);
 				}
 				fklResBp(exe);
@@ -886,9 +886,9 @@ static int fuv_timer_start(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(timeout_obj,fklIsVMint,exe);
 	FKL_CHECK_TYPE(repeat_obj,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(timeout_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	if(fklIsVMnumberLt0(repeat_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	uint64_t timeout=fklGetUint(timeout_obj);
 	uint64_t repeat=fklGetUint(repeat_obj);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer,timer_obj,exe,ctx->pd);
@@ -947,7 +947,7 @@ static int fuv_timer_repeat_set1(FKL_CPROC_ARGL)
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer,timer_obj,exe,ctx->pd);
 	FuvHandle* handle=*timer;
 	if(fklIsVMnumberLt0(repeat_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	uv_timer_set_repeat((uv_timer_t*)GET_HANDLE(handle),fklGetUint(repeat_obj));
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
@@ -1222,9 +1222,9 @@ static int fuv_signal_start(FKL_CPROC_ARGL)
 	else if(FKL_IS_SYM(signum_obj))
 		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(signum<=0)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(signal,signal_obj,exe,ctx->pd);
 	FuvHandle* fuv_handle=*signal;
@@ -1248,9 +1248,9 @@ static int fuv_signal_start_oneshot(FKL_CPROC_ARGL)
 	else if(FKL_IS_SYM(signum_obj))
 		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(signum<=0)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(signal,signal_obj,exe,ctx->pd);
 	FuvHandle* fuv_handle=*signal;
@@ -1710,21 +1710,21 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL)
 	if(FKL_IS_STR(node_obj))
 		node=FKL_VM_STR(node_obj)->str;
 	else if(node_obj!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	if(FKL_IS_STR(service_obj))
 		service=FKL_VM_STR(service_obj)->str;
 	else if(service_obj!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	if(proc_obj&&proc_obj!=FKL_VM_NIL&&!fklIsCallable(proc_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	struct addrinfo hints={.ai_flags=0,};
 	FklBuiltinErrorType err_type=pop_addrinfo_hints(exe,&hints,fpd);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 
 	fklResBp(exe);
 
@@ -1939,7 +1939,7 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL)
 	int r=0;
 	FklBuiltinErrorType error_type=pop_sockaddr_flags(exe,&addr,&flags,fpd,&ip_obj,&port_obj,&r);
 	if(error_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(error_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(error_type,exe);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	fklResBp(exe);
 
@@ -2244,7 +2244,7 @@ static int fuv_process_spawn(FKL_CPROC_ARGL)
 			,&fuv_err);
 	CHECK_UV_RESULT(uv_err,exe,ctx->pd);
 	if(fkl_err)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(fkl_err,exe);
+		FKL_RAISE_BUILTIN_ERROR(fkl_err,exe);
 	if(fuv_err)
 		raiseFuvError(fuv_err,exe,ctx->pd);
 	fklResBp(exe);
@@ -2287,9 +2287,9 @@ static int fuv_kill(FKL_CPROC_ARGL)
 	else if(FKL_IS_SYM(signum_obj))
 		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(signum<=0)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	int pid=FKL_GET_FIX(pid_obj);
 	int r=uv_kill(pid,signum);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
@@ -2309,9 +2309,9 @@ static int fuv_process_kill(FKL_CPROC_ARGL)
 	else if(FKL_IS_SYM(signum_obj))
 		signum=symbolToSignum(FKL_GET_SYM(signum_obj),fpd);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(signum<=0)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(process_ud,process_obj,exe,ctx->pd);
 	uv_process_t* process=(uv_process_t*)&(*process_ud)->handle;
 	int r=uv_process_kill(process,signum);
@@ -2521,7 +2521,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 	if(cb_obj==FKL_VM_NIL)
 		cb_obj=NULL;
 	else if(!fklIsCallable(cb_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud,stream_obj,exe,ctx->pd);
 	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	FuvHandle* handle=*stream_ud;
@@ -2542,10 +2542,10 @@ static int fuv_stream_write(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,top_value);
 		FklBuiltinErrorType err_type=setup_write_data(exe,arg_num,write_obj,&bufs);
 		if(err_type)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+			FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
 	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(handle);
 	int ret=0;
@@ -2621,10 +2621,10 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,top_value);
 		FklBuiltinErrorType err_type=setup_try_write_data(exe,arg_num,&bufs);
 		if(err_type)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+			FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
 	uv_stream_t* stream=(uv_stream_t*)GET_HANDLE(*stream_ud);
 	int ret=0;
@@ -2807,7 +2807,7 @@ static int fuv_pipe_open(FKL_CPROC_ARGL)
 	else if(FKL_IS_FIX(fd_obj))
 		ret=uv_pipe_open(pipe,FKL_GET_FIX(fd_obj));
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	CHECK_UV_RESULT(ret,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,pipe_obj);
 	return 0;
@@ -2844,7 +2844,7 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL)
 	if(cb_obj==FKL_VM_NIL)
 		cb_obj=NULL;
 	else if(!fklIsCallable(cb_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_CHECK_TYPE(pipe_obj,isFuvPipe,exe);
 	FKL_CHECK_TYPE(name_obj,FKL_IS_STR,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,pipe_obj,exe,ctx->pd);
@@ -2878,7 +2878,7 @@ static int fuv_pipe_chmod(FKL_CPROC_ARGL)
 	else if((!fklStringCstrCmp(str,"rw"))||(!fklStringCstrCmp(str,"wr")))
 		flags=UV_READABLE|UV_WRITABLE;
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,pipe_obj);
 	fklUnlockThread(exe);
 	int ret=uv_pipe_chmod(pipe,flags);
@@ -3021,7 +3021,7 @@ static int fuv_make_tcp(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	FklBuiltinErrorType err_type=pop_tcp_flags(exe,fpd,&flags);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	fklResBp(exe);
 	FklVMvalue* retval=NULL;
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
@@ -3071,13 +3071,13 @@ static int fuv_tcp_keepalive(FKL_CPROC_ARGL)
 	if(enable)
 	{
 		if(delay_obj==NULL)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 		if(!FKL_IS_FIX(delay_obj))
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		delay=FKL_GET_FIX(delay_obj);
 	}
 	else if(delay_obj)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOMANYARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG,exe);
 	int r=uv_tcp_keepalive((uv_tcp_t*)GET_HANDLE(*handle_ud),enable,delay);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,tcp_obj);
@@ -3184,7 +3184,7 @@ static int fuv_tcp_bind(FKL_CPROC_ARGL)
 	struct sockaddr_storage addr;
 	if(uv_ip4_addr(host,port,(struct sockaddr_in*)&addr)
 			&&uv_ip6_addr(host,port,(struct sockaddr_in6*)&addr))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	unsigned int flags=ipv6only_obj&&ipv6only_obj!=FKL_VM_NIL?UV_TCP_IPV6ONLY:0;
 	int ret=uv_tcp_bind((uv_tcp_t*)GET_HANDLE(*handle_ud),(struct sockaddr*)&addr,flags);
 	CHECK_UV_RESULT(ret,exe,ctx->pd);
@@ -3207,7 +3207,7 @@ static int fuv_tcp_connect(FKL_CPROC_ARGL)
 	struct sockaddr_storage addr;
 	if(uv_ip4_addr(host,port,(struct sockaddr_in*)&addr)
 			&&uv_ip6_addr(host,port,(struct sockaddr_in6*)&addr))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,exe,ctx->pd);
 	FuvHandle* handle=*handle_ud;
 	FklVMvalue* connect_obj=NULL;
@@ -3253,18 +3253,18 @@ static int fuv_socketpair(FKL_CPROC_ARGL)
 	{
 		int type=sid_to_socktype(FKL_GET_SYM(socktype_obj),fpd);
 		if(type<0)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		socktype=type;
 	}
 	else if(socktype_obj!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	if(FKL_IS_STR(protocol_obj))
 	{
 		const char* name=FKL_VM_STR(protocol_obj)->str;
 		int proto=get_protonum_with_cstr(name);
 		if(proto<0)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		protocol=proto;
 	}
 	else if(FKL_IS_SYM(protocol_obj))
@@ -3272,11 +3272,11 @@ static int fuv_socketpair(FKL_CPROC_ARGL)
 		const char* name=fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(protocol_obj))->symbol->str;
 		int proto=get_protonum_with_cstr(name);
 		if(proto<0)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 		protocol=proto;
 	}
 	else if(protocol_obj!=FKL_VM_NIL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	int flags0=non_block_flags0_obj!=FKL_VM_NIL?UV_NONBLOCK_PIPE:0;
 	int flags1=non_block_flags1_obj!=FKL_VM_NIL?UV_NONBLOCK_PIPE:0;
@@ -3308,7 +3308,7 @@ static int fuv_make_tty(FKL_CPROC_ARGL)
 	else if(FKL_IS_FIX(fd_obj))
 		fd=FKL_GET_FIX(fd_obj);
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMvalue* tty_obj=NULL;
 	uv_tty_t* tty=createFuvTTY(exe,&tty_obj,ctx->proc,loop_obj,fp_obj);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
@@ -3335,7 +3335,7 @@ static int fuv_tty_mode_set1(FKL_CPROC_ARGL)
 	else if(mode_id==fpd->UV_TTY_MODE_IO_sid)
 		mode=UV_TTY_MODE_IO;
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 
 	int r=uv_tty_set_mode((uv_tty_t*)GET_HANDLE(*handle_ud),mode);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
@@ -3392,7 +3392,7 @@ static int fuv_tty_vterm_state_set1(FKL_CPROC_ARGL)
 	else if(state_id==fpd->UV_TTY_UNSUPPORTED_sid)
 		state=UV_TTY_UNSUPPORTED;
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 
 	uv_tty_set_vterm_state(state);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -3431,15 +3431,15 @@ static int fuv_make_udp(FKL_CPROC_ARGL)
 					flags|=UV_UDP_RECVMMSG;
 					cur=FKL_VM_POP_ARG(exe);
 					if(cur==NULL)
-						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+						FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 					if(!FKL_IS_FIX(cur))
-						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+						FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 					mmsg_num_msgs=FKL_GET_FIX(cur);
 					if(mmsg_num_msgs<0)
-						FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+						FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				}
 				else
-					FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 			}
 			else
 			{
@@ -3448,7 +3448,7 @@ static int fuv_make_udp(FKL_CPROC_ARGL)
 			}
 		}
 		else
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		cur=FKL_VM_POP_ARG(exe);
 	}
 	fklResBp(exe);
@@ -3531,7 +3531,7 @@ static int fuv_udp_multicast_interface_set1(FKL_CPROC_ARGL)
 		if(FKL_IS_STR(interface_addr_obj))
 			interface_addr=FKL_VM_STR(interface_addr_obj)->str;
 		else if(interface_addr_obj!=FKL_VM_NIL)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	int r=uv_udp_set_multicast_interface(udp,interface_addr);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
@@ -3613,7 +3613,7 @@ static int fuv_udp_connect(FKL_CPROC_ARGL)
 			,port_obj
 			,&err_type);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	int r=uv_udp_connect((uv_udp_t*)GET_HANDLE(*udp_ud),addr_ptr);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,udp_obj);
@@ -3673,12 +3673,12 @@ static int fuv_udp_bind(FKL_CPROC_ARGL)
 	int port=FKL_GET_FIX(port_obj);
 	if(uv_ip4_addr(host,port,(struct sockaddr_in*)&addr)
 			&&uv_ip6_addr(host,port,(struct sockaddr_in6*)&addr))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	unsigned int flags=0;
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	FklBuiltinErrorType err_type=pop_udp_flags(exe,&flags,fpd);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	fklResBp(exe);
 	int r=uv_udp_bind((uv_udp_t*)GET_HANDLE(*udp_ud),(struct sockaddr*)&addr,flags);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
@@ -3778,7 +3778,7 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(multicast_addr_obj,FKL_IS_STR,exe);
 	FKL_CHECK_TYPE(membership_obj,FKL_IS_SYM,exe);
 	if(interface_addr_obj!=FKL_VM_NIL&&!FKL_IS_STR(interface_addr_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,exe,ctx->pd);
 	const char* multicast_addr=FKL_VM_STR(multicast_addr_obj)->str;
 	const char* interface_addr=interface_addr_obj==FKL_VM_NIL?NULL:FKL_VM_STR(interface_addr_obj)->str;
@@ -3786,7 +3786,7 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL)
 	FklSid_t id=FKL_GET_SYM(membership_obj);
 	uv_membership membership;
 	if(sid_to_membership(id,fpd,&membership))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	int ret=uv_udp_set_membership((uv_udp_t*)GET_HANDLE(*udp_ud)
 			,multicast_addr
 			,interface_addr
@@ -3806,14 +3806,14 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL)
 			);
 	FklVMvalue* membership_obj=FKL_VM_POP_ARG(exe);
 	if(membership_obj==NULL)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(udp_obj,isFuvUdp,exe);
 	FKL_CHECK_TYPE(multicast_addr_obj,FKL_IS_STR,exe);
 	FKL_CHECK_TYPE(source_addr_obj,FKL_IS_STR,exe);
 	FKL_CHECK_TYPE(membership_obj,FKL_IS_SYM,exe);
 	if(interface_addr_obj!=FKL_VM_NIL&&!FKL_IS_STR(interface_addr_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,exe,ctx->pd);
 	const char* multicast_addr=FKL_VM_STR(multicast_addr_obj)->str;
 	const char* interface_addr=interface_addr_obj==FKL_VM_NIL?NULL:FKL_VM_STR(interface_addr_obj)->str;
@@ -3823,7 +3823,7 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL)
 	FklSid_t id=FKL_GET_SYM(membership_obj);
 	uv_membership membership;
 	if(sid_to_membership(id,fpd,&membership))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INVALID_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	int ret=uv_udp_set_source_membership((uv_udp_t*)GET_HANDLE(*udp_ud)
 			,multicast_addr
 			,interface_addr
@@ -3887,7 +3887,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL)
 	if(cb_obj==FKL_VM_NIL)
 		cb_obj=NULL;
 	else if(!fklIsCallable(cb_obj))
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,exe,ctx->pd);
 
@@ -3899,7 +3899,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL)
 			,port_obj
 			,&err_type);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 
 	FuvHandle* handle=*udp_ud;
 	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
@@ -3911,10 +3911,10 @@ static int fuv_udp_send(FKL_CPROC_ARGL)
 		udp_send=createFuvUdpSend(exe,&udp_send_obj,ctx->proc,handle->data.loop,cb_obj,arg_num);
 		err_type=setup_udp_send_data(exe,arg_num,udp_send_obj,&bufs);
 		if(err_type)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+			FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
 
 	int ret=uv_udp_send(udp_send,(uv_udp_t*)GET_HANDLE(handle),bufs,arg_num,addr_ptr,fuv_udp_send_cb);
@@ -4079,7 +4079,7 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL)
 			,port_obj
 			,&err_type);
 	if(err_type)
-		FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 
 	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	uv_buf_t* bufs=NULL;
@@ -4087,10 +4087,10 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL)
 	{
 		err_type=setup_try_write_data(exe,arg_num,&bufs);
 		if(err_type)
-			FKL_RAISE_BUILTIN_ERROR_CSTR(err_type,exe);
+			FKL_RAISE_BUILTIN_ERROR(err_type,exe);
 	}
 	else
-		FKL_RAISE_BUILTIN_ERROR_CSTR(FKL_ERR_TOOFEWARG,exe);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 	fklResBp(exe);
 
 	int ret=uv_udp_try_send((uv_udp_t*)GET_HANDLE(*udp_ud),bufs,arg_num,addr_ptr);

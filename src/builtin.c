@@ -3655,6 +3655,7 @@ static void idle_queue_work_cb(FklVM* exe,void* a)
 	exe->state=FKL_VM_READY;
 	fklSetVMsingleThread(exe);
 	ctx->context=fklRunVMinSingleThread(exe,exe->top_frame->prev);
+	exe->state=FKL_VM_READY;
 	fklNoticeThreadLock(exe);
 	fklUnsetVMsingleThread(exe);
 	return;
@@ -3671,7 +3672,6 @@ static int builtin_idle(FKL_CPROC_ARGL)
 				FklVMframe* origin_top_frame=exe->top_frame;
 				fklCallObj(exe,proc);
 				fklQueueWorkInIdleThread(exe,idle_queue_work_cb,ctx);
-				exe->state=FKL_VM_READY;
 				if(ctx->context)
 				{
 					ctx->context=(uintptr_t)fklMoveVMframeToTop(exe,origin_top_frame);

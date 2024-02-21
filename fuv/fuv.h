@@ -488,6 +488,9 @@ uv_tty_t* createFuvTTY(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_o
 int isFuvUdp(FklVMvalue* v);
 uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_obj,int64_t);
 
+int isFuvFsPoll(FklVMvalue* v);
+FklVMvalue* createFuvFsPoll(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
+
 #define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle) {\
 	atomic_flag_clear(&(async_handle)->send_done);\

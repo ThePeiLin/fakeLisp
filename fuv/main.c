@@ -4210,43 +4210,21 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static inline FklVMvalue* create_fs_uv_err(FklVM* exe
-		,int r
-		,uv_fs_t* req
-		,FklVMvalue* dest_path
-		,FklVMvalue* pd)
+static int fuv_fs_poll_p(FKL_CPROC_ARGL){PREDICATE(isFuvFsPoll(val))}
+
+static int fuv_make_fs_poll(FKL_CPROC_ARGL)
 {
-	FklVMvalue* err=NULL;
-	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
-	if(dest_path)
-	{
-		FklStringBuffer buf;
-		fklInitStringBuffer(&buf);
-		fklStringBufferPrintf(&buf,"%s: %s -> %s"
-				,uv_strerror(r)
-				,req->path
-				,FKL_VM_STR(dest_path)->str);
-		err=fklCreateVMvalueError(exe
-				,uvErrToSid(r,fpd)
-				,fklStringBufferToString(&buf));
-		fklUninitStringBuffer(&buf);
-	}
-	else if(req->path)
-	{
-		FklStringBuffer buf;
-		fklInitStringBuffer(&buf);
-		fklStringBufferPrintf(&buf,"%s: %s",uv_strerror(r),req->path);
-		err=fklCreateVMvalueError(exe
-				,uvErrToSid(r,fpd)
-				,fklStringBufferToString(&buf));
-		fklUninitStringBuffer(&buf);
-	}
-	else
-		err=createUvErrorWithFpd(r,exe,fpd);
-	return err;
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,exe);
+	int r;
+	FklVMvalue* fs_poll=createFuvFsPoll(exe,ctx->proc,loop_obj,&r);
+	CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r,fs_poll,loop_obj,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fs_poll);
+	return 0;
 }
 
-static inline FklVMvalue* timespec_to_vmtable(FklVM* exe,uv_timespec_t* spec,FuvPublicData* fpd)
+static inline FklVMvalue* timespec_to_vmtable(FklVM* exe,const uv_timespec_t* spec,FuvPublicData* fpd)
 {
 	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 	FklHashTable* ht=FKL_VM_HASH(hash);
@@ -4291,7 +4269,7 @@ static inline FklVMvalue* timespec_to_vmtable(FklVM* exe,uv_timespec_t* spec,Fuv
 # include <unistd.h>
 #endif
 
-static inline FklVMvalue* stat_to_vmtable(FklVM* exe,uv_stat_t* stat,FuvPublicData* fpd)
+static inline FklVMvalue* stat_to_vmtable(FklVM* exe,const uv_stat_t* stat,FuvPublicData* fpd)
 {
 	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 	FklHashTable* ht=FKL_VM_HASH(hash);
@@ -4380,6 +4358,142 @@ static inline FklVMvalue* stat_to_vmtable(FklVM* exe,uv_stat_t* stat,FuvPublicDa
 			,FKL_MAKE_VM_SYM(type)
 			,ht);
 	return hash;
+}
+
+struct FsPollCbValueCreateArg
+{
+	FuvPublicData* fpd;
+	const uv_stat_t* prev;
+	const uv_stat_t* curr;
+	int status;
+};
+
+static int fuv_fs_poll_value_creator(FklVM* exe,void* a)
+{
+	struct FsPollCbValueCreateArg* arg=a;
+	FuvPublicData* fpd=arg->fpd;
+	FklVMvalue* err=arg->status<0?createUvErrorWithFpd(arg->status,exe,fpd):FKL_VM_NIL;
+	FklVMvalue* prev=arg->prev?stat_to_vmtable(exe,arg->prev,fpd):FKL_VM_NIL;
+	FklVMvalue* curr=arg->curr?stat_to_vmtable(exe,arg->curr,fpd):FKL_VM_NIL;
+
+	FKL_VM_PUSH_VALUE(exe,curr);
+	FKL_VM_PUSH_VALUE(exe,prev);
+	FKL_VM_PUSH_VALUE(exe,err);
+	return 0;
+}
+
+static void fuv_fs_poll_cb(uv_fs_poll_t* handle
+		,int status
+		,const uv_stat_t* prev
+		,const uv_stat_t* curr)
+{
+	uv_loop_t* loop=uv_handle_get_loop((uv_handle_t*)handle);
+	FuvLoopData* ldata=uv_loop_get_data(loop);
+	FuvHandleData* hdata=&((FuvHandle*)uv_handle_get_data((uv_handle_t*)handle))->data;
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)ldata->exe->top_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+
+	struct FsPollCbValueCreateArg arg=
+	{
+		.fpd=fpd,
+		.prev=prev,
+		.curr=curr,
+		.status=status,
+	};
+
+	fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t*)handle
+			,hdata
+			,ldata
+			,0
+			,fuv_fs_poll_value_creator
+			,&arg);
+}
+
+static int fuv_fs_poll_start(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG4(fs_poll_obj,path_obj,interval_obj,cb_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(fs_poll_obj,isFuvFsPoll,exe);
+	FKL_CHECK_TYPE(path_obj,FKL_IS_STR,exe);
+	FKL_CHECK_TYPE(interval_obj,FKL_IS_FIX,exe);
+	FKL_CHECK_TYPE(cb_obj,fklIsCallable,exe);
+	int64_t interval=FKL_GET_FIX(interval_obj);
+	if(interval<0)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_poll,fs_poll_obj,exe,ctx->pd);
+	FuvHandle* fuv_handle=*fs_poll;
+	fuv_handle->data.callbacks[0]=cb_obj;
+	int r=uv_fs_poll_start((uv_fs_poll_t*)GET_HANDLE(fuv_handle)
+			,fuv_fs_poll_cb
+			,FKL_VM_STR(path_obj)->str
+			,interval);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fs_poll_obj);
+	return 0;
+}
+
+static int fuv_fs_poll_stop(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(fs_poll_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(fs_poll_obj,isFuvFsPoll,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_poll,fs_poll_obj,exe,ctx->pd);
+	FuvHandle* handle=*fs_poll;
+	int r=uv_fs_poll_stop((uv_fs_poll_t*)GET_HANDLE(handle));
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fs_poll_obj);
+	return 0;
+}
+
+static int fuv_fs_poll_path(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(fs_poll_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(fs_poll_obj,isFuvFsPoll,exe);
+	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,fs_poll_obj,exe,ctx->pd);
+	size_t len=2*FKL_PATH_MAX;
+	char buf[2*FKL_PATH_MAX];
+	int ret=uv_fs_poll_getpath((uv_fs_poll_t*)GET_HANDLE(*handle_ud),buf,&len);
+	CHECK_UV_RESULT(ret,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateString(len,buf)));
+	return 0;
+}
+
+static inline FklVMvalue* create_fs_uv_err(FklVM* exe
+		,int r
+		,uv_fs_t* req
+		,FklVMvalue* dest_path
+		,FklVMvalue* pd)
+{
+	FklVMvalue* err=NULL;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	if(dest_path)
+	{
+		FklStringBuffer buf;
+		fklInitStringBuffer(&buf);
+		fklStringBufferPrintf(&buf,"%s: %s -> %s"
+				,uv_strerror(r)
+				,req->path
+				,FKL_VM_STR(dest_path)->str);
+		err=fklCreateVMvalueError(exe
+				,uvErrToSid(r,fpd)
+				,fklStringBufferToString(&buf));
+		fklUninitStringBuffer(&buf);
+	}
+	else if(req->path)
+	{
+		FklStringBuffer buf;
+		fklInitStringBuffer(&buf);
+		fklStringBufferPrintf(&buf,"%s: %s",uv_strerror(r),req->path);
+		err=fklCreateVMvalueError(exe
+				,uvErrToSid(r,fpd)
+				,fklStringBufferToString(&buf));
+		fklUninitStringBuffer(&buf);
+	}
+	else
+		err=createUvErrorWithFpd(r,exe,fpd);
+	return err;
 }
 
 static inline FklVMvalue* statfs_to_vmtable(FklVM* exe,uv_statfs_t* s,FuvPublicData* fpd)
@@ -6003,6 +6117,13 @@ struct SymFunc
 	{"udp-recv-stop",                fuv_udp_recv_stop,                },
 	{"udp-send-queue-size",          fuv_udp_send_queue_size,          },
 	{"udp-send-queue-count",         fuv_udp_send_queue_count,         },
+
+	// fs-poll
+	{"fs-poll?",                     fuv_fs_poll_p,                    },
+	{"make-fs-poll",                 fuv_make_fs_poll,                 },
+	{"fs-poll-start",                fuv_fs_poll_start,                },
+	{"fs-poll-stop",                 fuv_fs_poll_stop,                 },
+	{"fs-poll-path",                 fuv_fs_poll_path,                 },
 
 	// req
 	{"req?",                         fuv_req_p,                        },

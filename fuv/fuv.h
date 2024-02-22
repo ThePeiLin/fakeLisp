@@ -343,6 +343,13 @@ typedef struct
 	FklSid_t UV_DIRENT_SOCKET_sid;
 	FklSid_t UV_DIRENT_CHAR_sid;
 	FklSid_t UV_DIRENT_BLOCK_sid;
+
+	FklSid_t UV_FS_EVENT_WATCH_ENTRY_sid;
+	FklSid_t UV_FS_EVENT_STAT_sid;
+	FklSid_t UV_FS_EVENT_RECURSIVE_sid;
+
+	FklSid_t UV_RENAME_sid;
+	FklSid_t UV_CHANGE_sid;
 }FuvPublicData;
 
 struct FuvErrorRecoverData
@@ -490,6 +497,9 @@ uv_udp_t* createFuvUdp(FklVM*,FklVMvalue** pr,FklVMvalue* rel,FklVMvalue* loop_o
 
 int isFuvFsPoll(FklVMvalue* v);
 FklVMvalue* createFuvFsPoll(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
+
+int isFuvFsEvent(FklVMvalue* v);
+FklVMvalue* createFuvFsEvent(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 
 #define FUV_ASYNC_COPY_DONE(async_handle) atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle) {\

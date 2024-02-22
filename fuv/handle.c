@@ -42,6 +42,8 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_process_as_print,process);
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_poll_as_print,fs-poll);
 
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_event_as_print,fs-poll);
+
 static void fuv_process_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(fuv_handle,FuvHandleUd,ud);
@@ -118,6 +120,11 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_FS_EVENT,
 	{
+		.size=sizeof(FuvHandleUd),
+		.__as_prin1=fuv_fs_event_as_print,
+		.__as_princ=fuv_fs_event_as_print,
+		.__atomic=fuv_handle_ud_atomic,
+		.__finalizer=fuv_handle_ud_finalizer,
 	},
 
 	// UV_FS_POLL,
@@ -491,6 +498,15 @@ struct FuvFsPoll
 
 FUV_HANDLE_P(isFuvFsPoll,UV_FS_POLL);
 FUV_HANDLE_CREATOR(FuvFsPoll,fs_poll,UV_FS_POLL);
+
+struct FuvFsEvent
+{
+	FuvHandleData data;
+	uv_fs_event_t handle;
+};
+
+FUV_HANDLE_P(isFuvFsEvent,UV_FS_EVENT);
+FUV_HANDLE_CREATOR(FuvFsEvent,fs_event,UV_FS_EVENT);
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

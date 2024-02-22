@@ -26,7 +26,7 @@ static int exitState=0;
 
 #define FKL_EXIT_FAILURE (255)
 
-static inline int compileAndRun(const char* filename,int argc,const char* const* argv)
+static inline int compileAndRun(const char* filename,int argc,char* const* argv)
 {
 	FILE* fp=fopen(filename,"r");
 	if(fp==NULL)
@@ -103,7 +103,7 @@ static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncProtot
 	}
 }
 
-static inline int runCode(const char* filename,int argc,const char* const* argv)
+static inline int runCode(const char* filename,int argc,char* const* argv)
 {
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
@@ -137,7 +137,7 @@ static inline int runCode(const char* filename,int argc,const char* const* argv)
 	return r;
 }
 
-static inline int runPreCompile(const char* filename,int argc,const char* const* argv)
+static inline int runPreCompile(const char* filename,int argc,char* const* argv)
 {
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
@@ -226,8 +226,9 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 	return r;
 }
 
-int main(int argc,const char* const* argv)
+int main(int argc,char* argv[])
 {
+	argv=uv_setup_args(argc,argv);
 	const char* filename=(argc>1)?argv[1]:NULL;
 	if(!filename)
 	{

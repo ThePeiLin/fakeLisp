@@ -225,7 +225,7 @@ static inline void init_locv_cache(FklVMgc* gc)
 	uv_mutex_init(&gc->locv_cache[4].lock);
 }
 
-void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
+void fklInitVMargs(FklVMgc* gc,int argc,char* const* argv)
 {
 	gc->argc=argc-1;
 	argv++;

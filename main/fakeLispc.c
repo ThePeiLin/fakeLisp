@@ -360,6 +360,7 @@ struct arg_end* end;
 
 int main(int argc,char** argv)
 {
+	argv=uv_setup_args(argc,argv);
 	const char* progname=argv[0];
 
 	FklCodegenOuterCtx outer_ctx;

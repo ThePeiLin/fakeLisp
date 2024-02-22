@@ -3079,34 +3079,6 @@ static int fuv_pipe_pending_instances(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int fuv_exepath(FKL_CPROC_ARGL)
-{
-	FKL_CHECK_REST_ARG(exe);
-	size_t size=2*FKL_PATH_MAX;
-	char exe_path[2*FKL_PATH_MAX];
-	int r=uv_exepath(exe_path,&size);
-	CHECK_UV_RESULT(r,exe,ctx->pd);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
-	return 0;
-}
-
-static int fuv_guess_handle(FKL_CPROC_ARGL)
-{
-	FKL_DECL_AND_CHECK_ARG(fd_obj,exe);
-	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(fd_obj,FKL_IS_FIX,exe);
-	uv_file fd=FKL_GET_FIX(fd_obj);
-	uv_handle_type type_id=uv_guess_handle(fd);
-	const char* name=uv_handle_type_name(type_id);
-	FKL_VM_PUSH_VALUE(exe
-			,name==NULL
-			?FKL_VM_NIL
-			:fklCreateVMvaluePair(exe
-				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
-				,FKL_MAKE_VM_FIX(type_id)));
-	return 0;
-}
-
 static int fuv_tcp_p(FKL_CPROC_ARGL){PREDICATE(isFuvTcp(val))}
 
 static inline FklBuiltinErrorType pop_tcp_flags(FklVM* exe,FuvPublicData* fpd,unsigned int* flags)
@@ -6111,6 +6083,57 @@ static int fuv_fs_lchown(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_guess_handle(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(fd_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(fd_obj,FKL_IS_FIX,exe);
+	uv_file fd=FKL_GET_FIX(fd_obj);
+	uv_handle_type type_id=uv_guess_handle(fd);
+	const char* name=uv_handle_type_name(type_id);
+	FKL_VM_PUSH_VALUE(exe
+			,name==NULL
+			?FKL_VM_NIL
+			:fklCreateVMvaluePair(exe
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
+				,FKL_MAKE_VM_FIX(type_id)));
+	return 0;
+}
+
+#define MAX_TITLE_LENGTH (8192)
+
+static int fuv_get_process_title(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	char title[MAX_TITLE_LENGTH];
+	int r=uv_get_process_title(title,MAX_TITLE_LENGTH);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(title)));
+	return 0;
+}
+
+static int fuv_set_process_title(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(title_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(title_obj,FKL_IS_STR,exe);
+	int r=uv_set_process_title(FKL_VM_STR(title_obj)->str);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_exepath(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	size_t size=2*FKL_PATH_MAX;
+	char exe_path[2*FKL_PATH_MAX];
+	int r=uv_exepath(exe_path,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
 static int fuv_incomplete(FKL_CPROC_ARGL)
 {
 	abort();
@@ -6346,8 +6369,47 @@ struct SymFunc
 	{"getnameinfo",                  fuv_getnameinfo,                  },
 
 	// misc
-	{"exepath",                      fuv_exepath,                      },
 	{"guess-handle",                 fuv_guess_handle,                 },
+	{"get-process-title",fuv_get_process_title,},
+	{"set-process-title",fuv_set_process_title,},
+	{"resident-set-memory",fuv_incomplete,},
+	{"uptime",fuv_incomplete,},
+	{"getrusage",fuv_incomplete,},
+	{"os-getpid",fuv_incomplete,},
+	{"os-getppid",fuv_incomplete,},
+	{"available-parallelism",fuv_incomplete,},
+	{"cpu-info",fuv_incomplete,},
+	{"cpumask-size",fuv_incomplete,},
+	{"interface-addresses",fuv_incomplete,},
+	{"loadavg",fuv_incomplete,},
+	{"if-indextoname",fuv_incomplete,},
+	{"if-indextoid",fuv_incomplete,},
+	{"exepath",                      fuv_exepath,                      },
+	{"cwd",fuv_incomplete,},
+	{"chdir",fuv_incomplete,},
+	{"os-homedir",fuv_incomplete,},
+	{"os-tmpdir",fuv_incomplete,},
+	{"os-get-passwd",fuv_incomplete,},
+	{"get-free-memory",fuv_incomplete,},
+	{"get-total-memory",fuv_incomplete,},
+	{"get-constrained-memory",fuv_incomplete,},
+	{"get-available-memory",fuv_incomplete,},
+	{"hrtime",fuv_incomplete,},
+	{"clock-gettime",fuv_incomplete,},
+	{"print-all-handles",fuv_incomplete,},
+	{"print-active-handles",fuv_incomplete,},
+	{"os-environ",fuv_incomplete,},
+	{"os-environ",fuv_incomplete,},
+	{"os-getenv",fuv_incomplete,},
+	{"os-setenv",fuv_incomplete,},
+	{"os-unsetenv",fuv_incomplete,},
+	{"os-gethostname",fuv_incomplete,},
+	{"os-getpriority",fuv_incomplete,},
+	{"os-setpriority",fuv_incomplete,},
+	{"os-uname",fuv_incomplete,},
+	{"gettimeofday",fuv_incomplete,},
+	{"random",fuv_incomplete,},
+	{"sleep",fuv_incomplete,},
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

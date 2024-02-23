@@ -410,6 +410,7 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 
 	pd->timespec_f_sec_sid=fklAddSymbolCstr("sec",st)->id;
 	pd->timespec_f_nsec_sid=fklAddSymbolCstr("nsec",st)->id;
+	pd->timeval_f_usec_sid=fklAddSymbolCstr("usec",st)->id;
 
 	pd->statfs_f_type_sid=fklAddSymbolCstr("type",st)->id;
 	pd->statfs_f_bsize_sid=fklAddSymbolCstr("bsize",st)->id;
@@ -437,6 +438,9 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 
 	pd->UV_RENAME_sid=fklAddSymbolCstr("rename",st)->id;
 	pd->UV_CHANGE_sid=fklAddSymbolCstr("change",st)->id;
+
+	pd->UV_CLOCK_MONOTONIC_sid=fklAddSymbolCstr("monotonic",st)->id;
+	pd->UV_CLOCK_REALTIME_sid=fklAddSymbolCstr("realtime",st)->id;
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL){PREDICATE(isFuvLoop(val))}
@@ -1459,7 +1463,6 @@ static int fuv_req_type(FKL_CPROC_ARGL)
 			:fklCreateVMvaluePair(exe
 				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(name))
 				,FKL_MAKE_VM_FIX(type_id)));
-	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -6123,6 +6126,71 @@ static int fuv_set_process_title(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_resident_set_memory(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	size_t rss;
+	int r=uv_resident_set_memory(&rss);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(rss,exe));
+	return 0;
+}
+
+static int fuv_uptime(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	double uptime;
+	int r=uv_uptime(&uptime);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,uptime));
+	return 0;
+}
+
+static int fuv_os_getpid(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_pid_t pid=uv_os_getpid();
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(pid));
+	return 0;
+}
+
+static int fuv_os_getppid(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_pid_t ppid=uv_os_getppid();
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ppid));
+	return 0;
+}
+
+static int fuv_available_parallelism(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	unsigned int rc=uv_available_parallelism();
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(rc));
+	return 0;
+}
+
+static int fuv_cpumask_size(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	int r=uv_cpumask_size();
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));
+	return 0;
+}
+
+static int fuv_loadavg(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	double r[3];
+	uv_loadavg(r);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
+				,fklCreateVMvalueF64(exe,r[0])
+				,fklCreateVMvalueF64(exe,r[1])
+				,fklCreateVMvalueF64(exe,r[2])));
+	return 0;
+}
+
 static int fuv_exepath(FKL_CPROC_ARGL)
 {
 	FKL_CHECK_REST_ARG(exe);
@@ -6131,6 +6199,270 @@ static int fuv_exepath(FKL_CPROC_ARGL)
 	int r=uv_exepath(exe_path,&size);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
+static int fuv_cwd(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	size_t size=2*FKL_PATH_MAX;
+	char exe_path[2*FKL_PATH_MAX];
+	int r=uv_cwd(exe_path,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
+static int fuv_chdir(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(path_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(path_obj,FKL_IS_STR,exe);
+	int r=uv_chdir(FKL_VM_STR(path_obj)->str);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_os_homedir(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	size_t size=2*FKL_PATH_MAX;
+	char exe_path[2*FKL_PATH_MAX];
+	int r=uv_os_homedir(exe_path,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
+static int fuv_os_tmpdir(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	size_t size=2*FKL_PATH_MAX;
+	char exe_path[2*FKL_PATH_MAX];
+	int r=uv_os_tmpdir(exe_path,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
+static int fuv_get_free_memory(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uint64_t mem=uv_get_free_memory();
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(mem,exe));
+	return 0;
+}
+
+static int fuv_get_total_memory(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uint64_t mem=uv_get_total_memory();
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(mem,exe));
+	return 0;
+}
+
+static int fuv_get_constrained_memory(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uint64_t mem=uv_get_constrained_memory();
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(mem,exe));
+	return 0;
+}
+
+static int fuv_get_available_memory(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uint64_t mem=uv_get_available_memory();
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(mem,exe));
+	return 0;
+}
+
+static int fuv_hrtime(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uint64_t t=uv_hrtime();
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(t,exe));
+	return 0;
+}
+
+static inline FklVMvalue* timespec64_to_vmtable(FklVM* exe,const uv_timespec64_t* spec,FuvPublicData* fpd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid)
+			,fklMakeVMint(spec->tv_sec,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid)
+			,fklMakeVMint(spec->tv_nsec,exe)
+			,ht);
+
+	return hash;
+}
+
+static inline FklBuiltinErrorType sid_to_clockid(FklVMvalue* obj,uv_clock_id* id,FuvPublicData* fpd)
+{
+	FklSid_t sid=FKL_GET_SYM(obj);
+	if(sid==fpd->UV_CLOCK_MONOTONIC_sid)
+		*id=UV_CLOCK_MONOTONIC;
+	else if(sid==fpd->UV_CLOCK_REALTIME_sid)
+		*id=UV_CLOCK_REALTIME;
+	else
+		return FKL_ERR_INVALID_VALUE;
+	return 0;
+}
+
+static int fuv_clock_gettime(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(clockid_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(clockid_obj,FKL_IS_SYM,exe);
+	uv_timespec64_t ts;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	uv_clock_id id=0;
+	FklBuiltinErrorType err_type=sid_to_clockid(clockid_obj,&id,fpd);
+	if(err_type)
+		FKL_RAISE_BUILTIN_ERROR(err_type,exe);
+	int ret=uv_clock_gettime(id,&ts);
+	CHECK_UV_RESULT(ret,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,timespec64_to_vmtable(exe,&ts,fpd));
+	return 0;
+}
+
+static int fuv_print_all_handles(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,stream_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,exe);
+	FKL_CHECK_TYPE(stream_obj,FKL_IS_FP,exe);
+	FklVMfp* vfp=FKL_VM_FP(stream_obj);
+	if(!vfp->fp)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+	if(!(vfp->rw&FKL_VM_FP_W_MASK))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNSUPPORTED_OP,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_print_all_handles(&fuv_loop->loop,vfp->fp);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_print_active_handles(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,stream_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,exe);
+	FKL_CHECK_TYPE(stream_obj,FKL_IS_FP,exe);
+	FklVMfp* vfp=FKL_VM_FP(stream_obj);
+	if(!vfp->fp)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+	if(!(vfp->rw&FKL_VM_FP_W_MASK))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNSUPPORTED_OP,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_print_active_handles(&fuv_loop->loop,vfp->fp);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_os_getenv(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(env_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(env_obj,FKL_IS_STR,exe);
+	FklStringBuffer buf;
+	fklInitStringBuffer(&buf);
+	size_t size=buf.size;
+	int r=0;
+	while((r=uv_os_getenv(FKL_VM_STR(env_obj)->str,buf.buf,&size))==UV_ENOBUFS)
+		fklStringBufferReverse(&buf,size+1);
+	if(r==0)
+	{
+		buf.index=size;
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklStringBufferToString(&buf)));
+		fklUninitStringBuffer(&buf);
+	}
+	else
+	{
+		fklUninitStringBuffer(&buf);
+		raiseUvError(r,exe,ctx->pd);
+	}
+	return 0;
+}
+
+static int fuv_os_setenv(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG2(env_obj,val_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(env_obj,FKL_IS_STR,exe);
+	FKL_CHECK_TYPE(val_obj,FKL_IS_STR,exe);
+	int r=uv_os_setenv(FKL_VM_STR(env_obj)->str,FKL_VM_STR(val_obj)->str);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,val_obj);
+	return 0;
+}
+
+static int fuv_os_unsetenv(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(env_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(env_obj,FKL_IS_STR,exe);
+	int r=uv_os_unsetenv(FKL_VM_STR(env_obj)->str);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	return 0;
+}
+
+static int fuv_os_gethostname(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	size_t size=UV_MAXHOSTNAMESIZE;
+	char hostname[UV_MAXHOSTNAMESIZE];
+	int r=uv_os_gethostname(hostname,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(hostname)));
+	return 0;
+}
+
+static inline FklVMvalue* timeval64_to_vmtable(FklVM* exe,const uv_timeval64_t* spec,FuvPublicData* fpd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid)
+			,fklMakeVMint(spec->tv_sec,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid)
+			,fklMakeVMint(spec->tv_usec,exe)
+			,ht);
+
+	return hash;
+}
+
+static int fuv_gettimeofday(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_timeval64_t tv;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	int ret=uv_gettimeofday(&tv);
+	CHECK_UV_RESULT(ret,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,timeval64_to_vmtable(exe,&tv,fpd));
+	return 0;
+}
+
+static int fuv_sleep(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(msec_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(msec_obj,FKL_IS_FIX,exe);
+	int64_t msec=FKL_GET_FIX(msec_obj);
+	if(msec<0)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	fklUnlockThread(exe);
+	uv_sleep(msec);
+	fklLockThread(exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
 
@@ -6372,44 +6704,43 @@ struct SymFunc
 	{"guess-handle",                 fuv_guess_handle,                 },
 	{"get-process-title",fuv_get_process_title,},
 	{"set-process-title",fuv_set_process_title,},
-	{"resident-set-memory",fuv_incomplete,},
-	{"uptime",fuv_incomplete,},
+	{"resident-set-memory",fuv_resident_set_memory,},
+	{"uptime",fuv_uptime,},
 	{"getrusage",fuv_incomplete,},
-	{"os-getpid",fuv_incomplete,},
-	{"os-getppid",fuv_incomplete,},
-	{"available-parallelism",fuv_incomplete,},
+	{"os-getpid",fuv_os_getpid,},
+	{"os-getppid",fuv_os_getppid,},
+	{"available-parallelism",fuv_available_parallelism,},
 	{"cpu-info",fuv_incomplete,},
-	{"cpumask-size",fuv_incomplete,},
+	{"cpumask-size",fuv_cpumask_size,},
 	{"interface-addresses",fuv_incomplete,},
-	{"loadavg",fuv_incomplete,},
+	{"loadavg",fuv_loadavg,},
 	{"if-indextoname",fuv_incomplete,},
 	{"if-indextoid",fuv_incomplete,},
 	{"exepath",                      fuv_exepath,                      },
-	{"cwd",fuv_incomplete,},
-	{"chdir",fuv_incomplete,},
-	{"os-homedir",fuv_incomplete,},
-	{"os-tmpdir",fuv_incomplete,},
+	{"cwd",fuv_cwd,},
+	{"chdir",fuv_chdir,},
+	{"os-homedir",fuv_os_homedir,},
+	{"os-tmpdir",fuv_os_tmpdir,},
 	{"os-get-passwd",fuv_incomplete,},
-	{"get-free-memory",fuv_incomplete,},
-	{"get-total-memory",fuv_incomplete,},
-	{"get-constrained-memory",fuv_incomplete,},
-	{"get-available-memory",fuv_incomplete,},
-	{"hrtime",fuv_incomplete,},
-	{"clock-gettime",fuv_incomplete,},
-	{"print-all-handles",fuv_incomplete,},
-	{"print-active-handles",fuv_incomplete,},
+	{"get-free-memory",fuv_get_free_memory,},
+	{"get-total-memory",fuv_get_total_memory,},
+	{"get-constrained-memory",fuv_get_constrained_memory,},
+	{"get-available-memory",fuv_get_available_memory,},
+	{"hrtime",fuv_hrtime,},
+	{"clock-gettime",fuv_clock_gettime,},
+	{"print-all-handles",fuv_print_all_handles,},
+	{"print-active-handles",fuv_print_active_handles,},
 	{"os-environ",fuv_incomplete,},
-	{"os-environ",fuv_incomplete,},
-	{"os-getenv",fuv_incomplete,},
-	{"os-setenv",fuv_incomplete,},
-	{"os-unsetenv",fuv_incomplete,},
-	{"os-gethostname",fuv_incomplete,},
+	{"os-getenv",fuv_os_getenv,},
+	{"os-setenv",fuv_os_setenv,},
+	{"os-unsetenv",fuv_os_unsetenv,},
+	{"os-gethostname",fuv_os_gethostname,},
 	{"os-getpriority",fuv_incomplete,},
 	{"os-setpriority",fuv_incomplete,},
 	{"os-uname",fuv_incomplete,},
-	{"gettimeofday",fuv_incomplete,},
+	{"gettimeofday",fuv_gettimeofday,},
 	{"random",fuv_incomplete,},
-	{"sleep",fuv_incomplete,},
+	{"sleep",fuv_sleep,},
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

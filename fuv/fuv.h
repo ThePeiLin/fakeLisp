@@ -323,6 +323,7 @@ typedef struct
 
 	FklSid_t timespec_f_sec_sid;
 	FklSid_t timespec_f_nsec_sid;
+	FklSid_t timeval_f_usec_sid;
 
 	FklSid_t statfs_f_type_sid;
 	FklSid_t statfs_f_bsize_sid;
@@ -350,6 +351,9 @@ typedef struct
 
 	FklSid_t UV_RENAME_sid;
 	FklSid_t UV_CHANGE_sid;
+
+	FklSid_t UV_CLOCK_MONOTONIC_sid;
+	FklSid_t UV_CLOCK_REALTIME_sid;
 }FuvPublicData;
 
 struct FuvErrorRecoverData

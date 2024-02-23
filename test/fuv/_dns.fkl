@@ -24,6 +24,7 @@
                     (newline))))
 
 (assert (uv-req? req-get-localhost))
+(prin1n (uv-req-type req-get-localhost))
 (assert (uv-getaddrinfo? req-get-localhost))
 (assert (not (uv-getnameinfo? req-get-localhost)))
 

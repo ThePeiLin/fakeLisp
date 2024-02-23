@@ -968,7 +968,9 @@ static int vm_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 				continue;
 				break;
 			case FKL_VM_WAITING:
+				fklUnlockThread(exe);
 				uv_sleep(0);
+				fklLockThread(exe);
 				continue;
 				break;
 		}
@@ -1003,7 +1005,9 @@ static void vm_thread_cb(void* arg)
 				continue;
 				break;
 			case FKL_VM_WAITING:
+				fklUnlockThread(exe);
 				uv_sleep(0);
+				fklLockThread(exe);
 				continue;
 				break;
 		}
@@ -1065,7 +1069,9 @@ static int vm_trapping_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 				continue;
 				break;
 			case FKL_VM_WAITING:
+				fklUnlockThread(exe);
 				uv_sleep(0);
+				fklLockThread(exe);
 				continue;
 				break;
 		}
@@ -1100,7 +1106,9 @@ static void vm_trapping_thread_cb(void* arg)
 				continue;
 				break;
 			case FKL_VM_WAITING:
+				fklUnlockThread(exe);
 				uv_sleep(0);
+				fklLockThread(exe);
 				continue;
 				break;
 		}

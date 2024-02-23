@@ -354,6 +354,57 @@ typedef struct
 
 	FklSid_t UV_CLOCK_MONOTONIC_sid;
 	FklSid_t UV_CLOCK_REALTIME_sid;
+
+	FklSid_t utsname_sysname_sid;
+	FklSid_t utsname_release_sid;
+	FklSid_t utsname_version_sid;
+	FklSid_t utsname_machine_sid;
+
+	FklSid_t rusage_utime_sid;
+	FklSid_t rusage_stime_sid;
+	FklSid_t rusage_maxrss_sid;
+	FklSid_t rusage_ixrss_sid;
+	FklSid_t rusage_idrss_sid;
+	FklSid_t rusage_isrss_sid;
+	FklSid_t rusage_minflt_sid;
+	FklSid_t rusage_majflt_sid;
+	FklSid_t rusage_nswap_sid;
+	FklSid_t rusage_inblock_sid;
+	FklSid_t rusage_oublock_sid;
+	FklSid_t rusage_msgsnd_sid;
+	FklSid_t rusage_msgrcv_sid;
+	FklSid_t rusage_nsignals_sid;
+	FklSid_t rusage_nvcsw_sid;
+	FklSid_t rusage_nivcsw_sid;
+
+	FklSid_t cpu_info_model_sid;
+	FklSid_t cpu_info_speed_sid;
+	FklSid_t cpu_info_times_sid;
+	FklSid_t cpu_info_times_user_sid;
+	FklSid_t cpu_info_times_nice_sid;
+	FklSid_t cpu_info_times_sys_sid;
+	FklSid_t cpu_info_times_idle_sid;
+	FklSid_t cpu_info_times_irq_sid;
+
+	FklSid_t passwd_username_sid;
+	FklSid_t passwd_uid_sid;
+	FklSid_t passwd_gid_sid;
+	FklSid_t passwd_shell_sid;
+	FklSid_t passwd_homedir_sid;
+
+	FklSid_t UV_PRIORITY_LOW_sid;
+	FklSid_t UV_PRIORITY_BELOW_NORMAL_sid;
+	FklSid_t UV_PRIORITY_NORMAL_sid;
+	FklSid_t UV_PRIORITY_ABOVE_NORMAL_sid;
+	FklSid_t UV_PRIORITY_HIGH_sid;
+	FklSid_t UV_PRIORITY_HIGHEST_sid;
+
+	FklSid_t ifa_f_name_sid;
+	FklSid_t ifa_f_mac_sid;
+	FklSid_t ifa_f_internal_sid;
+	FklSid_t ifa_f_ip_sid;
+	FklSid_t ifa_f_netmask_sid;
+	FklSid_t ifa_f_family_sid;
 }FuvPublicData;
 
 struct FuvErrorRecoverData

@@ -441,6 +441,57 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 
 	pd->UV_CLOCK_MONOTONIC_sid=fklAddSymbolCstr("monotonic",st)->id;
 	pd->UV_CLOCK_REALTIME_sid=fklAddSymbolCstr("realtime",st)->id;
+
+	pd->utsname_sysname_sid=fklAddSymbolCstr("sysname",st)->id;
+	pd->utsname_release_sid=fklAddSymbolCstr("release",st)->id;
+	pd->utsname_version_sid=fklAddSymbolCstr("version",st)->id;
+	pd->utsname_machine_sid=fklAddSymbolCstr("machine",st)->id;
+
+	pd->rusage_utime_sid=fklAddSymbolCstr("utime",st)->id;
+	pd->rusage_stime_sid=fklAddSymbolCstr("stime",st)->id;
+	pd->rusage_maxrss_sid=fklAddSymbolCstr("maxrss",st)->id;
+	pd->rusage_ixrss_sid=fklAddSymbolCstr("ixrss",st)->id;
+	pd->rusage_idrss_sid=fklAddSymbolCstr("idrss",st)->id;
+	pd->rusage_isrss_sid=fklAddSymbolCstr("isrss",st)->id;
+	pd->rusage_minflt_sid=fklAddSymbolCstr("minflt",st)->id;
+	pd->rusage_majflt_sid=fklAddSymbolCstr("majflt",st)->id;
+	pd->rusage_nswap_sid=fklAddSymbolCstr("nswap",st)->id;
+	pd->rusage_inblock_sid=fklAddSymbolCstr("inblock",st)->id;
+	pd->rusage_oublock_sid=fklAddSymbolCstr("oublock",st)->id;
+	pd->rusage_msgsnd_sid=fklAddSymbolCstr("msgsnd",st)->id;
+	pd->rusage_msgrcv_sid=fklAddSymbolCstr("msgrcv",st)->id;
+	pd->rusage_nsignals_sid=fklAddSymbolCstr("nsignals",st)->id;
+	pd->rusage_nvcsw_sid=fklAddSymbolCstr("nvcsw",st)->id;
+	pd->rusage_nivcsw_sid=fklAddSymbolCstr("nivcsw",st)->id;
+
+	pd->cpu_info_model_sid=fklAddSymbolCstr("model",st)->id;
+	pd->cpu_info_speed_sid=fklAddSymbolCstr("speed",st)->id;
+	pd->cpu_info_times_sid=fklAddSymbolCstr("times",st)->id;
+	pd->cpu_info_times_user_sid=fklAddSymbolCstr("user",st)->id;
+	pd->cpu_info_times_nice_sid=fklAddSymbolCstr("nice",st)->id;
+	pd->cpu_info_times_sys_sid=fklAddSymbolCstr("sys",st)->id;
+	pd->cpu_info_times_idle_sid=fklAddSymbolCstr("idle",st)->id;
+	pd->cpu_info_times_irq_sid=fklAddSymbolCstr("irq",st)->id;
+
+	pd->passwd_username_sid=fklAddSymbolCstr("username",st)->id;
+	pd->passwd_uid_sid=fklAddSymbolCstr("uid",st)->id;
+	pd->passwd_gid_sid=fklAddSymbolCstr("gid",st)->id;
+	pd->passwd_shell_sid=fklAddSymbolCstr("shell",st)->id;
+	pd->passwd_homedir_sid=fklAddSymbolCstr("homedir",st)->id;
+
+	pd->UV_PRIORITY_LOW_sid=fklAddSymbolCstr("low",st)->id;
+	pd->UV_PRIORITY_BELOW_NORMAL_sid=fklAddSymbolCstr("below-normal",st)->id;
+	pd->UV_PRIORITY_NORMAL_sid=fklAddSymbolCstr("normal",st)->id;
+	pd->UV_PRIORITY_ABOVE_NORMAL_sid=fklAddSymbolCstr("above-normal",st)->id;
+	pd->UV_PRIORITY_HIGH_sid=fklAddSymbolCstr("high",st)->id;
+	pd->UV_PRIORITY_HIGHEST_sid=fklAddSymbolCstr("highest",st)->id;
+
+	pd->ifa_f_name_sid=fklAddSymbolCstr("name",st)->id;
+	pd->ifa_f_mac_sid=fklAddSymbolCstr("mac",st)->id;
+	pd->ifa_f_internal_sid=fklAddSymbolCstr("internal",st)->id;
+	pd->ifa_f_ip_sid=fklAddSymbolCstr("ip",st)->id;
+	pd->ifa_f_netmask_sid=fklAddSymbolCstr("netmask",st)->id;
+	pd->ifa_f_family_sid=fklAddSymbolCstr("family",st)->id;
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL){PREDICATE(isFuvLoop(val))}
@@ -6146,6 +6197,104 @@ static int fuv_uptime(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline FklVMvalue* timeval_to_vmtable(FklVM* exe,const uv_timeval_t* spec,FuvPublicData* fpd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid)
+			,fklMakeVMint(spec->tv_sec,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid)
+			,fklMakeVMint(spec->tv_usec,exe)
+			,ht);
+
+	return hash;
+}
+
+static inline FklVMvalue* rusage_to_vmtable(FklVM* exe,uv_rusage_t* r,FklVMvalue* pd)
+{
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_utime_sid)
+			,timeval_to_vmtable(exe,&r->ru_utime,fpd)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_stime_sid)
+			,timeval_to_vmtable(exe,&r->ru_stime,fpd)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_maxrss_sid)
+			,fklMakeVMuint(r->ru_maxrss,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_ixrss_sid)
+			,fklMakeVMuint(r->ru_ixrss,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_idrss_sid)
+			,fklMakeVMuint(r->ru_idrss,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_isrss_sid)
+			,fklMakeVMuint(r->ru_isrss,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_minflt_sid)
+			,fklMakeVMuint(r->ru_minflt,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_majflt_sid)
+			,fklMakeVMuint(r->ru_majflt,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nswap_sid)
+			,fklMakeVMuint(r->ru_nswap,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_inblock_sid)
+			,fklMakeVMuint(r->ru_inblock,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_oublock_sid)
+			,fklMakeVMuint(r->ru_oublock,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_msgsnd_sid)
+			,fklMakeVMuint(r->ru_msgsnd,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_msgrcv_sid)
+			,fklMakeVMuint(r->ru_msgrcv,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nsignals_sid)
+			,fklMakeVMuint(r->ru_nsignals,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nvcsw_sid)
+			,fklMakeVMuint(r->ru_nvcsw,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nivcsw_sid)
+			,fklMakeVMuint(r->ru_nivcsw,exe)
+			,ht);
+	return hash;
+}
+
+static int fuv_getrusage(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_rusage_t buf;
+	int ret=uv_getrusage(&buf);
+	CHECK_UV_RESULT(ret,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,rusage_to_vmtable(exe,&buf,ctx->pd));
+	return 0;
+}
+
 static int fuv_os_getpid(FKL_CPROC_ARGL)
 {
 	FKL_CHECK_REST_ARG(exe);
@@ -6170,12 +6319,145 @@ static int fuv_available_parallelism(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static inline FklVMvalue* cpu_info_to_vmtable(FklVM* exe,uv_cpu_info_t* info,FuvPublicData* fpd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_model_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(info->model))
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_speed_sid)
+			,FKL_MAKE_VM_FIX(info->speed)
+			,ht);
+
+	FklVMvalue* cpu_times=fklCreateVMvalueHashEq(exe);
+	FklHashTable* cht=FKL_VM_HASH(cpu_times);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_user_sid)
+			,fklMakeVMuint(info->cpu_times.user,exe)
+			,cht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_nice_sid)
+			,fklMakeVMuint(info->cpu_times.nice,exe)
+			,cht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_sys_sid)
+			,fklMakeVMuint(info->cpu_times.sys,exe)
+			,cht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_idle_sid)
+			,fklMakeVMuint(info->cpu_times.idle,exe)
+			,cht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_irq_sid)
+			,fklMakeVMuint(info->cpu_times.irq,exe)
+			,cht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_sid)
+			,cpu_times
+			,ht);
+	return hash;
+}
+
+static inline FklVMvalue* cpu_infos_to_vmvec(FklVM* exe,uv_cpu_info_t* infos,int count,FklVMvalue* pd)
+{
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	FklVMvalue* v=fklCreateVMvalueVec(exe,count);
+	FklVMvec* vec=FKL_VM_VEC(v);
+
+	for(int i=0;i<count;i++)
+		vec->base[i]=cpu_info_to_vmtable(exe,&infos[i],fpd);
+	return v;
+}
+
+static int fuv_cpu_info(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	int count=0;
+	uv_cpu_info_t* infos=NULL;
+	int ret=uv_cpu_info(&infos,&count);
+	CHECK_UV_RESULT(ret,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,cpu_infos_to_vmvec(exe,infos,count,ctx->pd));
+	uv_free_cpu_info(infos,count);
+	return 0;
+}
 static int fuv_cpumask_size(FKL_CPROC_ARGL)
 {
 	FKL_CHECK_REST_ARG(exe);
 	int r=uv_cpumask_size();
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));
+	return 0;
+}
+
+static inline FklVMvalue* interface_addresses_to_vec(FklVM* exe
+		,uv_interface_address_t* addresses
+		,int count
+		,FklVMvalue* pd)
+{
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	FklVMvalue* v=fklCreateVMvalueVec(exe,count);
+	FklVMvec* vec=FKL_VM_VEC(v);
+	char ip[INET6_ADDRSTRLEN];
+	char netmask[INET6_ADDRSTRLEN];
+	for(int i=0;i<count;i++)
+	{
+		uv_interface_address_t* cur=&addresses[i];
+		FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+		vec->base[i]=hash;
+		FklHashTable* ht=FKL_VM_HASH(hash);
+
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_name_sid)
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(cur->name))
+				,ht);
+
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid)
+				,fklCreateVMvalueBvec(exe,fklCreateBytevector(sizeof(cur->phys_addr),(uint8_t*)cur->phys_addr))
+				,ht);
+
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid)
+				,cur->is_internal?FKL_VM_TRUE:FKL_VM_NIL
+				,ht);
+
+		if(cur->address.address4.sin_family==AF_INET)
+		{
+			uv_ip4_name(&cur->address.address4,ip,sizeof(ip));
+			uv_ip4_name(&cur->netmask.netmask4,netmask,sizeof(netmask));
+		}
+		else if(cur->address.address4.sin_family==AF_INET6)
+		{
+			uv_ip6_name(&cur->address.address6,ip,sizeof(ip));
+			uv_ip6_name(&cur->netmask.netmask6,netmask,sizeof(ip));
+		}
+		else
+		{
+			strncpy(ip,"<unknown>",INET6_ADDRSTRLEN);
+			strncpy(netmask,"<unknown>",INET6_ADDRSTRLEN);
+		}
+
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_ip_sid)
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(ip))
+				,ht);
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_netmask_sid)
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(netmask))
+				,ht);
+		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_family_sid)
+				,af_num_to_symbol(cur->address.address4.sin_family,fpd)
+				,ht);
+	}
+	return v;
+}
+
+static int fuv_interface_address(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_interface_address_t* addresses;
+	int count=0;
+	int r=uv_interface_addresses(&addresses,&count);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,interface_addresses_to_vec(exe,addresses,count,ctx->pd));
+	uv_free_interface_addresses(addresses,count);
 	return 0;
 }
 
@@ -6188,6 +6470,38 @@ static int fuv_loadavg(FKL_CPROC_ARGL)
 				,fklCreateVMvalueF64(exe,r[0])
 				,fklCreateVMvalueF64(exe,r[1])
 				,fklCreateVMvalueF64(exe,r[2])));
+	return 0;
+}
+
+static int fuv_if_indextoname(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(idx_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(idx_obj,FKL_IS_FIX,exe);
+	int64_t idx=FKL_GET_FIX(idx_obj);
+	if(idx<0)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	char buf[UV_IF_NAMESIZE];
+	size_t size=UV_IF_NAMESIZE;
+	int r=uv_if_indextoname(idx,buf,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf)));
+	return 0;
+}
+
+static int fuv_if_indextoiid(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(idx_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(idx_obj,FKL_IS_FIX,exe);
+	int64_t idx=FKL_GET_FIX(idx_obj);
+	if(idx<0)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	char buf[UV_IF_NAMESIZE];
+	size_t size=UV_IF_NAMESIZE;
+	int r=uv_if_indextoiid(idx,buf,&size);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf)));
 	return 0;
 }
 
@@ -6243,6 +6557,44 @@ static int fuv_os_tmpdir(FKL_CPROC_ARGL)
 	int r=uv_os_tmpdir(exe_path,&size);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(exe_path)));
+	return 0;
+}
+
+static inline FklVMvalue* passwd_to_vmtable(FklVM* exe,uv_passwd_t* passwd,FklVMvalue* pd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_username_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(passwd->username))
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_uid_sid)
+			,fklMakeVMint(passwd->uid,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_gid_sid)
+			,fklMakeVMint(passwd->gid,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_shell_sid)
+			,passwd->shell?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(passwd->shell)):FKL_VM_NIL
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_homedir_sid)
+			,passwd->homedir?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(passwd->homedir)):FKL_VM_NIL
+			,ht);
+	return hash;
+}
+
+static int fuv_os_get_passwd(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_passwd_t passwd;
+	int r=uv_os_get_passwd(&passwd);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,passwd_to_vmtable(exe,&passwd,ctx->pd));
+	uv_os_free_passwd(&passwd);
 	return 0;
 }
 
@@ -6365,6 +6717,24 @@ static int fuv_print_active_handles(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_os_environ(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_env_item_t* items=NULL;
+	int count=0;
+	int r=uv_os_environ(&items,&count);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FklVMvalue* v=fklCreateVMvalueVec(exe,count);
+	FklVMvec* vec=FKL_VM_VEC(v);
+	for(int i=0;i<count;i++)
+		vec->base[i]=fklCreateVMvaluePair(exe
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(items[i].name))
+				,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(items[i].value)));
+	FKL_VM_PUSH_VALUE(exe,v);
+	uv_os_free_environ(items,count);
+	return 0;
+}
+
 static int fuv_os_getenv(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(env_obj,exe);
@@ -6424,6 +6794,55 @@ static int fuv_os_gethostname(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int fuv_os_getpriority(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(pid_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(pid_obj,FKL_IS_FIX,exe);
+	uv_pid_t pid=FKL_GET_FIX(pid_obj);
+	int priority=0;
+	int r=uv_os_getpriority(pid,&priority);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(priority));
+	return 0;
+}
+
+static int fuv_os_setpriority(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG2(pid_obj,priority_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(pid_obj,FKL_IS_FIX,exe);
+	uv_pid_t pid=FKL_GET_FIX(pid_obj);
+	int priority=0;
+	if(FKL_IS_FIX(priority_obj))
+		priority=FKL_GET_FIX(priority_obj);
+	else if(FKL_IS_SYM(priority_obj))
+	{
+		FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+		FklSid_t id=FKL_GET_SYM(priority_obj);
+		if(id==fpd->UV_PRIORITY_LOW_sid)
+			priority=UV_PRIORITY_LOW;
+		else if(id==fpd->UV_PRIORITY_BELOW_NORMAL_sid)
+			priority=UV_PRIORITY_BELOW_NORMAL;
+		else if(id==fpd->UV_PRIORITY_NORMAL_sid)
+			priority=UV_PRIORITY_NORMAL;
+		else if(id==fpd->UV_PRIORITY_ABOVE_NORMAL_sid)
+			priority=UV_PRIORITY_ABOVE_NORMAL;
+		else if(id==fpd->UV_PRIORITY_HIGH_sid)
+			priority=UV_PRIORITY_HIGH;
+		else if(id==fpd->UV_PRIORITY_HIGHEST_sid)
+			priority=UV_PRIORITY_HIGHEST;
+		else
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	int r=uv_os_setpriority(pid,priority);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(priority));
+	return 0;
+}
+
 static inline FklVMvalue* timeval64_to_vmtable(FklVM* exe,const uv_timeval64_t* spec,FuvPublicData* fpd)
 {
 	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
@@ -6438,6 +6857,40 @@ static inline FklVMvalue* timeval64_to_vmtable(FklVM* exe,const uv_timeval64_t* 
 			,ht);
 
 	return hash;
+}
+
+static inline FklVMvalue* utsname_to_vmtable(FklVM* exe,uv_utsname_t* buf,FuvPublicData* fpd)
+{
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_sysname_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf->sysname))
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_release_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf->release))
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_version_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf->version))
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_machine_sid)
+			,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(buf->machine))
+			,ht);
+	return hash;
+}
+
+static int fuv_os_uname(FKL_CPROC_ARGL)
+{
+	FKL_CHECK_REST_ARG(exe);
+	uv_utsname_t buf;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
+	int ret=uv_os_uname(&buf);
+	CHECK_UV_RESULT(ret,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,utsname_to_vmtable(exe,&buf,fpd));
+	return 0;
 }
 
 static int fuv_gettimeofday(FKL_CPROC_ARGL)
@@ -6706,22 +7159,22 @@ struct SymFunc
 	{"set-process-title",fuv_set_process_title,},
 	{"resident-set-memory",fuv_resident_set_memory,},
 	{"uptime",fuv_uptime,},
-	{"getrusage",fuv_incomplete,},
+	{"getrusage",fuv_getrusage,},
 	{"os-getpid",fuv_os_getpid,},
 	{"os-getppid",fuv_os_getppid,},
 	{"available-parallelism",fuv_available_parallelism,},
-	{"cpu-info",fuv_incomplete,},
+	{"cpu-info",fuv_cpu_info,},
 	{"cpumask-size",fuv_cpumask_size,},
-	{"interface-addresses",fuv_incomplete,},
+	{"interface-addresses",fuv_interface_address,},
 	{"loadavg",fuv_loadavg,},
-	{"if-indextoname",fuv_incomplete,},
-	{"if-indextoid",fuv_incomplete,},
+	{"if-indextoname",fuv_if_indextoname,},
+	{"if-indextoiid",fuv_if_indextoiid,},
 	{"exepath",                      fuv_exepath,                      },
 	{"cwd",fuv_cwd,},
 	{"chdir",fuv_chdir,},
 	{"os-homedir",fuv_os_homedir,},
 	{"os-tmpdir",fuv_os_tmpdir,},
-	{"os-get-passwd",fuv_incomplete,},
+	{"os-get-passwd",fuv_os_get_passwd,},
 	{"get-free-memory",fuv_get_free_memory,},
 	{"get-total-memory",fuv_get_total_memory,},
 	{"get-constrained-memory",fuv_get_constrained_memory,},
@@ -6730,14 +7183,14 @@ struct SymFunc
 	{"clock-gettime",fuv_clock_gettime,},
 	{"print-all-handles",fuv_print_all_handles,},
 	{"print-active-handles",fuv_print_active_handles,},
-	{"os-environ",fuv_incomplete,},
+	{"os-environ",fuv_os_environ,},
 	{"os-getenv",fuv_os_getenv,},
 	{"os-setenv",fuv_os_setenv,},
 	{"os-unsetenv",fuv_os_unsetenv,},
 	{"os-gethostname",fuv_os_gethostname,},
-	{"os-getpriority",fuv_incomplete,},
-	{"os-setpriority",fuv_incomplete,},
-	{"os-uname",fuv_incomplete,},
+	{"os-getpriority",fuv_os_getpriority,},
+	{"os-setpriority",fuv_os_setpriority,},
+	{"os-uname",fuv_os_uname,},
 	{"gettimeofday",fuv_gettimeofday,},
 	{"random",fuv_incomplete,},
 	{"sleep",fuv_sleep,},

@@ -3918,8 +3918,7 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL)
 			,multicast_addr_obj
 			,interface_addr_obj
 			,membership_obj
-			,exe
-			);
+			,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(udp_obj,isFuvUdp,exe);
 	FKL_CHECK_TYPE(multicast_addr_obj,FKL_IS_STR,exe);
@@ -3931,7 +3930,7 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL)
 	const char* interface_addr=interface_addr_obj==FKL_VM_NIL?NULL:FKL_VM_STR(interface_addr_obj)->str;
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	FklSid_t id=FKL_GET_SYM(membership_obj);
-	uv_membership membership;
+	uv_membership membership=0;
 	if(sid_to_membership(id,fpd,&membership))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	int ret=uv_udp_set_membership((uv_udp_t*)GET_HANDLE(*udp_ud)
@@ -3949,8 +3948,7 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL)
 			,multicast_addr_obj
 			,interface_addr_obj
 			,source_addr_obj
-			,exe
-			);
+			,exe);
 	FklVMvalue* membership_obj=FKL_VM_POP_ARG(exe);
 	if(membership_obj==NULL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
@@ -3968,7 +3966,7 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL)
 
 	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,ctx->pd);
 	FklSid_t id=FKL_GET_SYM(membership_obj);
-	uv_membership membership;
+	uv_membership membership=0;
 	if(sid_to_membership(id,fpd,&membership))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	int ret=uv_udp_set_source_membership((uv_udp_t*)GET_HANDLE(*udp_ud)

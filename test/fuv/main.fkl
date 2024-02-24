@@ -1,7 +1,24 @@
-(import (_handle)
-        (_dns)
-        (_process)
-        (_pipe)
-        (_tcp)
-        (_udp)
-        (_fs))
+(import (.. test-m))
+
+(define msg-list (make-hasheqv))
+
+(make-test msg-list
+           (_handle)
+           (_dns)
+           (_process)
+           (_pipe)
+           (_tcp)
+           (_udp)
+           (_fs)
+           (_misc))
+
+(define msgs (hash-values msg-list))
+
+(when msgs
+  (define errmsg "")
+  (foreach (lambda (m)
+             (setq errmsg (append! errmsg
+                                   (format "\n\t%s" m))))
+           msgs)
+  (throw 'fuv-error
+         errmsg))

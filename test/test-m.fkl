@@ -1,0 +1,25 @@
+(export
+  (defmacro ~(make-test ~msg,~rest)
+    (if rest
+      (if (cdr rest)
+        `(begin
+           ~@(map (lambda (t)
+                    `(make-test ~msg ~t))
+                  rest))
+        (let [(t (car rest))]
+          `(let [(~(string->symbol (append! (symbol->string msg) "-err"))
+                   (pcall (lambda () (import ~t))))]
+             (if (error? ~(string->symbol (append! (symbol->string msg) "-err")))
+               (hash-set! ~msg
+                          (hash-num ~msg)
+                          (format "test-%S<%S> failed: %S: %s"
+                                  (hash-num ~msg)
+                                  (quote ~t)
+                                  (error-type ~(string->symbol (append! (symbol->string ~msg) "-err")))
+                                  (error-msg ~(string->symbol (append! (symbol->string ~msg) "-err")))))
+               (hash-set! ~msg
+                          (hash-num ~msg)
+                          (format "test-%S<%S> success"
+                                  (hash-num ~msg)
+                                  (quote ~t)))))))
+      `())))

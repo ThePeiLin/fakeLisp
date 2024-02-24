@@ -1929,6 +1929,7 @@ static int fuv_shutdown_p(FKL_CPROC_ARGL){PREDICATE(isFuvShutdown(val))}
 static int fuv_connect_p(FKL_CPROC_ARGL){PREDICATE(isFuvConnect(val))}
 static int fuv_udp_send_p(FKL_CPROC_ARGL){PREDICATE(isFuvUdpSend(val))}
 static int fuv_fs_req_p(FKL_CPROC_ARGL){PREDICATE(isFuvFsReq(val))}
+static int fuv_random_p(FKL_CPROC_ARGL){PREDICATE(isFuvRandom(val))}
 
 static inline FklBuiltinErrorType pop_sockaddr_flags(FklVM* exe
 		,struct sockaddr_storage* addr
@@ -6904,6 +6905,80 @@ static int fuv_gettimeofday(FKL_CPROC_ARGL)
 	return 0;
 }
 
+struct RandomCbValueCreateArg
+{
+	int status;
+	void* buf;
+	size_t buflen;
+};
+
+static int fuv_random_cb_value_creator(FklVM* exe,void* a)
+{
+	FklVMvalue* fpd_obj=((FklCprocFrameContext*)exe->top_frame->data)->pd;
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,fpd_obj);
+
+	struct RandomCbValueCreateArg* arg=a;
+	FklVMvalue* err=arg->status<0
+		?createUvErrorWithFpd(arg->status,exe,fpd)
+		:FKL_VM_NIL;
+	FklVMvalue* res=fklCreateVMvalueBvec(exe,fklCreateBytevector(arg->buflen,arg->buf));
+	FKL_VM_PUSH_VALUE(exe,res);
+	FKL_VM_PUSH_VALUE(exe,err);
+	return 0;
+}
+
+static void fuv_random_cb(uv_random_t* req,int status,void* buf,size_t buflen)
+{
+	struct RandomCbValueCreateArg arg=
+	{
+		.buf=buf,
+		.buflen=buflen,
+		.status=status,
+	};
+	fuv_call_req_callback_in_loop_with_value_creator((uv_req_t*)req
+			,fuv_random_cb_value_creator
+			,&arg);
+}
+
+static int fuv_random(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG2(loop_obj,len_obj,exe);
+	FklVMvalue* cb_obj=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,exe);
+	FKL_CHECK_TYPE(len_obj,fklIsVMint,exe);
+
+	if(fklIsVMnumberLt0(len_obj))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uint64_t len=fklGetUint(len_obj);
+	if(cb_obj)
+	{
+		FKL_CHECK_TYPE(cb_obj,fklIsCallable,exe);
+		FklVMvalue* retval=NULL;
+		struct FuvRandom* ran=createFuvRandom(exe
+				,&retval
+				,ctx->proc
+				,loop_obj
+				,cb_obj
+				,len);
+		int r=uv_random(&fuv_loop->loop,&ran->req,&ran->buf,len,0,fuv_random_cb);
+		CHECK_UV_RESULT_AND_CLEANUP_REQ(r,retval,exe,ctx->pd);
+		FKL_VM_PUSH_VALUE(exe,retval);
+	}
+	else
+	{
+		uv_random_t req;
+		FklVMvalue* v=fklCreateVMvalueBvec(exe,fklCreateBytevector(len,NULL));
+		FklBytevector* bvec=FKL_VM_BVEC(v);
+		int r=uv_random(&fuv_loop->loop,&req,bvec->ptr,len,0,NULL);
+		CHECK_UV_RESULT(r,exe,ctx->pd);
+		FKL_VM_PUSH_VALUE(exe,v);
+	}
+	return 0;
+}
+
 static int fuv_sleep(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(msec_obj,exe);
@@ -7106,6 +7181,7 @@ struct SymFunc
 	{"connect?",                     fuv_connect_p,                    },
 	{"udp-send?",                    fuv_udp_send_p,                   },
 	{"fs-req?",                      fuv_fs_req_p,                     },
+	{"random?",                      fuv_random_p,                     },
 
 	// dir
 	{"dir?",                         fuv_dir_p,                        },
@@ -7155,45 +7231,45 @@ struct SymFunc
 
 	// misc
 	{"guess-handle",                 fuv_guess_handle,                 },
-	{"get-process-title",fuv_get_process_title,},
-	{"set-process-title",fuv_set_process_title,},
-	{"resident-set-memory",fuv_resident_set_memory,},
-	{"uptime",fuv_uptime,},
-	{"getrusage",fuv_getrusage,},
-	{"os-getpid",fuv_os_getpid,},
-	{"os-getppid",fuv_os_getppid,},
-	{"available-parallelism",fuv_available_parallelism,},
-	{"cpu-info",fuv_cpu_info,},
-	{"cpumask-size",fuv_cpumask_size,},
-	{"interface-addresses",fuv_interface_address,},
-	{"loadavg",fuv_loadavg,},
-	{"if-indextoname",fuv_if_indextoname,},
-	{"if-indextoiid",fuv_if_indextoiid,},
+	{"get-process-title",            fuv_get_process_title,            },
+	{"set-process-title",            fuv_set_process_title,            },
+	{"resident-set-memory",          fuv_resident_set_memory,          },
+	{"uptime",                       fuv_uptime,                       },
+	{"getrusage",                    fuv_getrusage,                    },
+	{"os-getpid",                    fuv_os_getpid,                    },
+	{"os-getppid",                   fuv_os_getppid,                   },
+	{"available-parallelism",        fuv_available_parallelism,        },
+	{"cpu-info",                     fuv_cpu_info,                     },
+	{"cpumask-size",                 fuv_cpumask_size,                 },
+	{"interface-addresses",          fuv_interface_address,            },
+	{"loadavg",                      fuv_loadavg,                      },
+	{"if-indextoname",               fuv_if_indextoname,               },
+	{"if-indextoiid",                fuv_if_indextoiid,                },
 	{"exepath",                      fuv_exepath,                      },
-	{"cwd",fuv_cwd,},
-	{"chdir",fuv_chdir,},
-	{"os-homedir",fuv_os_homedir,},
-	{"os-tmpdir",fuv_os_tmpdir,},
-	{"os-get-passwd",fuv_os_get_passwd,},
-	{"get-free-memory",fuv_get_free_memory,},
-	{"get-total-memory",fuv_get_total_memory,},
-	{"get-constrained-memory",fuv_get_constrained_memory,},
-	{"get-available-memory",fuv_get_available_memory,},
-	{"hrtime",fuv_hrtime,},
-	{"clock-gettime",fuv_clock_gettime,},
-	{"print-all-handles",fuv_print_all_handles,},
-	{"print-active-handles",fuv_print_active_handles,},
-	{"os-environ",fuv_os_environ,},
-	{"os-getenv",fuv_os_getenv,},
-	{"os-setenv",fuv_os_setenv,},
-	{"os-unsetenv",fuv_os_unsetenv,},
-	{"os-gethostname",fuv_os_gethostname,},
-	{"os-getpriority",fuv_os_getpriority,},
-	{"os-setpriority",fuv_os_setpriority,},
-	{"os-uname",fuv_os_uname,},
-	{"gettimeofday",fuv_gettimeofday,},
-	{"random",fuv_incomplete,},
-	{"sleep",fuv_sleep,},
+	{"cwd",                          fuv_cwd,                          },
+	{"chdir",                        fuv_chdir,                        },
+	{"os-homedir",                   fuv_os_homedir,                   },
+	{"os-tmpdir",                    fuv_os_tmpdir,                    },
+	{"os-get-passwd",                fuv_os_get_passwd,                },
+	{"get-free-memory",              fuv_get_free_memory,              },
+	{"get-total-memory",             fuv_get_total_memory,             },
+	{"get-constrained-memory",       fuv_get_constrained_memory,       },
+	{"get-available-memory",         fuv_get_available_memory,         },
+	{"hrtime",                       fuv_hrtime,                       },
+	{"clock-gettime",                fuv_clock_gettime,                },
+	{"print-all-handles",            fuv_print_all_handles,            },
+	{"print-active-handles",         fuv_print_active_handles,         },
+	{"os-environ",                   fuv_os_environ,                   },
+	{"os-getenv",                    fuv_os_getenv,                    },
+	{"os-setenv",                    fuv_os_setenv,                    },
+	{"os-unsetenv",                  fuv_os_unsetenv,                  },
+	{"os-gethostname",               fuv_os_gethostname,               },
+	{"os-getpriority",               fuv_os_getpriority,               },
+	{"os-setpriority",               fuv_os_setpriority,               },
+	{"os-uname",                     fuv_os_uname,                     },
+	{"gettimeofday",                 fuv_gettimeofday,                 },
+	{"random",                       fuv_random,                       },
+	{"sleep",                        fuv_sleep,                        },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

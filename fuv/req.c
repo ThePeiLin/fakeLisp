@@ -53,6 +53,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print,shutdown);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print,connect);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_send_as_print,udp-send);
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_req_as_print,fs-req);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_random_as_print,random);
 
 static void fuv_write_ud_atomic(const FklVMud* ud,FklVMgc* gc)
 {
@@ -174,6 +175,11 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 
 	// UV_RANDOM
 	{
+		.size=sizeof(FuvReqUd),
+		.__as_prin1=fuv_random_as_print,
+		.__as_princ=fuv_random_as_print,
+		.__atomic=fuv_req_ud_atomic,
+		.__finalizer=fuv_req_ud_finalizer,
 	},
 };
 
@@ -320,3 +326,22 @@ struct FuvFsReq* createFuvFsReq(FklVM* exe
 	*ret=v;
 	return req;
 }
+
+FUV_REQ_P(isFuvRandom,UV_RANDOM);
+
+struct FuvRandom* createFuvRandom(FklVM* exe
+		,FklVMvalue** ret
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback
+		,size_t len)
+{
+	FklVMvalue* v=fklCreateVMvalueUd(exe,&ReqMetaTables[UV_RANDOM],rel);
+	FKL_DECL_VM_UD_DATA(fuv_req,FuvReqUd,v);
+	struct FuvRandom* req=(struct FuvRandom*)calloc(1,sizeof(struct FuvRandom)+len*sizeof(uint8_t));
+	FKL_ASSERT(req);
+	init_fuv_req(fuv_req,(FuvReq*)req,v,loop,callback);
+	*ret=v;
+	return req;
+}
+

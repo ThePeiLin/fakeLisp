@@ -66,3 +66,15 @@
 (prin1n (uv-if-indextoname 1))
 (prin1n (uv-if-indextoiid 1))
 (foreach pretty-print-table (vector->list (uv-interface-addresses)))
+(printf "sync uv-random: %S\n" (uv-random l 20))
+
+(define (on-random err bvec)
+  (when err (raise err))
+  (printf "async uv-random: %S\n" bvec))
+
+(define ran-req (uv-random l 20 on-random))
+
+(assert (uv-req? ran-req))
+(assert (uv-random? ran-req))
+(uv-loop-run l)
+

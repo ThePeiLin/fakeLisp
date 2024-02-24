@@ -637,6 +637,13 @@ struct FuvFsReq
 	char base[1];
 };
 
+struct FuvRandom
+{
+	FuvReqData data;
+	uv_random_t req;
+	uint8_t buf[1];
+};
+
 typedef FuvReq* FuvReqUd;
 
 int isFuvReq(FklVMvalue* v);
@@ -694,6 +701,14 @@ struct FuvFsReq* createFuvFsReq(FklVM* exe
 		,FklVMvalue* loop
 		,FklVMvalue* callback
 		,unsigned int len);
+
+int isFuvRandom(FklVMvalue* v);
+struct FuvRandom* createFuvRandom(FklVM* exe
+		,FklVMvalue** r
+		,FklVMvalue* rel
+		,FklVMvalue* loop
+		,FklVMvalue* callback
+		,size_t buflen);
 
 int isFuvDir(FklVMvalue* v);
 FklVMvalue* createFuvDir(FklVM* vm,FklVMvalue* rel,uv_fs_t* dir,size_t nentries);

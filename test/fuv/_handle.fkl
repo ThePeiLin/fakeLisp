@@ -136,3 +136,14 @@
 
 (printf "TEST=%S\n" (getenv "TEST"))
 (printf "cwd=%S\n" (getcwd))
+(printf "idle-time=%S\n" (uv-metrics-idle-time loop))
+
+(define (pretty-print-table ht)
+  (define kv (hash->list ht))
+  (println #\{)
+  (foreach (lambda (kv)
+             (printf "\t%S : %S\n" (car kv) (cdr kv)))
+           kv)
+  (println #\}))
+
+(pretty-print-table (uv-metrics-info loop))

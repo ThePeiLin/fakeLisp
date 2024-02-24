@@ -405,6 +405,10 @@ typedef struct
 	FklSid_t ifa_f_ip_sid;
 	FklSid_t ifa_f_netmask_sid;
 	FklSid_t ifa_f_family_sid;
+
+	FklSid_t metrics_loop_count_sid;
+	FklSid_t metrics_events_sid;
+	FklSid_t metrics_events_waiting_sid;
 }FuvPublicData;
 
 struct FuvErrorRecoverData

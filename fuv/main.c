@@ -492,6 +492,10 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	pd->ifa_f_ip_sid=fklAddSymbolCstr("ip",st)->id;
 	pd->ifa_f_netmask_sid=fklAddSymbolCstr("netmask",st)->id;
 	pd->ifa_f_family_sid=fklAddSymbolCstr("family",st)->id;
+
+	pd->metrics_loop_count_sid=fklAddSymbolCstr("loop-count",st)->id;
+	pd->metrics_events_sid=fklAddSymbolCstr("events",st)->id;
+	pd->metrics_events_waiting_sid=fklAddSymbolCstr("events-waiting",st)->id;
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL){PREDICATE(isFuvLoop(val))}
@@ -6994,9 +6998,51 @@ static int fuv_sleep(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int fuv_incomplete(FKL_CPROC_ARGL)
+static int fuv_metrics_idle_time(FKL_CPROC_ARGL)
 {
-	abort();
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uint64_t r=uv_metrics_idle_time(&fuv_loop->loop);
+	FKL_VM_PUSH_VALUE(exe,fklMakeVMuint(r,exe));
+	return 0;
+}
+
+static inline FklVMvalue* metrics_to_vmtable(FklVM* exe
+		,uv_metrics_t* metrics
+		,FklVMvalue* pd)
+{
+	FKL_DECL_VM_UD_DATA(fpd,FuvPublicData,pd);
+	FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
+	FklHashTable* ht=FKL_VM_HASH(hash);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->metrics_loop_count_sid)
+			,fklMakeVMuint(metrics->loop_count,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->metrics_events_sid)
+			,fklMakeVMuint(metrics->events,exe)
+			,ht);
+
+	fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->metrics_events_waiting_sid)
+			,fklMakeVMuint(metrics->events_waiting,exe)
+			,ht);
+
+	return hash;
+}
+
+static int fuv_metrics_info(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(loop_obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FKL_CHECK_TYPE(loop_obj,isFuvLoop,exe);
+	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
+	uv_metrics_t metrics;
+	int r=uv_metrics_info(&fuv_loop->loop,&metrics);
+	CHECK_UV_RESULT(r,exe,ctx->pd);
+	FKL_VM_PUSH_VALUE(exe,metrics_to_vmtable(exe,&metrics,ctx->pd));
+	return 0;
 }
 
 struct SymFunc
@@ -7270,6 +7316,10 @@ struct SymFunc
 	{"gettimeofday",                 fuv_gettimeofday,                 },
 	{"random",                       fuv_random,                       },
 	{"sleep",                        fuv_sleep,                        },
+
+	// metrics
+	{"metrics-idle-time",            fuv_metrics_idle_time,            },
+	{"metrics-info",                 fuv_metrics_info,                 },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

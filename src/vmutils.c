@@ -2018,7 +2018,7 @@ FklVMvalue* fklProcessVMnumInc(FklVM* exe,FklVMvalue* arg)
 			return r;
 		}
 	}
-	else if(FKL_IS_FIX(arg))
+	else if(FKL_IS_F64(arg))
 		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)+1.0);
 	return NULL;
 }
@@ -2045,10 +2045,10 @@ FklVMvalue* fklProcessVMnumDec(FklVM* exe,FklVMvalue* arg)
 			return r;
 		}
 	}
-	else
+	else if(FKL_IS_F64(arg))
 		return fklCreateVMvalueF64(exe,FKL_VM_F64(arg)-1.0);
+	return NULL;
 }
-
 
 FklVMvalue* fklProcessVMnumAddResult(FklVM* exe,int64_t r64,double rd,FklBigInt* bi)
 {

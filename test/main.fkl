@@ -3,7 +3,7 @@
     (import (lib os))
     (system "chcp 65001")))
 
-(import (test-m))
+(import (make-test))
 
 (define msg-list (make-hasheqv))
 

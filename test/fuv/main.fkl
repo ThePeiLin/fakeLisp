@@ -1,4 +1,4 @@
-(import (.. test-m))
+(import (.. make-test))
 
 (define msg-list (make-hasheqv))
 

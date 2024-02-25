@@ -1,0 +1,26 @@
+(export
+  (defmacro ~(make-test ~msg ~t)
+    (let [(err-sym (string->symbol (append! (symbol->string msg) "-err")))]
+      `(let [(~err-sym
+               (pcall (lambda () (import ~t))))]
+         (if (error? ~err-sym)
+           (hash-set! ~msg
+                      (hash-num ~msg)
+                      (format "test-%S<%S> failed: %S: %s"
+                              (hash-num ~msg)
+                              (quote ~t)
+                              (error-type ~err-sym)
+                              (error-msg ~err-sym)))
+           (hash-set! ~msg
+                      (hash-num ~msg)
+                      (format "test-%S<%S> success"
+                              (hash-num ~msg)
+                              (quote ~t)))))))
+
+  (defmacro ~(make-test ~msg,~rest)
+    (if rest
+      `(begin
+         ~@(map (lambda (t)
+                  `(make-test ~msg ~t))
+                rest))
+      `())))

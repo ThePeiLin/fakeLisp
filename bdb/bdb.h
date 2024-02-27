@@ -207,8 +207,14 @@ void setAllThreadReadyToExit(FklVM* head);
 void waitAllThreadExit(FklVM* head);
 void restartDebugging(DebugCtx* ctx);
 
-FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame,int* is_complie_unabled);
-FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklVM*,FklNastNode* v,FklVMframe* frame,int* is_complie_unabled);
+typedef enum
+{
+	EVAL_COMP_UNABLE=1,
+	EVAL_COMP_IMPORT,
+}EvalCompileErr;
+
+FklVMvalue* compileConditionExpression(DebugCtx* ctx,FklVM*,FklNastNode* exp,FklVMframe* cur_frame,EvalCompileErr* is_complie_unabled);
+FklVMvalue* compileEvalExpression(DebugCtx* ctx,FklVM*,FklNastNode* v,FklVMframe* frame,EvalCompileErr* is_complie_unabled);
 FklVMvalue* callEvalProc(DebugCtx* ctx,FklVM*,FklVMvalue* proc,FklVMframe* frame);
 
 void setReachedThread(DebugCtx* ctx,FklVM*);
@@ -222,6 +228,7 @@ void listThreads(DebugCtx* ctx,const FklString* prefix,FILE* fp);
 void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp);
 void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp);
 void printUnableToCompile(FILE* fp);
+void printNotAllowImport(FILE* fp);
 
 #ifdef __cplusplus
 }

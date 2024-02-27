@@ -45,11 +45,11 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 	if(exe->is_single_thread)
 	{
 		FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
-		exe->ins_table[oins->op](exe,oins);
+		fklVMexcuteInstruction(exe,oins,exe->top_frame);
 	}
 	else
 	{
-		exe->ins_table[0]=B_int33;
+		exe->dummy_ins_func=B_int33;
 		exe->top_frame->c.pc--;
 		fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr),NULL);
 	}
@@ -57,9 +57,9 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL)
 
 static void B_int33(FKL_VM_INS_FUNC_ARGL)
 {
-	exe->ins_table[0]=B_int3;
+	exe->dummy_ins_func=B_int3;
 	FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
-	exe->ins_table[oins->op](exe,oins);
+	fklVMexcuteInstruction(exe,oins,exe->top_frame);
 }
 
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
@@ -120,7 +120,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	ctx->gc=gc;
 	ctx->reached_thread=anotherVM;
 
-	anotherVM->ins_table[0]=B_int3;
+	anotherVM->dummy_ins_func=B_int3;
 
 	gc->main_thread=anotherVM;
 	fklVMpushInterruptHandler(gc,dbgInterruptHandler,NULL,NULL,ctx);
@@ -418,10 +418,10 @@ const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe* frame)
 
 void toggleVMint3(FklVM* exe)
 {
-	if(exe->ins_table[0]==B_int33)
-		exe->ins_table[0]=B_int3;
+	if(exe->dummy_ins_func==B_int33)
+		exe->dummy_ins_func=B_int3;
 	else
-		exe->ins_table[0]=B_int33;
+		exe->dummy_ins_func=B_int33;
 }
 
 const SourceCodeHashItem* getSourceWithFid(DebugCtx* dctx,FklSid_t fid)
@@ -685,12 +685,17 @@ void printThreadAlreadyExited(DebugCtx* ctx,FILE* fp)
 
 void printThreadCantEvaluate(DebugCtx* ctx,FILE* fp)
 {
-	fprintf(stdout,"*** can't evaluate expression in thread %u ***\n",ctx->curthread_idx);
+	fprintf(fp,"*** can't evaluate expression in thread %u ***\n",ctx->curthread_idx);
 }
 
 void printUnableToCompile(FILE* fp)
 {
-	fputs("*** can't compile expression in current frame ***\n",stdout);
+	fputs("*** can't compile expression in current frame ***\n",fp);
+}
+
+void printNotAllowImport(FILE* fp)
+{
+	fputs("*** not allow to import lib in debug evaluation ***\n",fp);
 }
 
 void setAllThreadReadyToExit(FklVM* head)
@@ -735,7 +740,7 @@ void restartDebugging(DebugCtx* ctx)
 	ctx->reached_thread=main_thread;
 	ctx->running=0;
 	ctx->done=0;
-	main_thread->ins_table[0]=B_int3;
+	main_thread->dummy_ins_func=B_int3;
 	gc->main_thread=main_thread;
 	fklVMthreadStart(main_thread,&gc->q);
 	setReachedThread(ctx,main_thread);

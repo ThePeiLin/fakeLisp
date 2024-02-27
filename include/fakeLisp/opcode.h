@@ -7,7 +7,8 @@ extern "C"{
 
 typedef enum
 {
-	FKL_OP_PUSH_NIL=1,
+	FKL_OP_DUMMY=0,
+	FKL_OP_PUSH_NIL,
 	FKL_OP_PUSH_PAIR,
 	FKL_OP_PUSH_I32,
 	FKL_OP_PUSH_I64,

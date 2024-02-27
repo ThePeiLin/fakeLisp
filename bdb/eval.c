@@ -102,13 +102,24 @@ static inline void resolve_reference(DebugCtx* ctx
 	}
 }
 
+static inline int has_import_op_code(const FklByteCodelnt* lnt)
+{
+	const FklInstruction* cur=lnt->bc->code;
+	const FklInstruction* const end=&cur[lnt->bc->len];
+	for(;cur<end;cur++)
+		if(cur->op==FKL_OP_LOAD_DLL||cur->op==FKL_OP_LOAD_LIB)
+			return 1;
+	return 0;
+}
+
 static inline FklVMvalue* compile_expression_common_helper(DebugCtx* ctx
 		,FklCodegenInfo* info
 		,FklCodegenEnv* tmp_env
 		,FklNastNode* exp
 		,FklCodegenEnv* origin_outer_env
 		,FklVM* vm
-		,FklVMframe* cur_frame)
+		,FklVMframe* cur_frame
+		,EvalCompileErr* err)
 {
 	FklByteCodelnt* code=fklGenExpressionCode(exp
 			,tmp_env
@@ -118,6 +129,12 @@ static inline FklVMvalue* compile_expression_common_helper(DebugCtx* ctx
 	FklVMvalue* proc=NULL;
 	if(code)
 	{
+		if(has_import_op_code(code))
+		{
+			*err=EVAL_COMP_IMPORT;
+			fklDestroyByteCodelnt(code);
+			return NULL;
+		}
 		FklFuncPrototypes* pts=info->pts;
 		fklUpdatePrototype(pts,tmp_env,ctx->st,ctx->st);
 
@@ -135,18 +152,18 @@ FklVMvalue* compileEvalExpression(DebugCtx* ctx
 		,FklVM* vm
 		,FklNastNode* exp
 		,FklVMframe* cur_frame
-		,int* is_compile_unabled)
+		,EvalCompileErr* err)
 {
 	FklCodegenInfo info;
 	FklCodegenEnv* origin_outer_env=NULL;
 	FklCodegenEnv* tmp_env=init_codegen_info_with_debug_ctx(ctx,&info,&origin_outer_env,cur_frame);
 	if(tmp_env==NULL)
 	{
-		*is_compile_unabled=1;
+		*err=EVAL_COMP_UNABLE;
 		fklDestroyNastNode(exp);
 		return NULL;
 	}
-	*is_compile_unabled=0;
+	*err=0;
 	fklMakeNastNodeRef(exp);
 	FklVMvalue* proc=compile_expression_common_helper(ctx
 			,&info
@@ -154,7 +171,8 @@ FklVMvalue* compileEvalExpression(DebugCtx* ctx
 			,exp
 			,origin_outer_env
 			,vm
-			,cur_frame);
+			,cur_frame
+			,err);
 
 	info.pts=NULL;
 	fklDestroyCodegenEnv(tmp_env);
@@ -199,18 +217,18 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 		,FklVM* vm
 		,FklNastNode* exp
 		,FklVMframe* cur_frame
-		,int* is_compile_unabled)
+		,EvalCompileErr* err)
 {
 	FklCodegenInfo info;
 	FklCodegenEnv* origin_outer_env=NULL;
 	FklCodegenEnv* tmp_env=init_codegen_info_for_cond_bp_with_debug_ctx(ctx,&info,&origin_outer_env,cur_frame);
 	if(tmp_env==NULL)
 	{
-		*is_compile_unabled=1;
+		*err=EVAL_COMP_UNABLE;
 		fklDestroyNastNode(exp);
 		return NULL;
 	}
-	*is_compile_unabled=0;
+	*err=0;
 	fklMakeNastNodeRef(exp);
 	FklVMvalue* proc=compile_expression_common_helper(ctx
 			,&info
@@ -218,7 +236,8 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 			,exp
 			,origin_outer_env
 			,vm
-			,cur_frame);
+			,cur_frame
+			,err);
 
 	if(!proc)
 		fklPushUintStack(tmp_env->prototypeId,&ctx->unused_prototype_id_for_cond_bp);
@@ -228,26 +247,13 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 	return proc;
 }
 
-static inline void B_eval_load_lib_dll(FKL_VM_INS_FUNC_ARGL)
-{
-	FklVMvalue* err=fklCreateVMvalueError(exe
-			,exe->gc->builtinErrorTypeId[FKL_ERR_INVALIDACCESS]
-			,fklCreateStringFromCstr("not allow to import lib in debug evaluation"));
-	fklRaiseVMerror(err,exe);
-}
-
 FklVMvalue* callEvalProc(DebugCtx* ctx
 		,FklVM* vm
 		,FklVMvalue* proc
 		,FklVMframe* origin_cur_frame)
 {
-	FklVMinsFunc const o_load_dll=vm->ins_table[FKL_OP_LOAD_DLL];
-	FklVMinsFunc const o_load_lib=vm->ins_table[FKL_OP_LOAD_LIB];
-
 	FklVMframe* origin_top_frame=vm->top_frame;
 	FklVMvalue* retval=NULL;
-	vm->ins_table[FKL_OP_LOAD_DLL]=B_eval_load_lib_dll;
-	vm->ins_table[FKL_OP_LOAD_LIB]=B_eval_load_lib_dll;
 	vm->state=FKL_VM_READY;
 	uint32_t tp=vm->tp;
 	uint32_t bp=vm->bp;
@@ -259,9 +265,6 @@ FklVMvalue* callEvalProc(DebugCtx* ctx
 		fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(vm),vm,stderr);
 	else
 		retval=FKL_VM_POP_TOP_VALUE(vm);
-	vm->ins_table[FKL_OP_LOAD_DLL]=o_load_dll;
-	vm->ins_table[FKL_OP_LOAD_LIB]=o_load_lib;
-
 	vm->state=FKL_VM_READY;
 	fklNoticeThreadLock(vm);
 	fklUnsetVMsingleThread(vm);

@@ -433,8 +433,8 @@ typedef struct FklVM
 	FklVMstate volatile state;
 
 	atomic_int notice_lock;
-	_Atomic(FklVMinsFunc) ins_table[FKL_OP_LAST_OPCODE];
 
+	FklVMinsFunc dummy_ins_func;
 	uint64_t rand_state[4];
 
 	struct FklVMatExit
@@ -697,6 +697,7 @@ void fklVMpushExtraMarkFunc(FklVMgc*
 
 void fklSetVMsingleThread(FklVM* exe);
 void fklUnsetVMsingleThread(FklVM* exe);
+void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame);
 int fklRunVMinSingleThread(FklVM* exe,FklVMframe* const exit_frame);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);

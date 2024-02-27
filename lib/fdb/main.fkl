@@ -464,7 +464,7 @@
           (define cmd-rest (if (symbol? cmd) nil (cdr cmd)))
           (define cmd-func (get-cmd-func debug-cmd-func cmd-head))
           (apply cmd-func ctx cmd-rest)))
-      nil (lambda (e) (println "*** invalid command ***")))))
+      nil (lambda (e) (printf "*** %S: %s ***\n" (error-type e) (error-msg e))))))
 
 (define (fdb-main)
 
@@ -482,9 +482,6 @@
 
   (define prompt "(fdb) ")
   
-  (define cmd-func-table
-    (make-hash))
-
   (debug-run dbg-ctx prompt file-prefix line-prefix))
 
 (if *main?*

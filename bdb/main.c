@@ -385,12 +385,14 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 		if(dctx->running)
 		{
 			dctx->reached_breakpoint=NULL;
+			dctx->reached_thread_frames.top=0;
 			fklVMreleaseWq(dctx->gc);
 			fklVMcontinueTheWorld(dctx->gc);
 		}
 		dctx->running=1;
 		fklVMtrappingIdleLoop(dctx->gc);
 		dctx->done=1;
+		fputs("*** The program finishied and will restart ***\n",stderr);
 	}
 	fklLockThread(exe);
 	FKL_VM_SET_TP_AND_PUSH_VALUE(exe
@@ -1115,7 +1117,6 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 	const FklInstruction* ins=NULL;
 	FklVMvalue* byte_code=get_byte_code_frame_and_reset(dctx,&ins);
 
-
 	if(byte_code)
 	{
 		FklByteCode* bc=FKL_VM_CO(byte_code)->bc;
@@ -1162,7 +1163,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 	if(dctx->done&&dctx->reached_thread==NULL)
-		printThreadAlreadyExited(dctx,stdout);
+		printThreadAlreadyExited(dctx,stderr);
 	else
 	{
 		FklVMframe* cur_frame=getCurrentFrame(dctx);
@@ -1170,7 +1171,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 
 		if(cur_frame)
 		{
-			int compile_unabled;
+			EvalCompileErr err=0;
 			FklNastNode* expression=fklCreateNastNodeFromVMvalue(expression_obj,dctx->curline,NULL,exe->gc);
 			if(!expression)
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
@@ -1181,7 +1182,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 					,dctx->reached_thread
 					,expression
 					,cur_frame
-					,&compile_unabled);
+					,&err);
 			if(proc)
 			{
 				FklVMvalue* value=callEvalProc(dctx
@@ -1195,11 +1196,18 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 					fputc('\n',stdout);
 				}
 			}
-			if(compile_unabled)
-				printUnableToCompile(stdout);
+			switch(err)
+			{
+				case EVAL_COMP_UNABLE:
+					printUnableToCompile(stderr);
+					break;
+				case EVAL_COMP_IMPORT:
+					printNotAllowImport(stderr);
+					break;
+			}
 		}
 		else
-			printThreadCantEvaluate(dctx,stdout);
+			printThreadCantEvaluate(dctx,stderr);
 	}
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;

@@ -58,16 +58,13 @@ void fklDestroyByteCode(FklByteCode* obj)
 		switch(code->op)
 		{
 			case FKL_OP_PUSH_STR:
-				if(!code->imm)
-					free(code->str);
+				free(code->str);
 				break;
 			case FKL_OP_PUSH_BYTEVECTOR:
-				if(!code->imm)
-					free(code->bvec);
+				free(code->bvec);
 				break;
 			case FKL_OP_PUSH_BIG_INT:
-				if(!code->imm)
-					fklDestroyBigInt(code->bi);
+				fklDestroyBigInt(code->bi);
 				break;
 			default:
 				break;
@@ -98,15 +95,6 @@ static inline void copy_ins_obj(FklInstruction* code,const FklInstruction* end)
 	}
 }
 
-static inline void set_ins_obj_refcount(FklInstruction* code,const FklInstruction* end)
-{
-	for(;code<end;code++)
-		if(code->op==FKL_OP_PUSH_STR
-				||code->op==FKL_OP_PUSH_BYTEVECTOR
-				||code->op==FKL_OP_PUSH_BIG_INT)
-			code->imm=1;
-}
-
 void fklCodeConcat(FklByteCode* fir,const FklByteCode* sec)
 {
 	uint32_t len=fir->len;
@@ -114,7 +102,7 @@ void fklCodeConcat(FklByteCode* fir,const FklByteCode* sec)
 	fir->code=(FklInstruction*)fklRealloc(fir->code,sizeof(FklInstruction)*fir->len);
 	FKL_ASSERT(fir->code||!fir->len);
 	memcpy(&fir->code[len],sec->code,sizeof(FklInstruction)*sec->len);
-	set_ins_obj_refcount(sec->code,sec->code+sec->len);
+	copy_ins_obj(sec->code,sec->code+sec->len);
 }
 
 void fklCodeReverseConcat(const FklByteCode* fir,FklByteCode* sec)
@@ -128,7 +116,7 @@ void fklCodeReverseConcat(const FklByteCode* fir,FklByteCode* sec)
 	free(sec->code);
 	sec->code=tmp;
 	sec->len=len+sec->len;
-	set_ins_obj_refcount(fir->code,fir->code+len);
+	copy_ins_obj(fir->code,fir->code+len);
 }
 
 FklByteCode* fklCopyByteCode(const FklByteCode* obj)

@@ -1464,14 +1464,14 @@ static int fuv_async_send(FKL_CPROC_ARGL)
 	uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
 	if(!atomic_flag_test_and_set(&async_handle->send_ready))
 	{
+		FKL_VM_PUSH_VALUE(exe,async_obj);
 		struct FuvAsyncExtraData extra=
 		{
 			.num=arg_num,
-			.base=&FKL_VM_GET_VALUE(exe,arg_num),
+			.base=&FKL_VM_GET_VALUE(exe,arg_num+1),
 		};
 		atomic_store(&async_handle->extra,&extra);
 		int r=uv_async_send(&async_handle->handle);
-		FKL_VM_PUSH_VALUE(exe,async_obj);
 		FUV_ASYNC_WAIT_COPY(exe,async_handle);
 		FUV_ASYNC_SEND_DONE(async_handle);
 		exe->tp-=1;

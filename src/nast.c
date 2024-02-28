@@ -1,7 +1,6 @@
 #include<fakeLisp/nast.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/common.h>
-#include<ctype.h>
 
 FklNastNode* fklCreateNastNode(FklNastType type,uint64_t line)
 {

@@ -2,7 +2,6 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/vm.h>
 #include<string.h>
-#include<ctype.h>
 
 FklNastNode* fklPatternMatchingHashTableRef(FklSid_t sid,FklHashTable* ht)
 {

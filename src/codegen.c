@@ -5,7 +5,6 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/common.h>
 #include<fakeLisp/builtin.h>
-#include<ctype.h>
 #include<string.h>
 #ifdef _WIN32
 #include<direct.h>

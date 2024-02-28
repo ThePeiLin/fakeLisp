@@ -3,7 +3,6 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/common.h>
 #include<string.h>
-#include<math.h>
 #ifdef _WIN32
 #include<tchar.h>
 #include<conio.h>
@@ -540,33 +539,6 @@ void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 	}\
 }\
 
-#define DO_ERROR_HANDLING_IN_SINGLE_THREAD(exe) {\
-	FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);\
-	FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:NULL;\
-	for(;frame;frame=frame->prev)\
-		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))\
-			break;\
-	if(frame==NULL)\
-	{\
-		if(fklVMinterrupt(exe,ev,&ev)==FKL_INT_DONE)\
-			continue;\
-		fklPrintErrBacktrace(ev,exe,stderr);\
-		if(exe->chan)\
-		{\
-			fklChanlSend(FKL_VM_CHANL(exe->chan),ev,exe);\
-			exe->state=FKL_VM_EXIT;\
-			exe->chan=NULL;\
-			continue;\
-		}\
-		else\
-		{\
-			exe->gc->exit_code=255;\
-			exe->state=FKL_VM_EXIT;\
-			continue;\
-		}\
-	}\
-}\
-
 static inline void uninit_all_vm_lib(FklVMlib* libs,size_t num)
 {
 	for(size_t i=1;i<=num;i++)
@@ -1012,7 +984,7 @@ start:
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,ins->imm_i64));
 			break;
 		case FKL_OP_GET_LOC:
-			FKL_VM_PUSH_VALUE(exe,frame->c.lr.loc[ins->imm_u32]);
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32));
 			break;
 		case FKL_OP_PUT_LOC:
 			GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
@@ -1608,8 +1580,10 @@ start:
 					frame->c.tail=0;
 				}
 				else
+				{
 					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
-				return;
+					return;
+				}
 			}
 			break;
 		case FKL_OP_EXPORT_TO:
@@ -1947,7 +1921,7 @@ start:
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,ins->imm_i64));
 			break;
 		case FKL_OP_GET_LOC:
-			FKL_VM_PUSH_VALUE(exe,frame->c.lr.loc[ins->imm_u32]);
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32));
 			break;
 		case FKL_OP_PUT_LOC:
 			GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
@@ -2543,8 +2517,10 @@ start:
 					frame->c.tail=0;
 				}
 				else
+				{
 					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
-				return;
+					return;
+				}
 			}
 			break;
 		case FKL_OP_EXPORT_TO:
@@ -2881,7 +2857,7 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,ins->imm_i64));
 			break;
 		case FKL_OP_GET_LOC:
-			FKL_VM_PUSH_VALUE(exe,frame->c.lr.loc[ins->imm_u32]);
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32));
 			break;
 		case FKL_OP_PUT_LOC:
 			GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
@@ -3477,8 +3453,10 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 					frame->c.tail=0;
 				}
 				else
+				{
 					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
-				return;
+					return;
+				}
 			}
 			break;
 		case FKL_OP_EXPORT_TO:

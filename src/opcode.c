@@ -1,5 +1,6 @@
 #include<fakeLisp/opcode.h>
 #include<string.h>
+
 static struct
 {
 	char* name;

@@ -11,9 +11,6 @@
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
-#include<float.h>
-#include<setjmp.h>
-#include<ctype.h>
 #ifdef _WIN32
 #include<windows.h>
 #else
@@ -3710,14 +3707,14 @@ static void vm_atexit_idle_queue_work_cb(FklVM* exe,void *a)
 		FKL_VM_PUSH_VALUE(exe,arg->args[i]);
 	fklCallObj(exe,arg->proc);
 	exe->state=FKL_VM_READY;
-	exe->is_single_thread=1;
+	fklSetVMsingleThread(exe);
 	if(fklRunVMinSingleThread(exe,origin_top_frame))
 		fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(exe),exe,stderr);
 	while(exe->top_frame!=origin_top_frame)
 		fklPopVMframe(exe);
 	exe->state=FKL_VM_READY;
 	fklNoticeThreadLock(exe);
-	exe->is_single_thread=0;
+	fklUnsetVMsingleThread(exe);
 	exe->bp=bp;
 	exe->tp=tp;
 	return;

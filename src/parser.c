@@ -5,7 +5,6 @@
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/vm.h>
 #include<string.h>
-#include<ctype.h>
 
 FklNastNode* fklCreateNastNodeFromCstr(const char* cStr,FklSymbolTable* publicSymbolTable)
 {

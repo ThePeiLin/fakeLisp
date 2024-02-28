@@ -7,8 +7,6 @@
 #include<string.h>
 #include<ctype.h>
 #include<stdint.h>
-#include<math.h>
-#include<limits.h>
 #include<time.h>
 #ifdef WIN32
 #include<libloaderapi.h>

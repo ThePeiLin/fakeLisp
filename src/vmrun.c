@@ -808,6 +808,8 @@ start:
 		case FKL_OP_RES_BP:
 			if(fklResBp(exe))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG,exe);
+			frame->c.tp=exe->tp;
+			frame->c.bp=exe->bp;
 			break;
 		case FKL_OP_JMP_IF_TRUE:
 			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
@@ -1626,6 +1628,10 @@ start:
 				exe->importingLib=lib;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 			}
+			break;
+		case FKL_OP_RES_BP_TP:
+			exe->tp=frame->c.tp;
+			exe->bp=frame->c.bp;
 			break;
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -1737,6 +1743,8 @@ start:
 		case FKL_OP_RES_BP:
 			if(fklResBp(exe))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG,exe);
+			frame->c.tp=exe->tp;
+			frame->c.bp=exe->bp;
 			break;
 		case FKL_OP_JMP_IF_TRUE:
 			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
@@ -2555,6 +2563,10 @@ start:
 				exe->importingLib=lib;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 			}
+			break;
+		case FKL_OP_RES_BP_TP:
+			exe->tp=frame->c.tp;
+			exe->bp=frame->c.bp;
 			break;
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -2665,6 +2677,8 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 		case FKL_OP_RES_BP:
 			if(fklResBp(exe))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG,exe);
+			frame->c.tp=exe->tp;
+			frame->c.bp=exe->bp;
 			break;
 		case FKL_OP_JMP_IF_TRUE:
 			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
@@ -3483,6 +3497,10 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				exe->importingLib=lib;
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 			}
+			break;
+		case FKL_OP_RES_BP_TP:
+			exe->tp=frame->c.tp;
+			exe->bp=frame->c.bp;
 			break;
 		case FKL_OP_LAST_OPCODE:
 			abort();

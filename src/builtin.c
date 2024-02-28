@@ -6,6 +6,7 @@
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/builtin.h>
 #include<fakeLisp/codegen.h>
+#include<fakeLisp/bytecode.h>
 
 #include<stdlib.h>
 #include<string.h>
@@ -4845,6 +4846,21 @@ static int builtin_exit(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_return(FKL_CPROC_ARGL)
+{
+	FklVMvalue* exit_val=FKL_VM_POP_ARG(exe);
+	FKL_CHECK_REST_ARG(exe);
+	FklVMframe* frame=exe->top_frame->prev;
+	if(frame&&frame->type==FKL_FRAME_COMPOUND)
+	{
+		exe->tp=frame->c.tp;
+		exe->bp=frame->c.bp;
+		frame->c.pc=frame->c.end-1;
+	}
+	FKL_VM_PUSH_VALUE(exe,exit_val?exit_val:FKL_VM_NIL);
+	return 0;
+}
+
 #undef PREDICATE
 //end
 
@@ -4869,6 +4885,16 @@ static inline FklByteCodelnt* inlfunc_box0(INL_FUNC_ARGS)
 static inline FklByteCodelnt* inlfunc_add0(INL_FUNC_ARGS)
 {
 	return inl_0_arg_func(FKL_OP_PUSH_0,fid,line,scope);
+}
+
+static FklByteCodelnt* inlfunc_ret0(INL_FUNC_ARGS)
+{
+	FklByteCodelnt* r=inl_0_arg_func(FKL_OP_RES_BP_TP,fid,line,scope);
+	FklInstruction ins={.op=FKL_OP_PUSH_NIL};
+	fklBytecodeLntPushBackIns(r,&ins,fid,line,scope);
+	ins.op=FKL_OP_RET;
+	fklBytecodeLntPushBackIns(r,&ins,fid,line,scope);
+	return r;
 }
 
 static inline FklByteCodelnt* inlfunc_mul0(INL_FUNC_ARGS)
@@ -4945,6 +4971,16 @@ static FklByteCodelnt* inlfunc_box(INL_FUNC_ARGS)
 static FklByteCodelnt* inlfunc_unbox(INL_FUNC_ARGS)
 {
 	return inl_1_arg_func(FKL_OP_UNBOX,bcs,fid,line,scope);
+}
+
+static FklByteCodelnt* inlfunc_ret1(INL_FUNC_ARGS)
+{
+	FklByteCodelnt* r=bcs[0];
+	FklInstruction ins={.op=FKL_OP_RES_BP_TP};
+	fklBytecodeLntInsertFrontIns(&ins,r,fid,line,scope);
+	ins.op=FKL_OP_RET;
+	fklBytecodeLntPushBackIns(r,&ins,fid,line,scope);
+	return r;
 }
 
 static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc
@@ -5369,6 +5405,8 @@ static const struct SymbolFuncStruct
 	{"pmatch",                builtin_pmatch,                  {NULL,         NULL,          NULL,            NULL,          }, },
 
 	{"exit",                  builtin_exit,                    {NULL,         NULL,          NULL,            NULL,          }, },
+
+	{"return",                builtin_return,                  {inlfunc_ret0, inlfunc_ret1,  NULL,            NULL,          }, },
 
 	{NULL,                    NULL,                            {NULL,         NULL,          NULL,            NULL,          }, },
 };

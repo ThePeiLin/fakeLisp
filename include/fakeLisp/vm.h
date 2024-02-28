@@ -282,6 +282,8 @@ typedef struct
 	FklInstruction* spc;
 	FklInstruction* pc;
 	FklInstruction* end;
+	uint32_t tp;
+	uint32_t bp;
 }FklVMCompoundFrameData;
 
 typedef struct FklCprocFrameContext

@@ -26,7 +26,7 @@
   (vec-set! m mp (+ c num)))
 
 (define (ou _)
-  (princ (integer->char (vec-ref m mp)) stderr))
+  (princ (integer->char (vec-ref m mp)) stdout))
 
 (define (in _)
   (vec-set! m mp (fgeti stdin)))

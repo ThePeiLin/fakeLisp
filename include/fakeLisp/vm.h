@@ -205,6 +205,15 @@ typedef struct
 	FklVMvalue* v;
 }FklVMhashTableItem;
 
+#ifdef WIN32
+typedef struct
+{
+	FKL_VM_VALUE_COMMON_HEADER;
+	uint32_t idx;
+	atomic_uintptr_t ref;
+	FklVMvalue* v;
+}FklVMvalueVarRef;
+#else
 typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
@@ -212,6 +221,7 @@ typedef struct
 	_Atomic(FklVMvalue**) ref;
 	FklVMvalue* v;
 }FklVMvalueVarRef;
+#endif
 
 typedef struct FklVMproc
 {
@@ -1006,6 +1016,12 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
 
+#ifdef WIN32
+#define FKL_VM_VAR_REF_GET(V) ((FklVMvalue**)(atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
+#else
+#define FKL_VM_VAR_REF_GET(V) ((atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
+#endif
+
 // vmparser
 
 void fklVMvaluePushState0ToStack(FklPtrStack* stateStack);
@@ -1212,8 +1228,8 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 }while(0)
 
 #define FKL_RAISE_BUILTIN_ERROR_FMT(ERRORTYPE,EXE,FMT,...){\
-	FklVMvalue* values[]={__VA_ARGS__};\
-	FklString* errorMessage=fklVMformatToString((EXE),(FMT),values,sizeof(values)/sizeof(FklVMvalue*));\
+	FklVMvalue* values[]={NULL,__VA_ARGS__};\
+	FklString* errorMessage=fklVMformatToString((EXE),(FMT),&values[1],(sizeof(values)/sizeof(FklVMvalue*))-1);\
 	FklVMvalue* err=fklCreateVMvalueError((EXE)\
 			,(EXE)->gc->builtinErrorTypeId[(ERRORTYPE)]\
 			,errorMessage);\

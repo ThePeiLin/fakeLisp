@@ -1,5 +1,6 @@
 #include<fakeLisp/vm.h>
 #include<uv.h>
+#include<winsock2.h>
 #include<string.h>
 #include"fuv.h"
 
@@ -1702,7 +1703,7 @@ static inline FklVMvalue* af_num_to_symbol(int ai_family,FuvPublicData* fpd)
 #ifdef AF_PACKET
 	if(ai_family==AF_PACKET)return FKL_MAKE_VM_SYM(fpd->AF_PACKET_sid);
 #endif
-	return NULL;
+	return FKL_VM_NIL;
 }
 
 static inline FklVMvalue* sock_num_to_symbol(int ai_socktype,FuvPublicData* fpd)
@@ -1722,7 +1723,7 @@ static inline FklVMvalue* sock_num_to_symbol(int ai_socktype,FuvPublicData* fpd)
 #ifdef SOCK_RDM
 	if(ai_socktype==SOCK_RDM)return FKL_MAKE_VM_SYM(fpd->SOCK_RDM_sid);
 #endif
-	return NULL;
+	return FKL_VM_NIL;
 }
 
 static inline FklVMvalue* proto_num_to_symbol(int num,FklVM* exe)
@@ -1730,7 +1731,7 @@ static inline FklVMvalue* proto_num_to_symbol(int num,FklVM* exe)
 	struct protoent* proto=getprotobynumber(num);
 	if(proto)
 		return FKL_MAKE_VM_SYM(fklVMaddSymbolCstr(exe->gc,proto->p_name)->id);
-	return NULL;
+	return FKL_VM_NIL;
 }
 
 static inline FklVMvalue* addrinfo_to_vmhash(FklVM* exe

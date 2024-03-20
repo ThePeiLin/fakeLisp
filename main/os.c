@@ -1,5 +1,6 @@
 #include<fakeLisp/vm.h>
 #include<stdlib.h>
+#include<time.h>
 
 static int os_system(FKL_CPROC_ARGL)
 {
@@ -173,6 +174,24 @@ static int os_getenv(FKL_CPROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,env_var?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(env_var)):FKL_VM_NIL);
 	return 0;
 }
+
+#ifdef WIN32
+int setenv(const char* name, const char* value, int overwrite)
+{
+	if(!overwrite)
+	{
+		size_t envsize=0;
+		int errcode=getenv_s(&envsize,NULL,0,name);
+		if (errcode||envsize)return errcode;
+	}
+	return _putenv_s(name,value);
+}
+
+int unsetenv(const char* name)
+{
+	return _putenv_s(name,"");
+}
+#endif
 
 static int os_setenv(FKL_CPROC_ARGL)
 {

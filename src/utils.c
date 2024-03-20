@@ -9,6 +9,7 @@
 #include<stdint.h>
 #include<time.h>
 #ifdef WIN32
+#include<windows.h>
 #include<libloaderapi.h>
 #include<io.h>
 #include<process.h>
@@ -564,7 +565,7 @@ char* fklRelpath(const char* start,const char* path)
 	if(length)
 	{
 		char* start_drive=start_parts[0];
-		char* path_drive=path_drive[0];
+		char* path_drive=path_parts[0];
 
 		while(*start_drive&&isspace(*start_drive))
 			start_drive++;
@@ -576,7 +577,7 @@ char* fklRelpath(const char* start,const char* path)
 			goto exit;
 	}
 
-	if(!lastCommonRoot)
+	if(!common_prefix_len)
 		goto exit;
 
 	if(common_prefix_len==(length-1)&&start_part_count==path_part_count)

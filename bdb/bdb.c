@@ -526,7 +526,7 @@ FklVMvalue* findClosureVar(DebugCtx* ctx,FklSid_t id)
 	FklSymbolDef* const end=&def[pt->rcount];
 	for(;def<end;def++)
 		if(def->k.id==id)
-			return *(FKL_VM_VAR_REF(proc->closure[def->idx])->ref);
+			return *(FKL_VM_VAR_REF_GET(proc->closure[def->idx]));
 	return NULL;
 }
 

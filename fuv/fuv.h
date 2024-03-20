@@ -28,7 +28,7 @@ typedef struct
 	FklSid_t metrics_idle_time_sid;
 
 #define XX(code,_) FklSid_t uv_err_sid_##code;
-	UV_ERRNO_MAP(XX);
+	UV_ERRNO_MAP(XX)
 #undef XX
 
 	FklSid_t AI_ADDRCONFIG_sid;
@@ -455,6 +455,7 @@ struct FuvAsyncExtraData
 	FklVMvalue** base;
 };
 
+#ifndef WIN32
 struct FuvAsync
 {
 	FuvHandleData data;
@@ -464,6 +465,17 @@ struct FuvAsync
 	atomic_flag copy_done;
 	atomic_flag send_done;
 };
+#else
+struct FuvAsync
+{
+	FuvHandleData data;
+	uv_async_t handle;
+	atomic_uintptr_t extra;
+	atomic_flag send_ready;
+	atomic_flag copy_done;
+	atomic_flag send_done;
+};
+#endif
 
 typedef struct
 {

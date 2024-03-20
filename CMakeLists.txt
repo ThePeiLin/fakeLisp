@@ -50,7 +50,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 
 #warnnig setting
 if(MSVC)
-	add_compile_options(/W4 /utf-8)
+	add_compile_options(/W4 /experimental:c11atomics /utf-8)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()
@@ -90,10 +90,15 @@ add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
 
 add_executable(test-dns "main/test/dns.c")
-target_link_libraries(test-dns uv_a)
-
 add_executable(test-fs-event "main/test/fs_event.c")
-target_link_libraries(test-fs-event uv_a)
+
+if(MSVC)
+	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+	target_link_libraries(test-fs-event $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+else()
+	target_link_libraries(test-dns uv_a)
+	target_link_libraries(test-fs-event uv_a)
+endif()
 
 #argtable3
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
@@ -106,6 +111,7 @@ set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #libuv
 set(LIBUV_BUILD_SHARED OFF)
+add_compile_definitions(USING_UV_SHARED)
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
 set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -146,6 +152,10 @@ set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
 add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})
+
+if(MSVC)
+	set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 #fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
@@ -305,6 +315,7 @@ set_target_properties(fuv PROPERTIES
 target_link_libraries(fuv ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
+target_link_libraries(fuv ws2_32)
 add_custom_command(TARGET fuv
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
 	$<TARGET_FILE:fuv>

@@ -98,6 +98,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 {
 	// UV_UNKNOWN_HANDLE
 	{
+		NULL,
 	},
 
 	// UV_ASYNC,
@@ -138,6 +139,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_HANDLE,
 	{
+		NULL,
 	},
 
 	// UV_IDLE,
@@ -160,6 +162,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_POLL,
 	{
+		NULL,
 	},
 
 	// UV_PREPARE,
@@ -182,6 +185,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_STREAM,
 	{
+		NULL,
 	},
 
 	// UV_TCP,
@@ -231,6 +235,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX]=
 
 	// UV_FILE,
 	{
+		NULL,
 	},
 };
 

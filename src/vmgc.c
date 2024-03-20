@@ -106,7 +106,7 @@ void fklVMgcMarkAllRootToGray(FklVM* curVM)
 
 static void atomic_var_ref(FklVMvalue* ref,FklVMgc* gc)
 {
-	fklVMgcToGray(*(FKL_VM_VAR_REF(ref)->ref),gc);
+	fklVMgcToGray(*(FKL_VM_VAR_REF_GET(ref)),gc);
 }
 
 static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)

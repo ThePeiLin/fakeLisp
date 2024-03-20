@@ -100,12 +100,12 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 {
 	// UV_UNKNOWN_REQ
 	{
-		NULL,
+		0,
 	},
 
 	// UV_REQ
 	{
-		NULL,
+		0,
 	},
 
 	// UV_CONNECT
@@ -155,7 +155,7 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX]=
 
 	// UV_WORK
 	{
-		NULL,
+		0,
 	},
 
 	// UV_GETADDRINFO

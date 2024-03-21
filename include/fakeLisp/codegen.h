@@ -25,6 +25,8 @@ typedef struct FklCodegenEnvScope
 
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
+#define FKL_CODEGEN_INVALID_CIDX (UINT32_MAX)
+
 typedef struct FklCodegenEnv
 {
 	FklPtrStack uref;
@@ -164,6 +166,9 @@ typedef enum
 
 	FKL_CODEGEN_PATTERN_DEFUN,
 	FKL_CODEGEN_PATTERN_DEFINE,
+
+	FKL_CODEGEN_PATTERN_DEFCONST,
+	FKL_CODEGEN_PATTERN_DEFUN_CONST,
 	FKL_CODEGEN_PATTERN_SETQ,
 	FKL_CODEGEN_PATTERN_CHECK,
 	FKL_CODEGEN_PATTERN_QUOTE,
@@ -326,6 +331,7 @@ typedef struct FklCodegenErrorState
 	FklBuiltinErrorType type;
 	FklNastNode* place;
 	size_t line;
+	FklSid_t fid;
 }FklCodegenErrorState;
 
 typedef FklByteCodelnt* (*FklByteCodeProcesser)(FklCodegenInfo*
@@ -424,16 +430,17 @@ void fklPrintCodegenError(FklNastNode* obj
 		,const FklCodegenInfo* info
 		,const FklSymbolTable* symbolTable
 		,size_t line
+		,FklSid_t fid
 		,const FklSymbolTable* publicSymbolTable);
 
 void fklPrintUndefinedRef(const FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* pst);
 
 FklSymbolDef* fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env);
-uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
-FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
+uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line,uint32_t assign);
+FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line,uint32_t assign);
 FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
 
-uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+FklSymbolDef* fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
 
 int fklIsSymbolDefined(FklSid_t sid,uint32_t scope,FklCodegenEnv*);
 

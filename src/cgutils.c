@@ -26,6 +26,7 @@ void fklPrintCodegenError(FklNastNode* obj
 		,const FklCodegenInfo* info
 		,const FklSymbolTable* symbolTable
 		,size_t line
+		,FklSid_t fid
 		,const FklSymbolTable* publicSymbolTable)
 {
 	static const char* builtInErrorType[]=
@@ -70,6 +71,7 @@ void fklPrintCodegenError(FklNastNode* obj
 		"grammer-error",
 		"grammer-error",
 		"value-error",
+		"symbol-error",
 		"symbol-error",
 	};;
 
@@ -149,13 +151,25 @@ void fklPrintCodegenError(FklNastNode* obj
 			fputs("attempt to assign constant ",stderr);
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
+		case FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT:
+			fputs("attempt to redefine variable ",stderr);
+			fklPrintNastNode(obj,stderr,publicSymbolTable);
+			fputs(" as constant",stderr);
+			break;
 		default:
 			fputs("Unknown compiling error",stderr);
 			break;
 	}
 	if(obj)
 	{
-		if(info->filename)
+		if(fid)
+		{
+			fprintf(stderr," at line %"FKL_PRT64U" of file %s"
+					,obj->curline
+					,fklGetSymbolWithId(fid,publicSymbolTable)->symbol->str);
+			fputc('\n',stderr);
+		}
+		else if(info->filename)
 		{
 			fprintf(stderr," at line %"FKL_PRT64U" of file %s",obj->curline,info->filename);
 			fputc('\n',stderr);
@@ -165,7 +179,14 @@ void fklPrintCodegenError(FklNastNode* obj
 	}
 	else
 	{
-		if(info->filename)
+		if(fid)
+		{
+			fprintf(stderr," at line %"FKL_PRT64U" of file %s"
+					,obj->curline
+					,fklGetSymbolWithId(fid,publicSymbolTable)->symbol->str);
+			fputc('\n',stderr);
+		}
+		else if(info->filename)
 		{
 			fprintf(stderr," at line %"FKL_PRT64U" of file %s",line,info->filename);
 			fputc('\n',stderr);
@@ -277,6 +298,7 @@ static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id
 		,uint32_t idx
 		,uint32_t scope
 		,uint32_t prototypeId
+		,uint32_t assign
 		,FklSid_t fid
 		,uint64_t line)
 {
@@ -286,6 +308,7 @@ static FklUnReSymbolRef* createUnReSymbolRef(FklSid_t id
 	r->idx=idx;
 	r->scope=scope,
 	r->prototypeId=prototypeId;
+	r->assign=assign;
 	r->fid=fid;
 	r->line=line;
 	return r;
@@ -299,13 +322,35 @@ FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
 	return el;
 }
 
-FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
+static inline FklUnReSymbolRef* has_resolvable_ref(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
+{
+	FklUnReSymbolRef** urefs=(FklUnReSymbolRef**)env->uref.base;
+	uint32_t top=env->uref.top;
+	for(uint32_t i=0;i<top;i++)
+	{
+		FklUnReSymbolRef* cur=urefs[i];
+		if(cur->id==id&&cur->scope==scope)
+			return cur;
+	}
+	return NULL;
+}
+
+FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line,uint32_t assign)
 {
 	FklHashTable* ht=&env->refs;
 	FklSidScope key={id,env->pscope};
 	FklSymbolDef* el=fklGetHashItem(&key,ht);
 	if(el)
+	{
+		FklUnReSymbolRef* ref=has_resolvable_ref(id,env->pscope,env->prev?env->prev:env);
+		if(assign&&ref&&!ref->assign)
+		{
+			ref->assign=1;
+			ref->fid=fid;
+			ref->line=line;
+		}
 		return el;
+	}
 	else
 	{
 		FklSymbolDef* ret=NULL;
@@ -333,8 +378,8 @@ FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,
 				{
 					FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 					ret=fklGetOrPutHashItem(&def,ht);
-					ret->cidx=UINT32_MAX;
-					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,def.k.scope,env->prototypeId,fid,line);
+					ret->cidx=FKL_CODEGEN_INVALID_CIDX;
+					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,def.k.scope,env->prototypeId,assign,fid,line);
 					fklPushPtrStack(unref,&prev->uref);
 				}
 			}
@@ -344,34 +389,21 @@ FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,
 			FklSymbolDef def=INIT_SYMBOL_DEF(id,0,idx);
 			ret=fklGetOrPutHashItem(&def,ht);
 			idx=ret->idx;
-			FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,0,env->prototypeId,fid,line);
+			FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,0,env->prototypeId,assign,fid,line);
 			fklPushPtrStack(unref,&env->uref);
 		}
 		return ret;
 	}
 }
 
-uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
+uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line,uint32_t assign)
 {
-	return fklAddCodegenRefBySid(id,env,fid,line)->idx;
+	return fklAddCodegenRefBySid(id,env,fid,line,assign)->idx;
 }
 
 int fklIsSymbolDefined(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
 {
 	return get_def_by_id_in_scope(id,scope,&env->scopes[scope-1])!=NULL;
-}
-
-static inline int has_resolvable_ref(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
-{
-	FklUnReSymbolRef** urefs=(FklUnReSymbolRef**)env->uref.base;
-	uint32_t top=env->uref.top;
-	for(uint32_t i=0;i<top;i++)
-	{
-		FklUnReSymbolRef* cur=urefs[i];
-		if(cur->id==id&&cur->scope==scope)
-			return 1;
-	}
-	return 0;
 }
 
 static inline uint32_t get_next_empty(uint32_t empty,uint8_t* flags,uint32_t lcount)
@@ -380,7 +412,7 @@ static inline uint32_t get_next_empty(uint32_t empty,uint8_t* flags,uint32_t lco
 	return empty;
 }
 
-uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* env)
+FklSymbolDef* fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* env)
 {
 	FklCodegenEnvScope* scope=&env->scopes[scopeId-1];
 	FklHashTable* ht=&scope->defs;
@@ -407,7 +439,7 @@ uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* env)
 		}
 		env->slotFlags[idx]=FKL_CODEGEN_ENV_SLOT_OCC;
 	}
-	return el->idx;
+	return el;
 }
 
 static inline void replace_sid(FklSid_t* id,const FklSymbolTable* origin_st,FklSymbolTable* target_st)

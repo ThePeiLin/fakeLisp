@@ -493,6 +493,7 @@ FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 		"Grammer create failed",
 		"Radix for float should be 10 or 16 for float",
 		"attempt to assign constant",
+		"attempt to redefine variable as constant",
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);
@@ -2424,6 +2425,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"grammer-error",
 		"grammer-error",
 		"value-error",
+		"symbol-error",
 		"symbol-error",
 	};
 

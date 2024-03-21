@@ -177,7 +177,7 @@ static FklCodegenNextExpression* createFirstHasRetvalQueueNextExpression(FklPtrQ
 			,FIRST_MUST_HAS_RETVAL);
 }
 
-static const char* builtInSubPattern[]=
+static const char* builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_NUM+1]=
 {
 	"~(unquote ~value)",
 	"~(unqtesp ~value)",
@@ -413,7 +413,7 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 						ref=def;
 					else
 						idx=def->cidx;
-					if(idx==UINT32_MAX)
+					if(idx==FKL_CODEGEN_INVALID_CIDX)
 						return NULL;
 					env=env->prev;
 				}
@@ -612,7 +612,7 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 		}
 		else if(env->prev)
 		{
-			ref->cidx=fklAddCodegenRefBySidRetIndex(uref->id,env,uref->fid,uref->line);
+			ref->cidx=fklAddCodegenRefBySidRetIndex(uref->id,env,uref->fid,uref->line,uref->assign);
 			free(uref);
 		}
 		else
@@ -843,7 +843,7 @@ BC_PROCESS(_let1_exp_bc_process)
 	while(!fklIsUintStackEmpty(symbolStack))
 	{
 		FklSid_t id=fklPopUintStack(symbolStack);
-		uint32_t idx=fklAddCodegenDefBySid(id,scope,env);
+		uint32_t idx=fklAddCodegenDefBySid(id,scope,env)->idx;
 		popArg.imm_u32=idx;
 		fklBytecodeLntInsertFrontIns(&popArg,retval,fid,line,scope);
 	}
@@ -1259,7 +1259,7 @@ static inline int is_valid_do_bind_list(const FklNastNode* sl
 			FklSid_t id=cc->pair->car->sym;
 			if(fklIsSymbolDefined(id,scope,env))
 				return 0;
-			uint32_t idx=fklAddCodegenDefBySid(id,scope,env);
+			uint32_t idx=fklAddCodegenDefBySid(id,scope,env)->idx;
 			fklPushUintStack(idx,stack);
 			fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cc)),valueQueue);
 			if(nextExp)
@@ -1632,7 +1632,7 @@ BC_PROCESS(_def_var_exp_bc_process)
 {
 	DefineVarContext* ctx=context->data;
 	FklPtrStack* stack=&ctx->stack;
-	uint32_t idx=fklAddCodegenDefBySid(ctx->id,ctx->scope,env);
+	uint32_t idx=fklAddCodegenDefBySid(ctx->id,ctx->scope,env)->idx;
 	fklPushFrontPtrStack(makePutLoc(ctx->line,ctx->id,idx,scope,codegen->fid),stack);
 	return process_set_var(stack,codegen,outer_ctx,env,scope,fid,line);
 }
@@ -1703,7 +1703,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args
 			fklDestroyByteCodelnt(retval);
 			return NULL;
 		}
-		uint32_t idx=fklAddCodegenDefBySid(cur->sym,1,curEnv);
+		uint32_t idx=fklAddCodegenDefBySid(cur->sym,1,curEnv)->idx;
 
 		popArg.imm_u32=idx;
 		fklBytecodeLntPushBackIns(retval,&popArg,codegen->fid,cur->curline,1);
@@ -1721,7 +1721,7 @@ static FklByteCodelnt* processArgs(const FklNastNode* args
 			fklDestroyByteCodelnt(retval);
 			return NULL;
 		}
-		uint32_t idx=fklAddCodegenDefBySid(args->sym,1,curEnv);
+		uint32_t idx=fklAddCodegenDefBySid(args->sym,1,curEnv)->idx;
 
 		popRestArg.imm_u32=idx;
 		fklBytecodeLntPushBackIns(retval,&popRestArg,codegen->fid,args->curline,1);
@@ -1745,7 +1745,7 @@ static FklByteCodelnt* processArgsInStack(FklUintStack* stack
 	{
 		FklSid_t curId=base[i];
 
-		uint32_t idx=fklAddCodegenDefBySid(curId,1,curEnv);
+		uint32_t idx=fklAddCodegenDefBySid(curId,1,curEnv)->idx;
 
 		popArg.imm_u32=idx;
 		fklBytecodeLntPushBackIns(retval,&popArg,codegen->fid,curline,1);
@@ -1874,7 +1874,7 @@ static CODEGEN_FUNC(codegen_named_let0)
 
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
-	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv);
+	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv)->idx;
 	fklPushPtrStack(makePutLoc(name->curline,name->sym,idx,scope,codegen->fid),stack);
 
 	fklAddReplacementBySid(fklAddSymbolCstr("*func*",pst)->id
@@ -1973,7 +1973,7 @@ static CODEGEN_FUNC(codegen_named_let1)
 	fklPushPtrStack(funcallQuest,codegenQuestStack);
 
 	FklPtrStack* stack=fklCreatePtrStack(2,1);
-	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv);
+	uint32_t idx=fklAddCodegenDefBySid(name->sym,cs,curEnv)->idx;
 	fklPushPtrStack(makePutLoc(name->curline,name->sym,idx,scope,codegen->fid),stack);
 
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
@@ -2262,9 +2262,7 @@ static CODEGEN_FUNC(codegen_lambda)
 static inline int is_constant_defined(FklSid_t id,uint32_t scope,FklCodegenEnv* curEnv)
 {
 	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,curEnv);
-	if(def&&def->isConst)
-		return 1;
-	return 0;
+	return def&&def->isConst;
 }
 
 static CODEGEN_FUNC(codegen_define)
@@ -2286,6 +2284,86 @@ static CODEGEN_FUNC(codegen_define)
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_def_var_exp_bc_process
+			,create_def_var_context(name->sym,scope,name->curline)
+			,createMustHasRetvalQueueNextExpression(queue)
+			,scope
+			,macroScope
+			,curEnv
+			,name->curline
+			,codegen
+			,codegenQuestStack);
+}
+
+static inline FklUnReSymbolRef* get_resolvable_assign_ref(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
+{
+	FklUnReSymbolRef** urefs=(FklUnReSymbolRef**)env->uref.base;
+	uint32_t top=env->uref.top;
+	for(uint32_t i=0;i<top;i++)
+	{
+		FklUnReSymbolRef* cur=urefs[i];
+		if(cur->id==id&&cur->scope==scope&&cur->assign)
+			return cur;
+	}
+	return NULL;
+}
+
+BC_PROCESS(_def_const_exp_bc_process)
+{
+	DefineVarContext* ctx=context->data;
+	FklPtrStack* stack=&ctx->stack;
+	FklUnReSymbolRef* assign_uref=get_resolvable_assign_ref(ctx->id,ctx->scope,env);
+	if(assign_uref)
+	{
+		FklNastNode* place=fklCreateNastNode(FKL_NAST_SYM,assign_uref->line);
+		place->sym=ctx->id;
+		errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+		errorState->line=assign_uref->line;
+		errorState->place=place;
+		errorState->fid=assign_uref->fid
+			?fklAddSymbol(fklGetSymbolWithId(assign_uref->fid,codegen->globalSymTable)->symbol
+				,&outer_ctx->public_symbol_table)->id
+			:0;
+		return NULL;
+	}
+	FklSymbolDef* def=fklAddCodegenDefBySid(ctx->id,ctx->scope,env);
+	def->isConst=1;
+	uint32_t idx=def->idx;
+	fklPushFrontPtrStack(makePutLoc(ctx->line,ctx->id,idx,scope,codegen->fid),stack);
+	return process_set_var(stack,codegen,outer_ctx,env,scope,fid,line);
+}
+
+static inline int is_variable_defined(FklSid_t id,uint32_t scope,FklCodegenEnv* curEnv)
+{
+	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,curEnv);
+	return def!=NULL;
+}
+
+static CODEGEN_FUNC(codegen_defconst)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name,ht);
+	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	if(is_constant_defined(name->sym,scope,curEnv))
+	{
+		errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+		errorState->place=fklMakeNastNodeRef(name);
+		return;
+	}
+	if(is_variable_defined(name->sym,scope,curEnv))
+	{
+		errorState->type=FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT;
+		errorState->place=fklMakeNastNodeRef(name);
+		return;
+	}
+
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
+	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_def_const_exp_bc_process
 			,create_def_var_context(name->sym,scope,name->curline)
 			,createMustHasRetvalQueueNextExpression(queue)
 			,scope
@@ -2326,6 +2404,81 @@ static CODEGEN_FUNC(codegen_defun)
 	}
 
 	FklCodegenQuest* prevQuest=fklCreateCodegenQuest(_def_var_exp_bc_process
+			,create_def_var_context(name->sym,scope,name->curline)
+			,NULL
+			,scope
+			,macroScope
+			,curEnv
+			,name->curline
+			,NULL
+			,codegen);
+	fklPushPtrStack(prevQuest,codegenQuestStack);
+
+	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
+	FklPtrQueue* queue=fklCreatePtrQueue();
+	pushListItemToQueue(rest,queue,NULL);
+	FklPtrStack* lStack=fklCreatePtrStack(32,16);
+	fklPushPtrStack(argsBc,lStack);
+	create_and_insert_to_pool(codegen
+			,curEnv->prototypeId
+			,lambdaCodegenEnv
+			,get_sid_in_gs_with_id_in_ps(name->sym,codegen->globalSymTable,pst)
+			,origExp->curline
+			,pst);
+	FklNastNode* name_str=fklCreateNastNode(FKL_NAST_STR,name->curline);
+	name_str->str=fklCopyString(fklGetSymbolWithId(name->sym,pst)->symbol);
+	fklAddReplacementBySid(fklAddSymbolCstr("*func*",pst)->id
+			,name_str
+			,lambdaCodegenEnv->macros->replacements);
+	fklDestroyNastNode(name_str);
+	FklCodegenQuest* cur=fklCreateCodegenQuest(_lambda_exp_bc_process
+			,createDefaultStackContext(lStack)
+			,createDefaultQueueNextExpression(queue)
+			,1
+			,lambdaCodegenEnv->macros
+			,lambdaCodegenEnv
+			,rest->curline
+			,prevQuest
+			,codegen);
+	fklPushPtrStack(cur,codegenQuestStack);
+}
+
+static CODEGEN_FUNC(codegen_defun_const)
+{
+	FklNastNode* name=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name,ht);
+	FklNastNode* args=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args,ht);
+	FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
+	if(name->type!=FKL_NAST_SYM)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	if(is_constant_defined(name->sym,scope,curEnv))
+	{
+		errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+		errorState->place=fklMakeNastNodeRef(name);
+		return;
+	}
+	if(is_variable_defined(name->sym,scope,curEnv))
+	{
+		errorState->type=FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT;
+		errorState->place=fklMakeNastNodeRef(name);
+		return;
+	}
+
+	FklCodegenEnv* lambdaCodegenEnv=fklCreateCodegenEnv(curEnv,scope,macroScope);
+	FklByteCodelnt* argsBc=processArgs(args,lambdaCodegenEnv,codegen);
+	if(!argsBc)
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		lambdaCodegenEnv->refcount++;
+		fklDestroyCodegenEnv(lambdaCodegenEnv);
+		return;
+	}
+
+	FklCodegenQuest* prevQuest=fklCreateCodegenQuest(_def_const_exp_bc_process
 			,create_def_var_context(name->sym,scope,name->curline)
 			,NULL
 			,scope
@@ -2424,7 +2577,7 @@ static CODEGEN_FUNC(codegen_setq)
 	}
 	else
 	{
-		FklSymbolDef* def=fklAddCodegenRefBySid(name->sym,curEnv,codegen->fid,name->curline);
+		FklSymbolDef* def=fklAddCodegenRefBySid(name->sym,curEnv,codegen->fid,name->curline,1);
 		if(def->isConst)
 		{
 			errorState->type=FKL_ERR_ASSIGN_CONSTANT;
@@ -4189,7 +4342,7 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv* env
 	for(const FklHashTableItem* l=exports->first;l;l=l->next)
 	{
 		const FklCodegenExportSidIndexHashItem* item=(const FklCodegenExportSidIndexHashItem*)l->data;
-		bc.imm=fklAddCodegenDefBySid(item->sid,scope,env);
+		bc.imm=fklAddCodegenDefBySid(item->sid,scope,env)->idx;
 		bc.imm_u32=item->idx;
 		fklBytecodeLntPushBackIns(bcl,&bc,fid,line,scope);
 	}
@@ -4216,7 +4369,7 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv* env
 		fklStringBufferConcatWithString(&buf,origSymbol);
 
 		FklSid_t sym=fklAddSymbolCharBuf(buf.buf,buf.index,pst)->id;
-		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env);
+		uint32_t idx=fklAddCodegenDefBySid(sym,scope,env)->idx;
 		bc.imm=idx;
 		bc.imm_u32=item->idx;
 		fklBytecodeLntPushBackIns(bcl,&bc,fid,line,scope);
@@ -4698,7 +4851,7 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 		FklCodegenExportSidIndexHashItem* item=fklGetHashItem(&cur,exports);
 		if(item)
 		{
-			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
+			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv)->idx;
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
 			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,only->curline,scope);
@@ -4812,7 +4965,7 @@ static inline FklByteCodelnt* process_import_imported_lib_except(uint32_t libId
 		const FklCodegenExportSidIndexHashItem* item=(const FklCodegenExportSidIndexHashItem*)l->data;
 		if(!fklGetHashItem(&item->sid,&excepts))
 		{
-			uint32_t idx=fklAddCodegenDefBySid(item->sid,scope,curEnv);
+			uint32_t idx=fklAddCodegenDefBySid(item->sid,scope,curEnv)->idx;
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
 			fklBytecodeLntPushBackIns(importBc
@@ -4904,7 +5057,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 		FklCodegenExportSidIndexHashItem* item=fklGetHashItem(&cur,exports);
 		if(item)
 		{
-			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
+			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv)->idx;
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
 			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,alias->curline,scope);
@@ -5310,7 +5463,7 @@ process_def_in_lib:
 		{
 			item=fklPutHashItem(&name->sym,&libCodegen->exports);
 			item->idx=idx;
-			item->oidx=fklAddCodegenDefBySid(name->sym,1,curEnv);
+			item->oidx=fklAddCodegenDefBySid(name->sym,1,curEnv)->idx;
 		}
 
 		fklPushPtrStack(fklCreateCodegenQuest(_begin_exp_bc_process
@@ -5552,7 +5705,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 		FklCodegenExportSidIndexHashItem* item=fklGetHashItem(&cur,exports);
 		if(item)
 		{
-			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv);
+			uint32_t idx=fklAddCodegenDefBySid(cur,scope,curEnv)->idx;
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
 			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,only->curline,scope);
@@ -5636,7 +5789,7 @@ static inline FklByteCodelnt* process_import_from_dll_except(FklNastNode* origEx
 		const FklCodegenExportSidIndexHashItem* item=(const FklCodegenExportSidIndexHashItem*)l->data;
 		if(!fklGetHashItem(&item->sid,&excepts))
 		{
-			uint32_t idx=fklAddCodegenDefBySid(item->sid,scope,curEnv);
+			uint32_t idx=fklAddCodegenDefBySid(item->sid,scope,curEnv)->idx;
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
 			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid
@@ -5844,7 +5997,7 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 		if(item)
 		{
 			FklSid_t cur0=curNode->pair->cdr->pair->car->sym;
-			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv);
+			uint32_t idx=fklAddCodegenDefBySid(cur0,scope,curEnv)->idx;
 			bc.imm=idx;
 			bc.imm_u32=item->idx;
 			fklBytecodeLntPushBackIns(importBc,&bc,codegen->fid,alias->curline,scope);
@@ -8855,7 +9008,7 @@ static struct PatternAndFunc
 {
 	const char* ps;
 	FklCodegenFunc func;
-}builtin_pattern_cstr_func[]=
+}builtin_pattern_cstr_func[FKL_CODEGEN_PATTERN_NUM+1]=
 {
 	{"~(begin,~rest)",                                         codegen_begin,             },
 	{"~(local,~rest)",                                         codegen_local,             },
@@ -8880,6 +9033,10 @@ static struct PatternAndFunc
 
 	{"~(define (~name,~args),~rest)",                          codegen_defun,             },
 	{"~(define ~name ~value)",                                 codegen_define,            },
+
+	{"~(defconst (~name,~args),~rest)",                        codegen_defun_const,       },
+	{"~(defconst ~name ~value)",                               codegen_defconst,          },
+
 	{"~(setq ~name ~value)",                                   codegen_setq,              },
 	{"~(check ~value)",                                        codegen_check,             },
 	{"~(quote ~value)",                                        codegen_quote,             },
@@ -9056,7 +9213,7 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest* initialQuest,FklC
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	FklPtrStack resultStack=FKL_STACK_INIT;
 	fklInitPtrStack(&resultStack,1,8);
-	FklCodegenErrorState errorState={0,NULL,0};
+	FklCodegenErrorState errorState={0,NULL,0,0};
 	FklPtrStack codegenQuestStack=FKL_STACK_INIT;
 	fklInitPtrStack(&codegenQuestStack,32,16);
 	fklPushPtrStack(initialQuest,&codegenQuestStack);
@@ -9133,7 +9290,7 @@ skip:
 							bcl=makeGetLocBc(def->idx,curCodegen->fid,curExp->curline,curCodegenQuest->scope);
 						else
 						{
-							uint32_t idx=fklAddCodegenRefBySidRetIndex(curExp->sym,curEnv,curCodegen->fid,curExp->curline);
+							uint32_t idx=fklAddCodegenRefBySidRetIndex(curExp->sym,curEnv,curCodegen->fid,curExp->curline,0);
 							bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline,curCodegenQuest->scope);
 						}
 						curContext->t->__put_bcl(curContext->data,bcl);
@@ -9170,6 +9327,7 @@ print_error:
 					,curCodegen
 					,curCodegen->globalSymTable
 					,errorState.line
+					,errorState.fid
 					,pst);
 			while(!fklIsPtrStackEmpty(&codegenQuestStack))
 			{

@@ -555,7 +555,7 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 		}
 		else if(env->prev!=global_env)
 		{
-			ref->cidx=fklAddCodegenRefBySidRetIndex(uref->id,env,uref->fid,uref->line);
+			ref->cidx=fklAddCodegenRefBySidRetIndex(uref->id,env,uref->fid,uref->line,uref->assign);
 			free(uref);
 		}
 		else

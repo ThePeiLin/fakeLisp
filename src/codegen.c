@@ -612,7 +612,7 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 		}
 		else if(env->prev)
 		{
-			ref->cidx=fklAddCodegenRefBySid(uref->id,env,uref->fid,uref->line);
+			ref->cidx=fklAddCodegenRefBySidRetIndex(uref->id,env,uref->fid,uref->line);
 			free(uref);
 		}
 		else
@@ -1766,7 +1766,7 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht
 	{
 		FklSymbolDef* sd=(FklSymbolDef*)list->data;
 		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,pst)->symbol,globalSymTable)->id;
-		FklSymbolDef ref={{sid,0},sd->idx,sd->cidx,sd->isLocal};
+		FklSymbolDef ref={{sid,0},sd->idx,sd->cidx,sd->isLocal,sd->isConst};
 		refs[sd->idx]=ref;
 	}
 	return refs;
@@ -2259,6 +2259,14 @@ static CODEGEN_FUNC(codegen_lambda)
 			,codegenQuestStack);
 }
 
+static inline int is_constant_defined(FklSid_t id,uint32_t scope,FklCodegenEnv* curEnv)
+{
+	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,curEnv);
+	if(def&&def->isConst)
+		return 1;
+	return 0;
+}
+
 static CODEGEN_FUNC(codegen_define)
 {
 	FklNastNode* name=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name,ht);
@@ -2267,6 +2275,12 @@ static CODEGEN_FUNC(codegen_define)
 	{
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	if(is_constant_defined(name->sym,scope,curEnv))
+	{
+		errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+		errorState->place=fklMakeNastNodeRef(name);
 		return;
 	}
 	FklPtrQueue* queue=fklCreatePtrQueue();
@@ -2291,6 +2305,12 @@ static CODEGEN_FUNC(codegen_defun)
 	{
 		errorState->type=FKL_ERR_SYNTAXERROR;
 		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	if(is_constant_defined(name->sym,scope,curEnv))
+	{
+		errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+		errorState->place=fklMakeNastNodeRef(name);
 		return;
 	}
 
@@ -2393,12 +2413,26 @@ static CODEGEN_FUNC(codegen_setq)
 	fklPushPtrQueue(fklMakeNastNodeRef(value),queue);
 	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(name->sym,scope,curEnv);
 	if(def)
+	{
+		if(def->isConst)
+		{
+			errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+			errorState->place=fklMakeNastNodeRef(name);
+			return;
+		}
 		fklPushPtrStack(makePutLoc(name->curline,name->sym,def->idx,scope,codegen->fid),stack);
+	}
 	else
 	{
-		uint32_t idx=fklAddCodegenRefBySid(name->sym,curEnv,codegen->fid,name->curline);
-		mark_modify_builtin_ref(idx,curEnv,codegen);
-		fklPushPtrStack(makePutRefLoc(name,idx,scope,codegen->fid),stack);
+		FklSymbolDef* def=fklAddCodegenRefBySid(name->sym,curEnv,codegen->fid,name->curline);
+		if(def->isConst)
+		{
+			errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+			errorState->place=fklMakeNastNodeRef(name);
+			return;
+		}
+		mark_modify_builtin_ref(def->idx,curEnv,codegen);
+		fklPushPtrStack(makePutRefLoc(name,def->idx,scope,codegen->fid),stack);
 	}
 	FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_set_var_exp_bc_process
 			,createDefaultStackContext(stack)
@@ -9099,7 +9133,7 @@ skip:
 							bcl=makeGetLocBc(def->idx,curCodegen->fid,curExp->curline,curCodegenQuest->scope);
 						else
 						{
-							uint32_t idx=fklAddCodegenRefBySid(curExp->sym,curEnv,curCodegen->fid,curExp->curline);
+							uint32_t idx=fklAddCodegenRefBySidRetIndex(curExp->sym,curEnv,curCodegen->fid,curExp->curline);
 							bcl=makeGetVarRefBc(idx,curCodegen->fid,curExp->curline,curCodegenQuest->scope);
 						}
 						curContext->t->__put_bcl(curContext->data,bcl);

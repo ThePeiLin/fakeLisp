@@ -492,6 +492,7 @@ FklString* fklGenErrorMessage(FklBuiltinErrorType type)
 		"Regex compile failed",
 		"Grammer create failed",
 		"Radix for float should be 10 or 16 for float",
+		"attempt to assign constant",
 	};
 	const char* s=builtinErrorMessages[type];
 	FKL_ASSERT(s);
@@ -2423,6 +2424,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"grammer-error",
 		"grammer-error",
 		"value-error",
+		"symbol-error",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)

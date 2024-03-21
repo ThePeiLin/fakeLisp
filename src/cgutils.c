@@ -70,6 +70,7 @@ void fklPrintCodegenError(FklNastNode* obj
 		"grammer-error",
 		"grammer-error",
 		"value-error",
+		"symbol-error",
 	};;
 
 	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
@@ -144,6 +145,10 @@ void fklPrintCodegenError(FklNastNode* obj
 			fputs("Failed to compile regex in ",stderr);
 			fklPrintNastNode(obj,stderr,publicSymbolTable);
 			break;
+		case FKL_ERR_ASSIGN_CONSTANT:
+			fputs("attempt to assign constant ",stderr);
+			fklPrintNastNode(obj,stderr,publicSymbolTable);
+			break;
 		default:
 			fputs("Unknown compiling error",stderr);
 			break;
@@ -172,15 +177,15 @@ void fklPrintCodegenError(FklNastNode* obj
 		fklDestroyNastNode(obj);
 }
 
-#define INIT_SYMBOL_DEF(ID,SCOPE,IDX) {{ID,SCOPE},IDX,IDX,0}
+#define INIT_SYMBOL_DEF(ID,SCOPE,IDX) {{ID,SCOPE},IDX,IDX,0,0}
 
-uint32_t fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env)
+FklSymbolDef* fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env)
 {
 	FklHashTable* ht=&env->refs;
 	uint32_t idx=ht->num;
 	FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 	FklSymbolDef* el=fklGetOrPutHashItem(&def,ht);
-	return el->idx;
+	return el;
 }
 
 static inline FklSymbolDef* has_outer_def(FklCodegenEnv* cur
@@ -207,15 +212,20 @@ static void initSymbolDef(FklSymbolDef* def,uint32_t idx)
 	def->idx=idx;
 	def->cidx=idx;
 	def->isLocal=0;
+	def->isConst=0;
 }
 
 static inline FklSymbolDef* add_ref_to_all_penv(FklSid_t id
 		,FklCodegenEnv* cur
-		,FklCodegenEnv* targetEnv)
+		,FklCodegenEnv* targetEnv
+		,uint8_t isConst
+		,FklSymbolDef** new_ref)
 {
 	uint32_t idx=cur->refs.num;
 	FklSymbolDef def=INIT_SYMBOL_DEF(id,cur->pscope,idx);
+	def.isConst=isConst;
 	FklSymbolDef* cel=fklGetOrPutHashItem(&def,&cur->refs);
+	*new_ref=cel;
 	for(cur=cur->prev;cur!=targetEnv;cur=cur->prev)
 	{
 		uint32_t idx=cur->refs.num;
@@ -289,15 +299,16 @@ FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
 	return el;
 }
 
-uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
+FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
 {
 	FklHashTable* ht=&env->refs;
 	FklSidScope key={id,env->pscope};
 	FklSymbolDef* el=fklGetHashItem(&key,ht);
 	if(el)
-		return el->idx;
+		return el;
 	else
 	{
+		FklSymbolDef* ret=NULL;
 		uint32_t idx=ht->num;
 		FklCodegenEnv* prev=env->prev;
 		if(prev)
@@ -306,7 +317,7 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 			FklSymbolDef* targetDef=has_outer_def(prev,id,env->pscope,&targetEnv);
 			if(targetDef)
 			{
-				FklSymbolDef* cel=add_ref_to_all_penv(id,env,targetEnv);
+				FklSymbolDef* cel=add_ref_to_all_penv(id,env,targetEnv,targetDef->isConst,&ret);
 				cel->isLocal=1;
 				cel->cidx=targetDef->idx;
 				targetEnv->slotFlags[targetDef->idx]=FKL_CODEGEN_ENV_SLOT_REF;
@@ -317,12 +328,12 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 						,id
 						,&targetEnv);
 				if(targetRef&&is_ref_solved(targetRef,targetEnv->prev))
-					add_ref_to_all_penv(id,env,targetEnv->prev);
+					add_ref_to_all_penv(id,env,targetEnv->prev,targetRef->isConst,&ret);
 				else
 				{
 					FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
-					FklSymbolDef* cel=fklGetOrPutHashItem(&def,ht);
-					cel->cidx=UINT32_MAX;
+					ret=fklGetOrPutHashItem(&def,ht);
+					ret->cidx=UINT32_MAX;
 					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,def.k.scope,env->prototypeId,fid,line);
 					fklPushPtrStack(unref,&prev->uref);
 				}
@@ -331,13 +342,18 @@ uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint6
 		else
 		{
 			FklSymbolDef def=INIT_SYMBOL_DEF(id,0,idx);
-			FklSymbolDef* cel=fklGetOrPutHashItem(&def,ht);
-			idx=cel->idx;
+			ret=fklGetOrPutHashItem(&def,ht);
+			idx=ret->idx;
 			FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,0,env->prototypeId,fid,line);
 			fklPushPtrStack(unref,&env->uref);
 		}
-		return idx;
+		return ret;
 	}
+}
+
+uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line)
+{
+	return fklAddCodegenRefBySid(id,env,fid,line)->idx;
 }
 
 int fklIsSymbolDefined(FklSid_t id,uint32_t scope,FklCodegenEnv* env)

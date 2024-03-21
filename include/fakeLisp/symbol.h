@@ -73,6 +73,7 @@ typedef struct FklSymbolDef
 	uint32_t idx;
 	uint32_t cidx;
 	uint8_t isLocal;
+	uint8_t isConst;
 }FklSymbolDef;
 
 typedef struct //unresolved symbol ref

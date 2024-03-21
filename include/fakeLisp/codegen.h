@@ -428,8 +428,9 @@ void fklPrintCodegenError(FklNastNode* obj
 
 void fklPrintUndefinedRef(const FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* pst);
 
-uint32_t fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env);
-uint32_t fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
+FklSymbolDef* fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env);
+uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
+FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line);
 FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
 
 uint32_t fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);

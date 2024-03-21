@@ -67,6 +67,8 @@ typedef struct
 	uint32_t scope;
 }FklSidScope;
 
+#define FKL_VAR_REF_INVALID_CIDX (UINT32_MAX)
+
 typedef struct FklSymbolDef
 {
 	FklSidScope k;

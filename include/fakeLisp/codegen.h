@@ -25,7 +25,6 @@ typedef struct FklCodegenEnvScope
 
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
-#define FKL_CODEGEN_INVALID_CIDX (UINT32_MAX)
 
 typedef struct FklCodegenEnv
 {

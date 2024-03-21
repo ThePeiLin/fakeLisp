@@ -378,7 +378,7 @@ FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,
 				{
 					FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 					ret=fklGetOrPutHashItem(&def,ht);
-					ret->cidx=FKL_CODEGEN_INVALID_CIDX;
+					ret->cidx=FKL_VAR_REF_INVALID_CIDX;
 					FklUnReSymbolRef* unref=createUnReSymbolRef(id,idx,def.k.scope,env->prototypeId,assign,fid,line);
 					fklPushPtrStack(unref,&prev->uref);
 				}

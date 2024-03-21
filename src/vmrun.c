@@ -356,6 +356,17 @@ static inline void close_var_ref(FklVMvalue* ref)
 	atomic_store(&(FKL_VM_VAR_REF(ref)->ref),&(FKL_VM_VAR_REF(ref)->v));
 }
 
+void fklCloseVMvalueVarRef(FklVMvalue* ref)
+{
+	close_var_ref(ref);
+}
+
+int fklIsClosedVMvalueVarRef(FklVMvalue* ref)
+{
+	FklVMvalue** p=FKL_VM_VAR_REF_GET(ref);
+	return p==&FKL_VM_VAR_REF(ref)->v;
+}
+
 static inline void close_all_var_ref(FklVMCompoundFrameVarRef* lr)
 {
 	for(FklVMvarRefList* l=lr->lrefl;l;)
@@ -646,8 +657,8 @@ static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 	FklVMvalue** refs=lr->ref;
 	FklVMvalue* volatile* v=(idx>=lr->rcount||!(FKL_VM_VAR_REF(refs[idx])->ref))
 		?NULL
-		:FKL_VM_VAR_REF_GET(lr->ref[idx]);
-	if(!v)
+		:FKL_VM_VAR_REF_GET(refs[idx]);
+	if(!v||!*v)
 	{
 		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
 		FklFuncPrototype* pt=&pts->pa[proc->protoId];

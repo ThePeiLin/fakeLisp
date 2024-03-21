@@ -350,6 +350,8 @@ void* fklGetFrameData(FklVMframe* f);
 int fklDoCallableObjFrameStep(FklVMframe* f,struct FklVM* exe);
 void fklDoFinalizeObjFrame(struct FklVM*,FklVMframe* f);
 void fklDoFinalizeCompoundFrame(struct FklVM* exe,FklVMframe* frame);
+void fklCloseVMvalueVarRef(FklVMvalue* ref);
+int fklIsClosedVMvalueVarRef(FklVMvalue* ref);
 
 typedef struct FklVMlib
 {

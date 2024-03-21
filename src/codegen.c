@@ -413,7 +413,7 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(uint32_t idx
 						ref=def;
 					else
 						idx=def->cidx;
-					if(idx==FKL_CODEGEN_INVALID_CIDX)
+					if(idx==FKL_VAR_REF_INVALID_CIDX)
 						return NULL;
 					env=env->prev;
 				}

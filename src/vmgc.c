@@ -249,7 +249,6 @@ FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklFuncPrototypes* pts)
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
 	uv_rwlock_init(&gc->st_lock);
-	uv_rwlock_init(&gc->int_lock);
 	uv_mutex_init(&gc->extra_mark_lock);
 	gc->st=st;
 	gc->pts=pts;
@@ -462,7 +461,6 @@ void fklDestroyVMgc(FklVMgc* gc)
 {
 	fklDestroyFuncPrototypes(gc->pts);
 	uv_rwlock_destroy(&gc->st_lock);
-	uv_rwlock_destroy(&gc->int_lock);
 	uv_mutex_destroy(&gc->workq_lock);
 	uv_mutex_destroy(&gc->extra_mark_lock);
 	destroy_interrupt_handle_list(gc->int_list);
@@ -483,16 +481,6 @@ void fklVMacquireWq(FklVMgc* gc)
 void fklVMreleaseWq(FklVMgc* gc)
 {
 	uv_mutex_unlock(&gc->workq_lock);
-}
-
-void fklVMacquireInt(FklVMgc* gc)
-{
-	uv_rwlock_wrlock(&gc->int_lock);
-}
-
-void fklVMreleaseInt(FklVMgc* gc)
-{
-	uv_rwlock_wrunlock(&gc->int_lock);
 }
 
 void fklVMacquireSt(FklVMgc* gc)
@@ -538,14 +526,9 @@ FklVMinterruptResult fklVMinterrupt(FklVM* vm,FklVMvalue* ev,FklVMvalue** pv)
 		if(l->int_handler(vm,ev,&ev,l->int_handle_arg)==FKL_INT_DONE)
 			return FKL_INT_DONE;
 	FklVMgc* gc=vm->gc;
-	uv_rwlock_rdlock(&gc->int_lock);
 	for(l=gc->int_list;l;l=l->next)
 		if(l->int_handler(vm,ev,&ev,l->int_handle_arg)==FKL_INT_DONE)
-		{
-			uv_rwlock_rdunlock(&gc->int_lock);
 			return FKL_INT_DONE;
-		}
-	uv_rwlock_rdunlock(&gc->int_lock);
 	if(pv)
 		*pv=ev;
 	return FKL_INT_NEXT;
@@ -563,10 +546,8 @@ void fklVMpushInterruptHandler(FklVMgc* gc
 	l->int_handle_arg=arg;
 	l->mark=mark;
 	l->finalizer=finalizer;
-	uv_rwlock_wrlock(&gc->int_lock);
 	l->next=gc->int_list;
 	gc->int_list=l;
-	uv_rwlock_wrunlock(&gc->int_lock);
 }
 
 void fklVMpushInterruptHandlerLocal(FklVM* exe

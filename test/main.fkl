@@ -40,8 +40,7 @@
            (sync)
            (cir-ref)
            (remq)
-           (fuv)
-           (int))
+           (fuv))
 
 (newline)
 (foreach println (hash-values msg-list))

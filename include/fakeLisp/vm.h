@@ -614,7 +614,6 @@ typedef struct FklVMgc
 
 	atomic_uint work_num;
 
-	uv_rwlock_t int_lock;
 	struct FklVMinterruptHandleList
 	{
 		struct FklVMinterruptHandleList* next;
@@ -692,8 +691,6 @@ void fklVMidleLoop(FklVMgc* gc);
 void fklVMtrappingIdleLoop(FklVMgc* gc);
 
 FklVMinterruptResult fklVMinterrupt(FklVM*,FklVMvalue* v,FklVMvalue** pv);
-void fklVMacquireInt(FklVMgc*);
-void fklVMreleaseInt(FklVMgc*);
 void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList* l);
 void fklVMpushInterruptHandler(FklVMgc*
 		,FklVMinterruptHandler

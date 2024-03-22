@@ -195,8 +195,9 @@ FklVMinterruptResult dbgInterruptHandler(FklVM* exe
 						}
 						else if(same_proc_frame==f)
 						{
-							if(next_ins_ln->line!=ln->line||
-									next_ins_ln->fid!=ln->fid)
+							if(next_ins_ln->line!=ln->line
+									||next_ins_ln->fid!=ln->fid
+									||f->c.pc->op==FKL_OP_RET)
 							{
 								DbgInterruptArg arg=
 								{

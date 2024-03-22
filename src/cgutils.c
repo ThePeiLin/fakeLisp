@@ -21,6 +21,11 @@ FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,const FklC
 	return NULL;
 }
 
+FklSymbolDef* fklGetCodegenDefByIdInScope(FklSid_t id,uint32_t scope,const FklCodegenEnv* env)
+{
+	return get_def_by_id_in_scope(id,scope,&env->scopes[scope-1]);
+}
+
 void fklPrintCodegenError(FklNastNode* obj
 		,FklBuiltinErrorType type
 		,const FklCodegenInfo* info
@@ -322,7 +327,7 @@ FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env)
 	return el;
 }
 
-static inline FklUnReSymbolRef* has_resolvable_ref(FklSid_t id,uint32_t scope,FklCodegenEnv* env)
+static inline FklUnReSymbolRef* has_resolvable_ref(FklSid_t id,uint32_t scope,const FklCodegenEnv* env)
 {
 	FklUnReSymbolRef** urefs=(FklUnReSymbolRef**)env->uref.base;
 	uint32_t top=env->uref.top;

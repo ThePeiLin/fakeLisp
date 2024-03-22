@@ -34,7 +34,8 @@ static inline int isExportDefReaderMacroExp(const FklNastNode* c,FklNastNode* co
 
 static inline int isExportDefineExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
 {
-	return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFINE],c,NULL);
+	return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFINE],c,NULL)
+		||fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFCONST],c,NULL);
 }
 
 static inline int isBeginExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
@@ -44,7 +45,8 @@ static inline int isBeginExp(const FklNastNode* c,FklNastNode* const* builtin_pa
 
 static inline int isExportDefunExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
 {
-	return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFUN],c,NULL);
+	return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFUN],c,NULL)
+		||fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFUN_CONST],c,NULL);
 }
 
 static inline int isNonRetvalExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
@@ -2261,7 +2263,7 @@ static CODEGEN_FUNC(codegen_lambda)
 
 static inline int is_constant_defined(FklSid_t id,uint32_t scope,FklCodegenEnv* curEnv)
 {
-	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,curEnv);
+	FklSymbolDef* def=fklGetCodegenDefByIdInScope(id,scope,curEnv);
 	return def&&def->isConst;
 }
 
@@ -2334,7 +2336,7 @@ BC_PROCESS(_def_const_exp_bc_process)
 
 static inline int is_variable_defined(FklSid_t id,uint32_t scope,FklCodegenEnv* curEnv)
 {
-	FklSymbolDef* def=fklFindSymbolDefByIdAndScope(id,scope,curEnv);
+	FklSymbolDef* def=fklGetCodegenDefByIdInScope(id,scope,curEnv);
 	return def!=NULL;
 }
 
@@ -5405,6 +5407,60 @@ static inline FklSid_t get_reader_macro_group_id(const FklNastNode* node)
 	return 0;
 }
 
+typedef struct
+{
+	FklSid_t id;
+	FklCodegenExportSidIndexHashItem* item;
+	FklPtrStack stack;
+}ExportDefineContext;
+
+static void _export_define_context_finalizer(void* data)
+{
+	ExportDefineContext* ctx=data;
+	FklPtrStack* s=&ctx->stack;
+	while(!fklIsPtrStackEmpty(s))
+		fklDestroyByteCodelnt(fklPopPtrStack(s));
+	fklUninitPtrStack(s);
+	free(ctx);
+}
+
+static void _export_define_context_put_bcl(void* data,FklByteCodelnt* bcl)
+{
+	ExportDefineContext* ctx=data;
+	FklPtrStack* s=&ctx->stack;
+	fklPushPtrStack(bcl,s);
+}
+
+static FklPtrStack* _export_define_context_get_bcl_stack(void* data)
+{
+	return &((ExportDefineContext*)data)->stack;
+}
+
+static const FklCodegenQuestContextMethodTable ExportDefineContextMethodTable=
+{
+	.__finalizer=_export_define_context_finalizer,
+	.__put_bcl=_export_define_context_put_bcl,
+	.__get_bcl_stack=_export_define_context_get_bcl_stack,
+};
+
+static inline FklCodegenQuestContext* create_export_define_context(FklSid_t id,FklCodegenExportSidIndexHashItem* item)
+{
+	ExportDefineContext* ctx=(ExportDefineContext*)malloc(sizeof(ExportDefineContext));
+	FKL_ASSERT(ctx);
+	ctx->id=id;
+	ctx->item=item;
+	fklInitPtrStack(&ctx->stack,2,8);
+	return createCodegenQuestContext(ctx,&ExportDefineContextMethodTable);
+}
+
+BC_PROCESS(_export_define_bc_process)
+{
+	ExportDefineContext* ctx=context->data;
+	FklPtrStack* stack=&ctx->stack;
+	ctx->item->oidx=fklGetCodegenDefByIdInScope(ctx->id,1,env)->idx;
+	return sequnce_exp_bc_process(stack,fid,line,scope);
+}
+
 static CODEGEN_FUNC(codegen_export_single)
 {
 	FklCodegenInfo* libCodegen=get_lib_codegen(codegen);
@@ -5463,11 +5519,11 @@ process_def_in_lib:
 		{
 			item=fklPutHashItem(&name->sym,&libCodegen->exports);
 			item->idx=idx;
-			item->oidx=fklAddCodegenDefBySid(name->sym,1,curEnv)->idx;
+			item->oidx=FKL_VAR_REF_INVALID_CIDX;
 		}
 
-		fklPushPtrStack(fklCreateCodegenQuest(_begin_exp_bc_process
-					,createDefaultStackContext(fklCreatePtrStack(2,16))
+		fklPushPtrStack(fklCreateCodegenQuest(_export_define_bc_process
+					,create_export_define_context(name->sym,item)
 					,createDefaultQueueNextExpression(queue)
 					,1
 					,macroScope

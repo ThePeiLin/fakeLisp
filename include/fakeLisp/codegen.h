@@ -166,8 +166,9 @@ typedef enum
 	FKL_CODEGEN_PATTERN_DEFUN,
 	FKL_CODEGEN_PATTERN_DEFINE,
 
-	FKL_CODEGEN_PATTERN_DEFCONST,
 	FKL_CODEGEN_PATTERN_DEFUN_CONST,
+	FKL_CODEGEN_PATTERN_DEFCONST,
+
 	FKL_CODEGEN_PATTERN_SETQ,
 	FKL_CODEGEN_PATTERN_CHECK,
 	FKL_CODEGEN_PATTERN_QUOTE,
@@ -423,6 +424,7 @@ FklByteCodelnt* fklGenExpressionCodeWithFpForPrecompile(FILE* fp
 		,FklCodegenEnv* cur_env);
 
 FklSymbolDef* fklFindSymbolDefByIdAndScope(FklSid_t id,uint32_t scope,const FklCodegenEnv* env);
+FklSymbolDef* fklGetCodegenDefByIdInScope(FklSid_t id,uint32_t scope,const FklCodegenEnv* env);
 
 void fklPrintCodegenError(FklNastNode* obj
 		,FklBuiltinErrorType type

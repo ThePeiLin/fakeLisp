@@ -226,14 +226,6 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 	return r;
 }
 
-struct arg_lit* help;
-struct arg_lit* interactive;
-struct arg_lit* module;
-struct arg_str* rest;
-struct arg_end* end;
-
-struct arg_str* priority;
-
 enum PriorityEnum
 {
 	PRIORITY_UNSET=0,
@@ -296,10 +288,10 @@ static inline int process_priority(char* str,enum PriorityEnum priority_array[PR
 	for(uint32_t i=0;i<token_count;i++)
 	{
 		const char* cur=fklTrim(priority_strs[i]);
-		uint32_t j=1;
 
 		if(*cur!=*PRIORITY_PLACEHOLDER)
 		{
+			uint32_t j=1;
 			for(;j<PRIORITY_PACKAGE_PRECOMPILE+1;j++)
 			{
 				if(!strcmp(cur,priority_str[j]))
@@ -341,6 +333,14 @@ error:
 	return 1;
 }
 
+struct arg_lit* help;
+struct arg_lit* interactive;
+struct arg_lit* module;
+struct arg_str* rest;
+struct arg_str* priority;
+struct arg_str* specify;
+struct arg_end* end;
+
 int main(int argc,char* argv[])
 {
 	argv=uv_setup_args(argc,argv);
@@ -357,6 +357,8 @@ int main(int argc,char* argv[])
 				,NULL
 				,"order of which type to filename be handled. the default priority is "
 				"'package-script, module-script, package-bytecode, module-bytecode, package-precompile'"),
+
+		specify=arg_str0("s","specify",NULL,"specify the file type of module"),
 
 		rest=arg_strn(NULL,NULL,"file [args]",0,argc+2,"file and args"),
 
@@ -436,10 +438,43 @@ interactive:;
 		else
 		{
 handle_module:;
+			  if(priority->count>0&&specify->count>0)
+				  goto error;
+
 			  enum PriorityEnum priority_array[PRIORITY_PACKAGE_PRECOMPILE]={PRIORITY_UNSET};
 
-			  if(process_priority((char*)priority->sval[0],priority_array))
-				  goto error;
+			  if(priority->count>0)
+			  {
+				  if(process_priority((char*)priority->sval[0],priority_array))
+					  goto error;
+			  }
+			  else if(specify->count)
+			  {
+				  const char* cur=fklTrim((char*)specify->sval[0]);
+				  uint32_t j=1;
+				  for(;j<PRIORITY_PACKAGE_PRECOMPILE+1;j++)
+				  {
+					  if(!strcmp(cur,priority_str[j]))
+					  {
+						  priority_array[0]=j;
+						  break;
+					  }
+				  }
+
+				  if(j>PRIORITY_PACKAGE_PRECOMPILE)
+					  goto error;
+
+
+				  priority_array[1]=PRIORITY_UNSET;
+			  }
+			  else
+			  {
+				  priority_array[0]=PRIORITY_PACKAGE_SCRIPT;
+				  priority_array[1]=PRIORITY_MODULE_SCRIPT;
+				  priority_array[2]=PRIORITY_PACKAGE_BYTECODE;
+				  priority_array[3]=PRIORITY_MODULE_BYTECODE;
+				  priority_array[4]=PRIORITY_PACKAGE_PRECOMPILE;
+			  }
 
 			  FklStringBuffer main_script_buf;
 			  fklInitStringBuffer(&main_script_buf);
@@ -459,7 +494,7 @@ handle_module:;
 				  switch(priority_array[i])
 				  {
 					  case PRIORITY_UNSET:
-						  abort();
+						  goto execute_err;
 						  break;
 					  case PRIORITY_MODULE_SCRIPT:
 						  if(fklIsAccessibleRegFile(module_script_file))
@@ -500,6 +535,7 @@ handle_module:;
 				  }
 			  }
 
+execute_err:
 			  exitState=FKL_EXIT_FAILURE;
 			  fprintf(stderr,"%s: No such file or directory\n",filename);
 

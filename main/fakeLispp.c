@@ -3,6 +3,7 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/common.h>
 #include<fakeLisp/builtin.h>
+#include<argtable3.h>
 #include<stdio.h>
 #include<string.h>
 #ifdef _WIN32
@@ -19,203 +20,240 @@ static void print_compiler_macros(FklCodegenMacro* head,const FklSymbolTable* ps
 
 static void print_reader_macros(const FklHashTable* named_prod_groups,const FklSymbolTable* pst,FILE* fp);
 
+struct arg_lit* help;
+struct arg_file* files;
+struct arg_end* end;
+
 int main(int argc,char** argv)
 {
-	if(argc<2)
+	int exitState=0;
+	const char* progname=argv[0];
+	void* argtable[]=
 	{
-		fprintf(stderr,"error:Not input file!\n");
-		return EXIT_FAILURE;
+		help=arg_lit0("h","help","display this help and exit"),
+		files=arg_filen(NULL,NULL,NULL,1,argc+2,"files"),
+		end=arg_end(20),
+	};
+
+	int nerrors=arg_parse(argc,argv,argtable);
+
+	if(help->count>0)
+	{
+		printf("Usage: %s",progname);
+		arg_print_syntaxv(stdout,argtable,"\n");
+		arg_print_glossary_gnu(stdout,argtable);
+		goto exit;
 	}
-	char* filename=argv[1];
-	if(fklIsByteCodeFile(filename))
+
+	if(nerrors)
 	{
-		if(!fklIsAccessibleRegFile(filename))
-		{
-			perror(filename);
-			return EXIT_FAILURE;
-		}
-		FILE* fp=fopen(argv[1],"rb");
-		if(fp==NULL)
-		{
-			perror(filename);
-			return EXIT_FAILURE;
-		}
-		FklSymbolTable table;
-		fklInitSymbolTable(&table);
-		fklLoadSymbolTable(fp,&table);
-		fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
-		char* rp=fklRealpath(filename);
-		free(rp);
-
-		FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
-		fklPrintByteCodelnt(bcl,stdout,&table);
-		fputc('\n',stdout);
-		fklDestroyByteCodelnt(bcl);
-		FklCodegenLib* libs=NULL;
-		size_t num=0;
-		loadLib(fp,&num,&libs,&table);
-		for(size_t i=0;i<num;i++)
-		{
-			FklCodegenLib* cur=&libs[i];
-			fputc('\n',stdout);
-			printf("lib %"FKL_PRT64U":\n",i+1);
-			switch(cur->type)
-			{
-				case FKL_CODEGEN_LIB_SCRIPT:
-					fklPrintByteCodelnt(cur->bcl,stdout,&table);
-					break;
-				case FKL_CODEGEN_LIB_DLL:
-					fputs(cur->rp,stdout);
-					break;
-			}
-			fputc('\n',stdout);
-			fklUninitCodegenLib(cur);
-		}
-		puts("\nglobal symbol table:");
-		fklPrintSymbolTable(&table,stdout);
-
-		free(libs);
-		fclose(fp);
-		fklUninitSymbolTable(&table);
+		arg_print_errors(stdout,end,progname);
+		printf("Try '%s --help' for more informaction.\n",progname);
+		exitState=EXIT_FAILURE;
+		goto exit;
 	}
-	else if(fklIsPrecompileFile(filename))
+
+	for(int i=0;i<files->count;i++)
 	{
-		if(!fklIsAccessibleRegFile(filename))
+		const char* filename=files->filename[i];
+		const char* extension=files->extension[i];
+
+		if(!strcmp(extension,FKL_BYTECODE_FILE_EXTENSION))
 		{
-			perror(filename);
-			return EXIT_FAILURE;
-		}
-		char* cwd=fklSysgetcwd();
-		free(cwd);
-		FILE* fp=fopen(argv[1],"rb");
-		if(fp==NULL)
-		{
-			perror(filename);
-			return EXIT_FAILURE;
-		}
-		FklSymbolTable gst;
-		fklInitSymbolTable(&gst);
-
-		FklFuncPrototypes pts;
-		fklInitFuncPrototypes(&pts,0);
-
-		FklFuncPrototypes macro_pts;
-		fklInitFuncPrototypes(&macro_pts,0);
-
-		FklPtrStack scriptLibStack;
-		fklInitPtrStack(&scriptLibStack,8,16);
-
-		FklPtrStack macroScriptLibStack;
-		fklInitPtrStack(&macroScriptLibStack,8,16);
-
-		FklCodegenOuterCtx ctx;
-		fklInitCodegenOuterCtxExceptPattern(&ctx);
-
-		char* rp=fklRealpath(filename);
-		char* errorStr=NULL;
-		int load_result=fklLoadPreCompile(&pts
-				,&macro_pts
-				,&scriptLibStack
-				,&macroScriptLibStack
-				,&gst
-				,&ctx
-				,rp
-				,fp
-				,&errorStr);
-		free(rp);
-		fclose(fp);
-		int exit_state=0;
-		if(load_result)
-		{
-			if(errorStr)
+			FILE* fp=fopen(filename,"rb");
+			if(fp==NULL)
 			{
-				fprintf(stderr,"%s\n",errorStr);
-				free(errorStr);
+				perror(filename);
+				exitState=EXIT_FAILURE;
+				goto exit;
 			}
-			exit_state=1;
-			goto exit;
-		}
+			FklSymbolTable table;
+			fklInitSymbolTable(&table);
+			fklLoadSymbolTable(fp,&table);
+			fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
+			char* rp=fklRealpath(filename);
+			free(rp);
 
-		FklSymbolTable* pst=&ctx.public_symbol_table;
-		uint32_t num=scriptLibStack.top;
-		for(size_t i=0;i<num;i++)
-		{
-			FklCodegenLib* cur=scriptLibStack.base[i];
+			FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
+			printf("file: %s\n\n",filename);
+			fklPrintByteCodelnt(bcl,stdout,&table);
 			fputc('\n',stdout);
-			printf("lib %"FKL_PRT64U":\n",i+1);
-			switch(cur->type)
-			{
-				case FKL_CODEGEN_LIB_SCRIPT:
-					fklPrintByteCodelnt(cur->bcl,stdout,&gst);
-					if(cur->head)
-						print_compiler_macros(cur->head,pst,stdout);
-					if(cur->named_prod_groups.t)
-						print_reader_macros(&cur->named_prod_groups
-								,pst
-								,stdout);
-					break;
-				case FKL_CODEGEN_LIB_DLL:
-					fputs(cur->rp,stdout);
-					break;
-			}
-			fputc('\n',stdout);
-		}
-
-		if(macroScriptLibStack.top>0)
-		{
-			fputc('\n',stdout);
-			puts("macro loaded libs:\n");
-			num=macroScriptLibStack.top;
+			fklDestroyByteCodelnt(bcl);
+			FklCodegenLib* libs=NULL;
+			size_t num=0;
+			loadLib(fp,&num,&libs,&table);
 			for(size_t i=0;i<num;i++)
 			{
-				FklCodegenLib* cur=macroScriptLibStack.base[i];
-				putchar('\n');
+				FklCodegenLib* cur=&libs[i];
+				fputc('\n',stdout);
 				printf("lib %"FKL_PRT64U":\n",i+1);
 				switch(cur->type)
 				{
 					case FKL_CODEGEN_LIB_SCRIPT:
-						fklPrintByteCodelnt(cur->bcl,stdout,pst);
-						if(cur->head)
-							print_compiler_macros(cur->head,pst,stdout);
-						if(cur->named_prod_groups.t)
-							print_reader_macros(&cur->named_prod_groups
-									,pst
-									,stdout);
+						fklPrintByteCodelnt(cur->bcl,stdout,&table);
 						break;
 					case FKL_CODEGEN_LIB_DLL:
 						fputs(cur->rp,stdout);
 						break;
 				}
 				fputc('\n',stdout);
+				fklUninitCodegenLib(cur);
 			}
-		}
-		puts("\nglobal symbol table:");
-		fklPrintSymbolTable(&gst,stdout);
+			puts("\nglobal symbol table:");
+			fklPrintSymbolTable(&table,stdout);
 
-		puts("\npublic symbol table:");
-		fklPrintSymbolTable(&ctx.public_symbol_table,stdout);
+			free(libs);
+			fclose(fp);
+			fklUninitSymbolTable(&table);
+		}
+		else if(!strcmp(extension,FKL_PRE_COMPILE_FILE_EXTENSION))
+		{
+			char* cwd=fklSysgetcwd();
+			free(cwd);
+			FILE* fp=fopen(filename,"rb");
+			if(fp==NULL)
+			{
+				perror(filename);
+				exitState=EXIT_FAILURE;
+				return EXIT_FAILURE;
+			}
+			FklSymbolTable gst;
+			fklInitSymbolTable(&gst);
+
+			FklFuncPrototypes pts;
+			fklInitFuncPrototypes(&pts,0);
+
+			FklFuncPrototypes macro_pts;
+			fklInitFuncPrototypes(&macro_pts,0);
+
+			FklPtrStack scriptLibStack;
+			fklInitPtrStack(&scriptLibStack,8,16);
+
+			FklPtrStack macroScriptLibStack;
+			fklInitPtrStack(&macroScriptLibStack,8,16);
+
+			FklCodegenOuterCtx ctx;
+			fklInitCodegenOuterCtxExceptPattern(&ctx);
+
+			char* rp=fklRealpath(filename);
+			char* errorStr=NULL;
+			int load_result=fklLoadPreCompile(&pts
+					,&macro_pts
+					,&scriptLibStack
+					,&macroScriptLibStack
+					,&gst
+					,&ctx
+					,rp
+					,fp
+					,&errorStr);
+			free(rp);
+			fclose(fp);
+			if(load_result)
+			{
+				if(errorStr)
+				{
+					fprintf(stderr,"%s\n",errorStr);
+					free(errorStr);
+				}
+				else
+					fprintf(stderr,"%s: load failed\n",filename);
+				exitState=EXIT_FAILURE;
+				goto precompile_exit;
+			}
+
+			printf("file: %s\n\n",filename);
+			FklSymbolTable* pst=&ctx.public_symbol_table;
+			uint32_t num=scriptLibStack.top;
+			for(size_t i=0;i<num;i++)
+			{
+				FklCodegenLib* cur=scriptLibStack.base[i];
+				printf("lib %"FKL_PRT64U":\n",i+1);
+				switch(cur->type)
+				{
+					case FKL_CODEGEN_LIB_SCRIPT:
+						fklPrintByteCodelnt(cur->bcl,stdout,&gst);
+						fputc('\n',stdout);
+						if(cur->head)
+							print_compiler_macros(cur->head,pst,stdout);
+						if(cur->named_prod_groups.t)
+							print_reader_macros(&cur->named_prod_groups
+									,pst
+									,stdout);
+						if(!cur->head&&!cur->named_prod_groups.t)
+							fputc('\n',stdout);
+						break;
+					case FKL_CODEGEN_LIB_DLL:
+						fputs(cur->rp,stdout);
+						fputs("\n\n",stdout);
+						break;
+				}
+				fputc('\n',stdout);
+			}
+
+			if(macroScriptLibStack.top>0)
+			{
+				fputc('\n',stdout);
+				puts("macro loaded libs:\n");
+				num=macroScriptLibStack.top;
+				for(size_t i=0;i<num;i++)
+				{
+					FklCodegenLib* cur=macroScriptLibStack.base[i];
+					printf("lib %"FKL_PRT64U":\n",i+1);
+					switch(cur->type)
+					{
+						case FKL_CODEGEN_LIB_SCRIPT:
+							fklPrintByteCodelnt(cur->bcl,stdout,pst);
+							fputc('\n',stdout);
+							if(cur->head)
+								print_compiler_macros(cur->head,pst,stdout);
+							if(cur->named_prod_groups.t)
+								print_reader_macros(&cur->named_prod_groups
+										,pst
+										,stdout);
+							if(!cur->head&&!cur->named_prod_groups.t)
+								fputc('\n',stdout);
+							break;
+						case FKL_CODEGEN_LIB_DLL:
+							fputs(cur->rp,stdout);
+							fputs("\n\n",stdout);
+							break;
+					}
+					fputc('\n',stdout);
+				}
+			}
+			puts("\nglobal symbol table:");
+			fklPrintSymbolTable(&gst,stdout);
+
+			puts("\npublic symbol table:");
+			fklPrintSymbolTable(&ctx.public_symbol_table,stdout);
+
+precompile_exit:
+			fklUninitFuncPrototypes(&pts);
+			fklUninitFuncPrototypes(&macro_pts);
+
+			while(!fklIsPtrStackEmpty(&scriptLibStack))
+				fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
+			fklUninitPtrStack(&scriptLibStack);
+			while(!fklIsPtrStackEmpty(&macroScriptLibStack))
+				fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
+			fklUninitPtrStack(&macroScriptLibStack);
+
+			fklUninitSymbolTable(&gst);
+			fklUninitSymbolTable(&ctx.public_symbol_table);
+
+			if(exitState)
+				break;
+		}
+		else
+		{
+			fprintf(stderr,"%s: Not a correct file!\n",filename);
+			break;
+		}
+	}
 
 exit:
-		fklUninitFuncPrototypes(&pts);
-		fklUninitFuncPrototypes(&macro_pts);
-
-		while(!fklIsPtrStackEmpty(&scriptLibStack))
-			fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
-		fklUninitPtrStack(&scriptLibStack);
-		while(!fklIsPtrStackEmpty(&macroScriptLibStack))
-			fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
-		fklUninitPtrStack(&macroScriptLibStack);
-
-		fklUninitSymbolTable(&gst);
-		fklUninitSymbolTable(&ctx.public_symbol_table);
-		return exit_state;
-	}
-	else
-	{
-		fprintf(stderr,"error:Not a correct file!\n");
-		return EXIT_FAILURE;
-	}
-	return 0;
+	arg_freetable(argtable,sizeof(argtable)/sizeof(argtable[0]));
+	return exitState;
 }
 
 static void dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
@@ -271,13 +309,13 @@ static void print_compiler_macros(FklCodegenMacro* head,const FklSymbolTable* ps
 		fklPrintNastNode(head->origin_exp,fp,pst);
 		fputc('\n',fp);
 		fklPrintByteCodelnt(head->bcl,fp,pst);
-		fputc('\n',fp);
+		fputs("\n\n",fp);
 	}
 }
 
 static void print_reader_macros(const FklHashTable* ht,const FklSymbolTable* pst,FILE* fp)
 {
-	fputs("\n\nreader macros:\n",fp);
+	fputs("\nreader macros:\n",fp);
 	for(FklHashTableItem* l=ht->first;l;l=l->next)
 	{
 		FklGrammerProductionGroup* group=(FklGrammerProductionGroup*)l->data;

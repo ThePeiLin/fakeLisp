@@ -318,7 +318,7 @@ target_link_libraries(${LIBFKL_TARGET_NAME}
 
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx argtable3)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} ${LINK_TARGET} argtable3)
-target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
+target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} ${LINK_TARGET} argtable3)
 
 #test-dll
 add_library(test-dll

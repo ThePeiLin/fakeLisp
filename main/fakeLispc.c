@@ -243,7 +243,7 @@ static inline int pre_compile(const char* main_file_name
 	FILE* outfp=fopen(outputname,"wb");
 	if(!outfp)
 	{
-		fprintf(stderr,"%s:Can't create pre-compile file!",outputname);
+		fprintf(stderr,"%s: Can't create pre-compile file!",outputname);
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}
@@ -306,7 +306,7 @@ static inline int compile(const char* filename
 	FILE* outfp=fopen(outputname,"wb");
 	if(!outfp)
 	{
-		fprintf(stderr,"%s:Can't create byte code file!\n",outputname);
+		fprintf(stderr,"%s: Can't create byte code file!\n",outputname);
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}

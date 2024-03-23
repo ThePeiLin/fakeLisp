@@ -414,46 +414,34 @@ static inline FklVMvalue* insert_local_ref(FklVMCompoundFrameVarRef* lr
 	return ref;
 }
 
-static inline void process_unresolve_work_func(FklVM* exe
-		,FklSymbolDef* def
-		,uint32_t prototypeId
-		,uint32_t idx
-		,FklVMvalue** loc
-		,FklVMCompoundFrameVarRef* lr)
+struct ProcessUnresolveRefArg
 {
-	for(FklVMvalue* v=exe->gc->head;v;v=v->next)
-		if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
-		{
-			FklVMproc* proc=FKL_VM_PROC(v);
-			if(lr->lref[def->idx])
-				proc->closure[idx]=lr->lref[def->idx];
-			else
-			{
-				FklVMvalue* ref=proc->closure[idx];
-				FKL_VM_VAR_REF(ref)->idx=def->idx;
-				FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
-				insert_local_ref(lr,ref,def->idx);
-			}
-		}
+	FklSymbolDef* def;
+	uint32_t prototypeId;
+	uint32_t idx;
+};
 
-	for(FklVMvalue* v=exe->obj_head;v;v=v->next)
-		if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
-		{
-			FklVMproc* proc=FKL_VM_PROC(v);
-			if(lr->lref[def->idx])
-				proc->closure[idx]=lr->lref[def->idx];
-			else
-			{
-				FklVMvalue* ref=proc->closure[idx];
-				FKL_VM_VAR_REF(ref)->idx=def->idx;
-				FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
-				insert_local_ref(lr,ref,def->idx);
-			}
-		}
+struct ProcessUnresolveRefArgStack
+{
+	FklVMvalue** loc;
+	FklVMCompoundFrameVarRef* lr;
+	struct ProcessUnresolveRefArg* base;
+	uint32_t top;
+	uint32_t size;
+};
 
-	for(FklVM* cur=exe->next;cur!=exe;cur=cur->next)
+static inline void process_unresolve_work_func(FklVM* exe,struct ProcessUnresolveRefArgStack* s)
+{
+	struct ProcessUnresolveRefArg* cur=s->base;
+	const struct ProcessUnresolveRefArg* const end=&cur[s->top];
+	FklVMvalue** loc=s->loc;
+	FklVMCompoundFrameVarRef* lr=s->lr;
+	for(;cur<end;cur++)
 	{
-		for(FklVMvalue* v=cur->obj_head;v;v=v->next)
+		FklSymbolDef* def=cur->def;
+		uint32_t prototypeId=cur->prototypeId;
+		uint32_t idx=cur->idx;
+		for(FklVMvalue* v=exe->gc->head;v;v=v->next)
 			if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
 			{
 				FklVMproc* proc=FKL_VM_PROC(v);
@@ -467,29 +455,84 @@ static inline void process_unresolve_work_func(FklVM* exe
 					insert_local_ref(lr,ref,def->idx);
 				}
 			}
+
+		for(FklVMvalue* v=exe->obj_head;v;v=v->next)
+			if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
+			{
+				FklVMproc* proc=FKL_VM_PROC(v);
+				if(lr->lref[def->idx])
+					proc->closure[idx]=lr->lref[def->idx];
+				else
+				{
+					FklVMvalue* ref=proc->closure[idx];
+					FKL_VM_VAR_REF(ref)->idx=def->idx;
+					FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
+					insert_local_ref(lr,ref,def->idx);
+				}
+			}
+
+		for(FklVM* cur=exe->next;cur!=exe;cur=cur->next)
+		{
+			for(FklVMvalue* v=cur->obj_head;v;v=v->next)
+				if(FKL_IS_PROC(v)&&FKL_VM_PROC(v)->protoId==prototypeId)
+				{
+					FklVMproc* proc=FKL_VM_PROC(v);
+					if(lr->lref[def->idx])
+						proc->closure[idx]=lr->lref[def->idx];
+					else
+					{
+						FklVMvalue* ref=proc->closure[idx];
+						FKL_VM_VAR_REF(ref)->idx=def->idx;
+						FKL_VM_VAR_REF(ref)->ref=&loc[def->idx];
+						insert_local_ref(lr,ref,def->idx);
+					}
+				}
+		}
 	}
 }
 
-struct ProcessUnresolveRefArg
-{
-	FklSymbolDef* def;
-	uint32_t prototypeId;
-	uint32_t idx;
-	FklVMvalue** loc;
-	FklVMCompoundFrameVarRef* lr;
-};
-
 static void process_unresolve_ref_cb(FklVM* exe,void* arg)
 {
-	struct ProcessUnresolveRefArg* aarg=(struct ProcessUnresolveRefArg*)arg;
-	process_unresolve_work_func(exe
-			,aarg->def
-			,aarg->prototypeId
-			,aarg->idx
-			,aarg->loc
-			,aarg->lr);
+	struct ProcessUnresolveRefArgStack* aarg=(struct ProcessUnresolveRefArgStack*)arg;
+	process_unresolve_work_func(exe,aarg);
 }
 
+#define PROCESS_UNRESOLVE_REF_ARG_STACK_INC (16)
+
+static inline void process_unresolve_ref_arg_push(struct ProcessUnresolveRefArgStack* s,FklSymbolDef* def,uint32_t prototypeId,uint32_t idx)
+{
+	if(s->top==s->size)
+	{
+		struct ProcessUnresolveRefArg* tmpData=(struct ProcessUnresolveRefArg*)fklRealloc(s->base,(s->size+PROCESS_UNRESOLVE_REF_ARG_STACK_INC)*sizeof(struct ProcessUnresolveRefArg));
+		FKL_ASSERT(tmpData);
+		s->base=tmpData;
+		s->size+=PROCESS_UNRESOLVE_REF_ARG_STACK_INC;
+	}
+	struct ProcessUnresolveRefArg* arg=&s->base[s->top++];
+	arg->def=def;
+	arg->prototypeId=prototypeId;
+	arg->idx=idx;
+}
+
+static inline void init_process_unresolve_ref_arg_stack(struct ProcessUnresolveRefArgStack* s,FklVMvalue** loc,FklVMCompoundFrameVarRef* lr)
+{
+	s->loc=loc;
+	s->lr=lr;
+	s->size=PROCESS_UNRESOLVE_REF_ARG_STACK_INC;
+	s->base=(struct ProcessUnresolveRefArg*)malloc(sizeof(struct ProcessUnresolveRefArg)*s->size);
+	FKL_ASSERT(s->base);
+	s->top=0;
+}
+
+static inline void uninit_process_unresolve_ref_arg_stack(struct ProcessUnresolveRefArgStack* s)
+{
+	s->loc=NULL;
+	s->lr=NULL;
+	s->size=0;
+	free(s->base);
+	s->base=NULL;
+	s->top=0;
+}
 
 static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 		,FklCodegenEnv* global_env
@@ -499,6 +542,7 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 		,FklVMframe* mainframe)
 {
 	FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(mainframe);
+	struct ProcessUnresolveRefArgStack process_unresolve_ref_arg_stack={.size=0};
 	FklPtrStack* urefs=&env->uref;
 	FklFuncPrototype* pts=cp->pa;
 	FklPtrStack urefs1=FKL_STACK_INIT;
@@ -518,16 +562,10 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 			uint32_t prototypeId=uref->prototypeId;
 			uint32_t idx=ref->idx;
 			inc_lref(lr,lr->lcount);
-			struct ProcessUnresolveRefArg arg=
-			{
-				.def=def,
-				.prototypeId=prototypeId,
-				.idx=idx,
-				.loc=loc,
-				.lr=lr,
-			};
+			if(process_unresolve_ref_arg_stack.size==0)
+				init_process_unresolve_ref_arg_stack(&process_unresolve_ref_arg_stack,loc,lr);
 
-			fklQueueWorkInIdleThread(exe,process_unresolve_ref_cb,&arg);
+			process_unresolve_ref_arg_push(&process_unresolve_ref_arg_stack,def,prototypeId,idx);
 
 			free(uref);
 		}
@@ -543,6 +581,12 @@ static inline void process_unresolve_ref_for_repl(FklCodegenEnv* env
 	while(!fklIsPtrStackEmpty(&urefs1))
 		fklPushPtrStack(fklPopPtrStack(&urefs1),urefs);
 	fklUninitPtrStack(&urefs1);
+
+	if(process_unresolve_ref_arg_stack.top>0)
+	{
+		fklQueueWorkInIdleThread(exe,process_unresolve_ref_cb,&process_unresolve_ref_arg_stack);
+		uninit_process_unresolve_ref_arg_stack(&process_unresolve_ref_arg_stack);
+	}
 }
 
 static inline void update_prototype_lcount(FklFuncPrototypes* cp

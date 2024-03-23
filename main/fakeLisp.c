@@ -7,6 +7,7 @@
 #include<fakeLisp/symbol.h>
 #include<fakeLisp/builtin.h>
 #include<uv.h>
+#include<argtable3.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -25,7 +26,7 @@ static int exitState=0;
 
 #define FKL_EXIT_FAILURE (255)
 
-static inline int compileAndRun(const char* filename,int argc,char* const* argv)
+static inline int compileAndRun(const char* filename,int argc,const char* const* argv)
 {
 	FILE* fp=fopen(filename,"r");
 	if(fp==NULL)
@@ -102,7 +103,7 @@ static inline void initLibWithPrototype(FklVMlib* lib,uint32_t num,FklFuncProtot
 	}
 }
 
-static inline int runCode(const char* filename,int argc,char* const* argv)
+static inline int runCode(const char* filename,int argc,const char* const* argv)
 {
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
@@ -136,7 +137,7 @@ static inline int runCode(const char* filename,int argc,char* const* argv)
 	return r;
 }
 
-static inline int runPreCompile(const char* filename,int argc,char* const* argv)
+static inline int runPreCompile(const char* filename,int argc,const char* const* argv)
 {
 	FILE* fp=fopen(filename,"rb");
 	if(fp==NULL)
@@ -225,11 +226,51 @@ static inline int runPreCompile(const char* filename,int argc,char* const* argv)
 	return r;
 }
 
+struct arg_lit* help;
+struct arg_lit* interactive;
+struct arg_str* rest;
+struct arg_end* end;
+
 int main(int argc,char* argv[])
 {
 	argv=uv_setup_args(argc,argv);
-	const char* filename=(argc>1)?argv[1]:NULL;
-	if(!filename)
+	const char* progname=argv[0];
+
+	void* argtable[]=
+	{
+		help=arg_lit0("h","help","display this help and exit"),
+		interactive=arg_lit0("i","interactive","interactive mode"),
+		rest=arg_strn(NULL,NULL,"file [args]",0,argc+2,"file and args"),
+		end=arg_end(20),
+	};
+
+	int nerrors=arg_parse(argc,argv,argtable);
+
+	if(help->count>0)
+	{
+		printf("Usage: %s",progname);
+		arg_print_syntaxv(stdout,argtable,"\n");
+		arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+		goto exit;
+	}
+
+	if(nerrors)
+	{
+error:
+		arg_print_errors(stdout,end,progname);
+		printf("Try '%s --help' for more informaction.\n",progname);
+		exitState=EXIT_FAILURE;
+		goto exit;
+	}
+
+	if(interactive->count>0)
+	{
+		if(rest->count>0)
+			goto error;
+		goto interactive;
+	}
+	else if(rest->count==0)
+interactive:
 	{
 		FklCodegenOuterCtx outer_ctx;
 		FklCodegenInfo codegen={.fid=0,};
@@ -254,6 +295,9 @@ int main(int argc,char* argv[])
 	}
 	else
 	{
+		const char* filename=rest->sval[0];
+		int argc=rest->count;
+		const char* const* argv=rest->sval;
 		if(fklIsAccessibleRegFile(filename))
 		{
 			if(fklIsScriptFile(filename))
@@ -296,6 +340,9 @@ int main(int argc,char* argv[])
 			free(main_pre_file);
 		}
 	}
+
+exit:
+	arg_freetable(argtable,sizeof(argtable)/sizeof(argtable[0]));
 	return exitState;
 }
 

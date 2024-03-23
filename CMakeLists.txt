@@ -316,7 +316,7 @@ target_link_libraries(${LIBFKL_TARGET_NAME}
 	PUBLIC ${PARSE} ${VMPARSE}
 	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 
-target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx)
+target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx argtable3)
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} ${LINK_TARGET} argtable3)
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME})
 

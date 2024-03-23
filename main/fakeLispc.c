@@ -3,10 +3,7 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/builtin.h>
-
 #include<argtable3.h>
-
-#include<limits.h>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -366,7 +363,8 @@ int main(int argc,char** argv)
 	FklCodegenOuterCtx outer_ctx;
 	fklInitCodegenOuterCtx(&outer_ctx,NULL);
 
-	void* argtable[]={
+	void* argtable[]=
+	{
 		help=arg_lit0("h","help","display this help and exit"),
 		precompile=arg_file0("p","pre","<package-name>","pre-compile package"),
 		dir=arg_file0("d","dir","<target-dir>","set pre-compile file target directory"),

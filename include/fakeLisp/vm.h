@@ -1169,7 +1169,7 @@ FklBytevector* fklUdToBytevector(const FklVMud*);
 
 int fklIsCallable(FklVMvalue*);
 int fklIsAppendable(FklVMvalue*);
-void fklInitVMargs(FklVMgc* gc,int argc,char* const* argv);
+void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv);
 
 int fklIsVMnumberLt0(const FklVMvalue*);
 uint64_t fklGetUint(const FklVMvalue*);

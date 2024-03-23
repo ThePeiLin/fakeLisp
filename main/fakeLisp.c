@@ -355,7 +355,7 @@ int main(int argc,char* argv[])
 		priority=arg_str0("p"
 				,"priority"
 				,NULL
-				,"order of which type to filename be handled.the default priority is\n"
+				,"order of which type to filename be handled. the default priority is "
 				"'package-script, module-script, package-bytecode, module-bytecode, package-precompile'"),
 
 		rest=arg_strn(NULL,NULL,"file [args]",0,argc+2,"file and args"),
@@ -369,7 +369,7 @@ int main(int argc,char* argv[])
 	{
 		printf("Usage: %s",progname);
 		arg_print_syntaxv(stdout,argtable,"\n");
-		arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+		arg_print_glossary_gnu(stdout,argtable);
 		goto exit;
 	}
 

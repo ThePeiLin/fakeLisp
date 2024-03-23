@@ -383,7 +383,7 @@ int main(int argc,char** argv)
 		printf("Usage: %s",progname);
 		arg_print_syntaxv(stdout,argtable,"\n");
 		printf("compile a file into bytecode or pre-compile a package.\n\n");
-		arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+		arg_print_glossary_gnu(stdout,argtable);
 		goto exit;
 	}
 

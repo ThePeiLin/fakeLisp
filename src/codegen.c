@@ -9489,6 +9489,22 @@ FklByteCodelnt* fklGenExpressionCode(FklNastNode* exp
 	return fklGenExpressionCodeWithQuest(initialQuest,codegenr);
 }
 
+FklByteCodelnt* fklGenExpressionCodeWithQueue(FklPtrQueue* q
+		,FklCodegenInfo* codegen
+		,FklCodegenEnv* cur_env)
+{
+	FklCodegenQuest* initialQuest=fklCreateCodegenQuest(_begin_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(32,16))
+			,createDefaultQueueNextExpression(q)
+			,1
+			,cur_env->macros
+			,cur_env
+			,1
+			,NULL
+			,codegen);
+	return fklGenExpressionCodeWithQuest(initialQuest,codegen);
+}
+
 static inline void init_codegen_grammer_ptr(FklCodegenInfo* codegen)
 {
 	codegen->self_g=NULL;

@@ -419,6 +419,11 @@ FklByteCodelnt* fklGenExpressionCodeWithQuest(FklCodegenQuest*
 FklByteCodelnt* fklGenExpressionCodeWithFp(FILE*
 		,FklCodegenInfo* codegen
 		,FklCodegenEnv* cur_env);
+
+FklByteCodelnt* fklGenExpressionCodeWithQueue(FklPtrQueue*
+		,FklCodegenInfo* codegen
+		,FklCodegenEnv* cur_env);
+
 FklByteCodelnt* fklGenExpressionCodeWithFpForPrecompile(FILE* fp
 		,FklCodegenInfo* codegen
 		,FklCodegenEnv* cur_env);

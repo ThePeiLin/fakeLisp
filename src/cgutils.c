@@ -547,8 +547,11 @@ static inline void recompute_sid_for_compiler_macros(FklCodegenMacro* m
 {
 	for(;m;m=m->next)
 	{
-		fklRecomputeSidForNastNode(m->origin_exp,origin_table,target_table);
-		recompute_sid_for_bytecodelnt(m->bcl,origin_table,target_table);
+		if(m->own)
+		{
+			fklRecomputeSidForNastNode(m->origin_exp,origin_table,target_table);
+			recompute_sid_for_bytecodelnt(m->bcl,origin_table,target_table);
+		}
 	}
 }
 

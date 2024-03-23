@@ -700,6 +700,25 @@ char** fklSplit(char* str,const char* divstr,size_t* pcount)
 }
 #endif
 
+char* fklStrTok(char* str,const char* divstr,char** context)
+{
+#ifndef WIN32
+	return strtok_r(str,divstr,context);
+#else
+	return strtok_s(str,divstr,context);
+#endif
+}
+
+char* fklTrim(char* str)
+{
+	for(;*str&&isspace(*str);str++);
+	char* end=&str[strlen(str)-1];
+	for(;*end&&end>=str;end--)
+		if(isspace(*end))
+			*end='\0';
+	return str;
+}
+
 size_t fklCountCharInBuf(const char* buf,size_t n,char c)
 {
 	size_t num=0;

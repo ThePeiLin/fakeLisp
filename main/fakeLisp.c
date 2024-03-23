@@ -228,8 +228,118 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 
 struct arg_lit* help;
 struct arg_lit* interactive;
+struct arg_lit* module;
 struct arg_str* rest;
 struct arg_end* end;
+
+struct arg_str* priority;
+
+enum PriorityEnum
+{
+	PRIORITY_UNSET=0,
+	PRIORITY_PACKAGE_SCRIPT,
+	PRIORITY_MODULE_SCRIPT,
+	PRIORITY_PACKAGE_BYTECODE,
+	PRIORITY_MODULE_BYTECODE,
+	PRIORITY_PACKAGE_PRECOMPILE,
+};
+
+static const char* priority_str[PRIORITY_PACKAGE_PRECOMPILE+1]=
+{
+	NULL,
+	"package-script",
+	"module-script",
+	"package-bytecode",
+	"module-bytecode",
+	"package-precompile",
+};
+
+#define PRIORITY_PLACEHOLDER ("~")
+
+static inline int process_priority(char* str,enum PriorityEnum priority_array[PRIORITY_PACKAGE_PRECOMPILE])
+{
+	struct
+	{
+		enum PriorityEnum type;
+		int used;
+	}priority_used_array[PRIORITY_PACKAGE_PRECOMPILE+1]=
+	{
+		{PRIORITY_UNSET,0},
+		{PRIORITY_PACKAGE_SCRIPT,0},
+		{PRIORITY_MODULE_SCRIPT,0},
+		{PRIORITY_PACKAGE_BYTECODE,0},
+		{PRIORITY_MODULE_BYTECODE,0},
+		{PRIORITY_PACKAGE_PRECOMPILE,0},
+	};
+	char* priority_strs[PRIORITY_PACKAGE_PRECOMPILE]={NULL,};
+
+	char* context=NULL;
+
+	uint32_t token_count=0;
+	char* token=NULL;
+	if(str[0]==',')
+		goto error;
+	else
+		token=fklStrTok(str,",",&context);
+	while(token)
+	{
+		if(token_count<PRIORITY_PACKAGE_PRECOMPILE)
+		{
+			priority_strs[token_count]=token;
+			token_count++;
+		}
+		token=fklStrTok(NULL,",",&context);
+	}
+
+	uint32_t end=PRIORITY_PACKAGE_PRECOMPILE+1;
+
+	for(uint32_t i=0;i<token_count;i++)
+	{
+		const char* cur=fklTrim(priority_strs[i]);
+		uint32_t j=1;
+
+		if(*cur!=*PRIORITY_PLACEHOLDER)
+		{
+			for(;j<PRIORITY_PACKAGE_PRECOMPILE+1;j++)
+			{
+				if(!strcmp(cur,priority_str[j]))
+				{
+					if(!priority_used_array[j].used)
+					{
+						priority_array[i]=j;
+						priority_used_array[j].used=1;
+						break;
+					}
+				}
+			}
+
+			if(j>PRIORITY_PACKAGE_PRECOMPILE)
+				goto error;
+		}
+		else if(strcmp(cur,PRIORITY_PLACEHOLDER))
+			goto error;
+	}
+
+	for(uint32_t i=0;i<PRIORITY_PACKAGE_PRECOMPILE;i++)
+	{
+		if(priority_array[i]==PRIORITY_UNSET)
+		{
+			for(uint32_t j=1;j<end;j++)
+			{
+				if(!priority_used_array[j].used)
+				{
+					priority_array[i]=priority_used_array[j].type;
+					priority_used_array[j].used=1;
+					break;
+				}
+			}
+		}
+	}
+	return 0;
+
+error:
+	return 1;
+}
 
 int main(int argc,char* argv[])
 {
@@ -240,7 +350,16 @@ int main(int argc,char* argv[])
 	{
 		help=arg_lit0("h","help","display this help and exit"),
 		interactive=arg_lit0("i","interactive","interactive mode"),
+		module=arg_lit0("m","module","treat filename as module"),
+
+		priority=arg_str0("p"
+				,"priority"
+				,NULL
+				,"order of which type to filename be handled.the default priority is\n"
+				"'package-script, module-script, package-bytecode, module-bytecode, package-precompile'"),
+
 		rest=arg_strn(NULL,NULL,"file [args]",0,argc+2,"file and args"),
+
 		end=arg_end(20),
 	};
 
@@ -265,13 +384,13 @@ error:
 
 	if(interactive->count>0)
 	{
-		if(rest->count>0)
+		if(rest->count>0||priority->count>0)
 			goto error;
 		goto interactive;
 	}
 	else if(rest->count==0)
-interactive:
 	{
+interactive:;
 		FklCodegenOuterCtx outer_ctx;
 		FklCodegenInfo codegen={.fid=0,};
 		fklInitCodegenOuterCtx(&outer_ctx,NULL);
@@ -298,6 +417,8 @@ interactive:
 		const char* filename=rest->sval[0];
 		int argc=rest->count;
 		const char* const* argv=rest->sval;
+		if(module->count>0)
+			goto handle_module;
 		if(fklIsAccessibleRegFile(filename))
 		{
 			if(fklIsScriptFile(filename))
@@ -314,30 +435,80 @@ interactive:
 		}
 		else
 		{
-			FklStringBuffer main_script_buf;
-			fklInitStringBuffer(&main_script_buf);
+handle_module:;
+			  enum PriorityEnum priority_array[PRIORITY_PACKAGE_PRECOMPILE]={PRIORITY_UNSET};
 
-			fklStringBufferConcatWithCstr(&main_script_buf,filename);
-			fklStringBufferConcatWithCstr(&main_script_buf,FKL_PATH_SEPARATOR_STR);
-			fklStringBufferConcatWithCstr(&main_script_buf,"main.fkl");
+			  if(process_priority((char*)priority->sval[0],priority_array))
+				  goto error;
 
-			char* main_code_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_BYTECODE_FKL_SUFFIX_STR);
-			char* main_pre_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+			  FklStringBuffer main_script_buf;
+			  fklInitStringBuffer(&main_script_buf);
 
-			if(fklIsAccessibleRegFile(main_script_buf.buf))
-				exitState=compileAndRun(main_script_buf.buf,argc,argv);
-			else if(fklIsAccessibleRegFile(main_code_file))
-				exitState=runCode(main_code_file,argc,argv);
-			else if(fklIsAccessibleRegFile(main_pre_file))
-				exitState=runPreCompile(main_pre_file,argc,argv);
-			else
-			{
-				exitState=FKL_EXIT_FAILURE;
-				fprintf(stderr,"%s: It is not a correct file.\n",filename);
-			}
-			fklUninitStringBuffer(&main_script_buf);
-			free(main_code_file);
-			free(main_pre_file);
+			  fklStringBufferConcatWithCstr(&main_script_buf,filename);
+			  char* module_script_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_SCRIPT_FILE_EXTENSION);
+			  char* module_bytecode_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_BYTECODE_FILE_EXTENSION);
+
+			  fklStringBufferConcatWithCstr(&main_script_buf,FKL_PATH_SEPARATOR_STR);
+			  fklStringBufferConcatWithCstr(&main_script_buf,"main.fkl");
+
+			  char* main_code_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_BYTECODE_FKL_SUFFIX_STR);
+			  char* main_pre_file=fklStrCat(fklCopyCstr(main_script_buf.buf),FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+
+			  for(uint32_t i=0;i<PRIORITY_PACKAGE_PRECOMPILE;i++)
+			  {
+				  switch(priority_array[i])
+				  {
+					  case PRIORITY_UNSET:
+						  abort();
+						  break;
+					  case PRIORITY_MODULE_SCRIPT:
+						  if(fklIsAccessibleRegFile(module_script_file))
+						  {
+							  exitState=compileAndRun(module_script_file,argc,argv);
+							  goto execute_done;
+						  }
+						  break;
+					  case PRIORITY_MODULE_BYTECODE:
+						  if(fklIsAccessibleRegFile(module_bytecode_file))
+						  {
+							  exitState=runCode(module_bytecode_file,argc,argv);
+							  goto execute_done;
+						  }
+						  break;
+					  case PRIORITY_PACKAGE_SCRIPT:
+						  if(fklIsAccessibleRegFile(main_script_buf.buf))
+						  {
+							  exitState=compileAndRun(main_script_buf.buf,argc,argv);
+							  goto execute_done;
+						  }
+						  break;
+					  case PRIORITY_PACKAGE_BYTECODE:
+						  if(fklIsAccessibleRegFile(main_code_file))
+						  {
+							  exitState=runCode(main_code_file,argc,argv);
+							  goto execute_done;
+						  }
+						  break;
+
+					  case PRIORITY_PACKAGE_PRECOMPILE:
+						  if(fklIsAccessibleRegFile(main_pre_file))
+						  {
+							  exitState=runPreCompile(main_pre_file,argc,argv);
+							  goto execute_done;
+						  }
+						  break;
+				  }
+			  }
+
+			  exitState=FKL_EXIT_FAILURE;
+			  fprintf(stderr,"%s: No such file or directory\n",filename);
+
+execute_done:
+			  fklUninitStringBuffer(&main_script_buf);
+			  free(main_code_file);
+			  free(main_pre_file);
+			  free(module_script_file);
+			  free(module_bytecode_file);
 		}
 	}
 

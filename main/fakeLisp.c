@@ -333,6 +333,69 @@ error:
 	return 1;
 }
 
+static inline int process_specify(char* str,enum PriorityEnum priority_array[PRIORITY_PACKAGE_PRECOMPILE])
+{
+	struct
+	{
+		enum PriorityEnum type;
+		int used;
+	}priority_used_array[PRIORITY_PACKAGE_PRECOMPILE+1]=
+	{
+		{PRIORITY_UNSET,0},
+		{PRIORITY_PACKAGE_SCRIPT,0},
+		{PRIORITY_MODULE_SCRIPT,0},
+		{PRIORITY_PACKAGE_BYTECODE,0},
+		{PRIORITY_MODULE_BYTECODE,0},
+		{PRIORITY_PACKAGE_PRECOMPILE,0},
+	};
+	char* priority_strs[PRIORITY_PACKAGE_PRECOMPILE]={NULL,};
+
+	char* context=NULL;
+
+	uint32_t token_count=0;
+	char* token=NULL;
+	if(str[0]==',')
+		goto error;
+	else
+		token=fklStrTok(str,",",&context);
+	while(token)
+	{
+		if(token_count<PRIORITY_PACKAGE_PRECOMPILE)
+		{
+			priority_strs[token_count]=token;
+			token_count++;
+		}
+		token=fklStrTok(NULL,",",&context);
+	}
+
+	for(uint32_t i=0;i<token_count;i++)
+	{
+		const char* cur=fklTrim(priority_strs[i]);
+
+			uint32_t j=1;
+			for(;j<PRIORITY_PACKAGE_PRECOMPILE+1;j++)
+			{
+				if(!strcmp(cur,priority_str[j]))
+				{
+					if(!priority_used_array[j].used)
+					{
+						priority_array[i]=j;
+						priority_used_array[j].used=1;
+						break;
+					}
+				}
+			}
+
+			if(j>PRIORITY_PACKAGE_PRECOMPILE)
+				goto error;
+	}
+
+	return 0;
+
+error:
+	return 1;
+}
+
 struct arg_lit* help;
 struct arg_lit* interactive;
 struct arg_lit* module;
@@ -356,7 +419,8 @@ int main(int argc,char* argv[])
 		eval=arg_str0("e","eval","<expr>","evaluate the given expressions"),
 
 		specify=arg_str0("s","specify",NULL,"specify the file type of module, the argument can be "
-				"'package-script', 'module-script', 'package-bytecode', 'module-bytecode' and 'package-precompile'"),
+				"'package-script', 'module-script', 'package-bytecode', 'module-bytecode' and 'package-precompile'. "
+				"Also allow to combine them"),
 
 		priority=arg_str0("p"
 				,"priority"
@@ -455,22 +519,8 @@ handle_module:;
 			  }
 			  else if(specify->count)
 			  {
-				  const char* cur=fklTrim((char*)specify->sval[0]);
-				  uint32_t j=1;
-				  for(;j<PRIORITY_PACKAGE_PRECOMPILE+1;j++)
-				  {
-					  if(!strcmp(cur,priority_str[j]))
-					  {
-						  priority_array[0]=j;
-						  break;
-					  }
-				  }
-
-				  if(j>PRIORITY_PACKAGE_PRECOMPILE)
+				  if(process_specify((char*)specify->sval[0],priority_array))
 					  goto error;
-
-
-				  priority_array[1]=PRIORITY_UNSET;
 			  }
 			  else
 			  {

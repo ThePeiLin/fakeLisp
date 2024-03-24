@@ -5268,6 +5268,22 @@ static FklCodegenQuestContext* createExportContext(FklCodegenInfo* codegen
 	return createCodegenQuestContext(data,&ExportContextMethodTable);
 }
 
+static inline FklSid_t recompute_import_dst_idx(FklByteCodelnt* bcl,FklCodegenEnv* env,FklUintStack* idPstack)
+{
+	uint64_t* id_base=idPstack->base;
+	FklInstruction* cur=bcl->bc->code;
+	const FklInstruction* const end=&cur[bcl->bc->len];
+	for(;cur<end;cur++)
+		if(cur->op==FKL_OP_IMPORT)
+		{
+			FklSid_t id=id_base[cur->imm];
+			if(is_constant_defined(id,1,env))
+				return id;
+			cur->imm=fklAddCodegenDefBySid(id,1,env)->idx;
+		}
+	return 0;
+}
+
 BC_PROCESS(_export_import_bc_process)
 {
 	ExportContextData* d=context->data;
@@ -5284,12 +5300,28 @@ BC_PROCESS(_export_import_bc_process)
 	{
 		FklSymbolDef* def=(FklSymbolDef*)(list->data);
 		FklSid_t idp=def->k.id;
-		fklAddCodegenDefBySid(idp,1,targetEnv);
 		fklPushUintStack(idp,&idPstack);
 	}
 
 	if(idPstack.top)
 	{
+		FklSid_t const_def_id=recompute_import_dst_idx(bcl,targetEnv,&idPstack);
+		if(const_def_id)
+		{
+			fklDestroyByteCodelnt(bcl);
+			bcl=NULL;
+			FklNastNode* place=fklCreateNastNode(FKL_NAST_SYM,line);
+			place->sym=const_def_id;
+			errorState->type=FKL_ERR_ASSIGN_CONSTANT;
+			errorState->line=line;
+			errorState->fid=fid
+				?fklAddSymbol(fklGetSymbolWithId(fid,codegen->globalSymTable)->symbol
+						,&outer_ctx->public_symbol_table)->id
+				:0;
+			errorState->place=place;
+			goto exit;
+		}
+
 		FklHashTable* exports=&codegen->exports;
 
 		uint64_t* idPbase=idPstack.base;
@@ -5298,12 +5330,17 @@ BC_PROCESS(_export_import_bc_process)
 		for(uint32_t i=0;i<top;i++)
 		{
 			FklSid_t id=idPbase[i];
-			fklPutHashItem(&id,exports);
+			FklCodegenExportSidIndexHashItem* item=fklGetHashItem(&id,exports);
+			if(item==NULL)
+			{
+				uint32_t idx=exports->num;
+				item=fklPutHashItem(&id,exports);
+				item->idx=idx;
+				item->oidx=fklGetCodegenDefByIdInScope(id,1,targetEnv)->idx;
+			}
 		}
 
 	}
-
-	fklUninitUintStack(&idPstack);
 
 	FklCodegenMacroScope* macros=targetEnv->macros;
 
@@ -5328,6 +5365,9 @@ BC_PROCESS(_export_import_bc_process)
 		fklAddReplacementBySid(rep->id,rep->node,codegen->export_replacement);
 		fklAddReplacementBySid(rep->id,rep->node,macros->replacements);
 	}
+
+exit:
+	fklUninitUintStack(&idPstack);
 
 	return bcl;
 }
@@ -5513,10 +5553,10 @@ static CODEGEN_FUNC(codegen_export_single)
 process_def_in_lib:
 		if(name->type!=FKL_NAST_SYM)
 			goto error;
-		uint32_t idx=libCodegen->exports.num;
 		FklCodegenExportSidIndexHashItem* item=fklGetHashItem(&name->sym,&libCodegen->exports);
 		if(item==NULL)
 		{
+			uint32_t idx=libCodegen->exports.num;
 			item=fklPutHashItem(&name->sym,&libCodegen->exports);
 			item->idx=idx;
 			item->oidx=FKL_VAR_REF_INVALID_CIDX;

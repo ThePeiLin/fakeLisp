@@ -31,7 +31,7 @@ int main(int argc,char** argv)
 	void* argtable[]=
 	{
 		help=arg_lit0("h","help","display this help and exit"),
-		files=arg_filen(NULL,NULL,NULL,1,argc+2,"files"),
+		files=arg_filen(NULL,NULL,"files",1,argc+2,"the bytecode files you want to print"),
 		end=arg_end(20),
 	};
 

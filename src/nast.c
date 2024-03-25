@@ -43,6 +43,7 @@ FklNastNode* fklCopyNastNode(const FklNastNode* orig)
 				break;
 			case FKL_NAST_SLOT:
 			case FKL_NAST_SYM:
+			case FKL_NAST_RC_SYM:
 				node->sym=top->sym;
 				break;
 			case FKL_NAST_STR:
@@ -171,6 +172,7 @@ void fklDestroyNastNode(FklNastNode* node)
 					case FKL_NAST_NIL:
 					case FKL_NAST_CHR:
 					case FKL_NAST_F64:
+					case FKL_NAST_RC_SYM:
 						break;
 					case FKL_NAST_STR:
 						free(cur->str);
@@ -276,6 +278,7 @@ void fklPrintNastNode(const FklNastNode* exp
 			destroyNastElem(e);
 			switch(node->type)
 			{
+				case FKL_NAST_RC_SYM:
 				case FKL_NAST_SYM:
 					fklPrintRawSymbol(fklGetSymbolWithId(node->sym,table)->symbol,fp);
 					break;
@@ -403,6 +406,7 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 			switch(c0->type)
 			{
 				case FKL_NAST_SYM:
+				case FKL_NAST_RC_SYM:
 					r=c0->sym==c1->sym;
 					break;
 				case FKL_NAST_FIX:

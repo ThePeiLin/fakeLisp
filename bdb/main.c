@@ -493,7 +493,7 @@ done:
 			if(!expression)
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
-			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st,FKL_CODEGEN_SID_RECOMPUTE_NONE);
 			fklVMreleaseSt(exe->gc);
 			item->cond_exp=expression;
 		}
@@ -584,7 +584,7 @@ done:
 			if(!expression)
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
-			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st,FKL_CODEGEN_SID_RECOMPUTE_NONE);
 			fklVMreleaseSt(exe->gc);
 			item->cond_exp=expression;
 		}
@@ -1176,7 +1176,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL)
 			if(!expression)
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
 			fklVMacquireSt(exe->gc);
-			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st);
+			fklRecomputeSidForNastNode(expression,exe->gc->st,dctx->st,FKL_CODEGEN_SID_RECOMPUTE_NONE);
 			fklVMreleaseSt(exe->gc);
 			FklVMvalue* proc=compileEvalExpression(dctx
 					,dctx->reached_thread

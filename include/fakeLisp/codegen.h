@@ -214,6 +214,12 @@ typedef enum
 	FKL_CODEGEN_SUB_PATTERN_NUM,
 }FklCodegenSubPatternEnum;
 
+typedef enum
+{
+	FKL_CODEGEN_SID_RECOMPUTE_NONE=0,
+	FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM,
+}FklCodegenRecomputeNastSidOption;
+
 #define FKL_BUILTIN_REPLACEMENT_NUM (7)
 #define FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM (17)
 #define FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM (11)
@@ -551,11 +557,13 @@ void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table);
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option);
 
 void fklRecomputeSidForNastNode(FklNastNode* node
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table);
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option);
 
 int fklLoadPreCompile(FklFuncPrototypes* info_pts
 		,FklFuncPrototypes* info_macro_pts

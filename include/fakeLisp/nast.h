@@ -22,6 +22,7 @@ typedef enum{
 	FKL_NAST_BYTEVECTOR,
 	FKL_NAST_HASHTABLE,
 	FKL_NAST_SLOT,
+	FKL_NAST_RC_SYM,
 }FklNastType;
 
 typedef struct FklNastPair

@@ -183,7 +183,7 @@ static inline void write_pre_compile(FklCodegenInfo* codegen
 	FklSymbolTable target_st;
 	fklInitSymbolTable(&target_st);
 	const FklSymbolTable* origin_st=codegen->globalSymTable;
-	fklRecomputeSidForSingleTableInfo(codegen,bcl,origin_st,&target_st);
+	fklRecomputeSidForSingleTableInfo(codegen,bcl,origin_st,&target_st,FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
 
 	fklWriteSymbolTable(&target_st,outfp);
 

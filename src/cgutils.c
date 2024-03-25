@@ -472,7 +472,8 @@ static inline void recompute_sid_for_bytecodelnt(FklByteCodelnt* bcl
 
 void fklRecomputeSidForNastNode(FklNastNode* node
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	FklPtrStack pending;
 	fklInitPtrStack(&pending,16,16);
@@ -482,9 +483,13 @@ void fklRecomputeSidForNastNode(FklNastNode* node
 		FklNastNode* top=fklPopPtrStack(&pending);
 		switch(top->type)
 		{
-			case FKL_NAST_SYM:
 			case FKL_NAST_SLOT:
+				abort();
+				break;
+			case FKL_NAST_SYM:
 				replace_sid(&top->sym,origin_table,target_table);
+				if(option==FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM)
+					top->type=FKL_NAST_RC_SYM;
 				break;
 			case FKL_NAST_BOX:
 				fklPushPtrStack(top->box,&pending);
@@ -543,33 +548,34 @@ static inline void recompute_sid_for_export_sid_index(FklHashTable* t
 
 static inline void recompute_sid_for_compiler_macros(FklCodegenMacro* m
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	for(;m;m=m->next)
 	{
+		fklRecomputeSidForNastNode(m->origin_exp,origin_table,target_table,option);
 		if(m->own)
-		{
-			fklRecomputeSidForNastNode(m->origin_exp,origin_table,target_table);
 			recompute_sid_for_bytecodelnt(m->bcl,origin_table,target_table);
-		}
 	}
 }
 
 static inline void recompute_sid_for_replacements(FklHashTable* t
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	for(FklHashTableItem* rep_list=t->first;rep_list;rep_list=rep_list->next)
 	{
 		FklCodegenReplacement* rep=(FklCodegenReplacement*)rep_list->data;
 		replace_sid(&rep->id,origin_table,target_table);
-		fklRecomputeSidForNastNode(rep->node,origin_table,target_table);
+		fklRecomputeSidForNastNode(rep->node,origin_table,target_table,option);
 	}
 }
 
 static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	if(ht&&ht->t)
 	{
@@ -585,18 +591,18 @@ static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
 					replace_sid(&p->group_id,origin_table,target_table);
 				if(p->sid)
 					replace_sid(&p->sid,origin_table,target_table);
-				fklRecomputeSidForNastNode(p->vec,origin_table,target_table);
+				fklRecomputeSidForNastNode(p->vec,origin_table,target_table,option);
 				if(p->type==FKL_CODEGEN_PROD_CUSTOM)
 					recompute_sid_for_bytecodelnt(p->bcl,origin_table,target_table);
 				else
-					fklRecomputeSidForNastNode(p->forth,origin_table,target_table);
+					fklRecomputeSidForNastNode(p->forth,origin_table,target_table,option);
 			}
 
 			top=group->ignore_printing.top;
 			for(uint32_t i=0;i<top;i++)
 			{
 				FklNastNode* node=group->ignore_printing.base[i];
-				fklRecomputeSidForNastNode(node,origin_table,target_table);
+				fklRecomputeSidForNastNode(node,origin_table,target_table,option);
 			}
 		}
 		fklRehashTable(ht);
@@ -605,13 +611,14 @@ static inline void recompute_sid_for_named_prod_groups(FklHashTable* ht
 
 static inline void recompute_sid_for_script_lib(FklCodegenLib* lib
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	recompute_sid_for_bytecodelnt(lib->bcl,origin_table,target_table);
 	recompute_sid_for_export_sid_index(&lib->exports,origin_table,target_table);
-	recompute_sid_for_compiler_macros(lib->head,origin_table,target_table);
-	recompute_sid_for_replacements(lib->replacements,origin_table,target_table);
-	recompute_sid_for_named_prod_groups(&lib->named_prod_groups,origin_table,target_table);
+	recompute_sid_for_compiler_macros(lib->head,origin_table,target_table,option);
+	recompute_sid_for_replacements(lib->replacements,origin_table,target_table,option);
+	recompute_sid_for_named_prod_groups(&lib->named_prod_groups,origin_table,target_table,option);
 }
 
 static inline void recompute_sid_for_dll_lib(FklCodegenLib* lib
@@ -623,7 +630,8 @@ static inline void recompute_sid_for_dll_lib(FklCodegenLib* lib
 
 static inline void recompute_sid_for_lib_stack(FklPtrStack* loadedLibStack
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	for(size_t i=0;i<loadedLibStack->top;i++)
 	{
@@ -631,7 +639,7 @@ static inline void recompute_sid_for_lib_stack(FklPtrStack* loadedLibStack
 		switch(lib->type)
 		{
 			case FKL_CODEGEN_LIB_SCRIPT:
-				recompute_sid_for_script_lib(lib,origin_table,target_table);
+				recompute_sid_for_script_lib(lib,origin_table,target_table,option);
 				break;
 			case FKL_CODEGEN_LIB_DLL:
 				recompute_sid_for_dll_lib(lib,origin_table,target_table);
@@ -643,19 +651,21 @@ static inline void recompute_sid_for_lib_stack(FklPtrStack* loadedLibStack
 static inline void recompute_sid_for_double_st_script_lib(FklCodegenLib* lib
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* gst
-		,FklSymbolTable* pst)
+		,FklSymbolTable* pst
+		,FklCodegenRecomputeNastSidOption option)
 {
 	recompute_sid_for_bytecodelnt(lib->bcl,origin_table,gst);
 	recompute_sid_for_export_sid_index(&lib->exports,origin_table,pst);
-	recompute_sid_for_compiler_macros(lib->head,origin_table,pst);
-	recompute_sid_for_replacements(lib->replacements,origin_table,pst);
-	recompute_sid_for_named_prod_groups(&lib->named_prod_groups,origin_table,pst);
+	recompute_sid_for_compiler_macros(lib->head,origin_table,pst,option);
+	recompute_sid_for_replacements(lib->replacements,origin_table,pst,option);
+	recompute_sid_for_named_prod_groups(&lib->named_prod_groups,origin_table,pst,option);
 }
 
 static inline void recompute_sid_for_double_st_lib_stack(FklPtrStack* loadedLibStack
 		,const FklSymbolTable* origin_table
 		,FklSymbolTable* gst
-		,FklSymbolTable* pst)
+		,FklSymbolTable* pst
+		,FklCodegenRecomputeNastSidOption option)
 {
 	for(size_t i=0;i<loadedLibStack->top;i++)
 	{
@@ -663,7 +673,7 @@ static inline void recompute_sid_for_double_st_lib_stack(FklPtrStack* loadedLibS
 		switch(lib->type)
 		{
 			case FKL_CODEGEN_LIB_SCRIPT:
-				recompute_sid_for_double_st_script_lib(lib,origin_table,gst,pst);
+				recompute_sid_for_double_st_script_lib(lib,origin_table,gst,pst,option);
 				break;
 			case FKL_CODEGEN_LIB_DLL:
 				recompute_sid_for_dll_lib(lib,origin_table,pst);
@@ -685,26 +695,28 @@ static inline void recompute_sid_for_sid_set(FklHashTable* ht,const FklSymbolTab
 static inline void recompute_sid_for_main_file(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	recompute_sid_for_bytecodelnt(bcl,origin_table,target_table);
 	recompute_sid_for_export_sid_index(&codegen->exports,origin_table,target_table);
-	recompute_sid_for_compiler_macros(codegen->export_macro,origin_table,target_table);
-	recompute_sid_for_replacements(codegen->export_replacement,origin_table,target_table);
+	recompute_sid_for_compiler_macros(codegen->export_macro,origin_table,target_table,option);
+	recompute_sid_for_replacements(codegen->export_replacement,origin_table,target_table,option);
 	recompute_sid_for_sid_set(codegen->export_named_prod_groups,origin_table,target_table);
-	recompute_sid_for_named_prod_groups(codegen->named_prod_groups,origin_table,target_table);
+	recompute_sid_for_named_prod_groups(codegen->named_prod_groups,origin_table,target_table,option);
 }
 
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table)
+		,FklSymbolTable* target_table
+		,FklCodegenRecomputeNastSidOption option)
 {
 	recompute_sid_for_prototypes(codegen->pts,origin_table,target_table);
 	recompute_sid_for_prototypes(codegen->macro_pts,origin_table,target_table);
-	recompute_sid_for_main_file(codegen,bcl,origin_table,target_table);
-	recompute_sid_for_lib_stack(codegen->libStack,origin_table,target_table);
-	recompute_sid_for_lib_stack(codegen->macroLibStack,origin_table,target_table);
+	recompute_sid_for_main_file(codegen,bcl,origin_table,target_table,option);
+	recompute_sid_for_lib_stack(codegen->libStack,origin_table,target_table,option);
+	recompute_sid_for_lib_stack(codegen->macroLibStack,origin_table,target_table,option);
 }
 
 static void _codegen_replacement_uninitItem(void* item)
@@ -1308,8 +1320,8 @@ error:
 	recompute_sid_for_prototypes(pts,&ost,gst);
 	recompute_sid_for_prototypes(macro_pts,&ost,pst);
 
-	recompute_sid_for_double_st_lib_stack(&scriptLibStack,&ost,gst,pst);
-	recompute_sid_for_lib_stack(&macroScriptLibStack,&ost,pst);
+	recompute_sid_for_double_st_lib_stack(&scriptLibStack,&ost,gst,pst,FKL_CODEGEN_SID_RECOMPUTE_NONE);
+	recompute_sid_for_lib_stack(&macroScriptLibStack,&ost,pst,FKL_CODEGEN_SID_RECOMPUTE_NONE);
 
 	increase_prototype_and_lib_id(info_pts->count
 			,info_macro_pts->count

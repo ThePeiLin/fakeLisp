@@ -4920,6 +4920,11 @@ static FklByteCodelnt* inlfunc_not(INL_FUNC_ARGS)
 	return inl_1_arg_func(FKL_OP_NOT,bcs,fid,line,scope);
 }
 
+static FklByteCodelnt* inlfunc_atom(INL_FUNC_ARGS)
+{
+	return inl_1_arg_func(FKL_OP_ATOM,bcs,fid,line,scope);
+}
+
 static FklByteCodelnt* inlfunc_car(INL_FUNC_ARGS)
 {
 	return inl_1_arg_func(FKL_OP_PUSH_CAR,bcs,fid,line,scope);
@@ -5166,7 +5171,7 @@ static const struct SymbolFuncStruct
 	{"append",                builtin_append,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"append!",               builtin_append1,                 {NULL,         NULL,          NULL,            NULL,          }, },
 	{"copy",                  builtin_copy,                    {NULL,         NULL,          NULL,            NULL,          }, },
-	{"atom",                  builtin_atom,                    {NULL,         NULL,          NULL,            NULL,          }, },
+	{"atom",                  builtin_atom,                    {NULL,         inlfunc_atom,  NULL,            NULL,          }, },
 	{"null",                  builtin_null,                    {NULL,         inlfunc_not,   NULL,            NULL,          }, },
 	{"not",                   builtin_not,                     {NULL,         inlfunc_not,   NULL,            NULL,          }, },
 	{"eq",                    builtin_eq,                      {NULL,         NULL,          inlfunc_eq,      NULL,          }, },

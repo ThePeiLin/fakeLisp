@@ -106,6 +106,7 @@ static struct
 	{"ret",                  0,  },
 	{"export-to",            8,  },
 	{"res-bp-tp",            0,  },
+	{"atom",                 0,  },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

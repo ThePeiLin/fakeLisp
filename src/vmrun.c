@@ -1618,6 +1618,12 @@ start:
 			exe->tp=frame->c.tp;
 			exe->bp=frame->c.bp;
 			break;
+		case FKL_OP_ATOM:
+			{
+				FklVMvalue* val=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
+			}
+			break;
 		case FKL_OP_LAST_OPCODE:
 			abort();
 			break;
@@ -2555,6 +2561,12 @@ start:
 			exe->tp=frame->c.tp;
 			exe->bp=frame->c.bp;
 			break;
+		case FKL_OP_ATOM:
+			{
+				FklVMvalue* val=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
+			}
+			break;
 		case FKL_OP_LAST_OPCODE:
 			abort();
 			break;
@@ -3490,6 +3502,12 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 		case FKL_OP_RES_BP_TP:
 			exe->tp=frame->c.tp;
 			exe->bp=frame->c.bp;
+			break;
+		case FKL_OP_ATOM:
+			{
+				FklVMvalue* val=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
+			}
 			break;
 		case FKL_OP_LAST_OPCODE:
 			abort();

@@ -15,7 +15,8 @@
                       (hash-num ~msg)
                       (format "test-%S<%S> success"
                               (hash-num ~msg)
-                              (quote ~t)))))))
+                              (quote ~t))))
+         (newline))))
 
   (defmacro ~(make-test ~msg,~rest)
     (if rest

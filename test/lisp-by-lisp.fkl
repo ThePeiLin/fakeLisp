@@ -1,7 +1,5 @@
 (import (.. lib utils))
 
-(define (null x) (eq x nil))
-
 (define (pair x y)
   (if (and (null x) (null y))
     nil

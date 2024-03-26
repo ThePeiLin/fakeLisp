@@ -1013,22 +1013,6 @@ static inline FklVMvalue** init_mainframe_lref(FklVMvalue** lref,uint32_t lcount
 	return lref;
 }
 
-static inline void remove_closed_ref(FklVMvarRefList** ll)
-{
-	while(*ll)
-	{
-		FklVMvarRefList* l=*ll;
-		FklVMvalue* ref=l->ref;
-		if(fklIsClosedVMvalueVarRef(ref))
-		{
-			*ll=l->next;
-			free(l);
-		}
-		else
-			ll=&l->next;
-	}
-}
-
 static int repl_frame_step(void* data,FklVM* exe)
 {
 	ReplCtx* ctx=(ReplCtx*)data;
@@ -1203,7 +1187,6 @@ static int repl_frame_step(void* data,FklVM* exe)
 			proc->end=proc->spc+mainCode->bc->len;
 
 			FklVMframe* mainframe=fklCreateVMframeWithProcValue(exe,ctx->mainProc,exe->top_frame);
-			remove_closed_ref(&fctx->lrefl);
 			mainframe->c.lr.lrefl=fctx->lrefl;
 			mainframe->c.lr.lref=fctx->lref;
 			FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
@@ -1482,7 +1465,6 @@ static int eval_frame_step(void* data,FklVM* exe)
 		proc->end=proc->spc+mainCode->bc->len;
 
 		FklVMframe* mainframe=fklCreateVMframeWithProcValue(exe,ctx->mainProc,exe->top_frame);
-		remove_closed_ref(&fctx->lrefl);
 		mainframe->c.lr.lrefl=fctx->lrefl;
 		mainframe->c.lr.lref=fctx->lref;
 		FklVMCompoundFrameVarRef* f=&mainframe->c.lr;

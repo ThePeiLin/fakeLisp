@@ -52,8 +52,32 @@ static inline void mark_interrupt_handler(FklVMgc* gc,struct FklVMinterruptHandl
 			l->mark(l->int_handle_arg,gc);
 }
 
+static inline void remove_closed_var_ref_from_list(FklVMvarRefList** ll)
+{
+	while(*ll)
+	{
+		FklVMvarRefList* l=*ll;
+		FklVMvalue* ref=l->ref;
+		if(fklIsClosedVMvalueVarRef(ref))
+		{
+			*ll=l->next;
+			free(l);
+		}
+		else
+			ll=&l->next;
+	}
+}
+
+static inline void remove_closed_var_ref(FklVM* exe)
+{
+	for(FklVMframe* f=exe->top_frame;f;f=f->prev)
+		if(f->type==FKL_FRAME_COMPOUND)
+			remove_closed_var_ref_from_list(&f->c.lr.lrefl);
+}
+
 static inline void gc_mark_root_to_gray(FklVM* exe)
 {
+	remove_closed_var_ref(exe);
 	mark_atexit(exe);
 	mark_interrupt_handler(exe->gc,exe->int_list);
 	FklVMgc* gc=exe->gc;

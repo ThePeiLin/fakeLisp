@@ -3646,6 +3646,43 @@ BC_PROCESS(_cond_exp_bc_process_0)
 	return retval;
 }
 
+static inline int is_const_true_bytecode_lnt(const FklByteCodelnt* bcl)
+{
+	const FklInstruction* cur=bcl->bc->code;
+	const FklInstruction* const end=&cur[bcl->bc->len];
+	for(;cur<end;cur++)
+	{
+		switch(cur->op)
+		{
+			case FKL_OP_PUSH_PAIR:
+			case FKL_OP_PUSH_I32:
+			case FKL_OP_PUSH_I64:
+			case FKL_OP_PUSH_CHAR:
+			case FKL_OP_PUSH_F64:
+			case FKL_OP_PUSH_STR:
+			case FKL_OP_PUSH_SYM:
+			case FKL_OP_PUSH_VECTOR:
+			case FKL_OP_PUSH_BIG_INT:
+			case FKL_OP_PUSH_BOX:
+			case FKL_OP_PUSH_BYTEVECTOR:
+			case FKL_OP_PUSH_HASHTABLE_EQ:
+			case FKL_OP_PUSH_HASHTABLE_EQV:
+			case FKL_OP_PUSH_HASHTABLE_EQUAL:
+			case FKL_OP_PUSH_LIST:
+			case FKL_OP_PUSH_0:
+			case FKL_OP_PUSH_1:
+			case FKL_OP_PUSH_I8:
+			case FKL_OP_PUSH_I16:
+			case FKL_OP_PUSH_I64_BIG:
+			case FKL_OP_TRUE:
+				break;
+			default:
+				return 0;
+		}
+	}
+	return 1;
+}
+
 BC_PROCESS(_cond_exp_bc_process_1)
 {
 	FklPtrStack* stack=GET_STACK(context);
@@ -3663,7 +3700,16 @@ BC_PROCESS(_cond_exp_bc_process_1)
 		FklInstruction jmp=create_op_ins(FKL_OP_JMP);
 		jmp.imm_i64=prev->bc->len;
 
-		for(size_t i=2;i<stack->top;i++)
+		int true_bcl=is_const_true_bytecode_lnt(first);
+
+		if(stack->top>2)
+		{
+			FklByteCodelnt* cur=stack->base[2];
+			fklCodeLntConcat(retval,cur);
+			fklDestroyByteCodelnt(cur);
+		}
+
+		for(size_t i=3;i<stack->top;i++)
 		{
 			FklByteCodelnt* cur=stack->base[i];
 			fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
@@ -3671,17 +3717,28 @@ BC_PROCESS(_cond_exp_bc_process_1)
 			fklDestroyByteCodelnt(cur);
 		}
 
+		size_t retval_len=retval->bc->len;
+
 		check_and_close_ref(retval,scope,env,codegen->pts,fid,line);
 
 		fklBytecodeLntPushBackIns(retval,&jmp,fid,line,scope);
-		FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
 
-		fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
+		if(retval_len)
+		{
+			if(!true_bcl)
+			{
+				fklBytecodeLntInsertFrontIns(&drop,retval,fid,line,scope);
+				FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
+				fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
+				fklCodeLntReverseConcat(first,retval);
+			}
+		}
+		else
+			fklCodeLntReverseConcat(first,retval);
+
 		fklCodeLntConcat(retval,prev);
 		fklDestroyByteCodelnt(prev);
-		fklCodeLntReverseConcat(first,retval);
 		fklDestroyByteCodelnt(first);
-
 	}
 	else
 		retval=fklPopPtrStack(stack);
@@ -3700,36 +3757,37 @@ BC_PROCESS(_cond_exp_bc_process_2)
 	{
 		retval=fklCreateByteCodelnt(fklCreateByteCode(0));
 		FklByteCodelnt* first=stack->base[0];
-		for(size_t i=1;i<stack->top;i++)
+		int true_bcl=is_const_true_bytecode_lnt(first);
+		if(stack->top>1)
+		{
+			FklByteCodelnt* cur=stack->base[1];
+			fklCodeLntConcat(retval,cur);
+			fklDestroyByteCodelnt(cur);
+		}
+		for(size_t i=2;i<stack->top;i++)
 		{
 			FklByteCodelnt* cur=stack->base[i];
 			fklBytecodeLntPushBackIns(retval,&drop,fid,line,scope);
 			fklCodeLntConcat(retval,cur);
 			fklDestroyByteCodelnt(cur);
 		}
+
 		if(retval->bc->len)
 		{
-			FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
-			fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
+			if(!true_bcl)
+			{
+				fklBytecodeLntInsertFrontIns(&drop,retval,fid,line,scope);
+				FklInstruction jmpIfFalse=create_op_imm_i64_ins(FKL_OP_JMP_IF_FALSE,retval->bc->len);
+				fklBytecodeLntInsertFrontIns(&jmpIfFalse,retval,fid,line,scope);
+				fklCodeLntReverseConcat(first,retval);
+			}
 		}
-		fklCodeLntReverseConcat(first,retval);
+		else
+			fklCodeLntReverseConcat(first,retval);
 		fklDestroyByteCodelnt(first);
-
-		if(!retval->bc->len)
-		{
-			fklDestroyByteCodelnt(retval);
-			retval=fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),fid,line,scope);
-		}
 	}
 	stack->top=0;
 	return retval;
-}
-
-static inline int is_true_exp(const FklNastNode* exp)
-{
-	return exp->type!=FKL_NAST_NIL
-		&&exp->type!=FKL_NAST_PAIR
-		&&exp->type!=FKL_NAST_SYM;
 }
 
 static CODEGEN_FUNC(codegen_cond)
@@ -3798,14 +3856,7 @@ static CODEGEN_FUNC(codegen_cond)
 			return;
 		}
 		FklPtrQueue* lastQueue=fklCreatePtrQueue();
-		FklByteCodeProcesser cond_exp_bc_process=_cond_exp_bc_process_2;
-		if(lastExp->pair->cdr->type==FKL_NAST_PAIR&&is_true_exp(lastExp->pair->car))
-		{
-			pushListItemToQueue(lastExp->pair->cdr,lastQueue,&last);
-			cond_exp_bc_process=_local_exp_bc_process;
-		}
-		else
-			pushListItemToQueue(lastExp,lastQueue,&last);
+		pushListItemToQueue(lastExp,lastQueue,&last);
 		if(last->type!=FKL_NAST_NIL)
 		{
 			errorState->type=FKL_ERR_SYNTAXERROR;
@@ -3818,7 +3869,7 @@ static CODEGEN_FUNC(codegen_cond)
 		}
 		uint32_t curScope=enter_new_scope(scope,curEnv);
 		FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
-		fklPushPtrStack(fklCreateCodegenQuest(cond_exp_bc_process
+		fklPushPtrStack(fklCreateCodegenQuest(_cond_exp_bc_process_2
 					,createDefaultStackContext(fklCreatePtrStack(32,16))
 					,createFirstHasRetvalQueueNextExpression(lastQueue)
 					,curScope

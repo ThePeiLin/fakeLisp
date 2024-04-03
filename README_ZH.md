@@ -1,6 +1,9 @@
 # fakeLisp
+
+> 这篇文档包含多个语言版本：[**中文**](./README_ZH.md) | [**English**](./README.md)
+
 fakeLisp是一个用c语言编写的轻量的LISP解释器。  
-本解释器的大量关键字和内建函数抄袭自`scheme`和`common lisp`，其中用于创建线程的函数`go`抄袭自`go`语言，子函数对于外部函数的变量的引用的实现抄袭自[`QuickJs`](https://bellard.org/quickjs)，模块`fuv`的测试抄袭自[`luv`](https://github.com/luvit/luv.git)。
+本解释器的大量关键字和内建函数抄袭自`scheme`和`common lisp`。用于创建线程的函数`go`和内建用于线程间通信的管道抄袭自`go`语言。子函数对于外部函数的变量的引用的实现抄袭自[`QuickJs`](https://bellard.org/quickjs)。`libuv`的绑定，模块`fuv`的测试抄袭自[`luv`](https://github.com/luvit/luv.git)。  
 本项目欢迎任何人的贡献。  
 
 ## 特性
@@ -9,13 +12,14 @@ fakeLisp是一个用c语言编写的轻量的LISP解释器。
 - 函数可以作为参数传入函数也可以作为返回值返回
 - 尾递归优化
 - 轻量，可以嵌入其他的项目中
-- 多线程，使用libuv实现了多线程接口
-- 内置libuv的绑定模块`fuv`，允许用户通过libuv实现异步io
-- 强类型，除了算术函数外基本没有自动类型转换
+- 多线程，使用`libuv`实现了多线程接口
+- 内置`libuv`的绑定模块`fuv`，允许用户通过`libuv`实现异步io
+- 无自动类型转换，除了算术函数外基本没有自动类型转换
 - 自带调试器，模块`bdb`提供基本调试接口，包`fdb`则是调试器本身
 - 宏，支持3种宏，分别为简单的符号替换宏、基于模板匹配的编译器宏和基于LALR分析法的读取器宏
 - 支持包和模块
-- 使用纯C语言编写，可以像lua一样使用C语言编写扩展模块
+- 可以像`lua`一样使用C语言编写扩展模块
+- 使用逗号而不是小数点来分隔序对的两部分
 
 ## 编译
 
@@ -24,9 +28,9 @@ fakeLisp是一个用c语言编写的轻量的LISP解释器。
 被内置在仓库的依赖：  
 - [replxx](https://github.com/AmokHuginnsson/replxx.git)，提供`repl`
 - [argtable3](https://github.com/argtable/argtable3.git)，提供命令行参数解析
-- [libuv](https://github.com/libuv/libuv.git)，提供异步io，多线程以及一些系统接口
+- [libuv](https://github.com/libuv/libuv.git)，提供异步io，多线程以及一些系统调用
 
-### linux
+### Linux
 
 大致流程如下
 
@@ -43,7 +47,7 @@ cmake ..
 make
 ```
 
-### windows
+### Windows
 
 将项目源码下载到本地，然后使用`visual studio`打开  
 由于使用了标准库提供的原子操作，因而要求`visual studio`的版本至少要2022  
@@ -58,7 +62,7 @@ make
 (define (f n)
   (when (< n 3)
     (println "hello, world")
-    (f (-1+ n))))
+    (f (1+ n))))
 (f 0)
 ```
 
@@ -167,12 +171,12 @@ foobar2
 
 - 本解释器不支持32位设备  
 - 目前的字节码文件没有考虑大小端等问题，不具有分发到其他平台的能力  
-- 本解释器为纯纯的处于好玩的个人项目，由于测试代码的质量低下，本人不对任何的代码的可靠性做出保证
+- 本项目目前只是纯纯的处于好玩的个人项目，代码的质量低下。本人不对任何的代码的可靠性做出保证
 
 ## TODO
 
-- [ ] 更加清晰易懂的文档
-- [ ] 不允许修改长度的`tuple`
+- [ ] 清晰易懂的文档
+- [ ] 一个不允许修改长度的数组类型
 - [ ] 改进虚拟机指令格式
 - [ ] 标准化字节码格式
 - [ ] 完整的unicode支持

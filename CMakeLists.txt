@@ -307,6 +307,23 @@ set_target_properties(fuv PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
+if(FANALYZER)
+	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE "-fanalyzer")
+	target_compile_options(${LIBFKL_STATIC_TARGET_NAME} PRIVATE "-fanalyzer")
+	target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE "-fanalyzer")
+	target_compile_options(${COMPILER_TARGET_NAME} PRIVATE "-fanalyzer")
+	target_compile_options(${BYTECODE_PRINTER_TARGET_NAME} PRIVATE "-fanalyzer")
+	target_compile_options(${PARSE} PRIVATE "-fanalyzer")
+	target_compile_options(${VMPARSE} PRIVATE "-fanalyzer")
+	target_compile_options(ht PRIVATE "-fanalyzer")
+	target_compile_options(os PRIVATE "-fanalyzer")
+	target_compile_options(math PRIVATE "-fanalyzer")
+	target_compile_options(sync PRIVATE "-fanalyzer")
+	target_compile_options(fs PRIVATE "-fanalyzer")
+	target_compile_options(bdb PRIVATE "-fanalyzer")
+	target_compile_options(fuv PRIVATE "-fanalyzer")
+endif()
+
 #linking
 target_link_libraries(${LIBFKL_STATIC_TARGET_NAME}
 	PUBLIC ${PARSE} ${VMPARSE}

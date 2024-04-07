@@ -182,6 +182,7 @@ foobar2
 - [ ] Explicit documents
 - [ ] An array type which not is allowed to modify its length
 - [ ] Impove the instruction format of viual machine
+- [ ] Instructions' optimization
 - [ ] Standardize the bytecode format
 - [ ] Full unicode support
 - [ ] Better regex support

@@ -1348,32 +1348,17 @@ static int eval_frame_step(void* data,FklVM* exe)
 	while(restLen)
 	{
 		fklVMacquireSt(exe->gc);
-		if(g&&g->aTable.num)
-		{
-			ast=fklParseWithTableForCharBuf(g
-					,eval_expression_str
-					,restLen
-					,&restLen
-					,&outerCtx
-					,exe->gc->st
-					,&err
-					,&errLine
-					,&cc->symbolStack
-					,&cc->lineStack
-					,&cc->stateStack);
-		}
-		else
-		{
-			ast=fklDefaultParseForCharBuf(eval_expression_str
-					,restLen
-					,&restLen
-					,&outerCtx
-					,&err
-					,&errLine
-					,&cc->symbolStack
-					,&cc->lineStack
-					,&cc->stateStack);
-		}
+
+		ast=fklDefaultParseForCharBuf(eval_expression_str
+				,restLen
+				,&restLen
+				,&outerCtx
+				,&err
+				,&errLine
+				,&cc->symbolStack
+				,&cc->lineStack
+				,&cc->stateStack);
+
 		fklVMreleaseSt(exe->gc);
 
 		cc->offset=strlen(eval_expression_str)-restLen;
@@ -1395,7 +1380,6 @@ static int eval_frame_step(void* data,FklVM* exe)
 		}
 	}
 
-	repl_nast_ctx_and_buf_reset(cc,&ctx->buf,g);
 	size_t libNum=codegen->libStack->top;
 
 	fklVMacquireSt(exe->gc);
@@ -1403,6 +1387,7 @@ static int eval_frame_step(void* data,FklVM* exe)
 	fklVMreleaseSt(exe->gc);
 
 	g=*(codegen->g);
+	repl_nast_ctx_and_buf_reset(cc,&ctx->buf,g);
 
 	size_t unloadlibNum=codegen->libStack->top-libNum;
 	if(unloadlibNum)

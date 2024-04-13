@@ -211,7 +211,21 @@ void fklVMgcCollect(FklVMgc* gc,FklVMvalue** pw)
 void fklVMgcSweep(FklVMvalue* head)
 {
 	FklVMvalue** phead=&head;
+	FklVMvalue* destroyDll=NULL;
 	while(*phead)
+	{
+		FklVMvalue* cur=*phead;
+		*phead=cur->next;
+		if(FKL_IS_DLL(cur))
+		{
+			cur->next=destroyDll;
+			destroyDll=cur;
+		}
+		else
+			fklDestroyVMvalue(cur);
+	}
+	phead=&destroyDll;
+	while(*phead!=NULL)
 	{
 		FklVMvalue* cur=*phead;
 		*phead=cur->next;

@@ -7,7 +7,7 @@
 (defmacro TOTAL (* THREAD-NUM INC))
 
 (define (f1 a)
-  (print "count=1+count\n")
+  (printf "count=%s+count\n" INC)
   (setq count (+ count INC)))
 
 (define (f bar)

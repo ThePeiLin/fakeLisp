@@ -3597,29 +3597,21 @@ static int builtin_call_eh(FKL_CPROC_ARGL)
 	return 1;
 }
 
-struct PcallCtx
-{
-	uint32_t ctx;
-	uint32_t bp;
-};
-
 static int pcall_error_handler(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 {
 	while(exe->top_frame!=f)
 		fklPopVMframe(exe);
 	FklCprocFrameContext* ctx=(FklCprocFrameContext*)f->data;
-	struct PcallCtx* cctx=(void*)&ctx->context;
 	exe->tp=ctx->rtp;
-	exe->bp=cctx->bp;
-	cctx->ctx=2;
+	exe->bp=ctx->cbu;
+	ctx->cau=2;
 	FKL_VM_PUSH_VALUE(exe,errValue);
 	return 1;
 }
 
 static int builtin_pcall(FKL_CPROC_ARGL)
 {
-	struct PcallCtx* cctx=(void*)&ctx->context;
-	switch(cctx->ctx)
+	switch(ctx->cau)
 	{
 		case 0:
 			{
@@ -3627,11 +3619,11 @@ static int builtin_pcall(FKL_CPROC_ARGL)
 				FKL_CHECK_TYPE(proc,fklIsCallable,exe);
 				uint32_t cbp=exe->bp;
 				ctx->rtp=fklResBpIn(exe,FKL_VM_GET_ARG_NUM(exe));
-				cctx->bp=exe->bp;
+				ctx->cbu=exe->bp;
 				exe->bp=cbp;
 				exe->top_frame->errorCallBack=pcall_error_handler;
 				fklCallObj(exe,proc);
-				cctx->ctx=1;
+				ctx->cau=1;
 				return 1;
 			}
 			break;

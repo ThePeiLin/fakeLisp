@@ -301,7 +301,23 @@ typedef struct FklCprocFrameContext
 	FklVMvalue* proc;
 	FklVMcFunc func;
 	FklVMvalue* pd;
-	uintptr_t context;
+	union
+	{
+		uintptr_t context;
+		struct
+		{
+			union
+			{
+				uint32_t cau;
+				int32_t cai;
+			};
+			union
+			{
+				uint32_t cbu;
+				int32_t cbi;
+			};
+		};
+	};
 	uint32_t rtp;
 }FklCprocFrameContext;
 

@@ -169,7 +169,7 @@ void fkl_dbg_print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
 	fputc('\n',stderr);
 }
 
-static void tailCallCompoundProcdure(FklVM* exe,FklVMvalue* proc)
+static inline void tail_call_proc(FklVM* exe,FklVMvalue* proc)
 {
 	FklVMframe* frame=exe->top_frame;
 	FklVMframe* topframe=frame;
@@ -843,7 +843,7 @@ start:
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
-						tailCallCompoundProcdure(exe,proc);
+						tail_call_proc(exe,proc);
 						break;
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
@@ -1786,7 +1786,7 @@ start:
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
-						tailCallCompoundProcdure(exe,proc);
+						tail_call_proc(exe,proc);
 						break;
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
@@ -2728,7 +2728,7 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
-						tailCallCompoundProcdure(exe,proc);
+						tail_call_proc(exe,proc);
 						break;
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
@@ -4576,10 +4576,17 @@ void fklDBG_printVMvalue(FklVMvalue* v,FILE* fp,FklVMgc* gc)
 
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe* frames)
 {
+#if FKL_MAX_INDIRECT_TAIL_CALL_COUNT<1
 	for(;frames;frames=frames->prev)
 		if(frames->type==FKL_FRAME_COMPOUND&&fklGetCompoundFrameProc(frames)==proc)
 			return frames;
 	return NULL;
+#else
+	for(unsigned c=FKL_MAX_INDIRECT_TAIL_CALL_COUNT;c>0&&frames;frames=frames->prev,c--)
+		if(frames->type==FKL_FRAME_COMPOUND&&fklGetCompoundFrameProc(frames)==proc)
+			return frames;
+	return NULL;
+#endif
 }
 
 void fklDestroyAllValues(FklVMgc* gc)

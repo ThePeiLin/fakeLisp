@@ -42,6 +42,7 @@ struct FklVM;
 struct FklVMvalue;
 struct FklCprocFrameContext;
 #define FKL_CPROC_ARGL struct FklVM* exe,struct FklCprocFrameContext* ctx
+#define FKL_MAX_INDIRECT_TAIL_CALL_COUNT (4)
 
 typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
 typedef struct FklVMvalue* FklVMptr;

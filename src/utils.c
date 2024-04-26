@@ -122,6 +122,14 @@ size_t fklWriteDoubleToBuf(char* buf,size_t max,double f64)
 	return size;
 }
 
+size_t fklPrintDouble(double k,FILE* fp)
+{
+	char buf[64]={0};
+	size_t s=fklWriteDoubleToBuf(buf,64,k);
+	fputs(buf,fp);
+	return s;
+}
+
 FklString* fklIntToString(int64_t num)
 {
 	char numString[256]={0};

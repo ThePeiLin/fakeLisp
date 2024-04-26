@@ -65,6 +65,7 @@ typedef struct DebugCtx
 
 	FklHashTable file_sid_set;
 	FklSymbolTable* st;
+	FklConstTable* kt;
 
 	int8_t exit;
 	int8_t running;

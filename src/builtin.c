@@ -4879,9 +4879,9 @@ static FklByteCodelnt* inlfunc_ret0(INL_FUNC_ARGS)
 {
 	FklByteCodelnt* r=inl_0_arg_func(FKL_OP_RES_BP_TP,fid,line,scope);
 	FklInstruction ins={.op=FKL_OP_PUSH_NIL};
-	fklBytecodeLntPushBackIns(r,&ins,fid,line,scope);
+	fklByteCodeLntPushBackIns(r,&ins,fid,line,scope);
 	ins.op=FKL_OP_RET;
-	fklBytecodeLntPushBackIns(r,&ins,fid,line,scope);
+	fklByteCodeLntPushBackIns(r,&ins,fid,line,scope);
 	return r;
 }
 
@@ -4897,7 +4897,7 @@ static inline FklByteCodelnt* inl_1_arg_func(FklOpcode opc
 		,uint32_t scope)
 {
 	FklInstruction bc={.op=opc};
-	fklBytecodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
+	fklByteCodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
 	return bcs[0];
 }
 
@@ -4970,9 +4970,9 @@ static FklByteCodelnt* inlfunc_ret1(INL_FUNC_ARGS)
 {
 	FklByteCodelnt* r=bcs[0];
 	FklInstruction ins={.op=FKL_OP_RES_BP_TP};
-	fklBytecodeLntInsertFrontIns(&ins,r,fid,line,scope);
+	fklByteCodeLntInsertFrontIns(&ins,r,fid,line,scope);
 	ins.op=FKL_OP_RET;
-	fklBytecodeLntPushBackIns(r,&ins,fid,line,scope);
+	fklByteCodeLntPushBackIns(r,&ins,fid,line,scope);
 	return r;
 }
 
@@ -4984,7 +4984,7 @@ static inline FklByteCodelnt* inl_2_arg_func(FklOpcode opc
 {
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
-	fklBytecodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
+	fklByteCodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
 	fklDestroyByteCodelnt(bcs[1]);
 	return bcs[0];
 }
@@ -5088,7 +5088,7 @@ static inline FklByteCodelnt* inl_3_arg_func(FklOpcode opc
 	FklInstruction bc={.op=opc};
 	fklCodeLntReverseConcat(bcs[1],bcs[0]);
 	fklCodeLntReverseConcat(bcs[2],bcs[0]);
-	fklBytecodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
+	fklByteCodeLntPushBackIns(bcs[0],&bc,fid,line,scope);
 	fklDestroyByteCodelnt(bcs[1]);
 	fklDestroyByteCodelnt(bcs[2]);
 	return bcs[0];
@@ -5409,14 +5409,6 @@ FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum)
 	if(idx>=FKL_BUILTIN_SYMBOL_NUM)
 		return NULL;
 	return builtInSymbolList[idx].inlfunc[argNum];
-}
-
-uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t* p)
-{
-	*p=FKL_BUILTIN_SYMBOL_NUM;
-	uint8_t* r=(uint8_t*)calloc(FKL_BUILTIN_SYMBOL_NUM,sizeof(uint8_t));
-	FKL_ASSERT(r);
-	return r;
 }
 
 void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* pst)

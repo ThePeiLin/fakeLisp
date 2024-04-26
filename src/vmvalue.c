@@ -584,10 +584,10 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 						r=FKL_VM_F64(root1)==FKL_VM_F64(root2);
 						break;
 					case FKL_TYPE_STR:
-						r=!fklStringCmp(FKL_VM_STR(root1),FKL_VM_STR(root2));
+						r=fklStringEqual(FKL_VM_STR(root1),FKL_VM_STR(root2));
 						break;
 					case FKL_TYPE_BYTEVECTOR:
-						r=!fklBytevectorCmp(FKL_VM_BVEC(root1),FKL_VM_BVEC(root2));
+						r=fklBytevectorEqual(FKL_VM_BVEC(root1),FKL_VM_BVEC(root2));
 						break;
 					case FKL_TYPE_PAIR:
 						r=1;
@@ -619,7 +619,7 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 						}
 						break;
 					case FKL_TYPE_BIG_INT:
-						r=!fklCmpBigInt(FKL_VM_BI(root1),FKL_VM_BI(root2));
+						r=fklBigIntEqual(FKL_VM_BI(root1),FKL_VM_BI(root2));
 						break;
 					case FKL_TYPE_USERDATA:
 						{
@@ -1142,28 +1142,17 @@ static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _big_int_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	const FklBigInt* bi=FKL_VM_BI(v);
-	size_t r=0;
-	for(size_t i=0;i<bi->size;i++)
-	{
-		uint64_t c=bi->digits[i];
-		r+=c<<(i%8);
-	}
-	if(bi->neg)
-		r*=-1;
-	return r;
+	return fklBigIntHash(FKL_VM_BI(v));
 }
 
 static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	const FklString* str=FKL_VM_STR(v);
-	return fklStringHash(str);
+	return fklStringHash(FKL_VM_STR(v));
 }
 
 static size_t _bytevector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	const FklBytevector* bvec=FKL_VM_BVEC(v);
-	return fklBytevectorHash(bvec);
+	return fklBytevectorHash(FKL_VM_BVEC(v));
 }
 
 static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)

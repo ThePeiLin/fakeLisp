@@ -280,15 +280,77 @@ static inline void init_idle_work_queue(FklVMgc* gc)
 	gc->workq.tail=&gc->workq.head;
 }
 
-FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklFuncPrototypes* pts)
+void fklVMgcUpdateConstArray(FklVMgc* gc,FklConstTable* kt)
+{
+	free(gc->ki64);
+	if(kt->ki64t.count)
+	{
+		size_t size=sizeof(int64_t)*kt->ki64t.count;
+		gc->ki64=(int64_t*)malloc(size);
+		FKL_ASSERT(gc->ki64);
+		memcpy(gc->ki64,kt->ki64t.base,size);
+	}
+	else
+		gc->ki64=NULL;
+
+	free(gc->kf64);
+	if(kt->kf64t.count)
+	{
+		size_t size=sizeof(double)*kt->kf64t.count;
+		gc->kf64=(double*)malloc(size);
+		FKL_ASSERT(gc->kf64);
+		memcpy(gc->kf64,kt->kf64t.base,size);
+	}
+	else
+		gc->kf64=NULL;
+
+	free(gc->kstr);
+	if(kt->kstrt.count)
+	{
+		size_t size=sizeof(FklString*)*kt->kstrt.count;
+		gc->kstr=(FklString**)malloc(size);
+		FKL_ASSERT(gc->kstr);
+		memcpy(gc->kstr,kt->kstrt.base,size);
+	}
+	else
+		gc->kstr=NULL;
+
+	free(gc->kbvec);
+	if(kt->kbvect.count)
+	{
+		size_t size=sizeof(FklBytevector*)*kt->kbvect.count;
+		gc->kbvec=(FklBytevector**)malloc(size);
+		FKL_ASSERT(gc->kbvec);
+		memcpy(gc->kbvec,kt->kbvect.base,size);
+	}
+	else
+		gc->kbvec=NULL;
+
+	free(gc->kbi);
+	if(kt->kbit.count)
+	{
+		size_t size=sizeof(FklBigInt*)*kt->kbit.count;
+		gc->kbi=(FklBigInt**)malloc(size);
+		FKL_ASSERT(gc->kbi);
+		memcpy(gc->kbi,kt->kbit.base,size);
+	}
+	else
+		gc->kbi=NULL;
+}
+
+FklVMgc* fklCreateVMgc(FklSymbolTable* st
+		,FklConstTable* kt
+		,FklFuncPrototypes* pts)
 {
 	FklVMgc* gc=(FklVMgc*)calloc(1,sizeof(FklVMgc));
 	FKL_ASSERT(gc);
 	gc->threshold=FKL_VM_GC_THRESHOLD_SIZE;
 	uv_rwlock_init(&gc->st_lock);
 	uv_mutex_init(&gc->extra_mark_lock);
+	gc->kt=kt;
 	gc->st=st;
 	gc->pts=pts;
+	fklVMgcUpdateConstArray(gc,kt);
 	fklInitBuiltinErrorType(gc->builtinErrorTypeId,st);
 
 	init_idle_work_queue(gc);
@@ -507,6 +569,11 @@ void fklDestroyVMgc(FklVMgc* gc)
 	destroy_all_locv_cache(gc);
 	fklDestroyAllValues(gc);
 	uninit_vm_queue(&gc->q);
+	free(gc->ki64);
+	free(gc->kf64);
+	free(gc->kstr);
+	free(gc->kbvec);
+	free(gc->kbi);
 	free(gc);
 }
 

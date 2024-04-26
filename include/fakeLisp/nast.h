@@ -37,9 +37,16 @@ typedef struct FklNastVector
 	struct FklNastNode** base;
 }FklNastVector;
 
+typedef enum
+{
+	FKL_HASH_EQ=0,
+	FKL_HASH_EQV,
+	FKL_HASH_EQUAL,
+}FklHashTableEqType;
+
 typedef struct FklNastHashTable
 {
-	uint32_t type;
+	FklHashTableEqType type;
 	uint64_t num;
 	FklNastPair* items;
 }FklNastHashTable;
@@ -76,13 +83,6 @@ void fklPrintNastNode(const FklNastNode* node
 		,const FklSymbolTable*);
 
 int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1);
-
-typedef enum
-{
-	FKL_HASH_EQ=0,
-	FKL_HASH_EQV,
-	FKL_HASH_EQUAL,
-}FklHashTableEqType;
 
 FklNastNode* fklNastConsWithSym(FklSid_t,FklNastNode*,uint64_t l1,uint64_t l2);
 FklNastNode* fklNastCons(FklNastNode*,FklNastNode*,uint64_t l1);

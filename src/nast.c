@@ -115,7 +115,7 @@ FklNastHashTable* fklCreateNastHash(FklHashTableEqType type,size_t num)
 {
 	FklNastHashTable* r=(FklNastHashTable*)malloc(sizeof(FklNastHashTable));
 	FKL_ASSERT(r);
-	r->items=(FklNastPair*)calloc(sizeof(FklNastPair),num);
+	r->items=(FklNastPair*)calloc(num,sizeof(FklNastPair));
 	FKL_ASSERT(r->items);
 	r->num=num;
 	r->type=type;

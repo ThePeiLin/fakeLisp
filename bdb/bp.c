@@ -84,40 +84,42 @@ Breakpoint* enableBreakpoint(DebugCtx* dctx,uint64_t num)
 
 static inline void delete_breakpoint(Breakpoint* bp,DebugCtx* dctx)
 {
-	Breakpoint* next=bp->next;
-	Breakpoint* prev=bp->prev;
-
-	if(prev)
-		prev->next=next;
-	else
-		bp->ins->ptr=next;
-
-	if(next)
-		next->prev=prev;
-
-	if(bp->ins->imm==1)
-		*(bp->ins)=bp->origin_ins;
-	else
-		bp->ins->imm--;
-
-	bp->compiled=1;
-
-	if(bp->cond_exp)
-	{
-		fklDestroyNastNode(bp->cond_exp);
-		bp->cond_exp=NULL;
-	}
-
-	if(bp->proc)
-	{
-		FklVMproc* proc=FKL_VM_PROC(bp->proc);
-		fklPushUintStack(proc->protoId,&dctx->unused_prototype_id_for_cond_bp);
-		bp->proc=NULL;
-	}
-
-	bp->is_deleted=1;
-	bp->next=dctx->deleted_breakpoints;
-	dctx->deleted_breakpoints=bp;
+#warning INCOMPLETE
+	abort();
+	// Breakpoint* next=bp->next;
+	// Breakpoint* prev=bp->prev;
+	//
+	// if(prev)
+	// 	prev->next=next;
+	// else
+	// 	bp->ins->ptr=next;
+	//
+	// if(next)
+	// 	next->prev=prev;
+	//
+	// if(bp->ins->imm==1)
+	// 	*(bp->ins)=bp->origin_ins;
+	// else
+	// 	bp->ins->imm--;
+	//
+	// bp->compiled=1;
+	//
+	// if(bp->cond_exp)
+	// {
+	// 	fklDestroyNastNode(bp->cond_exp);
+	// 	bp->cond_exp=NULL;
+	// }
+	//
+	// if(bp->proc)
+	// {
+	// 	FklVMproc* proc=FKL_VM_PROC(bp->proc);
+	// 	fklPushUintStack(proc->protoId,&dctx->unused_prototype_id_for_cond_bp);
+	// 	bp->proc=NULL;
+	// }
+	//
+	// bp->is_deleted=1;
+	// bp->next=dctx->deleted_breakpoints;
+	// dctx->deleted_breakpoints=bp;
 }
 
 void clearBreakpoint(DebugCtx* dctx)
@@ -167,28 +169,30 @@ Breakpoint* createBreakpoint(uint64_t num
 		,FklInstruction* ins
 		,DebugCtx* ctx)
 {
-	Breakpoint* bp=(Breakpoint*)calloc(1,sizeof(Breakpoint));
-	FKL_ASSERT(bp);
-	bp->num=num;
-	bp->fid=fid;
-	bp->line=line;
-	bp->ins=ins;
-	if(ins->op==0)
-	{
-		ins->imm++;
-		Breakpoint* prev=ins->ptr;
-		bp->origin_ins=prev->origin_ins;
-		prev->prev=bp;
-		bp->next=prev;
-		ins->ptr=bp;
-	}
-	else
-	{
-		bp->origin_ins=*(ins);
-		ins->op=0;
-		ins->ptr=bp;
-		ins->imm=1;
-	}
-	return bp;
+#warning INCOMPLETE
+	abort();
+	// Breakpoint* bp=(Breakpoint*)calloc(1,sizeof(Breakpoint));
+	// FKL_ASSERT(bp);
+	// bp->num=num;
+	// bp->fid=fid;
+	// bp->line=line;
+	// bp->ins=ins;
+	// if(ins->op==0)
+	// {
+	// 	ins->imm++;
+	// 	Breakpoint* prev=ins->ptr;
+	// 	bp->origin_ins=prev->origin_ins;
+	// 	prev->prev=bp;
+	// 	bp->next=prev;
+	// 	ins->ptr=bp;
+	// }
+	// else
+	// {
+	// 	bp->origin_ins=*(ins);
+	// 	ins->op=0;
+	// 	ins->ptr=bp;
+	// 	ins->imm=1;
+	// }
+	// return bp;
 }
 

@@ -46,7 +46,7 @@ typedef struct FklCodegenEnv
 
 void fklUpdatePrototype(FklFuncPrototypes* cp
 		,FklCodegenEnv* env
-		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* runtime_st
 		,FklSymbolTable* pst);
 
 typedef struct FklCodegenMacro
@@ -231,6 +231,7 @@ typedef struct
 	const char* cur_file_dir;
 
 	FklSymbolTable public_symbol_table;
+	FklConstTable public_kt;
 
 	FklSid_t builtInPatternVar_orig;
 	FklSid_t builtInPatternVar_rest;
@@ -287,10 +288,9 @@ typedef struct FklCodegenInfo
 	FklGrammerIgnore** unnamed_ignores;
 	FklHashTable* named_prod_groups;
 
-	uint32_t builtinSymbolNum;
-	uint8_t* builtinSymModiMark;
-	FklCodegenEnv* globalEnv;
-	FklSymbolTable* globalSymTable;
+	FklCodegenEnv* global_env;
+	FklSymbolTable* runtime_symbol_table;
+	FklConstTable* runtime_kt;
 
 	FklHashTable exports;
 
@@ -306,9 +306,9 @@ typedef struct FklCodegenInfo
 	FklFuncPrototypes* pts;
 	FklFuncPrototypes* macro_pts;
 
-	unsigned int destroyAbleMark:1;
-	unsigned int libMark:1;
-	unsigned int macroMark:1;
+	unsigned int is_destroyable:1;
+	unsigned int is_lib:1;
+	unsigned int is_macro:1;
 	uint64_t refcount:61;
 
 	struct
@@ -381,7 +381,8 @@ FklHashTable* fklCreateCodegenReplacementTable(void);
 
 FklCodegenEnv* fklInitGlobalCodegenInfo(FklCodegenInfo* codegen
 		,const char* rp
-		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* runtime_st
+		,FklConstTable* runtime_kt
 		,int destroyAbleMark
 		,FklCodegenOuterCtx* outer_ctx
 		,FklCodegenInfoWorkCb work_cb
@@ -401,7 +402,8 @@ FklCodegenQuest* fklCreateCodegenQuest(FklByteCodeProcesser f
 void fklInitCodegenInfo(FklCodegenInfo* codegen
 		,const char* filename
 		,FklCodegenInfo* prev
-		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* runtime_st
+		,FklConstTable* runtime_kt
 		,int destroyAbleMark
 		,int libMark
 		,int macroMark
@@ -443,9 +445,9 @@ void fklPrintCodegenError(FklNastNode* obj
 		,const FklSymbolTable* symbolTable
 		,size_t line
 		,FklSid_t fid
-		,const FklSymbolTable* publicSymbolTable);
+		,const FklSymbolTable* pst);
 
-void fklPrintUndefinedRef(const FklCodegenEnv* env,FklSymbolTable* globalSymTable,FklSymbolTable* pst);
+void fklPrintUndefinedRef(const FklCodegenEnv* env,FklSymbolTable* runtime_st,FklSymbolTable* pst);
 
 FklSymbolDef* fklAddCodegenBuiltinRefBySid(FklSid_t id,FklCodegenEnv* env);
 uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line,uint32_t assign);
@@ -533,7 +535,8 @@ FklVM* fklInitMacroExpandVM(FklByteCodelnt* bcl
 		,FklPtrStack* macroLibStack
 		,FklNastNode** pr
 		,uint64_t curline
-		,FklSymbolTable* pst);
+		,FklSymbolTable* pst
+		,FklConstTable* pkt);
 
 void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		,FklVMlib* vlib
@@ -554,10 +557,23 @@ void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 		,FklVM* vm
 		,FklFuncPrototypes*);
 
+typedef int (*FklRecomputeInsImmPredicate)(FklOpcode op);
+typedef int (*FklRecomputeInsImmFunc)(void* ctx
+		,FklOpcode* opcode
+		,FklOpcodeMode* pmode
+		,FklInstructionArg* ins_arg);
+
+void fklRecomputeInsImm(FklByteCodelnt* bcl
+		,void* ctx
+		,FklRecomputeInsImmPredicate p
+		,FklRecomputeInsImmFunc func);
+
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
-		,const FklSymbolTable* origin_table
-		,FklSymbolTable* target_table
+		,const FklSymbolTable* origin_st
+		,FklSymbolTable* target_st
+		,const FklConstTable* origin_kt
+		,FklConstTable* target_kt
 		,FklCodegenRecomputeNastSidOption option);
 
 void fklRecomputeSidForNastNode(FklNastNode* node
@@ -569,7 +585,8 @@ int fklLoadPreCompile(FklFuncPrototypes* info_pts
 		,FklFuncPrototypes* info_macro_pts
 		,FklPtrStack* info_scriptLibStack
 		,FklPtrStack* info_macroScriptLibStack
-		,FklSymbolTable* gst
+		,FklSymbolTable* runtime_st
+		,FklConstTable* runtime_kt
 		,FklCodegenOuterCtx* outer_ctx
 		,const char* rp
 		,FILE* fp

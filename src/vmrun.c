@@ -2,6 +2,7 @@
 #include<fakeLisp/bytecode.h>
 #include<fakeLisp/vm.h>
 #include<fakeLisp/common.h>
+#include<stdint.h>
 #include<string.h>
 #ifdef _WIN32
 #include<tchar.h>
@@ -93,7 +94,7 @@ void fklShrinkLocv(FklVM* exe)
 	}
 }
 
-static void callCompoundProcdure(FklVM* exe,FklVMvalue* proc)
+static inline void call_compound_procedure(FklVM* exe,FklVMvalue* proc)
 {
 	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(exe,proc,exe->top_frame);
 	uint32_t lcount=FKL_VM_PROC(proc)->lcount;
@@ -112,31 +113,6 @@ void fklSwapCompoundFrame(FklVMframe* a,FklVMframe* b)
 		a->c=b->c;
 		b->c=t;
 	}
-}
-
-static inline int64_t get_next_code(FklInstruction* pc)
-{
-	if(pc->op==FKL_OP_JMP)
-		return 1+pc->imm_i64;
-	return 1;
-}
-
-static int is_last_expression(FklVMframe* frame)
-{
-	if(frame->type!=FKL_FRAME_COMPOUND)
-		return 0;
-	else if(!frame->c.tail)
-	{
-		FklInstruction* pc=fklGetCompoundFrameCode(frame);
-		FklInstruction* end=fklGetCompoundFrameEnd(frame);
-
-		if(pc[-1].op!=FKL_OP_TAIL_CALL)
-			for(;pc<end&&pc->op!=FKL_OP_RET;pc+=get_next_code(pc))
-				if(pc->op!=FKL_OP_JMP&&pc->op!=FKL_OP_CLOSE_REF)
-					return 0;
-		frame->c.tail=1;
-	}
-	return 1;
 }
 
 void fkl_dbg_print_link_back_trace(FklVMframe* t,FklSymbolTable* table)
@@ -294,7 +270,8 @@ static inline void init_builtin_symbol_ref(FklVM* exe,FklVMvalue* proc_obj)
 }
 
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt* mainCode
-		,FklSymbolTable* globalSymTable
+		,FklSymbolTable* runtime_st
+		,FklConstTable* runtime_kt
 		,FklFuncPrototypes* pts
 		,uint32_t pid)
 {
@@ -303,7 +280,7 @@ FklVM* fklCreateVMwithByteCode(FklByteCodelnt* mainCode
 	exe->prev=exe;
 	exe->next=exe;
 	exe->pts=pts;
-	exe->gc=fklCreateVMgc(globalSymTable,pts);
+	exe->gc=fklCreateVMgc(runtime_st,runtime_kt,pts);
 	exe->frame_cache_head=&exe->static_frame;
 	exe->frame_cache_tail=&exe->frame_cache_head->prev;
 	fklInitGlobalVMclosureForGC(exe);
@@ -472,28 +449,16 @@ void fklDoAtomicFrame(FklVMframe* f,FklVMgc* gc)
 	default:\
 		break;
 
-static inline void applyCompoundProc(FklVM* exe,FklVMvalue* proc)
+static inline void apply_compound_proc(FklVM* exe,FklVMvalue* proc)
 {
-	FklVMframe* frame=exe->top_frame;
-	FklVMframe* prevProc=fklHasSameProc(proc,frame);
-	if(frame&&frame->type==FKL_FRAME_COMPOUND
-			&&(frame->c.tail=is_last_expression(frame))
-			&&prevProc
-			&&(frame->c.tail&=prevProc->c.tail))
-	{
-		prevProc->c.mark=1;
-		fklSwapCompoundFrame(frame,prevProc);
-	}
-	else
-	{
-		FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(exe,proc,exe->top_frame);
-		uint32_t lcount=FKL_VM_PROC(proc)->lcount;
-		FklVMCompoundFrameVarRef* f=&tmpFrame->c.lr;
-		f->base=exe->ltp;
-		f->loc=fklAllocSpaceForLocalVar(exe,lcount);
-		f->lcount=lcount;
-		fklPushVMframe(tmpFrame,exe);
-	}
+	FklVMframe* tmpFrame=fklCreateVMframeWithProcValue(exe,proc,exe->top_frame);
+	uint32_t lcount=FKL_VM_PROC(proc)->lcount;
+	FklVMCompoundFrameVarRef* f=&tmpFrame->c.lr;
+	f->base=exe->ltp;
+	f->loc=fklAllocSpaceForLocalVar(exe,lcount);
+	f->lcount=lcount;
+	fklPushVMframe(tmpFrame,exe);
+
 }
 
 void fklCallObj(FklVM* exe,FklVMvalue* proc)
@@ -501,7 +466,7 @@ void fklCallObj(FklVM* exe,FklVMvalue* proc)
 	switch(proc->type)
 	{
 		case FKL_TYPE_PROC:
-			applyCompoundProc(exe,proc);
+			apply_compound_proc(exe,proc);
 			break;
 			CALL_CALLABLE_OBJ(exe,proc);
 	}
@@ -688,9 +653,23 @@ static inline void close_var_ref_between(FklVMvalue** lref,uint32_t sIdx,uint32_
 		}
 }
 
+#define GET_INS_UX(ins,frame) ((ins)->bu|(((uint32_t)frame->c.pc++->bu)<<FKL_I16_WIDTH))
+#define GET_INS_IX(ins,frame) ((int32_t)GET_INS_UX(ins,frame))
+#define GET_INS_UXX(ins,frame) (frame->c.pc+=2,\
+		FKL_GET_INS_UC(ins)\
+		|(((uint64_t)FKL_GET_INS_UC((ins)+1))<<FKL_I24_WIDTH)\
+		|(((uint64_t)ins[2].bu)<<(FKL_I24_WIDTH*2)))
+#define GET_INS_IXX(ins,frame) ((int64_t)GET_INS_UXX(ins,frame))
+
 static inline void execute_compound_frame(FklVM* exe,FklVMframe* frame)
 {
 	FklInstruction* ins;
+	FklVMlib* plib;
+	uint32_t idx;
+	uint32_t idx1;
+	uint64_t size;
+	uint64_t num;
+	int64_t offset;
 start:
 	ins=frame->c.pc++;
 	switch(ins->op)
@@ -709,23 +688,47 @@ start:
 				FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,car,cdr));
 			}
 			break;
-		case FKL_OP_PUSH_I32:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i32));
+		case FKL_OP_PUSH_I24:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(FKL_GET_INS_IC(ins)));
 			break;
-		case FKL_OP_PUSH_I64:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i64));
+		case FKL_OP_PUSH_I64F:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_I64F_C:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_I64F_X:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_CHAR:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ins->chr));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ins->bu));
 			break;
 		case FKL_OP_PUSH_F64:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ins->f64));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_F64_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_F64_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_STR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(ins->str)));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[ins->bu])));
+			break;
+		case FKL_OP_PUSH_STR_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[FKL_GET_INS_UC(ins)])));
+			break;
+		case FKL_OP_PUSH_STR_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[GET_INS_UX(ins,frame)])));
 			break;
 		case FKL_OP_PUSH_SYM:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->sid));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->bu));
+			break;
+		case FKL_OP_PUSH_SYM_C:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(FKL_GET_INS_UC(ins)));
+			break;
+		case FKL_OP_PUSH_SYM_X:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(GET_INS_UX(ins,frame)));
 			break;
 		case FKL_OP_DUP:
 			{
@@ -737,35 +740,71 @@ start:
 			}
 			break;
 		case FKL_OP_PUSH_PROC:
+			idx=ins->au;
+			size=ins->bu;
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			size=FKL_GET_INS_UC(ins);
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			size=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_XXX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			size=ins[1].bu
+				|(((uint64_t)ins[2].au)<<FKL_I16_WIDTH)
+				|(((uint64_t)ins[2].bu)<<FKL_I24_WIDTH)
+				|(((uint64_t)ins[3].au)<<(FKL_I16_WIDTH*2+FKL_BYTE_WIDTH))
+				|(((uint64_t)ins[3].bu)<<(FKL_I16_WIDTH*2+FKL_BYTE_WIDTH*2));
+			frame->c.pc+=3;
+push_proc:
 			{
-				uint32_t prototypeId=ins->imm;
-				uint64_t sizeOfProc=ins->imm_u64;
 				FKL_VM_PUSH_VALUE(exe
 						,fklCreateVMvalueProcWithFrame(exe
 							,frame
-							,sizeOfProc
-							,prototypeId));
-				fklAddCompoundFrameCp(frame,sizeOfProc);
+							,size
+							,idx));
+				fklAddCompoundFrameCp(frame,size);
 			}
 			break;
 		case FKL_OP_DROP:
 			DROP_TOP(exe);
 			break;
 		case FKL_OP_POP_ARG:
+			idx=ins->bu;
+			goto pop_arg;
+		case FKL_OP_POP_ARG_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_arg;
+		case FKL_OP_POP_ARG_X:
+			idx=GET_INS_UX(ins,frame);
+pop_arg:
 			{
 				if(exe->tp<=exe->bp)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				FklVMvalue* v=FKL_VM_POP_ARG(exe);
-				GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=v;
+				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
 		case FKL_OP_POP_REST_ARG:
+			idx=ins->bu;
+			goto pop_rest_arg;
+		case FKL_OP_POP_REST_ARG_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_rest_arg;
+		case FKL_OP_POP_REST_ARG_X:
+			idx=GET_INS_UX(ins,frame);
+pop_rest_arg:
 			{
 				FklVMvalue* obj=FKL_VM_NIL;
 				FklVMvalue* volatile* pValue=&obj;
 				for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
 					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
-				GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=obj;
+				GET_COMPOUND_FRAME_LOC(frame,idx)=obj;
 			}
 			break;
 		case FKL_OP_SET_BP:
@@ -781,7 +820,7 @@ start:
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
-						callCompoundProcdure(exe,proc);
+						call_compound_procedure(exe,proc);
 						break;
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
@@ -795,15 +834,58 @@ start:
 			frame->c.bp=exe->bp;
 			break;
 		case FKL_OP_JMP_IF_TRUE:
-			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
-				frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp_if_true;
 			break;
+		case FKL_OP_JMP_IF_TRUE_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp_if_true;
+			break;
+		case FKL_OP_JMP_IF_TRUE_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp_if_true;
+			break;
+		case FKL_OP_JMP_IF_TRUE_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp_if_true:
+			if(FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
+				frame->c.pc+=offset;
+			break;
+
 		case FKL_OP_JMP_IF_FALSE:
-			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
-				frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp_if_false:
+			if(FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
+				frame->c.pc+=offset;
 			break;
 		case FKL_OP_JMP:
-			frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp;
+			break;
+		case FKL_OP_JMP_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp;
+			break;
+		case FKL_OP_JMP_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp;
+			break;
+		case FKL_OP_JMP_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp:
+			frame->c.pc+=offset;
 			break;
 		case FKL_OP_LIST_APPEND:
 			{
@@ -823,9 +905,19 @@ start:
 				}
 			}
 			break;
-		case FKL_OP_PUSH_VECTOR:
+		case FKL_OP_PUSH_VEC:
+			size=ins->bu;
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_XX:
+			size=GET_INS_UXX(ins,frame);
+push_vec:
 			{
-				uint64_t size=ins->imm_u64;
 				FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
 				FklVMvec* v=FKL_VM_VEC(vec);
 				for(uint64_t i=size;i>0;i--)
@@ -850,8 +942,14 @@ start:
 				return;
 			}
 			break;
-		case FKL_OP_PUSH_BIG_INT:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,ins->bi));
+		case FKL_OP_PUSH_BI:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[ins->bu]));
+			break;
+		case FKL_OP_PUSH_BI_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_BI_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_BOX:
 			{
@@ -860,12 +958,28 @@ start:
 				FKL_VM_PUSH_VALUE(exe,box);
 			}
 			break;
-		case FKL_OP_PUSH_BYTEVECTOR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec)));
+		case FKL_OP_PUSH_BVEC:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[ins->bu])));
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQ:
+		case FKL_OP_PUSH_BVEC_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[FKL_GET_INS_UC(ins)])));
+			break;
+		case FKL_OP_PUSH_BVEC_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[GET_INS_UX(ins,frame)])));
+			break;
+		case FKL_OP_PUSH_HASHEQ:
+			num=ins->bu;
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hasheq:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 				uint64_t kvnum=num*2;
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
@@ -880,11 +994,20 @@ start:
 				FKL_VM_PUSH_VALUE(exe,hash);
 			}
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQV:
+		case FKL_OP_PUSH_HASHEQV:
+			num=ins->bu;
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hasheqv:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEqv(exe);
-
 				uint64_t kvnum=num*2;
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
 				FklHashTable* ht=FKL_VM_HASH(hash);
@@ -898,12 +1021,21 @@ start:
 				FKL_VM_PUSH_VALUE(exe,hash);
 			}
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQUAL:
+		case FKL_OP_PUSH_HASHEQUAL:
+			num=ins->bu;
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hashequal:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEqual(exe);
 				uint64_t kvnum=num*2;
-
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
 				FklHashTable* ht=FKL_VM_HASH(hash);
 				for(size_t i=0;i<kvnum;i+=2)
@@ -933,8 +1065,18 @@ start:
 			}
 			break;
 		case FKL_OP_PUSH_LIST:
+			size=ins->bu;
+			goto push_list;
+		case FKL_OP_PUSH_LIST_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_list;
+		case FKL_OP_PUSH_LIST_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_list;
+		case FKL_OP_PUSH_LIST_XX:
+			size=GET_INS_UXX(ins,frame);
+push_list:
 			{
-				uint64_t size=ins->imm_u64;
 				FklVMvalue* pair=FKL_VM_NIL;
 				FklVMvalue* last=FKL_VM_POP_ARG(exe);
 				size--;
@@ -949,7 +1091,7 @@ start:
 				FKL_VM_PUSH_VALUE(exe,pair);
 			}
 			break;
-		case FKL_OP_PUSH_VECTOR_0:
+		case FKL_OP_PUSH_VEC_0:
 			{
 				size_t size=exe->tp-exe->bp;
 				FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
@@ -970,13 +1112,24 @@ start:
 			}
 			break;
 		case FKL_OP_IMPORT:
+			idx=ins->au;
+			idx1=ins->bu;
+			goto import;
+		case FKL_OP_IMPORT_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto import;
+		case FKL_OP_IMPORT_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+import:
 			{
-				uint32_t locIdx=ins->imm;
-				uint32_t libIdx=ins->imm_u32;
 				FklVMlib* plib=exe->importingLib;
 				uint32_t count=plib->count;
-				FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
-				GET_COMPOUND_FRAME_LOC(frame,locIdx)=v;
+				FklVMvalue* v=idx>=count?NULL:plib->loc[idx];
+				GET_COMPOUND_FRAME_LOC(frame,idx1)=v;
 			}
 			break;
 		case FKL_OP_PUSH_0:
@@ -986,33 +1139,67 @@ start:
 			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(1));
 			break;
 		case FKL_OP_PUSH_I8:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i8));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->ai));
 			break;
 		case FKL_OP_PUSH_I16:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i16));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->bi));
 			break;
-		case FKL_OP_PUSH_I64_BIG:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,ins->imm_i64));
+		case FKL_OP_PUSH_I64B:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_I64B_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_I64B_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_GET_LOC:
-			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32));
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->bu));
+			break;
+		case FKL_OP_GET_LOC_C:
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,FKL_GET_INS_UC(ins)));
+			break;
+		case FKL_OP_GET_LOC_X:
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,GET_INS_UX(ins,frame)));
 			break;
 		case FKL_OP_PUT_LOC:
-			GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
+			GET_COMPOUND_FRAME_LOC(frame,ins->bu)=FKL_VM_GET_TOP_VALUE(exe);
+			break;
+		case FKL_OP_PUT_LOC_C:
+			GET_COMPOUND_FRAME_LOC(frame,FKL_GET_INS_UC(ins))=FKL_VM_GET_TOP_VALUE(exe);
+			break;
+		case FKL_OP_PUT_LOC_X:
+			GET_COMPOUND_FRAME_LOC(frame,GET_INS_UX(ins,frame))=FKL_VM_GET_TOP_VALUE(exe);
 			break;
 		case FKL_OP_GET_VAR_REF:
+			idx=ins->bu;
+			goto get_var_ref;
+		case FKL_OP_GET_VAR_REF_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto get_var_ref;
+		case FKL_OP_GET_VAR_REF_X:
+			idx=GET_INS_UX(ins,frame);
+get_var_ref:
 			{
 				FklSid_t id=0;
-				FklVMvalue* v=get_var_val(frame,ins->imm_u32,exe->pts,&id);
+				FklVMvalue* v=get_var_val(frame,idx,exe->pts,&id);
 				if(id)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				FKL_VM_PUSH_VALUE(exe,v);
 			}
 			break;
 		case FKL_OP_PUT_VAR_REF:
+			idx=ins->bu;
+			goto put_var_ref;
+		case FKL_OP_PUT_VAR_REF_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto put_var_ref;
+		case FKL_OP_PUT_VAR_REF_X:
+			idx=GET_INS_UX(ins,frame);
+put_var_ref:
 			{
 				FklSid_t id=0;
-				FklVMvalue* volatile* pv=get_var_ref(frame,ins->imm_u32,exe->pts,&id);
+				FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 				if(!pv)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
@@ -1020,31 +1207,50 @@ start:
 			}
 			break;
 		case FKL_OP_EXPORT:
+			idx=ins->bu;
+			goto export;
+		case FKL_OP_EXPORT_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto export;
+		case FKL_OP_EXPORT_X:
+			idx=GET_INS_UX(ins,frame);
+export:
 			{
-				uint32_t idx=ins->imm_u32;
 				FklVMlib* lib=exe->importingLib;
 				FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 				lib->loc[lib->count++]=lr->loc[idx];
 			}
 			break;
 		case FKL_OP_LOAD_LIB:
+			plib=&exe->libs[ins->bu];
+			goto load_lib;
+		case FKL_OP_LOAD_LIB_C:
+			plib=&exe->libs[FKL_GET_INS_UC(ins)];
+			goto load_lib;
+		case FKL_OP_LOAD_LIB_X:
+			plib=&exe->libs[GET_INS_UX(ins,frame)];
+load_lib:
 			{
-				uint32_t libId=ins->imm_u32;
-				FklVMlib* plib=&exe->libs[libId];
 				if(plib->imported)
 				{
 					exe->importingLib=plib;
 					FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				}
 				else
-					callCompoundProcdure(exe,plib->proc);
+					call_compound_procedure(exe,plib->proc);
 				return;
 			}
 			break;
 		case FKL_OP_LOAD_DLL:
+			plib=&exe->libs[ins->bu];
+			goto load_dll;
+		case FKL_OP_LOAD_DLL_C:
+			plib=&exe->libs[FKL_GET_INS_UC(ins)];
+			goto load_dll;
+		case FKL_OP_LOAD_DLL_X:
+			plib=&exe->libs[GET_INS_UX(ins,frame)];
+load_dll:
 			{
-				uint32_t libId=ins->imm_u32;
-				FklVMlib* plib=&exe->libs[libId];
 				if(!plib->imported)
 				{
 					FklVMvalue* errorStr=NULL;
@@ -1570,11 +1776,20 @@ start:
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBoxNil(exe));
 			break;
 		case FKL_OP_CLOSE_REF:
-			{
-				uint32_t sIdx=ins->imm;
-				uint32_t eIdx=ins->imm_u32;
-				close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,sIdx,eIdx);
-			}
+			idx=ins->au;
+			idx1=ins->bu;
+			goto close_ref;
+		case FKL_OP_CLOSE_REF_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto close_ref;
+		case FKL_OP_CLOSE_REF_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+close_ref:
+			close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,idx,idx1);
 			break;
 		case FKL_OP_RET:
 			{
@@ -1598,13 +1813,28 @@ start:
 			}
 			break;
 		case FKL_OP_EXPORT_TO:
+			idx=ins->au;
+			idx1=ins->bu;
+			goto export_to;
+		case FKL_OP_EXPORT_TO_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto export_to;
+		case FKL_OP_EXPORT_TO_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+export_to:
 			{
-				uint32_t libId=ins->imm_u32;
-				uint32_t num=ins->imm;
-				FklVMlib* lib=&exe->libs[libId];
+				FklVMlib* lib=&exe->libs[idx];
 				DROP_TOP(exe);
-				FklVMvalue** loc=(FklVMvalue**)malloc(num*sizeof(FklVMvalue*));
-				FKL_ASSERT(loc);
+				FklVMvalue** loc=NULL;
+				if(idx1)
+				{
+					loc=(FklVMvalue**)malloc(idx1*sizeof(FklVMvalue*));
+					FKL_ASSERT(loc);
+				}
 				lib->loc=loc;
 				lib->count=0;
 				lib->imported=1;
@@ -1624,6 +1854,7 @@ start:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
 			break;
@@ -1634,6 +1865,12 @@ start:
 static inline void execute_compound_frame_check_trap(FklVM* exe,FklVMframe* frame)
 {
 	FklInstruction* ins;
+	FklVMlib* plib;
+	uint32_t idx;
+	uint32_t idx1;
+	uint64_t size;
+	uint64_t num;
+	int64_t offset;
 start:
 	ins=frame->c.pc++;
 	switch(ins->op)
@@ -1652,23 +1889,47 @@ start:
 				FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,car,cdr));
 			}
 			break;
-		case FKL_OP_PUSH_I32:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i32));
+		case FKL_OP_PUSH_I24:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(FKL_GET_INS_IC(ins)));
 			break;
-		case FKL_OP_PUSH_I64:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i64));
+		case FKL_OP_PUSH_I64F:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_I64F_C:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_I64F_X:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_CHAR:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ins->chr));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ins->bu));
 			break;
 		case FKL_OP_PUSH_F64:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ins->f64));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_F64_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_F64_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_STR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(ins->str)));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[ins->bu])));
+			break;
+		case FKL_OP_PUSH_STR_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[FKL_GET_INS_UC(ins)])));
+			break;
+		case FKL_OP_PUSH_STR_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[GET_INS_UX(ins,frame)])));
 			break;
 		case FKL_OP_PUSH_SYM:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->sid));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->bu));
+			break;
+		case FKL_OP_PUSH_SYM_C:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(FKL_GET_INS_UC(ins)));
+			break;
+		case FKL_OP_PUSH_SYM_X:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(GET_INS_UX(ins,frame)));
 			break;
 		case FKL_OP_DUP:
 			{
@@ -1680,35 +1941,71 @@ start:
 			}
 			break;
 		case FKL_OP_PUSH_PROC:
+			idx=ins->au;
+			size=ins->bu;
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			size=FKL_GET_INS_UC(ins);
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			size=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_XXX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			size=ins[1].bu
+				|(((uint64_t)ins[2].au)<<FKL_I16_WIDTH)
+				|(((uint64_t)ins[2].bu)<<FKL_I24_WIDTH)
+				|(((uint64_t)ins[3].au)<<(FKL_I16_WIDTH*2+FKL_BYTE_WIDTH))
+				|(((uint64_t)ins[3].bu)<<(FKL_I16_WIDTH*2+FKL_BYTE_WIDTH*2));
+			frame->c.pc+=3;
+push_proc:
 			{
-				uint32_t prototypeId=ins->imm;
-				uint64_t sizeOfProc=ins->imm_u64;
 				FKL_VM_PUSH_VALUE(exe
 						,fklCreateVMvalueProcWithFrame(exe
 							,frame
-							,sizeOfProc
-							,prototypeId));
-				fklAddCompoundFrameCp(frame,sizeOfProc);
+							,size
+							,idx));
+				fklAddCompoundFrameCp(frame,size);
 			}
 			break;
 		case FKL_OP_DROP:
 			DROP_TOP(exe);
 			break;
 		case FKL_OP_POP_ARG:
+			idx=ins->bu;
+			goto pop_arg;
+		case FKL_OP_POP_ARG_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_arg;
+		case FKL_OP_POP_ARG_X:
+			idx=GET_INS_UX(ins,frame);
+pop_arg:
 			{
 				if(exe->tp<=exe->bp)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				FklVMvalue* v=FKL_VM_POP_ARG(exe);
-				GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=v;
+				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
 		case FKL_OP_POP_REST_ARG:
+			idx=ins->bu;
+			goto pop_rest_arg;
+		case FKL_OP_POP_REST_ARG_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_rest_arg;
+		case FKL_OP_POP_REST_ARG_X:
+			idx=GET_INS_UX(ins,frame);
+pop_rest_arg:
 			{
 				FklVMvalue* obj=FKL_VM_NIL;
 				FklVMvalue* volatile* pValue=&obj;
 				for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
 					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
-				GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=obj;
+				GET_COMPOUND_FRAME_LOC(frame,idx)=obj;
 			}
 			break;
 		case FKL_OP_SET_BP:
@@ -1724,7 +2021,7 @@ start:
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
-						callCompoundProcdure(exe,proc);
+						call_compound_procedure(exe,proc);
 						break;
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
@@ -1738,15 +2035,58 @@ start:
 			frame->c.bp=exe->bp;
 			break;
 		case FKL_OP_JMP_IF_TRUE:
-			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
-				frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp_if_true;
 			break;
+		case FKL_OP_JMP_IF_TRUE_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp_if_true;
+			break;
+		case FKL_OP_JMP_IF_TRUE_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp_if_true;
+			break;
+		case FKL_OP_JMP_IF_TRUE_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp_if_true:
+			if(FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
+				frame->c.pc+=offset;
+			break;
+
 		case FKL_OP_JMP_IF_FALSE:
-			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
-				frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp_if_false:
+			if(FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
+				frame->c.pc+=offset;
 			break;
 		case FKL_OP_JMP:
-			frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp;
+			break;
+		case FKL_OP_JMP_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp;
+			break;
+		case FKL_OP_JMP_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp;
+			break;
+		case FKL_OP_JMP_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp:
+			frame->c.pc+=offset;
 			break;
 		case FKL_OP_LIST_APPEND:
 			{
@@ -1766,9 +2106,19 @@ start:
 				}
 			}
 			break;
-		case FKL_OP_PUSH_VECTOR:
+		case FKL_OP_PUSH_VEC:
+			size=ins->bu;
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_XX:
+			size=GET_INS_UXX(ins,frame);
+push_vec:
 			{
-				uint64_t size=ins->imm_u64;
 				FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
 				FklVMvec* v=FKL_VM_VEC(vec);
 				for(uint64_t i=size;i>0;i--)
@@ -1793,8 +2143,14 @@ start:
 				return;
 			}
 			break;
-		case FKL_OP_PUSH_BIG_INT:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,ins->bi));
+		case FKL_OP_PUSH_BI:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[ins->bu]));
+			break;
+		case FKL_OP_PUSH_BI_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_BI_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_BOX:
 			{
@@ -1803,12 +2159,28 @@ start:
 				FKL_VM_PUSH_VALUE(exe,box);
 			}
 			break;
-		case FKL_OP_PUSH_BYTEVECTOR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec)));
+		case FKL_OP_PUSH_BVEC:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[ins->bu])));
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQ:
+		case FKL_OP_PUSH_BVEC_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[FKL_GET_INS_UC(ins)])));
+			break;
+		case FKL_OP_PUSH_BVEC_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[GET_INS_UX(ins,frame)])));
+			break;
+		case FKL_OP_PUSH_HASHEQ:
+			num=ins->bu;
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hasheq:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 				uint64_t kvnum=num*2;
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
@@ -1823,11 +2195,20 @@ start:
 				FKL_VM_PUSH_VALUE(exe,hash);
 			}
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQV:
+		case FKL_OP_PUSH_HASHEQV:
+			num=ins->bu;
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hasheqv:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEqv(exe);
-
 				uint64_t kvnum=num*2;
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
 				FklHashTable* ht=FKL_VM_HASH(hash);
@@ -1841,12 +2222,21 @@ start:
 				FKL_VM_PUSH_VALUE(exe,hash);
 			}
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQUAL:
+		case FKL_OP_PUSH_HASHEQUAL:
+			num=ins->bu;
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hashequal:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEqual(exe);
 				uint64_t kvnum=num*2;
-
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
 				FklHashTable* ht=FKL_VM_HASH(hash);
 				for(size_t i=0;i<kvnum;i+=2)
@@ -1876,8 +2266,18 @@ start:
 			}
 			break;
 		case FKL_OP_PUSH_LIST:
+			size=ins->bu;
+			goto push_list;
+		case FKL_OP_PUSH_LIST_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_list;
+		case FKL_OP_PUSH_LIST_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_list;
+		case FKL_OP_PUSH_LIST_XX:
+			size=GET_INS_UXX(ins,frame);
+push_list:
 			{
-				uint64_t size=ins->imm_u64;
 				FklVMvalue* pair=FKL_VM_NIL;
 				FklVMvalue* last=FKL_VM_POP_ARG(exe);
 				size--;
@@ -1892,7 +2292,7 @@ start:
 				FKL_VM_PUSH_VALUE(exe,pair);
 			}
 			break;
-		case FKL_OP_PUSH_VECTOR_0:
+		case FKL_OP_PUSH_VEC_0:
 			{
 				size_t size=exe->tp-exe->bp;
 				FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
@@ -1913,13 +2313,24 @@ start:
 			}
 			break;
 		case FKL_OP_IMPORT:
+			idx=ins->au;
+			idx1=ins->bu;
+			goto import;
+		case FKL_OP_IMPORT_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto import;
+		case FKL_OP_IMPORT_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+import:
 			{
-				uint32_t locIdx=ins->imm;
-				uint32_t libIdx=ins->imm_u32;
 				FklVMlib* plib=exe->importingLib;
 				uint32_t count=plib->count;
-				FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
-				GET_COMPOUND_FRAME_LOC(frame,locIdx)=v;
+				FklVMvalue* v=idx>=count?NULL:plib->loc[idx];
+				GET_COMPOUND_FRAME_LOC(frame,idx1)=v;
 			}
 			break;
 		case FKL_OP_PUSH_0:
@@ -1929,33 +2340,67 @@ start:
 			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(1));
 			break;
 		case FKL_OP_PUSH_I8:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i8));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->ai));
 			break;
 		case FKL_OP_PUSH_I16:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i16));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->bi));
 			break;
-		case FKL_OP_PUSH_I64_BIG:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,ins->imm_i64));
+		case FKL_OP_PUSH_I64B:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_I64B_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_I64B_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_GET_LOC:
-			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32));
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->bu));
+			break;
+		case FKL_OP_GET_LOC_C:
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,FKL_GET_INS_UC(ins)));
+			break;
+		case FKL_OP_GET_LOC_X:
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,GET_INS_UX(ins,frame)));
 			break;
 		case FKL_OP_PUT_LOC:
-			GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
+			GET_COMPOUND_FRAME_LOC(frame,ins->bu)=FKL_VM_GET_TOP_VALUE(exe);
+			break;
+		case FKL_OP_PUT_LOC_C:
+			GET_COMPOUND_FRAME_LOC(frame,FKL_GET_INS_UC(ins))=FKL_VM_GET_TOP_VALUE(exe);
+			break;
+		case FKL_OP_PUT_LOC_X:
+			GET_COMPOUND_FRAME_LOC(frame,GET_INS_UX(ins,frame))=FKL_VM_GET_TOP_VALUE(exe);
 			break;
 		case FKL_OP_GET_VAR_REF:
+			idx=ins->bu;
+			goto get_var_ref;
+		case FKL_OP_GET_VAR_REF_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto get_var_ref;
+		case FKL_OP_GET_VAR_REF_X:
+			idx=GET_INS_UX(ins,frame);
+get_var_ref:
 			{
 				FklSid_t id=0;
-				FklVMvalue* v=get_var_val(frame,ins->imm_u32,exe->pts,&id);
+				FklVMvalue* v=get_var_val(frame,idx,exe->pts,&id);
 				if(id)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				FKL_VM_PUSH_VALUE(exe,v);
 			}
 			break;
 		case FKL_OP_PUT_VAR_REF:
+			idx=ins->bu;
+			goto put_var_ref;
+		case FKL_OP_PUT_VAR_REF_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto put_var_ref;
+		case FKL_OP_PUT_VAR_REF_X:
+			idx=GET_INS_UX(ins,frame);
+put_var_ref:
 			{
 				FklSid_t id=0;
-				FklVMvalue* volatile* pv=get_var_ref(frame,ins->imm_u32,exe->pts,&id);
+				FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 				if(!pv)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
@@ -1963,31 +2408,50 @@ start:
 			}
 			break;
 		case FKL_OP_EXPORT:
+			idx=ins->bu;
+			goto export;
+		case FKL_OP_EXPORT_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto export;
+		case FKL_OP_EXPORT_X:
+			idx=GET_INS_UX(ins,frame);
+export:
 			{
-				uint32_t idx=ins->imm_u32;
 				FklVMlib* lib=exe->importingLib;
 				FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 				lib->loc[lib->count++]=lr->loc[idx];
 			}
 			break;
 		case FKL_OP_LOAD_LIB:
+			plib=&exe->libs[ins->bu];
+			goto load_lib;
+		case FKL_OP_LOAD_LIB_C:
+			plib=&exe->libs[FKL_GET_INS_UC(ins)];
+			goto load_lib;
+		case FKL_OP_LOAD_LIB_X:
+			plib=&exe->libs[GET_INS_UX(ins,frame)];
+load_lib:
 			{
-				uint32_t libId=ins->imm_u32;
-				FklVMlib* plib=&exe->libs[libId];
 				if(plib->imported)
 				{
 					exe->importingLib=plib;
 					FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				}
 				else
-					callCompoundProcdure(exe,plib->proc);
+					call_compound_procedure(exe,plib->proc);
 				return;
 			}
 			break;
 		case FKL_OP_LOAD_DLL:
+			plib=&exe->libs[ins->bu];
+			goto load_dll;
+		case FKL_OP_LOAD_DLL_C:
+			plib=&exe->libs[FKL_GET_INS_UC(ins)];
+			goto load_dll;
+		case FKL_OP_LOAD_DLL_X:
+			plib=&exe->libs[GET_INS_UX(ins,frame)];
+load_dll:
 			{
-				uint32_t libId=ins->imm_u32;
-				FklVMlib* plib=&exe->libs[libId];
 				if(!plib->imported)
 				{
 					FklVMvalue* errorStr=NULL;
@@ -2513,11 +2977,20 @@ start:
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBoxNil(exe));
 			break;
 		case FKL_OP_CLOSE_REF:
-			{
-				uint32_t sIdx=ins->imm;
-				uint32_t eIdx=ins->imm_u32;
-				close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,sIdx,eIdx);
-			}
+			idx=ins->au;
+			idx1=ins->bu;
+			goto close_ref;
+		case FKL_OP_CLOSE_REF_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto close_ref;
+		case FKL_OP_CLOSE_REF_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+close_ref:
+			close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,idx,idx1);
 			break;
 		case FKL_OP_RET:
 			{
@@ -2541,13 +3014,28 @@ start:
 			}
 			break;
 		case FKL_OP_EXPORT_TO:
+			idx=ins->au;
+			idx1=ins->bu;
+			goto export_to;
+		case FKL_OP_EXPORT_TO_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto export_to;
+		case FKL_OP_EXPORT_TO_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+export_to:
 			{
-				uint32_t libId=ins->imm_u32;
-				uint32_t num=ins->imm;
-				FklVMlib* lib=&exe->libs[libId];
+				FklVMlib* lib=&exe->libs[idx];
 				DROP_TOP(exe);
-				FklVMvalue** loc=(FklVMvalue**)malloc(num*sizeof(FklVMvalue*));
-				FKL_ASSERT(loc);
+				FklVMvalue** loc=NULL;
+				if(idx1)
+				{
+					loc=(FklVMvalue**)malloc(idx1*sizeof(FklVMvalue*));
+					FKL_ASSERT(loc);
+				}
 				lib->loc=loc;
 				lib->count=0;
 				lib->imported=1;
@@ -2567,6 +3055,7 @@ start:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
 			break;
@@ -2576,8 +3065,14 @@ start:
 	goto start;
 }
 
-void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
+void fklVMexecuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 {
+	FklVMlib* plib;
+	uint32_t idx;
+	uint32_t idx1;
+	uint64_t size;
+	uint64_t num;
+	int64_t offset;
 	switch(ins->op)
 	{
 		case FKL_OP_DUMMY:
@@ -2594,23 +3089,47 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				FKL_VM_PUSH_VALUE(exe,fklCreateVMvaluePair(exe,car,cdr));
 			}
 			break;
-		case FKL_OP_PUSH_I32:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i32));
+		case FKL_OP_PUSH_I24:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(FKL_GET_INS_IC(ins)));
 			break;
-		case FKL_OP_PUSH_I64:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i64));
+		case FKL_OP_PUSH_I64F:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_I64F_C:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_I64F_X:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(exe->gc->ki64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_CHAR:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ins->chr));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ins->bu));
 			break;
 		case FKL_OP_PUSH_F64:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,ins->f64));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_F64_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_F64_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_STR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(ins->str)));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[ins->bu])));
+			break;
+		case FKL_OP_PUSH_STR_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[FKL_GET_INS_UC(ins)])));
+			break;
+		case FKL_OP_PUSH_STR_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[GET_INS_UX(ins,frame)])));
 			break;
 		case FKL_OP_PUSH_SYM:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->sid));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->bu));
+			break;
+		case FKL_OP_PUSH_SYM_C:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(FKL_GET_INS_UC(ins)));
+			break;
+		case FKL_OP_PUSH_SYM_X:
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(GET_INS_UX(ins,frame)));
 			break;
 		case FKL_OP_DUP:
 			{
@@ -2622,35 +3141,71 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			}
 			break;
 		case FKL_OP_PUSH_PROC:
+			idx=ins->au;
+			size=ins->bu;
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			size=FKL_GET_INS_UC(ins);
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			size=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+			goto push_proc;
+		case FKL_OP_PUSH_PROC_XXX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			size=ins[1].bu
+				|(((uint64_t)ins[2].au)<<FKL_I16_WIDTH)
+				|(((uint64_t)ins[2].bu)<<FKL_I24_WIDTH)
+				|(((uint64_t)ins[3].au)<<(FKL_I16_WIDTH*2+FKL_BYTE_WIDTH))
+				|(((uint64_t)ins[3].bu)<<(FKL_I16_WIDTH*2+FKL_BYTE_WIDTH*2));
+			frame->c.pc+=3;
+push_proc:
 			{
-				uint32_t prototypeId=ins->imm;
-				uint64_t sizeOfProc=ins->imm_u64;
 				FKL_VM_PUSH_VALUE(exe
 						,fklCreateVMvalueProcWithFrame(exe
 							,frame
-							,sizeOfProc
-							,prototypeId));
-				fklAddCompoundFrameCp(frame,sizeOfProc);
+							,size
+							,idx));
+				fklAddCompoundFrameCp(frame,size);
 			}
 			break;
 		case FKL_OP_DROP:
 			DROP_TOP(exe);
 			break;
 		case FKL_OP_POP_ARG:
+			idx=ins->bu;
+			goto pop_arg;
+		case FKL_OP_POP_ARG_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_arg;
+		case FKL_OP_POP_ARG_X:
+			idx=GET_INS_UX(ins,frame);
+pop_arg:
 			{
 				if(exe->tp<=exe->bp)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				FklVMvalue* v=FKL_VM_POP_ARG(exe);
-				GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=v;
+				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
 		case FKL_OP_POP_REST_ARG:
+			idx=ins->bu;
+			goto pop_rest_arg;
+		case FKL_OP_POP_REST_ARG_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_rest_arg;
+		case FKL_OP_POP_REST_ARG_X:
+			idx=GET_INS_UX(ins,frame);
+pop_rest_arg:
 			{
 				FklVMvalue* obj=FKL_VM_NIL;
 				FklVMvalue* volatile* pValue=&obj;
 				for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
 					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
-				GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=obj;
+				GET_COMPOUND_FRAME_LOC(frame,idx)=obj;
 			}
 			break;
 		case FKL_OP_SET_BP:
@@ -2666,7 +3221,7 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
-						callCompoundProcdure(exe,proc);
+						call_compound_procedure(exe,proc);
 						break;
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
@@ -2680,15 +3235,58 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			frame->c.bp=exe->bp;
 			break;
 		case FKL_OP_JMP_IF_TRUE:
-			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
-				frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp_if_true;
 			break;
+		case FKL_OP_JMP_IF_TRUE_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp_if_true;
+			break;
+		case FKL_OP_JMP_IF_TRUE_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp_if_true;
+			break;
+		case FKL_OP_JMP_IF_TRUE_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp_if_true:
+			if(FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
+				frame->c.pc+=offset;
+			break;
+
 		case FKL_OP_JMP_IF_FALSE:
-			if(exe->tp&&FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
-				frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp_if_false;
+			break;
+		case FKL_OP_JMP_IF_FALSE_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp_if_false:
+			if(FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
+				frame->c.pc+=offset;
 			break;
 		case FKL_OP_JMP:
-			frame->c.pc+=ins->imm_i64;
+			offset=ins->bi;
+			goto jmp;
+			break;
+		case FKL_OP_JMP_C:
+			offset=FKL_GET_INS_IC(ins);
+			goto jmp;
+			break;
+		case FKL_OP_JMP_X:
+			offset=GET_INS_IX(ins,frame);
+			goto jmp;
+			break;
+		case FKL_OP_JMP_XX:
+			offset=GET_INS_IXX(ins,frame);
+jmp:
+			frame->c.pc+=offset;
 			break;
 		case FKL_OP_LIST_APPEND:
 			{
@@ -2708,9 +3306,19 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				}
 			}
 			break;
-		case FKL_OP_PUSH_VECTOR:
+		case FKL_OP_PUSH_VEC:
+			size=ins->bu;
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_vec;
+		case FKL_OP_PUSH_VEC_XX:
+			size=GET_INS_UXX(ins,frame);
+push_vec:
 			{
-				uint64_t size=ins->imm_u64;
 				FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
 				FklVMvec* v=FKL_VM_VEC(vec);
 				for(uint64_t i=size;i>0;i--)
@@ -2735,8 +3343,14 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				return;
 			}
 			break;
-		case FKL_OP_PUSH_BIG_INT:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,ins->bi));
+		case FKL_OP_PUSH_BI:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[ins->bu]));
+			break;
+		case FKL_OP_PUSH_BI_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_BI_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_BOX:
 			{
@@ -2745,12 +3359,28 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				FKL_VM_PUSH_VALUE(exe,box);
 			}
 			break;
-		case FKL_OP_PUSH_BYTEVECTOR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec)));
+		case FKL_OP_PUSH_BVEC:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[ins->bu])));
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQ:
+		case FKL_OP_PUSH_BVEC_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[FKL_GET_INS_UC(ins)])));
+			break;
+		case FKL_OP_PUSH_BVEC_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[GET_INS_UX(ins,frame)])));
+			break;
+		case FKL_OP_PUSH_HASHEQ:
+			num=ins->bu;
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hasheq;
+		case FKL_OP_PUSH_HASHEQ_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hasheq:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEq(exe);
 				uint64_t kvnum=num*2;
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
@@ -2765,11 +3395,20 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				FKL_VM_PUSH_VALUE(exe,hash);
 			}
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQV:
+		case FKL_OP_PUSH_HASHEQV:
+			num=ins->bu;
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hasheqv;
+		case FKL_OP_PUSH_HASHEQV_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hasheqv:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEqv(exe);
-
 				uint64_t kvnum=num*2;
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
 				FklHashTable* ht=FKL_VM_HASH(hash);
@@ -2783,12 +3422,21 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				FKL_VM_PUSH_VALUE(exe,hash);
 			}
 			break;
-		case FKL_OP_PUSH_HASHTABLE_EQUAL:
+		case FKL_OP_PUSH_HASHEQUAL:
+			num=ins->bu;
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_C:
+			num=FKL_GET_INS_UC(ins);
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_X:
+			num=GET_INS_UX(ins,frame);
+			goto push_hashequal;
+		case FKL_OP_PUSH_HASHEQUAL_XX:
+			num=GET_INS_UXX(ins,frame);
+push_hashequal:
 			{
-				uint64_t num=ins->imm_u64;
 				FklVMvalue* hash=fklCreateVMvalueHashEqual(exe);
 				uint64_t kvnum=num*2;
-
 				FklVMvalue** base=&exe->base[exe->tp-kvnum];
 				FklHashTable* ht=FKL_VM_HASH(hash);
 				for(size_t i=0;i<kvnum;i+=2)
@@ -2818,8 +3466,18 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			}
 			break;
 		case FKL_OP_PUSH_LIST:
+			size=ins->bu;
+			goto push_list;
+		case FKL_OP_PUSH_LIST_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_list;
+		case FKL_OP_PUSH_LIST_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_list;
+		case FKL_OP_PUSH_LIST_XX:
+			size=GET_INS_UXX(ins,frame);
+push_list:
 			{
-				uint64_t size=ins->imm_u64;
 				FklVMvalue* pair=FKL_VM_NIL;
 				FklVMvalue* last=FKL_VM_POP_ARG(exe);
 				size--;
@@ -2834,7 +3492,7 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				FKL_VM_PUSH_VALUE(exe,pair);
 			}
 			break;
-		case FKL_OP_PUSH_VECTOR_0:
+		case FKL_OP_PUSH_VEC_0:
 			{
 				size_t size=exe->tp-exe->bp;
 				FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
@@ -2855,13 +3513,24 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			}
 			break;
 		case FKL_OP_IMPORT:
+			idx=ins->au;
+			idx1=ins->bu;
+			goto import;
+		case FKL_OP_IMPORT_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto import;
+		case FKL_OP_IMPORT_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+import:
 			{
-				uint32_t locIdx=ins->imm;
-				uint32_t libIdx=ins->imm_u32;
 				FklVMlib* plib=exe->importingLib;
 				uint32_t count=plib->count;
-				FklVMvalue* v=libIdx>=count?NULL:plib->loc[libIdx];
-				GET_COMPOUND_FRAME_LOC(frame,locIdx)=v;
+				FklVMvalue* v=idx>=count?NULL:plib->loc[idx];
+				GET_COMPOUND_FRAME_LOC(frame,idx1)=v;
 			}
 			break;
 		case FKL_OP_PUSH_0:
@@ -2871,33 +3540,67 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(1));
 			break;
 		case FKL_OP_PUSH_I8:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i8));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->ai));
 			break;
 		case FKL_OP_PUSH_I16:
-			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->imm_i16));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(ins->bi));
 			break;
-		case FKL_OP_PUSH_I64_BIG:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,ins->imm_i64));
+		case FKL_OP_PUSH_I64B:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[ins->bu]));
+			break;
+		case FKL_OP_PUSH_I64B_C:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+			break;
+		case FKL_OP_PUSH_I64B_X:
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,exe->gc->ki64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_GET_LOC:
-			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32));
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,ins->bu));
+			break;
+		case FKL_OP_GET_LOC_C:
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,FKL_GET_INS_UC(ins)));
+			break;
+		case FKL_OP_GET_LOC_X:
+			FKL_VM_PUSH_VALUE(exe,GET_COMPOUND_FRAME_LOC(frame,GET_INS_UX(ins,frame)));
 			break;
 		case FKL_OP_PUT_LOC:
-			GET_COMPOUND_FRAME_LOC(frame,ins->imm_u32)=FKL_VM_GET_TOP_VALUE(exe);
+			GET_COMPOUND_FRAME_LOC(frame,ins->bu)=FKL_VM_GET_TOP_VALUE(exe);
+			break;
+		case FKL_OP_PUT_LOC_C:
+			GET_COMPOUND_FRAME_LOC(frame,FKL_GET_INS_UC(ins))=FKL_VM_GET_TOP_VALUE(exe);
+			break;
+		case FKL_OP_PUT_LOC_X:
+			GET_COMPOUND_FRAME_LOC(frame,GET_INS_UX(ins,frame))=FKL_VM_GET_TOP_VALUE(exe);
 			break;
 		case FKL_OP_GET_VAR_REF:
+			idx=ins->bu;
+			goto get_var_ref;
+		case FKL_OP_GET_VAR_REF_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto get_var_ref;
+		case FKL_OP_GET_VAR_REF_X:
+			idx=GET_INS_UX(ins,frame);
+get_var_ref:
 			{
 				FklSid_t id=0;
-				FklVMvalue* v=get_var_val(frame,ins->imm_u32,exe->pts,&id);
+				FklVMvalue* v=get_var_val(frame,idx,exe->pts,&id);
 				if(id)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				FKL_VM_PUSH_VALUE(exe,v);
 			}
 			break;
 		case FKL_OP_PUT_VAR_REF:
+			idx=ins->bu;
+			goto put_var_ref;
+		case FKL_OP_PUT_VAR_REF_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto put_var_ref;
+		case FKL_OP_PUT_VAR_REF_X:
+			idx=GET_INS_UX(ins,frame);
+put_var_ref:
 			{
 				FklSid_t id=0;
-				FklVMvalue* volatile* pv=get_var_ref(frame,ins->imm_u32,exe->pts,&id);
+				FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 				if(!pv)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
@@ -2905,31 +3608,50 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			}
 			break;
 		case FKL_OP_EXPORT:
+			idx=ins->bu;
+			goto export;
+		case FKL_OP_EXPORT_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto export;
+		case FKL_OP_EXPORT_X:
+			idx=GET_INS_UX(ins,frame);
+export:
 			{
-				uint32_t idx=ins->imm_u32;
 				FklVMlib* lib=exe->importingLib;
 				FklVMCompoundFrameVarRef* lr=fklGetCompoundFrameLocRef(frame);
 				lib->loc[lib->count++]=lr->loc[idx];
 			}
 			break;
 		case FKL_OP_LOAD_LIB:
+			plib=&exe->libs[ins->bu];
+			goto load_lib;
+		case FKL_OP_LOAD_LIB_C:
+			plib=&exe->libs[FKL_GET_INS_UC(ins)];
+			goto load_lib;
+		case FKL_OP_LOAD_LIB_X:
+			plib=&exe->libs[GET_INS_UX(ins,frame)];
+load_lib:
 			{
-				uint32_t libId=ins->imm_u32;
-				FklVMlib* plib=&exe->libs[libId];
 				if(plib->imported)
 				{
 					exe->importingLib=plib;
 					FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 				}
 				else
-					callCompoundProcdure(exe,plib->proc);
+					call_compound_procedure(exe,plib->proc);
 				return;
 			}
 			break;
 		case FKL_OP_LOAD_DLL:
+			plib=&exe->libs[ins->bu];
+			goto load_dll;
+		case FKL_OP_LOAD_DLL_C:
+			plib=&exe->libs[FKL_GET_INS_UC(ins)];
+			goto load_dll;
+		case FKL_OP_LOAD_DLL_X:
+			plib=&exe->libs[GET_INS_UX(ins,frame)];
+load_dll:
 			{
-				uint32_t libId=ins->imm_u32;
-				FklVMlib* plib=&exe->libs[libId];
 				if(!plib->imported)
 				{
 					FklVMvalue* errorStr=NULL;
@@ -3455,11 +4177,20 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBoxNil(exe));
 			break;
 		case FKL_OP_CLOSE_REF:
-			{
-				uint32_t sIdx=ins->imm;
-				uint32_t eIdx=ins->imm_u32;
-				close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,sIdx,eIdx);
-			}
+			idx=ins->au;
+			idx1=ins->bu;
+			goto close_ref;
+		case FKL_OP_CLOSE_REF_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto close_ref;
+		case FKL_OP_CLOSE_REF_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+close_ref:
+			close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,idx,idx1);
 			break;
 		case FKL_OP_RET:
 			{
@@ -3483,13 +4214,28 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 			}
 			break;
 		case FKL_OP_EXPORT_TO:
+			idx=ins->au;
+			idx1=ins->bu;
+			goto export_to;
+		case FKL_OP_EXPORT_TO_X:
+			idx=FKL_GET_INS_UC(ins);
+			ins=frame->c.pc++;
+			idx1=FKL_GET_INS_UC(ins);
+			goto export_to;
+		case FKL_OP_EXPORT_TO_XX:
+			idx=FKL_GET_INS_UC(ins)|(((uint32_t)ins[1].au)<<FKL_I24_WIDTH);
+			idx1=ins[1].bu|(((uint64_t)ins[2].bu)<<FKL_I16_WIDTH);
+			frame->c.pc+=2;
+export_to:
 			{
-				uint32_t libId=ins->imm_u32;
-				uint32_t num=ins->imm;
-				FklVMlib* lib=&exe->libs[libId];
+				FklVMlib* lib=&exe->libs[idx];
 				DROP_TOP(exe);
-				FklVMvalue** loc=(FklVMvalue**)malloc(num*sizeof(FklVMvalue*));
-				FKL_ASSERT(loc);
+				FklVMvalue** loc=NULL;
+				if(idx1)
+				{
+					loc=(FklVMvalue**)malloc(idx1*sizeof(FklVMvalue*));
+					FKL_ASSERT(loc);
+				}
 				lib->loc=loc;
 				lib->count=0;
 				lib->imported=1;
@@ -3509,6 +4255,7 @@ void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
 			break;

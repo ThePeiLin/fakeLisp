@@ -1,6 +1,7 @@
 #include<fakeLisp/base.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/bytecode.h>
+#include<fakeLisp/common.h>
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
@@ -557,6 +558,17 @@ void fklInitBigIntFromOctString(FklBigInt* r,const FklString* str)
 	r->neg=neg;
 }
 
+static inline void ensureBigIntDigits(FklBigInt* obj,uint64_t num)
+{
+	if(obj->size<num)
+	{
+		uint8_t* digits=obj->digits;
+		obj->digits=(uint8_t*)fklRealloc(digits,sizeof(char)*num);
+		FKL_ASSERT(obj->digits);
+		obj->size=num;
+	}
+}
+
 void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 {
 	const char* buf=str->str;
@@ -564,13 +576,38 @@ void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 	int neg=buf[0]=='-';
 	int offset=neg||buf[0]=='+';
 	uint64_t i=2+offset;
-	for(;i<len&&isxdigit(buf[i]);i++)
+	for(;i<len&&buf[i]=='0';i++);
+	buf=&buf[i];
+	len-=i;
+	for(i=0;i<len&&isxdigit(buf[i]);i++);
+	len=i;
+	uint64_t num=len==0?1:len/2+len%2;
+	ensureBigIntDigits(r,num);
+	r->num=num;
+	if(len==0)
 	{
-		fklMulBigIntI(r,16);
-		if(isdigit(buf[i]))
-			fklAddBigIntI(r,buf[i]-'0');
+		r->digits[0]=0;
+		return;
+	}
+
+	uint64_t k=0;
+	uint64_t char_idx=len-1;
+	for(i=0;i<len;i++,char_idx--)
+	{
+		uint8_t d=0;
+		char c=buf[char_idx];
+		if(isdigit(c))
+			d=c-'0';
 		else
-			fklAddBigIntI(r,toupper(buf[i])-'A'+10);
+			d=toupper(c)-'A'+10;
+
+		if(i%2)
+		{
+			r->digits[k]|=d<<(FKL_BYTE_WIDTH/2);
+			k++;
+		}
+		else
+			r->digits[k]=d;
 	}
 	r->neg=neg;
 }
@@ -663,7 +700,7 @@ static const struct
 	{256, 2, },
 };
 
-static void divRemBigIntU8(FklBigInt* a,uint64_t* prem,uint8_t b)
+static inline void divRemBigIntU8(FklBigInt* a,uint64_t* prem,uint8_t b)
 {
 	uint64_t rem=0;
 	for(uint64_t i=a->num;i>0;i--)
@@ -750,7 +787,7 @@ void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res)
 	free(digits.digits);
 }
 
-static void toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
+static inline void toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
 {
 	uint8_t mask=(1<<bits)-1;
 	uint8_t digitsPerUint8=FKL_BIG_INT_BITS/bits;
@@ -768,7 +805,7 @@ static void toBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
 		fklPopU8Stack(res);
 }
 
-static void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
+static inline void toInexactBitWiseDigitsLe(const FklBigInt* u,uint8_t bits,FklU8Stack* res)
 {
 	FKL_ASSERT(!FKL_IS_0_BIG_INT(u)&&bits<=8);
 	const size_t digits=ceil(((double)(u->num*FKL_BIG_INT_BITS))/bits);
@@ -802,15 +839,17 @@ void fklDestroyBigInt(FklBigInt* t)
 	free(t);
 }
 
-static void ensureBigIntDigits(FklBigInt* obj,uint64_t num)
+uintptr_t fklBigIntHash(const FklBigInt* bi)
 {
-	if(obj->size<num)
+	uintptr_t r=0;
+	for(size_t i=0;i<bi->size;i++)
 	{
-		uint8_t* digits=obj->digits;
-		obj->digits=(uint8_t*)fklRealloc(digits,sizeof(char)*num);
-		FKL_ASSERT(obj->digits);
-		obj->size=num;
+		uint64_t c=bi->digits[i];
+		r+=c<<(i%8);
 	}
+	if(bi->neg)
+		r*=-1;
+	return r;
 }
 
 void fklSetBigInt(FklBigInt* des,const FklBigInt* src)
@@ -937,7 +976,7 @@ void fklSetBigIntD(FklBigInt* des,double d)
 	}
 }
 
-static int cmpDigits(const FklBigInt* a,const FklBigInt* b)
+static inline int cmpDigits(const FklBigInt* a,const FklBigInt* b)
 {
 	if(a->num>b->num)
 		return 1;
@@ -948,6 +987,16 @@ static int cmpDigits(const FklBigInt* a,const FklBigInt* b)
 			return 1;
 		else if(a->digits[i-1]<b->digits[i-1])
 			return -1;
+	return 0;
+}
+
+int fklBigIntEqual(const FklBigInt* a,const FklBigInt* b)
+{
+	if((FKL_IS_0_BIG_INT(a)&&FKL_IS_0_BIG_INT(b))
+			||(a->num==b->num
+				&&a->neg==b->neg
+				&&!memcmp(a->digits,b->digits,a->num)))
+		return 1;
 	return 0;
 }
 
@@ -963,7 +1012,7 @@ int fklCmpBigInt(const FklBigInt* a,const FklBigInt* b)
 	return a->neg?cmpDigits(b,a):cmpDigits(a,b);
 }
 
-static void addDigits(FklBigInt* a,const FklBigInt* addend)
+static inline void addDigits(FklBigInt* a,const FklBigInt* addend)
 {
 	uint64_t nDigit =FKL_MAX(a->num,addend->num)+1;
 	ensureBigIntDigits(a,nDigit);
@@ -982,7 +1031,7 @@ static void addDigits(FklBigInt* a,const FklBigInt* addend)
 	}
 }
 
-static void subDigits(FklBigInt* a,const FklBigInt* sub)
+static inline void subDigits(FklBigInt* a,const FklBigInt* sub)
 {
 
 	uint64_t nDigit = FKL_MAX(a->num, sub->num) + 1;
@@ -2212,7 +2261,7 @@ FklHashTableItem** fklGetHashItemSlot(FklHashTable* ht,uintptr_t hashv)
 #define REHASH() if(isgreater((double)ht->num/ht->size,FKL_DEFAULT_HASH_LOAD_FACTOR))\
 	expandHashTable(ht);
 
-static FklHashTableItem* createHashTableItem(size_t size,FklHashTableItem* ni)
+static inline FklHashTableItem* createHashTableItem(size_t size,FklHashTableItem* ni)
 {
 	FklHashTableItem* node=(FklHashTableItem*)calloc(1,sizeof(FklHashTableItem)+size);
 	FKL_ASSERT(node);
@@ -2541,6 +2590,13 @@ int fklBytevectorCmp(const FklBytevector* fir,const FklBytevector* sec)
 	else if(fir->size>sec->size)
 		return 1;
 	return r;
+}
+
+int fklBytevectorEqual(const FklBytevector* fir,const FklBytevector* sec)
+{
+	if(fir->size==sec->size)
+		return !memcmp(fir->ptr,sec->ptr,fir->size);
+	return 0;
 }
 
 void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)

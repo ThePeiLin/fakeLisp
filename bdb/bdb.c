@@ -14,13 +14,13 @@ static inline void init_cmd_read_ctx(CmdReadCtx* ctx)
 
 static inline void replace_info_fid_with_realpath(FklCodegenInfo* info)
 {
-	FklSid_t rpsid=fklAddSymbolCstr(info->realpath,info->globalSymTable)->id;
+	FklSid_t rpsid=fklAddSymbolCstr(info->realpath,info->runtime_symbol_table)->id;
 	info->fid=rpsid;
 }
 
 static void info_work_cb(FklCodegenInfo* info,void* ctx)
 {
-	if(!info->macroMark)
+	if(!info->is_macro)
 	{
 		DebugCtx* dctx=(DebugCtx*)ctx;
 		replace_info_fid_with_realpath(info);
@@ -30,7 +30,7 @@ static void info_work_cb(FklCodegenInfo* info,void* ctx)
 
 static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx)
 {
-	if(!info->macroMark)
+	if(!info->is_macro)
 	{
 		DebugCtx* dctx=(DebugCtx*)ctx;
 		putEnv(dctx,env);
@@ -42,24 +42,28 @@ static void B_int33(FKL_VM_INS_FUNC_ARGL);
 
 static void B_int3(FKL_VM_INS_FUNC_ARGL)
 {
-	if(exe->is_single_thread)
-	{
-		FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
-		fklVMexcuteInstruction(exe,oins,exe->top_frame);
-	}
-	else
-	{
-		exe->dummy_ins_func=B_int33;
-		exe->top_frame->c.pc--;
-		fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr),NULL);
-	}
+#warning INCOMPLETE
+	abort();
+	// if(exe->is_single_thread)
+	// {
+	// 	FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
+	// 	fklVMexecuteInstruction(exe,oins,exe->top_frame);
+	// }
+	// else
+	// {
+	// 	exe->dummy_ins_func=B_int33;
+	// 	exe->top_frame->c.pc--;
+	// 	fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr),NULL);
+	// }
 }
 
 static void B_int33(FKL_VM_INS_FUNC_ARGL)
 {
-	exe->dummy_ins_func=B_int3;
-	FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
-	fklVMexcuteInstruction(exe,oins,exe->top_frame);
+#warning INCOMPLETE
+	abort();
+	// exe->dummy_ins_func=B_int3;
+	// FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
+	// fklVMexecuteInstruction(exe,oins,exe->top_frame);
 }
 
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
@@ -70,10 +74,12 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	FklCodegenInfo codegen={.fid=0};
 	fklInitCodegenOuterCtx(outer_ctx,fklGetDir(rp));
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
+	FklConstTable* pkt=&outer_ctx->public_kt;
 	fklAddSymbolCstr(filename,pst);
 	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen
 			,rp
 			,pst
+			,pkt
 			,0
 			,outer_ctx
 			,info_work_cb
@@ -90,14 +96,14 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	}
 	fklUpdatePrototype(codegen.pts
 			,main_env
-			,codegen.globalSymTable
+			,codegen.runtime_symbol_table
 			,pst);
 	fklDestroyCodegenEnv(main_env);
-	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
+	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 
 	FklPtrStack* scriptLibStack=codegen.libStack;
-	FklVM* anotherVM=fklCreateVMwithByteCode(mainByteCode,codegen.globalSymTable,codegen.pts,1);
-	codegen.globalSymTable=NULL;
+	FklVM* anotherVM=fklCreateVMwithByteCode(mainByteCode,codegen.runtime_symbol_table,codegen.runtime_kt,codegen.pts,1);
+	codegen.runtime_symbol_table=NULL;
 	codegen.pts=NULL;
 	anotherVM->libNum=scriptLibStack->top;
 	anotherVM->libs=(FklVMlib*)calloc((scriptLibStack->top+1),sizeof(FklVMlib));
@@ -117,6 +123,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	fklChdir(outer_ctx->cwd);
 
     ctx->st=&outer_ctx->public_symbol_table;
+	ctx->kt=&outer_ctx->public_kt;
 	ctx->gc=gc;
 	ctx->reached_thread=anotherVM;
 

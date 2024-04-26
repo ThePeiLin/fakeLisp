@@ -91,6 +91,7 @@ FklBytevector* fklCreateBytevector(size_t,const uint8_t*);
 FklBytevector* fklCopyBytevector(const FklBytevector*);
 void fklBytevectorCat(FklBytevector**,const FklBytevector*);
 int fklBytevectorCmp(const FklBytevector*,const FklBytevector*);
+int fklBytevectorEqual(const FklBytevector* fir,const FklBytevector* sec);
 void fklPrintRawBytevector(const FklBytevector* str,FILE* fp);
 FklString* fklBytevectorToString(const FklBytevector*);
 void fklPrintBytevectorToStringBuffer(FklStringBuffer*,const FklBytevector* bvec);
@@ -319,6 +320,7 @@ void fklInitBigIntFromOctString(FklBigInt*,const FklString*);
 
 void fklUninitBigInt(FklBigInt*);
 
+uintptr_t fklBigIntHash(const FklBigInt* bi);
 void fklSetBigInt(FklBigInt*,const FklBigInt* src);
 void fklSetBigIntI(FklBigInt*,int64_t src);
 void fklSetBigIntU(FklBigInt*,uint64_t src);
@@ -355,6 +357,7 @@ int fklDivBigIntU(FklBigInt*,uint64_t divider);
 int fklModBigInt(FklBigInt*,const FklBigInt* divider);
 int fklModBigIntI(FklBigInt*,int64_t divider);
 int fklModBigIntU(FklBigInt*,uint64_t divider);
+int fklBigIntEqual(const FklBigInt*,const FklBigInt*);
 int fklCmpBigInt(const FklBigInt*,const FklBigInt*);
 int fklCmpBigIntI(const FklBigInt*,int64_t i);
 int fklCmpBigIntU(const FklBigInt*,uint64_t i);

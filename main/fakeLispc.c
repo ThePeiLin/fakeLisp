@@ -182,10 +182,21 @@ static inline void write_pre_compile(FklCodegenInfo* codegen
 {
 	FklSymbolTable target_st;
 	fklInitSymbolTable(&target_st);
-	const FklSymbolTable* origin_st=codegen->globalSymTable;
-	fklRecomputeSidForSingleTableInfo(codegen,bcl,origin_st,&target_st,FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
+
+	FklConstTable target_kt;
+	fklInitConstTable(&target_kt);
+	const FklSymbolTable* origin_st=codegen->runtime_symbol_table;
+	const FklConstTable* origin_kt=codegen->runtime_kt;
+	fklRecomputeSidForSingleTableInfo(codegen
+			,bcl
+			,origin_st
+			,&target_st
+			,origin_kt
+			,&target_kt
+			,FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
 
 	fklWriteSymbolTable(&target_st,outfp);
+	fklWriteConstTable(&target_kt,outfp);
 
 	fklWriteFuncPrototypes(codegen->pts,outfp);
 	write_lib_stack(codegen->libStack,&target_st,main_dir,target_dir,outfp);
@@ -211,7 +222,11 @@ static inline int pre_compile(const char* main_file_name
 	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
 	const char* main_dir=outer_ctx->main_file_real_path_dir;
 	fklChdir(outer_ctx->main_file_real_path_dir);
-	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen,rp,&outer_ctx->public_symbol_table,0,outer_ctx,NULL,NULL,NULL);
+	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen
+			,rp
+			,&outer_ctx->public_symbol_table
+			,&outer_ctx->public_kt
+			,0,outer_ctx,NULL,NULL,NULL);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFpForPrecompile(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
@@ -220,9 +235,9 @@ static inline int pre_compile(const char* main_file_name
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}
-	fklUpdatePrototype(codegen.pts,main_env,codegen.globalSymTable,pst);
+	fklUpdatePrototype(codegen.pts,main_env,codegen.runtime_symbol_table,pst);
 	fklDestroyCodegenEnv(main_env);
-	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
+	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 
 	char* outputname=(char*)malloc(sizeof(char)*(strlen(rp)+2));
 	FKL_ASSERT(outputname);
@@ -274,7 +289,11 @@ static inline int compile(const char* filename
 	char* rp=fklRealpath(filename);
 	fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx,fklGetDir(rp));
 	fklChdir(outer_ctx->main_file_real_path_dir);
-	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen,rp,fklCreateSymbolTable(),0,outer_ctx,NULL,NULL,NULL);
+	FklCodegenEnv* main_env=fklInitGlobalCodegenInfo(&codegen
+			,rp
+			,fklCreateSymbolTable()
+			,fklCreateConstTable()
+			,0,outer_ctx,NULL,NULL,NULL);
 	FklByteCodelnt* mainByteCode=fklGenExpressionCodeWithFp(fp,&codegen,main_env);
 	if(mainByteCode==NULL)
 	{
@@ -283,9 +302,9 @@ static inline int compile(const char* filename
 		fklUninitCodegenInfo(&codegen);
 		return EXIT_FAILURE;
 	}
-	fklUpdatePrototype(codegen.pts,main_env,codegen.globalSymTable,pst);
+	fklUpdatePrototype(codegen.pts,main_env,codegen.runtime_symbol_table,pst);
 	fklDestroyCodegenEnv(main_env);
-	fklPrintUndefinedRef(codegen.globalEnv,codegen.globalSymTable,pst);
+	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 
 	FklPtrStack* loadedLibStack=codegen.libStack;
 	char* outputname=NULL;
@@ -311,7 +330,8 @@ static inline int compile(const char* filename
 		return EXIT_FAILURE;
 	}
 
-	fklWriteSymbolTable(codegen.globalSymTable,outfp);
+	fklWriteSymbolTable(codegen.runtime_symbol_table,outfp);
+	fklWriteConstTable(codegen.runtime_kt,outfp);
 	fklWriteFuncPrototypes(codegen.pts,outfp);
 	fklWriteByteCodelnt(mainByteCode,outfp);
 	uint64_t num=loadedLibStack->top;

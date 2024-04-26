@@ -650,6 +650,13 @@ typedef struct FklVMgc
 	}* extra_mark_list;
 
 	FklVMvalue* builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
+
+	FklConstTable* kt;
+	double* kf64;
+	int64_t* ki64;
+	FklString** kstr;
+	FklBigInt** kbi;
+	FklBytevector** kbvec;
 }FklVMgc;
 
 typedef struct
@@ -727,10 +734,13 @@ void fklVMpushExtraMarkFunc(FklVMgc*
 
 void fklSetVMsingleThread(FklVM* exe);
 void fklUnsetVMsingleThread(FklVM* exe);
-void fklVMexcuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame);
+void fklVMexecuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame);
 int fklRunVMinSingleThread(FklVM* exe,FklVMframe* const exit_frame);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
-FklVM* fklCreateVMwithByteCode(FklByteCodelnt*,FklSymbolTable*,FklFuncPrototypes*,uint32_t);
+FklVM* fklCreateVMwithByteCode(FklByteCodelnt*
+		,FklSymbolTable*
+		,FklConstTable*
+		,FklFuncPrototypes*,uint32_t);
 FklVM* fklCreateVM(FklVMvalue* proc,FklVMgc* gc,uint64_t lib_num,FklVMlib* libs);
 FklVM* fklCreateThreadVM(FklVMvalue*
 		,FklVM* prev
@@ -746,7 +756,7 @@ void fklShrinkStack(FklVM*);
 int fklCreateCreateThread(FklVM*);
 FklVMframe* fklHasSameProc(FklVMvalue* proc,FklVMframe*);
 
-FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklFuncPrototypes* pts);
+FklVMgc* fklCreateVMgc(FklSymbolTable* st,FklConstTable* kt,FklFuncPrototypes* pts);
 FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc*,uint32_t llast,uint32_t* pllast);
 FklVMvalue** fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc*,uint32_t llast,uint32_t* pllast);
 
@@ -757,6 +767,7 @@ FklSymbolHashItem* fklVMaddSymbolCstr(FklVMgc*,const char* str);
 FklSymbolHashItem* fklVMaddSymbolCharBuf(FklVMgc*,const char* str,size_t);
 FklSymbolHashItem* fklVMgetSymbolWithId(FklVMgc*,FklSid_t id);
 
+void fklVMgcUpdateConstArray(FklVMgc* gc,FklConstTable* kt);
 void fklVMgcMarkAllRootToGray(FklVM* curVM);
 int fklVMgcPropagate(FklVMgc* gc);
 void fklVMgcCollect(FklVMgc* gc,FklVMvalue** pw);

@@ -37,11 +37,11 @@ static inline FklCodegenEnv* init_codegen_info_common_helper(DebugCtx* ctx
 			,NULL
 			,NULL
 			,ctx->st
+			,ctx->kt
 			,0
 			,0
 			,0
 			,&ctx->outer_ctx);
-	memset(info->builtinSymModiMark,1,sizeof(*info->builtinSymModiMark)*info->builtinSymbolNum);
 	fklDestroyFuncPrototypes(info->pts);
 	info->pts=ctx->gc->pts;
 	*penv=env;

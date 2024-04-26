@@ -82,6 +82,9 @@ target_link_libraries(test-grammer test_lib ${LINK_TARGET})
 add_executable(test-parser "main/test/parser.c" "src/parser.c" ${PARSE})
 target_link_libraries(test-parser test_lib ${LINK_TARGET})
 
+add_executable(test-ins "main/test/ins.c")
+target_link_libraries(test-ins ${LIBFKL_TARGET_NAME})
+
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
 	"main/grammer/grammer.c")
@@ -387,6 +390,9 @@ add_test(NAME test-parser
 
 add_test(NAME test-regex
 	COMMAND $<TARGET_FILE:test-regex>)
+
+add_test(NAME test-ins
+	COMMAND $<TARGET_FILE:test-ins>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json)

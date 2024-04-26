@@ -13,7 +13,6 @@ extern "C" {
 typedef FklByteCodelnt* (*FklBuiltinInlineFunc)(FklByteCodelnt*[],FklSid_t,uint32_t line,uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum);
 
-uint8_t* fklGetBuiltinSymbolModifyMark(uint32_t*);
 struct FklCodegenEnv;
 struct FklVM;
 struct FklVMframe;

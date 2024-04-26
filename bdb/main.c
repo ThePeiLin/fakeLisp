@@ -920,118 +920,122 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 		,FklVMvalue* is_cur_ins
 		,const FklInstruction* ins)
 {
-	FklVMvalue* opcode_str=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetOpcodeName(ins->op)));
-	FklVMvalue* imm1=NULL;
-	FklVMvalue* imm2=NULL;
-	int vec_len=3;
-	FklOpcode op=ins->op;
-	int open_arg_len=fklGetOpcodeArgLen(op);
-	switch(open_arg_len)
-	{
-		case -1:
-			switch(op)
-			{
-				case FKL_OP_PUSH_PROC:
-					vec_len=5;
-					imm1=FKL_MAKE_VM_FIX(ins->imm);
-					imm2=fklMakeVMuint(ins->imm_u64,exe);
-					break;
-				case FKL_OP_PUSH_STR:
-					vec_len=4;
-					imm1=fklCreateVMvalueStr(exe,fklCopyString(ins->str));
-					break;
-				case FKL_OP_PUSH_BYTEVECTOR:
-					vec_len=4;
-					imm1=fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec));
-					break;
-				case FKL_OP_PUSH_BIG_INT:
-					vec_len=4;
-					imm1=fklCreateVMvalueBigInt(exe,ins->bi);
-					break;
-				default:
-					abort();
-					break;
-			}
-			break;
-		case 0:
-			break;
-		case 1:
-			vec_len=4;
-			if(op==FKL_OP_PUSH_CHAR)
-				imm1=FKL_MAKE_VM_CHR(ins->chr);
-			else
-				imm1=FKL_MAKE_VM_FIX(ins->imm_i8);
-			break;
-		case 2:
-			vec_len=4;
-			imm1=FKL_MAKE_VM_FIX(ins->imm_i16);
-			break;
-		case 4:
-			vec_len=4;
-			imm1=FKL_MAKE_VM_FIX(ins->imm_i32);
-			break;
-		case 8:
-			switch(op)
-			{
-				case FKL_OP_PUSH_F64:
-					vec_len=4;
-					imm1=fklCreateVMvalueF64(exe,ins->f64);
-					break;
-				case FKL_OP_PUSH_VECTOR:
-				case FKL_OP_PUSH_HASHTABLE_EQ:
-				case FKL_OP_PUSH_HASHTABLE_EQV:
-				case FKL_OP_PUSH_HASHTABLE_EQUAL:
-				case FKL_OP_PUSH_LIST:
-					vec_len=4;
-					imm1=fklMakeVMuint(ins->imm_u64,exe);
-					break;
-				case FKL_OP_PUSH_I64:
-				case FKL_OP_PUSH_I64_BIG:
-				case FKL_OP_JMP:
-				case FKL_OP_JMP_IF_FALSE:
-				case FKL_OP_JMP_IF_TRUE:
-					vec_len=4;
-					imm1=fklMakeVMint(ins->imm_i64,exe);
-					break;
-				case FKL_OP_PUSH_SYM:
-					vec_len=4;
-					{
-						FklSid_t id=fklVMaddSymbol(exe->gc
-								,fklGetSymbolWithId(ins->sid,dctx->st)->symbol)->id;
-						imm1=FKL_MAKE_VM_SYM(id);
-					}
-					break;
-				case FKL_OP_IMPORT:
-				case FKL_OP_CLOSE_REF:
-				case FKL_OP_EXPORT_TO:
-					vec_len=5;
-					imm1=FKL_MAKE_VM_FIX(ins->imm);
-					imm2=FKL_MAKE_VM_FIX(ins->imm_u32);
-					break;
-				default:
-					abort();
-					break;
-			}
-			break;
-	}
-	FklVMvalue* retval=NULL;
-	switch(vec_len)
-	{
-		case 3:
-			retval=fklCreateVMvalueVec3(exe,num_val,is_cur_ins,opcode_str);
-			break;
-		case 4:
-			retval=fklCreateVMvalueVec4(exe,num_val,is_cur_ins,opcode_str,imm1);
-			break;
-		case 5:
-			retval=fklCreateVMvalueVec5(exe,num_val,is_cur_ins,opcode_str,imm1,imm2);
-			break;
-	}
-	return retval;
+#warning INCOMPLETE
+	abort();
+	// FklVMvalue* opcode_str=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetOpcodeName(ins->op)));
+	// FklVMvalue* imm1=NULL;
+	// FklVMvalue* imm2=NULL;
+	// int vec_len=3;
+	// FklOpcode op=ins->op;
+	// int open_arg_len=fklGetOpcodeArgLen(op);
+	// switch(open_arg_len)
+	// {
+	// 	case -1:
+	// 		switch(op)
+	// 		{
+	// 			case FKL_OP_PUSH_PROC:
+	// 				vec_len=5;
+	// 				imm1=FKL_MAKE_VM_FIX(ins->imm);
+	// 				imm2=fklMakeVMuint(ins->imm_u64,exe);
+	// 				break;
+	// 			case FKL_OP_PUSH_STR:
+	// 				vec_len=4;
+	// 				imm1=fklCreateVMvalueStr(exe,fklCopyString(ins->str));
+	// 				break;
+	// 			case FKL_OP_PUSH_BYTEVECTOR:
+	// 				vec_len=4;
+	// 				imm1=fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec));
+	// 				break;
+	// 			case FKL_OP_PUSH_BIG_INT:
+	// 				vec_len=4;
+	// 				imm1=fklCreateVMvalueBigInt(exe,ins->bi);
+	// 				break;
+	// 			default:
+	// 				abort();
+	// 				break;
+	// 		}
+	// 		break;
+	// 	case 0:
+	// 		break;
+	// 	case 1:
+	// 		vec_len=4;
+	// 		if(op==FKL_OP_PUSH_CHAR)
+	// 			imm1=FKL_MAKE_VM_CHR(ins->chr);
+	// 		else
+	// 			imm1=FKL_MAKE_VM_FIX(ins->imm_i8);
+	// 		break;
+	// 	case 2:
+	// 		vec_len=4;
+	// 		imm1=FKL_MAKE_VM_FIX(ins->imm_i16);
+	// 		break;
+	// 	case 4:
+	// 		vec_len=4;
+	// 		imm1=FKL_MAKE_VM_FIX(ins->imm_i32);
+	// 		break;
+	// 	case 8:
+	// 		switch(op)
+	// 		{
+	// 			case FKL_OP_PUSH_F64:
+	// 				vec_len=4;
+	// 				imm1=fklCreateVMvalueF64(exe,ins->f64);
+	// 				break;
+	// 			case FKL_OP_PUSH_VECTOR:
+	// 			case FKL_OP_PUSH_HASHTABLE_EQ:
+	// 			case FKL_OP_PUSH_HASHTABLE_EQV:
+	// 			case FKL_OP_PUSH_HASHTABLE_EQUAL:
+	// 			case FKL_OP_PUSH_LIST:
+	// 				vec_len=4;
+	// 				imm1=fklMakeVMuint(ins->imm_u64,exe);
+	// 				break;
+	// 			case FKL_OP_PUSH_I64:
+	// 			case FKL_OP_PUSH_I64_BIG:
+	// 			case FKL_OP_JMP:
+	// 			case FKL_OP_JMP_IF_FALSE:
+	// 			case FKL_OP_JMP_IF_TRUE:
+	// 				vec_len=4;
+	// 				imm1=fklMakeVMint(ins->imm_i64,exe);
+	// 				break;
+	// 			case FKL_OP_PUSH_SYM:
+	// 				vec_len=4;
+	// 				{
+	// 					FklSid_t id=fklVMaddSymbol(exe->gc
+	// 							,fklGetSymbolWithId(ins->sid,dctx->st)->symbol)->id;
+	// 					imm1=FKL_MAKE_VM_SYM(id);
+	// 				}
+	// 				break;
+	// 			case FKL_OP_IMPORT:
+	// 			case FKL_OP_CLOSE_REF:
+	// 			case FKL_OP_EXPORT_TO:
+	// 				vec_len=5;
+	// 				imm1=FKL_MAKE_VM_FIX(ins->imm);
+	// 				imm2=FKL_MAKE_VM_FIX(ins->imm_u32);
+	// 				break;
+	// 			default:
+	// 				abort();
+	// 				break;
+	// 		}
+	// 		break;
+	// }
+	// FklVMvalue* retval=NULL;
+	// switch(vec_len)
+	// {
+	// 	case 3:
+	// 		retval=fklCreateVMvalueVec3(exe,num_val,is_cur_ins,opcode_str);
+	// 		break;
+	// 	case 4:
+	// 		retval=fklCreateVMvalueVec4(exe,num_val,is_cur_ins,opcode_str,imm1);
+	// 		break;
+	// 	case 5:
+	// 		retval=fklCreateVMvalueVec5(exe,num_val,is_cur_ins,opcode_str,imm1,imm2);
+	// 		break;
+	// }
+	// return retval;
 }
 
 static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 {
+#warning INCOMPLETE
+	abort();
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe);
 	FklVMvalue* pc_num_obj=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
@@ -1062,18 +1066,18 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 			else
 			{
-				const FklInstruction* ins=&bc->code[ins_pc];
-				if(ins->op==0)
-					ins=&((Breakpoint*)ins->ptr)->origin_ins;
-
-				FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
-				FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
-
-				FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
-							,dctx
-							,num_val
-							,is_cur_ins
-							,ins));
+				// const FklInstruction* ins=&bc->code[ins_pc];
+				// if(ins->op==0)
+				// 	ins=&((Breakpoint*)ins->ptr)->origin_ins;
+				//
+				// FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+				// FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
+				//
+				// FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+				// 			,dctx
+				// 			,num_val
+				// 			,is_cur_ins
+				// 			,ins));
 			}
 		}
 	}
@@ -1121,6 +1125,8 @@ static int bdb_debug_ctx_set_list_ins(FKL_CPROC_ARGL)
 
 static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 {
+#warning INCOMPLETE
+	abort();
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,exe);
@@ -1136,17 +1142,17 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 		FklByteCode* bc=FKL_VM_CO(byte_code)->bc;
 		if(ins<&bc->code[bc->len])
 		{
-			if(ins->op==0)
-				ins=&((Breakpoint*)ins->ptr)->origin_ins;
-			uint64_t ins_pc=ins-bc->code;
-			FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
-			FklVMvalue* is_cur_ins=FKL_VM_TRUE;
-
-			FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
-						,dctx
-						,num_val
-						,is_cur_ins
-						,ins));
+			// if(ins->op==0)
+			// 	ins=&((Breakpoint*)ins->ptr)->origin_ins;
+			// uint64_t ins_pc=ins-bc->code;
+			// FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+			// FklVMvalue* is_cur_ins=FKL_VM_TRUE;
+			//
+			// FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+			// 			,dctx
+			// 			,num_val
+			// 			,is_cur_ins
+			// 			,ins));
 		}
 		else
 			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

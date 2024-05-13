@@ -210,7 +210,7 @@ typedef enum
 typedef enum
 {
 	JMP_FORWARD,
-	JMP_BACK,
+	JMP_BACKWARD,
 }JmpInsOrientation;
 
 static inline FklByteCodelnt* create_0len_bcl(void)
@@ -448,16 +448,6 @@ static inline FklByteCode* set_and_append_ins_with_unsigned_imm_to_bc(InsAppendM
 	return bc;
 }
 
-// static inline FklByteCodelnt* append_push_sym_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,FklSid_t sid
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_SYM,sid,fid,line,scope);
-// }
-
 static inline FklByteCode* append_push_sym_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
 		,FklSid_t sid)
@@ -493,17 +483,6 @@ static inline FklByteCode* append_push_str_ins_to_bc(InsAppendMode m
 {
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_STR,fklAddStrConst(info->runtime_kt,k));
 }
-
-// static inline FklByteCodelnt* append_push_str_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,const FklString* k
-// 		,FklCodegenInfo* info
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_STR,fklAddStringConst(info,k),fid,line,scope);
-// }
 
 static inline FklByteCode* append_push_i64_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
@@ -617,17 +596,6 @@ static inline FklByteCode* append_push_bigint_ins_to_bc(InsAppendMode m
 		return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_I64B,fklAddI64Const(info->runtime_kt,fklBigIntToI64(k)));
 }
 
-// static inline FklByteCodelnt* append_push_bigint_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,const FklBigInt* k
-// 		,FklCodegenInfo* info
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_BI,fklAddBigIntConst(info,k),fid,line,scope);
-// }
-
 static inline FklByteCode* append_push_bvec_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
 		,const FklBytevector* k
@@ -635,17 +603,6 @@ static inline FklByteCode* append_push_bvec_ins_to_bc(InsAppendMode m
 {
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_BVEC,fklAddBvecConst(info->runtime_kt,k));
 }
-
-// static inline FklByteCodelnt* append_push_bvec_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,const FklBytevector* k
-// 		,FklCodegenInfo* info
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_BVEC,fklAddBvecConst(info,k),fid,line,scope);
-// }
 
 static inline FklByteCode* append_push_f64_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
@@ -655,17 +612,6 @@ static inline FklByteCode* append_push_f64_ins_to_bc(InsAppendMode m
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_F64,fklAddF64Const(info->runtime_kt,k));
 }
 
-// static inline FklByteCodelnt* append_push_f64_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,double k
-// 		,FklCodegenInfo* info
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_F64,fklAddF64Const(info,k),fid,line,scope);
-// }
-
 static inline FklByteCode* append_push_list_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
 		,uint64_t len)
@@ -673,32 +619,12 @@ static inline FklByteCode* append_push_list_ins_to_bc(InsAppendMode m
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_LIST,len);
 }
 
-// static inline FklByteCodelnt* append_push_list_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,uint64_t len
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_LIST,len,fid,line,scope);
-// }
-
 static inline FklByteCode* append_push_vec_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
 		,uint64_t len)
 {
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_VEC,len);
 }
-
-// static inline FklByteCodelnt* append_push_vec_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,uint64_t len
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_VEC,len,fid,line,scope);
-// }
 
 static inline FklByteCode* append_push_hash_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
@@ -719,29 +645,6 @@ static inline FklByteCode* append_push_hash_ins_to_bc(InsAppendMode m
 	}
 	return bc;
 }
-
-// static inline FklByteCodelnt* append_push_hash_ins(InsAppendMode m
-// 		,FklByteCodelnt* bcl
-// 		,FklHashTableEqType type
-// 		,uint64_t len
-// 		,FklSid_t fid
-// 		,uint32_t line
-// 		,uint32_t scope)
-// {
-// 	switch(type)
-// 	{
-// 		case FKL_HASH_EQ:
-// 			return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_HASHEQ,len,fid,line,scope);
-// 			break;
-// 		case FKL_HASH_EQV:
-// 			return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_HASHEQV,len,fid,line,scope);
-// 			break;
-// 		case FKL_HASH_EQUAL:
-// 			return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_PUSH_HASHEQUAL,len,fid,line,scope);
-// 			break;
-// 	}
-// 	return bcl;
-// }
 
 static inline FklByteCodelnt* append_push_proc_ins(InsAppendMode m
 		,FklByteCodelnt* bcl
@@ -781,7 +684,7 @@ static inline FklByteCodelnt* append_jmp_ins(InsAppendMode m
 		case JMP_FORWARD:
 			return set_and_append_ins_with_signed_imm(m, bcl,op,len,fid,line,scope);
 			break;
-		case JMP_BACK:
+		case JMP_BACKWARD:
 			len=-len-1;
 			if(len>=FKL_I24_MIN)
 				return set_and_append_ins_with_signed_imm(m, bcl,op,len,fid,line,scope);
@@ -1779,7 +1682,7 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt* cond
 			,rest
 			,rest->bc->len+cond->bc->len
 			,JMP_UNCOND
-			,JMP_BACK
+			,JMP_BACKWARD
 			,fid,line,scope);
 
 	uint32_t jmp_back_actual_len=rest_bc->len-rest_len;
@@ -1803,7 +1706,7 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt* cond
 				,rest
 				,rest->bc->len+cond->bc->len
 				,JMP_UNCOND
-				,JMP_BACK
+				,JMP_BACKWARD
 				,fid,line,scope);
 
 		jmp_back_actual_len=rest_bc->len-rest_len;

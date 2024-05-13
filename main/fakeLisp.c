@@ -203,6 +203,7 @@ static inline int runPreCompile(const char* filename,int argc,const char* const*
 	free(rp);
 	fclose(fp);
 	fklUninitSymbolTable(&ctx.public_symbol_table);
+	fklUninitConstTable(&ctx.public_kt);
 	if(load_result)
 	{
 		fklUninitSymbolTable(&runtime_st);

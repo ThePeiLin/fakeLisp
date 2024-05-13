@@ -1534,6 +1534,7 @@ exit:
 	if(macro_pts)
 		fklDestroyFuncPrototypes(macro_pts);
 	fklUninitSymbolTable(&ost);
+	fklUninitConstTable(&okt);
 	fklUninitPtrStack(&scriptLibStack);
 	return err;
 }

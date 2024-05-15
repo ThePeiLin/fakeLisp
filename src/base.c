@@ -567,7 +567,10 @@ void fklInitBigIntFromHexString(FklBigInt* r,const FklString* str)
 	for(;i<len&&isxdigit(buf[i]);i++)
 	{
 		fklMulBigIntI(r,16);
-		fklAddBigIntI(r,buf[i]-'0');
+		if(isdigit(buf[i]))
+			fklAddBigIntI(r,buf[i]-'0');
+		else
+			fklAddBigIntI(r,toupper(buf[i])-'A'+10);
 	}
 	r->neg=neg;
 }

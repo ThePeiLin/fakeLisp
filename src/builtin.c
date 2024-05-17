@@ -4788,7 +4788,7 @@ static int builtin_null(FKL_CPROC_ARGL) {PREDICATE(val==FKL_VM_NIL)}
 static int builtin_atom(FKL_CPROC_ARGL) {PREDICATE(!FKL_IS_PAIR(val))}
 static int builtin_char_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CHR(val))}
 static int builtin_integer_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_FIX(val)||FKL_IS_BIG_INT(val))}
-static int builtin_fix_int_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_FIX(val))}
+static int builtin_fixint_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_FIX(val))}
 static int builtin_f64_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_F64(val))}
 static int builtin_number_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMnumber(val))}
 static int builtin_pair_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PAIR(val))}
@@ -4802,7 +4802,7 @@ static int builtin_vector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_VECTOR(val))}
 static int builtin_bytevector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val))}
 static int builtin_chanl_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CHAN(val))}
 static int builtin_dll_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_DLL(val))}
-static int builtin_big_int_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BIG_INT(val))}
+static int builtin_bigint_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BIG_INT(val))}
 static int builtin_list_p(FKL_CPROC_ARGL){PREDICATE(fklIsList(val))}
 static int builtin_box_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BOX(val))}
 static int builtin_hash_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_HASHTABLE(val))}
@@ -5234,8 +5234,8 @@ static const struct SymbolFuncStruct
 	{"tail",                  builtin_tail,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"char?",                 builtin_char_p,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"integer?",              builtin_integer_p,               {NULL,         NULL,          NULL,            NULL,          }, },
-	{"fix-int?",              builtin_fix_int_p,               {NULL,         NULL,          NULL,            NULL,          }, },
-	{"big-int?",              builtin_big_int_p,               {NULL,         NULL,          NULL,            NULL,          }, },
+	{"fixint?",              builtin_fixint_p,               {NULL,         NULL,          NULL,            NULL,          }, },
+	{"bigint?",              builtin_bigint_p,               {NULL,         NULL,          NULL,            NULL,          }, },
 	{"f64?",                  builtin_f64_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"pair?",                 builtin_pair_p,                  {NULL,         NULL,          NULL,            NULL,          }, },
 

@@ -319,19 +319,19 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 
 static inline FklVMvalue* create_breakpoint_vec(FklVM* exe
 		,DebugCtx* dctx
-		,const Breakpoint* item)
+		,const Breakpoint* bp)
 {
-	FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(item->fid,dctx->st)->symbol));
-	FklVMvalue* line=FKL_MAKE_VM_FIX(item->line);
-	FklVMvalue* num=FKL_MAKE_VM_FIX(item->num);
+	FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(bp->fid,dctx->st)->symbol));
+	FklVMvalue* line=FKL_MAKE_VM_FIX(bp->line);
+	FklVMvalue* num=FKL_MAKE_VM_FIX(bp->idx);
 
 	FklVMvalue* r=fklCreateVMvalueVec6(exe
 			,num
 			,filename
 			,line
-			,item->cond_exp_obj?fklCreateVMvalueBox(exe,item->cond_exp_obj):FKL_VM_NIL
-			,fklMakeVMuint(item->count,exe)
-			,fklCreateVMvaluePair(exe,item->is_disabled?FKL_VM_NIL:FKL_VM_TRUE,item->is_temporary?FKL_VM_TRUE:FKL_VM_NIL));
+			,bp->cond_exp_obj?fklCreateVMvalueBox(exe,bp->cond_exp_obj):FKL_VM_NIL
+			,fklMakeVMuint(bp->count,exe)
+			,fklCreateVMvaluePair(exe,bp->is_disabled?FKL_VM_NIL:FKL_VM_TRUE,bp->is_temporary?FKL_VM_TRUE:FKL_VM_NIL));
 	return r;
 }
 
@@ -360,6 +360,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
+	clearDeletedBreakpoint(dctx);
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,debug_ctx_obj);
 	if(dctx->done)
@@ -617,11 +618,11 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL)
 
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** pr=&r;
-	for(FklHashTableItem* list=dctx->breakpoints.first
+	for(FklHashTableItem* list=dctx->bt.idx_ht.first
 			;list
 			;list=list->next)
 	{
-		Breakpoint* item=((BreakpointHashItem*)list->data)->bp;
+		Breakpoint* item=((BreakpointIdxHashItem*)list->data)->bp;
 
 		*pr=fklCreateVMvaluePairWithCar(exe,create_breakpoint_vec(exe,dctx,item));
 		pr=&FKL_VM_CDR(*pr);
@@ -649,7 +650,7 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
 	else
-		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
+		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->bt.idx_ht.num));
 	return 0;
 }
 
@@ -671,7 +672,7 @@ static int bdb_debug_ctx_dis_break(FKL_CPROC_ARGL)
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
 	else
-		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
+		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->bt.idx_ht.num));
 	return 0;
 }
 
@@ -693,7 +694,7 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL)
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
 	else
-		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->breakpoint_num));
+		FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(dctx->bt.idx_ht.num));
 	return 0;
 }
 
@@ -920,122 +921,122 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 		,FklVMvalue* is_cur_ins
 		,const FklInstruction* ins)
 {
-#warning INCOMPLETE
-	abort();
-	// FklVMvalue* opcode_str=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetOpcodeName(ins->op)));
-	// FklVMvalue* imm1=NULL;
-	// FklVMvalue* imm2=NULL;
-	// int vec_len=3;
-	// FklOpcode op=ins->op;
-	// int open_arg_len=fklGetOpcodeArgLen(op);
-	// switch(open_arg_len)
-	// {
-	// 	case -1:
-	// 		switch(op)
-	// 		{
-	// 			case FKL_OP_PUSH_PROC:
-	// 				vec_len=5;
-	// 				imm1=FKL_MAKE_VM_FIX(ins->imm);
-	// 				imm2=fklMakeVMuint(ins->imm_u64,exe);
-	// 				break;
-	// 			case FKL_OP_PUSH_STR:
-	// 				vec_len=4;
-	// 				imm1=fklCreateVMvalueStr(exe,fklCopyString(ins->str));
-	// 				break;
-	// 			case FKL_OP_PUSH_BYTEVECTOR:
-	// 				vec_len=4;
-	// 				imm1=fklCreateVMvalueBvec(exe,fklCopyBytevector(ins->bvec));
-	// 				break;
-	// 			case FKL_OP_PUSH_BIG_INT:
-	// 				vec_len=4;
-	// 				imm1=fklCreateVMvalueBigInt(exe,ins->bi);
-	// 				break;
-	// 			default:
-	// 				abort();
-	// 				break;
-	// 		}
-	// 		break;
-	// 	case 0:
-	// 		break;
-	// 	case 1:
-	// 		vec_len=4;
-	// 		if(op==FKL_OP_PUSH_CHAR)
-	// 			imm1=FKL_MAKE_VM_CHR(ins->chr);
-	// 		else
-	// 			imm1=FKL_MAKE_VM_FIX(ins->imm_i8);
-	// 		break;
-	// 	case 2:
-	// 		vec_len=4;
-	// 		imm1=FKL_MAKE_VM_FIX(ins->imm_i16);
-	// 		break;
-	// 	case 4:
-	// 		vec_len=4;
-	// 		imm1=FKL_MAKE_VM_FIX(ins->imm_i32);
-	// 		break;
-	// 	case 8:
-	// 		switch(op)
-	// 		{
-	// 			case FKL_OP_PUSH_F64:
-	// 				vec_len=4;
-	// 				imm1=fklCreateVMvalueF64(exe,ins->f64);
-	// 				break;
-	// 			case FKL_OP_PUSH_VECTOR:
-	// 			case FKL_OP_PUSH_HASHTABLE_EQ:
-	// 			case FKL_OP_PUSH_HASHTABLE_EQV:
-	// 			case FKL_OP_PUSH_HASHTABLE_EQUAL:
-	// 			case FKL_OP_PUSH_LIST:
-	// 				vec_len=4;
-	// 				imm1=fklMakeVMuint(ins->imm_u64,exe);
-	// 				break;
-	// 			case FKL_OP_PUSH_I64:
-	// 			case FKL_OP_PUSH_I64_BIG:
-	// 			case FKL_OP_JMP:
-	// 			case FKL_OP_JMP_IF_FALSE:
-	// 			case FKL_OP_JMP_IF_TRUE:
-	// 				vec_len=4;
-	// 				imm1=fklMakeVMint(ins->imm_i64,exe);
-	// 				break;
-	// 			case FKL_OP_PUSH_SYM:
-	// 				vec_len=4;
-	// 				{
-	// 					FklSid_t id=fklVMaddSymbol(exe->gc
-	// 							,fklGetSymbolWithId(ins->sid,dctx->st)->symbol)->id;
-	// 					imm1=FKL_MAKE_VM_SYM(id);
-	// 				}
-	// 				break;
-	// 			case FKL_OP_IMPORT:
-	// 			case FKL_OP_CLOSE_REF:
-	// 			case FKL_OP_EXPORT_TO:
-	// 				vec_len=5;
-	// 				imm1=FKL_MAKE_VM_FIX(ins->imm);
-	// 				imm2=FKL_MAKE_VM_FIX(ins->imm_u32);
-	// 				break;
-	// 			default:
-	// 				abort();
-	// 				break;
-	// 		}
-	// 		break;
-	// }
-	// FklVMvalue* retval=NULL;
-	// switch(vec_len)
-	// {
-	// 	case 3:
-	// 		retval=fklCreateVMvalueVec3(exe,num_val,is_cur_ins,opcode_str);
-	// 		break;
-	// 	case 4:
-	// 		retval=fklCreateVMvalueVec4(exe,num_val,is_cur_ins,opcode_str,imm1);
-	// 		break;
-	// 	case 5:
-	// 		retval=fklCreateVMvalueVec5(exe,num_val,is_cur_ins,opcode_str,imm1,imm2);
-	// 		break;
-	// }
-	// return retval;
+	FklVMvalue* opcode_str=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetOpcodeName(ins->op)));
+	FklVMvalue* imm1=NULL;
+	FklVMvalue* imm2=NULL;
+	FklOpcode op=ins->op==FKL_OP_DUMMY?getBreakpointHashItem(dctx,ins)->origin_op:ins->op;
+	FklOpcodeMode mode=fklGetOpcodeMode(op);
+	FklInstructionArg arg;
+	fklGetInsOpArgWithOp(op,ins,&arg);
+
+	FklConstTable* kt=dctx->kt;
+	switch(op)
+	{
+		case FKL_OP_PUSH_I64F:
+		case FKL_OP_PUSH_I64F_C:
+		case FKL_OP_PUSH_I64F_X:
+		case FKL_OP_PUSH_I64B:
+		case FKL_OP_PUSH_I64B_C:
+		case FKL_OP_PUSH_I64B_X:
+			imm1=fklMakeVMint(fklGetI64ConstWithIdx(kt,arg.ux),exe);
+			break;
+		case FKL_OP_PUSH_F64:
+		case FKL_OP_PUSH_F64_C:
+		case FKL_OP_PUSH_F64_X:
+			imm1=fklCreateVMvalueF64(exe,fklGetF64ConstWithIdx(kt,arg.ux));
+			break;
+		case FKL_OP_PUSH_CHAR:
+			imm1=FKL_MAKE_VM_CHR(arg.ux);
+			break;
+
+		case FKL_OP_PUSH_STR:
+		case FKL_OP_PUSH_STR_C:
+		case FKL_OP_PUSH_STR_X:
+			imm1=fklCreateVMvalueStr(exe,fklCopyString(fklGetStrConstWithIdx(kt,arg.ux)));
+			break;
+
+		case FKL_OP_PUSH_BVEC:
+		case FKL_OP_PUSH_BVEC_C:
+		case FKL_OP_PUSH_BVEC_X:
+			imm1=fklCreateVMvalueBvec(exe,fklCopyBytevector(fklGetBvecConstWithIdx(kt,arg.ux)));
+			break;
+
+		case FKL_OP_PUSH_SYM:
+		case FKL_OP_PUSH_SYM_C:
+		case FKL_OP_PUSH_SYM_X:
+			{
+				FklSid_t id=fklVMaddSymbol(exe->gc,fklGetSymbolWithId(arg.ux,dctx->st)->symbol)->id;
+				imm1=FKL_MAKE_VM_SYM(id);
+			}
+			break;
+
+		case FKL_OP_PUSH_BI:
+		case FKL_OP_PUSH_BI_C:
+		case FKL_OP_PUSH_BI_X:
+			imm1=fklCreateVMvalueBigInt(exe,fklGetBiConstWithIdx(kt,arg.ux));
+			break;
+		default:
+			switch(mode)
+			{
+				case FKL_OP_MODE_I:
+					break;
+				case FKL_OP_MODE_IsA:
+				case FKL_OP_MODE_IsB:
+				case FKL_OP_MODE_IsC:
+				case FKL_OP_MODE_IsBB:
+				case FKL_OP_MODE_IsCCB:
+					imm1=fklMakeVMint(arg.ix,exe);
+					break;
+
+				case FKL_OP_MODE_IuB:
+				case FKL_OP_MODE_IuC:
+				case FKL_OP_MODE_IuBB:
+				case FKL_OP_MODE_IuCCB:
+					imm1=fklMakeVMuint(arg.ux,exe);
+					break;
+
+				case FKL_OP_MODE_IxAxB:
+				case FKL_OP_MODE_IuAuB:
+				case FKL_OP_MODE_IuCuC:
+				case FKL_OP_MODE_IuCAuBB:
+				case FKL_OP_MODE_IuCAuBCC:
+					imm1=fklMakeVMuint(arg.ux,exe);
+					imm2=fklMakeVMuint(arg.uy,exe);
+					break;
+			}
+			break;
+	}
+	FklVMvalue* retval=NULL;
+	switch(mode)
+	{
+		case FKL_OP_MODE_I:
+			retval=fklCreateVMvalueVec3(exe,num_val,is_cur_ins,opcode_str);
+			break;
+		case FKL_OP_MODE_IsA:
+		case FKL_OP_MODE_IuB:
+		case FKL_OP_MODE_IsB:
+		case FKL_OP_MODE_IuC:
+		case FKL_OP_MODE_IsC:
+		case FKL_OP_MODE_IuBB:
+		case FKL_OP_MODE_IsBB:
+		case FKL_OP_MODE_IuCCB:
+		case FKL_OP_MODE_IsCCB:
+			retval=fklCreateVMvalueVec4(exe,num_val,is_cur_ins,opcode_str,imm1);
+			break;
+		case FKL_OP_MODE_IuAuB:
+		case FKL_OP_MODE_IuCuC:
+		case FKL_OP_MODE_IuCAuBB:
+		case FKL_OP_MODE_IuCAuBCC:
+
+		case FKL_OP_MODE_IxAxB:
+			retval=fklCreateVMvalueVec5(exe,num_val,is_cur_ins,opcode_str,imm1,imm2);
+			break;
+	}
+	return retval;
 }
 
 static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 {
-#warning INCOMPLETE
-	abort();
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe);
 	FklVMvalue* pc_num_obj=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
@@ -1066,18 +1067,16 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 			else
 			{
-				// const FklInstruction* ins=&bc->code[ins_pc];
-				// if(ins->op==0)
-				// 	ins=&((Breakpoint*)ins->ptr)->origin_ins;
-				//
-				// FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
-				// FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
-				//
-				// FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
-				// 			,dctx
-				// 			,num_val
-				// 			,is_cur_ins
-				// 			,ins));
+				const FklInstruction* ins=&bc->code[ins_pc];
+
+				FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+				FklVMvalue* is_cur_ins=cur_pc==ins_pc?FKL_VM_TRUE:FKL_VM_NIL;
+
+				FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+							,dctx
+							,num_val
+							,is_cur_ins
+							,ins));
 			}
 		}
 	}
@@ -1125,8 +1124,6 @@ static int bdb_debug_ctx_set_list_ins(FKL_CPROC_ARGL)
 
 static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 {
-#warning INCOMPLETE
-	abort();
 	FKL_DECL_AND_CHECK_ARG(debug_ctx_obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,exe);
@@ -1142,17 +1139,15 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL)
 		FklByteCode* bc=FKL_VM_CO(byte_code)->bc;
 		if(ins<&bc->code[bc->len])
 		{
-			// if(ins->op==0)
-			// 	ins=&((Breakpoint*)ins->ptr)->origin_ins;
-			// uint64_t ins_pc=ins-bc->code;
-			// FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
-			// FklVMvalue* is_cur_ins=FKL_VM_TRUE;
-			//
-			// FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
-			// 			,dctx
-			// 			,num_val
-			// 			,is_cur_ins
-			// 			,ins));
+			uint64_t ins_pc=ins-bc->code;
+			FklVMvalue* num_val=fklMakeVMuint(ins_pc,exe);
+			FklVMvalue* is_cur_ins=FKL_VM_TRUE;
+
+			FKL_VM_PUSH_VALUE(exe,create_ins_vec(exe
+						,dctx
+						,num_val
+						,is_cur_ins
+						,ins));
 		}
 		else
 			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
@@ -1378,14 +1373,14 @@ struct SymFunc
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT void _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
+FKL_DLL_EXPORT FklSid_t* _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
 {
 	*num=EXPORT_NUM;
 	FklSid_t* symbols=(FklSid_t*)malloc(sizeof(FklSid_t)*EXPORT_NUM);
 	FKL_ASSERT(symbols);
 	for(size_t i=0;i<EXPORT_NUM;i++)
 		symbols[i]=fklAddSymbolCstr(exports_and_func[i].sym,st)->id;
-	*exports=symbols;
+	return symbols;
 }
 
 FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)

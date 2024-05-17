@@ -281,8 +281,9 @@ exit:
 	return exitState;
 }
 
-static void dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
+static FklSid_t* dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
 {
+	return NULL;
 }
 
 static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* table)

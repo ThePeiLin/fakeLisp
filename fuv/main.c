@@ -7325,14 +7325,14 @@ struct SymFunc
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT void _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
+FKL_DLL_EXPORT FklSid_t* _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS)
 {
 	*num=EXPORT_NUM;
 	FklSid_t* symbols=(FklSid_t*)malloc(sizeof(FklSid_t)*EXPORT_NUM);
 	FKL_ASSERT(symbols);
 	for(size_t i=0;i<EXPORT_NUM;i++)
 		symbols[i]=fklAddSymbolCstr(exports_and_func[i].sym,st)->id;
-	*exports=symbols;
+	return symbols;
 }
 
 FKL_DLL_EXPORT FklVMvalue** _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS)

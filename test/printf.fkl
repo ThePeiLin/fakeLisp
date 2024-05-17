@@ -71,7 +71,7 @@
 
 (printf-and-len "%%\n")
 
-(println "\nbig-int:")
+(println "\nbigint:")
 
 (define n 11529215046068469711)
 

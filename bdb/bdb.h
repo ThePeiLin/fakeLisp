@@ -25,23 +25,27 @@ typedef struct
 	FklPtrStack stateStack;
 }CmdReadCtx;
 
+struct BreakpointHashItem;
+
 typedef struct Breakpoint
 {
-	uint64_t num;
-	uint64_t count;
-	struct Breakpoint* prev;
+	struct Breakpoint** pnext;
 	struct Breakpoint* next;
+	struct Breakpoint* next_del;
+
+	atomic_uint reached_count;
+	uint32_t idx;
+	uint32_t count;
 
 	FklSid_t fid;
 	uint32_t line;
-	uint8_t compiled;
+
+	uint8_t is_compiled;
 	uint8_t is_temporary;
 	uint8_t is_deleted;
 	uint8_t is_disabled;
 
-	struct DebugCtx* ctx;
-	FklInstruction* ins;
-	FklInstruction origin_ins;
+	struct BreakpointHashItem* item;
 
 	FklVMvalue* cond_exp_obj;
 	union
@@ -51,11 +55,27 @@ typedef struct Breakpoint
 	};
 }Breakpoint;
 
+typedef struct BreakpointHashItem
+{
+	FklInstruction* ins;
+	FklOpcode origin_op;
+	Breakpoint* bp;
+}BreakpointInsHashItem;
+
 typedef struct
 {
-	uint64_t num;
+	uint32_t idx;
 	Breakpoint* bp;
-}BreakpointHashItem;
+}BreakpointIdxHashItem;
+
+typedef struct
+{
+	FklHashTable ins_ht;
+	FklHashTable idx_ht;
+	Breakpoint* deleted_breakpoints;
+	FklUintStack unused_prototype_id_for_cond_bp;
+	uint32_t next_idx;
+}BreakpointTable;
 
 typedef struct DebugCtx
 {
@@ -101,10 +121,7 @@ typedef struct DebugCtx
 
 	FklVMgc* gc;
 
-	uint64_t breakpoint_num;
-	FklHashTable breakpoints;
-	Breakpoint* deleted_breakpoints;
-	FklUintStack unused_prototype_id_for_cond_bp;
+	BreakpointTable bt;
 
 	struct SteppingCtx
 	{
@@ -161,17 +178,19 @@ void destroyDebugCtx(DebugCtx*);
 const FklString* getCurLineStr(DebugCtx* ctx,FklSid_t fid,uint32_t line);
 const FklLineNumberTableItem* getCurLineNumberItemWithCp(const FklInstruction* cp,FklByteCodelnt* code);
 
-void initBreakpointTable(FklHashTable*);
+void initBreakpointTable(BreakpointTable*);
+void uninitBreakpointTable(BreakpointTable*);
 void initEnvTable(FklHashTable*);
 void putEnv(DebugCtx* ctx,FklCodegenEnv* env);
 FklCodegenEnv* getEnv(DebugCtx*,uint32_t id);
 
-void toggleVMint3(FklVM*);
-
 void markBreakpointCondExpObj(DebugCtx* ctx,FklVMgc* gc);
 
 const SourceCodeHashItem* getSourceWithFid(DebugCtx* dctx,FklSid_t fid);
-Breakpoint* createBreakpoint(uint64_t,FklSid_t,uint32_t,FklInstruction* ins,DebugCtx* ctx);
+
+Breakpoint* createBreakpoint(FklSid_t,uint32_t,FklInstruction* ins,DebugCtx*);
+BreakpointInsHashItem* getBreakpointHashItem(DebugCtx*,const FklInstruction* ins);
+
 Breakpoint* putBreakpointWithFileAndLine(DebugCtx* ctx,FklSid_t fid,uint32_t line,PutBreakpointErrorType*);
 Breakpoint* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid);
 
@@ -185,10 +204,12 @@ int isBreakpointWrapper(FklVMvalue* v);
 Breakpoint* getBreakpointFromWrapper(FklVMvalue* v);
 
 const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t);
-Breakpoint* disBreakpoint(DebugCtx* ctx,uint64_t num);
-Breakpoint* enableBreakpoint(DebugCtx* ctx,uint64_t num);
-Breakpoint* delBreakpoint(DebugCtx* ctx,uint64_t num);
-void clearBreakpoint(DebugCtx* ctx);
+
+Breakpoint* getBreakpointWithIdx(DebugCtx* ctx,uint32_t idx);
+Breakpoint* disBreakpoint(DebugCtx* ctx,uint32_t idx);
+Breakpoint* enableBreakpoint(DebugCtx* ctx,uint32_t idx);
+Breakpoint* delBreakpoint(DebugCtx* ctx,uint32_t idx);
+void clearDeletedBreakpoint(DebugCtx* dctx);
 
 const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe*);
 

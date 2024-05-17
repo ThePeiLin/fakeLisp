@@ -7,16 +7,17 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 	if(arg->bp)
 	{
 		Breakpoint* bp=arg->bp;
+		atomic_fetch_sub(&bp->reached_count,1);
 		for(;bp;bp=bp->next)
 		{
-			if(bp->is_deleted)
+			if(bp->is_deleted||bp->is_disabled)
 				continue;
 			if(bp->cond_exp_obj)
 			{
-				if(!bp->compiled)
+				if(!bp->is_compiled)
 				{
 					EvalCompileErr err;
-					bp->compiled=1;
+					bp->is_compiled=1;
 					FklVMvalue* proc=compileConditionExpression(ctx
 							,vm
 							,bp->cond_exp
@@ -46,7 +47,7 @@ static void interrupt_queue_work_cb(FklVM* vm,void* a)
 			getCurLineStr(ctx,bp->fid,bp->line);
 			bp->count++;
 			if(bp->is_temporary)
-				delBreakpoint(ctx,bp->num);
+				delBreakpoint(ctx,bp->idx);
 			longjmp(ctx->jmpb,DBG_INTERRUPTED);
 		}
 	}

@@ -2,9 +2,9 @@
 
 (define n 1152921504606846976)
 (define s"1152921504606846976")
-(assert (big-int? n))
-(assert (big-int? (string->number s)))
-(assert (not (big-int? (string->number "0x111"))))
+(assert (bigint? n))
+(assert (bigint? (string->number s)))
+(assert (not (bigint? (string->number "0x111"))))
 (assert (eqv n (string->number s)))
 (println 18446744073709551617)
 (println (number->string n 16))
@@ -18,4 +18,4 @@
 (define n 0xFFFFFFFFFFFFFFFFFF)
 (assert (= 4722366482869645213695 n))
 
-(println "big-int test done")
+(println "bigint test done")

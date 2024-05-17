@@ -194,3 +194,4 @@ FklOpcode fklFindOpcode(const char* str)
 			return i;
 	return 0;
 }
+

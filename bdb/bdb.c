@@ -40,30 +40,35 @@ static void create_env_work_cb(FklCodegenInfo* info,FklCodegenEnv* env,void* ctx
 static void B_int3(FKL_VM_INS_FUNC_ARGL);
 static void B_int33(FKL_VM_INS_FUNC_ARGL);
 
+static inline BreakpointInsHashItem* get_breakpoint_with_ins(DebugCtx* ctx,FklInstruction* ins)
+{
+	return fklGetHashItem(&ins,&ctx->bt.ins_ht);
+}
+
 static void B_int3(FKL_VM_INS_FUNC_ARGL)
 {
-#warning INCOMPLETE
-	abort();
-	// if(exe->is_single_thread)
-	// {
-	// 	FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
-	// 	fklVMexecuteInstruction(exe,oins,exe->top_frame);
-	// }
-	// else
-	// {
-	// 	exe->dummy_ins_func=B_int33;
-	// 	exe->top_frame->c.pc--;
-	// 	fklVMinterrupt(exe,createBreakpointWrapper(exe,ins->ptr),NULL);
-	// }
+	BreakpointInsHashItem* item=get_breakpoint_with_ins(exe->debug_ctx,ins);
+	if(exe->is_single_thread)
+	{
+		FklOpcode origin_op=item->origin_op;
+		fklVMexecuteInstruction(exe,origin_op,ins,exe->top_frame);
+	}
+	else
+	{
+		exe->dummy_ins_func=B_int33;
+		exe->top_frame->c.pc--;
+		atomic_fetch_add(&item->bp->reached_count,1);
+		fklVMinterrupt(exe,createBreakpointWrapper(exe,item->bp),NULL);
+	}
 }
 
 static void B_int33(FKL_VM_INS_FUNC_ARGL)
 {
-#warning INCOMPLETE
-	abort();
-	// exe->dummy_ins_func=B_int3;
-	// FklInstruction* oins=&((Breakpoint*)ins->ptr)->origin_ins;
-	// fklVMexecuteInstruction(exe,oins,exe->top_frame);
+	exe->dummy_ins_func=B_int3;
+	fklVMexecuteInstruction(exe
+			,get_breakpoint_with_ins(exe->debug_ctx,ins)->origin_op
+			,ins
+			,exe->top_frame);
 }
 
 static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filename)
@@ -128,6 +133,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 	ctx->reached_thread=anotherVM;
 
 	anotherVM->dummy_ins_func=B_int3;
+	anotherVM->debug_ctx=ctx;
 
 	gc->main_thread=anotherVM;
 	fklVMpushInterruptHandler(gc,dbgInterruptHandler,NULL,NULL,ctx);
@@ -269,12 +275,12 @@ static inline void internal_dbg_extra_mark(DebugCtx* ctx,FklVMgc* gc)
 	for(;base<last;base++)
 		fklVMgcToGray(*base,gc);
 
-	for(FklHashTableItem* l=ctx->breakpoints.first
+	for(FklHashTableItem* l=ctx->bt.idx_ht.first
 			;l
 			;l=l->next)
 	{
-		Breakpoint* i=((BreakpointHashItem*)l->data)->bp;
-		if(i->compiled)
+		Breakpoint* i=((BreakpointIdxHashItem*)l->data)->bp;
+		if(i->is_compiled)
 			fklVMgcToGray(i->proc,gc);
 	}
 
@@ -320,14 +326,13 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 
 	fklInitPtrStack(&ctx->reached_thread_frames,16,16);
 	fklInitPtrStack(&ctx->threads,16,16);
-	fklInitUintStack(&ctx->unused_prototype_id_for_cond_bp,16,16);
 
 	setReachedThread(ctx,ctx->reached_thread);
 	init_source_codes(ctx);
 	ctx->temp_proc_prototype_id=fklInsertEmptyFuncPrototype(ctx->gc->pts);
 	get_all_code_objs(ctx);
 	push_extra_mark_value(ctx);
-	initBreakpointTable(&ctx->breakpoints);
+	initBreakpointTable(&ctx->bt);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->reached_thread->top_frame);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 
@@ -353,19 +358,6 @@ static inline void uninit_cmd_read_ctx(CmdReadCtx* ctx)
 	replxx_end(ctx->replxx);
 }
 
-static inline void destroy_all_deleted_breakpoint(DebugCtx* ctx)
-{
-	Breakpoint* bp=ctx->deleted_breakpoints;
-	while(bp)
-	{
-		Breakpoint* cur=bp;
-		bp=bp->next;
-		if(cur->cond_exp)
-			fklDestroyNastNode(cur->cond_exp);
-		free(cur);
-	}
-}
-
 void exitDebugCtx(DebugCtx* ctx)
 {
 	FklVMgc* gc=ctx->gc;
@@ -385,15 +377,12 @@ void destroyDebugCtx(DebugCtx* ctx)
 	fklUninitHashTable(&ctx->envs);
 	fklUninitHashTable(&ctx->file_sid_set);
 
-	clearBreakpoint(ctx);
-	destroy_all_deleted_breakpoint(ctx);
-	fklUninitHashTable(&ctx->breakpoints);
+	uninitBreakpointTable(&ctx->bt);
 	fklUninitHashTable(&ctx->source_code_table);
 	fklUninitPtrStack(&ctx->extra_mark_value);
 	fklUninitPtrStack(&ctx->code_objs);
 	fklUninitPtrStack(&ctx->threads);
 	fklUninitPtrStack(&ctx->reached_thread_frames);
-	fklUninitUintStack(&ctx->unused_prototype_id_for_cond_bp);
 
 	fklDestroyVMgc(ctx->gc);
 	uninit_cmd_read_ctx(&ctx->read_ctx);
@@ -421,14 +410,6 @@ const FklLineNumberTableItem* getCurFrameLineNumber(const FklVMframe* frame)
 				,code);
 	}
 	return NULL;
-}
-
-void toggleVMint3(FklVM* exe)
-{
-	if(exe->dummy_ins_func==B_int33)
-		exe->dummy_ins_func=B_int3;
-	else
-		exe->dummy_ins_func=B_int33;
 }
 
 const SourceCodeHashItem* getSourceWithFid(DebugCtx* dctx,FklSid_t fid)
@@ -477,12 +458,7 @@ Breakpoint* putBreakpointWithFileAndLine(DebugCtx* ctx
 	}
 break_loop:
 	if(ins)
-	{
-		ctx->breakpoint_num++;
-		BreakpointHashItem* item=fklPutHashItem(&ctx->breakpoint_num,&ctx->breakpoints);
-		item->bp=createBreakpoint(ctx->breakpoint_num,fid,line,ins,ctx);
-		return item->bp;
-	}
+		return createBreakpoint(fid,line,ins,ctx);
 	*err=PUT_BP_AT_END_OF_FILE;
 	return NULL;
 }
@@ -551,10 +527,7 @@ static inline Breakpoint* put_breakpoint_with_pc(DebugCtx* ctx
 		,FklInstruction* ins
 		,const FklLineNumberTableItem* ln)
 {
-	ctx->breakpoint_num++;
-	BreakpointHashItem* item=fklPutHashItem(&ctx->breakpoint_num,&ctx->breakpoints);
-	item->bp=createBreakpoint(ctx->breakpoint_num,ln->fid,ln->line,ins,ctx);
-	return item->bp;
+	return createBreakpoint(ln->fid,ln->line,ins,ctx);
 }
 
 Breakpoint* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)

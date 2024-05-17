@@ -132,7 +132,7 @@ typedef struct FklHashTable
 {return &((type*)item)->field;}
 
 #define FKL_HASH_SET_KEY_VAL(name,type) void name(void* a,const void* b)\
-{*(type*)a=*(const type*)b;}
+{*(type*)a=*(type const*)b;}
 
 #define FKL_DEFAULT_HASH_LOAD_FACTOR (2.0)
 

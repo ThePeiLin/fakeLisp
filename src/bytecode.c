@@ -12,10 +12,7 @@ struct ConstI64HashItem
 	uint32_t idx;
 };
 
-static void const_i64_set_val(void* k0,const void* k1)
-{
-	*(struct ConstI64HashItem*)k0=*(const struct ConstI64HashItem*)k1;
-}
+static FKL_HASH_SET_KEY_VAL(const_i64_set_val,struct ConstI64HashItem);
 
 static uintptr_t const_i64_hash_func(const void* k)
 {
@@ -55,10 +52,7 @@ struct ConstF64HashItem
 	uint32_t idx;
 };
 
-static void const_f64_set_val(void* k0,const void* k1)
-{
-	*(struct ConstF64HashItem*)k0=*(const struct ConstF64HashItem*)k1;
-}
+static FKL_HASH_SET_KEY_VAL(const_f64_set_val,struct ConstF64HashItem);
 
 static uintptr_t const_f64_hash_func(const void* k)
 {
@@ -560,7 +554,7 @@ void fklPrintConstTable(const FklConstTable* kt,FILE* fp)
 
 	const FklConstBvecTable* kbvect=&kt->kbvect;
 	numLen=kbvect->count?(int)(log10(kbvect->count)+1):1;
-	fprintf(fp,"bytevector:\t%u\n",kbvect->count);
+	fprintf(fp,"bvec:\t%u\n",kbvect->count);
 	for(uint32_t i=0;i<kbvect->count;i++)
 	{
 		const FklBytevector* bvec=kbvect->base[i];
@@ -954,9 +948,9 @@ static inline int8_t get_op_ins_len(FklOpcode op)
 	return 1;
 }
 
-int8_t fklGetInsOpArg(const FklInstruction* ins,FklInstructionArg* a)
+static inline int get_ins_op_with_op(FklOpcode op,const FklInstruction* ins,FklInstructionArg* a)
 {
-	switch(fklGetOpcodeMode(ins->op))
+	switch(fklGetOpcodeMode(op))
 	{
 		case FKL_OP_MODE_I:
 			return 1;
@@ -1031,6 +1025,16 @@ int8_t fklGetInsOpArg(const FklInstruction* ins,FklInstructionArg* a)
 			break;
 	}
 	return 1;
+}
+
+int fklGetInsOpArg(const FklInstruction* ins,FklInstructionArg* a)
+{
+	return get_ins_op_with_op(ins->op,ins,a);
+}
+
+int fklGetInsOpArgWithOp(FklOpcode op,const FklInstruction* ins,FklInstructionArg* a)
+{
+	return get_ins_op_with_op(op,ins,a);
 }
 
 int fklIsJmpIns(const FklInstruction* ins)

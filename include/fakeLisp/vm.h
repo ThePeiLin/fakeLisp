@@ -466,6 +466,8 @@ typedef struct FklVM
 	atomic_int notice_lock;
 
 	FklVMinsFunc dummy_ins_func;
+	void* debug_ctx;
+
 	uint64_t rand_state[4];
 
 	struct FklVMatExit
@@ -734,7 +736,7 @@ void fklVMpushExtraMarkFunc(FklVMgc*
 
 void fklSetVMsingleThread(FklVM* exe);
 void fklUnsetVMsingleThread(FklVM* exe);
-void fklVMexecuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame);
+void fklVMexecuteInstruction(FklVM* exe,FklOpcode op,FklInstruction* ins,FklVMframe* frame);
 int fklRunVMinSingleThread(FklVM* exe,FklVMframe* const exit_frame);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt*
@@ -1128,8 +1130,8 @@ int fklVMfpFileno(FklVMfp*);
 
 int fklUninitVMfp(FklVMfp*);
 
-#define FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS uint32_t* num,FklSid_t** exports,FklSymbolTable* st
-typedef void (*FklCodegenDllLibInitExportFunc)(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS);
+#define FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS FklSymbolTable* st,uint32_t* num
+typedef FklSid_t* (*FklCodegenDllLibInitExportFunc)(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS);
 
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS FklVM* exe,FklVMvalue* dll,uint32_t* count
 typedef FklVMvalue** (*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);

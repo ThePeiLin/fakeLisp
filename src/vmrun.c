@@ -3065,7 +3065,7 @@ export_to:
 	goto start;
 }
 
-void fklVMexecuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
+void fklVMexecuteInstruction(FklVM* exe,FklOpcode op,FklInstruction* ins,FklVMframe* frame)
 {
 	FklVMlib* plib;
 	uint32_t idx;
@@ -3073,7 +3073,7 @@ void fklVMexecuteInstruction(FklVM* exe,FklInstruction* ins,FklVMframe* frame)
 	uint64_t size;
 	uint64_t num;
 	int64_t offset;
-	switch(ins->op)
+	switch(op)
 	{
 		case FKL_OP_DUMMY:
 			exe->dummy_ins_func(exe,ins);
@@ -5411,6 +5411,7 @@ FklVM* fklCreateThreadVM(FklVMvalue* nextCall
 	exe->state=FKL_VM_READY;
 	memcpy(exe->rand_state,prev->rand_state,sizeof(uint64_t[4]));
 	exe->dummy_ins_func=prev->dummy_ins_func;
+	exe->debug_ctx=prev->debug_ctx;
 	uv_mutex_init(&exe->lock);
 	fklCallObj(exe,nextCall);
 	insert_to_VM_chain(exe,prev,next);

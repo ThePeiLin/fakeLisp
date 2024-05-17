@@ -144,6 +144,7 @@ static inline FklVMvalue* compile_expression_common_helper(DebugCtx* ctx
 				,code_obj
 				,tmp_env->prototypeId);
 		resolve_reference(ctx,tmp_env,vm,pt,proc,cur_frame);
+		fklVMgcUpdateConstArray(vm->gc,vm->gc->kt);
 	}
 	return proc;
 }
@@ -190,7 +191,7 @@ static inline FklCodegenEnv* init_codegen_info_for_cond_bp_with_debug_ctx(DebugC
 
 	if(new_env)
 	{
-		if(fklIsUintStackEmpty(&ctx->unused_prototype_id_for_cond_bp))
+		if(fklIsUintStackEmpty(&ctx->bt.unused_prototype_id_for_cond_bp))
 			fklCreateFuncPrototypeAndInsertToPool(info
 					,env->prototypeId
 					,new_env
@@ -199,7 +200,7 @@ static inline FklCodegenEnv* init_codegen_info_for_cond_bp_with_debug_ctx(DebugC
 					,ctx->st);
 		else
 		{
-			uint32_t pid=fklPopUintStack(&ctx->unused_prototype_id_for_cond_bp);
+			uint32_t pid=fklPopUintStack(&ctx->bt.unused_prototype_id_for_cond_bp);
 			replace_func_prototype(info
 					,env->prototypeId
 					,new_env
@@ -240,7 +241,7 @@ FklVMvalue* compileConditionExpression(DebugCtx* ctx
 			,err);
 
 	if(!proc)
-		fklPushUintStack(tmp_env->prototypeId,&ctx->unused_prototype_id_for_cond_bp);
+		fklPushUintStack(tmp_env->prototypeId,&ctx->bt.unused_prototype_id_for_cond_bp);
 	info.pts=NULL;
 	fklDestroyCodegenEnv(tmp_env);
 	fklUninitCodegenInfo(&info);

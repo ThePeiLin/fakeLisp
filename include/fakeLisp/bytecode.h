@@ -175,7 +175,8 @@ typedef struct
 	uint64_t uy;
 }FklInstructionArg;
 
-int8_t fklGetInsOpArg(const FklInstruction* ins,FklInstructionArg* arg);
+int fklGetInsOpArg(const FklInstruction* ins,FklInstructionArg* arg);
+int fklGetInsOpArgWithOp(FklOpcode op,const FklInstruction* ins,FklInstructionArg* arg);
 
 int fklIsJmpIns(const FklInstruction* ins);
 int fklIsPutLocIns(const FklInstruction* ins);

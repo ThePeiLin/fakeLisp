@@ -27,7 +27,7 @@
            (test-only)
            (test-prefix)
            (test-except)
-           (big-int)
+           (bigint)
            (parse)
            (read)
            (bigloop)

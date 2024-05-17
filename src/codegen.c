@@ -10601,8 +10601,7 @@ void fklInitCodegenDllLib(FklCodegenLib* lib
 	lib->named_prod_groups.t=NULL;
 
 	uint32_t num=0;
-	FklSid_t* exports=NULL;
-	init(&num,&exports,pst);
+	FklSid_t* exports=init(pst,&num);
 	FklHashTable* exports_idx=&lib->exports;
 	fklInitExportSidIdxTable(exports_idx);
 	if(num)

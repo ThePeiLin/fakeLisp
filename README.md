@@ -181,7 +181,7 @@ foobar2
 ## TODO
 - [ ] Explicit documents
 - [ ] An array type which not is allowed to modify its length
-- [ ] Impove the instruction format of viual machine
+- [X] Impove the instruction format of visual machine
 - [ ] Instructions' optimization
 - [ ] Standardize the bytecode format
 - [ ] Full unicode support

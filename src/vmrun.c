@@ -4934,9 +4934,25 @@ static inline void vm_idle_loop(FklVMgc* gc)
 		{
 			FklVM* exe=n->data;
 			if(uv_thread_create(&exe->tid,vm_thread_cb,exe))
-				abort();
-			atomic_fetch_add(&q->running_count,1);
-			fklPushPtrQueueNode(&q->running_q,n);
+			{
+				if(exe->chan)
+				{
+					exe->state=FKL_VM_EXIT;
+					fklChanlSend(FKL_VM_CHANL(exe->chan)
+							,fklCreateVMvalueError(exe
+								,gc->builtinErrorTypeId[FKL_ERR_THREADERROR]
+								,fklCreateStringFromCstr("Failed to create thread"))
+							,exe);
+					free(n);
+				}
+				else
+					abort();
+			}
+			else
+			{
+				atomic_fetch_add(&q->running_count,1);
+				fklPushPtrQueueNode(&q->running_q,n);
+			}
 		}
 		uv_mutex_unlock(&q->pre_running_lock);
 		if(atomic_load(&q->running_count)==0)

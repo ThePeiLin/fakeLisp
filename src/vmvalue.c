@@ -934,6 +934,7 @@ static inline void chanl_push_msg(FklVMchanl* ch,FklVMvalue* msg)
 	{
 		n=ch->msg_cache;
 		ch->msg_cache=n->next;
+		n->data=msg;
 	}
 	else
 		n=fklCreateQueueNode(msg);

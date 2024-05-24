@@ -379,7 +379,10 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL)
 			unsetStepping(dctx);
 	}
 	else if(r==DBG_ERROR_OCCUR)
+	{
 		dctx->done=1;
+		fputs("*** Unhandled error occured. The program will restart ***\n",stderr);
+	}
 	else
 	{
 		if(dctx->running)
@@ -825,7 +828,10 @@ static int bdb_debug_ctx_set_step_into(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,exe);
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
-	setStepInto(debug_ctx_ud->ctx);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	if(dctx->done)
+		debug_restart(dctx,exe);
+	setStepInto(dctx);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -837,7 +843,10 @@ static int bdb_debug_ctx_set_step_over(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,exe);
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
-	setStepOver(debug_ctx_ud->ctx);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	if(dctx->done)
+		debug_restart(dctx,exe);
+	setStepOver(dctx);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -849,7 +858,10 @@ static int bdb_debug_ctx_set_step_out(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(debug_ctx_obj,IS_DEBUG_CTX_UD,exe);
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
-	setStepOut(debug_ctx_ud->ctx);
+	DebugCtx* dctx=debug_ctx_ud->ctx;
+	if(dctx->done)
+		debug_restart(dctx,exe);
+	setStepOut(dctx);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
 }
@@ -863,6 +875,8 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 
 	DebugCtx* dctx=debug_ctx_ud->ctx;
+	if(dctx->done)
+		debug_restart(dctx,exe);
 	if(lineno_obj==NULL)
 		setStepOver(dctx);
 	else

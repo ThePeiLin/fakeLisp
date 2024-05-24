@@ -258,7 +258,9 @@
       (cond
         [(eq err-type 'UV_ENODEV)
          (uv-handle-close server)
-         (uv-handle-close timeout)]
+         (uv-handle-close timeout)
+         (println "no multicast route, skipping")
+         (return)]
         [(and (eq err-type 'UV_EADDRNOTAVAIL)
            (equal multicast-addr "ff02::1"))
          (setq multicast-addr "ff02::1%lo0")
@@ -303,7 +305,7 @@
                    (when err
                      (cond
                        [(eq (error-type err) 'UV_EPERM)
-                        (println "sned to multicast ip was likely denied by firewall")
+                        (println "send to multicast ip was likely denied by firewall")
                         (uv-handle-close client)
                         (uv-handle-close server)
                         (uv-handle-close timeout)]
@@ -321,17 +323,34 @@
     (uv-loop-run loop)))
 
 (newline)
+
+(define (has-external-interface family)
+  (define addresses (uv-interface-addresses))
+  (assert (> (length addresses) 0))
+  (ormap
+    (lambda (info)
+      (and (or (not family)
+             (eq (hash-ref info 'family) family))
+        (not (hash-ref info 'internal))))
+    (vector->list addresses)))
+
 ;; udp multicast join ipv4
 (println ";; udp multicast join ipv4")
 
-(define test-fn (multicast-join-test "0.0.0.0" "239.255.0.1" nil))
-
-(test-fn)
+(cond
+  [(has-external-interface 'inet)
+   (define test-fn (multicast-join-test "0.0.0.0" "239.255.0.1" nil))
+   (test-fn)]
+  [1
+   (println "no external ipv4 interface, skipping")])
 
 (newline)
 ;; udp multicast join ipv6
 (println ";; udp multicast join ipv6")
 
-(define test-fn (multicast-join-test "::" "ff02::1" nil))
-
-(test-fn)
+(cond
+  [(has-external-interface 'inet6)
+   (define test-fn (multicast-join-test "::" "ff02::1" nil))
+   (test-fn)]
+  [1
+   (println "no external ipv6 interface, skipping")])

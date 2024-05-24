@@ -137,6 +137,18 @@ void startErrorHandle(uv_loop_t* loop
 		,FklVMframe* buttom_frame)
 {
 	struct FuvErrorRecoverData* rd=&ldata->error_recover_data;
+
+	uint32_t origin_ltp=exe->ltp;
+	exe->ltp=ltp+rd->local_values_num;
+	FklVMframe* f=rd->frame;
+	while(f)
+	{
+		FklVMframe* prev=f->prev;
+		fklDestroyVMframe(f,exe);
+		f=prev;
+	}
+
+	exe->ltp=origin_ltp;
 	rd->local_values_num=exe->ltp-ltp;
 	rd->stack_values_num=exe->tp-stp;
 
@@ -149,13 +161,6 @@ void startErrorHandle(uv_loop_t* loop
 	exe->tp=stp;
 	exe->ltp=ltp;
 
-	FklVMframe* f=rd->frame;
-	while(f)
-	{
-		FklVMframe* prev=f->prev;
-		fklDestroyVMframe(f,exe);
-		f=prev;
-	}
 	rd->frame=NULL;
 
 	f=exe->top_frame;

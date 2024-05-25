@@ -1295,24 +1295,25 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 		main_frame->c.lr.lref=NULL;
 		main_frame->c.lr.lcount=1;
 
+		while(exe->top_frame->prev)
+		{
+			FklVMframe* cur=exe->top_frame;
+			if(cur->prev->prev==NULL&&cur->type==FKL_FRAME_COMPOUND)
+			{
+				FklInstruction* ins=&cur->c.end[-2];
+				if(ins->op==FKL_OP_PUT_LOC)
+					exe->locv[ins->imm_u32]=FKL_VM_NIL;
+			}
+			exe->top_frame=cur->prev;
+			fklDestroyVMframe(cur,exe);
+		}
+
 		ReplCtx* ctx=(ReplCtx*)exe->top_frame->data;
 		ctx->fctx->lrefl=lrefl;
 		ctx->fctx->lref=lref;
 		ctx->state=READY;
 	}
 
-	while(exe->top_frame->prev)
-	{
-		FklVMframe* cur=exe->top_frame;
-		if(cur->prev->prev==NULL&&cur->type==FKL_FRAME_COMPOUND)
-		{
-			FklInstruction* ins=&cur->c.end[-2];
-			if(ins->op==FKL_OP_PUT_LOC)
-				exe->locv[ins->imm_u32]=FKL_VM_NIL;
-		}
-		exe->top_frame=cur->prev;
-		fklDestroyVMframe(cur,exe);
-	}
 	return 1;
 }
 

@@ -1286,13 +1286,20 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 	exe->bp=0;
 	fklPrintErrBacktrace(errValue,exe,stderr);
 	FklVMframe* main_frame=exe->top_frame;
-	for(;main_frame->prev->prev;main_frame=main_frame->prev);
+	if(main_frame->prev)
+	{
+		for(;main_frame->prev->prev;main_frame=main_frame->prev);
+		FklVMvarRefList* lrefl=main_frame->c.lr.lrefl;
+		FklVMvalue** lref=main_frame->c.lr.lref;
+		main_frame->c.lr.lrefl=NULL;
+		main_frame->c.lr.lref=NULL;
+		main_frame->c.lr.lcount=1;
 
-	FklVMvarRefList* lrefl=main_frame->c.lr.lrefl;
-	FklVMvalue** lref=main_frame->c.lr.lref;
-	main_frame->c.lr.lrefl=NULL;
-	main_frame->c.lr.lref=NULL;
-	main_frame->c.lr.lcount=1;
+		ReplCtx* ctx=(ReplCtx*)exe->top_frame->data;
+		ctx->fctx->lrefl=lrefl;
+		ctx->fctx->lref=lref;
+		ctx->state=READY;
+	}
 
 	while(exe->top_frame->prev)
 	{
@@ -1306,10 +1313,6 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 		exe->top_frame=cur->prev;
 		fklDestroyVMframe(cur,exe);
 	}
-	ReplCtx* ctx=(ReplCtx*)exe->top_frame->data;
-	ctx->fctx->lrefl=lrefl;
-	ctx->fctx->lref=lref;
-	ctx->state=READY;
 	return 1;
 }
 

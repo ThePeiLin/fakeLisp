@@ -48,6 +48,18 @@ set(VMPARSE vmparse)
 project(${INTERPRETER_TARGET_NAME})
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
+#copy lib/*.fkl
+add_custom_target(COPY_LIB ALL
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib
+	BYPRODUCTS ${CMAKE_BINARY_DIR}/lib
+	VERBATIM)
+
+#copy test/*.fkl
+add_custom_target(COPY_TEST ALL
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/
+	BYPRODUCTS ${CMAKE_BINARY_DIR}/test/
+	VERBATIM)
+
 #warnnig setting
 if(MSVC)
 	add_compile_options(/W4 /experimental:c11atomics /utf-8)
@@ -113,7 +125,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
 set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #libuv
-set(LIBUV_BUILD_SHARED OFF)
+option(LIBUV_BUILD_SHARED OFF)
 add_compile_definitions(USING_UV_SHARED)
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
@@ -173,17 +185,8 @@ set_target_properties(ht PROPERTIES
 	PREFIX "")
 target_link_libraries(ht ${LIBFKL_TARGET_NAME})
 
-if(MSVC)
-add_custom_command(TARGET ht
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:ht>
-	"${CMAKE_BINARY_DIR}/lib/"
-	DEPENDS ht
-	VERBATIM)
-else()
 set_target_properties(ht PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 #os.so
 add_library(os
@@ -193,17 +196,8 @@ set_target_properties(os PROPERTIES
 	PREFIX "")
 target_link_libraries(os ${LIBFKL_TARGET_NAME})
 
-if(MSVC)
-add_custom_command(TARGET os
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:os>
-	"${CMAKE_BINARY_DIR}/lib/"
-	DEPENDS os
-	VERBATIM)
-else()
 set_target_properties(os PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 #math.so
 add_library(math
@@ -213,17 +207,8 @@ set_target_properties(math PROPERTIES
 	PREFIX "")
 target_link_libraries(math ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
-if(MSVC)
-add_custom_command(TARGET math
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:math>
-	"${CMAKE_BINARY_DIR}/lib/"
-	DEPENDS math
-	VERBATIM)
-else()
 set_target_properties(math PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 #sync.so
 add_library(sync
@@ -233,17 +218,8 @@ set_target_properties(sync PROPERTIES
 	PREFIX "")
 target_link_libraries(sync ${LIBFKL_TARGET_NAME})
 
-if(MSVC)
-add_custom_command(TARGET sync
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:sync>
-	"${CMAKE_BINARY_DIR}/lib/"
-	DEPENDS sync
-	VERBATIM)
-else()
 set_target_properties(sync PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 #fs.so
 add_library(fs
@@ -253,17 +229,8 @@ set_target_properties(fs PROPERTIES
 	PREFIX "")
 target_link_libraries(fs ${LIBFKL_TARGET_NAME})
 
-if(MSVC)
-add_custom_command(TARGET fs
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:fs>
-	"${CMAKE_BINARY_DIR}/lib/"
-	DEPENDS fs
-	VERBATIM)
-else()
 set_target_properties(fs PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 #bdb.so
 file(GLOB BDB_SOURCE "bdb/*.c")
@@ -275,17 +242,8 @@ set_target_properties(bdb PROPERTIES
 	PREFIX "")
 target_link_libraries(bdb ${LIBFKL_TARGET_NAME} replxx)
 
-if(MSVC)
-add_custom_command(TARGET bdb
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:bdb>
-	"${CMAKE_BINARY_DIR}/lib"
-	DEPENDS bdb
-	VERBATIM)
-else()
 set_target_properties(bdb PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 #fuv.so
 file(GLOB FUV_SOURCE "fuv/*.c")
@@ -299,16 +257,10 @@ target_link_libraries(fuv ${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 target_link_libraries(fuv ws2_32)
-add_custom_command(TARGET fuv
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:fuv>
-	"${CMAKE_BINARY_DIR}/lib"
-	DEPENDS fuv
-	VERBATIM)
-else()
+endif()
+
 set_target_properties(fuv PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-endif()
 
 if(FANALYZER)
 	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE "-fanalyzer")
@@ -348,17 +300,8 @@ set_target_properties(test-dll PROPERTIES
 	PREFIX "")
 target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
 
-if(MSVC)
-add_custom_command(TARGET test-dll
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:test-dll>
-	"${CMAKE_BINARY_DIR}/test/"
-	DEPENDS test-dll
-	VERBATIM)
-else()
 set_target_properties(test-dll PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
-endif()
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND ${GRAMMER_GEN}
@@ -399,14 +342,3 @@ add_test(NAME test-script
 
 add_test(NAME test-pre-compile
 	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p test -d test-pre)
-
-#copy lib/*.fkl
-add_custom_target(COPY_LIB ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib
-	VERBATIM)
-
-#copy test
-add_custom_target(COPY_TEST ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/
-	VERBATIM)
-

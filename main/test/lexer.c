@@ -4,7 +4,6 @@
 #include<fakeLisp/utils.h>
 #include<stdio.h>
 #include<stdlib.h>
-#include<ctype.h>
 
 static void* fklNastTerminalCreate(const char* s,size_t len,size_t line,void* ctx)
 {

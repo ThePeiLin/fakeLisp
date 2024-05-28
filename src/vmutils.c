@@ -676,7 +676,7 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 	}
 	dec_value_degree(ht,first_value);
 
-	//remove value not in circle
+	// remove value not in circle
 
 	do
 	{
@@ -867,7 +867,7 @@ int fklHasCircleRef(FklVMvalue* first_value)
 	dec_value_degree(&degree_table,first_value);
 	fklUninitHashTable(&value_set);
 
-	//remove value not in circle
+	// remove value not in circle
 
 	do
 	{

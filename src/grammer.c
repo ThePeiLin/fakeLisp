@@ -2740,8 +2740,9 @@ static inline void print_prod_sym_as_dot(FILE* fp
 	{
 		if(u->term_type==FKL_TERM_BUILTIN)
 		{
-			fputc('?',fp);
+			fputc('|',fp);
 			fputs(u->b.t->name,fp);
+			fputc('|',fp);
 		}
 		else if(u->term_type==FKL_TERM_REGEX)
 		{
@@ -3665,7 +3666,9 @@ static inline void print_look_ahead_as_dot(FILE* fp
 			fputs("$$",fp);
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
+			fputc('|',fp);
 			fputs(la->b.t->name,fp);
+			fputc('|',fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
 			fputs("()",fp);
@@ -3695,7 +3698,9 @@ static inline void print_item_as_dot(FILE* fp
 	if(!is_Sq_nt(&prod->left))
 	{
 		const FklString* str=fklGetSymbolWithId(prod->left.sid,st)->symbol;
+		fputc('|',fp);
 		print_string_as_dot((const uint8_t*)str->str,'"',str->size,fp);
+		fputc('|',fp);
 	}
 	else
 		fputs("S'",fp);
@@ -3747,9 +3752,10 @@ void fklPrintItemStateSetAsDot(const FklHashTable* i
 		,const FklSymbolTable* st
 		,FILE* fp)
 {
-	fputs("digraph {\n",fp);
+	fputs("digraph \"items-lalr\"{\n",fp);
 	fputs("\trankdir=\"LR\"\n",fp);
 	fputs("\tranksep=1\n",fp);
+	fputs("\tgraph[overlap=false];\n",fp);
 	FklHashTable idxTable;
 	fklInitHashTable(&idxTable,&ItemStateIdxHashMetaTable);
 	size_t idx=0;
@@ -4540,7 +4546,9 @@ static inline void print_look_ahead_for_grapheasy(const FklLalrItemLookAhead* la
 			fputc('$',fp);
 			break;
 		case FKL_LALR_MATCH_BUILTIN:
+			fputs("\\|",fp);
 			fputs(la->b.t->name,fp);
+			fputs("\\|",fp);
 			break;
 		case FKL_LALR_MATCH_NONE:
 			fputs("()",fp);
@@ -4603,6 +4611,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer* g
 	size_t num=g->aTable.num;
 	FklAnalysisState* states=g->aTable.states;
 
+	fputs("graph{title:state-table;}",fp);
 	fputs("[\n",fp);
 
 	FklHashTable laTable;

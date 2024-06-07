@@ -42,9 +42,10 @@
     (let [(carc (car forms))]
       (do [(c (cdr forms) (cdr c))
            (r (if (pair? carc)
-                `(~(car carc)
-                   ~@`(~x)
-                   ,~(cdr carc))
+                `(~(car carc) ~@`(~x) ,~(cdr carc))
+                `(~carc,(~x)))
+              (if (pair? carc)
+                `(~(car carc) ~@`(~r) ,~(cdr carc))
                 `(~carc,(~x))))]
         [(null c) r]
         (setq carc (car c)))))

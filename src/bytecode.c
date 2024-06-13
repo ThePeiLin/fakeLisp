@@ -871,7 +871,7 @@ static uint64_t skipToCall(uint64_t index,const FklByteCode* bc)
 	return r;
 }
 
-static inline int64_t get_next(uint64_t i,const FklInstruction* ins)
+static inline int64_t get_next(const FklInstruction* ins)
 {
 	if(fklIsJmpIns(ins))
 	{
@@ -886,7 +886,7 @@ static inline int is_last_expression(uint64_t index,FklByteCode* bc)
 {
 	uint64_t size=bc->len;
 	FklInstruction* code=bc->code;
-	for(uint64_t i=index;i<size&&code[i].op!=FKL_OP_RET;i+=get_next(i,code))
+	for(uint64_t i=index;i<size&&code[i].op!=FKL_OP_RET;i+=get_next(&code[i]))
 		if(code[i].op!=FKL_OP_JMP&&code[i].op!=FKL_OP_CLOSE_REF)
 			return 0;
 	return 1;

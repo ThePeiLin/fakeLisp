@@ -866,12 +866,6 @@ void fklPrintBacktrace(FklVM*,FILE* fp);
 
 void fklInitMainProcRefs(FklVM* exe,FklVMvalue* proc_obj);
 
-void fklInitMainVMframeWithProc(FklVM*
-		,FklVMframe* tmp
-		,FklVMproc* code
-		,FklVMframe* prev
-		,FklFuncPrototypes* pts);
-
 void fklShrinkLocv(FklVM*);
 FklVMvalue** fklAllocSpaceForLocalVar(FklVM*,uint32_t);
 FklVMvalue** fklAllocMoreSpaceForMainFrame(FklVM*,uint32_t);

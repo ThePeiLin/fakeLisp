@@ -5962,24 +5962,24 @@ struct RecomputeImportSrcIdxCtx
 	uint64_t* id_base;
 };
 
-static int recompute_import_src_idx_predicate(FklOpcode op)
+static int recompute_import_dst_idx_predicate(FklOpcode op)
 {
 	return op>=FKL_OP_IMPORT&&op<=FKL_OP_IMPORT_XX;
 }
 
-static int recompute_import_src_idx_func(void* cctx
+static int recompute_import_dst_idx_func(void* cctx
 		,FklOpcode* op
 		,FklOpcodeMode* pmode
 		,FklInstructionArg* ins_arg)
 {
 	struct RecomputeImportSrcIdxCtx* ctx=cctx;
-	FklSid_t id=ctx->id_base[ins_arg->ux];
+	FklSid_t id=ctx->id_base[ins_arg->uy];
 	if(is_constant_defined(id,1,ctx->env))
 	{
 		ctx->id=id;
 		return 1;
 	}
-	ins_arg->ux=fklAddCodegenDefBySid(id,1,ctx->env)->idx;
+	ins_arg->uy=fklAddCodegenDefBySid(id,1,ctx->env)->idx;
 	*op=FKL_OP_IMPORT;
 	*pmode=FKL_OP_MODE_IuAuB;
 	return 0;
@@ -5988,7 +5988,7 @@ static int recompute_import_src_idx_func(void* cctx
 static inline FklSid_t recompute_import_src_idx(FklByteCodelnt* bcl,FklCodegenEnv* env,FklUintStack* idPstack)
 {
 	struct RecomputeImportSrcIdxCtx ctx={.id=0,.env=env,.id_base=idPstack->base};
-	fklRecomputeInsImm(bcl,&ctx,recompute_import_src_idx_predicate,recompute_import_src_idx_func);
+	fklRecomputeInsImm(bcl,&ctx,recompute_import_dst_idx_predicate,recompute_import_dst_idx_func);
 	return ctx.id;
 }
 
@@ -6047,7 +6047,6 @@ BC_PROCESS(_export_import_bc_process)
 				item->oidx=fklGetCodegenDefByIdInScope(id,1,targetEnv)->idx;
 			}
 		}
-
 	}
 
 	FklCodegenMacroScope* macros=targetEnv->macros;

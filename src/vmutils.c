@@ -306,46 +306,6 @@ static inline void init_frame_var_ref(FklVMCompoundFrameVarRef* lr)
 	lr->lrefl=NULL;
 }
 
-void fklInitMainVMframeWithProc(FklVM* exe
-		,FklVMframe* tmp
-		,FklVMproc* code
-		,FklVMframe* prev
-		,FklFuncPrototypes* pts)
-{
-	tmp->errorCallBack=NULL;
-	tmp->type=FKL_FRAME_COMPOUND;
-	tmp->prev=prev;
-
-	FklVMCompoundFrameData* f=&tmp->c;
-	f->sid=0;
-	f->pc=NULL;
-	f->spc=NULL;
-	f->end=NULL;
-	f->mark=0;
-	f->tail=0;
-	if(code)
-	{
-		f->pc=code->spc;
-		f->spc=code->spc;
-		f->end=code->end;
-		f->sid=code->sid;
-		FklVMCompoundFrameVarRef* lr=&f->lr;
-		code->closure=lr->ref;
-		code->rcount=lr->rcount;
-		FklFuncPrototype* pt=&pts->pa[code->protoId];
-		uint32_t count=pt->lcount;
-		code->lcount=count;
-		FklVMvalue** loc=fklAllocSpaceForLocalVar(exe,count);
-		lr->base=0;
-		lr->loc=loc;
-		lr->lcount=count;
-		lr->lref=NULL;
-		lr->lrefl=NULL;
-	}
-	else
-		init_frame_var_ref(&f->lr);
-}
-
 void fklUpdateAllVarRef(FklVMframe* f,FklVMvalue** locv)
 {
 	for(;f;f=f->prev)

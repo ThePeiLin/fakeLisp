@@ -738,6 +738,7 @@ void fklSetVMsingleThread(FklVM* exe);
 void fklUnsetVMsingleThread(FklVM* exe);
 void fklVMexecuteInstruction(FklVM* exe,FklOpcode op,FklInstruction* ins,FklVMframe* frame);
 int fklRunVMinSingleThread(FklVM* exe,FklVMframe* const exit_frame);
+void fklCheckAndGCinSingleThread(FklVM* exe);
 void fklVMthreadStart(FklVM*,FklVMqueue* q);
 FklVM* fklCreateVMwithByteCode(FklByteCodelnt*
 		,FklSymbolTable*

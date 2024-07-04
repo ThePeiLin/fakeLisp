@@ -1,4 +1,4 @@
-(check (eq *platform* "win32")
+(cfg (eq *platform* "win32")
   (begin
     (import (.. lib os))
     (system "chcp 65001")))

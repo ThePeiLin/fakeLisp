@@ -9811,7 +9811,7 @@ static struct PatternAndFunc
 	{"~(defconst ~name ~value)",                               codegen_defconst,          },
 
 	{"~(setq ~name ~value)",                                   codegen_setq,              },
-	{"~(check ~value)",                                        codegen_check,             },
+	{"~(cfg ~value)",                                          codegen_check,             },
 	{"~(quote ~value)",                                        codegen_quote,             },
 	{"`(unquote `value)",                                      codegen_unquote,           },
 	{"~(qsquote ~value)",                                      codegen_qsquote,           },
@@ -9836,7 +9836,7 @@ static struct PatternAndFunc
 	{"~(export ~value)",                                       codegen_export_single,     },
 	{"~(export,~rest)",                                        codegen_export,            },
 	{"~(defmacro ~arg0 ~arg1,~rest)",                          codegen_def_reader_macros, },
-	{"~(check ~cond ~value,~rest)",                            codegen_cond_compile,      },
+	{"~(cfg ~cond ~value,~rest)",                              codegen_cond_compile,      },
 	{NULL,                                                     NULL,                      },
 };
 

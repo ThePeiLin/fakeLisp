@@ -42,7 +42,7 @@
                 'family 'inet)
 
 ;; get only ipv6 tcp addresses for gitee.com asynchronously
-(check (defmacro test-ipv6)
+(cfg (defmacro test-ipv6)
   (uv-getaddrinfo loop
                   "gitee.com"
                   nil

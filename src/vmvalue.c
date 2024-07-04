@@ -814,21 +814,8 @@ static inline void uninit_proc_value(FklVMvalue* v)
 	free(proc->closure);
 }
 
-static inline void destroy_all_queue_node(FklQueueNode* head)
-{
-	while(head)
-	{
-		FklQueueNode* prev=head;
-		head=head->next;
-		fklDestroyQueueNode(prev);
-	}
-}
-
 static inline void uninit_chanl_value(FklVMvalue* v)
 {
-	FklVMchanl* ch=FKL_VM_CHANL(v);
-	fklUninitPtrQueue(&ch->messages);
-	destroy_all_queue_node(ch->msg_cache);
 }
 
 static inline void uninit_fp_value(FklVMvalue* v)
@@ -927,28 +914,19 @@ static inline FklVMchanlSend* chanl_pop_send(FklVMchanl* ch)
 	return s;
 }
 
-static inline void chanl_push_msg(FklVMchanl* ch,FklVMvalue* msg)
+static inline void chanl_push_msg(FklVMchanl* c,FklVMvalue* msg)
 {
-	FklQueueNode* n=NULL;
-	if(ch->msg_cache)
-	{
-		n=ch->msg_cache;
-		ch->msg_cache=n->next;
-		n->data=msg;
-	}
-	else
-		n=fklCreateQueueNode(msg);
-	fklPushPtrQueueNode(&ch->messages,n);
-	ch->msg_num++;
+	c->buf[c->sendx]=msg;
+	c->sendx=(c->sendx+1)%c->qsize;
+	c->count++;
 }
 
-static inline FklVMvalue* chanl_pop_msg(FklVMchanl* ch)
+static inline FklVMvalue* chanl_pop_msg(FklVMchanl* c)
 {
-	FklQueueNode* n=fklPopPtrQueueNode(&ch->messages);
-	n->next=ch->msg_cache;
-	ch->msg_cache=n;
-	ch->msg_num--;
-	return n->data;
+	FklVMvalue* r=c->buf[c->recvx];
+	c->recvx=(c->recvx+1)%c->qsize;
+	c->count--;
+	return r;
 }
 
 int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** slot)
@@ -957,7 +935,7 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** slot)
 	FklVMchanlSend* send=chanl_pop_send(ch);
 	if(send)
 	{
-		if(ch->msg_num)
+		if(ch->count)
 		{
 			*slot=chanl_pop_msg(ch);
 			chanl_push_msg(ch,send->msg);
@@ -968,7 +946,7 @@ int fklChanlRecvOk(FklVMchanl* ch,FklVMvalue** slot)
 		uv_mutex_unlock(&ch->lock);
 		return 1;
 	}
-	else if(ch->msg_num)
+	else if(ch->count)
 	{
 		*slot=chanl_pop_msg(ch);
 		uv_mutex_unlock(&ch->lock);
@@ -987,7 +965,7 @@ void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
 	FklVMchanlSend* send=chanl_pop_send(ch);
 	if(send)
 	{
-		if(ch->msg_num)
+		if(ch->count)
 		{
 			*slot=chanl_pop_msg(ch);
 			chanl_push_msg(ch,send->msg);
@@ -998,7 +976,7 @@ void fklChanlRecv(FklVMchanl* ch,FklVMvalue** slot,FklVM* exe)
 		uv_mutex_unlock(&ch->lock);
 		return;
 	}
-	else if(ch->msg_num)
+	else if(ch->count)
 	{
 		*slot=chanl_pop_msg(ch);
 		uv_mutex_unlock(&ch->lock);
@@ -1030,7 +1008,7 @@ void fklChanlSend(FklVMchanl* ch,FklVMvalue* msg,FklVM* exe)
 		uv_mutex_unlock(&ch->lock);
 		return;
 	}
-	else if(ch->msg_num<ch->max)
+	else if(ch->count<ch->qsize)
 	{
 		chanl_push_msg(ch,msg);
 		uv_mutex_unlock(&ch->lock);
@@ -1075,7 +1053,7 @@ uint64_t fklVMchanlMessageNum(FklVMchanl* ch)
 {
 	uint64_t r=0;
 	uv_mutex_lock(&ch->lock);
-	r=ch->msg_num;
+	r=ch->count;
 	uv_mutex_unlock(&ch->lock);
 	return r;
 }
@@ -1084,7 +1062,16 @@ int fklVMchanlFull(FklVMchanl* ch)
 {
 	int r=0;
 	uv_mutex_lock(&ch->lock);
-	r=ch->msg_num>=ch->max;
+	r=ch->count>=ch->qsize;
+	uv_mutex_unlock(&ch->lock);
+	return r;
+}
+
+int fklVMchanlEmpty(FklVMchanl* ch)
+{
+	int r=0;
+	uv_mutex_lock(&ch->lock);
+	r=ch->count==0;
 	uv_mutex_unlock(&ch->lock);
 	return r;
 }
@@ -1622,16 +1609,13 @@ static inline void init_chanl_recvq(struct FklVMchanlRecvq* q)
 	q->tail=&q->head;
 }
 
-FklVMvalue* fklCreateVMvalueChanl(FklVM* exe,size_t max)
+FklVMvalue* fklCreateVMvalueChanl(FklVM* exe,uint32_t qsize)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueChanl);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueChanl)+sizeof(FklVMvalue*)*qsize);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_CHAN;
 	FklVMchanl* ch=FKL_VM_CHANL(r);
-	ch->max=max;
-	ch->msg_num=0;
-	fklInitPtrQueue(&ch->messages);
-	ch->msg_cache=NULL;
+	ch->qsize=qsize;
 	uv_mutex_init(&ch->lock);
 	init_chanl_sendq(&ch->sendq);
 	init_chanl_recvq(&ch->recvq);
@@ -1967,10 +1951,26 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
 {
 	FklVMchanl* ch=FKL_VM_CHANL(root);
-	for(FklQueueNode* head=ch->messages.head
-		;head
-		;head=head->next)
-		fklVMgcToGray(head->data,gc);
+
+	if(ch->recvx<ch->sendx)
+	{
+
+		FklVMvalue** const end=&ch->buf[ch->sendx];
+		for(FklVMvalue** buf=&ch->buf[ch->recvx];buf<end;buf++)
+			fklVMgcToGray(*buf,gc);
+	}
+	else
+	{
+		FklVMvalue** end=&ch->buf[ch->qsize];
+		FklVMvalue** buf=&ch->buf[ch->recvx];
+		for(;buf<end;buf++)
+			fklVMgcToGray(*buf,gc);
+
+		buf=ch->buf;
+		end=&ch->buf[ch->sendx];
+		for(;buf<end;buf++)
+			fklVMgcToGray(*buf,gc);
+	}
 	for(FklVMchanlSend* s=ch->sendq.head;s;s=s->next)
 		fklVMgcToGray(s->msg,gc);
 }

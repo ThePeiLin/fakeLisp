@@ -3253,6 +3253,19 @@ static int builtin_chanl_full_p(FKL_CPROC_ARGL)
 	return 0;
 }
 
+static int builtin_chanl_empty_p(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG(obj,exe);
+	FKL_CHECK_REST_ARG(exe);
+	FklVMvalue* retval=NULL;
+	if(FKL_IS_CHAN(obj))
+		retval=fklVMchanlEmpty(FKL_VM_CHANL(obj))?FKL_VM_TRUE:FKL_VM_NIL;
+	else
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	FKL_VM_PUSH_VALUE(exe,retval);
+	return 0;
+}
+
 static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
@@ -3263,13 +3276,33 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 	{
 		FklVMchanl* ch=FKL_VM_CHANL(obj);
 		uv_mutex_lock(&ch->lock);
-		for(FklQueueNode* h=ch->messages.head
-				;h
-				;h=h->next)
+		if(ch->recvx<ch->sendx)
 		{
-			FklVMvalue* msg=h->data;
-			*cur=fklCreateVMvaluePairWithCar(exe,msg);
-			cur=&FKL_VM_CDR(*cur);
+
+			FklVMvalue** const end=&ch->buf[ch->sendx];
+			for(FklVMvalue** buf=&ch->buf[ch->recvx];buf<end;buf++)
+			{
+				*cur=fklCreateVMvaluePairWithCar(exe,*buf);
+				cur=&FKL_VM_CDR(*cur);
+			}
+		}
+		else
+		{
+			FklVMvalue** end=&ch->buf[ch->qsize];
+			FklVMvalue** buf=&ch->buf[ch->recvx];
+			for(;buf<end;buf++)
+			{
+				*cur=fklCreateVMvaluePairWithCar(exe,*buf);
+				cur=&FKL_VM_CDR(*cur);
+			}
+
+			buf=ch->buf;
+			end=&ch->buf[ch->sendx];
+			for(;buf<end;buf++)
+			{
+				*cur=fklCreateVMvaluePairWithCar(exe,*buf);
+				cur=&FKL_VM_CDR(*cur);
+			}
 		}
 		uv_mutex_unlock(&ch->lock);
 	}
@@ -5218,6 +5251,7 @@ static const struct SymbolFuncStruct
 	{"chanl-recv-num",        builtin_chanl_recv_num,          {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-send-num",        builtin_chanl_send_num,          {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-full?",           builtin_chanl_full_p,            {NULL,         NULL,          NULL,            NULL,          }, },
+	{"chanl-empty?",          builtin_chanl_empty_p,           {NULL,         NULL,          NULL,            NULL,          }, },
 	{"chanl-msg->list",       builtin_chanl_msg_to_list,       {NULL,         NULL,          NULL,            NULL,          }, },
 	{"send",                  builtin_send,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"recv",                  builtin_recv,                    {NULL,         NULL,          NULL,            NULL,          }, },
@@ -5234,8 +5268,8 @@ static const struct SymbolFuncStruct
 	{"tail",                  builtin_tail,                    {NULL,         NULL,          NULL,            NULL,          }, },
 	{"char?",                 builtin_char_p,                  {NULL,         NULL,          NULL,            NULL,          }, },
 	{"integer?",              builtin_integer_p,               {NULL,         NULL,          NULL,            NULL,          }, },
-	{"fixint?",              builtin_fixint_p,               {NULL,         NULL,          NULL,            NULL,          }, },
-	{"bigint?",              builtin_bigint_p,               {NULL,         NULL,          NULL,            NULL,          }, },
+	{"fixint?",               builtin_fixint_p,                {NULL,         NULL,          NULL,            NULL,          }, },
+	{"bigint?",               builtin_bigint_p,                {NULL,         NULL,          NULL,            NULL,          }, },
 	{"f64?",                  builtin_f64_p,                   {NULL,         NULL,          NULL,            NULL,          }, },
 	{"pair?",                 builtin_pair_p,                  {NULL,         NULL,          NULL,            NULL,          }, },
 

@@ -65,12 +65,6 @@ typedef struct
 
 typedef struct
 {
-	uv_mutex_t lock;
-	size_t max;
-	volatile size_t msg_num;
-	FklPtrQueue messages;
-	FklQueueNode* msg_cache;
-
 	struct FklVMchanlRecvq
 	{
 		struct FklVMchanlRecv* head;
@@ -82,6 +76,14 @@ typedef struct
 		struct FklVMchanlSend* head;
 		struct FklVMchanlSend** tail;
 	}sendq;
+
+	uv_mutex_t lock;
+
+	uint32_t recvx;
+	uint32_t sendx;
+	uint32_t count;
+	uint32_t qsize;
+	struct FklVMvalue* buf[];
 }FklVMchanl;
 
 typedef struct FklVMchanlSend
@@ -964,7 +966,7 @@ FklVMvalue* fklCreateVMvalueHashEqv(FklVM*);
 
 FklVMvalue* fklCreateVMvalueHashEqual(FklVM*);
 
-FklVMvalue* fklCreateVMvalueChanl(FklVM*,uint64_t);
+FklVMvalue* fklCreateVMvalueChanl(FklVM*,uint32_t);
 
 FklVMvalue* fklCreateVMvalueBox(FklVM*,FklVMvalue*);
 
@@ -1137,6 +1139,7 @@ uint64_t fklVMchanlRecvqLen(FklVMchanl* ch);
 uint64_t fklVMchanlSendqLen(FklVMchanl* ch);
 uint64_t fklVMchanlMessageNum(FklVMchanl* ch);
 int fklVMchanlFull(FklVMchanl* ch);
+int fklVMchanlEmpty(FklVMchanl* ch);
 
 void fklVMsleep(FklVM*,uint64_t ms);
 

@@ -79,7 +79,7 @@ void fklPrintCodegenError(FklNastNode* obj
 		"symbol-error",
 		"symbol-error",
 		"syntax-error",
-	};;
+	};
 
 	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
 		return;
@@ -171,39 +171,40 @@ void fklPrintCodegenError(FklNastNode* obj
 			fputs("Unknown compiling error",stderr);
 			break;
 	}
+	fputc('\n',stderr);
 	if(obj)
 	{
 		if(fid)
 		{
-			fprintf(stderr," at line %"FKL_PRT64U" of file %s"
+			fprintf(stderr,"at line %"FKL_PRT64U" of file %s"
 					,obj->curline
 					,fklGetSymbolWithId(fid,publicSymbolTable)->symbol->str);
 			fputc('\n',stderr);
 		}
 		else if(info->filename)
 		{
-			fprintf(stderr," at line %"FKL_PRT64U" of file %s",obj->curline,info->filename);
+			fprintf(stderr,"at line %"FKL_PRT64U" of file %s",obj->curline,info->filename);
 			fputc('\n',stderr);
 		}
 		else
-			fprintf(stderr," at line %"FKL_PRT64U"\n",obj->curline);
+			fprintf(stderr,"at line %"FKL_PRT64U"\n",obj->curline);
 	}
 	else
 	{
 		if(fid)
 		{
-			fprintf(stderr," at line %"FKL_PRT64U" of file %s"
+			fprintf(stderr,"at line %"FKL_PRT64U" of file %s"
 					,obj->curline
 					,fklGetSymbolWithId(fid,publicSymbolTable)->symbol->str);
 			fputc('\n',stderr);
 		}
 		else if(info->filename)
 		{
-			fprintf(stderr," at line %"FKL_PRT64U" of file %s",line,info->filename);
+			fprintf(stderr,"at line %"FKL_PRT64U" of file %s",line,info->filename);
 			fputc('\n',stderr);
 		}
 		else
-			fprintf(stderr," at line %"FKL_PRT64U" of file ",line);
+			fprintf(stderr,"at line %"FKL_PRT64U" of file ",line);
 	}
 	if(obj)
 		fklDestroyNastNode(obj);

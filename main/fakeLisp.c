@@ -831,6 +831,11 @@ static inline void process_unresolve_work_func(FklVM* exe,struct ProcessUnresolv
 	}
 }
 
+static void process_update_const_array_cb(FklVM* exe,void* arg)
+{
+	fklVMgcUpdateConstArray(exe->gc,exe->gc->kt);
+}
+
 static void process_unresolve_ref_cb(FklVM* exe,void* arg)
 {
 	struct ProcessUnresolveRefArgStack* aarg=(struct ProcessUnresolveRefArgStack*)arg;
@@ -1318,6 +1323,8 @@ static int repl_frame_step(void* data,FklVM* exe)
 		}
 		else
 		{
+			if(is_need_update_const_array(&const_count,kt))
+				fklQueueWorkInIdleThread(exe,process_update_const_array_cb,NULL);
 			ctx->state=WAITING;
 			return 1;
 		}

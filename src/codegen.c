@@ -49,14 +49,6 @@ static inline int isExportDefunExp(const FklNastNode* c,FklNastNode* const* buil
 		||fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFUN_CONST],c,NULL);
 }
 
-static inline int isNonRetvalExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
-{
-	for(size_t i=FKL_CODEGEN_PATTERN_DEFMACRO;i<FKL_CODEGEN_PATTERN_NUM;i++)
-		if(fklPatternMatch(builtin_pattern_node[i],c,NULL))
-			return 1;
-	return 0;
-}
-
 static inline int isExportImportExp(FklNastNode* c,FklNastNode* const* builtin_pattern_node)
 {
 	return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_IMPORT_PREFIX],c,NULL)
@@ -1085,7 +1077,8 @@ static void codegen_funcall(FklNastNode* rest
 		,FklCodegenEnv* curEnv\
 		,FklCodegenInfo* codegen\
 		,FklCodegenOuterCtx* outer_ctx\
-		,FklCodegenErrorState* errorState
+		,FklCodegenErrorState* errorState\
+		,uint8_t must_has_retval
 
 #define CODEGEN_FUNC(NAME) void NAME(CODEGEN_ARGS)
 
@@ -3858,7 +3851,9 @@ static CODEGEN_FUNC(codegen_cond_compile)
 		fklPushPtrQueue(fklMakeNastNodeRef(value),q);
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
 				,createDefaultStackContext(fklCreatePtrStack(1,16))
-				,createDefaultQueueNextExpression(q)
+				,must_has_retval
+				?createMustHasRetvalQueueNextExpression(q)
+				:createDefaultQueueNextExpression(q)
 				,scope
 				,macroScope
 				,curEnv
@@ -3889,15 +3884,23 @@ static CODEGEN_FUNC(codegen_cond_compile)
 				fklPushPtrQueue(fklMakeNastNodeRef(value),q);
 				FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_default_bc_process
 						,createDefaultStackContext(fklCreatePtrStack(1,16))
-						,createDefaultQueueNextExpression(q)
+						,must_has_retval
+						?createMustHasRetvalQueueNextExpression(q)
+						:createDefaultQueueNextExpression(q)
 						,scope
 						,macroScope
 						,curEnv
 						,value->curline
 						,codegen
 						,codegenQuestStack);
-				break;
+				return;
 			}
+		}
+		if(must_has_retval)
+		{
+			errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+			errorState->place=fklMakeNastNodeRef(origExp);
+			return;
 		}
 	}
 }
@@ -5992,11 +5995,40 @@ static inline FklSid_t recompute_import_src_idx(FklByteCodelnt* bcl,FklCodegenEn
 	return ctx.id;
 }
 
+static inline FklByteCodelnt* export_sequnce_exp_bc_process(FklPtrStack* stack
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
+{
+	if(stack->top)
+	{
+		FklInstruction drop=create_op_ins(FKL_OP_DROP);
+		FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
+		size_t top=stack->top;
+		for(size_t i=0;i<top;i++)
+		{
+			FklByteCodelnt* cur=stack->base[i];
+			if(cur->bc->len)
+			{
+				fklCodeLntConcat(retval,cur);
+				if(i<top-1)
+					fklByteCodeLntPushBackIns(retval,&drop,fid,line,scope);
+			}
+			fklDestroyByteCodelnt(cur);
+		}
+		stack->top=0;
+		return retval;
+	}
+	return NULL;
+}
+
 BC_PROCESS(_export_import_bc_process)
 {
 	ExportContextData* d=context->data;
 	FklPtrStack* stack=d->stack;
-	FklByteCodelnt* bcl=sequnce_exp_bc_process(stack,fid,line,scope);
+	FklByteCodelnt* bcl=export_sequnce_exp_bc_process(stack,fid,line,scope);
+	if(bcl==NULL)
+		return NULL;
 	FklCodegenEnv* targetEnv=d->env;
 
 	FklHashTable* defs=&env->scopes[0].defs;
@@ -6089,29 +6121,93 @@ static inline FklCodegenInfo* get_lib_codegen(FklCodegenInfo* libCodegen)
 	return libCodegen;
 }
 
+typedef struct
+{
+	FklPtrStack* stack;
+	FklNastNode* origExp;
+	uint8_t must_has_retval;
+}ExportSequnceContextData;
+
 BC_PROCESS(exports_bc_process)
 {
-	FklPtrStack* stack=GET_STACK(context);
-	if(stack->top)
+	ExportSequnceContextData* data=context->data;
+	FklPtrStack* stack=data->stack;
+	FklByteCodelnt* bcl=export_sequnce_exp_bc_process(stack,fid,line,scope);
+	if(data->must_has_retval&&!bcl)
 	{
-		FklInstruction drop=create_op_ins(FKL_OP_DROP);
-		FklByteCodelnt* retval=fklCreateByteCodelnt(fklCreateByteCode(0));
-		size_t top=stack->top;
-		for(size_t i=0;i<top;i++)
-		{
-			FklByteCodelnt* cur=stack->base[i];
-			if(cur->bc->len)
-			{
-				fklCodeLntConcat(retval,cur);
-				if(i<top-1)
-					fklByteCodeLntPushBackIns(retval,&drop,fid,line,scope);
-			}
-			fklDestroyByteCodelnt(cur);
-		}
-		stack->top=0;
-		return retval;
+		errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+		errorState->place=fklMakeNastNodeRef(data->origExp);
 	}
-	return NULL;
+	return bcl;
+}
+
+static CODEGEN_FUNC(codegen_export_none)
+{
+	if(must_has_retval)
+	{
+		errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+	FklCodegenInfo* libCodegen=get_lib_codegen(codegen);
+
+	if(libCodegen&&scope==1&&curEnv->prev==codegen->global_env&&macroScope->prev==codegen->global_env->macros)
+	{
+		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_empty_bc_process
+				,createEmptyContext()
+				,NULL
+				,scope
+				,macroScope
+				,curEnv
+				,origExp->curline
+				,codegen
+				,codegenQuestStack);
+	}
+	else
+	{
+		errorState->type=FKL_ERR_SYNTAXERROR;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
+}
+
+static void export_sequnce_context_data_finalizer(void* data)
+{
+	ExportSequnceContextData* d=(ExportSequnceContextData*)data;
+	while(!fklIsPtrStackEmpty(d->stack))
+		fklDestroyByteCodelnt(fklPopPtrStack(d->stack));
+	fklDestroyPtrStack(d->stack);
+	fklDestroyNastNode(d->origExp);
+	free(d);
+}
+
+static FklPtrStack* export_sequnce_context_data_get_bcl_stack(void* data)
+{
+	return ((ExportSequnceContextData*)data)->stack;
+}
+
+static void export_sequnce_context_data_put_bcl(void* data,FklByteCodelnt* bcl)
+{
+	ExportSequnceContextData* d=(ExportSequnceContextData*)data;
+	fklPushPtrStack(bcl,d->stack);
+}
+
+static const FklCodegenQuestContextMethodTable ExportSequnceContextMethodTable=
+{
+	.__finalizer=export_sequnce_context_data_finalizer,
+	.__get_bcl_stack=export_sequnce_context_data_get_bcl_stack,
+	.__put_bcl=export_sequnce_context_data_put_bcl,
+};
+
+static FklCodegenQuestContext* create_export_sequnce_context(FklNastNode* origExp,FklPtrStack* s,uint8_t must_has_retval)
+{
+	ExportSequnceContextData* data=(ExportSequnceContextData*)malloc(sizeof(ExportSequnceContextData));
+	FKL_ASSERT(data);
+
+	data->stack=s;
+	data->must_has_retval=must_has_retval;
+	data->origExp=origExp;
+	return createCodegenQuestContext(data,&ExportSequnceContextMethodTable);
 }
 
 static CODEGEN_FUNC(codegen_export)
@@ -6121,6 +6217,7 @@ static CODEGEN_FUNC(codegen_export)
 	if(libCodegen&&scope==1&&curEnv->prev==codegen->global_env&&macroScope->prev==codegen->global_env->macros)
 	{
 		FklPtrQueue* exportQueue=fklCreatePtrQueue();
+		FklNastNode* orig_exp=fklCopyNastNode(origExp);
 		FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
 		add_export_symbol(libCodegen
 				,origExp
@@ -6128,7 +6225,7 @@ static CODEGEN_FUNC(codegen_export)
 				,exportQueue);
 
 		FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(exports_bc_process
-				,createDefaultStackContext(fklCreatePtrStack(2,1))
+				,create_export_sequnce_context(orig_exp,fklCreatePtrStack(2,1),must_has_retval)
 				,createDefaultQueueNextExpression(exportQueue)
 				,scope
 				,macroScope
@@ -6238,8 +6335,9 @@ static CODEGEN_FUNC(codegen_export_single)
 		*(value->pair->car)=*(origExp->pair->car);
 		value->pair->car->refcount=refcount;
 		value->pair->car->curline=line;
+		FklNastNode* orig_exp=fklCopyNastNode(origExp);
 		fklPushPtrStack(fklCreateCodegenQuest(exports_bc_process
-					,createDefaultStackContext(fklCreatePtrStack(2,16))
+					,create_export_sequnce_context(orig_exp,fklCreatePtrStack(2,16),must_has_retval)
 					,createDefaultQueueNextExpression(queue)
 					,1
 					,macroScope
@@ -6282,6 +6380,9 @@ process_def_in_lib:
 	}
 	else if(isExportDefmacroExp(value,builtin_pattern_node))
 	{
+		if(must_has_retval)
+			goto must_has_retval_error;
+
 		FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 
 		fklPushPtrStack(fklCreateCodegenQuest(_export_macro_bc_process
@@ -6297,6 +6398,9 @@ process_def_in_lib:
 	}
 	else if(isExportDefReaderMacroExp(value,builtin_pattern_node))
 	{
+		if(must_has_retval)
+			goto must_has_retval_error;
+
 		FklSid_t group_id=get_reader_macro_group_id(value);
 		if(!group_id)
 			goto error;
@@ -6315,6 +6419,17 @@ process_def_in_lib:
 	}
 	else if(isExportImportExp(value,builtin_pattern_node))
 	{
+
+		if(fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_IMPORT_NONE],value,NULL)
+				&&must_has_retval)
+		{
+must_has_retval_error:
+			fklDestroyNastNode(value);
+			fklDestroyPtrQueue(queue);
+			errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+			errorState->place=fklMakeNastNodeRef(origExp);
+			return;
+		}
 
 		FklCodegenEnv* exportEnv=fklCreateCodegenEnv(NULL,0,macroScope);
 		FklCodegenMacroScope* cms=exportEnv->macros;
@@ -7096,6 +7211,12 @@ static CODEGEN_FUNC(codegen_import)
 
 static CODEGEN_FUNC(codegen_import_none)
 {
+	if(must_has_retval)
+	{
+		errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	fklPushPtrStack(fklCreateCodegenQuest(_empty_bc_process
 				,createEmptyContext()
 				,NULL
@@ -9489,6 +9610,12 @@ BC_PROCESS(update_grammer)
 
 static CODEGEN_FUNC(codegen_defmacro)
 {
+	if(must_has_retval)
+	{
+		errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	FklNastNode* name=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name,ht);
 	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
@@ -9591,6 +9718,12 @@ reader_macro_error:
 
 static CODEGEN_FUNC(codegen_def_reader_macros)
 {
+	if(must_has_retval)
+	{
+		errorState->type=FKL_ERR_EXP_HAS_NO_VALUE;
+		errorState->place=fklMakeNastNodeRef(origExp);
+		return;
+	}
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	FklPtrQueue prod_vector_queue;
 	fklInitPtrQueue(&prod_vector_queue);
@@ -9747,7 +9880,7 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegenInfo* info)
 	return retval;
 }
 
-static int matchAndCall(FklCodegenFunc func
+static inline int matchAndCall(FklCodegenFunc func
 		,const FklNastNode* pattern
 		,uint32_t scope
 		,FklCodegenMacroScope* macroScope
@@ -9755,7 +9888,8 @@ static int matchAndCall(FklCodegenFunc func
 		,FklPtrStack* codegenQuestStack
 		,FklCodegenEnv* env
 		,FklCodegenInfo* codegenr
-		,FklCodegenErrorState* errorState)
+		,FklCodegenErrorState* errorState
+		,uint8_t must_has_retval)
 {
 	FklHashTable* ht=fklCreatePatternMatchingHashTable();
 	int r=fklPatternMatch(pattern,exp,ht);
@@ -9770,7 +9904,8 @@ static int matchAndCall(FklCodegenFunc func
 				,env
 				,codegenr
 				,codegenr->outer_ctx
-				,errorState);
+				,errorState
+				,must_has_retval);
 		fklChdir(codegenr->outer_ctx->cwd);
 	}
 	fklDestroyHashTable(ht);
@@ -9834,6 +9969,7 @@ static struct PatternAndFunc
 	{"~(defmacro ~name ~value)",                               codegen_defmacro,          },
 	{"~(import)",                                              codegen_import_none,       },
 	{"~(export ~value)",                                       codegen_export_single,     },
+	{"~(export)",                                              codegen_export_none,       },
 	{"~(export,~rest)",                                        codegen_export,            },
 	{"~(defmacro ~arg0 ~arg1,~rest)",                          codegen_def_reader_macros, },
 	{"~(cfg ~cond ~value,~rest)",                              codegen_cond_compile,      },
@@ -9935,7 +10071,8 @@ static inline int mapAllBuiltInPattern(FklNastNode* curExp
 		,FklCodegenMacroScope* macroScope
 		,FklCodegenEnv* curEnv
 		,FklCodegenInfo* codegenr
-		,FklCodegenErrorState* errorState)
+		,FklCodegenErrorState* errorState
+		,uint8_t must_has_retval)
 {
 	FklNastNode* const* builtin_pattern_node=codegenr->outer_ctx->builtin_pattern_node;
 
@@ -9947,7 +10084,8 @@ static inline int mapAllBuiltInPattern(FklNastNode* curExp
 						,macroScope
 						,curExp
 						,codegenQuestStack
-						,curEnv,codegenr,errorState))
+						,curEnv,codegenr,errorState
+						,must_has_retval))
 				return 0;
 
 	if(curExp->type==FKL_NAST_PAIR)
@@ -10024,15 +10162,6 @@ skip:
 						fklDestroyNastNode(orig_cur_exp);
 						break;
 					}
-					if(must_has_retval
-							&&isNonRetvalExp(curExp
-								,curCodegen->outer_ctx->builtin_pattern_node))
-					{
-						fklDestroyNastNode(curExp);
-						errorState.type=FKL_ERR_SYNTAXERROR;
-						errorState.place=orig_cur_exp;
-						break;
-					}
 					if(must_has_retval==FIRST_MUST_HAS_RETVAL)
 					{
 						must_has_retval=DO_NOT_NEED_RETVAL;
@@ -10081,7 +10210,8 @@ skip:
 						,curCodegenQuest->macroScope
 						,curEnv
 						,curCodegen
-						,&errorState);
+						,&errorState
+						,must_has_retval);
 				if(r)
 				{
 					curContext->t->__put_bcl(curContext->data

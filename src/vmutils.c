@@ -2387,6 +2387,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 		"value-error",
 		"symbol-error",
 		"symbol-error",
+		"syntax-error",
 	};
 
 	for(size_t i=0;i<FKL_BUILTIN_ERR_NUM;i++)

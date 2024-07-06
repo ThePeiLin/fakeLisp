@@ -126,3 +126,10 @@
 (println (cfg (match version ~#(514 ~* ~*))))
 
 (println (cfg (match manifest ~#hash((foo,~*) (bar,~*)))))
+
+(define sys-info
+  (cfg
+    (eq *platform* "linux") "linux"
+    1 "other"))
+
+(printf "the system is %s\n" sys-info)

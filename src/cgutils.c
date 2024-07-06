@@ -78,6 +78,7 @@ void fklPrintCodegenError(FklNastNode* obj
 		"value-error",
 		"symbol-error",
 		"symbol-error",
+		"syntax-error",
 	};;
 
 	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
@@ -94,6 +95,11 @@ void fklPrintCodegenError(FklNastNode* obj
 		case FKL_ERR_SYNTAXERROR:
 			fputs("Invalid syntax ",stderr);
 			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
+			break;
+		case FKL_ERR_EXP_HAS_NO_VALUE:
+			fputs("Expression ",stderr);
+			if(obj!=NULL)fklPrintNastNode(obj,stderr,publicSymbolTable);
+			fputs(" has no value",stderr);
 			break;
 		case FKL_ERR_INVALIDEXPR:
 			fputs("Invalid expression",stderr);

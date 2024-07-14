@@ -798,11 +798,6 @@ static inline void uninit_bvec_value(FklVMvalue* v)
 	free(FKL_VM_BVEC(v));
 }
 
-static inline void uninit_vector_value(FklVMvalue* v)
-{
-	free(FKL_VM_VEC(v)->base);
-}
-
 static inline void uninit_ud_value(FklVMvalue* v)
 {
 	fklFinalizeVMud(FKL_VM_UD(v));
@@ -858,7 +853,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_nothing_value,  //f64
 		uninit_big_int_value,  //big-int
 		uninit_string_value,   //string
-		uninit_vector_value,   //vector
+		uninit_nothing_value,   //vector
 		uninit_nothing_value,  //pair
 		uninit_nothing_value,  //box
 		uninit_bvec_value,     //bvec
@@ -1409,13 +1404,10 @@ FklVMvalue* fklCreateVMvaluePairNil(FklVM* exe)
 
 FklVMvalue* fklCreateVMvalueVec(FklVM* exe,size_t size)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueVec)+size*sizeof(FklVMvalue*));
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_VECTOR;
 	FklVMvec* v=FKL_VM_VEC(r);
-	FklVMvalue** base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
-	FKL_ASSERT(base);
-	v->base=base;
 	v->size=size;
 	fklAddToGC(r,exe);
 	return r;
@@ -1423,15 +1415,12 @@ FklVMvalue* fklCreateVMvalueVec(FklVM* exe,size_t size)
 
 FklVMvalue* fklCreateVMvalueVecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	size_t ss=size*sizeof(FklVMvalue*);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueVec)+ss);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_VECTOR;
 	FklVMvec* v=FKL_VM_VEC(r);
-	size_t ss=size*sizeof(FklVMvalue*);
-	FklVMvalue** base=(FklVMvalue**)malloc(ss);
-	FKL_ASSERT(base);
-	memcpy(base,ptr,ss);
-	v->base=base;
+	memcpy(v->base,ptr,ss);
 	v->size=size;
 	fklAddToGC(r,exe);
 	return r;
@@ -1442,17 +1431,13 @@ FklVMvalue* fklCreateVMvalueVec3(FklVM* exe
 		,FklVMvalue* b
 		,FklVMvalue* c)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueVec)+3*sizeof(FklVMvalue*));
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_VECTOR;
 	FklVMvec* v=FKL_VM_VEC(r);
-	size_t ss=3*sizeof(FklVMvalue*);
-	FklVMvalue** base=(FklVMvalue**)malloc(ss);
-	FKL_ASSERT(base);
-	base[0]=a;
-	base[1]=b;
-	base[2]=c;
-	v->base=base;
+	v->base[0]=a;
+	v->base[1]=b;
+	v->base[2]=c;
 	v->size=3;
 	fklAddToGC(r,exe);
 	return r;
@@ -1464,18 +1449,14 @@ FklVMvalue* fklCreateVMvalueVec4(FklVM* exe
 		,FklVMvalue* c
 		,FklVMvalue* d)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueVec)+4*sizeof(FklVMvalue*));
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_VECTOR;
 	FklVMvec* v=FKL_VM_VEC(r);
-	size_t ss=4*sizeof(FklVMvalue*);
-	FklVMvalue** base=(FklVMvalue**)malloc(ss);
-	FKL_ASSERT(base);
-	base[0]=a;
-	base[1]=b;
-	base[2]=c;
-	base[3]=d;
-	v->base=base;
+	v->base[0]=a;
+	v->base[1]=b;
+	v->base[2]=c;
+	v->base[3]=d;
 	v->size=4;
 	fklAddToGC(r,exe);
 	return r;
@@ -1488,19 +1469,15 @@ FklVMvalue* fklCreateVMvalueVec5(FklVM* exe
 		,FklVMvalue* d
 		,FklVMvalue* f)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueVec)+5*sizeof(FklVMvalue*));
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_VECTOR;
 	FklVMvec* v=FKL_VM_VEC(r);
-	size_t ss=5*sizeof(FklVMvalue*);
-	FklVMvalue** base=(FklVMvalue**)malloc(ss);
-	FKL_ASSERT(base);
-	base[0]=a;
-	base[1]=b;
-	base[2]=c;
-	base[3]=d;
-	base[4]=f;
-	v->base=base;
+	v->base[0]=a;
+	v->base[1]=b;
+	v->base[2]=c;
+	v->base[3]=d;
+	v->base[4]=f;
 	v->size=5;
 	fklAddToGC(r,exe);
 	return r;
@@ -1514,20 +1491,16 @@ FklVMvalue* fklCreateVMvalueVec6(FklVM* exe
 		,FklVMvalue* f
 		,FklVMvalue* e)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueVec);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueVec)+6*sizeof(FklVMvalue*));
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_VECTOR;
 	FklVMvec* v=FKL_VM_VEC(r);
-	size_t ss=6*sizeof(FklVMvalue*);
-	FklVMvalue** base=(FklVMvalue**)malloc(ss);
-	FKL_ASSERT(base);
-	base[0]=a;
-	base[1]=b;
-	base[2]=c;
-	base[3]=d;
-	base[4]=f;
-	base[5]=e;
-	v->base=base;
+	v->base[0]=a;
+	v->base[1]=b;
+	v->base[2]=c;
+	v->base[3]=d;
+	v->base[4]=f;
+	v->base[5]=e;
 	v->size=6;
 	fklAddToGC(r,exe);
 	return r;
@@ -2000,18 +1973,6 @@ void fklAtomicVMuserdata(FklVMvalue* root,FklVMgc* gc)
 		ud->t->__atomic(ud,gc);
 }
 
-void fklVMvecConcat(FklVMvec* fir,const FklVMvec* sec)
-{
-	size_t firSize=fir->size;
-	size_t secSize=sec->size;
-	FklVMvalue** nbase=(FklVMvalue**)fklRealloc(fir->base,(firSize+secSize)*sizeof(FklVMvalue*));
-	FKL_ASSERT(nbase);
-	fir->base=nbase;
-	fir->size=firSize+secSize;
-	for(size_t i=0;i<secSize;i++)
-		nbase[firSize+i]=sec->base[i];
-}
-
 int fklIsCallableUd(const FklVMud* ud)
 {
 	return ud->t->__call!=NULL;
@@ -2031,7 +1992,6 @@ int fklIsAppendable(FklVMvalue* v)
 {
 	return FKL_IS_STR(v)
 		||FKL_IS_BYTEVECTOR(v)
-		||FKL_IS_VECTOR(v)
 		||(FKL_IS_USERDATA(v)&&is_appendable_userdata(FKL_VM_UD(v)));
 }
 
@@ -2058,17 +2018,6 @@ int fklIsAbleAsPrincUd(const FklVMud* u)
 int fklUdHasLength(const FklVMud* u)
 {
 	return u->t->__length!=NULL;
-}
-
-int fklAppendVMud(FklVMud* a,const FklVMud* b)
-{
-	void (*append)(FklVMud*,const FklVMud*)=a->t->__append;
-	if(append)
-	{
-		append(a,b);
-		return 0;
-	}
-	return 1;
 }
 
 int fklCmpVMud(const FklVMud* a,const FklVMvalue* b,int* r)

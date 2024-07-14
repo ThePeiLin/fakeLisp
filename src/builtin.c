@@ -103,14 +103,6 @@ static int __fkl_str_append(FklVMvalue* retval,FklVMvalue* cur)
 	return 0;
 }
 
-static int __fkl_vector_append(FklVMvalue* retval,FklVMvalue* cur)
-{
-	if(!FKL_IS_VECTOR(cur))
-		return 1;
-	fklVMvecConcat(FKL_VM_VEC(retval),FKL_VM_VEC(cur));
-	return 0;
-}
-
 static int __fkl_bytevector_append(FklVMvalue* retval,FklVMvalue* cur)
 {
 	if(!FKL_IS_BYTEVECTOR(cur))
@@ -119,11 +111,22 @@ static int __fkl_bytevector_append(FklVMvalue* retval,FklVMvalue* cur)
 	return 0;
 }
 
+static inline int __fkl_ud_append(FklVMud* a,const FklVMud* b)
+{
+	void (*append)(FklVMud*,const FklVMud*)=a->t->__append;
+	if(append)
+	{
+		append(a,b);
+		return 0;
+	}
+	return 1;
+}
+
 static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 {
 	if(!FKL_IS_USERDATA(cur)||FKL_VM_UD(retval)->t!=FKL_VM_UD(cur)->t)
 		return 1;
-	return fklAppendVMud(FKL_VM_UD(retval),FKL_VM_UD(cur));
+	return __fkl_ud_append(FKL_VM_UD(retval),FKL_VM_UD(cur));
 }
 
 static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,FklVMvalue* cur)=
@@ -131,7 +134,7 @@ static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,Fkl
 	NULL,
 	NULL,
 	__fkl_str_append,
-	__fkl_vector_append,
+	NULL,
 	NULL,
 	NULL,
 	__fkl_bytevector_append,
@@ -194,6 +197,33 @@ static int builtin_append(FKL_CPROC_ARGL)
 			if(valueAppend[retval->type](retval,cur))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
+	}
+	else if(FKL_IS_VECTOR(cur))
+	{
+		size_t size=FKL_VM_VEC(cur)->size;
+		uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
+		FklVMvalue** arg_base=&FKL_VM_GET_VALUE(exe,arg_num);
+		uint32_t i=0;
+		for(;i<arg_num;i++)
+		{
+			FklVMvalue* v=arg_base[i];
+			if(!FKL_IS_VECTOR(v))
+				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			else
+				size+=FKL_VM_VEC(v)->size;
+		}
+		retval=fklCreateVMvalueVec(exe,size);
+		FklVMvalue** base=FKL_VM_VEC(retval)->base;
+		memcpy(base,FKL_VM_VEC(cur)->base,FKL_VM_VEC(cur)->size*sizeof(FklVMvalue*));
+		base+=FKL_VM_VEC(cur)->size;
+		for(;i>0;i--)
+		{
+			FklVMvalue* v=arg_base[i-1];
+			size_t size=FKL_VM_VEC(v)->size;
+			memcpy(base,FKL_VM_VEC(v)->base,size*sizeof(FklVMvalue*));
+			base+=size;
+		}
+		exe->tp-=arg_num;
 	}
 	else
 	{
@@ -3179,7 +3209,7 @@ static int builtin_go(FKL_CPROC_ARGL)
 	if(arg_num)
 	{
 		FklVMvalue** base=&FKL_VM_GET_VALUE(exe,arg_num);
-		for(size_t i=0;i<arg_num;i++)
+		for(uint32_t i=0;i<arg_num;i++)
 			FKL_VM_PUSH_VALUE(threadVM,base[i]);
 		exe->tp-=arg_num;
 	}

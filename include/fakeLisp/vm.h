@@ -125,7 +125,7 @@ typedef struct
 typedef struct
 {
 	size_t size;
-	struct FklVMvalue** base;
+	struct FklVMvalue* base[];
 }FklVMvec;
 
 #define FKL_VM_UD_COMMON_HEADER struct FklVMvalue* rel;\
@@ -1170,8 +1170,6 @@ void fklChanlSend(FklVMchanl*,FklVMvalue* msg,FklVM*);
 void fklChanlRecv(FklVMchanl*,FklVMvalue**,FklVM*);
 int fklChanlRecvOk(FklVMchanl*,FklVMvalue**);
 
-void fklVMvecConcat(FklVMvec*,const FklVMvec*);
-
 #define FKL_GET_UD_DATA(TYPE,UD) ((TYPE*)(UD)->data)
 #define FKL_DECL_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,UD)
 #define FKL_DECL_VM_UD_DATA(NAME,TYPE,UD) TYPE* NAME=FKL_GET_UD_DATA(TYPE,FKL_VM_UD(UD))
@@ -1189,7 +1187,6 @@ void fklCallVMud(const FklVMud*,const FklVMud*);
 int fklCmpVMud(const FklVMud*,const FklVMvalue*,int*);
 void fklWriteVMud(const FklVMud*,FILE* fp);
 size_t fklLengthVMud(const FklVMud*);
-int fklAppendVMud(FklVMud*,const FklVMud*);
 int fklCopyVMud(const FklVMud*,FklVMud* dst);
 size_t fklHashvVMud(const FklVMud*);
 void fklUdToString(const FklVMud*,FklStringBuffer*,FklVMgc*);

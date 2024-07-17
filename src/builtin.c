@@ -213,7 +213,7 @@ static int builtin_append(FKL_CPROC_ARGL)
 				size+=FKL_VM_VEC(v)->size;
 		}
 		retval=fklCreateVMvalueVec(exe,size);
-		FklVMvalue** base=FKL_VM_VEC(retval)->base;
+		FklVMvalue** base=(FklVMvalue**)FKL_VM_VEC(retval)->base;
 		memcpy(base,FKL_VM_VEC(cur)->base,FKL_VM_VEC(cur)->size*sizeof(FklVMvalue*));
 		base+=FKL_VM_VEC(cur)->size;
 		for(;i>0;i--)
@@ -1621,15 +1621,11 @@ static int builtin_vec_cas(FKL_CPROC_ARGL)
 	if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	size_t index=fklGetUint(place);
-	FklVMvec* v=FKL_VM_VEC(vec);
-	size_t size=v->size;
+	size_t size=FKL_VM_VEC(vec)->size;
 	if(fklIsVMnumberLt0(place)||index>=size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-	if(v->base[index]==old)
-	{
-		v->base[index]=new;
+	if(FKL_VM_VEC_CAS(vec,index,&old,new))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
-	}
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
@@ -4491,11 +4487,8 @@ static int builtin_box_cas(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG3(box,old,new,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(box,FKL_IS_BOX,exe);
-	if(FKL_VM_BOX(box)==old)
-	{
-		FKL_VM_BOX(box)=new;
+	if(FKL_VM_BOX_CAS(box,&old,new))
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
-	}
 	else
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;

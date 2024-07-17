@@ -1019,6 +1019,8 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_VEC(V) (&(((FklVMvalueVec*)(V))->vec))
 
+#define FKL_VM_VEC_CAS(V,I,O,N) (atomic_compare_exchange_strong(((atomic_uintptr_t*)&(((FklVMvalueVec*)(V))->vec.base[(I)])),(uintptr_t*)(O),(uintptr_t)(N)))
+
 #define FKL_VM_F64(V) (((FklVMvalueF64*)(V))->f64)
 
 #define FKL_VM_PROC(V) (&(((FklVMvalueProc*)(V))->proc))
@@ -1040,6 +1042,8 @@ int fklIsVMeofUd(FklVMvalue* v);
 #define FKL_VM_UD(V) (&(((FklVMvalueUd*)(V))->ud))
 
 #define FKL_VM_BOX(V) (((FklVMvalueBox*)(V))->box)
+
+#define FKL_VM_BOX_CAS(V,O,N) (atomic_compare_exchange_strong(((atomic_uintptr_t*)&(((FklVMvalueBox*)(V))->box)),(uintptr_t*)(O),(uintptr_t)(N)))
 
 #define FKL_VM_CO(V) (&(((FklVMvalueCodeObj*)(V))->bcl))
 

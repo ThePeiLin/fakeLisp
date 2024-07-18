@@ -679,6 +679,14 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 				for(;base<end;base++)
 					dec_value_degree(ht,*base);
 			}
+			else if(FKL_IS_DVECTOR(v))
+			{
+				FklVMdvec* vec=FKL_VM_DVEC(v);
+				FklVMvalue** base=vec->base;
+				FklVMvalue** const end=&base[vec->size];
+				for(;base<end;base++)
+					dec_value_degree(ht,*base);
+			}
 			else if(FKL_IS_BOX(v))
 				dec_value_degree(ht,FKL_VM_BOX(v));
 			else if(FKL_IS_HASHTABLE(v))

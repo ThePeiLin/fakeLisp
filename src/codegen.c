@@ -3987,7 +3987,46 @@ BC_PROCESS(_qsquote_vec_bc_process)
 	return retval;
 }
 
+BC_PROCESS(_qsquote_dvec_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* retval=stack->base[0];
+	for(size_t i=1;i<stack->top;i++)
+	{
+		FklByteCodelnt* cur=stack->base[i];
+		fklCodeLntConcat(retval,cur);
+		fklDestroyByteCodelnt(cur);
+	}
+	stack->top=0;
+	FklInstruction pushVec=create_op_ins(FKL_OP_PUSH_DVEC_0);
+	FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
+	fklByteCodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
+	fklByteCodeLntPushBackIns(retval,&pushVec,fid,line,scope);
+	return retval;
+}
+
 BC_PROCESS(_unqtesp_vec_bc_process)
+{
+	FklPtrStack* stack=GET_STACK(context);
+	FklByteCodelnt* retval=fklPopPtrStack(stack);
+	FklByteCodelnt* other=fklPopPtrStack(stack);
+	if(other)
+	{
+		while(!fklIsPtrStackEmpty(stack))
+		{
+			FklByteCodelnt* cur=fklPopPtrStack(stack);
+			fklCodeLntConcat(other,cur);
+			fklDestroyByteCodelnt(cur);
+		}
+		fklCodeLntReverseConcat(other,retval);
+		fklDestroyByteCodelnt(other);
+	}
+	FklInstruction listPush=create_op_ins(FKL_OP_LIST_PUSH);
+	fklByteCodeLntPushBackIns(retval,&listPush,fid,line,scope);
+	return retval;
+}
+
+BC_PROCESS(_unqtesp_dvec_bc_process)
 {
 	FklPtrStack* stack=GET_STACK(context);
 	FklByteCodelnt* retval=fklPopPtrStack(stack);
@@ -4047,6 +4086,7 @@ typedef enum
 	QSQUOTE_NONE=0,
 	QSQUOTE_UNQTESP_CAR,
 	QSQUOTE_UNQTESP_VEC,
+	QSQUOTE_UNQTESP_DVEC,
 }QsquoteHelperEnum;
 
 typedef struct
@@ -4080,54 +4120,41 @@ static CODEGEN_FUNC(codegen_qsquote)
 		FklCodegenQuest* prevQuest=curNode->prev;
 		FklNastNode* curValue=curNode->node;
 		free(curNode);
-		if(e==QSQUOTE_UNQTESP_CAR)
-			unquoteHelperFunc(curValue
-					,codegenQuestStack
-					,scope
-					,macroScope
-					,curEnv
-					,_default_bc_process
-					,prevQuest,codegen);
-		else if(e==QSQUOTE_UNQTESP_VEC)
-			unquoteHelperFunc(curValue
-					,codegenQuestStack
-					,scope
-					,macroScope
-					,curEnv
-					,_unqtesp_vec_bc_process
-					,prevQuest
-					,codegen);
-		else
+		switch(e)
 		{
-			FklHashTable* unquoteHt=fklCreatePatternMatchingHashTable();
-			if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQUOTE],curValue,unquoteHt))
-			{
-				FklNastNode* unquoteValue=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt);
-				unquoteHelperFunc(unquoteValue
+			case QSQUOTE_UNQTESP_CAR:
+				unquoteHelperFunc(curValue
 						,codegenQuestStack
 						,scope
 						,macroScope
 						,curEnv
 						,_default_bc_process
-						,prevQuest
-						,codegen);
-			}
-			else if(curValue->type==FKL_NAST_PAIR)
-			{
-				FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_pair_bc_process
-						,createDefaultStackContext(fklCreatePtrStack(2,1))
-						,NULL
+						,prevQuest,codegen);
+				break;
+			case QSQUOTE_UNQTESP_VEC:
+				unquoteHelperFunc(curValue
+						,codegenQuestStack
 						,scope
 						,macroScope
 						,curEnv
-						,curValue->curline
+						,_unqtesp_vec_bc_process
 						,prevQuest
 						,codegen);
-				fklPushPtrStack(curQuest,codegenQuestStack);
-				FklNastNode* node=curValue;
-				for(;;)
+				break;
+			case QSQUOTE_UNQTESP_DVEC:
+				unquoteHelperFunc(curValue
+						,codegenQuestStack
+						,scope
+						,macroScope
+						,curEnv
+						,_unqtesp_dvec_bc_process
+						,prevQuest
+						,codegen);
+				break;
+			case QSQUOTE_NONE:
 				{
-					if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQUOTE],node,unquoteHt))
+					FklHashTable* unquoteHt=fklCreatePatternMatchingHashTable();
+					if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQUOTE],curValue,unquoteHt))
 					{
 						FklNastNode* unquoteValue=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt);
 						unquoteHelperFunc(unquoteValue
@@ -4136,90 +4163,143 @@ static CODEGEN_FUNC(codegen_qsquote)
 								,macroScope
 								,curEnv
 								,_default_bc_process
-								,curQuest
+								,prevQuest
 								,codegen);
-						break;
 					}
-					FklNastNode* cur=node->pair->car;
-					if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],cur,unquoteHt))
+					else if(curValue->type==FKL_NAST_PAIR)
 					{
-						FklNastNode* unqtespValue=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt);
-						if(node->pair->cdr->type!=FKL_NAST_NIL)
+						FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_pair_bc_process
+								,createDefaultStackContext(fklCreatePtrStack(2,1))
+								,NULL
+								,scope
+								,macroScope
+								,curEnv
+								,curValue->curline
+								,prevQuest
+								,codegen);
+						fklPushPtrStack(curQuest,codegenQuestStack);
+						FklNastNode* node=curValue;
+						for(;;)
 						{
-							FklCodegenQuest* appendQuest=fklCreateCodegenQuest(_qsquote_list_bc_process
-									,createDefaultStackContext(fklCreatePtrStack(2,1))
-									,NULL
-									,scope
-									,macroScope
-									,curEnv
-									,curValue->curline
-									,curQuest
-									,codegen);
-							fklPushPtrStack(appendQuest,codegenQuestStack);
-							fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,appendQuest),&valueStack);
-							fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,node->pair->cdr,appendQuest),&valueStack);
+							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQUOTE],node,unquoteHt))
+							{
+								FklNastNode* unquoteValue=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt);
+								unquoteHelperFunc(unquoteValue
+										,codegenQuestStack
+										,scope
+										,macroScope
+										,curEnv
+										,_default_bc_process
+										,curQuest
+										,codegen);
+								break;
+							}
+							FklNastNode* cur=node->pair->car;
+							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],cur,unquoteHt))
+							{
+								FklNastNode* unqtespValue=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt);
+								if(node->pair->cdr->type!=FKL_NAST_NIL)
+								{
+									FklCodegenQuest* appendQuest=fklCreateCodegenQuest(_qsquote_list_bc_process
+											,createDefaultStackContext(fklCreatePtrStack(2,1))
+											,NULL
+											,scope
+											,macroScope
+											,curEnv
+											,curValue->curline
+											,curQuest
+											,codegen);
+									fklPushPtrStack(appendQuest,codegenQuestStack);
+									fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,appendQuest),&valueStack);
+									fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,node->pair->cdr,appendQuest),&valueStack);
+								}
+								else
+									fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,curQuest),&valueStack);
+								break;
+							}
+							else
+								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,cur,curQuest),&valueStack);
+							node=node->pair->cdr;
+							if(node->type!=FKL_NAST_PAIR)
+							{
+								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,node,curQuest),&valueStack);
+								break;
+							}
 						}
-						else
-							fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,curQuest),&valueStack);
-						break;
 					}
-					else
-						fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,cur,curQuest),&valueStack);
-					node=node->pair->cdr;
-					if(node->type!=FKL_NAST_PAIR)
+					else if(curValue->type==FKL_NAST_VECTOR)
 					{
-						fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,node,curQuest),&valueStack);
-						break;
+						size_t vecSize=curValue->vec->size;
+						FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_vec_bc_process
+								,createDefaultStackContext(fklCreatePtrStack(vecSize,16))
+								,NULL
+								,scope
+								,macroScope
+								,curEnv
+								,curValue->curline
+								,prevQuest
+								,codegen);
+						fklPushPtrStack(curQuest,codegenQuestStack);
+						for(size_t i=0;i<vecSize;i++)
+						{
+							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
+								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_VEC
+											,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
+											,curQuest)
+										,&valueStack);
+							else
+								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
+						}
 					}
-				}
-			}
-			else if(curValue->type==FKL_NAST_VECTOR)
-			{
-				size_t vecSize=curValue->vec->size;
-				FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_vec_bc_process
-						,createDefaultStackContext(fklCreatePtrStack(vecSize,16))
-						,NULL
-						,scope
-						,macroScope
-						,curEnv
-						,curValue->curline
-						,prevQuest
-						,codegen);
-				fklPushPtrStack(curQuest,codegenQuestStack);
-				for(size_t i=0;i<vecSize;i++)
-				{
-					if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
-						fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_VEC
-									,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
-									,curQuest)
-								,&valueStack);
+					else if(curValue->type==FKL_NAST_DVECTOR)
+					{
+						size_t vecSize=curValue->vec->size;
+						FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_dvec_bc_process
+								,createDefaultStackContext(fklCreatePtrStack(vecSize,16))
+								,NULL
+								,scope
+								,macroScope
+								,curEnv
+								,curValue->curline
+								,prevQuest
+								,codegen);
+						fklPushPtrStack(curQuest,codegenQuestStack);
+						for(size_t i=0;i<vecSize;i++)
+						{
+							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
+								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_DVEC
+											,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
+											,curQuest)
+										,&valueStack);
+							else
+								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
+						}
+					}
+					else if(curValue->type==FKL_NAST_BOX)
+					{
+						FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_box_bc_process
+								,createDefaultStackContext(fklCreatePtrStack(1,1))
+								,NULL
+								,scope
+								,macroScope
+								,curEnv
+								,curValue->curline
+								,prevQuest
+								,codegen);
+						fklPushPtrStack(curQuest,codegenQuestStack);
+						fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->box,curQuest),&valueStack);
+					}
 					else
-						fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
+						push_default_codegen_quest(curValue
+								,codegenQuestStack
+								,scope
+								,macroScope
+								,curEnv
+								,prevQuest
+								,codegen);
+					fklDestroyHashTable(unquoteHt);
 				}
-			}
-			else if(curValue->type==FKL_NAST_BOX)
-			{
-				FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_box_bc_process
-						,createDefaultStackContext(fklCreatePtrStack(1,1))
-						,NULL
-						,scope
-						,macroScope
-						,curEnv
-						,curValue->curline
-						,prevQuest
-						,codegen);
-				fklPushPtrStack(curQuest,codegenQuestStack);
-				fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->box,curQuest),&valueStack);
-			}
-			else
-				push_default_codegen_quest(curValue
-						,codegenQuestStack
-						,scope
-						,macroScope
-						,curEnv
-						,prevQuest
-						,codegen);
-			fklDestroyHashTable(unquoteHt);
+				break;
 		}
 	}
 	fklUninitPtrStack(&valueStack);

@@ -870,7 +870,6 @@ double fklGetDouble(const FklVMvalue* p);
 FklHashTable* fklCreateValueSetHashtable(void);
 void fklInitValueSetHashTable(FklHashTable* ht);
 int fklHasCircleRef(FklVMvalue* first_value);
-void fklScanCirRef(FklVMvalue* s,FklHashTable* circle_head_set);
 
 void fklInitLineNumHashTable(FklHashTable* ht);
 
@@ -918,6 +917,7 @@ void fklAtomicVMuserdata(FklVMvalue*,FklVMgc*);
 void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
 void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
+void fklAtomicVMdvec(FklVMvalue*,FklVMgc*);
 void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
 void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
 void fklAtomicVMcproc(FklVMvalue*,FklVMgc*);
@@ -1313,6 +1313,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 #define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_PROC)
 #define FKL_IS_CPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CPROC)
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)
+#define FKL_IS_DVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DVECTOR)
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P)==FKL_TAG_FIX)

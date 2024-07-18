@@ -174,6 +174,8 @@ typedef enum
 
 	FKL_OP_ATOM,
 
+	FKL_OP_EXTRA_ARG,
+
 	FKL_OP_PUSH_DVEC,
 	FKL_OP_PUSH_DVEC_C,
 	FKL_OP_PUSH_DVEC_X,
@@ -181,7 +183,6 @@ typedef enum
 	FKL_OP_PUSH_DVEC_0,
 	FKL_OP_DVEC_REF,
 
-	FKL_OP_EXTRA_ARG,
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

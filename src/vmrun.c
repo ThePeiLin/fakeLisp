@@ -1854,6 +1854,37 @@ export_to:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		case FKL_OP_PUSH_DVEC:
+			size=ins->bu;
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_XX:
+			size=GET_INS_UXX(ins,frame);
+push_dvec:
+			{
+				FklVMvalue* vec=fklCreateVMvalueDvec(exe,size);
+				FklVMdvec* v=FKL_VM_DVEC(vec);
+				for(uint64_t i=size;i>0;i--)
+					v->base[i-1]=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,vec);
+			}
+			break;
+		case FKL_OP_PUSH_DVEC_0:
+			{
+				size_t size=exe->tp-exe->bp;
+				FklVMvalue* vec=fklCreateVMvalueDvec(exe,size);
+				FklVMdvec* vv=FKL_VM_DVEC(vec);
+				for(size_t i=size;i>0;i--)
+					vv->base[i-1]=FKL_VM_POP_ARG(exe);
+				fklResBp(exe);
+				FKL_VM_PUSH_VALUE(exe,vec);
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -3055,6 +3086,37 @@ export_to:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		case FKL_OP_PUSH_DVEC:
+			size=ins->bu;
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_XX:
+			size=GET_INS_UXX(ins,frame);
+push_dvec:
+			{
+				FklVMvalue* vec=fklCreateVMvalueDvec(exe,size);
+				FklVMdvec* v=FKL_VM_DVEC(vec);
+				for(uint64_t i=size;i>0;i--)
+					v->base[i-1]=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,vec);
+			}
+			break;
+		case FKL_OP_PUSH_DVEC_0:
+			{
+				size_t size=exe->tp-exe->bp;
+				FklVMvalue* vec=fklCreateVMvalueDvec(exe,size);
+				FklVMdvec* vv=FKL_VM_DVEC(vec);
+				for(size_t i=size;i>0;i--)
+					vv->base[i-1]=FKL_VM_POP_ARG(exe);
+				fklResBp(exe);
+				FKL_VM_PUSH_VALUE(exe,vec);
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -4253,6 +4315,37 @@ export_to:
 			{
 				FklVMvalue* val=FKL_VM_POP_ARG(exe);
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
+			}
+			break;
+		case FKL_OP_PUSH_DVEC:
+			size=ins->bu;
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_C:
+			size=FKL_GET_INS_UC(ins);
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_X:
+			size=GET_INS_UX(ins,frame);
+			goto push_dvec;
+		case FKL_OP_PUSH_DVEC_XX:
+			size=GET_INS_UXX(ins,frame);
+push_dvec:
+			{
+				FklVMvalue* vec=fklCreateVMvalueDvec(exe,size);
+				FklVMdvec* v=FKL_VM_DVEC(vec);
+				for(uint64_t i=size;i>0;i--)
+					v->base[i-1]=FKL_VM_POP_ARG(exe);
+				FKL_VM_PUSH_VALUE(exe,vec);
+			}
+			break;
+		case FKL_OP_PUSH_DVEC_0:
+			{
+				size_t size=exe->tp-exe->bp;
+				FklVMvalue* vec=fklCreateVMvalueDvec(exe,size);
+				FklVMdvec* vv=FKL_VM_DVEC(vec);
+				for(size_t i=size;i>0;i--)
+					vv->base[i-1]=FKL_VM_POP_ARG(exe);
+				fklResBp(exe);
+				FKL_VM_PUSH_VALUE(exe,vec);
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:

@@ -798,6 +798,11 @@ static inline void uninit_bvec_value(FklVMvalue* v)
 	free(FKL_VM_BVEC(v));
 }
 
+static inline void uninit_dvec_value(FklVMvalue* v)
+{
+	free(FKL_VM_DVEC(v)->base);
+}
+
 static inline void uninit_ud_value(FklVMvalue* v)
 {
 	fklFinalizeVMud(FKL_VM_UD(v));
@@ -807,10 +812,6 @@ static inline void uninit_proc_value(FklVMvalue* v)
 {
 	FklVMproc* proc=FKL_VM_PROC(v);
 	free(proc->closure);
-}
-
-static inline void uninit_chanl_value(FklVMvalue* v)
-{
 }
 
 static inline void uninit_fp_value(FklVMvalue* v)
@@ -859,7 +860,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_bvec_value,     //bvec
 		uninit_ud_value,       //ud
 		uninit_proc_value,     //proc
-		uninit_chanl_value,    //chanl
+		uninit_nothing_value,  //chanl
 		uninit_fp_value,       //fp
 		uninit_dll_value,      //dll
 		uninit_nothing_value,  //cproc
@@ -867,6 +868,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_hash_value,     //hash
 		uninit_code_obj_value, //code-obj
 		uninit_nothing_value,  //var-ref
+		uninit_dvec_value,     //dvec
 	};
 
 	fkl_value_uniniters[cur->type](cur);
@@ -1931,6 +1933,13 @@ int fklIsVMeofUd(FklVMvalue* v)
 void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
 {
 	FklVMvec* vec=FKL_VM_VEC(pVec);
+	for(size_t i=0;i<vec->size;i++)
+		fklVMgcToGray(vec->base[i],gc);
+}
+
+void fklAtomicVMdvec(FklVMvalue* pVec,FklVMgc* gc)
+{
+	FklVMdvec* vec=FKL_VM_DVEC(pVec);
 	for(size_t i=0;i<vec->size;i++)
 		fklVMgcToGray(vec->base[i],gc);
 }

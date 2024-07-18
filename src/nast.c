@@ -193,6 +193,7 @@ void fklDestroyNastNode(FklNastNode* node)
 						fklPushPtrStack(cur->box,&stack);
 						break;
 					case FKL_NAST_VECTOR:
+					case FKL_NAST_DVECTOR:
 						for(size_t i=0;i<cur->vec->size;i++)
 							fklPushPtrStack(cur->vec->base[i],&stack);
 						destroyNastVector(cur->vec);

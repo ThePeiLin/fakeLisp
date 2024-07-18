@@ -608,6 +608,17 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 				putValueInSet(circle_heads,v);
 			}
 		}
+		else if(FKL_IS_DVECTOR(v))
+		{
+			inc_value_degree(ht,v);
+			if(!isInValueSet(v,circle_heads,NULL))
+			{
+				FklVMdvec* vec=FKL_VM_DVEC(v);
+				for(size_t i=vec->size;i>0;i--)
+					fklPushPtrStack(vec->base[i-1],&stack);
+				putValueInSet(circle_heads,v);
+			}
+		}
 		else if(FKL_IS_BOX(v))
 		{
 			inc_value_degree(ht,v);
@@ -744,7 +755,7 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 	fklUninitPtrStack(&stack);
 }
 
-void fklScanCirRef(FklVMvalue* s,FklHashTable* circle_head_set)
+static inline void scan_cir_ref(FklVMvalue* s,FklHashTable* circle_head_set)
 {
 	FklHashTable degree_table;
 	init_vmvalue_degree_hash_table(&degree_table);
@@ -1159,7 +1170,7 @@ void fklPrintVMvalue(FklVMvalue* value
 	FklHashTable has_print_circle_head_set;
 	fklInitPtrSet(&has_print_circle_head_set);
 
-	fklScanCirRef(value,&circel_head_set);
+	scan_cir_ref(value,&circel_head_set);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
@@ -1195,7 +1206,7 @@ void fklPrintVMvalue(FklVMvalue* value
 			else
 			{
 				free(e);
-				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
+				if(!FKL_IS_VECTOR(v)&&!FKL_IS_DVECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
 					atomPrinter(v,fp,&string_buffer,gc);
 				else
 				{
@@ -1207,6 +1218,30 @@ void fklPrintVMvalue(FklVMvalue* value
 						fputs("#(",fp);
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						FklVMvec* vec=FKL_VM_VEC(v);
+						for(size_t i=0;i<vec->size;i++)
+						{
+							size_t w=0;
+							int is_in_rec_set=isInValueSet(vec->base[i],&circel_head_set,&w);
+							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
+								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
+										,vQueue);
+							else
+							{
+								fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
+										,vQueue);
+								if(is_in_rec_set)
+									put_ptr_in_set(&has_print_circle_head_set,vec->base[i]);
+							}
+						}
+						fklPushPtrStack(vQueue,&queueStack);
+						cQueue=vQueue;
+						continue;
+					}
+					else if(FKL_IS_DVECTOR(v))
+					{
+						fputs("#vd(",fp);
+						FklPtrQueue* vQueue=fklCreatePtrQueue();
+						FklVMdvec* vec=FKL_VM_DVEC(v);
 						for(size_t i=0;i<vec->size;i++)
 						{
 							size_t w=0;
@@ -1649,7 +1684,7 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 	FklHashTable has_print_circle_head_set;
 	fklInitPtrSet(&has_print_circle_head_set);
 
-	fklScanCirRef(value,&circle_head_set);
+	scan_cir_ref(value,&circle_head_set);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	FklPtrStack queueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&queueStack,32,16);
@@ -1685,7 +1720,7 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 			else
 			{
 				free(e);
-				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
+				if(!FKL_IS_VECTOR(v)&&!FKL_IS_DVECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
 					atom_stringifier(result,v,gc);
 				else
 				{
@@ -1697,6 +1732,30 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 						fklStringBufferConcatWithCstr(result,"#(");
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						FklVMvec* vec=FKL_VM_VEC(v);
+						for(size_t i=0;i<vec->size;i++)
+						{
+							size_t w=0;
+							int is_in_rec_set=isInValueSet(vec->base[i],&circle_head_set,&w);
+							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
+								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
+										,vQueue);
+							else
+							{
+								fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
+										,vQueue);
+								if(is_in_rec_set)
+									put_ptr_in_set(&has_print_circle_head_set,vec->base[i]);
+							}
+						}
+						fklPushPtrStack(vQueue,&queueStack);
+						cQueue=vQueue;
+						continue;
+					}
+					else if(FKL_IS_DVECTOR(v))
+					{
+						fklStringBufferConcatWithCstr(result,"#vd(");
+						FklPtrQueue* vQueue=fklCreatePtrQueue();
+						FklVMdvec* vec=FKL_VM_DVEC(v);
 						for(size_t i=0;i<vec->size;i++)
 						{
 							size_t w=0;

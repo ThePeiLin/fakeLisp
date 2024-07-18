@@ -175,6 +175,13 @@ static struct
 	{"atom",              FKL_OP_MODE_I,        },
 
 	{"extra-arg",         FKL_OP_MODE_IxAxB,    },
+
+	{"push-dvec",         FKL_OP_MODE_IuB,      },
+	{"push-dvec-c",       FKL_OP_MODE_IuC,      },
+	{"push-dvec-x",       FKL_OP_MODE_IuBB,     },
+	{"push-dvec-xx",      FKL_OP_MODE_IuCCB,    },
+	{"push-dvec-0",       FKL_OP_MODE_I,        },
+	{"dvec-ref",          FKL_OP_MODE_I,        },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

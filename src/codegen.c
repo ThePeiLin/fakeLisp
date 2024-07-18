@@ -618,6 +618,13 @@ static inline FklByteCode* append_push_vec_ins_to_bc(InsAppendMode m
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_VEC,len);
 }
 
+static inline FklByteCode* append_push_dvec_ins_to_bc(InsAppendMode m
+		,FklByteCode* bc
+		,uint64_t len)
+{
+	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_DVEC,len);
+}
+
 static inline FklByteCode* append_push_hash_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
 		,FklHashTableEqType type
@@ -754,7 +761,7 @@ static inline FklByteCodelnt* create_bc_lnt(FklByteCode* bc
 {
 	FklByteCodelnt* r=fklCreateByteCodelnt(bc);
 	r->ls=1;
-	r->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem)*1);
+	r->l=(FklLineNumberTableItem*)malloc(sizeof(FklLineNumberTableItem));
 	FKL_ASSERT(r->l);
 	fklInitLineNumTabNode(&r->l[0],fid,0,line,scope);
 	return r;
@@ -1135,7 +1142,7 @@ static FklHashTableMetaTable CodegenEnvHashMethodTable=
 static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
 {
 	uint32_t r=++env->sc;
-	FklCodegenEnvScope* scopes=(FklCodegenEnvScope*)fklRealloc(env->scopes,sizeof(FklCodegenEnvScope)*r);
+	FklCodegenEnvScope* scopes=(FklCodegenEnvScope*)fklRealloc(env->scopes,r*sizeof(FklCodegenEnvScope));
 	FKL_ASSERT(scopes);
 	env->scopes=scopes;
 	FklCodegenEnvScope* newScope=&scopes[r-1];
@@ -2359,8 +2366,8 @@ static inline FklSymbolDef* sid_ht_to_idx_key_ht(FklHashTable* sht
 		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst)
 {
-	FklSymbolDef* refs=(FklSymbolDef*)malloc(sizeof(FklSymbolDef)*sht->num);
-	FKL_ASSERT(refs);
+	FklSymbolDef* refs=(FklSymbolDef*)malloc(sht->num*sizeof(FklSymbolDef));
+	FKL_ASSERT(refs||!sht->num);
 	FklHashTableItem* list=sht->first;
 	for(;list;list=list->next)
 	{
@@ -2398,7 +2405,7 @@ static inline void create_and_insert_to_pool(FklCodegenInfo* info
 	FklSymbolTable* gst=info->runtime_symbol_table;
 	FklFuncPrototypes* cp=info->pts;
 	cp->count+=1;
-	FklFuncPrototype* pts=(FklFuncPrototype*)fklRealloc(cp->pa,sizeof(FklFuncPrototype)*(cp->count+1));
+	FklFuncPrototype* pts=(FklFuncPrototype*)fklRealloc(cp->pa,(cp->count+1)*sizeof(FklFuncPrototype));
 	FKL_ASSERT(pts);
 	cp->pa=pts;
 	FklFuncPrototype* cpt=&pts[cp->count];
@@ -2737,7 +2744,7 @@ void fklUpdatePrototype(FklFuncPrototypes* cp
 	process_unresolve_ref(env,cp);
 	eht=&env->refs;
 	uint32_t count=eht->num;
-	FklSymbolDef* refs=(FklSymbolDef*)fklRealloc(pts->refs,sizeof(FklSymbolDef)*count);
+	FklSymbolDef* refs=(FklSymbolDef*)fklRealloc(pts->refs,count*sizeof(FklSymbolDef));
 	FKL_ASSERT(refs||!count);
 	pts->refs=refs;
 	pts->rcount=count;
@@ -5879,8 +5886,8 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 {
 	FklInstructionArg arg;
 	FklByteCode* bc=bcl->bc;
-	FklInstruction* new_code=(FklInstruction*)malloc(sizeof(FklInstruction)*bc->len*FKL_MAX_INS_LEN);
-	FKL_ASSERT(new_code);
+	FklInstruction* new_code=(FklInstruction*)malloc(bc->len*FKL_MAX_INS_LEN*sizeof(FklInstruction));
+	FKL_ASSERT(new_code||!bc->len);
 	uint64_t k=0;
 	uint64_t i=0;
 
@@ -8159,7 +8166,7 @@ static void* simple_action_head(void* c
 		if(cc->idx[i]>=num)
 			return NULL;
 	FklNastNode* head=fklMakeNastNodeRef(cc->head);
-	FklNastNode** exps=(FklNastNode**)malloc(sizeof(FklNastNode*)*(1+cc->idx_num));
+	FklNastNode** exps=(FklNastNode**)malloc((1+cc->idx_num)*sizeof(FklNastNode*));
 	FKL_ASSERT(exps);
 	exps[0]=head;
 	for(size_t i=0;i<cc->idx_num;i++)
@@ -8181,7 +8188,7 @@ static void* simple_action_head_create(FklNastNode* rest[],size_t rest_len,int* 
 	for(size_t i=1;i<rest_len;i++)
 		if(rest[i]->type!=FKL_NAST_FIX||rest[i]->fix<0)
 			return NULL;
-	struct SimpleActionHeadCtx* ctx=(struct SimpleActionHeadCtx*)malloc(sizeof(struct SimpleActionHeadCtx)+(sizeof(uint64_t)*(rest_len-1)));
+	struct SimpleActionHeadCtx* ctx=(struct SimpleActionHeadCtx*)malloc(sizeof(struct SimpleActionHeadCtx)+((rest_len-1)*sizeof(uint64_t)));
 	FKL_ASSERT(ctx);
 	ctx->head=fklMakeNastNodeRef(rest[0]);
 	ctx->idx_num=rest_len-1;
@@ -8557,8 +8564,8 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 	FklPtrStack valid_items;
 	fklInitPtrStack(&valid_items,vec->size,8);
 
-	uint8_t* delim=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
-	FKL_ASSERT(delim);
+	uint8_t* delim=(uint8_t*)malloc(vec->size*sizeof(uint8_t));
+	FKL_ASSERT(delim||!vec->size);
 	memset(delim,1,sizeof(uint8_t)*vec->size);
 
 	for(size_t i=0;i<vec->size;i++)
@@ -8592,7 +8599,7 @@ static inline FklGrammerSym* nast_vector_to_production_right_part(const FklNastV
 	if(valid_items.top)
 	{
 		size_t top=valid_items.top;
-		retval=(FklGrammerSym*)malloc(sizeof(FklGrammerSym)*valid_items.top);
+		retval=(FklGrammerSym*)malloc(top*sizeof(FklGrammerSym));
 		FKL_ASSERT(retval);
 		FklNastNode* const* base=(FklNastNode* const*)valid_items.base;
 		for(size_t i=0;i<top;i++)
@@ -9870,6 +9877,11 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegenInfo* info)
 					fklPushPtrStack(node->hash->items[i].car,&stack);
 					fklPushPtrStack(node->hash->items[i].cdr,&stack);
 				}
+				break;
+			case FKL_NAST_DVECTOR:
+				append_push_dvec_ins_to_bc(INS_APPEND_FRONT,retval,node->vec->size);
+				for(size_t i=0;i<node->vec->size;i++)
+					fklPushPtrStack(node->vec->base[i],&stack);
 				break;
 			default:
 				abort();

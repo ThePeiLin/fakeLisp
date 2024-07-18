@@ -50,7 +50,7 @@ char* fklGetStringFromList(const char* str)
 			&&!isspace(*(str+len))
 			&&(*(str+len)!=',')
 			&&(*(str+len)!=0))len++;
-	tmp=(char*)malloc(sizeof(char)*(len+1));
+	tmp=(char*)malloc((len+1)*sizeof(char));
 	FKL_ASSERT(tmp);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
@@ -67,7 +67,7 @@ char* fklGetStringAfterBackslash(const char* str)
 		if(!isalnum(str[len])&&str[len-1]!='\\')
 			break;
 	}
-	tmp=(char*)malloc(sizeof(char)*(len+1));
+	tmp=(char*)malloc((len+1)*sizeof(char));
 	FKL_ASSERT(tmp);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
@@ -99,7 +99,7 @@ char* fklGetStringAfterBackslashInStr(const char* str)
 		else
 			len++;
 	}
-	tmp=(char*)malloc(sizeof(char)*(len+1));
+	tmp=(char*)malloc((len+1)*sizeof(char));
 	FKL_ASSERT(tmp);
 	memcpy(tmp,str,len);
 	if(tmp!=NULL)*(tmp+len)='\0';
@@ -458,7 +458,7 @@ int fklIsSymbolShouldBeExport(const FklString* str,const FklString** pStr,uint32
 char* fklCopyCstr(const char* str)
 {
 	if(str==NULL)return NULL;
-	char* tmp=(char*)malloc(sizeof(char)*(strlen(str)+1));
+	char* tmp=(char*)malloc((strlen(str)+1)*sizeof(char));
 	FKL_ASSERT(tmp);
 	strcpy(tmp,str);
 	return tmp;
@@ -509,37 +509,10 @@ char* fklGetDir(const char* filename)
 {
 	int i=strlen(filename)-1;
 	for(;filename[i]!=FKL_PATH_SEPARATOR;i--);
-	char* tmp=(char*)malloc(sizeof(char)*(i+1));
+	char* tmp=(char*)malloc((i+1)*sizeof(char));
 	FKL_ASSERT(tmp);
 	tmp[i]='\0';
 	memcpy(tmp,filename,i);
-	return tmp;
-}
-
-char* fklGetStringFromFile(FILE* file)
-{
-	char* tmp=(char*)malloc(sizeof(char));
-	FKL_ASSERT(tmp);
-	tmp[0]='\0';
-	char* before;
-	int i=0;
-	char ch;
-	int j;
-	while((ch=getc(file))!=EOF&&ch!='\0')
-	{
-		i++;
-		j=i-1;
-		before=tmp;
-		tmp=(char*)malloc(sizeof(char)*(i+1));
-		FKL_ASSERT(tmp);
-		if(before!=NULL)
-		{
-			memcpy(tmp,before,j);
-			free(before);
-		}
-		*(tmp+j)=ch;
-	}
-	if(tmp!=NULL)tmp[i]='\0';
 	return tmp;
 }
 
@@ -678,7 +651,7 @@ char** fklSplit(char* str,const char* divstr,size_t* pcount)
 	pNext=strtok_r(str,divstr,&context);
 	while(pNext!=NULL)
 	{
-		char** tstrArry=(char**)fklRealloc(str_slices,sizeof(char*)*(count+1));
+		char** tstrArry=(char**)fklRealloc(str_slices,(count+1)*sizeof(char*));
 		FKL_ASSERT(tstrArry);
 		str_slices=tstrArry;
 		str_slices[count++]=pNext;
@@ -697,7 +670,7 @@ char** fklSplit(char* str,const char* divstr,size_t* pcount)
 	pNext=strtok_s(str,divstr,&context);
 	while(pNext!=NULL)
 	{
-		char** tstrArry=(char**)fklRealloc(str_slices,sizeof(char*)*(count+1));
+		char** tstrArry=(char**)fklRealloc(str_slices,(count+1)*sizeof(char*));
 		FKL_ASSERT(tstrArry);
 		str_slices=tstrArry;
 		str_slices[count++]=pNext;
@@ -738,7 +711,7 @@ size_t fklCountCharInBuf(const char* buf,size_t n,char c)
 
 char* fklStrCat(char* s1,const char* s2)
 {
-	s1=(char*)fklRealloc(s1,sizeof(char)*(strlen(s1)+strlen(s2)+1));
+	s1=(char*)fklRealloc(s1,(strlen(s1)+strlen(s2)+1)*sizeof(char));
 	FKL_ASSERT(s1);
 	strcat(s1,s2);
 	return s1;
@@ -746,14 +719,14 @@ char* fklStrCat(char* s1,const char* s2)
 
 uint8_t* fklCreateByteArry(int32_t size)
 {
-	uint8_t* tmp=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	uint8_t* tmp=(uint8_t*)malloc(size*sizeof(uint8_t));
 	FKL_ASSERT(tmp||!size);
 	return tmp;
 }
 
 char* fklCharBufToCstr(const char* buf,size_t size)
 {
-	char* str=(char*)malloc(sizeof(char)*(size+1));
+	char* str=(char*)malloc((size+1)*sizeof(char));
 	FKL_ASSERT(str);
 	size_t len=0;
 	for(size_t i=0;i<size;i++)
@@ -886,8 +859,8 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 {
 	uint64_t strSize=0;
 	uint64_t memSize=FKL_MAX_STRING_SIZE;
-	char* tmp=(char*)malloc(sizeof(char)*memSize);
-	FKL_ASSERT(tmp);
+	char* tmp=(char*)malloc(memSize*sizeof(char));
+	FKL_ASSERT(tmp||!memSize);
 	for(size_t i=0;i<size;)
 	{
 		int ch=0;
@@ -918,7 +891,7 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 		strSize++;
 		if(strSize>memSize-1)
 		{
-			char* ttmp=(char*)fklRealloc(tmp,sizeof(char)*(memSize+FKL_MAX_STRING_SIZE));
+			char* ttmp=(char*)fklRealloc(tmp,(memSize+FKL_MAX_STRING_SIZE)*sizeof(char));
 			FKL_ASSERT(tmp);
 			tmp=ttmp;
 			memSize+=FKL_MAX_STRING_SIZE;

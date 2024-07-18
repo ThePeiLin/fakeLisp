@@ -105,7 +105,7 @@ FklSymbolHashItem* fklAddSymbolCharBuf(const char* buf,size_t len,FklSymbolTable
 		if(table->num>=table->idl_size)
 		{
 			table->idl_size+=FKL_DEFAULT_INC;
-			table->idl=(FklSymbolHashItem**)fklRealloc(table->idl,sizeof(FklSymbolHashItem*)*table->idl_size);
+			table->idl=(FklSymbolHashItem**)fklRealloc(table->idl,table->idl_size*sizeof(FklSymbolHashItem*));
 			FKL_ASSERT(table->idl);
 		}
 		table->idl[table->num-1]=node;
@@ -178,7 +178,7 @@ static inline void init_as_empty_pt(FklFuncPrototype* pt)
 void fklInitFuncPrototypes(FklFuncPrototypes* r,uint32_t count)
 {
 	r->count=count;
-	r->pa=(FklFuncPrototype*)malloc(sizeof(FklFuncPrototype)*(count+1));
+	r->pa=(FklFuncPrototype*)malloc((count+1)*sizeof(FklFuncPrototype));
 	FKL_ASSERT(r->pa);
 	init_as_empty_pt(r->pa);
 }
@@ -194,7 +194,7 @@ FklFuncPrototypes* fklCreateFuncPrototypes(uint32_t count)
 uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes* pts)
 {
 	pts->count++;
-	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(pts->pa,sizeof(FklFuncPrototype)*(pts->count+1));
+	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(pts->pa,(pts->count+1)*sizeof(FklFuncPrototype));
 	FKL_ASSERT(pts);
 	pts->pa=pa;
 	FklFuncPrototype* cpt=&pa[pts->count];

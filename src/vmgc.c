@@ -268,7 +268,7 @@ void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
 	gc->argc=argc;
 	size_t size=sizeof(const char*)*gc->argc;
 	char** argv_v=(char**)malloc(size);
-	FKL_ASSERT(argv_v);
+	FKL_ASSERT(argv_v||!size);
 	for(int i=0;i<gc->argc;i++)
 		argv_v[i]=fklCopyCstr(argv[i]);
 	gc->argv=argv_v;
@@ -406,7 +406,7 @@ FklVMvalue** fklAllocLocalVarSpaceFromGC(FklVMgc* gc,uint32_t llast,uint32_t* pl
 	{
 		*pllast=llast;
 		r=(FklVMvalue**)malloc(llast*sizeof(FklVMvalue*));
-		FKL_ASSERT(r);
+		FKL_ASSERT(r||!llast);
 		atomic_fetch_add(&gc->num,llast);
 	}
 	return r;
@@ -442,7 +442,7 @@ FklVMvalue** fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc* gc,uint32_t llast,u
 	{
 		*pllast=llast;
 		r=(FklVMvalue**)malloc(llast*sizeof(FklVMvalue*));
-		FKL_ASSERT(r);
+		FKL_ASSERT(r||!llast);
 		atomic_fetch_add(&gc->num,llast);
 	}
 	return r;

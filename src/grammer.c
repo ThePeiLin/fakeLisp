@@ -151,7 +151,7 @@ FklGrammerProduction* fklCreateEmptyProduction(FklSid_t group
 	r->ctx_destroyer=destroy;
 	r->ctx_copyer=copyer;
 	r->syms=(FklGrammerSym*)calloc(len,sizeof(FklGrammerSym));
-	FKL_ASSERT(r->syms);
+	FKL_ASSERT(r->syms||!len);
 	return r;
 }
 
@@ -1015,7 +1015,7 @@ static inline void sort_reachable_terminals(FklGrammer* g)
 	const FklString** terms=NULL;
 	if(num)
 	{
-		terms=(const FklString**)malloc(sizeof(FklString*)*num);
+		terms=(const FklString**)malloc(num*sizeof(FklString*));
 		FKL_ASSERT(terms);
 		FklSymbolHashItem** symList=g->reachable_terminals.idl;
 		for(size_t i=0;i<num;i++)
@@ -2962,8 +2962,8 @@ static int lalr_item_qsort_cmp(const void* i0,const void* i1)
 static inline void lalr_item_set_sort(FklHashTable* itemSet)
 {
 	size_t num=itemSet->num;
-	FklLalrItem* item_array=(FklLalrItem*)malloc(sizeof(FklLalrItem)*num);
-	FKL_ASSERT(item_array);
+	FklLalrItem* item_array=(FklLalrItem*)malloc(num*sizeof(FklLalrItem));
+	FKL_ASSERT(item_array||!num);
 
 	size_t i=0;
 	for(FklHashTableItem* l=itemSet->first;l;l=l->next,i++)
@@ -4186,8 +4186,8 @@ int fklGenerateLalrAnalyzeTable(FklGrammer* grammer,FklHashTable* states)
 	int hasConflict=0;
 	grammer->aTable.num=states->num;
 	FklSymbolTable* tt=&grammer->terminals;
-	FklAnalysisState* astates=(FklAnalysisState*)malloc(sizeof(FklAnalysisState)*states->num);
-	FKL_ASSERT(astates);
+	FklAnalysisState* astates=(FklAnalysisState*)malloc(states->num*sizeof(FklAnalysisState));
+	FKL_ASSERT(astates||!states->num);
 	grammer->aTable.states=astates;
 	FklHashTable idxTable;
 	fklInitHashTable(&idxTable,&ItemStateIdxHashMetaTable);
@@ -4838,9 +4838,11 @@ static inline void print_state_action_to_c_file(const FklAnalysisStateAction* ac
 			fputs("\t\t\tfklPushPtrStack((void*)nextState,stateStack);\n",fp);
 
 			if(ac->prod->len)
-				fprintf(fp,"\t\t\tvoid** nodes=(void**)malloc(sizeof(void*)*%"FKL_PRT64U");\n"
-						"\t\t\tFKL_ASSERT(nodes);\n"
-						"\t\t\tFklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];\n",ac->prod->len);
+				fprintf(fp,"\t\t\tvoid** nodes=(void**)malloc(%"FKL_PRT64U"*sizeof(void*));\n"
+						"\t\t\tFKL_ASSERT(nodes||!%"FKL_PRT64U");\n"
+						"\t\t\tFklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];\n"
+						,ac->prod->len
+						,ac->prod->len);
 			else
 				fputs("\t\t\tvoid** nodes=NULL;\n",fp);
 
@@ -5448,7 +5450,7 @@ static inline int do_reduce_action(FklPtrStack* stateStack
 	void** nodes=NULL;
 	if(len)
 	{
-		nodes=(void**)malloc(sizeof(void*)*len);
+		nodes=(void**)malloc(len*sizeof(void*));
 		FKL_ASSERT(nodes);
 		FklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];
 		for(size_t i=0;i<len;i++)
@@ -6019,6 +6021,23 @@ static inline void* prod_action_vector(void* ctx
 	return r;
 }
 
+static inline void* prod_action_dvector(void* ctx
+		,void* outerCtx
+		,void* nodes[]
+		,size_t num
+		,size_t line)
+{
+	FklNastNode* list=nodes[1];
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_DVECTOR,line);
+	size_t len=fklNastListLength(list);
+	FklNastVector* vec=fklCreateNastVector(len);
+	r->vec=vec;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+		vec->base[i]=fklMakeNastNodeRef(list->pair->car);
+	return r;
+}
+
 static inline FklNastNode* create_nast_list(FklNastNode* a[],size_t num,uint64_t line)
 {
 	FklNastNode* r=NULL;
@@ -6199,6 +6218,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 {
 	{"*s-exp* &*list*",                                       "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*vector*",                                     "prod_action_return_first",  prod_action_return_first,  },
+	{"*s-exp* &*dvector*",                                    "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*bytevector*",                                 "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*box*",                                        "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*hasheq*",                                     "prod_action_return_first",  prod_action_return_first,  },
@@ -6246,6 +6266,9 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 
 	{"*vector-items* ",                                       "prod_action_nil",           prod_action_nil,           },
 	{"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list,          },
+
+	{"*dvector* ##vd( &*vector-items* #)",                    "prod_action_dvector",       prod_action_dvector,       },
+	{"*dvector* ##vd[ &*vector-items* #]",                    "prod_action_dvector",       prod_action_dvector,       },
 
 	{"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq,        },
 	{"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq,        },

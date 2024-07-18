@@ -254,6 +254,22 @@ static inline void* prod_action_vector(void* outerCtx
 	return r;
 }
 
+static inline void* prod_action_dvector(void* outerCtx
+		,void* nodes[]
+		,size_t num
+		,size_t line)
+{
+	FklNastNode* list=nodes[1];
+	FklNastNode* r=fklCreateNastNode(FKL_NAST_DVECTOR,line);
+	size_t len=fklNastListLength(list);
+	FklNastVector* vec=fklCreateNastVector(len);
+	r->vec=vec;
+	size_t i=0;
+	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+		vec->base[i]=fklMakeNastNodeRef(list->pair->car);
+	return r;
+}
+
 static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint64_t line)
 {
 	FklNastNode* r=NULL;

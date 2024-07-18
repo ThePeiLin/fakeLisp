@@ -1934,8 +1934,8 @@ static inline int do_custom_parser_reduce_action(FklPtrStack* stateStack
 	void** nodes=NULL;
 	if(len)
 	{
-		nodes=(void**)malloc(sizeof(void*)*len);
-		FKL_ASSERT(nodes);
+		nodes=(void**)malloc(len*sizeof(void*));
+		FKL_ASSERT(nodes||!len);
 		FklAnalysisSymbol** base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->top];
 		for(size_t i=0;i<len;i++)
 		{
@@ -2214,8 +2214,8 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 	FklPtrStack valid_items;
 	fklInitPtrStack(&valid_items,vec->size,8);
 
-	uint8_t* delim=(uint8_t*)malloc(sizeof(uint8_t)*vec->size);
-	FKL_ASSERT(delim);
+	uint8_t* delim=(uint8_t*)malloc(vec->size*sizeof(uint8_t));
+	FKL_ASSERT(delim||!vec->size);
 	memset(delim,1,sizeof(uint8_t)*vec->size);
 
 	FklGrammerProduction* prod=NULL;
@@ -2248,8 +2248,8 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 	if(valid_items.top)
 	{
 		size_t top=valid_items.top;
-		syms=(FklGrammerSym*)malloc(sizeof(FklGrammerSym)*valid_items.top);
-		FKL_ASSERT(syms);
+		syms=(FklGrammerSym*)malloc(valid_items.top*sizeof(FklGrammerSym));
+		FKL_ASSERT(syms||!valid_items.top);
 		FklVMvalue** base=(FklVMvalue**)valid_items.base;
 		for(size_t i=0;i<top;i++)
 		{
@@ -3503,9 +3503,9 @@ static void error_handler_frame_copy(void* d,const void* s,FklVM* exe)
 	dc->proc=sc->proc;
 	size_t num=sc->num;
 	dc->num=num;
-	dc->errorSymbolLists=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*num);
+	dc->errorSymbolLists=(FklVMvalue**)malloc(num*sizeof(FklVMvalue*));
 	FKL_ASSERT(dc->errorSymbolLists||!num);
-	dc->errorHandlers=(FklVMvalue**)malloc(sizeof(FklVMvalue*)*num);
+	dc->errorHandlers=(FklVMvalue**)malloc(num*sizeof(FklVMvalue*));
 	FKL_ASSERT(dc->errorHandlers||!num);
 	for(size_t i=0;i<num;i++)
 	{

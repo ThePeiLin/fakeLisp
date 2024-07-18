@@ -126,7 +126,7 @@ char* fklReadWithBuiltinParser(FILE* fp
 		offset=size-restLen;
 		if(nextSize==0)
 			continue;
-		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
+		tmp=(char*)fklRealloc(tmp,(size+nextSize)*sizeof(char));
 		FKL_ASSERT(tmp);
 		memcpy(&tmp[size],next_buf.buf,nextSize);
 		size+=nextSize;
@@ -227,7 +227,7 @@ char* fklReadWithAnalysisTable(const FklGrammer* g
 		offset=size-restLen;
 		if(nextSize==0)
 			continue;
-		tmp=(char*)fklRealloc(tmp,sizeof(char)*(size+nextSize));
+		tmp=(char*)fklRealloc(tmp,(size+nextSize)*sizeof(char));
 		FKL_ASSERT(tmp);
 		memcpy(&tmp[size],next_buf.buf,nextSize);
 		size+=nextSize;

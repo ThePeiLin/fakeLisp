@@ -14,7 +14,7 @@ int fklIsPtrStackEmpty(FklPtrStack* stack)
 
 void fklInitPtrStack(FklPtrStack* r,uint32_t size,uint32_t inc)
 {
-	r->base=(void**)malloc(sizeof(void*)*size);
+	r->base=(void**)malloc(size*sizeof(void*));
 	FKL_ASSERT(r->base||!size);
 	r->size=size;
 	r->inc=inc;
@@ -236,7 +236,7 @@ FklIntStack* fklCreateIntStack(uint32_t size,uint32_t inc)
 {
 	FklIntStack* tmp=(FklIntStack*)malloc(sizeof(FklIntStack));
 	FKL_ASSERT(tmp);
-	tmp->base=(int64_t*)malloc(sizeof(int64_t)*size);
+	tmp->base=(int64_t*)malloc(size*sizeof(int64_t));
 	FKL_ASSERT(tmp->base||!size);
 	tmp->size=size;
 	tmp->inc=inc;
@@ -297,7 +297,7 @@ int fklIsUintStackEmpty(FklUintStack* stack)
 
 void fklInitUintStack(FklUintStack* r,uint32_t size,uint32_t inc)
 {
-	r->base=(uint64_t*)malloc(sizeof(uint64_t)*size);
+	r->base=(uint64_t*)malloc(size*sizeof(uint64_t));
 	FKL_ASSERT(r->base||!size);
 	r->size=size;
 	r->inc=inc;
@@ -372,8 +372,9 @@ void fklRecycleUintStack(FklUintStack* stack)
 {
 	if(stack->size-stack->top>stack->inc)
 	{
-		uint64_t* tmpData=(uint64_t*)fklRealloc(stack->base,(stack->size-stack->inc)*sizeof(uint64_t));
-		FKL_ASSERT(tmpData);
+		uint32_t size=stack->size-stack->inc;
+		uint64_t* tmpData=(uint64_t*)fklRealloc(stack->base,size*sizeof(uint64_t));
+		FKL_ASSERT(tmpData||!size);
 		stack->base=tmpData;
 		stack->size-=stack->inc;
 	}
@@ -410,8 +411,8 @@ FklBigInt* fklCreateBigIntD(double v)
 		t->neg=0;
 	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
 	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
+	t->digits=(uint8_t*)malloc(t->num*sizeof(uint8_t));
+	FKL_ASSERT(t->digits||!t->num);
 	for(uint64_t i=0;i<t->num;i++)
 	{
 		t->digits[i]=fmod(v,FKL_BIG_INT_RADIX);
@@ -435,8 +436,8 @@ void fklInitBigInt0(FklBigInt* t)
 	t->neg=0;
 	t->num=1;
 	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
+	t->digits=(uint8_t*)malloc(t->num*sizeof(uint8_t));
+	FKL_ASSERT(t->digits||!t->num);
 	t->digits[0]=0;
 }
 
@@ -453,8 +454,8 @@ void fklInitBigInt1(FklBigInt* t)
 	t->neg=0;
 	t->num=1;
 	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
+	t->digits=(uint8_t*)malloc(t->num*sizeof(uint8_t));
+	FKL_ASSERT(t->digits||!t->num);
 	t->digits[0]=1;
 }
 
@@ -522,8 +523,8 @@ FklBigInt* fklCopyBigInt(const FklBigInt* bigint)
 	t->num=bigint->num;
 	t->size=bigint->num;
 	t->neg=bigint->neg;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*bigint->num);
-	FKL_ASSERT(t->digits);
+	t->digits=(uint8_t*)malloc(bigint->num*sizeof(uint8_t));
+	FKL_ASSERT(t->digits||!bigint->num);
 	memcpy(t->digits,bigint->digits,t->num);
 	return t;
 }
@@ -563,8 +564,8 @@ static inline void ensureBigIntDigits(FklBigInt* obj,uint64_t num)
 	if(obj->size<num)
 	{
 		uint8_t* digits=obj->digits;
-		obj->digits=(uint8_t*)fklRealloc(digits,sizeof(char)*num);
-		FKL_ASSERT(obj->digits);
+		obj->digits=(uint8_t*)fklRealloc(digits,num*sizeof(char));
+		FKL_ASSERT(obj->digits||!num);
 		obj->size=num;
 	}
 }
@@ -629,7 +630,7 @@ void fklInitBigIntFromMemCopy(FklBigInt* t,uint8_t neg,const uint8_t* memptr,siz
 	t->num=num;
 	t->size=num;
 	t->neg=neg;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*num);
+	t->digits=(uint8_t*)malloc(num*sizeof(uint8_t));
 	FKL_ASSERT(t->digits||!num);
 	memcpy(t->digits,memptr,num);
 }
@@ -735,7 +736,7 @@ void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res)
 		size_t bigPow=2;
 		size_t targetLen=sqrt(digits.num);
 		uint8_t* t=(uint8_t*)malloc(bigBase.num);
-		FKL_ASSERT(t);
+		FKL_ASSERT(t||!bigBase.num);
 		while(bigBase.num<targetLen)
 		{
 			FklBigInt tmp=
@@ -876,8 +877,8 @@ void fklInitBigIntU(FklBigInt* t,uint64_t v)
 	t->neg=0;
 	t->num=floor(log2(v)/log2(FKL_BIG_INT_RADIX))+1;
 	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
+	t->digits=(uint8_t*)malloc(t->num*sizeof(uint8_t));
+	FKL_ASSERT(t->digits||!t->num);
 	for(uint64_t i=0;i<t->num;i++)
 	{
 		t->digits[i]=v%FKL_BIG_INT_RADIX;
@@ -902,8 +903,8 @@ void fklInitBigIntI(FklBigInt* t,int64_t v)
 		t->neg=0;
 	t->num=floor(log2(d)/log2(FKL_BIG_INT_RADIX))+1;
 	t->size=t->num;
-	t->digits=(uint8_t*)malloc(sizeof(uint8_t)*t->num);
-	FKL_ASSERT(t->digits);
+	t->digits=(uint8_t*)malloc(t->num*sizeof(uint8_t));
+	FKL_ASSERT(t->digits||!t->num);
 	for(uint64_t i=0;i<t->num;i++)
 	{
 		int c=v%FKL_BIG_INT_RADIX;
@@ -1221,7 +1222,7 @@ int fklDivModBigInt(FklBigInt* a,FklBigInt* rem,const FklBigInt* divider)
 	else
 	{
 		uint8_t* res=(uint8_t*)malloc(a->num);
-		FKL_ASSERT(res);
+		FKL_ASSERT(res||!a->num);
 		uint64_t num=0;
 		FklBigInt s=FKL_BIG_INT_INIT;
 		uint8_t* sdigits=(uint8_t*)malloc(a->num+1);
@@ -1275,7 +1276,7 @@ int fklDivBigInt(FklBigInt* a,const FklBigInt* divider)
 	else
 	{
 		uint8_t* res=(uint8_t*)malloc(a->num);
-		FKL_ASSERT(res);
+		FKL_ASSERT(res||!a->num);
 		uint64_t num=0;
 		FklBigInt s=FKL_BIG_INT_INIT;
 		uint8_t* sdigits=(uint8_t*)malloc(a->num+1);
@@ -1988,7 +1989,7 @@ char* fklCstrStringCat(char* fir,const FklString* sec)
 	if(!fir)
 		return fklStringToCstr(sec);
 	size_t len=strlen(fir);
-	fir=(char*)fklRealloc(fir,sizeof(char)*len+sec->size+1);
+	fir=(char*)fklRealloc(fir,len*sizeof(char)+sec->size+1);
 	FKL_ASSERT(fir);
 	fklWriteStringToCstr(&fir[len],sec);
 	return fir;
@@ -2650,7 +2651,7 @@ uintptr_t fklBytevectorHash(const FklBytevector* bv)
 
 void fklInitU8Stack(FklU8Stack* r,size_t size,uint32_t inc)
 {
-	r->base=(uint8_t*)malloc(sizeof(uint8_t)*size);
+	r->base=(uint8_t*)malloc(size*sizeof(uint8_t));
 	FKL_ASSERT(r->base||!size);
 	r->size=size;
 	r->inc=inc;
@@ -2713,8 +2714,9 @@ void fklRecycleU8Stack(FklU8Stack* s)
 {
 	if(s->size-s->top>s->inc)
 	{
-		uint8_t* tmpData=(uint8_t*)fklRealloc(s->base,(s->size-s->inc)*sizeof(uint8_t));
-		FKL_ASSERT(tmpData);
+		uint32_t size=s->size-s->inc;
+		uint8_t* tmpData=(uint8_t*)fklRealloc(s->base,size*sizeof(uint8_t));
+		FKL_ASSERT(tmpData||!size);
 		s->base=tmpData;
 		s->size-=s->inc;
 	}

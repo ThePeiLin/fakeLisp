@@ -68,6 +68,7 @@ FklNastNode* fklCopyNastNode(const FklNastNode* orig)
 				fklPushPtrStack(&node->pair->cdr,&pending1);
 				break;
 			case FKL_NAST_VECTOR:
+			case FKL_NAST_DVECTOR:
 				node->vec=fklCreateNastVector(top->vec->size);
 				for(size_t i=0;i<top->vec->size;i++)
 				{
@@ -107,7 +108,7 @@ FklNastVector* fklCreateNastVector(size_t size)
 	FKL_ASSERT(vec);
 	vec->size=size;
 	vec->base=(FklNastNode**)calloc(size,sizeof(FklNastNode*));
-	FKL_ASSERT(vec->base);
+	FKL_ASSERT(vec->base||!size);
 	return vec;
 }
 
@@ -116,7 +117,7 @@ FklNastHashTable* fklCreateNastHash(FklHashTableEqType type,size_t num)
 	FklNastHashTable* r=(FklNastHashTable*)malloc(sizeof(FklNastHashTable));
 	FKL_ASSERT(r);
 	r->items=(FklNastPair*)calloc(num,sizeof(FklNastPair));
-	FKL_ASSERT(r->items);
+	FKL_ASSERT(r->items||!num);
 	r->num=num;
 	r->type=type;
 	return r;
@@ -434,6 +435,7 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					fklPushPtrStack(c1->box,&s1);
 					break;
 				case FKL_NAST_VECTOR:
+				case FKL_NAST_DVECTOR:
 					r=c0->vec->size==c1->vec->size;
 					if(r)
 					{

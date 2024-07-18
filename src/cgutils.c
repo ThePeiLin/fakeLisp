@@ -445,7 +445,7 @@ FklSymbolDef* fklAddCodegenDefBySid(FklSid_t id,uint32_t scopeId,FklCodegenEnv* 
 		if(idx>=env->lcount)
 		{
 			env->lcount=idx+1;
-			uint8_t* slotFlags=(uint8_t*)fklRealloc(env->slotFlags,sizeof(uint8_t)*env->lcount);
+			uint8_t* slotFlags=(uint8_t*)fklRealloc(env->slotFlags,env->lcount*sizeof(uint8_t));
 			FKL_ASSERT(slotFlags);
 			env->slotFlags=slotFlags;
 		}
@@ -1301,7 +1301,7 @@ static inline void merge_prototypes(FklFuncPrototypes* o,const FklFuncPrototypes
 {
 	uint32_t o_count=o->count;
 	o->count+=pts->count;
-	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(o->pa,sizeof(FklFuncPrototype)*(o->count+1));
+	FklFuncPrototype* pa=(FklFuncPrototype*)fklRealloc(o->pa,(o->count+1)*sizeof(FklFuncPrototype));
 	FKL_ASSERT(pa);
 	o->pa=pa;
 	uint32_t i=o_count+1;

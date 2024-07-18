@@ -35,6 +35,7 @@ typedef enum
 	FKL_TYPE_HASHTABLE,
 	FKL_TYPE_CODE_OBJ,
 	FKL_TYPE_VAR_REF,
+	FKL_TYPE_DVECTOR,
 	FKL_VM_VALUE_GC_TYPE_NUM,
 }FklValueType;
 
@@ -128,6 +129,13 @@ typedef struct
 	struct FklVMvalue* base[];
 }FklVMvec;
 
+typedef struct
+{
+	size_t size;
+	size_t capacity;
+	struct FklVMvalue** base;
+}FklVMdvec;
+
 #define FKL_VM_UD_COMMON_HEADER struct FklVMvalue* rel;\
 	const struct FklVMudMetaTable* t
 
@@ -177,6 +185,12 @@ typedef struct
 	FKL_VM_VALUE_COMMON_HEADER;
 	FklVMvec vec;
 }FklVMvalueVec;
+
+typedef struct
+{
+	FKL_VM_VALUE_COMMON_HEADER;
+	FklVMdvec vec;
+}FklVMvalueDvec;
 
 typedef struct
 {
@@ -929,6 +943,9 @@ FklVMvalue* fklCreateVMvalueVec4(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalu
 FklVMvalue* fklCreateVMvalueVec5(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d,FklVMvalue* f);
 FklVMvalue* fklCreateVMvalueVec6(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d,FklVMvalue* f,FklVMvalue* e);
 
+FklVMvalue* fklCreateVMvalueDvec(FklVM*,size_t);
+FklVMvalue* fklCreateVMvalueDvecWithCapacity(FklVM*,size_t capacity);
+
 FklVMvalue* fklCreateVMvalueF64(FklVM*,double f64);
 
 FklVMvalue* fklCreateVMvalueProc(FklVM*
@@ -1048,6 +1065,8 @@ int fklIsVMeofUd(FklVMvalue* v);
 #define FKL_VM_CO(V) (&(((FklVMvalueCodeObj*)(V))->bcl))
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
+
+#define FKL_VM_DVEC(V) (&(((FklVMvalueDvec*)(V))->vec))
 
 #ifdef WIN32
 #define FKL_VM_VAR_REF_GET(V) ((FklVMvalue**)(atomic_load(&(FKL_VM_VAR_REF(V)->ref))))

@@ -1506,6 +1506,36 @@ FklVMvalue* fklCreateVMvalueVec6(FklVM* exe
 	return r;
 }
 
+FklVMvalue* fklCreateVMvalueDvec(FklVM* exe,size_t size)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_DVECTOR;
+	FklVMdvec* v=FKL_VM_DVEC(r);
+	v->size=size;
+	if(!size)
+		size=1;
+	v->capacity=size;
+	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
+	FKL_ASSERT(v->base);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueDvecWithCapacity(FklVM* exe,size_t capacity)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_DVECTOR;
+	FklVMdvec* v=FKL_VM_DVEC(r);
+	v->size=0;
+	v->capacity=capacity;
+	v->base=(FklVMvalue**)malloc(capacity*sizeof(FklVMvalue*));
+	FKL_ASSERT(v->base||!capacity);
+	fklAddToGC(r,exe);
+	return r;
+}
+
 FklVMvalue* fklCreateVMvalueBox(FklVM* exe,FklVMvalue* b)
 {
 	FklVMvalue* r=NEW_OBJ(FklVMvalueBox);

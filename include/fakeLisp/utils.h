@@ -68,9 +68,6 @@ int fklIsNumberString(const FklString*);
 int fklIsNumberCstr(const char*);
 int fklIsNumberCharBuf(const char*,size_t);
 
-char* fklGetStringFromList(const char*);
-char* fklGetStringAfterBackslash(const char*);
-char* fklGetStringAfterBackslashInStr(const char* str);
 int fklPower(int,int);
 
 int fklIsSpecialCharAndPrint(uint8_t ch,FILE* out);

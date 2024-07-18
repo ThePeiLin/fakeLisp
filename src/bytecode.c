@@ -1270,10 +1270,10 @@ void fklCodeLntReverseConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 
 void fklByteCodeInsertFront(FklInstruction ins,FklByteCode* bc)
 {
-	FklInstruction* code=(FklInstruction*)malloc((bc->len+1)*sizeof(FklInstruction));
+	FklInstruction* code=(FklInstruction*)fklRealloc(bc->code,(bc->len+1)*sizeof(FklInstruction));
 	FKL_ASSERT(code);
-	memcpy(&code[1],bc->code,sizeof(FklInstruction)*bc->len);
-	free(bc->code);
+	for(uint64_t end=bc->len;end>0;end--)
+		code[end]=code[end-1];
 	code[0]=ins;
 	bc->len++;
 	bc->code=code;

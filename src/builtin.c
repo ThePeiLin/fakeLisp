@@ -2249,7 +2249,7 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 	{
 		size_t top=valid_items.top;
 		syms=(FklGrammerSym*)malloc(valid_items.top*sizeof(FklGrammerSym));
-		FKL_ASSERT(syms||!valid_items.top);
+		FKL_ASSERT(syms);
 		FklVMvalue** base=(FklVMvalue**)valid_items.base;
 		for(size_t i=0;i<top;i++)
 		{

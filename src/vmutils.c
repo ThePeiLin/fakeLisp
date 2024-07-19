@@ -1172,6 +1172,13 @@ void fklPrintVMvalue(FklVMvalue* value
 	FklStringBuffer string_buffer;
 	fklInitStringBuffer(&string_buffer);
 
+	if(!FKL_IS_VECTOR(value)&&!FKL_IS_DVECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
+	{
+		atomPrinter(value,fp,&string_buffer,gc);
+		fklUninitStringBuffer(&string_buffer);
+		return;
+	}
+
 	FklHashTable circel_head_set;
 	fklInitValueSetHashTable(&circel_head_set);
 
@@ -1686,6 +1693,12 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 		,void(*atom_stringifier)(VMVALUE_TO_UTSTRING_ARGS)
 		,FklVMgc* gc)
 {
+	if(!FKL_IS_VECTOR(value)&&!FKL_IS_DVECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
+	{
+		atom_stringifier(result,value,gc);
+		return;
+	}
+
 	FklHashTable circle_head_set;
 	fklInitValueSetHashTable(&circle_head_set);
 

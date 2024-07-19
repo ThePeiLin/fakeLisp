@@ -782,12 +782,11 @@ static int builtin_make_vector(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	size_t len=fklGetUint(size);
 	FklVMvalue* r=fklCreateVMvalueVec(exe,len);
-	if(content)
-	{
-		FklVMvec* vec=FKL_VM_VEC(r);
-		for(size_t i=0;i<len;i++)
-			vec->base[i]=content;
-	}
+	if(!content)
+		content=FKL_VM_NIL;
+	FklVMvec* vec=FKL_VM_VEC(r);
+	for(size_t i=0;i<len;i++)
+		vec->base[i]=content;
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }

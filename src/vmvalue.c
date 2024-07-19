@@ -1515,11 +1515,24 @@ FklVMvalue* fklCreateVMvalueDvec(FklVM* exe,size_t size)
 	r->type=FKL_TYPE_DVECTOR;
 	FklVMdvec* v=FKL_VM_DVEC(r);
 	v->size=size;
-	if(!size)
-		size=1;
 	v->capacity=size;
 	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
-	FKL_ASSERT(v->base);
+	FKL_ASSERT(v->base||!size);
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueDvecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr)
+{
+	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_DVECTOR;
+	FklVMdvec* v=FKL_VM_DVEC(r);
+	v->size=size;
+	v->capacity=size;
+	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
+	FKL_ASSERT(v->base||!size);
+	memcpy(v->base,ptr,size*sizeof(FklVMvalue*));
 	fklAddToGC(r,exe);
 	return r;
 }

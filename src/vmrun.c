@@ -1716,7 +1716,7 @@ load_dll:
 				FklVMvalue* objlist=FKL_VM_POP_ARG(exe);
 				FKL_CHECK_TYPE(place,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(place))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 				{
@@ -1737,10 +1737,11 @@ load_dll:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklVMvec* vv=FKL_VM_VEC(vec);
-				size_t size=vv->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 			}
@@ -1751,10 +1752,12 @@ load_dll:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_STR(str))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklString* ss=FKL_VM_STR(str);
 				size_t size=ss->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ss->str[index]));
 			}
@@ -1891,10 +1894,11 @@ push_dvec:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklVMdvec* vv=FKL_VM_DVEC(vec);
-				size_t size=vv->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 			}
@@ -2995,7 +2999,7 @@ load_dll:
 				FklVMvalue* objlist=FKL_VM_POP_ARG(exe);
 				FKL_CHECK_TYPE(place,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(place))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 				{
@@ -3016,10 +3020,11 @@ load_dll:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklVMvec* vv=FKL_VM_VEC(vec);
-				size_t size=vv->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 			}
@@ -3030,10 +3035,12 @@ load_dll:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_STR(str))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklString* ss=FKL_VM_STR(str);
 				size_t size=ss->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ss->str[index]));
 			}
@@ -3170,10 +3177,11 @@ push_dvec:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklVMdvec* vv=FKL_VM_DVEC(vec);
-				size_t size=vv->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 			}
@@ -4273,7 +4281,7 @@ load_dll:
 				FklVMvalue* objlist=FKL_VM_POP_ARG(exe);
 				FKL_CHECK_TYPE(place,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(place))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 				{
@@ -4294,10 +4302,11 @@ load_dll:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklVMvec* vv=FKL_VM_VEC(vec);
-				size_t size=vv->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 			}
@@ -4308,10 +4317,12 @@ load_dll:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_STR(str))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklString* ss=FKL_VM_STR(str);
 				size_t size=ss->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(ss->str[index]));
 			}
@@ -4448,10 +4459,11 @@ push_dvec:
 				FklVMvalue* place=FKL_VM_POP_ARG(exe);
 				if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 				size_t index=fklGetUint(place);
 				FklVMdvec* vv=FKL_VM_DVEC(vec);
-				size_t size=vv->size;
-				if(fklIsVMnumberLt0(place)||index>=size)
+				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[index]);
 			}

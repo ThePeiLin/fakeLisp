@@ -1,15 +1,15 @@
 (define fib
   (local
-    (define fib-cache #(0 1 1))
+    (define fib-cache #vd(0 1 1))
     (define (fib-cached n)
       (define len (length fib-cache))
-      (if (<= len n) (append! fib-cache (make-vector (- n -1 len) nil)))
-      (define r (vec-ref fib-cache n))
+      (if (<= len n) (dvec-insert! fib-cache len (- n -1 len) nil))
+      (define r (dvec-ref fib-cache n))
       (if r r
-        (vec-set! fib-cache
-                n
-                (+ (fib-cached (-1+ n))
-                   (fib-cached (- n 2))))))))
+        (dvec-set! fib-cache
+                   n
+                   (+ (fib-cached (-1+ n))
+                      (fib-cached (- n 2))))))))
 
 ;(define (fib n)
 ;  (if (< n 2)

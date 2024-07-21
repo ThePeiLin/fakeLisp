@@ -2,11 +2,11 @@
 
 (define code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
 
-(define m #(0))
+(define m #vd(0))
 
 (define mp 0)
 
-(define ins #())
+(define ins #vd())
 
 (define stack nil)
 
@@ -16,27 +16,28 @@
   (setq mp (+ mp n))
   (if (< mp 0)
     (begin
-      (setq m (append! (make-vector (- mp) 0) m))
+      (dvec-insert! m 0 (- mp) 0)
       (setq mp 0))
     (unless (< mp (length m))
-      (append! m (make-vector (1+ (- mp (length m))) 0)))))
+      (define len (length m))
+      (dvec-insert! m len (1+ (- mp len)) 0))))
 
 (define (add num)
-  (define c (vec-ref m mp))
-  (vec-set! m mp (+ c num)))
+  (define c (dvec-ref m mp))
+  (dvec-set! m mp (+ c num)))
 
 (define (ou _)
-  (princ (integer->char (vec-ref m mp)) stdout))
+  (princ (integer->char (dvec-ref m mp)) stdout))
 
 (define (in _)
-  (vec-set! m mp (fgeti stdin)))
+  (dvec-set! m mp (fgeti stdin)))
 
 (define (jf label)
-  (if (eqv (vec-ref m mp) 0)
+  (if (eqv (dvec-ref m mp) 0)
     (setq cp label)))
 
 (define (jt label)
-  (if (not (eqv (vec-ref m mp) 0))
+  (if (not (eqv (dvec-ref m mp) 0))
     (setq cp label)))
 
 (define prev-ins nil)
@@ -54,7 +55,7 @@
          (cdr-set! prev-ins (1+ (cdr prev-ins))))
        (begin
          (setq cur-ins (cons move 1))
-         (append! ins (vector cur-ins))))]
+         (dvec-push! ins cur-ins)))]
 
     [(eq cc #\<)
      (if (and prev-ins (eq (car prev-ins) move))
@@ -63,7 +64,7 @@
          (cdr-set! prev-ins (-1+ (cdr prev-ins))))
        (begin
          (setq cur-ins (cons move -1))
-         (append! ins (vector cur-ins))))]
+         (dvec-push! ins cur-ins)))]
 
     [(eq cc #\+)
      (if (and prev-ins (eq (car prev-ins) add))
@@ -72,7 +73,7 @@
          (cdr-set! prev-ins (1+ (cdr prev-ins))))
        (begin
          (setq cur-ins (cons add 1))
-         (append! ins (vector cur-ins))))]
+         (dvec-push! ins cur-ins)))]
 
     [(eq cc #\-)
      (if (and prev-ins (eq (car prev-ins) add))
@@ -81,29 +82,29 @@
          (cdr-set! prev-ins (-1+ (cdr prev-ins))))
        (begin
          (setq cur-ins (cons add -1))
-         (append! ins (vector cur-ins))))]
+         (dvec-push! ins cur-ins)))]
 
     [(eq cc #\.)
      (setq cur-ins (list ou))
-     (append! ins (vector cur-ins))]
+     (dvec-push! ins cur-ins)]
     [(eq cc #\,)
      (setq cur-ins (list in))
-     (append! ins (vector cur-ins))]
+     (dvec-push! ins cur-ins)]
     [(eq cc #\[)
      (setq stack (cons (length ins) stack))
-     (append! ins #(()))]
+     (dvec-push! ins nil)]
     [(eq cc #\])
      (assert stack)
      (define l (car stack))
      (setq stack (cdr stack))
-     (assert (not (vec-ref ins l)))
+     (assert (not (dvec-ref ins l)))
      (setq cur-ins (cons jt (-1+ l)))
-     (vec-set! ins l (cons jf (-1+ (length ins))))
-     (append! ins (vector cur-ins))])
+     (dvec-set! ins l (cons jf (-1+ (length ins))))
+     (dvec-push! ins cur-ins)])
   (setq prev-ins cur-ins))
 
 (do [(len (length ins))]
   [(>= cp len)]
-  (define c (vec-ref ins cp))
+  (define c (dvec-ref ins cp))
   ((car c) (cdr c))
   (setq cp (1+ cp)))

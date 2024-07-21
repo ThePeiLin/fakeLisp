@@ -18,6 +18,7 @@ typedef struct FklString
 }FklString;
 
 FklString* fklCreateString(size_t,const char*);
+FklString* fklStringRealloc(FklString* s,size_t new_size);
 FklString* fklCopyString(const FklString*);
 FklString* fklCreateEmptyString(void);
 FklString* fklCreateStringFromCstr(const char*);
@@ -88,6 +89,7 @@ typedef struct FklBytevector
 FklBytevector* fklStringBufferToBytevector(FklStringBuffer*);
 
 FklBytevector* fklCreateBytevector(size_t,const uint8_t*);
+FklBytevector* fklBytevectorRealloc(FklBytevector* b,size_t new_size);
 FklBytevector* fklCopyBytevector(const FklBytevector*);
 void fklBytevectorCat(FklBytevector**,const FklBytevector*);
 int fklBytevectorCmp(const FklBytevector*,const FklBytevector*);

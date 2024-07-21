@@ -1733,6 +1733,14 @@ FklString* fklCreateString(size_t size,const char* str)
 	return tmp;
 }
 
+FklString* fklStringRealloc(FklString* str,size_t new_size)
+{
+	FklString* new=(FklString*)fklRealloc(str,sizeof(FklString)+new_size*sizeof(uint8_t));
+	FKL_ASSERT(new);
+	new->str[new_size]='\0';
+	return new;
+}
+
 int fklStringEqual(const FklString* fir,const FklString* sec)
 {
 	if(fir->size==sec->size)
@@ -2567,6 +2575,13 @@ FklBytevector* fklCreateBytevector(size_t size,const uint8_t* ptr)
 	if(ptr)
 		memcpy(tmp->ptr,ptr,size);
 	return tmp;
+}
+
+FklBytevector* fklBytevectorRealloc(FklBytevector* bvec,size_t new_size)
+{
+	FklBytevector* new=(FklBytevector*)fklRealloc(bvec,sizeof(FklBytevector)+new_size*sizeof(uint8_t));
+	FKL_ASSERT(new);
+	return new;
 }
 
 void fklBytevectorCat(FklBytevector** a,const FklBytevector* b)

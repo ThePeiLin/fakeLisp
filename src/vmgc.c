@@ -153,9 +153,9 @@ static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		fklAtomicVMcproc,
 		NULL,
 		fklAtomicVMhashTable,
+		fklAtomicVMdvec,
 		NULL,
 		atomic_var_ref,
-		fklAtomicVMdvec,
 	};
 	void (*atomic_value_func)(FklVMvalue*,FklVMgc*)=fkl_atomic_value_method_table[root->type];
 	if(atomic_value_func)

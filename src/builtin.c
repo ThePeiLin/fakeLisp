@@ -129,6 +129,47 @@ static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
 	return __fkl_ud_append(FKL_VM_UD(retval),FKL_VM_UD(cur));
 }
 
+static inline void dvec_reserve(FklVMdvec* v,size_t target)
+{
+	if(v->capacity>=target)
+		return;
+#ifdef WIN32
+	size_t target_capacity=v->capacity+(v->capacity>>1);
+#else
+	size_t target_capacity=v->capacity<<1;
+#endif
+	if(target_capacity<target)
+		target_capacity=target;
+	FklVMvalue** base=(FklVMvalue**)fklRealloc(v->base,target_capacity*sizeof(FklVMvalue*));
+	FKL_ASSERT(base);
+	v->base=base;
+	v->capacity=target_capacity;
+}
+
+static int __fkl_dvector_append(FklVMvalue* retval,FklVMvalue* cur)
+{
+	FklVMdvec* v=FKL_VM_DVEC(retval);
+	if(FKL_IS_DVECTOR(cur))
+	{
+		FklVMdvec* vv=FKL_VM_DVEC(cur);
+		size_t new_size=v->size+vv->size;
+		dvec_reserve(v,new_size);
+		memcpy(&v->base[v->size],vv->base,vv->size*sizeof(FklVMvalue*));
+		v->size=new_size;
+	}
+	else if(FKL_IS_VECTOR(cur))
+	{
+		FklVMvec* vv=FKL_VM_VEC(cur);
+		size_t new_size=v->size+vv->size;
+		dvec_reserve(v,new_size);
+		memcpy(&v->base[v->size],vv->base,vv->size*sizeof(FklVMvalue*));
+		v->size=new_size;
+	}
+	else
+		return 0;
+	return 0;
+}
+
 static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,FklVMvalue* cur)=
 {
 	NULL,
@@ -145,6 +186,8 @@ static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,Fkl
 	NULL,
 	NULL,
 	NULL,
+	NULL,
+	__fkl_dvector_append,
 	NULL,
 	NULL,
 };
@@ -5070,23 +5113,6 @@ static int builtin_dvec_last(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	FKL_VM_PUSH_VALUE(exe,v->base[v->size-1]);
 	return 0;
-}
-
-static inline void dvec_reserve(FklVMdvec* v,size_t target)
-{
-	if(v->capacity>=target)
-		return;
-#ifdef WIN32
-	size_t target_capacity=v->capacity+(v->capacity>>1);
-#else
-	size_t target_capacity=v->capacity<<1;
-#endif
-	if(target_capacity<target)
-		target_capacity=target;
-	FklVMvalue** base=(FklVMvalue**)fklRealloc(v->base,target_capacity*sizeof(FklVMvalue*));
-	FKL_ASSERT(base);
-	v->base=base;
-	v->capacity=target_capacity;
 }
 
 static int builtin_dvec_assign(FKL_CPROC_ARGL)

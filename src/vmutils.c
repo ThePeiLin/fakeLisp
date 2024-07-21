@@ -1016,6 +1016,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_cproc_printer,
 	vmvalue_error_princ,
 	NULL,
+	NULL,
 	vmvalue_code_obj_printer,
 	NULL,
 };
@@ -1114,6 +1115,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_dll_printer,
 	vmvalue_cproc_printer,
 	vmvalue_error_prin1,
+	NULL,
 	NULL,
 	vmvalue_code_obj_printer,
 	NULL,
@@ -1601,6 +1603,7 @@ static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_cproc_as_print,
 	vmvalue_error_as_prin1,
 	NULL,
+	NULL,
 	vmvalue_code_obj_as_print,
 	NULL,
 };
@@ -1654,6 +1657,7 @@ static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,
 	vmvalue_error_as_princ,
+	NULL,
 	NULL,
 	vmvalue_code_obj_as_print,
 	NULL,

@@ -482,6 +482,12 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	return r;
 }
 
+static FklVMvalue* __fkl_dvec_copyer(FklVMvalue* obj,FklVM* vm)
+{
+	FklVMdvec* vec=FKL_VM_DVEC(obj);
+	return fklCreateVMvalueDvecWithPtr(vm,vec->size,vec->base);
+}
+
 static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* obj,FklVM* vm)=
 {
 	__fkl_f64_copyer,
@@ -499,6 +505,7 @@ static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* o
 	NULL,
 	NULL,
 	__fkl_hashtable_copyer,
+	__fkl_dvec_copyer,
 	NULL,
 	NULL,
 };
@@ -518,7 +525,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 		case FKL_TAG_PTR:
 			{
 				FklValueType type=obj->type;
-				FKL_ASSERT(type<=FKL_TYPE_HASHTABLE);
+				FKL_ASSERT(type<=FKL_TYPE_DVECTOR);
 				FklVMvalue* (*valueCopyer)(FklVMvalue* obj,FklVM* vm)=valueCopyers[type];
 				if(!valueCopyer)
 					return NULL;
@@ -866,9 +873,9 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_nothing_value,  //cproc
 		uninit_err_value,      //error
 		uninit_hash_value,     //hash
+		uninit_dvec_value,     //dvec
 		uninit_code_obj_value, //code-obj
 		uninit_nothing_value,  //var-ref
-		uninit_dvec_value,     //dvec
 	};
 
 	fkl_value_uniniters[cur->type](cur);
@@ -1147,6 +1154,14 @@ static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	return vec->size;
 }
 
+static size_t _dvector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
+{
+	const FklVMdvec* vec=FKL_VM_DVEC(v);
+	for(size_t i=0;i<vec->size;i++)
+		fklPushPtrStack(vec->base[i],s);
+	return vec->size;
+}
+
 static size_t _pair_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
 	fklPushPtrStack(FKL_VM_CAR(v),s);
@@ -1194,6 +1209,7 @@ static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(const FklVMv
 	NULL,
 	NULL,
 	_hashTable_hashFunc,
+	_dvector_hashFunc,
 	NULL,
 	NULL,
 };
@@ -2044,6 +2060,7 @@ int fklIsAppendable(FklVMvalue* v)
 {
 	return FKL_IS_STR(v)
 		||FKL_IS_BYTEVECTOR(v)
+		||FKL_IS_DVECTOR(v)
 		||(FKL_IS_USERDATA(v)&&is_appendable_userdata(FKL_VM_UD(v)));
 }
 

@@ -95,103 +95,6 @@ static int builtin_cons(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int __fkl_str_append(FklVMvalue* retval,FklVMvalue* cur)
-{
-	if(!FKL_IS_STR(cur))
-		return 1;
-	fklStringCat(&FKL_VM_STR(retval),FKL_VM_STR(cur));
-	return 0;
-}
-
-static int __fkl_bytevector_append(FklVMvalue* retval,FklVMvalue* cur)
-{
-	if(!FKL_IS_BYTEVECTOR(cur))
-		return 1;
-	fklBytevectorCat(&FKL_VM_BVEC(retval),FKL_VM_BVEC(cur));
-	return 0;
-}
-
-static inline int __fkl_ud_append(FklVMud* a,const FklVMud* b)
-{
-	void (*append)(FklVMud*,const FklVMud*)=a->t->__append;
-	if(append)
-	{
-		append(a,b);
-		return 0;
-	}
-	return 1;
-}
-
-static int __fkl_userdata_append(FklVMvalue* retval,FklVMvalue* cur)
-{
-	if(!FKL_IS_USERDATA(cur)||FKL_VM_UD(retval)->t!=FKL_VM_UD(cur)->t)
-		return 1;
-	return __fkl_ud_append(FKL_VM_UD(retval),FKL_VM_UD(cur));
-}
-
-static inline void dvec_reserve(FklVMdvec* v,size_t target)
-{
-	if(v->capacity>=target)
-		return;
-#ifdef WIN32
-	size_t target_capacity=v->capacity+(v->capacity>>1);
-#else
-	size_t target_capacity=v->capacity<<1;
-#endif
-	if(target_capacity<target)
-		target_capacity=target;
-	FklVMvalue** base=(FklVMvalue**)fklRealloc(v->base,target_capacity*sizeof(FklVMvalue*));
-	FKL_ASSERT(base);
-	v->base=base;
-	v->capacity=target_capacity;
-}
-
-static int __fkl_dvector_append(FklVMvalue* retval,FklVMvalue* cur)
-{
-	FklVMdvec* v=FKL_VM_DVEC(retval);
-	if(FKL_IS_DVECTOR(cur))
-	{
-		FklVMdvec* vv=FKL_VM_DVEC(cur);
-		size_t new_size=v->size+vv->size;
-		dvec_reserve(v,new_size);
-		memcpy(&v->base[v->size],vv->base,vv->size*sizeof(FklVMvalue*));
-		v->size=new_size;
-	}
-	else if(FKL_IS_VECTOR(cur))
-	{
-		FklVMvec* vv=FKL_VM_VEC(cur);
-		size_t new_size=v->size+vv->size;
-		dvec_reserve(v,new_size);
-		memcpy(&v->base[v->size],vv->base,vv->size*sizeof(FklVMvalue*));
-		v->size=new_size;
-	}
-	else
-		return 0;
-	return 0;
-}
-
-static int (*const valueAppend[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* retval,FklVMvalue* cur)=
-{
-	NULL,
-	NULL,
-	__fkl_str_append,
-	NULL,
-	NULL,
-	NULL,
-	__fkl_bytevector_append,
-	__fkl_userdata_append,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	__fkl_dvector_append,
-	NULL,
-	NULL,
-};
-
 static int builtin_copy(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
@@ -223,103 +126,367 @@ static inline FklVMvalue** copy_list(FklVMvalue** pv,FklVM* exe)
 	return pv;
 }
 
-static int builtin_append(FKL_CPROC_ARGL)
+typedef FklVMvalue* (*VMvalueCopyAppender)(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top);
+
+static FklVMvalue* __fkl_str_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
 {
-	FklVMvalue* retval=FKL_VM_NIL;
-	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
-	if(cur&&fklIsAppendable(cur))
+	uint64_t new_size=FKL_VM_STR(v)->size;
+	for(int64_t i=0;i<argc;i++)
 	{
-		retval=cur;
-		cur=FKL_VM_POP_ARG(exe);
-		if(cur)
-			retval=fklCopyVMvalue(retval,exe);
-		if(!retval)
-			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		for(;cur;cur=FKL_VM_POP_ARG(exe))
-		{
-			if(valueAppend[retval->type](retval,cur))
-				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		}
+		FklVMvalue* cur=top[-i];
+		if(FKL_IS_STR(cur))
+			new_size+=FKL_VM_STR(cur)->size;
+		else
+			return NULL;
 	}
-	else if(FKL_IS_VECTOR(cur))
+	FklString* str=fklCreateString(new_size,NULL);
+	new_size=FKL_VM_STR(v)->size;
+	memcpy(str->str,FKL_VM_STR(v)->str,new_size*sizeof(char));
+	for(int64_t i=0;i<argc;i++)
 	{
-		size_t size=FKL_VM_VEC(cur)->size;
-		uint32_t arg_num=FKL_VM_GET_ARG_NUM(exe);
-		FklVMvalue** arg_base=&FKL_VM_GET_VALUE(exe,arg_num);
-		uint32_t i=0;
-		for(;i<arg_num;i++)
-		{
-			FklVMvalue* v=arg_base[i];
-			if(!FKL_IS_VECTOR(v))
-				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-			else
-				size+=FKL_VM_VEC(v)->size;
-		}
-		retval=fklCreateVMvalueVec(exe,size);
-		FklVMvalue** base=(FklVMvalue**)FKL_VM_VEC(retval)->base;
-		memcpy(base,FKL_VM_VEC(cur)->base,FKL_VM_VEC(cur)->size*sizeof(FklVMvalue*));
-		base+=FKL_VM_VEC(cur)->size;
-		for(;i>0;i--)
-		{
-			FklVMvalue* v=arg_base[i-1];
-			size_t size=FKL_VM_VEC(v)->size;
-			memcpy(base,FKL_VM_VEC(v)->base,size*sizeof(FklVMvalue*));
-			base+=size;
-		}
-		exe->tp-=arg_num;
+		FklVMvalue* cur=top[-i];
+		size_t ss=FKL_VM_STR(cur)->size;
+		memcpy(&str->str[new_size],FKL_VM_STR(cur)->str,ss*sizeof(char));
+		new_size+=ss;
 	}
-	else
+	return fklCreateVMvalueStr(exe,str);
+}
+
+static FklVMvalue* __fkl_vec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
+{
+	size_t new_size=FKL_VM_VEC(v)->size;
+	for(int64_t i=0;i<argc;i++)
 	{
+		FklVMvalue* cur=top[-i];
+		if(FKL_IS_VECTOR(cur))
+			new_size+=FKL_VM_VEC(cur)->size;
+		else
+			return NULL;
+	}
+	FklVMvalue* new_vec_val=fklCreateVMvalueVec(exe,new_size);
+	FklVMvec* new_vec=FKL_VM_VEC(new_vec_val);
+	new_size=FKL_VM_VEC(v)->size;
+	memcpy(new_vec->base,FKL_VM_VEC(v)->base,new_size*sizeof(FklVMvalue*));
+	for(int64_t i=0;i<argc;i++)
+	{
+		FklVMvalue* cur=top[-i];
+		size_t ss=FKL_VM_VEC(cur)->size;
+		memcpy(&new_vec->base[new_size],FKL_VM_VEC(cur)->base,ss*sizeof(FklVMvalue*));
+		new_size+=ss;
+	}
+	return new_vec_val;
+}
+
+static FklVMvalue* __fkl_pair_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
+{
+	if(argc)
+	{
+		FklVMvalue* retval=FKL_VM_NIL;
 		FklVMvalue** prev=&retval;
-		for(;cur;cur=FKL_VM_POP_ARG(exe))
+		*prev=(FklVMvalue*)v;
+		for(int64_t i=0;i<argc;i++)
 		{
 			FklVMvalue* pr=*prev;
+			FklVMvalue* cur=top[-i];
 			if(fklIsList(pr)
 					&&(prev=copy_list(prev,exe),*prev==FKL_VM_NIL))
 				*prev=cur;
 			else
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 		}
+		return retval;
 	}
-	fklResBp(exe);
-	FKL_VM_PUSH_VALUE(exe,retval);
+	else
+		return (FklVMvalue*)v;
+}
+
+static FklVMvalue* __fkl_bytevector_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
+{
+	uint64_t new_size=FKL_VM_BVEC(v)->size;
+	for(int64_t i=0;i<argc;i++)
+	{
+		FklVMvalue* cur=top[-i];
+		if(FKL_IS_BYTEVECTOR(cur))
+			new_size+=FKL_VM_BVEC(cur)->size;
+		else
+			return NULL;
+	}
+	FklBytevector* str=fklCreateBytevector(new_size,NULL);
+	new_size=FKL_VM_BVEC(v)->size;
+	memcpy(str->ptr,FKL_VM_BVEC(v)->ptr,new_size*sizeof(char));
+	for(int64_t i=0;i<argc;i++)
+	{
+		FklVMvalue* cur=top[-i];
+		size_t ss=FKL_VM_BVEC(cur)->size;
+		memcpy(&str->ptr[new_size],FKL_VM_BVEC(cur)->ptr,ss*sizeof(char));
+		new_size+=ss;
+	}
+	return fklCreateVMvalueBvec(exe,str);
+}
+
+static FklVMvalue* __fkl_userdata_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
+{
+	const FklVMud* ud=FKL_VM_UD(v);
+	FklVMudCopyAppender appender=ud->t->__copy_append;
+	if(appender)
+		return appender(exe,ud,argc,top);
+	else
+		return NULL;
+}
+
+static FklVMvalue* __fkl_dvec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
+{
+	size_t new_size=FKL_VM_DVEC(v)->size;
+	for(int64_t i=0;i<argc;i++)
+	{
+		FklVMvalue* cur=top[-i];
+		if(FKL_IS_DVECTOR(cur))
+			new_size+=FKL_VM_DVEC(cur)->size;
+		else
+			return NULL;
+	}
+	FklVMvalue* new_vec_val=fklCreateVMvalueDvec(exe,new_size);
+	FklVMdvec* new_vec=FKL_VM_DVEC(new_vec_val);
+	new_size=FKL_VM_DVEC(v)->size;
+	memcpy(new_vec->base,FKL_VM_DVEC(v)->base,new_size*sizeof(FklVMvalue*));
+	for(int64_t i=0;i<argc;i++)
+	{
+		FklVMvalue* cur=top[-i];
+		size_t ss=FKL_VM_DVEC(cur)->size;
+		memcpy(&new_vec->base[new_size],FKL_VM_DVEC(cur)->base,ss*sizeof(FklVMvalue*));
+		new_size+=ss;
+	}
+	return new_vec_val;
+}
+
+static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
+{
+	NULL,
+	NULL,
+	__fkl_str_copy_append,
+	__fkl_vec_copy_append,
+	__fkl_pair_copy_append,
+	NULL,
+	__fkl_bytevector_copy_append,
+	__fkl_userdata_copy_append,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	__fkl_dvec_copy_append,
+	NULL,
+	NULL,
+};
+
+static int builtin_append(FKL_CPROC_ARGL)
+{
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	if(!obj)
+	{
+		fklResBp(exe);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	}
+	else if(FKL_IS_PTR(obj))
+	{
+		FklValueType type=obj->type;
+		VMvalueCopyAppender copy_appender=CopyAppenders[type];
+		if(copy_appender)
+		{
+			uint32_t argc=FKL_VM_GET_ARG_NUM(exe);
+			FklVMvalue* r=copy_appender(exe,obj,argc,&FKL_VM_GET_TOP_VALUE(exe));
+			if(!r)
+				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			exe->tp-=argc;
+			fklResBp(exe);
+			FKL_VM_PUSH_VALUE(exe,r);
+		}
+		else
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	}
+	else
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
 }
 
+typedef int (*VMvalueAppender)(FklVMvalue* v,uint32_t argc,FklVMvalue* const* top);
+
+static int __fkl_str_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const* top)
+{
+#warning INCOMPLETE
+	FKL_ASSERT(0);
+	// if(!FKL_IS_STR(cur))
+	// 	return 1;
+	// fklStringCat(&FKL_VM_STR(retval),FKL_VM_STR(cur));
+	return 0;
+}
+
+static int __fkl_pair_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const* top)
+{
+#warning INCOMPLETE
+	FKL_ASSERT(0);
+	// if(!FKL_IS_STR(cur))
+	// 	return 1;
+	// fklStringCat(&FKL_VM_STR(retval),FKL_VM_STR(cur));
+	return 0;
+}
+
+static int __fkl_bytevector_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const* top)
+{
+#warning INCOMPLETE
+	FKL_ASSERT(0);
+	// if(!FKL_IS_BYTEVECTOR(cur))
+	// 	return 1;
+	// fklBytevectorCat(&FKL_VM_BVEC(retval),FKL_VM_BVEC(cur));
+	return 0;
+}
+
+// static inline int __fkl_ud_append(FklVMud* a,const FklVMud* b)
+// {
+// 	void (*append)(FklVMud*,const FklVMud*)=a->t->__append;
+// 	if(append)
+// 	{
+// 		append(a,b);
+// 		return 0;
+// 	}
+// 	return 1;
+// }
+
+static int __fkl_userdata_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const* top)
+{
+#warning INCOMPLETE
+	FKL_ASSERT(0);
+	// if(!FKL_IS_USERDATA(cur)||FKL_VM_UD(retval)->t!=FKL_VM_UD(cur)->t)
+	// 	return 1;
+	// return __fkl_ud_append(FKL_VM_UD(retval),FKL_VM_UD(cur));
+}
+
+static inline void dvec_reserve(FklVMdvec* v,size_t target)
+{
+	if(v->capacity>=target)
+		return;
+#ifdef WIN32
+	size_t target_capacity=v->capacity+(v->capacity>>1);
+#else
+	size_t target_capacity=v->capacity<<1;
+#endif
+	if(target_capacity<target)
+		target_capacity=target;
+	FklVMvalue** base=(FklVMvalue**)fklRealloc(v->base,target_capacity*sizeof(FklVMvalue*));
+	FKL_ASSERT(base);
+	v->base=base;
+	v->capacity=target_capacity;
+}
+
+static int __fkl_dvector_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const* top)
+{
+#warning INCOMPLETE
+	FKL_ASSERT(0);
+	// FklVMdvec* v=FKL_VM_DVEC(retval);
+	// if(FKL_IS_DVECTOR(cur))
+	// {
+	// 	FklVMdvec* vv=FKL_VM_DVEC(cur);
+	// 	size_t new_size=v->size+vv->size;
+	// 	dvec_reserve(v,new_size);
+	// 	memcpy(&v->base[v->size],vv->base,vv->size*sizeof(FklVMvalue*));
+	// 	v->size=new_size;
+	// }
+	// else if(FKL_IS_VECTOR(cur))
+	// {
+	// 	FklVMvec* vv=FKL_VM_VEC(cur);
+	// 	size_t new_size=v->size+vv->size;
+	// 	dvec_reserve(v,new_size);
+	// 	memcpy(&v->base[v->size],vv->base,vv->size*sizeof(FklVMvalue*));
+	// 	v->size=new_size;
+	// }
+	// else
+	// 	return 0;
+	return 0;
+}
+
+static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
+{
+	NULL,
+	NULL,
+	__fkl_str_append,
+	NULL,
+	__fkl_pair_append,
+	NULL,
+	__fkl_bytevector_append,
+	__fkl_userdata_append,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	__fkl_dvector_append,
+	NULL,
+	NULL,
+};
+
 static int builtin_append1(FKL_CPROC_ARGL)
 {
-	FklVMvalue* retval=FKL_VM_NIL;
-	FklVMvalue* cur=FKL_VM_POP_ARG(exe);
-	if(cur&&fklIsAppendable(cur))
+	FklVMvalue* obj=FKL_VM_POP_ARG(exe);
+	if(!obj)
 	{
-		retval=cur;
-		cur=FKL_VM_POP_ARG(exe);
-		for(;cur;cur=FKL_VM_POP_ARG(exe))
+		fklResBp(exe);
+		FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
+	}
+	else if(FKL_IS_PTR(obj))
+	{
+		FklValueType type=obj->type;
+		VMvalueAppender appender=Appenders[type];
+		if(appender)
 		{
-			if(valueAppend[retval->type](retval,cur))
+			uint32_t argc=FKL_VM_GET_ARG_NUM(exe);
+			if(appender(obj,argc,&FKL_VM_GET_TOP_VALUE(exe)))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+			exe->tp-=argc;
+			fklResBp(exe);
+			FKL_VM_PUSH_VALUE(exe,obj);
 		}
+		else
+			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	}
 	else
-	{
-		FklVMvalue** prev=&retval;
-		for(;cur;cur=FKL_VM_POP_ARG(exe))
-		{
-			for(FklVMvalue* head=get_initial_fast_value(*prev)
-					;FKL_IS_PAIR(*prev)
-					;prev=&FKL_VM_CDR(*prev)
-					,head=get_fast_value(head))
-				if(head==*prev)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
-			if(*prev==FKL_VM_NIL)
-				*prev=cur;
-			else
-				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-		}
-	}
-	fklResBp(exe);
-	FKL_VM_PUSH_VALUE(exe,retval);
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	return 0;
+	// FklVMvalue* retval=FKL_VM_NIL;
+	// FklVMvalue* cur=FKL_VM_POP_ARG(exe);
+	// if(cur&&fklIsAppendable(cur))
+	// {
+	// 	retval=cur;
+	// 	cur=FKL_VM_POP_ARG(exe);
+	// 	for(;cur;cur=FKL_VM_POP_ARG(exe))
+	// 	{
+	// 		if(valueAppend[retval->type](retval,cur))
+	// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	// 	}
+	// }
+	// else
+	// {
+	// 	FklVMvalue** prev=&retval;
+	// 	for(;cur;cur=FKL_VM_POP_ARG(exe))
+	// 	{
+	// 		for(FklVMvalue* head=get_initial_fast_value(*prev)
+	// 				;FKL_IS_PAIR(*prev)
+	// 				;prev=&FKL_VM_CDR(*prev)
+	// 				,head=get_fast_value(head))
+	// 			if(head==*prev)
+	// 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF,exe);
+	// 		if(*prev==FKL_VM_NIL)
+	// 			*prev=cur;
+	// 		else
+	// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	// 	}
+	// }
+	// fklResBp(exe);
+	// FKL_VM_PUSH_VALUE(exe,retval);
+	// return 0;
 }
 
 static int builtin_eq(FKL_CPROC_ARGL)

@@ -498,6 +498,9 @@ typedef struct FklVM
 	struct FklVMinterruptHandleList* int_list;
 }FklVM;
 
+typedef FklVMvalue* (*FklVMudCopyAppender)(FklVM* exe,const FklVMud* ud,uint32_t argc,FklVMvalue* const* top);
+typedef int (*FklVMudAppender)(FklVMud*,uint32_t argc,FklVMvalue* const* top);
+
 typedef struct FklVMudMetaTable
 {
 	size_t size;
@@ -510,8 +513,8 @@ typedef struct FklVMudMetaTable
 	void (*__write)(const FklVMud*,FILE*);
 	void (*__atomic)(const FklVMud*,struct FklVMgc*);
 	size_t (*__length)(const FklVMud*);
-	void (*__append)(FklVMud*,const FklVMud*);
-	void (*__copy)(const FklVMud* src,FklVMud* dst);
+	FklVMudCopyAppender __copy_append;
+	FklVMudAppender __append;
 	size_t (*__hash)(const FklVMud*);
 
 	FklBytevector* (*__to_bvec)(const FklVMud*);
@@ -1211,14 +1214,12 @@ void fklCallVMud(const FklVMud*,const FklVMud*);
 int fklCmpVMud(const FklVMud*,const FklVMvalue*,int*);
 void fklWriteVMud(const FklVMud*,FILE* fp);
 size_t fklLengthVMud(const FklVMud*);
-int fklCopyVMud(const FklVMud*,FklVMud* dst);
 size_t fklHashvVMud(const FklVMud*);
 void fklUdToString(const FklVMud*,FklStringBuffer*,FklVMgc*);
 void fklUdAsPrinc(const FklVMud*,FklStringBuffer*,FklVMgc*);
 FklBytevector* fklUdToBytevector(const FklVMud*);
 
 int fklIsCallable(FklVMvalue*);
-int fklIsAppendable(FklVMvalue*);
 void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv);
 
 int fklIsVMnumberLt0(const FklVMvalue*);

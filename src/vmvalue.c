@@ -463,9 +463,9 @@ static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 	FklVMvalue* dst=fklCreateVMvalueUd(vm
 			,src->t
 			,src->rel);
-	if(fklCopyVMud(src,FKL_VM_UD(dst)))
-		return NULL;
-	return dst;
+	const FklVMud* ud=FKL_VM_UD(dst);
+	FklVMudCopyAppender copyer=ud->t->__copy_append;
+	return copyer(vm,ud,0,NULL);
 }
 
 static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
@@ -2051,19 +2051,6 @@ int fklIsCallable(FklVMvalue* v)
 	return FKL_IS_PROC(v)||FKL_IS_CPROC(v)||(FKL_IS_USERDATA(v)&&fklIsCallableUd(FKL_VM_UD(v)));
 }
 
-static inline int is_appendable_userdata(FklVMud* ud)
-{
-	return ud->t->__append!=NULL;
-}
-
-int fklIsAppendable(FklVMvalue* v)
-{
-	return FKL_IS_STR(v)
-		||FKL_IS_BYTEVECTOR(v)
-		||FKL_IS_DVECTOR(v)
-		||(FKL_IS_USERDATA(v)&&is_appendable_userdata(FKL_VM_UD(v)));
-}
-
 int fklIsCmpableUd(const FklVMud* u)
 {
 	return u->t->__cmp!=NULL;
@@ -2128,17 +2115,6 @@ void fklFinalizeVMud(FklVMud* a)
 	void (*finalize)(FklVMud*)=a->t->__finalizer;
 	if(finalize)
 		finalize(a);
-}
-
-int fklCopyVMud(const FklVMud* a,FklVMud* dst)
-{
-	void (*copyer)(const FklVMud* a,FklVMud* dst)=a->t->__copy;
-	if(copyer)
-	{
-		copyer(a,dst);
-		return 0;
-	}
-	return 1;
 }
 
 void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx)

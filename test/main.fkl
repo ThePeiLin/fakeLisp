@@ -41,7 +41,8 @@
            (cir-ref)
            (remq)
            (fuv)
-           (lisp-by-lisp))
+           (lisp-by-lisp)
+           (dvec-and-append))
 
 (newline)
 (foreach println (hash-values msg-list))

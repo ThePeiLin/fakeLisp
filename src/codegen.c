@@ -4096,7 +4096,7 @@ typedef struct
 	FklCodegenQuest* prev;
 }QsquoteHelperStruct;
 
-QsquoteHelperStruct* createQsquoteHelperStruct(QsquoteHelperEnum e,FklNastNode* node,FklCodegenQuest* prev)
+static inline QsquoteHelperStruct* create_qsquote_helper_struct(QsquoteHelperEnum e,FklNastNode* node,FklCodegenQuest* prev)
 {
 	QsquoteHelperStruct* r=(QsquoteHelperStruct*)malloc(sizeof(QsquoteHelperStruct));
 	FKL_ASSERT(r);
@@ -4111,7 +4111,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 	FklNastNode* value=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,ht);
 	FklPtrStack valueStack=FKL_STACK_INIT;
 	fklInitPtrStack(&valueStack,8,16);
-	fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,value,NULL),&valueStack);
+	fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,value,NULL),&valueStack);
 	FklNastNode* const* builtInSubPattern=outer_ctx->builtin_sub_pattern_node;
 	while(!fklIsPtrStackEmpty(&valueStack))
 	{
@@ -4210,19 +4210,19 @@ static CODEGEN_FUNC(codegen_qsquote)
 											,curQuest
 											,codegen);
 									fklPushPtrStack(appendQuest,codegenQuestStack);
-									fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,appendQuest),&valueStack);
-									fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,node->pair->cdr,appendQuest),&valueStack);
+									fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_UNQTESP_CAR,unqtespValue,appendQuest),&valueStack);
+									fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,node->pair->cdr,appendQuest),&valueStack);
 								}
 								else
-									fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_CAR,unqtespValue,curQuest),&valueStack);
+									fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_UNQTESP_CAR,unqtespValue,curQuest),&valueStack);
 								break;
 							}
 							else
-								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,cur,curQuest),&valueStack);
+								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,cur,curQuest),&valueStack);
 							node=node->pair->cdr;
 							if(node->type!=FKL_NAST_PAIR)
 							{
-								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,node,curQuest),&valueStack);
+								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,node,curQuest),&valueStack);
 								break;
 							}
 						}
@@ -4243,12 +4243,12 @@ static CODEGEN_FUNC(codegen_qsquote)
 						for(size_t i=0;i<vecSize;i++)
 						{
 							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
-								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_VEC
+								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_UNQTESP_VEC
 											,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
 											,curQuest)
 										,&valueStack);
 							else
-								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
+								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
 						}
 					}
 					else if(curValue->type==FKL_NAST_DVECTOR)
@@ -4267,12 +4267,12 @@ static CODEGEN_FUNC(codegen_qsquote)
 						for(size_t i=0;i<vecSize;i++)
 						{
 							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
-								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_UNQTESP_DVEC
+								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_UNQTESP_DVEC
 											,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
 											,curQuest)
 										,&valueStack);
 							else
-								fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
+								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
 						}
 					}
 					else if(curValue->type==FKL_NAST_BOX)
@@ -4287,7 +4287,7 @@ static CODEGEN_FUNC(codegen_qsquote)
 								,prevQuest
 								,codegen);
 						fklPushPtrStack(curQuest,codegenQuestStack);
-						fklPushPtrStack(createQsquoteHelperStruct(QSQUOTE_NONE,curValue->box,curQuest),&valueStack);
+						fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,curValue->box,curQuest),&valueStack);
 					}
 					else
 						push_default_codegen_quest(curValue

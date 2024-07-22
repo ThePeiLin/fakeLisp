@@ -213,7 +213,7 @@ static inline void init_source_codes(DebugCtx* ctx)
 	}
 }
 
-const SourceCodeHashItem* get_source_with_fid(FklHashTable* t,FklSid_t id)
+static inline const SourceCodeHashItem* get_source_with_fid(FklHashTable* t,FklSid_t id)
 {
 	return fklGetHashItem(&id,t);
 }
@@ -475,7 +475,7 @@ const char* getPutBreakpointErrorInfo(PutBreakpointErrorType t)
 	return msgs[t];
 }
 
-FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
+static inline FklVMvalue* find_local_var(DebugCtx* ctx,FklSid_t id)
 {
 	FklVM* cur_thread=ctx->reached_thread;
 	FklVMframe* frame=cur_thread->top_frame;
@@ -495,7 +495,7 @@ FklVMvalue* findLocalVar(DebugCtx* ctx,FklSid_t id)
 	return NULL;
 }
 
-FklVMvalue* findClosureVar(DebugCtx* ctx,FklSid_t id)
+static inline FklVMvalue* find_closure_var(DebugCtx* ctx,FklSid_t id)
 {
 	FklVM* cur_thread=ctx->reached_thread;
 	FklVMframe* frame=cur_thread->top_frame;
@@ -532,9 +532,9 @@ static inline Breakpoint* put_breakpoint_with_pc(DebugCtx* ctx
 
 Breakpoint* putBreakpointForProcedure(DebugCtx* ctx,FklSid_t name_sid)
 {
-	FklVMvalue* var_value=findLocalVar(ctx,name_sid);
+	FklVMvalue* var_value=find_local_var(ctx,name_sid);
 	if(var_value==NULL)
-		var_value=findClosureVar(ctx,name_sid);
+		var_value=find_closure_var(ctx,name_sid);
 	if(var_value&&FKL_IS_PROC(var_value))
 	{
 		FklVMproc* proc=FKL_VM_PROC(var_value);

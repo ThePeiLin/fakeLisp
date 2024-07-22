@@ -82,6 +82,14 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 							vec->base[j]=cStack->base[i-1];
 					}
 					break;
+				case FKL_TYPE_DVECTOR:
+					{
+						v=fklCreateVMvalueDvec(vm,cStack->top);
+						FklVMdvec* vec=FKL_VM_DVEC(v);
+						for(size_t i=cStack->top,j=0;i>0;i--,j++)
+							vec->base[j]=cStack->base[i-1];
+					}
+					break;
 				case FKL_TYPE_HASHTABLE:
 					{
 						v=fklCreateVMvalueHash(vm,fklPopUintStack(&reftypeStack));
@@ -155,6 +163,18 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 					{
 						fklPushUintStack(root->curline,&reftypeStack);
 						fklPushUintStack(FKL_TYPE_VECTOR,&reftypeStack);
+						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
+						for(size_t i=0;i<root->vec->size;i++)
+							fklPushPtrStack(root->vec->base[i],&nodeStack);
+						FklPtrStack* vStack=fklCreatePtrStack(root->vec->size,16);
+						fklPushPtrStack(vStack,&stackStack);
+						cStack=vStack;
+					}
+					break;
+				case FKL_NAST_DVECTOR:
+					{
+						fklPushUintStack(root->curline,&reftypeStack);
+						fklPushUintStack(FKL_TYPE_DVECTOR,&reftypeStack);
 						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
 						for(size_t i=0;i<root->vec->size;i++)
 							fklPushPtrStack(root->vec->base[i],&nodeStack);
@@ -322,6 +342,20 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								{
 									FklVMvec* vec=FKL_VM_VEC(value);
 									cur->type=FKL_NAST_VECTOR;
+									cur->vec=fklCreateNastVector(vec->size);
+									for(size_t i=0;i<vec->size;i++)
+										fklPushPtrStack(vec->base[i],&s0);
+									for(size_t i=0;i<cur->vec->size;i++)
+									{
+										fklPushPtrStack(&cur->vec->base[i],&s1);
+										fklPushUintStack(cur->curline,&lineStack);
+									}
+								}
+								break;
+							case FKL_TYPE_DVECTOR:
+								{
+									FklVMdvec* vec=FKL_VM_DVEC(value);
+									cur->type=FKL_NAST_DVECTOR;
 									cur->vec=fklCreateNastVector(vec->size);
 									for(size_t i=0;i<vec->size;i++)
 										fklPushPtrStack(vec->base[i],&s0);
@@ -612,6 +646,23 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 						{
 							FklVMvec* vec1=FKL_VM_VEC(root1);
 							FklVMvec* vec2=FKL_VM_VEC(root2);
+							if(vec1->size!=vec2->size)
+								r=0;
+							else
+							{
+								r=1;
+								size_t size=vec1->size;
+								for(size_t i=0;i<size;i++)
+									fklPushPtrStack(vec1->base[i],&s1);
+								for(size_t i=0;i<size;i++)
+									fklPushPtrStack(vec2->base[i],&s2);
+							}
+						}
+						break;
+					case FKL_TYPE_DVECTOR:
+						{
+							FklVMdvec* vec1=FKL_VM_DVEC(root1);
+							FklVMdvec* vec2=FKL_VM_DVEC(root2);
 							if(vec1->size!=vec2->size)
 								r=0;
 							else

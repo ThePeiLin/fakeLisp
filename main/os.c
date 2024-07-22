@@ -176,7 +176,7 @@ static int os_getenv(FKL_CPROC_ARGL)
 }
 
 #ifdef WIN32
-int setenv(const char* name, const char* value, int overwrite)
+static inline int setenv(const char* name, const char* value, int overwrite)
 {
 	if(!overwrite)
 	{
@@ -187,7 +187,7 @@ int setenv(const char* name, const char* value, int overwrite)
 	return _putenv_s(name,value);
 }
 
-int unsetenv(const char* name)
+static inline int unsetenv(const char* name)
 {
 	return _putenv_s(name,"");
 }

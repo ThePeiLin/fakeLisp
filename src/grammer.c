@@ -4992,7 +4992,7 @@ static inline void get_all_match_method_table(const FklGrammer* g,FklHashTable* 
 	}
 }
 
-void print_all_builtin_match_func(const FklGrammer* g,FILE* fp)
+static inline void print_all_builtin_match_func(const FklGrammer* g,FILE* fp)
 {
 	FklHashTable builtin_match_method_table_set;
 	fklInitPtrSet(&builtin_match_method_table_set);

@@ -13,7 +13,7 @@ extern "C"{
 
 typedef struct
 {
-	FklOpcode op:8;
+	uint8_t op;
 	union
 	{
 		uint8_t au;

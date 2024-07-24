@@ -1,24 +1,24 @@
 (import (.. make-test))
 
-(define msg-list (make-hasheqv))
+(define msg-vec
+  (make-test
+    (_handle)
+    (_dns)
+    (_process)
+    (_pipe)
+    (_tcp)
+    (_udp)
+    (_fs)
+    (_misc)))
 
-(make-test msg-list
-           (_handle)
-           (_dns)
-           (_process)
-           (_pipe)
-           (_tcp)
-           (_udp)
-           (_fs)
-           (_misc))
+(define msgs (vector->list msg-vec))
 
-(define msgs (hash-values msg-list))
-
-(when msgs
+(when (memp car msgs)
   (define errmsg "")
   (foreach (lambda (m)
-             (setq errmsg (append! errmsg
-                                   (format "\n\t%s" m))))
+             (setq errmsg
+               (append! errmsg
+                        (format "\n\t%s" (cdr m)))))
            msgs)
   (throw 'fuv-error
          errmsg))

@@ -2,8 +2,8 @@
   (local
     (define fib-cache #vd(0 1 1))
     (define (fib-cached n)
-      (define len (length fib-cache))
-      (if (<= len n) (dvec-insert! fib-cache len (- n -1 len) nil))
+      (if (<= (length fib-cache) n)
+        (dvec-resize! fib-cache (1+ n)))
       (define r (dvec-ref fib-cache n))
       (if r r
         (dvec-set! fib-cache

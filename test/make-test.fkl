@@ -1,27 +1,32 @@
 (export
-  (defmacro ~(make-test ~msg ~t)
-    (let [(err-sym (string->symbol (append! (symbol->string msg) "-err")))]
-      `(let [(~err-sym
-               (pcall (lambda () (import ~t))))]
-         (if (error? ~err-sym)
-           (hash-set! ~msg
-                      (hash-num ~msg)
-                      (format "test-%S<%S> failed: %S: %s"
-                              (hash-num ~msg)
-                              (quote ~t)
-                              (error-type ~err-sym)
-                              (error-msg ~err-sym)))
-           (hash-set! ~msg
-                      (hash-num ~msg)
-                      (format "test-%S<%S> success"
-                              (hash-num ~msg)
-                              (quote ~t))))
-         (newline))))
-
-  (defmacro ~(make-test ~msg,~rest)
+  (defmacro ~(make-test,~rest)
     (if rest
-      `(begin
-         ~@(map (lambda (t)
-                  `(make-test ~msg ~t))
-                rest))
+      `(let [(msg (make-vector ~(length rest) ()))]
+         ~@(local
+             (define num 0)
+             (map (lambda (t)
+                    (define r
+                      `(local
+                         (define test-num ~num)
+                         (let [(err (pcall (lambda () (import ~t))))]
+                           (if (error? err)
+                             (vec-set! msg
+                                       test-num
+                                       (cons err
+                                             (format "test-%S<%S> failed: %S: %s"
+                                                     test-num
+                                                     (quote ~t)
+                                                     (error-type err)
+                                                     (error-msg err))))
+                             (vec-set! msg
+                                       test-num
+                                       (cons ()
+                                             (format "test-%S<%S> success"
+                                                     test-num
+                                                     (quote ~t)))))
+                           (newline))))
+                    (setq num (1+ num))
+                    r)
+                  rest))
+         msg)
       `())))

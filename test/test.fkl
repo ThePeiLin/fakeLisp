@@ -25,30 +25,6 @@
 (println (append '(1 2 3)
                  '(4)))
 
-(import (.. lib stack))
-(define s (make-stack))
-
-(println (stack? s)) ;;1
-
-(println (stack? 1)) ;;()
-
-(println (stack-empty? s)) ;;1
-
-(stack-push! s 1)
-(stack-push! s 2)
-
-(println (stack-empty? s)) ;;()
-
-(println (stack->list s)) ;;(2 1)
-
-(println (stack-pop! s)) ;;2
-
-(println (stack-pop! s)) ;;1
-
-(println (stack-empty? s)) ;;1
-
-(println (make-stack 1 2))
-
 (import (.. lib queue))
 (define q (make-queue))
 (queue-push! q 1)

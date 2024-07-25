@@ -1,21 +1,21 @@
-(define fib
-  (local
-    (define fib-cache #vd(0 1 1))
-    (define (fib-cached n)
-      (if (<= (length fib-cache) n)
-        (dvec-resize! fib-cache (1+ n)))
-      (define r (dvec-ref fib-cache n))
-      (if r r
-        (dvec-set! fib-cache
-                   n
-                   (+ (fib-cached (-1+ n))
-                      (fib-cached (- n 2))))))))
+; (define fib
+;   (local
+;     (define fib-cache #vd(0 1 1))
+;     (define (fib-cached n)
+;       (if (<= (length fib-cache) n)
+;         (dvec-resize! fib-cache (1+ n)))
+;       (define r (dvec-ref fib-cache n))
+;       (if r r
+;         (dvec-set! fib-cache
+;                    n
+;                    (+ (fib-cached (-1+ n))
+;                       (fib-cached (- n 2))))))))
 
-;(define (fib n)
-;  (if (< n 2)
-;    n
-;    (+ (fib (-1+ n))
-;       (fib (- n 2)))))
+(define (fib n)
+ (if (< n 2)
+   n
+   (+ (fib (-1+ n))
+      (fib (- n 2)))))
 
 (do [(n 0 (1+ n))]
   [(>= n 31)]

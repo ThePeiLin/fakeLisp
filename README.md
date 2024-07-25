@@ -180,7 +180,7 @@ foobar2
 
 ## TODO
 - [ ] Explicit documents
-- [ ] An array type of which length is not allowed to be modified
+- [X] An array type of which length is not allowed to be modified
 - [X] Impove the instruction format of visual machine
 - [ ] Instructions' optimization
 - [ ] Standardize the bytecode format

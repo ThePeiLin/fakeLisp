@@ -720,9 +720,10 @@ typedef struct
 		READY,
 		WAITING,
 		READING,
-	}state:8;
+	} state:8;
 	int8_t eof;
 	int8_t interactive;
+	uint32_t new_var_count;
 	Replxx* replxx;
 	struct ReplFrameCtx* fctx;
 }ReplCtx;
@@ -1278,8 +1279,8 @@ static int repl_frame_step(void* data,FklVM* exe)
 					,codegen->runtime_symbol_table
 					,pst);
 
-			uint32_t proc_idx=codegen->pts->pa[1].lcount;
-			set_last_ins_get_loc(mainCode,proc_idx);
+			uint32_t ret_proc_idx=codegen->pts->pa[1].lcount;
+			set_last_ins_get_loc(mainCode,ret_proc_idx);
 			FklInstruction ins={.op=FKL_OP_CALL,};
 			fklByteCodeLntPushBackIns(mainCode,&ins,0,0,0);
 			fklVMreleaseSt(exe->gc);
@@ -1290,7 +1291,8 @@ static int repl_frame_step(void* data,FklVM* exe)
 			ctx->mainProc=mainProc;
 
 			FklVMvalue* mainCodeObj=fklCreateVMvalueCodeObj(exe,mainCode);
-			fctx->lcount=proc_idx;
+			fctx->lcount=ret_proc_idx;
+			ctx->new_var_count=fctx->lcount-o_lcount;
 
 			mainCode=FKL_VM_CO(mainCodeObj);
 			proc->lcount=fctx->lcount;
@@ -1304,7 +1306,7 @@ static int repl_frame_step(void* data,FklVM* exe)
 			FklVMCompoundFrameVarRef* f=&mainframe->c.lr;
 			f->base=0;
 			f->loc=fklAllocMoreSpaceForMainFrame(exe,proc->lcount+1);
-			f->loc[proc_idx]=fctx->ret_proc;
+			f->loc[ret_proc_idx]=fctx->ret_proc;
 			f->lcount=proc->lcount;
 			alloc_more_space_for_var_ref(f,o_lcount,f->lcount);
 			init_mainframe_lref(f->lref,fctx->lcount,fctx->lrefl);
@@ -1406,6 +1408,8 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 		for(;main_frame->prev->prev;main_frame=main_frame->prev);
 		FklVMvarRefList* lrefl=main_frame->c.lr.lrefl;
 		FklVMvalue** lref=main_frame->c.lr.lref;
+
+		uint32_t lcount=main_frame->c.lr.lcount;
 		main_frame->c.lr.lrefl=NULL;
 		main_frame->c.lr.lref=NULL;
 		main_frame->c.lr.lcount=1;
@@ -1413,22 +1417,16 @@ static int replErrorCallBack(FklVMframe* f,FklVMvalue* errValue,FklVM* exe)
 		while(exe->top_frame->prev)
 		{
 			FklVMframe* cur=exe->top_frame;
-			if(cur->prev->prev==NULL&&cur->type==FKL_FRAME_COMPOUND)
-			{
-				FklInstruction* ins=&cur->c.end[-2];
-				for(;ins->op==FKL_OP_EXTRA_ARG;ins--);
-				if(fklIsPutLocIns(ins))
-				{
-					FklInstructionArg arg;
-					fklGetInsOpArg(ins,&arg);
-					exe->locv[arg.ux]=FKL_VM_NIL;
-				}
-			}
 			exe->top_frame=cur->prev;
 			fklDestroyVMframe(cur,exe);
 		}
 
 		ReplCtx* ctx=(ReplCtx*)exe->top_frame->data;
+		FklVMvalue** cur=&exe->locv[lcount-ctx->new_var_count];
+		for(uint32_t i=0;i<ctx->new_var_count;i++)
+			if(!cur[i])
+				cur[i]=FKL_VM_NIL;
+
 		ctx->fctx->lrefl=lrefl;
 		ctx->fctx->lref=lref;
 		ctx->state=READY;
@@ -1678,6 +1676,7 @@ static inline void init_frame_to_repl_frame(FklVM* exe
 	ctx->fctx->lrefl=NULL;
 	ctx->fctx->ret_proc=fklCreateVMvalueCproc(exe,repl_ret_proc,NULL,NULL,0);
 	ctx->interactive=interactive;
+	ctx->new_var_count=0;
 	fklInitStringBuffer(&ctx->buf);
 	if(eval_expression)
 	{

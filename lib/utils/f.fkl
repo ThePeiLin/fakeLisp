@@ -90,12 +90,11 @@
                (h h)]
             [(not (and l h)) (cdr-set! c (if l l h))]
             (let* [(cl (car l))
-                   (ch (car h))
-                   (r (cmpf cl ch))]
+                   (ch (car h))]
               (cond
-                [r
-                  (cdr-set! c (cons cl nil))
-                  (setq l (cdr l))]
+                [(cmpf cl ch)
+                 (cdr-set! c (cons cl nil))
+                 (setq l (cdr l))]
                 [1
                  (cdr-set! c (cons ch nil))
                  (setq h (cdr h))])))
@@ -110,8 +109,54 @@
       [(>= c t)]
       (f))))
 
+(define (vec-msort! cmpf vec)
+  (let* [(len (length vec))
+         (a vec)
+         (b (make-vector len))
+         (mid (// len 2))]
+    (do [(seg 1 (+ seg seg))]
+      [(>= seg len)]
+      (do [(start 0 (+ start seg seg))]
+        [(>= start len)]
+        (let [(mid (+ start seg))
+              (high (+ start seg seg))]
+          (let [(l start)
+                (m (if (< mid len) mid len))
+                (h (if (< high len) high len))]
+            (let [(k l)
+                  (s1 l)
+                  (e1 m)
+                  (s2 m)
+                  (e2 h)]
+              (do []
+                [(or (>= s1 e1) (>= s2 e2))]
+                (let [(v1 (vec-ref a s1))
+                      (v2 (vec-ref a s2))]
+                  (vec-set! b k (if (cmpf v1 v2)
+                                  (begin (setq s1 (1+ s1)) v1)
+                                  (begin (setq s2 (1+ s2)) v2))))
+                (setq k (1+ k)))
+
+              (do []
+                [(>= s1 e1)]
+                (vec-set! b k (vec-ref a s1))
+                (setq k (1+ k))
+                (setq s1 (1+ s1)))
+
+              (do []
+                [(>= s2 e2)]
+                (vec-set! b k (vec-ref a s2))
+                (setq k (1+ k))
+                (setq s2 (1+ s2)))))))
+      (let [(t a)] (setq a b) (setq b t)))
+    (unless (eq a vec)
+      (do [(i 0 (1+ i))]
+        [(>= i len)]
+        (vec-set! b i (vec-ref a i))))
+    a))
+
 (export
   (define (vec-merge-sort! cmpf vec)
-    (throw 'incomplete-function (format "function: %s is incomplete" *func*)))
+    (vec-msort! cmpf vec))
   (define (vec-merge-sort cmpf vec)
-    (throw 'incomplete-function (format "function: %s is incomplete" *func*))))
+    (vec-msort! cmpf (copy vec))))

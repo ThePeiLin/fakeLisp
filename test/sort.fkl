@@ -59,6 +59,33 @@
 (assert (equal b #(1 2 3 4 5 6 7 8 9)))
 (assert (not (eq a b)))
 
+(define a #vd(1 2 3 4 5 6 7 8 9))
+(assert (equal (dvec-merge-sort! > a)
+               #vd(9 8 7 6 5 4 3 2 1)))
+(assert (eq a a))
+
+(assert (equal (dvec-merge-sort! < a)
+               #vd(1 2 3 4 5 6 7 8 9)))
+(assert (eq a a))
+
+(assert (equal (dvec-merge-sort! < a)
+               #vd(1 2 3 4 5 6 7 8 9)))
+(assert (eq a a))
+
+(define b (dvec-merge-sort > a))
+(assert (equal b #vd(9 8 7 6 5 4 3 2 1)))
+(assert (not (eq a b)))
+
+(define a b)
+(define b (dvec-merge-sort < a))
+(assert (equal b #vd(1 2 3 4 5 6 7 8 9)))
+(assert (not (eq a b)))
+
+(define a b)
+(define b (dvec-merge-sort < a))
+(assert (equal b #vd(1 2 3 4 5 6 7 8 9)))
+(assert (not (eq a b)))
+
 (assert (equal (msort! > '(1 2 3 4 5 6 7 8 9))
                '(9 8 7 6 5 4 3 2 1)))
 (assert (equal (msort > '(1 2 3 4 5 6 7 8 9))
@@ -68,3 +95,8 @@
                #(9 8 7 6 5 4 3 2 1)))
 (assert (equal (msort > #(1 2 3 4 5 6 7 8 9))
                #(9 8 7 6 5 4 3 2 1)))
+
+(assert (equal (msort! > #vd(1 2 3 4 5 6 7 8 9))
+               #vd(9 8 7 6 5 4 3 2 1)))
+(assert (equal (msort > #vd(1 2 3 4 5 6 7 8 9))
+               #vd(9 8 7 6 5 4 3 2 1)))

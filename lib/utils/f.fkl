@@ -75,49 +75,32 @@
 
   (define (max a b) (if (> a b) a b)))
 
-(define (fast-and-slow h s f)
-  (define nf (and f (cdr f)))
-  (if nf
-    (fast-and-slow (cdr h) (cdr s) (cdr nf))
-    (begin (cdr-set! h nil) s)))
-
-(define (partition ls)
-  (fast-and-slow (cons nil ls) ls ls))
-
-
-(define (merge cmpf l h)
-  (define head '((),()))
-  (define (m-iter c l h)
-    (cond
-      [(and l h)
-       (define cl (car l))
-       (define ch (car h))
-       (define r (cmpf cl ch))
-       (cond
-         [r
-           (cdr-set! c (cons cl nil))
-           (m-iter (cdr c) (cdr l) h)]
-         [1
-          (cdr-set! c (cons ch nil))
-          (m-iter (cdr c) l (cdr h))])]
-      [1
-       (cdr-set! c (cond [l l][1 h]))]))
-  (m-iter head l h)
-  (cdr head))
-
-
-(define (msort! cmpf l)
-  (if (and l (cdr l))
-    (begin
-      (define h (partition l))
-      (merge cmpf
-             (msort! cmpf l)
-             (msort! cmpf h)))
-    l))
-
 (export
-  (define (merge-sort! cmpf ls)
-    (msort! cmpf ls)))
+  (define (merge-sort! cmpf l)
+    (if (and l (cdr l))
+      (let [(h (do [(h (cons nil l) (cdr h))
+                    (s l (cdr s))
+                    (f (and l (cdr l)) (cdr f))]
+                 [(not f) (begin (cdr-set! h nil) s)]))]
+        (let [(l (merge-sort! cmpf l))
+              (h (merge-sort! cmpf h))
+              (head '((),()))]
+          (do [(c head (cdr c))
+               (l l)
+               (h h)]
+            [(not (and l h)) (cdr-set! c (if l l h))]
+            (let* [(cl (car l))
+                   (ch (car h))
+                   (r (cmpf cl ch))]
+              (cond
+                [r
+                  (cdr-set! c (cons cl nil))
+                  (setq l (cdr l))]
+                [1
+                 (cdr-set! c (cons ch nil))
+                 (setq h (cdr h))])))
+          (cdr head)))
+      l)))
 
 (export (define (merge-sort cmpf ls) (merge-sort! cmpf (copy ls))))
 

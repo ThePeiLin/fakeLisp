@@ -1003,10 +1003,11 @@ int fklIsDecFloat(const char* cstr,size_t maxLen)
 	}
 	else
 	{
+		size_t old_idx=idx;
 		for(;idx<maxLen;idx++)
 			if(!isdigit(cstr[idx]))
 				break;
-		if(idx==maxLen)
+		if(idx==maxLen||idx==old_idx)
 			return 0;
 		if(cstr[idx]=='.')
 		{

@@ -186,6 +186,10 @@ static struct
 	{"dvec-last",         FKL_OP_MODE_I,        },
 	{"vec-first",         FKL_OP_MODE_I,        },
 	{"vec-last",          FKL_OP_MODE_I,        },
+
+	{"pop-loc",           FKL_OP_MODE_IuB,      },
+	{"pop-loc-c",         FKL_OP_MODE_IuC,      },
+	{"pop-loc-x",         FKL_OP_MODE_IuBB,     },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

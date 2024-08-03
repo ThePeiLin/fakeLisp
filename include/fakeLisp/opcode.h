@@ -187,6 +187,10 @@ typedef enum
 	FKL_OP_VEC_FIRST,
 	FKL_OP_VEC_LAST,
 
+	FKL_OP_POP_LOC,
+	FKL_OP_POP_LOC_C,
+	FKL_OP_POP_LOC_X,
+
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

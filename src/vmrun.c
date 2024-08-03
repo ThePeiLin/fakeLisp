@@ -786,7 +786,7 @@ pop_arg:
 			{
 				if(exe->tp<=exe->bp)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
-				FklVMvalue* v=FKL_VM_POP_ARG(exe);
+				FklVMvalue* v=FKL_VM_POP_TOP_VALUE(exe);
 				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
@@ -803,7 +803,7 @@ pop_rest_arg:
 				FklVMvalue* obj=FKL_VM_NIL;
 				FklVMvalue* volatile* pValue=&obj;
 				for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
-					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
+					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_TOP_VALUE(exe));
 				GET_COMPOUND_FRAME_LOC(frame,idx)=obj;
 			}
 			break;
@@ -1945,6 +1945,20 @@ push_dvec:
 				if(!vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[vv->size-1]);
+			}
+			break;
+		case FKL_OP_POP_LOC:
+			idx=ins->bu;
+			goto pop_loc;
+		case FKL_OP_POP_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_loc;
+		case FKL_OP_POP_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+pop_loc:
+			{
+				FklVMvalue* v=FKL_VM_POP_TOP_VALUE(exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:
@@ -2080,7 +2094,7 @@ pop_arg:
 			{
 				if(exe->tp<=exe->bp)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
-				FklVMvalue* v=FKL_VM_POP_ARG(exe);
+				FklVMvalue* v=FKL_VM_POP_TOP_VALUE(exe);
 				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
@@ -2097,7 +2111,7 @@ pop_rest_arg:
 				FklVMvalue* obj=FKL_VM_NIL;
 				FklVMvalue* volatile* pValue=&obj;
 				for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
-					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
+					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_TOP_VALUE(exe));
 				GET_COMPOUND_FRAME_LOC(frame,idx)=obj;
 			}
 			break;
@@ -3239,6 +3253,20 @@ push_dvec:
 				if(!vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[vv->size-1]);
+			}
+			break;
+		case FKL_OP_POP_LOC:
+			idx=ins->bu;
+			goto pop_loc;
+		case FKL_OP_POP_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_loc;
+		case FKL_OP_POP_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+pop_loc:
+			{
+				FklVMvalue* v=FKL_VM_POP_TOP_VALUE(exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:
@@ -3373,7 +3401,7 @@ pop_arg:
 			{
 				if(exe->tp<=exe->bp)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
-				FklVMvalue* v=FKL_VM_POP_ARG(exe);
+				FklVMvalue* v=FKL_VM_POP_TOP_VALUE(exe);
 				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
@@ -3390,7 +3418,7 @@ pop_rest_arg:
 				FklVMvalue* obj=FKL_VM_NIL;
 				FklVMvalue* volatile* pValue=&obj;
 				for(;exe->tp>exe->bp;pValue=&FKL_VM_CDR(*pValue))
-					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_ARG(exe));
+					*pValue=fklCreateVMvaluePairWithCar(exe,FKL_VM_POP_TOP_VALUE(exe));
 				GET_COMPOUND_FRAME_LOC(frame,idx)=obj;
 			}
 			break;
@@ -4532,6 +4560,20 @@ push_dvec:
 				if(!vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FKL_VM_PUSH_VALUE(exe,vv->base[vv->size-1]);
+			}
+			break;
+		case FKL_OP_POP_LOC:
+			idx=ins->bu;
+			goto pop_loc;
+		case FKL_OP_POP_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto pop_loc;
+		case FKL_OP_POP_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+pop_loc:
+			{
+				FklVMvalue* v=FKL_VM_POP_TOP_VALUE(exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=v;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:

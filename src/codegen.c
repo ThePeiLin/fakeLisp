@@ -777,6 +777,16 @@ static inline FklByteCodelnt* append_pop_arg_ins(InsAppendMode m
 	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_POP_ARG,idx,fid,line,scope);
 }
 
+static inline FklByteCodelnt* append_pop_loc_ins(InsAppendMode m
+		,FklByteCodelnt* bcl
+		,uint32_t idx
+		,FklSid_t fid
+		,uint32_t line
+		,uint32_t scope)
+{
+	return set_and_append_ins_with_unsigned_imm(m,bcl,FKL_OP_POP_LOC,idx,fid,line,scope);
+}
+
 static inline FklByteCodelnt* append_pop_rest_arg_ins(InsAppendMode m
 		,FklByteCodelnt* bcl
 		,uint32_t idx
@@ -1399,16 +1409,13 @@ BC_PROCESS(_let1_exp_bc_process)
 	Let1Context* ctx=context->data;
 	FklPtrStack* bcls=ctx->stack;
 	FklUintStack* symbolStack=ctx->ss;
-	FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
-	FklInstruction resBp=create_op_ins(FKL_OP_RES_BP);
 
 	FklByteCodelnt* retval=fklPopPtrStack(bcls);
-	fklByteCodeLntInsertFrontIns(&resBp,retval,fid,line,scope);
 	while(!fklIsUintStackEmpty(symbolStack))
 	{
 		FklSid_t id=fklPopUintStack(symbolStack);
 		uint32_t idx=fklAddCodegenDefBySid(id,scope,env)->idx;
-		append_pop_arg_ins(INS_APPEND_FRONT,retval,idx,fid,line,scope);
+		append_pop_loc_ins(INS_APPEND_FRONT,retval,idx,fid,line,scope);
 	}
 	if(!fklIsPtrStackEmpty(bcls))
 	{
@@ -1416,7 +1423,6 @@ BC_PROCESS(_let1_exp_bc_process)
 		fklCodeLntReverseConcat(args,retval);
 		fklDestroyByteCodelnt(args);
 	}
-	fklByteCodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
 	return retval;
 }
 
@@ -1436,6 +1442,36 @@ BC_PROCESS(_let_arg_exp_bc_process)
 	}
 	else
 		return NULL;
+}
+
+BC_PROCESS(_letrec_exp_bc_process)
+{
+	FklPtrStack* s=GET_STACK(context);
+
+	FklByteCodelnt* body=fklPopPtrStack(s);
+	FklByteCodelnt* retval=fklPopPtrStack(s);
+	fklCodeLntConcat(retval,body);
+	fklDestroyByteCodelnt(body);
+	return retval;
+}
+
+BC_PROCESS(_letrec_arg_exp_bc_process)
+{
+	Let1Context* ctx=context->data;
+	FklPtrStack* bcls=ctx->stack;
+	FklUintStack* symbolStack=ctx->ss;
+
+	FklByteCodelnt* retval=create_0len_bcl();
+	while(!fklIsUintStackEmpty(symbolStack))
+	{
+		FklByteCodelnt* value_bc=fklPopPtrStack(bcls);
+		FklSid_t id=fklPopUintStack(symbolStack);
+		uint32_t idx=fklAddCodegenDefBySid(id,scope,env)->idx;
+		append_pop_loc_ins(INS_APPEND_FRONT,retval,idx,fid,line,scope);
+		fklCodeLntReverseConcat(value_bc,retval);
+		fklDestroyByteCodelnt(value_bc);
+	}
+	return retval;
 }
 
 static CODEGEN_FUNC(codegen_let1)
@@ -1537,7 +1573,6 @@ static inline FklNastNode* create_nast_list(FklNastNode** a,size_t num,uint32_t 
 	return r;
 }
 
-// TODO: improve it
 static CODEGEN_FUNC(codegen_let81)
 {
 	FklSid_t letHeadId=fklAddSymbolCstr("let",&outer_ctx->public_symbol_table)->id;
@@ -1579,7 +1614,6 @@ static CODEGEN_FUNC(codegen_let81)
 			,codegenQuestStack);
 }
 
-// FIX:  
 static CODEGEN_FUNC(codegen_letrec)
 {
 	FklNastNode* const* builtin_pattern_node=outer_ctx->builtin_pattern_node;
@@ -1619,8 +1653,8 @@ static CODEGEN_FUNC(codegen_letrec)
 	FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
 	FklPtrQueue* queue=fklCreatePtrQueue();
 	pushListItemToQueue(rest,queue,NULL);
-	FklCodegenQuest* let1Quest=fklCreateCodegenQuest(_let1_exp_bc_process
-			,createLet1CodegenContext(symStack)
+	FklCodegenQuest* let1Quest=fklCreateCodegenQuest(_letrec_exp_bc_process
+			,createDefaultStackContext(fklCreatePtrStack(2,16))
 			,NULL
 			,cs
 			,cms
@@ -1646,8 +1680,8 @@ static CODEGEN_FUNC(codegen_letrec)
 
 	len=fklLengthPtrQueue(valueQueue);
 
-	FklCodegenQuest* argQuest=fklCreateCodegenQuest(_let_arg_exp_bc_process
-			,createDefaultStackContext(fklCreatePtrStack(len,16))
+	FklCodegenQuest* argQuest=fklCreateCodegenQuest(_letrec_arg_exp_bc_process
+			,createLet1CodegenContext(symStack)
 			,createMustHasRetvalQueueNextExpression(valueQueue)
 			,cs
 			,cms

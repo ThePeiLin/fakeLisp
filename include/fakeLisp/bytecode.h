@@ -139,8 +139,8 @@ FklByteCodelnt* fklCreateSingleInsBclnt(FklInstruction ins
 void fklPrintByteCodelnt(FklByteCodelnt* obj,FILE* fp,const FklSymbolTable*,const FklConstTable*);
 void fklDestroyByteCodelnt(FklByteCodelnt*);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt*,uint64_t);
-void fklCodeLntConcat(FklByteCodelnt*,FklByteCodelnt*);
-void fklCodeLntReverseConcat(FklByteCodelnt*,FklByteCodelnt*);
+void fklCodeLntConcat(FklByteCodelnt*,const FklByteCodelnt*);
+void fklCodeLntReverseConcat(const FklByteCodelnt*,FklByteCodelnt*);
 
 void fklByteCodeLntPushBackIns(FklByteCodelnt* bcl
 		,const FklInstruction* ins

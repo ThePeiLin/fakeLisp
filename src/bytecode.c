@@ -1189,7 +1189,7 @@ void fklIncreaseScpOfByteCodelnt(FklByteCodelnt* o,uint64_t size)
 }
 
 #define FKL_INCREASE_ALL_SCP(l,ls,s) for(size_t i=0;i<(ls);i++)(l)[i].scp+=(s)
-void fklCodeLntConcat(FklByteCodelnt* f,FklByteCodelnt* s)
+void fklCodeLntConcat(FklByteCodelnt* f,const FklByteCodelnt* s)
 {
 	if(s->bc->len)
 	{
@@ -1227,7 +1227,7 @@ void fklCodeLntConcat(FklByteCodelnt* f,FklByteCodelnt* s)
 	}
 }
 
-void fklCodeLntReverseConcat(FklByteCodelnt* f,FklByteCodelnt* s)
+void fklCodeLntReverseConcat(const FklByteCodelnt* f,FklByteCodelnt* s)
 {
 	if(f->bc->len)
 	{

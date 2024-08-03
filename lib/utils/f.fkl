@@ -76,14 +76,14 @@
   (define (max a b) (if (> a b) a b)))
 
 (export
-  (define (merge-sort! cmpf l)
+  (define (list-merge-sort! cmpf l)
     (if (and l (cdr l))
       (let [(h (do [(h (cons nil l) (cdr h))
                     (s l (cdr s))
                     (f (and l (cdr l)) (cdr f))]
                  [(not f) (begin (cdr-set! h nil) s)]))]
-        (let [(l (merge-sort! cmpf l))
-              (h (merge-sort! cmpf h))
+        (let [(l (list-merge-sort! cmpf l))
+              (h (list-merge-sort! cmpf h))
               (head '((),()))]
           (do [(c head (cdr c))
                (l l)
@@ -101,7 +101,7 @@
           (cdr head)))
       l)))
 
-(export (define (merge-sort cmpf ls) (merge-sort! cmpf (copy ls))))
+(export (define (list-merge-sort cmpf ls) (list-merge-sort! cmpf (copy ls))))
 
 (export
   (define (times f t)
@@ -160,3 +160,19 @@
     (vec-msort! cmpf vec))
   (define (vec-merge-sort cmpf vec)
     (vec-msort! cmpf (copy vec))))
+
+(export
+  (define (msort! cmpf s)
+    (cond
+      [(vector? s)
+       (vec-merge-sort! cmpf s)]
+      [(list? s)
+       (list-merge-sort! cmpf s)]
+      [1 (throw 'incorrect-type (format "%S is not a vector or list" s))]))
+  (define (msort cmpf s)
+    (cond
+      [(vector? s)
+       (vec-merge-sort cmpf s)]
+      [(list? s)
+       (list-merge-sort cmpf s)]
+      [1 (throw 'incorrect-type (format "%S is not a vector or list" s))])))

@@ -41,7 +41,8 @@
     (remq)
     (fuv)
     (lisp-by-lisp)
-    (dvec-and-append)))
+    (dvec-and-append)
+    (sort)))
 
 (newline)
 (foreach (lambda (t) (println (cdr t)))

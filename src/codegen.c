@@ -1394,6 +1394,30 @@ static int is_valid_let_args(const FklNastNode* sl
 		return 0;
 }
 
+static int is_valid_letrec_args(const FklNastNode* sl
+		,FklCodegenEnv* env
+		,uint32_t scope
+		,FklUintStack* stack
+		,FklNastNode* const* builtin_pattern_node)
+{
+	if(fklIsNastNodeList(sl))
+	{
+		for(;sl->type==FKL_NAST_PAIR;sl=sl->pair->cdr)
+		{
+			FklNastNode* cc=sl->pair->car;
+			if(!is_valid_let_arg(cc,builtin_pattern_node))
+				return 0;
+			FklSid_t id=cc->pair->car->sym;
+			if(fklIsSymbolDefined(id,scope,env))
+				return 0;
+			fklPushUintStack(id,stack);
+		}
+		return 1;
+	}
+	else
+		return 0;
+}
+
 static inline FklNastNode* caddr_nast_node(const FklNastNode* node)
 {
 	return node->pair->cdr->pair->cdr->pair->car;
@@ -1632,10 +1656,9 @@ static CODEGEN_FUNC(codegen_letrec)
 
 	FklCodegenMacroScope* cms=fklCreateCodegenMacroScope(macroScope);
 
-	fklAddCodegenDefBySid(firstSymbol->sym,cs,curEnv);
 	fklPushUintStack(firstSymbol->sym,symStack);
 
-	if(!is_valid_let_args(args,curEnv,cs,symStack,builtin_pattern_node))
+	if(!is_valid_letrec_args(args,curEnv,cs,symStack,builtin_pattern_node))
 	{
 		cms->refcount=1;
 		fklDestroyCodegenMacroScope(cms);

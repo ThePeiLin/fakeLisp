@@ -59,6 +59,7 @@ static inline int compileAndRun(const char* filename,int argc,const char* const*
 			,main_env
 			,codegen.runtime_symbol_table
 			,pst);
+	fklUpdateGlobalPrototype(codegen.pts,codegen.global_env);
 	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 
@@ -1278,6 +1279,7 @@ static int repl_frame_step(void* data,FklVM* exe)
 					,main_env
 					,codegen->runtime_symbol_table
 					,pst);
+			fklUpdateGlobalPrototype(codegen->pts,codegen->global_env);
 
 			uint32_t ret_proc_idx=codegen->pts->pa[1].lcount;
 			set_last_ins_get_loc(mainCode,ret_proc_idx);
@@ -1556,6 +1558,7 @@ static int eval_frame_step(void* data,FklVM* exe)
 				,main_env
 				,codegen->runtime_symbol_table
 				,pst);
+		fklUpdateGlobalPrototype(codegen->pts,codegen->global_env);
 
 		uint32_t proc_idx=codegen->pts->pa[1].lcount;
 		set_last_ins_get_loc(mainCode,proc_idx);

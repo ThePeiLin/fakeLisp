@@ -236,6 +236,7 @@ static inline int pre_compile(const char* main_file_name
 		return EXIT_FAILURE;
 	}
 	fklUpdatePrototype(codegen.pts,main_env,codegen.runtime_symbol_table,pst);
+	fklUpdateGlobalPrototype(codegen.pts,codegen.global_env);
 	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 
@@ -303,6 +304,7 @@ static inline int compile(const char* filename
 		return EXIT_FAILURE;
 	}
 	fklUpdatePrototype(codegen.pts,main_env,codegen.runtime_symbol_table,pst);
+	fklUpdateGlobalPrototype(codegen.pts,codegen.global_env);
 	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 

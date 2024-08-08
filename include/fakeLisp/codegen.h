@@ -49,6 +49,8 @@ void fklUpdatePrototype(FklFuncPrototypes* cp
 		,FklSymbolTable* runtime_st
 		,FklSymbolTable* pst);
 
+void fklUpdateGlobalPrototype(FklFuncPrototypes* cp,FklCodegenEnv* env);
+
 typedef struct FklCodegenMacro
 {
 	FklNastNode* origin_exp;

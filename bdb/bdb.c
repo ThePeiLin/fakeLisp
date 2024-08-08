@@ -103,6 +103,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx* ctx,const char* filenam
 			,main_env
 			,codegen.runtime_symbol_table
 			,pst);
+	fklUpdateGlobalPrototype(codegen.pts,codegen.global_env);
 	fklDestroyCodegenEnv(main_env);
 	fklPrintUndefinedRef(codegen.global_env,codegen.runtime_symbol_table,pst);
 

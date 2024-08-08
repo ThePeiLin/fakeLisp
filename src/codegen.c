@@ -1186,6 +1186,12 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* c
 			ref->isLocal=1;
 			free(uref);
 		}
+		else if((def=fklGetCodegenRefBySid(uref->id,env)))
+		{
+			ref->cidx=def->idx;
+			ref->isLocal=0;
+			free(uref);
+		}
 		else if(env->prev)
 		{
 			ref->cidx=fklAddCodegenRefBySidRetIndex(uref->id,env,uref->fid,uref->line,uref->assign);
@@ -2819,6 +2825,11 @@ void fklUpdatePrototype(FklFuncPrototypes* cp
 			.isLocal=sd->isLocal};
 		refs[sd->idx]=ref;
 	}
+}
+
+void fklUpdateGlobalPrototype(FklFuncPrototypes* cp,FklCodegenEnv* env)
+{
+	process_unresolve_ref(env,cp);
 }
 
 FklCodegenEnv* fklCreateCodegenEnv(FklCodegenEnv* prev
@@ -7512,6 +7523,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 {
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	fklUpdatePrototype(codegen->pts,env,codegen->runtime_symbol_table,pst);
+	fklUpdateGlobalPrototype(codegen->pts,codegen->global_env);
 	fklPrintUndefinedRef(env->prev,codegen->runtime_symbol_table,pst);
 
 	MacroContext* d=(MacroContext*)(context->data);
@@ -7697,6 +7709,7 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	custom_action_ctx_destroy(custom_ctx);
 	fklUpdatePrototype(codegen->pts,env,codegen->runtime_symbol_table,pst);
+	fklUpdateGlobalPrototype(codegen->pts,codegen->global_env);
 	fklPrintUndefinedRef(env->prev,codegen->runtime_symbol_table,pst);
 
 	FklPtrStack* stack=d->stack;

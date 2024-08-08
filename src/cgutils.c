@@ -347,7 +347,6 @@ static inline FklUnReSymbolRef* has_resolvable_ref(FklSid_t id,uint32_t scope,co
 	return NULL;
 }
 
-// FIXME: 修复一个不算bug的bug
 FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,uint64_t line,uint32_t assign)
 {
 	FklHashTable* ht=&env->refs;
@@ -371,23 +370,23 @@ FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,
 		FklCodegenEnv* prev=env->prev;
 		if(prev)
 		{
-			// FklCodegenEnv* targetEnv=NULL;
-			// FklSymbolDef* targetDef=has_outer_def(prev,id,env->pscope,&targetEnv);
-			// if(targetDef)
-			// {
-			// 	FklSymbolDef* cel=add_ref_to_all_penv(id,env,targetEnv,targetDef->isConst,&ret);
-			// 	cel->isLocal=1;
-			// 	cel->cidx=targetDef->idx;
-			// 	targetEnv->slotFlags[targetDef->idx]=FKL_CODEGEN_ENV_SLOT_REF;
-			// }
-			// else
+			FklCodegenEnv* targetEnv=NULL;
+			FklSymbolDef* targetDef=has_outer_def(prev,id,env->pscope,&targetEnv);
+			if(targetDef)
 			{
-				// FklSymbolDef* targetRef=has_outer_ref(prev
-				// 		,id
-				// 		,&targetEnv);
-				// if(targetRef&&is_ref_solved(targetRef,targetEnv->prev))
-				// 	add_ref_to_all_penv(id,env,targetEnv->prev,targetRef->isConst,&ret);
-				// else
+				FklSymbolDef* cel=add_ref_to_all_penv(id,env,targetEnv,targetDef->isConst,&ret);
+				cel->isLocal=1;
+				cel->cidx=targetDef->idx;
+				targetEnv->slotFlags[targetDef->idx]=FKL_CODEGEN_ENV_SLOT_REF;
+			}
+			else
+			{
+				FklSymbolDef* targetRef=has_outer_ref(prev
+						,id
+						,&targetEnv);
+				if(targetRef&&is_ref_solved(targetRef,targetEnv->prev))
+					add_ref_to_all_penv(id,env,targetEnv->prev,targetRef->isConst,&ret);
+				else
 				{
 					FklSymbolDef def=INIT_SYMBOL_DEF(id,env->pscope,idx);
 					ret=fklGetOrPutHashItem(&def,ht);

@@ -6531,7 +6531,6 @@ void fklInitGlobCodegenEnv(FklCodegenEnv* curEnv,FklSymbolTable* pst)
 	{
 		FklSymbolDef* ref=fklAddCodegenBuiltinRefBySid(fklAddSymbolCstr(list->s,pst)->id,curEnv);
 		ref->isConst=1;
-		// FklSymbolDef* def=fklAddCodegenDefBySid(fklAddSymbolCstr(list->s,pst)->id,1,curEnv);
 	}
 }
 

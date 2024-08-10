@@ -1182,7 +1182,9 @@ static inline uint32_t enter_new_scope(uint32_t p,FklCodegenEnv* env)
 	return r;
 }
 
-static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* pts)
+static inline void process_unresolve_ref(FklCodegenEnv* env
+		,uint32_t scope
+		,FklFuncPrototypes* pts)
 {
 	FklPtrStack* urefs=&env->uref;
 	FklFuncPrototype* pa=pts->pa;
@@ -1192,6 +1194,11 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* p
 	for(uint32_t i=0;i<count;i++)
 	{
 		FklUnReSymbolRef* uref=urefs->base[i];
+		if(uref->scope<scope)
+		{
+			fklPushPtrStack(uref,&urefs1);
+			continue;
+		}
 		FklFuncPrototype* cpt=&pa[uref->prototypeId];
 		FklSymbolDef* ref=&cpt->refs[uref->idx];
 		FklSymbolDef* def=fklFindSymbolDefByIdAndScope(uref->id,uref->scope,env);
@@ -1201,6 +1208,11 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* p
 			ref->cidx=def->idx;
 			ref->isLocal=1;
 			free(uref);
+		}
+		else if(env->scopes[uref->scope-1].p)
+		{
+			uref->scope=env->scopes[uref->scope-1].p;
+			fklPushPtrStack(uref,&urefs1);
 		}
 		else if(env->prev)
 		{
@@ -1221,12 +1233,13 @@ static inline void process_unresolve_ref(FklCodegenEnv* env,FklFuncPrototypes* p
 
 static inline int reset_flag_and_check_var_be_refed(uint8_t* flags
 		,FklCodegenEnvScope* sc
+		,uint32_t scope
 		,FklCodegenEnv* env
 		,FklFuncPrototypes* cp
 		,uint32_t* start
 		,uint32_t* end)
 {
-	process_unresolve_ref(env,cp);
+	process_unresolve_ref(env,scope,cp);
 	int r=0;
 	uint32_t last=sc->start+sc->end;
 	uint32_t i=sc->start;
@@ -1274,7 +1287,7 @@ static inline void check_and_close_ref(FklByteCodelnt* retval
 	FklCodegenEnvScope* cur=&env->scopes[scope-1];
 	uint32_t start=cur->start;
 	uint32_t end=start+1;
-	if(reset_flag_and_check_var_be_refed(env->slotFlags,cur,env,pa,&start,&end))
+	if(reset_flag_and_check_var_be_refed(env->slotFlags,cur,scope,env,pa,&start,&end))
 		append_close_ref_ins(INS_APPEND_BACK,retval,start,end,fid,line,scope);
 }
 
@@ -2846,7 +2859,7 @@ void fklUpdatePrototype(FklFuncPrototypes* cp
 	FKL_ASSERT(env->pdef.num==0);
 	FklFuncPrototype* pts=&cp->pa[env->prototypeId];
 	pts->lcount=env->lcount;
-	process_unresolve_ref(env,cp);
+	process_unresolve_ref(env,1,cp);
 	fklUpdatePrototypeRef(cp,env,globalSymTable,pst);
 }
 

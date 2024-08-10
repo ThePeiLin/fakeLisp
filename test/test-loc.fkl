@@ -3,11 +3,9 @@
 (define (f1)
   (define (f2)
     (define (f3)
-      (unless (equal a "f3")
-        (throw 'assert-failed "f3"))
+      (assert (equal a "f3"))
       (println "f3:" a))
-    (unless (equal a "f2")
-        (throw 'assert-failed "f2"))
+    (assert (equal a "f2"))
     (println "f2:" a)
     (define a "f3")
     (f3))
@@ -28,9 +26,18 @@
 
 (f3 10)
 
-(println (f2))
-(println (f1 9))
-(println (// 9 (- 10 (f2))))
+(define retval (f2))
+(assert (eqv retval 10))
+
+(println retval)
+
+(define retval (f1 9))
+(assert (eqv retval 10))
+(println retval)
+
+(define retval (// 9 (- 10 (f2))))
+(assert (eqv retval 9))
+(println retval)
 
 (define (cons x y)
   (lambda (m) (m x y)))
@@ -39,6 +46,10 @@
 (define (cdr x)
   (x (lambda (m n) n)))
 (define c1 (cons 'foo 'bar))
+
+(assert (eq (car c1) 'foo))
+(assert (eq (cdr c1) 'bar))
+
 (println (car c1))
 (println (cdr c1))
 
@@ -58,3 +69,29 @@
   (assert (eq f (f)))
   (println "f is eq to (lambda () f)"))
 
+(define (f1)
+  (local
+    (define (f2)
+      (assert (equal a "f2"))
+      (println a))
+    (define a "f2")
+    (f2))
+  (local
+    (define f3 nil)
+    (local
+      (setq f3
+        (lambda ()
+          (assert (equal a "f3"))
+          (println a))))
+    (define a "f3")
+    (f3))
+  (define f4 nil)
+  (local
+    (setq f4
+      (lambda ()
+        (assert (equal a "f4"))
+        (println a))))
+  (define a "f4")
+  (f4))
+
+(f1)

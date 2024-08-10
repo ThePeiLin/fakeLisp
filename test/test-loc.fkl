@@ -1,7 +1,13 @@
+(import (only (.. lib utils m) assert))
+
 (define (f1)
   (define (f2)
     (define (f3)
+      (unless (equal a "f3")
+        (throw 'assert-failed "f3"))
       (println "f3:" a))
+    (unless (equal a "f2")
+        (throw 'assert-failed "f2"))
     (println "f2:" a)
     (define a "f3")
     (f3))
@@ -35,3 +41,20 @@
 (define c1 (cons 'foo 'bar))
 (println (car c1))
 (println (cdr c1))
+
+(define f 'foobar)
+
+(local
+  (define (f) f)
+  (assert (eq f (f)))
+  (println "f is eq to (lambda () f)"))
+
+(letrec [(f (lambda () f))]
+  (assert (eq f (f)))
+  (println "f is eq to (lambda () f)"))
+
+(letrec [(a 114514)
+         (f (lambda () f))]
+  (assert (eq f (f)))
+  (println "f is eq to (lambda () f)"))
+

@@ -28,6 +28,7 @@ typedef struct FklCodegenEnvScope
 
 typedef struct FklCodegenEnv
 {
+	size_t refcount;
 	FklPtrStack uref;
 
 	uint8_t* slotFlags;
@@ -41,12 +42,19 @@ typedef struct FklCodegenEnv
 	struct FklCodegenEnv* prev;
 	FklHashTable refs;
 	struct FklCodegenMacroScope* macros;
-	size_t refcount;
+
+	FklHashTable pdef;
+	FklPtrStack ref_pdef;
 }FklCodegenEnv;
 
 void fklUpdatePrototype(FklFuncPrototypes* cp
 		,FklCodegenEnv* env
 		,FklSymbolTable* runtime_st
+		,FklSymbolTable* pst);
+
+void fklUpdatePrototypeRef(FklFuncPrototypes* cp
+		,FklCodegenEnv* env
+		,FklSymbolTable* globalSymTable
 		,FklSymbolTable* pst);
 
 typedef struct FklCodegenMacro
@@ -377,6 +385,20 @@ typedef struct FklCodegenQuest
 	FklCodegenNextExpression* nextExpression;
 }FklCodegenQuest;
 
+typedef struct
+{
+	FklSidScope k;
+	uint8_t isConst;
+}FklPdef;
+
+typedef struct
+{
+	FklSid_t id;
+	uint32_t scope;
+	uint32_t prototypeId;
+	uint32_t idx;
+}FklPdefRef;
+
 void fklInitExportSidIdxTable(FklHashTable* ht);
 FklHashTable* fklCreateCodegenReplacementTable(void);
 
@@ -456,6 +478,18 @@ FklSymbolDef* fklAddCodegenRefBySid(FklSid_t id,FklCodegenEnv* env,FklSid_t fid,
 FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
 
 FklSymbolDef* fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+
+void fklAddCodegenPreDefBySid(FklSid_t id,uint32_t scope,uint8_t isConst,FklCodegenEnv* env);
+FklPdef* fklGetCodegenPreDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+void fklAddCodegenRefToPreDef(FklSid_t id
+		,uint32_t scope
+		,uint32_t prototypeId
+		,uint32_t idx
+		,FklCodegenEnv* env);
+void fklResolveCodegenPreDef(FklSid_t,uint32_t scope
+		,FklCodegenEnv* env
+		,FklFuncPrototypes* pts);
+void fklClearCodegenPreDef(FklCodegenEnv* env);
 
 int fklIsSymbolDefined(FklSid_t sid,uint32_t scope,FklCodegenEnv*);
 

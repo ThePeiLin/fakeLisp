@@ -943,31 +943,6 @@ static inline void update_prototype_lcount(FklFuncPrototypes* cp
 	pts->lcount=env->lcount;
 }
 
-static inline void update_prototype_ref(FklFuncPrototypes* cp
-		,FklCodegenEnv* env
-		,FklSymbolTable* globalSymTable
-		,FklSymbolTable* pst)
-{
-	FklFuncPrototype* pts=&cp->pa[env->prototypeId];
-	FklHashTable* eht=&env->refs;
-	uint32_t count=eht->num;
-	FklSymbolDef* refs=(FklSymbolDef*)fklRealloc(pts->refs,sizeof(FklSymbolDef)*count);
-	FKL_ASSERT(refs||!count);
-	pts->refs=refs;
-	pts->rcount=count;
-	for(FklHashTableItem* list=eht->first;list;list=list->next)
-	{
-		FklSymbolDef* sd=(FklSymbolDef*)list->data;
-		FklSid_t sid=fklAddSymbol(fklGetSymbolWithId(sd->k.id,pst)->symbol,globalSymTable)->id;
-		FklSymbolDef ref={.k.id=sid,
-			.k.scope=sd->k.scope,
-			.idx=sd->idx,
-			.cidx=sd->cidx,
-			.isLocal=sd->isLocal};
-		refs[sd->idx]=ref;
-	}
-}
-
 static inline void alloc_more_space_for_var_ref(FklVMCompoundFrameVarRef* lr
 		,uint32_t i
 		,uint32_t n)
@@ -1274,7 +1249,7 @@ static int repl_frame_step(void* data,FklVM* exe)
 			update_prototype_lcount(codegen->pts,main_env);
 
 			fklVMacquireSt(exe->gc);
-			update_prototype_ref(codegen->pts
+			fklUpdatePrototypeRef(codegen->pts
 					,main_env
 					,codegen->runtime_symbol_table
 					,pst);
@@ -1325,6 +1300,7 @@ static int repl_frame_step(void* data,FklVM* exe)
 		}
 		else
 		{
+			fklClearCodegenPreDef(main_env);
 			if(is_need_update_const_array(&const_count,kt))
 				fklQueueWorkInIdleThread(exe,process_update_const_array_cb,NULL);
 			ctx->state=WAITING;
@@ -1552,7 +1528,7 @@ static int eval_frame_step(void* data,FklVM* exe)
 		update_prototype_lcount(codegen->pts,main_env);
 
 		fklVMacquireSt(exe->gc);
-		update_prototype_ref(codegen->pts
+		fklUpdatePrototypeRef(codegen->pts
 				,main_env
 				,codegen->runtime_symbol_table
 				,pst);

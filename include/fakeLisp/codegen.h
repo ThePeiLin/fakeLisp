@@ -389,7 +389,7 @@ typedef struct
 {
 	FklSidScope k;
 	uint8_t isConst;
-}FklPdef;
+}FklPredef;
 
 typedef struct
 {
@@ -397,7 +397,7 @@ typedef struct
 	uint32_t scope;
 	uint32_t prototypeId;
 	uint32_t idx;
-}FklPdefRef;
+}FklPreDefRef;
 
 void fklInitExportSidIdxTable(FklHashTable* ht);
 FklHashTable* fklCreateCodegenReplacementTable(void);
@@ -480,7 +480,7 @@ FklSymbolDef* fklGetCodegenRefBySid(FklSid_t id,FklCodegenEnv* env);
 FklSymbolDef* fklAddCodegenDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
 
 void fklAddCodegenPreDefBySid(FklSid_t id,uint32_t scope,uint8_t isConst,FklCodegenEnv* env);
-FklPdef* fklGetCodegenPreDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
+FklPredef* fklGetCodegenPreDefBySid(FklSid_t id,uint32_t scope,FklCodegenEnv* env);
 void fklAddCodegenRefToPreDef(FklSid_t id
 		,uint32_t scope
 		,uint32_t prototypeId

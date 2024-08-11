@@ -1151,12 +1151,12 @@ static FklHashTableMetaTable CodegenEnvHashMethodTable=
 
 static void _codegenenv_pdef_setVal(void* d0,const void* d1)
 {
-	*(FklPdef*)d0=*(FklPdef*)d1;
+	*(FklPredef*)d0=*(FklPredef*)d1;
 }
 
 static FklHashTableMetaTable CodegenEnvPdefHashMethodTable=
 {
-	.size=sizeof(FklPdef),
+	.size=sizeof(FklPredef),
 	.__setKey=_codegenenv_setKey,
 	.__setVal=_codegenenv_pdef_setVal,
 	.__hashFunc=_codegenenv_hashFunc,
@@ -1196,6 +1196,7 @@ static inline void process_unresolve_ref(FklCodegenEnv* env
 		FklUnReSymbolRef* uref=urefs->base[i];
 		if(uref->scope<scope)
 		{
+			// 忽略来自父作用域的未解决引用
 			fklPushPtrStack(uref,&urefs1);
 			continue;
 		}

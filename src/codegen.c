@@ -4490,6 +4490,10 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt* bcl)
 			case FKL_OP_PUSH_I64B_X:
 			case FKL_OP_TRUE:
 			case FKL_OP_EXTRA_ARG:
+			case FKL_OP_PUSH_DVEC:
+			case FKL_OP_PUSH_DVEC_C:
+			case FKL_OP_PUSH_DVEC_X:
+			case FKL_OP_PUSH_DVEC_XX:
 				break;
 			default:
 				return 0;

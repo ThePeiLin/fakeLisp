@@ -190,6 +190,17 @@ static struct
 	{"pop-loc",           FKL_OP_MODE_IuB,      },
 	{"pop-loc-c",         FKL_OP_MODE_IuC,      },
 	{"pop-loc-x",         FKL_OP_MODE_IuBB,     },
+
+	{"car-set",           FKL_OP_MODE_I,        },
+	{"cdr-set",           FKL_OP_MODE_I,        },
+	{"box-set",           FKL_OP_MODE_I,        },
+
+	{"vec-set",           FKL_OP_MODE_I,        },
+	{"dvec-set",          FKL_OP_MODE_I,        },
+
+	{"hash-ref-2",        FKL_OP_MODE_I,        },
+	{"hash-ref-3",        FKL_OP_MODE_I,        },
+	{"hash-set",          FKL_OP_MODE_I,        },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

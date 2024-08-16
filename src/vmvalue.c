@@ -1418,7 +1418,7 @@ FklVMhashTableItem* fklVMhashTableGetItem(FklVMvalue* key,FklHashTable* ht)
 
 FklVMvalue* fklVMhashTableGet(FklVMvalue* key,FklHashTable* ht,int* ok)
 {
-	FklVMvalue* r=NULL;
+	FklVMvalue* r;
 	FklVMhashTableItem* item=fklGetHashItem(&key,ht);
 	if(item)
 	{
@@ -1426,7 +1426,10 @@ FklVMvalue* fklVMhashTableGet(FklVMvalue* key,FklHashTable* ht,int* ok)
 		r=item->v;
 	}
 	else
+	{
 		*ok=0;
+		r=NULL;
+	}
 	return r;
 }
 

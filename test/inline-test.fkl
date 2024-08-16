@@ -1,0 +1,25 @@
+(import (only (.. lib utils m) assert))
+
+(define p (cons 1 2))
+(assert (eq (car-set! p 'foo) 'foo))
+(assert (eq (car p) 'foo))
+(assert (eq (cdr-set! p 'bar) 'bar))
+(assert (eq (cdr p) 'bar))
+
+(define b #&())
+(assert (eq (box-set! b 'foo) 'foo))
+(assert (eq (unbox b) 'foo))
+
+(define v #(114))
+(assert (eq (vec-set! v 0 'foo) 'foo))
+(assert (eq (vec-ref v 0) 'foo))
+
+(define vd #vd(114))
+(assert (eq (dvec-set! vd 0 'foo) 'foo))
+(assert (eq (dvec-ref vd 0) 'foo))
+
+(define ht #hash())
+(assert (eq (hash-set! ht 'foo 'bar) 'bar))
+(assert (eq (hash-ref ht 'foo) 'bar))
+(assert (eq (hash-ref ht 'bar 'foo) 'foo))
+(assert (eq (hash-ref ht 'foo '114) 'bar))

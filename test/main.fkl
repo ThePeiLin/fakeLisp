@@ -42,7 +42,8 @@
     (fuv)
     (lisp-by-lisp)
     (dvec-and-append)
-    (sort)))
+    (sort)
+    (inline-test)))
 
 (newline)
 (foreach (lambda (t) (println (cdr t)))

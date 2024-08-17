@@ -135,6 +135,123 @@ static inline int set_ins_with_2_unsigned_imm(FklInstruction* ins,FklOpcode op,u
 #undef I32_L16_MASK
 #undef I64_L24_MASK
 
+static inline void push_ins_ln(FklByteCodeBuffer* buf,const FklInsLn* ins)
+{
+	if(buf->size==buf->capacity)
+	{
+		buf->capacity<<=1;
+		FklInsLn* new_base=(FklInsLn*)fklRealloc(buf->base,buf->capacity*sizeof(FklInsLn));
+		FKL_ASSERT(new_base);
+		buf->base=new_base;
+	}
+
+	buf->base[buf->size++]=*ins;
+}
+
+static inline void set_ins_ln_to_ins(const FklInsLn* cur_ins_ln,FklInstruction* ins)
+{
+	const FklInstruction* cur_ins=&cur_ins_ln->ins;
+	FklOpcode op=cur_ins->op;
+	int ol=fklGetOpcodeModeLen(op);
+
+	for(int i=0;i<ol;i++)
+		ins[i]=cur_ins_ln[i].ins;
+}
+
+static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklByteCodeBuffer* b)
+{
+	int change=0;
+	FklInstructionArg arg;
+	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+
+	do
+	{
+		b->size=0;
+
+		for(uint64_t i=0;i<a->size;)
+		{
+			FklInsLn* cur=&a->base[i];
+			if(cur->jmp_to)
+			{
+				set_ins_ln_to_ins(cur,ins);
+				fklGetInsOpArg(ins,&arg);
+				FKL_ASSERT(arg.ix);
+				if(arg.ix>0)
+				{
+					abort();
+				}
+				else
+				{
+					abort();
+				}
+			}
+			else
+			{
+				push_ins_ln(b,cur);
+				i++;
+			}
+		}
+
+		FklByteCodeBuffer* tmp=a;
+		a=b;
+		b=tmp;
+	}while(change);
+
+	return a;
+}
+
+#include<math.h>
+static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
+{
+	fputs("\n------\n",fp);
+	FklInstructionArg ins_arg;
+	uint64_t codeLen=buf->size;
+	int numLen=codeLen?(int)(log10(codeLen)+1):1;
+	for(uint64_t i=0;i<buf->size;i++)
+	{
+		FklInsLn* cur=&buf->base[i];
+		if(cur->block_id)
+			fprintf(fp,"\nblock_id: %u\n",cur->block_id);
+		FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+		int l=fklGetOpcodeModeLen(cur->ins.op);
+		for(int i=0;i<l;i++)
+			ins[i]=cur[i].ins;
+		fklGetInsOpArg(ins,&ins_arg);
+		fprintf(fp,"%-*ld:\t%-17s ",numLen,i,fklGetOpcodeName(ins->op));
+		switch(fklGetOpcodeMode(ins->op))
+		{
+			case FKL_OP_MODE_IsA:
+			case FKL_OP_MODE_IsB:
+			case FKL_OP_MODE_IsC:
+			case FKL_OP_MODE_IsBB:
+			case FKL_OP_MODE_IsCCB:
+				fprintf(fp,"%"FKL_PRT64D,ins_arg.ix);
+				break;
+			case FKL_OP_MODE_IuB:
+			case FKL_OP_MODE_IuC:
+			case FKL_OP_MODE_IuBB:
+			case FKL_OP_MODE_IuCCB:
+				fprintf(fp,"%"FKL_PRT64U,ins_arg.ux);
+				break;
+			case FKL_OP_MODE_IuAuB:
+			case FKL_OP_MODE_IuCuC:
+			case FKL_OP_MODE_IuCAuBB:
+			case FKL_OP_MODE_IuCAuBCC:
+				fprintf(fp,"%"FKL_PRT64U"\t%"FKL_PRT64U,ins_arg.ux,ins_arg.uy);
+				break;
+			case FKL_OP_MODE_I:
+				break;
+
+			case FKL_OP_MODE_IxAxB:
+				fprintf(fp,"%#"FKL_PRT64x"\t%#"FKL_PRT64x,ins_arg.ux,ins_arg.uy);
+				break;
+		}
+		putc('\n',fp);
+		if(cur->jmp_to)
+			fprintf(fp,"jmp_to: %u\n",cur->jmp_to);
+	}
+}
+
 // FIXME: 修复重计算立即数后的条件和无条件跳转指令的目标问题
 void fklRecomputeInsImm(FklByteCodelnt* bcl
 		,void* ctx
@@ -143,6 +260,9 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 {
 	FklInstructionArg arg;
 
+	FklInstruction cur[4]={FKL_INSTRUCTION_STATIC_INIT};
+	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+
 	FklByteCodeBuffer buf;
 	fklInitByteCodeBufferWith(&buf,bcl);
 	fklByteCodeBufferScanAndSetBasicBlock(&buf);
@@ -150,17 +270,19 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 	FklByteCodeBuffer new_buf;
 	fklInitByteCodeBuffer(&new_buf,bcl->bc->len);
 
+	FklInsLn tmp_ins_ln;
+
 	FklInsLn* cur_ins_ln=buf.base;
 	const FklInsLn* end=&cur_ins_ln[buf.size];
 	while(cur_ins_ln<end)
 	{
 		FklInstruction* cur_ins=&cur_ins_ln->ins;
+		tmp_ins_ln=*cur_ins_ln;
 		FklOpcode op=cur_ins->op;
 		if(predicate(op))
 		{
 			int ol=fklGetOpcodeModeLen(op);
 
-			FklInstruction cur[4]={FKL_INSTRUCTION_STATIC_INIT};
 			for(int i=0;i<ol;i++)
 				cur[i]=cur_ins_ln[i].ins;
 
@@ -176,7 +298,6 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 			}
 
 			int nl=0;
-			FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
 			switch(mode)
 			{
 				case FKL_OP_MODE_IsA:
@@ -204,19 +325,23 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 					abort();
 			}
 
-			for(int i=0;i<nl;i++)
+			tmp_ins_ln.ins=ins[0];
+			push_ins_ln(&new_buf,&tmp_ins_ln);
+			for(int i=1;i<nl;i++)
 				fklByteCodeBufferPush(&new_buf,&ins[i],cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
 
 			cur_ins_ln+=ol;
 		}
 		else
 		{
-			fklByteCodeBufferPush(&new_buf,cur_ins,cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
+			push_ins_ln(&new_buf,&tmp_ins_ln);
 			cur_ins_ln++;
 		}
 	}
 
-	fklSetByteCodelntWithBuf(bcl,&new_buf);
+	FklByteCodeBuffer* fin=recompute_jmp_target(&new_buf,&buf);
+	fklSetByteCodelntWithBuf(bcl,fin);
+	print_basic_block(&new_buf,stderr);
 	fklUninitByteCodeBuffer(&buf);
 	fklUninitByteCodeBuffer(&new_buf);
 }
@@ -345,57 +470,6 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt* bcl,const FklByteCodeBuffer* buf)
 	bcl->l=nnl;
 }
 
-// static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
-// {
-// 	fputs("\n------\n",fp);
-// 	FklInstructionArg ins_arg;
-// 	uint64_t codeLen=buf->size;
-// 	int numLen=codeLen?(int)(log10(codeLen)+1):1;
-// 	for(uint64_t i=0;i<buf->size;i++)
-// 	{
-// 		FklInsLn* cur=&buf->base[i];
-// 		if(cur->block_id)
-// 			fprintf(fp,"\nblock_id: %u\n",cur->block_id);
-// 		FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
-// 		int l=fklGetOpcodeModeLen(cur->ins.op);
-// 		for(int i=0;i<l;i++)
-// 			ins[i]=cur[i].ins;
-// 		fklGetInsOpArg(ins,&ins_arg);
-// 		fprintf(fp,"%-*ld:\t%-17s ",numLen,i,fklGetOpcodeName(ins->op));
-// 		switch(fklGetOpcodeMode(ins->op))
-// 		{
-// 			case FKL_OP_MODE_IsA:
-// 			case FKL_OP_MODE_IsB:
-// 			case FKL_OP_MODE_IsC:
-// 			case FKL_OP_MODE_IsBB:
-// 			case FKL_OP_MODE_IsCCB:
-// 				fprintf(fp,"%"FKL_PRT64D,ins_arg.ix);
-// 				break;
-// 			case FKL_OP_MODE_IuB:
-// 			case FKL_OP_MODE_IuC:
-// 			case FKL_OP_MODE_IuBB:
-// 			case FKL_OP_MODE_IuCCB:
-// 				fprintf(fp,"%"FKL_PRT64U,ins_arg.ux);
-// 				break;
-// 			case FKL_OP_MODE_IuAuB:
-// 			case FKL_OP_MODE_IuCuC:
-// 			case FKL_OP_MODE_IuCAuBB:
-// 			case FKL_OP_MODE_IuCAuBCC:
-// 				fprintf(fp,"%"FKL_PRT64U"\t%"FKL_PRT64U,ins_arg.ux,ins_arg.uy);
-// 				break;
-// 			case FKL_OP_MODE_I:
-// 				break;
-//
-// 			case FKL_OP_MODE_IxAxB:
-// 				fprintf(fp,"%#"FKL_PRT64x"\t%#"FKL_PRT64x,ins_arg.ux,ins_arg.uy);
-// 				break;
-// 		}
-// 		putc('\n',fp);
-// 		if(cur->jmp_to)
-// 			fprintf(fp,"jmp_to: %u\n",cur->jmp_to);
-// 	}
-// }
-
 void fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf)
 {
 	FKL_ASSERT(buf->size);
@@ -403,13 +477,14 @@ void fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf)
 	buf->base[0].block_id=1;
 	uint32_t next_block_id=2;
 	FklInsLn* base=buf->base;
+	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+
 	for(uint64_t i=1;i<buf->size;)
 	{
 		FklInsLn* cur=&base[i];
 		if(fklIsJmpIns(&cur->ins)
 				||fklIsCondJmpIns(&cur->ins))
 		{
-			FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
 			int l=fklGetOpcodeModeLen(cur->ins.op);
 			for(int i=0;i<l;i++)
 				ins[i]=cur[i].ins;

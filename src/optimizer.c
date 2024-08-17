@@ -148,7 +148,7 @@ static inline void push_ins_ln(FklByteCodeBuffer* buf,const FklInsLn* ins)
 	buf->base[buf->size++]=*ins;
 }
 
-static inline void set_ins_ln_to_ins(const FklInsLn* cur_ins_ln,FklInstruction* ins)
+static inline int set_ins_ln_to_ins(const FklInsLn* cur_ins_ln,FklInstruction* ins)
 {
 	const FklInstruction* cur_ins=&cur_ins_ln->ins;
 	FklOpcode op=cur_ins->op;
@@ -156,13 +156,28 @@ static inline void set_ins_ln_to_ins(const FklInsLn* cur_ins_ln,FklInstruction* 
 
 	for(int i=0;i<ol;i++)
 		ins[i]=cur_ins_ln[i].ins;
+	return ol;
+}
+
+static inline int set_jmp_backward(FklOpcode op,int64_t len,FklInstruction* new_ins)
+{
+	len=-len-1;
+	if(len>=FKL_I24_MIN)
+		return set_ins_with_signed_imm(new_ins,op,len);
+	len-=1;
+	if(len>=INT32_MIN)
+		return set_ins_with_signed_imm(new_ins,op,len);
+	len-=1;
+	return set_ins_with_signed_imm(new_ins,op,len);
 }
 
 static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklByteCodeBuffer* b)
 {
 	int change=0;
 	FklInstructionArg arg;
+	FklInsLn tmp_ins_ln;
 	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+	FklInstruction new_ins[4]={FKL_INSTRUCTION_STATIC_INIT};
 
 	do
 	{
@@ -173,20 +188,65 @@ static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklBy
 			FklInsLn* cur=&a->base[i];
 			if(cur->jmp_to)
 			{
-				set_ins_ln_to_ins(cur,ins);
+				int ol=set_ins_ln_to_ins(cur,ins);
 				fklGetInsOpArg(ins,&arg);
 				FKL_ASSERT(arg.ix);
 				if(arg.ix>0)
 				{
-					abort();
+					FklInsLn* jmp_to=&cur[ol];
+					uint64_t end=a->size-i-ol;
+					uint64_t jmp_offset=0;
+					for(;jmp_offset<end&&jmp_to[jmp_offset].block_id!=cur->jmp_to;jmp_offset++);
+					FKL_ASSERT(jmp_offset<end);
+
+					FklOpcode op=(cur->ins.op>=FKL_OP_JMP_IF_TRUE&&cur->ins.op<=FKL_OP_JMP_IF_FALSE)
+						?FKL_OP_JMP_IF_TRUE
+						:(cur->ins.op>=FKL_OP_JMP_IF_FALSE&&cur->ins.op<=FKL_OP_JMP_IF_FALSE_XX)
+						?FKL_OP_JMP_IF_FALSE
+						:FKL_OP_JMP;
+
+					int nl=set_ins_with_unsigned_imm(new_ins,op,jmp_offset);
+
+					if(jmp_offset==(uint64_t)arg.ix&&ol==nl)
+						goto no_change;
+					change=1;
+
+					tmp_ins_ln.ins=new_ins[0];
+					push_ins_ln(b,&tmp_ins_ln);
+					for(int i=1;i<nl;i++)
+						fklByteCodeBufferPush(b,&new_ins[i],cur->line,cur->scope,cur->fid);
+
 				}
 				else
 				{
-					abort();
+					int64_t offset=1;
+					for(;(int64_t)i>=offset&&cur[-offset].block_id!=cur->jmp_to;offset++);
+					FKL_ASSERT((int64_t)i>=offset);
+
+					FklOpcode op=(cur->ins.op>=FKL_OP_JMP_IF_TRUE&&cur->ins.op<=FKL_OP_JMP_IF_FALSE)
+						?FKL_OP_JMP_IF_TRUE
+						:(cur->ins.op>=FKL_OP_JMP_IF_FALSE&&cur->ins.op<=FKL_OP_JMP_IF_FALSE_XX)
+						?FKL_OP_JMP_IF_FALSE
+						:FKL_OP_JMP;
+
+					int nl=set_jmp_backward(op,offset,new_ins);
+					FklInstructionArg new_arg;
+					fklGetInsOpArg(new_ins,&new_arg);
+
+					if(new_arg.ix==arg.ix&&ol==nl)
+						goto no_change;
+					change=1;
+
+					tmp_ins_ln.ins=new_ins[0];
+					push_ins_ln(b,&tmp_ins_ln);
+					for(int i=1;i<nl;i++)
+						fklByteCodeBufferPush(b,&new_ins[i],cur->line,cur->scope,cur->fid);
 				}
+				i+=ol;
 			}
 			else
 			{
+no_change:
 				push_ins_ln(b,cur);
 				i++;
 			}
@@ -261,7 +321,7 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 	FklInstructionArg arg;
 
 	FklInstruction cur[4]={FKL_INSTRUCTION_STATIC_INIT};
-	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+	FklInstruction new_ins[4]={FKL_INSTRUCTION_STATIC_INIT};
 
 	FklByteCodeBuffer buf;
 	fklInitByteCodeBufferWith(&buf,bcl);
@@ -305,19 +365,19 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 				case FKL_OP_MODE_IsC:
 				case FKL_OP_MODE_IsBB:
 				case FKL_OP_MODE_IsCCB:
-					nl=set_ins_with_signed_imm(ins,op,arg.ix);
+					nl=set_ins_with_signed_imm(new_ins,op,arg.ix);
 					break;
 				case FKL_OP_MODE_IuB:
 				case FKL_OP_MODE_IuC:
 				case FKL_OP_MODE_IuBB:
 				case FKL_OP_MODE_IuCCB:
-					nl=set_ins_with_unsigned_imm(ins,op,arg.ux);
+					nl=set_ins_with_unsigned_imm(new_ins,op,arg.ux);
 					break;
 				case FKL_OP_MODE_IuAuB:
 				case FKL_OP_MODE_IuCuC:
 				case FKL_OP_MODE_IuCAuBB:
 				case FKL_OP_MODE_IuCAuBCC:
-					nl=set_ins_with_2_unsigned_imm(ins,op,arg.ux,arg.uy);
+					nl=set_ins_with_2_unsigned_imm(new_ins,op,arg.ux,arg.uy);
 					break;
 
 				case FKL_OP_MODE_I:
@@ -325,10 +385,10 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 					abort();
 			}
 
-			tmp_ins_ln.ins=ins[0];
+			tmp_ins_ln.ins=new_ins[0];
 			push_ins_ln(&new_buf,&tmp_ins_ln);
 			for(int i=1;i<nl;i++)
-				fklByteCodeBufferPush(&new_buf,&ins[i],cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
+				fklByteCodeBufferPush(&new_buf,&new_ins[i],cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
 
 			cur_ins_ln+=ol;
 		}
@@ -339,6 +399,7 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 		}
 	}
 
+	print_basic_block(&new_buf,stderr);
 	FklByteCodeBuffer* fin=recompute_jmp_target(&new_buf,&buf);
 	fklSetByteCodelntWithBuf(bcl,fin);
 	print_basic_block(&new_buf,stderr);

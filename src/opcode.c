@@ -1,6 +1,5 @@
 #include<fakeLisp/opcode.h>
 #include<string.h>
-#include<stdlib.h>
 
 static struct
 {
@@ -234,6 +233,7 @@ int fklGetOpcodeModeLen(FklOpcode op)
 		case FKL_OP_MODE_IuC:
 		case FKL_OP_MODE_IsC:
 		case FKL_OP_MODE_IuAuB:
+		case FKL_OP_MODE_IxAxB:
 			return 1;
 			break;
 
@@ -251,10 +251,6 @@ int fklGetOpcodeModeLen(FklOpcode op)
 
 		case FKL_OP_MODE_IuCAuBCC:
 			return 4;
-			break;
-
-		case FKL_OP_MODE_IxAxB:
-			abort();
 			break;
 	}
 	return 0;

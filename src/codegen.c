@@ -1,5 +1,6 @@
 #include<fakeLisp/codegen.h>
 #include<fakeLisp/opcode.h>
+#include<fakeLisp/optimizer.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/pattern.h>
 #include<fakeLisp/vm.h>
@@ -6079,88 +6080,6 @@ static FklCodegenQuestContext* createExportContext(FklCodegenInfo* codegen
 	data->alias=alias?fklMakeNastNodeRef(alias):NULL;
 	data->stack=fklCreatePtrStack(16,16);
 	return createCodegenQuestContext(data,&ExportContextMethodTable);
-}
-
-// FIXME: 修复重计算立即数后的条件和无条件跳转指令的目标问题
-void fklRecomputeInsImm(FklByteCodelnt* bcl
-		,void* ctx
-		,FklRecomputeInsImmPredicate predicate
-		,FklRecomputeInsImmFunc func)
-{
-	FklInstructionArg arg;
-
-	FklByteCodeBuffer buf;
-	fklInitByteCodeBufferWith(&buf,bcl);
-
-	FklByteCodeBuffer new_buf;
-	fklInitByteCodeBuffer(&new_buf,bcl->bc->len);
-
-	FklInsLn* cur_ins_ln=buf.base;
-	const FklInsLn* end=&cur_ins_ln[buf.size];
-	for(;cur_ins_ln<end;cur_ins_ln++)
-	{
-		FklInstruction* cur_ins=&cur_ins_ln->ins;
-		FklOpcode op=cur_ins->op;
-		if(predicate(op))
-		{
-			int ol=fklGetOpcodeModeLen(op);
-
-			FklInstruction cur[4]={FKL_INSTRUCTION_STATIC_INIT};
-			for(int i=0;i<ol;i++)
-				cur[i]=cur_ins_ln[i].ins;
-
-			FKL_ASSERT((op<FKL_OP_JMP_IF_TRUE||op>FKL_OP_JMP_XX)&&op!=FKL_OP_EXTRA_ARG);
-			FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
-
-			fklGetInsOpArg(cur,&arg);
-			FklOpcodeMode mode=FKL_OP_MODE_I;
-			if(func(ctx,&op,&mode,&arg))
-			{
-				fklUninitByteCodeBuffer(&buf);
-				fklUninitByteCodeBuffer(&new_buf);
-				return;
-			}
-
-			int nl=0;
-			switch(mode)
-			{
-				case FKL_OP_MODE_IsA:
-				case FKL_OP_MODE_IsB:
-				case FKL_OP_MODE_IsC:
-				case FKL_OP_MODE_IsBB:
-				case FKL_OP_MODE_IsCCB:
-					nl=set_ins_with_signed_imm(ins,op,arg.ix);
-					break;
-				case FKL_OP_MODE_IuB:
-				case FKL_OP_MODE_IuC:
-				case FKL_OP_MODE_IuBB:
-				case FKL_OP_MODE_IuCCB:
-					nl=set_ins_with_unsigned_imm(ins,op,arg.ux);
-					break;
-				case FKL_OP_MODE_IuAuB:
-				case FKL_OP_MODE_IuCuC:
-				case FKL_OP_MODE_IuCAuBB:
-				case FKL_OP_MODE_IuCAuBCC:
-					nl=set_ins_with_2_unsigned_imm(ins,op,arg.ux,arg.uy);
-					break;
-
-				case FKL_OP_MODE_I:
-				case FKL_OP_MODE_IxAxB:
-					abort();
-			}
-
-			for(int i=0;i<nl;i++)
-				fklByteCodeBufferPush(&new_buf,&ins[i],cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
-
-			cur_ins_ln+=(ol-1);
-		}
-		else
-			fklByteCodeBufferPush(&new_buf,cur_ins,cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
-	}
-
-	fklSetByteCodelntWithBuf(bcl,&new_buf);
-	fklUninitByteCodeBuffer(&buf);
-	fklUninitByteCodeBuffer(&new_buf);
 }
 
 struct RecomputeImportSrcIdxCtx

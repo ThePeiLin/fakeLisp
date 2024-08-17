@@ -592,17 +592,6 @@ void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 		,FklVM* vm
 		,FklFuncPrototypes*);
 
-typedef int (*FklRecomputeInsImmPredicate)(FklOpcode op);
-typedef int (*FklRecomputeInsImmFunc)(void* ctx
-		,FklOpcode* opcode
-		,FklOpcodeMode* pmode
-		,FklInstructionArg* ins_arg);
-
-void fklRecomputeInsImm(FklByteCodelnt* bcl
-		,void* ctx
-		,FklRecomputeInsImmPredicate p
-		,FklRecomputeInsImmFunc func);
-
 void fklRecomputeSidForSingleTableInfo(FklCodegenInfo* codegen
 		,FklByteCodelnt* bcl
 		,const FklSymbolTable* origin_st

@@ -263,8 +263,8 @@ precompile_exit:
 			fklUninitPtrStack(&macroScriptLibStack);
 
 			fklUninitSymbolTable(&runtime_st);
-			fklUninitSymbolTable(&ctx.public_symbol_table);
 			fklUninitConstTable(&runtime_kt);
+			fklUninitCodegenOuterCtx(&ctx);
 
 			if(exitState)
 				break;

@@ -98,21 +98,6 @@ typedef struct
 	uint32_t ls;
 }FklByteCodelnt;
 
-typedef struct
-{
-	FklInstruction ins;
-	uint32_t line;
-	uint32_t scope;
-	FklSid_t fid;
-}FklInsLn;
-
-typedef struct
-{
-	size_t size;
-	size_t capacity;
-	FklInsLn* base;
-}FklByteCodeBuffer;
-
 void fklInitConstTable(FklConstTable* kt);
 FklConstTable* fklCreateConstTable(void);
 
@@ -183,26 +168,6 @@ void fklInitLineNumTabNode(FklLineNumberTableItem*
 
 const FklLineNumberTableItem* fklFindLineNumTabNode(uint64_t cp,size_t ls,const FklLineNumberTableItem* l);
 
-void fklInitByteCodeBuffer(FklByteCodeBuffer* buf,size_t capacity);
-FklByteCodeBuffer* fklCreateByteCodeBuffer(size_t capacity);
-
-void fklSetByteCodeBuffer(FklByteCodeBuffer* buf,const FklByteCodelnt*);
-void fklSetByteCodelntWithBuf(FklByteCodelnt*,const FklByteCodeBuffer* buf);
-
-FklByteCodelnt* fklCreateByteCodelntFromBuf(const FklByteCodeBuffer*);
-
-void fklByteCodeBufferPush(FklByteCodeBuffer* buf
-		,const FklInstruction* ins
-		,uint32_t line
-		,uint32_t scope
-		,FklSid_t fid);
-
-void fklInitByteCodeBufferWith(FklByteCodeBuffer* buf,const FklByteCodelnt*);
-FklByteCodeBuffer* fklCreateByteCodeBufferWith(const FklByteCodelnt*);
-
-void fklUninitByteCodeBuffer(FklByteCodeBuffer* buf);
-void fklDestroyByteCodeBuffer(FklByteCodeBuffer* buf);
-
 typedef struct
 {
 	int64_t ix;
@@ -214,12 +179,12 @@ int fklGetInsOpArg(const FklInstruction* ins,FklInstructionArg* arg);
 int fklGetInsOpArgWithOp(FklOpcode op,const FklInstruction* ins,FklInstructionArg* arg);
 
 int fklIsJmpIns(const FklInstruction* ins);
+int fklIsCondJmpIns(const FklInstruction* ins);
 int fklIsPutLocIns(const FklInstruction* ins);
 int fklIsPushProcIns(const FklInstruction* ins);
 int fklIsPutVarRefIns(const FklInstruction* ins);
 
 void fklScanAndSetTailCall(FklByteCode* bc);
-
 
 void fklWriteConstTable(const FklConstTable* kt,FILE* fp);
 void fklLoadConstTable(FILE* fp,FklConstTable* kt);

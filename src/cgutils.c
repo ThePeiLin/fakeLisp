@@ -2,6 +2,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/common.h>
 #include<fakeLisp/builtin.h>
+#include<fakeLisp/optimizer.h>
 
 static inline FklSymbolDef* get_def_by_id_in_scope(FklSid_t id,uint32_t scopeId,FklCodegenEnvScope* scope)
 {

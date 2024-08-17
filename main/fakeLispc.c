@@ -206,6 +206,7 @@ static inline void write_pre_compile(FklCodegenInfo* codegen
 	write_lib_stack(codegen->macroLibStack,&target_st,main_dir,target_dir,outfp);
 
 	fklUninitSymbolTable(&target_st);
+	fklUninitConstTable(&target_kt);
 }
 
 static inline int pre_compile(const char* main_file_name

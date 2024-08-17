@@ -243,6 +243,7 @@ typedef enum
 const char* fklGetOpcodeName(FklOpcode);
 FklOpcodeMode fklGetOpcodeMode(FklOpcode);
 FklOpcode fklFindOpcode(const char*);
+int fklGetOpcodeModeLen(FklOpcode);
 
 #ifdef __cplusplus
 }

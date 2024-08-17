@@ -1591,3 +1591,117 @@ FklByteCodelnt* fklLoadByteCodelnt(FILE* fp)
 	return bcl;
 }
 
+void fklInitByteCodeBuffer(FklByteCodeBuffer* buf,size_t capacity)
+{
+	FKL_ASSERT(capacity);
+	buf->capacity=capacity;
+	buf->size=0;
+	buf->base=(FklInsLn*)malloc(capacity*sizeof(FklInsLn));
+	FKL_ASSERT(buf->base);
+}
+
+FklByteCodeBuffer* fklCreateByteCodeBuffer(size_t capacity)
+{
+	FklByteCodeBuffer* buf=(FklByteCodeBuffer*)malloc(sizeof(FklByteCodeBuffer));
+	FKL_ASSERT(buf);
+	fklInitByteCodeBuffer(buf,capacity);
+	return buf;
+}
+
+void fklInitByteCodeBufferWith(FklByteCodeBuffer* buf,const FklByteCodelnt* bcl)
+{
+	size_t len=bcl->bc->len;
+	fklInitByteCodeBuffer(buf,len);
+	buf->size=len;
+
+	uint64_t pc=0;
+	uint64_t ln_idx=0;
+	uint64_t ln_idx_end=bcl->ls-1;
+	const FklLineNumberTableItem* ln_item_base=bcl->l;
+	const FklInstruction* ins_base=bcl->bc->code;
+	FklInsLn* ins_ln_base=buf->base;
+	for(;pc<len;pc++)
+	{
+		if(ln_idx<ln_idx_end&&pc>=ln_item_base[ln_idx+1].scp)
+			ln_idx++;
+
+		ins_ln_base[pc]=(FklInsLn)
+		{
+			.ins=ins_base[pc],
+			.line=ln_item_base[ln_idx].line,
+			.scope=ln_item_base[ln_idx].scope,
+			.fid=ln_item_base[ln_idx].fid,
+		};
+
+	}
+}
+
+void fklByteCodeBufferPush(FklByteCodeBuffer* buf
+		,const FklInstruction* ins
+		,uint32_t line
+		,uint32_t scope
+		,FklSid_t fid)
+{
+	if(buf->size==buf->capacity)
+	{
+		buf->capacity<<=1;
+		FklInsLn* new_base=(FklInsLn*)fklRealloc(buf->base,buf->capacity*sizeof(FklInsLn));
+		FKL_ASSERT(new_base);
+		buf->base=new_base;
+	}
+
+	buf->base[buf->size++]=(FklInsLn){.ins=*ins,.line=line,.scope=scope,.fid=fid,};
+}
+
+void fklUninitByteCodeBuffer(FklByteCodeBuffer* buf)
+{
+	buf->capacity=0;
+	buf->size=0;
+	free(buf->base);
+	buf->base=NULL;
+}
+
+void fklDestroyByteCodeBuffer(FklByteCodeBuffer* buf)
+{
+	fklUninitByteCodeBuffer(buf);
+	free(buf);
+}
+
+void fklSetByteCodelntWithBuf(FklByteCodelnt* bcl,const FklByteCodeBuffer* buf)
+{
+	FKL_ASSERT(buf->size);
+	FklLineNumberTableItem* ln=(FklLineNumberTableItem*)fklRealloc(bcl->l,buf->size*sizeof(FklLineNumberTableItem));
+	FKL_ASSERT(ln);
+
+	FklByteCode* bc=bcl->bc;
+	bc->len=buf->size;
+	FklInstruction* new_code=(FklInstruction*)fklRealloc(bc->code,bc->len*sizeof(FklInstruction));
+	FKL_ASSERT(new_code);
+
+	bc->code=new_code;
+	bcl->l=ln;
+
+	const FklInsLn* ins_ln_base=buf->base;
+	uint64_t ln_idx=0;
+	ln[ln_idx]=(FklLineNumberTableItem){.fid=ins_ln_base->fid,.scp=0,.line=ins_ln_base->line,.scope=ins_ln_base->scope};
+	for(size_t i=0;i<buf->size;i++)
+	{
+		const FklInsLn* cur=&ins_ln_base[i];
+		if(ln[ln_idx].scope!=cur->scope
+				||ln[ln_idx].line!=cur->line
+				||ln[ln_idx].fid!=cur->fid)
+		{
+			ln_idx++;
+			ln[ln_idx]=(FklLineNumberTableItem){.fid=cur->fid,.scp=i,.line=cur->line,.scope=cur->scope};
+		}
+		new_code[i]=cur->ins;
+	}
+
+	uint32_t ls=ln_idx+1;
+
+	bcl->ls=ls;
+	FklLineNumberTableItem* nnl=(FklLineNumberTableItem*)fklRealloc(ln,ls*sizeof(FklLineNumberTableItem));
+	FKL_ASSERT(nnl);
+	bcl->l=nnl;
+}
+

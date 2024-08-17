@@ -6081,34 +6081,46 @@ static FklCodegenQuestContext* createExportContext(FklCodegenInfo* codegen
 	return createCodegenQuestContext(data,&ExportContextMethodTable);
 }
 
+// FIXME: 修复重计算立即数后的条件和无条件跳转指令的目标问题
 void fklRecomputeInsImm(FklByteCodelnt* bcl
 		,void* ctx
 		,FklRecomputeInsImmPredicate predicate
 		,FklRecomputeInsImmFunc func)
 {
 	FklInstructionArg arg;
-	FklByteCode* bc=bcl->bc;
-	FklInstruction* new_code=(FklInstruction*)malloc(bc->len*FKL_MAX_INS_LEN*sizeof(FklInstruction));
-	FKL_ASSERT(new_code||!bc->len);
-	uint64_t k=0;
-	uint64_t i=0;
 
-	FklLineNumberTableItem* ln=&bcl->l[0];
-	const FklLineNumberTableItem* ln_end=&ln[bcl->ls];
-	while(i<bc->len)
+	FklByteCodeBuffer buf;
+	fklInitByteCodeBufferWith(&buf,bcl);
+
+	FklByteCodeBuffer new_buf;
+	fklInitByteCodeBuffer(&new_buf,bcl->bc->len);
+
+	FklInsLn* cur_ins_ln=buf.base;
+	const FklInsLn* end=&cur_ins_ln[buf.size];
+	for(;cur_ins_ln<end;cur_ins_ln++)
 	{
-		FklInstruction* cur=&bc->code[i];
-		FklOpcode op=cur->op;
+		FklInstruction* cur_ins=&cur_ins_ln->ins;
+		FklOpcode op=cur_ins->op;
 		if(predicate(op))
 		{
+			int ol=fklGetOpcodeModeLen(op);
+
+			FklInstruction cur[4]={FKL_INSTRUCTION_STATIC_INIT};
+			for(int i=0;i<ol;i++)
+				cur[i]=cur_ins_ln[i].ins;
+
+			FKL_ASSERT((op<FKL_OP_JMP_IF_TRUE||op>FKL_OP_JMP_XX)&&op!=FKL_OP_EXTRA_ARG);
 			FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
-			int ol=fklGetInsOpArg(cur,&arg);
+
+			fklGetInsOpArg(cur,&arg);
 			FklOpcodeMode mode=FKL_OP_MODE_I;
 			if(func(ctx,&op,&mode,&arg))
 			{
-				free(new_code);
+				fklUninitByteCodeBuffer(&buf);
+				fklUninitByteCodeBuffer(&new_buf);
 				return;
 			}
+
 			int nl=0;
 			switch(mode)
 			{
@@ -6137,34 +6149,18 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 					abort();
 			}
 
-			for(int jj=0;jj<nl;jj++)
-				new_code[k+jj]=ins[jj];
+			for(int i=0;i<nl;i++)
+				fklByteCodeBufferPush(&new_buf,&ins[i],cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
 
-			for(;ln<ln_end&&k>=ln->scp;ln++);
-			if(ln<ln_end)
-			{
-				int offset=nl-ol;
-				for(FklLineNumberTableItem* lln=ln;lln<ln_end;lln++)
-					lln->scp+=offset;
-			}
-
-			k+=nl;
-			i+=ol;
+			cur_ins_ln+=(ol-1);
 		}
 		else
-		{
-			new_code[k]=bc->code[k];
-			i++;
-			k++;
-		}
+			fklByteCodeBufferPush(&new_buf,cur_ins,cur_ins_ln->line,cur_ins_ln->scope,cur_ins_ln->fid);
 	}
 
-	size_t size=k*sizeof(FklInstruction);
-	bc->code=(FklInstruction*)fklRealloc(bc->code,size);
-	FKL_ASSERT(bc->code);
-	bc->len=k;
-	memcpy(bc->code,new_code,size);
-	free(new_code);
+	fklSetByteCodelntWithBuf(bcl,&new_buf);
+	fklUninitByteCodeBuffer(&buf);
+	fklUninitByteCodeBuffer(&new_buf);
 }
 
 struct RecomputeImportSrcIdxCtx

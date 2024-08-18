@@ -962,15 +962,15 @@ static inline int is_get_var_ref_ins(const FklInstruction* ins)
 	return ins->op>=FKL_OP_GET_VAR_REF&&ins->op<=FKL_OP_GET_VAR_REF_X;
 }
 
-static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklInstruction* ins
+static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode* bc
 		,FklCodegenEnv* env
 		,uint32_t argNum
 		,FklCodegenInfo* codegen)
 {
-	if(is_get_var_ref_ins(ins))
+	FklInstructionArg arg;
+	const FklInstruction* ins=&bc->code[0];
+	if(is_get_var_ref_ins(ins)&&bc->len==(unsigned)fklGetInsOpArg(ins,&arg))
 	{
-		FklInstructionArg arg;
-		fklGetInsOpArg(ins,&arg);
 		uint32_t idx=arg.ux;
 		FklSymbolDef* ref=NULL;
 		while(env)
@@ -1014,10 +1014,8 @@ BC_PROCESS(_funcall_exp_bc_process)
 		FklByteCode* funcBc=func->bc;
 		uint32_t argNum=stack->top-1;
 		FklBuiltinInlineFunc inlFunc=NULL;
-		const FklInstruction* ins=&funcBc->code[0];
-		if(funcBc->len==1
-				&&argNum<4
-				&&(inlFunc=is_inlinable_func_ref(ins
+		if(argNum<4
+				&&(inlFunc=is_inlinable_func_ref(funcBc
 						,env
 						,argNum
 						,codegen)))

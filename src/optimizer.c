@@ -173,7 +173,7 @@ static inline int set_jmp_backward(FklOpcode op,int64_t len,FklInstruction* new_
 
 static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklByteCodeBuffer* b)
 {
-	int change=0;
+	int change;
 	FklInstructionArg arg;
 	FklInsLn tmp_ins_ln;
 	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
@@ -181,15 +181,40 @@ static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklBy
 
 	do
 	{
+		change=0;
 		b->size=0;
 
 		for(uint64_t i=0;i<a->size;)
 		{
 			FklInsLn* cur=&a->base[i];
+			tmp_ins_ln=*cur;
 			if(cur->jmp_to)
 			{
 				int ol=set_ins_ln_to_ins(cur,ins);
 				fklGetInsOpArg(ins,&arg);
+				if(fklIsPushProcIns(ins))
+				{
+					FKL_ASSERT(arg.uy);
+					FklInsLn* jmp_to=&cur[ol];
+					uint64_t end=a->size-i-ol;
+					uint64_t jmp_offset=0;
+					for(;jmp_offset<end&&jmp_to[jmp_offset].block_id!=cur->jmp_to;jmp_offset++);
+					FKL_ASSERT(jmp_offset<end);
+
+					FklOpcode op=FKL_OP_PUSH_PROC;
+
+					int nl=set_ins_with_2_unsigned_imm(new_ins,op,arg.ux,jmp_offset);
+
+					if(jmp_offset==(uint64_t)arg.uy&&ol==nl)
+						goto no_change;
+					change=1;
+
+					tmp_ins_ln.ins=new_ins[0];
+					push_ins_ln(b,&tmp_ins_ln);
+					for(int i=1;i<nl;i++)
+						fklByteCodeBufferPush(b,&new_ins[i],cur->line,cur->scope,cur->fid);
+					goto done;
+				}
 				FKL_ASSERT(arg.ix);
 				if(arg.ix>0)
 				{
@@ -199,7 +224,7 @@ static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklBy
 					for(;jmp_offset<end&&jmp_to[jmp_offset].block_id!=cur->jmp_to;jmp_offset++);
 					FKL_ASSERT(jmp_offset<end);
 
-					FklOpcode op=(cur->ins.op>=FKL_OP_JMP_IF_TRUE&&cur->ins.op<=FKL_OP_JMP_IF_FALSE)
+					FklOpcode op=(cur->ins.op>=FKL_OP_JMP_IF_TRUE&&cur->ins.op<=FKL_OP_JMP_IF_TRUE_XX)
 						?FKL_OP_JMP_IF_TRUE
 						:(cur->ins.op>=FKL_OP_JMP_IF_FALSE&&cur->ins.op<=FKL_OP_JMP_IF_FALSE_XX)
 						?FKL_OP_JMP_IF_FALSE
@@ -215,7 +240,6 @@ static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklBy
 					push_ins_ln(b,&tmp_ins_ln);
 					for(int i=1;i<nl;i++)
 						fklByteCodeBufferPush(b,&new_ins[i],cur->line,cur->scope,cur->fid);
-
 				}
 				else
 				{
@@ -242,6 +266,7 @@ static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklBy
 					for(int i=1;i<nl;i++)
 						fklByteCodeBufferPush(b,&new_ins[i],cur->line,cur->scope,cur->fid);
 				}
+done:
 				i+=ol;
 			}
 			else
@@ -260,6 +285,7 @@ no_change:
 	return a;
 }
 
+#if 0
 #include<math.h>
 static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 {
@@ -311,8 +337,8 @@ static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 			fprintf(fp,"jmp_to: %u\n",cur->jmp_to);
 	}
 }
+#endif
 
-// FIXME: 修复重计算立即数后的条件和无条件跳转指令的目标问题
 void fklRecomputeInsImm(FklByteCodelnt* bcl
 		,void* ctx
 		,FklRecomputeInsImmPredicate predicate
@@ -346,7 +372,7 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 			for(int i=0;i<ol;i++)
 				cur[i]=cur_ins_ln[i].ins;
 
-			FKL_ASSERT((op<FKL_OP_JMP_IF_TRUE||op>FKL_OP_JMP_XX)&&op!=FKL_OP_EXTRA_ARG);
+			FKL_ASSERT(op!=FKL_OP_EXTRA_ARG);
 
 			fklGetInsOpArg(cur,&arg);
 			FklOpcodeMode mode=FKL_OP_MODE_I;
@@ -394,15 +420,13 @@ void fklRecomputeInsImm(FklByteCodelnt* bcl
 		}
 		else
 		{
-			push_ins_ln(&new_buf,&tmp_ins_ln);
+			push_ins_ln(&new_buf,cur_ins_ln);
 			cur_ins_ln++;
 		}
 	}
 
-	print_basic_block(&new_buf,stderr);
 	FklByteCodeBuffer* fin=recompute_jmp_target(&new_buf,&buf);
 	fklSetByteCodelntWithBuf(bcl,fin);
-	print_basic_block(&new_buf,stderr);
 	fklUninitByteCodeBuffer(&buf);
 	fklUninitByteCodeBuffer(&new_buf);
 }
@@ -422,6 +446,49 @@ FklByteCodeBuffer* fklCreateByteCodeBuffer(size_t capacity)
 	FKL_ASSERT(buf);
 	fklInitByteCodeBuffer(buf,capacity);
 	return buf;
+}
+
+static inline void bytecode_buffer_reserve(FklByteCodeBuffer* buf,size_t target)
+{
+	if(buf->capacity>=target)
+		return;
+	size_t target_capacity=buf->capacity<<1;
+	if(target_capacity<target)
+		target_capacity=target;
+	FklInsLn* new_base=(FklInsLn*)fklRealloc(buf->base,target_capacity*sizeof(FklInsLn));
+	FKL_ASSERT(new_base);
+	buf->base=new_base;
+	buf->capacity=target_capacity;
+}
+
+void fklSetByteCodeBuffer(FklByteCodeBuffer* buf,const FklByteCodelnt* bcl)
+{
+	size_t len=bcl->bc->len;
+	bytecode_buffer_reserve(buf,len);
+	buf->size=len;
+
+	uint64_t pc=0;
+	uint64_t ln_idx=0;
+	uint64_t ln_idx_end=bcl->ls-1;
+	const FklLineNumberTableItem* ln_item_base=bcl->l;
+	const FklInstruction* ins_base=bcl->bc->code;
+	FklInsLn* ins_ln_base=buf->base;
+	for(;pc<len;pc++)
+	{
+		if(ln_idx<ln_idx_end&&pc>=ln_item_base[ln_idx+1].scp)
+			ln_idx++;
+
+		ins_ln_base[pc]=(FklInsLn)
+		{
+			.ins=ins_base[pc],
+			.line=ln_item_base[ln_idx].line,
+			.scope=ln_item_base[ln_idx].scope,
+			.fid=ln_item_base[ln_idx].fid,
+			.block_id=0,
+			.jmp_to=0,
+		};
+
+	}
 }
 
 void fklInitByteCodeBufferWith(FklByteCodeBuffer* buf,const FklByteCodelnt* bcl)
@@ -452,6 +519,14 @@ void fklInitByteCodeBufferWith(FklByteCodeBuffer* buf,const FklByteCodelnt* bcl)
 		};
 
 	}
+}
+
+FklByteCodeBuffer* fklCreateByteCodeBufferWith(const FklByteCodelnt* bcl)
+{
+	FklByteCodeBuffer* buf=(FklByteCodeBuffer*)malloc(sizeof(FklByteCodeBuffer));
+	FKL_ASSERT(buf);
+	fklInitByteCodeBufferWith(buf,bcl);
+	return buf;
 }
 
 void fklByteCodeBufferPush(FklByteCodeBuffer* buf
@@ -531,16 +606,16 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt* bcl,const FklByteCodeBuffer* buf)
 	bcl->l=nnl;
 }
 
-void fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf)
+uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf)
 {
 	FKL_ASSERT(buf->size);
 	FklInstructionArg arg;
 	buf->base[0].block_id=1;
-	uint32_t next_block_id=2;
+	uint32_t next_block_id=1;
 	FklInsLn* base=buf->base;
 	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
 
-	for(uint64_t i=1;i<buf->size;)
+	for(uint64_t i=0;i<buf->size;)
 	{
 		FklInsLn* cur=&base[i];
 		if(fklIsJmpIns(&cur->ins)
@@ -551,16 +626,39 @@ void fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf)
 				ins[i]=cur[i].ins;
 			fklGetInsOpArg(ins,&arg);
 			if(!cur[l].block_id)
-				cur[l].block_id=next_block_id++;
+				cur[l].block_id=++next_block_id;
 			uint64_t jmp_to=i+arg.ix+l;
 			FklInsLn* jmp_to_ins=&base[jmp_to];
 			if(!jmp_to_ins->block_id)
-				jmp_to_ins->block_id=next_block_id++;
+				jmp_to_ins->block_id=++next_block_id;
+			cur->jmp_to=jmp_to_ins->block_id;
+			i+=l;
+		}
+		else if(fklIsPushProcIns(&cur->ins))
+		{
+			int l=fklGetOpcodeModeLen(cur->ins.op);
+			for(int i=0;i<l;i++)
+				ins[i]=cur[i].ins;
+			fklGetInsOpArg(ins,&arg);
+			if(!cur[l].block_id)
+				cur[l].block_id=++next_block_id;
+			uint64_t jmp_to=i+arg.uy+l;
+			FklInsLn* jmp_to_ins=&base[jmp_to];
+			if(!jmp_to_ins->block_id)
+				jmp_to_ins->block_id=++next_block_id;
 			cur->jmp_to=jmp_to_ins->block_id;
 			i+=l;
 		}
 		else
 			i++;
 	}
+	return next_block_id;
+}
+
+FklByteCodelnt* fklCreateByteCodelntFromBuf(const FklByteCodeBuffer* buf)
+{
+	FklByteCodelnt* bcl=fklCreateByteCodelnt(fklCreateByteCode(0));
+	fklSetByteCodelntWithBuf(bcl,buf);
+	return bcl;
 }
 

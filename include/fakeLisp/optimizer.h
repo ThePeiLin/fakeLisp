@@ -41,7 +41,7 @@ FklByteCodeBuffer* fklCreateByteCodeBuffer(size_t capacity);
 void fklSetByteCodeBuffer(FklByteCodeBuffer* buf,const FklByteCodelnt*);
 void fklSetByteCodelntWithBuf(FklByteCodelnt*,const FklByteCodeBuffer* buf);
 
-void fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf);
+uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer* buf);
 
 FklByteCodelnt* fklCreateByteCodelntFromBuf(const FklByteCodeBuffer*);
 

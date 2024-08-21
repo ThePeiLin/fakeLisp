@@ -57,6 +57,8 @@ FklByteCodeBuffer* fklCreateByteCodeBufferWith(const FklByteCodelnt*);
 void fklUninitByteCodeBuffer(FklByteCodeBuffer* buf);
 void fklDestroyByteCodeBuffer(FklByteCodeBuffer* buf);
 
+void fklPeepholeOptimize(FklByteCodelnt* bcl);
+
 #ifdef __cplusplus
 }
 #endif

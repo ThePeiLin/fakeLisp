@@ -662,3 +662,105 @@ FklByteCodelnt* fklCreateByteCodelntFromBuf(const FklByteCodeBuffer* buf)
 	return bcl;
 }
 
+static inline void scan_and_set_block_start(FklByteCodeBuffer* buf,uint64_t* block_start)
+{
+	uint64_t j=0;
+	uint64_t i=0;
+	for(;i<buf->size;i++)
+	{
+		if(buf->base[i].block_id)
+			block_start[j++]=buf->base[i].block_id;
+	}
+}
+
+#define PEEPHOLE_SIZE (12)
+
+typedef uint32_t (*PeepholeOptimizationPredicate)(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole);
+typedef uint32_t (*PeepholeOptimizationOutput)(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,FklInsLn* output);
+
+struct PeepholeOptimizer
+{
+	PeepholeOptimizationPredicate predicate;
+	PeepholeOptimizationOutput output;
+};
+
+static const struct PeepholeOptimizer PeepholeOptimizers[]=
+{
+	{NULL,NULL},
+};
+
+static inline int do_peephole_optimize(FklByteCodeBuffer* buf
+		,const uint64_t* block_start)
+{
+	return 0;
+	FklInsLn peephole[PEEPHOLE_SIZE];
+	FklInsLn output[PEEPHOLE_SIZE];
+	for(uint64_t i=0;i<buf->size;)
+	{
+		uint64_t j=0;
+		uint64_t k=0;
+
+		for(;j+i<buf->size&&k<PEEPHOLE_SIZE;j++)
+			if(buf->base[i+j].ins.op)
+				peephole[k++]=buf->base[i+j];
+
+		abort();
+		for(const struct PeepholeOptimizer* optimizer=&PeepholeOptimizers[0]
+				;optimizer->predicate
+				;optimizer++)
+		{
+			uint32_t offset=optimizer->predicate(buf,block_start,peephole);
+			if(offset)
+			{
+				optimizer->output(buf,block_start,peephole,output);
+				i+=offset;
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
+static inline FklByteCodeBuffer* remove_dummy_code(FklByteCodeBuffer* a,FklByteCodeBuffer* b)
+{
+	for(uint64_t i=0;i<a->size;i++)
+	{
+		FklInsLn* cur=&a->base[i];
+		if(cur->ins.op)
+			push_ins_ln(b,cur);
+	}
+
+	return recompute_jmp_target(b,a);
+}
+
+void fklPeepholeOptimize(FklByteCodelnt* bcl)
+{
+	FklByteCodeBuffer buf;
+	fklInitByteCodeBufferWith(&buf,bcl);
+
+	uint32_t block_num=fklByteCodeBufferScanAndSetBasicBlock(&buf);
+	uint64_t* block_start=(uint64_t*)malloc(block_num*sizeof(uint64_t));
+	FKL_ASSERT(block_start);
+	scan_and_set_block_start(&buf,block_start);
+
+	int change;
+	do
+	{
+		change=do_peephole_optimize(&buf,block_start);
+	}while(change);
+
+	FklByteCodeBuffer new_buf;
+	fklInitByteCodeBuffer(&new_buf,buf.size);
+
+	FklByteCodeBuffer* fin=remove_dummy_code(&buf,&new_buf);
+
+	fklSetByteCodelntWithBuf(bcl,fin);
+	fklUninitByteCodeBuffer(&buf);
+	fklUninitByteCodeBuffer(&new_buf);
+}
+

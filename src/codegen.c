@@ -6024,6 +6024,7 @@ BC_PROCESS(_library_bc_process)
 
 	fklByteCodeLntPushBackIns(libBc,&ret,fid,line,scope);
 
+	fklPeepholeOptimize(libBc);
 	FklCodegenLib* lib=fklCreateCodegenScriptLib(codegen
 			,libBc
 			,env);
@@ -7500,6 +7501,7 @@ BC_PROCESS(_compiler_macro_bc_process)
 	FklCodegenMacroScope* macros=d->macroScope;
 	uint32_t prototype_id=d->prototype_id;
 
+	fklPeepholeOptimize(macroBcl);
 	add_compiler_macro(&macros->head
 			,fklMakeNastNodeRef(pattern)
 			,fklMakeNastNodeRef(d->origin_exp)
@@ -7680,6 +7682,7 @@ BC_PROCESS(_reader_macro_bc_process)
 	FklInstruction ret=create_op_ins(FKL_OP_RET);
 	fklByteCodeLntPushBackIns(macroBcl,&ret,fid,line,scope);
 
+	fklPeepholeOptimize(macroBcl);
 	custom_ctx->pts=pts;
 	custom_ctx->bcl=macroBcl;
 	return NULL;
@@ -10421,6 +10424,7 @@ print_error:
 	{
 		FklInstruction ret=create_op_ins(FKL_OP_RET);
 		fklByteCodeLntPushBackIns(retval,&ret,codegener->fid,codegener->curline,1);
+		fklPeepholeOptimize(retval);
 	}
 	return retval;
 }

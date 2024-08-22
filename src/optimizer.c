@@ -285,7 +285,7 @@ no_change:
 	return a;
 }
 
-#if 1
+#if 0
 #include<math.h>
 static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 {
@@ -711,9 +711,62 @@ static uint32_t not3_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t inc_or_dec_loc_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<3)
+		return 0;
+	uint32_t i=0;
+	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+	FklInstructionArg arg;
+	i+=set_ins_ln_to_ins(&peephole[i],ins);
+	uint32_t loc_idx;
+	if(ins[0].op<FKL_OP_GET_LOC||ins[0].op>FKL_OP_GET_LOC_X)
+		return 0;
+	fklGetInsOpArg(ins,&arg);
+	loc_idx=arg.ux;
+	if(peephole[i].ins.op!=FKL_OP_INC&&peephole[i].ins.op!=FKL_OP_DEC)
+		return 0;
+	i++;
+	i+=set_ins_ln_to_ins(&peephole[i],ins);
+	if(ins[0].op<FKL_OP_PUT_LOC||ins[0].op>FKL_OP_PUT_LOC_X)
+		return 0;
+	fklGetInsOpArg(ins,&arg);
+	if(loc_idx!=arg.ux)
+		return 0;
+	return i;
+}
+
+static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	uint32_t i=0;
+	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+	FklInstructionArg arg;
+	i+=set_ins_ln_to_ins(&peephole[i],ins);
+	fklGetInsOpArg(ins,&arg);
+	uint32_t loc_idx=arg.ux;
+	FklOpcode op=peephole[i].ins.op==FKL_OP_INC?FKL_OP_INC_LOC:FKL_OP_DEC_LOC;
+	uint32_t nl=set_ins_with_unsigned_imm(ins,op,loc_idx);
+
+	for(uint32_t i=0;i<nl;i++)
+	{
+		output[i]=peephole[i];
+		output[i].ins=ins[i];
+	}
+
+	return nl;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate, not3_output, },
+	{inc_or_dec_loc_predicate,inc_or_dec_loc_output,},
 	{NULL,           NULL,        },
 };
 

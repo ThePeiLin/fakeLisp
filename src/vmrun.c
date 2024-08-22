@@ -2053,6 +2053,44 @@ pop_loc:
 				fklVMhashTableSet(key,value,FKL_VM_HASH(ht));
 			}
 			break;
+		case FKL_OP_INC_LOC:
+			idx=ins->bu;
+			goto inc_loc;
+		case FKL_OP_INC_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto inc_loc;
+		case FKL_OP_INC_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+inc_loc:
+			{
+				FklVMvalue* v=GET_COMPOUND_FRAME_LOC(frame,idx);
+				FklVMvalue* r=fklProcessVMnumInc(exe,v);
+				if(r)
+					FKL_VM_PUSH_VALUE(exe,r);
+				else
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
+			}
+			break;
+		case FKL_OP_DEC_LOC:
+			idx=ins->bu;
+			goto dec_loc;
+		case FKL_OP_DEC_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto dec_loc;
+		case FKL_OP_DEC_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+dec_loc:
+			{
+				FklVMvalue* v=GET_COMPOUND_FRAME_LOC(frame,idx);
+				FklVMvalue* r=fklProcessVMnumDec(exe,v);
+				if(r)
+					FKL_VM_PUSH_VALUE(exe,r);
+				else
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -3453,6 +3491,44 @@ pop_loc:
 				fklVMhashTableSet(key,value,FKL_VM_HASH(ht));
 			}
 			break;
+		case FKL_OP_INC_LOC:
+			idx=ins->bu;
+			goto inc_loc;
+		case FKL_OP_INC_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto inc_loc;
+		case FKL_OP_INC_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+inc_loc:
+			{
+				FklVMvalue* v=GET_COMPOUND_FRAME_LOC(frame,idx);
+				FklVMvalue* r=fklProcessVMnumInc(exe,v);
+				if(r)
+					FKL_VM_PUSH_VALUE(exe,r);
+				else
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
+			}
+			break;
+		case FKL_OP_DEC_LOC:
+			idx=ins->bu;
+			goto dec_loc;
+		case FKL_OP_DEC_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto dec_loc;
+		case FKL_OP_DEC_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+dec_loc:
+			{
+				FklVMvalue* v=GET_COMPOUND_FRAME_LOC(frame,idx);
+				FklVMvalue* r=fklProcessVMnumDec(exe,v);
+				if(r)
+					FKL_VM_PUSH_VALUE(exe,r);
+				else
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -4850,6 +4926,44 @@ pop_loc:
 				FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
 				FKL_CHECK_TYPE(ht,FKL_IS_HASHTABLE,exe);
 				fklVMhashTableSet(key,value,FKL_VM_HASH(ht));
+			}
+			break;
+		case FKL_OP_INC_LOC:
+			idx=ins->bu;
+			goto inc_loc;
+		case FKL_OP_INC_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto inc_loc;
+		case FKL_OP_INC_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+inc_loc:
+			{
+				FklVMvalue* v=GET_COMPOUND_FRAME_LOC(frame,idx);
+				FklVMvalue* r=fklProcessVMnumInc(exe,v);
+				if(r)
+					FKL_VM_PUSH_VALUE(exe,r);
+				else
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
+			}
+			break;
+		case FKL_OP_DEC_LOC:
+			idx=ins->bu;
+			goto dec_loc;
+		case FKL_OP_DEC_LOC_C:
+			idx=FKL_GET_INS_UC(ins);
+			goto dec_loc;
+		case FKL_OP_DEC_LOC_X:
+			idx=GET_INS_UX(ins,frame);
+dec_loc:
+			{
+				FklVMvalue* v=GET_COMPOUND_FRAME_LOC(frame,idx);
+				FklVMvalue* r=fklProcessVMnumDec(exe,v);
+				if(r)
+					FKL_VM_PUSH_VALUE(exe,r);
+				else
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:

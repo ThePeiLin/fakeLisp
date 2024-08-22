@@ -201,6 +201,14 @@ static struct
 	{"hash-ref-2",        FKL_OP_MODE_I,        },
 	{"hash-ref-3",        FKL_OP_MODE_I,        },
 	{"hash-set",          FKL_OP_MODE_I,        },
+
+	{"inc-loc",           FKL_OP_MODE_IuB,      },
+	{"inc-loc-c",         FKL_OP_MODE_IuC,      },
+	{"inc-loc-x",         FKL_OP_MODE_IuBB,     },
+
+	{"dec-loc",           FKL_OP_MODE_IuB,      },
+	{"dec-loc-c",         FKL_OP_MODE_IuC,      },
+	{"dec-loc-x",         FKL_OP_MODE_IuBB,     },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

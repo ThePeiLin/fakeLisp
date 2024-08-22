@@ -788,10 +788,8 @@ static inline int do_peephole_optimize(FklByteCodeBuffer* buf
 			if(buf->base[i+j].ins.op)
 			{
 				peephole[k]=buf->base[i+j];
-				valid_ins_idx[k++]=i+j;
+				valid_ins_idx[k++]=j;
 			}
-			else
-				j++;
 
 		uint32_t offset=0;
 		for(const struct PeepholeOptimizer* optimizer=&PeepholeOptimizers[0]
@@ -806,14 +804,26 @@ static inline int do_peephole_optimize(FklByteCodeBuffer* buf
 				uint32_t ii=0;
 				for(;ii<output_len;ii++)
 					output_start[ii]=output[ii];
-				for(;ii<offset;ii++)
-					output_start[ii].ins.op=FKL_OP_DUMMY;
+				if(offset<k)
+				{
+					for(;ii<valid_ins_idx[offset];ii++)
+						output_start[ii].ins.op=FKL_OP_DUMMY;
+					for(i+=valid_ins_idx[offset];i<buf->size&&buf->base[i].ins.op==FKL_OP_EXTRA_ARG;i++);
+				}
+				else
+				{
+					for(;i+ii<buf->size;ii++)
+						output_start[ii].ins.op=FKL_OP_DUMMY;
+					i=buf->size;
+				}
 				change=1;
-				break;
+				goto done;
 			}
 		}
 		
-		for(i=valid_ins_idx[offset]+1;i<buf->size&&buf->base[i].ins.op==FKL_OP_EXTRA_ARG;i++);
+		for(i+=(valid_ins_idx[0]+1);i<buf->size&&buf->base[i].ins.op==FKL_OP_EXTRA_ARG;i++);
+done:
+		continue;
 	}
 	return change;
 }

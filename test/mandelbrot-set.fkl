@@ -182,7 +182,7 @@
     (setq cp label)))
 
 (define (jt label)
-  (if (not (eqv (dvec-ref m mp) 0))
+  (unless (eqv (dvec-ref m mp) 0)
     (setq cp label)))
 
 (define prev-ins nil)

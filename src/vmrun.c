@@ -2072,6 +2072,7 @@ inc_loc:
 				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
 			}
 			break;
+
 		case FKL_OP_DEC_LOC:
 			idx=ins->bu;
 			goto dec_loc;
@@ -3510,6 +3511,7 @@ inc_loc:
 				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
 			}
 			break;
+
 		case FKL_OP_DEC_LOC:
 			idx=ins->bu;
 			goto dec_loc;
@@ -4947,6 +4949,7 @@ inc_loc:
 				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
 			}
 			break;
+
 		case FKL_OP_DEC_LOC:
 			idx=ins->bu;
 			goto dec_loc;

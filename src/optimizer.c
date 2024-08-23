@@ -763,12 +763,65 @@ static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer* buf
 	return nl;
 }
 
+static uint32_t not_jmp_if_true_or_false_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<3)
+		return 0;
+	uint32_t i=0;
+	if(peephole[i++].ins.op!=FKL_OP_NOT)
+		return 0;
+	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
+	i+=set_ins_ln_to_ins(&peephole[i],ins);
+	if(((ins[0].op>=FKL_OP_JMP_IF_TRUE&&ins[0].op<=FKL_OP_JMP_IF_TRUE_XX)
+				||(ins[0].op>=FKL_OP_JMP_IF_FALSE&&ins[0].op<=FKL_OP_JMP_IF_FALSE_XX))
+			&&peephole[i].ins.op==FKL_OP_DROP
+			&&buf->base[block_start[peephole[1].jmp_to-1]].ins.op==FKL_OP_DROP)
+		return i;
+	return 0;
+}
+
+static uint32_t not_jmp_if_true_or_false_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[1];
+	if(output[0].ins.op>=FKL_OP_JMP_IF_TRUE&&output[0].ins.op<=FKL_OP_JMP_IF_TRUE_XX)
+		output[0].ins.op=FKL_OP_JMP_IF_FALSE;
+	else
+		output[0].ins.op=FKL_OP_JMP_IF_TRUE;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
-	{not3_predicate, not3_output, },
-	{inc_or_dec_loc_predicate,inc_or_dec_loc_output,},
-	{NULL,           NULL,        },
+	{not3_predicate,                     not3_output,                     },
+	{inc_or_dec_loc_predicate,           inc_or_dec_loc_output,           },
+	{not_jmp_if_true_or_false_predicate, not_jmp_if_true_or_false_output, },
+	{NULL,                               NULL,                            },
 };
+
+static inline int is_in_one_block(const FklInsLn* peephole,uint32_t offset,uint32_t* block_id)
+{
+	if(peephole[0].block_id)
+	{
+		for(uint32_t i=1;i<offset;i++)
+			if(peephole[i].block_id&&peephole[i].block_id!=peephole[0].block_id)
+				return 0;
+		*block_id=peephole[0].block_id;
+	}
+	else
+	{
+		for(uint32_t i=0;i<offset;i++)
+			if(peephole[i].block_id)
+				return 0;
+	}
+	return 1;
+}
 
 static inline int do_peephole_optimize(FklByteCodeBuffer* buf
 		,const uint64_t* block_start)
@@ -797,13 +850,16 @@ static inline int do_peephole_optimize(FklByteCodeBuffer* buf
 				;optimizer++)
 		{
 			offset=optimizer->predicate(buf,block_start,peephole,k);
-			if(offset)
+			uint32_t block_id=0;
+			if(offset&&is_in_one_block(peephole,offset,&block_id))
 			{
 				FklInsLn* output_start=&buf->base[i];
 				uint32_t output_len=optimizer->output(buf,block_start,peephole,k,output);
 				uint32_t ii=0;
 				for(;ii<output_len;ii++)
 					output_start[ii]=output[ii];
+				if(block_id)
+					output_start[0].block_id=block_id;
 				if(offset<k)
 				{
 					for(;ii<valid_ins_idx[offset];ii++)

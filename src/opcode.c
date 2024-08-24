@@ -209,6 +209,9 @@ static struct
 	{"dec-loc",           FKL_OP_MODE_IuB,      },
 	{"dec-loc-c",         FKL_OP_MODE_IuC,      },
 	{"dec-loc-x",         FKL_OP_MODE_IuBB,     },
+
+	{"call-var-ref",      FKL_OP_MODE_IuB,      },
+	{"tail-call-var-ref", FKL_OP_MODE_IuB,      },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

@@ -2092,6 +2092,42 @@ dec_loc:
 				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
 			}
 			break;
+		case FKL_OP_CALL_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -3531,6 +3567,42 @@ dec_loc:
 				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
 			}
 			break;
+		case FKL_OP_CALL_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -4967,6 +5039,42 @@ dec_loc:
 				else
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 				GET_COMPOUND_FRAME_LOC(frame,idx)=r;
+			}
+			break;
+		case FKL_OP_CALL_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:

@@ -148,7 +148,7 @@
     "+[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<"
     "<<<<<]]>>>]"))
 
-(define m (make-dvec 131072 0))
+(define m (make-vector 131072 0))
 
 (define mp 0)
 
@@ -164,21 +164,21 @@
   (setq mp (+ mp (vec-ref imm cp))))
 
 (define (add)
-  (dvec-set! m mp (+ (dvec-ref m mp) (vec-ref imm cp))))
+  (vec-set! m mp (+ (vec-ref m mp) (vec-ref imm cp))))
 
 (define (ou)
-  (princ (integer->char (dvec-ref m mp)) stderr))
+  (princ (integer->char (vec-ref m mp)) stderr))
 
 (define (in)
-  (dvec-set! m mp (fgeti stdin)))
+  (vec-set! m mp (fgeti stdin)))
 
 (define (jf)
-  (if (eqv (dvec-ref m mp) 0)
+  (if (eqv (vec-ref m mp) 0)
     (setq cp (vec-ref imm cp))
     1))
 
 (define (jt)
-  (unless (eqv (dvec-ref m mp) 0)
+  (unless (eqv (vec-ref m mp) 0)
     (setq cp (vec-ref imm cp))))
 
 (define (hal) nil)

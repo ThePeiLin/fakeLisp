@@ -154,36 +154,34 @@
 
 (define ins #vd())
 
+(define imm nil)
+
 (define stack #vd())
 
 (define cp 0)
 
-(define (move n)
-  (setq mp (+ mp n))
-  (if (< mp 0)
-    (begin
-      (dvec-insert! m 0 (- mp) 0)
-      (setq mp 0))
-    (unless (< mp (length m))
-      (dvec-resize! m (1+ mp) 0))))
+(define (move)
+  (setq mp (+ mp (vec-ref imm cp))))
 
-(define (add num)
-  (define c (dvec-ref m mp))
-  (dvec-set! m mp (+ c num)))
+(define (add)
+  (dvec-set! m mp (+ (dvec-ref m mp) (vec-ref imm cp))))
 
-(define (ou _)
+(define (ou)
   (princ (integer->char (dvec-ref m mp)) stderr))
 
-(define (in _)
+(define (in)
   (dvec-set! m mp (fgeti stdin)))
 
-(define (jf label)
+(define (jf)
   (if (eqv (dvec-ref m mp) 0)
-    (setq cp label)))
+    (setq cp (vec-ref imm cp))
+    1))
 
-(define (jt label)
+(define (jt)
   (unless (eqv (dvec-ref m mp) 0)
-    (setq cp label)))
+    (setq cp (vec-ref imm cp))))
+
+(define (hal) nil)
 
 (define prev-ins nil)
 
@@ -247,8 +245,19 @@
      (dvec-push! ins cur-ins)])
   (setq prev-ins cur-ins))
 
-(do [(len (length ins))]
-  [(>= cp len)]
-  (define c (dvec-ref ins cp))
-  ((car c) (cdr c))
+(let [(ins-list (dvec->list ins))]
+  (setq ins nil)
+  (foreach
+    (lambda (p)
+      (setq ins (cons (car p) ins))
+      (setq imm (cons (cdr p) imm)))
+    ins-list)
+  (setq ins (cons hal ins))
+  (setq imm (cons nil imm)))
+
+(setq ins (list->vector (reverse! ins)))
+(setq imm (list->vector (reverse! imm)))
+
+(do []
+  [(not ((vec-ref ins cp))) nil]
   (setq cp (1+ cp)))

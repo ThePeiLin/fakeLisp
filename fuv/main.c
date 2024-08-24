@@ -5022,7 +5022,7 @@ static void fuv_fs_cb(uv_fs_t* req)
 	}\
 	else\
 	{\
-		int r=FUNC(&fuv_loop->loop,&(REQ)->req,__VA_ARGS__,NULL);\
+		int r=FUNC(&(FUV_LOOP)->loop,&(REQ)->req,__VA_ARGS__,NULL);\
 		FKL_VM_PUSH_VALUE((EXE),check_fs_uv_result(r,(REQ),(EXE),(PD),1));\
 	}\
 }

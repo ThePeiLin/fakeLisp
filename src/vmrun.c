@@ -813,8 +813,6 @@ pop_rest_arg:
 		case FKL_OP_CALL:
 			{
 				FklVMvalue* proc=FKL_VM_POP_TOP_VALUE(exe);
-				if(!proc)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -928,8 +926,6 @@ push_vec:
 		case FKL_OP_TAIL_CALL:
 			{
 				FklVMvalue* proc=FKL_VM_POP_TOP_VALUE(exe);
-				if(!proc)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -2074,6 +2070,36 @@ pop_loc:
 				else
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 				GET_COMPOUND_FRAME_LOC(frame,ins->bu)=r;
+			}
+			break;
+		case FKL_OP_CALL_LOC:
+			{
+				FklVMvalue* proc=GET_COMPOUND_FRAME_LOC(frame,ins->bu);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_LOC:
+			{
+				FklVMvalue* proc=GET_COMPOUND_FRAME_LOC(frame,ins->bu);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
 			}
 			break;
 		case FKL_OP_CALL_VAR_REF:
@@ -2272,8 +2298,6 @@ pop_rest_arg:
 		case FKL_OP_CALL:
 			{
 				FklVMvalue* proc=FKL_VM_POP_TOP_VALUE(exe);
-				if(!proc)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -2387,8 +2411,6 @@ push_vec:
 		case FKL_OP_TAIL_CALL:
 			{
 				FklVMvalue* proc=FKL_VM_POP_TOP_VALUE(exe);
-				if(!proc)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -3533,6 +3555,36 @@ pop_loc:
 				else
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 				GET_COMPOUND_FRAME_LOC(frame,ins->bu)=r;
+			}
+			break;
+		case FKL_OP_CALL_LOC:
+			{
+				FklVMvalue* proc=GET_COMPOUND_FRAME_LOC(frame,ins->bu);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_LOC:
+			{
+				FklVMvalue* proc=GET_COMPOUND_FRAME_LOC(frame,ins->bu);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
 			}
 			break;
 		case FKL_OP_CALL_VAR_REF:
@@ -3730,8 +3782,6 @@ pop_rest_arg:
 		case FKL_OP_CALL:
 			{
 				FklVMvalue* proc=FKL_VM_POP_TOP_VALUE(exe);
-				if(!proc)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -3845,8 +3895,6 @@ push_vec:
 		case FKL_OP_TAIL_CALL:
 			{
 				FklVMvalue* proc=FKL_VM_POP_TOP_VALUE(exe);
-				if(!proc)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG,exe);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -4991,6 +5039,36 @@ pop_loc:
 				else
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 				GET_COMPOUND_FRAME_LOC(frame,ins->bu)=r;
+			}
+			break;
+		case FKL_OP_CALL_LOC:
+			{
+				FklVMvalue* proc=GET_COMPOUND_FRAME_LOC(frame,ins->bu);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_LOC:
+			{
+				FklVMvalue* proc=GET_COMPOUND_FRAME_LOC(frame,ins->bu);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
 			}
 			break;
 		case FKL_OP_CALL_VAR_REF:

@@ -885,6 +885,31 @@ static uint32_t call_var_ref_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t call_loc_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<2)
+		return 0;
+	if(peephole[0].ins.op==FKL_OP_GET_LOC
+			&&(peephole[1].ins.op==FKL_OP_CALL
+				||peephole[1].ins.op==FKL_OP_TAIL_CALL))
+		return 2;
+	return 0;
+}
+
+static uint32_t call_loc_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	output[0].ins.op=peephole[1].ins.op==FKL_OP_CALL?FKL_OP_CALL_LOC:FKL_OP_TAIL_CALL_LOC;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     },
@@ -892,6 +917,7 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{not_jmp_if_true_or_false_predicate, not_jmp_if_true_or_false_output, },
 	{put_loc_drop_predicate,             put_loc_drop_output,             },
 	{pop_and_get_loc_predicate,          pop_and_get_loc_output,          },
+	{call_loc_predicate,                 call_loc_output,                 },
 	{call_var_ref_predicate,             call_var_ref_output,             },
 	{NULL,                               NULL,                            },
 };

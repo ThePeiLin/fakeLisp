@@ -206,6 +206,9 @@ static struct
 
 	{"dec-loc",           FKL_OP_MODE_IuB,      },
 
+	{"call-loc",          FKL_OP_MODE_IuB,      },
+	{"tail-call-loc",     FKL_OP_MODE_IuB,      },
+
 	{"call-var-ref",      FKL_OP_MODE_IuB,      },
 	{"tail-call-var-ref", FKL_OP_MODE_IuB,      },
 };

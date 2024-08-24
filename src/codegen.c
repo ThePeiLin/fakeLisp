@@ -10119,6 +10119,14 @@ void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx)
 	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
 	fklInitSymbolTable(publicSymbolTable);
 	fklInitConstTable(&outerCtx->public_kt);
+}
+
+void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx,char* main_file_real_path_dir)
+{
+	outerCtx->cwd=fklSysgetcwd();
+	outerCtx->main_file_real_path_dir=main_file_real_path_dir?main_file_real_path_dir:fklCopyCstr(outerCtx->cwd);
+	fklInitCodegenOuterCtxExceptPattern(outerCtx);
+	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
 
 	outerCtx->builtInPatternVar_orig=fklAddSymbolCstr("orig",publicSymbolTable)->id;
 	outerCtx->builtInPatternVar_rest=fklAddSymbolCstr("rest",publicSymbolTable)->id;
@@ -10135,15 +10143,6 @@ void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx* outerCtx)
 
 	init_builtin_prod_action_list(outerCtx->builtin_prod_action_id,publicSymbolTable);
 	init_simple_prod_action_list(outerCtx->simple_prod_action_id,publicSymbolTable);
-}
-
-void fklInitCodegenOuterCtx(FklCodegenOuterCtx* outerCtx,char* main_file_real_path_dir)
-{
-	outerCtx->cwd=fklSysgetcwd();
-	outerCtx->main_file_real_path_dir=main_file_real_path_dir?main_file_real_path_dir:fklCopyCstr(outerCtx->cwd);
-	fklInitCodegenOuterCtxExceptPattern(outerCtx);
-	FklSymbolTable* publicSymbolTable=&outerCtx->public_symbol_table;
-
 	FklNastNode** builtin_pattern_node=outerCtx->builtin_pattern_node;
 	for(size_t i=0;i<FKL_CODEGEN_PATTERN_NUM;i++)
 	{

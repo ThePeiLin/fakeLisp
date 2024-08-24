@@ -213,6 +213,8 @@ typedef enum
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 
+#define FKL_MAX_OPCODE_NAME_LEN (sizeof("push-hashequal-xx"))
+
 // Op(8)  |  A(8)  |  B(16)
 // Op(8)  |      C(24)
 

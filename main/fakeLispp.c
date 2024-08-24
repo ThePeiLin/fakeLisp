@@ -16,7 +16,11 @@
 
 static void loadLib(FILE*,size_t* pnum,FklCodegenLib** libs,FklSymbolTable*);
 
-static void print_compiler_macros(FklCodegenMacro* head,const FklSymbolTable* pst,const FklConstTable* pkt,FILE* fp);
+static void print_compiler_macros(FklCodegenMacro* head
+		,const FklSymbolTable* pst
+		,const FklConstTable* pkt
+		,FILE* fp
+		,uint64_t* opcode_count);
 
 static void print_reader_macros(const FklHashTable* named_prod_groups
 		,const FklSymbolTable* pst
@@ -24,8 +28,33 @@ static void print_reader_macros(const FklHashTable* named_prod_groups
 		,FILE* fp);
 
 struct arg_lit* help;
+struct arg_lit* stats;
 struct arg_file* files;
 struct arg_end* end;
+
+static inline void do_gather_statistics(const FklByteCodelnt* bcl,uint64_t* array)
+{
+	const FklByteCode* bc=bcl->bc;
+	for(uint64_t i=0;i<bc->len;i++)
+		array[bc->code[i].op]++;
+}
+
+static inline void print_statistics(const char* filename,const uint64_t* count)
+{
+	printf("\nstatistics of %s:\n",filename);
+	FklOpcode most_op_code=0;
+	uint64_t most_op_code_count=0;
+	for(uint32_t i=0;i<FKL_OP_LAST_OPCODE;i++)
+	{
+		printf("%-*s:\t%"FKL_PRT64U"\n",(int)FKL_MAX_OPCODE_NAME_LEN,fklGetOpcodeName(i),count[i]);
+		if(count[i]>most_op_code_count)
+		{
+			most_op_code=i;
+			most_op_code_count=count[i];
+		}
+	}
+	printf("\nmost used opcode is %s, the count is %"FKL_PRT64U"\n",fklGetOpcodeName(most_op_code),most_op_code_count);
+}
 
 int main(int argc,char** argv)
 {
@@ -34,6 +63,7 @@ int main(int argc,char** argv)
 	void* argtable[]=
 	{
 		help=arg_lit0("h","help","display this help and exit"),
+		stats=arg_lit0("s","stat","display the stats of every opcode"),
 		files=arg_filen(NULL,NULL,"files",1,argc+2,"the bytecode files you want to print"),
 		end=arg_end(20),
 	};
@@ -58,6 +88,8 @@ int main(int argc,char** argv)
 
 	for(int i=0;i<files->count;i++)
 	{
+		uint64_t opcode_count[FKL_OP_LAST_OPCODE]={0};
+
 		const char* filename=files->filename[i];
 		const char* extension=files->extension[i];
 
@@ -84,6 +116,8 @@ int main(int argc,char** argv)
 			FklByteCodelnt* bcl=fklLoadByteCodelnt(fp);
 			printf("file: %s\n\n",filename);
 			fklPrintByteCodelnt(bcl,stdout,&runtime_st,&runtime_kt);
+			if(stats->count>0)
+				do_gather_statistics(bcl,opcode_count);
 			fputc('\n',stdout);
 			fklDestroyByteCodelnt(bcl);
 			FklCodegenLib* libs=NULL;
@@ -98,6 +132,8 @@ int main(int argc,char** argv)
 				{
 					case FKL_CODEGEN_LIB_SCRIPT:
 						fklPrintByteCodelnt(cur->bcl,stdout,&runtime_st,&runtime_kt);
+						if(stats->count>0)
+							do_gather_statistics(cur->bcl,opcode_count);
 						break;
 					case FKL_CODEGEN_LIB_DLL:
 						fputs(cur->rp,stdout);
@@ -188,9 +224,11 @@ int main(int argc,char** argv)
 				{
 					case FKL_CODEGEN_LIB_SCRIPT:
 						fklPrintByteCodelnt(cur->bcl,stdout,&runtime_st,&runtime_kt);
+						if(stats->count>0)
+							do_gather_statistics(cur->bcl,opcode_count);
 						fputc('\n',stdout);
 						if(cur->head)
-							print_compiler_macros(cur->head,pst,pkt,stdout);
+							print_compiler_macros(cur->head,pst,pkt,stdout,opcode_count);
 						if(cur->named_prod_groups.t)
 							print_reader_macros(&cur->named_prod_groups
 									,pst
@@ -220,9 +258,11 @@ int main(int argc,char** argv)
 					{
 						case FKL_CODEGEN_LIB_SCRIPT:
 							fklPrintByteCodelnt(cur->bcl,stdout,pst,pkt);
+							if(stats->count>0)
+								do_gather_statistics(cur->bcl,opcode_count);
 							fputc('\n',stdout);
 							if(cur->head)
-								print_compiler_macros(cur->head,pst,pkt,stdout);
+								print_compiler_macros(cur->head,pst,pkt,stdout,opcode_count);
 							if(cur->named_prod_groups.t)
 								print_reader_macros(&cur->named_prod_groups
 										,pst
@@ -264,7 +304,8 @@ precompile_exit:
 
 			fklUninitSymbolTable(&runtime_st);
 			fklUninitConstTable(&runtime_kt);
-			fklUninitCodegenOuterCtx(&ctx);
+			fklUninitSymbolTable(&ctx.public_symbol_table);
+			fklUninitConstTable(&ctx.public_kt);
 
 			if(exitState)
 				break;
@@ -274,6 +315,9 @@ precompile_exit:
 			fprintf(stderr,"%s: Not a correct file!\n",filename);
 			break;
 		}
+
+		if(stats->count>0)
+			print_statistics(filename,opcode_count);
 	}
 
 exit:
@@ -329,7 +373,8 @@ static void loadLib(FILE* fp,size_t* pnum,FklCodegenLib** plibs,FklSymbolTable* 
 static void print_compiler_macros(FklCodegenMacro* head
 		,const FklSymbolTable* pst
 		,const FklConstTable* pkt
-		,FILE* fp)
+		,FILE* fp
+		,uint64_t* opcode_count)
 {
 	fputs("\ncompiler macros:\n",fp);
 	for(;head;head=head->next)
@@ -338,6 +383,8 @@ static void print_compiler_macros(FklCodegenMacro* head
 		fklPrintNastNode(head->origin_exp,fp,pst);
 		fputc('\n',fp);
 		fklPrintByteCodelnt(head->bcl,fp,pst,pkt);
+		if(stats->count>0)
+			do_gather_statistics(head->bcl,opcode_count);
 		fputs("\n\n",fp);
 	}
 }

@@ -935,6 +935,34 @@ static uint32_t call_vec_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t call_car_or_cdr_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<2)
+		return 0;
+	if((peephole[0].ins.op==FKL_OP_PUSH_CAR||peephole[0].ins.op==FKL_OP_PUSH_CDR)
+			&&(peephole[1].ins.op==FKL_OP_CALL
+				||peephole[1].ins.op==FKL_OP_TAIL_CALL))
+		return 2;
+	return 0;
+}
+
+static uint32_t call_car_or_cdr_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	if(peephole[0].ins.op==FKL_OP_PUSH_CAR)
+		output[0].ins.op=peephole[1].ins.op==FKL_OP_CALL?FKL_OP_CALL_CAR:FKL_OP_TAIL_CALL_CAR;
+	else
+		output[0].ins.op=peephole[1].ins.op==FKL_OP_CALL?FKL_OP_CALL_CDR:FKL_OP_TAIL_CALL_CDR;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     },
@@ -945,6 +973,7 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{call_loc_predicate,                 call_loc_output,                 },
 	{call_var_ref_predicate,             call_var_ref_output,             },
 	{call_vec_predicate,                 call_vec_output,                 },
+	{call_car_or_cdr_predicate,          call_car_or_cdr_output,          },
 	{NULL,                               NULL,                            },
 };
 

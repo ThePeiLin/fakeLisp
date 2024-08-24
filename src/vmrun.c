@@ -2188,6 +2188,74 @@ pop_loc:
 				return;
 			}
 			break;
+		case FKL_OP_CALL_CAR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CAR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_CAR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CAR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_CALL_CDR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CDR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_CDR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CDR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -3723,6 +3791,74 @@ pop_loc:
 				return;
 			}
 			break;
+		case FKL_OP_CALL_CAR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CAR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_CAR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CAR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_CALL_CDR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CDR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_CDR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CDR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -5245,6 +5381,74 @@ pop_loc:
 				if(index>=vv->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FklVMvalue* proc=vv->base[index];
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_CALL_CAR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CAR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_CAR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CAR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_CALL_CDR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CDR(obj);
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_CDR:
+			{
+				FklVMvalue* obj=FKL_VM_POP_TOP_VALUE(exe);
+				FKL_CHECK_TYPE(obj,FKL_IS_PAIR,exe);
+				FklVMvalue* proc=FKL_VM_CDR(obj);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)

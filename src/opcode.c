@@ -214,6 +214,12 @@ static struct
 
 	{"call-vec",          FKL_OP_MODE_I,        },
 	{"tail-call-vec",     FKL_OP_MODE_I,        },
+
+	{"call-car",          FKL_OP_MODE_I,        },
+	{"tail-call-car",     FKL_OP_MODE_I,        },
+
+	{"call-cdr",          FKL_OP_MODE_I,        },
+	{"tail-call-cdr",     FKL_OP_MODE_I,        },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

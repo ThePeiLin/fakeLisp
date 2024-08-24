@@ -1813,8 +1813,7 @@ BC_PROCESS(_do0_exp_bc_process)
 
 	FklInstruction pop=create_op_ins(FKL_OP_DROP);
 
-	if(rest->bc->len)
-		fklByteCodeLntInsertFrontIns(&pop,rest,fid,line,scope);
+	fklByteCodeLntInsertFrontIns(&pop,rest,fid,line,scope);
 	insert_jmp_if_true_and_jmp_back_between(cond,rest,fid,line,scope);
 
 	fklCodeLntConcat(cond,rest);
@@ -2039,7 +2038,7 @@ BC_PROCESS(_do1_bc_process)
 
 	FklInstruction pop=create_op_ins(FKL_OP_DROP);
 
-	fklByteCodeLntPushBackIns(rest,&pop,fid,line,scope);
+	fklByteCodeLntInsertFrontIns(&pop,rest,fid,line,scope);
 	if(next)
 	{
 		fklCodeLntConcat(rest,next);

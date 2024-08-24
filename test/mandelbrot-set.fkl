@@ -158,7 +158,7 @@
 
 (define stack #vd())
 
-(define cp 0)
+(define cp -1)
 
 (define (move)
   (setq mp (+ mp (vec-ref imm cp))))
@@ -258,6 +258,4 @@
 (setq ins (list->vector (reverse! ins)))
 (setq imm (list->vector (reverse! imm)))
 
-(do []
-  [(not ((vec-ref ins cp))) nil]
-  (setq cp (1+ cp)))
+(do [] [(not ((vec-ref ins (setq cp (1+ cp))))) nil])

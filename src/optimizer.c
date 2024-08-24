@@ -718,28 +718,12 @@ static uint32_t inc_or_dec_loc_predicate(const FklByteCodeBuffer* buf
 {
 	if(k<3)
 		return 0;
-	uint32_t i=0;
-	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
-	FklInstructionArg arg;
-	i+=set_ins_ln_to_ins(&peephole[i],ins);
-	uint32_t loc_idx;
-	if(ins[0].op<FKL_OP_GET_LOC||ins[0].op>FKL_OP_GET_LOC_X)
-		return 0;
-	fklGetInsOpArg(ins,&arg);
-	loc_idx=arg.ux;
-	if(i>=k)
-		return 0;
-	if(peephole[i].ins.op!=FKL_OP_INC&&peephole[i].ins.op!=FKL_OP_DEC)
-		return 0;
-	if(++i>=k)
-		return 0;
-	i+=set_ins_ln_to_ins(&peephole[i],ins);
-	if(ins[0].op<FKL_OP_PUT_LOC||ins[0].op>FKL_OP_PUT_LOC_X)
-		return 0;
-	fklGetInsOpArg(ins,&arg);
-	if(loc_idx!=arg.ux)
-		return 0;
-	return i;
+	if(peephole[0].ins.op==FKL_OP_GET_LOC
+			&&(peephole[1].ins.op==FKL_OP_INC||peephole[1].ins.op==FKL_OP_DEC)
+			&&peephole[2].ins.op==FKL_OP_PUT_LOC
+			&&peephole[0].ins.bu==peephole[2].ins.bu)
+		return 3;
+	return 0;
 }
 
 static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer* buf
@@ -748,22 +732,9 @@ static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer* buf
 		,uint32_t k
 		,FklInsLn* output)
 {
-	uint32_t i=0;
-	FklInstruction ins[4]={FKL_INSTRUCTION_STATIC_INIT};
-	FklInstructionArg arg;
-	i+=set_ins_ln_to_ins(&peephole[i],ins);
-	fklGetInsOpArg(ins,&arg);
-	uint32_t loc_idx=arg.ux;
-	FklOpcode op=peephole[i].ins.op==FKL_OP_INC?FKL_OP_INC_LOC:FKL_OP_DEC_LOC;
-	uint32_t nl=set_ins_with_unsigned_imm(ins,op,loc_idx);
-
-	for(uint32_t i=0;i<nl;i++)
-	{
-		output[i]=peephole[i];
-		output[i].ins=ins[i];
-	}
-
-	return nl;
+	output[0]=peephole[0];
+	output[0].ins.op=peephole[1].ins.op==FKL_OP_INC?FKL_OP_INC_LOC:FKL_OP_DEC_LOC;
+	return 1;
 }
 
 static uint32_t not_jmp_if_true_or_false_predicate(const FklByteCodeBuffer* buf

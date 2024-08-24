@@ -203,12 +203,8 @@ static struct
 	{"hash-set",          FKL_OP_MODE_I,        },
 
 	{"inc-loc",           FKL_OP_MODE_IuB,      },
-	{"inc-loc-c",         FKL_OP_MODE_IuC,      },
-	{"inc-loc-x",         FKL_OP_MODE_IuBB,     },
 
 	{"dec-loc",           FKL_OP_MODE_IuB,      },
-	{"dec-loc-c",         FKL_OP_MODE_IuC,      },
-	{"dec-loc-x",         FKL_OP_MODE_IuBB,     },
 
 	{"call-var-ref",      FKL_OP_MODE_IuB,      },
 	{"tail-call-var-ref", FKL_OP_MODE_IuB,      },

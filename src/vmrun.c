@@ -2138,6 +2138,56 @@ pop_loc:
 				return;
 			}
 			break;
+		case FKL_OP_CALL_VEC:
+			{
+				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				size_t index=fklGetUint(place);
+				FklVMvec* vv=FKL_VM_VEC(vec);
+				if(index>=vv->size)
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+				FklVMvalue* proc=vv->base[index];
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_VEC:
+			{
+				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				size_t index=fklGetUint(place);
+				FklVMvec* vv=FKL_VM_VEC(vec);
+				if(index>=vv->size)
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+				FklVMvalue* proc=vv->base[index];
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -3623,6 +3673,56 @@ pop_loc:
 				return;
 			}
 			break;
+		case FKL_OP_CALL_VEC:
+			{
+				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				size_t index=fklGetUint(place);
+				FklVMvec* vv=FKL_VM_VEC(vec);
+				if(index>=vv->size)
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+				FklVMvalue* proc=vv->base[index];
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_VEC:
+			{
+				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				size_t index=fklGetUint(place);
+				FklVMvec* vv=FKL_VM_VEC(vec);
+				if(index>=vv->size)
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+				FklVMvalue* proc=vv->base[index];
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -5095,6 +5195,56 @@ pop_loc:
 				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
 				if(id)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						tail_call_proc(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_CALL_VEC:
+			{
+				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				size_t index=fklGetUint(place);
+				FklVMvec* vv=FKL_VM_VEC(vec);
+				if(index>=vv->size)
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+				FklVMvalue* proc=vv->base[index];
+				if(!fklIsCallable(proc))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				switch(proc->type)
+				{
+					case FKL_TYPE_PROC:
+						call_compound_procedure(exe,proc);
+						break;
+						CALL_CALLABLE_OBJ(exe,proc);
+				}
+				return;
+			}
+			break;
+		case FKL_OP_TAIL_CALL_VEC:
+			{
+				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+				if(!fklIsVMint(place)||!FKL_IS_VECTOR(vec))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+				if(fklIsVMnumberLt0(place))
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+				size_t index=fklGetUint(place);
+				FklVMvec* vv=FKL_VM_VEC(vec);
+				if(index>=vv->size)
+					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+				FklVMvalue* proc=vv->base[index];
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)

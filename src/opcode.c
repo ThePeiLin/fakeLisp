@@ -211,6 +211,9 @@ static struct
 
 	{"call-var-ref",      FKL_OP_MODE_IuB,      },
 	{"tail-call-var-ref", FKL_OP_MODE_IuB,      },
+
+	{"call-vec",          FKL_OP_MODE_I,        },
+	{"tail-call-vec",     FKL_OP_MODE_I,        },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

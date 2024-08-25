@@ -215,6 +215,8 @@ static inline FklByteCodeBuffer* recompute_jmp_target(FklByteCodeBuffer* a,FklBy
 						fklByteCodeBufferPush(b,&new_ins[i],cur->line,cur->scope,cur->fid);
 					goto done;
 				}
+				if(!fklIsJmpIns(ins)&&!fklIsCondJmpIns(ins))
+					goto no_change;
 				FKL_ASSERT(arg.ix);
 				if(arg.ix>0)
 				{
@@ -963,6 +965,29 @@ static uint32_t call_car_or_cdr_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t jmp_to_ret_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(peephole[0].ins.op>=FKL_OP_JMP
+			&&peephole[0].ins.op<=FKL_OP_JMP_XX
+			&&buf->base[block_start[peephole[0].jmp_to-1]].ins.op==FKL_OP_RET)
+		return peephole[0].ins.op-(FKL_OP_JMP-1);
+	return 0;
+}
+
+static uint32_t jmp_to_ret_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	output[0].ins.op=FKL_OP_RET;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     },
@@ -974,6 +999,7 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{call_var_ref_predicate,             call_var_ref_output,             },
 	{call_vec_predicate,                 call_vec_output,                 },
 	{call_car_or_cdr_predicate,          call_car_or_cdr_output,          },
+	{jmp_to_ret_predicate,               jmp_to_ret_output,               },
 	{NULL,                               NULL,                            },
 };
 
@@ -1015,6 +1041,9 @@ static inline int do_peephole_optimize(FklByteCodeBuffer* buf
 				peephole[k]=buf->base[i+j];
 				valid_ins_idx[k++]=j;
 			}
+
+		if(k==0)
+			break;
 
 		uint32_t offset=0;
 		for(const struct PeepholeOptimizer* optimizer=&PeepholeOptimizers[0]

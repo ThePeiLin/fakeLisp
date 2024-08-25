@@ -220,6 +220,9 @@ static struct
 
 	{"call-cdr",          FKL_OP_MODE_I,        },
 	{"tail-call-cdr",     FKL_OP_MODE_I,        },
+
+	{"ret-if-true",       FKL_OP_MODE_I,        },
+	{"ret-if-false",      FKL_OP_MODE_I,        },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

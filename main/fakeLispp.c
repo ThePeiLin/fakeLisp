@@ -68,7 +68,7 @@ static inline void print_statistics(const char* filename,const uint64_t* count)
 	qsort(statistics,FKL_OP_LAST_OPCODE,sizeof(struct OpcodeStatistics),opstatcmp);
 	for(uint32_t i=0;i<FKL_OP_LAST_OPCODE;i++)
 		printf("%-*s:\t%"FKL_PRT64U"\n",(int)FKL_MAX_OPCODE_NAME_LEN,fklGetOpcodeName(statistics[i].op),statistics[i].count);
-	printf("\nmost used opcode is %s, the count is %"FKL_PRT64U"\n",fklGetOpcodeName(statistics[0].op),statistics[0].count);
+	printf("\nmost used opcode is %s, the count is %"FKL_PRT64U"\n",fklGetOpcodeName(statistics[FKL_OP_LAST_OPCODE-1].op),statistics[FKL_OP_LAST_OPCODE-1].count);
 }
 
 int main(int argc,char** argv)

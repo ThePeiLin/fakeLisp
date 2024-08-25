@@ -970,10 +970,15 @@ static uint32_t jmp_to_ret_predicate(const FklByteCodeBuffer* buf
 		,const FklInsLn* peephole
 		,uint32_t k)
 {
-	if(peephole[0].ins.op>=FKL_OP_JMP
-			&&peephole[0].ins.op<=FKL_OP_JMP_XX
-			&&buf->base[block_start[peephole[0].jmp_to-1]].ins.op==FKL_OP_RET)
-		return peephole[0].ins.op-(FKL_OP_JMP-1);
+	if(peephole[0].jmp_to&&buf->base[block_start[peephole[0].jmp_to-1]].ins.op==FKL_OP_RET)
+	{
+		if(peephole[0].ins.op>=FKL_OP_JMP&&peephole[0].ins.op<=FKL_OP_JMP_XX)
+			return peephole[0].ins.op-(FKL_OP_JMP-1);
+		if(peephole[0].ins.op>=FKL_OP_JMP_IF_TRUE&&peephole[0].ins.op<=FKL_OP_JMP_IF_TRUE_XX)
+			return peephole[0].ins.op-(FKL_OP_JMP_IF_TRUE-1);
+		if(peephole[0].ins.op>=FKL_OP_JMP_IF_FALSE&&peephole[0].ins.op<=FKL_OP_JMP_IF_FALSE_XX)
+			return peephole[0].ins.op-(FKL_OP_JMP_IF_FALSE-1);
+	}
 	return 0;
 }
 
@@ -984,7 +989,11 @@ static uint32_t jmp_to_ret_output(const FklByteCodeBuffer* buf
 		,FklInsLn* output)
 {
 	output[0]=peephole[0];
-	output[0].ins.op=FKL_OP_RET;
+	output[0].ins.op=(peephole[0].ins.op>=FKL_OP_JMP&&peephole[0].ins.op<=FKL_OP_JMP_XX)
+		?FKL_OP_RET
+		:(peephole[0].ins.op>=FKL_OP_JMP_IF_TRUE&&peephole[0].ins.op<=FKL_OP_JMP_IF_TRUE_XX)
+		?FKL_OP_RET_IF_TRUE
+		:FKL_OP_RET_IF_FALSE;
 	return 1;
 }
 

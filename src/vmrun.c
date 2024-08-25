@@ -2256,6 +2256,50 @@ pop_loc:
 				return;
 			}
 			break;
+		case FKL_OP_RET_IF_TRUE:
+			if(FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
+			{
+				if(frame->c.mark)
+				{
+					close_all_var_ref(&frame->c.lr);
+					if(frame->c.lr.lrefl)
+					{
+						frame->c.lr.lrefl=NULL;
+						memset(frame->c.lr.lref,0,sizeof(FklVMvalue*)*frame->c.lr.lcount);
+					}
+					frame->c.pc=frame->c.spc;
+					frame->c.mark=0;
+					frame->c.tail=0;
+				}
+				else
+				{
+					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
+					return;
+				}
+			}
+			break;
+		case FKL_OP_RET_IF_FALSE:
+			if(FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
+			{
+				if(frame->c.mark)
+				{
+					close_all_var_ref(&frame->c.lr);
+					if(frame->c.lr.lrefl)
+					{
+						frame->c.lr.lrefl=NULL;
+						memset(frame->c.lr.lref,0,sizeof(FklVMvalue*)*frame->c.lr.lcount);
+					}
+					frame->c.pc=frame->c.spc;
+					frame->c.mark=0;
+					frame->c.tail=0;
+				}
+				else
+				{
+					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
+					return;
+				}
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -3859,6 +3903,50 @@ pop_loc:
 				return;
 			}
 			break;
+		case FKL_OP_RET_IF_TRUE:
+			if(FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
+			{
+				if(frame->c.mark)
+				{
+					close_all_var_ref(&frame->c.lr);
+					if(frame->c.lr.lrefl)
+					{
+						frame->c.lr.lrefl=NULL;
+						memset(frame->c.lr.lref,0,sizeof(FklVMvalue*)*frame->c.lr.lcount);
+					}
+					frame->c.pc=frame->c.spc;
+					frame->c.mark=0;
+					frame->c.tail=0;
+				}
+				else
+				{
+					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
+					return;
+				}
+			}
+			break;
+		case FKL_OP_RET_IF_FALSE:
+			if(FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
+			{
+				if(frame->c.mark)
+				{
+					close_all_var_ref(&frame->c.lr);
+					if(frame->c.lr.lrefl)
+					{
+						frame->c.lr.lrefl=NULL;
+						memset(frame->c.lr.lref,0,sizeof(FklVMvalue*)*frame->c.lr.lcount);
+					}
+					frame->c.pc=frame->c.spc;
+					frame->c.mark=0;
+					frame->c.tail=0;
+				}
+				else
+				{
+					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
+					return;
+				}
+			}
+			break;
 		case FKL_OP_EXTRA_ARG:
 		case FKL_OP_LAST_OPCODE:
 			abort();
@@ -5459,6 +5547,50 @@ pop_loc:
 						CALL_CALLABLE_OBJ(exe,proc);
 				}
 				return;
+			}
+			break;
+		case FKL_OP_RET_IF_TRUE:
+			if(FKL_VM_GET_TOP_VALUE(exe)!=FKL_VM_NIL)
+			{
+				if(frame->c.mark)
+				{
+					close_all_var_ref(&frame->c.lr);
+					if(frame->c.lr.lrefl)
+					{
+						frame->c.lr.lrefl=NULL;
+						memset(frame->c.lr.lref,0,sizeof(FklVMvalue*)*frame->c.lr.lcount);
+					}
+					frame->c.pc=frame->c.spc;
+					frame->c.mark=0;
+					frame->c.tail=0;
+				}
+				else
+				{
+					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
+					return;
+				}
+			}
+			break;
+		case FKL_OP_RET_IF_FALSE:
+			if(FKL_VM_GET_TOP_VALUE(exe)==FKL_VM_NIL)
+			{
+				if(frame->c.mark)
+				{
+					close_all_var_ref(&frame->c.lr);
+					if(frame->c.lr.lrefl)
+					{
+						frame->c.lr.lrefl=NULL;
+						memset(frame->c.lr.lref,0,sizeof(FklVMvalue*)*frame->c.lr.lcount);
+					}
+					frame->c.pc=frame->c.spc;
+					frame->c.mark=0;
+					frame->c.tail=0;
+				}
+				else
+				{
+					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
+					return;
+				}
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:

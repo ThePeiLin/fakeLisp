@@ -39,21 +39,36 @@ static inline void do_gather_statistics(const FklByteCodelnt* bcl,uint64_t* arra
 		array[bc->code[i].op]++;
 }
 
+struct OpcodeStatistics
+{
+	uint64_t count;
+	FklOpcode op;
+};
+
+static int opstatcmp(const void* a,const void* b)
+{
+	const struct OpcodeStatistics* aa=(const struct OpcodeStatistics*)a;
+	const struct OpcodeStatistics* bb=(const struct OpcodeStatistics*)b;
+	if(aa->count>bb->count)
+		return 1;
+	else if(aa->count<bb->count)
+		return -1;
+	return 0;
+}
+
 static inline void print_statistics(const char* filename,const uint64_t* count)
 {
+	struct OpcodeStatistics statistics[FKL_OP_LAST_OPCODE];
 	printf("\nstatistics of %s:\n",filename);
-	FklOpcode most_op_code=0;
-	uint64_t most_op_code_count=0;
 	for(uint32_t i=0;i<FKL_OP_LAST_OPCODE;i++)
 	{
-		printf("%-*s:\t%"FKL_PRT64U"\n",(int)FKL_MAX_OPCODE_NAME_LEN,fklGetOpcodeName(i),count[i]);
-		if(count[i]>most_op_code_count)
-		{
-			most_op_code=i;
-			most_op_code_count=count[i];
-		}
+		statistics[i].op=i;
+		statistics[i].count=count[i];
 	}
-	printf("\nmost used opcode is %s, the count is %"FKL_PRT64U"\n",fklGetOpcodeName(most_op_code),most_op_code_count);
+	qsort(statistics,FKL_OP_LAST_OPCODE,sizeof(struct OpcodeStatistics),opstatcmp);
+	for(uint32_t i=0;i<FKL_OP_LAST_OPCODE;i++)
+		printf("%-*s:\t%"FKL_PRT64U"\n",(int)FKL_MAX_OPCODE_NAME_LEN,fklGetOpcodeName(statistics[i].op),statistics[i].count);
+	printf("\nmost used opcode is %s, the count is %"FKL_PRT64U"\n",fklGetOpcodeName(statistics[0].op),statistics[0].count);
 }
 
 int main(int argc,char** argv)

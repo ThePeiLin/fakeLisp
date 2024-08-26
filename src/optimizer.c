@@ -1002,11 +1002,18 @@ static uint32_t jmp_to_jmp_predicate(const FklByteCodeBuffer* buf
 		,const FklInsLn* peephole
 		,uint32_t k)
 {
-	if(peephole[0].ins.op>=FKL_OP_JMP&&peephole[0].ins.op<=FKL_OP_JMP_XX&&peephole[0].jmp_to)
+	if(peephole[0].jmp_to)
 	{
 		FklOpcode target_opcode=buf->base[block_start[peephole[0].jmp_to-1]].ins.op;
 		if(target_opcode>=FKL_OP_JMP&&target_opcode<=FKL_OP_JMP_XX)
-			return peephole[0].ins.op-(FKL_OP_JMP-1);
+		{
+			if(peephole[0].ins.op>=FKL_OP_JMP&&peephole[0].ins.op<=FKL_OP_JMP_XX)
+				return peephole[0].ins.op-(FKL_OP_JMP-1);
+			if(peephole[0].ins.op>=FKL_OP_JMP_IF_TRUE&&peephole[0].ins.op<=FKL_OP_JMP_IF_TRUE_XX)
+				return peephole[0].ins.op-(FKL_OP_JMP_IF_TRUE-1);
+			if(peephole[0].ins.op>=FKL_OP_JMP_IF_FALSE&&peephole[0].ins.op<=FKL_OP_JMP_IF_FALSE_XX)
+				return peephole[0].ins.op-(FKL_OP_JMP_IF_FALSE-1);
+		}
 		else
 			return 0;
 	}

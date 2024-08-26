@@ -997,6 +997,34 @@ static uint32_t jmp_to_ret_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t jmp_to_jmp_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(peephole[0].ins.op>=FKL_OP_JMP&&peephole[0].ins.op<=FKL_OP_JMP_XX&&peephole[0].jmp_to)
+	{
+		FklOpcode target_opcode=buf->base[block_start[peephole[0].jmp_to-1]].ins.op;
+		if(target_opcode>=FKL_OP_JMP&&target_opcode<=FKL_OP_JMP_XX)
+			return peephole[0].ins.op-(FKL_OP_JMP-1);
+		else
+			return 0;
+	}
+	return 0;
+}
+
+static uint32_t jmp_to_jmp_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	uint32_t target_jmp_to=buf->base[block_start[peephole[0].jmp_to-1]].jmp_to;
+	output[0].jmp_to=target_jmp_to;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     },
@@ -1009,6 +1037,7 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{call_vec_predicate,                 call_vec_output,                 },
 	{call_car_or_cdr_predicate,          call_car_or_cdr_output,          },
 	{jmp_to_ret_predicate,               jmp_to_ret_output,               },
+	{jmp_to_jmp_predicate,               jmp_to_jmp_output,               },
 	{NULL,                               NULL,                            },
 };
 

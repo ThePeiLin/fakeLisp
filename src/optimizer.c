@@ -1032,6 +1032,386 @@ static uint32_t jmp_to_jmp_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static inline int is_foldable_const(const FklInstruction* in,int32_t* oprand)
+{
+	switch((FklOpcode)in->op)
+	{
+		case FKL_OP_PUSH_0:
+			*oprand=0;
+			return 1;
+			break;
+		case FKL_OP_PUSH_1:
+			*oprand=1;
+			return 1;
+			break;
+		case FKL_OP_PUSH_I8:
+			*oprand=in->ai;
+			return 1;
+			break;
+		case FKL_OP_PUSH_I16:
+			*oprand=in->bi;
+			return 1;
+			break;
+		case FKL_OP_PUSH_I24:
+			*oprand=FKL_GET_INS_IC(in);
+			return 1;
+			break;
+		default:
+			return 0;
+			break;
+	}
+	return 0;
+}
+
+union I24u
+{
+	struct
+	{
+		int32_t i24:24;
+		int8_t o:8;
+	};
+	int32_t i;
+};
+
+static inline int is_i24_mul_overflow(int32_t a,int32_t b)
+{
+	if(a==0||b==0)
+		return 0;
+	if(a>=0&&b>=0)
+		return (FKL_I24_MAX/a)<b;
+	if(a*b==FKL_I24_MIN)
+		return 0;
+	union I24u t={.i24=a*b};
+	t.i24/=b;
+	return a!=t.i24;
+}
+
+static inline int is_foldable_op2(const FklInstruction* in,int32_t a,int32_t b)
+{
+	int32_t res;
+	switch((FklOpcode)in->op)
+	{
+		case FKL_OP_ADD:
+			res=a+b;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_SUB:
+			res=b-a;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_MUL:
+			return !is_i24_mul_overflow(a,b);
+			break;
+		case FKL_OP_IDIV:
+			if(a==0)
+				return 0;
+			res=b/a;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_DIV:
+			if(a==0)
+				return 0;
+			res=b/a;
+			return b%a==0&&res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_MOD:
+			if(a==0)
+				return 0;
+			res=b%a;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		default:
+			return 0;
+			break;
+	}
+	return 0;
+}
+
+static uint32_t oprand2_const_fold_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<3)
+		return 0;
+	int32_t oprand1;
+	if(is_foldable_const(&peephole[0].ins,&oprand1))
+	{
+		int32_t oprand2;
+		if(is_foldable_const(&peephole[1].ins,&oprand2))
+			if(is_foldable_op2(&peephole[2].ins,oprand1,oprand2))
+				return 3;
+	}
+	return 0;
+}
+
+static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	int32_t oprand1=0;
+	int32_t oprand2=0;
+	is_foldable_const(&peephole[0].ins,&oprand1);
+	is_foldable_const(&peephole[1].ins,&oprand2);
+	int32_t r;
+	switch((FklOpcode)peephole[2].ins.op)
+	{
+		case FKL_OP_ADD:
+			r=oprand1+oprand2;
+			break;
+		case FKL_OP_SUB:
+			r=oprand2-oprand1;
+			break;
+		case FKL_OP_MUL:
+			r=oprand1*oprand2;
+			break;
+		case FKL_OP_MOD:
+			r=oprand2%oprand1;
+			break;
+		case FKL_OP_DIV:
+		case FKL_OP_IDIV:
+			r=oprand2/oprand1;
+			break;
+		default:
+			abort();
+			break;
+	}
+	output[0]=peephole[0];
+	if(r==0||r==1)
+		output[0].ins.op=FKL_OP_PUSH_0+r;
+	else if(r>=INT8_MIN&&r<=INT8_MAX)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I8;
+		output[0].ins.ai=r;
+	}
+	else if(r>=INT16_MIN&&r<=INT16_MAX)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I16;
+		output[0].ins.bi=r;
+	}
+	else if(r>=FKL_I24_MAX&&r<=FKL_I24_MIN)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I24;
+		set_ins_uc(&output[0].ins,r+FKL_I24_OFFSET);
+	}
+	else
+		abort();
+	return 1;
+}
+
+static inline int is_foldable_op3(const FklInstruction* in,int32_t a,int32_t b,int32_t c)
+{
+	int32_t res;
+	switch((FklOpcode)in->op)
+	{
+		case FKL_OP_ADD3:
+			res=a+b+c;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_SUB3:
+			res=c-(a+b);
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_MUL3:
+			return !is_i24_mul_overflow(a,b)&&!is_i24_mul_overflow(c,a*b);
+			break;
+		case FKL_OP_IDIV3:
+			if(is_i24_mul_overflow(a,b))
+				return 0;
+			if(a==0||b==0)
+				return 0;
+			res=c/(a*b);
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_DIV3:
+			if(is_i24_mul_overflow(a,b))
+				return 0;
+			if(a==0||b==0)
+				return 0;
+			res=c/(a*b);
+			return c%(a*b)==0&&res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		default:
+			return 0;
+			break;
+	}
+	return 0;
+}
+
+static uint32_t oprand3_const_fold_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<4)
+		return 0;
+	int32_t oprand1;
+	if(is_foldable_const(&peephole[0].ins,&oprand1))
+	{
+		int32_t oprand2;
+		if(is_foldable_const(&peephole[1].ins,&oprand2))
+		{
+			int32_t oprand3;
+			if(is_foldable_const(&peephole[2].ins,&oprand3))
+				if(is_foldable_op3(&peephole[3].ins,oprand1,oprand2,oprand3))
+					return 4;
+		}
+	}
+	return 0;
+}
+
+static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	int32_t oprand1=0;
+	int32_t oprand2=0;
+	int32_t oprand3=0;
+	is_foldable_const(&peephole[0].ins,&oprand1);
+	is_foldable_const(&peephole[1].ins,&oprand2);
+	is_foldable_const(&peephole[2].ins,&oprand3);
+	int32_t r;
+	switch((FklOpcode)peephole[3].ins.op)
+	{
+		case FKL_OP_ADD3:
+			r=oprand1+oprand2+oprand3;
+			break;
+		case FKL_OP_SUB3:
+			r=oprand3-(oprand2+oprand1);
+			break;
+		case FKL_OP_MUL3:
+			r=oprand1*oprand2*oprand3;
+			break;
+		case FKL_OP_DIV3:
+		case FKL_OP_IDIV3:
+			r=oprand3/(oprand2*oprand1);
+			break;
+		default:
+			abort();
+			break;
+	}
+	output[0]=peephole[0];
+	if(r==0||r==1)
+		output[0].ins.op=FKL_OP_PUSH_0+r;
+	else if(r>=INT8_MIN&&r<=INT8_MAX)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I8;
+		output[0].ins.ai=r;
+	}
+	else if(r>=INT16_MIN&&r<=INT16_MAX)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I16;
+		output[0].ins.bi=r;
+	}
+	else if(r>=FKL_I24_MAX&&r<=FKL_I24_MIN)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I24;
+		set_ins_uc(&output[0].ins,r+FKL_I24_OFFSET);
+	}
+	else
+		abort();
+	return 1;
+}
+
+static inline int is_foldable_op1(const FklInstruction* in,int32_t a)
+{
+	int32_t res;
+	switch((FklOpcode)in->op)
+	{
+		case FKL_OP_INC:
+			res=a+1;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_DEC:
+			res=a-1;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		case FKL_OP_ADD1:
+		case FKL_OP_MUL1:
+			return 1;
+			break;
+		case FKL_OP_NEG:
+			res=-a;
+			return res>=FKL_I24_MIN&&res<=FKL_I24_MAX;
+			break;
+		default:
+			return 0;
+			break;
+	}
+	return 0;
+}
+
+static uint32_t oprand1_const_fold_predicate(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<2)
+		return 0;
+	int32_t oprand1;
+	if(is_foldable_const(&peephole[0].ins,&oprand1))
+	{
+		if(is_foldable_op1(&peephole[1].ins,oprand1))
+			return 2;
+	}
+	return 0;
+}
+
+static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	int32_t oprand1=0;
+	is_foldable_const(&peephole[0].ins,&oprand1);
+	int32_t r;
+	switch((FklOpcode)peephole[1].ins.op)
+	{
+		case FKL_OP_INC:
+			r=oprand1+1;
+			break;
+		case FKL_OP_DEC:
+			r=oprand1-1;
+			break;
+		case FKL_OP_ADD1:
+		case FKL_OP_MUL1:
+			r=oprand1;
+			break;
+		case FKL_OP_NEG:
+			r=-oprand1;
+			break;
+		default:
+			abort();
+			break;
+	}
+	output[0]=peephole[0];
+	if(r==0||r==1)
+		output[0].ins.op=FKL_OP_PUSH_0+r;
+	else if(r>=INT8_MIN&&r<=INT8_MAX)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I8;
+		output[0].ins.ai=r;
+	}
+	else if(r>=INT16_MIN&&r<=INT16_MAX)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I16;
+		output[0].ins.bi=r;
+	}
+	else if(r>=FKL_I24_MAX&&r<=FKL_I24_MIN)
+	{
+		output[0].ins.op=FKL_OP_PUSH_I24;
+		set_ins_uc(&output[0].ins,r+FKL_I24_OFFSET);
+	}
+	else
+		abort();
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     },
@@ -1045,6 +1425,9 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{call_car_or_cdr_predicate,          call_car_or_cdr_output,          },
 	{jmp_to_ret_predicate,               jmp_to_ret_output,               },
 	{jmp_to_jmp_predicate,               jmp_to_jmp_output,               },
+	{oprand1_const_fold_predicate,       oprand1_const_fold_output,       },
+	{oprand2_const_fold_predicate,       oprand2_const_fold_output,       },
+	{oprand3_const_fold_predicate,       oprand3_const_fold_output,       },
 	{NULL,                               NULL,                            },
 };
 

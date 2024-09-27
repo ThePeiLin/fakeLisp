@@ -288,6 +288,7 @@ typedef struct FklBigInt
 	uint8_t neg;
 }FklBigInt;
 
+#define FKL_IS_DEFAULT_BIG_INT(I) ((I)->num==0)
 #define FKL_BIG_INT_INIT {NULL,0,0,0}
 #define FKL_IS_0_BIG_INT(I) ((I)->num==1&&(I)->digits[0]==0)
 #define FKL_IS_1_BIG_INT(I) ((I)->num==1&&(I)->neg==0&&(I)->digits[0]==1)

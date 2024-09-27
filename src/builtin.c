@@ -585,7 +585,6 @@ static int builtin_add(FKL_CPROC_ARGL)
 	int64_t r64=0;
 	double rd=0.0;
 	FklBigInt bi=FKL_BIG_INT_INIT;
-	fklInitBigInt0(&bi);
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 		if(fklProcessVMnumAdd(cur,&r64,&rd,&bi))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -621,7 +620,6 @@ static int builtin_sub(FKL_CPROC_ARGL)
 	else
 	{
 		FklBigInt bi=FKL_BIG_INT_INIT;
-		fklInitBigInt0(&bi);
 		for(;cur;cur=FKL_VM_POP_ARG(exe))
 			if(fklProcessVMnumAdd(cur,&r64,&rd,&bi))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -649,7 +647,6 @@ static int builtin_mul(FKL_CPROC_ARGL)
 	double rd=1.0;
 	int64_t r64=1;
 	FklBigInt bi=FKL_BIG_INT_INIT;
-	fklInitBigInt1(&bi);
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 		if(fklProcessVMnumMul(cur,&r64,&rd,&bi))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -664,7 +661,6 @@ static int builtin_idiv(FKL_CPROC_ARGL)
 	int64_t r64=1;
 	FKL_CHECK_TYPE(prev,fklIsVMint,exe);
 	FklBigInt bi=FKL_BIG_INT_INIT;
-	fklInitBigInt1(&bi);
 	for(;cur;cur=FKL_VM_POP_ARG(exe))
 		if(fklProcessVMintMul(cur,&r64,&bi))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -696,7 +692,6 @@ static int builtin_div(FKL_CPROC_ARGL)
 	else
 	{
 		FklBigInt bi=FKL_BIG_INT_INIT;
-		fklInitBigInt1(&bi);
 		for(;cur;cur=FKL_VM_POP_ARG(exe))
 			if(fklProcessVMnumMul(cur,&r64,&rd,&bi))
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);

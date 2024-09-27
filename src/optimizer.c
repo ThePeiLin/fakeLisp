@@ -1079,6 +1079,8 @@ static inline int is_i24_mul_overflow(int32_t a,int32_t b)
 		return 0;
 	if(a>=0&&b>=0)
 		return (FKL_I24_MAX/a)<b;
+	if(a<0&&b<0)
+		return (FKL_I24_MAX/a)>b;
 	if(a*b==FKL_I24_MIN)
 		return 0;
 	union I24u t={.i24=a*b};

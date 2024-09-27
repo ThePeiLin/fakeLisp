@@ -780,10 +780,10 @@ int fklIsFixMulOverflow(int64_t a,int64_t b)
 	if(b==0||a==0)
 		return 0;
 	if(a>=0&&b>=0)
-		return (INT64_MAX/a)<b;
+		return (FKL_FIX_INT_MAX/a)<b;
 	if(a<0&&b<0)
-		return (INT64_MAX/a)>b;
-	if(a*b==INT64_MIN)
+		return (FKL_FIX_INT_MAX/a)>b;
+	if(a*b==FKL_FIX_INT_MIN)
 		return 0;
 	union Fixu t={.fix=a*b};
 	t.fix/=b;

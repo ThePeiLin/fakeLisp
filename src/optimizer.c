@@ -687,6 +687,11 @@ struct PeepholeOptimizer
 {
 	PeepholeOptimizationPredicate predicate;
 	PeepholeOptimizationOutput output;
+	enum
+	{
+		PEEPHOLE_SHOULD_IN_ONE_BLOCK=0,
+		PEEPHOLE_CAN_IN_BLOCKS,
+	} block_state;
 };
 
 static uint32_t not3_predicate(const FklByteCodeBuffer* buf
@@ -1414,23 +1419,74 @@ static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t nil_cond_ret_or_jmp_drop_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<4)
+		return 0;
+	uint32_t block_count=0;
+	uint32_t i=0;
+	if(peephole[i++].ins.op==FKL_OP_PUSH_NIL)
+	{
+		if(peephole[i].block_id)
+			block_count++;
+		if((peephole[i].ins.op>=FKL_OP_JMP_IF_TRUE&&peephole[i].ins.op<=FKL_OP_JMP_IF_TRUE_XX)
+				||(peephole[i].ins.op==FKL_OP_RET_IF_TRUE))
+		{
+			i+=fklGetOpcodeModeLen(peephole[i].ins.op);
+			if(peephole[i].block_id)
+				block_count++;
+			if(peephole[i++].ins.op==FKL_OP_DROP)
+			{
+				if(peephole[i].block_id)
+					block_count++;
+				if(block_count<=1)
+				{
+					i+=fklGetOpcodeModeLen(peephole[i].ins.op);
+					return i;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+static uint32_t nil_cond_ret_or_jmp_drop_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	uint32_t i=1+fklGetOpcodeModeLen(peephole[1].ins.op)+1;
+	uint32_t l=fklGetOpcodeModeLen(peephole[i].ins.op);
+	for(uint32_t j=0;j<l;j++)
+	{
+		output[j]=peephole[i+j];
+		output[j].block_id=peephole[j].block_id;
+	}
+	return l;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
-	{not3_predicate,                     not3_output,                     },
-	{inc_or_dec_loc_predicate,           inc_or_dec_loc_output,           },
-	{not_jmp_if_true_or_false_predicate, not_jmp_if_true_or_false_output, },
-	{put_loc_drop_predicate,             put_loc_drop_output,             },
-	{pop_and_get_loc_predicate,          pop_and_get_loc_output,          },
-	{call_loc_predicate,                 call_loc_output,                 },
-	{call_var_ref_predicate,             call_var_ref_output,             },
-	{call_vec_predicate,                 call_vec_output,                 },
-	{call_car_or_cdr_predicate,          call_car_or_cdr_output,          },
-	{jmp_to_ret_predicate,               jmp_to_ret_output,               },
-	{jmp_to_jmp_predicate,               jmp_to_jmp_output,               },
-	{oprand1_const_fold_predicate,       oprand1_const_fold_output,       },
-	{oprand2_const_fold_predicate,       oprand2_const_fold_output,       },
-	{oprand3_const_fold_predicate,       oprand3_const_fold_output,       },
-	{NULL,                               NULL,                            },
+	{not3_predicate,                     not3_output,                     PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{inc_or_dec_loc_predicate,           inc_or_dec_loc_output,           PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{not_jmp_if_true_or_false_predicate, not_jmp_if_true_or_false_output, PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{put_loc_drop_predicate,             put_loc_drop_output,             PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{pop_and_get_loc_predicate,          pop_and_get_loc_output,          PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{call_loc_predicate,                 call_loc_output,                 PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{call_var_ref_predicate,             call_var_ref_output,             PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{call_vec_predicate,                 call_vec_output,                 PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{call_car_or_cdr_predicate,          call_car_or_cdr_output,          PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{jmp_to_ret_predicate,               jmp_to_ret_output,               PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{jmp_to_jmp_predicate,               jmp_to_jmp_output,               PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{oprand1_const_fold_predicate,       oprand1_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{oprand2_const_fold_predicate,       oprand2_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{oprand3_const_fold_predicate,       oprand3_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{nil_cond_ret_or_jmp_drop_pred,      nil_cond_ret_or_jmp_drop_output, PEEPHOLE_CAN_IN_BLOCKS,       },
+	{NULL,                               NULL,                            PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 };
 
 static inline int is_in_one_block(const FklInsLn* peephole,uint32_t offset,uint32_t* block_id)
@@ -1482,7 +1538,7 @@ static inline int do_peephole_optimize(FklByteCodeBuffer* buf
 		{
 			offset=optimizer->predicate(buf,block_start,peephole,k);
 			uint32_t block_id=0;
-			if(offset&&is_in_one_block(peephole,offset,&block_id))
+			if(offset&&(optimizer->block_state||is_in_one_block(peephole,offset,&block_id)))
 			{
 				FklInsLn* output_start=&buf->base[i];
 				uint32_t output_len=optimizer->output(buf,block_start,peephole,k,output);

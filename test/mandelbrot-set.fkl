@@ -174,14 +174,13 @@
 
 (define (jf)
   (if (eqv (vec-ref m mp) 0)
-    (setq cp (vec-ref imm cp))
-    1))
+    (setq cp (vec-ref imm cp))))
 
 (define (jt)
   (unless (eqv (vec-ref m mp) 0)
     (setq cp (vec-ref imm cp))))
 
-(define (hal) nil)
+(define (hal) (throw 'hal "done"))
 
 (define prev-ins nil)
 
@@ -258,4 +257,8 @@
 (setq ins (list->vector (reverse! ins)))
 (setq imm (list->vector (reverse! imm)))
 
-(do [] [(not ((vec-ref ins (setq cp (1+ cp))))) nil])
+; (do [] [(not ((vec-ref ins (setq cp (1+ cp))))) nil])
+
+(call/eh (lambda ()
+           (do [] [nil] ((vec-ref ins (setq cp (1+ cp))))))
+         '(hal) (lambda (e)))

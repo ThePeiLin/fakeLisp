@@ -1436,10 +1436,14 @@ static uint32_t nil_cond_ret_or_jmp_drop_pred(const FklByteCodeBuffer* buf
 				||(peephole[i].ins.op==FKL_OP_RET_IF_TRUE))
 		{
 			i+=fklGetOpcodeModeLen(peephole[i].ins.op);
+			if(i>=k)
+				return 0;
 			if(peephole[i].block_id)
 				block_count++;
 			if(peephole[i++].ins.op==FKL_OP_DROP)
 			{
+				if(i>=k)
+					return 0;
 				if(peephole[i].block_id)
 					block_count++;
 				if(block_count<=1)
@@ -1469,6 +1473,59 @@ static uint32_t nil_cond_ret_or_jmp_drop_output(const FklByteCodeBuffer* buf
 	return l;
 }
 
+static uint32_t push_const_not_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<2)
+		return 0;
+	switch((FklOpcode)peephole[0].ins.op)
+	{
+		case FKL_OP_PUSH_NIL:
+		case FKL_OP_PUSH_0:
+		case FKL_OP_PUSH_1:
+		case FKL_OP_PUSH_I8:
+		case FKL_OP_PUSH_I16:
+		case FKL_OP_PUSH_I24:
+		case FKL_OP_PUSH_I64F:
+		case FKL_OP_PUSH_I64F_C:
+		case FKL_OP_PUSH_I64F_X:
+		case FKL_OP_PUSH_I64B:
+		case FKL_OP_PUSH_I64B_C:
+		case FKL_OP_PUSH_I64B_X:
+		case FKL_OP_PUSH_F64:
+		case FKL_OP_PUSH_F64_C:
+		case FKL_OP_PUSH_F64_X:
+		case FKL_OP_PUSH_BI:
+		case FKL_OP_PUSH_BI_C:
+		case FKL_OP_PUSH_BI_X:
+		case FKL_OP_PUSH_SYM:
+		case FKL_OP_PUSH_SYM_C:
+		case FKL_OP_PUSH_SYM_X:
+			{
+				uint32_t i=fklGetOpcodeModeLen(peephole[0].ins.op);
+				if(k>i&&peephole[i].ins.op==FKL_OP_NOT)
+					return i+1;
+			}
+			break;
+		default:
+			return 0;
+	}
+	return 0;
+}
+
+static uint32_t push_const_not_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	output[0].ins.op=output[0].ins.op==FKL_OP_PUSH_NIL?FKL_OP_PUSH_1:FKL_OP_PUSH_NIL;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
@@ -1486,6 +1543,7 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{oprand2_const_fold_predicate,       oprand2_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 	{oprand3_const_fold_predicate,       oprand3_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 	{nil_cond_ret_or_jmp_drop_pred,      nil_cond_ret_or_jmp_drop_output, PEEPHOLE_CAN_IN_BLOCKS,       },
+	{push_const_not_pred,                push_const_not_output,           PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 	{NULL,                               NULL,                            PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 };
 

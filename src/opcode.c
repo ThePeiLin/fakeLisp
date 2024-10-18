@@ -223,6 +223,8 @@ static struct
 
 	{"ret-if-true",       FKL_OP_MODE_I,        },
 	{"ret-if-false",      FKL_OP_MODE_I,        },
+	{"mov-loc",           FKL_OP_MODE_IuAuB,    },
+	{"mov-var-ref",       FKL_OP_MODE_IuAuB,    },
 };
 
 const char* fklGetOpcodeName(FklOpcode opcode)

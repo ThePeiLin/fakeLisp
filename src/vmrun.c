@@ -1198,8 +1198,7 @@ put_var_ref:
 				FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 				if(!pv)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
-				FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-				*pv=v;
+				*pv=FKL_VM_GET_TOP_VALUE(exe);
 			}
 			break;
 		case FKL_OP_EXPORT:
@@ -2292,6 +2291,22 @@ pop_loc:
 					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
 					return;
 				}
+			}
+			break;
+		case FKL_OP_MOV_LOC:
+			FKL_VM_PUSH_VALUE(exe,(GET_COMPOUND_FRAME_LOC(frame,ins->bu)=GET_COMPOUND_FRAME_LOC(frame,ins->au)));
+			break;
+		case FKL_OP_MOV_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* v=get_var_val(frame,ins->au,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				FKL_VM_PUSH_VALUE(exe,v);
+				FklVMvalue* volatile* pv=get_var_ref(frame,ins->bu,exe->pts,&id);
+				if(!pv)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				*pv=v;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:
@@ -2839,8 +2854,7 @@ put_var_ref:
 				FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 				if(!pv)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
-				FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-				*pv=v;
+				*pv=FKL_VM_GET_TOP_VALUE(exe);
 			}
 			break;
 		case FKL_OP_EXPORT:
@@ -3933,6 +3947,22 @@ pop_loc:
 					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
 					return;
 				}
+			}
+			break;
+		case FKL_OP_MOV_LOC:
+			FKL_VM_PUSH_VALUE(exe,(GET_COMPOUND_FRAME_LOC(frame,ins->bu)=GET_COMPOUND_FRAME_LOC(frame,ins->au)));
+			break;
+		case FKL_OP_MOV_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* v=get_var_val(frame,ins->au,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				FKL_VM_PUSH_VALUE(exe,v);
+				FklVMvalue* volatile* pv=get_var_ref(frame,ins->bu,exe->pts,&id);
+				if(!pv)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				*pv=v;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:
@@ -4479,8 +4509,7 @@ put_var_ref:
 				FklVMvalue* volatile* pv=get_var_ref(frame,idx,exe->pts,&id);
 				if(!pv)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
-				FklVMvalue* v=FKL_VM_GET_TOP_VALUE(exe);
-				*pv=v;
+				*pv=FKL_VM_GET_TOP_VALUE(exe);
 			}
 			break;
 		case FKL_OP_EXPORT:
@@ -5573,6 +5602,22 @@ pop_loc:
 					fklDoFinalizeCompoundFrame(exe,popFrame(exe));
 					return;
 				}
+			}
+			break;
+		case FKL_OP_MOV_LOC:
+			FKL_VM_PUSH_VALUE(exe,(GET_COMPOUND_FRAME_LOC(frame,ins->bu)=GET_COMPOUND_FRAME_LOC(frame,ins->au)));
+			break;
+		case FKL_OP_MOV_VAR_REF:
+			{
+				FklSid_t id=0;
+				FklVMvalue* v=get_var_val(frame,ins->au,exe->pts,&id);
+				if(id)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				FKL_VM_PUSH_VALUE(exe,v);
+				FklVMvalue* volatile* pv=get_var_ref(frame,ins->bu,exe->pts,&id);
+				if(!pv)
+					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				*pv=v;
 			}
 			break;
 		case FKL_OP_EXTRA_ARG:

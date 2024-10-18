@@ -224,6 +224,9 @@ typedef enum
 	FKL_OP_RET_IF_TRUE,
 	FKL_OP_RET_IF_FALSE,
 
+	FKL_OP_MOV_LOC,
+	FKL_OP_MOV_VAR_REF,
+
 	FKL_OP_LAST_OPCODE,
 }FklOpcode;
 

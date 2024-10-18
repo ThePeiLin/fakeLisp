@@ -1526,6 +1526,161 @@ static uint32_t push_const_not_output(const FklByteCodeBuffer* buf
 	return 1;
 }
 
+static uint32_t mov_loc_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<2)
+		return 0;
+	if(peephole[0].ins.op==FKL_OP_GET_LOC)
+	{
+		uint32_t a_idx=peephole[0].ins.bu;
+		if(a_idx>UINT8_MAX)
+			return 0;
+		if(peephole[1].ins.op==FKL_OP_PUT_LOC)
+			return 2;
+	}
+	return 0;
+}
+
+static uint32_t mov_loc_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	output[0].ins.op=FKL_OP_MOV_LOC;
+	output[0].ins.au=peephole[0].ins.bu;
+	output[0].ins.bu=peephole[1].ins.bu;
+	return 1;
+}
+
+static uint32_t mov_loc_drop_get_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<3)
+		return 0;
+	if(peephole[0].ins.op==FKL_OP_MOV_LOC)
+	{
+		uint32_t a_idx=peephole[0].ins.au;
+		if(peephole[1].ins.op==FKL_OP_DROP)
+		{
+			if(peephole[2].ins.op==FKL_OP_GET_LOC)
+			{
+				if(peephole[2].ins.bu==a_idx)
+					return 3;
+			}
+			else if(peephole[2].ins.op==FKL_OP_MOV_LOC)
+			{
+				if(peephole[2].ins.au==peephole[0].ins.au
+						&&peephole[2].ins.bu==peephole[0].ins.bu)
+					return 3;
+			}
+		}
+	}
+	return 0;
+}
+
+static uint32_t mov_loc_drop_get_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	return 1;
+}
+
+static uint32_t mov_var_ref_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<2)
+		return 0;
+	if(peephole[0].ins.op==FKL_OP_GET_VAR_REF)
+	{
+		uint32_t a_idx=peephole[0].ins.bu;
+		if(a_idx>UINT8_MAX)
+			return 0;
+		if(peephole[1].ins.op==FKL_OP_PUT_VAR_REF)
+			return 2;
+	}
+	return 0;
+}
+
+static uint32_t mov_var_ref_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	output[0].ins.op=FKL_OP_MOV_VAR_REF;
+	output[0].ins.au=peephole[0].ins.bu;
+	output[0].ins.bu=peephole[1].ins.bu;
+	return 1;
+}
+
+static uint32_t mov_var_ref_drop_get_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if(k<3)
+		return 0;
+	if(peephole[0].ins.op==FKL_OP_MOV_VAR_REF)
+	{
+		uint32_t a_idx=peephole[0].ins.au;
+		if(peephole[1].ins.op==FKL_OP_DROP)
+		{
+			if(peephole[2].ins.op==FKL_OP_GET_VAR_REF)
+			{
+				if(peephole[2].ins.bu==a_idx)
+					return 3;
+			}
+			else if(peephole[2].ins.op==FKL_OP_MOV_VAR_REF)
+			{
+				if(peephole[2].ins.au==peephole[0].ins.au
+						&&peephole[2].ins.bu==peephole[0].ins.bu)
+					return 3;
+			}
+		}
+	}
+	return 0;
+}
+
+static uint32_t mov_to_get_pred(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k)
+{
+	if((peephole[0].ins.op==FKL_OP_MOV_LOC
+				||peephole[0].ins.op==FKL_OP_MOV_VAR_REF))
+	{
+		uint32_t a_idx=peephole[0].ins.au;
+		uint32_t b_idx=peephole[0].ins.bu;
+		if(a_idx==b_idx)
+			return 1;
+	}
+	return 0;
+}
+
+static uint32_t mov_to_get_output(const FklByteCodeBuffer* buf
+		,const uint64_t* block_start
+		,const FklInsLn* peephole
+		,uint32_t k
+		,FklInsLn* output)
+{
+	output[0]=peephole[0];
+	output[0].ins.op=peephole[0].ins.op==FKL_OP_MOV_LOC?FKL_OP_GET_LOC:FKL_OP_GET_VAR_REF;
+	return 1;
+}
+
 static const struct PeepholeOptimizer PeepholeOptimizers[]=
 {
 	{not3_predicate,                     not3_output,                     PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
@@ -1544,6 +1699,11 @@ static const struct PeepholeOptimizer PeepholeOptimizers[]=
 	{oprand3_const_fold_predicate,       oprand3_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 	{nil_cond_ret_or_jmp_drop_pred,      nil_cond_ret_or_jmp_drop_output, PEEPHOLE_CAN_IN_BLOCKS,       },
 	{push_const_not_pred,                push_const_not_output,           PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{mov_loc_pred,                       mov_loc_output,                  PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{mov_loc_drop_get_pred,              mov_loc_drop_get_output,         PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{mov_var_ref_pred,                   mov_var_ref_output,              PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{mov_var_ref_drop_get_pred,          mov_loc_drop_get_output,         PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
+	{mov_to_get_pred,                    mov_to_get_output,               PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 	{NULL,                               NULL,                            PEEPHOLE_SHOULD_IN_ONE_BLOCK, },
 };
 

@@ -148,9 +148,9 @@
     "+[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<"
     "<<<<<]]>>>]"))
 
-(define stack #vd())
+(define stack #d())
 
-(define ins #vd())
+(define ins #d())
 
 (define prev-ins nil)
 

@@ -1,6 +1,6 @@
 ; (define fib
 ;   (local
-;     (define fib-cache #vd(0 1 1))
+;     (define fib-cache #d(0 1 1))
 ;     (define (fib-cached n)
 ;       (if (<= (length fib-cache) n)
 ;         (dvec-resize! fib-cache (1+ n)))

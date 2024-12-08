@@ -6267,8 +6267,8 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*vector-items* ",                                       "prod_action_nil",           prod_action_nil,           },
 	{"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list,          },
 
-	{"*dvector* ##vd( &*vector-items* #)",                    "prod_action_dvector",       prod_action_dvector,       },
-	{"*dvector* ##vd[ &*vector-items* #]",                    "prod_action_dvector",       prod_action_dvector,       },
+	{"*dvector* ##d( &*vector-items* #)",                     "prod_action_dvector",       prod_action_dvector,       },
+	{"*dvector* ##d[ &*vector-items* #]",                     "prod_action_dvector",       prod_action_dvector,       },
 
 	{"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq,        },
 	{"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq,        },

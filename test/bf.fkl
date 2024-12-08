@@ -2,13 +2,13 @@
 
 (define code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
 
-(define m #vd(0))
+(define m #d(0))
 
 (define mp 0)
 
-(define ins #vd())
+(define ins #d())
 
-(define stack #vd())
+(define stack #d())
 
 (define cp 0)
 

@@ -454,8 +454,8 @@ char* fklGetDir(const char* filename)
 #ifdef _WIN32
 char* fklRelpath(const char* start,const char* path)
 {
-	char divstr[]=FKL_PATH_SEPARATOR_STR;
-	char upperDir[]="..\\";
+	const char* divstr=FKL_PATH_SEPARATOR_STR;
+	const char* upperDir="..\\";
 	char rp[FKL_PATH_MAX]={0};
 	char* c_start=fklCopyCstr(start);
 	char* c_path=fklCopyCstr(path);
@@ -524,9 +524,9 @@ exit:
 
 char* fklRelpath(const char* start,const char* path)
 {
-	char divstr[]=FKL_PATH_SEPARATOR_STR;
+	const char* divstr=FKL_PATH_SEPARATOR_STR;
+	const char* upperDir="../";
 	char rp[FKL_PATH_MAX]={0};
-	char upperDir[]="../";
 
 	char* c_start=fklCopyCstr(start);
 	char* c_path=fklCopyCstr(path);

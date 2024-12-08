@@ -7,7 +7,7 @@
 (println (vec-last v))
 (assert (eq (vec-last v) 'bar))
 
-(prin1n (define vd #vd(1 2 3 4 5)))
+(prin1n (define vd #d(1 2 3 4 5)))
 (prin1n (dvec-insert! vd 2 'foo))
 (prin1n (dvec-insert! vd 3 'bar))
 (prin1n (dvec-insert! vd 0 'foobar))
@@ -17,7 +17,7 @@
 (prin1n (dvec-capacity vd))
 (assert (eqv (dvec-capacity vd) 10))
 
-(prin1n (define vd #vd(1 2 3 4 5 6)))
+(prin1n (define vd #d(1 2 3 4 5 6)))
 (prin1n (dvec-insert! vd 2 10 'foo))
 (printf "capacity %s\n" (dvec-capacity vd))
 (assert (eqv (dvec-capacity vd) 16))
@@ -46,7 +46,7 @@
                (length another-vd)
                (length #(114 514))))
 
-(prin1n (append! vd another-vd #vd(114 514)))
+(prin1n (append! vd another-vd #d(114 514)))
 (printf "expect length: %s, actual length: %s\n"
         len
         (length vd))
@@ -55,7 +55,7 @@
 (define len (+ (length vd)
                (length another-vd)
                (length #(114 514))))
-(define vvd (append vd another-vd #vd(114 514)))
+(define vvd (append vd another-vd #d(114 514)))
 (prin1n vvd)
 (printf "expect length: %s, actual length: %s\n"
         len
@@ -92,18 +92,18 @@
 (prin1n l)
 (assert (equal l '(1 2 3 4 5 6 7 8 9)))
 
-(prin1n (pmatch '~#vd(~a ~b) #vd(foo bar)))
+(prin1n (pmatch '~#d(~a ~b) #d(foo bar)))
 
 (define v #(foo bar))
-(prin1n (append v #vd(bar foo) #(114 514) #vd(foobar)))
-(assert (equal (append v #vd(bar foo) #(114 514) #vd(foobar))
+(prin1n (append v #d(bar foo) #(114 514) #d(foobar)))
+(assert (equal (append v #d(bar foo) #(114 514) #d(foobar))
                #(foo bar bar foo 114 514 foobar)))
 
-(define vd #vd(foo bar))
-(prin1n (append vd #(bar foo) #vd(114 514) #(foobar)))
-(assert (equal (append vd #(bar foo) #vd(114 514) #(foobar))
-               #vd(foo bar bar foo 114 514 foobar)))
+(define vd #d(foo bar))
+(prin1n (append vd #(bar foo) #d(114 514) #(foobar)))
+(assert (equal (append vd #(bar foo) #d(114 514) #(foobar))
+               #d(foo bar bar foo 114 514 foobar)))
 
-(append! vd #(bar foo) #vd(114 514) #(foobar))
+(append! vd #(bar foo) #d(114 514) #(foobar))
 (prin1n vd)
-(assert (equal vd #vd(foo bar bar foo 114 514 foobar)))
+(assert (equal vd #d(foo bar bar foo 114 514 foobar)))

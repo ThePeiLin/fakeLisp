@@ -23,13 +23,13 @@ static inline FklNastNode* cadr_nast_node(const FklNastNode* node)
 static inline int isExportDefmacroExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
 {
 	return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFMACRO],c,NULL)
-		&&cadr_nast_node(c)->type!=FKL_NAST_VECTOR;
+		&&cadr_nast_node(c)->type!=FKL_NAST_BOX;
 }
 
 static inline int isExportDefReaderMacroExp(const FklNastNode* c,FklNastNode* const* builtin_pattern_node)
 {
 	return (fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFMACRO],c,NULL)
-			&&cadr_nast_node(c)->type==FKL_NAST_VECTOR)
+			&&cadr_nast_node(c)->type==FKL_NAST_BOX)
 		||fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_DEF_READER_MACROS],c,NULL);
 }
 
@@ -5702,6 +5702,7 @@ static inline FklByteCodelnt* process_import_imported_lib_only(uint32_t libId
 			errorState->type=FKL_ERR_IMPORT_MISSING;
 			errorState->place=fklMakeNastNodeRef(only->pair->car);
 			errorState->line=only->curline;
+			errorState->fid=fklAddSymbolCstr(codegen->filename,&codegen->outer_ctx->public_symbol_table)->id;
 			break;
 		}
 	}
@@ -5891,6 +5892,7 @@ static inline FklByteCodelnt* process_import_imported_lib_alias(uint32_t libId
 			errorState->type=FKL_ERR_IMPORT_MISSING;
 			errorState->place=fklMakeNastNodeRef(curNode->pair->car);
 			errorState->line=alias->curline;
+			errorState->fid=fklAddSymbolCstr(codegen->filename,&codegen->outer_ctx->public_symbol_table)->id;
 			break;
 		}
 	}
@@ -6366,10 +6368,13 @@ static CODEGEN_FUNC(codegen_export)
 
 static inline FklSid_t get_reader_macro_group_id(const FklNastNode* node)
 {
-	for(;node->pair->cdr->type!=FKL_NAST_NIL;node=node->pair->cdr);
-	const FklNastNode* group_id_node=node->pair->car;
-	if(group_id_node->type==FKL_NAST_SYM)
-		return group_id_node->sym;
+	const FklNastNode* name=cadr_nast_node(node);
+	if(name->type==FKL_NAST_BOX)
+	{
+		const FklNastNode* group_id_node=name->box;
+		if(group_id_node->type==FKL_NAST_SYM)
+			return group_id_node->sym;
+	}
 	return 0;
 }
 
@@ -6749,6 +6754,7 @@ static inline FklByteCodelnt* process_import_from_dll_only(FklNastNode* origExp
 			errorState->type=FKL_ERR_IMPORT_MISSING;
 			errorState->place=fklMakeNastNodeRef(only->pair->car);
 			errorState->line=only->curline;
+			errorState->fid=fklAddSymbolCstr(codegen->filename,&codegen->outer_ctx->public_symbol_table)->id;
 			break;
 		}
 	}
@@ -7024,6 +7030,7 @@ static inline FklByteCodelnt* process_import_from_dll_alias(FklNastNode* origExp
 			errorState->type=FKL_ERR_IMPORT_MISSING;
 			errorState->place=fklMakeNastNodeRef(curNode->pair->car);
 			errorState->line=alias->curline;
+			errorState->fid=fklAddSymbolCstr(codegen->filename,&codegen->outer_ctx->public_symbol_table)->id;
 			break;
 		}
 	}
@@ -9786,9 +9793,11 @@ static CODEGEN_FUNC(codegen_defmacro)
 				,macroCodegen
 				,codegenQuestStack);
 	}
-	else if(name->type==FKL_NAST_VECTOR)
+	else if(name->type==FKL_NAST_BOX)
 	{
-		if(value->type!=FKL_NAST_NIL&&value->type!=FKL_NAST_SYM)
+		FklNastNode* group_node=name->box;
+		if(value->type!=FKL_NAST_VECTOR
+				||(group_node->type!=FKL_NAST_SYM&&group_node->type!=FKL_NAST_NIL))
 		{
 			errorState->type=FKL_ERR_SYNTAXERROR;
 			errorState->place=fklMakeNastNodeRef(origExp);
@@ -9803,7 +9812,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 				,origExp->curline
 				,codegen
 				,codegenQuestStack);
-		FklSid_t group_id=value->type==FKL_NAST_NIL?0:value->sym;
+		FklSid_t group_id=group_node->type==FKL_NAST_NIL?0:group_node->sym;
 		FklSymbolTable* st=pst;
 		FklGrammer* g=*codegen->g;
 		if(!g)
@@ -9823,7 +9832,7 @@ static CODEGEN_FUNC(codegen_defmacro)
 		}
 		if(process_add_production(group_id
 					,codegen
-					,name
+					,value
 					,errorState
 					,curEnv
 					,macroScope
@@ -9851,22 +9860,21 @@ static CODEGEN_FUNC(codegen_def_reader_macros)
 	FklSymbolTable* pst=&outer_ctx->public_symbol_table;
 	FklPtrQueue prod_vector_queue;
 	fklInitPtrQueue(&prod_vector_queue);
-	FklNastNode* arg=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0,ht);
-	if(arg->type!=FKL_NAST_VECTOR)
+	FklNastNode* name=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0,ht);
+	if(name->type!=FKL_NAST_BOX)
 		goto reader_macro_error;
-	fklPushPtrQueue(arg,&prod_vector_queue);
-	arg=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1,ht);
+	FklNastNode* arg=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1,ht);
 	if(arg->type!=FKL_NAST_VECTOR)
 		goto reader_macro_error;
 	fklPushPtrQueue(arg,&prod_vector_queue);
 	FklNastNode* rest=fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,ht);
-	for(;rest->pair->cdr->type!=FKL_NAST_NIL;rest=rest->pair->cdr)
+	for(;rest->type!=FKL_NAST_NIL;rest=rest->pair->cdr)
 	{
 		if(rest->pair->car->type!=FKL_NAST_VECTOR)
 			goto reader_macro_error;
 		fklPushPtrQueue(rest->pair->car,&prod_vector_queue);
 	}
-	FklNastNode* group_node=rest->pair->car;
+	FklNastNode* group_node=name->box;
 	if(group_node->type!=FKL_NAST_NIL&&group_node->type!=FKL_NAST_SYM)
 	{
 reader_macro_error:

@@ -1,8 +1,7 @@
 (import (prefix (test-lib) foobar-))
 
-(defmacro
-  #(test #["#ya-quote'" (foobar-custom,custom-quote)] builtin second)
-  ())
+(defmacro #&()
+  #(test #["#ya-quote'" (foobar-custom,custom-quote)] builtin second))
 
 /*comment*/
 

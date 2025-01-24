@@ -1,8 +1,7 @@
 (import (except (test-lib) comment))
 
-(defmacro
-  #(test #["#ya-quote'" (custom,custom-quote)] builtin second)
-  ())
+(defmacro #&()
+  #(test #["#ya-quote'" (custom,custom-quote)] builtin second))
 
 (import (only (.. lib utils m) assert))
 

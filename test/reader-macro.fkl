@@ -46,7 +46,7 @@
 ;;
 ;; 虽然这玩意儿叫读取器宏，但其实本质是产生式
 
-(defmacro
+(defmacro #&custom
   #(#[#&"/\\*\\*/|^/\\*.*\\*/$"]) ;; 自定义注释
 
   #(my-lambda
@@ -88,8 +88,7 @@
   #(my-fn-def
      #[#("def") *symbol* *symbol* "{" func-body "}"]
      custom
-     `(define (~(vec-ref $$ 1),~(vec-ref $$ 2)),~(vec-ref $$ 4)))
-  custom)
+     `(define (~(vec-ref $$ 1),~(vec-ref $$ 2)),~(vec-ref $$ 4))))
 
 /*
 自定义注释

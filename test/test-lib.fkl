@@ -1,9 +1,7 @@
 (export
-  (defmacro
-    #[custom-quote #["#quote'" *s-exp*] builtin quote]
-    custom))
+  (defmacro #&custom
+    #[custom-quote #["#quote'" *s-exp*] builtin quote]))
 
 (export
-  (defmacro
-    #(#[#&"/\\*\\*/|^/\\*.*\\*/$"])
-    comment))
+  (defmacro #&comment
+    #(#[#&"/\\*\\*/|^/\\*.*\\*/$"])))

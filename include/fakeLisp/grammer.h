@@ -170,6 +170,19 @@ typedef struct FklLalrItemSet
 	FklLalrItemSetLink* links;
 }FklLalrItemSet;
 
+typedef struct FklGetLaFirstSetCacheKey
+{
+	const FklGrammerProduction* prod;
+	uint32_t idx;
+}FklGetLaFirstSetCacheKey;
+
+typedef struct FklGetLaFirstSetCacheItem
+{
+	FklGetLaFirstSetCacheKey key;
+	FklHashTable first;
+	int has_epsilon;
+}FklGetLaFirstSetCacheItem;
+
 typedef enum
 {
 	FKL_ANALYSIS_SHIFT,

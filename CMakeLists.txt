@@ -304,7 +304,7 @@ set_target_properties(test-dll PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
 add_custom_command(OUTPUT "parse.c"
-	COMMAND ${GRAMMER_GEN}
+	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
 	"parse.c"
 	${PROJECT_SOURCE_DIR}/main/grammer/action.c
 	"fklNastTerminalCreate"
@@ -315,7 +315,7 @@ add_custom_command(OUTPUT "parse.c"
 	VERBATIM)
 
 add_custom_command(OUTPUT "vmparse.c"
-	COMMAND ${GRAMMER_GEN}
+	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
 	"vmparse.c"
 	${PROJECT_SOURCE_DIR}/main/grammer/vmaction.c
 	"fklVMvalueTerminalCreate"

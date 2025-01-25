@@ -158,6 +158,7 @@ void* fklGetHashItem(const void* key,const FklHashTable*);
 FklHashTableItem** fklGetHashItemSlot(FklHashTable*,uintptr_t);
 
 void* fklPutHashItem(const void* key,FklHashTable*);
+int fklPutHashItem2(FklHashTable*,const void* key,void** pitem);
 void* fklPutHashItemInSlot(FklHashTable*,FklHashTableItem**);
 
 void* fklGetOrPutHashItem(void* data,FklHashTable*);

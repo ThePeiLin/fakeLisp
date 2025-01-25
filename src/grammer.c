@@ -1,3 +1,4 @@
+#include<fakeLisp/base.h>
 #include<fakeLisp/grammer.h>
 #include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
@@ -2354,11 +2355,7 @@ static inline int compute_all_first_set(FklGrammer* g)
 								.delim=sym->delim,
 								.b=sym->b,
 							};
-							if(!fklGetHashItem(&la,&firstItem->first))
-							{
-								change=1;
-								fklPutHashItem(&la,&firstItem->first);
-							}
+							change|=!fklPutHashItem2(&firstItem->first,&la,NULL);
 							if(r)
 							{
 								if(i==lastIdx)
@@ -2382,12 +2379,7 @@ static inline int compute_all_first_set(FklGrammer* g)
 								.re=sym->re,
 							};
 
-							if(!fklGetHashItem(&la,&firstItem->first))
-							{
-								change=1;
-								fklPutHashItem(&la,&firstItem->first);
-							}
-
+							change|=!fklPutHashItem2(&firstItem->first,&la,NULL);
 							if(r)
 							{
 								if(i==lastIdx)
@@ -2419,11 +2411,7 @@ static inline int compute_all_first_set(FklGrammer* g)
 									.end_with_terminal=sym->end_with_terminal,
 									.s=s,
 								};
-								if(!fklGetHashItem(&la,&firstItem->first))
-								{
-									change=1;
-									fklPutHashItem(&la,&firstItem->first);
-								}
+								change|=!fklPutHashItem2(&firstItem->first,&la,NULL);
 								break;
 							}
 						}
@@ -2436,11 +2424,7 @@ static inline int compute_all_first_set(FklGrammer* g)
 						for(const FklHashTableItem* syms=curFirstItem->first.first;syms;syms=syms->next)
 						{
 							const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)syms->data;
-							if(!fklGetHashItem(la,&firstItem->first))
-							{
-								change=1;
-								fklPutHashItem(la,&firstItem->first);
-							}
+							change|=!fklPutHashItem2(&firstItem->first,la,NULL);
 						}
 						if(curFirstItem->hasEpsilon&&i==lastIdx)
 						{
@@ -2503,10 +2487,10 @@ static inline int add_reachable_terminal(FklGrammer* g)
 					else if(cur->term_type==FKL_TERM_REGEX)
 						find_and_add_terminal_in_regex(cur->re,&g->reachable_terminals);
 				}
-				if(!cur->isterm&&!fklGetHashItem(&cur->nt,&nonterm_set))
+				if(!cur->isterm&&!fklPutHashItem2(&nonterm_set,&cur->nt,NULL))
 				{
-					FklGrammerNonterm left={.group=cur->nt.group,.sid=cur->nt.sid};
-					fklPutHashItem(&left,&nonterm_set);
+					// FklGrammerNonterm left={.group=cur->nt.group,.sid=cur->nt.sid};
+					// fklPutHashItem(&left,&nonterm_set);
 					fklPushPtrStack(fklGetProductions(productions,cur->nt.group,cur->nt.sid),&prod_stack);
 				}
 			}
@@ -2808,6 +2792,11 @@ static int lalr_item_equal(const void* d0,const void* d1)
 		&&lalr_look_ahead_equal(&i0->la,&i1->la);
 }
 
+static inline uintptr_t hash_combine(uintptr_t seed,uintptr_t hash)
+{
+	return hash+0x9e3779b9+(seed<<6)+(seed>>2);
+}
+
 static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la)
 {
 	uintptr_t rest=la->t==FKL_LALR_MATCH_STRING
@@ -2816,13 +2805,16 @@ static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la
 				?builtin_grammer_sym_hash(&la->b)
 				:0);
 
-	return rest+((uintptr_t)la->t)+(la->delim<<1)+(la->end_with_terminal);
+	rest=hash_combine(rest,((uintptr_t)la->t));
+	rest=hash_combine(rest,la->delim<<1);
+	return hash_combine(rest,la->end_with_terminal);
 }
 
 static uintptr_t lalr_item_hash_func(const void* d)
 {
 	const FklLalrItem* i=(const FklLalrItem*)d;
-	return (uintptr_t)i->prod+i->idx+lalr_look_ahead_hash_func(&i->la);
+	uintptr_t seed=hash_combine((((uintptr_t)i->prod)>>3),i->idx);
+	return hash_combine(seed,lalr_look_ahead_hash_func(&i->la));
 }
 
 static const FklHashTableMetaTable LalrItemHashMetaTable=
@@ -2995,10 +2987,9 @@ static inline void lr0_item_set_closure(FklHashTable* itemSet,FklGrammer* g)
 			if(sym&&!sym->isterm)
 			{
 				const FklGrammerNonterm* left=&sym->nt;
-				if(!fklGetHashItem(left,&sidSet))
+				if(!fklPutHashItem2(&sidSet,left,NULL))
 				{
 					change=1;
-					fklPutHashItem(left,&sidSet);
 					fklPutHashItem(left,&changeSet);
 				}
 			}
@@ -3166,7 +3157,7 @@ static uintptr_t item_set_hash_func(const void* d)
 	for(FklHashTableItem* l=i->first;l;l=l->next)
 	{
 		FklLalrItem* i=(FklLalrItem*)l->data;
-		v+=lalr_item_hash_func(i);
+		v=hash_combine(v,lalr_item_hash_func(i));
 	}
 	return v;
 }
@@ -3235,6 +3226,38 @@ static inline FklHashTable* create_item_state_set(void)
 {
 	return fklCreateHashTable(&ItemStateSetHashMetaTable);
 }
+
+FKL_HASH_SET_KEY_VAL(la_first_set_cache_set_key, FklGetLaFirstSetCacheKey);
+
+static uintptr_t la_first_set_cache_hash_func(const void* k)
+{
+	const FklGetLaFirstSetCacheKey* key=(const FklGetLaFirstSetCacheKey*)k;
+	return hash_combine(((uintptr_t)key->prod)>>3,key->idx);
+}
+
+static int la_first_set_key_equal(const void* k1,const void* k2)
+{
+	const FklGetLaFirstSetCacheKey* key1=(const FklGetLaFirstSetCacheKey*)k1;
+	const FklGetLaFirstSetCacheKey* key2=(const FklGetLaFirstSetCacheKey*)k2;
+	return key1->prod==key2->prod&&key1->idx==key2->idx;
+}
+
+static void la_first_set_cache_set_item_uninit(void* i)
+{
+	FklGetLaFirstSetCacheItem* item=(FklGetLaFirstSetCacheItem*)i;
+	fklUninitHashTable(&item->first);
+}
+
+static const FklHashTableMetaTable GetLaFirstSetCacheHashMetaTable=
+{
+	.size=sizeof(FklGetLaFirstSetCacheItem),
+	.__getKey=fklHashDefaultGetKey,
+	.__setKey=la_first_set_cache_set_key,
+	.__setVal=la_first_set_cache_set_key,
+	.__hashFunc=la_first_set_cache_hash_func,
+	.__keyEqual=la_first_set_key_equal,
+	.__uninitItem=la_first_set_cache_set_item_uninit,
+};
 
 static inline void lr0_item_set_goto(FklLalrItemSet* itemset
 		,FklHashTable* itemsetSet
@@ -3307,117 +3330,125 @@ FklHashTable* fklGenerateLr0Items(FklGrammer* grammer)
 	return itemstate_set;
 }
 
-static inline int get_first_set_from_first_sets(const FklGrammer* g
+static inline FklHashTable* get_first_set_from_first_sets(const FklGrammer* g
 		,const FklGrammerProduction* prod
 		,uint32_t idx
-		,FklHashTable* first)
+		,FklHashTable* cache
+		,int* pHasEpsilon)
 {
 	size_t len=prod->len;
 	if(idx>=len)
-		return 1;
-	size_t lastIdx=len-1;
-	const FklSymbolTable* tt=&g->terminals;
-	int hasEpsilon=0;
-	const FklHashTable* firstSets=&g->firstSets;
-	for(uint32_t i=idx;i<len;i++)
 	{
-		FklGrammerSym* sym=&prod->syms[i];
-		if(sym->isterm)
+		*pHasEpsilon=1;
+		return NULL;
+	}
+	FklGetLaFirstSetCacheKey key={.prod=prod,.idx=idx};
+	FklGetLaFirstSetCacheItem* item=NULL;
+	fklGetHashItem(&key,cache);
+	if(fklPutHashItem2(cache,&key,(void**)&item))
+	{
+		*pHasEpsilon=item->has_epsilon;
+		return &item->first;
+	}
+	else
+	{
+		FklHashTable* first=&item->first;
+		fklInitHashTable(first,&LookAheadHashMetaTable);
+		item->has_epsilon=0;
+		size_t lastIdx=len-1;
+		const FklSymbolTable* tt=&g->terminals;
+		int hasEpsilon=0;
+		const FklHashTable* firstSets=&g->firstSets;
+		for(uint32_t i=idx;i<len;i++)
 		{
-			if(sym->term_type==FKL_TERM_BUILTIN)
+			FklGrammerSym* sym=&prod->syms[i];
+			if(sym->isterm)
 			{
-				int r=is_builtin_terminal_match_epsilon(&sym->b);
-				FklLalrItemLookAhead la=
+				if(sym->term_type==FKL_TERM_BUILTIN)
 				{
-					.t=FKL_LALR_MATCH_BUILTIN,
-					.delim=sym->delim,
-					.b=sym->b,
-				};
-				fklPutHashItem(&la,first);
-				if(r)
-					hasEpsilon=i==lastIdx;
-				else
-					break;
-			}
-			else if(sym->term_type==FKL_TERM_REGEX)
-			{
-				uint32_t r=is_regex_match_epsilon(sym->re);
-				FklLalrItemLookAhead la=
+					int r=is_builtin_terminal_match_epsilon(&sym->b);
+					FklLalrItemLookAhead la=
+					{
+						.t=FKL_LALR_MATCH_BUILTIN,
+						.delim=sym->delim,
+						.b=sym->b,
+					};
+					fklPutHashItem(&la,first);
+					if(r)
+						hasEpsilon=i==lastIdx;
+					else
+						break;
+				}
+				else if(sym->term_type==FKL_TERM_REGEX)
 				{
-					.t=FKL_LALR_MATCH_REGEX,
-					.delim=sym->delim,
-					.end_with_terminal=sym->end_with_terminal,
-					.re=sym->re,
-				};
-				fklPutHashItem(&la,first);
-				if(r)
-					hasEpsilon=i==lastIdx;
+					uint32_t r=is_regex_match_epsilon(sym->re);
+					FklLalrItemLookAhead la=
+					{
+						.t=FKL_LALR_MATCH_REGEX,
+						.delim=sym->delim,
+						.end_with_terminal=sym->end_with_terminal,
+						.re=sym->re,
+					};
+					fklPutHashItem(&la,first);
+					if(r)
+						hasEpsilon=i==lastIdx;
+					else
+						break;
+				}
 				else
-					break;
+				{
+					FklString* s=fklGetSymbolWithId(sym->nt.sid,tt)->symbol;
+					if(s->size==0)
+						hasEpsilon=i==lastIdx;
+					else
+					{
+						FklLalrItemLookAhead la=
+						{
+							.t=FKL_LALR_MATCH_STRING,
+							.delim=sym->delim,
+							.end_with_terminal=sym->end_with_terminal,
+							.s=s,
+						};
+						fklPutHashItem(&la,first);
+						break;
+					}
+				}
 			}
 			else
 			{
-				FklString* s=fklGetSymbolWithId(sym->nt.sid,tt)->symbol;
-				if(s->size==0)
-					hasEpsilon=i==lastIdx;
-				else
+				const FirstSetItem* firstSetItem=fklGetHashItem(&sym->nt,firstSets);
+				for(FklHashTableItem* symList=firstSetItem->first.first;symList;symList=symList->next)
 				{
-					FklLalrItemLookAhead la=
-					{
-						.t=FKL_LALR_MATCH_STRING,
-						.delim=sym->delim,
-						.end_with_terminal=sym->end_with_terminal,
-						.s=s,
-					};
-					fklPutHashItem(&la,first);
-					break;
+					const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)symList->data;
+					fklPutHashItem(la,first);
 				}
+				if(firstSetItem->hasEpsilon&&i==lastIdx)
+					hasEpsilon=1;
+				if(!firstSetItem->hasEpsilon)
+					break;
 			}
 		}
-		else
-		{
-			const FirstSetItem* firstSetItem=fklGetHashItem(&sym->nt,firstSets);
-			for(FklHashTableItem* symList=firstSetItem->first.first;symList;symList=symList->next)
-			{
-				const FklLalrItemLookAhead* la=(const FklLalrItemLookAhead*)symList->data;
-				fklPutHashItem(la,first);
-			}
-			if(firstSetItem->hasEpsilon&&i==lastIdx)
-				hasEpsilon=1;
-			if(!firstSetItem->hasEpsilon)
-				break;
-		}
+		*pHasEpsilon=hasEpsilon;
+		item->has_epsilon=hasEpsilon;
+		return first;
 	}
-	return hasEpsilon;
 }
 
-static inline int get_first_set(const FklGrammer* g
-		,const FklGrammerProduction* prod
-		,uint32_t idx
-		,FklHashTable* first)
-{
-	return get_first_set_from_first_sets(g,prod,idx,first);
-}
-
-static inline void get_la_first_set(const FklGrammer* g
+static inline FklHashTable* get_la_first_set(const FklGrammer* g
 		,const FklGrammerProduction* prod
 		,uint32_t beta
-		,FklLalrItemLookAhead* a
-		,FklHashTable* first)
+		,FklHashTable* cache
+		,int* hasEpsilon)
 {
-	int hasEpsilon=get_first_set(g,prod,beta,first);
-	if(hasEpsilon)
-		fklPutHashItem(a,first);
+	return get_first_set_from_first_sets(g,prod,beta,cache,hasEpsilon);
 }
 
-static inline void lr1_item_set_closure(FklHashTable* itemSet,FklGrammer* g)
+static inline void lr1_item_set_closure(FklHashTable* itemSet,FklGrammer* g,FklHashTable* cache)
 {
 	FklHashTable pendingSet;
 	FklHashTable changeSet;
-	FklHashTable first;
 	fklInitHashTable(&pendingSet,&LalrItemHashMetaTable);
 	fklInitHashTable(&changeSet,&LalrItemHashMetaTable);
-	fklInitHashTable(&first,&LookAheadHashMetaTable);
 
 	for(FklHashTableItem* l=itemSet->first;l;l=l->next)
 	{
@@ -3425,47 +3456,53 @@ static inline void lr1_item_set_closure(FklHashTable* itemSet,FklGrammer* g)
 		fklPutHashItem(i,&pendingSet);
 	}
 
-	while(pendingSet.num)
+	FklHashTable* processing_set=&pendingSet;
+	FklHashTable* next_set=&changeSet;
+	while(processing_set->num)
 	{
-		for(FklHashTableItem* l=pendingSet.first;l;l=l->next)
+		for(FklHashTableItem* l=processing_set->first;l;l=l->next)
 		{
 			FklLalrItem* i=(FklLalrItem*)l->data;
 			FklGrammerSym* next=get_item_next(i);
 			if(next&&!next->isterm)
 			{
 				uint32_t beta=i->idx+1;
-				get_la_first_set(g,i->prod,beta,&i->la,&first);
+				int hasEpsilon=0;
+				FklHashTable* first=get_la_first_set(g,i->prod,beta,cache,&hasEpsilon);
 				const FklGrammerNonterm* left=&next->nt;
 				FklGrammerProduction* prods=fklGetGrammerProductions(g,left->group,left->sid);
-				for(FklHashTableItem* first_list=first.first;first_list;first_list=first_list->next)
+				if(first)
 				{
-					FklLalrItemLookAhead* a=(FklLalrItemLookAhead*)first_list->data;
-					for(FklGrammerProduction* prod=prods;prod;prod=prod->next)
+					for(FklHashTableItem* first_list=first->first;first_list;first_list=first_list->next)
 					{
-						FklLalrItem newItem={.prod=prod,.la=*a,.idx=0};
-						if(!fklGetHashItem(&newItem,itemSet))
+						FklLalrItemLookAhead* a=(FklLalrItemLookAhead*)first_list->data;
+						for(FklGrammerProduction* prod=prods;prod;prod=prod->next)
 						{
-							fklPutHashItem(&newItem,itemSet);
-							fklPutHashItem(&newItem,&changeSet);
+							FklLalrItem newItem={.prod=prod,.la=*a,.idx=0};
+							if(!fklPutHashItem2(itemSet,&newItem,NULL))
+								fklPutHashItem(&newItem,next_set);
 						}
 					}
 				}
-				fklClearHashTable(&first);
+				if(hasEpsilon)
+				{
+					for(FklGrammerProduction* prod=prods;prod;prod=prod->next)
+					{
+						FklLalrItem newItem={.prod=prod,.la=i->la,.idx=0};
+						if(!fklPutHashItem2(itemSet,&newItem,NULL))
+							fklPutHashItem(&newItem,next_set);
+					}
+				}
 			}
 		}
 
-		fklClearHashTable(&pendingSet);
-		for(FklHashTableItem* l=changeSet.first;l;l=l->next)
-		{
-			FklLalrItem* i=(FklLalrItem*)l->data;
-			fklPutHashItem(i,&pendingSet);
-		}
-
-		fklClearHashTable(&changeSet);
+		fklClearHashTable(processing_set);
+		FklHashTable* t=processing_set;
+		processing_set=next_set;
+		next_set=t;
 	}
 	fklUninitHashTable(&changeSet);
 	fklUninitHashTable(&pendingSet);
-	fklUninitHashTable(&first);
 }
 
 static inline void add_lookahead_spread(FklLalrItemSet* itemset
@@ -3483,7 +3520,8 @@ static inline void add_lookahead_spread(FklLalrItemSet* itemset
 }
 
 static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
-		,FklLalrItemSet* itemset)
+		,FklLalrItemSet* itemset
+		,FklHashTable* cache)
 {
 	FklHashTable* items=&itemset->items;
 	FklHashTable closure;
@@ -3495,7 +3533,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer* g
 		{
 			FklLalrItem item={.prod=i->prod,.idx=i->idx,.la=FKL_LALR_MATCH_NONE_INIT};
 			fklPutHashItem(&item,&closure);
-			lr1_item_set_closure(&closure,g);
+			lr1_item_set_closure(&closure,g,cache);
 			for(FklHashTableItem* cl=closure.first;cl;cl=cl->next)
 			{
 				FklLalrItem* i=(FklLalrItem*)cl->data;
@@ -3539,23 +3577,19 @@ static inline int lookahead_spread(FklLalrItemSet* itemset)
 			{
 				FklLalrItem newItem=*dstItem;
 				newItem.la=item->la;
-				if(!fklGetHashItem(&newItem,dstItems))
-				{
-					change=1;
-					fklPutHashItem(&newItem,dstItems);
-				}
+				change|=!fklPutHashItem2(dstItems,&newItem,NULL);
 			}
 		}
 	}
 	return change;
 }
 
-static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g)
+static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g,FklHashTable* cache)
 {
 	for(FklHashTableItem* isl=lr0->first;isl;isl=isl->next)
 	{
 		FklLalrItemSet* s=(FklLalrItemSet*)isl->data;
-		check_lookahead_self_generated_and_spread(g,s);
+		check_lookahead_self_generated_and_spread(g,s,cache);
 	}
 	FklHashTableItem* isl=lr0->first;
 	FklLalrItemSet* s=(FklLalrItemSet*)isl->data;
@@ -3569,7 +3603,8 @@ static inline void init_lalr_look_ahead(FklHashTable* lr0,FklGrammer* g)
 }
 
 static inline void add_look_ahead_to_items(FklHashTable* items
-		,FklGrammer* g)
+		,FklGrammer* g
+		,FklHashTable* cache)
 {
 	FklHashTable add;
 	init_empty_item_set(&add);
@@ -3586,22 +3621,24 @@ static inline void add_look_ahead_to_items(FklHashTable* items
 		fklPutHashItem(i,items);
 	}
 	fklUninitHashTable(&add);
-	lr1_item_set_closure(items,g);
+	lr1_item_set_closure(items,g,cache);
 	lalr_item_set_sort(items);
 }
 
-static inline void add_look_ahead_for_all_item_set(FklHashTable* lr0,FklGrammer* g)
+static inline void add_look_ahead_for_all_item_set(FklHashTable* lr0,FklGrammer* g,FklHashTable* cache)
 {
 	for(FklHashTableItem* isl=lr0->first;isl;isl=isl->next)
 	{
 		FklLalrItemSet* itemSet=(FklLalrItemSet*)isl->data;
-		add_look_ahead_to_items(&itemSet->items,g);
+		add_look_ahead_to_items(&itemSet->items,g,cache);
 	}
 }
 
 void fklLr0ToLalrItems(FklHashTable* lr0,FklGrammer* g)
 {
-	init_lalr_look_ahead(lr0,g);
+	FklHashTable cache;
+	fklInitHashTable(&cache,&GetLaFirstSetCacheHashMetaTable);
+	init_lalr_look_ahead(lr0,g,&cache);
 	int change;
 	do
 	{
@@ -3612,7 +3649,8 @@ void fklLr0ToLalrItems(FklHashTable* lr0,FklGrammer* g)
 			change|=lookahead_spread(s);
 		}
 	}while(change);
-	add_look_ahead_for_all_item_set(lr0,g);
+	add_look_ahead_for_all_item_set(lr0,g,&cache);
+	fklUninitHashTable(&cache);
 }
 
 typedef struct

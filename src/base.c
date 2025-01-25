@@ -2535,6 +2535,45 @@ void* fklGetOrPutHashItem(void* data,FklHashTable* ht)
 	return d1;
 }
 
+int fklPutHashItem2(FklHashTable* ht,const void* pkey,void** pitem)
+{
+	HASH_FUNC_HEADER();
+	FklHashTableItem** pp=&ht->base[hash32shift(hashv(pkey),ht->mask)];
+	void* d1=NULL;
+	for(FklHashTableItem* pn=*pp;pn;pn=pn->ni)
+		if(keq(key(pn->data),pkey))
+		{
+			d1=pn->data;
+			break;
+		}
+	if(!d1)
+	{
+		FklHashTableItem* node=createHashTableItem(ht->t->size,*pp);
+		ht->t->__setKey(node->data,pkey);
+		d1=node->data;
+		*pp=node;
+		if(ht->first)
+		{
+			node->prev=ht->last;
+			ht->last->next=node;
+		}
+		else
+			ht->first=node;
+		ht->last=node;
+		ht->num++;
+		REHASH();
+		if(pitem)
+			*pitem=d1;
+		return 0;
+	}
+	else
+	{
+		if(pitem)
+			*pitem=d1;
+		return 1;
+	}
+}
+
 void* fklHashDefaultGetKey(void* i)
 {
 	return i;

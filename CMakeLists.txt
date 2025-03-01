@@ -77,7 +77,8 @@ add_library(test_lib
 	"src/grammer.c"
 	"src/symbol.c"
 	"src/nast.c"
-	"src/regex.c")
+	"src/regex.c"
+	"src/bigint.c")
 
 add_executable(test-lexer "main/test/lexer.c")
 target_link_libraries(test-lexer test_lib ${LINK_TARGET})
@@ -93,6 +94,9 @@ target_link_libraries(test-grammer test_lib ${LINK_TARGET})
 
 add_executable(test-parser "main/test/parser.c" "src/parser.c" ${PARSE})
 target_link_libraries(test-parser test_lib ${LINK_TARGET})
+
+add_executable(test-bigint "main/test/bi.c")
+target_link_libraries(test-bigint test_lib ${LINK_TARGET})
 
 add_executable(test-ins "main/test/ins.c")
 target_link_libraries(test-ins ${LIBFKL_TARGET_NAME})

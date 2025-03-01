@@ -695,7 +695,7 @@ void uv_process_tty_read_raw_req(uv_loop_t* loop, uv_tty_t* handle,
 
   DWORD records_left, records_read;
   uv_buf_t buf;
-  off_t buf_used;
+  _off_t buf_used;
 
   assert(handle->type == UV_TTY);
   assert(handle->flags & UV_HANDLE_TTY_READABLE);
@@ -2183,7 +2183,7 @@ int uv__tty_write(uv_loop_t* loop,
 
   handle->reqs_pending++;
   handle->stream.conn.write_reqs_pending++;
-  REGISTER_HANDLE_REQ(loop, handle, req);
+  REGISTER_HANDLE_REQ(loop, handle);
 
   req->u.io.queued_bytes = 0;
 
@@ -2219,7 +2219,7 @@ void uv__process_tty_write_req(uv_loop_t* loop, uv_tty_t* handle,
   int err;
 
   handle->write_queue_size -= req->u.io.queued_bytes;
-  UNREGISTER_HANDLE_REQ(loop, handle, req);
+  UNREGISTER_HANDLE_REQ(loop, handle);
 
   if (req->cb) {
     err = GET_REQ_ERROR(req);
@@ -2246,7 +2246,7 @@ void uv__tty_close(uv_tty_t* handle) {
   if (handle->u.fd == -1)
     CloseHandle(handle->handle);
   else
-    close(handle->u.fd);
+    _close(handle->u.fd);
 
   handle->u.fd = -1;
   handle->handle = INVALID_HANDLE_VALUE;
@@ -2263,7 +2263,7 @@ void uv__process_tty_shutdown_req(uv_loop_t* loop, uv_tty_t* stream, uv_shutdown
   assert(req);
 
   stream->stream.conn.shutdown_req = NULL;
-  UNREGISTER_HANDLE_REQ(loop, stream, req);
+  UNREGISTER_HANDLE_REQ(loop, stream);
 
   /* TTY shutdown is really just a no-op */
   if (req->cb) {
@@ -2380,8 +2380,8 @@ static DWORD WINAPI uv__tty_console_resize_watcher_thread(void* param) {
     /* Make sure to not overwhelm the system with resize events */
     Sleep(33);
     WaitForSingleObject(uv__tty_console_resized, INFINITE);
-    uv__tty_console_signal_resize();
     ResetEvent(uv__tty_console_resized);
+    uv__tty_console_signal_resize();
   }
   return 0;
 }

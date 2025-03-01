@@ -46,6 +46,8 @@ static void handle_result(uv_fs_t* req) {
   uv_fs_t stat_req;
   uint64_t size;
   uint64_t mode;
+  uint64_t uid;
+  uint64_t gid;
   int r;
 
   ASSERT_EQ(req->fs_type, UV_FS_COPYFILE);
@@ -56,11 +58,15 @@ static void handle_result(uv_fs_t* req) {
   ASSERT_OK(r);
   size = stat_req.statbuf.st_size;
   mode = stat_req.statbuf.st_mode;
+  uid = stat_req.statbuf.st_uid;
+  gid = stat_req.statbuf.st_gid;
   uv_fs_req_cleanup(&stat_req);
   r = uv_fs_stat(NULL, &stat_req, dst, NULL);
   ASSERT_OK(r);
   ASSERT_EQ(stat_req.statbuf.st_size, size);
   ASSERT_EQ(stat_req.statbuf.st_mode, mode);
+  ASSERT_EQ(stat_req.statbuf.st_uid, uid);
+  ASSERT_EQ(stat_req.statbuf.st_gid, gid);
   uv_fs_req_cleanup(&stat_req);
   uv_fs_req_cleanup(req);
   result_check_count++;
@@ -74,7 +80,8 @@ static void touch_file(const char* name, unsigned int size) {
   int r;
   unsigned int i;
 
-  r = uv_fs_open(NULL, &req, name, O_WRONLY | O_CREAT | O_TRUNC,
+  r = uv_fs_open(NULL, &req, name,
+                 UV_FS_O_WRONLY | UV_FS_O_CREAT | UV_FS_O_TRUNC,
                  S_IWUSR | S_IRUSR, NULL);
   uv_fs_req_cleanup(&req);
   ASSERT_GE(r, 0);

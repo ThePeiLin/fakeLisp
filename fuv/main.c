@@ -113,9 +113,11 @@ static inline void init_fuv_public_data(FuvPublicData* pd,FklSymbolTable* st)
 	{
 		"loop-block-signal",
 		"metrics-idle-time",
+		"loop-use-io-uring-sqpoll",
 	};
 	pd->loop_block_signal_sid=fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL],st)->id;
 	pd->metrics_idle_time_sid=fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME],st)->id;
+	pd->loop_use_io_uring_sqpoll=fklAddSymbolCstr(loop_config_sym[UV_LOOP_USE_IO_URING_SQPOLL],st)->id;
 
 #define XX(code,_) pd->uv_err_sid_##code=fklAddSymbolCstr("UV_"#code,st)->id;
 	UV_ERRNO_MAP(XX);
@@ -686,6 +688,8 @@ static int fuv_loop_configure(FKL_CPROC_ARGL)
 		option=UV_LOOP_BLOCK_SIGNAL;
 	else if(option_id==fpd->metrics_idle_time_sid)
 		option=UV_METRICS_IDLE_TIME;
+	else if(option_id==fpd->loop_use_io_uring_sqpoll)
+		option=UV_LOOP_USE_IO_URING_SQPOLL;
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
@@ -720,9 +724,10 @@ static int fuv_loop_configure(FKL_CPROC_ARGL)
 			}
 			break;
 		case UV_METRICS_IDLE_TIME:
+		case UV_LOOP_USE_IO_URING_SQPOLL:
 			{
 				FKL_CHECK_REST_ARG(exe);
-				int r=uv_loop_configure(loop,UV_METRICS_IDLE_TIME);
+				int r=uv_loop_configure(loop,option);
 				CHECK_UV_RESULT(r,exe,pd);
 			}
 			break;

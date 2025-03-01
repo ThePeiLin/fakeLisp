@@ -73,6 +73,8 @@
 
 (uv-loop-configure loop 'metrics-idle-time)
 
+(uv-loop-configure loop 'loop-use-io-uring-sqpoll)
+
 (uv-loop-run loop 'default)
 
 (assert (eq 'fuv-handle-error

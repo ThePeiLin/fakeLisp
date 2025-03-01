@@ -26,6 +26,7 @@ typedef struct
 	FklSid_t fuv_err_sid[FUV_ERR_NUM];
 	FklSid_t loop_block_signal_sid;
 	FklSid_t metrics_idle_time_sid;
+	FklSid_t loop_use_io_uring_sqpoll;
 
 #define XX(code,_) FklSid_t uv_err_sid_##code;
 	UV_ERRNO_MAP(XX)

@@ -322,6 +322,9 @@ ssize_t uv__idna_toascii(const char* s, const char* se, char* d, char* de) {
   char* ds;
   int rc;
 
+  if (s == se)
+    return UV_EINVAL;
+
   ds = d;
 
   si = s;
@@ -356,9 +359,10 @@ ssize_t uv__idna_toascii(const char* s, const char* se, char* d, char* de) {
       return rc;
   }
 
-  if (d < de)
-    *d++ = '\0';
+  if (d >= de)
+    return UV_EINVAL;
 
+  *d++ = '\0';
   return d - ds;  /* Number of bytes written. */
 }
 
@@ -389,7 +393,7 @@ void uv_wtf8_to_utf16(const char* source_ptr,
     code_point = uv__wtf8_decode1(&source_ptr);
     /* uv_wtf8_length_as_utf16 should have been called and checked first. */
     assert(code_point >= 0);
-    if (code_point > 0x10000) {
+    if (code_point > 0xFFFF) {
       assert(code_point < 0x10FFFF);
       *w_target++ = (((code_point - 0x10000) >> 10) + 0xD800);
       *w_target++ = ((code_point - 0x10000) & 0x3FF) + 0xDC00;
@@ -400,6 +404,7 @@ void uv_wtf8_to_utf16(const char* source_ptr,
     }
   } while (*source_ptr++);
 
+  (void)w_target_len;
   assert(w_target_len == 0);
 }
 

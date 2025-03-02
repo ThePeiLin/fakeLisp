@@ -28,11 +28,11 @@ NfklBigInt* nfklCreateBigIntD(double v);
 NfklBigInt* nfklCreateBigIntU(uint64_t v);
 NfklBigInt* nfklCreateBigIntFromMemCopy(int64_t num,const NfklBigIntDigit* mem);
 NfklBigInt* nfklCreateBigIntFromMem(int64_t num,const NfklBigIntDigit* mem);
-NfklBigInt* nfklCreateBigIntFromCstr(const char* str);
-NfklBigInt* nfklCreateBigIntFromCharBuf(const char* buf,size_t size);
-NfklBigInt* nfklCreateBigIntFromDecCharBuf(const char* buf,size_t); 
-NfklBigInt* nfklCreateBigIntFromHexCharBuf(const char* buf,size_t); 
-NfklBigInt* nfklCreateBigIntFromOctCharBuf(const char* buf,size_t); 
+NfklBigInt* nfklCreateBigIntWithCharBuf(const char* buf,size_t size);
+NfklBigInt* nfklCreateBigIntWithDecCharBuf(const char* buf,size_t);
+NfklBigInt* nfklCreateBigIntWithHexCharBuf(const char* buf,size_t);
+NfklBigInt* nfklCreateBigIntWithOctCharBuf(const char* buf,size_t);
+NfklBigInt* nfklCreateBigIntWithCstr(const char* str);
 
 void nfklDestroyBigInt(NfklBigInt*);
 
@@ -47,11 +47,11 @@ void nfklInitBigIntU(NfklBigInt*,uint64_t);
 void nfklInitBigIntD(NfklBigInt*,double);
 void nfklInitBigIntFromMemCopy(NfklBigInt* t,int64_t num,const uint8_t* mem);
 void nfklInitBigIntFromMem(NfklBigInt* t,int64_t num,uint8_t* mem);
-void nfklInitBigIntFromCstr(NfklBigInt* t,const char*);
-void nfklInitBigIntFromCharBuf(NfklBigInt* t,const char*,size_t); 
-void nfklInitBigIntFromDecCharBuf(NfklBigInt* t,const char*,size_t); 
-void nfklInitBigIntFromHexCharBuf(NfklBigInt* t,const char*,size_t); 
-void nfklInitBigIntFromOctCharBuf(NfklBigInt* t,const char*,size_t); 
+void nfklInitBigIntWithCharBuf(NfklBigInt* t,const char*,size_t);
+void nfklInitBigIntWithDecCharBuf(NfklBigInt* t,const char*,size_t);
+void nfklInitBigIntWithHexCharBuf(NfklBigInt* t,const char*,size_t);
+void nfklInitBigIntWithOctCharBuf(NfklBigInt* t,const char*,size_t);
+void nfklInitBigIntWithCstr(NfklBigInt* t,const char*);
 
 void nfklUninitBigInt(NfklBigInt*);
 

@@ -1,5 +1,6 @@
 #include<fakeLisp/bigint.h>
 #include<assert.h>
+#include<string.h>
 
 #define A_BIG_NUM ((int64_t)4294967295)
 
@@ -33,6 +34,80 @@ static void sub_test0(void)
 		nfklDestroyBigInt(a);
 		nfklDestroyBigInt(b);
 		nfklDestroyBigInt(c);
+	}
+	{
+		NfklBigInt a;
+		NfklBigInt b;
+		NfklBigInt c;
+		NfklBigInt d;
+		NfklBigInt e;
+		NfklBigInt f;
+		nfklInitBigIntWithDecCharBuf(&a,"114514",strlen("114514"));
+		nfklInitBigIntWithHexCharBuf(&c,"0x00000000114514abcd",strlen("0x00000000114514abcd"));
+		nfklInitBigIntWithOctCharBuf(&e,"011451477665544",strlen("011451477665544"));
+		nfklInitBigIntI(&b,114514);
+		nfklInitBigIntI(&d,0x114514abcd);
+		nfklInitBigIntI(&f,011451477665544);
+
+		assert(nfklBigIntEqual(&a,&b));
+		assert(nfklBigIntEqual(&c,&d));
+		assert(nfklBigIntEqual(&e,&f));
+
+		nfklUninitBigInt(&a);
+		nfklUninitBigInt(&b);
+		nfklUninitBigInt(&c);
+		nfklUninitBigInt(&d);
+		nfklUninitBigInt(&e);
+		nfklUninitBigInt(&f);
+	}
+	{
+		NfklBigInt a;
+		NfklBigInt b;
+		NfklBigInt c;
+		NfklBigInt d;
+		NfklBigInt e;
+		NfklBigInt f;
+		nfklInitBigIntWithCstr(&a,"114514");
+		nfklInitBigIntWithCstr(&c,"0x00000000114514abcd");
+		nfklInitBigIntWithCstr(&e,"011451477665544");
+		nfklInitBigIntI(&b,114514);
+		nfklInitBigIntI(&d,0x114514abcd);
+		nfklInitBigIntI(&f,011451477665544);
+
+		assert(nfklBigIntEqual(&a,&b));
+		assert(nfklBigIntEqual(&c,&d));
+		assert(nfklBigIntEqual(&e,&f));
+
+		nfklUninitBigInt(&a);
+		nfklUninitBigInt(&b);
+		nfklUninitBigInt(&c);
+		nfklUninitBigInt(&d);
+		nfklUninitBigInt(&e);
+		nfklUninitBigInt(&f);
+	}
+	{
+		NfklBigInt c;
+		NfklBigInt d;
+		nfklInitBigIntWithHexCharBuf(&c,"-0x00000000114514abcd",strlen("-0x00000000114514abcd"));
+		nfklInitBigIntI(&d,-0x114514abcd);
+
+		assert(nfklBigIntEqual(&c,&d));
+
+		nfklUninitBigInt(&c);
+		nfklUninitBigInt(&d);
+	}
+	{
+		NfklBigInt c;
+		{
+			nfklInitBigIntWithHexCharBuf(&c,"-0x00000000",strlen("-0x00000000"));
+			assert(NFKL_BIGINT_IS_0(&c));
+			nfklUninitBigInt(&c);
+		}
+		{
+			nfklInitBigIntWithCharBuf(&c,"00000000",strlen("00000000"));
+			assert(NFKL_BIGINT_IS_0(&c));
+			nfklUninitBigInt(&c);
+		}
 	}
 }
 

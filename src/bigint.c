@@ -2,6 +2,8 @@
 #include<fakeLisp/utils.h>
 
 #include<string.h>
+#include<ctype.h>
+#include<limits.h>
 
 #define NFKL_BIGINT_DIGIT_SHIFT (30)
 #define NFKL_BIGINT_DIGIT_BASE ((NfklBigIntDigit)1<<NFKL_BIGINT_DIGIT_SHIFT)
@@ -75,6 +77,153 @@ void nfklInitBigIntD(NfklBigInt* b,double d)
 	nfklInitBigIntI(b,(int64_t)d);
 }
 
+void nfklInitBigIntWithDecCharBuf(NfklBigInt* b,const char* buf,size_t len)
+{
+	int neg=buf[0]=='-';
+	size_t offset=neg||buf[0]=='+';
+	for(size_t i=offset;i<len&&isdigit(buf[i]);i++)
+	{
+		nfklMulBigIntI(b,10);
+		nfklAddBigIntI(b,buf[i]-'0');
+	}
+	if(neg)
+		b->num=-b->num;
+}
+
+static void ensure_bigint_size(NfklBigInt* to,uint64_t size)
+{
+	if(to->size<size)
+	{
+		to->size=size;
+		to->digits=(NfklBigIntDigit*)fklRealloc(to->digits,size*sizeof(NfklBigIntDigit));
+		FKL_ASSERT(to->digits);
+	}
+}
+
+static inline void bigint_normalize(NfklBigInt* a)
+{
+	int64_t i=labs(a->num);
+	for(;i>0&&a->digits[i-1]==0;--i);
+	a->num=a->num<0?-i:i;
+}
+
+#define OCT_BIT_COUNT (3)
+#define DIGIT_OCT_COUNT (NFKL_BIGINT_DIGIT_SHIFT/OCT_BIT_COUNT)
+
+void nfklInitBigIntWithOctCharBuf(NfklBigInt* b,const char* buf,size_t len)
+{
+	int neg=buf[0]=='-';
+	size_t offset=(neg||buf[0]=='+')+1;
+	for(;offset<len&&buf[offset]=='0';offset++);
+	size_t actual_len=len-offset;
+	size_t high_len=actual_len%DIGIT_OCT_COUNT;
+	size_t total_len=actual_len/DIGIT_OCT_COUNT+(high_len>0);
+	ensure_bigint_size(b,total_len);
+	b->num=total_len;
+	if(total_len==0)
+		return;
+	NfklBigIntDigit* pdigits=b->digits;
+	size_t i=offset;
+	uint32_t carry=0;
+	for(;i<offset+high_len;i++)
+	{
+		carry<<=OCT_BIT_COUNT;
+		carry|=buf[i]-'0';
+	}
+	pdigits[--total_len]=carry;
+	for(;i<len;i+=DIGIT_OCT_COUNT)
+	{
+		carry=0;
+		for(size_t j=0;j<DIGIT_OCT_COUNT;j++)
+		{
+			carry<<=OCT_BIT_COUNT;
+			carry|=buf[i+j]-'0';
+		}
+		pdigits[--total_len]=carry;
+	}
+	bigint_normalize(b);
+	if(neg)
+		b->num=-b->num;
+}
+
+#define HEX_BIT_COUNT (4)
+#define U32_HEX_COUNT ((sizeof(uint32_t)*CHAR_BIT)/HEX_BIT_COUNT)
+
+void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
+{
+	int neg=buf[0]=='-';
+	size_t offset=(neg||buf[0]=='+')+2;
+	for(;offset<len&&buf[offset]=='0';offset++);
+	const char* start=buf+offset;
+	int64_t digits_count=((len-offset)*HEX_BIT_COUNT+NFKL_BIGINT_DIGIT_SHIFT-1)/NFKL_BIGINT_DIGIT_SHIFT;
+	ensure_bigint_size(b,digits_count);
+
+	int bits_in_accum=0;
+	uint64_t accum=0;
+	NfklBigIntDigit* pdigits=b->digits;
+	const char* p=buf+len;
+	while(--p>=start)
+	{
+		char c=*p;
+		int k=isdigit(c)
+			?c-'0'
+			:toupper(c)-'A'+10;
+		accum|=(uint64_t)k<<bits_in_accum;
+		bits_in_accum+=HEX_BIT_COUNT;
+		if(bits_in_accum>=NFKL_BIGINT_DIGIT_SHIFT)
+		{
+			*pdigits++=(NfklBigIntDigit)(accum&NFKL_BIGINT_DIGIT_MASK);
+			accum>>=NFKL_BIGINT_DIGIT_SHIFT;
+			bits_in_accum-=NFKL_BIGINT_DIGIT_SHIFT;
+		}
+	}
+	if(bits_in_accum)
+		*pdigits++=(NfklBigIntDigit)accum;
+	while(pdigits-b->digits<digits_count)
+		*pdigits++=0;
+	b->num=digits_count;
+	bigint_normalize(b);
+	if(neg)
+		b->num=-b->num;
+#if 0
+	uint32_t carry=0;
+	size_t count=0;
+	size_t digits_count=0;
+	for(size_t i=len;i>U32_HEX_COUNT;i-=8)
+	{
+		char c=buf[i-1];
+		uint8_t n=isdigit(c)
+			?c-'0'
+			:toupper(c)-'A';
+		carry+=n<<(HEX_BIT_COUNT*count);
+		if(++count==U32_HEX_COUNT)
+		{
+			ensure_bigint_size(b,++digits_count);
+			b->digits[digits_count-1]+=carry&NFKL_BIGINT_DIGIT_MASK;
+			carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+			carry+=b->digits[digits_count-1]>>NFKL_BIGINT_DIGIT_SHIFT;
+			b->digits[digits_count-1]&=NFKL_BIGINT_DIGIT_MASK;
+			count=0;
+		}
+	}
+#endif
+}
+
+void nfklInitBigIntWithCharBuf(NfklBigInt* b,const char* buf,size_t len)
+{
+	if(fklIsHexInt(buf,len))
+		nfklInitBigIntWithHexCharBuf(b,buf,len);
+	else if(fklIsOctInt(buf,len))
+		nfklInitBigIntWithOctCharBuf(b,buf,len);
+	else
+		nfklInitBigIntWithDecCharBuf(b,buf,len);
+}
+
+void nfklInitBigIntWithCstr(NfklBigInt* b,const char* cstr)
+{
+	nfklInitBigIntWithCharBuf(b,cstr,strlen(cstr));
+}
+
 void nfklUninitBigInt(NfklBigInt* b)
 {
 	free(b->digits);
@@ -129,6 +278,13 @@ void nfklDestroyBigInt(NfklBigInt* b)
 	free(b);
 }
 
+NfklBigInt* nfklCopyBigInt(const NfklBigInt* b)
+{
+	NfklBigInt* r=nfklCreateBigInt0();
+	nfklSetBigInt(r,b);
+	return r;
+}
+
 int nfklBigIntEqual(const NfklBigInt* a,const NfklBigInt* b)
 {
 	if(a->num==b->num)
@@ -162,16 +318,6 @@ int nfklBigIntCmp(const NfklBigInt* a,const NfklBigInt* b)
 		?1:0;
 }
 
-static void ensure_bigint_size(NfklBigInt* to,uint64_t size)
-{
-	if(to->size<size)
-	{
-		to->size=size;
-		to->digits=(NfklBigIntDigit*)fklRealloc(to->digits,size*sizeof(NfklBigIntDigit));
-		FKL_ASSERT(to->digits);
-	}
-}
-
 void nfklSetBigInt(NfklBigInt* to,const NfklBigInt* from)
 {
 	ensure_bigint_size(to,labs(from->num));
@@ -199,11 +345,9 @@ void nfklSetBigIntI(NfklBigInt* to,int64_t v)
 		to->num=-to->num;
 }
 
-static inline void normalize(NfklBigInt* a)
+void nfklSetBigIntD(NfklBigInt* to,double from)
 {
-	int64_t i=labs(a->num);
-	for(;i>0&&a->digits[i-1]==0;--i);
-	a->num=a->num<0?-i:i;
+	nfklSetBigIntI(to,(int64_t)from);
 }
 
 static inline void x_add(NfklBigInt* a,const NfklBigInt* b)
@@ -247,7 +391,7 @@ static inline void x_add(NfklBigInt* a,const NfklBigInt* b)
 
 	a->num=num_a+1;
 	a->digits[i]=carry;
-	normalize(a);
+	bigint_normalize(a);
 }
 
 static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
@@ -314,7 +458,7 @@ static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
 	FKL_ASSERT(borrow==0);
 	if(sign<0)
 		a->num=a->num<0?num_a:-num_a;
-	normalize(a);
+	bigint_normalize(a);
 }
 
 static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
@@ -380,9 +524,10 @@ static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
 	}
 	FKL_ASSERT(borrow==0);
 	b->num=num_a*sign;
-	normalize(b);
+	bigint_normalize(b);
 }
 
+#define MAX_INT64_DIGITS_COUNT (3)
 #define MEDIUM_VALUE(I) ((int64_t)((I)->num==0?0:(I)->num<0?-((NfklBigIntSDigit)(I)->digits[0]):(NfklBigIntSDigit)(I)->digits[0]))
 
 void nfklAddBigInt(NfklBigInt* a, const NfklBigInt* b)
@@ -408,6 +553,16 @@ void nfklAddBigInt(NfklBigInt* a, const NfklBigInt* b)
 		x_add(a,b);
 }
 
+void nfklAddBigIntI(NfklBigInt* b,int64_t v)
+{
+	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
+	NfklBigInt bi=NFKL_BIGINT_0;
+	bi.size=MAX_INT64_DIGITS_COUNT;
+	bi.digits=digits;
+	nfklSetBigIntI(&bi,v);
+	nfklAddBigInt(b,&bi);
+}
+
 void nfklSubBigInt(NfklBigInt* a,const NfklBigInt* b)
 {
 	if(labs(a->num)<=1&&labs(b->num)<=1)
@@ -430,6 +585,7 @@ void nfklSubBigInt(NfklBigInt* a,const NfklBigInt* b)
 
 #define SAME_SIGN(a,b) (((a)->num>=0&&(b)->num>=0)||((a)->num<0&&(b)->num<0))
 
+// XXX: 这个乘法的实现不是很高效
 void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
 {
 	if(NFKL_BIGINT_IS_0(a)||NFKL_BIGINT_IS_1(b))
@@ -469,8 +625,18 @@ void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
 		a->digits=result;
 		a->size=total;
 		a->num=SAME_SIGN(a,b)?total:-total;
-		normalize(a);
+		bigint_normalize(a);
 	}
 
+}
+
+void nfklMulBigIntI(NfklBigInt* b,int64_t v)
+{
+	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
+	NfklBigInt bi=NFKL_BIGINT_0;
+	bi.size=MAX_INT64_DIGITS_COUNT;
+	bi.digits=digits;
+	nfklSetBigIntI(&bi,v);
+	nfklMulBigInt(b,&bi);
 }
 

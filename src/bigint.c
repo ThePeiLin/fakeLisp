@@ -111,6 +111,18 @@ NfklBigInt* nfklCreateBigIntI(int64_t v)
 	return b;
 }
 
+NfklBigInt* nfklCreateBigIntD(double v)
+{
+	return nfklCreateBigIntI((int64_t)v);
+}
+
+NfklBigInt* nfklCreateBigIntU(uint64_t v)
+{
+	NfklBigInt* b=nfklCreateBigInt0();
+	nfklInitBigIntU(b,v);
+	return b;
+}
+
 void nfklDestroyBigInt(NfklBigInt* b)
 {
 	nfklUninitBigInt(b);
@@ -127,7 +139,7 @@ int nfklBigIntEqual(const NfklBigInt* a,const NfklBigInt* b)
 
 int nfklBigIntCmp(const NfklBigInt* a,const NfklBigInt* b)
 {
-	int64_t sign;
+	int sign;
 	if(a->num!=b->num)
 		sign=a->num-b->num;
 	else
@@ -414,5 +426,51 @@ void nfklSubBigInt(NfklBigInt* a,const NfklBigInt* b)
 		x_add(a,b);
 	else
 		x_sub(a,b);
+}
+
+#define SAME_SIGN(a,b) (((a)->num>=0&&(b)->num>=0)||((a)->num<0&&(b)->num<0))
+
+void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
+{
+	if(NFKL_BIGINT_IS_0(a)||NFKL_BIGINT_IS_1(b))
+		return;
+	else if(NFKL_BIGINT_IS_0(b))
+		a->num=0;
+	else if(NFKL_BIGINT_IS_N1(b))
+		a->num=-a->num;
+	else if(NFKL_BIGINT_IS_1(a))
+		nfklSetBigInt(a,b);
+	else if(NFKL_BIGINT_IS_N1(a))
+	{
+		nfklSetBigInt(a,b);
+		a->num=-a->num;
+	}
+	else
+	{
+		int64_t num_a=labs(a->num);
+		int64_t num_b=labs(b->num);
+		int64_t total=num_a+num_b;
+		NfklBigIntDigit* result=(NfklBigIntDigit*)calloc(total,sizeof(NfklBigIntDigit));
+		FKL_ASSERT(result);
+		for(int64_t i=0;i<num_a;i++)
+		{
+			uint64_t na=a->digits[i];
+			uint64_t carry=0;
+			for(int64_t j=0;j<num_b;j++)
+			{
+				uint64_t nb=b->digits[j];
+				carry+=result[i+j]+na*nb;
+				result[i+j]=carry&NFKL_BIGINT_DIGIT_MASK;
+				carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+			}
+			result[i+num_b]+=carry;
+		}
+		free(a->digits);
+		a->digits=result;
+		a->size=total;
+		a->num=SAME_SIGN(a,b)?total:-total;
+		normalize(a);
+	}
+
 }
 

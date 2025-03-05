@@ -130,6 +130,35 @@ static void sub_test0(void)
 		assert(i==-1145141919);
 		assert(!islessgreater(d,-1145141919.0));
 
+		nfklSetBigIntI(&c,INT64_MAX);
+		i=nfklBigIntToI(&c);
+		u=nfklBigIntToU(&c);
+		fprintf(stderr,"i: %ld, u: %lu\n",i,u);
+		assert(i==INT64_MAX);
+		assert(u==INT64_MAX);
+
+		nfklSetBigIntI(&c,INT64_MIN);
+		i=nfklBigIntToI(&c);
+		fprintf(stderr,"i: %ld\n",i);
+		assert(i==INT64_MIN);
+
+		nfklSubBigIntI(&c,1);
+		i=nfklBigIntToI(&c);
+		fprintf(stderr,"i: %ld\n",i);
+		assert(i==INT64_MIN);
+
+		nfklSetBigIntI(&c,INT64_MAX);
+		nfklAddBigIntI(&c,1);
+		i=nfklBigIntToI(&c);
+		fprintf(stderr,"i: %ld\n",i);
+		assert(i==INT64_MAX);
+
+		nfklSetBigIntU(&c,UINT64_MAX);
+		nfklAddBigIntI(&c,1);
+		u=nfklBigIntToU(&c);
+		fprintf(stderr,"u: %lu\n",u);
+		assert(u==UINT64_MAX);
+
 		nfklUninitBigInt(&c);
 	}
 }

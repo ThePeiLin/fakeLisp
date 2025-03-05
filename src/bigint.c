@@ -185,28 +185,6 @@ void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
 	bigint_normalize(b);
 	if(neg)
 		b->num=-b->num;
-#if 0
-	uint32_t carry=0;
-	size_t count=0;
-	size_t digits_count=0;
-	for(size_t i=len;i>U32_HEX_COUNT;i-=8)
-	{
-		char c=buf[i-1];
-		uint8_t n=isdigit(c)
-			?c-'0'
-			:toupper(c)-'A';
-		carry+=n<<(HEX_BIT_COUNT*count);
-		if(++count==U32_HEX_COUNT)
-		{
-			ensure_bigint_size(b,++digits_count);
-			b->digits[digits_count-1]+=carry&NFKL_BIGINT_DIGIT_MASK;
-			carry>>=NFKL_BIGINT_DIGIT_SHIFT;
-			carry+=b->digits[digits_count-1]>>NFKL_BIGINT_DIGIT_SHIFT;
-			b->digits[digits_count-1]&=NFKL_BIGINT_DIGIT_MASK;
-			count=0;
-		}
-	}
-#endif
 }
 
 void nfklInitBigIntWithCharBuf(NfklBigInt* b,const char* buf,size_t len)
@@ -422,6 +400,7 @@ static inline void x_add(NfklBigInt* a,const NfklBigInt* b)
 	}
 	else
 	{
+		ensure_bigint_size(a,num_a+1);
 		digits_a=a->digits;
 		digits_b=b->digits;
 	}
@@ -468,6 +447,7 @@ static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
 	}
 	else
 	{
+		ensure_bigint_size(a,num_a+1);
 		digits_a=a->digits;
 		digits_b=b->digits;
 		if(num_a==num_b)
@@ -535,6 +515,7 @@ static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
 	}
 	else
 	{
+		ensure_bigint_size(b,num_a+1);
 		digits_a=a->digits;
 		digits_b=b->digits;
 		if(num_a==num_b)
@@ -624,12 +605,25 @@ void nfklSubBigInt(NfklBigInt* a,const NfklBigInt* b)
 		if(b->num<0)
 			x_sub(a,b);
 		else
+		{
 			x_add(a,b);
+			a->num=-a->num;
+		}
 	}
 	else if(b->num<0)
 		x_add(a,b);
 	else
 		x_sub(a,b);
+}
+
+void nfklSubBigIntI(NfklBigInt* a,int64_t v)
+{
+	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
+	NfklBigInt bi=NFKL_BIGINT_0;
+	bi.size=MAX_INT64_DIGITS_COUNT;
+	bi.digits=digits;
+	nfklSetBigIntI(&bi,v);
+	nfklSubBigInt(a,&bi);
 }
 
 #define SAME_SIGN(a,b) (((a)->num>=0&&(b)->num>=0)||((a)->num<0&&(b)->num<0))
@@ -720,11 +714,25 @@ static const NfklBigIntDigit U64_MAX_DIGITS[3]=
 	0x0000000f&NFKL_BIGINT_DIGIT_MASK,
 };
 
+static const NfklBigInt U64_MAX_BIGINT=
+{
+	.digits=(NfklBigIntDigit*)&U64_MAX_DIGITS[0],
+	.num=3,
+	.size=3,
+};
+
 static const NfklBigIntDigit I64_MIN_DIGITS[3]=
 {
 	0x0,
 	0x0,
 	0x8,
+};
+
+static const NfklBigInt I64_MIN_BIGINT=
+{
+	.digits=(NfklBigIntDigit*)&I64_MIN_DIGITS[0],
+	.num=-3,
+	.size=3,
 };
 
 static const NfklBigIntDigit I64_MAX_DIGITS[3]=
@@ -734,13 +742,20 @@ static const NfklBigIntDigit I64_MAX_DIGITS[3]=
 	0x00000007&NFKL_BIGINT_DIGIT_MASK,
 };
 
+static const NfklBigInt I64_MAX_BIGINT=
+{
+	.digits=(NfklBigIntDigit*)&I64_MAX_DIGITS[0],
+	.num=3,
+	.size=3,
+};
+
 uint64_t nfklBigIntToU(const NfklBigInt* bi)
 {
 	if(bi->num<=0)
 		return 0;
 	if(bi->num>3)
 		return UINT64_MAX;
-	else if(bi->num>2&&bi->digits[2]>U64_MAX_DIGITS[2])
+	else if(bi->num>2&&nfklBigIntCmp(bi,&U64_MAX_BIGINT)>0)
 		return UINT64_MAX;
 	else
 	{
@@ -755,13 +770,13 @@ int64_t nfklBigIntToI(const NfklBigInt* bi)
 {
 	if(bi->num<-3)
 		return INT64_MIN;
-	else if(bi->num<-2&&bi->digits[2]>I64_MIN_DIGITS[2])
+	else if(bi->num<-2&&nfklBigIntCmp(bi,&I64_MIN_BIGINT)<0)
 		return INT64_MIN;
 	else if(bi->num==0)
 		return 0;
 	else if(bi->num>3)
 		return INT64_MAX;
-	else if(bi->num>2&&bi->digits[2]>I64_MAX_DIGITS[2])
+	else if(bi->num>2&&nfklBigIntCmp(bi,&I64_MAX_BIGINT)>0)
 		return INT64_MAX;
 	else
 	{

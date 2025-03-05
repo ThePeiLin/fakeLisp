@@ -134,6 +134,11 @@ int fklRewindStream(FILE* fp,const char* buf,ssize_t len);
 
 void* fklRealloc(void* ptr,size_t nsize);
 
+static inline uintptr_t fklHashCombine(uintptr_t seed,uintptr_t hash)
+{
+	return hash+0x9e3779b9+(seed<<6)+(seed>>2);
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -2792,11 +2792,6 @@ static int lalr_item_equal(const void* d0,const void* d1)
 		&&lalr_look_ahead_equal(&i0->la,&i1->la);
 }
 
-static inline uintptr_t hash_combine(uintptr_t seed,uintptr_t hash)
-{
-	return hash+0x9e3779b9+(seed<<6)+(seed>>2);
-}
-
 static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la)
 {
 	uintptr_t rest=la->t==FKL_LALR_MATCH_STRING
@@ -2805,16 +2800,16 @@ static inline uintptr_t lalr_look_ahead_hash_func(const FklLalrItemLookAhead* la
 				?builtin_grammer_sym_hash(&la->b)
 				:0);
 
-	rest=hash_combine(rest,((uintptr_t)la->t));
-	rest=hash_combine(rest,la->delim<<1);
-	return hash_combine(rest,la->end_with_terminal);
+	rest=fklHashCombine(rest,((uintptr_t)la->t));
+	rest=fklHashCombine(rest,la->delim<<1);
+	return fklHashCombine(rest,la->end_with_terminal);
 }
 
 static uintptr_t lalr_item_hash_func(const void* d)
 {
 	const FklLalrItem* i=(const FklLalrItem*)d;
-	uintptr_t seed=hash_combine((((uintptr_t)i->prod)>>3),i->idx);
-	return hash_combine(seed,lalr_look_ahead_hash_func(&i->la));
+	uintptr_t seed=fklHashCombine((((uintptr_t)i->prod)>>3),i->idx);
+	return fklHashCombine(seed,lalr_look_ahead_hash_func(&i->la));
 }
 
 static const FklHashTableMetaTable LalrItemHashMetaTable=
@@ -3157,7 +3152,7 @@ static uintptr_t item_set_hash_func(const void* d)
 	for(FklHashTableItem* l=i->first;l;l=l->next)
 	{
 		FklLalrItem* i=(FklLalrItem*)l->data;
-		v=hash_combine(v,lalr_item_hash_func(i));
+		v=fklHashCombine(v,lalr_item_hash_func(i));
 	}
 	return v;
 }
@@ -3232,7 +3227,7 @@ FKL_HASH_SET_KEY_VAL(la_first_set_cache_set_key, FklGetLaFirstSetCacheKey);
 static uintptr_t la_first_set_cache_hash_func(const void* k)
 {
 	const FklGetLaFirstSetCacheKey* key=(const FklGetLaFirstSetCacheKey*)k;
-	return hash_combine(((uintptr_t)key->prod)>>3,key->idx);
+	return fklHashCombine(((uintptr_t)key->prod)>>3,key->idx);
 }
 
 static int la_first_set_key_equal(const void* k1,const void* k2)

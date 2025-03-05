@@ -1,6 +1,8 @@
 #include<fakeLisp/bigint.h>
 #include<assert.h>
 #include<string.h>
+#include<math.h>
+#include<stdio.h>
 
 #define A_BIG_NUM ((int64_t)4294967295)
 
@@ -109,6 +111,27 @@ static void sub_test0(void)
 			nfklUninitBigInt(&c);
 		}
 	}
+	{
+		NfklBigInt c;
+		nfklInitBigIntI(&c,1145141919);
+
+		int64_t i=nfklBigIntToI(&c);
+		uint64_t u=nfklBigIntToU(&c);
+		double d=nfklBigIntToD(&c);
+		fprintf(stderr,"i: %ld, u: %lu, d: %lf\n",i,u,d);
+		assert(i==1145141919);
+		assert(u==1145141919);
+		assert(!islessgreater(d,1145141919.0));
+
+		nfklSetBigIntI(&c,-1145141919);
+		i=nfklBigIntToI(&c);
+		d=nfklBigIntToD(&c);
+		fprintf(stderr,"i: %ld, d: %lf\n",i,d);
+		assert(i==-1145141919);
+		assert(!islessgreater(d,-1145141919.0));
+
+		nfklUninitBigInt(&c);
+	}
 }
 
 static void sub_test1(void)
@@ -128,15 +151,19 @@ static void sub_test1(void)
 		assert(nfklBigIntEqual(&c,&d));
 
 		assert(nfklBigIntCmp(&a,&b)<0);
+		assert(nfklBigIntAbsCmp(&a,&b)<0);
 
 		assert(nfklBigIntCmp(&b,&a)>0);
+		assert(nfklBigIntAbsCmp(&b,&a)>0);
 
 		assert(nfklBigIntCmp(&c,&d)==0);
+		assert(nfklBigIntAbsCmp(&c,&d)==0);
 
 		nfklSubBigInt(&d,&b);
 
 		assert(nfklBigIntEqual(&a,&d));
 		assert(nfklBigIntCmp(&a,&d)==0);
+		assert(nfklBigIntAbsCmp(&a,&d)==0);
 
 		nfklUninitBigInt(&a);
 		nfklUninitBigInt(&b);
@@ -201,6 +228,9 @@ static void sub_test2(void)
 		assert(nfklBigIntCmp(a,b)>0);
 		assert(nfklBigIntCmp(b,a)<0);
 		assert(nfklBigIntCmp(c,d)==0);
+
+		assert(nfklBigIntAbsCmp(a,b)<0);
+		assert(nfklBigIntAbsCmp(b,a)>0);
 
 		nfklSubBigInt(d,b);
 

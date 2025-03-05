@@ -74,7 +74,10 @@ int nfklIsBigIntLt0(const NfklBigInt*);
 int nfklIsBigIntLe0(const NfklBigInt*);
 int nfklBigIntEqual(const NfklBigInt* a,const NfklBigInt* b);
 int nfklBigIntCmp(const NfklBigInt* a,const NfklBigInt* b);
-int64_t nfklBigIntI(const NfklBigInt* a,int64_t b);
-int64_t nfklBigIntU(const NfklBigInt* a,uint64_t b);
+int nfklBigIntAbsCmp(const NfklBigInt* a,const NfklBigInt* b);
+
+int64_t nfklBigIntToI(const NfklBigInt* a);
+uint64_t nfklBigIntToU(const NfklBigInt* a);
+double nfklBigIntToD(const NfklBigInt* a);
 
 #endif

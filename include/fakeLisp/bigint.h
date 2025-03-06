@@ -88,13 +88,13 @@ size_t nfklBigIntToStr(const NfklBigInt* a
 		,NfklBigIntToStrAllocCb alloc_cb
 		,void* ctx
 		,uint8_t radix
-		,int with_prefix
+		,int alternate
 		,int capitals);
 
 size_t nfklBigIntToStringBuffer(const NfklBigInt* a
 		,FklStringBuffer* string_buffer
 		,uint8_t radix
-		,int with_prefix
+		,int alternate
 		,int capitals);
 
 #endif

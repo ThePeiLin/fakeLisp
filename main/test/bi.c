@@ -397,6 +397,7 @@ static void sub_test3(void)
 		nfklInitBigIntI(&a,1145141919);
 		fklInitStringBuffer(&buf);
 
+		// pos
 		nfklBigIntToStringBuffer(&a,&buf,10,0,0);
 		nfklBigIntToStr(&a,string_alloc_callback,&str,10,0,0);
 
@@ -405,6 +406,7 @@ static void sub_test3(void)
 		fprintf(stderr,"str: %s, len: %lu\n",str->str,str->size);
 		assert(!strcmp(str->str,"1145141919"));
 
+		// neg
 		free(str);
 		fklUninitStringBuffer(&buf);
 
@@ -416,6 +418,27 @@ static void sub_test3(void)
 		assert(!strcmp(fklStringBufferBody(&buf),"-1145141919"));
 		fprintf(stderr,"str: %s, len: %lu\n",str->str,str->size);
 		assert(!strcmp(str->str,"-1145141919"));
+
+		nfklUninitBigInt(&a);
+		fklUninitStringBuffer(&buf);
+		free(str);
+	}
+	{
+		// oct
+		FklStringBuffer buf;
+		NfklBigInt a;
+		FklString* str=NULL;
+		nfklInitBigIntI(&a,1145141919);
+		fklInitStringBuffer(&buf);
+
+		nfklSetBigIntI(&a,1145141919);
+		nfklBigIntToStringBuffer(&a,&buf,8,0,0);
+		nfklBigIntToStr(&a,string_alloc_callback,&str,8,0,0);
+
+		fprintf(stderr,"buf: %s, len: %u\n",fklStringBufferBody(&buf),fklStringBufferLen(&buf));
+		assert(!strcmp(fklStringBufferBody(&buf),"10420275237"));
+		fprintf(stderr,"str: %s, len: %lu\n",str->str,str->size);
+		assert(!strcmp(str->str,"10420275237"));
 
 		nfklUninitBigInt(&a);
 		fklUninitStringBuffer(&buf);

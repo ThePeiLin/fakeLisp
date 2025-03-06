@@ -890,19 +890,35 @@ static inline uint8_t bit_length_digit(uint64_t x)
     return msb;
 }
 
-static inline size_t bigint_to_oct_string_buffer(const NfklBigInt* a
+static inline size_t bigint_to_bin_string_buffer(const NfklBigInt* a
 		,NfklBigIntToStrAllocCb alloc_cb
 		,void* ctx
-		,int alternate)
+		,uint8_t base
+		,NfklBigIntFmtFlags flags
+		,const char* alt_str)
 {
-#define BASE (8)
 	FKL_ASSERT(a->num);
+	int bits=0;
+	int alternate=(flags&NFKL_BIGINT_FMT_FLAG_ALTERNATE)!=0;
+	int capitals=(flags&NFKL_BIGINT_FMT_FLAG_CAPITALS)!=0;
+	switch(base)
+	{
+		case 16:
+			bits=HEX_BIT_COUNT;
+			break;
+		case 8:
+			bits=OCT_BIT_COUNT;
+			break;
+		default:
+			abort();
+	}
 	int64_t size_a=labs(a->num);
 	int neg=a->num<0;
 	int64_t size_a_in_bits=(size_a-1)*NFKL_BIGINT_DIGIT_SHIFT+bit_length_digit(a->digits[size_a-1]);
-	int64_t sz=neg+(size_a_in_bits+(OCT_BIT_COUNT-1))/OCT_BIT_COUNT;
+	int64_t sz=neg+(size_a_in_bits+(bits-1))/bits;
+	size_t alt_str_len=strlen(alt_str);
 	if(alternate)
-		++sz;
+		sz+=alt_str_len;
 	char* p_str=alloc_cb(ctx,sz)+sz;
 	NfklBigIntTwoDigit accum=0;
 	int accumbits=0;
@@ -911,31 +927,32 @@ static inline size_t bigint_to_oct_string_buffer(const NfklBigInt* a
 	{
 		accum|=(NfklBigIntTwoDigit)a->digits[i]<<accumbits;
 		accumbits+=NFKL_BIGINT_DIGIT_SHIFT;
-		FKL_ASSERT(accumbits>=OCT_BIT_COUNT);
+		FKL_ASSERT(accumbits>=bits);
 		do
 		{
 			char cdigit;
-			cdigit=(char)(accum&(BASE-1));
-			cdigit+=(cdigit<10)?'0':'a'-10;
+			cdigit=(char)(accum&(base-1));
+			cdigit+=(cdigit<10)?'0':(capitals?'A':'a')-10;
 			*--p_str=cdigit;
-			accumbits-=OCT_BIT_COUNT;
-			accum>>=OCT_BIT_COUNT;
-		}while(i<size_a-1?accumbits>=OCT_BIT_COUNT:accum>0);
+			accumbits-=bits;
+			accum>>=bits;
+		}while(i<size_a-1?accumbits>=bits:accum>0);
 	}
 	if(alternate)
-		*--p_str='0';
+	{
+		memcpy(p_str-alt_str_len,alt_str,alt_str_len);
+		p_str-=alt_str_len;
+	}
 	if(neg)
 		*--p_str='-';
 	return sz;
-#undef BASE
 }
 
 size_t nfklBigIntToStr(const NfklBigInt *a
 		,NfklBigIntToStrAllocCb alloc_cb
 		,void* ctx
 		,uint8_t radix
-		,int alternate
-		,int capitals)
+		,NfklBigIntFmtFlags flags)
 {
 	if(NFKL_BIGINT_IS_0(a))
 	{
@@ -946,7 +963,9 @@ size_t nfklBigIntToStr(const NfklBigInt *a
 	else if(radix==10)
 		return bigint_to_dec_string_buffer(a,alloc_cb,ctx);
 	else if(radix==8)
-		return bigint_to_oct_string_buffer(a,alloc_cb,ctx,alternate);
+		return bigint_to_bin_string_buffer(a,alloc_cb,ctx,8,flags,"0");
+	else if(radix==16)
+		return bigint_to_bin_string_buffer(a,alloc_cb,ctx,16,flags,flags&NFKL_BIGINT_FMT_FLAG_CAPITALS?"0X":"0x");
 	else
 		abort();
 }
@@ -964,8 +983,7 @@ static char* string_buffer_alloc(void* ptr,size_t len)
 size_t nfklBigIntToStringBuffer(const NfklBigInt* a
 		,FklStringBuffer* buf
 		,uint8_t radix
-		,int alternate
-		,int capitals)
+		,NfklBigIntFmtFlags flags)
 {
-	return nfklBigIntToStr(a,string_buffer_alloc,buf,radix,alternate,capitals);
+	return nfklBigIntToStr(a,string_buffer_alloc,buf,radix,flags);
 }

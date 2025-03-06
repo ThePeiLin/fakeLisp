@@ -16,6 +16,13 @@ typedef struct NfklBigInt
 	uint64_t size;
 }NfklBigInt;
 
+typedef enum NfklBigIntFmtFlags
+{
+	NFKL_BIGINT_FMT_FLAG_NONE=0,
+	NFKL_BIGINT_FMT_FLAG_ALTERNATE=1<<0,
+	NFKL_BIGINT_FMT_FLAG_CAPITALS=1<<1,
+}NfklBigIntFmtFlags;
+
 #define NFKL_BIGINT_0 ((NfklBigInt){.digits=NULL,.num=0,.size=0})
 #define NFKL_BIGINT_IS_0(I) (((I)->num==0)||(labs((I)->num)==1&&(I)->digits[0]==0))
 #define NFKL_BIGINT_IS_1(I) (((I)->num==1)&&((I)->digits[0]==1))
@@ -88,13 +95,11 @@ size_t nfklBigIntToStr(const NfklBigInt* a
 		,NfklBigIntToStrAllocCb alloc_cb
 		,void* ctx
 		,uint8_t radix
-		,int alternate
-		,int capitals);
+		,NfklBigIntFmtFlags flags);
 
 size_t nfklBigIntToStringBuffer(const NfklBigInt* a
 		,FklStringBuffer* string_buffer
 		,uint8_t radix
-		,int alternate
-		,int capitals);
+		,NfklBigIntFmtFlags flags);
 
 #endif

@@ -62,9 +62,17 @@ typedef struct FklStringBuffer
 
 #define FKL_STRING_BUFFER_INIT {0,0,NULL}
 
+static inline uint32_t fklStringBufferLen(FklStringBuffer* b)
+{
+	return b->index;
+}
+
+static inline char* fklStringBufferBody(FklStringBuffer* b)
+{
+	return b->buf;
+}
+
 FklStringBuffer* fklCreateStringBuffer(void);
-char* fklStringBufferBody(FklStringBuffer*);
-uint32_t fklStringBufferLen(FklStringBuffer*);
 void fklInitStringBuffer(FklStringBuffer*);
 void fklInitStringBufferWithCapacity(FklStringBuffer*,size_t s);
 void fklStringBufferReverse(FklStringBuffer*,size_t s);

@@ -1,11 +1,13 @@
 #ifndef FKL_BIGINT_H
 #define FKL_BIGINT_H
 
+#include"base.h"
 #include<stdint.h>
 #include<stdlib.h>
 
 typedef uint32_t NfklBigIntDigit;
 typedef int32_t NfklBigIntSDigit;
+typedef uint64_t NfklBigIntTwoDigit;
 
 typedef struct NfklBigInt
 {
@@ -79,5 +81,20 @@ int nfklBigIntAbsCmp(const NfklBigInt* a,const NfklBigInt* b);
 int64_t nfklBigIntToI(const NfklBigInt* a);
 uint64_t nfklBigIntToU(const NfklBigInt* a);
 double nfklBigIntToD(const NfklBigInt* a);
+
+typedef char* (*NfklBigIntToStrAllocCb)(void* ctx,size_t);
+
+size_t nfklBigIntToStr(const NfklBigInt* a
+		,NfklBigIntToStrAllocCb alloc_cb
+		,void* ctx
+		,uint8_t radix
+		,int with_prefix
+		,int capitals);
+
+size_t nfklBigIntToStringBuffer(const NfklBigInt* a
+		,FklStringBuffer* string_buffer
+		,uint8_t radix
+		,int with_prefix
+		,int capitals);
 
 #endif

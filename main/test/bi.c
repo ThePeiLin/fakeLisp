@@ -1,3 +1,4 @@
+#include "fakeLisp/base.h"
 #include<fakeLisp/bigint.h>
 #include<assert.h>
 #include<string.h>
@@ -321,6 +322,14 @@ static void sub_test2(void)
 	}
 }
 
+static char* string_alloc_callback(void* ptr,size_t len)
+{
+	FklString** pstr=ptr;
+	FklString* str=fklCreateString(len,NULL);
+	*pstr=str;
+	return str->str;
+}
+
 static void sub_test3(void)
 {
 	{
@@ -354,6 +363,63 @@ static void sub_test3(void)
 		nfklDestroyBigInt(b);
 		nfklDestroyBigInt(c);
 		nfklDestroyBigInt(d);
+	}
+	{
+		NfklBigInt a;
+		NfklBigInt b;
+		NfklBigInt c;
+		nfklInitBigInt0(&a);
+		nfklInitBigIntI(&b,114514);
+		nfklInitBigIntI(&c,1919);
+
+		assert(nfklIsBigIntEven(&a));
+		assert(nfklIsBigIntEven(&b));
+		assert(nfklIsBigIntOdd(&c));
+
+		assert(!nfklIsBigIntOdd(&a));
+		assert(!nfklIsBigIntOdd(&b));
+		assert(!nfklIsBigIntEven(&c));
+
+		nfklSetBigIntI(&b,-1);
+		assert(nfklIsBigIntLe0(&a));
+		assert(nfklIsBigIntLe0(&b));
+		assert(nfklIsBigIntLt0(&b));
+		assert(!nfklIsBigIntLt0(&a));
+
+		nfklUninitBigInt(&a);
+		nfklUninitBigInt(&b);
+		nfklUninitBigInt(&c);
+	}
+	{
+		FklStringBuffer buf;
+		NfklBigInt a;
+		FklString* str=NULL;
+		nfklInitBigIntI(&a,1145141919);
+		fklInitStringBuffer(&buf);
+
+		nfklBigIntToStringBuffer(&a,&buf,10,0,0);
+		nfklBigIntToStr(&a,string_alloc_callback,&str,10,0,0);
+
+		fprintf(stderr,"buf: %s, len: %u\n",fklStringBufferBody(&buf),fklStringBufferLen(&buf));
+		assert(!strcmp(fklStringBufferBody(&buf),"1145141919"));
+		fprintf(stderr,"str: %s, len: %lu\n",str->str,str->size);
+		assert(!strcmp(str->str,"1145141919"));
+
+		free(str);
+		fklUninitStringBuffer(&buf);
+
+		nfklSetBigIntI(&a,-1145141919);
+		nfklBigIntToStringBuffer(&a,&buf,10,0,0);
+		nfklBigIntToStr(&a,string_alloc_callback,&str,10,0,0);
+
+		fprintf(stderr,"buf: %s, len: %u\n",fklStringBufferBody(&buf),fklStringBufferLen(&buf));
+		assert(!strcmp(fklStringBufferBody(&buf),"-1145141919"));
+		fprintf(stderr,"str: %s, len: %lu\n",str->str,str->size);
+		assert(!strcmp(str->str,"-1145141919"));
+
+		nfklUninitBigInt(&a);
+		fklUninitStringBuffer(&buf);
+		free(str);
 	}
 }
 

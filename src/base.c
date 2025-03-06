@@ -2052,16 +2052,6 @@ void fklInitStringBufferWithCapacity(FklStringBuffer* b,size_t len)
 	fklStringBufferReverse(b,len);
 }
 
-uint32_t fklStringBufferLen(FklStringBuffer* b)
-{
-	return b->index;
-}
-
-char* fklStringBufferBody(FklStringBuffer* b)
-{
-	return b->buf;
-}
-
 void fklStringBufferPutc(FklStringBuffer* b,char c)
 {
 	fklStringBufferReverse(b,2);

@@ -1,3 +1,4 @@
+#include "fakeLisp/base.h"
 #include<fakeLisp/bigint.h>
 #include<fakeLisp/utils.h>
 
@@ -8,6 +9,8 @@
 #define NFKL_BIGINT_DIGIT_SHIFT (30)
 #define NFKL_BIGINT_DIGIT_BASE ((NfklBigIntDigit)1<<NFKL_BIGINT_DIGIT_SHIFT)
 #define NFKL_BIGINT_DIGIT_MASK ((NfklBigIntDigit)(NFKL_BIGINT_DIGIT_BASE-1))
+#define NFKL_BIGINT_DECIMAL_SHIFT (9)
+#define NFKL_BIGINT_DECIMAL_BASE ((NfklBigIntDigit)1000000000)
 
 void nfklInitBigInt0(NfklBigInt* b)
 {
@@ -159,7 +162,7 @@ void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
 	ensure_bigint_size(b,digits_count);
 
 	int bits_in_accum=0;
-	uint64_t accum=0;
+	NfklBigIntTwoDigit accum=0;
 	NfklBigIntDigit* pdigits=b->digits;
 	const char* p=buf+len;
 	while(--p>=start)
@@ -168,7 +171,7 @@ void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
 		int k=isdigit(c)
 			?c-'0'
 			:toupper(c)-'A'+10;
-		accum|=(uint64_t)k<<bits_in_accum;
+		accum|=(NfklBigIntTwoDigit)k<<bits_in_accum;
 		bits_in_accum+=HEX_BIT_COUNT;
 		if(bits_in_accum>=NFKL_BIGINT_DIGIT_SHIFT)
 		{
@@ -343,6 +346,26 @@ int nfklBigIntAbsCmp(const NfklBigInt* a,const NfklBigInt* b)
 		?-1
 		:sign>0
 		?1:0;
+}
+
+int nfklIsBigIntOdd(const NfklBigInt* b)
+{
+	return b->num!=0&&b->digits[0]%2;
+}
+
+int nfklIsBigIntEven(const NfklBigInt* b)
+{
+	return !nfklIsBigIntOdd(b);
+}
+
+int nfklIsBigIntLe0(const NfklBigInt* b)
+{
+	return b->num<=0;
+}
+
+int nfklIsBigIntLt0(const NfklBigInt* b)
+{
+	return b->num<0;
 }
 
 void nfklSetBigInt(NfklBigInt* to,const NfklBigInt* from)
@@ -653,11 +676,11 @@ void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
 		FKL_ASSERT(result);
 		for(int64_t i=0;i<num_a;i++)
 		{
-			uint64_t na=a->digits[i];
-			uint64_t carry=0;
+			NfklBigIntTwoDigit na=a->digits[i];
+			NfklBigIntTwoDigit carry=0;
 			for(int64_t j=0;j<num_b;j++)
 			{
-				uint64_t nb=b->digits[j];
+				NfklBigIntTwoDigit nb=b->digits[j];
 				carry+=result[i+j]+na*nb;
 				result[i+j]=carry&NFKL_BIGINT_DIGIT_MASK;
 				carry>>=NFKL_BIGINT_DIGIT_SHIFT;
@@ -790,3 +813,102 @@ int64_t nfklBigIntToI(const NfklBigInt* bi)
 	}
 }
 
+static inline size_t bigint_to_dec_string_buffer(const NfklBigInt* a
+		,NfklBigIntToStrAllocCb alloc_cb
+		,void* ctx)
+{
+	int64_t size_a=labs(a->num);
+	int64_t d=(33*NFKL_BIGINT_DECIMAL_SHIFT)/(10*NFKL_BIGINT_DIGIT_SHIFT-33*NFKL_BIGINT_DECIMAL_SHIFT);
+	int64_t size=1+size_a+size_a/d;
+	const NfklBigIntDigit* pin=a->digits;
+	NfklBigIntDigit* pout=(NfklBigIntDigit*)malloc(size*sizeof(NfklBigIntDigit));
+	FKL_ASSERT(pout);
+	size=0;
+	for(int64_t i=size_a;--i>=0;)
+	{
+		NfklBigIntDigit hi=pin[i];
+		for(int64_t j=0;j<size;j++)
+		{
+			NfklBigIntTwoDigit z=(NfklBigIntTwoDigit)pout[j]<<NFKL_BIGINT_DIGIT_SHIFT|hi;
+			hi=(NfklBigIntDigit)(z/NFKL_BIGINT_DECIMAL_BASE);
+			pout[j]=(NfklBigIntDigit)(z-(NfklBigIntTwoDigit)hi*NFKL_BIGINT_DECIMAL_BASE);
+		}
+		while(hi)
+		{
+			pout[size++]=hi%NFKL_BIGINT_DECIMAL_BASE;
+			hi/=NFKL_BIGINT_DECIMAL_BASE;
+		}
+	}
+	if(size==0)
+		pout[size++]=0;
+	size_t neg=a->num<0;
+	size_t len=neg+1+(size-1)*NFKL_BIGINT_DECIMAL_SHIFT;
+	NfklBigIntDigit tenpow=10;
+	NfklBigIntDigit rem=pout[size-1];
+	while(rem>=tenpow)
+	{
+		tenpow*=10;
+		len++;
+	}
+	char* p_str=alloc_cb(ctx,len)+len;
+	int64_t i;
+	for(i=0;i<size-1;i++)
+	{
+		rem=pout[i];
+		for(int64_t j=0;j<NFKL_BIGINT_DECIMAL_SHIFT;j++)
+		{
+			*--p_str='0'+rem%10;
+			rem/=10;
+		}
+	}
+	rem=pout[i];
+	do
+	{
+		*--p_str='0'+rem%10;
+		rem/=10;
+	}while(rem!=0);
+	if(neg)
+		*--p_str='-';
+	free(pout);
+	return len;
+}
+
+size_t nfklBigIntToStr(const NfklBigInt *a
+		,NfklBigIntToStrAllocCb alloc_cb
+		,void* ctx
+		,uint8_t radix
+		,int with_prefix
+		,int capitals)
+{
+	if(NFKL_BIGINT_IS_0(a))
+	{
+		char* ptr=alloc_cb(ctx,1);
+		ptr[0]='0';
+		return 1;
+	}
+	else if(radix==10)
+		return bigint_to_dec_string_buffer(a,alloc_cb,ctx);
+	else
+	{
+		abort();
+	}
+}
+
+static char* string_buffer_alloc(void* ptr,size_t len)
+{
+	FklStringBuffer* buf=ptr;
+	fklStringBufferReverse(buf,len+1);
+	buf->index=len;
+	char* body=fklStringBufferBody(buf);
+	body[len]='\0';
+	return body;
+}
+
+size_t nfklBigIntToStringBuffer(const NfklBigInt* a
+		,FklStringBuffer* buf
+		,uint8_t radix
+		,int with_prefix
+		,int capitals)
+{
+	return nfklBigIntToStr(a,string_buffer_alloc,buf,radix,with_prefix,capitals);
+}

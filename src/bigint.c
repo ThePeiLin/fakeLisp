@@ -706,6 +706,66 @@ void nfklMulBigIntI(NfklBigInt* b,int64_t v)
 	nfklMulBigInt(b,&bi);
 }
 
+int nfklDivRemBigIntI(NfklBigInt* b,int64_t divider,NfklBigInt* mod)
+{
+	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
+	NfklBigInt bi=NFKL_BIGINT_0;
+	bi.size=MAX_INT64_DIGITS_COUNT;
+	bi.digits=digits;
+	nfklSetBigIntI(&bi,divider);
+	return nfklDivRemBigInt(b,&bi,mod);
+}
+
+static inline void divrem1(NfklBigIntDigit* pin
+		,int64_t size
+		,NfklBigIntDigit d
+		,NfklBigInt* mod)
+{
+	FKL_ASSERT(size>0&&d<=NFKL_BIGINT_DIGIT_MASK);
+	NfklBigIntDigit mod1 = 0;
+	while(--size>=0)
+	{
+		NfklBigIntTwoDigit dividend=((NfklBigIntTwoDigit)mod1<<NFKL_BIGINT_DIGIT_SHIFT)|pin[size];
+		NfklBigIntDigit quotient=(NfklBigIntDigit)(dividend/d);
+		mod1=dividend%d;
+		pin[size]=quotient;
+	}
+	if(mod)
+		nfklSetBigIntI(mod,mod1);
+}
+
+static inline int x_divrem(NfklBigInt* a,const NfklBigInt* d,NfklBigInt* mod)
+{
+	abort();
+}
+
+int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
+{
+	int64_t num_a=labs(a->num);
+	int64_t num_b=labs(b->num);
+	if(num_b==0)
+		return -1;
+	else if(num_a<num_b)
+	{
+		if(rem)
+			nfklSetBigInt(rem,a);
+		a->num=0;
+		return 0;
+	}
+	else if(num_b==1)
+		divrem1(a->digits,num_a,b->digits[0],rem);
+	else
+		x_divrem(a,b,rem);
+	if(a->num<0&&rem&&!NFKL_BIGINT_IS_0(rem))
+		rem->num=-rem->num;
+	if((a->num<0)!=(b->num<0))
+		a->num=-num_a;
+	else
+		a->num=num_a;
+	bigint_normalize(a);
+	return 0;
+}
+
 uintptr_t nfklBigIntHash(const NfklBigInt* bi)
 {
 	const int64_t len=labs(bi->num);

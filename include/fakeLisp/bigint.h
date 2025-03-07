@@ -5,6 +5,8 @@
 #include<stdint.h>
 #include<stdlib.h>
 
+// steal from cpython: https://github.com/python/cpython
+
 typedef uint32_t NfklBigIntDigit;
 typedef int32_t NfklBigIntSDigit;
 typedef uint64_t NfklBigIntTwoDigit;
@@ -76,6 +78,8 @@ void nfklSubBigInt(NfklBigInt*,const NfklBigInt* sub);
 void nfklSubBigIntI(NfklBigInt*,int64_t sub);
 void nfklMulBigInt(NfklBigInt*,const NfklBigInt* mul);
 void nfklMulBigIntI(NfklBigInt*,int64_t mul);
+int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* divider,NfklBigInt* mod);
+int nfklDivRemBigIntI(NfklBigInt* a,int64_t divider,NfklBigInt* mod);
 
 int nfklIsBigIntOdd(const NfklBigInt*);
 int nfklIsBigIntEven(const NfklBigInt*);

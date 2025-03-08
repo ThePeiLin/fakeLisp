@@ -1,7 +1,7 @@
 #ifndef FKL_BIGINT_H
 #define FKL_BIGINT_H
 
-#include"base.h"
+#include<stdio.h>
 #include<stdint.h>
 #include<stdlib.h>
 
@@ -11,6 +11,9 @@ typedef uint32_t NfklBigIntDigit;
 typedef int32_t NfklBigIntSDigit;
 typedef uint64_t NfklBigIntTwoDigit;
 typedef int64_t NfklBigIntSTwoDigit;
+#define NFKL_BIGINT_DIGIT_SHIFT (30)
+#define NFKL_BIGINT_DIGIT_BASE ((NfklBigIntDigit)1<<NFKL_BIGINT_DIGIT_SHIFT)
+#define NFKL_BIGINT_DIGIT_MASK ((NfklBigIntDigit)(NFKL_BIGINT_DIGIT_BASE-1))
 
 typedef struct NfklBigInt
 {
@@ -50,15 +53,14 @@ void nfklDestroyBigInt(NfklBigInt*);
 
 NfklBigInt* nfklCopyBigInt(const NfklBigInt*);
 
+void nfklInitBigInt(NfklBigInt*,const NfklBigInt*);
 void nfklInitBigInt0(NfklBigInt*);
 void nfklInitBigInt1(NfklBigInt*);
 void nfklInitBigIntN1(NfklBigInt*);
-void nfklInitBigIntWithOther(NfklBigInt*,const NfklBigInt*);
 void nfklInitBigIntI(NfklBigInt*,int64_t);
 void nfklInitBigIntU(NfklBigInt*,uint64_t);
 void nfklInitBigIntD(NfklBigInt*,double);
-void nfklInitBigIntFromMemCopy(NfklBigInt* t,int64_t num,const uint8_t* mem);
-void nfklInitBigIntFromMem(NfklBigInt* t,int64_t num,uint8_t* mem);
+void nfklInitBigIntFromMem(NfklBigInt* t,int64_t num,NfklBigIntDigit* mem);
 void nfklInitBigIntWithCharBuf(NfklBigInt* t,const char*,size_t);
 void nfklInitBigIntWithDecCharBuf(NfklBigInt* t,const char*,size_t);
 void nfklInitBigIntWithHexCharBuf(NfklBigInt* t,const char*,size_t);
@@ -79,6 +81,10 @@ void nfklSubBigInt(NfklBigInt*,const NfklBigInt* sub);
 void nfklSubBigIntI(NfklBigInt*,int64_t sub);
 void nfklMulBigInt(NfklBigInt*,const NfklBigInt* mul);
 void nfklMulBigIntI(NfklBigInt*,int64_t mul);
+int nfklDivBigInt(NfklBigInt* a,const NfklBigInt* d);
+int nfklDivBigIntI(NfklBigInt* a,int64_t d);
+int nfklRemBigInt(NfklBigInt* a,const NfklBigInt* d);
+int nfklRemBigIntI(NfklBigInt* a,int64_t d);
 int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* divider,NfklBigInt* rem);
 int nfklDivRemBigIntI(NfklBigInt* a,int64_t divider,NfklBigInt* rem);
 
@@ -86,8 +92,13 @@ int nfklIsBigIntOdd(const NfklBigInt*);
 int nfklIsBigIntEven(const NfklBigInt*);
 int nfklIsBigIntLt0(const NfklBigInt*);
 int nfklIsBigIntLe0(const NfklBigInt*);
+int nfklIsBigIntGtLtI64(const NfklBigInt*);
+int nfklIsDivisibleBigInt(const NfklBigInt* a,const NfklBigInt* b);
+int nfklIsDivisibleBigIntI(const NfklBigInt* a,int64_t b);
+int nfklIsDivisibleIBigInt(int64_t a,const NfklBigInt* b);
 int nfklBigIntEqual(const NfklBigInt* a,const NfklBigInt* b);
 int nfklBigIntCmp(const NfklBigInt* a,const NfklBigInt* b);
+int nfklBigIntCmpI(const NfklBigInt* a,int64_t b);
 int nfklBigIntAbsCmp(const NfklBigInt* a,const NfklBigInt* b);
 
 int64_t nfklBigIntToI(const NfklBigInt* a);
@@ -102,9 +113,6 @@ size_t nfklBigIntToStr(const NfklBigInt* a
 		,uint8_t radix
 		,NfklBigIntFmtFlags flags);
 
-size_t nfklBigIntToStringBuffer(const NfklBigInt* a
-		,FklStringBuffer* string_buffer
-		,uint8_t radix
-		,NfklBigIntFmtFlags flags);
-
+void nfklPrintBigInt(const NfklBigInt* a,FILE* fp);
+char* nfklBigIntToCstr(const NfklBigInt* a,uint8_t radix,NfklBigIntFmtFlags flags);
 #endif

@@ -1,4 +1,4 @@
-#include "fakeLisp/base.h"
+#include<fakeLisp/base.h>
 #include<fakeLisp/bigint.h>
 #include<fakeLisp/utils.h>
 
@@ -6,6 +6,7 @@
 #include<ctype.h>
 #include<limits.h>
 
+// steal from cpython: https://github.com/python/cpython
 #define NFKL_BIGINT_DIGIT_SHIFT (30)
 #define NFKL_BIGINT_DIGIT_BASE ((NfklBigIntDigit)1<<NFKL_BIGINT_DIGIT_SHIFT)
 #define NFKL_BIGINT_DIGIT_MASK ((NfklBigIntDigit)(NFKL_BIGINT_DIGIT_BASE-1))
@@ -706,43 +707,164 @@ void nfklMulBigIntI(NfklBigInt* b,int64_t v)
 	nfklMulBigInt(b,&bi);
 }
 
-int nfklDivRemBigIntI(NfklBigInt* b,int64_t divider,NfklBigInt* mod)
+int nfklDivRemBigIntI(NfklBigInt* b,int64_t divider,NfklBigInt* rem)
 {
 	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
 	NfklBigInt bi=NFKL_BIGINT_0;
 	bi.size=MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
 	nfklSetBigIntI(&bi,divider);
-	return nfklDivRemBigInt(b,&bi,mod);
+	return nfklDivRemBigInt(b,&bi,rem);
 }
 
 static inline void divrem1(NfklBigIntDigit* pin
 		,int64_t size
 		,NfklBigIntDigit d
-		,NfklBigInt* mod)
+		,NfklBigInt* rem)
 {
 	FKL_ASSERT(size>0&&d<=NFKL_BIGINT_DIGIT_MASK);
-	NfklBigIntDigit mod1 = 0;
+	NfklBigIntDigit rem1 = 0;
 	while(--size>=0)
 	{
-		NfklBigIntTwoDigit dividend=((NfklBigIntTwoDigit)mod1<<NFKL_BIGINT_DIGIT_SHIFT)|pin[size];
+		NfklBigIntTwoDigit dividend=((NfklBigIntTwoDigit)rem1<<NFKL_BIGINT_DIGIT_SHIFT)|pin[size];
 		NfklBigIntDigit quotient=(NfklBigIntDigit)(dividend/d);
-		mod1=dividend%d;
+		rem1=dividend%d;
 		pin[size]=quotient;
 	}
-	if(mod)
-		nfklSetBigIntI(mod,mod1);
+	if(rem)
+		nfklSetBigIntI(rem,rem1);
 }
 
-static inline int x_divrem(NfklBigInt* a,const NfklBigInt* d,NfklBigInt* mod)
+static inline uint8_t bit_length_digit(uint64_t x)
 {
-	abort();
+    static const int BIT_LENGTH_TABLE[32]=
+	{
+        0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    };
+    int msb=0;
+    while (x>=32) {
+        msb+=6;
+        x>>=6;
+    }
+    msb+=BIT_LENGTH_TABLE[x];
+    return msb;
+}
+
+static inline NfklBigIntDigit v_lshift(NfklBigIntDigit* z,NfklBigIntDigit* a,int64_t m,int d)
+{
+	NfklBigIntDigit carry=0;
+	FKL_ASSERT(0<=d&&d<NFKL_BIGINT_DIGIT_SHIFT);
+	for(int64_t i=0;i<m;i++)
+	{
+		NfklBigIntTwoDigit acc=(NfklBigIntTwoDigit)a[i]<<d|carry;
+		z[i]=(NfklBigIntDigit)acc&NFKL_BIGINT_DIGIT_MASK;
+		carry=(NfklBigIntDigit)(acc>>NFKL_BIGINT_DIGIT_SHIFT);
+	}
+	return carry;
+}
+
+static inline NfklBigIntDigit v_rshift(NfklBigIntDigit* z,NfklBigIntDigit* a,int64_t m,int d)
+{
+	NfklBigIntDigit carry=0;
+	NfklBigIntDigit mask=((NfklBigIntDigit)1<<d)-1U;
+	FKL_ASSERT(0<=d&&d<NFKL_BIGINT_DIGIT_SHIFT);
+	for(int64_t i=m;i-->0;)
+	{
+		NfklBigIntTwoDigit acc=(NfklBigIntTwoDigit)carry<<NFKL_BIGINT_DIGIT_SHIFT|a[i];
+		carry=(NfklBigIntDigit)acc&mask;
+		z[i]=(NfklBigIntDigit)(acc>>d);
+	}
+	return carry;
+}
+
+static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
+{
+	NfklBigInt w=NFKL_BIGINT_0;
+	NfklBigInt v=NFKL_BIGINT_0;
+	NfklBigInt a=NFKL_BIGINT_0;
+	int64_t size_v=labs(v1->num);
+	int64_t size_w=labs(w1->num);
+	FKL_ASSERT(size_v>=size_w&&size_w>=2);
+	ensure_bigint_size(&v,size_v+1);
+	v.num=size_v+1;
+	ensure_bigint_size(&w,size_w);
+	w.num=size_w;
+	int d=NFKL_BIGINT_DIGIT_SHIFT-bit_length_digit(w1->digits[size_w-1]);
+	NfklBigIntDigit carry=v_lshift(w.digits,w1->digits,size_w,d);
+	FKL_ASSERT(carry==0);
+	carry=v_lshift(v.digits,v1->digits,size_v,d);
+	if(carry!=0||v.digits[size_v-1]>=w.digits[size_w-1])
+	{
+		v.digits[size_v]=carry;
+		size_v++;
+	}
+	int64_t k=size_v-size_w;
+	FKL_ASSERT(k>=0);
+	ensure_bigint_size(&a,k);
+	a.num=k;
+	NfklBigIntDigit* v0=v.digits;
+	NfklBigIntDigit* w0=w.digits;
+	NfklBigIntDigit wm1=w0[size_w-1];
+	NfklBigIntDigit wm2=w0[size_w-2];
+	for(NfklBigIntDigit* vk=v0+k,*ak=a.digits+k;vk-->v0;)
+	{
+		NfklBigIntDigit vtop=vk[size_w];
+		FKL_ASSERT(vtop<=wm1);
+		NfklBigIntTwoDigit vv=((NfklBigIntTwoDigit)vtop<<NFKL_BIGINT_DIGIT_SHIFT)|vk[size_w-1];
+		NfklBigIntDigit q=(NfklBigIntDigit)(vv/wm1);
+		NfklBigIntDigit r=(NfklBigIntDigit)(vv%wm1);
+		while((NfklBigIntTwoDigit)wm2*q>(((NfklBigIntTwoDigit)r<<NFKL_BIGINT_DIGIT_SHIFT)|vk[size_w-2]))
+		{
+			--q;
+			r+=wm1;
+			if(r>=NFKL_BIGINT_DIGIT_BASE)
+				break;
+		}
+		FKL_ASSERT(q<=NFKL_BIGINT_DIGIT_BASE);
+		NfklBigIntSDigit zhi=0;
+		for(int64_t i=0;i<size_w;++i)
+		{
+			NfklBigIntSTwoDigit z=(NfklBigIntSDigit)vk[i]+zhi-(NfklBigIntSTwoDigit)q*(NfklBigIntSTwoDigit)w0[i];
+			vk[i]=(NfklBigIntDigit)z&NFKL_BIGINT_DIGIT_MASK;
+			zhi=(NfklBigIntSDigit)(z>>NFKL_BIGINT_DIGIT_SHIFT);
+		}
+		FKL_ASSERT((NfklBigIntSDigit)vtop+zhi==-1||(NfklBigIntSDigit)vtop+zhi==0);
+		if((NfklBigIntSDigit)vtop+zhi<0)
+		{
+			carry=0;
+			for(int64_t i=0;i<size_w;++i)
+			{
+				carry+=vk[i]+w0[i];
+				vk[i]=carry&NFKL_BIGINT_DIGIT_MASK;
+				carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+			}
+			--q;
+		}
+		FKL_ASSERT(q<NFKL_BIGINT_DIGIT_BASE);
+		*--ak=q;
+	}
+	carry=v_rshift(w0,v0,size_w,d);
+	FKL_ASSERT(carry==0);
+	if(rem)
+	{
+		bigint_normalize(&w);
+		nfklSetBigInt(rem,&w);
+	}
+	bigint_normalize(&a);
+	nfklSetBigInt(v1,&a);
+
+	nfklUninitBigInt(&a);
+	nfklUninitBigInt(&w);
+	nfklUninitBigInt(&v);
 }
 
 int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
 {
-	int64_t num_a=labs(a->num);
-	int64_t num_b=labs(b->num);
+	const int neg_a=a->num<0;
+	const int neg_b=b->num<0;
+	const int64_t num_a=labs(a->num);
+	const int64_t num_b=labs(b->num);
 	if(num_b==0)
 		return -1;
 	else if(num_a<num_b)
@@ -756,12 +878,11 @@ int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
 		divrem1(a->digits,num_a,b->digits[0],rem);
 	else
 		x_divrem(a,b,rem);
-	if(a->num<0&&rem&&!NFKL_BIGINT_IS_0(rem))
+	if(neg_a&&rem&&!NFKL_BIGINT_IS_0(rem))
 		rem->num=-rem->num;
-	if((a->num<0)!=(b->num<0))
-		a->num=-num_a;
-	else
-		a->num=num_a;
+	if((neg_a!=neg_b&&a->num>0)
+			||(neg_a==neg_b&&a->num<0))
+		a->num=-a->num;
 	bigint_normalize(a);
 	return 0;
 }
@@ -932,22 +1053,6 @@ static inline size_t bigint_to_dec_string_buffer(const NfklBigInt* a
 		*--p_str='-';
 	free(pout);
 	return len;
-}
-
-static inline uint8_t bit_length_digit(uint64_t x)
-{
-    static const int BIT_LENGTH_TABLE[32]=
-	{
-        0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
-        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    };
-    int msb=0;
-    while (x>=32) {
-        msb+=6;
-        x>>=6;
-    }
-    msb+=BIT_LENGTH_TABLE[x];
-    return msb;
 }
 
 static inline size_t bigint_to_bin_string_buffer(const NfklBigInt* a

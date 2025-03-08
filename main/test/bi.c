@@ -587,34 +587,43 @@ static void sub_test3(void)
 
 static void sub_test4(void)
 {
+	const int64_t h=114514+A_BIG_NUM;
+	const int64_t i=1919810;
 	{
 		NfklBigInt a;
+		NfklBigInt rem=NFKL_BIGINT_0;
 		FklStringBuffer buf;
 		fklInitStringBuffer(&buf);
-		nfklInitBigIntI(&a,114514+A_BIG_NUM);
-		nfklMulBigIntI(&a,1919810);
+		nfklInitBigIntI(&a,h);
+		nfklMulBigIntI(&a,i);
 
-		nfklDivRemBigIntI(&a,1919810,NULL);
+		nfklDivRemBigIntI(&a,i,&rem);
 
-		int64_t res=nfklBigIntToI(&a);
-		fprintf(stderr,"result: %ld\n",res);
-		assert(res==114514+A_BIG_NUM);
+		int64_t d=nfklBigIntToI(&a);
+		int64_t r=nfklBigIntToI(&rem);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",h*i,i,d,r);
+		assert(d==114514+A_BIG_NUM);
+		assert(r==0);
 
 		fklUninitStringBuffer(&buf);
 		nfklUninitBigInt(&a);
+		nfklUninitBigInt(&rem);
 	}
 	{
 		NfklBigInt a;
+		NfklBigInt rem=NFKL_BIGINT_0;
 		FklStringBuffer buf;
 		fklInitStringBuffer(&buf);
-		nfklInitBigIntI(&a,114514+A_BIG_NUM);
-		nfklMulBigIntI(&a,-1919810);
+		nfklInitBigIntI(&a,h);
+		nfklMulBigIntI(&a,-i);
 
-		nfklDivRemBigIntI(&a,1919810,NULL);
+		nfklDivRemBigIntI(&a,i,&rem);
 
-		int64_t res=nfklBigIntToI(&a);
-		fprintf(stderr,"result: %ld\n",res);
-		assert(res==-114514-A_BIG_NUM);
+		int64_t d=nfklBigIntToI(&a);
+		int64_t r=nfklBigIntToI(&rem);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",h*-i,i,d,r);
+		assert(d==-114514-A_BIG_NUM);
+		assert(r==0);
 
 		fklUninitStringBuffer(&buf);
 		nfklUninitBigInt(&a);
@@ -625,33 +634,91 @@ static void sub_test4(void)
 		NfklBigInt a;
 		NfklBigInt rem;
 		FklStringBuffer buf;
+		const int64_t h=114514;
+		const int64_t i=19198;
 		fklInitStringBuffer(&buf);
-		nfklInitBigIntI(&a,-114514);
+		nfklInitBigIntI(&a,-h);
 		nfklInitBigInt0(&rem);
 
-		nfklDivRemBigIntI(&a,-19198,&rem);
+		nfklDivRemBigIntI(&a,-i,&rem);
 
 		d=nfklBigIntToI(&a);
 		r=nfklBigIntToI(&rem);
-		fprintf(stderr,"d: %ld, r: %ld\n",d,r);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",-h,-i,d,r);
+		assert(d==(-h/-i));
+		assert(r==(-h%-i));
 
-		nfklSetBigIntI(&a,114514);
-		nfklDivRemBigIntI(&a,19198,&rem);
+		nfklSetBigIntI(&a,h);
+		nfklDivRemBigIntI(&a,i,&rem);
 		d=nfklBigIntToI(&a);
 		r=nfklBigIntToI(&rem);
-		fprintf(stderr,"d: %ld, r: %ld\n",d,r);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",h,i,d,r);
+		assert(d==(h/i));
+		assert(r==(h%i));
 
-		nfklSetBigIntI(&a,-114514);
-		nfklDivRemBigIntI(&a,19198,&rem);
+		nfklSetBigIntI(&a,-h);
+		nfklDivRemBigIntI(&a,i,&rem);
 		d=nfklBigIntToI(&a);
 		r=nfklBigIntToI(&rem);
-		fprintf(stderr,"d: %ld, r: %ld\n",d,r);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",-h,i,d,r);
+		assert(d==(-h/i));
+		assert(r==(-h%i));
 
-		nfklSetBigIntI(&a,114514);
-		nfklDivRemBigIntI(&a,-19198,&rem);
+		nfklSetBigIntI(&a,h);
+		nfklDivRemBigIntI(&a,-i,&rem);
 		d=nfklBigIntToI(&a);
 		r=nfklBigIntToI(&rem);
-		fprintf(stderr,"d: %ld, r: %ld\n",d,r);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",h,-i,d,r);
+		assert(d==(h/-i));
+		assert(r==(h%-i));
+
+		fklUninitStringBuffer(&buf);
+		nfklUninitBigInt(&a);
+		nfklUninitBigInt(&rem);
+	}
+	{
+		int64_t d;
+		int64_t r;
+		NfklBigInt a;
+		NfklBigInt rem;
+		FklStringBuffer buf;
+		const int64_t h=114514+A_BIG_NUM*2;
+		const int64_t i=19198+A_BIG_NUM;
+		fklInitStringBuffer(&buf);
+		nfklInitBigIntI(&a,-h);
+		nfklInitBigInt0(&rem);
+
+		nfklDivRemBigIntI(&a,-i,&rem);
+
+		d=nfklBigIntToI(&a);
+		r=nfklBigIntToI(&rem);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",-h,-i,d,r);
+		assert(d==(-h/-i));
+		assert(r==(-h%-i));
+
+		nfklSetBigIntI(&a,h);
+		nfklDivRemBigIntI(&a,i,&rem);
+		d=nfklBigIntToI(&a);
+		r=nfklBigIntToI(&rem);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",h,i,d,r);
+		assert(d==(h/i));
+		assert(r==(h%i));
+
+		nfklSetBigIntI(&a,-h);
+		nfklDivRemBigIntI(&a,i,&rem);
+		d=nfklBigIntToI(&a);
+		r=nfklBigIntToI(&rem);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",-h,i,d,r);
+		assert(d==(-h/i));
+		assert(r==(-h%i));
+
+		nfklSetBigIntI(&a,h);
+		nfklDivRemBigIntI(&a,-i,&rem);
+		d=nfklBigIntToI(&a);
+		r=nfklBigIntToI(&rem);
+		fprintf(stderr,"%17ld / %-17ld = %17ld ...... %-17ld\n",h,-i,d,r);
+		assert(d==(h/-i));
+		assert(r==(h%-i));
 
 		fklUninitStringBuffer(&buf);
 		nfklUninitBigInt(&a);

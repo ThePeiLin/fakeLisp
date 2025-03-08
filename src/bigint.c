@@ -751,7 +751,7 @@ static inline uint8_t bit_length_digit(uint64_t x)
     return msb;
 }
 
-static inline NfklBigIntDigit v_lshift(NfklBigIntDigit* z,NfklBigIntDigit* a,int64_t m,int d)
+static inline NfklBigIntDigit v_lshift(NfklBigIntDigit* z,const NfklBigIntDigit* a,int64_t m,int d)
 {
 	NfklBigIntDigit carry=0;
 	FKL_ASSERT(0<=d&&d<NFKL_BIGINT_DIGIT_SHIFT);
@@ -764,7 +764,7 @@ static inline NfklBigIntDigit v_lshift(NfklBigIntDigit* z,NfklBigIntDigit* a,int
 	return carry;
 }
 
-static inline NfklBigIntDigit v_rshift(NfklBigIntDigit* z,NfklBigIntDigit* a,int64_t m,int d)
+static inline NfklBigIntDigit v_rshift(NfklBigIntDigit* z,const NfklBigIntDigit* a,int64_t m,int d)
 {
 	NfklBigIntDigit carry=0;
 	NfklBigIntDigit mask=((NfklBigIntDigit)1<<d)-1U;
@@ -781,29 +781,28 @@ static inline NfklBigIntDigit v_rshift(NfklBigIntDigit* z,NfklBigIntDigit* a,int
 static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
 {
 	NfklBigInt w=NFKL_BIGINT_0;
-	NfklBigInt v=NFKL_BIGINT_0;
 	NfklBigInt a=NFKL_BIGINT_0;
 	int64_t size_v=labs(v1->num);
 	int64_t size_w=labs(w1->num);
 	FKL_ASSERT(size_v>=size_w&&size_w>=2);
-	ensure_bigint_size(&v,size_v+1);
-	v.num=size_v+1;
+	ensure_bigint_size(v1,size_v+1);
+	v1->num=size_v+1;
 	ensure_bigint_size(&w,size_w);
 	w.num=size_w;
 	int d=NFKL_BIGINT_DIGIT_SHIFT-bit_length_digit(w1->digits[size_w-1]);
 	NfklBigIntDigit carry=v_lshift(w.digits,w1->digits,size_w,d);
 	FKL_ASSERT(carry==0);
-	carry=v_lshift(v.digits,v1->digits,size_v,d);
-	if(carry!=0||v.digits[size_v-1]>=w.digits[size_w-1])
+	carry=v_lshift(v1->digits,v1->digits,size_v,d);
+	if(carry!=0||v1->digits[size_v-1]>=w.digits[size_w-1])
 	{
-		v.digits[size_v]=carry;
+		v1->digits[size_v]=carry;
 		size_v++;
 	}
 	int64_t k=size_v-size_w;
 	FKL_ASSERT(k>=0);
 	ensure_bigint_size(&a,k);
 	a.num=k;
-	NfklBigIntDigit* v0=v.digits;
+	NfklBigIntDigit* v0=v1->digits;
 	NfklBigIntDigit* w0=w.digits;
 	NfklBigIntDigit wm1=w0[size_w-1];
 	NfklBigIntDigit wm2=w0[size_w-2];
@@ -856,7 +855,6 @@ static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
 
 	nfklUninitBigInt(&a);
 	nfklUninitBigInt(&w);
-	nfklUninitBigInt(&v);
 }
 
 int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)

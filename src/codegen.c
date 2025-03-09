@@ -580,13 +580,13 @@ append:
 
 static inline FklByteCode* append_push_bigint_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
-		,const NfklBigInt* k
+		,const FklBigInt* k
 		,FklCodegenInfo* info)
 {
-	if(nfklIsBigIntGtLtI64(k))
+	if(fklIsBigIntGtLtI64(k))
 		return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_BI,fklAddBigIntConst(info->runtime_kt,k));
 	else
-		return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_I64B,fklAddI64Const(info->runtime_kt,nfklBigIntToI(k)));
+		return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_I64B,fklAddI64Const(info->runtime_kt,fklBigIntToI(k)));
 }
 
 static inline FklByteCode* append_push_bvec_ins_to_bc(InsAppendMode m
@@ -7592,7 +7592,7 @@ static void* custom_action(void* c
 	if(line>FKL_FIX_INT_MAX)
 	{
 		line_node=fklCreateNastNode(FKL_NAST_BIG_INT,line);
-		line_node->bigInt=nfklCreateBigIntU(line);
+		line_node->bigInt=fklCreateBigIntU(line);
 	}
 	else
 	{
@@ -7831,7 +7831,7 @@ static FklNastNode* _line_replacement(const FklNastNode* orig
 	else
 	{
 		r=fklCreateNastNode(FKL_NAST_BIG_INT,orig->curline);
-		r->bigInt=nfklCreateBigIntU(line);
+		r->bigInt=fklCreateBigIntU(line);
 	}
 	return r;
 }

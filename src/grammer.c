@@ -2489,11 +2489,7 @@ static inline int add_reachable_terminal(FklGrammer* g)
 						find_and_add_terminal_in_regex(cur->re,&g->reachable_terminals);
 				}
 				if(!cur->isterm&&!fklPutHashItem2(&nonterm_set,&cur->nt,NULL))
-				{
-					// FklGrammerNonterm left={.group=cur->nt.group,.sid=cur->nt.sid};
-					// fklPutHashItem(&left,&nonterm_set);
 					fklPushPtrStack(fklGetProductions(productions,cur->nt.group,cur->nt.sid),&prod_stack);
-				}
 			}
 		}
 	}
@@ -5930,9 +5926,9 @@ static inline void* prod_action_dec_integer(void* ctx
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
 	{
-		NfklBigInt bInt=NFKL_BIGINT_0;
-		nfklInitBigIntWithDecCharBuf(&bInt,str->str,str->size);
-		NfklBigInt* bi=(NfklBigInt*)malloc(sizeof(NfklBigInt));
+		FklBigInt bInt=FKL_BIGINT_0;
+		fklInitBigIntWithDecCharBuf(&bInt,str->str,str->size);
+		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
 		r->bigInt=bi;
@@ -5957,9 +5953,9 @@ static inline void* prod_action_hex_integer(void* ctx
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
 	{
-		NfklBigInt bInt=NFKL_BIGINT_0;
-		nfklInitBigIntWithHexCharBuf(&bInt,str->str,str->size);
-		NfklBigInt* bi=(NfklBigInt*)malloc(sizeof(NfklBigInt));
+		FklBigInt bInt=FKL_BIGINT_0;
+		fklInitBigIntWithHexCharBuf(&bInt,str->str,str->size);
+		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
 		r->bigInt=bi;
@@ -5984,9 +5980,9 @@ static inline void* prod_action_oct_integer(void* ctx
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
 	{
-		NfklBigInt bInt=NFKL_BIGINT_0;
-		nfklInitBigIntWithOctCharBuf(&bInt,str->str,str->size);
-		NfklBigInt* bi=(NfklBigInt*)malloc(sizeof(NfklBigInt));
+		FklBigInt bInt=FKL_BIGINT_0;
+		fklInitBigIntWithOctCharBuf(&bInt,str->str,str->size);
+		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
 		r->bigInt=bi;

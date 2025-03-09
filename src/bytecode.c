@@ -202,7 +202,7 @@ static inline void init_const_bvec_table(FklConstBvecTable* kbvect)
 
 struct ConstBiHashItem
 {
-	NfklBigInt k;
+	FklBigInt k;
 	uint32_t idx;
 };
 
@@ -211,23 +211,23 @@ static void const_bi_set_val(void* v0,const void* v1)
 	struct ConstBiHashItem* i0=v0;
 	const struct ConstBiHashItem* i1=v1;
 	i0->idx=i1->idx;
-	nfklInitBigInt(&i0->k,&i1->k);
+	fklInitBigInt(&i0->k,&i1->k);
 }
 
 static uintptr_t const_bi_hash_func(const void* k)
 {
-	return nfklBigIntHash((const NfklBigInt*)k);
+	return fklBigIntHash((const FklBigInt*)k);
 }
 
 static void const_bi_uninit_item(void* d)
 {
 	struct ConstBiHashItem* i=d;
-	nfklUninitBigInt(&i->k);
+	fklUninitBigInt(&i->k);
 }
 
 static int const_bi_key_equal(const void* k0,const void* k1)
 {
-	return nfklBigIntEqual((const NfklBigInt*)k0,(const NfklBigInt*)k1);
+	return fklBigIntEqual((const FklBigInt*)k0,(const FklBigInt*)k1);
 }
 
 static const FklHashTableMetaTable ConstBiMetaTable=
@@ -245,7 +245,7 @@ static inline void init_const_bi_table(FklConstBiTable* kbit)
 	fklInitHashTable(&kbit->ht,&ConstBiMetaTable);
 	kbit->count=0;
 	kbit->size=DEFAULT_CONST_TABLE_SIZE;
-	kbit->base=(NfklBigInt**)malloc(DEFAULT_CONST_TABLE_SIZE*sizeof(NfklBigInt*));
+	kbit->base=(FklBigInt**)malloc(DEFAULT_CONST_TABLE_SIZE*sizeof(FklBigInt*));
 	FKL_ASSERT(kbit->base);
 }
 
@@ -382,7 +382,7 @@ uint32_t fklAddBvecConst(FklConstTable* kt,const FklBytevector* k)
 	return idx;
 }
 
-uint32_t fklAddBigIntConst(FklConstTable* kt,const NfklBigInt* k)
+uint32_t fklAddBigIntConst(FklConstTable* kt,const FklBigInt* k)
 {
 	FklConstBiTable* kbit=&kt->kbit;
 	uint32_t idx=kbit->count;
@@ -418,7 +418,7 @@ const FklBytevector* fklGetBvecConstWithIdx(const FklConstTable* kt,uint32_t idx
 	return kt->kbvect.base[idx];
 }
 
-const NfklBigInt* fklGetBiConstWithIdx(const FklConstTable* kt,uint32_t idx)
+const FklBigInt* fklGetBiConstWithIdx(const FklConstTable* kt,uint32_t idx)
 {
 	return kt->kbit.base[idx];
 }
@@ -471,14 +471,14 @@ void fklLoadConstTable(FILE* fp,FklConstTable* kt)
 	{
 		int64_t num=0;
 		fread(&num,sizeof(num),1,fp);
-		size_t size=labs(num)*sizeof(NfklBigIntDigit);
-		NfklBigIntDigit* mem=(NfklBigIntDigit*)malloc(size);
+		size_t size=labs(num)*sizeof(FklBigIntDigit);
+		FklBigIntDigit* mem=(FklBigIntDigit*)malloc(size);
 		FKL_ASSERT(mem||!num);
 		fread(mem,size,1,fp);
-		NfklBigInt bi=NFKL_BIGINT_0;
-		nfklInitBigIntFromMem(&bi,num,mem);
+		FklBigInt bi=FKL_BIGINT_0;
+		fklInitBigIntFromMem(&bi,num,mem);
 		fklAddBigIntConst(kt,&bi);
-		nfklUninitBigInt(&bi);
+		fklUninitBigInt(&bi);
 	}
 }
 
@@ -514,9 +514,9 @@ void fklWriteConstTable(const FklConstTable* kt,FILE* fp)
 	fwrite(&kbit->count,sizeof(kbit->count),1,fp);
 	for(uint32_t i=0;i<kbit->count;i++)
 	{
-		const NfklBigInt* cur=kbit->base[i];
+		const FklBigInt* cur=kbit->base[i];
 		fwrite(&cur->num,sizeof(cur->num),1,fp);
-		fwrite(cur->digits,labs(cur->num)*sizeof(NfklBigIntDigit),1,fp);
+		fwrite(cur->digits,labs(cur->num)*sizeof(FklBigIntDigit),1,fp);
 	}
 }
 
@@ -566,9 +566,9 @@ void fklPrintConstTable(const FklConstTable* kt,FILE* fp)
 	fprintf(fp,"bigint:\t%u\n",kbit->count);
 	for(uint32_t i=0;i<kbit->count;i++)
 	{
-		const NfklBigInt* bi=kbit->base[i];
+		const FklBigInt* bi=kbit->base[i];
 		fprintf(fp,"\t%-*u:\t",numLen,i);
-		nfklPrintBigInt(bi,fp);
+		fklPrintBigInt(bi,fp);
 		fputc('\n',fp);
 	}
 }
@@ -752,7 +752,7 @@ static inline uint32_t print_single_ins(const FklByteCode* tmpCode
 		case FKL_OP_PUSH_BI_C:
 		case FKL_OP_PUSH_BI_X:
 			fprintf(fp,"%"FKL_PRT64U"\t#\t",ins_arg.ux);
-			nfklPrintBigInt(fklGetBiConstWithIdx(kt,ins_arg.ux),fp);
+			fklPrintBigInt(fklGetBiConstWithIdx(kt,ins_arg.ux),fp);
 			break;
 		case FKL_OP_PUSH_PROC:
 		case FKL_OP_PUSH_PROC_X:

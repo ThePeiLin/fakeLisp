@@ -53,7 +53,7 @@ FklNastNode* fklCopyNastNode(const FklNastNode* orig)
 				node->bvec=fklCopyBytevector(top->bvec);
 				break;
 			case FKL_NAST_BIG_INT:
-				node->bigInt=nfklCopyBigInt(top->bigInt);
+				node->bigInt=fklCopyBigInt(top->bigInt);
 				break;
 
 			case FKL_NAST_BOX:
@@ -182,7 +182,7 @@ void fklDestroyNastNode(FklNastNode* node)
 						free(cur->bvec);
 						break;
 					case FKL_NAST_BIG_INT:
-						nfklDestroyBigInt(cur->bigInt);
+						fklDestroyBigInt(cur->bigInt);
 						break;
 					case FKL_NAST_PAIR:
 						fklPushPtrStack(cur->pair->car,&stack);
@@ -315,7 +315,7 @@ void fklPrintNastNode(const FklNastNode* exp
 					}
 					break;
 				case FKL_NAST_BIG_INT:
-					nfklPrintBigInt(node->bigInt,fp);
+					fklPrintBigInt(node->bigInt,fp);
 					break;
 				case FKL_NAST_BOX:
 					fputs("#&",fp);
@@ -429,7 +429,7 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					r=c0->chr==c1->chr;
 					break;
 				case FKL_NAST_BIG_INT:
-					r=nfklBigIntCmp(c0->bigInt,c1->bigInt);
+					r=fklBigIntCmp(c0->bigInt,c1->bigInt);
 					break;
 				case FKL_NAST_BOX:
 					fklPushPtrStack(c0->box,&s0);

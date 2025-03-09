@@ -66,7 +66,7 @@ typedef struct FklNastNode
 		FklSid_t sym;
 		FklString* str;
 		FklBytevector* bvec;
-		NfklBigInt* bigInt;
+		FklBigInt* bigInt;
 		FklNastVector* vec;
 		FklNastPair* pair;
 		FklNastHashTable* hash;

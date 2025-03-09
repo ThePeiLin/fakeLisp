@@ -176,7 +176,7 @@ static int math_odd_p(FKL_CPROC_ARGL)
 	if(FKL_IS_FIX(val))
 		r=FKL_GET_FIX(val)%2;
 	else
-		r=nfklIsBigIntOdd(FKL_VM_BI(val));
+		r=fklIsBigIntOdd(FKL_VM_BI(val));
 	if(r)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
 	else
@@ -193,7 +193,7 @@ static int math_even_p(FKL_CPROC_ARGL)
 	if(FKL_IS_FIX(val))
 		r=FKL_GET_FIX(val)%2==0;
 	else
-		r=nfklIsBigIntEven(FKL_VM_BI(val));
+		r=fklIsBigIntEven(FKL_VM_BI(val));
 	if(r)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
 	else

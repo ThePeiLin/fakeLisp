@@ -62,7 +62,7 @@ typedef struct
 typedef struct
 {
 	FklHashTable ht;
-	NfklBigInt** base;
+	FklBigInt** base;
 	uint32_t count;
 	uint32_t size;
 }FklConstBiTable;
@@ -109,13 +109,13 @@ uint32_t fklAddI64Const(FklConstTable* kt,int64_t k);
 uint32_t fklAddF64Const(FklConstTable* kt,double k);
 uint32_t fklAddStrConst(FklConstTable* kt,const FklString* k);
 uint32_t fklAddBvecConst(FklConstTable* kt,const FklBytevector* k);
-uint32_t fklAddBigIntConst(FklConstTable* kt,const NfklBigInt* k);
+uint32_t fklAddBigIntConst(FklConstTable* kt,const FklBigInt* k);
 
 int64_t fklGetI64ConstWithIdx(const FklConstTable* kt,uint32_t i);
 double fklGetF64ConstWithIdx(const FklConstTable* kt,uint32_t i);
 const FklString* fklGetStrConstWithIdx(const FklConstTable* kt,uint32_t i);
 const FklBytevector* fklGetBvecConstWithIdx(const FklConstTable* kt,uint32_t i);
-const NfklBigInt* fklGetBiConstWithIdx(const FklConstTable* kt,uint32_t i);
+const FklBigInt* fklGetBiConstWithIdx(const FklConstTable* kt,uint32_t i);
 
 void fklPrintConstTable(const FklConstTable* kt,FILE* fp);
 

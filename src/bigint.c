@@ -7,34 +7,34 @@
 #include<limits.h>
 
 // steal from cpython: https://github.com/python/cpython
-#define NFKL_BIGINT_DECIMAL_SHIFT (9)
-#define NFKL_BIGINT_DECIMAL_BASE ((NfklBigIntDigit)1000000000)
+#define FKL_BIGINT_DECIMAL_SHIFT (9)
+#define FKL_BIGINT_DECIMAL_BASE ((FklBigIntDigit)1000000000)
 
-void nfklInitBigInt0(NfklBigInt* b)
+void fklInitBigInt0(FklBigInt* b)
 {
-	*b=NFKL_BIGINT_0;
+	*b=FKL_BIGINT_0;
 }
 
-void nfklInitBigInt1(NfklBigInt* b)
+void fklInitBigInt1(FklBigInt* b)
 {
-	*b=NFKL_BIGINT_0;
+	*b=FKL_BIGINT_0;
 	b->num=1;
 	b->size=1;
-	b->digits=(NfklBigIntDigit*)malloc(b->size*sizeof(NfklBigIntDigit));
+	b->digits=(FklBigIntDigit*)malloc(b->size*sizeof(FklBigIntDigit));
 	FKL_ASSERT(b->digits);
 	b->digits[0]=1;
 }
 
-void nfklInitBigIntN1(NfklBigInt* b)
+void fklInitBigIntN1(FklBigInt* b)
 {
-	nfklInitBigInt1(b);
+	fklInitBigInt1(b);
 	b->num=-1;
 }
 
-void nfklInitBigInt(NfklBigInt* a,const NfklBigInt* b)
+void fklInitBigInt(FklBigInt* a,const FklBigInt* b)
 {
-	*a=NFKL_BIGINT_0;
-	nfklSetBigInt(a,b);
+	*a=FKL_BIGINT_0;
+	fklSetBigInt(a,b);
 }
 
 static inline size_t count_digits_size(uint64_t i)
@@ -42,79 +42,79 @@ static inline size_t count_digits_size(uint64_t i)
 	if(i)
 	{
 		size_t count=0;
-		for(;i;i>>=NFKL_BIGINT_DIGIT_SHIFT)
+		for(;i;i>>=FKL_BIGINT_DIGIT_SHIFT)
 			++count;
 		return count;
 	}
 	return 0;
 }
 
-static inline void set_uint64_to_digits(NfklBigIntDigit* digits,size_t size,uint64_t num)
+static inline void set_uint64_to_digits(FklBigIntDigit* digits,size_t size,uint64_t num)
 {
 	for(size_t i=0;i<size;i++)
 	{
-		digits[i]=num&NFKL_BIGINT_DIGIT_MASK;
-		num>>=NFKL_BIGINT_DIGIT_SHIFT;
+		digits[i]=num&FKL_BIGINT_DIGIT_MASK;
+		num>>=FKL_BIGINT_DIGIT_SHIFT;
 	}
 }
 
-void nfklInitBigIntU(NfklBigInt* b,uint64_t num)
+void fklInitBigIntU(FklBigInt* b,uint64_t num)
 {
-	nfklInitBigInt0(b);
+	*b=FKL_BIGINT_0;
 	if(num)
 	{
 		b->size=count_digits_size(num);
 		b->num=b->size;
-		b->digits=(NfklBigIntDigit*)malloc(b->size*sizeof(NfklBigIntDigit));
+		b->digits=(FklBigIntDigit*)malloc(b->size*sizeof(FklBigIntDigit));
 		FKL_ASSERT(b->digits);
 		set_uint64_to_digits(b->digits,b->size,num);
 	}
 
 }
 
-void nfklInitBigIntI(NfklBigInt* b,int64_t n)
+void fklInitBigIntI(FklBigInt* b,int64_t n)
 {
-	nfklInitBigIntU(b,labs(n));
+	fklInitBigIntU(b,labs(n));
 	if(n<0)
 		b->num=-b->num;
 }
 
-void nfklInitBigIntD(NfklBigInt* b,double d)
+void fklInitBigIntD(FklBigInt* b,double d)
 {
-	nfklInitBigIntI(b,(int64_t)d);
+	fklInitBigIntI(b,(int64_t)d);
 }
 
-void nfklInitBigIntFromMem(NfklBigInt *t,int64_t num,NfklBigIntDigit *mem)
+void fklInitBigIntFromMem(FklBigInt *t,int64_t num,FklBigIntDigit *mem)
 {
 	t->num=num;
 	t->size=labs(num);
 	t->digits=mem;
 }
 
-void nfklInitBigIntWithDecCharBuf(NfklBigInt* b,const char* buf,size_t len)
+void fklInitBigIntWithDecCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
 	int neg=buf[0]=='-';
 	size_t offset=neg||buf[0]=='+';
 	for(size_t i=offset;i<len&&isdigit(buf[i]);i++)
 	{
-		nfklMulBigIntI(b,10);
-		nfklAddBigIntI(b,buf[i]-'0');
+		fklMulBigIntI(b,10);
+		fklAddBigIntI(b,buf[i]-'0');
 	}
 	if(neg)
 		b->num=-b->num;
 }
 
-static void ensure_bigint_size(NfklBigInt* to,uint64_t size)
+static void ensure_bigint_size(FklBigInt* to,uint64_t size)
 {
 	if(to->size<size)
 	{
 		to->size=size;
-		to->digits=(NfklBigIntDigit*)fklRealloc(to->digits,size*sizeof(NfklBigIntDigit));
+		to->digits=(FklBigIntDigit*)fklRealloc(to->digits,size*sizeof(FklBigIntDigit));
 		FKL_ASSERT(to->digits);
 	}
 }
 
-static inline void bigint_normalize(NfklBigInt* a)
+static inline void bigint_normalize(FklBigInt* a)
 {
 	int64_t i=labs(a->num);
 	for(;i>0&&a->digits[i-1]==0;--i);
@@ -122,9 +122,9 @@ static inline void bigint_normalize(NfklBigInt* a)
 }
 
 #define OCT_BIT_COUNT (3)
-#define DIGIT_OCT_COUNT (NFKL_BIGINT_DIGIT_SHIFT/OCT_BIT_COUNT)
+#define DIGIT_OCT_COUNT (FKL_BIGINT_DIGIT_SHIFT/OCT_BIT_COUNT)
 
-void nfklInitBigIntWithOctCharBuf(NfklBigInt* b,const char* buf,size_t len)
+void fklInitBigIntWithOctCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
 	int neg=buf[0]=='-';
 	size_t offset=(neg||buf[0]=='+')+1;
@@ -136,7 +136,7 @@ void nfklInitBigIntWithOctCharBuf(NfklBigInt* b,const char* buf,size_t len)
 	b->num=total_len;
 	if(total_len==0)
 		return;
-	NfklBigIntDigit* pdigits=b->digits;
+	FklBigIntDigit* pdigits=b->digits;
 	size_t i=offset;
 	uint32_t carry=0;
 	for(;i<offset+high_len;i++)
@@ -163,18 +163,18 @@ void nfklInitBigIntWithOctCharBuf(NfklBigInt* b,const char* buf,size_t len)
 #define HEX_BIT_COUNT (4)
 #define U32_HEX_COUNT ((sizeof(uint32_t)*CHAR_BIT)/HEX_BIT_COUNT)
 
-void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
+void fklInitBigIntWithHexCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
 	int neg=buf[0]=='-';
 	size_t offset=(neg||buf[0]=='+')+2;
 	for(;offset<len&&buf[offset]=='0';offset++);
 	const char* start=buf+offset;
-	int64_t digits_count=((len-offset)*HEX_BIT_COUNT+NFKL_BIGINT_DIGIT_SHIFT-1)/NFKL_BIGINT_DIGIT_SHIFT;
+	int64_t digits_count=((len-offset)*HEX_BIT_COUNT+FKL_BIGINT_DIGIT_SHIFT-1)/FKL_BIGINT_DIGIT_SHIFT;
 	ensure_bigint_size(b,digits_count);
 
 	int bits_in_accum=0;
-	NfklBigIntTwoDigit accum=0;
-	NfklBigIntDigit* pdigits=b->digits;
+	FklBigIntTwoDigit accum=0;
+	FklBigIntDigit* pdigits=b->digits;
 	const char* p=buf+len;
 	while(--p>=start)
 	{
@@ -182,17 +182,17 @@ void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
 		int k=isdigit(c)
 			?c-'0'
 			:toupper(c)-'A'+10;
-		accum|=(NfklBigIntTwoDigit)k<<bits_in_accum;
+		accum|=(FklBigIntTwoDigit)k<<bits_in_accum;
 		bits_in_accum+=HEX_BIT_COUNT;
-		if(bits_in_accum>=NFKL_BIGINT_DIGIT_SHIFT)
+		if(bits_in_accum>=FKL_BIGINT_DIGIT_SHIFT)
 		{
-			*pdigits++=(NfklBigIntDigit)(accum&NFKL_BIGINT_DIGIT_MASK);
-			accum>>=NFKL_BIGINT_DIGIT_SHIFT;
-			bits_in_accum-=NFKL_BIGINT_DIGIT_SHIFT;
+			*pdigits++=(FklBigIntDigit)(accum&FKL_BIGINT_DIGIT_MASK);
+			accum>>=FKL_BIGINT_DIGIT_SHIFT;
+			bits_in_accum-=FKL_BIGINT_DIGIT_SHIFT;
 		}
 	}
 	if(bits_in_accum)
-		*pdigits++=(NfklBigIntDigit)accum;
+		*pdigits++=(FklBigIntDigit)accum;
 	while(pdigits-b->digits<digits_count)
 		*pdigits++=0;
 	b->num=digits_count;
@@ -201,135 +201,135 @@ void nfklInitBigIntWithHexCharBuf(NfklBigInt* b,const char* buf,size_t len)
 		b->num=-b->num;
 }
 
-void nfklInitBigIntWithCharBuf(NfklBigInt* b,const char* buf,size_t len)
+void fklInitBigIntWithCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
 	if(fklIsHexInt(buf,len))
-		nfklInitBigIntWithHexCharBuf(b,buf,len);
+		fklInitBigIntWithHexCharBuf(b,buf,len);
 	else if(fklIsOctInt(buf,len))
-		nfklInitBigIntWithOctCharBuf(b,buf,len);
+		fklInitBigIntWithOctCharBuf(b,buf,len);
 	else
-		nfklInitBigIntWithDecCharBuf(b,buf,len);
+		fklInitBigIntWithDecCharBuf(b,buf,len);
 }
 
-void nfklInitBigIntWithCstr(NfklBigInt* b,const char* cstr)
+void fklInitBigIntWithCstr(FklBigInt* b,const char* cstr)
 {
-	nfklInitBigIntWithCharBuf(b,cstr,strlen(cstr));
+	fklInitBigIntWithCharBuf(b,cstr,strlen(cstr));
 }
 
-void nfklUninitBigInt(NfklBigInt* b)
+void fklUninitBigInt(FklBigInt* b)
 {
 	free(b->digits);
-	*b=NFKL_BIGINT_0;
+	*b=FKL_BIGINT_0;
 }
 
-NfklBigInt* nfklCreateBigInt0(void)
+FklBigInt* fklCreateBigInt0(void)
 {
-	NfklBigInt* b=(NfklBigInt*)malloc(sizeof(NfklBigInt));
+	FklBigInt* b=(FklBigInt*)malloc(sizeof(FklBigInt));
 	FKL_ASSERT(b);
-	nfklInitBigInt0(b);
+	*b=FKL_BIGINT_0;
 	return b;
 }
 
 
-NfklBigInt* nfklCreateBigInt1(void)
+FklBigInt* fklCreateBigInt1(void)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigInt1(b);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigInt1(b);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntN1(void)
+FklBigInt* fklCreateBigIntN1(void)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntN1(b);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntN1(b);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntI(int64_t v)
+FklBigInt* fklCreateBigIntI(int64_t v)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntI(b,v);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntI(b,v);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntD(double v)
+FklBigInt* fklCreateBigIntD(double v)
 {
-	return nfklCreateBigIntI((int64_t)v);
+	return fklCreateBigIntI((int64_t)v);
 }
 
-NfklBigInt* nfklCreateBigIntU(uint64_t v)
+FklBigInt* fklCreateBigIntU(uint64_t v)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntU(b,v);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntU(b,v);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntWithCharBuf(const char* buf,size_t len)
+FklBigInt* fklCreateBigIntWithCharBuf(const char* buf,size_t len)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntWithCharBuf(b,buf,len);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntWithCharBuf(b,buf,len);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntWithDecCharBuf(const char* buf,size_t len)
+FklBigInt* fklCreateBigIntWithDecCharBuf(const char* buf,size_t len)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntWithDecCharBuf(b,buf,len);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntWithDecCharBuf(b,buf,len);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntWithHexCharBuf(const char* buf,size_t len)
+FklBigInt* fklCreateBigIntWithHexCharBuf(const char* buf,size_t len)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntWithHexCharBuf(b,buf,len);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntWithHexCharBuf(b,buf,len);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntWithOctCharBuf(const char* buf,size_t len)
+FklBigInt* fklCreateBigIntWithOctCharBuf(const char* buf,size_t len)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntWithOctCharBuf(b,buf,len);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntWithOctCharBuf(b,buf,len);
 	return b;
 }
 
-NfklBigInt* nfklCreateBigIntWithCstr(const char* cstr)
+FklBigInt* fklCreateBigIntWithCstr(const char* cstr)
 {
-	NfklBigInt* b=nfklCreateBigInt0();
-	nfklInitBigIntWithCstr(b,cstr);
+	FklBigInt* b=fklCreateBigInt0();
+	fklInitBigIntWithCstr(b,cstr);
 	return b;
 }
 
-void nfklDestroyBigInt(NfklBigInt* b)
+void fklDestroyBigInt(FklBigInt* b)
 {
-	nfklUninitBigInt(b);
+	fklUninitBigInt(b);
 	free(b);
 }
 
-NfklBigInt* nfklCopyBigInt(const NfklBigInt* b)
+FklBigInt* fklCopyBigInt(const FklBigInt* b)
 {
-	NfklBigInt* r=nfklCreateBigInt0();
-	nfklSetBigInt(r,b);
+	FklBigInt* r=fklCreateBigInt0();
+	fklSetBigInt(r,b);
 	return r;
 }
 
-int nfklBigIntEqual(const NfklBigInt* a,const NfklBigInt* b)
+int fklBigIntEqual(const FklBigInt* a,const FklBigInt* b)
 {
 	if(a->num==b->num)
-		return memcmp(a->digits,b->digits,labs(a->num)*sizeof(NfklBigIntDigit))==0;
+		return memcmp(a->digits,b->digits,labs(a->num)*sizeof(FklBigIntDigit))==0;
 	else
 		return 0;
 }
 
-static inline int x_cmp(const NfklBigInt* a,const NfklBigInt* b)
+static inline int x_cmp(const FklBigInt* a,const FklBigInt* b)
 {
 	int64_t i=labs(a->num);
 	while(--i>=0&&a->digits[i]==b->digits[i]);
 	return i<0
 		?0
-		:(NfklBigIntSDigit)a->digits[i]-(NfklBigIntSDigit)b->digits[i];
+		:(FklBigIntSDigit)a->digits[i]-(FklBigIntSDigit)b->digits[i];
 }
 
-int nfklBigIntCmp(const NfklBigInt* a,const NfklBigInt* b)
+int fklBigIntCmp(const FklBigInt* a,const FklBigInt* b)
 {
 	int sign;
 	if(a->num!=b->num)
@@ -347,19 +347,17 @@ int nfklBigIntCmp(const NfklBigInt* a,const NfklBigInt* b)
 		?1:0;
 }
 
-#define MAX_INT64_DIGITS_COUNT (3)
-
-int nfklBigIntCmpI(const NfklBigInt* a,int64_t b)
+int fklBigIntCmpI(const FklBigInt* a,int64_t b)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,b);
-	return nfklBigIntCmp(a,&bi);
+	fklSetBigIntI(&bi,b);
+	return fklBigIntCmp(a,&bi);
 }
 
-int nfklBigIntAbsCmp(const NfklBigInt* a,const NfklBigInt* b)
+int fklBigIntAbsCmp(const FklBigInt* a,const FklBigInt* b)
 {
 	int64_t num_a=labs(a->num);
 	int64_t num_b=labs(b->num);
@@ -371,56 +369,56 @@ int nfklBigIntAbsCmp(const NfklBigInt* a,const NfklBigInt* b)
 		?1:0;
 }
 
-int nfklIsBigIntOdd(const NfklBigInt* b)
+int fklIsBigIntOdd(const FklBigInt* b)
 {
 	return b->num!=0&&b->digits[0]%2;
 }
 
-int nfklIsBigIntEven(const NfklBigInt* b)
+int fklIsBigIntEven(const FklBigInt* b)
 {
-	return !nfklIsBigIntOdd(b);
+	return !fklIsBigIntOdd(b);
 }
 
-int nfklIsBigIntLe0(const NfklBigInt* b)
+int fklIsBigIntLe0(const FklBigInt* b)
 {
 	return b->num<=0;
 }
 
-int nfklIsBigIntLt0(const NfklBigInt* b)
+int fklIsBigIntLt0(const FklBigInt* b)
 {
 	return b->num<0;
 }
 
-int nfklIsDivisibleBigInt(const NfklBigInt* a,const NfklBigInt* d)
+int fklIsDivisibleBigInt(const FklBigInt* a,const FklBigInt* d)
 {
 	int r=0;
-	NfklBigInt rem=NFKL_BIGINT_0;
-	nfklSetBigInt(&rem,a);
-	nfklRemBigInt(&rem,d);
+	FklBigInt rem=FKL_BIGINT_0;
+	fklSetBigInt(&rem,a);
+	fklRemBigInt(&rem,d);
 	if(rem.num==0)
 		r=1;
-	nfklUninitBigInt(&rem);
+	fklUninitBigInt(&rem);
 	return r;
 }
 
-int nfklIsDivisibleBigIntI(const NfklBigInt* a,int64_t d)
+int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t d)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,d);
-	return nfklIsDivisibleBigInt(a,&bi);
+	fklSetBigIntI(&bi,d);
+	return fklIsDivisibleBigInt(a,&bi);
 }
 
-void nfklSetBigInt(NfklBigInt* to,const NfklBigInt* from)
+void fklSetBigInt(FklBigInt* to,const FklBigInt* from)
 {
 	ensure_bigint_size(to,labs(from->num));
 	to->num=from->num;
-	memcpy(to->digits,from->digits,labs(from->num)*sizeof(NfklBigIntDigit));
+	memcpy(to->digits,from->digits,labs(from->num)*sizeof(FklBigIntDigit));
 }
 
-void nfklSetBigIntU(NfklBigInt* to,uint64_t v)
+void fklSetBigIntU(FklBigInt* to,uint64_t v)
 {
 	if(v)
 	{
@@ -433,26 +431,26 @@ void nfklSetBigIntU(NfklBigInt* to,uint64_t v)
 		to->num=0;
 }
 
-void nfklSetBigIntI(NfklBigInt* to,int64_t v)
+void fklSetBigIntI(FklBigInt* to,int64_t v)
 {
-	nfklSetBigIntU(to,labs(v));
+	fklSetBigIntU(to,labs(v));
 	if(v<0)
 		to->num=-to->num;
 }
 
-void nfklSetBigIntD(NfklBigInt* to,double from)
+void fklSetBigIntD(FklBigInt* to,double from)
 {
-	nfklSetBigIntI(to,(int64_t)from);
+	fklSetBigIntI(to,(int64_t)from);
 }
 
-static inline void x_add(NfklBigInt* a,const NfklBigInt* b)
+static inline void x_add(FklBigInt* a,const FklBigInt* b)
 {
 	uint64_t num_a=labs(a->num);
 	uint64_t num_b=labs(b->num);
 	size_t i=0;
-	NfklBigIntDigit carry=0;
-	const NfklBigIntDigit* digits_a;
-	const NfklBigIntDigit* digits_b;
+	FklBigIntDigit carry=0;
+	const FklBigIntDigit* digits_a;
+	const FklBigIntDigit* digits_b;
 	if(num_a<num_b)
 	{
 		uint64_t num_tmp=num_a;
@@ -462,7 +460,7 @@ static inline void x_add(NfklBigInt* a,const NfklBigInt* b)
 		digits_a=a->digits;
 		digits_b=b->digits;
 
-		const NfklBigIntDigit* digits_tmp=digits_a;
+		const FklBigIntDigit* digits_tmp=digits_a;
 		digits_a=digits_b;
 		digits_b=digits_tmp;
 	}
@@ -475,30 +473,30 @@ static inline void x_add(NfklBigInt* a,const NfklBigInt* b)
 	for(;i<num_b;++i)
 	{
 		carry+=digits_a[i]+digits_b[i];
-		a->digits[i]=carry&NFKL_BIGINT_DIGIT_MASK;
-		carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+		a->digits[i]=carry&FKL_BIGINT_DIGIT_MASK;
+		carry>>=FKL_BIGINT_DIGIT_SHIFT;
 	}
 	for(;i<num_a;++i)
 	{
 		carry+=digits_a[i];
-		a->digits[i]=carry&NFKL_BIGINT_DIGIT_MASK;
-		carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+		a->digits[i]=carry&FKL_BIGINT_DIGIT_MASK;
+		carry>>=FKL_BIGINT_DIGIT_SHIFT;
 	}
 
 	a->num=num_a+1;
-	a->digits[i]=carry&NFKL_BIGINT_DIGIT_MASK;
+	a->digits[i]=carry&FKL_BIGINT_DIGIT_MASK;
 	bigint_normalize(a);
 }
 
-static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
+static inline void x_sub(FklBigInt* a,const FklBigInt* b)
 {
 	int64_t num_a=labs(a->num);
 	int64_t num_b=labs(b->num);
 	int sign=1;
 	ssize_t i=0;
-	NfklBigIntDigit borrow=0;
-	const NfklBigIntDigit* digits_a;
-	const NfklBigIntDigit* digits_b;
+	FklBigIntDigit borrow=0;
+	const FklBigIntDigit* digits_a;
+	const FklBigIntDigit* digits_b;
 	if(num_a<num_b)
 	{
 		sign=-1;
@@ -509,7 +507,7 @@ static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
 		digits_a=a->digits;
 		digits_b=b->digits;
 
-		const NfklBigIntDigit* digits_tmp=digits_a;
+		const FklBigIntDigit* digits_tmp=digits_a;
 		digits_a=digits_b;
 		digits_b=digits_tmp;
 	}
@@ -530,7 +528,7 @@ static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
 			if(a->digits[i]<b->digits[i])
 			{
 				sign=-1;
-				const NfklBigIntDigit* digits_tmp=digits_a;
+				const FklBigIntDigit* digits_tmp=digits_a;
 				digits_a=digits_b;
 				digits_b=digits_tmp;
 			}
@@ -541,15 +539,15 @@ static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
 	for(i=0;i<num_b;++i)
 	{
 		borrow=digits_a[i]-digits_b[i]-borrow;
-		a->digits[i]=borrow&NFKL_BIGINT_DIGIT_MASK;
-		borrow>>=NFKL_BIGINT_DIGIT_SHIFT;
+		a->digits[i]=borrow&FKL_BIGINT_DIGIT_MASK;
+		borrow>>=FKL_BIGINT_DIGIT_SHIFT;
 		borrow&=1;
 	}
 	for(;i<num_a;++i)
 	{
 		borrow=digits_a[i]-borrow;
-		a->digits[i]=borrow&NFKL_BIGINT_DIGIT_MASK;
-		borrow>>=NFKL_BIGINT_DIGIT_SHIFT;
+		a->digits[i]=borrow&FKL_BIGINT_DIGIT_MASK;
+		borrow>>=FKL_BIGINT_DIGIT_SHIFT;
 		borrow&=1;
 	}
 	FKL_ASSERT(borrow==0);
@@ -558,15 +556,15 @@ static inline void x_sub(NfklBigInt* a,const NfklBigInt* b)
 	bigint_normalize(a);
 }
 
-static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
+static inline void x_sub2(const FklBigInt* a,FklBigInt* b)
 {
 	int64_t num_a=labs(a->num);
 	int64_t num_b=labs(b->num);
 	int sign=1;
 	ssize_t i=0;
-	NfklBigIntDigit borrow=0;
-	const NfklBigIntDigit* digits_a;
-	const NfklBigIntDigit* digits_b;
+	FklBigIntDigit borrow=0;
+	const FklBigIntDigit* digits_a;
+	const FklBigIntDigit* digits_b;
 	if(num_a<num_b)
 	{
 		sign=-1;
@@ -577,7 +575,7 @@ static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
 		digits_a=a->digits;
 		digits_b=b->digits;
 
-		const NfklBigIntDigit* digits_tmp=digits_a;
+		const FklBigIntDigit* digits_tmp=digits_a;
 		digits_a=digits_b;
 		digits_b=digits_tmp;
 	}
@@ -598,7 +596,7 @@ static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
 			if(a->digits[i]<b->digits[i])
 			{
 				sign=-1;
-				const NfklBigIntDigit* digits_tmp=digits_a;
+				const FklBigIntDigit* digits_tmp=digits_a;
 				digits_a=digits_b;
 				digits_b=digits_tmp;
 			}
@@ -609,15 +607,15 @@ static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
 	for(i=0;i<num_b;++i)
 	{
 		borrow=digits_a[i]-digits_b[i]-borrow;
-		b->digits[i]=borrow&NFKL_BIGINT_DIGIT_MASK;
-		borrow>>=NFKL_BIGINT_DIGIT_SHIFT;
+		b->digits[i]=borrow&FKL_BIGINT_DIGIT_MASK;
+		borrow>>=FKL_BIGINT_DIGIT_SHIFT;
 		borrow&=1;
 	}
 	for(;i<num_a;++i)
 	{
 		borrow=digits_a[i]-borrow;
-		b->digits[i]=borrow&NFKL_BIGINT_DIGIT_MASK;
-		borrow>>=NFKL_BIGINT_DIGIT_SHIFT;
+		b->digits[i]=borrow&FKL_BIGINT_DIGIT_MASK;
+		borrow>>=FKL_BIGINT_DIGIT_SHIFT;
 		borrow&=1;
 	}
 	FKL_ASSERT(borrow==0);
@@ -625,13 +623,13 @@ static inline void x_sub2(const NfklBigInt* a,NfklBigInt* b)
 	bigint_normalize(b);
 }
 
-#define MEDIUM_VALUE(I) ((int64_t)((I)->num==0?0:(I)->num<0?-((NfklBigIntSDigit)(I)->digits[0]):(NfklBigIntSDigit)(I)->digits[0]))
+#define MEDIUM_VALUE(I) ((int64_t)((I)->num==0?0:(I)->num<0?-((FklBigIntSDigit)(I)->digits[0]):(FklBigIntSDigit)(I)->digits[0]))
 
-void nfklAddBigInt(NfklBigInt* a, const NfklBigInt* b)
+void fklAddBigInt(FklBigInt* a, const FklBigInt* b)
 {
 	if(labs(a->num)<=1&&labs(b->num)<=1)
 	{
-		nfklSetBigIntI(a,MEDIUM_VALUE(a)+MEDIUM_VALUE(b));
+		fklSetBigIntI(a,MEDIUM_VALUE(a)+MEDIUM_VALUE(b));
 		return;
 	}
 	if(a->num<0)
@@ -650,21 +648,21 @@ void nfklAddBigInt(NfklBigInt* a, const NfklBigInt* b)
 		x_add(a,b);
 }
 
-void nfklAddBigIntI(NfklBigInt* b,int64_t v)
+void fklAddBigIntI(FklBigInt* b,int64_t v)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,v);
-	nfklAddBigInt(b,&bi);
+	fklSetBigIntI(&bi,v);
+	fklAddBigInt(b,&bi);
 }
 
-void nfklSubBigInt(NfklBigInt* a,const NfklBigInt* b)
+void fklSubBigInt(FklBigInt* a,const FklBigInt* b)
 {
 	if(labs(a->num)<=1&&labs(b->num)<=1)
 	{
-		nfklSetBigIntI(a,MEDIUM_VALUE(a)-MEDIUM_VALUE(b));
+		fklSetBigIntI(a,MEDIUM_VALUE(a)-MEDIUM_VALUE(b));
 		return;
 	}
 	if(a->num<0)
@@ -683,32 +681,32 @@ void nfklSubBigInt(NfklBigInt* a,const NfklBigInt* b)
 		x_sub(a,b);
 }
 
-void nfklSubBigIntI(NfklBigInt* a,int64_t v)
+void fklSubBigIntI(FklBigInt* a,int64_t v)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,v);
-	nfklSubBigInt(a,&bi);
+	fklSetBigIntI(&bi,v);
+	fklSubBigInt(a,&bi);
 }
 
 #define SAME_SIGN(a,b) (((a)->num>=0&&(b)->num>=0)||((a)->num<0&&(b)->num<0))
 
 // XXX: 这个乘法的实现不是很高效
-void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
+void fklMulBigInt(FklBigInt* a,const FklBigInt* b)
 {
-	if(NFKL_BIGINT_IS_0(a)||NFKL_BIGINT_IS_1(b))
+	if(FKL_BIGINT_IS_0(a)||FKL_BIGINT_IS_1(b))
 		return;
-	else if(NFKL_BIGINT_IS_0(b))
+	else if(FKL_BIGINT_IS_0(b))
 		a->num=0;
-	else if(NFKL_BIGINT_IS_N1(b))
+	else if(FKL_BIGINT_IS_N1(b))
 		a->num=-a->num;
-	else if(NFKL_BIGINT_IS_1(a))
-		nfklSetBigInt(a,b);
-	else if(NFKL_BIGINT_IS_N1(a))
+	else if(FKL_BIGINT_IS_1(a))
+		fklSetBigInt(a,b);
+	else if(FKL_BIGINT_IS_N1(a))
 	{
-		nfklSetBigInt(a,b);
+		fklSetBigInt(a,b);
 		a->num=-a->num;
 	}
 	else
@@ -716,18 +714,18 @@ void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
 		int64_t num_a=labs(a->num);
 		int64_t num_b=labs(b->num);
 		int64_t total=num_a+num_b;
-		NfklBigIntDigit* result=(NfklBigIntDigit*)calloc(total,sizeof(NfklBigIntDigit));
+		FklBigIntDigit* result=(FklBigIntDigit*)calloc(total,sizeof(FklBigIntDigit));
 		FKL_ASSERT(result);
 		for(int64_t i=0;i<num_a;i++)
 		{
-			NfklBigIntTwoDigit na=a->digits[i];
-			NfklBigIntTwoDigit carry=0;
+			FklBigIntTwoDigit na=a->digits[i];
+			FklBigIntTwoDigit carry=0;
 			for(int64_t j=0;j<num_b;j++)
 			{
-				NfklBigIntTwoDigit nb=b->digits[j];
+				FklBigIntTwoDigit nb=b->digits[j];
 				carry+=result[i+j]+na*nb;
-				result[i+j]=carry&NFKL_BIGINT_DIGIT_MASK;
-				carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+				result[i+j]=carry&FKL_BIGINT_DIGIT_MASK;
+				carry>>=FKL_BIGINT_DIGIT_SHIFT;
 			}
 			result[i+num_b]+=carry;
 		}
@@ -740,42 +738,42 @@ void nfklMulBigInt(NfklBigInt* a,const NfklBigInt* b)
 
 }
 
-void nfklMulBigIntI(NfklBigInt* b,int64_t v)
+void fklMulBigIntI(FklBigInt* b,int64_t v)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,v);
-	nfklMulBigInt(b,&bi);
+	fklSetBigIntI(&bi,v);
+	fklMulBigInt(b,&bi);
 }
 
-int nfklDivRemBigIntI(NfklBigInt* b,int64_t divider,NfklBigInt* rem)
+int fklDivRemBigIntI(FklBigInt* b,int64_t divider,FklBigInt* rem)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,divider);
-	return nfklDivRemBigInt(b,&bi,rem);
+	fklSetBigIntI(&bi,divider);
+	return fklDivRemBigInt(b,&bi,rem);
 }
 
-static inline void divrem1(NfklBigIntDigit* pin
+static inline void divrem1(FklBigIntDigit* pin
 		,int64_t size
-		,NfklBigIntDigit d
-		,NfklBigInt* rem)
+		,FklBigIntDigit d
+		,FklBigInt* rem)
 {
-	FKL_ASSERT(size>0&&d<=NFKL_BIGINT_DIGIT_MASK);
-	NfklBigIntDigit rem1 = 0;
+	FKL_ASSERT(size>0&&d<=FKL_BIGINT_DIGIT_MASK);
+	FklBigIntDigit rem1 = 0;
 	while(--size>=0)
 	{
-		NfklBigIntTwoDigit dividend=((NfklBigIntTwoDigit)rem1<<NFKL_BIGINT_DIGIT_SHIFT)|pin[size];
-		NfklBigIntDigit quotient=(NfklBigIntDigit)(dividend/d);
+		FklBigIntTwoDigit dividend=((FklBigIntTwoDigit)rem1<<FKL_BIGINT_DIGIT_SHIFT)|pin[size];
+		FklBigIntDigit quotient=(FklBigIntDigit)(dividend/d);
 		rem1=dividend%d;
 		pin[size]=quotient;
 	}
 	if(rem)
-		nfklSetBigIntI(rem,rem1);
+		fklSetBigIntI(rem,rem1);
 }
 
 static inline uint8_t bit_length_digit(uint64_t x)
@@ -794,37 +792,37 @@ static inline uint8_t bit_length_digit(uint64_t x)
     return msb;
 }
 
-static inline NfklBigIntDigit v_lshift(NfklBigIntDigit* z,const NfklBigIntDigit* a,int64_t m,int d)
+static inline FklBigIntDigit v_lshift(FklBigIntDigit* z,const FklBigIntDigit* a,int64_t m,int d)
 {
-	NfklBigIntDigit carry=0;
-	FKL_ASSERT(0<=d&&d<NFKL_BIGINT_DIGIT_SHIFT);
+	FklBigIntDigit carry=0;
+	FKL_ASSERT(0<=d&&d<FKL_BIGINT_DIGIT_SHIFT);
 	for(int64_t i=0;i<m;i++)
 	{
-		NfklBigIntTwoDigit acc=(NfklBigIntTwoDigit)a[i]<<d|carry;
-		z[i]=(NfklBigIntDigit)acc&NFKL_BIGINT_DIGIT_MASK;
-		carry=(NfklBigIntDigit)(acc>>NFKL_BIGINT_DIGIT_SHIFT);
+		FklBigIntTwoDigit acc=(FklBigIntTwoDigit)a[i]<<d|carry;
+		z[i]=(FklBigIntDigit)acc&FKL_BIGINT_DIGIT_MASK;
+		carry=(FklBigIntDigit)(acc>>FKL_BIGINT_DIGIT_SHIFT);
 	}
 	return carry;
 }
 
-static inline NfklBigIntDigit v_rshift(NfklBigIntDigit* z,const NfklBigIntDigit* a,int64_t m,int d)
+static inline FklBigIntDigit v_rshift(FklBigIntDigit* z,const FklBigIntDigit* a,int64_t m,int d)
 {
-	NfklBigIntDigit carry=0;
-	NfklBigIntDigit mask=((NfklBigIntDigit)1<<d)-1U;
-	FKL_ASSERT(0<=d&&d<NFKL_BIGINT_DIGIT_SHIFT);
+	FklBigIntDigit carry=0;
+	FklBigIntDigit mask=((FklBigIntDigit)1<<d)-1U;
+	FKL_ASSERT(0<=d&&d<FKL_BIGINT_DIGIT_SHIFT);
 	for(int64_t i=m;i-->0;)
 	{
-		NfklBigIntTwoDigit acc=(NfklBigIntTwoDigit)carry<<NFKL_BIGINT_DIGIT_SHIFT|a[i];
-		carry=(NfklBigIntDigit)acc&mask;
-		z[i]=(NfklBigIntDigit)(acc>>d);
+		FklBigIntTwoDigit acc=(FklBigIntTwoDigit)carry<<FKL_BIGINT_DIGIT_SHIFT|a[i];
+		carry=(FklBigIntDigit)acc&mask;
+		z[i]=(FklBigIntDigit)(acc>>d);
 	}
 	return carry;
 }
 
-static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
+static inline void x_divrem(FklBigInt* v1,const FklBigInt* w1,FklBigInt* rem)
 {
-	NfklBigInt w=NFKL_BIGINT_0;
-	NfklBigInt a=NFKL_BIGINT_0;
+	FklBigInt w=FKL_BIGINT_0;
+	FklBigInt a=FKL_BIGINT_0;
 	int64_t size_v=labs(v1->num);
 	int64_t size_w=labs(w1->num);
 	FKL_ASSERT(size_v>=size_w&&size_w>=2);
@@ -832,8 +830,8 @@ static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
 	v1->num=size_v+1;
 	ensure_bigint_size(&w,size_w);
 	w.num=size_w;
-	int d=NFKL_BIGINT_DIGIT_SHIFT-bit_length_digit(w1->digits[size_w-1]);
-	NfklBigIntDigit carry=v_lshift(w.digits,w1->digits,size_w,d);
+	int d=FKL_BIGINT_DIGIT_SHIFT-bit_length_digit(w1->digits[size_w-1]);
+	FklBigIntDigit carry=v_lshift(w.digits,w1->digits,size_w,d);
 	FKL_ASSERT(carry==0);
 	carry=v_lshift(v1->digits,v1->digits,size_v,d);
 	if(carry!=0||v1->digits[size_v-1]>=w.digits[size_w-1])
@@ -845,45 +843,45 @@ static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
 	FKL_ASSERT(k>=0);
 	ensure_bigint_size(&a,k);
 	a.num=k;
-	NfklBigIntDigit* v0=v1->digits;
-	NfklBigIntDigit* w0=w.digits;
-	NfklBigIntDigit wm1=w0[size_w-1];
-	NfklBigIntDigit wm2=w0[size_w-2];
-	for(NfklBigIntDigit* vk=v0+k,*ak=a.digits+k;vk-->v0;)
+	FklBigIntDigit* v0=v1->digits;
+	FklBigIntDigit* w0=w.digits;
+	FklBigIntDigit wm1=w0[size_w-1];
+	FklBigIntDigit wm2=w0[size_w-2];
+	for(FklBigIntDigit* vk=v0+k,*ak=a.digits+k;vk-->v0;)
 	{
-		NfklBigIntDigit vtop=vk[size_w];
+		FklBigIntDigit vtop=vk[size_w];
 		FKL_ASSERT(vtop<=wm1);
-		NfklBigIntTwoDigit vv=((NfklBigIntTwoDigit)vtop<<NFKL_BIGINT_DIGIT_SHIFT)|vk[size_w-1];
-		NfklBigIntDigit q=(NfklBigIntDigit)(vv/wm1);
-		NfklBigIntDigit r=(NfklBigIntDigit)(vv%wm1);
-		while((NfklBigIntTwoDigit)wm2*q>(((NfklBigIntTwoDigit)r<<NFKL_BIGINT_DIGIT_SHIFT)|vk[size_w-2]))
+		FklBigIntTwoDigit vv=((FklBigIntTwoDigit)vtop<<FKL_BIGINT_DIGIT_SHIFT)|vk[size_w-1];
+		FklBigIntDigit q=(FklBigIntDigit)(vv/wm1);
+		FklBigIntDigit r=(FklBigIntDigit)(vv%wm1);
+		while((FklBigIntTwoDigit)wm2*q>(((FklBigIntTwoDigit)r<<FKL_BIGINT_DIGIT_SHIFT)|vk[size_w-2]))
 		{
 			--q;
 			r+=wm1;
-			if(r>=NFKL_BIGINT_DIGIT_BASE)
+			if(r>=FKL_BIGINT_DIGIT_BASE)
 				break;
 		}
-		FKL_ASSERT(q<=NFKL_BIGINT_DIGIT_BASE);
-		NfklBigIntSDigit zhi=0;
+		FKL_ASSERT(q<=FKL_BIGINT_DIGIT_BASE);
+		FklBigIntSDigit zhi=0;
 		for(int64_t i=0;i<size_w;++i)
 		{
-			NfklBigIntSTwoDigit z=(NfklBigIntSDigit)vk[i]+zhi-(NfklBigIntSTwoDigit)q*(NfklBigIntSTwoDigit)w0[i];
-			vk[i]=(NfklBigIntDigit)z&NFKL_BIGINT_DIGIT_MASK;
-			zhi=(NfklBigIntSDigit)(z>>NFKL_BIGINT_DIGIT_SHIFT);
+			FklBigIntSTwoDigit z=(FklBigIntSDigit)vk[i]+zhi-(FklBigIntSTwoDigit)q*(FklBigIntSTwoDigit)w0[i];
+			vk[i]=(FklBigIntDigit)z&FKL_BIGINT_DIGIT_MASK;
+			zhi=(FklBigIntSDigit)(z>>FKL_BIGINT_DIGIT_SHIFT);
 		}
-		FKL_ASSERT((NfklBigIntSDigit)vtop+zhi==-1||(NfklBigIntSDigit)vtop+zhi==0);
-		if((NfklBigIntSDigit)vtop+zhi<0)
+		FKL_ASSERT((FklBigIntSDigit)vtop+zhi==-1||(FklBigIntSDigit)vtop+zhi==0);
+		if((FklBigIntSDigit)vtop+zhi<0)
 		{
 			carry=0;
 			for(int64_t i=0;i<size_w;++i)
 			{
 				carry+=vk[i]+w0[i];
-				vk[i]=carry&NFKL_BIGINT_DIGIT_MASK;
-				carry>>=NFKL_BIGINT_DIGIT_SHIFT;
+				vk[i]=carry&FKL_BIGINT_DIGIT_MASK;
+				carry>>=FKL_BIGINT_DIGIT_SHIFT;
 			}
 			--q;
 		}
-		FKL_ASSERT(q<NFKL_BIGINT_DIGIT_BASE);
+		FKL_ASSERT(q<FKL_BIGINT_DIGIT_BASE);
 		*--ak=q;
 	}
 	carry=v_rshift(w0,v0,size_w,d);
@@ -891,19 +889,19 @@ static inline void x_divrem(NfklBigInt* v1,const NfklBigInt* w1,NfklBigInt* rem)
 	if(rem)
 	{
 		bigint_normalize(&w);
-		nfklSetBigInt(rem,&w);
+		fklSetBigInt(rem,&w);
 	}
 	if(v1!=rem)
 	{
 		bigint_normalize(&a);
-		nfklSetBigInt(v1,&a);
+		fklSetBigInt(v1,&a);
 	}
 
-	nfklUninitBigInt(&a);
-	nfklUninitBigInt(&w);
+	fklUninitBigInt(&a);
+	fklUninitBigInt(&w);
 }
 
-int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
+int fklDivRemBigInt(FklBigInt* a,const FklBigInt* b,FklBigInt* rem)
 {
 	const int neg_a=a->num<0;
 	const int neg_b=b->num<0;
@@ -914,7 +912,7 @@ int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
 	else if(num_a<num_b)
 	{
 		if(rem)
-			nfklSetBigInt(rem,a);
+			fklSetBigInt(rem,a);
 		a->num=0;
 		return 0;
 	}
@@ -922,7 +920,7 @@ int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
 		divrem1(a->digits,num_a,b->digits[0],rem);
 	else
 		x_divrem(a,b,rem);
-	if(neg_a&&rem&&!NFKL_BIGINT_IS_0(rem))
+	if(neg_a&&rem&&!FKL_BIGINT_IS_0(rem))
 		rem->num=-rem->num;
 	if(a!=rem)
 	{
@@ -934,32 +932,32 @@ int nfklDivRemBigInt(NfklBigInt* a,const NfklBigInt* b,NfklBigInt* rem)
 	return 0;
 }
 
-int nfklDivBigInt(NfklBigInt* a,const NfklBigInt* d)
+int fklDivBigInt(FklBigInt* a,const FklBigInt* d)
 {
-	return nfklDivRemBigInt(a,d,NULL);
+	return fklDivRemBigInt(a,d,NULL);
 }
 
-int nfklDivBigIntI(NfklBigInt* a,int64_t d)
+int fklDivBigIntI(FklBigInt* a,int64_t d)
 {
-	return nfklDivRemBigIntI(a,d,NULL);
+	return fklDivRemBigIntI(a,d,NULL);
 }
 
-int nfklRemBigIntI(NfklBigInt* a,int64_t div)
+int fklRemBigIntI(FklBigInt* a,int64_t div)
 {
-	NfklBigIntDigit digits[MAX_INT64_DIGITS_COUNT];
-	NfklBigInt bi=NFKL_BIGINT_0;
-	bi.size=MAX_INT64_DIGITS_COUNT;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=FKL_BIGINT_0;
+	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
-	nfklSetBigIntI(&bi,div);
-	return nfklRemBigInt(a,&bi);
+	fklSetBigIntI(&bi,div);
+	return fklRemBigInt(a,&bi);
 }
 
-int nfklRemBigInt(NfklBigInt* a,const NfklBigInt* d)
+int fklRemBigInt(FklBigInt* a,const FklBigInt* d)
 {
-	return nfklDivRemBigInt(a,d,a);
+	return fklDivRemBigInt(a,d,a);
 }
 
-uintptr_t nfklBigIntHash(const NfklBigInt* bi)
+uintptr_t fklBigIntHash(const FklBigInt* bi)
 {
 	const int64_t len=labs(bi->num);
 	uintptr_t r=(uintptr_t)bi->num;
@@ -968,7 +966,7 @@ uintptr_t nfklBigIntHash(const NfklBigInt* bi)
 	return r;
 }
 
-double nfklBigIntToD(const NfklBigInt* bi)
+double fklBigIntToD(const FklBigInt* bi)
 {
 	double r=0;
 	double base=1;
@@ -976,134 +974,134 @@ double nfklBigIntToD(const NfklBigInt* bi)
 	for(int64_t i=0;i<num;i++)
 	{
 		r+=((double)bi->digits[i])*base;
-		base*=NFKL_BIGINT_DIGIT_BASE;
+		base*=FKL_BIGINT_DIGIT_BASE;
 	}
 	if(bi->num<0)
 		r=-r;
 	return r;
 }
 
-static const NfklBigIntDigit U64_MAX_DIGITS[3]=
+static const FklBigIntDigit U64_MAX_DIGITS[3]=
 {
-	0xffffffff&NFKL_BIGINT_DIGIT_MASK,
-	0xffffffff&NFKL_BIGINT_DIGIT_MASK,
-	0x0000000f&NFKL_BIGINT_DIGIT_MASK,
+	0xffffffff&FKL_BIGINT_DIGIT_MASK,
+	0xffffffff&FKL_BIGINT_DIGIT_MASK,
+	0x0000000f&FKL_BIGINT_DIGIT_MASK,
 };
 
-static const NfklBigInt U64_MAX_BIGINT=
+static const FklBigInt U64_MAX_BIGINT=
 {
-	.digits=(NfklBigIntDigit*)&U64_MAX_DIGITS[0],
+	.digits=(FklBigIntDigit*)&U64_MAX_DIGITS[0],
 	.num=3,
 	.size=3,
 };
 
-static const NfklBigIntDigit I64_MIN_DIGITS[3]=
+static const FklBigIntDigit I64_MIN_DIGITS[3]=
 {
 	0x0,
 	0x0,
 	0x8,
 };
 
-static const NfklBigInt I64_MIN_BIGINT=
+static const FklBigInt I64_MIN_BIGINT=
 {
-	.digits=(NfklBigIntDigit*)&I64_MIN_DIGITS[0],
+	.digits=(FklBigIntDigit*)&I64_MIN_DIGITS[0],
 	.num=-3,
 	.size=3,
 };
 
-static const NfklBigIntDigit I64_MAX_DIGITS[3]=
+static const FklBigIntDigit I64_MAX_DIGITS[3]=
 {
-	0xffffffff&NFKL_BIGINT_DIGIT_MASK,
-	0xffffffff&NFKL_BIGINT_DIGIT_MASK,
-	0x00000007&NFKL_BIGINT_DIGIT_MASK,
+	0xffffffff&FKL_BIGINT_DIGIT_MASK,
+	0xffffffff&FKL_BIGINT_DIGIT_MASK,
+	0x00000007&FKL_BIGINT_DIGIT_MASK,
 };
 
-static const NfklBigInt I64_MAX_BIGINT=
+static const FklBigInt I64_MAX_BIGINT=
 {
-	.digits=(NfklBigIntDigit*)&I64_MAX_DIGITS[0],
+	.digits=(FklBigIntDigit*)&I64_MAX_DIGITS[0],
 	.num=3,
 	.size=3,
 };
 
-int nfklIsBigIntGtLtI64(const NfklBigInt*a)
+int fklIsBigIntGtLtI64(const FklBigInt*a)
 {
-	return nfklBigIntCmp(a,&I64_MAX_BIGINT)>0||nfklBigIntCmp(a,&I64_MIN_BIGINT)<0;
+	return fklBigIntCmp(a,&I64_MAX_BIGINT)>0||fklBigIntCmp(a,&I64_MIN_BIGINT)<0;
 }
 
-uint64_t nfklBigIntToU(const NfklBigInt* bi)
+uint64_t fklBigIntToU(const FklBigInt* bi)
 {
 	if(bi->num<=0)
 		return 0;
 	if(bi->num>3)
 		return UINT64_MAX;
-	else if(bi->num>2&&nfklBigIntCmp(bi,&U64_MAX_BIGINT)>0)
+	else if(bi->num>2&&fklBigIntCmp(bi,&U64_MAX_BIGINT)>0)
 		return UINT64_MAX;
 	else
 	{
 		uint64_t r=0;
 		for(int64_t i=0;i<bi->num;i++)
-			r|=((uint64_t)bi->digits[i])<<(NFKL_BIGINT_DIGIT_SHIFT*i);
+			r|=((uint64_t)bi->digits[i])<<(FKL_BIGINT_DIGIT_SHIFT*i);
 		return r;
 	}
 }
 
-int64_t nfklBigIntToI(const NfklBigInt* bi)
+int64_t fklBigIntToI(const FklBigInt* bi)
 {
 	if(bi->num<-3)
 		return INT64_MIN;
-	else if(bi->num<-2&&nfklBigIntCmp(bi,&I64_MIN_BIGINT)<0)
+	else if(bi->num<-2&&fklBigIntCmp(bi,&I64_MIN_BIGINT)<0)
 		return INT64_MIN;
 	else if(bi->num==0)
 		return 0;
 	else if(bi->num>3)
 		return INT64_MAX;
-	else if(bi->num>2&&nfklBigIntCmp(bi,&I64_MAX_BIGINT)>0)
+	else if(bi->num>2&&fklBigIntCmp(bi,&I64_MAX_BIGINT)>0)
 		return INT64_MAX;
 	else
 	{
 		int64_t r=0;
 		const int64_t num=labs(bi->num);
 		for(int64_t i=0;i<num;i++)
-			r|=((uint64_t)bi->digits[i])<<(NFKL_BIGINT_DIGIT_SHIFT*i);
+			r|=((uint64_t)bi->digits[i])<<(FKL_BIGINT_DIGIT_SHIFT*i);
 		if(bi->num<0)
 			r=-r;
 		return r;
 	}
 }
 
-static inline size_t bigint_to_dec_string_buffer(const NfklBigInt* a
-		,NfklBigIntToStrAllocCb alloc_cb
+static inline size_t bigint_to_dec_string_buffer(const FklBigInt* a
+		,FklBigIntToStrAllocCb alloc_cb
 		,void* ctx)
 {
 	FKL_ASSERT(a->num);
 	int64_t size_a=labs(a->num);
-	int64_t d=(33*NFKL_BIGINT_DECIMAL_SHIFT)/(10*NFKL_BIGINT_DIGIT_SHIFT-33*NFKL_BIGINT_DECIMAL_SHIFT);
+	int64_t d=(33*FKL_BIGINT_DECIMAL_SHIFT)/(10*FKL_BIGINT_DIGIT_SHIFT-33*FKL_BIGINT_DECIMAL_SHIFT);
 	int64_t size=1+size_a+size_a/d;
-	const NfklBigIntDigit* pin=a->digits;
-	NfklBigIntDigit* pout=(NfklBigIntDigit*)malloc(size*sizeof(NfklBigIntDigit));
+	const FklBigIntDigit* pin=a->digits;
+	FklBigIntDigit* pout=(FklBigIntDigit*)malloc(size*sizeof(FklBigIntDigit));
 	FKL_ASSERT(pout);
 	size=0;
 	for(int64_t i=size_a;--i>=0;)
 	{
-		NfklBigIntDigit hi=pin[i];
+		FklBigIntDigit hi=pin[i];
 		for(int64_t j=0;j<size;j++)
 		{
-			NfklBigIntTwoDigit z=(NfklBigIntTwoDigit)pout[j]<<NFKL_BIGINT_DIGIT_SHIFT|hi;
-			hi=(NfklBigIntDigit)(z/NFKL_BIGINT_DECIMAL_BASE);
-			pout[j]=(NfklBigIntDigit)(z-(NfklBigIntTwoDigit)hi*NFKL_BIGINT_DECIMAL_BASE);
+			FklBigIntTwoDigit z=(FklBigIntTwoDigit)pout[j]<<FKL_BIGINT_DIGIT_SHIFT|hi;
+			hi=(FklBigIntDigit)(z/FKL_BIGINT_DECIMAL_BASE);
+			pout[j]=(FklBigIntDigit)(z-(FklBigIntTwoDigit)hi*FKL_BIGINT_DECIMAL_BASE);
 		}
 		while(hi)
 		{
-			pout[size++]=hi%NFKL_BIGINT_DECIMAL_BASE;
-			hi/=NFKL_BIGINT_DECIMAL_BASE;
+			pout[size++]=hi%FKL_BIGINT_DECIMAL_BASE;
+			hi/=FKL_BIGINT_DECIMAL_BASE;
 		}
 	}
 	if(size==0)
 		pout[size++]=0;
 	size_t neg=a->num<0;
-	size_t len=neg+1+(size-1)*NFKL_BIGINT_DECIMAL_SHIFT;
-	NfklBigIntDigit tenpow=10;
-	NfklBigIntDigit rem=pout[size-1];
+	size_t len=neg+1+(size-1)*FKL_BIGINT_DECIMAL_SHIFT;
+	FklBigIntDigit tenpow=10;
+	FklBigIntDigit rem=pout[size-1];
 	while(rem>=tenpow)
 	{
 		tenpow*=10;
@@ -1114,7 +1112,7 @@ static inline size_t bigint_to_dec_string_buffer(const NfklBigInt* a
 	for(i=0;i<size-1;i++)
 	{
 		rem=pout[i];
-		for(int64_t j=0;j<NFKL_BIGINT_DECIMAL_SHIFT;j++)
+		for(int64_t j=0;j<FKL_BIGINT_DECIMAL_SHIFT;j++)
 		{
 			*--p_str='0'+rem%10;
 			rem/=10;
@@ -1132,17 +1130,17 @@ static inline size_t bigint_to_dec_string_buffer(const NfklBigInt* a
 	return len;
 }
 
-static inline size_t bigint_to_bin_string_buffer(const NfklBigInt* a
-		,NfklBigIntToStrAllocCb alloc_cb
+static inline size_t bigint_to_bin_string_buffer(const FklBigInt* a
+		,FklBigIntToStrAllocCb alloc_cb
 		,void* ctx
 		,uint8_t base
-		,NfklBigIntFmtFlags flags
+		,FklBigIntFmtFlags flags
 		,const char* alt_str)
 {
 	FKL_ASSERT(a->num);
 	int bits=0;
-	int alternate=(flags&NFKL_BIGINT_FMT_FLAG_ALTERNATE)!=0;
-	int capitals=(flags&NFKL_BIGINT_FMT_FLAG_CAPITALS)!=0;
+	int alternate=(flags&FKL_BIGINT_FMT_FLAG_ALTERNATE)!=0;
+	int capitals=(flags&FKL_BIGINT_FMT_FLAG_CAPITALS)!=0;
 	switch(base)
 	{
 		case 16:
@@ -1156,19 +1154,19 @@ static inline size_t bigint_to_bin_string_buffer(const NfklBigInt* a
 	}
 	int64_t size_a=labs(a->num);
 	int neg=a->num<0;
-	int64_t size_a_in_bits=(size_a-1)*NFKL_BIGINT_DIGIT_SHIFT+bit_length_digit(a->digits[size_a-1]);
+	int64_t size_a_in_bits=(size_a-1)*FKL_BIGINT_DIGIT_SHIFT+bit_length_digit(a->digits[size_a-1]);
 	int64_t sz=neg+(size_a_in_bits+(bits-1))/bits;
 	size_t alt_str_len=strlen(alt_str);
 	if(alternate)
 		sz+=alt_str_len;
 	char* p_str=alloc_cb(ctx,sz)+sz;
-	NfklBigIntTwoDigit accum=0;
+	FklBigIntTwoDigit accum=0;
 	int accumbits=0;
 	int64_t i;
 	for(i=0;i<size_a;++i)
 	{
-		accum|=(NfklBigIntTwoDigit)a->digits[i]<<accumbits;
-		accumbits+=NFKL_BIGINT_DIGIT_SHIFT;
+		accum|=(FklBigIntTwoDigit)a->digits[i]<<accumbits;
+		accumbits+=FKL_BIGINT_DIGIT_SHIFT;
 		FKL_ASSERT(accumbits>=bits);
 		do
 		{
@@ -1190,13 +1188,13 @@ static inline size_t bigint_to_bin_string_buffer(const NfklBigInt* a
 	return sz;
 }
 
-size_t nfklBigIntToStr(const NfklBigInt *a
-		,NfklBigIntToStrAllocCb alloc_cb
+size_t fklBigIntToStr(const FklBigInt *a
+		,FklBigIntToStrAllocCb alloc_cb
 		,void* ctx
 		,uint8_t radix
-		,NfklBigIntFmtFlags flags)
+		,FklBigIntFmtFlags flags)
 {
-	if(NFKL_BIGINT_IS_0(a))
+	if(FKL_BIGINT_IS_0(a))
 	{
 		char* ptr=alloc_cb(ctx,1);
 		ptr[0]='0';
@@ -1207,7 +1205,7 @@ size_t nfklBigIntToStr(const NfklBigInt *a
 	else if(radix==8)
 		return bigint_to_bin_string_buffer(a,alloc_cb,ctx,8,flags,"0");
 	else if(radix==16)
-		return bigint_to_bin_string_buffer(a,alloc_cb,ctx,16,flags,flags&NFKL_BIGINT_FMT_FLAG_CAPITALS?"0X":"0x");
+		return bigint_to_bin_string_buffer(a,alloc_cb,ctx,16,flags,flags&FKL_BIGINT_FMT_FLAG_CAPITALS?"0X":"0x");
 	else
 		abort();
 }
@@ -1222,7 +1220,7 @@ static char* print_bigint_alloc(void* ptr,size_t len)
 	return str;
 }
 
-void nfklPrintBigInt(const NfklBigInt* a,FILE* fp)
+void fklPrintBigInt(const FklBigInt* a,FILE* fp)
 {
 	if(a->num==0)
 		fputc('0',fp);
@@ -1235,10 +1233,10 @@ void nfklPrintBigInt(const NfklBigInt* a,FILE* fp)
 	}
 }
 
-char* nfklBigIntToCstr(const NfklBigInt* a,uint8_t radix,NfklBigIntFmtFlags flags)
+char* fklBigIntToCstr(const FklBigInt* a,uint8_t radix,FklBigIntFmtFlags flags)
 {
 	char* str=NULL;
-	nfklBigIntToStr(a,print_bigint_alloc,&str,radix,flags);
+	fklBigIntToStr(a,print_bigint_alloc,&str,radix,flags);
 	return str;
 }
 

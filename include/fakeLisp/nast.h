@@ -3,6 +3,7 @@
 
 #include"symbol.h"
 #include"base.h"
+#include"bigint.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,7 +66,7 @@ typedef struct FklNastNode
 		FklSid_t sym;
 		FklString* str;
 		FklBytevector* bvec;
-		FklBigInt* bigInt;
+		NfklBigInt* bigInt;
 		FklNastVector* vec;
 		FklNastPair* pair;
 		FklNastHashTable* hash;

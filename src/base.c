@@ -380,6 +380,7 @@ void fklRecycleUintStack(FklUintStack* stack)
 	}
 }
 
+#if 0
 #define FKL_BIG_INT_RADIX (256)
 #define FKL_BIG_INT_BITS (8)
 
@@ -1722,6 +1723,8 @@ int fklCmpIBigInt(int64_t i,const FklBigInt* bi)
 	return -fklCmpBigIntI(bi,i);
 }
 
+#endif
+
 FklString* fklCreateString(size_t size,const char* str)
 {
 	FklString* tmp=(FklString*)malloc(sizeof(FklString)+size*sizeof(uint8_t));
@@ -2764,5 +2767,72 @@ void fklRecycleU8Stack(FklU8Stack* s)
 		s->base=tmpData;
 		s->size-=s->inc;
 	}
+}
+
+static char* string_buffer_alloc(void* ptr,size_t len)
+{
+	FklStringBuffer* buf=ptr;
+	fklStringBufferReverse(buf,len+1);
+	buf->index=len;
+	char* body=fklStringBufferBody(buf);
+	body[len]='\0';
+	return body;
+}
+
+size_t nfklBigIntToStringBuffer(const NfklBigInt* a
+		,FklStringBuffer* buf
+		,uint8_t radix
+		,NfklBigIntFmtFlags flags)
+{
+	return nfklBigIntToStr(a,string_buffer_alloc,buf,radix,flags);
+}
+
+static char* string_alloc_callback(void* ptr,size_t len)
+{
+	FklString** pstr=ptr;
+	FklString* str=fklCreateString(len,NULL);
+	*pstr=str;
+	return str->str;
+}
+
+FklString* nfklBigIntToString(const NfklBigInt* a,uint8_t radix,NfklBigIntFmtFlags flags)
+{
+	FklString* str=NULL;
+	nfklBigIntToStr(a,string_alloc_callback,&str,radix,flags);
+	return str;
+}
+
+static const NfklBigIntDigit NFKL_BIGINT_FIX_MAX_DIGITS[2]=
+{
+	0xffffffff&NFKL_BIGINT_DIGIT_MASK,
+	0xffffffff&NFKL_BIGINT_DIGIT_MASK,
+};
+
+static const NfklBigIntDigit NFKL_BIGINT_FIX_MIN_DIGITS[3]=
+{
+	0x0,
+	0x0,
+	0x1,
+};
+
+static const NfklBigInt NFKL_BIGINT_FIX_MAX={.digits=(NfklBigIntDigit*)NFKL_BIGINT_FIX_MAX_DIGITS,.num=2,.size=2};
+static const NfklBigInt NFKL_BIGINT_FIX_MIN={.digits=(NfklBigIntDigit*)NFKL_BIGINT_FIX_MIN_DIGITS,.num=-3,.size=3};
+
+static const NfklBigInt NFKL_BIGINT_SUB_1_MAX={.digits=(NfklBigIntDigit*)NFKL_BIGINT_FIX_MIN_DIGITS,.num=3,.size=3};
+static const NfklBigInt NFKL_BIGINT_ADD_1_MIN={.digits=(NfklBigIntDigit*)NFKL_BIGINT_FIX_MAX_DIGITS,.num=-2,.size=2};
+
+int nfklIsBigIntGtLtFix(const NfklBigInt*a)
+{
+	return nfklBigIntCmp(a,&NFKL_BIGINT_FIX_MAX)>0||nfklBigIntCmp(a,&NFKL_BIGINT_FIX_MIN)<0;
+}
+
+int nfklIsBigIntAdd1InFixIntRange(const NfklBigInt* a)
+{
+	return nfklBigIntEqual(a,&NFKL_BIGINT_ADD_1_MIN);
+}
+
+int nfklIsBigIntSub1InFixIntRange(const NfklBigInt* a)
+{
+	return nfklBigIntEqual(a,&NFKL_BIGINT_SUB_1_MAX);
 }
 

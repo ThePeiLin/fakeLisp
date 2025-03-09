@@ -171,7 +171,7 @@ typedef struct
 typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
-	FklBigInt bi;
+	NfklBigInt bi;
 }FklVMvalueBigInt;
 
 typedef struct
@@ -677,7 +677,7 @@ typedef struct FklVMgc
 	double* kf64;
 	int64_t* ki64;
 	FklString** kstr;
-	FklBigInt** kbi;
+	NfklBigInt** kbi;
 	FklBytevector** kbvec;
 }FklVMgc;
 
@@ -836,21 +836,21 @@ FklString* fklVMformatToString(FklVM* exe,const char* fmt,FklVMvalue** base,size
 FklVMvalue* fklProcessVMnumInc(FklVM*,FklVMvalue*);
 FklVMvalue* fklProcessVMnumDec(FklVM*,FklVMvalue*);
 
-int fklProcessVMnumAdd(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi);
-int fklProcessVMnumMul(FklVMvalue* cur,int64_t* pr64,double* pf64,FklBigInt* bi);
-int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,FklBigInt* bi);
+int fklProcessVMnumAdd(FklVMvalue* cur,int64_t* pr64,double* pf64,NfklBigInt* bi);
+int fklProcessVMnumMul(FklVMvalue* cur,int64_t* pr64,double* pf64,NfklBigInt* bi);
+int fklProcessVMintMul(FklVMvalue* cur,int64_t* pr64,NfklBigInt* bi);
 
 FklVMvalue* fklProcessVMnumNeg(FklVM* exe,FklVMvalue* prev);
 FklVMvalue* fklProcessVMnumRec(FklVM* exe,FklVMvalue* prev);
 
 FklVMvalue* fklProcessVMnumMod(FklVM*,FklVMvalue* fir,FklVMvalue* sec);
 
-FklVMvalue* fklProcessVMnumAddResult(FklVM*,int64_t r64,double rd,FklBigInt* bi);
-FklVMvalue* fklProcessVMnumMulResult(FklVM*,int64_t r64,double rd,FklBigInt* bi);
-FklVMvalue* fklProcessVMnumSubResult(FklVM*,FklVMvalue*,int64_t r64,double rd,FklBigInt* bi);
-FklVMvalue* fklProcessVMnumDivResult(FklVM*,FklVMvalue*,int64_t r64,double rd,FklBigInt* bi);
+FklVMvalue* fklProcessVMnumAddResult(FklVM*,int64_t r64,double rd,NfklBigInt* bi);
+FklVMvalue* fklProcessVMnumMulResult(FklVM*,int64_t r64,double rd,NfklBigInt* bi);
+FklVMvalue* fklProcessVMnumSubResult(FklVM*,FklVMvalue*,int64_t r64,double rd,NfklBigInt* bi);
+FklVMvalue* fklProcessVMnumDivResult(FklVM*,FklVMvalue*,int64_t r64,double rd,NfklBigInt* bi);
 
-FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,FklBigInt* bi);
+FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,NfklBigInt* bi);
 
 void fklSetBp(FklVM* s);
 int fklResBp(FklVM*);
@@ -996,7 +996,7 @@ FklVMvalue* fklCreateVMvalueBoxNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,FklString* message);
 
-FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const FklBigInt*);
+FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const NfklBigInt*);
 
 FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int base);
 

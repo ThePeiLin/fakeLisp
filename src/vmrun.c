@@ -584,9 +584,9 @@ void fklUnsetVMsingleThread(FklVM* exe)
 
 #define PROCESS_MUL_RES() FKL_VM_PUSH_VALUE(exe,fklProcessVMnumMulResult(exe,r64,rd,&bi))
 
-#define PROCESS_DIV_RES() if(r64==0||FKL_IS_0_BIG_INT(&bi))\
+#define PROCESS_DIV_RES() if(r64==0||(bi.num==0&&bi.digits!=NULL))\
 {\
-	fklUninitBigInt(&bi);\
+	nfklUninitBigInt(&bi);\
 	FKL_RAISE_BUILTIN_ERROR(FKL_ERR_DIVZEROERROR,exe);\
 }\
 FKL_VM_PUSH_VALUE(exe,fklProcessVMnumDivResult(exe,a,r64,rd,&bi))
@@ -594,9 +594,9 @@ FKL_VM_PUSH_VALUE(exe,fklProcessVMnumDivResult(exe,a,r64,rd,&bi))
 #define PROCESS_IMUL(VAR) if(fklProcessVMintMul(VAR,&r64,&bi))\
 	FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe)
 
-#define PROCESS_IDIV_RES() if(r64==0||FKL_IS_0_BIG_INT(&bi))\
+#define PROCESS_IDIV_RES() if(r64==0||(bi.num==0&&bi.digits!=NULL))\
 {\
-	fklUninitBigInt(&bi);\
+	nfklUninitBigInt(&bi);\
 	FKL_RAISE_BUILTIN_ERROR(FKL_ERR_DIVZEROERROR,exe);\
 }\
 FKL_VM_PUSH_VALUE(exe,fklProcessVMnumIdivResult(exe,a,r64,&bi))
@@ -1489,7 +1489,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_ADD(a);
 				PROCESS_ADD(b);
@@ -1503,7 +1503,7 @@ load_dll:
 
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_ADD(b);
@@ -1515,7 +1515,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(a);
 				PROCESS_MUL(b);
@@ -1529,7 +1529,7 @@ load_dll:
 
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(b);
@@ -1542,7 +1542,7 @@ load_dll:
 				FKL_CHECK_TYPE(a,fklIsVMint,exe);
 
 				int64_t r64=1;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_IMUL(b);
@@ -1610,7 +1610,7 @@ load_dll:
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				PROCESS_ADD(a);
 				PROCESS_ADD(b);
 				PROCESS_ADD(c);
@@ -1624,7 +1624,7 @@ load_dll:
 
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -1638,7 +1638,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(a);
@@ -1654,7 +1654,7 @@ load_dll:
 
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -1669,7 +1669,7 @@ load_dll:
 				FKL_CHECK_TYPE(a,fklIsVMint,exe);
 
 				int64_t r64=1;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -3145,7 +3145,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_ADD(a);
 				PROCESS_ADD(b);
@@ -3159,7 +3159,7 @@ load_dll:
 
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_ADD(b);
@@ -3171,7 +3171,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(a);
 				PROCESS_MUL(b);
@@ -3185,7 +3185,7 @@ load_dll:
 
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(b);
@@ -3198,7 +3198,7 @@ load_dll:
 				FKL_CHECK_TYPE(a,fklIsVMint,exe);
 
 				int64_t r64=1;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_IMUL(b);
@@ -3266,7 +3266,7 @@ load_dll:
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				PROCESS_ADD(a);
 				PROCESS_ADD(b);
 				PROCESS_ADD(c);
@@ -3280,7 +3280,7 @@ load_dll:
 
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -3294,7 +3294,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(a);
@@ -3310,7 +3310,7 @@ load_dll:
 
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -3325,7 +3325,7 @@ load_dll:
 				FKL_CHECK_TYPE(a,fklIsVMint,exe);
 
 				int64_t r64=1;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -4800,7 +4800,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_ADD(a);
 				PROCESS_ADD(b);
@@ -4814,7 +4814,7 @@ load_dll:
 
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_ADD(b);
@@ -4826,7 +4826,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(a);
 				PROCESS_MUL(b);
@@ -4840,7 +4840,7 @@ load_dll:
 
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(b);
@@ -4853,7 +4853,7 @@ load_dll:
 				FKL_CHECK_TYPE(a,fklIsVMint,exe);
 
 				int64_t r64=1;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_IMUL(b);
@@ -4921,7 +4921,7 @@ load_dll:
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				PROCESS_ADD(a);
 				PROCESS_ADD(b);
 				PROCESS_ADD(c);
@@ -4935,7 +4935,7 @@ load_dll:
 
 				int64_t r64=0;
 				double rd=0.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -4949,7 +4949,7 @@ load_dll:
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
 				PROCESS_MUL(a);
@@ -4965,7 +4965,7 @@ load_dll:
 
 				int64_t r64=1;
 				double rd=1.0;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);
@@ -4980,7 +4980,7 @@ load_dll:
 				FKL_CHECK_TYPE(a,fklIsVMint,exe);
 
 				int64_t r64=1;
-				FklBigInt bi=FKL_BIG_INT_INIT;
+				NfklBigInt bi=NFKL_BIGINT_0;
 
 				FklVMvalue* b=FKL_VM_POP_TOP_VALUE(exe);
 				FklVMvalue* c=FKL_VM_POP_TOP_VALUE(exe);

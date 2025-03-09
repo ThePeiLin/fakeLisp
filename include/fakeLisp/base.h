@@ -1,6 +1,7 @@
 #ifndef FKL_BASE_H
 #define FKL_BASE_H
 
+#include"bigint.h"
 #include<stdio.h>
 #include<stdint.h>
 
@@ -289,6 +290,7 @@ void fklDestroyU8Stack(FklU8Stack*);
 void fklRecycleU8Stack(FklU8Stack*);
 int fklIsU8StackEmpty(FklU8Stack*);
 
+#if 0
 typedef struct FklBigInt
 {
 	uint8_t* digits;
@@ -387,7 +389,20 @@ FklString* fklBigIntToString(const FklBigInt*,int radix,int need_prefix,int capi
 
 void fklBigIntToStringBuffer(FklStringBuffer* buf,const FklBigInt*,int radix,int need_prefix,int capitals);
 void fklBigIntToRadixDigitsLe(const FklBigInt* u,uint32_t radix,FklU8Stack* res);
+#endif
 
+size_t nfklBigIntToStringBuffer(const NfklBigInt* a
+		,FklStringBuffer* string_buffer
+		,uint8_t radix
+		,NfklBigIntFmtFlags flags);
+
+FklString* nfklBigIntToString(const NfklBigInt* a
+		,uint8_t radix
+		,NfklBigIntFmtFlags flags);
+
+int nfklIsBigIntGtLtFix(const NfklBigInt*a);
+int nfklIsBigIntAdd1InFixIntRange(const NfklBigInt* a);
+int nfklIsBigIntSub1InFixIntRange(const NfklBigInt* a);
 #ifdef __cplusplus
 }
 #endif

@@ -330,8 +330,8 @@ void fklVMgcUpdateConstArray(FklVMgc* gc,FklConstTable* kt)
 	free(gc->kbi);
 	if(kt->kbit.count)
 	{
-		size_t size=sizeof(FklBigInt*)*kt->kbit.count;
-		gc->kbi=(FklBigInt**)malloc(size);
+		size_t size=sizeof(NfklBigInt*)*kt->kbit.count;
+		gc->kbi=(NfklBigInt**)malloc(size);
 		FKL_ASSERT(gc->kbi);
 		memcpy(gc->kbi,kt->kbit.base,size);
 	}

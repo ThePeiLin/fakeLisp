@@ -3,6 +3,7 @@
 #include<fakeLisp/utils.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/common.h>
+#include<fakeLisp/bigint.h>
 #include<ctype.h>
 #include<string.h>
 
@@ -5929,9 +5930,9 @@ static inline void* prod_action_dec_integer(void* ctx
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
 	{
-		FklBigInt bInt=FKL_BIG_INT_INIT;
-		fklInitBigIntFromDecString(&bInt,str);
-		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
+		NfklBigInt bInt=NFKL_BIGINT_0;
+		nfklInitBigIntWithDecCharBuf(&bInt,str->str,str->size);
+		NfklBigInt* bi=(NfklBigInt*)malloc(sizeof(NfklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
 		r->bigInt=bi;
@@ -5956,9 +5957,9 @@ static inline void* prod_action_hex_integer(void* ctx
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
 	{
-		FklBigInt bInt=FKL_BIG_INT_INIT;
-		fklInitBigIntFromHexString(&bInt,str);
-		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
+		NfklBigInt bInt=NFKL_BIGINT_0;
+		nfklInitBigIntWithHexCharBuf(&bInt,str->str,str->size);
+		NfklBigInt* bi=(NfklBigInt*)malloc(sizeof(NfklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
 		r->bigInt=bi;
@@ -5983,9 +5984,9 @@ static inline void* prod_action_oct_integer(void* ctx
 	FklNastNode* r=fklCreateNastNode(FKL_NAST_FIX,line);
 	if(i>FKL_FIX_INT_MAX||i<FKL_FIX_INT_MIN)
 	{
-		FklBigInt bInt=FKL_BIG_INT_INIT;
-		fklInitBigIntFromOctString(&bInt,str);
-		FklBigInt* bi=(FklBigInt*)malloc(sizeof(FklBigInt));
+		NfklBigInt bInt=NFKL_BIGINT_0;
+		nfklInitBigIntWithOctCharBuf(&bInt,str->str,str->size);
+		NfklBigInt* bi=(NfklBigInt*)malloc(sizeof(NfklBigInt));
 		FKL_ASSERT(bi);
 		*bi=bInt;
 		r->bigInt=bi;
@@ -6242,7 +6243,7 @@ static inline void* prod_action_bytevector(void* ctx
 		if(cur->type==FKL_NAST_FIX)
 			bv->ptr[i]=cur->fix>UINT8_MAX?UINT8_MAX:(cur->fix<0?0:cur->fix);
 		else
-			bv->ptr[i]=cur->bigInt->neg?0:UINT8_MAX;
+			bv->ptr[i]=cur->bigInt->num<0?0:UINT8_MAX;
 	}
 	return r;
 }

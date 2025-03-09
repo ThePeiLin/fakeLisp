@@ -382,8 +382,8 @@ static inline void* prod_action_bytevector(void* outerCtx
 		}
 		else
 		{
-			const FklBigInt* bi=FKL_VM_BI(cur);
-			bv->ptr[i]=bi->neg?0:UINT8_MAX;
+			const NfklBigInt* bi=FKL_VM_BI(cur);
+			bv->ptr[i]=bi->num<0?0:UINT8_MAX;
 		}
 	}
 

@@ -973,7 +973,7 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 		case FKL_OP_PUSH_BI:
 		case FKL_OP_PUSH_BI_C:
 		case FKL_OP_PUSH_BI_X:
-			imm1=fklCreateVMvalueBigInt(exe,fklGetBiConstWithIdx(kt,arg.ux));
+			imm1=fklCreateVMvalueBigInt2(exe,fklGetBiConstWithIdx(kt,arg.ux));
 			break;
 		default:
 			switch(mode)

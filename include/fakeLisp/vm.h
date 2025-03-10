@@ -107,6 +107,12 @@ typedef struct
 	struct FklVMvalue* cdr;
 }FklVMpair;
 
+typedef struct
+{
+	int64_t num;
+	FklBigIntDigit digits[1];
+}FklVMbigInt;
+
 #define FKL_VM_FP_R_MASK (1)
 #define FKL_VM_FP_W_MASK (2)
 
@@ -171,7 +177,7 @@ typedef struct
 typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
-	FklBigInt bi;
+	FklVMbigInt bi;
 }FklVMvalueBigInt;
 
 typedef struct
@@ -996,7 +1002,9 @@ FklVMvalue* fklCreateVMvalueBoxNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,FklString* message);
 
-FklVMvalue* fklCreateVMvalueBigInt(FklVM*,const FklBigInt*);
+FklVMvalue* fklCreateVMvalueBigInt(FklVM*,int64_t num);
+
+FklVMvalue* fklCreateVMvalueBigInt2(FklVM*,const FklBigInt*);
 
 FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int base);
 
@@ -1331,6 +1339,52 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 
 #define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME,DATA_TYPE_NAME) static void NAME(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc) {\
 	fklStringBufferPrintf(buf,"#<"#DATA_TYPE_NAME" %p>",ud);\
+}
+
+// inlines
+static inline FklBigInt fklVMbigIntToBigInt(const FklVMbigInt* b)
+{
+	const FklBigInt bi=
+	{
+		.digits=(FklBigIntDigit*)b->digits,
+		.num=b->num,
+		.size=labs(b->num),
+	};
+	return bi;
+}
+
+#define FKL_VM_BIGINT_CALL_1(NAME,FUNC) static inline void NAME(const FklVMbigInt* b){const FklBigInt bi=fklVMbigIntToBigInt(b);FUNC(&bi);}
+#define FKL_VM_BIGINT_CALL_1R(NAME,RET,FUNC) static inline RET NAME(const FklVMbigInt* b){const FklBigInt bi=fklVMbigIntToBigInt(b);return FUNC(&bi);}
+#define FKL_VM_BIGINT_CALL_2(NAME,ARG2,FUNC) static inline void NAME(const FklVMbigInt* b,ARG2 arg2){const FklBigInt bi=fklVMbigIntToBigInt(b);FUNC(&bi,arg2);}
+#define FKL_VM_BIGINT_CALL_2R(NAME,RET,ARG2,FUNC) static inline RET NAME(const FklVMbigInt* b,ARG2 arg2){const FklBigInt bi=fklVMbigIntToBigInt(b);return FUNC(&bi,arg2);}
+#define FKL_VM_CALL_WITH_2_BI(NAME,RET,FUNC) \
+static inline RET NAME(const FklVMbigInt* a,const FklVMbigInt* b) \
+{                                                                 \
+	const FklBigInt a1=fklVMbigIntToBigInt(a);                    \
+	const FklBigInt b1=fklVMbigIntToBigInt(b);                    \
+	return FUNC(&a1,&b1);                                         \
+}
+
+FKL_VM_BIGINT_CALL_1R(fklVMbigIntToI,int64_t,fklBigIntToI)
+FKL_VM_BIGINT_CALL_1R(fklVMbigIntToD,double,fklBigIntToD)
+FKL_VM_BIGINT_CALL_1R(fklVMbigIntToU,uint64_t,fklBigIntToU)
+FKL_VM_BIGINT_CALL_1R(fklVMbigIntHash,uintptr_t,fklBigIntHash)
+FKL_VM_BIGINT_CALL_1R(fklIsVMbigIntLt0,int,fklIsBigIntLt0)
+FKL_VM_BIGINT_CALL_1R(fklCreateBigIntWithVMbigInt,FklBigInt*,fklCopyBigInt)
+FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt,FILE*,fklPrintBigInt)
+FKL_VM_CALL_WITH_2_BI(fklVMbigIntEqual,int,fklBigIntEqual)
+FKL_VM_CALL_WITH_2_BI(fklVMbigIntCmp,int,fklBigIntCmp)
+FKL_VM_BIGINT_CALL_2R(fklVMbigIntCmpI,int,int64_t,fklBigIntCmpI)
+
+#undef FKL_VM_BIGINT_CALL_1R
+#undef FKL_VM_BIGINT_CALL_1
+#undef FKL_VM_BIGINT_CALL_2
+#undef FKL_VM_CALL_WITH_2_BI
+
+static inline FklVMvalue* fklCreateVMvalueBigIntWithOther(FklVM* exe,const FklVMbigInt* b)
+{
+	const FklBigInt bi=fklVMbigIntToBigInt(b);
+	return fklCreateVMvalueBigInt2(exe,&bi);
 }
 
 #ifdef __cplusplus

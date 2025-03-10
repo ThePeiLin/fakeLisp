@@ -939,13 +939,13 @@ push_vec:
 			}
 			break;
 		case FKL_OP_PUSH_BI:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[ins->bu]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[ins->bu]));
 			break;
 		case FKL_OP_PUSH_BI_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_BI_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_BOX:
 			{
@@ -1565,7 +1565,7 @@ load_dll:
 			{
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				if(FKL_IS_BIG_INT(a))
-					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,FKL_VM_BI(a)));
+					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(a)));
 				else if(FKL_IS_F64(a))
 					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FKL_VM_F64(a)));
 				else if(FKL_IS_FIX(a))
@@ -1578,7 +1578,7 @@ load_dll:
 			{
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				if(FKL_IS_BIG_INT(a))
-					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,FKL_VM_BI(a)));
+					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(a)));
 				else if(FKL_IS_F64(a))
 					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FKL_VM_F64(a)));
 				else if(FKL_IS_FIX(a))
@@ -2595,13 +2595,13 @@ push_vec:
 			}
 			break;
 		case FKL_OP_PUSH_BI:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[ins->bu]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[ins->bu]));
 			break;
 		case FKL_OP_PUSH_BI_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_BI_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_BOX:
 			{
@@ -3221,7 +3221,7 @@ load_dll:
 			{
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				if(FKL_IS_BIG_INT(a))
-					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,FKL_VM_BI(a)));
+					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(a)));
 				else if(FKL_IS_F64(a))
 					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FKL_VM_F64(a)));
 				else if(FKL_IS_FIX(a))
@@ -3234,7 +3234,7 @@ load_dll:
 			{
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				if(FKL_IS_BIG_INT(a))
-					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,FKL_VM_BI(a)));
+					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(a)));
 				else if(FKL_IS_F64(a))
 					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FKL_VM_F64(a)));
 				else if(FKL_IS_FIX(a))
@@ -4250,13 +4250,13 @@ push_vec:
 			}
 			break;
 		case FKL_OP_PUSH_BI:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[ins->bu]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[ins->bu]));
 			break;
 		case FKL_OP_PUSH_BI_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_BI_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,exe->gc->kbi[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_BOX:
 			{
@@ -4876,7 +4876,7 @@ load_dll:
 			{
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				if(FKL_IS_BIG_INT(a))
-					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,FKL_VM_BI(a)));
+					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(a)));
 				else if(FKL_IS_F64(a))
 					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FKL_VM_F64(a)));
 				else if(FKL_IS_FIX(a))
@@ -4889,7 +4889,7 @@ load_dll:
 			{
 				FklVMvalue* a=FKL_VM_POP_TOP_VALUE(exe);
 				if(FKL_IS_BIG_INT(a))
-					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt(exe,FKL_VM_BI(a)));
+					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(a)));
 				else if(FKL_IS_F64(a))
 					FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,FKL_VM_F64(a)));
 				else if(FKL_IS_FIX(a))

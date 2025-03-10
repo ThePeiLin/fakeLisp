@@ -1211,6 +1211,32 @@ static int builtin_sub_vector(FKL_CPROC_ARGL)
 
 #include<fakeLisp/common.h>
 
+static inline FklString* bigint_to_string(const FklVMbigInt* b
+		,uint8_t radix
+		,FklBigIntFmtFlags flags)
+{
+	const FklBigInt bi=fklVMbigIntToBigInt(b);
+	return fklBigIntToString(&bi,radix,flags);
+}
+
+static inline double bigint_to_double(const FklVMbigInt* b)
+{
+	const FklBigInt bi=fklVMbigIntToBigInt(b);
+	return fklBigIntToD(&bi);
+}
+
+static inline FklString* i64_to_string(int64_t num,uint8_t radix,FklBigIntFmtFlags flags)
+{
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt b=
+	{
+		.digits=digits,
+		.num=0,
+		.size=FKL_MAX_INT64_DIGITS_COUNT,
+	};
+	return fklBigIntToString(&b,radix,flags);
+}
+
 static int builtin_to_string(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
@@ -1232,20 +1258,9 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 		if(fklIsVMint(obj))
 		{
 			if(FKL_IS_BIG_INT(obj))
-				FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj)
-						,10
-						,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
+				FKL_VM_STR(retval)=bigint_to_string(FKL_VM_BI(obj),10,FKL_BIGINT_FMT_FLAG_NONE);
 			else
-			{
-				FklBigInt bi=FKL_BIGINT_0;
-				FklBigIntDigit t[16]={0};
-				bi.size=16;
-				bi.digits=t;
-				fklSetBigIntI(&bi,fklGetInt(obj));
-				FKL_VM_STR(retval)=fklBigIntToString(&bi
-						,10
-						,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
-			}
+				FKL_VM_STR(retval)=i64_to_string(FKL_GET_FIX(obj),10,FKL_BIGINT_FMT_FLAG_NONE);
 		}
 		else
 		{
@@ -1372,20 +1387,13 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 			base=t;
 		}
 		if(FKL_IS_BIG_INT(obj))
-			FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj)
+			FKL_VM_STR(retval)=bigint_to_string(FKL_VM_BI(obj)
 					,base
 					,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
 		else
-		{
-			FklBigInt bi=FKL_BIGINT_0;
-			FklBigIntDigit t[16]={0};
-			bi.size=16;
-			bi.digits=t;
-			fklSetBigIntI(&bi,fklGetInt(obj));
-			FKL_VM_STR(retval)=fklBigIntToString(&bi
+			FKL_VM_STR(retval)=i64_to_string(FKL_GET_FIX(obj)
 					,base
 					,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
-		}
 	}
 	else
 	{
@@ -1427,20 +1435,11 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 		base=t;
 	}
 	if(FKL_IS_BIG_INT(obj))
-		FKL_VM_STR(retval)=fklBigIntToString(FKL_VM_BI(obj)
+		FKL_VM_STR(retval)=bigint_to_string(FKL_VM_BI(obj)
 				,base
 				,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
 	else
-	{
-		FklBigInt bi=FKL_BIGINT_0;
-		FklBigIntDigit t[16]={0};
-		bi.size=16;
-		bi.digits=t;
-		fklSetBigIntI(&bi,fklGetInt(obj));
-		FKL_VM_STR(retval)=fklBigIntToString(&bi
-				,base
-				,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
-	}
+		FKL_VM_STR(retval)=i64_to_string(FKL_GET_FIX(obj),base,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }
@@ -1562,7 +1561,7 @@ static int builtin_number_to_f64(FKL_CPROC_ARGL)
 	if(FKL_IS_FIX(obj))
 		FKL_VM_F64(retval)=(double)FKL_GET_FIX(obj);
 	else if(FKL_IS_BIG_INT(obj))
-		FKL_VM_F64(retval)=fklBigIntToD(FKL_VM_BI(obj));
+		FKL_VM_F64(retval)=bigint_to_double(FKL_VM_BI(obj));
 	else
 		FKL_VM_F64(retval)=FKL_VM_F64(obj);
 	FKL_VM_PUSH_VALUE(exe,retval);
@@ -1586,17 +1585,11 @@ static int builtin_number_to_integer(FKL_CPROC_ARGL)
 	}
 	else if(FKL_IS_BIG_INT(obj))
 	{
-		FklBigInt* bigint=FKL_VM_BI(obj);
-		if(fklIsBigIntGtLtFix(bigint))
-		{
-			FklBigInt bi=FKL_BIGINT_0;
-			fklSetBigInt(&bi,bigint);
-			FklVMvalue* r=fklCreateVMvalueBigInt(exe,NULL);
-			*FKL_VM_BI(r)=bi;
-			FKL_VM_PUSH_VALUE(exe,r);
-		}
+		const FklBigInt bigint=fklVMbigIntToBigInt(FKL_VM_BI(obj));
+		if(fklIsBigIntGtLtFix(&bigint))
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigInt2(exe,&bigint));
 		else
-			FKL_VM_PUSH_VALUE(exe,fklMakeVMint(fklBigIntToI(bigint),exe));
+			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(fklBigIntToI(&bigint)));
 	}
 	else
 		FKL_VM_PUSH_VALUE(exe,obj);

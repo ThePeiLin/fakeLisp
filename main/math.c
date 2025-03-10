@@ -159,7 +159,7 @@ static int math_abs(FKL_CPROC_ARGL)
 		}
 		else
 		{
-			FklVMvalue* r=fklCreateVMvalueBigInt(exe,FKL_VM_BI(obj));
+			FklVMvalue* r=fklCreateVMvalueBigInt2(exe,FKL_VM_BI(obj));
 			FKL_VM_BI(r)->num=labs(FKL_VM_BI(r)->num);
 			FKL_VM_PUSH_VALUE(exe,r);
 		}

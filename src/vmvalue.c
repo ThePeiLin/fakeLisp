@@ -146,7 +146,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 							,cStack);
 					break;
 				case FKL_NAST_BIG_INT:
-					fklPushPtrStack(fklCreateVMvalueBigInt(vm,root->bigInt),cStack);
+					fklPushPtrStack(fklCreateVMvalueBigInt2(vm,root->bigInt),cStack);
 					break;
 				case FKL_NAST_BOX:
 					{
@@ -288,7 +288,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								break;
 							case FKL_TYPE_BIG_INT:
 								cur->type=FKL_NAST_BIG_INT;
-								cur->bigInt=fklCopyBigInt(FKL_VM_BI(value));
+								cur->bigInt=fklCreateBigIntWithVMbigInt(FKL_VM_BI(value));
 								break;
 							case FKL_TYPE_PROC:
 								cur->type=FKL_NAST_SYM;
@@ -462,7 +462,7 @@ static FklVMvalue* __fkl_f64_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_bigint_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueBigInt(vm,FKL_VM_BI(obj));
+	return fklCreateVMvalueBigIntWithOther(vm,FKL_VM_BI(obj));
 }
 
 static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVM* vm)
@@ -587,7 +587,7 @@ FklVMvalue* fklCreateNilValue()
 int fklVMvalueEqv(const FklVMvalue* fir,const FklVMvalue* sec)
 {
 	if(FKL_IS_BIG_INT(fir)&&FKL_IS_BIG_INT(sec))
-		return fklBigIntEqual(FKL_VM_BI(fir),FKL_VM_BI(sec));
+		return fklVMbigIntEqual(FKL_VM_BI(fir),FKL_VM_BI(sec));
 	else
 		return fir==sec;
 }
@@ -677,7 +677,7 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 						}
 						break;
 					case FKL_TYPE_BIG_INT:
-						r=fklBigIntEqual(FKL_VM_BI(root1),FKL_VM_BI(root2));
+						r=fklVMbigIntEqual(FKL_VM_BI(root1),FKL_VM_BI(root2));
 						break;
 					case FKL_TYPE_USERDATA:
 						{
@@ -741,11 +741,11 @@ int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	else if(FKL_IS_FIX(a)&&FKL_IS_FIX(b))
 		r=FKL_GET_FIX(a)-FKL_GET_FIX(b);
 	else if(FKL_IS_BIG_INT(a)&&FKL_IS_BIG_INT(b))
-		r=fklBigIntCmp(FKL_VM_BI(a),FKL_VM_BI(b));
+		r=fklVMbigIntCmp(FKL_VM_BI(a),FKL_VM_BI(b));
 	else if(FKL_IS_BIG_INT(a)&&FKL_IS_FIX(b))
-		r=fklBigIntCmpI(FKL_VM_BI(a),FKL_GET_FIX(b));
+		r=fklVMbigIntCmpI(FKL_VM_BI(a),FKL_GET_FIX(b));
 	else if(FKL_IS_FIX(a)&&FKL_IS_BIG_INT(b))
-		r=-1*(fklBigIntCmpI(FKL_VM_BI(b),FKL_GET_FIX(a)));
+		r=-1*(fklVMbigIntCmpI(FKL_VM_BI(b),FKL_GET_FIX(a)));
 	else if(FKL_IS_STR(a)&&FKL_IS_STR(b))
 		r=fklStringCmp(FKL_VM_STR(a),FKL_VM_STR(b));
 	else if(FKL_IS_BYTEVECTOR(a)&&FKL_IS_BYTEVECTOR(a))
@@ -841,10 +841,10 @@ static inline void uninit_nothing_value(FklVMvalue* v)
 {
 }
 
-static inline void uninit_big_int_value(FklVMvalue* v)
-{
-	fklUninitBigInt(FKL_VM_BI(v));
-}
+// static inline void uninit_big_int_value(FklVMvalue* v)
+// {
+// 	fklUninitBigInt(FKL_VM_BI(v));
+// }
 
 static inline void uninit_string_value(FklVMvalue* v)
 {
@@ -910,7 +910,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 	static void (*fkl_value_uniniters[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* v)=
 	{
 		uninit_nothing_value,  //f64
-		uninit_big_int_value,  //big-int
+		uninit_nothing_value,  //big-int
 		uninit_string_value,   //string
 		uninit_nothing_value,   //vector
 		uninit_nothing_value,  //pair
@@ -1146,7 +1146,7 @@ static size_t integerHashFunc(const FklVMvalue* v)
 	if(FKL_IS_FIX(v))
 		return FKL_GET_FIX(v);
 	else
-		return fklBigIntHash(FKL_VM_BI(v));
+		return fklVMbigIntHash(FKL_VM_BI(v));
 }
 
 uintptr_t fklVMvalueEqvHashv(const FklVMvalue* v)
@@ -1178,7 +1178,7 @@ static size_t _f64_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _big_int_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	return fklBigIntHash(FKL_VM_BI(v));
+	return fklVMbigIntHash(FKL_VM_BI(v));
 }
 
 static size_t _str_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -1772,7 +1772,7 @@ FklVMvalue* fklCreateVMvalueBigIntWithOctString(FklVM* exe,const FklString* str)
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueBigInt(FklVM* exe
+FklVMvalue* fklCreateVMvalueBigInt2(FklVM* exe
 		,const FklBigInt* bi)
 {
 	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);

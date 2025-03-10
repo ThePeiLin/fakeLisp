@@ -381,10 +381,7 @@ static inline void* prod_action_bytevector(void* outerCtx
 			bv->ptr[i]=fix>UINT8_MAX?UINT8_MAX:(fix<0?0:fix);
 		}
 		else
-		{
-			const FklBigInt* bi=FKL_VM_BI(cur);
-			bv->ptr[i]=bi->num<0?0:UINT8_MAX;
-		}
+			bv->ptr[i]=FKL_VM_BI(cur)->num<0?0:UINT8_MAX;
 	}
 
 	FklVMvalue* r=fklCreateVMvalueBvec(exe,bv);

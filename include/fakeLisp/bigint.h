@@ -21,7 +21,8 @@ typedef struct FklBigInt
 {
 	FklBigIntDigit* digits;
 	int64_t num;
-	uint64_t size;
+	uint64_t size:63;
+	uint8_t const_size:1;
 }FklBigInt;
 
 typedef enum FklBigIntFmtFlags
@@ -31,7 +32,7 @@ typedef enum FklBigIntFmtFlags
 	FKL_BIGINT_FMT_FLAG_CAPITALS=1<<1,
 }FklBigIntFmtFlags;
 
-#define FKL_BIGINT_0 ((FklBigInt){.digits=NULL,.num=0,.size=0})
+#define FKL_BIGINT_0 ((FklBigInt){.digits=NULL,.num=0,.size=0,.const_size=0,})
 #define FKL_BIGINT_IS_0(I) (((I)->num==0)||(labs((I)->num)==1&&(I)->digits[0]==0))
 #define FKL_BIGINT_IS_1(I) (((I)->num==1)&&((I)->digits[0]==1))
 #define FKL_BIGINT_IS_N1(I) (((I)->num==-1)&&((I)->digits[0]==1))

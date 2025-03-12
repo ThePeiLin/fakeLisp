@@ -129,6 +129,11 @@ static void ensure_bigint_size(FklBigInt* to,uint64_t size)
 {
 	if(to->size<size)
 	{
+		if(to->const_size)
+		{
+			fprintf(stderr,"cannot realloc digits for const size bigint\n");
+			abort();
+		}
 		to->size=size;
 		to->digits=(FklBigIntDigit*)fklRealloc(to->digits,size*sizeof(FklBigIntDigit));
 		FKL_ASSERT(to->digits);
@@ -346,6 +351,7 @@ void fklInitBigIntWithDecCharBuf2(void* ctx
 		.digits=digits,
 		.num=0,
 		.size=b.size,
+		.const_size=1,
 	};
 	fklSetBigInt(&to,&b);
 	*(table->num(ctx))=to.num;
@@ -489,6 +495,7 @@ int fklBigIntCmpI(const FklBigInt* a,int64_t b)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,b);
 	return fklBigIntCmp(a,&bi);
 }
@@ -543,6 +550,7 @@ int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t d)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,d);
 	return fklIsDivisibleBigInt(a,&bi);
 }
@@ -790,6 +798,7 @@ void fklAddBigIntI(FklBigInt* b,int64_t v)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,v);
 	fklAddBigInt(b,&bi);
 }
@@ -823,6 +832,7 @@ void fklSubBigIntI(FklBigInt* a,int64_t v)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,v);
 	fklSubBigInt(a,&bi);
 }
@@ -880,6 +890,7 @@ void fklMulBigIntI(FklBigInt* b,int64_t v)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,v);
 	fklMulBigInt(b,&bi);
 }
@@ -890,6 +901,7 @@ int fklDivRemBigIntI(FklBigInt* b,int64_t divider,FklBigInt* rem)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,divider);
 	return fklDivRemBigInt(b,&bi,rem);
 }
@@ -1084,6 +1096,7 @@ int fklRemBigIntI(FklBigInt* a,int64_t div)
 	FklBigInt bi=FKL_BIGINT_0;
 	bi.size=FKL_MAX_INT64_DIGITS_COUNT;
 	bi.digits=digits;
+	bi.const_size=1;
 	fklSetBigIntI(&bi,div);
 	return fklRemBigInt(a,&bi);
 }
@@ -1129,6 +1142,7 @@ static const FklBigInt U64_MAX_BIGINT=
 	.digits=(FklBigIntDigit*)&U64_MAX_DIGITS[0],
 	.num=3,
 	.size=3,
+	.const_size=1,
 };
 
 static const FklBigIntDigit I64_MIN_DIGITS[3]=
@@ -1143,6 +1157,7 @@ static const FklBigInt I64_MIN_BIGINT=
 	.digits=(FklBigIntDigit*)&I64_MIN_DIGITS[0],
 	.num=-3,
 	.size=3,
+	.const_size=1,
 };
 
 static const FklBigIntDigit I64_MAX_DIGITS[3]=
@@ -1157,6 +1172,7 @@ static const FklBigInt I64_MAX_BIGINT=
 	.digits=(FklBigIntDigit*)&I64_MAX_DIGITS[0],
 	.num=3,
 	.size=3,
+	.const_size=1,
 };
 
 int fklIsBigIntGtLtI64(const FklBigInt*a)

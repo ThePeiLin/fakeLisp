@@ -791,6 +791,7 @@ static void sub_test5(void)
 			.digits=a0->digits,
 			.num=a0->num,
 			.size=labs(a0->num),
+			.const_size=1,
 		};
 
 		assert(fklBigIntEqual(&a1,&tmp));
@@ -831,6 +832,7 @@ static void sub_test5(void)
 			.digits=a0->digits,
 			.num=a0->num,
 			.size=labs(a0->num),
+			.const_size=1,
 		};
 
 		assert(fklBigIntEqual(&a1,&tmp));
@@ -865,6 +867,7 @@ static void sub_test5(void)
 
 int main()
 {
+	fprintf(stderr,"sizeof(FklBigInt) == %lu\n",sizeof(FklBigInt));
 	sub_test0();
 	sub_test1();
 	sub_test2();

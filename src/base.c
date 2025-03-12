@@ -1470,11 +1470,11 @@ static const FklBigIntDigit FKL_BIGINT_FIX_MIN_DIGITS[3]=
 	0x1,
 };
 
-static const FklBigInt FKL_BIGINT_FIX_MAX={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MAX_DIGITS,.num=2,.size=2};
-static const FklBigInt FKL_BIGINT_FIX_MIN={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MIN_DIGITS,.num=-3,.size=3};
+static const FklBigInt FKL_BIGINT_FIX_MAX={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MAX_DIGITS,.num=2,.size=2,.const_size=1,};
+static const FklBigInt FKL_BIGINT_FIX_MIN={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MIN_DIGITS,.num=-3,.size=3,.const_size=1,};
 
-static const FklBigInt FKL_BIGINT_SUB_1_MAX={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MIN_DIGITS,.num=3,.size=3};
-static const FklBigInt FKL_BIGINT_ADD_1_MIN={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MAX_DIGITS,.num=-2,.size=2};
+static const FklBigInt FKL_BIGINT_SUB_1_MAX={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MIN_DIGITS,.num=3,.size=3,.const_size=1,};
+static const FklBigInt FKL_BIGINT_ADD_1_MIN={.digits=(FklBigIntDigit*)FKL_BIGINT_FIX_MAX_DIGITS,.num=-2,.size=2,.const_size=1,};
 
 int fklIsBigIntGtLtFix(const FklBigInt*a)
 {

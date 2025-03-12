@@ -754,6 +754,115 @@ static void sub_test4(void)
 	}
 }
 
+typedef struct
+{
+	int64_t num;
+	FklBigIntDigit digits[1];
+}OtherBi;
+
+static FklBigIntDigit* other_bi_alloc_cb(void* ctx,size_t size)
+{
+	OtherBi** pbi=(OtherBi**)ctx;
+	*pbi=(OtherBi*)malloc(sizeof(OtherBi)+(size==0?size-1:0)*sizeof(FklBigIntDigit));
+	assert(*pbi);
+	return (*pbi)->digits;
+}
+
+static int64_t* other_bi_num_cb(void* ctx)
+{
+	return &(*((OtherBi**)ctx))->num;
+}
+
+static const FklBigIntInitWithCharBufMethodTable method_table=
+{
+	.alloc=other_bi_alloc_cb,
+	.num=other_bi_num_cb,
+};
+
+static void sub_test5(void)
+{
+	{
+		OtherBi* a0=NULL;
+		FklBigInt a1;
+		fklInitBigIntWithDecCharBuf2(&a0,&method_table,"114514",strlen("114514"));
+		fklInitBigIntWithDecCharBuf(&a1,"114514",strlen("114514"));
+		FklBigInt tmp=
+		{
+			.digits=a0->digits,
+			.num=a0->num,
+			.size=labs(a0->num),
+		};
+
+		assert(fklBigIntEqual(&a1,&tmp));
+
+		fklUninitBigInt(&a1);
+		free(a0);
+		a0=NULL;
+
+		fklInitBigIntWithHexCharBuf2(&a0,&method_table,"0x00000000114514abcd",strlen("0x00000000114514abcd"));
+		fklInitBigIntWithHexCharBuf(&a1,"0x00000000114514abcd",strlen("0x00000000114514abcd"));
+		tmp.digits=a0->digits;
+		tmp.num=a0->num;
+		tmp.size=labs(a0->num);
+
+		assert(fklBigIntEqual(&a1,&tmp));
+		fklUninitBigInt(&a1);
+		free(a0);
+		a0=NULL;
+
+		fklInitBigIntWithOctCharBuf2(&a0,&method_table,"011451477665544",strlen("011451477665544"));
+		fklInitBigIntWithOctCharBuf(&a1,"011451477665544",strlen("011451477665544"));
+		tmp.digits=a0->digits;
+		tmp.num=a0->num;
+		tmp.size=labs(a0->num);
+
+		assert(fklBigIntEqual(&a1,&tmp));
+		fklUninitBigInt(&a1);
+		free(a0);
+		a0=NULL;
+	}
+	{
+		OtherBi* a0=NULL;
+		FklBigInt a1;
+		fklInitBigIntWithDecCharBuf2(&a0,&method_table,"-114514",strlen("114514"));
+		fklInitBigIntWithDecCharBuf(&a1,"-114514",strlen("114514"));
+		FklBigInt tmp=
+		{
+			.digits=a0->digits,
+			.num=a0->num,
+			.size=labs(a0->num),
+		};
+
+		assert(fklBigIntEqual(&a1,&tmp));
+
+		fklUninitBigInt(&a1);
+		free(a0);
+		a0=NULL;
+
+		fklInitBigIntWithHexCharBuf2(&a0,&method_table,"-0x00000000114514abcd",strlen("0x00000000114514abcd"));
+		fklInitBigIntWithHexCharBuf(&a1,"-0x00000000114514abcd",strlen("0x00000000114514abcd"));
+		tmp.digits=a0->digits;
+		tmp.num=a0->num;
+		tmp.size=labs(a0->num);
+
+		assert(fklBigIntEqual(&a1,&tmp));
+		fklUninitBigInt(&a1);
+		free(a0);
+		a0=NULL;
+
+		fklInitBigIntWithOctCharBuf2(&a0,&method_table,"-011451477665544",strlen("011451477665544"));
+		fklInitBigIntWithOctCharBuf(&a1,"-011451477665544",strlen("011451477665544"));
+		tmp.digits=a0->digits;
+		tmp.num=a0->num;
+		tmp.size=labs(a0->num);
+
+		assert(fklBigIntEqual(&a1,&tmp));
+		fklUninitBigInt(&a1);
+		free(a0);
+		a0=NULL;
+	}
+}
+
 int main()
 {
 	sub_test0();
@@ -761,5 +870,6 @@ int main()
 	sub_test2();
 	sub_test3();
 	sub_test4();
+	sub_test5();
 	return 0;
 }

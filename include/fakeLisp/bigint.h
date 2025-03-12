@@ -69,6 +69,30 @@ void fklInitBigIntWithHexCharBuf(FklBigInt* t,const char*,size_t);
 void fklInitBigIntWithOctCharBuf(FklBigInt* t,const char*,size_t);
 void fklInitBigIntWithCstr(FklBigInt* t,const char*);
 
+typedef struct
+{
+	FklBigIntDigit* (*alloc)(void* ctx,size_t);
+	int64_t* (*num)(void* ctx);
+}FklBigIntInitWithCharBufMethodTable;
+
+void fklInitBigIntWithCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char*
+		,size_t);
+void fklInitBigIntWithDecCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char*
+		,size_t);
+void fklInitBigIntWithOctCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char*
+		,size_t);
+void fklInitBigIntWithHexCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char*
+		,size_t);
+void fklInitBigIntWithCstr2(FklBigInt* t,const char*);
+
 void fklUninitBigInt(FklBigInt*);
 
 uintptr_t fklBigIntHash(const FklBigInt* bi);

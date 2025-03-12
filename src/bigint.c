@@ -91,14 +91,35 @@ void fklInitBigIntFromMem(FklBigInt *t,int64_t num,FklBigIntDigit *mem)
 	t->digits=mem;
 }
 
+// also steal from cpython: cpython: https://github.com/python/cpython
+unsigned char DigitValue[256] = {
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  37, 37, 37, 37, 37, 37,
+	37, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 37, 37, 37, 37,
+	37, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+	25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+	37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
+};
+
 void fklInitBigIntWithDecCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
+	*b=FKL_BIGINT_0;
 	int neg=buf[0]=='-';
 	size_t offset=neg||buf[0]=='+';
 	for(size_t i=offset;i<len&&isdigit(buf[i]);i++)
 	{
 		fklMulBigIntI(b,10);
-		fklAddBigIntI(b,buf[i]-'0');
+		fklAddBigIntI(b,DigitValue[(unsigned char)buf[i]]);
 	}
 	if(neg)
 		b->num=-b->num;
@@ -126,6 +147,7 @@ static inline void bigint_normalize(FklBigInt* a)
 
 void fklInitBigIntWithOctCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
+	*b=FKL_BIGINT_0;
 	int neg=buf[0]=='-';
 	size_t offset=(neg||buf[0]=='+')+1;
 	for(;offset<len&&buf[offset]=='0';offset++);
@@ -142,7 +164,7 @@ void fklInitBigIntWithOctCharBuf(FklBigInt* b,const char* buf,size_t len)
 	for(;i<offset+high_len;i++)
 	{
 		carry<<=OCT_BIT_COUNT;
-		carry|=buf[i]-'0';
+		carry|=DigitValue[(unsigned char)buf[i]];
 	}
 	pdigits[--total_len]=carry;
 	for(;i<len;i+=DIGIT_OCT_COUNT)
@@ -151,7 +173,7 @@ void fklInitBigIntWithOctCharBuf(FklBigInt* b,const char* buf,size_t len)
 		for(size_t j=0;j<DIGIT_OCT_COUNT;j++)
 		{
 			carry<<=OCT_BIT_COUNT;
-			carry|=buf[i+j]-'0';
+			carry|=DigitValue[(unsigned char)buf[i+j]];
 		}
 		pdigits[--total_len]=carry;
 	}
@@ -165,6 +187,7 @@ void fklInitBigIntWithOctCharBuf(FklBigInt* b,const char* buf,size_t len)
 
 void fklInitBigIntWithHexCharBuf(FklBigInt* b,const char* buf,size_t len)
 {
+	*b=FKL_BIGINT_0;
 	int neg=buf[0]=='-';
 	size_t offset=(neg||buf[0]=='+')+2;
 	for(;offset<len&&buf[offset]=='0';offset++);
@@ -178,11 +201,7 @@ void fklInitBigIntWithHexCharBuf(FklBigInt* b,const char* buf,size_t len)
 	const char* p=buf+len;
 	while(--p>=start)
 	{
-		char c=*p;
-		int k=isdigit(c)
-			?c-'0'
-			:toupper(c)-'A'+10;
-		accum|=(FklBigIntTwoDigit)k<<bits_in_accum;
+		accum|=(FklBigIntTwoDigit)DigitValue[(unsigned char)*p]<<bits_in_accum;
 		bits_in_accum+=HEX_BIT_COUNT;
 		if(bits_in_accum>=FKL_BIGINT_DIGIT_SHIFT)
 		{
@@ -214,6 +233,123 @@ void fklInitBigIntWithCharBuf(FklBigInt* b,const char* buf,size_t len)
 void fklInitBigIntWithCstr(FklBigInt* b,const char* cstr)
 {
 	fklInitBigIntWithCharBuf(b,cstr,strlen(cstr));
+}
+
+static inline void bigint_normalize2(int64_t* num, FklBigIntDigit* digits)
+{
+	int64_t i=labs(*num);
+	for(;i>0&&digits[i-1]==0;--i);
+	*num=*num<0?-i:i;
+}
+
+void fklInitBigIntWithCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char* buf
+		,size_t len)
+{
+	if(fklIsHexInt(buf,len))
+		fklInitBigIntWithHexCharBuf2(ctx,table,buf,len);
+	else if(fklIsOctInt(buf,len))
+		fklInitBigIntWithOctCharBuf2(ctx,table,buf,len);
+	else
+		fklInitBigIntWithDecCharBuf2(ctx,table,buf,len);
+}
+
+void fklInitBigIntWithOctCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char* buf
+		,size_t len)
+{
+	int neg=buf[0]=='-';
+	size_t offset=(neg||buf[0]=='+')+1;
+	for(;offset<len&&buf[offset]=='0';offset++);
+	size_t actual_len=len-offset;
+	size_t high_len=actual_len%DIGIT_OCT_COUNT;
+	size_t total_len=actual_len/DIGIT_OCT_COUNT+(high_len>0);
+	FklBigIntDigit* bdigits=table->alloc(ctx,total_len);
+	int64_t* bnum=table->num(ctx);
+	*bnum=total_len;
+	if(total_len==0)
+		return;
+	FklBigIntDigit* pdigits=bdigits;
+	size_t i=offset;
+	uint32_t carry=0;
+	for(;i<offset+high_len;i++)
+	{
+		carry<<=OCT_BIT_COUNT;
+		carry|=DigitValue[(unsigned char)buf[i]];
+	}
+	pdigits[--total_len]=carry;
+	for(;i<len;i+=DIGIT_OCT_COUNT)
+	{
+		carry=0;
+		for(size_t j=0;j<DIGIT_OCT_COUNT;j++)
+		{
+			carry<<=OCT_BIT_COUNT;
+			carry|=DigitValue[(unsigned char)buf[i+j]];
+		}
+		pdigits[--total_len]=carry;
+	}
+	bigint_normalize2(bnum,bdigits);
+	if(neg)
+		*bnum=-*bnum;
+}
+
+void fklInitBigIntWithHexCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char* buf
+		,size_t len)
+{
+	int neg=buf[0]=='-';
+	size_t offset=(neg||buf[0]=='+')+2;
+	for(;offset<len&&buf[offset]=='0';offset++);
+	const char* start=buf+offset;
+	int64_t digits_count=((len-offset)*HEX_BIT_COUNT+FKL_BIGINT_DIGIT_SHIFT-1)/FKL_BIGINT_DIGIT_SHIFT;
+	FklBigIntDigit* bdigits=table->alloc(ctx,digits_count);
+
+	int bits_in_accum=0;
+	FklBigIntTwoDigit accum=0;
+	FklBigIntDigit* pdigits=bdigits;
+	const char* p=buf+len;
+	while(--p>=start)
+	{
+		accum|=(FklBigIntTwoDigit)DigitValue[(unsigned char)*p]<<bits_in_accum;
+		bits_in_accum+=HEX_BIT_COUNT;
+		if(bits_in_accum>=FKL_BIGINT_DIGIT_SHIFT)
+		{
+			*pdigits++=(FklBigIntDigit)(accum&FKL_BIGINT_DIGIT_MASK);
+			accum>>=FKL_BIGINT_DIGIT_SHIFT;
+			bits_in_accum-=FKL_BIGINT_DIGIT_SHIFT;
+		}
+	}
+	if(bits_in_accum)
+		*pdigits++=(FklBigIntDigit)accum;
+	while(pdigits-bdigits<digits_count)
+		*pdigits++=0;
+	int64_t* bnum=table->num(ctx);
+	*bnum=digits_count;
+	bigint_normalize2(bnum,bdigits);
+	if(neg)
+		*bnum=-*bnum;
+}
+
+void fklInitBigIntWithDecCharBuf2(void* ctx
+		,const FklBigIntInitWithCharBufMethodTable* table
+		,const char* buf
+		,size_t len)
+{
+	FklBigInt b;
+	fklInitBigIntWithDecCharBuf(&b,buf,len);
+	FklBigIntDigit* digits=table->alloc(ctx,b.size);
+	FklBigInt to=
+	{
+		.digits=digits,
+		.num=0,
+		.size=b.size,
+	};
+	fklSetBigInt(&to,&b);
+	*(table->num(ctx))=to.num;
+	fklUninitBigInt(&b);
 }
 
 void fklUninitBigInt(FklBigInt* b)

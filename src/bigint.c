@@ -129,11 +129,7 @@ static void ensure_bigint_size(FklBigInt* to,uint64_t size)
 {
 	if(to->size<size)
 	{
-		if(to->const_size)
-		{
-			fprintf(stderr,"cannot realloc digits for const size bigint\n");
-			abort();
-		}
+		FKL_ASSERT(!to->const_size);
 		to->size=size;
 		to->digits=(FklBigIntDigit*)fklRealloc(to->digits,size*sizeof(FklBigIntDigit));
 		FKL_ASSERT(to->digits);

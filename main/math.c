@@ -159,7 +159,7 @@ static int math_abs(FKL_CPROC_ARGL)
 		}
 		else
 		{
-			FklVMvalue* r=fklCreateVMvalueBigInt2(exe,FKL_VM_BI(obj));
+			FklVMvalue* r=fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(obj));
 			FKL_VM_BI(r)->num=labs(FKL_VM_BI(r)->num);
 			FKL_VM_PUSH_VALUE(exe,r);
 		}
@@ -176,7 +176,7 @@ static int math_odd_p(FKL_CPROC_ARGL)
 	if(FKL_IS_FIX(val))
 		r=FKL_GET_FIX(val)%2;
 	else
-		r=fklIsBigIntOdd(FKL_VM_BI(val));
+		r=fklIsVMbigIntOdd(FKL_VM_BI(val));
 	if(r)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
 	else
@@ -193,7 +193,7 @@ static int math_even_p(FKL_CPROC_ARGL)
 	if(FKL_IS_FIX(val))
 		r=FKL_GET_FIX(val)%2==0;
 	else
-		r=fklIsBigIntEven(FKL_VM_BI(val));
+		r=fklIsVMbigIntEven(FKL_VM_BI(val));
 	if(r)
 		FKL_VM_PUSH_VALUE(exe,FKL_VM_TRUE);
 	else

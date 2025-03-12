@@ -841,11 +841,6 @@ static inline void uninit_nothing_value(FklVMvalue* v)
 {
 }
 
-// static inline void uninit_big_int_value(FklVMvalue* v)
-// {
-// 	fklUninitBigInt(FKL_VM_BI(v));
-// }
-
 static inline void uninit_string_value(FklVMvalue* v)
 {
 	free(FKL_VM_STR(v));
@@ -912,7 +907,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_nothing_value,  //f64
 		uninit_nothing_value,  //big-int
 		uninit_string_value,   //string
-		uninit_nothing_value,   //vector
+		uninit_nothing_value,  //vector
 		uninit_nothing_value,  //pair
 		uninit_nothing_value,  //box
 		uninit_bvec_value,     //bvec
@@ -1800,6 +1795,17 @@ FklVMvalue* fklCreateVMvalueBigIntWithOctString(FklVM* exe,const FklString* str)
 	return ctx.bi;
 }
 
+FklVMvalue* fklCreateVMvalueBigInt(FklVM* exe,size_t size)
+{
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueBigInt)+size*sizeof(FklBigIntDigit));
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BIG_INT;
+	FklVMbigInt* b=FKL_VM_BI(r);
+	b->num=size+1;
+	fklAddToGC(r,exe);
+	return r;
+}
+
 FklVMvalue* fklCreateVMvalueBigInt2(FklVM* exe
 		,const FklBigInt* bi)
 {
@@ -1808,13 +1814,34 @@ FklVMvalue* fklCreateVMvalueBigInt2(FklVM* exe
 	FklBigInt t=
 	{
 		.digits=b->digits,
-		.num=b->num,
+		.num=0,
 		.size=labs(b->num),
 		.const_size=1,
 	};
 	fklSetBigInt(&t,bi);
+	b->num=t.num;
 	return r;
 }
+
+FklVMvalue* fklCreateVMvalueBigInt3(FklVM* exe
+		,const FklBigInt* bi
+		,size_t size)
+{
+	FKL_ASSERT(size>=(size_t)labs(bi->num));
+	FklVMvalue* r=fklCreateVMvalueBigInt(exe,labs(bi->num));
+	FklVMbigInt* b=FKL_VM_BI(r);
+	FklBigInt t=
+	{
+		.digits=b->digits,
+		.num=0,
+		.size=size,
+		.const_size=1,
+	};
+	fklSetBigInt(&t,bi);
+	b->num=t.num;
+	return r;
+}
+
 
 FklVMvalue* fklCreateVMvalueBigIntWithI64(FklVM* exe
 		,int64_t i)
@@ -1859,6 +1886,40 @@ FklVMvalue* fklCreateVMvalueBigIntWithF64(FklVM* exe
 	};
 	fklSetBigIntD(&bi,d);
 	return fklCreateVMvalueBigInt2(exe,&bi);
+}
+
+FklVMvalue* fklVMbigIntAddI(FklVM* exe,const FklVMbigInt* a,int64_t b)
+{
+	FklVMvalue* r=fklCreateVMvalueBigIntWithOther2(exe,a,labs(a->num)+1);
+	FklVMbigInt* a0=FKL_VM_BI(r);
+	FklBigInt a1=
+	{
+		.digits=a0->digits,
+		.num=0,
+		.size=labs(a0->num),
+		.const_size=1,
+	};
+	fklSetBigIntWithVMbigInt(&a1,a);
+	fklAddBigIntI(&a1,b);
+	a0->num=a1.num;
+	return r;
+}
+
+FklVMvalue* fklVMbigIntSubI(FklVM* exe,const FklVMbigInt* a,int64_t b)
+{
+	FklVMvalue* r=fklCreateVMvalueBigIntWithOther2(exe,a,labs(a->num)+1);
+	FklVMbigInt* a0=FKL_VM_BI(r);
+	FklBigInt a1=
+	{
+		.digits=a0->digits,
+		.num=0,
+		.size=labs(a0->num),
+		.const_size=1,
+	};
+	fklSetBigIntWithVMbigInt(&a1,a);
+	fklSubBigIntI(&a1,b);
+	a0->num=a1.num;
+	return r;
 }
 
 FklVMvalue* fklCreateVMvalueProc(FklVM* exe

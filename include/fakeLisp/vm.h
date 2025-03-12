@@ -1002,7 +1002,7 @@ FklVMvalue* fklCreateVMvalueBoxNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,FklString* message);
 
-FklVMvalue* fklCreateVMvalueBigInt(FklVM*,int64_t num);
+FklVMvalue* fklCreateVMvalueBigInt(FklVM*,size_t num);
 
 FklVMvalue* fklCreateVMvalueBigInt2(FklVM*,const FklBigInt*);
 
@@ -1349,6 +1349,7 @@ static inline FklBigInt fklVMbigIntToBigInt(const FklVMbigInt* b)
 		.digits=(FklBigIntDigit*)b->digits,
 		.num=b->num,
 		.size=labs(b->num),
+		.const_size=1,
 	};
 	return bi;
 }

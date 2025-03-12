@@ -1742,79 +1742,123 @@ FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int
 		return fklCreateVMvalueBigIntWithOctString(exe,str);
 }
 
+typedef struct
+{
+	FklVM* exe;
+	FklVMvalue* bi;
+}VMbigIntInitCtx;
+
+static FklBigIntDigit* vmbigint_alloc_cb(void* ptr,size_t size)
+{
+	VMbigIntInitCtx* ctx=(VMbigIntInitCtx*)ptr;
+	ctx->bi=fklCreateVMvalueBigInt(ctx->exe,size);
+	return FKL_VM_BI(ctx->bi)->digits;
+}
+
+static int64_t* vmbigint_num_cb(void* ptr)
+{
+	VMbigIntInitCtx* ctx=(VMbigIntInitCtx*)ptr;
+	return &FKL_VM_BI(ctx->bi)->num;
+}
+
+static const FklBigIntInitWithCharBufMethodTable VMbigIntInitWithCharBufMethodTable=
+{
+	.alloc=vmbigint_alloc_cb,
+	.num=vmbigint_num_cb,
+};
+
 FklVMvalue* fklCreateVMvalueBigIntWithDecString(FklVM* exe,const FklString* str)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	fklInitBigIntWithDecCharBuf(FKL_VM_BI(r),str->str,str->size);
-	fklAddToGC(r,exe);
-	return r;
+	VMbigIntInitCtx ctx=
+	{
+		.exe=exe,
+		.bi=NULL,
+	};
+	fklInitBigIntWithDecCharBuf2(&ctx,&VMbigIntInitWithCharBufMethodTable,str->str,str->size);
+	return ctx.bi;
 }
 
 FklVMvalue* fklCreateVMvalueBigIntWithHexString(FklVM* exe,const FklString* str)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	fklInitBigIntWithHexCharBuf(FKL_VM_BI(r),str->str,str->size);
-	fklAddToGC(r,exe);
-	return r;
+	VMbigIntInitCtx ctx=
+	{
+		.exe=exe,
+		.bi=NULL,
+	};
+	fklInitBigIntWithHexCharBuf2(&ctx,&VMbigIntInitWithCharBufMethodTable,str->str,str->size);
+	return ctx.bi;
 }
 
 FklVMvalue* fklCreateVMvalueBigIntWithOctString(FklVM* exe,const FklString* str)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	fklInitBigIntWithOctCharBuf(FKL_VM_BI(r),str->str,str->size);
-	fklAddToGC(r,exe);
-	return r;
+	VMbigIntInitCtx ctx=
+	{
+		.exe=exe,
+		.bi=NULL,
+	};
+	fklInitBigIntWithOctCharBuf2(&ctx,&VMbigIntInitWithCharBufMethodTable,str->str,str->size);
+	return ctx.bi;
 }
 
 FklVMvalue* fklCreateVMvalueBigInt2(FklVM* exe
 		,const FklBigInt* bi)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	if(bi)
-		fklSetBigInt(FKL_VM_BI(r),bi);
-	fklAddToGC(r,exe);
+	FklVMvalue* r=fklCreateVMvalueBigInt(exe,labs(bi->num));
+	FklVMbigInt* b=FKL_VM_BI(r);
+	FklBigInt t=
+	{
+		.digits=b->digits,
+		.num=b->num,
+		.size=labs(b->num),
+		.const_size=1,
+	};
+	fklSetBigInt(&t,bi);
 	return r;
 }
 
 FklVMvalue* fklCreateVMvalueBigIntWithI64(FklVM* exe
 		,int64_t i)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	fklSetBigIntI(FKL_VM_BI(r),i);
-	fklAddToGC(r,exe);
-	return r;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=
+	{
+		.digits=digits,
+		.num=0,
+		.size=FKL_MAX_INT64_DIGITS_COUNT,
+		.const_size=1,
+	};
+	fklSetBigIntI(&bi,i);
+	return fklCreateVMvalueBigInt2(exe,&bi);
 }
 
 FklVMvalue* fklCreateVMvalueBigIntWithU64(FklVM* exe
 		,uint64_t u)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	fklSetBigIntU(FKL_VM_BI(r),u);
-	fklAddToGC(r,exe);
-	return r;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=
+	{
+		.digits=digits,
+		.num=0,
+		.size=FKL_MAX_INT64_DIGITS_COUNT,
+		.const_size=1,
+	};
+	fklSetBigIntU(&bi,u);
+	return fklCreateVMvalueBigInt2(exe,&bi);
 }
 
 FklVMvalue* fklCreateVMvalueBigIntWithF64(FklVM* exe
 		,double d)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueBigInt);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_BIG_INT;
-	fklSetBigIntD(FKL_VM_BI(r),d);
-	fklAddToGC(r,exe);
-	return r;
+	FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
+	FklBigInt bi=
+	{
+		.digits=digits,
+		.num=0,
+		.size=FKL_MAX_INT64_DIGITS_COUNT,
+		.const_size=1,
+	};
+	fklSetBigIntD(&bi,d);
+	return fklCreateVMvalueBigInt2(exe,&bi);
 }
 
 FklVMvalue* fklCreateVMvalueProc(FklVM* exe

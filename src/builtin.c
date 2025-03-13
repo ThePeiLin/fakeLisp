@@ -1209,7 +1209,9 @@ static inline FklString* i64_to_string(int64_t num,uint8_t radix,FklBigIntFmtFla
 		.digits=digits,
 		.num=0,
 		.size=FKL_MAX_INT64_DIGITS_COUNT,
+		.const_size=1,
 	};
+	fklSetBigIntI(&b,num);
 	return fklBigIntToString(&b,radix,flags);
 }
 

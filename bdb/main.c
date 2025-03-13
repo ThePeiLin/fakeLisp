@@ -958,7 +958,7 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 		case FKL_OP_PUSH_BVEC:
 		case FKL_OP_PUSH_BVEC_C:
 		case FKL_OP_PUSH_BVEC_X:
-			imm1=fklCreateVMvalueBvec(exe,fklCopyBytevector(fklGetBvecConstWithIdx(kt,arg.ux)));
+			imm1=fklCreateVMvalueBvec(exe,fklGetBvecConstWithIdx(kt,arg.ux));
 			break;
 
 		case FKL_OP_PUSH_SYM:

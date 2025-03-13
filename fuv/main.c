@@ -6424,7 +6424,7 @@ static inline FklVMvalue* interface_addresses_to_vec(FklVM* exe
 				,ht);
 
 		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid)
-				,fklCreateVMvalueBvec(exe,fklCreateBytevector(sizeof(cur->phys_addr),(uint8_t*)cur->phys_addr))
+				,fklCreateVMvalueBvec2(exe,sizeof(cur->phys_addr),(const uint8_t*)cur->phys_addr)
 				,ht);
 
 		fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid)
@@ -6931,7 +6931,7 @@ static int fuv_random_cb_value_creator(FklVM* exe,void* a)
 	FklVMvalue* err=arg->status<0
 		?createUvErrorWithFpd(arg->status,exe,fpd)
 		:FKL_VM_NIL;
-	FklVMvalue* res=fklCreateVMvalueBvec(exe,fklCreateBytevector(arg->buflen,arg->buf));
+	FklVMvalue* res=fklCreateVMvalueBvec2(exe,arg->buflen,arg->buf);
 	FKL_VM_PUSH_VALUE(exe,res);
 	FKL_VM_PUSH_VALUE(exe,err);
 	return 0;
@@ -6980,7 +6980,7 @@ static int fuv_random(FKL_CPROC_ARGL)
 	else
 	{
 		uv_random_t req;
-		FklVMvalue* v=fklCreateVMvalueBvec(exe,fklCreateBytevector(len,NULL));
+		FklVMvalue* v=fklCreateVMvalueBvec2(exe,len,NULL);
 		FklBytevector* bvec=FKL_VM_BVEC(v);
 		int r=uv_random(&fuv_loop->loop,&req,bvec->ptr,len,0,NULL);
 		CHECK_UV_RESULT(r,exe,ctx->pd);

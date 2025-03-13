@@ -955,13 +955,13 @@ push_vec:
 			}
 			break;
 		case FKL_OP_PUSH_BVEC:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[ins->bu])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[ins->bu]));
 			break;
 		case FKL_OP_PUSH_BVEC_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[FKL_GET_INS_UC(ins)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_BVEC_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[GET_INS_UX(ins,frame)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_HASHEQ:
 			num=ins->bu;
@@ -2611,13 +2611,13 @@ push_vec:
 			}
 			break;
 		case FKL_OP_PUSH_BVEC:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[ins->bu])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[ins->bu]));
 			break;
 		case FKL_OP_PUSH_BVEC_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[FKL_GET_INS_UC(ins)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_BVEC_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[GET_INS_UX(ins,frame)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_HASHEQ:
 			num=ins->bu;
@@ -4266,13 +4266,13 @@ push_vec:
 			}
 			break;
 		case FKL_OP_PUSH_BVEC:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[ins->bu])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[ins->bu]));
 			break;
 		case FKL_OP_PUSH_BVEC_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[FKL_GET_INS_UC(ins)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_BVEC_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,fklCopyBytevector(exe->gc->kbvec[GET_INS_UX(ins,frame)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBvec(exe,exe->gc->kbvec[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_HASHEQ:
 			num=ins->bu;

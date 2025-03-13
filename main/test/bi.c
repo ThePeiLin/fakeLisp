@@ -1,9 +1,10 @@
 #include "fakeLisp/base.h"
 #include<fakeLisp/bigint.h>
-#include<assert.h>
 #include<string.h>
-#include<math.h>
 #include<stdio.h>
+#include<math.h>
+
+#define assert(expr) ((expr)?0:(fprintf(stderr,"expr: %s failed\n",#expr),abort(),0))
 
 #define A_BIG_NUM ((int64_t)4294967295)
 

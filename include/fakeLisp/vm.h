@@ -213,7 +213,7 @@ typedef struct
 typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
-	FklBytevector* bvec;
+	FklBytevector bvec;
 }FklVMvalueBvec;
 
 typedef struct
@@ -943,7 +943,9 @@ FklVMvalue* fklCreateVMvaluePairNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueStr(FklVM*,FklString* str);
 
-FklVMvalue* fklCreateVMvalueBvec(FklVM*,FklBytevector* bvec);
+FklVMvalue* fklCreateVMvalueBvec(FklVM*,const FklBytevector* bvec);
+
+FklVMvalue* fklCreateVMvalueBvec2(FklVM*,size_t size,const uint8_t*);
 
 FklVMvalue* fklCreateVMvalueVec(FklVM*,size_t);
 FklVMvalue* fklCreateVMvalueVecWithPtr(FklVM*,size_t,FklVMvalue* const*);
@@ -1049,7 +1051,7 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_STR(V) (((FklVMvalueStr*)(V))->str)
 
-#define FKL_VM_BVEC(V) (((FklVMvalueBvec*)(V))->bvec)
+#define FKL_VM_BVEC(V) (&((FklVMvalueBvec*)(V))->bvec)
 
 #define FKL_VM_VEC(V) (&(((FklVMvalueVec*)(V))->vec))
 

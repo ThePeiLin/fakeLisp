@@ -141,8 +141,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 							,cStack);
 					break;
 				case FKL_NAST_BYTEVECTOR:
-					fklPushPtrStack(fklCreateVMvalueBvec(vm
-								,fklCreateBytevector(root->bvec->size,root->bvec->ptr))
+					fklPushPtrStack(fklCreateVMvalueBvec2(vm,root->bvec->size,root->bvec->ptr)
 							,cStack);
 					break;
 				case FKL_NAST_BIG_INT:
@@ -478,7 +477,7 @@ static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueBvec(vm,fklCopyBytevector(FKL_VM_BVEC(obj)));
+	return fklCreateVMvalueBvec(vm,FKL_VM_BVEC(obj));
 }
 
 static FklVMvalue* __fkl_pair_copyer(FklVMvalue* obj,FklVM* vm)
@@ -846,11 +845,6 @@ static inline void uninit_string_value(FklVMvalue* v)
 	free(FKL_VM_STR(v));
 }
 
-static inline void uninit_bvec_value(FklVMvalue* v)
-{
-	free(FKL_VM_BVEC(v));
-}
-
 static inline void uninit_dvec_value(FklVMvalue* v)
 {
 	free(FKL_VM_DVEC(v)->base);
@@ -910,7 +904,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_nothing_value,  //vector
 		uninit_nothing_value,  //pair
 		uninit_nothing_value,  //box
-		uninit_bvec_value,     //bvec
+		uninit_nothing_value,  //bvec
 		uninit_ud_value,       //ud
 		uninit_proc_value,     //proc
 		uninit_nothing_value,  //chanl
@@ -1650,12 +1644,27 @@ FklVMvalue* fklCreateVMvalueStr(FklVM* exe,FklString* s)
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueBvec(FklVM* exe,FklBytevector* b)
+FklVMvalue* fklCreateVMvalueBvec(FklVM* exe,const FklBytevector* b)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueBvec)+b->size*sizeof(b->ptr[0]));
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_BYTEVECTOR;
-	FKL_VM_BVEC(r)=b;
+	FklBytevector* bvec=FKL_VM_BVEC(r);
+	bvec->size=b->size;
+	memcpy(bvec->ptr,b->ptr,bvec->size*sizeof(bvec->ptr[0]));
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueBvec2(FklVM* exe,size_t size,const uint8_t* ptr)
+{
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueBvec)+size*sizeof(ptr[0]));
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_BYTEVECTOR;
+	FklBytevector* bvec=FKL_VM_BVEC(r);
+	bvec->size=size;
+	if(ptr)
+		memcpy(bvec->ptr,ptr,bvec->size*sizeof(bvec->ptr[0]));
 	fklAddToGC(r,exe);
 	return r;
 }

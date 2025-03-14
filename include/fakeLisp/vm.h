@@ -11,6 +11,7 @@
 #include<stdio.h>
 #include<stdint.h>
 #include<setjmp.h>
+#include<string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -944,7 +945,11 @@ FklVMvalue* fklCreateVMvaluePairNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueStr(FklVM*,const FklString* str);
 FklVMvalue* fklCreateVMvalueStr2(FklVM*,size_t size,const char* str);
-FklVMvalue* fklCreateVMvalueStrFromCstr(FklVM*,const char* str);
+static inline FklVMvalue* fklCreateVMvalueStrFromCstr(FklVM* exe,const char* str)
+{
+	return fklCreateVMvalueStr2(exe,strlen(str),str);
+}
+
 
 FklVMvalue* fklCreateVMvalueBvec(FklVM*,const FklBytevector* bvec);
 FklVMvalue* fklCreateVMvalueBvec2(FklVM*,size_t size,const uint8_t*);

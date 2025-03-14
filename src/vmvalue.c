@@ -1661,11 +1661,6 @@ FklVMvalue* fklCreateVMvalueStr2(FklVM* exe,size_t size,const char* str)
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueStrFromCstr(FklVM* exe,const char* str)
-{
-	return fklCreateVMvalueStr2(exe,strlen(str),str);
-}
-
 FklVMvalue* fklCreateVMvalueBvec(FklVM* exe,const FklBytevector* b)
 {
 	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueBvec)+b->size*sizeof(b->ptr[0]));

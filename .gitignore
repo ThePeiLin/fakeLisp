@@ -21,6 +21,8 @@
 !CMakeLists.txt
 !/src/
 !/src/*
+!/src/**/
+!/src/**/*
 !/main/
 !/main/*
 !/main/**/

@@ -103,7 +103,7 @@ target_link_libraries(test-ins ${LIBFKL_TARGET_NAME})
 
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
-	"main/grammer/grammer.c")
+	"main/grammer.c")
 
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
@@ -184,7 +184,7 @@ add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 #ht.so
 add_library(ht
 	SHARED
-	"main/ht.c")
+	"src/ht/ht.c")
 set_target_properties(ht PROPERTIES
 	PREFIX "")
 target_link_libraries(ht ${LIBFKL_TARGET_NAME})
@@ -195,7 +195,7 @@ set_target_properties(ht PROPERTIES
 #os.so
 add_library(os
 	SHARED
-	"main/os.c")
+	"src/os/os.c")
 set_target_properties(os PROPERTIES
 	PREFIX "")
 target_link_libraries(os ${LIBFKL_TARGET_NAME})
@@ -206,7 +206,7 @@ set_target_properties(os PROPERTIES
 #math.so
 add_library(math
 	SHARED
-	"main/math.c")
+	"src/math/math.c")
 set_target_properties(math PROPERTIES
 	PREFIX "")
 target_link_libraries(math ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
@@ -217,7 +217,7 @@ set_target_properties(math PROPERTIES
 #sync.so
 add_library(sync
 	SHARED
-	"main/sync.c")
+	"src/sync/sync.c")
 set_target_properties(sync PROPERTIES
 	PREFIX "")
 target_link_libraries(sync ${LIBFKL_TARGET_NAME})
@@ -228,7 +228,7 @@ set_target_properties(sync PROPERTIES
 #fs.so
 add_library(fs
 	SHARED
-	"main/fs.c")
+	"src/fs/fs.c")
 set_target_properties(fs PROPERTIES
 	PREFIX "")
 target_link_libraries(fs ${LIBFKL_TARGET_NAME})
@@ -237,7 +237,7 @@ set_target_properties(fs PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 #bdb.so
-file(GLOB BDB_SOURCE "bdb/*.c")
+file(GLOB BDB_SOURCE "src/bdb/*.c")
 
 add_library(bdb
 	SHARED
@@ -250,7 +250,7 @@ set_target_properties(bdb PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 #fuv.so
-file(GLOB FUV_SOURCE "fuv/*.c")
+file(GLOB FUV_SOURCE "src/fuv/*.c")
 
 add_library(fuv
 	SHARED
@@ -310,23 +310,23 @@ set_target_properties(test-dll PROPERTIES
 add_custom_command(OUTPUT "parse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
 	"parse.c"
-	${PROJECT_SOURCE_DIR}/main/grammer/action.c
+	${PROJECT_SOURCE_DIR}/src/grammer/action.c
 	"fklNastTerminalCreate"
 	"fklDestroyNastNode"
 	"fklNastPushState0ToStack"
 
-	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/grammer/action.c
+	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/action.c
 	VERBATIM)
 
 add_custom_command(OUTPUT "vmparse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
 	"vmparse.c"
-	${PROJECT_SOURCE_DIR}/main/grammer/vmaction.c
+	${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
 	"fklVMvalueTerminalCreate"
 	"fklVMvalueTerminalDestroy"
 	"fklVMvaluePushState0ToStack"
 
-	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/main/grammer/vmaction.c
+	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
 	VERBATIM)
 
 add_test(NAME test-lexer

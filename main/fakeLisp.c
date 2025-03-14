@@ -683,8 +683,6 @@ static void loadLib(FILE* fp
 			FklVMvalue* sv=fklCreateVMvalueStr2(exe,len,NULL);
 			FklString* s=FKL_VM_STR(sv);
 			fread(s->str,len,1,fp);
-			// FklVMvalue* stringValue=fklCreateVMvalueStr(exe,s);
-			// fklInitVMlib(&libs[i],stringValue);
 			fklInitVMlib(&libs[i],sv);
 		}
 	}

@@ -1920,7 +1920,6 @@ FklVMvalue* fklVMstringify(FklVMvalue* value,FklVM* exe)
 	FklVMvalue* retval=fklCreateVMvalueStr2(exe
 			,fklStringBufferLen(&result)
 			,fklStringBufferBody(&result));
-	// FklString* retval=fklStringBufferToString(&result);
 	fklUninitStringBuffer(&result);
 	return retval;
 }
@@ -1933,7 +1932,6 @@ FklVMvalue* fklVMstringifyAsPrinc(FklVMvalue* value,FklVM* exe)
 			,&result
 			,atom_as_princ_string
 			,exe->gc);
-	// FklString* retval=fklStringBufferToString(&result);
 	FklVMvalue* retval=fklCreateVMvalueStr2(exe
 			,fklStringBufferLen(&result)
 			,fklStringBufferBody(&result));

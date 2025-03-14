@@ -141,7 +141,7 @@ static FklVMvalue* __fkl_str_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t
 			return NULL;
 	}
 	FklVMvalue* retval=fklCreateVMvalueStr2(exe,new_size,NULL);
-	FklString* str=FKL_VM_STR(retval);//fklCreateString(new_size,NULL);
+	FklString* str=FKL_VM_STR(retval);
 	new_size=FKL_VM_STR(v)->size;
 	memcpy(str->str,FKL_VM_STR(v)->str,new_size*sizeof(char));
 	for(int64_t i=0;i<argc;i++)
@@ -151,7 +151,7 @@ static FklVMvalue* __fkl_str_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t
 		memcpy(&str->str[new_size],FKL_VM_STR(cur)->str,ss*sizeof(char));
 		new_size+=ss;
 	}
-	return retval;//fklCreateVMvalueStr(exe,str);
+	return retval;
 }
 
 static FklVMvalue* __fkl_vec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
@@ -350,31 +350,6 @@ static int builtin_append(FKL_CPROC_ARGL)
 
 typedef int (*VMvalueAppender)(FklVMvalue* v,uint32_t argc,FklVMvalue* const* top);
 
-// static int __fkl_str_append(FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
-// {
-// 	uint64_t new_size=FKL_VM_STR(v)->size;
-// 	for(int64_t i=0;i<argc;i++)
-// 	{
-// 		FklVMvalue* cur=top[-i];
-// 		if(FKL_IS_STR(cur))
-// 			new_size+=FKL_VM_STR(cur)->size;
-// 		else
-// 			return 1;
-// 	}
-// 	FklString* str=fklStringRealloc(FKL_VM_STR(v),new_size);
-// 	new_size=str->size;
-// 	for(int64_t i=0;i<argc;i++)
-// 	{
-// 		FklVMvalue* cur=top[-i];
-// 		size_t ss=FKL_VM_STR(cur)->size;
-// 		memcpy(&str->str[new_size],FKL_VM_STR(cur)->str,ss*sizeof(char));
-// 		new_size+=ss;
-// 	}
-// 	str->size=new_size;
-// 	FKL_VM_STR(v)=str;
-// 	return 0;
-// }
-
 static int __fkl_pair_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const* top)
 {
 	if(argc)
@@ -469,7 +444,7 @@ static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 {
 	NULL,
 	NULL,
-	NULL,//__fkl_str_append,
+	NULL,
 	NULL,
 	__fkl_pair_append,
 	NULL,
@@ -1258,28 +1233,21 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 	{
 		char r[1]={FKL_GET_CHR(obj)};
 		retval=fklCreateVMvalueStr2(exe,1,r);
-		// FklString* r=fklCreateString(1,NULL);
-		// r->str[0]=FKL_GET_CHR(obj);
-		// retval=fklCreateVMvalueStr(exe,r);
 	}
 	else if(fklIsVMnumber(obj))
 	{
-		// retval=fklCreateVMvalueStr(exe,NULL);
 		if(fklIsVMint(obj))
 		{
 			if(FKL_IS_BIG_INT(obj))
 				retval=vmbigint_to_string(exe,FKL_VM_BI(obj),10,FKL_BIGINT_FMT_FLAG_NONE);
-				// FKL_VM_STR(retval)=bigint_to_string(FKL_VM_BI(obj),10,FKL_BIGINT_FMT_FLAG_NONE);
 			else
 				retval=i64_to_string(exe,FKL_GET_FIX(obj),10,FKL_BIGINT_FMT_FLAG_NONE);
-				// FKL_VM_STR(retval)=i64_to_string(FKL_GET_FIX(obj),10,FKL_BIGINT_FMT_FLAG_NONE);
 		}
 		else
 		{
 			char buf[64]={0};
 			size_t size=fklWriteDoubleToBuf(buf,64,FKL_VM_F64(obj));
 			retval=fklCreateVMvalueStr2(exe,size,buf);
-			// FKL_VM_STR(retval)=fklCreateString(size,buf);
 		}
 	}
 	else if(FKL_IS_BYTEVECTOR(obj))
@@ -1385,7 +1353,6 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 	FklVMvalue* radix=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(obj,fklIsVMnumber,exe);
-	// FklVMvalue* retval=fklCreateVMvalueStr(exe,NULL);
 	FklVMvalue* retval=NULL;
 	if(fklIsVMint(obj))
 	{
@@ -1403,16 +1370,10 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 					,FKL_VM_BI(obj)
 					,base
 					,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
-			// FKL_VM_STR(retval)=bigint_to_string(FKL_VM_BI(obj)
-			// 		,base
-			// 		,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
 		else
 			retval=i64_to_string(exe,FKL_GET_FIX(obj)
 					,base
 					,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
-			// FKL_VM_STR(retval)=i64_to_string(FKL_GET_FIX(obj)
-			// 		,base
-			// 		,FKL_BIGINT_FMT_FLAG_ALTERNATE|FKL_BIGINT_FMT_FLAG_CAPITALS);
 	}
 	else
 	{
@@ -1432,7 +1393,6 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 		else
 			size=snprintf(buf,64,"%a",FKL_VM_F64(obj));
 		retval=fklCreateVMvalueStr2(exe,size,buf);
-		// FKL_VM_STR(retval)=fklCreateString(size,buf);
 	}
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
@@ -1444,7 +1404,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 	FklVMvalue* radix=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(obj,fklIsVMint,exe);
-	FklVMvalue* retval=NULL;//fklCreateVMvalueStr(exe,NULL);
+	FklVMvalue* retval=NULL;
 	uint32_t base=10;
 	if(radix)
 	{
@@ -1459,12 +1419,8 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 				,FKL_VM_BI(obj)
 				,base
 				,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
-		// FKL_VM_STR(retval)=bigint_to_string(FKL_VM_BI(obj)
-		// 		,base
-		// 		,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
 	else
 		retval=i64_to_string(exe,FKL_GET_FIX(obj),base,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
-		// FKL_VM_STR(retval)=i64_to_string(FKL_GET_FIX(obj),base,FKL_BIGINT_FMT_FLAG_CAPITALS|FKL_BIGINT_FMT_FLAG_ALTERNATE);
 	FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }
@@ -1474,12 +1430,9 @@ static int builtin_f64_to_string(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(obj,FKL_IS_F64,exe);
-	// FklVMvalue* retval=fklCreateVMvalueStr(exe,NULL);
 	char buf[64]={0};
 	size_t size=fklWriteDoubleToBuf(buf,64,FKL_VM_F64(obj));
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr2(exe,size,buf));
-	// FKL_VM_STR(retval)=fklCreateString(size,buf);
-	// FKL_VM_PUSH_VALUE(exe,retval);
 	return 0;
 }
 

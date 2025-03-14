@@ -295,7 +295,6 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 			if(line_str)
 			{
 				FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,line_str);
-				// const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
 				FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklGetSymbolWithId(ln->fid,dctx->st)->symbol);
 
 				FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);

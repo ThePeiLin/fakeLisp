@@ -838,11 +838,6 @@ static inline void uninit_nothing_value(FklVMvalue* v)
 {
 }
 
-// static inline void uninit_string_value(FklVMvalue* v)
-// {
-// 	free(FKL_VM_STR(v));
-// }
-
 static inline void uninit_dvec_value(FklVMvalue* v)
 {
 	free(FKL_VM_DVEC(v)->base);
@@ -1635,13 +1630,11 @@ FklVMvalue* fklCreateVMvalueF64(FklVM* exe,double d)
 FklVMvalue* fklCreateVMvalueStr(FklVM* exe,const FklString* s)
 {
 	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueStr)+s->size*sizeof(s->str[0]));
-	// FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_STR;
 	FklString* rs=FKL_VM_STR(r);
 	rs->size=s->size;
 	memcpy(rs->str,s->str,rs->size*sizeof(rs->str[0]));
-	// FKL_VM_STR(r)=s;
 	fklAddToGC(r,exe);
 	return r;
 }
@@ -1649,14 +1642,12 @@ FklVMvalue* fklCreateVMvalueStr(FklVM* exe,const FklString* s)
 FklVMvalue* fklCreateVMvalueStr2(FklVM* exe,size_t size,const char* str)
 {
 	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueStr)+size*sizeof(str[0]));
-	// FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_STR;
 	FklString* rs=FKL_VM_STR(r);
 	rs->size=size;
 	if(str)
 		memcpy(rs->str,str,rs->size*sizeof(rs->str[0]));
-	// FKL_VM_STR(r)=s;
 	fklAddToGC(r,exe);
 	return r;
 }

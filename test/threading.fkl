@@ -3,36 +3,36 @@
 
 (define (producer no.)
   (define number-str (number->string no.))
-  (princ (append! "producer no."
-                  number-str
-                  " start!\n"))
+  (princ (append "producer no."
+                 number-str
+                 " start!\n"))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append! "producer no."
-                    number-str
-                    ": "
-                    (number->string c)
-                    "\n"))
+    (princ (append "producer no."
+                   number-str
+                   ": "
+                   (number->string c)
+                   "\n"))
     (send buf c))
-  (princ (append! "producer no."
-                  number-str
-                  " exit\n")))
+  (princ (append "producer no."
+                 number-str
+                 " exit\n")))
 
 (define (consumer no.)
   (define number-str (number->string no.))
-  (princ (append! "consumer no."
-                  number-str
-                  " start!\n"))
+  (princ (append "consumer no."
+                 number-str
+                 " start!\n"))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append! "consumer no."
-                    number-str
-                    ": "
-                    (number->string (recv buf))
-                    "\n")))
-  (princ (append! "consumer no."
-                  number-str
-                  " exit\n")))
+    (princ (append "consumer no."
+                   number-str
+                   ": "
+                   (number->string (recv buf))
+                   "\n")))
+  (princ (append "consumer no."
+                 number-str
+                 " exit\n")))
 
 (define chanls '())
 

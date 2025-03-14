@@ -136,9 +136,7 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 					fklPushPtrStack(fklCreateVMvalueF64(vm,root->f64),cStack);
 					break;
 				case FKL_NAST_STR:
-					fklPushPtrStack(fklCreateVMvalueStr(vm
-								,fklCopyString(root->str))
-							,cStack);
+					fklPushPtrStack(fklCreateVMvalueStr(vm,root->str),cStack);
 					break;
 				case FKL_NAST_BYTEVECTOR:
 					fklPushPtrStack(fklCreateVMvalueBvec2(vm,root->bvec->size,root->bvec->ptr)
@@ -472,7 +470,7 @@ static FklVMvalue* __fkl_vector_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_str_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	return fklCreateVMvalueStr(vm,fklCopyString(FKL_VM_STR(obj)));
+	return fklCreateVMvalueStr(vm,FKL_VM_STR(obj));
 }
 
 static FklVMvalue* __fkl_bytevector_copyer(FklVMvalue* obj,FklVM* vm)
@@ -840,10 +838,10 @@ static inline void uninit_nothing_value(FklVMvalue* v)
 {
 }
 
-static inline void uninit_string_value(FklVMvalue* v)
-{
-	free(FKL_VM_STR(v));
-}
+// static inline void uninit_string_value(FklVMvalue* v)
+// {
+// 	free(FKL_VM_STR(v));
+// }
 
 static inline void uninit_dvec_value(FklVMvalue* v)
 {
@@ -900,7 +898,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 	{
 		uninit_nothing_value,  //f64
 		uninit_nothing_value,  //big-int
-		uninit_string_value,   //string
+		uninit_nothing_value,  //string
 		uninit_nothing_value,  //vector
 		uninit_nothing_value,  //pair
 		uninit_nothing_value,  //box
@@ -1634,14 +1632,38 @@ FklVMvalue* fklCreateVMvalueF64(FklVM* exe,double d)
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueStr(FklVM* exe,FklString* s)
+FklVMvalue* fklCreateVMvalueStr(FklVM* exe,const FklString* s)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueStr)+s->size*sizeof(s->str[0]));
+	// FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
 	FKL_ASSERT(r);
 	r->type=FKL_TYPE_STR;
-	FKL_VM_STR(r)=s;
+	FklString* rs=FKL_VM_STR(r);
+	rs->size=s->size;
+	memcpy(rs->str,s->str,rs->size*sizeof(rs->str[0]));
+	// FKL_VM_STR(r)=s;
 	fklAddToGC(r,exe);
 	return r;
+}
+
+FklVMvalue* fklCreateVMvalueStr2(FklVM* exe,size_t size,const char* str)
+{
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueStr)+size*sizeof(str[0]));
+	// FklVMvalue* r=NEW_OBJ(FklVMvalueStr);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_STR;
+	FklString* rs=FKL_VM_STR(r);
+	rs->size=size;
+	if(str)
+		memcpy(rs->str,str,rs->size*sizeof(rs->str[0]));
+	// FKL_VM_STR(r)=s;
+	fklAddToGC(r,exe);
+	return r;
+}
+
+FklVMvalue* fklCreateVMvalueStrFromCstr(FklVM* exe,const char* str)
+{
+	return fklCreateVMvalueStr2(exe,strlen(str),str);
 }
 
 FklVMvalue* fklCreateVMvalueBvec(FklVM* exe,const FklBytevector* b)
@@ -2282,8 +2304,7 @@ void fklFinalizeVMud(FklVMud* a)
 void* fklVMvalueTerminalCreate(const char* s,size_t len,size_t line,void* ctx)
 {
 	FklVM* exe=(FklVM*)ctx;
-	FklString* str=fklCreateString(len,s);
-	return fklCreateVMvalueStr(exe,str);
+	return fklCreateVMvalueStr2(exe,len,s);
 }
 
 void fklVMvalueTerminalDestroy(void* ast)

@@ -713,13 +713,13 @@ start:
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_STR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[ins->bu])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[ins->bu]));
 			break;
 		case FKL_OP_PUSH_STR_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[FKL_GET_INS_UC(ins)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_STR_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[GET_INS_UX(ins,frame)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_SYM:
 			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->bu));
@@ -2369,13 +2369,13 @@ start:
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_STR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[ins->bu])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[ins->bu]));
 			break;
 		case FKL_OP_PUSH_STR_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[FKL_GET_INS_UC(ins)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_STR_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[GET_INS_UX(ins,frame)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_SYM:
 			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->bu));
@@ -4024,13 +4024,13 @@ void fklVMexecuteInstruction(FklVM* exe,FklOpcode op,FklInstruction* ins,FklVMfr
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,exe->gc->kf64[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_STR:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[ins->bu])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[ins->bu]));
 			break;
 		case FKL_OP_PUSH_STR_C:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[FKL_GET_INS_UC(ins)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[FKL_GET_INS_UC(ins)]));
 			break;
 		case FKL_OP_PUSH_STR_X:
-			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCopyString(exe->gc->kstr[GET_INS_UX(ins,frame)])));
+			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,exe->gc->kstr[GET_INS_UX(ins,frame)]));
 			break;
 		case FKL_OP_PUSH_SYM:
 			FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(ins->bu));

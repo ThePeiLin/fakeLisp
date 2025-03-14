@@ -1,5 +1,6 @@
 #include"bdb.h"
 #include<fakeLisp/builtin.h>
+#include<string.h>
 
 typedef struct
 {
@@ -293,9 +294,9 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL)
 			const FklString* line_str=getCurLineStr(dctx,ln->fid,ln->line);
 			if(line_str)
 			{
-				FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,fklCopyString(line_str));
-				const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
-				FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklCopyString(file_str));
+				FklVMvalue* line_str_value=fklCreateVMvalueStr(exe,line_str);
+				// const FklString* file_str=fklGetSymbolWithId(ln->fid,dctx->st)->symbol;
+				FklVMvalue* file_str_value=fklCreateVMvalueStr(exe,fklGetSymbolWithId(ln->fid,dctx->st)->symbol);
 
 				FklVMvalue* line_num_value=FKL_MAKE_VM_FIX(ln->line);
 				FklVMvalue* r=fklCreateVMvalueVec3(exe
@@ -321,7 +322,7 @@ static inline FklVMvalue* create_breakpoint_vec(FklVM* exe
 		,DebugCtx* dctx
 		,const Breakpoint* bp)
 {
-	FklVMvalue* filename=fklCreateVMvalueStr(exe,fklCopyString(fklGetSymbolWithId(bp->fid,dctx->st)->symbol));
+	FklVMvalue* filename=fklCreateVMvalueStr(exe,fklGetSymbolWithId(bp->fid,dctx->st)->symbol);
 	FklVMvalue* line=FKL_MAKE_VM_FIX(bp->line);
 	FklVMvalue* num=FKL_MAKE_VM_FIX(bp->idx);
 
@@ -509,8 +510,8 @@ done:
 	{
 error:
 		FKL_VM_PUSH_VALUE(exe
-				,fklCreateVMvalueStr(exe
-					,fklCreateStringFromCstr(getPutBreakpointErrorInfo(err))));
+				,fklCreateVMvalueStrFromCstr(exe
+					,getPutBreakpointErrorInfo(err)));
 	}
 	return 0;
 }
@@ -601,8 +602,8 @@ done:
 	{
 error:
 		FKL_VM_PUSH_VALUE(exe
-				,fklCreateVMvalueStr(exe
-					,fklCreateStringFromCstr(getPutBreakpointErrorInfo(err))));
+				,fklCreateVMvalueStrFromCstr(exe
+					,getPutBreakpointErrorInfo(err)));
 	}
 	return 0;
 }
@@ -738,7 +739,7 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 
 			FklVMvalue* num_val=FKL_MAKE_VM_FIX(curline_num);
 			FklVMvalue* is_cur_line=curline_num==dctx->curline?FKL_VM_TRUE:FKL_VM_NIL;
-			FklVMvalue* str_val=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+			FklVMvalue* str_val=fklCreateVMvalueStr(exe,line_str);
 
 			FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
 						,num_val
@@ -753,7 +754,7 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL)
 
 		FklVMvalue* num_val=FKL_MAKE_VM_FIX(curline_num);
 		FklVMvalue* is_cur_line=curline_num==dctx->curline?FKL_VM_TRUE:FKL_VM_NIL;
-		FklVMvalue* str_val=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+		FklVMvalue* str_val=fklCreateVMvalueStr(exe,line_str);
 
 		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
 					,num_val
@@ -811,7 +812,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL)
 		FklVMvalue* is_cur_line=(fid==dctx->curline_file&&target_line==dctx->curline)
 			?FKL_VM_TRUE
 			:FKL_VM_NIL;
-		FklVMvalue* str_val=fklCreateVMvalueStr(exe,fklCopyString(line_str));
+		FklVMvalue* str_val=fklCreateVMvalueStr(exe,line_str);
 
 		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueVec3(exe
 					,num_val
@@ -921,7 +922,7 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 		,FklVMvalue* is_cur_ins
 		,const FklInstruction* ins)
 {
-	FklVMvalue* opcode_str=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(fklGetOpcodeName(ins->op)));
+	FklVMvalue* opcode_str=fklCreateVMvalueStrFromCstr(exe,fklGetOpcodeName(ins->op));
 	FklVMvalue* imm1=NULL;
 	FklVMvalue* imm2=NULL;
 	FklOpcode op=ins->op==FKL_OP_DUMMY?getBreakpointHashItem(dctx,ins)->origin_op:ins->op;
@@ -952,7 +953,7 @@ static inline FklVMvalue* create_ins_vec(FklVM* exe
 		case FKL_OP_PUSH_STR:
 		case FKL_OP_PUSH_STR_C:
 		case FKL_OP_PUSH_STR_X:
-			imm1=fklCreateVMvalueStr(exe,fklCopyString(fklGetStrConstWithIdx(kt,arg.ux)));
+			imm1=fklCreateVMvalueStr(exe,fklGetStrConstWithIdx(kt,arg.ux));
 			break;
 
 		case FKL_OP_PUSH_BVEC:

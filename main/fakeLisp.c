@@ -680,10 +680,12 @@ static void loadLib(FILE* fp
 		{
 			uint64_t len=0;
 			fread(&len,sizeof(uint64_t),1,fp);
-			FklString* s=fklCreateString(len,NULL);
+			FklVMvalue* sv=fklCreateVMvalueStr2(exe,len,NULL);
+			FklString* s=FKL_VM_STR(sv);
 			fread(s->str,len,1,fp);
-			FklVMvalue* stringValue=fklCreateVMvalueStr(exe,s);
-			fklInitVMlib(&libs[i],stringValue);
+			// FklVMvalue* stringValue=fklCreateVMvalueStr(exe,s);
+			// fklInitVMlib(&libs[i],stringValue);
+			fklInitVMlib(&libs[i],sv);
 		}
 	}
 }

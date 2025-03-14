@@ -11,10 +11,10 @@
       (define field (car cur))
       (if (eq field name)
         (throw 'invalid-member-name
-               (append! "member name cannot be " (stringify name))))
+               (append "member name cannot be " (stringify name))))
       (if (hash-ref field-idx-ht field ())
         (throw 'duplicate-member
-               (append! "duplicate member " (stringify field))))
+               (append "duplicate member " (stringify field))))
       (hash-set! field-idx-ht field idx))
     (define name-str (symbol->string name))
     (define type-checker-name (string->symbol (append name-str "?")))
@@ -25,7 +25,7 @@
         'from
         (lambda
           (from-type)
-          (string->symbol (append! (symbol->string from-type) "->" name-str)))
+          (string->symbol (append (symbol->string from-type) "->" name-str)))
         'to
         (lambda
           (from-type)
@@ -51,13 +51,13 @@
                     "method head should be list or symbol")]))
       (if (hash-ref method-names method-name ())
         (throw 'duplicate-member
-               (append! "duplicate member " (stringify method-name))))
+               (append "duplicate member " (stringify method-name))))
       (hash-set! method-names method-name 1)
       `(define (~method-name,~args),~body))
 
     `(begin
        (define
-         (~(string->symbol (append! "make-" name-str)),~fields)
+         (~(string->symbol (append "make-" name-str)),~fields)
          (vector (quote ~name),~fields))
        (define (~type-checker-name ~name)
          (and

@@ -183,7 +183,8 @@ typedef struct
 typedef struct
 {
 	FKL_VM_VALUE_COMMON_HEADER;
-	FklString* str;
+	// FklString* str;
+	FklString str;
 }FklVMvalueStr;
 
 typedef struct
@@ -817,8 +818,8 @@ void fklDestroyAllValues(FklVMgc*);
 void fklDBG_printVMvalue(FklVMvalue*,FILE*,FklVMgc* gc);
 void fklDBG_printVMstack(FklVM*,FILE*,int,FklVMgc* gc);
 
-FklString* fklVMstringify(FklVMvalue*,FklVMgc*);
-FklString* fklVMstringifyAsPrinc(FklVMvalue*,FklVMgc*);
+FklVMvalue* fklVMstringify(FklVMvalue*,FklVM*);
+FklVMvalue* fklVMstringifyAsPrinc(FklVMvalue*,FklVM*);
 void fklPrintVMvalue(FklVMvalue* value
 		,FILE* fp
 		,void(*atomPrinter)(FklVMvalue* v,FILE* fp,FklStringBuffer* buffer,FklVMgc* gc)
@@ -941,10 +942,11 @@ FklVMvalue* fklCreateVMvaluePair(FklVM*,FklVMvalue* car,FklVMvalue* cdr);
 FklVMvalue* fklCreateVMvaluePairWithCar(FklVM*,FklVMvalue* car);
 FklVMvalue* fklCreateVMvaluePairNil(FklVM*);
 
-FklVMvalue* fklCreateVMvalueStr(FklVM*,FklString* str);
+FklVMvalue* fklCreateVMvalueStr(FklVM*,const FklString* str);
+FklVMvalue* fklCreateVMvalueStr2(FklVM*,size_t size,const char* str);
+FklVMvalue* fklCreateVMvalueStrFromCstr(FklVM*,const char* str);
 
 FklVMvalue* fklCreateVMvalueBvec(FklVM*,const FklBytevector* bvec);
-
 FklVMvalue* fklCreateVMvalueBvec2(FklVM*,size_t size,const uint8_t*);
 
 FklVMvalue* fklCreateVMvalueVec(FklVM*,size_t);
@@ -1049,7 +1051,7 @@ int fklIsVMeofUd(FklVMvalue* v);
 #define FKL_VM_CAR(V) (((FklVMvaluePair*)(V))->pair.car)
 #define FKL_VM_CDR(V) (((FklVMvaluePair*)(V))->pair.cdr)
 
-#define FKL_VM_STR(V) (((FklVMvalueStr*)(V))->str)
+#define FKL_VM_STR(V) (&((FklVMvalueStr*)(V))->str)
 
 #define FKL_VM_BVEC(V) (&((FklVMvalueBvec*)(V))->bvec)
 

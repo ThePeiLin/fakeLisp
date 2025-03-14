@@ -82,7 +82,7 @@ static inline void* prod_action_string(void* outerCtx
 	char* s=fklCastEscapeCharBuf(&cstr[start_size],str->size-end_size-start_size,&size);
 
 	FklVM* exe=(FklVM*)outerCtx;
-	FklVMvalue* retval=fklCreateVMvalueStr(exe,fklCreateString(size,s));
+	FklVMvalue* retval=fklCreateVMvalueStr2(exe,size,s);
 
 	free(s);
 	return retval;

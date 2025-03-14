@@ -67,9 +67,6 @@
 (prin1n (append s "bar" "114" "514"))
 (assert (equal (append s "bar" "114" "514")
                "foobar114514"))
-(append! s "bar" "114" "514")
-(prin1n s)
-(assert (equal s "foobar114514"))
 
 (define b #vu8(1 2 3))
 (prin1n (append b #vu8(4 5 6) #vu8(11 22 33) #vu8(44 55 66)))

@@ -169,36 +169,36 @@
 
 (define (producer no.)
   (define number-str (number->string no.))
-  (princ (append! "producer no."
-                  number-str
-                  " start!\n"))
+  (princ (append "producer no."
+                 number-str
+                 " start!\n"))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append! "producer no."
-                    number-str
-                    ": "
-                    (number->string c)
-                    "\n"))
+    (princ (append "producer no."
+                   number-str
+                   ": "
+                   (number->string c)
+                   "\n"))
     (my-chanl-send buf c))
-  (princ (append! "producer no."
-                  number-str
-                  " exit\n")))
+  (princ (append "producer no."
+                 number-str
+                 " exit\n")))
 
 (define (consumer no.)
   (define number-str (number->string no.))
-  (princ (append! "consumer no."
-                  number-str
-                  " start!\n"))
+  (princ (append "consumer no."
+                 number-str
+                 " start!\n"))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append! "consumer no."
-                    number-str
-                    ": "
-                    (number->string (my-chanl-recv buf))
-                    "\n")))
-  (princ (append! "consumer no."
-                  number-str
-                  " exit\n")))
+    (princ (append "consumer no."
+                   number-str
+                   ": "
+                   (number->string (my-chanl-recv buf))
+                   "\n")))
+  (princ (append "consumer no."
+                 number-str
+                 " exit\n")))
 
 (define chanls '())
 
@@ -219,15 +219,15 @@
   (do [(n 0 (1+ n))]
     [(>= n max)]
     (rwlock-rdlock rwlock)
-    (princ (append! "count: "
-                    (stringify count)
-                    " in thread no."
-                    (stringify no.)
-                    "\n"))
+    (princ (append "count: "
+                   (stringify count)
+                   " in thread no."
+                   (stringify no.)
+                   "\n"))
     (rwlock-rdunlock rwlock))
-  (princ (append! "print-count thread no."
-                  (stringify no.)
-                  " exit\n")))
+  (princ (append "print-count thread no."
+                 (stringify no.)
+                 " exit\n")))
 
 (define (inc-count no. max)
   (do [(n 0 (1+ n))]
@@ -235,17 +235,17 @@
     (rwlock-wrlock rwlock)
     (define before count)
     (setq count (1+ count))
-    (princ (append! "inc count from "
-                    (stringify before)
-                    " to "
-                    (stringify count)
-                    " in thread no."
-                    (stringify no.)
-                    "\n"))
+    (princ (append "inc count from "
+                   (stringify before)
+                   " to "
+                   (stringify count)
+                   " in thread no."
+                   (stringify no.)
+                   "\n"))
     (rwlock-wrunlock rwlock))
-  (princ (append! "inc-count thread no."
-                  (stringify no.)
-                  " exit\n")))
+  (princ (append "inc-count thread no."
+                 (stringify no.)
+                 " exit\n")))
 
 (define chanls '())
 
@@ -271,13 +271,13 @@
     (rwlock-wrlock rwlock)
     (define before count)
     (setq count (1+ count))
-    (princ (append! "inc count from "
-                    (stringify before)
-                    " to "
-                    (stringify count)
-                    " in thread no."
-                    (stringify no.)
-                    "\n"))
+    (princ (append "inc count from "
+                   (stringify before)
+                   " to "
+                   (stringify count)
+                   " in thread no."
+                   (stringify no.)
+                   "\n"))
     (rwlock-wrunlock rwlock)))
 
 (define chanls '())

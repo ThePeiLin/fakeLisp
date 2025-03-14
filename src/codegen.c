@@ -11236,7 +11236,7 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib* clib
 		val=proc;
 	}
 	else
-		val=fklCreateVMvalueStr(exe,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp));
+		val=fklCreateVMvalueStr2(exe,strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp);
 	fklInitVMlib(vlib,val);
 }
 
@@ -11255,7 +11255,7 @@ void fklInitVMlibWithCodegenLib(FklCodegenLib* clib
 		val=proc;
 	}
 	else
-		val=fklCreateVMvalueStr(exe,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp));
+		val=fklCreateVMvalueStr2(exe,strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp);
 	fklInitVMlib(vlib,val);
 }
 
@@ -11281,7 +11281,7 @@ void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib* clib
 	}
 	else
 	{
-		val=fklCreateVMvalueStr(exe,fklCreateString(strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp));
+		val=fklCreateVMvalueStr2(exe,strlen(clib->rp)-strlen(FKL_DLL_FILE_TYPE),clib->rp);
 		uv_dlclose(&clib->dll);
 	}
 	fklInitVMlib(vlib,val);

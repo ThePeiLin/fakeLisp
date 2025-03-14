@@ -47,7 +47,7 @@ static int os_date(FKL_CPROC_ARGL)
 				,tblock->tm_min
 				,tblock->tm_sec);
 
-		FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+		FklVMvalue* tmpVMvalue=fklCreateVMvalueStr2(exe,buf.index,buf.buf);
 		fklUninitStringBuffer(&buf);
 
 		FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
@@ -69,7 +69,7 @@ static int os_date(FKL_CPROC_ARGL)
 			fklStringBufferReverse(&buf,n+1);
 			buf.index=n;
 
-			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr2(exe,buf.index,buf.buf);
 			fklUninitStringBuffer(&buf);
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
@@ -92,7 +92,7 @@ static int os_date(FKL_CPROC_ARGL)
 			fklStringBufferReverse(&buf,n+1);
 			buf.index=n;
 
-			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr2(exe,buf.index,buf.buf);
 			fklUninitStringBuffer(&buf);
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
@@ -110,7 +110,7 @@ static int os_date(FKL_CPROC_ARGL)
 			fklStringBufferReverse(&buf,n+1);
 			buf.index=n;
 
-			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr(exe,fklCreateString(buf.index,buf.buf));
+			FklVMvalue* tmpVMvalue=fklCreateVMvalueStr2(exe,buf.index,buf.buf);
 			fklUninitStringBuffer(&buf);
 			FKL_VM_PUSH_VALUE(exe,tmpVMvalue);
 		}
@@ -158,7 +158,7 @@ static int os_getcwd(FKL_CPROC_ARGL)
 {
 	FKL_CHECK_REST_ARG(exe);
 	char* cwd=fklSysgetcwd();
-	FklVMvalue* s=fklCreateVMvalueStr(exe,fklCreateStringFromCstr(cwd));
+	FklVMvalue* s=fklCreateVMvalueStrFromCstr(exe,cwd);
 	free(cwd);
 	FKL_VM_PUSH_VALUE(exe,s);
 	return 0;
@@ -170,8 +170,8 @@ static int os_getenv(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(name,FKL_IS_STR,exe);
 	const FklString* name_str=FKL_VM_STR(name);
-	char* env_var=getenv(name_str->str);
-	FKL_VM_PUSH_VALUE(exe,env_var?fklCreateVMvalueStr(exe,fklCreateStringFromCstr(env_var)):FKL_VM_NIL);
+	const char* env_var=getenv(name_str->str);
+	FKL_VM_PUSH_VALUE(exe,env_var?fklCreateVMvalueStrFromCstr(exe,env_var):FKL_VM_NIL);
 	return 0;
 }
 

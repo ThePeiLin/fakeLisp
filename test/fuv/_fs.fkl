@@ -108,7 +108,7 @@
 
 (uv-loop-run loop)
 
-(define link-to-path (append! *file-rp* ".link"))
+(define link-to-path (append *file-rp* ".link"))
 
 (printf "uv-fs-link: %S -> %S %S\n" *file-rp* link-to-path (uv-fs-link loop *file-rp* link-to-path))
 

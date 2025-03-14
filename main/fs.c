@@ -61,7 +61,7 @@ static int fs_realpath(FKL_CPROC_ARGL)
 	char* rp=fklRealpath(FKL_VM_STR(filename)->str);
 	if(rp)
 	{
-		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(rp)));
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStrFromCstr(exe,rp));
 		free(rp);
 	}
 	else
@@ -102,7 +102,7 @@ static int fs_relpath(FKL_CPROC_ARGL)
 
 	if(relpath_cstr)
 	{
-		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,fklCreateStringFromCstr(relpath_cstr)));
+		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStrFromCstr(exe,relpath_cstr));
 		free(relpath_cstr);
 	}
 	else

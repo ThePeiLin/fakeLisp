@@ -1909,28 +1909,34 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 	fklUninitHashTable(&has_print_circle_head_set);
 }
 
-FklString* fklVMstringify(FklVMvalue* value,FklVMgc* gc)
+FklVMvalue* fklVMstringify(FklVMvalue* value,FklVM* exe)
 {
 	FklStringBuffer result;
 	fklInitStringBuffer(&result);
 	stringify_value_to_string_buffer(value
 			,&result
 			,atom_as_prin1_string
-			,gc);
-	FklString* retval=fklStringBufferToString(&result);
+			,exe->gc);
+	FklVMvalue* retval=fklCreateVMvalueStr2(exe
+			,fklStringBufferLen(&result)
+			,fklStringBufferBody(&result));
+	// FklString* retval=fklStringBufferToString(&result);
 	fklUninitStringBuffer(&result);
 	return retval;
 }
 
-FklString* fklVMstringifyAsPrinc(FklVMvalue* value,FklVMgc* gc)
+FklVMvalue* fklVMstringifyAsPrinc(FklVMvalue* value,FklVM* exe)
 {
 	FklStringBuffer result;
 	fklInitStringBuffer(&result);
 	stringify_value_to_string_buffer(value
 			,&result
 			,atom_as_princ_string
-			,gc);
-	FklString* retval=fklStringBufferToString(&result);
+			,exe->gc);
+	// FklString* retval=fklStringBufferToString(&result);
+	FklVMvalue* retval=fklCreateVMvalueStr2(exe
+			,fklStringBufferLen(&result)
+			,fklStringBufferBody(&result));
 	fklUninitStringBuffer(&result);
 	return retval;
 }

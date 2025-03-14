@@ -12,8 +12,8 @@
                               (make-hash 'code code
                                          'signal signal))
                       (uv-handle-close child))
-                    'cwd (append! *file-dir* "..")
-                    'args (list "fakeLisp" (append! *file-dir* "_signal.fkl"))
+                    'cwd (append *file-dir* "..")
+                    'args (list "fakeLisp" (append *file-dir* "_signal.fkl"))
                     'env '("TEST=test_env_value")
                     'stdio (list stdin stdout stderr)))
 

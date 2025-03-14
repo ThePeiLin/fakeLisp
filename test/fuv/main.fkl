@@ -17,8 +17,8 @@
   (define errmsg "")
   (foreach (lambda (m)
              (setq errmsg
-               (append! errmsg
-                        (format "\n\t%s" (cdr m)))))
+               (append errmsg
+                       (format "\n\t%s" (cdr m)))))
            msgs)
   (throw 'fuv-error
          errmsg))

@@ -480,7 +480,7 @@ void fklTailCallObj(FklVM* exe,FklVMvalue* proc)
 	fklCallObj(exe,proc);
 }
 
-void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
+void fklVMsetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 {
 	exe->tp=rtp+1;
 	exe->base[rtp]=retval;

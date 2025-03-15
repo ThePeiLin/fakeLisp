@@ -4221,7 +4221,7 @@ static int builtin_map(FKL_CPROC_ARGL)
 				size_t arg_num=exe->tp-ctx->rtp;
 				FklVMvalue** base=&FKL_VM_GET_VALUE(exe,arg_num-1);
 				if(base[0]==FKL_VM_NIL)
-					fklSetTpAndPushValue(exe
+					fklVMsetTpAndPushValue(exe
 							,ctx->rtp
 							,FKL_VM_BOX(FKL_VM_GET_VALUE(exe,arg_num)));
 				else
@@ -4514,7 +4514,7 @@ static int builtin_filter(FKL_CPROC_ARGL)
 				}
 				list=FKL_VM_CDR(list);
 				if(list==FKL_VM_NIL)
-					fklSetTpAndPushValue(exe
+					fklVMsetTpAndPushValue(exe
 							,ctx->rtp
 							,FKL_VM_BOX(FKL_VM_GET_VALUE(exe,3)));
 				else

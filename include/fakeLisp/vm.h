@@ -1249,7 +1249,7 @@ uint64_t fklVMgetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 
-void fklSetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
+void fklVMsetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval);
 
 size_t fklVMlistLength(FklVMvalue*);
 

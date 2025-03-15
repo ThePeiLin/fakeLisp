@@ -15,6 +15,11 @@ else()
 	set(LINK_TARGET "")
 endif()
 
+option(GPROF "enable gprof" OFF)
+option(ASAN "enable asan" OFF)
+option(TSAN "enable tsan" OFF)
+option(FANALYZER "enable fanalyzer" OFF)
+
 if(GPROF)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
@@ -357,3 +362,15 @@ add_test(NAME test-script
 
 add_test(NAME test-pre-compile
 	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p test -d test-pre)
+
+message(STATUS "options")
+include(CMakePrintHelpers)
+list(APPEND CMAKE_MESSAGE_INDENT "    ")
+cmake_print_variables(GPROF)
+cmake_print_variables(ASAN)
+cmake_print_variables(TSAN)
+cmake_print_variables(FANALYZER)
+cmake_print_variables(CMAKE_BUILD_TYPE)
+list(POP_BACK CMAKE_MESSAGE_INDENT)
+message("")
+

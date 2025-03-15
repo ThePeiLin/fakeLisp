@@ -721,11 +721,46 @@ void fklStringBufferReverse(FklStringBuffer* b,size_t s)
 {
 	if((b->size-b->index)<s)
 	{
-		b->size+=s;
+		b->size<<=1;
+		if((b->size-b->index)<s)
+			b->size+=s;
 		char* t=(char*)fklRealloc(b->buf,b->size);
 		FKL_ASSERT(t);
 		b->buf=t;
 	}
+}
+
+void fklStringBufferShrinkTo(FklStringBuffer* b,size_t s)
+{
+	char* t=(char*)fklRealloc(b->buf,s);
+	FKL_ASSERT(t);
+	t[s]='\0';
+	b->buf=t;
+	b->size=s;
+}
+
+static inline void stringbuffer_reserve(FklStringBuffer* b,size_t s)
+{
+	if(b->size<s)
+	{
+		b->size<<=1;
+		if(b->size<s)
+			b->size=s;
+		char* t=(char*)fklRealloc(b->buf,b->size);
+		FKL_ASSERT(t);
+		b->buf=t;
+	}
+}
+
+void fklStringBufferResize(FklStringBuffer* b,size_t ns,char c)
+{
+	if(ns>b->index)
+	{
+		stringbuffer_reserve(b,ns+1);
+		memset(&b->buf[b->index],c,ns-b->index);
+		b->buf[ns]='\0';
+	}
+	b->index=ns;
 }
 
 static inline void string_buffer_printf_va(FklStringBuffer* b,const char* fmt,va_list ap)
@@ -774,6 +809,19 @@ void fklStringBufferConcatWithString(FklStringBuffer* b,const FklString* s)
 void fklStringBufferConcatWithStringBuffer(FklStringBuffer* a,const FklStringBuffer* b)
 {
 	fklStringBufferBincpy(a,b->buf,b->index);
+}
+
+int fklStringBufferCmp(const FklStringBuffer* a,const FklStringBuffer* b)
+{
+	size_t size=a->index<b->index?a->index:b->index;
+	int r=memcmp(a->buf,b->buf,size);
+	if(r)
+		return r;
+	else if(a->index<b->index)
+		return -1;
+	else if(a->index>b->index)
+		return 1;
+	return r;
 }
 
 #define DEFAULT_HASH_TABLE_SIZE (4)

@@ -43,6 +43,7 @@
     (lisp-by-lisp)
     (dvec-and-append)
     (sort)
+    (buf)
     (inline-test)))
 
 (newline)

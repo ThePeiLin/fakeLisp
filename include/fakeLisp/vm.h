@@ -523,7 +523,7 @@ typedef struct FklVMudMetaTable
 	size_t (*__length)(const FklVMud*);
 	FklVMudCopyAppender __copy_append;
 	FklVMudAppender __append;
-	size_t (*__hash)(const FklVMud*);
+	size_t (*__hash)(const FklVMud*,FklPtrStack* s);
 }FklVMudMetaTable;
 
 typedef enum
@@ -833,6 +833,12 @@ FklBuiltinErrorType fklVMprintf(FklVM*
 FklBuiltinErrorType fklVMformat(FklVM*
 		,FklStringBuffer* buf
 		,const FklString* fmt
+		,uint64_t* plen);
+
+FklBuiltinErrorType fklVMformat2(FklVM* exe
+		,FklStringBuffer* result
+		,const char* fmt
+		,const char* end
 		,uint64_t* plen);
 
 void fklVMformatToBuf(FklVM* exe,FklStringBuffer* buf,const char* fmt,FklVMvalue** base,size_t len);
@@ -1234,7 +1240,7 @@ void fklCallVMud(const FklVMud*,const FklVMud*);
 int fklCmpVMud(const FklVMud*,const FklVMvalue*,int*);
 void fklWriteVMud(const FklVMud*,FILE* fp);
 size_t fklLengthVMud(const FklVMud*);
-size_t fklHashvVMud(const FklVMud*);
+size_t fklHashvVMud(const FklVMud*,FklPtrStack* s);
 void fklUdAsPrin1(const FklVMud*,FklStringBuffer*,FklVMgc*);
 void fklUdAsPrinc(const FklVMud*,FklStringBuffer*,FklVMgc*);
 FklBytevector* fklUdToBytevector(const FklVMud*);

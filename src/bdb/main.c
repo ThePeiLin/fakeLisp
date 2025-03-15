@@ -1,4 +1,6 @@
 #include"bdb.h"
+#include "fakeLisp/nast.h"
+#include "fakeLisp/vm.h"
 #include<fakeLisp/builtin.h>
 #include<string.h>
 

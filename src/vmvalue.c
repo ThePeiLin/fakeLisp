@@ -752,7 +752,7 @@ int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	else if(FKL_IS_USERDATA(a)&&fklIsCmpableUd(FKL_VM_UD(a)))
 		r=fklCmpVMud(FKL_VM_UD(a),b,err);
 	else if(FKL_IS_USERDATA(b)&&fklIsCmpableUd(FKL_VM_UD(b)))
-		r=fklCmpVMud(FKL_VM_UD(b),a,err)*-1;
+		r=-fklCmpVMud(FKL_VM_UD(b),a,err);
 	else
 		*err=1;
 	return r;
@@ -1204,7 +1204,7 @@ static size_t _box_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 
 static size_t _userdata_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
-	return fklHashvVMud(FKL_VM_UD(v));
+	return fklHashvVMud(FKL_VM_UD(v),s);
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue* v,FklPtrStack* s)
@@ -2246,9 +2246,9 @@ int fklUdHasLength(const FklVMud* u)
 	return u->t->__length!=NULL;
 }
 
-int fklCmpVMud(const FklVMud* a,const FklVMvalue* b,int* r)
+int fklCmpVMud(const FklVMud* a,const FklVMvalue* b,int* err)
 {
-	return a->t->__cmp(a,b,r);
+	return a->t->__cmp(a,b,err);
 }
 
 size_t fklLengthVMud(const FklVMud* a)
@@ -2271,11 +2271,11 @@ void fklWriteVMud(const FklVMud* a,FILE* fp)
 	a->t->__write(a,fp);
 }
 
-size_t fklHashvVMud(const FklVMud* a)
+size_t fklHashvVMud(const FklVMud* a,FklPtrStack* s)
 {
-	size_t (*hashv)(const FklVMud*)=a->t->__hash;
+	size_t (*hashv)(const FklVMud*,FklPtrStack*)=a->t->__hash;
 	if(hashv)
-		return hashv(a);
+		return hashv(a,s);
 	else
 		return ((uintptr_t)a->data>>FKL_UNUSEDBITNUM);
 }

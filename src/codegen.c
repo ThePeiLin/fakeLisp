@@ -985,7 +985,7 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode* bc
 						env=NULL;
 					else
 					{
-						if(!env->prev)
+						if(!env->prev&&env==codegen->global_env)
 							ref=def;
 						else
 							idx=def->cidx;

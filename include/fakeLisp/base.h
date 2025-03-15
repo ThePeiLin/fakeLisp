@@ -87,6 +87,8 @@ FklStringBuffer* fklCreateStringBuffer(void);
 void fklInitStringBuffer(FklStringBuffer*);
 void fklInitStringBufferWithCapacity(FklStringBuffer*,size_t s);
 void fklStringBufferReverse(FklStringBuffer*,size_t s);
+void fklStringBufferShrinkTo(FklStringBuffer*,size_t s);
+void fklStringBufferResize(FklStringBuffer*,size_t s,char content);
 void fklUninitStringBuffer(FklStringBuffer*);
 void fklDestroyStringBuffer(FklStringBuffer*);
 void fklStringBufferClear(FklStringBuffer*);
@@ -99,6 +101,7 @@ void fklStringBufferPutc(FklStringBuffer*,char);
 void fklStringBufferPrintf(FklStringBuffer*,const char* fmt,...);
 FklString* fklStringBufferToString(FklStringBuffer*);
 int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch);
+int fklStringBufferCmp(const FklStringBuffer* a,const FklStringBuffer* b);
 
 typedef struct FklBytevector
 {

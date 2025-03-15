@@ -135,7 +135,9 @@ static FklVMvalue* __fkl_str_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t
 	for(int64_t i=0;i<argc;i++)
 	{
 		FklVMvalue* cur=top[-i];
-		if(FKL_IS_STR(cur))
+		if(FKL_IS_CHR(cur))
+			++new_size;
+		else if(FKL_IS_STR(cur))
 			new_size+=FKL_VM_STR(cur)->size;
 		else
 			return NULL;
@@ -147,9 +149,14 @@ static FklVMvalue* __fkl_str_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t
 	for(int64_t i=0;i<argc;i++)
 	{
 		FklVMvalue* cur=top[-i];
-		size_t ss=FKL_VM_STR(cur)->size;
-		memcpy(&str->str[new_size],FKL_VM_STR(cur)->str,ss*sizeof(char));
-		new_size+=ss;
+		if(FKL_IS_CHR(cur))
+			str->str[new_size++]=FKL_GET_CHR(cur);
+		else
+		{
+			size_t ss=FKL_VM_STR(cur)->size;
+			memcpy(&str->str[new_size],FKL_VM_STR(cur)->str,ss*sizeof(char));
+			new_size+=ss;
+		}
 	}
 	return retval;
 }
@@ -985,6 +992,8 @@ static int builtin_make_string(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(size,fklIsVMint,exe);
 	FklVMvalue* content=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
+	if(fklIsVMnumberLt0(size))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=fklCreateVMvalueStr2(exe,len,NULL);
 	FklString* str=FKL_VM_STR(r);
@@ -1054,8 +1063,7 @@ static int builtin_sub_string(FKL_CPROC_ARGL)
 	size_t osize=fklVMgetUint(vsize);
 	if(start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-	size=osize;
-	FklVMvalue* r=fklCreateVMvalueStr2(exe,size,str->str+start);
+	FklVMvalue* r=fklCreateVMvalueStr2(exe,osize,str->str+start);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }

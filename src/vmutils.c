@@ -1241,7 +1241,7 @@ void fklPrintVMvalue(FklVMvalue* value
 					}
 					else if(FKL_IS_DVECTOR(v))
 					{
-						fputs("#vd(",fp);
+						fputs("#d(",fp);
 						FklPtrQueue* vQueue=fklCreatePtrQueue();
 						FklVMdvec* vec=FKL_VM_DVEC(v);
 						for(size_t i=0;i<vec->size;i++)
@@ -3088,6 +3088,21 @@ FklBuiltinErrorType fklVMformat(FklVM* exe
 	return vm_format_to_buf(exe
 			,fmt_str->str
 			,&fmt_str->str[fmt_str->size]
+			,format_out_char
+			,format_out_str_buf
+			,(void*)result
+			,plen);
+}
+
+FklBuiltinErrorType fklVMformat2(FklVM* exe
+		,FklStringBuffer* result
+		,const char* fmt
+		,const char* end
+		,uint64_t* plen)
+{
+	return vm_format_to_buf(exe
+			,fmt
+			,end
 			,format_out_char
 			,format_out_str_buf
 			,(void*)result

@@ -729,8 +729,8 @@ int fklVMvalueCmp(FklVMvalue* a,FklVMvalue* b,int* err)
 	if((FKL_IS_F64(a)&&fklIsVMnumber(b))
 			||(FKL_IS_F64(b)&&fklIsVMnumber(a)))
 	{
-		double af=fklGetDouble(a);
-		double bf=fklGetDouble(b);
+		double af=fklVMgetDouble(a);
+		double bf=fklVMgetDouble(b);
 		r=isgreater(af,bf)?1:
 			(isless(af,bf)?-1
 			 :0);

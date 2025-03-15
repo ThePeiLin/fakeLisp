@@ -874,9 +874,9 @@ FklVMvalue* fklMakeVMintD(double r64,FklVM*);
 int fklIsVMnumber(const FklVMvalue* p);
 int fklIsVMint(const FklVMvalue* p);
 int fklIsList(const FklVMvalue* p);
-int64_t fklGetInt(const FklVMvalue* p);
+int64_t fklVMgetInt(const FklVMvalue* p);
 uint64_t fklVMintToHashv(const FklVMvalue* p);
-double fklGetDouble(const FklVMvalue* p);
+double fklVMgetDouble(const FklVMvalue* p);
 
 FklHashTable* fklCreateValueSetHashtable(void);
 void fklInitValueSetHashTable(FklHashTable* ht);
@@ -1245,7 +1245,7 @@ int fklIsCallable(FklVMvalue*);
 void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv);
 
 int fklIsVMnumberLt0(const FklVMvalue*);
-uint64_t fklGetUint(const FklVMvalue*);
+uint64_t fklVMgetUint(const FklVMvalue*);
 
 FklVMvalue** fklPushVMvalue(FklVM* s,FklVMvalue* v);
 

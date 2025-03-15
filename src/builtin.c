@@ -821,7 +821,7 @@ static int builtin_integer_to_char(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(obj,fklIsVMint,exe);
-	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(fklGetInt(obj)));
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_CHR(fklVMgetInt(obj)));
 	return 0;
 }
 
@@ -862,7 +862,7 @@ static int builtin_make_list(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(fklIsVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t len=fklGetUint(size);
+	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=FKL_VM_NIL;
 	FklVMvalue** cur=&r;
 	FklVMvalue* t=content?content:FKL_VM_NIL;
@@ -1003,7 +1003,7 @@ static int builtin_make_string(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(size,fklIsVMint,exe);
 	FklVMvalue* content=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
-	size_t len=fklGetUint(size);
+	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=fklCreateVMvalueStr2(exe,len,NULL);
 	FklString* str=FKL_VM_STR(r);
 	char ch=0;
@@ -1025,7 +1025,7 @@ static int builtin_make_vector(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(fklIsVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t len=fklGetUint(size);
+	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=fklCreateVMvalueVec(exe,len);
 	if(!content)
 		content=FKL_VM_NIL;
@@ -1047,8 +1047,8 @@ static int builtin_substring(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklString* str=FKL_VM_STR(ostr);
 	size_t size=str->size;
-	size_t start=fklGetUint(vstart);
-	size_t end=fklGetUint(vend);
+	size_t start=fklVMgetUint(vstart);
+	size_t end=fklVMgetUint(vend);
 	if(start>size||end<start||end>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=end-start;
@@ -1068,8 +1068,8 @@ static int builtin_sub_string(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklString* str=FKL_VM_STR(ostr);
 	size_t size=str->size;
-	size_t start=fklGetUint(vstart);
-	size_t osize=fklGetUint(vsize);
+	size_t start=fklVMgetUint(vstart);
+	size_t osize=fklVMgetUint(vsize);
 	if(start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=osize;
@@ -1089,8 +1089,8 @@ static int builtin_subbytevector(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(ostr);
 	size_t size=bvec->size;
-	size_t start=fklGetUint(vstart);
-	size_t end=fklGetUint(vend);
+	size_t start=fklVMgetUint(vstart);
+	size_t end=fklVMgetUint(vend);
 	if(start>size||end<start||end>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=end-start;
@@ -1110,8 +1110,8 @@ static int builtin_sub_bytevector(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklBytevector* bvec=FKL_VM_BVEC(ostr);
 	size_t size=bvec->size;
-	size_t start=fklGetUint(vstart);
-	size_t osize=fklGetUint(vsize);
+	size_t start=fklVMgetUint(vstart);
+	size_t osize=fklVMgetUint(vsize);
 	if(start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=osize;
@@ -1131,8 +1131,8 @@ static int builtin_subvector(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMvec* vec=FKL_VM_VEC(ovec);
 	size_t size=vec->size;
-	size_t start=fklGetUint(vstart);
-	size_t end=fklGetUint(vend);
+	size_t start=fklVMgetUint(vstart);
+	size_t end=fklVMgetUint(vend);
 	if(start>size||end<start||end>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=end-start;
@@ -1152,8 +1152,8 @@ static int builtin_sub_vector(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMvec* vec=FKL_VM_VEC(ovec);
 	size_t size=vec->size;
-	size_t start=fklGetUint(vstart);
-	size_t osize=fklGetUint(vsize);
+	size_t start=fklVMgetUint(vstart);
+	size_t osize=fklVMgetUint(vsize);
 	if(start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=osize;
@@ -1360,7 +1360,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 		if(radix)
 		{
 			FKL_CHECK_TYPE(radix,fklIsVMint,exe);
-			int64_t t=fklGetInt(radix);
+			int64_t t=fklVMgetInt(radix);
 			if(t!=8&&t!=10&&t!=16)
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_INTEGER,exe);
 			base=t;
@@ -1381,7 +1381,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL)
 		if(radix)
 		{
 			FKL_CHECK_TYPE(radix,fklIsVMint,exe);
-			int64_t t=fklGetInt(radix);
+			int64_t t=fklVMgetInt(radix);
 			if(t!=10&&t!=16)
 				FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_FLOAT,exe);
 			base=t;
@@ -1409,7 +1409,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL)
 	if(radix)
 	{
 		FKL_CHECK_TYPE(radix,fklIsVMint,exe);
-		int64_t t=fklGetInt(radix);
+		int64_t t=fklVMgetInt(radix);
 		if(t!=8&&t!=10&&t!=16)
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_INTEGER,exe);
 		base=t;
@@ -1490,7 +1490,7 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL)
 	{
 		FklVMvalue* cur=base[i];
 		FKL_CHECK_TYPE(cur,fklIsVMint,exe);
-		ptr[i]=fklGetInt(cur);
+		ptr[i]=fklVMgetInt(cur);
 	}
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -1507,7 +1507,7 @@ static int builtin_list_to_bytevector(FKL_CPROC_ARGL)
 	{
 		FklVMvalue* cur=FKL_VM_CAR(list);
 		FKL_CHECK_TYPE(cur,fklIsVMint,exe);
-		ptr[i]=fklGetInt(cur);
+		ptr[i]=fklVMgetInt(cur);
 	}
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -1582,7 +1582,7 @@ static int builtin_nth(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(place,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
@@ -1604,7 +1604,7 @@ static int builtin_nth_set(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(place,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
 	{
 		FklVMvalue* objPair=objlist;
@@ -1630,7 +1630,7 @@ static int builtin_str_ref(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	FklString* s=FKL_VM_STR(str);
 	size_t size=s->size;
 	if(index>=size)
@@ -1645,7 +1645,7 @@ static int builtin_str_ref(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 	if(fklIsVMnumberLt0(place))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklGetUint(place);\
+	size_t index=fklVMgetUint(place);\
 	FklBytevector* bv=FKL_VM_BVEC(bvec);\
 	size_t size=bv->size;\
 	if(index>=size||size-index<sizeof(TYPE))\
@@ -1660,7 +1660,7 @@ static int builtin_str_ref(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 	if(fklIsVMnumberLt0(place))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklGetUint(place);\
+	size_t index=fklVMgetUint(place);\
 	FklBytevector* bv=FKL_VM_BVEC(bvec);\
 	size_t size=bv->size;\
 	if(index>=size||size-index<sizeof(TYPE))\
@@ -1694,7 +1694,7 @@ static int builtin_bvu64ref(FKL_CPROC_ARGL) {BV_U_REF(uint64_t)}
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 	if(fklIsVMnumberLt0(place))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklGetUint(place);\
+	size_t index=fklVMgetUint(place);\
 	FklBytevector* bv=FKL_VM_BVEC(bvec);\
 	size_t size=bv->size;\
 	if(index>=size||size-index<sizeof(TYPE))\
@@ -1714,12 +1714,12 @@ static int builtin_bvf64ref(FKL_CPROC_ARGL) {BV_F_REF(double)}
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 	if(fklIsVMnumberLt0(place))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklGetUint(place);\
+	size_t index=fklVMgetUint(place);\
 	FklBytevector* bv=FKL_VM_BVEC(bvec);\
 	size_t size=bv->size;\
 	if(index>=size||size-index<sizeof(TYPE))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r=fklGetUint(target);\
+	TYPE r=fklVMgetUint(target);\
 	bv->ptr[index]=r;\
 	FKL_VM_PUSH_VALUE(exe,target);\
 	return 0;
@@ -1730,12 +1730,12 @@ static int builtin_bvf64ref(FKL_CPROC_ARGL) {BV_F_REF(double)}
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 	if(fklIsVMnumberLt0(place))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklGetUint(place);\
+	size_t index=fklVMgetUint(place);\
 	FklBytevector* bv=FKL_VM_BVEC(bvec);\
 	size_t size=bv->size;\
 	if(index>=size||size-index<sizeof(TYPE))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r=fklGetUint(target);\
+	TYPE r=fklVMgetUint(target);\
 	memcpy(&bv->ptr[index],&r,sizeof(r));\
 	FKL_VM_PUSH_VALUE(exe,target);\
 	return 0;
@@ -1759,7 +1759,7 @@ static int builtin_bvu64set1(FKL_CPROC_ARGL) {SET_BV_REF(uint64_t)}
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
 	if(fklIsVMnumberLt0(place))\
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklGetUint(place);\
+	size_t index=fklVMgetUint(place);\
 	FklBytevector* bv=FKL_VM_BVEC(bvec);\
 	size_t size=bv->size;\
 	if(index>=size||size-index<sizeof(TYPE))\
@@ -1781,14 +1781,14 @@ static int builtin_str_set1(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	FklString* s=FKL_VM_STR(str);
 	size_t size=s->size;
 	if(index>=size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	if(!FKL_IS_CHR(target)&&!fklIsVMint(target))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	s->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklGetInt(target);
+	s->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklVMgetInt(target);
 	FKL_VM_PUSH_VALUE(exe,target);
 	return 0;
 }
@@ -1812,7 +1812,7 @@ static int builtin_bytevector_fill(FKL_CPROC_ARGL)
 	if(!fklIsVMint(content)||!FKL_IS_BYTEVECTOR(bvec))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklBytevector* bv=FKL_VM_BVEC(bvec);
-	memset(bv->ptr,fklGetInt(content),bv->size);
+	memset(bv->ptr,fklVMgetInt(content),bv->size);
 	FKL_VM_PUSH_VALUE(exe,bvec);
 	return 0;
 }
@@ -1825,7 +1825,7 @@ static int builtin_vec_ref(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	FklVMvec* v=FKL_VM_VEC(vec);
 	size_t size=v->size;
 	if(index>=size)
@@ -1866,7 +1866,7 @@ static int builtin_vec_set(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	FklVMvec* v=FKL_VM_VEC(vec);
 	size_t size=v->size;
 	if(index>=size)
@@ -1902,7 +1902,7 @@ static int builtin_vec_cas(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	size_t size=FKL_VM_VEC(vec)->size;
 	if(index>=size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
@@ -1918,7 +1918,7 @@ static int builtin_nthcdr(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG2(place,objlist,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(place,fklIsVMint,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
@@ -1955,7 +1955,7 @@ static int builtin_nthcdr_set(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG3(place,objlist,target,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FKL_CHECK_TYPE(place,fklIsVMint,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	if(objlist==FKL_VM_NIL||FKL_IS_PAIR(objlist))
@@ -3093,7 +3093,7 @@ static int builtin_fgets(FKL_CPROC_ARGL)
 	CHECK_FP_OPEN(file,exe);
 	CHECK_FP_READABLE(file,exe);
 
-	uint64_t len=fklGetUint(psize);
+	uint64_t len=fklVMgetUint(psize);
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,file);
 	FklStringBuffer buf;
@@ -3118,7 +3118,7 @@ static int builtin_fgetb(FKL_CPROC_ARGL)
 	CHECK_FP_OPEN(file,exe);
 	CHECK_FP_READABLE(file,exe);
 	
-	uint64_t len=fklGetUint(psize);
+	uint64_t len=fklVMgetUint(psize);
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,file);
 
@@ -3526,7 +3526,7 @@ static int builtin_chanl(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(maxSize,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(maxSize))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueChanl(exe,fklGetUint(maxSize)));
+	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueChanl(exe,fklVMgetUint(maxSize)));
 	return 0;
 }
 
@@ -4733,7 +4733,7 @@ static int builtin_fseek(FKL_CPROC_ARGL)
 
 	if(whence==-1)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
-	if(fseek(fp,fklGetInt(offset),whence))
+	if(fseek(fp,fklVMgetInt(offset),whence))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE,exe);
 	else
 	{
@@ -4808,7 +4808,7 @@ static int builtin_bytevector(FKL_CPROC_ARGL)
 			;cur=FKL_VM_POP_ARG(exe),i++)
 	{
 		FKL_CHECK_TYPE(cur,fklIsVMint,exe);
-		bytevec->ptr[i]=fklGetInt(cur);
+		bytevec->ptr[i]=fklVMgetInt(cur);
 	}
 	fklResBp(exe);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -4823,14 +4823,14 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(fklIsVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t len=fklGetUint(size);
+	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=fklCreateVMvalueBvec2(exe,len,NULL);
 	FklBytevector* bytevec=FKL_VM_BVEC(r);
 	uint8_t u_8=0;
 	if(content)
 	{
 		FKL_CHECK_TYPE(content,fklIsVMint,exe);
-		u_8=fklGetUint(content);
+		u_8=fklVMgetUint(content);
 	}
 	memset(bytevec->ptr,u_8,len);
 	FKL_VM_PUSH_VALUE(exe,r);
@@ -4851,7 +4851,7 @@ static int builtin_sleep(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(second,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(second))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	uint64_t sec=fklGetUint(second);
+	uint64_t sec=fklVMgetUint(second);
 	fklVMsleep(exe,sec*1000);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
@@ -4864,7 +4864,7 @@ static int builtin_msleep(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(second,fklIsVMint,exe);
 	if(fklIsVMnumberLt0(second))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	uint64_t ms=fklGetUint(second);
+	uint64_t ms=fklVMgetUint(second);
 	fklVMsleep(exe,ms);
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 	return 0;
@@ -5229,7 +5229,7 @@ static int builtin_make_dvec(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(fklIsVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t len=fklGetUint(size);
+	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=fklCreateVMvalueDvec(exe,len);
 	if(!content)
 		content=FKL_VM_NIL;
@@ -5247,7 +5247,7 @@ static int builtin_make_dvec_with_capacity(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	if(fklIsVMnumberLt0(size))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t len=fklGetUint(size);
+	size_t len=fklVMgetUint(size);
 	FklVMvalue* r=fklCreateVMvalueDvecWithCapacity(exe,len);
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
@@ -5264,8 +5264,8 @@ static int builtin_subdvec(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMdvec* vec=FKL_VM_DVEC(ovec);
 	size_t size=vec->size;
-	size_t start=fklGetUint(vstart);
-	size_t end=fklGetUint(vend);
+	size_t start=fklVMgetUint(vstart);
+	size_t end=fklVMgetUint(vend);
 	if(start>size||end<start||end>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=end-start;
@@ -5285,8 +5285,8 @@ static int builtin_sub_dvec(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMdvec* vec=FKL_VM_DVEC(ovec);
 	size_t size=vec->size;
-	size_t start=fklGetUint(vstart);
-	size_t osize=fklGetUint(vsize);
+	size_t start=fklVMgetUint(vstart);
+	size_t osize=fklVMgetUint(vsize);
 	if(start+osize>size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 	size=osize;
@@ -5379,7 +5379,7 @@ static int builtin_dvec_assign(FKL_CPROC_ARGL)
 				FKL_CHECK_TYPE(count_val,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(count_val))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t count=fklGetUint(count_val);
+				size_t count=fklVMgetUint(count_val);
 				FklVMdvec* v=FKL_VM_DVEC(vec);
 				dvec_reserve(v,count);
 				for(size_t i=0;i<count;i++)
@@ -5414,7 +5414,7 @@ static int builtin_dvec_reserve(FKL_CPROC_ARGL)
 	if(fklIsVMnumberLt0(new_cap_val))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMdvec* v=FKL_VM_DVEC(vec);
-	size_t new_cap=fklGetUint(new_cap_val);
+	size_t new_cap=fklVMgetUint(new_cap_val);
 	dvec_reserve(v,new_cap);
 	FKL_VM_PUSH_VALUE(exe,vec);
 	return 0;
@@ -5474,7 +5474,7 @@ static int builtin_dvec_remove(FKL_CPROC_ARGL)
 				FKL_CHECK_TYPE(index_val,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(index_val))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t index=fklGetUint(index_val);
+				size_t index=fklVMgetUint(index_val);
 				FklVMdvec* v=FKL_VM_DVEC(vec);
 				if(index>=v->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
@@ -5496,8 +5496,8 @@ static int builtin_dvec_remove(FKL_CPROC_ARGL)
 				fklResBp(exe);
 				if(fklIsVMnumberLt0(start_index_val)||fklIsVMnumberLt0(size_val))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t start_index=fklGetUint(start_index_val);
-				size_t size=fklGetUint(size_val);
+				size_t start_index=fklVMgetUint(start_index_val);
+				size_t size=fklVMgetUint(size_val);
 				FklVMdvec* v=FKL_VM_DVEC(vec);
 				if(start_index+size>v->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
@@ -5539,7 +5539,7 @@ static int builtin_dvec_insert(FKL_CPROC_ARGL)
 				FKL_CHECK_TYPE(idx_val,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(idx_val))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t idx=fklGetUint(idx_val);
+				size_t idx=fklVMgetUint(idx_val);
 				FklVMdvec* v=FKL_VM_DVEC(vec);
 				if(idx>v->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
@@ -5560,11 +5560,11 @@ static int builtin_dvec_insert(FKL_CPROC_ARGL)
 				FKL_CHECK_TYPE(idx_val,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(idx_val)||fklIsVMnumberLt0(count_val))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t idx=fklGetUint(idx_val);
+				size_t idx=fklVMgetUint(idx_val);
 				FklVMdvec* v=FKL_VM_DVEC(vec);
 				if(idx>v->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-				size_t count=fklGetUint(count_val);
+				size_t count=fklVMgetUint(count_val);
 				if(count>0)
 				{
 					dvec_reserve(v,v->size+count);
@@ -5591,13 +5591,13 @@ static int builtin_dvec_insert(FKL_CPROC_ARGL)
 				FKL_CHECK_TYPE(count_val,fklIsVMint,exe);
 				if(fklIsVMnumberLt0(idx_val)||fklIsVMnumberLt0(start_idx_val)||fklIsVMnumberLt0(count_val))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t idx=fklGetUint(idx_val);
+				size_t idx=fklVMgetUint(idx_val);
 				FklVMdvec* v=FKL_VM_DVEC(vec);
 				if(idx>v->size)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
 				FklVMvalue** src_mem=NULL;
-				size_t start_idx=fklGetUint(start_idx_val);
-				size_t count=fklGetUint(count_val);
+				size_t start_idx=fklVMgetUint(start_idx_val);
+				size_t count=fklVMgetUint(count_val);
 				if(FKL_IS_VECTOR(another_vec_val))
 				{
 					FklVMvec* v=FKL_VM_VEC(another_vec_val);
@@ -5643,7 +5643,7 @@ static int builtin_dvec_shrink(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(shrink_to_val,fklIsVMint,exe);
 		if(fklIsVMnumberLt0(shrink_to_val))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-		shrink_to=fklGetUint(shrink_to_val);
+		shrink_to=fklVMgetUint(shrink_to_val);
 	}
 	else
 		shrink_to=v->size;
@@ -5668,7 +5668,7 @@ static int builtin_dvec_resize(FKL_CPROC_ARGL)
 	if(fklIsVMnumberLt0(new_size_val))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	FklVMdvec* v=FKL_VM_DVEC(vec);
-	size_t new_size=fklGetUint(new_size_val);
+	size_t new_size=fklVMgetUint(new_size_val);
 	if(!content)
 		content=FKL_VM_NIL;
 	if(new_size<v->size)
@@ -5722,7 +5722,7 @@ static int builtin_dvec_ref(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	FklVMdvec* v=FKL_VM_DVEC(vec);
 	if(index>=v->size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
@@ -5738,7 +5738,7 @@ static int builtin_dvec_set(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	size_t index=fklGetUint(place);
+	size_t index=fklVMgetUint(place);
 	FklVMdvec* v=FKL_VM_DVEC(vec);
 	size_t size=v->size;
 	if(index>=size)
@@ -5810,7 +5810,7 @@ static int builtin_dvec_to_bytevector(FKL_CPROC_ARGL)
 	{
 		FklVMvalue* cur=base[i];
 		FKL_CHECK_TYPE(cur,fklIsVMint,exe);
-		ptr[i]=fklGetInt(cur);
+		ptr[i]=fklVMgetInt(cur);
 	}
 	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;

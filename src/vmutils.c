@@ -76,7 +76,7 @@ int fklIsList(const FklVMvalue* p)
 	return 1;
 }
 
-int64_t fklGetInt(const FklVMvalue* p)
+int64_t fklVMgetInt(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)
@@ -90,7 +90,7 @@ uint64_t fklVMintToHashv(const FklVMvalue* p)
 		:fklVMbigIntHash(FKL_VM_BI(p));
 }
 
-uint64_t fklGetUint(const FklVMvalue* p)
+uint64_t fklVMgetUint(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?(uint64_t)FKL_GET_FIX(p)
@@ -106,7 +106,7 @@ int fklIsVMnumberLt0(const FklVMvalue* p)
 		:fklIsVMbigIntLt0(FKL_VM_BI(p));
 }
 
-double fklGetDouble(const FklVMvalue* p)
+double fklVMgetDouble(const FklVMvalue* p)
 {
 	return FKL_IS_FIX(p)
 		?FKL_GET_FIX(p)
@@ -2109,7 +2109,7 @@ FklVMvalue* fklProcessVMnumSubResult(FklVM* exe,FklVMvalue* prev,int64_t r64,dou
 {
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(prev)||rd!=0.0)
-		r=fklCreateVMvalueF64(exe,fklGetDouble(prev)-rd-r64-fklBigIntToD(bi));
+		r=fklCreateVMvalueF64(exe,fklVMgetDouble(prev)-rd-r64-fklBigIntToD(bi));
 	else if(FKL_IS_BIG_INT(prev)||!FKL_BIGINT_IS_0(bi))
 	{
 		if(FKL_IS_FIX(prev))
@@ -2228,9 +2228,9 @@ FklVMvalue* fklProcessVMnumDivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,dou
 					||!fklIsVMbigIntDivisibleI(FKL_VM_BI(prev),r64))))
 	{
 		if(IS_DEFAULT_BIGINT(bi))
-			r=fklCreateVMvalueF64(exe,fklGetDouble(prev)/rd/r64);
+			r=fklCreateVMvalueF64(exe,fklVMgetDouble(prev)/rd/r64);
 		else
-			r=fklCreateVMvalueF64(exe,fklGetDouble(prev)/rd/r64/fklBigIntToD(bi));
+			r=fklCreateVMvalueF64(exe,fklVMgetDouble(prev)/rd/r64/fklBigIntToD(bi));
 	}
 	else if(FKL_IS_BIG_INT(prev)||(!IS_DEFAULT_BIGINT(bi)&&!FKL_BIGINT_IS_1(bi)))
 	{
@@ -2295,8 +2295,8 @@ FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
 	FklVMvalue* r=NULL;
 	if(FKL_IS_F64(fir)||FKL_IS_F64(sec))
 	{
-		double af=fklGetDouble(fir);
-		double as=fklGetDouble(sec);
+		double af=fklVMgetDouble(fir);
+		double as=fklVMgetDouble(sec);
 		r=fklCreateVMvalueF64(exe,fmod(af,as));
 	}
 	else if(FKL_IS_FIX(fir)&&FKL_IS_FIX(sec))
@@ -2312,7 +2312,7 @@ FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
 		if(FKL_IS_BIG_INT(fir))
 			fklSetBigIntWithVMbigInt(&rem,FKL_VM_BI(fir));
 		else
-			fklSetBigIntI(&rem,fklGetInt(fir));
+			fklSetBigIntI(&rem,fklVMgetInt(fir));
 		if(FKL_IS_BIG_INT(sec))
 		{
 			const FklBigInt bi=fklVMbigIntToBigInt(FKL_VM_BI(sec));
@@ -2325,7 +2325,7 @@ FklVMvalue* fklProcessVMnumMod(FklVM* exe,FklVMvalue* fir,FklVMvalue* sec)
 		}
 		else
 		{
-			int64_t si=fklGetInt(sec);
+			int64_t si=fklVMgetInt(sec);
 			if(si==0)
 			{
 				fklUninitBigInt(&rem);

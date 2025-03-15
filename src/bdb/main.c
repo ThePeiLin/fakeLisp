@@ -454,7 +454,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 	{
 		if(fklIsVMnumberLt0(file_line_sym_obj))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-		line=fklGetUint(file_line_sym_obj);
+		line=fklVMgetUint(file_line_sym_obj);
 		fid=dctx->curline_file;
 	}
 	else if(FKL_IS_STR(file_line_sym_obj))
@@ -463,7 +463,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(line_obj,fklIsVMint,exe);
 		if(fklIsVMnumberLt0(line_obj))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-		line=fklGetUint(line_obj);
+		line=fklVMgetUint(line_obj);
 		FklString* str=FKL_VM_STR(file_line_sym_obj);
 		if(fklIsAccessibleRegFile(str->str))
 		{
@@ -545,7 +545,7 @@ static int bdb_debug_ctx_set_tbreak(FKL_CPROC_ARGL)
 	{
 		if(fklIsVMnumberLt0(file_line_sym_obj))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-		line=fklGetUint(file_line_sym_obj);
+		line=fklVMgetUint(file_line_sym_obj);
 		fid=dctx->curline_file;
 	}
 	else if(FKL_IS_STR(file_line_sym_obj))
@@ -554,7 +554,7 @@ static int bdb_debug_ctx_set_tbreak(FKL_CPROC_ARGL)
 		FKL_CHECK_TYPE(line_obj,fklIsVMint,exe);
 		if(fklIsVMnumberLt0(line_obj))
 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-		line=fklGetUint(line_obj);
+		line=fklVMgetUint(line_obj);
 		FklString* str=FKL_VM_STR(file_line_sym_obj);
 		if(fklIsAccessibleRegFile(str->str))
 		{
@@ -645,7 +645,7 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 
-	uint64_t num=fklGetUint(bp_num_obj);
+	uint64_t num=fklVMgetUint(bp_num_obj);
 	Breakpoint* item=delBreakpoint(dctx,num);
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
@@ -667,7 +667,7 @@ static int bdb_debug_ctx_dis_break(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 
-	uint64_t num=fklGetUint(bp_num_obj);
+	uint64_t num=fklVMgetUint(bp_num_obj);
 	Breakpoint* item=disBreakpoint(dctx,num);
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
@@ -689,7 +689,7 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL)
 	FKL_DECL_VM_UD_DATA(debug_ctx_ud,DebugUdCtx,debug_ctx_obj);
 	DebugCtx* dctx=debug_ctx_ud->ctx;
 
-	uint64_t num=fklGetUint(bp_num_obj);
+	uint64_t num=fklVMgetUint(bp_num_obj);
 	Breakpoint* item=enableBreakpoint(dctx,num);
 	if(item)
 		FKL_VM_PUSH_VALUE(exe,create_breakpoint_vec(exe,dctx,item));
@@ -1062,7 +1062,7 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL)
 			FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 		else
 		{
-			uint64_t ins_pc=fklGetUint(pc_num_obj);
+			uint64_t ins_pc=fklVMgetUint(pc_num_obj);
 			if(ins_pc>=bc->len)
 				FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);
 			else
@@ -1115,7 +1115,7 @@ static int bdb_debug_ctx_set_list_ins(FKL_CPROC_ARGL)
 
 	if(byte_code&&!fklIsVMnumberLt0(pc_num_obj))
 	{
-		uint64_t ins_pc=fklGetUint(pc_num_obj);
+		uint64_t ins_pc=fklVMgetUint(pc_num_obj);
 		dctx->curlist_ins_pc=ins_pc;
 	}
 	FKL_VM_PUSH_VALUE(exe,FKL_VM_NIL);

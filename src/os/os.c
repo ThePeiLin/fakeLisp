@@ -60,7 +60,7 @@ static int os_date(FKL_CPROC_ARGL)
 			FklVMvalue* timestamp=arg2;
 			FklStringBuffer buf;
 			fklInitStringBuffer(&buf);
-			int64_t stamp=fklGetInt(timestamp);
+			int64_t stamp=fklVMgetInt(timestamp);
 			const struct tm* tblock=localtime(&stamp);
 			const char* format=FKL_VM_STR(fmt)->str;
 			size_t n=0;
@@ -102,7 +102,7 @@ static int os_date(FKL_CPROC_ARGL)
 			FklVMvalue* timestamp=arg1;
 			FklStringBuffer buf;
 			fklInitStringBuffer(&buf);
-			int64_t stamp=fklGetInt(timestamp);
+			int64_t stamp=fklVMgetInt(timestamp);
 			const struct tm* tblock=localtime(&stamp);
 			size_t n=0;
 			while(!(n=strftime(buf.buf,buf.size,default_fmt,tblock)))

@@ -963,7 +963,7 @@ static int fuv_handle_send_buffer_size(FKL_CPROC_ARGL)
 	if(value_obj)
 	{
 		FKL_CHECK_TYPE(value_obj,fklIsVMint,exe);
-		value=fklGetInt(value_obj);
+		value=fklVMgetInt(value_obj);
 	}
 	int r=uv_send_buffer_size(GET_HANDLE(handle),&value);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
@@ -983,7 +983,7 @@ static int fuv_handle_recv_buffer_size(FKL_CPROC_ARGL)
 	if(value_obj)
 	{
 		FKL_CHECK_TYPE(value_obj,fklIsVMint,exe);
-		value=fklGetInt(value_obj);
+		value=fklVMgetInt(value_obj);
 	}
 	int r=uv_recv_buffer_size(GET_HANDLE(handle),&value);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
@@ -1061,8 +1061,8 @@ static int fuv_timer_start(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 	if(fklIsVMnumberLt0(repeat_obj))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	uint64_t timeout=fklGetUint(timeout_obj);
-	uint64_t repeat=fklGetUint(repeat_obj);
+	uint64_t timeout=fklVMgetUint(timeout_obj);
+	uint64_t repeat=fklVMgetUint(repeat_obj);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer,timer_obj,exe,ctx->pd);
 	FuvHandle* fuv_handle=*timer;
 	fuv_handle->data.callbacks[0]=timer_cb;
@@ -1120,7 +1120,7 @@ static int fuv_timer_repeat_set1(FKL_CPROC_ARGL)
 	FuvHandle* handle=*timer;
 	if(fklIsVMnumberLt0(repeat_obj))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	uv_timer_set_repeat((uv_timer_t*)GET_HANDLE(handle),fklGetUint(repeat_obj));
+	uv_timer_set_repeat((uv_timer_t*)GET_HANDLE(handle),fklVMgetUint(repeat_obj));
 	FKL_VM_PUSH_VALUE(exe,timer_obj);
 	return 0;
 }
@@ -3194,7 +3194,7 @@ static int fuv_tcp_open(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(tcp_obj,isFuvTcp,exe);
 	FKL_CHECK_TYPE(sock_obj,fklIsVMint,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud,tcp_obj,exe,ctx->pd);
-	uv_os_sock_t sock=fklGetInt(sock_obj);
+	uv_os_sock_t sock=fklVMgetInt(sock_obj);
 	int r=uv_tcp_open((uv_tcp_t*)GET_HANDLE(*handle_ud),sock);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,tcp_obj);
@@ -3637,7 +3637,7 @@ static int fuv_udp_open(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(sock_obj,fklIsVMint,exe);
 	DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud,udp_obj,exe,ctx->pd);
 	uv_udp_t* udp=(uv_udp_t*)GET_HANDLE(*udp_ud);
-	uv_os_sock_t sock=fklGetInt(sock_obj);
+	uv_os_sock_t sock=fklVMgetInt(sock_obj);
 	int r=uv_udp_open(udp,sock);
 	CHECK_UV_RESULT(r,exe,ctx->pd);
 	FKL_VM_PUSH_VALUE(exe,udp_obj);
@@ -5202,10 +5202,10 @@ static int fuv_fs_read(FKL_CPROC_ARGL)
 	if(cb_obj)
 		FKL_CHECK_TYPE(cb_obj,fklIsCallable,exe);
 
-	int64_t len=fklGetInt(len_obj);
+	int64_t len=fklVMgetInt(len_obj);
 	if(len<0)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-	int64_t offset=offset_obj&&offset_obj!=FKL_VM_NIL?fklGetInt(offset_obj):-1;
+	int64_t offset=offset_obj&&offset_obj!=FKL_VM_NIL?fklVMgetInt(offset_obj):-1;
 
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 
@@ -5251,7 +5251,7 @@ static int fuv_fs_write(FKL_CPROC_ARGL)
 	if(cb_obj)
 		FKL_CHECK_TYPE(cb_obj,fklIsCallable,exe);
 
-	int64_t offset=offset_obj&&offset_obj!=FKL_VM_NIL?fklGetInt(offset_obj):-1;
+	int64_t offset=offset_obj&&offset_obj!=FKL_VM_NIL?fklVMgetInt(offset_obj):-1;
 
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
 
@@ -5378,7 +5378,7 @@ static int fuv_fs_opendir(FKL_CPROC_ARGL)
 	FKL_CHECK_TYPE(path_obj,FKL_IS_STR,exe);
 	FKL_CHECK_TYPE(nentries_obj,fklIsVMnumber,exe);
 
-	size_t nentries=fklGetUint(nentries_obj);
+	size_t nentries=fklVMgetUint(nentries_obj);
 	if(fklIsVMnumberLt0(nentries_obj)||nentries<1)
 		raiseFuvError(FUV_ERR_NUMBER_SHOULD_NOT_BE_LT_1,exe,ctx->pd);
 
@@ -5690,7 +5690,7 @@ static int fuv_fs_ftruncate(FKL_CPROC_ARGL)
 	FklVMvalue* req_obj=NULL;
 	struct FuvFsReq* req=createFuvFsReq(exe,&req_obj,ctx->proc,loop_obj,cb_obj,0);
 
-	FS_CALL(exe,ctx->pd,uv_fs_ftruncate,fuv_loop,req,req_obj,cb_obj,FKL_GET_FIX(fd_obj),fklGetInt(offset_obj));
+	FS_CALL(exe,ctx->pd,uv_fs_ftruncate,fuv_loop,req,req_obj,cb_obj,FKL_GET_FIX(fd_obj),fklVMgetInt(offset_obj));
 	return 0;
 }
 
@@ -5779,8 +5779,8 @@ static int fuv_fs_sendfile(FKL_CPROC_ARGL)
 	FS_CALL(exe,ctx->pd,uv_fs_sendfile,fuv_loop,req,req_obj,cb_obj
 			,FKL_GET_FIX(out_fd_obj)
 			,FKL_GET_FIX(in_fd_obj)
-			,fklGetInt(offset_obj)
-			,fklGetUint(len_obj));
+			,fklVMgetInt(offset_obj)
+			,fklVMgetUint(len_obj));
 	return 0;
 }
 
@@ -6962,7 +6962,7 @@ static int fuv_random(FKL_CPROC_ARGL)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
 
 	FKL_DECL_VM_UD_DATA(fuv_loop,FuvLoop,loop_obj);
-	uint64_t len=fklGetUint(len_obj);
+	uint64_t len=fklVMgetUint(len_obj);
 	if(cb_obj)
 	{
 		FKL_CHECK_TYPE(cb_obj,fklIsCallable,exe);

@@ -168,37 +168,19 @@
 (newline)
 
 (define (producer no.)
-  (define number-str (number->string no.))
-  (princ (append "producer no."
-                 number-str
-                 " start!\n"))
+  (princ (format "producer no.%d start!\n" no.) )
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append "producer no."
-                   number-str
-                   ": "
-                   (number->string c)
-                   "\n"))
+    (princ (format "producer no.%d: %d\n" no. c) )
     (my-chanl-send buf c))
-  (princ (append "producer no."
-                 number-str
-                 " exit\n")))
+  (princ (format "producer no.%d exit\n" no.)))
 
 (define (consumer no.)
-  (define number-str (number->string no.))
-  (princ (append "consumer no."
-                 number-str
-                 " start!\n"))
+  (princ (format "consumer no.%d start!\n" no.))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append "consumer no."
-                   number-str
-                   ": "
-                   (number->string (my-chanl-recv buf))
-                   "\n")))
-  (princ (append "consumer no."
-                 number-str
-                 " exit\n")))
+    (princ (format "consumer no.%d: %d\n" no. (my-chanl-recv buf))))
+  (princ (format "consumer no.%d exit\n" no.)))
 
 (define chanls '())
 
@@ -219,15 +201,11 @@
   (do [(n 0 (1+ n))]
     [(>= n max)]
     (rwlock-rdlock rwlock)
-    (princ (append "count: "
-                   (stringify count)
-                   " in thread no."
-                   (stringify no.)
-                   "\n"))
+    (princ (format "count: %d in thread no.%d\n"
+                   count
+                   no.))
     (rwlock-rdunlock rwlock))
-  (princ (append "print-count thread no."
-                 (stringify no.)
-                 " exit\n")))
+  (princ (format "print-count thread no.%d exit\n" no.)))
 
 (define (inc-count no. max)
   (do [(n 0 (1+ n))]
@@ -235,17 +213,12 @@
     (rwlock-wrlock rwlock)
     (define before count)
     (setq count (1+ count))
-    (princ (append "inc count from "
-                   (stringify before)
-                   " to "
-                   (stringify count)
-                   " in thread no."
-                   (stringify no.)
-                   "\n"))
+    (princ (format "inc count from %d to %d in thread no.%d\n"
+                   before
+                   count
+                   no.))
     (rwlock-wrunlock rwlock))
-  (princ (append "inc-count thread no."
-                 (stringify no.)
-                 " exit\n")))
+  (princ (format "inc-count thread no.%d exit\n" no.)))
 
 (define chanls '())
 
@@ -271,13 +244,10 @@
     (rwlock-wrlock rwlock)
     (define before count)
     (setq count (1+ count))
-    (princ (append "inc count from "
-                   (stringify before)
-                   " to "
-                   (stringify count)
-                   " in thread no."
-                   (stringify no.)
-                   "\n"))
+    (princ (format "inc count from %d to %d in thread no.%d\n"
+                   before
+                   count
+                   no.))
     (rwlock-wrunlock rwlock)))
 
 (define chanls '())

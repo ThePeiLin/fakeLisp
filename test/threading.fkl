@@ -2,37 +2,19 @@
 (define buf (chanl 100))
 
 (define (producer no.)
-  (define number-str (number->string no.))
-  (princ (append "producer no."
-                 number-str
-                 " start!\n"))
+  (princ (format "producer no.%d start\n" no.))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append "producer no."
-                   number-str
-                   ": "
-                   (number->string c)
-                   "\n"))
+    (princ (format "producer no.%d: %d\n" no. c))
     (send buf c))
-  (princ (append "producer no."
-                 number-str
-                 " exit\n")))
+  (princ (format "producer no.%d exit\n" no.)))
 
 (define (consumer no.)
-  (define number-str (number->string no.))
-  (princ (append "consumer no."
-                 number-str
-                 " start!\n"))
+  (princ (format "consumer no.%d start!\n" no.))
   (do [(c 0 (1+ c))]
     [(>= c max)]
-    (princ (append "consumer no."
-                   number-str
-                   ": "
-                   (number->string (recv buf))
-                   "\n")))
-  (princ (append "consumer no."
-                 number-str
-                 " exit\n")))
+    (princ (format "consumer no.%d: %d\n" no. (recv buf))))
+  (princ (format "consumer no.%d exit\n")))
 
 (define chanls '())
 

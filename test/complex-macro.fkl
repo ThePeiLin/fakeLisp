@@ -11,10 +11,10 @@
       (define field (car cur))
       (if (eq field name)
         (throw 'invalid-member-name
-               (append "member name cannot be " (stringify name))))
+               (format "member name cannot be %S" name)))
       (if (hash-ref field-idx-ht field ())
         (throw 'duplicate-member
-               (append "duplicate member " (stringify field))))
+               (format "duplicate member %S" field)))
       (hash-set! field-idx-ht field idx))
     (define name-str (symbol->string name))
     (define type-checker-name (string->symbol (append name-str "?")))
@@ -25,11 +25,11 @@
         'from
         (lambda
           (from-type)
-          (string->symbol (append (symbol->string from-type) "->" name-str)))
+          (string->symbol (format "%s->%s" (symbol->string from-type) name-str)))
         'to
         (lambda
           (from-type)
-          (string->symbol (append name-str "->" (symbol->string from-type))))))
+          (string->symbol (format "%s->%s" name-str (symbol->string from-type))))))
 
     (define (process-method-define def)
       (define head (car def))
@@ -39,8 +39,7 @@
         (cond
           [(symbol? head)
            (string->symbol
-             (append name-str
-                     "-"
+             (format "%s-%s" name-str
                      (symbol->string head)))]
           [(list? head)
            (define type (car head))
@@ -51,7 +50,7 @@
                     "method head should be list or symbol")]))
       (if (hash-ref method-names method-name ())
         (throw 'duplicate-member
-               (append "duplicate member " (stringify method-name))))
+               (format "duplicate member %S" method-name)))
       (hash-set! method-names method-name 1)
       `(define (~method-name,~args),~body))
 
@@ -67,7 +66,7 @@
            (lambda (kv)
              (define field-name (symbol->string (car kv)))
              (define idx (cdr kv))
-             (define func-name (string->symbol (append name-str "-" field-name)))
+             (define func-name (string->symbol (format "%s-%s" name-str field-name)))
              (hash-ref! method-names func-name 1)
              `(define (~func-name ~name)
                 (unless (~type-checker-name ~name)
@@ -80,7 +79,7 @@
              (define field (car kv))
              (define field-name (symbol->string (car kv)))
              (define idx (cdr kv))
-             (define func-name (string->symbol (append name-str "-" field-name "-set!")))
+             (define func-name (string->symbol (format "%s-%s-set!" name-str field-name)))
              (hash-ref! method-names func-name 1)
              `(define (~func-name ~name ~field)
                 (unless (~type-checker-name ~name)

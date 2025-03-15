@@ -1,5 +1,6 @@
 #include "fakeLisp/base.h"
 #include<fakeLisp/vm.h>
+#include <stdio.h>
 
 #define PREDICATE(condition) FKL_DECL_AND_CHECK_ARG(val,exe);\
 	FKL_CHECK_REST_ARG(exe);\
@@ -33,12 +34,29 @@ static void buf_strbuf_as_princ(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* 
 	fklStringBufferConcatWithStringBuffer(buf,bufa);
 }
 
+static void buf_strbuf_write(const FklVMud* ud,FILE* fp)
+{
+	FKL_DECL_UD_DATA(buf,FklStringBuffer,ud);
+	fwrite(buf->buf,buf->index,1,fp);
+}
+
+static int buf_strbuf_append(FklVMud* ud,uint32_t argc,FklVMvalue* const* cur)
+{
+	FKL_DECL_UD_DATA(buf,FklStringBuffer,ud);
+	FklVMvalue* const* base=cur-argc;
+	for(;cur>base;cur--)
+	{
+	}
+}
+
 static FklVMudMetaTable StringBufferMetaTable=
 {
 	.size=sizeof(FklStringBuffer),
 	.__equal=buf_strbuf_equal,
 	.__as_prin1=buf_strbuf_as_prin1,
 	.__as_princ=buf_strbuf_as_princ,
+	.__write=buf_strbuf_write,
+	.__append=buf_strbuf_append,
 	.__finalizer=buf_strbuf_finalizer,
 };
 

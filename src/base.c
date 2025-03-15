@@ -524,61 +524,11 @@ int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch)
 	return r;
 }
 
-void fklPrintRawCstrToStringBuffer(FklStringBuffer* s,const char* str,char se)
+void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s,size_t size,const char* fstr,char se)
 {
 	char buf[7]={0};
 	fklStringBufferPutc(s,se);
-	size_t size=strlen(str);
-	for(size_t i=0;i<size;)
-	{
-		unsigned int l=fklGetByteNumOfUtf8((uint8_t*)&str[i],size-i);
-		if(l==7)
-		{
-			uint8_t j=str[i];
-			uint8_t h=j/16;
-			uint8_t l=j%16;
-			fklStringBufferPrintf(s,"\\x%c%c"
-					,h<10?'0'+h:'A'+(h-10)
-					,l<10?'0'+l:'A'+(l-10));
-			i++;
-		}
-		else if(l==1)
-		{
-			if(str[i]==se)
-				fklStringBufferPrintf(s,"\\%c",se);
-			else if(str[i]=='\\')
-				fklStringBufferConcatWithCstr(s,"\\\\");
-			else if(isgraph(str[i]))
-				fklStringBufferPutc(s,str[i]);
-			else if(fklIsSpecialCharAndPrintToStringBuffer(s,str[i]));
-			else
-			{
-				uint8_t j=str[i];
-				uint8_t h=j/16;
-				uint8_t l=j%16;
-				fklStringBufferPrintf(s,"\\x%c%c"
-						,h<10?'0'+h:'A'+(h-10)
-						,l<10?'0'+l:'A'+(l-10));
-			}
-			i++;
-		}
-		else
-		{
-			strncpy(buf,(char*)&str[i],l);
-			buf[l]='\0';
-			fklStringBufferConcatWithCstr(s,buf);
-			i+=l;
-		}
-	}
-	fklStringBufferPutc(s,se);
-}
-
-void fklPrintRawStringToStringBuffer(FklStringBuffer* s,const FklString* fstr,char se)
-{
-	char buf[7]={0};
-	fklStringBufferPutc(s,se);
-	size_t size=fstr->size;
-	uint8_t* str=(uint8_t*)fstr->str;
+	uint8_t* str=(uint8_t*)fstr;
 	for(size_t i=0;i<size;)
 	{
 		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);

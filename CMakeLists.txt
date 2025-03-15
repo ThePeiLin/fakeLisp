@@ -259,6 +259,17 @@ set_target_properties(fuv PROPERTIES
 	PREFIX "")
 target_link_libraries(fuv ${LIBFKL_TARGET_NAME})
 
+#buf.so
+add_library(buf
+	SHARED
+	"src/buf/buf.c")
+set_target_properties(buf PROPERTIES
+	PREFIX "")
+target_link_libraries(buf ${LIBFKL_TARGET_NAME})
+
+set_target_properties(buf PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+
 if(MSVC)
 target_link_libraries(fuv ws2_32)
 endif()

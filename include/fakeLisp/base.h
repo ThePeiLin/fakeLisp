@@ -4,6 +4,7 @@
 #include"bigint.h"
 #include<stdio.h>
 #include<stdint.h>
+#include<string.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -49,8 +50,17 @@ uintptr_t fklStringHash(const FklString* s);
 uintptr_t fklCharBufHash(const char* str,size_t len);
 
 struct FklStringBuffer;
-void fklPrintRawCstrToStringBuffer(struct FklStringBuffer* s,const char* str,char se);
-void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s,const FklString* fstr,char se);
+
+void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s,size_t len,const char* fstr,char se);
+static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer* s,const char* str,char se)
+{
+	fklPrintRawCharBufToStringBuffer(s,strlen(str),str,se);
+}
+static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s,const FklString* fstr,char se)
+{
+	fklPrintRawCharBufToStringBuffer(s,fstr->size,fstr->str,se);
+}
+
 FklString* fklStringToRawString(const FklString* str);
 FklString* fklStringToRawSymbol(const FklString* str);
 

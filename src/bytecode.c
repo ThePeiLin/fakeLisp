@@ -471,7 +471,7 @@ void fklLoadConstTable(FILE* fp,FklConstTable* kt)
 	{
 		int64_t num=0;
 		fread(&num,sizeof(num),1,fp);
-		size_t size=labs(num)*sizeof(FklBigIntDigit);
+		size_t size=fklAbs(num)*sizeof(FklBigIntDigit);
 		FklBigIntDigit* mem=(FklBigIntDigit*)malloc(size);
 		FKL_ASSERT(mem||!num);
 		fread(mem,size,1,fp);
@@ -516,7 +516,7 @@ void fklWriteConstTable(const FklConstTable* kt,FILE* fp)
 	{
 		const FklBigInt* cur=kbit->base[i];
 		fwrite(&cur->num,sizeof(cur->num),1,fp);
-		fwrite(cur->digits,labs(cur->num)*sizeof(FklBigIntDigit),1,fp);
+		fwrite(cur->digits,fklAbs(cur->num)*sizeof(FklBigIntDigit),1,fp);
 	}
 }
 

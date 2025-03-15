@@ -151,7 +151,7 @@ static int math_abs(FKL_CPROC_ARGL)
 	{
 		if(FKL_IS_FIX(obj))
 		{
-			int64_t i=llabs(FKL_GET_FIX(obj));
+			int64_t i=fklAbs(FKL_GET_FIX(obj));
 			if(i>FKL_FIX_INT_MAX)
 				FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueBigIntWithI64(exe,i));
 			else
@@ -160,7 +160,7 @@ static int math_abs(FKL_CPROC_ARGL)
 		else
 		{
 			FklVMvalue* r=fklCreateVMvalueBigIntWithOther(exe,FKL_VM_BI(obj));
-			FKL_VM_BI(r)->num=labs(FKL_VM_BI(r)->num);
+			FKL_VM_BI(r)->num=fklAbs(FKL_VM_BI(r)->num);
 			FKL_VM_PUSH_VALUE(exe,r);
 		}
 	}

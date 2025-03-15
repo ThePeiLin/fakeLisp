@@ -2159,7 +2159,7 @@ FklVMvalue* fklProcessVMnumNeg(FklVM* exe,FklVMvalue* prev)
 		{
 			.digits=(FklBigIntDigit*)b->digits,
 			.num=-b->num,
-			.size=labs(b->num),
+			.size=fklAbs(b->num),
 			.const_size=1,
 		};
 

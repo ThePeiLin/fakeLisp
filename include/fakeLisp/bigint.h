@@ -3,7 +3,6 @@
 
 #include<stdio.h>
 #include<stdint.h>
-#include<stdlib.h>
 
 // steal from cpython: https://github.com/python/cpython
 
@@ -32,11 +31,14 @@ typedef enum FklBigIntFmtFlags
 	FKL_BIGINT_FMT_FLAG_CAPITALS=1<<1,
 }FklBigIntFmtFlags;
 
+// 替换labs，防止一些机器上long只有32位长
+static inline int64_t fklAbs(int64_t a){return a>0?a:-a;}
+
 #define FKL_BIGINT_0 ((FklBigInt){.digits=NULL,.num=0,.size=0,.const_size=0,})
-#define FKL_BIGINT_IS_0(I) (((I)->num==0)||(labs((I)->num)==1&&(I)->digits[0]==0))
+#define FKL_BIGINT_IS_0(I) (((I)->num==0)||(fklAbs((I)->num)==1&&(I)->digits[0]==0))
 #define FKL_BIGINT_IS_1(I) (((I)->num==1)&&((I)->digits[0]==1))
 #define FKL_BIGINT_IS_N1(I) (((I)->num==-1)&&((I)->digits[0]==1))
-#define FKL_BIGINT_IS_ABS1(I) ((labs((I)->num)==1)&&((I)->digits[0]==1))
+#define FKL_BIGINT_IS_ABS1(I) ((fklAbs((I)->num)==1)&&((I)->digits[0]==1))
 
 FklBigInt* fklCreateBigInt0(void);
 FklBigInt* fklCreateBigInt1(void);

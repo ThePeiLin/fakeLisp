@@ -1,8 +1,9 @@
-#include "fakeLisp/base.h"
+#include<fakeLisp/base.h>
 #include<fakeLisp/bigint.h>
 #include<string.h>
 #include<stdio.h>
 #include<math.h>
+#include<stdlib.h>
 
 #define assert(expr) ((expr)?0:(fprintf(stderr,"expr: %s failed\n",#expr),abort(),0))
 
@@ -791,7 +792,7 @@ static void sub_test5(void)
 		{
 			.digits=a0->digits,
 			.num=a0->num,
-			.size=labs(a0->num),
+			.size=fklAbs(a0->num),
 			.const_size=1,
 		};
 
@@ -805,7 +806,7 @@ static void sub_test5(void)
 		fklInitBigIntWithHexCharBuf(&a1,"0x00000000114514abcd",strlen("0x00000000114514abcd"));
 		tmp.digits=a0->digits;
 		tmp.num=a0->num;
-		tmp.size=labs(a0->num);
+		tmp.size=fklAbs(a0->num);
 
 		assert(fklBigIntEqual(&a1,&tmp));
 		fklUninitBigInt(&a1);
@@ -816,7 +817,7 @@ static void sub_test5(void)
 		fklInitBigIntWithOctCharBuf(&a1,"011451477665544",strlen("011451477665544"));
 		tmp.digits=a0->digits;
 		tmp.num=a0->num;
-		tmp.size=labs(a0->num);
+		tmp.size=fklAbs(a0->num);
 
 		assert(fklBigIntEqual(&a1,&tmp));
 		fklUninitBigInt(&a1);
@@ -832,7 +833,7 @@ static void sub_test5(void)
 		{
 			.digits=a0->digits,
 			.num=a0->num,
-			.size=labs(a0->num),
+			.size=fklAbs(a0->num),
 			.const_size=1,
 		};
 
@@ -846,7 +847,7 @@ static void sub_test5(void)
 		fklInitBigIntWithHexCharBuf(&a1,"-0x00000000114514abcd",strlen("0x00000000114514abcd"));
 		tmp.digits=a0->digits;
 		tmp.num=a0->num;
-		tmp.size=labs(a0->num);
+		tmp.size=fklAbs(a0->num);
 
 		assert(fklBigIntEqual(&a1,&tmp));
 		fklUninitBigInt(&a1);
@@ -857,7 +858,7 @@ static void sub_test5(void)
 		fklInitBigIntWithOctCharBuf(&a1,"-011451477665544",strlen("011451477665544"));
 		tmp.digits=a0->digits;
 		tmp.num=a0->num;
-		tmp.size=labs(a0->num);
+		tmp.size=fklAbs(a0->num);
 
 		assert(fklBigIntEqual(&a1,&tmp));
 		fklUninitBigInt(&a1);

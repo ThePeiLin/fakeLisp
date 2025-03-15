@@ -74,7 +74,7 @@ void fklInitBigIntU(FklBigInt* b,uint64_t num)
 
 void fklInitBigIntI(FklBigInt* b,int64_t n)
 {
-	fklInitBigIntU(b,labs(n));
+	fklInitBigIntU(b,fklAbs(n));
 	if(n<0)
 		b->num=-b->num;
 }
@@ -87,7 +87,7 @@ void fklInitBigIntD(FklBigInt* b,double d)
 void fklInitBigIntFromMem(FklBigInt *t,int64_t num,FklBigIntDigit *mem)
 {
 	t->num=num;
-	t->size=labs(num);
+	t->size=fklAbs(num);
 	t->digits=mem;
 }
 
@@ -138,7 +138,7 @@ static void ensure_bigint_size(FklBigInt* to,uint64_t size)
 
 static inline void bigint_normalize(FklBigInt* a)
 {
-	int64_t i=labs(a->num);
+	int64_t i=fklAbs(a->num);
 	for(;i>0&&a->digits[i-1]==0;--i);
 	a->num=a->num<0?-i:i;
 }
@@ -238,7 +238,7 @@ void fklInitBigIntWithCstr(FklBigInt* b,const char* cstr)
 
 static inline void bigint_normalize2(int64_t* num, FklBigIntDigit* digits)
 {
-	int64_t i=labs(*num);
+	int64_t i=fklAbs(*num);
 	for(;i>0&&digits[i-1]==0;--i);
 	*num=*num<0?-i:i;
 }
@@ -453,14 +453,14 @@ FklBigInt* fklCopyBigInt(const FklBigInt* b)
 int fklBigIntEqual(const FklBigInt* a,const FklBigInt* b)
 {
 	if(a->num==b->num)
-		return memcmp(a->digits,b->digits,labs(a->num)*sizeof(FklBigIntDigit))==0;
+		return memcmp(a->digits,b->digits,fklAbs(a->num)*sizeof(FklBigIntDigit))==0;
 	else
 		return 0;
 }
 
 static inline int x_cmp(const FklBigInt* a,const FklBigInt* b)
 {
-	int64_t i=labs(a->num);
+	int64_t i=fklAbs(a->num);
 	while(--i>=0&&a->digits[i]==b->digits[i]);
 	return i<0
 		?0
@@ -498,8 +498,8 @@ int fklBigIntCmpI(const FklBigInt* a,int64_t b)
 
 int fklBigIntAbsCmp(const FklBigInt* a,const FklBigInt* b)
 {
-	int64_t num_a=labs(a->num);
-	int64_t num_b=labs(b->num);
+	int64_t num_a=fklAbs(a->num);
+	int64_t num_b=fklAbs(b->num);
 	int sign=num_a!=num_b?num_a-num_b:x_cmp(a,b);
 
 	return sign<0
@@ -553,9 +553,9 @@ int fklIsDivisibleBigIntI(const FklBigInt* a,int64_t d)
 
 void fklSetBigInt(FklBigInt* to,const FklBigInt* from)
 {
-	ensure_bigint_size(to,labs(from->num));
+	ensure_bigint_size(to,fklAbs(from->num));
 	to->num=from->num;
-	memcpy(to->digits,from->digits,labs(from->num)*sizeof(FklBigIntDigit));
+	memcpy(to->digits,from->digits,fklAbs(from->num)*sizeof(FklBigIntDigit));
 }
 
 void fklSetBigIntU(FklBigInt* to,uint64_t v)
@@ -573,7 +573,7 @@ void fklSetBigIntU(FklBigInt* to,uint64_t v)
 
 void fklSetBigIntI(FklBigInt* to,int64_t v)
 {
-	fklSetBigIntU(to,labs(v));
+	fklSetBigIntU(to,fklAbs(v));
 	if(v<0)
 		to->num=-to->num;
 }
@@ -585,8 +585,8 @@ void fklSetBigIntD(FklBigInt* to,double from)
 
 static inline void x_add(FklBigInt* a,const FklBigInt* b)
 {
-	uint64_t num_a=labs(a->num);
-	uint64_t num_b=labs(b->num);
+	uint64_t num_a=fklAbs(a->num);
+	uint64_t num_b=fklAbs(b->num);
 	size_t i=0;
 	FklBigIntDigit carry=0;
 	const FklBigIntDigit* digits_a;
@@ -630,8 +630,8 @@ static inline void x_add(FklBigInt* a,const FklBigInt* b)
 
 static inline void x_sub(FklBigInt* a,const FklBigInt* b)
 {
-	int64_t num_a=labs(a->num);
-	int64_t num_b=labs(b->num);
+	int64_t num_a=fklAbs(a->num);
+	int64_t num_b=fklAbs(b->num);
 	int sign=1;
 	ssize_t i=0;
 	FklBigIntDigit borrow=0;
@@ -698,8 +698,8 @@ static inline void x_sub(FklBigInt* a,const FklBigInt* b)
 
 static inline void x_sub2(const FklBigInt* a,FklBigInt* b)
 {
-	int64_t num_a=labs(a->num);
-	int64_t num_b=labs(b->num);
+	int64_t num_a=fklAbs(a->num);
+	int64_t num_b=fklAbs(b->num);
 	int sign=1;
 	ssize_t i=0;
 	FklBigIntDigit borrow=0;
@@ -767,7 +767,7 @@ static inline void x_sub2(const FklBigInt* a,FklBigInt* b)
 
 void fklAddBigInt(FklBigInt* a, const FklBigInt* b)
 {
-	if(labs(a->num)<=1&&labs(b->num)<=1)
+	if(fklAbs(a->num)<=1&&fklAbs(b->num)<=1)
 	{
 		fklSetBigIntI(a,MEDIUM_VALUE(a)+MEDIUM_VALUE(b));
 		return;
@@ -801,7 +801,7 @@ void fklAddBigIntI(FklBigInt* b,int64_t v)
 
 void fklSubBigInt(FklBigInt* a,const FklBigInt* b)
 {
-	if(labs(a->num)<=1&&labs(b->num)<=1)
+	if(fklAbs(a->num)<=1&&fklAbs(b->num)<=1)
 	{
 		fklSetBigIntI(a,MEDIUM_VALUE(a)-MEDIUM_VALUE(b));
 		return;
@@ -853,8 +853,8 @@ void fklMulBigInt(FklBigInt* a,const FklBigInt* b)
 	}
 	else
 	{
-		int64_t num_a=labs(a->num);
-		int64_t num_b=labs(b->num);
+		int64_t num_a=fklAbs(a->num);
+		int64_t num_b=fklAbs(b->num);
 		int64_t total=num_a+num_b;
 		FklBigIntDigit* result=(FklBigIntDigit*)calloc(total,sizeof(FklBigIntDigit));
 		FKL_ASSERT(result);
@@ -967,8 +967,8 @@ static inline void x_divrem(FklBigInt* v1,const FklBigInt* w1,FklBigInt* rem)
 {
 	FklBigInt w=FKL_BIGINT_0;
 	FklBigInt a=FKL_BIGINT_0;
-	int64_t size_v=labs(v1->num);
-	int64_t size_w=labs(w1->num);
+	int64_t size_v=fklAbs(v1->num);
+	int64_t size_w=fklAbs(w1->num);
 	FKL_ASSERT(size_v>=size_w&&size_w>=2);
 	ensure_bigint_size(v1,size_v+1);
 	v1->num=size_v+1;
@@ -1049,8 +1049,8 @@ int fklDivRemBigInt(FklBigInt* a,const FklBigInt* b,FklBigInt* rem)
 {
 	const int neg_a=a->num<0;
 	const int neg_b=b->num<0;
-	const int64_t num_a=labs(a->num);
-	const int64_t num_b=labs(b->num);
+	const int64_t num_a=fklAbs(a->num);
+	const int64_t num_b=fklAbs(b->num);
 	if(num_b==0)
 		return -1;
 	else if(num_a<num_b)
@@ -1104,7 +1104,7 @@ int fklRemBigInt(FklBigInt* a,const FklBigInt* d)
 
 uintptr_t fklBigIntHash(const FklBigInt* bi)
 {
-	const int64_t len=labs(bi->num);
+	const int64_t len=fklAbs(bi->num);
 	uintptr_t r=(uintptr_t)bi->num;
 	for(int64_t i=0;i<len;i++)
 		r=fklHashCombine(r,bi->digits[i]);
@@ -1115,7 +1115,7 @@ double fklBigIntToD(const FklBigInt* bi)
 {
 	double r=0;
 	double base=1;
-	const int64_t num=labs(bi->num);
+	const int64_t num=fklAbs(bi->num);
 	for(int64_t i=0;i<num;i++)
 	{
 		r+=((double)bi->digits[i])*base;
@@ -1208,7 +1208,7 @@ int64_t fklBigIntToI(const FklBigInt* bi)
 	else
 	{
 		int64_t r=0;
-		const int64_t num=labs(bi->num);
+		const int64_t num=fklAbs(bi->num);
 		for(int64_t i=0;i<num;i++)
 			r|=((uint64_t)bi->digits[i])<<(FKL_BIGINT_DIGIT_SHIFT*i);
 		if(bi->num<0)
@@ -1222,7 +1222,7 @@ static inline size_t bigint_to_dec_string_buffer(const FklBigInt* a
 		,void* ctx)
 {
 	FKL_ASSERT(a->num);
-	int64_t size_a=labs(a->num);
+	int64_t size_a=fklAbs(a->num);
 	int64_t d=(33*FKL_BIGINT_DECIMAL_SHIFT)/(10*FKL_BIGINT_DIGIT_SHIFT-33*FKL_BIGINT_DECIMAL_SHIFT);
 	int64_t size=1+size_a+size_a/d;
 	const FklBigIntDigit* pin=a->digits;
@@ -1300,7 +1300,7 @@ static inline size_t bigint_to_bin_string_buffer(const FklBigInt* a
 		default:
 			abort();
 	}
-	int64_t size_a=labs(a->num);
+	int64_t size_a=fklAbs(a->num);
 	int neg=a->num<0;
 	int64_t size_a_in_bits=(size_a-1)*FKL_BIGINT_DIGIT_SHIFT+bit_length_digit(a->digits[size_a-1]);
 	int64_t sz=neg+(size_a_in_bits+(bits-1))/bits;

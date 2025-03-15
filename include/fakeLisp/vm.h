@@ -524,8 +524,6 @@ typedef struct FklVMudMetaTable
 	FklVMudCopyAppender __copy_append;
 	FklVMudAppender __append;
 	size_t (*__hash)(const FklVMud*);
-
-	FklBytevector* (*__to_bvec)(const FklVMud*);
 }FklVMudMetaTable;
 
 typedef enum
@@ -1237,7 +1235,7 @@ int fklCmpVMud(const FklVMud*,const FklVMvalue*,int*);
 void fklWriteVMud(const FklVMud*,FILE* fp);
 size_t fklLengthVMud(const FklVMud*);
 size_t fklHashvVMud(const FklVMud*);
-void fklUdToString(const FklVMud*,FklStringBuffer*,FklVMgc*);
+void fklUdAsPrin1(const FklVMud*,FklStringBuffer*,FklVMgc*);
 void fklUdAsPrinc(const FklVMud*,FklStringBuffer*,FklVMgc*);
 FklBytevector* fklUdToBytevector(const FklVMud*);
 

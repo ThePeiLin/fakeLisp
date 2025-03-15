@@ -2256,7 +2256,7 @@ size_t fklLengthVMud(const FklVMud* a)
 	return a->t->__length(a);
 }
 
-void fklUdToString(const FklVMud* a,FklStringBuffer* buf,FklVMgc* gc)
+void fklUdAsPrin1(const FklVMud* a,FklStringBuffer* buf,FklVMgc* gc)
 {
 	a->t->__as_prin1(a,buf,gc);
 }

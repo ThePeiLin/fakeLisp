@@ -979,24 +979,6 @@ static int builtin_vector_to_list(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_string(FKL_CPROC_ARGL)
-{
-	size_t size=exe->tp-exe->bp;
-	FklVMvalue* r=fklCreateVMvalueStr2(exe,size,NULL);
-	FklString* str=FKL_VM_STR(r);
-	size_t i=0;
-	for(FklVMvalue* cur=FKL_VM_POP_ARG(exe)
-			;cur!=NULL
-			;cur=FKL_VM_POP_ARG(exe),i++)
-	{
-		FKL_CHECK_TYPE(cur,FKL_IS_CHR,exe);
-		str->str[i]=FKL_GET_CHR(cur);
-	}
-	fklResBp(exe);
-	FKL_VM_PUSH_VALUE(exe,r);
-	return 0;
-}
-
 static int builtin_make_string(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(size,exe);
@@ -1220,20 +1202,20 @@ static inline FklVMvalue* i64_to_string(FklVM* exe,int64_t num,uint8_t radix,Fkl
 	return bigint_to_string(exe,&b,radix,flags);
 }
 
-static int builtin_to_string(FKL_CPROC_ARGL)
+static inline int obj_to_string(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FklVMvalue* retval=FKL_VM_NIL;
-	if(FKL_IS_SYM(obj))
+	if(FKL_IS_CHR(obj))
+	{
+		char r=FKL_GET_CHR(obj);
+		retval=fklCreateVMvalueStr2(exe,1,&r);
+	}
+	else if(FKL_IS_SYM(obj))
 		retval=fklCreateVMvalueStr(exe,fklVMgetSymbolWithId(exe->gc,FKL_GET_SYM(obj))->symbol);
 	else if(FKL_IS_STR(obj))
 		retval=fklCreateVMvalueStr(exe,FKL_VM_STR(obj));
-	else if(FKL_IS_CHR(obj))
-	{
-		char r[1]={FKL_GET_CHR(obj)};
-		retval=fklCreateVMvalueStr2(exe,1,r);
-	}
 	else if(fklIsVMnumber(obj))
 	{
 		if(fklIsVMint(obj))
@@ -1283,13 +1265,33 @@ static int builtin_to_string(FKL_CPROC_ARGL)
 	{
 		FklStringBuffer buf;
 		fklInitStringBuffer(&buf);
-		fklUdToString(FKL_VM_UD(obj),&buf,exe->gc);
+		fklUdAsPrinc(FKL_VM_UD(obj),&buf,exe->gc);
 		retval=fklCreateVMvalueStr2(exe,fklStringBufferLen(&buf),fklStringBufferBody(&buf));
 		fklUninitStringBuffer(&buf);
 	}
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FKL_VM_PUSH_VALUE(exe,retval);
+	return 0;
+}
+
+static int builtin_string(FKL_CPROC_ARGL)
+{
+	size_t size=FKL_VM_GET_ARG_NUM(exe);
+	if(size==1)
+		return obj_to_string(exe,ctx);
+	FklVMvalue* r=fklCreateVMvalueStr2(exe,size,NULL);
+	FklString* str=FKL_VM_STR(r);
+	size_t i=0;
+	for(FklVMvalue* cur=FKL_VM_POP_ARG(exe)
+			;cur!=NULL
+			;cur=FKL_VM_POP_ARG(exe),i++)
+	{
+		FKL_CHECK_TYPE(cur,FKL_IS_CHR,exe);
+		str->str[i]=FKL_GET_CHR(cur);
+	}
+	fklResBp(exe);
+	FKL_VM_PUSH_VALUE(exe,r);
 	return 0;
 }
 
@@ -6353,7 +6355,6 @@ static const struct SymbolFuncStruct
 	{"vector->string",        builtin_vector_to_string,        {NULL,         NULL,               NULL,               NULL,               }, },
 	{"bytevector->string",    builtin_bytevector_to_string,    {NULL,         NULL,               NULL,               NULL,               }, },
 	{"list->string",          builtin_list_to_string,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"->string",              builtin_to_string,               {NULL,         NULL,               NULL,               NULL,               }, },
 	{"str-ref",               builtin_str_ref,                 {NULL,         NULL,               inlfunc_str_ref,    NULL,               }, },
 	{"str-set!",              builtin_str_set1,                {NULL,         NULL,               NULL,               NULL,               }, },
 	{"string-fill!",          builtin_string_fill,             {NULL,         NULL,               NULL,               NULL,               }, },

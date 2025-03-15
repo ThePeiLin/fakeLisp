@@ -1491,7 +1491,7 @@ static void vmvalue_userdata_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMud* ud=FKL_VM_UD(v);
 	if(fklIsAbleToStringUd(ud))
-		fklUdToString(ud,result,gc);
+		fklUdAsPrin1(ud,result,gc);
 	else
 		fklStringBufferPrintf(result,"#<userdata %p>",ud);
 }

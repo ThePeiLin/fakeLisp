@@ -1,14 +1,15 @@
 (import (only (.. lib utils m) assert))
+(import (.. lib dvec))
 
 (define code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
 
-(define m #d(0))
+(define m (dvec 0))
 
 (define mp 0)
 
-(define ins #d())
+(define ins (dvec))
 
-(define stack #d())
+(define stack (dvec))
 
 (define cp 0)
 

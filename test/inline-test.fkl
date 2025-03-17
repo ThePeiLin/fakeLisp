@@ -14,10 +14,6 @@
 (assert (eq (vec-set! v 0 'foo) 'foo))
 (assert (eq (vec-ref v 0) 'foo))
 
-(define vd #d(114))
-(assert (eq (dvec-set! vd 0 'foo) 'foo))
-(assert (eq (dvec-ref vd 0) 'foo))
-
 (define ht #hash())
 (assert (eq (hash-set! ht 'foo 'bar) 'bar))
 (assert (eq (hash-ref ht 'foo) 'bar))

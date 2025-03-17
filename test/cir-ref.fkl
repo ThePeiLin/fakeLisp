@@ -36,9 +36,3 @@
 (vec-set! v 7 v)
 (vec-set! v 3 j)
 (prin1n v)
-
-(define vd #d(1 2 3 4 5 6 7 8))
-(dvec-set! vd 4 vd)
-(dvec-set! vd 7 vd)
-(dvec-set! vd 3 v)
-(prin1n vd)

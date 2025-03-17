@@ -1,4 +1,5 @@
 (import (only (.. lib utils m) assert static-strcat))
+(import (.. lib dvec))
 
 (define code
   (static-strcat
@@ -148,9 +149,9 @@
     "+[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<"
     "<<<<<]]>>>]"))
 
-(define stack #d())
+(define stack (dvec))
 
-(define ins #d())
+(define ins (dvec))
 
 (define prev-ins nil)
 

@@ -490,11 +490,7 @@ static FklVMvalue* __fkl_box_copyer(FklVMvalue* obj,FklVM* vm)
 
 static FklVMvalue* __fkl_userdata_copyer(FklVMvalue* obj,FklVM* vm)
 {
-	FklVMud* src=FKL_VM_UD(obj);
-	FklVMvalue* dst=fklCreateVMvalueUd(vm
-			,src->t
-			,src->rel);
-	const FklVMud* ud=FKL_VM_UD(dst);
+	const FklVMud* ud=FKL_VM_UD(obj);
 	FklVMudCopyAppender copyer=ud->t->__copy_append;
 	return copyer(vm,ud,0,NULL);
 }

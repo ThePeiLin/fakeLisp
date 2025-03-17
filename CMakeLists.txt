@@ -275,6 +275,17 @@ target_link_libraries(buf ${LIBFKL_TARGET_NAME})
 set_target_properties(buf PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+#dvec.so
+add_library(dvec
+	SHARED
+	"src/dvec/dvec.c")
+set_target_properties(dvec PROPERTIES
+	PREFIX "")
+target_link_libraries(dvec ${LIBFKL_TARGET_NAME})
+
+set_target_properties(dvec PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+
 if(MSVC)
 target_link_libraries(fuv ws2_32)
 endif()

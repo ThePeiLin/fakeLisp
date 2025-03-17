@@ -12,6 +12,8 @@
 ;  vec-merge-sort! vec-merge-sort
 ;  dvec-merge-sort! dvec-merge-sort
 
+(import (.. dvec))
+
 (export
   (define (caar a) (car (car a)))
 

@@ -252,13 +252,13 @@ static inline void get_all_code_objs(DebugCtx* ctx)
 	FklVMvalue* head=ctx->gc->head;
 	for(;head;head=head->next)
 	{
-		if(head->type==FKL_TYPE_CODE_OBJ)
+		if(fklIsVMvalueCodeObj(head))
 			fklPushPtrStack(head,&ctx->code_objs);
 	}
 	head=ctx->reached_thread->obj_head;
 	for(;head;head=head->next)
 	{
-		if(head->type==FKL_TYPE_CODE_OBJ)
+		if(fklIsVMvalueCodeObj(head))
 			fklPushPtrStack(head,&ctx->code_objs);
 	}
 }

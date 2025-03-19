@@ -734,7 +734,7 @@ void fklStringBufferShrinkTo(FklStringBuffer* b,size_t s)
 {
 	char* t=(char*)fklRealloc(b->buf,s);
 	FKL_ASSERT(t);
-	t[s]='\0';
+	t[s-1]='\0';
 	b->buf=t;
 	b->size=s;
 }

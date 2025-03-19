@@ -260,12 +260,12 @@ static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	NULL,
 	NULL,
 	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	NULL,
 	NULL,
-	NULL,
-	NULL,
+	// NULL,
 };
 
 static int builtin_append(FKL_CPROC_ARGL)
@@ -355,13 +355,13 @@ static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	__fkl_userdata_append,
 	NULL,
 	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	NULL,
 	NULL,
 	NULL,
-	NULL,
-	NULL,
+	// NULL,
 };
 
 static int builtin_append1(FKL_CPROC_ARGL)
@@ -1922,7 +1922,7 @@ static int builtin_fclose(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(vfp,exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(vfp,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(vfp,fklIsVMvalueFp,exe);
 	FklVMfp* fp=FKL_VM_FP(vfp);
 	if(fp->fp==NULL||fklUninitVMfp(fp))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
@@ -2785,9 +2785,9 @@ static int builtin_read(FKL_CPROC_ARGL)
 	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
 	FklVMvalue* parser=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
-	if((stream&&!FKL_IS_FP(stream))||(parser&&!is_custom_parser(parser)))
+	if((stream&&!fklIsVMvalueFp(stream))||(parser&&!is_custom_parser(parser)))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	if(!stream||FKL_IS_FP(stream))
+	if(!stream||fklIsVMvalueFp(stream))
 	{
 		FKL_DECL_VM_UD_DATA(pbd,PublicBuiltInData,ctx->pd);
 		FklVMvalue* fpv=stream?stream:pbd->sysIn;
@@ -2921,7 +2921,7 @@ static int builtin_fgetc(FKL_CPROC_ARGL)
 	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDIN(stream);
-	FKL_CHECK_TYPE(stream,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(stream,fklIsVMvalueFp,exe);
 	CHECK_FP_OPEN(stream,exe);
 	CHECK_FP_READABLE(stream,exe);
 	uint32_t rtp=exe->tp;
@@ -2945,7 +2945,7 @@ static int builtin_fgeti(FKL_CPROC_ARGL)
 	FklVMvalue* stream=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDIN(stream);
-	FKL_CHECK_TYPE(stream,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(stream,fklIsVMvalueFp,exe);
 	CHECK_FP_OPEN(stream,exe);
 	CHECK_FP_READABLE(stream,exe);
 	uint32_t rtp=exe->tp;
@@ -2968,7 +2968,7 @@ static int builtin_fgetd(FKL_CPROC_ARGL)
 	else
 		d='\n';
 	GET_OR_USE_STDIN(file);
-	FKL_CHECK_TYPE(file,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(file,fklIsVMvalueFp,exe);
 	CHECK_FP_OPEN(file,exe);
 	CHECK_FP_READABLE(file,exe);
 
@@ -2989,7 +2989,7 @@ static int builtin_fgets(FKL_CPROC_ARGL)
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDIN(file);
-	if(!FKL_IS_FP(file)||!fklIsVMint(psize))
+	if(!fklIsVMvalueFp(file)||!fklIsVMint(psize))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
@@ -3014,7 +3014,7 @@ static int builtin_fgetb(FKL_CPROC_ARGL)
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDIN(file);
-	if(!FKL_IS_FP(file)||!fklIsVMint(psize))
+	if(!fklIsVMvalueFp(file)||!fklIsVMint(psize))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(psize))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
@@ -3040,7 +3040,7 @@ static int builtin_prin1(FKL_CPROC_ARGL)
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDOUT(file);
-	if(!FKL_IS_FP(file))
+	if(!fklIsVMvalueFp(file))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 
 	CHECK_FP_OPEN(file,exe);
@@ -3058,7 +3058,7 @@ static int builtin_princ(FKL_CPROC_ARGL)
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDOUT(file);
-	if(!FKL_IS_FP(file))
+	if(!fklIsVMvalueFp(file))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	CHECK_FP_OPEN(file,exe);
 	CHECK_FP_WRITABLE(file,exe);
@@ -3159,7 +3159,7 @@ static int builtin_newline(FKL_CPROC_ARGL)
 	FklVMvalue* file=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
 	GET_OR_USE_STDOUT(file);
-	FKL_CHECK_TYPE(file,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(file,fklIsVMvalueFp,exe);
 	CHECK_FP_OPEN(file,exe);
 	CHECK_FP_WRITABLE(file,exe);
 	FILE* fp=FKL_VM_FP(file)->fp;
@@ -4576,7 +4576,7 @@ static int builtin_feof_p(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(fp,exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(fp,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(fp,fklIsVMvalueFp,exe);
 	CHECK_FP_OPEN(fp,exe);
 	FKL_VM_PUSH_VALUE(exe,feof(FKL_VM_FP(fp)->fp)?FKL_VM_TRUE:FKL_VM_NIL);
 	return 0;
@@ -4586,7 +4586,7 @@ static int builtin_ftell(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(fp,exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(fp,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(fp,fklIsVMvalueFp,exe);
 	CHECK_FP_OPEN(fp,exe);
 	int64_t pos=ftell(FKL_VM_FP(fp)->fp);
 	if(pos<0)
@@ -4603,7 +4603,7 @@ static int builtin_fseek(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG2(vfp,offset,exe);
 	FklVMvalue* whence_v=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(vfp,FKL_IS_FP,exe);
+	FKL_CHECK_TYPE(vfp,fklIsVMvalueFp,exe);
 	FKL_CHECK_TYPE(offset,fklIsVMint,exe);
 	if(whence_v)
 		FKL_CHECK_TYPE(whence_v,FKL_IS_SYM,exe);

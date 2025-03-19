@@ -29,12 +29,12 @@ typedef enum
 	FKL_TYPE_USERDATA,
 	FKL_TYPE_PROC,
 	FKL_TYPE_CHAN,
-	FKL_TYPE_FP,
+	// FKL_TYPE_FP,
 	FKL_TYPE_DLL,
 	FKL_TYPE_CPROC,
 	FKL_TYPE_ERR,
 	FKL_TYPE_HASHTABLE,
-	FKL_TYPE_CODE_OBJ,
+	// FKL_TYPE_CODE_OBJ,
 	FKL_TYPE_VAR_REF,
 	FKL_VM_VALUE_GC_TYPE_NUM,
 }FklValueType;
@@ -257,11 +257,11 @@ typedef struct
 	FklVMchanl chanl;
 }FklVMvalueChanl;
 
-typedef struct
-{
-	FKL_VM_VALUE_COMMON_HEADER;
-	FklVMfp fp;
-}FklVMvalueFp;
+// typedef struct
+// {
+// 	FKL_VM_VALUE_COMMON_HEADER;
+// 	FklVMfp fp;
+// }FklVMvalueFp;
 
 typedef struct
 {
@@ -704,11 +704,11 @@ typedef struct
 	FklHashTable hash;
 }FklVMvalueHash;
 
-typedef struct
-{
-	FKL_VM_VALUE_COMMON_HEADER;
-	FklByteCodelnt bcl;
-}FklVMvalueCodeObj;
+// typedef struct
+// {
+// 	FKL_VM_VALUE_COMMON_HEADER;
+// 	FklByteCodelnt bcl;
+// }FklVMvalueCodeObj;
 
 typedef struct
 {
@@ -978,6 +978,7 @@ FklVMvalue* fklCreateVMvalueCproc(FklVM*
 void fklDoPrintCprocBacktrace(FklSid_t,FILE* fp,FklVMgc* gc);
 
 FklVMvalue* fklCreateVMvalueFp(FklVM*,FILE*,FklVMfpRW);
+int fklIsVMvalueFp(FklVMvalue* v);
 
 FklVMvalue* fklCreateVMvalueHash(FklVM*,FklHashTableEqType);
 
@@ -1023,6 +1024,7 @@ FklVMvalue* fklCreateVMvalueUd(FklVM*
 		,FklVMvalue* rel);
 
 FklVMvalue* fklCreateVMvalueCodeObj(FklVM*,FklByteCodelnt* bcl);
+int fklIsVMvalueCodeObj(FklVMvalue* v);
 
 FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 		,const FklNastNode* node
@@ -1056,8 +1058,6 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_CPROC(V) (&(((FklVMvalueCproc*)(V))->cproc))
 
-#define FKL_VM_FP(V) (&(((FklVMvalueFp*)(V))->fp))
-
 #define FKL_VM_HASH(V) (&(((FklVMvalueHash*)(V))->hash))
 
 #define FKL_VM_CHANL(V) (&(((FklVMvalueChanl*)(V))->chanl))
@@ -1072,9 +1072,11 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_BOX_CAS(V,O,N) (atomic_compare_exchange_strong(((atomic_uintptr_t*)&(((FklVMvalueBox*)(V))->box)),(uintptr_t*)(O),(uintptr_t)(N)))
 
-#define FKL_VM_CO(V) (&(((FklVMvalueCodeObj*)(V))->bcl))
-
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
+
+#define FKL_VM_FP(V) FKL_GET_UD_DATA(FklVMfp,FKL_VM_UD(V))
+
+#define FKL_VM_CO(V) FKL_GET_UD_DATA(FklByteCodelnt,FKL_VM_UD(V))
 
 #ifdef WIN32
 #define FKL_VM_VAR_REF_GET(V) ((FklVMvalue**)(atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
@@ -1314,7 +1316,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 #define FKL_IS_F64(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_F64)
 #define FKL_IS_STR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_STR)
 #define FKL_IS_CHAN(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CHAN)
-#define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_FP)
+// #define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_FP)
 #define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DLL)
 #define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_PROC)
 #define FKL_IS_CPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CPROC)

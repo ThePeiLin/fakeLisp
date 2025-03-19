@@ -619,12 +619,12 @@ static inline FklByteCode* append_push_vec_ins_to_bc(InsAppendMode m
 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_VEC,len);
 }
 
-static inline FklByteCode* append_push_dvec_ins_to_bc(InsAppendMode m
-		,FklByteCode* bc
-		,uint64_t len)
-{
-	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_DVEC,len);
-}
+// static inline FklByteCode* append_push_dvec_ins_to_bc(InsAppendMode m
+// 		,FklByteCode* bc
+// 		,uint64_t len)
+// {
+// 	return set_and_append_ins_with_unsigned_imm_to_bc(m,bc,FKL_OP_PUSH_DVEC,len);
+// }
 
 static inline FklByteCode* append_push_hash_ins_to_bc(InsAppendMode m
 		,FklByteCode* bc
@@ -4103,23 +4103,23 @@ BC_PROCESS(_qsquote_vec_bc_process)
 	return retval;
 }
 
-BC_PROCESS(_qsquote_dvec_bc_process)
-{
-	FklPtrStack* stack=GET_STACK(context);
-	FklByteCodelnt* retval=stack->base[0];
-	for(size_t i=1;i<stack->top;i++)
-	{
-		FklByteCodelnt* cur=stack->base[i];
-		fklCodeLntConcat(retval,cur);
-		fklDestroyByteCodelnt(cur);
-	}
-	stack->top=0;
-	FklInstruction pushVec=create_op_ins(FKL_OP_PUSH_DVEC_0);
-	FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
-	fklByteCodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
-	fklByteCodeLntPushBackIns(retval,&pushVec,fid,line,scope);
-	return retval;
-}
+// BC_PROCESS(_qsquote_dvec_bc_process)
+// {
+// 	FklPtrStack* stack=GET_STACK(context);
+// 	FklByteCodelnt* retval=stack->base[0];
+// 	for(size_t i=1;i<stack->top;i++)
+// 	{
+// 		FklByteCodelnt* cur=stack->base[i];
+// 		fklCodeLntConcat(retval,cur);
+// 		fklDestroyByteCodelnt(cur);
+// 	}
+// 	stack->top=0;
+// 	FklInstruction pushVec=create_op_ins(FKL_OP_PUSH_DVEC_0);
+// 	FklInstruction setBp=create_op_ins(FKL_OP_SET_BP);
+// 	fklByteCodeLntInsertFrontIns(&setBp,retval,fid,line,scope);
+// 	fklByteCodeLntPushBackIns(retval,&pushVec,fid,line,scope);
+// 	return retval;
+// }
 
 BC_PROCESS(_unqtesp_vec_bc_process)
 {
@@ -4367,30 +4367,30 @@ static CODEGEN_FUNC(codegen_qsquote)
 								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
 						}
 					}
-					else if(curValue->type==FKL_NAST_DVECTOR)
-					{
-						size_t vecSize=curValue->vec->size;
-						FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_dvec_bc_process
-								,createDefaultStackContext(fklCreatePtrStack(vecSize,16))
-								,NULL
-								,scope
-								,macroScope
-								,curEnv
-								,curValue->curline
-								,prevQuest
-								,codegen);
-						fklPushPtrStack(curQuest,codegenQuestStack);
-						for(size_t i=0;i<vecSize;i++)
-						{
-							if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
-								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_UNQTESP_DVEC
-											,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
-											,curQuest)
-										,&valueStack);
-							else
-								fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
-						}
-					}
+					// else if(curValue->type==FKL_NAST_DVECTOR)
+					// {
+					// 	size_t vecSize=curValue->vec->size;
+					// 	FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_dvec_bc_process
+					// 			,createDefaultStackContext(fklCreatePtrStack(vecSize,16))
+					// 			,NULL
+					// 			,scope
+					// 			,macroScope
+					// 			,curEnv
+					// 			,curValue->curline
+					// 			,prevQuest
+					// 			,codegen);
+					// 	fklPushPtrStack(curQuest,codegenQuestStack);
+					// 	for(size_t i=0;i<vecSize;i++)
+					// 	{
+					// 		if(fklPatternMatch(builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],curValue->vec->base[i],unquoteHt))
+					// 			fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_UNQTESP_DVEC
+					// 						,fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value,unquoteHt)
+					// 						,curQuest)
+					// 					,&valueStack);
+					// 		else
+					// 			fklPushPtrStack(create_qsquote_helper_struct(QSQUOTE_NONE,curValue->vec->base[i],curQuest),&valueStack);
+					// 	}
+					// }
 					else if(curValue->type==FKL_NAST_BOX)
 					{
 						FklCodegenQuest* curQuest=fklCreateCodegenQuest(_qsquote_box_bc_process
@@ -4488,10 +4488,10 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt* bcl)
 			case FKL_OP_PUSH_I64B_X:
 			case FKL_OP_TRUE:
 			case FKL_OP_EXTRA_ARG:
-			case FKL_OP_PUSH_DVEC:
-			case FKL_OP_PUSH_DVEC_C:
-			case FKL_OP_PUSH_DVEC_X:
-			case FKL_OP_PUSH_DVEC_XX:
+			// case FKL_OP_PUSH_DVEC:
+			// case FKL_OP_PUSH_DVEC_C:
+			// case FKL_OP_PUSH_DVEC_X:
+			// case FKL_OP_PUSH_DVEC_XX:
 				break;
 			default:
 				return 0;
@@ -10011,11 +10011,11 @@ FklByteCode* fklCodegenNode(const FklNastNode* node,FklCodegenInfo* info)
 					fklPushPtrStack(node->hash->items[i].cdr,&stack);
 				}
 				break;
-			case FKL_NAST_DVECTOR:
-				append_push_dvec_ins_to_bc(INS_APPEND_FRONT,retval,node->vec->size);
-				for(size_t i=0;i<node->vec->size;i++)
-					fklPushPtrStack(node->vec->base[i],&stack);
-				break;
+			// case FKL_NAST_DVECTOR:
+			// 	append_push_dvec_ins_to_bc(INS_APPEND_FRONT,retval,node->vec->size);
+			// 	for(size_t i=0;i<node->vec->size;i++)
+			// 		fklPushPtrStack(node->vec->base[i],&stack);
+			// 	break;
 			default:
 				abort();
 				break;

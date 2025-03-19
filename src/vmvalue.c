@@ -82,14 +82,14 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 							vec->base[j]=cStack->base[i-1];
 					}
 					break;
-				case FKL_TYPE_DVECTOR:
-					{
-						v=fklCreateVMvalueDvec(vm,cStack->top);
-						FklVMdvec* vec=FKL_VM_DVEC(v);
-						for(size_t i=cStack->top,j=0;i>0;i--,j++)
-							vec->base[j]=cStack->base[i-1];
-					}
-					break;
+				// case FKL_TYPE_DVECTOR:
+				// 	{
+				// 		v=fklCreateVMvalueDvec(vm,cStack->top);
+				// 		FklVMdvec* vec=FKL_VM_DVEC(v);
+				// 		for(size_t i=cStack->top,j=0;i>0;i--,j++)
+				// 			vec->base[j]=cStack->base[i-1];
+				// 	}
+				// 	break;
 				case FKL_TYPE_HASHTABLE:
 					{
 						v=fklCreateVMvalueHash(vm,fklPopUintStack(&reftypeStack));
@@ -168,18 +168,18 @@ FklVMvalue* fklCreateVMvalueFromNastNode(FklVM* vm
 						cStack=vStack;
 					}
 					break;
-				case FKL_NAST_DVECTOR:
-					{
-						fklPushUintStack(root->curline,&reftypeStack);
-						fklPushUintStack(FKL_TYPE_DVECTOR,&reftypeStack);
-						fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
-						for(size_t i=0;i<root->vec->size;i++)
-							fklPushPtrStack(root->vec->base[i],&nodeStack);
-						FklPtrStack* vStack=fklCreatePtrStack(root->vec->size,16);
-						fklPushPtrStack(vStack,&stackStack);
-						cStack=vStack;
-					}
-					break;
+				// case FKL_NAST_DVECTOR:
+				// 	{
+				// 		fklPushUintStack(root->curline,&reftypeStack);
+				// 		fklPushUintStack(FKL_TYPE_DVECTOR,&reftypeStack);
+				// 		fklPushPtrStack(SENTINEL_NAST_NODE,&nodeStack);
+				// 		for(size_t i=0;i<root->vec->size;i++)
+				// 			fklPushPtrStack(root->vec->base[i],&nodeStack);
+				// 		FklPtrStack* vStack=fklCreatePtrStack(root->vec->size,16);
+				// 		fklPushPtrStack(vStack,&stackStack);
+				// 		cStack=vStack;
+				// 	}
+				// 	break;
 				case FKL_NAST_HASHTABLE:
 					{
 						fklPushUintStack(root->hash->type,&reftypeStack);
@@ -349,20 +349,20 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 									}
 								}
 								break;
-							case FKL_TYPE_DVECTOR:
-								{
-									FklVMdvec* vec=FKL_VM_DVEC(value);
-									cur->type=FKL_NAST_DVECTOR;
-									cur->vec=fklCreateNastVector(vec->size);
-									for(size_t i=0;i<vec->size;i++)
-										fklPushPtrStack(vec->base[i],&s0);
-									for(size_t i=0;i<cur->vec->size;i++)
-									{
-										fklPushPtrStack(&cur->vec->base[i],&s1);
-										fklPushUintStack(cur->curline,&lineStack);
-									}
-								}
-								break;
+							// case FKL_TYPE_DVECTOR:
+							// 	{
+							// 		FklVMdvec* vec=FKL_VM_DVEC(value);
+							// 		cur->type=FKL_NAST_DVECTOR;
+							// 		cur->vec=fklCreateNastVector(vec->size);
+							// 		for(size_t i=0;i<vec->size;i++)
+							// 			fklPushPtrStack(vec->base[i],&s0);
+							// 		for(size_t i=0;i<cur->vec->size;i++)
+							// 		{
+							// 			fklPushPtrStack(&cur->vec->base[i],&s1);
+							// 			fklPushUintStack(cur->curline,&lineStack);
+							// 		}
+							// 	}
+							// 	break;
 							case FKL_TYPE_HASHTABLE:
 								{
 									FklHashTable* hash=FKL_VM_HASH(value);
@@ -509,11 +509,11 @@ static FklVMvalue* __fkl_hashtable_copyer(FklVMvalue* obj,FklVM* vm)
 	return r;
 }
 
-static FklVMvalue* __fkl_dvec_copyer(FklVMvalue* obj,FklVM* vm)
-{
-	FklVMdvec* vec=FKL_VM_DVEC(obj);
-	return fklCreateVMvalueDvecWithPtr(vm,vec->size,vec->base);
-}
+// static FklVMvalue* __fkl_dvec_copyer(FklVMvalue* obj,FklVM* vm)
+// {
+// 	FklVMdvec* vec=FKL_VM_DVEC(obj);
+// 	return fklCreateVMvalueDvecWithPtr(vm,vec->size,vec->base);
+// }
 
 static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* obj,FklVM* vm)=
 {
@@ -532,7 +532,7 @@ static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* o
 	NULL,
 	NULL,
 	__fkl_hashtable_copyer,
-	__fkl_dvec_copyer,
+	// __fkl_dvec_copyer,
 	NULL,
 	NULL,
 };
@@ -552,7 +552,7 @@ FklVMvalue* fklCopyVMvalue(FklVMvalue* obj,FklVM* vm)
 		case FKL_TAG_PTR:
 			{
 				FklValueType type=obj->type;
-				FKL_ASSERT(type<=FKL_TYPE_DVECTOR);
+				FKL_ASSERT(type<=FKL_TYPE_HASHTABLE);
 				FklVMvalue* (*valueCopyer)(FklVMvalue* obj,FklVM* vm)=valueCopyers[type];
 				if(!valueCopyer)
 					return NULL;
@@ -652,23 +652,23 @@ int fklVMvalueEqual(const FklVMvalue* fir,const FklVMvalue* sec)
 							}
 						}
 						break;
-					case FKL_TYPE_DVECTOR:
-						{
-							FklVMdvec* vec1=FKL_VM_DVEC(root1);
-							FklVMdvec* vec2=FKL_VM_DVEC(root2);
-							if(vec1->size!=vec2->size)
-								r=0;
-							else
-							{
-								r=1;
-								size_t size=vec1->size;
-								for(size_t i=0;i<size;i++)
-									fklPushPtrStack(vec1->base[i],&s1);
-								for(size_t i=0;i<size;i++)
-									fklPushPtrStack(vec2->base[i],&s2);
-							}
-						}
-						break;
+					// case FKL_TYPE_DVECTOR:
+					// 	{
+					// 		FklVMdvec* vec1=FKL_VM_DVEC(root1);
+					// 		FklVMdvec* vec2=FKL_VM_DVEC(root2);
+					// 		if(vec1->size!=vec2->size)
+					// 			r=0;
+					// 		else
+					// 		{
+					// 			r=1;
+					// 			size_t size=vec1->size;
+					// 			for(size_t i=0;i<size;i++)
+					// 				fklPushPtrStack(vec1->base[i],&s1);
+					// 			for(size_t i=0;i<size;i++)
+					// 				fklPushPtrStack(vec2->base[i],&s2);
+					// 		}
+					// 	}
+					// 	break;
 					case FKL_TYPE_BIG_INT:
 						r=fklVMbigIntEqual(FKL_VM_BI(root1),FKL_VM_BI(root2));
 						break;
@@ -834,10 +834,10 @@ static inline void uninit_nothing_value(FklVMvalue* v)
 {
 }
 
-static inline void uninit_dvec_value(FklVMvalue* v)
-{
-	free(FKL_VM_DVEC(v)->base);
-}
+// static inline void uninit_dvec_value(FklVMvalue* v)
+// {
+// 	free(FKL_VM_DVEC(v)->base);
+// }
 
 static inline void uninit_ud_value(FklVMvalue* v)
 {
@@ -902,7 +902,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_nothing_value,  //cproc
 		uninit_err_value,      //error
 		uninit_hash_value,     //hash
-		uninit_dvec_value,     //dvec
+		// uninit_dvec_value,     //dvec
 		uninit_code_obj_value, //code-obj
 		uninit_nothing_value,  //var-ref
 	};
@@ -1177,13 +1177,13 @@ static size_t _vector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 	return vec->size;
 }
 
-static size_t _dvector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
-{
-	const FklVMdvec* vec=FKL_VM_DVEC(v);
-	for(size_t i=0;i<vec->size;i++)
-		fklPushPtrStack(vec->base[i],s);
-	return vec->size;
-}
+// static size_t _dvector_hashFunc(const FklVMvalue* v,FklPtrStack* s)
+// {
+// 	const FklVMdvec* vec=FKL_VM_DVEC(v);
+// 	for(size_t i=0;i<vec->size;i++)
+// 		fklPushPtrStack(vec->base[i],s);
+// 	return vec->size;
+// }
 
 static size_t _pair_hashFunc(const FklVMvalue* v,FklPtrStack* s)
 {
@@ -1232,7 +1232,7 @@ static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(const FklVMv
 	NULL,
 	NULL,
 	_hashTable_hashFunc,
-	_dvector_hashFunc,
+	// _dvector_hashFunc,
 	NULL,
 	NULL,
 };
@@ -1550,48 +1550,48 @@ FklVMvalue* fklCreateVMvalueVec6(FklVM* exe
 	return r;
 }
 
-FklVMvalue* fklCreateVMvalueDvec(FklVM* exe,size_t size)
-{
-	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_DVECTOR;
-	FklVMdvec* v=FKL_VM_DVEC(r);
-	v->size=size;
-	v->capacity=size;
-	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
-	FKL_ASSERT(v->base||!size);
-	fklAddToGC(r,exe);
-	return r;
-}
-
-FklVMvalue* fklCreateVMvalueDvecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr)
-{
-	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_DVECTOR;
-	FklVMdvec* v=FKL_VM_DVEC(r);
-	v->size=size;
-	v->capacity=size;
-	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
-	FKL_ASSERT(v->base||!size);
-	memcpy(v->base,ptr,size*sizeof(FklVMvalue*));
-	fklAddToGC(r,exe);
-	return r;
-}
-
-FklVMvalue* fklCreateVMvalueDvecWithCapacity(FklVM* exe,size_t capacity)
-{
-	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_DVECTOR;
-	FklVMdvec* v=FKL_VM_DVEC(r);
-	v->size=0;
-	v->capacity=capacity;
-	v->base=(FklVMvalue**)malloc(capacity*sizeof(FklVMvalue*));
-	FKL_ASSERT(v->base||!capacity);
-	fklAddToGC(r,exe);
-	return r;
-}
+// FklVMvalue* fklCreateVMvalueDvec(FklVM* exe,size_t size)
+// {
+// 	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
+// 	FKL_ASSERT(r);
+// 	r->type=FKL_TYPE_DVECTOR;
+// 	FklVMdvec* v=FKL_VM_DVEC(r);
+// 	v->size=size;
+// 	v->capacity=size;
+// 	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
+// 	FKL_ASSERT(v->base||!size);
+// 	fklAddToGC(r,exe);
+// 	return r;
+// }
+//
+// FklVMvalue* fklCreateVMvalueDvecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr)
+// {
+// 	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
+// 	FKL_ASSERT(r);
+// 	r->type=FKL_TYPE_DVECTOR;
+// 	FklVMdvec* v=FKL_VM_DVEC(r);
+// 	v->size=size;
+// 	v->capacity=size;
+// 	v->base=(FklVMvalue**)calloc(size,sizeof(FklVMvalue*));
+// 	FKL_ASSERT(v->base||!size);
+// 	memcpy(v->base,ptr,size*sizeof(FklVMvalue*));
+// 	fklAddToGC(r,exe);
+// 	return r;
+// }
+//
+// FklVMvalue* fklCreateVMvalueDvecWithCapacity(FklVM* exe,size_t capacity)
+// {
+// 	FklVMvalue* r=NEW_OBJ(FklVMvalueDvec);
+// 	FKL_ASSERT(r);
+// 	r->type=FKL_TYPE_DVECTOR;
+// 	FklVMdvec* v=FKL_VM_DVEC(r);
+// 	v->size=0;
+// 	v->capacity=capacity;
+// 	v->base=(FklVMvalue**)malloc(capacity*sizeof(FklVMvalue*));
+// 	FKL_ASSERT(v->base||!capacity);
+// 	fklAddToGC(r,exe);
+// 	return r;
+// }
 
 FklVMvalue* fklCreateVMvalueBox(FklVM* exe,FklVMvalue* b)
 {
@@ -2132,12 +2132,12 @@ void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)
 		fklVMgcToGray(vec->base[i],gc);
 }
 
-void fklAtomicVMdvec(FklVMvalue* pVec,FklVMgc* gc)
-{
-	FklVMdvec* vec=FKL_VM_DVEC(pVec);
-	for(size_t i=0;i<vec->size;i++)
-		fklVMgcToGray(vec->base[i],gc);
-}
+// void fklAtomicVMdvec(FklVMvalue* pVec,FklVMgc* gc)
+// {
+// 	FklVMdvec* vec=FKL_VM_DVEC(pVec);
+// 	for(size_t i=0;i<vec->size;i++)
+// 		fklVMgcToGray(vec->base[i],gc);
+// }
 
 void fklAtomicVMpair(FklVMvalue* root,FklVMgc* gc)
 {

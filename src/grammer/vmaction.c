@@ -208,20 +208,20 @@ static inline void* prod_action_vector(void* outerCtx
 	return r;
 }
 
-static inline void* prod_action_dvector(void* outerCtx
-		,void* nodes[]
-		,size_t num
-		,size_t line)
-{
-	FklVM* exe=(FklVM*)outerCtx;
-	FklVMvalue* list=nodes[1];
-	size_t len=fklVMlistLength(list);
-	FklVMvalue* r=fklCreateVMvalueDvec(exe,len);
-	FklVMdvec* vec=FKL_VM_DVEC(r);
-	for(size_t i=0;FKL_IS_PAIR(list);list=FKL_VM_CDR(list),i++)
-		vec->base[i]=FKL_VM_CAR(list);
-	return r;
-}
+// static inline void* prod_action_dvector(void* outerCtx
+// 		,void* nodes[]
+// 		,size_t num
+// 		,size_t line)
+// {
+// 	FklVM* exe=(FklVM*)outerCtx;
+// 	FklVMvalue* list=nodes[1];
+// 	size_t len=fklVMlistLength(list);
+// 	FklVMvalue* r=fklCreateVMvalueDvec(exe,len);
+// 	FklVMdvec* vec=FKL_VM_DVEC(r);
+// 	for(size_t i=0;FKL_IS_PAIR(list);list=FKL_VM_CDR(list),i++)
+// 		vec->base[i]=FKL_VM_CAR(list);
+// 	return r;
+// }
 
 static inline FklVMvalue* create_vmvalue_list(FklVM* exe,FklVMvalue** a,size_t num)
 {

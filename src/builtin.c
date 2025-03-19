@@ -169,8 +169,8 @@ static FklVMvalue* __fkl_vec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t
 		FklVMvalue* cur=top[-i];
 		if(FKL_IS_VECTOR(cur))
 			new_size+=FKL_VM_VEC(cur)->size;
-		else if(FKL_IS_DVECTOR(cur))
-			new_size+=FKL_VM_DVEC(cur)->size;
+		// else if(FKL_IS_DVECTOR(cur))
+		// 	new_size+=FKL_VM_DVEC(cur)->size;
 		else
 			return NULL;
 	}
@@ -183,16 +183,16 @@ static FklVMvalue* __fkl_vec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t
 		FklVMvalue* cur=top[-i];
 		size_t ss;
 		FklVMvalue** mem;
-		if(FKL_IS_VECTOR(cur))
-		{
-			ss=FKL_VM_VEC(cur)->size;
-			mem=FKL_VM_VEC(cur)->base;
-		}
-		else
-		{
-			ss=FKL_VM_DVEC(cur)->size;
-			mem=FKL_VM_DVEC(cur)->base;
-		}
+		// if(FKL_IS_VECTOR(cur))
+		// {
+		ss=FKL_VM_VEC(cur)->size;
+		mem=FKL_VM_VEC(cur)->base;
+		// }
+		// else
+		// {
+		// 	ss=FKL_VM_DVEC(cur)->size;
+		// 	mem=FKL_VM_DVEC(cur)->base;
+		// }
 		memcpy(&new_vec->base[new_size],mem,ss*sizeof(FklVMvalue*));
 		new_size+=ss;
 	}
@@ -257,6 +257,8 @@ static FklVMvalue* __fkl_userdata_copy_append(FklVM* exe,const FklVMvalue* v,uin
 		return NULL;
 }
 
+/*
+ * to_be_removed
 static FklVMvalue* __fkl_dvec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_t argc,FklVMvalue* const* top)
 {
 	size_t new_size=FKL_VM_DVEC(v)->size;
@@ -294,6 +296,7 @@ static FklVMvalue* __fkl_dvec_copy_append(FklVM* exe,const FklVMvalue* v,uint32_
 	}
 	return new_vec_val;
 }
+*/
 
 static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 {
@@ -312,7 +315,7 @@ static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	NULL,
 	NULL,
 	NULL,
-	__fkl_dvec_copy_append,
+	// __fkl_dvec_copy_append,
 	NULL,
 	NULL,
 };
@@ -392,6 +395,8 @@ static int __fkl_userdata_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const
 		return 1;
 }
 
+/*
+ * to_be_removed
 static inline void dvec_reserve(FklVMdvec* v,size_t target)
 {
 	if(v->capacity>=target)
@@ -446,6 +451,7 @@ static int __fkl_dvector_append(FklVMvalue* v,uint32_t argc,FklVMvalue* const* t
 	dvec->size=new_size;
 	return 0;
 }
+*/
 
 static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 {
@@ -464,7 +470,7 @@ static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	NULL,
 	NULL,
 	NULL,
-	__fkl_dvector_append,
+	// __fkl_dvector_append,
 	NULL,
 	NULL,
 };
@@ -1996,8 +2002,8 @@ static int builtin_length(FKL_CPROC_ARGL)
 		len=FKL_VM_STR(obj)->size;
 	else if(FKL_IS_VECTOR(obj))
 		len=FKL_VM_VEC(obj)->size;
-	else if(FKL_IS_DVECTOR(obj))
-		len=FKL_VM_DVEC(obj)->size;
+	// else if(FKL_IS_DVECTOR(obj))
+	// 	len=FKL_VM_DVEC(obj)->size;
 	else if(FKL_IS_BYTEVECTOR(obj))
 		len=FKL_VM_BVEC(obj)->size;
 	else if(FKL_IS_USERDATA(obj)&&fklUdHasLength(FKL_VM_UD(obj)))
@@ -3375,23 +3381,23 @@ static inline int match_pattern(const FklVMvalue* pattern,FklVMvalue* exp,FklHas
 				fklPushPtrQueue(b1[i],&q1);
 			}
 		}
-		else if(FKL_IS_DVECTOR(v0)
-				&&FKL_IS_DVECTOR(v1))
-		{
-			FklVMdvec* vec0=FKL_VM_DVEC(v0);
-			FklVMdvec* vec1=FKL_VM_DVEC(v1);
-			r=vec0->size!=vec1->size;
-			if(r)
-				break;
-			FklVMvalue** b0=vec0->base;
-			FklVMvalue** b1=vec1->base;
-			size_t size=vec0->size;
-			for(size_t i=0;i<size;i++)
-			{
-				fklPushPtrQueue(b0[i],&q0);
-				fklPushPtrQueue(b1[i],&q1);
-			}
-		}
+		// else if(FKL_IS_DVECTOR(v0)
+		// 		&&FKL_IS_DVECTOR(v1))
+		// {
+		// 	FklVMdvec* vec0=FKL_VM_DVEC(v0);
+		// 	FklVMdvec* vec1=FKL_VM_DVEC(v1);
+		// 	r=vec0->size!=vec1->size;
+		// 	if(r)
+		// 		break;
+		// 	FklVMvalue** b0=vec0->base;
+		// 	FklVMvalue** b1=vec1->base;
+		// 	size_t size=vec0->size;
+		// 	for(size_t i=0;i<size;i++)
+		// 	{
+		// 		fklPushPtrQueue(b0[i],&q0);
+		// 		fklPushPtrQueue(b1[i],&q1);
+		// 	}
+		// }
 		else if(FKL_IS_HASHTABLE(v0)
 				&&FKL_IS_HASHTABLE(v1))
 		{
@@ -5168,7 +5174,7 @@ static int builtin_procedure_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_
 static int builtin_proc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PROC(val))}
 static int builtin_cproc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CPROC(val))}
 static int builtin_vector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_VECTOR(val))}
-static int builtin_dvec_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_DVECTOR(val))}
+// static int builtin_dvec_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_DVECTOR(val))}
 static int builtin_bytevector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val))}
 static int builtin_chanl_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CHAN(val))}
 static int builtin_dll_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_DLL(val))}
@@ -5219,6 +5225,7 @@ static int builtin_return(FKL_CPROC_ARGL)
 	return 0;
 }
 
+/*
 static int builtin_dvec(FKL_CPROC_ARGL)
 {
 	size_t size=exe->tp-exe->bp;
@@ -5877,6 +5884,7 @@ static int builtin_bytevector_to_s8_dvec(FKL_CPROC_ARGL)
 	FKL_VM_PUSH_VALUE(exe,vec);
 	return 0;
 }
+*/
 
 #undef PREDICATE
 //end
@@ -5955,15 +5963,15 @@ static FklByteCodelnt* inlfunc_cdr(INL_FUNC_ARGS)
 	return inl_1_arg_func(FKL_OP_PUSH_CDR,bcs,fid,line,scope);
 }
 
-static FklByteCodelnt* inlfunc_dvec_first(INL_FUNC_ARGS)
-{
-	return inl_1_arg_func(FKL_OP_DVEC_FIRST,bcs,fid,line,scope);
-}
+// static FklByteCodelnt* inlfunc_dvec_first(INL_FUNC_ARGS)
+// {
+// 	return inl_1_arg_func(FKL_OP_DVEC_FIRST,bcs,fid,line,scope);
+// }
 
-static FklByteCodelnt* inlfunc_dvec_last(INL_FUNC_ARGS)
-{
-	return inl_1_arg_func(FKL_OP_DVEC_LAST,bcs,fid,line,scope);
-}
+// static FklByteCodelnt* inlfunc_dvec_last(INL_FUNC_ARGS)
+// {
+// 	return inl_1_arg_func(FKL_OP_DVEC_LAST,bcs,fid,line,scope);
+// }
 
 static FklByteCodelnt* inlfunc_vec_first(INL_FUNC_ARGS)
 {
@@ -6100,17 +6108,17 @@ static FklByteCodelnt* inlfunc_vec_ref(INL_FUNC_ARGS)
 		return inl_2_arg_func(FKL_OP_VEC_REF,bcs,fid,line,scope);
 }
 
-static FklByteCodelnt* inlfunc_dvec_ref(INL_FUNC_ARGS)
-{
-	FklByteCodelnt* index_bcl=bcs[1];
-	if(index_bcl->bc->len==1&&index_bcl->bc->code[0].op==FKL_OP_PUSH_0)
-	{
-		fklDestroyByteCodelnt(index_bcl);
-		return inl_1_arg_func(FKL_OP_DVEC_FIRST,bcs,fid,line,scope);
-	}
-	else
-	return inl_2_arg_func(FKL_OP_DVEC_REF,bcs,fid,line,scope);
-}
+// static FklByteCodelnt* inlfunc_dvec_ref(INL_FUNC_ARGS)
+// {
+// 	FklByteCodelnt* index_bcl=bcs[1];
+// 	if(index_bcl->bc->len==1&&index_bcl->bc->code[0].op==FKL_OP_PUSH_0)
+// 	{
+// 		fklDestroyByteCodelnt(index_bcl);
+// 		return inl_1_arg_func(FKL_OP_DVEC_FIRST,bcs,fid,line,scope);
+// 	}
+// 	else
+// 	return inl_2_arg_func(FKL_OP_DVEC_REF,bcs,fid,line,scope);
+// }
 
 static FklByteCodelnt* inlfunc_str_ref(INL_FUNC_ARGS)
 {
@@ -6237,10 +6245,10 @@ static FklByteCodelnt* inlfunc_vec_set(INL_FUNC_ARGS)
 	return inl_3_arg_func(FKL_OP_VEC_SET,bcs,fid,line,scope);
 }
 
-static FklByteCodelnt* inlfunc_dvec_set(INL_FUNC_ARGS)
-{
-	return inl_3_arg_func(FKL_OP_DVEC_SET,bcs,fid,line,scope);
-}
+// static FklByteCodelnt* inlfunc_dvec_set(INL_FUNC_ARGS)
+// {
+// 	return inl_3_arg_func(FKL_OP_DVEC_SET,bcs,fid,line,scope);
+// }
 
 static FklByteCodelnt* inlfunc_hash_ref_3(INL_FUNC_ARGS)
 {

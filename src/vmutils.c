@@ -593,17 +593,17 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 				putValueInSet(circle_heads,v);
 			}
 		}
-		else if(FKL_IS_DVECTOR(v))
-		{
-			inc_value_degree(ht,v);
-			if(!isInValueSet(v,circle_heads,NULL))
-			{
-				FklVMdvec* vec=FKL_VM_DVEC(v);
-				for(size_t i=vec->size;i>0;i--)
-					fklPushPtrStack(vec->base[i-1],&stack);
-				putValueInSet(circle_heads,v);
-			}
-		}
+		// else if(FKL_IS_DVECTOR(v))
+		// {
+		// 	inc_value_degree(ht,v);
+		// 	if(!isInValueSet(v,circle_heads,NULL))
+		// 	{
+		// 		FklVMdvec* vec=FKL_VM_DVEC(v);
+		// 		for(size_t i=vec->size;i>0;i--)
+		// 			fklPushPtrStack(vec->base[i-1],&stack);
+		// 		putValueInSet(circle_heads,v);
+		// 	}
+		// }
 		else if(FKL_IS_BOX(v))
 		{
 			inc_value_degree(ht,v);
@@ -664,14 +664,14 @@ static inline void scan_value_and_find_value_in_circle(FklHashTable* ht
 				for(;base<end;base++)
 					dec_value_degree(ht,*base);
 			}
-			else if(FKL_IS_DVECTOR(v))
-			{
-				FklVMdvec* vec=FKL_VM_DVEC(v);
-				FklVMvalue** base=vec->base;
-				FklVMvalue** const end=&base[vec->size];
-				for(;base<end;base++)
-					dec_value_degree(ht,*base);
-			}
+			// else if(FKL_IS_DVECTOR(v))
+			// {
+			// 	FklVMdvec* vec=FKL_VM_DVEC(v);
+			// 	FklVMvalue** base=vec->base;
+			// 	FklVMvalue** const end=&base[vec->size];
+			// 	for(;base<end;base++)
+			// 		dec_value_degree(ht,*base);
+			// }
 			else if(FKL_IS_BOX(v))
 				dec_value_degree(ht,FKL_VM_BOX(v));
 			else if(FKL_IS_HASHTABLE(v))
@@ -1001,7 +1001,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_cproc_printer,
 	vmvalue_error_princ,
 	NULL,
-	NULL,
+	// NULL,
 	vmvalue_code_obj_printer,
 	NULL,
 };
@@ -1101,7 +1101,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_cproc_printer,
 	vmvalue_error_prin1,
 	NULL,
-	NULL,
+	// NULL,
 	vmvalue_code_obj_printer,
 	NULL,
 };
@@ -1159,7 +1159,8 @@ void fklPrintVMvalue(FklVMvalue* value
 	FklStringBuffer string_buffer;
 	fklInitStringBuffer(&string_buffer);
 
-	if(!FKL_IS_VECTOR(value)&&!FKL_IS_DVECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
+	// if(!FKL_IS_VECTOR(value)&&!FKL_IS_DVECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
+	if(!FKL_IS_VECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
 	{
 		atomPrinter(value,fp,&string_buffer,gc);
 		fklUninitStringBuffer(&string_buffer);
@@ -1208,7 +1209,8 @@ void fklPrintVMvalue(FklVMvalue* value
 			else
 			{
 				free(e);
-				if(!FKL_IS_VECTOR(v)&&!FKL_IS_DVECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
+				// if(!FKL_IS_VECTOR(v)&&!FKL_IS_DVECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
+				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
 					atomPrinter(v,fp,&string_buffer,gc);
 				else
 				{
@@ -1239,30 +1241,30 @@ void fklPrintVMvalue(FklVMvalue* value
 						cQueue=vQueue;
 						continue;
 					}
-					else if(FKL_IS_DVECTOR(v))
-					{
-						fputs("#d(",fp);
-						FklPtrQueue* vQueue=fklCreatePtrQueue();
-						FklVMdvec* vec=FKL_VM_DVEC(v);
-						for(size_t i=0;i<vec->size;i++)
-						{
-							size_t w=0;
-							int is_in_rec_set=isInValueSet(vec->base[i],&circel_head_set,&w);
-							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
-								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
-										,vQueue);
-							else
-							{
-								fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
-										,vQueue);
-								if(is_in_rec_set)
-									put_ptr_in_set(&has_print_circle_head_set,vec->base[i]);
-							}
-						}
-						fklPushPtrStack(vQueue,&queueStack);
-						cQueue=vQueue;
-						continue;
-					}
+					// else if(FKL_IS_DVECTOR(v))
+					// {
+					// 	fputs("#d(",fp);
+					// 	FklPtrQueue* vQueue=fklCreatePtrQueue();
+					// 	FklVMdvec* vec=FKL_VM_DVEC(v);
+					// 	for(size_t i=0;i<vec->size;i++)
+					// 	{
+					// 		size_t w=0;
+					// 		int is_in_rec_set=isInValueSet(vec->base[i],&circel_head_set,&w);
+					// 		if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
+					// 			fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
+					// 					,vQueue);
+					// 		else
+					// 		{
+					// 			fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
+					// 					,vQueue);
+					// 			if(is_in_rec_set)
+					// 				put_ptr_in_set(&has_print_circle_head_set,vec->base[i]);
+					// 		}
+					// 	}
+					// 	fklPushPtrStack(vQueue,&queueStack);
+					// 	cQueue=vQueue;
+					// 	continue;
+					// }
 					else if(FKL_IS_BOX(v))
 					{
 						fputs("#&",fp);
@@ -1582,7 +1584,7 @@ static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_cproc_as_print,
 	vmvalue_error_as_prin1,
 	NULL,
-	NULL,
+	// NULL,
 	vmvalue_code_obj_as_print,
 	NULL,
 };
@@ -1637,7 +1639,7 @@ static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_cproc_as_print,
 	vmvalue_error_as_princ,
 	NULL,
-	NULL,
+	// NULL,
 	vmvalue_code_obj_as_print,
 	NULL,
 };
@@ -1676,7 +1678,8 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 		,void(*atom_stringifier)(VMVALUE_TO_UTSTRING_ARGS)
 		,FklVMgc* gc)
 {
-	if(!FKL_IS_VECTOR(value)&&!FKL_IS_DVECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
+	// if(!FKL_IS_VECTOR(value)&&!FKL_IS_DVECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
+	if(!FKL_IS_VECTOR(value)&&!FKL_IS_PAIR(value)&&!FKL_IS_BOX(value)&&!FKL_IS_HASHTABLE(value))
 	{
 		atom_stringifier(result,value,gc);
 		return;
@@ -1724,7 +1727,8 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 			else
 			{
 				free(e);
-				if(!FKL_IS_VECTOR(v)&&!FKL_IS_DVECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
+				// if(!FKL_IS_VECTOR(v)&&!FKL_IS_DVECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
+				if(!FKL_IS_VECTOR(v)&&!FKL_IS_PAIR(v)&&!FKL_IS_BOX(v)&&!FKL_IS_HASHTABLE(v))
 					atom_stringifier(result,v,gc);
 				else
 				{
@@ -1755,30 +1759,30 @@ static inline void stringify_value_to_string_buffer(FklVMvalue* value
 						cQueue=vQueue;
 						continue;
 					}
-					else if(FKL_IS_DVECTOR(v))
-					{
-						fklStringBufferConcatWithCstr(result,"#vd(");
-						FklPtrQueue* vQueue=fklCreatePtrQueue();
-						FklVMdvec* vec=FKL_VM_DVEC(v);
-						for(size_t i=0;i<vec->size;i++)
-						{
-							size_t w=0;
-							int is_in_rec_set=isInValueSet(vec->base[i],&circle_head_set,&w);
-							if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
-								fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
-										,vQueue);
-							else
-							{
-								fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
-										,vQueue);
-								if(is_in_rec_set)
-									put_ptr_in_set(&has_print_circle_head_set,vec->base[i]);
-							}
-						}
-						fklPushPtrStack(vQueue,&queueStack);
-						cQueue=vQueue;
-						continue;
-					}
+					// else if(FKL_IS_DVECTOR(v))
+					// {
+					// 	fklStringBufferConcatWithCstr(result,"#vd(");
+					// 	FklPtrQueue* vQueue=fklCreatePtrQueue();
+					// 	FklVMdvec* vec=FKL_VM_DVEC(v);
+					// 	for(size_t i=0;i<vec->size;i++)
+					// 	{
+					// 		size_t w=0;
+					// 		int is_in_rec_set=isInValueSet(vec->base[i],&circle_head_set,&w);
+					// 		if((is_in_rec_set&&is_ptr_in_set(&has_print_circle_head_set,vec->base[i]))||vec->base[i]==v)
+					// 			fklPushPtrQueue(createPrtElem(PRT_REC_CAR,(void*)w)
+					// 					,vQueue);
+					// 		else
+					// 		{
+					// 			fklPushPtrQueue(createPrtElem(PRT_CAR,vec->base[i])
+					// 					,vQueue);
+					// 			if(is_in_rec_set)
+					// 				put_ptr_in_set(&has_print_circle_head_set,vec->base[i]);
+					// 		}
+					// 	}
+					// 	fklPushPtrStack(vQueue,&queueStack);
+					// 	cQueue=vQueue;
+					// 	continue;
+					// }
 					else if(FKL_IS_BOX(v))
 					{
 						fklStringBufferConcatWithCstr(result,"#&");

@@ -176,14 +176,14 @@ static struct
 
 	{"extra-arg",         FKL_OP_MODE_IxAxB,    },
 
-	{"push-dvec",         FKL_OP_MODE_IuB,      },
-	{"push-dvec-c",       FKL_OP_MODE_IuC,      },
-	{"push-dvec-x",       FKL_OP_MODE_IuBB,     },
-	{"push-dvec-xx",      FKL_OP_MODE_IuCCB,    },
-	{"push-dvec-0",       FKL_OP_MODE_I,        },
-	{"dvec-ref",          FKL_OP_MODE_I,        },
-	{"dvec-first",        FKL_OP_MODE_I,        },
-	{"dvec-last",         FKL_OP_MODE_I,        },
+	// {"push-dvec",         FKL_OP_MODE_IuB,      },
+	// {"push-dvec-c",       FKL_OP_MODE_IuC,      },
+	// {"push-dvec-x",       FKL_OP_MODE_IuBB,     },
+	// {"push-dvec-xx",      FKL_OP_MODE_IuCCB,    },
+	// {"push-dvec-0",       FKL_OP_MODE_I,        },
+	// {"dvec-ref",          FKL_OP_MODE_I,        },
+	// {"dvec-first",        FKL_OP_MODE_I,        },
+	// {"dvec-last",         FKL_OP_MODE_I,        },
 	{"vec-first",         FKL_OP_MODE_I,        },
 	{"vec-last",          FKL_OP_MODE_I,        },
 
@@ -196,7 +196,7 @@ static struct
 	{"box-set",           FKL_OP_MODE_I,        },
 
 	{"vec-set",           FKL_OP_MODE_I,        },
-	{"dvec-set",          FKL_OP_MODE_I,        },
+	// {"dvec-set",          FKL_OP_MODE_I,        },
 
 	{"hash-ref-2",        FKL_OP_MODE_I,        },
 	{"hash-ref-3",        FKL_OP_MODE_I,        },

@@ -34,7 +34,7 @@ typedef enum
 	FKL_TYPE_CPROC,
 	FKL_TYPE_ERR,
 	FKL_TYPE_HASHTABLE,
-	FKL_TYPE_DVECTOR,
+	// FKL_TYPE_DVECTOR,
 	FKL_TYPE_CODE_OBJ,
 	FKL_TYPE_VAR_REF,
 	FKL_VM_VALUE_GC_TYPE_NUM,
@@ -136,12 +136,12 @@ typedef struct
 	struct FklVMvalue* base[];
 }FklVMvec;
 
-typedef struct
-{
-	size_t size;
-	size_t capacity;
-	struct FklVMvalue** base;
-}FklVMdvec;
+// typedef struct
+// {
+// 	size_t size;
+// 	size_t capacity;
+// 	struct FklVMvalue** base;
+// }FklVMdvec;
 
 #define FKL_VM_UD_COMMON_HEADER struct FklVMvalue* rel;\
 	const struct FklVMudMetaTable* t
@@ -194,11 +194,11 @@ typedef struct
 	FklVMvec vec;
 }FklVMvalueVec;
 
-typedef struct
-{
-	FKL_VM_VALUE_COMMON_HEADER;
-	FklVMdvec vec;
-}FklVMvalueDvec;
+// typedef struct
+// {
+// 	FKL_VM_VALUE_COMMON_HEADER;
+// 	FklVMdvec vec;
+// }FklVMvalueDvec;
 
 typedef struct
 {
@@ -932,7 +932,7 @@ void fklAtomicVMuserdata(FklVMvalue*,FklVMgc*);
 void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
 void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
-void fklAtomicVMdvec(FklVMvalue*,FklVMgc*);
+// void fklAtomicVMdvec(FklVMvalue*,FklVMgc*);
 void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
 void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
 void fklAtomicVMcproc(FklVMvalue*,FklVMgc*);
@@ -965,9 +965,9 @@ FklVMvalue* fklCreateVMvalueVec4(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalu
 FklVMvalue* fklCreateVMvalueVec5(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d,FklVMvalue* f);
 FklVMvalue* fklCreateVMvalueVec6(FklVM* vm,FklVMvalue* a,FklVMvalue* b,FklVMvalue* c,FklVMvalue* d,FklVMvalue* f,FklVMvalue* e);
 
-FklVMvalue* fklCreateVMvalueDvec(FklVM*,size_t);
-FklVMvalue* fklCreateVMvalueDvecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr);
-FklVMvalue* fklCreateVMvalueDvecWithCapacity(FklVM*,size_t capacity);
+// FklVMvalue* fklCreateVMvalueDvec(FklVM*,size_t);
+// FklVMvalue* fklCreateVMvalueDvecWithPtr(FklVM* exe,size_t size,FklVMvalue* const* ptr);
+// FklVMvalue* fklCreateVMvalueDvecWithCapacity(FklVM*,size_t capacity);
 
 FklVMvalue* fklCreateVMvalueF64(FklVM*,double f64);
 
@@ -1096,7 +1096,7 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
 
-#define FKL_VM_DVEC(V) (&(((FklVMvalueDvec*)(V))->vec))
+// #define FKL_VM_DVEC(V) (&(((FklVMvalueDvec*)(V))->vec))
 
 #ifdef WIN32
 #define FKL_VM_VAR_REF_GET(V) ((FklVMvalue**)(atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
@@ -1341,7 +1341,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 #define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_PROC)
 #define FKL_IS_CPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CPROC)
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)
-#define FKL_IS_DVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DVECTOR)
+// #define FKL_IS_DVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DVECTOR)
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P)==FKL_TAG_FIX)

@@ -6051,22 +6051,22 @@ static inline void* prod_action_vector(void* ctx
 	return r;
 }
 
-static inline void* prod_action_dvector(void* ctx
-		,void* outerCtx
-		,void* nodes[]
-		,size_t num
-		,size_t line)
-{
-	FklNastNode* list=nodes[1];
-	FklNastNode* r=fklCreateNastNode(FKL_NAST_DVECTOR,line);
-	size_t len=fklNastListLength(list);
-	FklNastVector* vec=fklCreateNastVector(len);
-	r->vec=vec;
-	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
-		vec->base[i]=fklMakeNastNodeRef(list->pair->car);
-	return r;
-}
+// static inline void* prod_action_dvector(void* ctx
+// 		,void* outerCtx
+// 		,void* nodes[]
+// 		,size_t num
+// 		,size_t line)
+// {
+// 	FklNastNode* list=nodes[1];
+// 	FklNastNode* r=fklCreateNastNode(FKL_NAST_DVECTOR,line);
+// 	size_t len=fklNastListLength(list);
+// 	FklNastVector* vec=fklCreateNastVector(len);
+// 	r->vec=vec;
+// 	size_t i=0;
+// 	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+// 		vec->base[i]=fklMakeNastNodeRef(list->pair->car);
+// 	return r;
+// }
 
 static inline FklNastNode* create_nast_list(FklNastNode* a[],size_t num,uint64_t line)
 {
@@ -6248,7 +6248,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 {
 	{"*s-exp* &*list*",                                       "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*vector*",                                     "prod_action_return_first",  prod_action_return_first,  },
-	{"*s-exp* &*dvector*",                                    "prod_action_return_first",  prod_action_return_first,  },
+	// {"*s-exp* &*dvector*",                                    "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*bytevector*",                                 "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*box*",                                        "prod_action_return_first",  prod_action_return_first,  },
 	{"*s-exp* &*hasheq*",                                     "prod_action_return_first",  prod_action_return_first,  },
@@ -6297,8 +6297,8 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*vector-items* ",                                       "prod_action_nil",           prod_action_nil,           },
 	{"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list,          },
 
-	{"*dvector* ##d( &*vector-items* #)",                     "prod_action_dvector",       prod_action_dvector,       },
-	{"*dvector* ##d[ &*vector-items* #]",                     "prod_action_dvector",       prod_action_dvector,       },
+	// {"*dvector* ##d( &*vector-items* #)",                     "prod_action_dvector",       prod_action_dvector,       },
+	// {"*dvector* ##d[ &*vector-items* #]",                     "prod_action_dvector",       prod_action_dvector,       },
 
 	{"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq,        },
 	{"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq,        },

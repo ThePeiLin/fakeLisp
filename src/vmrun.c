@@ -1846,6 +1846,7 @@ export_to:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		/*
 		case FKL_OP_PUSH_DVEC:
 			size=ins->bu;
 			goto push_dvec;
@@ -1914,6 +1915,7 @@ push_dvec:
 				FKL_VM_PUSH_VALUE(exe,vv->base[vv->size-1]);
 			}
 			break;
+		*/
 		case FKL_OP_VEC_FIRST:
 			{
 				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
@@ -1991,23 +1993,23 @@ pop_loc:
 				v->base[index]=value;
 			}
 			break;
-		case FKL_OP_DVEC_SET:
-			{
-				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
-				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
-				FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
-				if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-				if(fklIsVMnumberLt0(place))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t index=fklVMgetUint(place);
-				FklVMdvec* v=FKL_VM_DVEC(vec);
-				size_t size=v->size;
-				if(index>=size)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-				v->base[index]=value;
-			}
-			break;
+		// case FKL_OP_DVEC_SET:
+		// 	{
+		// 		FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+		// 		FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+		// 		FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
+		// 		if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		// 		if(fklIsVMnumberLt0(place))
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		// 		size_t index=fklVMgetUint(place);
+		// 		FklVMdvec* v=FKL_VM_DVEC(vec);
+		// 		size_t size=v->size;
+		// 		if(index>=size)
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+		// 		v->base[index]=value;
+		// 	}
+		// 	break;
 		case FKL_OP_HASH_REF_2:
 			{
 				FklVMvalue* ht=FKL_VM_POP_TOP_VALUE(exe);
@@ -3502,6 +3504,7 @@ export_to:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		/*
 		case FKL_OP_PUSH_DVEC:
 			size=ins->bu;
 			goto push_dvec;
@@ -3570,6 +3573,7 @@ push_dvec:
 				FKL_VM_PUSH_VALUE(exe,vv->base[vv->size-1]);
 			}
 			break;
+		*/
 		case FKL_OP_VEC_FIRST:
 			{
 				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
@@ -3647,23 +3651,23 @@ pop_loc:
 				v->base[index]=value;
 			}
 			break;
-		case FKL_OP_DVEC_SET:
-			{
-				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
-				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
-				FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
-				if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-				if(fklIsVMnumberLt0(place))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t index=fklVMgetUint(place);
-				FklVMdvec* v=FKL_VM_DVEC(vec);
-				size_t size=v->size;
-				if(index>=size)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-				v->base[index]=value;
-			}
-			break;
+		// case FKL_OP_DVEC_SET:
+		// 	{
+		// 		FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+		// 		FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+		// 		FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
+		// 		if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		// 		if(fklIsVMnumberLt0(place))
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		// 		size_t index=fklVMgetUint(place);
+		// 		FklVMdvec* v=FKL_VM_DVEC(vec);
+		// 		size_t size=v->size;
+		// 		if(index>=size)
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+		// 		v->base[index]=value;
+		// 	}
+		// 	break;
 		case FKL_OP_HASH_REF_2:
 			{
 				FklVMvalue* ht=FKL_VM_POP_TOP_VALUE(exe);
@@ -5157,6 +5161,7 @@ export_to:
 				FKL_VM_PUSH_VALUE(exe,!FKL_IS_PAIR(val)?FKL_VM_TRUE:FKL_VM_NIL);
 			}
 			break;
+		/*
 		case FKL_OP_PUSH_DVEC:
 			size=ins->bu;
 			goto push_dvec;
@@ -5225,6 +5230,7 @@ push_dvec:
 				FKL_VM_PUSH_VALUE(exe,vv->base[vv->size-1]);
 			}
 			break;
+		*/
 		case FKL_OP_VEC_FIRST:
 			{
 				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
@@ -5302,23 +5308,23 @@ pop_loc:
 				v->base[index]=value;
 			}
 			break;
-		case FKL_OP_DVEC_SET:
-			{
-				FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
-				FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
-				FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
-				if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-				if(fklIsVMnumberLt0(place))
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
-				size_t index=fklVMgetUint(place);
-				FklVMdvec* v=FKL_VM_DVEC(vec);
-				size_t size=v->size;
-				if(index>=size)
-					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-				v->base[index]=value;
-			}
-			break;
+		// case FKL_OP_DVEC_SET:
+		// 	{
+		// 		FklVMvalue* vec=FKL_VM_POP_TOP_VALUE(exe);
+		// 		FklVMvalue* place=FKL_VM_POP_TOP_VALUE(exe);
+		// 		FklVMvalue* value=FKL_VM_GET_TOP_VALUE(exe);
+		// 		if(!fklIsVMint(place)||!FKL_IS_DVECTOR(vec))
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+		// 		if(fklIsVMnumberLt0(place))
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+		// 		size_t index=fklVMgetUint(place);
+		// 		FklVMdvec* v=FKL_VM_DVEC(vec);
+		// 		size_t size=v->size;
+		// 		if(index>=size)
+		// 			FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+		// 		v->base[index]=value;
+		// 	}
+		// 	break;
 		case FKL_OP_HASH_REF_2:
 			{
 				FklVMvalue* ht=FKL_VM_POP_TOP_VALUE(exe);

@@ -68,7 +68,6 @@ FklNastNode* fklCopyNastNode(const FklNastNode* orig)
 				fklPushPtrStack(&node->pair->cdr,&pending1);
 				break;
 			case FKL_NAST_VECTOR:
-			// case FKL_NAST_DVECTOR:
 				node->vec=fklCreateNastVector(top->vec->size);
 				for(size_t i=0;i<top->vec->size;i++)
 				{
@@ -193,7 +192,6 @@ void fklDestroyNastNode(FklNastNode* node)
 						fklPushPtrStack(cur->box,&stack);
 						break;
 					case FKL_NAST_VECTOR:
-					// case FKL_NAST_DVECTOR:
 						for(size_t i=0;i<cur->vec->size;i++)
 							fklPushPtrStack(cur->vec->base[i],&stack);
 						destroyNastVector(cur->vec);
@@ -436,7 +434,6 @@ int fklNastNodeEqual(const FklNastNode* n0,const FklNastNode* n1)
 					fklPushPtrStack(c1->box,&s1);
 					break;
 				case FKL_NAST_VECTOR:
-				// case FKL_NAST_DVECTOR:
 					r=c0->vec->size==c1->vec->size;
 					if(r)
 					{

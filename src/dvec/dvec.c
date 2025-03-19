@@ -1,8 +1,5 @@
 #include<fakeLisp/vm.h>
 
-#undef FKL_VM_DVEC
-#undef FKL_IS_DVECTOR
-
 #define PREDICATE(condition) FKL_DECL_AND_CHECK_ARG(val,exe);\
 	FKL_CHECK_REST_ARG(exe);\
 	FKL_VM_PUSH_VALUE(exe,(condition)\

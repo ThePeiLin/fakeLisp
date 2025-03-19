@@ -283,10 +283,10 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 							// 	cur->type=FKL_NAST_SYM;
 							// 	cur->sym=fklVMaddSymbolCstr(gc,"#<fp>")->id;
 							// 	break;
-							case FKL_TYPE_ERR:
-								cur->type=FKL_NAST_SYM;
-								cur->sym=fklVMaddSymbolCstr(gc,"#<err>")->id;
-								break;
+							// case FKL_TYPE_ERR:
+							// 	cur->type=FKL_NAST_SYM;
+							// 	cur->sym=fklVMaddSymbolCstr(gc,"#<err>")->id;
+							// 	break;
 							// case FKL_TYPE_CODE_OBJ:
 							// 	cur->type=FKL_NAST_SYM;
 							// 	cur->sym=fklVMaddSymbolCstr(gc,"#<code-obj>")->id;
@@ -490,7 +490,7 @@ static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* o
 	// NULL,
 	// NULL,
 	NULL,
-	NULL,
+	// NULL,
 	__fkl_hashtable_copyer,
 	// NULL,
 	NULL,
@@ -801,11 +801,11 @@ static inline void uninit_proc_value(FklVMvalue* v)
 // 	uv_dlclose(&dll->dll);
 // }
 
-static inline void uninit_err_value(FklVMvalue* v)
-{
-	FklVMerror* err=FKL_VM_ERR(v);
-	free(err->message);
-}
+// static inline void uninit_err_value(FklVMvalue* v)
+// {
+// 	FklVMerror* err=FKL_VM_ERR(v);
+// 	free(err->message);
+// }
 
 static inline void uninit_hash_value(FklVMvalue* v)
 {
@@ -837,7 +837,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		// uninit_fp_value,       //fp
 		// uninit_dll_value,      //dll
 		uninit_nothing_value,  //cproc
-		uninit_err_value,      //error
+		// uninit_err_value,      //error
 		uninit_hash_value,     //hash
 		// uninit_code_obj_value, //code-obj
 		uninit_nothing_value,  //var-ref
@@ -1158,7 +1158,7 @@ static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(const FklVMv
 	// NULL,
 	// NULL,
 	NULL,
-	NULL,
+	// NULL,
 	_hashTable_hashFunc,
 	// NULL,
 	NULL,
@@ -1557,18 +1557,64 @@ FklVMvalue* fklCreateVMvalueBvec2(FklVM* exe,size_t size,const uint8_t* ptr)
 	return r;
 }
 
+static void _error_userdata_as_princ(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(err,FklVMerror,ud);
+	fklStringBufferConcatWithString(buf,err->message);
+}
+
+static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f)
+{
+	fklPrintRawStringToStringBuffer(s,f,'|');
+}
+
+static inline void print_raw_string_to_string_buffer(FklStringBuffer* s,FklString* f)
+{
+	fklPrintRawStringToStringBuffer(s,f,'"');
+}
+
+static void _error_userdata_as_prin1(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(err,FklVMerror,ud);
+	fklStringBufferConcatWithCstr(buf,"#<err t: ");
+	print_raw_symbol_to_string_buffer(buf,fklVMgetSymbolWithId(gc,err->type)->symbol);
+	fklStringBufferConcatWithCstr(buf," m: ");
+	print_raw_string_to_string_buffer(buf,err->message);
+	fklStringBufferPutc(buf,'>');
+}
+
+static void _error_userdata_finalizer(FklVMud* v)
+{
+	FKL_DECL_UD_DATA(err,FklVMerror,v);
+	free(err->message);
+}
+
+static FklVMudMetaTable ErrorUserDataMetaTable=
+{
+	.size=sizeof(FklVMdll),
+	.__as_princ=_error_userdata_as_princ,
+	.__as_prin1=_error_userdata_as_prin1,
+	.__finalizer=_error_userdata_finalizer,
+};
+
 FklVMvalue* fklCreateVMvalueError(FklVM* exe
 		,FklSid_t type
 		,FklString* message)
 {
-	FklVMvalue* r=NEW_OBJ(FklVMvalueErr);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_ERR;
+	FklVMvalue* r=fklCreateVMvalueUd(exe,&ErrorUserDataMetaTable,NULL);
+	// FklVMvalue* r=NEW_OBJ(FklVMvalueErr);
+	// FKL_ASSERT(r);
+	// r->type=FKL_TYPE_ERR;
 	FklVMerror* err=FKL_VM_ERR(r);
 	err->type=type;
 	err->message=message;
-	fklAddToGC(r,exe);
+	// fklAddToGC(r,exe);
 	return r;
+}
+
+int fklIsVMvalueError(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&ErrorUserDataMetaTable;
 }
 
 static inline void init_chanl_sendq(struct FklVMchanlSendq* q)
@@ -1684,21 +1730,6 @@ FklVMvalue* fklCreateVMvalueFp(FklVM* exe,FILE* fp,FklVMfpRW rw)
 int fklIsVMvalueFp(FklVMvalue* v)
 {
 	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&FpUserDataMetaTable;
-}
-
-FklVMvalue* fklCreateVMvalueErrorWithCstr(FklVM* exe
-		,FklSid_t type
-		,const char* where
-		,FklString* message)
-{
-	FklVMvalue* r=NEW_OBJ(FklVMvalueErr);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_ERR;
-	FklVMerror* err=FKL_VM_ERR(r);
-	err->type=type;
-	err->message=message;
-	fklAddToGC(r,exe);
-	return r;
 }
 
 FklVMvalue* fklCreateVMvalueBigIntWithString(FklVM* exe,const FklString* str,int base)

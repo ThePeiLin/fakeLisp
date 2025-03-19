@@ -490,7 +490,7 @@ void fklVMsetTpAndPushValue(FklVM* exe,uint32_t rtp,FklVMvalue* retval)
 
 #define DO_ERROR_HANDLING(exe) {\
 	FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);\
-	FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:NULL;\
+	FklVMframe* frame=fklIsVMvalueError(ev)?exe->top_frame:NULL;\
 	for(;frame;frame=frame->prev)\
 		if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))\
 			break;\
@@ -5412,7 +5412,7 @@ int fklRunVMinSingleThread(FklVM* volatile exe,FklVMframe* const exit_frame)
 				if(setjmp(exe->buf)==FKL_VM_ERR_RAISE)
 				{
 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
-					FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:exit_frame;
+					FklVMframe* frame=fklIsVMvalueError(ev)?exe->top_frame:exit_frame;
 					for(;frame!=exit_frame;frame=frame->prev)
 						if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
 							break;
@@ -5631,7 +5631,7 @@ static int vm_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 				if(setjmp(exe->buf)==FKL_VM_ERR_RAISE)
 				{
 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
-					FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:exit_frame;
+					FklVMframe* frame=fklIsVMvalueError(ev)?exe->top_frame:exit_frame;
 					for(;frame!=exit_frame;frame=frame->prev)
 						if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
 							break;
@@ -5744,7 +5744,7 @@ static int vm_trapping_run_cb(FklVM* exe,FklVMframe* const exit_frame)
 				if(setjmp(exe->buf)==FKL_VM_ERR_RAISE)
 				{
 					FklVMvalue* ev=FKL_VM_POP_TOP_VALUE(exe);
-					FklVMframe* frame=FKL_IS_ERR(ev)?exe->top_frame:exit_frame;
+					FklVMframe* frame=fklIsVMvalueError(ev)?exe->top_frame:exit_frame;
 					for(;frame!=exit_frame;frame=frame->prev)
 						if(frame->errorCallBack!=NULL&&frame->errorCallBack(frame,ev,exe))
 							break;

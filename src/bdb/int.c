@@ -224,7 +224,7 @@ FklVMinterruptResult dbgInterruptHandler(FklVM* exe
 				break;
 		}
 	}
-	else if(FKL_IS_ERR(int_val))
+	else if(fklIsVMvalueError(int_val))
 	{
 		if(exe->is_single_thread)
 			return FKL_INT_NEXT;

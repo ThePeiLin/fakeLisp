@@ -262,7 +262,7 @@ static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	// NULL,
 	// NULL,
 	NULL,
-	NULL,
+	// NULL,
 	NULL,
 	// NULL,
 	NULL,
@@ -358,7 +358,7 @@ static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	// NULL,
 	// NULL,
 	NULL,
-	NULL,
+	// NULL,
 	NULL,
 	// NULL,
 	NULL,
@@ -3598,7 +3598,7 @@ static int builtin_error(FKL_CPROC_ARGL)
 static int builtin_error_type(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(err,exe);
-	FKL_CHECK_TYPE(err,FKL_IS_ERR,exe);
+	FKL_CHECK_TYPE(err,fklIsVMvalueError,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FklVMerror* error=FKL_VM_ERR(err);
 	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_SYM(error->type));
@@ -3608,7 +3608,7 @@ static int builtin_error_type(FKL_CPROC_ARGL)
 static int builtin_error_msg(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(err,exe);
-	FKL_CHECK_TYPE(err,FKL_IS_ERR,exe);
+	FKL_CHECK_TYPE(err,fklIsVMvalueError,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FklVMerror* error=FKL_VM_ERR(err);
 	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueStr(exe,error->message));
@@ -3619,7 +3619,7 @@ static int builtin_raise(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(err,exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(err,FKL_IS_ERR,exe);
+	FKL_CHECK_TYPE(err,fklIsVMvalueError,exe);
 	fklPopVMframe(exe);
 	fklRaiseVMerror(err,exe);
 	return 0;
@@ -5039,7 +5039,7 @@ static int builtin_number_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMnumber(val))}
 static int builtin_pair_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PAIR(val))}
 static int builtin_symbol_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_SYM(val))}
 static int builtin_string_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_STR(val))}
-static int builtin_error_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_ERR(val))}
+static int builtin_error_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMvalueError(val))}
 static int builtin_procedure_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PROC(val)||FKL_IS_CPROC(val))}
 static int builtin_proc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PROC(val))}
 static int builtin_cproc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CPROC(val))}

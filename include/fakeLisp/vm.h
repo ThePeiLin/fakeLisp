@@ -32,7 +32,7 @@ typedef enum
 	// FKL_TYPE_FP,
 	// FKL_TYPE_DLL,
 	FKL_TYPE_CPROC,
-	FKL_TYPE_ERR,
+	// FKL_TYPE_ERR,
 	FKL_TYPE_HASHTABLE,
 	// FKL_TYPE_CODE_OBJ,
 	FKL_TYPE_VAR_REF,
@@ -692,11 +692,11 @@ typedef struct
 	FklString* message;
 }FklVMerror;
 
-typedef struct
-{
-	FKL_VM_VALUE_COMMON_HEADER;
-	FklVMerror err;
-}FklVMvalueErr;
+// typedef struct
+// {
+// 	FKL_VM_VALUE_COMMON_HEADER;
+// 	FklVMerror err;
+// }FklVMvalueErr;
 
 typedef struct
 {
@@ -997,6 +997,7 @@ FklVMvalue* fklCreateVMvalueBox(FklVM*,FklVMvalue*);
 FklVMvalue* fklCreateVMvalueBoxNil(FklVM*);
 
 FklVMvalue* fklCreateVMvalueError(FklVM*,FklSid_t type,FklString* message);
+int fklIsVMvalueError(FklVMvalue* v);
 
 FklVMvalue* fklCreateVMvalueBigInt(FklVM*,size_t num);
 
@@ -1064,8 +1065,6 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_HASH(V) (&(((FklVMvalueHash*)(V))->hash))
 
-#define FKL_VM_ERR(V) (&(((FklVMvalueErr*)(V))->err))
-
 #define FKL_VM_BI(V) (&(((FklVMvalueBigInt*)(V))->bi))
 
 #define FKL_VM_UD(V) (&(((FklVMvalueUd*)(V))->ud))
@@ -1075,6 +1074,8 @@ int fklIsVMeofUd(FklVMvalue* v);
 #define FKL_VM_BOX_CAS(V,O,N) (atomic_compare_exchange_strong(((atomic_uintptr_t*)&(((FklVMvalueBox*)(V))->box)),(uintptr_t*)(O),(uintptr_t)(N)))
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
+
+#define FKL_VM_ERR(V) FKL_GET_UD_DATA(FklVMerror,FKL_VM_UD(V))
 
 #define FKL_VM_CHANL(V) FKL_GET_UD_DATA(FklVMchanl,FKL_VM_UD(V))
 
@@ -1328,7 +1329,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 #define FKL_IS_CPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CPROC)
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)
 #define FKL_IS_BYTEVECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_BYTEVECTOR)
-#define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
+// #define FKL_IS_ERR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_ERR)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P)==FKL_TAG_FIX)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P)==FKL_TAG_CHR)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P)==FKL_TAG_SYM)

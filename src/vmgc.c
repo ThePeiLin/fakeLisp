@@ -149,7 +149,7 @@ static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 		fklAtomicVMproc,
 		fklAtomicVMchan,
 		// NULL,
-		fklAtomicVMdll,
+		// fklAtomicVMdll,
 		fklAtomicVMcproc,
 		NULL,
 		fklAtomicVMhashTable,
@@ -216,7 +216,7 @@ void fklVMgcSweep(FklVMvalue* head)
 	{
 		FklVMvalue* cur=*phead;
 		*phead=cur->next;
-		if(FKL_IS_DLL(cur))
+		if(fklIsVMvalueDll(cur))
 		{
 			cur->next=destroyDll;
 			destroyDll=cur;

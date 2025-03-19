@@ -295,10 +295,10 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_SYM;
 								cur->sym=fklVMaddSymbolCstr(gc,"#<userdata>")->id;
 								break;
-							case FKL_TYPE_DLL:
-								cur->type=FKL_NAST_SYM;
-								cur->sym=fklVMaddSymbolCstr(gc,"#<dll>")->id;
-								break;
+							// case FKL_TYPE_DLL:
+							// 	cur->type=FKL_NAST_SYM;
+							// 	cur->sym=fklVMaddSymbolCstr(gc,"#<dll>")->id;
+							// 	break;
 							case FKL_TYPE_BOX:
 								cur->type=FKL_NAST_BOX;
 								fklPushPtrStack(FKL_VM_BOX(value),&s0);
@@ -488,7 +488,7 @@ static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* o
 	NULL,
 	NULL,
 	// NULL,
-	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	__fkl_hashtable_copyer,
@@ -792,14 +792,14 @@ static inline void uninit_proc_value(FklVMvalue* v)
 // 	fklUninitVMfp(FKL_VM_FP(v));
 // }
 
-static inline void uninit_dll_value(FklVMvalue* v)
-{
-	FklVMdll* dll=FKL_VM_DLL(v);
-	void (*uninit)(void)=fklGetAddress("_fklUninit",&dll->dll);
-	if(uninit)
-		uninit();
-	uv_dlclose(&dll->dll);
-}
+// static inline void uninit_dll_value(FklVMvalue* v)
+// {
+// 	FklVMdll* dll=FKL_VM_DLL(v);
+// 	void (*uninit)(void)=fklGetAddress("_fklUninit",&dll->dll);
+// 	if(uninit)
+// 		uninit();
+// 	uv_dlclose(&dll->dll);
+// }
 
 static inline void uninit_err_value(FklVMvalue* v)
 {
@@ -835,7 +835,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_proc_value,     //proc
 		uninit_nothing_value,  //chanl
 		// uninit_fp_value,       //fp
-		uninit_dll_value,      //dll
+		// uninit_dll_value,      //dll
 		uninit_nothing_value,  //cproc
 		uninit_err_value,      //error
 		uninit_hash_value,     //hash
@@ -1156,7 +1156,7 @@ static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(const FklVMv
 	NULL,
 	NULL,
 	// NULL,
-	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	_hashTable_hashFunc,
@@ -1978,6 +1978,32 @@ int fklIsVMvalueCodeObj(FklVMvalue* v)
 	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&CodeObjUserDataMetaTable;
 }
 
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dll_userdata_as_print,dll);
+
+static void _dll_userdata_atomic(const FklVMud* root,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(dll,FklVMdll,root);
+	fklVMgcToGray(dll->pd,gc);
+}
+
+static void _dll_userdata_finalizer(FklVMud* v)
+{
+	FKL_DECL_UD_DATA(dll,FklVMdll,v);
+	void (*uninit)(void)=fklGetAddress("_fklUninit",&dll->dll);
+	if(uninit)
+		uninit();
+	uv_dlclose(&dll->dll);
+}
+
+static FklVMudMetaTable DllUserDataMetaTable=
+{
+	.size=sizeof(FklVMdll),
+	.__as_princ=_dll_userdata_as_print,
+	.__as_prin1=_dll_userdata_as_print,
+	.__atomic=_dll_userdata_atomic,
+	.__finalizer=_dll_userdata_finalizer,
+};
+
 FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName,FklVMvalue** errorStr)
 {
 	size_t len=strlen(dllName)+strlen(FKL_DLL_FILE_TYPE)+1;
@@ -1998,18 +2024,24 @@ FklVMvalue* fklCreateVMvalueDll(FklVM* exe,const char* dllName,FklVMvalue** erro
 		uv_dlclose(&lib);
 		goto err;
 	}
-	FklVMvalue* r=NEW_OBJ(FklVMvalueDll);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_DLL;
+	// FklVMvalue* r=NEW_OBJ(FklVMvalueDll);
+	FklVMvalue* r=fklCreateVMvalueUd(exe,&DllUserDataMetaTable,NULL);
+	// FKL_ASSERT(r);
+	// r->type=FKL_TYPE_DLL;
 	FklVMdll* dll=FKL_VM_DLL(r);
 	dll->dll=lib;
 	dll->pd=FKL_VM_NIL;
-	fklAddToGC(r,exe);
+	// fklAddToGC(r,exe);
 	free(realDllName);
 	return r;
 err:
 	free(realDllName);
 	return NULL;
+}
+
+int fklIsVMvalueDll(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&DllUserDataMetaTable;
 }
 
 FklVMvalue* fklCreateVMvalueCproc(FklVM* exe

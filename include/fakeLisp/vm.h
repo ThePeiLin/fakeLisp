@@ -30,7 +30,7 @@ typedef enum
 	FKL_TYPE_PROC,
 	FKL_TYPE_CHAN,
 	// FKL_TYPE_FP,
-	FKL_TYPE_DLL,
+	// FKL_TYPE_DLL,
 	FKL_TYPE_CPROC,
 	FKL_TYPE_ERR,
 	FKL_TYPE_HASHTABLE,
@@ -263,11 +263,11 @@ typedef struct
 // 	FklVMfp fp;
 // }FklVMvalueFp;
 
-typedef struct
-{
-	FKL_VM_VALUE_COMMON_HEADER;
-	FklVMdll dll;
-}FklVMvalueDll;
+// typedef struct
+// {
+// 	FKL_VM_VALUE_COMMON_HEADER;
+// 	FklVMdll dll;
+// }FklVMvalueDll;
 
 typedef enum
 {
@@ -918,7 +918,7 @@ void fklAtomicVMpair(FklVMvalue*,FklVMgc*);
 void fklAtomicVMproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMvec(FklVMvalue*,FklVMgc*);
 void fklAtomicVMbox(FklVMvalue*,FklVMgc*);
-void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
+// void fklAtomicVMdll(FklVMvalue*,FklVMgc*);
 void fklAtomicVMcproc(FklVMvalue*,FklVMgc*);
 void fklAtomicVMchan(FklVMvalue*,FklVMgc*);
 
@@ -967,6 +967,7 @@ void fklCreateVMvalueClosureFrom(FklVM*,FklVMvalue** closure,FklVMframe* f,uint3
 #endif
 
 FklVMvalue* fklCreateVMvalueDll(FklVM*,const char*,FklVMvalue**);
+int fklIsVMvalueDll(FklVMvalue* v);
 void* fklGetAddress(const char* funcname,uv_lib_t* dll);
 
 FklVMvalue* fklCreateVMvalueCproc(FklVM*
@@ -1054,8 +1055,6 @@ int fklIsVMeofUd(FklVMvalue* v);
 
 #define FKL_VM_PROC(V) (&(((FklVMvalueProc*)(V))->proc))
 
-#define FKL_VM_DLL(V) (&(((FklVMvalueDll*)(V))->dll))
-
 #define FKL_VM_CPROC(V) (&(((FklVMvalueCproc*)(V))->cproc))
 
 #define FKL_VM_HASH(V) (&(((FklVMvalueHash*)(V))->hash))
@@ -1073,6 +1072,8 @@ int fklIsVMeofUd(FklVMvalue* v);
 #define FKL_VM_BOX_CAS(V,O,N) (atomic_compare_exchange_strong(((atomic_uintptr_t*)&(((FklVMvalueBox*)(V))->box)),(uintptr_t*)(O),(uintptr_t)(N)))
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef*)(V))
+
+#define FKL_VM_DLL(V) FKL_GET_UD_DATA(FklVMdll,FKL_VM_UD(V))
 
 #define FKL_VM_FP(V) FKL_GET_UD_DATA(FklVMfp,FKL_VM_UD(V))
 
@@ -1317,7 +1318,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],FklSymbol
 #define FKL_IS_STR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_STR)
 #define FKL_IS_CHAN(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CHAN)
 // #define FKL_IS_FP(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_FP)
-#define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DLL)
+// #define FKL_IS_DLL(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_DLL)
 #define FKL_IS_PROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_PROC)
 #define FKL_IS_CPROC(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_CPROC)
 #define FKL_IS_VECTOR(P) (FKL_GET_TAG(P)==FKL_TAG_PTR&&(P)->type==FKL_TYPE_VECTOR)

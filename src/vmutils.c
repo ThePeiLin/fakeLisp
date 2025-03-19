@@ -937,10 +937,10 @@ static void vmvalue_chanl_printer(VMVALUE_PRINTER_ARGS)
 // 		fprintf(fp,"#<fp %p>",vfp);
 // }
 
-static void vmvalue_dll_printer(VMVALUE_PRINTER_ARGS)
-{
-	fprintf(fp,"#<dll %p>",FKL_VM_DLL(v));
-}
+// static void vmvalue_dll_printer(VMVALUE_PRINTER_ARGS)
+// {
+// 	fprintf(fp,"#<dll %p>",FKL_VM_DLL(v));
+// }
 
 static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS)
 {
@@ -978,7 +978,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_proc_printer,
 	vmvalue_chanl_printer,
 	// vmvalue_fp_printer,
-	vmvalue_dll_printer,
+	// vmvalue_dll_printer,
 	vmvalue_cproc_printer,
 	vmvalue_error_princ,
 	NULL,
@@ -1077,7 +1077,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_proc_printer,
 	vmvalue_chanl_printer,
 	// vmvalue_fp_printer,
-	vmvalue_dll_printer,
+	// vmvalue_dll_printer,
 	vmvalue_cproc_printer,
 	vmvalue_error_prin1,
 	NULL,
@@ -1482,10 +1482,10 @@ static void vmvalue_chanl_as_print(VMVALUE_TO_UTSTRING_ARGS)
 // 		fklStringBufferPrintf(result,"#<fp %p>",vfp);
 // }
 
-static void vmvalue_dll_as_print(VMVALUE_TO_UTSTRING_ARGS)
-{
-	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
-}
+// static void vmvalue_dll_as_print(VMVALUE_TO_UTSTRING_ARGS)
+// {
+// 	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
+// }
 
 static void vmvalue_cproc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
@@ -1533,7 +1533,7 @@ static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_proc_as_print,
 	vmvalue_chanl_as_print,
 	// vmvalue_fp_as_print,
-	vmvalue_dll_as_print,
+	// vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,
 	vmvalue_error_as_prin1,
 	NULL,
@@ -1587,7 +1587,7 @@ static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_proc_as_print,
 	vmvalue_chanl_as_print,
 	// vmvalue_fp_as_print,
-	vmvalue_dll_as_print,
+	// vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,
 	vmvalue_error_as_princ,
 	NULL,

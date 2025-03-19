@@ -261,7 +261,7 @@ static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	NULL,
 	NULL,
 	// NULL,
-	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -356,7 +356,7 @@ static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	NULL,
 	NULL,
 	// NULL,
-	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -3186,7 +3186,7 @@ static int builtin_dlsym(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG2(ndll,symbol,exe);
 	FKL_CHECK_REST_ARG(exe);
-	if(!FKL_IS_STR(symbol)||!FKL_IS_DLL(ndll))
+	if(!FKL_IS_STR(symbol)||!fklIsVMvalueDll(ndll))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	FklVMdll* dll=FKL_VM_DLL(ndll);
 	FklVMcFunc funcAddress=NULL;
@@ -5046,7 +5046,8 @@ static int builtin_cproc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CPROC(val))}
 static int builtin_vector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_VECTOR(val))}
 static int builtin_bytevector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val))}
 static int builtin_chanl_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CHAN(val))}
-static int builtin_dll_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_DLL(val))}
+static int builtin_dll_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMvalueDll(val))}
+static int builtin_fp_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMvalueFp(val))}
 static int builtin_bigint_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BIG_INT(val))}
 static int builtin_list_p(FKL_CPROC_ARGL){PREDICATE(fklIsList(val))}
 static int builtin_box_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BOX(val))}
@@ -5621,6 +5622,7 @@ static const struct SymbolFuncStruct
 	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,               NULL,               NULL,               }, },
 	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,               NULL,               NULL,               }, },
 
+	{"fp?",                   builtin_fp_p,                    {NULL,         NULL,               NULL,               NULL,               }, },
 	{"fgets",                 builtin_fgets,                   {NULL,         NULL,               NULL,               NULL,               }, },
 	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,               NULL,               NULL,               }, },
 

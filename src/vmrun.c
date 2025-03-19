@@ -6491,7 +6491,7 @@ void fklDestroyAllValues(FklVMgc* gc)
 	{
 		FklVMvalue* cur=*phead;
 		*phead=cur->next;
-		if(FKL_IS_DLL(cur))
+		if(fklIsVMvalueDll(cur))
 		{
 			cur->next=destroyDll;
 			destroyDll=cur;

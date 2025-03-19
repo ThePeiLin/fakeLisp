@@ -275,10 +275,10 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 								cur->type=FKL_NAST_SYM;
 								cur->sym=fklVMaddSymbolCstr(gc,"#<cproc>")->id;
 								break;
-							case FKL_TYPE_CHAN:
-								cur->type=FKL_NAST_SYM;
-								cur->sym=fklVMaddSymbolCstr(gc,"#<chan>")->id;
-								break;
+							// case FKL_TYPE_CHAN:
+							// 	cur->type=FKL_NAST_SYM;
+							// 	cur->sym=fklVMaddSymbolCstr(gc,"#<chan>")->id;
+							// 	break;
 							// case FKL_TYPE_FP:
 							// 	cur->type=FKL_NAST_SYM;
 							// 	cur->sym=fklVMaddSymbolCstr(gc,"#<fp>")->id;
@@ -486,7 +486,7 @@ static FklVMvalue* (*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue* o
 	__fkl_bytevector_copyer,
 	__fkl_userdata_copyer,
 	NULL,
-	NULL,
+	// NULL,
 	// NULL,
 	// NULL,
 	NULL,
@@ -833,7 +833,7 @@ void fklDestroyVMvalue(FklVMvalue* cur)
 		uninit_nothing_value,  //bvec
 		uninit_ud_value,       //ud
 		uninit_proc_value,     //proc
-		uninit_nothing_value,  //chanl
+		// uninit_nothing_value,  //chanl
 		// uninit_fp_value,       //fp
 		// uninit_dll_value,      //dll
 		uninit_nothing_value,  //cproc
@@ -1154,7 +1154,7 @@ static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(const FklVMv
 	_bytevector_hashFunc,
 	_userdata_hashFunc,
 	NULL,
-	NULL,
+	// NULL,
 	// NULL,
 	// NULL,
 	NULL,
@@ -1583,18 +1583,61 @@ static inline void init_chanl_recvq(struct FklVMchanlRecvq* q)
 	q->tail=&q->head;
 }
 
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_chanl_userdata_as_print,chanl);
+
+static void _chanl_userdata_atomic(const FklVMud* root,FklVMgc* gc)
+{
+	FKL_DECL_UD_DATA(ch,FklVMchanl,root);
+
+	if(ch->recvx<ch->sendx)
+	{
+
+		FklVMvalue** const end=&ch->buf[ch->sendx];
+		for(FklVMvalue** buf=&ch->buf[ch->recvx];buf<end;buf++)
+			fklVMgcToGray(*buf,gc);
+	}
+	else
+	{
+		FklVMvalue** end=&ch->buf[ch->qsize];
+		FklVMvalue** buf=&ch->buf[ch->recvx];
+		for(;buf<end;buf++)
+			fklVMgcToGray(*buf,gc);
+
+		buf=ch->buf;
+		end=&ch->buf[ch->sendx];
+		for(;buf<end;buf++)
+			fklVMgcToGray(*buf,gc);
+	}
+	for(FklVMchanlSend* s=ch->sendq.head;s;s=s->next)
+		fklVMgcToGray(s->msg,gc);
+}
+
+static FklVMudMetaTable ChanlUserDataMetaTable=
+{
+	.size=sizeof(FklVMchanl),
+	.__as_princ=_chanl_userdata_as_print,
+	.__as_prin1=_chanl_userdata_as_print,
+	.__atomic=_chanl_userdata_atomic,
+};
+
 FklVMvalue* fklCreateVMvalueChanl(FklVM* exe,uint32_t qsize)
 {
-	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueChanl)+sizeof(FklVMvalue*)*qsize);
-	FKL_ASSERT(r);
-	r->type=FKL_TYPE_CHAN;
+	// FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueChanl)+sizeof(FklVMvalue*)*qsize);
+	// FKL_ASSERT(r);
+	// r->type=FKL_TYPE_CHAN;
+	FklVMvalue* r=fklCreateVMvalueUd2(exe,&ChanlUserDataMetaTable,sizeof(FklVMvalue*)*qsize,NULL);
 	FklVMchanl* ch=FKL_VM_CHANL(r);
 	ch->qsize=qsize;
 	uv_mutex_init(&ch->lock);
 	init_chanl_sendq(&ch->sendq);
 	init_chanl_recvq(&ch->recvq);
-	fklAddToGC(r,exe);
+	// fklAddToGC(r,exe);
 	return r;
+}
+
+int fklIsVMvalueChanl(FklVMvalue* v)
+{
+	return FKL_IS_USERDATA(v)&&FKL_VM_UD(v)->t==&ChanlUserDataMetaTable;
 }
 
 static void _fp_userdata_finalizer(FklVMud* ud)
@@ -2076,6 +2119,21 @@ FklVMvalue* fklCreateVMvalueUd(FklVM* exe
 	return r;
 }
 
+FklVMvalue* fklCreateVMvalueUd2(FklVM* exe
+		,const FklVMudMetaTable* t
+		,size_t extra_size
+		,FklVMvalue* rel)
+{
+	FklVMvalue* r=(FklVMvalue*)calloc(1,sizeof(FklVMvalueUd)+t->size+extra_size);
+	FKL_ASSERT(r);
+	r->type=FKL_TYPE_USERDATA;
+	FklVMud* ud=FKL_VM_UD(r);
+	ud->t=t;
+	ud->rel=rel;
+	fklAddToGC(r,exe);
+	return r;
+}
+
 #undef NEW_OBJ
 
 static void _eof_userdata_as_print(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)
@@ -2124,37 +2182,37 @@ void fklAtomicVMproc(FklVMvalue* root,FklVMgc* gc)
 		fklVMgcToGray(ref[i],gc);
 }
 
-void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
-{
-	FklVMchanl* ch=FKL_VM_CHANL(root);
+// void fklAtomicVMchan(FklVMvalue* root,FklVMgc* gc)
+// {
+// 	FklVMchanl* ch=FKL_VM_CHANL(root);
+//
+// 	if(ch->recvx<ch->sendx)
+// 	{
+//
+// 		FklVMvalue** const end=&ch->buf[ch->sendx];
+// 		for(FklVMvalue** buf=&ch->buf[ch->recvx];buf<end;buf++)
+// 			fklVMgcToGray(*buf,gc);
+// 	}
+// 	else
+// 	{
+// 		FklVMvalue** end=&ch->buf[ch->qsize];
+// 		FklVMvalue** buf=&ch->buf[ch->recvx];
+// 		for(;buf<end;buf++)
+// 			fklVMgcToGray(*buf,gc);
+//
+// 		buf=ch->buf;
+// 		end=&ch->buf[ch->sendx];
+// 		for(;buf<end;buf++)
+// 			fklVMgcToGray(*buf,gc);
+// 	}
+// 	for(FklVMchanlSend* s=ch->sendq.head;s;s=s->next)
+// 		fklVMgcToGray(s->msg,gc);
+// }
 
-	if(ch->recvx<ch->sendx)
-	{
-
-		FklVMvalue** const end=&ch->buf[ch->sendx];
-		for(FklVMvalue** buf=&ch->buf[ch->recvx];buf<end;buf++)
-			fklVMgcToGray(*buf,gc);
-	}
-	else
-	{
-		FklVMvalue** end=&ch->buf[ch->qsize];
-		FklVMvalue** buf=&ch->buf[ch->recvx];
-		for(;buf<end;buf++)
-			fklVMgcToGray(*buf,gc);
-
-		buf=ch->buf;
-		end=&ch->buf[ch->sendx];
-		for(;buf<end;buf++)
-			fklVMgcToGray(*buf,gc);
-	}
-	for(FklVMchanlSend* s=ch->sendq.head;s;s=s->next)
-		fklVMgcToGray(s->msg,gc);
-}
-
-void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
-{
-	fklVMgcToGray(FKL_VM_DLL(root)->pd,gc);
-}
+// void fklAtomicVMdll(FklVMvalue* root,FklVMgc* gc)
+// {
+// 	fklVMgcToGray(FKL_VM_DLL(root)->pd,gc);
+// }
 
 void fklAtomicVMcproc(FklVMvalue* root,FklVMgc* gc)
 {

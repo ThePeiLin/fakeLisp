@@ -919,10 +919,10 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
 
 }
 
-static void vmvalue_chanl_printer(VMVALUE_PRINTER_ARGS)
-{
-	fprintf(fp,"#<chanl %p>",FKL_VM_CHANL(v));
-}
+// static void vmvalue_chanl_printer(VMVALUE_PRINTER_ARGS)
+// {
+// 	fprintf(fp,"#<chanl %p>",FKL_VM_CHANL(v));
+// }
 
 // static void vmvalue_fp_printer(VMVALUE_PRINTER_ARGS)
 // {
@@ -976,7 +976,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_bytevector_printer,
 	vmvalue_userdata_princ,
 	vmvalue_proc_printer,
-	vmvalue_chanl_printer,
+	// vmvalue_chanl_printer,
 	// vmvalue_fp_printer,
 	// vmvalue_dll_printer,
 	vmvalue_cproc_printer,
@@ -1075,7 +1075,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_AR
 	vmvalue_bytevector_printer,
 	vmvalue_userdata_prin1,
 	vmvalue_proc_printer,
-	vmvalue_chanl_printer,
+	// vmvalue_chanl_printer,
 	// vmvalue_fp_printer,
 	// vmvalue_dll_printer,
 	vmvalue_cproc_printer,
@@ -1464,10 +1464,10 @@ static void vmvalue_proc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<proc %p>",proc);
 }
 
-static void vmvalue_chanl_as_print(VMVALUE_TO_UTSTRING_ARGS)
-{
-	fklStringBufferPrintf(result,"#<chanl %p>",FKL_VM_CHANL(v));
-}
+// static void vmvalue_chanl_as_print(VMVALUE_TO_UTSTRING_ARGS)
+// {
+// 	fklStringBufferPrintf(result,"#<chanl %p>",FKL_VM_CHANL(v));
+// }
 
 // static void vmvalue_fp_as_print(VMVALUE_TO_UTSTRING_ARGS)
 // {
@@ -1531,7 +1531,7 @@ static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_bytevector_as_print,
 	vmvalue_userdata_as_prin1,
 	vmvalue_proc_as_print,
-	vmvalue_chanl_as_print,
+	// vmvalue_chanl_as_print,
 	// vmvalue_fp_as_print,
 	// vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,
@@ -1585,7 +1585,7 @@ static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM
 	vmvalue_bytevector_as_print,
 	vmvalue_userdata_as_princ,
 	vmvalue_proc_as_print,
-	vmvalue_chanl_as_print,
+	// vmvalue_chanl_as_print,
 	// vmvalue_fp_as_print,
 	// vmvalue_dll_as_print,
 	vmvalue_cproc_as_print,

@@ -258,14 +258,14 @@ static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	__fkl_bytevector_copy_append,
 	__fkl_userdata_copy_append,
 	NULL,
+	// NULL,
+	// NULL,
+	// NULL,
+	NULL,
 	NULL,
 	NULL,
 	// NULL,
-	// NULL,
 	NULL,
-	NULL,
-	NULL,
-	// NULL,
 };
 
 static int builtin_append(FKL_CPROC_ARGL)
@@ -354,14 +354,14 @@ static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 	NULL,
 	__fkl_userdata_append,
 	NULL,
-	NULL,
 	// NULL,
 	// NULL,
-	NULL,
+	// NULL,
 	NULL,
 	NULL,
 	NULL,
 	// NULL,
+	NULL,
 };
 
 static int builtin_append1(FKL_CPROC_ARGL)
@@ -3421,7 +3421,7 @@ static int builtin_chanl_msg_num(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	size_t len=0;
-	if(FKL_IS_CHAN(obj))
+	if(fklIsVMvalueChanl(obj))
 		len=fklVMchanlMessageNum(FKL_VM_CHANL(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3434,7 +3434,7 @@ static int builtin_chanl_send_num(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	size_t len=0;
-	if(FKL_IS_CHAN(obj))
+	if(fklIsVMvalueChanl(obj))
 		len=fklVMchanlSendqLen(FKL_VM_CHANL(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3447,7 +3447,7 @@ static int builtin_chanl_recv_num(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	size_t len=0;
-	if(FKL_IS_CHAN(obj))
+	if(fklIsVMvalueChanl(obj))
 		len=fklVMchanlRecvqLen(FKL_VM_CHANL(obj));
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3460,7 +3460,7 @@ static int builtin_chanl_full_p(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FklVMvalue* retval=NULL;
-	if(FKL_IS_CHAN(obj))
+	if(fklIsVMvalueChanl(obj))
 		retval=fklVMchanlFull(FKL_VM_CHANL(obj))?FKL_VM_TRUE:FKL_VM_NIL;
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3473,7 +3473,7 @@ static int builtin_chanl_empty_p(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
 	FklVMvalue* retval=NULL;
-	if(FKL_IS_CHAN(obj))
+	if(fklIsVMvalueChanl(obj))
 		retval=fklVMchanlEmpty(FKL_VM_CHANL(obj))?FKL_VM_TRUE:FKL_VM_NIL;
 	else
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
@@ -3487,7 +3487,7 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL)
 	FKL_CHECK_REST_ARG(exe);
 	FklVMvalue* r=NULL;
 	FklVMvalue** cur=&r;
-	if(FKL_IS_CHAN(obj))
+	if(fklIsVMvalueChanl(obj))
 	{
 		FklVMchanl* ch=FKL_VM_CHANL(obj);
 		uv_mutex_lock(&ch->lock);
@@ -3533,7 +3533,7 @@ static int builtin_send(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG2(ch,message,exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,exe);
+	FKL_CHECK_TYPE(ch,fklIsVMvalueChanl,exe);
 	uint32_t rtp=exe->tp;
 	FKL_VM_PUSH_VALUE(exe,message);
 	FKL_VM_PUSH_VALUE(exe,ch);
@@ -3547,7 +3547,7 @@ static int builtin_recv(FKL_CPROC_ARGL)
 	FKL_DECL_AND_CHECK_ARG(ch,exe);
 	FklVMvalue* okBox=FKL_VM_POP_ARG(exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,exe);
+	FKL_CHECK_TYPE(ch,fklIsVMvalueChanl,exe);
 	FklVMchanl* chanl=FKL_VM_CHANL(ch);
 	if(okBox)
 	{
@@ -3572,7 +3572,7 @@ static int builtin_recv7(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(ch,exe);
 	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(ch,FKL_IS_CHAN,exe);
+	FKL_CHECK_TYPE(ch,fklIsVMvalueChanl,exe);
 	FklVMchanl* chanl=FKL_VM_CHANL(ch);
 	FklVMvalue* r=FKL_VM_NIL;
 	if(fklChanlRecvOk(chanl,&r))
@@ -5045,7 +5045,7 @@ static int builtin_proc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_PROC(val))}
 static int builtin_cproc_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CPROC(val))}
 static int builtin_vector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_VECTOR(val))}
 static int builtin_bytevector_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BYTEVECTOR(val))}
-static int builtin_chanl_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_CHAN(val))}
+static int builtin_chanl_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMvalueChanl(val))}
 static int builtin_dll_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMvalueDll(val))}
 static int builtin_fp_p(FKL_CPROC_ARGL) {PREDICATE(fklIsVMvalueFp(val))}
 static int builtin_bigint_p(FKL_CPROC_ARGL) {PREDICATE(FKL_IS_BIG_INT(val))}

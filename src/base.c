@@ -541,7 +541,6 @@ void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s
 		,const char* end_str
 		,char se)
 {
-	char buf[7]={0};
 	fklStringBufferConcatWithCstr(s,begin_str);
 	uint8_t* str=(uint8_t*)fstr;
 	for(size_t i=0;i<size;)
@@ -549,39 +548,28 @@ void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s
 		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);
 		if(l==7)
 		{
-			uint8_t j=str[i];
-			uint8_t h=j/16;
-			uint8_t l=j%16;
-			fklStringBufferPrintf(s,"\\x%c%c"
-					,h<10?'0'+h:'A'+(h-10)
-					,l<10?'0'+l:'A'+(l-10));
+			fklStringBufferPrintf(s,"\\x%02X",(uint8_t)str[i]);
 			i++;
 		}
 		else if(l==1)
 		{
 			if(str[i]==se)
-				fklStringBufferPrintf(s,"\\%c",se);
+			{
+				fklStringBufferPutc(s,'\\');
+				fklStringBufferPutc(s,se);
+			}
 			else if(str[i]=='\\')
 				fklStringBufferConcatWithCstr(s,"\\\\");
 			else if(isgraph(str[i]))
 				fklStringBufferPutc(s,str[i]);
 			else if(fklIsSpecialCharAndPrintToStringBuffer(s,str[i]));
 			else
-			{
-				uint8_t j=str[i];
-				uint8_t h=j/16;
-				uint8_t l=j%16;
-				fklStringBufferPrintf(s,"\\x%c%c"
-						,h<10?'0'+h:'A'+(h-10)
-						,l<10?'0'+l:'A'+(l-10));
-			}
+				fklStringBufferPrintf(s,"\\x%02X",(uint8_t)str[i]);
 			i++;
 		}
 		else
 		{
-			strncpy(buf,(char*)&str[i],l);
-			buf[l]='\0';
-			fklStringBufferConcatWithCstr(s,buf);
+			fklStringBufferBincpy(s,&str[i],l);
 			i+=l;
 		}
 	}
@@ -1263,10 +1251,6 @@ void fklDestroyHashTable(FklHashTable* table)
 	free(table);
 }
 
-void fklDoNothingUninitHashItem(void* i)
-{
-}
-
 FklBytevector* fklCreateBytevector(size_t size,const uint8_t* ptr)
 {
 	FklBytevector* tmp=(FklBytevector*)malloc(sizeof(FklBytevector)+size*sizeof(uint8_t));
@@ -1317,17 +1301,52 @@ int fklBytevectorEqual(const FklBytevector* fir,const FklBytevector* sec)
 
 void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
 {
-	fklPrintRawCharBuf((const uint8_t*)bv->ptr
-			,bv->size
-			,"#\""
-			,"\""
-			,'"'
-			,fp);
+#define SE ('"')
+	fputs("#\"",fp);
+	const uint8_t* const end=bv->ptr+bv->size;
+	for(const uint8_t* c=bv->ptr;c<end;c++)
+	{
+		uint8_t ch=*c;
+		if(ch==SE)
+		{
+			putc('\\',fp);
+			putc(SE,fp);
+		}
+		else if(ch=='\\')
+			fputs("\\\\",fp);
+		else if(isgraph(ch))
+			putc(ch,fp);
+		else if(fklIsSpecialCharAndPrint(ch,fp));
+		else
+			fprintf(fp,"\\x%02X",ch);
+	}
+
+	fputc('"',fp);
 }
 
 void fklPrintBytevectorToStringBuffer(FklStringBuffer* s,const FklBytevector* bvec)
 {
-	fklPrintRawCharBufToStringBuffer(s,bvec->size,(char*)bvec->ptr,"#\"","\"",'"');
+	fklStringBufferConcatWithCstr(s,"#\"");
+	const uint8_t* const end=bvec->ptr+bvec->size;
+	for(const uint8_t* c=bvec->ptr;c<end;c++)
+	{
+		uint8_t ch=*c;
+		if(ch==SE)
+		{
+			fklStringBufferPutc(s,'\\');
+			fklStringBufferPutc(s,SE);
+		}
+		else if(ch=='\\')
+			fklStringBufferConcatWithCstr(s,"\\\\");
+		else if(isgraph(ch))
+			fklStringBufferPutc(s,ch);
+		else if(fklIsSpecialCharAndPrintToStringBuffer(s,ch));
+		else
+			fklStringBufferPrintf(s,"\\x%02X",ch);
+	}
+
+	fklStringBufferPutc(s,'"');
+#undef SE
 }
 
 FklString* fklBytevectorToString(const FklBytevector* bv)

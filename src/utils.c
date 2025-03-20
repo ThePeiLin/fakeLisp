@@ -711,26 +711,23 @@ void fklPrintRawCharBuf(const uint8_t* str
 		unsigned int l=fklGetByteNumOfUtf8(&str[i],size-i);
 		if(l==7)
 		{
-			uint8_t j=str[i];
-			fprintf(out,"\\x");
-			fprintf(out,"%02X",j);
+			fprintf(out,"\\x%02X",(uint8_t)str[i]);
 			i++;
 		}
 		else if(l==1)
 		{
 			if(str[i]==se)
-				fprintf(out,"\\%c",se);
+			{
+				fputc('\\',out);
+				fputc(se,out);
+			}
 			else if(str[i]=='\\')
-				fprintf(out,"\\\\");
+				fputs("\\\\",out);
 			else if(isgraph(str[i]))
 				putc(str[i],out);
 			else if(fklIsSpecialCharAndPrint(str[i],out));
 			else
-			{
-				uint8_t j=str[i];
-				fprintf(out,"\\x");
-				fprintf(out,"%02X",j);
-			}
+				fprintf(out,"\\x%02X",(uint8_t)str[i]);
 			i++;
 		}
 		else

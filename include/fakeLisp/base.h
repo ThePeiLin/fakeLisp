@@ -206,7 +206,7 @@ void fklClearHashTable(FklHashTable* ht);
 void fklUninitHashTable(FklHashTable*);
 void fklDestroyHashTable(FklHashTable*);
 
-void fklDoNothingUninitHashItem(void*);
+static inline void fklDoNothingUninitHashItem(void* v){}
 void* fklHashDefaultGetKey(void* i);
 
 #define FKL_STACK_INIT {NULL,0,0,0}

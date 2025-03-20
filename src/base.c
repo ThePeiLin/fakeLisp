@@ -489,12 +489,22 @@ FklString* fklCreateEmptyString()
 
 void fklPrintRawString(const FklString* str,FILE* fp)
 {
-	fklPrintRawCharBuf((const uint8_t*)str->str,'"',str->size,fp);
+	fklPrintRawCharBuf((const uint8_t*)str->str
+			,str->size
+			,"\""
+			,"\""
+			,'"'
+			,fp);
 }
 
 void fklPrintRawSymbol(const FklString* str,FILE* fp)
 {
-	fklPrintRawCharBuf((const uint8_t*)str->str,'|',str->size,fp);
+	fklPrintRawCharBuf((const uint8_t*)str->str
+			,str->size
+			,"|"
+			,"|"
+			,'|'
+			,fp);
 }
 
 void fklPrintString(const FklString* str,FILE* fp)
@@ -524,10 +534,15 @@ int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer* s,char ch)
 	return r;
 }
 
-void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s,size_t size,const char* fstr,char se)
+void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s
+		,size_t size
+		,const char* fstr
+		,const char* begin_str
+		,const char* end_str
+		,char se)
 {
 	char buf[7]={0};
-	fklStringBufferPutc(s,se);
+	fklStringBufferConcatWithCstr(s,begin_str);
 	uint8_t* str=(uint8_t*)fstr;
 	for(size_t i=0;i<size;)
 	{
@@ -570,14 +585,14 @@ void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s,size_t size,cons
 			i+=l;
 		}
 	}
-	fklStringBufferPutc(s,se);
+	fklStringBufferConcatWithCstr(s,end_str);
 }
 
 FklString* fklStringToRawString(const FklString* str)
 {
 	FklStringBuffer buf=FKL_STRING_BUFFER_INIT;
 	fklInitStringBuffer(&buf);
-	fklPrintRawStringToStringBuffer(&buf,str,'\"');
+	fklPrintRawStringToStringBuffer(&buf,str,"\"","\"",'"');
 	FklString* retval=fklStringBufferToString(&buf);
 	fklUninitStringBuffer(&buf);
 	return retval;
@@ -587,7 +602,7 @@ FklString* fklStringToRawSymbol(const FklString* str)
 {
 	FklStringBuffer buf=FKL_STRING_BUFFER_INIT;
 	fklInitStringBuffer(&buf);
-	fklPrintRawStringToStringBuffer(&buf,str,'|');
+	fklPrintRawStringToStringBuffer(&buf,str,"|","|",'|');
 	FklString* retval=fklStringBufferToString(&buf);
 	fklUninitStringBuffer(&buf);
 	return retval;
@@ -1302,21 +1317,28 @@ int fklBytevectorEqual(const FklBytevector* fir,const FklBytevector* sec)
 
 void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
 {
-	fklPrintRawByteBuf(bv->ptr,bv->size,fp);
+	fklPrintRawCharBuf((const uint8_t*)bv->ptr
+			,bv->size
+			,"#\""
+			,"\""
+			,'"'
+			,fp);
+	// fklPrintRawByteBuf(bv->ptr,bv->size,fp);
 }
 
 void fklPrintBytevectorToStringBuffer(FklStringBuffer* s,const FklBytevector* bvec)
 {
-	size_t size=bvec->size;
-	const uint8_t* ptr=bvec->ptr;
-	fklStringBufferConcatWithCstr(s,"#vu8(");
-	for(size_t i=0;i<size;i++)
-	{
-		fklStringBufferPrintf(s,"0x%X",ptr[i]);
-		if(i<size-1)
-			fklStringBufferPutc(s,' ');
-	}
-	fklStringBufferPutc(s,')');
+	fklPrintRawCharBufToStringBuffer(s,bvec->size,(char*)bvec->ptr,"#\"","\"",'"');
+	// size_t size=bvec->size;
+	// const uint8_t* ptr=bvec->ptr;
+	// fklStringBufferConcatWithCstr(s,"#vu8(");
+	// for(size_t i=0;i<size;i++)
+	// {
+	// 	fklStringBufferPrintf(s,"0x%X",ptr[i]);
+	// 	if(i<size-1)
+	// 		fklStringBufferPutc(s,' ');
+	// }
+	// fklStringBufferPutc(s,')');
 }
 
 FklString* fklBytevectorToString(const FklBytevector* bv)

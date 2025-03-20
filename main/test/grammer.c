@@ -4,7 +4,6 @@
 #include<fakeLisp/utils.h>
 #include<stdio.h>
 #include<stdlib.h>
-#include<ctype.h>
 
 static void* fklNastTerminalCreate(const char* s,size_t len,size_t line,void* ctx)
 {
@@ -68,7 +67,7 @@ int main()
 		"(foo bar abcd|foo \\|bar|efgh foo \"foo\\\"\",bar)",
 		"#hash((a,1) (b,2))",
 		"#hashequal((a,1) (b,2))",
-		"#vu8(114 514 114514)",
+		"#\"\\114\\51\\11\\45\\14\"",
 		"114514",
 		"#\\ ",
 		"'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)",
@@ -78,7 +77,7 @@ int main()
 	};
 
 	int retval=0;
-	FklGrammerMatchOuterCtx outerCtx={.maxNonterminalLen=0,.line=1,.start=NULL,.cur=NULL,.create=fklNastTerminalCreate,.destroy=(void(*)(void*))fklDestroyNastNode,};
+	FklGrammerMatchOuterCtx outerCtx={.maxNonterminalLen=0,.line=1,.start=NULL,.cur=NULL,.create=fklNastTerminalCreate,.destroy=(void(*)(void*))fklDestroyNastNode,.ctx=st};
 
 	for(const char** exp=&exps[0];*exp;exp++)
 	{

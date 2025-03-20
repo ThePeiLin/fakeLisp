@@ -26,7 +26,8 @@ static void strbuf_finalizer(FklVMud* p)
 static void strbuf_as_prin1(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)
 {
 	FKL_DECL_UD_DATA(bufa,FklStringBuffer,ud);
-	fklPrintRawCharBufToStringBuffer(buf,bufa->index,bufa->buf,'"');
+	// fklPrintRawCharBufToStringBuffer(buf,bufa->index,bufa->buf,'"');
+	fklPrintRawCharBufToStringBuffer(buf,bufa->index,bufa->buf,"\"","\"",'"');
 }
 
 static void strbuf_as_princ(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)

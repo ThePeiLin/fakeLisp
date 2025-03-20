@@ -71,10 +71,19 @@ int fklIsNumberCharBuf(const char*,size_t);
 int fklPower(int,int);
 
 int fklIsSpecialCharAndPrint(uint8_t ch,FILE* out);
-void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out);
-void fklPrintRawCstr(const char*,char se,FILE*);
+void fklPrintRawCharBuf(const uint8_t* str
+		,size_t size
+		,const char* begin_str
+		,const char* end_str
+		,char se
+		,FILE* out);
+void fklPrintRawCstr(const char*
+		,const char* begin_str
+		,const char* end_str
+		,char se
+		,FILE*);
 void fklPrintRawChar(char,FILE*);
-void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
+// void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out);
 void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp);
 
 double fklStringToDouble(const FklString*);

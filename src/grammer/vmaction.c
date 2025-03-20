@@ -8,9 +8,9 @@ static inline void* prod_action_symbol(void* outerCtx
 {
 	FklVMvalue** values=(FklVMvalue**)ast;
 	const char* start="|";
-	size_t start_size=1;
+	const size_t start_size=1;
 	const char* end="|";
-	size_t end_size=1;
+	const size_t end_size=1;
 
 	const FklString* str=FKL_VM_STR(values[0]);
 	const char* cstr=str->str;
@@ -72,8 +72,8 @@ static inline void* prod_action_string(void* outerCtx
 		,size_t line)
 {
 	FklVMvalue** values=(FklVMvalue**)ast;
-	size_t start_size=1;
-	size_t end_size=1;
+	const size_t start_size=1;
+	const size_t end_size=1;
 
 	const FklString* str=FKL_VM_STR(values[0]);
 	const char* cstr=str->str;
@@ -87,7 +87,6 @@ static inline void* prod_action_string(void* outerCtx
 	free(s);
 	return retval;
 }
-
 
 static inline void* prod_action_nil(void* outerCtx
 		,void* nodes[]
@@ -347,28 +346,49 @@ static inline void* prod_action_hashequal(void* outerCtx
 }
 
 static inline void* prod_action_bytevector(void* outerCtx
-		,void* nodes[]
+		,void* ast[]
 		,size_t num
 		,size_t line)
 {
+	FklVMvalue** values=(FklVMvalue**)ast;
+	const size_t start_size=2;
+	const size_t end_size=1;
+
+	const FklString* str=FKL_VM_STR(values[0]);
+	const char* cstr=str->str;
+
+	size_t size=0;
+	char* s=fklCastEscapeCharBuf(&cstr[start_size],str->size-end_size-start_size,&size);
+
 	FklVM* exe=(FklVM*)outerCtx;
+	FklVMvalue* retval=fklCreateVMvalueBvec2(exe,size,(uint8_t*)s);
 
-	FklVMvalue* list=nodes[1];
-	size_t len=fklVMlistLength(list);
-	FklBytevector* bv=fklCreateBytevector(len,NULL);
-
-	for(size_t i=0;FKL_IS_PAIR(list);list=FKL_VM_CDR(list),i++)
-	{
-		FklVMvalue* cur=FKL_VM_CAR(list);
-		if(FKL_IS_FIX(cur))
-		{
-			int64_t fix=FKL_GET_FIX(cur);
-			bv->ptr[i]=fix>UINT8_MAX?UINT8_MAX:(fix<0?0:fix);
-		}
-		else
-			bv->ptr[i]=FKL_VM_BI(cur)->num<0?0:UINT8_MAX;
-	}
-
-	FklVMvalue* r=fklCreateVMvalueBvec(exe,bv);
-	return r;
+	free(s);
+	return retval;
 }
+// static inline void* prod_action_bytevector(void* outerCtx
+// 		,void* nodes[]
+// 		,size_t num
+// 		,size_t line)
+// {
+// 	FklVM* exe=(FklVM*)outerCtx;
+//
+// 	FklVMvalue* list=nodes[1];
+// 	size_t len=fklVMlistLength(list);
+// 	FklBytevector* bv=fklCreateBytevector(len,NULL);
+//
+// 	for(size_t i=0;FKL_IS_PAIR(list);list=FKL_VM_CDR(list),i++)
+// 	{
+// 		FklVMvalue* cur=FKL_VM_CAR(list);
+// 		if(FKL_IS_FIX(cur))
+// 		{
+// 			int64_t fix=FKL_GET_FIX(cur);
+// 			bv->ptr[i]=fix>UINT8_MAX?UINT8_MAX:(fix<0?0:fix);
+// 		}
+// 		else
+// 			bv->ptr[i]=FKL_VM_BI(cur)->num<0?0:UINT8_MAX;
+// 	}
+//
+// 	FklVMvalue* r=fklCreateVMvalueBvec(exe,bv);
+// 	return r;
+// }

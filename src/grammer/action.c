@@ -9,9 +9,9 @@ static inline void* prod_action_symbol(void* outerCtx
 {
 	FklNastNode** nodes=(FklNastNode**)ast;
 	const char* start="|";
-	size_t start_size=1;
+	const size_t start_size=1;
 	const char* end="|";
-	size_t end_size=1;
+	const size_t end_size=1;
 
 	const FklString* str=nodes[0]->str;
 	const char* cstr=str->str;
@@ -74,8 +74,8 @@ static inline void* prod_action_string(void* outerCtx
 		,size_t line)
 {
 	FklNastNode** nodes=(FklNastNode**)ast;
-	size_t start_size=1;
-	size_t end_size=1;
+	const size_t start_size=1;
+	const size_t end_size=1;
 
 	const FklString* str=nodes[0]->str;
 	const char* cstr=str->str;
@@ -400,23 +400,44 @@ static inline void* prod_action_hashequal(void* outerCtx
 }
 
 static inline void* prod_action_bytevector(void* outerCtx
-		,void* nodes[]
+		,void* ast[]
 		,size_t num
 		,size_t line)
 {
-	FklNastNode* list=nodes[1];
-	FklNastNode* r=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
-	size_t len=fklNastListLength(list);
-	FklBytevector* bv=fklCreateBytevector(len,NULL);
-	r->bvec=bv;
-	size_t i=0;
-	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
-	{
-		FklNastNode* cur=list->pair->car;
-		if(cur->type==FKL_NAST_FIX)
-			bv->ptr[i]=cur->fix>UINT8_MAX?UINT8_MAX:(cur->fix<0?0:cur->fix);
-		else
-			bv->ptr[i]=cur->bigInt->num<0?0:UINT8_MAX;
-	}
-	return r;
+	FklNastNode** nodes=(FklNastNode**)ast;
+	const size_t start_size=2;
+	const size_t end_size=1;
+
+	const FklString* str=nodes[0]->str;
+	const char* cstr=str->str;
+
+	size_t size=0;
+	char* s=fklCastEscapeCharBuf(&cstr[start_size],str->size-end_size-start_size,&size);
+	FklNastNode* node=fklCreateNastNode(FKL_NAST_BYTEVECTOR,nodes[0]->curline);
+	node->bvec=fklCreateBytevector(size,(uint8_t*)s);
+	// node->str=fklCreateString(size,s);
+	free(s);
+	return node;
 }
+
+// static inline void* prod_action_bytevector(void* outerCtx
+// 		,void* nodes[]
+// 		,size_t num
+// 		,size_t line)
+// {
+// 	FklNastNode* list=nodes[1];
+// 	FklNastNode* r=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
+// 	size_t len=fklNastListLength(list);
+// 	FklBytevector* bv=fklCreateBytevector(len,NULL);
+// 	r->bvec=bv;
+// 	size_t i=0;
+// 	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
+// 	{
+// 		FklNastNode* cur=list->pair->car;
+// 		if(cur->type==FKL_NAST_FIX)
+// 			bv->ptr[i]=cur->fix>UINT8_MAX?UINT8_MAX:(cur->fix<0?0:cur->fix);
+// 		else
+// 			bv->ptr[i]=cur->bigInt->num<0?0:UINT8_MAX;
+// 	}
+// 	return r;
+// }

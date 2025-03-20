@@ -84,7 +84,8 @@ void fklPrintCodegenError(FklNastNode* obj
 
 	if(type==FKL_ERR_DUMMY||type==FKL_ERR_SYMUNDEFINE)
 		return;
-	fklPrintRawCstr(builtInErrorType[type],'|',stderr);
+	fklPrintRawCstr(builtInErrorType[type],"|","|",'|',stderr);
+	// fklPrintRawCstr(builtInErrorType[type],'|',stderr);
 	fputs(": ",stderr);
 	switch(type)
 	{

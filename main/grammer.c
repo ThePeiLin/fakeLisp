@@ -2,7 +2,6 @@
 #include<fakeLisp/base.h>
 #include<fakeLisp/parser.h>
 #include<fakeLisp/utils.h>
-#include<ctype.h>
 
 int main(int argc,char* argv[])
 {

@@ -1314,12 +1314,14 @@ static inline void print_raw_char_to_string_buffer(FklStringBuffer* s,char c)
 
 static inline void print_raw_string_to_string_buffer(FklStringBuffer* s,FklString* f)
 {
-	fklPrintRawStringToStringBuffer(s,f,'"');
+	// fklPrintRawStringToStringBuffer(s,f,'"');
+	fklPrintRawStringToStringBuffer(s,f,"\"","\"",'"');
 }
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f)
 {
-	fklPrintRawStringToStringBuffer(s,f,'|');
+	// fklPrintRawStringToStringBuffer(s,f,'|');
+	fklPrintRawStringToStringBuffer(s,f,"|","|",'|');
 }
 
 static inline void print_big_int_to_string_buffer(FklStringBuffer* s,const FklVMbigInt* a)

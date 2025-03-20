@@ -4,7 +4,6 @@
 #include<fakeLisp/utils.h>
 #include<stdio.h>
 #include<stdlib.h>
-#include<ctype.h>
 
 int main()
 {
@@ -30,7 +29,7 @@ int main()
 		"[(foobar;comments\nfoo bar),abcd]",
 		"(foo bar abcd|foo \\|bar|efgh foo \"foo\\\"\",bar)",
 		"#hash((a,1) (b,2))",
-		"#vu8(114 514 114514)",
+		"#\"\\114\\51\\11\\45\\14\"",
 		"114514",
 		"#\\ ",
 		"'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)",

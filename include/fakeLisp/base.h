@@ -51,14 +51,27 @@ uintptr_t fklCharBufHash(const char* str,size_t len);
 
 struct FklStringBuffer;
 
-void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s,size_t len,const char* fstr,char se);
-static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer* s,const char* str,char se)
+void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer* s
+		,size_t len
+		,const char* fstr
+		,const char* begin_str
+		,const char* end_str
+		,char se);
+static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer* s
+		,const char* str
+		,const char* begin_str
+		,const char* end_str
+		,char se)
 {
-	fklPrintRawCharBufToStringBuffer(s,strlen(str),str,se);
+	fklPrintRawCharBufToStringBuffer(s,strlen(str),str,begin_str,end_str,se);
 }
-static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s,const FklString* fstr,char se)
+static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer* s
+		,const FklString* fstr
+		,const char* begin_str
+		,const char* end_str
+		,char se)
 {
-	fklPrintRawCharBufToStringBuffer(s,fstr->size,fstr->str,se);
+	fklPrintRawCharBufToStringBuffer(s,fstr->size,fstr->str,begin_str,end_str,se);
 }
 
 FklString* fklStringToRawString(const FklString* str);

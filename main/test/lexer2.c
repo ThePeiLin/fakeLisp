@@ -57,6 +57,8 @@ int main()
 	FILE* tablef=fopen("table.txt","w");
 	fklPrintAnalysisTableForGraphEasy(g,st,tablef);
 
+	fklDestroyGrammer(g);
+	fklDestroySymbolTable(st);
 	fclose(tablef);
 	fclose(gzf);
 	fclose(lalrgzf);

@@ -88,9 +88,18 @@ int fklPower(int first,int second)
 	return result;
 }
 
-void fklPrintRawCstr(const char* objStr,char se,FILE* out)
+void fklPrintRawCstr(const char* objStr
+		,const char* begin_str
+		,const char* end_str
+		,char escaped_char
+		,FILE* out)
 {
-	fklPrintRawCharBuf((const uint8_t*)objStr,se,strlen(objStr),out);
+	fklPrintRawCharBuf((const uint8_t*)objStr
+			,strlen(objStr)
+			,begin_str
+			,end_str
+			,escaped_char
+			,out);
 }
 
 int fklIsValidCharBuf(const char* str,size_t len)
@@ -678,9 +687,15 @@ char* fklCharBufToCstr(const char* buf,size_t size)
 	return str;
 }
 
-void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
+void fklPrintRawCharBuf(const uint8_t* str
+		,size_t size
+		,const char* begin_str
+		,const char* end_str
+		,char se
+		,FILE* out)
 {
-	putc(se,out);
+	fputs(begin_str,out);
+	// putc(se,out);
 	uint64_t i=0;
 	while(i<size)
 	{
@@ -716,20 +731,20 @@ void fklPrintRawCharBuf(const uint8_t* str,char se,size_t size,FILE* out)
 			i+=l;
 		}
 	}
-	putc(se,out);
+	fputs(end_str,out);
 }
 
-void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out)
-{
-	fprintf(out,"#vu8(");
-	for(size_t i=0;i<size;i++)
-	{
-		fprintf(out,"0x%X",ptr[i]);
-		if(i<size-1)
-			fputc(' ',out);
-	}
-	fprintf(out,")");
-}
+// void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out)
+// {
+// 	fprintf(out,"#vu8(");
+// 	for(size_t i=0;i<size;i++)
+// 	{
+// 		fprintf(out,"0x%X",ptr[i]);
+// 		if(i<size-1)
+// 			fputc(' ',out);
+// 	}
+// 	fprintf(out,")");
+// }
 
 void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp)
 {
@@ -813,7 +828,7 @@ char* fklCastEscapeCharBuf(const char* str,size_t size,size_t* psize)
 						for(;isdigit(backSlashStr[len])&&backSlashStr[len]<'8'&&len<5;len++);
 				}
 				else
-					for(;isdigit(backSlashStr[len+1])&&len<4;len++);
+					for(;isdigit(backSlashStr[len])&&len<4;len++);
 			}
 			else if(toupper(backSlashStr[len])=='X')
 				for(len++;isxdigit(backSlashStr[len])&&len<4;len++);

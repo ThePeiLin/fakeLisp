@@ -249,23 +249,11 @@ static FklVMvalue* __fkl_userdata_copy_append(FklVM* exe,const FklVMvalue* v,uin
 
 static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 {
-	NULL,
-	NULL,
-	__fkl_str_copy_append,
-	__fkl_vec_copy_append,
-	__fkl_pair_copy_append,
-	NULL,
-	__fkl_bytevector_copy_append,
-	__fkl_userdata_copy_append,
-	NULL,
-	// NULL,
-	// NULL,
-	// NULL,
-	NULL,
-	// NULL,
-	NULL,
-	// NULL,
-	NULL,
+	[FKL_TYPE_STR]        = __fkl_str_copy_append,
+	[FKL_TYPE_VECTOR]     = __fkl_vec_copy_append,
+	[FKL_TYPE_PAIR]       = __fkl_pair_copy_append,
+	[FKL_TYPE_BYTEVECTOR] = __fkl_bytevector_copy_append,
+	[FKL_TYPE_USERDATA]   = __fkl_userdata_copy_append,
 };
 
 static int builtin_append(FKL_CPROC_ARGL)
@@ -345,23 +333,8 @@ static int __fkl_userdata_append(FklVMvalue* obj,uint32_t argc,FklVMvalue* const
 
 static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM]=
 {
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	__fkl_pair_append,
-	NULL,
-	NULL,
-	__fkl_userdata_append,
-	NULL,
-	// NULL,
-	// NULL,
-	// NULL,
-	NULL,
-	// NULL,
-	NULL,
-	// NULL,
-	NULL,
+	[FKL_TYPE_PAIR]     = __fkl_pair_append,
+	[FKL_TYPE_USERDATA] = __fkl_userdata_append,
 };
 
 static int builtin_append1(FKL_CPROC_ARGL)

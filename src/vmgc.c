@@ -138,23 +138,14 @@ static inline void propagateMark(FklVMvalue* root,FklVMgc* gc)
 	FKL_ASSERT(root->type<FKL_VM_VALUE_GC_TYPE_NUM);
 	static void(* const fkl_atomic_value_method_table[FKL_VM_VALUE_GC_TYPE_NUM])(FklVMvalue*,FklVMgc*)=
 	{
-		NULL,
-		NULL,
-		NULL,
-		fklAtomicVMvec,
-		fklAtomicVMpair,
-		fklAtomicVMbox,
-		NULL,
-		fklAtomicVMuserdata,
-		fklAtomicVMproc,
-		// fklAtomicVMchan,
-		// NULL,
-		// fklAtomicVMdll,
-		fklAtomicVMcproc,
-		// NULL,
-		fklAtomicVMhashTable,
-		// NULL,
-		atomic_var_ref,
+		[FKL_TYPE_VECTOR]    = fklAtomicVMvec,
+		[FKL_TYPE_PAIR]      = fklAtomicVMpair,
+		[FKL_TYPE_BOX]       = fklAtomicVMbox,
+		[FKL_TYPE_USERDATA]  = fklAtomicVMuserdata,
+		[FKL_TYPE_PROC]      = fklAtomicVMproc,
+		[FKL_TYPE_CPROC]     = fklAtomicVMcproc,
+		[FKL_TYPE_HASHTABLE] = fklAtomicVMhashTable,
+		[FKL_TYPE_VAR_REF]   = atomic_var_ref,
 	};
 	void (*atomic_value_func)(FklVMvalue*,FklVMgc*)=fkl_atomic_value_method_table[root->type];
 	if(atomic_value_func)

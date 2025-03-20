@@ -919,29 +919,6 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS)
 
 }
 
-// static void vmvalue_chanl_printer(VMVALUE_PRINTER_ARGS)
-// {
-// 	fprintf(fp,"#<chanl %p>",FKL_VM_CHANL(v));
-// }
-
-// static void vmvalue_fp_printer(VMVALUE_PRINTER_ARGS)
-// {
-// 	FklVMfp* vfp=FKL_VM_FP(v);
-// 	if(vfp->fp==stdin)
-// 		fputs("#<fp stdin>",fp);
-// 	else if(vfp->fp==stdout)
-// 		fputs("#<fp stdout>",fp);
-// 	else if(vfp->fp==stderr)
-// 		fputs("#<fp stderr>",fp);
-// 	else
-// 		fprintf(fp,"#<fp %p>",vfp);
-// }
-
-// static void vmvalue_dll_printer(VMVALUE_PRINTER_ARGS)
-// {
-// 	fprintf(fp,"#<dll %p>",FKL_VM_DLL(v));
-// }
-
 static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS)
 {
 	FklVMcproc* cproc=FKL_VM_CPROC(v);
@@ -955,35 +932,15 @@ static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS)
 		fprintf(fp,"#<cproc %p>",cproc);
 }
 
-// static void vmvalue_error_princ(VMVALUE_PRINTER_ARGS)
-// {
-// 	fklPrintString(FKL_VM_ERR(v)->message,fp);
-// }
-
-// static void vmvalue_code_obj_printer(VMVALUE_PRINTER_ARGS)
-// {
-// 	fprintf(fp,"#<code-obj %p>",FKL_VM_CO(v));
-// }
-
 static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_ARGS)=
 {
-	vmvalue_f64_printer,
-	vmvalue_big_int_printer,
-	vmvalue_string_princ,
-	NULL,
-	NULL,
-	NULL,
-	vmvalue_bytevector_printer,
-	vmvalue_userdata_princ,
-	vmvalue_proc_printer,
-	// vmvalue_chanl_printer,
-	// vmvalue_fp_printer,
-	// vmvalue_dll_printer,
-	vmvalue_cproc_printer,
-	// vmvalue_error_princ,
-	NULL,
-	// vmvalue_code_obj_printer,
-	NULL,
+	[FKL_TYPE_F64]        = vmvalue_f64_printer,
+	[FKL_TYPE_BIG_INT]    = vmvalue_big_int_printer,
+	[FKL_TYPE_STR]        = vmvalue_string_princ,
+	[FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_printer,
+	[FKL_TYPE_USERDATA]   = vmvalue_userdata_princ,
+	[FKL_TYPE_PROC]       = vmvalue_proc_printer,
+	[FKL_TYPE_CPROC]      = vmvalue_cproc_printer,
 };
 
 static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS)
@@ -1054,35 +1011,15 @@ static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS)
 		fprintf(fp,"#<userdata %p>",ud);
 }
 
-// static void vmvalue_error_prin1(VMVALUE_PRINTER_ARGS)
-// {
-// 	FklVMerror* err=FKL_VM_ERR(v);
-// 	fprintf(fp,"#<err t:");
-// 	fklPrintRawSymbol(fklVMgetSymbolWithId(gc,err->type)->symbol,fp);
-// 	fprintf(fp," m:");
-// 	fklPrintRawString(err->message,fp);
-// 	fprintf(fp,">");
-// }
-
 static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_PRINTER_ARGS)=
 {
-	vmvalue_f64_printer,
-	vmvalue_big_int_printer,
-	vmvalue_string_prin1,
-	NULL,
-	NULL,
-	NULL,
-	vmvalue_bytevector_printer,
-	vmvalue_userdata_prin1,
-	vmvalue_proc_printer,
-	// vmvalue_chanl_printer,
-	// vmvalue_fp_printer,
-	// vmvalue_dll_printer,
-	vmvalue_cproc_printer,
-	// vmvalue_error_prin1,
-	NULL,
-	// vmvalue_code_obj_printer,
-	NULL,
+	[FKL_TYPE_F64]        = vmvalue_f64_printer,
+	[FKL_TYPE_BIG_INT]    = vmvalue_big_int_printer,
+	[FKL_TYPE_STR]        = vmvalue_string_prin1,
+	[FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_printer,
+	[FKL_TYPE_USERDATA]   = vmvalue_userdata_prin1,
+	[FKL_TYPE_PROC]       = vmvalue_proc_printer,
+	[FKL_TYPE_CPROC]      = vmvalue_cproc_printer,
 };
 
 static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS)
@@ -1464,29 +1401,6 @@ static void vmvalue_proc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<proc %p>",proc);
 }
 
-// static void vmvalue_chanl_as_print(VMVALUE_TO_UTSTRING_ARGS)
-// {
-// 	fklStringBufferPrintf(result,"#<chanl %p>",FKL_VM_CHANL(v));
-// }
-
-// static void vmvalue_fp_as_print(VMVALUE_TO_UTSTRING_ARGS)
-// {
-// 	FklVMfp* vfp=FKL_VM_FP(v);
-// 	if(vfp->fp==stdin)
-// 		fklStringBufferConcatWithCstr(result,"#<fp stdin>");
-// 	else if(vfp->fp==stdout)
-// 		fklStringBufferConcatWithCstr(result,"#<fp stdout>");
-// 	else if(vfp->fp==stderr)
-// 		fklStringBufferConcatWithCstr(result,"#<fp stderr>");
-// 	else
-// 		fklStringBufferPrintf(result,"#<fp %p>",vfp);
-// }
-
-// static void vmvalue_dll_as_print(VMVALUE_TO_UTSTRING_ARGS)
-// {
-// 	fklStringBufferPrintf(result,"#<dll %p>",FKL_VM_DLL(v));
-// }
-
 static void vmvalue_cproc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 {
 	FklVMcproc* cproc=FKL_VM_CPROC(v);
@@ -1500,45 +1414,15 @@ static void vmvalue_cproc_as_print(VMVALUE_TO_UTSTRING_ARGS)
 		fklStringBufferPrintf(result,"#<cproc %p>",cproc);
 }
 
-// static void vmvalue_error_as_princ(VMVALUE_TO_UTSTRING_ARGS)
-// {
-// 	fklStringBufferConcatWithString(result,FKL_VM_ERR(v)->message);
-// }
-
-// static void vmvalue_error_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
-// {
-// 	FklVMerror* err=FKL_VM_ERR(v);
-// 	fklStringBufferConcatWithCstr(result,"#<err t: ");
-// 	print_raw_symbol_to_string_buffer(result,fklVMgetSymbolWithId(gc,err->type)->symbol);
-// 	fklStringBufferConcatWithCstr(result," m: ");
-// 	print_raw_string_to_string_buffer(result,err->message);
-// 	fklStringBufferPutc(result,'>');
-// }
-
-// static void vmvalue_code_obj_as_print(VMVALUE_TO_UTSTRING_ARGS)
-// {
-// 	fklStringBufferPrintf(result,"#<code-obj %p>",FKL_VM_CO(v));
-// }
-
 static void (*atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
-	vmvalue_f64_as_print,
-	vmvalue_big_int_as_print,
-	vmvalue_string_as_prin1,
-	NULL,
-	NULL,
-	NULL,
-	vmvalue_bytevector_as_print,
-	vmvalue_userdata_as_prin1,
-	vmvalue_proc_as_print,
-	// vmvalue_chanl_as_print,
-	// vmvalue_fp_as_print,
-	// vmvalue_dll_as_print,
-	vmvalue_cproc_as_print,
-	// vmvalue_error_as_prin1,
-	NULL,
-	// vmvalue_code_obj_as_print,
-	NULL,
+	[FKL_TYPE_F64]        = vmvalue_f64_as_print,
+	[FKL_TYPE_BIG_INT]    = vmvalue_big_int_as_print,
+	[FKL_TYPE_STR]        = vmvalue_string_as_prin1,
+	[FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_as_print,
+	[FKL_TYPE_USERDATA]   = vmvalue_userdata_as_prin1,
+	[FKL_TYPE_PROC]       = vmvalue_proc_as_print,
+	[FKL_TYPE_CPROC]      = vmvalue_cproc_as_print,
 };
 
 static void ptr_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS)
@@ -1576,23 +1460,13 @@ static void vmvalue_userdata_as_princ(VMVALUE_TO_UTSTRING_ARGS)
 
 static void (*atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM])(VMVALUE_TO_UTSTRING_ARGS)=
 {
-	vmvalue_f64_as_print,
-	vmvalue_big_int_as_print,
-	vmvalue_string_as_princ,
-	NULL,
-	NULL,
-	NULL,
-	vmvalue_bytevector_as_print,
-	vmvalue_userdata_as_princ,
-	vmvalue_proc_as_print,
-	// vmvalue_chanl_as_print,
-	// vmvalue_fp_as_print,
-	// vmvalue_dll_as_print,
-	vmvalue_cproc_as_print,
-	// vmvalue_error_as_princ,
-	NULL,
-	// vmvalue_code_obj_as_print,
-	NULL,
+	[FKL_TYPE_F64]        = vmvalue_f64_as_print,
+	[FKL_TYPE_BIG_INT]    = vmvalue_big_int_as_print,
+	[FKL_TYPE_STR]        = vmvalue_string_as_princ,
+	[FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_as_print,
+	[FKL_TYPE_USERDATA]   = vmvalue_userdata_as_princ,
+	[FKL_TYPE_PROC]       = vmvalue_proc_as_print,
+	[FKL_TYPE_CPROC]      = vmvalue_cproc_as_print,
 };
 
 static void ptr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS)

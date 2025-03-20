@@ -1496,14 +1496,12 @@ static void _error_userdata_as_princ(const FklVMud* ud,FklStringBuffer* buf,FklV
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer* s,FklString* f)
 {
-	// fklPrintRawStringToStringBuffer(s,f,'|');
 	fklPrintRawStringToStringBuffer(s,f,"|","|",'|');
 }
 
 static inline void print_raw_string_to_string_buffer(FklStringBuffer* s,FklString* f)
 {
 	fklPrintRawStringToStringBuffer(s,f,"\"","\"",'"');
-	// fklPrintRawStringToStringBuffer(s,f,'"');
 }
 
 static void _error_userdata_as_prin1(const FklVMud* ud,FklStringBuffer* buf,FklVMgc* gc)

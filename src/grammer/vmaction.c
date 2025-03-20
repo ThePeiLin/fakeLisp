@@ -366,29 +366,4 @@ static inline void* prod_action_bytevector(void* outerCtx
 	free(s);
 	return retval;
 }
-// static inline void* prod_action_bytevector(void* outerCtx
-// 		,void* nodes[]
-// 		,size_t num
-// 		,size_t line)
-// {
-// 	FklVM* exe=(FklVM*)outerCtx;
-//
-// 	FklVMvalue* list=nodes[1];
-// 	size_t len=fklVMlistLength(list);
-// 	FklBytevector* bv=fklCreateBytevector(len,NULL);
-//
-// 	for(size_t i=0;FKL_IS_PAIR(list);list=FKL_VM_CDR(list),i++)
-// 	{
-// 		FklVMvalue* cur=FKL_VM_CAR(list);
-// 		if(FKL_IS_FIX(cur))
-// 		{
-// 			int64_t fix=FKL_GET_FIX(cur);
-// 			bv->ptr[i]=fix>UINT8_MAX?UINT8_MAX:(fix<0?0:fix);
-// 		}
-// 		else
-// 			bv->ptr[i]=FKL_VM_BI(cur)->num<0?0:UINT8_MAX;
-// 	}
-//
-// 	FklVMvalue* r=fklCreateVMvalueBvec(exe,bv);
-// 	return r;
-// }
+

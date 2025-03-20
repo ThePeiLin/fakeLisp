@@ -6204,29 +6204,6 @@ static inline void* prod_action_hashequal(void* ctx
 	return r;
 }
 
-// static inline void* prod_action_bytevector(void* ctx
-// 		,void* outerCtx
-// 		,void* nodes[]
-// 		,size_t num
-// 		,size_t line)
-// {
-// 	FklNastNode* list=nodes[1];
-// 	FklNastNode* r=fklCreateNastNode(FKL_NAST_BYTEVECTOR,line);
-// 	size_t len=fklNastListLength(list);
-// 	FklBytevector* bv=fklCreateBytevector(len,NULL);
-// 	r->bvec=bv;
-// 	size_t i=0;
-// 	for(;list->type==FKL_NAST_PAIR;list=list->pair->cdr,i++)
-// 	{
-// 		FklNastNode* cur=list->pair->car;
-// 		if(cur->type==FKL_NAST_FIX)
-// 			bv->ptr[i]=cur->fix>UINT8_MAX?UINT8_MAX:(cur->fix<0?0:cur->fix);
-// 		else
-// 			bv->ptr[i]=cur->bigInt->num<0?0:UINT8_MAX;
-// 	}
-// 	return r;
-// }
-
 static inline void* prod_action_bytevector(void* ctx
 		,void* outerCtx
 		,void* ast[]
@@ -6244,7 +6221,6 @@ static inline void* prod_action_bytevector(void* ctx
 	char* s=fklCastEscapeCharBuf(&cstr[start_size],str->size-end_size-start_size,&size);
 	FklNastNode* node=fklCreateNastNode(FKL_NAST_BYTEVECTOR,nodes[0]->curline);
 	node->bvec=fklCreateBytevector(size,(uint8_t*)s);
-	// node->str=fklCreateString(size,s);
 	free(s);
 	return node;
 }
@@ -6316,12 +6292,6 @@ static const FklGrammerCstrAction builtin_grammer_and_action[]=
 	{"*hash-items* ",                                         "prod_action_nil",           prod_action_nil,           },
 	{"*hash-items* #( &*s-exp* #, &*s-exp* #) &*hash-items*", "prod_action_kv_list",       prod_action_kv_list,       },
 	{"*hash-items* #[ &*s-exp* #, &*s-exp* #] &*hash-items*", "prod_action_kv_list",       prod_action_kv_list,       },
-
-	// {"*bytevector* ##vu8( &*bytevector-items* #)",            "prod_action_bytevector",    prod_action_bytevector,    },
-	// {"*bytevector* ##vu8[ &*bytevector-items* #]",            "prod_action_bytevector",    prod_action_bytevector,    },
-	//
-	// {"*bytevector-items* ",                                   "prod_action_nil",           prod_action_nil,           },
-	// {"*bytevector-items* &*integer* &*bytevector-items*",     "prod_action_list",          prod_action_list,          },
 
 	{"+ /\\s+",                                               NULL,                        NULL,                      },
 	{"+ /^;.*\\n?",                                           NULL,                        NULL,                      },

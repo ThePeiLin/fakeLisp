@@ -1323,22 +1323,11 @@ void fklPrintRawBytevector(const FklBytevector* bv,FILE* fp)
 			,"\""
 			,'"'
 			,fp);
-	// fklPrintRawByteBuf(bv->ptr,bv->size,fp);
 }
 
 void fklPrintBytevectorToStringBuffer(FklStringBuffer* s,const FklBytevector* bvec)
 {
 	fklPrintRawCharBufToStringBuffer(s,bvec->size,(char*)bvec->ptr,"#\"","\"",'"');
-	// size_t size=bvec->size;
-	// const uint8_t* ptr=bvec->ptr;
-	// fklStringBufferConcatWithCstr(s,"#vu8(");
-	// for(size_t i=0;i<size;i++)
-	// {
-	// 	fklStringBufferPrintf(s,"0x%X",ptr[i]);
-	// 	if(i<size-1)
-	// 		fklStringBufferPutc(s,' ');
-	// }
-	// fklStringBufferPutc(s,')');
 }
 
 FklString* fklBytevectorToString(const FklBytevector* bv)

@@ -304,10 +304,20 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 	for(;i<6;i++)
 		if((byte[0]|utf8bits[i].a)==utf8bits[i].a)
 			break;
-	if(i+1>max)
+	if(i>=max||i==6)
 		return 7;
 	else
 	{
+#define UTF8_REST_BITS (6)
+#define UTF8_REST_HEAD (0x2)
+		// check rest
+		for(size_t j=1;j<i;j++)
+		{
+			if(byte[i]>>UTF8_REST_BITS!=UTF8_REST_HEAD)
+				return 7;
+		}
+#undef UTF8_REST_BITS
+#undef UTF8_REST_HEAD
 #define UTF8_M_BITS (0x3F)
 		uint32_t sum=((utf8bits[i].b&byte[0])<<(i*6))+(byte[1]&UTF8_M_BITS<<((i-1)*6));
 #undef UTF8_M_BITS
@@ -695,7 +705,6 @@ void fklPrintRawCharBuf(const uint8_t* str
 		,FILE* out)
 {
 	fputs(begin_str,out);
-	// putc(se,out);
 	uint64_t i=0;
 	while(i<size)
 	{
@@ -733,18 +742,6 @@ void fklPrintRawCharBuf(const uint8_t* str
 	}
 	fputs(end_str,out);
 }
-
-// void fklPrintRawByteBuf(const uint8_t* ptr,size_t size,FILE* out)
-// {
-// 	fprintf(out,"#vu8(");
-// 	for(size_t i=0;i<size;i++)
-// 	{
-// 		fprintf(out,"0x%X",ptr[i]);
-// 		if(i<size-1)
-// 			fputc(' ',out);
-// 	}
-// 	fprintf(out,")");
-// }
 
 void fklPrintCharBufInHex(const char* buf,uint32_t len,FILE* fp)
 {

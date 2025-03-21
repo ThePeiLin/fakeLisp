@@ -46,19 +46,19 @@
            (concurrent-queue->list con-queue)))
 
 (define (my-chanl-mutex ch)
-  (vec-ref ch 1))
+  (vector-ref ch 1))
 
 (define (my-chanl-max ch)
-  (vec-ref ch 2))
+  (vector-ref ch 2))
 
 (define (inc-my-chanl-msg-num ch)
-  (vec-set! ch 3 (1+ (vec-ref ch 3))))
+  (vector-set! ch 3 (1+ (vector-ref ch 3))))
 
 (define (dec-my-chanl-msg-num ch)
-  (vec-set! ch 3 (-1+ (vec-ref ch 3))))
+  (vector-set! ch 3 (-1+ (vector-ref ch 3))))
 
 (define (my-chanl-msg-num ch)
-  (vec-ref ch 3))
+  (vector-ref ch 3))
 
 (define (my-chanl-not-full? ch)
   (< (my-chanl-msg-num ch)
@@ -68,19 +68,19 @@
   (> (my-chanl-msg-num ch) 0))
 
 (define (my-chanl-pop-msg ch)
-  (define r (dequeue! (vec-ref ch 4)))
+  (define r (dequeue! (vector-ref ch 4)))
   (if r (dec-my-chanl-msg-num ch))
   r)
 
 (define (my-chanl-push-msg ch msg)
   (inc-my-chanl-msg-num ch)
-  (enqueue! (vec-ref ch 4) msg))
+  (enqueue! (vector-ref ch 4) msg))
 
 (define (pop-my-recv ch)
-  (dequeue! (vec-ref ch 5)))
+  (dequeue! (vector-ref ch 5)))
 
 (define (pop-my-send ch)
-  (dequeue! (vec-ref ch 6)))
+  (dequeue! (vector-ref ch 6)))
 
 (define (make-my-chanl max)
   `#(my-chanl
@@ -98,22 +98,22 @@
       ~(make-queue)))
 
 (define (push-my-recv ch cnd)
-  (enqueue! (vec-ref ch 5)`#(~cnd ())))
+  (enqueue! (vector-ref ch 5)`#(~cnd ())))
 
 (define (push-my-send ch msg cnd)
-  (enqueue! (vec-ref ch 6) `#(~cnd ~msg)))
+  (enqueue! (vector-ref ch 6) `#(~cnd ~msg)))
 
 (define (my-recv-set-msg r msg)
-  (vec-set! r 1 msg))
+  (vector-set! r 1 msg))
 
 (define (my-recv-signal r)
-  (cond-signal (vec-ref r 0)))
+  (cond-signal (vector-ref r 0)))
 
 (define (my-send-signal s)
-  (cond-signal (vec-ref s 0)))
+  (cond-signal (vector-ref s 0)))
 
 (define (my-send-msg s)
-  (vec-ref s 1))
+  (vector-ref s 1))
 
 (define (my-chanl-send ch msg)
   (define mutex (my-chanl-mutex ch))
@@ -160,7 +160,7 @@
      (define re (push-my-recv ch cnd))
      (cond-wait cnd mutex)
      (mutex-unlock mutex)
-     (vec-ref re 1)]))
+     (vector-ref re 1)]))
 
 (define max 100)
 (define buf (make-my-chanl 100))

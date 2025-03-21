@@ -91,33 +91,33 @@
   (cond
     [cur-file-line
       (println file-prefix
-               (vec-ref cur-file-line 0)
+               (vector-ref cur-file-line 0)
                ":"
-               (vec-ref cur-file-line 1))
-      (print line-prefix (vec-ref cur-file-line 2))]
+               (vector-ref cur-file-line 1))
+      (print line-prefix (vector-ref cur-file-line 2))]
     [(or (not print-ins?) (car print-ins?))
      (if (define cur-ins (debug-ctx-get-cur-ins ctx))
        (print-single-ins cur-ins))]))
 
 (define (print-break-point-brief breakpoint)
-  (define temp-dis (vec-ref breakpoint 5))
+  (define temp-dis (vector-ref breakpoint 5))
   (printf "%s%s %d at %s:%d\n"
           (if (car temp-dis) "" "disabled ")
           (if (cdr temp-dis)
             "temp-break"
             "breakpoint")
-          (vec-ref breakpoint 0)
-          (vec-ref breakpoint 1)
-          (vec-ref breakpoint 2)))
+          (vector-ref breakpoint 0)
+          (vector-ref breakpoint 1)
+          (vector-ref breakpoint 2)))
 
 (define (print-break-point breakpoint)
   (print-break-point-brief breakpoint)
 
-  (define cond-exp (vec-ref breakpoint 3))
+  (define cond-exp (vector-ref breakpoint 3))
   (if cond-exp
     (printf "\tstop only if %S\n" (unbox cond-exp)))
 
-  (define count (vec-ref breakpoint 4))
+  (define count (vector-ref breakpoint 4))
   (if (> count 0)
     (printf "\tbreakpoint already hit %d time(s)\n" count)))
 
@@ -217,21 +217,21 @@
 (define (print-ins x number-len line-prefix not-curline-prefix)
   (printf "%*s %s%s"
           number-len
-          (vec-ref x 0)
-          (if (vec-ref x 1)
+          (vector-ref x 0)
+          (if (vector-ref x 1)
             line-prefix
             not-curline-prefix)
-          (vec-ref x 2))
+          (vector-ref x 2))
   (define len (length x))
   (cond
     [(> len 4)
-     (printf " %S, %S" (vec-ref x 3) (vec-ref x 4))]
+     (printf " %S, %S" (vector-ref x 3) (vector-ref x 4))]
     [(> len 3)
-     (printf " %S" (vec-ref x 3))])
+     (printf " %S" (vector-ref x 3))])
   (newline))
 
 (define (print-single-ins ins)
-  (define number-len (length (number->string (vec-ref ins 0))))
+  (define number-len (length (number->string (vector-ref ins 0))))
   (define not-curline-prefix (make-string (length line-prefix) #\\s))
   (print-ins ins number-len line-prefix not-curline-prefix))
 
@@ -248,7 +248,7 @@
 
   (setq ins-list (reverse! ins-list))
 
-  (define number-len (length (number->string (vec-ref (car (tail ins-list)) 0))))
+  (define number-len (length (number->string (vector-ref (car (tail ins-list)) 0))))
 
   (foreach
     (lambda (x)
@@ -274,7 +274,7 @@
                         1st-line
                         last-line)]
     [(setq cur (debug-ctx-list-ins ctx))
-     (setq 1st-line (vec-ref cur 0))
+     (setq 1st-line (vector-ref cur 0))
      (define last-line (+ 1st-line default-list-line-num))
      (print-ins-from-to ctx
                         cur
@@ -286,11 +286,11 @@
 (define (print-single-line x number-len line-prefix not-curline-prefix)
   (printf "%*s %s%s"
           number-len
-          (vec-ref x 0)
-          (if (vec-ref x 1)
+          (vector-ref x 0)
+          (if (vector-ref x 1)
             line-prefix
             not-curline-prefix)
-          (vec-ref x 2)))
+          (vector-ref x 2)))
 
 (define (print-src-from-to ctx cur 1st last)
   (define not-curline-prefix (make-string (length line-prefix) #\\s))
@@ -303,7 +303,7 @@
       (setq line-list (cons cur line-list))
       (loop (1+ n))))
 
-  (define number-len (length (number->string (vec-ref (car line-list) 0))))
+  (define number-len (length (number->string (vector-ref (car line-list) 0))))
 
   (setq line-list (reverse! line-list))
 
@@ -323,7 +323,7 @@
       (setq line-list (cons cur line-list))
       (loop (1+ n))))
 
-  (define number-len (length (number->string (vec-ref (car line-list) 0))))
+  (define number-len (length (number->string (vector-ref (car line-list) 0))))
 
   (setq line-list (reverse! line-list))
 
@@ -365,7 +365,7 @@
                         1st-line
                         last-line)]
     [(setq cur (debug-ctx-list-src ctx))
-     (setq 1st-line (vec-ref cur 0))
+     (setq 1st-line (vector-ref cur 0))
      (define last-line (+ 1st-line default-list-line-num))
      (print-src-from-to ctx
                         cur

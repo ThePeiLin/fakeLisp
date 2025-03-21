@@ -60,7 +60,7 @@
          (vector (quote ~name),~fields))
        (define (~type-checker-name ~name)
          (and
-           (eq (vec-ref ~name 0) (quote ~name))
+           (eq (vector-ref ~name 0) (quote ~name))
            (eqv (length ~name) ~(1+ (hash-num field-idx-ht)))))
        ~@(map
            (lambda (kv)
@@ -72,7 +72,7 @@
                 (unless (~type-checker-name ~name)
                   (throw 'incorrect-type
                          "Incorrect type of values"))
-                (vec-ref ~name ~idx)))
+                (vector-ref ~name ~idx)))
            (hash->list field-idx-ht))
        ~@(map
            (lambda (kv)
@@ -85,7 +85,7 @@
                 (unless (~type-checker-name ~name)
                   (throw 'incorrect-type
                          "Incorrect type of values"))
-                (vec-set! ~name ~idx ~field)))
+                (vector-set! ~name ~idx ~field)))
            (hash->list field-idx-ht))
        ~@(map process-method-define
               methods))))

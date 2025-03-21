@@ -524,7 +524,7 @@ struct SymFunc
 	{"strbuf-resize!",       export_strbuf_resize,             },
 	{"strbuf-fmt!",          export_strbuf_fmt,                },
 	{"strbuf->string",       export_strbuf_to_string,          },
-	{"strbuf->bytevector",   export_strbuf_to_bytevector,      },
+	{"strbuf->bytes",        export_strbuf_to_bytevector,      },
 	{"strbuf->vector",       export_strbuf_to_vector,          },
 	{"strbuf->list",         export_strbuf_to_list,            },
 	{"strbuf->symbol",       export_strbuf_to_symbol,          },

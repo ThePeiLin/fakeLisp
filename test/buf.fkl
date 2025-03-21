@@ -5,8 +5,8 @@
 
 (assert (strbuf? b))
 (assert (= b "aaaaaaaaaa"))
-(assert (= (strbuf->bytevector b)
-           (string->bytevector "aaaaaaaaaa")))
+(assert (= (strbuf->bytes b)
+           (string->bytes "aaaaaaaaaa")))
 (assert (eq 'aaaaaaaaaa (strbuf->symbol b)))
 (assert (equal (make-vector 10 #\a)
                (strbuf->vector b)))

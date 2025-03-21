@@ -60,7 +60,7 @@
       (fseek fp 0)
       (fgets len fp)))
 
-  (defmacro ~(load-as-bvec ~filename)
+  (defmacro ~(load-as-bytes ~filename)
     (begin
       (define fp (fopen filename "rb"))
       (define len (fseek fp 0 'end))

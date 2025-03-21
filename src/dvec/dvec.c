@@ -895,11 +895,11 @@ struct SymFunc
 	{"dvec->vector",       export_dvec_to_vector,          },
 	{"dvec->list",         export_dvec_to_list,            },
 	{"dvec->string",       export_dvec_to_string,          },
-	{"dvec->bytevector",   export_dvec_to_bytevector,      },
+	{"dvec->bytes",        export_dvec_to_bytevector,      },
 	{"list->dvec",         export_list_to_dvec,            },
 	{"vector->dvec",       export_vector_to_dvec,          },
 	{"string->dvec",       export_string_to_dvec,          },
-	{"bytevector->dvec",   export_bytevector_to_dvec,      },
+	{"bytes->dvec",        export_bytevector_to_dvec,      },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

@@ -10,20 +10,20 @@
                          (define test-num ~num)
                          (let [(err (pcall (lambda () (import ~t))))]
                            (if (error? err)
-                             (vec-set! msg
-                                       test-num
-                                       (cons err
-                                             (format "test-%S<%S> failed: %S: %s"
-                                                     test-num
-                                                     (quote ~t)
-                                                     (error-type err)
-                                                     (error-msg err))))
-                             (vec-set! msg
-                                       test-num
-                                       (cons ()
-                                             (format "test-%S<%S> success"
-                                                     test-num
-                                                     (quote ~t)))))
+                             (vector-set! msg
+                                          test-num
+                                          (cons err
+                                                (format "test-%S<%S> failed: %S: %s"
+                                                        test-num
+                                                        (quote ~t)
+                                                        (error-type err)
+                                                        (error-msg err))))
+                             (vector-set! msg
+                                          test-num
+                                          (cons ()
+                                                (format "test-%S<%S> success"
+                                                        test-num
+                                                        (quote ~t)))))
                            (newline))))
                     (setq num (1+ num))
                     r)

@@ -2,11 +2,11 @@
 (import (.. lib dvec))
 
 (define v #(foo bar))
-(println (vec-ref v 0))
-(println (vec-first v))
-(assert (eq (vec-first v) 'foo))
-(println (vec-last v))
-(assert (eq (vec-last v) 'bar))
+(println (vector-ref v 0))
+(println (vector-first v))
+(assert (eq (vector-first v) 'foo))
+(println (vector-last v))
+(assert (eq (vector-last v) 'bar))
 
 (define vd (dvec 1 2 3 4 5))
 (prin1n (dvec->vector vd))

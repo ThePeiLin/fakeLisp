@@ -160,7 +160,7 @@
 (do [(c 0 (1+ c))
      (len (length code))]
   [(>= c len)]
-  (define cc (str-ref code c))
+  (define cc (string-ref code c))
   (define cur-ins nil)
   (cond
     [(eq cc #\>)
@@ -237,10 +237,10 @@
   (define cp -1)
 
   (define (ou)
-    (princ (integer->char (vec-ref m mp)) stderr))
+    (princ (integer->char (vector-ref m mp)) stderr))
 
   (define (in)
-    (vec-set! m mp (fgeti stdin)))
+    (vector-set! m mp (fgeti stdin)))
 
   (define (hal) (throw 'hal "done"))
 
@@ -251,16 +251,16 @@
   (setq ins (list->vector (map (lambda (ins-sym imm)
                                  (cond
                                    [(eq ins-sym 'move) (let [(imm imm)] (lambda () (setq mp (+ mp imm))))]
-                                   [(eq ins-sym 'add) (let [(imm imm)] (lambda () (vec-set! m mp (+ (vec-ref m mp) imm))))]
-                                   [(eq ins-sym 'jf) (let [(imm imm)] (lambda ()(if (eqv (vec-ref m mp) 0)
+                                   [(eq ins-sym 'add) (let [(imm imm)] (lambda () (vector-set! m mp (+ (vector-ref m mp) imm))))]
+                                   [(eq ins-sym 'jf) (let [(imm imm)] (lambda ()(if (eqv (vector-ref m mp) 0)
                                                                                   (setq cp imm))))]
-                                   [(eq ins-sym 'jt) (let [(imm imm)] (lambda () (unless (eqv (vec-ref m mp) 0)
+                                   [(eq ins-sym 'jt) (let [(imm imm)] (lambda () (unless (eqv (vector-ref m mp) 0)
                                                                                    (setq cp imm))))]
                                    [1 (hash-ref symbol-ins-table ins-sym)]))
                                ins-list
                                imm-list)))
 
-  (do [] [nil] ((vec-ref ins (setq cp (1+ cp))))))
+  (do [] [nil] ((vector-ref ins (setq cp (1+ cp))))))
 
 (call/eh (lambda () (run (reverse! ins) (reverse! imm)))
          '(hal) (lambda (e)))

@@ -13,22 +13,22 @@
 ;*  queue->list
 
 (define (type q)
-  (vec-ref q 0))
+  (vector-ref q 0))
 
 (define (q-front queue)
-  (vec-ref queue 1))
+  (vector-ref queue 1))
 
 (define (q-rear q)
-  (vec-ref q 2))
+  (vector-ref q 2))
 
 (define (rear-set! q r)
-  (vec-set! q 2 r))
+  (vector-set! q 2 r))
 
 (define (new-tail-set! q n)
   (cdr-set! (q-rear q) n))
 
 (define (front-set! q f)
-  (vec-set! q 1 f))
+  (vector-set! q 1 f))
 
 (export
   (define (queue-empty? queue)

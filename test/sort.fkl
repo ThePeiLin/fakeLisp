@@ -34,29 +34,29 @@
 
 
 (define a #(1 2 3 4 5 6 7 8 9))
-(assert (equal (vec-merge-sort! > a)
+(assert (equal (vector-merge-sort! > a)
                #(9 8 7 6 5 4 3 2 1)))
 (assert (eq a a))
 
-(assert (equal (vec-merge-sort! < a)
+(assert (equal (vector-merge-sort! < a)
                #(1 2 3 4 5 6 7 8 9)))
 (assert (eq a a))
 
-(assert (equal (vec-merge-sort! < a)
+(assert (equal (vector-merge-sort! < a)
                #(1 2 3 4 5 6 7 8 9)))
 (assert (eq a a))
 
-(define b (vec-merge-sort > a))
+(define b (vector-merge-sort > a))
 (assert (equal b #(9 8 7 6 5 4 3 2 1)))
 (assert (not (eq a b)))
 
 (define a b)
-(define b (vec-merge-sort < a))
+(define b (vector-merge-sort < a))
 (assert (equal b #(1 2 3 4 5 6 7 8 9)))
 (assert (not (eq a b)))
 
 (define a b)
-(define b (vec-merge-sort < a))
+(define b (vector-merge-sort < a))
 (assert (equal b #(1 2 3 4 5 6 7 8 9)))
 (assert (not (eq a b)))
 

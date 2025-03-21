@@ -9,7 +9,7 @@
 ;  square min max
 ;  merge-sort! merge-sort
 ;  times
-;  vec-merge-sort! vec-merge-sort
+;  vector-merge-sort! vector-merge-sort
 ;  dvec-merge-sort! dvec-merge-sort
 
 (import (.. dvec))
@@ -112,7 +112,7 @@
       (f))))
 
 (export
-  (define (vec-merge-sort! cmpf vec)
+  (define (vector-merge-sort! cmpf vec)
     (let* [(len (length vec))
            (a vec)
            (b (make-vector len))
@@ -133,32 +133,32 @@
                     (e2 h)]
                 (do []
                   [(or (>= s1 e1) (>= s2 e2))]
-                  (let [(v1 (vec-ref a s1))
-                        (v2 (vec-ref a s2))]
-                    (vec-set! b k (if (cmpf v1 v2)
+                  (let [(v1 (vector-ref a s1))
+                        (v2 (vector-ref a s2))]
+                    (vector-set! b k (if (cmpf v1 v2)
                                     (begin (setq s1 (1+ s1)) v1)
                                     (begin (setq s2 (1+ s2)) v2))))
                   (setq k (1+ k)))
 
                 (do []
                   [(>= s1 e1)]
-                  (vec-set! b k (vec-ref a s1))
+                  (vector-set! b k (vector-ref a s1))
                   (setq k (1+ k))
                   (setq s1 (1+ s1)))
 
                 (do []
                   [(>= s2 e2)]
-                  (vec-set! b k (vec-ref a s2))
+                  (vector-set! b k (vector-ref a s2))
                   (setq k (1+ k))
                   (setq s2 (1+ s2)))))))
         (let [(t a)] (setq a b) (setq b t)))
       (unless (eq a vec)
         (do [(i 0 (1+ i))]
           [(>= i len)]
-          (vec-set! b i (vec-ref a i))))
+          (vector-set! b i (vector-ref a i))))
       a))
-  (define (vec-merge-sort cmpf vec)
-    (vec-merge-sort! cmpf (copy vec))))
+  (define (vector-merge-sort cmpf vec)
+    (vector-merge-sort! cmpf (copy vec))))
 
 (export
   (define (dvec-merge-sort! cmpf dvec)
@@ -213,7 +213,7 @@
   (define (msort! cmpf s)
     (cond
       [(vector? s)
-       (vec-merge-sort! cmpf s)]
+       (vector-merge-sort! cmpf s)]
       [(dvec? s)
        (dvec-merge-sort! cmpf s)]
       [(list? s)
@@ -222,7 +222,7 @@
   (define (msort cmpf s)
     (cond
       [(vector? s)
-       (vec-merge-sort cmpf s)]
+       (vector-merge-sort cmpf s)]
       [(dvec? s)
        (dvec-merge-sort cmpf s)]
       [(list? s)

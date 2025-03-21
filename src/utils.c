@@ -308,16 +308,16 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t* byte,size_t max)
 		return 7;
 	else
 	{
-#define UTF8_REST_BITS (6)
-#define UTF8_REST_HEAD (0x2)
+#define UTF8_REST_HEAD_MASK (0xC0)
+#define UTF8_REST_HEAD_BITS (0x80)
 		// check rest
 		for(size_t j=1;j<i;j++)
 		{
-			if(byte[i]>>UTF8_REST_BITS!=UTF8_REST_HEAD)
+			if((byte[i]&UTF8_REST_HEAD_MASK)!=UTF8_REST_HEAD_BITS)
 				return 7;
 		}
 #undef UTF8_REST_BITS
-#undef UTF8_REST_HEAD
+#undef UTF8_REST_MASK
 #define UTF8_M_BITS (0x3F)
 		uint32_t sum=((utf8bits[i].b&byte[0])<<(i*6))+(byte[1]&UTF8_M_BITS<<((i-1)*6));
 #undef UTF8_M_BITS

@@ -45,7 +45,7 @@
 (do [(c 0 (1+ c))
      (len (length code))]
   [(>= c len)]
-  (define cc (str-ref code c))
+  (define cc (string-ref code c))
   (define cur-ins nil)
   (cond
     [(eq cc #\>)

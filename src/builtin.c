@@ -1847,7 +1847,7 @@ static int read_frame_step(void* d,FklVM* exe)
 
 	if(pctx->symbolStack.top==0&&fklVMfpEof(vfp))
 	{
-		FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueEof(exe));
+		FKL_VM_PUSH_VALUE(exe,fklGetVMvalueEof());
 		return 0;
 	}
 	else if((err==FKL_PARSE_WAITING_FOR_MORE

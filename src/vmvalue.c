@@ -1,5 +1,6 @@
 #include<fakeLisp/vm.h>
 #include<fakeLisp/parser.h>
+#include<stdalign.h>
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
@@ -2087,15 +2088,26 @@ static FklVMudMetaTable EofUserDataMetaTable=
 	.__as_prin1=_eof_userdata_as_print,
 };
 
-FklVMvalue* fklCreateVMvalueEof(FklVM* exe)
+static const alignas(8) FklVMvalueUd EofUserDataValue=
 {
-	return fklCreateVMvalueUd(exe,&EofUserDataMetaTable,NULL);
+	.mark=FKL_MARK_B,
+	.next=NULL,
+	.type=FKL_TYPE_USERDATA,
+	.ud=
+	{
+		.t=&EofUserDataMetaTable,
+		.rel=NULL,
+	},
+};
+
+FklVMvalue* fklGetVMvalueEof(void)
+{
+	return (FklVMvalue*)&EofUserDataValue;
 }
 
 int fklIsVMeofUd(FklVMvalue* v)
 {
-	return FKL_IS_USERDATA(v)
-		&&FKL_VM_UD(v)->t==&EofUserDataMetaTable;
+	return v==(FklVMvalue*)&EofUserDataValue;
 }
 
 void fklAtomicVMvec(FklVMvalue* pVec,FklVMgc* gc)

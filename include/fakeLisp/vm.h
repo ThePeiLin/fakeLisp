@@ -1005,7 +1005,7 @@ FklNastNode* fklCreateNastNodeFromVMvalue(FklVMvalue* v
 		,FklHashTable*
 		,FklVMgc* gc);
 
-FklVMvalue* fklCreateVMvalueEof(FklVM* exe);
+FklVMvalue* fklGetVMvalueEof(void);
 int fklIsVMeofUd(FklVMvalue* v);
 // value getters
 

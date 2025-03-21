@@ -226,7 +226,7 @@ static inline FklVMvalue* debug_ctx_replxx_input(FklVM* exe
 		if(!restLen&&ctx->symbolStack.top==0&&is_eof)
 		{
 			dctx->exit=1;
-			return fklCreateVMvalueEof(exe);
+			return fklGetVMvalueEof();
 		}
 		else if((err==FKL_PARSE_WAITING_FOR_MORE
 					||(err==FKL_PARSE_TERMINAL_MATCH_FAILED

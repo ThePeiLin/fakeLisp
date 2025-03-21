@@ -846,23 +846,7 @@ static int export_list_to_dvec(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int export_bytevector_to_s8_dvec(FKL_CPROC_ARGL)
-{
-	FKL_DECL_AND_CHECK_ARG(obj,exe);
-	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,exe);
-	FklBytevector* bvec=FKL_VM_BVEC(obj);
-	size_t size=bvec->size;
-	int8_t* s8a=(int8_t*)bvec->ptr;
-	FklVMvalue* vec=create_dvec(exe,size,FKL_VM_CPROC(ctx->proc)->dll);
-	FKL_DECL_VM_UD_DATA(v,Dvec,vec);
-	for(size_t i=0;i<size;i++)
-		v->base[i]=FKL_MAKE_VM_FIX(s8a[i]);
-	FKL_VM_PUSH_VALUE(exe,vec);
-	return 0;
-}
-
-static int export_bytevector_to_u8_dvec(FKL_CPROC_ARGL)
+static int export_bytevector_to_dvec(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
@@ -885,38 +869,37 @@ struct SymFunc
 }exports_and_func[]=
 {
 	// dvec
-	{"dvec?",               export_dvec_p,                  },
-	{"dvec",                export_dvec,                    },
-	{"make-dvec",           export_make_dvec,               },
-	{"make-dvec/capacity",  export_make_dvec_with_capacity, },
-	{"subdvec",             export_subdvec,                 },
-	{"sub-dvec",            export_sub_dvec,                },
-	{"dvec-empty?",         export_dvec_empty_p,            },
-	{"dvec-capacity",       export_dvec_capacity,           },
-	{"dvec-first",          export_dvec_first,              },
-	{"dvec-last",           export_dvec_last,               },
-	{"dvec-ref",            export_dvec_ref,                },
-	{"dvec-set!",           export_dvec_set,                },
-	{"dvec-assign!",        export_dvec_assign,             },
-	{"dvec-fill!",          export_dvec_fill,               },
-	{"dvec-clear!",         export_dvec_clear,              },
-	{"dvec-reserve!",       export_dvec_reserve,            },
-	{"dvec-shrink!",        export_dvec_shrink,             },
-	{"dvec-resize!",        export_dvec_resize,             },
-	{"dvec-push!",          export_dvec_push,               },
-	{"dvec-pop!",           export_dvec_pop,                },
-	{"dvec-pop&!",          export_dvec_pop7,               },
-	{"dvec-insert!",        export_dvec_insert,             },
-	{"dvec-remove!",        export_dvec_remove,             },
-	{"dvec->vector",        export_dvec_to_vector,          },
-	{"dvec->list",          export_dvec_to_list,            },
-	{"dvec->string",        export_dvec_to_string,          },
-	{"dvec->bytevector",    export_dvec_to_bytevector,      },
-	{"list->dvec",          export_list_to_dvec,            },
-	{"vector->dvec",        export_vector_to_dvec,          },
-	{"string->dvec",        export_string_to_dvec,          },
-	{"bytevector->s8-dvec", export_bytevector_to_s8_dvec,   },
-	{"bytevector->u8-dvec", export_bytevector_to_u8_dvec,   },
+	{"dvec?",              export_dvec_p,                  },
+	{"dvec",               export_dvec,                    },
+	{"make-dvec",          export_make_dvec,               },
+	{"make-dvec/capacity", export_make_dvec_with_capacity, },
+	{"subdvec",            export_subdvec,                 },
+	{"sub-dvec",           export_sub_dvec,                },
+	{"dvec-empty?",        export_dvec_empty_p,            },
+	{"dvec-capacity",      export_dvec_capacity,           },
+	{"dvec-first",         export_dvec_first,              },
+	{"dvec-last",          export_dvec_last,               },
+	{"dvec-ref",           export_dvec_ref,                },
+	{"dvec-set!",          export_dvec_set,                },
+	{"dvec-assign!",       export_dvec_assign,             },
+	{"dvec-fill!",         export_dvec_fill,               },
+	{"dvec-clear!",        export_dvec_clear,              },
+	{"dvec-reserve!",      export_dvec_reserve,            },
+	{"dvec-shrink!",       export_dvec_shrink,             },
+	{"dvec-resize!",       export_dvec_resize,             },
+	{"dvec-push!",         export_dvec_push,               },
+	{"dvec-pop!",          export_dvec_pop,                },
+	{"dvec-pop&!",         export_dvec_pop7,               },
+	{"dvec-insert!",       export_dvec_insert,             },
+	{"dvec-remove!",       export_dvec_remove,             },
+	{"dvec->vector",       export_dvec_to_vector,          },
+	{"dvec->list",         export_dvec_to_list,            },
+	{"dvec->string",       export_dvec_to_string,          },
+	{"dvec->bytevector",   export_dvec_to_bytevector,      },
+	{"list->dvec",         export_list_to_dvec,            },
+	{"vector->dvec",       export_vector_to_dvec,          },
+	{"string->dvec",       export_string_to_dvec,          },
+	{"bytevector->dvec",   export_bytevector_to_dvec,      },
 };
 
 static const size_t EXPORT_NUM=sizeof(exports_and_func)/sizeof(struct SymFunc);

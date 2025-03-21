@@ -767,26 +767,7 @@ static int builtin_string_to_list(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_bytevector_to_s8_list(FKL_CPROC_ARGL)
-{
-	FKL_DECL_AND_CHECK_ARG(obj,exe);
-	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,exe);
-	FklBytevector* bvec=FKL_VM_BVEC(obj);
-	size_t size=bvec->size;
-	int8_t* s8a=(int8_t*)bvec->ptr;
-	FklVMvalue* r=FKL_VM_NIL;
-	FklVMvalue** cur=&r;
-	for(size_t i=0;i<size;i++)
-	{
-		*cur=fklCreateVMvaluePairWithCar(exe,FKL_MAKE_VM_FIX(s8a[i]));
-		cur=&FKL_VM_CDR(*cur);
-	}
-	FKL_VM_PUSH_VALUE(exe,r);
-	return 0;
-}
-
-static int builtin_bytevector_to_u8_list(FKL_CPROC_ARGL)
+static int builtin_bytevector_to_list(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
@@ -805,23 +786,7 @@ static int builtin_bytevector_to_u8_list(FKL_CPROC_ARGL)
 	return 0;
 }
 
-static int builtin_bytevector_to_s8_vector(FKL_CPROC_ARGL)
-{
-	FKL_DECL_AND_CHECK_ARG(obj,exe);
-	FKL_CHECK_REST_ARG(exe);
-	FKL_CHECK_TYPE(obj,FKL_IS_BYTEVECTOR,exe);
-	FklBytevector* bvec=FKL_VM_BVEC(obj);
-	size_t size=bvec->size;
-	int8_t* s8a=(int8_t*)bvec->ptr;
-	FklVMvalue* vec=fklCreateVMvalueVec(exe,size);
-	FklVMvec* v=FKL_VM_VEC(vec);
-	for(size_t i=0;i<size;i++)
-		v->base[i]=FKL_MAKE_VM_FIX(s8a[i]);
-	FKL_VM_PUSH_VALUE(exe,vec);
-	return 0;
-}
-
-static int builtin_bytevector_to_u8_vector(FKL_CPROC_ARGL)
+static int builtin_bytevector_to_vector(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG(obj,exe);
 	FKL_CHECK_REST_ARG(exe);
@@ -1517,145 +1482,28 @@ static int builtin_str_ref(FKL_CPROC_ARGL)
 	return 0;
 }
 
-#define BV_U_S_8_REF(TYPE) FKL_DECL_AND_CHECK_ARG2(bvec,place,exe);\
-	FKL_CHECK_REST_ARG(exe);\
-	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	if(fklIsVMnumberLt0(place))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklVMgetUint(place);\
-	FklBytevector* bv=FKL_VM_BVEC(bvec);\
-	size_t size=bv->size;\
-	if(index>=size||size-index<sizeof(TYPE))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r=bv->ptr[index];\
-	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(r));\
+static int builtin_bvec_ref(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG2(bvec,place,exe);
+	FKL_CHECK_REST_ARG(exe);
+	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
+	if(fklIsVMnumberLt0(place))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	size_t index=fklVMgetUint(place);
+	FklBytevector* bv=FKL_VM_BVEC(bvec);
+	size_t size=bv->size;
+	if(index>=size)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+	FKL_VM_PUSH_VALUE(exe,FKL_MAKE_VM_FIX(bv->ptr[index]));
 	return 0;
-
-#define BV_REF(TYPE,MAKER) FKL_DECL_AND_CHECK_ARG2(bvec,place,exe);\
-	FKL_CHECK_REST_ARG(exe);\
-	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	if(fklIsVMnumberLt0(place))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklVMgetUint(place);\
-	FklBytevector* bv=FKL_VM_BVEC(bvec);\
-	size_t size=bv->size;\
-	if(index>=size||size-index<sizeof(TYPE))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r;\
-	memcpy(&r,&bv->ptr[index],sizeof(r));\
-	FKL_VM_PUSH_VALUE(exe,MAKER(r,exe));\
-	return 0;
-
-#define BV_S_REF(TYPE) BV_REF(TYPE,fklMakeVMint)
-#define BV_U_REF(TYPE) BV_REF(TYPE,fklMakeVMuint)
-
-static int builtin_bvs8ref(FKL_CPROC_ARGL) {BV_U_S_8_REF(int8_t)}
-static int builtin_bvs16ref(FKL_CPROC_ARGL) {BV_S_REF(int16_t)}
-static int builtin_bvs32ref(FKL_CPROC_ARGL) {BV_S_REF(int32_t)}
-static int builtin_bvs64ref(FKL_CPROC_ARGL) {BV_S_REF(int64_t)}
-
-static int builtin_bvu8ref(FKL_CPROC_ARGL) {BV_U_S_8_REF(uint8_t)}
-static int builtin_bvu16ref(FKL_CPROC_ARGL) {BV_U_REF(uint16_t)}
-static int builtin_bvu32ref(FKL_CPROC_ARGL) {BV_U_REF(uint32_t)}
-static int builtin_bvu64ref(FKL_CPROC_ARGL) {BV_U_REF(uint64_t)}
-
-#undef BV_REF
-#undef BV_S_REF
-#undef BV_U_REF
-#undef BV_U_S_8_REF
-
-#define BV_F_REF(TYPE) FKL_DECL_AND_CHECK_ARG2(bvec,place,exe);\
-	FKL_CHECK_REST_ARG(exe);\
-	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	if(fklIsVMnumberLt0(place))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklVMgetUint(place);\
-	FklBytevector* bv=FKL_VM_BVEC(bvec);\
-	size_t size=bv->size;\
-	if(index>=size||size-index<sizeof(TYPE))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r;\
-	memcpy(&r,&bv->ptr[index],sizeof(r));\
-	FKL_VM_PUSH_VALUE(exe,fklCreateVMvalueF64(exe,r));\
-	return 0;
-
-static int builtin_bvf32ref(FKL_CPROC_ARGL) {BV_F_REF(float)}
-static int builtin_bvf64ref(FKL_CPROC_ARGL) {BV_F_REF(double)}
-#undef BV_F_REF
-
-#define SET_BV_S_U_8_REF(TYPE) FKL_DECL_AND_CHECK_ARG3(bvec,place,target,exe);\
-	FKL_CHECK_REST_ARG(exe);\
-	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	if(fklIsVMnumberLt0(place))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklVMgetUint(place);\
-	FklBytevector* bv=FKL_VM_BVEC(bvec);\
-	size_t size=bv->size;\
-	if(index>=size||size-index<sizeof(TYPE))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r=fklVMgetUint(target);\
-	bv->ptr[index]=r;\
-	FKL_VM_PUSH_VALUE(exe,target);\
-	return 0;
-
-#define SET_BV_REF(TYPE) FKL_DECL_AND_CHECK_ARG3(bvec,place,target,exe);\
-	FKL_CHECK_REST_ARG(exe);\
-	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	if(fklIsVMnumberLt0(place))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklVMgetUint(place);\
-	FklBytevector* bv=FKL_VM_BVEC(bvec);\
-	size_t size=bv->size;\
-	if(index>=size||size-index<sizeof(TYPE))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r=fklVMgetUint(target);\
-	memcpy(&bv->ptr[index],&r,sizeof(r));\
-	FKL_VM_PUSH_VALUE(exe,target);\
-	return 0;
-
-static int builtin_bvs8set1(FKL_CPROC_ARGL) {SET_BV_S_U_8_REF(int8_t)}
-static int builtin_bvs16set1(FKL_CPROC_ARGL) {SET_BV_REF(int16_t)}
-static int builtin_bvs32set1(FKL_CPROC_ARGL) {SET_BV_REF(int32_t)}
-static int builtin_bvs64set1(FKL_CPROC_ARGL) {SET_BV_REF(int64_t)}
-
-static int builtin_bvu8set1(FKL_CPROC_ARGL) {SET_BV_S_U_8_REF(uint8_t)}
-static int builtin_bvu16set1(FKL_CPROC_ARGL) {SET_BV_REF(uint16_t)}
-static int builtin_bvu32set1(FKL_CPROC_ARGL) {SET_BV_REF(uint32_t)}
-static int builtin_bvu64set1(FKL_CPROC_ARGL) {SET_BV_REF(uint64_t)}
-
-#undef SET_BV_S_U_8_REF
-#undef SET_BV_REF
-
-#define SET_BV_F_REF(TYPE) FKL_DECL_AND_CHECK_ARG3(bvec,place,target,exe);\
-	FKL_CHECK_REST_ARG(exe);\
-	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!FKL_IS_F64(target))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);\
-	if(fklIsVMnumberLt0(place))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);\
-	size_t index=fklVMgetUint(place);\
-	FklBytevector* bv=FKL_VM_BVEC(bvec);\
-	size_t size=bv->size;\
-	if(index>=size||size-index<sizeof(TYPE))\
-		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);\
-	TYPE r=FKL_VM_F64(target);\
-	memcpy(&bv->ptr[index],&r,sizeof(r));\
-	FKL_VM_PUSH_VALUE(exe,target);\
-	return 0;
-
-static int builtin_bvf32set1(FKL_CPROC_ARGL) {SET_BV_F_REF(float)}
-static int builtin_bvf64set1(FKL_CPROC_ARGL) {SET_BV_F_REF(double)}
-#undef SET_BV_F_REF
+}
 
 static int builtin_str_set1(FKL_CPROC_ARGL)
 {
 	FKL_DECL_AND_CHECK_ARG3(str,place,target,exe);
 	FKL_CHECK_REST_ARG(exe);
-	if(!fklIsVMint(place)||!FKL_IS_STR(str))
+	if(!fklIsVMint(place)||!FKL_IS_STR(str)||!FKL_IS_CHR(target))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 	if(fklIsVMnumberLt0(place))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
@@ -1664,9 +1512,25 @@ static int builtin_str_set1(FKL_CPROC_ARGL)
 	size_t size=s->size;
 	if(index>=size)
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
-	if(!FKL_IS_CHR(target)&&!fklIsVMint(target))
+	s->str[index]=FKL_GET_CHR(target);
+	FKL_VM_PUSH_VALUE(exe,target);
+	return 0;
+}
+
+static int builtin_bvec_set1(FKL_CPROC_ARGL)
+{
+	FKL_DECL_AND_CHECK_ARG3(bvec,place,target,exe);
+	FKL_CHECK_REST_ARG(exe);
+	if(!fklIsVMint(place)||!FKL_IS_BYTEVECTOR(bvec)||!fklIsVMint(target))
 		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
-	s->str[index]=FKL_IS_CHR(target)?FKL_GET_CHR(target):fklVMgetInt(target);
+	if(fklIsVMnumberLt0(place))
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,exe);
+	size_t index=fklVMgetUint(place);
+	FklBytevector* bv=FKL_VM_BVEC(bvec);
+	size_t size=bv->size;
+	if(index>=size)
+		FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS,exe);
+	bv->ptr[index]=fklVMgetInt(target);
 	FKL_VM_PUSH_VALUE(exe,target);
 	return 0;
 }
@@ -5285,6 +5149,11 @@ static FklByteCodelnt* inlfunc_str_ref(INL_FUNC_ARGS)
 	return inl_2_arg_func(FKL_OP_STR_REF,bcs,fid,line,scope);
 }
 
+static FklByteCodelnt* inlfunc_bvec_ref(INL_FUNC_ARGS)
+{
+	return inl_2_arg_func(FKL_OP_BVEC_REF,bcs,fid,line,scope);
+}
+
 static FklByteCodelnt* inlfunc_car_set(INL_FUNC_ARGS)
 {
 	return inl_2_arg_func(FKL_OP_CAR_SET,bcs,fid,line,scope);
@@ -5405,6 +5274,16 @@ static FklByteCodelnt* inlfunc_vec_set(INL_FUNC_ARGS)
 	return inl_3_arg_func(FKL_OP_VEC_SET,bcs,fid,line,scope);
 }
 
+static FklByteCodelnt* inlfunc_str_set(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_STR_SET,bcs,fid,line,scope);
+}
+
+static FklByteCodelnt* inlfunc_bvec_set(INL_FUNC_ARGS)
+{
+	return inl_3_arg_func(FKL_OP_BVEC_SET,bcs,fid,line,scope);
+}
+
 static FklByteCodelnt* inlfunc_hash_ref_3(INL_FUNC_ARGS)
 {
 	return inl_3_arg_func(FKL_OP_HASH_REF_3,bcs,fid,line,scope);
@@ -5424,258 +5303,237 @@ static const struct SymbolFuncStruct
 	FklBuiltinInlineFunc inlfunc[4];
 }builtInSymbolList[FKL_BUILTIN_SYMBOL_NUM+1]=
 {
-	{"stdin",                 NULL,                            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"stdout",                NULL,                            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"stderr",                NULL,                            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"car",                   builtin_car,                     {NULL,         inlfunc_car,        NULL,               NULL,               }, },
-	{"cdr",                   builtin_cdr,                     {NULL,         inlfunc_cdr,        NULL,               NULL,               }, },
-	{"cons",                  builtin_cons,                    {NULL,         NULL,               inlfunc_cons,       NULL,               }, },
-	{"append",                builtin_append,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"append!",               builtin_append1,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"copy",                  builtin_copy,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"atom",                  builtin_atom,                    {NULL,         inlfunc_atom,       NULL,               NULL,               }, },
-	{"null",                  builtin_null,                    {NULL,         inlfunc_not,        NULL,               NULL,               }, },
-	{"not",                   builtin_not,                     {NULL,         inlfunc_not,        NULL,               NULL,               }, },
-	{"eq",                    builtin_eq,                      {NULL,         NULL,               inlfunc_eq,         NULL,               }, },
-	{"eqv",                   builtin_eqv,                     {NULL,         NULL,               inlfunc_eqv,        NULL,               }, },
-	{"equal",                 builtin_equal,                   {NULL,         NULL,               inlfunc_equal,      NULL,               }, },
-	{"=",                     builtin_eqn,                     {NULL,         inlfunc_true,       inlfunc_eqn,        inlfunc_eqn3,       }, },
-	{"+",                     builtin_add,                     {inlfunc_add0, inlfunc_add1,       inlfunc_add,        inlfunc_add3,       }, },
-	{"1+",                    builtin_add_1,                   {NULL,         inlfunc_add_1,      NULL,               NULL,               }, },
-	{"-",                     builtin_sub,                     {NULL,         inlfunc_neg,        inlfunc_sub,        inlfunc_sub3,       }, },
-	{"-1+",                   builtin_sub_1,                   {NULL,         inlfunc_sub_1,      NULL,               NULL,               }, },
-	{"*",                     builtin_mul,                     {inlfunc_mul0, inlfunc_mul1,       inlfunc_mul,        inlfunc_mul3,       }, },
-	{"/",                     builtin_div,                     {NULL,         inlfunc_rec,        inlfunc_div,        inlfunc_div3,       }, },
-	{"//",                    builtin_idiv,                    {NULL,         NULL,               inlfunc_idiv,       inlfunc_idiv3,      }, },
-	{"%",                     builtin_mod,                     {NULL,         NULL,               inlfunc_mod,        NULL,               }, },
-	{">",                     builtin_gt,                      {NULL,         inlfunc_true,       inlfunc_gt,         inlfunc_gt3,        }, },
-	{">=",                    builtin_ge,                      {NULL,         inlfunc_true,       inlfunc_ge,         inlfunc_ge3,        }, },
-	{"<",                     builtin_lt,                      {NULL,         inlfunc_true,       inlfunc_lt,         inlfunc_lt3,        }, },
-	{"<=",                    builtin_le,                      {NULL,         inlfunc_true,       inlfunc_le,         inlfunc_le3,        }, },
-	{"nth",                   builtin_nth,                     {NULL,         NULL,               inlfunc_nth,        NULL,               }, },
-	{"length",                builtin_length,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"apply",                 builtin_apply,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"call/eh",               builtin_call_eh,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"read",                  builtin_read,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"parse",                 builtin_parse,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-parser",           builtin_make_parser,             {NULL,         NULL,               NULL,               NULL,               }, },
-	{"parser?",               builtin_parser_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"stringify",             builtin_stringify,               {NULL,         NULL,               NULL,               NULL,               }, },
+	{"stdin",              NULL,                         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"stdout",             NULL,                         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"stderr",             NULL,                         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"car",                builtin_car,                  {NULL,         inlfunc_car,       NULL,               NULL,               }, },
+	{"cdr",                builtin_cdr,                  {NULL,         inlfunc_cdr,       NULL,               NULL,               }, },
+	{"cons",               builtin_cons,                 {NULL,         NULL,              inlfunc_cons,       NULL,               }, },
+	{"append",             builtin_append,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"append!",            builtin_append1,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"copy",               builtin_copy,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"atom",               builtin_atom,                 {NULL,         inlfunc_atom,      NULL,               NULL,               }, },
+	{"null",               builtin_null,                 {NULL,         inlfunc_not,       NULL,               NULL,               }, },
+	{"not",                builtin_not,                  {NULL,         inlfunc_not,       NULL,               NULL,               }, },
+	{"eq",                 builtin_eq,                   {NULL,         NULL,              inlfunc_eq,         NULL,               }, },
+	{"eqv",                builtin_eqv,                  {NULL,         NULL,              inlfunc_eqv,        NULL,               }, },
+	{"equal",              builtin_equal,                {NULL,         NULL,              inlfunc_equal,      NULL,               }, },
+	{"=",                  builtin_eqn,                  {NULL,         inlfunc_true,      inlfunc_eqn,        inlfunc_eqn3,       }, },
+	{"+",                  builtin_add,                  {inlfunc_add0, inlfunc_add1,      inlfunc_add,        inlfunc_add3,       }, },
+	{"1+",                 builtin_add_1,                {NULL,         inlfunc_add_1,     NULL,               NULL,               }, },
+	{"-",                  builtin_sub,                  {NULL,         inlfunc_neg,       inlfunc_sub,        inlfunc_sub3,       }, },
+	{"-1+",                builtin_sub_1,                {NULL,         inlfunc_sub_1,     NULL,               NULL,               }, },
+	{"*",                  builtin_mul,                  {inlfunc_mul0, inlfunc_mul1,      inlfunc_mul,        inlfunc_mul3,       }, },
+	{"/",                  builtin_div,                  {NULL,         inlfunc_rec,       inlfunc_div,        inlfunc_div3,       }, },
+	{"//",                 builtin_idiv,                 {NULL,         NULL,              inlfunc_idiv,       inlfunc_idiv3,      }, },
+	{"%",                  builtin_mod,                  {NULL,         NULL,              inlfunc_mod,        NULL,               }, },
+	{">",                  builtin_gt,                   {NULL,         inlfunc_true,      inlfunc_gt,         inlfunc_gt3,        }, },
+	{">=",                 builtin_ge,                   {NULL,         inlfunc_true,      inlfunc_ge,         inlfunc_ge3,        }, },
+	{"<",                  builtin_lt,                   {NULL,         inlfunc_true,      inlfunc_lt,         inlfunc_lt3,        }, },
+	{"<=",                 builtin_le,                   {NULL,         inlfunc_true,      inlfunc_le,         inlfunc_le3,        }, },
+	{"nth",                builtin_nth,                  {NULL,         NULL,              inlfunc_nth,        NULL,               }, },
+	{"length",             builtin_length,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"apply",              builtin_apply,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"call/eh",            builtin_call_eh,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"read",               builtin_read,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"parse",              builtin_parse,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-parser",        builtin_make_parser,          {NULL,         NULL,              NULL,               NULL,               }, },
+	{"parser?",            builtin_parser_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"stringify",          builtin_stringify,            {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"prin1",                 builtin_prin1,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"princ",                 builtin_princ,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"prin1",              builtin_prin1,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"princ",              builtin_princ,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"println",               builtin_println,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"print",                 builtin_print,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"println",            builtin_println,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"print",              builtin_print,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"printf",                builtin_printf,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"format",                builtin_format,                  {NULL,         NULL,               NULL,               NULL,               }, },
+	{"printf",             builtin_printf,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"format",             builtin_format,               {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"prin1n",                builtin_prin1n,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"prin1v",                builtin_prin1v,                  {NULL,         NULL,               NULL,               NULL,               }, },
+	{"prin1n",             builtin_prin1n,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"prin1v",             builtin_prin1v,               {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"newline",               builtin_newline,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"dlopen",                builtin_dlopen,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"dlsym",                 builtin_dlsym,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"argv",                  builtin_argv,                    {NULL,         NULL,               NULL,               NULL,               }, },
+	{"newline",            builtin_newline,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"dlopen",             builtin_dlopen,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"dlsym",              builtin_dlsym,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"argv",               builtin_argv,                 {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"atexit",                builtin_atexit,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"idle",                  builtin_idle,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"go",                    builtin_go,                      {NULL,         NULL,               NULL,               NULL,               }, },
-	{"pcall",                 builtin_pcall,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"atexit",             builtin_atexit,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"idle",               builtin_idle,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"go",                 builtin_go,                   {NULL,         NULL,              NULL,               NULL,               }, },
+	{"pcall",              builtin_pcall,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"chanl",                 builtin_chanl,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"chanl-msg-num",         builtin_chanl_msg_num,           {NULL,         NULL,               NULL,               NULL,               }, },
-	{"chanl-recv-num",        builtin_chanl_recv_num,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"chanl-send-num",        builtin_chanl_send_num,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"chanl-full?",           builtin_chanl_full_p,            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"chanl-empty?",          builtin_chanl_empty_p,           {NULL,         NULL,               NULL,               NULL,               }, },
-	{"chanl-msg->list",       builtin_chanl_msg_to_list,       {NULL,         NULL,               NULL,               NULL,               }, },
-	{"send",                  builtin_send,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"recv",                  builtin_recv,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"recv&",                 builtin_recv7,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"error",                 builtin_error,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"error-type",            builtin_error_type,              {NULL,         NULL,               NULL,               NULL,               }, },
-	{"error-msg",             builtin_error_msg,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"raise",                 builtin_raise,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"throw",                 builtin_throw,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"reverse",               builtin_reverse,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"reverse!",              builtin_reverse1,                {NULL,         NULL,               NULL,               NULL,               }, },
+	{"chanl",              builtin_chanl,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"chanl-msg-num",      builtin_chanl_msg_num,        {NULL,         NULL,              NULL,               NULL,               }, },
+	{"chanl-recv-num",     builtin_chanl_recv_num,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"chanl-send-num",     builtin_chanl_send_num,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"chanl-full?",        builtin_chanl_full_p,         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"chanl-empty?",       builtin_chanl_empty_p,        {NULL,         NULL,              NULL,               NULL,               }, },
+	{"chanl-msg->list",    builtin_chanl_msg_to_list,    {NULL,         NULL,              NULL,               NULL,               }, },
+	{"send",               builtin_send,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"recv",               builtin_recv,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"recv&",              builtin_recv7,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"error",              builtin_error,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"error-type",         builtin_error_type,           {NULL,         NULL,              NULL,               NULL,               }, },
+	{"error-msg",          builtin_error_msg,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"raise",              builtin_raise,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"throw",              builtin_throw,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"reverse",            builtin_reverse,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"reverse!",           builtin_reverse1,             {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"nthcdr",                builtin_nthcdr,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"tail",                  builtin_tail,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"char?",                 builtin_char_p,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"integer?",              builtin_integer_p,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"fixint?",               builtin_fixint_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bigint?",               builtin_bigint_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"f64?",                  builtin_f64_p,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"pair?",                 builtin_pair_p,                  {NULL,         NULL,               NULL,               NULL,               }, },
+	{"nthcdr",             builtin_nthcdr,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"tail",               builtin_tail,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"char?",              builtin_char_p,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"integer?",           builtin_integer_p,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"fixint?",            builtin_fixint_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"bigint?",            builtin_bigint_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"f64?",               builtin_f64_p,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"pair?",              builtin_pair_p,               {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"symbol?",               builtin_symbol_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string->symbol",        builtin_string_to_symbol,        {NULL,         NULL,               NULL,               NULL,               }, },
+	{"symbol?",            builtin_symbol_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"string->symbol",     builtin_string_to_symbol,     {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"string?",               builtin_string_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string",                builtin_string,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"substring",             builtin_substring,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"sub-string",            builtin_sub_string,              {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-string",           builtin_make_string,             {NULL,         NULL,               NULL,               NULL,               }, },
-	{"symbol->string",        builtin_symbol_to_string,        {NULL,         NULL,               NULL,               NULL,               }, },
-	{"number->string",        builtin_number_to_string,        {NULL,         NULL,               NULL,               NULL,               }, },
-	{"integer->string",       builtin_integer_to_string,       {NULL,         NULL,               NULL,               NULL,               }, },
-	{"f64->string",           builtin_f64_to_string,           {NULL,         NULL,               NULL,               NULL,               }, },
-	{"vector->string",        builtin_vector_to_string,        {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector->string",    builtin_bytevector_to_string,    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"list->string",          builtin_list_to_string,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"str-ref",               builtin_str_ref,                 {NULL,         NULL,               inlfunc_str_ref,    NULL,               }, },
-	{"str-set!",              builtin_str_set1,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string-fill!",          builtin_string_fill,             {NULL,         NULL,               NULL,               NULL,               }, },
+	{"string?",            builtin_string_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"string",             builtin_string,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"substring",          builtin_substring,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"sub-string",         builtin_sub_string,           {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-string",        builtin_make_string,          {NULL,         NULL,              NULL,               NULL,               }, },
+	{"symbol->string",     builtin_symbol_to_string,     {NULL,         NULL,              NULL,               NULL,               }, },
+	{"number->string",     builtin_number_to_string,     {NULL,         NULL,              NULL,               NULL,               }, },
+	{"integer->string",    builtin_integer_to_string,    {NULL,         NULL,              NULL,               NULL,               }, },
+	{"f64->string",        builtin_f64_to_string,        {NULL,         NULL,              NULL,               NULL,               }, },
+	{"vector->string",     builtin_vector_to_string,     {NULL,         NULL,              NULL,               NULL,               }, },
+	{"bytevector->string", builtin_bytevector_to_string, {NULL,         NULL,              NULL,               NULL,               }, },
+	{"list->string",       builtin_list_to_string,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"str-ref",            builtin_str_ref,              {NULL,         NULL,              inlfunc_str_ref,    NULL,               }, },
+	{"str-set!",           builtin_str_set1,             {NULL,         NULL,              NULL,               inlfunc_str_set,    }, },
+	{"string-fill!",       builtin_string_fill,          {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"error?",                builtin_error_p,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"procedure?",            builtin_procedure_p,             {NULL,         NULL,               NULL,               NULL,               }, },
-	{"proc?",                 builtin_proc_p,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"cproc?",                builtin_cproc_p,                 {NULL,         NULL,               NULL,               NULL,               }, },
+	{"error?",             builtin_error_p,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"procedure?",         builtin_procedure_p,          {NULL,         NULL,              NULL,               NULL,               }, },
+	{"proc?",              builtin_proc_p,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"cproc?",             builtin_cproc_p,              {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"vector?",               builtin_vector_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"vector",                builtin_vector,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-vector",           builtin_make_vector,             {NULL,         NULL,               NULL,               NULL,               }, },
-	{"subvector",             builtin_subvector,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"sub-vector",            builtin_sub_vector,              {NULL,         NULL,               NULL,               NULL,               }, },
-	{"list->vector",          builtin_list_to_vector,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string->vector",        builtin_string_to_vector,        {NULL,         NULL,               NULL,               NULL,               }, },
-	{"vec-ref",               builtin_vec_ref,                 {NULL,         NULL,               inlfunc_vec_ref,    NULL,               }, },
-	{"vec-set!",              builtin_vec_set,                 {NULL,         NULL,               NULL,               inlfunc_vec_set,    }, },
-	{"vec-cas!",              builtin_vec_cas,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"vector-fill!",          builtin_vector_fill,             {NULL,         NULL,               NULL,               NULL,               }, },
+	{"vector?",            builtin_vector_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"vector",             builtin_vector,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-vector",        builtin_make_vector,          {NULL,         NULL,              NULL,               NULL,               }, },
+	{"subvector",          builtin_subvector,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"sub-vector",         builtin_sub_vector,           {NULL,         NULL,              NULL,               NULL,               }, },
+	{"list->vector",       builtin_list_to_vector,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"string->vector",     builtin_string_to_vector,     {NULL,         NULL,              NULL,               NULL,               }, },
+	{"vec-ref",            builtin_vec_ref,              {NULL,         NULL,              inlfunc_vec_ref,    NULL,               }, },
+	{"vec-set!",           builtin_vec_set,              {NULL,         NULL,              NULL,               inlfunc_vec_set,    }, },
+	{"vec-cas!",           builtin_vec_cas,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"vector-fill!",       builtin_vector_fill,          {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"list?",                 builtin_list_p,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"list",                  builtin_list,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"list*",                 builtin_list8,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-list",             builtin_make_list,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"vector->list",          builtin_vector_to_list,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string->list",          builtin_string_to_list,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"nth-set!",              builtin_nth_set,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"nthcdr-set!",           builtin_nthcdr_set,              {NULL,         NULL,               NULL,               NULL,               }, },
+	{"list?",              builtin_list_p,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"list",               builtin_list,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"list*",              builtin_list8,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-list",          builtin_make_list,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"vector->list",       builtin_vector_to_list,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"string->list",       builtin_string_to_list,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"nth-set!",           builtin_nth_set,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"nthcdr-set!",        builtin_nthcdr_set,           {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"bytevector?",           builtin_bytevector_p,            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector",            builtin_bytevector,              {NULL,         NULL,               NULL,               NULL,               }, },
-	{"subbytevector",         builtin_subbytevector,           {NULL,         NULL,               NULL,               NULL,               }, },
-	{"sub-bytevector",        builtin_sub_bytevector,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-bytevector",       builtin_make_bytevector,         {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string->bytevector",    builtin_string_to_bytevector,    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"vector->bytevector",    builtin_vector_to_bytevector,    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"list->bytevector",      builtin_list_to_bytevector,      {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector->s8-list",   builtin_bytevector_to_s8_list,   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector->u8-list",   builtin_bytevector_to_u8_list,   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector->s8-vector", builtin_bytevector_to_s8_vector, {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector->u8-vector", builtin_bytevector_to_u8_vector, {NULL,         NULL,               NULL,               NULL,               }, },
+	{"bytevector?",        builtin_bytevector_p,         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"bytevector",         builtin_bytevector,           {NULL,         NULL,              NULL,               NULL,               }, },
+	{"subbytevector",      builtin_subbytevector,        {NULL,         NULL,              NULL,               NULL,               }, },
+	{"sub-bytevector",     builtin_sub_bytevector,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-bytevector",    builtin_make_bytevector,      {NULL,         NULL,              NULL,               NULL,               }, },
+	{"string->bytevector", builtin_string_to_bytevector, {NULL,         NULL,              NULL,               NULL,               }, },
+	{"vector->bytevector", builtin_vector_to_bytevector, {NULL,         NULL,              NULL,               NULL,               }, },
+	{"list->bytevector",   builtin_list_to_bytevector,   {NULL,         NULL,              NULL,               NULL,               }, },
+	{"bytevector->list",   builtin_bytevector_to_list,   {NULL,         NULL,              NULL,               NULL,               }, },
+	{"bytevector->vector", builtin_bytevector_to_vector, {NULL,         NULL,              NULL,               NULL,               }, },
+	{"bvec-ref",           builtin_bvec_ref,             {NULL,         NULL,              inlfunc_bvec_ref,   NULL,               }, },
+	{"bvec-set!",          builtin_bvec_set1,            {NULL,         NULL,              NULL,               inlfunc_bvec_set,   }, },
 
-	{"bvs8ref",               builtin_bvs8ref,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvs16ref",              builtin_bvs16ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvs32ref",              builtin_bvs32ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvs64ref",              builtin_bvs64ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu8ref",               builtin_bvu8ref,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu16ref",              builtin_bvu16ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu32ref",              builtin_bvu32ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu64ref",              builtin_bvu64ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvf32ref",              builtin_bvf32ref,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvf64ref",              builtin_bvf64ref,                {NULL,         NULL,               NULL,               NULL,               }, },
+	{"bytevector-fill!",   builtin_bytevector_fill,      {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"bvs8set!",              builtin_bvs8set1,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvs16set!",             builtin_bvs16set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvs32set!",             builtin_bvs32set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvs64set!",             builtin_bvs64set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu8set!",              builtin_bvu8set1,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu16set!",             builtin_bvu16set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu32set!",             builtin_bvu32set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvu64set!",             builtin_bvu64set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvf32set!",             builtin_bvf32set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bvf64set!",             builtin_bvf64set1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"bytevector-fill!",      builtin_bytevector_fill,         {NULL,         NULL,               NULL,               NULL,               }, },
+	{"chanl?",             builtin_chanl_p,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"dll?",               builtin_dll_p,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"chanl?",                builtin_chanl_p,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"dll?",                  builtin_dll_p,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"fp?",                builtin_fp_p,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"fgets",              builtin_fgets,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"fgetb",              builtin_fgetb,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"fp?",                   builtin_fp_p,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"fgets",                 builtin_fgets,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"fgetb",                 builtin_fgetb,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"fgetd",              builtin_fgetd,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"fgetd",                 builtin_fgetd,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"fgetc",              builtin_fgetc,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"fgeti",              builtin_fgeti,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"fgetc",                 builtin_fgetc,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"fgeti",                 builtin_fgeti,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"fopen",              builtin_fopen,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"fopen",                 builtin_fopen,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"fclose",             builtin_fclose,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"feof?",              builtin_feof_p,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"eof?",               builtin_eof_p,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"ftell",              builtin_ftell,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"fseek",              builtin_fseek,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"fclose",                builtin_fclose,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"feof?",                 builtin_feof_p,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"eof?",                  builtin_eof_p,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"ftell",                 builtin_ftell,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"fseek",                 builtin_fseek,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"car-set!",           builtin_car_set,              {NULL,         NULL,              inlfunc_car_set,    NULL,               }, },
+	{"cdr-set!",           builtin_cdr_set,              {NULL,         NULL,              inlfunc_cdr_set,    NULL,               }, },
+	{"box",                builtin_box,                  {inlfunc_box0, inlfunc_box,       NULL,               NULL,               }, },
+	{"unbox",              builtin_unbox,                {NULL,         inlfunc_unbox,     NULL,               NULL,               }, },
+	{"box-set!",           builtin_box_set,              {NULL,         NULL,              inlfunc_box_set,    NULL,               }, },
+	{"box-cas!",           builtin_box_cas,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"box?",               builtin_box_p,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"car-set!",              builtin_car_set,                 {NULL,         NULL,               inlfunc_car_set,    NULL,               }, },
-	{"cdr-set!",              builtin_cdr_set,                 {NULL,         NULL,               inlfunc_cdr_set,    NULL,               }, },
-	{"box",                   builtin_box,                     {inlfunc_box0, inlfunc_box,        NULL,               NULL,               }, },
-	{"unbox",                 builtin_unbox,                   {NULL,         inlfunc_unbox,      NULL,               NULL,               }, },
-	{"box-set!",              builtin_box_set,                 {NULL,         NULL,               inlfunc_box_set,    NULL,               }, },
-	{"box-cas!",              builtin_box_cas,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"box?",                  builtin_box_p,                   {NULL,         NULL,               NULL,               NULL,               }, },
+	{"number?",            builtin_number_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"string->number",     builtin_string_to_number,     {NULL,         NULL,              NULL,               NULL,               }, },
+	{"char->integer",      builtin_char_to_integer,      {NULL,         NULL,              NULL,               NULL,               }, },
+	{"symbol->integer",    builtin_symbol_to_integer,    {NULL,         NULL,              NULL,               NULL,               }, },
+	{"integer->char",      builtin_integer_to_char,      {NULL,         NULL,              NULL,               NULL,               }, },
+	{"number->f64",        builtin_number_to_f64,        {NULL,         NULL,              NULL,               NULL,               }, },
+	{"number->integer",    builtin_number_to_integer,    {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"number?",               builtin_number_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"string->number",        builtin_string_to_number,        {NULL,         NULL,               NULL,               NULL,               }, },
-	{"char->integer",         builtin_char_to_integer,         {NULL,         NULL,               NULL,               NULL,               }, },
-	{"symbol->integer",       builtin_symbol_to_integer,       {NULL,         NULL,               NULL,               NULL,               }, },
-	{"integer->char",         builtin_integer_to_char,         {NULL,         NULL,               NULL,               NULL,               }, },
-	{"number->f64",           builtin_number_to_f64,           {NULL,         NULL,               NULL,               NULL,               }, },
-	{"number->integer",       builtin_number_to_integer,       {NULL,         NULL,               NULL,               NULL,               }, },
+	{"map",                builtin_map,                  {NULL,         NULL,              NULL,               NULL,               }, },
+	{"foreach",            builtin_foreach,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"andmap",             builtin_andmap,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"ormap",              builtin_ormap,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"memq",               builtin_memq,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"member",             builtin_member,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"memp",               builtin_memp,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"filter",             builtin_filter,               {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"map",                   builtin_map,                     {NULL,         NULL,               NULL,               NULL,               }, },
-	{"foreach",               builtin_foreach,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"andmap",                builtin_andmap,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"ormap",                 builtin_ormap,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"memq",                  builtin_memq,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"member",                builtin_member,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"memp",                  builtin_memp,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"filter",                builtin_filter,                  {NULL,         NULL,               NULL,               NULL,               }, },
+	{"remq!",              builtin_remq1,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"remv!",              builtin_remv1,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"remove!",            builtin_remove1,              {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"remq!",                 builtin_remq1,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"remv!",                 builtin_remv1,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"remove!",               builtin_remove1,                 {NULL,         NULL,               NULL,               NULL,               }, },
+	{"sleep",              builtin_sleep,                {NULL,         NULL,              NULL,               NULL,               }, },
+	{"msleep",             builtin_msleep,               {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"sleep",                 builtin_sleep,                   {NULL,         NULL,               NULL,               NULL,               }, },
-	{"msleep",                builtin_msleep,                  {NULL,         NULL,               NULL,               NULL,               }, },
+	{"hash",               builtin_hash,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-num",           builtin_hash_num,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-hash",          builtin_make_hash,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hasheqv",            builtin_hasheqv,              {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-hasheqv",       builtin_make_hasheqv,         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hashequal",          builtin_hashequal,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"make-hashequal",     builtin_make_hashequal,       {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash?",              builtin_hash_p,               {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hasheq?",            builtin_hasheq_p,             {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hasheqv?",           builtin_hasheqv_p,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hashequal?",         builtin_hashequal_p,          {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-ref",           builtin_hash_ref,             {NULL,         NULL,              inlfunc_hash_ref_2, inlfunc_hash_ref_3, }, },
+	{"hash-ref&",          builtin_hash_ref7,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-ref$",          builtin_hash_ref4,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-ref!",          builtin_hash_ref1,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-set!",          builtin_hash_set,             {NULL,         NULL,              NULL,               inlfunc_hash_set,   }, },
+	{"hash-set*!",         builtin_hash_set8,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-del!",          builtin_hash_del1,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-clear!",        builtin_hash_clear,           {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash->list",         builtin_hash_to_list,         {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-keys",          builtin_hash_keys,            {NULL,         NULL,              NULL,               NULL,               }, },
+	{"hash-values",        builtin_hash_values,          {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"hash",                  builtin_hash,                    {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-num",              builtin_hash_num,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-hash",             builtin_make_hash,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hasheqv",               builtin_hasheqv,                 {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-hasheqv",          builtin_make_hasheqv,            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hashequal",             builtin_hashequal,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"make-hashequal",        builtin_make_hashequal,          {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash?",                 builtin_hash_p,                  {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hasheq?",               builtin_hasheq_p,                {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hasheqv?",              builtin_hasheqv_p,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hashequal?",            builtin_hashequal_p,             {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-ref",              builtin_hash_ref,                {NULL,         NULL,               inlfunc_hash_ref_2, inlfunc_hash_ref_3, }, },
-	{"hash-ref&",             builtin_hash_ref7,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-ref$",             builtin_hash_ref4,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-ref!",             builtin_hash_ref1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-set!",             builtin_hash_set,                {NULL,         NULL,               NULL,               inlfunc_hash_set,   }, },
-	{"hash-set*!",            builtin_hash_set8,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-del!",             builtin_hash_del1,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-clear!",           builtin_hash_clear,              {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash->list",            builtin_hash_to_list,            {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-keys",             builtin_hash_keys,               {NULL,         NULL,               NULL,               NULL,               }, },
-	{"hash-values",           builtin_hash_values,             {NULL,         NULL,               NULL,               NULL,               }, },
+	{"pmatch",             builtin_pmatch,               {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"pmatch",                builtin_pmatch,                  {NULL,         NULL,               NULL,               NULL,               }, },
+	{"exit",               builtin_exit,                 {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"exit",                  builtin_exit,                    {NULL,         NULL,               NULL,               NULL,               }, },
+	{"return",             builtin_return,               {inlfunc_ret0, inlfunc_ret1,      NULL,               NULL,               }, },
 
-	{"return",                builtin_return,                  {inlfunc_ret0, inlfunc_ret1,       NULL,               NULL,               }, },
-
-	{"vec-first",             builtin_vec_first,               {NULL,         inlfunc_vec_first,  NULL,               NULL,               }, },
-	{"vec-last",              builtin_vec_last,                {NULL,         inlfunc_vec_last,   NULL,               NULL,               }, },
-	{NULL,                    NULL,                            {NULL,         NULL,               NULL,               NULL,               }, },
+	{"vec-first",          builtin_vec_first,            {NULL,         inlfunc_vec_first, NULL,               NULL,               }, },
+	{"vec-last",           builtin_vec_last,             {NULL,         inlfunc_vec_last,  NULL,               NULL,               }, },
+	{NULL,                 NULL,                         {NULL,         NULL,              NULL,               NULL,               }, },
 };
 
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx,uint32_t argNum)

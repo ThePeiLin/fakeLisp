@@ -159,6 +159,7 @@ static struct
 	{"nth",               FKL_OP_MODE_I,        },
 	{"vec-ref",           FKL_OP_MODE_I,        },
 	{"str-ref",           FKL_OP_MODE_I,        },
+	{"bvec-ref",          FKL_OP_MODE_I,        },
 	{"box",               FKL_OP_MODE_I,        },
 	{"unbox",             FKL_OP_MODE_I,        },
 	{"box0",              FKL_OP_MODE_I,        },
@@ -188,6 +189,8 @@ static struct
 	{"box-set",           FKL_OP_MODE_I,        },
 
 	{"vec-set",           FKL_OP_MODE_I,        },
+	{"str-set",           FKL_OP_MODE_I,        },
+	{"bvec-set",          FKL_OP_MODE_I,        },
 
 	{"hash-ref-2",        FKL_OP_MODE_I,        },
 	{"hash-ref-3",        FKL_OP_MODE_I,        },

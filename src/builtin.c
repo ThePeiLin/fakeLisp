@@ -5453,7 +5453,7 @@ static const struct SymbolFuncStruct
 	{"chanl?",          builtin_chanl_p,              {NULL,         NULL,              NULL,               NULL,               }, },
 	{"dll?",            builtin_dll_p,                {NULL,         NULL,              NULL,               NULL,               }, },
 
-	{"fp?",             builtin_fp_p,                 {NULL,         NULL,              NULL,               NULL,               }, },
+	{"file?",           builtin_fp_p,                 {NULL,         NULL,              NULL,               NULL,               }, },
 	{"fgets",           builtin_fgets,                {NULL,         NULL,              NULL,               NULL,               }, },
 	{"fgetb",           builtin_fgetb,                {NULL,         NULL,              NULL,               NULL,               }, },
 

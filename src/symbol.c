@@ -277,12 +277,18 @@ static inline void load_prototype(FklFuncPrototype* pt,FILE* fp)
 	pt->lcount=count;
 	fread(&count,sizeof(count),1,fp);
 	pt->rcount=count;
-	FklSymbolDef* defs=(FklSymbolDef*)calloc(count,sizeof(FklSymbolDef));
-	FKL_ASSERT(defs||!count);
-	pt->refs=defs;
-	for(uint32_t i=0;i<count;i++)
-		load_symbol_def(&defs[i],fp);
+	FklSymbolDef* defs;
+	if(count==0)
+		defs=NULL;
+	else
+	{
+		defs=(FklSymbolDef*)calloc(count,sizeof(FklSymbolDef));
+		FKL_ASSERT(defs);
+		for(uint32_t i=0;i<count;i++)
+			load_symbol_def(&defs[i],fp);
+	}
 
+	pt->refs=defs;
 	fread(&pt->sid,sizeof(pt->sid),1,fp);
 	fread(&pt->fid,sizeof(pt->fid),1,fp);
 	fread(&pt->line,sizeof(pt->line),1,fp);
@@ -294,7 +300,6 @@ FklFuncPrototypes* fklLoadFuncPrototypes(FILE* fp)
 	fread(&count,sizeof(count),1,fp);
 	FklFuncPrototypes* pts=fklCreateFuncPrototypes(count);
 	FklFuncPrototype* pta=pts->pa;
-	FKL_ASSERT(pts||!count);
 	for(uint32_t i=1;i<=count;i++)
 		load_prototype(&pta[i],fp);
 	return pts;

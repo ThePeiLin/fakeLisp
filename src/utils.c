@@ -443,8 +443,10 @@ int fklIsPrecompileFile(const char* filename)
 
 void* fklCopyMemory(const void* pm,size_t size)
 {
+	if(size==0)
+		return NULL;
 	void* tmp=(void*)malloc(size);
-	FKL_ASSERT(tmp||!size);
+	FKL_ASSERT(tmp);
 	if(pm!=NULL)
 		memcpy(tmp,pm,size);
 	return tmp;

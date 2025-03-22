@@ -73,6 +73,8 @@ void fklUninitGrammerSymbols(FklGrammerSym* syms,size_t len)
 
 void fklDestroyGrammerProduction(FklGrammerProduction* h)
 {
+	if(h==NULL)
+		return;
 	h->ctx_destroyer(h->ctx);
 	fklUninitGrammerSymbols(h->syms,h->len);
 	free(h->syms);
@@ -318,6 +320,8 @@ static inline FklGrammerProduction* create_grammer_prod_from_cstr(const char* st
 	int next_delim=1;
 	int next_end_with_term=0;
 	size_t symIdx=0;
+	if(prod==NULL||prod_len==0)
+		goto exit;
 	for(uint32_t i=0;i<st.top;i++)
 	{
 		FklGrammerSym* u=&prod->syms[symIdx];
@@ -2564,7 +2568,7 @@ FklGrammer* fklCreateGrammerFromCstr(const char* str[],FklSymbolTable* st)
 		else
 		{
 			FklGrammerProduction* prod=create_grammer_prod_from_cstr(*str,builtins,st,tt,rt,NULL,NULL);
-			if(fklAddProdAndExtraToGrammer(grammer,prod))
+			if(prod==NULL||fklAddProdAndExtraToGrammer(grammer,prod))
 			{
 				fklDestroyGrammerProduction(prod);
 				fklDestroyGrammer(grammer);
@@ -2622,7 +2626,7 @@ FklGrammer* fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],FklSy
 		else
 		{
 			FklGrammerProduction* prod=create_grammer_prod_from_cstr(str,builtins,st,tt,rt,pa->action_name,pa->func);
-			if(fklAddProdAndExtraToGrammer(grammer,prod))
+			if(prod==NULL||fklAddProdAndExtraToGrammer(grammer,prod))
 			{
 				fklDestroyGrammerProduction(prod);
 				fklDestroyGrammer(grammer);
@@ -6329,7 +6333,7 @@ FklGrammerIgnore* fklInitBuiltinProductionSet(FklHashTable* ht
 		else
 		{
 			FklGrammerProduction* prod=create_grammer_prod_from_cstr(str,builtins,st,tt,rt,pa->action_name,pa->func);
-			if(fklAddProdToProdTable(ht,builtins,prod))
+			if(prod==NULL||fklAddProdToProdTable(ht,builtins,prod))
 			{
 				fklDestroyGrammerProduction(prod);
 				return NULL;

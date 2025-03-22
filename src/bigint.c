@@ -555,7 +555,7 @@ void fklSetBigInt(FklBigInt* to,const FklBigInt* from)
 {
 	ensure_bigint_size(to,fklAbs(from->num));
 	to->num=from->num;
-	memcpy(to->digits,from->digits,fklAbs(from->num)*sizeof(FklBigIntDigit));
+	memcpy(to->digits,from->digits,fklAbs(to->num)*sizeof(FklBigIntDigit));
 }
 
 void fklSetBigIntU(FklBigInt* to,uint64_t v)
@@ -975,8 +975,9 @@ static inline void x_divrem(FklBigInt* v1,const FklBigInt* w1,FklBigInt* rem)
 	ensure_bigint_size(&w,size_w);
 	w.num=size_w;
 	int d=FKL_BIGINT_DIGIT_SHIFT-bit_length_digit(w1->digits[size_w-1]);
+	FKL_ASSERT(w.digits);
 	FklBigIntDigit carry=v_lshift(w.digits,w1->digits,size_w,d);
-	FKL_ASSERT(carry==0);
+	FKL_ASSERT(carry==0&&v1->digits);
 	carry=v_lshift(v1->digits,v1->digits,size_v,d);
 	if(carry!=0||v1->digits[size_v-1]>=w.digits[size_w-1])
 	{
@@ -1055,9 +1056,12 @@ int fklDivRemBigInt(FklBigInt* a,const FklBigInt* b,FklBigInt* rem)
 		return -1;
 	else if(num_a<num_b)
 	{
-		if(rem)
-			fklSetBigInt(rem,a);
-		a->num=0;
+		if(rem!=a)
+		{
+			if(rem)
+				fklSetBigInt(rem,a);
+			a->num=0;
+		}
 		return 0;
 	}
 	else if(num_b==1)

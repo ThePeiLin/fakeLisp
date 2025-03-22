@@ -572,7 +572,7 @@ void fklUnsetVMsingleThread(FklVM* exe)
 	exe->thread_run_cb=exe->run_cb;
 }
 
-#define DROP_TOP(S) (S)->tp--
+#define DROP_TOP(S) --(S)->tp
 #define GET_COMPOUND_FRAME_LOC(F,IDX) (F)->c.lr.loc[IDX]
 #define PROCESS_ADD_RES() FKL_VM_PUSH_VALUE(exe,fklProcessVMnumAddResult(exe,r64,rd,&bi))
 #define PROCESS_ADD(VAR) if(fklProcessVMnumAdd(VAR,&r64,&rd,&bi))\
@@ -605,15 +605,13 @@ static inline FklVMvalue* get_var_val(FklVMframe* frame,uint32_t idx,FklFuncProt
 {
 	FklVMCompoundFrameVarRef* lr=&frame->c.lr;
 	FklVMvalue* v=idx<lr->rcount?*FKL_VM_VAR_REF_GET(lr->ref[idx]):NULL;
-	if(!v)
-	{
-		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
-		FklFuncPrototype* pt=&pts->pa[proc->protoId];
-		FklSymbolDef* def=&pt->refs[idx];
-		*psid=def->k.id;
-		return NULL;
-	}
-	return v;
+	if(v)
+		return v;
+	FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+	FklFuncPrototype* pt=&pts->pa[proc->protoId];
+	FklSymbolDef* def=&pt->refs[idx];
+	*psid=def->k.id;
+	return NULL;
 }
 
 static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,FklFuncPrototypes* pts,FklSid_t* psid)
@@ -623,14 +621,13 @@ static inline FklVMvalue* volatile* get_var_ref(FklVMframe* frame,uint32_t idx,F
 	FklVMvalue* volatile* v=(idx>=lr->rcount||!(FKL_VM_VAR_REF(refs[idx])->ref))
 		?NULL
 		:FKL_VM_VAR_REF_GET(refs[idx]);
-	if(!v||!*v)
-	{
-		FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
-		FklFuncPrototype* pt=&pts->pa[proc->protoId];
-		FklSymbolDef* def=&pt->refs[idx];
-		*psid=def->k.id;
-		return NULL;
-	}
+	if(v&&*v)
+		return v;
+	FklVMproc* proc=FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+	FklFuncPrototype* pt=&pts->pa[proc->protoId];
+	FklSymbolDef* def=&pt->refs[idx];
+	*psid=def->k.id;
+	return NULL;
 	return v;
 }
 
@@ -3687,6 +3684,7 @@ pop_loc:
 				FklVMvalue* proc=get_var_val(frame,ins->bu,exe->pts,&id);
 				if(id)
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
+				FKL_ASSERT(proc);
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
 				switch(proc->type)
@@ -3707,6 +3705,7 @@ pop_loc:
 					FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,exe,"Symbol %S is undefined",FKL_MAKE_VM_SYM(id));
 				if(!fklIsCallable(proc))
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR,exe);
+				FKL_ASSERT(proc);
 				switch(proc->type)
 				{
 					case FKL_TYPE_PROC:
@@ -6545,21 +6544,6 @@ FklVMvalue* fklPopArg(FklVM* s)
 	return NULL;
 }
 
-uint32_t fklResBpIn(FklVM* exe,uint32_t n)
-{
-	uint32_t rtp=exe->tp-n-1;
-	exe->bp=FKL_GET_FIX(exe->base[rtp]);
-	return rtp;
-}
-
-int fklResBp(FklVM* exe)
-{
-	if(exe->tp>exe->bp)
-		return 1;
-	exe->bp=FKL_GET_FIX(exe->base[--exe->tp]);
-	return 0;
-}
-
 void fklInitVMstack(FklVM* tmp)
 {
 	tmp->last=FKL_VM_STACK_INC_NUM;
@@ -6851,29 +6835,8 @@ FklOpcode fklGetCompoundFrameOp(FklVMframe* f)
 	return (f->c.pc++)->op;
 }
 
-void fklAddCompoundFrameCp(FklVMframe* f,int64_t a)
-{
-	f->c.pc+=a;
-}
-
-FklInstruction* fklGetCompoundFrameEnd(const FklVMframe* f)
-{
-	return f->c.end;
-}
-
-FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
-{
-	return f->c.sid;
-}
-
 void fklInitMainProcRefs(FklVM* exe,FklVMvalue* proc_obj)
 {
 	init_builtin_symbol_ref(exe,proc_obj);
-}
-
-void fklSetBp(FklVM* s)
-{
-	FKL_VM_PUSH_VALUE(s,FKL_MAKE_VM_FIX(s->bp));
-	s->bp=s->tp;
 }
 

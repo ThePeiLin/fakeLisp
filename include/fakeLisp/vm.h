@@ -12,6 +12,7 @@
 #include<stdint.h>
 #include<setjmp.h>
 #include<string.h>
+#include<stdnoreturn.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -814,10 +815,6 @@ FklVMvalue* fklProcessVMnumDivResult(FklVM*,FklVMvalue*,int64_t r64,double rd,Fk
 
 FklVMvalue* fklProcessVMnumIdivResult(FklVM* exe,FklVMvalue* prev,int64_t r64,FklBigInt* bi);
 
-void fklSetBp(FklVM* s);
-int fklResBp(FklVM*);
-uint32_t fklResBpIn(FklVM*,uint32_t);
-
 #define FKL_CHECK_TYPE(V,P,EXE) if(!P(V))FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,EXE)
 #define FKL_CHECK_REST_ARG(EXE) if(fklResBp((EXE)))\
 	FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG,EXE)
@@ -840,7 +837,7 @@ void fklInitLineNumHashTable(FklHashTable* ht);
 
 FklVMerrorHandler* fklCreateVMerrorHandler(FklSid_t* typeIds,uint32_t,FklInstruction* spc,uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler*);
-int fklRaiseVMerror(FklVMvalue* err,FklVM*);
+noreturn void fklRaiseVMerror(FklVMvalue* err,FklVM*);
 
 void fklPrintErrBacktrace(FklVMvalue*,FklVM*,FILE* fp);
 void fklPrintFrame(FklVMframe* cur,FklVM* exe,FILE* fp);
@@ -1224,14 +1221,7 @@ FklFuncPrototype* fklGetCompoundFrameProcPrototype(const FklVMframe*,FklVM* exe)
 
 FklInstruction* fklGetCompoundFrameCode(const FklVMframe*);
 
-FklInstruction* fklGetCompoundFrameEnd(const FklVMframe*);
-
 FklOpcode fklGetCompoundFrameOp(FklVMframe* frame);
-
-void fklAddCompoundFrameCp(FklVMframe*,int64_t a);
-
-uint64_t fklGetCompoundFrameCpc(const FklVMframe*);
-FklSid_t fklGetCompoundFrameSid(const FklVMframe*);
 
 FklVMframe* fklCreateVMframeWithCompoundFrame(const FklVMframe*,FklVMframe* prev);
 FklVMframe* fklCopyVMframe(FklVM*,FklVMframe*,FklVMframe* prev);
@@ -1388,6 +1378,42 @@ static inline FklVMvalue* fklCreateVMvalueBigIntWithOther2(FklVM* exe,const FklV
 {
 	const FklBigInt bi=fklVMbigIntToBigInt(b);
 	return fklCreateVMvalueBigInt3(exe,&bi,size);
+}
+
+static inline void fklSetBp(FklVM* s)
+{
+	FKL_VM_PUSH_VALUE(s,FKL_MAKE_VM_FIX(s->bp));
+	s->bp=s->tp;
+}
+
+static inline int fklResBp(FklVM* exe)
+{
+	if(exe->tp>exe->bp)
+		return 1;
+	exe->bp=FKL_GET_FIX(exe->base[--exe->tp]);
+	return 0;
+}
+
+static inline uint32_t fklResBpIn(FklVM* exe,uint32_t n)
+{
+	uint32_t rtp=exe->tp-n-1;
+	exe->bp=FKL_GET_FIX(exe->base[rtp]);
+	return rtp;
+}
+
+static inline void fklAddCompoundFrameCp(FklVMframe* f,int64_t a)
+{
+	f->c.pc+=a;
+}
+
+static inline FklInstruction* fklGetCompoundFrameEnd(const FklVMframe* f)
+{
+	return f->c.end;
+}
+
+static inline FklSid_t fklGetCompoundFrameSid(const FklVMframe* f)
+{
+	return f->c.sid;
 }
 
 #ifdef __cplusplus

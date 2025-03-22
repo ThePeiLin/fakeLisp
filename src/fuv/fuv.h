@@ -2,6 +2,7 @@
 #define FKL_FUV_FUV_H
 
 #include<fakeLisp/vm.h>
+#include<stdnoreturn.h>
 #include<signal.h>
 #include<uv.h>
 
@@ -592,7 +593,7 @@ FklVMvalue* createFuvFsEvent(FklVM*,FklVMvalue* rel,FklVMvalue* loop,int* err);
 }
 
 void raiseUvError(int err,FklVM* exe,FklVMvalue* pd);
-void raiseFuvError(FuvErrorType,FklVM* exe,FklVMvalue* pd);
+noreturn void raiseFuvError(FuvErrorType,FklVM* exe,FklVMvalue* pd);
 FklSid_t uvErrToSid(int err_id,FuvPublicData* pd);
 FklVMvalue* createUvError(int err_id,FklVM* exe,FklVMvalue* pd);
 FklVMvalue* createUvErrorWithFpd(int err_id,FklVM* exe,FuvPublicData* fpd);

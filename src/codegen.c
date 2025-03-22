@@ -10255,7 +10255,7 @@ skip:
 					}
 					fklDestroyNastNode(orig_cur_exp);
 				}
-				if(curExp->type==FKL_NAST_SYM)
+				else if(curExp->type==FKL_NAST_SYM)
 				{
 					FklNastNode* replacement=NULL;
 					ReplacementFunc f=NULL;
@@ -10270,6 +10270,7 @@ skip:
 					else if((f=findBuiltInReplacementWithId(curExp->sym,outer_ctx->builtin_replacement_id)))
 					{
 						FklNastNode* t=f(curExp,curEnv,curCodegen);
+						FKL_ASSERT(curExp);
 						fklDestroyNastNode(curExp);
 						curExp=t;
 						goto skip;
@@ -10290,6 +10291,7 @@ skip:
 						continue;
 					}
 				}
+				FKL_ASSERT(curExp);
 				r=mapAllBuiltInPattern(curExp
 						,&codegenQuestStack
 						,curCodegenQuest->scope

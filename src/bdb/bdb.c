@@ -334,6 +334,7 @@ DebugCtx* createDebugCtx(FklVM* exe,const char* filename,FklVMvalue* argv)
 	push_extra_mark_value(ctx);
 	initBreakpointTable(&ctx->bt);
 	const FklLineNumberTableItem* ln=getCurFrameLineNumber(ctx->reached_thread->top_frame);
+	FKL_ASSERT(ln);
 	ctx->curline_str=getCurLineStr(ctx,ln->fid,ln->line);
 
 	ctx->curlist_ins_pc=0;
@@ -482,7 +483,10 @@ static inline FklVMvalue* find_local_var(DebugCtx* ctx,FklSid_t id)
 	for(;frame->type==FKL_FRAME_OTHEROBJ;frame=frame->prev);
 	if(!frame)
 		return NULL;
-	uint32_t scope=getCurFrameLineNumber(frame)->scope;
+
+	const FklLineNumberTableItem* ln=getCurFrameLineNumber(frame);
+	FKL_ASSERT(ln);
+	uint32_t scope=ln->scope;
 	if(scope==0)
 		return NULL;
 	uint32_t prototype_id=FKL_VM_PROC(frame->c.proc)->protoId; 
@@ -646,6 +650,8 @@ void switchCurThread(DebugCtx* ctx,uint32_t idx)
 	ctx->curframe_idx=1;
 	ctx->reached_thread_frames.top=0;
 	FklVM* vm=getCurThread(ctx);
+	if(vm==NULL)
+		return;
 	ctx->reached_thread=vm;
 	for(FklVMframe* f=vm->top_frame;f;f=f->prev)
 		fklPushPtrStack(f,&ctx->reached_thread_frames);

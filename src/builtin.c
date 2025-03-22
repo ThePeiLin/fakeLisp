@@ -2234,13 +2234,16 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 		,FklSid_t left
 		,int* error_type)
 {
-
 	FklPtrStack valid_items;
 	fklInitPtrStack(&valid_items,vec->size,8);
+	FklGrammerSym* syms=NULL;
+	uint8_t* delim=NULL;
+	if(vec->size==0)
+		goto zero_len;
 
-	uint8_t* delim=(uint8_t*)malloc(vec->size*sizeof(uint8_t));
-	FKL_ASSERT(delim||!vec->size);
-	memset(delim,1,sizeof(uint8_t)*vec->size);
+	delim=(uint8_t*)malloc(vec->size*sizeof(uint8_t));
+	FKL_ASSERT(delim);
+	memset(delim,1,vec->size*sizeof(uint8_t));
 
 	FklGrammerProduction* prod=NULL;
 
@@ -2268,7 +2271,6 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 			goto end;
 		}
 	}
-	FklGrammerSym* syms=NULL;
 	if(valid_items.top)
 	{
 		size_t top=valid_items.top;
@@ -2332,6 +2334,7 @@ static inline FklGrammerProduction* vm_vec_to_prod(FklVMvec* vec
 			}
 		}
 	}
+zero_len:
 	prod=fklCreateProduction(0
 			,left
 			,valid_items.top
@@ -2412,7 +2415,6 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 						fklDestroyGrammerProduction(prod);
 						if(!ig)
 							FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED,exe);
-						next_arg=EXCEPT_NEXT_ARG_SYMBOL;
 						if(fklAddIgnoreToIgnoreList(&grammer->ignores,ig))
 						{
 							fklDestroyIgnore(ig);
@@ -2425,6 +2427,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL)
 					FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,exe);
 				break;
 			case EXCEPT_NEXT_ARG_CALLABLE:
+				FKL_ASSERT(prod);
 				next=EXCEPT_NEXT_ARG_SYMBOL;
 				if(fklIsCallable(next_arg))
 				{

@@ -257,9 +257,14 @@ static inline void init_locv_cache(FklVMgc* gc)
 void fklInitVMargs(FklVMgc* gc,int argc,const char* const* argv)
 {
 	gc->argc=argc;
+	if(gc->argc==0)
+	{
+		gc->argv=NULL;
+		return;
+	}
 	size_t size=sizeof(const char*)*gc->argc;
 	char** argv_v=(char**)malloc(size);
-	FKL_ASSERT(argv_v||!size);
+	FKL_ASSERT(argv_v);
 	for(int i=0;i<gc->argc;i++)
 		argv_v[i]=fklCopyCstr(argv[i]);
 	gc->argv=argv_v;

@@ -305,20 +305,28 @@ set_target_properties(fuv PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 if(FANALYZER)
-	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE "-fanalyzer")
-	target_compile_options(${LIBFKL_STATIC_TARGET_NAME} PRIVATE "-fanalyzer")
-	target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE "-fanalyzer")
-	target_compile_options(${COMPILER_TARGET_NAME} PRIVATE "-fanalyzer")
-	target_compile_options(${BYTECODE_PRINTER_TARGET_NAME} PRIVATE "-fanalyzer")
-	target_compile_options(${PARSE} PRIVATE "-fanalyzer")
-	target_compile_options(${VMPARSE} PRIVATE "-fanalyzer")
-	target_compile_options(ht PRIVATE "-fanalyzer")
-	target_compile_options(os PRIVATE "-fanalyzer")
-	target_compile_options(math PRIVATE "-fanalyzer")
-	target_compile_options(sync PRIVATE "-fanalyzer")
-	target_compile_options(fs PRIVATE "-fanalyzer")
-	target_compile_options(bdb PRIVATE "-fanalyzer")
-	target_compile_options(fuv PRIVATE "-fanalyzer")
+	set(FANALYZER_OPTIONS "-fanalyzer"
+		"-Wno-analyzer-malloc-leak"
+		"-Wno-analyzer-tainted-allocation-size"
+		"-Wno-analyzer-tainted-size"
+	)
+	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(${LIBFKL_STATIC_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(${COMPILER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(${BYTECODE_PRINTER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(${PARSE} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(${VMPARSE} PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(ht PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(os PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(math PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(sync PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(fs PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(bdb PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(fuv PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(buf PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(dvec PRIVATE ${FANALYZER_OPTIONS})
+	target_compile_options(bvec PRIVATE ${FANALYZER_OPTIONS})
 endif()
 
 #linking

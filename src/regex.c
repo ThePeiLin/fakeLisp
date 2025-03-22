@@ -323,6 +323,7 @@ FklRegexCode* fklRegexCompileCharBuf(const char* pattern,size_t len)
 			case '(':
 				ecnt++;
 				resel=ecnt;
+				FKL_ASSERT(ctx.ecnt>ecnt);
 				cur_obj->type=FKL_REGEX_GROUPSTART;
 				cur_obj->falseoffset=inst[resel].failoff;
 				cur_obj->trueoffset=j+1;

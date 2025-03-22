@@ -348,6 +348,11 @@ static inline int debug_restart(DebugCtx* dctx,FklVM* exe)
 			waitAllThreadExit(dctx->reached_thread);
 			fklLockThread(exe);
 		}
+		else if(dctx->gc->main_thread)
+		{
+			fklDestroyAllVMs(dctx->gc->main_thread);
+			dctx->gc->main_thread=NULL;
+		}
 		restartDebugging(dctx);
 		return 1;
 	}

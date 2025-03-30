@@ -1,4 +1,6 @@
 *
+!.gitignore
+!.clang-format
 !LICENSE
 !/include/
 !/include/*

@@ -29,14 +29,14 @@ char *fklReadWithBuiltinParser(FILE *fp, size_t *psize, size_t line,
                                size_t *pline, FklSymbolTable *st,
                                int *unexpectEOF, size_t *errLine,
                                FklNastNode **output, FklPtrStack *symbolStack,
-                               FklUintStack *lineStack,
+                               FklUintVector *lineStack,
                                FklPtrStack *stateStack);
 
 char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
                                size_t line, size_t *pline, FklSymbolTable *st,
                                int *unexpectEOF, size_t *errLine,
                                FklNastNode **output, FklPtrStack *symbolStack,
-                               FklUintStack *lineStack,
+                               FklUintVector *lineStack,
                                FklPtrStack *stateStack);
 
 #ifdef __cplusplus

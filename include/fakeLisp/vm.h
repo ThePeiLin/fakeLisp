@@ -4,6 +4,7 @@
 #include "base.h"
 #include "builtin.h"
 #include "bytecode.h"
+#include "common.h"
 #include "nast.h"
 #include "utils.h"
 

@@ -600,24 +600,29 @@ struct ByteCodePrintState {
     uint64_t cpc;
 };
 
-static inline void push_bytecode_print_state(FklUintStack *s, uint64_t tc,
+static inline void push_bytecode_print_state(FklUintVector *s, uint64_t tc,
                                              uint64_t cp, uint64_t cpc) {
-    fklPushUintStack(tc, s);
-    fklPushUintStack(cp, s);
-    fklPushUintStack(cpc, s);
+    fklUintVectorPushBack(s, &tc);
+    fklUintVectorPushBack(s, &cp);
+    fklUintVectorPushBack(s, &cpc);
 }
 
-static inline void pop_bytecode_print_state(FklUintStack *s,
+static inline void pop_bytecode_print_state(FklUintVector *s,
                                             struct ByteCodePrintState *state) {
-    state->cpc = fklPopUintStack(s);
-    state->cp = fklPopUintStack(s);
-    state->tc = fklPopUintStack(s);
+    uint64_t *back = fklUintVectorPopBack(s);
+    state->cpc = back ? *back : 0;
+
+    back = fklUintVectorPopBack(s);
+    state->cp = back ? *back : 0;
+
+    back = fklUintVectorPopBack(s);
+    state->tc = back ? *back : 0;
 }
 
 static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
                                         FILE *fp,
                                         struct ByteCodePrintState *cur_state,
-                                        FklUintStack *s, int *needBreak,
+                                        FklUintVector *s, int *needBreak,
                                         const FklSymbolTable *st,
                                         const FklConstTable *kt, int numLen) {
     uint32_t tab_count = cur_state->tc;
@@ -735,13 +740,13 @@ end:
 #include <math.h>
 void fklPrintByteCode(const FklByteCode *tmpCode, FILE *fp, FklSymbolTable *st,
                       FklConstTable *kt) {
-    FklUintStack s = FKL_STACK_INIT;
-    fklInitUintStack(&s, 32, 16);
+    FklUintVector s;
+    fklUintVectorInit(&s, 32);
     push_bytecode_print_state(&s, 0, 0, tmpCode->len);
     uint64_t codeLen = tmpCode->len;
     int numLen = codeLen ? (int)(log10(codeLen) + 1) : 1;
 
-    if (!fklIsUintStackEmpty(&s)) {
+    if (!fklUintVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state;
         pop_bytecode_print_state(&s, &cur_state);
         uint64_t i = cur_state.cp;
@@ -756,7 +761,7 @@ void fklPrintByteCode(const FklByteCode *tmpCode, FILE *fp, FklSymbolTable *st,
                                   st, kt, numLen);
         }
     }
-    while (!fklIsUintStackEmpty(&s)) {
+    while (!fklUintVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state;
         pop_bytecode_print_state(&s, &cur_state);
         uint64_t i = cur_state.cp;
@@ -773,7 +778,7 @@ void fklPrintByteCode(const FklByteCode *tmpCode, FILE *fp, FklSymbolTable *st,
                                   st, kt, numLen);
         }
     }
-    fklUninitUintStack(&s);
+    fklUintVectorUninit(&s);
 }
 
 static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
@@ -980,8 +985,8 @@ void fklScanAndSetTailCall(FklByteCode *bc) {
 void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
                          const FklSymbolTable *st, const FklConstTable *kt) {
     FklByteCode *tmpCode = obj->bc;
-    FklUintStack s = FKL_STACK_INIT;
-    fklInitUintStack(&s, 32, 16);
+    FklUintVector s;
+    fklUintVectorInit(&s, 32);
     push_bytecode_print_state(&s, 0, 0, tmpCode->len);
     uint64_t j = 0;
     uint64_t end = obj->ls - 1;
@@ -991,7 +996,7 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
     uint64_t codeLen = tmpCode->len;
     int numLen = codeLen ? (int)(log10(codeLen) + 1) : 1;
 
-    if (!fklIsUintStackEmpty(&s)) {
+    if (!fklUintVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state;
         pop_bytecode_print_state(&s, &cur_state);
         uint64_t i = cur_state.cp;
@@ -1033,7 +1038,7 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
             }
         }
     }
-    while (!fklIsUintStackEmpty(&s)) {
+    while (!fklUintVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state;
         pop_bytecode_print_state(&s, &cur_state);
         uint64_t i = cur_state.cp;
@@ -1078,7 +1083,7 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
                 break;
         }
     }
-    fklUninitUintStack(&s);
+    fklUintVectorUninit(&s);
 }
 
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *o, uint64_t size) {

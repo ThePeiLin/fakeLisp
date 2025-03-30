@@ -143,7 +143,7 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
     static void builtin_match_##NAME##_print_c_match_cond(                     \
         void *ctx, const FklGrammer *g, FILE *fp) {                            \
         fputs("builtin_match_" #NAME "(start,*in+otherMatchLen,*restLen-"      \
-                                     "otherMatchLen,&matchLen,outerCtx)",      \
+              "otherMatchLen,&matchLen,outerCtx)",                             \
               fp);                                                             \
     }
 
@@ -1339,7 +1339,7 @@ static int builtin_match_s_dint_func(void *c, const char *start,
     static void builtin_match_##NAME##_print_c_match_cond(                     \
         void *c, const FklGrammer *g, FILE *fp) {                              \
         fputs("builtin_match_" #NAME "(start,*in+otherMatchLen,*restLen-"      \
-                                     "otherMatchLen,&matchLen,outerCtx,",      \
+              "otherMatchLen,&matchLen,outerCtx,",                             \
               fp);                                                             \
         SymbolNumberCtx *ctx = c;                                              \
         if (ctx->start) {                                                      \
@@ -3431,8 +3431,7 @@ void fklPrintItemStateSetAsDot(const FklHashTable *i, const FklGrammer *g,
         idx = c->idx;
         fprintf(fp,
                 "\t\"I%" FKL_PRT64U "\"[fontname=\"Courier\" nojustify=true "
-                                    "shape=\"box\" label=\"I%" FKL_PRT64U
-                "\\l\\\n",
+                "shape=\"box\" label=\"I%" FKL_PRT64U "\\l\\\n",
                 idx, idx);
         print_item_set_as_dot(i, g, st, fp);
         fputs("\"]\n", fp);
@@ -4405,7 +4404,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                 ac->state - states);
         fputs("\t\t\tfklPushPtrStack(create_term_analyzing_symbol(*in,matchLen,"
               "outerCtx->line,outerCtx->ctx),symbolStack);\n"
-              "\t\t\tfklPushUintStack(outerCtx->line,lineStack);\n"
+              "\t\t\tfklUintVectorPushBack(lineStack,&outerCtx->line);\n"
               "\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
               "\t\t\t*in+=matchLen;\n"
               "\t\t\t*restLen-=matchLen;\n",
@@ -4481,7 +4480,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                 "\t\t\tfklPushPtrStack((void*)create_nonterm_analyzing_symbol("
                 "%" FKL_PRT64U ",ast),symbolStack);\n",
                 ac->prod->left.sid);
-        fputs("\t\t\tfklPushUintStack(line,lineStack);\n", fp);
+        fputs("\t\t\tfklUintVectorPushBack(lineStack,&line);\n", fp);
         break;
     case FKL_ANALYSIS_IGNORE:
         fputs("\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
@@ -4500,7 +4499,7 @@ print_state_prototype_to_c_file(const FklAnalysisState *states, size_t idx,
     fprintf(fp,
             "static int state_%" FKL_PRT64U "(FklPtrStack*"
             ",FklPtrStack*"
-            ",FklUintStack*"
+            ",FklUintVector*"
             ",int"
             ",FklSid_t"
             ",void** pfunc"
@@ -4521,7 +4520,7 @@ static inline void print_state_to_c_file(const FklAnalysisState *states,
     fprintf(fp,
             "static int state_%" FKL_PRT64U "(FklPtrStack* stateStack\n"
             "\t\t,FklPtrStack* symbolStack\n"
-            "\t\t,FklUintStack* lineStack\n"
+            "\t\t,FklUintVector* lineStack\n"
             "\t\t,int is_action\n"
             "\t\t,FklSid_t left\n"
             "\t\t,void** pfunc\n"
@@ -4859,7 +4858,8 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
 void *fklDefaultParseForCstr(const char *cstr,
                              FklGrammerMatchOuterCtx *outerCtx, int *err,
                              uint64_t *errLine, FklPtrStack *symbolStack,
-                             FklUintStack *lineStack, FklPtrStack *stateStack) {
+                             FklUintVector *lineStack,
+                             FklPtrStack *stateStack) {
     const char *start = cstr;
     size_t restLen = strlen(start);
     void *ast = NULL;
@@ -4883,7 +4883,7 @@ void *fklDefaultParseForCstr(const char *cstr,
 void *fklDefaultParseForCharBuf(const char *cstr, size_t len, size_t *restLen,
                                 FklGrammerMatchOuterCtx *outerCtx, int *err,
                                 uint64_t *errLine, FklPtrStack *symbolStack,
-                                FklUintStack *lineStack,
+                                FklUintVector *lineStack,
                                 FklPtrStack *stateStack) {
     const char *start = cstr;
     *restLen = len;
@@ -4997,7 +4997,7 @@ create_nonterm_analyzing_symbol(FklSid_t group, FklSid_t id, FklNastNode *ast) {
 
 static inline int do_reduce_action(FklPtrStack *stateStack,
                                    FklPtrStack *symbolStack,
-                                   FklUintStack *lineStack,
+                                   FklUintVector *lineStack,
                                    const FklGrammerProduction *prod,
                                    FklGrammerMatchOuterCtx *outerCtx,
                                    FklSymbolTable *st, size_t *errLine) {
@@ -5039,7 +5039,7 @@ static inline int do_reduce_action(FklPtrStack *stateStack,
     }
     fklPushPtrStack(create_nonterm_analyzing_symbol(left.group, left.sid, ast),
                     symbolStack);
-    fklPushUintStack(line, lineStack);
+    fklUintVectorPushBack(lineStack, &line);
     fklPushPtrStack((void *)state, stateStack);
     return 0;
 }
@@ -5054,10 +5054,10 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
     size_t restLen = strlen(start);
     FklPtrStack symbolStack;
     FklPtrStack stateStack;
-    FklUintStack lineStack;
+    FklUintVector lineStack;
     fklInitPtrStack(&stateStack, 16, 8);
     fklInitPtrStack(&symbolStack, 16, 8);
-    fklInitUintStack(&lineStack, 16, 8);
+    fklUintVectorInit(&lineStack, 16);
     fklPushPtrStack(&t->states[0], &stateStack);
     size_t matchLen = 0;
     int waiting_for_more_err = 0;
@@ -5087,7 +5087,7 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
                 fklPushPtrStack(
                     fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
                     &symbolStack);
-                fklPushUintStack(outerCtx->line, &lineStack);
+                fklUintVectorPushBack(&lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 restLen -= matchLen;
@@ -5114,7 +5114,7 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
         }
     }
 break_for:
-    fklUninitUintStack(&lineStack);
+    fklUintVectorUninit(&lineStack);
     fklUninitPtrStack(&stateStack);
     while (!fklIsPtrStackEmpty(&symbolStack)) {
         FklAnalysisSymbol *s = fklPopPtrStack(&symbolStack);
@@ -5135,10 +5135,10 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
     size_t restLen = strlen(start);
     FklPtrStack symbolStack;
     FklPtrStack stateStack;
-    FklUintStack lineStack;
+    FklUintVector lineStack;
     fklInitPtrStack(&stateStack, 16, 8);
     fklInitPtrStack(&symbolStack, 16, 8);
-    fklInitUintStack(&lineStack, 16, 8);
+    fklUintVectorInit(&lineStack, 16);
     fklPushPtrStack(&t->states[0], &stateStack);
     size_t matchLen = 0;
     int waiting_for_more_err = 0;
@@ -5165,7 +5165,7 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
                 fklPushPtrStack(
                     fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
                     &symbolStack);
-                fklPushUintStack(outerCtx->line, &lineStack);
+                fklUintVectorPushBack(&lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 restLen -= matchLen;
@@ -5192,7 +5192,7 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
         }
     }
 break_for:
-    fklUninitUintStack(&lineStack);
+    fklUintVectorUninit(&lineStack);
     fklUninitPtrStack(&stateStack);
     while (!fklIsPtrStackEmpty(&symbolStack)) {
         FklAnalysisSymbol *s = fklPopPtrStack(&symbolStack);
@@ -5208,7 +5208,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
                                   FklGrammerMatchOuterCtx *outerCtx,
                                   FklSymbolTable *st, int *err, size_t *errLine,
                                   FklPtrStack *symbolStack,
-                                  FklUintStack *lineStack,
+                                  FklUintVector *lineStack,
                                   FklPtrStack *stateStack) {
     *restLen = len;
     void *ast = NULL;
@@ -5238,7 +5238,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
                 fklPushPtrStack(
                     fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
                     symbolStack);
-                fklPushUintStack(outerCtx->line, lineStack);
+                fklUintVectorPushBack(lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 (*restLen) -= matchLen;
@@ -5266,7 +5266,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
     return ast;
 }
 
-uint64_t fklGetFirstNthLine(FklUintStack *lineStack, size_t num, size_t line) {
+uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line) {
     if (num)
         return lineStack->base[lineStack->top - num];
     else

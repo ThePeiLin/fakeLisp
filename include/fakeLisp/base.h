@@ -247,6 +247,14 @@ void fklPushPtrQueueToFront(void *, FklPtrQueue *);
 void fklPushPtrQueueNodeToFront(FklPtrQueue *q, FklQueueNode *n);
 FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
 
+// FklUintVector
+#define FKL_VECTOR_ELM_TYPE uintmax_t
+#define FKL_VECTOR_ELM_TYPE_NAME Uint
+#include "vector.h"
+#undef FKL_VECTOR_ELM_TYPE
+#undef FKL_VECTOR_ELM_TYPE_NAME
+
+/* to be delete
 typedef struct {
     int64_t *base;
     uint32_t size;
@@ -297,6 +305,7 @@ uint8_t fklTopU8Stack(FklU8Stack *);
 void fklDestroyU8Stack(FklU8Stack *);
 void fklRecycleU8Stack(FklU8Stack *);
 int fklIsU8StackEmpty(FklU8Stack *);
+*/
 
 size_t fklBigIntToStringBuffer(const FklBigInt *a,
                                FklStringBuffer *string_buffer, uint8_t radix,

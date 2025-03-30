@@ -148,12 +148,12 @@ static inline FklCodegenEnv *init_codegen_info_for_cond_bp_with_debug_ctx(
         init_codegen_info_common_helper(ctx, info, origin_outer_env, f, &env);
 
     if (new_env) {
-        if (fklIsUintStackEmpty(&ctx->bt.unused_prototype_id_for_cond_bp))
+        if (fklUintVectorIsEmpty(&ctx->bt.unused_prototype_id_for_cond_bp))
             fklCreateFuncPrototypeAndInsertToPool(
                 info, env->prototypeId, new_env, 0, ctx->curline, ctx->st);
         else {
             uint32_t pid =
-                fklPopUintStack(&ctx->bt.unused_prototype_id_for_cond_bp);
+                *fklUintVectorPopBack(&ctx->bt.unused_prototype_id_for_cond_bp);
             replace_func_prototype(info, env->prototypeId, new_env, 0,
                                    ctx->curline, ctx->st, pid);
         }
@@ -180,8 +180,8 @@ FklVMvalue *compileConditionExpression(DebugCtx *ctx, FklVM *vm,
         ctx, &info, tmp_env, exp, origin_outer_env, vm, cur_frame, err);
 
     if (!proc)
-        fklPushUintStack(tmp_env->prototypeId,
-                         &ctx->bt.unused_prototype_id_for_cond_bp);
+        fklUintVectorPushBack2(&ctx->bt.unused_prototype_id_for_cond_bp,
+                               tmp_env->prototypeId);
     info.pts = NULL;
     fklDestroyCodegenEnv(tmp_env);
     fklUninitCodegenInfo(&info);

@@ -1592,7 +1592,7 @@ typedef enum {
 
 struct ParseCtx {
     FklPtrStack symbolStack;
-    FklUintStack lineStack;
+    FklUintVector lineStack;
     FklPtrStack stateStack;
     FklSid_t reducing_sid;
     uint32_t offset;
@@ -1628,7 +1628,7 @@ static void read_frame_finalizer(void *data) {
     while (!fklIsPtrStackEmpty(ss))
         free(fklPopPtrStack(ss));
     fklUninitPtrStack(ss);
-    fklUninitUintStack(&pctx->lineStack);
+    fklUintVectorUninit(&pctx->lineStack);
     fklUninitPtrStack(&pctx->stateStack);
     free(pctx);
 }
@@ -1708,7 +1708,7 @@ static inline struct ParseCtx *create_read_parse_ctx(void) {
     pctx->reducing_sid = 0;
     fklInitPtrStack(&pctx->stateStack, 16, 16);
     fklInitPtrStack(&pctx->symbolStack, 16, 16);
-    fklInitUintStack(&pctx->lineStack, 16, 16);
+    fklUintVectorInit(&pctx->lineStack, 16);
     return pctx;
 }
 
@@ -1730,7 +1730,7 @@ static inline void initReadCtx(void *data, FklSid_t sid, FklVM *exe,
 }
 
 static inline int do_custom_parser_reduce_action(
-    FklPtrStack *stateStack, FklPtrStack *symbolStack, FklUintStack *lineStack,
+    FklPtrStack *stateStack, FklPtrStack *symbolStack, FklUintVector *lineStack,
     const FklGrammerProduction *prod, FklGrammerMatchOuterCtx *outerCtx,
     size_t *errLine) {
     size_t len = prod->len;
@@ -1765,7 +1765,7 @@ static inline int do_custom_parser_reduce_action(
             outerCtx->destroy(nodes[i]);
         free(nodes);
     }
-    fklPushUintStack(line, lineStack);
+    fklUintVectorPushBack(lineStack, &line);
     fklPushPtrStack((void *)state, stateStack);
     return 0;
 }
@@ -1773,7 +1773,7 @@ static inline int do_custom_parser_reduce_action(
 static inline void parse_with_custom_parser_for_char_buf(
     const FklGrammer *g, const char *cstr, size_t len, size_t *restLen,
     FklGrammerMatchOuterCtx *outerCtx, int *err, size_t *errLine,
-    FklPtrStack *symbolStack, FklUintStack *lineStack, FklPtrStack *stateStack,
+    FklPtrStack *symbolStack, FklUintVector *lineStack, FklPtrStack *stateStack,
     FklVM *exe, int *accept, ParsingState *parse_state,
     FklSid_t *reducing_sid) {
     *restLen = len;
@@ -1803,7 +1803,7 @@ static inline void parse_with_custom_parser_for_char_buf(
                 fklPushPtrStack(
                     fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
                     symbolStack);
-                fklPushUintStack(outerCtx->line, lineStack);
+                fklUintVectorPushBack(lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 (*restLen) -= matchLen;
@@ -2208,7 +2208,7 @@ static void custom_parse_frame_finalizer(void *data) {
     while (!fklIsPtrStackEmpty(ss))
         free(fklPopPtrStack(ss));
     fklUninitPtrStack(ss);
-    fklUninitUintStack(&c->pctx->lineStack);
+    fklUintVectorUninit(&c->pctx->lineStack);
     fklUninitPtrStack(&c->pctx->stateStack);
     free(c->pctx);
 }
@@ -2388,10 +2388,10 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         size_t errorLine = 0;
         FklPtrStack symbolStack;
         FklPtrStack stateStack;
-        FklUintStack lineStack;
+        FklUintVector lineStack;
         fklInitPtrStack(&symbolStack, 16, 16);
         fklInitPtrStack(&stateStack, 16, 16);
-        fklInitUintStack(&lineStack, 16, 16);
+        fklUintVectorInit(&lineStack, 16);
         fklVMvaluePushState0ToStack(&stateStack);
 
         size_t restLen = ss->size;
@@ -2407,7 +2407,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
                 free(fklPopPtrStack(&symbolStack));
             fklUninitPtrStack(&symbolStack);
             fklUninitPtrStack(&stateStack);
-            fklUninitUintStack(&lineStack);
+            fklUintVectorUninit(&lineStack);
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
         }
 
@@ -2415,7 +2415,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
             free(fklPopPtrStack(&symbolStack));
         fklUninitPtrStack(&symbolStack);
         fklUninitPtrStack(&stateStack);
-        fklUninitUintStack(&lineStack);
+        fklUintVectorUninit(&lineStack);
         FKL_VM_PUSH_VALUE(exe, node);
         if (box) {
             uint64_t offset = ss->size - restLen;

@@ -19,7 +19,7 @@ struct FklAnalysisSymbol;
 
 typedef struct {
     size_t maxNonterminalLen;
-    uint32_t line;
+    uint64_t line;
     const char *start;
     const char *cur;
     void *ctx;
@@ -73,7 +73,7 @@ typedef struct FklGrammerSym {
 
 struct FklGrammerProduction;
 
-uint64_t fklGetFirstNthLine(FklUintStack *lineStack, size_t num, size_t line);
+uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line);
 
 typedef void *(*FklProdActionFunc)(void *ctx, void *outerCtx, void *asts[],
                                    size_t num, size_t line);
@@ -370,14 +370,14 @@ void *fklParseWithTableForCharBuf(const FklGrammer *, const char *str,
                                   size_t len, size_t *restLen,
                                   FklGrammerMatchOuterCtx *, FklSymbolTable *st,
                                   int *err, size_t *errLine,
-                                  FklPtrStack *symbols, FklUintStack *lines,
+                                  FklPtrStack *symbols, FklUintVector *lines,
                                   FklPtrStack *states);
 
 #define FKL_PARSE_TERMINAL_MATCH_FAILED (1)
 #define FKL_PARSE_REDUCE_FAILED (2)
 #define FKL_PARSE_WAITING_FOR_MORE (3)
 
-typedef int (*FklStateFuncPtr)(FklPtrStack *, FklPtrStack *, FklUintStack *,
+typedef int (*FklStateFuncPtr)(FklPtrStack *, FklPtrStack *, FklUintVector *,
                                int, FklSid_t, void **, const char *,
                                const char **, size_t *,
                                FklGrammerMatchOuterCtx *, int *,
@@ -385,12 +385,12 @@ typedef int (*FklStateFuncPtr)(FklPtrStack *, FklPtrStack *, FklUintStack *,
 
 void *fklDefaultParseForCstr(const char *str, FklGrammerMatchOuterCtx *,
                              int *err, size_t *errLine, FklPtrStack *symbols,
-                             FklUintStack *lines, FklPtrStack *states);
+                             FklUintVector *lines, FklPtrStack *states);
 
 void *fklDefaultParseForCharBuf(const char *str, size_t len, size_t *restLen,
                                 FklGrammerMatchOuterCtx *, int *err,
                                 size_t *errLine, FklPtrStack *symbols,
-                                FklUintStack *lines, FklPtrStack *states);
+                                FklUintVector *lines, FklPtrStack *states);
 
 FklGrammerIgnore *fklInitBuiltinProductionSet(FklHashTable *ht,
                                               FklSymbolTable *st,

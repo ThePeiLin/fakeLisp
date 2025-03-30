@@ -42,7 +42,7 @@ static const FklHashTableMetaTable BreakpointIdxHashMetaTable = {
 void initBreakpointTable(BreakpointTable *bt) {
     fklInitHashTable(&bt->ins_ht, &BreakpointInsHashMetaTable);
     fklInitHashTable(&bt->idx_ht, &BreakpointIdxHashMetaTable);
-    fklInitUintStack(&bt->unused_prototype_id_for_cond_bp, 16, 16);
+    fklUintVectorInit(&bt->unused_prototype_id_for_cond_bp, 16);
     bt->next_idx = 1;
     bt->deleted_breakpoints = NULL;
 }
@@ -51,7 +51,8 @@ static inline void mark_breakpoint_deleted(Breakpoint *bp,
                                            BreakpointTable *bt) {
     if (bp->is_compiled && bp->proc) {
         FklVMproc *proc = FKL_VM_PROC(bp->proc);
-        fklPushUintStack(proc->protoId, &bt->unused_prototype_id_for_cond_bp);
+        fklUintVectorPushBack2(&bt->unused_prototype_id_for_cond_bp,
+                               proc->protoId);
         bp->proc = NULL;
     } else if (bp->cond_exp) {
         fklDestroyNastNode(bp->cond_exp);
@@ -103,7 +104,7 @@ void uninitBreakpointTable(BreakpointTable *bt) {
     fklUninitHashTable(&bt->ins_ht);
     fklUninitHashTable(&bt->idx_ht);
     destroy_all_deleted_breakpoint(bt);
-    fklUninitUintStack(&bt->unused_prototype_id_for_cond_bp);
+    fklUintVectorUninit(&bt->unused_prototype_id_for_cond_bp);
 }
 
 #include <fakeLisp/common.h>

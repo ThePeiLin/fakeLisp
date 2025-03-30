@@ -8,11 +8,17 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+
 int fklIsPtrStackEmpty(FklPtrStack *stack) { return stack->top == 0; }
 
 void fklInitPtrStack(FklPtrStack *r, uint32_t size, uint32_t inc) {
-    r->base = (void **)malloc(size * sizeof(void *));
-    FKL_ASSERT(r->base || !size);
+    if (!size)
+        r->base = NULL;
+    else {
+        r->base = (void **)malloc(size * sizeof(void *));
+        FKL_ASSERT(r->base);
+    }
+
     r->size = size;
     r->inc = inc;
     r->top = 0;
@@ -194,6 +200,7 @@ FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *q) {
     return tmp;
 }
 
+/* to be delete
 int fklIsIntStackEmpty(FklIntStack *stack) { return stack->top == 0; }
 
 FklIntStack *fklCreateIntStack(uint32_t size, uint32_t inc) {
@@ -322,6 +329,7 @@ void fklRecycleUintStack(FklUintStack *stack) {
         stack->size -= stack->inc;
     }
 }
+*/
 
 FklString *fklCreateString(size_t size, const char *str) {
     FklString *tmp =
@@ -1194,6 +1202,7 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv) {
     return h;
 }
 
+/* to be delete
 void fklInitU8Stack(FklU8Stack *r, size_t size, uint32_t inc) {
     r->base = (uint8_t *)malloc(size * sizeof(uint8_t));
     FKL_ASSERT(r->base || !size);
@@ -1252,6 +1261,7 @@ void fklRecycleU8Stack(FklU8Stack *s) {
         s->size -= s->inc;
     }
 }
+*/
 
 static char *string_buffer_alloc(void *ptr, size_t len) {
     FklStringBuffer *buf = ptr;

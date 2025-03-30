@@ -1136,10 +1136,10 @@ static CODEGEN_FUNC(codegen_let0) {
 
 typedef struct Let1Context {
     FklPtrStack *stack;
-    FklUintStack *ss;
+    FklUintVector *ss;
 } Let1Context;
 
-static inline Let1Context *createLet1Context(FklUintStack *ss) {
+static inline Let1Context *createLet1Context(FklUintVector *ss) {
     Let1Context *ctx = (Let1Context *)malloc(sizeof(Let1Context));
     FKL_ASSERT(ctx);
     ctx->ss = ss;
@@ -1161,7 +1161,7 @@ static void _let1_finalizer(void *d) {
     while (!fklIsPtrStackEmpty(s))
         fklDestroyByteCodelnt(fklPopPtrStack(s));
     fklDestroyPtrStack(s);
-    fklDestroyUintStack(dd->ss);
+    fklUintVectorDestroy(dd->ss);
     free(dd);
 }
 
@@ -1171,7 +1171,7 @@ static FklCodegenQuestContextMethodTable Let1ContextMethodTable = {
     .__put_bcl = _let1_put_bcl,
 };
 
-static FklCodegenQuestContext *createLet1CodegenContext(FklUintStack *ss) {
+static FklCodegenQuestContext *createLet1CodegenContext(FklUintVector *ss) {
     return createCodegenQuestContext(createLet1Context(ss),
                                      &Let1ContextMethodTable);
 }
@@ -1190,7 +1190,7 @@ static int is_valid_let_arg(const FklNastNode *node,
 }
 
 static int is_valid_let_args(const FklNastNode *sl, FklCodegenEnv *env,
-                             uint32_t scope, FklUintStack *stack,
+                             uint32_t scope, FklUintVector *stack,
                              FklNastNode *const *builtin_pattern_node) {
     if (fklIsNastNodeList(sl)) {
         for (; sl->type == FKL_NAST_PAIR; sl = sl->pair->cdr) {
@@ -1200,7 +1200,7 @@ static int is_valid_let_args(const FklNastNode *sl, FklCodegenEnv *env,
             FklSid_t id = cc->pair->car->sym;
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            fklPushUintStack(id, stack);
+            fklUintVectorPushBack(stack, &id);
             fklAddCodegenDefBySid(id, scope, env);
         }
         return 1;
@@ -1209,7 +1209,7 @@ static int is_valid_let_args(const FklNastNode *sl, FklCodegenEnv *env,
 }
 
 static int is_valid_letrec_args(const FklNastNode *sl, FklCodegenEnv *env,
-                                uint32_t scope, FklUintStack *stack,
+                                uint32_t scope, FklUintVector *stack,
                                 FklNastNode *const *builtin_pattern_node) {
     if (fklIsNastNodeList(sl)) {
         for (; sl->type == FKL_NAST_PAIR; sl = sl->pair->cdr) {
@@ -1219,7 +1219,7 @@ static int is_valid_letrec_args(const FklNastNode *sl, FklCodegenEnv *env,
             FklSid_t id = cc->pair->car->sym;
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            fklPushUintStack(id, stack);
+            fklUintVectorPushBack(stack, &id);
             fklAddCodegenPreDefBySid(id, scope, 0, env);
         }
         return 1;
@@ -1238,11 +1238,12 @@ static inline FklNastNode *caadr_nast_node(const FklNastNode *node) {
 BC_PROCESS(_let1_exp_bc_process) {
     Let1Context *ctx = context->data;
     FklPtrStack *bcls = ctx->stack;
-    FklUintStack *symbolStack = ctx->ss;
+    FklUintVector *symbolStack = ctx->ss;
 
     FklByteCodelnt *retval = fklPopPtrStack(bcls);
-    while (!fklIsUintStackEmpty(symbolStack)) {
-        FklSid_t id = fklPopUintStack(symbolStack);
+    while (!fklUintVectorIsEmpty(symbolStack)) {
+        FklSid_t *pback = fklUintVectorPopBack(symbolStack);
+        FklSid_t id = pback ? *pback : 0;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
     }
@@ -1281,12 +1282,13 @@ BC_PROCESS(_letrec_exp_bc_process) {
 BC_PROCESS(_letrec_arg_exp_bc_process) {
     Let1Context *ctx = context->data;
     FklPtrStack *bcls = ctx->stack;
-    FklUintStack *symbolStack = ctx->ss;
+    FklUintVector *symbolStack = ctx->ss;
 
     FklByteCodelnt *retval = create_0len_bcl();
-    while (!fklIsUintStackEmpty(symbolStack)) {
+    while (!fklUintVectorIsEmpty(symbolStack)) {
         FklByteCodelnt *value_bc = fklPopPtrStack(bcls);
-        FklSid_t id = fklPopUintStack(symbolStack);
+        FklSid_t *pback = fklUintVectorPopBack(symbolStack);
+        FklSid_t id = pback ? *pback : 0;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         fklResolveCodegenPreDef(id, scope, env, codegen->pts);
         append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
@@ -1298,13 +1300,13 @@ BC_PROCESS(_letrec_arg_exp_bc_process) {
 
 static CODEGEN_FUNC(codegen_let1) {
     FklNastNode *const *builtin_pattern_node = outer_ctx->builtin_pattern_node;
-    FklUintStack *symStack = fklCreateUintStack(8, 16);
+    FklUintVector *symStack = fklUintVectorCreate(8);
     FklNastNode *firstSymbol =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (firstSymbol->type != FKL_NAST_SYM) {
-        fklDestroyUintStack(symStack);
+        fklUintVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
@@ -1317,7 +1319,7 @@ static CODEGEN_FUNC(codegen_let1) {
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
 
     fklAddCodegenDefBySid(firstSymbol->sym, cs, curEnv);
-    fklPushUintStack(firstSymbol->sym, symStack);
+    fklUintVectorPushBack(symStack, &firstSymbol->sym);
 
     FklPtrQueue *valueQueue = fklCreatePtrQueue();
     fklPushPtrQueue(fklMakeNastNodeRef(value), valueQueue);
@@ -1329,7 +1331,7 @@ static CODEGEN_FUNC(codegen_let1) {
             fklDestroyNastNode(value);
             fklDestroyPtrQueue(valueQueue);
             fklDestroyCodegenMacroScope(cms);
-            fklDestroyUintStack(symStack);
+            fklUintVectorDestroy(symStack);
             errorState->type = FKL_ERR_SYNTAXERROR;
             errorState->place = fklMakeNastNodeRef(origExp);
             return;
@@ -1424,13 +1426,13 @@ static CODEGEN_FUNC(codegen_let81) {
 
 static CODEGEN_FUNC(codegen_letrec) {
     FklNastNode *const *builtin_pattern_node = outer_ctx->builtin_pattern_node;
-    FklUintStack *symStack = fklCreateUintStack(8, 16);
+    FklUintVector *symStack = fklUintVectorCreate(8);
     FklNastNode *firstSymbol =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (firstSymbol->type != FKL_NAST_SYM) {
-        fklDestroyUintStack(symStack);
+        fklUintVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
@@ -1442,13 +1444,13 @@ static CODEGEN_FUNC(codegen_letrec) {
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
 
     fklAddCodegenPreDefBySid(firstSymbol->sym, cs, 0, curEnv);
-    fklPushUintStack(firstSymbol->sym, symStack);
+    fklUintVectorPushBack(symStack, &firstSymbol->sym);
 
     if (!is_valid_letrec_args(args, curEnv, cs, symStack,
                               builtin_pattern_node)) {
         cms->refcount = 1;
         fklDestroyCodegenMacroScope(cms);
-        fklDestroyUintStack(symStack);
+        fklUintVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
@@ -1639,7 +1641,7 @@ is_valid_do_var_bind(const FklNastNode *list, FklNastNode **nextV,
 
 static inline int
 is_valid_do_bind_list(const FklNastNode *sl, FklCodegenEnv *env, uint32_t scope,
-                      FklUintStack *stack, FklUintStack *nstack,
+                      FklUintVector *stack, FklUintVector *nstack,
                       FklPtrQueue *valueQueue, FklPtrQueue *nextQueue,
                       FklNastNode *const *builtin_pattern_node) {
     if (fklIsNastNodeList(sl)) {
@@ -1651,11 +1653,11 @@ is_valid_do_bind_list(const FklNastNode *sl, FklCodegenEnv *env, uint32_t scope,
             FklSid_t id = cc->pair->car->sym;
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
-            fklPushUintStack(idx, stack);
+            uint64_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
+            fklUintVectorPushBack(stack, &idx);
             fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cc)), valueQueue);
             if (nextExp) {
-                fklPushUintStack(idx, nstack);
+                fklUintVectorPushBack(nstack, &idx);
                 fklPushPtrQueue(fklMakeNastNodeRef(nextExp), nextQueue);
             }
         }
@@ -1668,7 +1670,7 @@ BC_PROCESS(_do1_init_val_bc_process) {
     FklByteCodelnt *ret = fklCreateByteCodelnt(fklCreateByteCode(0));
     Let1Context *ctx = (Let1Context *)(context->data);
     FklPtrStack *s = ctx->stack;
-    FklUintStack *ss = ctx->ss;
+    FklUintVector *ss = ctx->ss;
 
     FklInstruction pop = create_op_ins(FKL_OP_DROP);
 
@@ -1688,7 +1690,7 @@ BC_PROCESS(_do1_init_val_bc_process) {
 BC_PROCESS(_do1_next_val_bc_process) {
     Let1Context *ctx = (Let1Context *)(context->data);
     FklPtrStack *s = ctx->stack;
-    FklUintStack *ss = ctx->ss;
+    FklUintVector *ss = ctx->ss;
 
     if (s->top) {
         FklByteCodelnt *ret = fklCreateByteCodelnt(fklCreateByteCode(0));
@@ -1752,8 +1754,8 @@ static CODEGEN_FUNC(codegen_do1) {
         fklGetHashItem(&outer_ctx->builtInPatternVar_value, ht);
     FklNastNode *value = item ? item->node : NULL;
 
-    FklUintStack *symStack = fklCreateUintStack(4, 16);
-    FklUintStack *nextSymStack = fklCreateUintStack(4, 16);
+    FklUintVector *symStack = fklUintVectorCreate(4);
+    FklUintVector *nextSymStack = fklUintVectorCreate(4);
 
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
@@ -1765,8 +1767,8 @@ static CODEGEN_FUNC(codegen_do1) {
                                builtin_pattern_node)) {
         cms->refcount = 1;
         fklDestroyCodegenMacroScope(cms);
-        fklDestroyUintStack(symStack);
-        fklDestroyUintStack(nextSymStack);
+        fklUintVectorDestroy(symStack);
+        fklUintVectorDestroy(nextSymStack);
         destroy_next_exp_queue(valueQueue);
         destroy_next_exp_queue(nextValueQueue);
 
@@ -2042,7 +2044,7 @@ static inline FklByteCodelnt *processArgs(const FklNastNode *args,
     return retval;
 }
 
-static inline FklByteCodelnt *processArgsInStack(FklUintStack *stack,
+static inline FklByteCodelnt *processArgsInStack(FklUintVector *stack,
                                                  FklCodegenEnv *curEnv,
                                                  FklCodegenInfo *codegen,
                                                  uint64_t curline) {
@@ -2200,13 +2202,13 @@ static CODEGEN_FUNC(codegen_named_let1) {
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
     }
-    FklUintStack *symStack = fklCreateUintStack(8, 16);
+    FklUintVector *symStack = fklUintVectorCreate(8);
     FklNastNode *firstSymbol =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (firstSymbol->type != FKL_NAST_SYM) {
-        fklDestroyUintStack(symStack);
+        fklUintVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
@@ -2219,13 +2221,13 @@ static CODEGEN_FUNC(codegen_named_let1) {
 
     FklCodegenEnv *lambdaCodegenEnv = fklCreateCodegenEnv(curEnv, cs, cms);
     fklAddCodegenDefBySid(firstSymbol->sym, 1, lambdaCodegenEnv);
-    fklPushUintStack(firstSymbol->sym, symStack);
+    fklUintVectorPushBack(symStack, &firstSymbol->sym);
 
     if (!is_valid_let_args(args, lambdaCodegenEnv, 1, symStack,
                            builtin_pattern_node)) {
         lambdaCodegenEnv->refcount = 1;
         fklDestroyCodegenEnv(lambdaCodegenEnv);
-        fklDestroyUintStack(symStack);
+        fklUintVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
@@ -2280,7 +2282,7 @@ static CODEGEN_FUNC(codegen_named_let1) {
 
     fklPushPtrStack(argBc, lStack);
 
-    fklDestroyUintStack(symStack);
+    fklUintVectorDestroy(symStack);
     create_and_insert_to_pool(
         codegen, curEnv->prototypeId, lambdaCodegenEnv,
         get_sid_in_gs_with_id_in_ps(name->sym, codegen->runtime_symbol_table,
@@ -3050,6 +3052,13 @@ exit:
     return r;
 }
 
+// FklU8Vector
+#define FKL_VECTOR_ELM_TYPE uint8_t
+#define FKL_VECTOR_ELM_TYPE_NAME U8
+#include <fakeLisp/vector.h>
+#undef FKL_VECTOR_ELM_TYPE
+#undef FKL_VECTOR_ELM_TYPE_NAME
+
 static inline int
 is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                          const FklCodegenOuterCtx *ctx, uint32_t scope,
@@ -3070,19 +3079,20 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
         fklPushPtrStack(NULL, &expStack);
         fklPushPtrStack((void *)value, &expStack);
 
-        FklU8Stack boolStack;
-        fklInitU8Stack(&boolStack, 1, 8);
-        fklPushU8Stack(255, &boolStack);
+        FklU8Vector boolStack;
+        fklU8VectorInit(&boolStack, 1);
+        fklU8VectorPushBack2(&boolStack, 255);
 
-        FklU8Stack opStack;
-        fklInitU8Stack(&opStack, 1, 8);
-        fklPushU8Stack(COND_COMPILE_CHECK_OP_TRUE, &opStack);
+        FklU8Vector opStack;
+        fklU8VectorInit(&opStack, 1);
+        fklU8VectorPushBack2(&opStack, COND_COMPILE_CHECK_OP_TRUE);
 
         FklPtrStack tmpStack;
         fklInitPtrStack(&tmpStack, 1, 8);
         uint8_t r = 0;
-        while (!fklIsU8StackEmpty(&opStack)) {
-            uint8_t r = fklPopU8Stack(&boolStack);
+        while (!fklU8VectorIsEmpty(&opStack)) {
+            uint8_t *pback = fklU8VectorPopBack(&boolStack);
+            uint8_t r = pback ? *pback : 0;
             FklNastNode *cur = NULL;
             if (r == 255) {
                 cur = fklPopPtrStack(&expStack);
@@ -3241,8 +3251,9 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                                        ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_NOT],
                                        cur, &ht)) {
-                            fklPushU8Stack(255, &boolStack);
-                            fklPushU8Stack(COND_COMPILE_CHECK_OP_NOT, &opStack);
+                            fklU8VectorPushBack2(&boolStack, 255);
+                            fklU8VectorPushBack2(&opStack,
+                                                 COND_COMPILE_CHECK_OP_NOT);
                             fklPushPtrStack(
                                 (void *)fklPatternMatchingHashTableRef(
                                     ctx->builtInPatternVar_value, &ht),
@@ -3258,10 +3269,10 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                             if (rest->type == FKL_NAST_NIL)
                                 r = 1;
                             else if (fklIsNastNodeList(rest)) {
-                                fklPushU8Stack(255, &boolStack);
+                                fklU8VectorPushBack2(&boolStack, 255);
                                 fklPushPtrStack(NULL, &expStack);
-                                fklPushU8Stack(COND_COMPILE_CHECK_OP_AND,
-                                               &opStack);
+                                fklU8VectorPushBack2(&opStack,
+                                                     COND_COMPILE_CHECK_OP_AND);
                                 for (; rest->type == FKL_NAST_PAIR;
                                      rest = rest->pair->cdr)
                                     fklPushPtrStack((void *)rest->pair->car,
@@ -3285,10 +3296,10 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                             if (rest->type == FKL_NAST_NIL)
                                 r = 0;
                             else if (fklIsNastNodeList(rest)) {
-                                fklPushU8Stack(255, &boolStack);
+                                fklU8VectorPushBack2(&boolStack, 255);
                                 fklPushPtrStack(NULL, &expStack);
-                                fklPushU8Stack(COND_COMPILE_CHECK_OP_OR,
-                                               &opStack);
+                                fklU8VectorPushBack2(&opStack,
+                                                     COND_COMPILE_CHECK_OP_OR);
                                 for (; rest->type == FKL_NAST_PAIR;
                                      rest = rest->pair->cdr)
                                     fklPushPtrStack((void *)rest->pair->car,
@@ -3317,43 +3328,44 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                 }
             }
             if (r == 255)
-                fklPushU8Stack(255, &boolStack);
-            uint8_t cond_compile_check_op = fklTopU8Stack(&opStack);
+                fklU8VectorPushBack2(&boolStack, 255);
+            pback = fklU8VectorBack(&opStack);
+            uint8_t cond_compile_check_op = pback ? *pback : 0;
             switch (cond_compile_check_op) {
             case COND_COMPILE_CHECK_OP_TRUE:
-                fklPushU8Stack(r, &boolStack);
+                fklU8VectorPushBack2(&boolStack, r);
                 break;
             case COND_COMPILE_CHECK_OP_NOT:
-                fklPushU8Stack(!r, &boolStack);
+                fklU8VectorPushBack2(&boolStack, !r);
                 break;
             case COND_COMPILE_CHECK_OP_AND:
                 if (r == 255) {
-                    fklPopU8Stack(&boolStack);
-                    fklPushU8Stack(1, &boolStack);
+                    fklU8VectorPopBack(&boolStack);
+                    fklU8VectorPushBack2(&boolStack, 1);
                 } else if (r == 0) {
                     for (; cur; cur = fklPopPtrStack(&expStack))
                         ;
-                    fklPushU8Stack(0, &boolStack);
+                    fklU8VectorPushBack2(&boolStack, 0);
                 } else {
-                    fklPushU8Stack(255, &boolStack);
+                    fklU8VectorPushBack2(&boolStack, 255);
                     continue;
                 }
                 break;
             case COND_COMPILE_CHECK_OP_OR:
                 if (r == 255) {
-                    fklPopU8Stack(&boolStack);
-                    fklPushU8Stack(0, &boolStack);
+                    fklU8VectorPopBack(&boolStack);
+                    fklU8VectorPushBack2(&boolStack, 0);
                 } else if (r == 1) {
                     for (; cur; cur = fklPopPtrStack(&expStack))
                         ;
-                    fklPushU8Stack(1, &boolStack);
+                    fklU8VectorPushBack2(&boolStack, 1);
                 } else {
-                    fklPushU8Stack(255, &boolStack);
+                    fklU8VectorPushBack2(&boolStack, 255);
                     continue;
                 }
                 break;
             }
-            fklPopU8Stack(&opStack);
+            fklU8VectorPopBack(&opStack);
         }
 
 #undef COND_COMPILE_CHECK_OP_OR
@@ -3361,10 +3373,11 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
 #undef COND_COMPILE_CHECK_OP_NOT
 #undef COND_COMPILE_CHECK_OP_TRUE
 
-        r = fklPopU8Stack(&boolStack);
+        uint8_t *pback = fklU8VectorPopBack(&boolStack);
+        r = pback ? *pback : 0;
     exit:
-        fklUninitU8Stack(&boolStack);
-        fklUninitU8Stack(&opStack);
+        fklU8VectorUninit(&boolStack);
+        fklU8VectorUninit(&opStack);
         fklUninitPtrStack(&tmpStack);
         fklUninitPtrStack(&expStack);
         fklUninitHashTable(&ht);
@@ -4192,7 +4205,7 @@ typedef struct {
     FklCodegenInfo *codegen;
     FklPtrStack symbolStack;
     FklPtrStack stateStack;
-    FklUintStack lineStack;
+    FklUintVector lineStack;
 } CodegenLoadContext;
 
 #include <fakeLisp/grammer.h>
@@ -4205,7 +4218,7 @@ static CodegenLoadContext *createCodegenLoadContext(FILE *fp,
     r->codegen = codegen;
     r->fp = fp;
     fklInitPtrStack(&r->stateStack, 16, 16);
-    fklInitUintStack(&r->lineStack, 16, 16);
+    fklUintVectorInit(&r->lineStack, 16);
     fklInitPtrStack(&r->symbolStack, 16, 16);
     return r;
 }
@@ -4217,7 +4230,7 @@ static void _codegen_load_finalizer(void *pcontext) {
         fklDestroyAnaysisSymbol(fklPopPtrStack(symbolStack));
     fklUninitPtrStack(symbolStack);
     fklUninitPtrStack(&context->stateStack);
-    fklUninitUintStack(&context->lineStack);
+    fklUintVectorUninit(&context->lineStack);
     fclose(context->fp);
     free(context);
 }
@@ -4225,7 +4238,7 @@ static void _codegen_load_finalizer(void *pcontext) {
 static inline FklNastNode *
 getExpressionFromFile(FklCodegenInfo *codegen, FILE *fp, int *unexpectEOF,
                       size_t *errorLine, FklCodegenErrorState *errorState,
-                      FklPtrStack *symbolStack, FklUintStack *lineStack,
+                      FklPtrStack *symbolStack, FklUintVector *lineStack,
                       FklPtrStack *stateStack) {
     FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
     size_t size = 0;
@@ -4264,7 +4277,7 @@ _codegen_load_get_next_expression(void *pcontext,
     FklCodegenInfo *codegen = context->codegen;
     FklPtrStack *stateStack = &context->stateStack;
     FklPtrStack *symbolStack = &context->symbolStack;
-    FklUintStack *lineStack = &context->lineStack;
+    FklUintVector *lineStack = &context->lineStack;
     FILE *fp = context->fp;
     int unexpectEOF = 0;
     size_t errorLine = 0;
@@ -5136,7 +5149,7 @@ static int recompute_import_dst_idx_func(void *cctx, FklOpcode *op,
 
 static inline FklSid_t recompute_import_src_idx(FklByteCodelnt *bcl,
                                                 FklCodegenEnv *env,
-                                                FklUintStack *idPstack) {
+                                                FklUintVector *idPstack) {
     struct RecomputeImportSrcIdxCtx ctx = {
         .id = 0, .env = env, .id_base = idPstack->base};
     fklRecomputeInsImm(bcl, &ctx, recompute_import_dst_idx_predicate,
@@ -5178,13 +5191,13 @@ BC_PROCESS(_export_import_bc_process) {
 
     FklHashTable *defs = &env->scopes[0].defs;
 
-    FklUintStack idPstack = FKL_STACK_INIT;
-    fklInitUintStack(&idPstack, defs->num, 16);
+    FklUintVector idPstack;
+    fklUintVectorInit(&idPstack, defs->num);
 
     for (FklHashTableItem *list = defs->first; list; list = list->next) {
         FklSymbolDef *def = (FklSymbolDef *)(list->data);
         FklSid_t idp = def->k.id;
-        fklPushUintStack(idp, &idPstack);
+        fklUintVectorPushBack(&idPstack, &idp);
     }
 
     if (idPstack.top) {
@@ -5247,7 +5260,7 @@ BC_PROCESS(_export_import_bc_process) {
     }
 
 exit:
-    fklUninitUintStack(&idPstack);
+    fklUintVectorUninit(&idPstack);
 
     return bcl;
 }

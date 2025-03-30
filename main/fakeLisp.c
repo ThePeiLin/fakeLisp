@@ -638,7 +638,7 @@ typedef struct {
     size_t offset;
     FklPtrStack stateStack;
     FklPtrStack symbolStack;
-    FklUintStack lineStack;
+    FklUintVector lineStack;
 } NastCreatCtx;
 
 #include <replxx.h>
@@ -1206,7 +1206,7 @@ static inline void destroyNastCreatCtx(NastCreatCtx *cc) {
         fklDestroyNastNode(s->ast);
         free(s);
     }
-    fklUninitUintStack(&cc->lineStack);
+    fklUintVectorUninit(&cc->lineStack);
     fklUninitPtrStack(&cc->symbolStack);
     free(cc);
 }
@@ -1437,7 +1437,7 @@ static inline NastCreatCtx *createNastCreatCtx(void) {
     FKL_ASSERT(cc);
     cc->offset = 0;
     fklInitPtrStack(&cc->symbolStack, 16, 16);
-    fklInitUintStack(&cc->lineStack, 16, 16);
+    fklUintVectorInit(&cc->lineStack, 16);
     fklInitPtrStack(&cc->stateStack, 16, 16);
     fklNastPushState0ToStack(&cc->stateStack);
     return cc;

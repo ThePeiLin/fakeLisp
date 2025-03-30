@@ -47,12 +47,12 @@ int main() {
 
         FklPtrStack stateStack;
         FklPtrStack symbolStack;
-        FklUintStack lineStack;
+        FklUintVector lineStack;
 
         fklInitPtrStack(&stateStack, 8, 16);
         fklNastPushState0ToStack(&stateStack);
         fklInitPtrStack(&symbolStack, 8, 16);
-        fklInitUintStack(&lineStack, 8, 16);
+        fklUintVectorInit(&lineStack, 8);
         size_t errLine = 0;
         FklNastNode *ast =
             fklDefaultParseForCstr(*exp, &outerCtx, &retval, &errLine,
@@ -62,7 +62,7 @@ int main() {
             free(fklPopPtrStack(&symbolStack));
         fklUninitPtrStack(&symbolStack);
         fklUninitPtrStack(&stateStack);
-        fklUninitUintStack(&lineStack);
+        fklUintVectorUninit(&lineStack);
         if (retval)
             break;
 

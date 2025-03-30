@@ -609,14 +609,9 @@ static inline void push_bytecode_print_state(FklUintVector *s, uint64_t tc,
 
 static inline void pop_bytecode_print_state(FklUintVector *s,
                                             struct ByteCodePrintState *state) {
-    uint64_t *back = fklUintVectorPopBack(s);
-    state->cpc = back ? *back : 0;
-
-    back = fklUintVectorPopBack(s);
-    state->cp = back ? *back : 0;
-
-    back = fklUintVectorPopBack(s);
-    state->tc = back ? *back : 0;
+    state->cpc = *fklUintVectorPopBack(s);
+    state->cp = *fklUintVectorPopBack(s);
+    state->tc = *fklUintVectorPopBack(s);
 }
 
 static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,

@@ -254,59 +254,6 @@ FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
 #undef FKL_VECTOR_ELM_TYPE
 #undef FKL_VECTOR_ELM_TYPE_NAME
 
-/* to be delete
-typedef struct {
-    int64_t *base;
-    uint32_t size;
-    uint32_t top;
-    uint32_t inc;
-} FklIntStack;
-
-FklIntStack *fklCreateIntStack(uint32_t size, uint32_t inc);
-void fklPushIntStack(int64_t e, FklIntStack *);
-int64_t fklPopIntStack(FklIntStack *);
-int64_t fklTopIntStack(FklIntStack *);
-void fklDestroyIntStack(FklIntStack *);
-void fklRecycleIntStack(FklIntStack *);
-int fklIsIntStackEmpty(FklIntStack *);
-
-typedef struct {
-    uint64_t *base;
-    uint32_t size;
-    uint32_t top;
-    uint32_t inc;
-} FklUintStack;
-
-void fklInitUintStack(FklUintStack *, uint32_t size, uint32_t inc);
-void fklUninitUintStack(FklUintStack *);
-FklUintStack *fklCreateUintStack(uint32_t size, uint32_t inc);
-void fklInitUintStackWithStack(FklUintStack *, const FklUintStack *);
-FklUintStack *fklCreateUintStackFromStack(const FklUintStack *);
-void fklPushUintStack(uint64_t e, FklUintStack *);
-uint64_t fklPopUintStack(FklUintStack *);
-uint64_t fklTopUintStack(FklUintStack *);
-void fklDestroyUintStack(FklUintStack *);
-void fklRecycleUintStack(FklUintStack *);
-int fklIsUintStackEmpty(FklUintStack *);
-
-typedef struct {
-    uint8_t *base;
-    size_t size;
-    size_t top;
-    uint32_t inc;
-} FklU8Stack;
-
-void fklInitU8Stack(FklU8Stack *, size_t size, uint32_t inc);
-void fklUninitU8Stack(FklU8Stack *);
-FklU8Stack *fklCreateU8Stack(size_t size, uint32_t inc);
-void fklPushU8Stack(uint8_t e, FklU8Stack *);
-uint8_t fklPopU8Stack(FklU8Stack *);
-uint8_t fklTopU8Stack(FklU8Stack *);
-void fklDestroyU8Stack(FklU8Stack *);
-void fklRecycleU8Stack(FklU8Stack *);
-int fklIsU8StackEmpty(FklU8Stack *);
-*/
-
 size_t fklBigIntToStringBuffer(const FklBigInt *a,
                                FklStringBuffer *string_buffer, uint8_t radix,
                                FklBigIntFmtFlags flags);

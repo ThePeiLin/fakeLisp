@@ -1242,8 +1242,7 @@ BC_PROCESS(_let1_exp_bc_process) {
 
     FklByteCodelnt *retval = fklPopPtrStack(bcls);
     while (!fklUintVectorIsEmpty(symbolStack)) {
-        FklSid_t *pback = fklUintVectorPopBack(symbolStack);
-        FklSid_t id = pback ? *pback : 0;
+        FklSid_t id = *fklUintVectorPopBack(symbolStack);
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
     }
@@ -1287,8 +1286,7 @@ BC_PROCESS(_letrec_arg_exp_bc_process) {
     FklByteCodelnt *retval = create_0len_bcl();
     while (!fklUintVectorIsEmpty(symbolStack)) {
         FklByteCodelnt *value_bc = fklPopPtrStack(bcls);
-        FklSid_t *pback = fklUintVectorPopBack(symbolStack);
-        FklSid_t id = pback ? *pback : 0;
+        FklSid_t id = *fklUintVectorPopBack(symbolStack);
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         fklResolveCodegenPreDef(id, scope, env, codegen->pts);
         append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
@@ -3091,8 +3089,7 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
         fklInitPtrStack(&tmpStack, 1, 8);
         uint8_t r = 0;
         while (!fklU8VectorIsEmpty(&opStack)) {
-            uint8_t *pback = fklU8VectorPopBack(&boolStack);
-            uint8_t r = pback ? *pback : 0;
+            uint8_t r = *fklU8VectorPopBack(&boolStack);
             FklNastNode *cur = NULL;
             if (r == 255) {
                 cur = fklPopPtrStack(&expStack);
@@ -3329,8 +3326,7 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
             }
             if (r == 255)
                 fklU8VectorPushBack2(&boolStack, 255);
-            pback = fklU8VectorBack(&opStack);
-            uint8_t cond_compile_check_op = pback ? *pback : 0;
+            uint8_t cond_compile_check_op = *fklU8VectorBack(&opStack);
             switch (cond_compile_check_op) {
             case COND_COMPILE_CHECK_OP_TRUE:
                 fklU8VectorPushBack2(&boolStack, r);
@@ -3373,8 +3369,7 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
 #undef COND_COMPILE_CHECK_OP_NOT
 #undef COND_COMPILE_CHECK_OP_TRUE
 
-        uint8_t *pback = fklU8VectorPopBack(&boolStack);
-        r = pback ? *pback : 0;
+        r = *fklU8VectorPopBack(&boolStack);
     exit:
         fklU8VectorUninit(&boolStack);
         fklU8VectorUninit(&opStack);

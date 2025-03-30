@@ -110,7 +110,7 @@ static size_t strbuf_length(const FklVMud *ud) {
     return buf->index;
 }
 
-static uintptr_t strbuf_hash(const FklVMud *ud, FklPtrStack *s) {
+static uintptr_t strbuf_hash(const FklVMud *ud, FklVMvalueVector *s) {
     FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
     return fklCharBufHash(buf->buf, buf->size);
 }

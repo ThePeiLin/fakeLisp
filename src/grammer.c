@@ -266,8 +266,8 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
     FklSid_t left = fklAddSymbolCharBuf(ss, len, symbolTable)->id;
     ss += len;
     len = 0;
-    FklPtrStack st = FKL_STACK_INIT;
-    fklInitPtrStack(&st, 8, 8);
+    FklStringVector st;
+    fklStringVectorInit(&st, 8);
     size_t joint_num = 0;
     while (*ss) {
         for (; isspace(*ss); ss++)
@@ -277,7 +277,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
         if (ss[0] == '+' || ss[0] == '-')
             joint_num++;
         if (len)
-            fklPushPtrStack(fklCreateString(len, ss), &st);
+            fklStringVectorPushBack2(&st, fklCreateString(len, ss));
         ss += len;
     }
     size_t prod_len = st.top - joint_num;
@@ -344,9 +344,9 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
         symIdx++;
     }
 exit:
-    while (!fklIsPtrStackEmpty(&st))
-        free(fklPopPtrStack(&st));
-    fklUninitPtrStack(&st);
+    while (!fklStringVectorIsEmpty(&st))
+        free(*fklStringVectorPopBack(&st));
+    fklStringVectorUninit(&st);
     return prod;
 }
 
@@ -414,8 +414,8 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
     FklSid_t left = 0;
     ss += len;
     len = 0;
-    FklPtrStack st = FKL_STACK_INIT;
-    fklInitPtrStack(&st, 8, 8);
+    FklStringVector st;
+    fklStringVectorInit(&st, 8);
     size_t joint_num = 0;
     while (*ss) {
         for (; isspace(*ss); ss++)
@@ -425,14 +425,14 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
         if (ss[0] == '+')
             joint_num++;
         if (len)
-            fklPushPtrStack(fklCreateString(len, ss), &st);
+            fklStringVectorPushBack2(&st, fklCreateString(len, ss));
         ss += len;
     }
     size_t prod_len = st.top - joint_num;
     if (!prod_len) {
-        while (!fklIsPtrStackEmpty(&st))
-            free(fklPopPtrStack(&st));
-        fklUninitPtrStack(&st);
+        while (!fklStringVectorIsEmpty(&st))
+            free(*fklStringVectorPopBack(&st));
+        fklStringVectorUninit(&st);
         return NULL;
     }
     FklGrammerProduction *prod = fklCreateEmptyProduction(
@@ -488,17 +488,17 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
         }
         symIdx++;
     }
-    while (!fklIsPtrStackEmpty(&st))
-        free(fklPopPtrStack(&st));
-    fklUninitPtrStack(&st);
+    while (!fklStringVectorIsEmpty(&st))
+        free(*fklStringVectorPopBack(&st));
+    fklStringVectorUninit(&st);
     FklGrammerIgnore *ig =
         fklGrammerSymbolsToIgnore(prod->syms, prod->len, termTable);
     fklDestroyGrammerProduction(prod);
     return ig;
 error:
-    while (!fklIsPtrStackEmpty(&st))
-        free(fklPopPtrStack(&st));
-    fklUninitPtrStack(&st);
+    while (!fklStringVectorIsEmpty(&st))
+        free(*fklStringVectorPopBack(&st));
+    fklStringVectorUninit(&st);
     return NULL;
 }
 
@@ -1835,69 +1835,26 @@ static const struct BuiltinGrammerSymList {
     const char *name;
     const FklLalrBuiltinMatch *t;
 } builtin_grammer_sym_list[] = {
-    {
-        "?dint",
-        &builtin_match_dec_int,
-    },
-    {
-        "?xint",
-        &builtin_match_hex_int,
-    },
-    {
-        "?oint",
-        &builtin_match_oct_int,
-    },
-    {
-        "?dfloat",
-        &builtin_match_dec_float,
-    },
-    {
-        "?xfloat",
-        &builtin_match_hex_float,
-    },
+    // clang-format off
+    {"?dint",       &builtin_match_dec_int    },
+    {"?xint",       &builtin_match_hex_int    },
+    {"?oint",       &builtin_match_oct_int    },
+    {"?dfloat",     &builtin_match_dec_float  },
+    {"?xfloat",     &builtin_match_hex_float  },
 
-    {
-        "?s-dint",
-        &builtin_match_s_dint,
-    },
-    {
-        "?s-xint",
-        &builtin_match_s_xint,
-    },
-    {
-        "?s-oint",
-        &builtin_match_s_oint,
-    },
-    {
-        "?s-dfloat",
-        &builtin_match_s_dfloat,
-    },
-    {
-        "?s-xfloat",
-        &builtin_match_s_xfloat,
-    },
+    {"?s-dint",     &builtin_match_s_dint     },
+    {"?s-xint",     &builtin_match_s_xint     },
+    {"?s-oint",     &builtin_match_s_oint     },
+    {"?s-dfloat",   &builtin_match_s_dfloat   },
+    {"?s-xfloat",   &builtin_match_s_xfloat   },
 
-    {
-        "?symbol",
-        &builtin_match_symbol,
-    },
-    {
-        "?char",
-        &builtin_match_s_char,
-    },
-    {
-        "?identifier",
-        &builtin_match_identifier,
-    },
-    {
-        "?noterm",
-        &builtin_match_noterm,
-    },
+    {"?symbol",     &builtin_match_symbol     },
+    {"?char",       &builtin_match_s_char     },
+    {"?identifier", &builtin_match_identifier },
+    {"?noterm",     &builtin_match_noterm     },
 
-    {
-        NULL,
-        NULL,
-    },
+    {NULL,          NULL                      },
+    // clang-format on
 };
 
 void fklInitBuiltinGrammerSymTable(FklHashTable *s, FklSymbolTable *st) {
@@ -2258,17 +2215,21 @@ FklGrammer *fklCreateEmptyGrammer(FklSymbolTable *st) {
     return r;
 }
 
+#define FKL_VECTOR_ELM_TYPE FklGrammerProduction *
+#define FKL_VECTOR_ELM_TYPE_NAME Prod
+#include <fakeLisp/vector.h>
+
 static inline int add_reachable_terminal(FklGrammer *g) {
     FklHashTable *productions = &g->productions;
-    FklPtrStack prod_stack;
-    fklInitPtrStack(&prod_stack, g->prodNum, 16);
+    FklProdVector prod_stack;
+    fklProdVectorInit(&prod_stack, g->prodNum);
     FklGrammerProdHashItem *first =
         (FklGrammerProdHashItem *)g->productions.first->data;
-    fklPushPtrStack(first->prods, &prod_stack);
+    fklProdVectorPushBack2(&prod_stack, first->prods);
     FklHashTable nonterm_set;
     init_nonterm_set(&nonterm_set);
-    while (!fklIsPtrStackEmpty(&prod_stack)) {
-        FklGrammerProduction *prods = fklPopPtrStack(&prod_stack);
+    while (!fklProdVectorIsEmpty(&prod_stack)) {
+        FklGrammerProduction *prods = *fklProdVectorPopBack(&prod_stack);
         for (; prods; prods = prods->next) {
             const FklGrammerSym *syms = prods->syms;
             for (size_t i = 0; i < prods->len; i++) {
@@ -2286,15 +2247,15 @@ static inline int add_reachable_terminal(FklGrammer *g) {
                 }
                 if (!cur->isterm
                     && !fklPutHashItem2(&nonterm_set, &cur->nt, NULL))
-                    fklPushPtrStack(fklGetProductions(productions,
-                                                      cur->nt.group,
-                                                      cur->nt.sid),
-                                    &prod_stack);
+                    fklProdVectorPushBack2(&prod_stack,
+                                           fklGetProductions(productions,
+                                                             cur->nt.group,
+                                                             cur->nt.sid));
             }
         }
     }
     fklUninitHashTable(&nonterm_set);
-    fklUninitPtrStack(&prod_stack);
+    fklProdVectorUninit(&prod_stack);
     for (FklGrammerIgnore *igs = g->ignores; igs; igs = igs->next) {
         FklGrammerIgnoreSym *igss = igs->ig;
         for (size_t i = 0; i < igs->len; i++) {
@@ -4399,11 +4360,12 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
     switch (ac->action) {
     case FKL_ANALYSIS_SHIFT:
         fprintf(fp,
-                "\t\t\tfklPushPtrStack((void*)state_%" FKL_PRT64U
-                ",stateStack);\n",
+                "\t\t\tfklParseStateFuncVectorPushBack2(stateStack,state_"
+                "%" FKL_PRT64U ");\n",
                 ac->state - states);
-        fputs("\t\t\tfklPushPtrStack(create_term_analyzing_symbol(*in,matchLen,"
-              "outerCtx->line,outerCtx->ctx),symbolStack);\n"
+        fputs("\t\t\tfklAnalysisSymbolVectorPushBack2(symbolStack,create_term_"
+              "analyzing_symbol(*in,matchLen,"
+              "outerCtx->line,outerCtx->ctx));\n"
               "\t\t\tfklUintVectorPushBack(lineStack,&outerCtx->line);\n"
               "\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
               "\t\t\t*in+=matchLen;\n"
@@ -4418,7 +4380,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
         fprintf(fp, "\t\t\tsymbolStack->top-=%" FKL_PRT64U ";\n",
                 ac->prod->len);
         fputs("\t\t\tFklStateFuncPtr "
-              "func=(FklStateFuncPtr)fklTopPtrStack(stateStack);\n",
+              "func=*fklParseStateFuncVectorBack(stateStack);\n",
               fp);
         fputs("\t\t\tFklStateFuncPtr nextState=NULL;\n", fp);
         fprintf(fp,
@@ -4427,7 +4389,8 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                 ac->prod->left.sid);
         fputs("\t\t\tif(!nextState)\n\t\t\t\treturn FKL_PARSE_REDUCE_FAILED;\n",
               fp);
-        fputs("\t\t\tfklPushPtrStack((void*)nextState,stateStack);\n", fp);
+        fputs("\t\t\tfklParseStateFuncVectorPushBack2(stateStack,nextState);\n",
+              fp);
 
         if (ac->prod->len)
             fprintf(fp,
@@ -4477,8 +4440,9 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
               "FKL_PARSE_REDUCE_FAILED;\n\t\t\t}\n",
               fp);
         fprintf(fp,
-                "\t\t\tfklPushPtrStack((void*)create_nonterm_analyzing_symbol("
-                "%" FKL_PRT64U ",ast),symbolStack);\n",
+                "\t\t\tfklAnalysisSymbolVectorPushBack2(symbolStack,create_"
+                "nonterm_analyzing_symbol("
+                "%" FKL_PRT64U ",ast));\n",
                 ac->prod->left.sid);
         fputs("\t\t\tfklUintVectorPushBack(lineStack,&line);\n", fp);
         break;
@@ -4497,8 +4461,8 @@ static inline void
 print_state_prototype_to_c_file(const FklAnalysisState *states, size_t idx,
                                 FILE *fp) {
     fprintf(fp,
-            "static int state_%" FKL_PRT64U "(FklPtrStack*"
-            ",FklPtrStack*"
+            "static int state_%" FKL_PRT64U "(FklParseStateFuncVector*"
+            ",FklAnalysisSymbolVector*"
             ",FklUintVector*"
             ",int"
             ",FklSid_t"
@@ -4518,8 +4482,9 @@ static inline void print_state_to_c_file(const FklAnalysisState *states,
                                          FILE *fp) {
     const FklAnalysisState *state = &states[idx];
     fprintf(fp,
-            "static int state_%" FKL_PRT64U "(FklPtrStack* stateStack\n"
-            "\t\t,FklPtrStack* symbolStack\n"
+            "static int state_%" FKL_PRT64U
+            "(FklParseStateFuncVector* stateStack\n"
+            "\t\t,FklAnalysisSymbolVector* symbolStack\n"
             "\t\t,FklUintVector* lineStack\n"
             "\t\t,int is_action\n"
             "\t\t,FklSid_t left\n"
@@ -4733,8 +4698,9 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g, const FklSymbolTable *st,
     for (size_t i = 0; i < stateNum; i++)
         print_state_to_c_file(states, i, g, ast_destroyer_name, fp);
     fprintf(fp,
-            "void %s(FklPtrStack* "
-            "stateStack){fklPushPtrStack((void*)state_0,stateStack);}\n\n",
+            "void %s(FklParseStateFuncVector* "
+            "stateStack){fklParseStateFuncVectorPushBack2(stateStack,state_0);}"
+            "\n\n",
             state_0_push_func_name);
 }
 
@@ -4857,21 +4823,22 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
 
 void *fklDefaultParseForCstr(const char *cstr,
                              FklGrammerMatchOuterCtx *outerCtx, int *err,
-                             uint64_t *errLine, FklPtrStack *symbolStack,
+                             uint64_t *errLine,
+                             FklAnalysisSymbolVector *symbolStack,
                              FklUintVector *lineStack,
-                             FklPtrStack *stateStack) {
+                             FklParseStateFuncVector *stateStack) {
     const char *start = cstr;
     size_t restLen = strlen(start);
     void *ast = NULL;
     for (;;) {
         int accept = 0;
-        FklStateFuncPtr state = fklTopPtrStack(stateStack);
+        FklStateFuncPtr state = *fklParseStateFuncVectorBack(stateStack);
         *err = state(stateStack, symbolStack, lineStack, 1, 0, NULL, start,
                      &cstr, &restLen, outerCtx, &accept, errLine);
         if (*err)
             break;
         if (accept) {
-            FklAnalysisSymbol *s = fklPopPtrStack(symbolStack);
+            FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(symbolStack);
             ast = s->ast;
             free(s);
             break;
@@ -4882,21 +4849,22 @@ void *fklDefaultParseForCstr(const char *cstr,
 
 void *fklDefaultParseForCharBuf(const char *cstr, size_t len, size_t *restLen,
                                 FklGrammerMatchOuterCtx *outerCtx, int *err,
-                                uint64_t *errLine, FklPtrStack *symbolStack,
+                                uint64_t *errLine,
+                                FklAnalysisSymbolVector *symbolStack,
                                 FklUintVector *lineStack,
-                                FklPtrStack *stateStack) {
+                                FklParseStateFuncVector *stateStack) {
     const char *start = cstr;
     *restLen = len;
     void *ast = NULL;
     for (;;) {
         int accept = 0;
-        FklStateFuncPtr state = fklTopPtrStack(stateStack);
+        FklStateFuncPtr state = *fklParseStateFuncVectorBack(stateStack);
         *err = state(stateStack, symbolStack, lineStack, 1, 0, NULL, start,
                      &cstr, restLen, outerCtx, &accept, errLine);
         if (*err)
             break;
         if (accept) {
-            FklAnalysisSymbol *s = fklPopPtrStack(symbolStack);
+            FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(symbolStack);
             ast = s->ast;
             free(s);
             break;
@@ -4962,7 +4930,7 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
     return 0;
 }
 
-static inline void dbg_print_state_stack(FklPtrStack *stateStack,
+static inline void dbg_print_state_stack(FklAnalysisStateVector *stateStack,
                                          FklAnalysisState *states) {
     for (size_t i = 0; i < stateStack->top; i++) {
         const FklAnalysisState *curState = stateStack->base[i];
@@ -4995,8 +4963,8 @@ create_nonterm_analyzing_symbol(FklSid_t group, FklSid_t id, FklNastNode *ast) {
     return sym;
 }
 
-static inline int do_reduce_action(FklPtrStack *stateStack,
-                                   FklPtrStack *symbolStack,
+static inline int do_reduce_action(FklAnalysisStateVector *stateStack,
+                                   FklAnalysisSymbolVector *symbolStack,
                                    FklUintVector *lineStack,
                                    const FklGrammerProduction *prod,
                                    FklGrammerMatchOuterCtx *outerCtx,
@@ -5004,7 +4972,7 @@ static inline int do_reduce_action(FklPtrStack *stateStack,
     size_t len = prod->len;
     stateStack->top -= len;
     FklAnalysisStateGoto *gt =
-        ((const FklAnalysisState *)fklTopPtrStack(stateStack))->state.gt;
+        (*fklAnalysisStateVectorBack(stateStack))->state.gt;
     const FklAnalysisState *state = NULL;
     FklGrammerNonterm left = prod->left;
     for (; gt; gt = gt->next)
@@ -5037,10 +5005,11 @@ static inline int do_reduce_action(FklPtrStack *stateStack,
         *errLine = line;
         return FKL_PARSE_REDUCE_FAILED;
     }
-    fklPushPtrStack(create_nonterm_analyzing_symbol(left.group, left.sid, ast),
-                    symbolStack);
+    fklAnalysisSymbolVectorPushBack2(
+        symbolStack,
+        create_nonterm_analyzing_symbol(left.group, left.sid, ast));
     fklUintVectorPushBack(lineStack, &line);
-    fklPushPtrStack((void *)state, stateStack);
+    fklAnalysisStateVectorPushBack2(stateStack, state);
     return 0;
 }
 
@@ -5052,18 +5021,19 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
     void *ast = NULL;
     const char *start = cstr;
     size_t restLen = strlen(start);
-    FklPtrStack symbolStack;
-    FklPtrStack stateStack;
+    FklAnalysisSymbolVector symbolStack;
+    FklAnalysisStateVector stateStack;
     FklUintVector lineStack;
-    fklInitPtrStack(&stateStack, 16, 8);
-    fklInitPtrStack(&symbolStack, 16, 8);
+    fklAnalysisStateVectorInit(&stateStack, 16);
+    fklAnalysisSymbolVectorInit(&symbolStack, 16);
     fklUintVectorInit(&lineStack, 16);
-    fklPushPtrStack(&t->states[0], &stateStack);
+    fklAnalysisStateVectorPushBack2(&stateStack, &t->states[0]);
     size_t matchLen = 0;
     int waiting_for_more_err = 0;
     for (;;) {
         int is_waiting_for_more = 0;
-        const FklAnalysisState *state = fklTopPtrStack(&stateStack);
+        const FklAnalysisState *state =
+            *fklAnalysisStateVectorBack(&stateStack);
         const FklAnalysisStateAction *action = state->state.action;
         dbg_print_state_stack(&stateStack, t->states);
         for (; action; action = action->next)
@@ -5083,17 +5053,18 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
                 continue;
                 break;
             case FKL_ANALYSIS_SHIFT: {
-                fklPushPtrStack((void *)action->state, &stateStack);
-                fklPushPtrStack(
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
-                    &symbolStack);
+                fklAnalysisStateVectorPushBack2(&stateStack, action->state);
+                fklAnalysisSymbolVectorPushBack2(
+                    &symbolStack,
+                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
                 fklUintVectorPushBack(&lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 restLen -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                FklAnalysisSymbol *top = fklPopPtrStack(&symbolStack);
+                FklAnalysisSymbol *top =
+                    *fklAnalysisSymbolVectorPopBack(&symbolStack);
                 ast = top->ast;
                 free(top);
             }
@@ -5115,13 +5086,13 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
     }
 break_for:
     fklUintVectorUninit(&lineStack);
-    fklUninitPtrStack(&stateStack);
-    while (!fklIsPtrStackEmpty(&symbolStack)) {
-        FklAnalysisSymbol *s = fklPopPtrStack(&symbolStack);
+    fklAnalysisStateVectorUninit(&stateStack);
+    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack)) {
+        FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(&symbolStack);
         fklDestroyNastNode(s->ast);
         free(s);
     }
-    fklUninitPtrStack(&symbolStack);
+    fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
 
@@ -5133,18 +5104,19 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
     void *ast = NULL;
     const char *start = cstr;
     size_t restLen = strlen(start);
-    FklPtrStack symbolStack;
-    FklPtrStack stateStack;
+    FklAnalysisSymbolVector symbolStack;
+    FklAnalysisStateVector stateStack;
     FklUintVector lineStack;
-    fklInitPtrStack(&stateStack, 16, 8);
-    fklInitPtrStack(&symbolStack, 16, 8);
+    fklAnalysisStateVectorInit(&stateStack, 16);
+    fklAnalysisSymbolVectorInit(&symbolStack, 16);
     fklUintVectorInit(&lineStack, 16);
-    fklPushPtrStack(&t->states[0], &stateStack);
+    fklAnalysisStateVectorPushBack2(&stateStack, &t->states[0]);
     size_t matchLen = 0;
     int waiting_for_more_err = 0;
     for (;;) {
         int is_waiting_for_more = 0;
-        const FklAnalysisState *state = fklTopPtrStack(&stateStack);
+        const FklAnalysisState *state =
+            *fklAnalysisStateVectorBack(&stateStack);
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match, start, cstr, restLen,
@@ -5161,17 +5133,18 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
                 continue;
                 break;
             case FKL_ANALYSIS_SHIFT: {
-                fklPushPtrStack((void *)action->state, &stateStack);
-                fklPushPtrStack(
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
-                    &symbolStack);
+                fklAnalysisStateVectorPushBack2(&stateStack, action->state);
+                fklAnalysisSymbolVectorPushBack2(
+                    &symbolStack,
+                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
                 fklUintVectorPushBack(&lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 restLen -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                FklAnalysisSymbol *top = fklPopPtrStack(&symbolStack);
+                FklAnalysisSymbol *top =
+                    *fklAnalysisSymbolVectorPopBack(&symbolStack);
                 ast = top->ast;
                 free(top);
             }
@@ -5193,13 +5166,13 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
     }
 break_for:
     fklUintVectorUninit(&lineStack);
-    fklUninitPtrStack(&stateStack);
-    while (!fklIsPtrStackEmpty(&symbolStack)) {
-        FklAnalysisSymbol *s = fklPopPtrStack(&symbolStack);
+    fklAnalysisStateVectorUninit(&stateStack);
+    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack)) {
+        FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(&symbolStack);
         fklDestroyNastNode(s->ast);
         free(s);
     }
-    fklUninitPtrStack(&symbolStack);
+    fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
 
@@ -5207,9 +5180,9 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
                                   size_t len, size_t *restLen,
                                   FklGrammerMatchOuterCtx *outerCtx,
                                   FklSymbolTable *st, int *err, size_t *errLine,
-                                  FklPtrStack *symbolStack,
+                                  FklAnalysisSymbolVector *symbolStack,
                                   FklUintVector *lineStack,
-                                  FklPtrStack *stateStack) {
+                                  FklAnalysisStateVector *stateStack) {
     *restLen = len;
     void *ast = NULL;
     const char *start = cstr;
@@ -5217,7 +5190,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
     int waiting_for_more_err = 0;
     for (;;) {
         int is_waiting_for_more = 0;
-        const FklAnalysisState *state = fklTopPtrStack(stateStack);
+        const FklAnalysisState *state = *fklAnalysisStateVectorBack(stateStack);
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match, start, cstr, *restLen,
@@ -5234,17 +5207,18 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
                 continue;
                 break;
             case FKL_ANALYSIS_SHIFT: {
-                fklPushPtrStack((void *)action->state, stateStack);
-                fklPushPtrStack(
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
-                    symbolStack);
+                fklAnalysisStateVectorPushBack2(stateStack, action->state);
+                fklAnalysisSymbolVectorPushBack2(
+                    symbolStack,
+                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
                 fklUintVectorPushBack(lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 (*restLen) -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                FklAnalysisSymbol *top = fklPopPtrStack(symbolStack);
+                FklAnalysisSymbol *top =
+                    *fklAnalysisSymbolVectorPopBack(symbolStack);
                 ast = top->ast;
                 free(top);
                 return ast;
@@ -5626,283 +5600,77 @@ static inline void *prod_action_bytevector(void *ctx, void *outerCtx,
 }
 
 static const FklGrammerCstrAction builtin_grammer_and_action[] = {
-    {
-        "*s-exp* &*list*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*vector*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*bytevector*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*box*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*hasheq*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*hasheqv*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*hashequal*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*string*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*symbol*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*integer*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*float*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*char*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*quote*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*qsquote*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*unquote*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "*s-exp* &*unqtesp*",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
+    // clang-format off
+    {"*s-exp* &*list*",                                       "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*vector*",                                     "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*bytevector*",                                 "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*box*",                                        "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*hasheq*",                                     "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*hasheqv*",                                    "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*hashequal*",                                  "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*string*",                                     "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*symbol*",                                     "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*integer*",                                    "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*float*",                                      "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*char*",                                       "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*quote*",                                      "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*qsquote*",                                    "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*unquote*",                                    "prod_action_return_first",  prod_action_return_first  },
+    {"*s-exp* &*unqtesp*",                                    "prod_action_return_first",  prod_action_return_first  },
 
-    {
-        "*quote* #' &*s-exp*",
-        "prod_action_quote",
-        prod_action_quote,
-    },
-    {
-        "*qsquote* #` &*s-exp*",
-        "prod_action_qsquote",
-        prod_action_qsquote,
-    },
-    {
-        "*unquote* #~ &*s-exp*",
-        "prod_action_unquote",
-        prod_action_unquote,
-    },
-    {
-        "*unqtesp* #~@ &*s-exp*",
-        "prod_action_unqtesp",
-        prod_action_unqtesp,
-    },
+    {"*quote* #' &*s-exp*",                                   "prod_action_quote",         prod_action_quote         },
+    {"*qsquote* #` &*s-exp*",                                 "prod_action_qsquote",       prod_action_qsquote       },
+    {"*unquote* #~ &*s-exp*",                                 "prod_action_unquote",       prod_action_unquote       },
+    {"*unqtesp* #~@ &*s-exp*",                                "prod_action_unqtesp",       prod_action_unqtesp       },
 
-    {
-        "*symbol* &?symbol + #|",
-        "prod_action_symbol",
-        prod_action_symbol,
-    },
+    {"*symbol* &?symbol + #|",                                "prod_action_symbol",        prod_action_symbol        },
 
-    {
-        "*string* /\"\"|^\"(\\\\.|.)*\"$",
-        "prod_action_string",
-        prod_action_string,
-    },
+    {"*string* /\"\"|^\"(\\\\.|.)*\"$",                       "prod_action_string",        prod_action_string        },
 
-    {
-        "*bytevector* /#\"\"|^#\"(\\\\.|.)*\"$",
-        "prod_action_bytevector",
-        prod_action_bytevector,
-    },
+    {"*bytevector* /#\"\"|^#\"(\\\\.|.)*\"$",                 "prod_action_bytevector",    prod_action_bytevector    },
 
-    {
-        "*integer* &?s-dint + #|",
-        "prod_action_dec_integer",
-        prod_action_dec_integer,
-    },
-    {
-        "*integer* &?s-xint + #|",
-        "prod_action_hex_integer",
-        prod_action_hex_integer,
-    },
-    {
-        "*integer* &?s-oint + #|",
-        "prod_action_oct_integer",
-        prod_action_oct_integer,
-    },
+    {"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer   },
+    {"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer   },
+    {"*integer* &?s-oint + #|",                               "prod_action_oct_integer",   prod_action_oct_integer   },
 
-    {
-        "*float* &?s-dfloat + #|",
-        "prod_action_float",
-        prod_action_float,
-    },
-    {
-        "*float* &?s-xfloat + #|",
-        "prod_action_float",
-        prod_action_float,
-    },
+    {"*float* &?s-dfloat + #|",                               "prod_action_float",         prod_action_float         },
+    {"*float* &?s-xfloat + #|",                               "prod_action_float",         prod_action_float         },
 
-    {
-        "*char* &?char + ##\\",
-        "prod_action_char",
-        prod_action_char,
-    },
+    {"*char* &?char + ##\\",                                  "prod_action_char",          prod_action_char          },
 
-    {
-        "*box* ##& &*s-exp*",
-        "prod_action_box",
-        prod_action_box,
-    },
+    {"*box* ##& &*s-exp*",                                    "prod_action_box",           prod_action_box           },
 
-    {
-        "*list* #( &*list-items* #)",
-        "prod_action_return_second",
-        prod_action_return_second,
-    },
-    {
-        "*list* #[ &*list-items* #]",
-        "prod_action_return_second",
-        prod_action_return_second,
-    },
+    {"*list* #( &*list-items* #)",                            "prod_action_return_second", prod_action_return_second },
+    {"*list* #[ &*list-items* #]",                            "prod_action_return_second", prod_action_return_second },
 
-    {
-        "*list-items* ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "*list-items* &*s-exp* &*list-items*",
-        "prod_action_list",
-        prod_action_list,
-    },
-    {
-        "*list-items* &*s-exp* #, &*s-exp*",
-        "prod_action_pair",
-        prod_action_pair,
-    },
+    {"*list-items* ",                                         "prod_action_nil",           prod_action_nil           },
+    {"*list-items* &*s-exp* &*list-items*",                   "prod_action_list",          prod_action_list          },
+    {"*list-items* &*s-exp* #, &*s-exp*",                     "prod_action_pair",          prod_action_pair          },
 
-    {
-        "*vector* ##( &*vector-items* #)",
-        "prod_action_vector",
-        prod_action_vector,
-    },
-    {
-        "*vector* ##[ &*vector-items* #]",
-        "prod_action_vector",
-        prod_action_vector,
-    },
+    {"*vector* ##( &*vector-items* #)",                       "prod_action_vector",        prod_action_vector        },
+    {"*vector* ##[ &*vector-items* #]",                       "prod_action_vector",        prod_action_vector        },
 
-    {
-        "*vector-items* ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "*vector-items* &*s-exp* &*vector-items*",
-        "prod_action_list",
-        prod_action_list,
-    },
+    {"*vector-items* ",                                       "prod_action_nil",           prod_action_nil           },
+    {"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list          },
 
-    {
-        "*hasheq* ##hash( &*hash-items* #)",
-        "prod_action_hasheq",
-        prod_action_hasheq,
-    },
-    {
-        "*hasheq* ##hash[ &*hash-items* #]",
-        "prod_action_hasheq",
-        prod_action_hasheq,
-    },
+    {"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq        },
+    {"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq        },
 
-    {
-        "*hasheqv* ##hasheqv( &*hash-items* #)",
-        "prod_action_hasheqv",
-        prod_action_hasheqv,
-    },
-    {
-        "*hasheqv* ##hasheqv[ &*hash-items* #]",
-        "prod_action_hasheqv",
-        prod_action_hasheqv,
-    },
+    {"*hasheqv* ##hasheqv( &*hash-items* #)",                 "prod_action_hasheqv",       prod_action_hasheqv       },
+    {"*hasheqv* ##hasheqv[ &*hash-items* #]",                 "prod_action_hasheqv",       prod_action_hasheqv       },
 
-    {
-        "*hashequal* ##hashequal( &*hash-items* #)",
-        "prod_action_hashequal",
-        prod_action_hashequal,
-    },
-    {
-        "*hashequal* ##hashequal[ &*hash-items* #]",
-        "prod_action_hashequal",
-        prod_action_hashequal,
-    },
+    {"*hashequal* ##hashequal( &*hash-items* #)",             "prod_action_hashequal",     prod_action_hashequal     },
+    {"*hashequal* ##hashequal[ &*hash-items* #]",             "prod_action_hashequal",     prod_action_hashequal     },
 
-    {
-        "*hash-items* ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "*hash-items* #( &*s-exp* #, &*s-exp* #) &*hash-items*",
-        "prod_action_kv_list",
-        prod_action_kv_list,
-    },
-    {
-        "*hash-items* #[ &*s-exp* #, &*s-exp* #] &*hash-items*",
-        "prod_action_kv_list",
-        prod_action_kv_list,
-    },
+    {"*hash-items* ",                                         "prod_action_nil",           prod_action_nil           },
+    {"*hash-items* #( &*s-exp* #, &*s-exp* #) &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
+    {"*hash-items* #[ &*s-exp* #, &*s-exp* #] &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
 
-    {
-        "+ /\\s+",
-        NULL,
-        NULL,
-    },
-    {
-        "+ /^;.*\\n?",
-        NULL,
-        NULL,
-    },
-    {
-        "+ /^#!.*\\n?",
-        NULL,
-        NULL,
-    },
-    {
-        NULL,
-        NULL,
-        NULL,
-    },
+    {"+ /\\s+",                                               NULL,                        NULL                      },
+    {"+ /^;.*\\n?",                                           NULL,                        NULL                      },
+    {"+ /^#!.*\\n?",                                          NULL,                        NULL                      },
+    {NULL,                                                    NULL,                        NULL                      },
+    // clang-format on
 };
 
 FklGrammer *fklCreateBuiltinGrammer(FklSymbolTable *st) {

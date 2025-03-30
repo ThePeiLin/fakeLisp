@@ -6,8 +6,8 @@
 static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
     ctx->replxx = replxx_init();
     fklInitStringBuffer(&ctx->buf);
-    fklInitPtrStack(&ctx->symbolStack, 16, 16);
-    fklInitPtrStack(&ctx->stateStack, 16, 16);
+    fklAnalysisSymbolVectorInit(&ctx->symbolStack, 16);
+    fklParseStateFuncVectorInit(&ctx->stateStack, 16);
     fklUintVectorInit(&ctx->lineStack, 16);
     fklVMvaluePushState0ToStack(&ctx->stateStack);
 }
@@ -89,7 +89,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
-    FklPtrStack *scriptLibStack = codegen.libStack;
+    FklCodegenLibVector *scriptLibStack = codegen.libStack;
     FklVM *anotherVM =
         fklCreateVMwithByteCode(mainByteCode, codegen.runtime_symbol_table,
                                 codegen.runtime_kt, codegen.pts, 1);
@@ -101,9 +101,9 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     FKL_ASSERT(anotherVM->libs);
 
     FklVMgc *gc = anotherVM->gc;
-    while (!fklIsPtrStackEmpty(scriptLibStack)) {
+    while (!fklCodegenLibVectorIsEmpty(scriptLibStack)) {
         FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->top];
-        FklCodegenLib *cur = fklPopPtrStack(scriptLibStack);
+        FklCodegenLib *cur = *fklCodegenLibVectorPopBack(scriptLibStack);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibAndDestroy(cur, curVMlib, anotherVM,
                                              anotherVM->pts);
@@ -141,11 +141,11 @@ static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
 
 static void source_hash_item_uninit(void *d0) {
     SourceCodeHashItem *item = (SourceCodeHashItem *)d0;
-    void **base = item->lines.base;
-    void **const end = &item->lines.base[item->lines.top];
+    FklString **base = item->lines.base;
+    FklString **const end = &item->lines.base[item->lines.top];
     for (; base < end; base++)
         free(*base);
-    fklUninitPtrStack(&item->lines);
+    fklStringVectorUninit(&item->lines);
 }
 
 static const FklHashTableMetaTable SourceCodeHashMetaTable = {
@@ -163,8 +163,8 @@ load_source_code_to_source_code_hash_item(SourceCodeHashItem *item,
                                           const char *rp) {
     FILE *fp = fopen(rp, "r");
     FKL_ASSERT(fp);
-    FklPtrStack *lines = &item->lines;
-    fklInitPtrStack(lines, 16, 16);
+    FklStringVector *lines = &item->lines;
+    fklStringVectorInit(lines, 16);
     FklStringBuffer buffer;
     fklInitStringBuffer(&buffer);
     while (!feof(fp)) {
@@ -172,7 +172,7 @@ load_source_code_to_source_code_hash_item(SourceCodeHashItem *item,
         if (!buffer.index || buffer.buf[buffer.index - 1] != '\n')
             fklStringBufferPutc(&buffer, '\n');
         FklString *cur_line = fklCreateString(buffer.index, buffer.buf);
-        fklPushPtrStack(cur_line, lines);
+        fklStringVectorPushBack2(lines, cur_line);
         buffer.index = 0;
     }
     fklUninitStringBuffer(&buffer);
@@ -221,16 +221,16 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
 }
 
 static inline void get_all_code_objs(DebugCtx *ctx) {
-    fklInitPtrStack(&ctx->code_objs, 16, 16);
+    fklVMvalueVectorInit(&ctx->code_objs, 16);
     FklVMvalue *head = ctx->gc->head;
     for (; head; head = head->next) {
         if (fklIsVMvalueCodeObj(head))
-            fklPushPtrStack(head, &ctx->code_objs);
+            fklVMvalueVectorPushBack2(&ctx->code_objs, head);
     }
     head = ctx->reached_thread->obj_head;
     for (; head; head = head->next) {
         if (fklIsVMvalueCodeObj(head))
-            fklPushPtrStack(head, &ctx->code_objs);
+            fklVMvalueVectorPushBack2(&ctx->code_objs, head);
     }
 }
 
@@ -264,12 +264,12 @@ static void dbg_extra_mark(FklVMgc *gc, void *arg) {
 
 static inline void push_extra_mark_value(DebugCtx *ctx) {
     FklVM *vm = ctx->reached_thread;
-    fklInitPtrStack(&ctx->extra_mark_value, vm->libNum + 1, 16);
-    fklPushPtrStack(vm->top_frame->c.proc, &ctx->extra_mark_value);
+    fklVMvalueVectorInit(&ctx->extra_mark_value, vm->libNum + 16);
+    fklVMvalueVectorPushBack2(&ctx->extra_mark_value, vm->top_frame->c.proc);
     const uint64_t last = vm->libNum + 1;
     for (uint64_t i = 1; i < last; i++) {
         FklVMlib *cur = &vm->libs[i];
-        fklPushPtrStack(cur->proc, &ctx->extra_mark_value);
+        fklVMvalueVectorPushBack2(&ctx->extra_mark_value, cur->proc);
     }
     fklVMpushExtraMarkFunc(ctx->gc, dbg_extra_mark, NULL, ctx);
 }
@@ -286,8 +286,8 @@ DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
         return NULL;
     }
 
-    fklInitPtrStack(&ctx->reached_thread_frames, 16, 16);
-    fklInitPtrStack(&ctx->threads, 16, 16);
+    bdbFrameVectorInit(&ctx->reached_thread_frames, 16);
+    bdbThreadVectorInit(&ctx->threads, 16);
 
     setReachedThread(ctx, ctx->reached_thread);
     init_source_codes(ctx);
@@ -314,8 +314,8 @@ DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
 }
 
 static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
-    fklUninitPtrStack(&ctx->stateStack);
-    fklUninitPtrStack(&ctx->symbolStack);
+    fklParseStateFuncVectorUninit(&ctx->stateStack);
+    fklAnalysisSymbolVectorUninit(&ctx->symbolStack);
     fklUintVectorUninit(&ctx->lineStack);
     fklUninitStringBuffer(&ctx->buf);
     replxx_end(ctx->replxx);
@@ -338,10 +338,10 @@ void destroyDebugCtx(DebugCtx *ctx) {
 
     uninitBreakpointTable(&ctx->bt);
     fklUninitHashTable(&ctx->source_code_table);
-    fklUninitPtrStack(&ctx->extra_mark_value);
-    fklUninitPtrStack(&ctx->code_objs);
-    fklUninitPtrStack(&ctx->threads);
-    fklUninitPtrStack(&ctx->reached_thread_frames);
+    fklVMvalueVectorUninit(&ctx->extra_mark_value);
+    fklVMvalueVectorUninit(&ctx->code_objs);
+    bdbThreadVectorUninit(&ctx->threads);
+    bdbFrameVectorUninit(&ctx->reached_thread_frames);
 
     fklDestroyVMgc(ctx->gc);
     uninit_cmd_read_ctx(&ctx->read_ctx);
@@ -488,7 +488,7 @@ void printBacktrace(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
     if (ctx->reached_thread_frames.top) {
         FklVM *vm = ctx->reached_thread;
         uint32_t top = ctx->reached_thread_frames.top;
-        void **base = ctx->reached_thread_frames.base;
+        FklVMframe **base = ctx->reached_thread_frames.base;
         for (uint32_t i = 0; i < top; i++) {
             FklVMframe *cur = base[i];
             if (i + 1 == ctx->curframe_idx)
@@ -504,7 +504,7 @@ void printBacktrace(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
 
 FklVMframe *getCurrentFrame(DebugCtx *ctx) {
     if (ctx->reached_thread_frames.top) {
-        void **base = ctx->reached_thread_frames.base;
+        FklVMframe **base = ctx->reached_thread_frames.base;
         FklVMframe *cur = base[ctx->curframe_idx - 1];
         return cur;
     }
@@ -526,7 +526,7 @@ void setReachedThread(DebugCtx *ctx, FklVM *vm) {
     ctx->curframe_idx = 1;
     ctx->reached_thread_frames.top = 0;
     for (FklVMframe *f = vm->top_frame; f; f = f->prev)
-        fklPushPtrStack(f, &ctx->reached_thread_frames);
+        bdbFrameVectorPushBack2(&ctx->reached_thread_frames, f);
     for (FklVMframe *f = vm->top_frame; f; f = f->prev) {
         if (f->type == FKL_FRAME_COMPOUND) {
             FklVMvalue *bytecode = FKL_VM_PROC(f->c.proc)->codeObj;
@@ -539,9 +539,9 @@ void setReachedThread(DebugCtx *ctx, FklVM *vm) {
     }
     ctx->curthread_idx = 1;
     ctx->threads.top = 0;
-    fklPushPtrStack(vm, &ctx->threads);
+    bdbThreadVectorPushBack2(&ctx->threads, vm);
     for (FklVM *cur = vm->next; cur != vm; cur = cur->next)
-        fklPushPtrStack(cur, &ctx->threads);
+        bdbThreadVectorPushBack2(&ctx->threads, cur);
 }
 
 void listThreads(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
@@ -571,7 +571,7 @@ void switchCurThread(DebugCtx *ctx, uint32_t idx) {
         return;
     ctx->reached_thread = vm;
     for (FklVMframe *f = vm->top_frame; f; f = f->prev)
-        fklPushPtrStack(f, &ctx->reached_thread_frames);
+        bdbFrameVectorPushBack2(&ctx->reached_thread_frames, f);
 }
 
 FklVM *getCurThread(DebugCtx *ctx) {

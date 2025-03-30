@@ -88,6 +88,11 @@ typedef struct {
     uint32_t ls;
 } FklByteCodelnt;
 
+// FklByteCodelntVector
+#define FKL_VECTOR_ELM_TYPE FklByteCodelnt *
+#define FKL_VECTOR_ELM_TYPE_NAME ByteCodelnt
+#include "vector.h"
+
 void fklInitConstTable(FklConstTable *kt);
 FklConstTable *fklCreateConstTable(void);
 

@@ -1591,9 +1591,9 @@ typedef enum {
 } ParsingState;
 
 struct ParseCtx {
-    FklPtrStack symbolStack;
+    FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
-    FklPtrStack stateStack;
+    FklPtrVector stateStack;
     FklSid_t reducing_sid;
     uint32_t offset;
 };
@@ -1624,12 +1624,12 @@ static void read_frame_finalizer(void *data) {
     ReadCtx *c = (ReadCtx *)data;
     struct ParseCtx *pctx = c->pctx;
     fklUninitStringBuffer(&c->buf);
-    FklPtrStack *ss = &pctx->symbolStack;
-    while (!fklIsPtrStackEmpty(ss))
-        free(fklPopPtrStack(ss));
-    fklUninitPtrStack(ss);
+    FklAnalysisSymbolVector *ss = &pctx->symbolStack;
+    while (!fklAnalysisSymbolVectorIsEmpty(ss))
+        free(*fklAnalysisSymbolVectorPopBack(ss));
+    fklAnalysisSymbolVectorUninit(ss);
     fklUintVectorUninit(&pctx->lineStack);
-    fklUninitPtrStack(&pctx->stateStack);
+    fklPtrVectorUninit(&pctx->stateStack);
     free(pctx);
 }
 
@@ -1647,7 +1647,7 @@ static int read_frame_step(void *d, FklVM *exe) {
     FklVMvalue *ast = fklDefaultParseForCharBuf(
         fklStringBufferBody(s) + pctx->offset, restLen, &restLen, &outerCtx,
         &err, &errLine, &pctx->symbolStack, &pctx->lineStack,
-        &pctx->stateStack);
+        (FklParseStateFuncVector *)&pctx->stateStack);
 
     pctx->offset = fklStringBufferLen(s) - restLen;
 
@@ -1696,9 +1696,9 @@ create_nonterm_analyzing_symbol(FklSid_t id, FklVMvalue *ast) {
 }
 
 static inline void push_state0_of_custom_parser(FklVMvalue *parser,
-                                                FklPtrStack *stack) {
+                                                FklAnalysisStateVector *stack) {
     FKL_DECL_VM_UD_DATA(g, FklGrammer, parser);
-    fklPushPtrStack(&g->aTable.states[0], stack);
+    fklAnalysisStateVectorPushBack2(stack, &g->aTable.states[0]);
 }
 
 static inline struct ParseCtx *create_read_parse_ctx(void) {
@@ -1706,8 +1706,9 @@ static inline struct ParseCtx *create_read_parse_ctx(void) {
     FKL_ASSERT(pctx);
     pctx->offset = 0;
     pctx->reducing_sid = 0;
-    fklInitPtrStack(&pctx->stateStack, 16, 16);
-    fklInitPtrStack(&pctx->symbolStack, 16, 16);
+
+    fklPtrVectorInit(&pctx->stateStack, 16);
+    fklAnalysisSymbolVectorInit(&pctx->symbolStack, 16);
     fklUintVectorInit(&pctx->lineStack, 16);
     return pctx;
 }
@@ -1722,21 +1723,23 @@ static inline void initReadCtx(void *data, FklSid_t sid, FklVM *exe,
     struct ParseCtx *pctx = create_read_parse_ctx();
     ctx->pctx = pctx;
     if (parser == FKL_VM_NIL)
-        fklVMvaluePushState0ToStack(&pctx->stateStack);
+        fklVMvaluePushState0ToStack(
+            (FklParseStateFuncVector *)&pctx->stateStack);
     else
-        push_state0_of_custom_parser(parser, &pctx->stateStack);
+        push_state0_of_custom_parser(
+            parser, (FklAnalysisStateVector *)&pctx->stateStack);
     ctx->state = PARSE_CONTINUE;
     fklVMread(exe, FKL_VM_FP(vfp)->fp, &ctx->buf, 1, '\n');
 }
 
 static inline int do_custom_parser_reduce_action(
-    FklPtrStack *stateStack, FklPtrStack *symbolStack, FklUintVector *lineStack,
-    const FklGrammerProduction *prod, FklGrammerMatchOuterCtx *outerCtx,
-    size_t *errLine) {
+    FklAnalysisStateVector *stateStack, FklAnalysisSymbolVector *symbolStack,
+    FklUintVector *lineStack, const FklGrammerProduction *prod,
+    FklGrammerMatchOuterCtx *outerCtx, size_t *errLine) {
     size_t len = prod->len;
     stateStack->top -= len;
     FklAnalysisStateGoto *gt =
-        ((const FklAnalysisState *)fklTopPtrStack(stateStack))->state.gt;
+        (*fklAnalysisStateVectorBack(stateStack))->state.gt;
     const FklAnalysisState *state = NULL;
     FklSid_t left = prod->left.sid;
     for (; gt; gt = gt->next)
@@ -1766,23 +1769,23 @@ static inline int do_custom_parser_reduce_action(
         free(nodes);
     }
     fklUintVectorPushBack(lineStack, &line);
-    fklPushPtrStack((void *)state, stateStack);
+    fklAnalysisStateVectorPushBack2(stateStack, state);
     return 0;
 }
 
 static inline void parse_with_custom_parser_for_char_buf(
     const FklGrammer *g, const char *cstr, size_t len, size_t *restLen,
     FklGrammerMatchOuterCtx *outerCtx, int *err, size_t *errLine,
-    FklPtrStack *symbolStack, FklUintVector *lineStack, FklPtrStack *stateStack,
-    FklVM *exe, int *accept, ParsingState *parse_state,
-    FklSid_t *reducing_sid) {
+    FklAnalysisSymbolVector *symbolStack, FklUintVector *lineStack,
+    FklAnalysisStateVector *stateStack, FklVM *exe, int *accept,
+    ParsingState *parse_state, FklSid_t *reducing_sid) {
     *restLen = len;
     const char *start = cstr;
     size_t matchLen = 0;
     int waiting_for_more_err = 0;
     for (;;) {
         int is_waiting_for_more = 0;
-        const FklAnalysisState *state = fklTopPtrStack(stateStack);
+        const FklAnalysisState *state = *fklAnalysisStateVectorBack(stateStack);
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match, start, cstr, *restLen,
@@ -1799,10 +1802,10 @@ static inline void parse_with_custom_parser_for_char_buf(
                 continue;
                 break;
             case FKL_ANALYSIS_SHIFT:
-                fklPushPtrStack((void *)action->state, stateStack);
-                fklPushPtrStack(
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx),
-                    symbolStack);
+                fklAnalysisStateVectorPushBack2(stateStack, action->state);
+                fklAnalysisSymbolVectorPushBack2(
+                    symbolStack,
+                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
                 fklUintVectorPushBack(lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
@@ -1839,9 +1842,9 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 
     if (rctx->state == PARSE_REDUCING) {
         FklVMvalue *ast = fklPopTopValue(exe);
-        fklPushPtrStack(
-            create_nonterm_analyzing_symbol(pctx->reducing_sid, ast),
-            &pctx->symbolStack);
+        fklAnalysisSymbolVectorPushBack2(
+            &pctx->symbolStack,
+            create_nonterm_analyzing_symbol(pctx->reducing_sid, ast));
         rctx->state = PARSE_CONTINUE;
     }
 
@@ -1856,13 +1859,15 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 
     parse_with_custom_parser_for_char_buf(
         g, fklStringBufferBody(s) + pctx->offset, restLen, &restLen, &outerCtx,
-        &err, &errLine, &pctx->symbolStack, &pctx->lineStack, &pctx->stateStack,
-        exe, &accept, &rctx->state, &pctx->reducing_sid);
+        &err, &errLine, &pctx->symbolStack, &pctx->lineStack,
+        (FklAnalysisStateVector *)&pctx->stateStack, exe, &accept, &rctx->state,
+        &pctx->reducing_sid);
 
     if (accept) {
         if (restLen)
             fklVMfpRewind(vfp, s, fklStringBufferLen(s) - restLen);
-        FklAnalysisSymbol *top = fklPopPtrStack(&pctx->symbolStack);
+        FklAnalysisSymbol *top =
+            *fklAnalysisSymbolVectorPopBack(&pctx->symbolStack);
         FKL_VM_PUSH_VALUE(exe, top->ast);
         free(top);
         return 0;
@@ -1978,8 +1983,8 @@ static const FklVMudMetaTable CustomParserMetaTable = {
 static inline FklGrammerProduction *
 vm_vec_to_prod(FklVMvec *vec, FklHashTable *builtin_term, FklSymbolTable *tt,
                FklRegexTable *rt, FklSid_t left, int *error_type) {
-    FklPtrStack valid_items;
-    fklInitPtrStack(&valid_items, vec->size, 8);
+    FklVMvalueVector valid_items;
+    fklVMvalueVectorInit(&valid_items, vec->size);
     FklGrammerSym *syms = NULL;
     uint8_t *delim = NULL;
     if (vec->size == 0)
@@ -1993,15 +1998,11 @@ vm_vec_to_prod(FklVMvec *vec, FklHashTable *builtin_term, FklSymbolTable *tt,
 
     for (size_t i = 0; i < vec->size; i++) {
         FklVMvalue *cur = vec->base[i];
-        if (FKL_IS_STR(cur))
-            fklPushPtrStack((void *)cur, &valid_items);
-        else if (FKL_IS_SYM(cur))
-            fklPushPtrStack((void *)cur, &valid_items);
-        else if (FKL_IS_BOX(cur) && FKL_IS_STR(FKL_VM_BOX(cur)))
-            fklPushPtrStack((void *)cur, &valid_items);
-        else if (FKL_IS_VECTOR(cur) && FKL_VM_VEC(cur)->size == 1
-                 && FKL_IS_STR(FKL_VM_VEC(cur)->base[0]))
-            fklPushPtrStack((void *)cur, &valid_items);
+        if (FKL_IS_STR(cur) || FKL_IS_SYM(cur)
+            || (FKL_IS_BOX(cur) && FKL_IS_STR(FKL_VM_BOX(cur)))
+            || (FKL_IS_VECTOR(cur) && FKL_VM_VEC(cur)->size == 1
+                && FKL_IS_STR(FKL_VM_VEC(cur)->base[0])))
+            fklVMvalueVectorPushBack2(&valid_items, cur);
         else if (cur == FKL_VM_NIL) {
             delim[valid_items.top] = 0;
             continue;
@@ -2068,7 +2069,7 @@ zero_len:
         fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
 
 end:
-    fklUninitPtrStack(&valid_items);
+    fklVMvalueVectorUninit(&valid_items);
     free(delim);
     return prod;
 }
@@ -2204,12 +2205,12 @@ static void custom_parse_frame_atomic(void *data, FklVMgc *gc) {
 
 static void custom_parse_frame_finalizer(void *data) {
     CustomParseCtx *c = (CustomParseCtx *)data;
-    FklPtrStack *ss = &c->pctx->symbolStack;
-    while (!fklIsPtrStackEmpty(ss))
-        free(fklPopPtrStack(ss));
-    fklUninitPtrStack(ss);
+    FklAnalysisSymbolVector *ss = &c->pctx->symbolStack;
+    while (!fklAnalysisSymbolVectorIsEmpty(ss))
+        free(*fklAnalysisSymbolVectorPopBack(ss));
+    fklAnalysisSymbolVectorUninit(ss);
     fklUintVectorUninit(&c->pctx->lineStack);
-    fklUninitPtrStack(&c->pctx->stateStack);
+    fklPtrVectorUninit(&c->pctx->stateStack);
     free(c->pctx);
 }
 
@@ -2218,9 +2219,9 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
     struct ParseCtx *pctx = ctx->pctx;
     if (ctx->state == PARSE_REDUCING) {
         FklVMvalue *ast = fklPopTopValue(exe);
-        fklPushPtrStack(
-            create_nonterm_analyzing_symbol(pctx->reducing_sid, ast),
-            &pctx->symbolStack);
+        fklAnalysisSymbolVectorPushBack2(
+            &pctx->symbolStack,
+            create_nonterm_analyzing_symbol(pctx->reducing_sid, ast));
         ctx->state = PARSE_CONTINUE;
     }
     FKL_DECL_VM_UD_DATA(g, FklGrammer, ctx->parser);
@@ -2233,8 +2234,9 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
 
     parse_with_custom_parser_for_char_buf(
         g, str->str + pctx->offset, restLen, &restLen, &outerCtx, &err,
-        &errLine, &pctx->symbolStack, &pctx->lineStack, &pctx->stateStack, exe,
-        &accept, &ctx->state, &pctx->reducing_sid);
+        &errLine, &pctx->symbolStack, &pctx->lineStack,
+        (FklAnalysisStateVector *)&pctx->stateStack, exe, &accept, &ctx->state,
+        &pctx->reducing_sid);
 
     if (err) {
         if (err == FKL_PARSE_WAITING_FOR_MORE
@@ -2244,7 +2246,8 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
     }
     if (accept) {
-        FklAnalysisSymbol *top = fklPopPtrStack(&pctx->symbolStack);
+        FklAnalysisSymbol *top =
+            *fklAnalysisSymbolVectorPopBack(&pctx->symbolStack);
         FKL_VM_PUSH_VALUE(exe, top->ast);
         free(top);
         if (ctx->box) {
@@ -2270,7 +2273,8 @@ static inline void init_custom_parse_ctx(void *data, FklSid_t sid,
     ctx->str = str;
     struct ParseCtx *pctx = create_read_parse_ctx();
     ctx->pctx = pctx;
-    push_state0_of_custom_parser(parser, &pctx->stateStack);
+    push_state0_of_custom_parser(parser,
+                                 (FklAnalysisStateVector *)&pctx->stateStack);
     ctx->state = PARSE_CONTINUE;
 }
 
@@ -2386,11 +2390,11 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         FklString *ss = FKL_VM_STR(str);
         int err = 0;
         size_t errorLine = 0;
-        FklPtrStack symbolStack;
-        FklPtrStack stateStack;
+        FklAnalysisSymbolVector symbolStack;
+        FklParseStateFuncVector stateStack;
         FklUintVector lineStack;
-        fklInitPtrStack(&symbolStack, 16, 16);
-        fklInitPtrStack(&stateStack, 16, 16);
+        fklAnalysisSymbolVectorInit(&symbolStack, 16);
+        fklParseStateFuncVectorInit(&stateStack, 16);
         fklUintVectorInit(&lineStack, 16);
         fklVMvaluePushState0ToStack(&stateStack);
 
@@ -2403,18 +2407,18 @@ static int builtin_parse(FKL_CPROC_ARGL) {
             &symbolStack, &lineStack, &stateStack);
 
         if (node == NULL) {
-            while (!fklIsPtrStackEmpty(&symbolStack))
-                free(fklPopPtrStack(&symbolStack));
-            fklUninitPtrStack(&symbolStack);
-            fklUninitPtrStack(&stateStack);
+            while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
+                free(*fklAnalysisSymbolVectorPopBack(&symbolStack));
+            fklAnalysisSymbolVectorUninit(&symbolStack);
+            fklParseStateFuncVectorUninit(&stateStack);
             fklUintVectorUninit(&lineStack);
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
         }
 
-        while (!fklIsPtrStackEmpty(&symbolStack))
-            free(fklPopPtrStack(&symbolStack));
-        fklUninitPtrStack(&symbolStack);
-        fklUninitPtrStack(&stateStack);
+        while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
+            free(*fklAnalysisSymbolVectorPopBack(&symbolStack));
+        fklAnalysisSymbolVectorUninit(&symbolStack);
+        fklParseStateFuncVectorUninit(&stateStack);
         fklUintVectorUninit(&lineStack);
         FKL_VM_PUSH_VALUE(exe, node);
         if (box) {
@@ -2808,43 +2812,44 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
     if (FKL_VM_CDR(body) != FKL_VM_NIL)
         return 0;
     body = FKL_VM_CAR(body);
-    FklHashTable *symbolTable = fklCreateSidSet();
-    FklPtrStack exe = FKL_STACK_INIT;
-    fklInitPtrStack(&exe, 32, 16);
-    fklPushPtrStack((void *)body, &exe);
-    while (!fklIsPtrStackEmpty(&exe)) {
-        const FklVMvalue *c = fklPopPtrStack(&exe);
+    FklHashTable symbolTable;
+    fklInitSidSet(&symbolTable);
+    FklVMvalueVector exe;
+    fklVMvalueVectorInit(&exe, 32);
+    fklVMvalueVectorPushBack2(&exe, FKL_REMOVE_CONST(FklVMvalue, body));
+    while (!fklVMvalueVectorIsEmpty(&exe)) {
+        const FklVMvalue *c = *fklVMvalueVectorPopBack(&exe);
         FklVMvalue *slotV = isSlot(head, c);
         if (slotV) {
             FklSid_t sid = FKL_GET_SYM(slotV);
-            if (fklGetHashItem(&sid, symbolTable)) {
-                fklDestroyHashTable(symbolTable);
-                fklUninitPtrStack(&exe);
+            if (fklGetHashItem(&sid, &symbolTable)) {
+                fklUninitHashTable(&symbolTable);
+                fklVMvalueVectorUninit(&exe);
                 return 0;
             }
-            fklPutHashItem(&sid, symbolTable);
+            fklPutHashItem(&sid, &symbolTable);
         }
         if (FKL_IS_PAIR(c)) {
-            fklPushPtrStack(FKL_VM_CAR(c), &exe);
-            fklPushPtrStack(FKL_VM_CDR(c), &exe);
+            fklVMvalueVectorPushBack2(&exe, FKL_VM_CAR(c));
+            fklVMvalueVectorPushBack2(&exe, FKL_VM_CDR(c));
         } else if (FKL_IS_BOX(c))
-            fklPushPtrStack(FKL_VM_BOX(c), &exe);
+            fklVMvalueVectorPushBack2(&exe, FKL_VM_BOX(c));
         else if (FKL_IS_VECTOR(c)) {
             FklVMvec *vec = FKL_VM_VEC(c);
             FklVMvalue **base = vec->base;
             size_t size = vec->size;
             for (size_t i = 0; i < size; i++)
-                fklPushPtrStack(base[i], &exe);
+                fklVMvalueVectorPushBack2(&exe, base[i]);
         } else if (FKL_IS_HASHTABLE(c)) {
             for (FklHashTableItem *h = FKL_VM_HASH(c)->first; h; h = h->next) {
                 FklVMhashTableItem *i = (FklVMhashTableItem *)h->data;
-                fklPushPtrStack(i->key, &exe);
-                fklPushPtrStack(i->v, &exe);
+                fklVMvalueVectorPushBack2(&exe, i->key);
+                fklVMvalueVectorPushBack2(&exe, i->v);
             }
         }
     }
-    fklDestroyHashTable(symbolTable);
-    fklUninitPtrStack(&exe);
+    fklDestroyHashTable(&symbolTable);
+    fklVMvalueVectorUninit(&exe);
     return 1;
 }
 
@@ -3204,35 +3209,35 @@ static int builtin_call_eh(FKL_CPROC_ARGL) {
 
     FKL_DECL_AND_CHECK_ARG(proc, exe);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-    FklPtrStack errSymbolLists = FKL_STACK_INIT;
-    FklPtrStack errHandlers = FKL_STACK_INIT;
-    fklInitPtrStack(&errSymbolLists, 32, 16);
-    fklInitPtrStack(&errHandlers, 32, 16);
+    FklVMvalueVector errSymbolLists;
+    FklVMvalueVector errHandlers;
+    fklVMvalueVectorInit(&errSymbolLists, FKL_VM_GET_ARG_NUM(exe));
+    fklVMvalueVectorInit(&errHandlers, FKL_VM_GET_ARG_NUM(exe));
     int state = GET_LIST;
     for (FklVMvalue *v = FKL_VM_POP_ARG(exe); v; v = FKL_VM_POP_ARG(exe)) {
         switch (state) {
         case GET_LIST:
             if (!is_symbol_list(v)) {
-                fklUninitPtrStack(&errSymbolLists);
-                fklUninitPtrStack(&errHandlers);
+                fklVMvalueVectorUninit(&errSymbolLists);
+                fklVMvalueVectorUninit(&errHandlers);
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             }
-            fklPushPtrStack(v, &errSymbolLists);
+            fklVMvalueVectorPushBack2(&errSymbolLists, v);
             break;
         case GET_PROC:
             if (!fklIsCallable(v)) {
-                fklUninitPtrStack(&errSymbolLists);
-                fklUninitPtrStack(&errHandlers);
+                fklVMvalueVectorUninit(&errSymbolLists);
+                fklVMvalueVectorUninit(&errHandlers);
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             }
-            fklPushPtrStack(v, &errHandlers);
+            fklVMvalueVectorPushBack2(&errHandlers, v);
             break;
         }
         state = !state;
     }
     if (state == GET_PROC) {
-        fklUninitPtrStack(&errSymbolLists);
-        fklUninitPtrStack(&errHandlers);
+        fklVMvalueVectorUninit(&errSymbolLists);
+        fklVMvalueVectorUninit(&errHandlers);
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
     }
     fklResBp(exe);
@@ -3254,8 +3259,8 @@ static int builtin_call_eh(FKL_CPROC_ARGL) {
         c->bp = exe->bp;
         fklCallObj(exe, proc);
     } else {
-        fklUninitPtrStack(&errSymbolLists);
-        fklUninitPtrStack(&errHandlers);
+        fklVMvalueVectorUninit(&errSymbolLists);
+        fklVMvalueVectorUninit(&errHandlers);
         fklTailCallObj(exe, proc);
     }
     fklSetBp(exe);
@@ -3404,8 +3409,8 @@ static int builtin_atexit(FKL_CPROC_ARGL) {
 static int builtin_apply(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG(proc, exe);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-    FklPtrStack stack1 = FKL_STACK_INIT;
-    fklInitPtrStack(&stack1, 32, 16);
+    FklVMvalueVector stack1;
+    fklVMvalueVectorInit(&stack1, FKL_VM_GET_ARG_NUM(exe));
     FklVMvalue *value = NULL;
     FklVMvalue *lastList = NULL;
     while ((value = FKL_VM_POP_ARG(exe))) {
@@ -3413,35 +3418,26 @@ static int builtin_apply(FKL_CPROC_ARGL) {
             lastList = value;
             break;
         }
-        fklPushPtrStack(value, &stack1);
+        fklVMvalueVectorPushBack2(&stack1, value);
     }
     if (!lastList)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-    FklPtrStack stack2 = FKL_STACK_INIT;
-    fklInitPtrStack(&stack2, 32, 16);
     if (!FKL_IS_PAIR(lastList) && lastList != FKL_VM_NIL) {
-        fklUninitPtrStack(&stack1);
-        fklUninitPtrStack(&stack2);
+        fklVMvalueVectorUninit(&stack1);
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
     for (; FKL_IS_PAIR(lastList); lastList = FKL_VM_CDR(lastList))
-        fklPushPtrStack(FKL_VM_CAR(lastList), &stack2);
+        fklVMvalueVectorPushBack2(&stack1, FKL_VM_CAR(lastList));
     if (lastList != FKL_VM_NIL) {
-        fklUninitPtrStack(&stack1);
-        fklUninitPtrStack(&stack2);
+        fklVMvalueVectorUninit(&stack1);
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
     fklSetBp(exe);
-    while (!fklIsPtrStackEmpty(&stack2)) {
-        FklVMvalue *t = fklPopPtrStack(&stack2);
+    while (!fklVMvalueVectorIsEmpty(&stack1)) {
+        FklVMvalue *t = *fklVMvalueVectorPopBack(&stack1);
         FKL_VM_PUSH_VALUE(exe, t);
     }
-    fklUninitPtrStack(&stack2);
-    while (!fklIsPtrStackEmpty(&stack1)) {
-        FklVMvalue *t = fklPopPtrStack(&stack1);
-        FKL_VM_PUSH_VALUE(exe, t);
-    }
-    fklUninitPtrStack(&stack1);
+    fklVMvalueVectorUninit(&stack1);
     fklTailCallObj(exe, proc);
     return 1;
 }

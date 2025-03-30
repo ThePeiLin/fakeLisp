@@ -21,23 +21,25 @@ extern "C" {
 FklNastNode *fklCreateNastNodeFromCstr(const char *,
                                        FklSymbolTable *publicSymbolTable);
 
-void fklNastPushState0ToStack(FklPtrStack *stateStack);
+void fklNastPushState0ToStack(FklParseStateFuncVector *stateStack);
 
 void *fklNastTerminalCreate(const char *s, size_t len, size_t line, void *ctx);
 
 char *fklReadWithBuiltinParser(FILE *fp, size_t *psize, size_t line,
                                size_t *pline, FklSymbolTable *st,
                                int *unexpectEOF, size_t *errLine,
-                               FklNastNode **output, FklPtrStack *symbolStack,
+                               FklNastNode **output,
+                               FklAnalysisSymbolVector *symbolStack,
                                FklUintVector *lineStack,
-                               FklPtrStack *stateStack);
+                               FklParseStateFuncVector *stateStack);
 
 char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
                                size_t line, size_t *pline, FklSymbolTable *st,
                                int *unexpectEOF, size_t *errLine,
-                               FklNastNode **output, FklPtrStack *symbolStack,
+                               FklNastNode **output,
+                               FklAnalysisSymbolVector *symbolStack,
                                FklUintVector *lineStack,
-                               FklPtrStack *stateStack);
+                               FklAnalysisStateVector *stateStack);
 
 #ifdef __cplusplus
 }

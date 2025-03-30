@@ -1,4 +1,5 @@
 #include <fakeLisp/base.h>
+#include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/nast.h>
 #include <fakeLisp/utils.h>

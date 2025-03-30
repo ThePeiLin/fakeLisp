@@ -26,9 +26,26 @@ typedef struct FklCodegenEnvScope {
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
 
+typedef struct {
+    FklSidScope k;
+    uint8_t isConst;
+} FklPredef;
+
+typedef struct {
+    FklSid_t id;
+    uint32_t scope;
+    uint32_t prototypeId;
+    uint32_t idx;
+} FklPreDefRef;
+
+// FklPreDefRefVector
+#define FKL_VECTOR_ELM_TYPE FklPreDefRef *
+#define FKL_VECTOR_ELM_TYPE_NAME PreDefRef
+#include "vector.h"
+
 typedef struct FklCodegenEnv {
     size_t refcount;
-    FklPtrStack uref;
+    FklUnReSymbolRefVector uref;
 
     uint8_t *slotFlags;
     FklCodegenEnvScope *scopes;
@@ -43,7 +60,7 @@ typedef struct FklCodegenEnv {
     struct FklCodegenMacroScope *macros;
 
     FklHashTable pdef;
-    FklPtrStack ref_pdef;
+    struct FklPreDefRefVector ref_pdef;
 } FklCodegenEnv;
 
 void fklUpdatePrototype(FklFuncPrototypes *cp, FklCodegenEnv *env,
@@ -103,6 +120,11 @@ typedef struct {
     uint32_t prototypeId;
 } FklCodegenLib;
 
+// FklCodegenLibVector
+#define FKL_VECTOR_ELM_TYPE FklCodegenLib *
+#define FKL_VECTOR_ELM_TYPE_NAME CodegenLib
+#include "vector.h"
+
 typedef enum {
     FKL_CODEGEN_PROD_BUILTIN = 0,
     FKL_CODEGEN_PROD_SIMPLE,
@@ -124,13 +146,18 @@ typedef struct {
     };
 } FklCodegenProdPrinting;
 
+// FklProdPrintingVector
+#define FKL_VECTOR_ELM_TYPE FklCodegenProdPrinting *
+#define FKL_VECTOR_ELM_TYPE_NAME ProdPrinting
+#include "vector.h"
+
 typedef struct {
     FklSid_t id;
     int is_ref_outer;
     FklHashTable prods;
     FklGrammerIgnore *ignore;
-    FklPtrStack ignore_printing;
-    FklPtrStack prod_printing;
+    FklNastNodeVector ignore_printing;
+    FklProdPrintingVector prod_printing;
 } FklGrammerProductionGroup;
 
 typedef enum {
@@ -286,9 +313,9 @@ typedef struct FklCodegenInfo {
 
     FklHashTable *export_named_prod_groups;
 
-    FklPtrStack *libStack;
+    FklCodegenLibVector *libStack;
 
-    FklPtrStack *macroLibStack;
+    FklCodegenLibVector *macroLibStack;
 
     FklFuncPrototypes *pts;
     FklFuncPrototypes *macro_pts;
@@ -308,7 +335,7 @@ typedef struct FklCodegenInfo {
 typedef struct {
     void (*__put_bcl)(void *, FklByteCodelnt *bcl);
     void (*__finalizer)(void *);
-    FklPtrStack *(*__get_bcl_stack)(void *);
+    FklByteCodelntVector *(*__get_bcl_stack)(void *);
 } FklCodegenQuestContextMethodTable;
 
 typedef struct FklCodegenQuestContext {
@@ -351,17 +378,10 @@ typedef struct FklCodegenQuest {
     FklCodegenNextExpression *nextExpression;
 } FklCodegenQuest;
 
-typedef struct {
-    FklSidScope k;
-    uint8_t isConst;
-} FklPredef;
-
-typedef struct {
-    FklSid_t id;
-    uint32_t scope;
-    uint32_t prototypeId;
-    uint32_t idx;
-} FklPreDefRef;
+// FklCodegenQuestVector
+#define FKL_VECTOR_ELM_TYPE FklCodegenQuest *
+#define FKL_VECTOR_ELM_TYPE_NAME CodegenQuest
+#include "vector.h"
 
 void fklInitExportSidIdxTable(FklHashTable *ht);
 FklHashTable *fklCreateCodegenReplacementTable(void);
@@ -509,7 +529,8 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *,
 
 FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl, FklFuncPrototypes *pts,
                             uint32_t prototype_id, FklHashTable *ht,
-                            FklHashTable *lineHash, FklPtrStack *macroLibStack,
+                            FklHashTable *lineHash,
+                            FklCodegenLibVector *macroLibStack,
                             FklNastNode **pr, uint64_t curline,
                             FklSymbolTable *pst, FklConstTable *pkt);
 
@@ -539,8 +560,8 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
 
 int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklFuncPrototypes *info_macro_pts,
-                      FklPtrStack *info_scriptLibStack,
-                      FklPtrStack *info_macroScriptLibStack,
+                      FklCodegenLibVector *info_scriptLibStack,
+                      FklCodegenLibVector *info_macroScriptLibStack,
                       FklSymbolTable *runtime_st, FklConstTable *runtime_kt,
                       FklCodegenOuterCtx *outer_ctx, const char *rp, FILE *fp,
                       char **errorStr);
@@ -560,7 +581,7 @@ FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklSymbolTable *tt,
 FklGrammerProduction *fklCodegenProdPrintingToProduction(
     FklCodegenProdPrinting *p, FklSymbolTable *tt, FklRegexTable *rt,
     FklHashTable *builtin_terms, FklCodegenOuterCtx *outer_ctx,
-    FklFuncPrototypes *pts, FklPtrStack *macroLibStack);
+    FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
 
 void fklWriteExportNamedProds(const FklHashTable *export_named_prod_groups,
                               const FklHashTable *named_prod_groups,

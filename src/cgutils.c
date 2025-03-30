@@ -361,16 +361,17 @@ FklPredef *fklGetCodegenPreDefBySid(FklSid_t id, uint32_t scope,
 
 void fklAddCodegenRefToPreDef(FklSid_t id, uint32_t scope, uint32_t prototypeId,
                               uint32_t idx, FklCodegenEnv *env) {
-    fklPushPtrStack(createPdefRef(id, scope, prototypeId, idx), &env->ref_pdef);
+    fklPreDefRefVectorPushBack2(&env->ref_pdef,
+                                createPdefRef(id, scope, prototypeId, idx));
 }
 
 void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
                              FklFuncPrototypes *pts) {
-    FklPtrStack *ref_pdef = &env->ref_pdef;
+    FklPreDefRefVector *ref_pdef = &env->ref_pdef;
     FklFuncPrototype *pa = pts->pa;
-    FklPtrStack ref_pdef1 = FKL_STACK_INIT;
+    FklPreDefRefVector ref_pdef1;
     uint32_t count = ref_pdef->top;
-    fklInitPtrStack(&ref_pdef1, count, 8);
+    fklPreDefRefVectorInit(&ref_pdef1, count);
     FklPredef pdef;
     FklSidScope key = {id, scope};
     fklDelHashItem(&key, &env->pdef, &pdef);
@@ -385,18 +386,19 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
             env->slotFlags[def->idx] = FKL_CODEGEN_ENV_SLOT_REF;
             free(pdef_ref);
         } else
-            fklPushPtrStack(pdef_ref, &ref_pdef1);
+            fklPreDefRefVectorPushBack2(&ref_pdef1, pdef_ref);
     }
     ref_pdef->top = 0;
-    while (!fklIsPtrStackEmpty(&ref_pdef1))
-        fklPushPtrStack(fklPopPtrStack(&ref_pdef1), ref_pdef);
-    fklUninitPtrStack(&ref_pdef1);
+    while (!fklPreDefRefVectorIsEmpty(&ref_pdef1))
+        fklPreDefRefVectorPushBack2(ref_pdef,
+                                    *fklPreDefRefVectorPopBack(&ref_pdef1));
+    fklPreDefRefVectorUninit(&ref_pdef1);
 }
 
 void fklClearCodegenPreDef(FklCodegenEnv *env) {
     fklClearHashTable(&env->pdef);
-    while (!fklIsPtrStackEmpty(&env->ref_pdef))
-        free(fklPopPtrStack(&env->ref_pdef));
+    while (!fklPreDefRefVectorIsEmpty(&env->ref_pdef))
+        free(*fklPreDefRefVectorPopBack(&env->ref_pdef));
 }
 
 FklSymbolDef *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
@@ -454,7 +456,7 @@ FklSymbolDef *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                     FklUnReSymbolRef *unref = createUnReSymbolRef(
                         id, idx, def.k.scope, env->prototypeId, assign, fid,
                         line);
-                    fklPushPtrStack(unref, &prev->uref);
+                    fklUnReSymbolRefVectorPushBack2(&prev->uref, unref);
                 }
             }
         } else {
@@ -463,7 +465,7 @@ FklSymbolDef *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
             idx = ret->idx;
             FklUnReSymbolRef *unref = createUnReSymbolRef(
                 id, idx, 0, env->prototypeId, assign, fid, line);
-            fklPushPtrStack(unref, &env->uref);
+            fklUnReSymbolRefVectorPushBack2(&env->uref, unref);
         }
         return ret;
     }
@@ -620,11 +622,11 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
                                 const FklSymbolTable *origin_table,
                                 FklSymbolTable *target_table,
                                 FklCodegenRecomputeNastSidOption option) {
-    FklPtrStack pending;
-    fklInitPtrStack(&pending, 16, 16);
-    fklPushPtrStack(node, &pending);
-    while (!fklIsPtrStackEmpty(&pending)) {
-        FklNastNode *top = fklPopPtrStack(&pending);
+    FklNastNodeVector pending;
+    fklNastNodeVectorInit(&pending, 16);
+    fklNastNodeVectorPushBack2(&pending, node);
+    while (!fklNastNodeVectorIsEmpty(&pending)) {
+        FklNastNode *top = *fklNastNodeVectorPopBack(&pending);
         switch (top->type) {
         case FKL_NAST_SLOT:
             abort();
@@ -635,20 +637,20 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
                 top->type = FKL_NAST_RC_SYM;
             break;
         case FKL_NAST_BOX:
-            fklPushPtrStack(top->box, &pending);
+            fklNastNodeVectorPushBack2(&pending, top->box);
             break;
         case FKL_NAST_PAIR:
-            fklPushPtrStack(top->pair->car, &pending);
-            fklPushPtrStack(top->pair->cdr, &pending);
+            fklNastNodeVectorPushBack2(&pending, top->pair->car);
+            fklNastNodeVectorPushBack2(&pending, top->pair->cdr);
             break;
         case FKL_NAST_VECTOR:
             for (size_t i = 0; i < top->vec->size; i++)
-                fklPushPtrStack(top->vec->base[i], &pending);
+                fklNastNodeVectorPushBack2(&pending, top->vec->base[i]);
             break;
         case FKL_NAST_HASHTABLE:
             for (size_t i = 0; i < top->hash->num; i++) {
-                fklPushPtrStack(top->hash->items[i].car, &pending);
-                fklPushPtrStack(top->hash->items[i].cdr, &pending);
+                fklNastNodeVectorPushBack2(&pending, top->hash->items[i].car);
+                fklNastNodeVectorPushBack2(&pending, top->hash->items[i].cdr);
             }
             break;
         default:
@@ -656,7 +658,7 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
         }
     }
 
-    fklUninitPtrStack(&pending);
+    fklNastNodeVectorUninit(&pending);
 }
 
 static inline void
@@ -773,7 +775,7 @@ static inline void recompute_sid_for_dll_lib(FklCodegenLib *lib,
 }
 
 static inline void recompute_sid_for_lib_stack(
-    FklPtrStack *loadedLibStack, const FklSymbolTable *origin_st,
+    FklCodegenLibVector *loadedLibStack, const FklSymbolTable *origin_st,
     FklSymbolTable *target_st, const FklConstTable *origin_kt,
     FklConstTable *target_kt, FklCodegenRecomputeNastSidOption option) {
     for (size_t i = 0; i < loadedLibStack->top; i++) {
@@ -808,7 +810,7 @@ static inline void recompute_sid_for_double_st_script_lib(
 }
 
 static inline void recompute_sid_for_double_st_lib_stack(
-    FklPtrStack *loadedLibStack, const FklSymbolTable *origin_st,
+    FklCodegenLibVector *loadedLibStack, const FklSymbolTable *origin_st,
     FklSymbolTable *runtime_st, FklSymbolTable *public_st,
     const FklConstTable *origin_kt, FklConstTable *runtime_kt,
     FklConstTable *public_kt, FklCodegenRecomputeNastSidOption option) {
@@ -1098,19 +1100,19 @@ static inline FklCodegenLib *load_lib_from_pre_compile(FklSymbolTable *st,
     return lib;
 }
 
-static inline int load_imported_lib_stack(FklPtrStack *libStack,
+static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
                                           FklSymbolTable *st,
                                           const char *main_dir, FILE *fp,
                                           char **errorStr) {
     uint64_t num = 0;
     fread(&num, sizeof(num), 1, fp);
-    fklInitPtrStack(libStack, num + 1, 16);
+    fklCodegenLibVectorInit(libStack, num + 1);
     for (size_t i = 0; i < num; i++) {
         FklCodegenLib *lib =
             load_lib_from_pre_compile(st, main_dir, fp, errorStr);
         if (!lib)
             return 1;
-        fklPushPtrStack(lib, libStack);
+        fklCodegenLibVectorPushBack2(libStack, lib);
     }
     FklCodegenLib *main_lib = (FklCodegenLib *)malloc(sizeof(FklCodegenLib));
     FKL_ASSERT(main_lib);
@@ -1122,24 +1124,24 @@ static inline int load_imported_lib_stack(FklPtrStack *libStack,
     load_export_sid_idx_table(&main_lib->exports, fp);
     main_lib->head = load_compiler_macros(st, fp);
     main_lib->replacements = load_replacements(st, fp);
-    fklPushPtrStack(main_lib, libStack);
+    fklCodegenLibVectorPushBack2(libStack, main_lib);
     load_named_prods(&main_lib->terminal_table, &main_lib->regexes,
                      &main_lib->named_prod_groups, st, fp);
     return 0;
 }
 
-static inline int load_macro_lib_stack(FklPtrStack *libStack,
+static inline int load_macro_lib_stack(FklCodegenLibVector *libStack,
                                        FklSymbolTable *st, const char *main_dir,
                                        FILE *fp, char **errorStr) {
     uint64_t num = 0;
     fread(&num, sizeof(num), 1, fp);
-    fklInitPtrStack(libStack, num, 16);
+    fklCodegenLibVectorInit(libStack, num);
     for (size_t i = 0; i < num; i++) {
         FklCodegenLib *lib =
             load_lib_from_pre_compile(st, main_dir, fp, errorStr);
         if (!lib)
             return 1;
-        fklPushPtrStack(lib, libStack);
+        fklCodegenLibVectorPushBack2(libStack, lib);
     }
     return 0;
 }
@@ -1247,12 +1249,11 @@ static inline void increase_lib_id_and_prototype_id(FklCodegenLib *lib,
     }
 }
 
-static inline void increase_prototype_and_lib_id(uint32_t pts_count,
-                                                 uint32_t macro_pts_count,
-                                                 uint32_t lib_count,
-                                                 uint32_t macro_lib_count,
-                                                 FklPtrStack *libStack,
-                                                 FklPtrStack *macroLibStack) {
+static inline void
+increase_prototype_and_lib_id(uint32_t pts_count, uint32_t macro_pts_count,
+                              uint32_t lib_count, uint32_t macro_lib_count,
+                              FklCodegenLibVector *libStack,
+                              FklCodegenLibVector *macroLibStack) {
     uint32_t top = libStack->top;
     FklCodegenLib **base = (FklCodegenLib **)libStack->base;
     for (uint32_t i = 0; i < top; i++) {
@@ -1288,18 +1289,18 @@ static inline void merge_prototypes(FklFuncPrototypes *o,
     }
 }
 
-static inline void load_printing_ignores(FklPtrStack *stack, FklSymbolTable *st,
-                                         FILE *fp) {
+static inline void load_printing_ignores(FklNastNodeVector *stack,
+                                         FklSymbolTable *st, FILE *fp) {
     uint32_t count = 0;
     fread(&count, sizeof(count), 1, fp);
     for (; count > 0; count--) {
         FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-        fklPushPtrStack(node, stack);
+        fklNastNodeVectorPushBack2(stack, node);
     }
 }
 
-static inline void load_printing_prods(FklPtrStack *stack, FklSymbolTable *st,
-                                       FILE *fp) {
+static inline void load_printing_prods(FklProdPrintingVector *stack,
+                                       FklSymbolTable *st, FILE *fp) {
     uint32_t count = 0;
     fread(&count, sizeof(count), 1, fp);
     for (; count > 0; count--) {
@@ -1318,7 +1319,7 @@ static inline void load_printing_prods(FklPtrStack *stack, FklSymbolTable *st,
             p->bcl = fklLoadByteCodelnt(fp);
         } else
             p->forth = load_nast_node_with_null_chr(st, fp);
-        fklPushPtrStack(p, stack);
+        fklProdPrintingVectorPushBack2(stack, p);
     }
 }
 
@@ -1330,8 +1331,8 @@ add_production_group(FklHashTable *named_prod_groups, FklSid_t group_id) {
         fklGetOrPutHashItem(&group_init, named_prod_groups);
     if (!group->prods.t) {
         fklInitGrammerProductionTable(&group->prods);
-        fklInitPtrStack(&group->prod_printing, 8, 16);
-        fklInitPtrStack(&group->ignore_printing, 8, 16);
+        fklProdPrintingVectorInit(&group->prod_printing, 8);
+        fklNastNodeVectorInit(&group->ignore_printing, 8);
     }
     return group;
 }
@@ -1360,10 +1361,10 @@ static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
     }
 }
 
-static inline void
-init_pre_lib_reader_macros(FklHashTable *builtin_terms, FklPtrStack *libStack,
-                           FklSymbolTable *st, FklCodegenOuterCtx *outer_ctx,
-                           FklFuncPrototypes *pts, FklPtrStack *macroLibStack) {
+static inline void init_pre_lib_reader_macros(
+    FklHashTable *builtin_terms, FklCodegenLibVector *libStack,
+    FklSymbolTable *st, FklCodegenOuterCtx *outer_ctx, FklFuncPrototypes *pts,
+    FklCodegenLibVector *macroLibStack) {
     uint32_t top = libStack->top;
     for (uint32_t i = 0; i < top; i++) {
         FklCodegenLib *lib = libStack->base[i];
@@ -1374,7 +1375,7 @@ init_pre_lib_reader_macros(FklHashTable *builtin_terms, FklPtrStack *libStack,
                  l = l->next) {
                 FklGrammerProductionGroup *group =
                     (FklGrammerProductionGroup *)l->data;
-                FklPtrStack *stack = &group->ignore_printing;
+                FklNastNodeVector *stack = &group->ignore_printing;
                 uint32_t top = stack->top;
                 for (uint32_t i = 0; i < top; i++) {
                     FklNastNode *node = stack->base[i];
@@ -1382,10 +1383,10 @@ init_pre_lib_reader_macros(FklHashTable *builtin_terms, FklPtrStack *libStack,
                         fklNastVectorToIgnore(node, tt, rt, builtin_terms);
                     fklAddIgnoreToIgnoreList(&group->ignore, ig);
                 }
-                stack = &group->prod_printing;
+                FklProdPrintingVector *stack1 = &group->prod_printing;
                 top = stack->top;
                 for (uint32_t i = 0; i < top; i++) {
-                    FklCodegenProdPrinting *p = stack->base[i];
+                    FklCodegenProdPrinting *p = stack1->base[i];
                     FklGrammerProduction *prod =
                         fklCodegenProdPrintingToProduction(
                             p, tt, rt, builtin_terms, outer_ctx, pts,
@@ -1406,8 +1407,8 @@ init_pre_lib_reader_macros(FklHashTable *builtin_terms, FklPtrStack *libStack,
 
 int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklFuncPrototypes *info_macro_pts,
-                      FklPtrStack *info_scriptLibStack,
-                      FklPtrStack *info_macroScriptLibStack,
+                      FklCodegenLibVector *info_scriptLibStack,
+                      FklCodegenLibVector *info_macroScriptLibStack,
                       FklSymbolTable *runtime_st, FklConstTable *runtime_kt,
                       FklCodegenOuterCtx *outer_ctx, const char *rp, FILE *fp,
                       char **errorStr) {
@@ -1426,8 +1427,8 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     char *main_dir = fklGetDir(rp);
     main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
 
-    FklPtrStack scriptLibStack = FKL_STACK_INIT;
-    FklPtrStack macroScriptLibStack = FKL_STACK_INIT;
+    FklCodegenLibVector scriptLibStack;
+    FklCodegenLibVector macroScriptLibStack;
 
     fklInitSymbolTable(&ost);
     fklLoadSymbolTable(fp, &ost);
@@ -1446,12 +1447,13 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     macro_pts = fklLoadFuncPrototypes(fp);
     if (load_macro_lib_stack(&macroScriptLibStack, &ost, main_dir, fp,
                              errorStr)) {
-        while (!fklIsPtrStackEmpty(&macroScriptLibStack))
-            fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
-        fklUninitPtrStack(&macroScriptLibStack);
+        while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
+            fklDestroyCodegenLib(
+                *fklCodegenLibVectorPopBack(&macroScriptLibStack));
+        fklCodegenLibVectorUninit(&macroScriptLibStack);
     error:
-        while (!fklIsPtrStackEmpty(&scriptLibStack))
-            fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
+        while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
+            fklDestroyCodegenLib(*fklCodegenLibVectorPopBack(&scriptLibStack));
         err = 1;
         goto exit;
     }
@@ -1484,12 +1486,14 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     fklUninitHashTable(&builtin_terms);
 
     for (uint32_t i = 0; i < scriptLibStack.top; i++)
-        fklPushPtrStack(scriptLibStack.base[i], info_scriptLibStack);
+        fklCodegenLibVectorPushBack2(info_scriptLibStack,
+                                     scriptLibStack.base[i]);
 
     for (uint32_t i = 0; i < macroScriptLibStack.top; i++)
-        fklPushPtrStack(macroScriptLibStack.base[i], info_macroScriptLibStack);
+        fklCodegenLibVectorPushBack2(info_macroScriptLibStack,
+                                     macroScriptLibStack.base[i]);
 
-    fklUninitPtrStack(&macroScriptLibStack);
+    fklCodegenLibVectorUninit(&macroScriptLibStack);
 exit:
     if (need_open)
         fclose(fp);
@@ -1499,6 +1503,6 @@ exit:
         fklDestroyFuncPrototypes(macro_pts);
     fklUninitSymbolTable(&ost);
     fklUninitConstTable(&okt);
-    fklUninitPtrStack(&scriptLibStack);
+    fklCodegenLibVectorUninit(&scriptLibStack);
     return err;
 }

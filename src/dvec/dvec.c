@@ -40,10 +40,10 @@ static size_t _dvec_length(const FklVMud *d) {
     return dd->size;
 }
 
-static uintptr_t _dvec_hash(const FklVMud *ud, FklPtrStack *s) {
+static uintptr_t _dvec_hash(const FklVMud *ud, FklVMvalueVector *s) {
     FKL_DECL_UD_DATA(vec, Dvec, ud);
     for (size_t i = 0; i < vec->size; i++)
-        fklPushPtrStack(vec->base[i], s);
+        fklVMvalueVectorPushBack2(s, vec->base[i]);
     return vec->size;
 }
 
@@ -807,7 +807,7 @@ struct SymFunc {
     const char *sym;
     FklVMcFunc f;
 } exports_and_func[] = {
-	// clang-format off
+    // clang-format off
     // dvec
     {"dvec?",              export_dvec_p                  },
     {"dvec",               export_dvec                    },
@@ -840,7 +840,7 @@ struct SymFunc {
     {"vector->dvec",       export_vector_to_dvec          },
     {"string->dvec",       export_string_to_dvec          },
     {"bytes->dvec",        export_bytevector_to_dvec      },
-	// clang-format on
+    // clang-format on
 };
 
 static const size_t EXPORT_NUM =

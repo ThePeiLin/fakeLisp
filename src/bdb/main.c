@@ -149,9 +149,9 @@ static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
     cc->offset = 0;
     fklStringBufferClear(s);
     s->buf[0] = '\0';
-    FklPtrStack *ss = &cc->symbolStack;
-    while (!fklIsPtrStackEmpty(ss))
-        free(fklPopPtrStack(ss));
+    FklAnalysisSymbolVector *ss = &cc->symbolStack;
+    while (!fklAnalysisSymbolVectorIsEmpty(ss))
+        free(*fklAnalysisSymbolVectorPopBack(ss));
     cc->stateStack.top = 0;
     cc->lineStack.top = 0;
     fklVMvaluePushState0ToStack(&cc->stateStack);
@@ -626,7 +626,7 @@ static int bdb_debug_ctx_set_list_src(FKL_CPROC_ARGL) {
     DebugCtx *dctx = debug_ctx_ud->ctx;
 
     FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
-    int64_t line_num = FKL_GET_FIX(line_num_obj);
+    uint64_t line_num = FKL_GET_FIX(line_num_obj);
     if (line_num > 0 && line_num < dctx->curfile_lines->top)
         dctx->curlist_line = line_num;
     FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
@@ -644,7 +644,7 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
 
     if (line_num_obj) {
         FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
-        int64_t line_num = FKL_GET_FIX(line_num_obj);
+        uint64_t line_num = FKL_GET_FIX(line_num_obj);
         if (line_num <= 0 || line_num >= dctx->curfile_lines->top)
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         else {
@@ -706,7 +706,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
     }
 
     const SourceCodeHashItem *item = getSourceWithFid(dctx, fid);
-    int64_t line_num = FKL_GET_FIX(line_num_obj);
+    uint64_t line_num = FKL_GET_FIX(line_num_obj);
     if (item == NULL || line_num <= 0 || line_num >= item->lines.top)
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     else {

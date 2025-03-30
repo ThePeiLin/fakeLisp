@@ -182,11 +182,11 @@ int main(int argc, char **argv) {
             FklFuncPrototypes macro_pts;
             fklInitFuncPrototypes(&macro_pts, 0);
 
-            FklPtrStack scriptLibStack;
-            fklInitPtrStack(&scriptLibStack, 8, 16);
+            FklCodegenLibVector scriptLibStack;
+            fklCodegenLibVectorInit(&scriptLibStack, 8);
 
-            FklPtrStack macroScriptLibStack;
-            fklInitPtrStack(&macroScriptLibStack, 8, 16);
+            FklCodegenLibVector macroScriptLibStack;
+            fklCodegenLibVectorInit(&macroScriptLibStack, 8);
 
             FklCodegenOuterCtx ctx;
             fklInitCodegenOuterCtxExceptPattern(&ctx);
@@ -285,12 +285,14 @@ int main(int argc, char **argv) {
             fklUninitFuncPrototypes(&pts);
             fklUninitFuncPrototypes(&macro_pts);
 
-            while (!fklIsPtrStackEmpty(&scriptLibStack))
-                fklDestroyCodegenLib(fklPopPtrStack(&scriptLibStack));
-            fklUninitPtrStack(&scriptLibStack);
-            while (!fklIsPtrStackEmpty(&macroScriptLibStack))
-                fklDestroyCodegenLib(fklPopPtrStack(&macroScriptLibStack));
-            fklUninitPtrStack(&macroScriptLibStack);
+            while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
+                fklDestroyCodegenLib(
+                    *fklCodegenLibVectorPopBack(&scriptLibStack));
+            fklCodegenLibVectorUninit(&scriptLibStack);
+            while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
+                fklDestroyCodegenLib(
+                    *fklCodegenLibVectorPopBack(&macroScriptLibStack));
+            fklCodegenLibVectorUninit(&macroScriptLibStack);
 
             fklUninitSymbolTable(&runtime_st);
             fklUninitConstTable(&runtime_kt);
@@ -377,7 +379,7 @@ static void print_reader_macros(const FklHashTable *ht,
         if (group->ignore_printing.top) {
             fputs("\nignores:\n", fp);
             uint32_t top = group->ignore_printing.top;
-            void **base = group->ignore_printing.base;
+            FklNastNode **base = group->ignore_printing.base;
             for (uint32_t i = 0; i < top; i++) {
                 fklPrintNastNode(base[i], fp, pst);
                 fputc('\n', fp);
@@ -386,7 +388,7 @@ static void print_reader_macros(const FklHashTable *ht,
         if (group->prod_printing.top) {
             fputs("\nprods:\n\n", fp);
             uint32_t top = group->prod_printing.top;
-            void **base = group->prod_printing.base;
+            FklCodegenProdPrinting **base = group->prod_printing.base;
             for (uint32_t i = 0; i < top; i++) {
                 FklCodegenProdPrinting *p = base[i];
                 if (p->sid)

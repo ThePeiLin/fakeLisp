@@ -1,5 +1,6 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
+#include <fakeLisp/common.h>
 #include <fakeLisp/utils.h>
 
 #include <ctype.h>

@@ -5,6 +5,7 @@
 #include "builtin.h"
 #include "bytecode.h"
 #include "common.h"
+#include "grammer.h"
 #include "nast.h"
 #include "utils.h"
 
@@ -429,6 +430,11 @@ typedef struct FklVM {
     struct FklVMinterruptHandleList *int_list;
 } FklVM;
 
+// FklVMvalueVector
+#define FKL_VECTOR_ELM_TYPE FklVMvalue *
+#define FKL_VECTOR_ELM_TYPE_NAME VMvalue
+#include "vector.h"
+
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,
                                            FklVMvalue *const *top);
@@ -450,7 +456,7 @@ typedef struct FklVMudMetaTable {
     size_t (*__length)(const FklVMud *);
     FklVMudCopyAppender __copy_append;
     FklVMudAppender __append;
-    size_t (*__hash)(const FklVMud *, FklPtrStack *s);
+    size_t (*__hash)(const FklVMud *, FklVMvalueVector *s);
 } FklVMudMetaTable;
 
 typedef enum {
@@ -1007,7 +1013,7 @@ int fklIsVMeofUd(FklVMvalue *v);
 
 // vmparser
 
-void fklVMvaluePushState0ToStack(FklPtrStack *stateStack);
+void fklVMvaluePushState0ToStack(FklParseStateFuncVector *stateStack);
 #define FKL_VMVALUE_PARSE_OUTER_CTX_INIT(EXE)                                  \
     {.maxNonterminalLen = 0,                                                   \
      .line = 1,                                                                \
@@ -1152,7 +1158,7 @@ void fklCallVMud(const FklVMud *, const FklVMud *);
 int fklCmpVMud(const FklVMud *, const FklVMvalue *, int *);
 void fklWriteVMud(const FklVMud *, FILE *fp);
 size_t fklLengthVMud(const FklVMud *);
-size_t fklHashvVMud(const FklVMud *, FklPtrStack *s);
+size_t fklHashvVMud(const FklVMud *, FklVMvalueVector *s);
 void fklUdAsPrin1(const FklVMud *, FklStringBuffer *, FklVMgc *);
 void fklUdAsPrinc(const FklVMud *, FklStringBuffer *, FklVMgc *);
 FklBytevector *fklUdToBytevector(const FklVMud *);

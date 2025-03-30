@@ -83,6 +83,11 @@ typedef struct // unresolved symbol ref
     uint64_t line;
 } FklUnReSymbolRef;
 
+// FklUnReSymbolRefVector
+#define FKL_VECTOR_ELM_TYPE FklUnReSymbolRef *
+#define FKL_VECTOR_ELM_TYPE_NAME UnReSymbolRef
+#include "vector.h"
+
 void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);
 

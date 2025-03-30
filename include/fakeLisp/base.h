@@ -197,6 +197,7 @@ void fklDestroyHashTable(FklHashTable *);
 static inline void fklDoNothingUninitHashItem(void *v) {}
 void *fklHashDefaultGetKey(void *i);
 
+/* to be delete
 #define FKL_STACK_INIT {NULL, 0, 0, 0}
 typedef struct {
     void **base;
@@ -216,6 +217,7 @@ void *fklTopPtrStack(FklPtrStack *);
 void fklDestroyPtrStack(FklPtrStack *);
 void fklRecyclePtrStack(FklPtrStack *);
 int fklIsPtrStackEmpty(FklPtrStack *);
+*/
 
 typedef struct FklQueueNode {
     void *data;
@@ -251,8 +253,19 @@ FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
 #define FKL_VECTOR_ELM_TYPE uintmax_t
 #define FKL_VECTOR_ELM_TYPE_NAME Uint
 #include "vector.h"
-#undef FKL_VECTOR_ELM_TYPE
-#undef FKL_VECTOR_ELM_TYPE_NAME
+
+// FklstringVector
+#define FKL_VECTOR_ELM_TYPE FklString *
+#define FKL_VECTOR_ELM_TYPE_NAME String
+#include "vector.h"
+
+// FklPtrVector
+#include "vector.h"
+
+// FklQueueVector
+#define FKL_VECTOR_ELM_TYPE FklPtrQueue *
+#define FKL_VECTOR_ELM_TYPE_NAME Queue
+#include "vector.h"
 
 size_t fklBigIntToStringBuffer(const FklBigInt *a,
                                FklStringBuffer *string_buffer, uint8_t radix,

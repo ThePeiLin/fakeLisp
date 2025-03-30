@@ -1,9 +1,17 @@
 // steal from pocketpy: https://github.com/pocketpy/pocketpy/
-#include "common.h"
 
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+
+#ifndef FKL_VECTOR_TYPE_PREFIX
+#define FKL_VECTOR_TYPE_PREFIX Fkl
+#endif
+
+#ifndef FKL_VECTOR_METHOD_PREFIX
+#define FKL_VECTOR_METHOD_PREFIX fkl
+#endif
 
 #ifndef FKL_VECTOR_INIT
 #define FKL_VECTOR_INIT {NULL, 0, 0, 0}
@@ -19,16 +27,19 @@
 
 #define CONCAT_(A, B) A##B
 #define CONCAT(A, B) CONCAT_(A, B)
-#define NAME CONCAT(Fkl, CONCAT(FKL_VECTOR_ELM_TYPE_NAME, Vector))
+#define NAME                                                                   \
+    CONCAT(FKL_VECTOR_TYPE_PREFIX, CONCAT(FKL_VECTOR_ELM_TYPE_NAME, Vector))
 
-typedef struct {
+typedef struct NAME {
     FKL_VECTOR_ELM_TYPE *base;
     size_t top;
     size_t size;
 } NAME;
 
 #define METHOD(method_name)                                                    \
-    CONCAT(CONCAT(CONCAT(fkl, FKL_VECTOR_ELM_TYPE_NAME), Vector), method_name)
+    CONCAT(CONCAT(CONCAT(FKL_VECTOR_METHOD_PREFIX, FKL_VECTOR_ELM_TYPE_NAME),  \
+                  Vector),                                                     \
+           method_name)
 
 static inline void METHOD(Init)(NAME *r, size_t size) {
     if (!size)
@@ -36,7 +47,7 @@ static inline void METHOD(Init)(NAME *r, size_t size) {
     else {
         r->base =
             (FKL_VECTOR_ELM_TYPE *)malloc(size * sizeof(FKL_VECTOR_ELM_TYPE));
-        FKL_ASSERT(r->base);
+        assert(r->base);
     }
     r->size = size;
     r->top = 0;
@@ -51,7 +62,7 @@ static inline void METHOD(Uninit)(NAME *r) {
 
 static inline NAME *METHOD(Create)(size_t size) {
     NAME *r = (NAME *)malloc(sizeof(NAME));
-    FKL_ASSERT(r);
+    assert(r);
     METHOD(Init)(r, size);
     return r;
 }
@@ -69,7 +80,7 @@ static inline void METHOD(Reserve)(NAME *r, size_t size) {
         r->size = size;
     FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)realloc(
         r->base, r->size * sizeof(FKL_VECTOR_ELM_TYPE));
-    FKL_ASSERT(nbase);
+    assert(nbase);
     r->base = nbase;
 }
 
@@ -77,7 +88,8 @@ static inline FKL_VECTOR_ELM_TYPE *
 METHOD(PushBack)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     METHOD(Reserve)(r, r->top + 1);
     FKL_VECTOR_ELM_TYPE *p = &r->base[r->top++];
-    *p = *data;
+    if (data)
+        *p = *data;
     return p;
 }
 
@@ -93,7 +105,9 @@ static inline FKL_VECTOR_ELM_TYPE *
 METHOD(InsertFront)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     METHOD(Reserve)(r, r->top + 1);
     memmove(r->base + 1, r->base, r->top * sizeof(FKL_VECTOR_ELM_TYPE));
-    r->base[0] = *data;
+    if (data)
+        r->base[0] = *data;
+    ++r->top;
     return r->base;
 }
 
@@ -102,6 +116,7 @@ METHOD(InsertFront2)(NAME *r, FKL_VECTOR_ELM_TYPE data) {
     METHOD(Reserve)(r, r->top + 1);
     memmove(r->base + 1, r->base, r->top * sizeof(FKL_VECTOR_ELM_TYPE));
     r->base[0] = data;
+    ++r->top;
     return r->base;
 }
 
@@ -117,7 +132,7 @@ static inline void METHOD(Shrink)(NAME *r) {
     if (r->top) {
         FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)realloc(
             r->base, r->top * sizeof(FKL_VECTOR_ELM_TYPE));
-        FKL_ASSERT(nbase);
+        assert(nbase);
         r->base = nbase;
     } else {
         free(r->base);
@@ -133,3 +148,8 @@ static inline int METHOD(IsEmpty)(const NAME *r) { return r->top == 0; }
 
 #undef METHOD
 #undef NAME
+
+#undef FKL_VECTOR_ELM_TYPE
+#undef FKL_VECTOR_ELM_TYPE_NAME
+#undef FKL_VECTOR_TYPE_PREFIX
+#undef FKL_VECTOR_METHOD_PREFIX

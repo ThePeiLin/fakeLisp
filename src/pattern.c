@@ -22,31 +22,31 @@ int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
     if (exp->pair->car->type != FKL_NAST_SYM
         || pattern->pair->car->sym != exp->pair->car->sym)
         return 0;
-    FklPtrStack s0 = FKL_STACK_INIT;
-    fklInitPtrStack(&s0, 32, 16);
-    FklPtrStack s1 = FKL_STACK_INIT;
-    fklInitPtrStack(&s1, 32, 16);
-    fklPushPtrStack(pattern->pair->cdr, &s0);
-    fklPushPtrStack(exp->pair->cdr, &s1);
-    while (!fklIsPtrStackEmpty(&s0) && !fklIsPtrStackEmpty(&s1)) {
-        FklNastNode *n0 = fklPopPtrStack(&s0);
-        FklNastNode *n1 = fklPopPtrStack(&s1);
+    FklNastNodeVector s0;
+    fklNastNodeVectorInit(&s0, 32);
+    FklNastNodeVector s1;
+    fklNastNodeVectorInit(&s1, 32);
+    fklNastNodeVectorPushBack2(&s0, pattern->pair->cdr);
+    fklNastNodeVectorPushBack2(&s1, exp->pair->cdr);
+    while (!fklNastNodeVectorIsEmpty(&s0) && !fklNastNodeVectorIsEmpty(&s1)) {
+        FklNastNode *n0 = *fklNastNodeVectorPopBack(&s0);
+        FklNastNode *n1 = *fklNastNodeVectorPopBack(&s1);
         if (n0->type == FKL_NAST_SLOT) {
             if (ht != NULL)
                 fklPatternMatchingHashTableSet(n0->sym, n1, ht);
         } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklPushPtrStack(n0->pair->cdr, &s0);
-            fklPushPtrStack(n0->pair->car, &s0);
-            fklPushPtrStack(n1->pair->cdr, &s1);
-            fklPushPtrStack(n1->pair->car, &s1);
+            fklNastNodeVectorPushBack2(&s0, n0->pair->cdr);
+            fklNastNodeVectorPushBack2(&s0, n0->pair->car);
+            fklNastNodeVectorPushBack2(&s1, n1->pair->cdr);
+            fklNastNodeVectorPushBack2(&s1, n1->pair->car);
         } else if (!fklNastNodeEqual(n0, n1)) {
-            fklUninitPtrStack(&s0);
-            fklUninitPtrStack(&s1);
+            fklNastNodeVectorUninit(&s0);
+            fklNastNodeVectorUninit(&s1);
             return 0;
         }
     }
-    fklUninitPtrStack(&s0);
-    fklUninitPtrStack(&s1);
+    fklNastNodeVectorUninit(&s0);
+    fklNastNodeVectorUninit(&s1);
     return 1;
 }
 
@@ -95,30 +95,31 @@ static inline int is_pattern_equal(const FklNastNode *pattern,
     if (exp->pair->car->type != FKL_NAST_SYM
         || pattern->pair->car->sym != exp->pair->car->sym)
         return 0;
-    FklPtrStack s0 = FKL_STACK_INIT;
-    fklInitPtrStack(&s0, 32, 16);
-    FklPtrStack s1 = FKL_STACK_INIT;
-    fklInitPtrStack(&s1, 32, 16);
-    fklPushPtrStack(pattern->pair->cdr, &s0);
-    fklPushPtrStack(exp->pair->cdr, &s1);
+    FklNastNodeVector s0;
+    fklNastNodeVectorInit(&s0, 32);
+    FklNastNodeVector s1;
+    fklNastNodeVectorInit(&s1, 32);
+    fklNastNodeVectorPushBack2(&s0, pattern->pair->cdr);
+    fklNastNodeVectorPushBack2(&s1, exp->pair->cdr);
     int r = 1;
-    while (r && !fklIsPtrStackEmpty(&s0) && !fklIsPtrStackEmpty(&s1)) {
-        FklNastNode *n0 = fklPopPtrStack(&s0);
-        FklNastNode *n1 = fklPopPtrStack(&s1);
+    while (r && !fklNastNodeVectorIsEmpty(&s0)
+           && !fklNastNodeVectorIsEmpty(&s1)) {
+        FklNastNode *n0 = *fklNastNodeVectorPopBack(&s0);
+        FklNastNode *n1 = *fklNastNodeVectorPopBack(&s1);
         if (n0->type != n1->type)
             r = 0;
         else if (n0->type == FKL_NAST_SLOT)
             continue;
         else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklPushPtrStack(n0->pair->cdr, &s0);
-            fklPushPtrStack(n0->pair->car, &s0);
-            fklPushPtrStack(n1->pair->cdr, &s1);
-            fklPushPtrStack(n1->pair->car, &s1);
+            fklNastNodeVectorPushBack2(&s0, n0->pair->cdr);
+            fklNastNodeVectorPushBack2(&s0, n0->pair->car);
+            fklNastNodeVectorPushBack2(&s1, n1->pair->cdr);
+            fklNastNodeVectorPushBack2(&s1, n1->pair->car);
         } else if (!fklNastNodeEqual(n0, n1))
             r = 0;
     }
-    fklUninitPtrStack(&s0);
-    fklUninitPtrStack(&s1);
+    fklNastNodeVectorUninit(&s0);
+    fklNastNodeVectorUninit(&s1);
     return r;
 }
 
@@ -130,28 +131,28 @@ static inline int is_partly_covered(const FklNastNode *pattern,
     if (exp->pair->car->type != FKL_NAST_SYM
         || pattern->pair->car->sym != exp->pair->car->sym)
         return r;
-    FklPtrStack s0 = FKL_STACK_INIT;
-    fklInitPtrStack(&s0, 32, 16);
-    FklPtrStack s1 = FKL_STACK_INIT;
-    fklInitPtrStack(&s1, 32, 16);
-    fklPushPtrStack(pattern->pair->cdr, &s0);
-    fklPushPtrStack(exp->pair->cdr, &s1);
-    while (!fklIsPtrStackEmpty(&s0) && !fklIsPtrStackEmpty(&s1)) {
-        FklNastNode *n0 = fklPopPtrStack(&s0);
-        FklNastNode *n1 = fklPopPtrStack(&s1);
+    FklNastNodeVector s0;
+    fklNastNodeVectorInit(&s0, 32);
+    FklNastNodeVector s1;
+    fklNastNodeVectorInit(&s1, 32);
+    fklNastNodeVectorPushBack2(&s0, pattern->pair->cdr);
+    fklNastNodeVectorPushBack2(&s1, exp->pair->cdr);
+    while (!fklNastNodeVectorIsEmpty(&s0) && !fklNastNodeVectorIsEmpty(&s1)) {
+        FklNastNode *n0 = *fklNastNodeVectorPopBack(&s0);
+        FklNastNode *n1 = *fklNastNodeVectorPopBack(&s1);
         if (n0->type == FKL_NAST_SLOT) {
             r = 1;
             break;
         } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklPushPtrStack(n0->pair->cdr, &s0);
-            fklPushPtrStack(n0->pair->car, &s0);
-            fklPushPtrStack(n1->pair->cdr, &s1);
-            fklPushPtrStack(n1->pair->car, &s1);
+            fklNastNodeVectorPushBack2(&s0, n0->pair->cdr);
+            fklNastNodeVectorPushBack2(&s0, n0->pair->car);
+            fklNastNodeVectorPushBack2(&s1, n1->pair->cdr);
+            fklNastNodeVectorPushBack2(&s1, n1->pair->car);
         } else if (!fklNastNodeEqual(n0, n1))
             break;
     }
-    fklUninitPtrStack(&s0);
-    fklUninitPtrStack(&s1);
+    fklNastNodeVectorUninit(&s0);
+    fklNastNodeVectorUninit(&s1);
     return r;
 }
 
@@ -194,17 +195,17 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
         FklSid_t slotId = node->pair->car->sym;
         FklNastNode *rest = exp->pair->cdr;
 
-        FklPtrStack stack = FKL_STACK_INIT;
-        fklInitPtrStack(&stack, 32, 16);
-        fklPushPtrStack((void *)rest, &stack);
-        while (!fklIsPtrStackEmpty(&stack)) {
-            FklNastNode *c = fklPopPtrStack(&stack);
+        FklNastNodeVector stack;
+        fklNastNodeVectorInit(&stack, 32);
+        fklNastNodeVectorPushBack2(&stack, rest);
+        while (!fklNastNodeVectorIsEmpty(&stack)) {
+            FklNastNode *c = *fklNastNodeVectorPopBack(&stack);
             if (c->type == FKL_NAST_PAIR) {
                 if (is_pattern_slot(slotId, c)) {
                     FklSid_t sym = c->pair->cdr->pair->car->sym;
                     if (fklGetHashItem(&sym, symbolTable)) {
                         fklDestroyHashTable(symbolTable);
-                        fklUninitPtrStack(&stack);
+                        fklNastNodeVectorUninit(&stack);
                         *psymbolTable = NULL;
                         fklDestroyNastNode(exp);
                         return NULL;
@@ -216,13 +217,13 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
                     c->sym = sym;
                     fklPutHashItem(&sym, symbolTable);
                 } else {
-                    fklPushPtrStack(c->pair->cdr, &stack);
-                    fklPushPtrStack(c->pair->car, &stack);
+                    fklNastNodeVectorPushBack2(&stack, c->pair->cdr);
+                    fklNastNodeVectorPushBack2(&stack, c->pair->car);
                 }
             }
         }
         r = exp;
-        fklUninitPtrStack(&stack);
+        fklNastNodeVectorUninit(&stack);
         if (psymbolTable)
             *psymbolTable = symbolTable;
         else

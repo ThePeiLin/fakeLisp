@@ -15,12 +15,27 @@ typedef struct {
     Replxx *replxx;
     FklStringBuffer buf;
     uint32_t offset;
-    FklPtrStack symbolStack;
+    FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
-    FklPtrStack stateStack;
+    FklParseStateFuncVector stateStack;
 } CmdReadCtx;
 
 struct BreakpointHashItem;
+
+// BdbFrameVector
+#define FKL_VECTOR_TYPE_PREFIX Bdb
+#define FKL_VECTOR_METHOD_PREFIX bdb
+#define FKL_VECTOR_ELM_TYPE FklVMframe*
+#define FKL_VECTOR_ELM_TYPE_NAME Frame
+#include <fakeLisp/vector.h>
+
+
+// BdbThreadVector
+#define FKL_VECTOR_TYPE_PREFIX Bdb
+#define FKL_VECTOR_METHOD_PREFIX bdb
+#define FKL_VECTOR_ELM_TYPE FklVM*
+#define FKL_VECTOR_ELM_TYPE_NAME Thread
+#include <fakeLisp/vector.h>
 
 typedef struct Breakpoint {
     struct Breakpoint **pnext;
@@ -87,22 +102,22 @@ typedef struct DebugCtx {
     uint32_t curline;
     FklSid_t curline_file;
     const FklString *curline_str;
-    const FklPtrStack *curfile_lines;
+    const FklStringVector *curfile_lines;
 
     FklHashTable source_code_table;
     FklHashTable envs;
 
-    FklPtrStack extra_mark_value;
-    FklPtrStack code_objs;
+    FklVMvalueVector extra_mark_value;
+    FklVMvalueVector code_objs;
 
     jmp_buf jmpb;
     FklVM *reached_thread;
 
-    FklPtrStack reached_thread_frames;
+    BdbFrameVector reached_thread_frames;
     uint32_t curframe_idx;
     uint32_t temp_proc_prototype_id;
 
-    FklPtrStack threads;
+    BdbThreadVector threads;
     uint32_t curthread_idx;
 
     const Breakpoint *reached_breakpoint;
@@ -131,7 +146,7 @@ typedef struct DebugCtx {
 
 typedef struct {
     FklSid_t sid;
-    FklPtrStack lines;
+    FklStringVector lines;
 } SourceCodeHashItem;
 
 typedef enum {

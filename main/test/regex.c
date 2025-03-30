@@ -1,3 +1,4 @@
+#include <fakeLisp/common.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/utils.h>
 #include <string.h>

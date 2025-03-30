@@ -144,7 +144,7 @@ static inline void write_lib_main_file(const FklCodegenInfo *codegen,
                              codegen->named_prod_groups, st, outfp);
 }
 
-static inline void write_lib_stack(FklPtrStack *loadedLibStack,
+static inline void write_lib_stack(FklCodegenLibVector *loadedLibStack,
                                    const FklSymbolTable *st,
                                    const char *main_dir, const char *target_dir,
                                    FILE *outfp) {
@@ -274,7 +274,7 @@ static inline int compile(const char *filename, const char *output,
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
-    FklPtrStack *loadedLibStack = codegen.libStack;
+    FklCodegenLibVector *loadedLibStack = codegen.libStack;
     char *outputname = NULL;
     if (output) {
         outputname = fklStrCat(fklCopyCstr(cwd), FKL_PATH_SEPARATOR_STR);

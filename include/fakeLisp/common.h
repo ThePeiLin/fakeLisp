@@ -66,6 +66,7 @@ typedef SSIZE_T ssize_t;
 #define FKL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define FKL_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define FKL_ASSERT(exp) assert(exp)
+#define FKL_REMOVE_CONST(T, V) ((T *)V)
 
 #define FKL_ESCAPE_CHARS ("ABTNVFRS")
 #define FKL_ESCAPE_CHARS_TO ("\a\b\t\n\v\f\r\x20")

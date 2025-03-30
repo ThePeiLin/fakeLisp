@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* to be delete
 int fklIsPtrStackEmpty(FklPtrStack *stack) { return stack->top == 0; }
 
 void fklInitPtrStack(FklPtrStack *r, uint32_t size, uint32_t inc) {
@@ -87,6 +88,7 @@ void fklRecyclePtrStack(FklPtrStack *stack) {
         stack->size -= stack->inc;
     }
 }
+*/
 
 FklQueueNode *fklCreateQueueNode(void *data) {
     FklQueueNode *tmp = (FklQueueNode *)malloc(sizeof(FklQueueNode));

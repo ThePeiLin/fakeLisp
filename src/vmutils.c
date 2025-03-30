@@ -489,16 +489,16 @@ static inline void dec_value_degree(FklHashTable *ht, FklVMvalue *v) {
 
 static inline void scan_value_and_find_value_in_circle(
     FklHashTable *ht, FklHashTable *circle_heads, FklVMvalue *first_value) {
-    FklPtrStack stack;
-    fklInitPtrStack(&stack, 16, 16);
-    fklPushPtrStack(first_value, &stack);
-    while (!fklIsPtrStackEmpty(&stack)) {
-        FklVMvalue *v = fklPopPtrStack(&stack);
+    FklVMvalueVector stack;
+    fklVMvalueVectorInit(&stack, 16);
+    fklVMvalueVectorPushBack2(&stack, first_value);
+    while (!fklVMvalueVectorIsEmpty(&stack)) {
+        FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(ht, v);
             if (!isInValueSet(v, circle_heads, NULL)) {
-                fklPushPtrStack(FKL_VM_CDR(v), &stack);
-                fklPushPtrStack(FKL_VM_CAR(v), &stack);
+                fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
+                fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_VECTOR(v)) {
@@ -506,13 +506,13 @@ static inline void scan_value_and_find_value_in_circle(
             if (!isInValueSet(v, circle_heads, NULL)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
-                    fklPushPtrStack(vec->base[i - 1], &stack);
+                    fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(ht, v);
             if (!isInValueSet(v, circle_heads, NULL)) {
-                fklPushPtrStack(FKL_VM_BOX(v), &stack);
+                fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_HASHTABLE(v)) {
@@ -521,8 +521,8 @@ static inline void scan_value_and_find_value_in_circle(
                 for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
                      tail = tail->prev) {
                     FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
-                    fklPushPtrStack(item->v, &stack);
-                    fklPushPtrStack(item->key, &stack);
+                    fklVMvalueVectorPushBack2(&stack, item->v);
+                    fklVMvalueVectorPushBack2(&stack, item->key);
                 }
                 putValueInSet(circle_heads, v);
             }
@@ -538,7 +538,7 @@ static inline void scan_value_and_find_value_in_circle(
             struct VMvalueDegreeHashItem *item =
                 (struct VMvalueDegreeHashItem *)list->data;
             if (!item->degree)
-                fklPushPtrStack(item->v, &stack);
+                fklVMvalueVectorPushBack2(&stack, item->v);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.top];
@@ -565,7 +565,7 @@ static inline void scan_value_and_find_value_in_circle(
                 }
             }
         }
-    } while (!fklIsPtrStackEmpty(&stack));
+    } while (!fklVMvalueVectorIsEmpty(&stack));
 
     // get all circle heads
 
@@ -583,7 +583,7 @@ static inline void scan_value_and_find_value_in_circle(
                 struct VMvalueDegreeHashItem *item =
                     (struct VMvalueDegreeHashItem *)list->data;
                 if (!item->degree)
-                    fklPushPtrStack(item->v, &stack);
+                    fklVMvalueVectorPushBack2(&stack, item->v);
             }
             FklVMvalue **base = (FklVMvalue **)stack.base;
             FklVMvalue **const end = &base[stack.top];
@@ -611,9 +611,9 @@ static inline void scan_value_and_find_value_in_circle(
                     }
                 }
             }
-        } while (!fklIsPtrStackEmpty(&stack));
+        } while (!fklVMvalueVectorIsEmpty(&stack));
     }
-    fklUninitPtrStack(&stack);
+    fklVMvalueVectorUninit(&stack);
 }
 
 static inline void scan_cir_ref(FklVMvalue *s, FklHashTable *circle_head_set) {
@@ -632,23 +632,27 @@ static inline void put_ptr_in_set(FklHashTable *ht, void *ptr) {
 }
 
 int fklHasCircleRef(FklVMvalue *first_value) {
+    if (FKL_GET_TAG(first_value) != FKL_TAG_PTR
+        || (!FKL_IS_PAIR(first_value) && !FKL_IS_BOX(first_value)
+            && !FKL_IS_VECTOR(first_value) && !FKL_IS_HASHTABLE(first_value)))
+        return 0;
     FklHashTable value_set;
     fklInitPtrSet(&value_set);
 
     FklHashTable degree_table;
     init_vmvalue_degree_hash_table(&degree_table);
 
-    FklPtrStack stack;
-    fklInitPtrStack(&stack, 16, 16);
+    FklVMvalueVector stack;
+    fklVMvalueVectorInit(&stack, 16);
 
-    fklPushPtrStack(first_value, &stack);
-    while (!fklIsPtrStackEmpty(&stack)) {
-        FklVMvalue *v = fklPopPtrStack(&stack);
+    fklVMvalueVectorPushBack2(&stack, first_value);
+    while (!fklVMvalueVectorIsEmpty(&stack)) {
+        FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(&degree_table, v);
             if (!is_ptr_in_set(&value_set, v)) {
-                fklPushPtrStack(FKL_VM_CDR(v), &stack);
-                fklPushPtrStack(FKL_VM_CAR(v), &stack);
+                fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
+                fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
                 put_ptr_in_set(&value_set, v);
             }
         } else if (FKL_IS_VECTOR(v)) {
@@ -656,13 +660,13 @@ int fklHasCircleRef(FklVMvalue *first_value) {
             if (!is_ptr_in_set(&value_set, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
-                    fklPushPtrStack(vec->base[i - 1], &stack);
+                    fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
                 put_ptr_in_set(&value_set, v);
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(&degree_table, v);
             if (!is_ptr_in_set(&value_set, v)) {
-                fklPushPtrStack(FKL_VM_BOX(v), &stack);
+                fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
                 put_ptr_in_set(&value_set, v);
             }
         } else if (FKL_IS_HASHTABLE(v)) {
@@ -671,8 +675,8 @@ int fklHasCircleRef(FklVMvalue *first_value) {
                 for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
                      tail = tail->prev) {
                     FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
-                    fklPushPtrStack(item->v, &stack);
-                    fklPushPtrStack(item->key, &stack);
+                    fklVMvalueVectorPushBack2(&stack, item->v);
+                    fklVMvalueVectorPushBack2(&stack, item->key);
                 }
                 put_ptr_in_set(&value_set, v);
             }
@@ -690,7 +694,7 @@ int fklHasCircleRef(FklVMvalue *first_value) {
             struct VMvalueDegreeHashItem *item =
                 (struct VMvalueDegreeHashItem *)list->data;
             if (!item->degree)
-                fklPushPtrStack(item->v, &stack);
+                fklVMvalueVectorPushBack2(&stack, item->v);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.top];
@@ -717,12 +721,12 @@ int fklHasCircleRef(FklVMvalue *first_value) {
                 }
             }
         }
-    } while (!fklIsPtrStackEmpty(&stack));
+    } while (!fklVMvalueVectorIsEmpty(&stack));
 
     int r = degree_table.num > 0;
     fklUninitHashTable(&degree_table);
 
-    fklUninitPtrStack(&stack);
+    fklVMvalueVectorUninit(&stack);
     return r;
 }
 
@@ -906,12 +910,12 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
 
     scan_cir_ref(value, &circel_head_set);
     FklPtrQueue *queue = fklCreatePtrQueue();
-    FklPtrStack queueStack = FKL_STACK_INIT;
-    fklInitPtrStack(&queueStack, 32, 16);
+    FklQueueVector queueStack;
+    fklQueueVectorInit(&queueStack, 32);
     fklPushPtrQueue(createPrtElem(PRT_CAR, value), queue);
-    fklPushPtrStack(queue, &queueStack);
-    while (!fklIsPtrStackEmpty(&queueStack)) {
-        FklPtrQueue *cQueue = fklTopPtrStack(&queueStack);
+    fklQueueVectorPushBack2(&queueStack, queue);
+    while (!fklQueueVectorIsEmpty(&queueStack)) {
+        FklPtrQueue *cQueue = *fklQueueVectorBack(&queueStack);
         while (fklLengthPtrQueue(cQueue)) {
             PrtElem *e = fklPopPtrQueue(cQueue);
             FklVMvalue *v = e->v;
@@ -927,7 +931,7 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
                 HashPrtElem *elem = (void *)e->v;
                 fklPushPtrQueue(elem->key, iQueue);
                 fklPushPtrQueue(elem->v, iQueue);
-                fklPushPtrStack(iQueue, &queueStack);
+                fklQueueVectorPushBack2(&queueStack, iQueue);
                 cQueue = iQueue;
                 free(elem);
                 free(e);
@@ -965,7 +969,7 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
                                                    vec->base[i]);
                             }
                         }
-                        fklPushPtrStack(vQueue, &queueStack);
+                        fklQueueVectorPushBack2(&queueStack, vQueue);
                         cQueue = vQueue;
                         continue;
                     } else if (FKL_IS_BOX(v)) {
@@ -1029,7 +1033,7 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
                                     (void *)createHashPrtElem(keyElem, vElem)),
                                 hQueue);
                         }
-                        fklPushPtrStack(hQueue, &queueStack);
+                        fklQueueVectorPushBack2(&queueStack, hQueue);
                         cQueue = hQueue;
                         continue;
                     } else {
@@ -1079,7 +1083,7 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
                                 break;
                             }
                         }
-                        fklPushPtrStack(lQueue, &queueStack);
+                        fklQueueVectorPushBack2(&queueStack, lQueue);
                         cQueue = lQueue;
                         continue;
                     }
@@ -1092,11 +1096,11 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
                 && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_BOX)
                 fputc(' ', fp);
         }
-        fklPopPtrStack(&queueStack);
+        fklQueueVectorPopBack(&queueStack);
         fklDestroyPtrQueue(cQueue);
-        if (!fklIsPtrStackEmpty(&queueStack)) {
+        if (!fklQueueVectorIsEmpty(&queueStack)) {
             fputc(')', fp);
-            cQueue = fklTopPtrStack(&queueStack);
+            cQueue = *fklQueueVectorBack(&queueStack);
             if (fklLengthPtrQueue(cQueue)
                 && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_CDR
                 && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_CDR
@@ -1105,7 +1109,7 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
                 fputc(' ', fp);
         }
     }
-    fklUninitPtrStack(&queueStack);
+    fklQueueVectorUninit(&queueStack);
     fklUninitHashTable(&circel_head_set);
     fklUninitHashTable(&has_print_circle_head_set);
     fklUninitStringBuffer(&string_buffer);
@@ -1316,12 +1320,12 @@ static inline void stringify_value_to_string_buffer(
 
     scan_cir_ref(value, &circle_head_set);
     FklPtrQueue *queue = fklCreatePtrQueue();
-    FklPtrStack queueStack = FKL_STACK_INIT;
-    fklInitPtrStack(&queueStack, 32, 16);
+    FklQueueVector queueStack;
+    fklQueueVectorInit(&queueStack, 32);
     fklPushPtrQueue(createPrtElem(PRT_CAR, value), queue);
-    fklPushPtrStack(queue, &queueStack);
-    while (!fklIsPtrStackEmpty(&queueStack)) {
-        FklPtrQueue *cQueue = fklTopPtrStack(&queueStack);
+    fklQueueVectorPushBack2(&queueStack, queue);
+    while (!fklQueueVectorIsEmpty(&queueStack)) {
+        FklPtrQueue *cQueue = *fklQueueVectorBack(&queueStack);
         while (fklLengthPtrQueue(cQueue)) {
             PrtElem *e = fklPopPtrQueue(cQueue);
             FklVMvalue *v = e->v;
@@ -1338,7 +1342,7 @@ static inline void stringify_value_to_string_buffer(
                 HashPrtElem *elem = (void *)e->v;
                 fklPushPtrQueue(elem->key, iQueue);
                 fklPushPtrQueue(elem->v, iQueue);
-                fklPushPtrStack(iQueue, &queueStack);
+                fklQueueVectorPushBack2(&queueStack, iQueue);
                 cQueue = iQueue;
                 free(elem);
                 free(e);
@@ -1376,7 +1380,7 @@ static inline void stringify_value_to_string_buffer(
                                                    vec->base[i]);
                             }
                         }
-                        fklPushPtrStack(vQueue, &queueStack);
+                        fklQueueVectorPushBack2(&queueStack, vQueue);
                         cQueue = vQueue;
                         continue;
                     } else if (FKL_IS_BOX(v)) {
@@ -1441,7 +1445,7 @@ static inline void stringify_value_to_string_buffer(
                                     (void *)createHashPrtElem(keyElem, vElem)),
                                 hQueue);
                         }
-                        fklPushPtrStack(hQueue, &queueStack);
+                        fklQueueVectorPushBack2(&queueStack, hQueue);
                         cQueue = hQueue;
                         continue;
                     } else {
@@ -1491,7 +1495,7 @@ static inline void stringify_value_to_string_buffer(
                                 break;
                             }
                         }
-                        fklPushPtrStack(lQueue, &queueStack);
+                        fklQueueVectorPushBack2(&queueStack, lQueue);
                         cQueue = lQueue;
                         continue;
                     }
@@ -1504,11 +1508,11 @@ static inline void stringify_value_to_string_buffer(
                 && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_BOX)
                 fklStringBufferPutc(result, ' ');
         }
-        fklPopPtrStack(&queueStack);
+        fklQueueVectorPopBack(&queueStack);
         fklDestroyPtrQueue(cQueue);
-        if (!fklIsPtrStackEmpty(&queueStack)) {
+        if (!fklQueueVectorIsEmpty(&queueStack)) {
             fklStringBufferPutc(result, ')');
-            cQueue = fklTopPtrStack(&queueStack);
+            cQueue = *fklQueueVectorBack(&queueStack);
             if (fklLengthPtrQueue(cQueue)
                 && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_CDR
                 && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_CDR
@@ -1517,7 +1521,7 @@ static inline void stringify_value_to_string_buffer(
                 fklStringBufferPutc(result, ' ');
         }
     }
-    fklUninitPtrStack(&queueStack);
+    fklQueueVectorUninit(&queueStack);
     fklUninitHashTable(&circle_head_set);
     fklUninitHashTable(&has_print_circle_head_set);
 }

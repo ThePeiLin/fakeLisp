@@ -1,3 +1,4 @@
+#include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>

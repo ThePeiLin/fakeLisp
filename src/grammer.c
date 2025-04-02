@@ -2215,21 +2215,24 @@ FklGrammer *fklCreateEmptyGrammer(FklSymbolTable *st) {
     return r;
 }
 
+// GraProdVector
+#define FKL_VECTOR_TYPE_PREFIX Gra
+#define FKL_VECTOR_METHOD_PREFIX gra
 #define FKL_VECTOR_ELM_TYPE FklGrammerProduction *
 #define FKL_VECTOR_ELM_TYPE_NAME Prod
 #include <fakeLisp/vector.h>
 
 static inline int add_reachable_terminal(FklGrammer *g) {
     FklHashTable *productions = &g->productions;
-    FklProdVector prod_stack;
-    fklProdVectorInit(&prod_stack, g->prodNum);
+    GraProdVector prod_stack;
+    graProdVectorInit(&prod_stack, g->prodNum);
     FklGrammerProdHashItem *first =
         (FklGrammerProdHashItem *)g->productions.first->data;
-    fklProdVectorPushBack2(&prod_stack, first->prods);
+    graProdVectorPushBack2(&prod_stack, first->prods);
     FklHashTable nonterm_set;
     init_nonterm_set(&nonterm_set);
-    while (!fklProdVectorIsEmpty(&prod_stack)) {
-        FklGrammerProduction *prods = *fklProdVectorPopBack(&prod_stack);
+    while (!graProdVectorIsEmpty(&prod_stack)) {
+        FklGrammerProduction *prods = *graProdVectorPopBack(&prod_stack);
         for (; prods; prods = prods->next) {
             const FklGrammerSym *syms = prods->syms;
             for (size_t i = 0; i < prods->len; i++) {
@@ -2247,7 +2250,7 @@ static inline int add_reachable_terminal(FklGrammer *g) {
                 }
                 if (!cur->isterm
                     && !fklPutHashItem2(&nonterm_set, &cur->nt, NULL))
-                    fklProdVectorPushBack2(&prod_stack,
+                    graProdVectorPushBack2(&prod_stack,
                                            fklGetProductions(productions,
                                                              cur->nt.group,
                                                              cur->nt.sid));
@@ -2255,7 +2258,7 @@ static inline int add_reachable_terminal(FklGrammer *g) {
         }
     }
     fklUninitHashTable(&nonterm_set);
-    fklProdVectorUninit(&prod_stack);
+    graProdVectorUninit(&prod_stack);
     for (FklGrammerIgnore *igs = g->ignores; igs; igs = igs->next) {
         FklGrammerIgnoreSym *igss = igs->ig;
         for (size_t i = 0; i < igs->len; i++) {

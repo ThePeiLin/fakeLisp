@@ -3058,7 +3058,9 @@ exit:
     return r;
 }
 
-// FklU8Vector
+// CgU8Vector
+#define FKL_VECTOR_TYPE_PREFIX Cg
+#define FKL_VECTOR_METHOD_PREFIX cg
 #define FKL_VECTOR_ELM_TYPE uint8_t
 #define FKL_VECTOR_ELM_TYPE_NAME U8
 #include <fakeLisp/vector.h>
@@ -3084,19 +3086,19 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
         fklNastNodeVectorPushBack2(&expStack,
                                    FKL_REMOVE_CONST(FklNastNode, value));
 
-        FklU8Vector boolStack;
-        fklU8VectorInit(&boolStack, 1);
-        fklU8VectorPushBack2(&boolStack, 255);
+        CgU8Vector boolStack;
+        cgU8VectorInit(&boolStack, 1);
+        cgU8VectorPushBack2(&boolStack, 255);
 
-        FklU8Vector opStack;
-        fklU8VectorInit(&opStack, 1);
-        fklU8VectorPushBack2(&opStack, COND_COMPILE_CHECK_OP_TRUE);
+        CgU8Vector opStack;
+        cgU8VectorInit(&opStack, 1);
+        cgU8VectorPushBack2(&opStack, COND_COMPILE_CHECK_OP_TRUE);
 
         FklNastNodeVector tmpStack;
         fklNastNodeVectorInit(&tmpStack, 1);
         uint8_t r = 0;
-        while (!fklU8VectorIsEmpty(&opStack)) {
-            uint8_t r = *fklU8VectorPopBack(&boolStack);
+        while (!cgU8VectorIsEmpty(&opStack)) {
+            uint8_t r = *cgU8VectorPopBack(&boolStack);
             FklNastNode *cur = NULL;
             if (r == 255) {
                 cur = *fklNastNodeVectorPopBack(&expStack);
@@ -3255,9 +3257,9 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                                        ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_NOT],
                                        cur, &ht)) {
-                            fklU8VectorPushBack2(&boolStack, 255);
-                            fklU8VectorPushBack2(&opStack,
-                                                 COND_COMPILE_CHECK_OP_NOT);
+                            cgU8VectorPushBack2(&boolStack, 255);
+                            cgU8VectorPushBack2(&opStack,
+                                                COND_COMPILE_CHECK_OP_NOT);
                             fklNastNodeVectorPushBack2(
                                 &expStack,
                                 fklPatternMatchingHashTableRef(
@@ -3273,10 +3275,10 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                             if (rest->type == FKL_NAST_NIL)
                                 r = 1;
                             else if (fklIsNastNodeList(rest)) {
-                                fklU8VectorPushBack2(&boolStack, 255);
+                                cgU8VectorPushBack2(&boolStack, 255);
                                 fklNastNodeVectorPushBack2(&expStack, NULL);
-                                fklU8VectorPushBack2(&opStack,
-                                                     COND_COMPILE_CHECK_OP_AND);
+                                cgU8VectorPushBack2(&opStack,
+                                                    COND_COMPILE_CHECK_OP_AND);
                                 for (; rest->type == FKL_NAST_PAIR;
                                      rest = rest->pair->cdr)
                                     fklNastNodeVectorPushBack2(&tmpStack,
@@ -3301,10 +3303,10 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                             if (rest->type == FKL_NAST_NIL)
                                 r = 0;
                             else if (fklIsNastNodeList(rest)) {
-                                fklU8VectorPushBack2(&boolStack, 255);
+                                cgU8VectorPushBack2(&boolStack, 255);
                                 fklNastNodeVectorPushBack2(&expStack, NULL);
-                                fklU8VectorPushBack2(&opStack,
-                                                     COND_COMPILE_CHECK_OP_OR);
+                                cgU8VectorPushBack2(&opStack,
+                                                    COND_COMPILE_CHECK_OP_OR);
                                 for (; rest->type == FKL_NAST_PAIR;
                                      rest = rest->pair->cdr)
                                     fklNastNodeVectorPushBack2(&tmpStack,
@@ -3334,43 +3336,43 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
                 }
             }
             if (r == 255)
-                fklU8VectorPushBack2(&boolStack, 255);
-            uint8_t cond_compile_check_op = *fklU8VectorBack(&opStack);
+                cgU8VectorPushBack2(&boolStack, 255);
+            uint8_t cond_compile_check_op = *cgU8VectorBack(&opStack);
             switch (cond_compile_check_op) {
             case COND_COMPILE_CHECK_OP_TRUE:
-                fklU8VectorPushBack2(&boolStack, r);
+                cgU8VectorPushBack2(&boolStack, r);
                 break;
             case COND_COMPILE_CHECK_OP_NOT:
-                fklU8VectorPushBack2(&boolStack, !r);
+                cgU8VectorPushBack2(&boolStack, !r);
                 break;
             case COND_COMPILE_CHECK_OP_AND:
                 if (r == 255) {
-                    fklU8VectorPopBack(&boolStack);
-                    fklU8VectorPushBack2(&boolStack, 1);
+                    cgU8VectorPopBack(&boolStack);
+                    cgU8VectorPushBack2(&boolStack, 1);
                 } else if (r == 0) {
                     for (; cur; cur = *fklNastNodeVectorPopBack(&expStack))
                         ;
-                    fklU8VectorPushBack2(&boolStack, 0);
+                    cgU8VectorPushBack2(&boolStack, 0);
                 } else {
-                    fklU8VectorPushBack2(&boolStack, 255);
+                    cgU8VectorPushBack2(&boolStack, 255);
                     continue;
                 }
                 break;
             case COND_COMPILE_CHECK_OP_OR:
                 if (r == 255) {
-                    fklU8VectorPopBack(&boolStack);
-                    fklU8VectorPushBack2(&boolStack, 0);
+                    cgU8VectorPopBack(&boolStack);
+                    cgU8VectorPushBack2(&boolStack, 0);
                 } else if (r == 1) {
                     for (; cur; cur = *fklNastNodeVectorPopBack(&expStack))
                         ;
-                    fklU8VectorPushBack2(&boolStack, 1);
+                    cgU8VectorPushBack2(&boolStack, 1);
                 } else {
-                    fklU8VectorPushBack2(&boolStack, 255);
+                    cgU8VectorPushBack2(&boolStack, 255);
                     continue;
                 }
                 break;
             }
-            fklU8VectorPopBack(&opStack);
+            cgU8VectorPopBack(&opStack);
         }
 
 #undef COND_COMPILE_CHECK_OP_OR
@@ -3378,10 +3380,10 @@ is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
 #undef COND_COMPILE_CHECK_OP_NOT
 #undef COND_COMPILE_CHECK_OP_TRUE
 
-        r = *fklU8VectorPopBack(&boolStack);
+        r = *cgU8VectorPopBack(&boolStack);
     exit:
-        fklU8VectorUninit(&boolStack);
-        fklU8VectorUninit(&opStack);
+        cgU8VectorUninit(&boolStack);
+        cgU8VectorUninit(&opStack);
         fklNastNodeVectorUninit(&tmpStack);
         fklNastNodeVectorUninit(&expStack);
         fklUninitHashTable(&ht);
@@ -3613,7 +3615,9 @@ create_qsquote_helper_struct(QsquoteHelperEnum e, FklNastNode *node,
     return r;
 }
 
-// FklQsquoteHelperVector
+// CgQsquoteHelperVector
+#define FKL_VECTOR_TYPE_PREFIX Cg
+#define FKL_VECTOR_METHOD_PREFIX cg
 #define FKL_VECTOR_ELM_TYPE QsquoteHelperStruct *
 #define FKL_VECTOR_ELM_TYPE_NAME QsquoteHelper
 #include <fakeLisp/vector.h>
@@ -3621,14 +3625,14 @@ create_qsquote_helper_struct(QsquoteHelperEnum e, FklNastNode *node,
 static CODEGEN_FUNC(codegen_qsquote) {
     FklNastNode *value =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
-    FklQsquoteHelperVector valueStack;
-    fklQsquoteHelperVectorInit(&valueStack, 8);
-    fklQsquoteHelperVectorPushBack2(
+    CgQsquoteHelperVector valueStack;
+    cgQsquoteHelperVectorInit(&valueStack, 8);
+    cgQsquoteHelperVectorPushBack2(
         &valueStack, create_qsquote_helper_struct(QSQUOTE_NONE, value, NULL));
     FklNastNode *const *builtInSubPattern = outer_ctx->builtin_sub_pattern_node;
-    while (!fklQsquoteHelperVectorIsEmpty(&valueStack)) {
+    while (!cgQsquoteHelperVectorIsEmpty(&valueStack)) {
         QsquoteHelperStruct *curNode =
-            *fklQsquoteHelperVectorPopBack(&valueStack);
+            *cgQsquoteHelperVectorPopBack(&valueStack);
         QsquoteHelperEnum e = curNode->e;
         FklCodegenQuest *prevQuest = curNode->prev;
         FklNastNode *curValue = curNode->node;
@@ -3695,27 +3699,27 @@ static CODEGEN_FUNC(codegen_qsquote) {
                                     curValue->curline, curQuest, codegen);
                             fklCodegenQuestVectorPushBack2(codegenQuestStack,
                                                            appendQuest);
-                            fklQsquoteHelperVectorPushBack2(
+                            cgQsquoteHelperVectorPushBack2(
                                 &valueStack, create_qsquote_helper_struct(
                                                  QSQUOTE_UNQTESP_CAR,
                                                  unqtespValue, appendQuest));
-                            fklQsquoteHelperVectorPushBack2(
+                            cgQsquoteHelperVectorPushBack2(
                                 &valueStack, create_qsquote_helper_struct(
                                                  QSQUOTE_NONE, node->pair->cdr,
                                                  appendQuest));
                         } else
-                            fklQsquoteHelperVectorPushBack2(
+                            cgQsquoteHelperVectorPushBack2(
                                 &valueStack, create_qsquote_helper_struct(
                                                  QSQUOTE_UNQTESP_CAR,
                                                  unqtespValue, curQuest));
                         break;
                     } else
-                        fklQsquoteHelperVectorPushBack2(
+                        cgQsquoteHelperVectorPushBack2(
                             &valueStack, create_qsquote_helper_struct(
                                              QSQUOTE_NONE, cur, curQuest));
                     node = node->pair->cdr;
                     if (node->type != FKL_NAST_PAIR) {
-                        fklQsquoteHelperVectorPushBack2(
+                        cgQsquoteHelperVectorPushBack2(
                             &valueStack, create_qsquote_helper_struct(
                                              QSQUOTE_NONE, node, curQuest));
                         break;
@@ -3734,7 +3738,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
                     if (fklPatternMatch(
                             builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],
                             curValue->vec->base[i], unquoteHt))
-                        fklQsquoteHelperVectorPushBack2(
+                        cgQsquoteHelperVectorPushBack2(
                             &valueStack,
                             create_qsquote_helper_struct(
                                 QSQUOTE_UNQTESP_VEC,
@@ -3743,7 +3747,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
                                     unquoteHt),
                                 curQuest));
                     else
-                        fklQsquoteHelperVectorPushBack2(
+                        cgQsquoteHelperVectorPushBack2(
                             &valueStack, create_qsquote_helper_struct(
                                              QSQUOTE_NONE,
                                              curValue->vec->base[i], curQuest));
@@ -3755,7 +3759,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
                     NULL, scope, macroScope, curEnv, curValue->curline,
                     prevQuest, codegen);
                 fklCodegenQuestVectorPushBack2(codegenQuestStack, curQuest);
-                fklQsquoteHelperVectorPushBack2(
+                cgQsquoteHelperVectorPushBack2(
                     &valueStack, create_qsquote_helper_struct(
                                      QSQUOTE_NONE, curValue->box, curQuest));
             } else
@@ -3766,7 +3770,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
         } break;
         }
     }
-    fklQsquoteHelperVectorUninit(&valueStack);
+    cgQsquoteHelperVectorUninit(&valueStack);
 }
 
 BC_PROCESS(_cond_exp_bc_process_0) {

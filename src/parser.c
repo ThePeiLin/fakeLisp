@@ -9,10 +9,10 @@
 
 FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
                                        FklSymbolTable *publicSymbolTable) {
-    FklParseStateFuncVector stateStack;
+    FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
-    fklParseStateFuncVectorInit(&stateStack, 16);
+    fklParseStateVectorInit(&stateStack, 16);
     fklAnalysisSymbolVectorInit(&symbolStack, 16);
     fklUintVectorInit(&lineStack, 16);
     fklNastPushState0ToStack(&stateStack);
@@ -30,7 +30,7 @@ FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
         free(s);
     }
     fklAnalysisSymbolVectorUninit(&symbolStack);
-    fklParseStateFuncVectorUninit(&stateStack);
+    fklParseStateVectorUninit(&stateStack);
     fklUintVectorUninit(&lineStack);
 
     return node;
@@ -42,7 +42,7 @@ char *fklReadWithBuiltinParser(FILE *fp, size_t *psize, size_t line,
                                FklNastNode **output,
                                FklAnalysisSymbolVector *symbolStack,
                                FklUintVector *lineStack,
-                               FklParseStateFuncVector *stateStack) {
+                               FklParseStateVector *stateStack) {
     size_t size = 0;
     FklStringBuffer next_buf;
     fklInitStringBuffer(&next_buf);
@@ -118,7 +118,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
                                FklNastNode **output,
                                FklAnalysisSymbolVector *symbolStack,
                                FklUintVector *lineStack,
-                               FklAnalysisStateVector *stateStack) {
+                               FklParseStateVector *stateStack) {
     size_t size = 0;
     FklStringBuffer next_buf;
     fklInitStringBuffer(&next_buf);

@@ -7,7 +7,7 @@ static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
     ctx->replxx = replxx_init();
     fklInitStringBuffer(&ctx->buf);
     fklAnalysisSymbolVectorInit(&ctx->symbolStack, 16);
-    fklParseStateFuncVectorInit(&ctx->stateStack, 16);
+    fklParseStateVectorInit(&ctx->stateStack, 16);
     fklUintVectorInit(&ctx->lineStack, 16);
     fklVMvaluePushState0ToStack(&ctx->stateStack);
 }
@@ -314,7 +314,7 @@ DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
 }
 
 static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
-    fklParseStateFuncVectorUninit(&ctx->stateStack);
+    fklParseStateVectorUninit(&ctx->stateStack);
     fklAnalysisSymbolVectorUninit(&ctx->symbolStack);
     fklUintVectorUninit(&ctx->lineStack);
     fklUninitStringBuffer(&ctx->buf);

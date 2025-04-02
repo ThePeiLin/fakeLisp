@@ -636,7 +636,7 @@ static void loadLib(FILE *fp, uint64_t *plibNum, FklVMlib **plibs, FklVM *exe,
 
 typedef struct {
     size_t offset;
-    FklPtrVector stateStack;
+    FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
 } NastCreatCtx;
@@ -903,10 +903,10 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx *cc,
     cc->stateStack.top = 0;
     cc->lineStack.top = 0;
     if (g && g->aTable.num)
-        fklAnalysisStateVectorPushBack2(
-            (FklAnalysisStateVector *)&cc->stateStack, &g->aTable.states[0]);
+        fklParseStateVectorPushBack2(
+            &cc->stateStack, (FklParseState){.state = &g->aTable.states[0]});
     else
-        fklNastPushState0ToStack((FklParseStateFuncVector *)&cc->stateStack);
+        fklNastPushState0ToStack(&cc->stateStack);
 }
 
 static inline void eval_nast_ctx_reset(NastCreatCtx *cc, FklStringBuffer *s,
@@ -921,10 +921,10 @@ static inline void eval_nast_ctx_reset(NastCreatCtx *cc, FklStringBuffer *s,
     cc->stateStack.top = 0;
     cc->lineStack.top = 0;
     if (g && g->aTable.num)
-        fklAnalysisStateVectorPushBack2(
-            (FklAnalysisStateVector *)&cc->stateStack, &g->aTable.states[0]);
+        fklParseStateVectorPushBack2(
+            &cc->stateStack, (FklParseState){.state = &g->aTable.states[0]});
     else
-        fklNastPushState0ToStack((FklParseStateFuncVector *)&cc->stateStack);
+        fklNastPushState0ToStack(&cc->stateStack);
 }
 
 #define REPL_PROMPT ">>> "
@@ -1051,12 +1051,11 @@ static int repl_frame_step(void *data, FklVM *exe) {
         ast = fklParseWithTableForCharBuf(
             g, fklStringBufferBody(s) + cc->offset, restLen, &restLen,
             &outerCtx, exe->gc->st, &err, &errLine, &cc->symbolStack,
-            &cc->lineStack, (FklAnalysisStateVector *)&cc->stateStack);
+            &cc->lineStack, &cc->stateStack);
     } else {
         ast = fklDefaultParseForCharBuf(
             fklStringBufferBody(s) + cc->offset, restLen, &restLen, &outerCtx,
-            &err, &errLine, &cc->symbolStack, &cc->lineStack,
-            (FklParseStateFuncVector *)&cc->stateStack);
+            &err, &errLine, &cc->symbolStack, &cc->lineStack, &cc->stateStack);
     }
     fklVMreleaseSt(exe->gc);
 
@@ -1204,7 +1203,7 @@ static void repl_frame_atomic(void *data, FklVMgc *gc) {
 }
 
 static inline void destroyNastCreatCtx(NastCreatCtx *cc) {
-    fklPtrVectorUninit(&cc->stateStack);
+    fklParseStateVectorUninit(&cc->stateStack);
     while (!fklAnalysisSymbolVectorIsEmpty(&cc->symbolStack)) {
         FklAnalysisSymbol *s =
             *fklAnalysisSymbolVectorPopBack(&cc->symbolStack);
@@ -1313,8 +1312,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
         ast = fklDefaultParseForCharBuf(
             eval_expression_str, restLen, &restLen, &outerCtx, &err, &errLine,
-            &cc->symbolStack, &cc->lineStack,
-            (FklParseStateFuncVector *)&cc->stateStack);
+            &cc->symbolStack, &cc->lineStack, &cc->stateStack);
 
         fklVMreleaseSt(exe->gc);
 
@@ -1444,8 +1442,8 @@ static inline NastCreatCtx *createNastCreatCtx(void) {
     cc->offset = 0;
     fklAnalysisSymbolVectorInit(&cc->symbolStack, 16);
     fklUintVectorInit(&cc->lineStack, 16);
-    fklPtrVectorInit(&cc->stateStack, 16);
-    fklNastPushState0ToStack((FklParseStateFuncVector *)&cc->stateStack);
+    fklParseStateVectorInit(&cc->stateStack, 16);
+    fklNastPushState0ToStack(&cc->stateStack);
     return cc;
 }
 

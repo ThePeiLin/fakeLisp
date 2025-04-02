@@ -366,16 +366,27 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *, const char *str,
                                   FklGrammerMatchOuterCtx *, FklSymbolTable *st,
                                   int *err);
 
-struct FklParseStateFuncVector;
+struct FklParseStateVector;
 
 // FklAnalysisSymbolVector
 #define FKL_VECTOR_ELM_TYPE FklAnalysisSymbol *
 #define FKL_VECTOR_ELM_TYPE_NAME AnalysisSymbol
 #include "vector.h"
 
-// FklAnalysisStateVector
-#define FKL_VECTOR_ELM_TYPE FklAnalysisState const *
-#define FKL_VECTOR_ELM_TYPE_NAME AnalysisState
+typedef int (*FklStateFuncPtr)(struct FklParseStateVector *,
+                               FklAnalysisSymbolVector *, FklUintVector *, int,
+                               FklSid_t, void **, const char *, const char **,
+                               size_t *, FklGrammerMatchOuterCtx *, int *,
+                               size_t *errLine);
+
+typedef union FklParseState {
+    FklStateFuncPtr func;
+    FklAnalysisState const *state;
+} FklParseState;
+
+// FklParseStateVector
+#define FKL_VECTOR_ELM_TYPE FklParseState
+#define FKL_VECTOR_ELM_TYPE_NAME ParseState
 #include "vector.h"
 
 void *fklParseWithTableForCharBuf(const FklGrammer *, const char *str,
@@ -384,35 +395,23 @@ void *fklParseWithTableForCharBuf(const FklGrammer *, const char *str,
                                   int *err, size_t *errLine,
                                   struct FklAnalysisSymbolVector *symbols,
                                   FklUintVector *lines,
-                                  FklAnalysisStateVector *states);
+                                  FklParseStateVector *states);
 
 #define FKL_PARSE_TERMINAL_MATCH_FAILED (1)
 #define FKL_PARSE_REDUCE_FAILED (2)
 #define FKL_PARSE_WAITING_FOR_MORE (3)
 
-typedef int (*FklStateFuncPtr)(struct FklParseStateFuncVector *,
-                               FklAnalysisSymbolVector *, FklUintVector *, int,
-                               FklSid_t, void **, const char *, const char **,
-                               size_t *, FklGrammerMatchOuterCtx *, int *,
-                               size_t *errLine);
-
-// FklParseStateFuncVector
-#define FKL_VECTOR_ELM_TYPE FklStateFuncPtr
-#define FKL_VECTOR_ELM_TYPE_NAME ParseStateFunc
-#include "vector.h"
-
 void *fklDefaultParseForCstr(const char *str, FklGrammerMatchOuterCtx *,
                              int *err, size_t *errLine,
                              FklAnalysisSymbolVector *symbols,
-                             FklUintVector *lines,
-                             FklParseStateFuncVector *states);
+                             FklUintVector *lines, FklParseStateVector *states);
 
 void *fklDefaultParseForCharBuf(const char *str, size_t len, size_t *restLen,
                                 FklGrammerMatchOuterCtx *, int *err,
                                 size_t *errLine,
                                 FklAnalysisSymbolVector *symbols,
                                 FklUintVector *lines,
-                                FklParseStateFuncVector *states);
+                                FklParseStateVector *states);
 
 FklGrammerIgnore *fklInitBuiltinProductionSet(FklHashTable *ht,
                                               FklSymbolTable *st,

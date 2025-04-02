@@ -45,11 +45,11 @@ int main() {
     for (const char **exp = &exps[0]; *exp; exp++) {
         FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(st);
 
-        FklParseStateFuncVector stateStack;
+        FklParseStateVector stateStack;
         FklAnalysisSymbolVector symbolStack;
         FklUintVector lineStack;
 
-        fklParseStateFuncVectorInit(&stateStack, 8);
+        fklParseStateVectorInit(&stateStack, 8);
         fklNastPushState0ToStack(&stateStack);
         fklAnalysisSymbolVectorInit(&symbolStack, 8);
         fklUintVectorInit(&lineStack, 8);
@@ -61,7 +61,7 @@ int main() {
         while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
             free(*fklAnalysisSymbolVectorPopBack(&symbolStack));
         fklAnalysisSymbolVectorUninit(&symbolStack);
-        fklParseStateFuncVectorUninit(&stateStack);
+        fklParseStateVectorUninit(&stateStack);
         fklUintVectorUninit(&lineStack);
         if (retval)
             break;

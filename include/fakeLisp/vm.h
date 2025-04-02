@@ -1013,7 +1013,7 @@ int fklIsVMeofUd(FklVMvalue *v);
 
 // vmparser
 
-void fklVMvaluePushState0ToStack(FklParseStateFuncVector *stateStack);
+void fklVMvaluePushState0ToStack(FklParseStateVector *stateStack);
 #define FKL_VMVALUE_PARSE_OUTER_CTX_INIT(EXE)                                  \
     {.maxNonterminalLen = 0,                                                   \
      .line = 1,                                                                \

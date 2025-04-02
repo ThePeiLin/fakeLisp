@@ -4222,7 +4222,7 @@ typedef struct {
     FILE *fp;
     FklCodegenInfo *codegen;
     FklAnalysisSymbolVector symbolStack;
-    FklPtrVector stateStack;
+    FklParseStateVector stateStack;
     FklUintVector lineStack;
 } CodegenLoadContext;
 
@@ -4235,7 +4235,7 @@ static CodegenLoadContext *createCodegenLoadContext(FILE *fp,
     FKL_ASSERT(r);
     r->codegen = codegen;
     r->fp = fp;
-    fklPtrVectorInit(&r->stateStack, 16);
+    fklParseStateVectorInit(&r->stateStack, 16);
     fklUintVectorInit(&r->lineStack, 16);
     fklAnalysisSymbolVectorInit(&r->symbolStack, 16);
     return r;
@@ -4247,17 +4247,16 @@ static void _codegen_load_finalizer(void *pcontext) {
     while (!fklAnalysisSymbolVectorIsEmpty(symbolStack))
         fklDestroyAnaysisSymbol(*fklAnalysisSymbolVectorPopBack(symbolStack));
     fklAnalysisSymbolVectorUninit(symbolStack);
-    fklPtrVectorUninit(&context->stateStack);
+    fklParseStateVectorUninit(&context->stateStack);
     fklUintVectorUninit(&context->lineStack);
     fclose(context->fp);
     free(context);
 }
 
-static inline FklNastNode *
-getExpressionFromFile(FklCodegenInfo *codegen, FILE *fp, int *unexpectEOF,
-                      size_t *errorLine, FklCodegenErrorState *errorState,
-                      FklAnalysisSymbolVector *symbolStack,
-                      FklUintVector *lineStack, FklPtrVector *stateStack) {
+static inline FklNastNode *getExpressionFromFile(
+    FklCodegenInfo *codegen, FILE *fp, int *unexpectEOF, size_t *errorLine,
+    FklCodegenErrorState *errorState, FklAnalysisSymbolVector *symbolStack,
+    FklUintVector *lineStack, FklParseStateVector *stateStack) {
     FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
     size_t size = 0;
     FklNastNode *begin = NULL;
@@ -4266,17 +4265,16 @@ getExpressionFromFile(FklCodegenInfo *codegen, FILE *fp, int *unexpectEOF,
     FklGrammer *g = *codegen->g;
     if (g) {
         codegen->outer_ctx->cur_file_dir = codegen->dir;
-        fklPtrVectorPushBack2(stateStack, &g->aTable.states[0]);
+        fklParseStateVectorPushBack2(
+            stateStack, (FklParseState){.state = &g->aTable.states[0]});
         list = fklReadWithAnalysisTable(
             g, fp, &size, codegen->curline, &codegen->curline, pst, unexpectEOF,
-            errorLine, &begin, symbolStack, lineStack,
-            (FklAnalysisStateVector *)stateStack);
+            errorLine, &begin, symbolStack, lineStack, stateStack);
     } else {
-        fklNastPushState0ToStack((FklParseStateFuncVector *)stateStack);
+        fklNastPushState0ToStack(stateStack);
         list = fklReadWithBuiltinParser(
             fp, &size, codegen->curline, &codegen->curline, pst, unexpectEOF,
-            errorLine, &begin, symbolStack, lineStack,
-            (FklParseStateFuncVector *)stateStack);
+            errorLine, &begin, symbolStack, lineStack, stateStack);
     }
     if (list)
         free(list);
@@ -4295,7 +4293,7 @@ _codegen_load_get_next_expression(void *pcontext,
                                   FklCodegenErrorState *errorState) {
     CodegenLoadContext *context = pcontext;
     FklCodegenInfo *codegen = context->codegen;
-    FklPtrVector *stateStack = &context->stateStack;
+    FklParseStateVector *stateStack = &context->stateStack;
     FklAnalysisSymbolVector *symbolStack = &context->symbolStack;
     FklUintVector *lineStack = &context->lineStack;
     FILE *fp = context->fp;

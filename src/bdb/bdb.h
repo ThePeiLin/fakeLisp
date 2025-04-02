@@ -17,7 +17,7 @@ typedef struct {
     uint32_t offset;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
-    FklParseStateFuncVector stateStack;
+    FklParseStateVector stateStack;
 } CmdReadCtx;
 
 struct BreakpointHashItem;
@@ -25,15 +25,14 @@ struct BreakpointHashItem;
 // BdbFrameVector
 #define FKL_VECTOR_TYPE_PREFIX Bdb
 #define FKL_VECTOR_METHOD_PREFIX bdb
-#define FKL_VECTOR_ELM_TYPE FklVMframe*
+#define FKL_VECTOR_ELM_TYPE FklVMframe *
 #define FKL_VECTOR_ELM_TYPE_NAME Frame
 #include <fakeLisp/vector.h>
-
 
 // BdbThreadVector
 #define FKL_VECTOR_TYPE_PREFIX Bdb
 #define FKL_VECTOR_METHOD_PREFIX bdb
-#define FKL_VECTOR_ELM_TYPE FklVM*
+#define FKL_VECTOR_ELM_TYPE FklVM *
 #define FKL_VECTOR_ELM_TYPE_NAME Thread
 #include <fakeLisp/vector.h>
 

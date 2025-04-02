@@ -259,9 +259,6 @@ FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
 #define FKL_VECTOR_ELM_TYPE_NAME String
 #include "vector.h"
 
-// FklPtrVector
-#include "vector.h"
-
 // FklQueueVector
 #define FKL_VECTOR_ELM_TYPE FklPtrQueue *
 #define FKL_VECTOR_ELM_TYPE_NAME Queue

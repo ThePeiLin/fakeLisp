@@ -33,10 +33,10 @@ static inline char *get_valid_file_name(const char *filename) {
 }
 
 static inline void atomic_cmd_read_ctx(const CmdReadCtx *ctx, FklVMgc *gc) {
-    FklAnalysisSymbol **base = (FklAnalysisSymbol **)ctx->symbolStack.base;
-    FklAnalysisSymbol **end = &base[ctx->symbolStack.top];
+    const FklAnalysisSymbol *base = ctx->symbolStack.base;
+    const FklAnalysisSymbol *end = &base[ctx->symbolStack.top];
     for (; base < end; base++)
-        fklVMgcToGray((*base)->ast, gc);
+        fklVMgcToGray(base->ast, gc);
 }
 
 static void debug_ctx_atomic(const FklVMud *ud, FklVMgc *gc) {
@@ -149,9 +149,6 @@ static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
     cc->offset = 0;
     fklStringBufferClear(s);
     s->buf[0] = '\0';
-    FklAnalysisSymbolVector *ss = &cc->symbolStack;
-    while (!fklAnalysisSymbolVectorIsEmpty(ss))
-        free(*fklAnalysisSymbolVectorPopBack(ss));
     cc->stateStack.top = 0;
     cc->lineStack.top = 0;
     fklVMvaluePushState0ToStack(&cc->stateStack);

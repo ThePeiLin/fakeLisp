@@ -1,9 +1,9 @@
 // steal from pocketpy: https://github.com/pocketpy/pocketpy/
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #ifndef FKL_VECTOR_TYPE_PREFIX
 #define FKL_VECTOR_TYPE_PREFIX Fkl
@@ -18,10 +18,12 @@
 #endif
 
 #ifndef FKL_VECTOR_ELM_TYPE
+#error "FKL_VECTOR_ELM_TYPE is undefined"
 #define FKL_VECTOR_ELM_TYPE void *
 #endif
 
 #ifndef FKL_VECTOR_ELM_TYPE_NAME
+#error "FKL_VECTOR_ELM_TYPE_NAME is undefined"
 #define FKL_VECTOR_ELM_TYPE_NAME Ptr
 #endif
 

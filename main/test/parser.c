@@ -58,8 +58,6 @@ int main() {
             fklDefaultParseForCstr(*exp, &outerCtx, &retval, &errLine,
                                    &symbolStack, &lineStack, &stateStack);
 
-        while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
-            free(*fklAnalysisSymbolVectorPopBack(&symbolStack));
         fklAnalysisSymbolVectorUninit(&symbolStack);
         fklParseStateVectorUninit(&stateStack);
         fklUintVectorUninit(&lineStack);

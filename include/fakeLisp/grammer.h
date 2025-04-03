@@ -267,7 +267,6 @@ typedef struct FklAnalysisSymbol {
 } FklAnalysisSymbol;
 
 int fklCheckAndInitGrammerSymbols(FklGrammer *g);
-void fklDestroyAnaysisSymbol(FklAnalysisSymbol *);
 FklHashTable *fklCreateTerminalIndexSet(FklString *const *terminals,
                                         size_t num);
 
@@ -295,9 +294,15 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
                           size_t *matchLen, FklGrammerMatchOuterCtx *outerCtx,
                           int *is_waiting_for_more, const FklGrammer *g);
 
-FklAnalysisSymbol *
-fklCreateTerminalAnalysisSymbol(const char *s, size_t len,
-                                FklGrammerMatchOuterCtx *outerCtx);
+static inline void
+fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym, const char *s, size_t len,
+                              FklGrammerMatchOuterCtx *outerCtx) {
+    void *ast = outerCtx->create(s, len, outerCtx->line, outerCtx->ctx);
+    sym->nt.group = 0;
+    sym->nt.sid = 0;
+    sym->ast = ast;
+}
+
 int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states);
 void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
                            FILE *fp);
@@ -369,7 +374,7 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *, const char *str,
 struct FklParseStateVector;
 
 // FklAnalysisSymbolVector
-#define FKL_VECTOR_ELM_TYPE FklAnalysisSymbol *
+#define FKL_VECTOR_ELM_TYPE FklAnalysisSymbol
 #define FKL_VECTOR_ELM_TYPE_NAME AnalysisSymbol
 #include "vector.h"
 

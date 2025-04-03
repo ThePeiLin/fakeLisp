@@ -4367,9 +4367,10 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                 ".func=state_"
                 "%" FKL_PRT64U "});\n",
                 ac->state - states);
-        fputs("\t\t\tfklAnalysisSymbolVectorPushBack2(symbolStack,create_term_"
-              "analyzing_symbol(*in,matchLen,"
-              "outerCtx->line,outerCtx->ctx));\n"
+        fputs("\t\t\tinit_term_"
+              "analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,"
+              "NULL),*in,matchLen,"
+              "outerCtx->line,outerCtx->ctx);\n"
               "\t\t\tfklUintVectorPushBack(lineStack,&outerCtx->line);\n"
               "\t\t\touterCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');\n"
               "\t\t\t*in+=matchLen;\n"
@@ -4402,8 +4403,8 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                     "\t\t\tvoid** nodes=(void**)malloc(%" FKL_PRT64U
                     "*sizeof(void*));\n"
                     "\t\t\tFKL_ASSERT(nodes||!%" FKL_PRT64U ");\n"
-                    "\t\t\tFklAnalysisSymbol** "
-                    "base=(FklAnalysisSymbol**)&symbolStack->base[symbolStack->"
+                    "\t\t\tconst FklAnalysisSymbol* "
+                    "base=&symbolStack->base[symbolStack->"
                     "top];\n",
                     ac->prod->len, ac->prod->len);
         else
@@ -4412,11 +4413,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
         if (ac->prod->len)
             fprintf(fp,
                     "\t\t\tfor(size_t i=0;i<%" FKL_PRT64U ";i++)\n"
-                    "\t\t\t{\n"
-                    "\t\t\t\tFklAnalysisSymbol* as=base[i];\n"
-                    "\t\t\t\tnodes[i]=as->ast;\n"
-                    "\t\t\t\tfree(as);\n"
-                    "\t\t\t}\n",
+                    "\t\t\t\tnodes[i]=base[i].ast;\n",
                     ac->prod->len);
 
         if (ac->prod->len) {
@@ -4445,9 +4442,10 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
               "FKL_PARSE_REDUCE_FAILED;\n\t\t\t}\n",
               fp);
         fprintf(fp,
-                "\t\t\tfklAnalysisSymbolVectorPushBack2(symbolStack,create_"
-                "nonterm_analyzing_symbol("
-                "%" FKL_PRT64U ",ast));\n",
+                "\t\t\tinit_"
+                "nonterm_analyzing_symbol(fklAnalysisSymbolVectorPushBack("
+                "symbolStack,NULL),"
+                "%" FKL_PRT64U ",ast);\n",
                 ac->prod->left.sid);
         fputs("\t\t\tfklUintVectorPushBack(lineStack,&line);\n", fp);
         break;
@@ -4620,31 +4618,25 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g, const FklSymbolTable *st,
                                   const char *ast_destroyer_name,
                                   const char *state_0_push_func_name,
                                   FILE *fp) {
-    static const char *create_term_analyzing_symbol_src =
-        "static inline FklAnalysisSymbol* create_term_analyzing_symbol(const "
+    static const char *init_term_analyzing_symbol_src =
+        "static inline void init_term_analyzing_symbol(FklAnalysisSymbol* "
+        "sym,const "
         "char* s,size_t len,size_t line,void* ctx)"
         "{\n"
-        "\tFklAnalysisSymbol* "
-        "sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));\n"
-        "\tFKL_ASSERT(sym);\n"
         "\tvoid* ast=%s(s,len,line,ctx);\n"
         "\tsym->nt.group=0;\n"
         "\tsym->nt.sid=0;\n"
         "\tsym->ast=ast;\n"
-        "\treturn sym;\n"
         "}\n\n";
 
-    static const char *create_nonterm_analyzing_symbol_src =
-        "static inline FklAnalysisSymbol* "
-        "create_nonterm_analyzing_symbol(FklSid_t id,void* ast)\n"
+    static const char *init_nonterm_analyzing_symbol_src =
+        "static inline void "
+        "init_nonterm_analyzing_symbol(FklAnalysisSymbol* sym,FklSid_t "
+        "id,void* ast)\n"
         "{\n"
-        "\tFklAnalysisSymbol* "
-        "sym=(FklAnalysisSymbol*)malloc(sizeof(FklAnalysisSymbol));\n"
-        "\tFKL_ASSERT(sym);\n"
         "\tsym->nt.group=0;\n"
         "\tsym->nt.sid=id;\n"
         "\tsym->ast=ast;\n"
-        "\treturn sym;\n"
         "}\n\n";
 
     fputs("// Do not edit!\n\n", fp);
@@ -4662,9 +4654,9 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g, const FklSymbolTable *st,
 
     fputc('\n', fp);
     fputc('\n', fp);
-    fprintf(fp, create_term_analyzing_symbol_src, ast_creator_name);
+    fprintf(fp, init_term_analyzing_symbol_src, ast_creator_name);
 
-    fputs(create_nonterm_analyzing_symbol_src, fp);
+    fputs(init_nonterm_analyzing_symbol_src, fp);
 
     if (g->sortedTerminals || g->sortedTerminalsNum != g->terminals.num) {
         print_get_max_non_term_length_prototype_to_c_file(fp);
@@ -4843,9 +4835,7 @@ void *fklDefaultParseForCstr(const char *cstr,
         if (*err)
             break;
         if (accept) {
-            FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(symbolStack);
-            ast = s->ast;
-            free(s);
+            ast = fklAnalysisSymbolVectorPopBack(symbolStack)->ast;
             break;
         }
     }
@@ -4869,9 +4859,7 @@ void *fklDefaultParseForCharBuf(const char *cstr, size_t len, size_t *restLen,
         if (*err)
             break;
         if (accept) {
-            FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(symbolStack);
-            ast = s->ast;
-            free(s);
+            ast = fklAnalysisSymbolVectorPopBack(symbolStack)->ast;
             break;
         }
     }
@@ -4944,28 +4932,12 @@ static inline void dbg_print_state_stack(FklParseStateVector *stateStack,
     fputc('\n', stderr);
 }
 
-FklAnalysisSymbol *
-fklCreateTerminalAnalysisSymbol(const char *s, size_t len,
-                                FklGrammerMatchOuterCtx *outerCtx) {
-    FklAnalysisSymbol *sym =
-        (FklAnalysisSymbol *)malloc(sizeof(FklAnalysisSymbol));
-    FKL_ASSERT(sym);
-    void *ast = outerCtx->create(s, len, outerCtx->line, outerCtx->ctx);
-    sym->nt.group = 0;
-    sym->nt.sid = 0;
-    sym->ast = ast;
-    return sym;
-}
-
-static inline FklAnalysisSymbol *
-create_nonterm_analyzing_symbol(FklSid_t group, FklSid_t id, FklNastNode *ast) {
-    FklAnalysisSymbol *sym =
-        (FklAnalysisSymbol *)malloc(sizeof(FklAnalysisSymbol));
-    FKL_ASSERT(sym);
+static inline void init_nonterm_analyzing_symbol(FklAnalysisSymbol *sym,
+                                                 FklSid_t group, FklSid_t id,
+                                                 FklNastNode *ast) {
     sym->nt.group = group;
     sym->nt.sid = id;
     sym->ast = ast;
-    return sym;
 }
 
 static inline int do_reduce_action(FklParseStateVector *stateStack,
@@ -4990,12 +4962,9 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     if (len) {
         nodes = (void **)malloc(len * sizeof(void *));
         FKL_ASSERT(nodes);
-        FklAnalysisSymbol **base =
-            (FklAnalysisSymbol **)&symbolStack->base[symbolStack->top];
+        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->top];
         for (size_t i = 0; i < len; i++) {
-            FklAnalysisSymbol *as = base[i];
-            nodes[i] = as->ast;
-            free(as);
+            nodes[i] = base[i].ast;
         }
     }
     size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
@@ -5010,9 +4979,9 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
         *errLine = line;
         return FKL_PARSE_REDUCE_FAILED;
     }
-    fklAnalysisSymbolVectorPushBack2(
-        symbolStack,
-        create_nonterm_analyzing_symbol(left.group, left.sid, ast));
+    init_nonterm_analyzing_symbol(
+        fklAnalysisSymbolVectorPushBack(symbolStack, NULL), left.group,
+        left.sid, ast);
     fklUintVectorPushBack(lineStack, &line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){.state = state});
     return 0;
@@ -5061,19 +5030,16 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
             case FKL_ANALYSIS_SHIFT: {
                 fklParseStateVectorPushBack2(
                     &stateStack, (FklParseState){.state = action->state});
-                fklAnalysisSymbolVectorPushBack2(
-                    &symbolStack,
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
+                fklInitTerminalAnalysisSymbol(
+                    fklAnalysisSymbolVectorPushBack(&symbolStack, NULL), cstr,
+                    matchLen, outerCtx);
                 fklUintVectorPushBack(&lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 restLen -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                FklAnalysisSymbol *top =
-                    *fklAnalysisSymbolVectorPopBack(&symbolStack);
-                ast = top->ast;
-                free(top);
+                ast = fklAnalysisSymbolVectorPopBack(&symbolStack)->ast;
             }
                 goto break_for;
                 break;
@@ -5094,11 +5060,8 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
 break_for:
     fklUintVectorUninit(&lineStack);
     fklParseStateVectorUninit(&stateStack);
-    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack)) {
-        FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(&symbolStack);
-        fklDestroyNastNode(s->ast);
-        free(s);
-    }
+    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
+        fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(&symbolStack)->ast);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
@@ -5143,19 +5106,16 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
             case FKL_ANALYSIS_SHIFT: {
                 fklParseStateVectorPushBack2(
                     &stateStack, (FklParseState){.state = action->state});
-                fklAnalysisSymbolVectorPushBack2(
-                    &symbolStack,
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
+                fklInitTerminalAnalysisSymbol(
+                    fklAnalysisSymbolVectorPushBack(&symbolStack, NULL), cstr,
+                    matchLen, outerCtx);
                 fklUintVectorPushBack(&lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 restLen -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                FklAnalysisSymbol *top =
-                    *fklAnalysisSymbolVectorPopBack(&symbolStack);
-                ast = top->ast;
-                free(top);
+                ast = fklAnalysisSymbolVectorPopBack(&symbolStack)->ast;
             }
                 goto break_for;
                 break;
@@ -5176,11 +5136,8 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
 break_for:
     fklUintVectorUninit(&lineStack);
     fklParseStateVectorUninit(&stateStack);
-    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack)) {
-        FklAnalysisSymbol *s = *fklAnalysisSymbolVectorPopBack(&symbolStack);
-        fklDestroyNastNode(s->ast);
-        free(s);
-    }
+    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
+        fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(&symbolStack)->ast);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
@@ -5219,19 +5176,16 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
             case FKL_ANALYSIS_SHIFT: {
                 fklParseStateVectorPushBack2(
                     stateStack, (FklParseState){.state = action->state});
-                fklAnalysisSymbolVectorPushBack2(
-                    symbolStack,
-                    fklCreateTerminalAnalysisSymbol(cstr, matchLen, outerCtx));
+                fklInitTerminalAnalysisSymbol(
+                    fklAnalysisSymbolVectorPushBack(symbolStack, NULL), cstr,
+                    matchLen, outerCtx);
                 fklUintVectorPushBack(lineStack, &outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 (*restLen) -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                FklAnalysisSymbol *top =
-                    *fklAnalysisSymbolVectorPopBack(symbolStack);
-                ast = top->ast;
-                free(top);
+                ast = fklAnalysisSymbolVectorPopBack(symbolStack)->ast;
                 return ast;
             } break;
             case FKL_ANALYSIS_REDUCE:
@@ -5256,11 +5210,6 @@ uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line) {
         return lineStack->base[lineStack->top - num];
     else
         return line;
-}
-
-void fklDestroyAnaysisSymbol(FklAnalysisSymbol *s) {
-    fklDestroyNastNode(s->ast);
-    free(s);
 }
 
 static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],

@@ -103,7 +103,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     FklVMgc *gc = anotherVM->gc;
     while (!fklCodegenLibVectorIsEmpty(scriptLibStack)) {
         FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->top];
-        FklCodegenLib *cur = *fklCodegenLibVectorPopBack(scriptLibStack);
+        FklCodegenLib *cur = fklCodegenLibVectorPopBack(scriptLibStack);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibAndDestroy(cur, curVMlib, anotherVM,
                                              anotherVM->pts);

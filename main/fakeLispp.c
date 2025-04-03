@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
             FklConstTable *pkt = &ctx.public_kt;
             uint32_t num = scriptLibStack.top;
             for (size_t i = 0; i < num; i++) {
-                FklCodegenLib *cur = scriptLibStack.base[i];
+                const FklCodegenLib *cur = &scriptLibStack.base[i];
                 printf("lib %" FKL_PRT64U ":\n", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
                 puts("macro loaded libs:\n");
                 num = macroScriptLibStack.top;
                 for (size_t i = 0; i < num; i++) {
-                    FklCodegenLib *cur = macroScriptLibStack.base[i];
+                    const FklCodegenLib *cur = &macroScriptLibStack.base[i];
                     printf("lib %" FKL_PRT64U ":\n", i + 1);
                     switch (cur->type) {
                     case FKL_CODEGEN_LIB_SCRIPT:
@@ -286,12 +286,12 @@ int main(int argc, char **argv) {
             fklUninitFuncPrototypes(&macro_pts);
 
             while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
-                fklDestroyCodegenLib(
-                    *fklCodegenLibVectorPopBack(&scriptLibStack));
+                fklUninitCodegenLib(
+                    fklCodegenLibVectorPopBack(&scriptLibStack));
             fklCodegenLibVectorUninit(&scriptLibStack);
             while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
-                fklDestroyCodegenLib(
-                    *fklCodegenLibVectorPopBack(&macroScriptLibStack));
+                fklUninitCodegenLib(
+                    fklCodegenLibVectorPopBack(&macroScriptLibStack));
             fklCodegenLibVectorUninit(&macroScriptLibStack);
 
             fklUninitSymbolTable(&runtime_st);
@@ -388,9 +388,9 @@ static void print_reader_macros(const FklHashTable *ht,
         if (group->prod_printing.top) {
             fputs("\nprods:\n\n", fp);
             uint32_t top = group->prod_printing.top;
-            FklCodegenProdPrinting **base = group->prod_printing.base;
+            FklCodegenProdPrinting *base = group->prod_printing.base;
             for (uint32_t i = 0; i < top; i++) {
-                FklCodegenProdPrinting *p = base[i];
+                const FklCodegenProdPrinting *p = &base[i];
                 if (p->sid)
                     fklPrintRawSymbol(fklGetSymbolWithId(p->sid, pst)->symbol,
                                       fp);

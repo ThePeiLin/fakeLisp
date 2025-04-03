@@ -84,7 +84,7 @@ typedef struct // unresolved symbol ref
 } FklUnReSymbolRef;
 
 // FklUnReSymbolRefVector
-#define FKL_VECTOR_ELM_TYPE FklUnReSymbolRef *
+#define FKL_VECTOR_ELM_TYPE FklUnReSymbolRef
 #define FKL_VECTOR_ELM_TYPE_NAME UnReSymbolRef
 #include "vector.h"
 

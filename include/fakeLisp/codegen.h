@@ -39,7 +39,7 @@ typedef struct {
 } FklPreDefRef;
 
 // FklPreDefRefVector
-#define FKL_VECTOR_ELM_TYPE FklPreDefRef *
+#define FKL_VECTOR_ELM_TYPE FklPreDefRef
 #define FKL_VECTOR_ELM_TYPE_NAME PreDefRef
 #include "vector.h"
 
@@ -121,7 +121,7 @@ typedef struct {
 } FklCodegenLib;
 
 // FklCodegenLibVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenLib *
+#define FKL_VECTOR_ELM_TYPE FklCodegenLib
 #define FKL_VECTOR_ELM_TYPE_NAME CodegenLib
 #include "vector.h"
 
@@ -147,7 +147,7 @@ typedef struct {
 } FklCodegenProdPrinting;
 
 // FklProdPrintingVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenProdPrinting *
+#define FKL_VECTOR_ELM_TYPE FklCodegenProdPrinting
 #define FKL_VECTOR_ELM_TYPE_NAME ProdPrinting
 #include "vector.h"
 
@@ -472,7 +472,7 @@ int fklIsSymbolDefined(FklSid_t sid, uint32_t scope, FklCodegenEnv *);
 
 int fklIsReplacementDefined(FklSid_t sid, FklCodegenEnv *);
 
-FklNastNode *fklGetReplacement(FklSid_t sid, FklHashTable *);
+FklNastNode *fklGetReplacement(FklSid_t sid, const FklHashTable *);
 
 void fklAddReplacementBySid(FklSid_t sid, FklNastNode *, FklHashTable *);
 
@@ -500,17 +500,8 @@ void fklDestroyCodegenLibMacroScope(FklCodegenLib *lib);
 void fklUninitCodegenLib(FklCodegenLib *);
 void fklUninitCodegenLibInfo(FklCodegenLib *);
 
-FklCodegenLib *fklCreateCodegenScriptLib(FklCodegenInfo *codegen,
-                                         FklByteCodelnt *bcl,
-                                         FklCodegenEnv *env);
-
-FklCodegenLib *fklCreateCodegenDllLib(char *rp, uv_lib_t dll,
-                                      FklSymbolTable *table,
-                                      FklCodegenDllLibInitExportFunc init,
-                                      FklSymbolTable *pst);
-
-void fklDestroyCodegenLibExceptBclAndDll(FklCodegenLib *clib);
-void fklDestroyCodegenLib(FklCodegenLib *);
+void fklUninitCodegenLibExceptBclAndDll(FklCodegenLib *clib);
+void fklUninitCodegenLib(FklCodegenLib *);
 
 FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
                                        FklNastNode *origin_exp,
@@ -539,7 +530,7 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib, FklVMlib *vlib,
                                     uint32_t count, int needCopy,
                                     FklFuncPrototypes *);
 
-void fklInitVMlibWithCodegenLib(FklCodegenLib *clib, FklVMlib *vlib, FklVM *vm,
+void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib, FklVMlib *vlib, FklVM *vm,
                                 int needCopy, FklFuncPrototypes *);
 
 void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib *clib, FklVMlib *vlib,
@@ -579,7 +570,7 @@ FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklSymbolTable *tt,
                                         FklHashTable *builtin_terms);
 
 FklGrammerProduction *fklCodegenProdPrintingToProduction(
-    FklCodegenProdPrinting *p, FklSymbolTable *tt, FklRegexTable *rt,
+    const FklCodegenProdPrinting *p, FklSymbolTable *tt, FklRegexTable *rt,
     FklHashTable *builtin_terms, FklCodegenOuterCtx *outer_ctx,
     FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
 

@@ -41,13 +41,26 @@ void fklInitLineNumHashTable(FklHashTable *ht) {
 #define FKL_VECTOR_ELM_TYPE_NAME Vec
 #include <fakeLisp/vector.h>
 
+typedef struct RefType {
+    uint64_t line;
+    FklValueType type;
+    FklHashTableEqType eq_type;
+} RefType;
+
+// VmRefTypeVector
+#define FKL_VECTOR_TYPE_PREFIX Vm
+#define FKL_VECTOR_METHOD_PREFIX vm
+#define FKL_VECTOR_ELM_TYPE RefType
+#define FKL_VECTOR_ELM_TYPE_NAME RefType
+#include <fakeLisp/vector.h>
+
 #define SENTINEL_NAST_NODE (NULL)
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                                          FklHashTable *lineHash) {
     FklNastNodeVector nodeStack;
     fklNastNodeVectorInit(&nodeStack, 32);
-    FklUintVector reftypeStack;
-    fklUintVectorInit(&reftypeStack, 32);
+    VmRefTypeVector reftypeStack;
+    vmRefTypeVectorInit(&reftypeStack, 32);
     FklVMvalueVector valueStack;
     fklVMvalueVectorInit(&valueStack, 32);
     VmVecVector stackStack;
@@ -60,10 +73,9 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
         if (root == SENTINEL_NAST_NODE) {
             vmVecVectorPopBack(&stackStack);
             FklVMvalueVector *tStack = *vmVecVectorBack(&stackStack);
-            FklValueType type = *fklUintVectorPopBack(&reftypeStack);
-            uint64_t line = *fklUintVectorPopBack(&reftypeStack);
+            RefType t = *vmRefTypeVectorPopBack(&reftypeStack);
             FklVMvalue *v = NULL;
-            switch (type) {
+            switch (t.type) {
             case FKL_TYPE_BOX:
                 v = fklCreateVMvalueBox(vm, *fklVMvalueVectorPopBack(cStack));
                 break;
@@ -79,8 +91,7 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                     vec->base[j] = cStack->base[i - 1];
             } break;
             case FKL_TYPE_HASHTABLE: {
-                v = fklCreateVMvalueHash(vm,
-                                         *fklUintVectorPopBack(&reftypeStack));
+                v = fklCreateVMvalueHash(vm, t.eq_type);
                 FklHashTable *hash = FKL_VM_HASH(v);
                 for (size_t i = cStack->top; i > 0; i -= 2) {
                     FklVMvalue *key = cStack->base[i - 1];
@@ -94,7 +105,7 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
             }
             fklVMvalueVectorPushBack2(tStack, v);
             if (lineHash) {
-                LineNumHashItem i = {v, line};
+                LineNumHashItem i = {v, t.line};
                 fklGetOrPutHashItem(&i, lineHash);
             }
 
@@ -135,14 +146,16 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                 FklVMvalueVector *bStack = fklVMvalueVectorCreate(1);
                 vmVecVectorPushBack2(&stackStack, bStack);
                 cStack = bStack;
-                fklUintVectorPushBack(&reftypeStack, &root->curline);
-                fklUintVectorPushBack2(&reftypeStack, FKL_TYPE_BOX);
+                vmRefTypeVectorPushBack2(
+                    &reftypeStack,
+                    (RefType){.line = root->curline, .type = FKL_TYPE_BOX});
                 fklNastNodeVectorPushBack2(&nodeStack, SENTINEL_NAST_NODE);
                 fklNastNodeVectorPushBack2(&nodeStack, root->box);
             } break;
             case FKL_NAST_VECTOR: {
-                fklUintVectorPushBack(&reftypeStack, &root->curline);
-                fklUintVectorPushBack2(&reftypeStack, FKL_TYPE_VECTOR);
+                vmRefTypeVectorPushBack2(
+                    &reftypeStack,
+                    (RefType){.line = root->curline, .type = FKL_TYPE_VECTOR});
                 fklNastNodeVectorPushBack2(&nodeStack, SENTINEL_NAST_NODE);
                 for (size_t i = 0; i < root->vec->size; i++)
                     fklNastNodeVectorPushBack2(&nodeStack, root->vec->base[i]);
@@ -152,9 +165,10 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                 cStack = vStack;
             } break;
             case FKL_NAST_HASHTABLE: {
-                fklUintVectorPushBack2(&reftypeStack, root->hash->type);
-                fklUintVectorPushBack(&reftypeStack, &root->curline);
-                fklUintVectorPushBack2(&reftypeStack, FKL_TYPE_HASHTABLE);
+                vmRefTypeVectorPushBack2(
+                    &reftypeStack, (RefType){.line = root->curline,
+                                             .type = FKL_TYPE_HASHTABLE,
+                                             .eq_type = root->hash->type});
                 fklNastNodeVectorPushBack2(&nodeStack, SENTINEL_NAST_NODE);
                 size_t num = root->hash->num;
                 FklNastHashTable *hash = root->hash;
@@ -170,8 +184,10 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                 FklVMvalueVector *pStack = fklVMvalueVectorCreate(2);
                 vmVecVectorPushBack2(&stackStack, pStack);
                 cStack = pStack;
-                fklUintVectorPushBack(&reftypeStack, &root->curline);
-                fklUintVectorPushBack2(&reftypeStack, FKL_TYPE_PAIR);
+                vmRefTypeVectorPushBack2(
+                    &reftypeStack,
+                    (RefType){.line = root->curline, .type = FKL_TYPE_PAIR});
+
                 fklNastNodeVectorPushBack2(&nodeStack, SENTINEL_NAST_NODE);
                 fklNastNodeVectorPushBack2(&nodeStack, root->pair->car);
                 fklNastNodeVectorPushBack2(&nodeStack, root->pair->cdr);
@@ -186,7 +202,7 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
     vmVecVectorUninit(&stackStack);
     fklNastNodeVectorUninit(&nodeStack);
     fklVMvalueVectorUninit(&valueStack);
-    fklUintVectorUninit(&reftypeStack);
+    vmRefTypeVectorUninit(&reftypeStack);
     return retval;
 }
 

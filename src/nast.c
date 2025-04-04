@@ -12,18 +12,29 @@ FklNastNode *fklCreateNastNode(FklNastType type, uint64_t line) {
     return r;
 }
 
-FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
-    FklNastNodeVector pending0;
-    FklNastNodeSlotVector pending1;
-    fklNastNodeVectorInit(&pending0, 16);
-    fklNastNodeSlotVectorInit(&pending1, 16);
-    FklNastNode *retval = NULL;
-    fklNastNodeVectorPushBack2(&pending0, FKL_REMOVE_CONST(FklNastNode, orig));
+typedef struct {
+    const FklNastNode *node;
+    FklNastNode **slot;
+} NodeSlotPair;
 
-    fklNastNodeSlotVectorPushBack2(&pending1, &retval);
-    while (!fklNastNodeVectorIsEmpty(&pending0)) {
-        const FklNastNode *top = *fklNastNodeVectorPopBack(&pending0);
-        FklNastNode **retval = *fklNastNodeSlotVectorPopBack(&pending1);
+// NastNodeSlotVector
+#define FKL_VECTOR_TYPE_PREFIX Nast
+#define FKL_VECTOR_METHOD_PREFIX nast
+#define FKL_VECTOR_ELM_TYPE NodeSlotPair
+#define FKL_VECTOR_ELM_TYPE_NAME NodeSlotPair
+#include <fakeLisp/vector.h>
+
+FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
+    NastNodeSlotPairVector s;
+    nastNodeSlotPairVectorInit(&s, 8);
+    FklNastNode *retval = NULL;
+    nastNodeSlotPairVectorPushBack2(
+        &s, (NodeSlotPair){.node = orig, .slot = &retval});
+    while (!nastNodeSlotPairVectorIsEmpty(&s)) {
+        const NodeSlotPair *p = nastNodeSlotPairVectorPopBack(&s);
+        const FklNastNode *top = p->node;
+        FklNastNode **retval = p->slot;
+
         FklNastNode *node = fklCreateNastNode(top->type, top->curline);
         *retval = node;
         switch (top->type) {
@@ -54,38 +65,40 @@ FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
             break;
 
         case FKL_NAST_BOX:
-            fklNastNodeVectorPushBack2(&pending0, top->box);
-            fklNastNodeSlotVectorPushBack2(&pending1, &node->box);
+            nastNodeSlotPairVectorPushBack2(
+                &s, (NodeSlotPair){.node = top->box, .slot = &node->box});
             break;
         case FKL_NAST_PAIR:
             node->pair = fklCreateNastPair();
-            fklNastNodeVectorPushBack2(&pending0, top->pair->car);
-            fklNastNodeVectorPushBack2(&pending0, top->pair->cdr);
-            fklNastNodeSlotVectorPushBack2(&pending1, &node->pair->car);
-            fklNastNodeSlotVectorPushBack2(&pending1, &node->pair->cdr);
+            nastNodeSlotPairVectorPushBack2(
+                &s, (NodeSlotPair){.node = top->pair->car,
+                                   .slot = &node->pair->car});
+            nastNodeSlotPairVectorPushBack2(
+                &s, (NodeSlotPair){.node = top->pair->cdr,
+                                   .slot = &node->pair->cdr});
             break;
         case FKL_NAST_VECTOR:
             node->vec = fklCreateNastVector(top->vec->size);
             for (size_t i = 0; i < top->vec->size; i++) {
-                fklNastNodeVectorPushBack2(&pending0, top->vec->base[i]);
-                fklNastNodeSlotVectorPushBack2(&pending1, &node->vec->base[i]);
+                nastNodeSlotPairVectorPushBack2(
+                    &s, (NodeSlotPair){.node = top->vec->base[i],
+                                       .slot = &node->vec->base[i]});
             }
             break;
         case FKL_NAST_HASHTABLE:
             node->hash = fklCreateNastHash(top->hash->type, top->hash->num);
             for (size_t i = 0; i < top->hash->num; i++) {
-                fklNastNodeVectorPushBack2(&pending0, top->hash->items[i].car);
-                fklNastNodeVectorPushBack2(&pending0, top->hash->items[i].cdr);
-                fklNastNodeSlotVectorPushBack2(&pending1,
-                                               &node->hash->items[i].car);
-                fklNastNodeSlotVectorPushBack2(&pending1,
-                                               &node->hash->items[i].cdr);
+                nastNodeSlotPairVectorPushBack2(
+                    &s, (NodeSlotPair){.node = top->hash->items[i].car,
+                                       .slot = &node->hash->items[i].car});
+                nastNodeSlotPairVectorPushBack2(
+                    &s, (NodeSlotPair){.node = top->hash->items[i].cdr,
+                                       .slot = &node->hash->items[i].cdr});
             }
             break;
         }
     }
-    fklNastNodeVectorUninit(&pending0);
-    fklNastNodeSlotVectorUninit(&pending1);
+    nastNodeSlotPairVectorUninit(&s);
     return retval;
 }
 

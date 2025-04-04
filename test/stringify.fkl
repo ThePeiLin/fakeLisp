@@ -1,0 +1,102 @@
+(import (only (.. lib utils) assert))
+
+(assert (equal "(1,2)"
+               (println (stringify '(1,2)))))
+
+(assert (equal "(1 2 3 4)"
+               (println (stringify '(1 2 3 4)))))
+
+(assert (equal "(1 2 3 4,5)"
+               (println (stringify '(1 2 3 4,5)))))
+
+(assert (equal "(1 (2 3) 4,5)"
+               (println (stringify '(1 (2 3) 4,5)))))
+
+(assert (equal "#()"
+               (println (stringify #()))))
+
+(assert (equal "#(1)"
+               (println (stringify #(1)))))
+
+(assert (equal "#(1 2 3)"
+               (println (stringify #(1 2 3)))))
+
+(assert (equal "#&()"
+               (println (stringify #&()))))
+;
+(assert (equal "#&|foo|"
+               (println (stringify #&foo))))
+;
+(assert (equal "#&(1 (2 3) 4,5)"
+               (println (stringify #&(1 (2 3) 4,5)))))
+
+(assert (equal "#&#(1 2 3)"
+               (println (stringify #&#(1 2 3)))))
+
+(assert (equal "#hash()"
+               (println (stringify #hash()))))
+
+(assert (equal "#hash((|foo|,|bar|))"
+               (println (stringify #hash((foo,bar))))))
+
+(assert (equal "#hash((|foo|,|bar|) (|bar|,|foo|))"
+               (println (stringify #hash((foo,bar) (bar,foo))))))
+
+(assert (equal "#hash((|foo|,|bar|) (|bar|,|foo|) (|foobar|,|barfoo|))"
+               (println (stringify #hash((foo,bar) (bar,foo) (foobar,barfoo))))))
+
+(assert (equal "((|foobar| |foo| |bar|),|abcd|)"
+               (println (stringify '[(foobar foo bar),abcd]))))
+
+(define i '(1,2))
+
+(define b (cons i i))
+(assert (equal "((1,2) 1,2)"
+               (println (stringify b))))
+
+(define b (list i i))
+(assert (equal "((1,2) (1,2))"
+               (println (stringify b))))
+
+(car-set! i i)
+(assert (equal "#0=(#0#,2)"
+               (println (stringify i))))
+
+(cdr-set! i i)
+(assert (equal "#0=(#0#,#0#)"
+               (println (stringify i))))
+
+(define i '(1 2 3 4))
+(nth-set! 2 i i)
+(assert (equal "#0=(1 2 #0# 4)"
+               (println (stringify i))))
+
+(define j '(5 6 7 8))
+(nthcdr-set! 3 j j)
+(assert (equal "#0=(5 6 7 8,#0#)"
+               (println (stringify j))))
+
+(define b (list i j))
+(assert (equal "(#0=(1 2 #0# 4) #1=(5 6 7 8,#1#))"
+               (println (stringify b))))
+
+(assert (equal "(#0=(1 2 #0# 4) #1=(5 6 7 8,#1#))"
+               (println (stringify b))))
+
+(define f '(1 2 3 4 5 6 7 8))
+(nth-set! 4 f f)
+(nth-set! 7 f f)
+(nth-set! 3 f j)
+(assert (equal "#0=(1 2 3 #1=(5 6 7 8,#1#) #0# 6 7 #0#)"
+               (println (stringify f))))
+
+(define v #(1 2 3 4 5 6 7 8))
+(vector-set! v 4 v)
+(vector-set! v 7 v)
+(vector-set! v 3 j)
+(println (stringify v))
+
+(nth-set! 3 j j)
+(nthcdr-set! 3 j f)
+(assert (equal "#0=(1 2 3 #1=(5 6 7 #1#,#0#) #0# 6 7 #0#)"
+               (println (stringify f))))

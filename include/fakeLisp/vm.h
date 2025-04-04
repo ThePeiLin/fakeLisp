@@ -811,11 +811,11 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 void fklDestroyVMframe(FklVMframe *, FklVM *exe);
 FklString *fklGenErrorMessage(FklBuiltinErrorType type);
 
-int fklIsVMhashEq(FklHashTable *);
-int fklIsVMhashEqv(FklHashTable *);
-int fklIsVMhashEqual(FklHashTable *);
-uintptr_t fklGetVMhashTableType(FklHashTable *);
-const char *fklGetVMhashTablePrefix(FklHashTable *);
+int fklIsVMhashEq(const FklHashTable *);
+int fklIsVMhashEqv(const FklHashTable *);
+int fklIsVMhashEqual(const FklHashTable *);
+uintptr_t fklGetVMhashTableType(const FklHashTable *);
+const char *fklGetVMhashTablePrefix(const FklHashTable *);
 
 uintptr_t fklVMvalueEqHashv(const FklVMvalue *);
 uintptr_t fklVMvalueEqvHashv(const FklVMvalue *);

@@ -1105,17 +1105,19 @@ void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc) {
     }
 }
 
-int fklIsVMhashEq(FklHashTable *ht) { return ht->t == EqHashTableT; }
+int fklIsVMhashEq(const FklHashTable *ht) { return ht->t == EqHashTableT; }
 
-int fklIsVMhashEqv(FklHashTable *ht) { return ht->t == EqvHashTableT; }
+int fklIsVMhashEqv(const FklHashTable *ht) { return ht->t == EqvHashTableT; }
 
-int fklIsVMhashEqual(FklHashTable *ht) { return ht->t == EqualHashTableT; }
+int fklIsVMhashEqual(const FklHashTable *ht) {
+    return ht->t == EqualHashTableT;
+}
 
-uintptr_t fklGetVMhashTableType(FklHashTable *ht) {
+uintptr_t fklGetVMhashTableType(const FklHashTable *ht) {
     return ht->t - EqHashTableT;
 }
 
-const char *fklGetVMhashTablePrefix(FklHashTable *ht) {
+const char *fklGetVMhashTablePrefix(const FklHashTable *ht) {
     static const char *prefix[] = {
         "#hash(",
         "#hasheqv(",

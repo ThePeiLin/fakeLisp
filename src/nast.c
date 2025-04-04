@@ -203,157 +203,255 @@ void fklDestroyNastNode(FklNastNode *node) {
 typedef enum {
     NAST_CAR,
     NAST_CDR,
-    NAST_BOX,
-    NAST_HASH_ITEM,
 } NastPlace;
 
-typedef struct {
-    NastPlace place;
-    FklNastNode *node;
-} NastElem;
+typedef enum {
+    PRINT_METHOD_FIRST = 0,
+    PRINT_METHOD_CONT,
+} PrintState;
 
-static NastElem *createNastElem(NastPlace place, FklNastNode *node) {
-    NastElem *r = (NastElem *)malloc(sizeof(NastElem));
-    FKL_ASSERT(r);
-    r->node = node;
-    r->place = place;
+#define PRINT_CTX_COMMON_HEADER                                                \
+    const FklNastNode *(*method)(struct PrintCtx *, FILE * fp);                \
+    PrintState state;                                                          \
+    NastPlace place
+
+typedef struct PrintCtx {
+    PRINT_CTX_COMMON_HEADER;
+    intptr_t data[2];
+} PrintCtx;
+
+typedef struct PrintPairCtx {
+    PRINT_CTX_COMMON_HEADER;
+    const FklNastNode *cur;
+} PrintPairCtx;
+
+static_assert(sizeof(PrintPairCtx) <= sizeof(PrintCtx),
+              "print pair ctx too large");
+
+typedef struct PrintVectorCtx {
+    PRINT_CTX_COMMON_HEADER;
+    const FklNastNode *vec;
+    uintptr_t index;
+} PrintVectorCtx;
+
+static_assert(sizeof(PrintVectorCtx) <= sizeof(PrintCtx),
+              "print vector ctx too large");
+
+typedef struct PrintHashCtx {
+    PRINT_CTX_COMMON_HEADER;
+    const FklNastNode *hash;
+    uintptr_t index;
+} PrintHashCtx;
+
+static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
+              "print hash ctx too large");
+
+// NastPrintCtxVector
+#define FKL_VECTOR_TYPE_PREFIX Nast
+#define FKL_VECTOR_METHOD_PREFIX nast
+#define FKL_VECTOR_ELM_TYPE PrintCtx
+#define FKL_VECTOR_ELM_TYPE_NAME PrintCtx
+#include <fakeLisp/vector.h>
+
+static void print_pair_ctx_init(PrintCtx *ctx, const FklNastNode *pair) {
+    PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);
+    pair_ctx->cur = pair;
+}
+
+static void print_vector_ctx_init(PrintCtx *ctx, const FklNastNode *vec) {
+    PrintVectorCtx *vector_ctx = FKL_TYPE_CAST(PrintVectorCtx *, ctx);
+    vector_ctx->vec = vec;
+    vector_ctx->index = 0;
+}
+
+static void print_hash_ctx_init(PrintCtx *ctx, const FklNastNode *hash) {
+    PrintHashCtx *hash_ctx = FKL_TYPE_CAST(PrintHashCtx *, ctx);
+    hash_ctx->hash = hash;
+    hash_ctx->index = 0;
+}
+
+static const FklNastNode *print_pair_method(PrintCtx *ctx, FILE *fp) {
+    PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);
+    if (pair_ctx->cur == NULL) {
+        fputc(')', fp);
+        return NULL;
+    }
+    const FklNastNode *r = NULL;
+    switch (pair_ctx->state) {
+    case PRINT_METHOD_FIRST:
+        pair_ctx->state = PRINT_METHOD_CONT;
+        fputc('(', fp);
+        r = pair_ctx->cur->pair->car;
+        pair_ctx->cur = pair_ctx->cur->pair->cdr;
+        break;
+    case PRINT_METHOD_CONT:
+        if (pair_ctx->cur->type == FKL_NAST_PAIR) {
+            fputc(' ', fp);
+            r = pair_ctx->cur->pair->car;
+            pair_ctx->cur = pair_ctx->cur->pair->cdr;
+        } else if (pair_ctx->cur->type == FKL_NAST_NIL) {
+            fputc(')', fp);
+            r = NULL;
+            pair_ctx->cur = NULL;
+        } else {
+            fputc(',', fp);
+            r = pair_ctx->cur;
+            pair_ctx->cur = NULL;
+        }
+        break;
+    }
     return r;
 }
 
-static void destroyNastElem(NastElem *n) { free(n); }
+static const FklNastNode *print_vector_method(PrintCtx *ctx, FILE *fp) {
+    PrintVectorCtx *vector_ctx = FKL_TYPE_CAST(PrintVectorCtx *, ctx);
+    if (vector_ctx->vec->vec->size == 0) {
+        fputs("#()", fp);
+        return NULL;
+    } else if (vector_ctx->index >= vector_ctx->vec->vec->size) {
+        fputc(')', fp);
+        return NULL;
+    }
+    const FklNastNode *r = NULL;
+    switch (vector_ctx->state) {
+    case PRINT_METHOD_FIRST:
+        vector_ctx->state = PRINT_METHOD_CONT;
+        fputs("#(", fp);
+        r = vector_ctx->vec->vec->base[vector_ctx->index++];
+        break;
+    case PRINT_METHOD_CONT:
+        fputc(' ', fp);
+        r = vector_ctx->vec->vec->base[vector_ctx->index++];
+        break;
+    }
+    return r;
+}
+
+static const FklNastNode *print_hash_method(PrintCtx *ctx, FILE *fp) {
+    static const char *tmp[] = {
+        "#hash(",
+        "#hasheqv(",
+        "#hashequal(",
+    };
+    PrintHashCtx *hash_ctx = FKL_TYPE_CAST(PrintHashCtx *, ctx);
+    if (hash_ctx->hash->hash->num == 0) {
+        fputs(tmp[hash_ctx->hash->hash->type], fp);
+        fputc(')', fp);
+        return NULL;
+    } else if (hash_ctx->index >= hash_ctx->hash->hash->num) {
+        fputs("))", fp);
+        return NULL;
+    }
+    const FklNastNode *r = NULL;
+    switch (hash_ctx->state) {
+    case PRINT_METHOD_FIRST:
+        hash_ctx->state = PRINT_METHOD_CONT;
+        fputs(tmp[hash_ctx->hash->hash->type], fp);
+        fputc('(', fp);
+        r = hash_ctx->hash->hash->items[hash_ctx->index].car;
+        break;
+    case PRINT_METHOD_CONT:
+        switch (hash_ctx->place) {
+        case NAST_CAR:
+            hash_ctx->place = NAST_CDR;
+            fputc(',', fp);
+            r = hash_ctx->hash->hash->items[hash_ctx->index].cdr;
+            break;
+        case NAST_CDR:
+            hash_ctx->place = NAST_CAR;
+            ++hash_ctx->index;
+            if (hash_ctx->index >= hash_ctx->hash->hash->num) {
+                fputs("))", fp);
+                return NULL;
+            }
+            fputs(") (", fp);
+            r = hash_ctx->hash->hash->items[hash_ctx->index].car;
+            break;
+        }
+        break;
+    }
+    return r;
+}
+
+typedef void (*PrintCtxInitFunc)(PrintCtx *ctx, const FklNastNode *);
+typedef const FklNastNode *(*PrintMethod)(PrintCtx *ctx, FILE *fp);
 
 void fklPrintNastNode(const FklNastNode *exp, FILE *fp,
                       const FklSymbolTable *table) {
-    FklPtrQueue *queue = fklCreatePtrQueue();
-    FklQueueVector queueStack;
-    fklQueueVectorInit(&queueStack, 32);
-    fklPushPtrQueue(createNastElem(NAST_CAR, (FklNastNode *)exp), queue);
-    fklQueueVectorPushBack2(&queueStack, queue);
-    while (!fklQueueVectorIsEmpty(&queueStack)) {
-        FklPtrQueue *cQueue = *fklQueueVectorBack(&queueStack);
-        while (fklLengthPtrQueue(cQueue)) {
-            NastElem *e = fklPopPtrQueue(cQueue);
-            if (e->place == NAST_CDR)
-                fputc(',', fp);
-            else if (e->place == NAST_HASH_ITEM) {
-                FklNastPair *t = (FklNastPair *)e->node;
-                fputc('(', fp);
-                FklPtrQueue *iQueue = fklCreatePtrQueue();
-                fklPushPtrQueue(createNastElem(NAST_CAR, t->car), iQueue);
-                fklPushPtrQueue(createNastElem(NAST_CDR, t->cdr), iQueue);
-                fklQueueVectorPushBack2(&queueStack, iQueue);
-                cQueue = iQueue;
-                destroyNastElem(e);
-                continue;
-            }
-            FklNastNode *node = e->node;
-            destroyNastElem(e);
-            switch (node->type) {
-            case FKL_NAST_RC_SYM:
-            case FKL_NAST_SYM:
-                fklPrintRawSymbol(fklGetSymbolWithId(node->sym, table)->symbol,
-                                  fp);
-                break;
-            case FKL_NAST_BYTEVECTOR:
-                fklPrintRawBytevector(node->bvec, fp);
-                break;
-            case FKL_NAST_STR:
-                fklPrintRawString(node->str, fp);
-                break;
-            case FKL_NAST_FIX:
-                fprintf(fp, "%" FKL_PRT64D "", node->fix);
-                break;
-            case FKL_NAST_F64: {
-                char buf[64] = {0};
-                fklWriteDoubleToBuf(buf, 64, node->f64);
-                fputs(buf, fp);
-            } break;
-            case FKL_NAST_CHR:
-                fklPrintRawChar(node->chr, fp);
-                break;
-            case FKL_NAST_VECTOR:
-                fputs("#(", fp);
-                {
-                    FklPtrQueue *vQueue = fklCreatePtrQueue();
-                    for (size_t i = 0; i < node->vec->size; i++)
-                        fklPushPtrQueue(
-                            createNastElem(NAST_CAR, node->vec->base[i]),
-                            vQueue);
-                    fklQueueVectorPushBack2(&queueStack, vQueue);
-                    cQueue = vQueue;
-                    continue;
-                }
-                break;
-            case FKL_NAST_BIG_INT:
-                fklPrintBigInt(node->bigInt, fp);
-                break;
-            case FKL_NAST_BOX:
-                fputs("#&", fp);
-                {
-                    FklPtrQueue *bQueue = fklCreatePtrQueue();
-                    fklPushPtrQueue(createNastElem(NAST_BOX, node->box),
-                                    bQueue);
-                    fklQueueVectorPushBack2(&queueStack, bQueue);
-                    cQueue = bQueue;
-                }
-                break;
-            case FKL_NAST_HASHTABLE: {
-                static const char *tmp[] = {
-                    "#hash(",
-                    "#hasheqv(",
-                    "#hashequal(",
-                };
-                fputs(tmp[node->hash->type], fp);
-                FklPtrQueue *vQueue = fklCreatePtrQueue();
-                for (size_t i = 0; i < node->hash->num; i++)
-                    fklPushPtrQueue(
-                        createNastElem(NAST_HASH_ITEM,
-                                       (FklNastNode *)&node->hash->items[i]),
-                        vQueue);
-                fklQueueVectorPushBack2(&queueStack, vQueue);
-                cQueue = vQueue;
-                continue;
-            } break;
-            case FKL_NAST_NIL:
-                fputs("()", fp);
-                break;
-            case FKL_NAST_PAIR: {
-                fputc('(', fp);
-                FklPtrQueue *lQueue = fklCreatePtrQueue();
-                FklNastNode *cur = node;
-                for (; cur->type == FKL_NAST_PAIR; cur = cur->pair->cdr) {
-                    FklNastNode *c = cur->pair->car;
-                    NastElem *ce = createNastElem(NAST_CAR, c);
-                    fklPushPtrQueue(ce, lQueue);
-                }
-                if (cur->type != FKL_NAST_NIL) {
-                    NastElem *cdre = createNastElem(NAST_CDR, cur);
-                    fklPushPtrQueue(cdre, lQueue);
-                }
-                fklQueueVectorPushBack2(&queueStack, lQueue);
-                cQueue = lQueue;
-                continue;
-            } break;
-            default:
-                abort();
-                break;
-            }
-            if (fklLengthPtrQueue(cQueue)
-                && ((NastElem *)fklFirstPtrQueue(cQueue))->place != NAST_CDR
-                && ((NastElem *)fklFirstPtrQueue(cQueue))->place != NAST_BOX)
-                fputc(' ', fp);
+    static const PrintCtxInitFunc ctx_init_method_table[FKL_NAST_RC_SYM + 1] = {
+        [FKL_NAST_PAIR] = print_pair_ctx_init,
+        [FKL_NAST_VECTOR] = print_vector_ctx_init,
+        [FKL_NAST_HASHTABLE] = print_hash_ctx_init,
+    };
+
+    static const PrintMethod print_method_table[FKL_NAST_RC_SYM + 1] = {
+        [FKL_NAST_PAIR] = print_pair_method,
+        [FKL_NAST_VECTOR] = print_vector_method,
+        [FKL_NAST_HASHTABLE] = print_hash_method,
+    };
+
+    NastPrintCtxVector print_contexts;
+    nastPrintCtxVectorInit(&print_contexts, 1);
+    for (; exp;) {
+        switch (exp->type) {
+        case FKL_NAST_NIL:
+            fputs("()", fp);
+            break;
+        case FKL_NAST_FIX:
+            fprintf(fp, "%" FKL_PRT64D "", exp->fix);
+            break;
+        case FKL_NAST_RC_SYM:
+        case FKL_NAST_SYM:
+            fklPrintRawSymbol(fklGetSymbolWithId(exp->sym, table)->symbol, fp);
+            break;
+        case FKL_NAST_CHR:
+            fklPrintRawChar(exp->chr, fp);
+            break;
+        case FKL_NAST_F64: {
+            char buf[64] = {0};
+            fklWriteDoubleToBuf(buf, 64, exp->f64);
+            fputs(buf, fp);
+        } break;
+        case FKL_NAST_BIG_INT:
+            fklPrintBigInt(exp->bigInt, fp);
+            break;
+        case FKL_NAST_STR:
+            fklPrintRawString(exp->str, fp);
+            break;
+        case FKL_NAST_BOX:
+            fputs("#&", fp);
+            exp = exp->box;
+            continue;
+            break;
+        case FKL_NAST_BYTEVECTOR:
+            fklPrintRawBytevector(exp->bvec, fp);
+            break;
+        case FKL_NAST_SLOT:
+            fputs("[ERROR]\tslot cannot be print in nast\n", stderr);
+            abort();
+            break;
+        default: {
+            PrintCtx *ctx = nastPrintCtxVectorPushBack(&print_contexts, NULL);
+            ctx->method = print_method_table[exp->type];
+            ctx->state = PRINT_METHOD_FIRST;
+            ctx->place = NAST_CAR;
+            ctx_init_method_table[exp->type](ctx, exp);
+            break;
         }
-        fklQueueVectorPopBack(&queueStack);
-        fklDestroyPtrQueue(cQueue);
-        if (!fklQueueVectorIsEmpty(&queueStack)) {
-            fputc(')', fp);
-            cQueue = *fklQueueVectorBack(&queueStack);
-            if (fklLengthPtrQueue(cQueue)
-                && ((NastElem *)fklFirstPtrQueue(cQueue))->place != NAST_CDR)
-                fputc(' ', fp);
+        }
+
+        if (nastPrintCtxVectorIsEmpty(&print_contexts))
+            break;
+        while (!nastPrintCtxVectorIsEmpty(&print_contexts)) {
+            PrintCtx *ctx = nastPrintCtxVectorBack(&print_contexts);
+            exp = ctx->method(ctx, fp);
+            if (exp)
+                break;
+            else
+                nastPrintCtxVectorPopBack(&print_contexts);
         }
     }
-    fklQueueVectorUninit(&queueStack);
+    nastPrintCtxVectorUninit(&print_contexts);
 }
 
 int fklNastNodeEqual(const FklNastNode *n0, const FklNastNode *n1) {

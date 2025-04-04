@@ -2986,30 +2986,31 @@ static inline int is_compile_check_pattern_slot_node(FklSid_t slot_id,
 
 static inline int is_compile_check_pattern_matched(const FklNastNode *p,
                                                    const FklNastNode *e) {
-    FklNastNodeVector s0;
-    fklNastNodeVectorInit(&s0, 4);
-    FklNastNodeVector s1;
-    fklNastNodeVectorInit(&s1, 4);
-    fklNastNodeVectorPushBack2(&s0, cadr_nast_node(p));
-    fklNastNodeVectorPushBack2(&s1, FKL_REMOVE_CONST(FklNastNode, e));
+    FklNastImmPairVector s;
+    fklNastImmPairVectorInit(&s, 8);
+    fklNastImmPairVectorPushBack2(
+        &s, (FklNastImmPair){.car = cadr_nast_node(p), .cdr = e});
     FklSid_t slot_id = p->pair->car->sym;
     int r = 1;
-    while (!fklNastNodeVectorIsEmpty(&s0)) {
-        const FklNastNode *p = *fklNastNodeVectorPopBack(&s0);
-        const FklNastNode *e = *fklNastNodeVectorPopBack(&s1);
+    while (!fklNastImmPairVectorIsEmpty(&s)) {
+        const FklNastImmPair *top = fklNastImmPairVectorPopBack(&s);
+        const FklNastNode *p = top->car;
+        const FklNastNode *e = top->cdr;
         if (is_compile_check_pattern_slot_node(slot_id, p))
             continue;
         else if (p->type == e->type) {
             switch (p->type) {
             case FKL_NAST_BOX:
-                fklNastNodeVectorPushBack2(&s0, p->box);
-                fklNastNodeVectorPushBack2(&s1, e->box);
+                fklNastImmPairVectorPushBack2(
+                    &s, (FklNastImmPair){.car = p->box, .cdr = e->box});
                 break;
             case FKL_NAST_PAIR:
-                fklNastNodeVectorPushBack2(&s0, p->pair->car);
-                fklNastNodeVectorPushBack2(&s0, p->pair->cdr);
-                fklNastNodeVectorPushBack2(&s1, e->pair->car);
-                fklNastNodeVectorPushBack2(&s1, e->pair->cdr);
+                fklNastImmPairVectorPushBack2(
+                    &s,
+                    (FklNastImmPair){.car = p->pair->car, .cdr = e->pair->car});
+                fklNastImmPairVectorPushBack2(
+                    &s,
+                    (FklNastImmPair){.car = p->pair->cdr, .cdr = e->pair->cdr});
                 break;
             case FKL_NAST_VECTOR:
                 if (p->vec->size != e->vec->size) {
@@ -3017,8 +3018,9 @@ static inline int is_compile_check_pattern_matched(const FklNastNode *p,
                     goto exit;
                 }
                 for (size_t i = 0; i < p->vec->size; i++) {
-                    fklNastNodeVectorPushBack2(&s0, p->vec->base[i]);
-                    fklNastNodeVectorPushBack2(&s1, e->vec->base[i]);
+                    fklNastImmPairVectorPushBack2(
+                        &s, (FklNastImmPair){.car = p->vec->base[i],
+                                             .cdr = e->vec->base[i]});
                 }
                 break;
             case FKL_NAST_HASHTABLE:
@@ -3027,10 +3029,12 @@ static inline int is_compile_check_pattern_matched(const FklNastNode *p,
                     goto exit;
                 }
                 for (size_t i = 0; i < p->hash->num; i++) {
-                    fklNastNodeVectorPushBack2(&s0, p->hash->items[i].car);
-                    fklNastNodeVectorPushBack2(&s0, p->hash->items[i].cdr);
-                    fklNastNodeVectorPushBack2(&s1, e->hash->items[i].car);
-                    fklNastNodeVectorPushBack2(&s1, e->hash->items[i].cdr);
+                    fklNastImmPairVectorPushBack2(
+                        &s, (FklNastImmPair){.car = p->hash->items[i].car,
+                                             .cdr = e->hash->items[i].car});
+                    fklNastImmPairVectorPushBack2(
+                        &s, (FklNastImmPair){.car = p->hash->items[i].cdr,
+                                             .cdr = e->hash->items[i].cdr});
                 }
                 break;
             default:
@@ -3046,8 +3050,7 @@ static inline int is_compile_check_pattern_matched(const FklNastNode *p,
     }
 
 exit:
-    fklNastNodeVectorUninit(&s0);
-    fklNastNodeVectorUninit(&s1);
+    fklNastImmPairVectorUninit(&s);
     return r;
 }
 

@@ -476,12 +476,12 @@ static inline void init_vmvalue_degree_hash_table(FklHashTable *ht) {
     fklInitHashTable(ht, &VMvalueDegreeHashMetaTable);
 }
 
-static inline void inc_value_degree(FklHashTable *ht, FklVMvalue *v) {
+static inline void inc_value_degree(FklHashTable *ht, const FklVMvalue *v) {
     struct VMvalueDegreeHashItem *degree_item = fklPutHashItem(&v, ht);
     degree_item->degree++;
 }
 
-static inline void dec_value_degree(FklHashTable *ht, FklVMvalue *v) {
+static inline void dec_value_degree(FklHashTable *ht, const FklVMvalue *v) {
     struct VMvalueDegreeHashItem *degree_item = fklGetHashItem(&v, ht);
     if (degree_item && degree_item->degree)
         degree_item->degree--;
@@ -645,7 +645,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
 
-    fklVMvalueVectorPushBack2(&stack, first_value);
+    fklVMvalueVectorPushBack2(&stack,
+                              FKL_REMOVE_CONST(FklVMvalue, first_value));
     while (!fklVMvalueVectorIsEmpty(&stack)) {
         FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
@@ -909,6 +910,9 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
     fklInitPtrSet(&has_print_circle_head_set);
 
     scan_cir_ref(value, &circel_head_set);
+
+    // clang-format off
+	/* to be delete
     FklPtrQueue *queue = fklCreatePtrQueue();
     FklQueueVector queueStack;
     fklQueueVectorInit(&queueStack, 32);
@@ -1110,6 +1114,8 @@ void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
         }
     }
     fklQueueVectorUninit(&queueStack);
+    */
+    // clang-format on
     fklUninitHashTable(&circel_head_set);
     fklUninitHashTable(&has_print_circle_head_set);
     fklUninitStringBuffer(&string_buffer);

@@ -631,7 +631,7 @@ static inline void put_ptr_in_set(FklHashTable *ht, void *ptr) {
     fklPutHashItem(&ptr, ht);
 }
 
-int fklHasCircleRef(FklVMvalue *first_value) {
+int fklHasCircleRef(const FklVMvalue *first_value) {
     if (FKL_GET_TAG(first_value) != FKL_TAG_PTR
         || (!FKL_IS_PAIR(first_value) && !FKL_IS_BOX(first_value)
             && !FKL_IS_VECTOR(first_value) && !FKL_IS_HASHTABLE(first_value)))

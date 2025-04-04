@@ -782,7 +782,7 @@ double fklVMgetDouble(const FklVMvalue *p);
 
 FklHashTable *fklCreateValueSetHashtable(void);
 void fklInitValueSetHashTable(FklHashTable *ht);
-int fklHasCircleRef(FklVMvalue *first_value);
+int fklHasCircleRef(const FklVMvalue *first_value);
 
 void fklInitLineNumHashTable(FklHashTable *ht);
 
@@ -952,7 +952,7 @@ int fklIsVMvalueCodeObj(FklVMvalue *v);
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                                          FklHashTable *lineHash);
 
-FklNastNode *fklCreateNastNodeFromVMvalue(FklVMvalue *v, uint64_t curline,
+FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
                                           FklHashTable *, FklVMgc *gc);
 
 FklVMvalue *fklGetVMvalueEof(void);

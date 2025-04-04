@@ -72,11 +72,6 @@ typedef struct FklNastNode {
 #define FKL_VECTOR_ELM_TYPE_NAME NastNode
 #include "vector.h"
 
-// FklNastNodeSlotVector
-#define FKL_VECTOR_ELM_TYPE FklNastNode **
-#define FKL_VECTOR_ELM_TYPE_NAME NastNodeSlot
-#include "vector.h"
-
 FklNastNode *fklCreateNastNode(FklNastType type, uint64_t line);
 
 FklNastNode *fklCopyNastNode(const FklNastNode *);

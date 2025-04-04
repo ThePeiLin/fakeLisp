@@ -133,28 +133,30 @@ static inline int is_partly_covered(const FklNastNode *pattern,
     if (exp->pair->car->type != FKL_NAST_SYM
         || pattern->pair->car->sym != exp->pair->car->sym)
         return r;
-    FklNastNodeVector s0;
-    fklNastNodeVectorInit(&s0, 32);
-    FklNastNodeVector s1;
-    fklNastNodeVectorInit(&s1, 32);
-    fklNastNodeVectorPushBack2(&s0, pattern->pair->cdr);
-    fklNastNodeVectorPushBack2(&s1, exp->pair->cdr);
-    while (!fklNastNodeVectorIsEmpty(&s0) && !fklNastNodeVectorIsEmpty(&s1)) {
-        FklNastNode *n0 = *fklNastNodeVectorPopBack(&s0);
-        FklNastNode *n1 = *fklNastNodeVectorPopBack(&s1);
+    FklNastImmPairVector s;
+    fklNastImmPairVectorInit(&s, 8);
+    fklNastImmPairVectorPushBack(
+        &s,
+        &(FklNastImmPair){.car = pattern->pair->cdr, .cdr = exp->pair->cdr});
+    while (!fklNastImmPairVectorIsEmpty(&s)) {
+        const FklNastImmPair *top = fklNastImmPairVectorPopBack(&s);
+        const FklNastNode *n0 = top->car;
+        const FklNastNode *n1 = top->cdr;
         if (n0->type == FKL_NAST_SLOT) {
             r = 1;
             break;
         } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklNastNodeVectorPushBack2(&s0, n0->pair->cdr);
-            fklNastNodeVectorPushBack2(&s0, n0->pair->car);
-            fklNastNodeVectorPushBack2(&s1, n1->pair->cdr);
-            fklNastNodeVectorPushBack2(&s1, n1->pair->car);
+            fklNastImmPairVectorPushBack(
+                &s,
+                &(FklNastImmPair){.car = n0->pair->cdr, .cdr = n1->pair->cdr});
+
+            fklNastImmPairVectorPushBack(
+                &s,
+                &(FklNastImmPair){.car = n0->pair->car, .cdr = n1->pair->car});
         } else if (!fklNastNodeEqual(n0, n1))
             break;
     }
-    fklNastNodeVectorUninit(&s0);
-    fklNastNodeVectorUninit(&s1);
+    fklNastImmPairVectorUninit(&s);
     return r;
 }
 

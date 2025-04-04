@@ -22,7 +22,7 @@ typedef struct {
 FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklHashTable **);
 int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
                     FklHashTable *ht);
-void fklPatternMatchingHashTableSet(FklSid_t sid, FklNastNode *node,
+void fklPatternMatchingHashTableSet(FklSid_t sid, const FklNastNode *node,
                                     FklHashTable *ht);
 
 int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1);

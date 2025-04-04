@@ -31,6 +31,11 @@ typedef struct FklNastPair {
     struct FklNastNode *cdr;
 } FklNastPair;
 
+typedef struct {
+    const struct FklNastNode *car;
+    const struct FklNastNode *cdr;
+} FklNastImmPair;
+
 typedef struct FklNastVector {
     size_t size;
     struct FklNastNode **base;
@@ -70,6 +75,11 @@ typedef struct FklNastNode {
 // FklNastNodeVector
 #define FKL_VECTOR_ELM_TYPE FklNastNode *
 #define FKL_VECTOR_ELM_TYPE_NAME NastNode
+#include "vector.h"
+
+// FklNastImmPairVector
+#define FKL_VECTOR_ELM_TYPE FklNastImmPair
+#define FKL_VECTOR_ELM_TYPE_NAME NastImmPair
 #include "vector.h"
 
 FklNastNode *fklCreateNastNode(FklNastType type, uint64_t line);

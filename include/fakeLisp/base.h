@@ -197,28 +197,6 @@ void fklDestroyHashTable(FklHashTable *);
 static inline void fklDoNothingUninitHashItem(void *v) {}
 void *fklHashDefaultGetKey(void *i);
 
-/* to be delete
-#define FKL_STACK_INIT {NULL, 0, 0, 0}
-typedef struct {
-    void **base;
-    uint32_t size;
-    uint32_t top;
-    uint32_t inc;
-} FklPtrStack;
-
-void fklInitPtrStack(FklPtrStack *, uint32_t size, uint32_t inc);
-void fklUninitPtrStack(FklPtrStack *);
-FklPtrStack *fklCreatePtrStack(uint32_t size, uint32_t inc);
-void fklPushPtrStack(void *data, FklPtrStack *);
-void fklPushFrontPtrStack(void *data, FklPtrStack *);
-
-void *fklPopPtrStack(FklPtrStack *);
-void *fklTopPtrStack(FklPtrStack *);
-void fklDestroyPtrStack(FklPtrStack *);
-void fklRecyclePtrStack(FklPtrStack *);
-int fklIsPtrStackEmpty(FklPtrStack *);
-*/
-
 typedef struct FklQueueNode {
     void *data;
     struct FklQueueNode *next;

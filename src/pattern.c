@@ -42,7 +42,6 @@ int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
             fklNastImmPairVectorPushBack(
                 &s,
                 &(FklNastImmPair){.car = n0->pair->car, .cdr = n1->pair->car});
-
         } else if (!fklNastNodeEqual(n0, n1)) {
             fklNastImmPairVectorUninit(&s);
             return 0;
@@ -97,31 +96,32 @@ static inline int is_pattern_equal(const FklNastNode *pattern,
     if (exp->pair->car->type != FKL_NAST_SYM
         || pattern->pair->car->sym != exp->pair->car->sym)
         return 0;
-    FklNastNodeVector s0;
-    fklNastNodeVectorInit(&s0, 32);
-    FklNastNodeVector s1;
-    fklNastNodeVectorInit(&s1, 32);
-    fklNastNodeVectorPushBack2(&s0, pattern->pair->cdr);
-    fklNastNodeVectorPushBack2(&s1, exp->pair->cdr);
+    FklNastImmPairVector s;
+    fklNastImmPairVectorInit(&s, 8);
+    fklNastImmPairVectorPushBack(
+        &s,
+        &(FklNastImmPair){.car = pattern->pair->cdr, .cdr = exp->pair->cdr});
     int r = 1;
-    while (r && !fklNastNodeVectorIsEmpty(&s0)
-           && !fklNastNodeVectorIsEmpty(&s1)) {
-        FklNastNode *n0 = *fklNastNodeVectorPopBack(&s0);
-        FklNastNode *n1 = *fklNastNodeVectorPopBack(&s1);
+    while (r && !fklNastImmPairVectorIsEmpty(&s)) {
+        const FklNastImmPair *top = fklNastImmPairVectorPopBack(&s);
+        const FklNastNode *n0 = top->car;
+        const FklNastNode *n1 = top->cdr;
         if (n0->type != n1->type)
             r = 0;
         else if (n0->type == FKL_NAST_SLOT)
             continue;
         else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklNastNodeVectorPushBack2(&s0, n0->pair->cdr);
-            fklNastNodeVectorPushBack2(&s0, n0->pair->car);
-            fklNastNodeVectorPushBack2(&s1, n1->pair->cdr);
-            fklNastNodeVectorPushBack2(&s1, n1->pair->car);
+            fklNastImmPairVectorPushBack(
+                &s,
+                &(FklNastImmPair){.car = n0->pair->cdr, .cdr = n1->pair->cdr});
+
+            fklNastImmPairVectorPushBack(
+                &s,
+                &(FklNastImmPair){.car = n0->pair->car, .cdr = n1->pair->car});
         } else if (!fklNastNodeEqual(n0, n1))
             r = 0;
     }
-    fklNastNodeVectorUninit(&s0);
-    fklNastNodeVectorUninit(&s1);
+    fklNastImmPairVectorUninit(&s);
     return r;
 }
 

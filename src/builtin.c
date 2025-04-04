@@ -1758,7 +1758,7 @@ static inline int do_custom_parser_reduce_action(
             outerCtx->destroy(nodes[i]);
         free(nodes);
     }
-    fklUintVectorPushBack(lineStack, &line);
+    fklUintVectorPushBack2(lineStack, line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){.state = state});
     return 0;
 }
@@ -1798,7 +1798,7 @@ static inline void parse_with_custom_parser_for_char_buf(
                 fklInitTerminalAnalysisSymbol(
                     fklAnalysisSymbolVectorPushBack(symbolStack, NULL), cstr,
                     matchLen, outerCtx);
-                fklUintVectorPushBack(lineStack, &outerCtx->line);
+                fklUintVectorPushBack2(lineStack, outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
                 cstr += matchLen;
                 (*restLen) -= matchLen;

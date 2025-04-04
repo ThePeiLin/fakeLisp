@@ -1204,7 +1204,7 @@ static int is_valid_let_args(const FklNastNode *sl, FklCodegenEnv *env,
             FklSid_t id = cc->pair->car->sym;
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            fklUintVectorPushBack(stack, &id);
+            fklUintVectorPushBack2(stack, id);
             fklAddCodegenDefBySid(id, scope, env);
         }
         return 1;
@@ -1223,7 +1223,7 @@ static int is_valid_letrec_args(const FklNastNode *sl, FklCodegenEnv *env,
             FklSid_t id = cc->pair->car->sym;
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            fklUintVectorPushBack(stack, &id);
+            fklUintVectorPushBack2(stack, id);
             fklAddCodegenPreDefBySid(id, scope, 0, env);
         }
         return 1;
@@ -1321,7 +1321,7 @@ static CODEGEN_FUNC(codegen_let1) {
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
 
     fklAddCodegenDefBySid(firstSymbol->sym, cs, curEnv);
-    fklUintVectorPushBack(symStack, &firstSymbol->sym);
+    fklUintVectorPushBack2(symStack, firstSymbol->sym);
 
     FklPtrQueue *valueQueue = fklCreatePtrQueue();
     fklPushPtrQueue(fklMakeNastNodeRef(value), valueQueue);
@@ -1447,7 +1447,7 @@ static CODEGEN_FUNC(codegen_letrec) {
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
 
     fklAddCodegenPreDefBySid(firstSymbol->sym, cs, 0, curEnv);
-    fklUintVectorPushBack(symStack, &firstSymbol->sym);
+    fklUintVectorPushBack2(symStack, firstSymbol->sym);
 
     if (!is_valid_letrec_args(args, curEnv, cs, symStack,
                               builtin_pattern_node)) {
@@ -1656,11 +1656,11 @@ is_valid_do_bind_list(const FklNastNode *sl, FklCodegenEnv *env, uint32_t scope,
             FklSid_t id = cc->pair->car->sym;
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            uint64_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
-            fklUintVectorPushBack(stack, &idx);
+            uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
+            fklUintVectorPushBack2(stack, idx);
             fklPushPtrQueue(fklMakeNastNodeRef(cadr_nast_node(cc)), valueQueue);
             if (nextExp) {
-                fklUintVectorPushBack(nstack, &idx);
+                fklUintVectorPushBack2(nstack, idx);
                 fklPushPtrQueue(fklMakeNastNodeRef(nextExp), nextQueue);
             }
         }
@@ -2228,7 +2228,7 @@ static CODEGEN_FUNC(codegen_named_let1) {
 
     FklCodegenEnv *lambdaCodegenEnv = fklCreateCodegenEnv(curEnv, cs, cms);
     fklAddCodegenDefBySid(firstSymbol->sym, 1, lambdaCodegenEnv);
-    fklUintVectorPushBack(symStack, &firstSymbol->sym);
+    fklUintVectorPushBack2(symStack, firstSymbol->sym);
 
     if (!is_valid_let_args(args, lambdaCodegenEnv, 1, symStack,
                            builtin_pattern_node)) {
@@ -5203,7 +5203,7 @@ BC_PROCESS(_export_import_bc_process) {
     for (FklHashTableItem *list = defs->first; list; list = list->next) {
         FklSymbolDef *def = (FklSymbolDef *)(list->data);
         FklSid_t idp = def->k.id;
-        fklUintVectorPushBack(&idPstack, &idp);
+        fklUintVectorPushBack2(&idPstack, idp);
     }
 
     if (idPstack.top) {

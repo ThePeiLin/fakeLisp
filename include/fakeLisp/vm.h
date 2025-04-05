@@ -822,7 +822,8 @@ uintptr_t fklVMvalueEqHashv(const FklVMvalue *);
 uintptr_t fklVMvalueEqvHashv(const FklVMvalue *);
 uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
 
-void fklVMhashTableSet(FklVMvalue *key, FklVMvalue *v, FklHashTable *ht);
+FklVMhashTableItem *fklVMhashTableSet(FklVMvalue *key, FklVMvalue *v,
+                                      FklHashTable *ht);
 FklVMhashTableItem *fklVMhashTableRef1(FklVMvalue *key, FklVMvalue *toSet,
                                        FklHashTable *ht, FklVMgc *);
 FklVMhashTableItem *fklVMhashTableRef(FklVMvalue *key, FklHashTable *ht);

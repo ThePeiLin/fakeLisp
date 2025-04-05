@@ -55,8 +55,249 @@ typedef struct RefType {
 #include <fakeLisp/vector.h>
 
 #define SENTINEL_NAST_NODE (NULL)
+
+#define VALUE_CREATE_CTX_COMMON_HEADER                                         \
+    const FklNastNode *(*method)(struct ValueCreateCtx *, FklVMvalue * v);     \
+    const FklNastNode *node;                                                   \
+    FklVMvalue *v
+
+typedef struct ValueCreateCtx {
+    VALUE_CREATE_CTX_COMMON_HEADER;
+    intptr_t data[2];
+} ValueCreateCtx;
+
+static const FklNastNode *pair_create_ctx_init(ValueCreateCtx *ctx, FklVM *vm) {
+    ctx->v = fklCreateVMvaluePair(vm, NULL, NULL);
+    return ctx->node->pair->car;
+}
+
+static const FklNastNode *pair_create_method(ValueCreateCtx *ctx,
+                                             FklVMvalue *v) {
+    if (FKL_VM_CAR(ctx->v) == NULL) {
+        FKL_VM_CAR(ctx->v) = v;
+        return ctx->node->pair->cdr;
+    } else {
+        FKL_VM_CDR(ctx->v) = v;
+        return NULL;
+    }
+}
+
+static const FklNastNode *box_create_ctx_init(ValueCreateCtx *ctx, FklVM *vm) {
+    ctx->v = fklCreateVMvalueBox(vm, NULL);
+    return ctx->node->box;
+}
+
+static const FklNastNode *box_create_method(ValueCreateCtx *ctx,
+                                            FklVMvalue *v) {
+    FKL_VM_BOX(ctx->v) = v;
+    return NULL;
+}
+
+typedef struct {
+    VALUE_CREATE_CTX_COMMON_HEADER;
+    uintptr_t index;
+} VectorCreateCtx;
+
+static_assert(sizeof(VectorCreateCtx) <= sizeof(ValueCreateCtx),
+              "vector create ctx too large");
+
+static const FklNastNode *vector_create_ctx_init(ValueCreateCtx *ctx,
+                                                 FklVM *vm) {
+    VectorCreateCtx *vec_ctx = FKL_TYPE_CAST(VectorCreateCtx *, ctx);
+    vec_ctx->v = fklCreateVMvalueVec(vm, vec_ctx->node->vec->size);
+    vec_ctx->index = 0;
+    return vec_ctx->node->vec->size ? vec_ctx->node->vec->base[0] : NULL;
+}
+
+static const FklNastNode *vector_create_method(ValueCreateCtx *ctx,
+                                               FklVMvalue *v) {
+    VectorCreateCtx *vec_ctx = FKL_TYPE_CAST(VectorCreateCtx *, ctx);
+    FKL_VM_VEC(vec_ctx->v)->base[vec_ctx->index++] = v;
+    return vec_ctx->index >= vec_ctx->node->vec->size
+             ? NULL
+             : vec_ctx->node->vec->base[vec_ctx->index];
+}
+
+typedef struct {
+    VALUE_CREATE_CTX_COMMON_HEADER;
+    uintptr_t index;
+    FklVMhashTableItem *item;
+} HashCreateCtx;
+
+static_assert(sizeof(HashCreateCtx) <= sizeof(ValueCreateCtx),
+              "hash create ctx too large");
+
+static const FklNastNode *hash_create_ctx_init(ValueCreateCtx *ctx, FklVM *vm) {
+    HashCreateCtx *hash_ctx = FKL_TYPE_CAST(HashCreateCtx *, ctx);
+    hash_ctx->v = fklCreateVMvalueHash(vm, ctx->node->hash->type);
+    hash_ctx->index = 0;
+    hash_ctx->item = NULL;
+    return hash_ctx->node->hash->num ? hash_ctx->node->hash->items[0].car
+                                     : NULL;
+}
+
+static const FklNastNode *hash_create_method(ValueCreateCtx *ctx,
+                                             FklVMvalue *v) {
+    HashCreateCtx *hash_ctx = FKL_TYPE_CAST(HashCreateCtx *, ctx);
+    if (hash_ctx->item) {
+        hash_ctx->item->v = v;
+        hash_ctx->item = NULL;
+        ++hash_ctx->index;
+        return hash_ctx->index >= hash_ctx->node->hash->num
+                 ? NULL
+                 : hash_ctx->node->hash->items[hash_ctx->index].car;
+    } else {
+        hash_ctx->item = fklVMhashTableSet(v, NULL, FKL_VM_HASH(hash_ctx->v));
+        return hash_ctx->node->hash->items[hash_ctx->index].cdr;
+    }
+}
+
+// VmValueCreateCtxVector
+#define FKL_VECTOR_TYPE_PREFIX Vm
+#define FKL_VECTOR_METHOD_PREFIX vm
+#define FKL_VECTOR_ELM_TYPE ValueCreateCtx
+#define FKL_VECTOR_ELM_TYPE_NAME ValueCreateCtx
+#include <fakeLisp/vector.h>
+
+typedef const FklNastNode *(*ValueCreateMethod)(ValueCreateCtx *ctx,
+                                                FklVMvalue *v);
+
+typedef const FklNastNode *(*ValueCreateCtxInit)(ValueCreateCtx *ctx, FklVM *);
+
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
                                          FklHashTable *lineHash) {
+    static const ValueCreateMethod create_method_table[FKL_NAST_RC_SYM + 1] = {
+        [FKL_NAST_VECTOR] = vector_create_method,
+        [FKL_NAST_PAIR] = pair_create_method,
+        [FKL_NAST_BOX] = box_create_method,
+        [FKL_NAST_HASHTABLE] = hash_create_method,
+    };
+
+    static const ValueCreateCtxInit ctx_init_method_table[FKL_NAST_RC_SYM + 1] =
+        {
+            [FKL_NAST_VECTOR] = vector_create_ctx_init,
+            [FKL_NAST_PAIR] = pair_create_ctx_init,
+            [FKL_NAST_BOX] = box_create_ctx_init,
+            [FKL_NAST_HASHTABLE] = hash_create_ctx_init,
+        };
+
+    FklVMvalue *retval = NULL;
+    VmValueCreateCtxVector s;
+    ValueCreateCtx *ctx;
+    switch (node->type) {
+    case FKL_NAST_NIL:
+        retval = FKL_VM_NIL;
+        break;
+    case FKL_NAST_FIX:
+        retval = FKL_MAKE_VM_FIX(node->fix);
+        break;
+    case FKL_NAST_CHR:
+        retval = FKL_MAKE_VM_CHR(node->chr);
+        break;
+    case FKL_NAST_SYM:
+        retval = FKL_MAKE_VM_SYM(node->sym);
+        break;
+    case FKL_NAST_F64:
+        retval = fklCreateVMvalueF64(vm, node->f64);
+        break;
+    case FKL_NAST_STR:
+        retval = fklCreateVMvalueStr(vm, node->str);
+        break;
+    case FKL_NAST_BYTEVECTOR:
+        retval = fklCreateVMvalueBvec2(vm, node->bvec->size, node->bvec->ptr);
+        break;
+    case FKL_NAST_BIG_INT:
+        retval = fklCreateVMvalueBigInt2(vm, node->bigInt);
+        break;
+    case FKL_NAST_RC_SYM:
+    case FKL_NAST_SLOT:
+        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
+                __LINE__);
+        abort();
+        break;
+    case FKL_NAST_PAIR:
+    case FKL_NAST_BOX:
+    case FKL_NAST_VECTOR:
+    case FKL_NAST_HASHTABLE:
+        goto create_nested_objects;
+    }
+    return retval;
+
+create_nested_objects:
+    vmValueCreateCtxVectorInit(&s, 8);
+    for (;;) {
+    loop_start:
+        switch (node->type) {
+        case FKL_NAST_NIL:
+            retval = FKL_VM_NIL;
+            break;
+        case FKL_NAST_FIX:
+            retval = FKL_MAKE_VM_FIX(node->fix);
+            break;
+        case FKL_NAST_CHR:
+            retval = FKL_MAKE_VM_CHR(node->chr);
+            break;
+        case FKL_NAST_SYM:
+            retval = FKL_MAKE_VM_SYM(node->sym);
+            break;
+        case FKL_NAST_F64:
+            retval = fklCreateVMvalueF64(vm, node->f64);
+            break;
+        case FKL_NAST_STR:
+            retval = fklCreateVMvalueStr(vm, node->str);
+            break;
+        case FKL_NAST_BYTEVECTOR:
+            retval =
+                fklCreateVMvalueBvec2(vm, node->bvec->size, node->bvec->ptr);
+            break;
+        case FKL_NAST_BIG_INT:
+            retval = fklCreateVMvalueBigInt2(vm, node->bigInt);
+            break;
+        case FKL_NAST_RC_SYM:
+        case FKL_NAST_SLOT:
+            fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
+                    __LINE__);
+            abort();
+            break;
+        case FKL_NAST_PAIR:
+        case FKL_NAST_BOX:
+        case FKL_NAST_VECTOR:
+        case FKL_NAST_HASHTABLE:
+            ctx = vmValueCreateCtxVectorPushBack(&s, NULL);
+            ctx->method = create_method_table[node->type];
+            ctx->node = node;
+            node = ctx_init_method_table[node->type](ctx, vm);
+            if (lineHash) {
+                LineNumHashItem i = {ctx->v, ctx->node->curline};
+                fklGetOrPutHashItem(&i, lineHash);
+            }
+
+            if (node)
+                continue;
+            else {
+                retval = ctx->v;
+                vmValueCreateCtxVectorPopBack(&s);
+            }
+            break;
+        }
+
+        while (!vmValueCreateCtxVectorIsEmpty(&s)) {
+            ctx = vmValueCreateCtxVectorBack(&s);
+            node = ctx->method(ctx, retval);
+            if (node)
+                goto loop_start;
+            else {
+                retval = ctx->v;
+                vmValueCreateCtxVectorPopBack(&s);
+            }
+        }
+        break;
+    }
+    vmValueCreateCtxVectorUninit(&s);
+    return retval;
+
+    // clang-format off
+	/* to be delete
     FklNastNodeVector nodeStack;
     fklNastNodeVectorInit(&nodeStack, 32);
     VmRefTypeVector reftypeStack;
@@ -208,7 +449,8 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
     vmVecVectorUninit(&stackStack);
     fklNastNodeVectorUninit(&nodeStack);
     vmRefTypeVectorUninit(&reftypeStack);
-    return retval;
+    return retval;*/
+    // clang-format on
 }
 
 typedef struct {
@@ -1156,9 +1398,11 @@ FklVMvalue *fklVMhashTableGet(FklVMvalue *key, FklHashTable *ht, int *ok) {
     return r;
 }
 
-void fklVMhashTableSet(FklVMvalue *key, FklVMvalue *v, FklHashTable *ht) {
+FklVMhashTableItem *fklVMhashTableSet(FklVMvalue *key, FklVMvalue *v,
+                                      FklHashTable *ht) {
     FklVMhashTableItem *i = fklPutHashItem(&key, ht);
     i->v = v;
+    return i;
 }
 
 #define NEW_OBJ(TYPE) (FklVMvalue *)calloc(1, sizeof(TYPE));

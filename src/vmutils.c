@@ -389,30 +389,12 @@ FklString *fklGenErrorMessage(FklBuiltinErrorType type) {
 typedef enum PrintingState {
     PRT_CAR,
     PRT_CDR,
-    PRT_REC_CAR,
-    PRT_REC_CDR,
-    PRT_BOX,
-    PRT_REC_BOX,
-    PRT_HASH_ITEM,
 } PrintingState;
 
 typedef enum {
     PRINT_METHOD_FIRST = 0,
     PRINT_METHOD_CONT,
 } PrintState;
-
-typedef struct PrtElem {
-    PrintingState state;
-    FklVMvalue *v;
-} PrtElem;
-
-static PrtElem *createPrtElem(enum PrintingState state, FklVMvalue *v) {
-    PrtElem *r = (PrtElem *)malloc(sizeof(PrtElem));
-    FKL_ASSERT(r);
-    r->state = state;
-    r->v = v;
-    return r;
-}
 
 typedef struct {
     FklVMvalue *v;
@@ -746,7 +728,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
 }
 
 #define VMVALUE_PRINTER_ARGS                                                   \
-    FklVMvalue *v, FILE *fp, FklStringBuffer *buffer, FklVMgc *gc
+    const FklVMvalue *v, FILE *fp, FklStringBuffer *buffer, FklVMgc *gc
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS) {
     char buf[64] = {0};
     fklWriteDoubleToBuf(buf, 64, FKL_VM_F64(v));
@@ -884,254 +866,97 @@ static void prin1VMatom(VMVALUE_PRINTER_ARGS) {
     VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v, fp, buffer, gc);
 }
 
+#define PRINT_CTX_COMMON_HEADER                                                \
+    FklValueType type;                                                         \
+    PrintState state;                                                          \
+    PrintingState place
+
+typedef struct PrintCtx {
+    PRINT_CTX_COMMON_HEADER;
+    intptr_t data[2];
+} PrintCtx;
+
+typedef struct PrintPairCtx {
+    PRINT_CTX_COMMON_HEADER;
+    const FklVMvalue *cur;
+    const FklHashTable *circle_head_set;
+} PrintPairCtx;
+
+static_assert(sizeof(PrintPairCtx) <= sizeof(PrintCtx),
+              "print pair ctx too large");
+
+typedef struct PrintVectorCtx {
+    PRINT_CTX_COMMON_HEADER;
+    const FklVMvalue *vec;
+    uintptr_t index;
+} PrintVectorCtx;
+
+static_assert(sizeof(PrintVectorCtx) <= sizeof(PrintCtx),
+              "print vector ctx too large");
+
+typedef struct PrintHashCtx {
+    PRINT_CTX_COMMON_HEADER;
+    const FklVMvalue *hash;
+    const FklHashTableItem *cur;
+} PrintHashCtx;
+
+static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
+              "print hash ctx too large");
+
+// VmPrintCtxVector
+#define FKL_VECTOR_TYPE_PREFIX Vm
+#define FKL_VECTOR_METHOD_PREFIX vm
+#define FKL_VECTOR_ELM_TYPE PrintCtx
+#define FKL_VECTOR_ELM_TYPE_NAME PrintCtx
+#include <fakeLisp/vector.h>
+
+static inline void print_pair_ctx_init(PrintCtx *ctx, const FklVMvalue *pair,
+                                       const FklHashTable *circle_head_set) {
+    PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);
+    pair_ctx->cur = pair;
+    pair_ctx->circle_head_set = circle_head_set;
+}
+
+static inline void print_vector_ctx_init(PrintCtx *ctx, const FklVMvalue *vec) {
+    PrintVectorCtx *vec_ctx = FKL_TYPE_CAST(PrintVectorCtx *, ctx);
+    vec_ctx->vec = vec;
+    vec_ctx->index = 0;
+}
+
+static inline void print_hash_ctx_init(PrintCtx *ctx, const FklVMvalue *hash) {
+    PrintHashCtx *hash_ctx = FKL_TYPE_CAST(PrintHashCtx *, ctx);
+    hash_ctx->hash = hash;
+    hash_ctx->cur = FKL_VM_HASH(hash)->first;
+}
+
+static inline void init_common_print_ctx(PrintCtx *ctx, FklValueType type) {
+    ctx->type = type;
+    ctx->state = PRINT_METHOD_FIRST;
+    ctx->place = PRT_CAR;
+}
+
+#define PRINT_INCLUDED
+#define NAME print_value
+#define LOCAL_VAR                                                              \
+    FklStringBuffer string_buffer;                                             \
+    fklInitStringBuffer(&string_buffer);
+#define UNINIT_LOCAL_VAR fklUninitStringBuffer(&string_buffer);
+#define OUTPUT_TYPE FILE *
+#define OUTPUT_TYPE_NAME File
+#define PUTS(OUT, S) fputs((S), (OUT))
+#define PUTC(OUT, C) fputc((C), (OUT))
+#define PRINTF fprintf
+#define PUT_ATOMIC_METHOD_ARG void (*atomPrinter)(VMVALUE_PRINTER_ARGS)
+#define PUT_ATOMIC_METHOD(OUT, V, GC)                                          \
+    atomPrinter((V), (OUT), &string_buffer, (GC))
+#include "vmprint.h"
+
 void fklPrin1VMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
-    fklPrintVMvalue(v, fp, prin1VMatom, gc);
+    print_value(v, fp, prin1VMatom, gc);
 }
 
 void fklPrincVMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
-    fklPrintVMvalue(v, fp, princVMatom, gc);
-}
-
-typedef struct {
-    PrtElem *key;
-    PrtElem *v;
-} HashPrtElem;
-
-static HashPrtElem *createHashPrtElem(PrtElem *key, PrtElem *v) {
-    HashPrtElem *r = (HashPrtElem *)malloc(sizeof(HashPrtElem));
-    FKL_ASSERT(r);
-    r->key = key;
-    r->v = v;
-    return r;
-}
-
-void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
-                     void (*atomPrinter)(VMVALUE_PRINTER_ARGS), FklVMgc *gc) {
-    FklStringBuffer string_buffer;
-    fklInitStringBuffer(&string_buffer);
-
-    if (!FKL_IS_VECTOR(value) && !FKL_IS_PAIR(value) && !FKL_IS_BOX(value)
-        && !FKL_IS_HASHTABLE(value)) {
-        atomPrinter(value, fp, &string_buffer, gc);
-        fklUninitStringBuffer(&string_buffer);
-        return;
-    }
-
-    FklHashTable circel_head_set;
-    fklInitValueSetHashTable(&circel_head_set);
-
-    FklHashTable has_print_circle_head_set;
-    fklInitPtrSet(&has_print_circle_head_set);
-
-    scan_cir_ref(value, &circel_head_set);
-
-    FklPtrQueue *queue = fklCreatePtrQueue();
-    FklQueueVector queueStack;
-    fklQueueVectorInit(&queueStack, 32);
-    fklPushPtrQueue(createPrtElem(PRT_CAR, value), queue);
-    fklQueueVectorPushBack2(&queueStack, queue);
-    while (!fklQueueVectorIsEmpty(&queueStack)) {
-        FklPtrQueue *cQueue = *fklQueueVectorBack(&queueStack);
-        while (fklLengthPtrQueue(cQueue)) {
-            PrtElem *e = fklPopPtrQueue(cQueue);
-            FklVMvalue *v = e->v;
-            if (e->state == PRT_CDR || e->state == PRT_REC_CDR)
-                fputc(',', fp);
-            if (e->state == PRT_REC_CAR || e->state == PRT_REC_CDR
-                || e->state == PRT_REC_BOX) {
-                fprintf(fp, "#%" FKL_PRT64U "#", (uintptr_t)e->v);
-                free(e);
-            } else if (e->state == PRT_HASH_ITEM) {
-                fputc('(', fp);
-                FklPtrQueue *iQueue = fklCreatePtrQueue();
-                HashPrtElem *elem = (void *)e->v;
-                fklPushPtrQueue(elem->key, iQueue);
-                fklPushPtrQueue(elem->v, iQueue);
-                fklQueueVectorPushBack2(&queueStack, iQueue);
-                cQueue = iQueue;
-                free(elem);
-                free(e);
-                continue;
-            } else {
-                free(e);
-                if (!FKL_IS_VECTOR(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
-                    && !FKL_IS_HASHTABLE(v))
-                    atomPrinter(v, fp, &string_buffer, gc);
-                else {
-                    size_t i = 0;
-                    if (isInValueSet(v, &circel_head_set, &i))
-                        fprintf(fp, "#%" FKL_PRT64U "=", i);
-                    if (FKL_IS_VECTOR(v)) {
-                        fputs("#(", fp);
-                        FklPtrQueue *vQueue = fklCreatePtrQueue();
-                        FklVMvec *vec = FKL_VM_VEC(v);
-                        for (size_t i = 0; i < vec->size; i++) {
-                            size_t w = 0;
-                            int is_in_rec_set =
-                                isInValueSet(vec->base[i], &circel_head_set, &w)
-                                != NULL;
-                            if ((is_in_rec_set
-                                 && is_ptr_in_set(&has_print_circle_head_set,
-                                                  vec->base[i]))
-                                || vec->base[i] == v)
-                                fklPushPtrQueue(
-                                    createPrtElem(PRT_REC_CAR, (void *)w),
-                                    vQueue);
-                            else {
-                                fklPushPtrQueue(
-                                    createPrtElem(PRT_CAR, vec->base[i]),
-                                    vQueue);
-                                if (is_in_rec_set)
-                                    put_ptr_in_set(&has_print_circle_head_set,
-                                                   vec->base[i]);
-                            }
-                        }
-                        fklQueueVectorPushBack2(&queueStack, vQueue);
-                        cQueue = vQueue;
-                        continue;
-                    } else if (FKL_IS_BOX(v)) {
-                        fputs("#&", fp);
-                        size_t w = 0;
-                        FklVMvalue *box = FKL_VM_BOX(v);
-                        int is_in_rec_set =
-                            isInValueSet(box, &circel_head_set, &w) != NULL;
-                        if ((is_in_rec_set
-                             && is_ptr_in_set(&has_print_circle_head_set, box))
-                            || box == v)
-                            fklPushPtrQueueToFront(
-                                createPrtElem(PRT_REC_BOX, (void *)w), cQueue);
-                        else {
-                            fklPushPtrQueueToFront(createPrtElem(PRT_BOX, box),
-                                                   cQueue);
-                            if (is_in_rec_set)
-                                put_ptr_in_set(&has_print_circle_head_set, box);
-                        }
-                        continue;
-                    } else if (FKL_IS_HASHTABLE(v)) {
-                        FklHashTable *hash = FKL_VM_HASH(v);
-                        fputs(fklGetVMhashTablePrefix(hash), fp);
-                        FklPtrQueue *hQueue = fklCreatePtrQueue();
-                        for (FklHashTableItem *list = hash->first; list;
-                             list = list->next) {
-                            FklVMhashTableItem *item =
-                                (FklVMhashTableItem *)list->data;
-                            PrtElem *keyElem = NULL;
-                            PrtElem *vElem = NULL;
-                            size_t w = 0;
-                            int is_in_rec_set =
-                                isInValueSet(item->key, &circel_head_set, &w)
-                                != NULL;
-                            if ((is_in_rec_set
-                                 && is_ptr_in_set(&has_print_circle_head_set,
-                                                  item->key))
-                                || item->key == v)
-                                keyElem = createPrtElem(PRT_REC_CAR, (void *)w);
-                            else {
-                                keyElem = createPrtElem(PRT_CAR, item->key);
-                                if (is_in_rec_set)
-                                    put_ptr_in_set(&has_print_circle_head_set,
-                                                   item->key);
-                            }
-                            is_in_rec_set =
-                                isInValueSet(item->v, &circel_head_set, &w)
-                                != NULL;
-                            if ((is_in_rec_set
-                                 && is_ptr_in_set(&has_print_circle_head_set,
-                                                  item->key))
-                                || item->v == v)
-                                vElem = createPrtElem(PRT_REC_CDR, (void *)w);
-                            else {
-                                vElem = createPrtElem(PRT_CDR, item->v);
-                                if (is_in_rec_set)
-                                    put_ptr_in_set(&has_print_circle_head_set,
-                                                   item->v);
-                            }
-                            fklPushPtrQueue(
-                                createPrtElem(
-                                    PRT_HASH_ITEM,
-                                    (void *)createHashPrtElem(keyElem, vElem)),
-                                hQueue);
-                        }
-                        fklQueueVectorPushBack2(&queueStack, hQueue);
-                        cQueue = hQueue;
-                        continue;
-                    } else {
-                        fputc('(', fp);
-                        FklPtrQueue *lQueue = fklCreatePtrQueue();
-                        FklVMvalue *car = FKL_VM_CAR(v);
-                        FklVMvalue *cdr = FKL_VM_CDR(v);
-                        for (;;) {
-                            PrtElem *ce = NULL;
-                            size_t w = 0;
-                            int is_in_rec_set =
-                                isInValueSet(car, &circel_head_set, &w) != NULL;
-                            if (is_in_rec_set
-                                && (is_ptr_in_set(&has_print_circle_head_set,
-                                                  car)
-                                    || car == v))
-                                ce = createPrtElem(PRT_REC_CAR, (void *)w);
-                            else {
-                                ce = createPrtElem(PRT_CAR, car);
-                                if (is_in_rec_set)
-                                    put_ptr_in_set(&has_print_circle_head_set,
-                                                   car);
-                            }
-                            fklPushPtrQueue(ce, lQueue);
-                            if (isInValueSet(cdr, &circel_head_set, &w)) {
-                                PrtElem *cdre = NULL;
-                                if (cdr != v
-                                    && !is_ptr_in_set(
-                                        &has_print_circle_head_set, cdr)) {
-                                    cdre = createPrtElem(PRT_CDR, cdr);
-                                    put_ptr_in_set(&has_print_circle_head_set,
-                                                   cdr);
-                                } else {
-                                    cdre =
-                                        createPrtElem(PRT_REC_CDR, (void *)w);
-                                }
-                                fklPushPtrQueue(cdre, lQueue);
-                                break;
-                            }
-                            if (FKL_IS_PAIR(cdr)) {
-                                car = FKL_VM_CAR(cdr);
-                                cdr = FKL_VM_CDR(cdr);
-                            } else {
-                                if (cdr != FKL_VM_NIL)
-                                    fklPushPtrQueue(createPrtElem(PRT_CDR, cdr),
-                                                    lQueue);
-                                break;
-                            }
-                        }
-                        fklQueueVectorPushBack2(&queueStack, lQueue);
-                        cQueue = lQueue;
-                        continue;
-                    }
-                }
-            }
-            if (fklLengthPtrQueue(cQueue)
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_CDR
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_CDR
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_BOX
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_BOX)
-                fputc(' ', fp);
-        }
-        fklQueueVectorPopBack(&queueStack);
-        fklDestroyPtrQueue(cQueue);
-        if (!fklQueueVectorIsEmpty(&queueStack)) {
-            fputc(')', fp);
-            cQueue = *fklQueueVectorBack(&queueStack);
-            if (fklLengthPtrQueue(cQueue)
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_CDR
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_CDR
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_BOX
-                && ((PrtElem *)fklFirstPtrQueue(cQueue))->state != PRT_REC_BOX)
-                fputc(' ', fp);
-        }
-    }
-    fklQueueVectorUninit(&queueStack);
-    fklUninitHashTable(&circel_head_set);
-    fklUninitHashTable(&has_print_circle_head_set);
-    fklUninitStringBuffer(&string_buffer);
+    print_value(v, fp, princVMatom, gc);
 }
 
 #undef VMVALUE_PRINTER_ARGS
@@ -1322,288 +1147,8 @@ static void atom_as_princ_string(VMVALUE_TO_UTSTRING_ARGS) {
                                                                        v, gc);
 }
 
-#define PRINT_CTX_COMMON_HEADER                                                \
-    FklValueType type;                                                         \
-    PrintState state;                                                          \
-    PrintingState place
-
-typedef struct PrintCtx {
-    PRINT_CTX_COMMON_HEADER;
-    intptr_t data[2];
-} PrintCtx;
-
-typedef struct PrintPairCtx {
-    PRINT_CTX_COMMON_HEADER;
-    const FklVMvalue *cur;
-    const FklHashTable *circle_head_set;
-} PrintPairCtx;
-
-static_assert(sizeof(PrintPairCtx) <= sizeof(PrintCtx),
-              "print pair ctx too large");
-
-typedef struct PrintVectorCtx {
-    PRINT_CTX_COMMON_HEADER;
-    const FklVMvalue *vec;
-    uintptr_t index;
-} PrintVectorCtx;
-
-static_assert(sizeof(PrintVectorCtx) <= sizeof(PrintCtx),
-              "print vector ctx too large");
-
-typedef struct PrintHashCtx {
-    PRINT_CTX_COMMON_HEADER;
-    const FklVMvalue *hash;
-    const FklHashTableItem *cur;
-} PrintHashCtx;
-
-static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
-              "print hash ctx too large");
-
-// VmPrintCtxVector
-#define FKL_VECTOR_TYPE_PREFIX Vm
-#define FKL_VECTOR_METHOD_PREFIX vm
-#define FKL_VECTOR_ELM_TYPE PrintCtx
-#define FKL_VECTOR_ELM_TYPE_NAME PrintCtx
-#include <fakeLisp/vector.h>
-
-static inline void print_pair_ctx_init(PrintCtx *ctx, const FklVMvalue *pair,
-                                       const FklHashTable *circle_head_set) {
-    PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);
-    pair_ctx->cur = pair;
-    pair_ctx->circle_head_set = circle_head_set;
-}
-
-static inline void print_vector_ctx_init(PrintCtx *ctx, const FklVMvalue *vec) {
-    PrintVectorCtx *vec_ctx = FKL_TYPE_CAST(PrintVectorCtx *, ctx);
-    vec_ctx->vec = vec;
-    vec_ctx->index = 0;
-}
-
-static inline void print_hash_ctx_init(PrintCtx *ctx, const FklVMvalue *hash) {
-    PrintHashCtx *hash_ctx = FKL_TYPE_CAST(PrintHashCtx *, ctx);
-    hash_ctx->hash = hash;
-    hash_ctx->cur = FKL_VM_HASH(hash)->first;
-}
-
-static inline void init_common_print_ctx(PrintCtx *ctx, FklValueType type) {
-    ctx->type = type;
-    ctx->state = PRINT_METHOD_FIRST;
-    ctx->place = PRT_CAR;
-}
-
-static inline int print_circle_head(FklStringBuffer *result,
-                                    const FklVMvalue *v,
-                                    FklHashTable *circle_head_set) {
-    uint64_t i = 0;
-    VMvalueHashItem *item = isInValueSet(v, circle_head_set, &i);
-    if (item) {
-        if (item->printed) {
-            fklStringBufferPrintf(result, "#%" FKL_PRT64U "#", i);
-            return 1;
-        } else {
-            item->printed = 1;
-            fklStringBufferPrintf(result, "#%" FKL_PRT64U "=", i);
-        }
-    }
-    return 0;
-}
-
-static inline const FklVMvalue *print_method(PrintCtx *ctx,
-                                             FklStringBuffer *buf) {
-#define pair_ctx (FKL_TYPE_CAST(PrintPairCtx *, ctx))
-#define vec_ctx (FKL_TYPE_CAST(PrintVectorCtx *, ctx))
-#define hash_ctx (FKL_TYPE_CAST(PrintHashCtx *, ctx))
-#define vec (FKL_VM_VEC(vec_ctx->vec))
-#define hash_table (FKL_VM_HASH(hash_ctx->hash))
-
-    const FklVMvalue *r = NULL;
-    switch (ctx->state) {
-    case PRINT_METHOD_FIRST:
-        ctx->state = PRINT_METHOD_CONT;
-        goto first_call;
-        break;
-    case PRINT_METHOD_CONT:
-        goto cont_call;
-        break;
-    default:
-        abort();
-    }
-    return NULL;
-first_call:
-    switch (ctx->type) {
-    case FKL_TYPE_PAIR:
-        fklStringBufferPutc(buf, '(');
-        r = FKL_VM_CAR(pair_ctx->cur);
-        pair_ctx->cur = FKL_VM_CDR(pair_ctx->cur);
-        break;
-
-    case FKL_TYPE_VECTOR:
-        if (vec->size == 0) {
-            fklStringBufferConcatWithCstr(buf, "#()");
-            return NULL;
-        }
-        fklStringBufferConcatWithCstr(buf, "#(");
-        r = vec->base[vec_ctx->index++];
-        break;
-
-    case FKL_TYPE_HASHTABLE:
-        if (hash_table->num == 0) {
-            fklStringBufferConcatWithCstr(buf,
-                                          fklGetVMhashTablePrefix(hash_table));
-            fklStringBufferPutc(buf, ')');
-            return NULL;
-        }
-        fklStringBufferConcatWithCstr(buf, fklGetVMhashTablePrefix(hash_table));
-        fklStringBufferPutc(buf, '(');
-        r = FKL_TYPE_CAST(FklVMhashTableItem *, hash_ctx->cur->data)->key;
-        break;
-    default:
-        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
-                __LINE__);
-        abort();
-        break;
-    }
-    return r;
-
-cont_call:
-    switch (ctx->type) {
-    case FKL_TYPE_PAIR:
-        if (pair_ctx->cur == NULL) {
-            fklStringBufferPutc(buf, ')');
-            return NULL;
-        } else if (FKL_IS_PAIR(pair_ctx->cur)) {
-            if (isInValueSet(pair_ctx->cur, pair_ctx->circle_head_set, NULL))
-                goto print_cdr;
-            fklStringBufferPutc(buf, ' ');
-            r = FKL_VM_CAR(pair_ctx->cur);
-            pair_ctx->cur = FKL_VM_CDR(pair_ctx->cur);
-        } else if (FKL_IS_NIL(pair_ctx->cur)) {
-            fklStringBufferPutc(buf, ')');
-            r = NULL;
-            pair_ctx->cur = NULL;
-        } else {
-        print_cdr:
-            fklStringBufferPutc(buf, ',');
-            r = pair_ctx->cur;
-            pair_ctx->cur = NULL;
-        }
-        break;
-
-    case FKL_TYPE_VECTOR:
-        if (vec_ctx->index >= vec->size) {
-            fklStringBufferPutc(buf, ')');
-            return NULL;
-        }
-        fklStringBufferPutc(buf, ' ');
-        r = vec->base[vec_ctx->index++];
-        break;
-
-    case FKL_TYPE_HASHTABLE:
-        if (hash_ctx->cur == NULL) {
-            fklStringBufferConcatWithCstr(buf, "))");
-            return NULL;
-        }
-        switch (hash_ctx->place) {
-        case PRT_CAR:
-            hash_ctx->place = PRT_CDR;
-            fklStringBufferPutc(buf, ',');
-            r = FKL_TYPE_CAST(FklVMhashTableItem *, hash_ctx->cur->data)->v;
-            break;
-        case PRT_CDR:
-            hash_ctx->place = PRT_CAR;
-            hash_ctx->cur = hash_ctx->cur->next;
-            if (hash_ctx->cur == NULL) {
-                fklStringBufferConcatWithCstr(buf, "))");
-                return NULL;
-            }
-            fklStringBufferConcatWithCstr(buf, ") (");
-            r = FKL_TYPE_CAST(FklVMhashTableItem *, hash_ctx->cur->data)->key;
-            break;
-        }
-        break;
-    default:
-        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
-                __LINE__);
-        abort();
-        break;
-    }
-    return r;
-#undef pair_ctx
-#undef vec_ctx
-#undef hash_ctx
-#undef vec
-#undef hash_table
-}
-
-static inline void stringify_value_to_string_buffer(
-    const FklVMvalue *v, FklStringBuffer *result,
-    void (*atom_stringifier)(VMVALUE_TO_UTSTRING_ARGS), FklVMgc *gc) {
-    if (!FKL_IS_VECTOR(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
-        && !FKL_IS_HASHTABLE(v)) {
-        atom_stringifier(result, v, gc);
-        return;
-    }
-
-    FklHashTable circle_head_set;
-    fklInitValueSetHashTable(&circle_head_set);
-
-    scan_cir_ref(v, &circle_head_set);
-
-    VmPrintCtxVector print_ctxs;
-    vmPrintCtxVectorInit(&print_ctxs, 8);
-
-    for (; v;) {
-        if (FKL_IS_PAIR(v)) {
-            uint64_t i = 0;
-            VMvalueHashItem *item = isInValueSet(v, &circle_head_set, &i);
-            if (item) {
-                if (item->printed) {
-                    fklStringBufferPrintf(result, "#%" FKL_PRT64U "#", i);
-                    goto get_next;
-                } else {
-                    item->printed = 1;
-                    fklStringBufferPrintf(result, "#%" FKL_PRT64U "=", i);
-                }
-            }
-            PrintCtx *ctx = vmPrintCtxVectorPushBack(&print_ctxs, NULL);
-            init_common_print_ctx(ctx, FKL_TYPE_PAIR);
-            print_pair_ctx_init(ctx, v, &circle_head_set);
-        } else if (FKL_IS_VECTOR(v)) {
-            if (print_circle_head(result, v, &circle_head_set))
-                goto get_next;
-            PrintCtx *ctx = vmPrintCtxVectorPushBack(&print_ctxs, NULL);
-            init_common_print_ctx(ctx, FKL_TYPE_VECTOR);
-            print_vector_ctx_init(ctx, v);
-        } else if (FKL_IS_BOX(v)) {
-            if (print_circle_head(result, v, &circle_head_set))
-                goto get_next;
-            fklStringBufferConcatWithCstr(result, "#&");
-            v = FKL_VM_BOX(v);
-            continue;
-        } else if (FKL_IS_HASHTABLE(v)) {
-            if (print_circle_head(result, v, &circle_head_set))
-                goto get_next;
-            PrintCtx *ctx = vmPrintCtxVectorPushBack(&print_ctxs, NULL);
-            init_common_print_ctx(ctx, FKL_TYPE_HASHTABLE);
-            print_hash_ctx_init(ctx, v);
-        } else {
-            atom_stringifier(result, v, gc);
-        }
-    get_next:
-        if (vmPrintCtxVectorIsEmpty(&print_ctxs))
-            break;
-        while (!vmPrintCtxVectorIsEmpty(&print_ctxs)) {
-            PrintCtx *ctx = vmPrintCtxVectorBack(&print_ctxs);
-            v = print_method(ctx, result);
-            if (v)
-                break;
-            else
-                vmPrintCtxVectorPopBack(&print_ctxs);
-        }
-    }
-    vmPrintCtxVectorUninit(&print_ctxs);
-    fklUninitHashTable(&circle_head_set);
-}
+#define PRINT_INCLUDED
+#include "vmprint.h"
 
 FklVMvalue *fklVMstringify(FklVMvalue *value, FklVM *exe) {
     FklStringBuffer result;

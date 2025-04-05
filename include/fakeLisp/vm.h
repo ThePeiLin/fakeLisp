@@ -715,10 +715,6 @@ void fklDBG_printVMstack(FklVM *, FILE *, int, FklVMgc *gc);
 
 FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *);
 FklVMvalue *fklVMstringifyAsPrinc(FklVMvalue *, FklVM *);
-void fklPrintVMvalue(FklVMvalue *value, FILE *fp,
-                     void (*atomPrinter)(FklVMvalue *v, FILE *fp,
-                                         FklStringBuffer *buffer, FklVMgc *gc),
-                     FklVMgc *gc);
 void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
 void fklPrincVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
 FklBuiltinErrorType fklVMprintf(FklVM *, FILE *fp, const FklString *fmt,

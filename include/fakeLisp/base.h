@@ -237,11 +237,6 @@ FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
 #define FKL_VECTOR_ELM_TYPE_NAME String
 #include "vector.h"
 
-// FklQueueVector
-#define FKL_VECTOR_ELM_TYPE FklPtrQueue *
-#define FKL_VECTOR_ELM_TYPE_NAME Queue
-#include "vector.h"
-
 size_t fklBigIntToStringBuffer(const FklBigInt *a,
                                FklStringBuffer *string_buffer, uint8_t radix,
                                FklBigIntFmtFlags flags);

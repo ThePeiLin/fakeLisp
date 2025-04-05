@@ -3074,8 +3074,7 @@ static int builtin_throw(FKL_CPROC_ARGL) {
 
 typedef struct {
     FklVMvalue *proc;
-    FklVMvalue **errorSymbolLists;
-    FklVMvalue **errorHandlers;
+    FklVMpair *err_handlers;
     size_t num;
     uint32_t tp;
     uint32_t bp;
@@ -3098,17 +3097,17 @@ static void error_handler_frame_print_backtrace(void *data, FILE *fp,
 static void error_handler_frame_atomic(void *data, FklVMgc *gc) {
     EhFrameContext *c = (EhFrameContext *)data;
     fklVMgcToGray(c->proc, gc);
-    size_t num = c->num;
-    for (size_t i = 0; i < num; i++) {
-        fklVMgcToGray(c->errorSymbolLists[i], gc);
-        fklVMgcToGray(c->errorHandlers[i], gc);
+    FklVMpair *pairs = c->err_handlers;
+    FklVMpair *const end = pairs + c->num;
+    for (; pairs < end; ++pairs) {
+        fklVMgcToGray(pairs->car, gc);
+        fklVMgcToGray(pairs->cdr, gc);
     }
 }
 
 static void error_handler_frame_finalizer(void *data) {
     EhFrameContext *c = (EhFrameContext *)data;
-    free(c->errorSymbolLists);
-    free(c->errorHandlers);
+    free(c->err_handlers);
 }
 
 static void error_handler_frame_copy(void *d, const void *s, FklVM *exe) {
@@ -3117,13 +3116,15 @@ static void error_handler_frame_copy(void *d, const void *s, FklVM *exe) {
     dc->proc = sc->proc;
     size_t num = sc->num;
     dc->num = num;
-    dc->errorSymbolLists = (FklVMvalue **)malloc(num * sizeof(FklVMvalue *));
-    FKL_ASSERT(dc->errorSymbolLists || !num);
-    dc->errorHandlers = (FklVMvalue **)malloc(num * sizeof(FklVMvalue *));
-    FKL_ASSERT(dc->errorHandlers || !num);
+    if (num == 0)
+        dc->err_handlers = NULL;
+    else {
+        dc->err_handlers = (FklVMpair *)malloc(num * sizeof(FklVMpair));
+        FKL_ASSERT(dc->err_handlers);
+    }
+
     for (size_t i = 0; i < num; i++) {
-        dc->errorSymbolLists[i] = sc->errorSymbolLists[i];
-        dc->errorHandlers[i] = sc->errorHandlers[i];
+        dc->err_handlers[i] = sc->err_handlers[i];
     }
 }
 
@@ -3152,11 +3153,11 @@ static int isShouldBeHandle(const FklVMvalue *symbolList, FklSid_t type) {
 static int errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue,
                                          FklVM *exe) {
     EhFrameContext *c = (EhFrameContext *)f->data;
-    size_t num = c->num;
-    FklVMvalue **errSymbolLists = c->errorSymbolLists;
+    FklVMpair *err_handlers = c->err_handlers;
+    FklVMpair *const end = err_handlers + c->num;
     FklVMerror *err = FKL_VM_ERR(errValue);
-    for (size_t i = 0; i < num; i++) {
-        if (isShouldBeHandle(errSymbolLists[i], err->type)) {
+    for (; err_handlers < end; ++err_handlers) {
+        if (isShouldBeHandle(err_handlers->car, err->type)) {
             exe->bp = c->bp;
             exe->tp = c->tp;
             fklSetBp(exe);
@@ -3168,7 +3169,7 @@ static int errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue,
                 topFrame = topFrame->prev;
                 fklDestroyVMframe(cur, exe);
             }
-            fklTailCallObj(exe, c->errorHandlers[i]);
+            fklTailCallObj(exe, err_handlers->cdr);
             return 1;
         }
     }
@@ -3188,58 +3189,50 @@ static int builtin_call_eh(FKL_CPROC_ARGL) {
 
     FKL_DECL_AND_CHECK_ARG(proc, exe);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-    FklVMvalueVector errSymbolLists;
-    FklVMvalueVector errHandlers;
-    fklVMvalueVectorInit(&errSymbolLists, FKL_VM_GET_ARG_NUM(exe));
-    fklVMvalueVectorInit(&errHandlers, FKL_VM_GET_ARG_NUM(exe));
+    FklVMpairVector err_handlers;
+    fklVMpairVectorInit(&err_handlers, FKL_VM_GET_ARG_NUM(exe));
+    FklVMpair *pair = NULL;
     int state = GET_LIST;
     for (FklVMvalue *v = FKL_VM_POP_ARG(exe); v; v = FKL_VM_POP_ARG(exe)) {
         switch (state) {
         case GET_LIST:
             if (!is_symbol_list(v)) {
-                fklVMvalueVectorUninit(&errSymbolLists);
-                fklVMvalueVectorUninit(&errHandlers);
+                fklVMpairVectorUninit(&err_handlers);
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             }
-            fklVMvalueVectorPushBack2(&errSymbolLists, v);
+            pair = fklVMpairVectorPushBack(&err_handlers, NULL);
+            pair->car = v;
             break;
         case GET_PROC:
             if (!fklIsCallable(v)) {
-                fklVMvalueVectorUninit(&errSymbolLists);
-                fklVMvalueVectorUninit(&errHandlers);
+                fklVMpairVectorUninit(&err_handlers);
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             }
-            fklVMvalueVectorPushBack2(&errHandlers, v);
+            pair->cdr = v;
             break;
         }
         state = !state;
     }
     if (state == GET_PROC) {
-        fklVMvalueVectorUninit(&errSymbolLists);
-        fklVMvalueVectorUninit(&errHandlers);
+        fklVMpairVectorUninit(&err_handlers);
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
     }
     fklResBp(exe);
-    if (errSymbolLists.top) {
+    if (err_handlers.top) {
         FklVMframe *top_frame = exe->top_frame;
         top_frame->errorCallBack = errorCallBackWithErrorHandler;
         top_frame->t = &ErrorHandlerContextMethodTable;
         EhFrameContext *c = (EhFrameContext *)top_frame->data;
-        c->num = errSymbolLists.top;
-        FklVMvalue **t = (FklVMvalue **)fklRealloc(
-            errSymbolLists.base, errSymbolLists.top * sizeof(FklVMvalue *));
+        c->num = err_handlers.top;
+        FklVMpair *t = (FklVMpair *)fklRealloc(
+            err_handlers.base, err_handlers.top * sizeof(FklVMpair));
         FKL_ASSERT(t);
-        c->errorSymbolLists = t;
-        t = (FklVMvalue **)fklRealloc(errHandlers.base,
-                                      errHandlers.top * sizeof(FklVMvalue *));
-        FKL_ASSERT(t);
-        c->errorHandlers = t;
+        c->err_handlers = t;
         c->tp = exe->tp;
         c->bp = exe->bp;
         fklCallObj(exe, proc);
     } else {
-        fklVMvalueVectorUninit(&errSymbolLists);
-        fklVMvalueVectorUninit(&errHandlers);
+        fklVMpairVectorUninit(&err_handlers);
         fklTailCallObj(exe, proc);
     }
     fklSetBp(exe);

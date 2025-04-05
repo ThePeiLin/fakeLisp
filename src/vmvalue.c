@@ -510,22 +510,15 @@ int fklVMvalueEq(const FklVMvalue *fir, const FklVMvalue *sec) {
     return fir == sec;
 }
 
-// VmPairVector
-#define FKL_VECTOR_TYPE_PREFIX Vm
-#define FKL_VECTOR_METHOD_PREFIX vm
-#define FKL_VECTOR_ELM_TYPE FklVMpair
-#define FKL_VECTOR_ELM_TYPE_NAME Pair
-#include <fakeLisp/vector.h>
-
 int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
-    VmPairVector s;
-    vmPairVectorInit(&s, 8);
-    vmPairVectorPushBack2(
+    FklVMpairVector s;
+    fklVMpairVectorInit(&s, 8);
+    fklVMpairVectorPushBack2(
         &s, (FklVMpair){.car = FKL_REMOVE_CONST(FklVMvalue, fir),
                         .cdr = FKL_REMOVE_CONST(FklVMvalue, sec)});
     int r = 1;
-    while (!vmPairVectorIsEmpty(&s)) {
-        const FklVMpair *top = vmPairVectorPopBack(&s);
+    while (!fklVMpairVectorIsEmpty(&s)) {
+        const FklVMpair *top = fklVMpairVectorPopBack(&s);
         FklVMvalue *root1 = top->car;
         FklVMvalue *root2 = top->cdr;
         if (FKL_GET_TAG(root1) != FKL_GET_TAG(root2))
@@ -549,16 +542,16 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                     break;
                 case FKL_TYPE_PAIR:
                     r = 1;
-                    vmPairVectorPushBack2(
+                    fklVMpairVectorPushBack2(
                         &s, (FklVMpair){.car = FKL_VM_CAR(root1),
                                         .cdr = FKL_VM_CAR(root2)});
-                    vmPairVectorPushBack2(
+                    fklVMpairVectorPushBack2(
                         &s, (FklVMpair){.car = FKL_VM_CDR(root1),
                                         .cdr = FKL_VM_CDR(root2)});
                     break;
                 case FKL_TYPE_BOX:
                     r = 1;
-                    vmPairVectorPushBack2(
+                    fklVMpairVectorPushBack2(
                         &s, (FklVMpair){.car = FKL_VM_BOX(root1),
                                         .cdr = FKL_VM_BOX(root2)});
                     break;
@@ -571,7 +564,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                         r = 1;
                         size_t size = vec1->size;
                         for (size_t i = 0; i < size; i++) {
-                            vmPairVectorPushBack2(
+                            fklVMpairVectorPushBack2(
                                 &s, (FklVMpair){.car = vec1->base[i],
                                                 .cdr = vec2->base[i]});
                         }
@@ -601,10 +594,10 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                                 (FklVMhashTableItem *)l1->data;
                             FklVMhashTableItem *i2 =
                                 (FklVMhashTableItem *)l2->data;
-                            vmPairVectorPushBack2(
+                            fklVMpairVectorPushBack2(
                                 &s,
                                 (FklVMpair){.car = i1->key, .cdr = i2->key});
-                            vmPairVectorPushBack2(
+                            fklVMpairVectorPushBack2(
                                 &s, (FklVMpair){.car = i1->v, .cdr = i2->v});
                         }
                     }
@@ -617,7 +610,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
         if (!r)
             break;
     }
-    vmPairVectorUninit(&s);
+    fklVMpairVectorUninit(&s);
     return r;
 }
 

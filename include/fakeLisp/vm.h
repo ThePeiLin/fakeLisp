@@ -435,6 +435,11 @@ typedef struct FklVM {
 #define FKL_VECTOR_ELM_TYPE_NAME VMvalue
 #include "vector.h"
 
+// FklVMpairVector
+#define FKL_VECTOR_ELM_TYPE FklVMpair
+#define FKL_VECTOR_ELM_TYPE_NAME VMpair
+#include "vector.h"
+
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,
                                            FklVMvalue *const *top);

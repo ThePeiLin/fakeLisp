@@ -838,8 +838,8 @@ void fklAtomicVMvec(FklVMvalue *, FklVMgc *);
 void fklAtomicVMbox(FklVMvalue *, FklVMgc *);
 void fklAtomicVMcproc(FklVMvalue *, FklVMgc *);
 
-FklVMvalue *fklCopyVMlistOrAtom(FklVMvalue *, FklVM *);
-FklVMvalue *fklCopyVMvalue(FklVMvalue *, FklVM *);
+FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *, FklVM *);
+FklVMvalue *fklCopyVMvalue(const FklVMvalue *, FklVM *);
 
 // value creator
 

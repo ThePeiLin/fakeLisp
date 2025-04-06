@@ -198,15 +198,15 @@ void fklGetGCstateAndGCNum(FklVMgc *gc, FklGCstate *s, int *cr) {
 
 static inline void init_vm_queue(FklVMqueue *q) {
     uv_mutex_init(&q->pre_running_lock);
-    fklInitPtrQueue(&q->pre_running_q);
+	fklThreadQueueInit(&q->pre_running_q);
     atomic_init(&q->running_count, 0);
-    fklInitPtrQueue(&q->running_q);
+    fklThreadQueueInit(&q->running_q);
 }
 
 static inline void uninit_vm_queue(FklVMqueue *q) {
     uv_mutex_destroy(&q->pre_running_lock);
-    fklUninitPtrQueue(&q->pre_running_q);
-    fklUninitPtrQueue(&q->running_q);
+    fklThreadQueueUninit(&q->pre_running_q);
+    fklThreadQueueUninit(&q->running_q);
 }
 
 static inline void init_locv_cache(FklVMgc *gc) {

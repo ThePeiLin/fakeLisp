@@ -2921,9 +2921,16 @@ static const FklHashTableMetaTable GetLaFirstSetCacheHashMetaTable = {
     .__uninitItem = la_first_set_cache_set_item_uninit,
 };
 
+// GraItemSetQueue
+#define FKL_QUEUE_TYPE_PREFIX Gra
+#define FKL_QUEUE_METHOD_PREFIX gra
+#define FKL_QUEUE_ELM_TYPE FklLalrItemSet *
+#define FKL_QUEUE_ELM_TYPE_NAME ItemSet
+#include <fakeLisp/queue.h>
+
 static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
                                      FklHashTable *itemsetSet, FklGrammer *g,
-                                     FklPtrQueue *pending) {
+                                     GraItemSetQueue *pending) {
     FklHashTable checked;
     init_grammer_sym_set(&checked);
     FklHashTableItem *l;
@@ -2954,7 +2961,7 @@ static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
         if (!itemsetptr) {
             FklLalrItemSet itemset = {.items = newItems, .links = NULL};
             itemsetptr = fklGetOrPutHashItem(&itemset, itemsetSet);
-            fklPushPtrQueue(itemsetptr, pending);
+            graItemSetQueuePush2(pending, itemsetptr);
         } else
             fklUninitHashTable(&newItems);
         item_set_add_link(itemset, sym, itemsetptr);
@@ -2978,14 +2985,14 @@ FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
         .items = items,
     };
     FklLalrItemSet *itemsetptr = fklGetOrPutHashItem(&itemset, itemstate_set);
-    FklPtrQueue pending;
-    fklInitPtrQueue(&pending);
-    fklPushPtrQueue(itemsetptr, &pending);
-    while (!fklIsPtrQueueEmpty(&pending)) {
-        FklLalrItemSet *itemsetptr = fklPopPtrQueue(&pending);
+    GraItemSetQueue pending;
+    graItemSetQueueInit(&pending);
+    graItemSetQueuePush2(&pending, itemsetptr);
+    while (!graItemSetQueueIsEmpty(&pending)) {
+        FklLalrItemSet *itemsetptr = *graItemSetQueuePop(&pending);
         lr0_item_set_goto(itemsetptr, itemstate_set, grammer, &pending);
     }
-    fklUninitPtrQueue(&pending);
+    graItemSetQueueUninit(&pending);
     return itemstate_set;
 }
 

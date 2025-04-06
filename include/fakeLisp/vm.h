@@ -345,11 +345,16 @@ typedef enum {
 #define FKL_VM_STACK_INC_NUM (128)
 #define FKL_VM_STACK_INC_SIZE (sizeof(FklVMvalue *) * 128)
 
+// FklThreadQueue
+#define FKL_QUEUE_ELM_TYPE struct FklVM *
+#define FKL_QUEUE_ELM_TYPE_NAME Thread
+#include "queue.h"
+
 typedef struct {
     uv_mutex_t pre_running_lock;
-    FklPtrQueue pre_running_q;
+    FklThreadQueue pre_running_q;
     atomic_size_t running_count;
-    FklPtrQueue running_q;
+    FklThreadQueue running_q;
 } FklVMqueue;
 
 typedef struct FklVMlocvList {

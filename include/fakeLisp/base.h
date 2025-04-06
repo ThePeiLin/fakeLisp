@@ -223,9 +223,10 @@ FklQueueNode *fklPopPtrQueueNode(FklPtrQueue *);
 
 void fklPushPtrQueue(void *, FklPtrQueue *);
 void fklPushPtrQueueNode(FklPtrQueue *, FklQueueNode *);
-void fklPushPtrQueueToFront(void *, FklPtrQueue *);
-void fklPushPtrQueueNodeToFront(FklPtrQueue *q, FklQueueNode *n);
-FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
+// to be delete
+// void fklPushPtrQueueToFront(void *, FklPtrQueue *);
+// void fklPushPtrQueueNodeToFront(FklPtrQueue *q, FklQueueNode *n);
+// FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
 
 // FklUintVector
 #define FKL_VECTOR_ELM_TYPE uintmax_t

@@ -1042,7 +1042,7 @@ static void vm_trapping_thread_cb(void *arg) {
 
 void fklVMthreadStart(FklVM *exe, FklVMqueue *q) {
     uv_mutex_lock(&q->pre_running_lock);
-    fklPushPtrQueue(exe, &q->pre_running_q);
+    fklThreadQueuePush2(&q->pre_running_q, exe);
     uv_mutex_unlock(&q->pre_running_lock);
 }
 
@@ -1108,8 +1108,9 @@ static inline void switch_notice_lock_ins(FklVM *exe) {
 
 void fklNoticeThreadLock(FklVM *exe) { switch_notice_lock_ins(exe); }
 
-static inline void switch_notice_lock_ins_for_running_threads(FklPtrQueue *q) {
-    for (FklQueueNode *n = q->head; n; n = n->next)
+static inline void
+switch_notice_lock_ins_for_running_threads(FklThreadQueue *q) {
+    for (FklThreadQueueNode *n = q->head; n; n = n->next)
         switch_notice_lock_ins(n->data);
 }
 
@@ -1121,18 +1122,18 @@ static inline void switch_un_notice_lock_ins(FklVM *exe) {
 void fklDontNoticeThreadLock(FklVM *exe) { switch_un_notice_lock_ins(exe); }
 
 static inline void
-switch_un_notice_lock_ins_for_running_threads(FklPtrQueue *q) {
-    for (FklQueueNode *n = q->head; n; n = n->next)
+switch_un_notice_lock_ins_for_running_threads(FklThreadQueue *q) {
+    for (FklThreadQueueNode *n = q->head; n; n = n->next)
         switch_un_notice_lock_ins(n->data);
 }
 
-static inline void lock_all_vm(FklPtrQueue *q) {
-    for (FklQueueNode *n = q->head; n; n = n->next)
+static inline void lock_all_vm(FklThreadQueue *q) {
+    for (FklThreadQueueNode *n = q->head; n; n = n->next)
         uv_mutex_lock(&((FklVM *)(n->data))->lock);
 }
 
-static inline void unlock_all_vm(FklPtrQueue *q) {
-    for (FklQueueNode *n = q->head; n; n = n->next)
+static inline void unlock_all_vm(FklThreadQueue *q) {
+    for (FklThreadQueueNode *n = q->head; n; n = n->next)
         uv_mutex_unlock(&((FklVM *)(n->data))->lock);
 }
 
@@ -1149,8 +1150,8 @@ move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(FklVMgc *gc) {
     }
 }
 
-static inline void shrink_locv_and_stack(FklPtrQueue *q) {
-    for (FklQueueNode *n = q->head; n; n = n->next) {
+static inline void shrink_locv_and_stack(FklThreadQueue *q) {
+    for (FklThreadQueueNode *n = q->head; n; n = n->next) {
         FklVM *exe = n->data;
         fklShrinkLocv(exe);
         fklShrinkStack(exe);
@@ -1220,23 +1221,24 @@ static inline void vm_idle_loop(FklVMgc *gc) {
             fklVMgcRemoveUnusedGrayCache(gc);
             fklVMgcUpdateThreshold(gc);
 
-            FklPtrQueue other_running_q;
-            fklInitPtrQueue(&other_running_q);
+            FklThreadQueue other_running_q;
+            fklThreadQueueInit(&other_running_q);
 
-            for (FklQueueNode *n = fklPopPtrQueueNode(&q->running_q); n;
-                 n = fklPopPtrQueueNode(&q->running_q)) {
+            for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->running_q);
+                 n; n = fklThreadQueuePopNode(&q->running_q)) {
                 FklVM *exe = n->data;
                 if (exe->state == FKL_VM_EXIT) {
                     uv_thread_join(&exe->tid);
                     uv_mutex_unlock(&exe->lock);
                     free(n);
                 } else
-                    fklPushPtrQueueNode(&other_running_q, n);
+                    fklThreadQueuePushNode(&other_running_q, n);
             }
 
-            for (FklQueueNode *n = fklPopPtrQueueNode(&other_running_q); n;
-                 n = fklPopPtrQueueNode(&other_running_q))
-                fklPushPtrQueueNode(&q->running_q, n);
+            for (FklThreadQueueNode *n =
+                     fklThreadQueuePopNode(&other_running_q);
+                 n; n = fklThreadQueuePopNode(&other_running_q))
+                fklThreadQueuePushNode(&q->running_q, n);
 
             remove_exited_thread(gc);
             shrink_locv_and_stack(&q->running_q);
@@ -1245,8 +1247,8 @@ static inline void vm_idle_loop(FklVMgc *gc) {
             unlock_all_vm(&q->running_q);
         }
         uv_mutex_lock(&q->pre_running_lock);
-        for (FklQueueNode *n = fklPopPtrQueueNode(&q->pre_running_q); n;
-             n = fklPopPtrQueueNode(&q->pre_running_q)) {
+        for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->pre_running_q);
+             n; n = fklThreadQueuePopNode(&q->pre_running_q)) {
             FklVM *exe = n->data;
             if (uv_thread_create(&exe->tid, vm_thread_cb, exe)) {
                 if (exe->chan) {
@@ -1262,13 +1264,13 @@ static inline void vm_idle_loop(FklVMgc *gc) {
                     abort();
             } else {
                 atomic_fetch_add(&q->running_count, 1);
-                fklPushPtrQueueNode(&q->running_q, n);
+                fklThreadQueuePushNode(&q->running_q, n);
             }
         }
         uv_mutex_unlock(&q->pre_running_lock);
         if (atomic_load(&q->running_count) == 0) {
-            for (FklQueueNode *n = fklPopPtrQueueNode(&q->running_q); n;
-                 n = fklPopPtrQueueNode(&q->running_q)) {
+            for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->running_q);
+                 n; n = fklThreadQueuePopNode(&q->running_q)) {
                 FklVM *exe = n->data;
                 uv_thread_join(&exe->tid);
                 free(n);
@@ -1342,23 +1344,24 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
             fklVMgcRemoveUnusedGrayCache(gc);
             fklVMgcUpdateThreshold(gc);
 
-            FklPtrQueue other_running_q;
-            fklInitPtrQueue(&other_running_q);
+            FklThreadQueue other_running_q;
+            fklThreadQueueInit(&other_running_q);
 
-            for (FklQueueNode *n = fklPopPtrQueueNode(&q->running_q); n;
-                 n = fklPopPtrQueueNode(&q->running_q)) {
+            for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->running_q);
+                 n; n = fklThreadQueuePopNode(&q->running_q)) {
                 FklVM *exe = n->data;
                 if (exe->state == FKL_VM_EXIT) {
                     uv_thread_join(&exe->tid);
                     uv_mutex_unlock(&exe->lock);
                     free(n);
                 } else
-                    fklPushPtrQueueNode(&other_running_q, n);
+                    fklThreadQueuePushNode(&other_running_q, n);
             }
 
-            for (FklQueueNode *n = fklPopPtrQueueNode(&other_running_q); n;
-                 n = fklPopPtrQueueNode(&other_running_q))
-                fklPushPtrQueueNode(&q->running_q, n);
+            for (FklThreadQueueNode *n =
+                     fklThreadQueuePopNode(&other_running_q);
+                 n; n = fklThreadQueuePopNode(&other_running_q))
+                fklThreadQueuePushNode(&q->running_q, n);
 
             remove_exited_thread(gc);
             shrink_locv_and_stack(&q->running_q);
@@ -1367,18 +1370,18 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
             unlock_all_vm(&q->running_q);
         }
         uv_mutex_lock(&q->pre_running_lock);
-        for (FklQueueNode *n = fklPopPtrQueueNode(&q->pre_running_q); n;
-             n = fklPopPtrQueueNode(&q->pre_running_q)) {
+        for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->pre_running_q);
+             n; n = fklThreadQueuePopNode(&q->pre_running_q)) {
             FklVM *exe = n->data;
             if (uv_thread_create(&exe->tid, vm_trapping_thread_cb, exe))
                 abort();
             atomic_fetch_add(&q->running_count, 1);
-            fklPushPtrQueueNode(&q->running_q, n);
+            fklThreadQueuePushNode(&q->running_q, n);
         }
         uv_mutex_unlock(&q->pre_running_lock);
         if (atomic_load(&q->running_count) == 0) {
-            for (FklQueueNode *n = fklPopPtrQueueNode(&q->running_q); n;
-                 n = fklPopPtrQueueNode(&q->running_q)) {
+            for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->running_q);
+                 n; n = fklThreadQueuePopNode(&q->running_q)) {
                 FklVM *exe = n->data;
                 uv_thread_join(&exe->tid);
                 free(n);

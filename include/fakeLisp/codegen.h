@@ -425,7 +425,7 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *,
 FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *, FklCodegenInfo *codegen,
                                            FklCodegenEnv *cur_env);
 
-FklByteCodelnt *fklGenExpressionCodeWithQueue(FklPtrQueue *,
+FklByteCodelnt *fklGenExpressionCodeWithQueue(FklNastNodeQueue *,
                                               FklCodegenInfo *codegen,
                                               FklCodegenEnv *cur_env);
 
@@ -530,8 +530,8 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib, FklVMlib *vlib,
                                     uint32_t count, int needCopy,
                                     FklFuncPrototypes *);
 
-void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib, FklVMlib *vlib, FklVM *vm,
-                                int needCopy, FklFuncPrototypes *);
+void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib, FklVMlib *vlib,
+                                FklVM *vm, int needCopy, FklFuncPrototypes *);
 
 void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib *clib, FklVMlib *vlib,
                                           FklVM *vm, FklFuncPrototypes *);

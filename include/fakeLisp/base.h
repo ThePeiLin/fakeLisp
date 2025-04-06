@@ -197,37 +197,6 @@ void fklDestroyHashTable(FklHashTable *);
 static inline void fklDoNothingUninitHashItem(void *v) {}
 void *fklHashDefaultGetKey(void *i);
 
-typedef struct FklQueueNode {
-    void *data;
-    struct FklQueueNode *next;
-} FklQueueNode;
-
-typedef struct {
-    FklQueueNode *head;
-    FklQueueNode **tail;
-} FklPtrQueue;
-
-FklQueueNode *fklCreateQueueNode(void *);
-void fklDestroyQueueNode(FklQueueNode *);
-
-void fklInitPtrQueue(FklPtrQueue *q);
-void fklUninitPtrQueue(FklPtrQueue *q);
-FklPtrQueue *fklCreatePtrQueue(void);
-void fklDestroyPtrQueue(FklPtrQueue *);
-int fklIsPtrQueueEmpty(FklPtrQueue *);
-uint64_t fklLengthPtrQueue(FklPtrQueue *);
-void *fklFirstPtrQueue(FklPtrQueue *);
-void *fklPopPtrQueue(FklPtrQueue *);
-
-FklQueueNode *fklPopPtrQueueNode(FklPtrQueue *);
-
-void fklPushPtrQueue(void *, FklPtrQueue *);
-void fklPushPtrQueueNode(FklPtrQueue *, FklQueueNode *);
-// to be delete
-// void fklPushPtrQueueToFront(void *, FklPtrQueue *);
-// void fklPushPtrQueueNodeToFront(FklPtrQueue *q, FklQueueNode *n);
-// FklPtrQueue *fklCopyPtrQueue(FklPtrQueue *);
-
 // FklUintVector
 #define FKL_VECTOR_ELM_TYPE uintmax_t
 #define FKL_VECTOR_ELM_TYPE_NAME Uint

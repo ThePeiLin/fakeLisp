@@ -1265,9 +1265,9 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
     return 1;
 }
 
-static inline void clear_ast_queue(FklPtrQueue *q) {
-    while (!fklIsPtrQueueEmpty(q))
-        fklDestroyNastNode(fklPopPtrQueue(q));
+static inline void clear_ast_queue(FklNastNodeQueue *q) {
+    while (!fklNastNodeQueueIsEmpty(q))
+        fklDestroyNastNode(*fklNastNodeQueuePop(q));
     free(q);
 }
 
@@ -1280,8 +1280,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     struct ReplFrameCtx *fctx = ctx->fctx;
     NastCreatCtx *cc = ctx->cc;
 
-    FklPtrQueue *queue = fklCreatePtrQueue();
-    ;
+    FklNastNodeQueue *queue = fklNastNodeQueueCreate();
 
     FklCodegenInfo *codegen = ctx->codegen;
     FklCodegenEnv *main_env = ctx->main_env;
@@ -1318,7 +1317,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         } else if (ast) {
             eval_expression_str = eval_expression_str + cc->offset;
             eval_nast_ctx_reset(cc, &ctx->buf, g);
-            fklPushPtrQueue(ast, queue);
+            fklNastNodeQueuePush2(queue, ast);
         }
     }
 

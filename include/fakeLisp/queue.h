@@ -75,7 +75,7 @@ static inline void METHOD(Uninit)(NAME *r) {
     r->cache = NULL;
 }
 
-static inline NAME *METHOD(Create)(size_t size) {
+static inline NAME *METHOD(Create)(void) {
     NAME *r = (NAME *)malloc(sizeof(NAME));
     assert(r);
     METHOD(Init)(r);

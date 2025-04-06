@@ -77,6 +77,11 @@ typedef struct FklNastNode {
 #define FKL_VECTOR_ELM_TYPE_NAME NastNode
 #include "vector.h"
 
+// FklNastNodeQueue
+#define FKL_QUEUE_ELM_TYPE FklNastNode *
+#define FKL_QUEUE_ELM_TYPE_NAME NastNode
+#include "queue.h"
+
 // FklNastImmPairVector
 #define FKL_VECTOR_ELM_TYPE FklNastImmPair
 #define FKL_VECTOR_ELM_TYPE_NAME NastImmPair

@@ -12,23 +12,23 @@
   (not (println
          (cfg
            (and (not bar)
-             (and *main?* (not foo))
-             (and (not *main?*) (not foo)))))))
+             (and 1 (not foo))
+             (and (not 1) (not foo)))))))
 
 ;; 1
 (assert
   (println
     (cfg
       (and (not bar)
-        (and *main?* (not foo))))))
+        (and 1 (not foo))))))
 
 ;; 1
 (assert
   (println
     (cfg
       (not (and (not bar)
-             (and *main?* (not foo))
-             (and (not *main?*) (not foo)))))))
+             (and 1 (not foo))
+             (and (not 1) (not foo)))))))
 
 ;; ()
 (assert (not (println (cfg (or)))))
@@ -38,14 +38,14 @@
   (println
     (cfg
       (or bar
-        (or *main?* foo)))))
+        (or 1 foo)))))
 
 ;; ()
 (assert
   (not (println
          (cfg
            (or bar
-             (or (not *main?*) foo))))))
+             (or (not 1) foo))))))
 
 ;; 1
 (assert (println (cfg (import (.. lib json)))))

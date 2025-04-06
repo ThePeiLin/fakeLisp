@@ -4,7 +4,7 @@
 
 #include <string.h>
 
-FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid, FklHashTable *ht) {
+FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid, const FklHashTable *ht) {
     FklPatternMatchingHashTableItem *item = fklGetHashItem(&sid, ht);
     return item->node;
 }

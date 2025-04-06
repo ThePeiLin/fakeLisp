@@ -3054,342 +3054,388 @@ exit:
     return r;
 }
 
-// CgU8Vector
+typedef struct CfgCtx {
+    const FklNastNode *(*method)(struct CfgCtx *ctx, int r);
+    const FklNastNode *rest;
+    int r;
+} CfgCtx;
+
+// CgCfgCtxVector
 #define FKL_VECTOR_TYPE_PREFIX Cg
 #define FKL_VECTOR_METHOD_PREFIX cg
-#define FKL_VECTOR_ELM_TYPE uint8_t
-#define FKL_VECTOR_ELM_TYPE_NAME U8
+#define FKL_VECTOR_ELM_TYPE CfgCtx
+#define FKL_VECTOR_ELM_TYPE_NAME CfgCtx
 #include <fakeLisp/vector.h>
 
+static inline int cfg_check_defined(const FklNastNode *exp,
+                                    const FklHashTable *ht,
+                                    const FklCodegenOuterCtx *outer_ctx,
+                                    const FklCodegenEnv *curEnv, uint32_t scope,
+                                    FklCodegenErrorState *errorState) {
+    const FklNastNode *value =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
+    if (value->type != FKL_NAST_SYM) {
+        errorState->type = FKL_ERR_SYNTAXERROR;
+        errorState->place =
+            fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+        return 0;
+    }
+    return fklFindSymbolDefByIdAndScope(value->sym, scope, curEnv) != NULL;
+}
+
+static inline int cfg_check_importable(const FklNastNode *exp,
+                                       const FklHashTable *ht,
+                                       const FklCodegenOuterCtx *outer_ctx,
+                                       const FklCodegenEnv *curEnv,
+                                       uint32_t scope,
+                                       FklCodegenErrorState *errorState) {
+    const FklNastNode *value =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
+    if (value->type == FKL_NAST_NIL
+        || !fklIsNastNodeListAndHasSameType(value, FKL_NAST_SYM)) {
+        errorState->type = FKL_ERR_SYNTAXERROR;
+        errorState->place =
+            fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+        return 0;
+    }
+    char *filename = combineFileNameFromListAndCheckPrivate(
+        value, &outer_ctx->public_symbol_table);
+
+    if (filename) {
+        char *packageMainFileName =
+            fklStrCat(fklCopyCstr(filename), FKL_PATH_SEPARATOR_STR);
+        packageMainFileName =
+            fklStrCat(packageMainFileName, FKL_PACKAGE_MAIN_FILE);
+
+        char *preCompileFileName = fklStrCat(fklCopyCstr(packageMainFileName),
+                                             FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+
+        char *scriptFileName =
+            fklStrCat(fklCopyCstr(filename), FKL_SCRIPT_FILE_EXTENSION);
+
+        char *dllFileName = fklStrCat(fklCopyCstr(filename), FKL_DLL_FILE_TYPE);
+
+        int r = fklIsAccessibleRegFile(packageMainFileName)
+             || fklIsAccessibleRegFile(scriptFileName)
+             || fklIsAccessibleRegFile(preCompileFileName)
+             || fklIsAccessibleRegFile(dllFileName);
+        free(filename);
+        free(scriptFileName);
+        free(dllFileName);
+        free(packageMainFileName);
+        free(preCompileFileName);
+        return r;
+    } else
+        return 0;
+}
+
+static inline int cfg_check_macro_defined(
+    const FklNastNode *exp, const FklHashTable *ht,
+    const FklCodegenOuterCtx *outer_ctx, const FklCodegenEnv *curEnv,
+    uint32_t scope, const FklCodegenMacroScope *macroScope,
+    const FklCodegenInfo *info, FklCodegenErrorState *errorState) {
+    const FklNastNode *value =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
+    if (value->type == FKL_NAST_SYM)
+        return is_replacement_define(value, info, outer_ctx, macroScope,
+                                     curEnv);
+    else if (value->type == FKL_NAST_PAIR
+             && value->pair->cdr->type == FKL_NAST_NIL
+             && value->pair->car->type == FKL_NAST_SYM) {
+        int r = 0;
+        FklSid_t id = value->pair->car->sym;
+        for (const FklCodegenMacroScope *macros = macroScope; macros;
+             macros = macros->prev) {
+            for (const FklCodegenMacro *cur = macros->head; cur;
+                 cur = cur->next) {
+                if (id == cur->pattern->pair->car->sym) {
+                    r = 1;
+                    break;
+                }
+            }
+            if (r == 1)
+                break;
+        }
+        return r;
+    } else if (value->type == FKL_NAST_VECTOR && value->vec->size == 1
+               && value->vec->base[0]->type == FKL_NAST_SYM) {
+        FklSid_t id = value->vec->base[0]->sym;
+        return *(info->g) != NULL
+            && fklGetHashItem(&id, info->named_prod_groups) != NULL;
+    } else {
+        errorState->type = FKL_ERR_SYNTAXERROR;
+        errorState->place =
+            fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+        return 0;
+    }
+}
+
+static inline int cfg_check_eq(const FklNastNode *exp, const FklHashTable *ht,
+                               const FklCodegenOuterCtx *outer_ctx,
+                               const FklCodegenEnv *curEnv,
+                               const FklCodegenMacroScope *macroScope,
+                               const FklCodegenInfo *info,
+                               FklCodegenErrorState *errorState) {
+    const FklNastNode *arg0 =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
+    const FklNastNode *arg1 =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1, ht);
+    if (arg0->type != FKL_NAST_SYM) {
+        errorState->type = FKL_ERR_SYNTAXERROR;
+        errorState->place =
+            fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+        return 0;
+    }
+    FklNastNode *node =
+        get_replacement(arg0, info, outer_ctx, macroScope, curEnv);
+    if (node) {
+        int r = fklNastNodeEqual(node, arg1);
+        fklDestroyNastNode(node);
+        return r;
+    } else
+        return 0;
+}
+
+static inline int cfg_check_matched(const FklNastNode *exp,
+                                    const FklHashTable *ht,
+                                    const FklCodegenOuterCtx *outer_ctx,
+                                    const FklCodegenEnv *curEnv,
+                                    const FklCodegenMacroScope *macroScope,
+                                    const FklCodegenInfo *info,
+                                    FklCodegenErrorState *errorState) {
+    const FklNastNode *arg0 =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
+    const FklNastNode *arg1 =
+        fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1, ht);
+    if (arg0->type != FKL_NAST_SYM || !is_valid_compile_check_pattern(arg1)) {
+        errorState->type = FKL_ERR_SYNTAXERROR;
+        errorState->place =
+            fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+        return 0;
+    }
+    FklNastNode *node =
+        get_replacement(arg0, info, outer_ctx, macroScope, curEnv);
+    if (node) {
+        int r = is_compile_check_pattern_matched(arg1, node);
+        fklDestroyNastNode(node);
+        return r;
+    } else
+        return 0;
+}
+
+static const FklNastNode *cfg_check_not_method(CfgCtx *ctx, int r) {
+    ctx->r = !r;
+    return NULL;
+}
+
+static const FklNastNode *cfg_check_and_method(CfgCtx *ctx, int r) {
+    ctx->r &= r;
+    if (!ctx->r)
+        return NULL;
+    else if (ctx->rest->type == FKL_NAST_NIL)
+        return NULL;
+    else {
+        const FklNastNode *r = ctx->rest->pair->car;
+        ctx->rest = ctx->rest->pair->cdr;
+        return r;
+    }
+}
+
+static const FklNastNode *cfg_check_or_method(CfgCtx *ctx, int r) {
+    ctx->r |= r;
+    if (ctx->r)
+        return NULL;
+    else if (ctx->rest->type == FKL_NAST_NIL)
+        return NULL;
+    else {
+        const FklNastNode *r = ctx->rest->pair->car;
+        ctx->rest = ctx->rest->pair->cdr;
+        return r;
+    }
+}
+
 static inline int
-is_check_subpattern_true(const FklNastNode *value, const FklCodegenInfo *info,
-                         const FklCodegenOuterCtx *ctx, uint32_t scope,
+is_check_subpattern_true(const FklNastNode *exp, const FklCodegenInfo *info,
+                         const FklCodegenOuterCtx *outer_ctx, uint32_t scope,
                          const FklCodegenMacroScope *macroScope,
                          const FklCodegenEnv *curEnv,
                          FklCodegenErrorState *errorState) {
-    if (value->type == FKL_NAST_PAIR) {
-#define COND_COMPILE_CHECK_OP_TRUE (0)
-#define COND_COMPILE_CHECK_OP_NOT (1)
-#define COND_COMPILE_CHECK_OP_AND (2)
-#define COND_COMPILE_CHECK_OP_OR (3)
+    int r = 0;
+    FklHashTable ht;
+    CgCfgCtxVector s;
+    CfgCtx *ctx;
 
-        FklHashTable ht;
-        fklInitPatternMatchHashTable(&ht);
+    switch (exp->type) {
+    case FKL_NAST_NIL:
+        r = 0;
+        break;
+    case FKL_NAST_SYM:
+        r = is_replacement_true(exp, info, outer_ctx, macroScope, curEnv);
+        break;
+    case FKL_NAST_FIX:
+    case FKL_NAST_CHR:
+    case FKL_NAST_F64:
+    case FKL_NAST_STR:
+    case FKL_NAST_BYTEVECTOR:
+    case FKL_NAST_BIG_INT:
+    case FKL_NAST_BOX:
+    case FKL_NAST_VECTOR:
+    case FKL_NAST_HASHTABLE:
+        r = 1;
+        break;
+    case FKL_NAST_RC_SYM:
+    case FKL_NAST_SLOT:
+        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
+                __LINE__);
+        abort();
+        break;
+    case FKL_NAST_PAIR:
+        goto check_nested_sub_pattern;
+        break;
+    }
+    return r;
 
-        FklNastNodeVector expStack;
-        fklNastNodeVectorInit(&expStack, 1);
-        fklNastNodeVectorPushBack2(&expStack, NULL);
-        fklNastNodeVectorPushBack2(&expStack,
-                                   FKL_REMOVE_CONST(FklNastNode, value));
+check_nested_sub_pattern:
+    fklInitPatternMatchHashTable(&ht);
+    cgCfgCtxVectorInit(&s, 8);
 
-        CgU8Vector boolStack;
-        cgU8VectorInit(&boolStack, 1);
-        cgU8VectorPushBack2(&boolStack, 255);
-
-        CgU8Vector opStack;
-        cgU8VectorInit(&opStack, 1);
-        cgU8VectorPushBack2(&opStack, COND_COMPILE_CHECK_OP_TRUE);
-
-        FklNastNodeVector tmpStack;
-        fklNastNodeVectorInit(&tmpStack, 1);
-        uint8_t r = 0;
-        while (!cgU8VectorIsEmpty(&opStack)) {
-            uint8_t r = *cgU8VectorPopBack(&boolStack);
-            FklNastNode *cur = NULL;
-            if (r == 255) {
-                cur = *fklNastNodeVectorPopBack(&expStack);
-                if (cur) {
-                    if (cur->type == FKL_NAST_PAIR) {
-                        if (fklPatternMatch(
-                                ctx->builtin_sub_pattern_node
+    for (;;) {
+    loop_start:
+        switch (exp->type) {
+        case FKL_NAST_NIL:
+            r = 0;
+            break;
+        case FKL_NAST_SYM:
+            r = is_replacement_true(exp, info, outer_ctx, macroScope, curEnv);
+            break;
+        case FKL_NAST_FIX:
+        case FKL_NAST_CHR:
+        case FKL_NAST_F64:
+        case FKL_NAST_STR:
+        case FKL_NAST_BYTEVECTOR:
+        case FKL_NAST_BIG_INT:
+        case FKL_NAST_BOX:
+        case FKL_NAST_VECTOR:
+        case FKL_NAST_HASHTABLE:
+            r = 1;
+            break;
+        case FKL_NAST_RC_SYM:
+        case FKL_NAST_SLOT:
+            fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
+                    __LINE__);
+            abort();
+            break;
+        case FKL_NAST_PAIR:
+            if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                     [FKL_CODEGEN_SUB_PATTERN_DEFINE],
-                                cur, &ht)) {
-                            const FklNastNode *value =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_value, &ht);
-                            if (value->type != FKL_NAST_SYM)
-                                goto exit;
-                            r = fklFindSymbolDefByIdAndScope(value->sym, scope,
-                                                             curEnv)
-                             != NULL;
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                exp, &ht)) {
+                r = cfg_check_defined(exp, &ht, outer_ctx, curEnv, scope,
+                                      errorState);
+                if (errorState->type)
+                    goto exit;
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_IMPORT],
-                                       cur, &ht)) {
-                            const FklNastNode *value =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_value, &ht);
-                            if (value->type == FKL_NAST_NIL
-                                || !fklIsNastNodeListAndHasSameType(
-                                    value, FKL_NAST_SYM)) {
-                                errorState->type = FKL_ERR_SYNTAXERROR;
-                                errorState->place = fklMakeNastNodeRef(cur);
-                                goto exit;
-                            }
-                            char *filename =
-                                combineFileNameFromListAndCheckPrivate(
-                                    value, &ctx->public_symbol_table);
-
-                            if (filename) {
-                                char *packageMainFileName =
-                                    fklStrCat(fklCopyCstr(filename),
-                                              FKL_PATH_SEPARATOR_STR);
-                                packageMainFileName = fklStrCat(
-                                    packageMainFileName, FKL_PACKAGE_MAIN_FILE);
-
-                                char *preCompileFileName =
-                                    fklStrCat(fklCopyCstr(packageMainFileName),
-                                              FKL_PRE_COMPILE_FKL_SUFFIX_STR);
-
-                                char *scriptFileName =
-                                    fklStrCat(fklCopyCstr(filename),
-                                              FKL_SCRIPT_FILE_EXTENSION);
-
-                                char *dllFileName = fklStrCat(
-                                    fklCopyCstr(filename), FKL_DLL_FILE_TYPE);
-
-                                r = fklIsAccessibleRegFile(packageMainFileName)
-                                 || fklIsAccessibleRegFile(scriptFileName)
-                                 || fklIsAccessibleRegFile(preCompileFileName)
-                                 || fklIsAccessibleRegFile(dllFileName);
-                                free(filename);
-                                free(scriptFileName);
-                                free(dllFileName);
-                                free(packageMainFileName);
-                                free(preCompileFileName);
-                            } else
-                                r = 0;
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                       exp, &ht)) {
+                r = cfg_check_importable(exp, &ht, outer_ctx, curEnv, scope,
+                                         errorState);
+                if (errorState->type)
+                    goto exit;
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_DEFMACRO],
-                                       cur, &ht)) {
-                            const FklNastNode *value =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_value, &ht);
-                            if (value->type == FKL_NAST_SYM)
-                                r = is_replacement_define(value, info, ctx,
-                                                          macroScope, curEnv);
-                            else if (value->type == FKL_NAST_PAIR
-                                     && value->pair->cdr->type == FKL_NAST_NIL
-                                     && value->pair->car->type
-                                            == FKL_NAST_SYM) {
-                                r = 0;
-                                FklSid_t id = value->pair->car->sym;
-                                for (const FklCodegenMacroScope *macros =
-                                         macroScope;
-                                     macros; macros = macros->prev) {
-                                    for (const FklCodegenMacro *cur =
-                                             macros->head;
-                                         cur; cur = cur->next) {
-                                        if (id
-                                            == cur->pattern->pair->car->sym) {
-                                            r = 1;
-                                            break;
-                                        }
-                                    }
-                                    if (r == 1)
-                                        break;
-                                }
-                            } else if (value->type == FKL_NAST_VECTOR
-                                       && value->vec->size == 1
-                                       && value->vec->base[0]->type
-                                              == FKL_NAST_SYM) {
-                                FklSid_t id = value->vec->base[0]->sym;
-                                r = *(info->g) != NULL
-                                 && fklGetHashItem(&id, info->named_prod_groups)
-                                        != NULL;
-                            } else {
-                                errorState->type = FKL_ERR_SYNTAXERROR;
-                                errorState->place = fklMakeNastNodeRef(cur);
-                                goto exit;
-                            }
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                       exp, &ht)) {
+                r = cfg_check_macro_defined(exp, &ht, outer_ctx, curEnv, scope,
+                                            macroScope, info, errorState);
+                if (errorState->type)
+                    goto exit;
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_EQ],
-                                       cur, &ht)) {
-                            const FklNastNode *arg0 =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_arg0, &ht);
-                            const FklNastNode *arg1 =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_arg1, &ht);
-                            if (arg0->type != FKL_NAST_SYM) {
-                                errorState->type = FKL_ERR_SYNTAXERROR;
-                                errorState->place = fklMakeNastNodeRef(cur);
-                                goto exit;
-                            }
-                            FklNastNode *node = get_replacement(
-                                arg0, info, ctx, macroScope, curEnv);
-                            if (node) {
-                                r = fklNastNodeEqual(node, arg1);
-                                fklDestroyNastNode(node);
-                            } else
-                                r = 0;
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                       exp, &ht)) {
+                r = cfg_check_eq(exp, &ht, outer_ctx, curEnv, macroScope, info,
+                                 errorState);
+                if (errorState->type)
+                    goto exit;
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_MATCH],
-                                       cur, &ht)) {
-                            const FklNastNode *arg0 =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_arg0, &ht);
-                            const FklNastNode *arg1 =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_arg1, &ht);
-                            if (arg0->type != FKL_NAST_SYM
-                                || !is_valid_compile_check_pattern(arg1)) {
-                                errorState->type = FKL_ERR_SYNTAXERROR;
-                                errorState->place = fklMakeNastNodeRef(cur);
-                                goto exit;
-                            }
-                            FklNastNode *node = get_replacement(
-                                arg0, info, ctx, macroScope, curEnv);
-                            if (node) {
-                                r = is_compile_check_pattern_matched(arg1,
-                                                                     node);
-                                fklDestroyNastNode(node);
-                            } else
-                                r = 0;
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                       exp, &ht)) {
+                r = cfg_check_matched(exp, &ht, outer_ctx, curEnv, macroScope,
+                                      info, errorState);
+                if (errorState->type)
+                    goto exit;
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_NOT],
-                                       cur, &ht)) {
-                            cgU8VectorPushBack2(&boolStack, 255);
-                            cgU8VectorPushBack2(&opStack,
-                                                COND_COMPILE_CHECK_OP_NOT);
-                            fklNastNodeVectorPushBack2(
-                                &expStack,
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_value, &ht));
-                            continue;
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                       exp, &ht)) {
+                ctx = cgCfgCtxVectorPushBack(&s, NULL);
+                ctx->r = 0;
+                ctx->rest = NULL;
+                ctx->method = cfg_check_not_method;
+                exp = fklPatternMatchingHashTableRef(
+                    outer_ctx->builtInPatternVar_value, &ht);
+                continue;
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_AND],
-                                       cur, &ht)) {
-                            const FklNastNode *rest =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_rest, &ht);
-                            if (rest->type == FKL_NAST_NIL)
-                                r = 1;
-                            else if (fklIsNastNodeList(rest)) {
-                                cgU8VectorPushBack2(&boolStack, 255);
-                                fklNastNodeVectorPushBack2(&expStack, NULL);
-                                cgU8VectorPushBack2(&opStack,
-                                                    COND_COMPILE_CHECK_OP_AND);
-                                for (; rest->type == FKL_NAST_PAIR;
-                                     rest = rest->pair->cdr)
-                                    fklNastNodeVectorPushBack2(&tmpStack,
-                                                               rest->pair->car);
-                                while (!fklNastNodeVectorIsEmpty(&tmpStack))
-                                    fklNastNodeVectorPushBack2(
-                                        &expStack,
-                                        *fklNastNodeVectorPopBack(&tmpStack));
-                                continue;
-                            } else {
-                                errorState->type = FKL_ERR_SYNTAXERROR;
-                                errorState->place = fklMakeNastNodeRef(cur);
-                                goto exit;
-                            }
-                        } else if (fklPatternMatch(
-                                       ctx->builtin_sub_pattern_node
+                                       exp, &ht)) {
+                const FklNastNode *rest = fklPatternMatchingHashTableRef(
+                    outer_ctx->builtInPatternVar_rest, &ht);
+                if (rest->type == FKL_NAST_NIL)
+                    r = 1;
+                else if (fklIsNastNodeList(rest)) {
+                    ctx = cgCfgCtxVectorPushBack(&s, NULL);
+                    ctx->r = 1;
+                    ctx->method = cfg_check_and_method;
+                    exp = rest->pair->car;
+                    ctx->rest = rest->pair->cdr;
+                    continue;
+                } else {
+                    errorState->type = FKL_ERR_SYNTAXERROR;
+                    errorState->place =
+                        fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                    goto exit;
+                }
+            } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_OR],
-                                       cur, &ht)) {
-                            const FklNastNode *rest =
-                                fklPatternMatchingHashTableRef(
-                                    ctx->builtInPatternVar_rest, &ht);
-                            if (rest->type == FKL_NAST_NIL)
-                                r = 0;
-                            else if (fklIsNastNodeList(rest)) {
-                                cgU8VectorPushBack2(&boolStack, 255);
-                                fklNastNodeVectorPushBack2(&expStack, NULL);
-                                cgU8VectorPushBack2(&opStack,
-                                                    COND_COMPILE_CHECK_OP_OR);
-                                for (; rest->type == FKL_NAST_PAIR;
-                                     rest = rest->pair->cdr)
-                                    fklNastNodeVectorPushBack2(&tmpStack,
-                                                               rest->pair->car);
-                                while (!fklNastNodeVectorIsEmpty(&tmpStack))
-                                    fklNastNodeVectorPushBack2(
-                                        &expStack,
-                                        *fklNastNodeVectorPopBack(&tmpStack));
-                                continue;
-                            } else {
-                                errorState->type = FKL_ERR_SYNTAXERROR;
-                                errorState->place = fklMakeNastNodeRef(cur);
-                                goto exit;
-                            }
-                        } else {
-                            errorState->type = FKL_ERR_SYNTAXERROR;
-                            errorState->place = fklMakeNastNodeRef(cur);
-                            goto exit;
-                        }
-                    } else if (cur->type == FKL_NAST_NIL)
-                        r = 0;
-                    else if (cur->type == FKL_NAST_SYM)
-                        r = is_replacement_true(cur, info, ctx, macroScope,
-                                                curEnv);
-                    else
-                        r = 1;
-                }
-            }
-            if (r == 255)
-                cgU8VectorPushBack2(&boolStack, 255);
-            uint8_t cond_compile_check_op = *cgU8VectorBack(&opStack);
-            switch (cond_compile_check_op) {
-            case COND_COMPILE_CHECK_OP_TRUE:
-                cgU8VectorPushBack2(&boolStack, r);
-                break;
-            case COND_COMPILE_CHECK_OP_NOT:
-                cgU8VectorPushBack2(&boolStack, !r);
-                break;
-            case COND_COMPILE_CHECK_OP_AND:
-                if (r == 255) {
-                    cgU8VectorPopBack(&boolStack);
-                    cgU8VectorPushBack2(&boolStack, 1);
-                } else if (r == 0) {
-                    for (; cur; cur = *fklNastNodeVectorPopBack(&expStack))
-                        ;
-                    cgU8VectorPushBack2(&boolStack, 0);
-                } else {
-                    cgU8VectorPushBack2(&boolStack, 255);
+                                       exp, &ht)) {
+                const FklNastNode *rest = fklPatternMatchingHashTableRef(
+                    outer_ctx->builtInPatternVar_rest, &ht);
+                if (rest->type == FKL_NAST_NIL)
+                    r = 0;
+                else if (fklIsNastNodeList(rest)) {
+                    ctx = cgCfgCtxVectorPushBack(&s, NULL);
+                    ctx->r = 0;
+                    ctx->method = cfg_check_or_method;
+                    exp = rest->pair->car;
+                    ctx->rest = rest->pair->cdr;
                     continue;
-                }
-                break;
-            case COND_COMPILE_CHECK_OP_OR:
-                if (r == 255) {
-                    cgU8VectorPopBack(&boolStack);
-                    cgU8VectorPushBack2(&boolStack, 0);
-                } else if (r == 1) {
-                    for (; cur; cur = *fklNastNodeVectorPopBack(&expStack))
-                        ;
-                    cgU8VectorPushBack2(&boolStack, 1);
                 } else {
-                    cgU8VectorPushBack2(&boolStack, 255);
-                    continue;
+                    errorState->type = FKL_ERR_SYNTAXERROR;
+                    errorState->place =
+                        fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                    goto exit;
                 }
-                break;
+            } else {
+                errorState->type = FKL_ERR_SYNTAXERROR;
+                errorState->place =
+                    fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                goto exit;
             }
-            cgU8VectorPopBack(&opStack);
+            break;
         }
 
-#undef COND_COMPILE_CHECK_OP_OR
-#undef COND_COMPILE_CHECK_OP_AND
-#undef COND_COMPILE_CHECK_OP_NOT
-#undef COND_COMPILE_CHECK_OP_TRUE
-
-        r = *cgU8VectorPopBack(&boolStack);
-    exit:
-        cgU8VectorUninit(&boolStack);
-        cgU8VectorUninit(&opStack);
-        fklNastNodeVectorUninit(&tmpStack);
-        fklNastNodeVectorUninit(&expStack);
-        fklUninitHashTable(&ht);
-        return r;
-    } else if (value->type == FKL_NAST_NIL)
-        return 0;
-    else if (value->type == FKL_NAST_SYM)
-        return is_replacement_true(value, info, ctx, macroScope, curEnv);
-    else
-        return 1;
+        while (!cgCfgCtxVectorIsEmpty(&s)) {
+            ctx = cgCfgCtxVectorBack(&s);
+            exp = ctx->method(ctx, r);
+            if (exp)
+                goto loop_start;
+            else {
+                r = ctx->r;
+                cgCfgCtxVectorPopBack(&s);
+            }
+        }
+        break;
+    }
+exit:
+    cgCfgCtxVectorUninit(&s);
+    fklUninitHashTable(&ht);
+    return r;
 }
 
 static CODEGEN_FUNC(codegen_check) {

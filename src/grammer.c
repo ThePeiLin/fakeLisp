@@ -134,8 +134,12 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
     r->ctx = ctx;
     r->ctx_destroyer = destroy;
     r->ctx_copyer = copyer;
-    r->syms = (FklGrammerSym *)calloc(len, sizeof(FklGrammerSym));
-    FKL_ASSERT(r->syms || !len);
+    if (!len)
+        r->syms = NULL;
+    else {
+        r->syms = (FklGrammerSym *)calloc(len, sizeof(FklGrammerSym));
+        FKL_ASSERT(r->syms);
+    }
     return r;
 }
 
@@ -2640,8 +2644,13 @@ static int lalr_item_qsort_cmp(const void *i0, const void *i1) {
 
 static inline void lalr_item_set_sort(FklHashTable *itemSet) {
     size_t num = itemSet->num;
-    FklLalrItem *item_array = (FklLalrItem *)malloc(num * sizeof(FklLalrItem));
-    FKL_ASSERT(item_array || !num);
+    FklLalrItem *item_array;
+    if (!num)
+        item_array = NULL;
+    else {
+        item_array = (FklLalrItem *)malloc(num * sizeof(FklLalrItem));
+        FKL_ASSERT(item_array);
+    }
 
     size_t i = 0;
     for (FklHashTableItem *l = itemSet->first; l; l = l->next, i++) {
@@ -3774,9 +3783,14 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
     int hasConflict = 0;
     grammer->aTable.num = states->num;
     FklSymbolTable *tt = &grammer->terminals;
-    FklAnalysisState *astates =
-        (FklAnalysisState *)malloc(states->num * sizeof(FklAnalysisState));
-    FKL_ASSERT(astates || !states->num);
+    FklAnalysisState *astates;
+    if (!states->num)
+        astates = NULL;
+    else {
+        astates =
+            (FklAnalysisState *)malloc(states->num * sizeof(FklAnalysisState));
+        FKL_ASSERT(astates);
+    }
     grammer->aTable.states = astates;
     FklHashTable idxTable;
     fklInitHashTable(&idxTable, &ItemStateIdxHashMetaTable);

@@ -114,16 +114,24 @@ FklNastVector *fklCreateNastVector(size_t size) {
     FklNastVector *vec = (FklNastVector *)malloc(sizeof(FklNastVector));
     FKL_ASSERT(vec);
     vec->size = size;
-    vec->base = (FklNastNode **)calloc(size, sizeof(FklNastNode *));
-    FKL_ASSERT(vec->base || !size);
+    if (!size)
+        vec->base = NULL;
+    else {
+        vec->base = (FklNastNode **)calloc(size, sizeof(FklNastNode *));
+        FKL_ASSERT(vec->base);
+    }
     return vec;
 }
 
 FklNastHashTable *fklCreateNastHash(FklHashTableEqType type, size_t num) {
     FklNastHashTable *r = (FklNastHashTable *)malloc(sizeof(FklNastHashTable));
     FKL_ASSERT(r);
-    r->items = (FklNastPair *)calloc(num, sizeof(FklNastPair));
-    FKL_ASSERT(r->items || !num);
+    if (!num)
+        r->items = NULL;
+    else {
+        r->items = (FklNastPair *)calloc(num, sizeof(FklNastPair));
+        FKL_ASSERT(r->items);
+    }
     r->num = num;
     r->type = type;
     return r;

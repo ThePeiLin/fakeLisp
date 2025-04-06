@@ -412,9 +412,14 @@ void fklLoadConstTable(FILE *fp, FklConstTable *kt) {
         int64_t num = 0;
         fread(&num, sizeof(num), 1, fp);
         size_t size = fklAbs(num) * sizeof(FklBigIntDigit);
-        FklBigIntDigit *mem = (FklBigIntDigit *)malloc(size);
-        FKL_ASSERT(mem || !num);
-        fread(mem, size, 1, fp);
+        FklBigIntDigit *mem;
+        if (!num)
+            mem = NULL;
+        else {
+            mem = (FklBigIntDigit *)malloc(size);
+            FKL_ASSERT(mem);
+            fread(mem, size, 1, fp);
+        }
         FklBigInt bi = FKL_BIGINT_0;
         fklInitBigIntFromMem(&bi, num, mem);
         fklAddBigIntConst(kt, &bi);
@@ -553,9 +558,13 @@ void fklDestroyByteCode(FklByteCode *obj) {
 void fklCodeConcat(FklByteCode *fir, const FklByteCode *sec) {
     uint32_t len = fir->len;
     fir->len = sec->len + fir->len;
-    fir->code = (FklInstruction *)fklRealloc(fir->code,
-                                             fir->len * sizeof(FklInstruction));
-    FKL_ASSERT(fir->code || !fir->len);
+    if (!fir->len)
+        fir->code = NULL;
+    else {
+        fir->code = (FklInstruction *)fklRealloc(
+            fir->code, fir->len * sizeof(FklInstruction));
+        FKL_ASSERT(fir->code);
+    }
     memcpy(&fir->code[len], sec->code, sizeof(FklInstruction) * sec->len);
 }
 
@@ -586,11 +595,15 @@ FklByteCode *fklCopyByteCode(const FklByteCode *obj) {
 FklByteCodelnt *fklCopyByteCodelnt(const FklByteCodelnt *obj) {
     FklByteCodelnt *tmp = fklCreateByteCodelnt(fklCopyByteCode(obj->bc));
     tmp->ls = obj->ls;
-    tmp->l = (FklLineNumberTableItem *)malloc(obj->ls
-                                              * sizeof(FklLineNumberTableItem));
-    FKL_ASSERT(tmp->l || !obj->ls);
-    for (size_t i = 0; i < obj->ls; i++)
-        tmp->l[i] = obj->l[i];
+    if (!obj->ls)
+        tmp->l = NULL;
+    else {
+        tmp->l = (FklLineNumberTableItem *)malloc(
+            obj->ls * sizeof(FklLineNumberTableItem));
+        FKL_ASSERT(tmp->l);
+        for (size_t i = 0; i < obj->ls; i++)
+            tmp->l[i] = obj->l[i];
+    }
     return tmp;
 }
 
@@ -1104,17 +1117,25 @@ void fklCodeLntConcat(FklByteCodelnt *f, const FklByteCodelnt *s) {
                 && f->l[f->ls - 1].scope == s->l[0].scope
                 && f->l[f->ls - 1].fid == s->l[0].fid) {
                 uint32_t size = f->ls + s->ls - 1;
-                f->l = (FklLineNumberTableItem *)fklRealloc(
-                    f->l, size * sizeof(FklLineNumberTableItem));
-                FKL_ASSERT(f->l || !size);
+                if (!size)
+                    f->l = NULL;
+                else {
+                    f->l = (FklLineNumberTableItem *)fklRealloc(
+                        f->l, size * sizeof(FklLineNumberTableItem));
+                    FKL_ASSERT(f->l);
+                }
                 memcpy(&f->l[f->ls], &s->l[1],
                        (s->ls - 1) * sizeof(FklLineNumberTableItem));
                 f->ls += s->ls - 1;
             } else {
                 uint32_t size = f->ls + s->ls;
-                f->l = (FklLineNumberTableItem *)fklRealloc(
-                    f->l, size * sizeof(FklLineNumberTableItem));
-                FKL_ASSERT(f->l || !size);
+                if (!size)
+                    f->l = NULL;
+                else {
+                    f->l = (FklLineNumberTableItem *)fklRealloc(
+                        f->l, size * sizeof(FklLineNumberTableItem));
+                    FKL_ASSERT(f->l);
+                }
                 memcpy(&f->l[f->ls], s->l,
                        (s->ls) * sizeof(FklLineNumberTableItem));
                 f->ls += s->ls;
@@ -1254,8 +1275,12 @@ FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t at) {
     FklInstruction ins = bc->code[at];
     for (uint64_t i = at; i < bc->len - 1; i++)
         bc->code[i] = bc->code[i + 1];
-    bc->code = (FklInstruction *)fklRealloc(bc->code, --bc->len);
-    FKL_ASSERT(bc->code || !bc->len);
+    if (!bc->len)
+        bc->code = NULL;
+    else {
+        bc->code = (FklInstruction *)fklRealloc(bc->code, --bc->len);
+        FKL_ASSERT(bc->code);
+    }
     return ins;
 }
 

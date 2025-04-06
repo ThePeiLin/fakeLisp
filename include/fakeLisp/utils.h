@@ -77,7 +77,6 @@ int fklIsFixAddOverflow(int64_t a, int64_t b);
 int fklIsFixMulOverflow(int64_t a, int64_t b);
 
 char *fklStrCat(char *, const char *);
-uint8_t *fklCreateByteArry(int32_t);
 
 char *fklCharBufToCstr(const char *buf, size_t size);
 

@@ -231,9 +231,13 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     FklVMproc *proc = FKL_VM_PROC(proc_obj);
     FklFuncPrototype *pt = &gc->pts->pa[proc->protoId];
     proc->rcount = pt->rcount;
-    FklVMvalue **closure =
-        (FklVMvalue **)malloc(proc->rcount * sizeof(FklVMvalue *));
-    FKL_ASSERT(closure || !proc->rcount);
+    FklVMvalue **closure;
+    if (!proc->rcount)
+        closure = NULL;
+    else {
+        closure = (FklVMvalue **)malloc(proc->rcount * sizeof(FklVMvalue *));
+        FKL_ASSERT(closure);
+    }
     for (uint32_t i = 0; i < proc->rcount; i++) {
         FklSymbolDef *cur_ref = &pt->refs[i];
         if (cur_ref->cidx < FKL_BUILTIN_SYMBOL_NUM)
@@ -1557,8 +1561,13 @@ void fklShrinkStack(FklVM *stack) {
             ;
         stack->last -= i * FKL_VM_STACK_INC_NUM;
         stack->size -= i * FKL_VM_STACK_INC_SIZE;
-        stack->base = (FklVMvalue **)fklRealloc(stack->base, stack->size);
-        FKL_ASSERT(stack->base || !stack->size);
+        if (stack->size) {
+            stack->base = (FklVMvalue **)fklRealloc(stack->base, stack->size);
+            FKL_ASSERT(stack->base);
+        } else {
+            free(stack->base);
+            stack->base = NULL;
+        }
     }
 }
 

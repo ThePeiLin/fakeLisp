@@ -612,12 +612,6 @@ char *fklStrCat(char *s1, const char *s2) {
     return s1;
 }
 
-uint8_t *fklCreateByteArry(int32_t size) {
-    uint8_t *tmp = (uint8_t *)malloc(size * sizeof(uint8_t));
-    FKL_ASSERT(tmp || !size);
-    return tmp;
-}
-
 char *fklCharBufToCstr(const char *buf, size_t size) {
     char *str = (char *)malloc((size + 1) * sizeof(char));
     FKL_ASSERT(str);
@@ -721,8 +715,13 @@ int fklIsFixMulOverflow(int64_t a, int64_t b) {
 char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
     uint64_t strSize = 0;
     uint64_t memSize = FKL_MAX_STRING_SIZE;
-    char *tmp = (char *)malloc(memSize * sizeof(char));
-    FKL_ASSERT(tmp || !memSize);
+    char *tmp;
+    if (!memSize)
+        tmp = NULL;
+    else {
+        tmp = (char *)malloc(memSize * sizeof(char));
+        FKL_ASSERT(tmp);
+    }
     for (size_t i = 0; i < size;) {
         int ch = 0;
         if (str[i] == '\\') {

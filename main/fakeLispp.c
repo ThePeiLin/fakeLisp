@@ -323,8 +323,13 @@ static void loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs,
                     FklSymbolTable *table) {
     fread(pnum, sizeof(uint64_t), 1, fp);
     size_t num = *pnum;
-    FklCodegenLib *libs = (FklCodegenLib *)malloc(sizeof(FklCodegenInfo) * num);
-    FKL_ASSERT(libs || !num);
+    FklCodegenLib *libs;
+    if (!num)
+        libs = NULL;
+    else {
+        libs = (FklCodegenLib *)malloc(sizeof(FklCodegenInfo) * num);
+        FKL_ASSERT(libs);
+    }
     *plibs = libs;
     for (size_t i = 0; i < num; i++) {
         FklCodegenLibType libType = FKL_CODEGEN_LIB_SCRIPT;

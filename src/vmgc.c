@@ -342,8 +342,12 @@ FklVMvalue **fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast,
     }
     if (!r) {
         *pllast = llast;
-        r = (FklVMvalue **)malloc(llast * sizeof(FklVMvalue *));
-        FKL_ASSERT(r || !llast);
+        if (!llast)
+            r = NULL;
+        else {
+            r = (FklVMvalue **)malloc(llast * sizeof(FklVMvalue *));
+            FKL_ASSERT(r);
+        }
         atomic_fetch_add(&gc->num, llast);
     }
     return r;
@@ -373,8 +377,12 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc, uint32_t llast,
     }
     if (!r) {
         *pllast = llast;
-        r = (FklVMvalue **)malloc(llast * sizeof(FklVMvalue *));
-        FKL_ASSERT(r || !llast);
+        if (!llast)
+            r = NULL;
+        else {
+            r = (FklVMvalue **)malloc(llast * sizeof(FklVMvalue *));
+            FKL_ASSERT(r);
+        }
         atomic_fetch_add(&gc->num, llast);
     }
     return r;

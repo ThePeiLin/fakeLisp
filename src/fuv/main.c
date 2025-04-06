@@ -2425,8 +2425,13 @@ static int fuv_stream_write_queue_size(FKL_CPROC_ARGL) {
 
 static void fuv_alloc_cb(uv_handle_t *handle, size_t suggested_size,
                          uv_buf_t *buf) {
-    char *base = (char *)malloc(suggested_size);
-    FKL_ASSERT(base || !suggested_size);
+    char *base;
+    if (!suggested_size)
+        base = NULL;
+    else {
+        base = (char *)malloc(suggested_size);
+        FKL_ASSERT(base);
+    }
     buf->base = base;
     buf->len = suggested_size;
 }
@@ -3819,8 +3824,13 @@ static void fuv_udp_alloc_cb(uv_handle_t *handle, size_t suggested_size,
         int64_t num_msgs = udp_handle->mmsg_num_msgs;
         buffer_size = MAX_DGRAM_SIZE * num_msgs;
     }
-    char *base = (char *)malloc(buffer_size);
-    FKL_ASSERT(base || !buffer_size);
+    char *base;
+    if (!buffer_size)
+        base = NULL;
+    else {
+        base = (char *)malloc(buffer_size);
+        FKL_ASSERT(base);
+    }
     buf->base = base;
     buf->len = buffer_size;
 }

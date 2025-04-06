@@ -2072,9 +2072,13 @@ static inline FklByteCodelnt *processArgsInStack(FklUintVector *stack,
 static inline FklSymbolDef *sid_ht_to_idx_key_ht(FklHashTable *sht,
                                                  FklSymbolTable *globalSymTable,
                                                  FklSymbolTable *pst) {
-    FklSymbolDef *refs =
-        (FklSymbolDef *)malloc(sht->num * sizeof(FklSymbolDef));
-    FKL_ASSERT(refs || !sht->num);
+    FklSymbolDef *refs;
+    if (!sht->num)
+        refs = NULL;
+    else {
+        refs = (FklSymbolDef *)malloc(sht->num * sizeof(FklSymbolDef));
+        FKL_ASSERT(refs);
+    }
     FklHashTableItem *list = sht->first;
     for (; list; list = list->next) {
         FklSymbolDef *sd = (FklSymbolDef *)list->data;
@@ -2379,9 +2383,15 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp, FklCodegenEnv *env,
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
     FklHashTable *eht = &env->refs;
     uint32_t count = eht->num;
-    FklSymbolDef *refs =
-        (FklSymbolDef *)fklRealloc(pts->refs, count * sizeof(FklSymbolDef));
-    FKL_ASSERT(refs || !count);
+
+    FklSymbolDef *refs;
+    if (!count)
+        refs = NULL;
+    else {
+        refs =
+            (FklSymbolDef *)fklRealloc(pts->refs, count * sizeof(FklSymbolDef));
+        FKL_ASSERT(refs);
+    }
     pts->refs = refs;
     pts->rcount = count;
     for (FklHashTableItem *list = eht->first; list; list = list->next) {
@@ -7288,9 +7298,14 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
     FklNastNodeVector valid_items;
     fklNastNodeVectorInit(&valid_items, vec->size);
 
-    uint8_t *delim = (uint8_t *)malloc(vec->size * sizeof(uint8_t));
-    FKL_ASSERT(delim || !vec->size);
-    memset(delim, 1, sizeof(uint8_t) * vec->size);
+    uint8_t *delim;
+    if (!vec->size)
+        delim = NULL;
+    else {
+        delim = (uint8_t *)malloc(vec->size * sizeof(uint8_t));
+        FKL_ASSERT(delim);
+        memset(delim, 1, sizeof(uint8_t) * vec->size);
+    }
 
     for (size_t i = 0; i < vec->size; i++) {
         const FklNastNode *cur = vec->base[i];

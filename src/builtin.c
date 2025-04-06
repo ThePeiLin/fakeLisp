@@ -1743,8 +1743,12 @@ static inline int do_custom_parser_reduce_action(
     symbolStack->top -= len;
     void **nodes = NULL;
     if (len) {
-        nodes = (void **)malloc(len * sizeof(void *));
-        FKL_ASSERT(nodes || !len);
+        if (!len)
+            nodes = NULL;
+        else {
+            nodes = (void **)malloc(len * sizeof(void *));
+            FKL_ASSERT(nodes);
+        }
         const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->top];
         for (size_t i = 0; i < len; i++) {
             nodes[i] = base[i].ast;

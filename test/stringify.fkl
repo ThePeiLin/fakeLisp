@@ -100,3 +100,28 @@
 (nthcdr-set! 3 j f)
 (assert (equal "#0=(1 2 3 #1=(5 6 7 #1#,#0#) #0# 6 7 #0#)"
                (println (stringify f))))
+
+
+(defmacro ~(my-quote ~a) `(quote ~a))
+
+(assert (equal "\"abcd\""
+               (println (stringify (my-quote "abcd")))))
+(assert (equal "(|quote| (|foo|,|bar|))"
+               (println (stringify (my-quote '(foo,bar))))))
+(assert (equal "#&(|foo|,|bar|)"
+               (println (stringify (my-quote #&(foo,bar))))))
+(assert (equal "#()"
+               (println (stringify (my-quote #())))))
+(assert (equal "#(#&(|foo|,|bar|) (|quote| (|bar|,#())))"
+               (println (stringify (my-quote #(#&(foo,bar) '(bar,#())))))))
+(assert (equal "#hash()"
+               (println (stringify (my-quote #hash())))))
+(assert (equal "#hash((|foo|,|bar|))"
+               (println (stringify (my-quote #hash((foo,bar)))))))
+(assert (equal "#hashequal((|foo|,|foo|) (#&(|foo|,|bar|),(|quote| (|bar|,#()))) ((|foo|,|bar|),#(#&(|foo|,|bar|) (|quote| (|bar|,#())))))"
+               (println (stringify (my-quote #hashequal(
+                                                        (foo,bar)
+                                                        (#&(foo,bar) , '(bar,#()))
+                                                        ((foo,bar) , #(#&(foo,bar) '(bar,#())))
+                                                        (foo,foo)
+                                                        ))))))

@@ -28,6 +28,7 @@
     (test-except)
     (bigint)
     (parse)
+    (stringify)
     (read)
     (bigloop)
     (dll)

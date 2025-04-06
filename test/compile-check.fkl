@@ -1,51 +1,57 @@
+(import (only (.. lib utils) assert))
 (println "\ncompile check test")
 
 ;; 1
 (println (cfg *main?*))
 
 ;; 1
-(println (cfg (and)))
+(assert (println (cfg (and))))
 
 ;; ()
-(println
-  (cfg
-    (and (not bar)
-      (and *main?* (not foo))
-      (and (not *main?*) (not foo)))))
+(assert
+  (not (println
+         (cfg
+           (and (not bar)
+             (and *main?* (not foo))
+             (and (not *main?*) (not foo)))))))
 
 ;; 1
-(println
-  (cfg
-    (and (not bar)
-      (and *main?* (not foo)))))
+(assert
+  (println
+    (cfg
+      (and (not bar)
+        (and *main?* (not foo))))))
 
 ;; 1
-(println
-  (cfg
-    (not (and (not bar)
-           (and *main?* (not foo))
-           (and (not *main?*) (not foo))))))
+(assert
+  (println
+    (cfg
+      (not (and (not bar)
+             (and *main?* (not foo))
+             (and (not *main?*) (not foo)))))))
 
 ;; ()
-(println (cfg (or)))
+(assert (not (println (cfg (or)))))
 
 ;; 1
-(println
-  (cfg
-    (or bar
-      (or *main?* foo))))
+(assert
+  (println
+    (cfg
+      (or bar
+        (or *main?* foo)))))
 
 ;; ()
-(println
-  (cfg
-    (or bar
-      (or (not *main?*) foo))))
+(assert
+  (not (println
+         (cfg
+           (or bar
+             (or (not *main?*) foo))))))
 
 ;; 1
-(println (cfg (import (.. lib json))))
+(assert (println (cfg (import (.. lib json)))))
 
 ;; ()
-(println (cfg (import (foobar))))
+(assert (not (println (cfg (import (foobar))))))
 
 (defmacro foo 'bar)
 (defmacro ~(foobar) 'foobar)
@@ -53,25 +59,27 @@
 (defmacro #&foobar
   #(#[#&"/\\*\\*/|^/\\*.*\\*/$"]))
 
-(println (cfg (defmacro foo))) ;; 1
-(println (cfg (defmacro (foobar)))) ;; 1
-(println (cfg (defmacro #(foobar)))) ;; 1
+(assert (println (cfg (defmacro foo)))) ;; 1
+(assert (println (cfg (defmacro (foobar))))) ;; 1
+(assert (println (cfg (defmacro #(foobar))))) ;; 1
 
 ;; 1
-(println (cfg (and
-                (defmacro foo)
-                (defmacro (foobar))
-                (defmacro #(foobar)))))
+(assert
+  (println (cfg (and
+                  (defmacro foo)
+                  (defmacro (foobar))
+                  (defmacro #(foobar))))))
 
-(println (cfg (defmacro bar))) ;; ()
-(println (cfg (defmacro (barfoo)))) ;;()
-(println (cfg (defmacro #(barfoo)))) ;;()
+(assert (not (println (cfg (defmacro bar))))) ;; ()
+(assert (not (println (cfg (defmacro (barfoo)))))) ;;()
+(assert (not (println (cfg (defmacro #(barfoo)))))) ;;()
 
 ;; ()
-(println (cfg (or
-                (defmacro bar)
-                (defmacro (barfoo))
-                (defmacro #(barfoo)))))
+(assert
+  (not (println (cfg (or
+                       (defmacro bar)
+                       (defmacro (barfoo))
+                       (defmacro #(barfoo)))))))
 
 ;; main!
 (cfg *main?* (println "main!"))
@@ -106,7 +114,7 @@
   1 (println "not linux!"))
 
 ;; always
-(cfg 1 (println "always"))
+(assert (equal (cfg 1 (println "always")) "always"))
 
 (println "done!")
 
@@ -116,15 +124,15 @@
 
 (defmacro manifest #hash((foo,114) (bar,514)))
 
-(println (cfg (match foobar ~(foo))))
+(assert (println (cfg (match foobar ~(foo)))))
 
-(println (cfg (match foobar ~(~*))))
+(assert (println (cfg (match foobar ~(~*)))))
 
-(println (cfg (match version ~#(114 ~* ~*))))
+(assert (println (cfg (match version ~#(114 ~* ~*)))))
 
-(println (cfg (match version ~#(514 ~* ~*))))
+(assert (not (println (cfg (match version ~#(514 ~* ~*))))))
 
-(println (cfg (match manifest ~#hash((foo,~*) (bar,~*)))))
+(assert (println (cfg (match manifest ~#hash((foo,~*) (bar,~*))))))
 
 (define sys-info
   (cfg

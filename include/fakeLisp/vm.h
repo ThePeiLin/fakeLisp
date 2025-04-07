@@ -253,7 +253,9 @@ typedef struct FklCprocFrameContext {
     FklVMcFunc func;
     FklVMvalue *pd;
     union {
+        void *pointer;
         uintptr_t context;
+        intptr_t icontext;
         struct {
             union {
                 uint32_t cau;

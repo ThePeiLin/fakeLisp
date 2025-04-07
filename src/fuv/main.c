@@ -565,8 +565,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
         }
         if (setjmp(fuv_loop->data.buf)) {
             need_continue = 1;
-            ctx->context =
-                (uintptr_t)fklMoveVMframeToTop(exe, origin_top_frame);
+            ctx->pointer = fklMoveVMframeToTop(exe, origin_top_frame);
         } else {
             fuv_loop->data.mode = mode;
             fklUnlockThread(exe);
@@ -586,7 +585,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
         return need_continue;
     } break;
     default: {
-        FklVMframe *prev = (FklVMframe *)ctx->context;
+        FklVMframe *prev = FKL_TYPE_CAST(FklVMframe *, ctx->pointer);
         fklInsertTopVMframeAsPrev(exe, prev);
         fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
     } break;
@@ -645,8 +644,7 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
         fklLockThread(exe);
         if (walk_ctx.ev) {
             need_continue = 1;
-            ctx->context =
-                (uintptr_t)fklMoveVMframeToTop(exe, origin_top_frame);
+            ctx->pointer = fklMoveVMframeToTop(exe, origin_top_frame);
 
         } else {
             while (exe->top_frame != origin_top_frame)
@@ -657,7 +655,7 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
         return need_continue;
     } break;
     default: {
-        FklVMframe *prev = (FklVMframe *)ctx->context;
+        FklVMframe *prev = FKL_TYPE_CAST(FklVMframe *, ctx->pointer);
         fklInsertTopVMframeAsPrev(exe, prev);
         fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
     } break;

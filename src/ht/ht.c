@@ -214,7 +214,7 @@ static int ht_ht_values(FKL_CPROC_ARGL) {
 #define KEY_EQUAL()                                                            \
     FklVMhashTableItem *i = (FklVMhashTableItem *)((*slot)->data);             \
     FklVMvalue *key = FKL_VM_GET_VALUE(exe, 2);                                \
-    ctx->context = (uintptr_t)slot;                                            \
+    ctx->pointer = slot;                                                       \
     fklSetBp(exe);                                                             \
     FKL_VM_PUSH_VALUE(exe, i->key);                                            \
     FKL_VM_PUSH_VALUE(exe, key);                                               \
@@ -256,7 +256,8 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
         }
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
             FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -333,7 +334,8 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
         }
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
 
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -417,7 +419,8 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NO_VALUE_FOR_KEY, exe);
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
             FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -477,7 +480,8 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
         }
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
             FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -530,7 +534,8 @@ static int ht_ht_ref7(FKL_CPROC_ARGL) {
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
             FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -580,7 +585,8 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
             FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -630,7 +636,8 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
     } break;
     default: {
-        FklHashTableItem **slot = (FklHashTableItem **)ctx->context;
+        FklHashTableItem **slot =
+            FKL_TYPE_CAST(FklHashTableItem **, ctx->pointer);
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);

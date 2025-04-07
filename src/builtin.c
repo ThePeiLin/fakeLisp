@@ -3302,15 +3302,14 @@ static int builtin_idle(FKL_CPROC_ARGL) {
         FklVMframe *origin_top_frame = exe->top_frame;
         fklCallObj(exe, proc);
         fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
-        if (ctx->context) {
-            ctx->context =
-                (uintptr_t)fklMoveVMframeToTop(exe, origin_top_frame);
+        if (ctx->pointer) {
+            ctx->pointer = fklMoveVMframeToTop(exe, origin_top_frame);
             return 1;
         }
         return 0;
     }
     default: {
-        FklVMframe *frame = (FklVMframe *)ctx->context;
+        FklVMframe *frame = ctx->pointer;
         fklInsertTopVMframeAsPrev(exe, frame);
         fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
     } break;
@@ -3444,7 +3443,7 @@ static int builtin_map(FKL_CPROC_ARGL) {
         }
 
         FklVMvalue *resultBox = fklCreateVMvalueBox(exe, FKL_VM_NIL);
-        ctx->context = (uintptr_t)&FKL_VM_BOX(resultBox);
+        ctx->pointer = &FKL_VM_BOX(resultBox);
         ctx->rtp = rtp;
         FKL_VM_GET_VALUE(exe, arg_num + 1) = resultBox;
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -3458,11 +3457,11 @@ static int builtin_map(FKL_CPROC_ARGL) {
         return 1;
     } break;
     default: {
-        FklVMvalue **cur = (FklVMvalue **)(ctx->context);
+        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->pointer);
         FklVMvalue *r = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *pair = fklCreateVMvaluePairWithCar(exe, r);
         *cur = pair;
-        ctx->context = (uintptr_t)&FKL_VM_CDR(pair);
+        ctx->pointer = &FKL_VM_CDR(pair);
         size_t arg_num = exe->tp - ctx->rtp;
         FklVMvalue **base = &FKL_VM_GET_VALUE(exe, arg_num - 1);
         if (base[0] == FKL_VM_NIL)
@@ -3691,7 +3690,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
             return 0;
         }
         FklVMvalue *resultBox = fklCreateVMvalueBoxNil(exe);
-        ctx->context = (uintptr_t)&FKL_VM_BOX(resultBox);
+        ctx->pointer = &FKL_VM_BOX(resultBox);
         ctx->rtp = exe->tp;
         FKL_VM_PUSH_VALUE(exe, resultBox);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -3702,7 +3701,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
         return 1;
     } break;
     default: {
-        FklVMvalue **cur = (FklVMvalue **)(ctx->context);
+        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->pointer);
         FklVMvalue *r = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue **plist = &FKL_VM_GET_VALUE(exe, 1);
         FklVMvalue *list = *plist;
@@ -3710,7 +3709,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
             FklVMvalue *pair =
                 fklCreateVMvaluePairWithCar(exe, FKL_VM_CAR(list));
             *cur = pair;
-            ctx->context = (uintptr_t)&FKL_VM_CDR(pair);
+            ctx->pointer = &FKL_VM_CDR(pair);
         }
         list = FKL_VM_CDR(list);
         if (list == FKL_VM_NIL)

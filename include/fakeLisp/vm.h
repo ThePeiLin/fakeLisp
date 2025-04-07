@@ -395,7 +395,7 @@ typedef struct FklVM {
     uint32_t bp;
     FklVMvalue **base;
 
-    FklVMframe static_frame;
+    FklVMframe inplace_frame;
     FklVMframe *top_frame;
 
     FklVMframe *frame_cache_head;

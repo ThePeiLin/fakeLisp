@@ -258,7 +258,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->next = exe;
     exe->pts = pts;
     exe->gc = fklCreateVMgc(runtime_st, runtime_kt, pts);
-    exe->frame_cache_head = &exe->static_frame;
+    exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     fklInitGlobalVMclosureForGC(exe);
     if (mainCode != NULL) {
@@ -805,7 +805,7 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
     FklVMframe **phead = &exe->frame_cache_head;
     while (*phead) {
         FklVMframe *prev = *phead;
-        if (prev == &exe->static_frame)
+        if (prev == &exe->inplace_frame)
             phead = &prev->prev;
         else {
             *phead = prev->prev;
@@ -1651,7 +1651,7 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num,
     exe->libNum = lib_num;
     exe->libs = libs;
     exe->pts = gc->pts;
-    exe->frame_cache_head = &exe->static_frame;
+    exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
@@ -1672,7 +1672,7 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall, FklVM *prev, FklVM *next,
     exe->libNum = libNum;
     exe->libs = copy_vm_libs(libs, libNum + 1);
     exe->pts = prev->pts;
-    exe->frame_cache_head = &exe->static_frame;
+    exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->state = FKL_VM_READY;
     memcpy(exe->rand_state, prev->rand_state, sizeof(uint64_t[4]));

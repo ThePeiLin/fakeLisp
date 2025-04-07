@@ -2718,47 +2718,43 @@ static inline FklVMvalue *isSlot(const FklVMvalue *head, const FklVMvalue *v) {
     return NULL;
 }
 
-// VmPairQueue
-#define FKL_QUEUE_TYPE_PREFIX Vm
-#define FKL_QUEUE_METHOD_PREFIX vm
-#define FKL_QUEUE_ELM_TYPE FklVMpair
-#define FKL_QUEUE_ELM_TYPE_NAME Pair
-#include <fakeLisp/queue.h>
-
 static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
                                 FklHashTable *ht, FklVMgc *gc) {
     FklVMvalue *slotS = FKL_VM_CAR(pattern);
-    VmPairQueue q;
-    vmPairQueueInit(&q);
-    vmPairQueuePush2(
-        &q, (FklVMpair){.car = FKL_VM_CAR(FKL_VM_CDR(pattern)), .cdr = exp});
+    FklVMpairVector s;
+    fklVMpairVectorInit(&s, 8);
+    fklVMpairVectorPushBack2(
+        &s, (FklVMpair){.car = FKL_VM_CAR(FKL_VM_CDR(pattern)), .cdr = exp});
     int r = 0;
-    while (!vmPairQueueIsEmpty(&q)) {
-        const FklVMpair *p = vmPairQueuePop(&q);
+    while (!fklVMpairVectorIsEmpty(&s)) {
+        const FklVMpair *p = fklVMpairVectorPopBack(&s);
         FklVMvalue *v0 = p->car;
         FklVMvalue *v1 = p->cdr;
         FklVMvalue *slotV = isSlot(slotS, v0);
         if (slotV)
             fklVMhashTableSet(slotV, v1, ht);
         else if (FKL_IS_BOX(v0) && FKL_IS_BOX(v1)) {
-            vmPairQueuePush2(
-                &q, (FklVMpair){.car = FKL_VM_BOX(v0), .cdr = FKL_VM_BOX(v1)});
+            fklVMpairVectorPushBack2(
+                &s, (FklVMpair){.car = FKL_VM_BOX(v0), .cdr = FKL_VM_BOX(v1)});
         } else if (FKL_IS_PAIR(v0) && FKL_IS_PAIR(v1)) {
-            vmPairQueuePush2(
-                &q, (FklVMpair){.car = FKL_VM_CAR(v0), .cdr = FKL_VM_CAR(v1)});
-            vmPairQueuePush2(
-                &q, (FklVMpair){.car = FKL_VM_CDR(v0), .cdr = FKL_VM_CDR(v1)});
+            fklVMpairVectorPushBack2(
+                &s, (FklVMpair){.car = FKL_VM_CDR(v0), .cdr = FKL_VM_CDR(v1)});
+            fklVMpairVectorPushBack2(
+                &s, (FklVMpair){.car = FKL_VM_CAR(v0), .cdr = FKL_VM_CAR(v1)});
         } else if (FKL_IS_VECTOR(v0) && FKL_IS_VECTOR(v1)) {
             FklVMvec *vec0 = FKL_VM_VEC(v0);
             FklVMvec *vec1 = FKL_VM_VEC(v1);
             r = vec0->size != vec1->size;
             if (r)
                 break;
-            FklVMvalue **b0 = vec0->base;
-            FklVMvalue **b1 = vec1->base;
-            size_t size = vec0->size;
-            for (size_t i = 0; i < size; i++) {
-                vmPairQueuePush2(&q, (FklVMpair){.car = b0[i], .cdr = b1[i]});
+            FklVMvalue **const b0 = vec0->base;
+            FklVMvalue **const b1 = vec1->base;
+            FklVMvalue **c0 = b0 + vec0->size;
+            FklVMvalue **c1 = b1 + vec1->size;
+
+            for (; c0 > b0; --c0, --c1) {
+                fklVMpairVectorPushBack2(&s,
+                                         (FklVMpair){.car = *c0, .cdr = *c1});
             }
         } else if (FKL_IS_HASHTABLE(v0) && FKL_IS_HASHTABLE(v1)) {
             FklHashTable *h0 = FKL_VM_HASH(v0);
@@ -2766,23 +2762,24 @@ static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
             r = h0->t != h1->t || h0->num != h1->num;
             if (r)
                 break;
-            FklHashTableItem *hl0 = h0->first;
-            FklHashTableItem *hl1 = h1->first;
+            FklHashTableItem *hl0 = h0->last;
+            FklHashTableItem *hl1 = h1->last;
             while (h0) {
                 FklVMhashTableItem *i0 = (FklVMhashTableItem *)hl0->data;
                 FklVMhashTableItem *i1 = (FklVMhashTableItem *)hl1->data;
-                vmPairQueuePush2(&q,
-                                 (FklVMpair){.car = i0->key, .cdr = i1->key});
-                vmPairQueuePush2(&q, (FklVMpair){.car = i0->v, .cdr = i1->v});
-                hl0 = hl0->next;
-                hl1 = hl1->next;
+                fklVMpairVectorPushBack2(
+                    &s, (FklVMpair){.car = i0->v, .cdr = i1->v});
+                fklVMpairVectorPushBack2(
+                    &s, (FklVMpair){.car = i0->key, .cdr = i1->key});
+                hl0 = hl0->prev;
+                hl1 = hl1->prev;
             }
         } else if (!fklVMvalueEqual(v0, v1)) {
             r = 1;
             break;
         }
     }
-    vmPairQueueUninit(&q);
+    fklVMpairVectorUninit(&s);
     return r;
 }
 

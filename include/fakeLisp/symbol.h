@@ -88,6 +88,11 @@ typedef struct // unresolved symbol ref
 #define FKL_VECTOR_ELM_TYPE_NAME UnReSymbolRef
 #include "vector.h"
 
+// FklSidVector
+#define FKL_VECTOR_ELM_TYPE FklSid_t
+#define FKL_VECTOR_ELM_TYPE_NAME Sid
+#include "vector.h"
+
 void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);
 

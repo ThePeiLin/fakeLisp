@@ -73,8 +73,10 @@ else()
 endif()
 
 #testing
-enable_testing()
-
+if(NOT MSVC)
+    enable_testing()
+endif()
+ 
 add_library(test_lib
 	OBJECT
 	"src/base.c"

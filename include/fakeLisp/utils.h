@@ -2,6 +2,7 @@
 #define FKL_UTILS_H
 
 #include "base.h"
+#include "common.h"
 
 #include <assert.h>
 #include <stddef.h>

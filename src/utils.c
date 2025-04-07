@@ -10,12 +10,13 @@
 #include <string.h>
 #include <time.h>
 #ifdef WIN32
+#include <windows.h>
+
 #include <direct.h>
 #include <io.h>
 #include <libloaderapi.h>
 #include <process.h>
 #include <timeapi.h>
-#include <windows.h>
 #else
 #include <unistd.h>
 #endif

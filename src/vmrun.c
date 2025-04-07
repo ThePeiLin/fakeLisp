@@ -284,10 +284,6 @@ void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, FklVMgc *gc) {
         fprintf(fp, "at callable-obj\n");
 }
 
-int fklDoCallableObjFrameStep(FklVMframe *f, FklVM *exe) {
-    return f->t->step(fklGetFrameData(f), exe);
-}
-
 void fklDoFinalizeObjFrame(FklVM *vm, FklVMframe *f) {
     if (f->t->finalizer)
         f->t->finalizer(fklGetFrameData(f));
@@ -341,9 +337,11 @@ FklVMframe *fklMoveVMframeToTop(FklVM *exe, FklVMframe *f) {
     FklVMframe *prev = exe->top_frame;
     for (; prev && prev->prev != f; prev = prev->prev)
         ;
-    prev->prev = f->prev;
-    f->prev = exe->top_frame;
-    exe->top_frame = f;
+    if (prev) {
+        prev->prev = f->prev;
+        f->prev = exe->top_frame;
+        exe->top_frame = f;
+    }
     return prev;
 }
 

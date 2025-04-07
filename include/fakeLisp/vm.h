@@ -192,21 +192,12 @@ typedef struct {
     FklVMvalue *v;
 } FklVMhashTableItem;
 
-#ifdef WIN32
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    uint32_t idx;
-    atomic_uintptr_t ref;
-    FklVMvalue *v;
-} FklVMvalueVarRef;
-#else
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
     uint32_t idx;
     _Atomic(FklVMvalue **) ref;
     FklVMvalue *v;
 } FklVMvalueVarRef;
-#endif
 
 typedef struct FklVMproc {
     FklInstruction *spc;
@@ -318,7 +309,11 @@ void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
 void fklDoAtomicFrame(FklVMframe *f, struct FklVMgc *);
 void fklDoCopyObjFrameContext(FklVMframe *, FklVMframe *, struct FklVM *exe);
 void *fklGetFrameData(FklVMframe *f);
-int fklDoCallableObjFrameStep(FklVMframe *f, struct FklVM *exe);
+
+static inline int fklDoCallableObjFrameStep(FklVMframe *f, struct FklVM *exe) {
+    return f->t->step(fklGetFrameData(f), exe);
+}
+
 void fklDoFinalizeObjFrame(struct FklVM *, FklVMframe *f);
 void fklDoFinalizeCompoundFrame(struct FklVM *exe, FklVMframe *frame);
 void fklCloseVMvalueVarRef(FklVMvalue *ref);
@@ -1011,12 +1006,7 @@ int fklIsVMeofUd(FklVMvalue *v);
 
 #define FKL_VM_CO(V) FKL_GET_UD_DATA(FklByteCodelnt, FKL_VM_UD(V))
 
-#ifdef WIN32
-#define FKL_VM_VAR_REF_GET(V)                                                  \
-    ((FklVMvalue **)(atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
-#else
 #define FKL_VM_VAR_REF_GET(V) ((atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
-#endif
 
 // vmparser
 

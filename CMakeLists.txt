@@ -59,10 +59,10 @@ add_custom_target(COPY_LIB ALL
 	BYPRODUCTS ${CMAKE_BINARY_DIR}/lib
 	VERBATIM)
 
-#copy test/*.fkl
+#copy tests/*.fkl
 add_custom_target(COPY_TEST ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/test/ ${CMAKE_BINARY_DIR}/test/
-	BYPRODUCTS ${CMAKE_BINARY_DIR}/test/
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/tests/ ${CMAKE_BINARY_DIR}/tests/
+	BYPRODUCTS ${CMAKE_BINARY_DIR}/tests/
 	VERBATIM)
 
 #warnnig setting
@@ -72,11 +72,6 @@ else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()
 
-#testing
-if(NOT MSVC)
-    enable_testing()
-endif()
- 
 add_library(test_lib
 	OBJECT
 	"src/base.c"
@@ -87,25 +82,25 @@ add_library(test_lib
 	"src/regex.c"
 	"src/bigint.c")
 
-add_executable(test-lexer "main/test/lexer.c")
+add_executable(test-lexer "main/tests/lexer.c")
 target_link_libraries(test-lexer test_lib ${LINK_TARGET})
 
-add_executable(test-lexer2 "main/test/lexer2.c")
+add_executable(test-lexer2 "main/tests/lexer2.c")
 target_link_libraries(test-lexer2 test_lib ${LINK_TARGET})
 
-add_executable(test-regex "main/test/regex.c")
+add_executable(test-regex "main/tests/regex.c")
 target_link_libraries(test-regex test_lib ${LINK_TARGET})
 
-add_executable(test-grammer "main/test/grammer.c")
+add_executable(test-grammer "main/tests/grammer.c")
 target_link_libraries(test-grammer test_lib ${LINK_TARGET})
 
-add_executable(test-parser "main/test/parser.c" "src/parser.c" ${PARSE})
+add_executable(test-parser "main/tests/parser.c" "src/parser.c" ${PARSE})
 target_link_libraries(test-parser test_lib ${LINK_TARGET})
 
-add_executable(test-bigint "main/test/bi.c")
+add_executable(test-bigint "main/tests/bi.c")
 target_link_libraries(test-bigint test_lib ${LINK_TARGET})
 
-add_executable(test-ins "main/test/ins.c")
+add_executable(test-ins "main/tests/ins.c")
 target_link_libraries(test-ins ${LIBFKL_TARGET_NAME})
 
 #grammer
@@ -115,8 +110,8 @@ file(GLOB GRAMMER_GEN_SOURCE
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
 
-add_executable(test-dns "main/test/dns.c")
-add_executable(test-fs-event "main/test/fs_event.c")
+add_executable(test-dns "main/tests/dns.c")
+add_executable(test-fs-event "main/tests/fs_event.c")
 
 if(MSVC)
 	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
@@ -347,13 +342,13 @@ target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argt
 #test-dll
 add_library(test-dll
 	SHARED
-	"main/test/dll.c")
+	"main/tests/dll.c")
 set_target_properties(test-dll PROPERTIES
 	PREFIX "")
 target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
 
 set_target_properties(test-dll PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test")
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
@@ -390,10 +385,10 @@ add_test(NAME test-ins
 	COMMAND $<TARGET_FILE:test-ins>)
 
 add_test(NAME test-script
-	COMMAND ${INTERPRETER_TARGET_NAME} test ${PROJECT_SOURCE_DIR}/test/test.json)
+	COMMAND ${INTERPRETER_TARGET_NAME} tests ${PROJECT_SOURCE_DIR}/tests/test.json)
 
 add_test(NAME test-pre-compile
-	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p test -d test-pre)
+	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre)
 
 message(STATUS "options")
 include(CMakePrintHelpers)

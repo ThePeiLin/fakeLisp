@@ -15,6 +15,10 @@ else()
 	set(LINK_TARGET "")
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+		"CMAKE_BUILD_TYPE is not set, use release as default CMAKE_BUILD_TYPE" FORCE)
+endif()
 option(GPROF "enable gprof" OFF)
 option(ASAN "enable asan" OFF)
 option(TSAN "enable tsan" OFF)
@@ -55,14 +59,14 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib ${CMAKE_BINARY_DIR}/lib
-	BYPRODUCTS ${CMAKE_BINARY_DIR}/lib
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ ${PROJECT_BINARY_DIR}/lib/
+	BYPRODUCTS ${PROJECT_BINARY_DIR}/lib/
 	VERBATIM)
 
 #copy tests/*.fkl
 add_custom_target(COPY_TEST ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/tests/ ${CMAKE_BINARY_DIR}/tests/
-	BYPRODUCTS ${CMAKE_BINARY_DIR}/tests/
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/tests/ ${PROJECT_BINARY_DIR}/tests/
+	BYPRODUCTS ${PROJECT_BINARY_DIR}/tests/
 	VERBATIM)
 
 #warnnig setting
@@ -192,7 +196,7 @@ set_target_properties(ht PROPERTIES
 target_link_libraries(ht ${LIBFKL_TARGET_NAME})
 
 set_target_properties(ht PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #os.so
 add_library(os
@@ -203,7 +207,7 @@ set_target_properties(os PROPERTIES
 target_link_libraries(os ${LIBFKL_TARGET_NAME})
 
 set_target_properties(os PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #math.so
 add_library(math
@@ -214,7 +218,7 @@ set_target_properties(math PROPERTIES
 target_link_libraries(math ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
 set_target_properties(math PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #sync.so
 add_library(sync
@@ -225,7 +229,7 @@ set_target_properties(sync PROPERTIES
 target_link_libraries(sync ${LIBFKL_TARGET_NAME})
 
 set_target_properties(sync PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #fs.so
 add_library(fs
@@ -236,7 +240,7 @@ set_target_properties(fs PROPERTIES
 target_link_libraries(fs ${LIBFKL_TARGET_NAME})
 
 set_target_properties(fs PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #bdb.so
 file(GLOB BDB_SOURCE "src/bdb/*.c")
@@ -249,7 +253,7 @@ set_target_properties(bdb PROPERTIES
 target_link_libraries(bdb ${LIBFKL_TARGET_NAME} replxx)
 
 set_target_properties(bdb PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #fuv.so
 file(GLOB FUV_SOURCE "src/fuv/*.c")
@@ -270,7 +274,7 @@ set_target_properties(buf PROPERTIES
 target_link_libraries(buf ${LIBFKL_TARGET_NAME})
 
 set_target_properties(buf PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #dvec.so
 add_library(dvec
@@ -281,7 +285,7 @@ set_target_properties(dvec PROPERTIES
 target_link_libraries(dvec ${LIBFKL_TARGET_NAME})
 
 set_target_properties(dvec PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 #bvec.so
 add_library(bvec
@@ -292,14 +296,14 @@ set_target_properties(bvec PROPERTIES
 target_link_libraries(bvec ${LIBFKL_TARGET_NAME})
 
 set_target_properties(bvec PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 if(MSVC)
 target_link_libraries(fuv ws2_32)
 endif()
 
 set_target_properties(fuv PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
 if(FANALYZER)
 	set(FANALYZER_OPTIONS "-fanalyzer"
@@ -348,7 +352,7 @@ set_target_properties(test-dll PROPERTIES
 target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
 
 set_target_properties(test-dll PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/tests")
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
@@ -371,6 +375,61 @@ add_custom_command(OUTPUT "vmparse.c"
 
 	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
 	VERBATIM)
+
+# copy dll in windows
+# visual studio中，设置target的LIBRARY_OUTPUT_DIRECTORY似乎无法更改
+# target的输出目录，因而采用折中的方法，将生成的文件复制到指定目录
+if(MSVC)
+add_custom_command(TARGET test-dll POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-dll> ${PROJECT_BINARY_DIR}/tests/
+	COMMENT "Copying test-dll"
+	VERBATIM)
+
+add_custom_command(TARGET ht POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:ht> ${PROJECT_BINARY_DIR}/lib/
+	BYPRODUCTS ${PROJECT_BINARY_DIR}/lib/ht.dll
+	VERBATIM)
+
+add_custom_command(TARGET os POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:os> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET math POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:math> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET sync POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:sync> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET fs POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:fs> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET bdb POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:bdb> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET fuv POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:fuv> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET buf POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:buf> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET dvec POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:dvec> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+add_custom_command(TARGET bvec POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:bvec> ${PROJECT_BINARY_DIR}/lib/
+	VERBATIM)
+
+# 清理
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/lib/")
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")
+endif()
 
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)

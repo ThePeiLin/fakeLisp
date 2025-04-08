@@ -1615,7 +1615,7 @@ static void read_frame_atomic(void *data, FklVMgc *gc) {
     fklVMgcToGray(c->parser, gc);
     struct ParseCtx *pctx = c->pctx;
     const FklAnalysisSymbol *base = pctx->symbolStack.base;
-    size_t len = pctx->symbolStack.top;
+    size_t len = pctx->symbolStack.size;
     for (size_t i = 0; i < len; i++)
         fklVMgcToGray(base[i].ast, gc);
 }
@@ -1649,7 +1649,7 @@ static int read_frame_step(void *d, FklVM *exe) {
 
     pctx->offset = fklStringBufferLen(s) - restLen;
 
-    if (pctx->symbolStack.top == 0 && fklVMfpEof(vfp)) {
+    if (pctx->symbolStack.size == 0 && fklVMfpEof(vfp)) {
         FKL_VM_PUSH_VALUE(exe, fklGetVMvalueEof());
         return 0;
     } else if ((err == FKL_PARSE_WAITING_FOR_MORE
@@ -1730,7 +1730,7 @@ static inline int do_custom_parser_reduce_action(
     FklUintVector *lineStack, const FklGrammerProduction *prod,
     FklGrammerMatchOuterCtx *outerCtx, size_t *errLine) {
     size_t len = prod->len;
-    stateStack->top -= len;
+    stateStack->size -= len;
     FklAnalysisStateGoto *gt =
         fklParseStateVectorBack(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
@@ -1740,7 +1740,7 @@ static inline int do_custom_parser_reduce_action(
             state = gt->state;
     if (!state)
         return 1;
-    symbolStack->top -= len;
+    symbolStack->size -= len;
     void **nodes = NULL;
     if (len) {
         if (!len)
@@ -1749,13 +1749,13 @@ static inline int do_custom_parser_reduce_action(
             nodes = (void **)malloc(len * sizeof(void *));
             FKL_ASSERT(nodes);
         }
-        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->top];
+        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
         for (size_t i = 0; i < len; i++) {
             nodes[i] = base[i].ast;
         }
     }
     size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
-    lineStack->top -= len;
+    lineStack->size -= len;
     prod->func(prod->ctx, outerCtx->ctx, nodes, len, line);
     if (len) {
         for (size_t i = 0; i < len; i++)
@@ -1864,7 +1864,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
         FKL_VM_PUSH_VALUE(
             exe, fklAnalysisSymbolVectorPopBack(&pctx->symbolStack)->ast);
         return 0;
-    } else if (pctx->symbolStack.top == 0 && fklVMfpEof(vfp)) {
+    } else if (pctx->symbolStack.size == 0 && fklVMfpEof(vfp)) {
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         return 0;
     } else if ((err == FKL_PARSE_WAITING_FOR_MORE
@@ -1997,16 +1997,17 @@ vm_vec_to_prod(FklVMvec *vec, FklHashTable *builtin_term, FklSymbolTable *tt,
                 && FKL_IS_STR(FKL_VM_VEC(cur)->base[0])))
             fklVMvalueVectorPushBack2(&valid_items, cur);
         else if (cur == FKL_VM_NIL) {
-            delim[valid_items.top] = 0;
+            delim[valid_items.size] = 0;
             continue;
         } else {
             *error_type = INVALID_PROD_PART;
             goto end;
         }
     }
-    if (valid_items.top) {
-        size_t top = valid_items.top;
-        syms = (FklGrammerSym *)malloc(valid_items.top * sizeof(FklGrammerSym));
+    if (valid_items.size) {
+        size_t top = valid_items.size;
+        syms =
+            (FklGrammerSym *)malloc(valid_items.size * sizeof(FklGrammerSym));
         FKL_ASSERT(syms);
         FklVMvalue **base = (FklVMvalue **)valid_items.base;
         for (size_t i = 0; i < top; i++) {
@@ -2058,7 +2059,7 @@ vm_vec_to_prod(FklVMvec *vec, FklHashTable *builtin_term, FklSymbolTable *tt,
     }
 zero_len:
     prod = fklCreateProduction(
-        0, left, valid_items.top, syms, NULL, custom_parser_prod_action, NULL,
+        0, left, valid_items.size, syms, NULL, custom_parser_prod_action, NULL,
         fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
 
 end:
@@ -2191,7 +2192,7 @@ static void custom_parse_frame_atomic(void *data, FklVMgc *gc) {
     fklVMgcToGray(c->parser, gc);
     fklVMgcToGray(c->str, gc);
     const FklAnalysisSymbol *base = c->pctx->symbolStack.base;
-    size_t len = c->pctx->symbolStack.top;
+    size_t len = c->pctx->symbolStack.size;
     for (size_t i = 0; i < len; i++)
         fklVMgcToGray(base[i].ast, gc);
 }
@@ -3222,14 +3223,14 @@ static int builtin_call_eh(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
     }
     fklResBp(exe);
-    if (err_handlers.top) {
+    if (err_handlers.size) {
         FklVMframe *top_frame = exe->top_frame;
         top_frame->errorCallBack = errorCallBackWithErrorHandler;
         top_frame->t = &ErrorHandlerContextMethodTable;
         EhFrameContext *c = (EhFrameContext *)top_frame->data;
-        c->num = err_handlers.top;
+        c->num = err_handlers.size;
         FklVMpair *t = (FklVMpair *)fklRealloc(
-            err_handlers.base, err_handlers.top * sizeof(FklVMpair));
+            err_handlers.base, err_handlers.size * sizeof(FklVMpair));
         FKL_ASSERT(t);
         c->err_handlers = t;
         c->tp = exe->tp;

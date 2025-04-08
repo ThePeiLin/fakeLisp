@@ -95,14 +95,14 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
                                 codegen.runtime_kt, codegen.pts, 1);
     codegen.runtime_symbol_table = NULL;
     codegen.pts = NULL;
-    anotherVM->libNum = scriptLibStack->top;
+    anotherVM->libNum = scriptLibStack->size;
     anotherVM->libs =
-        (FklVMlib *)calloc((scriptLibStack->top + 1), sizeof(FklVMlib));
+        (FklVMlib *)calloc((scriptLibStack->size + 1), sizeof(FklVMlib));
     FKL_ASSERT(anotherVM->libs);
 
     FklVMgc *gc = anotherVM->gc;
     while (!fklCodegenLibVectorIsEmpty(scriptLibStack)) {
-        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->top];
+        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBack(scriptLibStack);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibAndDestroy(cur, curVMlib, anotherVM,
@@ -142,7 +142,7 @@ static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
 static void source_hash_item_uninit(void *d0) {
     SourceCodeHashItem *item = (SourceCodeHashItem *)d0;
     FklString **base = item->lines.base;
-    FklString **const end = &item->lines.base[item->lines.top];
+    FklString **const end = &item->lines.base[item->lines.size];
     for (; base < end; base++)
         free(*base);
     fklStringVectorUninit(&item->lines);
@@ -200,7 +200,7 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
     if (fid == ctx->curline_file && line == ctx->curline)
         return ctx->curline_str;
     else if (fid == ctx->curline_file) {
-        if (line > ctx->curfile_lines->top)
+        if (line > ctx->curfile_lines->size)
             return NULL;
         ctx->curline = line;
         ctx->curline_str = ctx->curfile_lines->base[line - 1];
@@ -208,7 +208,7 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
     } else {
         const SourceCodeHashItem *item =
             get_source_with_fid(&ctx->source_code_table, fid);
-        if (item && line <= item->lines.top) {
+        if (item && line <= item->lines.size) {
             ctx->curlist_line = 1;
             ctx->curline_file = fid;
             ctx->curline = line;
@@ -236,12 +236,12 @@ static inline void get_all_code_objs(DebugCtx *ctx) {
 
 static inline void internal_dbg_extra_mark(DebugCtx *ctx, FklVMgc *gc) {
     FklVMvalue **base = (FklVMvalue **)ctx->extra_mark_value.base;
-    FklVMvalue **last = &base[ctx->extra_mark_value.top];
+    FklVMvalue **last = &base[ctx->extra_mark_value.size];
     for (; base < last; base++)
         fklVMgcToGray(*base, gc);
 
     base = (FklVMvalue **)ctx->code_objs.base;
-    last = &base[ctx->code_objs.top];
+    last = &base[ctx->code_objs.size];
     for (; base < last; base++)
         fklVMgcToGray(*base, gc);
 
@@ -377,15 +377,15 @@ Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx, FklSid_t fid,
         *err = PUT_BP_FILE_INVALID;
         return NULL;
     }
-    if (!line || line > sc_item->lines.top) {
+    if (!line || line > sc_item->lines.size) {
         *err = PUT_BP_AT_END_OF_FILE;
         return NULL;
     }
 
     FklInstruction *ins = NULL;
-    for (; line <= sc_item->lines.top; line++) {
+    for (; line <= sc_item->lines.size; line++) {
         FklVMvalue **base = (FklVMvalue **)ctx->code_objs.base;
-        FklVMvalue **const end = &base[ctx->code_objs.top];
+        FklVMvalue **const end = &base[ctx->code_objs.size];
 
         for (; base < end; base++) {
             FklVMvalue *cur = *base;
@@ -485,9 +485,9 @@ Breakpoint *putBreakpointForProcedure(DebugCtx *ctx, FklSid_t name_sid) {
 }
 
 void printBacktrace(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
-    if (ctx->reached_thread_frames.top) {
+    if (ctx->reached_thread_frames.size) {
         FklVM *vm = ctx->reached_thread;
-        uint32_t top = ctx->reached_thread_frames.top;
+        uint32_t top = ctx->reached_thread_frames.size;
         FklVMframe **base = ctx->reached_thread_frames.base;
         for (uint32_t i = 0; i < top; i++) {
             FklVMframe *cur = base[i];
@@ -503,7 +503,7 @@ void printBacktrace(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
 }
 
 FklVMframe *getCurrentFrame(DebugCtx *ctx) {
-    if (ctx->reached_thread_frames.top) {
+    if (ctx->reached_thread_frames.size) {
         FklVMframe **base = ctx->reached_thread_frames.base;
         FklVMframe *cur = base[ctx->curframe_idx - 1];
         return cur;
@@ -512,7 +512,7 @@ FklVMframe *getCurrentFrame(DebugCtx *ctx) {
 }
 
 void printCurFrame(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
-    if (ctx->reached_thread_frames.top) {
+    if (ctx->reached_thread_frames.size) {
         FklVM *vm = ctx->reached_thread;
         FklVMframe *cur = getCurrentFrame(ctx);
         fklPrintString(prefix, fp);
@@ -524,7 +524,7 @@ void printCurFrame(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
 void setReachedThread(DebugCtx *ctx, FklVM *vm) {
     ctx->reached_thread = vm;
     ctx->curframe_idx = 1;
-    ctx->reached_thread_frames.top = 0;
+    ctx->reached_thread_frames.size = 0;
     for (FklVMframe *f = vm->top_frame; f; f = f->prev)
         bdbFrameVectorPushBack2(&ctx->reached_thread_frames, f);
     for (FklVMframe *f = vm->top_frame; f; f = f->prev) {
@@ -538,7 +538,7 @@ void setReachedThread(DebugCtx *ctx, FklVM *vm) {
         }
     }
     ctx->curthread_idx = 1;
-    ctx->threads.top = 0;
+    ctx->threads.size = 0;
     bdbThreadVectorPushBack2(&ctx->threads, vm);
     for (FklVM *cur = vm->next; cur != vm; cur = cur->next)
         bdbThreadVectorPushBack2(&ctx->threads, cur);
@@ -546,7 +546,7 @@ void setReachedThread(DebugCtx *ctx, FklVM *vm) {
 
 void listThreads(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
     FklVM **base = (FklVM **)ctx->threads.base;
-    uint32_t top = ctx->threads.top;
+    uint32_t top = ctx->threads.size;
     for (uint32_t i = 0; i < top; i++) {
         FklVM *cur = base[i];
         if (i + 1 == ctx->curthread_idx)
@@ -565,7 +565,7 @@ void listThreads(DebugCtx *ctx, const FklString *prefix, FILE *fp) {
 void switchCurThread(DebugCtx *ctx, uint32_t idx) {
     ctx->curthread_idx = idx;
     ctx->curframe_idx = 1;
-    ctx->reached_thread_frames.top = 0;
+    ctx->reached_thread_frames.size = 0;
     FklVM *vm = getCurThread(ctx);
     if (vm == NULL)
         return;
@@ -575,7 +575,7 @@ void switchCurThread(DebugCtx *ctx, uint32_t idx) {
 }
 
 FklVM *getCurThread(DebugCtx *ctx) {
-    if (ctx->threads.top)
+    if (ctx->threads.size)
         return (FklVM *)ctx->threads.base[ctx->curthread_idx - 1];
     return NULL;
 }
@@ -623,11 +623,11 @@ void restartDebugging(DebugCtx *ctx) {
     fklVMgcUpdateThreshold(gc);
 
     FklVMvalue **base = (FklVMvalue **)ctx->extra_mark_value.base;
-    FklVMvalue **const end = &base[ctx->extra_mark_value.top];
+    FklVMvalue **const end = &base[ctx->extra_mark_value.size];
     FklVMvalue *main_proc = base[0];
 
     base++;
-    uint64_t lib_num = ctx->extra_mark_value.top - 1;
+    uint64_t lib_num = ctx->extra_mark_value.size - 1;
     FklVMlib *libs = (FklVMlib *)calloc(lib_num + 1, sizeof(FklVMlib));
     FKL_ASSERT(libs);
     for (uint64_t i = 1; base < end; base++, i++)

@@ -284,7 +284,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
             fklStringVectorPushBack2(&st, fklCreateString(len, ss));
         ss += len;
     }
-    size_t prod_len = st.top - joint_num;
+    size_t prod_len = st.size - joint_num;
     FklGrammerProduction *prod = fklCreateEmptyProduction(
         0, left, prod_len, name, func, NULL, fklProdCtxDestroyDoNothing,
         fklProdCtxCopyerDoNothing);
@@ -293,7 +293,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
     size_t symIdx = 0;
     if (prod == NULL || prod_len == 0)
         goto exit;
-    for (uint32_t i = 0; i < st.top; i++) {
+    for (uint32_t i = 0; i < st.size; i++) {
         FklGrammerSym *u = &prod->syms[symIdx];
         u->term_type = FKL_TERM_STRING;
         FklString *s = st.base[i];
@@ -432,7 +432,7 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
             fklStringVectorPushBack2(&st, fklCreateString(len, ss));
         ss += len;
     }
-    size_t prod_len = st.top - joint_num;
+    size_t prod_len = st.size - joint_num;
     if (!prod_len) {
         while (!fklStringVectorIsEmpty(&st))
             free(*fklStringVectorPopBack(&st));
@@ -444,7 +444,7 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
         fklProdCtxCopyerDoNothing);
     int next_delim = 1;
     size_t symIdx = 0;
-    for (uint32_t i = 0; i < st.top; i++) {
+    for (uint32_t i = 0; i < st.size; i++) {
         FklGrammerSym *u = &prod->syms[symIdx];
         u->term_type = FKL_TERM_STRING;
         u->delim = next_delim;
@@ -4402,8 +4402,8 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
         fputs("\t\t\t*accept=1;\n", fp);
         break;
     case FKL_ANALYSIS_REDUCE:
-        fprintf(fp, "\t\t\tstateStack->top-=%" FKL_PRT64U ";\n", ac->prod->len);
-        fprintf(fp, "\t\t\tsymbolStack->top-=%" FKL_PRT64U ";\n",
+        fprintf(fp, "\t\t\tstateStack->size-=%" FKL_PRT64U ";\n", ac->prod->len);
+        fprintf(fp, "\t\t\tsymbolStack->size-=%" FKL_PRT64U ";\n",
                 ac->prod->len);
         fputs("\t\t\tFklStateFuncPtr "
               "func=fklParseStateVectorBack(stateStack)->func;\n",
@@ -4426,7 +4426,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                     "\t\t\tFKL_ASSERT(nodes||!%" FKL_PRT64U ");\n"
                     "\t\t\tconst FklAnalysisSymbol* "
                     "base=&symbolStack->base[symbolStack->"
-                    "top];\n",
+                    "size];\n",
                     ac->prod->len, ac->prod->len);
         else
             fputs("\t\t\tvoid** nodes=NULL;\n", fp);
@@ -4443,7 +4443,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
                 "\t\t\tsize_t line=fklGetFirstNthLine(lineStack,%" FKL_PRT64U
                 ",outerCtx->line);\n",
                 ac->prod->len);
-            fprintf(fp, "\t\t\tlineStack->top-=%" FKL_PRT64U ";\n",
+            fprintf(fp, "\t\t\tlineStack->size-=%" FKL_PRT64U ";\n",
                     ac->prod->len);
         } else
             fputs("\t\t\tsize_t line=outerCtx->line;\n", fp);
@@ -4946,7 +4946,7 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
 
 static inline void dbg_print_state_stack(FklParseStateVector *stateStack,
                                          FklAnalysisState *states) {
-    for (size_t i = 0; i < stateStack->top; i++) {
+    for (size_t i = 0; i < stateStack->size; i++) {
         const FklAnalysisState *curState = stateStack->base[i].state;
         fprintf(stderr, "%" FKL_PRT64U " ", curState - states);
     }
@@ -4968,7 +4968,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
                                    FklGrammerMatchOuterCtx *outerCtx,
                                    FklSymbolTable *st, size_t *errLine) {
     size_t len = prod->len;
-    stateStack->top -= len;
+    stateStack->size -= len;
     FklAnalysisStateGoto *gt =
         fklParseStateVectorBack(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
@@ -4978,18 +4978,18 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
             state = gt->state;
     if (!state)
         return 1;
-    symbolStack->top -= len;
+    symbolStack->size -= len;
     void **nodes = NULL;
     if (len) {
         nodes = (void **)malloc(len * sizeof(void *));
         FKL_ASSERT(nodes);
-        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->top];
+        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
         for (size_t i = 0; i < len; i++) {
             nodes[i] = base[i].ast;
         }
     }
     size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
-    lineStack->top -= len;
+    lineStack->size -= len;
     void *ast = prod->func(prod->ctx, outerCtx->ctx, nodes, len, line);
     if (len) {
         for (size_t i = 0; i < len; i++)
@@ -5228,7 +5228,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
 
 uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line) {
     if (num)
-        return lineStack->base[lineStack->top - num];
+        return lineStack->base[lineStack->size - num];
     else
         return line;
 }

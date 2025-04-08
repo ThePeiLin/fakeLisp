@@ -34,7 +34,7 @@ static inline char *get_valid_file_name(const char *filename) {
 
 static inline void atomic_cmd_read_ctx(const CmdReadCtx *ctx, FklVMgc *gc) {
     const FklAnalysisSymbol *base = ctx->symbolStack.base;
-    const FklAnalysisSymbol *end = &base[ctx->symbolStack.top];
+    const FklAnalysisSymbol *end = &base[ctx->symbolStack.size];
     for (; base < end; base++)
         fklVMgcToGray(base->ast, gc);
 }
@@ -149,8 +149,8 @@ static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
     cc->offset = 0;
     fklStringBufferClear(s);
     s->buf[0] = '\0';
-    cc->stateStack.top = 0;
-    cc->lineStack.top = 0;
+    cc->stateStack.size = 0;
+    cc->lineStack.size = 0;
     fklVMvaluePushState0ToStack(&cc->stateStack);
 }
 
@@ -187,7 +187,7 @@ static inline FklVMvalue *debug_ctx_replxx_input(FklVM *exe, DebugCtx *dctx,
 
         ctx->offset = fklStringBufferLen(s) - restLen;
 
-        if (!restLen && ctx->symbolStack.top == 0 && is_eof) {
+        if (!restLen && ctx->symbolStack.size == 0 && is_eof) {
             dctx->exit = 1;
             return fklGetVMvalueEof();
         } else if ((err == FKL_PARSE_WAITING_FOR_MORE
@@ -329,7 +329,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
     } else {
         if (dctx->running) {
             dctx->reached_breakpoint = NULL;
-            dctx->reached_thread_frames.top = 0;
+            dctx->reached_thread_frames.size = 0;
             fklVMreleaseWq(dctx->gc);
             fklVMcontinueTheWorld(dctx->gc);
         }
@@ -624,7 +624,7 @@ static int bdb_debug_ctx_set_list_src(FKL_CPROC_ARGL) {
 
     FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
     uint64_t line_num = FKL_GET_FIX(line_num_obj);
-    if (line_num > 0 && line_num < dctx->curfile_lines->top)
+    if (line_num > 0 && line_num < dctx->curfile_lines->size)
         dctx->curlist_line = line_num;
     FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     return 0;
@@ -642,7 +642,7 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
     if (line_num_obj) {
         FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
         uint64_t line_num = FKL_GET_FIX(line_num_obj);
-        if (line_num <= 0 || line_num >= dctx->curfile_lines->top)
+        if (line_num <= 0 || line_num >= dctx->curfile_lines->size)
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         else {
             uint32_t curline_num = line_num;
@@ -657,7 +657,7 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(
                 exe, fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
         }
-    } else if (dctx->curlist_line <= dctx->curfile_lines->top) {
+    } else if (dctx->curlist_line <= dctx->curfile_lines->size) {
         uint32_t curline_num = dctx->curlist_line;
         const FklString *line_str = dctx->curfile_lines->base[curline_num - 1];
 
@@ -704,7 +704,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
 
     const SourceCodeHashItem *item = getSourceWithFid(dctx, fid);
     uint64_t line_num = FKL_GET_FIX(line_num_obj);
-    if (item == NULL || line_num <= 0 || line_num >= item->lines.top)
+    if (item == NULL || line_num <= 0 || line_num >= item->lines.size)
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     else {
         uint32_t target_line = line_num;
@@ -1118,7 +1118,7 @@ static int bdb_debug_ctx_up(FKL_CPROC_ARGL) {
 
     DebugCtx *dctx = debug_ud->ctx;
     if (dctx->reached_thread
-        && dctx->curframe_idx < dctx->reached_thread_frames.top) {
+        && dctx->curframe_idx < dctx->reached_thread_frames.size) {
         dctx->curframe_idx++;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_TRUE);
     } else
@@ -1163,7 +1163,7 @@ static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL) {
 
     DebugCtx *dctx = debug_ud->ctx;
     int64_t id = FKL_GET_FIX(id_obj);
-    if (id > 0 && id <= (int64_t)dctx->threads.top) {
+    if (id > 0 && id <= (int64_t)dctx->threads.size) {
         switchCurThread(dctx, FKL_GET_FIX(id_obj));
         FKL_VM_PUSH_VALUE(exe, FKL_VM_TRUE);
     } else

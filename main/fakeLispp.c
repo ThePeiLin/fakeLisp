@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
             printf("file: %s\n\n", filename);
             FklSymbolTable *pst = &ctx.public_symbol_table;
             FklConstTable *pkt = &ctx.public_kt;
-            uint32_t num = scriptLibStack.top;
+            uint32_t num = scriptLibStack.size;
             for (size_t i = 0; i < num; i++) {
                 const FklCodegenLib *cur = &scriptLibStack.base[i];
                 printf("lib %" FKL_PRT64U ":\n", i + 1);
@@ -239,10 +239,10 @@ int main(int argc, char **argv) {
                 fputc('\n', stdout);
             }
 
-            if (macroScriptLibStack.top > 0) {
+            if (macroScriptLibStack.size > 0) {
                 fputc('\n', stdout);
                 puts("macro loaded libs:\n");
-                num = macroScriptLibStack.top;
+                num = macroScriptLibStack.size;
                 for (size_t i = 0; i < num; i++) {
                     const FklCodegenLib *cur = &macroScriptLibStack.base[i];
                     printf("lib %" FKL_PRT64U ":\n", i + 1);
@@ -381,18 +381,18 @@ static void print_reader_macros(const FklHashTable *ht,
         FklGrammerProductionGroup *group = (FklGrammerProductionGroup *)l->data;
         fputs("group name:", fp);
         fklPrintRawSymbol(fklGetSymbolWithId(group->id, pst)->symbol, fp);
-        if (group->ignore_printing.top) {
+        if (group->ignore_printing.size) {
             fputs("\nignores:\n", fp);
-            uint32_t top = group->ignore_printing.top;
+            uint32_t top = group->ignore_printing.size;
             FklNastNode **base = group->ignore_printing.base;
             for (uint32_t i = 0; i < top; i++) {
                 fklPrintNastNode(base[i], fp, pst);
                 fputc('\n', fp);
             }
         }
-        if (group->prod_printing.top) {
+        if (group->prod_printing.size) {
             fputs("\nprods:\n\n", fp);
-            uint32_t top = group->prod_printing.top;
+            uint32_t top = group->prod_printing.size;
             FklCodegenProdPrinting *base = group->prod_printing.base;
             for (uint32_t i = 0; i < top; i++) {
                 const FklCodegenProdPrinting *p = &base[i];

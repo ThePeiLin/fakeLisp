@@ -377,8 +377,6 @@ add_custom_command(OUTPUT "vmparse.c"
 	VERBATIM)
 
 # copy dll in windows
-# visual studio中，设置target的LIBRARY_OUTPUT_DIRECTORY似乎无法更改
-# target的输出目录，因而采用折中的方法，将生成的文件复制到指定目录
 if(MSVC)
 add_custom_command(TARGET test-dll POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-dll> ${PROJECT_BINARY_DIR}/tests/

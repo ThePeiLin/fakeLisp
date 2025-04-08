@@ -72,14 +72,14 @@ static inline int compileAndRun(const char *filename, int argc,
     codegen.runtime_symbol_table = NULL;
     codegen.runtime_kt = NULL;
     codegen.pts = NULL;
-    anotherVM->libNum = scriptLibStack->top;
+    anotherVM->libNum = scriptLibStack->size;
     anotherVM->libs =
         (FklVMlib *)calloc((anotherVM->libNum + 1), sizeof(FklVMlib));
     FKL_ASSERT(anotherVM->libs);
 
     FklVMgc *gc = anotherVM->gc;
     while (!fklCodegenLibVectorIsEmpty(scriptLibStack)) {
-        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->top];
+        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBack(scriptLibStack);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibAndDestroy(cur, curVMlib, anotherVM,
@@ -211,14 +211,14 @@ static inline int runPreCompile(const char *filename, int argc,
     FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code, &runtime_st,
                                                &runtime_kt, pts, 1);
 
-    anotherVM->libNum = scriptLibStack.top + 1;
+    anotherVM->libNum = scriptLibStack.size + 1;
     anotherVM->libs =
         (FklVMlib *)calloc((anotherVM->libNum + 1), sizeof(FklVMlib));
     FKL_ASSERT(anotherVM->libs);
 
     FklVMgc *gc = anotherVM->gc;
     while (!fklCodegenLibVectorIsEmpty(&scriptLibStack)) {
-        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack.top];
+        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack.size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBack(&scriptLibStack);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibAndDestroy(cur, curVMlib, anotherVM,
@@ -824,7 +824,7 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
     FklFuncPrototype *pts = cp->pa;
     FklUnReSymbolRefVector urefs1;
     fklUnReSymbolRefVectorInit(&urefs1, 16);
-    uint32_t count = urefs->top;
+    uint32_t count = urefs->size;
     for (uint32_t i = 0; i < count; i++) {
         FklUnReSymbolRef *uref = &urefs->base[i];
         FklFuncPrototype *cpt = &pts[uref->prototypeId];
@@ -853,7 +853,7 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
         } else
             fklUnReSymbolRefVectorPushBack(&urefs1, uref);
     }
-    urefs->top = 0;
+    urefs->size = 0;
     while (!fklUnReSymbolRefVectorIsEmpty(&urefs1))
         fklUnReSymbolRefVectorPushBack2(
             urefs, *fklUnReSymbolRefVectorPopBack(&urefs1));
@@ -896,8 +896,8 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx *cc,
     FklAnalysisSymbolVector *ss = &cc->symbolStack;
     while (!fklAnalysisSymbolVectorIsEmpty(ss))
         fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(ss)->ast);
-    cc->stateStack.top = 0;
-    cc->lineStack.top = 0;
+    cc->stateStack.size = 0;
+    cc->lineStack.size = 0;
     if (g && g->aTable.num)
         fklParseStateVectorPushBack2(
             &cc->stateStack, (FklParseState){.state = &g->aTable.states[0]});
@@ -911,8 +911,8 @@ static inline void eval_nast_ctx_reset(NastCreatCtx *cc, FklStringBuffer *s,
     FklAnalysisSymbolVector *ss = &cc->symbolStack;
     while (!fklAnalysisSymbolVectorIsEmpty(ss))
         fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(ss)->ast);
-    cc->stateStack.top = 0;
-    cc->lineStack.top = 0;
+    cc->stateStack.size = 0;
+    cc->lineStack.size = 0;
     if (g && g->aTable.num)
         fklParseStateVectorPushBack2(
             &cc->stateStack, (FklParseState){.state = &g->aTable.states[0]});
@@ -1054,7 +1054,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
     cc->offset = fklStringBufferLen(s) - restLen;
     codegen->curline = outerCtx.line;
-    if (!restLen && cc->symbolStack.top == 0 && is_eof)
+    if (!restLen && cc->symbolStack.size == 0 && is_eof)
         return 0;
     else if ((err == FKL_PARSE_WAITING_FOR_MORE
               || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen))
@@ -1075,7 +1075,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         }
 
         fklMakeNastNodeRef(ast);
-        size_t libNum = codegen->libStack->top;
+        size_t libNum = codegen->libStack->size;
 
         fklVMacquireSt(exe->gc);
         FklConstTable *kt = codegen->runtime_kt;
@@ -1093,7 +1093,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         g = *(codegen->g);
         repl_nast_ctx_and_buf_reset(cc, s, g);
         fklDestroyNastNode(ast);
-        size_t unloadlibNum = codegen->libStack->top - libNum;
+        size_t unloadlibNum = codegen->libStack->size - libNum;
         if (unloadlibNum) {
             FklVMproc *proc = FKL_VM_PROC(ctx->mainProc);
             libNum += unloadlibNum;
@@ -1321,7 +1321,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         }
     }
 
-    size_t libNum = codegen->libStack->top;
+    size_t libNum = codegen->libStack->size;
 
     fklVMacquireSt(exe->gc);
     FklConstTable *kt = codegen->runtime_kt;
@@ -1339,7 +1339,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     g = *(codegen->g);
     repl_nast_ctx_and_buf_reset(cc, &ctx->buf, g);
 
-    size_t unloadlibNum = codegen->libStack->top - libNum;
+    size_t unloadlibNum = codegen->libStack->size - libNum;
     if (unloadlibNum) {
         FklVMproc *proc = FKL_VM_PROC(ctx->mainProc);
         libNum += unloadlibNum;

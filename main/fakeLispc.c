@@ -148,7 +148,7 @@ static inline void write_lib_stack(FklCodegenLibVector *loadedLibStack,
                                    const FklSymbolTable *st,
                                    const char *main_dir, const char *target_dir,
                                    FILE *outfp) {
-    uint64_t num = loadedLibStack->top;
+    uint64_t num = loadedLibStack->size;
     fwrite(&num, sizeof(uint64_t), 1, outfp);
     for (size_t i = 0; i < num; i++) {
         const FklCodegenLib *lib = &loadedLibStack->base[i];
@@ -298,7 +298,7 @@ static inline int compile(const char *filename, const char *output,
     fklWriteConstTable(codegen.runtime_kt, outfp);
     fklWriteFuncPrototypes(codegen.pts, outfp);
     fklWriteByteCodelnt(mainByteCode, outfp);
-    uint64_t num = loadedLibStack->top;
+    uint64_t num = loadedLibStack->size;
     fwrite(&num, sizeof(uint64_t), 1, outfp);
     for (size_t i = 0; i < num; i++) {
         const FklCodegenLib *lib = &loadedLibStack->base[i];

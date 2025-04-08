@@ -528,7 +528,7 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
     // remove value not in circle
 
     do {
-        stack.top = 0;
+        stack.size = 0;
         for (FklHashTableItem *list = ht->first; list; list = list->next) {
             struct VMvalueDegreeHashItem *item =
                 (struct VMvalueDegreeHashItem *)list->data;
@@ -536,7 +536,7 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
                 fklVMvalueVectorPushBack2(&stack, item->v);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
-        FklVMvalue **const end = &base[stack.top];
+        FklVMvalue **const end = &base[stack.size];
         for (; base < end; base++) {
             fklDelHashItem(base, ht, NULL);
             FklVMvalue *v = *base;
@@ -573,7 +573,7 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
         value_degree->degree = 0;
 
         do {
-            stack.top = 0;
+            stack.size = 0;
             for (FklHashTableItem *list = ht->first; list; list = list->next) {
                 struct VMvalueDegreeHashItem *item =
                     (struct VMvalueDegreeHashItem *)list->data;
@@ -581,7 +581,7 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
                     fklVMvalueVectorPushBack2(&stack, item->v);
             }
             FklVMvalue **base = (FklVMvalue **)stack.base;
-            FklVMvalue **const end = &base[stack.top];
+            FklVMvalue **const end = &base[stack.size];
             for (; base < end; base++) {
                 fklDelHashItem(base, ht, NULL);
                 FklVMvalue *v = *base;
@@ -685,7 +685,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     // remove value not in circle
 
     do {
-        stack.top = 0;
+        stack.size = 0;
         for (FklHashTableItem *list = degree_table.first; list;
              list = list->next) {
             struct VMvalueDegreeHashItem *item =
@@ -694,7 +694,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
                 fklVMvalueVectorPushBack2(&stack, item->v);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
-        FklVMvalue **const end = &base[stack.top];
+        FklVMvalue **const end = &base[stack.size];
         for (; base < end; base++) {
             fklDelHashItem(base, &degree_table, NULL);
             FklVMvalue *v = *base;

@@ -66,7 +66,7 @@ typedef struct NODE_NAME {
     struct NODE_NAME *next;
     struct NODE_NAME *prev;
     struct NODE_NAME *bkt_next;
-    FKL_USET_ELM_TYPE const data;
+    FKL_USET_ELM_TYPE const k;
 } NODE_NAME;
 
 typedef struct NAME {
@@ -143,7 +143,7 @@ static inline void METHOD(Rehash)(NAME *self) {
     memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
     for (; cur; cur = cur->next) {
         NODE_NAME **pp =
-            &self->buckets[FKL_USET_ELM_HASH(&cur->data) & self->mask];
+            &self->buckets[FKL_USET_ELM_HASH(&cur->k) & self->mask];
         cur->bkt_next = *pp;
         *pp = cur;
     }
@@ -153,7 +153,7 @@ static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
     uint32_t const hashv = FKL_USET_ELM_HASH(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
-        if (FKL_USET_ELM_EQUAL(k, &pn->data))
+        if (FKL_USET_ELM_EQUAL(k, &pn->k))
             return 1;
     }
 
@@ -174,7 +174,7 @@ static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
         memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
         for (; cur; cur = cur->next) {
             NODE_NAME **pp =
-                &self->buckets[FKL_USET_ELM_HASH(&cur->data) & self->mask];
+                &self->buckets[FKL_USET_ELM_HASH(&cur->k) & self->mask];
             cur->bkt_next = *pp;
             *pp = cur;
         }
@@ -183,7 +183,7 @@ static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
 
     NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
     assert(node);
-    FKL_USET_ELM_INIT((FKL_USET_ELM_TYPE *)&node->data, k);
+    FKL_USET_ELM_INIT((FKL_USET_ELM_TYPE *)&node->k, k);
     *pp = node;
     if (self->first) {
         node->prev = self->last;
@@ -202,7 +202,7 @@ static inline int METHOD(Put2)(NAME *self, FKL_USET_ELM_TYPE k) {
 static inline int METHOD(Has)(NAME *self, FKL_USET_ELM_TYPE const *k) {
     NODE_NAME **pp = &self->buckets[FKL_USET_ELM_HASH(k) & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
-        if (FKL_USET_ELM_EQUAL(k, &pn->data))
+        if (FKL_USET_ELM_EQUAL(k, &pn->k))
             return 1;
     }
     return 0;
@@ -215,7 +215,7 @@ static inline int METHOD(Has2)(NAME *self, FKL_USET_ELM_TYPE k) {
 static inline int METHOD(Del)(NAME *self, FKL_USET_ELM_TYPE const *k) {
     for (NODE_NAME **pp = &self->buckets[FKL_USET_ELM_HASH(k) & self->mask];
          *pp; pp = &(*pp)->bkt_next) {
-        if (FKL_USET_ELM_EQUAL(k, &(*pp)->data)) {
+        if (FKL_USET_ELM_EQUAL(k, &(*pp)->k)) {
             NODE_NAME *pn = *pp;
             *pp = pn->bkt_next;
             if (pn->prev)

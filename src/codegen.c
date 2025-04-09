@@ -5111,7 +5111,7 @@ static inline FklByteCodelnt *process_import_imported_lib(
 static inline int is_exporting_outer_ref_group(FklCodegenInfo *codegen) {
     for (FklSidUsetNode *sid_list = codegen->export_named_prod_groups->first;
          sid_list; sid_list = sid_list->next) {
-        FklSid_t id = sid_list->data;
+        FklSid_t id = sid_list->k;
         FklGrammerProductionGroup *group =
             fklGetHashItem(&id, codegen->named_prod_groups);
         if (group->is_ref_outer)
@@ -7492,7 +7492,7 @@ macro_compile_prepare(FklCodegenInfo *codegen, FklCodegenMacroScope *macroScope,
         fklCreateCodegenEnv(macro_glob_env, 1, macroScope);
 
     for (FklSidUsetNode *list = symbolSet->first; list; list = list->next) {
-        FklSid_t id = list->data;
+        FklSid_t id = list->k;
         fklAddCodegenDefBySid(id, 1, macro_main_env);
     }
     *pmacroEnv = macro_main_env;
@@ -9038,7 +9038,7 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
             for (FklSidUsetNode *sid_list =
                      codegen->export_named_prod_groups->first;
                  sid_list; sid_list = sid_list->next) {
-                FklSid_t id = sid_list->data;
+                FklSid_t id = sid_list->k;
                 FklGrammerProductionGroup *group =
                     fklGetHashItem(&id, codegen->named_prod_groups);
                 FklGrammerProductionGroup *target_group =
@@ -9531,7 +9531,7 @@ void fklWriteExportNamedProds(const FklSidUset *export_named_prod_groups,
            sizeof(export_named_prod_groups->count), 1, fp);
     for (FklSidUsetNode *list = export_named_prod_groups->first; list;
          list = list->next) {
-        FklSid_t id = list->data;
+        FklSid_t id = list->k;
         FklGrammerProductionGroup *group =
             get_production_group(named_prod_groups, id);
         fwrite(&group->id, sizeof(group->id), 1, fp);

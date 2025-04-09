@@ -822,7 +822,7 @@ static inline void recompute_sid_for_sid_set(FklSidUset *ht,
                                              const FklSymbolTable *ost,
                                              FklSymbolTable *tst) {
     for (FklSidUsetNode *l = ht->first; l; l = l->next) {
-        FklSid_t *id = FKL_REMOVE_CONST(FklSid_t, &l->data);
+        FklSid_t *id = FKL_REMOVE_CONST(FklSid_t, &l->k);
         replace_sid(id, ost, tst);
     }
     fklSidUsetRehash(ht);

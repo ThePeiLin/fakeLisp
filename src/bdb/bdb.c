@@ -184,7 +184,7 @@ static inline void init_source_codes(DebugCtx *ctx) {
     FklHashTable *source_code_table = &ctx->source_code_table;
     for (FklSidUsetNode *sid_list = ctx->file_sid_set.first; sid_list;
          sid_list = sid_list->next) {
-        FklSid_t fid = sid_list->data;
+        FklSid_t fid = sid_list->k;
         const FklString *str = fklGetSymbolWithId(fid, ctx->st)->symbol;
         SourceCodeHashItem *item = fklPutHashItem(&fid, source_code_table);
         load_source_code_to_source_code_hash_item(item, str->str);

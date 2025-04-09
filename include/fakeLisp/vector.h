@@ -103,6 +103,7 @@ static inline void METHOD(Resize)(NAME *r, size_t new_size,
             for (; c < end; ++c)
                 *c = *v;
         }
+        r->size = new_size;
     }
 }
 

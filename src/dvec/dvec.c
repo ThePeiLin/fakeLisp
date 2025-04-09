@@ -84,14 +84,8 @@ static inline FklVMvalue *create_dvec(FklVM *exe, size_t size,
                                       FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DvecMetaTable, dll);
     FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, r);
+    fklVMvalueVectorInit(v, size);
     v->size = size;
-    v->capacity = size;
-    if (size == 0)
-        v->base = NULL;
-    else {
-        v->base = (FklVMvalue **)calloc(size, sizeof(FklVMvalue *));
-        FKL_ASSERT(v->base);
-    }
     return r;
 }
 
@@ -99,14 +93,7 @@ static inline FklVMvalue *create_dvec_with_capacity(FklVM *exe, size_t capacity,
                                                     FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DvecMetaTable, dll);
     FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, r);
-    v->size = 0;
-    v->capacity = capacity;
-    if (capacity == 0)
-        v->base = NULL;
-    else {
-        v->base = (FklVMvalue **)malloc(capacity * sizeof(FklVMvalue *));
-        FKL_ASSERT(v->base);
-    }
+    fklVMvalueVectorInit(v, capacity);
     return r;
 }
 
@@ -114,15 +101,10 @@ static inline FklVMvalue *
 create_dvec2(FklVM *exe, size_t size, FklVMvalue *const *ptr, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DvecMetaTable, dll);
     FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, r);
+    fklVMvalueVectorInit(v, size);
     v->size = size;
-    v->capacity = size;
-    if (size == 0)
-        v->base = NULL;
-    else {
-        v->base = (FklVMvalue **)calloc(size, sizeof(FklVMvalue *));
-        FKL_ASSERT(v->base);
+    if (size)
         memcpy(v->base, ptr, size * sizeof(FklVMvalue *));
-    }
     return r;
 }
 

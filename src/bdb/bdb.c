@@ -22,7 +22,7 @@ static void info_work_cb(FklCodegenInfo *info, void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
         replace_info_fid_with_realpath(info);
-        fklPutSidToSidSet(&dctx->file_sid_set, info->fid);
+        fklSidUsetPut2(&dctx->file_sid_set, info->fid);
     }
 }
 
@@ -182,9 +182,9 @@ load_source_code_to_source_code_hash_item(SourceCodeHashItem *item,
 static inline void init_source_codes(DebugCtx *ctx) {
     fklInitHashTable(&ctx->source_code_table, &SourceCodeHashMetaTable);
     FklHashTable *source_code_table = &ctx->source_code_table;
-    for (FklHashTableItem *sid_list = ctx->file_sid_set.first; sid_list;
+    for (FklSidUsetNode *sid_list = ctx->file_sid_set.first; sid_list;
          sid_list = sid_list->next) {
-        FklSid_t fid = *((FklSid_t *)sid_list->data);
+        FklSid_t fid = sid_list->data;
         const FklString *str = fklGetSymbolWithId(fid, ctx->st)->symbol;
         SourceCodeHashItem *item = fklPutHashItem(&fid, source_code_table);
         load_source_code_to_source_code_hash_item(item, str->str);
@@ -278,10 +278,10 @@ DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
     DebugCtx *ctx = (DebugCtx *)calloc(1, sizeof(DebugCtx));
     FKL_ASSERT(ctx);
     initEnvTable(&ctx->envs);
-    fklInitSidSet(&ctx->file_sid_set);
+    fklSidUsetInit(&ctx->file_sid_set);
     if (init_debug_codegen_outer_ctx(ctx, filename)) {
         fklUninitHashTable(&ctx->envs);
-        fklUninitHashTable(&ctx->file_sid_set);
+        fklSidUsetUninit(&ctx->file_sid_set);
         free(ctx);
         return NULL;
     }
@@ -334,7 +334,7 @@ void exitDebugCtx(DebugCtx *ctx) {
 
 void destroyDebugCtx(DebugCtx *ctx) {
     fklUninitHashTable(&ctx->envs);
-    fklUninitHashTable(&ctx->file_sid_set);
+    fklSidUsetUninit(&ctx->file_sid_set);
 
     uninitBreakpointTable(&ctx->bt);
     fklUninitHashTable(&ctx->source_code_table);

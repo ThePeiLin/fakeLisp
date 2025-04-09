@@ -93,6 +93,11 @@ typedef struct // unresolved symbol ref
 #define FKL_VECTOR_ELM_TYPE_NAME Sid
 #include "vector.h"
 
+// FklSidUset
+#define FKL_USET_ELM_TYPE FklSid_t
+#define FKL_USET_ELM_TYPE_NAME Sid
+#include "uset.h"
+
 void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);
 
@@ -105,9 +110,6 @@ FklFuncPrototypes *fklLoadFuncPrototypes(FILE *fp);
 void fklUninitFuncPrototype(FklFuncPrototype *p);
 void fklDestroyFuncPrototypes(FklFuncPrototypes *p);
 
-FklHashTable *fklCreateSidSet(void);
-void fklInitSidSet(FklHashTable *t);
-void fklPutSidToSidSet(FklHashTable *t, FklSid_t);
 #ifdef __cplusplus
 }
 #endif

@@ -4,7 +4,8 @@
 
 #include <string.h>
 
-FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid, const FklHashTable *ht) {
+FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid,
+                                            const FklHashTable *ht) {
     FklPatternMatchingHashTableItem *item = fklGetHashItem(&sid, ht);
     return item->node;
 }
@@ -187,14 +188,14 @@ static inline int is_pattern_slot(FklSid_t s, const FklNastNode *p) {
 }
 
 FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
-                                      FklHashTable **psymbolTable) {
+                                      FklSidUset **psymbolTable) {
     FklNastNode *r = NULL;
     if (node->type == FKL_NAST_PAIR && fklIsNastNodeList(node)
         && node->pair->car->type == FKL_NAST_SYM
         && node->pair->cdr->type == FKL_NAST_PAIR
         && node->pair->cdr->pair->cdr->type == FKL_NAST_NIL
         && is_valid_pattern_nast(node->pair->cdr->pair->car)) {
-        FklHashTable *symbolTable = fklCreateSidSet();
+        FklSidUset *symbolTable = fklSidUsetCreate();
         FklNastNode *exp = fklCopyNastNode(node->pair->cdr->pair->car);
         FklSid_t slotId = node->pair->car->sym;
         FklNastNode *rest = exp->pair->cdr;
@@ -207,8 +208,8 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
             if (c->type == FKL_NAST_PAIR) {
                 if (is_pattern_slot(slotId, c)) {
                     FklSid_t sym = c->pair->cdr->pair->car->sym;
-                    if (fklGetHashItem(&sym, symbolTable)) {
-                        fklDestroyHashTable(symbolTable);
+                    if (fklSidUsetPut2(symbolTable, sym)) {
+                        fklSidUsetDestroy(symbolTable);
                         fklNastNodeVectorUninit(&stack);
                         *psymbolTable = NULL;
                         fklDestroyNastNode(exp);
@@ -219,7 +220,6 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
                     free(c->pair);
                     c->type = FKL_NAST_SLOT;
                     c->sym = sym;
-                    fklPutHashItem(&sym, symbolTable);
                 } else {
                     fklNastNodeVectorPushBack2(&stack, c->pair->cdr);
                     fklNastNodeVectorPushBack2(&stack, c->pair->car);
@@ -231,7 +231,7 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
         if (psymbolTable)
             *psymbolTable = symbolTable;
         else
-            fklDestroyHashTable(symbolTable);
+            fklSidUsetDestroy(symbolTable);
     }
     return r;
 }

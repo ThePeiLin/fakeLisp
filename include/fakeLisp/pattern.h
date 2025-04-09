@@ -19,14 +19,15 @@ typedef struct {
 #define FKL_PATTERN_BE_COVER (2)
 #define FKL_PATTERN_EQUAL (3)
 
-FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklHashTable **);
+FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklSidUset **);
 int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
                     FklHashTable *ht);
 void fklPatternMatchingHashTableSet(FklSid_t sid, const FklNastNode *node,
                                     FklHashTable *ht);
 
 int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1);
-FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid, const FklHashTable *ht);
+FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid,
+                                            const FklHashTable *ht);
 FklHashTable *fklCreatePatternMatchingHashTable(void);
 void fklInitPatternMatchHashTable(FklHashTable *ht);
 

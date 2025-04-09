@@ -271,6 +271,7 @@ FklFuncPrototypes *fklLoadFuncPrototypes(FILE *fp) {
     return pts;
 }
 
+// to be delete
 void fklSetSidKey(void *k0, const void *k1) {
     *(FklSid_t *)k0 = *(const FklSid_t *)k1;
 }
@@ -280,21 +281,21 @@ uintptr_t fklSidHashFunc(const void *k) { return *(const FklSid_t *)k; }
 int fklSidKeyEqual(const void *k0, const void *k1) {
     return *(const FklSid_t *)k0 == *(const FklSid_t *)k1;
 }
-
-static const FklHashTableMetaTable SidSetMetaTable = {
-    .size = sizeof(FklSid_t),
-    .__setKey = fklSetSidKey,
-    .__setVal = fklSetSidKey,
-    .__hashFunc = fklSidHashFunc,
-    .__keyEqual = fklSidKeyEqual,
-    .__getKey = fklHashDefaultGetKey,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
-
-FklHashTable *fklCreateSidSet(void) {
-    return fklCreateHashTable(&SidSetMetaTable);
-}
-
-void fklInitSidSet(FklHashTable *t) { fklInitHashTable(t, &SidSetMetaTable); }
-
-void fklPutSidToSidSet(FklHashTable *t, FklSid_t id) { fklPutHashItem(&id, t); }
+//
+// static const FklHashTableMetaTable SidSetMetaTable = {
+//     .size = sizeof(FklSid_t),
+//     .__setKey = fklSetSidKey,
+//     .__setVal = fklSetSidKey,
+//     .__hashFunc = fklSidHashFunc,
+//     .__keyEqual = fklSidKeyEqual,
+//     .__getKey = fklHashDefaultGetKey,
+//     .__uninitItem = fklDoNothingUninitHashItem,
+// };
+//
+// FklHashTable *fklCreateSidSet(void) {
+//     return fklCreateHashTable(&SidSetMetaTable);
+// }
+//
+// void fklInitSidSet(FklHashTable *t) { fklInitHashTable(t, &SidSetMetaTable); }
+//
+// void fklPutSidToSidSet(FklHashTable *t, FklSid_t id) { fklPutHashItem(&id, t); }

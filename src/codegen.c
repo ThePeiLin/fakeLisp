@@ -4985,24 +4985,24 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
     FklByteCodelnt *load_lib = append_load_lib_ins(
         INS_APPEND_BACK, NULL, libId, codegen->fid, curline, scope);
 
-    FklHashTable excepts;
-    fklInitSidSet(&excepts);
+    FklSidUset excepts;
+    fklSidUsetInit(&excepts);
 
     for (FklNastNode *list = except; list->type == FKL_NAST_PAIR;
          list = list->pair->cdr)
-        fklPutHashItem(&list->pair->car->sym, &excepts);
+        fklSidUsetPut2(&excepts, list->pair->car->sym);
 
     for (const FklHashTableItem *l = exports->first; l; l = l->next) {
         const FklCodegenExportSidIndexHashItem *item =
             (const FklCodegenExportSidIndexHashItem *)l->data;
-        if (!fklGetHashItem(&item->sid, &excepts)) {
+        if (!fklSidUsetHas2(&excepts, item->sid)) {
             uint32_t idx = fklAddCodegenDefBySid(item->sid, scope, curEnv)->idx;
 
             append_import_ins(INS_APPEND_BACK, load_lib, idx, item->idx,
                               codegen->fid, except->curline, scope);
         }
     }
-    fklUninitHashTable(&excepts);
+    fklSidUsetUninit(&excepts);
     return load_lib;
 }
 
@@ -5109,9 +5109,9 @@ static inline FklByteCodelnt *process_import_imported_lib(
 }
 
 static inline int is_exporting_outer_ref_group(FklCodegenInfo *codegen) {
-    for (FklHashTableItem *sid_list = codegen->export_named_prod_groups->first;
+    for (FklSidUsetNode *sid_list = codegen->export_named_prod_groups->first;
          sid_list; sid_list = sid_list->next) {
-        FklSid_t id = *(FklSid_t *)sid_list->data;
+        FklSid_t id = sid_list->data;
         FklGrammerProductionGroup *group =
             fklGetHashItem(&id, codegen->named_prod_groups);
         if (group->is_ref_outer)
@@ -5588,7 +5588,7 @@ static CODEGEN_FUNC(codegen_export_single) {
         if (!group_id)
             goto error;
 
-        fklPutHashItem(&group_id, libCodegen->export_named_prod_groups);
+        fklSidUsetPut2(libCodegen->export_named_prod_groups, group_id);
         fklCodegenQuestVectorPushBack2(
             codegenQuestStack,
             fklCreateCodegenQuest(_empty_bc_process, createEmptyContext(),
@@ -5801,23 +5801,24 @@ static inline FklByteCodelnt *process_import_from_dll_except(
         INS_APPEND_BACK, NULL, libId, codegen->fid, origExp->curline, scope);
 
     FklHashTable *exports = &lib->exports;
-    FklHashTable excepts;
-    fklInitSidSet(&excepts);
+    FklSidUset excepts;
+    fklSidUsetInit(&excepts);
 
     for (FklNastNode *list = except; list->type == FKL_NAST_PAIR;
          list = list->pair->cdr)
-        fklPutHashItem(&list->pair->car->sym, &excepts);
+        fklSidUsetPut2(&excepts, list->pair->car->sym);
 
     for (const FklHashTableItem *l = exports->first; l; l = l->next) {
         const FklCodegenExportSidIndexHashItem *item =
             (const FklCodegenExportSidIndexHashItem *)l->data;
-        if (!fklGetHashItem(&item->sid, &excepts)) {
+        if (!fklSidUsetHas2(&excepts, item->sid)) {
             uint32_t idx = fklAddCodegenDefBySid(item->sid, scope, curEnv)->idx;
             append_import_ins(INS_APPEND_BACK, load_dll, idx, item->idx,
                               codegen->fid, except->curline, scope);
         }
     }
 
+    fklSidUsetUninit(&excepts);
     return load_dll;
 }
 
@@ -7461,7 +7462,7 @@ FklGrammerProduction *fklCodegenProdPrintingToProduction(
 
 static inline FklCodegenInfo *
 macro_compile_prepare(FklCodegenInfo *codegen, FklCodegenMacroScope *macroScope,
-                      FklHashTable *symbolSet, FklCodegenEnv **pmacroEnv,
+                      FklSidUset *symbolSet, FklCodegenEnv **pmacroEnv,
                       FklSymbolTable *pst, FklConstTable *pkt) {
     FklCodegenEnv *macro_glob_env = fklCreateCodegenEnv(NULL, 0, macroScope);
     fklInitGlobCodegenEnv(macro_glob_env, pst);
@@ -7490,9 +7491,9 @@ macro_compile_prepare(FklCodegenInfo *codegen, FklCodegenMacroScope *macroScope,
     FklCodegenEnv *macro_main_env =
         fklCreateCodegenEnv(macro_glob_env, 1, macroScope);
 
-    for (FklHashTableItem *list = symbolSet->first; list; list = list->next) {
-        FklSid_t *id = (FklSid_t *)list->data;
-        fklAddCodegenDefBySid(*id, 1, macro_main_env);
+    for (FklSidUsetNode *list = symbolSet->first; list; list = list->next) {
+        FklSid_t id = list->data;
+        fklAddCodegenDefBySid(id, 1, macro_main_env);
     }
     *pmacroEnv = macro_main_env;
     return macroCodegen;
@@ -7670,7 +7671,7 @@ BC_PROCESS(process_adding_production) {
             prototype_id, bcl);
     }
     if (codegen->export_named_prod_groups
-        && fklGetHashItem(&group_id, codegen->export_named_prod_groups)
+        && fklSidUsetHas2(codegen->export_named_prod_groups, group_id)
         && ((FklGrammerProductionGroup *)fklGetHashItem(
                 &group_id, codegen->named_prod_groups))
                ->is_ref_outer) {
@@ -7736,14 +7737,14 @@ static inline FklGrammerProduction *nast_vector_to_production(
             NULL, 1, macroScope, curEnv, line, codegen, codegenQuestStack);
         return prod;
     } else if (action_type == codegen->outer_ctx->builtInPatternVar_custom) {
-        FklHashTable symbolSet;
-        fklInitSidSet(&symbolSet);
-        fklPutHashItem(&fklAddSymbolCstr("$$", pst)->id, &symbolSet);
+        FklSidUset symbolSet;
+        fklSidUsetInit(&symbolSet);
+        fklSidUsetPut2(&symbolSet, fklAddSymbolCstr("$$", pst)->id);
         FklCodegenEnv *macroEnv = NULL;
         FklCodegenInfo *macroCodegen =
             macro_compile_prepare(codegen, macroScope, &symbolSet, &macroEnv,
                                   pst, &codegen->outer_ctx->public_kt);
-        fklUninitHashTable(&symbolSet);
+        fklSidUsetUninit(&symbolSet);
 
         create_and_insert_to_pool(macroCodegen, 0, macroEnv, 0,
                                   action_ast->curline, pst);
@@ -8144,26 +8145,25 @@ static CODEGEN_FUNC(codegen_defmacro) {
     if (name->type == FKL_NAST_SYM)
         fklAddReplacementBySid(name->sym, value, macroScope->replacements);
     else if (name->type == FKL_NAST_PAIR) {
-        FklHashTable *symbolSet = NULL;
+        FklSidUset *symbolSet = NULL;
         FklNastNode *pattern = fklCreatePatternFromNast(name, &symbolSet);
         if (!pattern) {
             errorState->type = FKL_ERR_INVALID_MACRO_PATTERN;
             errorState->place = fklMakeNastNodeRef(name);
             return;
         }
-        if (fklGetHashItem(&outer_ctx->builtInPatternVar_orig, symbolSet)) {
+        if (fklSidUsetPut2(symbolSet, outer_ctx->builtInPatternVar_orig)) {
             fklDestroyNastNode(pattern);
             errorState->type = FKL_ERR_INVALID_MACRO_PATTERN;
             errorState->place = fklMakeNastNodeRef(name);
             return;
         }
-        fklPutHashItem(&outer_ctx->builtInPatternVar_orig, symbolSet);
 
         FklCodegenEnv *macroEnv = NULL;
         FklCodegenInfo *macroCodegen =
             macro_compile_prepare(codegen, macroScope, symbolSet, &macroEnv,
                                   pst, &codegen->outer_ctx->public_kt);
-        fklDestroyHashTable(symbolSet);
+        fklSidUsetDestroy(symbolSet);
 
         create_and_insert_to_pool(macroCodegen, 0, macroEnv, 0, value->curline,
                                   pst);
@@ -8849,7 +8849,7 @@ fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,
 
     fklInitExportSidIdxTable(&codegen->exports);
     codegen->export_replacement = fklCreateCodegenReplacementTable();
-    codegen->export_named_prod_groups = fklCreateSidSet();
+    codegen->export_named_prod_groups = fklSidUsetCreate();
 
     init_codegen_grammer_ptr(codegen);
 
@@ -8900,7 +8900,7 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen, const char *filename,
     codegen->export_macro = NULL;
     codegen->export_replacement =
         libMark ? fklCreateCodegenReplacementTable() : NULL;
-    codegen->export_named_prod_groups = libMark ? fklCreateSidSet() : NULL;
+    codegen->export_named_prod_groups = libMark ? fklSidUsetCreate() : NULL;
     codegen->exports.t = NULL;
     if (libMark)
         fklInitExportSidIdxTable(&codegen->exports);
@@ -8976,7 +8976,7 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
         fklDestroyCodegenMacro(t);
     }
     if (codegen->export_named_prod_groups)
-        fklDestroyHashTable(codegen->export_named_prod_groups);
+        fklSidUsetDestroy(codegen->export_named_prod_groups);
     if (codegen->export_replacement)
         fklDestroyHashTable(codegen->export_replacement);
     if (codegen->g == &codegen->self_g && *codegen->g) {
@@ -9030,15 +9030,15 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
         lib->head = codegen->export_macro;
         lib->replacements = codegen->export_replacement;
         if (codegen->export_named_prod_groups
-            && codegen->export_named_prod_groups->num) {
+            && codegen->export_named_prod_groups->count) {
             fklInitSymbolTable(&lib->terminal_table);
             fklInitRegexTable(&lib->regexes);
             FklGrammer *g = *codegen->g;
             fklInitCodegenProdGroupTable(&lib->named_prod_groups);
-            for (FklHashTableItem *sid_list =
+            for (FklSidUsetNode *sid_list =
                      codegen->export_named_prod_groups->first;
                  sid_list; sid_list = sid_list->next) {
-                FklSid_t id = *(FklSid_t *)sid_list->data;
+                FklSid_t id = sid_list->data;
                 FklGrammerProductionGroup *group =
                     fklGetHashItem(&id, codegen->named_prod_groups);
                 FklGrammerProductionGroup *target_group =
@@ -9520,18 +9520,18 @@ void fklWriteNamedProds(const FklHashTable *named_prod_groups,
     }
 }
 
-void fklWriteExportNamedProds(const FklHashTable *export_named_prod_groups,
+void fklWriteExportNamedProds(const FklSidUset *export_named_prod_groups,
                               const FklHashTable *named_prod_groups,
                               const FklSymbolTable *st, FILE *fp) {
-    uint8_t has_named_prod = export_named_prod_groups->num > 0;
+    uint8_t has_named_prod = export_named_prod_groups->count > 0;
     fwrite(&has_named_prod, sizeof(has_named_prod), 1, fp);
     if (!has_named_prod)
         return;
-    fwrite(&export_named_prod_groups->num,
-           sizeof(export_named_prod_groups->num), 1, fp);
-    for (FklHashTableItem *list = export_named_prod_groups->first; list;
+    fwrite(&export_named_prod_groups->count,
+           sizeof(export_named_prod_groups->count), 1, fp);
+    for (FklSidUsetNode *list = export_named_prod_groups->first; list;
          list = list->next) {
-        FklSid_t id = *(FklSid_t *)list->data;
+        FklSid_t id = list->data;
         FklGrammerProductionGroup *group =
             get_production_group(named_prod_groups, id);
         fwrite(&group->id, sizeof(group->id), 1, fp);

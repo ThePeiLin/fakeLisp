@@ -16,7 +16,7 @@ static void fuv_handle_ud_finalizer(FklVMud *ud) {
     if (fuv_handle) {
         FuvHandleData *handle_data = &fuv_handle->data;
         FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, handle_data->loop);
-        fklDelHashItem(&handle_data->handle, &fuv_loop->data.gc_values, NULL);
+        fklVMvalueUsetDel2(&fuv_loop->data.gc_values, handle_data->handle);
         fuv_handle->data.handle = NULL;
         *handle_ud = NULL;
     }

@@ -169,9 +169,6 @@ void fklPtrKeySet(void *k0, const void *k1);
 uintptr_t fklPtrKeyHashFunc(const void *k);
 int fklPtrKeyEqual(const void *k0, const void *k1);
 
-void fklInitPtrSet(FklHashTable *);
-FklHashTable *fklCreatPtrSet(void);
-
 void *fklGetOrPutWithOtherKey(void *pkey, uintptr_t (*hashv)(const void *key),
                               int (*keq)(const void *k0, const void *k1),
                               void (*setVal)(void *d0, const void *d1),

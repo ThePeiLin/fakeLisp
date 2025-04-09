@@ -6,6 +6,7 @@
 #include <fakeLisp/utils.h>
 
 #include <ctype.h>
+#include <stdalign.h>
 #include <string.h>
 
 // lalr1
@@ -3763,25 +3764,34 @@ static inline void add_ignore_action(FklGrammer *g,
     }
 }
 
+// GraProdUset
+#define FKL_USET_TYPE_PREFIX Gra
+#define FKL_USET_METHOD_PREFIX gra
+#define FKL_USET_ELM_TYPE FklGrammerProduction *
+#define FKL_USET_ELM_TYPE_NAME Prod
+#define FKL_USET_ELM_HASH                                                      \
+    return FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklGrammerProduction));
+#include <fakeLisp/uset.h>
+
 static inline int is_only_single_way_to_reduce(const FklLalrItemSet *set) {
     for (FklLalrItemSetLink *l = set->links; l; l = l->next)
         if (l->sym.isterm)
             return 0;
-    FklHashTable prodSet;
+    GraProdUset prodSet;
     int hasEof = 0;
     int delim = 0;
-    fklInitPtrSet(&prodSet);
+    graProdUsetInit(&prodSet);
     for (const FklHashTableItem *l = set->items.first; l; l = l->next) {
         const FklLalrItem *item = (const FklLalrItem *)l->data;
-        fklPutHashItem(&item->prod, &prodSet);
+        graProdUsetPut2(&prodSet, item->prod);
         if (item->la.t == FKL_LALR_MATCH_EOF)
             hasEof = 1;
         if (item->la.delim)
             delim = 1;
     }
-    size_t num = prodSet.num;
-    fklUninitHashTable(&prodSet);
-    if (prodSet.num != 1)
+    size_t num = prodSet.count;
+    graProdUsetUninit(&prodSet);
+    if (num != 1)
         return 0;
     return num == 1 && hasEof && delim;
 }
@@ -4402,7 +4412,8 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
         fputs("\t\t\t*accept=1;\n", fp);
         break;
     case FKL_ANALYSIS_REDUCE:
-        fprintf(fp, "\t\t\tstateStack->size-=%" FKL_PRT64U ";\n", ac->prod->len);
+        fprintf(fp, "\t\t\tstateStack->size-=%" FKL_PRT64U ";\n",
+                ac->prod->len);
         fprintf(fp, "\t\t\tsymbolStack->size-=%" FKL_PRT64U ";\n",
                 ac->prod->len);
         fputs("\t\t\tFklStateFuncPtr "
@@ -4574,13 +4585,23 @@ static inline void print_state_to_c_file(const FklAnalysisState *states,
     fputs("\treturn 0;\n}\n\n", fp);
 }
 
+// builtin match method unordered set
+// GraBtMmUset
+#define FKL_USET_TYPE_PREFIX Gra
+#define FKL_USET_METHOD_PREFIX gra
+#define FKL_USET_ELM_TYPE FklLalrBuiltinMatch const *
+#define FKL_USET_ELM_TYPE_NAME BtMm
+#define FKL_USET_ELM_HASH                                                      \
+    return FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrBuiltinMatch));
+#include <fakeLisp/uset.h>
+
 static inline void get_all_match_method_table(const FklGrammer *g,
-                                              FklHashTable *ptrSet) {
+                                              GraBtMmUset *ptrSet) {
     for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next) {
         size_t len = ig->len;
         for (size_t i = 0; i < len; i++)
             if (ig->ig[i].term_type == FKL_TERM_BUILTIN)
-                fklPutHashItem(&ig->ig[i].b.t, ptrSet);
+                graBtMmUsetPut2(ptrSet, ig->ig[i].b.t);
     }
 
     const FklAnalysisState *states = g->aTable.states;
@@ -4589,21 +4610,21 @@ static inline void get_all_match_method_table(const FklGrammer *g,
         for (const FklAnalysisStateAction *ac = states[i].state.action; ac;
              ac = ac->next)
             if (ac->match.t == FKL_LALR_MATCH_BUILTIN)
-                fklPutHashItem(&ac->match.func.t, ptrSet);
+                graBtMmUsetPut2(ptrSet, ac->match.func.t);
     }
 }
 
 static inline void print_all_builtin_match_func(const FklGrammer *g, FILE *fp) {
-    FklHashTable builtin_match_method_table_set;
-    fklInitPtrSet(&builtin_match_method_table_set);
+    GraBtMmUset builtin_match_method_table_set;
+    graBtMmUsetInit(&builtin_match_method_table_set);
     get_all_match_method_table(g, &builtin_match_method_table_set);
-    for (FklHashTableItem *il = builtin_match_method_table_set.first; il;
+    for (GraBtMmUsetNode *il = builtin_match_method_table_set.first; il;
          il = il->next) {
-        FklLalrBuiltinMatch *t = *(FklLalrBuiltinMatch **)il->data;
+        const FklLalrBuiltinMatch *t = il->k;
         t->print_src(g, fp);
         fputc('\n', fp);
     }
-    fklUninitHashTable(&builtin_match_method_table_set);
+    graBtMmUsetUninit(&builtin_match_method_table_set);
 }
 
 static inline void print_all_regex(const FklRegexTable *rt, FILE *fp) {

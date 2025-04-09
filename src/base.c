@@ -420,22 +420,6 @@ uintptr_t fklPtrKeyHashFunc(const void *k) {
     return (uintptr_t)*(void *const *)k;
 }
 
-static const FklHashTableMetaTable PtrSetMetaTable = {
-    .size = sizeof(void *),
-    .__setKey = fklPtrKeySet,
-    .__setVal = fklPtrKeySet,
-    .__hashFunc = fklPtrKeyHashFunc,
-    .__keyEqual = fklPtrKeyEqual,
-    .__getKey = fklHashDefaultGetKey,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
-
-void fklInitPtrSet(FklHashTable *r) { fklInitHashTable(r, &PtrSetMetaTable); }
-
-FklHashTable *fklCreatePtrSet(void) {
-    return fklCreateHashTable(&PtrSetMetaTable);
-}
-
 #define HASH_FUNC_HEADER()                                                     \
     uintptr_t (*hashv)(const void *) = ht->t->__hashFunc;                      \
     void *(*key)(void *) = ht->t->__getKey;                                    \

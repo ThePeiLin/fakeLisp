@@ -4,6 +4,7 @@
 #include <fakeLisp/vm.h>
 
 #include <math.h>
+#include <stdalign.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -619,21 +620,13 @@ static inline void scan_cir_ref(const FklVMvalue *s,
     fklUninitHashTable(&degree_table);
 }
 
-static inline int is_ptr_in_set(FklHashTable *ht, void *ptr) {
-    return fklGetHashItem(&ptr, ht) != NULL;
-}
-
-static inline void put_ptr_in_set(FklHashTable *ht, void *ptr) {
-    fklPutHashItem(&ptr, ht);
-}
-
 int fklHasCircleRef(const FklVMvalue *first_value) {
     if (FKL_GET_TAG(first_value) != FKL_TAG_PTR
         || (!FKL_IS_PAIR(first_value) && !FKL_IS_BOX(first_value)
             && !FKL_IS_VECTOR(first_value) && !FKL_IS_HASHTABLE(first_value)))
         return 0;
-    FklHashTable value_set;
-    fklInitPtrSet(&value_set);
+    FklVMvalueUset value_set;
+    fklVMvalueUsetInit(&value_set);
 
     FklHashTable degree_table;
     init_vmvalue_degree_hash_table(&degree_table);
@@ -647,40 +640,36 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(&degree_table, v);
-            if (!is_ptr_in_set(&value_set, v)) {
+            if (!fklVMvalueUsetPut2(&value_set, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
-                put_ptr_in_set(&value_set, v);
             }
         } else if (FKL_IS_VECTOR(v)) {
             inc_value_degree(&degree_table, v);
-            if (!is_ptr_in_set(&value_set, v)) {
+            if (!fklVMvalueUsetPut2(&value_set, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
-                put_ptr_in_set(&value_set, v);
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(&degree_table, v);
-            if (!is_ptr_in_set(&value_set, v)) {
+            if (!fklVMvalueUsetPut2(&value_set, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
-                put_ptr_in_set(&value_set, v);
             }
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(&degree_table, v);
-            if (!is_ptr_in_set(&value_set, v)) {
+            if (!fklVMvalueUsetPut2(&value_set, v)) {
                 for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
                      tail = tail->prev) {
                     FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
                     fklVMvalueVectorPushBack2(&stack, item->v);
                     fklVMvalueVectorPushBack2(&stack, item->key);
                 }
-                put_ptr_in_set(&value_set, v);
             }
         }
     }
     dec_value_degree(&degree_table, first_value);
-    fklUninitHashTable(&value_set);
+    fklVMvalueUsetUninit(&value_set);
 
     // remove value not in circle
 

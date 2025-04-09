@@ -10,6 +10,7 @@
 #include "utils.h"
 
 #include <setjmp.h>
+#include <stdalign.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -441,6 +442,13 @@ typedef struct FklVM {
 #define FKL_VECTOR_ELM_TYPE FklVMpair
 #define FKL_VECTOR_ELM_TYPE_NAME VMpair
 #include "vector.h"
+
+// FklVMvalueUset
+#define FKL_USET_ELM_TYPE FklVMvalue const *
+#define FKL_USET_ELM_TYPE_NAME VMvalue
+#define FKL_USET_ELM_HASH                                                      \
+    return FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue));
+#include "uset.h"
 
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,

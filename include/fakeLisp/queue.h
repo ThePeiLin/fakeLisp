@@ -203,6 +203,7 @@ static inline size_t METHOD(Length)(const NAME *r) {
 
 #undef METHOD
 #undef NAME
+#undef NODE_NAME
 
 #undef FKL_QUEUE_ELM_TYPE
 #undef FKL_QUEUE_ELM_TYPE_NAME

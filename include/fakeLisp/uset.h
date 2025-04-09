@@ -49,18 +49,23 @@
     CONCAT(FKL_USET_TYPE_PREFIX, CONCAT(FKL_USET_ELM_TYPE_NAME, UsetNode))
 
 #ifndef FKL_USET_ELM_HASH
-static inline uint32_t METHOD(__hash32shift)(uint32_t k) {
-    k = ~k + (k << 15);
-    k = k ^ (k >> 12);
-    k = k + (k << 2);
-    k = k ^ (k >> 4);
-    k = (k + (k << 3)) + (k << 11);
-    k = k ^ (k >> 16);
-    return k;
-}
-
-#define FKL_USET_ELM_HASH(X) METHOD(__hash32shift)(*X)
+#define FKL_USET_ELM_HASH                                                      \
+    {                                                                          \
+        uint32_t k = *pk;                                                      \
+        k = ~k + (k << 15);                                                    \
+        k = k ^ (k >> 12);                                                     \
+        k = k + (k << 2);                                                      \
+        k = k ^ (k >> 4);                                                      \
+        k = (k + (k << 3)) + (k << 11);                                        \
+        k = k ^ (k >> 16);                                                     \
+        return k;                                                              \
+    }
 #endif
+
+static inline uintptr_t METHOD(__hashv)(FKL_USET_ELM_TYPE const *pk) {
+    FKL_USET_ELM_HASH
+}
+#define HASHV(X) METHOD(__hashv)(X)
 
 typedef struct NODE_NAME {
     struct NODE_NAME *next;
@@ -142,15 +147,14 @@ static inline void METHOD(Rehash)(NAME *self) {
     NODE_NAME *cur = self->first;
     memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
     for (; cur; cur = cur->next) {
-        NODE_NAME **pp =
-            &self->buckets[FKL_USET_ELM_HASH(&cur->k) & self->mask];
+        NODE_NAME **pp = &self->buckets[HASHV(&cur->k) & self->mask];
         cur->bkt_next = *pp;
         *pp = cur;
     }
 }
 
 static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
-    uint32_t const hashv = FKL_USET_ELM_HASH(k);
+    uint32_t const hashv = HASHV(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_USET_ELM_EQUAL(k, &pn->k))
@@ -173,8 +177,7 @@ static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
         self->buckets = buckets;
         memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
         for (; cur; cur = cur->next) {
-            NODE_NAME **pp =
-                &self->buckets[FKL_USET_ELM_HASH(&cur->k) & self->mask];
+            NODE_NAME **pp = &self->buckets[HASHV(&cur->k) & self->mask];
             cur->bkt_next = *pp;
             *pp = cur;
         }
@@ -184,6 +187,7 @@ static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
     NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
     assert(node);
     FKL_USET_ELM_INIT((FKL_USET_ELM_TYPE *)&node->k, k);
+    node->bkt_next = *pp;
     *pp = node;
     if (self->first) {
         node->prev = self->last;
@@ -200,7 +204,7 @@ static inline int METHOD(Put2)(NAME *self, FKL_USET_ELM_TYPE k) {
 }
 
 static inline int METHOD(Has)(NAME *self, FKL_USET_ELM_TYPE const *k) {
-    NODE_NAME **pp = &self->buckets[FKL_USET_ELM_HASH(k) & self->mask];
+    NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_USET_ELM_EQUAL(k, &pn->k))
             return 1;
@@ -213,8 +217,8 @@ static inline int METHOD(Has2)(NAME *self, FKL_USET_ELM_TYPE k) {
 }
 
 static inline int METHOD(Del)(NAME *self, FKL_USET_ELM_TYPE const *k) {
-    for (NODE_NAME **pp = &self->buckets[FKL_USET_ELM_HASH(k) & self->mask];
-         *pp; pp = &(*pp)->bkt_next) {
+    for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;
+         pp = &(*pp)->bkt_next) {
         if (FKL_USET_ELM_EQUAL(k, &(*pp)->k)) {
             NODE_NAME *pn = *pp;
             *pp = pn->bkt_next;
@@ -247,6 +251,9 @@ static inline int METHOD(Del2)(NAME *self, FKL_USET_ELM_TYPE k) {
 #undef NAME
 #undef NODE_NAME
 
+#undef HASHV
+#undef FKL_USET_ELM_EQUAL
+#undef FKL_USET_ELM_HASH
 #undef FKL_USET_ELM_TYPE
 #undef FKL_USET_ELM_TYPE_NAME
 #undef FKL_USET_TYPE_PREFIX

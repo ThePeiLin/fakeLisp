@@ -421,7 +421,7 @@ struct FuvErrorRecoverData {
 
 typedef struct {
     FklVM *exe;
-    FklVMvalueUset gc_values;
+    FklVMobjTable gc_values;
     uv_idle_t error_check_idle;
     struct FuvErrorRecoverData error_recover_data;
     jmp_buf buf;

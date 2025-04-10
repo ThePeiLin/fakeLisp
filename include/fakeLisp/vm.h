@@ -443,13 +443,13 @@ typedef struct FklVM {
 #define FKL_VECTOR_ELM_TYPE_NAME VMpair
 #include "vector.h"
 
-// FklVMvalueUset
-#define FKL_USET_ELM_TYPE FklVMvalue const *
-#define FKL_USET_ELM_TYPE_NAME VMvalue
-#define FKL_USET_ELM_HASH                                                      \
+// FklVMvalueTable
+#define FKL_TABLE_KEY_TYPE FklVMvalue const *
+#define FKL_TABLE_ELM_NAME VMobj
+#define FKL_TABLE_KEY_HASH                                                     \
     return fklHash64Shift(                                                     \
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
-#include "uset.h"
+#include "table.h"
 
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,

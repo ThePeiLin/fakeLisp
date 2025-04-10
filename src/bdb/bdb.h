@@ -86,7 +86,7 @@ typedef struct DebugCtx {
     FklCodegenEnv *glob_env;
     FklCodegenOuterCtx outer_ctx;
 
-    FklSidUset file_sid_set;
+    FklSidTable file_sid_set;
     FklSymbolTable *st;
     FklConstTable *kt;
 

@@ -93,10 +93,10 @@ typedef struct // unresolved symbol ref
 #define FKL_VECTOR_ELM_TYPE_NAME Sid
 #include "vector.h"
 
-// FklSidUset
-#define FKL_USET_ELM_TYPE FklSid_t
-#define FKL_USET_ELM_TYPE_NAME Sid
-#include "uset.h"
+// FklSidTable
+#define FKL_TABLE_KEY_TYPE FklSid_t
+#define FKL_TABLE_ELM_NAME Sid
+#include "table.h"
 
 void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);

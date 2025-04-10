@@ -16,7 +16,7 @@ void uninitFuvReq(FuvReqUd *req_ud) {
         FuvReqData *req_data = &fuv_req->data;
         if (req_data->loop) {
             FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, req_data->loop);
-            fklVMvalueUsetDel2(&fuv_loop->data.gc_values, req_data->req);
+            fklVMobjTableDel2(&fuv_loop->data.gc_values, req_data->req);
             fuv_req->data.req = NULL;
             fuv_req->data.callback = NULL;
         } else {

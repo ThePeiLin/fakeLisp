@@ -625,8 +625,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         || (!FKL_IS_PAIR(first_value) && !FKL_IS_BOX(first_value)
             && !FKL_IS_VECTOR(first_value) && !FKL_IS_HASHTABLE(first_value)))
         return 0;
-    FklVMvalueUset value_set;
-    fklVMvalueUsetInit(&value_set);
+    FklVMobjTable value_set;
+    fklVMobjTableInit(&value_set);
 
     FklHashTable degree_table;
     init_vmvalue_degree_hash_table(&degree_table);
@@ -640,25 +640,25 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(&degree_table, v);
-            if (!fklVMvalueUsetPut2(&value_set, v)) {
+            if (!fklVMobjTablePut2(&value_set, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
             }
         } else if (FKL_IS_VECTOR(v)) {
             inc_value_degree(&degree_table, v);
-            if (!fklVMvalueUsetPut2(&value_set, v)) {
+            if (!fklVMobjTablePut2(&value_set, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(&degree_table, v);
-            if (!fklVMvalueUsetPut2(&value_set, v)) {
+            if (!fklVMobjTablePut2(&value_set, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
             }
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(&degree_table, v);
-            if (!fklVMvalueUsetPut2(&value_set, v)) {
+            if (!fklVMobjTablePut2(&value_set, v)) {
                 for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
                      tail = tail->prev) {
                     FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
@@ -669,7 +669,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         }
     }
     dec_value_degree(&degree_table, first_value);
-    fklVMvalueUsetUninit(&value_set);
+    fklVMobjTableUninit(&value_set);
 
     // remove value not in circle
 

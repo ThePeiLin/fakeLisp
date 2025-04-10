@@ -5,7 +5,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, loop);
 
 static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
-    for (FklVMvalueUsetNode *l = fuv_loop->data.gc_values.first; l;
+    for (FklVMobjTableNode *l = fuv_loop->data.gc_values.first; l;
          l = l->next) {
         FklVMvalue *v = FKL_REMOVE_CONST(FklVMvalue, l->k);
         fklVMgcToGray(v, gc);
@@ -50,7 +50,7 @@ static void fuv_loop_finalizer(FklVMud *ud) {
     uv_walk(&fuv_loop->loop, fuv_close_loop_walk_cb, fuv_loop);
     while (uv_loop_close(&fuv_loop->loop))
         uv_run(&fuv_loop->loop, UV_RUN_DEFAULT);
-    fklVMvalueUsetUninit(&fuv_loop->data.gc_values);
+    fklVMobjTableUninit(&fuv_loop->data.gc_values);
 }
 
 static FklVMudMetaTable FuvLoopMetaTable = {
@@ -107,7 +107,7 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
         *err = r;
         return NULL;
     }
-    fklVMvalueUsetInit(&fuv_loop->data.gc_values);
+    fklVMobjTableInit(&fuv_loop->data.gc_values);
     uv_loop_set_data(&fuv_loop->loop, &fuv_loop->data);
     uv_handle_set_data((uv_handle_t *)&fuv_loop->data.error_check_idle,
                        fuv_loop);
@@ -167,5 +167,5 @@ int isFuvLoop(FklVMvalue *v) {
 
 void fuvLoopInsertFuvObj(FklVMvalue *loop_obj, FklVMvalue *v) {
     FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
-    fklVMvalueUsetPut2(&loop->data.gc_values, v);
+    fklVMobjTablePut2(&loop->data.gc_values, v);
 }

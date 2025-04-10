@@ -99,6 +99,27 @@ static inline uintptr_t fklHashCombine(uintptr_t seed, uintptr_t hash) {
     return hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
+static inline uintptr_t fklHash32Shift(uint32_t k) {
+    k = ~k + (k << 15);
+    k = k ^ (k >> 12);
+    k = k + (k << 2);
+    k = k ^ (k >> 4);
+    k = (k + (k << 3)) + (k << 11);
+    k = k ^ (k >> 16);
+    return k;
+}
+
+static inline uintptr_t fklHash64Shift(uint64_t key) {
+    key = (~key) + (key << 21); // key = (key << 21) - key - 1;
+    key = key ^ (key >> 24);
+    key = (key + (key << 3)) + (key << 8); // key * 265
+    key = key ^ (key >> 14);
+    key = (key + (key << 2)) + (key << 4); // key * 21
+    key = key ^ (key >> 28);
+    key = key + (key << 31);
+    return key;
+}
+
 #ifdef __cplusplus
 }
 #endif

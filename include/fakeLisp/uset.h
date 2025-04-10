@@ -16,8 +16,12 @@
 #define FKL_USET_ELM_UNINIT(X)
 #endif
 
-#ifndef FKL_USET_DEFAULT_CAPACITY
-#define FKL_USET_DEFAULT_CAPACITY (3)
+#ifndef FKL_USET_DEFAULT_CAPACITY_SHIFT
+#define FKL_USET_DEFAULT_CAPACITY_SHIFT (3)
+#endif
+
+#if FKL_USET_DEFAULT_CAPACITY_SHIFT < 1
+#error "FKL_USET_DEFAULT_CAPACITY_SHIFT should greater than 1"
 #endif
 
 #ifndef FKL_USET_TYPE_PREFIX
@@ -68,8 +72,8 @@ static inline uintptr_t METHOD(__hashv)(FKL_USET_ELM_TYPE const *pk) {
 #define HASHV(X) METHOD(__hashv)(X)
 
 typedef struct NODE_NAME {
-    struct NODE_NAME *next;
     struct NODE_NAME *prev;
+    struct NODE_NAME *next;
     struct NODE_NAME *bkt_next;
     FKL_USET_ELM_TYPE const k;
 } NODE_NAME;
@@ -85,7 +89,7 @@ typedef struct NAME {
 } NAME;
 
 static inline void METHOD(Init)(NAME *self) {
-    self->capacity = (1 << FKL_USET_DEFAULT_CAPACITY);
+    self->capacity = (1 << FKL_USET_DEFAULT_CAPACITY_SHIFT);
     self->mask = self->capacity - 1;
 #ifdef FKL_USET_LOAD_FACTOR
     self->rehash_threshold = self->capacity * FKL_USET_LOAD_FACTOR;
@@ -153,6 +157,27 @@ static inline void METHOD(Rehash)(NAME *self) {
     }
 }
 
+static inline void METHOD(Grow)(NAME *self) {
+    NODE_NAME *cur = self->first;
+    self->capacity <<= 1;
+    self->mask = self->capacity - 1;
+#ifdef FKL_USET_LOAD_FACTOR
+    self->rehash_threshold = self->capacity * FKL_USET_LOAD_FACTOR;
+#else
+    self->rehash_threshold = (self->capacity >> 2) | (self->capacity >> 1);
+#endif
+    NODE_NAME **buckets = (NODE_NAME **)realloc(
+        self->buckets, self->capacity * sizeof(NODE_NAME *));
+    assert(buckets);
+    self->buckets = buckets;
+    memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
+    for (; cur; cur = cur->next) {
+        NODE_NAME **pp = &self->buckets[HASHV(&cur->k) & self->mask];
+        cur->bkt_next = *pp;
+        *pp = cur;
+    }
+}
+
 static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
     uint32_t const hashv = HASHV(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
@@ -161,28 +186,10 @@ static inline int METHOD(Put)(NAME *self, FKL_USET_ELM_TYPE const *k) {
             return 1;
     }
 
-    // check threshold
-    if (self->count >= self->rehash_threshold) {
-        NODE_NAME *cur = self->first;
-        self->capacity <<= 1;
-        self->mask = self->capacity - 1;
-#ifdef FKL_USET_LOAD_FACTOR
-        self->rehash_threshold = self->capacity * FKL_USET_LOAD_FACTOR;
-#else
-        self->rehash_threshold = (self->capacity >> 2) | (self->capacity >> 1);
-#endif
-        NODE_NAME **buckets = (NODE_NAME **)realloc(
-            self->buckets, self->capacity * sizeof(NODE_NAME *));
-        assert(buckets);
-        self->buckets = buckets;
-        memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
-        for (; cur; cur = cur->next) {
-            NODE_NAME **pp = &self->buckets[HASHV(&cur->k) & self->mask];
-            cur->bkt_next = *pp;
-            *pp = cur;
-        }
-        pp = &self->buckets[hashv & self->mask];
-    }
+    // check threshold and grow capacity
+    if (self->count >= self->rehash_threshold)
+        METHOD(Grow)(self);
+    pp = &self->buckets[hashv & self->mask];
 
     NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
     assert(node);

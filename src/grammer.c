@@ -3770,7 +3770,8 @@ static inline void add_ignore_action(FklGrammer *g,
 #define FKL_USET_ELM_TYPE FklGrammerProduction *
 #define FKL_USET_ELM_TYPE_NAME Prod
 #define FKL_USET_ELM_HASH                                                      \
-    return FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklGrammerProduction));
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklGrammerProduction)));
 #include <fakeLisp/uset.h>
 
 static inline int is_only_single_way_to_reduce(const FklLalrItemSet *set) {
@@ -4592,7 +4593,8 @@ static inline void print_state_to_c_file(const FklAnalysisState *states,
 #define FKL_USET_ELM_TYPE FklLalrBuiltinMatch const *
 #define FKL_USET_ELM_TYPE_NAME BtMm
 #define FKL_USET_ELM_HASH                                                      \
-    return FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrBuiltinMatch));
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrBuiltinMatch)));
 #include <fakeLisp/uset.h>
 
 static inline void get_all_match_method_table(const FklGrammer *g,

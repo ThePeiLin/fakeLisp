@@ -7,35 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct ConstI64HashItem {
-    int64_t k;
-    uint32_t idx;
-};
-
-static FKL_HASH_SET_KEY_VAL(const_i64_set_val, struct ConstI64HashItem);
-
-static uintptr_t const_i64_hash_func(const void *k) {
-    return (uintptr_t)*(const int64_t *)k;
-}
-
-static int const_i64_key_equal(const void *k0, const void *k1) {
-    return *(const int64_t *)k0 == *(const int64_t *)k1;
-}
-
-static const FklHashTableMetaTable ConstI64MetaTable = {
-    .size = sizeof(struct ConstI64HashItem),
-    .__setVal = const_i64_set_val,
-    .__hashFunc = const_i64_hash_func,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = const_i64_key_equal,
-    .__getKey = fklHashDefaultGetKey,
-};
-
 #define DEFAULT_CONST_TABLE_SIZE (32)
 #define DEFAULT_CONST_TABLE_INC (16)
 
 static inline void init_const_i64_table(FklConstI64Table *ki64t) {
-    fklInitHashTable(&ki64t->ht, &ConstI64MetaTable);
+    fklKi64TableInit(&ki64t->ht);
     ki64t->count = 0;
     ki64t->size = DEFAULT_CONST_TABLE_SIZE;
     ki64t->base = (int64_t *)malloc(DEFAULT_CONST_TABLE_SIZE * sizeof(int64_t));
@@ -47,41 +23,8 @@ struct ConstF64HashItem {
     uint32_t idx;
 };
 
-static FKL_HASH_SET_KEY_VAL(const_f64_set_val, struct ConstF64HashItem);
-
-static uintptr_t const_f64_hash_func(const void *k) {
-    union {
-        uint64_t k;
-        double f;
-    } u = {.f = *(const double *)k};
-    return (uintptr_t)u.k;
-}
-
-static int const_f64_key_equal(const void *k0, const void *k1) {
-    union {
-        uint64_t k;
-        double f;
-    } u0 = {.f = *(const double *)k0};
-
-    union {
-        uint64_t k;
-        double f;
-    } u1 = {.f = *(const double *)k1};
-
-    return u0.k == u1.k;
-}
-
-static const FklHashTableMetaTable ConstF64MetaTable = {
-    .size = sizeof(struct ConstF64HashItem),
-    .__setVal = const_f64_set_val,
-    .__hashFunc = const_f64_hash_func,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = const_f64_key_equal,
-    .__getKey = fklHashDefaultGetKey,
-};
-
 static inline void init_const_f64_table(FklConstF64Table *kf64t) {
-    fklInitHashTable(&kf64t->ht, &ConstF64MetaTable);
+    fklKf64TableInit(&kf64t->ht);
     kf64t->count = 0;
     kf64t->size = DEFAULT_CONST_TABLE_SIZE;
     kf64t->base = (double *)malloc(DEFAULT_CONST_TABLE_SIZE * sizeof(double));
@@ -236,12 +179,12 @@ FklConstTable *fklCreateConstTable(void) {
 }
 
 static void uninit_const_i64_table(FklConstI64Table *ki64t) {
-    fklUninitHashTable(&ki64t->ht);
+    fklKi64TableUninit(&ki64t->ht);
     free(ki64t->base);
 }
 
 static void uninit_const_f64_table(FklConstF64Table *kf64t) {
-    fklUninitHashTable(&kf64t->ht);
+    fklKf64TableUninit(&kf64t->ht);
     free(kf64t->base);
 }
 
@@ -286,26 +229,24 @@ void fklDestroyConstTable(FklConstTable *kt) {
 uint32_t fklAddI64Const(FklConstTable *kt, int64_t k) {
     FklConstI64Table *ki64t = &kt->ki64t;
     uint32_t idx = ki64t->count;
-    struct ConstI64HashItem data = {.k = k, .idx = idx};
-    struct ConstI64HashItem *i = fklGetOrPutHashItem(&data, &ki64t->ht);
-    if (i->idx == ki64t->count) {
+    uint32_t *i = fklKi64TableInsert2(&ki64t->ht, k, idx);
+    if (*i == ki64t->count) {
         REALLOC_CONST_TABLE_BASE(ki64t, int64_t);
-        ki64t->base[idx] = i->k;
+        ki64t->base[idx] = k;
     } else
-        idx = i->idx;
+        idx = *i;
     return idx;
 }
 
 uint32_t fklAddF64Const(FklConstTable *kt, double k) {
     FklConstF64Table *kf64t = &kt->kf64t;
     uint32_t idx = kf64t->count;
-    struct ConstF64HashItem data = {.k = k, .idx = idx};
-    struct ConstF64HashItem *i = fklGetOrPutHashItem(&data, &kf64t->ht);
-    if (i->idx == kf64t->count) {
+    uint32_t *i = fklKf64TableInsert2(&kf64t->ht, k, idx);
+    if (*i == kf64t->count) {
         REALLOC_CONST_TABLE_BASE(kf64t, double);
-        kf64t->base[idx] = i->k;
+        kf64t->base[idx] = k;
     } else
-        idx = i->idx;
+        idx = *i;
     return idx;
 }
 

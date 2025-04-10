@@ -425,28 +425,17 @@ uintptr_t fklPtrKeyHashFunc(const void *k) {
     void *(*key)(void *) = ht->t->__getKey;                                    \
     int (*keq)(const void *, const void *) = ht->t->__keyEqual;
 
-static inline uint32_t hash32shift(uint32_t k, uint32_t mask) {
-    k = ~k + (k << 15);
-    k = k ^ (k >> 12);
-    k = k + (k << 2);
-    k = k ^ (k >> 4);
-    k = (k + (k << 3)) + (k << 11);
-    k = k ^ (k >> 16);
-    return k & mask;
-}
-
 void *fklGetHashItem(const void *pkey, const FklHashTable *ht) {
     HASH_FUNC_HEADER();
 
-    for (FklHashTableItem *p = ht->base[hash32shift(hashv(pkey), ht->mask)]; p;
-         p = p->ni)
+    for (FklHashTableItem *p = ht->base[hashv(pkey) & ht->mask]; p; p = p->ni)
         if (keq(pkey, key(p->data)))
             return p->data;
     return NULL;
 }
 
 FklHashTableItem **fklGetHashItemSlot(FklHashTable *ht, uintptr_t hashv) {
-    return &ht->base[hash32shift(hashv, ht->mask)];
+    return &ht->base[hashv & ht->mask];
 }
 
 #define REHASH()                                                               \
@@ -464,8 +453,7 @@ static inline FklHashTableItem *createHashTableItem(size_t size,
 
 static inline void putHashNode(FklHashTableItem *node, FklHashTable *ht) {
     void *pkey = ht->t->__getKey(node->data);
-    FklHashTableItem **pp =
-        &ht->base[hash32shift(ht->t->__hashFunc(pkey), ht->mask)];
+    FklHashTableItem **pp = &ht->base[ht->t->__hashFunc(pkey) & ht->mask];
     node->ni = *pp;
     *pp = node;
 }
@@ -520,7 +508,7 @@ void fklRehashTable(FklHashTable *table) {
 
 int fklDelHashItem(void *pkey, FklHashTable *ht, void *deleted) {
     HASH_FUNC_HEADER();
-    FklHashTableItem **p = &ht->base[hash32shift(hashv(pkey), ht->mask)];
+    FklHashTableItem **p = &ht->base[hashv(pkey) & ht->mask];
     for (; *p; p = &(*p)->ni)
         if (keq(pkey, key((*p)->data)))
             break;
@@ -556,7 +544,7 @@ void fklRemoveHashItem(FklHashTable *ht, FklHashTableItem *hi) {
     void *data = hi->data;
 
     void *pkey = key(data);
-    FklHashTableItem **p = &ht->base[hash32shift(hashv(pkey), ht->mask)];
+    FklHashTableItem **p = &ht->base[hashv(pkey) & ht->mask];
     for (; *p; p = &(*p)->ni)
         if (*p == hi)
             break;
@@ -612,7 +600,7 @@ void *fklPutHashItemInSlot(FklHashTable *ht, FklHashTableItem **pp) {
 void *fklPutHashItem(const void *pkey, FklHashTable *ht) {
     HASH_FUNC_HEADER();
 
-    FklHashTableItem **pp = &ht->base[hash32shift(hashv(pkey), ht->mask)];
+    FklHashTableItem **pp = &ht->base[hashv(pkey) & ht->mask];
     void *d1 = NULL;
     for (FklHashTableItem *pn = *pp; pn; pn = pn->ni)
         if (keq(key(pn->data), pkey))
@@ -639,7 +627,7 @@ void *fklGetOrPutWithOtherKey(void *pkey, uintptr_t (*hashv)(const void *key),
                               void (*setVal)(void *d0, const void *d1),
                               FklHashTable *ht) {
     void *(*key)(void *) = ht->t->__getKey;
-    FklHashTableItem **pp = &ht->base[hash32shift(hashv(pkey), ht->mask)];
+    FklHashTableItem **pp = &ht->base[hashv(pkey) & ht->mask];
     void *d1 = NULL;
     for (FklHashTableItem *pn = *pp; pn; pn = pn->ni)
         if (keq(key(pn->data), pkey)) {
@@ -666,7 +654,7 @@ void *fklGetOrPutWithOtherKey(void *pkey, uintptr_t (*hashv)(const void *key),
 void *fklGetOrPutHashItem(void *data, FklHashTable *ht) {
     HASH_FUNC_HEADER();
     void *pkey = key(data);
-    FklHashTableItem **pp = &ht->base[hash32shift(hashv(pkey), ht->mask)];
+    FklHashTableItem **pp = &ht->base[hashv(pkey) & ht->mask];
     void *d1 = NULL;
     for (FklHashTableItem *pn = *pp; pn; pn = pn->ni)
         if (keq(key(pn->data), pkey)) {
@@ -692,7 +680,7 @@ void *fklGetOrPutHashItem(void *data, FklHashTable *ht) {
 
 int fklPutHashItem2(FklHashTable *ht, const void *pkey, void **pitem) {
     HASH_FUNC_HEADER();
-    FklHashTableItem **pp = &ht->base[hash32shift(hashv(pkey), ht->mask)];
+    FklHashTableItem **pp = &ht->base[hashv(pkey) & ht->mask];
     void *d1 = NULL;
     for (FklHashTableItem *pn = *pp; pn; pn = pn->ni)
         if (keq(key(pn->data), pkey)) {

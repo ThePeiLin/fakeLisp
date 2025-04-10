@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "bigint.h"
+#include "common.h"
 #include "opcode.h"
 #include "symbol.h"
 
@@ -12,6 +13,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// FklI64kTable
+#define FKL_TABLE_KEY_TYPE int64_t
+#define FKL_TABLE_VAL_TYPE uint32_t
+#define FKL_TABLE_ELM_NAME Ki64
+#define FKL_TABLE_KEY_HASH return fklHash64Shift(*pk);
+#include "table.h"
+
+// FklF64kTable
+#define FKL_TABLE_KEY_TYPE double
+#define FKL_TABLE_VAL_TYPE uint32_t
+#define FKL_TABLE_ELM_NAME Kf64
+#define FKL_TABLE_KEY_HASH return *FKL_TYPE_CAST(int64_t *, pk);
+#include "table.h"
 
 typedef struct {
     uint8_t op;
@@ -26,14 +41,14 @@ typedef struct {
 } FklInstruction;
 
 typedef struct {
-    FklHashTable ht;
+    FklKi64Table ht;
     int64_t *base;
     uint32_t count;
     uint32_t size;
 } FklConstI64Table;
 
 typedef struct {
-    FklHashTable ht;
+    FklKf64Table ht;
     double *base;
     uint32_t count;
     uint32_t size;

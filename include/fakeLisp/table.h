@@ -42,6 +42,18 @@
 #define FKL_TABLE_ELM_NAME U32
 #endif
 
+#ifndef FKL_TABLE_VAL_INIT
+#ifdef FKL_TABLE_VAL_TYPE
+#define FKL_TABLE_VAL_INIT(X, V) *(X) = *(V)
+#else
+#define FKL_TABLE_VAL_INIT(X, V)
+#endif
+#endif
+
+#ifndef FKL_TABLE_VAL_UNINIT
+#define FKL_TABLE_VAL_UNINIT(X)
+#endif
+
 #define CONCAT_(A, B) A##B
 #define CONCAT(A, B) CONCAT_(A, B)
 #define METHOD(method_name)                                                    \
@@ -68,14 +80,25 @@
 static inline uintptr_t METHOD(__hashv)(FKL_TABLE_KEY_TYPE const *pk) {
     FKL_TABLE_KEY_HASH
 }
-#define TABLEV(X) METHOD(__hashv)(X)
 
+#define HASHV(X) METHOD(__hashv)(X)
+
+#ifdef FKL_TABLE_VAL_TYPE
+typedef struct NODE_NAME {
+    struct NODE_NAME *prev;
+    struct NODE_NAME *next;
+    struct NODE_NAME *bkt_next;
+    FKL_TABLE_KEY_TYPE const k;
+    FKL_TABLE_VAL_TYPE v;
+} NODE_NAME;
+#else
 typedef struct NODE_NAME {
     struct NODE_NAME *prev;
     struct NODE_NAME *next;
     struct NODE_NAME *bkt_next;
     FKL_TABLE_KEY_TYPE const k;
 } NODE_NAME;
+#endif
 
 typedef struct NAME {
     NODE_NAME **buckets;
@@ -111,7 +134,8 @@ static inline void METHOD(Uninit)(NAME *self) {
     self->buckets = NULL;
     NODE_NAME *cur = self->first;
     while (cur) {
-        FKL_TABLE_KEY_UNINIT(&cur->data);
+        FKL_TABLE_KEY_UNINIT(&cur->k);
+        FKL_TABLE_VAL_UNINIT(&cur->v);
         NODE_NAME *prev = cur;
         cur = prev->next;
         free(prev);
@@ -137,7 +161,8 @@ static inline void METHOD(Clear)(NAME *self) {
     self->count = 0;
     NODE_NAME *cur = self->first;
     while (cur) {
-        FKL_TABLE_KEY_UNINIT(&cur->data);
+        FKL_TABLE_KEY_UNINIT(&cur->k);
+        FKL_TABLE_VAL_UNINIT(&cur->v);
         NODE_NAME *prev = cur;
         cur = prev->next;
         free(prev);
@@ -150,7 +175,7 @@ static inline void METHOD(Rehash)(NAME *self) {
     NODE_NAME *cur = self->first;
     memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
     for (; cur; cur = cur->next) {
-        NODE_NAME **pp = &self->buckets[TABLEV(&cur->k) & self->mask];
+        NODE_NAME **pp = &self->buckets[HASHV(&cur->k) & self->mask];
         cur->bkt_next = *pp;
         *pp = cur;
     }
@@ -171,18 +196,28 @@ static inline void METHOD(Grow)(NAME *self) {
     self->buckets = buckets;
     memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
     for (; cur; cur = cur->next) {
-        NODE_NAME **pp = &self->buckets[TABLEV(&cur->k) & self->mask];
+        NODE_NAME **pp = &self->buckets[HASHV(&cur->k) & self->mask];
         cur->bkt_next = *pp;
         *pp = cur;
     }
 }
 
+#ifdef FKL_TABLE_VAL_TYPE
+static inline FKL_TABLE_VAL_TYPE *METHOD(Put)(NAME *self,
+                                              FKL_TABLE_KEY_TYPE const *k,
+                                              FKL_TABLE_VAL_TYPE const *v) {
+#else
 static inline int METHOD(Put)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
-    uint32_t const hashv = TABLEV(k);
+#endif
+    uint32_t const hashv = HASHV(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_TABLE_KEY_EQUAL(k, &pn->k))
+#ifdef FKL_TABLE_VAL_TYPE
+            return &pn->v;
+#else
             return 1;
+#endif
     }
 
     // check threshold and grow capacity
@@ -193,6 +228,7 @@ static inline int METHOD(Put)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
     NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
     assert(node);
     FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    FKL_TABLE_VAL_INIT(&node->v, v);
     node->bkt_next = *pp;
     *pp = node;
     if (self->first) {
@@ -202,15 +238,118 @@ static inline int METHOD(Put)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
         self->first = node;
     self->last = node;
     ++self->count;
+#ifdef FKL_TABLE_VAL_TYPE
+    return NULL;
+#else
     return 0;
+#endif
 }
 
+#ifdef FKL_TABLE_VAL_TYPE
+static inline FKL_TABLE_VAL_TYPE *METHOD(Put2)(NAME *self, FKL_TABLE_KEY_TYPE k,
+                                               FKL_TABLE_VAL_TYPE v) {
+    return METHOD(Put)(self, &k, &v);
+}
+#else
 static inline int METHOD(Put2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
     return METHOD(Put)(self, &k);
 }
+#endif
 
+#ifdef FKL_TABLE_VAL_TYPE
+static inline FKL_TABLE_VAL_TYPE *METHOD(Get)(NAME *self,
+                                              FKL_TABLE_KEY_TYPE const *k) {
+    NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask];
+    for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
+        if (FKL_TABLE_KEY_EQUAL(k, &pn->k))
+            return &pn->v;
+    }
+    return NULL;
+}
+
+static inline FKL_TABLE_VAL_TYPE *METHOD(Get2)(NAME *self,
+                                               FKL_TABLE_KEY_TYPE k) {
+    return METHOD(Get)(self, &k);
+}
+
+static inline FKL_TABLE_VAL_TYPE *METHOD(Add)(NAME *self,
+                                              FKL_TABLE_KEY_TYPE const *k,
+                                              FKL_TABLE_VAL_TYPE const *v) {
+    uint32_t const hashv = HASHV(k);
+    NODE_NAME **pp = &self->buckets[hashv & self->mask];
+    for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
+        if (FKL_TABLE_KEY_EQUAL(k, &pn->k)) {
+            FKL_TABLE_VAL_INIT(&pn->v, v);
+            return &pn->v;
+        }
+    }
+
+    // check threshold and grow capacity
+    if (self->count >= self->rehash_threshold)
+        METHOD(Grow)(self);
+    pp = &self->buckets[hashv & self->mask];
+
+    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
+    assert(node);
+    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    FKL_TABLE_VAL_INIT(&node->v, v);
+    node->bkt_next = *pp;
+    *pp = node;
+    if (self->first) {
+        node->prev = self->last;
+        self->last->next = node;
+    } else
+        self->first = node;
+    self->last = node;
+    ++self->count;
+    return &node->v;
+}
+
+static inline FKL_TABLE_VAL_TYPE *METHOD(Add2)(NAME *self, FKL_TABLE_KEY_TYPE k,
+                                               FKL_TABLE_VAL_TYPE v) {
+    return METHOD(Add)(self, &k, &v);
+}
+
+static inline FKL_TABLE_VAL_TYPE *METHOD(Insert)(NAME *self,
+                                                 FKL_TABLE_KEY_TYPE const *k,
+                                                 FKL_TABLE_VAL_TYPE const *v) {
+    uint32_t const hashv = HASHV(k);
+    NODE_NAME **pp = &self->buckets[hashv & self->mask];
+    for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
+        if (FKL_TABLE_KEY_EQUAL(k, &pn->k)) {
+            return &pn->v;
+        }
+    }
+
+    // check threshold and grow capacity
+    if (self->count >= self->rehash_threshold)
+        METHOD(Grow)(self);
+    pp = &self->buckets[hashv & self->mask];
+
+    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
+    assert(node);
+    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    FKL_TABLE_VAL_INIT(&node->v, v);
+    node->bkt_next = *pp;
+    *pp = node;
+    if (self->first) {
+        node->prev = self->last;
+        self->last->next = node;
+    } else
+        self->first = node;
+    self->last = node;
+    ++self->count;
+    return &node->v;
+}
+
+static inline FKL_TABLE_VAL_TYPE *
+METHOD(Insert2)(NAME *self, FKL_TABLE_KEY_TYPE k, FKL_TABLE_VAL_TYPE v) {
+    return METHOD(Insert)(self, &k, &v);
+}
+
+#else
 static inline int METHOD(Has)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
-    NODE_NAME **pp = &self->buckets[TABLEV(k) & self->mask];
+    NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_TABLE_KEY_EQUAL(k, &pn->k))
             return 1;
@@ -221,9 +360,10 @@ static inline int METHOD(Has)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
 static inline int METHOD(Has2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
     return METHOD(Has)(self, &k);
 }
+#endif
 
 static inline int METHOD(Del)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
-    for (NODE_NAME **pp = &self->buckets[TABLEV(k) & self->mask]; *pp;
+    for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;
          pp = &(*pp)->bkt_next) {
         if (FKL_TABLE_KEY_EQUAL(k, &(*pp)->k)) {
             NODE_NAME *pn = *pp;
@@ -238,7 +378,8 @@ static inline int METHOD(Del)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
                 self->first = pn->next;
 
             --self->count;
-            FKL_TABLE_KEY_UNINIT(&pn->data);
+            FKL_TABLE_KEY_UNINIT(&pn->k);
+            FKL_TABLE_VAL_UNINIT(&pn->v);
             free(pn);
             return 1;
         }
@@ -257,10 +398,17 @@ static inline int METHOD(Del2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
 #undef NAME
 #undef NODE_NAME
 
-#undef TABLEV
+#undef HASHV
+#undef RETURN_TYPE
+#undef FKL_TABLE_DEFAULT_CAPACITY_SHIFT
 #undef FKL_TABLE_KEY_EQUAL
 #undef FKL_TABLE_KEY_HASH
 #undef FKL_TABLE_KEY_TYPE
+#undef FKL_TABLE_VAL_TYPE
 #undef FKL_TABLE_ELM_NAME
 #undef FKL_TABLE_TYPE_PREFIX
 #undef FKL_TABLE_METHOD_PREFIX
+#undef FKL_TABLE_KEY_INIT
+#undef FKL_TABLE_KEY_UNINIT
+#undef FKL_TABLE_VAL_INIT
+#undef FKL_TABLE_VAL_UNINIT

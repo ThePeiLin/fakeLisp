@@ -36,11 +36,11 @@ FklVMvalue *fklMakeVMintD(double r64, FklVM *vm) {
 int fklIsFixint(const FklVMvalue *p) { return FKL_IS_FIX(p); }
 
 int fklIsVMint(const FklVMvalue *p) {
-    return FKL_IS_FIX(p) || FKL_IS_BIG_INT(p);
+    return FKL_IS_FIX(p) || FKL_IS_BIGINT(p);
 }
 
 int fklIsVMnumber(const FklVMvalue *p) {
-    return FKL_IS_FIX(p) || FKL_IS_BIG_INT(p) || FKL_IS_F64(p);
+    return FKL_IS_FIX(p) || FKL_IS_BIGINT(p) || FKL_IS_F64(p);
 }
 
 static inline FklVMvalue *get_initial_fast_value(const FklVMvalue *pr) {
@@ -85,9 +85,9 @@ int fklIsVMnumberLt0(const FklVMvalue *p) {
 }
 
 double fklVMgetDouble(const FklVMvalue *p) {
-    return FKL_IS_FIX(p)       ? FKL_GET_FIX(p)
-         : (FKL_IS_BIG_INT(p)) ? fklVMbigIntToD(FKL_VM_BI(p))
-                               : FKL_VM_F64(p);
+    return FKL_IS_FIX(p)      ? FKL_GET_FIX(p)
+         : (FKL_IS_BIGINT(p)) ? fklVMbigIntToD(FKL_VM_BI(p))
+                              : FKL_VM_F64(p);
 }
 
 FklVMerrorHandler *fklCreateVMerrorHandler(FklSid_t *typeIds,
@@ -724,7 +724,7 @@ static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS) {
     fputs(buf, fp);
 }
 
-static void vmvalue_big_int_printer(VMVALUE_PRINTER_ARGS) {
+static void vmvalue_bigint_printer(VMVALUE_PRINTER_ARGS) {
     fklPrintVMbigInt(FKL_VM_BI(v), fp);
 }
 
@@ -772,7 +772,7 @@ static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS) {
 static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(
     VMVALUE_PRINTER_ARGS) = {
     [FKL_TYPE_F64] = vmvalue_f64_printer,
-    [FKL_TYPE_BIG_INT] = vmvalue_big_int_printer,
+    [FKL_TYPE_BIGINT] = vmvalue_bigint_printer,
     [FKL_TYPE_STR] = vmvalue_string_princ,
     [FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_printer,
     [FKL_TYPE_USERDATA] = vmvalue_userdata_princ,
@@ -834,7 +834,7 @@ static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
 static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(
     VMVALUE_PRINTER_ARGS) = {
     [FKL_TYPE_F64] = vmvalue_f64_printer,
-    [FKL_TYPE_BIG_INT] = vmvalue_big_int_printer,
+    [FKL_TYPE_BIGINT] = vmvalue_bigint_printer,
     [FKL_TYPE_STR] = vmvalue_string_prin1,
     [FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_printer,
     [FKL_TYPE_USERDATA] = vmvalue_userdata_prin1,
@@ -981,8 +981,8 @@ static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
     fklPrintRawStringToStringBuffer(s, f, "|", "|", '|');
 }
 
-static inline void print_big_int_to_string_buffer(FklStringBuffer *s,
-                                                  const FklVMbigInt *a) {
+static inline void print_bigint_to_string_buffer(FklStringBuffer *s,
+                                                 const FklVMbigInt *a) {
     if (a->num == 0)
         fklStringBufferPutc(s, '0');
     else {
@@ -1019,8 +1019,8 @@ static void vmvalue_f64_as_print(VMVALUE_TO_UTSTRING_ARGS) {
     fklStringBufferConcatWithCstr(result, buf);
 }
 
-static void vmvalue_big_int_as_print(VMVALUE_TO_UTSTRING_ARGS) {
-    print_big_int_to_string_buffer(result, FKL_VM_BI(v));
+static void vmvalue_bigint_as_print(VMVALUE_TO_UTSTRING_ARGS) {
+    print_bigint_to_string_buffer(result, FKL_VM_BI(v));
 }
 
 static void vmvalue_string_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
@@ -1065,7 +1065,7 @@ static void (
     *atom_ptr_ptr_to_string_buffer_prin1_table[FKL_VM_VALUE_GC_TYPE_NUM])(
     VMVALUE_TO_UTSTRING_ARGS) = {
     [FKL_TYPE_F64] = vmvalue_f64_as_print,
-    [FKL_TYPE_BIG_INT] = vmvalue_big_int_as_print,
+    [FKL_TYPE_BIGINT] = vmvalue_bigint_as_print,
     [FKL_TYPE_STR] = vmvalue_string_as_prin1,
     [FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_as_print,
     [FKL_TYPE_USERDATA] = vmvalue_userdata_as_prin1,
@@ -1104,7 +1104,7 @@ static void (
     *atom_ptr_ptr_to_string_buffer_princ_table[FKL_VM_VALUE_GC_TYPE_NUM])(
     VMVALUE_TO_UTSTRING_ARGS) = {
     [FKL_TYPE_F64] = vmvalue_f64_as_print,
-    [FKL_TYPE_BIG_INT] = vmvalue_big_int_as_print,
+    [FKL_TYPE_BIGINT] = vmvalue_bigint_as_print,
     [FKL_TYPE_STR] = vmvalue_string_as_princ,
     [FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_as_print,
     [FKL_TYPE_USERDATA] = vmvalue_userdata_as_princ,
@@ -1179,7 +1179,7 @@ size_t fklVMlistLength(FklVMvalue *v) {
 }
 
 #define IS_DEFAULT_BIGINT(bi) (bi->digits == NULL)
-#define INIT_DEFAULT_BIG_INT_1(bi)                                             \
+#define INIT_DEFAULT_BIGINT_1(bi)                                              \
     if (IS_DEFAULT_BIGINT(bi))                                                 \
     fklInitBigInt1(bi)
 
@@ -1191,7 +1191,7 @@ int fklProcessVMnumAdd(FklVMvalue *cur, int64_t *pr64, double *pf64,
             fklAddBigIntI(bi, c64);
         else
             *pr64 += c64;
-    } else if (FKL_IS_BIG_INT(cur))
+    } else if (FKL_IS_BIGINT(cur))
         fklAddVMbigInt(bi, FKL_VM_BI(cur));
     else if (FKL_IS_F64(cur))
         *pf64 += FKL_VM_F64(cur);
@@ -1207,12 +1207,12 @@ int fklProcessVMnumMul(FklVMvalue *cur, int64_t *pr64, double *pf64,
     if (FKL_IS_FIX(cur)) {
         int64_t c64 = FKL_GET_FIX(cur);
         if (fklIsFixMulOverflow(*pr64, c64)) {
-            INIT_DEFAULT_BIG_INT_1(bi);
+            INIT_DEFAULT_BIGINT_1(bi);
             fklMulBigIntI(bi, c64);
         } else
             *pr64 *= c64;
-    } else if (FKL_IS_BIG_INT(cur)) {
-        INIT_DEFAULT_BIG_INT_1(bi);
+    } else if (FKL_IS_BIGINT(cur)) {
+        INIT_DEFAULT_BIGINT_1(bi);
         fklMulVMbigInt(bi, FKL_VM_BI(cur));
     } else if (FKL_IS_F64(cur))
         *pf64 *= FKL_VM_F64(cur);
@@ -1227,12 +1227,12 @@ int fklProcessVMintMul(FklVMvalue *cur, int64_t *pr64, FklBigInt *bi) {
     if (FKL_IS_FIX(cur)) {
         int64_t c64 = FKL_GET_FIX(cur);
         if (fklIsFixMulOverflow(*pr64, c64)) {
-            INIT_DEFAULT_BIG_INT_1(bi);
+            INIT_DEFAULT_BIGINT_1(bi);
             fklMulBigIntI(bi, c64);
         } else
             *pr64 *= c64;
-    } else if (FKL_IS_BIG_INT(cur)) {
-        INIT_DEFAULT_BIG_INT_1(bi);
+    } else if (FKL_IS_BIGINT(cur)) {
+        INIT_DEFAULT_BIGINT_1(bi);
         fklMulVMbigInt(bi, FKL_VM_BI(cur));
     } else {
         fklUninitBigInt(bi);
@@ -1248,7 +1248,7 @@ FklVMvalue *fklProcessVMnumInc(FklVM *exe, FklVMvalue *arg) {
             return fklCreateVMvalueBigIntWithI64(exe, i);
         else
             return FKL_MAKE_VM_FIX(i);
-    } else if (FKL_IS_BIG_INT(arg)) {
+    } else if (FKL_IS_BIGINT(arg)) {
         const FklVMbigInt *bigint = FKL_VM_BI(arg);
         if (fklIsVMbigIntAdd1InFixIntRange(bigint))
             return FKL_MAKE_VM_FIX(fklVMbigIntToI(bigint) + 1);
@@ -1266,7 +1266,7 @@ FklVMvalue *fklProcessVMnumDec(FklVM *exe, FklVMvalue *arg) {
             return fklCreateVMvalueBigIntWithI64(exe, i);
         else
             return FKL_MAKE_VM_FIX(i);
-    } else if (FKL_IS_BIG_INT(arg)) {
+    } else if (FKL_IS_BIGINT(arg)) {
         const FklVMbigInt *bigint = FKL_VM_BI(arg);
         if (fklIsVMbigIntSub1InFixIntRange(bigint))
             return FKL_MAKE_VM_FIX(fklVMbigIntToI(bigint) - 1);
@@ -1301,7 +1301,7 @@ FklVMvalue *fklProcessVMnumSubResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
     if (FKL_IS_F64(prev) || rd != 0.0)
         r = fklCreateVMvalueF64(exe, fklVMgetDouble(prev) - rd - r64
                                          - fklBigIntToD(bi));
-    else if (FKL_IS_BIG_INT(prev) || !FKL_BIGINT_IS_0(bi)) {
+    else if (FKL_IS_BIGINT(prev) || !FKL_BIGINT_IS_0(bi)) {
         if (FKL_IS_FIX(prev))
             fklSubBigIntI(bi, FKL_GET_FIX(prev));
         else
@@ -1360,7 +1360,7 @@ FklVMvalue *fklProcessVMnumMulResult(FklVM *exe, int64_t r64, double rd,
     else if (IS_DEFAULT_BIGINT(bi) || FKL_BIGINT_IS_1(bi))
         r = FKL_MAKE_VM_FIX(r64);
     else {
-        INIT_DEFAULT_BIG_INT_1(bi);
+        INIT_DEFAULT_BIGINT_1(bi);
         fklMulBigIntI(bi, r64);
         if (fklIsBigIntGtLtFix(bi))
             r = fklCreateVMvalueBigInt2(exe, bi);
@@ -1374,7 +1374,7 @@ FklVMvalue *fklProcessVMnumMulResult(FklVM *exe, int64_t r64, double rd,
 FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
                                       FklBigInt *bi) {
     FklVMvalue *r = NULL;
-    if (FKL_IS_BIG_INT(prev)
+    if (FKL_IS_BIGINT(prev)
         || (!IS_DEFAULT_BIGINT(bi) && !FKL_BIGINT_IS_1(bi))) {
         FklBigInt t = FKL_BIGINT_0;
         if (FKL_IS_FIX(prev))
@@ -1400,7 +1400,7 @@ FklVMvalue *fklProcessVMnumDivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
     if (FKL_IS_F64(prev) || rd != 1.0
         || (FKL_IS_FIX(prev) && (IS_DEFAULT_BIGINT(bi) || FKL_BIGINT_IS_1(bi))
             && FKL_GET_FIX(prev) % (r64))
-        || (FKL_IS_BIG_INT(prev)
+        || (FKL_IS_BIGINT(prev)
             && ((!IS_DEFAULT_BIGINT(bi) && !FKL_BIGINT_IS_1(bi)
                  && !fklIsVMbigIntDivisible(FKL_VM_BI(prev), bi))
                 || !fklIsVMbigIntDivisibleI(FKL_VM_BI(prev), r64)))) {
@@ -1409,7 +1409,7 @@ FklVMvalue *fklProcessVMnumDivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
         else
             r = fklCreateVMvalueF64(exe, fklVMgetDouble(prev) / rd / r64
                                              / fklBigIntToD(bi));
-    } else if (FKL_IS_BIG_INT(prev)
+    } else if (FKL_IS_BIGINT(prev)
                || (!IS_DEFAULT_BIGINT(bi) && !FKL_BIGINT_IS_1(bi))) {
         FklBigInt t = FKL_BIGINT_0;
         if (FKL_IS_FIX(prev))
@@ -1472,11 +1472,11 @@ FklVMvalue *fklProcessVMnumMod(FklVM *exe, FklVMvalue *fir, FklVMvalue *sec) {
         r = FKL_MAKE_VM_FIX(FKL_GET_FIX(fir) % si);
     } else {
         FklBigInt rem = FKL_BIGINT_0;
-        if (FKL_IS_BIG_INT(fir))
+        if (FKL_IS_BIGINT(fir))
             fklSetBigIntWithVMbigInt(&rem, FKL_VM_BI(fir));
         else
             fklSetBigIntI(&rem, fklVMgetInt(fir));
-        if (FKL_IS_BIG_INT(sec)) {
+        if (FKL_IS_BIGINT(sec)) {
             const FklBigInt bi = fklVMbigIntToBigInt(FKL_VM_BI(sec));
             if (FKL_BIGINT_IS_0(&bi)) {
                 fklUninitBigInt(&rem);
@@ -1676,11 +1676,11 @@ static inline uint64_t format_fix_int(int64_t integer_val, uint32_t flags,
     return length;
 }
 
-static inline uint64_t format_big_int(FklStringBuffer *buf,
-                                      const FklVMbigInt *bi, uint32_t flags,
-                                      uint32_t base, uint64_t width,
-                                      uint64_t precision,
-                                      void(outc)(void *, char), void *arg) {
+static inline uint64_t format_bigint(FklStringBuffer *buf,
+                                     const FklVMbigInt *bi, uint32_t flags,
+                                     uint32_t base, uint64_t width,
+                                     uint64_t precision,
+                                     void(outc)(void *, char), void *arg) {
     uint64_t length = 0;
     if (FKL_BIGINT_IS_0(bi))
         flags &= ~FLAGS_HASH;
@@ -1959,9 +1959,9 @@ static inline FklBuiltinErrorType vm_format_to_buf(
                         format_fix_int(FKL_GET_FIX(integer_obj), flags, base,
                                        width, precision, outc, (void *)arg);
                 else
-                    length += format_big_int(&buf, FKL_VM_BI(integer_obj),
-                                             flags, base, width, precision,
-                                             outc, (void *)arg);
+                    length +=
+                        format_bigint(&buf, FKL_VM_BI(integer_obj), flags, base,
+                                      width, precision, outc, (void *)arg);
             } else {
                 err = FKL_ERR_INCORRECT_TYPE_VALUE;
                 goto exit;
@@ -2249,9 +2249,9 @@ static inline void vformat(FklVM *exe, FklStringBuffer *arg, const char *fmt,
                                              base, width, precision,
                                              format_out_char, (void *)arg);
                 else
-                    length += format_big_int(&buf, FKL_VM_BI(integer_obj),
-                                             flags, base, width, precision,
-                                             format_out_char, (void *)arg);
+                    length += format_bigint(&buf, FKL_VM_BI(integer_obj), flags,
+                                            base, width, precision,
+                                            format_out_char, (void *)arg);
             } else {
                 fklStringBufferConcatWithCstr(arg, "#<err>");
                 goto exit;

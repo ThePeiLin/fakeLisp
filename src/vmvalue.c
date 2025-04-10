@@ -184,7 +184,7 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
     case FKL_NAST_BYTEVECTOR:
         retval = fklCreateVMvalueBvec2(vm, node->bvec->size, node->bvec->ptr);
         break;
-    case FKL_NAST_BIG_INT:
+    case FKL_NAST_BIGINT:
         retval = fklCreateVMvalueBigInt2(vm, node->bigInt);
         break;
     case FKL_NAST_RC_SYM:
@@ -228,7 +228,7 @@ create_nested_objects:
             retval =
                 fklCreateVMvalueBvec2(vm, node->bvec->size, node->bvec->ptr);
             break;
-        case FKL_NAST_BIG_INT:
+        case FKL_NAST_BIGINT:
             retval = fklCreateVMvalueBigInt2(vm, node->bigInt);
             break;
         case FKL_NAST_RC_SYM:
@@ -337,8 +337,8 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
                     cur->type = FKL_NAST_BYTEVECTOR;
                     cur->bvec = fklCopyBytevector(FKL_VM_BVEC(value));
                     break;
-                case FKL_TYPE_BIG_INT:
-                    cur->type = FKL_NAST_BIG_INT;
+                case FKL_TYPE_BIGINT:
+                    cur->type = FKL_NAST_BIGINT;
                     cur->bigInt = fklCreateBigIntWithVMbigInt(FKL_VM_BI(value));
                     break;
                 case FKL_TYPE_PROC:
@@ -524,7 +524,7 @@ static FklVMvalue *__fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
 static FklVMvalue *(*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(
     const FklVMvalue *obj, FklVM *vm) = {
     [FKL_TYPE_F64] = __fkl_f64_copyer,
-    [FKL_TYPE_BIG_INT] = __fkl_bigint_copyer,
+    [FKL_TYPE_BIGINT] = __fkl_bigint_copyer,
     [FKL_TYPE_STR] = __fkl_str_copyer,
     [FKL_TYPE_VECTOR] = __fkl_vector_copyer,
     [FKL_TYPE_PAIR] = __fkl_pair_copyer,
@@ -566,7 +566,7 @@ FklVMvalue *fklCreateTrueValue() { return FKL_MAKE_VM_FIX(1); }
 FklVMvalue *fklCreateNilValue() { return FKL_VM_NIL; }
 
 int fklVMvalueEqv(const FklVMvalue *fir, const FklVMvalue *sec) {
-    if (FKL_IS_BIG_INT(fir) && FKL_IS_BIG_INT(sec))
+    if (FKL_IS_BIGINT(fir) && FKL_IS_BIGINT(sec))
         return fklVMbigIntEqual(FKL_VM_BI(fir), FKL_VM_BI(sec));
     else
         return fir == sec;
@@ -636,7 +636,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                         }
                     }
                 } break;
-                case FKL_TYPE_BIG_INT:
+                case FKL_TYPE_BIGINT:
                     r = fklVMbigIntEqual(FKL_VM_BI(root1), FKL_VM_BI(root2));
                     break;
                 case FKL_TYPE_USERDATA: {
@@ -690,11 +690,11 @@ int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
         r = isgreater(af, bf) ? 1 : (isless(af, bf) ? -1 : 0);
     } else if (FKL_IS_FIX(a) && FKL_IS_FIX(b))
         r = FKL_GET_FIX(a) - FKL_GET_FIX(b);
-    else if (FKL_IS_BIG_INT(a) && FKL_IS_BIG_INT(b))
+    else if (FKL_IS_BIGINT(a) && FKL_IS_BIGINT(b))
         r = fklVMbigIntCmp(FKL_VM_BI(a), FKL_VM_BI(b));
-    else if (FKL_IS_BIG_INT(a) && FKL_IS_FIX(b))
+    else if (FKL_IS_BIGINT(a) && FKL_IS_FIX(b))
         r = fklVMbigIntCmpI(FKL_VM_BI(a), FKL_GET_FIX(b));
-    else if (FKL_IS_FIX(a) && FKL_IS_BIG_INT(b))
+    else if (FKL_IS_FIX(a) && FKL_IS_BIGINT(b))
         r = -1 * (fklVMbigIntCmpI(FKL_VM_BI(b), FKL_GET_FIX(a)));
     else if (FKL_IS_STR(a) && FKL_IS_STR(b))
         r = fklStringCmp(FKL_VM_STR(a), FKL_VM_STR(b));
@@ -798,7 +798,7 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
     static void (*fkl_value_uniniters[FKL_VM_VALUE_GC_TYPE_NUM])(
         FklVMvalue *v) = {
         [FKL_TYPE_F64] = uninit_nothing_value,        // f64
-        [FKL_TYPE_BIG_INT] = uninit_nothing_value,    // big-int
+        [FKL_TYPE_BIGINT] = uninit_nothing_value,     // big-int
         [FKL_TYPE_STR] = uninit_nothing_value,        // string
         [FKL_TYPE_VECTOR] = uninit_nothing_value,     // vector
         [FKL_TYPE_PAIR] = uninit_nothing_value,       // pair
@@ -1019,7 +1019,7 @@ static size_t _f64_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
     return t.i;
 }
 
-static size_t _big_int_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
+static size_t _bigint_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
     return fklVMbigIntHash(FKL_VM_BI(v));
 }
 
@@ -1066,7 +1066,7 @@ static size_t _hashTable_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
 static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(
     const FklVMvalue *, FklVMvalueVector *s) = {
     [FKL_TYPE_F64] = _f64_hashFunc,
-    [FKL_TYPE_BIG_INT] = _big_int_hashFunc,
+    [FKL_TYPE_BIGINT] = _bigint_hashFunc,
     [FKL_TYPE_STR] = _str_hashFunc,
     [FKL_TYPE_VECTOR] = _vector_hashFunc,
     [FKL_TYPE_PAIR] = _pair_hashFunc,
@@ -1644,7 +1644,7 @@ FklVMvalue *fklCreateVMvalueBigInt(FklVM *exe, size_t size) {
     FklVMvalue *r = (FklVMvalue *)calloc(
         1, sizeof(FklVMvalueBigInt) + size * sizeof(FklBigIntDigit));
     FKL_ASSERT(r);
-    r->type = FKL_TYPE_BIG_INT;
+    r->type = FKL_TYPE_BIGINT;
     FklVMbigInt *b = FKL_VM_BI(r);
     b->num = size + 1;
     fklAddToGC(r, exe);

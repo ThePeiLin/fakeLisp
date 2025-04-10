@@ -129,7 +129,7 @@ static inline void *prod_action_dec_integer(void *ctx, void *outerCtx,
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
-        r->type = FKL_NAST_BIG_INT;
+        r->type = FKL_NAST_BIGINT;
     } else {
         r->type = FKL_NAST_FIX;
         r->fix = i;
@@ -150,7 +150,7 @@ static inline void *prod_action_hex_integer(void *ctx, void *outerCtx,
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
-        r->type = FKL_NAST_BIG_INT;
+        r->type = FKL_NAST_BIGINT;
     } else {
         r->type = FKL_NAST_FIX;
         r->fix = i;
@@ -171,7 +171,7 @@ static inline void *prod_action_oct_integer(void *ctx, void *outerCtx,
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
-        r->type = FKL_NAST_BIG_INT;
+        r->type = FKL_NAST_BIGINT;
     } else {
         r->type = FKL_NAST_FIX;
         r->fix = i;

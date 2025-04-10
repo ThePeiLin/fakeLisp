@@ -24,7 +24,7 @@ extern "C" {
 
 typedef enum {
     FKL_TYPE_F64 = 0,
-    FKL_TYPE_BIG_INT,
+    FKL_TYPE_BIGINT,
     FKL_TYPE_STR,
     FKL_TYPE_VECTOR,
     FKL_TYPE_PAIR,
@@ -443,7 +443,7 @@ typedef struct FklVM {
 #define FKL_VECTOR_ELM_TYPE_NAME VMpair
 #include "vector.h"
 
-// FklVMvalueTable
+// FklVMobjTable
 #define FKL_TABLE_KEY_TYPE FklVMvalue const *
 #define FKL_TABLE_ELM_NAME VMobj
 #define FKL_TABLE_KEY_HASH                                                     \
@@ -514,7 +514,7 @@ typedef enum {
     FKL_ERR_INVALIDACCESS,
     FKL_ERR_IMPORTFAILED,
     FKL_ERR_INVALID_MACRO_PATTERN,
-    FKL_ERR_FAILD_TO_CREATE_BIG_INT_FROM_MEM,
+    FKL_ERR_FAILD_TO_CREATE_BIGINT_FROM_MEM,
     FKL_ERR_LIST_DIFFER_IN_LENGTH,
     FKL_ERR_CROSS_C_CALL_CONTINUATION,
     FKL_ERR_INVALIDRADIX_FOR_INTEGER,
@@ -1282,8 +1282,8 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P) == FKL_TAG_SYM)
 #define FKL_IS_USERDATA(P)                                                     \
     (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_USERDATA)
-#define FKL_IS_BIG_INT(P)                                                      \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_BIG_INT)
+#define FKL_IS_BIGINT(P)                                                       \
+    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_BIGINT)
 #define FKL_IS_BOX(P)                                                          \
     (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_BOX)
 #define FKL_IS_HASHTABLE(P)                                                    \

@@ -15,7 +15,7 @@ typedef enum {
     FKL_NAST_SYM,
     FKL_NAST_CHR,
     FKL_NAST_F64,
-    FKL_NAST_BIG_INT,
+    FKL_NAST_BIGINT,
     FKL_NAST_STR,
     FKL_NAST_VECTOR,
     FKL_NAST_PAIR,

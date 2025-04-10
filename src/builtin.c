@@ -941,7 +941,7 @@ static inline int obj_to_string(FKL_CPROC_ARGL) {
         retval = fklCreateVMvalueStr(exe, FKL_VM_STR(obj));
     else if (fklIsVMnumber(obj)) {
         if (fklIsVMint(obj)) {
-            if (FKL_IS_BIG_INT(obj))
+            if (FKL_IS_BIGINT(obj))
                 retval = vmbigint_to_string(exe, FKL_VM_BI(obj), 10,
                                             FKL_BIGINT_FMT_FLAG_NONE);
             else
@@ -1068,7 +1068,7 @@ static int builtin_number_to_string(FKL_CPROC_ARGL) {
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_INTEGER, exe);
             base = t;
         }
-        if (FKL_IS_BIG_INT(obj))
+        if (FKL_IS_BIGINT(obj))
             retval = vmbigint_to_string(exe, FKL_VM_BI(obj), base,
                                         FKL_BIGINT_FMT_FLAG_ALTERNATE
                                             | FKL_BIGINT_FMT_FLAG_CAPITALS);
@@ -1111,7 +1111,7 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_INTEGER, exe);
         base = t;
     }
-    if (FKL_IS_BIG_INT(obj))
+    if (FKL_IS_BIGINT(obj))
         retval = vmbigint_to_string(exe, FKL_VM_BI(obj), base,
                                     FKL_BIGINT_FMT_FLAG_CAPITALS
                                         | FKL_BIGINT_FMT_FLAG_ALTERNATE);
@@ -1227,7 +1227,7 @@ static int builtin_number_to_f64(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(obj, fklIsVMnumber, exe);
     if (FKL_IS_FIX(obj))
         FKL_VM_F64(retval) = (double)FKL_GET_FIX(obj);
-    else if (FKL_IS_BIG_INT(obj))
+    else if (FKL_IS_BIGINT(obj))
         FKL_VM_F64(retval) = bigint_to_double(FKL_VM_BI(obj));
     else
         FKL_VM_F64(retval) = FKL_VM_F64(obj);
@@ -1247,7 +1247,7 @@ static int builtin_number_to_integer(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigIntWithF64(exe, d));
         else
             FKL_VM_PUSH_VALUE(exe, fklMakeVMintD(d, exe));
-    } else if (FKL_IS_BIG_INT(obj)) {
+    } else if (FKL_IS_BIGINT(obj)) {
         const FklBigInt bigint = fklVMbigIntToBigInt(FKL_VM_BI(obj));
         if (fklIsBigIntGtLtFix(&bigint))
             FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigInt2(exe, &bigint));
@@ -4289,7 +4289,7 @@ static int builtin_null(FKL_CPROC_ARGL) { PREDICATE(val == FKL_VM_NIL) }
 static int builtin_atom(FKL_CPROC_ARGL) { PREDICATE(!FKL_IS_PAIR(val)) }
 static int builtin_char_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_CHR(val)) }
 static int builtin_integer_p(FKL_CPROC_ARGL) {
-    PREDICATE(FKL_IS_FIX(val) || FKL_IS_BIG_INT(val))
+    PREDICATE(FKL_IS_FIX(val) || FKL_IS_BIGINT(val))
 }
 static int builtin_fixint_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_FIX(val)) }
 static int builtin_f64_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_F64(val)) }
@@ -4310,7 +4310,7 @@ static int builtin_bytevector_p(FKL_CPROC_ARGL) {
 static int builtin_chanl_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueChanl(val)) }
 static int builtin_dll_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueDll(val)) }
 static int builtin_fp_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueFp(val)) }
-static int builtin_bigint_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_BIG_INT(val)) }
+static int builtin_bigint_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_BIGINT(val)) }
 static int builtin_list_p(FKL_CPROC_ARGL) { PREDICATE(fklIsList(val)) }
 static int builtin_box_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_BOX(val)) }
 static int builtin_hash_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_HASHTABLE(val)) }

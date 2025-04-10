@@ -791,7 +791,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
     } break;
     case FKL_OP_ADD1: {
         FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
-        if (FKL_IS_BIG_INT(a))
+        if (FKL_IS_BIGINT(a))
             FKL_VM_PUSH_VALUE(
                 exe, fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
         else if (FKL_IS_F64(a))
@@ -803,7 +803,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
     } break;
     case FKL_OP_MUL1: {
         FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
-        if (FKL_IS_BIG_INT(a))
+        if (FKL_IS_BIGINT(a))
             FKL_VM_PUSH_VALUE(
                 exe, fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
         else if (FKL_IS_F64(a))

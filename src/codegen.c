@@ -3293,7 +3293,7 @@ is_check_subpattern_true(const FklNastNode *exp, const FklCodegenInfo *info,
     case FKL_NAST_F64:
     case FKL_NAST_STR:
     case FKL_NAST_BYTEVECTOR:
-    case FKL_NAST_BIG_INT:
+    case FKL_NAST_BIGINT:
     case FKL_NAST_BOX:
     case FKL_NAST_VECTOR:
     case FKL_NAST_HASHTABLE:
@@ -3329,7 +3329,7 @@ check_nested_sub_pattern:
         case FKL_NAST_F64:
         case FKL_NAST_STR:
         case FKL_NAST_BYTEVECTOR:
-        case FKL_NAST_BIG_INT:
+        case FKL_NAST_BIGINT:
         case FKL_NAST_BOX:
         case FKL_NAST_VECTOR:
         case FKL_NAST_HASHTABLE:
@@ -6341,7 +6341,7 @@ static void *custom_action(void *c, void *outerCtx, void *nodes[], size_t num,
     fklInitPatternMatchHashTable(&ht);
     FklNastNode *line_node = NULL;
     if (line > FKL_FIX_INT_MAX) {
-        line_node = fklCreateNastNode(FKL_NAST_BIG_INT, line);
+        line_node = fklCreateNastNode(FKL_NAST_BIGINT, line);
         line_node->bigInt = fklCreateBigIntU(line);
     } else {
         line_node = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -6558,7 +6558,7 @@ static FklNastNode *_line_replacement(const FklNastNode *orig,
         r = fklCreateNastNode(FKL_NAST_FIX, orig->curline);
         r->fix = line;
     } else {
-        r = fklCreateNastNode(FKL_NAST_BIG_INT, orig->curline);
+        r = fklCreateNastNode(FKL_NAST_BIGINT, orig->curline);
         r->bigInt = fklCreateBigIntU(line);
     }
     return r;
@@ -8329,7 +8329,7 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
             append_push_str_ins_to_bc(INS_APPEND_FRONT, retval, node->str,
                                       info);
             break;
-        case FKL_NAST_BIG_INT:
+        case FKL_NAST_BIGINT:
             append_push_bigint_ins_to_bc(INS_APPEND_FRONT, retval, node->bigInt,
                                          info);
             break;

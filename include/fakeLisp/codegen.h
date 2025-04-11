@@ -103,10 +103,15 @@ typedef enum FklCodegenLibType {
 } FklCodegenLibType;
 
 typedef struct {
-    FklSid_t sid;
     uint32_t idx;
     uint32_t oidx;
-} FklCodegenExportSidIndexHashItem;
+} FklCodegenExportIdx;
+
+// FklCgExportSidIdxTable
+#define FKL_TABLE_KEY_TYPE FklSid_t
+#define FKL_TABLE_VAL_TYPE FklCodegenExportIdx
+#define FKL_TABLE_ELM_NAME CgExportSidIdx
+#include "table.h"
 
 typedef struct {
     FklCodegenLibType type;
@@ -115,7 +120,7 @@ typedef struct {
         uv_lib_t dll;
     };
     char *rp;
-    FklHashTable exports;
+    FklCgExportSidIdxTable exports;
 
     FklCodegenMacro *head;
     FklReplacementTable *replacements;
@@ -313,7 +318,7 @@ typedef struct FklCodegenInfo {
     FklSymbolTable *runtime_symbol_table;
     FklConstTable *runtime_kt;
 
-    FklHashTable exports;
+    FklCgExportSidIdxTable exports;
 
     FklCodegenMacro *export_macro;
     FklReplacementTable *export_replacement;
@@ -389,8 +394,6 @@ typedef struct FklCodegenQuest {
 #define FKL_VECTOR_ELM_TYPE FklCodegenQuest *
 #define FKL_VECTOR_ELM_TYPE_NAME CodegenQuest
 #include "vector.h"
-
-void fklInitExportSidIdxTable(FklHashTable *ht);
 
 FklCodegenEnv *
 fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,

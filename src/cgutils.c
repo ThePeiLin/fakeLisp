@@ -669,14 +669,13 @@ recompute_sid_for_prototypes(FklFuncPrototypes *pts,
 }
 
 static inline void
-recompute_sid_for_export_sid_index(FklHashTable *t,
+recompute_sid_for_export_sid_index(FklCgExportSidIdxTable *t,
                                    const FklSymbolTable *origin_table,
                                    FklSymbolTable *target_table) {
-    for (FklHashTableItem *sid_idx_list = t->first; sid_idx_list;
+    for (FklCgExportSidIdxTableNode *sid_idx_list = t->first; sid_idx_list;
          sid_idx_list = sid_idx_list->next) {
-        FklCodegenExportSidIndexHashItem *sid_idx =
-            (FklCodegenExportSidIndexHashItem *)sid_idx_list->data;
-        replace_sid(&sid_idx->sid, origin_table, target_table);
+        replace_sid(FKL_REMOVE_CONST(FklSid_t, &sid_idx_list->k), origin_table,
+                    target_table);
     }
 }
 
@@ -862,25 +861,6 @@ void fklRecomputeSidForSingleTableInfo(
                                 origin_kt, target_kt, option);
 }
 
-static void export_sid_index_item_set_val(void *d0, const void *d1) {
-    *(FklCodegenExportSidIndexHashItem *)d0 =
-        *(const FklCodegenExportSidIndexHashItem *)d1;
-}
-
-static const FklHashTableMetaTable export_sid_index_meta_table = {
-    .size = sizeof(FklCodegenExportSidIndexHashItem),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = fklSetSidKey,
-    .__setVal = export_sid_index_item_set_val,
-    .__hashFunc = fklSidHashFunc,
-    .__keyEqual = fklSidKeyEqual,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
-
-void fklInitExportSidIdxTable(FklHashTable *ht) {
-    fklInitHashTable(ht, &export_sid_index_meta_table);
-}
-
 #include <fakeLisp/parser.h>
 #include <string.h>
 
@@ -907,17 +887,19 @@ static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
     return path;
 }
 
-static inline void load_export_sid_idx_table(FklHashTable *t, FILE *fp) {
-    fklInitExportSidIdxTable(t);
-    fread(&t->num, sizeof(t->num), 1, fp);
-    uint32_t num = t->num;
-    t->num = 0;
+static inline void load_export_sid_idx_table(FklCgExportSidIdxTable *t,
+                                             FILE *fp) {
+    fklCgExportSidIdxTableInit(t);
+    fread(&t->count, sizeof(t->count), 1, fp);
+    uint32_t num = t->count;
+    t->count = 0;
     for (uint32_t i = 0; i < num; i++) {
-        FklCodegenExportSidIndexHashItem sid_idx;
-        fread(&sid_idx.sid, sizeof(sid_idx.sid), 1, fp);
-        fread(&sid_idx.idx, sizeof(sid_idx.idx), 1, fp);
-        fread(&sid_idx.oidx, sizeof(sid_idx.oidx), 1, fp);
-        fklGetOrPutHashItem(&sid_idx, t);
+        FklSid_t sid;
+        FklCodegenExportIdx idxs;
+        fread(&sid, sizeof(sid), 1, fp);
+        fread(&idxs.idx, sizeof(idxs.idx), 1, fp);
+        fread(&idxs.oidx, sizeof(idxs.oidx), 1, fp);
+        fklCgExportSidIdxTablePut(t, &sid, &idxs);
     }
 }
 

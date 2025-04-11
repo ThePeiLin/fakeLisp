@@ -23,15 +23,14 @@ static inline void print_nast_node_with_null_chr(const FklNastNode *node,
     fputc('\0', fp);
 }
 
-static inline void write_export_sid_idx_table(const FklHashTable *t, FILE *fp) {
-    fwrite(&t->num, sizeof(t->num), 1, fp);
-    for (FklHashTableItem *sid_idx_list = t->first; sid_idx_list;
-         sid_idx_list = sid_idx_list->next) {
-        FklCodegenExportSidIndexHashItem *sid_idx =
-            (FklCodegenExportSidIndexHashItem *)sid_idx_list->data;
-        fwrite(&sid_idx->sid, sizeof(sid_idx->sid), 1, fp);
-        fwrite(&sid_idx->idx, sizeof(sid_idx->idx), 1, fp);
-        fwrite(&sid_idx->oidx, sizeof(sid_idx->oidx), 1, fp);
+static inline void write_export_sid_idx_table(const FklCgExportSidIdxTable *t,
+                                              FILE *fp) {
+    fwrite(&t->count, sizeof(t->count), 1, fp);
+    for (FklCgExportSidIdxTableNode *sid_idx = t->first; sid_idx;
+         sid_idx = sid_idx->next) {
+        fwrite(&sid_idx->k, sizeof(sid_idx->k), 1, fp);
+        fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
+        fwrite(&sid_idx->v.oidx, sizeof(sid_idx->v.oidx), 1, fp);
     }
 }
 

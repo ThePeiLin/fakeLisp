@@ -4476,37 +4476,31 @@ combineFileNameFromListAndCheckPrivate(const FklNastNode *list,
     return r;
 }
 
-static void add_symbol_to_local_env_in_array(FklCodegenEnv *env,
-                                             FklSymbolTable *symbolTable,
-                                             const FklHashTable *exports,
-                                             FklByteCodelnt *bcl, FklSid_t fid,
-                                             uint32_t line, uint32_t scope,
-                                             FklSymbolTable *pst) {
-    for (const FklHashTableItem *l = exports->first; l; l = l->next) {
-        const FklCodegenExportSidIndexHashItem *item =
-            (const FklCodegenExportSidIndexHashItem *)l->data;
+static void add_symbol_to_local_env_in_array(
+    FklCodegenEnv *env, FklSymbolTable *symbolTable,
+    const FklCgExportSidIdxTable *exports, FklByteCodelnt *bcl, FklSid_t fid,
+    uint32_t line, uint32_t scope, FklSymbolTable *pst) {
+    for (const FklCgExportSidIdxTableNode *l = exports->first; l; l = l->next) {
         append_import_ins(INS_APPEND_BACK, bcl,
-                          fklAddCodegenDefBySid(item->sid, scope, env)->idx,
-                          item->idx, fid, line, scope);
+                          fklAddCodegenDefBySid(l->k, scope, env)->idx,
+                          l->v.idx, fid, line, scope);
     }
 }
 
 static void add_symbol_with_prefix_to_local_env_in_array(
     FklCodegenEnv *env, FklSymbolTable *symbolTable, FklString *prefix,
-    const FklHashTable *exports, FklByteCodelnt *bcl, FklSid_t fid,
+    const FklCgExportSidIdxTable *exports, FklByteCodelnt *bcl, FklSid_t fid,
     uint32_t line, uint32_t scope, FklSymbolTable *pst) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
-    for (const FklHashTableItem *l = exports->first; l; l = l->next) {
-        const FklCodegenExportSidIndexHashItem *item =
-            (const FklCodegenExportSidIndexHashItem *)l->data;
-        FklString *origSymbol = fklGetSymbolWithId(item->sid, pst)->symbol;
+    for (const FklCgExportSidIdxTableNode *l = exports->first; l; l = l->next) {
+        FklString *origSymbol = fklGetSymbolWithId(l->k, pst)->symbol;
         fklStringBufferConcatWithString(&buf, prefix);
         fklStringBufferConcatWithString(&buf, origSymbol);
 
         FklSid_t sym = fklAddSymbolCharBuf(buf.buf, buf.index, pst)->id;
         uint32_t idx = fklAddCodegenDefBySid(sym, scope, env)->idx;
-        append_import_ins(INS_APPEND_BACK, bcl, idx, item->idx, fid, line,
+        append_import_ins(INS_APPEND_BACK, bcl, idx, l->v.idx, fid, line,
                           scope);
         fklStringBufferClear(&buf);
     }
@@ -4859,7 +4853,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
     FklByteCodelnt *load_lib = append_load_lib_ins(
         INS_APPEND_BACK, NULL, libId, codegen->fid, curline, scope);
 
-    const FklHashTable *exports = &lib->exports;
+    const FklCgExportSidIdxTable *exports = &lib->exports;
     const FklReplacementTable *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
 
@@ -4895,7 +4889,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
                 break;
         }
 
-        FklCodegenExportSidIndexHashItem *item = fklGetHashItem(&cur, exports);
+        FklCodegenExportIdx *item = fklCgExportSidIdxTableGet2(exports, cur);
         if (item) {
             uint32_t idx = fklAddCodegenDefBySid(cur, scope, curEnv)->idx;
             append_import_ins(INS_APPEND_BACK, load_lib, idx, item->idx,
@@ -4932,7 +4926,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
     uint32_t libId, FklCodegenInfo *codegen, const FklCodegenLib *lib,
     FklCodegenEnv *curEnv, uint32_t scope, FklCodegenMacroScope *macroScope,
     uint64_t curline, FklNastNode *except, FklCodegenErrorState *errorState) {
-    const FklHashTable *exports = &lib->exports;
+    const FklCgExportSidIdxTable *exports = &lib->exports;
 
     const FklReplacementTable *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
@@ -4983,13 +4977,11 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
          list = list->pair->cdr)
         fklSidTablePut2(&excepts, list->pair->car->sym);
 
-    for (const FklHashTableItem *l = exports->first; l; l = l->next) {
-        const FklCodegenExportSidIndexHashItem *item =
-            (const FklCodegenExportSidIndexHashItem *)l->data;
-        if (!fklSidTableHas2(&excepts, item->sid)) {
-            uint32_t idx = fklAddCodegenDefBySid(item->sid, scope, curEnv)->idx;
+    for (const FklCgExportSidIdxTableNode *l = exports->first; l; l = l->next) {
+        if (!fklSidTableHas2(&excepts, l->k)) {
+            uint32_t idx = fklAddCodegenDefBySid(l->k, scope, curEnv)->idx;
 
-            append_import_ins(INS_APPEND_BACK, load_lib, idx, item->idx,
+            append_import_ins(INS_APPEND_BACK, load_lib, idx, l->v.idx,
                               codegen->fid, except->curline, scope);
         }
     }
@@ -5005,7 +4997,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
     FklByteCodelnt *load_lib = append_load_lib_ins(
         INS_APPEND_BACK, NULL, libId, codegen->fid, curline, scope);
 
-    const FklHashTable *exports = &lib->exports;
+    const FklCgExportSidIdxTable *exports = &lib->exports;
 
     const FklReplacementTable *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
@@ -5050,7 +5042,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
                 break;
         }
 
-        FklCodegenExportSidIndexHashItem *item = fklGetHashItem(&cur, exports);
+        FklCodegenExportIdx *item = fklCgExportSidIdxTableGet2(exports, cur);
         if (item) {
             uint32_t idx = fklAddCodegenDefBySid(cur0, scope, curEnv)->idx;
             append_import_ins(INS_APPEND_BACK, load_lib, idx, item->idx,
@@ -5115,11 +5107,10 @@ static inline void process_export_bc(FklCodegenInfo *info,
                                      FklByteCodelnt *libBc, FklSid_t fid,
                                      uint32_t line, uint32_t scope) {
     append_export_to_ins(INS_APPEND_BACK, libBc, info->libStack->size + 1,
-                         info->exports.num, fid, line, scope);
-    for (const FklHashTableItem *l = info->exports.first; l; l = l->next) {
-        const FklCodegenExportSidIndexHashItem *item =
-            (const FklCodegenExportSidIndexHashItem *)l->data;
-        append_export_ins(INS_APPEND_BACK, libBc, item->oidx, fid, line, scope);
+                         info->exports.count, fid, line, scope);
+    for (const FklCgExportSidIdxTableNode *l = info->exports.first; l;
+         l = l->next) {
+        append_export_ins(INS_APPEND_BACK, libBc, l->v.oidx, fid, line, scope);
     }
 }
 
@@ -5283,20 +5274,22 @@ BC_PROCESS(_export_import_bc_process) {
             goto exit;
         }
 
-        FklHashTable *exports = &codegen->exports;
+        FklCgExportSidIdxTable *exports = &codegen->exports;
 
         uint64_t *idPbase = idPstack.base;
         uint32_t top = idPstack.size;
 
         for (uint32_t i = 0; i < top; i++) {
             FklSid_t id = idPbase[i];
-            FklCodegenExportSidIndexHashItem *item =
-                fklGetHashItem(&id, exports);
+            FklCodegenExportIdx *item = fklCgExportSidIdxTableGet2(exports, id);
             if (item == NULL) {
-                uint32_t idx = exports->num;
-                item = fklPutHashItem(&id, exports);
-                item->idx = idx;
-                item->oidx = fklGetCodegenDefByIdInScope(id, 1, targetEnv)->idx;
+                uint32_t idx = exports->count;
+                fklCgExportSidIdxTableAdd(
+                    exports, &id,
+                    &(FklCodegenExportIdx){
+                        .idx = idx,
+                        .oidx = fklGetCodegenDefByIdInScope(id, 1, targetEnv)
+                                    ->idx});
             }
         }
     }
@@ -5446,7 +5439,7 @@ static inline FklSid_t get_reader_macro_group_id(const FklNastNode *node) {
 
 typedef struct {
     FklSid_t id;
-    FklCodegenExportSidIndexHashItem *item;
+    FklCodegenExportIdx *item;
     FklByteCodelntVector stack;
 } ExportDefineContext;
 
@@ -5477,8 +5470,7 @@ static const FklCodegenQuestContextMethodTable ExportDefineContextMethodTable =
 };
 
 static inline FklCodegenQuestContext *
-create_export_define_context(FklSid_t id,
-                             FklCodegenExportSidIndexHashItem *item) {
+create_export_define_context(FklSid_t id, FklCodegenExportIdx *item) {
     ExportDefineContext *ctx =
         (ExportDefineContext *)malloc(sizeof(ExportDefineContext));
     FKL_ASSERT(ctx);
@@ -5542,13 +5534,14 @@ static CODEGEN_FUNC(codegen_export_single) {
     process_def_in_lib:
         if (name->type != FKL_NAST_SYM)
             goto error;
-        FklCodegenExportSidIndexHashItem *item =
-            fklGetHashItem(&name->sym, &libCodegen->exports);
+        FklCodegenExportIdx *item =
+            fklCgExportSidIdxTableGet2(&libCodegen->exports, name->sym);
         if (item == NULL) {
-            uint32_t idx = libCodegen->exports.num;
-            item = fklPutHashItem(&name->sym, &libCodegen->exports);
-            item->idx = idx;
-            item->oidx = FKL_VAR_REF_INVALID_CIDX;
+            uint32_t idx = libCodegen->exports.count;
+            item = fklCgExportSidIdxTableAdd(
+                &libCodegen->exports, &name->sym,
+                &(FklCodegenExportIdx){.idx = idx,
+                                       .oidx = FKL_VAR_REF_INVALID_CIDX});
         }
 
         fklCodegenQuestVectorPushBack2(
@@ -5727,11 +5720,11 @@ static inline FklByteCodelnt *process_import_from_dll_only(
     FklByteCodelnt *load_dll = append_load_dll_ins(
         INS_APPEND_BACK, NULL, libId, codegen->fid, origExp->curline, scope);
 
-    FklHashTable *exports = &lib->exports;
+    FklCgExportSidIdxTable *exports = &lib->exports;
 
     for (; only->type == FKL_NAST_PAIR; only = only->pair->cdr) {
         FklSid_t cur = only->pair->car->sym;
-        FklCodegenExportSidIndexHashItem *item = fklGetHashItem(&cur, exports);
+        FklCodegenExportIdx *item = fklCgExportSidIdxTableGet2(exports, cur);
         if (item) {
             uint32_t idx = fklAddCodegenDefBySid(cur, scope, curEnv)->idx;
             append_import_ins(INS_APPEND_BACK, load_dll, idx, item->idx,
@@ -5790,7 +5783,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(
     FklByteCodelnt *load_dll = append_load_dll_ins(
         INS_APPEND_BACK, NULL, libId, codegen->fid, origExp->curline, scope);
 
-    FklHashTable *exports = &lib->exports;
+    FklCgExportSidIdxTable *exports = &lib->exports;
     FklSidTable excepts;
     fklSidTableInit(&excepts);
 
@@ -5798,12 +5791,10 @@ static inline FklByteCodelnt *process_import_from_dll_except(
          list = list->pair->cdr)
         fklSidTablePut2(&excepts, list->pair->car->sym);
 
-    for (const FklHashTableItem *l = exports->first; l; l = l->next) {
-        const FklCodegenExportSidIndexHashItem *item =
-            (const FklCodegenExportSidIndexHashItem *)l->data;
-        if (!fklSidTableHas2(&excepts, item->sid)) {
-            uint32_t idx = fklAddCodegenDefBySid(item->sid, scope, curEnv)->idx;
-            append_import_ins(INS_APPEND_BACK, load_dll, idx, item->idx,
+    for (const FklCgExportSidIdxTableNode *l = exports->first; l; l = l->next) {
+        if (!fklSidTableHas2(&excepts, l->k)) {
+            uint32_t idx = fklAddCodegenDefBySid(l->k, scope, curEnv)->idx;
+            append_import_ins(INS_APPEND_BACK, load_dll, idx, l->v.idx,
                               codegen->fid, except->curline, scope);
         }
     }
@@ -5944,12 +5935,12 @@ static inline FklByteCodelnt *process_import_from_dll_alias(
     FklByteCodelnt *load_dll = append_load_dll_ins(
         INS_APPEND_BACK, NULL, libId, codegen->fid, origExp->curline, scope);
 
-    FklHashTable *exports = &lib->exports;
+    FklCgExportSidIdxTable *exports = &lib->exports;
 
     for (; alias->type == FKL_NAST_PAIR; alias = alias->pair->cdr) {
         FklNastNode *curNode = alias->pair->car;
         FklSid_t cur = curNode->pair->car->sym;
-        FklCodegenExportSidIndexHashItem *item = fklGetHashItem(&cur, exports);
+        FklCodegenExportIdx *item = fklCgExportSidIdxTableGet2(exports, cur);
 
         if (item) {
             FklSid_t cur0 = curNode->pair->cdr->pair->car->sym;
@@ -8837,7 +8828,7 @@ fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,
     codegen->macro_pts = fklCreateFuncPrototypes(0);
     codegen->outer_ctx = outer_ctx;
 
-    fklInitExportSidIdxTable(&codegen->exports);
+    fklCgExportSidIdxTableInit(&codegen->exports);
     codegen->export_replacement = fklReplacementTableCreate();
     codegen->export_named_prod_groups = fklSidTableCreate();
 
@@ -8883,16 +8874,16 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen, const char *filename,
     codegen->runtime_kt = runtime_kt;
     codegen->is_destroyable = destroyAbleMark;
     codegen->refcount = 0;
-    codegen->exports.t = NULL;
+    codegen->exports.buckets = NULL;
     codegen->is_lib = libMark;
     codegen->is_macro = macroMark;
 
     codegen->export_macro = NULL;
     codegen->export_replacement = libMark ? fklReplacementTableCreate() : NULL;
     codegen->export_named_prod_groups = libMark ? fklSidTableCreate() : NULL;
-    codegen->exports.t = NULL;
+    codegen->exports.buckets = NULL;
     if (libMark)
-        fklInitExportSidIdxTable(&codegen->exports);
+        fklCgExportSidIdxTableInit(&codegen->exports);
 
     init_codegen_grammer_ptr(codegen);
     if (prev) {
@@ -8957,8 +8948,8 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
         free(codegen->filename);
     if (codegen->realpath)
         free(codegen->realpath);
-    if (codegen->exports.t)
-        fklUninitHashTable(&codegen->exports);
+    if (codegen->exports.buckets)
+        fklCgExportSidIdxTableUninit(&codegen->exports);
     for (FklCodegenMacro *cur = codegen->export_macro; cur;) {
         FklCodegenMacro *t = cur;
         cur = cur->next;
@@ -9011,7 +9002,7 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
     lib->bcl = bcl;
     lib->named_prod_groups.t = NULL;
     lib->terminal_table.ht.t = NULL;
-    lib->exports.t = NULL;
+    lib->exports.buckets = NULL;
     if (codegen) {
 
         lib->rp = codegen->realpath;
@@ -9082,15 +9073,15 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
         lib->replacements = NULL;
     }
     if (env) {
-        FklHashTable *exports_index = &lib->exports;
-        fklInitExportSidIdxTable(exports_index);
-        FklHashTable *export_sid_set = &codegen->exports;
+        FklCgExportSidIdxTable *exports_index = &lib->exports;
+        fklCgExportSidIdxTableInit(exports_index);
+        FklCgExportSidIdxTable *export_sid_set = &codegen->exports;
         lib->prototypeId = env->prototypeId;
-        for (const FklHashTableItem *sid_idx_list = export_sid_set->first;
+        for (const FklCgExportSidIdxTableNode *sid_idx_list =
+                 export_sid_set->first;
              sid_idx_list; sid_idx_list = sid_idx_list->next) {
-            const FklCodegenExportSidIndexHashItem *sid_idx_item =
-                (const FklCodegenExportSidIndexHashItem *)sid_idx_list->data;
-            fklGetOrPutHashItem((void *)sid_idx_item, exports_index);
+            fklCgExportSidIdxTablePut(exports_index, &sid_idx_list->k,
+                                      &sid_idx_list->v);
         }
     } else
         lib->prototypeId = 0;
@@ -9105,18 +9096,17 @@ void fklInitCodegenDllLib(FklCodegenLib *lib, char *rp, uv_lib_t dll,
     lib->dll = dll;
     lib->head = NULL;
     lib->replacements = NULL;
-    lib->exports.t = NULL;
+    lib->exports.buckets = NULL;
     lib->named_prod_groups.t = NULL;
 
     uint32_t num = 0;
     FklSid_t *exports = init(pst, &num);
-    FklHashTable *exports_idx = &lib->exports;
-    fklInitExportSidIdxTable(exports_idx);
+    FklCgExportSidIdxTable *exports_idx = &lib->exports;
+    fklCgExportSidIdxTableInit(exports_idx);
     if (num) {
         for (uint32_t i = 0; i < num; i++) {
-            FklCodegenExportSidIndexHashItem *item =
-                fklPutHashItem(&exports[i], exports_idx);
-            item->idx = i;
+            fklCgExportSidIdxTableAdd(exports_idx, &exports[i],
+                                      &(FklCodegenExportIdx){.idx = i});
         }
     }
     if (exports)
@@ -9138,8 +9128,8 @@ void fklDestroyCodegenLibMacroScope(FklCodegenLib *lib) {
 }
 
 void fklUninitCodegenLibInfo(FklCodegenLib *lib) {
-    if (lib->exports.t)
-        fklUninitHashTable(&lib->exports);
+    if (lib->exports.buckets)
+        fklCgExportSidIdxTableUninit(&lib->exports);
     free(lib->rp);
     if (lib->named_prod_groups.t) {
         fklUninitHashTable(&lib->named_prod_groups);

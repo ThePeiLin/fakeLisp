@@ -14,18 +14,56 @@
 extern "C" {
 #endif
 
-// FklI64kTable
+// FklKi64Table
 #define FKL_TABLE_KEY_TYPE int64_t
 #define FKL_TABLE_VAL_TYPE uint32_t
 #define FKL_TABLE_ELM_NAME Ki64
 #define FKL_TABLE_KEY_HASH return fklHash64Shift(*pk);
 #include "table.h"
 
-// FklF64kTable
+// FklKf64Table
 #define FKL_TABLE_KEY_TYPE double
 #define FKL_TABLE_VAL_TYPE uint32_t
 #define FKL_TABLE_ELM_NAME Kf64
 #define FKL_TABLE_KEY_HASH return *FKL_TYPE_CAST(int64_t *, pk);
+#include "table.h"
+
+// FklKstrTable
+#define FKL_TABLE_KEY_INIT(K, X) *(K) = fklCopyString(*X)
+#define FKL_TABLE_KEY_UNINIT(K)                                                \
+    {                                                                          \
+        free(*K);                                                              \
+        (*K) = NULL;                                                           \
+    }
+#define FKL_TABLE_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
+#define FKL_TABLE_KEY_TYPE FklString *
+#define FKL_TABLE_VAL_TYPE uint32_t
+#define FKL_TABLE_ELM_NAME Kstr
+#define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
+#include "table.h"
+
+// FklKbvecTable
+#define FKL_TABLE_KEY_INIT(K, X) *(K) = fklCopyBytevector(*X)
+#define FKL_TABLE_KEY_UNINIT(K)                                                \
+    {                                                                          \
+        free(*K);                                                              \
+        (*K) = NULL;                                                           \
+    }
+#define FKL_TABLE_KEY_EQUAL(A, B) fklBytevectorEqual(*(A), *(B))
+#define FKL_TABLE_KEY_TYPE FklBytevector *
+#define FKL_TABLE_VAL_TYPE uint32_t
+#define FKL_TABLE_ELM_NAME Kbvec
+#define FKL_TABLE_KEY_HASH return fklBytevectorHash(*pk);
+#include "table.h"
+
+// FklKbiTable
+#define FKL_TABLE_KEY_INIT(K, X) fklInitBigInt(K, X)
+#define FKL_TABLE_KEY_UNINIT(K) fklUninitBigInt(K)
+#define FKL_TABLE_KEY_EQUAL(A, B) fklBigIntEqual(A, B)
+#define FKL_TABLE_KEY_TYPE FklBigInt
+#define FKL_TABLE_VAL_TYPE uint32_t
+#define FKL_TABLE_ELM_NAME Kbi
+#define FKL_TABLE_KEY_HASH return fklBigIntHash(pk);
 #include "table.h"
 
 typedef struct {
@@ -55,22 +93,22 @@ typedef struct {
 } FklConstF64Table;
 
 typedef struct {
-    FklHashTable ht;
+    FklKstrTable ht;
     FklString **base;
     uint32_t count;
     uint32_t size;
 } FklConstStrTable;
 
 typedef struct {
-    FklHashTable ht;
+    FklKbvecTable ht;
     FklBytevector **base;
     uint32_t count;
     uint32_t size;
 } FklConstBvecTable;
 
 typedef struct {
-    FklHashTable ht;
-    FklBigInt **base;
+    FklKbiTable ht;
+    FklBigInt const **base;
     uint32_t count;
     uint32_t size;
 } FklConstBiTable;

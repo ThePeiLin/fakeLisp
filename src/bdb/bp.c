@@ -18,30 +18,9 @@ static const FklHashTableMetaTable BreakpointInsHashMetaTable = {
     .__uninitItem = fklDoNothingUninitHashItem,
 };
 
-static FKL_HASH_SET_KEY_VAL(breakpoint_idx_set_val, BreakpointIdxHashItem);
-static FKL_HASH_SET_KEY_VAL(breakpoint_idx_set_key, uint32_t);
-
-static uintptr_t breakpoint_idx_hash_func(const void *k) {
-    return *(const uint32_t *)k;
-}
-
-static int breakpoint_idx_key_equal(const void *a, const void *b) {
-    return *(const uint32_t *)a == *(const uint32_t *)b;
-}
-
-static const FklHashTableMetaTable BreakpointIdxHashMetaTable = {
-    .size = sizeof(BreakpointIdxHashItem),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = breakpoint_idx_set_key,
-    .__setVal = breakpoint_idx_set_val,
-    .__hashFunc = breakpoint_idx_hash_func,
-    .__keyEqual = breakpoint_idx_key_equal,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
-
 void initBreakpointTable(BreakpointTable *bt) {
     fklInitHashTable(&bt->ins_ht, &BreakpointInsHashMetaTable);
-    fklInitHashTable(&bt->idx_ht, &BreakpointIdxHashMetaTable);
+    bdbBpIdxTableInit(&bt->idx_ht);
     fklUintVectorInit(&bt->unused_prototype_id_for_cond_bp, 16);
     bt->next_idx = 1;
     bt->deleted_breakpoints = NULL;
@@ -81,8 +60,8 @@ static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
 }
 
 static inline void clear_breakpoint(BreakpointTable *bt) {
-    for (FklHashTableItem *l = bt->idx_ht.first; l; l = l->next) {
-        Breakpoint *bp = ((BreakpointIdxHashItem *)l->data)->bp;
+    for (BdbBpIdxTableNode *l = bt->idx_ht.first; l; l = l->next) {
+        Breakpoint *bp = l->v;
         mark_breakpoint_deleted(bp, bt);
         remove_breakpoint(bp, bt);
     }
@@ -102,7 +81,7 @@ static inline void destroy_all_deleted_breakpoint(BreakpointTable *bt) {
 void uninitBreakpointTable(BreakpointTable *bt) {
     clear_breakpoint(bt);
     fklUninitHashTable(&bt->ins_ht);
-    fklUninitHashTable(&bt->idx_ht);
+    bdbBpIdxTableUninit(&bt->idx_ht);
     destroy_all_deleted_breakpoint(bt);
     fklUintVectorUninit(&bt->unused_prototype_id_for_cond_bp);
 }
@@ -130,9 +109,9 @@ Breakpoint *getBreakpointFromWrapper(FklVMvalue *v) {
 }
 
 Breakpoint *getBreakpointWithIdx(DebugCtx *dctx, uint32_t idx) {
-    BreakpointIdxHashItem *item = fklGetHashItem(&idx, &dctx->bt.idx_ht);
-    if (item)
-        return item->bp;
+    Breakpoint **i = bdbBpIdxTableGet2(&dctx->bt.idx_ht, idx);
+    if (i)
+        return *i;
     return NULL;
 }
 
@@ -172,13 +151,9 @@ void clearDeletedBreakpoint(DebugCtx *dctx) {
 }
 
 Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
-    BreakpointIdxHashItem item = {
-        .idx = 0,
-        .bp = NULL,
-    };
+    Breakpoint *bp = NULL;
     BreakpointTable *bt = &dctx->bt;
-    if (fklDelHashItem(&idx, &bt->idx_ht, &item)) {
-        Breakpoint *bp = item.bp;
+    if (bdbBpIdxTableEarase(&bt->idx_ht, &idx, &bp)) {
         mark_breakpoint_deleted(bp, bt);
         return bp;
     }
@@ -187,8 +162,8 @@ Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
 
 void markBreakpointCondExpObj(DebugCtx *dctx, FklVMgc *gc) {
     BreakpointTable *bt = &dctx->bt;
-    for (FklHashTableItem *list = bt->idx_ht.first; list; list = list->next) {
-        Breakpoint *bp = ((BreakpointIdxHashItem *)list->data)->bp;
+    for (BdbBpIdxTableNode *list = bt->idx_ht.first; list; list = list->next) {
+        Breakpoint *bp = list->v;
         if (bp->cond_exp_obj)
             fklVMgcToGray(bp->cond_exp_obj, gc);
     }
@@ -212,8 +187,7 @@ static inline Breakpoint *make_breakpoint(BreakpointInsHashItem *item,
     bp->pnext = &item->bp;
     bp->next = item->bp;
     item->bp = bp;
-    BreakpointIdxHashItem *idx_item = fklPutHashItem(&bp->idx, &bt->idx_ht);
-    idx_item->bp = bp;
+    bdbBpIdxTableAdd2(&bt->idx_ht, bp->idx, bp);
     return bp;
 }
 

@@ -290,7 +290,7 @@ static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 		for(int i=0;i<l;i++)
 			ins[i]=cur[i].ins;
 		fklGetInsOpArg(ins,&ins_arg);
-		fprintf(fp,"%-*ld:\t%-17s ",numLen,i,fklGetOpcodeName(ins->op));
+		fprintf(fp,"%-*"FKL_PRT64D":\t%-17s ",numLen,i,fklGetOpcodeName(ins->op));
 		switch(fklGetOpcodeMode(ins->op))
 		{
 			case FKL_OP_MODE_IsA:

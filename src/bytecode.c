@@ -31,43 +31,8 @@ static inline void init_const_f64_table(FklConstF64Table *kf64t) {
     FKL_ASSERT(kf64t->base);
 }
 
-struct ConstStrHashItem {
-    FklString *k;
-    uint32_t idx;
-};
-
-static void const_str_set_val(void *v0, const void *v1) {
-    struct ConstStrHashItem *i0 = v0;
-    const struct ConstStrHashItem *i1 = v1;
-    *i0 = *i1;
-    i0->k = fklCopyString(i1->k);
-}
-
-static uintptr_t const_str_hash_func(const void *k) {
-    return fklStringHash(*(FklString *const *)k);
-}
-
-static void const_str_uninit_item(void *d) {
-    struct ConstStrHashItem *i = d;
-    free(i->k);
-    i->k = NULL;
-}
-
-static int const_str_key_equal(const void *k0, const void *k1) {
-    return fklStringEqual(*(FklString *const *)k0, *(FklString *const *)k1);
-}
-
-static const FklHashTableMetaTable ConstStrMetaTable = {
-    .size = sizeof(struct ConstStrHashItem),
-    .__setVal = const_str_set_val,
-    .__hashFunc = const_str_hash_func,
-    .__uninitItem = const_str_uninit_item,
-    .__keyEqual = const_str_key_equal,
-    .__getKey = fklHashDefaultGetKey,
-};
-
 static inline void init_const_str_table(FklConstStrTable *kstrt) {
-    fklInitHashTable(&kstrt->ht, &ConstStrMetaTable);
+    fklKstrTableInit(&kstrt->ht);
     kstrt->count = 0;
     kstrt->size = DEFAULT_CONST_TABLE_SIZE;
     kstrt->base =
@@ -75,44 +40,8 @@ static inline void init_const_str_table(FklConstStrTable *kstrt) {
     FKL_ASSERT(kstrt->base);
 }
 
-struct ConstBvecHashItem {
-    FklBytevector *k;
-    uint32_t idx;
-};
-
-static void const_bvec_set_val(void *v0, const void *v1) {
-    struct ConstBvecHashItem *i0 = v0;
-    const struct ConstBvecHashItem *i1 = v1;
-    *i0 = *i1;
-    i0->k = fklCopyBytevector(i1->k);
-}
-
-static uintptr_t const_bvec_hash_func(const void *k) {
-    return fklBytevectorHash(*(FklBytevector *const *)k);
-}
-
-static void const_bvec_uninit_item(void *d) {
-    struct ConstBvecHashItem *i = d;
-    free(i->k);
-    i->k = NULL;
-}
-
-static int const_bvec_key_equal(const void *k0, const void *k1) {
-    return fklBytevectorEqual(*(FklBytevector *const *)k0,
-                              *(FklBytevector *const *)k1);
-}
-
-static const FklHashTableMetaTable ConstBvecMetaTable = {
-    .size = sizeof(struct ConstBvecHashItem),
-    .__setVal = const_bvec_set_val,
-    .__hashFunc = const_bvec_hash_func,
-    .__uninitItem = const_bvec_uninit_item,
-    .__keyEqual = const_bvec_key_equal,
-    .__getKey = fklHashDefaultGetKey,
-};
-
 static inline void init_const_bvec_table(FklConstBvecTable *kbvect) {
-    fklInitHashTable(&kbvect->ht, &ConstBvecMetaTable);
+    fklKbvecTableInit(&kbvect->ht);
     kbvect->count = 0;
     kbvect->size = DEFAULT_CONST_TABLE_SIZE;
     kbvect->base = (FklBytevector **)malloc(DEFAULT_CONST_TABLE_SIZE
@@ -120,46 +49,12 @@ static inline void init_const_bvec_table(FklConstBvecTable *kbvect) {
     FKL_ASSERT(kbvect->base);
 }
 
-struct ConstBiHashItem {
-    FklBigInt k;
-    uint32_t idx;
-};
-
-static void const_bi_set_val(void *v0, const void *v1) {
-    struct ConstBiHashItem *i0 = v0;
-    const struct ConstBiHashItem *i1 = v1;
-    i0->idx = i1->idx;
-    fklInitBigInt(&i0->k, &i1->k);
-}
-
-static uintptr_t const_bi_hash_func(const void *k) {
-    return fklBigIntHash((const FklBigInt *)k);
-}
-
-static void const_bi_uninit_item(void *d) {
-    struct ConstBiHashItem *i = d;
-    fklUninitBigInt(&i->k);
-}
-
-static int const_bi_key_equal(const void *k0, const void *k1) {
-    return fklBigIntEqual((const FklBigInt *)k0, (const FklBigInt *)k1);
-}
-
-static const FklHashTableMetaTable ConstBiMetaTable = {
-    .size = sizeof(struct ConstBiHashItem),
-    .__setVal = const_bi_set_val,
-    .__hashFunc = const_bi_hash_func,
-    .__uninitItem = const_bi_uninit_item,
-    .__keyEqual = const_bi_key_equal,
-    .__getKey = fklHashDefaultGetKey,
-};
-
 static inline void init_const_bi_table(FklConstBiTable *kbit) {
-    fklInitHashTable(&kbit->ht, &ConstBiMetaTable);
+    fklKbiTableInit(&kbit->ht);
     kbit->count = 0;
     kbit->size = DEFAULT_CONST_TABLE_SIZE;
-    kbit->base =
-        (FklBigInt **)malloc(DEFAULT_CONST_TABLE_SIZE * sizeof(FklBigInt *));
+    kbit->base = (FklBigInt const **)malloc(DEFAULT_CONST_TABLE_SIZE
+                                            * sizeof(FklBigInt const *));
     FKL_ASSERT(kbit->base);
 }
 
@@ -189,17 +84,17 @@ static void uninit_const_f64_table(FklConstF64Table *kf64t) {
 }
 
 static void uninit_const_str_table(FklConstStrTable *kstrt) {
-    fklUninitHashTable(&kstrt->ht);
+    fklKstrTableUninit(&kstrt->ht);
     free(kstrt->base);
 }
 
 static void uninit_const_bvec_table(FklConstBvecTable *kbvect) {
-    fklUninitHashTable(&kbvect->ht);
+    fklKbvecTableUninit(&kbvect->ht);
     free(kbvect->base);
 }
 
 static void uninit_const_bi_table(FklConstBiTable *kbit) {
-    fklUninitHashTable(&kbit->ht);
+    fklKbiTableUninit(&kbit->ht);
     free(kbit->base);
 }
 
@@ -220,7 +115,8 @@ void fklDestroyConstTable(FklConstTable *kt) {
     {                                                                          \
         if ((K)->size == (K)->count) {                                         \
             (K)->size += DEFAULT_CONST_TABLE_INC;                              \
-            (K)->base = fklRealloc((K)->base, (K)->size * sizeof(TYPE));       \
+            (K)->base =                                                        \
+                (TYPE *)fklRealloc((K)->base, (K)->size * sizeof(TYPE));       \
             FKL_ASSERT((K)->base);                                             \
         }                                                                      \
         (K)->count++;                                                          \
@@ -229,63 +125,62 @@ void fklDestroyConstTable(FklConstTable *kt) {
 uint32_t fklAddI64Const(FklConstTable *kt, int64_t k) {
     FklConstI64Table *ki64t = &kt->ki64t;
     uint32_t idx = ki64t->count;
-    uint32_t *i = fklKi64TableInsert2(&ki64t->ht, k, idx);
-    if (*i == ki64t->count) {
+    FklKi64TableElm *i = fklKi64TableInsert2(&ki64t->ht, k, idx);
+    if (i->v == ki64t->count) {
         REALLOC_CONST_TABLE_BASE(ki64t, int64_t);
-        ki64t->base[idx] = k;
+        ki64t->base[idx] = i->k;
     } else
-        idx = *i;
+        idx = i->v;
     return idx;
 }
 
 uint32_t fklAddF64Const(FklConstTable *kt, double k) {
     FklConstF64Table *kf64t = &kt->kf64t;
     uint32_t idx = kf64t->count;
-    uint32_t *i = fklKf64TableInsert2(&kf64t->ht, k, idx);
-    if (*i == kf64t->count) {
+    FklKf64TableElm *i = fklKf64TableInsert2(&kf64t->ht, k, idx);
+    if (i->v == kf64t->count) {
         REALLOC_CONST_TABLE_BASE(kf64t, double);
-        kf64t->base[idx] = k;
+        kf64t->base[idx] = i->k;
     } else
-        idx = *i;
+        idx = i->v;
     return idx;
 }
 
 uint32_t fklAddStrConst(FklConstTable *kt, const FklString *k) {
     FklConstStrTable *kstrt = &kt->kstrt;
     uint32_t idx = kstrt->count;
-    struct ConstStrHashItem data = {.k = (FklString *)k, .idx = idx};
-    struct ConstStrHashItem *i = fklGetOrPutHashItem(&data, &kstrt->ht);
-    if (i->idx == kstrt->count) {
+    FklKstrTableElm *i =
+        fklKstrTableInsert2(&kstrt->ht, FKL_REMOVE_CONST(FklString, k), idx);
+    if (i->v == kstrt->count) {
         REALLOC_CONST_TABLE_BASE(kstrt, FklString *);
         kstrt->base[idx] = i->k;
     } else
-        idx = i->idx;
+        idx = i->v;
     return idx;
 }
 
 uint32_t fklAddBvecConst(FklConstTable *kt, const FklBytevector *k) {
     FklConstBvecTable *kbvect = &kt->kbvect;
     uint32_t idx = kbvect->count;
-    struct ConstBvecHashItem data = {.k = (FklBytevector *)k, .idx = idx};
-    struct ConstBvecHashItem *i = fklGetOrPutHashItem(&data, &kbvect->ht);
-    if (i->idx == kbvect->count) {
+    FklKbvecTableElm *i = fklKbvecTableInsert2(
+        &kbvect->ht, FKL_REMOVE_CONST(FklBytevector, k), idx);
+    if (i->v == kbvect->count) {
         REALLOC_CONST_TABLE_BASE(kbvect, FklBytevector *);
         kbvect->base[idx] = i->k;
     } else
-        idx = i->idx;
+        idx = i->v;
     return idx;
 }
 
 uint32_t fklAddBigIntConst(FklConstTable *kt, const FklBigInt *k) {
     FklConstBiTable *kbit = &kt->kbit;
     uint32_t idx = kbit->count;
-    struct ConstBiHashItem data = {.k = *k, .idx = idx};
-    struct ConstBiHashItem *i = fklGetOrPutHashItem(&data, &kbit->ht);
-    if (i->idx == kbit->count) {
-        REALLOC_CONST_TABLE_BASE(kbit, FklBytevector *);
+    FklKbiTableElm *i = fklKbiTableInsert(&kbit->ht, k, &idx);
+    if (i->v == kbit->count) {
+        REALLOC_CONST_TABLE_BASE(kbit, FklBigInt const *);
         kbit->base[idx] = &i->k;
     } else
-        idx = i->idx;
+        idx = i->v;
     return idx;
 }
 
@@ -505,8 +400,8 @@ void fklCodeConcat(FklByteCode *fir, const FklByteCode *sec) {
         fir->code = (FklInstruction *)fklRealloc(
             fir->code, fir->len * sizeof(FklInstruction));
         FKL_ASSERT(fir->code);
+        memcpy(&fir->code[len], sec->code, sizeof(FklInstruction) * sec->len);
     }
-    memcpy(&fir->code[len], sec->code, sizeof(FklInstruction) * sec->len);
 }
 
 void fklCodeReverseConcat(const FklByteCode *fir, FklByteCode *sec) {
@@ -575,7 +470,7 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
                                         const FklConstTable *kt, int numLen) {
     uint32_t tab_count = cur_state->tc;
     uint32_t proc_len = 0;
-    fprintf(fp, "%-*ld:", numLen, i);
+    fprintf(fp, "%-*" FKL_PRT64U ":", numLen, i);
     for (uint32_t i = 0; i < tab_count; i++)
         fputs("    ", fp);
     const FklInstruction *ins = &tmpCode->code[i];
@@ -1064,9 +959,9 @@ void fklCodeLntConcat(FklByteCodelnt *f, const FklByteCodelnt *s) {
                     f->l = (FklLineNumberTableItem *)fklRealloc(
                         f->l, size * sizeof(FklLineNumberTableItem));
                     FKL_ASSERT(f->l);
+                    memcpy(&f->l[f->ls], &s->l[1],
+                           (s->ls - 1) * sizeof(FklLineNumberTableItem));
                 }
-                memcpy(&f->l[f->ls], &s->l[1],
-                       (s->ls - 1) * sizeof(FklLineNumberTableItem));
                 f->ls += s->ls - 1;
             } else {
                 uint32_t size = f->ls + s->ls;
@@ -1076,9 +971,9 @@ void fklCodeLntConcat(FklByteCodelnt *f, const FklByteCodelnt *s) {
                     f->l = (FklLineNumberTableItem *)fklRealloc(
                         f->l, size * sizeof(FklLineNumberTableItem));
                     FKL_ASSERT(f->l);
+                    memcpy(&f->l[f->ls], s->l,
+                           (s->ls) * sizeof(FklLineNumberTableItem));
                 }
-                memcpy(&f->l[f->ls], s->l,
-                       (s->ls) * sizeof(FklLineNumberTableItem));
                 f->ls += s->ls;
             }
         }

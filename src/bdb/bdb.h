@@ -68,18 +68,38 @@ typedef struct BreakpointHashItem {
     Breakpoint *bp;
 } BreakpointInsHashItem;
 
-typedef struct {
-    uint32_t idx;
-    Breakpoint *bp;
-} BreakpointIdxHashItem;
+// BdbSourceCodeTable
+#define FKL_TABLE_TYPE_PREFIX Bdb
+#define FKL_TABLE_METHOD_PREFIX bdb
+#define FKL_TABLE_KEY_TYPE uint32_t
+#define FKL_TABLE_VAL_TYPE Breakpoint *
+#define FKL_TABLE_ELM_NAME BpIdx
+#include <fakeLisp/table.h>
 
 typedef struct {
     FklHashTable ins_ht;
-    FklHashTable idx_ht;
+    BdbBpIdxTable idx_ht;
     Breakpoint *deleted_breakpoints;
     FklUintVector unused_prototype_id_for_cond_bp;
     uint32_t next_idx;
 } BreakpointTable;
+
+// BdbSourceCodeTable
+#define FKL_TABLE_TYPE_PREFIX Bdb
+#define FKL_TABLE_METHOD_PREFIX bdb
+#define FKL_TABLE_KEY_TYPE FklSid_t
+#define FKL_TABLE_VAL_TYPE FklStringVector
+#define FKL_TABLE_VAL_INIT(V, X)
+#define FKL_TABLE_VAL_UNINIT(V)                                                \
+    {                                                                          \
+        FklString **c = (V)->base;                                             \
+        FklString **const end = c + (V)->size;                                 \
+        for (; c < end; ++c)                                                   \
+            free(*c);                                                          \
+        fklStringVectorUninit(V);                                              \
+    }
+#define FKL_TABLE_ELM_NAME SourceCode
+#include <fakeLisp/table.h>
 
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;
@@ -103,7 +123,7 @@ typedef struct DebugCtx {
     const FklString *curline_str;
     const FklStringVector *curfile_lines;
 
-    FklHashTable source_code_table;
+    BdbSourceCodeTable source_code_table;
     FklHashTable envs;
 
     FklVMvalueVector extra_mark_value;
@@ -143,11 +163,6 @@ typedef struct DebugCtx {
     } stepping_ctx;
 } DebugCtx;
 
-typedef struct {
-    FklSid_t sid;
-    FklStringVector lines;
-} SourceCodeHashItem;
-
 typedef enum {
     PUT_BP_AT_END_OF_FILE = 1,
     PUT_BP_FILE_INVALID,
@@ -181,7 +196,7 @@ FklCodegenEnv *getEnv(DebugCtx *, uint32_t id);
 
 void markBreakpointCondExpObj(DebugCtx *ctx, FklVMgc *gc);
 
-const SourceCodeHashItem *getSourceWithFid(DebugCtx *dctx, FklSid_t fid);
+const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid);
 
 Breakpoint *createBreakpoint(FklSid_t, uint32_t, FklInstruction *ins,
                              DebugCtx *);

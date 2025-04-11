@@ -45,9 +45,16 @@ void fklPrintRawSymbol(const FklString *str, FILE *fp);
 FklString *fklStringAppend(const FklString *, const FklString *);
 void fklWriteStringToCstr(char *, const FklString *);
 
-uintptr_t fklStringHash(const FklString *s);
+static inline uintptr_t fklCharBufHash(const char *str, size_t len) {
+    uintptr_t h = 0;
+    for (size_t i = 0; i < len; i++)
+        h = 31 * h + str[i];
+    return h;
+}
 
-uintptr_t fklCharBufHash(const char *str, size_t len);
+static inline uintptr_t fklStringHash(const FklString *s) {
+    return fklCharBufHash(s->str, s->size);
+}
 
 struct FklStringBuffer;
 

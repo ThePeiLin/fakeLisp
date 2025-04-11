@@ -78,12 +78,20 @@
 #endif
 
 static inline uintptr_t METHOD(__hashv)(FKL_TABLE_KEY_TYPE const *pk) {
-    FKL_TABLE_KEY_HASH
+    FKL_TABLE_KEY_HASH;
 }
 
 #define HASHV(X) METHOD(__hashv)(X)
 
 #ifdef FKL_TABLE_VAL_TYPE
+#define ELM_NAME                                                               \
+    CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, TableElm))
+
+typedef struct ELM_NAME {
+    FKL_TABLE_KEY_TYPE const k;
+    FKL_TABLE_VAL_TYPE v;
+} ELM_NAME;
+
 typedef struct NODE_NAME {
     struct NODE_NAME *prev;
     struct NODE_NAME *next;
@@ -134,7 +142,7 @@ static inline void METHOD(Uninit)(NAME *self) {
     self->buckets = NULL;
     NODE_NAME *cur = self->first;
     while (cur) {
-        FKL_TABLE_KEY_UNINIT(&cur->k);
+        FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&cur->k);
         FKL_TABLE_VAL_UNINIT(&cur->v);
         NODE_NAME *prev = cur;
         cur = prev->next;
@@ -161,7 +169,7 @@ static inline void METHOD(Clear)(NAME *self) {
     self->count = 0;
     NODE_NAME *cur = self->first;
     while (cur) {
-        FKL_TABLE_KEY_UNINIT(&cur->k);
+        FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&cur->k);
         FKL_TABLE_VAL_UNINIT(&cur->v);
         NODE_NAME *prev = cur;
         cur = prev->next;
@@ -310,14 +318,13 @@ static inline FKL_TABLE_VAL_TYPE *METHOD(Add2)(NAME *self, FKL_TABLE_KEY_TYPE k,
     return METHOD(Add)(self, &k, &v);
 }
 
-static inline FKL_TABLE_VAL_TYPE *METHOD(Insert)(NAME *self,
-                                                 FKL_TABLE_KEY_TYPE const *k,
-                                                 FKL_TABLE_VAL_TYPE const *v) {
+static inline ELM_NAME *METHOD(Insert)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
+                                       FKL_TABLE_VAL_TYPE const *v) {
     uint32_t const hashv = HASHV(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_TABLE_KEY_EQUAL(k, &pn->k)) {
-            return &pn->v;
+            return (ELM_NAME *)&pn->k;
         }
     }
 
@@ -339,14 +346,48 @@ static inline FKL_TABLE_VAL_TYPE *METHOD(Insert)(NAME *self,
         self->first = node;
     self->last = node;
     ++self->count;
-    return &node->v;
+    return (ELM_NAME *)&node->k;
 }
 
-static inline FKL_TABLE_VAL_TYPE *
-METHOD(Insert2)(NAME *self, FKL_TABLE_KEY_TYPE k, FKL_TABLE_VAL_TYPE v) {
+static inline ELM_NAME *METHOD(Insert2)(NAME *self, FKL_TABLE_KEY_TYPE k,
+                                        FKL_TABLE_VAL_TYPE v) {
     return METHOD(Insert)(self, &k, &v);
 }
 
+static inline int METHOD(Earase)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
+                                 FKL_TABLE_VAL_TYPE *pv) {
+    for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;
+         pp = &(*pp)->bkt_next) {
+        if (FKL_TABLE_KEY_EQUAL(k, &(*pp)->k)) {
+            NODE_NAME *pn = *pp;
+            *pp = pn->bkt_next;
+            if (pn->prev)
+                pn->prev->next = pn->next;
+            if (pn->next)
+                pn->next->prev = pn->prev;
+            if (self->last == pn)
+                self->last = pn->prev;
+            if (self->first == pn)
+                self->first = pn->next;
+
+            --self->count;
+            FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&pn->k);
+            if (pv)
+                FKL_TABLE_VAL_INIT(pv, &pn->v);
+            else {
+                FKL_TABLE_VAL_UNINIT(&pn->v);
+            }
+            free(pn);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static inline int METHOD(Earase2)(NAME *self, FKL_TABLE_KEY_TYPE k,
+                                  FKL_TABLE_VAL_TYPE *pv) {
+    return METHOD(Earase)(self, &k, pv);
+}
 #else
 static inline int METHOD(Has)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
     NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask];
@@ -378,7 +419,7 @@ static inline int METHOD(Del)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
                 self->first = pn->next;
 
             --self->count;
-            FKL_TABLE_KEY_UNINIT(&pn->k);
+            FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&pn->k);
             FKL_TABLE_VAL_UNINIT(&pn->v);
             free(pn);
             return 1;
@@ -397,6 +438,7 @@ static inline int METHOD(Del2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
 #undef METHOD
 #undef NAME
 #undef NODE_NAME
+#undef ELM_NAME
 
 #undef HASHV
 #undef RETURN_TYPE

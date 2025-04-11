@@ -139,31 +139,12 @@ static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
     gc->argv = argv;
 }
 
-static void source_hash_item_uninit(void *d0) {
-    SourceCodeHashItem *item = (SourceCodeHashItem *)d0;
-    FklString **base = item->lines.base;
-    FklString **const end = &item->lines.base[item->lines.size];
-    for (; base < end; base++)
-        free(*base);
-    fklStringVectorUninit(&item->lines);
-}
-
-static const FklHashTableMetaTable SourceCodeHashMetaTable = {
-    .size = sizeof(SourceCodeHashItem),
-    .__setKey = fklSetSidKey,
-    .__setVal = fklSetSidKey,
-    .__hashFunc = fklSidHashFunc,
-    .__keyEqual = fklSidKeyEqual,
-    .__getKey = fklHashDefaultGetKey,
-    .__uninitItem = source_hash_item_uninit,
-};
-
 static inline void
-load_source_code_to_source_code_hash_item(SourceCodeHashItem *item,
+load_source_code_to_source_code_hash_item(BdbSourceCodeTableElm *item,
                                           const char *rp) {
     FILE *fp = fopen(rp, "r");
     FKL_ASSERT(fp);
-    FklStringVector *lines = &item->lines;
+    FklStringVector *lines = &item->v;
     fklStringVectorInit(lines, 16);
     FklStringBuffer buffer;
     fklInitStringBuffer(&buffer);
@@ -180,20 +161,16 @@ load_source_code_to_source_code_hash_item(SourceCodeHashItem *item,
 }
 
 static inline void init_source_codes(DebugCtx *ctx) {
-    fklInitHashTable(&ctx->source_code_table, &SourceCodeHashMetaTable);
-    FklHashTable *source_code_table = &ctx->source_code_table;
+    bdbSourceCodeTableInit(&ctx->source_code_table);
+    BdbSourceCodeTable *source_code_table = &ctx->source_code_table;
     for (FklSidTableNode *sid_list = ctx->file_sid_set.first; sid_list;
          sid_list = sid_list->next) {
         FklSid_t fid = sid_list->k;
         const FklString *str = fklGetSymbolWithId(fid, ctx->st)->symbol;
-        SourceCodeHashItem *item = fklPutHashItem(&fid, source_code_table);
+        BdbSourceCodeTableElm *item =
+            bdbSourceCodeTableInsert(source_code_table, &fid, NULL);
         load_source_code_to_source_code_hash_item(item, str->str);
     }
-}
-
-static inline const SourceCodeHashItem *get_source_with_fid(FklHashTable *t,
-                                                            FklSid_t id) {
-    return fklGetHashItem(&id, t);
 }
 
 const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
@@ -206,14 +183,14 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
         ctx->curline_str = ctx->curfile_lines->base[line - 1];
         return ctx->curline_str;
     } else {
-        const SourceCodeHashItem *item =
-            get_source_with_fid(&ctx->source_code_table, fid);
-        if (item && line <= item->lines.size) {
+        const FklStringVector *item =
+            bdbSourceCodeTableGet2(&ctx->source_code_table, fid);
+        if (item && line <= item->size) {
             ctx->curlist_line = 1;
             ctx->curline_file = fid;
             ctx->curline = line;
-            ctx->curfile_lines = &item->lines;
-            ctx->curline_str = item->lines.base[line - 1];
+            ctx->curfile_lines = item;
+            ctx->curline_str = item->base[line - 1];
             return ctx->curline_str;
         }
         return NULL;
@@ -245,8 +222,8 @@ static inline void internal_dbg_extra_mark(DebugCtx *ctx, FklVMgc *gc) {
     for (; base < last; base++)
         fklVMgcToGray(*base, gc);
 
-    for (FklHashTableItem *l = ctx->bt.idx_ht.first; l; l = l->next) {
-        Breakpoint *i = ((BreakpointIdxHashItem *)l->data)->bp;
+    for (BdbBpIdxTableNode *l = ctx->bt.idx_ht.first; l; l = l->next) {
+        Breakpoint *i = l->v;
         if (i->is_compiled)
             fklVMgcToGray(i->proc, gc);
     }
@@ -337,7 +314,7 @@ void destroyDebugCtx(DebugCtx *ctx) {
     fklSidTableUninit(&ctx->file_sid_set);
 
     uninitBreakpointTable(&ctx->bt);
-    fklUninitHashTable(&ctx->source_code_table);
+    bdbSourceCodeTableUninit(&ctx->source_code_table);
     fklVMvalueVectorUninit(&ctx->extra_mark_value);
     fklVMvalueVectorUninit(&ctx->code_objs);
     bdbThreadVectorUninit(&ctx->threads);
@@ -364,26 +341,26 @@ const FklLineNumberTableItem *getCurFrameLineNumber(const FklVMframe *frame) {
     return NULL;
 }
 
-const SourceCodeHashItem *getSourceWithFid(DebugCtx *dctx, FklSid_t fid) {
-    return get_source_with_fid(&dctx->source_code_table, fid);
+const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid) {
+    return bdbSourceCodeTableGet2(&dctx->source_code_table, fid);
 }
 
 Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx, FklSid_t fid,
                                          uint32_t line,
                                          PutBreakpointErrorType *err) {
-    const SourceCodeHashItem *sc_item =
-        get_source_with_fid(&ctx->source_code_table, fid);
+    const FklStringVector *sc_item =
+        bdbSourceCodeTableGet2(&ctx->source_code_table, fid);
     if (!sc_item) {
         *err = PUT_BP_FILE_INVALID;
         return NULL;
     }
-    if (!line || line > sc_item->lines.size) {
+    if (!line || line > sc_item->size) {
         *err = PUT_BP_AT_END_OF_FILE;
         return NULL;
     }
 
     FklInstruction *ins = NULL;
-    for (; line <= sc_item->lines.size; line++) {
+    for (; line <= sc_item->size; line++) {
         FklVMvalue **base = (FklVMvalue **)ctx->code_objs.base;
         FklVMvalue **const end = &base[ctx->code_objs.size];
 

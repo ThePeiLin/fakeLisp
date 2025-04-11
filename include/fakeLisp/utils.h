@@ -3,6 +3,11 @@
 
 #include "base.h"
 
+#ifdef WIN32
+// ssize_t
+#include "common.h"
+#endif
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>

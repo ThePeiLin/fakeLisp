@@ -538,9 +538,9 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL) {
 
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
-    for (FklHashTableItem *list = dctx->bt.idx_ht.first; list;
+    for (BdbBpIdxTableNode *list = dctx->bt.idx_ht.first; list;
          list = list->next) {
-        Breakpoint *item = ((BreakpointIdxHashItem *)list->data)->bp;
+        Breakpoint *item = list->v;
 
         *pr = fklCreateVMvaluePairWithCar(
             exe, create_breakpoint_vec(exe, dctx, item));
@@ -568,7 +568,7 @@ static int bdb_debug_ctx_del_break(FKL_CPROC_ARGL) {
     if (item)
         FKL_VM_PUSH_VALUE(exe, create_breakpoint_vec(exe, dctx, item));
     else
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(dctx->bt.idx_ht.num));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(dctx->bt.idx_ht.count));
     return 0;
 }
 
@@ -589,7 +589,7 @@ static int bdb_debug_ctx_dis_break(FKL_CPROC_ARGL) {
     if (item)
         FKL_VM_PUSH_VALUE(exe, create_breakpoint_vec(exe, dctx, item));
     else
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(dctx->bt.idx_ht.num));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(dctx->bt.idx_ht.count));
     return 0;
 }
 
@@ -610,7 +610,7 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL) {
     if (item)
         FKL_VM_PUSH_VALUE(exe, create_breakpoint_vec(exe, dctx, item));
     else
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(dctx->bt.idx_ht.num));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(dctx->bt.idx_ht.count));
     return 0;
 }
 
@@ -702,13 +702,13 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
         return 0;
     }
 
-    const SourceCodeHashItem *item = getSourceWithFid(dctx, fid);
+    const FklStringVector *item = getSourceWithFid(dctx, fid);
     uint64_t line_num = FKL_GET_FIX(line_num_obj);
-    if (item == NULL || line_num <= 0 || line_num >= item->lines.size)
+    if (item == NULL || line_num <= 0 || line_num >= item->size)
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     else {
         uint32_t target_line = line_num;
-        const FklString *line_str = item->lines.base[target_line - 1];
+        const FklString *line_str = item->base[target_line - 1];
 
         FklVMvalue *num_val = FKL_MAKE_VM_FIX(target_line);
         FklVMvalue *is_cur_line =

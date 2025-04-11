@@ -217,17 +217,6 @@ void fklWriteStringToCstr(char *c_str, const FklString *str) {
     c_str[len] = '\0';
 }
 
-uintptr_t fklCharBufHash(const char *str, size_t len) {
-    uintptr_t h = 0;
-    for (size_t i = 0; i < len; i++)
-        h = 31 * h + str[i];
-    return h;
-}
-
-uintptr_t fklStringHash(const FklString *s) {
-    return fklCharBufHash(s->str, s->size);
-}
-
 size_t fklCountCharInString(FklString *s, char c) {
     return fklCountCharInBuf(s->str, s->size, c);
 }

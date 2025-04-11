@@ -37,14 +37,7 @@ static void create_env_work_cb(FklCodegenInfo *info, FklCodegenEnv *env,
 static void B_int3(FKL_VM_INS_FUNC_ARGL);
 static void B_int33(FKL_VM_INS_FUNC_ARGL);
 
-// static inline BreakpointInsHashItem *
-// get_breakpoint_with_ins(DebugCtx *ctx, FklInstruction *ins) {
-//     return fklGetHashItem(&ins, &ctx->bt.ins_ht);
-// }
-
 static void B_int3(FKL_VM_INS_FUNC_ARGL) {
-    // BreakpointInsHashItem *item = get_breakpoint_with_ins(exe->debug_ctx,
-    // ins);
     BdbCodepoint *item = getBreakpointHashItem(exe->debug_ctx, ins);
     if (exe->is_single_thread) {
         FklOpcode origin_op = item->origin_op;
@@ -617,6 +610,7 @@ void restartDebugging(DebugCtx *ctx) {
     ctx->running = 0;
     ctx->done = 0;
     main_thread->dummy_ins_func = B_int3;
+    main_thread->debug_ctx = ctx;
     gc->main_thread = main_thread;
     fklVMthreadStart(main_thread, &gc->q);
     setReachedThread(ctx, main_thread);

@@ -62,12 +62,6 @@ typedef struct Breakpoint {
     };
 } Breakpoint;
 
-// typedef struct BreakpointHashItem {
-//     FklInstruction *ins;
-//     FklOpcode origin_op;
-//     Breakpoint *bp;
-// } BreakpointInsHashItem;
-
 typedef struct {
     FklOpcode origin_op;
     Breakpoint *bp;

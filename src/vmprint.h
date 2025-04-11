@@ -52,16 +52,15 @@
 
 static inline int
 METHOD(print_circle_head)(OUTPUT_TYPE result, const FklVMvalue *v,
-                          const FklHashTable *circle_head_set) {
-    uint64_t i = 0;
-    VMvalueHashItem *item = isInValueSet(v, circle_head_set, &i);
+                          const VmCircleHeadTable *circle_head_set) {
+    PrtSt *item = vmCircleHeadTableGet2(circle_head_set, v);
     if (item) {
         if (item->printed) {
-            PRINTF(result, "#%" FKL_PRT64U "#", i);
+            PRINTF(result, "#%u#", item->i);
             return 1;
         } else {
             item->printed = 1;
-            PRINTF(result, "#%" FKL_PRT64U "=", i);
+            PRINTF(result, "#%u=", item->i);
         }
     }
     return 0;
@@ -130,7 +129,7 @@ cont_call:
             PUTC(buf, ')');
             return NULL;
         } else if (FKL_IS_PAIR(pair_ctx->cur)) {
-            if (isInValueSet(pair_ctx->cur, pair_ctx->circle_head_set, NULL))
+            if (vmCircleHeadTableGet2(pair_ctx->circle_head_set, pair_ctx->cur))
                 goto print_cdr;
             PUTC(buf, ' ');
             r = FKL_VM_CAR(pair_ctx->cur);
@@ -203,8 +202,8 @@ static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
         return;
     }
 
-    FklHashTable circle_head_set;
-    fklInitValueSetHashTable(&circle_head_set);
+    VmCircleHeadTable circle_head_set;
+    vmCircleHeadTableInit(&circle_head_set);
 
     scan_cir_ref(v, &circle_head_set);
 
@@ -213,15 +212,14 @@ static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
 
     for (; v;) {
         if (FKL_IS_PAIR(v)) {
-            uint64_t i = 0;
-            VMvalueHashItem *item = isInValueSet(v, &circle_head_set, &i);
+            PrtSt *item = vmCircleHeadTableGet2(&circle_head_set, v);
             if (item) {
                 if (item->printed) {
-                    PRINTF(result, "#%" FKL_PRT64U "#", i);
+                    PRINTF(result, "#%u#", item->i);
                     goto get_next;
                 } else {
                     item->printed = 1;
-                    PRINTF(result, "#%" FKL_PRT64U "=", i);
+                    PRINTF(result, "#%u=", item->i);
                 }
             }
             PrintCtx *ctx = vmPrintCtxVectorPushBack(&print_ctxs, NULL);
@@ -261,7 +259,7 @@ static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
         }
     }
     vmPrintCtxVectorUninit(&print_ctxs);
-    fklUninitHashTable(&circle_head_set);
+    vmCircleHeadTableUninit(&circle_head_set);
     UNINIT_LOCAL_VAR;
 }
 

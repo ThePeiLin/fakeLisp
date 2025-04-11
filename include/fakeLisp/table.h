@@ -265,7 +265,7 @@ static inline int METHOD(Put2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
 #endif
 
 #ifdef FKL_TABLE_VAL_TYPE
-static inline FKL_TABLE_VAL_TYPE *METHOD(Get)(NAME *self,
+static inline FKL_TABLE_VAL_TYPE *METHOD(Get)(NAME const *self,
                                               FKL_TABLE_KEY_TYPE const *k) {
     NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
@@ -275,7 +275,7 @@ static inline FKL_TABLE_VAL_TYPE *METHOD(Get)(NAME *self,
     return NULL;
 }
 
-static inline FKL_TABLE_VAL_TYPE *METHOD(Get2)(NAME *self,
+static inline FKL_TABLE_VAL_TYPE *METHOD(Get2)(NAME const *self,
                                                FKL_TABLE_KEY_TYPE k) {
     return METHOD(Get)(self, &k);
 }
@@ -389,7 +389,7 @@ static inline int METHOD(Earase2)(NAME *self, FKL_TABLE_KEY_TYPE k,
     return METHOD(Earase)(self, &k, pv);
 }
 #else
-static inline int METHOD(Has)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
+static inline int METHOD(Has)(NAME const *self, FKL_TABLE_KEY_TYPE const *k) {
     NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_TABLE_KEY_EQUAL(k, &pn->k))
@@ -398,7 +398,7 @@ static inline int METHOD(Has)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
     return 0;
 }
 
-static inline int METHOD(Has2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
+static inline int METHOD(Has2)(NAME const *self, FKL_TABLE_KEY_TYPE k) {
     return METHOD(Has)(self, &k);
 }
 #endif

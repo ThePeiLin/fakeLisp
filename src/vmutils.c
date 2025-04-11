@@ -398,91 +398,54 @@ typedef enum {
 } PrintState;
 
 typedef struct {
-    FklVMvalue *v;
-    size_t w;
+    uint32_t i;
     int printed;
-} VMvalueHashItem;
+} PrtSt;
 
-static uintptr_t _VMvalue_hashFunc(const void *key) {
-    const FklVMvalue *v = *(const FklVMvalue **)key;
-    return (uintptr_t)v >> 3;
+// VmValueDegreeTable
+#define FKL_TABLE_TYPE_PREFIX Vm
+#define FKL_TABLE_METHOD_PREFIX vm
+#define FKL_TABLE_KEY_TYPE FklVMvalue const *
+#define FKL_TABLE_VAL_TYPE PrtSt
+#define FKL_TABLE_ELM_NAME CircleHead
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
+#include <fakeLisp/table.h>
+static inline void putValueInSet(VmCircleHeadTable *s, const FklVMvalue *v) {
+    uint32_t num = s->count;
+    vmCircleHeadTablePut2(s, v,
+                          (PrtSt){
+                              .i = num,
+                              .printed = 0,
+                          });
 }
 
-static void _VMvalue_setVal(void *d0, const void *d1) {
-    *(VMvalueHashItem *)d0 = *(const VMvalueHashItem *)d1;
+// VmValueDegreeTable
+#define FKL_TABLE_TYPE_PREFIX Vm
+#define FKL_TABLE_METHOD_PREFIX vm
+#define FKL_TABLE_KEY_TYPE FklVMvalue *
+#define FKL_TABLE_VAL_TYPE uint64_t
+#define FKL_TABLE_ELM_NAME ValueDegree
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
+#include <fakeLisp/table.h>
+
+static inline void inc_value_degree(VmValueDegreeTable *ht, FklVMvalue *v) {
+    VmValueDegreeTableElm *degree_item = vmValueDegreeTableInsert2(ht, v, 0);
+    ++degree_item->v;
 }
 
-static FklHashTableMetaTable VMvalueHashMetaTable = {
-    .size = sizeof(VMvalueHashItem),
-    .__setKey = fklPtrKeySet,
-    .__setVal = _VMvalue_setVal,
-    .__hashFunc = _VMvalue_hashFunc,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = fklPtrKeyEqual,
-    .__getKey = fklHashDefaultGetKey,
-};
-
-FklHashTable *fklCreateValueSetHashtable(void) {
-    return fklCreateHashTable(&VMvalueHashMetaTable);
-}
-
-void fklInitValueSetHashTable(FklHashTable *ht) {
-    fklInitHashTable(ht, &VMvalueHashMetaTable);
-}
-
-static inline void putValueInSet(FklHashTable *s, const FklVMvalue *v) {
-    uint32_t num = s->num;
-    VMvalueHashItem *h = fklPutHashItem(&v, s);
-    h->w = num;
-    h->printed = 0;
-}
-
-static inline VMvalueHashItem *isInValueSet(const FklVMvalue *v,
-                                            const FklHashTable *t, size_t *w) {
-    VMvalueHashItem *item = fklGetHashItem(&v, t);
-    if (item && w)
-        *w = item->w;
-    return item;
-}
-
-struct VMvalueDegreeHashItem {
-    FklVMvalue *v;
-    uint64_t degree;
-};
-
-static void _VMvalue_degree_setVal(void *d0, const void *d1) {
-    *(struct VMvalueDegreeHashItem *)d0 =
-        *(const struct VMvalueDegreeHashItem *)d1;
-}
-
-static FklHashTableMetaTable VMvalueDegreeHashMetaTable = {
-    .size = sizeof(struct VMvalueDegreeHashItem),
-    .__setKey = fklPtrKeySet,
-    .__setVal = _VMvalue_degree_setVal,
-    .__hashFunc = _VMvalue_hashFunc,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = fklPtrKeyEqual,
-    .__getKey = fklHashDefaultGetKey,
-};
-
-static inline void init_vmvalue_degree_hash_table(FklHashTable *ht) {
-    fklInitHashTable(ht, &VMvalueDegreeHashMetaTable);
-}
-
-static inline void inc_value_degree(FklHashTable *ht, const FklVMvalue *v) {
-    struct VMvalueDegreeHashItem *degree_item = fklPutHashItem(&v, ht);
-    degree_item->degree++;
-}
-
-static inline void dec_value_degree(FklHashTable *ht, const FklVMvalue *v) {
-    struct VMvalueDegreeHashItem *degree_item = fklGetHashItem(&v, ht);
-    if (degree_item && degree_item->degree)
-        degree_item->degree--;
+static inline void dec_value_degree(VmValueDegreeTable *ht, FklVMvalue *v) {
+    uint64_t *degree = vmValueDegreeTableGet2(ht, v);
+    if (degree && *degree)
+        --(*degree);
 }
 
 static inline void
-scan_value_and_find_value_in_circle(FklHashTable *ht,
-                                    FklHashTable *circle_heads,
+scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
+                                    VmCircleHeadTable *circle_heads,
                                     const FklVMvalue *first_value) {
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
@@ -492,14 +455,14 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
         FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(ht, v);
-            if (!isInValueSet(v, circle_heads, NULL)) {
+            if (!vmCircleHeadTableGet2(circle_heads, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_VECTOR(v)) {
             inc_value_degree(ht, v);
-            if (!isInValueSet(v, circle_heads, NULL)) {
+            if (!vmCircleHeadTableGet2(circle_heads, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
@@ -507,13 +470,13 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(ht, v);
-            if (!isInValueSet(v, circle_heads, NULL)) {
+            if (!vmCircleHeadTableGet2(circle_heads, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(ht, v);
-            if (!isInValueSet(v, circle_heads, NULL)) {
+            if (!vmCircleHeadTableGet2(circle_heads, v)) {
                 for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
                      tail = tail->prev) {
                     FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
@@ -524,22 +487,21 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
             }
         }
     }
-    dec_value_degree(ht, first_value);
+    dec_value_degree(ht, FKL_REMOVE_CONST(FklVMvalue, first_value));
 
     // remove value not in circle
 
     do {
         stack.size = 0;
-        for (FklHashTableItem *list = ht->first; list; list = list->next) {
-            struct VMvalueDegreeHashItem *item =
-                (struct VMvalueDegreeHashItem *)list->data;
-            if (!item->degree)
-                fklVMvalueVectorPushBack2(&stack, item->v);
+        for (VmValueDegreeTableNode *list = ht->first; list;
+             list = list->next) {
+            if (!list->v)
+                fklVMvalueVectorPushBack2(&stack, list->k);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.size];
         for (; base < end; base++) {
-            fklDelHashItem(base, ht, NULL);
+            vmValueDegreeTableDel2(ht, *base);
             FklVMvalue *v = *base;
             if (FKL_IS_PAIR(v)) {
                 dec_value_degree(ht, FKL_VM_CAR(v));
@@ -565,26 +527,24 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
 
     // get all circle heads
 
-    fklClearHashTable(circle_heads);
-    while (ht->num) {
-        struct VMvalueDegreeHashItem *value_degree =
-            ((struct VMvalueDegreeHashItem *)ht->first->data);
-        FklVMvalue *v = value_degree->v;
+    vmCircleHeadTableClear(circle_heads);
+    while (ht->count) {
+        VmValueDegreeTableNode *value_degree = ht->first;
+        FklVMvalue const *v = value_degree->k;
         putValueInSet(circle_heads, v);
-        value_degree->degree = 0;
+        value_degree->v = 0;
 
         do {
             stack.size = 0;
-            for (FklHashTableItem *list = ht->first; list; list = list->next) {
-                struct VMvalueDegreeHashItem *item =
-                    (struct VMvalueDegreeHashItem *)list->data;
-                if (!item->degree)
-                    fklVMvalueVectorPushBack2(&stack, item->v);
+            for (VmValueDegreeTableNode *list = ht->first; list;
+                 list = list->next) {
+                if (!list->v)
+                    fklVMvalueVectorPushBack2(&stack, list->k);
             }
             FklVMvalue **base = (FklVMvalue **)stack.base;
             FklVMvalue **const end = &base[stack.size];
             for (; base < end; base++) {
-                fklDelHashItem(base, ht, NULL);
+                vmValueDegreeTableDel2(ht, *base);
                 FklVMvalue *v = *base;
                 if (FKL_IS_PAIR(v)) {
                     dec_value_degree(ht, FKL_VM_CAR(v));
@@ -613,11 +573,11 @@ scan_value_and_find_value_in_circle(FklHashTable *ht,
 }
 
 static inline void scan_cir_ref(const FklVMvalue *s,
-                                FklHashTable *circle_head_set) {
-    FklHashTable degree_table;
-    init_vmvalue_degree_hash_table(&degree_table);
+                                VmCircleHeadTable *circle_head_set) {
+    VmValueDegreeTable degree_table;
+    vmValueDegreeTableInit(&degree_table);
     scan_value_and_find_value_in_circle(&degree_table, circle_head_set, s);
-    fklUninitHashTable(&degree_table);
+    vmValueDegreeTableUninit(&degree_table);
 }
 
 int fklHasCircleRef(const FklVMvalue *first_value) {
@@ -628,8 +588,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     FklVMobjTable value_set;
     fklVMobjTableInit(&value_set);
 
-    FklHashTable degree_table;
-    init_vmvalue_degree_hash_table(&degree_table);
+    VmValueDegreeTable degree_table;
+    vmValueDegreeTableInit(&degree_table);
 
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
@@ -668,24 +628,22 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
             }
         }
     }
-    dec_value_degree(&degree_table, first_value);
+    dec_value_degree(&degree_table, FKL_REMOVE_CONST(FklVMvalue, first_value));
     fklVMobjTableUninit(&value_set);
 
     // remove value not in circle
 
     do {
         stack.size = 0;
-        for (FklHashTableItem *list = degree_table.first; list;
+        for (VmValueDegreeTableNode *list = degree_table.first; list;
              list = list->next) {
-            struct VMvalueDegreeHashItem *item =
-                (struct VMvalueDegreeHashItem *)list->data;
-            if (!item->degree)
-                fklVMvalueVectorPushBack2(&stack, item->v);
+            if (!list->v)
+                fklVMvalueVectorPushBack2(&stack, list->k);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.size];
         for (; base < end; base++) {
-            fklDelHashItem(base, &degree_table, NULL);
+            vmValueDegreeTableDel2(&degree_table, *base);
             FklVMvalue *v = *base;
             if (FKL_IS_PAIR(v)) {
                 dec_value_degree(&degree_table, FKL_VM_CAR(v));
@@ -709,9 +667,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         }
     } while (!fklVMvalueVectorIsEmpty(&stack));
 
-    int r = degree_table.num > 0;
-    fklUninitHashTable(&degree_table);
-
+    int r = degree_table.count > 0;
+    vmValueDegreeTableUninit(&degree_table);
     fklVMvalueVectorUninit(&stack);
     return r;
 }
@@ -868,7 +825,7 @@ typedef struct PrintCtx {
 typedef struct PrintPairCtx {
     PRINT_CTX_COMMON_HEADER;
     const FklVMvalue *cur;
-    const FklHashTable *circle_head_set;
+    const VmCircleHeadTable *circle_head_set;
 } PrintPairCtx;
 
 static_assert(sizeof(PrintPairCtx) <= sizeof(PrintCtx),
@@ -899,8 +856,9 @@ static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
 #define FKL_VECTOR_ELM_TYPE_NAME PrintCtx
 #include <fakeLisp/vector.h>
 
-static inline void print_pair_ctx_init(PrintCtx *ctx, const FklVMvalue *pair,
-                                       const FklHashTable *circle_head_set) {
+static inline void
+print_pair_ctx_init(PrintCtx *ctx, const FklVMvalue *pair,
+                    const VmCircleHeadTable *circle_head_set) {
     PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);
     pair_ctx->cur = pair;
     pair_ctx->circle_head_set = circle_head_set;

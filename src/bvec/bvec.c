@@ -209,7 +209,7 @@ struct SymFunc {
     const char *sym;
     FklVMcFunc f;
 } exports_and_func[] = {
-	// clang-format off
+    // clang-format off
     // bvec
     {"bvs8ref",         export_bvs8ref                 },
     {"bvs16ref",        export_bvs16ref                },
@@ -235,7 +235,7 @@ struct SymFunc {
     {"bvec->u8-list",   export_bytevector_to_u8_list   },
     {"bvec->s8-vector", export_bytevector_to_s8_vector },
     {"bvec->u8-vector", export_bytevector_to_u8_vector },
-	// clang-format on
+    // clang-format on
 };
 
 static const size_t EXPORT_NUM =

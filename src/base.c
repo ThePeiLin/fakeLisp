@@ -405,10 +405,6 @@ int fklPtrKeyEqual(const void *k0, const void *k1) {
     return *(void *const *)k0 == *(void *const *)k1;
 }
 
-uintptr_t fklPtrKeyHashFunc(const void *k) {
-    return (uintptr_t)*(void *const *)k;
-}
-
 #define HASH_FUNC_HEADER()                                                     \
     uintptr_t (*hashv)(const void *) = ht->t->__hashFunc;                      \
     void *(*key)(void *) = ht->t->__getKey;                                    \

@@ -145,7 +145,8 @@ size_t fklNastListLength(const FklNastNode *list) {
 }
 
 FklNastNode *fklMakeNastNodeRef(FklNastNode *n) {
-    n->refcount += 1;
+    if (n)
+        n->refcount += 1;
     return n;
 }
 
@@ -163,12 +164,51 @@ static void destroyNastHash(FklNastHashTable *hash) {
 
 void fklDestroyNastNode(FklNastNode *node) {
     FklNastNodeVector stack;
+    if (node == NULL)
+        return;
+    if (node->refcount)
+        --node->refcount;
+    else {
+        switch (node->type) {
+        case FKL_NAST_FIX:
+        case FKL_NAST_SYM:
+        case FKL_NAST_SLOT:
+        case FKL_NAST_NIL:
+        case FKL_NAST_CHR:
+        case FKL_NAST_F64:
+        case FKL_NAST_RC_SYM:
+            break;
+        case FKL_NAST_STR:
+            free(node->str);
+            break;
+        case FKL_NAST_BYTEVECTOR:
+            free(node->bvec);
+            break;
+        case FKL_NAST_BIGINT:
+            fklDestroyBigInt(node->bigInt);
+            break;
+        case FKL_NAST_PAIR:
+        case FKL_NAST_BOX:
+        case FKL_NAST_VECTOR:
+        case FKL_NAST_HASHTABLE:
+            goto destroy_nested;
+            break;
+        default:
+            abort();
+            break;
+        }
+        free(node);
+    }
+    return;
+destroy_nested:
     fklNastNodeVectorInit(&stack, 32);
     fklNastNodeVectorPushBack2(&stack, node);
     while (!fklNastNodeVectorIsEmpty(&stack)) {
         FklNastNode *cur = *fklNastNodeVectorPopBack(&stack);
         if (cur) {
-            if (!cur->refcount) {
+            if (cur->refcount)
+                --cur->refcount;
+            else {
                 switch (cur->type) {
                 case FKL_NAST_FIX:
                 case FKL_NAST_SYM:
@@ -214,8 +254,7 @@ void fklDestroyNastNode(FklNastNode *node) {
                     break;
                 }
                 free(cur);
-            } else
-                cur->refcount--;
+            }
         }
     }
     fklNastNodeVectorUninit(&stack);

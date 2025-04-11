@@ -198,7 +198,7 @@ void fklGetGCstateAndGCNum(FklVMgc *gc, FklGCstate *s, int *cr) {
 
 static inline void init_vm_queue(FklVMqueue *q) {
     uv_mutex_init(&q->pre_running_lock);
-	fklThreadQueueInit(&q->pre_running_q);
+    fklThreadQueueInit(&q->pre_running_q);
     atomic_init(&q->running_count, 0);
     fklThreadQueueInit(&q->running_q);
 }

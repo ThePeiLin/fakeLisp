@@ -2184,8 +2184,8 @@ static CODEGEN_FUNC(codegen_named_let0) {
         stack, append_put_loc_ins(INS_APPEND_BACK, NULL, idx, codegen->fid,
                                   name->curline, scope));
 
-    fklAddReplacementBySid(fklAddSymbolCstr("*func*", pst)->id, name,
-                           cms->replacements);
+    fklReplacementTableAdd2(cms->replacements,
+                            fklAddSymbolCstr("*func*", pst)->id, name);
     FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
         _named_let_set_var_exp_bc_process, createDefaultStackContext(stack),
         NULL, cs, cms, curEnv, name->curline, codegen, codegenQuestStack);
@@ -2271,8 +2271,9 @@ static CODEGEN_FUNC(codegen_named_let1) {
                                   name->curline, scope));
 
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
-    fklAddReplacementBySid(fklAddSymbolCstr("*func*", pst)->id, name,
-                           cms->replacements);
+
+    fklReplacementTableAdd2(cms->replacements,
+                            fklAddSymbolCstr("*func*", pst)->id, name);
     fklCodegenQuestVectorPushBack2(
         codegenQuestStack,
         fklCreateCodegenQuest(
@@ -2471,21 +2472,14 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env) {
     }
 }
 
-void fklAddReplacementBySid(FklSid_t id, FklNastNode *node,
-                            FklHashTable *reps) {
-    FklCodegenReplacement *rep = fklPutHashItem(&id, reps);
-    fklDestroyNastNode(rep->node);
-    rep->node = fklMakeNastNodeRef(node);
-}
-
 int fklIsReplacementDefined(FklSid_t id, FklCodegenEnv *env) {
-    return fklGetHashItem(&id, env->macros->replacements) != NULL;
+    return fklReplacementTableGet2(env->macros->replacements, id) != NULL;
 }
 
-FklNastNode *fklGetReplacement(FklSid_t id, const FklHashTable *rep) {
-    FklCodegenReplacement *replace = fklGetHashItem(&id, rep);
-    if (replace)
-        return fklMakeNastNodeRef(replace->node);
+FklNastNode *fklGetReplacement(FklSid_t id, const FklReplacementTable *rep) {
+    FklNastNode **pn = fklReplacementTableGet2(rep, id);
+    if (pn)
+        return fklMakeNastNodeRef(*pn);
     return NULL;
 }
 
@@ -2679,8 +2673,8 @@ static CODEGEN_FUNC(codegen_defun) {
         origExp->curline, pst);
     FklNastNode *name_str = fklCreateNastNode(FKL_NAST_STR, name->curline);
     name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst)->symbol);
-    fklAddReplacementBySid(fklAddSymbolCstr("*func*", pst)->id, name_str,
-                           lambdaCodegenEnv->macros->replacements);
+    fklReplacementTableAdd2(lambdaCodegenEnv->macros->replacements,
+                            fklAddSymbolCstr("*func*", pst)->id, name_str);
     fklDestroyNastNode(name_str);
     FklCodegenQuest *cur = fklCreateCodegenQuest(
         _lambda_exp_bc_process, createDefaultStackContext(lStack),
@@ -2741,8 +2735,8 @@ static CODEGEN_FUNC(codegen_defun_const) {
         origExp->curline, pst);
     FklNastNode *name_str = fklCreateNastNode(FKL_NAST_STR, name->curline);
     name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst)->symbol);
-    fklAddReplacementBySid(fklAddSymbolCstr("*func*", pst)->id, name_str,
-                           lambdaCodegenEnv->macros->replacements);
+    fklReplacementTableAdd2(lambdaCodegenEnv->macros->replacements,
+                            fklAddSymbolCstr("*func*", pst)->id, name_str);
     fklDestroyNastNode(name_str);
     FklCodegenQuest *cur = fklCreateCodegenQuest(
         _lambda_exp_bc_process, createDefaultStackContext(lStack),
@@ -2874,12 +2868,11 @@ BC_PROCESS(_export_macro_bc_process) {
                            fklMakeNastNodeRef(cur->origin_exp), cur->bcl,
                            cur->prototype_id, 0);
     }
-    for (FklHashTableItem *cur = cms->replacements->first; cur;
+    for (FklReplacementTableNode *cur = cms->replacements->first; cur;
          cur = cur->next) {
-        FklCodegenReplacement *rep = (FklCodegenReplacement *)cur->data;
-        fklAddReplacementBySid(rep->id, rep->node, codegen->export_replacement);
-        fklAddReplacementBySid(rep->id, rep->node,
-                               target_macro_scope->replacements);
+        fklReplacementTableAdd2(codegen->export_replacement, cur->k, cur->v);
+        fklReplacementTableAdd2(target_macro_scope->replacements, cur->k,
+                                cur->v);
     }
     return NULL;
 }
@@ -4555,16 +4548,16 @@ static FklNastNode *replace_pattern_origin_exp_head(FklNastNode *orig,
     return retval;
 }
 
-static inline void export_replacement_with_prefix(FklHashTable *replacements,
-                                                  FklCodegenMacroScope *macros,
-                                                  FklString *prefix,
-                                                  FklSymbolTable *pst) {
-    for (FklHashTableItem *cur = replacements->first; cur; cur = cur->next) {
-        FklCodegenReplacement *rep = (FklCodegenReplacement *)cur->data;
-        FklString *origSymbol = fklGetSymbolWithId(rep->id, pst)->symbol;
+static inline void
+export_replacement_with_prefix(FklReplacementTable *replacements,
+                               FklCodegenMacroScope *macros, FklString *prefix,
+                               FklSymbolTable *pst) {
+    for (FklReplacementTableNode *cur = replacements->first; cur;
+         cur = cur->next) {
+        FklString *origSymbol = fklGetSymbolWithId(cur->k, pst)->symbol;
         FklString *symbolWithPrefix = fklStringAppend(prefix, origSymbol);
         FklSid_t id = fklAddSymbol(symbolWithPrefix, pst)->id;
-        fklAddReplacementBySid(id, rep->node, macros->replacements);
+        fklReplacementTableAdd2(macros->replacements, id, cur->v);
         free(symbolWithPrefix);
     }
 }
@@ -4771,10 +4764,9 @@ static inline FklByteCodelnt *process_import_imported_lib_common(
                            fklMakeNastNodeRef(cur->origin_exp), cur->bcl,
                            cur->prototype_id, 0);
 
-    for (FklHashTableItem *cur = lib->replacements->first; cur;
+    for (FklReplacementTableNode *cur = lib->replacements->first; cur;
          cur = cur->next) {
-        FklCodegenReplacement *rep = (FklCodegenReplacement *)cur->data;
-        fklAddReplacementBySid(rep->id, rep->node, macroScope->replacements);
+        fklReplacementTableAdd2(macroScope->replacements, cur->k, cur->v);
     }
 
     if (lib->named_prod_groups.t) {
@@ -4868,7 +4860,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
         INS_APPEND_BACK, NULL, libId, codegen->fid, curline, scope);
 
     const FklHashTable *exports = &lib->exports;
-    const FklHashTable *replace = lib->replacements;
+    const FklReplacementTable *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
 
     int is_grammer_inited = 0;
@@ -4889,7 +4881,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
         if (rep) {
             r = 1;
             rep->refcount--;
-            fklAddReplacementBySid(cur, rep, macroScope->replacements);
+            fklReplacementTableAdd2(macroScope->replacements, cur, rep);
         }
 
         if (lib->named_prod_groups.t
@@ -4942,7 +4934,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
     uint64_t curline, FklNastNode *except, FklCodegenErrorState *errorState) {
     const FklHashTable *exports = &lib->exports;
 
-    const FklHashTable *replace = lib->replacements;
+    const FklReplacementTable *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
 
     for (const FklCodegenMacro *macro = head; macro; macro = macro->next) {
@@ -4955,11 +4947,10 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
         }
     }
 
-    for (FklHashTableItem *reps = replace->first; reps; reps = reps->next) {
-        FklCodegenReplacement *rep = (FklCodegenReplacement *)reps->data;
-        if (!is_in_except_list(except, rep->id))
-            fklAddReplacementBySid(rep->id, rep->node,
-                                   macroScope->replacements);
+    for (FklReplacementTableNode *reps = replace->first; reps;
+         reps = reps->next) {
+        if (!is_in_except_list(except, reps->k))
+            fklReplacementTableAdd2(macroScope->replacements, reps->k, reps->v);
     }
     if (lib->named_prod_groups.t) {
         int is_grammer_inited = 0;
@@ -5016,7 +5007,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
 
     const FklHashTable *exports = &lib->exports;
 
-    const FklHashTable *replace = lib->replacements;
+    const FklReplacementTable *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
 
     int is_grammer_inited = 0;
@@ -5045,7 +5036,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
         if (rep) {
             r = 1;
             rep->refcount--;
-            fklAddReplacementBySid(cur0, rep, macroScope->replacements);
+            fklReplacementTableAdd2(macroScope->replacements, cur0, rep);
         }
 
         if (lib->named_prod_groups.t
@@ -5323,11 +5314,10 @@ BC_PROCESS(_export_import_bc_process) {
                            head->prototype_id, 0);
     }
 
-    for (FklHashTableItem *cur = env->macros->replacements->first; cur;
+    for (FklReplacementTableNode *cur = env->macros->replacements->first; cur;
          cur = cur->next) {
-        FklCodegenReplacement *rep = (FklCodegenReplacement *)cur->data;
-        fklAddReplacementBySid(rep->id, rep->node, codegen->export_replacement);
-        fklAddReplacementBySid(rep->id, rep->node, macros->replacements);
+        fklReplacementTableAdd2(codegen->export_replacement, cur->k, cur->v);
+        fklReplacementTableAdd2(macros->replacements, cur->k, cur->v);
     }
 
 exit:
@@ -5678,7 +5668,7 @@ static inline void process_import_script_common_header(
             createFpNextExpression(fp, nextCodegen), 1, libEnv->macros, libEnv,
             origExp->curline, nextCodegen, codegenQuestStack);
     } else {
-        fklDestroyHashTable(nextCodegen->export_replacement);
+        fklReplacementTableDestroy(nextCodegen->export_replacement);
         nextCodegen->export_replacement = NULL;
         const FklCodegenLib *lib = &codegen->libStack->base[libId - 1];
 
@@ -8143,7 +8133,7 @@ static CODEGEN_FUNC(codegen_defmacro) {
     FklNastNode *value =
         fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (name->type == FKL_NAST_SYM)
-        fklAddReplacementBySid(name->sym, value, macroScope->replacements);
+        fklReplacementTableAdd2(macroScope->replacements, name->sym, value);
     else if (name->type == FKL_NAST_PAIR) {
         FklSidTable *symbolSet = NULL;
         FklNastNode *pattern = fklCreatePatternFromNast(name, &symbolSet);
@@ -8848,7 +8838,7 @@ fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,
     codegen->outer_ctx = outer_ctx;
 
     fklInitExportSidIdxTable(&codegen->exports);
-    codegen->export_replacement = fklCreateCodegenReplacementTable();
+    codegen->export_replacement = fklReplacementTableCreate();
     codegen->export_named_prod_groups = fklSidTableCreate();
 
     init_codegen_grammer_ptr(codegen);
@@ -8898,8 +8888,7 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen, const char *filename,
     codegen->is_macro = macroMark;
 
     codegen->export_macro = NULL;
-    codegen->export_replacement =
-        libMark ? fklCreateCodegenReplacementTable() : NULL;
+    codegen->export_replacement = libMark ? fklReplacementTableCreate() : NULL;
     codegen->export_named_prod_groups = libMark ? fklSidTableCreate() : NULL;
     codegen->exports.t = NULL;
     if (libMark)
@@ -8978,7 +8967,7 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
     if (codegen->export_named_prod_groups)
         fklSidTableDestroy(codegen->export_named_prod_groups);
     if (codegen->export_replacement)
-        fklDestroyHashTable(codegen->export_replacement);
+        fklReplacementTableDestroy(codegen->export_replacement);
     if (codegen->g == &codegen->self_g && *codegen->g) {
         FklGrammer *g = *codegen->g;
         fklClearGrammer(g);
@@ -9145,7 +9134,7 @@ void fklDestroyCodegenMacroList(FklCodegenMacro *cur) {
 void fklDestroyCodegenLibMacroScope(FklCodegenLib *lib) {
     fklDestroyCodegenMacroList(lib->head);
     if (lib->replacements)
-        fklDestroyHashTable(lib->replacements);
+        fklReplacementTableDestroy(lib->replacements);
 }
 
 void fklUninitCodegenLibInfo(FklCodegenLib *lib) {
@@ -9198,7 +9187,7 @@ FklCodegenMacroScope *fklCreateCodegenMacroScope(FklCodegenMacroScope *prev) {
         (FklCodegenMacroScope *)malloc(sizeof(FklCodegenMacroScope));
     FKL_ASSERT(r);
     r->head = NULL;
-    r->replacements = fklCreateCodegenReplacementTable();
+    r->replacements = fklReplacementTableCreate();
     r->refcount = 0;
     r->prev = make_macro_scope_ref(prev);
     return r;
@@ -9217,7 +9206,7 @@ void fklDestroyCodegenMacroScope(FklCodegenMacroScope *macros) {
                 fklDestroyCodegenMacro(t);
             }
             if (macros->replacements)
-                fklDestroyHashTable(macros->replacements);
+                fklReplacementTableDestroy(macros->replacements);
             free(macros);
             macros = prev;
         }

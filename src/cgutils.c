@@ -693,13 +693,13 @@ static inline void recompute_sid_for_compiler_macros(
 }
 
 static inline void recompute_sid_for_replacements(
-    FklHashTable *t, const FklSymbolTable *origin_table,
+    FklReplacementTable *t, const FklSymbolTable *origin_table,
     FklSymbolTable *target_table, FklCodegenRecomputeNastSidOption option) {
-    for (FklHashTableItem *rep_list = t->first; rep_list;
+    for (FklReplacementTableNode *rep_list = t->first; rep_list;
          rep_list = rep_list->next) {
-        FklCodegenReplacement *rep = (FklCodegenReplacement *)rep_list->data;
-        replace_sid(&rep->id, origin_table, target_table);
-        fklRecomputeSidForNastNode(rep->node, origin_table, target_table,
+        replace_sid(FKL_REMOVE_CONST(FklSid_t, &rep_list->k), origin_table,
+                    target_table);
+        fklRecomputeSidForNastNode(rep_list->v, origin_table, target_table,
                                    option);
     }
 }
@@ -862,40 +862,6 @@ void fklRecomputeSidForSingleTableInfo(
                                 origin_kt, target_kt, option);
 }
 
-static void _codegen_replacement_uninitItem(void *item) {
-    FklCodegenReplacement *replace = (FklCodegenReplacement *)item;
-    fklDestroyNastNode(replace->node);
-}
-
-static int _codegen_replacement_keyEqual(const void *pkey0, const void *pkey1) {
-    FklSid_t k0 = *(const FklSid_t *)pkey0;
-    FklSid_t k1 = *(const FklSid_t *)pkey1;
-    return k0 == k1;
-}
-
-static void _codegen_replacement_setVal(void *d0, const void *d1) {
-    *(FklCodegenReplacement *)d0 = *(const FklCodegenReplacement *)d1;
-    fklMakeNastNodeRef(((FklCodegenReplacement *)d0)->node);
-}
-
-static void _codegen_replacement_setKey(void *k0, const void *k1) {
-    *(FklSid_t *)k0 = *(const FklSid_t *)k1;
-}
-
-static FklHashTableMetaTable CodegenReplacementHashMetaTable = {
-    .size = sizeof(FklCodegenReplacement),
-    .__setKey = _codegen_replacement_setKey,
-    .__setVal = _codegen_replacement_setVal,
-    .__hashFunc = fklSidHashFunc,
-    .__uninitItem = _codegen_replacement_uninitItem,
-    .__keyEqual = _codegen_replacement_keyEqual,
-    .__getKey = fklHashDefaultGetKey,
-};
-
-FklHashTable *fklCreateCodegenReplacementTable(void) {
-    return fklCreateHashTable(&CodegenReplacementHashMetaTable);
-}
-
 static void export_sid_index_item_set_val(void *d0, const void *d1) {
     *(FklCodegenExportSidIndexHashItem *)d0 =
         *(const FklCodegenExportSidIndexHashItem *)d1;
@@ -987,17 +953,17 @@ static inline FklCodegenMacro *load_compiler_macros(FklSymbolTable *st,
     return r;
 }
 
-static inline FklHashTable *load_replacements(FklSymbolTable *st, FILE *fp) {
-    FklHashTable *ht = fklCreateCodegenReplacementTable();
-    fread(&ht->num, sizeof(ht->num), 1, fp);
-    uint32_t num = ht->num;
-    ht->num = 0;
+static inline FklReplacementTable *load_replacements(FklSymbolTable *st,
+                                                     FILE *fp) {
+    FklReplacementTable *ht = fklReplacementTableCreate();
+    fread(&ht->count, sizeof(ht->count), 1, fp);
+    uint32_t num = ht->count;
+    ht->count = 0;
     for (uint32_t i = 0; i < num; i++) {
         FklSid_t id = 0;
         fread(&id, sizeof(id), 1, fp);
         FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-        FklCodegenReplacement *rep = fklPutHashItem(&id, ht);
-        rep->node = node;
+        *fklReplacementTableAdd2(ht, id, NULL) = node;
     }
     return ht;
 }

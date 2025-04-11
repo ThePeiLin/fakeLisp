@@ -1035,6 +1035,10 @@ static const FklHashTableMetaTable str_regex_hash_meta_table = {
     .__uninitItem = str_regex_uninit,
 };
 
+static uintptr_t fklPtrKeyHashFunc(const void *k) {
+    return (uintptr_t)*(void *const *)k;
+}
+
 static const FklHashTableMetaTable regex_str_hash_meta_table = {
     .size = sizeof(RegexStrHashItem),
     .__getKey = fklHashDefaultGetKey,

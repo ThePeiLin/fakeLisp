@@ -78,15 +78,22 @@ typedef struct FklCodegenMacro {
     uint8_t own;
 } FklCodegenMacro;
 
-typedef struct {
-    FklSid_t id;
-    FklNastNode *node;
-} FklCodegenReplacement;
+// FklReplacementTable
+#define FKL_TABLE_KEY_TYPE FklSid_t
+#define FKL_TABLE_VAL_TYPE FklNastNode *
+#define FKL_TABLE_ELM_NAME Replacement
+#define FKL_TABLE_VAL_INIT(V, X)                                               \
+    {                                                                          \
+        fklDestroyNastNode(*(V));                                              \
+        *(V) = fklMakeNastNodeRef(*(X));                                       \
+    }
+#define FKL_TABLE_VAL_UNINIT(V) fklDestroyNastNode(*(V))
+#include "table.h"
 
 typedef struct FklCodegenMacroScope {
     uint32_t refcount;
     struct FklCodegenMacroScope *prev;
-    FklHashTable *replacements;
+    FklReplacementTable *replacements;
     FklCodegenMacro *head;
 } FklCodegenMacroScope;
 
@@ -111,7 +118,7 @@ typedef struct {
     FklHashTable exports;
 
     FklCodegenMacro *head;
-    FklHashTable *replacements;
+    FklReplacementTable *replacements;
 
     FklHashTable named_prod_groups;
     FklSymbolTable terminal_table;
@@ -309,7 +316,7 @@ typedef struct FklCodegenInfo {
     FklHashTable exports;
 
     FklCodegenMacro *export_macro;
-    FklHashTable *export_replacement;
+    FklReplacementTable *export_replacement;
 
     FklSidTable *export_named_prod_groups;
 
@@ -384,7 +391,6 @@ typedef struct FklCodegenQuest {
 #include "vector.h"
 
 void fklInitExportSidIdxTable(FklHashTable *ht);
-FklHashTable *fklCreateCodegenReplacementTable(void);
 
 FklCodegenEnv *
 fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,
@@ -472,9 +478,7 @@ int fklIsSymbolDefined(FklSid_t sid, uint32_t scope, FklCodegenEnv *);
 
 int fklIsReplacementDefined(FklSid_t sid, FklCodegenEnv *);
 
-FklNastNode *fklGetReplacement(FklSid_t sid, const FklHashTable *);
-
-void fklAddReplacementBySid(FklSid_t sid, FklNastNode *, FklHashTable *);
+FklNastNode *fklGetReplacement(FklSid_t sid, const FklReplacementTable *);
 
 FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev, uint32_t pscope,
                                    FklCodegenMacroScope *);

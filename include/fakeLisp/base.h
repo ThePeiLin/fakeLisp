@@ -173,7 +173,6 @@ void fklInitHashTable(FklHashTable *, const FklHashTableMetaTable *);
 FklHashTable *fklCreateHashTable(const FklHashTableMetaTable *);
 
 void fklPtrKeySet(void *k0, const void *k1);
-uintptr_t fklPtrKeyHashFunc(const void *k);
 int fklPtrKeyEqual(const void *k0, const void *k1);
 
 void *fklGetOrPutWithOtherKey(void *pkey, uintptr_t (*hashv)(const void *key),

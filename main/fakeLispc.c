@@ -48,15 +48,13 @@ static inline void write_compiler_macros(const FklCodegenMacro *head,
     }
 }
 
-static inline void write_replacements(const FklHashTable *ht,
+static inline void write_replacements(const FklReplacementTable *ht,
                                       const FklSymbolTable *st, FILE *fp) {
-    fwrite(&ht->num, sizeof(ht->num), 1, fp);
-    for (const FklHashTableItem *rep_list = ht->first; rep_list;
+    fwrite(&ht->count, sizeof(ht->count), 1, fp);
+    for (const FklReplacementTableNode *rep_list = ht->first; rep_list;
          rep_list = rep_list->next) {
-        const FklCodegenReplacement *rep =
-            (const FklCodegenReplacement *)rep_list->data;
-        fwrite(&rep->id, sizeof(rep->id), 1, fp);
-        print_nast_node_with_null_chr(rep->node, st, fp);
+        fwrite(&rep_list->k, sizeof(rep_list->k), 1, fp);
+        print_nast_node_with_null_chr(rep_list->v, st, fp);
     }
 }
 

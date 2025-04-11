@@ -219,40 +219,13 @@ FklVMvalue *callEvalProc(DebugCtx *ctx, FklVM *vm, FklVMvalue *proc,
     return retval;
 }
 
-static FKL_HASH_SET_KEY_VAL(env_set_key, uint32_t);
-
-static int env_key_equal(const void *a, const void *b) {
-    return *((const uint32_t *)a) == *((const uint32_t *)b);
-}
-
-static uintptr_t env_hash_func(const void *k) { return *(const uint32_t *)k; }
-
-static void env_uninit(void *d) {
-    EnvHashItem *dd = (EnvHashItem *)d;
-    fklDestroyCodegenEnv(dd->env);
-}
-
-static FklHashTableMetaTable EnvMetaTable = {
-    .size = sizeof(EnvHashItem),
-    .__getKey = fklHashDefaultGetKey,
-    .__keyEqual = env_key_equal,
-    .__hashFunc = env_hash_func,
-    .__uninitItem = env_uninit,
-    .__setKey = env_set_key,
-    .__setVal = env_set_key,
-};
-
-void initEnvTable(FklHashTable *ht) { fklInitHashTable(ht, &EnvMetaTable); }
-
 void putEnv(DebugCtx *ctx, FklCodegenEnv *env) {
-    EnvHashItem *i = fklPutHashItem(&env->prototypeId, &ctx->envs);
-    i->env = env;
-    env->refcount++;
+    bdbEnvTablePut2(&ctx->envs, env->prototypeId, env);
 }
 
 FklCodegenEnv *getEnv(DebugCtx *ctx, uint32_t id) {
-    EnvHashItem *i = fklGetHashItem(&id, &ctx->envs);
+    FklCodegenEnv **i = bdbEnvTableGet2(&ctx->envs, id);
     if (i)
-        return i->env;
+        return *i;
     return NULL;
 }

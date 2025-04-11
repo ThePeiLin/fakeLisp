@@ -254,10 +254,10 @@ static inline void push_extra_mark_value(DebugCtx *ctx) {
 DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
     DebugCtx *ctx = (DebugCtx *)calloc(1, sizeof(DebugCtx));
     FKL_ASSERT(ctx);
-    initEnvTable(&ctx->envs);
+    bdbEnvTableInit(&ctx->envs);
     fklSidTableInit(&ctx->file_sid_set);
     if (init_debug_codegen_outer_ctx(ctx, filename)) {
-        fklUninitHashTable(&ctx->envs);
+        bdbEnvTableUninit(&ctx->envs);
         fklSidTableUninit(&ctx->file_sid_set);
         free(ctx);
         return NULL;
@@ -310,7 +310,7 @@ void exitDebugCtx(DebugCtx *ctx) {
 }
 
 void destroyDebugCtx(DebugCtx *ctx) {
-    fklUninitHashTable(&ctx->envs);
+    bdbEnvTableUninit(&ctx->envs);
     fklSidTableUninit(&ctx->file_sid_set);
 
     uninitBreakpointTable(&ctx->bt);

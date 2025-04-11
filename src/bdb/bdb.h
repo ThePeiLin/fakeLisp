@@ -68,7 +68,7 @@ typedef struct BreakpointHashItem {
     Breakpoint *bp;
 } BreakpointInsHashItem;
 
-// BdbSourceCodeTable
+// BdbBpIdxTable
 #define FKL_TABLE_TYPE_PREFIX Bdb
 #define FKL_TABLE_METHOD_PREFIX bdb
 #define FKL_TABLE_KEY_TYPE uint32_t
@@ -101,6 +101,28 @@ typedef struct {
 #define FKL_TABLE_ELM_NAME SourceCode
 #include <fakeLisp/table.h>
 
+// BdbEnvTable
+#define FKL_TABLE_TYPE_PREFIX Bdb
+#define FKL_TABLE_METHOD_PREFIX bdb
+#define FKL_TABLE_KEY_TYPE uint32_t
+#define FKL_TABLE_VAL_TYPE FklCodegenEnv *
+#define FKL_TABLE_VAL_INIT(V, X)                                               \
+    {                                                                          \
+        FklCodegenEnv *old_v = *(V);                                           \
+        FklCodegenEnv *new_v = *(X);                                           \
+        if (old_v != NULL)                                                     \
+            fklDestroyCodegenEnv(old_v);                                       \
+        if (new_v != NULL)                                                     \
+            ++new_v->refcount;                                                 \
+        *(V) = new_v;                                                          \
+    }
+#define FKL_TABLE_VAL_UNINIT(V)                                                \
+    {                                                                          \
+        fklDestroyCodegenEnv(*(V));                                            \
+    }
+#define FKL_TABLE_ELM_NAME Env
+#include <fakeLisp/table.h>
+
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;
     FklCodegenEnv *glob_env;
@@ -124,7 +146,7 @@ typedef struct DebugCtx {
     const FklStringVector *curfile_lines;
 
     BdbSourceCodeTable source_code_table;
-    FklHashTable envs;
+    BdbEnvTable envs;
 
     FklVMvalueVector extra_mark_value;
     FklVMvalueVector code_objs;
@@ -176,11 +198,6 @@ typedef struct {
     int err;
 } DbgInterruptArg;
 
-typedef struct {
-    uint32_t id;
-    FklCodegenEnv *env;
-} EnvHashItem;
-
 DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv);
 void exitDebugCtx(DebugCtx *);
 void destroyDebugCtx(DebugCtx *);
@@ -190,7 +207,6 @@ getCurLineNumberItemWithCp(const FklInstruction *cp, FklByteCodelnt *code);
 
 void initBreakpointTable(BreakpointTable *);
 void uninitBreakpointTable(BreakpointTable *);
-void initEnvTable(FklHashTable *);
 void putEnv(DebugCtx *ctx, FklCodegenEnv *env);
 FklCodegenEnv *getEnv(DebugCtx *, uint32_t id);
 

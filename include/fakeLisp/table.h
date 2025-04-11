@@ -372,9 +372,9 @@ static inline int METHOD(Earase)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
 
             --self->count;
             FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&pn->k);
-            if (pv)
+            if (pv) {
                 FKL_TABLE_VAL_INIT(pv, &pn->v);
-            else {
+            } else {
                 FKL_TABLE_VAL_UNINIT(&pn->v);
             }
             free(pn);

@@ -20,7 +20,7 @@ typedef struct {
     FklParseStateVector stateStack;
 } CmdReadCtx;
 
-struct BreakpointHashItem;
+struct BdbBpInsTableElm;
 
 // BdbFrameVector
 #define FKL_VECTOR_TYPE_PREFIX Bdb
@@ -53,7 +53,7 @@ typedef struct Breakpoint {
     uint8_t is_deleted;
     uint8_t is_disabled;
 
-    struct BreakpointHashItem *item;
+    struct BdbBpInsTableElm *item;
 
     FklVMvalue *cond_exp_obj;
     union {
@@ -62,11 +62,27 @@ typedef struct Breakpoint {
     };
 } Breakpoint;
 
-typedef struct BreakpointHashItem {
-    FklInstruction *ins;
+// typedef struct BreakpointHashItem {
+//     FklInstruction *ins;
+//     FklOpcode origin_op;
+//     Breakpoint *bp;
+// } BreakpointInsHashItem;
+
+typedef struct {
     FklOpcode origin_op;
     Breakpoint *bp;
-} BreakpointInsHashItem;
+} BdbCodepoint;
+
+// BdbBpInsTable
+#define FKL_TABLE_TYPE_PREFIX Bdb
+#define FKL_TABLE_METHOD_PREFIX bdb
+#define FKL_TABLE_KEY_TYPE FklInstruction *
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklInstruction)));
+#define FKL_TABLE_VAL_TYPE BdbCodepoint
+#define FKL_TABLE_ELM_NAME BpIns
+#include <fakeLisp/table.h>
 
 // BdbBpIdxTable
 #define FKL_TABLE_TYPE_PREFIX Bdb
@@ -77,7 +93,7 @@ typedef struct BreakpointHashItem {
 #include <fakeLisp/table.h>
 
 typedef struct {
-    FklHashTable ins_ht;
+    BdbBpInsTable ins_ht;
     BdbBpIdxTable idx_ht;
     Breakpoint *deleted_breakpoints;
     FklUintVector unused_prototype_id_for_cond_bp;
@@ -216,8 +232,7 @@ const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid);
 
 Breakpoint *createBreakpoint(FklSid_t, uint32_t, FklInstruction *ins,
                              DebugCtx *);
-BreakpointInsHashItem *getBreakpointHashItem(DebugCtx *,
-                                             const FklInstruction *ins);
+BdbCodepoint *getBreakpointHashItem(DebugCtx *, const FklInstruction *ins);
 
 Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx, FklSid_t fid,
                                          uint32_t line,

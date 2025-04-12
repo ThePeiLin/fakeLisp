@@ -2478,9 +2478,10 @@ int fklIsReplacementDefined(FklSid_t id, FklCodegenEnv *env) {
 
 FklNastNode *fklGetReplacement(FklSid_t id, const FklReplacementTable *rep) {
     FklNastNode **pn = fklReplacementTableGet2(rep, id);
-    if (pn)
-        return fklMakeNastNodeRef(*pn);
-    return NULL;
+    return pn ? *pn : NULL;
+    // if (pn)
+    //     return fklMakeNastNodeRef(*pn);
+    // return NULL;
 }
 
 static CODEGEN_FUNC(codegen_lambda) {
@@ -2922,7 +2923,7 @@ static inline int is_replacement_define(const FklNastNode *value,
          cs = cs->prev)
         replacement = fklGetReplacement(value->sym, cs->replacements);
     if (replacement) {
-        fklDestroyNastNode(replacement);
+        // fklDestroyNastNode(replacement);
         return 1;
     } else if ((f = findBuiltInReplacementWithId(value->sym,
                                                  ctx->builtin_replacement_id)))
@@ -2943,7 +2944,7 @@ static inline int is_replacement_true(const FklNastNode *value,
         replacement = fklGetReplacement(value->sym, cs->replacements);
     if (replacement) {
         int r = replacement->type != FKL_NAST_NIL;
-        fklDestroyNastNode(replacement);
+        // fklDestroyNastNode(replacement);
         return r;
     } else if ((f = findBuiltInReplacementWithId(
                     value->sym, ctx->builtin_replacement_id))) {
@@ -2966,7 +2967,7 @@ get_replacement(const FklNastNode *value, const FklCodegenInfo *info,
          cs = cs->prev)
         replacement = fklGetReplacement(value->sym, cs->replacements);
     if (replacement)
-        return replacement;
+        return fklMakeNastNodeRef(replacement);
     else if ((f = findBuiltInReplacementWithId(value->sym,
                                                ctx->builtin_replacement_id)))
         return f(value, curEnv, info);
@@ -4874,7 +4875,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
         FklNastNode *rep = fklGetReplacement(cur, replace);
         if (rep) {
             r = 1;
-            rep->refcount--;
+            // rep->refcount--;
             fklReplacementTableAdd2(macroScope->replacements, cur, rep);
         }
 
@@ -5027,7 +5028,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
         FklNastNode *rep = fklGetReplacement(cur, replace);
         if (rep) {
             r = 1;
-            rep->refcount--;
+            // rep->refcount--;
             fklReplacementTableAdd2(macroScope->replacements, cur0, rep);
         }
 
@@ -8627,7 +8628,7 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
                             fklGetReplacement(curExp->sym, cs->replacements);
                     if (replacement) {
                         fklDestroyNastNode(curExp);
-                        curExp = replacement;
+                        curExp = fklMakeNastNodeRef(replacement);
                         goto skip;
                     } else if ((f = findBuiltInReplacementWithId(
                                     curExp->sym,

@@ -10,7 +10,6 @@ get_def_by_id_in_scope(FklSid_t id, uint32_t scopeId,
                        FklCodegenEnvScope *scope) {
     FklSidScope key = {id, scopeId};
     return fklSymDefTableAt(&scope->defs, &key);
-    // return fklGetHashItem(&key, &scope->defs);
 }
 
 FklSymDefTableElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
@@ -212,14 +211,10 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
 FklSymDefTableElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
                                                 FklCodegenEnv *env) {
     FklSymDefTable *ht = &env->refs;
-    // FklHashTable *ht = &env->refs;
     uint32_t idx = ht->count;
     return fklSymDefTableInsert2(
         ht, (FklSidScope){.id = id, .scope = env->pscope},
         (FklSymDef){.idx = idx, .cidx = idx, .isLocal = 0, .isConst = 0});
-    //     FklSymDef def = INIT_SYMBOL_DEF(id, env->pscope, idx);
-    // FklSymbolDef *el = fklGetOrPutHashItem(&def, ht);
-    // return el;
 }
 
 static inline void *has_outer_pdef_or_def(FklCodegenEnv *cur, FklSid_t id,
@@ -254,12 +249,9 @@ static inline FklSymDefTableElm *
 add_ref_to_all_penv(FklSid_t id, FklCodegenEnv *cur, FklCodegenEnv *targetEnv,
                     uint8_t isConst, FklSymDefTableElm **new_ref) {
     uint32_t idx = cur->refs.count;
-    // FklSymbolDef def = INIT_SYMBOL_DEF(id, cur->pscope, idx);
-    // def.isConst = isConst;
     FklSymDefTableElm *cel = fklSymDefTableInsert2(
         &cur->refs, (FklSidScope){.id = id, .scope = cur->pscope},
         (FklSymDef){.idx = idx, .cidx = idx, .isConst = isConst, .isLocal = 0});
-    // FklSymbolDef *cel = fklGetOrPutHashItem(&def, &cur->refs);
     *new_ref = cel;
     FklSidScope key = {.id = id, .scope = cur->pscope};
     FklSymDef def;
@@ -268,7 +260,6 @@ add_ref_to_all_penv(FklSid_t id, FklCodegenEnv *cur, FklCodegenEnv *targetEnv,
         key.scope = cur->pscope;
         initSymbolDef(&def, idx);
         FklSymDefTableElm *nel = fklSymDefTableInsert(&cur->refs, &key, &def);
-        // FklSymbolDef *nel = fklGetOrPutHashItem(&def, &cur->refs);
         cel->v.cidx = nel->v.idx;
         cel = nel;
     }
@@ -290,7 +281,6 @@ static inline FklSymDefTableElm *has_outer_ref(FklCodegenEnv *cur, FklSid_t id,
     for (; cur; cur = cur->prev) {
         key.scope = cur->pscope;
         ref = fklSymDefTableAt(&cur->refs, &key);
-        // ref = fklGetHashItem(&key, &cur->refs);
         if (ref) {
             *targetEnv = cur;
             return ref;
@@ -334,10 +324,7 @@ static inline void initPdefRef(FklPreDefRef *r, FklSid_t id, uint32_t scope,
 
 FklSymDef *fklGetCodegenRefBySid(FklSid_t id, FklCodegenEnv *env) {
     FklSymDefTable *ht = &env->refs;
-    // FklSidScope key = {id, env->pscope};
     return fklSymDefTableGet2(ht, (FklSidScope){id, env->pscope});
-    // FklSymDef *el = fklGetHashItem(&key, ht);
-    // return el;
 }
 
 static inline FklUnReSymbolRef *has_resolvable_ref(FklSid_t id, uint32_t scope,
@@ -388,7 +375,7 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
         const FklPreDefRef *pdef_ref = &ref_pdef->base[i];
         if (pdef_ref->id == id && pdef_ref->scope == scope) {
             FklFuncPrototype *cpt = &pa[pdef_ref->prototypeId];
-            FklSymDefTableElm *ref = &cpt->refs[pdef_ref->idx];
+            FklSymDefTableMutElm *ref = &cpt->refs[pdef_ref->idx];
             ref->v.cidx = def->v.idx;
             env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
         } else
@@ -409,10 +396,8 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                                          FklSid_t fid, uint64_t line,
                                          uint32_t assign) {
     FklSymDefTable *refs = &env->refs;
-    // FklSidScope key = {id, env->pscope};
     FklSymDefTableElm *el =
         fklSymDefTableAt2(refs, (FklSidScope){id, env->pscope});
-    // FklSymbolDef *el = fklGetHashItem(&key, refs);
     if (el) {
         FklUnReSymbolRef *ref =
             has_resolvable_ref(id, env->pscope, env->prev ? env->prev : env);
@@ -443,7 +428,8 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                         get_child_env_prototype_id(env, targetEnv), cel->v.idx,
                         targetEnv);
                 } else {
-                    FklSymDefTableElm *def = FKL_TYPE_CAST(FklSymDefTableElm *, targetDef);
+                    FklSymDefTableElm *def =
+                        FKL_TYPE_CAST(FklSymDefTableElm *, targetDef);
                     FklSymDefTableElm *cel = add_ref_to_all_penv(
                         id, env, targetEnv, def->v.isConst, &ret);
                     cel->v.isLocal = 1;
@@ -460,8 +446,6 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                     ret = fklSymDefTableInsert2(
                         refs, (FklSidScope){.id = id, .scope = env->pscope},
                         (FklSymDef){.idx = idx, .cidx = idx});
-                    // FklSymDef def = INIT_SYMBOL_DEF(id, env->pscope, idx);
-                    // ret = fklGetOrPutHashItem(&def, refs);
                     ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
 
                     initUnReSymbolRef(
@@ -473,8 +457,6 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
             ret =
                 fklSymDefTableInsert2(refs, (FklSidScope){.id = id, .scope = 0},
                                       (FklSymDef){.idx = idx, .cidx = idx});
-            // FklSymbolDef def = INIT_SYMBOL_DEF(id, 0, idx);
-            // ret = fklGetOrPutHashItem(&def, refs);
             idx = ret->v.idx;
             initUnReSymbolRef(fklUnReSymbolRefVectorPushBack(&env->uref, NULL),
                               id, idx, 0, env->prototypeId, assign, fid, line);
@@ -506,11 +488,9 @@ FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scopeId,
     FklSymDefTable *defs = &scope->defs;
     FklSidScope key = {id, scopeId};
     FklSymDef *el = fklSymDefTableGet(defs, &key);
-    // FklSymDef *el = fklGetHashItem(&key, defs);
     if (!el) {
         uint32_t idx = scope->empty;
         el = fklSymDefTableAdd(defs, &key, NULL);
-        // el = fklPutHashItem(&key, defs);
         if (idx < env->lcount && has_resolvable_ref(id, scopeId, env))
             idx = env->lcount;
         else

@@ -422,8 +422,8 @@ static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
     FklVMproc *proc = FKL_VM_PROC(frame->c.proc);
     uint32_t prototype_id = proc->protoId;
     FklFuncPrototype *pt = &ctx->reached_thread->pts->pa[prototype_id];
-    FklSymDefTableElm *def = pt->refs;
-    FklSymDefTableElm *const end = &def[pt->rcount];
+    FklSymDefTableMutElm *def = pt->refs;
+    FklSymDefTableMutElm *const end = &def[pt->rcount];
     for (; def < end; def++)
         if (def->k.id == id)
             return *(FKL_VM_VAR_REF_GET(proc->closure[def->v.idx]));

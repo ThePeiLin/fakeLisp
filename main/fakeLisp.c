@@ -828,7 +828,7 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
     for (uint32_t i = 0; i < count; i++) {
         FklUnReSymbolRef *uref = &urefs->base[i];
         FklFuncPrototype *cpt = &pts[uref->prototypeId];
-        FklSymDefTableElm *ref = &cpt->refs[uref->idx];
+        FklSymDefTableMutElm *ref = &cpt->refs[uref->idx];
         FklSymDefTableElm *def =
             fklFindSymbolDefByIdAndScope(uref->id, uref->scope, env);
         if (def) {

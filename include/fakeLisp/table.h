@@ -87,10 +87,23 @@ static inline uintptr_t METHOD(__hashv)(FKL_TABLE_KEY_TYPE const *pk) {
 #define ELM_NAME                                                               \
     CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, TableElm))
 
+#define MUTABLE_ELM_NAME                                                       \
+    CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, TableMutElm))
+
 typedef struct ELM_NAME {
     FKL_TABLE_KEY_TYPE const k;
     FKL_TABLE_VAL_TYPE v;
 } ELM_NAME;
+
+typedef struct MUTABLE_ELM_NAME {
+    FKL_TABLE_KEY_TYPE k;
+    FKL_TABLE_VAL_TYPE v;
+} MUTABLE_ELM_NAME;
+
+static inline void METHOD(SetMutElm)(MUTABLE_ELM_NAME *a, ELM_NAME const *b) {
+    a->k = b->k;
+    a->v = b->v;
+}
 
 typedef struct NODE_NAME {
     struct NODE_NAME *prev;
@@ -469,6 +482,7 @@ static inline int METHOD(Del2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
 #undef NAME
 #undef NODE_NAME
 #undef ELM_NAME
+#undef MUTABLE_ELM_NAME
 
 #undef HASHV
 #undef RETURN_TYPE

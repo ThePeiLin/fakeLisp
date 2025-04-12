@@ -200,7 +200,7 @@ void fklUninitFuncPrototypes(FklFuncPrototypes *p) {
     free(pts);
 }
 
-static inline void write_symbol_def(const FklSymDefTableElm *def, FILE *fp) {
+static inline void write_symbol_def(const FklSymDefTableMutElm *def, FILE *fp) {
     fwrite(&def->k.id, sizeof(def->k.id), 1, fp);
     fwrite(&def->k.scope, sizeof(def->k.scope), 1, fp);
     fwrite(&def->v.idx, sizeof(def->v.idx), 1, fp);
@@ -212,7 +212,7 @@ static inline void write_prototype(const FklFuncPrototype *pt, FILE *fp) {
     uint32_t count = pt->lcount;
     fwrite(&count, sizeof(count), 1, fp);
     count = pt->rcount;
-    FklSymDefTableElm *defs = pt->refs;
+    FklSymDefTableMutElm *defs = pt->refs;
     fwrite(&count, sizeof(count), 1, fp);
     for (uint32_t i = 0; i < count; i++)
         write_symbol_def(&defs[i], fp);
@@ -230,9 +230,9 @@ void fklWriteFuncPrototypes(const FklFuncPrototypes *pts, FILE *fp) {
         write_prototype(&pta[i], fp);
 }
 
-static inline void load_symbol_def(FklSymDefTableElm *def, FILE *fp) {
-    fread(FKL_TYPE_CAST(void *, &def->k.id), sizeof(def->k.id), 1, fp);
-    fread(FKL_TYPE_CAST(void *, &def->k.scope), sizeof(def->k.scope), 1, fp);
+static inline void load_symbol_def(FklSymDefTableMutElm *def, FILE *fp) {
+    fread(&def->k.id, sizeof(def->k.id), 1, fp);
+    fread(&def->k.scope, sizeof(def->k.scope), 1, fp);
     fread(&def->v.idx, sizeof(def->v.idx), 1, fp);
     fread(&def->v.cidx, sizeof(def->v.cidx), 1, fp);
     fread(&def->v.isLocal, sizeof(def->v.isLocal), 1, fp);
@@ -245,11 +245,12 @@ static inline void load_prototype(FklFuncPrototype *pt, FILE *fp) {
     pt->lcount = count;
     fread(&count, sizeof(count), 1, fp);
     pt->rcount = count;
-    FklSymDefTableElm *defs;
+    FklSymDefTableMutElm *defs;
     if (count == 0)
         defs = NULL;
     else {
-        defs = (FklSymDefTableElm *)calloc(count, sizeof(FklSymDefTableElm));
+        defs =
+            (FklSymDefTableMutElm *)calloc(count, sizeof(FklSymDefTableMutElm));
         FKL_ASSERT(defs);
         for (uint32_t i = 0; i < count; i++)
             load_symbol_def(&defs[i], fp);

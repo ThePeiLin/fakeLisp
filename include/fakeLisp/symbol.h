@@ -93,7 +93,7 @@ typedef struct // unresolved symbol ref
 #include "table.h"
 
 typedef struct FklFuncPrototype {
-    FklSymDefTableElm *refs;
+    FklSymDefTableMutElm *refs;
     uint32_t lcount;
     uint32_t rcount;
     FklSid_t sid;

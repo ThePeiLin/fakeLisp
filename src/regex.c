@@ -981,11 +981,6 @@ void fklRegexPrintAsCwithNum(const FklRegexCode *re, const char *prefix,
 }
 
 typedef struct {
-    FklRegexCode *re;
-    FklString *str;
-} RegexStrHashItem;
-
-typedef struct {
     size_t len;
     const char *buf;
 } CharBufKey;
@@ -1035,19 +1030,6 @@ static const FklHashTableMetaTable str_regex_hash_meta_table = {
     .__uninitItem = str_regex_uninit,
 };
 
-static uintptr_t fklPtrKeyHashFunc(const void *k) {
-    return (uintptr_t)*(void *const *)k;
-}
-
-static const FklHashTableMetaTable regex_str_hash_meta_table = {
-    .size = sizeof(RegexStrHashItem),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = fklPtrKeySet,
-    .__keyEqual = fklPtrKeyEqual,
-    .__hashFunc = fklPtrKeyHashFunc,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
-
 const FklRegexCode *fklAddRegexStr(FklRegexTable *t, const FklString *str) {
     return fklAddRegexCharBuf(t, str->str, str->size);
 }
@@ -1071,8 +1053,7 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
     FklRegexCode *re = fklRegexCompileCharBuf(buf, len);
     if (re) {
         item->re = re;
-        ((RegexStrHashItem *)fklPutHashItem(&item->re, &t->re_str))->str =
-            item->str;
+        *fklRegexStrTableAdd2(&t->re_str, item->re, NULL) = item->str;
         t->num++;
         item->num = t->num;
     } else
@@ -1083,13 +1064,13 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
 void fklInitRegexTable(FklRegexTable *t) {
     t->num = 0;
     fklInitHashTable(&t->str_re, &str_regex_hash_meta_table);
-    fklInitHashTable(&t->re_str, &regex_str_hash_meta_table);
+    fklRegexStrTableInit(&t->re_str);
 }
 
 void fklUninitRegexTable(FklRegexTable *t) {
     t->num = 0;
     fklUninitHashTable(&t->str_re);
-    fklUninitHashTable(&t->re_str);
+    fklRegexStrTableUninit(&t->re_str);
 }
 
 FklRegexTable *fklCreateRegexTable(void) {
@@ -1101,14 +1082,13 @@ FklRegexTable *fklCreateRegexTable(void) {
 
 const FklString *fklGetStringWithRegex(const FklRegexTable *t,
                                        const FklRegexCode *re, uint64_t *pnum) {
-    RegexStrHashItem *item = fklGetHashItem(&re, &t->re_str);
+    FklString const **item = fklRegexStrTableGet2(&t->re_str, re);
     if (item) {
         if (pnum) {
-            FklStrRegexHashItem *str_re =
-                fklGetHashItem(&item->str, &t->str_re);
+            FklStrRegexHashItem *str_re = fklGetHashItem(item, &t->str_re);
             *pnum = str_re->num;
         }
-        return item->str;
+        return *item;
     }
     return NULL;
 }

@@ -2,6 +2,9 @@
 #define FKL_REGEX_H
 
 #include "base.h"
+#include "common.h"
+
+#include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -54,9 +57,18 @@ typedef struct {
     FklRegexObj data[];
 } FklRegexCode;
 
+// FklRegexStrTable
+#define FKL_TABLE_KEY_TYPE FklRegexCode const *
+#define FKL_TABLE_VAL_TYPE FklString const *
+#define FKL_TABLE_ELM_NAME RegexStr
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklRegexCode)));
+#include "table.h"
+
 typedef struct {
     FklHashTable str_re;
-    FklHashTable re_str;
+    FklRegexStrTable re_str;
     uint32_t num;
 } FklRegexTable;
 

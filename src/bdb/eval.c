@@ -74,7 +74,7 @@ static inline void resolve_reference(DebugCtx *ctx, FklCodegenEnv *env,
     FklVMvalue **builtin_refs = vm->gc->builtin_refs;
     while (!fklUnReSymbolRefVectorIsEmpty(urefs)) {
         FklUnReSymbolRef *uref = fklUnReSymbolRefVectorPopBack(urefs);
-        FklSymbolDef *ref = fklGetCodegenRefBySid(uref->id, ctx->glob_env);
+        FklSymDef *ref = fklGetCodegenRefBySid(uref->id, ctx->glob_env);
         if (ref)
             proc->closure[uref->idx] = builtin_refs[ref->cidx];
         free(uref);

@@ -4906,9 +4906,9 @@ FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum) {
 void fklInitGlobCodegenEnv(FklCodegenEnv *curEnv, FklSymbolTable *pst) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
          list->s != NULL; list++) {
-        FklSymbolDef *ref = fklAddCodegenBuiltinRefBySid(
+        FklSymDefTableElm *ref = fklAddCodegenBuiltinRefBySid(
             fklAddSymbolCstr(list->s, pst)->id, curEnv);
-        ref->isConst = 1;
+        ref->v.isConst = 1;
     }
 }
 

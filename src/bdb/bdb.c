@@ -406,9 +406,9 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     FklCodegenEnv *env = getEnv(ctx, prototype_id);
     if (env == NULL)
         return NULL;
-    const FklSymbolDef *def = fklFindSymbolDefByIdAndScope(id, scope, env);
+    const FklSymDefTableElm *def = fklFindSymbolDefByIdAndScope(id, scope, env);
     if (def)
-        return cur_thread->locv[def->idx];
+        return cur_thread->locv[def->v.idx];
     return NULL;
 }
 
@@ -422,11 +422,11 @@ static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
     FklVMproc *proc = FKL_VM_PROC(frame->c.proc);
     uint32_t prototype_id = proc->protoId;
     FklFuncPrototype *pt = &ctx->reached_thread->pts->pa[prototype_id];
-    FklSymbolDef *def = pt->refs;
-    FklSymbolDef *const end = &def[pt->rcount];
+    FklSymDefTableElm *def = pt->refs;
+    FklSymDefTableElm *const end = &def[pt->rcount];
     for (; def < end; def++)
         if (def->k.id == id)
-            return *(FKL_VM_VAR_REF_GET(proc->closure[def->idx]));
+            return *(FKL_VM_VAR_REF_GET(proc->closure[def->v.idx]));
     return NULL;
 }
 

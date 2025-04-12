@@ -843,19 +843,19 @@ is_inlinable_func_ref(const FklByteCode *bc, FklCodegenEnv *env,
     if (is_get_var_ref_ins(ins)
         && bc->len == (unsigned)fklGetInsOpArg(ins, &arg)) {
         uint32_t idx = arg.ux;
-        FklSymbolDef *ref = NULL;
+        FklSymDefTableElm *ref = NULL;
         while (env) {
-            FklHashTableItem *list = env->refs.first;
+            FklSymDefTableNode *list = env->refs.first;
             for (; list; list = list->next) {
-                FklSymbolDef *def = (FklSymbolDef *)list->data;
-                if (def->idx == idx) {
-                    if (def->isLocal)
+                // FklSymbolDef *def = (FklSymbolDef *)list->data;
+                if (list->v.idx == idx) {
+                    if (list->v.isLocal)
                         env = NULL;
                     else {
                         if (!env->prev && env == codegen->global_env)
-                            ref = def;
+                            ref = &list->elm;
                         else
-                            idx = def->cidx;
+                            idx = list->v.cidx;
                         if (idx == FKL_VAR_REF_INVALID_CIDX)
                             return NULL;
                         env = env->prev;
@@ -959,43 +959,29 @@ static CODEGEN_FUNC(codegen_begin) {
         rest->curline, codegen, codegenQuestStack);
 }
 
-static uintptr_t _codegenenv_hashFunc(const void *key) {
-    FklSid_t sid = *(const FklSid_t *)key;
-    return sid;
-}
-
-static int _codegenenv_keyEqual(const void *pkey0, const void *pkey1) {
-    const FklSidScope *k0 = pkey0;
-    const FklSidScope *k1 = pkey1;
-    return k0->id == k1->id && k0->scope == k1->scope;
-}
-
-static void _codegenenv_setVal(void *d0, const void *d1) {
-    *(FklSymbolDef *)d0 = *(FklSymbolDef *)d1;
-}
-
-static void _codegenenv_setKey(void *pkey0, const void *pkey1) {
-    *(FklSidScope *)pkey0 = *(FklSidScope *)pkey1;
-}
-
-static FklHashTableMetaTable CodegenEnvHashMethodTable = {
-    .size = sizeof(FklSymbolDef),
-    .__setKey = _codegenenv_setKey,
-    .__setVal = _codegenenv_setVal,
-    .__hashFunc = _codegenenv_hashFunc,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = _codegenenv_keyEqual,
-    .__getKey = fklHashDefaultGetKey,
-};
-
-// static void _codegenenv_pdef_setVal(void *d0, const void *d1) {
-//     *(FklPredef *)d0 = *(FklPredef *)d1;
+// static uintptr_t _codegenenv_hashFunc(const void *key) {
+//     FklSid_t sid = *(const FklSid_t *)key;
+//     return sid;
 // }
 //
-// static FklHashTableMetaTable CodegenEnvPdefHashMethodTable = {
-//     .size = sizeof(FklPredef),
+// static int _codegenenv_keyEqual(const void *pkey0, const void *pkey1) {
+//     const FklSidScope *k0 = pkey0;
+//     const FklSidScope *k1 = pkey1;
+//     return k0->id == k1->id && k0->scope == k1->scope;
+// }
+//
+// static void _codegenenv_setVal(void *d0, const void *d1) {
+//     *(FklSymbolDef *)d0 = *(FklSymbolDef *)d1;
+// }
+//
+// static void _codegenenv_setKey(void *pkey0, const void *pkey1) {
+//     *(FklSidScope *)pkey0 = *(FklSidScope *)pkey1;
+// }
+//
+// static FklHashTableMetaTable CodegenEnvHashMethodTable = {
+//     .size = sizeof(FklSymbolDef),
 //     .__setKey = _codegenenv_setKey,
-//     .__setVal = _codegenenv_pdef_setVal,
+//     .__setVal = _codegenenv_setVal,
 //     .__hashFunc = _codegenenv_hashFunc,
 //     .__uninitItem = fklDoNothingUninitHashItem,
 //     .__keyEqual = _codegenenv_keyEqual,
@@ -1010,7 +996,8 @@ static inline uint32_t enter_new_scope(uint32_t p, FklCodegenEnv *env) {
     env->scopes = scopes;
     FklCodegenEnvScope *newScope = &scopes[r - 1];
     newScope->p = p;
-    fklInitHashTable(&newScope->defs, &CodegenEnvHashMethodTable);
+    fklSymDefTableInit(&newScope->defs);
+    // fklInitHashTable(&newScope->defs, &CodegenEnvHashMethodTable);
     newScope->start = 0;
     newScope->end = 0;
     if (p)
@@ -1035,19 +1022,19 @@ static inline void process_unresolve_ref(FklCodegenEnv *env, uint32_t scope,
             continue;
         }
         FklFuncPrototype *cpt = &pa[uref->prototypeId];
-        FklSymbolDef *ref = &cpt->refs[uref->idx];
-        FklSymbolDef *def =
+        FklSymDefTableElm *ref = &cpt->refs[uref->idx];
+        FklSymDefTableElm *def =
             fklFindSymbolDefByIdAndScope(uref->id, uref->scope, env);
         if (def) {
-            env->slotFlags[def->idx] = FKL_CODEGEN_ENV_SLOT_REF;
-            ref->cidx = def->idx;
-            ref->isLocal = 1;
+            env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
+            ref->v.cidx = def->v.idx;
+            ref->v.isLocal = 1;
         } else if (env->scopes[uref->scope - 1].p) {
             uref->scope = env->scopes[uref->scope - 1].p;
             fklUnReSymbolRefVectorPushBack(&urefs1, uref);
         } else if (env->prev) {
-            ref->cidx = fklAddCodegenRefBySidRetIndex(uref->id, env, uref->fid,
-                                                      uref->line, uref->assign);
+            ref->v.cidx = fklAddCodegenRefBySidRetIndex(
+                uref->id, env, uref->fid, uref->line, uref->assign);
         } else {
             fklAddCodegenBuiltinRefBySid(uref->id, env);
             fklUnReSymbolRefVectorPushBack(&urefs1, uref);
@@ -1853,21 +1840,21 @@ static inline FklSid_t get_sid_in_gs_with_id_in_ps(FklSid_t id,
 static inline FklSid_t get_sid_with_idx(FklCodegenEnvScope *sc, uint32_t idx,
                                         FklSymbolTable *gs,
                                         FklSymbolTable *ps) {
-    for (FklHashTableItem *l = sc->defs.first; l; l = l->next) {
-        FklSymbolDef *def = (FklSymbolDef *)l->data;
-        if (def->idx == idx)
-            return get_sid_in_gs_with_id_in_ps(def->k.id, gs, ps);
+    for (FklSymDefTableNode *l = sc->defs.first; l; l = l->next) {
+        // FklSymbolDef *def = (FklSymbolDef *)l->data;
+        if (l->v.idx == idx)
+            return get_sid_in_gs_with_id_in_ps(l->k.id, gs, ps);
     }
     return 0;
 }
 
-static inline FklSid_t get_sid_with_ref_idx(FklHashTable *refs, uint32_t idx,
+static inline FklSid_t get_sid_with_ref_idx(FklSymDefTable *refs, uint32_t idx,
                                             FklSymbolTable *gs,
                                             FklSymbolTable *ps) {
-    for (FklHashTableItem *l = refs->first; l; l = l->next) {
-        FklSymbolDef *def = (FklSymbolDef *)l->data;
-        if (def->idx == idx)
-            return get_sid_in_gs_with_id_in_ps(def->k.id, gs, ps);
+    for (FklSymDefTableNode *l = refs->first; l; l = l->next) {
+        // FklSymbolDef *def = (FklSymbolDef *)l->data;
+        if (l->v.idx == idx)
+            return get_sid_in_gs_with_id_in_ps(l->k.id, gs, ps);
     }
     return 0;
 }
@@ -2073,25 +2060,31 @@ static inline FklByteCodelnt *processArgsInStack(FklSidVector *stack,
     return retval;
 }
 
-static inline FklSymbolDef *sid_ht_to_idx_key_ht(FklHashTable *sht,
-                                                 FklSymbolTable *globalSymTable,
-                                                 FklSymbolTable *pst) {
-    FklSymbolDef *refs;
-    if (!sht->num)
+static inline FklSymDefTableElm *
+sid_ht_to_idx_key_ht(FklSymDefTable *sht, FklSymbolTable *globalSymTable,
+                     FklSymbolTable *pst) {
+    FklSymDefTableElm *refs;
+    if (!sht->count)
         refs = NULL;
     else {
-        refs = (FklSymbolDef *)malloc(sht->num * sizeof(FklSymbolDef));
+        refs =
+            (FklSymDefTableElm *)malloc(sht->count * sizeof(FklSymDefTableElm));
         FKL_ASSERT(refs);
     }
-    FklHashTableItem *list = sht->first;
+    FklSymDefTableNode *list = sht->first;
     for (; list; list = list->next) {
-        FklSymbolDef *sd = (FklSymbolDef *)list->data;
-        FklSid_t sid = fklAddSymbol(fklGetSymbolWithId(sd->k.id, pst)->symbol,
+        // FklSymbolDef *sd = (FklSymbolDef *)list->data;
+        FklSid_t sid = fklAddSymbol(fklGetSymbolWithId(list->k.id, pst)->symbol,
                                     globalSymTable)
                            ->id;
-        FklSymbolDef ref = {
-            {sid, 0}, sd->idx, sd->cidx, sd->isLocal, sd->isConst};
-        refs[sd->idx] = ref;
+        // FklSymDefTableElm ref = {
+        //     .k = {sid, 0},
+        //     .v = {list->v.idx, list->v.cidx, list->v.isLocal,
+        //     list->v.isConst}};
+        *FKL_REMOVE_CONST(FklSidScope, &refs[list->v.idx].k) =
+            (FklSidScope){sid, 0};
+        refs[list->v.idx].v = (FklSymDef){list->v.idx, list->v.cidx,
+                                          list->v.isLocal, list->v.isConst};
     }
     return refs;
 }
@@ -2102,7 +2095,7 @@ void fklInitFuncPrototypeWithEnv(FklFuncPrototype *cpt, FklCodegenInfo *info,
     cpt->lcount = env->lcount;
     cpt->refs =
         sid_ht_to_idx_key_ht(&env->refs, info->runtime_symbol_table, pst);
-    cpt->rcount = env->refs.num;
+    cpt->rcount = env->refs.count;
     cpt->sid = sid;
     cpt->fid = info->fid;
     cpt->line = line;
@@ -2124,7 +2117,7 @@ static inline void create_and_insert_to_pool(FklCodegenInfo *info, uint32_t p,
     env->prototypeId = cp->count;
     cpt->lcount = env->lcount;
     cpt->refs = sid_ht_to_idx_key_ht(&env->refs, gst, pst);
-    cpt->rcount = env->refs.num;
+    cpt->rcount = env->refs.count;
     cpt->sid = sid;
     cpt->fid = fid;
     cpt->line = line;
@@ -2386,30 +2379,33 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp, FklCodegenEnv *env,
                            FklSymbolTable *pst) {
     FKL_ASSERT(env->pdef.count == 0);
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
-    FklHashTable *eht = &env->refs;
-    uint32_t count = eht->num;
+    FklSymDefTable *eht = &env->refs;
+    uint32_t count = eht->count;
 
-    FklSymbolDef *refs;
+    FklSymDefTableElm *refs;
     if (!count)
         refs = NULL;
     else {
-        refs =
-            (FklSymbolDef *)fklRealloc(pts->refs, count * sizeof(FklSymbolDef));
+        refs = (FklSymDefTableElm *)fklRealloc(
+            pts->refs, count * sizeof(FklSymDefTableElm));
         FKL_ASSERT(refs);
     }
     pts->refs = refs;
     pts->rcount = count;
-    for (FklHashTableItem *list = eht->first; list; list = list->next) {
-        FklSymbolDef *sd = (FklSymbolDef *)list->data;
-        FklSid_t sid = fklAddSymbol(fklGetSymbolWithId(sd->k.id, pst)->symbol,
+    for (FklSymDefTableNode *list = eht->first; list; list = list->next) {
+        // FklSymbolDef *sd = (FklSymbolDef *)list->data;
+        FklSid_t sid = fklAddSymbol(fklGetSymbolWithId(list->k.id, pst)->symbol,
                                     globalSymTable)
                            ->id;
-        FklSymbolDef ref = {.k.id = sid,
-                            .k.scope = sd->k.scope,
-                            .idx = sd->idx,
-                            .cidx = sd->cidx,
-                            .isLocal = sd->isLocal};
-        refs[sd->idx] = ref;
+        // FklSymDefTableElm ref = {.k = {.id = sid, .scope = list->k.scope},
+        //                          .v = {.idx = list->v.idx,
+        //                                .cidx = list->v.cidx,
+        //                                .isLocal = list->v.isLocal}};
+        *FKL_REMOVE_CONST(FklSidScope, &refs[list->v.idx].k) =
+            (FklSidScope){.id = sid, .scope = list->k.scope};
+        refs[list->v.idx].v = (FklSymDef){.idx = list->v.idx,
+                                          .cidx = list->v.cidx,
+                                          .isLocal = list->v.isLocal};
     }
 }
 
@@ -2435,10 +2431,10 @@ FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev, uint32_t pscope,
     r->refcount = 0;
     r->lcount = 0;
     r->slotFlags = NULL;
-    fklInitHashTable(&r->refs, &CodegenEnvHashMethodTable);
+    fklSymDefTableInit(&r->refs);
+    // fklInitHashTable(&r->refs, &CodegenEnvHashMethodTable);
     fklUnReSymbolRefVectorInit(&r->uref, 8);
     fklPredefTableInit(&r->pdef);
-    // fklInitHashTable(&r->pdef, &CodegenEnvPdefHashMethodTable);
     fklPreDefRefVectorInit(&r->ref_pdef, 8);
     r->macros = make_macro_scope_ref(fklCreateCodegenMacroScope(macroScope));
     if (prev)
@@ -2455,10 +2451,12 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env) {
             uint32_t sc = cur->sc;
             FklCodegenEnvScope *scopes = cur->scopes;
             for (uint32_t i = 0; i < sc; i++)
-                fklUninitHashTable(&scopes[i].defs);
+                fklSymDefTableUninit(&scopes[i].defs);
+            // fklUninitHashTable(&scopes[i].defs);
             free(scopes);
             free(cur->slotFlags);
-            fklUninitHashTable(&cur->refs);
+            fklSymDefTableUninit(&cur->refs);
+            // fklUninitHashTable(&cur->refs);
             FklUnReSymbolRefVector *unref = &cur->uref;
             fklUnReSymbolRefVectorUninit(unref);
             fklDestroyCodegenMacroScope(cur->macros);
@@ -2510,13 +2508,13 @@ static CODEGEN_FUNC(codegen_lambda) {
 
 static inline int is_constant_defined(FklSid_t id, uint32_t scope,
                                       FklCodegenEnv *curEnv) {
-    FklSymbolDef *def = fklGetCodegenDefByIdInScope(id, scope, curEnv);
-    return def && def->isConst;
+    FklSymDefTableElm *def = fklGetCodegenDefByIdInScope(id, scope, curEnv);
+    return def && def->v.isConst;
 }
 
 static inline int is_variable_defined(FklSid_t id, uint32_t scope,
                                       FklCodegenEnv *curEnv) {
-    FklSymbolDef *def = fklGetCodegenDefByIdInScope(id, scope, curEnv);
+    FklSymDefTableElm *def = fklGetCodegenDefByIdInScope(id, scope, curEnv);
     return def != NULL;
 }
 
@@ -2580,7 +2578,7 @@ BC_PROCESS(_def_const_exp_bc_process) {
                 : 0;
         return NULL;
     }
-    FklSymbolDef *def = fklAddCodegenDefBySid(ctx->id, ctx->scope, env);
+    FklSymDef *def = fklAddCodegenDefBySid(ctx->id, ctx->scope, env);
     def->isConst = 1;
     uint32_t idx = def->idx;
     fklByteCodelntVectorInsertFront2(
@@ -2755,26 +2753,27 @@ static CODEGEN_FUNC(codegen_setq) {
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     FklByteCodelntVector *stack = fklByteCodelntVectorCreate(2);
     fklNastNodeQueuePush2(queue, fklMakeNastNodeRef(value));
-    FklSymbolDef *def = fklFindSymbolDefByIdAndScope(name->sym, scope, curEnv);
+    FklSymDefTableElm *def =
+        fklFindSymbolDefByIdAndScope(name->sym, scope, curEnv);
     if (def) {
-        if (def->isConst) {
+        if (def->v.isConst) {
             errorState->type = FKL_ERR_ASSIGN_CONSTANT;
             errorState->place = fklMakeNastNodeRef(name);
             return;
         }
         fklByteCodelntVectorPushBack2(
-            stack, append_put_loc_ins(INS_APPEND_BACK, NULL, def->idx,
+            stack, append_put_loc_ins(INS_APPEND_BACK, NULL, def->v.idx,
                                       codegen->fid, name->curline, scope));
     } else {
-        FklSymbolDef *def = fklAddCodegenRefBySid(
+        FklSymDefTableElm *def = fklAddCodegenRefBySid(
             name->sym, curEnv, codegen->fid, name->curline, 1);
-        if (def->isConst) {
+        if (def->v.isConst) {
             errorState->type = FKL_ERR_ASSIGN_CONSTANT;
             errorState->place = fklMakeNastNodeRef(name);
             return;
         }
         fklByteCodelntVectorPushBack2(
-            stack, append_put_var_ref_ins(INS_APPEND_BACK, NULL, def->idx,
+            stack, append_put_var_ref_ins(INS_APPEND_BACK, NULL, def->v.idx,
                                           codegen->fid, name->curline, scope));
     }
     FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
@@ -5234,14 +5233,14 @@ BC_PROCESS(_export_import_bc_process) {
         return NULL;
     FklCodegenEnv *targetEnv = d->env;
 
-    FklHashTable *defs = &env->scopes[0].defs;
+    FklSymDefTable *defs = &env->scopes[0].defs;
 
     FklSidVector idPstack;
-    fklSidVectorInit(&idPstack, defs->num);
+    fklSidVectorInit(&idPstack, defs->count);
 
-    for (FklHashTableItem *list = defs->first; list; list = list->next) {
-        FklSymbolDef *def = (FklSymbolDef *)(list->data);
-        FklSid_t idp = def->k.id;
+    for (FklSymDefTableNode *list = defs->first; list; list = list->next) {
+        // FklSymbolDef *def = (FklSymbolDef *)(list->data);
+        FklSid_t idp = list->k.id;
         fklSidVectorPushBack2(&idPstack, idp);
     }
 
@@ -5281,7 +5280,7 @@ BC_PROCESS(_export_import_bc_process) {
                     &(FklCodegenExportIdx){
                         .idx = idx,
                         .oidx = fklGetCodegenDefByIdInScope(id, 1, targetEnv)
-                                    ->idx});
+                                    ->v.idx});
             }
         }
     }
@@ -5475,7 +5474,7 @@ create_export_define_context(FklSid_t id, FklCodegenExportIdx *item) {
 BC_PROCESS(_export_define_bc_process) {
     ExportDefineContext *ctx = context->data;
     FklByteCodelntVector *stack = &ctx->stack;
-    ctx->item->oidx = fklGetCodegenDefByIdInScope(ctx->id, 1, env)->idx;
+    ctx->item->oidx = fklGetCodegenDefByIdInScope(ctx->id, 1, env)->v.idx;
     return sequnce_exp_bc_process(stack, fid, line, scope);
 }
 
@@ -8630,13 +8629,13 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
                         goto skip;
                     } else {
                         FklByteCodelnt *bcl = NULL;
-                        FklSymbolDef *def = fklFindSymbolDefByIdAndScope(
+                        FklSymDefTableElm *def = fklFindSymbolDefByIdAndScope(
                             curExp->sym, curCodegenQuest->scope, curEnv);
                         if (def)
-                            bcl = append_get_loc_ins(INS_APPEND_BACK, NULL,
-                                                     def->idx, curCodegen->fid,
-                                                     curExp->curline,
-                                                     curCodegenQuest->scope);
+                            bcl = append_get_loc_ins(
+                                INS_APPEND_BACK, NULL, def->v.idx,
+                                curCodegen->fid, curExp->curline,
+                                curCodegenQuest->scope);
                         else {
                             uint32_t idx = fklAddCodegenRefBySidRetIndex(
                                 curExp->sym, curEnv, curCodegen->fid,

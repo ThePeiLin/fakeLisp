@@ -239,9 +239,9 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
         FKL_ASSERT(closure);
     }
     for (uint32_t i = 0; i < proc->rcount; i++) {
-        FklSymbolDef *cur_ref = &pt->refs[i];
-        if (cur_ref->cidx < FKL_BUILTIN_SYMBOL_NUM)
-            closure[i] = gc->builtin_refs[cur_ref->cidx];
+        FklSymDefTableElm *cur_ref = &pt->refs[i];
+        if (cur_ref->v.cidx < FKL_BUILTIN_SYMBOL_NUM)
+            closure[i] = gc->builtin_refs[cur_ref->v.cidx];
         else
             closure[i] = fklCreateClosedVMvalueVarRef(exe, NULL);
     }
@@ -553,7 +553,7 @@ static inline FklVMvalue *get_var_val(FklVMframe *frame, uint32_t idx,
         return v;
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
-    FklSymbolDef *def = &pt->refs[idx];
+    FklSymDefTableElm *def = &pt->refs[idx];
     *psid = def->k.id;
     return NULL;
 }
@@ -571,7 +571,7 @@ static inline FklVMvalue *volatile *get_var_ref(FklVMframe *frame, uint32_t idx,
         return v;
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
-    FklSymbolDef *def = &pt->refs[idx];
+    FklSymDefTableElm *def = &pt->refs[idx];
     *psid = def->k.id;
     return NULL;
     return v;
@@ -1473,19 +1473,20 @@ void fklCreateVMvalueClosureFrom(FklVM *vm, FklVMvalue **closure, FklVMframe *f,
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
     FklVMvalue **ref = lr->ref;
     for (; i < count; i++) {
-        FklSymbolDef *c = &pt->refs[i];
-        if (c->isLocal) {
+        FklSymDefTableElm *c = &pt->refs[i];
+        if (c->v.isLocal) {
             inc_lref(lr, lr->lcount);
-            if (lr->lref[c->cidx])
-                closure[i] = lr->lref[c->cidx];
+            if (lr->lref[c->v.cidx])
+                closure[i] = lr->lref[c->v.cidx];
             else
                 closure[i] = insert_local_ref(
-                    lr, fklCreateVMvalueVarRef(vm, lr->loc, c->cidx), c->cidx);
+                    lr, fklCreateVMvalueVarRef(vm, lr->loc, c->v.cidx),
+                    c->v.cidx);
         } else {
-            if (c->cidx >= lr->rcount)
+            if (c->v.cidx >= lr->rcount)
                 closure[i] = fklCreateClosedVMvalueVarRef(vm, NULL);
             else
-                closure[i] = ref[c->cidx];
+                closure[i] = ref[c->v.cidx];
         }
     }
 }
@@ -1505,20 +1506,20 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe, FklVMframe *f, size_t cpc,
             (FklVMvalue **)malloc(count * sizeof(FklVMvalue *));
         FKL_ASSERT(closure);
         for (uint32_t i = 0; i < count; i++) {
-            FklSymbolDef *c = &pt->refs[i];
-            if (c->isLocal) {
+            FklSymDefTableElm *c = &pt->refs[i];
+            if (c->v.isLocal) {
                 inc_lref(lr, lr->lcount);
-                if (lr->lref[c->cidx])
-                    closure[i] = lr->lref[c->cidx];
+                if (lr->lref[c->v.cidx])
+                    closure[i] = lr->lref[c->v.cidx];
                 else
                     closure[i] = insert_local_ref(
-                        lr, fklCreateVMvalueVarRef(exe, lr->loc, c->cidx),
-                        c->cidx);
+                        lr, fklCreateVMvalueVarRef(exe, lr->loc, c->v.cidx),
+                        c->v.cidx);
             } else {
-                if (c->cidx >= lr->rcount)
+                if (c->v.cidx >= lr->rcount)
                     closure[i] = fklCreateClosedVMvalueVarRef(exe, NULL);
                 else
-                    closure[i] = ref[c->cidx];
+                    closure[i] = ref[c->v.cidx];
             }
         }
         proc->closure = closure;

@@ -690,7 +690,7 @@ static inline FklVMvalue *insert_local_ref(FklVMCompoundFrameVarRef *lr,
 }
 
 struct ProcessUnresolveRefArg {
-    FklSymbolDef *def;
+    FklSymDefTableElm *def;
     uint32_t prototypeId;
     uint32_t idx;
 };
@@ -713,32 +713,32 @@ process_unresolve_work_func(FklVM *exe, struct ProcessUnresolveRefArgStack *s) {
     FklVMvalue **loc = s->loc;
     FklVMCompoundFrameVarRef *lr = s->lr;
     for (; cur < end; cur++) {
-        FklSymbolDef *def = cur->def;
+        FklSymDefTableElm *def = cur->def;
         uint32_t prototypeId = cur->prototypeId;
         uint32_t idx = cur->idx;
         for (FklVMvalue *v = exe->gc->head; v; v = v->next)
             if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->protoId == prototypeId) {
                 FklVMproc *proc = FKL_VM_PROC(v);
-                if (lr->lref[def->idx])
-                    proc->closure[idx] = lr->lref[def->idx];
+                if (lr->lref[def->v.idx])
+                    proc->closure[idx] = lr->lref[def->v.idx];
                 else {
                     FklVMvalue *ref = proc->closure[idx];
-                    FKL_VM_VAR_REF(ref)->idx = def->idx;
-                    FKL_VM_VAR_REF(ref)->ref = &loc[def->idx];
-                    insert_local_ref(lr, ref, def->idx);
+                    FKL_VM_VAR_REF(ref)->idx = def->v.idx;
+                    FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
+                    insert_local_ref(lr, ref, def->v.idx);
                 }
             }
 
         for (FklVMvalue *v = exe->obj_head; v; v = v->next)
             if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->protoId == prototypeId) {
                 FklVMproc *proc = FKL_VM_PROC(v);
-                if (lr->lref[def->idx])
-                    proc->closure[idx] = lr->lref[def->idx];
+                if (lr->lref[def->v.idx])
+                    proc->closure[idx] = lr->lref[def->v.idx];
                 else {
                     FklVMvalue *ref = proc->closure[idx];
-                    FKL_VM_VAR_REF(ref)->idx = def->idx;
-                    FKL_VM_VAR_REF(ref)->ref = &loc[def->idx];
-                    insert_local_ref(lr, ref, def->idx);
+                    FKL_VM_VAR_REF(ref)->idx = def->v.idx;
+                    FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
+                    insert_local_ref(lr, ref, def->v.idx);
                 }
             }
 
@@ -746,13 +746,13 @@ process_unresolve_work_func(FklVM *exe, struct ProcessUnresolveRefArgStack *s) {
             for (FklVMvalue *v = cur->obj_head; v; v = v->next)
                 if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->protoId == prototypeId) {
                     FklVMproc *proc = FKL_VM_PROC(v);
-                    if (lr->lref[def->idx])
-                        proc->closure[idx] = lr->lref[def->idx];
+                    if (lr->lref[def->v.idx])
+                        proc->closure[idx] = lr->lref[def->v.idx];
                     else {
                         FklVMvalue *ref = proc->closure[idx];
-                        FKL_VM_VAR_REF(ref)->idx = def->idx;
-                        FKL_VM_VAR_REF(ref)->ref = &loc[def->idx];
-                        insert_local_ref(lr, ref, def->idx);
+                        FKL_VM_VAR_REF(ref)->idx = def->v.idx;
+                        FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
+                        insert_local_ref(lr, ref, def->v.idx);
                     }
                 }
         }
@@ -773,7 +773,7 @@ static void process_unresolve_ref_cb(FklVM *exe, void *arg) {
 
 static inline void
 process_unresolve_ref_arg_push(struct ProcessUnresolveRefArgStack *s,
-                               FklSymbolDef *def, uint32_t prototypeId,
+                               FklSymDefTableElm *def, uint32_t prototypeId,
                                uint32_t idx) {
     if (s->top == s->size) {
         struct ProcessUnresolveRefArg *tmpData =
@@ -828,15 +828,15 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
     for (uint32_t i = 0; i < count; i++) {
         FklUnReSymbolRef *uref = &urefs->base[i];
         FklFuncPrototype *cpt = &pts[uref->prototypeId];
-        FklSymbolDef *ref = &cpt->refs[uref->idx];
-        FklSymbolDef *def =
+        FklSymDefTableElm *ref = &cpt->refs[uref->idx];
+        FklSymDefTableElm *def =
             fklFindSymbolDefByIdAndScope(uref->id, uref->scope, env);
         if (def) {
-            env->slotFlags[def->idx] = FKL_CODEGEN_ENV_SLOT_REF;
-            ref->cidx = def->idx;
-            ref->isLocal = 1;
+            env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
+            ref->v.cidx = def->v.idx;
+            ref->v.isLocal = 1;
             uint32_t prototypeId = uref->prototypeId;
-            uint32_t idx = ref->idx;
+            uint32_t idx = ref->v.idx;
             inc_lref(lr, lr->lcount);
             if (process_unresolve_ref_arg_stack.size == 0)
                 init_process_unresolve_ref_arg_stack(
@@ -847,7 +847,7 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
 
             free(uref);
         } else if (env->prev != global_env) {
-            ref->cidx = fklAddCodegenRefBySidRetIndex(uref->id, env, uref->fid,
+            ref->v.cidx = fklAddCodegenRefBySidRetIndex(uref->id, env, uref->fid,
                                                       uref->line, uref->assign);
             free(uref);
         } else

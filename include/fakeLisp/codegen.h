@@ -20,21 +20,11 @@ typedef struct FklCodegenEnvScope {
     uint32_t start;
     uint32_t empty;
     uint32_t end;
-    FklHashTable defs;
+    FklSymDefTable defs;
 } FklCodegenEnvScope;
 
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
-
-// typedef struct {
-//     FklSidScope k;
-//     uint8_t isConst;
-// } FklPredef;
-
-// typedef struct {
-//     uint32_t scope;
-//     int is_const;
-// } FklPredef;
 
 typedef struct {
     FklSid_t id;
@@ -70,7 +60,7 @@ typedef struct FklCodegenEnv {
     uint32_t prototypeId;
 
     struct FklCodegenEnv *prev;
-    FklHashTable refs;
+    FklSymDefTable refs;
     struct FklCodegenMacroScope *macros;
 
     FklPredefTable pdef;
@@ -456,10 +446,10 @@ FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
                                                         FklCodegenInfo *codegen,
                                                         FklCodegenEnv *cur_env);
 
-FklSymbolDef *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
-                                           const FklCodegenEnv *env);
-FklSymbolDef *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
-                                          const FklCodegenEnv *env);
+FklSymDefTableElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
+                                                const FklCodegenEnv *env);
+FklSymDefTableElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
+                                               const FklCodegenEnv *env);
 
 void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
                           const FklCodegenInfo *info,
@@ -469,17 +459,17 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
 void fklPrintUndefinedRef(const FklCodegenEnv *env, FklSymbolTable *runtime_st,
                           FklSymbolTable *pst);
 
-FklSymbolDef *fklAddCodegenBuiltinRefBySid(FklSid_t id, FklCodegenEnv *env);
+FklSymDefTableElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
+                                                FklCodegenEnv *env);
 uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id, FklCodegenEnv *env,
                                        FklSid_t fid, uint64_t line,
                                        uint32_t assign);
-FklSymbolDef *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
-                                    FklSid_t fid, uint64_t line,
-                                    uint32_t assign);
-FklSymbolDef *fklGetCodegenRefBySid(FklSid_t id, FklCodegenEnv *env);
+FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env, FklSid_t fid,
+                                 uint64_t line, uint32_t assign);
+FklSymDef *fklGetCodegenRefBySid(FklSid_t id, FklCodegenEnv *env);
 
-FklSymbolDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scope,
-                                    FklCodegenEnv *env);
+FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scope,
+                                 FklCodegenEnv *env);
 
 void fklAddCodegenPreDefBySid(FklSid_t id, uint32_t scope, uint8_t isConst,
                               FklCodegenEnv *env);

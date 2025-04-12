@@ -43,20 +43,6 @@ void fklUninitSymbolTable(FklSymbolTable *);
 void fklWriteSymbolTable(const FklSymbolTable *, FILE *);
 void fklLoadSymbolTable(FILE *, FklSymbolTable *table);
 
-typedef struct FklFuncPrototype {
-    struct FklSymbolDef *refs;
-    uint32_t lcount;
-    uint32_t rcount;
-    FklSid_t sid;
-    FklSid_t fid;
-    uint64_t line;
-} FklFuncPrototype;
-
-typedef struct {
-    FklFuncPrototype *pa;
-    uint32_t count;
-} FklFuncPrototypes;
-
 typedef struct {
     FklSid_t id;
     uint32_t scope;
@@ -64,13 +50,12 @@ typedef struct {
 
 #define FKL_VAR_REF_INVALID_CIDX (UINT32_MAX)
 
-typedef struct FklSymbolDef {
-    FklSidScope k;
+typedef struct FklSymDef {
     uint32_t idx;
     uint32_t cidx;
     uint8_t isLocal;
     uint8_t isConst;
-} FklSymbolDef;
+} FklSymDef;
 
 typedef struct // unresolved symbol ref
 {
@@ -97,6 +82,29 @@ typedef struct // unresolved symbol ref
 #define FKL_TABLE_KEY_TYPE FklSid_t
 #define FKL_TABLE_ELM_NAME Sid
 #include "table.h"
+
+// FklSymDefTable
+#define FKL_TABLE_KEY_TYPE FklSidScope
+#define FKL_TABLE_VAL_TYPE FklSymDef
+#define FKL_TABLE_ELM_NAME SymDef
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
+#define FKL_TABLE_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
+#include "table.h"
+
+typedef struct FklFuncPrototype {
+    FklSymDefTableElm *refs;
+    uint32_t lcount;
+    uint32_t rcount;
+    FklSid_t sid;
+    FklSid_t fid;
+    uint64_t line;
+} FklFuncPrototype;
+
+typedef struct {
+    FklFuncPrototype *pa;
+    uint32_t count;
+} FklFuncPrototypes;
 
 void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);

@@ -9,10 +9,15 @@ extern "C" {
 
 typedef struct FklNastNode FklNastNode;
 
-typedef struct {
-    FklSid_t id;
-    FklNastNode *node;
-} FklPatternMatchingHashTableItem;
+// typedef struct {
+//     FklSid_t id;
+//     FklNastNode *node;
+// } FklPatternMatchingHashTableItem;
+
+#define FKL_TABLE_KEY_TYPE FklSid_t
+#define FKL_TABLE_VAL_TYPE FklNastNode *
+#define FKL_TABLE_ELM_NAME Pmatch
+#include "table.h"
 
 #define FKL_PATTERN_NOT_EQUAL (0)
 #define FKL_PATTERN_COVER (1)
@@ -21,15 +26,15 @@ typedef struct {
 
 FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklSidTable **);
 int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
-                    FklHashTable *ht);
-void fklPatternMatchingHashTableSet(FklSid_t sid, const FklNastNode *node,
-                                    FklHashTable *ht);
+                    FklPmatchTable *ht);
+// void fklPatternMatchingHashTableSet(FklSid_t sid, const FklNastNode *node,
+//                                     FklPmatchTable *ht);
 
 int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1);
-FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid,
-                                            const FklHashTable *ht);
-FklHashTable *fklCreatePatternMatchingHashTable(void);
-void fklInitPatternMatchHashTable(FklHashTable *ht);
+// FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid,
+//                                             const FklHashTable *ht);
+// FklHashTable *fklCreatePatternMatchingHashTable(void);
+// void fklInitPatternMatchHashTable(FklHashTable *ht);
 
 #ifdef __cplusplus
 }

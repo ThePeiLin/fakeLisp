@@ -526,7 +526,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *,
                                       FklCodegenErrorState *);
 
 FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl, FklFuncPrototypes *pts,
-                            uint32_t prototype_id, FklHashTable *ht,
+                            uint32_t prototype_id, FklPmatchTable *ht,
                             FklHashTable *lineHash,
                             FklCodegenLibVector *macroLibStack,
                             FklNastNode **pr, uint64_t curline,

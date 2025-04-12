@@ -219,7 +219,7 @@ static inline void *has_outer_pdef_or_def(FklCodegenEnv *cur, FklSid_t id,
                                           FklCodegenEnv **targetEnv,
                                           int *is_pdef) {
     for (; cur; cur = cur->prev) {
-        FklPredef *key = fklGetCodegenPreDefBySid(id, scope, cur);
+        uint8_t *key = fklGetCodegenPreDefBySid(id, scope, cur);
         if (key) {
             *targetEnv = cur;
             *is_pdef = 1;
@@ -228,7 +228,7 @@ static inline void *has_outer_pdef_or_def(FklCodegenEnv *cur, FklSid_t id,
         FklSymbolDef *def = fklFindSymbolDefByIdAndScope(id, scope, cur);
         if (def) {
             *targetEnv = cur;
-            return (FklSidScope *)def;
+            return def;
         }
         scope = cur->pscope;
     }
@@ -339,18 +339,22 @@ static inline FklUnReSymbolRef *has_resolvable_ref(FklSid_t id, uint32_t scope,
 
 void fklAddCodegenPreDefBySid(FklSid_t id, uint32_t scope, uint8_t isConst,
                               FklCodegenEnv *env) {
-    FklHashTable *pdef = &env->pdef;
+    FklPredefTable *pdef = &env->pdef;
+    // FklHashTable *pdef = &env->pdef;
     FklSidScope key = {id, scope};
-    FklPredef *def = fklPutHashItem(&key, pdef);
-    def->isConst = isConst;
+    fklPredefTableAdd(pdef, &key, &isConst);
+    // FklPredef *def = fklPutHashItem(&key, pdef);
+    // def->isConst = isConst;
 }
 
-FklPredef *fklGetCodegenPreDefBySid(FklSid_t id, uint32_t scope,
-                                    FklCodegenEnv *env) {
-    FklHashTable *pdef = &env->pdef;
+uint8_t *fklGetCodegenPreDefBySid(FklSid_t id, uint32_t scope,
+                                  FklCodegenEnv *env) {
+    FklPredefTable *pdef = &env->pdef;
+    // FklHashTable *pdef = &env->pdef;
     FklSidScope key = {id, scope};
-    FklPredef *el = fklGetHashItem(&key, pdef);
-    return el;
+    return fklPredefTableGet(pdef, &key);
+    // FklPredef *el = fklGetHashItem(&key, pdef);
+    // return el;
 }
 
 void fklAddCodegenRefToPreDef(FklSid_t id, uint32_t scope, uint32_t prototypeId,
@@ -366,9 +370,10 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
     FklPreDefRefVector ref_pdef1;
     uint32_t count = ref_pdef->size;
     fklPreDefRefVectorInit(&ref_pdef1, count);
-    FklPredef pdef;
+    uint8_t pdef_isconst;
+    // FklPredef pdef;
     FklSidScope key = {id, scope};
-    fklDelHashItem(&key, &env->pdef, &pdef);
+    fklPredefTableEarase(&env->pdef, &key, &pdef_isconst);
     FklSymbolDef *def = fklGetCodegenDefByIdInScope(id, scope, env);
     FKL_ASSERT(def);
     for (uint32_t i = 0; i < count; i++) {
@@ -389,7 +394,8 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
 }
 
 void fklClearCodegenPreDef(FklCodegenEnv *env) {
-    fklClearHashTable(&env->pdef);
+    fklPredefTableClear(&env->pdef);
+    // fklClearHashTable(&env->pdef);
 }
 
 FklSymbolDef *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
@@ -418,17 +424,18 @@ FklSymbolDef *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                                                     &targetEnv, &is_pdef);
             if (targetDef) {
                 if (is_pdef) {
-                    FklPredef *pdef = (FklPredef *)targetDef;
-                    FklSymbolDef *cel = add_ref_to_all_penv(
-                        id, env, targetEnv, pdef->isConst, &ret);
+                    uint8_t *pdef = FKL_TYPE_CAST(uint8_t *, targetDef);
+                    FklSymbolDef *cel =
+                        add_ref_to_all_penv(id, env, targetEnv, *pdef, &ret);
                     cel->isLocal = 1;
                     cel->cidx = FKL_VAR_REF_INVALID_CIDX;
                     fklAddCodegenRefToPreDef(
-                        pdef->k.id, pdef->k.scope,
+                        id, env->pscope,
                         get_child_env_prototype_id(env, targetEnv), cel->idx,
                         targetEnv);
                 } else {
-                    FklSymbolDef *def = (FklSymbolDef *)targetDef;
+                    FklSymbolDef *def =
+                        FKL_TYPE_CAST(FklSymbolDef *, targetDef);
                     FklSymbolDef *cel = add_ref_to_all_penv(id, env, targetEnv,
                                                             def->isConst, &ret);
                     cel->isLocal = 1;

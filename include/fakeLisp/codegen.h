@@ -26,10 +26,15 @@ typedef struct FklCodegenEnvScope {
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
 
-typedef struct {
-    FklSidScope k;
-    uint8_t isConst;
-} FklPredef;
+// typedef struct {
+//     FklSidScope k;
+//     uint8_t isConst;
+// } FklPredef;
+
+// typedef struct {
+//     uint32_t scope;
+//     int is_const;
+// } FklPredef;
 
 typedef struct {
     FklSid_t id;
@@ -42,6 +47,15 @@ typedef struct {
 #define FKL_VECTOR_ELM_TYPE FklPreDefRef
 #define FKL_VECTOR_ELM_TYPE_NAME PreDefRef
 #include "vector.h"
+
+// FklPredefTable
+#define FKL_TABLE_KEY_TYPE FklSidScope
+#define FKL_TABLE_VAL_TYPE uint8_t
+#define FKL_TABLE_ELM_NAME Predef
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
+#define FKL_TABLE_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
+#include "table.h"
 
 typedef struct FklCodegenEnv {
     size_t refcount;
@@ -59,7 +73,7 @@ typedef struct FklCodegenEnv {
     FklHashTable refs;
     struct FklCodegenMacroScope *macros;
 
-    FklHashTable pdef;
+    FklPredefTable pdef;
     struct FklPreDefRefVector ref_pdef;
 } FklCodegenEnv;
 
@@ -469,8 +483,8 @@ FklSymbolDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scope,
 
 void fklAddCodegenPreDefBySid(FklSid_t id, uint32_t scope, uint8_t isConst,
                               FklCodegenEnv *env);
-FklPredef *fklGetCodegenPreDefBySid(FklSid_t id, uint32_t scope,
-                                    FklCodegenEnv *env);
+uint8_t *fklGetCodegenPreDefBySid(FklSid_t id, uint32_t scope,
+                                  FklCodegenEnv *env);
 void fklAddCodegenRefToPreDef(FklSid_t id, uint32_t scope, uint32_t prototypeId,
                               uint32_t idx, FklCodegenEnv *env);
 void fklResolveCodegenPreDef(FklSid_t, uint32_t scope, FklCodegenEnv *env,

@@ -988,19 +988,19 @@ static FklHashTableMetaTable CodegenEnvHashMethodTable = {
     .__getKey = fklHashDefaultGetKey,
 };
 
-static void _codegenenv_pdef_setVal(void *d0, const void *d1) {
-    *(FklPredef *)d0 = *(FklPredef *)d1;
-}
-
-static FklHashTableMetaTable CodegenEnvPdefHashMethodTable = {
-    .size = sizeof(FklPredef),
-    .__setKey = _codegenenv_setKey,
-    .__setVal = _codegenenv_pdef_setVal,
-    .__hashFunc = _codegenenv_hashFunc,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = _codegenenv_keyEqual,
-    .__getKey = fklHashDefaultGetKey,
-};
+// static void _codegenenv_pdef_setVal(void *d0, const void *d1) {
+//     *(FklPredef *)d0 = *(FklPredef *)d1;
+// }
+//
+// static FklHashTableMetaTable CodegenEnvPdefHashMethodTable = {
+//     .size = sizeof(FklPredef),
+//     .__setKey = _codegenenv_setKey,
+//     .__setVal = _codegenenv_pdef_setVal,
+//     .__hashFunc = _codegenenv_hashFunc,
+//     .__uninitItem = fklDoNothingUninitHashItem,
+//     .__keyEqual = _codegenenv_keyEqual,
+//     .__getKey = fklHashDefaultGetKey,
+// };
 
 static inline uint32_t enter_new_scope(uint32_t p, FklCodegenEnv *env) {
     uint32_t r = ++env->sc;
@@ -2384,7 +2384,7 @@ static CODEGEN_FUNC(codegen_or) {
 void fklUpdatePrototypeRef(FklFuncPrototypes *cp, FklCodegenEnv *env,
                            FklSymbolTable *globalSymTable,
                            FklSymbolTable *pst) {
-    FKL_ASSERT(env->pdef.num == 0);
+    FKL_ASSERT(env->pdef.count == 0);
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
     FklHashTable *eht = &env->refs;
     uint32_t count = eht->num;
@@ -2415,7 +2415,7 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp, FklCodegenEnv *env,
 
 void fklUpdatePrototype(FklFuncPrototypes *cp, FklCodegenEnv *env,
                         FklSymbolTable *globalSymTable, FklSymbolTable *pst) {
-    FKL_ASSERT(env->pdef.num == 0);
+    FKL_ASSERT(env->pdef.count == 0);
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
     pts->lcount = env->lcount;
     process_unresolve_ref(env, 1, cp);
@@ -2437,7 +2437,8 @@ FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev, uint32_t pscope,
     r->slotFlags = NULL;
     fklInitHashTable(&r->refs, &CodegenEnvHashMethodTable);
     fklUnReSymbolRefVectorInit(&r->uref, 8);
-    fklInitHashTable(&r->pdef, &CodegenEnvPdefHashMethodTable);
+    fklPredefTableInit(&r->pdef);
+    // fklInitHashTable(&r->pdef, &CodegenEnvPdefHashMethodTable);
     fklPreDefRefVectorInit(&r->ref_pdef, 8);
     r->macros = make_macro_scope_ref(fklCreateCodegenMacroScope(macroScope));
     if (prev)
@@ -2462,7 +2463,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env) {
             fklUnReSymbolRefVectorUninit(unref);
             fklDestroyCodegenMacroScope(cur->macros);
 
-            fklUninitHashTable(&cur->pdef);
+            fklPredefTableUninit(&cur->pdef);
             fklPreDefRefVectorUninit(&cur->ref_pdef);
             free(cur);
         } else

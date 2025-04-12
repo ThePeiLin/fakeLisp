@@ -950,8 +950,6 @@ static void codegen_funcall(FklNastNode *rest,
 static CODEGEN_FUNC(codegen_begin) {
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest,
-    // ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     pushListItemToQueue(rest, queue, NULL);
     FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(
@@ -1119,7 +1117,6 @@ BC_PROCESS(_local_exp_bc_process) {
 static CODEGEN_FUNC(codegen_local) {
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
@@ -1134,7 +1131,6 @@ static CODEGEN_FUNC(codegen_local) {
 static CODEGEN_FUNC(codegen_let0) {
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
@@ -1313,18 +1309,14 @@ static CODEGEN_FUNC(codegen_let1) {
     FklSidVector *symStack = fklSidVectorCreate(8);
     FklNastNode *firstSymbol =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (firstSymbol->type != FKL_NAST_SYM) {
         fklSidVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
     }
-    // FklPatternMatchingHashTableItem *item =
-    //     fklGetHashItem(&outer_ctx->builtInPatternVar_args, ht);
     FklNastNode **item =
         fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
     FklNastNode *args = item ? *item : NULL;
@@ -1358,7 +1350,6 @@ static CODEGEN_FUNC(codegen_let1) {
 
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     pushListItemToQueue(rest, queue, NULL);
     FklCodegenQuest *let1Quest = fklCreateCodegenQuest(
@@ -1411,10 +1402,8 @@ static CODEGEN_FUNC(codegen_let81) {
 
     FklNastNode *args =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
 
     FklNastNode *restLet8 = fklCreateNastNode(FKL_NAST_PAIR, args->curline);
     restLet8->pair = fklCreateNastPair();
@@ -1447,10 +1436,8 @@ static CODEGEN_FUNC(codegen_letrec) {
     FklSidVector *symStack = fklSidVectorCreate(8);
     FklNastNode *firstSymbol =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (firstSymbol->type != FKL_NAST_SYM) {
         fklSidVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
@@ -1459,7 +1446,6 @@ static CODEGEN_FUNC(codegen_letrec) {
     }
     FklNastNode *args =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
     uint32_t cs = enter_new_scope(scope, curEnv);
 
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
@@ -1486,7 +1472,6 @@ static CODEGEN_FUNC(codegen_letrec) {
 
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     pushListItemToQueue(rest, queue, NULL);
     FklCodegenQuest *let1Quest = fklCreateCodegenQuest(
@@ -1585,17 +1570,12 @@ BC_PROCESS(_do_rest_exp_bc_process) {
 static CODEGEN_FUNC(codegen_do0) {
     FklNastNode *cond =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_cond);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_cond, ht);
-
-    // FklPatternMatchingHashTableItem *item =
-    //     fklGetHashItem(&outer_ctx->builtInPatternVar_value, ht);
     FklNastNode **item =
         fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
     FklNastNode *value = item ? *item : NULL;
 
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
@@ -1777,10 +1757,6 @@ static CODEGEN_FUNC(codegen_do1) {
 
     FklNastNode *cond =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_cond);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_cond, ht);
-
-    // FklPatternMatchingHashTableItem *item =
-    //     fklGetHashItem(&outer_ctx->builtInPatternVar_value, ht);
     FklNastNode **item =
         fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
     FklNastNode *value = item ? *item : NULL;
@@ -1823,7 +1799,6 @@ static CODEGEN_FUNC(codegen_do1) {
 
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     pushListItemToQueue(rest, queue, NULL);
     FklCodegenQuest *do1RestQuest = fklCreateCodegenQuest(
@@ -2185,7 +2160,6 @@ BC_PROCESS(_named_let_set_var_exp_bc_process) {
 static CODEGEN_FUNC(codegen_named_let0) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg0);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2193,7 +2167,6 @@ static CODEGEN_FUNC(codegen_named_let0) {
     }
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
 
@@ -2239,7 +2212,6 @@ static CODEGEN_FUNC(codegen_named_let1) {
     FklNastNode *const *builtin_pattern_node = outer_ctx->builtin_pattern_node;
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg0);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2248,10 +2220,8 @@ static CODEGEN_FUNC(codegen_named_let1) {
     FklSidVector *symStack = fklSidVectorCreate(8);
     FklNastNode *firstSymbol =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (firstSymbol->type != FKL_NAST_SYM) {
         fklSidVectorDestroy(symStack);
         errorState->type = FKL_ERR_SYNTAXERROR;
@@ -2260,7 +2230,6 @@ static CODEGEN_FUNC(codegen_named_let1) {
     }
     FklNastNode *args =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
@@ -2320,7 +2289,6 @@ static CODEGEN_FUNC(codegen_named_let1) {
 
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     pushListItemToQueue(rest, queue, NULL);
     FklByteCodelntVector *lStack = fklByteCodelntVectorCreate(2);
@@ -2367,7 +2335,6 @@ BC_PROCESS(_and_exp_bc_process) {
 static CODEGEN_FUNC(codegen_and) {
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     pushListItemToQueue(rest, queue, NULL);
     uint32_t cs = enter_new_scope(scope, curEnv);
@@ -2403,7 +2370,6 @@ BC_PROCESS(_or_exp_bc_process) {
 static CODEGEN_FUNC(codegen_or) {
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     uint32_t cs = enter_new_scope(scope, curEnv);
     FklCodegenMacroScope *cms = fklCreateCodegenMacroScope(macroScope);
@@ -2516,10 +2482,8 @@ FklNastNode *fklGetReplacement(FklSid_t id, const FklReplacementTable *rep) {
 static CODEGEN_FUNC(codegen_lambda) {
     FklNastNode *args =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklCodegenEnv *lambdaCodegenEnv =
         fklCreateCodegenEnv(curEnv, scope, macroScope);
     FklByteCodelnt *argsBc = processArgs(args, lambdaCodegenEnv, codegen);
@@ -2558,10 +2522,8 @@ static inline int is_variable_defined(FklSid_t id, uint32_t scope,
 static CODEGEN_FUNC(codegen_define) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2629,10 +2591,8 @@ BC_PROCESS(_def_const_exp_bc_process) {
 static CODEGEN_FUNC(codegen_defconst) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2662,13 +2622,10 @@ static CODEGEN_FUNC(codegen_defconst) {
 static CODEGEN_FUNC(codegen_defun) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *args =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2725,13 +2682,10 @@ static CODEGEN_FUNC(codegen_defun) {
 static CODEGEN_FUNC(codegen_defun_const) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *args =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2790,10 +2744,8 @@ static CODEGEN_FUNC(codegen_defun_const) {
 static CODEGEN_FUNC(codegen_setq) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (name->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -2847,7 +2799,6 @@ static inline void push_default_codegen_quest(
 static CODEGEN_FUNC(codegen_macroexpand) {
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     fklMakeNastNodeRef(value);
     if (value->type == FKL_NAST_PAIR)
         value = fklTryExpandCodegenMacro(value, codegen, curEnv->macros,
@@ -3126,7 +3077,6 @@ static inline int cfg_check_defined(const FklNastNode *exp,
                                     FklCodegenErrorState *errorState) {
     const FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (value->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
@@ -3144,7 +3094,6 @@ static inline int cfg_check_importable(const FklNastNode *exp,
                                        FklCodegenErrorState *errorState) {
     const FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (value->type == FKL_NAST_NIL
         || !fklIsNastNodeListAndHasSameType(value, FKL_NAST_SYM)) {
         errorState->type = FKL_ERR_SYNTAXERROR;
@@ -3190,7 +3139,6 @@ static inline int cfg_check_macro_defined(
     const FklCodegenInfo *info, FklCodegenErrorState *errorState) {
     const FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (value->type == FKL_NAST_SYM)
         return is_replacement_define(value, info, outer_ctx, macroScope,
                                      curEnv);
@@ -3233,10 +3181,8 @@ static inline int cfg_check_eq(const FklNastNode *exp, const FklPmatchTable *ht,
                                FklCodegenErrorState *errorState) {
     const FklNastNode *arg0 =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg0);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
     const FklNastNode *arg1 =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg1);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1, ht);
     if (arg0->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
@@ -3262,10 +3208,8 @@ static inline int cfg_check_matched(const FklNastNode *exp,
                                     FklCodegenErrorState *errorState) {
     const FklNastNode *arg0 =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg0);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
     const FklNastNode *arg1 =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg1);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1, ht);
     if (arg0->type != FKL_NAST_SYM || !is_valid_compile_check_pattern(arg1)) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
@@ -3356,7 +3300,6 @@ is_check_subpattern_true(const FklNastNode *exp, const FklCodegenInfo *info,
 
 check_nested_sub_pattern:
     fklPmatchTableInit(&ht);
-    // fklInitPatternMatchHashTable(&ht);
     cgCfgCtxVectorInit(&s, 8);
 
     for (;;) {
@@ -3428,16 +3371,12 @@ check_nested_sub_pattern:
                 ctx->r = 0;
                 ctx->rest = NULL;
                 ctx->method = cfg_check_not_method;
-                // exp = fklPatternMatchingHashTableRef(
-                //     outer_ctx->builtInPatternVar_value, &ht);
                 exp = *fklPmatchTableGet2(&ht,
                                           outer_ctx->builtInPatternVar_value);
                 continue;
             } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_AND],
                                        exp, &ht)) {
-                // const FklNastNode *rest = fklPatternMatchingHashTableRef(
-                //     outer_ctx->builtInPatternVar_rest, &ht);
                 const FklNastNode *rest =
                     *fklPmatchTableGet2(&ht, outer_ctx->builtInPatternVar_rest);
                 if (rest->type == FKL_NAST_NIL)
@@ -3458,8 +3397,6 @@ check_nested_sub_pattern:
             } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
                                            [FKL_CODEGEN_SUB_PATTERN_OR],
                                        exp, &ht)) {
-                // const FklNastNode *rest = fklPatternMatchingHashTableRef(
-                //     outer_ctx->builtInPatternVar_rest, &ht);
                 const FklNastNode *rest =
                     *fklPmatchTableGet2(&ht, outer_ctx->builtInPatternVar_rest);
                 if (rest->type == FKL_NAST_NIL)
@@ -3501,14 +3438,12 @@ check_nested_sub_pattern:
 exit:
     cgCfgCtxVectorUninit(&s);
     fklPmatchTableUninit(&ht);
-    // fklUninitHashTable(&ht);
     return r;
 }
 
 static CODEGEN_FUNC(codegen_check) {
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     int r = is_check_subpattern_true(value, codegen, outer_ctx, scope,
                                      macroScope, curEnv, errorState);
     if (errorState->type)
@@ -3524,13 +3459,10 @@ static CODEGEN_FUNC(codegen_check) {
 static CODEGEN_FUNC(codegen_cond_compile) {
     FklNastNode *cond =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_cond);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_cond, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     if (fklNastListLength(rest) % 2 == 1) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -3584,7 +3516,6 @@ static CODEGEN_FUNC(codegen_cond_compile) {
 static CODEGEN_FUNC(codegen_quote) {
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     push_default_codegen_quest(value, codegenQuestStack, scope, macroScope,
                                curEnv, NULL, codegen);
 }
@@ -3606,7 +3537,6 @@ unquoteHelperFunc(FklNastNode *value, FklCodegenQuestVector *codegenQuestStack,
 static CODEGEN_FUNC(codegen_unquote) {
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     unquoteHelperFunc(value, codegenQuestStack, scope, macroScope, curEnv,
                       _default_bc_process, NULL, codegen);
 }
@@ -3737,7 +3667,6 @@ static inline void init_qsquote_helper_struct(QsquoteHelperStruct *r,
 static CODEGEN_FUNC(codegen_qsquote) {
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     CgQsquoteHelperVector valueStack;
     cgQsquoteHelperVectorInit(&valueStack, 8);
     init_qsquote_helper_struct(cgQsquoteHelperVectorPushBack(&valueStack, NULL),
@@ -3765,14 +3694,13 @@ static CODEGEN_FUNC(codegen_qsquote) {
                               codegen);
             break;
         case QSQUOTE_NONE: {
-            FklPmatchTable *unquoteHt = fklPmatchTableCreate();
+            FklPmatchTable unquoteHt;
+            fklPmatchTableInit(&unquoteHt);
             if (fklPatternMatch(
                     builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQUOTE],
-                    curValue, unquoteHt)) {
-                // FklNastNode *unquoteValue = fklPatternMatchingHashTableRef(
-                //     outer_ctx->builtInPatternVar_value, unquoteHt);
+                    curValue, &unquoteHt)) {
                 FklNastNode *unquoteValue = *fklPmatchTableGet2(
-                    unquoteHt, outer_ctx->builtInPatternVar_value);
+                    &unquoteHt, outer_ctx->builtInPatternVar_value);
                 unquoteHelperFunc(unquoteValue, codegenQuestStack, scope,
                                   macroScope, curEnv, _default_bc_process,
                                   prevQuest, codegen);
@@ -3787,11 +3715,9 @@ static CODEGEN_FUNC(codegen_qsquote) {
                 for (;;) {
                     if (fklPatternMatch(
                             builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQUOTE],
-                            node, unquoteHt)) {
+                            node, &unquoteHt)) {
                         FklNastNode *unquoteValue = *fklPmatchTableGet2(
-                            unquoteHt, outer_ctx->builtInPatternVar_value);
-                        // fklPatternMatchingHashTableRef(
-                        //     outer_ctx->builtInPatternVar_value, unquoteHt);
+                            &unquoteHt, outer_ctx->builtInPatternVar_value);
                         unquoteHelperFunc(
                             unquoteValue, codegenQuestStack, scope, macroScope,
                             curEnv, _default_bc_process, curQuest, codegen);
@@ -3800,11 +3726,9 @@ static CODEGEN_FUNC(codegen_qsquote) {
                     FklNastNode *cur = node->pair->car;
                     if (fklPatternMatch(
                             builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],
-                            cur, unquoteHt)) {
+                            cur, &unquoteHt)) {
                         FklNastNode *unqtespValue = *fklPmatchTableGet2(
-                            unquoteHt, outer_ctx->builtInPatternVar_value);
-                        // fklPatternMatchingHashTableRef(
-                        //     outer_ctx->builtInPatternVar_value, unquoteHt);
+                            &unquoteHt, outer_ctx->builtInPatternVar_value);
                         if (node->pair->cdr->type != FKL_NAST_NIL) {
                             FklCodegenQuest *appendQuest =
                                 fklCreateCodegenQuest(
@@ -3853,15 +3777,12 @@ static CODEGEN_FUNC(codegen_qsquote) {
                 for (size_t i = 0; i < vecSize; i++) {
                     if (fklPatternMatch(
                             builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_UNQTESP],
-                            curValue->vec->base[i], unquoteHt))
+                            curValue->vec->base[i], &unquoteHt))
                         init_qsquote_helper_struct(
                             cgQsquoteHelperVectorPushBack(&valueStack, NULL),
                             QSQUOTE_UNQTESP_VEC,
-                            // fklPatternMatchingHashTableRef(
-                            //     outer_ctx->builtInPatternVar_value,
-                            //     unquoteHt),
                             *fklPmatchTableGet2(
-                                unquoteHt, outer_ctx->builtInPatternVar_value),
+                                &unquoteHt, outer_ctx->builtInPatternVar_value),
                             curQuest);
                     else
                         init_qsquote_helper_struct(
@@ -3882,7 +3803,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
                 push_default_codegen_quest(curValue, codegenQuestStack, scope,
                                            macroScope, curEnv, prevQuest,
                                            codegen);
-            fklPmatchTableDestroy(unquoteHt);
+            fklPmatchTableUninit(&unquoteHt);
         } break;
         }
     }
@@ -4056,7 +3977,6 @@ BC_PROCESS(_cond_exp_bc_process_2) {
 static CODEGEN_FUNC(codegen_cond) {
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklCodegenQuest *quest = fklCreateCodegenQuest(
         _cond_exp_bc_process_0,
         createDefaultStackContext(fklByteCodelntVectorCreate(32)), NULL, scope,
@@ -4152,10 +4072,8 @@ BC_PROCESS(_if_exp_bc_process_0) {
 static CODEGEN_FUNC(codegen_if0) {
     FklNastNode *cond =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     FklNastNode *exp =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
 
     FklNastNodeQueue *nextQueue = fklNastNodeQueueCreate();
     fklNastNodeQueuePush2(nextQueue, fklMakeNastNodeRef(cond));
@@ -4211,13 +4129,10 @@ BC_PROCESS(_if_exp_bc_process_1) {
 static CODEGEN_FUNC(codegen_if1) {
     FklNastNode *cond =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     FklNastNode *exp0 =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNode *exp1 =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     FklNastNodeQueue *exp0Queue = fklNastNodeQueueCreate();
     fklNastNodeQueuePush2(exp0Queue, fklMakeNastNodeRef(cond));
@@ -4303,13 +4218,9 @@ static inline void codegen_when_unless(
     FklCodegenEnv *curEnv, FklCodegenInfo *codegen,
     FklCodegenQuestVector *codegenQuestStack, FklByteCodeProcesser func,
     FklCodegenErrorState *errorState, FklNastNode *origExp) {
-    // FklNastNode *cond = fklPatternMatchingHashTableRef(
-    //     codegen->outer_ctx->builtInPatternVar_value, ht);
     FklNastNode *cond =
         *fklPmatchTableGet2(ht, codegen->outer_ctx->builtInPatternVar_value);
 
-    // FklNastNode *rest = fklPatternMatchingHashTableRef(
-    //     codegen->outer_ctx->builtInPatternVar_rest, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, codegen->outer_ctx->builtInPatternVar_rest);
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
@@ -4476,10 +4387,8 @@ static inline void init_load_codegen_grammer_ptr(FklCodegenInfo *next,
 static CODEGEN_FUNC(codegen_load) {
     FklNastNode *filename =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     if (filename->type != FKL_NAST_STR) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
@@ -5492,8 +5401,6 @@ static CODEGEN_FUNC(codegen_export) {
         && macroScope->prev == codegen->global_env->macros) {
         FklNastNodeQueue *exportQueue = fklNastNodeQueueCreate();
         FklNastNode *orig_exp = fklCopyNastNode(origExp);
-        // FklNastNode *rest = fklPatternMatchingHashTableRef(
-        //     outer_ctx->builtInPatternVar_rest, ht);
         FklNastNode *rest =
             *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
         add_export_symbol(libCodegen, origExp, rest, exportQueue);
@@ -5582,7 +5489,6 @@ static CODEGEN_FUNC(codegen_export_single) {
 
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     FklNastNode *orig_value = fklMakeNastNodeRef(value);
     value =
         fklTryExpandCodegenMacro(orig_value, codegen, macroScope, errorState);
@@ -6214,10 +6120,8 @@ exit:
 static CODEGEN_FUNC(codegen_import) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     codegen_import_helper(origExp, name, rest, codegen, errorState, curEnv,
                           scope, macroScope, codegenQuestStack, NULL, NULL,
@@ -6240,13 +6144,10 @@ static CODEGEN_FUNC(codegen_import_none) {
 static CODEGEN_FUNC(codegen_import_prefix) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *prefix =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     codegen_import_helper(origExp, name, rest, codegen, errorState, curEnv,
                           scope, macroScope, codegenQuestStack, prefix, NULL,
@@ -6256,13 +6157,10 @@ static CODEGEN_FUNC(codegen_import_prefix) {
 static CODEGEN_FUNC(codegen_import_only) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *only =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     codegen_import_helper(origExp, name, rest, codegen, errorState, curEnv,
                           scope, macroScope, codegenQuestStack, NULL, only,
@@ -6272,13 +6170,10 @@ static CODEGEN_FUNC(codegen_import_only) {
 static CODEGEN_FUNC(codegen_import_alias) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *alias =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     codegen_import_helper(origExp, name, rest, codegen, errorState, curEnv,
                           scope, macroScope, codegenQuestStack, NULL, NULL,
@@ -6288,13 +6183,10 @@ static CODEGEN_FUNC(codegen_import_alias) {
 static CODEGEN_FUNC(codegen_import_except) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *except =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     codegen_import_helper(origExp, name, rest, codegen, errorState, curEnv,
                           scope, macroScope, codegenQuestStack, NULL, NULL,
@@ -6304,10 +6196,8 @@ static CODEGEN_FUNC(codegen_import_except) {
 static CODEGEN_FUNC(codegen_import_common) {
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_args);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_args, ht);
 
     codegen_import_helper(origExp, name, rest, codegen, errorState, curEnv,
                           scope, macroScope, codegenQuestStack, NULL, NULL,
@@ -6419,8 +6309,6 @@ static void *custom_action(void *c, void *outerCtx, void *nodes[], size_t num,
         nodes_vector->vec->base[i] = fklMakeNastNodeRef(nodes[i]);
     FklHashTable lineHash;
     fklInitLineNumHashTable(&lineHash);
-    // FklHashTable ht;
-    // fklInitPatternMatchHashTable(&ht);
     FklPmatchTable ht;
     fklPmatchTableInit(&ht);
     FklNastNode *line_node = NULL;
@@ -6433,10 +6321,6 @@ static void *custom_action(void *c, void *outerCtx, void *nodes[], size_t num,
     }
 
     struct CustomActionCtx *ctx = (struct CustomActionCtx *)c;
-    // fklPatternMatchingHashTableSet(fklAddSymbolCstr("$$", ctx->pst)->id,
-    //                                nodes_vector, &ht);
-    // fklPatternMatchingHashTableSet(fklAddSymbolCstr("line", ctx->pst)->id,
-    //                                line_node, &ht);
     fklPmatchTableAdd2(&ht, fklAddSymbolCstr("$$", ctx->pst)->id, nodes_vector);
     fklPmatchTableAdd2(&ht, fklAddSymbolCstr("line", ctx->pst)->id, line_node);
 
@@ -6462,7 +6346,6 @@ static void *custom_action(void *c, void *outerCtx, void *nodes[], size_t num,
     fklDestroyNastNode(nodes_vector);
     fklDestroyNastNode(line_node);
 
-    // fklUninitHashTable(&ht);
     fklPmatchTableUninit(&ht);
     fklUninitHashTable(&lineHash);
     fklDestroyAllVMs(anotherVM);
@@ -8227,10 +8110,8 @@ static CODEGEN_FUNC(codegen_defmacro) {
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_name);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_name, ht);
     FklNastNode *value =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_value);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_value, ht);
     if (name->type == FKL_NAST_SYM)
         fklReplacementTableAdd2(macroScope->replacements, name->sym, value);
     else if (name->type == FKL_NAST_PAIR) {
@@ -8314,18 +8195,15 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
     fklNastNodeQueueInit(&prod_vector_queue);
     FklNastNode *name =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg0);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg0, ht);
     if (name->type != FKL_NAST_BOX)
         goto reader_macro_error;
     FklNastNode *arg =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_arg1);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_arg1, ht);
     if (arg->type != FKL_NAST_VECTOR)
         goto reader_macro_error;
     fklNastNodeQueuePush2(&prod_vector_queue, arg);
     FklNastNode *rest =
         *fklPmatchTableGet2(ht, outer_ctx->builtInPatternVar_rest);
-    // fklPatternMatchingHashTableRef(outer_ctx->builtInPatternVar_rest, ht);
     for (; rest->type != FKL_NAST_NIL; rest = rest->pair->cdr) {
         if (rest->pair->car->type != FKL_NAST_VECTOR)
             goto reader_macro_error;
@@ -8472,16 +8350,16 @@ static inline int matchAndCall(FklCodegenFunc func, const FklNastNode *pattern,
                                FklCodegenEnv *env, FklCodegenInfo *codegenr,
                                FklCodegenErrorState *errorState,
                                uint8_t must_has_retval) {
-    // FklHashTable *ht = fklCreatePatternMatchingHashTable();
-    FklPmatchTable *ht = fklPmatchTableCreate();
-    int r = fklPatternMatch(pattern, exp, ht);
+    FklPmatchTable ht;
+    fklPmatchTableInit(&ht);
+    int r = fklPatternMatch(pattern, exp, &ht);
     if (r) {
         fklChdir(codegenr->dir);
-        func(exp, ht, codegenQuestStack, scope, macroScope, env, codegenr,
+        func(exp, &ht, codegenQuestStack, scope, macroScope, env, codegenr,
              codegenr->outer_ctx, errorState, must_has_retval);
         fklChdir(codegenr->outer_ctx->cwd);
     }
-    fklPmatchTableDestroy(ht);
+    fklPmatchTableUninit(&ht);
     return r;
 }
 
@@ -9315,23 +9193,20 @@ void fklDestroyCodegenMacroScope(FklCodegenMacroScope *macros) {
     }
 }
 
-static FklCodegenMacro *findMacro(FklNastNode *exp,
-                                  FklCodegenMacroScope *macros,
-                                  FklPmatchTable **pht) {
+static FklCodegenMacro *
+findMacro(FklNastNode *exp, FklCodegenMacroScope *macros, FklPmatchTable *pht) {
     if (!exp)
         return NULL;
     FklCodegenMacro *r = NULL;
     for (; !r && macros; macros = macros->prev) {
         for (FklCodegenMacro *cur = macros->head; cur; cur = cur->next) {
-            // FklHashTable *ht = fklCreatePatternMatchingHashTable();
-            FklPmatchTable *ht = fklPmatchTableCreate();
-            if (fklPatternMatch(cur->pattern, exp, ht)) {
-                *pht = ht;
+            if (pht->buckets == NULL)
+                fklPmatchTableInit(pht);
+            if (fklPatternMatch(cur->pattern, exp, pht)) {
                 r = cur;
                 break;
             }
-            fklPmatchTableDestroy(ht);
-            // fklDestroyHashTable(ht);
+            fklPmatchTableClear(pht);
         }
     }
     return r;
@@ -9349,8 +9224,6 @@ static void initVMframeFromPatternMatchTable(FklVM *exe, FklVMframe *frame,
     FklVMvalue **loc = fklAllocSpaceForLocalVar(exe, count);
     uint32_t idx = 0;
     for (FklPmatchTableNode *list = ht->first; list; list = list->next) {
-        // FklPatternMatchingHashTableItem *item =
-        //     (FklPatternMatchingHashTableItem *)list->data;
         FklVMvalue *v = fklCreateVMvalueFromNastNode(exe, list->v, lineHash);
         loc[idx] = v;
         idx++;
@@ -9450,13 +9323,12 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *codegen,
     FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
     FklConstTable *pkt = &codegen->outer_ctx->public_kt;
     FklNastNode *r = exp;
-    FklPmatchTable *ht = NULL;
+    FklPmatchTable ht = {.buckets = NULL};
     uint64_t curline = exp->curline;
     for (FklCodegenMacro *macro = findMacro(r, macros, &ht);
          !errorState->type && macro; macro = findMacro(r, macros, &ht)) {
-        fklPmatchTableAdd2(ht, codegen->outer_ctx->builtInPatternVar_orig, exp);
-        // fklPatternMatchingHashTableSet(
-        //     codegen->outer_ctx->builtInPatternVar_orig, exp, ht);
+        fklPmatchTableAdd2(&ht, codegen->outer_ctx->builtInPatternVar_orig,
+                           exp);
         FklNastNode *retval = NULL;
         FklHashTable lineHash;
         fklInitLineNumHashTable(&lineHash);
@@ -9469,7 +9341,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *codegen,
         FklCodegenLibVector *macroLibStack = NULL;
         get_macro_pts_and_lib(codegen, &pts, &macroLibStack);
         FklVM *anotherVM = fklInitMacroExpandVM(
-            macro->bcl, pts, macro->prototype_id, ht, &lineHash, macroLibStack,
+            macro->bcl, pts, macro->prototype_id, &ht, &lineHash, macroLibStack,
             &retval, r->curline, pst, pkt);
         FklVMgc *gc = anotherVM->gc;
         int e = fklRunVM(anotherVM);
@@ -9493,12 +9365,12 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *codegen,
                 errorState->line = curline;
             }
         }
-        // fklDestroyHashTable(ht);
-        fklPmatchTableDestroy(ht);
         fklUninitHashTable(&lineHash);
         fklDestroyAllVMs(anotherVM);
         fklDestroyVMgc(gc);
     }
+    if (ht.buckets)
+        fklPmatchTableUninit(&ht);
     return r;
 }
 

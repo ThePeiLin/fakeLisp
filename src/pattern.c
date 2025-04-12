@@ -4,18 +4,6 @@
 
 #include <string.h>
 
-// FklNastNode *fklPatternMatchingHashTableRef(FklSid_t sid,
-//                                             const FklHashTable *ht) {
-//     FklPatternMatchingHashTableItem *item = fklGetHashItem(&sid, ht);
-//     return item->node;
-// }
-
-// void fklPatternMatchingHashTableSet(FklSid_t sid, const FklNastNode *node,
-//                                     FklHashTable *ht) {
-//     FklPatternMatchingHashTableItem *item = fklPutHashItem(&sid, ht);
-//     item->node = FKL_REMOVE_CONST(FklNastNode, node);
-// }
-
 int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
                     FklPmatchTable *ht) {
     if (exp->type != FKL_NAST_PAIR)
@@ -36,7 +24,6 @@ int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
             if (ht != NULL)
                 fklPmatchTableAdd2(ht, n0->sym,
                                    FKL_REMOVE_CONST(FklNastNode, n1));
-            // fklPatternMatchingHashTableSet(n0->sym, n1, ht);
         } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
             fklNastImmPairVectorPushBack(
                 &s,
@@ -53,44 +40,6 @@ int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
     fklNastImmPairVectorUninit(&s);
     return 1;
 }
-
-// static uintptr_t _pattern_matching_hash_table_hash_func(const void *key) {
-//     FklSid_t sid = *(const FklSid_t *)key;
-//     return sid;
-// }
-//
-// static int _pattern_matching_hash_key_equal(const void *pk0, const void *pk1) {
-//     FklSid_t k0 = *(const FklSid_t *)pk0;
-//     FklSid_t k1 = *(const FklSid_t *)pk1;
-//     return k0 == k1;
-// }
-//
-// static void _pattern_match_hash_set_key(void *k0, const void *k1) {
-//     *(FklSid_t *)k0 = *(const FklSid_t *)k1;
-// }
-//
-// static void _pattern_match_hash_set_val(void *d0, const void *d1) {
-//     *(FklPatternMatchingHashTableItem *)d0 =
-//         *(const FklPatternMatchingHashTableItem *)d1;
-// }
-//
-// static FklHashTableMetaTable Codegen_hash_meta_table = {
-//     .size = sizeof(FklPatternMatchingHashTableItem),
-//     .__setKey = _pattern_match_hash_set_key,
-//     .__setVal = _pattern_match_hash_set_val,
-//     .__hashFunc = _pattern_matching_hash_table_hash_func,
-//     .__uninitItem = fklDoNothingUninitHashItem,
-//     .__keyEqual = _pattern_matching_hash_key_equal,
-//     .__getKey = fklHashDefaultGetKey,
-// };
-//
-// FklHashTable *fklCreatePatternMatchingHashTable(void) {
-//     return fklCreateHashTable(&Codegen_hash_meta_table);
-// }
-//
-// void fklInitPatternMatchHashTable(FklHashTable *ht) {
-//     fklInitHashTable(ht, &Codegen_hash_meta_table);
-// }
 
 static inline int is_pattern_equal(const FklNastNode *pattern,
                                    const FklNastNode *exp) {

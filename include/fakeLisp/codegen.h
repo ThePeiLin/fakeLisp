@@ -531,7 +531,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *,
 
 FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl, FklFuncPrototypes *pts,
                             uint32_t prototype_id, FklPmatchTable *ht,
-                            FklHashTable *lineHash,
+                            FklLineNumTable *lineHash,
                             FklCodegenLibVector *macroLibStack,
                             FklNastNode **pr, uint64_t curline,
                             FklSymbolTable *pst, FklConstTable *pkt);

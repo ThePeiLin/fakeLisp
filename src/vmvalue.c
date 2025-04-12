@@ -6,34 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-    FklVMvalue *key;
-    uint64_t line;
-} LineNumHashItem;
-
-static uintptr_t _LineNumHash_hashFunc(const void *pKey) {
-    const FklVMvalue *key = *(const FklVMvalue **)pKey;
-    return (uintptr_t)FKL_GET_PTR(key) >> FKL_UNUSEDBITNUM;
-}
-
-static void _LineNumHash_setVal(void *d0, const void *d1) {
-    *(LineNumHashItem *)d0 = *(const LineNumHashItem *)d1;
-}
-
-static FklHashTableMetaTable LineNumHashMetaTable = {
-    .size = sizeof(LineNumHashItem),
-    .__setKey = fklPtrKeySet,
-    .__setVal = _LineNumHash_setVal,
-    .__hashFunc = _LineNumHash_hashFunc,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = fklPtrKeyEqual,
-    .__getKey = fklHashDefaultGetKey,
-};
-
-void fklInitLineNumHashTable(FklHashTable *ht) {
-    fklInitHashTable(ht, &LineNumHashMetaTable);
-}
-
 #define VALUE_CREATE_CTX_COMMON_HEADER                                         \
     const FklNastNode *(*method)(struct ValueCreateCtx *, FklVMvalue * v);     \
     const FklNastNode *node;                                                   \
@@ -143,7 +115,7 @@ typedef const FklNastNode *(*ValueCreateMethod)(ValueCreateCtx *ctx,
 typedef const FklNastNode *(*ValueCreateCtxInit)(ValueCreateCtx *ctx, FklVM *);
 
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
-                                         FklHashTable *lineHash) {
+                                         FklLineNumTable *lineHash) {
     static const ValueCreateMethod create_method_table[FKL_NAST_RC_SYM + 1] = {
         [FKL_NAST_VECTOR] = vector_create_method,
         [FKL_NAST_PAIR] = pair_create_method,
@@ -246,8 +218,7 @@ create_nested_objects:
             ctx->node = node;
             node = ctx_init_method_table[node->type](ctx, vm);
             if (lineHash) {
-                LineNumHashItem i = {ctx->v, ctx->node->curline};
-                fklGetOrPutHashItem(&i, lineHash);
+                fklLineNumTablePut2(lineHash, ctx->v, ctx->node->curline);
             }
 
             if (node)
@@ -289,7 +260,8 @@ typedef struct {
 #include <fakeLisp/vector.h>
 
 FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
-                                          FklHashTable *lineHash, FklVMgc *gc) {
+                                          FklLineNumTable *lineHash,
+                                          FklVMgc *gc) {
     FklNastNode *retval = NULL;
     if (!fklHasCircleRef(v)) {
         VmValueSlotLineVector s;
@@ -302,9 +274,9 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
             FklNastNode **pcur = top->slot;
             uint64_t sline = top->line;
 
-            LineNumHashItem *item =
-                lineHash ? fklGetHashItem(&value, lineHash) : NULL;
-            uint64_t line = item ? item->line : sline;
+            uint64_t *item =
+                lineHash ? fklLineNumTableGet2(lineHash, value) : NULL;
+            uint64_t line = item ? *item : sline;
             FklNastNode *cur = fklCreateNastNode(FKL_NAST_NIL, line);
             *pcur = cur;
             switch (FKL_GET_TAG(value)) {

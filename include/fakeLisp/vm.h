@@ -451,6 +451,15 @@ typedef struct FklVM {
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
 #include "table.h"
 
+// FklLineNumTable
+#define FKL_TABLE_KEY_TYPE FklVMvalue const *
+#define FKL_TABLE_VAL_TYPE uint64_t
+#define FKL_TABLE_ELM_NAME LineNum
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
+#include "table.h"
+
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,
                                            FklVMvalue *const *top);
@@ -794,8 +803,6 @@ double fklVMgetDouble(const FklVMvalue *p);
 
 int fklHasCircleRef(const FklVMvalue *first_value);
 
-void fklInitLineNumHashTable(FklHashTable *ht);
-
 FklVMerrorHandler *fklCreateVMerrorHandler(FklSid_t *typeIds, uint32_t,
                                            FklInstruction *spc, uint64_t cpc);
 void fklDestroyVMerrorHandler(FklVMerrorHandler *);
@@ -961,10 +968,10 @@ FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, FklByteCodelnt *bcl);
 int fklIsVMvalueCodeObj(FklVMvalue *v);
 
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
-                                         FklHashTable *lineHash);
+                                         FklLineNumTable *lineHash);
 
 FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
-                                          FklHashTable *, FklVMgc *gc);
+                                          FklLineNumTable *, FklVMgc *gc);
 
 FklVMvalue *fklGetVMvalueEof(void);
 int fklIsVMeofUd(FklVMvalue *v);

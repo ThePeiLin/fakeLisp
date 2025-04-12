@@ -6260,8 +6260,8 @@ static void *custom_action(void *c, void *outerCtx, void *nodes[], size_t num,
     nodes_vector->vec = fklCreateNastVector(num);
     for (size_t i = 0; i < num; i++)
         nodes_vector->vec->base[i] = fklMakeNastNodeRef(nodes[i]);
-    FklHashTable lineHash;
-    fklInitLineNumHashTable(&lineHash);
+    FklLineNumTable lineHash;
+    fklLineNumTableInit(&lineHash);
     FklPmatchTable ht;
     fklPmatchTableInit(&ht);
     FklNastNode *line_node = NULL;
@@ -6300,7 +6300,7 @@ static void *custom_action(void *c, void *outerCtx, void *nodes[], size_t num,
     fklDestroyNastNode(line_node);
 
     fklPmatchTableUninit(&ht);
-    fklUninitHashTable(&lineHash);
+    fklLineNumTableUninit(&lineHash);
     fklDestroyAllVMs(anotherVM);
     fklDestroyVMgc(gc);
     return r;
@@ -9167,7 +9167,7 @@ findMacro(FklNastNode *exp, FklCodegenMacroScope *macros, FklPmatchTable *pht) {
 
 static void initVMframeFromPatternMatchTable(FklVM *exe, FklVMframe *frame,
                                              FklPmatchTable *ht,
-                                             FklHashTable *lineHash,
+                                             FklLineNumTable *lineHash,
                                              FklFuncPrototypes *pts,
                                              uint32_t prototype_id) {
     FklFuncPrototype *mainPts = &pts->pa[prototype_id];
@@ -9191,7 +9191,7 @@ static void initVMframeFromPatternMatchTable(FklVM *exe, FklVMframe *frame,
 
 typedef struct MacroExpandCtx {
     FklNastNode **retval;
-    FklHashTable *lineHash;
+    FklLineNumTable *lineHash;
     FklSymbolTable *symbolTable;
     uint64_t curline;
 } MacroExpandCtx;
@@ -9218,7 +9218,8 @@ static const FklVMframeContextMethodTable MacroExpandMethodTable = {
 };
 
 static void insert_macro_expand_frame(FklVM *exe, FklVMframe *mainframe,
-                                      FklNastNode **ptr, FklHashTable *lineHash,
+                                      FklNastNode **ptr,
+                                      FklLineNumTable *lineHash,
                                       FklSymbolTable *symbolTable,
                                       uint64_t curline) {
     FklVMframe *f =
@@ -9233,7 +9234,7 @@ static void insert_macro_expand_frame(FklVM *exe, FklVMframe *mainframe,
 
 FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl, FklFuncPrototypes *pts,
                             uint32_t prototype_id, FklPmatchTable *ht,
-                            FklHashTable *lineHash,
+                            FklLineNumTable *lineHash,
                             FklCodegenLibVector *macroLibStack,
                             FklNastNode **pr, uint64_t curline,
                             FklSymbolTable *publicSymbolTable,
@@ -9283,8 +9284,8 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *codegen,
         fklPmatchTableAdd2(&ht, codegen->outer_ctx->builtInPatternVar_orig,
                            exp);
         FklNastNode *retval = NULL;
-        FklHashTable lineHash;
-        fklInitLineNumHashTable(&lineHash);
+        FklLineNumTable lineHash;
+        fklLineNumTableInit(&lineHash);
 
         FklCodegenOuterCtx *outer_ctx = codegen->outer_ctx;
         const char *cwd = outer_ctx->cwd;
@@ -9318,7 +9319,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *codegen,
                 errorState->line = curline;
             }
         }
-        fklUninitHashTable(&lineHash);
+        fklLineNumTableUninit(&lineHash);
         fklDestroyAllVMs(anotherVM);
         fklDestroyVMgc(gc);
     }

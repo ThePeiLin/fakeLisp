@@ -1,7 +1,6 @@
 #ifndef FKL_CODEGEN_H
 #define FKL_CODEGEN_H
 
-#include "base.h"
 #include "bytecode.h"
 #include "grammer.h"
 #include "nast.h"
@@ -606,11 +605,11 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklSid_t group,
 
 FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklSymbolTable *tt,
                                         FklRegexTable *rt,
-                                        FklHashTable *builtin_terms);
+                                        FklGraSidBuiltinTable *builtin_terms);
 
 FklGrammerProduction *fklCodegenProdPrintingToProduction(
     const FklCodegenProdPrinting *p, FklSymbolTable *tt, FklRegexTable *rt,
-    FklHashTable *builtin_terms, FklCodegenOuterCtx *outer_ctx,
+    FklGraSidBuiltinTable *builtin_terms, FklCodegenOuterCtx *outer_ctx,
     FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
 
 void fklWriteExportNamedProds(const FklSidTable *export_named_prod_groups,

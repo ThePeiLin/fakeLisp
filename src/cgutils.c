@@ -1259,7 +1259,6 @@ add_production_group(FklGraProdGroupTable *named_prod_groups,
         fklGraProdGroupTableAdd1(named_prod_groups, group_id);
     if (!group->prods.buckets) {
         fklProdTableInit(&group->prods);
-        // fklInitGrammerProductionTable(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);
         fklNastNodeVectorInit(&group->ignore_printing, 8);
     }
@@ -1290,7 +1289,7 @@ static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
 }
 
 static inline void init_pre_lib_reader_macros(
-    FklHashTable *builtin_terms, FklCodegenLibVector *libStack,
+    FklGraSidBuiltinTable *builtin_terms, FklCodegenLibVector *libStack,
     FklSymbolTable *st, FklCodegenOuterCtx *outer_ctx, FklFuncPrototypes *pts,
     FklCodegenLibVector *macroLibStack) {
     uint32_t top = libStack->size;
@@ -1400,7 +1399,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     merge_prototypes(info_pts, pts);
     merge_prototypes(info_macro_pts, macro_pts);
 
-    FklHashTable builtin_terms;
+    FklGraSidBuiltinTable builtin_terms;
     fklInitBuiltinGrammerSymTable(&builtin_terms, pst);
 
     init_pre_lib_reader_macros(&builtin_terms, &scriptLibStack, pst, outer_ctx,
@@ -1409,7 +1408,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                                outer_ctx, info_macro_pts,
                                info_macroScriptLibStack);
 
-    fklUninitHashTable(&builtin_terms);
+    fklGraSidBuiltinTableUninit(&builtin_terms);
 
     for (uint32_t i = 0; i < scriptLibStack.size; i++)
         fklCodegenLibVectorPushBack(info_scriptLibStack,

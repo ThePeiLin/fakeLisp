@@ -1926,8 +1926,6 @@ static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {
     FKL_DECL_UD_DATA(g, FklGrammer, p);
     for (FklProdTableNode *item = g->productions.first; item;
          item = item->next) {
-        // FklGrammerProdHashItem *prod_item =
-        //     (FklGrammerProdHashItem *)item->data;
         for (FklGrammerProduction *prod = item->v; prod; prod = prod->next)
             fklVMgcToGray(prod->ctx, gc);
     }
@@ -1973,8 +1971,9 @@ static const FklVMudMetaTable CustomParserMetaTable = {
 #define INVALID_PROD_PART (2)
 
 static inline FklGrammerProduction *
-vm_vec_to_prod(FklVMvec *vec, FklHashTable *builtin_term, FklSymbolTable *tt,
-               FklRegexTable *rt, FklSid_t left, int *error_type) {
+vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinTable *builtin_term,
+               FklSymbolTable *tt, FklRegexTable *rt, FklSid_t left,
+               int *error_type) {
     FklVMvalueVector valid_items;
     fklVMvalueVectorInit(&valid_items, vec->size);
     FklGrammerSym *syms = NULL;
@@ -2092,7 +2091,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklSid_t sid = 0;
     FklSymbolTable *tt = &grammer->terminals;
     FklRegexTable *rt = &grammer->regexes;
-    FklHashTable *builtins = &grammer->builtins;
+    FklGraSidBuiltinTable *builtins = &grammer->builtins;
     for (; next_arg; next_arg = FKL_VM_POP_ARG(exe)) {
         switch (next) {
         case EXCEPT_NEXT_ARG_SYMBOL:

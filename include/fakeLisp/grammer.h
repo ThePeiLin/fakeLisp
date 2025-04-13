@@ -62,6 +62,93 @@ typedef struct {
 #define FKL_TABLE_ELM_NAME Nonterm
 #include "table.h"
 
+typedef enum {
+    FKL_LALR_MATCH_NONE,
+    FKL_LALR_MATCH_EOF,
+    FKL_LALR_MATCH_STRING,
+    FKL_LALR_MATCH_BUILTIN,
+    FKL_LALR_MATCH_STRING_END_WITH_TERMINAL,
+    FKL_LALR_MATCH_REGEX,
+} FklLalrMatchType;
+
+#define FKL_LALR_MATCH_NONE_INIT                                               \
+    ((FklLalrItemLookAhead){                                                   \
+        .t = FKL_LALR_MATCH_NONE,                                              \
+    })
+#define FKL_LALR_MATCH_EOF_INIT                                                \
+    ((FklLalrItemLookAhead){                                                   \
+        .t = FKL_LALR_MATCH_EOF,                                               \
+    })
+
+typedef struct {
+    FklLalrMatchType t;
+    unsigned int delim : 1;
+    unsigned int end_with_terminal : 1;
+    union {
+        const FklString *s;
+        FklLalrBuiltinGrammerSym b;
+        const FklRegexCode *re;
+    };
+} FklLalrItemLookAhead;
+
+static inline int
+fklBuiltinGrammerSymEqual(const FklLalrBuiltinGrammerSym *s0,
+                          const FklLalrBuiltinGrammerSym *s1) {
+    if (s0->t == s1->t) {
+        if (s0->t->ctx_equal)
+            return s0->t->ctx_equal(s0->c, s1->c);
+        return 1;
+    }
+    return 0;
+}
+
+static inline int fklLalrItemLookAheadEqual(const FklLalrItemLookAhead *la0,
+                                            const FklLalrItemLookAhead *la1) {
+    if (la0->t != la1->t || la0->delim != la1->delim
+        || la0->end_with_terminal != la1->end_with_terminal)
+        return 0;
+    switch (la0->t) {
+    case FKL_LALR_MATCH_NONE:
+    case FKL_LALR_MATCH_EOF:
+        return 1;
+        break;
+    case FKL_LALR_MATCH_STRING:
+    case FKL_LALR_MATCH_STRING_END_WITH_TERMINAL:
+        return la0->s == la1->s;
+        break;
+    case FKL_LALR_MATCH_REGEX:
+        return la0->re == la1->re;
+        break;
+    case FKL_LALR_MATCH_BUILTIN:
+        return fklBuiltinGrammerSymEqual(&la0->b, &la1->b);
+        break;
+    }
+    return 0;
+}
+
+static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
+    if (s->t->ctx_hash)
+        return s->t->ctx_hash(s->c);
+    return 0;
+}
+
+// FklLookAheadTable
+#define FKL_TABLE_KEY_TYPE FklLalrItemLookAhead
+#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemLookAheadEqual(A, B)
+#define FKL_TABLE_KEY_HASH                                                     \
+    {                                                                          \
+        uintptr_t rest = pk->t == FKL_LALR_MATCH_STRING                        \
+                           ? FKL_TYPE_CAST(uintptr_t, pk->s)                   \
+                           : (pk->t == FKL_LALR_MATCH_BUILTIN                  \
+                                  ? fklBuiltinGrammerSymHash(&pk->b)           \
+                                  : 0);                                        \
+        rest = fklHashCombine(rest, FKL_TYPE_CAST(uintptr_t, pk->t));          \
+        rest = fklHashCombine(rest, pk->delim << 1);                           \
+        return fklHashCombine(rest, pk->end_with_terminal);                    \
+    }
+#define FKL_TABLE_ELM_NAME LookAhead
+#include "table.h"
+
 enum FklGrammerTermType {
     FKL_TERM_STRING = 0,
     FKL_TERM_BUILTIN,
@@ -131,35 +218,6 @@ void fklDestroyGrammerProduction(FklGrammerProduction *h);
 FklGrammerProduction *
 fklCopyUninitedGrammerProduction(FklGrammerProduction *prod);
 
-typedef enum {
-    FKL_LALR_MATCH_NONE,
-    FKL_LALR_MATCH_EOF,
-    FKL_LALR_MATCH_STRING,
-    FKL_LALR_MATCH_BUILTIN,
-    FKL_LALR_MATCH_STRING_END_WITH_TERMINAL,
-    FKL_LALR_MATCH_REGEX,
-} FklLalrMatchType;
-
-#define FKL_LALR_MATCH_NONE_INIT                                               \
-    ((FklLalrItemLookAhead){                                                   \
-        .t = FKL_LALR_MATCH_NONE,                                              \
-    })
-#define FKL_LALR_MATCH_EOF_INIT                                                \
-    ((FklLalrItemLookAhead){                                                   \
-        .t = FKL_LALR_MATCH_EOF,                                               \
-    })
-
-typedef struct {
-    FklLalrMatchType t;
-    unsigned int delim : 1;
-    unsigned int end_with_terminal : 1;
-    union {
-        const FklString *s;
-        FklLalrBuiltinGrammerSym b;
-        const FklRegexCode *re;
-    };
-} FklLalrItemLookAhead;
-
 typedef struct {
     FklGrammerProduction *prod;
     uint32_t idx;
@@ -192,7 +250,7 @@ typedef struct FklGetLaFirstSetCacheKey {
 
 typedef struct FklGetLaFirstSetCacheItem {
     FklGetLaFirstSetCacheKey key;
-    FklHashTable first;
+    FklLookAheadTable first;
     int has_epsilon;
 } FklGetLaFirstSetCacheItem;
 

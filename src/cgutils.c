@@ -950,7 +950,7 @@ static inline FklReplacementTable *load_replacements(FklSymbolTable *st,
         FklSid_t id = 0;
         fread(&id, sizeof(id), 1, fp);
         FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-        *fklReplacementTableAdd2(ht, id, NULL) = node;
+        *fklReplacementTableSet(ht, id) = node;
     }
     return ht;
 }

@@ -387,6 +387,11 @@ static inline ELM_NAME *METHOD(Insert2)(NAME *self, FKL_TABLE_KEY_TYPE k,
     return METHOD(Insert)(self, &k, &v);
 }
 
+static inline FKL_TABLE_VAL_TYPE *METHOD(Set)(NAME *self,
+                                              FKL_TABLE_KEY_TYPE k) {
+    return METHOD(Add)(self, &k, NULL);
+}
+
 static inline int METHOD(Earase)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
                                  FKL_TABLE_VAL_TYPE *pv) {
     for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;

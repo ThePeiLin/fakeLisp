@@ -132,21 +132,38 @@ static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
     return 0;
 }
 
+static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
+    uintptr_t rest = pk->t == FKL_LALR_MATCH_STRING
+                       ? FKL_TYPE_CAST(uintptr_t, pk->s)
+                       : (pk->t == FKL_LALR_MATCH_BUILTIN
+                              ? fklBuiltinGrammerSymHash(&pk->b)
+                              : 0);
+    rest = fklHashCombine(rest, FKL_TYPE_CAST(uintptr_t, pk->t));
+    rest = fklHashCombine(rest, pk->delim << 1);
+    return fklHashCombine(rest, pk->end_with_terminal);
+}
+
 // FklLookAheadTable
 #define FKL_TABLE_KEY_TYPE FklLalrItemLookAhead
 #define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemLookAheadEqual(A, B)
-#define FKL_TABLE_KEY_HASH                                                     \
-    {                                                                          \
-        uintptr_t rest = pk->t == FKL_LALR_MATCH_STRING                        \
-                           ? FKL_TYPE_CAST(uintptr_t, pk->s)                   \
-                           : (pk->t == FKL_LALR_MATCH_BUILTIN                  \
-                                  ? fklBuiltinGrammerSymHash(&pk->b)           \
-                                  : 0);                                        \
-        rest = fklHashCombine(rest, FKL_TYPE_CAST(uintptr_t, pk->t));          \
-        rest = fklHashCombine(rest, pk->delim << 1);                           \
-        return fklHashCombine(rest, pk->end_with_terminal);                    \
-    }
+#define FKL_TABLE_KEY_HASH return fklLalrItemLookAheadHash(pk)
 #define FKL_TABLE_ELM_NAME LookAhead
+#include "table.h"
+
+typedef struct {
+    FklLookAheadTable first;
+    int hasEpsilon;
+} FklFirstSetItem;
+
+// FklFirstSetTable
+#define FKL_TABLE_KEY_TYPE FklGrammerNonterm
+#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+    (A)->group == (B)->group && (A)->sid == (B)->sid
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
+#define FKL_TABLE_VAL_TYPE FklFirstSetItem
+#define FKL_TABLE_VAL_UNINIT(V) fklLookAheadTableUninit(&(V)->first)
+#define FKL_TABLE_ELM_NAME FirstSet
 #include "table.h"
 
 enum FklGrammerTermType {
@@ -336,7 +353,7 @@ typedef struct FklGrammer {
 
     FklGraSidBuiltinTable builtins;
 
-    FklHashTable firstSets;
+    FklFirstSetTable firstSets;
 
     FklGrammerIgnore *ignores;
 

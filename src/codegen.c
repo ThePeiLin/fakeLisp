@@ -8858,7 +8858,7 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
         fklUninitSymbolTable(&g->terminals);
         fklUninitSymbolTable(&g->reachable_terminals);
         fklGraSidBuiltinTableUninit(&g->builtins);
-        fklUninitHashTable(&g->firstSets);
+        fklFirstSetTableUninit(&g->firstSets);
         fklProdTableUninit(&g->productions);
         destroy_grammer_ignore_list(*codegen->builtin_ignores);
         destroy_grammer_ignore_list(*codegen->unnamed_ignores);

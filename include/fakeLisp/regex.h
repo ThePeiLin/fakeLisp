@@ -59,7 +59,7 @@ typedef struct {
 
 // FklRegexStrTable
 #define FKL_TABLE_KEY_TYPE FklRegexCode const *
-#define FKL_TABLE_VAL_TYPE FklString const *
+#define FKL_TABLE_VAL_TYPE FklString *
 #define FKL_TABLE_ELM_NAME RegexStr
 #define FKL_TABLE_KEY_HASH                                                     \
     return fklHash64Shift(                                                     \
@@ -67,15 +67,30 @@ typedef struct {
 #include "table.h"
 
 typedef struct {
-    FklHashTable str_re;
+    uint64_t num;
+    FklRegexCode *re;
+} FklRegexItem;
+
+void fklRegexFree(FklRegexCode *);
+
+// FklStrRegexTable
+#define FKL_TABLE_KEY_TYPE FklString *
+#define FKL_TABLE_VAL_TYPE FklRegexItem
+#define FKL_TABLE_ELM_NAME StrRegex
+#define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
+#define FKL_TABLE_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
+#define FKL_TABLE_KEY_UNINIT(K) free(*(K))
+#define FKL_TABLE_VAL_UNINIT(V) fklRegexFree((V)->re)
+#include "table.h"
+
+typedef struct {
+    FklStrRegexTable str_re;
     FklRegexStrTable re_str;
     uint32_t num;
 } FklRegexTable;
 
 FklRegexCode *fklRegexCompileCstr(const char *pattern);
 FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len);
-
-void fklRegexFree(FklRegexCode *);
 
 uint32_t fklRegexMatchpInCstr(const FklRegexCode *pattern, const char *text,
                               uint32_t *ppos);
@@ -91,12 +106,6 @@ void fklRegexPrintAsC(const FklRegexCode *, const char *prefix,
 
 void fklRegexPrintAsCwithNum(const FklRegexCode *, const char *prefix,
                              uint64_t num, FILE *fp);
-
-typedef struct {
-    FklString *str;
-    uint64_t num;
-    FklRegexCode *re;
-} FklStrRegexHashItem;
 
 FklRegexTable *fklCreateRegexTable(void);
 void fklInitRegexTable(FklRegexTable *);

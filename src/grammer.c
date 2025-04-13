@@ -4630,10 +4630,9 @@ static inline void print_all_builtin_match_func(const FklGrammer *g, FILE *fp) {
 }
 
 static inline void print_all_regex(const FklRegexTable *rt, FILE *fp) {
-    for (const FklHashTableItem *l = rt->str_re.first; l; l = l->next) {
+    for (const FklStrRegexTableNode *l = rt->str_re.first; l; l = l->next) {
         fputs("static const ", fp);
-        const FklStrRegexHashItem *i = (const FklStrRegexHashItem *)l->data;
-        fklRegexPrintAsCwithNum(i->re, PRINT_C_REGEX_PREFIX, i->num, fp);
+        fklRegexPrintAsCwithNum(l->v.re, PRINT_C_REGEX_PREFIX, l->v.num, fp);
         fputc('\n', fp);
     }
 }

@@ -229,6 +229,35 @@ static inline void METHOD(Grow)(NAME *self) {
     }
 }
 
+static inline NODE_NAME *const *METHOD(Bucket)(NAME *self, uintptr_t hashv) {
+    return &self->buckets[hashv & self->mask];
+}
+
+static inline NODE_NAME *METHOD(CreateNode)(void) {
+    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
+    assert(node);
+    return node;
+}
+
+static inline NODE_NAME **METHOD(InsertNode)(NAME *self, uintptr_t hashv,
+                                             NODE_NAME *node) {
+    // check threshold and grow capacity
+    if (self->count >= self->rehash_threshold)
+        METHOD(Grow)(self);
+    NODE_NAME **pp = &self->buckets[hashv & self->mask];
+
+    node->bkt_next = *pp;
+    *pp = node;
+    if (self->first) {
+        node->prev = self->last;
+        self->last->next = node;
+    } else
+        self->first = node;
+    self->last = node;
+    ++self->count;
+    return pp;
+}
+
 #ifdef FKL_TABLE_VAL_TYPE
 static inline FKL_TABLE_VAL_TYPE *METHOD(Put)(NAME *self,
                                               FKL_TABLE_KEY_TYPE const *k,
@@ -247,28 +276,15 @@ static inline int METHOD(Put)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
 #endif
     }
 
-    // check threshold and grow capacity
-    if (self->count >= self->rehash_threshold)
-        METHOD(Grow)(self);
-    pp = &self->buckets[hashv & self->mask];
-
-    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
-    assert(node);
+    NODE_NAME *node = METHOD(CreateNode)();
     FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
 #ifdef FKL_TABLE_VAL_TYPE
     if (v) {
         FKL_TABLE_VAL_INIT(&node->v, v);
     }
 #endif
-    node->bkt_next = *pp;
-    *pp = node;
-    if (self->first) {
-        node->prev = self->last;
-        self->last->next = node;
-    } else
-        self->first = node;
-    self->last = node;
-    ++self->count;
+
+    pp = METHOD(InsertNode)(self, hashv, node);
 #ifdef FKL_TABLE_VAL_TYPE
     return NULL;
 #else
@@ -331,26 +347,13 @@ static inline FKL_TABLE_VAL_TYPE *METHOD(Add)(NAME *self,
         }
     }
 
-    // check threshold and grow capacity
-    if (self->count >= self->rehash_threshold)
-        METHOD(Grow)(self);
-    pp = &self->buckets[hashv & self->mask];
-
-    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
-    assert(node);
+    NODE_NAME *node = METHOD(CreateNode)();
     FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
     if (v) {
         FKL_TABLE_VAL_INIT(&node->v, v);
     }
-    node->bkt_next = *pp;
-    *pp = node;
-    if (self->first) {
-        node->prev = self->last;
-        self->last->next = node;
-    } else
-        self->first = node;
-    self->last = node;
-    ++self->count;
+
+    pp = METHOD(InsertNode)(self, hashv, node);
     return &node->v;
 }
 
@@ -369,26 +372,13 @@ static inline ELM_NAME *METHOD(Insert)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
         }
     }
 
-    // check threshold and grow capacity
-    if (self->count >= self->rehash_threshold)
-        METHOD(Grow)(self);
-    pp = &self->buckets[hashv & self->mask];
-
-    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
-    assert(node);
+    NODE_NAME *node = METHOD(CreateNode)();
     FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
     if (v) {
         FKL_TABLE_VAL_INIT(&node->v, v);
     }
-    node->bkt_next = *pp;
-    *pp = node;
-    if (self->first) {
-        node->prev = self->last;
-        self->last->next = node;
-    } else
-        self->first = node;
-    self->last = node;
-    ++self->count;
+
+    pp = METHOD(InsertNode)(self, hashv, node);
     return &node->elm;
 }
 

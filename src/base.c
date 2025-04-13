@@ -397,6 +397,7 @@ FklHashTable *fklCreateHashTable(const FklHashTableMetaTable *t) {
     return r;
 }
 
+// to be delete
 void fklPtrKeySet(void *k0, const void *k1) {
     *(void **)k0 = *(void *const *)k1;
 }

@@ -111,7 +111,7 @@ void fklSwapCompoundFrame(FklVMframe *a, FklVMframe *b) {
 void fkl_dbg_print_link_back_trace(FklVMframe *t, FklSymbolTable *table) {
     if (t->type == FKL_FRAME_COMPOUND) {
         if (t->c.sid)
-            fklPrintString(fklGetSymbolWithId(t->c.sid, table)->symbol, stderr);
+            fklPrintString(fklGetSymbolWithId(t->c.sid, table)->k, stderr);
         else
             fputs("<lambda>", stderr);
         fprintf(stderr, "[%u,%u]", t->c.mark, t->c.tail);
@@ -122,7 +122,7 @@ void fkl_dbg_print_link_back_trace(FklVMframe *t, FklSymbolTable *table) {
         fputs(" --> ", stderr);
         if (cur->type == FKL_FRAME_COMPOUND) {
             if (cur->c.sid)
-                fklPrintString(fklGetSymbolWithId(cur->c.sid, table)->symbol,
+                fklPrintString(fklGetSymbolWithId(cur->c.sid, table)->k,
                                stderr);
             else
                 fputs("<lambda>", stderr);
@@ -158,7 +158,7 @@ static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
 void fklDoPrintCprocBacktrace(FklSid_t sid, FILE *fp, FklVMgc *gc) {
     if (sid) {
         fprintf(fp, "at cproc: ");
-        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, sid)->symbol, fp);
+        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, sid)->k, fp);
         fputc('\n', fp);
     } else
         fputs("at <cproc>\n", fp);

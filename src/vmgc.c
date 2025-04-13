@@ -505,25 +505,25 @@ void fklVMacquireSt(FklVMgc *gc) { uv_rwlock_wrlock(&gc->st_lock); }
 
 void fklVMreleaseSt(FklVMgc *gc) { uv_rwlock_wrunlock(&gc->st_lock); }
 
-FklSymbolHashItem *fklVMaddSymbol(FklVMgc *gc, const FklString *str) {
+FklStrIdTableElm *fklVMaddSymbol(FklVMgc *gc, const FklString *str) {
     return fklVMaddSymbolCharBuf(gc, str->str, str->size);
 }
 
-FklSymbolHashItem *fklVMaddSymbolCstr(FklVMgc *gc, const char *str) {
+FklStrIdTableElm *fklVMaddSymbolCstr(FklVMgc *gc, const char *str) {
     return fklVMaddSymbolCharBuf(gc, str, strlen(str));
 }
 
-FklSymbolHashItem *fklVMaddSymbolCharBuf(FklVMgc *gc, const char *str,
-                                         size_t size) {
+FklStrIdTableElm *fklVMaddSymbolCharBuf(FklVMgc *gc, const char *str,
+                                        size_t size) {
     uv_rwlock_wrlock(&gc->st_lock);
-    FklSymbolHashItem *r = fklAddSymbolCharBuf(str, size, gc->st);
+    FklStrIdTableElm *r = fklAddSymbolCharBuf(str, size, gc->st);
     uv_rwlock_wrunlock(&gc->st_lock);
     return r;
 }
 
-FklSymbolHashItem *fklVMgetSymbolWithId(FklVMgc *gc, FklSid_t id) {
+FklStrIdTableElm *fklVMgetSymbolWithId(FklVMgc *gc, FklSid_t id) {
     uv_rwlock_rdlock(&gc->st_lock);
-    FklSymbolHashItem *r = fklGetSymbolWithId(id, gc->st);
+    FklStrIdTableElm *r = fklGetSymbolWithId(id, gc->st);
     uv_rwlock_rdunlock(&gc->st_lock);
     return r;
 }

@@ -276,7 +276,7 @@ static int export_strbuf_to_symbol(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, obj);
     FKL_VM_PUSH_VALUE(
         exe, FKL_MAKE_VM_SYM(
-                 fklVMaddSymbolCharBuf(exe->gc, buf->buf, buf->index)->id));
+                 fklVMaddSymbolCharBuf(exe->gc, buf->buf, buf->index)->v));
     return 0;
 }
 
@@ -501,7 +501,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     FklSid_t *symbols = (FklSid_t *)malloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->id;
+        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
     return symbols;
 }
 
@@ -512,7 +512,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklSid_t id = fklAddSymbolCstr(exports_and_func[i].sym, st)->id;
+        FklSid_t id = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
         FklVMcFunc func = exports_and_func[i].f;
         FklVMvalue *dlproc = fklCreateVMvalueCproc(exe, func, dll, NULL, id);
         loc[i] = dlproc;

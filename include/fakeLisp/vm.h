@@ -712,10 +712,10 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *, uint32_t llast,
 
 void fklVMacquireSt(FklVMgc *);
 void fklVMreleaseSt(FklVMgc *);
-FklSymbolHashItem *fklVMaddSymbol(FklVMgc *, const FklString *str);
-FklSymbolHashItem *fklVMaddSymbolCstr(FklVMgc *, const char *str);
-FklSymbolHashItem *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
-FklSymbolHashItem *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
+FklStrIdTableElm *fklVMaddSymbol(FklVMgc *, const FklString *str);
+FklStrIdTableElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
+FklStrIdTableElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
+FklStrIdTableElm *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
 
 void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt);
 void fklVMgcMarkAllRootToGray(FklVM *curVM);

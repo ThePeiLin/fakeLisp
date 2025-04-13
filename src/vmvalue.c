@@ -315,15 +315,15 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
                     break;
                 case FKL_TYPE_PROC:
                     cur->type = FKL_NAST_SYM;
-                    cur->sym = fklVMaddSymbolCstr(gc, "#<proc>")->id;
+                    cur->sym = fklVMaddSymbolCstr(gc, "#<proc>")->v;
                     break;
                 case FKL_TYPE_CPROC:
                     cur->type = FKL_NAST_SYM;
-                    cur->sym = fklVMaddSymbolCstr(gc, "#<cproc>")->id;
+                    cur->sym = fklVMaddSymbolCstr(gc, "#<cproc>")->v;
                     break;
                 case FKL_TYPE_USERDATA:
                     cur->type = FKL_NAST_SYM;
-                    cur->sym = fklVMaddSymbolCstr(gc, "#<userdata>")->id;
+                    cur->sym = fklVMaddSymbolCstr(gc, "#<userdata>")->v;
                     break;
                 case FKL_TYPE_BOX:
                     cur->type = FKL_NAST_BOX;
@@ -1421,8 +1421,8 @@ static void _error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf,
                                      FklVMgc *gc) {
     FKL_DECL_UD_DATA(err, FklVMerror, ud);
     fklStringBufferConcatWithCstr(buf, "#<err t: ");
-    print_raw_symbol_to_string_buffer(
-        buf, fklVMgetSymbolWithId(gc, err->type)->symbol);
+    print_raw_symbol_to_string_buffer(buf,
+                                      fklVMgetSymbolWithId(gc, err->type)->k);
     fklStringBufferConcatWithCstr(buf, " m: ");
     print_raw_string_to_string_buffer(buf, err->message);
     fklStringBufferPutc(buf, '>');

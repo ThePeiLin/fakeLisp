@@ -1,3 +1,4 @@
+#include "fakeLisp/base.h"
 #include <fakeLisp/common.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
@@ -6,60 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-    size_t len;
-    const char *buf;
-} SymbolTableKey;
-
-static void symbol_hash_set_val(void *d0, const void *d1) {
-    *(FklSymbolHashItem *)d0 = *(const FklSymbolHashItem *)d1;
-}
-
-static void symbol_other_hash_set_val(void *d0, const void *d1) {
-    FklSymbolHashItem *n = (FklSymbolHashItem *)d0;
-    const SymbolTableKey *k = (const SymbolTableKey *)d1;
-    n->symbol = fklCreateString(k->len, k->buf);
-    n->id = 0;
-}
-
-static int symbol_hash_key_equal(const void *k0, const void *k1) {
-    return fklStringEqual(*(const FklString **)k0, *(const FklString **)k1);
-}
-
-static int symbol_other_hash_key_equal(const void *k0, const void *k1) {
-    const SymbolTableKey *k = (const SymbolTableKey *)k1;
-    return !fklStringCharBufCmp(*(const FklString **)k0, k->len, k->buf);
-}
-
-static uintptr_t symbol_hash_func(const void *k0) {
-    return fklStringHash(*(const FklString **)k0);
-}
-
-static uintptr_t symbol_other_hash_func(const void *k0) {
-    const SymbolTableKey *k = (const SymbolTableKey *)k0;
-    return fklCharBufHash(k->buf, k->len);
-}
-
-static void symbol_hash_uninit(void *d) {
-    FklSymbolHashItem *dd = (FklSymbolHashItem *)d;
-    free(dd->symbol);
-}
-
-static const FklHashTableMetaTable SymbolHashMetaTable = {
-    .size = sizeof(FklSymbolHashItem),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = fklPtrKeySet,
-    .__setVal = symbol_hash_set_val,
-    .__keyEqual = symbol_hash_key_equal,
-    .__hashFunc = symbol_hash_func,
-    .__uninitItem = symbol_hash_uninit,
-};
-
 void fklInitSymbolTable(FklSymbolTable *tmp) {
     tmp->idl = NULL;
     tmp->num = 0;
     tmp->idl_size = 0;
-    fklInitHashTable(&tmp->ht, &SymbolHashMetaTable);
+    fklStrIdTableInit(&tmp->ht);
 }
 
 FklSymbolTable *fklCreateSymbolTable() {
@@ -69,37 +21,41 @@ FklSymbolTable *fklCreateSymbolTable() {
     return tmp;
 }
 
-FklSymbolHashItem *fklAddSymbol(const FklString *sym, FklSymbolTable *table) {
+FklStrIdTableElm *fklAddSymbol(const FklString *sym, FklSymbolTable *table) {
     return fklAddSymbolCharBuf(sym->str, sym->size, table);
 }
 
-FklSymbolHashItem *fklAddSymbolCstr(const char *sym, FklSymbolTable *table) {
+FklStrIdTableElm *fklAddSymbolCstr(const char *sym, FklSymbolTable *table) {
     return fklAddSymbolCharBuf(sym, strlen(sym), table);
 }
 
-FklSymbolHashItem *fklAddSymbolCharBuf(const char *buf, size_t len,
-                                       FklSymbolTable *table) {
-    FklHashTable *ht = &table->ht;
-    SymbolTableKey key = {.len = len, .buf = buf};
-    FklSymbolHashItem *node = fklGetOrPutWithOtherKey(
-        &key, symbol_other_hash_func, symbol_other_hash_key_equal,
-        symbol_other_hash_set_val, ht);
-    if (node->id == 0) {
-        node->id = ht->num;
-        table->num++;
-        if (table->num >= table->idl_size) {
-            table->idl_size += FKL_DEFAULT_INC;
-            table->idl = (FklSymbolHashItem **)fklRealloc(
-                table->idl, table->idl_size * sizeof(FklSymbolHashItem *));
-            FKL_ASSERT(table->idl);
-        }
-        table->idl[table->num - 1] = node;
+FklStrIdTableElm *fklAddSymbolCharBuf(const char *buf, size_t len,
+                                      FklSymbolTable *table) {
+    uintptr_t hashv = fklCharBufHash(buf, len);
+    FklStrIdTable *ht = &table->ht;
+    FklStrIdTableNode *const *bkt = fklStrIdTableBucket(ht, hashv);
+    for (; *bkt; bkt = &(*bkt)->bkt_next) {
+        FklStrIdTableNode *cur = *bkt;
+        if (!fklStringCharBufCmp(cur->k, len, buf))
+            return &cur->elm;
     }
-    return node;
+
+    FklStrIdTableNode *node = fklStrIdTableCreateNode();
+    *FKL_REMOVE_CONST(FklString *, &node->k) = fklCreateString(len, buf);
+    fklStrIdTableInsertNode(ht, hashv, node);
+    node->v = ht->count;
+    if ((++table->num) >= table->idl_size) {
+        table->idl_size += FKL_DEFAULT_INC;
+        table->idl = (FklStrIdTableElm **)fklRealloc(
+            table->idl, table->idl_size * sizeof(FklStrIdTableElm *));
+        FKL_ASSERT(table->idl);
+    }
+    table->idl[table->num - 1] = &node->elm;
+    return &node->elm;
 }
 
 void fklUninitSymbolTable(FklSymbolTable *table) {
-    fklUninitHashTable(&table->ht);
+    fklStrIdTableUninit(&table->ht);
     free(table->idl);
 }
 
@@ -108,8 +64,7 @@ void fklDestroySymbolTable(FklSymbolTable *table) {
     free(table);
 }
 
-FklSymbolHashItem *fklGetSymbolWithId(FklSid_t id,
-                                      const FklSymbolTable *table) {
+FklStrIdTableElm *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *table) {
     if (id == 0)
         return NULL;
     return table->idl[id - 1];
@@ -120,9 +75,9 @@ void fklPrintSymbolTable(const FklSymbolTable *table, FILE *fp) {
     int numLen = table->num ? (int)(log10(table->num) + 1) : 1;
     fprintf(fp, "size:%" FKL_PRT64U "\n", table->num);
     for (uint32_t i = 0; i < table->num; i++) {
-        FklSymbolHashItem *cur = table->idl[i];
-        fprintf(fp, "%-*" FKL_PRT64U ":\t", numLen, cur->id);
-        fklPrintRawSymbol(cur->symbol, fp);
+        FklStrIdTableElm *cur = table->idl[i];
+        fprintf(fp, "%-*" FKL_PRT64U ":\t", numLen, cur->v);
+        fklPrintRawSymbol(cur->k, fp);
         fputc('\n', fp);
     }
 }
@@ -130,10 +85,8 @@ void fklPrintSymbolTable(const FklSymbolTable *table, FILE *fp) {
 void fklWriteSymbolTable(const FklSymbolTable *table, FILE *fp) {
     fwrite(&table->num, sizeof(table->num), 1, fp);
     for (uint64_t i = 0; i < table->num; i++)
-        fwrite(table->idl[i]->symbol,
-               table->idl[i]->symbol->size
-                   + sizeof(table->idl[i]->symbol->size),
-               1, fp);
+        fwrite(table->idl[i]->k,
+               table->idl[i]->k->size + sizeof(table->idl[i]->k->size), 1, fp);
 }
 
 void fklLoadSymbolTable(FILE *fp, FklSymbolTable *table) {

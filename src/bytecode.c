@@ -520,7 +520,7 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
     case FKL_OP_PUSH_SYM_C:
     case FKL_OP_PUSH_SYM_X:
         fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
-        fklPrintRawSymbol(fklGetSymbolWithId(ins_arg.ux, st)->symbol, fp);
+        fklPrintRawSymbol(fklGetSymbolWithId(ins_arg.ux, st)->k, fp);
         break;
 
     case FKL_OP_PUSH_BI:
@@ -852,8 +852,8 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(
-                        fklGetSymbolWithId(obj->l[j].fid, st)->symbol, fp);
+                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
+                                   fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -870,8 +870,8 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(
-                        fklGetSymbolWithId(obj->l[j].fid, st)->symbol, fp);
+                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
+                                   fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -894,8 +894,8 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(
-                        fklGetSymbolWithId(obj->l[j].fid, st)->symbol, fp);
+                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
+                                   fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -912,8 +912,8 @@ void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(
-                        fklGetSymbolWithId(obj->l[j].fid, st)->symbol, fp);
+                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
+                                   fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);

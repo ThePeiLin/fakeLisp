@@ -182,7 +182,7 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
     if (obj) {
         if (fid) {
             fprintf(stderr, "at line %" FKL_PRT64U " of file %s", obj->curline,
-                    fklGetSymbolWithId(fid, publicSymbolTable)->symbol->str);
+                    fklGetSymbolWithId(fid, publicSymbolTable)->k->str);
             fputc('\n', stderr);
         } else if (info->filename) {
             fprintf(stderr, "at line %" FKL_PRT64U " of file %s", obj->curline,
@@ -193,7 +193,7 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
     } else {
         if (fid) {
             fprintf(stderr, "at line %" FKL_PRT64U " of file %s", obj->curline,
-                    fklGetSymbolWithId(fid, publicSymbolTable)->symbol->str);
+                    fklGetSymbolWithId(fid, publicSymbolTable)->k->str);
             fputc('\n', stderr);
         } else if (info->filename) {
             fprintf(stderr, "at line %" FKL_PRT64U " of file %s", line,
@@ -515,8 +515,7 @@ FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scopeId,
 static inline void replace_sid(FklSid_t *id, const FklSymbolTable *origin_st,
                                FklSymbolTable *target_st) {
     FklSid_t sid = *id;
-    *id =
-        fklAddSymbol(fklGetSymbolWithId(sid, origin_st)->symbol, target_st)->id;
+    *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st)->k, target_st)->v;
 }
 
 struct RecomputeSidAndConstIdCtx {
@@ -969,7 +968,7 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
     lib->head = load_compiler_macros(st, fp);
     lib->replacements = load_replacements(st, fp);
     lib->named_prod_groups.t = NULL;
-    lib->terminal_table.ht.t = NULL;
+    lib->terminal_table.ht.buckets = NULL;
     load_named_prods(&lib->terminal_table, &lib->regexes,
                      &lib->named_prod_groups, st, fp);
 }

@@ -936,7 +936,7 @@ static inline int obj_to_string(FKL_CPROC_ARGL) {
         retval = fklCreateVMvalueStr2(exe, 1, &r);
     } else if (FKL_IS_SYM(obj))
         retval = fklCreateVMvalueStr(
-            exe, fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj))->symbol);
+            exe, fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj))->k);
     else if (FKL_IS_STR(obj))
         retval = fklCreateVMvalueStr(exe, FKL_VM_STR(obj));
     else if (fklIsVMnumber(obj)) {
@@ -1008,7 +1008,7 @@ static int builtin_symbol_to_string(FKL_CPROC_ARGL) {
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, FKL_IS_SYM, exe);
     FklVMvalue *retval = fklCreateVMvalueStr(
-        exe, fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj))->symbol);
+        exe, fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj))->k);
     FKL_VM_PUSH_VALUE(exe, retval);
     return 0;
 }
@@ -1018,7 +1018,7 @@ static int builtin_string_to_symbol(FKL_CPROC_ARGL) {
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, FKL_IS_STR, exe);
     FKL_VM_PUSH_VALUE(
-        exe, FKL_MAKE_VM_SYM(fklVMaddSymbol(exe->gc, FKL_VM_STR(obj))->id));
+        exe, FKL_MAKE_VM_SYM(fklVMaddSymbol(exe->gc, FKL_VM_STR(obj))->v));
     return 0;
 }
 
@@ -2019,14 +2019,14 @@ vm_vec_to_prod(FklVMvec *vec, FklHashTable *builtin_term, FklSymbolTable *tt,
                 ss->isterm = 1;
                 ss->term_type = FKL_TERM_STRING;
                 ss->nt.group = 0;
-                ss->nt.sid = fklAddSymbol(FKL_VM_STR(cur), tt)->id;
+                ss->nt.sid = fklAddSymbol(FKL_VM_STR(cur), tt)->v;
                 ss->end_with_terminal = 0;
             } else if (FKL_IS_VECTOR(cur)) {
                 ss->isterm = 1;
                 ss->term_type = FKL_TERM_STRING;
                 ss->nt.group = 0;
                 ss->nt.sid =
-                    fklAddSymbol(FKL_VM_STR(FKL_VM_VEC(cur)->base[0]), tt)->id;
+                    fklAddSymbol(FKL_VM_STR(FKL_VM_VEC(cur)->base[0]), tt)->v;
                 ss->end_with_terminal = 1;
             } else if (FKL_IS_BOX(cur)) {
                 const FklString *str = FKL_VM_STR(FKL_VM_BOX(cur));
@@ -3093,7 +3093,7 @@ static void error_handler_frame_print_backtrace(void *data, FILE *fp,
     FklVMcproc *cproc = FKL_VM_CPROC(c->proc);
     if (cproc->sid) {
         fprintf(fp, "at cproc: ");
-        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, cproc->sid)->symbol, fp);
+        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, cproc->sid)->k, fp);
         fputc('\n', fp);
     } else
         fputs("at <cproc>\n", fp);
@@ -4907,7 +4907,7 @@ void fklInitGlobCodegenEnv(FklCodegenEnv *curEnv, FklSymbolTable *pst) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
          list->s != NULL; list++) {
         FklSymDefTableElm *ref = fklAddCodegenBuiltinRefBySid(
-            fklAddSymbolCstr(list->s, pst)->id, curEnv);
+            fklAddSymbolCstr(list->s, pst)->v, curEnv);
         ref->v.isConst = 1;
     }
 }
@@ -4922,9 +4922,9 @@ static inline void init_vm_public_data(PublicBuiltInData *pd, FklVM *exe) {
 
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;
-    pd->seek_set = fklAddSymbolCstr("set", st)->id;
-    pd->seek_cur = fklAddSymbolCstr("cur", st)->id;
-    pd->seek_end = fklAddSymbolCstr("end", st)->id;
+    pd->seek_set = fklAddSymbolCstr("set", st)->v;
+    pd->seek_cur = fklAddSymbolCstr("cur", st)->v;
+    pd->seek_end = fklAddSymbolCstr("end", st)->v;
     fklVMreleaseSt(exe->gc);
 }
 
@@ -4946,7 +4946,7 @@ void fklInitGlobalVMclosureForGC(FklVM *exe) {
     for (size_t i = 3; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
         FklVMvalue *v = fklCreateVMvalueCproc(
             exe, builtInSymbolList[i].f, NULL, publicUserData,
-            fklAddSymbolCstr(builtInSymbolList[i].s, st)->id);
+            fklAddSymbolCstr(builtInSymbolList[i].s, st)->v);
         closure[i] = fklCreateClosedVMvalueVarRef(exe, v);
     }
     fklVMreleaseSt(exe->gc);

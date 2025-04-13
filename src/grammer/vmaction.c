@@ -41,7 +41,7 @@ static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
     }
     FklSid_t id =
         fklVMaddSymbolCharBuf(((FklVM *)outerCtx)->gc, buffer.buf, buffer.index)
-            ->id;
+            ->v;
     fklUninitStringBuffer(&buffer);
     FklVMvalue *retval = FKL_MAKE_VM_SYM(id);
     return retval;
@@ -181,7 +181,7 @@ static inline FklVMvalue *create_vmvalue_list(FklVM *exe, FklVMvalue **a,
 static inline void *prod_action_quote(void *outerCtx, void *nodes[], size_t num,
                                       size_t line) {
     FklVM *exe = (FklVM *)outerCtx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "quote")->id;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "quote")->v;
     FklVMvalue *rest = nodes[1];
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 
@@ -193,7 +193,7 @@ static inline void *prod_action_quote(void *outerCtx, void *nodes[], size_t num,
 static inline void *prod_action_unquote(void *outerCtx, void *nodes[],
                                         size_t num, size_t line) {
     FklVM *exe = (FklVM *)outerCtx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unquote")->id;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unquote")->v;
     FklVMvalue *rest = nodes[1];
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 
@@ -205,7 +205,7 @@ static inline void *prod_action_unquote(void *outerCtx, void *nodes[],
 static inline void *prod_action_qsquote(void *outerCtx, void *nodes[],
                                         size_t num, size_t line) {
     FklVM *exe = (FklVM *)outerCtx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "qsquote")->id;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "qsquote")->v;
     FklVMvalue *rest = nodes[1];
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 
@@ -217,7 +217,7 @@ static inline void *prod_action_qsquote(void *outerCtx, void *nodes[],
 static inline void *prod_action_unqtesp(void *outerCtx, void *nodes[],
                                         size_t num, size_t line) {
     FklVM *exe = (FklVM *)outerCtx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unqtesp")->id;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unqtesp")->v;
     FklVMvalue *rest = nodes[1];
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 

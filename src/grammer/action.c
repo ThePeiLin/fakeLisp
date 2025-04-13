@@ -41,7 +41,7 @@ static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
         cstr += len;
         cstr_size -= len;
     }
-    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx)->id;
+    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx)->v;
     FklNastNode *node = fklCreateNastNode(FKL_NAST_SYM, nodes[0]->curline);
     node->sym = id;
     fklUninitStringBuffer(&buffer);
@@ -218,7 +218,7 @@ static inline FklNastNode *create_nast_list(FklNastNode **a, size_t num,
 
 static inline void *prod_action_quote(void *outerCtx, void *nodes[], size_t num,
                                       size_t line) {
-    FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -228,7 +228,7 @@ static inline void *prod_action_quote(void *outerCtx, void *nodes[], size_t num,
 
 static inline void *prod_action_unquote(void *outerCtx, void *nodes[],
                                         size_t num, size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -238,7 +238,7 @@ static inline void *prod_action_unquote(void *outerCtx, void *nodes[],
 
 static inline void *prod_action_qsquote(void *outerCtx, void *nodes[],
                                         size_t num, size_t line) {
-    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -248,7 +248,7 @@ static inline void *prod_action_qsquote(void *outerCtx, void *nodes[],
 
 static inline void *prod_action_unqtesp(void *outerCtx, void *nodes[],
                                         size_t num, size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;

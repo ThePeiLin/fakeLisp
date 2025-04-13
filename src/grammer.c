@@ -195,7 +195,7 @@ static inline void *init_builtin_grammer_sym(const FklLalrBuiltinMatch *m,
             return NULL;
         }
         const FklString *next =
-            sym ? fklGetSymbolWithId(sym->nt.sid, &g->terminals)->symbol : NULL;
+            sym ? fklGetSymbolWithId(sym->nt.sid, &g->terminals)->k : NULL;
         return m->ctx_create(next, failed);
     }
     return NULL;
@@ -268,7 +268,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
         ;
     for (len = 0; !isspace(ss[len]); len++)
         ;
-    FklSid_t left = fklAddSymbolCharBuf(ss, len, symbolTable)->id;
+    FklSid_t left = fklAddSymbolCharBuf(ss, len, symbolTable)->v;
     ss += len;
     len = 0;
     FklStringVector st;
@@ -311,7 +311,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
             u->isterm = 1;
             u->nt.group = 0;
             u->nt.sid =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->id;
+                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->v;
             break;
         case '/': {
             u->isterm = 1;
@@ -327,7 +327,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
         } break;
         case '&': {
             FklSid_t id =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, symbolTable)->id;
+                fklAddSymbolCharBuf(&s->str[1], s->size - 1, symbolTable)->v;
             const FklLalrBuiltinMatch *builtin =
                 fklGetBuiltinMatch(builtins, id);
             if (builtin) {
@@ -373,7 +373,7 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
                 if (sym && (!sym->isterm || sym->term_type != FKL_TERM_STRING))
                     return NULL;
                 const FklString *next =
-                    sym ? fklGetSymbolWithId(sym->nt.sid, tt)->symbol : NULL;
+                    sym ? fklGetSymbolWithId(sym->nt.sid, tt)->k : NULL;
                 b->c = b->t->ctx_create(next, &failed);
             }
             if (failed)
@@ -400,7 +400,7 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
             if (igs->term_type == FKL_TERM_REGEX)
                 igs->re = sym->re;
             else
-                igs->str = fklGetSymbolWithId(sym->nt.sid, tt)->symbol;
+                igs->str = fklGetSymbolWithId(sym->nt.sid, tt)->k;
         }
     }
     return ig;
@@ -461,7 +461,7 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
             u->isterm = 1;
             u->nt.group = 0;
             u->nt.sid =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->id;
+                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->v;
             break;
         case '/': {
             u->isterm = 1;
@@ -476,7 +476,7 @@ create_grammer_ignore_from_cstr(const char *str, FklHashTable *builtins,
         } break;
         case '&': {
             FklSid_t id =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, symbolTable)->id;
+                fklAddSymbolCharBuf(&s->str[1], s->size - 1, symbolTable)->v;
             const FklLalrBuiltinMatch *builtin =
                 fklGetBuiltinMatch(builtins, id);
             if (builtin) {
@@ -899,9 +899,9 @@ static inline void sort_reachable_terminals(FklGrammer *g) {
     if (num) {
         terms = (const FklString **)malloc(num * sizeof(FklString *));
         FKL_ASSERT(terms);
-        FklSymbolHashItem **symList = g->reachable_terminals.idl;
+        FklStrIdTableElm **symList = g->reachable_terminals.idl;
         for (size_t i = 0; i < num; i++)
-            terms[i] = symList[i]->symbol;
+            terms[i] = symList[i]->k;
         qsort(terms, num, sizeof(FklString *), string_len_cmp);
     }
     g->sortedTerminals = terms;
@@ -1245,7 +1245,7 @@ static void *s_number_ctx_global_create(size_t idx, FklGrammerProduction *prod,
             *failed = 1;
             return NULL;
         }
-        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->symbol;
+        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
     }
     prod->len = 1;
     SymbolNumberCtx *ctx = (SymbolNumberCtx *)malloc(sizeof(SymbolNumberCtx));
@@ -1535,7 +1535,7 @@ static void *s_char_ctx_global_create(size_t idx, FklGrammerProduction *prod,
         *failed = 1;
         return NULL;
     }
-    start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->symbol;
+    start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
     prod->len = 1;
     SymbolNumberCtx *ctx = (SymbolNumberCtx *)malloc(sizeof(SymbolNumberCtx));
     FKL_ASSERT(ctx);
@@ -1791,7 +1791,7 @@ static void *builtin_match_symbol_global_create(size_t idx,
             *failed = 1;
             return NULL;
         }
-        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->symbol;
+        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
         end = start;
     } else if (prod->len == 3) {
         if (!prod->syms[1].isterm || prod->syms[1].term_type != FKL_TERM_STRING
@@ -1801,8 +1801,8 @@ static void *builtin_match_symbol_global_create(size_t idx,
             *failed = 1;
             return NULL;
         }
-        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->symbol;
-        end = fklGetSymbolWithId(prod->syms[2].nt.sid, &g->terminals)->symbol;
+        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
+        end = fklGetSymbolWithId(prod->syms[2].nt.sid, &g->terminals)->k;
     }
     prod->len = 1;
     MatchSymbolCtx *ctx = (MatchSymbolCtx *)malloc(sizeof(MatchSymbolCtx));
@@ -1866,7 +1866,7 @@ void fklInitBuiltinGrammerSymTable(FklHashTable *s, FklSymbolTable *st) {
     fklInitHashTable(s, &SidBuiltinHashMetaTable);
     for (const struct BuiltinGrammerSymList *l = &builtin_grammer_sym_list[0];
          l->name; l++) {
-        FklSid_t id = fklAddSymbolCstr(l->name, st)->id;
+        FklSid_t id = fklAddSymbolCstr(l->name, st)->v;
         SidBuiltinHashItem i = {.id = id, .t = l->t};
         fklGetOrPutHashItem(&i, s);
     }
@@ -2156,7 +2156,7 @@ static inline int compute_all_first_set(FklGrammer *g) {
                                 break;
                         } else {
                             const FklString *s =
-                                fklGetSymbolWithId(sym->nt.sid, tt)->symbol;
+                                fklGetSymbolWithId(sym->nt.sid, tt)->k;
                             if (s->size == 0) {
                                 if (i == lastIdx) {
                                     change |= firstItem->hasEpsilon != 1;
@@ -2246,8 +2246,7 @@ static inline int add_reachable_terminal(FklGrammer *g) {
                     if (cur->term_type == FKL_TERM_STRING
                         && !cur->end_with_terminal)
                         fklAddSymbol(
-                            fklGetSymbolWithId(cur->nt.sid, &g->terminals)
-                                ->symbol,
+                            fklGetSymbolWithId(cur->nt.sid, &g->terminals)->k,
                             &g->reachable_terminals);
                     else if (cur->term_type == FKL_TERM_REGEX)
                         find_and_add_terminal_in_regex(cur->re,
@@ -2402,11 +2401,11 @@ static inline void print_prod_sym(FILE *fp, const FklGrammerSym *u,
             fklPrintString(fklGetStringWithRegex(rt, u->re, NULL), fp);
         } else {
             putc('#', fp);
-            fklPrintString(fklGetSymbolWithId(u->nt.sid, tt)->symbol, fp);
+            fklPrintString(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
         }
     } else {
         putc('&', fp);
-        fklPrintString(fklGetSymbolWithId(u->nt.sid, st)->symbol, fp);
+        fklPrintString(fklGetSymbolWithId(u->nt.sid, st)->k, fp);
     }
 }
 
@@ -2461,13 +2460,13 @@ static inline void print_prod_sym_as_dot(FILE *fp, const FklGrammerSym *u,
             print_string_as_dot((const uint8_t *)str->str, '"', str->size, fp);
             fputs("'\\/", fp);
         } else {
-            const FklString *str = fklGetSymbolWithId(u->nt.sid, tt)->symbol;
+            const FklString *str = fklGetSymbolWithId(u->nt.sid, tt)->k;
             fputs("\\\'", fp);
             print_string_as_dot((const uint8_t *)str->str, '"', str->size, fp);
             fputs("\\\'", fp);
         }
     } else {
-        const FklString *str = fklGetSymbolWithId(u->nt.sid, st)->symbol;
+        const FklString *str = fklGetSymbolWithId(u->nt.sid, st)->k;
         fputc('|', fp);
         print_string_as_dot((const uint8_t *)str->str, '|', str->size, fp);
         fputc('|', fp);
@@ -2753,7 +2752,7 @@ static inline void print_item(FILE *fp, const FklLalrItem *item,
     size_t len = prod->len;
     FklGrammerSym *syms = prod->syms;
     if (!is_Sq_nt(&prod->left))
-        fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->symbol, fp);
+        fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
     else
         fputs("S'", fp);
     fputs(" ->", fp);
@@ -3049,7 +3048,7 @@ get_first_set_from_first_sets(const FklGrammer *g,
                     else
                         break;
                 } else {
-                    FklString *s = fklGetSymbolWithId(sym->nt.sid, tt)->symbol;
+                    FklString *s = fklGetSymbolWithId(sym->nt.sid, tt)->k;
                     if (s->size == 0)
                         hasEpsilon = i == lastIdx;
                     else {
@@ -3350,7 +3349,7 @@ static inline void print_item_as_dot(FILE *fp, const FklLalrItem *item,
     size_t len = prod->len;
     FklGrammerSym *syms = prod->syms;
     if (!is_Sq_nt(&prod->left)) {
-        const FklString *str = fklGetSymbolWithId(prod->left.sid, st)->symbol;
+        const FklString *str = fklGetSymbolWithId(prod->left.sid, st)->k;
         fputc('|', fp);
         print_string_as_dot((const uint8_t *)str->str, '"', str->size, fp);
         fputc('|', fp);
@@ -3448,7 +3447,7 @@ create_shift_action(const FklGrammerSym *sym, const FklSymbolTable *tt,
         action->match.t = FKL_LALR_MATCH_REGEX;
         action->match.re = sym->re;
     } else {
-        const FklString *s = fklGetSymbolWithId(sym->nt.sid, tt)->symbol;
+        const FklString *s = fklGetSymbolWithId(sym->nt.sid, tt)->k;
         action->match.t = sym->end_with_terminal
                             ? FKL_LALR_MATCH_STRING_END_WITH_TERMINAL
                             : FKL_LALR_MATCH_STRING;
@@ -3940,7 +3939,7 @@ void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
         for (FklAnalysisStateGoto *gt = curState->state.gt; gt; gt = gt->next) {
             uintptr_t idx = gt->state - states;
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid, st)->symbol, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid, st)->k, fp);
             fprintf(fp, " , %" FKL_PRT64U ")", idx);
             fputc('\t', fp);
         }
@@ -4153,7 +4152,7 @@ static inline void print_table_header_for_grapheasy(const FklHashTable *la,
         fputc('|', fp);
         const FklGrammerNonterm *id = (const FklGrammerNonterm *)sl->data;
         fputs("\\|", fp);
-        print_symbol_for_grapheasy(fklGetSymbolWithId(id->sid, st)->symbol, fp);
+        print_symbol_for_grapheasy(fklGetSymbolWithId(id->sid, st)->k, fp);
         fputs("\\|", fp);
     }
     fputs("||\n", fp);
@@ -4780,7 +4779,7 @@ void fklPrintGrammerProduction(FILE *fp, const FklGrammerProduction *prod,
                                const FklSymbolTable *tt,
                                const FklRegexTable *rt) {
     if (!is_Sq_nt(&prod->left))
-        fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->symbol, fp);
+        fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
     else
         fputs("S'", fp);
     fputs(" ->", fp);
@@ -5293,7 +5292,7 @@ static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
         cstr += len;
         cstr_size -= len;
     }
-    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx)->id;
+    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx)->v;
     FklNastNode *node = fklCreateNastNode(FKL_NAST_SYM, nodes[0]->curline);
     node->sym = id;
     fklUninitStringBuffer(&buffer);
@@ -5475,7 +5474,7 @@ static inline FklNastNode *create_nast_list(FklNastNode *a[], size_t num,
 
 static inline void *prod_action_quote(void *ctx, void *outerCtx, void *nodes[],
                                       size_t num, size_t line) {
-    FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -5486,7 +5485,7 @@ static inline void *prod_action_quote(void *ctx, void *outerCtx, void *nodes[],
 static inline void *prod_action_unquote(void *ctx, void *outerCtx,
                                         void *nodes[], size_t num,
                                         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -5497,7 +5496,7 @@ static inline void *prod_action_unquote(void *ctx, void *outerCtx,
 static inline void *prod_action_qsquote(void *ctx, void *outerCtx,
                                         void *nodes[], size_t num,
                                         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -5508,7 +5507,7 @@ static inline void *prod_action_qsquote(void *ctx, void *outerCtx,
 static inline void *prod_action_unqtesp(void *ctx, void *outerCtx,
                                         void *nodes[], size_t num,
                                         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->id;
+    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;

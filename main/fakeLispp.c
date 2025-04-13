@@ -380,7 +380,7 @@ static void print_reader_macros(const FklHashTable *ht,
     for (FklHashTableItem *l = ht->first; l; l = l->next) {
         FklGrammerProductionGroup *group = (FklGrammerProductionGroup *)l->data;
         fputs("group name:", fp);
-        fklPrintRawSymbol(fklGetSymbolWithId(group->id, pst)->symbol, fp);
+        fklPrintRawSymbol(fklGetSymbolWithId(group->id, pst)->k, fp);
         if (group->ignore_printing.size) {
             fputs("\nignores:\n", fp);
             uint32_t top = group->ignore_printing.size;
@@ -397,8 +397,7 @@ static void print_reader_macros(const FklHashTable *ht,
             for (uint32_t i = 0; i < top; i++) {
                 const FklCodegenProdPrinting *p = &base[i];
                 if (p->sid)
-                    fklPrintRawSymbol(fklGetSymbolWithId(p->sid, pst)->symbol,
-                                      fp);
+                    fklPrintRawSymbol(fklGetSymbolWithId(p->sid, pst)->k, fp);
                 else
                     fputs("()", fp);
                 fputc(' ', fp);

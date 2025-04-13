@@ -14,7 +14,7 @@ static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
 
 static inline void replace_info_fid_with_realpath(FklCodegenInfo *info) {
     FklSid_t rpsid =
-        fklAddSymbolCstr(info->realpath, info->runtime_symbol_table)->id;
+        fklAddSymbolCstr(info->realpath, info->runtime_symbol_table)->v;
     info->fid = rpsid;
 }
 
@@ -161,7 +161,7 @@ static inline void init_source_codes(DebugCtx *ctx) {
     for (FklSidTableNode *sid_list = ctx->file_sid_set.first; sid_list;
          sid_list = sid_list->next) {
         FklSid_t fid = sid_list->k;
-        const FklString *str = fklGetSymbolWithId(fid, ctx->st)->symbol;
+        const FklString *str = fklGetSymbolWithId(fid, ctx->st)->k;
         BdbSourceCodeTableElm *item =
             bdbSourceCodeTableInsert(source_code_table, &fid, NULL);
         load_source_code_to_source_code_hash_item(item, str->str);

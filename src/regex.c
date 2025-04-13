@@ -993,9 +993,9 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
                                        size_t len) {
     uintptr_t hashv = fklCharBufHash(buf, len);
     FklStrRegexTable *ht = &t->str_re;
-    FklStrRegexTableNode *const *btk = fklStrRegexTableBucket(ht, hashv);
-    for (; *btk; btk = &(*btk)->bkt_next) {
-        FklStrRegexTableNode *cur = *btk;
+    FklStrRegexTableNode *const *bkt = fklStrRegexTableBucket(ht, hashv);
+    for (; *bkt; bkt = &(*bkt)->bkt_next) {
+        FklStrRegexTableNode *cur = *bkt;
         if (!fklStringCharBufCmp(cur->k, len, buf)) {
             return cur->v.re;
         }

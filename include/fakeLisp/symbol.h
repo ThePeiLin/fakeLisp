@@ -11,16 +11,30 @@ extern "C" {
 
 typedef uint64_t FklSid_t;
 
-typedef struct {
-    FklString *symbol;
-    FklSid_t id;
-} FklSymbolHashItem;
+// typedef struct {
+//     FklString *k;
+//     FklSid_t v;
+// } FklSymbolHashItem;
+
+// FklStrIdTable
+#define FKL_TABLE_KEY_TYPE FklString *
+#define FKL_TABLE_VAL_TYPE FklSid_t
+#define FKL_TABLE_ELM_NAME StrId
+#define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
+#define FKL_TABLE_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
+#define FKL_TABLE_KEY_UNINIT(K)                                                \
+    {                                                                          \
+        free(*(K));                                                            \
+    }
+#include "table.h"
 
 typedef struct FklSymboTable {
     FklSid_t num;
     size_t idl_size;
-    FklSymbolHashItem **idl;
-    FklHashTable ht;
+    FklStrIdTableElm **idl;
+    // FklSymbolHashItem **idl;
+    // FklHashTable ht;
+    FklStrIdTable ht;
 } FklSymbolTable;
 
 void fklSetSidKey(void *k0, const void *k1);
@@ -30,10 +44,10 @@ int fklSidKeyEqual(const void *k0, const void *k1);
 void fklInitSymbolTable(FklSymbolTable *st);
 FklSymbolTable *fklCreateSymbolTable(void);
 
-FklSymbolHashItem *fklAddSymbol(const FklString *, FklSymbolTable *);
-FklSymbolHashItem *fklAddSymbolCstr(const char *, FklSymbolTable *);
-FklSymbolHashItem *fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
-FklSymbolHashItem *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
+FklStrIdTableElm *fklAddSymbol(const FklString *, FklSymbolTable *);
+FklStrIdTableElm *fklAddSymbolCstr(const char *, FklSymbolTable *);
+FklStrIdTableElm *fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
+FklStrIdTableElm *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
 
 void fklPrintSymbolTable(const FklSymbolTable *, FILE *);
 

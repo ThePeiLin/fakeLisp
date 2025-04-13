@@ -23,7 +23,7 @@ static void print_compiler_macros(FklCodegenMacro *head,
                                   const FklConstTable *pkt, FILE *fp,
                                   uint64_t *opcode_count);
 
-static void print_reader_macros(const FklHashTable *named_prod_groups,
+static void print_reader_macros(const FklGraProdGroupTable *named_prod_groups,
                                 const FklSymbolTable *pst,
                                 const FklConstTable *pkt, FILE *fp);
 
@@ -225,10 +225,10 @@ int main(int argc, char **argv) {
                     if (cur->head)
                         print_compiler_macros(cur->head, pst, pkt, stdout,
                                               opcode_count);
-                    if (cur->named_prod_groups.t)
+                    if (cur->named_prod_groups.buckets)
                         print_reader_macros(&cur->named_prod_groups, pst, pkt,
                                             stdout);
-                    if (!cur->head && !cur->named_prod_groups.t)
+                    if (!cur->head && !cur->named_prod_groups.buckets)
                         fputc('\n', stdout);
                     break;
                 case FKL_CODEGEN_LIB_DLL:
@@ -255,10 +255,10 @@ int main(int argc, char **argv) {
                         if (cur->head)
                             print_compiler_macros(cur->head, pst, pkt, stdout,
                                                   opcode_count);
-                        if (cur->named_prod_groups.t)
+                        if (cur->named_prod_groups.buckets)
                             print_reader_macros(&cur->named_prod_groups, pst,
                                                 pkt, stdout);
-                        if (!cur->head && !cur->named_prod_groups.t)
+                        if (!cur->head && !cur->named_prod_groups.buckets)
                             fputc('\n', stdout);
                         break;
                     case FKL_CODEGEN_LIB_DLL:
@@ -373,27 +373,26 @@ static void print_compiler_macros(FklCodegenMacro *head,
     }
 }
 
-static void print_reader_macros(const FklHashTable *ht,
+static void print_reader_macros(const FklGraProdGroupTable *ht,
                                 const FklSymbolTable *pst,
                                 const FklConstTable *pkt, FILE *fp) {
     fputs("\nreader macros:\n", fp);
-    for (FklHashTableItem *l = ht->first; l; l = l->next) {
-        FklGrammerProductionGroup *group = (FklGrammerProductionGroup *)l->data;
+    for (FklGraProdGroupTableNode *l = ht->first; l; l = l->next) {
         fputs("group name:", fp);
-        fklPrintRawSymbol(fklGetSymbolWithId(group->id, pst)->k, fp);
-        if (group->ignore_printing.size) {
+        fklPrintRawSymbol(fklGetSymbolWithId(l->k, pst)->k, fp);
+        if (l->v.ignore_printing.size) {
             fputs("\nignores:\n", fp);
-            uint32_t top = group->ignore_printing.size;
-            FklNastNode **base = group->ignore_printing.base;
+            uint32_t top = l->v.ignore_printing.size;
+            FklNastNode **base = l->v.ignore_printing.base;
             for (uint32_t i = 0; i < top; i++) {
                 fklPrintNastNode(base[i], fp, pst);
                 fputc('\n', fp);
             }
         }
-        if (group->prod_printing.size) {
+        if (l->v.prod_printing.size) {
             fputs("\nprods:\n\n", fp);
-            uint32_t top = group->prod_printing.size;
-            FklCodegenProdPrinting *base = group->prod_printing.base;
+            uint32_t top = l->v.prod_printing.size;
+            FklCodegenProdPrinting *base = l->v.prod_printing.base;
             for (uint32_t i = 0; i < top; i++) {
                 const FklCodegenProdPrinting *p = &base[i];
                 if (p->sid)

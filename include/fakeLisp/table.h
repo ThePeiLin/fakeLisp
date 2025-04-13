@@ -100,11 +100,6 @@ typedef struct MUTABLE_ELM_NAME {
     FKL_TABLE_VAL_TYPE v;
 } MUTABLE_ELM_NAME;
 
-static inline void METHOD(SetMutElm)(MUTABLE_ELM_NAME *a, ELM_NAME const *b) {
-    a->k = b->k;
-    a->v = b->v;
-}
-
 typedef struct NODE_NAME {
     struct NODE_NAME *prev;
     struct NODE_NAME *next;

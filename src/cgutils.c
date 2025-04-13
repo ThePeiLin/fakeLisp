@@ -708,17 +708,17 @@ static inline void recompute_sid_for_replacements(
 }
 
 static inline void recompute_sid_for_named_prod_groups(
-    FklHashTable *ht, const FklSymbolTable *origin_st,
+    FklGraProdGroupTable *ht, const FklSymbolTable *origin_st,
     FklSymbolTable *target_st, const FklConstTable *origin_kt,
     FklConstTable *target_kt, FklCodegenRecomputeNastSidOption option) {
-    if (ht && ht->t) {
-        for (FklHashTableItem *list = ht->first; list; list = list->next) {
-            FklGrammerProductionGroup *group =
-                (FklGrammerProductionGroup *)list->data;
-            replace_sid(&group->id, origin_st, target_st);
-            uint32_t top = group->prod_printing.size;
+    if (ht && ht->buckets) {
+        for (FklGraProdGroupTableNode *list = ht->first; list;
+             list = list->next) {
+            replace_sid(FKL_REMOVE_CONST(FklSid_t, &list->k), origin_st,
+                        target_st);
+            uint32_t top = list->v.prod_printing.size;
             for (uint32_t i = 0; i < top; i++) {
-                FklCodegenProdPrinting *p = &group->prod_printing.base[i];
+                FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
                 if (p->group_id)
                     replace_sid(&p->group_id, origin_st, target_st);
                 if (p->sid)
@@ -733,13 +733,13 @@ static inline void recompute_sid_for_named_prod_groups(
                                                option);
             }
 
-            top = group->ignore_printing.size;
+            top = list->v.ignore_printing.size;
             for (uint32_t i = 0; i < top; i++) {
-                FklNastNode *node = group->ignore_printing.base[i];
+                FklNastNode *node = list->v.ignore_printing.base[i];
                 fklRecomputeSidForNastNode(node, origin_st, target_st, option);
             }
         }
-        fklRehashTable(ht);
+        fklGraProdGroupTableRehash(ht);
     }
 }
 
@@ -955,7 +955,8 @@ static inline FklReplacementTable *load_replacements(FklSymbolTable *st,
 }
 
 static void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
-                             FklHashTable *ht, FklSymbolTable *st, FILE *fp);
+                             FklGraProdGroupTable *ht, FklSymbolTable *st,
+                             FILE *fp);
 
 static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
                                                     FklSymbolTable *st,
@@ -967,7 +968,7 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
     load_export_sid_idx_table(&lib->exports, fp);
     lib->head = load_compiler_macros(st, fp);
     lib->replacements = load_replacements(st, fp);
-    lib->named_prod_groups.t = NULL;
+    lib->named_prod_groups.buckets = NULL;
     lib->terminal_table.ht.buckets = NULL;
     load_named_prods(&lib->terminal_table, &lib->regexes,
                      &lib->named_prod_groups, st, fp);
@@ -1051,7 +1052,7 @@ static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
         fklCodegenLibVectorPushBack(libStack, &lib);
     }
     FklCodegenLib main_lib = {0};
-    main_lib.named_prod_groups.t = NULL;
+    main_lib.named_prod_groups.buckets = NULL;
     main_lib.type = FKL_CODEGEN_LIB_SCRIPT;
     main_lib.rp = load_script_lib_path(main_dir, fp);
     main_lib.bcl = fklLoadByteCodelnt(fp);
@@ -1145,16 +1146,14 @@ static inline void increase_compiler_macros_lib_prototype_id(
 }
 
 static inline void
-increase_reader_macro_lib_prototype_id(FklHashTable *named_prod_groups,
+increase_reader_macro_lib_prototype_id(FklGraProdGroupTable *named_prod_groups,
                                        uint32_t lib_count, uint32_t count) {
-    if (named_prod_groups->t) {
-        for (FklHashTableItem *list = named_prod_groups->first; list;
+    if (named_prod_groups->buckets) {
+        for (FklGraProdGroupTableNode *list = named_prod_groups->first; list;
              list = list->next) {
-            FklGrammerProductionGroup *group =
-                (FklGrammerProductionGroup *)list->data;
-            uint32_t top = group->prod_printing.size;
+            uint32_t top = list->v.prod_printing.size;
             for (uint32_t i = 0; i < top; i++) {
-                FklCodegenProdPrinting *p = &group->prod_printing.base[i];
+                FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
                 if (p->type == FKL_CODEGEN_PROD_CUSTOM) {
                     p->prototype_id += count;
                     increase_bcl_lib_prototype_id(p->bcl, lib_count, count);
@@ -1253,12 +1252,11 @@ static inline void load_printing_prods(FklProdPrintingVector *stack,
     }
 }
 
-static inline FklGrammerProductionGroup *
-add_production_group(FklHashTable *named_prod_groups, FklSid_t group_id) {
-    FklGrammerProductionGroup group_init = {
-        .id = group_id, .ignore = NULL, .is_ref_outer = 0, .prods.t = NULL};
-    FklGrammerProductionGroup *group =
-        fklGetOrPutHashItem(&group_init, named_prod_groups);
+static inline FklGrammerProdGroupItem *
+add_production_group(FklGraProdGroupTable *named_prod_groups,
+                     FklSid_t group_id) {
+    FklGrammerProdGroupItem *group =
+        fklGraProdGroupTableSet(named_prod_groups, group_id);
     if (!group->prods.t) {
         fklInitGrammerProductionTable(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);
@@ -1268,8 +1266,8 @@ add_production_group(FklHashTable *named_prod_groups, FklSid_t group_id) {
 }
 
 static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
-                                    FklHashTable *ht, FklSymbolTable *st,
-                                    FILE *fp)
+                                    FklGraProdGroupTable *ht,
+                                    FklSymbolTable *st, FILE *fp)
 
 {
     uint8_t has_named_prod = 0;
@@ -1277,14 +1275,13 @@ static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
     if (has_named_prod) {
         fklInitSymbolTable(tt);
         fklInitRegexTable(rt);
-        fklInitCodegenProdGroupTable(ht);
+        fklGraProdGroupTableInit(ht);
         uint32_t num = 0;
         fread(&num, sizeof(num), 1, fp);
         for (; num > 0; num--) {
             FklSid_t group_id = 0;
             fread(&group_id, sizeof(group_id), 1, fp);
-            FklGrammerProductionGroup *group =
-                add_production_group(ht, group_id);
+            FklGrammerProdGroupItem *group = add_production_group(ht, group_id);
             load_printing_prods(&group->prod_printing, st, fp);
             load_printing_ignores(&group->ignore_printing, st, fp);
         }
@@ -1298,22 +1295,20 @@ static inline void init_pre_lib_reader_macros(
     uint32_t top = libStack->size;
     for (uint32_t i = 0; i < top; i++) {
         FklCodegenLib *lib = &libStack->base[i];
-        if (lib->named_prod_groups.t) {
+        if (lib->named_prod_groups.buckets) {
             FklSymbolTable *tt = &lib->terminal_table;
             FklRegexTable *rt = &lib->regexes;
-            for (FklHashTableItem *l = lib->named_prod_groups.first; l;
+            for (FklGraProdGroupTableNode *l = lib->named_prod_groups.first; l;
                  l = l->next) {
-                FklGrammerProductionGroup *group =
-                    (FklGrammerProductionGroup *)l->data;
-                FklNastNodeVector *stack = &group->ignore_printing;
+                FklNastNodeVector *stack = &l->v.ignore_printing;
                 uint32_t top = stack->size;
                 for (uint32_t i = 0; i < top; i++) {
                     FklNastNode *node = stack->base[i];
                     FklGrammerIgnore *ig =
                         fklNastVectorToIgnore(node, tt, rt, builtin_terms);
-                    fklAddIgnoreToIgnoreList(&group->ignore, ig);
+                    fklAddIgnoreToIgnoreList(&l->v.ignore, ig);
                 }
-                FklProdPrintingVector *stack1 = &group->prod_printing;
+                FklProdPrintingVector *stack1 = &l->v.prod_printing;
                 top = stack1->size;
                 for (uint32_t i = 0; i < top; i++) {
                     const FklCodegenProdPrinting *p = &stack1->base[i];
@@ -1321,12 +1316,12 @@ static inline void init_pre_lib_reader_macros(
                         fklCodegenProdPrintingToProduction(
                             p, tt, rt, builtin_terms, outer_ctx, pts,
                             macroLibStack);
-                    fklAddProdToProdTableNoRepeat(&group->prods, builtin_terms,
+                    fklAddProdToProdTableNoRepeat(&l->v.prods, builtin_terms,
                                                   prod);
                     if (p->add_extra) {
                         FklGrammerProduction *extra_prod =
                             fklCreateExtraStartProduction(p->group_id, p->sid);
-                        fklAddProdToProdTable(&group->prods, builtin_terms,
+                        fklAddProdToProdTable(&l->v.prods, builtin_terms,
                                               extra_prod);
                     }
                 }

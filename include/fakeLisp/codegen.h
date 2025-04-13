@@ -118,36 +118,6 @@ typedef struct {
 #include "table.h"
 
 typedef struct {
-    FklCodegenLibType type;
-    union {
-        FklByteCodelnt *bcl;
-        uv_lib_t dll;
-    };
-    char *rp;
-    FklCgExportSidIdxTable exports;
-
-    FklCodegenMacro *head;
-    FklReplacementTable *replacements;
-
-    FklHashTable named_prod_groups;
-    FklSymbolTable terminal_table;
-    FklRegexTable regexes;
-
-    uint32_t prototypeId;
-} FklCodegenLib;
-
-// FklCodegenLibVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenLib
-#define FKL_VECTOR_ELM_TYPE_NAME CodegenLib
-#include "vector.h"
-
-typedef enum {
-    FKL_CODEGEN_PROD_BUILTIN = 0,
-    FKL_CODEGEN_PROD_SIMPLE,
-    FKL_CODEGEN_PROD_CUSTOM,
-} FklCodegenProdActionType;
-
-typedef struct {
     FklSid_t group_id;
     FklSid_t sid;
     FklNastNode *vec;
@@ -167,14 +137,73 @@ typedef struct {
 #define FKL_VECTOR_ELM_TYPE_NAME ProdPrinting
 #include "vector.h"
 
+typedef enum {
+    FKL_CODEGEN_PROD_BUILTIN = 0,
+    FKL_CODEGEN_PROD_SIMPLE,
+    FKL_CODEGEN_PROD_CUSTOM,
+} FklCodegenProdActionType;
+
 typedef struct {
-    FklSid_t id;
     int is_ref_outer;
     FklHashTable prods;
     FklGrammerIgnore *ignore;
     FklNastNodeVector ignore_printing;
     FklProdPrintingVector prod_printing;
-} FklGrammerProductionGroup;
+} FklGrammerProdGroupItem;
+
+// FklGraProdGroupTable
+#define FKL_TABLE_KEY_TYPE FklSid_t
+#define FKL_TABLE_VAL_TYPE FklGrammerProdGroupItem
+#define FKL_TABLE_ELM_NAME GraProdGroup
+#define FKL_TABLE_VAL_UNINIT(V)                                                \
+    {                                                                          \
+        fklUninitHashTable(&(V)->prods);                                       \
+        FklGrammerIgnore *ig = (V)->ignore;                                    \
+        while (ig) {                                                           \
+            FklGrammerIgnore *next = ig->next;                                 \
+            fklDestroyIgnore(ig);                                              \
+            ig = next;                                                         \
+        }                                                                      \
+        while (!fklNastNodeVectorIsEmpty(&(V)->ignore_printing))               \
+            fklDestroyNastNode(                                                \
+                *fklNastNodeVectorPopBack(&(V)->ignore_printing));             \
+        fklNastNodeVectorUninit(&(V)->ignore_printing);                        \
+        while (!fklProdPrintingVectorIsEmpty(&(V)->prod_printing)) {           \
+            FklCodegenProdPrinting *p =                                        \
+                fklProdPrintingVectorPopBack(&(V)->prod_printing);             \
+            fklDestroyNastNode(p->vec);                                        \
+            if (p->type == FKL_CODEGEN_PROD_CUSTOM)                            \
+                fklDestroyByteCodelnt(p->bcl);                                 \
+            else                                                               \
+                fklDestroyNastNode(p->forth);                                  \
+        }                                                                      \
+        fklProdPrintingVectorUninit(&(V)->prod_printing);                      \
+    }
+#include "table.h"
+
+typedef struct {
+    FklCodegenLibType type;
+    union {
+        FklByteCodelnt *bcl;
+        uv_lib_t dll;
+    };
+    char *rp;
+    FklCgExportSidIdxTable exports;
+
+    FklCodegenMacro *head;
+    FklReplacementTable *replacements;
+
+    FklGraProdGroupTable named_prod_groups;
+    FklSymbolTable terminal_table;
+    FklRegexTable regexes;
+
+    uint32_t prototypeId;
+} FklCodegenLib;
+
+// FklCodegenLibVector
+#define FKL_VECTOR_ELM_TYPE FklCodegenLib
+#define FKL_VECTOR_ELM_TYPE_NAME CodegenLib
+#include "vector.h"
 
 typedef enum {
     FKL_CODEGEN_PATTERN_BEGIN = 0,
@@ -308,7 +337,7 @@ typedef struct FklCodegenInfo {
         FklGrammerIgnore *self_builtin_ignores;
         FklHashTable self_unnamed_prods;
         FklGrammerIgnore *self_unnamed_ignores;
-        FklHashTable self_named_prod_groups;
+        FklGraProdGroupTable self_named_prod_groups;
     };
 
     FklGrammer **g;
@@ -316,7 +345,7 @@ typedef struct FklCodegenInfo {
     FklGrammerIgnore **builtin_ignores;
     FklHashTable *unnamed_prods;
     FklGrammerIgnore **unnamed_ignores;
-    FklHashTable *named_prod_groups;
+    FklGraProdGroupTable *named_prod_groups;
 
     FklCodegenEnv *global_env;
     FklSymbolTable *runtime_symbol_table;
@@ -464,8 +493,9 @@ FklSymDefTableElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
 uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id, FklCodegenEnv *env,
                                        FklSid_t fid, uint64_t line,
                                        uint32_t assign);
-FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env, FklSid_t fid,
-                                 uint64_t line, uint32_t assign);
+FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
+                                         FklSid_t fid, uint64_t line,
+                                         uint32_t assign);
 FklSymDef *fklGetCodegenRefBySid(FklSid_t id, FklCodegenEnv *env);
 
 FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scope,
@@ -568,9 +598,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklCodegenOuterCtx *outer_ctx, const char *rp, FILE *fp,
                       char **errorStr);
 
-void fklInitCodegenProdGroupTable(FklHashTable *ht);
-
-void fklWriteNamedProds(const FklHashTable *named_prod_groups,
+void fklWriteNamedProds(const FklGraProdGroupTable *named_prod_groups,
                         const FklSymbolTable *st, FILE *fp);
 
 FklGrammerProduction *fklCreateExtraStartProduction(FklSid_t group,
@@ -586,7 +614,7 @@ FklGrammerProduction *fklCodegenProdPrintingToProduction(
     FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
 
 void fklWriteExportNamedProds(const FklSidTable *export_named_prod_groups,
-                              const FklHashTable *named_prod_groups,
+                              const FklGraProdGroupTable *named_prod_groups,
                               const FklSymbolTable *st, FILE *fp);
 
 #ifdef __cplusplus

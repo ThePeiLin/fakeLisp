@@ -1924,12 +1924,11 @@ static void custom_parser_finalizer(FklVMud *p) {
 
 static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {
     FKL_DECL_UD_DATA(g, FklGrammer, p);
-    for (FklHashTableItem *item = g->productions.first; item;
+    for (FklProdTableNode *item = g->productions.first; item;
          item = item->next) {
-        FklGrammerProdHashItem *prod_item =
-            (FklGrammerProdHashItem *)item->data;
-        for (FklGrammerProduction *prod = prod_item->prods; prod;
-             prod = prod->next)
+        // FklGrammerProdHashItem *prod_item =
+        //     (FklGrammerProdHashItem *)item->data;
+        for (FklGrammerProduction *prod = item->v; prod; prod = prod->next)
             fklVMgcToGray(prod->ctx, gc);
     }
 }

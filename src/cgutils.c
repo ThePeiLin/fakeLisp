@@ -1257,8 +1257,9 @@ add_production_group(FklGraProdGroupTable *named_prod_groups,
                      FklSid_t group_id) {
     FklGrammerProdGroupItem *group =
         fklGraProdGroupTableAdd1(named_prod_groups, group_id);
-    if (!group->prods.t) {
-        fklInitGrammerProductionTable(&group->prods);
+    if (!group->prods.buckets) {
+        fklProdTableInit(&group->prods);
+        // fklInitGrammerProductionTable(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);
         fklNastNodeVectorInit(&group->ignore_printing, 8);
     }

@@ -145,7 +145,7 @@ typedef enum {
 
 typedef struct {
     int is_ref_outer;
-    FklHashTable prods;
+    FklProdTable prods;
     FklGrammerIgnore *ignore;
     FklNastNodeVector ignore_printing;
     FklProdPrintingVector prod_printing;
@@ -157,7 +157,7 @@ typedef struct {
 #define FKL_TABLE_ELM_NAME GraProdGroup
 #define FKL_TABLE_VAL_UNINIT(V)                                                \
     {                                                                          \
-        fklUninitHashTable(&(V)->prods);                                       \
+        fklProdTableUninit(&(V)->prods);                                       \
         FklGrammerIgnore *ig = (V)->ignore;                                    \
         while (ig) {                                                           \
             FklGrammerIgnore *next = ig->next;                                 \
@@ -333,17 +333,17 @@ typedef struct FklCodegenInfo {
 
     struct {
         FklGrammer *self_g;
-        FklHashTable self_builtin_prods;
+        FklProdTable self_builtin_prods;
         FklGrammerIgnore *self_builtin_ignores;
-        FklHashTable self_unnamed_prods;
+        FklProdTable self_unnamed_prods;
         FklGrammerIgnore *self_unnamed_ignores;
         FklGraProdGroupTable self_named_prod_groups;
     };
 
     FklGrammer **g;
-    FklHashTable *builtin_prods;
+    FklProdTable *builtin_prods;
     FklGrammerIgnore **builtin_ignores;
-    FklHashTable *unnamed_prods;
+    FklProdTable *unnamed_prods;
     FklGrammerIgnore **unnamed_ignores;
     FklGraProdGroupTable *named_prod_groups;
 

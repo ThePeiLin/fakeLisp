@@ -36,23 +36,9 @@ static int prod_hash_equal(const void *k0, const void *k1) {
     return nonterm_eq(k0, k1);
 }
 
-// static const FklHashTableMetaTable NontermMetaTable = {
-//     .size = sizeof(FklGrammerNonterm),
-//     .__getKey = fklHashDefaultGetKey,
-//     .__setKey = prod_hash_set_key,
-//     .__setVal = prod_hash_set_key,
-//     .__keyEqual = prod_hash_equal,
-//     .__hashFunc = prod_hash_func,
-//     .__uninitItem = fklDoNothingUninitHashItem,
-// };
-
-// static inline void init_nonterm_set(FklNontermTable *ht) {
-//     fklInitHashTable(ht, &NontermMetaTable);
+// static void prod_hash_set_val(void *d0, const void *d1) {
+//     *(FklGrammerProdHashItem *)d0 = *(const FklGrammerProdHashItem *)d1;
 // }
-
-static void prod_hash_set_val(void *d0, const void *d1) {
-    *(FklGrammerProdHashItem *)d0 = *(const FklGrammerProdHashItem *)d1;
-}
 
 void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len) {
     for (size_t i = 0; i < len; i++) {
@@ -76,26 +62,26 @@ static inline void destroy_builtin_grammer_sym(FklLalrBuiltinGrammerSym *s) {
         s->t->ctx_destroy(s->c);
 }
 
-static void prod_hash_uninit(void *d) {
-    FklGrammerProdHashItem *prod = (FklGrammerProdHashItem *)d;
-    FklGrammerProduction *h = prod->prods;
-    while (h) {
-        FklGrammerProduction *next = h->next;
-        fklDestroyGrammerProduction(h);
-        h = next;
-    }
-    prod->prods = NULL;
-}
-
-static const FklHashTableMetaTable ProdHashMetaTable = {
-    .size = sizeof(FklGrammerProdHashItem),
-    .__setKey = prod_hash_set_key,
-    .__setVal = prod_hash_set_val,
-    .__hashFunc = prod_hash_func,
-    .__uninitItem = prod_hash_uninit,
-    .__keyEqual = prod_hash_equal,
-    .__getKey = fklHashDefaultGetKey,
-};
+// static void prod_hash_uninit(void *d) {
+//     FklGrammerProdHashItem *prod = (FklGrammerProdHashItem *)d;
+//     FklGrammerProduction *h = prod->prods;
+//     while (h) {
+//         FklGrammerProduction *next = h->next;
+//         fklDestroyGrammerProduction(h);
+//         h = next;
+//     }
+//     prod->prods = NULL;
+// }
+//
+// static const FklHashTableMetaTable ProdHashMetaTable = {
+//     .size = sizeof(FklGrammerProdHashItem),
+//     .__setKey = prod_hash_set_key,
+//     .__setVal = prod_hash_set_val,
+//     .__hashFunc = prod_hash_func,
+//     .__uninitItem = prod_hash_uninit,
+//     .__keyEqual = prod_hash_equal,
+//     .__getKey = fklHashDefaultGetKey,
+// };
 
 FklGrammerProduction *fklCreateProduction(FklSid_t group, FklSid_t sid,
                                           size_t len, FklGrammerSym *syms,
@@ -508,13 +494,13 @@ error:
     return NULL;
 }
 
-void fklInitGrammerProductionTable(FklHashTable *s) {
-    fklInitHashTable(s, &ProdHashMetaTable);
-}
-
-FklHashTable *fklCreateGrammerProductionTable(void) {
-    return fklCreateHashTable(&ProdHashMetaTable);
-}
+// void fklInitGrammerProductionTable(FklHashTable *s) {
+//     fklInitHashTable(s, &ProdHashMetaTable);
+// }
+//
+// FklHashTable *fklCreateGrammerProductionTable(void) {
+//     return fklCreateHashTable(&ProdHashMetaTable);
+// }
 
 static inline int prod_sym_equal(const FklGrammerSym *u0,
                                  const FklGrammerSym *u1) {
@@ -580,13 +566,13 @@ fklCopyUninitedGrammerProduction(FklGrammerProduction *prod) {
 
 int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod) {
     const FklHashTable *builtins = &g->builtins;
-    FklHashTable *productions = &g->productions;
+    FklProdTable *productions = &g->productions;
     const FklGrammerNonterm *left = &prod->left;
     if (left->group == 0 && fklGetBuiltinMatch(builtins, left->sid))
         return 1;
-    FklGrammerProdHashItem *item = fklGetHashItem(left, productions);
-    if (item) {
-        FklGrammerProduction **pp = &item->prods;
+    FklGrammerProduction **pp = fklProdTableGet(productions, left);
+    // FklGrammerProdHashItem *item = fklGetHashItem(left, productions);
+    if (pp) {
         FklGrammerProduction *cur = NULL;
         for (; *pp; pp = &((*pp)->next)) {
             if (prod_equal(*pp, prod)) {
@@ -610,28 +596,30 @@ int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod) {
             FklGrammerProduction *extra_prod =
                 create_extra_production(left->group, left->sid);
             extra_prod->next = NULL;
-            item = fklPutHashItem(&extra_prod->left, productions);
-            item->prods = extra_prod;
-            item->prods->idx = g->prodNum;
+            // pp = fklPutHashItem(&extra_prod->left, productions);
+            pp = fklProdTableAdd(productions, &extra_prod->left, NULL);
+            *pp = extra_prod;
+            (*pp)->idx = g->prodNum;
             g->prodNum++;
         }
         prod->next = NULL;
-        item = fklPutHashItem(left, productions);
+        pp = fklProdTableAdd(productions, left, NULL);
+        // pp = fklPutHashItem(left, productions);
         prod->idx = g->prodNum;
-        item->prods = prod;
+        *pp = prod;
         g->prodNum++;
     }
     return 0;
 }
 
-int fklAddProdToProdTable(FklHashTable *productions, FklHashTable *builtins,
+int fklAddProdToProdTable(FklProdTable *productions, FklHashTable *builtins,
                           FklGrammerProduction *prod) {
     const FklGrammerNonterm *left = &prod->left;
     if (left->group == 0 && fklGetBuiltinMatch(builtins, left->sid))
         return 1;
-    FklGrammerProdHashItem *item = fklGetHashItem(left, productions);
-    if (item) {
-        FklGrammerProduction **pp = &item->prods;
+    // FklGrammerProdHashItem *item = fklGetHashItem(left, productions);
+    FklGrammerProduction **pp = fklProdTableGet(productions, left);
+    if (pp) {
         FklGrammerProduction *cur = NULL;
         for (; *pp; pp = &((*pp)->next)) {
             if (prod_equal(*pp, prod)) {
@@ -650,22 +638,23 @@ int fklAddProdToProdTable(FklHashTable *productions, FklHashTable *builtins,
         }
     } else {
         prod->next = NULL;
-        item = fklPutHashItem(left, productions);
+        pp = fklProdTableAdd(productions, left, NULL);
         prod->idx = 0;
-        item->prods = prod;
+        *pp = prod;
     }
     return 0;
 }
 
-int fklAddProdToProdTableNoRepeat(FklHashTable *productions,
+int fklAddProdToProdTableNoRepeat(FklProdTable *productions,
                                   FklHashTable *builtins,
                                   FklGrammerProduction *prod) {
     const FklGrammerNonterm *left = &prod->left;
     if (left->group == 0 && fklGetBuiltinMatch(builtins, left->sid))
         return 1;
-    FklGrammerProdHashItem *item = fklGetHashItem(left, productions);
-    if (item) {
-        FklGrammerProduction **pp = &item->prods;
+    // FklGrammerProdHashItem *item = fklGetHashItem(left, productions);
+    FklGrammerProduction **pp = fklProdTableGet(
+        productions, left); // fklGetHashItem(left, productions);
+    if (pp) {
         FklGrammerProduction *cur = NULL;
         for (; *pp; pp = &((*pp)->next))
             if (prod_equal(*pp, prod))
@@ -681,9 +670,10 @@ int fklAddProdToProdTableNoRepeat(FklHashTable *productions,
         }
     } else {
         prod->next = NULL;
-        item = fklPutHashItem(left, productions);
+        pp = fklProdTableAdd(productions, left, NULL);
+        // pp = fklPutHashItem(left, productions);
         prod->idx = 0;
-        item->prods = prod;
+        *pp = prod;
     }
     return 0;
 }
@@ -1911,7 +1901,8 @@ void fklClearGrammer(FklGrammer *g) {
     g->prodNum = 0;
     g->start.group = 0;
     g->start.sid = 0;
-    fklClearHashTable(&g->productions);
+    fklProdTableClear(&g->productions);
+    // fklClearHashTable(&g->productions);
     fklClearHashTable(&g->firstSets);
     clear_analysis_table(g, g->aTable.num - 1);
     free(g->sortedTerminals);
@@ -1927,7 +1918,8 @@ void fklClearGrammer(FklGrammer *g) {
 }
 
 void fklUninitGrammer(FklGrammer *g) {
-    fklUninitHashTable(&g->productions);
+    fklProdTableUninit(&g->productions);
+    // fklUninitHashTable(&g->productions);
     fklUninitHashTable(&g->builtins);
     fklUninitHashTable(&g->firstSets);
     fklUninitSymbolTable(&g->terminals);
@@ -1955,9 +1947,9 @@ static inline int init_all_builtin_grammer_sym(FklGrammer *g) {
         g->sortedTerminals = NULL;
         g->sortedTerminalsNum = 0;
     }
-    for (FklHashTableItem *pl = g->productions.first; pl; pl = pl->next) {
-        FklGrammerProdHashItem *i = (FklGrammerProdHashItem *)pl->data;
-        for (FklGrammerProduction *prod = i->prods; prod; prod = prod->next) {
+    for (FklProdTableNode *pl = g->productions.first; pl; pl = pl->next) {
+        // FklGrammerProdHashItem *i = (FklGrammerProdHashItem *)pl->data;
+        for (FklGrammerProduction *prod = pl->v; prod; prod = prod->next) {
             for (size_t i = prod->len; i > 0; i--) {
                 size_t idx = i - 1;
                 FklGrammerSym *u = &prod->syms[idx];
@@ -2085,13 +2077,13 @@ static inline int compute_all_first_set(FklGrammer *g) {
     FklHashTable *firsetSets = &g->firstSets;
     const FklSymbolTable *tt = &g->terminals;
 
-    for (const FklHashTableItem *sidl = g->productions.first; sidl;
+    for (const FklProdTableNode *sidl = g->productions.first; sidl;
          sidl = sidl->next) {
-        const FklGrammerProdHashItem *prod =
-            (const FklGrammerProdHashItem *)sidl->data;
-        if (is_Sq_nt(&prod->left))
+        // const FklGrammerProdHashItem *prod =
+        //     (const FklGrammerProdHashItem *)sidl->data;
+        if (is_Sq_nt(&sidl->k))
             continue;
-        FirstSetItem *item = fklPutHashItem(&prod->left, firsetSets);
+        FirstSetItem *item = fklPutHashItem(&sidl->k, firsetSets);
         item->hasEpsilon = 0;
         fklInitHashTable(&item->first, &LookAheadHashMetaTable);
     }
@@ -2099,15 +2091,14 @@ static inline int compute_all_first_set(FklGrammer *g) {
     int change;
     do {
         change = 0;
-        for (const FklHashTableItem *leftProds = g->productions.first;
+        for (const FklProdTableNode *leftProds = g->productions.first;
              leftProds; leftProds = leftProds->next) {
-            const FklGrammerProdHashItem *leftProd =
-                (const FklGrammerProdHashItem *)leftProds->data;
-            if (is_Sq_nt(&leftProd->left))
+            // const FklGrammerProdHashItem *leftProd =
+            //     (const FklGrammerProdHashItem *)leftProds->data;
+            if (is_Sq_nt(&leftProds->k))
                 continue;
-            FirstSetItem *firstItem =
-                fklGetHashItem(&leftProd->left, firsetSets);
-            const FklGrammerProduction *prods = leftProd->prods;
+            FirstSetItem *firstItem = fklGetHashItem(&leftProds->k, firsetSets);
+            const FklGrammerProduction *prods = leftProds->v;
             for (; prods; prods = prods->next) {
                 size_t len = prods->len;
                 if (!len) {
@@ -2210,7 +2201,8 @@ void fklInitEmptyGrammer(FklGrammer *r, FklSymbolTable *st) {
     r->sortedTerminals = NULL;
     r->sortedTerminalsNum = 0;
     fklInitHashTable(&r->firstSets, &FirstSetHashMetaTable);
-    fklInitGrammerProductionTable(&r->productions);
+    fklProdTableInit(&r->productions);
+    // fklInitGrammerProductionTable(&r->productions);
     fklInitBuiltinGrammerSymTable(&r->builtins, st);
 }
 
@@ -2229,12 +2221,13 @@ FklGrammer *fklCreateEmptyGrammer(FklSymbolTable *st) {
 #include <fakeLisp/vector.h>
 
 static inline int add_reachable_terminal(FklGrammer *g) {
-    FklHashTable *productions = &g->productions;
+    FklProdTable *productions = &g->productions;
     GraProdVector prod_stack;
     graProdVectorInit(&prod_stack, g->prodNum);
-    FklGrammerProdHashItem *first =
-        (FklGrammerProdHashItem *)g->productions.first->data;
-    graProdVectorPushBack2(&prod_stack, first->prods);
+    FklProdTableElm *first = &g->productions.first->elm;
+    // FklGrammerProdHashItem *first =
+    //     (FklGrammerProdHashItem *)g->productions.first->data;
+    graProdVectorPushBack2(&prod_stack, first->v);
     FklNontermTable nonterm_set;
     fklNontermTableInit(&nonterm_set);
     while (!graProdVectorIsEmpty(&prod_stack)) {
@@ -2253,9 +2246,7 @@ static inline int add_reachable_terminal(FklGrammer *g) {
                         find_and_add_terminal_in_regex(cur->re,
                                                        &g->reachable_terminals);
                 }
-                if (!cur->isterm && !fklNontermTablePut(&nonterm_set, &cur->nt)
-                    // !fklPutHashItem2(&nonterm_set, &cur->nt, NULL)
-                )
+                if (!cur->isterm && !fklNontermTablePut(&nonterm_set, &cur->nt))
                     graProdVectorPushBack2(&prod_stack,
                                            fklGetProductions(productions,
                                                              cur->nt.group,
@@ -2280,16 +2271,16 @@ static inline int add_reachable_terminal(FklGrammer *g) {
 }
 
 static inline int check_undefined_nonterm(FklGrammer *g) {
-    FklHashTable *productions = &g->productions;
-    for (const FklHashTableItem *il = productions->first; il; il = il->next) {
-        const FklGrammerProdHashItem *prod_item =
-            (const FklGrammerProdHashItem *)il->data;
-        for (const FklGrammerProduction *prods = prod_item->prods; prods;
+    FklProdTable *productions = &g->productions;
+    for (const FklProdTableNode *il = productions->first; il; il = il->next) {
+        // const FklGrammerProdHashItem *prod_item =
+        //     (const FklGrammerProdHashItem *)il->data;
+        for (const FklGrammerProduction *prods = il->v; prods;
              prods = prods->next) {
             const FklGrammerSym *syms = prods->syms;
             for (size_t i = 0; i < prods->len; i++) {
                 const FklGrammerSym *cur = &syms[i];
-                if (!cur->isterm && !fklGetHashItem(&cur->nt, productions))
+                if (!cur->isterm && !fklProdTableGet(productions, &cur->nt))
                     return 1;
             }
         }
@@ -2345,10 +2336,14 @@ int fklAddExtraProdToGrammer(FklGrammer *g) {
     FklGrammerProduction *extra_prod =
         create_extra_production(left.group, left.sid);
     extra_prod->next = NULL;
-    FklGrammerProdHashItem *item =
-        fklPutHashItem(&extra_prod->left, &g->productions);
-    item->prods = extra_prod;
-    item->prods->idx = g->prodNum;
+    FklGrammerProduction **item =
+        fklProdTableAdd(&g->productions, &extra_prod->left, NULL);
+    // FklGrammerProdHashItem *item =
+    //     fklPutHashItem(&extra_prod->left, &g->productions);
+    *item = extra_prod;
+    (*item)->idx = g->prodNum;
+    // item->prods = extra_prod;
+    // item->prods->idx = g->prodNum;
     g->prodNum++;
     return 0;
 }
@@ -2679,20 +2674,15 @@ static inline void lr0_item_set_closure(FklHashTable *itemSet, FklGrammer *g) {
             FklGrammerSym *sym = get_item_next(i);
             if (sym && !sym->isterm) {
                 const FklGrammerNonterm *left = &sym->nt;
-                if (!fklNontermTablePut(&sidSet, left)
-                    // fklPutHashItem2(&sidSet, left, NULL)
-                ) {
+                if (!fklNontermTablePut(&sidSet, left)) {
                     change = 1;
                     fklNontermTablePut(&changeSet, left);
-                    // fklPutHashItem(left, &changeSet);
                 }
             }
         }
 
         for (FklNontermTableNode *lefts = changeSet.first; lefts;
              lefts = lefts->next) {
-            // const FklGrammerNonterm *left =
-            //     ((const FklGrammerNonterm *)lefts->data);
             FklGrammerProduction *prod =
                 fklGetGrammerProductions(g, lefts->k.group, lefts->k.sid);
             for (; prod; prod = prod->next) {
@@ -2700,13 +2690,10 @@ static inline void lr0_item_set_closure(FklHashTable *itemSet, FklGrammer *g) {
                 fklPutHashItem(&item, itemSet);
             }
         }
-        // fklClearHashTable(&changeSet);
         fklNontermTableClear(&changeSet);
     } while (change);
     fklNontermTableUninit(&sidSet);
     fklNontermTableUninit(&changeSet);
-    // fklUninitHashTable(&sidSet);
-    // fklUninitHashTable(&changeSet);
 }
 
 static inline void lr0_item_set_copy_and_closure(FklHashTable *dst,
@@ -2984,9 +2971,9 @@ FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
         .group = 0,
         .sid = 0,
     };
-    FklGrammerProduction *prod =
-        ((FklGrammerProdHashItem *)fklGetHashItem(&left, &grammer->productions))
-            ->prods;
+    FklGrammerProduction *prod = *fklProdTableGet(&grammer->productions, &left);
+    // ((FklGrammerProdHashItem *)fklGetHashItem(&left, &grammer->productions))
+    //     ->prods;
     FklHashTable items;
     init_first_item_set(&items, prod);
     FklLalrItemSet itemset = {
@@ -4036,7 +4023,6 @@ static inline void init_analysis_table_header(FklHashTable *la,
                 fklPutHashItem(&action->match, la);
         for (FklAnalysisStateGoto *gt = curState->state.gt; gt; gt = gt->next)
             fklNontermTablePut(nt, &gt->nt);
-        // fklPutHashItem(&gt->nt, nt);
     }
 }
 
@@ -4159,7 +4145,6 @@ static inline void print_table_header_for_grapheasy(const FklHashTable *la,
     fputs("\\n|\\n", fp);
     for (FklNontermTableNode *sl = sid->first; sl; sl = sl->next) {
         fputc('|', fp);
-        // const FklGrammerNonterm *id = (const FklGrammerNonterm *)sl->data;
         fputs("\\|", fp);
         print_symbol_for_grapheasy(fklGetSymbolWithId(sl->k.sid, st)->k, fp);
         fputs("\\|", fp);
@@ -4232,8 +4217,6 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
         fputs("\\n|\\n", fp);
         for (FklNontermTableNode *sl = sidList; sl; sl = sl->next) {
             fputc('|', fp);
-            // const FklGrammerNonterm *id = (const FklGrammerNonterm
-            // *)sl->data;
             FklAnalysisStateGoto *gt =
                 find_gt(curState->state.gt, sl->k.group, sl->k.sid);
             if (gt) {
@@ -4247,7 +4230,6 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
     fputc(']', fp);
     fklUninitHashTable(&laTable);
     fklNontermTableUninit(&sidSet);
-    // fklUninitHashTable(&sidSet);
 }
 
 static inline void print_get_max_non_term_length_prototype_to_c_file(FILE *fp) {
@@ -4811,11 +4793,14 @@ const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklHashTable *ht,
     return NULL;
 }
 
-int fklIsNonterminalExist(FklHashTable *prods, FklSid_t group_id,
+int fklIsNonterminalExist(FklProdTable *prods, FklSid_t group_id,
                           FklSid_t sid) {
-    FklGrammerNonterm left = {.group = group_id, .sid = sid};
-    FklGrammerProdHashItem *item = fklGetHashItem(&left, prods);
-    return item != NULL;
+    return fklProdTableGet2(prods,
+                            (FklGrammerNonterm){.group = group_id, .sid = sid})
+        != NULL;
+    // FklGrammerNonterm left = {.group = group_id, .sid = sid};
+    // FklGrammerProdHashItem *item = fklGetHashItem(&left, prods);
+    // return item != NULL;
 }
 
 FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
@@ -4823,13 +4808,16 @@ FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
     return fklGetProductions(&g->productions, group, sid);
 }
 
-FklGrammerProduction *fklGetProductions(const FklHashTable *prods,
+FklGrammerProduction *fklGetProductions(const FklProdTable *prods,
                                         FklSid_t group, FklSid_t sid) {
-    FklGrammerNonterm left = {.group = group, .sid = sid};
-    FklGrammerProdHashItem *item = fklGetHashItem(&left, prods);
-    if (item)
-        return item->prods;
-    return NULL;
+    FklGrammerProduction **pp = fklProdTableGet2(
+        prods, (FklGrammerNonterm){.group = group, .sid = sid});
+    return pp ? *pp : NULL;
+    // FklGrammerNonterm left = {.group = group, .sid = sid};
+    // FklGrammerProdHashItem *item = fklGetHashItem(&left, prods);
+    // if (item)
+    //     return item->prods;
+    // return NULL;
 }
 
 static inline void print_ignores(const FklGrammerIgnore *ig,
@@ -4858,10 +4846,10 @@ static inline void print_ignores(const FklGrammerIgnore *ig,
 void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
     const FklSymbolTable *tt = &grammer->terminals;
     const FklRegexTable *rt = &grammer->regexes;
-    for (FklHashTableItem *list = grammer->productions.first; list;
+    for (FklProdTableNode *list = grammer->productions.first; list;
          list = list->next) {
-        FklGrammerProduction *prods =
-            ((FklGrammerProdHashItem *)list->data)->prods;
+        FklGrammerProduction *prods = list->v;
+        //     ((FklGrammerProdHashItem *)list->data)->prods;
         for (; prods; prods = prods->next) {
             fprintf(fp, "(%" FKL_PRT64U ") ", prods->idx);
             fklPrintGrammerProduction(fp, prods, st, tt, rt);
@@ -5690,7 +5678,7 @@ FklGrammer *fklCreateBuiltinGrammer(FklSymbolTable *st) {
     return fklCreateGrammerFromCstrAction(builtin_grammer_and_action, st);
 }
 
-FklGrammerIgnore *fklInitBuiltinProductionSet(FklHashTable *ht,
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklProdTable *ht,
                                               FklSymbolTable *st,
                                               FklSymbolTable *tt,
                                               FklRegexTable *rt,

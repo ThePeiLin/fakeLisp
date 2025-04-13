@@ -4617,7 +4617,7 @@ static inline void replace_group_id(FklGrammerProduction *prod,
 
 static inline int init_builtin_grammer(FklCodegenInfo *codegen,
                                        FklSymbolTable *st);
-static inline int add_group_prods(FklGrammer *g, const FklHashTable *prods);
+static inline int add_group_prods(FklGrammer *g, const FklProdTable *prods);
 static inline int add_group_ignores(FklGrammer *g, FklGrammerIgnore *igs);
 static inline FklGrammerProdGroupItem *
 add_production_group(FklGraProdGroupTable *named_prod_groups,
@@ -4674,11 +4674,11 @@ import_reader_macro(int is_grammer_inited, int *p_is_grammer_inited,
         }
     }
 
-    for (FklHashTableItem *prod_hash_item = group->prods.first; prod_hash_item;
+    for (FklProdTableNode *prod_hash_item = group->prods.first; prod_hash_item;
          prod_hash_item = prod_hash_item->next) {
-        FklGrammerProdHashItem *item =
-            (FklGrammerProdHashItem *)prod_hash_item->data;
-        for (FklGrammerProduction *prods = item->prods; prods;
+        // FklGrammerProdHashItem *item =
+        //     (FklGrammerProdHashItem *)prod_hash_item->data;
+        for (FklGrammerProduction *prods = prod_hash_item->v; prods;
              prods = prods->next) {
             FklGrammerProduction *prod =
                 fklCopyUninitedGrammerProduction(prods);
@@ -7468,12 +7468,12 @@ createAddingProductionCtx(FklGrammerProduction *prod, FklSid_t sid,
 }
 
 static inline int check_group_outer_ref(FklCodegenInfo *codegen,
-                                        FklHashTable *productions,
+                                        FklProdTable *productions,
                                         FklSid_t group_id) {
     int is_ref_outer = 0;
-    for (FklHashTableItem *item = productions->first; item; item = item->next) {
-        FklGrammerProdHashItem *data = (FklGrammerProdHashItem *)item->data;
-        for (FklGrammerProduction *prods = data->prods; prods;
+    for (FklProdTableNode *item = productions->first; item; item = item->next) {
+        // FklGrammerProdHashItem *data = (FklGrammerProdHashItem *)item->data;
+        for (FklGrammerProduction *prods = item->v; prods;
              prods = prods->next) {
             for (size_t i = 0; i < prods->len; i++) {
                 FklGrammerSym *sym = &prods->syms[i];
@@ -7483,9 +7483,12 @@ static inline int check_group_outer_ref(FklCodegenInfo *codegen,
                     else {
                         FklGrammerNonterm left = {.group = group_id,
                                                   .sid = sym->nt.sid};
-                        if (fklGetHashItem(&left, productions))
+                        // if (fklGetHashItem(&left, productions))
+                        if (fklProdTableGet(productions, &left))
                             sym->nt.group = group_id;
-                        else if (fklGetHashItem(&left, codegen->unnamed_prods))
+                        // else if (fklGetHashItem(&left,
+                        // codegen->unnamed_prods))
+                        else if (fklProdTableGet(codegen->unnamed_prods, &left))
                             is_ref_outer = 1;
                     }
                 }
@@ -7689,11 +7692,10 @@ static inline FklGrammerProduction *nast_vector_to_production(
     return NULL;
 }
 
-static inline int add_group_prods(FklGrammer *g, const FklHashTable *prods) {
-    for (FklHashTableItem *i = prods->first; i; i = i->next) {
-        FklGrammerProdHashItem *item = (FklGrammerProdHashItem *)i->data;
-        for (FklGrammerProduction *prods = item->prods; prods;
-             prods = prods->next) {
+static inline int add_group_prods(FklGrammer *g, const FklProdTable *prods) {
+    for (FklProdTableNode *i = prods->first; i; i = i->next) {
+        // FklGrammerProdHashItem *item = (FklGrammerProdHashItem *)i->data;
+        for (FklGrammerProduction *prods = i->v; prods; prods = prods->next) {
             FklGrammerProduction *prod =
                 fklCopyUninitedGrammerProduction(prods);
             if (prod->left.sid == 0 && prod->left.group == 0)
@@ -7725,12 +7727,12 @@ static inline int add_group_ignores(FklGrammer *g, FklGrammerIgnore *igs) {
 }
 
 static inline int add_start_prods_to_grammer(FklGrammer *g,
-                                             FklHashTable *prods) {
-    for (FklHashTableItem *itemlist = prods->first; itemlist;
+                                             FklProdTable *prods) {
+    for (FklProdTableNode *itemlist = prods->first; itemlist;
          itemlist = itemlist->next) {
-        FklGrammerProdHashItem *prod_item =
-            (FklGrammerProdHashItem *)itemlist->data;
-        for (FklGrammerProduction *prods = prod_item->prods; prods;
+        // FklGrammerProdHashItem *prod_item =
+        //     (FklGrammerProdHashItem *)itemlist->data;
+        for (FklGrammerProduction *prods = itemlist->v; prods;
              prods = prods->next) {
             if (prods->left.group == 0 && prods->left.sid == 0) {
                 FklGrammerProduction *prod =
@@ -7790,12 +7792,12 @@ static inline int add_prods_list_to_grammer(FklGrammer *g,
 
 static inline int scan_and_add_reachable_productions(FklCodegenInfo *codegen) {
     FklGrammer *g = *codegen->g;
-    FklHashTable *productions = &g->productions;
-    for (FklHashTableItem *nonterm_item = productions->first; nonterm_item;
+    FklProdTable *productions = &g->productions;
+    for (FklProdTableNode *nonterm_item = productions->first; nonterm_item;
          nonterm_item = nonterm_item->next) {
-        FklGrammerProdHashItem *nonterm =
-            (FklGrammerProdHashItem *)nonterm_item->data;
-        for (FklGrammerProduction *prods = nonterm->prods; prods;
+        // FklGrammerProdHashItem *nonterm =
+        //     (FklGrammerProdHashItem *)nonterm_item->data;
+        for (FklGrammerProduction *prods = nonterm_item->v; prods;
              prods = prods->next) {
             size_t len = prods->len;
             FklGrammerSym *syms = prods->syms;
@@ -7872,8 +7874,9 @@ add_production_group(FklGraProdGroupTable *named_prod_groups,
                      FklSid_t group_id) {
     FklGrammerProdGroupItem *group =
         fklGraProdGroupTableAdd1(named_prod_groups, group_id);
-    if (!group->prods.t) {
-        fklInitGrammerProductionTable(&group->prods);
+    if (!group->prods.buckets) {
+        fklProdTableInit(&group->prods);
+        // fklInitGrammerProductionTable(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);
         fklNastNodeVectorInit(&group->ignore_printing, 8);
     }
@@ -7884,8 +7887,10 @@ static inline int init_builtin_grammer(FklCodegenInfo *codegen,
                                        FklSymbolTable *st) {
     *codegen->g = fklCreateEmptyGrammer(st);
     FklGrammer *g = *codegen->g;
-    fklInitGrammerProductionTable(codegen->builtin_prods);
-    fklInitGrammerProductionTable(codegen->unnamed_prods);
+    // fklInitGrammerProductionTable(codegen->builtin_prods);
+    // fklInitGrammerProductionTable(codegen->unnamed_prods);
+    fklProdTableInit(codegen->builtin_prods);
+    fklProdTableInit(codegen->unnamed_prods);
     fklGraProdGroupTableInit(codegen->named_prod_groups);
     codegen->self_unnamed_ignores = NULL;
     *codegen->unnamed_ignores = NULL;
@@ -8867,11 +8872,14 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
         fklUninitSymbolTable(&g->reachable_terminals);
         fklUninitHashTable(&g->builtins);
         fklUninitHashTable(&g->firstSets);
-        fklUninitHashTable(&g->productions);
+        fklProdTableUninit(&g->productions);
+        // fklUninitHashTable(&g->productions);
         destroy_grammer_ignore_list(*codegen->builtin_ignores);
         destroy_grammer_ignore_list(*codegen->unnamed_ignores);
-        fklUninitHashTable(codegen->builtin_prods);
-        fklUninitHashTable(codegen->unnamed_prods);
+        // fklUninitHashTable(codegen->builtin_prods);
+        // fklUninitHashTable(codegen->unnamed_prods);
+        fklProdTableUninit(codegen->builtin_prods);
+        fklProdTableUninit(codegen->unnamed_prods);
         fklGraProdGroupTableUninit(codegen->named_prod_groups);
         free(g);
         codegen->g = NULL;
@@ -8886,11 +8894,11 @@ static inline void recompute_all_terminal_sid(FklGrammerProdGroupItem *group,
     for (FklGrammerIgnore *igs = group->ignore; igs; igs = igs->next)
         recompute_ignores_terminal_sid_and_regex(igs, target_table, target_rt,
                                                  orig_rt);
-    for (FklHashTableItem *prod_hash_item_list = group->prods.first;
+    for (FklProdTableNode *prod_hash_item_list = group->prods.first;
          prod_hash_item_list; prod_hash_item_list = prod_hash_item_list->next) {
-        FklGrammerProdHashItem *prod_item =
-            (FklGrammerProdHashItem *)prod_hash_item_list->data;
-        for (FklGrammerProduction *prods = prod_item->prods; prods;
+        // FklGrammerProdHashItem *prod_item =
+        //     (FklGrammerProdHashItem *)prod_hash_item_list->data;
+        for (FklGrammerProduction *prods = prod_hash_item_list->v; prods;
              prods = prods->next)
             recompute_prod_terminal_sid(prods, target_table, origin_table);
     }
@@ -8949,13 +8957,13 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
                                                   &base2[i]);
                 group->prod_printing.size = 0;
 
-                for (FklHashTableItem *prod_hash_item_list = group->prods.first;
+                for (FklProdTableNode *prod_hash_item_list = group->prods.first;
                      prod_hash_item_list;
                      prod_hash_item_list = prod_hash_item_list->next) {
-                    FklGrammerProdHashItem *prod_item =
-                        (FklGrammerProdHashItem *)prod_hash_item_list->data;
-                    for (FklGrammerProduction *prods = prod_item->prods; prods;
-                         prods = prods->next) {
+                    // FklGrammerProdHashItem *prod_item =
+                    //     (FklGrammerProdHashItem *)prod_hash_item_list->data;
+                    for (FklGrammerProduction *prods = prod_hash_item_list->v;
+                         prods; prods = prods->next) {
                         FklGrammerProduction *prod =
                             fklCopyUninitedGrammerProduction(prods);
                         fklAddProdToProdTable(&target_group->prods,

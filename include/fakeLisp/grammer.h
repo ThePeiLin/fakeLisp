@@ -100,15 +100,37 @@ typedef struct FklGrammerProduction {
     void (*ctx_destroyer)(void *);
 } FklGrammerProduction;
 
-typedef struct {
-    FklGrammerNonterm left;
-    FklGrammerProduction *prods;
-} FklGrammerProdHashItem;
+// typedef struct {
+//     FklGrammerNonterm k;
+//     FklGrammerProduction *prods;
+// } FklGrammerProdHashItem;
+
+void fklDestroyGrammerProduction(FklGrammerProduction *h);
+
+// FklProdTable
+#define FKL_TABLE_KEY_TYPE FklGrammerNonterm
+#define FKL_TABLE_VAL_TYPE FklGrammerProduction *
+#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+    (A)->group == (B)->group && (A)->sid == (B)->sid
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
+#define FKL_TABLE_ELM_NAME Prod
+#define FKL_TABLE_VAL_UNINIT(V)                                                \
+    {                                                                          \
+        FklGrammerProduction *h = *(V);                                        \
+        while (h) {                                                            \
+            FklGrammerProduction *next = h->next;                              \
+            fklDestroyGrammerProduction(h);                                    \
+            h = next;                                                          \
+        }                                                                      \
+        *(V) = NULL;                                                           \
+    }
+#include "table.h"
 
 FklGrammerProduction *
 fklCopyUninitedGrammerProduction(FklGrammerProduction *prod);
-void fklInitGrammerProductionTable(FklHashTable *);
-FklHashTable *fklCreateGrammerProductionTable(void);
+// void fklInitGrammerProductionTable(FklHashTable *);
+// FklHashTable *fklCreateGrammerProductionTable(void);
 
 typedef enum {
     FKL_LALR_MATCH_NONE,
@@ -253,7 +275,7 @@ typedef struct FklGrammer {
     FklGrammerNonterm start;
 
     size_t prodNum;
-    FklHashTable productions;
+    FklProdTable productions;
 
     FklHashTable builtins;
 
@@ -285,10 +307,10 @@ fklCreateGrammerFromCstrAction(const FklGrammerCstrAction prodAction[],
                                FklSymbolTable *st);
 
 int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod);
-int fklAddProdToProdTable(FklHashTable *productions, FklHashTable *builtins,
+int fklAddProdToProdTable(FklProdTable *productions, FklHashTable *builtins,
                           FklGrammerProduction *prod);
 
-int fklAddProdToProdTableNoRepeat(FklHashTable *productions,
+int fklAddProdToProdTableNoRepeat(FklProdTable *productions,
                                   FklHashTable *builtins,
                                   FklGrammerProduction *prod);
 
@@ -352,16 +374,15 @@ void fklProdCtxDestroyFree(void *c);
 void fklProdCtxDestroyDoNothing(void *c);
 void *fklProdCtxCopyerDoNothing(const void *c);
 
-void fklDestroyGrammerProduction(FklGrammerProduction *h);
 void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len);
 FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
                                             const FklSymbolTable *tt);
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklHashTable *ht,
                                               FklSid_t id);
 
-int fklIsNonterminalExist(FklHashTable *prods, FklSid_t group, FklSid_t id);
+int fklIsNonterminalExist(FklProdTable *prods, FklSid_t group, FklSid_t id);
 
-FklGrammerProduction *fklGetProductions(const FklHashTable *prod,
+FklGrammerProduction *fklGetProductions(const FklProdTable *prod,
                                         FklSid_t group, FklSid_t id);
 FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
                                                FklSid_t group, FklSid_t id);
@@ -427,7 +448,7 @@ void *fklDefaultParseForCharBuf(const char *str, size_t len, size_t *restLen,
                                 FklUintVector *lines,
                                 FklParseStateVector *states);
 
-FklGrammerIgnore *fklInitBuiltinProductionSet(FklHashTable *ht,
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklProdTable *ht,
                                               FklSymbolTable *st,
                                               FklSymbolTable *tt,
                                               FklRegexTable *rt,

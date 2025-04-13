@@ -53,6 +53,15 @@ typedef struct {
     FklSid_t sid;
 } FklGrammerNonterm;
 
+// FklNontermTable
+#define FKL_TABLE_KEY_TYPE FklGrammerNonterm
+#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+    (A)->group == (B)->group && (A)->sid == (B)->sid
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
+#define FKL_TABLE_ELM_NAME Nonterm
+#include "table.h"
+
 enum FklGrammerTermType {
     FKL_TERM_STRING = 0,
     FKL_TERM_BUILTIN,

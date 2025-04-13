@@ -7871,7 +7871,7 @@ static inline FklGrammerProdGroupItem *
 add_production_group(FklGraProdGroupTable *named_prod_groups,
                      FklSid_t group_id) {
     FklGrammerProdGroupItem *group =
-        fklGraProdGroupTableSet(named_prod_groups, group_id);
+        fklGraProdGroupTableAdd1(named_prod_groups, group_id);
     if (!group->prods.t) {
         fklInitGrammerProductionTable(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);

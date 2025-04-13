@@ -2,6 +2,7 @@
 #define FKL_SYMBOL_H
 
 #include "base.h"
+
 #include <stdint.h>
 #include <stdio.h>
 
@@ -10,11 +11,6 @@ extern "C" {
 #endif
 
 typedef uint64_t FklSid_t;
-
-// typedef struct {
-//     FklString *k;
-//     FklSid_t v;
-// } FklSymbolHashItem;
 
 // FklStrIdTable
 #define FKL_TABLE_KEY_TYPE FklString *
@@ -32,8 +28,6 @@ typedef struct FklSymboTable {
     FklSid_t num;
     size_t idl_size;
     FklStrIdTableElm **idl;
-    // FklSymbolHashItem **idl;
-    // FklHashTable ht;
     FklStrIdTable ht;
 } FklSymbolTable;
 

@@ -16,6 +16,7 @@ static void prod_hash_set_key(void *k0, const void *k1) {
     *(FklGrammerNonterm *)k0 = *(const FklGrammerNonterm *)k1;
 }
 
+// 判断非终结符是否是 S'
 static inline int is_Sq_nt(const FklGrammerNonterm *nt) {
     return nt->group == 0 && nt->sid == 0;
 }
@@ -35,19 +36,19 @@ static int prod_hash_equal(const void *k0, const void *k1) {
     return nonterm_eq(k0, k1);
 }
 
-static const FklHashTableMetaTable NontermMetaTable = {
-    .size = sizeof(FklGrammerNonterm),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = prod_hash_set_key,
-    .__setVal = prod_hash_set_key,
-    .__keyEqual = prod_hash_equal,
-    .__hashFunc = prod_hash_func,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
+// static const FklHashTableMetaTable NontermMetaTable = {
+//     .size = sizeof(FklGrammerNonterm),
+//     .__getKey = fklHashDefaultGetKey,
+//     .__setKey = prod_hash_set_key,
+//     .__setVal = prod_hash_set_key,
+//     .__keyEqual = prod_hash_equal,
+//     .__hashFunc = prod_hash_func,
+//     .__uninitItem = fklDoNothingUninitHashItem,
+// };
 
-static inline void init_nonterm_set(FklHashTable *ht) {
-    fklInitHashTable(ht, &NontermMetaTable);
-}
+// static inline void init_nonterm_set(FklNontermTable *ht) {
+//     fklInitHashTable(ht, &NontermMetaTable);
+// }
 
 static void prod_hash_set_val(void *d0, const void *d1) {
     *(FklGrammerProdHashItem *)d0 = *(const FklGrammerProdHashItem *)d1;
@@ -2234,8 +2235,8 @@ static inline int add_reachable_terminal(FklGrammer *g) {
     FklGrammerProdHashItem *first =
         (FklGrammerProdHashItem *)g->productions.first->data;
     graProdVectorPushBack2(&prod_stack, first->prods);
-    FklHashTable nonterm_set;
-    init_nonterm_set(&nonterm_set);
+    FklNontermTable nonterm_set;
+    fklNontermTableInit(&nonterm_set);
     while (!graProdVectorIsEmpty(&prod_stack)) {
         FklGrammerProduction *prods = *graProdVectorPopBack(&prod_stack);
         for (; prods; prods = prods->next) {
@@ -2252,8 +2253,9 @@ static inline int add_reachable_terminal(FklGrammer *g) {
                         find_and_add_terminal_in_regex(cur->re,
                                                        &g->reachable_terminals);
                 }
-                if (!cur->isterm
-                    && !fklPutHashItem2(&nonterm_set, &cur->nt, NULL))
+                if (!cur->isterm && !fklNontermTablePut(&nonterm_set, &cur->nt)
+                    // !fklPutHashItem2(&nonterm_set, &cur->nt, NULL)
+                )
                     graProdVectorPushBack2(&prod_stack,
                                            fklGetProductions(productions,
                                                              cur->nt.group,
@@ -2261,7 +2263,7 @@ static inline int add_reachable_terminal(FklGrammer *g) {
             }
         }
     }
-    fklUninitHashTable(&nonterm_set);
+    fklNontermTableUninit(&nonterm_set);
     graProdVectorUninit(&prod_stack);
     for (FklGrammerIgnore *igs = g->ignores; igs; igs = igs->next) {
         FklGrammerIgnoreSym *igss = igs->ig;
@@ -2666,10 +2668,10 @@ static inline void lalr_item_set_sort(FklHashTable *itemSet) {
 
 static inline void lr0_item_set_closure(FklHashTable *itemSet, FklGrammer *g) {
     int change;
-    FklHashTable sidSet;
-    init_nonterm_set(&sidSet);
-    FklHashTable changeSet;
-    init_nonterm_set(&changeSet);
+    FklNontermTable sidSet;
+    fklNontermTableInit(&sidSet);
+    FklNontermTable changeSet;
+    fklNontermTableInit(&changeSet);
     do {
         change = 0;
         for (FklHashTableItem *l = itemSet->first; l; l = l->next) {
@@ -2677,28 +2679,34 @@ static inline void lr0_item_set_closure(FklHashTable *itemSet, FklGrammer *g) {
             FklGrammerSym *sym = get_item_next(i);
             if (sym && !sym->isterm) {
                 const FklGrammerNonterm *left = &sym->nt;
-                if (!fklPutHashItem2(&sidSet, left, NULL)) {
+                if (!fklNontermTablePut(&sidSet, left)
+                    // fklPutHashItem2(&sidSet, left, NULL)
+                ) {
                     change = 1;
-                    fklPutHashItem(left, &changeSet);
+                    fklNontermTablePut(&changeSet, left);
+                    // fklPutHashItem(left, &changeSet);
                 }
             }
         }
 
-        for (FklHashTableItem *lefts = changeSet.first; lefts;
+        for (FklNontermTableNode *lefts = changeSet.first; lefts;
              lefts = lefts->next) {
-            const FklGrammerNonterm *left =
-                ((const FklGrammerNonterm *)lefts->data);
+            // const FklGrammerNonterm *left =
+            //     ((const FklGrammerNonterm *)lefts->data);
             FklGrammerProduction *prod =
-                fklGetGrammerProductions(g, left->group, left->sid);
+                fklGetGrammerProductions(g, lefts->k.group, lefts->k.sid);
             for (; prod; prod = prod->next) {
                 FklLalrItem item = lalr_item_init(prod, 0, NULL);
                 fklPutHashItem(&item, itemSet);
             }
         }
-        fklClearHashTable(&changeSet);
+        // fklClearHashTable(&changeSet);
+        fklNontermTableClear(&changeSet);
     } while (change);
-    fklUninitHashTable(&sidSet);
-    fklUninitHashTable(&changeSet);
+    fklNontermTableUninit(&sidSet);
+    fklNontermTableUninit(&changeSet);
+    // fklUninitHashTable(&sidSet);
+    // fklUninitHashTable(&changeSet);
 }
 
 static inline void lr0_item_set_copy_and_closure(FklHashTable *dst,
@@ -4014,11 +4022,11 @@ static const FklHashTableMetaTable ActionMatchHashMetaTable = {
 };
 
 static inline void init_analysis_table_header(FklHashTable *la,
-                                              FklHashTable *nt,
+                                              FklNontermTable *nt,
                                               FklAnalysisState *states,
                                               size_t stateNum) {
     fklInitHashTable(la, &ActionMatchHashMetaTable);
-    init_nonterm_set(nt);
+    fklNontermTableInit(nt);
 
     for (size_t i = 0; i < stateNum; i++) {
         FklAnalysisState *curState = &states[i];
@@ -4027,7 +4035,8 @@ static inline void init_analysis_table_header(FklHashTable *la,
             if (action->action != FKL_ANALYSIS_IGNORE)
                 fklPutHashItem(&action->match, la);
         for (FklAnalysisStateGoto *gt = curState->state.gt; gt; gt = gt->next)
-            fklPutHashItem(&gt->nt, nt);
+            fklNontermTablePut(nt, &gt->nt);
+        // fklPutHashItem(&gt->nt, nt);
     }
 }
 
@@ -4138,7 +4147,7 @@ print_look_ahead_for_grapheasy(const FklLalrItemLookAhead *la, FILE *fp) {
 }
 
 static inline void print_table_header_for_grapheasy(const FklHashTable *la,
-                                                    const FklHashTable *sid,
+                                                    const FklNontermTable *sid,
                                                     const FklSymbolTable *st,
                                                     FILE *fp) {
     fputs("\\n|", fp);
@@ -4148,11 +4157,11 @@ static inline void print_table_header_for_grapheasy(const FklHashTable *la,
         fputc('|', fp);
     }
     fputs("\\n|\\n", fp);
-    for (FklHashTableItem *sl = sid->first; sl; sl = sl->next) {
+    for (FklNontermTableNode *sl = sid->first; sl; sl = sl->next) {
         fputc('|', fp);
-        const FklGrammerNonterm *id = (const FklGrammerNonterm *)sl->data;
+        // const FklGrammerNonterm *id = (const FklGrammerNonterm *)sl->data;
         fputs("\\|", fp);
-        print_symbol_for_grapheasy(fklGetSymbolWithId(id->sid, st)->k, fp);
+        print_symbol_for_grapheasy(fklGetSymbolWithId(sl->k.sid, st)->k, fp);
         fputs("\\|", fp);
     }
     fputs("||\n", fp);
@@ -4186,13 +4195,13 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
     fputs("[\n", fp);
 
     FklHashTable laTable;
-    FklHashTable sidSet;
+    FklNontermTable sidSet;
     init_analysis_table_header(&laTable, &sidSet, states, num);
 
     print_table_header_for_grapheasy(&laTable, &sidSet, st, fp);
 
     FklHashTableItem *laList = laTable.first;
-    FklHashTableItem *sidList = sidSet.first;
+    FklNontermTableNode *sidList = sidSet.first;
     for (size_t i = 0; i < num; i++) {
         const FklAnalysisState *curState = &states[i];
         fprintf(fp, "%" FKL_PRT64U ": |", i);
@@ -4221,11 +4230,12 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
             fputc('|', fp);
         }
         fputs("\\n|\\n", fp);
-        for (FklHashTableItem *sl = sidList; sl; sl = sl->next) {
+        for (FklNontermTableNode *sl = sidList; sl; sl = sl->next) {
             fputc('|', fp);
-            const FklGrammerNonterm *id = (const FklGrammerNonterm *)sl->data;
+            // const FklGrammerNonterm *id = (const FklGrammerNonterm
+            // *)sl->data;
             FklAnalysisStateGoto *gt =
-                find_gt(curState->state.gt, id->group, id->sid);
+                find_gt(curState->state.gt, sl->k.group, sl->k.sid);
             if (gt) {
                 uintptr_t idx = gt->state - states;
                 fprintf(fp, "%" FKL_PRT64U "", idx);
@@ -4236,7 +4246,8 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
     }
     fputc(']', fp);
     fklUninitHashTable(&laTable);
-    fklUninitHashTable(&sidSet);
+    fklNontermTableUninit(&sidSet);
+    // fklUninitHashTable(&sidSet);
 }
 
 static inline void print_get_max_non_term_length_prototype_to_c_file(FILE *fp) {

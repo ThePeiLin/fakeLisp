@@ -949,7 +949,7 @@ static inline FklReplacementTable *load_replacements(FklSymbolTable *st,
         FklSid_t id = 0;
         fread(&id, sizeof(id), 1, fp);
         FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-        *fklReplacementTableSet(ht, id) = node;
+        *fklReplacementTableAdd1(ht, id) = node;
     }
     return ht;
 }
@@ -1256,7 +1256,7 @@ static inline FklGrammerProdGroupItem *
 add_production_group(FklGraProdGroupTable *named_prod_groups,
                      FklSid_t group_id) {
     FklGrammerProdGroupItem *group =
-        fklGraProdGroupTableSet(named_prod_groups, group_id);
+        fklGraProdGroupTableAdd1(named_prod_groups, group_id);
     if (!group->prods.t) {
         fklInitGrammerProductionTable(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);

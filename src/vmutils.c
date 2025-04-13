@@ -407,8 +407,7 @@ typedef struct {
 #define FKL_TABLE_VAL_TYPE PrtSt
 #define FKL_TABLE_ELM_NAME CircleHead
 #define FKL_TABLE_KEY_HASH                                                     \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
 #include <fakeLisp/table.h>
 static inline void putValueInSet(VmCircleHeadTable *s, const FklVMvalue *v) {
     uint32_t num = s->count;
@@ -426,8 +425,7 @@ static inline void putValueInSet(VmCircleHeadTable *s, const FklVMvalue *v) {
 #define FKL_TABLE_VAL_TYPE uint64_t
 #define FKL_TABLE_ELM_NAME ValueDegree
 #define FKL_TABLE_KEY_HASH                                                     \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklVMvalue)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
 #include <fakeLisp/table.h>
 
 static inline void inc_value_degree(VmValueDegreeTable *ht, FklVMvalue *v) {

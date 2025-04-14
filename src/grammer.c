@@ -3648,13 +3648,8 @@ void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
     }
 }
 
-static void action_match_set_key(void *d0, const void *d1) {
-    *(FklAnalysisStateActionMatch *)d0 = *(FklAnalysisStateActionMatch *)d1;
-}
-
-static uintptr_t action_match_hash_func(const void *d0) {
-    const FklAnalysisStateActionMatch *match =
-        (const FklAnalysisStateActionMatch *)d0;
+static uintptr_t
+action_match_hash_func(const FklAnalysisStateActionMatch *match) {
     switch (match->t) {
     case FKL_LALR_MATCH_NONE:
         return 0;
@@ -3676,9 +3671,8 @@ static uintptr_t action_match_hash_func(const void *d0) {
     return 0;
 }
 
-static inline int
-state_action_match_equal(const FklAnalysisStateActionMatch *m0,
-                         const FklAnalysisStateActionMatch *m1) {
+static inline int action_match_equal(const FklAnalysisStateActionMatch *m0,
+                                     const FklAnalysisStateActionMatch *m1) {
     if (m0->t == m1->t) {
         switch (m0->t) {
         case FKL_LALR_MATCH_NONE:
@@ -3699,26 +3693,20 @@ state_action_match_equal(const FklAnalysisStateActionMatch *m0,
     return 0;
 }
 
-static int action_match_equal(const void *d0, const void *d1) {
-    return state_action_match_equal((const FklAnalysisStateActionMatch *)d0,
-                                    (const FklAnalysisStateActionMatch *)d1);
-}
+// GraActionMatchTable
+#define FKL_TABLE_TYPE_PREFIX Gra
+#define FKL_TABLE_METHOD_PREFIX gra
+#define FKL_TABLE_KEY_TYPE FklAnalysisStateActionMatch
+#define FKL_TABLE_KEY_EQUAL(A, B) action_match_equal(A, B)
+#define FKL_TABLE_KEY_HASH return action_match_hash_func(pk)
+#define FKL_TABLE_ELM_NAME ActionMatch
+#include <fakeLisp/table.h>
 
-static const FklHashTableMetaTable ActionMatchHashMetaTable = {
-    .size = sizeof(FklAnalysisStateActionMatch),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = action_match_set_key,
-    .__setVal = action_match_set_key,
-    .__hashFunc = action_match_hash_func,
-    .__keyEqual = action_match_equal,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
-
-static inline void init_analysis_table_header(FklHashTable *la,
+static inline void init_analysis_table_header(GraActionMatchTable *la,
                                               FklNontermTable *nt,
                                               FklAnalysisState *states,
                                               size_t stateNum) {
-    fklInitHashTable(la, &ActionMatchHashMetaTable);
+    graActionMatchTableInit(la);
     fklNontermTableInit(nt);
 
     for (size_t i = 0; i < stateNum; i++) {
@@ -3726,7 +3714,7 @@ static inline void init_analysis_table_header(FklHashTable *la,
         for (FklAnalysisStateAction *action = curState->state.action; action;
              action = action->next)
             if (action->action != FKL_ANALYSIS_IGNORE)
-                fklPutHashItem(&action->match, la);
+                graActionMatchTablePut(la, &action->match);
         for (FklAnalysisStateGoto *gt = curState->state.gt; gt; gt = gt->next)
             fklNontermTablePut(nt, &gt->nt);
     }
@@ -3809,16 +3797,17 @@ static inline void print_string_for_grapheasy(const FklString *stri, FILE *fp) {
 }
 
 static inline void
-print_look_ahead_for_grapheasy(const FklLalrItemLookAhead *la, FILE *fp) {
+print_look_ahead_for_grapheasy(const FklAnalysisStateActionMatch *la,
+                               FILE *fp) {
     switch (la->t) {
     case FKL_LALR_MATCH_STRING: {
         fputc('\'', fp);
-        print_string_for_grapheasy(la->s, fp);
+        print_string_for_grapheasy(la->str, fp);
         fputc('\'', fp);
     } break;
     case FKL_LALR_MATCH_STRING_END_WITH_TERMINAL: {
         fputc('\'', fp);
-        print_string_for_grapheasy(la->s, fp);
+        print_string_for_grapheasy(la->str, fp);
         fputs("\'$", fp);
     } break;
     case FKL_LALR_MATCH_EOF:
@@ -3826,7 +3815,7 @@ print_look_ahead_for_grapheasy(const FklLalrItemLookAhead *la, FILE *fp) {
         break;
     case FKL_LALR_MATCH_BUILTIN:
         fputs("\\|", fp);
-        fputs(la->b.t->name, fp);
+        fputs(la->func.t->name, fp);
         fputs("\\|", fp);
         break;
     case FKL_LALR_MATCH_NONE:
@@ -3838,14 +3827,13 @@ print_look_ahead_for_grapheasy(const FklLalrItemLookAhead *la, FILE *fp) {
     }
 }
 
-static inline void print_table_header_for_grapheasy(const FklHashTable *la,
-                                                    const FklNontermTable *sid,
-                                                    const FklSymbolTable *st,
-                                                    FILE *fp) {
+static inline void
+print_table_header_for_grapheasy(const GraActionMatchTable *la,
+                                 const FklNontermTable *sid,
+                                 const FklSymbolTable *st, FILE *fp) {
     fputs("\\n|", fp);
-    for (FklHashTableItem *al = la->first; al; al = al->next) {
-        FklLalrItemLookAhead *la = (FklLalrItemLookAhead *)al->data;
-        print_look_ahead_for_grapheasy(la, fp);
+    for (GraActionMatchTableNode *al = la->first; al; al = al->next) {
+        print_look_ahead_for_grapheasy(&al->k, fp);
         fputc('|', fp);
     }
     fputs("\\n|\\n", fp);
@@ -3862,7 +3850,7 @@ static inline FklAnalysisStateAction *
 find_action(FklAnalysisStateAction *action,
             const FklAnalysisStateActionMatch *match) {
     for (; action; action = action->next) {
-        if (state_action_match_equal(match, &action->match))
+        if (action_match_equal(match, &action->match))
             return action;
     }
     return NULL;
@@ -3885,22 +3873,20 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
     fputs("graph{title:state-table;}", fp);
     fputs("[\n", fp);
 
-    FklHashTable laTable;
+    GraActionMatchTable laTable;
     FklNontermTable sidSet;
     init_analysis_table_header(&laTable, &sidSet, states, num);
 
     print_table_header_for_grapheasy(&laTable, &sidSet, st, fp);
 
-    FklHashTableItem *laList = laTable.first;
+    GraActionMatchTableNode *laList = laTable.first;
     FklNontermTableNode *sidList = sidSet.first;
     for (size_t i = 0; i < num; i++) {
         const FklAnalysisState *curState = &states[i];
         fprintf(fp, "%" FKL_PRT64U ": |", i);
-        for (FklHashTableItem *al = laList; al; al = al->next) {
-            FklAnalysisStateActionMatch *match =
-                (FklAnalysisStateActionMatch *)al->data;
+        for (GraActionMatchTableNode *al = laList; al; al = al->next) {
             FklAnalysisStateAction *action =
-                find_action(curState->state.action, match);
+                find_action(curState->state.action, &al->k);
             if (action) {
                 switch (action->action) {
                 case FKL_ANALYSIS_SHIFT: {
@@ -3934,7 +3920,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
         fputs("||\n", fp);
     }
     fputc(']', fp);
-    fklUninitHashTable(&laTable);
+    graActionMatchTableUninit(&laTable);
     fklNontermTableUninit(&sidSet);
 }
 

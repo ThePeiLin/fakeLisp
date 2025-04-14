@@ -155,12 +155,19 @@ typedef struct {
     int hasEpsilon;
 } FklFirstSetItem;
 
+static inline int fklNontermEqual(const FklGrammerNonterm *nt0,
+                                  const FklGrammerNonterm *nt1) {
+    return nt0->group == nt1->group && nt0->sid == nt1->sid;
+}
+
+static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
+    return fklHashCombine(fklHash32Shift(pk->group), pk->sid);
+}
+
 // FklFirstSetTable
 #define FKL_TABLE_KEY_TYPE FklGrammerNonterm
-#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
-    (A)->group == (B)->group && (A)->sid == (B)->sid
-#define FKL_TABLE_KEY_HASH                                                     \
-    return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
+#define FKL_TABLE_KEY_EQUAL(A, B) fklNontermEqual(A, B)
+#define FKL_TABLE_KEY_HASH return fklNontermHash(pk)
 #define FKL_TABLE_VAL_TYPE FklFirstSetItem
 #define FKL_TABLE_VAL_UNINIT(V) fklLookAheadTableUninit(&(V)->first)
 #define FKL_TABLE_ELM_NAME FirstSet

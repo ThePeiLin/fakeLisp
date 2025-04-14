@@ -17,15 +17,6 @@ static inline int is_Sq_nt(const FklGrammerNonterm *nt) {
     return nt->group == 0 && nt->sid == 0;
 }
 
-static inline uintptr_t nonterm_hash(const FklGrammerNonterm *nt) {
-    return (nt->group << 32) + nt->sid;
-}
-
-static inline int nonterm_eq(const FklGrammerNonterm *nt0,
-                             const FklGrammerNonterm *nt1) {
-    return nt0->group == nt1->group && nt0->sid == nt1->sid;
-}
-
 void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len) {
     for (size_t i = 0; i < len; i++) {
         FklGrammerSym *s = &syms[i];
@@ -666,26 +657,6 @@ static inline int grammer_sym_cmp(const FklGrammerSym *s0,
         }
     }
     return 0;
-}
-
-static inline int grammer_sym_equal(const FklGrammerSym *s0,
-                                    const FklGrammerSym *s1) {
-    return s0->isterm == s1->isterm && s0->term_type == s1->term_type
-        && (s0->term_type == FKL_TERM_BUILTIN
-                ? fklBuiltinGrammerSymEqual(&s0->b, &s1->b)
-            : (s0->term_type == FKL_TERM_REGEX) ? s0->re == s1->re
-                                                : nonterm_eq(&s0->nt, &s1->nt))
-        && s0->delim == s1->delim
-        && s0->end_with_terminal == s1->end_with_terminal;
-}
-
-static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
-    return (s->isterm << 3)
-         + (s->term_type == FKL_TERM_BUILTIN
-                ? fklBuiltinGrammerSymHash(&s->b) << 2
-            : (s->term_type == FKL_TERM_REGEX) ? ((uintptr_t)s->re) << 2
-                                               : nonterm_hash(&s->nt) << 2)
-         + (s->delim << 1) + (s->end_with_terminal);
 }
 
 static inline void print_string_in_hex(const FklString *stri, FILE *fp) {
@@ -2557,34 +2528,6 @@ void fklPrintItemSet(const FklLalrItemTable *itemSet, const FklGrammer *g,
     putc('\n', fp);
 }
 
-static void hash_grammer_sym_set_key(void *s0, const void *s1) {
-    *(FklGrammerSym *)s0 = *(const FklGrammerSym *)s1;
-}
-
-static uintptr_t hash_grammer_sym_hash_func(const void *d) {
-    const FklGrammerSym *s = d;
-    return grammer_sym_hash(s);
-}
-
-static int hash_grammer_sym_equal(const void *d0, const void *d1) {
-    return grammer_sym_equal((const FklGrammerSym *)d0,
-                             (const FklGrammerSym *)d1);
-}
-
-static const FklHashTableMetaTable GrammerSymMetaTable = {
-    .size = sizeof(FklGrammerSym),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = hash_grammer_sym_set_key,
-    .__setVal = hash_grammer_sym_set_key,
-    .__hashFunc = hash_grammer_sym_hash_func,
-    .__uninitItem = fklDoNothingUninitHashItem,
-    .__keyEqual = hash_grammer_sym_equal,
-};
-
-static inline void init_grammer_sym_set(FklHashTable *t) {
-    fklInitHashTable(t, &GrammerSymMetaTable);
-}
-
 static void item_set_set_val(void *d0, const void *d1) {
     FklLalrItemSet *s = (FklLalrItemSet *)d0;
     *s = *(const FklLalrItemSet *)d1;
@@ -2631,7 +2574,7 @@ static void item_set_uninit(void *d) {
     }
 }
 
-static void item_set_add_link(FklLalrItemSet *src, FklGrammerSym *sym,
+static void item_set_add_link(FklLalrItemSet *src, const FklGrammerSym *sym,
                               FklLalrItemSet *dst) {
     FklLalrItemSetLink *l =
         (FklLalrItemSetLink *)malloc(sizeof(FklLalrItemSetLink));
@@ -2695,11 +2638,41 @@ static const FklHashTableMetaTable GetLaFirstSetCacheHashMetaTable = {
 #define FKL_QUEUE_ELM_TYPE_NAME ItemSet
 #include <fakeLisp/queue.h>
 
+static inline int grammer_sym_equal(const FklGrammerSym *s0,
+                                    const FklGrammerSym *s1) {
+    return s0->isterm == s1->isterm && s0->term_type == s1->term_type
+        && (s0->term_type == FKL_TERM_BUILTIN
+                ? fklBuiltinGrammerSymEqual(&s0->b, &s1->b)
+            : (s0->term_type == FKL_TERM_REGEX)
+                ? s0->re == s1->re
+                : fklNontermEqual(&s0->nt, &s1->nt))
+        && s0->delim == s1->delim
+        && s0->end_with_terminal == s1->end_with_terminal;
+}
+
+static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
+    return (s->isterm << 3)
+         + (s->term_type == FKL_TERM_BUILTIN
+                ? fklBuiltinGrammerSymHash(&s->b) << 2
+            : (s->term_type == FKL_TERM_REGEX) ? ((uintptr_t)s->re) << 2
+                                               : fklNontermHash(&s->nt) << 2)
+         + (s->delim << 1) + (s->end_with_terminal);
+}
+
+// GraSymbolTable
+#define FKL_TABLE_TYPE_PREFIX Gra
+#define FKL_TABLE_METHOD_PREFIX gra
+#define FKL_TABLE_KEY_TYPE FklGrammerSym
+#define FKL_TABLE_KEY_EQUAL(A, B) grammer_sym_equal(A, B)
+#define FKL_TABLE_KEY_HASH return grammer_sym_hash(pk)
+#define FKL_TABLE_ELM_NAME Symbol
+#include <fakeLisp/table.h>
+
 static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
                                      FklHashTable *itemsetSet, FklGrammer *g,
                                      GraItemSetQueue *pending) {
-    FklHashTable checked;
-    init_grammer_sym_set(&checked);
+    GraSymbolTable checked;
+    graSymbolTableInit(&checked);
     FklLalrItemTable *items = &itemset->items;
     FklLalrItemTable itemsClosure;
     fklLalrItemTableInit(&itemsClosure);
@@ -2708,15 +2681,14 @@ static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
     for (FklLalrItemTableNode *l = itemsClosure.first; l; l = l->next) {
         FklGrammerSym *sym = get_item_next(&l->k);
         if (sym)
-            fklPutHashItem(sym, &checked);
+            graSymbolTablePut(&checked, sym);
     }
-    for (FklHashTableItem *l = checked.first; l; l = l->next) {
+    for (GraSymbolTableNode *ll = checked.first; ll; ll = ll->next) {
         FklLalrItemTable newItems;
         fklLalrItemTableInit(&newItems);
-        FklGrammerSym *sym = (FklGrammerSym *)l->data;
         for (FklLalrItemTableNode *l = itemsClosure.first; l; l = l->next) {
             FklGrammerSym *next = get_item_next(&l->k);
-            if (next && hash_grammer_sym_equal(sym, next)) {
+            if (next && grammer_sym_equal(&ll->k, next)) {
                 FklLalrItem item = get_item_advance(&l->k);
                 fklLalrItemTablePut(&newItems, &item);
             }
@@ -2728,10 +2700,10 @@ static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
             graItemSetQueuePush2(pending, itemsetptr);
         } else
             fklLalrItemTableUninit(&newItems);
-        item_set_add_link(itemset, sym, itemsetptr);
+        item_set_add_link(itemset, &ll->k, itemsetptr);
     }
     fklLalrItemTableUninit(&itemsClosure);
-    fklUninitHashTable(&checked);
+    graSymbolTableUninit(&checked);
 }
 
 FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
@@ -4717,7 +4689,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     const FklAnalysisState *state = NULL;
     FklGrammerNonterm left = prod->left;
     for (; gt; gt = gt->next)
-        if (nonterm_eq(&gt->nt, &left))
+        if (fklNontermEqual(&gt->nt, &left))
             state = gt->state;
     if (!state)
         return 1;

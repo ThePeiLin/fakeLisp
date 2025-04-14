@@ -240,7 +240,7 @@ typedef struct {
 
 static inline uintptr_t fklLalrItemEqual(const FklLalrItem *a,
                                          const FklLalrItem *b) {
-    return a->prod == a->prod && a->idx == b->idx
+    return a->prod == b->prod && a->idx == b->idx
         && fklLalrItemLookAheadEqual(&a->la, &b->la);
 }
 

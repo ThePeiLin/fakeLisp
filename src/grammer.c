@@ -3032,32 +3032,16 @@ void fklLr0ToLalrItems(FklHashTable *lr0, FklGrammer *g) {
     fklUninitHashTable(&cache);
 }
 
-typedef struct {
-    FklLalrItemSet *set;
-    size_t idx;
-} ItemStateIdx;
-
-static void itemsetcount_set_val(void *d0, const void *d1) {
-    *(ItemStateIdx *)d0 = *(const ItemStateIdx *)d1;
-}
-
-static int itemsetcount_equal(const void *d0, const void *d1) {
-    return *(const void **)d0 == *(const void **)d1;
-}
-
-static uintptr_t itemsetcount_hash_func(const void *d0) {
-    return (uintptr_t)(*(const void **)d0);
-}
-
-static const FklHashTableMetaTable ItemStateIdxHashMetaTable = {
-    .size = sizeof(ItemStateIdx),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = fklPtrKeySet,
-    .__setVal = itemsetcount_set_val,
-    .__keyEqual = itemsetcount_equal,
-    .__hashFunc = itemsetcount_hash_func,
-    .__uninitItem = fklDoNothingUninitHashItem,
-};
+// GraItemStateIdxTable
+#define FKL_TABLE_TYPE_PREFIX Gra
+#define FKL_TABLE_METHOD_PREFIX gra
+#define FKL_TABLE_KEY_TYPE FklLalrItemSet const *
+#define FKL_TABLE_VAL_TYPE size_t
+#define FKL_TABLE_ELM_NAME ItemStateIdx
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHash64Shift(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrItemSet)));
+#include <fakeLisp/table.h>
 
 static inline void print_look_ahead_as_dot(FILE *fp,
                                            const FklLalrItemLookAhead *la,
@@ -3146,19 +3130,17 @@ void fklPrintItemStateSetAsDot(const FklHashTable *i, const FklGrammer *g,
     fputs("\trankdir=\"LR\"\n", fp);
     fputs("\tranksep=1\n", fp);
     fputs("\tgraph[overlap=false];\n", fp);
-    FklHashTable idxTable;
-    fklInitHashTable(&idxTable, &ItemStateIdxHashMetaTable);
+    GraItemStateIdxTable idxTable;
+    graItemStateIdxTableInit(&idxTable);
     size_t idx = 0;
     for (const FklHashTableItem *l = i->first; l; l = l->next, idx++) {
         const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        ItemStateIdx *c = fklPutHashItem(&s, &idxTable);
-        c->idx = idx;
+        graItemStateIdxTablePut2(&idxTable, s, idx);
     }
     for (const FklHashTableItem *l = i->first; l; l = l->next) {
         const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
         const FklLalrItemTable *i = &s->items;
-        ItemStateIdx *c = fklGetHashItem(&s, &idxTable);
-        idx = c->idx;
+        idx = *graItemStateIdxTableGet2(&idxTable, s);
         fprintf(fp,
                 "\t\"I%" FKL_PRT64U "\"[fontname=\"Courier\" nojustify=true "
                 "shape=\"box\" label=\"I%" FKL_PRT64U "\\l\\\n",
@@ -3167,17 +3149,17 @@ void fklPrintItemStateSetAsDot(const FklHashTable *i, const FklGrammer *g,
         fputs("\"]\n", fp);
         for (FklLalrItemSetLink *l = s->links; l; l = l->next) {
             FklLalrItemSet *dst = l->dst;
-            ItemStateIdx *c = fklGetHashItem(&dst, &idxTable);
+            size_t *c = graItemStateIdxTableGet2(&idxTable, dst);
             fprintf(fp,
                     "\tI%" FKL_PRT64U "->I%" FKL_PRT64U
                     "[fontname=\"Courier\" label=\"",
-                    idx, c->idx);
+                    idx, *c);
             print_prod_sym_as_dot(fp, &l->sym, st, &g->terminals, &g->regexes);
             fputs("\"]\n", fp);
         }
         putc('\n', fp);
     }
-    fklUninitHashTable(&idxTable);
+    graItemStateIdxTableUninit(&idxTable);
     fputs("}", fp);
 }
 
@@ -3558,13 +3540,12 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
         FKL_ASSERT(astates);
     }
     grammer->aTable.states = astates;
-    FklHashTable idxTable;
-    fklInitHashTable(&idxTable, &ItemStateIdxHashMetaTable);
+    GraItemStateIdxTable idxTable;
+    graItemStateIdxTableInit(&idxTable);
     size_t idx = 0;
     for (const FklHashTableItem *l = states->first; l; l = l->next, idx++) {
         const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        ItemStateIdx *c = fklPutHashItem(&s, &idxTable);
-        c->idx = idx;
+        graItemStateIdxTablePut2(&idxTable, s, idx);
     }
     idx = 0;
     for (const FklHashTableItem *l = states->first; l; l = l->next, idx++) {
@@ -3578,8 +3559,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
         const FklLalrItemTable *items = &s->items;
         for (FklLalrItemSetLink *ll = s->links; ll; ll = ll->next) {
             const FklGrammerSym *sym = &ll->sym;
-            ItemStateIdx *c = fklGetHashItem(&ll->dst, &idxTable);
-            size_t dstIdx = c->idx;
+            size_t dstIdx = *graItemStateIdxTableGet2(&idxTable, ll->dst);
             FklAnalysisState *dstState = &astates[dstIdx];
             if (sym->isterm)
                 add_shift_action(curState, sym, tt, dstState);
@@ -3615,7 +3595,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
     }
 
 break_loop:
-    fklUninitHashTable(&idxTable);
+    graItemStateIdxTableUninit(&idxTable);
     return hasConflict;
 }
 
@@ -4492,33 +4472,31 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g, const FklSymbolTable *st,
 
 void fklPrintItemStateSet(const FklHashTable *i, const FklGrammer *g,
                           const FklSymbolTable *st, FILE *fp) {
-    FklHashTable idxTable;
-    fklInitHashTable(&idxTable, &ItemStateIdxHashMetaTable);
+    GraItemStateIdxTable idxTable;
+    graItemStateIdxTableInit(&idxTable);
     size_t idx = 0;
     for (const FklHashTableItem *l = i->first; l; l = l->next, idx++) {
         const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        ItemStateIdx *c = fklPutHashItem(&s, &idxTable);
-        c->idx = idx;
+        graItemStateIdxTablePut2(&idxTable, s, idx);
     }
     for (const FklHashTableItem *l = i->first; l; l = l->next) {
         const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
         const FklLalrItemTable *i = &s->items;
-        ItemStateIdx *c = fklGetHashItem(&s, &idxTable);
-        idx = c->idx;
+        idx = *graItemStateIdxTableGet2(&idxTable, s);
         fprintf(fp, "===\nI%" FKL_PRT64U ": ", idx);
         putc('\n', fp);
         fklPrintItemSet(i, g, st, fp);
         putc('\n', fp);
         for (FklLalrItemSetLink *l = s->links; l; l = l->next) {
             FklLalrItemSet *dst = l->dst;
-            ItemStateIdx *c = fklGetHashItem(&dst, &idxTable);
+            size_t *c = graItemStateIdxTableGet2(&idxTable, dst);
             fprintf(fp, "I%" FKL_PRT64U "--{ ", idx);
             print_prod_sym(fp, &l->sym, st, &g->terminals, &g->regexes);
-            fprintf(fp, " }-->I%" FKL_PRT64U "\n", c->idx);
+            fprintf(fp, " }-->I%" FKL_PRT64U "\n", *c);
         }
         putc('\n', fp);
     }
-    fklUninitHashTable(&idxTable);
+    graItemStateIdxTableUninit(&idxTable);
 }
 
 void fklPrintGrammerProduction(FILE *fp, const FklGrammerProduction *prod,

@@ -2668,11 +2668,10 @@ static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
 #define FKL_TABLE_ELM_NAME Symbol
 #include <fakeLisp/table.h>
 
-static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
+static inline void lr0_item_set_goto(GraSymbolTable *checked,
+                                     FklLalrItemSet *itemset,
                                      FklHashTable *itemsetSet, FklGrammer *g,
                                      GraItemSetQueue *pending) {
-    GraSymbolTable checked;
-    graSymbolTableInit(&checked);
     FklLalrItemTable *items = &itemset->items;
     FklLalrItemTable itemsClosure;
     fklLalrItemTableInit(&itemsClosure);
@@ -2681,9 +2680,9 @@ static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
     for (FklLalrItemTableNode *l = itemsClosure.first; l; l = l->next) {
         FklGrammerSym *sym = get_item_next(&l->k);
         if (sym)
-            graSymbolTablePut(&checked, sym);
+            graSymbolTablePut(checked, sym);
     }
-    for (GraSymbolTableNode *ll = checked.first; ll; ll = ll->next) {
+    for (GraSymbolTableNode *ll = checked->first; ll; ll = ll->next) {
         FklLalrItemTable newItems;
         fklLalrItemTableInit(&newItems);
         for (FklLalrItemTableNode *l = itemsClosure.first; l; l = l->next) {
@@ -2703,7 +2702,6 @@ static inline void lr0_item_set_goto(FklLalrItemSet *itemset,
         item_set_add_link(itemset, &ll->k, itemsetptr);
     }
     fklLalrItemTableUninit(&itemsClosure);
-    graSymbolTableUninit(&checked);
 }
 
 FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
@@ -2722,10 +2720,15 @@ FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
     GraItemSetQueue pending;
     graItemSetQueueInit(&pending);
     graItemSetQueuePush2(&pending, itemsetptr);
+    GraSymbolTable checked;
+    graSymbolTableInit(&checked);
     while (!graItemSetQueueIsEmpty(&pending)) {
         FklLalrItemSet *itemsetptr = *graItemSetQueuePop(&pending);
-        lr0_item_set_goto(itemsetptr, itemstate_set, grammer, &pending);
+        lr0_item_set_goto(&checked, itemsetptr, itemstate_set, grammer,
+                          &pending);
+        graSymbolTableClear(&checked);
     }
+    graSymbolTableUninit(&checked);
     graItemSetQueueUninit(&pending);
     return itemstate_set;
 }

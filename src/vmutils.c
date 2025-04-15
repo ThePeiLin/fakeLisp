@@ -33,16 +33,6 @@ FklVMvalue *fklMakeVMintD(double r64, FklVM *vm) {
         return FKL_MAKE_VM_FIX(r64);
 }
 
-int fklIsFixint(const FklVMvalue *p) { return FKL_IS_FIX(p); }
-
-int fklIsVMint(const FklVMvalue *p) {
-    return FKL_IS_FIX(p) || FKL_IS_BIGINT(p);
-}
-
-int fklIsVMnumber(const FklVMvalue *p) {
-    return FKL_IS_FIX(p) || FKL_IS_BIGINT(p) || FKL_IS_F64(p);
-}
-
 static inline FklVMvalue *get_initial_fast_value(const FklVMvalue *pr) {
     return FKL_IS_PAIR(pr) ? FKL_VM_CDR(pr) : FKL_VM_NIL;
 }

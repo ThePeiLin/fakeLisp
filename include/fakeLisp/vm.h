@@ -792,8 +792,6 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
 FklVMvalue *fklMakeVMint(int64_t r64, FklVM *);
 FklVMvalue *fklMakeVMuint(uint64_t r64, FklVM *);
 FklVMvalue *fklMakeVMintD(double r64, FklVM *);
-int fklIsVMnumber(const FklVMvalue *p);
-int fklIsVMint(const FklVMvalue *p);
 int fklIsList(const FklVMvalue *p);
 int64_t fklVMgetInt(const FklVMvalue *p);
 uint64_t fklVMintToHashv(const FklVMvalue *p);
@@ -831,10 +829,6 @@ int fklIsVMhashEqv(const FklHashTable *);
 int fklIsVMhashEqual(const FklHashTable *);
 uintptr_t fklGetVMhashTableType(const FklHashTable *);
 const char *fklGetVMhashTablePrefix(const FklHashTable *);
-
-uintptr_t fklVMvalueEqHashv(const FklVMvalue *);
-uintptr_t fklVMvalueEqvHashv(const FklVMvalue *);
-uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
 
 FklVMhashTableItem *fklVMhashTableSet(FklVMvalue *key, FklVMvalue *v,
                                       FklHashTable *ht);
@@ -1435,6 +1429,34 @@ static inline FklInstruction *fklGetCompoundFrameEnd(const FklVMframe *f) {
 static inline FklSid_t fklGetCompoundFrameSid(const FklVMframe *f) {
     return f->c.sid;
 }
+
+static inline int fklIsVMint(const FklVMvalue *p) {
+    return FKL_IS_FIX(p) || FKL_IS_BIGINT(p);
+}
+
+static inline int fklIsVMnumber(const FklVMvalue *p) {
+    return FKL_IS_FIX(p) || FKL_IS_BIGINT(p) || FKL_IS_F64(p);
+}
+
+static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, key));
+}
+
+static inline uintptr_t fklVMintegerHashv(const FklVMvalue *v) {
+    if (FKL_IS_FIX(v))
+        return FKL_GET_FIX(v);
+    else
+        return fklVMbigIntHash(FKL_VM_BI(v));
+}
+
+static inline uintptr_t fklVMvalueEqvHashv(const FklVMvalue *v) {
+    if (fklIsVMint(v))
+        return fklVMintegerHashv(v);
+    else
+        return fklVMvalueEqHashv(v);
+}
+
+uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
 
 #ifdef __cplusplus
 }

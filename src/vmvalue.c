@@ -954,26 +954,8 @@ int fklVMchanlEmpty(FklVMchanl *ch) {
     return r;
 }
 
-uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
-    return ((uintptr_t)(key)) >> FKL_UNUSEDBITNUM;
-}
-
 static uintptr_t _vmhashtableEq_hashFunc(const void *key) {
     return fklVMvalueEqHashv(*(const void **)key);
-}
-
-static size_t integerHashFunc(const FklVMvalue *v) {
-    if (FKL_IS_FIX(v))
-        return FKL_GET_FIX(v);
-    else
-        return fklVMbigIntHash(FKL_VM_BI(v));
-}
-
-uintptr_t fklVMvalueEqvHashv(const FklVMvalue *v) {
-    if (fklIsVMint(v))
-        return integerHashFunc(v);
-    else
-        return fklVMvalueEqHashv(v);
 }
 
 static uintptr_t _vmhashtableEqv_hashFunc(const void *key) {
@@ -1057,7 +1039,7 @@ static size_t VMvalueHashFunc(const FklVMvalue *v) {
         const FklVMvalue *root = *fklVMvalueVectorPopBack(&stack);
         size_t (*valueHashFunc)(const FklVMvalue *, FklVMvalueVector *) = NULL;
         if (fklIsVMint(root))
-            sum += integerHashFunc(root);
+            sum += fklVMintegerHashv(root);
         else if (FKL_IS_PTR(root)
                  && (valueHashFunc = valueHashFuncTable[v->type]))
             sum += valueHashFunc(root, &stack);
@@ -1070,7 +1052,7 @@ static size_t VMvalueHashFunc(const FklVMvalue *v) {
 
 uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v) {
     if (fklIsVMint(v))
-        return integerHashFunc(v);
+        return fklVMintegerHashv(v);
     else
         return VMvalueHashFunc(v);
 }

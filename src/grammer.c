@@ -2603,33 +2603,30 @@ static inline FklHashTable *create_item_state_set(void) {
     return fklCreateHashTable(&ItemStateSetHashMetaTable);
 }
 
-FKL_HASH_SET_KEY_VAL(la_first_set_cache_set_key, FklGetLaFirstSetCacheKey);
+typedef struct GraGetLaFirstSetCacheKey {
+    const FklGrammerProduction *prod;
+    uint32_t idx;
+} GraGetLaFirstSetCacheKey;
 
-static uintptr_t la_first_set_cache_hash_func(const void *k) {
-    const FklGetLaFirstSetCacheKey *key = (const FklGetLaFirstSetCacheKey *)k;
-    return fklHashCombine(((uintptr_t)key->prod) >> 3, key->idx);
-}
+typedef struct GraGetLaFirstSetCacheItem {
+    FklLookAheadTable first;
+    int has_epsilon;
+} GraGetLaFirstSetCacheItem;
 
-static int la_first_set_key_equal(const void *k1, const void *k2) {
-    const FklGetLaFirstSetCacheKey *key1 = (const FklGetLaFirstSetCacheKey *)k1;
-    const FklGetLaFirstSetCacheKey *key2 = (const FklGetLaFirstSetCacheKey *)k2;
-    return key1->prod == key2->prod && key1->idx == key2->idx;
-}
-
-static void la_first_set_cache_set_item_uninit(void *i) {
-    FklGetLaFirstSetCacheItem *item = (FklGetLaFirstSetCacheItem *)i;
-    fklLookAheadTableUninit(&item->first);
-}
-
-static const FklHashTableMetaTable GetLaFirstSetCacheHashMetaTable = {
-    .size = sizeof(FklGetLaFirstSetCacheItem),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = la_first_set_cache_set_key,
-    .__setVal = la_first_set_cache_set_key,
-    .__hashFunc = la_first_set_cache_hash_func,
-    .__keyEqual = la_first_set_key_equal,
-    .__uninitItem = la_first_set_cache_set_item_uninit,
-};
+// GraLaFirstSetCacheTable
+#define FKL_TABLE_TYPE_PREFIX Gra
+#define FKL_TABLE_METHOD_PREFIX gra
+#define FKL_TABLE_KEY_TYPE GraGetLaFirstSetCacheKey
+#define FKL_TABLE_VAL_TYPE GraGetLaFirstSetCacheItem
+#define FKL_TABLE_VAL_INIT(A, B) abort()
+#define FKL_TABLE_VAL_UNINIT(V) fklLookAheadTableUninit(&(V)->first)
+#define FKL_TABLE_KEY_EQUAL(A, B) (A)->prod == (B)->prod && (A)->idx == (B)->idx
+#define FKL_TABLE_KEY_HASH                                                     \
+    return fklHashCombine(                                                     \
+        FKL_TYPE_CAST(uintptr_t, (pk->prod) / alignof(FklGrammerProduction)),  \
+        pk->idx);
+#define FKL_TABLE_ELM_NAME LaFirstSetCache
+#include <fakeLisp/table.h>
 
 // GraItemSetQueue
 #define FKL_QUEUE_TYPE_PREFIX Gra
@@ -2651,12 +2648,15 @@ static inline int grammer_sym_equal(const FklGrammerSym *s0,
 }
 
 static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
-    return (s->isterm << 3)
-         + (s->term_type == FKL_TERM_BUILTIN
-                ? fklBuiltinGrammerSymHash(&s->b) << 2
-            : (s->term_type == FKL_TERM_REGEX) ? ((uintptr_t)s->re) << 2
-                                               : fklNontermHash(&s->nt) << 2)
-         + (s->delim << 1) + (s->end_with_terminal);
+    uintptr_t seed =
+        (s->term_type == FKL_TERM_BUILTIN ? fklBuiltinGrammerSymHash(&s->b)
+         : (s->term_type == FKL_TERM_REGEX)
+             ? fklHash64Shift(FKL_TYPE_CAST(uintptr_t, s->re / alignof(*s->re)))
+             : fklNontermHash(&s->nt));
+    seed = fklHashCombine(seed, s->isterm);
+    seed = fklHashCombine(seed, s->delim);
+    seed = fklHashCombine(seed, s->end_with_terminal);
+    return seed;
 }
 
 // GraSymbolTable
@@ -2730,19 +2730,18 @@ FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
     return itemstate_set;
 }
 
-static inline FklLookAheadTable *
-get_first_set_from_first_sets(const FklGrammer *g,
-                              const FklGrammerProduction *prod, uint32_t idx,
-                              FklHashTable *cache, int *pHasEpsilon) {
+static inline FklLookAheadTable *get_first_set_from_first_sets(
+    const FklGrammer *g, const FklGrammerProduction *prod, uint32_t idx,
+    GraLaFirstSetCacheTable *cache, int *pHasEpsilon) {
     size_t len = prod->len;
     if (idx >= len) {
         *pHasEpsilon = 1;
         return NULL;
     }
-    FklGetLaFirstSetCacheKey key = {.prod = prod, .idx = idx};
-    FklGetLaFirstSetCacheItem *item = NULL;
-    fklGetHashItem(&key, cache);
-    if (fklPutHashItem2(cache, &key, (void **)&item)) {
+    GraGetLaFirstSetCacheKey key = {.prod = prod, .idx = idx};
+    GraGetLaFirstSetCacheItem *item =
+        graLaFirstSetCacheTableAdd(cache, &key, NULL);
+    if (item->first.buckets) {
         *pHasEpsilon = item->has_epsilon;
         return &item->first;
     } else {
@@ -2817,12 +2816,14 @@ get_first_set_from_first_sets(const FklGrammer *g,
 
 static inline FklLookAheadTable *
 get_la_first_set(const FklGrammer *g, const FklGrammerProduction *prod,
-                 uint32_t beta, FklHashTable *cache, int *hasEpsilon) {
+                 uint32_t beta, GraLaFirstSetCacheTable *cache,
+                 int *hasEpsilon) {
     return get_first_set_from_first_sets(g, prod, beta, cache, hasEpsilon);
 }
 
 static inline void lr1_item_set_closure(FklLalrItemTable *itemSet,
-                                        FklGrammer *g, FklHashTable *cache) {
+                                        FklGrammer *g,
+                                        GraLaFirstSetCacheTable *cache) {
     FklLalrItemTable pendingSet;
     FklLalrItemTable changeSet;
     fklLalrItemTableInit(&pendingSet);
@@ -2893,7 +2894,7 @@ static inline void add_lookahead_spread(FklLalrItemSet *itemset,
 }
 
 static inline void check_lookahead_self_generated_and_spread(
-    FklGrammer *g, FklLalrItemSet *itemset, FklHashTable *cache) {
+    FklGrammer *g, FklLalrItemSet *itemset, GraLaFirstSetCacheTable *cache) {
     FklLalrItemTable *items = &itemset->items;
     FklLalrItemTable closure;
     fklLalrItemTableInit(&closure);
@@ -2948,7 +2949,7 @@ static inline int lookahead_spread(FklLalrItemSet *itemset) {
 }
 
 static inline void init_lalr_look_ahead(FklHashTable *lr0, FklGrammer *g,
-                                        FklHashTable *cache) {
+                                        GraLaFirstSetCacheTable *cache) {
     for (FklHashTableItem *isl = lr0->first; isl; isl = isl->next) {
         FklLalrItemSet *s = (FklLalrItemSet *)isl->data;
         check_lookahead_self_generated_and_spread(g, s, cache);
@@ -2963,7 +2964,8 @@ static inline void init_lalr_look_ahead(FklHashTable *lr0, FklGrammer *g,
 }
 
 static inline void add_look_ahead_to_items(FklLalrItemTable *items,
-                                           FklGrammer *g, FklHashTable *cache) {
+                                           FklGrammer *g,
+                                           GraLaFirstSetCacheTable *cache) {
     FklLalrItemTable add;
     fklLalrItemTableInit(&add);
     for (FklLalrItemTableNode *il = items->first; il; il = il->next) {
@@ -2979,9 +2981,9 @@ static inline void add_look_ahead_to_items(FklLalrItemTable *items,
     lalr_item_set_sort(items);
 }
 
-static inline void add_look_ahead_for_all_item_set(FklHashTable *lr0,
-                                                   FklGrammer *g,
-                                                   FklHashTable *cache) {
+static inline void
+add_look_ahead_for_all_item_set(FklHashTable *lr0, FklGrammer *g,
+                                GraLaFirstSetCacheTable *cache) {
     for (FklHashTableItem *isl = lr0->first; isl; isl = isl->next) {
         FklLalrItemSet *itemSet = (FklLalrItemSet *)isl->data;
         add_look_ahead_to_items(&itemSet->items, g, cache);
@@ -2989,8 +2991,8 @@ static inline void add_look_ahead_for_all_item_set(FklHashTable *lr0,
 }
 
 void fklLr0ToLalrItems(FklHashTable *lr0, FklGrammer *g) {
-    FklHashTable cache;
-    fklInitHashTable(&cache, &GetLaFirstSetCacheHashMetaTable);
+    GraLaFirstSetCacheTable cache;
+    graLaFirstSetCacheTableInit(&cache);
     init_lalr_look_ahead(lr0, g, &cache);
     int change;
     do {
@@ -3001,7 +3003,7 @@ void fklLr0ToLalrItems(FklHashTable *lr0, FklGrammer *g) {
         }
     } while (change);
     add_look_ahead_for_all_item_set(lr0, g, &cache);
-    fklUninitHashTable(&cache);
+    graLaFirstSetCacheTableUninit(&cache);
 }
 
 // GraItemStateIdxTable
@@ -3520,6 +3522,8 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
         graItemStateIdxTablePut2(&idxTable, s, idx);
     }
     idx = 0;
+    if (astates == NULL)
+        goto break_loop;
     for (const FklHashTableItem *l = states->first; l; l = l->next, idx++) {
         int skip_space = 0;
         const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
@@ -5311,6 +5315,7 @@ static const FklGrammerCstrAction builtin_grammer_and_action[] = {
 
     {"*bytevector* /#\"\"|^#\"(\\\\.|.)*\"$",                 "prod_action_bytevector",    prod_action_bytevector    },
 
+    // s-dint can accepet the next terminator as its arguement
     {"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer   },
     {"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer   },
     {"*integer* &?s-oint + #|",                               "prod_action_oct_integer",   prod_action_oct_integer   },

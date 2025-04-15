@@ -222,7 +222,7 @@ int fklIsBigIntAdd1InFixIntRange(const FklBigInt *a);
 int fklIsBigIntSub1InFixIntRange(const FklBigInt *a);
 
 static inline uintptr_t fklHashCombine(uintptr_t seed, uintptr_t hash) {
-    return hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));
 }
 
 static inline uintptr_t fklHash32Shift(uint32_t k) {

@@ -262,14 +262,14 @@ static inline uintptr_t fklLalrItemHash(const FklLalrItem *pk) {
 #define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemEqual((A), (B))
 #define FKL_TABLE_KEY_HASH return fklLalrItemHash(pk)
 #define FKL_TABLE_ELM_NAME LalrItem
-#include <fakeLisp/table.h>
+#include "table.h"
 
 FklGrammerProduction *
 fklCopyUninitedGrammerProduction(FklGrammerProduction *prod);
 
 typedef struct FklLalrItemSetLink {
     FklGrammerSym sym;
-    struct FklLalrItemSet *dst;
+    struct FklLalrItemSetTableElm *dst;
     struct FklLalrItemSetLink *next;
 } FklLalrItemSetLink;
 
@@ -280,11 +280,55 @@ typedef struct FklLookAheadSpreads {
     struct FklLookAheadSpreads *next;
 } FklLookAheadSpreads;
 
-typedef struct FklLalrItemSet {
-    FklLalrItemTable items;
+static inline int fklLalrItemTableEqual(const FklLalrItemTable *s0,
+                                        const FklLalrItemTable *s1) {
+    if (s0->count != s1->count)
+        return 0;
+    const FklLalrItemTableNode *l0 = s0->first;
+    const FklLalrItemTableNode *l1 = s1->first;
+    for (; l0; l0 = l0->next, l1 = l1->next)
+        if (!fklLalrItemEqual(&l0->k, &l1->k))
+            return 0;
+    return 1;
+}
+
+static inline uintptr_t fklLalrItemTableHash(const FklLalrItemTable *i) {
+    uintptr_t v = 0;
+    for (FklLalrItemTableNode *l = i->first; l; l = l->next) {
+        v = fklHashCombine(v, fklLalrItemHash(&l->k));
+    }
+    return v;
+}
+
+typedef struct FklLalrItemSetTableItem {
     FklLookAheadSpreads *spreads;
     FklLalrItemSetLink *links;
-} FklLalrItemSet;
+} FklLalrItemSetTableItem;
+
+// FklLalrItemSetTable
+#define FKL_TABLE_KEY_TYPE FklLalrItemTable
+#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemTableEqual(A, B)
+#define FKL_TABLE_KEY_HASH return fklLalrItemTableHash(pk)
+#define FKL_TABLE_KEY_UNINIT(K) fklLalrItemTableUninit(K)
+#define FKL_TABLE_VAL_INIT(A, B) abort()
+#define FKL_TABLE_VAL_TYPE FklLalrItemSetTableItem
+#define FKL_TABLE_VAL_UNINIT(V)                                                \
+    {                                                                          \
+        FklLalrItemSetLink *l = (V)->links;                                    \
+        while (l) {                                                            \
+            FklLalrItemSetLink *next = l->next;                                \
+            free(l);                                                           \
+            l = next;                                                          \
+        }                                                                      \
+        FklLookAheadSpreads *sp = (V)->spreads;                                \
+        while (sp) {                                                           \
+            FklLookAheadSpreads *next = sp->next;                              \
+            free(sp);                                                          \
+            sp = next;                                                         \
+        }                                                                      \
+    }
+#define FKL_TABLE_ELM_NAME LalrItemSet
+#include "table.h"
 
 typedef enum {
     FKL_ANALYSIS_SHIFT,
@@ -406,7 +450,7 @@ void fklUninitGrammer(FklGrammer *);
 void fklDestroyGrammer(FklGrammer *);
 void fklClearGrammer(FklGrammer *);
 
-FklHashTable *fklGenerateLr0Items(FklGrammer *grammer);
+FklLalrItemSetTable *fklGenerateLr0Items(FklGrammer *grammer);
 
 int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
                           const char *start, const char *cstr, size_t restLen,
@@ -422,7 +466,8 @@ fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym, const char *s, size_t len,
     sym->ast = ast;
 }
 
-int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states);
+int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
+                                FklLalrItemSetTable *states);
 void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
                            FILE *fp);
 void fklPrintAnalysisTableForGraphEasy(const FklGrammer *grammer,
@@ -433,16 +478,17 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *grammer,
                                   const char *ast_destroy_name,
                                   const char *state_0_push_func_name, FILE *fp);
 
-void fklLr0ToLalrItems(FklHashTable *, FklGrammer *grammer);
+void fklLr0ToLalrItems(FklLalrItemSetTable *, FklGrammer *grammer);
 
 void fklPrintItemSet(const FklLalrItemTable *itemSet, const FklGrammer *g,
                      const FklSymbolTable *st, FILE *fp);
-void fklPrintItemStateSet(const FklHashTable *i, const FklGrammer *g,
+void fklPrintItemStateSet(const FklLalrItemSetTable *i, const FklGrammer *g,
                           const FklSymbolTable *st, FILE *fp);
 
 int fklAddExtraProdToGrammer(FklGrammer *grammer);
-void fklPrintItemStateSetAsDot(const FklHashTable *i, const FklGrammer *g,
-                               const FklSymbolTable *st, FILE *fp);
+void fklPrintItemStateSetAsDot(const FklLalrItemSetTable *i,
+                               const FklGrammer *g, const FklSymbolTable *st,
+                               FILE *fp);
 
 FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
                                                size_t len, const char *name,

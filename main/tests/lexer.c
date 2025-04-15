@@ -673,7 +673,7 @@ int main() {
     }
     fputs("grammer:\n", stdout);
     fklPrintGrammer(stdout, g, st);
-    FklHashTable *itemSet = fklGenerateLr0Items(g);
+    FklLalrItemSetTable *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     fputs("item sets:\n", stdout);
     FILE *gzf = fopen("items.gz.txt", "w");
@@ -689,7 +689,7 @@ int main() {
         exit(1);
     }
     fklPrintAnalysisTable(g, st, stdout);
-    fklDestroyHashTable(itemSet);
+    fklLalrItemSetTableDestroy(itemSet);
 
     FILE *tablef = fopen("table.txt", "w");
     fklPrintAnalysisTableForGraphEasy(g, st, tablef);

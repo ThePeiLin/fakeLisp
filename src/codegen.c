@@ -7838,10 +7838,10 @@ static inline int add_all_group_to_grammer(FklCodegenInfo *codegen) {
     if (fklCheckAndInitGrammerSymbols(g))
         return 1;
 
-    FklHashTable *itemSet = fklGenerateLr0Items(g);
+    FklLalrItemSetTable *itemSet = fklGenerateLr0Items(g);
     fklLr0ToLalrItems(itemSet, g);
     int r = fklGenerateLalrAnalyzeTable(g, itemSet);
-    fklDestroyHashTable(itemSet);
+    fklLalrItemSetTableDestroy(itemSet);
 
     return r;
 }

@@ -2163,14 +2163,14 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     if (fklCheckAndInitGrammerSymbols(grammer))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);
 
-    FklHashTable *itemSet = fklGenerateLr0Items(grammer);
+    FklLalrItemSetTable *itemSet = fklGenerateLr0Items(grammer);
     fklLr0ToLalrItems(itemSet, grammer);
 
     if (fklGenerateLalrAnalyzeTable(grammer, itemSet)) {
-        fklDestroyHashTable(itemSet);
+        fklLalrItemSetTableDestroy(itemSet);
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, exe);
     }
-    fklDestroyHashTable(itemSet);
+    fklLalrItemSetTableDestroy(itemSet);
     FKL_VM_PUSH_VALUE(exe, retval);
     return 0;
 }

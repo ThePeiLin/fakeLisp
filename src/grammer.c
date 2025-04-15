@@ -2528,79 +2528,16 @@ void fklPrintItemSet(const FklLalrItemTable *itemSet, const FklGrammer *g,
     putc('\n', fp);
 }
 
-static void item_set_set_val(void *d0, const void *d1) {
-    FklLalrItemSet *s = (FklLalrItemSet *)d0;
-    *s = *(const FklLalrItemSet *)d1;
-    s->links = NULL;
-    s->spreads = NULL;
-}
-
-static uintptr_t item_set_hash_func(const void *d) {
-    const FklLalrItemTable *i = FKL_TYPE_CAST(const FklLalrItemTable *, d);
-    uintptr_t v = 0;
-    for (FklLalrItemTableNode *l = i->first; l; l = l->next) {
-        v = fklHashCombine(v, fklLalrItemHash(&l->k));
-    }
-    return v;
-}
-
-static int item_set_equal(const void *d0, const void *d1) {
-    const FklLalrItemTable *s0 = FKL_TYPE_CAST(const FklLalrItemTable *, d0);
-    const FklLalrItemTable *s1 = FKL_TYPE_CAST(const FklLalrItemTable *, d1);
-    if (s0->count != s1->count)
-        return 0;
-    const FklLalrItemTableNode *l0 = s0->first;
-    const FklLalrItemTableNode *l1 = s1->first;
-    for (; l0; l0 = l0->next, l1 = l1->next)
-        if (!fklLalrItemEqual(&l0->k, &l1->k))
-            return 0;
-    return 1;
-}
-
-static void item_set_uninit(void *d) {
-    FklLalrItemSet *s = (FklLalrItemSet *)d;
-    fklLalrItemTableUninit(&s->items);
-    FklLalrItemSetLink *l = s->links;
-    while (l) {
-        FklLalrItemSetLink *next = l->next;
-        free(l);
-        l = next;
-    }
-    FklLookAheadSpreads *sp = s->spreads;
-    while (sp) {
-        FklLookAheadSpreads *next = sp->next;
-        free(sp);
-        sp = next;
-    }
-}
-
-static void item_set_add_link(FklLalrItemSet *src, const FklGrammerSym *sym,
-                              FklLalrItemSet *dst) {
+static void item_set_add_link(FklLalrItemSetTableElm *src,
+                              const FklGrammerSym *sym,
+                              FklLalrItemSetTableElm *dst) {
     FklLalrItemSetLink *l =
         (FklLalrItemSetLink *)malloc(sizeof(FklLalrItemSetLink));
     FKL_ASSERT(l);
     l->sym = *sym;
     l->dst = dst;
-    l->next = src->links;
-    src->links = l;
-}
-
-static void item_set_set_key(void *k0, const void *k1) {
-    *(FklLalrItemTable *)k0 = *(FklLalrItemTable *)k1;
-}
-
-static const FklHashTableMetaTable ItemStateSetHashMetaTable = {
-    .size = sizeof(FklLalrItemSet),
-    .__getKey = fklHashDefaultGetKey,
-    .__setKey = item_set_set_key,
-    .__setVal = item_set_set_val,
-    .__hashFunc = item_set_hash_func,
-    .__keyEqual = item_set_equal,
-    .__uninitItem = item_set_uninit,
-};
-
-static inline FklHashTable *create_item_state_set(void) {
-    return fklCreateHashTable(&ItemStateSetHashMetaTable);
+    l->next = src->v.links;
+    src->v.links = l;
 }
 
 typedef struct GraGetLaFirstSetCacheKey {
@@ -2631,7 +2568,7 @@ typedef struct GraGetLaFirstSetCacheItem {
 // GraItemSetQueue
 #define FKL_QUEUE_TYPE_PREFIX Gra
 #define FKL_QUEUE_METHOD_PREFIX gra
-#define FKL_QUEUE_ELM_TYPE FklLalrItemSet *
+#define FKL_QUEUE_ELM_TYPE FklLalrItemSetTableElm *
 #define FKL_QUEUE_ELM_TYPE_NAME ItemSet
 #include <fakeLisp/queue.h>
 
@@ -2669,10 +2606,10 @@ static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
 #include <fakeLisp/table.h>
 
 static inline void lr0_item_set_goto(GraSymbolTable *checked,
-                                     FklLalrItemSet *itemset,
-                                     FklHashTable *itemsetSet, FklGrammer *g,
-                                     GraItemSetQueue *pending) {
-    FklLalrItemTable *items = &itemset->items;
+                                     FklLalrItemSetTableElm *itemset,
+                                     FklLalrItemSetTable *itemsetSet,
+                                     FklGrammer *g, GraItemSetQueue *pending) {
+    FklLalrItemTable const *items = &itemset->k;
     FklLalrItemTable itemsClosure;
     fklLalrItemTableInit(&itemsClosure);
     lr0_item_set_copy_and_closure(&itemsClosure, items, g);
@@ -2692,10 +2629,10 @@ static inline void lr0_item_set_goto(GraSymbolTable *checked,
                 fklLalrItemTablePut(&newItems, &item);
             }
         }
-        FklLalrItemSet *itemsetptr = fklGetHashItem(&newItems, itemsetSet);
+        FklLalrItemSetTableElm *itemsetptr =
+            fklLalrItemSetTableAt(itemsetSet, &newItems);
         if (!itemsetptr) {
-            FklLalrItemSet itemset = {.items = newItems, .links = NULL};
-            itemsetptr = fklGetOrPutHashItem(&itemset, itemsetSet);
+            itemsetptr = fklLalrItemSetTableInsert(itemsetSet, &newItems, NULL);
             graItemSetQueuePush2(pending, itemsetptr);
         } else
             fklLalrItemTableUninit(&newItems);
@@ -2704,8 +2641,8 @@ static inline void lr0_item_set_goto(GraSymbolTable *checked,
     fklLalrItemTableUninit(&itemsClosure);
 }
 
-FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
-    FklHashTable *itemstate_set = create_item_state_set();
+FklLalrItemSetTable *fklGenerateLr0Items(FklGrammer *grammer) {
+    FklLalrItemSetTable *itemstate_set = fklLalrItemSetTableCreate();
     const FklGrammerNonterm left = {
         .group = 0,
         .sid = 0,
@@ -2713,17 +2650,15 @@ FklHashTable *fklGenerateLr0Items(FklGrammer *grammer) {
     FklGrammerProduction *prod = *fklProdTableGet(&grammer->productions, &left);
     FklLalrItemTable items;
     init_first_item_set(&items, prod);
-    FklLalrItemSet itemset = {
-        .items = items,
-    };
-    FklLalrItemSet *itemsetptr = fklGetOrPutHashItem(&itemset, itemstate_set);
+    FklLalrItemSetTableElm *itemsetptr =
+        fklLalrItemSetTableInsert(itemstate_set, &items, NULL);
     GraItemSetQueue pending;
     graItemSetQueueInit(&pending);
     graItemSetQueuePush2(&pending, itemsetptr);
     GraSymbolTable checked;
     graSymbolTableInit(&checked);
     while (!graItemSetQueueIsEmpty(&pending)) {
-        FklLalrItemSet *itemsetptr = *graItemSetQueuePop(&pending);
+        FklLalrItemSetTableElm *itemsetptr = *graItemSetQueuePop(&pending);
         lr0_item_set_goto(&checked, itemsetptr, itemstate_set, grammer,
                           &pending);
         graSymbolTableClear(&checked);
@@ -2882,23 +2817,25 @@ static inline void lr1_item_set_closure(FklLalrItemTable *itemSet,
     fklLalrItemTableUninit(&pendingSet);
 }
 
-static inline void add_lookahead_spread(FklLalrItemSet *itemset,
+static inline void add_lookahead_spread(FklLalrItemSetTableElm *itemset,
                                         const FklLalrItem *src,
                                         FklLalrItemTable *dstItems,
                                         const FklLalrItem *dst) {
     FklLookAheadSpreads *sp =
         (FklLookAheadSpreads *)malloc(sizeof(FklLookAheadSpreads));
     FKL_ASSERT(sp);
-    sp->next = itemset->spreads;
+    sp->next = itemset->v.spreads;
     sp->dstItems = dstItems;
     sp->src = *src;
     sp->dst = *dst;
-    itemset->spreads = sp;
+    itemset->v.spreads = sp;
 }
 
-static inline void check_lookahead_self_generated_and_spread(
-    FklGrammer *g, FklLalrItemSet *itemset, GraLaFirstSetCacheTable *cache) {
-    FklLalrItemTable *items = &itemset->items;
+static inline void
+check_lookahead_self_generated_and_spread(FklGrammer *g,
+                                          FklLalrItemSetTableElm *itemset,
+                                          GraLaFirstSetCacheTable *cache) {
+    FklLalrItemTable const *items = &itemset->k;
     FklLalrItemTable closure;
     fklLalrItemTableInit(&closure);
     for (FklLalrItemTableNode *il = items->first; il; il = il->next) {
@@ -2912,17 +2849,21 @@ static inline void check_lookahead_self_generated_and_spread(
                 FklLalrItem i = cl->k;
                 const FklGrammerSym *s = get_item_next(&i);
                 ++i.idx;
-                for (const FklLalrItemSetLink *x = itemset->links; x;
+                for (const FklLalrItemSetLink *x = itemset->v.links; x;
                      x = x->next) {
                     if (x->dst == itemset)
                         continue;
                     const FklGrammerSym *xsym = &x->sym;
                     if (s && grammer_sym_equal(s, xsym)) {
                         if (i.la.t == FKL_LALR_MATCH_NONE)
-                            add_lookahead_spread(itemset, &item, &x->dst->items,
-                                                 &i);
+                            add_lookahead_spread(
+                                itemset, &item,
+                                FKL_REMOVE_CONST(FklLalrItemTable, &x->dst->k),
+                                &i);
                         else
-                            fklLalrItemTablePut(&x->dst->items, &i);
+                            fklLalrItemTablePut(
+                                FKL_REMOVE_CONST(FklLalrItemTable, &x->dst->k),
+                                &i);
                     }
                 }
             }
@@ -2932,10 +2873,10 @@ static inline void check_lookahead_self_generated_and_spread(
     fklLalrItemTableUninit(&closure);
 }
 
-static inline int lookahead_spread(FklLalrItemSet *itemset) {
+static inline int lookahead_spread(FklLalrItemSetTableElm *itemset) {
     int change = 0;
-    FklLalrItemTable *items = &itemset->items;
-    for (FklLookAheadSpreads *sp = itemset->spreads; sp; sp = sp->next) {
+    FklLalrItemTable const *items = &itemset->k;
+    for (FklLookAheadSpreads *sp = itemset->v.spreads; sp; sp = sp->next) {
         FklLalrItem *srcItem = &sp->src;
         FklLalrItem *dstItem = &sp->dst;
         FklLalrItemTable *dstItems = sp->dstItems;
@@ -2951,18 +2892,16 @@ static inline int lookahead_spread(FklLalrItemSet *itemset) {
     return change;
 }
 
-static inline void init_lalr_look_ahead(FklHashTable *lr0, FklGrammer *g,
+static inline void init_lalr_look_ahead(FklLalrItemSetTable *lr0, FklGrammer *g,
                                         GraLaFirstSetCacheTable *cache) {
-    for (FklHashTableItem *isl = lr0->first; isl; isl = isl->next) {
-        FklLalrItemSet *s = (FklLalrItemSet *)isl->data;
-        check_lookahead_self_generated_and_spread(g, s, cache);
+    for (FklLalrItemSetTableNode *isl = lr0->first; isl; isl = isl->next) {
+        check_lookahead_self_generated_and_spread(g, &isl->elm, cache);
     }
-    FklHashTableItem *isl = lr0->first;
-    FklLalrItemSet *s = FKL_TYPE_CAST(FklLalrItemSet *, isl->data);
-    for (FklLalrItemTableNode *il = s->items.first; il; il = il->next) {
+    FklLalrItemSetTableNode *isl = lr0->first;
+    for (FklLalrItemTableNode *il = isl->k.first; il; il = il->next) {
         FklLalrItem item = il->k;
         item.la = FKL_LALR_MATCH_EOF_INIT;
-        fklLalrItemTablePut(&s->items, &item);
+        fklLalrItemTablePut(FKL_REMOVE_CONST(FklLalrItemTable, &isl->k), &item);
     }
 }
 
@@ -2985,24 +2924,23 @@ static inline void add_look_ahead_to_items(FklLalrItemTable *items,
 }
 
 static inline void
-add_look_ahead_for_all_item_set(FklHashTable *lr0, FklGrammer *g,
+add_look_ahead_for_all_item_set(FklLalrItemSetTable *lr0, FklGrammer *g,
                                 GraLaFirstSetCacheTable *cache) {
-    for (FklHashTableItem *isl = lr0->first; isl; isl = isl->next) {
-        FklLalrItemSet *itemSet = (FklLalrItemSet *)isl->data;
-        add_look_ahead_to_items(&itemSet->items, g, cache);
+    for (FklLalrItemSetTableNode *isl = lr0->first; isl; isl = isl->next) {
+        add_look_ahead_to_items(FKL_REMOVE_CONST(FklLalrItemTable, &isl->k), g,
+                                cache);
     }
 }
 
-void fklLr0ToLalrItems(FklHashTable *lr0, FklGrammer *g) {
+void fklLr0ToLalrItems(FklLalrItemSetTable *lr0, FklGrammer *g) {
     GraLaFirstSetCacheTable cache;
     graLaFirstSetCacheTableInit(&cache);
     init_lalr_look_ahead(lr0, g, &cache);
     int change;
     do {
         change = 0;
-        for (FklHashTableItem *isl = lr0->first; isl; isl = isl->next) {
-            FklLalrItemSet *s = (FklLalrItemSet *)isl->data;
-            change |= lookahead_spread(s);
+        for (FklLalrItemSetTableNode *isl = lr0->first; isl; isl = isl->next) {
+            change |= lookahead_spread(&isl->elm);
         }
     } while (change);
     add_look_ahead_for_all_item_set(lr0, g, &cache);
@@ -3012,12 +2950,12 @@ void fklLr0ToLalrItems(FklHashTable *lr0, FklGrammer *g) {
 // GraItemStateIdxTable
 #define FKL_TABLE_TYPE_PREFIX Gra
 #define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE FklLalrItemSet const *
+#define FKL_TABLE_KEY_TYPE FklLalrItemSetTableElm const *
 #define FKL_TABLE_VAL_TYPE size_t
 #define FKL_TABLE_ELM_NAME ItemStateIdx
 #define FKL_TABLE_KEY_HASH                                                     \
     return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrItemSet)));
+        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrItemSetTableElm)));
 #include <fakeLisp/table.h>
 
 static inline void print_look_ahead_as_dot(FILE *fp,
@@ -3101,8 +3039,9 @@ static inline void print_item_set_as_dot(const FklLalrItemTable *itemSet,
     fputs("\\l\\\n", fp);
 }
 
-void fklPrintItemStateSetAsDot(const FklHashTable *i, const FklGrammer *g,
-                               const FklSymbolTable *st, FILE *fp) {
+void fklPrintItemStateSetAsDot(const FklLalrItemSetTable *i,
+                               const FklGrammer *g, const FklSymbolTable *st,
+                               FILE *fp) {
     fputs("digraph \"items-lalr\"{\n", fp);
     fputs("\trankdir=\"LR\"\n", fp);
     fputs("\tranksep=1\n", fp);
@@ -3110,22 +3049,20 @@ void fklPrintItemStateSetAsDot(const FklHashTable *i, const FklGrammer *g,
     GraItemStateIdxTable idxTable;
     graItemStateIdxTableInit(&idxTable);
     size_t idx = 0;
-    for (const FklHashTableItem *l = i->first; l; l = l->next, idx++) {
-        const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        graItemStateIdxTablePut2(&idxTable, s, idx);
+    for (const FklLalrItemSetTableNode *l = i->first; l; l = l->next, idx++) {
+        graItemStateIdxTablePut2(&idxTable, &l->elm, idx);
     }
-    for (const FklHashTableItem *l = i->first; l; l = l->next) {
-        const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        const FklLalrItemTable *i = &s->items;
-        idx = *graItemStateIdxTableGet2(&idxTable, s);
+    for (const FklLalrItemSetTableNode *ll = i->first; ll; ll = ll->next) {
+        const FklLalrItemTable *i = &ll->k;
+        idx = *graItemStateIdxTableGet2(&idxTable, &ll->elm);
         fprintf(fp,
                 "\t\"I%" FKL_PRT64U "\"[fontname=\"Courier\" nojustify=true "
                 "shape=\"box\" label=\"I%" FKL_PRT64U "\\l\\\n",
                 idx, idx);
         print_item_set_as_dot(i, g, st, fp);
         fputs("\"]\n", fp);
-        for (FklLalrItemSetLink *l = s->links; l; l = l->next) {
-            FklLalrItemSet *dst = l->dst;
+        for (FklLalrItemSetLink *l = ll->v.links; l; l = l->next) {
+            FklLalrItemSetTableElm *dst = l->dst;
             size_t *c = graItemStateIdxTableGet2(&idxTable, dst);
             fprintf(fp,
                     "\tI%" FKL_PRT64U "->I%" FKL_PRT64U
@@ -3482,15 +3419,16 @@ static inline void add_ignore_action(FklGrammer *g,
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklGrammerProduction)));
 #include <fakeLisp/table.h>
 
-static inline int is_only_single_way_to_reduce(const FklLalrItemSet *set) {
-    for (FklLalrItemSetLink *l = set->links; l; l = l->next)
+static inline int
+is_only_single_way_to_reduce(const FklLalrItemSetTableElm *set) {
+    for (FklLalrItemSetLink *l = set->v.links; l; l = l->next)
         if (l->sym.isterm)
             return 0;
     GraProdTable prodSet;
     int hasEof = 0;
     int delim = 0;
     graProdTableInit(&prodSet);
-    for (const FklLalrItemTableNode *l = set->items.first; l; l = l->next) {
+    for (const FklLalrItemTableNode *l = set->k.first; l; l = l->next) {
         graProdTablePut2(&prodSet, l->k.prod);
         if (l->k.la.t == FKL_LALR_MATCH_EOF)
             hasEof = 1;
@@ -3504,39 +3442,40 @@ static inline int is_only_single_way_to_reduce(const FklLalrItemSet *set) {
     return num == 1 && hasEof && delim;
 }
 
-int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
+int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
+                                FklLalrItemSetTable *states) {
     int hasConflict = 0;
-    grammer->aTable.num = states->num;
+    grammer->aTable.num = states->count;
     FklSymbolTable *tt = &grammer->terminals;
     FklAnalysisState *astates;
-    if (!states->num)
+    if (!states->count)
         astates = NULL;
     else {
-        astates =
-            (FklAnalysisState *)malloc(states->num * sizeof(FklAnalysisState));
+        astates = (FklAnalysisState *)malloc(states->count
+                                             * sizeof(FklAnalysisState));
         FKL_ASSERT(astates);
     }
     grammer->aTable.states = astates;
     GraItemStateIdxTable idxTable;
     graItemStateIdxTableInit(&idxTable);
     size_t idx = 0;
-    for (const FklHashTableItem *l = states->first; l; l = l->next, idx++) {
-        const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        graItemStateIdxTablePut2(&idxTable, s, idx);
+    for (const FklLalrItemSetTableNode *l = states->first; l;
+         l = l->next, idx++) {
+        graItemStateIdxTablePut2(&idxTable, &l->elm, idx);
     }
     idx = 0;
     if (astates == NULL)
         goto break_loop;
-    for (const FklHashTableItem *l = states->first; l; l = l->next, idx++) {
+    for (const FklLalrItemSetTableNode *l = states->first; l;
+         l = l->next, idx++) {
         int skip_space = 0;
-        const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
         FklAnalysisState *curState = &astates[idx];
         curState->builtin = 0;
         curState->func = NULL;
         curState->state.action = NULL;
         curState->state.gt = NULL;
-        const FklLalrItemTable *items = &s->items;
-        for (FklLalrItemSetLink *ll = s->links; ll; ll = ll->next) {
+        const FklLalrItemTable *items = &l->k;
+        for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
             const FklGrammerSym *sym = &ll->sym;
             size_t dstIdx = *graItemStateIdxTableGet2(&idxTable, ll->dst);
             FklAnalysisState *dstState = &astates[dstIdx];
@@ -3546,7 +3485,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer, FklHashTable *states) {
                 curState->state.gt =
                     create_state_goto(sym, tt, curState->state.gt, dstState);
         }
-        if (is_only_single_way_to_reduce(s)) {
+        if (is_only_single_way_to_reduce(&l->elm)) {
             FklLalrItem const *item = &items->first->k;
             FklLalrItemLookAhead eofla = FKL_LALR_MATCH_EOF_INIT;
             add_reduce_action(curState, item->prod, &eofla);
@@ -4435,28 +4374,26 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g, const FklSymbolTable *st,
             state_0_push_func_name);
 }
 
-void fklPrintItemStateSet(const FklHashTable *i, const FklGrammer *g,
+void fklPrintItemStateSet(const FklLalrItemSetTable *i, const FklGrammer *g,
                           const FklSymbolTable *st, FILE *fp) {
     GraItemStateIdxTable idxTable;
     graItemStateIdxTableInit(&idxTable);
     size_t idx = 0;
-    for (const FklHashTableItem *l = i->first; l; l = l->next, idx++) {
-        const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        graItemStateIdxTablePut2(&idxTable, s, idx);
+    for (const FklLalrItemSetTableNode *l = i->first; l; l = l->next, idx++) {
+        graItemStateIdxTablePut2(&idxTable, &l->elm, idx);
     }
-    for (const FklHashTableItem *l = i->first; l; l = l->next) {
-        const FklLalrItemSet *s = (const FklLalrItemSet *)l->data;
-        const FklLalrItemTable *i = &s->items;
-        idx = *graItemStateIdxTableGet2(&idxTable, s);
+    for (const FklLalrItemSetTableNode *l = i->first; l; l = l->next) {
+        const FklLalrItemTable *i = &l->k;
+        idx = *graItemStateIdxTableGet2(&idxTable, &l->elm);
         fprintf(fp, "===\nI%" FKL_PRT64U ": ", idx);
         putc('\n', fp);
         fklPrintItemSet(i, g, st, fp);
         putc('\n', fp);
-        for (FklLalrItemSetLink *l = s->links; l; l = l->next) {
-            FklLalrItemSet *dst = l->dst;
+        for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
+            FklLalrItemSetTableElm *dst = ll->dst;
             size_t *c = graItemStateIdxTableGet2(&idxTable, dst);
             fprintf(fp, "I%" FKL_PRT64U "--{ ", idx);
-            print_prod_sym(fp, &l->sym, st, &g->terminals, &g->regexes);
+            print_prod_sym(fp, &ll->sym, st, &g->terminals, &g->regexes);
             fprintf(fp, " }-->I%" FKL_PRT64U "\n", *c);
         }
         putc('\n', fp);

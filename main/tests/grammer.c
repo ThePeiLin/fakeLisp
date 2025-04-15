@@ -29,7 +29,7 @@ int main() {
     }
     fputs("grammer:\n", stdout);
     fklPrintGrammer(stdout, g, st);
-    FklHashTable *itemSet = fklGenerateLr0Items(g);
+    FklLalrItemSetTable *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     // fputs("item sets:\n",stdout);
     fklLr0ToLalrItems(itemSet, g);
@@ -41,7 +41,7 @@ int main() {
         exit(1);
     }
     // fklPrintAnalysisTable(g,st,stdout);
-    fklDestroyHashTable(itemSet);
+    fklLalrItemSetTableDestroy(itemSet);
 
     fputc('\n', stdout);
 

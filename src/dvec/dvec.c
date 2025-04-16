@@ -34,11 +34,12 @@ static size_t _dvec_length(const FklVMud *d) {
     return dd->size;
 }
 
-static uintptr_t _dvec_hash(const FklVMud *ud, FklVMvalueVector *s) {
+static uintptr_t _dvec_hash(const FklVMud *ud) {
     FKL_DECL_UD_DATA(vec, FklVMvalueVector, ud);
-    for (size_t i = 0; i < vec->size; i++)
-        fklVMvalueVectorPushBack2(s, vec->base[i]);
-    return vec->size;
+    uintptr_t seed = vec->size;
+    for (size_t i = 0; i < vec->size; ++i)
+        seed = fklHashCombine(seed, fklVMvalueEqualHashv(vec->base[i]));
+    return seed;
 }
 
 static void _dvec_finalizer(FklVMud *ud) {

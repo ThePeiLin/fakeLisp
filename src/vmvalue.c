@@ -963,7 +963,7 @@ static uintptr_t _vmhashtableEqv_hashFunc(const void *key) {
     return fklVMvalueEqvHashv(v);
 }
 
-static size_t _f64_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
+static uintptr_t _f64_hashFunc(const FklVMvalue *v) {
     union {
         double f;
         uint64_t i;
@@ -973,54 +973,52 @@ static size_t _f64_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
     return t.i;
 }
 
-static size_t _bigint_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
-    return fklVMbigIntHash(FKL_VM_BI(v));
-}
-
-static size_t _str_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
+static uintptr_t _str_hashFunc(const FklVMvalue *v) {
     return fklStringHash(FKL_VM_STR(v));
 }
 
-static size_t _bytevector_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
+static uintptr_t _bytevector_hashFunc(const FklVMvalue *v) {
     return fklBytevectorHash(FKL_VM_BVEC(v));
 }
 
-static size_t _vector_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
+static uintptr_t _vector_hashFunc(const FklVMvalue *v) {
     const FklVMvec *vec = FKL_VM_VEC(v);
-    for (size_t i = 0; i < vec->size; i++)
-        fklVMvalueVectorPushBack2(s, vec->base[i]);
-    return vec->size;
+    uintptr_t seed = vec->size;
+    for (size_t i = 0; i < vec->size; ++i)
+        seed = fklHashCombine(seed, fklVMvalueEqualHashv(vec->base[i]));
+    return seed;
 }
 
-static size_t _pair_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
-    fklVMvalueVectorPushBack2(s, FKL_VM_CAR(v));
-    fklVMvalueVectorPushBack2(s, FKL_VM_CDR(v));
-    return 2;
+static uintptr_t _pair_hashFunc(const FklVMvalue *v) {
+    uintptr_t seed = 2;
+    seed = fklHashCombine(seed, fklVMvalueEqualHashv(FKL_VM_CAR(v)));
+    seed = fklHashCombine(seed, fklVMvalueEqualHashv(FKL_VM_CDR(v)));
+    return seed;
 }
 
-static size_t _box_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
-    fklVMvalueVectorPushBack2(s, FKL_VM_BOX(v));
-    return 1;
+static uintptr_t _box_hashFunc(const FklVMvalue *v) {
+    uintptr_t seed = 1;
+    return fklHashCombine(seed, fklVMvalueEqualHashv(FKL_VM_BOX(v)));
 }
 
-static size_t _userdata_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
-    return fklHashvVMud(FKL_VM_UD(v), s);
+static size_t _userdata_hashFunc(const FklVMvalue *v) {
+    return fklHashvVMud(FKL_VM_UD(v));
 }
 
-static size_t _hashTable_hashFunc(const FklVMvalue *v, FklVMvalueVector *s) {
+static size_t _hashTable_hashFunc(const FklVMvalue *v) {
     FklHashTable *hash = FKL_VM_HASH(v);
+    uintptr_t seed = hash->num + fklGetVMhashTableType(hash);
     for (FklHashTableItem *list = hash->first; list; list = list->next) {
         FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
-        fklVMvalueVectorPushBack2(s, item->key);
-        fklVMvalueVectorPushBack2(s, item->v);
+        seed = fklHashCombine(seed, fklVMvalueEqualHashv(item->key));
+        seed = fklHashCombine(seed, fklVMvalueEqualHashv(item->v));
     }
-    return hash->num + fklGetVMhashTableType(hash);
+    return seed;
 }
 
-static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(
-    const FklVMvalue *, FklVMvalueVector *s) = {
+static uintptr_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(
+    const FklVMvalue *) = {
     [FKL_TYPE_F64] = _f64_hashFunc,
-    [FKL_TYPE_BIGINT] = _bigint_hashFunc,
     [FKL_TYPE_STR] = _str_hashFunc,
     [FKL_TYPE_VECTOR] = _vector_hashFunc,
     [FKL_TYPE_PAIR] = _pair_hashFunc,
@@ -1030,23 +1028,16 @@ static size_t (*const valueHashFuncTable[FKL_VM_VALUE_GC_TYPE_NUM])(
     [FKL_TYPE_HASHTABLE] = _hashTable_hashFunc,
 };
 
-static size_t VMvalueHashFunc(const FklVMvalue *v) {
+static uintptr_t VMvalueHashFunc(const FklVMvalue *root) {
     size_t sum = 0;
-    FklVMvalueVector stack;
-    fklVMvalueVectorInit(&stack, 32);
-    fklVMvalueVectorPushBack2(&stack, FKL_REMOVE_CONST(FklVMvalue, v));
-    while (!fklVMvalueVectorIsEmpty(&stack)) {
-        const FklVMvalue *root = *fklVMvalueVectorPopBack(&stack);
-        size_t (*valueHashFunc)(const FklVMvalue *, FklVMvalueVector *) = NULL;
-        if (fklIsVMint(root))
-            sum += fklVMintegerHashv(root);
-        else if (FKL_IS_PTR(root)
-                 && (valueHashFunc = valueHashFuncTable[v->type]))
-            sum += valueHashFunc(root, &stack);
-        else
-            sum += ((uintptr_t)root >> FKL_UNUSEDBITNUM);
-    }
-    fklVMvalueVectorUninit(&stack);
+    size_t (*valueHashFunc)(const FklVMvalue *) = NULL;
+    if (fklIsVMint(root))
+        sum += fklVMintegerHashv(root);
+    else if (FKL_IS_PTR(root)
+             && (valueHashFunc = valueHashFuncTable[root->type]))
+        sum += valueHashFunc(root);
+    else
+        sum += ((uintptr_t)root >> FKL_UNUSEDBITNUM);
     return sum;
 }
 
@@ -2002,12 +1993,13 @@ void fklUdAsPrinc(const FklVMud *a, FklStringBuffer *buf, FklVMgc *gc) {
 
 void fklWriteVMud(const FklVMud *a, FILE *fp) { a->t->__write(a, fp); }
 
-size_t fklHashvVMud(const FklVMud *a, FklVMvalueVector *s) {
-    size_t (*hashv)(const FklVMud *, FklVMvalueVector *) = a->t->__hash;
+size_t fklHashvVMud(const FklVMud *a) {
+    size_t (*hashv)(const FklVMud *) = a->t->__hash;
     if (hashv)
-        return hashv(a, s);
+        return hashv(a);
     else
-        return ((uintptr_t)a->data >> FKL_UNUSEDBITNUM);
+        return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, a->data)
+                              >> FKL_UNUSEDBITNUM);
 }
 
 void fklFinalizeVMud(FklVMud *a) {

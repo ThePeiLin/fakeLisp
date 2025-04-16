@@ -353,7 +353,7 @@ static inline FKL_TABLE_VAL_TYPE *METHOD(Add)(NAME *self,
 }
 
 static inline FKL_TABLE_VAL_TYPE *METHOD(Add1)(NAME *self,
-                                              FKL_TABLE_KEY_TYPE k) {
+                                               FKL_TABLE_KEY_TYPE k) {
     return METHOD(Add)(self, &k, NULL);
 }
 
@@ -435,6 +435,27 @@ static inline int METHOD(Has2)(NAME const *self, FKL_TABLE_KEY_TYPE k) {
     return METHOD(Has)(self, &k);
 }
 #endif
+
+static inline int METHOD(DelNode)(NAME *self, NODE_NAME **pp) {
+    NODE_NAME *pn = *pp;
+    if (pn) {
+        *pp = pn->bkt_next;
+        if (pn->prev)
+            pn->prev->next = pn->next;
+        if (pn->next)
+            pn->next->prev = pn->prev;
+        if (self->last == pn)
+            self->last = pn->prev;
+        if (self->first == pn)
+            self->first = pn->next;
+        --self->count;
+        FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&pn->k);
+        FKL_TABLE_VAL_UNINIT(&pn->v);
+        free(pn);
+        return 1;
+    }
+    return 0;
+}
 
 static inline int METHOD(Del)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
     for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;

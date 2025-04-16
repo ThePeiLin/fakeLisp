@@ -69,9 +69,23 @@
 (prin1n (ht->list hash-table))
 (prin1n (ht-keys hash-table))
 (prin1n (ht-values hash-table))
+(println "length: " (length hash-table))
+(newline)
+
+(ht-set*! hash-table
+          114 514
+          1919 810
+          514 114
+          "abcd" "efgh"
+          "efgh" "abcd")
+(println "length: " (length hash-table))
+(prin1n (ht->list hash-table))
+(printf "ht-ref 114: %S\n" (ht-ref hash-table 114))
+(newline)
 
 (println "after clear")
 (ht-clear! hash-table)
 (prin1n (ht->list hash-table))
 (prin1n (ht-keys hash-table))
 (prin1n (ht-values hash-table))
+(newline)

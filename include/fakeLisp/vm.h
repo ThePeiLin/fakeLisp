@@ -254,7 +254,7 @@ typedef struct FklCprocFrameContext {
     FklVMcFunc func;
     FklVMvalue *pd;
     union {
-        void *pointer;
+        void *ptr;
         uintptr_t context;
         intptr_t icontext;
         struct {
@@ -267,6 +267,11 @@ typedef struct FklCprocFrameContext {
                 int32_t cbi;
             };
         };
+    };
+    union {
+        void *ptr1;
+        uintptr_t ctx1;
+        intptr_t ictx1;
     };
     uint32_t rtp;
 } FklCprocFrameContext;

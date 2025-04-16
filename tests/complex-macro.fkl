@@ -61,7 +61,7 @@
        (define (~type-checker-name ~name)
          (and
            (eq (vector-ref ~name 0) (quote ~name))
-           (eqv (length ~name) ~(1+ (hash-num field-idx-ht)))))
+           (eqv (length ~name) ~(1+ (length field-idx-ht)))))
        ~@(map
            (lambda (kv)
              (define field-name (symbol->string (car kv)))

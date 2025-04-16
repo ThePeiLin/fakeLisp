@@ -30,8 +30,16 @@ static int ht_equal_hashv(FKL_CPROC_ARGL) {
 #define FKL_TABLE_KEY_TYPE FklVMvalue *
 #define FKL_TABLE_VAL_TYPE FklVMvalue *
 #define FKL_TABLE_ELM_NAME VMvalue
-#define FKL_TABLE_KEY_HASH abort()
-#define FKL_TABLE_KEY_EQUAL(A, B) abort(), 1
+#define FKL_TABLE_KEY_HASH                                                     \
+    {                                                                          \
+        fprintf(stderr, "[%s: %d] calling %s is not allowed!\n", __FILE__,     \
+                __LINE__, __FUNCTION__);                                       \
+        abort();                                                               \
+    }
+#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+    fprintf(stderr, "[%s: %d] calling %s is not allowed!\n", __FILE__,         \
+            __LINE__, __FUNCTION__),                                           \
+        abort(), 1
 #include <fakeLisp/table.h>
 
 typedef struct {
@@ -260,9 +268,8 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else {
-            HtVMvalueTableNode *node = htVMvalueTableCreateNode(hashv);
-            *FKL_REMOVE_CONST(FklVMvalue *, &node->k) =
-                FKL_VM_GET_VALUE(exe, 2);
+            HtVMvalueTableNode *node =
+                htVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             node->v = FKL_VM_GET_VALUE(exe, 3);
             htVMvalueTableInsertNode(&ht->ht, hashv, node);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, node->v);
@@ -280,9 +287,8 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
             if (*node) {
                 return key_equal(exe, ctx, ht->eq_func, ctx->ctx1, node);
             } else {
-                HtVMvalueTableNode *item = htVMvalueTableCreateNode(hashv);
-                *FKL_REMOVE_CONST(FklVMvalue *, &item->k) =
-                    FKL_VM_GET_VALUE(exe, 2);
+                HtVMvalueTableNode *item =
+                    htVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
                 htVMvalueTableInsertNode(&ht->ht, hashv, item);
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
@@ -334,9 +340,8 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
         } else {
 #define CONTINUE_ARG_NUM (4)
 
-            HtVMvalueTableNode *item = htVMvalueTableCreateNode(hashv);
-            *FKL_REMOVE_CONST(FklVMvalue *, &item->k) =
-                FKL_VM_GET_VALUE(exe, 2);
+            HtVMvalueTableNode *item =
+                htVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             item->v = FKL_VM_GET_VALUE(exe, 3);
             htVMvalueTableInsertNode(&ht->ht, hashv, item);
             if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
@@ -364,9 +369,8 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
             if (*node) {
                 return key_equal(exe, ctx, ht->eq_func, hashv, node);
             } else {
-                HtVMvalueTableNode *item = htVMvalueTableCreateNode(hashv);
-                *FKL_REMOVE_CONST(FklVMvalue *, &item->k) =
-                    FKL_VM_GET_VALUE(exe, 2);
+                HtVMvalueTableNode *item =
+                    htVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
                 htVMvalueTableInsertNode(&ht->ht, hashv, item);
                 if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
@@ -494,9 +498,8 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else {
-            HtVMvalueTableNode *item = htVMvalueTableCreateNode(hashv);
-            *FKL_REMOVE_CONST(FklVMvalue *, &item->k) =
-                FKL_VM_GET_VALUE(exe, 2);
+            HtVMvalueTableNode *item =
+                htVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             item->v = FKL_VM_GET_VALUE(exe, 3);
             htVMvalueTableInsertNode(&ht->ht, hashv, item);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
@@ -514,9 +517,8 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
             if (*node) {
                 return key_equal(exe, ctx, ht->eq_func, hashv, node);
             } else {
-                HtVMvalueTableNode *item = htVMvalueTableCreateNode(hashv);
-                *FKL_REMOVE_CONST(FklVMvalue *, &item->k) =
-                    FKL_VM_GET_VALUE(exe, 2);
+                HtVMvalueTableNode *item =
+                    htVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
                 htVMvalueTableInsertNode(&ht->ht, hashv, item);
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
@@ -624,8 +626,8 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
         } else {
             HtVMvalueTableNode *i = *node;
-            FKL_VM_SET_TP_AND_PUSH_VALUE(
-                exe, ctx->rtp, fklCreateVMvaluePair(exe, i->k, i->v));
+            FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp,
+                                         fklCreateVMvaluePair(exe, i->k, i->v));
         }
     } break;
     }

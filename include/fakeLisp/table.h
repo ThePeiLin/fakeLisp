@@ -230,10 +230,21 @@ static inline NODE_NAME *const *METHOD(Bucket)(NAME *self, uintptr_t hashv) {
     return &self->buckets[hashv & self->mask];
 }
 
-static inline NODE_NAME *METHOD(CreateNode)(uintptr_t hashv) {
+static inline NODE_NAME *METHOD(CreateNode)(uintptr_t hashv,
+                                            FKL_TABLE_KEY_TYPE const *k) {
     NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
     assert(node);
     *((uintptr_t *)&node->hashv) = hashv;
+    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    return node;
+}
+
+static inline NODE_NAME *METHOD(CreateNode2)(uintptr_t hashv,
+                                             FKL_TABLE_KEY_TYPE k) {
+    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
+    assert(node);
+    *((uintptr_t *)&node->hashv) = hashv;
+    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, &k);
     return node;
 }
 
@@ -274,8 +285,7 @@ static inline int METHOD(Put)(NAME *self, FKL_TABLE_KEY_TYPE const *k) {
 #endif
     }
 
-    NODE_NAME *node = METHOD(CreateNode)(hashv);
-    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    NODE_NAME *node = METHOD(CreateNode)(hashv, k);
 #ifdef FKL_TABLE_VAL_TYPE
     if (v) {
         FKL_TABLE_VAL_INIT(&node->v, v);
@@ -345,8 +355,7 @@ static inline FKL_TABLE_VAL_TYPE *METHOD(Add)(NAME *self,
         }
     }
 
-    NODE_NAME *node = METHOD(CreateNode)(hashv);
-    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    NODE_NAME *node = METHOD(CreateNode)(hashv, k);
     if (v) {
         FKL_TABLE_VAL_INIT(&node->v, v);
     }
@@ -375,8 +384,7 @@ static inline ELM_NAME *METHOD(Insert)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
         }
     }
 
-    NODE_NAME *node = METHOD(CreateNode)(hashv);
-    FKL_TABLE_KEY_INIT((FKL_TABLE_KEY_TYPE *)&node->k, k);
+    NODE_NAME *node = METHOD(CreateNode)(hashv, k);
     if (v) {
         FKL_TABLE_VAL_INIT(&node->v, v);
     }

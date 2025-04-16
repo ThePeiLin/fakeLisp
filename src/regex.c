@@ -1003,8 +1003,8 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
 
     FklRegexCode *re = fklRegexCompileCharBuf(buf, len);
     if (re) {
-        FklStrRegexTableNode *node = fklStrRegexTableCreateNode(hashv);
-        *FKL_REMOVE_CONST(FklString *, &node->k) = fklCreateString(len, buf);
+        FklStrRegexTableNode *node =
+            fklStrRegexTableCreateNode2(hashv, fklCreateString(len, buf));
         node->v.num = ++t->num;
         node->v.re = re;
         fklStrRegexTableInsertNode(&t->str_re, hashv, node);

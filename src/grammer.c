@@ -2858,6 +2858,7 @@ check_lookahead_self_generated_and_spread(FklGrammer *g,
                         if (i.la.t == FKL_LALR_MATCH_NONE)
                             add_lookahead_spread(
                                 itemset, &item,
+								// 这些操作可能需要重新计算哈希值
                                 FKL_REMOVE_CONST(FklLalrItemTable, &x->dst->k),
                                 &i);
                         else

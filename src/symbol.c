@@ -40,7 +40,7 @@ FklStrIdTableElm *fklAddSymbolCharBuf(const char *buf, size_t len,
             return &cur->elm;
     }
 
-    FklStrIdTableNode *node = fklStrIdTableCreateNode();
+    FklStrIdTableNode *node = fklStrIdTableCreateNode(hashv);
     *FKL_REMOVE_CONST(FklString *, &node->k) = fklCreateString(len, buf);
     fklStrIdTableInsertNode(ht, hashv, node);
     node->v = ht->count;

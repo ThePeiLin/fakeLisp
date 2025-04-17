@@ -307,11 +307,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
         uint64_t kvnum = num * 2;
         FklVMvalue **base = &exe->base[exe->tp - kvnum];
-        FklHashTable *ht = FKL_VM_HASH(hash);
+        FklVMhash *ht = FKL_VM_HASH(hash);
         for (uint32_t i = 0; i < kvnum; i += 2) {
             FklVMvalue *key = base[i];
             FklVMvalue *value = base[i + 1];
-            fklVMhashTableSet(key, value, ht);
+            fklVMhashTableSet(ht, key, value);
         }
         exe->tp -= kvnum;
         FKL_VM_PUSH_VALUE(exe, hash);
@@ -331,11 +331,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvalue *hash = fklCreateVMvalueHashEqv(exe);
         uint64_t kvnum = num * 2;
         FklVMvalue **base = &exe->base[exe->tp - kvnum];
-        FklHashTable *ht = FKL_VM_HASH(hash);
+        FklVMhash *ht = FKL_VM_HASH(hash);
         for (uint32_t i = 0; i < kvnum; i += 2) {
             FklVMvalue *key = base[i];
             FklVMvalue *value = base[i + 1];
-            fklVMhashTableSet(key, value, ht);
+            fklVMhashTableSet(ht, key, value);
         }
         exe->tp -= kvnum;
         FKL_VM_PUSH_VALUE(exe, hash);
@@ -355,11 +355,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvalue *hash = fklCreateVMvalueHashEqual(exe);
         uint64_t kvnum = num * 2;
         FklVMvalue **base = &exe->base[exe->tp - kvnum];
-        FklHashTable *ht = FKL_VM_HASH(hash);
+        FklVMhash *ht = FKL_VM_HASH(hash);
         for (size_t i = 0; i < kvnum; i += 2) {
             FklVMvalue *key = base[i];
             FklVMvalue *value = base[i + 1];
-            fklVMhashTableSet(key, value, ht);
+            fklVMhashTableSet(ht, key, value);
         }
         exe->tp -= kvnum;
         FKL_VM_PUSH_VALUE(exe, hash);
@@ -1145,10 +1145,9 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvalue *ht = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *key = FKL_VM_POP_TOP_VALUE(exe);
         FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-        int ok;
-        FklVMvalue *retval = fklVMhashTableGet(key, FKL_VM_HASH(ht), &ok);
-        if (ok)
-            FKL_VM_PUSH_VALUE(exe, retval);
+        FklVMvalueTableElm *r = fklVMhashTableGet(FKL_VM_HASH(ht), key);
+        if (r)
+            FKL_VM_PUSH_VALUE(exe, r->v);
         else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NO_VALUE_FOR_KEY, exe);
     } break;
@@ -1157,17 +1156,16 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvalue *key = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue **defa = &FKL_VM_GET_TOP_VALUE(exe);
         FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-        int ok;
-        FklVMvalue *retval = fklVMhashTableGet(key, FKL_VM_HASH(ht), &ok);
-        if (ok)
-            *defa = retval;
+        FklVMvalueTableElm *r = fklVMhashTableGet(FKL_VM_HASH(ht), key);
+        if (r)
+            *defa = r->v;
     } break;
     case FKL_OP_HASH_SET: {
         FklVMvalue *ht = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *key = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *value = FKL_VM_GET_TOP_VALUE(exe);
         FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-        fklVMhashTableSet(key, value, FKL_VM_HASH(ht));
+        fklVMhashTableSet(FKL_VM_HASH(ht), key, value);
     } break;
     case FKL_OP_INC_LOC: {
         FklVMvalue *v = GET_COMPOUND_FRAME_LOC(frame, ins->bu);

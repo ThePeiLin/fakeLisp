@@ -3,6 +3,10 @@
 #include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
+
 static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
                                        size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;

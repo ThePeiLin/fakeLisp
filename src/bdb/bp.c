@@ -137,7 +137,7 @@ void clearDeletedBreakpoint(DebugCtx *dctx) {
 Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
     Breakpoint *bp = NULL;
     BreakpointTable *bt = &dctx->bt;
-    if (bdbBpIdxTableEarase(&bt->idx_ht, &idx, &bp)) {
+    if (bdbBpIdxTableEarase(&bt->idx_ht, &idx, &bp, NULL)) {
         mark_breakpoint_deleted(bp, bt);
         return bp;
     }

@@ -105,14 +105,14 @@ first_call:
         break;
 
     case FKL_TYPE_HASHTABLE:
-        if (hash_table->num == 0) {
+        if (hash_table->ht.count == 0) {
             PUTS(buf, fklGetVMhashTablePrefix(hash_table));
             PUTC(buf, ')');
             return NULL;
         }
         PUTS(buf, fklGetVMhashTablePrefix(hash_table));
         PUTC(buf, '(');
-        r = FKL_TYPE_CAST(FklVMhashTableItem *, hash_ctx->cur->data)->key;
+        r = hash_ctx->cur->k;
         break;
     default:
         fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
@@ -164,7 +164,7 @@ cont_call:
         case PRT_CAR:
             hash_ctx->place = PRT_CDR;
             PUTC(buf, ',');
-            r = FKL_TYPE_CAST(FklVMhashTableItem *, hash_ctx->cur->data)->v;
+            r = hash_ctx->cur->v;
             break;
         case PRT_CDR:
             hash_ctx->place = PRT_CAR;
@@ -174,7 +174,7 @@ cont_call:
                 return NULL;
             }
             PUTS(buf, ") (");
-            r = FKL_TYPE_CAST(FklVMhashTableItem *, hash_ctx->cur->data)->key;
+            r = hash_ctx->cur->k;
             break;
         }
         break;

@@ -463,11 +463,12 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(ht, v);
             if (!vmCircleHeadTableGet2(circle_heads, v)) {
-                for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
+                for (FklVMvalueTableNode *tail = FKL_VM_HASH(v)->ht.last; tail;
                      tail = tail->prev) {
-                    FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
-                    fklVMvalueVectorPushBack2(&stack, item->v);
-                    fklVMvalueVectorPushBack2(&stack, item->key);
+                    // FklVMhashTableItem *item = (FklVMhashTableItem
+                    // *)tail->data;
+                    fklVMvalueVectorPushBack2(&stack, tail->v);
+                    fklVMvalueVectorPushBack2(&stack, tail->k);
                 }
                 putValueInSet(circle_heads, v);
             }
@@ -501,11 +502,12 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
             } else if (FKL_IS_BOX(v))
                 dec_value_degree(ht, FKL_VM_BOX(v));
             else if (FKL_IS_HASHTABLE(v)) {
-                for (FklHashTableItem *list = FKL_VM_HASH(v)->first; list;
+                for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first; list;
                      list = list->next) {
-                    FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
-                    dec_value_degree(ht, item->key);
-                    dec_value_degree(ht, item->v);
+                    // FklVMhashTableItem *item = (FklVMhashTableItem
+                    // *)list->data;
+                    dec_value_degree(ht, list->k);
+                    dec_value_degree(ht, list->v);
                 }
             }
         }
@@ -544,12 +546,12 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
                 } else if (FKL_IS_BOX(v))
                     dec_value_degree(ht, FKL_VM_BOX(v));
                 else if (FKL_IS_HASHTABLE(v)) {
-                    for (FklHashTableItem *list = FKL_VM_HASH(v)->first; list;
-                         list = list->next) {
-                        FklVMhashTableItem *item =
-                            (FklVMhashTableItem *)list->data;
-                        dec_value_degree(ht, item->key);
-                        dec_value_degree(ht, item->v);
+                    for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first;
+                         list; list = list->next) {
+                        // FklVMhashTableItem *item =
+                        //     (FklVMhashTableItem *)list->data;
+                        dec_value_degree(ht, list->k);
+                        dec_value_degree(ht, list->v);
                     }
                 }
             }
@@ -605,11 +607,12 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(&degree_table, v);
             if (!fklVMobjTablePut2(&value_set, v)) {
-                for (FklHashTableItem *tail = FKL_VM_HASH(v)->last; tail;
+                for (FklVMvalueTableNode *tail = FKL_VM_HASH(v)->ht.last; tail;
                      tail = tail->prev) {
-                    FklVMhashTableItem *item = (FklVMhashTableItem *)tail->data;
-                    fklVMvalueVectorPushBack2(&stack, item->v);
-                    fklVMvalueVectorPushBack2(&stack, item->key);
+                    // FklVMhashTableItem *item = (FklVMhashTableItem
+                    // *)tail->data;
+                    fklVMvalueVectorPushBack2(&stack, tail->v);
+                    fklVMvalueVectorPushBack2(&stack, tail->k);
                 }
             }
         }
@@ -643,11 +646,12 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
             } else if (FKL_IS_BOX(v))
                 dec_value_degree(&degree_table, FKL_VM_BOX(v));
             else if (FKL_IS_HASHTABLE(v)) {
-                for (FklHashTableItem *list = FKL_VM_HASH(v)->first; list;
+                for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first; list;
                      list = list->next) {
-                    FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
-                    dec_value_degree(&degree_table, item->key);
-                    dec_value_degree(&degree_table, item->v);
+                    // FklVMhashTableItem *item = (FklVMhashTableItem
+                    // *)list->data;
+                    dec_value_degree(&degree_table, list->k);
+                    dec_value_degree(&degree_table, list->v);
                 }
             }
         }
@@ -829,7 +833,7 @@ static_assert(sizeof(PrintVectorCtx) <= sizeof(PrintCtx),
 typedef struct PrintHashCtx {
     PRINT_CTX_COMMON_HEADER;
     const FklVMvalue *hash;
-    const FklHashTableItem *cur;
+    const FklVMvalueTableNode *cur;
 } PrintHashCtx;
 
 static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
@@ -859,7 +863,7 @@ static inline void print_vector_ctx_init(PrintCtx *ctx, const FklVMvalue *vec) {
 static inline void print_hash_ctx_init(PrintCtx *ctx, const FklVMvalue *hash) {
     PrintHashCtx *hash_ctx = FKL_TYPE_CAST(PrintHashCtx *, ctx);
     hash_ctx->hash = hash;
-    hash_ctx->cur = FKL_VM_HASH(hash)->first;
+    hash_ctx->cur = FKL_VM_HASH(hash)->ht.first;
 }
 
 static inline void init_common_print_ctx(PrintCtx *ctx, FklValueType type) {

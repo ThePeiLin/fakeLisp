@@ -399,7 +399,8 @@ static inline ELM_NAME *METHOD(Insert2)(NAME *self, FKL_TABLE_KEY_TYPE k,
 }
 
 static inline int METHOD(Earase)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
-                                 FKL_TABLE_VAL_TYPE *pv) {
+                                 FKL_TABLE_VAL_TYPE *pv,
+                                 FKL_TABLE_KEY_TYPE *pk) {
     for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;
          pp = &(*pp)->bkt_next) {
         if (FKL_TABLE_KEY_EQUAL(k, &(*pp)->k)) {
@@ -415,7 +416,11 @@ static inline int METHOD(Earase)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
                 self->first = pn->next;
 
             --self->count;
-            FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&pn->k);
+            if (pk) {
+                FKL_TABLE_KEY_INIT(pk, &pn->k);
+            } else {
+                FKL_TABLE_KEY_UNINIT((FKL_TABLE_KEY_TYPE *)&pn->k);
+            }
             if (pv) {
                 FKL_TABLE_VAL_INIT(pv, &pn->v);
             } else {
@@ -429,8 +434,9 @@ static inline int METHOD(Earase)(NAME *self, FKL_TABLE_KEY_TYPE const *k,
 }
 
 static inline int METHOD(Earase2)(NAME *self, FKL_TABLE_KEY_TYPE k,
-                                  FKL_TABLE_VAL_TYPE *pv) {
-    return METHOD(Earase)(self, &k, pv);
+                                  FKL_TABLE_VAL_TYPE *pv,
+                                  FKL_TABLE_KEY_TYPE *pk) {
+    return METHOD(Earase)(self, &k, pv, pk);
 }
 #else
 static inline int METHOD(Has)(NAME const *self, FKL_TABLE_KEY_TYPE const *k) {

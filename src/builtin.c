@@ -1549,7 +1549,7 @@ static int builtin_length(FKL_CPROC_ARGL) {
     else if (FKL_IS_BYTEVECTOR(obj))
         len = FKL_VM_BVEC(obj)->size;
     else if (FKL_IS_HASHTABLE(obj))
-        len = FKL_VM_HASH(obj)->num;
+        len = FKL_VM_HASH(obj)->ht.count;
     else if (FKL_IS_USERDATA(obj) && fklUdHasLength(FKL_VM_UD(obj)))
         len = fklLengthVMud(FKL_VM_UD(obj));
     else
@@ -2720,7 +2720,7 @@ static inline FklVMvalue *isSlot(const FklVMvalue *head, const FklVMvalue *v) {
 }
 
 static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
-                                FklHashTable *ht, FklVMgc *gc) {
+                                FklVMhash *ht, FklVMgc *gc) {
     FklVMvalue *slotS = FKL_VM_CAR(pattern);
     FklVMpairVector s;
     fklVMpairVectorInit(&s, 8);
@@ -2733,7 +2733,7 @@ static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
         FklVMvalue *v1 = p->cdr;
         FklVMvalue *slotV = isSlot(slotS, v0);
         if (slotV)
-            fklVMhashTableSet(slotV, v1, ht);
+            fklVMhashTableSet(ht, slotV, v1);
         else if (FKL_IS_BOX(v0) && FKL_IS_BOX(v1)) {
             fklVMpairVectorPushBack2(
                 &s, (FklVMpair){.car = FKL_VM_BOX(v0), .cdr = FKL_VM_BOX(v1)});
@@ -2758,22 +2758,22 @@ static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
                                          (FklVMpair){.car = *c0, .cdr = *c1});
             }
         } else if (FKL_IS_HASHTABLE(v0) && FKL_IS_HASHTABLE(v1)) {
-            FklHashTable *h0 = FKL_VM_HASH(v0);
-            FklHashTable *h1 = FKL_VM_HASH(v1);
-            r = h0->t != h1->t || h0->num != h1->num;
+            FklVMhash *h0 = FKL_VM_HASH(v0);
+            FklVMhash *h1 = FKL_VM_HASH(v1);
+            r = h0->eq_type != h1->eq_type || h0->ht.count != h1->ht.count;
             if (r)
                 break;
-            FklHashTableItem *hl0 = h0->last;
-            FklHashTableItem *hl1 = h1->last;
+            FklVMvalueTableNode *i0 = h0->ht.last;
+            FklVMvalueTableNode *i1 = h1->ht.last;
             while (h0) {
-                FklVMhashTableItem *i0 = (FklVMhashTableItem *)hl0->data;
-                FklVMhashTableItem *i1 = (FklVMhashTableItem *)hl1->data;
+                // FklVMhashTableItem *i0 = (FklVMhashTableItem *)hl0->data;
+                // FklVMhashTableItem *i1 = (FklVMhashTableItem *)hl1->data;
                 fklVMpairVectorPushBack2(
                     &s, (FklVMpair){.car = i0->v, .cdr = i1->v});
                 fklVMpairVectorPushBack2(
-                    &s, (FklVMpair){.car = i0->key, .cdr = i1->key});
-                hl0 = hl0->prev;
-                hl1 = hl1->prev;
+                    &s, (FklVMpair){.car = i0->k, .cdr = i1->k});
+                i0 = i0->prev;
+                i1 = i1->prev;
             }
         } else if (!fklVMvalueEqual(v0, v1)) {
             r = 1;
@@ -2825,10 +2825,11 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
             for (size_t i = 0; i < size; i++)
                 fklVMvalueVectorPushBack2(&exe, base[i]);
         } else if (FKL_IS_HASHTABLE(c)) {
-            for (FklHashTableItem *h = FKL_VM_HASH(c)->first; h; h = h->next) {
-                FklVMhashTableItem *i = (FklVMhashTableItem *)h->data;
-                fklVMvalueVectorPushBack2(&exe, i->key);
-                fklVMvalueVectorPushBack2(&exe, i->v);
+            for (FklVMvalueTableNode *h = FKL_VM_HASH(c)->ht.first; h;
+                 h = h->next) {
+                // FklVMhashTableItem *i = (FklVMhashTableItem *)h->data;
+                fklVMvalueVectorPushBack2(&exe, h->k);
+                fklVMvalueVectorPushBack2(&exe, h->v);
             }
         }
     }
@@ -2843,7 +2844,7 @@ static int builtin_pmatch(FKL_CPROC_ARGL) {
     if (!isValidSyntaxPattern(pattern))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDPATTERN, exe);
     FklVMvalue *r = fklCreateVMvalueHashEq(exe);
-    FklHashTable *hash = FKL_VM_HASH(r);
+    FklVMhash *hash = FKL_VM_HASH(r);
     if (match_pattern(pattern, exp, hash, exe->gc))
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     else
@@ -4035,12 +4036,12 @@ static int builtin_msleep(FKL_CPROC_ARGL) {
 
 static int builtin_hash(FKL_CPROC_ARGL) {
     FklVMvalue *r = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(r);
+    FklVMhash *ht = FKL_VM_HASH(r);
     for (FklVMvalue *cur = FKL_VM_POP_ARG(exe); cur;
          cur = FKL_VM_POP_ARG(exe)) {
         if (!FKL_IS_PAIR(cur))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-        fklVMhashTableSet(FKL_VM_CAR(cur), FKL_VM_CDR(cur), ht);
+        fklVMhashTableSet(ht, FKL_VM_CAR(cur), FKL_VM_CDR(cur));
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4049,13 +4050,13 @@ static int builtin_hash(FKL_CPROC_ARGL) {
 
 static int builtin_make_hash(FKL_CPROC_ARGL) {
     FklVMvalue *r = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(r);
+    FklVMhash *ht = FKL_VM_HASH(r);
     for (FklVMvalue *key = FKL_VM_POP_ARG(exe); key;
          key = FKL_VM_POP_ARG(exe)) {
         FklVMvalue *value = FKL_VM_POP_ARG(exe);
         if (!value)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-        fklVMhashTableSet(key, value, ht);
+        fklVMhashTableSet(ht, key, value);
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4065,12 +4066,12 @@ static int builtin_make_hash(FKL_CPROC_ARGL) {
 
 static int builtin_hasheqv(FKL_CPROC_ARGL) {
     FklVMvalue *r = fklCreateVMvalueHashEqv(exe);
-    FklHashTable *ht = FKL_VM_HASH(r);
+    FklVMhash *ht = FKL_VM_HASH(r);
     for (FklVMvalue *cur = FKL_VM_POP_ARG(exe); cur;
          cur = FKL_VM_POP_ARG(exe)) {
         if (!FKL_IS_PAIR(cur))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-        fklVMhashTableSet(FKL_VM_CAR(cur), FKL_VM_CDR(cur), ht);
+        fklVMhashTableSet(ht, FKL_VM_CAR(cur), FKL_VM_CDR(cur));
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4080,13 +4081,13 @@ static int builtin_hasheqv(FKL_CPROC_ARGL) {
 
 static int builtin_make_hasheqv(FKL_CPROC_ARGL) {
     FklVMvalue *r = fklCreateVMvalueHashEqv(exe);
-    FklHashTable *ht = FKL_VM_HASH(r);
+    FklVMhash *ht = FKL_VM_HASH(r);
     for (FklVMvalue *key = FKL_VM_POP_ARG(exe); key;
          key = FKL_VM_POP_ARG(exe)) {
         FklVMvalue *value = FKL_VM_POP_ARG(exe);
         if (!value)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-        fklVMhashTableSet(key, value, ht);
+        fklVMhashTableSet(ht, key, value);
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4096,12 +4097,12 @@ static int builtin_make_hasheqv(FKL_CPROC_ARGL) {
 
 static int builtin_hashequal(FKL_CPROC_ARGL) {
     FklVMvalue *r = fklCreateVMvalueHashEqual(exe);
-    FklHashTable *ht = FKL_VM_HASH(r);
+    FklVMhash *ht = FKL_VM_HASH(r);
     for (FklVMvalue *cur = FKL_VM_POP_ARG(exe); cur;
          cur = FKL_VM_POP_ARG(exe)) {
         if (!FKL_IS_PAIR(cur))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-        fklVMhashTableSet(FKL_VM_CAR(cur), FKL_VM_CDR(cur), ht);
+        fklVMhashTableSet(ht, FKL_VM_CAR(cur), FKL_VM_CDR(cur));
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4111,13 +4112,13 @@ static int builtin_hashequal(FKL_CPROC_ARGL) {
 
 static int builtin_make_hashequal(FKL_CPROC_ARGL) {
     FklVMvalue *r = fklCreateVMvalueHashEqual(exe);
-    FklHashTable *ht = FKL_VM_HASH(r);
+    FklVMhash *ht = FKL_VM_HASH(r);
     for (FklVMvalue *key = FKL_VM_POP_ARG(exe); key;
          key = FKL_VM_POP_ARG(exe)) {
         FklVMvalue *value = FKL_VM_POP_ARG(exe);
         if (!value)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-        fklVMhashTableSet(key, value, ht);
+        fklVMhashTableSet(ht, key, value);
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4129,10 +4130,9 @@ static int builtin_hash_ref(FKL_CPROC_ARGL) {
     FklVMvalue *defa = FKL_VM_POP_ARG(exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    int ok = 0;
-    FklVMvalue *retval = fklVMhashTableGet(key, FKL_VM_HASH(ht), &ok);
-    if (ok)
-        FKL_VM_PUSH_VALUE(exe, retval);
+    FklVMvalueTableElm *r = fklVMhashTableGet(FKL_VM_HASH(ht), key);
+    if (r)
+        FKL_VM_PUSH_VALUE(exe, r->v);
     else {
         if (defa)
             FKL_VM_PUSH_VALUE(exe, defa);
@@ -4146,9 +4146,9 @@ static int builtin_hash_ref4(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG2(ht, key, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    FklVMhashTableItem *i = fklVMhashTableGetItem(key, FKL_VM_HASH(ht));
+    FklVMvalueTableElm *i = fklVMhashTableGet(FKL_VM_HASH(ht), key);
     if (i)
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvaluePair(exe, i->key, i->v));
+        FKL_VM_PUSH_VALUE(exe, fklCreateVMvaluePair(exe, i->k, i->v));
     else
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     return 0;
@@ -4158,10 +4158,9 @@ static int builtin_hash_ref7(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG2(ht, key, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    int ok = 0;
-    FklVMvalue *retval = fklVMhashTableGet(key, FKL_VM_HASH(ht), &ok);
-    if (ok)
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBox(exe, retval));
+    FklVMvalueTableElm *r = fklVMhashTableGet(FKL_VM_HASH(ht), key);
+    if (r)
+        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBox(exe, r->v));
     else
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     return 0;
@@ -4171,8 +4170,7 @@ static int builtin_hash_ref1(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG3(ht, key, toSet, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    FklVMhashTableItem *item =
-        fklVMhashTableRef1(key, toSet, FKL_VM_HASH(ht), exe->gc);
+    FklVMvalueTableElm *item = fklVMhashTableRef1(FKL_VM_HASH(ht), key, toSet);
     FKL_VM_PUSH_VALUE(exe, item->v);
     return 0;
 }
@@ -4181,7 +4179,7 @@ static int builtin_hash_clear(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG(ht, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    fklClearHashTable(FKL_VM_HASH(ht));
+    fklVMvalueTableClear(&FKL_VM_HASH(ht)->ht);
     FKL_VM_PUSH_VALUE(exe, ht);
     return 0;
 }
@@ -4190,7 +4188,7 @@ static int builtin_hash_set(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG3(ht, key, value, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    fklVMhashTableSet(key, value, FKL_VM_HASH(ht));
+    fklVMhashTableSet(FKL_VM_HASH(ht), key, value);
     FKL_VM_PUSH_VALUE(exe, value);
     ;
     return 0;
@@ -4200,9 +4198,9 @@ static int builtin_hash_del1(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG2(ht, key, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    FklVMhashTableItem i;
-    if (fklDelHashItem(&key, FKL_VM_HASH(ht), &i))
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvaluePair(exe, i.key, i.v));
+    FklVMvalue *v = NULL;
+    if (fklVMhashTableDel(FKL_VM_HASH(ht), key, &v, &key))
+        FKL_VM_PUSH_VALUE(exe, fklCreateVMvaluePair(exe, key, v));
     else
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     return 0;
@@ -4215,11 +4213,11 @@ static int builtin_hash_set8(FKL_CPROC_ARGL) {
     if (arg_num % 2)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
     FklVMvalue *value = NULL;
-    FklHashTable *hash = FKL_VM_HASH(ht);
+    FklVMhash *hash = FKL_VM_HASH(ht);
     for (FklVMvalue *key = FKL_VM_POP_ARG(exe); key;
          key = FKL_VM_POP_ARG(exe)) {
         value = FKL_VM_POP_ARG(exe);
-        fklVMhashTableSet(key, value, hash);
+        fklVMhashTableSet(hash, key, value);
     }
     fklResBp(exe);
     FKL_VM_PUSH_VALUE(exe, (value ? value : ht));
@@ -4230,12 +4228,12 @@ static int builtin_hash_to_list(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG(ht, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    FklHashTable *hash = FKL_VM_HASH(ht);
+    FklVMhash *hash = FKL_VM_HASH(ht);
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
-    for (FklHashTableItem *list = hash->first; list; list = list->next) {
-        FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
-        FklVMvalue *pair = fklCreateVMvaluePair(exe, item->key, item->v);
+    for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
+        // FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
+        FklVMvalue *pair = fklCreateVMvaluePair(exe, list->k, list->v);
         *cur = fklCreateVMvaluePairWithCar(exe, pair);
         cur = &FKL_VM_CDR(*cur);
     }
@@ -4247,12 +4245,12 @@ static int builtin_hash_keys(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG(ht, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    FklHashTable *hash = FKL_VM_HASH(ht);
+    FklVMhash *hash = FKL_VM_HASH(ht);
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
-    for (FklHashTableItem *list = hash->first; list; list = list->next) {
-        FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
-        *cur = fklCreateVMvaluePairWithCar(exe, item->key);
+    for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
+        // FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
+        *cur = fklCreateVMvaluePairWithCar(exe, list->k);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_VM_PUSH_VALUE(exe, r);
@@ -4263,12 +4261,12 @@ static int builtin_hash_values(FKL_CPROC_ARGL) {
     FKL_DECL_AND_CHECK_ARG(ht, exe);
     FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-    FklHashTable *hash = FKL_VM_HASH(ht);
+    FklVMhash *hash = FKL_VM_HASH(ht);
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
-    for (FklHashTableItem *list = hash->first; list; list = list->next) {
-        FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
-        *cur = fklCreateVMvaluePairWithCar(exe, item->v);
+    for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
+        // FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
+        *cur = fklCreateVMvaluePairWithCar(exe, list->v);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_VM_PUSH_VALUE(exe, r);

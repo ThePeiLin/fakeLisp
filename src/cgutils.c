@@ -368,7 +368,7 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
     fklPreDefRefVectorInit(&ref_pdef1, count);
     uint8_t pdef_isconst;
     FklSidScope key = {id, scope};
-    fklPredefTableEarase(&env->pdef, &key, &pdef_isconst);
+    fklPredefTableEarase(&env->pdef, &key, &pdef_isconst, NULL);
     FklSymDefTableElm *def = fklGetCodegenDefByIdInScope(id, scope, env);
     FKL_ASSERT(def);
     for (uint32_t i = 0; i < count; i++) {

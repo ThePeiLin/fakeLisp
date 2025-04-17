@@ -1,6 +1,10 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/vm.h>
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
+
 static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
                                        size_t line) {
     FklVMvalue **values = (FklVMvalue **)ast;
@@ -247,8 +251,8 @@ static inline void *prod_action_hasheq(void *outerCtx, void *nodes[],
     FklVMvalue *r = fklCreateVMvalueHashEq(exe);
     for (; FKL_IS_PAIR(list); list = FKL_VM_CDR(list)) {
         FklVMvalue *key_value = FKL_VM_CAR(list);
-        fklVMhashTableSet(FKL_VM_CAR(key_value), FKL_VM_CDR(key_value),
-                          FKL_VM_HASH(r));
+        fklVMhashTableSet(FKL_VM_HASH(r), FKL_VM_CAR(key_value),
+                          FKL_VM_CDR(key_value));
     }
     return r;
 }
@@ -260,8 +264,8 @@ static inline void *prod_action_hasheqv(void *outerCtx, void *nodes[],
     FklVMvalue *r = fklCreateVMvalueHashEqv(exe);
     for (; FKL_IS_PAIR(list); list = FKL_VM_CDR(list)) {
         FklVMvalue *key_value = FKL_VM_CAR(list);
-        fklVMhashTableSet(FKL_VM_CAR(key_value), FKL_VM_CDR(key_value),
-                          FKL_VM_HASH(r));
+        fklVMhashTableSet(FKL_VM_HASH(r), FKL_VM_CAR(key_value),
+                          FKL_VM_CDR(key_value));
     }
     return r;
 }
@@ -273,8 +277,8 @@ static inline void *prod_action_hashequal(void *outerCtx, void *nodes[],
     FklVMvalue *r = fklCreateVMvalueHashEqual(exe);
     for (; FKL_IS_PAIR(list); list = FKL_VM_CDR(list)) {
         FklVMvalue *key_value = FKL_VM_CAR(list);
-        fklVMhashTableSet(FKL_VM_CAR(key_value), FKL_VM_CDR(key_value),
-                          FKL_VM_HASH(r));
+        fklVMhashTableSet(FKL_VM_HASH(r), FKL_VM_CAR(key_value),
+                          FKL_VM_CDR(key_value));
     }
     return r;
 }

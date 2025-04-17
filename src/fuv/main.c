@@ -1679,7 +1679,7 @@ static inline FklVMvalue *addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info,
                                              FuvPublicData *fpd) {
     char ip[INET6_ADDRSTRLEN];
     FklVMvalue *v = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(v);
+    FklVMhash *ht = FKL_VM_HASH(v);
     const char *addr = NULL;
     int port = 0;
     if (info->ai_family == AF_INET || info->ai_family == AF_INET6) {
@@ -1689,24 +1689,23 @@ static inline FklVMvalue *addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info,
         addr = (const char *)&((struct sockaddr_in6 *)info->ai_addr)->sin6_addr;
         port = ((struct sockaddr_in6 *)info->ai_addr)->sin6_port;
     }
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_family_sid),
-                      af_num_to_symbol(info->ai_family, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_family_sid),
+                      af_num_to_symbol(info->ai_family, fpd));
     uv_inet_ntop(info->ai_family, addr, ip, INET6_ADDRSTRLEN);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_addr_sid),
-                      fklCreateVMvalueStrFromCstr(exe, ip), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_addr_sid),
+                      fklCreateVMvalueStrFromCstr(exe, ip));
 
     if (ntohs(port))
-        fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_port_sid),
-                          FKL_MAKE_VM_FIX(ntohs(port)), ht);
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_socktype_sid),
-                      sock_num_to_symbol(info->ai_socktype, fpd), ht);
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_protocol_sid),
-                      proto_num_to_symbol(info->ai_protocol, exe), ht);
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_port_sid),
+                          FKL_MAKE_VM_FIX(ntohs(port)));
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_socktype_sid),
+                      sock_num_to_symbol(info->ai_socktype, fpd));
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_protocol_sid),
+                      proto_num_to_symbol(info->ai_protocol, exe));
     if (info->ai_canonname)
-        fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_canonname_sid),
-                          fklCreateVMvalueStrFromCstr(exe, info->ai_canonname),
-                          ht);
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_canonname_sid),
+                          fklCreateVMvalueStrFromCstr(exe, info->ai_canonname));
     return v;
 }
 
@@ -1984,13 +1983,13 @@ static inline FklVMvalue *host_service_to_hash(FklVM *exe, const char *hostname,
                                                const char *service,
                                                FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
-    fklVMhashTableSet(
-        FKL_MAKE_VM_SYM(fpd->f_hostname_sid),
-        hostname ? fklCreateVMvalueStrFromCstr(exe, hostname) : FKL_VM_NIL, ht);
-    fklVMhashTableSet(
-        FKL_MAKE_VM_SYM(fpd->f_service_sid),
-        service ? fklCreateVMvalueStrFromCstr(exe, service) : FKL_VM_NIL, ht);
+    FklVMhash *ht = FKL_VM_HASH(hash);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_hostname_sid),
+                      hostname ? fklCreateVMvalueStrFromCstr(exe, hostname)
+                               : FKL_VM_NIL);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_service_sid),
+                      service ? fklCreateVMvalueStrFromCstr(exe, service)
+                              : FKL_VM_NIL);
     return hash;
 }
 
@@ -3084,16 +3083,16 @@ parse_sockaddr_with_fpd(FklVM *exe, struct sockaddr_storage *address,
     }
 
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_family_sid),
-                      af_num_to_symbol(address->ss_family, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_family_sid),
+                      af_num_to_symbol(address->ss_family, fpd));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_ip_sid),
-                      fklCreateVMvalueStrFromCstr(exe, ip), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_ip_sid),
+                      fklCreateVMvalueStrFromCstr(exe, ip));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->f_port_sid), FKL_MAKE_VM_FIX(port),
-                      ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_port_sid),
+                      FKL_MAKE_VM_FIX(port));
 
     return hash;
 }
@@ -4129,13 +4128,13 @@ static int fuv_make_fs_poll(FKL_CPROC_ARGL) {
 static inline FklVMvalue *
 timespec_to_vmtable(FklVM *exe, const uv_timespec_t *spec, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+                      fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
-                      fklMakeVMint(spec->tv_nsec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
+                      fklMakeVMint(spec->tv_nsec, exe));
 
     return hash;
 }
@@ -4172,55 +4171,55 @@ timespec_to_vmtable(FklVM *exe, const uv_timespec_t *spec, FuvPublicData *fpd) {
 static inline FklVMvalue *stat_to_vmtable(FklVM *exe, const uv_stat_t *stat,
                                           FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_dev_sid),
-                      fklMakeVMuint(stat->st_dev, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_dev_sid),
+                      fklMakeVMuint(stat->st_dev, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_mode_sid),
-                      fklMakeVMuint(stat->st_mode, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_mode_sid),
+                      fklMakeVMuint(stat->st_mode, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_nlink_sid),
-                      fklMakeVMuint(stat->st_nlink, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_nlink_sid),
+                      fklMakeVMuint(stat->st_nlink, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_uid_sid),
-                      fklMakeVMuint(stat->st_uid, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_uid_sid),
+                      fklMakeVMuint(stat->st_uid, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_gid_sid),
-                      fklMakeVMuint(stat->st_gid, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_gid_sid),
+                      fklMakeVMuint(stat->st_gid, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_rdev_sid),
-                      fklMakeVMuint(stat->st_rdev, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_rdev_sid),
+                      fklMakeVMuint(stat->st_rdev, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_ino_sid),
-                      fklMakeVMuint(stat->st_ino, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_ino_sid),
+                      fklMakeVMuint(stat->st_ino, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_size_sid),
-                      fklMakeVMuint(stat->st_size, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_size_sid),
+                      fklMakeVMuint(stat->st_size, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_blksize_sid),
-                      fklMakeVMuint(stat->st_blksize, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_blksize_sid),
+                      fklMakeVMuint(stat->st_blksize, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_blocks_sid),
-                      fklMakeVMuint(stat->st_blocks, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_blocks_sid),
+                      fklMakeVMuint(stat->st_blocks, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_flags_sid),
-                      fklMakeVMuint(stat->st_flags, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_flags_sid),
+                      fklMakeVMuint(stat->st_flags, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_gen_sid),
-                      fklMakeVMuint(stat->st_gen, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_gen_sid),
+                      fklMakeVMuint(stat->st_gen, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_atime_sid),
-                      timespec_to_vmtable(exe, &stat->st_atim, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_atime_sid),
+                      timespec_to_vmtable(exe, &stat->st_atim, fpd));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_mtime_sid),
-                      timespec_to_vmtable(exe, &stat->st_mtim, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_mtime_sid),
+                      timespec_to_vmtable(exe, &stat->st_mtim, fpd));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_ctime_sid),
-                      timespec_to_vmtable(exe, &stat->st_ctim, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_ctime_sid),
+                      timespec_to_vmtable(exe, &stat->st_ctim, fpd));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_birthtime_sid),
-                      timespec_to_vmtable(exe, &stat->st_birthtim, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_birthtime_sid),
+                      timespec_to_vmtable(exe, &stat->st_birthtim, fpd));
 
     FklSid_t type = 0;
     if (S_ISREG(stat->st_mode))
@@ -4238,8 +4237,8 @@ static inline FklVMvalue *stat_to_vmtable(FklVM *exe, const uv_stat_t *stat,
     else if (S_ISBLK(stat->st_mode))
         type = fpd->stat_type_block_sid;
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->stat_f_type_sid),
-                      FKL_MAKE_VM_SYM(type), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_type_sid),
+                      FKL_MAKE_VM_SYM(type));
     return hash;
 }
 
@@ -4365,28 +4364,28 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe, int r, uv_fs_t *req,
 static inline FklVMvalue *statfs_to_vmtable(FklVM *exe, uv_statfs_t *s,
                                             FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_type_sid),
-                      fklMakeVMuint(s->f_type, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_type_sid),
+                      fklMakeVMuint(s->f_type, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_bsize_sid),
-                      fklMakeVMuint(s->f_bsize, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_bsize_sid),
+                      fklMakeVMuint(s->f_bsize, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_blocks_sid),
-                      fklMakeVMuint(s->f_blocks, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_blocks_sid),
+                      fklMakeVMuint(s->f_blocks, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_bfree_sid),
-                      fklMakeVMuint(s->f_bfree, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_bfree_sid),
+                      fklMakeVMuint(s->f_bfree, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_bavail_sid),
-                      fklMakeVMuint(s->f_bavail, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_bavail_sid),
+                      fklMakeVMuint(s->f_bavail, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_files_sid),
-                      fklMakeVMuint(s->f_files, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_files_sid),
+                      fklMakeVMuint(s->f_files, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->statfs_f_ffree_sid),
-                      fklMakeVMuint(s->f_ffree, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_ffree_sid),
+                      fklMakeVMuint(s->f_ffree, exe));
 
     return hash;
 }
@@ -4426,13 +4425,13 @@ static inline FklSid_t dirent_type_to_sid(uv_dirent_type_t type,
 static inline FklVMvalue *dirent_to_vmtable(FklVM *exe, uv_dirent_t *d,
                                             FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->dirent_f_type_sid),
-                      FKL_MAKE_VM_SYM(dirent_type_to_sid(d->type, fpd)), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->dirent_f_type_sid),
+                      FKL_MAKE_VM_SYM(dirent_type_to_sid(d->type, fpd)));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->dirent_f_name_sid),
-                      fklCreateVMvalueStrFromCstr(exe, d->name), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->dirent_f_name_sid),
+                      fklCreateVMvalueStrFromCstr(exe, d->name));
 
     return hash;
 }
@@ -5884,13 +5883,13 @@ static int fuv_uptime(FKL_CPROC_ARGL) {
 static inline FklVMvalue *
 timeval_to_vmtable(FklVM *exe, const uv_timeval_t *spec, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+                      fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
-                      fklMakeVMint(spec->tv_usec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
+                      fklMakeVMint(spec->tv_usec, exe));
 
     return hash;
 }
@@ -5899,55 +5898,55 @@ static inline FklVMvalue *rusage_to_vmtable(FklVM *exe, uv_rusage_t *r,
                                             FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_utime_sid),
-                      timeval_to_vmtable(exe, &r->ru_utime, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_utime_sid),
+                      timeval_to_vmtable(exe, &r->ru_utime, fpd));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_stime_sid),
-                      timeval_to_vmtable(exe, &r->ru_stime, fpd), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_stime_sid),
+                      timeval_to_vmtable(exe, &r->ru_stime, fpd));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_maxrss_sid),
-                      fklMakeVMuint(r->ru_maxrss, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_maxrss_sid),
+                      fklMakeVMuint(r->ru_maxrss, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_ixrss_sid),
-                      fklMakeVMuint(r->ru_ixrss, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_ixrss_sid),
+                      fklMakeVMuint(r->ru_ixrss, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_idrss_sid),
-                      fklMakeVMuint(r->ru_idrss, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_idrss_sid),
+                      fklMakeVMuint(r->ru_idrss, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_isrss_sid),
-                      fklMakeVMuint(r->ru_isrss, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_isrss_sid),
+                      fklMakeVMuint(r->ru_isrss, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_minflt_sid),
-                      fklMakeVMuint(r->ru_minflt, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_minflt_sid),
+                      fklMakeVMuint(r->ru_minflt, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_majflt_sid),
-                      fklMakeVMuint(r->ru_majflt, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_majflt_sid),
+                      fklMakeVMuint(r->ru_majflt, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nswap_sid),
-                      fklMakeVMuint(r->ru_nswap, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nswap_sid),
+                      fklMakeVMuint(r->ru_nswap, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_inblock_sid),
-                      fklMakeVMuint(r->ru_inblock, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_inblock_sid),
+                      fklMakeVMuint(r->ru_inblock, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_oublock_sid),
-                      fklMakeVMuint(r->ru_oublock, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_oublock_sid),
+                      fklMakeVMuint(r->ru_oublock, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_msgsnd_sid),
-                      fklMakeVMuint(r->ru_msgsnd, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_msgsnd_sid),
+                      fklMakeVMuint(r->ru_msgsnd, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_msgrcv_sid),
-                      fklMakeVMuint(r->ru_msgrcv, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_msgrcv_sid),
+                      fklMakeVMuint(r->ru_msgrcv, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nsignals_sid),
-                      fklMakeVMuint(r->ru_nsignals, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nsignals_sid),
+                      fklMakeVMuint(r->ru_nsignals, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nvcsw_sid),
-                      fklMakeVMuint(r->ru_nvcsw, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nvcsw_sid),
+                      fklMakeVMuint(r->ru_nvcsw, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->rusage_nivcsw_sid),
-                      fklMakeVMuint(r->ru_nivcsw, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nivcsw_sid),
+                      fklMakeVMuint(r->ru_nivcsw, exe));
     return hash;
 }
 
@@ -5984,32 +5983,32 @@ static int fuv_available_parallelism(FKL_CPROC_ARGL) {
 static inline FklVMvalue *cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info,
                                               FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_model_sid),
-                      fklCreateVMvalueStrFromCstr(exe, info->model), ht);
+    FklVMhash *ht = FKL_VM_HASH(hash);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_model_sid),
+                      fklCreateVMvalueStrFromCstr(exe, info->model));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_speed_sid),
-                      FKL_MAKE_VM_FIX(info->speed), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_speed_sid),
+                      FKL_MAKE_VM_FIX(info->speed));
 
     FklVMvalue *cpu_times = fklCreateVMvalueHashEq(exe);
-    FklHashTable *cht = FKL_VM_HASH(cpu_times);
+    FklVMhash *cht = FKL_VM_HASH(cpu_times);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_user_sid),
-                      fklMakeVMuint(info->cpu_times.user, exe), cht);
+    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_user_sid),
+                      fklMakeVMuint(info->cpu_times.user, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_nice_sid),
-                      fklMakeVMuint(info->cpu_times.nice, exe), cht);
+    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_nice_sid),
+                      fklMakeVMuint(info->cpu_times.nice, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_sys_sid),
-                      fklMakeVMuint(info->cpu_times.sys, exe), cht);
+    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_sys_sid),
+                      fklMakeVMuint(info->cpu_times.sys, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_idle_sid),
-                      fklMakeVMuint(info->cpu_times.idle, exe), cht);
+    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_idle_sid),
+                      fklMakeVMuint(info->cpu_times.idle, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_irq_sid),
-                      fklMakeVMuint(info->cpu_times.irq, exe), cht);
+    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_irq_sid),
+                      fklMakeVMuint(info->cpu_times.irq, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->cpu_info_times_sid), cpu_times, ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_sid), cpu_times);
     return hash;
 }
 
@@ -6054,19 +6053,18 @@ interface_addresses_to_vec(FklVM *exe, uv_interface_address_t *addresses,
         uv_interface_address_t *cur = &addresses[i];
         FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
         vec->base[i] = hash;
-        FklHashTable *ht = FKL_VM_HASH(hash);
+        FklVMhash *ht = FKL_VM_HASH(hash);
 
-        fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_name_sid),
-                          fklCreateVMvalueStrFromCstr(exe, cur->name), ht);
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_name_sid),
+                          fklCreateVMvalueStrFromCstr(exe, cur->name));
 
-        fklVMhashTableSet(
-            FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid),
-            fklCreateVMvalueBvec2(exe, sizeof(cur->phys_addr),
-                                  (const uint8_t *)cur->phys_addr),
-            ht);
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid),
+                          fklCreateVMvalueBvec2(
+                              exe, sizeof(cur->phys_addr),
+                              FKL_TYPE_CAST(const uint8_t *, cur->phys_addr)));
 
-        fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid),
-                          cur->is_internal ? FKL_VM_TRUE : FKL_VM_NIL, ht);
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid),
+                          cur->is_internal ? FKL_VM_TRUE : FKL_VM_NIL);
 
         if (cur->address.address4.sin_family == AF_INET) {
             uv_ip4_name(&cur->address.address4, ip, sizeof(ip));
@@ -6079,13 +6077,13 @@ interface_addresses_to_vec(FklVM *exe, uv_interface_address_t *addresses,
             strncpy(netmask, "<unknown>", INET6_ADDRSTRLEN);
         }
 
-        fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_ip_sid),
-                          fklCreateVMvalueStrFromCstr(exe, ip), ht);
-        fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->ifa_f_netmask_sid),
-                          fklCreateVMvalueStrFromCstr(exe, netmask), ht);
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_ip_sid),
+                          fklCreateVMvalueStrFromCstr(exe, ip));
+        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_netmask_sid),
+                          fklCreateVMvalueStrFromCstr(exe, netmask));
         fklVMhashTableSet(
-            FKL_MAKE_VM_SYM(fpd->ifa_f_family_sid),
-            af_num_to_symbol(cur->address.address4.sin_family, fpd), ht);
+            ht, FKL_MAKE_VM_SYM(fpd->ifa_f_family_sid),
+            af_num_to_symbol(cur->address.address4.sin_family, fpd));
     }
     return v;
 }
@@ -6196,28 +6194,26 @@ static int fuv_os_tmpdir(FKL_CPROC_ARGL) {
 static inline FklVMvalue *passwd_to_vmtable(FklVM *exe, uv_passwd_t *passwd,
                                             FklVMvalue *pd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_username_sid),
-                      fklCreateVMvalueStrFromCstr(exe, passwd->username), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_username_sid),
+                      fklCreateVMvalueStrFromCstr(exe, passwd->username));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_uid_sid),
-                      fklMakeVMint(passwd->uid, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_uid_sid),
+                      fklMakeVMint(passwd->uid, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_gid_sid),
-                      fklMakeVMint(passwd->gid, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_gid_sid),
+                      fklMakeVMint(passwd->gid, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_shell_sid),
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_shell_sid),
                       passwd->shell
                           ? fklCreateVMvalueStrFromCstr(exe, passwd->shell)
-                          : FKL_VM_NIL,
-                      ht);
+                          : FKL_VM_NIL);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->passwd_homedir_sid),
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_homedir_sid),
                       passwd->homedir
                           ? fklCreateVMvalueStrFromCstr(exe, passwd->homedir)
-                          : FKL_VM_NIL,
-                      ht);
+                          : FKL_VM_NIL);
     return hash;
 }
 
@@ -6270,13 +6266,13 @@ static inline FklVMvalue *timespec64_to_vmtable(FklVM *exe,
                                                 const uv_timespec64_t *spec,
                                                 FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+                      fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
-                      fklMakeVMint(spec->tv_nsec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
+                      fklMakeVMint(spec->tv_nsec, exe));
 
     return hash;
 }
@@ -6462,13 +6458,13 @@ static inline FklVMvalue *timeval64_to_vmtable(FklVM *exe,
                                                const uv_timeval64_t *spec,
                                                FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+                      fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
-                      fklMakeVMint(spec->tv_usec, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
+                      fklMakeVMint(spec->tv_usec, exe));
 
     return hash;
 }
@@ -6476,19 +6472,19 @@ static inline FklVMvalue *timeval64_to_vmtable(FklVM *exe,
 static inline FklVMvalue *utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf,
                                              FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_sysname_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->sysname), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_sysname_sid),
+                      fklCreateVMvalueStrFromCstr(exe, buf->sysname));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_release_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->release), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_release_sid),
+                      fklCreateVMvalueStrFromCstr(exe, buf->release));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_version_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->version), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_version_sid),
+                      fklCreateVMvalueStrFromCstr(exe, buf->version));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->utsname_machine_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->machine), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_machine_sid),
+                      fklCreateVMvalueStrFromCstr(exe, buf->machine));
     return hash;
 }
 
@@ -6603,16 +6599,16 @@ static inline FklVMvalue *metrics_to_vmtable(FklVM *exe, uv_metrics_t *metrics,
                                              FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklHashTable *ht = FKL_VM_HASH(hash);
+    FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->metrics_loop_count_sid),
-                      fklMakeVMuint(metrics->loop_count, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->metrics_loop_count_sid),
+                      fklMakeVMuint(metrics->loop_count, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->metrics_events_sid),
-                      fklMakeVMuint(metrics->events, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->metrics_events_sid),
+                      fklMakeVMuint(metrics->events, exe));
 
-    fklVMhashTableSet(FKL_MAKE_VM_SYM(fpd->metrics_events_waiting_sid),
-                      fklMakeVMuint(metrics->events_waiting, exe), ht);
+    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->metrics_events_waiting_sid),
+                      fklMakeVMuint(metrics->events_waiting, exe));
 
     return hash;
 }

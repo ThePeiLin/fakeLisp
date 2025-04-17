@@ -257,7 +257,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
             FklVMvalueHashMapNode *node =
                 fklVMvalueHashMapCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             node->v = FKL_VM_GET_VALUE(exe, 3);
-            fklVMvalueHashMapInsertNode(&ht->ht, hashv, node);
+            fklVMvalueHashMapInsertNode(&ht->ht, node);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, node->v);
         }
     } break;
@@ -276,7 +276,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
                 FklVMvalueHashMapNode *item = fklVMvalueHashMapCreateNode2(
                     hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
-                fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
+                fklVMvalueHashMapInsertNode(&ht->ht, item);
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
             }
         } else {
@@ -330,7 +330,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
             FklVMvalueHashMapNode *item =
                 fklVMvalueHashMapCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             item->v = FKL_VM_GET_VALUE(exe, 3);
-            fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
+            fklVMvalueHashMapInsertNode(&ht->ht, item);
             if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
                 exe->tp -= 3;
                 FklVMvalue *key = FKL_VM_GET_TOP_VALUE(exe);
@@ -359,7 +359,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
                 FklVMvalueHashMapNode *item = fklVMvalueHashMapCreateNode2(
                     hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
-                fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
+                fklVMvalueHashMapInsertNode(&ht->ht, item);
                 if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
                     ctx->context = 1;
                     exe->tp -= 3;
@@ -490,7 +490,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
             FklVMvalueHashMapNode *item =
                 fklVMvalueHashMapCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             item->v = FKL_VM_GET_VALUE(exe, 3);
-            fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
+            fklVMvalueHashMapInsertNode(&ht->ht, item);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
         }
     } break;
@@ -509,7 +509,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
                 FklVMvalueHashMapNode *item = fklVMvalueHashMapCreateNode2(
                     hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
-                fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
+                fklVMvalueHashMapInsertNode(&ht->ht, item);
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
             }
         } else {

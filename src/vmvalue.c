@@ -536,6 +536,52 @@ FklVMvalue *fklCreateNilValue() { return FKL_VM_NIL; }
 
 int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
     FklVMpairVector s;
+
+    if (FKL_IS_PTR(fir) && FKL_IS_PTR(sec)) {
+        if (fir->type != sec->type)
+            return 0;
+        switch (fir->type) {
+        case FKL_TYPE_F64:
+            return FKL_VM_F64(fir) == FKL_VM_F64(sec);
+            break;
+        case FKL_TYPE_STR:
+            return fklStringEqual(FKL_VM_STR(fir), FKL_VM_STR(sec));
+            break;
+        case FKL_TYPE_BYTEVECTOR:
+            return fklBytevectorEqual(FKL_VM_BVEC(fir), FKL_VM_BVEC(sec));
+            break;
+        case FKL_TYPE_BIGINT:
+            return fklVMbigIntEqual(FKL_VM_BI(fir), FKL_VM_BI(sec));
+            break;
+        case FKL_TYPE_USERDATA: {
+            FklVMud *ud1 = FKL_VM_UD(fir);
+            FklVMud *ud2 = FKL_VM_UD(sec);
+            if (ud1->t != ud2->t || !ud1->t->__equal)
+                return 0;
+            else
+                return ud1->t->__equal(ud1, ud2);
+        } break;
+        case FKL_TYPE_PAIR:
+        case FKL_TYPE_BOX:
+        case FKL_TYPE_VECTOR:
+        case FKL_TYPE_HASHTABLE:
+            goto nested_equal;
+            break;
+        case FKL_TYPE_PROC:
+        case FKL_TYPE_CPROC:
+            return fir == sec;
+            break;
+        case FKL_TYPE_VAR_REF:
+        case FKL_VM_VALUE_GC_TYPE_NUM:
+            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+                    __FUNCTION__);
+            abort();
+            break;
+        }
+    } else
+        return fir == sec;
+
+nested_equal:
     fklVMpairVectorInit(&s, 8);
     fklVMpairVectorPushBack2(
         &s, (FklVMpair){.car = FKL_REMOVE_CONST(FklVMvalue, fir),
@@ -622,8 +668,15 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                         }
                     }
                 } break;
-                default:
-                    r = (root1 == root2);
+                case FKL_TYPE_PROC:
+                case FKL_TYPE_CPROC:
+                    return fir == sec;
+                    break;
+                case FKL_TYPE_VAR_REF:
+                case FKL_VM_VALUE_GC_TYPE_NUM:
+                    fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__,
+                            __LINE__, __FUNCTION__);
+                    abort();
                     break;
                 }
         }
@@ -1081,7 +1134,7 @@ FklVMvalueHashMapElm *fklVMhashTableRef1(FklVMhash *ht, FklVMvalue *key,
     else {
         FklVMvalueHashMapNode *node = fklVMvalueHashMapCreateNode2(hashv, key);
         node->v = v;
-        fklVMvalueHashMapInsertNode(&ht->ht, hashv, node);
+        fklVMvalueHashMapInsertNode(&ht->ht, node);
         return &node->elm;
     }
 }
@@ -1096,7 +1149,7 @@ FklVMvalueHashMapElm *fklVMhashTableSet(FklVMhash *ht, FklVMvalue *key,
     } else {
         FklVMvalueHashMapNode *node = fklVMvalueHashMapCreateNode2(hashv, key);
         node->v = v;
-        fklVMvalueHashMapInsertNode(&ht->ht, hashv, node);
+        fklVMvalueHashMapInsertNode(&ht->ht, node);
         return &node->elm;
     }
 }

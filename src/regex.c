@@ -1007,7 +1007,7 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
             fklStrRegexHashMapCreateNode2(hashv, fklCreateString(len, buf));
         node->v.num = ++t->num;
         node->v.re = re;
-        fklStrRegexHashMapInsertNode(&t->str_re, hashv, node);
+        fklStrRegexHashMapInsertNode(&t->str_re, node);
         fklRegexStrHashMapAdd2(&t->re_str, re, node->k);
     } else
         return NULL;

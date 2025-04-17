@@ -259,12 +259,11 @@ static inline NODE_NAME *METHOD(CreateNode2)(uintptr_t hashv,
     return node;
 }
 
-static inline NODE_NAME **METHOD(InsertNode)(NAME *self, uintptr_t hashv,
-                                             NODE_NAME *node) {
+static inline NODE_NAME **METHOD(InsertNode)(NAME *self, NODE_NAME *node) {
     // check threshold and grow capacity
     if (self->count >= self->rehash_threshold)
         METHOD(Grow)(self);
-    NODE_NAME **pp = &self->buckets[hashv & self->mask];
+    NODE_NAME **pp = &self->buckets[node->hashv & self->mask];
 
     node->bkt_next = *pp;
     *pp = node;
@@ -303,7 +302,7 @@ static inline int METHOD(Put)(NAME *self, FKL_HASH_KEY_TYPE const *k) {
     }
 #endif
 
-    pp = METHOD(InsertNode)(self, hashv, node);
+    pp = METHOD(InsertNode)(self, node);
 #ifdef FKL_HASH_VAL_TYPE
     return NULL;
 #else
@@ -371,7 +370,7 @@ static inline FKL_HASH_VAL_TYPE *METHOD(Add)(NAME *self,
         FKL_HASH_VAL_INIT(&node->v, v);
     }
 
-    pp = METHOD(InsertNode)(self, hashv, node);
+    pp = METHOD(InsertNode)(self, node);
     return &node->v;
 }
 
@@ -399,7 +398,7 @@ static inline ELM_NAME *METHOD(Insert)(NAME *self, FKL_HASH_KEY_TYPE const *k,
         FKL_HASH_VAL_INIT(&node->v, v);
     }
 
-    pp = METHOD(InsertNode)(self, hashv, node);
+    pp = METHOD(InsertNode)(self, node);
     return &node->elm;
 }
 

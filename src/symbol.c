@@ -42,7 +42,7 @@ FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *buf, size_t len,
 
     FklStrIdHashMapNode *node =
         fklStrIdHashMapCreateNode2(hashv, fklCreateString(len, buf));
-    fklStrIdHashMapInsertNode(ht, hashv, node);
+    fklStrIdHashMapInsertNode(ht, node);
     node->v = ht->count;
     if ((++table->num) >= table->idl_size) {
         table->idl_size += FKL_DEFAULT_INC;

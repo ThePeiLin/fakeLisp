@@ -58,13 +58,13 @@ typedef struct {
 } FklRegexCode;
 
 // FklRegexStrHashMap
-#define FKL_TABLE_KEY_TYPE FklRegexCode const *
-#define FKL_TABLE_VAL_TYPE FklString *
-#define FKL_TABLE_ELM_NAME RegexStr
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_TYPE FklRegexCode const *
+#define FKL_HASH_VAL_TYPE FklString *
+#define FKL_HASH_ELM_NAME RegexStr
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(                                                     \
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklRegexCode)));
-#include "table.h"
+#include "hash.h"
 
 typedef struct {
     uint64_t num;
@@ -74,14 +74,14 @@ typedef struct {
 void fklRegexFree(FklRegexCode *);
 
 // FklStrRegexHashMap
-#define FKL_TABLE_KEY_TYPE FklString *
-#define FKL_TABLE_VAL_TYPE FklRegexItem
-#define FKL_TABLE_ELM_NAME StrRegex
-#define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
-#define FKL_TABLE_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#define FKL_TABLE_KEY_UNINIT(K) free(*(K))
-#define FKL_TABLE_VAL_UNINIT(V) fklRegexFree((V)->re)
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklString *
+#define FKL_HASH_VAL_TYPE FklRegexItem
+#define FKL_HASH_ELM_NAME StrRegex
+#define FKL_HASH_KEY_HASH return fklStringHash(*pk);
+#define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
+#define FKL_HASH_KEY_UNINIT(K) free(*(K))
+#define FKL_HASH_VAL_UNINIT(V) fklRegexFree((V)->re)
+#include "hash.h"
 
 typedef struct {
     FklStrRegexHashMap str_re;

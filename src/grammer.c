@@ -2553,19 +2553,19 @@ typedef struct GraGetLaFirstSetCacheItem {
 } GraGetLaFirstSetCacheItem;
 
 // GraLaFirstSetCacheHashMap
-#define FKL_TABLE_TYPE_PREFIX Gra
-#define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE GraGetLaFirstSetCacheKey
-#define FKL_TABLE_VAL_TYPE GraGetLaFirstSetCacheItem
-#define FKL_TABLE_VAL_INIT(A, B) abort()
-#define FKL_TABLE_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
-#define FKL_TABLE_KEY_EQUAL(A, B) (A)->prod == (B)->prod && (A)->idx == (B)->idx
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Gra
+#define FKL_HASH_METHOD_PREFIX gra
+#define FKL_HASH_KEY_TYPE GraGetLaFirstSetCacheKey
+#define FKL_HASH_VAL_TYPE GraGetLaFirstSetCacheItem
+#define FKL_HASH_VAL_INIT(A, B) abort()
+#define FKL_HASH_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
+#define FKL_HASH_KEY_EQUAL(A, B) (A)->prod == (B)->prod && (A)->idx == (B)->idx
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(                                                     \
         FKL_TYPE_CAST(uintptr_t, (pk->prod) / alignof(FklGrammerProduction)),  \
         pk->idx);
-#define FKL_TABLE_ELM_NAME LaFirstSetCache
-#include <fakeLisp/table.h>
+#define FKL_HASH_ELM_NAME LaFirstSetCache
+#include <fakeLisp/hash.h>
 
 // GraItemSetQueue
 #define FKL_QUEUE_TYPE_PREFIX Gra
@@ -2600,13 +2600,13 @@ static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
 }
 
 // GraSymbolHashSet
-#define FKL_TABLE_TYPE_PREFIX Gra
-#define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE FklGrammerSym
-#define FKL_TABLE_KEY_EQUAL(A, B) grammer_sym_equal(A, B)
-#define FKL_TABLE_KEY_HASH return grammer_sym_hash(pk)
-#define FKL_TABLE_ELM_NAME Symbol
-#include <fakeLisp/table.h>
+#define FKL_HASH_TYPE_PREFIX Gra
+#define FKL_HASH_METHOD_PREFIX gra
+#define FKL_HASH_KEY_TYPE FklGrammerSym
+#define FKL_HASH_KEY_EQUAL(A, B) grammer_sym_equal(A, B)
+#define FKL_HASH_KEY_HASH return grammer_sym_hash(pk)
+#define FKL_HASH_ELM_NAME Symbol
+#include <fakeLisp/hash.h>
 
 static inline void lr0_item_set_goto(GraSymbolHashSet *checked,
                                      FklLalrItemSetHashMapElm *itemset,
@@ -2962,15 +2962,15 @@ void fklLr0ToLalrItems(FklLalrItemSetHashMap *lr0, FklGrammer *g) {
 }
 
 // GraItemStateIdxHashMap
-#define FKL_TABLE_TYPE_PREFIX Gra
-#define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE FklLalrItemSetHashMapElm const *
-#define FKL_TABLE_VAL_TYPE size_t
-#define FKL_TABLE_ELM_NAME ItemStateIdx
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Gra
+#define FKL_HASH_METHOD_PREFIX gra
+#define FKL_HASH_KEY_TYPE FklLalrItemSetHashMapElm const *
+#define FKL_HASH_VAL_TYPE size_t
+#define FKL_HASH_ELM_NAME ItemStateIdx
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(                                                     \
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrItemSetHashMapElm)));
-#include <fakeLisp/table.h>
+#include <fakeLisp/hash.h>
 
 static inline void print_look_ahead_as_dot(FILE *fp,
                                            const FklLalrItemLookAhead *la,
@@ -3425,14 +3425,14 @@ static inline void add_ignore_action(FklGrammer *g,
 }
 
 // GraProdHashSet
-#define FKL_TABLE_TYPE_PREFIX Gra
-#define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE FklGrammerProduction *
-#define FKL_TABLE_ELM_NAME Prod
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Gra
+#define FKL_HASH_METHOD_PREFIX gra
+#define FKL_HASH_KEY_TYPE FklGrammerProduction *
+#define FKL_HASH_ELM_NAME Prod
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(                                                     \
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklGrammerProduction)));
-#include <fakeLisp/table.h>
+#include <fakeLisp/hash.h>
 
 static inline int
 is_only_single_way_to_reduce(const FklLalrItemSetHashMapElm *set) {
@@ -3655,13 +3655,13 @@ static inline int action_match_equal(const FklAnalysisStateActionMatch *m0,
 }
 
 // GraActionMatchHashSet
-#define FKL_TABLE_TYPE_PREFIX Gra
-#define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE FklAnalysisStateActionMatch
-#define FKL_TABLE_KEY_EQUAL(A, B) action_match_equal(A, B)
-#define FKL_TABLE_KEY_HASH return action_match_hash_func(pk)
-#define FKL_TABLE_ELM_NAME ActionMatch
-#include <fakeLisp/table.h>
+#define FKL_HASH_TYPE_PREFIX Gra
+#define FKL_HASH_METHOD_PREFIX gra
+#define FKL_HASH_KEY_TYPE FklAnalysisStateActionMatch
+#define FKL_HASH_KEY_EQUAL(A, B) action_match_equal(A, B)
+#define FKL_HASH_KEY_HASH return action_match_hash_func(pk)
+#define FKL_HASH_ELM_NAME ActionMatch
+#include <fakeLisp/hash.h>
 
 static inline void init_analysis_table_header(GraActionMatchHashSet *la,
                                               FklNontermHashSet *nt,
@@ -4233,14 +4233,14 @@ static inline void print_state_to_c_file(const FklAnalysisState *states,
 
 // builtin match method unordered set
 // GraBtmHashSet
-#define FKL_TABLE_TYPE_PREFIX Gra
-#define FKL_TABLE_METHOD_PREFIX gra
-#define FKL_TABLE_KEY_TYPE FklLalrBuiltinMatch const *
-#define FKL_TABLE_ELM_NAME Btm
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Gra
+#define FKL_HASH_METHOD_PREFIX gra
+#define FKL_HASH_KEY_TYPE FklLalrBuiltinMatch const *
+#define FKL_HASH_ELM_NAME Btm
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(                                                     \
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrBuiltinMatch)));
-#include <fakeLisp/table.h>
+#include <fakeLisp/hash.h>
 
 static inline void get_all_match_method_table(const FklGrammer *g,
                                               GraBtmHashSet *ptrSet) {

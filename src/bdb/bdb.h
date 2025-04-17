@@ -68,23 +68,23 @@ typedef struct {
 } BdbCodepoint;
 
 // BdbBpInsHashMap
-#define FKL_TABLE_TYPE_PREFIX Bdb
-#define FKL_TABLE_METHOD_PREFIX bdb
-#define FKL_TABLE_KEY_TYPE FklInstruction *
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Bdb
+#define FKL_HASH_METHOD_PREFIX bdb
+#define FKL_HASH_KEY_TYPE FklInstruction *
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(                                                     \
         FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklInstruction)));
-#define FKL_TABLE_VAL_TYPE BdbCodepoint
-#define FKL_TABLE_ELM_NAME BpIns
-#include <fakeLisp/table.h>
+#define FKL_HASH_VAL_TYPE BdbCodepoint
+#define FKL_HASH_ELM_NAME BpIns
+#include <fakeLisp/hash.h>
 
 // BdbBpIdxHashMap
-#define FKL_TABLE_TYPE_PREFIX Bdb
-#define FKL_TABLE_METHOD_PREFIX bdb
-#define FKL_TABLE_KEY_TYPE uint32_t
-#define FKL_TABLE_VAL_TYPE Breakpoint *
-#define FKL_TABLE_ELM_NAME BpIdx
-#include <fakeLisp/table.h>
+#define FKL_HASH_TYPE_PREFIX Bdb
+#define FKL_HASH_METHOD_PREFIX bdb
+#define FKL_HASH_KEY_TYPE uint32_t
+#define FKL_HASH_VAL_TYPE Breakpoint *
+#define FKL_HASH_ELM_NAME BpIdx
+#include <fakeLisp/hash.h>
 
 typedef struct {
     BdbBpInsHashMap ins_ht;
@@ -95,12 +95,12 @@ typedef struct {
 } BreakpointTable;
 
 // BdbSourceCodeHashMap
-#define FKL_TABLE_TYPE_PREFIX Bdb
-#define FKL_TABLE_METHOD_PREFIX bdb
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_VAL_TYPE FklStringVector
-#define FKL_TABLE_VAL_INIT(V, X)
-#define FKL_TABLE_VAL_UNINIT(V)                                                \
+#define FKL_HASH_TYPE_PREFIX Bdb
+#define FKL_HASH_METHOD_PREFIX bdb
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_VAL_TYPE FklStringVector
+#define FKL_HASH_VAL_INIT(V, X)
+#define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
         FklString **c = (V)->base;                                             \
         FklString **const end = c + (V)->size;                                 \
@@ -108,15 +108,15 @@ typedef struct {
             free(*c);                                                          \
         fklStringVectorUninit(V);                                              \
     }
-#define FKL_TABLE_ELM_NAME SourceCode
-#include <fakeLisp/table.h>
+#define FKL_HASH_ELM_NAME SourceCode
+#include <fakeLisp/hash.h>
 
 // BdbEnvHashMap
-#define FKL_TABLE_TYPE_PREFIX Bdb
-#define FKL_TABLE_METHOD_PREFIX bdb
-#define FKL_TABLE_KEY_TYPE uint32_t
-#define FKL_TABLE_VAL_TYPE FklCodegenEnv *
-#define FKL_TABLE_VAL_INIT(V, X)                                               \
+#define FKL_HASH_TYPE_PREFIX Bdb
+#define FKL_HASH_METHOD_PREFIX bdb
+#define FKL_HASH_KEY_TYPE uint32_t
+#define FKL_HASH_VAL_TYPE FklCodegenEnv *
+#define FKL_HASH_VAL_INIT(V, X)                                                \
     {                                                                          \
         FklCodegenEnv *old_v = *(V);                                           \
         FklCodegenEnv *new_v = *(X);                                           \
@@ -126,12 +126,12 @@ typedef struct {
             ++new_v->refcount;                                                 \
         *(V) = new_v;                                                          \
     }
-#define FKL_TABLE_VAL_UNINIT(V)                                                \
+#define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
         fklDestroyCodegenEnv(*(V));                                            \
     }
-#define FKL_TABLE_ELM_NAME Env
-#include <fakeLisp/table.h>
+#define FKL_HASH_ELM_NAME Env
+#include <fakeLisp/hash.h>
 
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;

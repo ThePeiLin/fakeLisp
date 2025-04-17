@@ -10,10 +10,10 @@ extern "C" {
 typedef struct FklNastNode FklNastNode;
 
 // FklPmatchHashMap
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_VAL_TYPE FklNastNode *
-#define FKL_TABLE_ELM_NAME Pmatch
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_VAL_TYPE FklNastNode *
+#define FKL_HASH_ELM_NAME Pmatch
+#include "hash.h"
 
 #define FKL_PATTERN_NOT_EQUAL (0)
 #define FKL_PATTERN_COVER (1)

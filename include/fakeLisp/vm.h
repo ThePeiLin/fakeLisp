@@ -444,19 +444,19 @@ typedef struct FklVM {
 #include "vector.h"
 
 // FklVMvalueHashSet
-#define FKL_TABLE_KEY_TYPE FklVMvalue const *
-#define FKL_TABLE_ELM_NAME VMvalue
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_TYPE FklVMvalue const *
+#define FKL_HASH_ELM_NAME VMvalue
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include "table.h"
+#include "hash.h"
 
 // FklLineNumHashMap
-#define FKL_TABLE_KEY_TYPE FklVMvalue const *
-#define FKL_TABLE_VAL_TYPE uint64_t
-#define FKL_TABLE_ELM_NAME LineNum
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_TYPE FklVMvalue const *
+#define FKL_HASH_VAL_TYPE uint64_t
+#define FKL_HASH_ELM_NAME LineNum
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include "table.h"
+#include "hash.h"
 
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,
@@ -650,20 +650,20 @@ typedef struct {
 } FklVMerror;
 
 // FklVMvalueHashMap
-#define FKL_TABLE_KEY_TYPE FklVMvalue *
-#define FKL_TABLE_VAL_TYPE FklVMvalue *
-#define FKL_TABLE_ELM_NAME VMvalue
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE FklVMvalue *
+#define FKL_HASH_ELM_NAME VMvalue
+#define FKL_HASH_KEY_HASH                                                      \
     {                                                                          \
         fprintf(stderr, "[%s: %d] calling %s is not allowed!\n", __FILE__,     \
                 __LINE__, __FUNCTION__);                                       \
         abort();                                                               \
     }
-#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
     fprintf(stderr, "[%s: %d] calling %s is not allowed!\n", __FILE__,         \
             __LINE__, __FUNCTION__),                                           \
         abort(), 1
-#include "table.h"
+#include "hash.h"
 
 typedef struct {
     FklVMvalueHashMap ht;

@@ -13,16 +13,16 @@ extern "C" {
 typedef uint64_t FklSid_t;
 
 // FklStrIdHashMap
-#define FKL_TABLE_KEY_TYPE FklString *
-#define FKL_TABLE_VAL_TYPE FklSid_t
-#define FKL_TABLE_ELM_NAME StrId
-#define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
-#define FKL_TABLE_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#define FKL_TABLE_KEY_UNINIT(K)                                                \
+#define FKL_HASH_KEY_TYPE FklString *
+#define FKL_HASH_VAL_TYPE FklSid_t
+#define FKL_HASH_ELM_NAME StrId
+#define FKL_HASH_KEY_HASH return fklStringHash(*pk);
+#define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
+#define FKL_HASH_KEY_UNINIT(K)                                                 \
     {                                                                          \
         free(*(K));                                                            \
     }
-#include "table.h"
+#include "hash.h"
 
 typedef struct FklSymboTable {
     FklSid_t num;
@@ -83,18 +83,18 @@ typedef struct // unresolved symbol ref
 #include "vector.h"
 
 // FklSidHashSet
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_ELM_NAME Sid
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_ELM_NAME Sid
+#include "hash.h"
 
 // FklSymDefHashMap
-#define FKL_TABLE_KEY_TYPE FklSidScope
-#define FKL_TABLE_VAL_TYPE FklSymDef
-#define FKL_TABLE_ELM_NAME SymDef
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_TYPE FklSidScope
+#define FKL_HASH_VAL_TYPE FklSymDef
+#define FKL_HASH_ELM_NAME SymDef
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
-#define FKL_TABLE_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
-#include "table.h"
+#define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
+#include "hash.h"
 
 typedef struct FklFuncPrototype {
     FklSymDefHashMapMutElm *refs;

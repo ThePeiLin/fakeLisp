@@ -38,13 +38,13 @@ typedef struct {
 #include "vector.h"
 
 // FklPredefHashMap
-#define FKL_TABLE_KEY_TYPE FklSidScope
-#define FKL_TABLE_VAL_TYPE uint8_t
-#define FKL_TABLE_ELM_NAME Predef
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_TYPE FklSidScope
+#define FKL_HASH_VAL_TYPE uint8_t
+#define FKL_HASH_ELM_NAME Predef
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
-#define FKL_TABLE_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
-#include "table.h"
+#define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
+#include "hash.h"
 
 typedef struct FklCodegenEnv {
     size_t refcount;
@@ -82,16 +82,16 @@ typedef struct FklCodegenMacro {
 } FklCodegenMacro;
 
 // FklReplacementHashMap
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_VAL_TYPE FklNastNode *
-#define FKL_TABLE_ELM_NAME Replacement
-#define FKL_TABLE_VAL_INIT(V, X)                                               \
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_VAL_TYPE FklNastNode *
+#define FKL_HASH_ELM_NAME Replacement
+#define FKL_HASH_VAL_INIT(V, X)                                                \
     {                                                                          \
         fklDestroyNastNode(*(V));                                              \
         *(V) = fklMakeNastNodeRef(*(X));                                       \
     }
-#define FKL_TABLE_VAL_UNINIT(V) fklDestroyNastNode(*(V))
-#include "table.h"
+#define FKL_HASH_VAL_UNINIT(V) fklDestroyNastNode(*(V))
+#include "hash.h"
 
 typedef struct FklCodegenMacroScope {
     uint32_t refcount;
@@ -111,10 +111,10 @@ typedef struct {
 } FklCodegenExportIdx;
 
 // FklCgExportSidIdxHashMap
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_VAL_TYPE FklCodegenExportIdx
-#define FKL_TABLE_ELM_NAME CgExportSidIdx
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_VAL_TYPE FklCodegenExportIdx
+#define FKL_HASH_ELM_NAME CgExportSidIdx
+#include "hash.h"
 
 typedef struct {
     FklSid_t group_id;
@@ -151,10 +151,10 @@ typedef struct {
 } FklGrammerProdGroupItem;
 
 // FklGraProdGroupHashMap
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_VAL_TYPE FklGrammerProdGroupItem
-#define FKL_TABLE_ELM_NAME GraProdGroup
-#define FKL_TABLE_VAL_UNINIT(V)                                                \
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_VAL_TYPE FklGrammerProdGroupItem
+#define FKL_HASH_ELM_NAME GraProdGroup
+#define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
         fklProdHashMapUninit(&(V)->prods);                                     \
         FklGrammerIgnore *ig = (V)->ignore;                                    \
@@ -178,7 +178,7 @@ typedef struct {
         }                                                                      \
         fklProdPrintingVectorUninit(&(V)->prod_printing);                      \
     }
-#include "table.h"
+#include "hash.h"
 
 typedef struct {
     FklCodegenLibType type;

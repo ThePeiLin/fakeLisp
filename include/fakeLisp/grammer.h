@@ -54,13 +54,13 @@ typedef struct {
 } FklGrammerNonterm;
 
 // FklNontermHashSet
-#define FKL_TABLE_KEY_TYPE FklGrammerNonterm
-#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+#define FKL_HASH_KEY_TYPE FklGrammerNonterm
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
     (A)->group == (B)->group && (A)->sid == (B)->sid
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
-#define FKL_TABLE_ELM_NAME Nonterm
-#include "table.h"
+#define FKL_HASH_ELM_NAME Nonterm
+#include "hash.h"
 
 typedef enum {
     FKL_LALR_MATCH_NONE,
@@ -144,11 +144,11 @@ static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
 }
 
 // FklLookAheadHashSet
-#define FKL_TABLE_KEY_TYPE FklLalrItemLookAhead
-#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemLookAheadEqual(A, B)
-#define FKL_TABLE_KEY_HASH return fklLalrItemLookAheadHash(pk)
-#define FKL_TABLE_ELM_NAME LookAhead
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklLalrItemLookAhead
+#define FKL_HASH_KEY_EQUAL(A, B) fklLalrItemLookAheadEqual(A, B)
+#define FKL_HASH_KEY_HASH return fklLalrItemLookAheadHash(pk)
+#define FKL_HASH_ELM_NAME LookAhead
+#include "hash.h"
 
 typedef struct {
     FklLookAheadHashSet first;
@@ -165,13 +165,13 @@ static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
 }
 
 // FklFirstSetHashMap
-#define FKL_TABLE_KEY_TYPE FklGrammerNonterm
-#define FKL_TABLE_KEY_EQUAL(A, B) fklNontermEqual(A, B)
-#define FKL_TABLE_KEY_HASH return fklNontermHash(pk)
-#define FKL_TABLE_VAL_TYPE FklFirstSetItem
-#define FKL_TABLE_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
-#define FKL_TABLE_ELM_NAME FirstSet
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklGrammerNonterm
+#define FKL_HASH_KEY_EQUAL(A, B) fklNontermEqual(A, B)
+#define FKL_HASH_KEY_HASH return fklNontermHash(pk)
+#define FKL_HASH_VAL_TYPE FklFirstSetItem
+#define FKL_HASH_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
+#define FKL_HASH_ELM_NAME FirstSet
+#include "hash.h"
 
 enum FklGrammerTermType {
     FKL_TERM_STRING = 0,
@@ -214,14 +214,14 @@ typedef struct FklGrammerProduction {
 void fklDestroyGrammerProduction(FklGrammerProduction *h);
 
 // FklProdHashMap
-#define FKL_TABLE_KEY_TYPE FklGrammerNonterm
-#define FKL_TABLE_VAL_TYPE FklGrammerProduction *
-#define FKL_TABLE_KEY_EQUAL(A, B)                                              \
+#define FKL_HASH_KEY_TYPE FklGrammerNonterm
+#define FKL_HASH_VAL_TYPE FklGrammerProduction *
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
     (A)->group == (B)->group && (A)->sid == (B)->sid
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
-#define FKL_TABLE_ELM_NAME Prod
-#define FKL_TABLE_VAL_UNINIT(V)                                                \
+#define FKL_HASH_ELM_NAME Prod
+#define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
         FklGrammerProduction *h = *(V);                                        \
         while (h) {                                                            \
@@ -231,13 +231,13 @@ void fklDestroyGrammerProduction(FklGrammerProduction *h);
         }                                                                      \
         *(V) = NULL;                                                           \
     }
-#include "table.h"
+#include "hash.h"
 
 // FklGraSidBuiltinHashMap
-#define FKL_TABLE_KEY_TYPE FklSid_t
-#define FKL_TABLE_VAL_TYPE FklLalrBuiltinMatch const *
-#define FKL_TABLE_ELM_NAME GraSidBuiltin
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_VAL_TYPE FklLalrBuiltinMatch const *
+#define FKL_HASH_ELM_NAME GraSidBuiltin
+#include "hash.h"
 
 typedef struct {
     FklGrammerProduction *prod;
@@ -258,11 +258,11 @@ static inline uintptr_t fklLalrItemHash(const FklLalrItem *pk) {
 }
 
 // FklLalrItemHashSet
-#define FKL_TABLE_KEY_TYPE FklLalrItem
-#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemEqual((A), (B))
-#define FKL_TABLE_KEY_HASH return fklLalrItemHash(pk)
-#define FKL_TABLE_ELM_NAME LalrItem
-#include "table.h"
+#define FKL_HASH_KEY_TYPE FklLalrItem
+#define FKL_HASH_KEY_EQUAL(A, B) fklLalrItemEqual((A), (B))
+#define FKL_HASH_KEY_HASH return fklLalrItemHash(pk)
+#define FKL_HASH_ELM_NAME LalrItem
+#include "hash.h"
 
 FklGrammerProduction *
 fklCopyUninitedGrammerProduction(FklGrammerProduction *prod);
@@ -306,13 +306,13 @@ typedef struct FklLalrItemSetHashMapItem {
 } FklLalrItemSetHashMapItem;
 
 // FklLalrItemSetHashSet
-#define FKL_TABLE_KEY_TYPE FklLalrItemHashSet
-#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemHashSetEqual(A, B)
-#define FKL_TABLE_KEY_HASH return fklLalrItemHashSetHash(pk)
-#define FKL_TABLE_KEY_UNINIT(K) fklLalrItemHashSetUninit(K)
-#define FKL_TABLE_VAL_INIT(A, B) abort()
-#define FKL_TABLE_VAL_TYPE FklLalrItemSetHashMapItem
-#define FKL_TABLE_VAL_UNINIT(V)                                                \
+#define FKL_HASH_KEY_TYPE FklLalrItemHashSet
+#define FKL_HASH_KEY_EQUAL(A, B) fklLalrItemHashSetEqual(A, B)
+#define FKL_HASH_KEY_HASH return fklLalrItemHashSetHash(pk)
+#define FKL_HASH_KEY_UNINIT(K) fklLalrItemHashSetUninit(K)
+#define FKL_HASH_VAL_INIT(A, B) abort()
+#define FKL_HASH_VAL_TYPE FklLalrItemSetHashMapItem
+#define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
         FklLalrItemSetLink *l = (V)->links;                                    \
         while (l) {                                                            \
@@ -327,8 +327,8 @@ typedef struct FklLalrItemSetHashMapItem {
             sp = next;                                                         \
         }                                                                      \
     }
-#define FKL_TABLE_ELM_NAME LalrItemSet
-#include "table.h"
+#define FKL_HASH_ELM_NAME LalrItemSet
+#include "hash.h"
 
 typedef enum {
     FKL_ANALYSIS_SHIFT,

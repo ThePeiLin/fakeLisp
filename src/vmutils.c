@@ -391,14 +391,14 @@ typedef struct {
 } PrtSt;
 
 // VmValueDegreeHashMap
-#define FKL_TABLE_TYPE_PREFIX Vm
-#define FKL_TABLE_METHOD_PREFIX vm
-#define FKL_TABLE_KEY_TYPE FklVMvalue const *
-#define FKL_TABLE_VAL_TYPE PrtSt
-#define FKL_TABLE_ELM_NAME CircleHead
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Vm
+#define FKL_HASH_METHOD_PREFIX vm
+#define FKL_HASH_KEY_TYPE FklVMvalue const *
+#define FKL_HASH_VAL_TYPE PrtSt
+#define FKL_HASH_ELM_NAME CircleHead
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include <fakeLisp/table.h>
+#include <fakeLisp/hash.h>
 static inline void putValueInSet(VmCircleHeadHashMap *s, const FklVMvalue *v) {
     uint32_t num = s->count;
     vmCircleHeadHashMapPut2(s, v,
@@ -409,14 +409,14 @@ static inline void putValueInSet(VmCircleHeadHashMap *s, const FklVMvalue *v) {
 }
 
 // VmValueDegreeHashMap
-#define FKL_TABLE_TYPE_PREFIX Vm
-#define FKL_TABLE_METHOD_PREFIX vm
-#define FKL_TABLE_KEY_TYPE FklVMvalue *
-#define FKL_TABLE_VAL_TYPE uint64_t
-#define FKL_TABLE_ELM_NAME ValueDegree
-#define FKL_TABLE_KEY_HASH                                                     \
+#define FKL_HASH_TYPE_PREFIX Vm
+#define FKL_HASH_METHOD_PREFIX vm
+#define FKL_HASH_KEY_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE uint64_t
+#define FKL_HASH_ELM_NAME ValueDegree
+#define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include <fakeLisp/table.h>
+#include <fakeLisp/hash.h>
 
 static inline void inc_value_degree(VmValueDegreeHashMap *ht, FklVMvalue *v) {
     VmValueDegreeHashMapElm *degree_item =

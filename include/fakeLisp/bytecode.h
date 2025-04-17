@@ -15,56 +15,56 @@ extern "C" {
 #endif
 
 // FklKi64HashMap
-#define FKL_TABLE_KEY_TYPE int64_t
-#define FKL_TABLE_VAL_TYPE uint32_t
-#define FKL_TABLE_ELM_NAME Ki64
-#define FKL_TABLE_KEY_HASH return fklHash64Shift(*pk);
-#include "table.h"
+#define FKL_HASH_KEY_TYPE int64_t
+#define FKL_HASH_VAL_TYPE uint32_t
+#define FKL_HASH_ELM_NAME Ki64
+#define FKL_HASH_KEY_HASH return fklHash64Shift(*pk);
+#include "hash.h"
 
 // FklKf64HashMap
-#define FKL_TABLE_KEY_TYPE double
-#define FKL_TABLE_VAL_TYPE uint32_t
-#define FKL_TABLE_ELM_NAME Kf64
-#define FKL_TABLE_KEY_HASH return *FKL_TYPE_CAST(int64_t *, pk);
-#include "table.h"
+#define FKL_HASH_KEY_TYPE double
+#define FKL_HASH_VAL_TYPE uint32_t
+#define FKL_HASH_ELM_NAME Kf64
+#define FKL_HASH_KEY_HASH return *FKL_TYPE_CAST(int64_t *, pk);
+#include "hash.h"
 
 // FklKstrHashMap
-#define FKL_TABLE_KEY_INIT(K, X) *(K) = fklCopyString(*X)
-#define FKL_TABLE_KEY_UNINIT(K)                                                \
+#define FKL_HASH_KEY_INIT(K, X) *(K) = fklCopyString(*X)
+#define FKL_HASH_KEY_UNINIT(K)                                                 \
     {                                                                          \
         free(*K);                                                              \
         (*K) = NULL;                                                           \
     }
-#define FKL_TABLE_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#define FKL_TABLE_KEY_TYPE FklString *
-#define FKL_TABLE_VAL_TYPE uint32_t
-#define FKL_TABLE_ELM_NAME Kstr
-#define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
-#include "table.h"
+#define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
+#define FKL_HASH_KEY_TYPE FklString *
+#define FKL_HASH_VAL_TYPE uint32_t
+#define FKL_HASH_ELM_NAME Kstr
+#define FKL_HASH_KEY_HASH return fklStringHash(*pk);
+#include "hash.h"
 
 // FklKbvecHashMap
-#define FKL_TABLE_KEY_INIT(K, X) *(K) = fklCopyBytevector(*X)
-#define FKL_TABLE_KEY_UNINIT(K)                                                \
+#define FKL_HASH_KEY_INIT(K, X) *(K) = fklCopyBytevector(*X)
+#define FKL_HASH_KEY_UNINIT(K)                                                 \
     {                                                                          \
         free(*K);                                                              \
         (*K) = NULL;                                                           \
     }
-#define FKL_TABLE_KEY_EQUAL(A, B) fklBytevectorEqual(*(A), *(B))
-#define FKL_TABLE_KEY_TYPE FklBytevector *
-#define FKL_TABLE_VAL_TYPE uint32_t
-#define FKL_TABLE_ELM_NAME Kbvec
-#define FKL_TABLE_KEY_HASH return fklBytevectorHash(*pk);
-#include "table.h"
+#define FKL_HASH_KEY_EQUAL(A, B) fklBytevectorEqual(*(A), *(B))
+#define FKL_HASH_KEY_TYPE FklBytevector *
+#define FKL_HASH_VAL_TYPE uint32_t
+#define FKL_HASH_ELM_NAME Kbvec
+#define FKL_HASH_KEY_HASH return fklBytevectorHash(*pk);
+#include "hash.h"
 
 // FklKbiHashMap
-#define FKL_TABLE_KEY_INIT(K, X) fklInitBigInt(K, X)
-#define FKL_TABLE_KEY_UNINIT(K) fklUninitBigInt(K)
-#define FKL_TABLE_KEY_EQUAL(A, B) fklBigIntEqual(A, B)
-#define FKL_TABLE_KEY_TYPE FklBigInt
-#define FKL_TABLE_VAL_TYPE uint32_t
-#define FKL_TABLE_ELM_NAME Kbi
-#define FKL_TABLE_KEY_HASH return fklBigIntHash(pk);
-#include "table.h"
+#define FKL_HASH_KEY_INIT(K, X) fklInitBigInt(K, X)
+#define FKL_HASH_KEY_UNINIT(K) fklUninitBigInt(K)
+#define FKL_HASH_KEY_EQUAL(A, B) fklBigIntEqual(A, B)
+#define FKL_HASH_KEY_TYPE FklBigInt
+#define FKL_HASH_VAL_TYPE uint32_t
+#define FKL_HASH_ELM_NAME Kbi
+#define FKL_HASH_KEY_HASH return fklBigIntHash(pk);
+#include "hash.h"
 
 typedef struct {
     uint8_t op;

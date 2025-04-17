@@ -821,14 +821,14 @@ static inline void recompute_sid_for_double_st_lib_stack(
     }
 }
 
-static inline void recompute_sid_for_sid_set(FklSidTable *ht,
+static inline void recompute_sid_for_sid_set(FklSidHashSet *ht,
                                              const FklSymbolTable *ost,
                                              FklSymbolTable *tst) {
-    for (FklSidTableNode *l = ht->first; l; l = l->next) {
+    for (FklSidHashSetNode *l = ht->first; l; l = l->next) {
         FklSid_t *id = FKL_REMOVE_CONST(FklSid_t, &l->k);
         replace_sid(id, ost, tst);
     }
-    fklSidTableRehash(ht);
+    fklSidHashSetRehash(ht);
 }
 
 static inline void recompute_sid_for_main_file(

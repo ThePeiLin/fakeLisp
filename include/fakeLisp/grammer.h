@@ -143,7 +143,7 @@ static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
     return fklHashCombine(rest, pk->end_with_terminal);
 }
 
-// FklLookAheadTable
+// FklLookAheadHashSet
 #define FKL_TABLE_KEY_TYPE FklLalrItemLookAhead
 #define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemLookAheadEqual(A, B)
 #define FKL_TABLE_KEY_HASH return fklLalrItemLookAheadHash(pk)
@@ -151,7 +151,7 @@ static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
 #include "table.h"
 
 typedef struct {
-    FklLookAheadTable first;
+    FklLookAheadHashSet first;
     int hasEpsilon;
 } FklFirstSetItem;
 
@@ -169,7 +169,7 @@ static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
 #define FKL_TABLE_KEY_EQUAL(A, B) fklNontermEqual(A, B)
 #define FKL_TABLE_KEY_HASH return fklNontermHash(pk)
 #define FKL_TABLE_VAL_TYPE FklFirstSetItem
-#define FKL_TABLE_VAL_UNINIT(V) fklLookAheadTableUninit(&(V)->first)
+#define FKL_TABLE_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
 #define FKL_TABLE_ELM_NAME FirstSet
 #include "table.h"
 
@@ -257,7 +257,7 @@ static inline uintptr_t fklLalrItemHash(const FklLalrItem *pk) {
         fklLalrItemLookAheadHash(&pk->la));
 }
 
-// FklLalrItemTable
+// FklLalrItemHashSet
 #define FKL_TABLE_KEY_TYPE FklLalrItem
 #define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemEqual((A), (B))
 #define FKL_TABLE_KEY_HASH return fklLalrItemHash(pk)
@@ -275,26 +275,26 @@ typedef struct FklLalrItemSetLink {
 
 typedef struct FklLookAheadSpreads {
     FklLalrItem src;
-    FklLalrItemTable *dstItems;
+    FklLalrItemHashSet *dstItems;
     FklLalrItem dst;
     struct FklLookAheadSpreads *next;
 } FklLookAheadSpreads;
 
-static inline int fklLalrItemTableEqual(const FklLalrItemTable *s0,
-                                        const FklLalrItemTable *s1) {
+static inline int fklLalrItemHashSetEqual(const FklLalrItemHashSet *s0,
+                                          const FklLalrItemHashSet *s1) {
     if (s0->count != s1->count)
         return 0;
-    const FklLalrItemTableNode *l0 = s0->first;
-    const FklLalrItemTableNode *l1 = s1->first;
+    const FklLalrItemHashSetNode *l0 = s0->first;
+    const FklLalrItemHashSetNode *l1 = s1->first;
     for (; l0; l0 = l0->next, l1 = l1->next)
         if (!fklLalrItemEqual(&l0->k, &l1->k))
             return 0;
     return 1;
 }
 
-static inline uintptr_t fklLalrItemTableHash(const FklLalrItemTable *i) {
+static inline uintptr_t fklLalrItemHashSetHash(const FklLalrItemHashSet *i) {
     uintptr_t v = 0;
-    for (FklLalrItemTableNode *l = i->first; l; l = l->next) {
+    for (FklLalrItemHashSetNode *l = i->first; l; l = l->next) {
         v = fklHashCombine(v, fklLalrItemHash(&l->k));
     }
     return v;
@@ -305,11 +305,11 @@ typedef struct FklLalrItemSetTableItem {
     FklLalrItemSetLink *links;
 } FklLalrItemSetTableItem;
 
-// FklLalrItemSetTable
-#define FKL_TABLE_KEY_TYPE FklLalrItemTable
-#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemTableEqual(A, B)
-#define FKL_TABLE_KEY_HASH return fklLalrItemTableHash(pk)
-#define FKL_TABLE_KEY_UNINIT(K) fklLalrItemTableUninit(K)
+// FklLalrItemSetHashSet
+#define FKL_TABLE_KEY_TYPE FklLalrItemHashSet
+#define FKL_TABLE_KEY_EQUAL(A, B) fklLalrItemHashSetEqual(A, B)
+#define FKL_TABLE_KEY_HASH return fklLalrItemHashSetHash(pk)
+#define FKL_TABLE_KEY_UNINIT(K) fklLalrItemHashSetUninit(K)
 #define FKL_TABLE_VAL_INIT(A, B) abort()
 #define FKL_TABLE_VAL_TYPE FklLalrItemSetTableItem
 #define FKL_TABLE_VAL_UNINIT(V)                                                \
@@ -480,7 +480,7 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *grammer,
 
 void fklLr0ToLalrItems(FklLalrItemSetTable *, FklGrammer *grammer);
 
-void fklPrintItemSet(const FklLalrItemTable *itemSet, const FklGrammer *g,
+void fklPrintItemSet(const FklLalrItemHashSet *itemSet, const FklGrammer *g,
                      const FklSymbolTable *st, FILE *fp);
 void fklPrintItemStateSet(const FklLalrItemSetTable *i, const FklGrammer *g,
                           const FklSymbolTable *st, FILE *fp);

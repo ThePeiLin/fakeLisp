@@ -89,7 +89,7 @@ static inline void cleanup_handle(FklVMvalue *handle_obj,
     hdata->loop = NULL;
     free(fuv_handle);
     if (handle_obj) {
-        fklVMobjTableDel2(&ldata->gc_values, handle_obj);
+        fklVMvalueHashSetDel2(&ldata->gc_values, handle_obj);
         *handle_ud = NULL;
     }
 }
@@ -844,7 +844,7 @@ static void fuv_close_cb(uv_handle_t *handle) {
     hdata->loop = NULL;
     free(fuv_handle);
     if (handle_obj) {
-        fklVMobjTableDel2(&ldata->gc_values, handle_obj);
+        fklVMvalueHashSetDel2(&ldata->gc_values, handle_obj);
         FKL_DECL_VM_UD_DATA(fuv_handle_ud, FuvHandleUd, handle_obj);
         *fuv_handle_ud = NULL;
     }
@@ -5147,7 +5147,7 @@ static int fuv_scandir_cb_value_creator(FklVM *exe, void *a) {
         return 0;
     } else {
         FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, req->data.loop);
-        fklVMobjTableDel2(&fuv_loop->data.gc_values, req->data.req);
+        fklVMvalueHashSetDel2(&fuv_loop->data.gc_values, req->data.req);
         req->data.loop = NULL;
         req->data.callback = NULL;
         FKL_VM_PUSH_VALUE(exe, req->data.req);

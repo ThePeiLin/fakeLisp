@@ -54,14 +54,23 @@
 #define FKL_TABLE_VAL_UNINIT(X)
 #endif
 
+#ifndef FKL_TABLE_VAL_TYPE
+#define POST_PREFIX HashSet
+#else
+#define POST_PREFIX Table
+#endif
+
 #define CONCAT_(A, B) A##B
 #define CONCAT(A, B) CONCAT_(A, B)
 #define METHOD(method_name)                                                    \
-    CONCAT(CONCAT(CONCAT(FKL_TABLE_METHOD_PREFIX, FKL_TABLE_ELM_NAME), Table), \
+    CONCAT(CONCAT(CONCAT(FKL_TABLE_METHOD_PREFIX, FKL_TABLE_ELM_NAME),         \
+                  POST_PREFIX),                                                \
            method_name)
-#define NAME CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, Table))
+#define NAME                                                                   \
+    CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, POST_PREFIX))
 #define NODE_NAME                                                              \
-    CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, TableNode))
+    CONCAT(FKL_TABLE_TYPE_PREFIX,                                              \
+           CONCAT(FKL_TABLE_ELM_NAME, CONCAT(POST_PREFIX, Node)))
 
 #ifndef FKL_TABLE_KEY_HASH
 #define FKL_TABLE_KEY_HASH                                                     \
@@ -85,10 +94,12 @@ static inline uintptr_t METHOD(__hashv)(FKL_TABLE_KEY_TYPE const *pk) {
 
 #ifdef FKL_TABLE_VAL_TYPE
 #define ELM_NAME                                                               \
-    CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, TableElm))
+    CONCAT(FKL_TABLE_TYPE_PREFIX,                                              \
+           CONCAT(FKL_TABLE_ELM_NAME, CONCAT(POST_PREFIX, Elm)))
 
 #define MUTABLE_ELM_NAME                                                       \
-    CONCAT(FKL_TABLE_TYPE_PREFIX, CONCAT(FKL_TABLE_ELM_NAME, TableMutElm))
+    CONCAT(FKL_TABLE_TYPE_PREFIX,                                              \
+           CONCAT(FKL_TABLE_ELM_NAME, CONCAT(POST_PREFIX, MutElm)))
 
 typedef struct ELM_NAME {
     FKL_TABLE_KEY_TYPE const k;
@@ -514,6 +525,7 @@ static inline int METHOD(Del2)(NAME *self, FKL_TABLE_KEY_TYPE k) {
 
 #undef HASHV
 #undef RETURN_TYPE
+#undef POST_PREFIX
 #undef FKL_TABLE_DEFAULT_CAPACITY_SHIFT
 #undef FKL_TABLE_KEY_EQUAL
 #undef FKL_TABLE_KEY_HASH

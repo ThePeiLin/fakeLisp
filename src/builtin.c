@@ -2794,8 +2794,8 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
     if (FKL_VM_CDR(body) != FKL_VM_NIL)
         return 0;
     body = FKL_VM_CAR(body);
-    FklSidTable symbolTable;
-    fklSidTableInit(&symbolTable);
+    FklSidHashSet symbolTable;
+    fklSidHashSetInit(&symbolTable);
     FklVMvalueVector exe;
     fklVMvalueVectorInit(&exe, 32);
     fklVMvalueVectorPushBack2(&exe, FKL_REMOVE_CONST(FklVMvalue, body));
@@ -2804,12 +2804,12 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
         FklVMvalue *slotV = isSlot(head, c);
         if (slotV) {
             FklSid_t sid = FKL_GET_SYM(slotV);
-            if (fklSidTableHas2(&symbolTable, sid)) {
-                fklSidTableUninit(&symbolTable);
+            if (fklSidHashSetHas2(&symbolTable, sid)) {
+                fklSidHashSetUninit(&symbolTable);
                 fklVMvalueVectorUninit(&exe);
                 return 0;
             }
-            fklSidTablePut2(&symbolTable, sid);
+            fklSidHashSetPut2(&symbolTable, sid);
         }
         if (FKL_IS_PAIR(c)) {
             fklVMvalueVectorPushBack2(&exe, FKL_VM_CAR(c));
@@ -2830,7 +2830,7 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
             }
         }
     }
-    fklSidTableUninit(&symbolTable);
+    fklSidHashSetUninit(&symbolTable);
     fklVMvalueVectorUninit(&exe);
     return 1;
 }

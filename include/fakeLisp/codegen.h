@@ -355,7 +355,7 @@ typedef struct FklCodegenInfo {
     FklCodegenMacro *export_macro;
     FklReplacementTable *export_replacement;
 
-    FklSidTable *export_named_prod_groups;
+    FklSidHashSet *export_named_prod_groups;
 
     FklCodegenLibVector *libStack;
 
@@ -612,7 +612,7 @@ FklGrammerProduction *fklCodegenProdPrintingToProduction(
     FklGraSidBuiltinTable *builtin_terms, FklCodegenOuterCtx *outer_ctx,
     FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
 
-void fklWriteExportNamedProds(const FklSidTable *export_named_prod_groups,
+void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
                               const FklGraProdGroupTable *named_prod_groups,
                               const FklSymbolTable *st, FILE *fp);
 

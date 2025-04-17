@@ -82,7 +82,7 @@ typedef struct // unresolved symbol ref
 #define FKL_VECTOR_ELM_TYPE_NAME Sid
 #include "vector.h"
 
-// FklSidTable
+// FklSidHashSet
 #define FKL_TABLE_KEY_TYPE FklSid_t
 #define FKL_TABLE_ELM_NAME Sid
 #include "table.h"

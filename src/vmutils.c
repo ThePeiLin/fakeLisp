@@ -465,8 +465,6 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
             if (!vmCircleHeadTableGet2(circle_heads, v)) {
                 for (FklVMvalueTableNode *tail = FKL_VM_HASH(v)->ht.last; tail;
                      tail = tail->prev) {
-                    // FklVMhashTableItem *item = (FklVMhashTableItem
-                    // *)tail->data;
                     fklVMvalueVectorPushBack2(&stack, tail->v);
                     fklVMvalueVectorPushBack2(&stack, tail->k);
                 }
@@ -504,8 +502,6 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
             else if (FKL_IS_HASHTABLE(v)) {
                 for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first; list;
                      list = list->next) {
-                    // FklVMhashTableItem *item = (FklVMhashTableItem
-                    // *)list->data;
                     dec_value_degree(ht, list->k);
                     dec_value_degree(ht, list->v);
                 }
@@ -548,8 +544,6 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
                 else if (FKL_IS_HASHTABLE(v)) {
                     for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first;
                          list; list = list->next) {
-                        // FklVMhashTableItem *item =
-                        //     (FklVMhashTableItem *)list->data;
                         dec_value_degree(ht, list->k);
                         dec_value_degree(ht, list->v);
                     }
@@ -609,8 +603,6 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
             if (!fklVMobjTablePut2(&value_set, v)) {
                 for (FklVMvalueTableNode *tail = FKL_VM_HASH(v)->ht.last; tail;
                      tail = tail->prev) {
-                    // FklVMhashTableItem *item = (FklVMhashTableItem
-                    // *)tail->data;
                     fklVMvalueVectorPushBack2(&stack, tail->v);
                     fklVMvalueVectorPushBack2(&stack, tail->k);
                 }
@@ -648,8 +640,6 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
             else if (FKL_IS_HASHTABLE(v)) {
                 for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first; list;
                      list = list->next) {
-                    // FklVMhashTableItem *item = (FklVMhashTableItem
-                    // *)list->data;
                     dec_value_degree(&degree_table, list->k);
                     dec_value_degree(&degree_table, list->v);
                 }

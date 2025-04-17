@@ -188,11 +188,6 @@ typedef struct {
     FklVMud ud;
 } FklVMvalueUd;
 
-// typedef struct {
-//     FklVMvalue *key;
-//     FklVMvalue *v;
-// } FklVMhashTableItem;
-
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
     uint32_t idx;
@@ -677,7 +672,6 @@ typedef struct {
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
     FklVMhash hash;
-    // FklHashTable hash;
 } FklVMvalueHash;
 
 typedef struct {
@@ -849,11 +843,6 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 
 void fklDestroyVMframe(FklVMframe *, FklVM *exe);
 FklString *fklGenErrorMessage(FklBuiltinErrorType type);
-
-// int fklIsVMhashEq(const FklHashTable *);
-// int fklIsVMhashEqv(const FklHashTable *);
-// int fklIsVMhashEqual(const FklHashTable *);
-// uintptr_t fklGetVMhashTableType(const FklHashTable *);
 
 const char *fklGetVMhashTablePrefix(const FklVMhash *);
 int fklVMhashTableDel(FklVMhash *ht, FklVMvalue *key, FklVMvalue **pv,

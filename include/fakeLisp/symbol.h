@@ -31,10 +31,6 @@ typedef struct FklSymboTable {
     FklStrIdTable ht;
 } FklSymbolTable;
 
-void fklSetSidKey(void *k0, const void *k1);
-uintptr_t fklSidHashFunc(const void *k);
-int fklSidKeyEqual(const void *k0, const void *k1);
-
 void fklInitSymbolTable(FklSymbolTable *st);
 FklSymbolTable *fklCreateSymbolTable(void);
 

@@ -225,13 +225,3 @@ FklFuncPrototypes *fklLoadFuncPrototypes(FILE *fp) {
     return pts;
 }
 
-// to be delete
-void fklSetSidKey(void *k0, const void *k1) {
-    *(FklSid_t *)k0 = *(const FklSid_t *)k1;
-}
-
-uintptr_t fklSidHashFunc(const void *k) { return *(const FklSid_t *)k; }
-
-int fklSidKeyEqual(const void *k0, const void *k1) {
-    return *(const FklSid_t *)k0 == *(const FklSid_t *)k1;
-}

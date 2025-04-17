@@ -2766,8 +2766,6 @@ static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
             FklVMvalueTableNode *i0 = h0->ht.last;
             FklVMvalueTableNode *i1 = h1->ht.last;
             while (h0) {
-                // FklVMhashTableItem *i0 = (FklVMhashTableItem *)hl0->data;
-                // FklVMhashTableItem *i1 = (FklVMhashTableItem *)hl1->data;
                 fklVMpairVectorPushBack2(
                     &s, (FklVMpair){.car = i0->v, .cdr = i1->v});
                 fklVMpairVectorPushBack2(
@@ -2827,7 +2825,6 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
         } else if (FKL_IS_HASHTABLE(c)) {
             for (FklVMvalueTableNode *h = FKL_VM_HASH(c)->ht.first; h;
                  h = h->next) {
-                // FklVMhashTableItem *i = (FklVMhashTableItem *)h->data;
                 fklVMvalueVectorPushBack2(&exe, h->k);
                 fklVMvalueVectorPushBack2(&exe, h->v);
             }
@@ -4232,7 +4229,6 @@ static int builtin_hash_to_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
-        // FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
         FklVMvalue *pair = fklCreateVMvaluePair(exe, list->k, list->v);
         *cur = fklCreateVMvaluePairWithCar(exe, pair);
         cur = &FKL_VM_CDR(*cur);
@@ -4249,7 +4245,6 @@ static int builtin_hash_keys(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
-        // FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
         *cur = fklCreateVMvaluePairWithCar(exe, list->k);
         cur = &FKL_VM_CDR(*cur);
     }
@@ -4265,7 +4260,6 @@ static int builtin_hash_values(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
-        // FklVMhashTableItem *item = (FklVMhashTableItem *)list->data;
         *cur = fklCreateVMvaluePairWithCar(exe, list->v);
         cur = &FKL_VM_CDR(*cur);
     }

@@ -23,7 +23,7 @@ static void print_compiler_macros(FklCodegenMacro *head,
                                   const FklConstTable *pkt, FILE *fp,
                                   uint64_t *opcode_count);
 
-static void print_reader_macros(const FklGraProdGroupTable *named_prod_groups,
+static void print_reader_macros(const FklGraProdGroupHashMap *named_prod_groups,
                                 const FklSymbolTable *pst,
                                 const FklConstTable *pkt, FILE *fp);
 
@@ -373,11 +373,11 @@ static void print_compiler_macros(FklCodegenMacro *head,
     }
 }
 
-static void print_reader_macros(const FklGraProdGroupTable *ht,
+static void print_reader_macros(const FklGraProdGroupHashMap *ht,
                                 const FklSymbolTable *pst,
                                 const FklConstTable *pkt, FILE *fp) {
     fputs("\nreader macros:\n", fp);
-    for (FklGraProdGroupTableNode *l = ht->first; l; l = l->next) {
+    for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
         fputs("group name:", fp);
         fklPrintRawSymbol(fklGetSymbolWithId(l->k, pst)->k, fp);
         if (l->v.ignore_printing.size) {

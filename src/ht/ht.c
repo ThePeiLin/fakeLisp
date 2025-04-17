@@ -27,15 +27,15 @@ static int ht_equal_hashv(FKL_CPROC_ARGL) {
 typedef struct {
     FklVMvalue *hash_func;
     FklVMvalue *eq_func;
-    FklVMvalueTable ht;
+    FklVMvalueHashMap ht;
 } HashTable;
 
 static void ht_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(ht, HashTable, ud);
     fklVMgcToGray(ht->hash_func, gc);
     fklVMgcToGray(ht->eq_func, gc);
-    FklVMvalueTable *t = &ht->ht;
-    for (FklVMvalueTableNode *list = t->first; list; list = list->next) {
+    FklVMvalueHashMap *t = &ht->ht;
+    for (FklVMvalueHashMapNode *list = t->first; list; list = list->next) {
         fklVMgcToGray(list->k, gc);
         fklVMgcToGray(list->v, gc);
     }
@@ -49,8 +49,8 @@ static int ht_equal(const FklVMud *a, const FklVMud *b) {
     if (fklVMvalueEqual(hta->hash_func, htb->hash_func)
         && fklVMvalueEqual(htb->eq_func, htb->eq_func)
         && hta->ht.count == htb->ht.count) {
-        FklVMvalueTableNode *ia = hta->ht.first;
-        FklVMvalueTableNode *ib = htb->ht.first;
+        FklVMvalueHashMapNode *ia = hta->ht.first;
+        FklVMvalueHashMapNode *ib = htb->ht.first;
         while (ia) {
             if (fklVMvalueEqual(ia->k, ib->k)
                 && fklVMvalueEqual(ia->v, ib->v)) {
@@ -66,7 +66,7 @@ static int ht_equal(const FklVMud *a, const FklVMud *b) {
 
 static void ht_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(ht, HashTable, ud);
-    fklVMvalueTableUninit(&ht->ht);
+    fklVMvalueHashMapUninit(&ht->ht);
 }
 
 static size_t ht_length(const FklVMud *ud) {
@@ -93,7 +93,7 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(ht, HashTable, ud);
     ht->hash_func = hashv;
     ht->eq_func = equal;
-    fklVMvalueTableInit(&ht->ht);
+    fklVMvalueHashMapInit(&ht->ht);
     FKL_VM_PUSH_VALUE(exe, ud);
     return 0;
 }
@@ -137,7 +137,7 @@ static int ht_ht_clear(FKL_CPROC_ARGL) {
     FKL_CHECK_REST_ARG(exe);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        fklVMvalueTableClear(&ht->ht);
+        fklVMvalueHashMapClear(&ht->ht);
         FKL_VM_PUSH_VALUE(exe, val);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -149,10 +149,11 @@ static int ht_ht_to_list(FKL_CPROC_ARGL) {
     FKL_CHECK_REST_ARG(exe);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FklVMvalueTable *hash = &ht->ht;
+        FklVMvalueHashMap *hash = &ht->ht;
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
-        for (FklVMvalueTableNode *list = hash->first; list; list = list->next) {
+        for (FklVMvalueHashMapNode *list = hash->first; list;
+             list = list->next) {
             FklVMvalue *pair = fklCreateVMvaluePair(exe, list->k, list->v);
             *cur = fklCreateVMvaluePairWithCar(exe, pair);
             cur = &FKL_VM_CDR(*cur);
@@ -168,10 +169,11 @@ static int ht_ht_keys(FKL_CPROC_ARGL) {
     FKL_CHECK_REST_ARG(exe);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FklVMvalueTable *hash = &ht->ht;
+        FklVMvalueHashMap *hash = &ht->ht;
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
-        for (FklVMvalueTableNode *list = hash->first; list; list = list->next) {
+        for (FklVMvalueHashMapNode *list = hash->first; list;
+             list = list->next) {
             *cur = fklCreateVMvaluePairWithCar(exe, list->k);
             cur = &FKL_VM_CDR(*cur);
         }
@@ -186,10 +188,11 @@ static int ht_ht_values(FKL_CPROC_ARGL) {
     FKL_CHECK_REST_ARG(exe);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FklVMvalueTable *hash = &ht->ht;
+        FklVMvalueHashMap *hash = &ht->ht;
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
-        for (FklVMvalueTableNode *list = hash->first; list; list = list->next) {
+        for (FklVMvalueHashMapNode *list = hash->first; list;
+             list = list->next) {
             *cur = fklCreateVMvaluePairWithCar(exe, list->v);
             cur = &FKL_VM_CDR(*cur);
         }
@@ -201,7 +204,7 @@ static int ht_ht_values(FKL_CPROC_ARGL) {
 
 static inline int key_equal(FklVM *exe, FklCprocFrameContext *ctx,
                             FklVMvalue *eq_func, uintptr_t hashv,
-                            FklVMvalueTableNode *const *slot) {
+                            FklVMvalueHashMapNode *const *slot) {
     FklVMvalue *key = FKL_VM_GET_VALUE(exe, 2);
     ctx->ptr = FKL_TYPE_CAST(void *, slot);
     ctx->ctx1 = hashv;
@@ -246,21 +249,21 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else {
-            FklVMvalueTableNode *node =
-                fklVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
+            FklVMvalueHashMapNode *node =
+                fklVMvalueHashMapCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             node->v = FKL_VM_GET_VALUE(exe, 3);
-            fklVMvalueTableInsertNode(&ht->ht, hashv, node);
+            fklVMvalueHashMapInsertNode(&ht->ht, hashv, node);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, node->v);
         }
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
@@ -270,14 +273,14 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
             if (*node) {
                 return key_equal(exe, ctx, ht->eq_func, ctx->ctx1, node);
             } else {
-                FklVMvalueTableNode *item =
-                    fklVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
+                FklVMvalueHashMapNode *item = fklVMvalueHashMapCreateNode2(
+                    hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
-                fklVMvalueTableInsertNode(&ht->ht, hashv, item);
+                fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
             }
         } else {
-            FklVMvalueTableNode *i = *node;
+            FklVMvalueHashMapNode *i = *node;
             i->v = FKL_VM_GET_VALUE(exe, 3);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, i->v);
         }
@@ -317,17 +320,17 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else {
 #define CONTINUE_ARG_NUM (4)
 
-            FklVMvalueTableNode *item =
-                fklVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
+            FklVMvalueHashMapNode *item =
+                fklVMvalueHashMapCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             item->v = FKL_VM_GET_VALUE(exe, 3);
-            fklVMvalueTableInsertNode(&ht->ht, hashv, item);
+            fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
             if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
                 exe->tp -= 3;
                 FklVMvalue *key = FKL_VM_GET_TOP_VALUE(exe);
@@ -341,8 +344,8 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
         }
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
 
@@ -353,10 +356,10 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
             if (*node) {
                 return key_equal(exe, ctx, ht->eq_func, hashv, node);
             } else {
-                FklVMvalueTableNode *item =
-                    fklVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
+                FklVMvalueHashMapNode *item = fklVMvalueHashMapCreateNode2(
+                    hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
-                fklVMvalueTableInsertNode(&ht->ht, hashv, item);
+                fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
                 if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
                     ctx->context = 1;
                     exe->tp -= 3;
@@ -370,7 +373,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
                     FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
             }
         } else {
-            FklVMvalueTableNode *i = *node;
+            FklVMvalueHashMapNode *i = *node;
             i->v = FKL_VM_GET_VALUE(exe, 3);
             if (exe->tp - ctx->rtp > CONTINUE_ARG_NUM) {
                 ctx->context = 1;
@@ -417,8 +420,8 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else if (exe->tp - ctx->rtp > ARG_NUM_WITHOUT_DEFAULT_VALUE) {
@@ -429,8 +432,8 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NO_VALUE_FOR_KEY, exe);
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
@@ -479,21 +482,21 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else {
-            FklVMvalueTableNode *item =
-                fklVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
+            FklVMvalueHashMapNode *item =
+                fklVMvalueHashMapCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
             item->v = FKL_VM_GET_VALUE(exe, 3);
-            fklVMvalueTableInsertNode(&ht->ht, hashv, item);
+            fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
         }
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
@@ -503,10 +506,10 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
             if (*node) {
                 return key_equal(exe, ctx, ht->eq_func, hashv, node);
             } else {
-                FklVMvalueTableNode *item =
-                    fklVMvalueTableCreateNode2(hashv, FKL_VM_GET_VALUE(exe, 2));
+                FklVMvalueHashMapNode *item = fklVMvalueHashMapCreateNode2(
+                    hashv, FKL_VM_GET_VALUE(exe, 2));
                 item->v = FKL_VM_GET_VALUE(exe, 3);
-                fklVMvalueTableInsertNode(&ht->ht, hashv, item);
+                fklVMvalueHashMapInsertNode(&ht->ht, hashv, item);
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, item->v);
             }
         } else {
@@ -540,16 +543,16 @@ static int ht_ht_ref7(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
@@ -592,16 +595,16 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         if (equal_result == FKL_VM_NIL) {
@@ -613,7 +616,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
             } else
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
         } else {
-            FklVMvalueTableNode *i = *node;
+            FklVMvalueHashMapNode *i = *node;
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp,
                                          fklCreateVMvaluePair(exe, i->k, i->v));
         }
@@ -645,16 +648,16 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
         uintptr_t hashv = fklVMintToHashv(hash_value);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-        FklVMvalueTableNode *const *node =
-            fklVMvalueTableBucket(&ht->ht, hashv);
+        FklVMvalueHashMapNode *const *node =
+            fklVMvalueHashMapBucket(&ht->ht, hashv);
         if (*node) {
             return key_equal(exe, ctx, ht->eq_func, hashv, node);
         } else
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
     } break;
     default: {
-        FklVMvalueTableNode *const *node =
-            FKL_TYPE_CAST(FklVMvalueTableNode *const *, ctx->ptr);
+        FklVMvalueHashMapNode *const *node =
+            FKL_TYPE_CAST(FklVMvalueHashMapNode *const *, ctx->ptr);
         uintptr_t hashv = ctx->ctx1;
         FklVMvalue *equal_result = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
@@ -666,14 +669,14 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
             } else
                 FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp, FKL_VM_NIL);
         } else {
-            FklVMvalueTableNode *i = *node;
+            FklVMvalueHashMapNode *i = *node;
             FklVMvalue *key = i->k;
             FklVMvalue *val = i->v;
 
             FklVMvalue *ht_ud = FKL_VM_GET_TOP_VALUE(exe);
             FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
-            fklVMvalueTableDelNode(
-                &ht->ht, FKL_REMOVE_CONST(FklVMvalueTableNode *, node));
+            fklVMvalueHashMapDelNode(
+                &ht->ht, FKL_REMOVE_CONST(FklVMvalueHashMapNode *, node));
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, ctx->rtp,
                                          fklCreateVMvaluePair(exe, key, val));
         }

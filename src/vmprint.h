@@ -52,8 +52,8 @@
 
 static inline int
 METHOD(print_circle_head)(OUTPUT_TYPE result, const FklVMvalue *v,
-                          const VmCircleHeadTable *circle_head_set) {
-    PrtSt *item = vmCircleHeadTableGet2(circle_head_set, v);
+                          const VmCircleHeadHashMap *circle_head_set) {
+    PrtSt *item = vmCircleHeadHashMapGet2(circle_head_set, v);
     if (item) {
         if (item->printed) {
             PRINTF(result, "#%u#", item->i);
@@ -129,7 +129,8 @@ cont_call:
             PUTC(buf, ')');
             return NULL;
         } else if (FKL_IS_PAIR(pair_ctx->cur)) {
-            if (vmCircleHeadTableGet2(pair_ctx->circle_head_set, pair_ctx->cur))
+            if (vmCircleHeadHashMapGet2(pair_ctx->circle_head_set,
+                                        pair_ctx->cur))
                 goto print_cdr;
             PUTC(buf, ' ');
             r = FKL_VM_CAR(pair_ctx->cur);
@@ -202,8 +203,8 @@ static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
         return;
     }
 
-    VmCircleHeadTable circle_head_set;
-    vmCircleHeadTableInit(&circle_head_set);
+    VmCircleHeadHashMap circle_head_set;
+    vmCircleHeadHashMapInit(&circle_head_set);
 
     scan_cir_ref(v, &circle_head_set);
 
@@ -212,7 +213,7 @@ static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
 
     for (; v;) {
         if (FKL_IS_PAIR(v)) {
-            PrtSt *item = vmCircleHeadTableGet2(&circle_head_set, v);
+            PrtSt *item = vmCircleHeadHashMapGet2(&circle_head_set, v);
             if (item) {
                 if (item->printed) {
                     PRINTF(result, "#%u#", item->i);
@@ -259,7 +260,7 @@ static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
         }
     }
     vmPrintCtxVectorUninit(&print_ctxs);
-    vmCircleHeadTableUninit(&circle_head_set);
+    vmCircleHeadHashMapUninit(&circle_head_set);
     UNINIT_LOCAL_VAR;
 }
 

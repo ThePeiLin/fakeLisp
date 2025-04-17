@@ -20,7 +20,7 @@ typedef struct {
     FklParseStateVector stateStack;
 } CmdReadCtx;
 
-struct BdbBpInsTableElm;
+struct BdbBpInsHashMapElm;
 
 // BdbFrameVector
 #define FKL_VECTOR_TYPE_PREFIX Bdb
@@ -53,7 +53,7 @@ typedef struct Breakpoint {
     uint8_t is_deleted;
     uint8_t is_disabled;
 
-    struct BdbBpInsTableElm *item;
+    struct BdbBpInsHashMapElm *item;
 
     FklVMvalue *cond_exp_obj;
     union {
@@ -67,7 +67,7 @@ typedef struct {
     Breakpoint *bp;
 } BdbCodepoint;
 
-// BdbBpInsTable
+// BdbBpInsHashMap
 #define FKL_TABLE_TYPE_PREFIX Bdb
 #define FKL_TABLE_METHOD_PREFIX bdb
 #define FKL_TABLE_KEY_TYPE FklInstruction *
@@ -78,7 +78,7 @@ typedef struct {
 #define FKL_TABLE_ELM_NAME BpIns
 #include <fakeLisp/table.h>
 
-// BdbBpIdxTable
+// BdbBpIdxHashMap
 #define FKL_TABLE_TYPE_PREFIX Bdb
 #define FKL_TABLE_METHOD_PREFIX bdb
 #define FKL_TABLE_KEY_TYPE uint32_t
@@ -87,14 +87,14 @@ typedef struct {
 #include <fakeLisp/table.h>
 
 typedef struct {
-    BdbBpInsTable ins_ht;
-    BdbBpIdxTable idx_ht;
+    BdbBpInsHashMap ins_ht;
+    BdbBpIdxHashMap idx_ht;
     Breakpoint *deleted_breakpoints;
     FklUintVector unused_prototype_id_for_cond_bp;
     uint32_t next_idx;
 } BreakpointTable;
 
-// BdbSourceCodeTable
+// BdbSourceCodeHashMap
 #define FKL_TABLE_TYPE_PREFIX Bdb
 #define FKL_TABLE_METHOD_PREFIX bdb
 #define FKL_TABLE_KEY_TYPE FklSid_t
@@ -111,7 +111,7 @@ typedef struct {
 #define FKL_TABLE_ELM_NAME SourceCode
 #include <fakeLisp/table.h>
 
-// BdbEnvTable
+// BdbEnvHashMap
 #define FKL_TABLE_TYPE_PREFIX Bdb
 #define FKL_TABLE_METHOD_PREFIX bdb
 #define FKL_TABLE_KEY_TYPE uint32_t
@@ -155,8 +155,8 @@ typedef struct DebugCtx {
     const FklString *curline_str;
     const FklStringVector *curfile_lines;
 
-    BdbSourceCodeTable source_code_table;
-    BdbEnvTable envs;
+    BdbSourceCodeHashMap source_code_table;
+    BdbEnvHashMap envs;
 
     FklVMvalueVector extra_mark_value;
     FklVMvalueVector code_objs;

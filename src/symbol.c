@@ -11,7 +11,7 @@ void fklInitSymbolTable(FklSymbolTable *tmp) {
     tmp->idl = NULL;
     tmp->num = 0;
     tmp->idl_size = 0;
-    fklStrIdTableInit(&tmp->ht);
+    fklStrIdHashMapInit(&tmp->ht);
 }
 
 FklSymbolTable *fklCreateSymbolTable() {
@@ -21,33 +21,33 @@ FklSymbolTable *fklCreateSymbolTable() {
     return tmp;
 }
 
-FklStrIdTableElm *fklAddSymbol(const FklString *sym, FklSymbolTable *table) {
+FklStrIdHashMapElm *fklAddSymbol(const FklString *sym, FklSymbolTable *table) {
     return fklAddSymbolCharBuf(sym->str, sym->size, table);
 }
 
-FklStrIdTableElm *fklAddSymbolCstr(const char *sym, FklSymbolTable *table) {
+FklStrIdHashMapElm *fklAddSymbolCstr(const char *sym, FklSymbolTable *table) {
     return fklAddSymbolCharBuf(sym, strlen(sym), table);
 }
 
-FklStrIdTableElm *fklAddSymbolCharBuf(const char *buf, size_t len,
-                                      FklSymbolTable *table) {
+FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *buf, size_t len,
+                                        FklSymbolTable *table) {
     uintptr_t hashv = fklCharBufHash(buf, len);
-    FklStrIdTable *ht = &table->ht;
-    FklStrIdTableNode *const *bkt = fklStrIdTableBucket(ht, hashv);
+    FklStrIdHashMap *ht = &table->ht;
+    FklStrIdHashMapNode *const *bkt = fklStrIdHashMapBucket(ht, hashv);
     for (; *bkt; bkt = &(*bkt)->bkt_next) {
-        FklStrIdTableNode *cur = *bkt;
+        FklStrIdHashMapNode *cur = *bkt;
         if (!fklStringCharBufCmp(cur->k, len, buf))
             return &cur->elm;
     }
 
-    FklStrIdTableNode *node =
-        fklStrIdTableCreateNode2(hashv, fklCreateString(len, buf));
-    fklStrIdTableInsertNode(ht, hashv, node);
+    FklStrIdHashMapNode *node =
+        fklStrIdHashMapCreateNode2(hashv, fklCreateString(len, buf));
+    fklStrIdHashMapInsertNode(ht, hashv, node);
     node->v = ht->count;
     if ((++table->num) >= table->idl_size) {
         table->idl_size += FKL_DEFAULT_INC;
-        table->idl = (FklStrIdTableElm **)fklRealloc(
-            table->idl, table->idl_size * sizeof(FklStrIdTableElm *));
+        table->idl = (FklStrIdHashMapElm **)fklRealloc(
+            table->idl, table->idl_size * sizeof(FklStrIdHashMapElm *));
         FKL_ASSERT(table->idl);
     }
     table->idl[table->num - 1] = &node->elm;
@@ -55,7 +55,7 @@ FklStrIdTableElm *fklAddSymbolCharBuf(const char *buf, size_t len,
 }
 
 void fklUninitSymbolTable(FklSymbolTable *table) {
-    fklStrIdTableUninit(&table->ht);
+    fklStrIdHashMapUninit(&table->ht);
     free(table->idl);
 }
 
@@ -64,7 +64,8 @@ void fklDestroySymbolTable(FklSymbolTable *table) {
     free(table);
 }
 
-FklStrIdTableElm *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *table) {
+FklStrIdHashMapElm *fklGetSymbolWithId(FklSid_t id,
+                                       const FklSymbolTable *table) {
     if (id == 0)
         return NULL;
     return table->idl[id - 1];
@@ -75,7 +76,7 @@ void fklPrintSymbolTable(const FklSymbolTable *table, FILE *fp) {
     int numLen = table->num ? (int)(log10(table->num) + 1) : 1;
     fprintf(fp, "size:%" FKL_PRT64U "\n", table->num);
     for (uint32_t i = 0; i < table->num; i++) {
-        FklStrIdTableElm *cur = table->idl[i];
+        FklStrIdHashMapElm *cur = table->idl[i];
         fprintf(fp, "%-*" FKL_PRT64U ":\t", numLen, cur->v);
         fklPrintRawSymbol(cur->k, fp);
         fputc('\n', fp);
@@ -153,7 +154,8 @@ void fklUninitFuncPrototypes(FklFuncPrototypes *p) {
     free(pts);
 }
 
-static inline void write_symbol_def(const FklSymDefTableMutElm *def, FILE *fp) {
+static inline void write_symbol_def(const FklSymDefHashMapMutElm *def,
+                                    FILE *fp) {
     fwrite(&def->k.id, sizeof(def->k.id), 1, fp);
     fwrite(&def->k.scope, sizeof(def->k.scope), 1, fp);
     fwrite(&def->v.idx, sizeof(def->v.idx), 1, fp);
@@ -165,7 +167,7 @@ static inline void write_prototype(const FklFuncPrototype *pt, FILE *fp) {
     uint32_t count = pt->lcount;
     fwrite(&count, sizeof(count), 1, fp);
     count = pt->rcount;
-    FklSymDefTableMutElm *defs = pt->refs;
+    FklSymDefHashMapMutElm *defs = pt->refs;
     fwrite(&count, sizeof(count), 1, fp);
     for (uint32_t i = 0; i < count; i++)
         write_symbol_def(&defs[i], fp);
@@ -183,7 +185,7 @@ void fklWriteFuncPrototypes(const FklFuncPrototypes *pts, FILE *fp) {
         write_prototype(&pta[i], fp);
 }
 
-static inline void load_symbol_def(FklSymDefTableMutElm *def, FILE *fp) {
+static inline void load_symbol_def(FklSymDefHashMapMutElm *def, FILE *fp) {
     fread(&def->k.id, sizeof(def->k.id), 1, fp);
     fread(&def->k.scope, sizeof(def->k.scope), 1, fp);
     fread(&def->v.idx, sizeof(def->v.idx), 1, fp);
@@ -198,12 +200,12 @@ static inline void load_prototype(FklFuncPrototype *pt, FILE *fp) {
     pt->lcount = count;
     fread(&count, sizeof(count), 1, fp);
     pt->rcount = count;
-    FklSymDefTableMutElm *defs;
+    FklSymDefHashMapMutElm *defs;
     if (count == 0)
         defs = NULL;
     else {
-        defs =
-            (FklSymDefTableMutElm *)calloc(count, sizeof(FklSymDefTableMutElm));
+        defs = (FklSymDefHashMapMutElm *)calloc(count,
+                                                sizeof(FklSymDefHashMapMutElm));
         FKL_ASSERT(defs);
         for (uint32_t i = 0; i < count; i++)
             load_symbol_def(&defs[i], fp);
@@ -224,4 +226,3 @@ FklFuncPrototypes *fklLoadFuncPrototypes(FILE *fp) {
         load_prototype(&pta[i], fp);
     return pts;
 }
-

@@ -690,7 +690,7 @@ static inline FklVMvalue *insert_local_ref(FklVMCompoundFrameVarRef *lr,
 }
 
 struct ProcessUnresolveRefArg {
-    FklSymDefTableElm *def;
+    FklSymDefHashMapElm *def;
     uint32_t prototypeId;
     uint32_t idx;
 };
@@ -713,7 +713,7 @@ process_unresolve_work_func(FklVM *exe, struct ProcessUnresolveRefArgStack *s) {
     FklVMvalue **loc = s->loc;
     FklVMCompoundFrameVarRef *lr = s->lr;
     for (; cur < end; cur++) {
-        FklSymDefTableElm *def = cur->def;
+        FklSymDefHashMapElm *def = cur->def;
         uint32_t prototypeId = cur->prototypeId;
         uint32_t idx = cur->idx;
         for (FklVMvalue *v = exe->gc->head; v; v = v->next)
@@ -773,7 +773,7 @@ static void process_unresolve_ref_cb(FklVM *exe, void *arg) {
 
 static inline void
 process_unresolve_ref_arg_push(struct ProcessUnresolveRefArgStack *s,
-                               FklSymDefTableElm *def, uint32_t prototypeId,
+                               FklSymDefHashMapElm *def, uint32_t prototypeId,
                                uint32_t idx) {
     if (s->top == s->size) {
         struct ProcessUnresolveRefArg *tmpData =
@@ -828,8 +828,8 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
     for (uint32_t i = 0; i < count; i++) {
         FklUnReSymbolRef *uref = &urefs->base[i];
         FklFuncPrototype *cpt = &pts[uref->prototypeId];
-        FklSymDefTableMutElm *ref = &cpt->refs[uref->idx];
-        FklSymDefTableElm *def =
+        FklSymDefHashMapMutElm *ref = &cpt->refs[uref->idx];
+        FklSymDefHashMapElm *def =
             fklFindSymbolDefByIdAndScope(uref->id, uref->scope, env);
         if (def) {
             env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
@@ -847,8 +847,8 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
 
             free(uref);
         } else if (env->prev != global_env) {
-            ref->v.cidx = fklAddCodegenRefBySidRetIndex(uref->id, env, uref->fid,
-                                                      uref->line, uref->assign);
+            ref->v.cidx = fklAddCodegenRefBySidRetIndex(
+                uref->id, env, uref->fid, uref->line, uref->assign);
             free(uref);
         } else
             fklUnReSymbolRefVectorPushBack(&urefs1, uref);

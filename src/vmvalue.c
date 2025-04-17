@@ -71,7 +71,7 @@ static const FklNastNode *vector_create_method(ValueCreateCtx *ctx,
 typedef struct {
     VALUE_CREATE_CTX_COMMON_HEADER;
     uintptr_t index;
-    FklVMvalueTableElm *item;
+    FklVMvalueHashMapElm *item;
 } HashCreateCtx;
 
 static_assert(sizeof(HashCreateCtx) <= sizeof(ValueCreateCtx),
@@ -115,7 +115,7 @@ typedef const FklNastNode *(*ValueCreateMethod)(ValueCreateCtx *ctx,
 typedef const FklNastNode *(*ValueCreateCtxInit)(ValueCreateCtx *ctx, FklVM *);
 
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
-                                         FklLineNumTable *lineHash) {
+                                         FklLineNumHashMap *lineHash) {
     static const ValueCreateMethod create_method_table[FKL_NAST_RC_SYM + 1] = {
         [FKL_NAST_VECTOR] = vector_create_method,
         [FKL_NAST_PAIR] = pair_create_method,
@@ -218,7 +218,7 @@ create_nested_objects:
             ctx->node = node;
             node = ctx_init_method_table[node->type](ctx, vm);
             if (lineHash) {
-                fklLineNumTablePut2(lineHash, ctx->v, ctx->node->curline);
+                fklLineNumHashMapPut2(lineHash, ctx->v, ctx->node->curline);
             }
 
             if (node)
@@ -260,7 +260,7 @@ typedef struct {
 #include <fakeLisp/vector.h>
 
 FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
-                                          FklLineNumTable *lineHash,
+                                          FklLineNumHashMap *lineHash,
                                           FklVMgc *gc) {
     FklNastNode *retval = NULL;
     if (!fklHasCircleRef(v)) {
@@ -275,7 +275,7 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
             uint64_t sline = top->line;
 
             uint64_t *item =
-                lineHash ? fklLineNumTableGet2(lineHash, value) : NULL;
+                lineHash ? fklLineNumHashMapGet2(lineHash, value) : NULL;
             uint64_t line = item ? *item : sline;
             FklNastNode *cur = fklCreateNastNode(FKL_NAST_NIL, line);
             *pcur = cur;
@@ -361,7 +361,7 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
                     cur->hash =
                         fklCreateNastHash(hash->eq_type, hash->ht.count);
                     size_t i = 0;
-                    for (FklVMvalueTableNode *list = hash->ht.first; list;
+                    for (FklVMvalueHashMapNode *list = hash->ht.first; list;
                          list = list->next, ++i) {
                         vmValueSlotLineVectorPushBack(
                             &s,
@@ -484,7 +484,7 @@ static FklVMvalue *__fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
     FklVMvalue *r = fklCreateVMvalueHashEq(vm);
     FklVMhash *nht = FKL_VM_HASH(r);
     nht->eq_type = ht->eq_type;
-    for (FklVMvalueTableNode *list = ht->ht.first; list; list = list->next) {
+    for (FklVMvalueHashMapNode *list = ht->ht.first; list; list = list->next) {
         fklVMhashTableSet(nht, list->k, list->v);
     }
     return r;
@@ -612,8 +612,8 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                         || h1->ht.count != h2->ht.count)
                         r = 0;
                     else {
-                        FklVMvalueTableNode *i1 = h1->ht.first;
-                        FklVMvalueTableNode *i2 = h2->ht.first;
+                        FklVMvalueHashMapNode *i1 = h1->ht.first;
+                        FklVMvalueHashMapNode *i2 = h2->ht.first;
                         for (; i1; i1 = i1->next, i2 = i2->next) {
                             fklVMpairVectorPushBack2(
                                 &s, (FklVMpair){.car = i1->k, .cdr = i2->k});
@@ -745,7 +745,7 @@ static inline void uninit_proc_value(FklVMvalue *v) {
 }
 
 static inline void uninit_hash_value(FklVMvalue *v) {
-    fklVMvalueTableUninit(&FKL_VM_HASH(v)->ht);
+    fklVMvalueHashMapUninit(&FKL_VM_HASH(v)->ht);
 }
 
 void fklDestroyVMvalue(FklVMvalue *cur) {
@@ -981,7 +981,8 @@ static size_t _userdata_hashFunc(const FklVMvalue *v) {
 static size_t _hashTable_hashFunc(const FklVMvalue *v) {
     FklVMhash *hash = FKL_VM_HASH(v);
     uintptr_t seed = hash->ht.count + hash->eq_type;
-    for (FklVMvalueTableNode *list = hash->ht.first; list; list = list->next) {
+    for (FklVMvalueHashMapNode *list = hash->ht.first; list;
+         list = list->next) {
         seed = fklHashCombine(seed, fklVMvalueEqualHashv(list->k));
         seed = fklHashCombine(seed, fklVMvalueEqualHashv(list->v));
     }
@@ -1022,7 +1023,8 @@ uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v) {
 
 void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc) {
     FklVMhash *table = FKL_VM_HASH(pht);
-    for (FklVMvalueTableNode *list = table->ht.first; list; list = list->next) {
+    for (FklVMvalueHashMapNode *list = table->ht.first; list;
+         list = list->next) {
         fklVMgcToGray(list->k, gc);
         fklVMgcToGray(list->v, gc);
     }
@@ -1049,13 +1051,13 @@ static int (*const VMhashEqFunc[])(const FklVMvalue *a, const FklVMvalue *b) = {
     [FKL_HASH_EQUAL] = fklVMvalueEqual,
 };
 
-static inline FklVMvalueTableElm *
+static inline FklVMvalueHashMapElm *
 vmhash_find_node(FklVMhash *ht, FklVMvalue *key, uintptr_t *hashv) {
     *hashv = VMhashFunc[ht->eq_type](key);
     int (*const eq_func)(const FklVMvalue *, const FklVMvalue *) =
         VMhashEqFunc[ht->eq_type];
 
-    FklVMvalueTableNode *const *pp = fklVMvalueTableBucket(&ht->ht, *hashv);
+    FklVMvalueHashMapNode *const *pp = fklVMvalueHashMapBucket(&ht->ht, *hashv);
 
     for (; *pp; pp = &(*pp)->bkt_next) {
         if (eq_func(key, (*pp)->k)) {
@@ -1065,36 +1067,36 @@ vmhash_find_node(FklVMhash *ht, FklVMvalue *key, uintptr_t *hashv) {
     return NULL;
 }
 
-FklVMvalueTableElm *fklVMhashTableGet(FklVMhash *ht, FklVMvalue *key) {
+FklVMvalueHashMapElm *fklVMhashTableGet(FklVMhash *ht, FklVMvalue *key) {
     uintptr_t hashv;
     return vmhash_find_node(ht, key, &hashv);
 }
 
-FklVMvalueTableElm *fklVMhashTableRef1(FklVMhash *ht, FklVMvalue *key,
-                                       FklVMvalue *v) {
+FklVMvalueHashMapElm *fklVMhashTableRef1(FklVMhash *ht, FklVMvalue *key,
+                                         FklVMvalue *v) {
     uintptr_t hashv;
-    FklVMvalueTableElm *r = vmhash_find_node(ht, key, &hashv);
+    FklVMvalueHashMapElm *r = vmhash_find_node(ht, key, &hashv);
     if (r)
         return r;
     else {
-        FklVMvalueTableNode *node = fklVMvalueTableCreateNode2(hashv, key);
+        FklVMvalueHashMapNode *node = fklVMvalueHashMapCreateNode2(hashv, key);
         node->v = v;
-        fklVMvalueTableInsertNode(&ht->ht, hashv, node);
+        fklVMvalueHashMapInsertNode(&ht->ht, hashv, node);
         return &node->elm;
     }
 }
 
-FklVMvalueTableElm *fklVMhashTableSet(FklVMhash *ht, FklVMvalue *key,
-                                      FklVMvalue *v) {
+FklVMvalueHashMapElm *fklVMhashTableSet(FklVMhash *ht, FklVMvalue *key,
+                                        FklVMvalue *v) {
     uintptr_t hashv;
-    FklVMvalueTableElm *r = vmhash_find_node(ht, key, &hashv);
+    FklVMvalueHashMapElm *r = vmhash_find_node(ht, key, &hashv);
     if (r) {
         r->v = v;
         return r;
     } else {
-        FklVMvalueTableNode *node = fklVMvalueTableCreateNode2(hashv, key);
+        FklVMvalueHashMapNode *node = fklVMvalueHashMapCreateNode2(hashv, key);
         node->v = v;
-        fklVMvalueTableInsertNode(&ht->ht, hashv, node);
+        fklVMvalueHashMapInsertNode(&ht->ht, hashv, node);
         return &node->elm;
     }
 }
@@ -1105,7 +1107,7 @@ int fklVMhashTableDel(FklVMhash *ht, FklVMvalue *key, FklVMvalue **pv,
     int (*const eq_func)(const FklVMvalue *, const FklVMvalue *) =
         VMhashEqFunc[ht->eq_type];
 
-    FklVMvalueTableNode *const *pp = fklVMvalueTableBucket(&ht->ht, hashv);
+    FklVMvalueHashMapNode *const *pp = fklVMvalueHashMapBucket(&ht->ht, hashv);
 
     for (; *pp; pp = &(*pp)->bkt_next) {
         if (eq_func(key, (*pp)->k)) {
@@ -1113,8 +1115,8 @@ int fklVMhashTableDel(FklVMhash *ht, FklVMvalue *key, FklVMvalue **pv,
                 *pk = (*pp)->k;
             if (pv)
                 *pv = (*pp)->v;
-            fklVMvalueTableDelNode(&ht->ht,
-                                   FKL_REMOVE_CONST(FklVMvalueTableNode *, pp));
+            fklVMvalueHashMapDelNode(
+                &ht->ht, FKL_REMOVE_CONST(FklVMvalueHashMapNode *, pp));
             return 1;
         }
     }
@@ -1687,7 +1689,7 @@ FklVMvalue *fklCreateVMvalueHash(FklVM *exe, FklHashTableEqType type) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_HASHTABLE;
-    fklVMvalueTableInit(&FKL_VM_HASH(r)->ht);
+    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = type;
     fklAddToGC(r, exe);
     return r;
@@ -1697,7 +1699,7 @@ FklVMvalue *fklCreateVMvalueHashEq(FklVM *exe) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_HASHTABLE;
-    fklVMvalueTableInit(&FKL_VM_HASH(r)->ht);
+    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = FKL_HASH_EQ;
     fklAddToGC(r, exe);
     return r;
@@ -1707,7 +1709,7 @@ FklVMvalue *fklCreateVMvalueHashEqv(FklVM *exe) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_HASHTABLE;
-    fklVMvalueTableInit(&FKL_VM_HASH(r)->ht);
+    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = FKL_HASH_EQV;
     fklAddToGC(r, exe);
     return r;
@@ -1717,7 +1719,7 @@ FklVMvalue *fklCreateVMvalueHashEqual(FklVM *exe) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_HASHTABLE;
-    fklVMvalueTableInit(&FKL_VM_HASH(r)->ht);
+    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = FKL_HASH_EQUAL;
     fklAddToGC(r, exe);
     return r;

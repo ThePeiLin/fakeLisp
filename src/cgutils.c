@@ -5,18 +5,18 @@
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 
-static inline FklSymDefTableElm *
+static inline FklSymDefHashMapElm *
 get_def_by_id_in_scope(FklSid_t id, uint32_t scopeId,
                        FklCodegenEnvScope *scope) {
     FklSidScope key = {id, scopeId};
-    return fklSymDefTableAt(&scope->defs, &key);
+    return fklSymDefHashMapAt(&scope->defs, &key);
 }
 
-FklSymDefTableElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
-                                                const FklCodegenEnv *env) {
+FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
+                                                  const FklCodegenEnv *env) {
     FklCodegenEnvScope *scopes = env->scopes;
     for (; scope; scope = scopes[scope - 1].p) {
-        FklSymDefTableElm *r =
+        FklSymDefHashMapElm *r =
             get_def_by_id_in_scope(id, scope, &scopes[scope - 1]);
         if (r)
             return r;
@@ -24,8 +24,8 @@ FklSymDefTableElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
     return NULL;
 }
 
-FklSymDefTableElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
-                                               const FklCodegenEnv *env) {
+FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
+                                                 const FklCodegenEnv *env) {
     return get_def_by_id_in_scope(id, scope, &env->scopes[scope - 1]);
 }
 
@@ -208,11 +208,11 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
 
 #define INIT_SYMBOL_DEF(ID, SCOPE, IDX) {{ID, SCOPE}, IDX, IDX, 0, 0}
 
-FklSymDefTableElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
-                                                FklCodegenEnv *env) {
-    FklSymDefTable *ht = &env->refs;
+FklSymDefHashMapElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
+                                                  FklCodegenEnv *env) {
+    FklSymDefHashMap *ht = &env->refs;
     uint32_t idx = ht->count;
-    return fklSymDefTableInsert2(
+    return fklSymDefHashMapInsert2(
         ht, (FklSidScope){.id = id, .scope = env->pscope},
         (FklSymDef){.idx = idx, .cidx = idx, .isLocal = 0, .isConst = 0});
 }
@@ -228,7 +228,7 @@ static inline void *has_outer_pdef_or_def(FklCodegenEnv *cur, FklSid_t id,
             *is_pdef = 1;
             return key;
         }
-        FklSymDefTableElm *def = fklFindSymbolDefByIdAndScope(id, scope, cur);
+        FklSymDefHashMapElm *def = fklFindSymbolDefByIdAndScope(id, scope, cur);
         if (def) {
             *targetEnv = cur;
             return def;
@@ -245,11 +245,11 @@ static inline void initSymbolDef(FklSymDef *def, uint32_t idx) {
     def->isConst = 0;
 }
 
-static inline FklSymDefTableElm *
+static inline FklSymDefHashMapElm *
 add_ref_to_all_penv(FklSid_t id, FklCodegenEnv *cur, FklCodegenEnv *targetEnv,
-                    uint8_t isConst, FklSymDefTableElm **new_ref) {
+                    uint8_t isConst, FklSymDefHashMapElm **new_ref) {
     uint32_t idx = cur->refs.count;
-    FklSymDefTableElm *cel = fklSymDefTableInsert2(
+    FklSymDefHashMapElm *cel = fklSymDefHashMapInsert2(
         &cur->refs, (FklSidScope){.id = id, .scope = cur->pscope},
         (FklSymDef){.idx = idx, .cidx = idx, .isConst = isConst, .isLocal = 0});
     *new_ref = cel;
@@ -259,7 +259,8 @@ add_ref_to_all_penv(FklSid_t id, FklCodegenEnv *cur, FklCodegenEnv *targetEnv,
         uint32_t idx = cur->refs.count;
         key.scope = cur->pscope;
         initSymbolDef(&def, idx);
-        FklSymDefTableElm *nel = fklSymDefTableInsert(&cur->refs, &key, &def);
+        FklSymDefHashMapElm *nel =
+            fklSymDefHashMapInsert(&cur->refs, &key, &def);
         cel->v.cidx = nel->v.idx;
         cel = nel;
     }
@@ -274,13 +275,13 @@ static inline uint32_t get_child_env_prototype_id(FklCodegenEnv *cur,
     return cur->prototypeId;
 }
 
-static inline FklSymDefTableElm *has_outer_ref(FklCodegenEnv *cur, FklSid_t id,
-                                               FklCodegenEnv **targetEnv) {
-    FklSymDefTableElm *ref = NULL;
+static inline FklSymDefHashMapElm *
+has_outer_ref(FklCodegenEnv *cur, FklSid_t id, FklCodegenEnv **targetEnv) {
+    FklSymDefHashMapElm *ref = NULL;
     FklSidScope key = {id, 0};
     for (; cur; cur = cur->prev) {
         key.scope = cur->pscope;
-        ref = fklSymDefTableAt(&cur->refs, &key);
+        ref = fklSymDefHashMapAt(&cur->refs, &key);
         if (ref) {
             *targetEnv = cur;
             return ref;
@@ -289,7 +290,7 @@ static inline FklSymDefTableElm *has_outer_ref(FklCodegenEnv *cur, FklSid_t id,
     return NULL;
 }
 
-static inline int is_ref_solved(FklSymDefTableElm *ref, FklCodegenEnv *env) {
+static inline int is_ref_solved(FklSymDefHashMapElm *ref, FklCodegenEnv *env) {
     if (env) {
         uint32_t top = env->uref.size;
         FklUnReSymbolRef *refs = env->uref.base;
@@ -323,8 +324,8 @@ static inline void initPdefRef(FklPreDefRef *r, FklSid_t id, uint32_t scope,
 }
 
 FklSymDef *fklGetCodegenRefBySid(FklSid_t id, FklCodegenEnv *env) {
-    FklSymDefTable *ht = &env->refs;
-    return fklSymDefTableGet2(ht, (FklSidScope){id, env->pscope});
+    FklSymDefHashMap *ht = &env->refs;
+    return fklSymDefHashMapGet2(ht, (FklSidScope){id, env->pscope});
 }
 
 static inline FklUnReSymbolRef *has_resolvable_ref(FklSid_t id, uint32_t scope,
@@ -341,16 +342,16 @@ static inline FklUnReSymbolRef *has_resolvable_ref(FklSid_t id, uint32_t scope,
 
 void fklAddCodegenPreDefBySid(FklSid_t id, uint32_t scope, uint8_t isConst,
                               FklCodegenEnv *env) {
-    FklPredefTable *pdef = &env->pdef;
+    FklPredefHashMap *pdef = &env->pdef;
     FklSidScope key = {id, scope};
-    fklPredefTableAdd(pdef, &key, &isConst);
+    fklPredefHashMapAdd(pdef, &key, &isConst);
 }
 
 uint8_t *fklGetCodegenPreDefBySid(FklSid_t id, uint32_t scope,
                                   FklCodegenEnv *env) {
-    FklPredefTable *pdef = &env->pdef;
+    FklPredefHashMap *pdef = &env->pdef;
     FklSidScope key = {id, scope};
-    return fklPredefTableGet(pdef, &key);
+    return fklPredefHashMapGet(pdef, &key);
 }
 
 void fklAddCodegenRefToPreDef(FklSid_t id, uint32_t scope, uint32_t prototypeId,
@@ -368,14 +369,14 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
     fklPreDefRefVectorInit(&ref_pdef1, count);
     uint8_t pdef_isconst;
     FklSidScope key = {id, scope};
-    fklPredefTableEarase(&env->pdef, &key, &pdef_isconst, NULL);
-    FklSymDefTableElm *def = fklGetCodegenDefByIdInScope(id, scope, env);
+    fklPredefHashMapEarase(&env->pdef, &key, &pdef_isconst, NULL);
+    FklSymDefHashMapElm *def = fklGetCodegenDefByIdInScope(id, scope, env);
     FKL_ASSERT(def);
     for (uint32_t i = 0; i < count; i++) {
         const FklPreDefRef *pdef_ref = &ref_pdef->base[i];
         if (pdef_ref->id == id && pdef_ref->scope == scope) {
             FklFuncPrototype *cpt = &pa[pdef_ref->prototypeId];
-            FklSymDefTableMutElm *ref = &cpt->refs[pdef_ref->idx];
+            FklSymDefHashMapMutElm *ref = &cpt->refs[pdef_ref->idx];
             ref->v.cidx = def->v.idx;
             env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
         } else
@@ -389,15 +390,15 @@ void fklResolveCodegenPreDef(FklSid_t id, uint32_t scope, FklCodegenEnv *env,
 }
 
 void fklClearCodegenPreDef(FklCodegenEnv *env) {
-    fklPredefTableClear(&env->pdef);
+    fklPredefHashMapClear(&env->pdef);
 }
 
-FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
-                                         FklSid_t fid, uint64_t line,
-                                         uint32_t assign) {
-    FklSymDefTable *refs = &env->refs;
-    FklSymDefTableElm *el =
-        fklSymDefTableAt2(refs, (FklSidScope){id, env->pscope});
+FklSymDefHashMapElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
+                                           FklSid_t fid, uint64_t line,
+                                           uint32_t assign) {
+    FklSymDefHashMap *refs = &env->refs;
+    FklSymDefHashMapElm *el =
+        fklSymDefHashMapAt2(refs, (FklSidScope){id, env->pscope});
     if (el) {
         FklUnReSymbolRef *ref =
             has_resolvable_ref(id, env->pscope, env->prev ? env->prev : env);
@@ -408,7 +409,7 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
         }
         return el;
     } else {
-        FklSymDefTableElm *ret = NULL;
+        FklSymDefHashMapElm *ret = NULL;
         uint32_t idx = refs->count;
         FklCodegenEnv *prev = env->prev;
         if (prev) {
@@ -419,7 +420,7 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
             if (targetDef) {
                 if (is_pdef) {
                     uint8_t *pdef = FKL_TYPE_CAST(uint8_t *, targetDef);
-                    FklSymDefTableElm *cel =
+                    FklSymDefHashMapElm *cel =
                         add_ref_to_all_penv(id, env, targetEnv, *pdef, &ret);
                     cel->v.isLocal = 1;
                     cel->v.cidx = FKL_VAR_REF_INVALID_CIDX;
@@ -428,22 +429,22 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                         get_child_env_prototype_id(env, targetEnv), cel->v.idx,
                         targetEnv);
                 } else {
-                    FklSymDefTableElm *def =
-                        FKL_TYPE_CAST(FklSymDefTableElm *, targetDef);
-                    FklSymDefTableElm *cel = add_ref_to_all_penv(
+                    FklSymDefHashMapElm *def =
+                        FKL_TYPE_CAST(FklSymDefHashMapElm *, targetDef);
+                    FklSymDefHashMapElm *cel = add_ref_to_all_penv(
                         id, env, targetEnv, def->v.isConst, &ret);
                     cel->v.isLocal = 1;
                     cel->v.cidx = def->v.idx;
                     targetEnv->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
                 }
             } else {
-                FklSymDefTableElm *targetRef =
+                FklSymDefHashMapElm *targetRef =
                     has_outer_ref(prev, id, &targetEnv);
                 if (targetRef && is_ref_solved(targetRef, targetEnv->prev))
                     add_ref_to_all_penv(id, env, targetEnv->prev,
                                         targetRef->v.isConst, &ret);
                 else {
-                    ret = fklSymDefTableInsert2(
+                    ret = fklSymDefHashMapInsert2(
                         refs, (FklSidScope){.id = id, .scope = env->pscope},
                         (FklSymDef){.idx = idx, .cidx = idx});
                     ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
@@ -454,9 +455,9 @@ FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
                 }
             }
         } else {
-            ret =
-                fklSymDefTableInsert2(refs, (FklSidScope){.id = id, .scope = 0},
-                                      (FklSymDef){.idx = idx, .cidx = idx});
+            ret = fklSymDefHashMapInsert2(refs,
+                                          (FklSidScope){.id = id, .scope = 0},
+                                          (FklSymDef){.idx = idx, .cidx = idx});
             idx = ret->v.idx;
             initUnReSymbolRef(fklUnReSymbolRefVectorPushBack(&env->uref, NULL),
                               id, idx, 0, env->prototypeId, assign, fid, line);
@@ -485,12 +486,12 @@ static inline uint32_t get_next_empty(uint32_t empty, uint8_t *flags,
 FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scopeId,
                                  FklCodegenEnv *env) {
     FklCodegenEnvScope *scope = &env->scopes[scopeId - 1];
-    FklSymDefTable *defs = &scope->defs;
+    FklSymDefHashMap *defs = &scope->defs;
     FklSidScope key = {id, scopeId};
-    FklSymDef *el = fklSymDefTableGet(defs, &key);
+    FklSymDef *el = fklSymDefHashMapGet(defs, &key);
     if (!el) {
         uint32_t idx = scope->empty;
-        el = fklSymDefTableAdd(defs, &key, NULL);
+        el = fklSymDefHashMapAdd(defs, &key, NULL);
         if (idx < env->lcount && has_resolvable_ref(id, scopeId, env))
             idx = env->lcount;
         else
@@ -673,10 +674,10 @@ recompute_sid_for_prototypes(FklFuncPrototypes *pts,
 }
 
 static inline void
-recompute_sid_for_export_sid_index(FklCgExportSidIdxTable *t,
+recompute_sid_for_export_sid_index(FklCgExportSidIdxHashMap *t,
                                    const FklSymbolTable *origin_table,
                                    FklSymbolTable *target_table) {
-    for (FklCgExportSidIdxTableNode *sid_idx_list = t->first; sid_idx_list;
+    for (FklCgExportSidIdxHashMapNode *sid_idx_list = t->first; sid_idx_list;
          sid_idx_list = sid_idx_list->next) {
         replace_sid(FKL_REMOVE_CONST(FklSid_t, &sid_idx_list->k), origin_table,
                     target_table);
@@ -696,9 +697,9 @@ static inline void recompute_sid_for_compiler_macros(
 }
 
 static inline void recompute_sid_for_replacements(
-    FklReplacementTable *t, const FklSymbolTable *origin_table,
+    FklReplacementHashMap *t, const FklSymbolTable *origin_table,
     FklSymbolTable *target_table, FklCodegenRecomputeNastSidOption option) {
-    for (FklReplacementTableNode *rep_list = t->first; rep_list;
+    for (FklReplacementHashMapNode *rep_list = t->first; rep_list;
          rep_list = rep_list->next) {
         replace_sid(FKL_REMOVE_CONST(FklSid_t, &rep_list->k), origin_table,
                     target_table);
@@ -708,11 +709,11 @@ static inline void recompute_sid_for_replacements(
 }
 
 static inline void recompute_sid_for_named_prod_groups(
-    FklGraProdGroupTable *ht, const FklSymbolTable *origin_st,
+    FklGraProdGroupHashMap *ht, const FklSymbolTable *origin_st,
     FklSymbolTable *target_st, const FklConstTable *origin_kt,
     FklConstTable *target_kt, FklCodegenRecomputeNastSidOption option) {
     if (ht && ht->buckets) {
-        for (FklGraProdGroupTableNode *list = ht->first; list;
+        for (FklGraProdGroupHashMapNode *list = ht->first; list;
              list = list->next) {
             replace_sid(FKL_REMOVE_CONST(FklSid_t, &list->k), origin_st,
                         target_st);
@@ -739,7 +740,7 @@ static inline void recompute_sid_for_named_prod_groups(
                 fklRecomputeSidForNastNode(node, origin_st, target_st, option);
             }
         }
-        fklGraProdGroupTableRehash(ht);
+        fklGraProdGroupHashMapRehash(ht);
     }
 }
 
@@ -891,9 +892,9 @@ static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
     return path;
 }
 
-static inline void load_export_sid_idx_table(FklCgExportSidIdxTable *t,
+static inline void load_export_sid_idx_table(FklCgExportSidIdxHashMap *t,
                                              FILE *fp) {
-    fklCgExportSidIdxTableInit(t);
+    fklCgExportSidIdxHashMapInit(t);
     fread(&t->count, sizeof(t->count), 1, fp);
     uint32_t num = t->count;
     t->count = 0;
@@ -903,7 +904,7 @@ static inline void load_export_sid_idx_table(FklCgExportSidIdxTable *t,
         fread(&sid, sizeof(sid), 1, fp);
         fread(&idxs.idx, sizeof(idxs.idx), 1, fp);
         fread(&idxs.oidx, sizeof(idxs.oidx), 1, fp);
-        fklCgExportSidIdxTablePut(t, &sid, &idxs);
+        fklCgExportSidIdxHashMapPut(t, &sid, &idxs);
     }
 }
 
@@ -939,9 +940,9 @@ static inline FklCodegenMacro *load_compiler_macros(FklSymbolTable *st,
     return r;
 }
 
-static inline FklReplacementTable *load_replacements(FklSymbolTable *st,
-                                                     FILE *fp) {
-    FklReplacementTable *ht = fklReplacementTableCreate();
+static inline FklReplacementHashMap *load_replacements(FklSymbolTable *st,
+                                                       FILE *fp) {
+    FklReplacementHashMap *ht = fklReplacementHashMapCreate();
     fread(&ht->count, sizeof(ht->count), 1, fp);
     uint32_t num = ht->count;
     ht->count = 0;
@@ -949,13 +950,13 @@ static inline FklReplacementTable *load_replacements(FklSymbolTable *st,
         FklSid_t id = 0;
         fread(&id, sizeof(id), 1, fp);
         FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-        *fklReplacementTableAdd1(ht, id) = node;
+        *fklReplacementHashMapAdd1(ht, id) = node;
     }
     return ht;
 }
 
 static void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
-                             FklGraProdGroupTable *ht, FklSymbolTable *st,
+                             FklGraProdGroupHashMap *ht, FklSymbolTable *st,
                              FILE *fp);
 
 static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
@@ -1145,11 +1146,11 @@ static inline void increase_compiler_macros_lib_prototype_id(
     }
 }
 
-static inline void
-increase_reader_macro_lib_prototype_id(FklGraProdGroupTable *named_prod_groups,
-                                       uint32_t lib_count, uint32_t count) {
+static inline void increase_reader_macro_lib_prototype_id(
+    FklGraProdGroupHashMap *named_prod_groups, uint32_t lib_count,
+    uint32_t count) {
     if (named_prod_groups->buckets) {
-        for (FklGraProdGroupTableNode *list = named_prod_groups->first; list;
+        for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
              list = list->next) {
             uint32_t top = list->v.prod_printing.size;
             for (uint32_t i = 0; i < top; i++) {
@@ -1253,12 +1254,12 @@ static inline void load_printing_prods(FklProdPrintingVector *stack,
 }
 
 static inline FklGrammerProdGroupItem *
-add_production_group(FklGraProdGroupTable *named_prod_groups,
+add_production_group(FklGraProdGroupHashMap *named_prod_groups,
                      FklSid_t group_id) {
     FklGrammerProdGroupItem *group =
-        fklGraProdGroupTableAdd1(named_prod_groups, group_id);
+        fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
     if (!group->prods.buckets) {
-        fklProdTableInit(&group->prods);
+        fklProdHashMapInit(&group->prods);
         fklProdPrintingVectorInit(&group->prod_printing, 8);
         fklNastNodeVectorInit(&group->ignore_printing, 8);
     }
@@ -1266,7 +1267,7 @@ add_production_group(FklGraProdGroupTable *named_prod_groups,
 }
 
 static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
-                                    FklGraProdGroupTable *ht,
+                                    FklGraProdGroupHashMap *ht,
                                     FklSymbolTable *st, FILE *fp)
 
 {
@@ -1275,7 +1276,7 @@ static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
     if (has_named_prod) {
         fklInitSymbolTable(tt);
         fklInitRegexTable(rt);
-        fklGraProdGroupTableInit(ht);
+        fklGraProdGroupHashMapInit(ht);
         uint32_t num = 0;
         fread(&num, sizeof(num), 1, fp);
         for (; num > 0; num--) {
@@ -1289,7 +1290,7 @@ static inline void load_named_prods(FklSymbolTable *tt, FklRegexTable *rt,
 }
 
 static inline void init_pre_lib_reader_macros(
-    FklGraSidBuiltinTable *builtin_terms, FklCodegenLibVector *libStack,
+    FklGraSidBuiltinHashMap *builtin_terms, FklCodegenLibVector *libStack,
     FklSymbolTable *st, FklCodegenOuterCtx *outer_ctx, FklFuncPrototypes *pts,
     FklCodegenLibVector *macroLibStack) {
     uint32_t top = libStack->size;
@@ -1298,8 +1299,8 @@ static inline void init_pre_lib_reader_macros(
         if (lib->named_prod_groups.buckets) {
             FklSymbolTable *tt = &lib->terminal_table;
             FklRegexTable *rt = &lib->regexes;
-            for (FklGraProdGroupTableNode *l = lib->named_prod_groups.first; l;
-                 l = l->next) {
+            for (FklGraProdGroupHashMapNode *l = lib->named_prod_groups.first;
+                 l; l = l->next) {
                 FklNastNodeVector *stack = &l->v.ignore_printing;
                 uint32_t top = stack->size;
                 for (uint32_t i = 0; i < top; i++) {
@@ -1399,7 +1400,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     merge_prototypes(info_pts, pts);
     merge_prototypes(info_macro_pts, macro_pts);
 
-    FklGraSidBuiltinTable builtin_terms;
+    FklGraSidBuiltinHashMap builtin_terms;
     fklInitBuiltinGrammerSymTable(&builtin_terms, pst);
 
     init_pre_lib_reader_macros(&builtin_terms, &scriptLibStack, pst, outer_ctx,
@@ -1408,7 +1409,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                                outer_ctx, info_macro_pts,
                                info_macroScriptLibStack);
 
-    fklGraSidBuiltinTableUninit(&builtin_terms);
+    fklGraSidBuiltinHashMapUninit(&builtin_terms);
 
     for (uint32_t i = 0; i < scriptLibStack.size; i++)
         fklCodegenLibVectorPushBack(info_scriptLibStack,

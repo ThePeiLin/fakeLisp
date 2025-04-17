@@ -239,7 +239,7 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
         FKL_ASSERT(closure);
     }
     for (uint32_t i = 0; i < proc->rcount; i++) {
-        FklSymDefTableMutElm *cur_ref = &pt->refs[i];
+        FklSymDefHashMapMutElm *cur_ref = &pt->refs[i];
         if (cur_ref->v.cidx < FKL_BUILTIN_SYMBOL_NUM)
             closure[i] = gc->builtin_refs[cur_ref->v.cidx];
         else
@@ -553,7 +553,7 @@ static inline FklVMvalue *get_var_val(FklVMframe *frame, uint32_t idx,
         return v;
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
-    FklSymDefTableMutElm *def = &pt->refs[idx];
+    FklSymDefHashMapMutElm *def = &pt->refs[idx];
     *psid = def->k.id;
     return NULL;
 }
@@ -571,7 +571,7 @@ static inline FklVMvalue *volatile *get_var_ref(FklVMframe *frame, uint32_t idx,
         return v;
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
-    FklSymDefTableMutElm *def = &pt->refs[idx];
+    FklSymDefHashMapMutElm *def = &pt->refs[idx];
     *psid = def->k.id;
     return NULL;
     return v;
@@ -1473,7 +1473,7 @@ void fklCreateVMvalueClosureFrom(FklVM *vm, FklVMvalue **closure, FklVMframe *f,
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
     FklVMvalue **ref = lr->ref;
     for (; i < count; i++) {
-        FklSymDefTableMutElm *c = &pt->refs[i];
+        FklSymDefHashMapMutElm *c = &pt->refs[i];
         if (c->v.isLocal) {
             inc_lref(lr, lr->lcount);
             if (lr->lref[c->v.cidx])
@@ -1506,7 +1506,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe, FklVMframe *f, size_t cpc,
             (FklVMvalue **)malloc(count * sizeof(FklVMvalue *));
         FKL_ASSERT(closure);
         for (uint32_t i = 0; i < count; i++) {
-            FklSymDefTableMutElm *c = &pt->refs[i];
+            FklSymDefHashMapMutElm *c = &pt->refs[i];
             if (c->v.isLocal) {
                 inc_lref(lr, lr->lcount);
                 if (lr->lref[c->v.cidx])

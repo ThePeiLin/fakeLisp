@@ -450,7 +450,7 @@ typedef struct FklVM {
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
 #include "table.h"
 
-// FklLineNumTable
+// FklLineNumHashMap
 #define FKL_TABLE_KEY_TYPE FklVMvalue const *
 #define FKL_TABLE_VAL_TYPE uint64_t
 #define FKL_TABLE_ELM_NAME LineNum
@@ -649,6 +649,7 @@ typedef struct {
     FklString *message;
 } FklVMerror;
 
+// FklVMvalueHashMap
 #define FKL_TABLE_KEY_TYPE FklVMvalue *
 #define FKL_TABLE_VAL_TYPE FklVMvalue *
 #define FKL_TABLE_ELM_NAME VMvalue
@@ -665,7 +666,7 @@ typedef struct {
 #include "table.h"
 
 typedef struct {
-    FklVMvalueTable ht;
+    FklVMvalueHashMap ht;
     FklHashTableEqType eq_type;
 } FklVMhash;
 
@@ -730,10 +731,10 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *, uint32_t llast,
 
 void fklVMacquireSt(FklVMgc *);
 void fklVMreleaseSt(FklVMgc *);
-FklStrIdTableElm *fklVMaddSymbol(FklVMgc *, const FklString *str);
-FklStrIdTableElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
-FklStrIdTableElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
-FklStrIdTableElm *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
+FklStrIdHashMapElm *fklVMaddSymbol(FklVMgc *, const FklString *str);
+FklStrIdHashMapElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
+FklStrIdHashMapElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
+FklStrIdHashMapElm *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
 
 void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt);
 void fklVMgcMarkAllRootToGray(FklVM *curVM);
@@ -847,12 +848,12 @@ FklString *fklGenErrorMessage(FklBuiltinErrorType type);
 const char *fklGetVMhashTablePrefix(const FklVMhash *);
 int fklVMhashTableDel(FklVMhash *ht, FklVMvalue *key, FklVMvalue **pv,
                       FklVMvalue **pk);
-FklVMvalueTableElm *fklVMhashTableSet(FklVMhash *ht, FklVMvalue *key,
-                                      FklVMvalue *v);
-FklVMvalueTableElm *fklVMhashTableRef1(FklVMhash *ht, FklVMvalue *key,
-                                       FklVMvalue *v);
-FklVMvalueTableElm *fklVMhashTableRef(FklVMhash *ht, FklVMvalue *key);
-FklVMvalueTableElm *fklVMhashTableGet(FklVMhash *, FklVMvalue *key);
+FklVMvalueHashMapElm *fklVMhashTableSet(FklVMhash *ht, FklVMvalue *key,
+                                        FklVMvalue *v);
+FklVMvalueHashMapElm *fklVMhashTableRef1(FklVMhash *ht, FklVMvalue *key,
+                                         FklVMvalue *v);
+FklVMvalueHashMapElm *fklVMhashTableRef(FklVMhash *ht, FklVMvalue *key);
+FklVMvalueHashMapElm *fklVMhashTableGet(FklVMhash *, FklVMvalue *key);
 
 void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc);
 void fklAtomicVMuserdata(FklVMvalue *, FklVMgc *);
@@ -976,10 +977,10 @@ FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, FklByteCodelnt *bcl);
 int fklIsVMvalueCodeObj(FklVMvalue *v);
 
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm, const FklNastNode *node,
-                                         FklLineNumTable *lineHash);
+                                         FklLineNumHashMap *lineHash);
 
 FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
-                                          FklLineNumTable *, FklVMgc *gc);
+                                          FklLineNumHashMap *, FklVMgc *gc);
 
 FklVMvalue *fklGetVMvalueEof(void);
 int fklIsVMeofUd(FklVMvalue *v);

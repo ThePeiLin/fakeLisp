@@ -57,7 +57,7 @@
 #ifndef FKL_TABLE_VAL_TYPE
 #define POST_PREFIX HashSet
 #else
-#define POST_PREFIX Table
+#define POST_PREFIX HashMap
 #endif
 
 #define CONCAT_(A, B) A##B

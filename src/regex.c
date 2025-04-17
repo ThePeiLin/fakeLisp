@@ -992,10 +992,10 @@ const FklRegexCode *fklAddRegexCstr(FklRegexTable *t, const char *cstr) {
 const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
                                        size_t len) {
     uintptr_t hashv = fklCharBufHash(buf, len);
-    FklStrRegexTable *ht = &t->str_re;
-    FklStrRegexTableNode *const *bkt = fklStrRegexTableBucket(ht, hashv);
+    FklStrRegexHashMap *ht = &t->str_re;
+    FklStrRegexHashMapNode *const *bkt = fklStrRegexHashMapBucket(ht, hashv);
     for (; *bkt; bkt = &(*bkt)->bkt_next) {
-        FklStrRegexTableNode *cur = *bkt;
+        FklStrRegexHashMapNode *cur = *bkt;
         if (!fklStringCharBufCmp(cur->k, len, buf)) {
             return cur->v.re;
         }
@@ -1003,12 +1003,12 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
 
     FklRegexCode *re = fklRegexCompileCharBuf(buf, len);
     if (re) {
-        FklStrRegexTableNode *node =
-            fklStrRegexTableCreateNode2(hashv, fklCreateString(len, buf));
+        FklStrRegexHashMapNode *node =
+            fklStrRegexHashMapCreateNode2(hashv, fklCreateString(len, buf));
         node->v.num = ++t->num;
         node->v.re = re;
-        fklStrRegexTableInsertNode(&t->str_re, hashv, node);
-        fklRegexStrTableAdd2(&t->re_str, re, node->k);
+        fklStrRegexHashMapInsertNode(&t->str_re, hashv, node);
+        fklRegexStrHashMapAdd2(&t->re_str, re, node->k);
     } else
         return NULL;
     return re;
@@ -1016,14 +1016,14 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
 
 void fklInitRegexTable(FklRegexTable *t) {
     t->num = 0;
-    fklStrRegexTableInit(&t->str_re);
-    fklRegexStrTableInit(&t->re_str);
+    fklStrRegexHashMapInit(&t->str_re);
+    fklRegexStrHashMapInit(&t->re_str);
 }
 
 void fklUninitRegexTable(FklRegexTable *t) {
     t->num = 0;
-    fklStrRegexTableUninit(&t->str_re);
-    fklRegexStrTableUninit(&t->re_str);
+    fklStrRegexHashMapUninit(&t->str_re);
+    fklRegexStrHashMapUninit(&t->re_str);
 }
 
 FklRegexTable *fklCreateRegexTable(void) {
@@ -1035,10 +1035,10 @@ FklRegexTable *fklCreateRegexTable(void) {
 
 const FklString *fklGetStringWithRegex(const FklRegexTable *t,
                                        const FklRegexCode *re, uint64_t *pnum) {
-    FklString **item = fklRegexStrTableGet2(&t->re_str, re);
+    FklString **item = fklRegexStrHashMapGet2(&t->re_str, re);
     if (item) {
         if (pnum) {
-            FklRegexItem *str_re = fklStrRegexTableGet2(&t->str_re, *item);
+            FklRegexItem *str_re = fklStrRegexHashMapGet2(&t->str_re, *item);
             *pnum = str_re->num;
         }
         return *item;

@@ -11,7 +11,7 @@
 #define DEFAULT_CONST_TABLE_INC (16)
 
 static inline void init_const_i64_table(FklConstI64Table *ki64t) {
-    fklKi64TableInit(&ki64t->ht);
+    fklKi64HashMapInit(&ki64t->ht);
     ki64t->count = 0;
     ki64t->size = DEFAULT_CONST_TABLE_SIZE;
     ki64t->base = (int64_t *)malloc(DEFAULT_CONST_TABLE_SIZE * sizeof(int64_t));
@@ -24,7 +24,7 @@ struct ConstF64HashItem {
 };
 
 static inline void init_const_f64_table(FklConstF64Table *kf64t) {
-    fklKf64TableInit(&kf64t->ht);
+    fklKf64HashMapInit(&kf64t->ht);
     kf64t->count = 0;
     kf64t->size = DEFAULT_CONST_TABLE_SIZE;
     kf64t->base = (double *)malloc(DEFAULT_CONST_TABLE_SIZE * sizeof(double));
@@ -32,7 +32,7 @@ static inline void init_const_f64_table(FklConstF64Table *kf64t) {
 }
 
 static inline void init_const_str_table(FklConstStrTable *kstrt) {
-    fklKstrTableInit(&kstrt->ht);
+    fklKstrHashMapInit(&kstrt->ht);
     kstrt->count = 0;
     kstrt->size = DEFAULT_CONST_TABLE_SIZE;
     kstrt->base =
@@ -41,7 +41,7 @@ static inline void init_const_str_table(FklConstStrTable *kstrt) {
 }
 
 static inline void init_const_bvec_table(FklConstBvecTable *kbvect) {
-    fklKbvecTableInit(&kbvect->ht);
+    fklKbvecHashMapInit(&kbvect->ht);
     kbvect->count = 0;
     kbvect->size = DEFAULT_CONST_TABLE_SIZE;
     kbvect->base = (FklBytevector **)malloc(DEFAULT_CONST_TABLE_SIZE
@@ -50,7 +50,7 @@ static inline void init_const_bvec_table(FklConstBvecTable *kbvect) {
 }
 
 static inline void init_const_bi_table(FklConstBiTable *kbit) {
-    fklKbiTableInit(&kbit->ht);
+    fklKbiHashMapInit(&kbit->ht);
     kbit->count = 0;
     kbit->size = DEFAULT_CONST_TABLE_SIZE;
     kbit->base = (FklBigInt const **)malloc(DEFAULT_CONST_TABLE_SIZE
@@ -74,27 +74,27 @@ FklConstTable *fklCreateConstTable(void) {
 }
 
 static void uninit_const_i64_table(FklConstI64Table *ki64t) {
-    fklKi64TableUninit(&ki64t->ht);
+    fklKi64HashMapUninit(&ki64t->ht);
     free(ki64t->base);
 }
 
 static void uninit_const_f64_table(FklConstF64Table *kf64t) {
-    fklKf64TableUninit(&kf64t->ht);
+    fklKf64HashMapUninit(&kf64t->ht);
     free(kf64t->base);
 }
 
 static void uninit_const_str_table(FklConstStrTable *kstrt) {
-    fklKstrTableUninit(&kstrt->ht);
+    fklKstrHashMapUninit(&kstrt->ht);
     free(kstrt->base);
 }
 
 static void uninit_const_bvec_table(FklConstBvecTable *kbvect) {
-    fklKbvecTableUninit(&kbvect->ht);
+    fklKbvecHashMapUninit(&kbvect->ht);
     free(kbvect->base);
 }
 
 static void uninit_const_bi_table(FklConstBiTable *kbit) {
-    fklKbiTableUninit(&kbit->ht);
+    fklKbiHashMapUninit(&kbit->ht);
     free(kbit->base);
 }
 
@@ -125,7 +125,7 @@ void fklDestroyConstTable(FklConstTable *kt) {
 uint32_t fklAddI64Const(FklConstTable *kt, int64_t k) {
     FklConstI64Table *ki64t = &kt->ki64t;
     uint32_t idx = ki64t->count;
-    FklKi64TableElm *i = fklKi64TableInsert2(&ki64t->ht, k, idx);
+    FklKi64HashMapElm *i = fklKi64HashMapInsert2(&ki64t->ht, k, idx);
     if (i->v == ki64t->count) {
         REALLOC_CONST_TABLE_BASE(ki64t, int64_t);
         ki64t->base[idx] = i->k;
@@ -137,7 +137,7 @@ uint32_t fklAddI64Const(FklConstTable *kt, int64_t k) {
 uint32_t fklAddF64Const(FklConstTable *kt, double k) {
     FklConstF64Table *kf64t = &kt->kf64t;
     uint32_t idx = kf64t->count;
-    FklKf64TableElm *i = fklKf64TableInsert2(&kf64t->ht, k, idx);
+    FklKf64HashMapElm *i = fklKf64HashMapInsert2(&kf64t->ht, k, idx);
     if (i->v == kf64t->count) {
         REALLOC_CONST_TABLE_BASE(kf64t, double);
         kf64t->base[idx] = i->k;
@@ -149,8 +149,8 @@ uint32_t fklAddF64Const(FklConstTable *kt, double k) {
 uint32_t fklAddStrConst(FklConstTable *kt, const FklString *k) {
     FklConstStrTable *kstrt = &kt->kstrt;
     uint32_t idx = kstrt->count;
-    FklKstrTableElm *i =
-        fklKstrTableInsert2(&kstrt->ht, FKL_REMOVE_CONST(FklString, k), idx);
+    FklKstrHashMapElm *i =
+        fklKstrHashMapInsert2(&kstrt->ht, FKL_REMOVE_CONST(FklString, k), idx);
     if (i->v == kstrt->count) {
         REALLOC_CONST_TABLE_BASE(kstrt, FklString *);
         kstrt->base[idx] = i->k;
@@ -162,7 +162,7 @@ uint32_t fklAddStrConst(FklConstTable *kt, const FklString *k) {
 uint32_t fklAddBvecConst(FklConstTable *kt, const FklBytevector *k) {
     FklConstBvecTable *kbvect = &kt->kbvect;
     uint32_t idx = kbvect->count;
-    FklKbvecTableElm *i = fklKbvecTableInsert2(
+    FklKbvecHashMapElm *i = fklKbvecHashMapInsert2(
         &kbvect->ht, FKL_REMOVE_CONST(FklBytevector, k), idx);
     if (i->v == kbvect->count) {
         REALLOC_CONST_TABLE_BASE(kbvect, FklBytevector *);
@@ -175,7 +175,7 @@ uint32_t fklAddBvecConst(FklConstTable *kt, const FklBytevector *k) {
 uint32_t fklAddBigIntConst(FklConstTable *kt, const FklBigInt *k) {
     FklConstBiTable *kbit = &kt->kbit;
     uint32_t idx = kbit->count;
-    FklKbiTableElm *i = fklKbiTableInsert(&kbit->ht, k, &idx);
+    FklKbiHashMapElm *i = fklKbiHashMapInsert(&kbit->ht, k, &idx);
     if (i->v == kbit->count) {
         REALLOC_CONST_TABLE_BASE(kbit, FklBigInt const *);
         kbit->base[idx] = &i->k;

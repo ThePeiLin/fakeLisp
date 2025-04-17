@@ -135,7 +135,7 @@ static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
 }
 
 static inline void
-load_source_code_to_source_code_hash_item(BdbSourceCodeTableElm *item,
+load_source_code_to_source_code_hash_item(BdbSourceCodeHashMapElm *item,
                                           const char *rp) {
     FILE *fp = fopen(rp, "r");
     FKL_ASSERT(fp);
@@ -156,14 +156,14 @@ load_source_code_to_source_code_hash_item(BdbSourceCodeTableElm *item,
 }
 
 static inline void init_source_codes(DebugCtx *ctx) {
-    bdbSourceCodeTableInit(&ctx->source_code_table);
-    BdbSourceCodeTable *source_code_table = &ctx->source_code_table;
+    bdbSourceCodeHashMapInit(&ctx->source_code_table);
+    BdbSourceCodeHashMap *source_code_table = &ctx->source_code_table;
     for (FklSidHashSetNode *sid_list = ctx->file_sid_set.first; sid_list;
          sid_list = sid_list->next) {
         FklSid_t fid = sid_list->k;
         const FklString *str = fklGetSymbolWithId(fid, ctx->st)->k;
-        BdbSourceCodeTableElm *item =
-            bdbSourceCodeTableInsert(source_code_table, &fid, NULL);
+        BdbSourceCodeHashMapElm *item =
+            bdbSourceCodeHashMapInsert(source_code_table, &fid, NULL);
         load_source_code_to_source_code_hash_item(item, str->str);
     }
 }
@@ -179,7 +179,7 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
         return ctx->curline_str;
     } else {
         const FklStringVector *item =
-            bdbSourceCodeTableGet2(&ctx->source_code_table, fid);
+            bdbSourceCodeHashMapGet2(&ctx->source_code_table, fid);
         if (item && line <= item->size) {
             ctx->curlist_line = 1;
             ctx->curline_file = fid;
@@ -217,7 +217,7 @@ static inline void internal_dbg_extra_mark(DebugCtx *ctx, FklVMgc *gc) {
     for (; base < last; base++)
         fklVMgcToGray(*base, gc);
 
-    for (BdbBpIdxTableNode *l = ctx->bt.idx_ht.first; l; l = l->next) {
+    for (BdbBpIdxHashMapNode *l = ctx->bt.idx_ht.first; l; l = l->next) {
         Breakpoint *i = l->v;
         if (i->is_compiled)
             fklVMgcToGray(i->proc, gc);
@@ -249,10 +249,10 @@ static inline void push_extra_mark_value(DebugCtx *ctx) {
 DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
     DebugCtx *ctx = (DebugCtx *)calloc(1, sizeof(DebugCtx));
     FKL_ASSERT(ctx);
-    bdbEnvTableInit(&ctx->envs);
+    bdbEnvHashMapInit(&ctx->envs);
     fklSidHashSetInit(&ctx->file_sid_set);
     if (init_debug_codegen_outer_ctx(ctx, filename)) {
-        bdbEnvTableUninit(&ctx->envs);
+        bdbEnvHashMapUninit(&ctx->envs);
         fklSidHashSetUninit(&ctx->file_sid_set);
         free(ctx);
         return NULL;
@@ -305,11 +305,11 @@ void exitDebugCtx(DebugCtx *ctx) {
 }
 
 void destroyDebugCtx(DebugCtx *ctx) {
-    bdbEnvTableUninit(&ctx->envs);
+    bdbEnvHashMapUninit(&ctx->envs);
     fklSidHashSetUninit(&ctx->file_sid_set);
 
     uninitBreakpointTable(&ctx->bt);
-    bdbSourceCodeTableUninit(&ctx->source_code_table);
+    bdbSourceCodeHashMapUninit(&ctx->source_code_table);
     fklVMvalueVectorUninit(&ctx->extra_mark_value);
     fklVMvalueVectorUninit(&ctx->code_objs);
     bdbThreadVectorUninit(&ctx->threads);
@@ -337,14 +337,14 @@ const FklLineNumberTableItem *getCurFrameLineNumber(const FklVMframe *frame) {
 }
 
 const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid) {
-    return bdbSourceCodeTableGet2(&dctx->source_code_table, fid);
+    return bdbSourceCodeHashMapGet2(&dctx->source_code_table, fid);
 }
 
 Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx, FklSid_t fid,
                                          uint32_t line,
                                          PutBreakpointErrorType *err) {
     const FklStringVector *sc_item =
-        bdbSourceCodeTableGet2(&ctx->source_code_table, fid);
+        bdbSourceCodeHashMapGet2(&ctx->source_code_table, fid);
     if (!sc_item) {
         *err = PUT_BP_FILE_INVALID;
         return NULL;
@@ -406,7 +406,8 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     FklCodegenEnv *env = getEnv(ctx, prototype_id);
     if (env == NULL)
         return NULL;
-    const FklSymDefTableElm *def = fklFindSymbolDefByIdAndScope(id, scope, env);
+    const FklSymDefHashMapElm *def =
+        fklFindSymbolDefByIdAndScope(id, scope, env);
     if (def)
         return cur_thread->locv[def->v.idx];
     return NULL;
@@ -422,8 +423,8 @@ static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
     FklVMproc *proc = FKL_VM_PROC(frame->c.proc);
     uint32_t prototype_id = proc->protoId;
     FklFuncPrototype *pt = &ctx->reached_thread->pts->pa[prototype_id];
-    FklSymDefTableMutElm *def = pt->refs;
-    FklSymDefTableMutElm *const end = &def[pt->rcount];
+    FklSymDefHashMapMutElm *def = pt->refs;
+    FklSymDefHashMapMutElm *const end = &def[pt->rcount];
     for (; def < end; def++)
         if (def->k.id == id)
             return *(FKL_VM_VAR_REF_GET(proc->closure[def->v.idx]));

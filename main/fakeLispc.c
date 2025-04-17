@@ -23,10 +23,10 @@ static inline void print_nast_node_with_null_chr(const FklNastNode *node,
     fputc('\0', fp);
 }
 
-static inline void write_export_sid_idx_table(const FklCgExportSidIdxTable *t,
+static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
                                               FILE *fp) {
     fwrite(&t->count, sizeof(t->count), 1, fp);
-    for (FklCgExportSidIdxTableNode *sid_idx = t->first; sid_idx;
+    for (FklCgExportSidIdxHashMapNode *sid_idx = t->first; sid_idx;
          sid_idx = sid_idx->next) {
         fwrite(&sid_idx->k, sizeof(sid_idx->k), 1, fp);
         fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
@@ -47,10 +47,10 @@ static inline void write_compiler_macros(const FklCodegenMacro *head,
     }
 }
 
-static inline void write_replacements(const FklReplacementTable *ht,
+static inline void write_replacements(const FklReplacementHashMap *ht,
                                       const FklSymbolTable *st, FILE *fp) {
     fwrite(&ht->count, sizeof(ht->count), 1, fp);
-    for (const FklReplacementTableNode *rep_list = ht->first; rep_list;
+    for (const FklReplacementHashMapNode *rep_list = ht->first; rep_list;
          rep_list = rep_list->next) {
         fwrite(&rep_list->k, sizeof(rep_list->k), 1, fp);
         print_nast_node_with_null_chr(rep_list->v, st, fp);

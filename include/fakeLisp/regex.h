@@ -57,7 +57,7 @@ typedef struct {
     FklRegexObj data[];
 } FklRegexCode;
 
-// FklRegexStrTable
+// FklRegexStrHashMap
 #define FKL_TABLE_KEY_TYPE FklRegexCode const *
 #define FKL_TABLE_VAL_TYPE FklString *
 #define FKL_TABLE_ELM_NAME RegexStr
@@ -73,7 +73,7 @@ typedef struct {
 
 void fklRegexFree(FklRegexCode *);
 
-// FklStrRegexTable
+// FklStrRegexHashMap
 #define FKL_TABLE_KEY_TYPE FklString *
 #define FKL_TABLE_VAL_TYPE FklRegexItem
 #define FKL_TABLE_ELM_NAME StrRegex
@@ -84,8 +84,8 @@ void fklRegexFree(FklRegexCode *);
 #include "table.h"
 
 typedef struct {
-    FklStrRegexTable str_re;
-    FklRegexStrTable re_str;
+    FklStrRegexHashMap str_re;
+    FklRegexStrHashMap re_str;
     uint32_t num;
 } FklRegexTable;
 

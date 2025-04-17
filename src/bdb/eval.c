@@ -220,11 +220,11 @@ FklVMvalue *callEvalProc(DebugCtx *ctx, FklVM *vm, FklVMvalue *proc,
 }
 
 void putEnv(DebugCtx *ctx, FklCodegenEnv *env) {
-    bdbEnvTablePut2(&ctx->envs, env->prototypeId, env);
+    bdbEnvHashMapPut2(&ctx->envs, env->prototypeId, env);
 }
 
 FklCodegenEnv *getEnv(DebugCtx *ctx, uint32_t id) {
-    FklCodegenEnv **i = bdbEnvTableGet2(&ctx->envs, id);
+    FklCodegenEnv **i = bdbEnvHashMapGet2(&ctx->envs, id);
     if (i)
         return *i;
     return NULL;

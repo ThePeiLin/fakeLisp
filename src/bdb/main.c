@@ -538,7 +538,7 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL) {
 
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
-    for (BdbBpIdxTableNode *list = dctx->bt.idx_ht.first; list;
+    for (BdbBpIdxHashMapNode *list = dctx->bt.idx_ht.first; list;
          list = list->next) {
         Breakpoint *item = list->v;
 

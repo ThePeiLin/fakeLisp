@@ -5,7 +5,7 @@
 #include <string.h>
 
 int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
-                    FklPmatchTable *ht) {
+                    FklPmatchHashMap *ht) {
     if (exp->type != FKL_NAST_PAIR)
         return 0;
     if (exp->pair->car->type != FKL_NAST_SYM
@@ -22,8 +22,8 @@ int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
         const FklNastNode *n1 = top->cdr;
         if (n0->type == FKL_NAST_SLOT) {
             if (ht != NULL)
-                fklPmatchTableAdd2(ht, n0->sym,
-                                   FKL_REMOVE_CONST(FklNastNode, n1));
+                fklPmatchHashMapAdd2(ht, n0->sym,
+                                     FKL_REMOVE_CONST(FklNastNode, n1));
         } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
             fklNastImmPairVectorPushBack(
                 &s,

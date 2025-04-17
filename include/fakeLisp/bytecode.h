@@ -14,21 +14,21 @@
 extern "C" {
 #endif
 
-// FklKi64Table
+// FklKi64HashMap
 #define FKL_TABLE_KEY_TYPE int64_t
 #define FKL_TABLE_VAL_TYPE uint32_t
 #define FKL_TABLE_ELM_NAME Ki64
 #define FKL_TABLE_KEY_HASH return fklHash64Shift(*pk);
 #include "table.h"
 
-// FklKf64Table
+// FklKf64HashMap
 #define FKL_TABLE_KEY_TYPE double
 #define FKL_TABLE_VAL_TYPE uint32_t
 #define FKL_TABLE_ELM_NAME Kf64
 #define FKL_TABLE_KEY_HASH return *FKL_TYPE_CAST(int64_t *, pk);
 #include "table.h"
 
-// FklKstrTable
+// FklKstrHashMap
 #define FKL_TABLE_KEY_INIT(K, X) *(K) = fklCopyString(*X)
 #define FKL_TABLE_KEY_UNINIT(K)                                                \
     {                                                                          \
@@ -42,7 +42,7 @@ extern "C" {
 #define FKL_TABLE_KEY_HASH return fklStringHash(*pk);
 #include "table.h"
 
-// FklKbvecTable
+// FklKbvecHashMap
 #define FKL_TABLE_KEY_INIT(K, X) *(K) = fklCopyBytevector(*X)
 #define FKL_TABLE_KEY_UNINIT(K)                                                \
     {                                                                          \
@@ -56,7 +56,7 @@ extern "C" {
 #define FKL_TABLE_KEY_HASH return fklBytevectorHash(*pk);
 #include "table.h"
 
-// FklKbiTable
+// FklKbiHashMap
 #define FKL_TABLE_KEY_INIT(K, X) fklInitBigInt(K, X)
 #define FKL_TABLE_KEY_UNINIT(K) fklUninitBigInt(K)
 #define FKL_TABLE_KEY_EQUAL(A, B) fklBigIntEqual(A, B)
@@ -79,35 +79,35 @@ typedef struct {
 } FklInstruction;
 
 typedef struct {
-    FklKi64Table ht;
+    FklKi64HashMap ht;
     int64_t *base;
     uint32_t count;
     uint32_t size;
 } FklConstI64Table;
 
 typedef struct {
-    FklKf64Table ht;
+    FklKf64HashMap ht;
     double *base;
     uint32_t count;
     uint32_t size;
 } FklConstF64Table;
 
 typedef struct {
-    FklKstrTable ht;
+    FklKstrHashMap ht;
     FklString **base;
     uint32_t count;
     uint32_t size;
 } FklConstStrTable;
 
 typedef struct {
-    FklKbvecTable ht;
+    FklKbvecHashMap ht;
     FklBytevector **base;
     uint32_t count;
     uint32_t size;
 } FklConstBvecTable;
 
 typedef struct {
-    FklKbiTable ht;
+    FklKbiHashMap ht;
     FklBigInt const **base;
     uint32_t count;
     uint32_t size;

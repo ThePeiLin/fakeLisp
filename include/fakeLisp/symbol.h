@@ -12,7 +12,7 @@ extern "C" {
 
 typedef uint64_t FklSid_t;
 
-// FklStrIdTable
+// FklStrIdHashMap
 #define FKL_TABLE_KEY_TYPE FklString *
 #define FKL_TABLE_VAL_TYPE FklSid_t
 #define FKL_TABLE_ELM_NAME StrId
@@ -27,17 +27,17 @@ typedef uint64_t FklSid_t;
 typedef struct FklSymboTable {
     FklSid_t num;
     size_t idl_size;
-    FklStrIdTableElm **idl;
-    FklStrIdTable ht;
+    FklStrIdHashMapElm **idl;
+    FklStrIdHashMap ht;
 } FklSymbolTable;
 
 void fklInitSymbolTable(FklSymbolTable *st);
 FklSymbolTable *fklCreateSymbolTable(void);
 
-FklStrIdTableElm *fklAddSymbol(const FklString *, FklSymbolTable *);
-FklStrIdTableElm *fklAddSymbolCstr(const char *, FklSymbolTable *);
-FklStrIdTableElm *fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
-FklStrIdTableElm *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
+FklStrIdHashMapElm *fklAddSymbol(const FklString *, FklSymbolTable *);
+FklStrIdHashMapElm *fklAddSymbolCstr(const char *, FklSymbolTable *);
+FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
+FklStrIdHashMapElm *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
 
 void fklPrintSymbolTable(const FklSymbolTable *, FILE *);
 
@@ -87,7 +87,7 @@ typedef struct // unresolved symbol ref
 #define FKL_TABLE_ELM_NAME Sid
 #include "table.h"
 
-// FklSymDefTable
+// FklSymDefHashMap
 #define FKL_TABLE_KEY_TYPE FklSidScope
 #define FKL_TABLE_VAL_TYPE FklSymDef
 #define FKL_TABLE_ELM_NAME SymDef
@@ -97,7 +97,7 @@ typedef struct // unresolved symbol ref
 #include "table.h"
 
 typedef struct FklFuncPrototype {
-    FklSymDefTableMutElm *refs;
+    FklSymDefHashMapMutElm *refs;
     uint32_t lcount;
     uint32_t rcount;
     FklSid_t sid;

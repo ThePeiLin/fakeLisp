@@ -21,11 +21,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    FklLalrItemSetTable *itemSet = fklGenerateLr0Items(g);
+    FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fklLr0ToLalrItems(itemSet, g);
 
     if (fklGenerateLalrAnalyzeTable(g, itemSet)) {
-        fklLalrItemSetTableDestroy(itemSet);
+        fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroySymbolTable(st);
         fklDestroyGrammer(g);
         fprintf(stderr, "not lalr garmmer\n");
@@ -41,6 +41,6 @@ int main(int argc, char *argv[]) {
 
     fklDestroySymbolTable(st);
     fklDestroyGrammer(g);
-    fklLalrItemSetTableDestroy(itemSet);
+    fklLalrItemSetHashMapDestroy(itemSet);
     return 0;
 }

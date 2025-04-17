@@ -9,6 +9,7 @@ extern "C" {
 
 typedef struct FklNastNode FklNastNode;
 
+// FklPmatchHashMap
 #define FKL_TABLE_KEY_TYPE FklSid_t
 #define FKL_TABLE_VAL_TYPE FklNastNode *
 #define FKL_TABLE_ELM_NAME Pmatch
@@ -21,7 +22,7 @@ typedef struct FklNastNode FklNastNode;
 
 FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklSidHashSet **);
 int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
-                    FklPmatchTable *ht);
+                    FklPmatchHashMap *ht);
 
 int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1);
 

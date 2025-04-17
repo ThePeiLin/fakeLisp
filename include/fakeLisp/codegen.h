@@ -19,7 +19,7 @@ typedef struct FklCodegenEnvScope {
     uint32_t start;
     uint32_t empty;
     uint32_t end;
-    FklSymDefTable defs;
+    FklSymDefHashMap defs;
 } FklCodegenEnvScope;
 
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
@@ -37,7 +37,7 @@ typedef struct {
 #define FKL_VECTOR_ELM_TYPE_NAME PreDefRef
 #include "vector.h"
 
-// FklPredefTable
+// FklPredefHashMap
 #define FKL_TABLE_KEY_TYPE FklSidScope
 #define FKL_TABLE_VAL_TYPE uint8_t
 #define FKL_TABLE_ELM_NAME Predef
@@ -59,10 +59,10 @@ typedef struct FklCodegenEnv {
     uint32_t prototypeId;
 
     struct FklCodegenEnv *prev;
-    FklSymDefTable refs;
+    FklSymDefHashMap refs;
     struct FklCodegenMacroScope *macros;
 
-    FklPredefTable pdef;
+    FklPredefHashMap pdef;
     struct FklPreDefRefVector ref_pdef;
 } FklCodegenEnv;
 
@@ -81,7 +81,7 @@ typedef struct FklCodegenMacro {
     uint8_t own;
 } FklCodegenMacro;
 
-// FklReplacementTable
+// FklReplacementHashMap
 #define FKL_TABLE_KEY_TYPE FklSid_t
 #define FKL_TABLE_VAL_TYPE FklNastNode *
 #define FKL_TABLE_ELM_NAME Replacement
@@ -96,7 +96,7 @@ typedef struct FklCodegenMacro {
 typedef struct FklCodegenMacroScope {
     uint32_t refcount;
     struct FklCodegenMacroScope *prev;
-    FklReplacementTable *replacements;
+    FklReplacementHashMap *replacements;
     FklCodegenMacro *head;
 } FklCodegenMacroScope;
 
@@ -110,7 +110,7 @@ typedef struct {
     uint32_t oidx;
 } FklCodegenExportIdx;
 
-// FklCgExportSidIdxTable
+// FklCgExportSidIdxHashMap
 #define FKL_TABLE_KEY_TYPE FklSid_t
 #define FKL_TABLE_VAL_TYPE FklCodegenExportIdx
 #define FKL_TABLE_ELM_NAME CgExportSidIdx
@@ -144,19 +144,19 @@ typedef enum {
 
 typedef struct {
     int is_ref_outer;
-    FklProdTable prods;
+    FklProdHashMap prods;
     FklGrammerIgnore *ignore;
     FklNastNodeVector ignore_printing;
     FklProdPrintingVector prod_printing;
 } FklGrammerProdGroupItem;
 
-// FklGraProdGroupTable
+// FklGraProdGroupHashMap
 #define FKL_TABLE_KEY_TYPE FklSid_t
 #define FKL_TABLE_VAL_TYPE FklGrammerProdGroupItem
 #define FKL_TABLE_ELM_NAME GraProdGroup
 #define FKL_TABLE_VAL_UNINIT(V)                                                \
     {                                                                          \
-        fklProdTableUninit(&(V)->prods);                                       \
+        fklProdHashMapUninit(&(V)->prods);                                     \
         FklGrammerIgnore *ig = (V)->ignore;                                    \
         while (ig) {                                                           \
             FklGrammerIgnore *next = ig->next;                                 \
@@ -187,12 +187,12 @@ typedef struct {
         uv_lib_t dll;
     };
     char *rp;
-    FklCgExportSidIdxTable exports;
+    FklCgExportSidIdxHashMap exports;
 
     FklCodegenMacro *head;
-    FklReplacementTable *replacements;
+    FklReplacementHashMap *replacements;
 
-    FklGraProdGroupTable named_prod_groups;
+    FklGraProdGroupHashMap named_prod_groups;
     FklSymbolTable terminal_table;
     FklRegexTable regexes;
 
@@ -332,28 +332,28 @@ typedef struct FklCodegenInfo {
 
     struct {
         FklGrammer *self_g;
-        FklProdTable self_builtin_prods;
+        FklProdHashMap self_builtin_prods;
         FklGrammerIgnore *self_builtin_ignores;
-        FklProdTable self_unnamed_prods;
+        FklProdHashMap self_unnamed_prods;
         FklGrammerIgnore *self_unnamed_ignores;
-        FklGraProdGroupTable self_named_prod_groups;
+        FklGraProdGroupHashMap self_named_prod_groups;
     };
 
     FklGrammer **g;
-    FklProdTable *builtin_prods;
+    FklProdHashMap *builtin_prods;
     FklGrammerIgnore **builtin_ignores;
-    FklProdTable *unnamed_prods;
+    FklProdHashMap *unnamed_prods;
     FklGrammerIgnore **unnamed_ignores;
-    FklGraProdGroupTable *named_prod_groups;
+    FklGraProdGroupHashMap *named_prod_groups;
 
     FklCodegenEnv *global_env;
     FklSymbolTable *runtime_symbol_table;
     FklConstTable *runtime_kt;
 
-    FklCgExportSidIdxTable exports;
+    FklCgExportSidIdxHashMap exports;
 
     FklCodegenMacro *export_macro;
-    FklReplacementTable *export_replacement;
+    FklReplacementHashMap *export_replacement;
 
     FklSidHashSet *export_named_prod_groups;
 
@@ -474,10 +474,10 @@ FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
                                                         FklCodegenInfo *codegen,
                                                         FklCodegenEnv *cur_env);
 
-FklSymDefTableElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
-                                                const FklCodegenEnv *env);
-FklSymDefTableElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
-                                               const FklCodegenEnv *env);
+FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
+                                                  const FklCodegenEnv *env);
+FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
+                                                 const FklCodegenEnv *env);
 
 void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
                           const FklCodegenInfo *info,
@@ -487,14 +487,14 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
 void fklPrintUndefinedRef(const FklCodegenEnv *env, FklSymbolTable *runtime_st,
                           FklSymbolTable *pst);
 
-FklSymDefTableElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
-                                                FklCodegenEnv *env);
+FklSymDefHashMapElm *fklAddCodegenBuiltinRefBySid(FklSid_t id,
+                                                  FklCodegenEnv *env);
 uint32_t fklAddCodegenRefBySidRetIndex(FklSid_t id, FklCodegenEnv *env,
                                        FklSid_t fid, uint64_t line,
                                        uint32_t assign);
-FklSymDefTableElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
-                                         FklSid_t fid, uint64_t line,
-                                         uint32_t assign);
+FklSymDefHashMapElm *fklAddCodegenRefBySid(FklSid_t id, FklCodegenEnv *env,
+                                           FklSid_t fid, uint64_t line,
+                                           uint32_t assign);
 FklSymDef *fklGetCodegenRefBySid(FklSid_t id, FklCodegenEnv *env);
 
 FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scope,
@@ -514,7 +514,7 @@ int fklIsSymbolDefined(FklSid_t sid, uint32_t scope, FklCodegenEnv *);
 
 int fklIsReplacementDefined(FklSid_t sid, FklCodegenEnv *);
 
-FklNastNode *fklGetReplacement(FklSid_t sid, const FklReplacementTable *);
+FklNastNode *fklGetReplacement(FklSid_t sid, const FklReplacementHashMap *);
 
 FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev, uint32_t pscope,
                                    FklCodegenMacroScope *);
@@ -559,8 +559,8 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp, FklCodegenInfo *,
                                       FklCodegenErrorState *);
 
 FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl, FklFuncPrototypes *pts,
-                            uint32_t prototype_id, FklPmatchTable *ht,
-                            FklLineNumTable *lineHash,
+                            uint32_t prototype_id, FklPmatchHashMap *ht,
+                            FklLineNumHashMap *lineHash,
                             FklCodegenLibVector *macroLibStack,
                             FklNastNode **pr, uint64_t curline,
                             FklSymbolTable *pst, FklConstTable *pkt);
@@ -597,7 +597,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklCodegenOuterCtx *outer_ctx, const char *rp, FILE *fp,
                       char **errorStr);
 
-void fklWriteNamedProds(const FklGraProdGroupTable *named_prod_groups,
+void fklWriteNamedProds(const FklGraProdGroupHashMap *named_prod_groups,
                         const FklSymbolTable *st, FILE *fp);
 
 FklGrammerProduction *fklCreateExtraStartProduction(FklSid_t group,
@@ -605,15 +605,15 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklSid_t group,
 
 FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklSymbolTable *tt,
                                         FklRegexTable *rt,
-                                        FklGraSidBuiltinTable *builtin_terms);
+                                        FklGraSidBuiltinHashMap *builtin_terms);
 
 FklGrammerProduction *fklCodegenProdPrintingToProduction(
     const FklCodegenProdPrinting *p, FklSymbolTable *tt, FklRegexTable *rt,
-    FklGraSidBuiltinTable *builtin_terms, FklCodegenOuterCtx *outer_ctx,
+    FklGraSidBuiltinHashMap *builtin_terms, FklCodegenOuterCtx *outer_ctx,
     FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
 
 void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
-                              const FklGraProdGroupTable *named_prod_groups,
+                              const FklGraProdGroupHashMap *named_prod_groups,
                               const FklSymbolTable *st, FILE *fp);
 
 #ifdef __cplusplus

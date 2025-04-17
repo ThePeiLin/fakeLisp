@@ -3,8 +3,8 @@
 #include <fakeLisp/base.h>
 
 void initBreakpointTable(BreakpointTable *bt) {
-    bdbBpInsTableInit(&bt->ins_ht);
-    bdbBpIdxTableInit(&bt->idx_ht);
+    bdbBpInsHashMapInit(&bt->ins_ht);
+    bdbBpIdxHashMapInit(&bt->idx_ht);
     fklUintVectorInit(&bt->unused_prototype_id_for_cond_bp, 16);
     bt->next_idx = 1;
     bt->deleted_breakpoints = NULL;
@@ -30,7 +30,7 @@ static inline void mark_breakpoint_deleted(Breakpoint *bp,
 }
 
 static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
-    BdbBpInsTableElm *ins_item = bp->item;
+    BdbBpInsHashMapElm *ins_item = bp->item;
     *(bp->pnext) = bp->next;
     if (bp->next)
         bp->next->pnext = bp->pnext;
@@ -39,12 +39,12 @@ static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
     if (ins_item->v.bp == NULL) {
         FklInstruction *ins = ins_item->k;
         ins->op = ins_item->v.origin_op;
-        bdbBpInsTableDel2(&bt->ins_ht, ins);
+        bdbBpInsHashMapDel2(&bt->ins_ht, ins);
     }
 }
 
 static inline void clear_breakpoint(BreakpointTable *bt) {
-    for (BdbBpIdxTableNode *l = bt->idx_ht.first; l; l = l->next) {
+    for (BdbBpIdxHashMapNode *l = bt->idx_ht.first; l; l = l->next) {
         Breakpoint *bp = l->v;
         mark_breakpoint_deleted(bp, bt);
         remove_breakpoint(bp, bt);
@@ -64,8 +64,8 @@ static inline void destroy_all_deleted_breakpoint(BreakpointTable *bt) {
 
 void uninitBreakpointTable(BreakpointTable *bt) {
     clear_breakpoint(bt);
-    bdbBpInsTableUninit(&bt->ins_ht);
-    bdbBpIdxTableUninit(&bt->idx_ht);
+    bdbBpInsHashMapUninit(&bt->ins_ht);
+    bdbBpIdxHashMapUninit(&bt->idx_ht);
     destroy_all_deleted_breakpoint(bt);
     fklUintVectorUninit(&bt->unused_prototype_id_for_cond_bp);
 }
@@ -93,7 +93,7 @@ Breakpoint *getBreakpointFromWrapper(FklVMvalue *v) {
 }
 
 Breakpoint *getBreakpointWithIdx(DebugCtx *dctx, uint32_t idx) {
-    Breakpoint **i = bdbBpIdxTableGet2(&dctx->bt.idx_ht, idx);
+    Breakpoint **i = bdbBpIdxHashMapGet2(&dctx->bt.idx_ht, idx);
     if (i)
         return *i;
     return NULL;
@@ -137,7 +137,7 @@ void clearDeletedBreakpoint(DebugCtx *dctx) {
 Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
     Breakpoint *bp = NULL;
     BreakpointTable *bt = &dctx->bt;
-    if (bdbBpIdxTableEarase(&bt->idx_ht, &idx, &bp, NULL)) {
+    if (bdbBpIdxHashMapEarase(&bt->idx_ht, &idx, &bp, NULL)) {
         mark_breakpoint_deleted(bp, bt);
         return bp;
     }
@@ -146,7 +146,8 @@ Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
 
 void markBreakpointCondExpObj(DebugCtx *dctx, FklVMgc *gc) {
     BreakpointTable *bt = &dctx->bt;
-    for (BdbBpIdxTableNode *list = bt->idx_ht.first; list; list = list->next) {
+    for (BdbBpIdxHashMapNode *list = bt->idx_ht.first; list;
+         list = list->next) {
         Breakpoint *bp = list->v;
         if (bp->cond_exp_obj)
             fklVMgcToGray(bp->cond_exp_obj, gc);
@@ -157,7 +158,7 @@ void markBreakpointCondExpObj(DebugCtx *dctx, FklVMgc *gc) {
     }
 }
 
-static inline Breakpoint *make_breakpoint(BdbBpInsTableElm *item,
+static inline Breakpoint *make_breakpoint(BdbBpInsHashMapElm *item,
                                           BreakpointTable *bt, FklSid_t fid,
                                           uint32_t line) {
     Breakpoint *bp = (Breakpoint *)calloc(1, sizeof(Breakpoint));
@@ -171,14 +172,14 @@ static inline Breakpoint *make_breakpoint(BdbBpInsTableElm *item,
     bp->pnext = &item->v.bp;
     bp->next = item->v.bp;
     item->v.bp = bp;
-    bdbBpIdxTableAdd2(&bt->idx_ht, bp->idx, bp);
+    bdbBpIdxHashMapAdd2(&bt->idx_ht, bp->idx, bp);
     return bp;
 }
 
 Breakpoint *createBreakpoint(FklSid_t fid, uint32_t line, FklInstruction *ins,
                              DebugCtx *ctx) {
     BreakpointTable *bt = &ctx->bt;
-    BdbBpInsTableElm *item = bdbBpInsTableInsert2(
+    BdbBpInsHashMapElm *item = bdbBpInsHashMapInsert2(
         &bt->ins_ht, ins, (BdbCodepoint){.origin_op = ins->op, .bp = NULL});
     item->v.bp = make_breakpoint(item, bt, fid, line);
     ins->op = FKL_OP_DUMMY;
@@ -186,6 +187,6 @@ Breakpoint *createBreakpoint(FklSid_t fid, uint32_t line, FklInstruction *ins,
 }
 
 BdbCodepoint *getBreakpointHashItem(DebugCtx *dctx, const FklInstruction *ins) {
-    return bdbBpInsTableGet2(&dctx->bt.ins_ht,
-                             FKL_REMOVE_CONST(FklInstruction, ins));
+    return bdbBpInsHashMapGet2(&dctx->bt.ins_ht,
+                               FKL_REMOVE_CONST(FklInstruction, ins));
 }

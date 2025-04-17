@@ -390,7 +390,7 @@ typedef struct {
     int printed;
 } PrtSt;
 
-// VmValueDegreeTable
+// VmValueDegreeHashMap
 #define FKL_TABLE_TYPE_PREFIX Vm
 #define FKL_TABLE_METHOD_PREFIX vm
 #define FKL_TABLE_KEY_TYPE FklVMvalue const *
@@ -399,16 +399,16 @@ typedef struct {
 #define FKL_TABLE_KEY_HASH                                                     \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
 #include <fakeLisp/table.h>
-static inline void putValueInSet(VmCircleHeadTable *s, const FklVMvalue *v) {
+static inline void putValueInSet(VmCircleHeadHashMap *s, const FklVMvalue *v) {
     uint32_t num = s->count;
-    vmCircleHeadTablePut2(s, v,
-                          (PrtSt){
-                              .i = num,
-                              .printed = 0,
-                          });
+    vmCircleHeadHashMapPut2(s, v,
+                            (PrtSt){
+                                .i = num,
+                                .printed = 0,
+                            });
 }
 
-// VmValueDegreeTable
+// VmValueDegreeHashMap
 #define FKL_TABLE_TYPE_PREFIX Vm
 #define FKL_TABLE_METHOD_PREFIX vm
 #define FKL_TABLE_KEY_TYPE FklVMvalue *
@@ -418,20 +418,21 @@ static inline void putValueInSet(VmCircleHeadTable *s, const FklVMvalue *v) {
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
 #include <fakeLisp/table.h>
 
-static inline void inc_value_degree(VmValueDegreeTable *ht, FklVMvalue *v) {
-    VmValueDegreeTableElm *degree_item = vmValueDegreeTableInsert2(ht, v, 0);
+static inline void inc_value_degree(VmValueDegreeHashMap *ht, FklVMvalue *v) {
+    VmValueDegreeHashMapElm *degree_item =
+        vmValueDegreeHashMapInsert2(ht, v, 0);
     ++degree_item->v;
 }
 
-static inline void dec_value_degree(VmValueDegreeTable *ht, FklVMvalue *v) {
-    uint64_t *degree = vmValueDegreeTableGet2(ht, v);
+static inline void dec_value_degree(VmValueDegreeHashMap *ht, FklVMvalue *v) {
+    uint64_t *degree = vmValueDegreeHashMapGet2(ht, v);
     if (degree && *degree)
         --(*degree);
 }
 
 static inline void
-scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
-                                    VmCircleHeadTable *circle_heads,
+scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
+                                    VmCircleHeadHashMap *circle_heads,
                                     const FklVMvalue *first_value) {
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
@@ -441,14 +442,14 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
         FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(ht, v);
-            if (!vmCircleHeadTableGet2(circle_heads, v)) {
+            if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_VECTOR(v)) {
             inc_value_degree(ht, v);
-            if (!vmCircleHeadTableGet2(circle_heads, v)) {
+            if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
@@ -456,15 +457,15 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(ht, v);
-            if (!vmCircleHeadTableGet2(circle_heads, v)) {
+            if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
                 fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(ht, v);
-            if (!vmCircleHeadTableGet2(circle_heads, v)) {
-                for (FklVMvalueTableNode *tail = FKL_VM_HASH(v)->ht.last; tail;
-                     tail = tail->prev) {
+            if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
+                for (FklVMvalueHashMapNode *tail = FKL_VM_HASH(v)->ht.last;
+                     tail; tail = tail->prev) {
                     fklVMvalueVectorPushBack2(&stack, tail->v);
                     fklVMvalueVectorPushBack2(&stack, tail->k);
                 }
@@ -478,7 +479,7 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
 
     do {
         stack.size = 0;
-        for (VmValueDegreeTableNode *list = ht->first; list;
+        for (VmValueDegreeHashMapNode *list = ht->first; list;
              list = list->next) {
             if (!list->v)
                 fklVMvalueVectorPushBack2(&stack, list->k);
@@ -486,7 +487,7 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.size];
         for (; base < end; base++) {
-            vmValueDegreeTableDel2(ht, *base);
+            vmValueDegreeHashMapDel2(ht, *base);
             FklVMvalue *v = *base;
             if (FKL_IS_PAIR(v)) {
                 dec_value_degree(ht, FKL_VM_CAR(v));
@@ -500,8 +501,8 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
             } else if (FKL_IS_BOX(v))
                 dec_value_degree(ht, FKL_VM_BOX(v));
             else if (FKL_IS_HASHTABLE(v)) {
-                for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first; list;
-                     list = list->next) {
+                for (FklVMvalueHashMapNode *list = FKL_VM_HASH(v)->ht.first;
+                     list; list = list->next) {
                     dec_value_degree(ht, list->k);
                     dec_value_degree(ht, list->v);
                 }
@@ -511,16 +512,16 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
 
     // get all circle heads
 
-    vmCircleHeadTableClear(circle_heads);
+    vmCircleHeadHashMapClear(circle_heads);
     while (ht->count) {
-        VmValueDegreeTableNode *value_degree = ht->first;
+        VmValueDegreeHashMapNode *value_degree = ht->first;
         FklVMvalue const *v = value_degree->k;
         putValueInSet(circle_heads, v);
         value_degree->v = 0;
 
         do {
             stack.size = 0;
-            for (VmValueDegreeTableNode *list = ht->first; list;
+            for (VmValueDegreeHashMapNode *list = ht->first; list;
                  list = list->next) {
                 if (!list->v)
                     fklVMvalueVectorPushBack2(&stack, list->k);
@@ -528,7 +529,7 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
             FklVMvalue **base = (FklVMvalue **)stack.base;
             FklVMvalue **const end = &base[stack.size];
             for (; base < end; base++) {
-                vmValueDegreeTableDel2(ht, *base);
+                vmValueDegreeHashMapDel2(ht, *base);
                 FklVMvalue *v = *base;
                 if (FKL_IS_PAIR(v)) {
                     dec_value_degree(ht, FKL_VM_CAR(v));
@@ -542,7 +543,7 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
                 } else if (FKL_IS_BOX(v))
                     dec_value_degree(ht, FKL_VM_BOX(v));
                 else if (FKL_IS_HASHTABLE(v)) {
-                    for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first;
+                    for (FklVMvalueHashMapNode *list = FKL_VM_HASH(v)->ht.first;
                          list; list = list->next) {
                         dec_value_degree(ht, list->k);
                         dec_value_degree(ht, list->v);
@@ -555,11 +556,11 @@ scan_value_and_find_value_in_circle(VmValueDegreeTable *ht,
 }
 
 static inline void scan_cir_ref(const FklVMvalue *s,
-                                VmCircleHeadTable *circle_head_set) {
-    VmValueDegreeTable degree_table;
-    vmValueDegreeTableInit(&degree_table);
+                                VmCircleHeadHashMap *circle_head_set) {
+    VmValueDegreeHashMap degree_table;
+    vmValueDegreeHashMapInit(&degree_table);
     scan_value_and_find_value_in_circle(&degree_table, circle_head_set, s);
-    vmValueDegreeTableUninit(&degree_table);
+    vmValueDegreeHashMapUninit(&degree_table);
 }
 
 int fklHasCircleRef(const FklVMvalue *first_value) {
@@ -570,8 +571,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     FklVMvalueHashSet value_set;
     fklVMvalueHashSetInit(&value_set);
 
-    VmValueDegreeTable degree_table;
-    vmValueDegreeTableInit(&degree_table);
+    VmValueDegreeHashMap degree_table;
+    vmValueDegreeHashMapInit(&degree_table);
 
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
@@ -601,8 +602,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         } else if (FKL_IS_HASHTABLE(v)) {
             inc_value_degree(&degree_table, v);
             if (!fklVMvalueHashSetPut2(&value_set, v)) {
-                for (FklVMvalueTableNode *tail = FKL_VM_HASH(v)->ht.last; tail;
-                     tail = tail->prev) {
+                for (FklVMvalueHashMapNode *tail = FKL_VM_HASH(v)->ht.last;
+                     tail; tail = tail->prev) {
                     fklVMvalueVectorPushBack2(&stack, tail->v);
                     fklVMvalueVectorPushBack2(&stack, tail->k);
                 }
@@ -616,7 +617,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
 
     do {
         stack.size = 0;
-        for (VmValueDegreeTableNode *list = degree_table.first; list;
+        for (VmValueDegreeHashMapNode *list = degree_table.first; list;
              list = list->next) {
             if (!list->v)
                 fklVMvalueVectorPushBack2(&stack, list->k);
@@ -624,7 +625,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.size];
         for (; base < end; base++) {
-            vmValueDegreeTableDel2(&degree_table, *base);
+            vmValueDegreeHashMapDel2(&degree_table, *base);
             FklVMvalue *v = *base;
             if (FKL_IS_PAIR(v)) {
                 dec_value_degree(&degree_table, FKL_VM_CAR(v));
@@ -638,8 +639,8 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
             } else if (FKL_IS_BOX(v))
                 dec_value_degree(&degree_table, FKL_VM_BOX(v));
             else if (FKL_IS_HASHTABLE(v)) {
-                for (FklVMvalueTableNode *list = FKL_VM_HASH(v)->ht.first; list;
-                     list = list->next) {
+                for (FklVMvalueHashMapNode *list = FKL_VM_HASH(v)->ht.first;
+                     list; list = list->next) {
                     dec_value_degree(&degree_table, list->k);
                     dec_value_degree(&degree_table, list->v);
                 }
@@ -648,7 +649,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     } while (!fklVMvalueVectorIsEmpty(&stack));
 
     int r = degree_table.count > 0;
-    vmValueDegreeTableUninit(&degree_table);
+    vmValueDegreeHashMapUninit(&degree_table);
     fklVMvalueVectorUninit(&stack);
     return r;
 }
@@ -805,7 +806,7 @@ typedef struct PrintCtx {
 typedef struct PrintPairCtx {
     PRINT_CTX_COMMON_HEADER;
     const FklVMvalue *cur;
-    const VmCircleHeadTable *circle_head_set;
+    const VmCircleHeadHashMap *circle_head_set;
 } PrintPairCtx;
 
 static_assert(sizeof(PrintPairCtx) <= sizeof(PrintCtx),
@@ -823,7 +824,7 @@ static_assert(sizeof(PrintVectorCtx) <= sizeof(PrintCtx),
 typedef struct PrintHashCtx {
     PRINT_CTX_COMMON_HEADER;
     const FklVMvalue *hash;
-    const FklVMvalueTableNode *cur;
+    const FklVMvalueHashMapNode *cur;
 } PrintHashCtx;
 
 static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
@@ -838,7 +839,7 @@ static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
 
 static inline void
 print_pair_ctx_init(PrintCtx *ctx, const FklVMvalue *pair,
-                    const VmCircleHeadTable *circle_head_set) {
+                    const VmCircleHeadHashMap *circle_head_set) {
     PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);
     pair_ctx->cur = pair;
     pair_ctx->circle_head_set = circle_head_set;

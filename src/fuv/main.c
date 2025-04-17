@@ -300,7 +300,7 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
     pd->SIGTSTP_sid = fklAddSymbolCstr("sigtstp", st)->v;
 #endif
 #ifdef SIGBREAK
-    pd->SIGBREAK_sid = fklAddSymbolCstr("sigbreak", st)->id;
+    pd->SIGBREAK_sid = fklAddSymbolCstr("sigbreak", st)->v;
 #endif
 #ifdef SIGTTIN
     pd->SIGTTIN_sid = fklAddSymbolCstr("sigttin", st)->v;
@@ -333,7 +333,7 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
     pd->SIGPOLL_sid = fklAddSymbolCstr("sigpoll", st)->v;
 #endif
 #ifdef SIGLOST
-    pd->SIGLOST_sid = fklAddSymbolCstr("siglost", st)->id;
+    pd->SIGLOST_sid = fklAddSymbolCstr("siglost", st)->v;
 #endif
 #ifdef SIGPWR
     pd->SIGPWR_sid = fklAddSymbolCstr("sigpwr", st)->v;
@@ -358,15 +358,15 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
     pd->NI_NUMERICSERV_sid = fklAddSymbolCstr("numericserv", st)->v;
 #endif
 #ifdef NI_IDN
-    pd->NI_IDN_sid = fklAddSymbolCstr("idn", st)->id;
+    pd->NI_IDN_sid = fklAddSymbolCstr("idn", st)->v;
 #endif
 #ifdef NI_IDN_ALLOW_UNASSIGNED
     pd->NI_IDN_ALLOW_UNASSIGNED_sid =
-        fklAddSymbolCstr("idn-allow-unassigned", st)->id;
+        fklAddSymbolCstr("idn-allow-unassigned", st)->v;
 #endif
 #ifdef NI_IDN_USE_STD3_ASCII_RULES
     pd->NI_IDN_USE_STD3_ASCII_RULES_sid =
-        fklAddSymbolCstr("idn-use-std3-ascii-rules", st)->id;
+        fklAddSymbolCstr("idn-use-std3-ascii-rules", st)->v;
 #endif
 
     pd->UV_FS_O_APPEND_sid = fklAddSymbolCstr("append", st)->v;

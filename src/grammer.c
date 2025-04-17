@@ -2588,7 +2588,8 @@ static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
     uintptr_t seed =
         (s->term_type == FKL_TERM_BUILTIN ? fklBuiltinGrammerSymHash(&s->b)
          : (s->term_type == FKL_TERM_REGEX)
-             ? fklHash64Shift(FKL_TYPE_CAST(uintptr_t, s->re / alignof(*s->re)))
+             ? fklHash64Shift(
+                   FKL_TYPE_CAST(uintptr_t, s->re / alignof(FklRegexCode)))
              : fklNontermHash(&s->nt));
     seed = fklHashCombine(seed, s->isterm);
     seed = fklHashCombine(seed, s->delim);

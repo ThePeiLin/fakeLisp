@@ -376,6 +376,8 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
                     }
                 } break;
                 default:
+                    fprintf(stderr, "[ERROR %s: %u]\tunreachable \n",
+                            __FUNCTION__, __LINE__);
                     abort();
                     break;
                 }
@@ -577,6 +579,11 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                     __FUNCTION__);
             abort();
             break;
+        default:
+            fprintf(stderr, "[%s: %d] %s: invalid value type!\n", __FILE__,
+                    __LINE__, __FUNCTION__);
+            abort();
+            break;
         }
     } else
         return fir == sec;
@@ -676,6 +683,11 @@ nested_equal:
                 case FKL_VM_VALUE_GC_TYPE_NUM:
                     fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__,
                             __LINE__, __FUNCTION__);
+                    abort();
+                    break;
+                default:
+                    fprintf(stderr, "[%s: %d] %s: invalid value type!\n",
+                            __FILE__, __LINE__, __FUNCTION__);
                     abort();
                     break;
                 }

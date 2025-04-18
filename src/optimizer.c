@@ -69,6 +69,22 @@ static inline int set_ins_with_unsigned_imm(FklInstruction *ins, FklOpcode op,
     return l;
 }
 
+static inline int set_ins_with_signed_unsigned_imm(FklInstruction *ins,
+                                                   FklOpcode op, int64_t ix,
+                                                   uint64_t uy) {
+    int l = 1;
+    if (ix >= INT8_MIN && ix <= INT8_MAX && uy <= UINT16_MAX) {
+        ins[0].op = op;
+        ins[0].ai = ix;
+        ins[0].bu = uy;
+    } else {
+        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+                __FUNCTION__);
+        abort();
+    }
+    return l;
+}
+
 static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins, FklOpcode op,
                                               uint64_t ux, uint64_t uy) {
     int l = 1;
@@ -380,6 +396,10 @@ void fklRecomputeInsImm(FklByteCodelnt *bcl, void *ctx,
             case FKL_OP_MODE_IuCCB:
                 nl = set_ins_with_unsigned_imm(new_ins, op, arg.ux);
                 break;
+            case FKL_OP_MODE_IsAuB:
+                nl = set_ins_with_signed_unsigned_imm(new_ins, op, arg.ix,
+                                                      arg.uy);
+                break;
             case FKL_OP_MODE_IuAuB:
             case FKL_OP_MODE_IuCuC:
             case FKL_OP_MODE_IuCAuBB:
@@ -678,8 +698,7 @@ static uint32_t inc_or_dec_loc_predicate(const FklByteCodeBuffer *buf,
     if (k < 3)
         return 0;
     if (peephole[0].ins.op == FKL_OP_GET_LOC
-        && (peephole[1].ins.op == FKL_OP_INC
-            || peephole[1].ins.op == FKL_OP_DEC)
+        && peephole[1].ins.op == FKL_OP_ADDK
         && peephole[2].ins.op == FKL_OP_PUT_LOC
         && peephole[0].ins.bu == peephole[2].ins.bu)
         return 3;
@@ -691,8 +710,8 @@ static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer *buf,
                                       const FklInsLn *peephole, uint32_t k,
                                       FklInsLn *output) {
     output[0] = peephole[0];
-    output[0].ins.op =
-        peephole[1].ins.op == FKL_OP_INC ? FKL_OP_INC_LOC : FKL_OP_DEC_LOC;
+    output[0].ins.op = FKL_OP_ADDK_LOC;
+    output[0].ins.ai = peephole[1].ins.ai;
     return 1;
 }
 
@@ -859,7 +878,8 @@ static uint32_t call_vec_predicate(const FklByteCodeBuffer *buf,
                                    const FklInsLn *peephole, uint32_t k) {
     if (k < 2)
         return 0;
-    if (peephole[0].ins.op == FKL_OP_VEC_REF
+    if (peephole[0].ins.op == FKL_OP_VEC
+        && peephole[0].ins.ai == FKL_SUBOP_VEC_REF
         && (peephole[1].ins.op == FKL_OP_CALL
             || peephole[1].ins.op == FKL_OP_TAIL_CALL))
         return 2;
@@ -882,8 +902,9 @@ static uint32_t call_car_or_cdr_predicate(const FklByteCodeBuffer *buf,
                                           uint32_t k) {
     if (k < 2)
         return 0;
-    if ((peephole[0].ins.op == FKL_OP_PUSH_CAR
-         || peephole[0].ins.op == FKL_OP_PUSH_CDR)
+    if (peephole[0].ins.op == FKL_OP_PAIR
+        && (peephole[0].ins.ai == FKL_SUBOP_PAIR_CAR
+            || peephole[0].ins.ai == FKL_SUBOP_PAIR_CDR)
         && (peephole[1].ins.op == FKL_OP_CALL
             || peephole[1].ins.op == FKL_OP_TAIL_CALL))
         return 2;
@@ -894,15 +915,21 @@ static uint32_t call_car_or_cdr_output(const FklByteCodeBuffer *buf,
                                        const uint64_t *block_start,
                                        const FklInsLn *peephole, uint32_t k,
                                        FklInsLn *output) {
+    FKL_ASSERT(peephole[0].ins.op == FKL_OP_PAIR);
     output[0] = peephole[0];
-    if (peephole[0].ins.op == FKL_OP_PUSH_CAR)
+    if (peephole[0].ins.ai == FKL_SUBOP_PAIR_CAR)
         output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL
                              ? FKL_OP_CALL_CAR
                              : FKL_OP_TAIL_CALL_CAR;
-    else
+    else if (peephole[0].ins.ai == FKL_SUBOP_PAIR_CDR)
         output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL
                              ? FKL_OP_CALL_CDR
                              : FKL_OP_TAIL_CALL_CDR;
+    else {
+        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+                __FUNCTION__);
+        abort();
+    }
     return 1;
 }
 
@@ -1029,33 +1056,42 @@ static inline int is_foldable_op2(const FklInstruction *in, int32_t a,
     int32_t res;
     switch ((FklOpcode)in->op) {
     case FKL_OP_ADD:
+        if (in->ai != 2)
+            return 0;
         res = a + b;
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
     case FKL_OP_SUB:
+        if (in->ai != 2)
+            return 0;
         res = b - a;
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
     case FKL_OP_MUL:
+        if (in->ai != 2)
+            return 0;
         return !is_i24_mul_overflow(a, b);
         break;
     case FKL_OP_IDIV:
+        if (in->ai != 2)
+            return 0;
         if (a == 0)
             return 0;
         res = b / a;
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
     case FKL_OP_DIV:
+        if (in->ai != 2 && in->ai != -2)
+            return 0;
         if (a == 0)
             return 0;
-        res = b / a;
-        return b % a == 0 && res >= FKL_I24_MIN && res <= FKL_I24_MAX;
-        break;
-    case FKL_OP_MOD:
-        if (a == 0)
-            return 0;
-        res = b % a;
-        return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
+        if (in->ai == -2) {
+            res = b % a;
+            return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
+        } else {
+            res = b / a;
+            return b % a == 0 && res >= FKL_I24_MIN && res <= FKL_I24_MAX;
+        }
         break;
     default:
         return 0;
@@ -1091,19 +1127,26 @@ static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer *buf,
     int32_t r;
     switch ((FklOpcode)peephole[2].ins.op) {
     case FKL_OP_ADD:
+        FKL_ASSERT(peephole[2].ins.ai == 2);
         r = oprand1 + oprand2;
         break;
     case FKL_OP_SUB:
+        FKL_ASSERT(peephole[2].ins.ai == 2);
         r = oprand2 - oprand1;
         break;
     case FKL_OP_MUL:
+        FKL_ASSERT(peephole[2].ins.ai == 2);
         r = oprand1 * oprand2;
         break;
-    case FKL_OP_MOD:
-        r = oprand2 % oprand1;
-        break;
     case FKL_OP_DIV:
+        if (peephole[2].ins.ai == -2) {
+            r = oprand2 % oprand1;
+        } else
+            goto div;
+        break;
     case FKL_OP_IDIV:
+    div:
+        FKL_ASSERT(peephole[2].ins.ai == 2);
         r = oprand2 / oprand1;
         break;
     default:
@@ -1131,18 +1174,26 @@ static inline int is_foldable_op3(const FklInstruction *in, int32_t a,
                                   int32_t b, int32_t c) {
     int32_t res;
     switch ((FklOpcode)in->op) {
-    case FKL_OP_ADD3:
+    case FKL_OP_ADD:
+        if (in->ai != 3)
+            return 0;
         res = a + b + c;
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
-    case FKL_OP_SUB3:
+    case FKL_OP_SUB:
+        if (in->ai != 3)
+            return 0;
         res = c - (a + b);
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
-    case FKL_OP_MUL3:
+    case FKL_OP_MUL:
+        if (in->ai != 3)
+            return 0;
         return !is_i24_mul_overflow(a, b) && !is_i24_mul_overflow(c, a * b);
         break;
-    case FKL_OP_IDIV3:
+    case FKL_OP_IDIV:
+        if (in->ai != 3)
+            return 0;
         if (is_i24_mul_overflow(a, b))
             return 0;
         if (a == 0 || b == 0)
@@ -1150,7 +1201,9 @@ static inline int is_foldable_op3(const FklInstruction *in, int32_t a,
         res = c / (a * b);
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
-    case FKL_OP_DIV3:
+    case FKL_OP_DIV:
+        if (in->ai != 3)
+            return 0;
         if (is_i24_mul_overflow(a, b))
             return 0;
         if (a == 0 || b == 0)
@@ -1197,17 +1250,21 @@ static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer *buf,
     is_foldable_const(&peephole[2].ins, &oprand3);
     int32_t r;
     switch ((FklOpcode)peephole[3].ins.op) {
-    case FKL_OP_ADD3:
+    case FKL_OP_ADD:
+        FKL_ASSERT(peephole[3].ins.ai == 3);
         r = oprand1 + oprand2 + oprand3;
         break;
-    case FKL_OP_SUB3:
+    case FKL_OP_SUB:
+        FKL_ASSERT(peephole[3].ins.ai == 3);
         r = oprand3 - (oprand2 + oprand1);
         break;
-    case FKL_OP_MUL3:
+    case FKL_OP_MUL:
+        FKL_ASSERT(peephole[3].ins.ai == 3);
         r = oprand1 * oprand2 * oprand3;
         break;
-    case FKL_OP_DIV3:
-    case FKL_OP_IDIV3:
+    case FKL_OP_DIV:
+    case FKL_OP_IDIV:
+        FKL_ASSERT(peephole[3].ins.ai == 3);
         r = oprand3 / (oprand2 * oprand1);
         break;
     default:
@@ -1234,21 +1291,23 @@ static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer *buf,
 static inline int is_foldable_op1(const FklInstruction *in, int32_t a) {
     int32_t res;
     switch ((FklOpcode)in->op) {
-    case FKL_OP_INC:
-        res = a + 1;
+    case FKL_OP_ADDK:
+        res = a + in->ai;
         return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
         break;
-    case FKL_OP_DEC:
-        res = a - 1;
-        return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
+    case FKL_OP_ADD:
+        return in->ai == 1;
         break;
-    case FKL_OP_ADD1:
-    case FKL_OP_MUL1:
-        return 1;
+    case FKL_OP_MUL:
+        return in->ai == 1;
         break;
-    case FKL_OP_NEG:
-        res = -a;
-        return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
+    case FKL_OP_SUB:
+        if (in->ai != 1)
+            return 0;
+        else {
+            res = -a;
+            return res >= FKL_I24_MIN && res <= FKL_I24_MAX;
+        }
         break;
     default:
         return 0;
@@ -1279,17 +1338,16 @@ static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer *buf,
     is_foldable_const(&peephole[0].ins, &oprand1);
     int32_t r;
     switch ((FklOpcode)peephole[1].ins.op) {
-    case FKL_OP_INC:
-        r = oprand1 + 1;
+    case FKL_OP_ADDK:
+        r = oprand1 + peephole[1].ins.ai;
         break;
-    case FKL_OP_DEC:
-        r = oprand1 - 1;
-        break;
-    case FKL_OP_ADD1:
-    case FKL_OP_MUL1:
+    case FKL_OP_ADD:
+    case FKL_OP_MUL:
+        FKL_ASSERT(peephole[1].ins.ai == 1);
         r = oprand1;
         break;
-    case FKL_OP_NEG:
+    case FKL_OP_SUB:
+        FKL_ASSERT(peephole[1].ins.ai == 1);
         r = -oprand1;
         break;
     default:

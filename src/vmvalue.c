@@ -580,7 +580,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
             abort();
             break;
         default:
-            fprintf(stderr, "[%s: %d] %s: invalid value type!\n", __FILE__,
+            fprintf(stderr, "[%s: %d] %s: unknown value type!\n", __FILE__,
                     __LINE__, __FUNCTION__);
             abort();
             break;
@@ -686,7 +686,7 @@ nested_equal:
                     abort();
                     break;
                 default:
-                    fprintf(stderr, "[%s: %d] %s: invalid value type!\n",
+                    fprintf(stderr, "[%s: %d] %s: unknown value type!\n",
                             __FILE__, __LINE__, __FUNCTION__);
                     abort();
                     break;

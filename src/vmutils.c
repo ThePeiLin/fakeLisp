@@ -1180,39 +1180,22 @@ int fklProcessVMintMul(FklVMvalue *cur, int64_t *pr64, FklBigInt *bi) {
     return 0;
 }
 
-FklVMvalue *fklProcessVMnumInc(FklVM *exe, FklVMvalue *arg) {
+FklVMvalue *fklProcessVMnumAddk(FklVM *exe, FklVMvalue *arg, int8_t k) {
     if (FKL_IS_FIX(arg)) {
-        int64_t i = FKL_GET_FIX(arg) + 1;
-        if (i > FKL_FIX_INT_MAX)
+        int64_t i = FKL_GET_FIX(arg) + k;
+        if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN)
             return fklCreateVMvalueBigIntWithI64(exe, i);
         else
             return FKL_MAKE_VM_FIX(i);
     } else if (FKL_IS_BIGINT(arg)) {
         const FklVMbigInt *bigint = FKL_VM_BI(arg);
-        if (fklIsVMbigIntAdd1InFixIntRange(bigint))
-            return FKL_MAKE_VM_FIX(fklVMbigIntToI(bigint) + 1);
+        if (fklIsVMbigIntAddkInFixIntRange(bigint, k))
+            return FKL_MAKE_VM_FIX(fklVMbigIntToI(bigint) + k);
         else
-            return fklVMbigIntAddI(exe, bigint, 1);
+            return fklVMbigIntAddI(exe, bigint, k);
     } else if (FKL_IS_F64(arg))
-        return fklCreateVMvalueF64(exe, FKL_VM_F64(arg) + 1.0);
-    return NULL;
-}
-
-FklVMvalue *fklProcessVMnumDec(FklVM *exe, FklVMvalue *arg) {
-    if (FKL_IS_FIX(arg)) {
-        int64_t i = FKL_GET_FIX(arg) - 1;
-        if (i < FKL_FIX_INT_MIN)
-            return fklCreateVMvalueBigIntWithI64(exe, i);
-        else
-            return FKL_MAKE_VM_FIX(i);
-    } else if (FKL_IS_BIGINT(arg)) {
-        const FklVMbigInt *bigint = FKL_VM_BI(arg);
-        if (fklIsVMbigIntSub1InFixIntRange(bigint))
-            return FKL_MAKE_VM_FIX(fklVMbigIntToI(bigint) - 1);
-        else
-            return fklVMbigIntSubI(exe, bigint, 1);
-    } else if (FKL_IS_F64(arg))
-        return fklCreateVMvalueF64(exe, FKL_VM_F64(arg) - 1.0);
+        return fklCreateVMvalueF64(exe,
+                                   FKL_VM_F64(arg) + FKL_TYPE_CAST(double, k));
     return NULL;
 }
 

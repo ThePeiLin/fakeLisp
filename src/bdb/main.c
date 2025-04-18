@@ -886,6 +886,10 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
             imm1 = fklMakeVMuint(arg.ux, exe);
             break;
 
+        case FKL_OP_MODE_IsAuB:
+            imm1 = fklMakeVMint(arg.ix, exe);
+            imm2 = fklMakeVMuint(arg.uy, exe);
+            break;
         case FKL_OP_MODE_IxAxB:
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
@@ -914,6 +918,7 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
         retval =
             fklCreateVMvalueVec4(exe, num_val, is_cur_ins, opcode_str, imm1);
         break;
+    case FKL_OP_MODE_IsAuB:
     case FKL_OP_MODE_IuAuB:
     case FKL_OP_MODE_IuCuC:
     case FKL_OP_MODE_IuCAuBB:

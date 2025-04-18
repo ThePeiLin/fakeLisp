@@ -1,4 +1,5 @@
 #include <fakeLisp/base.h>
+#include <fakeLisp/bigint.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/utils.h>
@@ -552,10 +553,17 @@ static const FklBigInt FKL_BIGINT_SUB_1_MAX = {
     .size = 3,
     .const_size = 1,
 };
+
+static const FklBigIntDigit FKL_BIGINT_ADD_1_MIN_DIGITS[3] = {
+    0x1,
+    0x0,
+    0x1,
+};
+
 static const FklBigInt FKL_BIGINT_ADD_1_MIN = {
-    .digits = (FklBigIntDigit *)FKL_BIGINT_FIX_MAX_DIGITS,
-    .num = -2,
-    .size = 2,
+    .digits = (FklBigIntDigit *)FKL_BIGINT_ADD_1_MIN_DIGITS,
+    .num = -3,
+    .size = 3,
     .const_size = 1,
 };
 
@@ -564,10 +572,23 @@ int fklIsBigIntGtLtFix(const FklBigInt *a) {
         || fklBigIntCmp(a, &FKL_BIGINT_FIX_MIN) < 0;
 }
 
-int fklIsBigIntAdd1InFixIntRange(const FklBigInt *a) {
-    return fklBigIntEqual(a, &FKL_BIGINT_ADD_1_MIN);
-}
-
-int fklIsBigIntSub1InFixIntRange(const FklBigInt *a) {
-    return fklBigIntEqual(a, &FKL_BIGINT_SUB_1_MAX);
+int fklIsBigIntAddkInFixIntRange(const FklBigInt *a, int8_t k) {
+    if (k == 1)
+        return fklBigIntEqual(a, &FKL_BIGINT_ADD_1_MIN);
+    else if (k == -1)
+        return fklBigIntEqual(a, &FKL_BIGINT_SUB_1_MAX);
+    else if (!fklIsBigIntGtLtI64(a)) {
+        int64_t i = fklBigIntToI(a);
+        if (i > 0 && k <= 0)
+            return i + k <= FKL_FIX_INT_MAX;
+        else if (i < 0 && k >= 0)
+            return i + k >= FKL_FIX_INT_MIN;
+        else if (i < 0)
+            return i >= FKL_FIX_INT_MIN && i + k >= FKL_FIX_INT_MIN;
+        else if (i > 0)
+            return i <= FKL_FIX_INT_MAX && i + k <= FKL_FIX_INT_MAX;
+        else
+            return 1;
+    } else
+        return 0;
 }

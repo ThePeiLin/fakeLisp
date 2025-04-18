@@ -772,8 +772,7 @@ void fklVMformatToBuf(FklVM *exe, FklStringBuffer *buf, const char *fmt,
 FklString *fklVMformatToString(FklVM *exe, const char *fmt, FklVMvalue **base,
                                size_t len);
 
-FklVMvalue *fklProcessVMnumInc(FklVM *, FklVMvalue *);
-FklVMvalue *fklProcessVMnumDec(FklVM *, FklVMvalue *);
+FklVMvalue *fklProcessVMnumAddk(FklVM *, FklVMvalue *, int8_t);
 
 int fklProcessVMnumAdd(FklVMvalue *cur, int64_t *pr64, double *pf64,
                        FklBigInt *bi);
@@ -1361,10 +1360,8 @@ FKL_VM_BIGINT_CALL_1R(fklVMbigIntHash, uintptr_t, fklBigIntHash);
 FKL_VM_BIGINT_CALL_1R(fklIsVMbigIntLt0, int, fklIsBigIntLt0);
 FKL_VM_BIGINT_CALL_1R(fklIsVMbigIntEven, int, fklIsBigIntEven);
 FKL_VM_BIGINT_CALL_1R(fklIsVMbigIntOdd, int, fklIsBigIntOdd);
-FKL_VM_BIGINT_CALL_1R(fklIsVMbigIntAdd1InFixIntRange, int,
-                      fklIsBigIntAdd1InFixIntRange);
-FKL_VM_BIGINT_CALL_1R(fklIsVMbigIntSub1InFixIntRange, int,
-                      fklIsBigIntSub1InFixIntRange);
+FKL_VM_BIGINT_CALL_2R(fklIsVMbigIntAddkInFixIntRange, int, int8_t,
+                      fklIsBigIntAddkInFixIntRange);
 FKL_VM_BIGINT_CALL_1R(fklCreateBigIntWithVMbigInt, FklBigInt *, fklCopyBigInt);
 FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt, FILE *, fklPrintBigInt);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntEqual, int, fklBigIntEqual);

@@ -559,6 +559,10 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
         case FKL_OP_MODE_IuCCB:
             fprintf(fp, "%" FKL_PRT64U, ins_arg.ux);
             break;
+        case FKL_OP_MODE_IsAuB:
+            fprintf(fp, "%" FKL_PRT64D "\t%" FKL_PRT64U, ins_arg.ix,
+                    ins_arg.uy);
+            break;
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
         case FKL_OP_MODE_IuCAuBB:
@@ -689,6 +693,7 @@ static inline int8_t get_op_ins_len(FklOpcode op) {
         return 3;
         break;
 
+    case FKL_OP_MODE_IsAuB:
     case FKL_OP_MODE_IuAuB:
         return 1;
         break;
@@ -751,6 +756,12 @@ static inline int get_ins_op_with_op(FklOpcode op, const FklInstruction *ins,
     case FKL_OP_MODE_IsCCB:
         a->ix = FKL_GET_INS_IXX(ins);
         return 3;
+        break;
+
+    case FKL_OP_MODE_IsAuB:
+        a->ix = ins->ai;
+        a->uy = ins->bu;
+        return 1;
         break;
 
     case FKL_OP_MODE_IuAuB:
@@ -1209,6 +1220,7 @@ void fklWriteByteCode(const FklByteCode *bc, FILE *outfp) {
         case FKL_OP_MODE_IuC:
         case FKL_OP_MODE_IsC:
         case FKL_OP_MODE_IuAuB:
+        case FKL_OP_MODE_IsAuB:
             fwrite(&code->au, sizeof(code->au), 1, outfp);
             fwrite(&code->bu, sizeof(code->bu), 1, outfp);
             break;
@@ -1284,6 +1296,7 @@ FklByteCode *fklLoadByteCode(FILE *fp) {
         case FKL_OP_MODE_IuC:
         case FKL_OP_MODE_IsC:
         case FKL_OP_MODE_IuAuB:
+        case FKL_OP_MODE_IsAuB:
             fread(&code->au, sizeof(code->au), 1, fp);
             fread(&code->bu, sizeof(code->bu), 1, fp);
             break;

@@ -56,20 +56,20 @@ static int opstatcmp(const void *a, const void *b) {
 
 static inline void print_statistics(const char *filename,
                                     const uint64_t *count) {
-    struct OpcodeStatistics statistics[FKL_OP_LAST_OPCODE];
+    struct OpcodeStatistics statistics[FKL_OPCODE_NUM];
     printf("\nstatistics of %s:\n", filename);
-    for (uint32_t i = 0; i < FKL_OP_LAST_OPCODE; i++) {
+    for (uint32_t i = 0; i < FKL_OPCODE_NUM; i++) {
         statistics[i].op = i;
         statistics[i].count = count[i];
     }
-    qsort(statistics, FKL_OP_LAST_OPCODE, sizeof(struct OpcodeStatistics),
+    qsort(statistics, FKL_OPCODE_NUM, sizeof(struct OpcodeStatistics),
           opstatcmp);
-    for (uint32_t i = 0; i < FKL_OP_LAST_OPCODE; i++)
+    for (uint32_t i = 0; i < FKL_OPCODE_NUM; i++)
         printf("%-*s:\t%" FKL_PRT64U "\n", (int)FKL_MAX_OPCODE_NAME_LEN,
                fklGetOpcodeName(statistics[i].op), statistics[i].count);
     printf("\nmost used opcode is %s, the count is %" FKL_PRT64U "\n",
-           fklGetOpcodeName(statistics[FKL_OP_LAST_OPCODE - 1].op),
-           statistics[FKL_OP_LAST_OPCODE - 1].count);
+           fklGetOpcodeName(statistics[FKL_OPCODE_NUM - 1].op),
+           statistics[FKL_OPCODE_NUM - 1].count);
 }
 
 int main(int argc, char **argv) {
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     }
 
     for (int i = 0; i < files->count; i++) {
-        uint64_t opcode_count[FKL_OP_LAST_OPCODE] = {0};
+        uint64_t opcode_count[FKL_OPCODE_NUM] = {0};
 
         const char *filename = files->filename[i];
         const char *extension = files->extension[i];

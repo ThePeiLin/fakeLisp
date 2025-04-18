@@ -818,6 +818,7 @@ static void sub_test5(void) {
             .size = fklAbs(a0->num),
             .const_size = 1,
         };
+		(void)tmp;
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
 
@@ -863,6 +864,7 @@ static void sub_test5(void) {
             .size = fklAbs(a0->num),
             .const_size = 1,
         };
+		(void)tmp;
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
 

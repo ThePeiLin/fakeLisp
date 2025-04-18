@@ -3497,7 +3497,7 @@ static CODEGEN_FUNC(codegen_unquote) {
 BC_PROCESS(_qsquote_box_bc_process) {
     FklByteCodelntVector *stack = GET_STACK(context);
     FklByteCodelnt *retval = *fklByteCodelntVectorPopBack(stack);
-    FklInstruction pushBox = create_op_ins(FKL_OP_PUSH_BOX);
+    FklInstruction pushBox = {.op = FKL_OP_BOX, .ai = FKL_SUBOP_BOX_NEW_BOX};
     fklByteCodeLntPushBackIns(retval, &pushBox, fid, line, scope);
     return retval;
 }
@@ -3801,7 +3801,7 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
         case FKL_OP_PUSH_BI:
         case FKL_OP_PUSH_BI_C:
         case FKL_OP_PUSH_BI_X:
-        case FKL_OP_PUSH_BOX:
+        case FKL_OP_BOX:
         case FKL_OP_PUSH_BVEC:
         case FKL_OP_PUSH_BVEC_X:
         case FKL_OP_PUSH_BVEC_C:
@@ -8227,8 +8227,18 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
                 append_push_list_ins_to_bc(INS_APPEND_FRONT, retval, i);
         } break;
         case FKL_NAST_BOX:
-            fklByteCodeInsertFront(create_op_ins(FKL_OP_PUSH_BOX), retval);
-            fklNastNodeVectorPushBack2(&stack, node->box);
+            if (node->box->type == FKL_NAST_NIL) {
+                fklByteCodeInsertFront(
+                    (FklInstruction){.op = FKL_OP_BOX,
+                                     .ai = FKL_SUBOP_BOX_NEW_NIL_BOX},
+                    retval);
+            } else {
+                fklByteCodeInsertFront(
+                    (FklInstruction){.op = FKL_OP_BOX,
+                                     .ai = FKL_SUBOP_BOX_NEW_BOX},
+                    retval);
+                fklNastNodeVectorPushBack2(&stack, node->box);
+            }
             break;
         case FKL_NAST_VECTOR:
             append_push_vec_ins_to_bc(INS_APPEND_FRONT, retval,

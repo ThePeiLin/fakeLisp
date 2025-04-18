@@ -152,8 +152,7 @@ FklString *fklBigIntToString(const FklBigInt *a, uint8_t radix,
                              FklBigIntFmtFlags flags);
 
 int fklIsBigIntGtLtFix(const FklBigInt *a);
-int fklIsBigIntAdd1InFixIntRange(const FklBigInt *a);
-int fklIsBigIntSub1InFixIntRange(const FklBigInt *a);
+int fklIsBigIntAddkInFixIntRange(const FklBigInt *a,int8_t k);
 
 static inline uintptr_t fklHashCombine(uintptr_t seed, uintptr_t hash) {
     return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));

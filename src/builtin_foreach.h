@@ -13,7 +13,7 @@
 #ifndef DISCARD_HEAD
 static int builtin_foreach(FKL_CPROC_ARGL) {
 #endif
-    switch (ctx->context) {
+    switch (ctx->c[0].uptr) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG(proc, exe);
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
@@ -34,7 +34,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             FKL_VM_SET_TP_AND_PUSH_VALUE(exe, rtp, DEFAULT);
             return 0;
         }
-        ctx->context = 1;
+        ctx->c[0].uptr = 1;
         ctx->rtp = rtp;
         FKL_VM_GET_VALUE(exe, arg_num + 1) = FKL_VM_NIL;
         FKL_VM_PUSH_VALUE(exe, proc);

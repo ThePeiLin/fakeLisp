@@ -198,7 +198,7 @@ static inline void initCprocFrameContext(void *data, FklVMvalue *proc,
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     c->proc = proc;
     c->rtp = exe->tp;
-    c->context = 0;
+    c->c[0].uptr = 0;
     c->func = FKL_VM_CPROC(proc)->func;
     c->pd = FKL_VM_CPROC(proc)->pd;
 }

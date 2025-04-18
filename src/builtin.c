@@ -3250,24 +3250,24 @@ static int pcall_error_handler(FklVMframe *f, FklVMvalue *errValue,
         fklPopVMframe(exe);
     FklCprocFrameContext *ctx = (FklCprocFrameContext *)f->data;
     exe->tp = ctx->rtp;
-    exe->bp = ctx->cbu;
-    ctx->cau = 2;
+    exe->bp = ctx->c[0].u32b;
+    ctx->c[0].u32a = 2;
     FKL_VM_PUSH_VALUE(exe, errValue);
     return 1;
 }
 
 static int builtin_pcall(FKL_CPROC_ARGL) {
-    switch (ctx->cau) {
+    switch (ctx->c[0].u32a) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG(proc, exe);
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         uint32_t cbp = exe->bp;
         ctx->rtp = fklResBpIn(exe, FKL_VM_GET_ARG_NUM(exe));
-        ctx->cbu = exe->bp;
+        ctx->c[0].u32b = exe->bp;
         exe->bp = cbp;
         exe->top_frame->errorCallBack = pcall_error_handler;
         fklCallObj(exe, proc);
-        ctx->cau = 1;
+        ctx->c[0].u32a = 1;
         return 1;
     } break;
     case 1: {
@@ -3283,7 +3283,7 @@ static void idle_queue_work_cb(FklVM *exe, void *a) {
     fklDontNoticeThreadLock(exe);
     exe->state = FKL_VM_READY;
     fklSetVMsingleThread(exe);
-    ctx->context = fklRunVMinSingleThread(exe, exe->top_frame->prev);
+    ctx->c[0].uptr = fklRunVMinSingleThread(exe, exe->top_frame->prev);
     exe->state = FKL_VM_READY;
     fklNoticeThreadLock(exe);
     fklUnsetVMsingleThread(exe);
@@ -3291,21 +3291,21 @@ static void idle_queue_work_cb(FklVM *exe, void *a) {
 }
 
 static int builtin_idle(FKL_CPROC_ARGL) {
-    switch (ctx->context) {
+    switch (ctx->c[0].uptr) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG(proc, exe);
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         FklVMframe *origin_top_frame = exe->top_frame;
         fklCallObj(exe, proc);
         fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
-        if (ctx->ptr) {
-            ctx->ptr = fklMoveVMframeToTop(exe, origin_top_frame);
+        if (ctx->c[0].ptr) {
+            ctx->c[0].ptr = fklMoveVMframeToTop(exe, origin_top_frame);
             return 1;
         }
         return 0;
     }
     default: {
-        FklVMframe *frame = ctx->ptr;
+        FklVMframe *frame = ctx->c[0].ptr;
         fklInsertTopVMframeAsPrev(exe, frame);
         fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
     } break;
@@ -3417,7 +3417,7 @@ static int builtin_apply(FKL_CPROC_ARGL) {
 }
 
 static int builtin_map(FKL_CPROC_ARGL) {
-    switch (ctx->context) {
+    switch (ctx->c[0].uptr) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG(proc, exe);
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
@@ -3439,7 +3439,7 @@ static int builtin_map(FKL_CPROC_ARGL) {
         }
 
         FklVMvalue *resultBox = fklCreateVMvalueBox(exe, FKL_VM_NIL);
-        ctx->ptr = &FKL_VM_BOX(resultBox);
+        ctx->c[0].ptr = &FKL_VM_BOX(resultBox);
         ctx->rtp = rtp;
         FKL_VM_GET_VALUE(exe, arg_num + 1) = resultBox;
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -3453,11 +3453,11 @@ static int builtin_map(FKL_CPROC_ARGL) {
         return 1;
     } break;
     default: {
-        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->ptr);
+        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->c[0].ptr);
         FklVMvalue *r = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *pair = fklCreateVMvaluePairWithCar(exe, r);
         *cur = pair;
-        ctx->ptr = &FKL_VM_CDR(pair);
+        ctx->c[0].ptr = &FKL_VM_CDR(pair);
         size_t arg_num = exe->tp - ctx->rtp;
         FklVMvalue **base = &FKL_VM_GET_VALUE(exe, arg_num - 1);
         if (base[0] == FKL_VM_NIL)
@@ -3519,7 +3519,7 @@ static int builtin_memq(FKL_CPROC_ARGL) {
 }
 
 static int builtin_member(FKL_CPROC_ARGL) {
-    switch (ctx->context) {
+    switch (ctx->c[0].uptr) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG2(obj, list, exe);
         FklVMvalue *proc = FKL_VM_POP_ARG(exe);
@@ -3531,7 +3531,7 @@ static int builtin_member(FKL_CPROC_ARGL) {
                 FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
                 return 0;
             }
-            ctx->context = 1;
+            ctx->c[0].uptr = 1;
             ctx->rtp = exe->tp;
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
             FKL_VM_PUSH_VALUE(exe, proc);
@@ -3577,7 +3577,7 @@ static int builtin_member(FKL_CPROC_ARGL) {
 }
 
 static int builtin_memp(FKL_CPROC_ARGL) {
-    switch (ctx->context) {
+    switch (ctx->c[0].uptr) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG2(proc, list, exe);
         FKL_CHECK_REST_ARG(exe);
@@ -3588,7 +3588,7 @@ static int builtin_memp(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
             return 0;
         }
-        ctx->context = 1;
+        ctx->c[0].uptr = 1;
         ctx->rtp = exe->tp;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -3625,7 +3625,7 @@ static int builtin_memp(FKL_CPROC_ARGL) {
 }
 
 static int builtin_filter(FKL_CPROC_ARGL) {
-    switch (ctx->context) {
+    switch (ctx->c[0].uptr) {
     case 0: {
         FKL_DECL_AND_CHECK_ARG2(proc, list, exe);
         FKL_CHECK_REST_ARG(exe);
@@ -3636,7 +3636,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
             return 0;
         }
         FklVMvalue *resultBox = fklCreateVMvalueBoxNil(exe);
-        ctx->ptr = &FKL_VM_BOX(resultBox);
+        ctx->c[0].ptr = &FKL_VM_BOX(resultBox);
         ctx->rtp = exe->tp;
         FKL_VM_PUSH_VALUE(exe, resultBox);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -3647,7 +3647,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
         return 1;
     } break;
     default: {
-        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->ptr);
+        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->c[0].ptr);
         FklVMvalue *r = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue **plist = &FKL_VM_GET_VALUE(exe, 1);
         FklVMvalue *list = *plist;
@@ -3655,7 +3655,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
             FklVMvalue *pair =
                 fklCreateVMvaluePairWithCar(exe, FKL_VM_CAR(list));
             *cur = pair;
-            ctx->ptr = &FKL_VM_CDR(pair);
+            ctx->c[0].ptr = &FKL_VM_CDR(pair);
         }
         list = FKL_VM_CDR(list);
         if (list == FKL_VM_NIL)

@@ -250,24 +250,19 @@ typedef struct FklCprocFrameContext {
     FklVMvalue *pd;
     union {
         void *ptr;
-        uintptr_t context;
-        intptr_t icontext;
+        uintptr_t uptr;
+        intptr_t iptr;
         struct {
             union {
-                uint32_t cau;
-                int32_t cai;
+                uint32_t u32a;
+                int32_t i32a;
             };
             union {
-                uint32_t cbu;
-                int32_t cbi;
+                uint32_t u32b;
+                int32_t i32b;
             };
         };
-    };
-    union {
-        void *ptr1;
-        uintptr_t ctx1;
-        intptr_t ictx1;
-    };
+    } c[3];
     uint32_t rtp;
 } FklCprocFrameContext;
 

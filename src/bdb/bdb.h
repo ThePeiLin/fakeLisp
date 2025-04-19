@@ -72,8 +72,8 @@ typedef struct {
 #define FKL_HASH_METHOD_PREFIX bdb
 #define FKL_HASH_KEY_TYPE FklInstruction *
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklInstruction)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
+                          / alignof(FklInstruction));
 #define FKL_HASH_VAL_TYPE BdbCodepoint
 #define FKL_HASH_ELM_NAME BpIns
 #include <fakeLisp/hash.h>

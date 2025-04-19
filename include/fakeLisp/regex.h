@@ -62,8 +62,8 @@ typedef struct {
 #define FKL_HASH_VAL_TYPE FklString *
 #define FKL_HASH_ELM_NAME RegexStr
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklRegexCode)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
+                          / alignof(FklRegexCode));
 #include "hash.h"
 
 typedef struct {

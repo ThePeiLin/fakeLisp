@@ -1,6 +1,7 @@
-#include "fakeLisp/vm.h"
-#include <string.h>
+
 #ifndef DISPATCH_INCLUDED
+#include <fakeLisp/vm.h>
+#include <string.h>
 #include "vmrun.c"
 #endif
 
@@ -117,20 +118,21 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         fklAddCompoundFrameCp(frame, size);
     } break;
     case FKL_OP_DUP: {
-        if (exe->tp == exe->bp)
+        if (exe->tp <= frame->c.sp)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACKERROR, exe);
         FklVMvalue *val = FKL_VM_POP_TOP_VALUE(exe);
         FKL_VM_PUSH_VALUE(exe, val);
         FKL_VM_PUSH_VALUE(exe, val);
     } break;
     case FKL_OP_DROP:
-        DROP_TOP(exe);
+        if (exe->tp > frame->c.sp)
+            DROP_TOP(exe);
         break;
     case FKL_OP_SET_BP:
         fklSetBp(exe);
         break;
     case FKL_OP_CALL: {
-        FklVMvalue *proc = exe->base[exe->bp];
+        FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
         switch (proc->type) {
@@ -142,7 +144,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         return;
     } break;
     case FKL_OP_TAIL_CALL: {
-        FklVMvalue *proc = exe->base[exe->bp + 1];
+        FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         // FklVMvalue *proc = FKL_VM_POP_TOP_VALUE(exe);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
@@ -190,16 +192,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         break;
     case FKL_OP_RET: {
     ret:
-        exe->bp = FKL_GET_FIX(exe->base[frame->c.bp - 1]);
+        exe->bp = FKL_GET_FIX(FKL_VM_GET_ARG(exe, frame, -2));
         // copy stack values
-        for (uint32_t i = 0; i < (exe->tp - frame->c.sp); ++i) {
-            fprintf(stderr, "ret val: ");
-            fklPrin1VMvalue(exe->base[frame->c.sp + i], stderr, exe->gc);
-            fputc('\n', stderr);
-        }
-        memmove(&exe->base[frame->c.bp - 1], &exe->base[frame->c.sp],
+        memmove(&FKL_VM_GET_ARG(exe, frame, -2), &exe->base[frame->c.sp],
                 (exe->tp - frame->c.sp) * sizeof(FklVMvalue *));
-        exe->tp = frame->c.bp;
+        exe->tp = frame->bp;
         if (frame->c.mark) {
             close_all_var_ref(&frame->c.lr);
             if (frame->c.lr.lrefl) {

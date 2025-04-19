@@ -93,15 +93,7 @@ static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *tmpFrame =
         fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);
     uint32_t lcount = FKL_VM_PROC(proc)->lcount;
-    tmpFrame->c.bp = exe->bp;
-    tmpFrame->c.tp = exe->tp;
-    tmpFrame->c.sp = exe->bp + 1 + lcount;
-    fklVMstackReserve(exe, tmpFrame->c.sp + 1);
-    if (tmpFrame->c.sp > exe->tp) {
-        memset(&exe->base[exe->tp + 1], 0,
-               (tmpFrame->c.sp - exe->tp) * sizeof(FklVMvalue *));
-        exe->tp = tmpFrame->c.sp;
-    }
+    fklVMframeBpSet(exe, tmpFrame, lcount);
     FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
     f->base = exe->ltp;
     f->loc = NULL; // fklAllocSpaceForLocalVar(exe, lcount);
@@ -191,7 +183,7 @@ static void cproc_frame_copy(void *d, const void *s, FklVM *exe) {
 }
 
 static int cproc_frame_step(void *data, FklVM *exe) {
-    FklCprocFrameContext *c = (FklCprocFrameContext *)data;
+    FklCprocFrameContext *c = FKL_TYPE_CAST(FklCprocFrameContext *, data);
     return c->func(exe, c);
 }
 
@@ -206,7 +198,7 @@ static inline void initCprocFrameContext(void *data, FklVMvalue *proc,
                                          FklVM *exe) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     c->proc = proc;
-    c->rtp = exe->tp;
+    c->rtp = exe->bp;
     c->c[0].uptr = 0;
     c->func = FKL_VM_CPROC(proc)->func;
     c->pd = FKL_VM_CPROC(proc)->pd;
@@ -284,8 +276,6 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     uv_mutex_init(&exe->lock);
     return exe;
 }
-
-void *fklGetFrameData(FklVMframe *f) { return f->data; }
 
 void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, FklVMgc *gc) {
     void (*backtrace)(void *data, FILE *, FklVMgc *) = f->t->print_backtrace;
@@ -414,15 +404,7 @@ static inline void apply_compound_proc(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *tmpFrame =
         fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);
     uint32_t lcount = FKL_VM_PROC(proc)->lcount;
-    tmpFrame->c.bp = exe->bp;
-    tmpFrame->c.tp = exe->tp;
-    tmpFrame->c.sp = exe->bp + 1 + lcount;
-    fklVMstackReserve(exe, tmpFrame->c.sp + 1);
-    if (tmpFrame->c.sp > exe->tp) {
-        memset(&exe->base[exe->tp], 0,
-               (tmpFrame->c.sp - exe->tp) * sizeof(FklVMvalue *));
-        exe->tp = tmpFrame->c.sp;
-    }
+    fklVMframeBpSet(exe, tmpFrame, lcount);
     FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
     f->base = exe->ltp;
     f->loc = NULL; // fklAllocSpaceForLocalVar(exe, lcount);
@@ -1593,14 +1575,16 @@ void fklShrinkStack(FklVM *stack) {
     }
 }
 
-void fklDBG_printVMstack(FklVM *stack, FILE *fp, int mode, FklVMgc *gc) {
+void fklDBG_printVMstack(FklVM *stack, uint32_t count, FILE *fp, int mode,
+                         FklVMgc *gc) {
     if (fp != stdout)
         fprintf(fp, "Current stack:\n");
     if (stack->tp == 0)
         fprintf(fp, "[#EMPTY]\n");
     else {
         int64_t i = stack->tp - 1;
-        for (; i >= 0; i--) {
+        int64_t end = stack->tp - count;
+        for (; i >= end; i--) {
             if (mode && stack->bp == i)
                 fputs("->", stderr);
             if (fp != stdout)

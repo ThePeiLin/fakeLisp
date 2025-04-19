@@ -2561,9 +2561,9 @@ typedef struct GraGetLaFirstSetCacheItem {
 #define FKL_HASH_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->prod == (B)->prod && (A)->idx == (B)->idx
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHashCombine(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (pk->prod) / alignof(FklGrammerProduction)),  \
-        pk->idx);
+    return fklHashCombine(FKL_TYPE_CAST(uintptr_t, pk->prod)                   \
+                              / alignof(FklGrammerProduction),                 \
+                          pk->idx);
 #define FKL_HASH_ELM_NAME LaFirstSetCache
 #include <fakeLisp/hash.h>
 
@@ -2590,8 +2590,8 @@ static inline uintptr_t grammer_sym_hash(const FklGrammerSym *s) {
     uintptr_t seed =
         (s->term_type == FKL_TERM_BUILTIN ? fklBuiltinGrammerSymHash(&s->b)
          : (s->term_type == FKL_TERM_REGEX)
-             ? fklHash64Shift(
-                   FKL_TYPE_CAST(uintptr_t, s->re / alignof(FklRegexCode)))
+             ? fklHash64Shift(FKL_TYPE_CAST(uintptr_t, s->re)
+                              / alignof(FklRegexCode))
              : fklNontermHash(&s->nt));
     seed = fklHashCombine(seed, s->isterm);
     seed = fklHashCombine(seed, s->delim);
@@ -2968,8 +2968,8 @@ void fklLr0ToLalrItems(FklLalrItemSetHashMap *lr0, FklGrammer *g) {
 #define FKL_HASH_VAL_TYPE size_t
 #define FKL_HASH_ELM_NAME ItemStateIdx
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrItemSetHashMapElm)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
+                          / alignof(FklLalrItemSetHashMapElm));
 #include <fakeLisp/hash.h>
 
 static inline void print_look_ahead_as_dot(FILE *fp,
@@ -3430,8 +3430,8 @@ static inline void add_ignore_action(FklGrammer *g,
 #define FKL_HASH_KEY_TYPE FklGrammerProduction *
 #define FKL_HASH_ELM_NAME Prod
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklGrammerProduction)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
+                          / alignof(FklGrammerProduction));
 #include <fakeLisp/hash.h>
 
 static inline int
@@ -4238,8 +4238,8 @@ static inline void print_state_to_c_file(const FklAnalysisState *states,
 #define FKL_HASH_KEY_TYPE FklLalrBuiltinMatch const *
 #define FKL_HASH_ELM_NAME Btm
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(                                                     \
-        FKL_TYPE_CAST(uintptr_t, (*pk) / alignof(FklLalrBuiltinMatch)));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, *pk)                        \
+                          / alignof(FklLalrBuiltinMatch));
 #include <fakeLisp/hash.h>
 
 static inline void get_all_match_method_table(const FklGrammer *g,

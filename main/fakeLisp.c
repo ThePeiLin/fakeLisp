@@ -647,6 +647,8 @@ struct ReplFrameCtx {
     FklVMvalue **lref;
     FklVMvalue *ret_proc;
     uint32_t lcount;
+    uint32_t bp;
+    uint32_t sp;
 };
 
 typedef struct {
@@ -981,8 +983,9 @@ static inline void set_last_ins_get_loc(FklByteCodelnt *bcl, uint32_t idx) {
     FklInstruction ins[3] = {{.op = FKL_OP_GET_LOC}};
     uint32_t l = make_get_loc_ins(ins, idx);
     FklInstruction *last_ins = &bcl->bc->code[bcl->bc->len - 1];
-    *last_ins = ins[0];
-    for (uint32_t i = 1; i < l; i++)
+    FklInstruction set_bp = {.op = FKL_OP_SET_BP};
+    *last_ins = set_bp;
+    for (uint32_t i = 0; i < l; i++)
         fklByteCodeLntPushBackIns(bcl, &ins[i], 0, 0, 0);
 }
 
@@ -1012,11 +1015,11 @@ static int repl_frame_step(void *data, FklVM *exe) {
     } else if (ctx->state == WAITING) {
         exe->ltp = fctx->lcount;
         ctx->state = READING;
-        if (exe->tp != 0) {
+        if (exe->tp - fctx->sp != 0) {
             fputs(RETVAL_PREFIX, stdout);
-            fklDBG_printVMstack(exe, stdout, 0, exe->gc);
+            fklDBG_printVMstack(exe, exe->tp - fctx->sp, stdout, 0, exe->gc);
         }
-        exe->tp = 0;
+        exe->tp = fctx->sp;
 
         fklUnlockThread(exe);
         ctx->eof = replxx_input_string_buffer(ctx->replxx, &ctx->buf) == NULL;
@@ -1147,14 +1150,21 @@ static int repl_frame_step(void *data, FklVM *exe) {
             proc->spc = mainCode->bc->code;
             proc->end = proc->spc + mainCode->bc->len;
 
+            exe->base[1] = ctx->mainProc;
             FklVMframe *mainframe = fklCreateVMframeWithProcValue(
                 exe, ctx->mainProc, exe->top_frame);
             mainframe->c.lr.lrefl = fctx->lrefl;
             mainframe->c.lr.lref = fctx->lref;
             FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
+
+            mainframe->bp = fctx->bp;
+            fklVMframeSpSet(exe, mainframe, ret_proc_idx + 1);
+
             f->base = 0;
             f->loc =
                 NULL; // fklAllocMoreSpaceForMainFrame(exe, proc->lcount + 1);
+            FKL_VM_GET_ARG(exe, mainframe, o_lcount) = NULL;
+            FKL_VM_GET_ARG(exe, mainframe, ret_proc_idx) = fctx->ret_proc;
             // f->loc[ret_proc_idx] = fctx->ret_proc;
             f->lcount = proc->lcount;
             alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
@@ -1232,8 +1242,6 @@ static const FklVMframeContextMethodTable ReplContextMethodTable = {
 };
 
 static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
-    exe->tp = 0;
-    exe->bp = 0;
     fklPrintErrBacktrace(errValue, exe, stderr);
     FklVMframe *main_frame = exe->top_frame;
     if (main_frame->prev) {
@@ -1246,6 +1254,8 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
         main_frame->c.lr.lrefl = NULL;
         main_frame->c.lr.lref = NULL;
         main_frame->c.lr.lcount = 1;
+        uint32_t bp = main_frame->bp;
+        uint32_t sp = main_frame->c.sp;
 
         while (exe->top_frame->prev) {
             FklVMframe *cur = exe->top_frame;
@@ -1253,7 +1263,7 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
             fklDestroyVMframe(cur, exe);
         }
 
-        ReplCtx *ctx = (ReplCtx *)exe->top_frame->data;
+        ReplCtx *ctx = FKL_TYPE_CAST(ReplCtx *, exe->top_frame->data);
         FklVMvalue **cur = &exe->locv[lcount - ctx->new_var_count];
         for (uint32_t i = 0; i < ctx->new_var_count; i++)
             if (!cur[i])
@@ -1261,6 +1271,12 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
 
         ctx->fctx->lrefl = lrefl;
         ctx->fctx->lref = lref;
+
+        ctx->fctx->bp = bp;
+        ctx->fctx->sp = sp;
+
+        exe->tp = sp;
+        exe->bp = bp;
         ctx->state = READY;
     }
     return 1;
@@ -1392,14 +1408,20 @@ static int eval_frame_step(void *data, FklVM *exe) {
         proc->spc = mainCode->bc->code;
         proc->end = proc->spc + mainCode->bc->len;
 
+        exe->base[1] = ctx->mainProc;
         FklVMframe *mainframe =
             fklCreateVMframeWithProcValue(exe, ctx->mainProc, exe->top_frame);
         mainframe->c.lr.lrefl = fctx->lrefl;
         mainframe->c.lr.lref = fctx->lref;
         FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
+
+        mainframe->bp = fctx->bp;
+        fklVMframeBpSet(exe, mainframe, proc_idx + 1);
+
         f->base = 0;
-        f->loc = fklAllocMoreSpaceForMainFrame(exe, proc->lcount + 1);
-        f->loc[proc_idx] = fctx->ret_proc;
+        f->loc = NULL; // fklAllocMoreSpaceForMainFrame(exe, proc->lcount + 1);
+        FKL_VM_GET_ARG(exe, mainframe, proc_idx) = fctx->ret_proc;
+        // f->loc[proc_idx] = fctx->ret_proc;
         f->lcount = proc->lcount;
         alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
         init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
@@ -1444,12 +1466,19 @@ static int repl_ret_proc(FKL_CPROC_ARGL) {
     frame->c.lr.lrefl = NULL;
     frame->c.lr.lref = NULL;
     frame->c.lr.lcount = 1;
+    uint32_t bp = frame->bp;
+    uint32_t sp = frame->c.sp;
     fklPopVMframe(exe);
     fklPopVMframe(exe);
     FklVMframe *buttom_frame = exe->top_frame;
-    ReplCtx *rctx = (ReplCtx *)buttom_frame->data;
+    ReplCtx *rctx = FKL_TYPE_CAST(ReplCtx *, buttom_frame->data);
     rctx->fctx->lrefl = lrefl;
     rctx->fctx->lref = lref;
+    rctx->fctx->bp = bp;
+    rctx->fctx->sp = sp;
+
+    exe->bp = FKL_GET_FIX(FKL_VM_GET_ARG(exe, FKL_VM_FRAME_OF(ctx), -2));
+    exe->tp = FKL_VM_FRAME_OF(ctx)->bp - 1;
     return 1;
 }
 
@@ -1489,5 +1518,14 @@ static inline void init_frame_to_repl_frame(FklVM *exe, FklCodegenInfo *codegen,
         replFrame->errorCallBack = NULL;
         replFrame->t = &EvalContextMethodTable;
         fklStringBufferConcatWithCstr(&ctx->buf, eval_expression);
+    }
+    fklSetBp(exe);
+    ctx->fctx->bp = exe->bp;
+    ctx->fctx->sp = exe->bp + 1 + 1; // 1 local var
+    fklVMstackReserve(exe, ctx->fctx->sp + 1);
+    if (ctx->fctx->sp > exe->tp) {
+        memset(&exe->base[exe->tp], 0,
+               (ctx->fctx->sp - exe->tp) * sizeof(FklVMvalue *));
+        exe->tp = ctx->fctx->sp;
     }
 }

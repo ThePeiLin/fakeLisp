@@ -297,6 +297,7 @@ FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
         r = (FklVMframe *)malloc(sizeof(FklVMframe));
         FKL_ASSERT(r);
     }
+    r->bp = exe->bp;
     r->prev = prev;
     r->errorCallBack = NULL;
     r->type = FKL_FRAME_OTHEROBJ;

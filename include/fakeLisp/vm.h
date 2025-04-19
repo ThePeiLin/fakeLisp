@@ -12,6 +12,7 @@
 #include <setjmp.h>
 #include <stdalign.h>
 #include <stdatomic.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdnoreturn.h>
@@ -240,8 +241,6 @@ typedef struct {
     FklInstruction *spc;
     FklInstruction *pc;
     FklInstruction *end;
-    uint32_t tp;
-    uint32_t bp;
     uint32_t sp;
 } FklVMCompoundFrameData;
 
@@ -291,6 +290,7 @@ typedef int (*FklVMerrorCallBack)(FKL_VM_ERROR_CALLBACK_ARGL);
 
 typedef struct FklVMframe {
     FklFrameType type;
+    uint32_t bp;
     FklVMerrorCallBack errorCallBack;
     struct FklVMframe *prev;
     union {
@@ -302,12 +302,17 @@ typedef struct FklVMframe {
     };
 } FklVMframe;
 
+#define FKL_VM_FRAME_OF(ptr)                                                   \
+    FKL_TYPE_CAST(FklVMframe *,                                                \
+                  FKL_TYPE_CAST(char *, ptr) - offsetof(FklVMframe, data))
+
 void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, struct FklVMgc *table);
 void fklCallObj(struct FklVM *exe, FklVMvalue *);
 void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
 void fklDoAtomicFrame(FklVMframe *f, struct FklVMgc *);
 void fklDoCopyObjFrameContext(FklVMframe *, FklVMframe *, struct FklVM *exe);
-void *fklGetFrameData(FklVMframe *f);
+
+static inline void *fklGetFrameData(FklVMframe *f) { return f->data; }
 
 static inline int fklDoCallableObjFrameStep(FklVMframe *f, struct FklVM *exe) {
     return f->t->step(fklGetFrameData(f), exe);
@@ -751,7 +756,7 @@ void fklVMgcToGray(FklVMvalue *, FklVMgc *);
 void fklDestroyAllValues(FklVMgc *);
 
 void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
-void fklDBG_printVMstack(FklVM *, FILE *, int, FklVMgc *gc);
+void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVMgc *gc);
 
 FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *);
 FklVMvalue *fklVMstringifyAsPrinc(FklVMvalue *, FklVM *);
@@ -1052,8 +1057,9 @@ void fklDropTop(FklVM *s);
 
 #define FKL_VM_GET_ARG_NUM(S) ((S)->tp - (S)->bp - 1)
 
-#define FKL_VM_GET_ARG_NUM2(S, F) ((S)->tp - (F)->c.bp - 1)
-#define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->c.bp + 1 + (I)])
+#define FKL_VM_GET_ARG_NUM2(S, F) ((S)->tp - (F)->bp - 1)
+
+#define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp - 1])
 
@@ -1416,6 +1422,23 @@ static inline FklVMvalue *fklCreateVMvalueBigIntWithOther2(FklVM *exe,
                                                            size_t size) {
     const FklBigInt bi = fklVMbigIntToBigInt(b);
     return fklCreateVMvalueBigInt3(exe, &bi, size);
+}
+
+static inline void fklVMframeSpSet(FklVM *exe, FklVMframe *frame,
+                                   uint32_t lcount) {
+    frame->c.sp = exe->bp + 1 + lcount;
+    fklVMstackReserve(exe, frame->c.sp + 1);
+    if (frame->c.sp > exe->tp) {
+        memset(&exe->base[exe->tp], 0,
+               (frame->c.sp - exe->tp) * sizeof(FklVMvalue *));
+        exe->tp = frame->c.sp;
+    }
+}
+
+static inline void fklVMframeBpSet(FklVM *exe, FklVMframe *frame,
+                                   uint32_t lcount) {
+    frame->bp = exe->bp;
+    fklVMframeSpSet(exe, frame, lcount);
 }
 
 static inline void fklSetBp(FklVM *s) {

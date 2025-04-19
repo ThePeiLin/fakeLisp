@@ -4286,15 +4286,17 @@ static int builtin_exit(FKL_CPROC_ARGL) {
 }
 
 static int builtin_return(FKL_CPROC_ARGL) {
+#ifdef INCOMPLETE
     FklVMvalue *exit_val = FKL_VM_POP_ARG(exe);
     FKL_CHECK_REST_ARG(exe);
     FklVMframe *frame = exe->top_frame->prev;
     if (frame && frame->type == FKL_FRAME_COMPOUND) {
         exe->tp = frame->c.tp;
-        exe->bp = frame->c.bp;
+        exe->bp = frame->bp;
         frame->c.pc = frame->c.end - 1;
     }
     FKL_VM_PUSH_VALUE(exe, exit_val ? exit_val : FKL_VM_NIL);
+#endif
     return 0;
 }
 

@@ -185,21 +185,6 @@ extern "C" {
 	\
     X(FKL_OP_HASH,              "hash",              FKL_OP_MODE_IsA     )\
 	\
-    X(FKL_OP_CALL_LOC,          "call-loc",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_TAIL_CALL_LOC,     "tail-call-loc",     FKL_OP_MODE_IuB     )\
-	\
-    X(FKL_OP_CALL_VAR_REF,      "call-var-ref",      FKL_OP_MODE_IuB     )\
-    X(FKL_OP_TAIL_CALL_VAR_REF, "tail-call-var-ref", FKL_OP_MODE_IuB     )\
-	\
-    X(FKL_OP_CALL_VEC,          "call-vec",          FKL_OP_MODE_I       )\
-    X(FKL_OP_TAIL_CALL_VEC,     "tail-call-vec",     FKL_OP_MODE_I       )\
-	\
-    X(FKL_OP_CALL_CAR,          "call-car",          FKL_OP_MODE_I       )\
-    X(FKL_OP_TAIL_CALL_CAR,     "tail-call-car",     FKL_OP_MODE_I       )\
-	\
-    X(FKL_OP_CALL_CDR,          "call-cdr",          FKL_OP_MODE_I       )\
-    X(FKL_OP_TAIL_CALL_CDR,     "tail-call-cdr",     FKL_OP_MODE_I       )\
-	\
     X(FKL_OP_RET_IF_TRUE,       "ret-if-true",       FKL_OP_MODE_I       )\
     X(FKL_OP_RET_IF_FALSE,      "ret-if-false",      FKL_OP_MODE_I       )\
 	\

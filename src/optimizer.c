@@ -828,111 +828,6 @@ static uint32_t pop_and_get_loc_output(const FklByteCodeBuffer *buf,
     return nl;
 }
 
-static uint32_t call_var_ref_predicate(const FklByteCodeBuffer *buf,
-                                       const uint64_t *block_start,
-                                       const FklInsLn *peephole, uint32_t k) {
-    if (k < 2)
-        return 0;
-    if (peephole[0].ins.op == FKL_OP_GET_VAR_REF
-        && (peephole[1].ins.op == FKL_OP_CALL
-            || peephole[1].ins.op == FKL_OP_TAIL_CALL))
-        return 2;
-    return 0;
-}
-
-static uint32_t call_var_ref_output(const FklByteCodeBuffer *buf,
-                                    const uint64_t *block_start,
-                                    const FklInsLn *peephole, uint32_t k,
-                                    FklInsLn *output) {
-    output[0] = peephole[0];
-    output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL
-                         ? FKL_OP_CALL_VAR_REF
-                         : FKL_OP_TAIL_CALL_VAR_REF;
-    return 1;
-}
-
-static uint32_t call_loc_predicate(const FklByteCodeBuffer *buf,
-                                   const uint64_t *block_start,
-                                   const FklInsLn *peephole, uint32_t k) {
-    if (k < 2)
-        return 0;
-    if (peephole[0].ins.op == FKL_OP_GET_LOC
-        && (peephole[1].ins.op == FKL_OP_CALL
-            || peephole[1].ins.op == FKL_OP_TAIL_CALL))
-        return 2;
-    return 0;
-}
-
-static uint32_t call_loc_output(const FklByteCodeBuffer *buf,
-                                const uint64_t *block_start,
-                                const FklInsLn *peephole, uint32_t k,
-                                FklInsLn *output) {
-    output[0] = peephole[0];
-    output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL ? FKL_OP_CALL_LOC
-                                                         : FKL_OP_TAIL_CALL_LOC;
-    return 1;
-}
-
-static uint32_t call_vec_predicate(const FklByteCodeBuffer *buf,
-                                   const uint64_t *block_start,
-                                   const FklInsLn *peephole, uint32_t k) {
-    if (k < 2)
-        return 0;
-    if (peephole[0].ins.op == FKL_OP_VEC
-        && peephole[0].ins.ai == FKL_SUBOP_VEC_REF
-        && (peephole[1].ins.op == FKL_OP_CALL
-            || peephole[1].ins.op == FKL_OP_TAIL_CALL))
-        return 2;
-    return 0;
-}
-
-static uint32_t call_vec_output(const FklByteCodeBuffer *buf,
-                                const uint64_t *block_start,
-                                const FklInsLn *peephole, uint32_t k,
-                                FklInsLn *output) {
-    output[0] = peephole[0];
-    output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL ? FKL_OP_CALL_VEC
-                                                         : FKL_OP_TAIL_CALL_VEC;
-    return 1;
-}
-
-static uint32_t call_car_or_cdr_predicate(const FklByteCodeBuffer *buf,
-                                          const uint64_t *block_start,
-                                          const FklInsLn *peephole,
-                                          uint32_t k) {
-    if (k < 2)
-        return 0;
-    if (peephole[0].ins.op == FKL_OP_PAIR
-        && (peephole[0].ins.ai == FKL_SUBOP_PAIR_CAR
-            || peephole[0].ins.ai == FKL_SUBOP_PAIR_CDR)
-        && (peephole[1].ins.op == FKL_OP_CALL
-            || peephole[1].ins.op == FKL_OP_TAIL_CALL))
-        return 2;
-    return 0;
-}
-
-static uint32_t call_car_or_cdr_output(const FklByteCodeBuffer *buf,
-                                       const uint64_t *block_start,
-                                       const FklInsLn *peephole, uint32_t k,
-                                       FklInsLn *output) {
-    FKL_ASSERT(peephole[0].ins.op == FKL_OP_PAIR);
-    output[0] = peephole[0];
-    if (peephole[0].ins.ai == FKL_SUBOP_PAIR_CAR)
-        output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL
-                             ? FKL_OP_CALL_CAR
-                             : FKL_OP_TAIL_CALL_CAR;
-    else if (peephole[0].ins.ai == FKL_SUBOP_PAIR_CDR)
-        output[0].ins.op = peephole[1].ins.op == FKL_OP_CALL
-                             ? FKL_OP_CALL_CDR
-                             : FKL_OP_TAIL_CALL_CDR;
-    else {
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
-                __FUNCTION__);
-        abort();
-    }
-    return 1;
-}
-
 static uint32_t jmp_to_ret_predicate(const FklByteCodeBuffer *buf,
                                      const uint64_t *block_start,
                                      const FklInsLn *peephole, uint32_t k) {
@@ -1616,26 +1511,6 @@ static const struct PeepholeOptimizer PeepholeOptimizers[] = {
     {
         pop_and_get_loc_predicate,
         pop_and_get_loc_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        call_loc_predicate,
-        call_loc_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        call_var_ref_predicate,
-        call_var_ref_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        call_vec_predicate,
-        call_vec_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        call_car_or_cdr_predicate,
-        call_car_or_cdr_output,
         PEEPHOLE_SHOULD_IN_ONE_BLOCK,
     },
     {

@@ -61,17 +61,12 @@ extern "C" {
     X(FKL_OP_PUSH_PROC_XXX,     "push-proc-xxx",     FKL_OP_MODE_IuCAuBCC)\
     X(FKL_OP_DUP,               "dup",               FKL_OP_MODE_I       )\
     X(FKL_OP_DROP,              "drop",              FKL_OP_MODE_I       )\
-    X(FKL_OP_POP_ARG,           "pop-arg",           FKL_OP_MODE_IuB     )\
-    X(FKL_OP_POP_ARG_C,         "pop-arg-c",         FKL_OP_MODE_IuC     )\
-    X(FKL_OP_POP_ARG_X,         "pop-arg-x",         FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_POP_REST_ARG,      "pop-rest-arg",      FKL_OP_MODE_IuB     )\
-    X(FKL_OP_POP_REST_ARG_C,    "pop-rest-arg-c",    FKL_OP_MODE_IuC     )\
-    X(FKL_OP_POP_REST_ARG_X,    "pop-rest-arg-x",    FKL_OP_MODE_IuBB    )\
+    X(FKL_OP_CHECK_ARG,         "check-arg",         FKL_OP_MODE_IsAuB   )\
     X(FKL_OP_SET_BP,            "set-bp",            FKL_OP_MODE_I       )\
-    X(FKL_OP_RES_BP,            "res-bp",            FKL_OP_MODE_I       )\
-    X(FKL_OP_RES_BP_TP,         "res-bp-tp",         FKL_OP_MODE_I       )\
     X(FKL_OP_CALL,              "call",              FKL_OP_MODE_I       )\
     X(FKL_OP_TAIL_CALL,         "tail-call",         FKL_OP_MODE_I       )\
+    X(FKL_OP_RET_IF_TRUE,       "ret-if-true",       FKL_OP_MODE_I       )\
+    X(FKL_OP_RET_IF_FALSE,      "ret-if-false",      FKL_OP_MODE_I       )\
     X(FKL_OP_RET,               "ret",               FKL_OP_MODE_I       )\
     X(FKL_OP_JMP_IF_TRUE,       "jmp-if-true",       FKL_OP_MODE_IsB     )\
     X(FKL_OP_JMP_IF_TRUE_C,     "jmp-if-true-c",     FKL_OP_MODE_IsC     )\
@@ -184,9 +179,6 @@ extern "C" {
     X(FKL_OP_POP_LOC_X,         "pop-loc-x",         FKL_OP_MODE_IuBB    )\
 	\
     X(FKL_OP_HASH,              "hash",              FKL_OP_MODE_IsA     )\
-	\
-    X(FKL_OP_RET_IF_TRUE,       "ret-if-true",       FKL_OP_MODE_I       )\
-    X(FKL_OP_RET_IF_FALSE,      "ret-if-false",      FKL_OP_MODE_I       )\
 	\
     X(FKL_OP_MOV_LOC,           "mov-loc",           FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_MOV_VAR_REF,       "mov-var-ref",       FKL_OP_MODE_IuAuB   )\

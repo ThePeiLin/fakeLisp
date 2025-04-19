@@ -4321,14 +4321,14 @@ static inline FklByteCodelnt *inlfunc_add0(INL_FUNC_ARGS) {
     return inl_0_arg_func(FKL_OP_PUSH_0, fid, line, scope);
 }
 
-static FklByteCodelnt *inlfunc_ret0(INL_FUNC_ARGS) {
-    FklByteCodelnt *r = inl_0_arg_func(FKL_OP_RES_BP_TP, fid, line, scope);
-    FklInstruction ins = {.op = FKL_OP_PUSH_NIL};
-    fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
-    ins.op = FKL_OP_RET;
-    fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
-    return r;
-}
+// static FklByteCodelnt *inlfunc_ret0(INL_FUNC_ARGS) {
+//     FklByteCodelnt *r = inl_0_arg_func(FKL_OP_RES_BP_TP, fid, line, scope);
+//     FklInstruction ins = {.op = FKL_OP_PUSH_NIL};
+//     fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
+//     ins.op = FKL_OP_RET;
+//     fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
+//     return r;
+// }
 
 static inline FklByteCodelnt *inlfunc_mul0(INL_FUNC_ARGS) {
     return inl_0_arg_func(FKL_OP_PUSH_1, fid, line, scope);
@@ -4423,14 +4423,14 @@ static FklByteCodelnt *inlfunc_unbox(INL_FUNC_ARGS) {
     return inl_1_arg_func2(&ins, bcs, fid, line, scope);
 }
 
-static FklByteCodelnt *inlfunc_ret1(INL_FUNC_ARGS) {
-    FklByteCodelnt *r = bcs[0];
-    FklInstruction ins = {.op = FKL_OP_RES_BP_TP};
-    fklByteCodeLntInsertFrontIns(&ins, r, fid, line, scope);
-    ins.op = FKL_OP_RET;
-    fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
-    return r;
-}
+// static FklByteCodelnt *inlfunc_ret1(INL_FUNC_ARGS) {
+//     FklByteCodelnt *r = bcs[0];
+//     FklInstruction ins = {.op = FKL_OP_RES_BP_TP};
+//     fklByteCodeLntInsertFrontIns(&ins, r, fid, line, scope);
+//     ins.op = FKL_OP_RET;
+//     fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
+//     return r;
+// }
 
 static inline FklByteCodelnt *inl_2_arg_func(FklOpcode opc,
                                              FklByteCodelnt *bcs[],
@@ -4907,7 +4907,8 @@ static const struct SymbolFuncStruct {
 
     {"exit",            builtin_exit,                 {NULL,         NULL,              NULL,               NULL               } },
 
-    {"return",          builtin_return,               {inlfunc_ret0, inlfunc_ret1,      NULL,               NULL               } },
+    // {"return",          builtin_return,               {inlfunc_ret0, inlfunc_ret1,      NULL,               NULL               } },
+    {"return",          builtin_return,               {NULL, NULL,      NULL,               NULL               } },
 
     {"vector-first",    builtin_vec_first,            {NULL,         inlfunc_vec_first, NULL,               NULL               } },
     {"vector-last",     builtin_vec_last,             {NULL,         inlfunc_vec_last,  NULL,               NULL               } },

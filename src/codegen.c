@@ -678,12 +678,12 @@ static inline FklByteCodelnt *create_bc_lnt(FklByteCode *bc, FklSid_t fid,
     return r;
 }
 
-static inline FklByteCodelnt *
-append_pop_arg_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
-                   FklSid_t fid, uint32_t line, uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_ARG, idx,
-                                                fid, line, scope);
-}
+// static inline FklByteCodelnt *
+// append_pop_arg_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
+//                    FklSid_t fid, uint32_t line, uint32_t scope) {
+//     return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_ARG, idx,
+//                                                 fid, line, scope);
+// }
 
 static inline FklByteCodelnt *
 append_pop_loc_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
@@ -692,12 +692,12 @@ append_pop_loc_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
                                                 fid, line, scope);
 }
 
-static inline FklByteCodelnt *
-append_pop_rest_arg_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
-                        FklSid_t fid, uint32_t line, uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_REST_ARG,
-                                                idx, fid, line, scope);
-}
+// static inline FklByteCodelnt *
+// append_pop_rest_arg_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
+//                         FklSid_t fid, uint32_t line, uint32_t scope) {
+//     return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_REST_ARG,
+//                                                 idx, fid, line, scope);
+// }
 
 static inline FklByteCodelnt *
 append_put_loc_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
@@ -887,15 +887,20 @@ BC_PROCESS(_funcall_exp_bc_process) {
                            scope);
         } else {
             FklByteCodelnt *retval = fklCreateByteCodelnt(fklCreateByteCode(0));
-            while (stack->size > 1) {
-                FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(stack);
+            FklByteCodelnt **base = stack->base;
+            FklByteCodelnt **const end = base + stack->size;
+            for (; base < end; ++base) {
+                // while (stack->size > 1) {
+                // FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(stack);
+                FklByteCodelnt *cur = *base;
                 fklCodeLntConcat(retval, cur);
                 fklDestroyByteCodelnt(cur);
             }
+            stack->size = 0;
             FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
             FklInstruction call = create_op_ins(FKL_OP_CALL);
             fklByteCodeLntInsertFrontIns(&setBp, retval, fid, line, scope);
-            fklCodeLntConcat(retval, func);
+            // fklCodeLntConcat(retval, func);
             fklByteCodeLntPushBackIns(retval, &call, fid, line, scope);
             return retval;
         }
@@ -1973,6 +1978,7 @@ static inline FklByteCodelnt *processArgs(const FklNastNode *args,
                                           FklCodegenInfo *codegen) {
     FklByteCodelnt *retval = fklCreateByteCodelnt(fklCreateByteCode(0));
 
+    uint32_t arg_count = 0;
     for (; args->type == FKL_NAST_PAIR; args = args->pair->cdr) {
         FklNastNode *cur = args->pair->car;
         if (cur->type != FKL_NAST_SYM) {
@@ -1983,27 +1989,44 @@ static inline FklByteCodelnt *processArgs(const FklNastNode *args,
             fklDestroyByteCodelnt(retval);
             return NULL;
         }
-        append_pop_arg_ins(INS_APPEND_BACK, retval,
-                           fklAddCodegenDefBySid(cur->sym, 1, curEnv)->idx,
-                           codegen->fid, cur->curline, 1);
+        if (arg_count > UINT16_MAX) {
+            fklDestroyByteCodelnt(retval);
+            return NULL;
+        }
+        fklAddCodegenDefBySid(cur->sym, 1, curEnv);
+        ++arg_count;
+        // append_pop_arg_ins(INS_APPEND_BACK, retval,
+        //                    fklAddCodegenDefBySid(cur->sym, 1, curEnv)->idx,
+        //                    codegen->fid, cur->curline, 1);
     }
     if (args->type != FKL_NAST_NIL && args->type != FKL_NAST_SYM) {
         fklDestroyByteCodelnt(retval);
         return NULL;
     }
+
+    int rest_list = 0;
     if (args->type == FKL_NAST_SYM) {
         if (fklIsSymbolDefined(args->sym, 1, curEnv)) {
             fklDestroyByteCodelnt(retval);
             return NULL;
         }
-
-        append_pop_rest_arg_ins(
-            INS_APPEND_BACK, retval,
-            fklAddCodegenDefBySid(args->sym, 1, curEnv)->idx, codegen->fid,
-            args->curline, 1);
+        rest_list = 1;
+        fklAddCodegenDefBySid(args->sym, 1, curEnv);
+        // append_pop_rest_arg_ins(
+        //     INS_APPEND_BACK, retval,
+        //     fklAddCodegenDefBySid(args->sym, 1, curEnv)->idx, codegen->fid,
+        //     args->curline, 1);
     }
-    FklInstruction resBp = create_op_ins(FKL_OP_RES_BP);
-    fklByteCodeLntPushBackIns(retval, &resBp, codegen->fid, args->curline, 1);
+    // FklInstruction resBp = create_op_ins(FKL_OP_RES_BP);
+    // fklByteCodeLntPushBackIns(retval, &resBp, codegen->fid, args->curline,
+    // 1);
+    FklInstruction check_arg = {
+        .op = FKL_OP_CHECK_ARG,
+        .ai = rest_list,
+        .bu = arg_count,
+    };
+    fklByteCodeLntPushBackIns(retval, &check_arg, codegen->fid, args->curline,
+                              1);
     return retval;
 }
 
@@ -2017,13 +2040,17 @@ static inline FklByteCodelnt *processArgsInStack(FklSidVector *stack,
     for (uint32_t i = 0; i < top; i++) {
         FklSid_t curId = base[i];
 
-        uint32_t idx = fklAddCodegenDefBySid(curId, 1, curEnv)->idx;
+        fklAddCodegenDefBySid(curId, 1, curEnv);
+        // uint32_t idx = fklAddCodegenDefBySid(curId, 1, curEnv)->idx;
 
-        append_pop_arg_ins(INS_APPEND_BACK, retval, idx, codegen->fid, curline,
-                           1);
+        // append_pop_arg_ins(INS_APPEND_BACK, retval, idx, codegen->fid,
+        // curline,
+        //                    1);
     }
-    FklInstruction resBp = create_op_ins(FKL_OP_RES_BP);
-    fklByteCodeLntPushBackIns(retval, &resBp, codegen->fid, curline, 1);
+    // FklInstruction resBp = create_op_ins(FKL_OP_RES_BP);
+    // fklByteCodeLntPushBackIns(retval, &resBp, codegen->fid, curline, 1);
+    FklInstruction check_arg = {.op = FKL_OP_CHECK_ARG, .ai = 0, .bu = top};
+    fklByteCodeLntPushBackIns(retval, &check_arg, codegen->fid, curline, 1);
     return retval;
 }
 

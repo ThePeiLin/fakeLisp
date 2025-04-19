@@ -242,6 +242,7 @@ typedef struct {
     FklInstruction *end;
     uint32_t tp;
     uint32_t bp;
+    uint32_t sp;
 } FklVMCompoundFrameData;
 
 typedef struct FklCprocFrameContext {
@@ -1049,9 +1050,10 @@ FklVMvalue *fklCreateNilValue(void);
 
 void fklDropTop(FklVM *s);
 
-#define FKL_VM_GET_ARG_NUM(S) ((S)->tp - (S)->bp)
+#define FKL_VM_GET_ARG_NUM(S) ((S)->tp - (S)->bp - 1)
 
-#define FKL_VM_POP_ARG(S) (((S)->tp > (S)->bp) ? (S)->base[--(S)->tp] : NULL)
+#define FKL_VM_GET_ARG_NUM2(S, F) ((S)->tp - (F)->c.bp - 1)
+#define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->c.bp + 1 + (I)])
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp - 1])
 
@@ -1067,6 +1069,15 @@ void fklDropTop(FklVM *s);
              (FKL_ASSERT((S)->base)), NULL)                                    \
           : NULL),                                                             \
      (S)->base[(S)->tp++] = (V))
+
+static inline void fklVMstackReserve(FklVM *exe, uint32_t s) {
+    if (s > exe->last) {
+        exe->last = s;
+        exe->size = s * sizeof(FklVMvalue *);
+        exe->base = (FklVMvalue **)fklRealloc(exe->base, exe->size);
+        FKL_ASSERT(exe->base);
+    }
+}
 
 #define FKL_VM_SET_TP_AND_PUSH_VALUE(S, T, V)                                  \
     (((S)->tp = (T) + 1), ((S)->base[(T)] = (V)))
@@ -1411,6 +1422,9 @@ static inline void fklSetBp(FklVM *s) {
     FKL_VM_PUSH_VALUE(s, FKL_MAKE_VM_FIX(s->bp));
     s->bp = s->tp;
 }
+
+// to be delete
+#define FKL_VM_POP_ARG(S) (((S)->tp > (S)->bp) ? (S)->base[--(S)->tp] : NULL)
 
 static inline int fklResBp(FklVM *exe) {
     if (exe->tp > exe->bp)

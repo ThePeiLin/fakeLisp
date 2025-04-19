@@ -93,9 +93,18 @@ static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *tmpFrame =
         fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);
     uint32_t lcount = FKL_VM_PROC(proc)->lcount;
+    tmpFrame->c.bp = exe->bp;
+    tmpFrame->c.tp = exe->tp;
+    tmpFrame->c.sp = exe->bp + 1 + lcount;
+    fklVMstackReserve(exe, tmpFrame->c.sp + 1);
+    if (tmpFrame->c.sp > exe->tp) {
+        memset(&exe->base[exe->tp + 1], 0,
+               (tmpFrame->c.sp - exe->tp) * sizeof(FklVMvalue *));
+        exe->tp = tmpFrame->c.sp;
+    }
     FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
     f->base = exe->ltp;
-    f->loc = fklAllocSpaceForLocalVar(exe, lcount);
+    f->loc = NULL; // fklAllocSpaceForLocalVar(exe, lcount);
     f->lcount = lcount;
     fklPushVMframe(tmpFrame, exe);
 }
@@ -149,7 +158,7 @@ static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
         uint32_t lcount = FKL_VM_PROC(proc)->lcount;
         FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
         f->base = exe->ltp;
-        f->loc = fklAllocSpaceForLocalVar(exe, lcount);
+        f->loc = NULL; // fklAllocSpaceForLocalVar(exe, lcount);
         f->lcount = lcount;
         fklPushVMframe(tmpFrame, exe);
     }
@@ -261,13 +270,15 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     fklInitGlobalVMclosureForGC(exe);
+    fklInitVMstack(exe);
     if (mainCode != NULL) {
         FklVMvalue *proc = fklCreateVMvalueProcWithWholeCodeObj(
             exe, fklCreateVMvalueCodeObj(exe, mainCode), pid);
         init_builtin_symbol_ref(exe, proc);
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
         fklCallObj(exe, proc);
     }
-    fklInitVMstack(exe);
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
     uv_mutex_init(&exe->lock);
@@ -403,9 +414,18 @@ static inline void apply_compound_proc(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *tmpFrame =
         fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);
     uint32_t lcount = FKL_VM_PROC(proc)->lcount;
+    tmpFrame->c.bp = exe->bp;
+    tmpFrame->c.tp = exe->tp;
+    tmpFrame->c.sp = exe->bp + 1 + lcount;
+    fklVMstackReserve(exe, tmpFrame->c.sp + 1);
+    if (tmpFrame->c.sp > exe->tp) {
+        memset(&exe->base[exe->tp], 0,
+               (tmpFrame->c.sp - exe->tp) * sizeof(FklVMvalue *));
+        exe->tp = tmpFrame->c.sp;
+    }
     FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
     f->base = exe->ltp;
-    f->loc = fklAllocSpaceForLocalVar(exe, lcount);
+    f->loc = NULL; // fklAllocSpaceForLocalVar(exe, lcount);
     f->lcount = lcount;
     fklPushVMframe(tmpFrame, exe);
 }

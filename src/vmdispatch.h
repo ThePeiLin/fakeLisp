@@ -1,3 +1,5 @@
+#include "fakeLisp/vm.h"
+#include <string.h>
 #ifndef DISPATCH_INCLUDED
 #include "vmrun.c"
 #endif
@@ -124,51 +126,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
     case FKL_OP_DROP:
         DROP_TOP(exe);
         break;
-    case FKL_OP_POP_ARG:
-        idx = ins->bu;
-        goto pop_arg;
-    case FKL_OP_POP_ARG_C:
-        idx = FKL_GET_INS_UC(ins);
-        goto pop_arg;
-    case FKL_OP_POP_ARG_X:
-        idx = GET_INS_UX(ins, frame);
-    pop_arg: {
-        if (exe->tp <= exe->bp)
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-        FklVMvalue *v = FKL_VM_POP_TOP_VALUE(exe);
-        GET_COMPOUND_FRAME_LOC(frame, idx) = v;
-    } break;
-    case FKL_OP_POP_REST_ARG:
-        idx = ins->bu;
-        goto pop_rest_arg;
-    case FKL_OP_POP_REST_ARG_C:
-        idx = FKL_GET_INS_UC(ins);
-        goto pop_rest_arg;
-    case FKL_OP_POP_REST_ARG_X:
-        idx = GET_INS_UX(ins, frame);
-    pop_rest_arg: {
-        FklVMvalue *obj = FKL_VM_NIL;
-        FklVMvalue *volatile *pValue = &obj;
-        for (; exe->tp > exe->bp; pValue = &FKL_VM_CDR(*pValue))
-            *pValue =
-                fklCreateVMvaluePairWithCar(exe, FKL_VM_POP_TOP_VALUE(exe));
-        GET_COMPOUND_FRAME_LOC(frame, idx) = obj;
-    } break;
     case FKL_OP_SET_BP:
         fklSetBp(exe);
         break;
-    case FKL_OP_RES_BP:
-        if (fklResBp(exe))
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
-        frame->c.tp = exe->tp;
-        frame->c.bp = exe->bp;
-        break;
-    case FKL_OP_RES_BP_TP:
-        exe->tp = frame->c.tp;
-        exe->bp = frame->c.bp;
-        break;
     case FKL_OP_CALL: {
-        FklVMvalue *proc = FKL_VM_POP_TOP_VALUE(exe);
+        FklVMvalue *proc = exe->base[exe->bp];
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
         switch (proc->type) {
@@ -180,7 +142,8 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         return;
     } break;
     case FKL_OP_TAIL_CALL: {
-        FklVMvalue *proc = FKL_VM_POP_TOP_VALUE(exe);
+        FklVMvalue *proc = exe->base[exe->bp + 1];
+        // FklVMvalue *proc = FKL_VM_POP_TOP_VALUE(exe);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
         switch (proc->type) {
@@ -191,7 +154,52 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         }
         return;
     } break;
+    case FKL_OP_CHECK_ARG: {
+        uint32_t arg_num = FKL_VM_GET_ARG_NUM2(exe, frame);
+        if (arg_num < ins->bu)
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
+        switch (ins->ai) {
+        case 0:
+            if (arg_num > ins->bu)
+                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
+            break;
+        case 1: {
+            FklVMvalue *obj = FKL_VM_NIL;
+            FklVMvalue *volatile *pValue = &obj;
+            for (uint32_t i = ins->bu; i < arg_num; ++i) {
+                *pValue = fklCreateVMvaluePairWithCar(
+                    exe, FKL_VM_GET_ARG(exe, frame, i));
+                FKL_VM_GET_ARG(exe, frame, i) = NULL;
+                pValue = &FKL_VM_CDR(*pValue);
+            }
+            FKL_VM_GET_ARG(exe, frame, ins->bu) = obj;
+            exe->tp = frame->c.sp;
+            // GET_COMPOUND_FRAME_LOC(frame, idx) = obj;
+        } break;
+            abort();
+            break;
+        }
+    } break;
+    case FKL_OP_RET_IF_TRUE:
+        if (FKL_VM_GET_TOP_VALUE(exe) != FKL_VM_NIL)
+            goto ret;
+        break;
+    case FKL_OP_RET_IF_FALSE:
+        if (FKL_VM_GET_TOP_VALUE(exe) == FKL_VM_NIL)
+            goto ret;
+        break;
     case FKL_OP_RET: {
+    ret:
+        exe->bp = FKL_GET_FIX(exe->base[frame->c.bp - 1]);
+        // copy stack values
+        for (uint32_t i = 0; i < (exe->tp - frame->c.sp); ++i) {
+            fprintf(stderr, "ret val: ");
+            fklPrin1VMvalue(exe->base[frame->c.sp + i], stderr, exe->gc);
+            fputc('\n', stderr);
+        }
+        memmove(&exe->base[frame->c.bp - 1], &exe->base[frame->c.sp],
+                (exe->tp - frame->c.sp) * sizeof(FklVMvalue *));
+        exe->tp = frame->c.bp;
         if (frame->c.mark) {
             close_all_var_ref(&frame->c.lr);
             if (frame->c.lr.lrefl) {
@@ -401,7 +409,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             pcur = &FKL_VM_CDR(*pcur);
         }
         *pcur = last;
-        fklResBp(exe);
+        exe->bp = FKL_GET_FIX(exe->base[--exe->tp]);
         FKL_VM_PUSH_VALUE(exe, pair);
     } break;
     case FKL_OP_PUSH_LIST:
@@ -434,7 +442,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvec *vv = FKL_VM_VEC(vec);
         for (size_t i = size; i > 0; i--)
             vv->base[i - 1] = FKL_VM_POP_TOP_VALUE(exe);
-        fklResBp(exe);
+        exe->bp = FKL_GET_FIX(exe->base[--exe->tp]);
         FKL_VM_PUSH_VALUE(exe, vec);
     } break;
     case FKL_OP_LIST_PUSH: {
@@ -461,7 +469,8 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMlib *plib = exe->importingLib;
         uint32_t count = plib->count;
         FklVMvalue *v = idx >= count ? NULL : plib->loc[idx];
-        GET_COMPOUND_FRAME_LOC(frame, idx1) = v;
+        FKL_VM_GET_ARG(exe, frame, idx1) = v;
+        // GET_COMPOUND_FRAME_LOC(frame, idx1) = v;
     } break;
     case FKL_OP_PUSH_I64B:
         FKL_VM_PUSH_VALUE(
@@ -476,25 +485,24 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
                                    exe, exe->gc->ki64[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_GET_LOC:
-        FKL_VM_PUSH_VALUE(exe, GET_COMPOUND_FRAME_LOC(frame, ins->bu));
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, ins->bu));
         break;
     case FKL_OP_GET_LOC_C:
-        FKL_VM_PUSH_VALUE(exe,
-                          GET_COMPOUND_FRAME_LOC(frame, FKL_GET_INS_UC(ins)));
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, FKL_GET_INS_UC(ins)));
         break;
     case FKL_OP_GET_LOC_X:
-        FKL_VM_PUSH_VALUE(
-            exe, GET_COMPOUND_FRAME_LOC(frame, GET_INS_UX(ins, frame)));
+        FKL_VM_PUSH_VALUE(exe,
+                          FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame)));
         break;
     case FKL_OP_PUT_LOC:
-        GET_COMPOUND_FRAME_LOC(frame, ins->bu) = FKL_VM_GET_TOP_VALUE(exe);
+        FKL_VM_GET_ARG(exe, frame, ins->bu) = FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_PUT_LOC_C:
-        GET_COMPOUND_FRAME_LOC(frame, FKL_GET_INS_UC(ins)) =
+        FKL_VM_GET_ARG(exe, frame, FKL_GET_INS_UC(ins)) =
             FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_PUT_LOC_X:
-        GET_COMPOUND_FRAME_LOC(frame, GET_INS_UX(ins, frame)) =
+        FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame)) =
             FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_GET_VAR_REF:
@@ -777,13 +785,13 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     } break;
     case FKL_OP_ADDK_LOC: {
-        FklVMvalue *v = GET_COMPOUND_FRAME_LOC(frame, ins->bu);
+        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, ins->bu);
         FklVMvalue *r = fklProcessVMnumAddk(exe, v, ins->ai);
         if (r)
             FKL_VM_PUSH_VALUE(exe, r);
         else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-        GET_COMPOUND_FRAME_LOC(frame, ins->bu) = r;
+        FKL_VM_GET_ARG(exe, frame, ins->bu) = r;
     } break;
     case FKL_OP_ADD: {
         switch (ins->ai) {
@@ -1266,7 +1274,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         idx = GET_INS_UX(ins, frame);
     pop_loc: {
         FklVMvalue *v = FKL_VM_POP_TOP_VALUE(exe);
-        GET_COMPOUND_FRAME_LOC(frame, idx) = v;
+        FKL_VM_GET_ARG(exe, frame, idx) = v;
     } break;
     case FKL_OP_HASH: {
         switch (ins->ai) {
@@ -1303,42 +1311,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             break;
         }
     } break;
-    case FKL_OP_RET_IF_TRUE:
-        if (FKL_VM_GET_TOP_VALUE(exe) != FKL_VM_NIL) {
-            if (frame->c.mark) {
-                close_all_var_ref(&frame->c.lr);
-                if (frame->c.lr.lrefl) {
-                    frame->c.lr.lrefl = NULL;
-                    memset(frame->c.lr.lref, 0,
-                           sizeof(FklVMvalue *) * frame->c.lr.lcount);
-                }
-                frame->c.pc = frame->c.spc;
-                frame->c.mark = 0;
-                frame->c.tail = 0;
-            } else {
-                fklDoFinalizeCompoundFrame(exe, popFrame(exe));
-                return;
-            }
-        }
-        break;
-    case FKL_OP_RET_IF_FALSE:
-        if (FKL_VM_GET_TOP_VALUE(exe) == FKL_VM_NIL) {
-            if (frame->c.mark) {
-                close_all_var_ref(&frame->c.lr);
-                if (frame->c.lr.lrefl) {
-                    frame->c.lr.lrefl = NULL;
-                    memset(frame->c.lr.lref, 0,
-                           sizeof(FklVMvalue *) * frame->c.lr.lcount);
-                }
-                frame->c.pc = frame->c.spc;
-                frame->c.mark = 0;
-                frame->c.tail = 0;
-            } else {
-                fklDoFinalizeCompoundFrame(exe, popFrame(exe));
-                return;
-            }
-        }
-        break;
     case FKL_OP_MOV_LOC:
         FKL_VM_PUSH_VALUE(exe, (GET_COMPOUND_FRAME_LOC(frame, ins->bu) =
                                     GET_COMPOUND_FRAME_LOC(frame, ins->au)));

@@ -1153,8 +1153,9 @@ static int repl_frame_step(void *data, FklVM *exe) {
             mainframe->c.lr.lref = fctx->lref;
             FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
             f->base = 0;
-            f->loc = fklAllocMoreSpaceForMainFrame(exe, proc->lcount + 1);
-            f->loc[ret_proc_idx] = fctx->ret_proc;
+            f->loc =
+                NULL; // fklAllocMoreSpaceForMainFrame(exe, proc->lcount + 1);
+            // f->loc[ret_proc_idx] = fctx->ret_proc;
             f->lcount = proc->lcount;
             alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
             init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);

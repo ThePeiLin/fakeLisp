@@ -223,27 +223,13 @@ FklVMframe *fklCopyVMframe(FklVM *target_vm, FklVMframe *f, FklVMframe *prev) {
 }
 
 static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
-    lr->base = 0;
+    // lr->base = 0;
     lr->lcount = 0;
-    lr->loc = NULL;
+    // lr->loc = NULL;
     lr->lref = NULL;
     lr->ref = NULL;
     lr->rcount = 0;
     lr->lrefl = NULL;
-}
-
-void fklUpdateAllVarRef(FklVMframe *f, FklVMvalue **locv) {
-    for (; f; f = f->prev)
-        if (f->type == FKL_FRAME_COMPOUND) {
-            FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
-            FklVMvalue **loc = &locv[lr->base];
-            for (FklVMvarRefList *ll = lr->lrefl; ll; ll = ll->next) {
-                FklVMvalueVarRef *ref = FKL_VM_VAR_REF(ll->ref);
-                if (ref->ref != &ref->v)
-                    ref->ref = &loc[ref->idx];
-            }
-            lr->loc = loc;
-        }
 }
 
 FklVMframe *fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *proc,

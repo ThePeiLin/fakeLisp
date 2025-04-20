@@ -1,4 +1,5 @@
 #include "bdb.h"
+#include "fakeLisp/vm.h"
 
 #include <fakeLisp/builtin.h>
 #include <string.h>
@@ -409,7 +410,8 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     const FklSymDefHashMapElm *def =
         fklFindSymbolDefByIdAndScope(id, scope, env);
     if (def)
-        return cur_thread->locv[def->v.idx];
+        return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
+    // cur_thread->locv[def->v.idx];
     return NULL;
 }
 

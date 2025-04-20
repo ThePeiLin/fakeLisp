@@ -878,7 +878,7 @@ BC_PROCESS(_funcall_exp_bc_process) {
         FklByteCode *funcBc = func->bc;
         uint32_t argNum = stack->size - 1;
         FklBuiltinInlineFunc inlFunc = NULL;
-        if (argNum < 4
+        if (0 && argNum < 4
             && (inlFunc =
                     is_inlinable_func_ref(funcBc, env, argNum, codegen))) {
             fklDestroyByteCodelnt(func);
@@ -3565,26 +3565,6 @@ BC_PROCESS(_unqtesp_vec_bc_process) {
     return retval;
 }
 
-BC_PROCESS(_unqtesp_dvec_bc_process) {
-    FklByteCodelntVector *stack = GET_STACK(context);
-    FklByteCodelnt *retval = *fklByteCodelntVectorPopBack(stack);
-    FklByteCodelnt *other = fklByteCodelntVectorIsEmpty(stack)
-                              ? NULL
-                              : *fklByteCodelntVectorPopBack(stack);
-    if (other) {
-        while (!fklByteCodelntVectorIsEmpty(stack)) {
-            FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(stack);
-            fklCodeLntConcat(other, cur);
-            fklDestroyByteCodelnt(cur);
-        }
-        fklCodeLntReverseConcat(other, retval);
-        fklDestroyByteCodelnt(other);
-    }
-    FklInstruction listPush = create_op_ins(FKL_OP_LIST_PUSH);
-    fklByteCodeLntPushBackIns(retval, &listPush, fid, line, scope);
-    return retval;
-}
-
 BC_PROCESS(_qsquote_pair_bc_process) {
     FklByteCodelntVector *stack = GET_STACK(context);
     FklByteCodelnt *retval = stack->base[0];
@@ -3619,7 +3599,6 @@ typedef enum {
     QSQUOTE_NONE = 0,
     QSQUOTE_UNQTESP_CAR,
     QSQUOTE_UNQTESP_VEC,
-    QSQUOTE_UNQTESP_DVEC,
 } QsquoteHelperEnum;
 
 typedef struct {
@@ -3666,11 +3645,6 @@ static CODEGEN_FUNC(codegen_qsquote) {
         case QSQUOTE_UNQTESP_VEC:
             unquoteHelperFunc(curValue, codegenQuestStack, scope, macroScope,
                               curEnv, _unqtesp_vec_bc_process, prevQuest,
-                              codegen);
-            break;
-        case QSQUOTE_UNQTESP_DVEC:
-            unquoteHelperFunc(curValue, codegenQuestStack, scope, macroScope,
-                              curEnv, _unqtesp_dvec_bc_process, prevQuest,
                               codegen);
             break;
         case QSQUOTE_NONE: {
@@ -9167,14 +9141,15 @@ static void initVMframeFromPatternMatchTable(FklVM *exe, FklVMframe *frame,
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(frame);
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     uint32_t count = mainPts->lcount;
-    FklVMvalue **loc = fklAllocSpaceForLocalVar(exe, count);
+    // FklVMvalue **loc = fklAllocSpaceForLocalVar(exe, count);
     uint32_t idx = 0;
     for (FklPmatchHashMapNode *list = ht->first; list; list = list->next) {
         FklVMvalue *v = fklCreateVMvalueFromNastNode(exe, list->v, lineHash);
-        loc[idx] = v;
+        FKL_VM_GET_ARG(exe, frame, idx) = v;
+        // loc[idx] = v;
         idx++;
     }
-    lr->loc = loc;
+    // lr->loc = loc;
     lr->lcount = count;
     lr->lref = NULL;
     lr->lrefl = NULL;

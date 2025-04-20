@@ -48,10 +48,14 @@ static FklVMudMetaTable PublicBuiltInDataMetaTable = {
 // builtin functions
 
 static int builtin_car(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(obj, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_PAIR, exe);
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(obj));
+    // FKL_DECL_AND_CHECK_ARG(obj, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    // FKL_CHECK_TYPE(obj, FKL_IS_PAIR, exe);
+    // FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(obj));
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_CAR(obj));
     return 0;
 }
 
@@ -65,10 +69,14 @@ static int builtin_car_set(FKL_CPROC_ARGL) {
 }
 
 static int builtin_cdr(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(obj, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_PAIR, exe);
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_CDR(obj));
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_CDR(obj));
+    // FKL_DECL_AND_CHECK_ARG(obj, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    // FKL_CHECK_TYPE(obj, FKL_IS_PAIR, exe);
+    // FKL_VM_PUSH_VALUE(exe, FKL_VM_CDR(obj));
     return 0;
 }
 
@@ -82,9 +90,12 @@ static int builtin_cdr_set(FKL_CPROC_ARGL) {
 }
 
 static int builtin_cons(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG2(car, cdr, exe);
-    FKL_CHECK_REST_ARG(exe);
-    FKL_VM_PUSH_VALUE(exe, fklCreateVMvaluePair(exe, car, cdr));
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    // FKL_DECL_AND_CHECK_ARG2(car, cdr, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_RETURN(exe, ctx,
+                     fklCreateVMvaluePair(exe, FKL_CPROC_GET_ARG(exe, ctx, 0),
+                                          FKL_CPROC_GET_ARG(exe, ctx, 1)));
     return 0;
 }
 
@@ -339,25 +350,45 @@ static int builtin_append1(FKL_CPROC_ARGL) {
 }
 
 static int builtin_eq(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG2(fir, sec, exe);
-    FKL_CHECK_REST_ARG(exe);
-    FKL_VM_PUSH_VALUE(exe, fklVMvalueEq(fir, sec) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_RETURN(exe, ctx,
+                     fklVMvalueEq(FKL_CPROC_GET_ARG(exe, ctx, 0),
+                                  FKL_CPROC_GET_ARG(exe, ctx, 1))
+                         ? FKL_VM_TRUE
+                         : FKL_VM_NIL);
+    // FKL_DECL_AND_CHECK_ARG2(fir, sec, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    // FKL_VM_PUSH_VALUE(exe, fklVMvalueEq(fir, sec) ? FKL_VM_TRUE :
+    // FKL_VM_NIL);
     return 0;
 }
 
 static int builtin_eqv(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG2(fir, sec, exe);
-    FKL_CHECK_REST_ARG(exe);
-    FKL_VM_PUSH_VALUE(exe,
-                      (fklVMvalueEqv(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_RETURN(exe, ctx,
+                     fklVMvalueEqv(FKL_CPROC_GET_ARG(exe, ctx, 0),
+                                   FKL_CPROC_GET_ARG(exe, ctx, 1))
+                         ? FKL_VM_TRUE
+                         : FKL_VM_NIL);
+    // FKL_DECL_AND_CHECK_ARG2(fir, sec, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    // FKL_VM_PUSH_VALUE(exe,
+    //                   (fklVMvalueEqv(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
 static int builtin_equal(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG2(fir, sec, exe);
-    FKL_CHECK_REST_ARG(exe);
-    FKL_VM_PUSH_VALUE(exe,
-                      (fklVMvalueEqual(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_RETURN(exe, ctx,
+                     fklVMvalueEqual(FKL_CPROC_GET_ARG(exe, ctx, 0),
+                                     FKL_CPROC_GET_ARG(exe, ctx, 1))
+                         ? FKL_VM_TRUE
+                         : FKL_VM_NIL);
+    // FKL_DECL_AND_CHECK_ARG2(fir, sec, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    // FKL_VM_PUSH_VALUE(exe,
+    //                   (fklVMvalueEqual(fir, sec)) ? FKL_VM_TRUE :
+    //                   FKL_VM_NIL);
     return 0;
 }
 
@@ -375,11 +406,13 @@ static int builtin_add(FKL_CPROC_ARGL) {
 }
 
 static int builtin_add_1(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(arg, exe);
-    FKL_CHECK_REST_ARG(exe);
-    FklVMvalue *r = fklProcessVMnumAddk(exe, arg, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    // FKL_DECL_AND_CHECK_ARG(arg, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *r = fklProcessVMnumAddk(exe, FKL_CPROC_GET_ARG(exe, ctx, 0), 1);
     if (r)
-        FKL_VM_PUSH_VALUE(exe, r);
+        // FKL_VM_PUSH_VALUE(exe, r);
+        FKL_CPROC_RETURN(exe, ctx, r);
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     return 0;
@@ -407,11 +440,14 @@ static int builtin_sub(FKL_CPROC_ARGL) {
 }
 
 static int builtin_sub_1(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(arg, exe);
-    FKL_CHECK_REST_ARG(exe);
-    FklVMvalue *r = fklProcessVMnumAddk(exe, arg, -1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    // FKL_DECL_AND_CHECK_ARG(arg, exe);
+    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *r =
+        fklProcessVMnumAddk(exe, FKL_CPROC_GET_ARG(exe, ctx, 0), -1);
     if (r)
-        FKL_VM_PUSH_VALUE(exe, r);
+        FKL_CPROC_RETURN(exe, ctx, r);
+    // FKL_VM_PUSH_VALUE(exe, r);
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     return 0;
@@ -3952,9 +3988,9 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL) {
 }
 
 #define PREDICATE(condition)                                                   \
-    FKL_DECL_AND_CHECK_ARG(val, exe);                                          \
-    FKL_CHECK_REST_ARG(exe);                                                   \
-    FKL_VM_PUSH_VALUE(exe, (condition) ? FKL_VM_TRUE : FKL_VM_NIL);            \
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);                                      \
+    FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);                          \
+    FKL_CPROC_RETURN(exe, ctx, (condition) ? FKL_VM_TRUE : FKL_VM_NIL);        \
     return 0;
 
 static int builtin_sleep(FKL_CPROC_ARGL) {
@@ -4323,26 +4359,21 @@ static inline FklByteCodelnt *inlfunc_add0(INL_FUNC_ARGS) {
     return inl_0_arg_func(FKL_OP_PUSH_0, fid, line, scope);
 }
 
-// static FklByteCodelnt *inlfunc_ret0(INL_FUNC_ARGS) {
-//     FklByteCodelnt *r = inl_0_arg_func(FKL_OP_RES_BP_TP, fid, line, scope);
-//     FklInstruction ins = {.op = FKL_OP_PUSH_NIL};
-//     fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
-//     ins.op = FKL_OP_RET;
-//     fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
-//     return r;
-// }
+static FklByteCodelnt *inlfunc_ret0(INL_FUNC_ARGS) {
+#ifdef INCOMPLETE
+    FklByteCodelnt *r = inl_0_arg_func(FKL_OP_RES_BP_TP, fid, line, scope);
+    FklInstruction ins = {.op = FKL_OP_PUSH_NIL};
+    fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
+    ins.op = FKL_OP_RET;
+    fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
+    return r;
+#endif
+    abort();
+    return NULL;
+}
 
 static inline FklByteCodelnt *inlfunc_mul0(INL_FUNC_ARGS) {
     return inl_0_arg_func(FKL_OP_PUSH_1, fid, line, scope);
-}
-
-static inline FklByteCodelnt *inl_1_arg_func(FklOpcode opc,
-                                             FklByteCodelnt *bcs[],
-                                             FklSid_t fid, uint32_t line,
-                                             uint32_t scope) {
-    FklInstruction bc = {.op = opc};
-    fklByteCodeLntPushBackIns(bcs[0], &bc, fid, line, scope);
-    return bcs[0];
 }
 
 static inline FklByteCodelnt *inl_1_arg_func2(const FklInstruction *ins,
@@ -4351,6 +4382,14 @@ static inline FklByteCodelnt *inl_1_arg_func2(const FklInstruction *ins,
                                               uint32_t scope) {
     fklByteCodeLntPushBackIns(bcs[0], ins, fid, line, scope);
     return bcs[0];
+}
+
+static inline FklByteCodelnt *inl_1_arg_func(FklOpcode opc,
+                                             FklByteCodelnt *bcs[],
+                                             FklSid_t fid, uint32_t line,
+                                             uint32_t scope) {
+    FklInstruction bc = {.op = opc};
+    return inl_1_arg_func2(&bc, bcs, fid, line, scope);
 }
 
 static FklByteCodelnt *inlfunc_true(INL_FUNC_ARGS) {
@@ -4425,34 +4464,34 @@ static FklByteCodelnt *inlfunc_unbox(INL_FUNC_ARGS) {
     return inl_1_arg_func2(&ins, bcs, fid, line, scope);
 }
 
-// static FklByteCodelnt *inlfunc_ret1(INL_FUNC_ARGS) {
-//     FklByteCodelnt *r = bcs[0];
-//     FklInstruction ins = {.op = FKL_OP_RES_BP_TP};
-//     fklByteCodeLntInsertFrontIns(&ins, r, fid, line, scope);
-//     ins.op = FKL_OP_RET;
-//     fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
-//     return r;
-// }
-
-static inline FklByteCodelnt *inl_2_arg_func(FklOpcode opc,
-                                             FklByteCodelnt *bcs[],
-                                             FklSid_t fid, uint32_t line,
-                                             uint32_t scope) {
-    FklInstruction bc = {.op = opc};
-    fklCodeLntReverseConcat(bcs[1], bcs[0]);
-    fklByteCodeLntPushBackIns(bcs[0], &bc, fid, line, scope);
-    fklDestroyByteCodelnt(bcs[1]);
-    return bcs[0];
+static FklByteCodelnt *inlfunc_ret1(INL_FUNC_ARGS) {
+    FklByteCodelnt *r = bcs[0];
+#ifdef INCOMPLETE
+    FklInstruction ins = {.op = FKL_OP_RES_BP_TP};
+    fklByteCodeLntInsertFrontIns(&ins, r, fid, line, scope);
+    ins.op = FKL_OP_RET;
+    fklByteCodeLntPushBackIns(r, &ins, fid, line, scope);
+#endif
+    abort();
+    return r;
 }
 
 static inline FklByteCodelnt *inl_2_arg_func2(const FklInstruction *ins,
                                               FklByteCodelnt *bcs[],
                                               FklSid_t fid, uint32_t line,
                                               uint32_t scope) {
-    fklCodeLntReverseConcat(bcs[1], bcs[0]);
+    fklCodeLntConcat(bcs[0], bcs[1]);
     fklByteCodeLntPushBackIns(bcs[0], ins, fid, line, scope);
     fklDestroyByteCodelnt(bcs[1]);
     return bcs[0];
+}
+
+static inline FklByteCodelnt *inl_2_arg_func(FklOpcode opc,
+                                             FklByteCodelnt *bcs[],
+                                             FklSid_t fid, uint32_t line,
+                                             uint32_t scope) {
+    FklInstruction bc = {.op = opc};
+    return inl_2_arg_func2(&bc, bcs, fid, line, scope);
 }
 
 static FklByteCodelnt *inlfunc_cons(INL_FUNC_ARGS) {
@@ -4574,32 +4613,27 @@ static FklByteCodelnt *inlfunc_le2(INL_FUNC_ARGS) {
     return inl_2_arg_func2(&ins, bcs, fid, line, scope);
 }
 
+static inline FklByteCodelnt *inl_3_arg_func2(const FklInstruction *ins,
+                                              FklByteCodelnt *bcs[],
+                                              FklSid_t fid, uint32_t line,
+                                              uint32_t scope) {
+    fklCodeLntConcat(bcs[0], bcs[1]);
+    fklCodeLntConcat(bcs[0], bcs[2]);
+    fklByteCodeLntPushBackIns(bcs[0], ins, fid, line, scope);
+    fklDestroyByteCodelnt(bcs[1]);
+    fklDestroyByteCodelnt(bcs[2]);
+    return bcs[0];
+}
+
 #if 0
 static inline FklByteCodelnt *inl_3_arg_func(FklOpcode opc,
                                              FklByteCodelnt *bcs[],
                                              FklSid_t fid, uint32_t line,
                                              uint32_t scope) {
     FklInstruction bc = {.op = opc};
-    fklCodeLntReverseConcat(bcs[1], bcs[0]);
-    fklCodeLntReverseConcat(bcs[2], bcs[0]);
-    fklByteCodeLntPushBackIns(bcs[0], &bc, fid, line, scope);
-    fklDestroyByteCodelnt(bcs[1]);
-    fklDestroyByteCodelnt(bcs[2]);
-    return bcs[0];
+    return inl_3_arg_func2(&bc, bcs, fid, line, scope);
 }
 #endif
-
-static inline FklByteCodelnt *inl_3_arg_func2(const FklInstruction *ins,
-                                              FklByteCodelnt *bcs[],
-                                              FklSid_t fid, uint32_t line,
-                                              uint32_t scope) {
-    fklCodeLntReverseConcat(bcs[1], bcs[0]);
-    fklCodeLntReverseConcat(bcs[2], bcs[0]);
-    fklByteCodeLntPushBackIns(bcs[0], ins, fid, line, scope);
-    fklDestroyByteCodelnt(bcs[1]);
-    fklDestroyByteCodelnt(bcs[2]);
-    return bcs[0];
-}
 
 static FklByteCodelnt *inlfunc_eqn3(INL_FUNC_ARGS) {
     FklInstruction ins = {.op = FKL_OP_EQN, .ai = 3};
@@ -4909,8 +4943,7 @@ static const struct SymbolFuncStruct {
 
     {"exit",            builtin_exit,                 {NULL,         NULL,              NULL,               NULL               } },
 
-    // {"return",          builtin_return,               {inlfunc_ret0, inlfunc_ret1,      NULL,               NULL               } },
-    {"return",          builtin_return,               {NULL, NULL,      NULL,               NULL               } },
+    {"return",          builtin_return,               {inlfunc_ret0, inlfunc_ret1,      NULL,               NULL               } },
 
     {"vector-first",    builtin_vec_first,            {NULL,         inlfunc_vec_first, NULL,               NULL               } },
     {"vector-last",     builtin_vec_last,             {NULL,         inlfunc_vec_last,  NULL,               NULL               } },

@@ -416,7 +416,7 @@ struct FuvErrorRecoverData {
     uint32_t stack_values_num;
     uint32_t local_values_num;
     FklVMvalue **stack_values;
-    FklVMvalue **local_values;
+    // FklVMvalue **local_values;
 };
 
 typedef struct {
@@ -501,8 +501,7 @@ typedef FuvHandle *FuvHandleUd;
 int isFuvLoop(FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *rel, int *err);
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
-                      uint32_t sbp, uint32_t stp, uint32_t ltp,
-                      FklVMframe *buttom_frame);
+                      uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame);
 void fuvLoopInsertFuvObj(FklVMvalue *loop, FklVMvalue *handle);
 
 int isFuvHandle(FklVMvalue *v);

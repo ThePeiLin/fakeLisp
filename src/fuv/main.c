@@ -821,13 +821,13 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
         fklLockThread(exe);
         uint32_t sbp = exe->bp;
         uint32_t stp = exe->tp;
-        uint32_t ltp = exe->ltp;
+        // uint32_t ltp = exe->ltp;
         FklVMframe *buttom_frame = exe->top_frame;
         exe->state = FKL_VM_READY;
         fklSetBp(exe);
         fklCallObj(exe, proc);
         if (exe->thread_run_cb(exe, buttom_frame))
-            startErrorHandle(loop, loop_data, exe, sbp, stp, ltp, buttom_frame);
+            startErrorHandle(loop, loop_data, exe, sbp, stp, buttom_frame);
         else
             exe->tp--;
         fklUnlockThread(exe);
@@ -1244,7 +1244,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
         fklLockThread(exe);
         uint32_t sbp = exe->bp;
         uint32_t stp = exe->tp;
-        uint32_t ltp = exe->ltp;
+        // uint32_t ltp = exe->ltp;
         FklVMframe *buttom_frame = exe->top_frame;
         exe->state = FKL_VM_READY;
         fklSetBp(exe);
@@ -1253,7 +1253,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
         fklCallObj(exe, proc);
         if (exe->thread_run_cb(exe, buttom_frame))
             startErrorHandle(uv_handle_get_loop(handle), loop_data, exe, sbp,
-                             stp, ltp, buttom_frame);
+                             stp, buttom_frame);
         else
             exe->tp--;
         fklUnlockThread(exe);
@@ -1741,7 +1741,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(
     exe->state = FKL_VM_READY;
     uint32_t sbp = exe->bp;
     uint32_t stp = exe->tp;
-    uint32_t ltp = exe->ltp;
+    // uint32_t ltp = exe->ltp;
     FklVMframe *buttom_frame = exe->top_frame;
     fklSetBp(exe);
     if (creator)
@@ -1753,8 +1753,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(
 call:
     fklCallObj(exe, proc);
     if (exe->thread_run_cb(exe, buttom_frame))
-        startErrorHandle(&fuv_loop->loop, ldata, exe, sbp, stp, ltp,
-                         buttom_frame);
+        startErrorHandle(&fuv_loop->loop, ldata, exe, sbp, stp, buttom_frame);
     else
         exe->tp--;
     fklUnlockThread(exe);

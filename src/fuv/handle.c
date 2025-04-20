@@ -322,7 +322,6 @@ static void fuv_async_cb(uv_async_t *handle) {
         fklLockThread(exe);
         uint32_t sbp = exe->bp;
         uint32_t stp = exe->tp;
-        uint32_t ltp = exe->ltp;
         exe->state = FKL_VM_READY;
         FklVMframe *buttom_frame = exe->top_frame;
         struct FuvAsyncExtraData *extra = atomic_load(&async_handle->extra);
@@ -335,7 +334,7 @@ static void fuv_async_cb(uv_async_t *handle) {
         FUV_ASYNC_COPY_DONE(async_handle);
         FUV_ASYNC_WAIT_SEND(exe, async_handle);
         if (exe->thread_run_cb(exe, buttom_frame))
-            startErrorHandle(loop, ldata, exe, sbp, stp, ltp, buttom_frame);
+            startErrorHandle(loop, ldata, exe, sbp, stp, buttom_frame);
         else
             exe->tp--;
         fklUnlockThread(exe);

@@ -17,7 +17,7 @@ static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
     FklVMvalue **end = &cur[rd->stack_values_num];
     for (; cur < end; cur++)
         fklVMgcToGray(*cur, gc);
-    cur = rd->local_values;
+    // cur = rd->local_values;
     end = &cur[rd->local_values_num];
     for (; cur < end; cur++)
         fklVMgcToGray(*cur, gc);
@@ -67,8 +67,8 @@ static inline FklVMvalue *recover_error_scene(FklVM *exe,
     FklVMvalue **end = &cur[rd->stack_values_num];
     for (; cur < end; cur++)
         FKL_VM_PUSH_VALUE(exe, *cur);
-    FklVMvalue **locv = fklAllocSpaceForLocalVar(exe, rd->local_values_num);
-    memcpy(locv, rd->local_values, sizeof(FklVMvalue *) * rd->local_values_num);
+    // FklVMvalue **locv = fklAllocSpaceForLocalVar(exe, rd->local_values_num);
+    // memcpy(locv, rd->local_values, sizeof(FklVMvalue *) * rd->local_values_num);
 
     FklVMframe *f = rd->frame;
     while (f) {
@@ -79,7 +79,7 @@ static inline FklVMvalue *recover_error_scene(FklVM *exe,
     }
 
     free(rd->stack_values);
-    free(rd->local_values);
+    // free(rd->local_values);
     memset(rd, 0, sizeof(*rd));
     return FKL_VM_POP_TOP_VALUE(exe);
 }
@@ -115,12 +115,12 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
 }
 
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
-                      uint32_t sbp, uint32_t stp, uint32_t ltp,
+                      uint32_t sbp, uint32_t stp, 
                       FklVMframe *buttom_frame) {
     struct FuvErrorRecoverData *rd = &ldata->error_recover_data;
 
-    uint32_t origin_ltp = exe->ltp;
-    exe->ltp = ltp + rd->local_values_num;
+    // uint32_t origin_ltp = exe->ltp;
+    // exe->ltp = ltp + rd->local_values_num;
     FklVMframe *f = rd->frame;
     while (f) {
         FklVMframe *prev = f->prev;
@@ -128,20 +128,20 @@ void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
         f = prev;
     }
 
-    exe->ltp = origin_ltp;
-    rd->local_values_num = exe->ltp - ltp;
+    // exe->ltp = origin_ltp;
+    // rd->local_values_num = exe->ltp - ltp;
     rd->stack_values_num = exe->tp - stp;
 
-    free(rd->local_values);
+    // free(rd->local_values);
     free(rd->stack_values);
-    rd->local_values = fklCopyMemory(
-        &exe->locv[ltp], sizeof(FklVMvalue *) * rd->local_values_num);
+    // rd->local_values = fklCopyMemory(
+    //     &exe->locv[ltp], sizeof(FklVMvalue *) * rd->local_values_num);
     rd->stack_values = fklCopyMemory(
         &exe->base[stp], sizeof(FklVMvalue *) * rd->stack_values_num);
 
     exe->bp = sbp;
     exe->tp = stp;
-    exe->ltp = ltp;
+    // exe->ltp = ltp;
 
     rd->frame = NULL;
 

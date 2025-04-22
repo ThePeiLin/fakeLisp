@@ -960,21 +960,21 @@ void fklChanlSend(FklVMchanl *ch, FklVMvalue *msg, FklVM *exe) {
 }
 
 uint64_t fklVMchanlRecvqLen(FklVMchanl *ch) {
-    uint64_t r = 0;
+    uint64_t l = 0;
     uv_mutex_lock(&ch->lock);
-    for (FklVMchanlRecv *r = ch->recvq.head; r; r = r->next)
-        r++;
+    for (FklVMchanlRecv *q = ch->recvq.head; q; q = q->next)
+        ++l;
     uv_mutex_unlock(&ch->lock);
-    return r;
+    return l;
 }
 
 uint64_t fklVMchanlSendqLen(FklVMchanl *ch) {
-    uint64_t r = 0;
+    uint64_t l = 0;
     uv_mutex_lock(&ch->lock);
-    for (FklVMchanlSend *r = ch->sendq.head; r; r = r->next)
-        r++;
+    for (FklVMchanlSend *q = ch->sendq.head; q; q = q->next)
+        ++l;
     uv_mutex_unlock(&ch->lock);
-    return r;
+    return l;
 }
 
 uint64_t fklVMchanlMessageNum(FklVMchanl *ch) {
@@ -1854,8 +1854,7 @@ FklVMvalue *fklCreateVMvalueDll(FklVM *exe, const char *dllName,
     }
     uv_lib_t lib;
     if (uv_dlopen(realDllName, &lib)) {
-        *errorStr =
-            fklCreateVMvalueStr(exe, fklCreateStringFromCstr(uv_dlerror(&lib)));
+        *errorStr = fklCreateVMvalueStrFromCstr(exe, uv_dlerror(&lib));
         uv_dlclose(&lib);
         goto err;
     }

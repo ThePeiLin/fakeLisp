@@ -232,10 +232,18 @@ typedef struct {
     uint32_t rcount;
 } FklVMCompoundFrameVarRef;
 
+#define FKL_VM_COMPOUND_FRAME_MARK_RET (0)
+#define FKL_VM_COMPOUND_FRAME_MARK_CALL (1)
+
+// 通常用于修改ret指令的行为
+// 具体用法为在函数的开头插入特殊的指令
+// 然后将这个函数的调用栈的成员mark改为LOOP
+// 目前只有REPL使用该功能
+#define FKL_VM_COMPOUND_FRAME_MARK_LOOP (2)
+
 typedef struct {
     FklSid_t sid : 61;
-    unsigned int tail : 1;
-    unsigned int mark : 2;
+    unsigned int mark : 3;
     FklVMvalue *proc;
     FklVMCompoundFrameVarRef lr;
     FklInstruction *spc;
@@ -462,9 +470,9 @@ typedef struct FklVM {
 
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,
-                                           FklVMvalue *const *top);
+                                           FklVMvalue *const *base);
 typedef int (*FklVMudAppender)(FklVMud *, uint32_t argc,
-                               FklVMvalue *const *top);
+                               FklVMvalue *const *base);
 
 typedef struct FklVMudMetaTable {
     size_t size;
@@ -713,8 +721,9 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *, FklSymbolTable *,
                                FklConstTable *, FklFuncPrototypes *, uint32_t);
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num,
                    FklVMlib *libs);
-FklVM *fklCreateThreadVM(FklVMvalue *, FklVM *prev, FklVM *next, size_t libNum,
-                         FklVMlib *libs);
+FklVM *fklCreateThreadVM(FklVMvalue *, uint32_t arg_num,
+                         FklVMvalue *const *args, FklVM *prev, FklVM *next,
+                         size_t libNum, FklVMlib *libs);
 
 void fklDestroyVMvalue(FklVMvalue *);
 void fklInitVMstack(FklVM *);
@@ -758,23 +767,33 @@ void fklDestroyAllValues(FklVMgc *);
 
 void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
 void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVMgc *gc);
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc);
 
 FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *);
 FklVMvalue *fklVMstringifyAsPrinc(FklVMvalue *, FklVM *);
 void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
 void fklPrincVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
-FklBuiltinErrorType fklVMprintf(FklVM *, FILE *fp, const FklString *fmt,
-                                uint64_t *plen);
 
-FklBuiltinErrorType fklVMformat(FklVM *, FklStringBuffer *buf,
-                                const FklString *fmt, uint64_t *plen);
+FklBuiltinErrorType fklVMprintf(FklVM *, FILE *fp, const char *fmt,
+                                uint64_t *plen, FklVMvalue **start,
+                                FklVMvalue **const end);
 
-FklBuiltinErrorType fklVMformat2(FklVM *exe, FklStringBuffer *result,
+FklBuiltinErrorType fklVMprintf2(FklVM *, FILE *fp, const FklString *fmt,
+                                 uint64_t *plen, FklVMvalue **start,
+                                 FklVMvalue **const end);
+
+FklBuiltinErrorType fklVMformat(FklVM *, FklStringBuffer *buf, const char *fmt,
+                                uint64_t *plen, FklVMvalue **start,
+                                FklVMvalue **const end);
+
+FklBuiltinErrorType fklVMformat2(FklVM *, FklStringBuffer *buf,
+                                 const FklString *fmt, uint64_t *plen,
+                                 FklVMvalue **start, FklVMvalue **const end);
+
+FklBuiltinErrorType fklVMformat3(FklVM *exe, FklStringBuffer *result,
                                  const char *fmt, const char *end,
-                                 uint64_t *plen);
-
-void fklVMformatToBuf(FklVM *exe, FklStringBuffer *buf, const char *fmt,
-                      FklVMvalue **base, size_t len);
+                                 uint64_t *plen, FklVMvalue **cur_val,
+                                 FklVMvalue **const val_end);
 
 FklString *fklVMformatToString(FklVM *exe, const char *fmt, FklVMvalue **base,
                                size_t len);
@@ -811,20 +830,33 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
     if (fklResBp((EXE)))                                                       \
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, EXE)
 
+#define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
+
 #define FKL_CPROC_CHECK_ARG_NUM(EXE, CTX, N)                                   \
-    if (FKL_VM_GET_VAL_NUM((EXE), FKL_VM_FRAME_OF(CTX)) > (N)) {               \
+    if (FKL_CPROC_GET_ARG_NUM((EXE), (CTX)) > (N)) {                           \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, EXE);                      \
-    } else if (FKL_VM_GET_VAL_NUM((EXE), FKL_VM_FRAME_OF(CTX)) < (N)) {        \
+    } else if ((FKL_TYPE_CAST(int64_t, (N))                                    \
+                - FKL_TYPE_CAST(int64_t, FKL_CPROC_GET_ARG_NUM((EXE), (CTX)))) \
+               > 0) {                                                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, EXE);                       \
     }
 
+#define FKL_CPROC_CHECK_ARG_NUM2(EXE, NUM, MIN, MAX)                           \
+    if ((MAX >= 0)                                                             \
+        && (FKL_TYPE_CAST(int64_t, (NUM)) - FKL_TYPE_CAST(int64_t, (MAX)))     \
+               > 0) {                                                          \
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, (EXE));                    \
+    } else if ((FKL_TYPE_CAST(int64_t, (MIN)) - FKL_TYPE_CAST(int64_t, (NUM))) \
+               > 0) {                                                          \
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, (EXE));                     \
+    }
+
 #define FKL_CPROC_GET_ARG(EXE, CTX, I)                                         \
-    FKL_VM_GET_ARG((EXE), FKL_VM_FRAME_OF(CTX), I)
+    FKL_VM_GET_ARG((EXE), FKL_VM_FRAME_OF(CTX), (I))
 
 #define FKL_CPROC_RETURN(EXE, CTX, V)                                          \
     do {                                                                       \
-        (EXE)->bp =                                                            \
-            FKL_GET_FIX(FKL_VM_GET_ARG((EXE), FKL_VM_FRAME_OF(CTX), -2));      \
+        (EXE)->bp = FKL_GET_FIX(FKL_CPROC_GET_ARG((EXE), (CTX), -2));          \
         (EXE)->tp = FKL_VM_FRAME_OF(CTX)->bp;                                  \
         FKL_VM_GET_TOP_VALUE((EXE)) = (V);                                     \
     } while (0)
@@ -1014,8 +1046,9 @@ int fklIsVMeofUd(FklVMvalue *v);
 
 #define FKL_VM_VEC_CAS(V, I, O, N)                                             \
     (atomic_compare_exchange_strong(                                           \
-        ((atomic_uintptr_t *)&(((FklVMvalueVec *)(V))->vec.base[(I)])),        \
-        (uintptr_t *)(O), (uintptr_t)(N)))
+        FKL_TYPE_CAST(_Atomic(FklVMvalue *) *,                                 \
+                      &(((FklVMvalueVec *)(V))->vec.base[(I)])),               \
+        (O), (N)))
 
 #define FKL_VM_F64(V) (((FklVMvalueF64 *)(V))->f64)
 
@@ -1033,8 +1066,9 @@ int fklIsVMeofUd(FklVMvalue *v);
 
 #define FKL_VM_BOX_CAS(V, O, N)                                                \
     (atomic_compare_exchange_strong(                                           \
-        ((atomic_uintptr_t *)&(((FklVMvalueBox *)(V))->box)),                  \
-        (uintptr_t *)(O), (uintptr_t)(N)))
+        FKL_TYPE_CAST(_Atomic(FklVMvalue *) *,                                 \
+                      &(((FklVMvalueBox *)(V))->box)),                         \
+        (O), (N)))
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef *)(V))
 
@@ -1070,11 +1104,7 @@ void fklAddToGC(FklVMvalue *, FklVM *);
 FklVMvalue *fklCreateTrueValue(void);
 FklVMvalue *fklCreateNilValue(void);
 
-void fklDropTop(FklVM *s);
-
 #define FKL_VM_GET_ARG_NUM(S) ((S)->tp - (S)->bp - 1)
-
-#define FKL_VM_GET_VAL_NUM(S, F) ((S)->tp - (F)->bp - 1)
 
 #define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
 
@@ -1169,11 +1199,16 @@ static inline FklVMvalue **fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (!d || !c || !b || !a)                                                  \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
 
-FklVMvalue *fklPopArg(FklVM *);
-FklVMvalue *fklGetTopValue(FklVM *);
-FklVMvalue *fklPopTopValue(FklVM *);
-FklVMvalue *fklGetValue(FklVM *, uint32_t);
-FklVMvalue **fklGetStackSlot(FklVM *, uint32_t);
+static inline FklVMvalue *fklGetTopValue(FklVM *exe) {
+    return exe->base[exe->tp - 1];
+}
+static inline FklVMvalue *fklPopTopValue(FklVM *s) { return s->base[--s->tp]; }
+static inline FklVMvalue *fklGetValue(FklVM *exe, uint32_t i) {
+    return exe->base[exe->tp - i];
+}
+static inline FklVMvalue **fklGetStackSlot(FklVM *exe, uint32_t i) {
+    return &exe->base[exe->tp - i];
+}
 
 int fklVMvalueEqual(const FklVMvalue *, const FklVMvalue *);
 int fklVMvalueCmp(FklVMvalue *, FklVMvalue *, int *);
@@ -1284,6 +1319,7 @@ static inline FklOpcode fklGetCompoundFrameOp(FklVMframe *f) {
     return (f->c.pc++)->op;
 }
 
+void fklVMcompoundFrameReturn(FklVM *exe);
 FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *,
                                               FklVMframe *prev);
 FklVMframe *fklCopyVMframe(FklVM *, FklVMframe *, FklVMframe *prev);

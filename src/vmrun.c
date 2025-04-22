@@ -112,13 +112,13 @@ static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
 //     }
 // }
 
-void fkl_dbg_print_link_back_trace(FklVMframe *t, FklSymbolTable *table) {
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc) {
     if (t->type == FKL_FRAME_COMPOUND) {
         if (t->c.sid)
-            fklPrintString(fklGetSymbolWithId(t->c.sid, table)->k, stderr);
+            fklPrintString(fklVMgetSymbolWithId(gc, t->c.sid)->k, stderr);
         else
             fputs("<lambda>", stderr);
-        fprintf(stderr, "[%u,%u]", t->c.mark, t->c.tail);
+        fprintf(stderr, "[%u]", t->c.mark);
     } else
         fputs("<obj>", stderr);
 
@@ -126,11 +126,10 @@ void fkl_dbg_print_link_back_trace(FklVMframe *t, FklSymbolTable *table) {
         fputs(" --> ", stderr);
         if (cur->type == FKL_FRAME_COMPOUND) {
             if (cur->c.sid)
-                fklPrintString(fklGetSymbolWithId(cur->c.sid, table)->k,
-                               stderr);
+                fklPrintString(fklVMgetSymbolWithId(gc, cur->c.sid)->k, stderr);
             else
                 fputs("<lambda>", stderr);
-            fprintf(stderr, "[%u,%u]", cur->c.mark, cur->c.tail);
+            fprintf(stderr, "[%u]", cur->c.mark);
         } else
             fputs("<obj>", stderr);
     }
@@ -139,14 +138,14 @@ void fkl_dbg_print_link_back_trace(FklVMframe *t, FklSymbolTable *table) {
 
 static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *frame = exe->top_frame;
-    FklVMframe *topframe = frame;
-    topframe->c.tail = 1;
+    // FklVMframe *topframe = frame;
+    // topframe->c.tail = 1;
     if (fklGetCompoundFrameProc(frame) == proc) {
-        frame->c.mark = 1;
-    // } else if ((frame = fklHasSameProc(proc, frame->prev))
-    //            && (topframe->c.tail &= frame->c.tail)) {
-    //     frame->c.mark = 1;
-    //     fklSwapCompoundFrame(topframe, frame);
+        frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
+        // } else if ((frame = fklHasSameProc(proc, frame->prev))
+        //            && (topframe->c.tail &= frame->c.tail)) {
+        //     frame->c.mark = 1;
+        //     fklSwapCompoundFrame(topframe, frame);
     } else {
         FklVMframe *tmpFrame =
             fklCreateVMframeWithProcValue(exe, proc, exe->top_frame->prev);
@@ -655,6 +654,10 @@ start:
 #define DISPATCH_INCLUDED
 #include "vmdispatch.h"
 #undef DISPATCH_INCLUDED
+
+#define RETURN_INCLUDE
+#include "vmreturn.h"
+#undef RETURN_INCLUDE
 
 int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
     for (;;) {
@@ -1533,16 +1536,6 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe, FklVMframe *f, size_t cpc,
     return r;
 }
 
-void fklDropTop(FklVM *s) { s->tp -= s->tp > 0; }
-
-FklVMvalue *fklPopTopValue(FklVM *s) { return s->base[--s->tp]; }
-
-FklVMvalue *fklPopArg(FklVM *s) {
-    if (s->tp > s->bp)
-        return s->base[--s->tp];
-    return NULL;
-}
-
 void fklInitVMstack(FklVM *tmp) {
     tmp->last = FKL_VM_STACK_INC_NUM;
     // tmp->size = FKL_VM_STACK_INC_SIZE;
@@ -1586,7 +1579,8 @@ void fklVMstackShrink(FklVM *exe) {
     if (exe->last == 0) {
         exe->last = old_last;
         return;
-    }
+    } else if (exe->last < FKL_VM_STACK_INC_NUM)
+        exe->last = FKL_VM_STACK_INC_NUM;
     FklVMvalue **nbase =
         fklAllocLocalVarSpaceFromGCwithoutLock(exe->gc, exe->last, &exe->last);
     FklVMvalue **obase = exe->base;
@@ -1703,7 +1697,8 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num,
     return exe;
 }
 
-FklVM *fklCreateThreadVM(FklVMvalue *nextCall, FklVM *prev, FklVM *next,
+FklVM *fklCreateThreadVM(FklVMvalue *nextCall, uint32_t arg_num,
+                         FklVMvalue *const *args, FklVM *prev, FklVM *next,
                          size_t libNum, FklVMlib *libs) {
     FklVM *exe = (FklVM *)calloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
@@ -1724,6 +1719,9 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall, FklVM *prev, FklVM *next,
     uv_mutex_init(&exe->lock);
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, nextCall);
+    fklVMstackReserve(exe, exe->tp + arg_num + 1);
+    memcpy(&exe->base[exe->tp], args, arg_num * sizeof(FklVMvalue *));
+    exe->tp += arg_num;
     fklCallObj(exe, nextCall);
     insert_to_VM_chain(exe, prev, next);
     return exe;

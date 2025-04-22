@@ -1,10 +1,12 @@
 #include <fakeLisp/vm.h>
 
 static int test_func(FKL_CPROC_ARGL) {
-    if (fklResBp(exe))
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    // if (fklResBp(exe))
+    //     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
     fputs("testing dll\n", stdout);
-    fklPushVMvalue(exe, FKL_VM_NIL);
+    // fklPushVMvalue(exe, FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
 

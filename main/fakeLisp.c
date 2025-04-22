@@ -979,14 +979,16 @@ static inline uint32_t make_get_loc_ins(FklInstruction ins[3], uint32_t k) {
     return l;
 }
 
-static inline void set_last_ins_get_loc(FklByteCodelnt *bcl, uint32_t idx) {
+static inline uint32_t set_last_ins_get_loc(FklByteCodelnt *bcl, uint32_t idx) {
     FklInstruction ins[3] = {{.op = FKL_OP_GET_LOC}};
     uint32_t l = make_get_loc_ins(ins, idx);
-    FklInstruction *last_ins = &bcl->bc->code[bcl->bc->len - 1];
     FklInstruction set_bp = {.op = FKL_OP_SET_BP};
-    *last_ins = set_bp;
-    for (uint32_t i = 0; i < l; i++)
-        fklByteCodeLntPushBackIns(bcl, &ins[i], 0, 0, 0);
+    FklInstruction call_ins = {.op = FKL_OP_CALL};
+    fklByteCodeLntInsertFrontIns(&call_ins, bcl, 0, 0, 0);
+    for (uint32_t i = l; i > 0; --i)
+        fklByteCodeLntInsertFrontIns(&ins[i - 1], bcl, 0, 0, 0);
+    fklByteCodeLntInsertFrontIns(&set_bp, bcl, 0, 0, 0);
+    return l + 2;
 }
 
 struct ConstArrayCount {
@@ -1016,11 +1018,14 @@ static int repl_frame_step(void *data, FklVM *exe) {
         // exe->ltp = fctx->lcount;
         ctx->state = READING;
         if (exe->tp - fctx->sp != 0) {
+            fprintf(stderr, "exe->last: %u, exe->tp: %u, exe->bp: %u\n",
+                    exe->last, exe->tp, exe->bp);
             fputs(RETVAL_PREFIX, stdout);
             fklDBG_printVMstack(exe, exe->tp - fctx->sp, stdout, 0, exe->gc);
         }
         exe->tp = fctx->sp;
-        fprintf(stderr, "exe->last: %u, exe->tp: %u\n", exe->last, exe->tp);
+        fprintf(stderr, "exe->last: %u, exe->tp: %u, exe->bp: %u\n", exe->last,
+                exe->tp, exe->bp);
 
         fklUnlockThread(exe);
         ctx->eof = replxx_input_string_buffer(fctx->replxx, &fctx->buf) == NULL;
@@ -1128,11 +1133,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
                                   codegen->runtime_symbol_table, pst);
 
             uint32_t ret_proc_idx = codegen->pts->pa[1].lcount;
-            set_last_ins_get_loc(mainCode, ret_proc_idx);
-            FklInstruction ins = {
-                .op = FKL_OP_CALL,
-            };
-            fklByteCodeLntPushBackIns(mainCode, &ins, 0, 0, 0);
+            uint32_t offset = set_last_ins_get_loc(mainCode, ret_proc_idx);
             fklVMreleaseSt(exe->gc);
 
             FklVMvalue *mainProc =
@@ -1159,6 +1160,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
             FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
 
             mainframe->bp = fctx->bp;
+            mainframe->c.pc += offset;
+            mainframe->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
             fklVMframeSetSp(exe, mainframe, ret_proc_idx + 1);
 
             // f->base = 0;
@@ -1391,11 +1394,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
                               codegen->runtime_symbol_table, pst);
 
         uint32_t proc_idx = codegen->pts->pa[1].lcount;
-        set_last_ins_get_loc(mainCode, proc_idx);
-        FklInstruction ins = {
-            .op = FKL_OP_CALL,
-        };
-        fklByteCodeLntPushBackIns(mainCode, &ins, 0, 0, 0);
+        uint32_t offset = set_last_ins_get_loc(mainCode, proc_idx);
         fklVMreleaseSt(exe->gc);
 
         FklVMvalue *mainProc =
@@ -1421,6 +1420,8 @@ static int eval_frame_step(void *data, FklVM *exe) {
         FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
 
         mainframe->bp = fctx->bp;
+        mainframe->c.pc += offset;
+        mainframe->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
         fklVMframeSetBp(exe, mainframe, proc_idx + 1);
 
         // f->base = 0;

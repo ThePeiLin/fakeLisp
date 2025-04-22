@@ -878,7 +878,7 @@ BC_PROCESS(_funcall_exp_bc_process) {
         FklByteCode *funcBc = func->bc;
         uint32_t argNum = stack->size - 1;
         FklBuiltinInlineFunc inlFunc = NULL;
-        if (0 && argNum < 4
+        if (argNum < 4
             && (inlFunc =
                     is_inlinable_func_ref(funcBc, env, argNum, codegen))) {
             fklDestroyByteCodelnt(func);

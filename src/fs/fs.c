@@ -236,20 +236,29 @@ static int fs_fclerr(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprintf(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG2(fp, fmt_obj, exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, -1);
+    FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
+
+    // FKL_DECL_AND_CHECK_ARG2(fp, fmt_obj, exe);
     FKL_CHECK_TYPE(fp, fklIsVMvalueFp, exe);
     FKL_CHECK_TYPE(fmt_obj, FKL_IS_STR, exe);
     CHECK_FP_OPEN(fp, exe);
     CHECK_FP_WRITABLE(fp, exe);
 
     uint64_t len = 0;
+    FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklBuiltinErrorType err_type =
-        fklVMprintf(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len);
+        // fklVMprintf(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len);
+        fklVMprintf2(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len, start,
+                    start + arg_num - 2);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    FKL_CHECK_REST_ARG(exe);
-    FKL_VM_PUSH_VALUE(exe, fklMakeVMuint(len, exe));
+    // FKL_CHECK_REST_ARG(exe);
+    // FKL_VM_PUSH_VALUE(exe, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
     return 0;
 }
 

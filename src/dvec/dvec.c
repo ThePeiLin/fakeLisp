@@ -47,11 +47,11 @@ static void _dvec_finalizer(FklVMud *ud) {
     fklVMvalueVectorUninit(vec);
 }
 
-static int _dvec_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *top) {
+static int _dvec_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *base) {
     FKL_DECL_UD_DATA(dvec, FklVMvalueVector, ud);
     size_t new_size = dvec->size;
-    for (int64_t i = 0; i < argc; i++) {
-        FklVMvalue *cur = top[-i];
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
             FKL_DECL_VM_UD_DATA(d, FklVMvalueVector, cur);
             new_size += d->size;
@@ -62,8 +62,8 @@ static int _dvec_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *top) {
     }
     fklVMvalueVectorReserve(dvec, new_size);
     new_size = dvec->size;
-    for (int64_t i = 0; i < argc; i++) {
-        FklVMvalue *cur = top[-i];
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
         size_t ss;
         FklVMvalue **mem;
         if (is_dvec_ud(cur)) {
@@ -110,11 +110,11 @@ create_dvec2(FklVM *exe, size_t size, FklVMvalue *const *ptr, FklVMvalue *dll) {
 }
 
 static FklVMvalue *_dvec_copy_append(FklVM *exe, const FklVMud *v,
-                                     uint32_t argc, FklVMvalue *const *top) {
+                                     uint32_t argc, FklVMvalue *const *base) {
     FKL_DECL_UD_DATA(dvec, FklVMvalueVector, v);
     size_t new_size = dvec->size;
-    for (int64_t i = 0; i < argc; i++) {
-        FklVMvalue *cur = top[-i];
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
             FKL_DECL_VM_UD_DATA(d, FklVMvalueVector, cur);
             new_size += d->size;
@@ -128,8 +128,8 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe, const FklVMud *v,
     new_size = dvec->size;
     if (new_vec->base)
         memcpy(new_vec->base, dvec->base, new_size * sizeof(FklVMvalue *));
-    for (int64_t i = 0; i < argc; i++) {
-        FklVMvalue *cur = top[-i];
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
         size_t ss;
         FklVMvalue **mem;
         if (is_dvec_ud(cur)) {

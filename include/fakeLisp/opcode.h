@@ -33,6 +33,9 @@ extern "C" {
 #define FKL_SUBOP_PAIR_CAR_SET    (4)
 #define FKL_SUBOP_PAIR_CDR_SET    (5)
 
+#define FKL_SUBOP_DROP_1          (0)
+#define FKL_SUBOP_DROP_ALL        (1)
+
 #define FKL_OPCODE_X                                                      \
     X(FKL_OP_DUMMY = 0,         "dummy",             FKL_OP_MODE_I       )\
     X(FKL_OP_PUSH_NIL,          "push-nil",          FKL_OP_MODE_I       )\
@@ -60,7 +63,7 @@ extern "C" {
     X(FKL_OP_PUSH_PROC_XX,      "push-proc-xx",      FKL_OP_MODE_IuCAuBB )\
     X(FKL_OP_PUSH_PROC_XXX,     "push-proc-xxx",     FKL_OP_MODE_IuCAuBCC)\
     X(FKL_OP_DUP,               "dup",               FKL_OP_MODE_I       )\
-    X(FKL_OP_DROP,              "drop",              FKL_OP_MODE_I       )\
+    X(FKL_OP_DROP,              "drop",              FKL_OP_MODE_IsA     )\
     X(FKL_OP_CHECK_ARG,         "check-arg",         FKL_OP_MODE_IsAuB   )\
     X(FKL_OP_SET_BP,            "set-bp",            FKL_OP_MODE_I       )\
     X(FKL_OP_CALL,              "call",              FKL_OP_MODE_I       )\

@@ -129,8 +129,20 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FKL_VM_PUSH_VALUE(exe, val);
     } break;
     case FKL_OP_DROP:
-        if (exe->tp > frame->c.sp)
-            DROP_TOP(exe);
+        switch (ins->ai) {
+        case FKL_SUBOP_DROP_1:
+            if (exe->tp > frame->c.sp)
+                DROP_TOP(exe);
+            break;
+        case FKL_SUBOP_DROP_ALL:
+            exe->tp = frame->c.sp;
+            break;
+        default:
+            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+                    __FUNCTION__);
+            abort();
+            break;
+        }
         break;
     case FKL_OP_CHECK_ARG: {
         uint32_t const arg_num = frame->c.arg_num;
@@ -199,42 +211,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         break;
     case FKL_OP_RET: {
     ret:
-        if (frame->c.mark) {
-            close_all_var_ref(&frame->c.lr);
-            // copy stack values
-            uint32_t const value_count = (exe->tp - exe->bp);
-            memmove(&FKL_VM_GET_ARG(exe, frame, -1), &exe->base[exe->bp],
-                    value_count * sizeof(FklVMvalue *));
-            exe->bp = frame->bp;
-            exe->tp = exe->bp + value_count;
-            fklVMframeSetSp(exe, frame, frame->c.lr.lcount);
-
-            if (frame->c.lr.lrefl) {
-                frame->c.lr.lrefl = NULL;
-                memset(frame->c.lr.lref, 0,
-                       sizeof(FklVMvalue *) * frame->c.lr.lcount);
-            }
-            frame->c.pc = frame->c.spc;
-            frame->c.mark = 0;
-            frame->c.tail = 0;
-        } else {
-            exe->bp = FKL_GET_FIX(FKL_VM_GET_ARG(exe, frame, -2));
-            // copy stack values
-            uint32_t const value_count = (exe->tp - frame->c.sp);
-            if (value_count > 1 || value_count < 1)
-                goto return_value_err;
-            memmove(&FKL_VM_GET_ARG(exe, frame, -2), &exe->base[frame->c.sp],
-                    value_count * sizeof(FklVMvalue *));
-            exe->tp = frame->bp - 1 + value_count;
-            fklDoFinalizeCompoundFrame(exe, popFrame(exe));
-            return;
-        return_value_err:
-            fprintf(
-                stderr,
-                "[%s: %d] %s: the return value count should be 1, but is %u\n",
-                __FILE__, __LINE__, __FUNCTION__, value_count);
-            abort();
-        }
+#define RETURN_INCLUDE
+#define RETURN_HEADER
+#include "vmreturn.h"
+#undef RETURN_INCLUDE
+#undef RETURN_HEADER
     } break;
     case FKL_OP_JMP_IF_TRUE:
         offset = ins->bi;

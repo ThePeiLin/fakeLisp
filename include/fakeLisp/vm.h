@@ -1161,13 +1161,11 @@ static inline void fklUpdateAllVarRef(FklVM *exe, FklVMframe *f) {
 
 void fklVMstackReserve(FklVM *exe, uint32_t s);
 
-static inline FklVMvalue **fklPushVMvalue(FklVM *s, FklVMvalue *v) {
-    fklVMstackReserve(s, s->tp + 1);
+static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
+    if (s->tp >= s->last)
+        fklVMstackReserve(s, s->tp + 1);
     // fklAllocMoreStack(s);
-    FklVMvalue **r = &s->base[s->tp];
-    *r = v;
-    s->tp += 1;
-    return r;
+    s->base[s->tp++] = v;
 }
 
 #define FKL_VM_SET_TP_AND_PUSH_VALUE(S, T, V)                                  \

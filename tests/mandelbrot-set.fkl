@@ -262,5 +262,5 @@
 
   (do [] [nil] ((vector-ref ins (setq cp (1+ cp))))))
 
-(call/eh (lambda () (run (reverse! ins) (reverse! imm)))
-         '(hal) (lambda (e)))
+(xpcall (lambda () (run (reverse! ins) (reverse! imm)))
+        '(hal) (lambda (e)))

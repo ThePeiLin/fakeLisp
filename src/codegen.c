@@ -1210,8 +1210,12 @@ BC_PROCESS(_let1_exp_bc_process) {
     FklSidVector *symbolStack = ctx->ss;
 
     FklByteCodelnt *retval = *fklByteCodelntVectorPopBack(bcls);
-    while (!fklSidVectorIsEmpty(symbolStack)) {
-        FklSid_t id = *fklSidVectorPopBack(symbolStack);
+    FklSid_t *cur_sid = symbolStack->base;
+    FklSid_t *const sid_end = cur_sid + symbolStack->size;
+    for (; cur_sid < sid_end; ++cur_sid) {
+        // while (!fklSidVectorIsEmpty(symbolStack)) {
+        // FklSid_t id = *fklSidVectorPopBack(symbolStack);
+        FklSid_t id = *cur_sid;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
     }
@@ -1227,11 +1231,16 @@ BC_PROCESS(_let_arg_exp_bc_process) {
     FklByteCodelntVector *bcls = GET_STACK(context);
     if (bcls->size) {
         FklByteCodelnt *retval = fklCreateByteCodelnt(fklCreateByteCode(0));
-        while (!fklByteCodelntVectorIsEmpty(bcls)) {
-            FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(bcls);
+        FklByteCodelnt **cur_bcl = bcls->base;
+        FklByteCodelnt **const end = cur_bcl + bcls->size;
+        for (; cur_bcl < end; ++cur_bcl) {
+            // while (!fklByteCodelntVectorIsEmpty(bcls)) {
+            // FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(bcls);
+            FklByteCodelnt *cur = *cur_bcl;
             fklCodeLntConcat(retval, cur);
             fklDestroyByteCodelnt(cur);
         }
+        bcls->size = 0;
         return retval;
     } else
         return NULL;
@@ -1253,15 +1262,24 @@ BC_PROCESS(_letrec_arg_exp_bc_process) {
     FklSidVector *symbolStack = ctx->ss;
 
     FklByteCodelnt *retval = create_0len_bcl();
-    while (!fklSidVectorIsEmpty(symbolStack)) {
-        FklByteCodelnt *value_bc = *fklByteCodelntVectorPopBack(bcls);
-        FklSid_t id = *fklSidVectorPopBack(symbolStack);
+    FklSid_t *cur_sid = symbolStack->base;
+    FklSid_t *sid_end = cur_sid + symbolStack->size;
+    FklByteCodelnt **cur_bcl = bcls->base;
+    for (; cur_sid < sid_end; ++cur_sid, ++cur_bcl) {
+        // while (!fklSidVectorIsEmpty(symbolStack)) {
+        // FklByteCodelnt *value_bc = *fklByteCodelntVectorPopBack(bcls);
+        // FklSid_t id = *fklSidVectorPopBack(symbolStack);
+        FklByteCodelnt *value_bc = *cur_bcl;
+        FklSid_t id = *cur_sid;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         fklResolveCodegenPreDef(id, scope, env, codegen->pts);
-        append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
-        fklCodeLntReverseConcat(value_bc, retval);
+        // append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
+        // fklCodeLntReverseConcat(value_bc, retval);
+        fklCodeLntConcat(retval, value_bc);
+        append_pop_loc_ins(INS_APPEND_BACK, retval, idx, fid, line, scope);
         fklDestroyByteCodelnt(value_bc);
     }
+    bcls->size = 0;
     return retval;
 }
 
@@ -1450,8 +1468,6 @@ static CODEGEN_FUNC(codegen_letrec) {
         createDefaultQueueNextExpression(queue), cs, cms, curEnv, rest->curline,
         let1Quest, codegen);
     fklCodegenQuestVectorPushBack2(codegenQuestStack, restQuest);
-
-    len = fklNastNodeQueueLength(valueQueue);
 
     FklCodegenQuest *argQuest = fklCreateCodegenQuest(
         _letrec_arg_exp_bc_process, createLet1CodegenContext(symStack),

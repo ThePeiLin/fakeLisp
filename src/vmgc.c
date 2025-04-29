@@ -302,23 +302,9 @@ FklVMgc *fklCreateVMgc(FklSymbolTable *st, FklConstTable *kt,
     return gc;
 }
 
-static inline uint32_t compute_level_idx(uint32_t llast) {
-    uint32_t l = (llast / FKL_VM_LOCV_INC_NUM) - 1;
-    if (l >= 8)
-        return 4;
-    else if (l & 0x4)
-        return 3;
-    else if (l & 0x2)
-        return 2;
-    else if (l & 0x1)
-        return 1;
-    else
-        return 0;
-}
-
 FklVMvalue **fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast,
                                          uint32_t *pllast) {
-    uint32_t idx = compute_level_idx(llast);
+    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
     FklVMvalue **r = NULL;
     for (uint8_t i = idx; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
         struct FklLocvCacheLevel *l = &gc->locv_cache[i];
@@ -355,7 +341,7 @@ FklVMvalue **fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast,
 
 FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc, uint32_t llast,
                                                     uint32_t *pllast) {
-    uint32_t idx = compute_level_idx(llast);
+    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
     FklVMvalue **r = NULL;
     for (uint8_t i = idx; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
         struct FklLocvCacheLevel *l = &gc->locv_cache[i];

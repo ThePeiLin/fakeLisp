@@ -349,9 +349,7 @@ typedef enum {
     FKL_VM_WAITING,
 } FklVMstate;
 
-#define FKL_VM_LOCV_INC_NUM (32)
 #define FKL_VM_STACK_INC_NUM (128)
-#define FKL_VM_STACK_INC_SIZE (FKL_VM_STACK_INC_NUM * sizeof(FklVMvalue *))
 
 // FklThreadQueue
 #define FKL_QUEUE_ELM_TYPE struct FklVM *
@@ -726,15 +724,30 @@ FklVM *fklCreateThreadVM(FklVMvalue *, uint32_t arg_num,
                          size_t libNum, FklVMlib *libs);
 
 void fklDestroyVMvalue(FklVMvalue *);
-void fklInitVMstack(FklVM *);
-void fklUninitVMstack(FklVM *);
+// void fklInitVMstack(FklVM *);
+// void fklUninitVMstack(FklVM *);
 // void fklAllocMoreStack(FklVM *);
 void fklVMstackShrink(FklVM *);
 int fklCreateCreateThread(FklVM *);
-FklVMframe *fklHasSameProc(FklVMvalue *proc, FklVMframe *);
+// FklVMframe *fklHasSameProc(FklVMvalue *proc, FklVMframe *);
+
+static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
+    uint32_t l = (llast / FKL_VM_STACK_INC_NUM) - 1;
+    if (l >= 8)
+        return 4;
+    else if (l & 0x4)
+        return 3;
+    else if (l & 0x2)
+        return 2;
+    else if (l & 0x1)
+        return 1;
+    else
+        return 0;
+}
 
 FklVMgc *fklCreateVMgc(FklSymbolTable *st, FklConstTable *kt,
                        FklFuncPrototypes *pts);
+
 FklVMvalue **fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast,
                                          uint32_t *pllast);
 FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *, uint32_t llast,

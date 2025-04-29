@@ -1,39 +1,64 @@
 #include <fakeLisp/vm.h>
 
 static int fs_facce_p(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(filename, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(filename, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
-    FKL_VM_PUSH_VALUE(exe, fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
-                               ? FKL_VM_TRUE
-                               : FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe, fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+    //                            ? FKL_VM_TRUE
+    //                            : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx,
+                     (fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+                      || fklIsAccessibleDirectory(FKL_VM_STR(filename)->str))
+                         ? FKL_VM_TRUE
+                         : FKL_VM_NIL);
     return 0;
 }
 
 static int fs_freg_p(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(filename, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(filename, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
-    FKL_VM_PUSH_VALUE(exe, fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
-                               ? FKL_VM_TRUE
-                               : FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe, fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+    //                            ? FKL_VM_TRUE
+    //                            : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx,
+                     fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+                         ? FKL_VM_TRUE
+                         : FKL_VM_NIL);
     return 0;
 }
 
 static int fs_fdir_p(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(filename, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(filename, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
-    FKL_VM_PUSH_VALUE(exe, fklIsAccessibleDirectory(FKL_VM_STR(filename)->str)
-                               ? FKL_VM_TRUE
-                               : FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe,
+    // fklIsAccessibleDirectory(FKL_VM_STR(filename)->str)
+    //                            ? FKL_VM_TRUE
+    //                            : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx,
+                     fklIsAccessibleDirectory(FKL_VM_STR(filename)->str)
+                         ? FKL_VM_TRUE
+                         : FKL_VM_NIL);
     return 0;
 }
 
 static int fs_freopen(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG2(stream, filename, exe);
-    FklVMvalue *mode = FKL_VM_POP_ARG(exe);
-    FKL_CHECK_REST_ARG(exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FklVMvalue *stream = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    // FKL_DECL_AND_CHECK_ARG2(stream, filename, exe);
+    FklVMvalue *mode = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
+    // FKL_VM_POP_ARG(exe);
+    // FKL_CHECK_REST_ARG(exe);
     if (!fklIsVMvalueFp(stream) || !FKL_IS_STR(filename)
         || (mode && !FKL_IS_STR(mode)))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -45,27 +70,36 @@ static int fs_freopen(FKL_CPROC_ARGL) {
                                     "Failed for file: %s", filename);
     vfp->fp = fp;
     vfp->rw = fklGetVMfpRwFromCstr(modeStr);
-    FKL_VM_PUSH_VALUE(exe, stream);
+    // FKL_VM_PUSH_VALUE(exe, stream);
+    FKL_CPROC_RETURN(exe, ctx, stream);
     return 0;
 }
 
 static int fs_realpath(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(filename, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(filename, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     char *rp = fklRealpath(FKL_VM_STR(filename)->str);
     if (rp) {
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueStrFromCstr(exe, rp));
+        // FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueStrFromCstr(exe, rp));
+        FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStrFromCstr(exe, rp));
         free(rp);
     } else
-        FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+        // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
 
 static int fs_relpath(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(path, exe);
-    FklVMvalue *start = FKL_VM_POP_ARG(exe);
-    FKL_CHECK_REST_ARG(exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FklVMvalue *path = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(path, exe);
+    FklVMvalue *start = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    // FKL_VM_POP_ARG(exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(path, FKL_IS_STR, exe);
 
     if (start)
@@ -89,23 +123,30 @@ static int fs_relpath(FKL_CPROC_ARGL) {
                    path_rp ? path_rp : FKL_VM_STR(path)->str);
 
     if (relpath_cstr) {
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueStrFromCstr(exe, relpath_cstr));
+        // FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueStrFromCstr(exe,
+        // relpath_cstr));
+        FKL_CPROC_RETURN(exe, ctx,
+                         fklCreateVMvalueStrFromCstr(exe, relpath_cstr));
         free(relpath_cstr);
     } else
-        FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     free(start_rp);
     free(path_rp);
     return 0;
 }
 
 static int fs_mkdir(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(filename, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(filename, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     if (fklMkdir(FKL_VM_STR(filename)->str))
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE, exe,
                                     "Failed to make dir: %s", filename);
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
 
@@ -122,116 +163,171 @@ static inline int isVMfpWritable(const FklVMvalue *fp) {
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, E)
 
 static int fs_fprint(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(f, exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *f = arg_base[0];
+    // FKL_DECL_AND_CHECK_ARG(f, exe);
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
-    FklVMvalue *obj = FKL_VM_POP_ARG(exe);
+    // FklVMvalue *obj = FKL_VM_POP_ARG(exe);
     FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **const arg_end = arg_base + arg_num;
     FILE *fp = FKL_VM_FP(f)->fp;
-    for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
-        fklPrincVMvalue(obj, fp, exe->gc);
-    fklResBp(exe);
-    FKL_VM_PUSH_VALUE(exe, r);
+    // for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
+    for (++arg_base; arg_base < arg_end; ++arg_base) {
+        // fklPrincVMvalue(obj, fp, exe->gc);
+        r = *arg_base;
+        fklPrincVMvalue(r, fp, exe->gc);
+    }
+    // fklResBp(exe);
+    // FKL_VM_PUSH_VALUE(exe, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int fs_fprintln(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(f, exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *f = arg_base[0];
+    // FKL_DECL_AND_CHECK_ARG(f, exe);
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
-    FklVMvalue *obj = FKL_VM_POP_ARG(exe);
+    // FklVMvalue *obj = FKL_VM_POP_ARG(exe);
     FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **const arg_end = arg_base + arg_num;
     FILE *fp = FKL_VM_FP(f)->fp;
-    for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
-        fklPrincVMvalue(obj, fp, exe->gc);
+    // for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
+    for (++arg_base; arg_base < arg_end; ++arg_base) {
+        // fklPrincVMvalue(obj, fp, exe->gc);
+        r = *arg_base;
+        fklPrincVMvalue(r, fp, exe->gc);
+    }
     fputc('\n', stdout);
-    fklResBp(exe);
-    FKL_VM_PUSH_VALUE(exe, r);
+    // fklResBp(exe);
+    // FKL_VM_PUSH_VALUE(exe, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int fs_fprin1(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(f, exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *f = arg_base[0];
+    // FKL_DECL_AND_CHECK_ARG(f, exe);
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
-
-    FklVMvalue *obj = FKL_VM_POP_ARG(exe);
+    // FklVMvalue *obj = FKL_VM_POP_ARG(exe);
     FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **const arg_end = arg_base + arg_num;
     FILE *fp = FKL_VM_FP(f)->fp;
-    for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
-        fklPrin1VMvalue(obj, fp, exe->gc);
-    fklResBp(exe);
-    FKL_VM_PUSH_VALUE(exe, r);
+    // for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
+    for (++arg_base; arg_base < arg_end; ++arg_base) {
+        // fklPrincVMvalue(obj, fp, exe->gc);
+        r = *arg_base;
+        fklPrin1VMvalue(r, fp, exe->gc);
+    }
+    // fklResBp(exe);
+    // FKL_VM_PUSH_VALUE(exe, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int fs_fprin1n(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(f, exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *f = arg_base[0];
+    // FKL_DECL_AND_CHECK_ARG(f, exe);
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
-
-    FklVMvalue *obj = FKL_VM_POP_ARG(exe);
+    // FklVMvalue *obj = FKL_VM_POP_ARG(exe);
     FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **const arg_end = arg_base + arg_num;
     FILE *fp = FKL_VM_FP(f)->fp;
-    for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
-        fklPrin1VMvalue(obj, fp, exe->gc);
+    // for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe))
+    for (++arg_base; arg_base < arg_end; ++arg_base) {
+        // fklPrincVMvalue(obj, fp, exe->gc);
+        r = *arg_base;
+        fklPrin1VMvalue(r, fp, exe->gc);
+    }
     fputc('\n', stdout);
-    fklResBp(exe);
-    FKL_VM_PUSH_VALUE(exe, r);
+    // fklResBp(exe);
+    // FKL_VM_PUSH_VALUE(exe, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int fs_fwrite(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(f, exe);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *f = arg_base[0];
+    // FKL_DECL_AND_CHECK_ARG(f, exe);
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
 
     FILE *fp = FKL_VM_FP(f)->fp;
-    FklVMvalue *obj = FKL_VM_POP_ARG(exe);
+    // FklVMvalue *obj = FKL_VM_POP_ARG(exe);
     FklVMvalue *r = FKL_VM_NIL;
-    for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe)) {
-        if (FKL_IS_STR(obj)) {
-            FklString *str = FKL_VM_STR(obj);
+    FklVMvalue **const arg_end = arg_base + arg_num;
+    // for (; obj; r = obj, obj = FKL_VM_POP_ARG(exe)) {
+    for (++arg_base; arg_base < arg_end; ++arg_base) {
+        r = *arg_base;
+        if (FKL_IS_STR(r)) {
+            FklString *str = FKL_VM_STR(r);
             fwrite(str->str, str->size, 1, fp);
-        } else if (FKL_IS_BYTEVECTOR(obj)) {
-            FklBytevector *bvec = FKL_VM_BVEC(obj);
+        } else if (FKL_IS_BYTEVECTOR(r)) {
+            FklBytevector *bvec = FKL_VM_BVEC(r);
             fwrite(bvec->ptr, bvec->size, 1, fp);
-        } else if (FKL_IS_USERDATA(obj) && fklIsWritableUd(FKL_VM_UD(obj)))
-            fklWriteVMud(FKL_VM_UD(obj), fp);
+        } else if (FKL_IS_USERDATA(r) && fklIsWritableUd(FKL_VM_UD(r)))
+            fklWriteVMud(FKL_VM_UD(r), fp);
         else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
-    fklResBp(exe);
-    FKL_VM_PUSH_VALUE(exe, r);
+    // fklResBp(exe);
+    // FKL_VM_PUSH_VALUE(exe, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int fs_fflush(FKL_CPROC_ARGL) {
-    FklVMvalue *fp = FKL_VM_POP_ARG(exe);
-    FKL_CHECK_REST_ARG(exe);
-    if (fp) {
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 0, 1);
+
+    // FklVMvalue *fp = FKL_VM_POP_ARG(exe);
+    // FKL_CHECK_REST_ARG(exe);
+    if (arg_num) {
+        FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
+        ;
         FKL_CHECK_TYPE(fp, fklIsVMvalueFp, exe);
         CHECK_FP_OPEN(fp, exe);
         if (fflush(FKL_VM_FP(fp)->fp))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     } else if (fflush(NULL))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
 
 static int fs_fclerr(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(fp, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(fp, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(fp, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(fp, exe);
     clearerr(FKL_VM_FP(fp)->fp);
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+    // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
 
@@ -252,7 +348,7 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
     FklBuiltinErrorType err_type =
         // fklVMprintf(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len);
         fklVMprintf2(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len, start,
-                    start + arg_num - 2);
+                     start + arg_num - 2);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -263,12 +359,15 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
 }
 
 static int fs_fileno(FKL_CPROC_ARGL) {
-    FKL_DECL_AND_CHECK_ARG(vfp, exe);
-    FKL_CHECK_REST_ARG(exe);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *vfp = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    // FKL_DECL_AND_CHECK_ARG(vfp, exe);
+    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(vfp, fklIsVMvalueFp, exe);
     FklVMfp *fp = FKL_VM_FP(vfp);
     int fileno = fklVMfpFileno(fp);
-    FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(fileno));
+    // FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(fileno));
+    FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(fileno));
     return 0;
 }
 

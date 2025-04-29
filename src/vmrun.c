@@ -4,6 +4,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/vm.h>
 
+#include <stdatomic.h>
 #include <stdint.h>
 #include <string.h>
 #ifdef _WIN32
@@ -252,6 +253,14 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     proc->closure = closure;
 }
 
+static inline void vm_stack_init(FklVM *exe) {
+    exe->last = FKL_VM_STACK_INC_NUM;
+    exe->tp = 0;
+    exe->bp = 0;
+    exe->base = fklAllocLocalVarSpaceFromGC(exe->gc, exe->last, &exe->last);
+    FKL_ASSERT(exe->base);
+}
+
 FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
                                FklSymbolTable *runtime_st,
                                FklConstTable *runtime_kt,
@@ -265,7 +274,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     fklInitGlobalVMclosureForGC(exe);
-    fklInitVMstack(exe);
+    vm_stack_init(exe);
     if (mainCode != NULL) {
         FklVMvalue *proc = fklCreateVMvalueProcWithWholeCodeObj(
             exe, fklCreateVMvalueCodeObj(exe, mainCode), pid);
@@ -716,56 +725,74 @@ static inline void move_thread_objects_to_gc(FklVM *vm, FklVMgc *gc) {
     }
 }
 
-static inline uint32_t compute_level_idx(uint32_t llast) {
-    uint32_t l = (llast / FKL_VM_LOCV_INC_NUM) - 1;
-    if (l >= 8)
-        return 4;
-    else if (l & 0x4)
-        return 3;
-    else if (l & 0x2)
-        return 2;
-    else if (l & 0x1)
-        return 1;
-    else
-        return 0;
+static inline void move_old_locv_to_gc(FklVMgc *gc, uint32_t llast,
+                                       FklVMvalue **locv) {
+    struct FklLocvCacheLevel *locv_cache_level = gc->locv_cache;
+    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
+
+    struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
+    uint32_t num = locv_cache->num;
+    struct FklLocvCache *locvs = locv_cache->locv;
+
+    uint8_t i = 0;
+    for (; i < num; i++) {
+        if (llast < locvs[i].llast)
+            break;
+    }
+
+    if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
+        if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
+            atomic_fetch_sub(&gc->num,
+                             locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
+            free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
+            num--;
+        } else
+            locv_cache->num++;
+        for (uint8_t j = num; j > i; j--)
+            locvs[j] = locvs[j - 1];
+        locvs[i].llast = llast;
+        locvs[i].locv = locv;
+    } else {
+        atomic_fetch_sub(&gc->num, llast);
+        free(locv);
+    }
 }
 
 static inline void move_thread_old_locv_to_gc(FklVM *vm, FklVMgc *gc) {
     FklVMlocvList *cur = vm->old_locv_list;
-    struct FklLocvCacheLevel *locv_cache_level = gc->locv_cache;
+    // struct FklLocvCacheLevel *locv_cache_level = gc->locv_cache;
     uint32_t i = vm->old_locv_count;
     for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
-        uint32_t llast = cur->llast;
-        FklVMvalue **locv = cur->locv;
 
-        uint32_t idx = compute_level_idx(llast);
-
-        struct FklLocvCacheLevel *cur_locv_cache_level = &locv_cache_level[idx];
-        uint32_t num = cur_locv_cache_level->num;
-        struct FklLocvCache *locvs = cur_locv_cache_level->locv;
-
-        uint8_t i = 0;
-        for (; i < num; i++) {
-            if (llast < locvs[i].llast)
-                break;
-        }
-
-        if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
-            if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-                atomic_fetch_sub(&gc->num,
-                                 locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
-                free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
-                num--;
-            } else
-                cur_locv_cache_level->num++;
-            for (uint8_t j = num; j > i; j--)
-                locvs[j] = locvs[j - 1];
-            locvs[i].llast = llast;
-            locvs[i].locv = locv;
-        } else {
-            atomic_fetch_sub(&gc->num, llast);
-            free(locv);
-        }
+        move_old_locv_to_gc(gc, cur->llast, cur->locv);
+        // uint32_t idx = compute_level_idx(llast);
+        //
+        // struct FklLocvCacheLevel *cur_locv_cache_level =
+        // &locv_cache_level[idx]; uint32_t num = cur_locv_cache_level->num;
+        // struct FklLocvCache *locvs = cur_locv_cache_level->locv;
+        //
+        // uint8_t i = 0;
+        // for (; i < num; i++) {
+        //     if (llast < locvs[i].llast)
+        //         break;
+        // }
+        //
+        // if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
+        //     if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
+        //         atomic_fetch_sub(&gc->num,
+        //                          locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
+        //         free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
+        //         num--;
+        //     } else
+        //         cur_locv_cache_level->num++;
+        //     for (uint8_t j = num; j > i; j--)
+        //         locvs[j] = locvs[j - 1];
+        //     locvs[i].llast = llast;
+        //     locvs[i].locv = locv;
+        // } else {
+        //     atomic_fetch_sub(&gc->num, llast);
+        //     free(locv);
+        // }
 
         FklVMlocvList *prev = cur;
         cur = cur->next;
@@ -774,37 +801,38 @@ static inline void move_thread_old_locv_to_gc(FklVM *vm, FklVMgc *gc) {
 
     for (uint32_t j = 0; j < i; j++) {
         FklVMlocvList *cur = &vm->old_locv_cache[j];
-        uint32_t llast = cur->llast;
-        FklVMvalue **locv = cur->locv;
 
-        uint32_t idx = compute_level_idx(llast);
-
-        struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
-        uint32_t num = locv_cache->num;
-        struct FklLocvCache *locvs = locv_cache->locv;
-
-        uint8_t i = 0;
-        for (; i < num; i++) {
-            if (llast < locvs[i].llast)
-                break;
-        }
-
-        if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
-            if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-                atomic_fetch_sub(&gc->num,
-                                 locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
-                free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
-                num--;
-            } else
-                locv_cache->num++;
-            for (uint8_t j = num; j > i; j--)
-                locvs[j] = locvs[j - 1];
-            locvs[i].llast = llast;
-            locvs[i].locv = locv;
-        } else {
-            atomic_fetch_sub(&gc->num, llast);
-            free(locv);
-        }
+        move_old_locv_to_gc(gc, cur->llast, cur->locv);
+        cur->llast = 0;
+        cur->locv = NULL;
+        // uint32_t idx = compute_level_idx(llast);
+        //
+        // struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
+        // uint32_t num = locv_cache->num;
+        // struct FklLocvCache *locvs = locv_cache->locv;
+        //
+        // uint8_t i = 0;
+        // for (; i < num; i++) {
+        //     if (llast < locvs[i].llast)
+        //         break;
+        // }
+        //
+        // if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
+        //     if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
+        //         atomic_fetch_sub(&gc->num,
+        //                          locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
+        //         free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
+        //         num--;
+        //     } else
+        //         locv_cache->num++;
+        //     for (uint8_t j = num; j > i; j--)
+        //         locvs[j] = locvs[j - 1];
+        //     locvs[i].llast = llast;
+        //     locvs[i].locv = locv;
+        // } else {
+        //     atomic_fetch_sub(&gc->num, llast);
+        //     free(locv);
+        // }
     }
     vm->old_locv_list = NULL;
     vm->old_locv_count = 0;
@@ -1075,9 +1103,18 @@ static inline void destroy_vm_interrupt_handler(FklVM *vm) {
     }
 }
 
+static inline void vm_stack_uninit(FklVM *s) {
+    move_old_locv_to_gc(s->gc, s->last, s->base);
+    // free(s->base);
+    s->base = NULL;
+    s->last = 0;
+    s->tp = 0;
+    s->bp = 0;
+}
+
 static inline void remove_exited_thread_common(FklVM *cur) {
     fklDeleteCallChain(cur);
-    fklUninitVMstack(cur);
+    vm_stack_uninit(cur);
     uninit_all_vm_lib(cur->libs, cur->libNum);
     destroy_vm_atexit(cur);
     destroy_vm_interrupt_handler(cur);
@@ -1536,15 +1573,6 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe, FklVMframe *f, size_t cpc,
     return r;
 }
 
-void fklInitVMstack(FklVM *tmp) {
-    tmp->last = FKL_VM_STACK_INC_NUM;
-    // tmp->size = FKL_VM_STACK_INC_SIZE;
-    tmp->tp = 0;
-    tmp->bp = 0;
-    tmp->base = (FklVMvalue **)malloc(FKL_VM_STACK_INC_SIZE);
-    FKL_ASSERT(tmp->base);
-}
-
 void fklVMstackReserve(FklVM *exe, uint32_t s) {
     if (exe->last >= s)
         return;
@@ -1576,10 +1604,7 @@ void fklVMstackReserve(FklVM *exe, uint32_t s) {
 void fklVMstackShrink(FklVM *exe) {
     uint32_t old_last = exe->last;
     exe->last = fklNextPow2(exe->tp);
-    if (exe->last == 0) {
-        exe->last = old_last;
-        return;
-    } else if (exe->last < FKL_VM_STACK_INC_NUM)
+    if (exe->last < FKL_VM_STACK_INC_NUM)
         exe->last = FKL_VM_STACK_INC_NUM;
     FklVMvalue **nbase =
         fklAllocLocalVarSpaceFromGCwithoutLock(exe->gc, exe->last, &exe->last);
@@ -1630,22 +1655,22 @@ void fklDBG_printVMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
     fklPrin1VMvalue(v, fp, gc);
 }
 
-FklVMframe *fklHasSameProc(FklVMvalue *proc, FklVMframe *frames) {
-#if FKL_MAX_INDIRECT_TAIL_CALL_COUNT < 1
-    for (; frames; frames = frames->prev)
-        if (frames->type == FKL_FRAME_COMPOUND
-            && fklGetCompoundFrameProc(frames) == proc)
-            return frames;
-    return NULL;
-#else
-    for (unsigned c = FKL_MAX_INDIRECT_TAIL_CALL_COUNT; c > 0 && frames;
-         frames = frames->prev, c--)
-        if (frames->type == FKL_FRAME_COMPOUND
-            && fklGetCompoundFrameProc(frames) == proc)
-            return frames;
-    return NULL;
-#endif
-}
+// FklVMframe *fklHasSameProc(FklVMvalue *proc, FklVMframe *frames) {
+// #if FKL_MAX_INDIRECT_TAIL_CALL_COUNT < 1
+//     for (; frames; frames = frames->prev)
+//         if (frames->type == FKL_FRAME_COMPOUND
+//             && fklGetCompoundFrameProc(frames) == proc)
+//             return frames;
+//     return NULL;
+// #else
+//     for (unsigned c = FKL_MAX_INDIRECT_TAIL_CALL_COUNT; c > 0 && frames;
+//          frames = frames->prev, c--)
+//         if (frames->type == FKL_FRAME_COMPOUND
+//             && fklGetCompoundFrameProc(frames) == proc)
+//             return frames;
+//     return NULL;
+// #endif
+// }
 
 void fklDestroyAllValues(FklVMgc *gc) {
     FklVMvalue **phead = &gc->head;
@@ -1682,7 +1707,8 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num,
     exe->gc = gc;
     exe->prev = exe;
     exe->next = exe;
-    fklInitVMstack(exe);
+    vm_stack_init(exe);
+    // fklInitVMstack(exe);
     exe->libNum = lib_num;
     exe->libs = libs;
     exe->pts = gc->pts;
@@ -1706,7 +1732,8 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall, uint32_t arg_num,
     exe->prev = exe;
     exe->next = exe;
     exe->chan = fklCreateVMvalueChanl(exe, 1);
-    fklInitVMstack(exe);
+    vm_stack_init(exe);
+    // fklInitVMstack(exe);
     exe->libNum = libNum;
     exe->libs = copy_vm_libs(libs, libNum + 1);
     exe->pts = prev->pts;
@@ -1727,32 +1754,25 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall, uint32_t arg_num,
     return exe;
 }
 
-void fklUninitVMstack(FklVM *s) {
-    free(s->base);
-    s->base = NULL;
-    s->last = 0;
-    s->tp = 0;
-    s->bp = 0;
-}
-
 void fklDestroyAllVMs(FklVM *curVM) {
     curVM->prev->next = NULL;
     curVM->prev = NULL;
     for (FklVM *cur = curVM; cur;) {
         FklVM *t = cur;
         cur = cur->next;
-        if (t->old_locv_count) {
-            uint32_t i = t->old_locv_count;
-            FklVMlocvList *cur = t->old_locv_list;
-            for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
-                free(cur->locv);
-                FklVMlocvList *prev = cur;
-                cur = cur->next;
-                free(prev);
-            }
-            for (uint32_t j = 0; j < i; j++)
-                free(t->old_locv_cache[j].locv);
-        }
+        move_thread_old_locv_to_gc(curVM, curVM->gc);
+        // if (t->old_locv_count) {
+        //     uint32_t i = t->old_locv_count;
+        //     FklVMlocvList *cur = t->old_locv_list;
+        //     for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
+        //         free(cur->locv);
+        //         FklVMlocvList *prev = cur;
+        //         cur = cur->next;
+        //         free(prev);
+        //     }
+        //     for (uint32_t j = 0; j < i; j++)
+        //         free(t->old_locv_cache[j].locv);
+        // }
         if (t->obj_head)
             move_thread_objects_to_gc(t, t->gc);
         remove_exited_thread_common(t);

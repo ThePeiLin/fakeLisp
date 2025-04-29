@@ -765,34 +765,6 @@ static inline void move_thread_old_locv_to_gc(FklVM *vm, FklVMgc *gc) {
     for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
 
         move_old_locv_to_gc(gc, cur->llast, cur->locv);
-        // uint32_t idx = compute_level_idx(llast);
-        //
-        // struct FklLocvCacheLevel *cur_locv_cache_level =
-        // &locv_cache_level[idx]; uint32_t num = cur_locv_cache_level->num;
-        // struct FklLocvCache *locvs = cur_locv_cache_level->locv;
-        //
-        // uint8_t i = 0;
-        // for (; i < num; i++) {
-        //     if (llast < locvs[i].llast)
-        //         break;
-        // }
-        //
-        // if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
-        //     if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-        //         atomic_fetch_sub(&gc->num,
-        //                          locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
-        //         free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
-        //         num--;
-        //     } else
-        //         cur_locv_cache_level->num++;
-        //     for (uint8_t j = num; j > i; j--)
-        //         locvs[j] = locvs[j - 1];
-        //     locvs[i].llast = llast;
-        //     locvs[i].locv = locv;
-        // } else {
-        //     atomic_fetch_sub(&gc->num, llast);
-        //     free(locv);
-        // }
 
         FklVMlocvList *prev = cur;
         cur = cur->next;
@@ -805,34 +777,6 @@ static inline void move_thread_old_locv_to_gc(FklVM *vm, FklVMgc *gc) {
         move_old_locv_to_gc(gc, cur->llast, cur->locv);
         cur->llast = 0;
         cur->locv = NULL;
-        // uint32_t idx = compute_level_idx(llast);
-        //
-        // struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
-        // uint32_t num = locv_cache->num;
-        // struct FklLocvCache *locvs = locv_cache->locv;
-        //
-        // uint8_t i = 0;
-        // for (; i < num; i++) {
-        //     if (llast < locvs[i].llast)
-        //         break;
-        // }
-        //
-        // if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
-        //     if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-        //         atomic_fetch_sub(&gc->num,
-        //                          locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
-        //         free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
-        //         num--;
-        //     } else
-        //         locv_cache->num++;
-        //     for (uint8_t j = num; j > i; j--)
-        //         locvs[j] = locvs[j - 1];
-        //     locvs[i].llast = llast;
-        //     locvs[i].locv = locv;
-        // } else {
-        //     atomic_fetch_sub(&gc->num, llast);
-        //     free(locv);
-        // }
     }
     vm->old_locv_list = NULL;
     vm->old_locv_count = 0;

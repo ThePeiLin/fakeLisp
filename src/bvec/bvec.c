@@ -153,8 +153,6 @@ static int export_bvf64set1(FKL_CPROC_ARGL) { SET_BV_F_REF(double) }
 static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
     size_t size = bvec->size;
@@ -165,7 +163,6 @@ static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
         *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_FIX(s8a[i]));
         cur = &FKL_VM_CDR(*cur);
     }
-    // FKL_VM_PUSH_VALUE(exe, r);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -173,8 +170,6 @@ static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
 static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
     size_t size = bvec->size;
@@ -185,7 +180,6 @@ static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
         *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_FIX(u8a[i]));
         cur = &FKL_VM_CDR(*cur);
     }
-    // FKL_VM_PUSH_VALUE(exe, r);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -193,8 +187,6 @@ static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
 static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
     size_t size = bvec->size;
@@ -203,7 +195,6 @@ static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
     FklVMvec *v = FKL_VM_VEC(vec);
     for (size_t i = 0; i < size; i++)
         v->base[i] = FKL_MAKE_VM_FIX(s8a[i]);
-    // FKL_VM_PUSH_VALUE(exe, vec);
     FKL_CPROC_RETURN(exe, ctx, vec);
     return 0;
 }
@@ -211,8 +202,6 @@ static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
 static int export_bytevector_to_u8_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
     size_t size = bvec->size;
@@ -221,7 +210,6 @@ static int export_bytevector_to_u8_vector(FKL_CPROC_ARGL) {
     FklVMvec *v = FKL_VM_VEC(vec);
     for (size_t i = 0; i < size; i++)
         v->base[i] = FKL_MAKE_VM_FIX(u8a[i]);
-    // FKL_VM_PUSH_VALUE(exe, vec);
     FKL_CPROC_RETURN(exe, ctx, vec);
     return 0;
 }

@@ -1704,7 +1704,7 @@ void fklDestroyAllVMs(FklVM *curVM) {
     for (FklVM *cur = curVM; cur;) {
         FklVM *t = cur;
         cur = cur->next;
-        move_thread_old_locv_to_gc(curVM, curVM->gc);
+        move_thread_old_locv_to_gc(t, t->gc);
         // if (t->old_locv_count) {
         //     uint32_t i = t->old_locv_count;
         //     FklVMlocvList *cur = t->old_locv_list;

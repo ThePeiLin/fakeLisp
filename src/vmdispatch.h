@@ -164,7 +164,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             }
             FKL_VM_GET_ARG(exe, frame, ins->bu) = obj;
             exe->tp = frame->c.sp;
-            // GET_COMPOUND_FRAME_LOC(frame, idx) = obj;
         } break;
         default:
             fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
@@ -190,7 +189,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
     } break;
     case FKL_OP_TAIL_CALL: {
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
-        // FklVMvalue *proc = FKL_VM_POP_TOP_VALUE(exe);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
         switch (proc->type) {
@@ -472,7 +470,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         uint32_t count = plib->count;
         FklVMvalue *v = idx >= count ? NULL : plib->loc[idx];
         FKL_VM_GET_ARG(exe, frame, idx1) = v;
-        // GET_COMPOUND_FRAME_LOC(frame, idx1) = v;
     } break;
     case FKL_OP_PUSH_I64B:
         FKL_VM_PUSH_VALUE(
@@ -551,9 +548,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         idx = GET_INS_UX(ins, frame);
         export : {
             FklVMlib *lib = exe->importingLib;
-            // FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(frame);
-            lib->loc[lib->count++] =
-                FKL_VM_GET_ARG(exe, frame, idx); // lr->loc[idx];
+            lib->loc[lib->count++] = FKL_VM_GET_ARG(exe, frame, idx);
         }
         break;
     case FKL_OP_LOAD_LIB:
@@ -1249,8 +1244,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_CHECK_TYPE(*ht, FKL_IS_HASHTABLE, exe);
             FklVMvalueHashMapElm *r = fklVMhashTableGet(FKL_VM_HASH(*ht), key);
             *ht = r ? r->v : defa;
-            // if (r)
-            //     *ht = r->v;
         } break;
         case FKL_SUBOP_HASH_SET: {
             FklVMvalue *value = FKL_VM_POP_TOP_VALUE(exe);
@@ -1328,8 +1321,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FKL_VM_GET_ARG(exe, frame, idx) = v;
     } break;
     case FKL_OP_MOV_LOC:
-        // FKL_VM_PUSH_VALUE(exe, (GET_COMPOUND_FRAME_LOC(frame, ins->bu) =
-        //                             GET_COMPOUND_FRAME_LOC(frame, ins->au)));
         FKL_VM_PUSH_VALUE(exe, (FKL_VM_GET_ARG(exe, frame, ins->bu) =
                                     FKL_VM_GET_ARG(exe, frame, ins->au)));
         break;

@@ -678,26 +678,12 @@ static inline FklByteCodelnt *create_bc_lnt(FklByteCode *bc, FklSid_t fid,
     return r;
 }
 
-// static inline FklByteCodelnt *
-// append_pop_arg_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
-//                    FklSid_t fid, uint32_t line, uint32_t scope) {
-//     return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_ARG, idx,
-//                                                 fid, line, scope);
-// }
-
 static inline FklByteCodelnt *
 append_pop_loc_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
                    FklSid_t fid, uint32_t line, uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_LOC, idx,
                                                 fid, line, scope);
 }
-
-// static inline FklByteCodelnt *
-// append_pop_rest_arg_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
-//                         FklSid_t fid, uint32_t line, uint32_t scope) {
-//     return set_and_append_ins_with_unsigned_imm(m, bcl, FKL_OP_POP_REST_ARG,
-//                                                 idx, fid, line, scope);
-// }
 
 static inline FklByteCodelnt *
 append_put_loc_ins(InsAppendMode m, FklByteCodelnt *bcl, uint32_t idx,
@@ -890,8 +876,6 @@ BC_PROCESS(_funcall_exp_bc_process) {
             FklByteCodelnt **base = stack->base;
             FklByteCodelnt **const end = base + stack->size;
             for (; base < end; ++base) {
-                // while (stack->size > 1) {
-                // FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(stack);
                 FklByteCodelnt *cur = *base;
                 fklCodeLntConcat(retval, cur);
                 fklDestroyByteCodelnt(cur);
@@ -900,7 +884,6 @@ BC_PROCESS(_funcall_exp_bc_process) {
             FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
             FklInstruction call = create_op_ins(FKL_OP_CALL);
             fklByteCodeLntInsertFrontIns(&setBp, retval, fid, line, scope);
-            // fklCodeLntConcat(retval, func);
             fklByteCodeLntPushBackIns(retval, &call, fid, line, scope);
             return retval;
         }
@@ -1213,8 +1196,6 @@ BC_PROCESS(_let1_exp_bc_process) {
     FklSid_t *cur_sid = symbolStack->base;
     FklSid_t *const sid_end = cur_sid + symbolStack->size;
     for (; cur_sid < sid_end; ++cur_sid) {
-        // while (!fklSidVectorIsEmpty(symbolStack)) {
-        // FklSid_t id = *fklSidVectorPopBack(symbolStack);
         FklSid_t id = *cur_sid;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
@@ -1234,8 +1215,6 @@ BC_PROCESS(_let_arg_exp_bc_process) {
         FklByteCodelnt **cur_bcl = bcls->base;
         FklByteCodelnt **const end = cur_bcl + bcls->size;
         for (; cur_bcl < end; ++cur_bcl) {
-            // while (!fklByteCodelntVectorIsEmpty(bcls)) {
-            // FklByteCodelnt *cur = *fklByteCodelntVectorPopBack(bcls);
             FklByteCodelnt *cur = *cur_bcl;
             fklCodeLntConcat(retval, cur);
             fklDestroyByteCodelnt(cur);
@@ -1266,15 +1245,10 @@ BC_PROCESS(_letrec_arg_exp_bc_process) {
     FklSid_t *sid_end = cur_sid + symbolStack->size;
     FklByteCodelnt **cur_bcl = bcls->base;
     for (; cur_sid < sid_end; ++cur_sid, ++cur_bcl) {
-        // while (!fklSidVectorIsEmpty(symbolStack)) {
-        // FklByteCodelnt *value_bc = *fklByteCodelntVectorPopBack(bcls);
-        // FklSid_t id = *fklSidVectorPopBack(symbolStack);
         FklByteCodelnt *value_bc = *cur_bcl;
         FklSid_t id = *cur_sid;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         fklResolveCodegenPreDef(id, scope, env, codegen->pts);
-        // append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
-        // fklCodeLntReverseConcat(value_bc, retval);
         fklCodeLntConcat(retval, value_bc);
         append_pop_loc_ins(INS_APPEND_BACK, retval, idx, fid, line, scope);
         fklDestroyByteCodelnt(value_bc);
@@ -2011,9 +1985,6 @@ static inline FklByteCodelnt *processArgs(const FklNastNode *args,
         }
         fklAddCodegenDefBySid(cur->sym, 1, curEnv);
         ++arg_count;
-        // append_pop_arg_ins(INS_APPEND_BACK, retval,
-        //                    fklAddCodegenDefBySid(cur->sym, 1, curEnv)->idx,
-        //                    codegen->fid, cur->curline, 1);
     }
     if (args->type != FKL_NAST_NIL && args->type != FKL_NAST_SYM) {
         fklDestroyByteCodelnt(retval);
@@ -2028,14 +1999,7 @@ static inline FklByteCodelnt *processArgs(const FklNastNode *args,
         }
         rest_list = 1;
         fklAddCodegenDefBySid(args->sym, 1, curEnv);
-        // append_pop_rest_arg_ins(
-        //     INS_APPEND_BACK, retval,
-        //     fklAddCodegenDefBySid(args->sym, 1, curEnv)->idx, codegen->fid,
-        //     args->curline, 1);
     }
-    // FklInstruction resBp = create_op_ins(FKL_OP_RES_BP);
-    // fklByteCodeLntPushBackIns(retval, &resBp, codegen->fid, args->curline,
-    // 1);
     FklInstruction check_arg = {
         .op = FKL_OP_CHECK_ARG,
         .ai = rest_list,
@@ -2057,14 +2021,7 @@ static inline FklByteCodelnt *processArgsInStack(FklSidVector *stack,
         FklSid_t curId = base[i];
 
         fklAddCodegenDefBySid(curId, 1, curEnv);
-        // uint32_t idx = fklAddCodegenDefBySid(curId, 1, curEnv)->idx;
-
-        // append_pop_arg_ins(INS_APPEND_BACK, retval, idx, codegen->fid,
-        // curline,
-        //                    1);
     }
-    // FklInstruction resBp = create_op_ins(FKL_OP_RES_BP);
-    // fklByteCodeLntPushBackIns(retval, &resBp, codegen->fid, curline, 1);
     FklInstruction check_arg = {.op = FKL_OP_CHECK_ARG, .ai = 0, .bu = top};
     fklByteCodeLntPushBackIns(retval, &check_arg, codegen->fid, curline, 1);
     return retval;
@@ -9157,15 +9114,12 @@ static void initVMframeFromPatternMatchTable(FklVM *exe, FklVMframe *frame,
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(frame);
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     uint32_t count = mainPts->lcount;
-    // FklVMvalue **loc = fklAllocSpaceForLocalVar(exe, count);
     uint32_t idx = 0;
     for (FklPmatchHashMapNode *list = ht->first; list; list = list->next) {
         FklVMvalue *v = fklCreateVMvalueFromNastNode(exe, list->v, lineHash);
         FKL_VM_GET_ARG(exe, frame, idx) = v;
-        // loc[idx] = v;
         idx++;
     }
-    // lr->loc = loc;
     lr->lcount = count;
     lr->lref = NULL;
     lr->lrefl = NULL;

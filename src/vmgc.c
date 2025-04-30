@@ -168,7 +168,7 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     }
     *phead = gc->head;
     gc->head = head;
-    gc->num -= count;
+    atomic_fetch_sub(&gc->num, count);
 }
 
 void fklVMgcSweep(FklVMvalue *head) {
@@ -193,7 +193,7 @@ void fklVMgcSweep(FklVMvalue *head) {
 
 void fklGetGCstateAndGCNum(FklVMgc *gc, FklGCstate *s, int *cr) {
     *s = gc->running;
-    *cr = gc->num > gc->threshold;
+    *cr = atomic_load(&gc->num) > gc->threshold;
 }
 
 static inline void init_vm_queue(FklVMqueue *q) {
@@ -425,7 +425,9 @@ void fklVMgcRemoveUnusedGrayCache(FklVMgc *gc) {
     gc->gray_list_cache = NULL;
 }
 
-void fklVMgcUpdateThreshold(FklVMgc *gc) { gc->threshold = gc->num * 2; }
+void fklVMgcUpdateThreshold(FklVMgc *gc) {
+    gc->threshold = atomic_load(&gc->num) * 2;
+}
 
 static inline void destroy_argv(FklVMgc *gc) {
     if (gc->argc) {

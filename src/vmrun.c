@@ -1627,7 +1627,7 @@ void fklDestroyAllValues(FklVMgc *gc) {
             destroyDll = cur;
         } else
             fklDestroyVMvalue(cur);
-        gc->num -= 1;
+        atomic_fetch_sub(&gc->num, 1);
     }
     phead = &destroyDll;
     while (*phead != NULL) {

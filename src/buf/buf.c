@@ -25,10 +25,10 @@ static void strbuf_finalizer(FklVMud *p) {
 static void strbuf_as_prin1(const FklVMud *ud, FklStringBuffer *buf,
                             FklVMgc *gc) {
     FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
-    fklStringBufferConcatWithCstr(buf,"#<strbuf ");
+    fklStringBufferConcatWithCstr(buf, "#<strbuf ");
     fklPrintRawCharBufToStringBuffer(buf, bufa->index, bufa->buf, "\"", "\"",
                                      '"');
-    fklStringBufferPutc(buf,'>');
+    fklStringBufferPutc(buf, '>');
 }
 
 static void strbuf_as_princ(const FklVMud *ud, FklStringBuffer *buf,
@@ -147,23 +147,21 @@ static FklVMudMetaTable StringBufferMetaTable = {
 static int export_strbuf_p(FKL_CPROC_ARGL) { PREDICATE(is_strbuf_ud(val)) }
 
 static int export_make_strbuf(FKL_CPROC_ARGL) {
-    uint32_t const arg_num=FKL_CPROC_GET_ARG_NUM(exe,ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe,arg_num,0,2);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 0, 2);
     // if (FKL_VM_GET_ARG_NUM(exe) == 0) {
     if (arg_num == 0) {
         // fklResBp(exe);
         // FKL_VM_PUSH_VALUE(
         //    exe, create_vmstrbuf(exe, 0, FKL_VM_CPROC(ctx->proc)->dll));
-        FKL_CPROC_RETURN(
-            exe,ctx, create_vmstrbuf(exe, 0, FKL_VM_CPROC(ctx->proc)->dll));
+        FKL_CPROC_RETURN(exe, ctx,
+                         create_vmstrbuf(exe, 0, FKL_VM_CPROC(ctx->proc)->dll));
         return 0;
     }
-    FklVMvalue* size=FKL_CPROC_GET_ARG(exe,ctx,0);
+    FklVMvalue *size = FKL_CPROC_GET_ARG(exe, ctx, 0);
     // FKL_DECL_AND_CHECK_ARG(size, exe);
     FKL_CHECK_TYPE(size, fklIsVMint, exe);
-    FklVMvalue *content = arg_num>1
-        ?FKL_CPROC_GET_ARG(exe,ctx,1)
-        :NULL;
+    FklVMvalue *content = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     // FKL_VM_POP_ARG(exe);
     // FKL_CHECK_REST_ARG(exe);
     if (fklIsVMnumberLt0(size))
@@ -179,13 +177,13 @@ static int export_make_strbuf(FKL_CPROC_ARGL) {
     memset(buf->buf, ch, len);
     buf->index = len;
     // FKL_VM_PUSH_VALUE(exe, r);
-    FKL_CPROC_RETURN(exe,ctx, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int export_make_strbuf_with_capacity(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe,ctx,1);
-    FklVMvalue* size=FKL_CPROC_GET_ARG(exe,ctx,0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FklVMvalue *size = FKL_CPROC_GET_ARG(exe, ctx, 0);
     // FKL_DECL_AND_CHECK_ARG(size, exe);
     FKL_CHECK_TYPE(size, fklIsVMint, exe);
     // FKL_CHECK_REST_ARG(exe);
@@ -193,9 +191,10 @@ static int export_make_strbuf_with_capacity(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
     // FKL_VM_PUSH_VALUE(exe,
-    //                   create_vmstrbuf(exe, len, FKL_VM_CPROC(ctx->proc)->dll));
-    FKL_CPROC_RETURN(exe,ctx,
-                      create_vmstrbuf(exe, len, FKL_VM_CPROC(ctx->proc)->dll));
+    //                   create_vmstrbuf(exe, len,
+    //                   FKL_VM_CPROC(ctx->proc)->dll));
+    FKL_CPROC_RETURN(exe, ctx,
+                     create_vmstrbuf(exe, len, FKL_VM_CPROC(ctx->proc)->dll));
     return 0;
 }
 
@@ -390,9 +389,9 @@ static int export_strbuf_clear(FKL_CPROC_ARGL) {
 }
 
 static int export_strbuf_reserve(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe,ctx,2);
-    FklVMvalue* str=FKL_CPROC_GET_ARG(exe,ctx,0);
-    FklVMvalue* place=FKL_CPROC_GET_ARG(exe,ctx,1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FklVMvalue *str = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);
     // FKL_DECL_AND_CHECK_ARG2(str, place, exe);
     // FKL_CHECK_REST_ARG(exe);
     if (!fklIsVMint(place) || !is_strbuf_ud(str))
@@ -403,7 +402,7 @@ static int export_strbuf_reserve(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, str);
     fklStringBufferReverse(buf, capacity);
     // FKL_VM_PUSH_VALUE(exe, str);
-    FKL_CPROC_RETURN(exe,ctx, str);
+    FKL_CPROC_RETURN(exe, ctx, str);
     return 0;
 }
 
@@ -469,13 +468,12 @@ static int export_strbuf_fmt(FKL_CPROC_ARGL) {
 }
 
 static int export_strbuf_shrink(FKL_CPROC_ARGL) {
-    uint32_t const arg_num=FKL_CPROC_GET_ARG_NUM(exe,ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe,arg_num,1,2);
-    FklVMvalue* buf_obj=FKL_CPROC_GET_ARG(exe,ctx,0);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FklVMvalue *buf_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     // FKL_DECL_AND_CHECK_ARG(buf_obj, exe);
-    FklVMvalue *shrink_to_val =arg_num>1
-        ?FKL_CPROC_GET_ARG(exe,ctx,1)
-        :NULL;
+    FklVMvalue *shrink_to_val =
+        arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     // FKL_VM_POP_ARG(exe);
     // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(buf_obj, is_strbuf_ud, exe);
@@ -491,20 +489,19 @@ static int export_strbuf_shrink(FKL_CPROC_ARGL) {
     if (shrink_to < buf->size && shrink_to > buf->index)
         fklStringBufferShrinkTo(buf, shrink_to);
     // FKL_VM_PUSH_VALUE(exe, buf_obj);
-    FKL_CPROC_RETURN(exe,ctx, buf_obj);
+    FKL_CPROC_RETURN(exe, ctx, buf_obj);
     return 0;
 }
 
 static int export_strbuf_resize(FKL_CPROC_ARGL) {
-    uint32_t const arg_num=FKL_CPROC_GET_ARG_NUM(exe,ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe,arg_num,2,3);
-    FklVMvalue* buf_obj=FKL_CPROC_GET_ARG(exe,ctx,0);
-    FklVMvalue* resize_to=FKL_CPROC_GET_ARG(exe,ctx,1);
+    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FklVMvalue *buf_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *resize_to = FKL_CPROC_GET_ARG(exe, ctx, 1);
 
     // FKL_DECL_AND_CHECK_ARG2(buf_obj, resize_to, exe);
-    FklVMvalue *content_obj =arg_num>2
-        ?FKL_CPROC_GET_ARG(exe,ctx,2)
-        :NULL;
+    FklVMvalue *content_obj =
+        arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     // FKL_VM_POP_ARG(exe);
     // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(buf_obj, is_strbuf_ud, exe);
@@ -520,15 +517,15 @@ static int export_strbuf_resize(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     fklStringBufferResize(buf, fklVMgetUint(resize_to), content);
     // FKL_VM_PUSH_VALUE(exe, buf_obj);
-    FKL_CPROC_RETURN(exe,ctx, buf_obj);
+    FKL_CPROC_RETURN(exe, ctx, buf_obj);
     return 0;
 }
 
 static int export_substrbuf(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe,ctx,3);
-    FklVMvalue* ostr=FKL_CPROC_GET_ARG(exe,ctx,0);
-    FklVMvalue* vstart=FKL_CPROC_GET_ARG(exe,ctx,1);
-    FklVMvalue* vend=FKL_CPROC_GET_ARG(exe,ctx,2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+    FklVMvalue *ostr = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *vstart = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FklVMvalue *vend = FKL_CPROC_GET_ARG(exe, ctx, 2);
     // FKL_DECL_AND_CHECK_ARG3(ostr, vstart, vend, exe);
     // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ostr, is_strbuf_ud, exe);
@@ -546,15 +543,15 @@ static int export_substrbuf(FKL_CPROC_ARGL) {
     FklVMvalue *r =
         create_vmstrbuf2(exe, size, buf->buf + start, FKL_VM_UD(ostr)->rel);
     // FKL_VM_PUSH_VALUE(exe, r);
-    FKL_CPROC_RETURN(exe,ctx, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
 static int export_sub_strbuf(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe,ctx,3);
-    FklVMvalue* ostr=FKL_CPROC_GET_ARG(exe,ctx,0);
-    FklVMvalue* vstart=FKL_CPROC_GET_ARG(exe,ctx,1);
-    FklVMvalue* vsize=FKL_CPROC_GET_ARG(exe,ctx,2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+    FklVMvalue *ostr = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *vstart = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FklVMvalue *vsize = FKL_CPROC_GET_ARG(exe, ctx, 2);
     // FKL_DECL_AND_CHECK_ARG3(ostr, vstart, vsize, exe);
     // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(ostr, is_strbuf_ud, exe);
@@ -571,7 +568,7 @@ static int export_sub_strbuf(FKL_CPROC_ARGL) {
     FklVMvalue *r =
         create_vmstrbuf2(exe, osize, buf->buf + start, FKL_VM_UD(ostr)->rel);
     // FKL_VM_PUSH_VALUE(exe, r);
-    FKL_CPROC_RETURN(exe,ctx, r);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 

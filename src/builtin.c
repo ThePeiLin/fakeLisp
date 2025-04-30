@@ -3908,12 +3908,15 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
     return 0;
 }
 
+#define IDLE_CTX_STATE(CTX) (CTX)->c[0].uptr
+#define IDLE_CTX_FRAME(CTX) (*FKL_TYPE_CAST(FklVMframe **, &(CTX)->c[1].ptr))
+
 static void idle_queue_work_cb(FklVM *exe, void *a) {
     FklCprocFrameContext *ctx = FKL_TYPE_CAST(FklCprocFrameContext *, a);
     fklDontNoticeThreadLock(exe);
     exe->state = FKL_VM_READY;
     fklSetVMsingleThread(exe);
-    ctx->c[0].uptr = fklRunVMinSingleThread(exe, exe->top_frame->prev);
+    IDLE_CTX_STATE(ctx) = fklRunVMinSingleThread(exe, exe->top_frame->prev);
     exe->state = FKL_VM_READY;
     fklNoticeThreadLock(exe);
     fklUnsetVMsingleThread(exe);
@@ -3921,12 +3924,11 @@ static void idle_queue_work_cb(FklVM *exe, void *a) {
 }
 
 static int builtin_idle(FKL_CPROC_ARGL) {
-    switch (ctx->c[0].uptr) {
+    switch (IDLE_CTX_STATE(ctx)) {
     case 0: {
         uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
         FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
         FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
-        // FKL_DECL_AND_CHECK_ARG(proc, exe);
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         fklVMstackReserve(exe, exe->tp + 1);
         memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
@@ -3941,20 +3943,16 @@ static int builtin_idle(FKL_CPROC_ARGL) {
         fklCallObj(exe, proc);
         fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
         // 在这个函数中返回，令虚拟机重新设置longjmp的buf
-        if (ctx->c[0].uptr) {
-            ctx->c[1].ptr = fklMoveVMframeToTop(exe, origin_top_frame);
+        if (IDLE_CTX_STATE(ctx)) {
+            IDLE_CTX_FRAME(ctx) = fklMoveVMframeToTop(exe, origin_top_frame);
             return 1;
         }
-        // if (ctx->c[0].ptr) {
-        //     ctx->c[0].ptr = fklMoveVMframeToTop(exe, origin_top_frame);
-        //     return 1;
-        // }
         FklVMvalue *retval = FKL_VM_POP_TOP_VALUE(exe);
         FKL_CPROC_RETURN(exe, ctx, retval);
         return 0;
     }
     case 1: {
-        FklVMframe *frame = ctx->c[1].ptr;
+        FklVMframe *frame = IDLE_CTX_FRAME(ctx);
         fklInsertTopVMframeAsPrev(exe, frame);
         fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
     } break;
@@ -3963,7 +3961,6 @@ static int builtin_idle(FKL_CPROC_ARGL) {
 }
 
 struct AtExitArg {
-    // FklVMvalue *proc;
     uint32_t arg_num;
     FklVMvalue *args[];
 };
@@ -4125,69 +4122,6 @@ static int builtin_map(FKL_CPROC_ARGL) {
 #include "builtin_foreach.h"
 #undef FOREACH_INCLUDED
 #undef DISCARD_HEAD
-    // to be delete
-#ifdef TO_BE_DELETE
-    switch (ctx->c[0].uptr) {
-    case 0: {
-        FKL_DECL_AND_CHECK_ARG(proc, exe);
-        FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-        size_t arg_num = FKL_VM_GET_ARG_NUM(exe);
-        if (arg_num == 0)
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-        FklVMvalue **base = &FKL_VM_GET_VALUE(exe, arg_num);
-        uint32_t rtp = fklResBpIn(exe, arg_num);
-        FKL_CHECK_TYPE(base[0], fklIsList, exe);
-        size_t len = fklVMlistLength(base[0]);
-        for (size_t i = 1; i < arg_num; i++) {
-            FKL_CHECK_TYPE(base[i], fklIsList, exe);
-            if (fklVMlistLength(base[i]) != len)
-                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_LIST_DIFFER_IN_LENGTH, exe);
-        }
-        if (len == 0) {
-            FKL_VM_SET_TP_AND_PUSH_VALUE(exe, rtp, FKL_VM_NIL);
-            return 0;
-        }
-
-        FklVMvalue *resultBox = fklCreateVMvalueBox(exe, FKL_VM_NIL);
-        ctx->c[0].ptr = &FKL_VM_BOX(resultBox);
-        ctx->rtp = rtp;
-        FKL_VM_GET_VALUE(exe, arg_num + 1) = resultBox;
-        FKL_VM_PUSH_VALUE(exe, proc);
-        fklSetBp(exe);
-        for (FklVMvalue *const *const end = &base[arg_num]; base < end;
-             base++) {
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*base));
-            *base = FKL_VM_CDR(*base);
-        }
-        fklCallObj(exe, proc);
-        return 1;
-    } break;
-    default: {
-        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->c[0].ptr);
-        FklVMvalue *r = FKL_VM_POP_TOP_VALUE(exe);
-        FklVMvalue *pair = fklCreateVMvaluePairWithCar(exe, r);
-        *cur = pair;
-        ctx->c[0].ptr = &FKL_VM_CDR(pair);
-        size_t arg_num = exe->tp - ctx->rtp;
-        FklVMvalue **base = &FKL_VM_GET_VALUE(exe, arg_num - 1);
-        if (base[0] == FKL_VM_NIL)
-            fklVMsetTpAndPushValue(exe, ctx->rtp,
-                                   FKL_VM_BOX(FKL_VM_GET_VALUE(exe, arg_num)));
-        else {
-            FklVMvalue *proc = FKL_VM_GET_VALUE(exe, 1);
-            fklSetBp(exe);
-            for (FklVMvalue *const *const end = &base[arg_num - 2]; base < end;
-                 base++) {
-                FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*base));
-                *base = FKL_VM_CDR(*base);
-            }
-            fklCallObj(exe, proc);
-            return 1;
-        }
-    } break;
-    }
-    return 0;
-#endif
 }
 
 #define FOREACH_INCLUDED
@@ -4401,56 +4335,6 @@ static int builtin_filter(FKL_CPROC_ARGL) {
 #include "builtin_foreach.h"
 #undef FOREACH_INCLUDED
 #undef DISCARD_HEAD
-// to be delete
-#ifdef TO_BE_DELETE
-    switch (ctx->c[0].uptr) {
-    case 0: {
-        FKL_DECL_AND_CHECK_ARG2(proc, list, exe);
-        FKL_CHECK_REST_ARG(exe);
-        FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-        FKL_CHECK_TYPE(list, fklIsList, exe);
-        if (list == FKL_VM_NIL) {
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
-            return 0;
-        }
-        FklVMvalue *resultBox = fklCreateVMvalueBoxNil(exe);
-        ctx->c[0].ptr = &FKL_VM_BOX(resultBox);
-        ctx->rtp = exe->tp;
-        FKL_VM_PUSH_VALUE(exe, resultBox);
-        FKL_VM_PUSH_VALUE(exe, proc);
-        FKL_VM_PUSH_VALUE(exe, list);
-        fklSetBp(exe);
-        FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-        fklCallObj(exe, proc);
-        return 1;
-    } break;
-    default: {
-        FklVMvalue **cur = FKL_TYPE_CAST(FklVMvalue **, ctx->c[0].ptr);
-        FklVMvalue *r = FKL_VM_POP_TOP_VALUE(exe);
-        FklVMvalue **plist = &FKL_VM_GET_VALUE(exe, 1);
-        FklVMvalue *list = *plist;
-        if (r != FKL_VM_NIL) {
-            FklVMvalue *pair =
-                fklCreateVMvaluePairWithCar(exe, FKL_VM_CAR(list));
-            *cur = pair;
-            ctx->c[0].ptr = &FKL_VM_CDR(pair);
-        }
-        list = FKL_VM_CDR(list);
-        if (list == FKL_VM_NIL)
-            fklVMsetTpAndPushValue(exe, ctx->rtp,
-                                   FKL_VM_BOX(FKL_VM_GET_VALUE(exe, 3)));
-        else {
-            *plist = list;
-            FklVMvalue *proc = FKL_VM_GET_VALUE(exe, 2);
-            fklSetBp(exe);
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObj(exe, proc);
-            return 1;
-        }
-    } break;
-    }
-    return 0;
-#endif
 }
 
 static int builtin_remq1(FKL_CPROC_ARGL) {

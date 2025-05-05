@@ -3799,7 +3799,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
         return 1;
     }
     FklVMpairVector err_handlers;
-    fklVMpairVectorInit(&err_handlers, FKL_VM_GET_ARG_NUM(exe));
+    fklVMpairVectorInit(&err_handlers, arg_num);
     FklVMpair *pair = NULL;
     int state = GET_LIST;
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);

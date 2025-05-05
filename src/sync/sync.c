@@ -101,12 +101,9 @@ static int sync_make_cond(FKL_CPROC_ARGL) {
 static int sync_cond_signal(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, IS_COND_UD, exe);
     FKL_DECL_VM_UD_DATA(cond, uv_cond_t, obj);
     uv_cond_signal(cond);
-    // FKL_VM_PUSH_VALUE(exe, obj);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -114,12 +111,9 @@ static int sync_cond_signal(FKL_CPROC_ARGL) {
 static int sync_cond_broadcast(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, IS_COND_UD, exe);
     FKL_DECL_VM_UD_DATA(cond, uv_cond_t, obj);
     uv_cond_broadcast(cond);
-    // FKL_VM_PUSH_VALUE(exe, obj);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -129,11 +123,8 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
     FklVMvalue *cond_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *mutex_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(cond_obj, mutex_obj, exe);
     FklVMvalue *timeout_obj =
         arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(cond_obj, IS_COND_UD, exe);
     FKL_CHECK_TYPE(mutex_obj, IS_MUTEX_UD, exe);
     FKL_DECL_VM_UD_DATA(cond, uv_cond_t, cond_obj);
@@ -143,25 +134,17 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
         if (fklIsVMnumberLt0(timeout_obj))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         uint64_t timeout = fklVMgetUint(timeout_obj);
-        // uint32_t rtp = exe->tp;
-        // FKL_VM_PUSH_VALUE(exe, mutex_obj);
-        // FKL_VM_PUSH_VALUE(exe, cond_obj);
         fklUnlockThread(exe);
         if (uv_cond_timedwait(cond, mutex, timeout)) {
             fklLockThread(exe);
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
         }
         fklLockThread(exe);
-        // FKL_VM_SET_TP_AND_PUSH_VALUE(exe, rtp, FKL_VM_NIL);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     } else {
-        // uint32_t rtp = exe->tp;
-        // FKL_VM_PUSH_VALUE(exe, mutex_obj);
-        // FKL_VM_PUSH_VALUE(exe, cond_obj);
         fklUnlockThread(exe);
         uv_cond_wait(cond, mutex);
         fklLockThread(exe);
-        // FKL_VM_SET_TP_AND_PUSH_VALUE(exe, rtp, FKL_VM_NIL);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     }
     return 0;
@@ -282,18 +265,14 @@ static int sync_sem_p(FKL_CPROC_ARGL) { PREDICATE(IS_SEM_UD(val)); }
 static int sync_make_sem(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *value_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(value_obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(value_obj, fklIsVMint, exe);
     if (fklIsVMnumberLt0(value_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &SemUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(sem, uv_sem_t, ud);
     if (uv_sem_init(sem, fklVMgetUint(value_obj)))
-        // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     else
-        // FKL_VM_PUSH_VALUE(exe, ud);
         FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
@@ -301,8 +280,6 @@ static int sync_make_sem(FKL_CPROC_ARGL) {
 static int sync_sem_wait(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, IS_SEM_UD, exe);
     FKL_DECL_VM_UD_DATA(sem, uv_sem_t, obj);
     fklUnlockThread(exe);
@@ -315,12 +292,9 @@ static int sync_sem_wait(FKL_CPROC_ARGL) {
 static int sync_sem_post(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, IS_SEM_UD, exe);
     FKL_DECL_VM_UD_DATA(sem, uv_sem_t, obj);
     uv_sem_post(sem);
-    // FKL_VM_PUSH_VALUE(exe, obj);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -328,11 +302,8 @@ static int sync_sem_post(FKL_CPROC_ARGL) {
 static int sync_sem_trywait(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, IS_SEM_UD, exe);
     FKL_DECL_VM_UD_DATA(sem, uv_sem_t, obj);
-    // FKL_VM_PUSH_VALUE(exe, uv_sem_trywait(sem) ? FKL_VM_TRUE : FKL_VM_NIL);
     FKL_CPROC_RETURN(exe, ctx, uv_sem_trywait(sem) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
@@ -359,15 +330,12 @@ static int sync_barrier_p(FKL_CPROC_ARGL) { PREDICATE(IS_BARRIER_UD(val)); }
 static int sync_make_barrier(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *count_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(count_obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(count_obj, fklIsVMint, exe);
     if (fklIsVMnumberLt0(count_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &BarrierUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(barrier, uv_barrier_t, ud);
     if (uv_barrier_init(barrier, fklVMgetUint(count_obj)))
-        // FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     else
         FKL_CPROC_RETURN(exe, ctx, ud);
@@ -377,8 +345,6 @@ static int sync_make_barrier(FKL_CPROC_ARGL) {
 static int sync_barrier_wait(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(obj, IS_BARRIER_UD, exe);
     FKL_DECL_VM_UD_DATA(barrier, uv_barrier_t, obj);
     fklUnlockThread(exe);

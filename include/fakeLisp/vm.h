@@ -839,6 +839,8 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
 #define FKL_CHECK_TYPE(V, P, EXE)                                              \
     if (!P(V))                                                                 \
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, EXE)
+
+#warning DEPRECATED
 #define FKL_CHECK_REST_ARG(EXE)                                                \
     if (fklResBp((EXE)))                                                       \
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, EXE)
@@ -1117,6 +1119,7 @@ void fklAddToGC(FklVMvalue *, FklVM *);
 FklVMvalue *fklCreateTrueValue(void);
 FklVMvalue *fklCreateNilValue(void);
 
+#warning DEPRECATED
 #define FKL_VM_GET_ARG_NUM(S) ((S)->tp - (S)->bp - 1)
 
 #define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
@@ -1125,6 +1128,7 @@ FklVMvalue *fklCreateNilValue(void);
 
 #define FKL_VM_POP_TOP_VALUE(S) ((S)->base[--(S)->tp])
 
+#warning DEPRECATED
 #define FKL_VM_GET_VALUE(S, N) ((S)->base[(S)->tp - (N)])
 
 #define FKL_VM_PUSH_VALUE(S, V) fklPushVMvalue((S), (V))
@@ -1181,20 +1185,24 @@ static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     s->base[s->tp++] = v;
 }
 
+#warning DEPRECATED
 #define FKL_VM_SET_TP_AND_PUSH_VALUE(S, T, V)                                  \
     (((S)->tp = (T) + 1), ((S)->base[(T)] = (V)))
 
+#warning DEPRECATED
 #define FKL_DECL_AND_CHECK_ARG(a, exe)                                         \
     FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
     if (!a)                                                                    \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
 
+#warning DEPRECATED
 #define FKL_DECL_AND_CHECK_ARG2(a, b, exe)                                     \
     FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
     FklVMvalue *b = FKL_VM_POP_ARG(exe);                                       \
     if (!b || !a)                                                              \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
 
+#warning DEPRECATED
 #define FKL_DECL_AND_CHECK_ARG3(a, b, c, exe)                                  \
     FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
     FklVMvalue *b = FKL_VM_POP_ARG(exe);                                       \
@@ -1202,6 +1210,7 @@ static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (!c || !b || !a)                                                        \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
 
+#warning DEPRECATED
 #define FKL_DECL_AND_CHECK_ARG4(a, b, c, d, exe)                               \
     FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
     FklVMvalue *b = FKL_VM_POP_ARG(exe);                                       \
@@ -1550,19 +1559,15 @@ static inline void fklSetBp(FklVM *s) {
 }
 
 // to be delete
+#warning DEPRECATED
 #define FKL_VM_POP_ARG(S) (((S)->tp > (S)->bp) ? (S)->base[--(S)->tp] : NULL)
 
+#warning DEPRECATED
 static inline int fklResBp(FklVM *exe) {
     if (exe->tp > exe->bp)
         return 1;
     exe->bp = FKL_GET_FIX(exe->base[--exe->tp]);
     return 0;
-}
-
-static inline uint32_t fklResBpIn(FklVM *exe, uint32_t n) {
-    uint32_t rtp = exe->tp - n - 1;
-    exe->bp = FKL_GET_FIX(exe->base[rtp]);
-    return rtp;
 }
 
 static inline void fklAddCompoundFrameCp(FklVMframe *f, int64_t a) {

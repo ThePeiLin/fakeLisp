@@ -487,10 +487,7 @@ void fklLockThread(FklVM *exe) {
     uv_mutex_lock(&exe->lock);
 }
 
-void fklSetThreadReadyToExit(FklVM *exe) {
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
-    exe->state = FKL_VM_EXIT;
-}
+void fklSetThreadReadyToExit(FklVM *exe) { exe->state = FKL_VM_EXIT; }
 
 void fklUnlockThread(FklVM *exe) {
     if (exe->is_single_thread)

@@ -55,11 +55,12 @@ static inline void destroy_all_deleted_breakpoint(BreakpointTable *bt) {
     Breakpoint *bp = bt->deleted_breakpoints;
     while (bp) {
         Breakpoint *cur = bp;
-        bp = bp->next;
+        bp = bp->next_del;
         if (cur->cond_exp)
             fklDestroyNastNode(cur->cond_exp);
         free(cur);
     }
+    bt->deleted_breakpoints = NULL;
 }
 
 void uninitBreakpointTable(BreakpointTable *bt) {

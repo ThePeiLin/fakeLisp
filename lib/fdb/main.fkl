@@ -139,7 +139,10 @@
 (define (debug-breakpoint ctx,rest)
   (cond
     [rest
-      (define breakpoint (apply debug-ctx-set-break ctx rest))
+      (define breakpoint (apply debug-ctx-set-break
+                                ctx
+                                nil
+                                rest))
       (if (vector? breakpoint)
         (print-break-point breakpoint)
         (println breakpoint))]
@@ -151,7 +154,10 @@
 (define (debug-temporary-breakpoint ctx,rest)
   (cond
     [rest
-      (define breakpoint (apply debug-ctx-set-tbreak ctx rest))
+      (define breakpoint (apply debug-ctx-set-break
+                                ctx
+                                'is-temporary
+                                rest))
       (if (vector? breakpoint)
         (print-break-point breakpoint)
         (println breakpoint))]
@@ -160,10 +166,10 @@
      (when breakpoints
        (foreach print-break-point breakpoints))]))
 
-(define (debug-del-breakpoint ctx,rest)
+(define (debug-delete-breakpoint ctx,rest)
   (foreach
     (lambda (num)
-      (define bp (debug-ctx-del-break ctx num))
+      (define bp (debug-ctx-delete-break ctx num))
       (if (vector? bp)
         (begin
           (print "deleted ")
@@ -178,10 +184,10 @@
                      " already be deleted")))))
     rest))
 
-(define (debug-dis-breakpoint ctx,rest)
+(define (debug-disable-breakpoint ctx,rest)
   (foreach
     (lambda (num)
-      (define bp (debug-ctx-dis-break ctx num))
+      (define bp (debug-ctx-disable-break ctx num))
       (if (vector? bp)
         (print-break-point-brief bp)
         (begin
@@ -435,9 +441,9 @@
     'restart debug-restart
     'break debug-breakpoint
     'tbreak debug-temporary-breakpoint
-    'delete debug-del-breakpoint
-    'disable debug-dis-breakpoint
+    'delete debug-delete-breakpoint
     'enable debug-enable-breakpoint
+    'disable debug-disable-breakpoint
     'list debug-list-src
     'list-ins debug-list-ins
     'next debug-next
@@ -457,7 +463,7 @@
   (do []
     [(debug-ctx-exit? ctx)]
     (define cmd (debug-ctx-repl ctx prompt))
-    (call/eh
+    (xpcall
       (lambda ()
         (unless (eof? cmd)
           (define cmd-head (if (symbol? cmd) cmd (car cmd)))

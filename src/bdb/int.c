@@ -15,7 +15,6 @@ static void interrupt_queue_work_cb(FklVM *vm, void *a) {
                     bp->is_compiled = 1;
                     FklVMvalue *proc = compileConditionExpression(
                         ctx, vm, bp->cond_exp, vm->top_frame, &err);
-                    ;
                     bp->cond_exp = NULL;
                     bp->proc = proc;
                     switch (err) {

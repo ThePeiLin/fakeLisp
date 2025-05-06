@@ -197,6 +197,8 @@ FklVMvalue *callEvalProc(DebugCtx *ctx, FklVM *vm, FklVMvalue *proc,
     uint32_t bp = vm->bp;
     // uint32_t ltp = vm->ltp;
     fklSetVMsingleThread(vm);
+    fklSetBp(vm);
+    FKL_VM_PUSH_VALUE(vm, proc);
     fklCallObj(vm, proc);
     fklDontNoticeThreadLock(vm);
     if (fklRunVMinSingleThread(vm, origin_cur_frame))

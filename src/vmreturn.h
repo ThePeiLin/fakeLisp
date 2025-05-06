@@ -31,6 +31,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         fprintf(stderr,
                 "[%s: %d] %s: the return value count should be 1, but is %u\n",
                 __FILE__, __LINE__, __FUNCTION__, value_count);
+        fklPrintBacktrace(exe, stderr);
         abort();
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {

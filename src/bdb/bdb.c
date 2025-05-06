@@ -1,7 +1,7 @@
 #include "bdb.h"
-#include "fakeLisp/vm.h"
 
 #include <fakeLisp/builtin.h>
+#include <fakeLisp/vm.h>
 #include <string.h>
 
 static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
@@ -126,13 +126,17 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
 static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
     int argc = fklVMlistLength(argv_list);
     gc->argc = argc;
-    char **argv = (char **)malloc(sizeof(char *) * argc);
-    FKL_ASSERT(argv);
-    for (int i = 0; i < argc; i++) {
-        argv[i] = fklStringToCstr(FKL_VM_STR(FKL_VM_CAR(argv_list)));
-        argv_list = FKL_VM_CDR(argv_list);
+    if (argc == 0) {
+        gc->argv = NULL;
+    } else {
+        char **argv = (char **)malloc(argc * sizeof(char *));
+        FKL_ASSERT(argv);
+        for (int i = 0; i < argc; i++) {
+            argv[i] = fklStringToCstr(FKL_VM_STR(FKL_VM_CAR(argv_list)));
+            argv_list = FKL_VM_CDR(argv_list);
+        }
+        gc->argv = argv;
     }
-    gc->argv = argv;
 }
 
 static inline void
@@ -295,6 +299,7 @@ static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
 }
 
 void exitDebugCtx(DebugCtx *ctx) {
+    uninitBreakpointTable(&ctx->bt);
     FklVMgc *gc = ctx->gc;
     if (ctx->running && ctx->reached_thread) {
         setAllThreadReadyToExit(ctx->reached_thread);
@@ -392,8 +397,10 @@ const char *getPutBreakpointErrorInfo(PutBreakpointErrorType t) {
 
 static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     FklVM *cur_thread = ctx->reached_thread;
+    if (cur_thread == NULL)
+        cur_thread = ctx->gc->main_thread;
     FklVMframe *frame = cur_thread->top_frame;
-    for (; frame->type == FKL_FRAME_OTHEROBJ; frame = frame->prev)
+    for (; frame && frame->type == FKL_FRAME_OTHEROBJ; frame = frame->prev)
         ;
     if (!frame)
         return NULL;
@@ -417,8 +424,10 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
 
 static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
     FklVM *cur_thread = ctx->reached_thread;
+    if (cur_thread == NULL)
+        cur_thread = ctx->gc->main_thread;
     FklVMframe *frame = cur_thread->top_frame;
-    for (; frame->type == FKL_FRAME_OTHEROBJ; frame = frame->prev)
+    for (; frame && frame->type == FKL_FRAME_OTHEROBJ; frame = frame->prev)
         ;
     if (!frame)
         return NULL;

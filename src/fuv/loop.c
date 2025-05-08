@@ -23,7 +23,7 @@ static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
         fklVMgcToGray(*cur, gc);
 }
 
-static void fuv_close_loop_handle_cb(uv_handle_t *handle) {
+void fuvCloseLoopHandleCb(uv_handle_t *handle) {
     FuvHandle *fuv_handle = uv_handle_get_data(handle);
     FuvHandleData *hdata = &fuv_handle->data;
     FklVMvalue *handle_obj = hdata->handle;
@@ -42,14 +42,17 @@ static void fuv_close_loop_walk_cb(uv_handle_t *handle, void *arg) {
         FuvHandle *fh = uv_handle_get_data(handle);
         fh->data.callbacks[1] = NULL;
     } else
-        uv_close(handle, fuv_close_loop_handle_cb);
+        uv_close(handle, fuvCloseLoopHandleCb);
 }
 
 static void fuv_loop_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
+    if (fuvLoopIsClosed(fuv_loop))
+        goto closed;
     uv_walk(&fuv_loop->loop, fuv_close_loop_walk_cb, fuv_loop);
     while (uv_loop_close(&fuv_loop->loop))
         uv_run(&fuv_loop->loop, UV_RUN_DEFAULT);
+closed:
     fklVMvalueHashSetUninit(&fuv_loop->data.gc_values);
 }
 
@@ -68,7 +71,8 @@ static inline FklVMvalue *recover_error_scene(FklVM *exe,
     for (; cur < end; cur++)
         FKL_VM_PUSH_VALUE(exe, *cur);
     // FklVMvalue **locv = fklAllocSpaceForLocalVar(exe, rd->local_values_num);
-    // memcpy(locv, rd->local_values, sizeof(FklVMvalue *) * rd->local_values_num);
+    // memcpy(locv, rd->local_values, sizeof(FklVMvalue *) *
+    // rd->local_values_num);
 
     FklVMframe *f = rd->frame;
     while (f) {
@@ -102,6 +106,7 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvLoopMetaTable, rel);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, v);
     fuv_loop->data.mode = -1;
+    fuv_loop->data.is_closed = 0;
     int r = uv_loop_init(&fuv_loop->loop);
     if (r) {
         *err = r;
@@ -115,8 +120,7 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
 }
 
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
-                      uint32_t sbp, uint32_t stp, 
-                      FklVMframe *buttom_frame) {
+                      uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame) {
     struct FuvErrorRecoverData *rd = &ldata->error_recover_data;
 
     // uint32_t origin_ltp = exe->ltp;

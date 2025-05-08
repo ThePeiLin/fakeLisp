@@ -47,6 +47,16 @@ typedef SSIZE_T ssize_t;
 #define FKL_DLL_FILE_TYPE_STR_LEN (3)
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define FKL_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER_)
+#define FKL_DEPRECATED __declspec(deprecated)
+#else
+#define FKL_DEPRECATED
+#endif
+
+FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
+
 #define FKL_PACKAGE_MAIN_FILE ("main.fkl")
 #define FKL_PRE_COMPILE_PACKAGE_MAIN_FILE ("main.fklp")
 

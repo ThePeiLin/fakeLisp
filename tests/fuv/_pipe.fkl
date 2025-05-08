@@ -62,6 +62,7 @@
   (uv-process-spawn loop
                     (uv-exepath)
                     (lambda (code signal)
+                      (assert (eqv code 0))
                       (printf "exited with %S\n"
                               (make-hash 'code code
                                          'signal signal))

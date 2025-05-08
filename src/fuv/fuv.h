@@ -320,6 +320,7 @@ typedef struct {
     FklSid_t stat_type_socket_sid;
     FklSid_t stat_type_char_sid;
     FklSid_t stat_type_block_sid;
+    FklSid_t stat_type_unknown_sid;
 
     FklSid_t timespec_f_sec_sid;
     FklSid_t timespec_f_nsec_sid;
@@ -426,6 +427,7 @@ typedef struct {
     struct FuvErrorRecoverData error_recover_data;
     jmp_buf buf;
     int mode;
+    int is_closed;
 } FuvLoopData;
 
 typedef enum {
@@ -503,6 +505,13 @@ FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *rel, int *err);
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
                       uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame);
 void fuvLoopInsertFuvObj(FklVMvalue *loop, FklVMvalue *handle);
+static inline int fuvLoopIsClosed(const FuvLoop *l) {
+    return l->data.is_closed;
+}
+static inline void fuvLoopSetClosed(FuvLoop *l) {
+    l->data.mode = -1;
+    l->data.is_closed = 1;
+}
 
 int isFuvHandle(FklVMvalue *v);
 
@@ -701,6 +710,7 @@ FuvDir *refFuvDir(FuvDir *dir);
 
 void unrefFuvDir(FuvDir *dir_obj);
 
+void fuvCloseLoopHandleCb(uv_handle_t *handle);
 #ifdef __cplusplus
 }
 #endif

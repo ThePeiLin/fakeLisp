@@ -82,150 +82,159 @@ static void fuv_tty_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tty_as_print, tcp);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tty_as_print, tty);
 
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
     // UV_UNKNOWN_HANDLE
-    {
-        0,
-    },
+    [UV_UNKNOWN_HANDLE] = {0},
 
     // UV_ASYNC,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_async_as_print,
-        .__as_princ = fuv_async_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_ASYNC] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_async_as_print,
+            .__as_princ = fuv_async_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_CHECK,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_check_as_print,
-        .__as_princ = fuv_check_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_CHECK] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_check_as_print,
+            .__as_princ = fuv_check_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_FS_EVENT,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_fs_event_as_print,
-        .__as_princ = fuv_fs_event_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_FS_EVENT] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_fs_event_as_print,
+            .__as_princ = fuv_fs_event_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_FS_POLL,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_fs_poll_as_print,
-        .__as_princ = fuv_fs_poll_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_FS_POLL] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_fs_poll_as_print,
+            .__as_princ = fuv_fs_poll_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_HANDLE,
-    {
-        0,
-    },
+    [UV_HANDLE] =
+        {
+            0,
+        },
 
     // UV_IDLE,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_idle_as_print,
-        .__as_princ = fuv_idle_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_IDLE] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_idle_as_print,
+            .__as_princ = fuv_idle_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_NAMED_PIPE,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_pipe_as_print,
-        .__as_princ = fuv_pipe_as_print,
-        .__atomic = fuv_pipe_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_NAMED_PIPE] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_pipe_as_print,
+            .__as_princ = fuv_pipe_as_print,
+            .__atomic = fuv_pipe_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_POLL,
-    {
-        0,
-    },
+    [UV_POLL] =
+        {
+            0,
+        },
 
     // UV_PREPARE,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_prepare_as_print,
-        .__as_princ = fuv_prepare_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_PREPARE] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_prepare_as_print,
+            .__as_princ = fuv_prepare_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_PROCESS,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_process_as_print,
-        .__as_princ = fuv_process_as_print,
-        .__atomic = fuv_process_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_PROCESS] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_process_as_print,
+            .__as_princ = fuv_process_as_print,
+            .__atomic = fuv_process_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_STREAM,
-    {
-        0,
-    },
+    [UV_STREAM] = {0},
 
     // UV_TCP,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_tcp_as_print,
-        .__as_princ = fuv_tcp_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_TCP] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_tcp_as_print,
+            .__as_princ = fuv_tcp_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_TIMER,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_timer_as_print,
-        .__as_princ = fuv_timer_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_TIMER] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_timer_as_print,
+            .__as_princ = fuv_timer_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_TTY,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_tty_as_print,
-        .__as_princ = fuv_tty_as_print,
-        .__atomic = fuv_tty_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_TTY] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_tty_as_print,
+            .__as_princ = fuv_tty_as_print,
+            .__atomic = fuv_tty_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_UDP,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_udp_as_print,
-        .__as_princ = fuv_udp_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_UDP] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_udp_as_print,
+            .__as_princ = fuv_udp_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_SIGNAL,
-    {
-        .size = sizeof(FuvHandleUd),
-        .__as_prin1 = fuv_signal_as_print,
-        .__as_princ = fuv_signal_as_print,
-        .__atomic = fuv_handle_ud_atomic,
-        .__finalizer = fuv_handle_ud_finalizer,
-    },
+    [UV_SIGNAL] =
+        {
+            .size = sizeof(FuvHandleUd),
+            .__as_prin1 = fuv_signal_as_print,
+            .__as_princ = fuv_signal_as_print,
+            .__atomic = fuv_handle_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     // UV_FILE,
-    {
-        0,
-    },
+    [UV_FILE] = {0},
 };
 
 int isFuvHandle(FklVMvalue *v) {
@@ -328,7 +337,8 @@ static void fuv_async_cb(uv_async_t *handle) {
         fklSetBp(exe);
         FklVMvalue **cur = extra->base;
         FklVMvalue **const end = &cur[extra->num];
-        for (; cur < end; cur++)
+        FKL_VM_PUSH_VALUE(exe, proc);
+        for (; cur < end; ++cur)
             FKL_VM_PUSH_VALUE(exe, *cur);
         fklCallObj(exe, proc);
         FUV_ASYNC_COPY_DONE(async_handle);

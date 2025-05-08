@@ -163,7 +163,7 @@
      (vector-ref re 1)]))
 
 (define max 100)
-(define buf (make-my-chanl 100))
+(define buf (make-my-chanl max))
 
 (newline)
 

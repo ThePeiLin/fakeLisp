@@ -1,5 +1,5 @@
 (define max 100)
-(define buf (chanl 100))
+(define buf (chanl max))
 
 (define (producer no.)
   (princ (format "producer no.%d start\n" no.))
@@ -14,7 +14,7 @@
   (do [(c 0 (1+ c))]
     [(>= c max)]
     (princ (format "consumer no.%d: %d\n" no. (recv buf))))
-  (princ (format "consumer no.%d exit\n")))
+  (princ (format "consumer no.%d exit\n" no.)))
 
 (define chanls '())
 

@@ -105,7 +105,7 @@ add_executable(test-bigint "main/tests/bi.c")
 target_link_libraries(test-bigint test_lib ${LINK_TARGET})
 
 add_executable(test-ins "main/tests/ins.c")
-target_link_libraries(test-ins ${LIBFKL_TARGET_NAME})
+target_link_libraries(test-ins ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
@@ -121,8 +121,8 @@ if(MSVC)
 	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 	target_link_libraries(test-fs-event $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 else()
-	target_link_libraries(test-dns uv_a)
-	target_link_libraries(test-fs-event uv_a)
+	target_link_libraries(test-dns uv_a ${LINK_TARGET})
+	target_link_libraries(test-fs-event uv_a ${LINK_TARGET})
 endif()
 
 #argtable3
@@ -339,7 +339,7 @@ target_link_libraries(${LIBFKL_TARGET_NAME}
 	PUBLIC ${PARSE} ${VMPARSE}
 	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 
-target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx argtable3)
+target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} replxx argtable3 ${LINK_TARGET})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
 

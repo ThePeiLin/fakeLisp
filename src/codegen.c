@@ -2535,6 +2535,7 @@ BC_PROCESS(_def_const_exp_bc_process) {
     FklSymDef *def = fklAddCodegenDefBySid(ctx->id, ctx->scope, env);
     def->isConst = 1;
     uint32_t idx = def->idx;
+    fklResolveCodegenPreDef(ctx->id, ctx->scope, env, codegen->pts);
     fklByteCodelntVectorInsertFront2(
         stack, append_put_loc_ins(INS_APPEND_BACK, NULL, idx, codegen->fid,
                                   ctx->line, ctx->scope));

@@ -3908,7 +3908,7 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
     return 0;
 }
 
-#define IDLE_CTX_STATE(CTX) (CTX)->c[0].uptr
+#define IDLE_CTX_STATE(CTX) ((CTX)->c[0].uptr)
 #define IDLE_CTX_FRAME(CTX) (*FKL_TYPE_CAST(FklVMframe **, &(CTX)->c[1].ptr))
 
 static void idle_queue_work_cb(FklVM *exe, void *a) {

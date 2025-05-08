@@ -59,6 +59,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     default:
         fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
                 __FUNCTION__);
+        fklPrintBacktrace(exe, stderr);
         abort();
         break;
     }

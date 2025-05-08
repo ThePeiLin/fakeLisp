@@ -1,0 +1,5 @@
+(import (only (.. .. lib utils m) assert))
+
+(define read-res (fgetd))
+(assert (equal read-res "1145141919810\n"))
+(printf "[%s: %d] read res: %S\n" *file* *line* read-res)

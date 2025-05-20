@@ -417,7 +417,6 @@ struct FuvErrorRecoverData {
     uint32_t stack_values_num;
     uint32_t local_values_num;
     FklVMvalue **stack_values;
-    // FklVMvalue **local_values;
 };
 
 typedef struct {

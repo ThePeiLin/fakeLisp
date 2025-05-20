@@ -1,7 +1,7 @@
 #include <fakeLisp/vm.h>
 
 static int fs_facce_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     FKL_CPROC_RETURN(exe, ctx,
@@ -13,7 +13,7 @@ static int fs_facce_p(FKL_CPROC_ARGL) {
 }
 
 static int fs_freg_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     FKL_CPROC_RETURN(exe, ctx,
@@ -24,7 +24,7 @@ static int fs_freg_p(FKL_CPROC_ARGL) {
 }
 
 static int fs_fdir_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     FKL_CPROC_RETURN(exe, ctx,
@@ -35,11 +35,10 @@ static int fs_fdir_p(FKL_CPROC_ARGL) {
 }
 
 static int fs_freopen(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *stream = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklVMvalue *mode = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
+    FklVMvalue *mode = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     if (!fklIsVMvalueFp(stream) || !FKL_IS_STR(filename)
         || (mode && !FKL_IS_STR(mode)))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -56,7 +55,7 @@ static int fs_freopen(FKL_CPROC_ARGL) {
 }
 
 static int fs_realpath(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     char *rp = fklRealpath(FKL_VM_STR(filename)->str);
@@ -69,10 +68,9 @@ static int fs_realpath(FKL_CPROC_ARGL) {
 }
 
 static int fs_relpath(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *path = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *start = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *start = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(path, FKL_IS_STR, exe);
 
     if (start)
@@ -107,7 +105,7 @@ static int fs_relpath(FKL_CPROC_ARGL) {
 }
 
 static int fs_mkdir(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     if (fklMkdir(FKL_VM_STR(filename)->str))
@@ -130,15 +128,14 @@ static inline int isVMfpWritable(const FklVMvalue *fp) {
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, E)
 
 static int fs_fprint(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
     FklVMvalue *r = FKL_VM_NIL;
-    FklVMvalue **const arg_end = arg_base + arg_num;
+    FklVMvalue **const arg_end = arg_base + argc;
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
@@ -149,15 +146,14 @@ static int fs_fprint(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprintln(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
     FklVMvalue *r = FKL_VM_NIL;
-    FklVMvalue **const arg_end = arg_base + arg_num;
+    FklVMvalue **const arg_end = arg_base + argc;
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
@@ -169,15 +165,14 @@ static int fs_fprintln(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprin1(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
     FklVMvalue *r = FKL_VM_NIL;
-    FklVMvalue **const arg_end = arg_base + arg_num;
+    FklVMvalue **const arg_end = arg_base + argc;
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
@@ -188,15 +183,14 @@ static int fs_fprin1(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprin1n(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(f, exe);
     CHECK_FP_WRITABLE(f, exe);
     FklVMvalue *r = FKL_VM_NIL;
-    FklVMvalue **const arg_end = arg_base + arg_num;
+    FklVMvalue **const arg_end = arg_base + argc;
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
@@ -208,8 +202,7 @@ static int fs_fprin1n(FKL_CPROC_ARGL) {
 }
 
 static int fs_fwrite(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
@@ -218,7 +211,7 @@ static int fs_fwrite(FKL_CPROC_ARGL) {
 
     FILE *fp = FKL_VM_FP(f)->fp;
     FklVMvalue *r = FKL_VM_NIL;
-    FklVMvalue **const arg_end = arg_base + arg_num;
+    FklVMvalue **const arg_end = arg_base + argc;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
         if (FKL_IS_STR(r)) {
@@ -237,10 +230,9 @@ static int fs_fwrite(FKL_CPROC_ARGL) {
 }
 
 static int fs_fflush(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 0, 1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 1);
 
-    if (arg_num) {
+    if (argc) {
         FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
         ;
         FKL_CHECK_TYPE(fp, fklIsVMvalueFp, exe);
@@ -254,7 +246,7 @@ static int fs_fflush(FKL_CPROC_ARGL) {
 }
 
 static int fs_fclerr(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fp, fklIsVMvalueFp, exe);
     CHECK_FP_OPEN(fp, exe);
@@ -264,8 +256,7 @@ static int fs_fclerr(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprintf(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
     FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
 
@@ -278,7 +269,7 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklBuiltinErrorType err_type =
         fklVMprintf2(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len, start,
-                     start + arg_num - 2);
+                     start + argc - 2);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -287,7 +278,7 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
 }
 
 static int fs_fileno(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vfp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vfp, fklIsVMvalueFp, exe);
     FklVMfp *fp = FKL_VM_FP(vfp);

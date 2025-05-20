@@ -1015,17 +1015,12 @@ static int repl_frame_step(void *data, FklVM *exe) {
         ctx->state = WAITING;
         return 1;
     } else if (ctx->state == WAITING) {
-        // exe->ltp = fctx->lcount;
         ctx->state = READING;
         if (exe->tp - fctx->sp != 0) {
-            fprintf(stderr, "exe->last: %u, exe->tp: %u, exe->bp: %u\n",
-                    exe->last, exe->tp, exe->bp);
             fputs(RETVAL_PREFIX, stdout);
             fklDBG_printVMstack(exe, exe->tp - fctx->sp, stdout, 0, exe->gc);
         }
         exe->tp = fctx->sp;
-        fprintf(stderr, "exe->last: %u, exe->tp: %u, exe->bp: %u\n", exe->last,
-                exe->tp, exe->bp);
 
         fklUnlockThread(exe);
         ctx->eof = replxx_input_string_buffer(fctx->replxx, &fctx->buf) == NULL;
@@ -1164,13 +1159,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
             mainframe->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
             fklVMframeSetSp(exe, mainframe, ret_proc_idx + 1);
 
-            // f->base = 0;
-            // f->loc =
-            //     NULL; // fklAllocMoreSpaceForMainFrame(exe, proc->lcount +
-            //     1);
             FKL_VM_GET_ARG(exe, mainframe, o_lcount) = NULL;
             FKL_VM_GET_ARG(exe, mainframe, ret_proc_idx) = fctx->ret_proc;
-            // f->loc[ret_proc_idx] = fctx->ret_proc;
             f->lcount = proc->lcount;
             alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
             init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
@@ -1202,10 +1192,6 @@ static void repl_frame_atomic(void *data, FklVMgc *gc) {
     struct ReplFrameCtx *fctx = ctx->c;
     fklVMgcToGray(fctx->stdinVal, gc);
     fklVMgcToGray(fctx->mainProc, gc);
-    // FklVMvalue **locv = ctx->exe->locv;
-    // uint32_t lcount = fctx->lcount;
-    // for (uint32_t i = 0; i < lcount; i++)
-    //     fklVMgcToGray(locv[i], gc);
     for (FklVMvarRefList *l = fctx->lrefl; l; l = l->next)
         fklVMgcToGray(l->ref, gc);
     fklVMgcToGray(fctx->ret_proc, gc);
@@ -1269,10 +1255,9 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
         }
 
         ReplCtx *ctx = FKL_TYPE_CAST(ReplCtx *, exe->top_frame->data);
-        FklVMvalue **cur = &FKL_VM_GET_ARG(
-            exe, main_frame,
-            lcount - ctx->new_var_count); // &exe->locv[lcount -
-                                          // ctx->new_var_count];
+        FklVMvalue **cur =
+            &FKL_VM_GET_ARG(exe, main_frame, lcount - ctx->new_var_count);
+
         for (uint32_t i = 0; i < ctx->new_var_count; i++)
             if (!cur[i])
                 cur[i] = FKL_VM_NIL;
@@ -1424,11 +1409,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         mainframe->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
         fklVMframeSetBp(exe, mainframe, proc_idx + 1);
 
-        // f->base = 0;
-        // f->loc = NULL; // fklAllocMoreSpaceForMainFrame(exe, proc->lcount +
-        // 1);
         FKL_VM_GET_ARG(exe, mainframe, proc_idx) = fctx->ret_proc;
-        // f->loc[proc_idx] = fctx->ret_proc;
         f->lcount = proc->lcount;
         alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
         init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
@@ -1528,7 +1509,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe, FklCodegenInfo *codegen,
     }
     fklSetBp(exe);
     ctx->c->bp = exe->bp;
-    ctx->c->sp = exe->bp + 1 + 1; // 1 local var
+    ctx->c->sp = exe->bp + 1 + 1;
     fklVMstackReserve(exe, ctx->c->sp + 1);
     if (ctx->c->sp > exe->tp) {
         memset(&exe->base[exe->tp], 0,

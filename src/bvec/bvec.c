@@ -2,7 +2,7 @@
 #include <fakeLisp/vm.h>
 
 #define BV_U_S_8_REF(TYPE)                                                     \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))                        \
@@ -19,7 +19,7 @@
     return 0;
 
 #define BV_REF(TYPE, MAKER)                                                    \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))                        \
@@ -55,7 +55,7 @@ static int export_bvu64ref(FKL_CPROC_ARGL) { BV_U_REF(uint64_t) }
 #undef BV_U_S_8_REF
 
 #define BV_F_REF(TYPE)                                                         \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))                        \
@@ -77,7 +77,7 @@ static int export_bvf64ref(FKL_CPROC_ARGL) { BV_F_REF(double) }
 #undef BV_F_REF
 
 #define SET_BV_S_U_8_REF(TYPE)                                                 \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                       \
@@ -96,7 +96,7 @@ static int export_bvf64ref(FKL_CPROC_ARGL) { BV_F_REF(double) }
     return 0;
 
 #define SET_BV_REF(TYPE)                                                       \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                       \
@@ -128,7 +128,7 @@ static int export_bvu64set1(FKL_CPROC_ARGL) { SET_BV_REF(uint64_t) }
 #undef SET_BV_REF
 
 #define SET_BV_F_REF(TYPE)                                                     \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                       \
@@ -151,7 +151,7 @@ static int export_bvf64set1(FKL_CPROC_ARGL) { SET_BV_F_REF(double) }
 #undef SET_BV_F_REF
 
 static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
@@ -168,7 +168,7 @@ static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
 }
 
 static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
@@ -185,7 +185,7 @@ static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
 }
 
 static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);
@@ -200,7 +200,7 @@ static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
 }
 
 static int export_bytevector_to_u8_vector(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
     FklBytevector *bvec = FKL_VM_BVEC(obj);

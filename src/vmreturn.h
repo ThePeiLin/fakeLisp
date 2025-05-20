@@ -50,7 +50,6 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         }
         F->c.pc = F->c.spc;
         F->c.mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
-        // frame->c.tail = 0;
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_LOOP:
         F->c.pc = F->c.spc;

@@ -4,7 +4,7 @@
 #include "base.h"
 
 #ifdef WIN32
-// ssize_t
+// define ssize_t
 #include "common.h"
 #endif
 

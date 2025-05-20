@@ -3,7 +3,7 @@
 #include <time.h>
 
 static int os_system(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *cmd = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(cmd, FKL_IS_STR, exe);
     const FklString *cmd_str = FKL_VM_STR(cmd);
@@ -12,21 +12,20 @@ static int os_system(FKL_CPROC_ARGL) {
 }
 
 static int os_time(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMint((int64_t)time(NULL), exe));
     return 0;
 }
 
 static int os_clock(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMint((int64_t)clock(), exe));
     return 0;
 }
 
 static int os_date(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 0, 2);
-    switch (arg_num) {
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 2);
+    switch (argc) {
     case 0: {
         time_t stamp = time(NULL);
         const struct tm *tblock = localtime(&stamp);
@@ -117,7 +116,7 @@ static int os_date(FKL_CPROC_ARGL) {
 }
 
 static int os_remove(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *name = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(name, FKL_IS_STR, exe);
     const FklString *name_str = FKL_VM_STR(name);
@@ -126,7 +125,7 @@ static int os_remove(FKL_CPROC_ARGL) {
 }
 
 static int os_rename(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *old_name = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *new_name = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(old_name, FKL_IS_STR, exe);
@@ -140,7 +139,7 @@ static int os_rename(FKL_CPROC_ARGL) {
 }
 
 static int os_chdir(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dir = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dir, FKL_IS_STR, exe);
     int r = fklChdir(FKL_VM_STR(dir)->str);
@@ -152,7 +151,7 @@ static int os_chdir(FKL_CPROC_ARGL) {
 }
 
 static int os_getcwd(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     char *cwd = fklSysgetcwd();
     FklVMvalue *s = fklCreateVMvalueStrFromCstr(exe, cwd);
     free(cwd);
@@ -161,7 +160,7 @@ static int os_getcwd(FKL_CPROC_ARGL) {
 }
 
 static int os_getenv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *name = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(name, FKL_IS_STR, exe);
     const FklString *name_str = FKL_VM_STR(name);
@@ -187,11 +186,10 @@ static inline int unsetenv(const char *name) { return _putenv_s(name, ""); }
 #endif
 
 static int os_setenv(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 3);
     FklVMvalue *name = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *value = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
-    FklVMvalue *overwrite = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
+    FklVMvalue *value = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *overwrite = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(name, FKL_IS_STR, exe);
     const FklString *name_str = FKL_VM_STR(name);
     if (value) {

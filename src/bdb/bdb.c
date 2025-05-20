@@ -418,7 +418,6 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
         fklFindSymbolDefByIdAndScope(id, scope, env);
     if (def)
         return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
-    // cur_thread->locv[def->v.idx];
     return NULL;
 }
 

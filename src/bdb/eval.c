@@ -195,7 +195,6 @@ FklVMvalue *callEvalProc(DebugCtx *ctx, FklVM *vm, FklVMvalue *proc,
     vm->state = FKL_VM_READY;
     uint32_t tp = vm->tp;
     uint32_t bp = vm->bp;
-    // uint32_t ltp = vm->ltp;
     fklSetVMsingleThread(vm);
     fklSetBp(vm);
     FKL_VM_PUSH_VALUE(vm, proc);
@@ -216,7 +215,6 @@ FklVMvalue *callEvalProc(DebugCtx *ctx, FklVM *vm, FklVMvalue *proc,
     }
     vm->tp = tp;
     vm->bp = bp;
-    // vm->ltp = ltp;
     vm->top_frame = origin_top_frame;
     return retval;
 }

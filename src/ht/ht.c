@@ -1,7 +1,7 @@
 #include <fakeLisp/vm.h>
 
 static int ht_hashv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint64_t hashv = fklVMvalueEqHashv(key);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(hashv, exe));
@@ -9,7 +9,7 @@ static int ht_hashv(FKL_CPROC_ARGL) {
 }
 
 static int ht_eqv_hashv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint64_t hashv = fklVMvalueEqvHashv(key);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(hashv, exe));
@@ -17,7 +17,7 @@ static int ht_eqv_hashv(FKL_CPROC_ARGL) {
 }
 
 static int ht_equal_hashv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint64_t hashv = fklVMvalueEqualHashv(key);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(hashv, exe));
@@ -85,7 +85,7 @@ static FklVMudMetaTable HtUdMetaTable = {
 };
 
 static int ht_make_ht(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *hashv = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *equal = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
@@ -102,7 +102,7 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
 #define IS_HASH_UD(V) (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &HtUdMetaTable)
 
 static int ht_ht_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val))
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_TRUE);
@@ -112,7 +112,7 @@ static int ht_ht_p(FKL_CPROC_ARGL) {
 }
 
 static int ht_ht_hashv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
@@ -123,7 +123,7 @@ static int ht_ht_hashv(FKL_CPROC_ARGL) {
 }
 
 static int ht_ht_equal(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
@@ -134,7 +134,7 @@ static int ht_ht_equal(FKL_CPROC_ARGL) {
 }
 
 static int ht_ht_clear(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
@@ -146,7 +146,7 @@ static int ht_ht_clear(FKL_CPROC_ARGL) {
 }
 
 static int ht_ht_to_list(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
@@ -166,7 +166,7 @@ static int ht_ht_to_list(FKL_CPROC_ARGL) {
 }
 
 static int ht_ht_keys(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
@@ -185,7 +185,7 @@ static int ht_ht_keys(FKL_CPROC_ARGL) {
 }
 
 static int ht_ht_values(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
         FKL_DECL_VM_UD_DATA(ht, HashTable, val);
@@ -236,7 +236,7 @@ static inline int key_equal(FklVM *exe, FklVMvalue *key,
 static int ht_ht_set1(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
@@ -301,11 +301,10 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
 static int ht_ht_set8(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-        FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-        uint32_t const rest_arg_num = arg_num - 1;
+        uint32_t const rest_arg_num = argc - 1;
         if (rest_arg_num == 0) {
             FKL_CPROC_RETURN(exe, ctx, ht_ud);
             return 0;
@@ -411,13 +410,12 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
 
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-        FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
         HT_CTX_STATE(ctx) = HT_CALL_STATE_EQUAL;
-        HT_CTX_ARG_NUM(ctx) = arg_num;
+        HT_CTX_ARG_NUM(ctx) = argc;
         FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, ht->hash_func);
@@ -472,7 +470,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
 static int ht_ht_ref1(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
@@ -532,7 +530,7 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
 static int ht_ht_ref7(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
@@ -582,7 +580,7 @@ static int ht_ht_ref7(FKL_CPROC_ARGL) {
 static int ht_ht_ref4(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
@@ -636,7 +634,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
 static int ht_ht_del1(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);

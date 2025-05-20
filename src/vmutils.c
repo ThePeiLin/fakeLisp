@@ -187,7 +187,6 @@ FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *f,
     fd->proc = FKL_VM_NIL;
     fd->proc = pfd->proc;
     fd->mark = pfd->mark;
-    // fd->tail = pfd->tail;
     FklVMCompoundFrameVarRef *lr = &fd->lr;
     const FklVMCompoundFrameVarRef *plr = &pfd->lr;
     *lr = *plr;
@@ -223,9 +222,7 @@ FklVMframe *fklCopyVMframe(FklVM *target_vm, FklVMframe *f, FklVMframe *prev) {
 }
 
 static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
-    // lr->base = 0;
     lr->lcount = 0;
-    // lr->loc = NULL;
     lr->lref = NULL;
     lr->ref = NULL;
     lr->rcount = 0;
@@ -256,7 +253,6 @@ FklVMframe *fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *proc,
     f->end = NULL;
     f->proc = NULL;
     f->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
-    // f->tail = 0;
     init_frame_var_ref(&f->lr);
     if (code) {
         f->lr.ref = code->closure;

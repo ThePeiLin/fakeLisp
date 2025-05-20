@@ -34,15 +34,14 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
 
     switch (FOREACH_CTX_STATE(ctx)) {
     case FOREACH_CALL_STATE_ENTER: {
-        uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-        FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, MAX_ARG_NUM);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, MAX_ARG_NUM);
         FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *proc = arg_base[0];
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         FklVMvalue *first_list = arg_base[1];
         FKL_CHECK_TYPE(first_list, fklIsList, exe);
         size_t len = fklVMlistLength(first_list);
-        for (uint32_t i = 2; i < arg_num; ++i) {
+        for (uint32_t i = 2; i < argc; ++i) {
             FKL_CHECK_TYPE(arg_base[i], fklIsList, exe);
             if (fklVMlistLength(arg_base[i]) != len)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_LIST_DIFFER_IN_LENGTH, exe);
@@ -52,13 +51,13 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             return 0;
         }
         FOREACH_CTX_STATE(ctx) = FOREACH_CALL_STATE_CONT;
-        FOREACH_CTX_ARG_NUM(ctx) = arg_num;
+        FOREACH_CTX_ARG_NUM(ctx) = argc;
         STORE_EXTRA_VALUE;
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
-        fklVMstackReserve(exe, exe->tp + arg_num);
+        fklVMstackReserve(exe, exe->tp + argc);
         arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
-        FklVMvalue **const end = &arg_base[arg_num];
+        FklVMvalue **const end = &arg_base[argc];
         FklVMvalue **plist = arg_base + 1;
         for (; plist < end; ++plist) {
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*plist));

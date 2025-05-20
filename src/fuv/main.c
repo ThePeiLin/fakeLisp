@@ -9,7 +9,7 @@
 #include "fuv.h"
 
 #define PREDICATE(condition)                                                   \
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);                                      \
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);                                     \
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);                          \
     FKL_CPROC_RETURN(exe, ctx, (condition) ? FKL_VM_TRUE : FKL_VM_NIL);        \
     return 0;
@@ -526,7 +526,7 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
 static int fuv_loop_p(FKL_CPROC_ARGL) { PREDICATE(isFuvLoop(val)) }
 
 static int fuv_make_loop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     int err = 0;
     FklVMvalue *r = createFuvLoop(exe, ctx->proc, &err);
     CHECK_UV_RESULT(err, exe, ctx->pd);
@@ -540,7 +540,7 @@ static int fuv_make_loop(FKL_CPROC_ARGL) {
                                     "loop is closed");
 
 static int fuv_loop_close(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -560,11 +560,9 @@ static int fuv_loop_close(FKL_CPROC_ARGL) {
 static int fuv_loop_run(FKL_CPROC_ARGL) {
     switch (LOOP_RUN_STATE(ctx)) {
     case LOOP_RUN_STATE_RUN: {
-        uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-        FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
         FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-        FklVMvalue *mode_obj =
-            arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+        FklVMvalue *mode_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
         FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
         FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
         FklVMframe *origin_top_frame = exe->top_frame;
@@ -654,7 +652,7 @@ static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
 static int fuv_loop_walk(FKL_CPROC_ARGL) {
     switch (LOOP_RUN_STATE(ctx)) {
     case LOOP_RUN_STATE_RUN: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
         FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue *proc_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -697,8 +695,7 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
 #undef LOOP_RUN_STATE_RETURN
 
 static int fuv_loop_configure(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *option_obj = arg_base[1];
@@ -720,7 +717,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL) {
     uv_loop_t *loop = &fuv_loop->loop;
     switch (option) {
     case UV_LOOP_BLOCK_SIGNAL: {
-        FklVMvalue **const end = arg_base + arg_num;
+        FklVMvalue **const end = arg_base + argc;
         for (FklVMvalue **parg = arg_base + 2; parg < end; ++parg) {
             FklVMvalue *cur = *parg;
             if (FKL_IS_FIX(cur)) {
@@ -740,7 +737,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL) {
     } break;
     case UV_METRICS_IDLE_TIME:
     case UV_LOOP_USE_IO_URING_SQPOLL: {
-        if (arg_num > 2)
+        if (argc > 2)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
         int r = uv_loop_configure(loop, option);
         CHECK_UV_RESULT(r, exe, pd);
@@ -751,7 +748,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_alive_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -762,7 +759,7 @@ static int fuv_loop_alive_p(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     CHECK_LOOP_OPEN(fuv_loop, exe, ctx->pd);
@@ -772,7 +769,7 @@ static int fuv_loop_stop(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_mode(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -787,7 +784,7 @@ static int fuv_loop_mode(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_backend_fd(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -798,7 +795,7 @@ static int fuv_loop_backend_fd(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_backend_timeout(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -809,7 +806,7 @@ static int fuv_loop_backend_timeout(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_now(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -820,7 +817,7 @@ static int fuv_loop_now(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loop_update_time(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -833,7 +830,7 @@ static int fuv_loop_update_time(FKL_CPROC_ARGL) {
 static int fuv_handle_p(FKL_CPROC_ARGL) { PREDICATE(isFuvHandle(val)) }
 
 static int fuv_handle_active_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -844,7 +841,7 @@ static int fuv_handle_active_p(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_closing_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -895,10 +892,9 @@ static void fuv_close_cb(uv_handle_t *handle) {
 }
 
 static int fuv_handle_close(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *proc_obj = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *proc_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
     FuvHandle *handle = *fuv_handle;
@@ -915,7 +911,7 @@ static int fuv_handle_close(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_ref_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -926,7 +922,7 @@ static int fuv_handle_ref_p(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_ref(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -937,7 +933,7 @@ static int fuv_handle_ref(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_unref(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -948,10 +944,9 @@ static int fuv_handle_unref(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_send_buffer_size(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *value_obj = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *value_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
     FuvHandle *handle = *fuv_handle;
@@ -967,10 +962,9 @@ static int fuv_handle_send_buffer_size(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_recv_buffer_size(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *value_obj = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *value_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
     FuvHandle *handle = *fuv_handle;
@@ -986,7 +980,7 @@ static int fuv_handle_recv_buffer_size(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_fileno(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -999,7 +993,7 @@ static int fuv_handle_fileno(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_type(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -1016,7 +1010,7 @@ static int fuv_handle_type(FKL_CPROC_ARGL) {
 }
 
 static int fuv_handle_loop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
@@ -1028,7 +1022,7 @@ static int fuv_handle_loop(FKL_CPROC_ARGL) {
 static int fuv_timer_p(FKL_CPROC_ARGL) { PREDICATE(isFuvTimer(val)) }
 
 static int fuv_make_timer(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -1048,7 +1042,7 @@ static void fuv_timer_cb(uv_timer_t *handle) {
 }
 
 static int fuv_timer_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 4);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 4);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *timer_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *timeout_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -1074,7 +1068,7 @@ static int fuv_timer_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_timer_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
@@ -1086,7 +1080,7 @@ static int fuv_timer_stop(FKL_CPROC_ARGL) {
 }
 
 static int fuv_timer_again(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
@@ -1098,7 +1092,7 @@ static int fuv_timer_again(FKL_CPROC_ARGL) {
 }
 
 static int fuv_timer_repeat(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
@@ -1111,7 +1105,7 @@ static int fuv_timer_repeat(FKL_CPROC_ARGL) {
 }
 
 static int fuv_timer_repeat_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *repeat_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
@@ -1127,7 +1121,7 @@ static int fuv_timer_repeat_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_timer_due_in(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
@@ -1142,7 +1136,7 @@ static int fuv_timer_due_in(FKL_CPROC_ARGL) {
 static int fuv_prepare_p(FKL_CPROC_ARGL) { PREDICATE(isFuvPrepare(val)) }
 
 static int fuv_make_prepare(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -1162,7 +1156,7 @@ static void fuv_prepare_cb(uv_prepare_t *handle) {
 }
 
 static int fuv_prepare_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *prepare_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *prepare_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(prepare_obj, isFuvPrepare, exe);
@@ -1178,7 +1172,7 @@ static int fuv_prepare_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_prepare_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *prepare_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(prepare_obj, isFuvPrepare, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(prepare, prepare_obj, exe, ctx->pd);
@@ -1192,7 +1186,7 @@ static int fuv_prepare_stop(FKL_CPROC_ARGL) {
 static int fuv_idle_p(FKL_CPROC_ARGL) { PREDICATE(isFuvIdle(val)) }
 
 static int fuv_make_idle(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -1212,7 +1206,7 @@ static void fuv_idle_cb(uv_idle_t *handle) {
 }
 
 static int fuv_idle_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *idle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *idle_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(idle_obj, isFuvIdle, exe);
@@ -1227,7 +1221,7 @@ static int fuv_idle_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_idle_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *idle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(idle_obj, isFuvIdle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(idle, idle_obj, exe, ctx->pd);
@@ -1241,7 +1235,7 @@ static int fuv_idle_stop(FKL_CPROC_ARGL) {
 static int fuv_check_p(FKL_CPROC_ARGL) { PREDICATE(isFuvCheck(val)) }
 
 static int fuv_make_check(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -1261,7 +1255,7 @@ static void fuv_check_cb(uv_check_t *handle) {
 }
 
 static int fuv_check_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *check_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *check_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(check_obj, isFuvCheck, exe);
@@ -1276,7 +1270,7 @@ static int fuv_check_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_check_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *check_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(check_obj, isFuvCheck, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(check, check_obj, exe, ctx->pd);
@@ -1290,7 +1284,7 @@ static int fuv_check_stop(FKL_CPROC_ARGL) {
 static int fuv_signal_p(FKL_CPROC_ARGL) { PREDICATE(isFuvSignal(val)) }
 
 static int fuv_make_signal(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -1358,7 +1352,7 @@ static void fuv_signal_cb(uv_signal_t *handle, int num) {
 }
 
 static int fuv_signal_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
     FklVMvalue *signal_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *signal_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *signum_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -1386,7 +1380,7 @@ static int fuv_signal_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_signal_start_oneshot(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
     FklVMvalue *signal_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *signal_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *signum_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -1414,7 +1408,7 @@ static int fuv_signal_start_oneshot(FKL_CPROC_ARGL) {
 }
 
 static int fuv_signal_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *signal_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(signal_obj, isFuvSignal, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(signal, signal_obj, exe, ctx->pd);
@@ -1428,7 +1422,7 @@ static int fuv_signal_stop(FKL_CPROC_ARGL) {
 static int fuv_async_p(FKL_CPROC_ARGL) { PREDICATE(isFuvAsync(val)) }
 
 static int fuv_make_async(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *proc_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -1441,8 +1435,7 @@ static int fuv_make_async(FKL_CPROC_ARGL) {
 }
 
 static int fuv_async_send(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *async_obj = arg_base[0];
     FKL_CHECK_TYPE(async_obj, isFuvAsync, exe);
@@ -1451,7 +1444,7 @@ static int fuv_async_send(FKL_CPROC_ARGL) {
     struct FuvAsync *async_handle = (struct FuvAsync *)handle;
     if (!atomic_flag_test_and_set(&async_handle->send_ready)) {
         struct FuvAsyncExtraData extra = {
-            .num = arg_num - 1,
+            .num = argc - 1,
             .base = &arg_base[1],
         };
         atomic_store(&async_handle->extra, &extra);
@@ -1467,7 +1460,7 @@ static int fuv_async_send(FKL_CPROC_ARGL) {
 static int fuv_req_p(FKL_CPROC_ARGL) { PREDICATE(isFuvReq(val)) }
 
 static int fuv_req_cancel(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *req_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(req_obj, isFuvReq, exe);
     FKL_DECL_VM_UD_DATA(fuv_req, FuvReqUd, req_obj);
@@ -1482,7 +1475,7 @@ static int fuv_req_cancel(FKL_CPROC_ARGL) {
 }
 
 static int fuv_req_type(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *req_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(req_obj, isFuvReq, exe);
     FKL_DECL_VM_UD_DATA(fuv_req, FuvReqUd, req_obj);
@@ -1862,14 +1855,13 @@ static void fuv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status,
 }
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *node_obj = arg_base[1];
     FklVMvalue *service_obj = arg_base[2];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
-    FklVMvalue *proc_obj = arg_num > 3 ? arg_base[3] : NULL;
+    FklVMvalue *proc_obj = argc > 3 ? arg_base[3] : NULL;
     const char *node = NULL;
     const char *service = NULL;
     if (FKL_IS_STR(node_obj))
@@ -1890,9 +1882,9 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
         .ai_flags = 0,
     };
     FklBuiltinErrorType err_type =
-        arg_num > 4 ? get_addrinfo_hints(exe->gc, &arg_base[4],
-                                         arg_base + arg_num, &hints, fpd)
-                    : 0;
+        argc > 4 ? get_addrinfo_hints(exe->gc, &arg_base[4], arg_base + argc,
+                                      &hints, fpd)
+                 : 0;
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -2102,12 +2094,11 @@ static void fuv_getnameinfo_cb(uv_getnameinfo_t *req, int status,
 }
 
 static int fuv_getnameinfo(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
-    FklVMvalue *proc_obj = arg_num > 1 ? arg_base[1] : NULL;
+    FklVMvalue *proc_obj = argc > 1 ? arg_base[1] : NULL;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     struct sockaddr_storage addr = {.ss_family = AF_UNSPEC};
     int flags = 0;
@@ -2116,10 +2107,9 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
     FklVMvalue *port_obj = FKL_VM_NIL;
     int r = 0;
     FklBuiltinErrorType error_type =
-        arg_num > 2
-            ? get_sockaddr_flags(&arg_base[2], arg_base + arg_num, &addr,
-                                 &flags, fpd, &ip_obj, &port_obj, &r)
-            : 0;
+        argc > 2 ? get_sockaddr_flags(&arg_base[2], arg_base + argc, &addr,
+                                      &flags, fpd, &ip_obj, &port_obj, &r)
+                 : 0;
     if (error_type)
         FKL_RAISE_BUILTIN_ERROR(error_type, exe);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -2362,8 +2352,7 @@ static void fuv_process_exit_cb(uv_process_t *handle, int64_t exit_status,
 }
 
 static int fuv_process_spawn(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *file_obj = arg_base[1];
@@ -2383,7 +2372,7 @@ static int fuv_process_spawn(FKL_CPROC_ARGL) {
     FklVMvalue *stdio_obj = NULL;
     FklVMvalue *cwd_obj = NULL;
     FklBuiltinErrorType fkl_err = get_process_options(
-        arg_base + 3, arg_base + arg_num, &options, fpd, &uv_err, &env_obj,
+        arg_base + 3, arg_base + argc, &options, fpd, &uv_err, &env_obj,
         &args_obj, &stdio_obj, &cwd_obj, &fuv_err);
     CHECK_UV_RESULT(uv_err, exe, ctx->pd);
     if (fkl_err)
@@ -2403,14 +2392,14 @@ static int fuv_process_spawn(FKL_CPROC_ARGL) {
 }
 
 static int fuv_disable_stdio_inheritance(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_disable_stdio_inheritance();
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
 
 static int fuv_kill(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *pid_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *signum_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pid_obj, FKL_IS_FIX, exe);
@@ -2432,7 +2421,7 @@ static int fuv_kill(FKL_CPROC_ARGL) {
 }
 
 static int fuv_process_kill(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *process_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *signum_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(process_obj, isFuvProcess, exe);
@@ -2455,7 +2444,7 @@ static int fuv_process_kill(FKL_CPROC_ARGL) {
 }
 
 static int fuv_process_pid(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *process_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(process_obj, isFuvProcess, exe);
 
@@ -2470,7 +2459,7 @@ static int fuv_process_pid(FKL_CPROC_ARGL) {
 static int fuv_stream_p(FKL_CPROC_ARGL) { PREDICATE(isFuvStream(val)) }
 
 static int fuv_stream_readable_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
@@ -2481,7 +2470,7 @@ static int fuv_stream_readable_p(FKL_CPROC_ARGL) {
 }
 
 static int fuv_stream_writable_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
@@ -2492,7 +2481,7 @@ static int fuv_stream_writable_p(FKL_CPROC_ARGL) {
 }
 
 static int fuv_stream_write_queue_size(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
@@ -2560,7 +2549,7 @@ static void fuv_read_cb(uv_stream_t *stream, ssize_t nread,
 }
 
 static int fuv_stream_read_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *cb_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
@@ -2576,7 +2565,7 @@ static int fuv_stream_read_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_stream_read_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
@@ -2637,8 +2626,7 @@ static inline int isSendableHandle(FklVMvalue *o) {
 }
 
 static int fuv_stream_write(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *stream_obj = arg_base[0];
     FklVMvalue *cb_obj = arg_base[1];
@@ -2656,11 +2644,11 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
         isSendableHandle(*rest_arg) ? *(rest_arg++) : NULL;
     uv_buf_t *bufs = NULL;
 
-    uint32_t const buf_count = arg_num - 2 - (send_handle_obj != NULL);
+    uint32_t const buf_count = argc - 2 - (send_handle_obj != NULL);
     write = createFuvWrite(exe, &write_obj, ctx->proc, handle->data.loop,
                            cb_obj, buf_count);
     FklBuiltinErrorType err_type = setup_write_data(
-        rest_arg, arg_base + arg_num, buf_count, write_obj, &bufs);
+        rest_arg, arg_base + argc, buf_count, write_obj, &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -2705,8 +2693,7 @@ setup_try_write_data(FklVMvalue **parg, FklVMvalue **const arg_end,
 }
 
 static int fuv_stream_try_write(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *stream_obj = arg_base[0];
     FklVMvalue **rest_arg = &arg_base[1];
@@ -2716,9 +2703,9 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL) {
         isSendableHandle(*rest_arg) ? *(rest_arg++) : NULL;
     uv_buf_t *bufs = NULL;
 
-    uint32_t const buf_count = arg_num - 1 - (send_handle_obj != NULL);
+    uint32_t const buf_count = argc - 1 - (send_handle_obj != NULL);
     FklBuiltinErrorType err_type =
-        setup_try_write_data(rest_arg, arg_base + arg_num, buf_count, &bufs);
+        setup_try_write_data(rest_arg, arg_base + argc, buf_count, &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -2743,10 +2730,9 @@ static void fuv_shutdown_cb(uv_shutdown_t *req, int status) {
 }
 
 static int fuv_stream_shutdown(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *cb_obj = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *cb_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     if (cb_obj)
         FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
@@ -2794,7 +2780,7 @@ static void fuv_connection_cb(uv_stream_t *handle, int status) {
 }
 
 static int fuv_stream_listen(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
     FklVMvalue *server_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *backlog_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *cb_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -2814,7 +2800,7 @@ static int fuv_stream_listen(FKL_CPROC_ARGL) {
 }
 
 static int fuv_stream_accept(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *server_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *client_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(server_obj, isFuvStream, exe);
@@ -2833,7 +2819,7 @@ static int fuv_stream_accept(FKL_CPROC_ARGL) {
 }
 
 static int fuv_stream_blocking_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *set_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
@@ -2848,10 +2834,9 @@ static int fuv_stream_blocking_set1(FKL_CPROC_ARGL) {
 static int fuv_pipe_p(FKL_CPROC_ARGL) { PREDICATE(isFuvPipe(val)) }
 
 static int fuv_make_pipe(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *ipc_obj = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *ipc_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int ipc = ipc_obj && ipc_obj != FKL_VM_NIL ? 1 : 0;
     FklVMvalue *retval = NULL;
@@ -2864,7 +2849,7 @@ static int fuv_make_pipe(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *read_flags_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *write_flags_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     int read_flags = 0;
@@ -2883,7 +2868,7 @@ static int fuv_pipe(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_open(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
@@ -2904,12 +2889,10 @@ static int fuv_pipe_open(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_bind(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *name_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklVMvalue *no_truncate =
-        arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
+    FklVMvalue *no_truncate = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     FKL_CHECK_TYPE(name_obj, FKL_IS_STR, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
@@ -2930,13 +2913,11 @@ static void fuv_connect_cb(uv_connect_t *req, int status) {
 }
 
 static int fuv_pipe_connect(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *name_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *cb_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklVMvalue *no_truncate =
-        arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
+    FklVMvalue *no_truncate = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     if (cb_obj == FKL_VM_NIL)
         cb_obj = NULL;
     else if (!fklIsCallable(cb_obj))
@@ -2960,7 +2941,7 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_chmod(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *flags_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
@@ -2989,7 +2970,7 @@ static int fuv_pipe_chmod(FKL_CPROC_ARGL) {
 #include <fakeLisp/common.h>
 
 static int fuv_pipe_peername(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
@@ -3003,7 +2984,7 @@ static int fuv_pipe_peername(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_sockname(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
@@ -3017,7 +2998,7 @@ static int fuv_pipe_sockname(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_pending_count(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
@@ -3029,7 +3010,7 @@ static int fuv_pipe_pending_count(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_pending_type(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
@@ -3047,7 +3028,7 @@ static int fuv_pipe_pending_type(FKL_CPROC_ARGL) {
 }
 
 static int fuv_pipe_pending_instances(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *count_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
@@ -3081,15 +3062,14 @@ static inline FklBuiltinErrorType get_tcp_flags(FklVMvalue **parg,
 }
 
 static int fuv_make_tcp(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     unsigned int flags = AF_UNSPEC;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     FklBuiltinErrorType err_type =
-        get_tcp_flags(&arg_base[1], arg_base + arg_num, fpd, &flags);
+        get_tcp_flags(&arg_base[1], arg_base + argc, fpd, &flags);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     FklVMvalue *retval = NULL;
@@ -3102,7 +3082,7 @@ static int fuv_make_tcp(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_open(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *sock_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
@@ -3116,7 +3096,7 @@ static int fuv_tcp_open(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_nodelay(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *enable_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
@@ -3129,11 +3109,10 @@ static int fuv_tcp_nodelay(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_keepalive(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *enable_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklVMvalue *delay_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
+    FklVMvalue *delay_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     int enable = enable_obj != FKL_VM_NIL;
@@ -3153,7 +3132,7 @@ static int fuv_tcp_keepalive(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *enable_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
@@ -3203,7 +3182,7 @@ parse_sockaddr(FklVM *exe, struct sockaddr_storage *address, FklVMvalue *pd) {
 }
 
 static int fuv_tcp_sockname(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
@@ -3217,7 +3196,7 @@ static int fuv_tcp_sockname(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_peername(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
@@ -3231,13 +3210,11 @@ static int fuv_tcp_peername(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_bind(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *host_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *port_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklVMvalue *ipv6only_obj =
-        arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
+    FklVMvalue *ipv6only_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     FKL_CHECK_TYPE(host_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(port_obj, FKL_IS_FIX, exe);
@@ -3258,12 +3235,11 @@ static int fuv_tcp_bind(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_connect(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *host_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *port_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     FKL_CHECK_TYPE(host_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(port_obj, FKL_IS_FIX, exe);
@@ -3288,10 +3264,9 @@ static int fuv_tcp_connect(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tcp_close_reset(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *proc_obj = arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *proc_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     FuvHandle *handle = *handle_ud;
@@ -3307,7 +3282,7 @@ static int fuv_tcp_close_reset(FKL_CPROC_ARGL) {
 }
 
 static int fuv_socketpair(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 4);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 4);
     FklVMvalue *socktype_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *protocol_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *non_block_flags0_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -3354,7 +3329,7 @@ static int fuv_socketpair(FKL_CPROC_ARGL) {
 static int fuv_tty_p(FKL_CPROC_ARGL) { PREDICATE(isFuvTTY(val)) }
 
 static int fuv_make_tty(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -3377,7 +3352,7 @@ static int fuv_make_tty(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tty_mode_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *tty_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(tty_obj, isFuvTTY, exe);
@@ -3402,7 +3377,7 @@ static int fuv_tty_mode_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tty_winsize(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *tty_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(tty_obj, isFuvTTY, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tty_obj, exe, ctx->pd);
@@ -3418,7 +3393,7 @@ static int fuv_tty_winsize(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tty_vterm_state(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_tty_vtermstate_t state;
     int r = uv_tty_get_vterm_state(&state);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -3437,7 +3412,7 @@ static int fuv_tty_vterm_state(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tty_vterm_state_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *state_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(state_obj, FKL_IS_SYM, exe);
 
@@ -3457,7 +3432,7 @@ static int fuv_tty_vterm_state_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_tty_mode_reset1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     int r = uv_tty_reset_mode();
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -3467,10 +3442,9 @@ static int fuv_tty_mode_reset1(FKL_CPROC_ARGL) {
 static int fuv_udp_p(FKL_CPROC_ARGL) { PREDICATE(isFuvUdp(val)) }
 
 static int fuv_make_udp(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue **const arg_end = arg_base + arg_num;
+    FklVMvalue **const arg_end = arg_base + argc;
     FklVMvalue *loop_obj = arg_base[0];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     unsigned int flags = AF_UNSPEC;
@@ -3514,7 +3488,7 @@ static int fuv_make_udp(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_recv_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -3526,7 +3500,7 @@ static int fuv_udp_recv_stop(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_open(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *sock_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
@@ -3541,7 +3515,7 @@ static int fuv_udp_open(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_multicast_loop_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *on_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
@@ -3554,7 +3528,7 @@ static int fuv_udp_multicast_loop_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_multicast_ttl_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *ttl_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
@@ -3568,11 +3542,10 @@ static int fuv_udp_multicast_ttl_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_multicast_interface_set1(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 1, 2);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *interface_addr_obj =
-        arg_num > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+        argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
 
@@ -3591,7 +3564,7 @@ static int fuv_udp_multicast_interface_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_broadcast_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *on_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
@@ -3604,7 +3577,7 @@ static int fuv_udp_broadcast_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_ttl_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *ttl_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
@@ -3643,7 +3616,7 @@ setup_udp_addr(FklVM *exe, struct sockaddr_storage *addr, FklVMvalue *host_obj,
 }
 
 static int fuv_udp_connect(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 3);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *host_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *port_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -3698,8 +3671,7 @@ static inline FklBuiltinErrorType get_udp_flags(FklVMvalue **parg,
 }
 
 static int fuv_udp_bind(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *udp_obj = arg_base[0];
     FklVMvalue *host_obj = arg_base[1];
@@ -3717,9 +3689,8 @@ static int fuv_udp_bind(FKL_CPROC_ARGL) {
     unsigned int flags = 0;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     FklBuiltinErrorType err_type =
-        arg_num > 3
-            ? get_udp_flags(&arg_base[3], arg_base + arg_num, &flags, fpd)
-            : 0;
+        argc > 3 ? get_udp_flags(&arg_base[3], arg_base + argc, &flags, fpd)
+                 : 0;
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     int r = uv_udp_bind((uv_udp_t *)GET_HANDLE(*udp_ud),
@@ -3730,7 +3701,7 @@ static int fuv_udp_bind(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_using_recvmmsg_p(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -3741,7 +3712,7 @@ static int fuv_udp_using_recvmmsg_p(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_send_queue_size(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -3752,7 +3723,7 @@ static int fuv_udp_send_queue_size(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_send_queue_count(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -3763,7 +3734,7 @@ static int fuv_udp_send_queue_count(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_peername(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -3777,7 +3748,7 @@ static int fuv_udp_peername(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_sockname(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -3804,7 +3775,7 @@ static inline int sid_to_membership(FklSid_t id, FuvPublicData *fpd,
 }
 
 static int fuv_udp_membership_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 4);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 4);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *multicast_addr_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *interface_addr_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -3832,7 +3803,7 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 5);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 5);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *multicast_addr_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *interface_addr_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -3899,15 +3870,14 @@ static void fuv_udp_send_cb(uv_udp_send_t *req, int status) {
 }
 
 static int fuv_udp_send(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 5, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 5, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *udp_obj = arg_base[0];
     FklVMvalue *host_obj = arg_base[1];
     FklVMvalue *port_obj = arg_base[2];
     FklVMvalue *cb_obj = arg_base[3];
     FklVMvalue **rest_arg = &arg_base[4];
-    uint32_t const buf_count = arg_num - 4;
+    uint32_t const buf_count = argc - 4;
 
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     if (cb_obj == FKL_VM_NIL)
@@ -3930,7 +3900,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
     uv_udp_send_t *udp_send = NULL;
     udp_send = createFuvUdpSend(exe, &udp_send_obj, ctx->proc,
                                 handle->data.loop, cb_obj, buf_count);
-    err_type = setup_udp_send_data(rest_arg, arg_base + arg_num, buf_count,
+    err_type = setup_udp_send_data(rest_arg, arg_base + argc, buf_count,
                                    udp_send_obj, &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
@@ -4065,7 +4035,7 @@ static void fuv_udp_recv_cb(uv_udp_t *handle, ssize_t nread,
 }
 
 static int fuv_udp_recv_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *cb_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
@@ -4081,14 +4051,13 @@ static int fuv_udp_recv_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_try_send(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *udp_obj = arg_base[0];
     FklVMvalue *host_obj = arg_base[1];
     FklVMvalue *port_obj = arg_base[2];
     FklVMvalue **rest_arg = &arg_base[3];
-    uint32_t const buf_count = arg_num - 3;
+    uint32_t const buf_count = argc - 3;
 
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
@@ -4102,7 +4071,7 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL) {
 
     uv_buf_t *bufs = NULL;
     err_type =
-        setup_try_write_data(rest_arg, arg_base + arg_num, buf_count, &bufs);
+        setup_try_write_data(rest_arg, arg_base + argc, buf_count, &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -4117,7 +4086,7 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL) {
 static int fuv_fs_event_p(FKL_CPROC_ARGL) { PREDICATE(isFuvFsEvent(val)) }
 
 static int fuv_make_fs_event(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -4209,14 +4178,13 @@ static void fuv_fs_event_cb(uv_fs_event_t *handle, const char *path, int events,
 
 static int fuv_fs_event_start(FKL_CPROC_ARGL) {
     unsigned int flags = 0;
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fs_event_obj = arg_base[0];
     FklVMvalue *path_obj = arg_base[1];
     FklVMvalue *cb_obj = arg_base[2];
     FklBuiltinErrorType err_type =
-        get_fs_event_flags(&arg_base[3], arg_base + arg_num, &flags, ctx->pd);
+        get_fs_event_flags(&arg_base[3], arg_base + argc, &flags, ctx->pd);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_event, fs_event_obj, exe, ctx->pd);
@@ -4232,7 +4200,7 @@ static int fuv_fs_event_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_event_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fs_event_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fs_event_obj, isFuvFsEvent, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_event, fs_event_obj, exe, ctx->pd);
@@ -4244,7 +4212,7 @@ static int fuv_fs_event_stop(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_event_path(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fs_event_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fs_event_obj, isFuvFsEvent, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, fs_event_obj, exe, ctx->pd);
@@ -4260,7 +4228,7 @@ static int fuv_fs_event_path(FKL_CPROC_ARGL) {
 static int fuv_fs_poll_p(FKL_CPROC_ARGL) { PREDICATE(isFuvFsPoll(val)) }
 
 static int fuv_make_fs_poll(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
@@ -4438,7 +4406,7 @@ static void fuv_fs_poll_cb(uv_fs_poll_t *handle, int status,
 }
 
 static int fuv_fs_poll_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 4);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 4);
     FklVMvalue *fs_poll_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *interval_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
@@ -4463,7 +4431,7 @@ static int fuv_fs_poll_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_poll_stop(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fs_poll_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fs_poll_obj, isFuvFsPoll, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_poll, fs_poll_obj, exe, ctx->pd);
@@ -4475,7 +4443,7 @@ static int fuv_fs_poll_stop(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_poll_path(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fs_poll_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fs_poll_obj, isFuvFsPoll, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, fs_poll_obj, exe, ctx->pd);
@@ -4961,7 +4929,7 @@ static inline const char *fs_type_name(uv_fs_type type_id) {
 }
 
 static int fuv_fs_type(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *req_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(req_obj, isFuvFsReq, exe);
     FKL_DECL_VM_UD_DATA(req_ud, FuvReqUd, req_obj);
@@ -4981,14 +4949,10 @@ static int fuv_fs_type(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_close(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, fd_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     if (cb_obj)
@@ -5102,16 +5066,12 @@ static inline int str_to_fs_flags(const char *str) {
 }
 
 static int fuv_fs_open(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *flags_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, path_obj, flags_obj, mode_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5167,16 +5127,12 @@ static inline FklBuiltinErrorType setup_fs_write_buf(FklVMvalue **parg,
 }
 
 static int fuv_fs_read(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *len_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *offset_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, fd_obj, len_obj, offset_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    //    FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(len_obj, fklIsVMint, exe);
@@ -5204,14 +5160,10 @@ static int fuv_fs_read(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_unlink(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5230,14 +5182,12 @@ static int fuv_fs_unlink(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_write(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, -1);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *fd_obj = arg_base[1];
     FklVMvalue *offset_obj = arg_base[2];
     FklVMvalue *cb_obj = arg_base[3];
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, fd_obj, offset_obj, cb_obj, exe);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
 
@@ -5258,15 +5208,13 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     FklBuiltinErrorType err_type =
-        arg_num > 4 ? setup_fs_write_buf(&arg_base[4], arg_base + arg_num, &buf)
-                    : 0;
+        argc > 4 ? setup_fs_write_buf(&arg_base[4], arg_base + argc, &buf) : 0;
 
     if (err_type) {
         fklUninitStringBuffer(&buf);
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     }
 
-    // fklResBp(exe);
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
         createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, buf.index);
@@ -5279,15 +5227,11 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_mkdir(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, mode_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    //    FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5314,14 +5258,10 @@ static int fuv_fs_mkdir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_mkdtemp(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *tpl_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, tpl_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(tpl_obj, FKL_IS_STR, exe);
 
@@ -5340,14 +5280,10 @@ static int fuv_fs_mkdtemp(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_mkstemp(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *tpl_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, tpl_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(tpl_obj, FKL_IS_STR, exe);
 
@@ -5366,14 +5302,10 @@ static int fuv_fs_mkstemp(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_rmdir(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5392,25 +5324,20 @@ static int fuv_fs_rmdir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_opendir(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FklVMvalue *nentries_obj = FKL_VM_TRUE;
     if (cb_obj) {
         if (fklIsCallable(cb_obj)) {
-            if (arg_num > 3)
+            if (argc > 3)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
         } else {
             nentries_obj = cb_obj;
-            cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-            // FKL_VM_POP_ARG(exe);
+            cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
         }
     }
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(nentries_obj, fklIsVMnumber, exe);
@@ -5435,14 +5362,10 @@ static int fuv_fs_opendir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_closedir(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *dir_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, dir_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(dir_obj, isFuvDir, exe);
 
@@ -5471,14 +5394,10 @@ static int fuv_fs_closedir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_readdir(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *dir_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, dir_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(dir_obj, isFuvDir, exe);
 
@@ -5530,14 +5449,10 @@ static void fuv_scandir_cb(uv_fs_t *req) {
 }
 
 static int fuv_fs_scandir(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5566,10 +5481,8 @@ static int fuv_fs_scandir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_scandir_next(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *req_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    // FKL_DECL_AND_CHECK_ARG(req_obj, exe);
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(req_obj, isFuvFsReq, exe);
 
     FKL_DECL_VM_UD_DATA(req_ud, FuvReqUd, req_obj);
@@ -5592,14 +5505,10 @@ static int fuv_fs_scandir_next(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_stat(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5618,14 +5527,10 @@ static int fuv_fs_stat(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_fstat(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, fd_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
 
@@ -5644,14 +5549,10 @@ static int fuv_fs_fstat(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_lstat(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5670,14 +5571,10 @@ static int fuv_fs_lstat(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_statfs(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5696,15 +5593,11 @@ static int fuv_fs_statfs(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_rename(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *new_path_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, new_path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(new_path_obj, FKL_IS_STR, exe);
@@ -5725,14 +5618,10 @@ static int fuv_fs_rename(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_fsync(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, fd_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     if (cb_obj)
@@ -5749,14 +5638,10 @@ static int fuv_fs_fsync(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_fdatasync(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, fd_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     if (cb_obj)
@@ -5773,15 +5658,11 @@ static int fuv_fs_fdatasync(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_ftruncate(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *offset_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, fd_obj, offset_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(offset_obj, fklIsVMint, exe);
@@ -5820,27 +5701,22 @@ list_to_copyfile_flags(FklVMvalue *cur_pair, int *flags, FklVMvalue *pd) {
 }
 
 static int fuv_fs_copyfile(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *new_path_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, new_path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FklVMvalue *flags_obj = FKL_VM_NIL;
     if (cb_obj) {
         if (fklIsCallable(cb_obj)) {
-            if (arg_num > 4)
+            if (argc > 4)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
         } else {
             flags_obj = cb_obj;
-            cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-            // FKL_VM_POP_ARG(exe);
+            cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
         }
     }
 
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(new_path_obj, FKL_IS_STR, exe);
@@ -5868,19 +5744,13 @@ static int fuv_fs_copyfile(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_sendfile(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 5, 6);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 5, 6);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *out_fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *in_fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *offset_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
     FklVMvalue *len_obj = FKL_CPROC_GET_ARG(exe, ctx, 4);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, out_fd_obj, in_fd_obj, offset_obj,
-    // exe); FklVMvalue *len_obj = FKL_VM_POP_ARG(exe); if (!len_obj)
-    //     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-    FklVMvalue *cb_obj = arg_num > 5 ? FKL_CPROC_GET_ARG(exe, ctx, 5) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 5 ? FKL_CPROC_GET_ARG(exe, ctx, 5) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(out_fd_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(in_fd_obj, FKL_IS_FIX, exe);
@@ -5930,15 +5800,11 @@ static inline int str_to_amode(FklString *str) {
 }
 
 static int fuv_fs_access(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, mode_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -5966,15 +5832,11 @@ static int fuv_fs_access(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_chmod(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, mode_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(mode_obj, FKL_IS_FIX, exe);
@@ -5992,15 +5854,11 @@ static int fuv_fs_chmod(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_fchmod(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, fd_obj, mode_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(mode_obj, FKL_IS_FIX, exe);
@@ -6018,16 +5876,12 @@ static int fuv_fs_fchmod(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_utime(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *atime_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *mtime_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, path_obj, atime_obj, mtime_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(atime_obj, FKL_IS_F64, exe);
@@ -6049,16 +5903,12 @@ static int fuv_fs_utime(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_futime(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *atime_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *mtime_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, fd_obj, atime_obj, mtime_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(atime_obj, FKL_IS_F64, exe);
@@ -6079,16 +5929,12 @@ static int fuv_fs_futime(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_lutime(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *atime_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *mtime_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, path_obj, atime_obj, mtime_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(atime_obj, FKL_IS_F64, exe);
@@ -6110,15 +5956,11 @@ static int fuv_fs_lutime(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_link(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 4);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 4);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *new_path_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, new_path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(new_path_obj, FKL_IS_STR, exe);
@@ -6158,27 +6000,22 @@ list_to_symlink_flags(FklVMvalue *cur_pair, int *flags, FklVMvalue *pd) {
 }
 
 static int fuv_fs_symlink(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 3, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *new_path_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    // FKL_DECL_AND_CHECK_ARG3(loop_obj, path_obj, new_path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
-    // FKL_VM_POP_ARG(exe);
+    FklVMvalue *cb_obj = argc > 3 ? FKL_CPROC_GET_ARG(exe, ctx, 3) : NULL;
     FklVMvalue *flags_obj = FKL_VM_NIL;
     if (cb_obj) {
         if (fklIsCallable(cb_obj)) {
-            if (arg_num > 4)
+            if (argc > 4)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
         } else {
             flags_obj = cb_obj;
-            cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
+            cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
         }
-        // FKL_VM_POP_ARG(exe);
     }
 
-    // FKL_CHECK_REST_ARG(exe);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(new_path_obj, FKL_IS_STR, exe);
@@ -6206,14 +6043,10 @@ static int fuv_fs_symlink(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_readlink(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -6232,14 +6065,10 @@ static int fuv_fs_readlink(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_realpath(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    // FKL_DECL_AND_CHECK_ARG2(loop_obj, path_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
 
@@ -6258,16 +6087,12 @@ static int fuv_fs_realpath(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_chown(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *uid_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *gid_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, path_obj, uid_obj, gid_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(uid_obj, FKL_IS_FIX, exe);
@@ -6289,16 +6114,12 @@ static int fuv_fs_chown(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_fchown(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *uid_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *gid_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, fd_obj, uid_obj, gid_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(uid_obj, FKL_IS_FIX, exe);
@@ -6319,16 +6140,12 @@ static int fuv_fs_fchown(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_lchown(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 4, 5);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, 5);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *uid_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FklVMvalue *gid_obj = FKL_CPROC_GET_ARG(exe, ctx, 3);
-    // FKL_DECL_AND_CHECK_ARG4(loop_obj, path_obj, uid_obj, gid_obj, exe);
-    FklVMvalue *cb_obj = arg_num > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
-    // FKL_VM_POP_ARG(exe);
-    // FKL_CHECK_REST_ARG(exe);
+    FklVMvalue *cb_obj = argc > 4 ? FKL_CPROC_GET_ARG(exe, ctx, 4) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(uid_obj, FKL_IS_FIX, exe);
@@ -6350,7 +6167,7 @@ static int fuv_fs_lchown(FKL_CPROC_ARGL) {
 }
 
 static int fuv_guess_handle(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fd_obj, FKL_IS_FIX, exe);
     uv_file fd = FKL_GET_FIX(fd_obj);
@@ -6368,7 +6185,7 @@ static int fuv_guess_handle(FKL_CPROC_ARGL) {
 #define MAX_TITLE_LENGTH (8192)
 
 static int fuv_get_process_title(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     char title[MAX_TITLE_LENGTH];
     int r = uv_get_process_title(title, MAX_TITLE_LENGTH);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -6377,7 +6194,7 @@ static int fuv_get_process_title(FKL_CPROC_ARGL) {
 }
 
 static int fuv_set_process_title(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *title_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(title_obj, FKL_IS_STR, exe);
     int r = uv_set_process_title(FKL_VM_STR(title_obj)->str);
@@ -6387,7 +6204,7 @@ static int fuv_set_process_title(FKL_CPROC_ARGL) {
 }
 
 static int fuv_resident_set_memory(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     size_t rss;
     int r = uv_resident_set_memory(&rss);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -6396,7 +6213,7 @@ static int fuv_resident_set_memory(FKL_CPROC_ARGL) {
 }
 
 static int fuv_uptime(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     double uptime;
     int r = uv_uptime(&uptime);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -6475,7 +6292,7 @@ static inline FklVMvalue *rusage_to_vmtable(FklVM *exe, uv_rusage_t *r,
 }
 
 static int fuv_getrusage(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_rusage_t buf;
     int ret = uv_getrusage(&buf);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
@@ -6484,7 +6301,7 @@ static int fuv_getrusage(FKL_CPROC_ARGL) {
 }
 
 static int fuv_getrusage_thread(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_rusage_t buf;
     int ret = uv_getrusage_thread(&buf);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
@@ -6493,21 +6310,21 @@ static int fuv_getrusage_thread(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_getpid(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_pid_t pid = uv_os_getpid();
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(pid));
     return 0;
 }
 
 static int fuv_os_getppid(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_pid_t ppid = uv_os_getppid();
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(ppid));
     return 0;
 }
 
 static int fuv_available_parallelism(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     unsigned int rc = uv_available_parallelism();
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(rc));
     return 0;
@@ -6557,7 +6374,7 @@ static inline FklVMvalue *cpu_infos_to_vmvec(FklVM *exe, uv_cpu_info_t *infos,
 }
 
 static int fuv_cpu_info(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     int count = 0;
     uv_cpu_info_t *infos = NULL;
     int ret = uv_cpu_info(&infos, &count);
@@ -6568,7 +6385,7 @@ static int fuv_cpu_info(FKL_CPROC_ARGL) {
 }
 
 static int fuv_cpumask_size(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     int r = uv_cpumask_size();
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(r));
@@ -6623,7 +6440,7 @@ interface_addresses_to_vec(FklVM *exe, uv_interface_address_t *addresses,
 }
 
 static int fuv_interface_address(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_interface_address_t *addresses;
     int count = 0;
     int r = uv_interface_addresses(&addresses, &count);
@@ -6635,7 +6452,7 @@ static int fuv_interface_address(FKL_CPROC_ARGL) {
 }
 
 static int fuv_loadavg(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     double r[3];
     uv_loadavg(r);
     FKL_CPROC_RETURN(exe, ctx,
@@ -6646,7 +6463,7 @@ static int fuv_loadavg(FKL_CPROC_ARGL) {
 }
 
 static int fuv_if_indextoname(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *idx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(idx_obj, FKL_IS_FIX, exe);
     int64_t idx = FKL_GET_FIX(idx_obj);
@@ -6661,7 +6478,7 @@ static int fuv_if_indextoname(FKL_CPROC_ARGL) {
 }
 
 static int fuv_if_indextoiid(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *idx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(idx_obj, FKL_IS_FIX, exe);
     int64_t idx = FKL_GET_FIX(idx_obj);
@@ -6676,7 +6493,7 @@ static int fuv_if_indextoiid(FKL_CPROC_ARGL) {
 }
 
 static int fuv_exepath(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     size_t size = 2 * FKL_PATH_MAX;
     char exe_path[2 * FKL_PATH_MAX];
     int r = uv_exepath(exe_path, &size);
@@ -6686,7 +6503,7 @@ static int fuv_exepath(FKL_CPROC_ARGL) {
 }
 
 static int fuv_cwd(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     size_t size = 2 * FKL_PATH_MAX;
     char exe_path[2 * FKL_PATH_MAX];
     int r = uv_cwd(exe_path, &size);
@@ -6696,7 +6513,7 @@ static int fuv_cwd(FKL_CPROC_ARGL) {
 }
 
 static int fuv_chdir(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *path_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(path_obj, FKL_IS_STR, exe);
     int r = uv_chdir(FKL_VM_STR(path_obj)->str);
@@ -6706,7 +6523,7 @@ static int fuv_chdir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_homedir(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     size_t size = 2 * FKL_PATH_MAX;
     char exe_path[2 * FKL_PATH_MAX];
     int r = uv_os_homedir(exe_path, &size);
@@ -6716,7 +6533,7 @@ static int fuv_os_homedir(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_tmpdir(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     size_t size = 2 * FKL_PATH_MAX;
     char exe_path[2 * FKL_PATH_MAX];
     int r = uv_os_tmpdir(exe_path, &size);
@@ -6752,7 +6569,7 @@ static inline FklVMvalue *passwd_to_vmtable(FklVM *exe, uv_passwd_t *passwd,
 }
 
 static int fuv_os_get_passwd(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_passwd_t passwd;
     int r = uv_os_get_passwd(&passwd);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -6762,35 +6579,35 @@ static int fuv_os_get_passwd(FKL_CPROC_ARGL) {
 }
 
 static int fuv_get_free_memory(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uint64_t mem = uv_get_free_memory();
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(mem, exe));
     return 0;
 }
 
 static int fuv_get_total_memory(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uint64_t mem = uv_get_total_memory();
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(mem, exe));
     return 0;
 }
 
 static int fuv_get_constrained_memory(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uint64_t mem = uv_get_constrained_memory();
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(mem, exe));
     return 0;
 }
 
 static int fuv_get_available_memory(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uint64_t mem = uv_get_available_memory();
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(mem, exe));
     return 0;
 }
 
 static int fuv_hrtime(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uint64_t t = uv_hrtime();
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(t, exe));
     return 0;
@@ -6824,7 +6641,7 @@ sid_to_clockid(FklVMvalue *obj, uv_clock_id *id, FuvPublicData *fpd) {
 }
 
 static int fuv_clock_gettime(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *clockid_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(clockid_obj, FKL_IS_SYM, exe);
     uv_timespec64_t ts;
@@ -6840,7 +6657,7 @@ static int fuv_clock_gettime(FKL_CPROC_ARGL) {
 }
 
 static int fuv_print_all_handles(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -6857,7 +6674,7 @@ static int fuv_print_all_handles(FKL_CPROC_ARGL) {
 }
 
 static int fuv_print_active_handles(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -6874,7 +6691,7 @@ static int fuv_print_active_handles(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_environ(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_env_item_t *items = NULL;
     int count = 0;
     int r = uv_os_environ(&items, &count);
@@ -6891,7 +6708,7 @@ static int fuv_os_environ(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_getenv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *env_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(env_obj, FKL_IS_STR, exe);
     FklStringBuffer buf;
@@ -6915,7 +6732,7 @@ static int fuv_os_getenv(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_setenv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *env_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *val_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(env_obj, FKL_IS_STR, exe);
@@ -6927,7 +6744,7 @@ static int fuv_os_setenv(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_unsetenv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *env_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(env_obj, FKL_IS_STR, exe);
     int r = uv_os_unsetenv(FKL_VM_STR(env_obj)->str);
@@ -6937,7 +6754,7 @@ static int fuv_os_unsetenv(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_gethostname(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     size_t size = UV_MAXHOSTNAMESIZE;
     char hostname[UV_MAXHOSTNAMESIZE];
     int r = uv_os_gethostname(hostname, &size);
@@ -6947,7 +6764,7 @@ static int fuv_os_gethostname(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_getpriority(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pid_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pid_obj, FKL_IS_FIX, exe);
     uv_pid_t pid = FKL_GET_FIX(pid_obj);
@@ -6959,7 +6776,7 @@ static int fuv_os_getpriority(FKL_CPROC_ARGL) {
 }
 
 static int fuv_os_setpriority(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 2);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *pid_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *priority_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pid_obj, FKL_IS_FIX, exe);
@@ -7027,7 +6844,7 @@ static inline FklVMvalue *utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf,
 }
 
 static int fuv_os_uname(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_utsname_t buf;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     int ret = uv_os_uname(&buf);
@@ -7037,7 +6854,7 @@ static int fuv_os_uname(FKL_CPROC_ARGL) {
 }
 
 static int fuv_gettimeofday(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 0);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     uv_timeval64_t tv;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     int ret = uv_gettimeofday(&tv);
@@ -7078,11 +6895,10 @@ static void fuv_random_cb(uv_random_t *req, int status, void *buf,
 }
 
 static int fuv_random(FKL_CPROC_ARGL) {
-    uint32_t const arg_num = FKL_CPROC_GET_ARG_NUM(exe, ctx);
-    FKL_CPROC_CHECK_ARG_NUM2(exe, arg_num, 2, 3);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, 3);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *len_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklVMvalue *cb_obj = arg_num > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
+    FklVMvalue *cb_obj = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(len_obj, fklIsVMint, exe);
 
@@ -7112,7 +6928,7 @@ static int fuv_random(FKL_CPROC_ARGL) {
 }
 
 static int fuv_sleep(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *msec_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(msec_obj, FKL_IS_FIX, exe);
     int64_t msec = FKL_GET_FIX(msec_obj);
@@ -7126,7 +6942,7 @@ static int fuv_sleep(FKL_CPROC_ARGL) {
 }
 
 static int fuv_metrics_idle_time(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
@@ -7154,7 +6970,7 @@ static inline FklVMvalue *metrics_to_vmtable(FklVM *exe, uv_metrics_t *metrics,
 }
 
 static int fuv_metrics_info(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM(exe, ctx, 1);
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);

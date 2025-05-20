@@ -70,11 +70,6 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev)
         fklDoAtomicFrame(cur, gc);
 
-    // uint32_t count = exe->ltp;
-    // FklVMvalue **loc = exe->locv;
-    // for (uint32_t i = 0; i < count; i++)
-    //     fklVMgcToGray(loc[i], gc);
-
     for (size_t i = 1; i <= exe->libNum; i++) {
         FklVMlib *lib = &exe->libs[i];
         fklVMgcToGray(lib->proc, gc);

@@ -42,7 +42,7 @@ typedef enum {
 struct FklVM;
 struct FklVMvalue;
 struct FklCprocFrameContext;
-#define FKL_CPROC_ARGL struct FklVM *exe, struct FklCprocFrameContext *ctx
+#define FKL_CPROC_ARGL struct FklVM *exe, struct FklCprocFrameContext *ctx,uint32_t argc
 #define FKL_MAX_INDIRECT_TAIL_CALL_COUNT (4)
 
 typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
@@ -225,9 +225,7 @@ typedef struct FklVMvarRefList {
 typedef struct {
     FklVMvalue **lref;
     FklVMvarRefList *lrefl;
-    // FklVMvalue **loc;
     FklVMvalue **ref;
-    // uint32_t base;
     uint32_t lcount;
     uint32_t rcount;
 } FklVMCompoundFrameVarRef;
@@ -272,7 +270,6 @@ typedef struct FklCprocFrameContext {
             };
         };
     } c[3];
-    // uint32_t rtp;
 } FklCprocFrameContext;
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE)                                 \
@@ -390,15 +387,11 @@ typedef struct FklVM {
 
     int16_t trapping;
     int16_t is_single_thread;
-    // uint32_t ltp;
-    // uint32_t llast;
-    // FklVMvalue **locv;
     uint32_t old_locv_count;
     FklVMlocvList old_locv_cache[FKL_VM_GC_LOCV_CACHE_NUM];
     FklVMlocvList *old_locv_list;
-    // op stack
 
-    // size_t size;
+    // op stack
     uint32_t last;
     uint32_t tp;
     uint32_t bp;
@@ -724,12 +717,8 @@ FklVM *fklCreateThreadVM(FklVMvalue *, uint32_t arg_num,
                          size_t libNum, FklVMlib *libs);
 
 void fklDestroyVMvalue(FklVMvalue *);
-// void fklInitVMstack(FklVM *);
-// void fklUninitVMstack(FklVM *);
-// void fklAllocMoreStack(FklVM *);
 void fklVMstackShrink(FklVM *);
 int fklCreateCreateThread(FklVM *);
-// FklVMframe *fklHasSameProc(FklVMvalue *proc, FklVMframe *);
 
 static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
     uint32_t l = (llast / FKL_VM_STACK_INC_NUM) - 1;
@@ -840,19 +829,13 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
     if (!P(V))                                                                 \
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, EXE)
 
-#warning DEPRECATED
-#define FKL_CHECK_REST_ARG(EXE)                                                \
-    fklDeprecatedFunc();                                                       \
-    if (fklResBp((EXE)))                                                       \
-    FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, EXE)
-
 #define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
 
-#define FKL_CPROC_CHECK_ARG_NUM(EXE, CTX, N)                                   \
-    if (FKL_CPROC_GET_ARG_NUM((EXE), (CTX)) > (N)) {                           \
+#define FKL_CPROC_CHECK_ARG_NUM(EXE, NUM, N)                                   \
+    if (NUM > (N)) {                           \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, EXE);                      \
     } else if ((FKL_TYPE_CAST(int64_t, (N))                                    \
-                - FKL_TYPE_CAST(int64_t, FKL_CPROC_GET_ARG_NUM((EXE), (CTX)))) \
+                - FKL_TYPE_CAST(int64_t, NUM)) \
                > 0) {                                                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, EXE);                       \
     }
@@ -898,9 +881,6 @@ void fklPrintBacktrace(FklVM *, FILE *fp);
 
 void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 
-// void fklShrinkLocv(FklVM *);
-// FklVMvalue **fklAllocSpaceForLocalVar(FklVM *, uint32_t);
-// FklVMvalue **fklAllocMoreSpaceForMainFrame(FklVM *, uint32_t);
 FklVMframe *fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *,
                                           FklVMframe *);
 
@@ -1120,17 +1100,11 @@ void fklAddToGC(FklVMvalue *, FklVM *);
 FklVMvalue *fklCreateTrueValue(void);
 FklVMvalue *fklCreateNilValue(void);
 
-#warning DEPRECATED
-#define FKL_VM_GET_ARG_NUM(S) (fklDeprecatedFunc(), ((S)->tp - (S)->bp - 1))
-
 #define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp - 1])
 
 #define FKL_VM_POP_TOP_VALUE(S) ((S)->base[--(S)->tp])
-
-#warning DEPRECATED
-#define FKL_VM_GET_VALUE(S, N) (fklDeprecatedFunc(), ((S)->base[(S)->tp - (N)]))
 
 #define FKL_VM_PUSH_VALUE(S, V) fklPushVMvalue((S), (V))
 
@@ -1167,13 +1141,12 @@ static inline void fklUpdateAllVarRef(FklVM *exe, FklVMframe *f) {
     for (; f; f = f->prev)
         if (f->type == FKL_FRAME_COMPOUND) {
             FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
-            FklVMvalue **loc = &FKL_VM_GET_ARG(exe, f, 0); // locv[lr->base];
+            FklVMvalue **loc = &FKL_VM_GET_ARG(exe, f, 0);
             for (FklVMvarRefList *ll = lr->lrefl; ll; ll = ll->next) {
                 FklVMvalueVarRef *ref = FKL_VM_VAR_REF(ll->ref);
                 if (ref->ref != &ref->v)
                     ref->ref = &loc[ref->idx];
             }
-            // lr->loc = loc;
         }
 }
 
@@ -1182,47 +1155,8 @@ void fklVMstackReserve(FklVM *exe, uint32_t s);
 static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (s->tp >= s->last)
         fklVMstackReserve(s, s->tp + 1);
-    // fklAllocMoreStack(s);
     s->base[s->tp++] = v;
 }
-
-#warning DEPRECATED
-#define FKL_VM_SET_TP_AND_PUSH_VALUE(S, T, V)                                  \
-    (fklDeprecatedFunc(), (((S)->tp = (T) + 1), ((S)->base[(T)] = (V))))
-
-#warning DEPRECATED
-#define FKL_DECL_AND_CHECK_ARG(a, exe)                                         \
-    fklDeprecatedFunc();                                                       \
-    FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
-    if (!a)                                                                    \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-
-#warning DEPRECATED
-#define FKL_DECL_AND_CHECK_ARG2(a, b, exe)                                     \
-    fklDeprecatedFunc();                                                       \
-    FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
-    FklVMvalue *b = FKL_VM_POP_ARG(exe);                                       \
-    if (!b || !a)                                                              \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-
-#warning DEPRECATED
-#define FKL_DECL_AND_CHECK_ARG3(a, b, c, exe)                                  \
-    fklDeprecatedFunc();                                                       \
-    FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
-    FklVMvalue *b = FKL_VM_POP_ARG(exe);                                       \
-    FklVMvalue *c = FKL_VM_POP_ARG(exe);                                       \
-    if (!c || !b || !a)                                                        \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-
-#warning DEPRECATED
-#define FKL_DECL_AND_CHECK_ARG4(a, b, c, d, exe)                               \
-    fklDeprecatedFunc();                                                       \
-    FklVMvalue *a = FKL_VM_POP_ARG(exe);                                       \
-    FklVMvalue *b = FKL_VM_POP_ARG(exe);                                       \
-    FklVMvalue *c = FKL_VM_POP_ARG(exe);                                       \
-    FklVMvalue *d = FKL_VM_POP_ARG(exe);                                       \
-    if (!d || !c || !b || !a)                                                  \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
 
 static inline FklVMvalue *fklGetTopValue(FklVM *exe) {
     return exe->base[exe->tp - 1];
@@ -1327,8 +1261,6 @@ FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
                                      FklVMframe *prev);
 FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t,
                                         FklVMframe *prev);
-
-// void fklSwapCompoundFrame(FklVMframe *, FklVMframe *);
 
 static inline FklFuncPrototype *
 fklGetCompoundFrameProcPrototype(const FklVMframe *f, FklVM *exe) {
@@ -1561,19 +1493,6 @@ static inline void fklVMframeSetBp(FklVM *exe, FklVMframe *frame,
 static inline void fklSetBp(FklVM *s) {
     FKL_VM_PUSH_VALUE(s, FKL_MAKE_VM_FIX(s->bp));
     s->bp = s->tp;
-}
-
-// to be delete
-#warning DEPRECATED
-#define FKL_VM_POP_ARG(S)                                                      \
-    (fklDeprecatedFunc(), (((S)->tp > (S)->bp) ? (S)->base[--(S)->tp] : NULL))
-
-#warning DEPRECATED
-FKL_DEPRECATED static inline int fklResBp(FklVM *exe) {
-    if (exe->tp > exe->bp)
-        return 1;
-    exe->bp = FKL_GET_FIX(exe->base[--exe->tp]);
-    return 0;
 }
 
 static inline void fklAddCompoundFrameCp(FklVMframe *f, int64_t a) {

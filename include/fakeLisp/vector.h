@@ -143,6 +143,39 @@ METHOD(InsertFront2)(NAME *r, FKL_VECTOR_ELM_TYPE data) {
     return r->base;
 }
 
+static inline FKL_VECTOR_ELM_TYPE *
+METHOD(Insert)(NAME *r, unsigned long idx, FKL_VECTOR_ELM_TYPE const *data) {
+    if (idx == r->size)
+        return METHOD(PushBack)(r, data);
+    else if (idx == 0)
+        return METHOD(InsertFront)(r, data);
+    else {
+        METHOD(Reserve)(r, r->size + 1);
+        memmove(r->base + idx + 1, r->base + idx,
+                r->size * sizeof(FKL_VECTOR_ELM_TYPE));
+        if (data)
+            r->base[idx] = *data;
+        ++r->size;
+        return r->base;
+    }
+}
+
+static inline FKL_VECTOR_ELM_TYPE *METHOD(Insert2)(NAME *r, unsigned long idx,
+                                                   FKL_VECTOR_ELM_TYPE data) {
+    if (idx == r->size)
+        return METHOD(PushBack2)(r, data);
+    else if (idx == 0)
+        return METHOD(InsertFront2)(r, data);
+    else {
+        METHOD(Reserve)(r, r->size + 1);
+        memmove(r->base + idx + 1, r->base + idx,
+                r->size * sizeof(FKL_VECTOR_ELM_TYPE));
+        r->base[idx] = data;
+        ++r->size;
+        return r->base;
+    }
+}
+
 static inline FKL_VECTOR_ELM_TYPE *METHOD(PopBack)(NAME *r) {
     return r->size ? &r->base[--r->size] : NULL;
 }

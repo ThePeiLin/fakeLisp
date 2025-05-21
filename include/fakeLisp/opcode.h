@@ -29,9 +29,10 @@ extern "C" {
 #define FKL_SUBOP_PAIR_CAR        (0)
 #define FKL_SUBOP_PAIR_CDR        (1)
 #define FKL_SUBOP_PAIR_NTH        (2)
-#define FKL_SUBOP_PAIR_CONS       (3)
 #define FKL_SUBOP_PAIR_CAR_SET    (4)
 #define FKL_SUBOP_PAIR_CDR_SET    (5)
+#define FKL_SUBOP_PAIR_APPEND     (6)
+#define FKL_SUBOP_PAIR_UNPACK     (7)
 
 #define FKL_SUBOP_DROP_1          (0)
 #define FKL_SUBOP_DROP_ALL        (1)
@@ -45,19 +46,38 @@ extern "C" {
     X(FKL_OP_PUSH_I8,           "push-i8",           FKL_OP_MODE_IsA     )\
     X(FKL_OP_PUSH_I16,          "push-i16",          FKL_OP_MODE_IsB     )\
     X(FKL_OP_PUSH_I24,          "push-i24",          FKL_OP_MODE_IsC     )\
+    X(FKL_OP_PUSH_CHAR,         "push-char",         FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_SYM,          "push-sym",          FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_SYM_C,        "push-sym-c",        FKL_OP_MODE_IuC     )\
+    X(FKL_OP_PUSH_SYM_X,        "push-sym-x",        FKL_OP_MODE_IuBB    )\
     X(FKL_OP_PUSH_I64F,         "push-i64f",         FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_I64F_C,       "push-i64f-c",       FKL_OP_MODE_IuC     )\
     X(FKL_OP_PUSH_I64F_X,       "push-i64f-x",       FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_CHAR,         "push-char",         FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_F64,          "push-f64",          FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_F64_C,        "push-f64-c",        FKL_OP_MODE_IuC     )\
     X(FKL_OP_PUSH_F64_X,        "push-f64-x",        FKL_OP_MODE_IuBB    )\
     X(FKL_OP_PUSH_STR,          "push-str",          FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_STR_C,        "push-str-c",        FKL_OP_MODE_IuC     )\
     X(FKL_OP_PUSH_STR_X,        "push-str-x",        FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_SYM,          "push-sym",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_SYM_C,        "push-sym-c",        FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_SYM_X,        "push-sym-x",        FKL_OP_MODE_IuBB    )\
+    X(FKL_OP_PUSH_BVEC,         "push-bvec",         FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_BVEC_C,       "push-bvec-c",       FKL_OP_MODE_IuC     )\
+    X(FKL_OP_PUSH_BVEC_X,       "push-bvec-x",       FKL_OP_MODE_IuBB    )\
+    X(FKL_OP_PUSH_I64B,         "push-i64b",         FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_I64B_C,       "push-i64b-c",       FKL_OP_MODE_IuC     )\
+    X(FKL_OP_PUSH_I64B_X,       "push-i64b-x",       FKL_OP_MODE_IuBB    )\
+    X(FKL_OP_PUSH_BI,           "push-bi",           FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_BI_C,         "push-bi-c",         FKL_OP_MODE_IuC     )\
+    X(FKL_OP_PUSH_BI_X,         "push-bi-x",         FKL_OP_MODE_IuBB    )\
+    X(FKL_OP_PUSH_LIST_0,       "push-list-0",       FKL_OP_MODE_I       )\
+    X(FKL_OP_PUSH_LIST,         "push-list",         FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_VEC_0,        "push-vec-0",        FKL_OP_MODE_I       )\
+    X(FKL_OP_PUSH_VEC,          "push-vec",          FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_HASHEQ_0,     "push-hasheq-0",     FKL_OP_MODE_I       )\
+    X(FKL_OP_PUSH_HASHEQV_0,    "push-hasheqv-0",    FKL_OP_MODE_I       )\
+    X(FKL_OP_PUSH_HASHEQUAL_0,  "push-hashequal-0",  FKL_OP_MODE_I       )\
+    X(FKL_OP_PUSH_HASHEQ,       "push-hasheq",       FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_HASHEQV,      "push-hasheqv",      FKL_OP_MODE_IuB     )\
+    X(FKL_OP_PUSH_HASHEQUAL,    "push-hashequal",    FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_PROC,         "push-proc",         FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_PUSH_PROC_X,       "push-proc-x",       FKL_OP_MODE_IuCuC   )\
     X(FKL_OP_PUSH_PROC_XX,      "push-proc-xx",      FKL_OP_MODE_IuCAuBB )\
@@ -83,42 +103,9 @@ extern "C" {
     X(FKL_OP_JMP_C,             "jmp-c",             FKL_OP_MODE_IsC     )\
     X(FKL_OP_JMP_X,             "jmp-x",             FKL_OP_MODE_IsBB    )\
     X(FKL_OP_JMP_XX,            "jmp-xx",            FKL_OP_MODE_IsCCB   )\
-    X(FKL_OP_LIST_APPEND,       "list-append",       FKL_OP_MODE_I       )\
-    X(FKL_OP_PUSH_VEC,          "push-vec",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_VEC_C,        "push-vec-c",        FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_VEC_X,        "push-vec-x",        FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_VEC_XX,       "push-vec-xx",       FKL_OP_MODE_IuCCB   )\
-    X(FKL_OP_PUSH_BI,           "push-bi",           FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_BI_C,         "push-bi-c",         FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_BI_X,         "push-bi-x",         FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_BVEC,         "push-bvec",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_BVEC_C,       "push-bvec-c",       FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_BVEC_X,       "push-bvec-x",       FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_HASHEQ,       "push-hasheq",       FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_HASHEQ_C,     "push-hasheq-c",     FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_HASHEQ_X,     "push-hasheq-x",     FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_HASHEQ_XX,    "push-hasheq-xx",    FKL_OP_MODE_IuCCB   )\
-    X(FKL_OP_PUSH_HASHEQV,      "push-hasheqv",      FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_HASHEQV_C,    "push-hasheqv-c",    FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_HASHEQV_X,    "push-hasheqv-x",    FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_HASHEQV_XX,   "push-hasheqv-xx",   FKL_OP_MODE_IuCCB   )\
-    X(FKL_OP_PUSH_HASHEQUAL,    "push-hashequal",    FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_HASHEQUAL_C,  "push-hashequal-c",  FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_HASHEQUAL_X,  "push-hashequal-x",  FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_HASHEQUAL_XX, "push-hashequal-xx", FKL_OP_MODE_IuCCB   )\
-    X(FKL_OP_PUSH_LIST_0,       "push-list-0",       FKL_OP_MODE_I       )\
-    X(FKL_OP_PUSH_LIST,         "push-list",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_LIST_C,       "push-list-c",       FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_LIST_X,       "push-list-x",       FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_LIST_XX,      "push-list-xx",      FKL_OP_MODE_IuCCB   )\
-    X(FKL_OP_PUSH_VEC_0,        "push-vec-0",        FKL_OP_MODE_I       )\
-    X(FKL_OP_LIST_PUSH,         "list-push",         FKL_OP_MODE_I       )\
     X(FKL_OP_IMPORT,            "import",            FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_IMPORT_X,          "import-x",          FKL_OP_MODE_IuCuC   )\
     X(FKL_OP_IMPORT_XX,         "import-xx",         FKL_OP_MODE_IuCAuBB )\
-    X(FKL_OP_PUSH_I64B,         "push-i64b",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_I64B_C,       "push-i64b-c",       FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_I64B_X,       "push-i64b-x",       FKL_OP_MODE_IuBB    )\
     X(FKL_OP_GET_LOC,           "get-loc",           FKL_OP_MODE_IuB     )\
     X(FKL_OP_GET_LOC_C,         "get-loc-c",         FKL_OP_MODE_IuC     )\
     X(FKL_OP_GET_LOC_X,         "get-loc-x",         FKL_OP_MODE_IuBB    )\
@@ -195,7 +182,7 @@ typedef enum {
 
 #define FKL_OPCODE_NUM (FKL_OP_EXTRA_ARG + 1)
 
-#define FKL_MAX_OPCODE_NAME_LEN (sizeof("push-hashequal-xx"))
+#define FKL_MAX_OPCODE_NAME_LEN (sizeof("push-hashequal-0"))
 
 // Op(8)  |  A(8)  |  B(16)
 // Op(8)  |      C(24)

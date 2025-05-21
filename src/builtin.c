@@ -4470,8 +4470,7 @@ static inline FklByteCodelnt *inl_2_arg_func(FklOpcode opc,
 }
 
 static FklByteCodelnt *inlfunc_cons(INL_FUNC_ARGS) {
-    FklInstruction ins = {.op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_CONS};
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    return inl_2_arg_func(FKL_OP_PUSH_PAIR, bcs, fid, line, scope);
 }
 
 static FklByteCodelnt *inlfunc_eq(INL_FUNC_ARGS) {

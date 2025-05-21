@@ -7,6 +7,7 @@
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/vm.h>
 
+#include <stdint.h>
 #include <string.h>
 #ifdef _WIN32
 #include <direct.h>
@@ -545,39 +546,6 @@ static inline FklByteCode *append_push_f64_ins_to_bc(InsAppendMode m,
                                                      FklCodegenInfo *info) {
     return set_and_append_ins_with_unsigned_imm_to_bc(
         m, bc, FKL_OP_PUSH_F64, fklAddF64Const(info->runtime_kt, k));
-}
-
-static inline FklByteCode *
-append_push_list_ins_to_bc(InsAppendMode m, FklByteCode *bc, uint64_t len) {
-    return set_and_append_ins_with_unsigned_imm_to_bc(m, bc, FKL_OP_PUSH_LIST,
-                                                      len);
-}
-
-static inline FklByteCode *
-append_push_vec_ins_to_bc(InsAppendMode m, FklByteCode *bc, uint64_t len) {
-    return set_and_append_ins_with_unsigned_imm_to_bc(m, bc, FKL_OP_PUSH_VEC,
-                                                      len);
-}
-
-static inline FklByteCode *append_push_hash_ins_to_bc(InsAppendMode m,
-                                                      FklByteCode *bc,
-                                                      FklHashTableEqType type,
-                                                      uint64_t len) {
-    switch (type) {
-    case FKL_HASH_EQ:
-        return set_and_append_ins_with_unsigned_imm_to_bc(
-            m, bc, FKL_OP_PUSH_HASHEQ, len);
-        break;
-    case FKL_HASH_EQV:
-        return set_and_append_ins_with_unsigned_imm_to_bc(
-            m, bc, FKL_OP_PUSH_HASHEQV, len);
-        break;
-    case FKL_HASH_EQUAL:
-        return set_and_append_ins_with_unsigned_imm_to_bc(
-            m, bc, FKL_OP_PUSH_HASHEQUAL, len);
-        break;
-    }
-    return bc;
 }
 
 static inline FklByteCodelnt *
@@ -3534,7 +3502,7 @@ BC_PROCESS(_unqtesp_vec_bc_process) {
         fklCodeLntReverseConcat(other, retval);
         fklDestroyByteCodelnt(other);
     }
-    FklInstruction listPush = create_op_ins(FKL_OP_LIST_PUSH);
+    FklInstruction listPush = {.op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_UNPACK};
     fklByteCodeLntPushBackIns(retval, &listPush, fid, line, scope);
     return retval;
 }
@@ -3564,7 +3532,7 @@ BC_PROCESS(_qsquote_list_bc_process) {
         fklDestroyByteCodelnt(cur);
     }
     stack->size = 0;
-    FklInstruction pushPair = create_op_ins(FKL_OP_LIST_APPEND);
+    FklInstruction pushPair = {.op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_APPEND};
     fklByteCodeLntPushBackIns(retval, &pushPair, fid, line, scope);
     return retval;
 }
@@ -3754,6 +3722,7 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
     const FklInstruction *const end = &cur[bcl->bc->len];
     for (; cur < end; cur++) {
         switch (cur->op) {
+        case FKL_OP_SET_BP:
         case FKL_OP_PUSH_PAIR:
         case FKL_OP_PUSH_I24:
         case FKL_OP_PUSH_I64F:
@@ -3769,10 +3738,10 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
         case FKL_OP_PUSH_SYM:
         case FKL_OP_PUSH_SYM_C:
         case FKL_OP_PUSH_SYM_X:
+        case FKL_OP_PUSH_LIST_0:
+        case FKL_OP_PUSH_LIST:
+        case FKL_OP_PUSH_VEC_0:
         case FKL_OP_PUSH_VEC:
-        case FKL_OP_PUSH_VEC_C:
-        case FKL_OP_PUSH_VEC_X:
-        case FKL_OP_PUSH_VEC_XX:
         case FKL_OP_PUSH_BI:
         case FKL_OP_PUSH_BI_C:
         case FKL_OP_PUSH_BI_X:
@@ -3780,19 +3749,12 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
         case FKL_OP_PUSH_BVEC:
         case FKL_OP_PUSH_BVEC_X:
         case FKL_OP_PUSH_BVEC_C:
+        case FKL_OP_PUSH_HASHEQ_0:
         case FKL_OP_PUSH_HASHEQ:
-        case FKL_OP_PUSH_HASHEQ_C:
-        case FKL_OP_PUSH_HASHEQ_X:
-        case FKL_OP_PUSH_HASHEQ_XX:
+        case FKL_OP_PUSH_HASHEQV_0:
         case FKL_OP_PUSH_HASHEQV:
-        case FKL_OP_PUSH_HASHEQV_C:
-        case FKL_OP_PUSH_HASHEQV_X:
-        case FKL_OP_PUSH_HASHEQV_XX:
+        case FKL_OP_PUSH_HASHEQUAL_0:
         case FKL_OP_PUSH_HASHEQUAL:
-        case FKL_OP_PUSH_HASHEQUAL_C:
-        case FKL_OP_PUSH_HASHEQUAL_X:
-        case FKL_OP_PUSH_HASHEQUAL_XX:
-        case FKL_OP_PUSH_LIST:
         case FKL_OP_PUSH_0:
         case FKL_OP_PUSH_1:
         case FKL_OP_PUSH_I8:
@@ -8147,6 +8109,12 @@ BC_PROCESS(pre_compile_main_bc_process) {
 #undef CODEGEN_FUNC
 
 FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
+    static const FklOpcode hash_opcode_map[][2] = {
+        [FKL_HASH_EQ] = {FKL_OP_PUSH_HASHEQ_0, FKL_OP_PUSH_HASHEQ},
+        [FKL_HASH_EQV] = {FKL_OP_PUSH_HASHEQV_0, FKL_OP_PUSH_HASHEQV},
+        [FKL_HASH_EQUAL] = {FKL_OP_PUSH_HASHEQUAL_0, FKL_OP_PUSH_HASHEQUAL},
+    };
+
     FklNastNodeVector stack;
     fklNastNodeVectorInit(&stack, 32);
     fklNastNodeVectorPushBack2(&stack, FKL_REMOVE_CONST(FklNastNode, node));
@@ -8154,6 +8122,10 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
     FklSymbolTable *pst = &info->outer_ctx->public_symbol_table;
     while (!fklNastNodeVectorIsEmpty(&stack)) {
         FklNastNode *node = *fklNastNodeVectorPopBack(&stack);
+        if (node == NULL) {
+            fklByteCodeInsertFront(create_op_ins(FKL_OP_SET_BP), retval);
+            continue;
+        }
         switch (node->type) {
         case FKL_NAST_SYM:
             append_push_sym_ins_to_bc(
@@ -8198,8 +8170,14 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
             fklNastNodeVectorPushBack2(&stack, cur);
             if (i == 2)
                 fklByteCodeInsertFront(create_op_ins(FKL_OP_PUSH_PAIR), retval);
-            else
-                append_push_list_ins_to_bc(INS_APPEND_FRONT, retval, i);
+            else if (i > UINT16_MAX) {
+                fklNastNodeVectorInsert2(&stack, stack.size - i, NULL);
+                fklByteCodeInsertFront(create_op_ins(FKL_OP_PUSH_LIST_0),
+                                       retval);
+            } else {
+                FklInstruction ins = {.op = FKL_OP_PUSH_LIST, .bu = i};
+                fklByteCodeInsertFront(ins, retval);
+            }
         } break;
         case FKL_NAST_BOX:
             if (node->box->type == FKL_NAST_NIL) {
@@ -8216,14 +8194,30 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
             }
             break;
         case FKL_NAST_VECTOR:
-            append_push_vec_ins_to_bc(INS_APPEND_FRONT, retval,
-                                      node->vec->size);
+            if (node->vec->size > UINT16_MAX) {
+                fklNastNodeVectorPushBack2(&stack, NULL);
+                fklByteCodeInsertFront(create_op_ins(FKL_OP_PUSH_VEC_0),
+                                       retval);
+            } else {
+                FklInstruction ins = {.op = FKL_OP_PUSH_VEC,
+                                      .bu = node->vec->size};
+                fklByteCodeInsertFront(ins, retval);
+            }
             for (size_t i = 0; i < node->vec->size; i++)
                 fklNastNodeVectorPushBack2(&stack, node->vec->base[i]);
             break;
         case FKL_NAST_HASHTABLE:
-            append_push_hash_ins_to_bc(INS_APPEND_FRONT, retval,
-                                       node->hash->type, node->hash->num);
+            if (node->hash->num > 0) {
+                fklNastNodeVectorPushBack2(&stack, NULL);
+                fklByteCodeInsertFront(
+                    create_op_ins(hash_opcode_map[node->hash->type][0]),
+                    retval);
+            } else {
+                FklInstruction ins = {.op =
+                                          hash_opcode_map[node->hash->type][1],
+                                      .bu = node->hash->num};
+                fklByteCodeInsertFront(ins, retval);
+            }
             for (size_t i = 0; i < node->hash->num; i++) {
                 fklNastNodeVectorPushBack2(&stack, node->hash->items[i].car);
                 fklNastNodeVectorPushBack2(&stack, node->hash->items[i].cdr);

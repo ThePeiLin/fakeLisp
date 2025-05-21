@@ -89,21 +89,6 @@ int main() {
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
 
-    // IuCCB
-    ux = 0x123456789ABCDEF0;
-    ins[0].op = FKL_OP_PUSH_VEC_XX;
-    set_ins_uxx(ins, ux);
-    arg.ux = FKL_GET_INS_UXX(ins);
-    fputs("IuCCB\n", stderr);
-    fprintf(stderr, "[%s: %d] ux= %" FKL_PRT64U ", arg.ux= %" FKL_PRT64U "\n",
-            __FILE__, __LINE__, ux, arg.ux);
-    FKL_ASSERT(arg.ux == ux);
-    fklGetInsOpArg(ins, &arg);
-    fprintf(stderr, "[%s: %d] ux= %" FKL_PRT64U ", arg.ux= %" FKL_PRT64U "\n",
-            __FILE__, __LINE__, ux, arg.ux);
-    FKL_ASSERT(arg.ux == ux);
-    fputc('\n', stderr);
-
     // IsCCB
     s = -0x123456789ABCDEF0;
     ins[0].op = FKL_OP_JMP_IF_TRUE_XX;

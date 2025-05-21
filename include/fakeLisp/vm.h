@@ -42,7 +42,8 @@ typedef enum {
 struct FklVM;
 struct FklVMvalue;
 struct FklCprocFrameContext;
-#define FKL_CPROC_ARGL struct FklVM *exe, struct FklCprocFrameContext *ctx,uint32_t argc
+#define FKL_CPROC_ARGL                                                         \
+    struct FklVM *exe, struct FklCprocFrameContext *ctx, uint32_t argc
 #define FKL_MAX_INDIRECT_TAIL_CALL_COUNT (4)
 
 typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
@@ -140,6 +141,7 @@ typedef enum {
 
 #define FKL_VM_VALUE_COMMON_HEADER                                             \
     struct FklVMvalue *next;                                                   \
+    struct FklVMvalue *gray_next;                                              \
     FklVMvalueMark volatile mark : 32;                                         \
     FklValueType type : 32
 
@@ -564,14 +566,7 @@ typedef struct FklVMgc {
     int argc;
     char **argv;
 
-    struct FklVMgcGrayList {
-        struct FklVMgcGrayList *next;
-        FklVMvalue *v;
-    } *gray_list;
-
-    struct FklVMgcGrayList *gray_list_cache;
-
-    struct FklVMgcGrayList *unused_gray_list_cache;
+    FklVMvalue *gray_list;
 
     FklVMqueue q;
 
@@ -754,7 +749,6 @@ void fklVMgcMarkAllRootToGray(FklVM *curVM);
 int fklVMgcPropagate(FklVMgc *gc);
 void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw);
 void fklVMgcSweep(FklVMvalue *);
-void fklVMgcRemoveUnusedGrayCache(FklVMgc *gc);
 void fklVMgcUpdateThreshold(FklVMgc *);
 
 void fklDestroyVMgc(FklVMgc *);
@@ -832,10 +826,9 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe, FklVMvalue *prev, int64_t r64,
 #define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
 
 #define FKL_CPROC_CHECK_ARG_NUM(EXE, NUM, N)                                   \
-    if (NUM > (N)) {                           \
+    if (NUM > (N)) {                                                           \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, EXE);                      \
-    } else if ((FKL_TYPE_CAST(int64_t, (N))                                    \
-                - FKL_TYPE_CAST(int64_t, NUM)) \
+    } else if ((FKL_TYPE_CAST(int64_t, (N)) - FKL_TYPE_CAST(int64_t, NUM))     \
                > 0) {                                                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, EXE);                       \
     }

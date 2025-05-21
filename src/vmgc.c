@@ -2,30 +2,11 @@
 
 #include <string.h>
 
-static inline struct FklVMgcGrayList *createGrayList(FklVMvalue *v,
-                                                     FklVMgc *gc) {
-    struct FklVMgcGrayList *next = gc->gray_list;
-    struct FklVMgcGrayList *g = NULL;
-
-    if (gc->gray_list_cache) {
-        g = gc->gray_list_cache;
-        gc->gray_list_cache = g->next;
-    } else if (gc->unused_gray_list_cache) {
-        g = gc->unused_gray_list_cache;
-        gc->unused_gray_list_cache = g->next;
-    } else {
-        g = (struct FklVMgcGrayList *)malloc(sizeof(struct FklVMgcGrayList));
-        FKL_ASSERT(g);
-    }
-    g->v = v;
-    g->next = next;
-    return g;
-}
-
 void fklVMgcToGray(FklVMvalue *v, FklVMgc *gc) {
-    if (v && FKL_IS_PTR(v) && v->mark != FKL_MARK_B) {
+    if (v && FKL_IS_PTR(v) && v->mark < FKL_MARK_G) {
         v->mark = FKL_MARK_G;
-        gc->gray_list = createGrayList(v, gc);
+        v->gray_next = gc->gray_list;
+        gc->gray_list = v;
     }
 }
 
@@ -128,17 +109,14 @@ static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
 }
 
 int fklVMgcPropagate(FklVMgc *gc) {
-    struct FklVMgcGrayList *gl = gc->gray_list;
-    FklVMvalue *v = FKL_VM_NIL;
-    if (gl) {
-        gc->gray_list = gl->next;
-        v = gl->v;
-        gl->next = gc->gray_list_cache;
-        gc->gray_list_cache = gl;
-    }
-    if (v && FKL_IS_PTR(v) && v->mark == FKL_MARK_G) {
-        v->mark = FKL_MARK_B;
-        propagateMark(v, gc);
+    FklVMvalue *v = gc->gray_list;
+    if (v) {
+        gc->gray_list = v->gray_next;
+        v->gray_next = NULL;
+        if (v->mark == FKL_MARK_G) {
+            v->mark = FKL_MARK_B;
+            propagateMark(v, gc);
+        }
     }
     return gc->gray_list == NULL;
 }
@@ -393,33 +371,6 @@ static inline void destroy_all_locv_cache(FklVMgc *gc) {
     }
 }
 
-static inline void destroy_unused_gray_cache(FklVMgc *gc) {
-    struct FklVMgcGrayList *h = gc->unused_gray_list_cache;
-    while (h) {
-        struct FklVMgcGrayList *p = h;
-        h = h->next;
-        free(p);
-    }
-    gc->unused_gray_list_cache = NULL;
-}
-
-static inline void destroy_all_gray_cache(FklVMgc *gc) {
-    struct FklVMgcGrayList *h = gc->gray_list_cache;
-    while (h) {
-        struct FklVMgcGrayList *p = h;
-        h = h->next;
-        free(p);
-    }
-    gc->gray_list_cache = NULL;
-    destroy_unused_gray_cache(gc);
-}
-
-void fklVMgcRemoveUnusedGrayCache(FklVMgc *gc) {
-    destroy_unused_gray_cache(gc);
-    gc->unused_gray_list_cache = gc->gray_list_cache;
-    gc->gray_list_cache = NULL;
-}
-
 void fklVMgcUpdateThreshold(FklVMgc *gc) {
     gc->threshold = atomic_load(&gc->num) * 2;
 }
@@ -468,7 +419,6 @@ void fklDestroyVMgc(FklVMgc *gc) {
     destroy_interrupt_handle_list(gc->int_list);
     destroy_extra_mark_list(gc->extra_mark_list);
     destroy_argv(gc);
-    destroy_all_gray_cache(gc);
     destroy_all_locv_cache(gc);
     fklDestroyAllValues(gc);
     uninit_vm_queue(&gc->q);

@@ -602,7 +602,6 @@ void restartDebugging(DebugCtx *ctx) {
     FklVMvalue *white = NULL;
     fklVMgcCollect(gc, &white);
     fklVMgcSweep(white);
-    fklVMgcRemoveUnusedGrayCache(gc);
     fklVMgcUpdateThreshold(gc);
 
     FklVMvalue **base = (FklVMvalue **)ctx->extra_mark_value.base;

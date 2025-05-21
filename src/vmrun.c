@@ -729,7 +729,6 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
         FklVMvalue *white = NULL;
         fklVMgcCollect(gc, &white);
         fklVMgcSweep(white);
-        fklVMgcRemoveUnusedGrayCache(gc);
         fklVMgcUpdateThreshold(gc);
 
         fklVMstackShrink(exe);
@@ -1122,7 +1121,6 @@ static inline void vm_idle_loop(FklVMgc *gc) {
             FklVMvalue *white = NULL;
             fklVMgcCollect(gc, &white);
             fklVMgcSweep(white);
-            fklVMgcRemoveUnusedGrayCache(gc);
             fklVMgcUpdateThreshold(gc);
 
             FklThreadQueue other_running_q;
@@ -1245,7 +1243,6 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
             FklVMvalue *white = NULL;
             fklVMgcCollect(gc, &white);
             fklVMgcSweep(white);
-            fklVMgcRemoveUnusedGrayCache(gc);
             fklVMgcUpdateThreshold(gc);
 
             FklThreadQueue other_running_q;

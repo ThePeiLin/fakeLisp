@@ -20,8 +20,6 @@
 #include <setjmp.h>
 #include <time.h>
 
-/*procedure call functions*/
-
 static inline void push_old_locv(FklVM *exe, uint32_t llast,
                                  FklVMvalue **locv) {
     if (llast) {
@@ -40,6 +38,7 @@ static inline void push_old_locv(FklVM *exe, uint32_t llast,
     }
 }
 
+// call compound procedure
 static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *tmpFrame =
         fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);

@@ -4332,7 +4332,7 @@ static inline FklByteCodelnt *inl_0_arg_func2(const FklInstruction *ins,
 }
 
 static inline FklByteCodelnt *inlfunc_box0(INL_FUNC_ARGS) {
-    FklInstruction ins = {.op = FKL_OP_BOX, .ai = FKL_SUBOP_BOX_NEW_NIL_BOX};
+    FklInstruction ins = {.op = FKL_OP_PUSH_BOX, .ai = 0};
     return fklCreateSingleInsBclnt(ins, fid, line, scope);
 }
 
@@ -4433,7 +4433,7 @@ static FklByteCodelnt *inlfunc_mul1(INL_FUNC_ARGS) {
 }
 
 static FklByteCodelnt *inlfunc_box(INL_FUNC_ARGS) {
-    FklInstruction ins = {.op = FKL_OP_BOX, .ai = FKL_SUBOP_BOX_NEW_BOX};
+    FklInstruction ins = {.op = FKL_OP_PUSH_BOX, .ai = 1};
     return inl_1_arg_func2(&ins, bcs, fid, line, scope);
 }
 

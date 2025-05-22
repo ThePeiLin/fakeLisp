@@ -1,14 +1,14 @@
 #ifndef FKL_OPCODE_H
 #define FKL_OPCODE_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // clang-format off
-#define FKL_SUBOP_BOX_UNBOX       (-1)
-#define FKL_SUBOP_BOX_NEW_NIL_BOX (0)
-#define FKL_SUBOP_BOX_NEW_BOX     (1)
+#define FKL_SUBOP_BOX_UNBOX       (1)
 #define FKL_SUBOP_BOX_SET         (2)
 
 #define FKL_SUBOP_HASH_REF_2      (1)
@@ -68,6 +68,7 @@ extern "C" {
     X(FKL_OP_PUSH_BI,           "push-bi",           FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_BI_C,         "push-bi-c",         FKL_OP_MODE_IuC     )\
     X(FKL_OP_PUSH_BI_X,         "push-bi-x",         FKL_OP_MODE_IuBB    )\
+    X(FKL_OP_PUSH_BOX,          "push-box",          FKL_OP_MODE_IsA     )\
     X(FKL_OP_PUSH_LIST_0,       "push-list-0",       FKL_OP_MODE_I       )\
     X(FKL_OP_PUSH_LIST,         "push-list",         FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_VEC_0,        "push-vec-0",        FKL_OP_MODE_I       )\
@@ -227,6 +228,7 @@ const char *fklGetOpcodeName(FklOpcode);
 FklOpcodeMode fklGetOpcodeMode(FklOpcode);
 FklOpcode fklFindOpcode(const char *);
 int fklGetOpcodeModeLen(FklOpcode);
+const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop);
 
 #ifdef __cplusplus
 }

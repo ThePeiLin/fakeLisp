@@ -544,6 +544,16 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
         *needBreak = 1;
         break;
 
+    case FKL_OP_DROP:
+    case FKL_OP_PAIR:
+    case FKL_OP_VEC:
+    case FKL_OP_STR:
+    case FKL_OP_BVEC:
+    case FKL_OP_BOX:
+    case FKL_OP_HASH:
+        fprintf(fp, "::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
+        break;
+
     default:
         switch (mode) {
         case FKL_OP_MODE_IsA:

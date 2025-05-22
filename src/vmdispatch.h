@@ -131,6 +131,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigInt2(
                                    exe, exe->gc->kbi[GET_INS_UX(ins, frame)]));
         break;
+    case FKL_OP_PUSH_BOX:
+        FKL_VM_PUSH_VALUE(
+            exe, ins->ai ? fklCreateVMvalueBox(exe, FKL_VM_POP_TOP_VALUE(exe))
+                         : fklCreateVMvalueBoxNil(exe));
+        break;
     case FKL_OP_PUSH_LIST_0: {
         FklVMvalue *last = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *pair = FKL_VM_NIL;
@@ -1161,13 +1166,6 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FklVMvalue *box = FKL_VM_POP_TOP_VALUE(exe);
             FKL_CHECK_TYPE(box, FKL_IS_BOX, exe);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_BOX(box));
-        } break;
-        case FKL_SUBOP_BOX_NEW_NIL_BOX:
-            FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBoxNil(exe));
-            break;
-        case FKL_SUBOP_BOX_NEW_BOX: {
-            FklVMvalue *obj = FKL_VM_POP_TOP_VALUE(exe);
-            FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBox(exe, obj));
         } break;
         case FKL_SUBOP_BOX_SET: {
             FklVMvalue *value = FKL_VM_POP_TOP_VALUE(exe);

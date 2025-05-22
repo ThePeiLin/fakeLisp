@@ -3466,7 +3466,7 @@ static CODEGEN_FUNC(codegen_unquote) {
 BC_PROCESS(_qsquote_box_bc_process) {
     FklByteCodelntVector *stack = GET_STACK(context);
     FklByteCodelnt *retval = *fklByteCodelntVectorPopBack(stack);
-    FklInstruction pushBox = {.op = FKL_OP_BOX, .ai = FKL_SUBOP_BOX_NEW_BOX};
+    FklInstruction pushBox = {.op = FKL_OP_PUSH_BOX, .ai = 1};
     fklByteCodeLntPushBackIns(retval, &pushBox, fid, line, scope);
     return retval;
 }
@@ -3745,7 +3745,7 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
         case FKL_OP_PUSH_BI:
         case FKL_OP_PUSH_BI_C:
         case FKL_OP_PUSH_BI_X:
-        case FKL_OP_BOX:
+        case FKL_OP_PUSH_BOX:
         case FKL_OP_PUSH_BVEC:
         case FKL_OP_PUSH_BVEC_X:
         case FKL_OP_PUSH_BVEC_C:
@@ -8182,14 +8182,10 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
         case FKL_NAST_BOX:
             if (node->box->type == FKL_NAST_NIL) {
                 fklByteCodeInsertFront(
-                    (FklInstruction){.op = FKL_OP_BOX,
-                                     .ai = FKL_SUBOP_BOX_NEW_NIL_BOX},
-                    retval);
+                    (FklInstruction){.op = FKL_OP_PUSH_BOX, .ai = 0}, retval);
             } else {
                 fklByteCodeInsertFront(
-                    (FklInstruction){.op = FKL_OP_BOX,
-                                     .ai = FKL_SUBOP_BOX_NEW_BOX},
-                    retval);
+                    (FklInstruction){.op = FKL_OP_PUSH_BOX, .ai = 1}, retval);
                 fklNastNodeVectorPushBack2(&stack, node->box);
             }
             break;
@@ -8207,7 +8203,7 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
                 fklNastNodeVectorPushBack2(&stack, node->vec->base[i]);
             break;
         case FKL_NAST_HASHTABLE:
-            if (node->hash->num > 0) {
+            if (node->hash->num > UINT16_MAX) {
                 fklNastNodeVectorPushBack2(&stack, NULL);
                 fklByteCodeInsertFront(
                     create_op_ins(hash_opcode_map[node->hash->type][0]),

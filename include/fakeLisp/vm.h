@@ -1101,16 +1101,6 @@ FklVMvalue *fklCreateNilValue(void);
 
 #define FKL_VM_PUSH_VALUE(S, V) fklPushVMvalue((S), (V))
 
-/*
-    (((S)->tp >= (S)->last                                                     \
-          ? ((S)->last += FKL_VM_STACK_INC_NUM,                                \
-             (S)->size += FKL_VM_STACK_INC_SIZE,                               \
-             (S)->base = (FklVMvalue **)fklRealloc((S)->base, (S)->size),      \
-             (FKL_ASSERT((S)->base)), NULL)                                    \
-          : NULL),                                                             \
-     (S)->base[(S)->tp++] = (V))
-         */
-
 static inline unsigned int fklGetCompoundFrameMark(const FklVMframe *f) {
     return f->c.mark;
 }

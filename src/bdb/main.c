@@ -795,6 +795,18 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
     case FKL_OP_PUSH_BI_X:
         imm1 = fklCreateVMvalueBigInt2(exe, fklGetBiConstWithIdx(kt, arg.ux));
         break;
+    case FKL_OP_DROP:
+    case FKL_OP_PAIR:
+    case FKL_OP_VEC:
+    case FKL_OP_STR:
+    case FKL_OP_BVEC:
+    case FKL_OP_BOX:
+    case FKL_OP_HASH:
+        imm1 = fklCreateVMvalueBox(
+            exe,
+            fklCreateVMvalueStrFromCstr(exe, fklGetSubOpcodeName(op, arg.ix)));
+        break;
+
     default:
         switch (mode) {
         case FKL_OP_MODE_I:

@@ -171,7 +171,7 @@ static int os_getenv(FKL_CPROC_ARGL) {
     return 0;
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 static inline int setenv(const char *name, const char *value, int overwrite) {
     if (!overwrite) {
         size_t envsize = 0;

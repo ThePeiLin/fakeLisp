@@ -774,7 +774,7 @@ int fklVMfpRewind(FklVMfp *vfp, FklStringBuffer *b, size_t j) {
 }
 
 int fklVMfpFileno(FklVMfp *vfp) {
-#ifdef WIN32
+#ifdef _WIN32
     return _fileno(vfp->fp);
 #else
     return fileno(vfp->fp);

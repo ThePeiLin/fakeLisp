@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include <assert.h>
-#ifdef WIN32
+#ifdef _WIN32
 #define FKL_PRT64D "lld"
 #define FKL_PRT64U "llu"
 #define FKL_PRT64x "llx"

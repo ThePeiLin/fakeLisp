@@ -450,7 +450,6 @@ struct FuvAsyncExtraData {
     FklVMvalue **base;
 };
 
-#ifndef WIN32
 struct FuvAsync {
     FuvHandleData data;
     uv_async_t handle;
@@ -459,16 +458,6 @@ struct FuvAsync {
     atomic_flag copy_done;
     atomic_flag send_done;
 };
-#else
-struct FuvAsync {
-    FuvHandleData data;
-    uv_async_t handle;
-    atomic_uintptr_t extra;
-    atomic_flag send_ready;
-    atomic_flag copy_done;
-    atomic_flag send_done;
-};
-#endif
 
 typedef struct {
     FuvHandleData data;
@@ -593,7 +582,7 @@ FklVMvalue *createFuvFsEvent(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
         fklLockThread(exe);                                                    \
     }
 
-void raiseUvError(int err, FklVM *exe, FklVMvalue *pd);
+noreturn void raiseUvError(int err, FklVM *exe, FklVMvalue *pd);
 noreturn void raiseFuvError(FuvErrorType, FklVM *exe, FklVMvalue *pd);
 FklSid_t uvErrToSid(int err_id, FuvPublicData *pd);
 FklVMvalue *createUvError(int err_id, FklVM *exe, FklVMvalue *pd);

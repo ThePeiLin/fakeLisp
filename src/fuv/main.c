@@ -1,7 +1,7 @@
 #include <fakeLisp/vm.h>
 
 #include <uv.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <winsock2.h>
 #endif
 #include <string.h>

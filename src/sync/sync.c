@@ -1,5 +1,42 @@
+#include "uv.h"
 #include <fakeLisp/vm.h>
 
+typedef struct SyncPublicData {
+#define XX(code, _) FklSid_t uv_err_sid_##code;
+    UV_ERRNO_MAP(XX)
+#undef XX
+} SyncPublicData;
+
+static FklVMudMetaTable SyncPublicDataMetaTable = {
+    .size = sizeof(SyncPublicData),
+};
+
+static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
+                                          SyncPublicData *pd) {
+    FklSid_t id = 0;
+    switch (err_id) {
+#define XX(code, _)                                                            \
+    case UV_##code:                                                            \
+        id = pd->uv_err_sid_##code;                                            \
+        break;
+        UV_ERRNO_MAP(XX);
+    default:
+        id = pd->uv_err_sid_UNKNOWN;
+    }
+    return fklCreateVMvalueError(exe, id,
+                                 fklCreateStringFromCstr(uv_strerror(err_id)));
+#undef XX
+}
+
+noreturn static inline void raiseUvError(int err_id, FklVM *exe,
+                                         FklVMvalue *pd_obj) {
+    FKL_DECL_VM_UD_DATA(pd, SyncPublicData, pd_obj);
+    fklRaiseVMerror(create_uv_error(err_id, exe, pd), exe);
+}
+
+#define CHECK_UV_RESULT(R, EXE, PD)                                            \
+    if ((R) < 0)                                                               \
+    raiseUvError((R), (EXE), (PD))
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print, mutex);
 
 static int mutex_finalizer(FklVMud *ud) {
@@ -30,10 +67,9 @@ static int sync_make_mutex(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &MutexUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(mutex, uv_mutex_t, ud);
-    if (uv_mutex_init(mutex))
-        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
-    else
-        FKL_CPROC_RETURN(exe, ctx, ud);
+    int r = uv_mutex_init(mutex);
+    CHECK_UV_RESULT(r, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
 
@@ -93,10 +129,9 @@ static int sync_make_cond(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &CondUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(cond, uv_cond_t, ud);
-    if (uv_cond_init(cond))
-        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
-    else
-        FKL_CPROC_RETURN(exe, ctx, ud);
+    int r = uv_cond_init(cond);
+    CHECK_UV_RESULT(r, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
 
@@ -135,11 +170,9 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         uint64_t timeout = fklVMgetUint(timeout_obj);
         fklUnlockThread(exe);
-        if (uv_cond_timedwait(cond, mutex, timeout)) {
-            fklLockThread(exe);
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-        }
+        int r = uv_cond_timedwait(cond, mutex, timeout);
         fklLockThread(exe);
+        CHECK_UV_RESULT(r, exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     } else {
         fklUnlockThread(exe);
@@ -174,10 +207,9 @@ static int sync_make_rwlock(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &RwlockUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(rwlock, uv_rwlock_t, ud);
-    if (uv_rwlock_init(rwlock))
-        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
-    else
-        FKL_CPROC_RETURN(exe, ctx, ud);
+    int r = uv_rwlock_init(rwlock);
+    CHECK_UV_RESULT(r, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
 
@@ -272,10 +304,9 @@ static int sync_make_sem(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &SemUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(sem, uv_sem_t, ud);
-    if (uv_sem_init(sem, fklVMgetUint(value_obj)))
-        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
-    else
-        FKL_CPROC_RETURN(exe, ctx, ud);
+    int r = uv_sem_init(sem, fklVMgetUint(value_obj));
+    CHECK_UV_RESULT(r, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
 
@@ -338,10 +369,9 @@ static int sync_make_barrier(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &BarrierUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(barrier, uv_barrier_t, ud);
-    if (uv_barrier_init(barrier, fklVMgetUint(count_obj)))
-        FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
-    else
-        FKL_CPROC_RETURN(exe, ctx, ud);
+    int r = uv_barrier_init(barrier, fklVMgetUint(count_obj));
+    CHECK_UV_RESULT(r, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
 
@@ -398,6 +428,14 @@ struct SymFunc {
 static const size_t EXPORT_NUM =
     sizeof(exports_and_func) / sizeof(struct SymFunc);
 
+static inline void init_sync_public_data(SyncPublicData *pd,
+                                         FklSymbolTable *st) {
+#define XX(code, _)                                                            \
+    pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st)->v;
+    UV_ERRNO_MAP(XX);
+#undef XX
+}
+
 FKL_DLL_EXPORT FklSid_t *
 _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
@@ -412,12 +450,16 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc = (FklVMvalue **)malloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
+    FklVMvalue *spd = fklCreateVMvalueUd(exe, &SyncPublicDataMetaTable, dll);
+    FKL_DECL_VM_UD_DATA(pd, SyncPublicData, spd);
+
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;
+    init_sync_public_data(pd, st);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklSid_t id = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
         FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe, func, dll, NULL, id);
+        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe, func, dll, spd, id);
         loc[i] = dlproc;
     }
     fklVMreleaseSt(exe->gc);

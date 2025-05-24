@@ -12,6 +12,7 @@ FklSid_t uvErrToSid(int err_id, FuvPublicData *pd) {
         id = pd->uv_err_sid_UNKNOWN;
     }
     return id;
+#undef XX
 }
 
 static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
@@ -28,6 +29,7 @@ static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
     }
     return fklCreateVMvalueError(exe, id,
                                  fklCreateStringFromCstr(uv_strerror(err_id)));
+#undef XX
 }
 
 void raiseUvError(int err_id, FklVM *exe, FklVMvalue *pd_obj) {

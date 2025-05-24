@@ -944,7 +944,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *, FklVMframe *f, size_t,
 void fklCreateVMvalueClosureFrom(FklVM *, FklVMvalue **closure, FklVMframe *f,
                                  uint32_t from, FklFuncPrototype *pt);
 
-#ifdef WIN32
+#ifdef _WIN32
 #define FKL_DLL_EXPORT __declspec(dllexport)
 #else
 #define FKL_DLL_EXPORT

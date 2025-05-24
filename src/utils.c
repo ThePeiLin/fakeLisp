@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 
 #include <direct.h>
@@ -21,7 +21,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 char *fklSysgetcwd(void) { return _getcwd(NULL, 0); }
 
 int fklChdir(const char *dir) { return _chdir(dir); }
@@ -542,7 +542,7 @@ exit:
 
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 char **fklSplit(char *str, const char *divstr, size_t *pcount) {
     int count = 0;
     char *context = NULL;
@@ -581,7 +581,7 @@ char **fklSplit(char *str, const char *divstr, size_t *pcount) {
 #endif
 
 char *fklStrTok(char *str, const char *divstr, char **context) {
-#ifndef WIN32
+#ifndef _WIN32
     return strtok_r(str, divstr, context);
 #else
     return strtok_s(str, divstr, context);
@@ -768,7 +768,7 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define S_ISREG(m) ((S_IFMT & m) == S_IFREG)
 #define S_ISDIR(m) ((S_IFMT & m) == S_IFDIR)
 #endif
@@ -785,7 +785,7 @@ int fklIsDirectory(const char *p) {
     return S_ISDIR(buf.st_mode);
 }
 
-#ifndef WIN32
+#ifndef _WIN32
 int fklIsAccessibleDirectory(const char *p) {
     return !access(p, R_OK) && fklIsDirectory(p);
 }

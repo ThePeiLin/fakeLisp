@@ -626,8 +626,6 @@ typedef struct FuvDir {
     atomic_uint ref;
 } FuvDir;
 
-typedef FuvDir *FuvDirUd;
-
 struct FuvFsReq {
     FuvReqData data;
     uv_fs_t req;

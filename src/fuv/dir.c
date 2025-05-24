@@ -3,13 +3,13 @@
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, "dir");
 
 static int fuv_dir_finalizer(FklVMud *ud) {
-    FKL_DECL_UD_DATA(dir, FuvDirUd, ud);
-    unrefFuvDir(*dir);
+    FKL_DECL_UD_DATA(dir, FuvDir, ud);
+    unrefFuvDir(dir);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable FuvDirUdMetaTable = {
-    .size = sizeof(FuvDirUd),
+    .size = sizeof(FuvDir),
     .__as_prin1 = fuv_dir_as_print,
     .__as_princ = fuv_dir_as_print,
     .__finalizer = fuv_dir_finalizer,
@@ -22,13 +22,10 @@ int isFuvDir(FklVMvalue *v) {
 FklVMvalue *createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *req,
                          size_t nentries) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvDirUdMetaTable, rel);
-    FKL_DECL_VM_UD_DATA(dir_ud, FuvDirUd, v);
-    FuvDir *fdir = (FuvDir *)calloc(1, sizeof(FuvDir));
-    FKL_ASSERT(fdir);
-    *dir_ud = fdir;
-    fdir->dir = req->ptr;
+    FKL_DECL_VM_UD_DATA(dir_ud, FuvDir, v);
+    dir_ud->dir = req->ptr;
     req->ptr = NULL;
-    uv_dir_t *dir = fdir->dir;
+    uv_dir_t *dir = dir_ud->dir;
     dir->nentries = nentries;
     if (nentries) {
         dir->dirents = (uv_dirent_t *)calloc(nentries, sizeof(uv_dirent_t));
@@ -59,6 +56,6 @@ void unrefFuvDir(FuvDir *dir) {
             }
             uv_fs_closedir(NULL, &req, d, NULL);
         }
-        free(dir);
+        dir->dir = NULL;
     }
 }

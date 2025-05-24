@@ -5369,9 +5369,9 @@ static int fuv_fs_closedir(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(dir_obj, isFuvDir, exe);
 
-    FKL_DECL_VM_UD_DATA(dir, FuvDirUd, dir_obj);
+    FKL_DECL_VM_UD_DATA(dir, FuvDir, dir_obj);
 
-    if (isFuvDirUsing(*dir))
+    if (isFuvDirUsing(dir))
         raiseFuvError(FUV_ERR_CLOSE_USING_DIR, exe, ctx->pd);
 
     if (cb_obj)
@@ -5382,12 +5382,12 @@ static int fuv_fs_closedir(FKL_CPROC_ARGL) {
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
         createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, 0);
-    req->dir = refFuvDir(*dir);
+    req->dir = refFuvDir(dir);
 
-    uv_dir_t *d = (*dir)->dir;
+    uv_dir_t *d = dir->dir;
     free(d->dirents);
     d->nentries = 0;
-    (*dir)->dir = NULL;
+    dir->dir = NULL;
 
     FS_CALL(exe, ctx->pd, uv_fs_closedir, fuv_loop, req, req_obj, cb_obj, d);
     return 0;
@@ -5401,7 +5401,7 @@ static int fuv_fs_readdir(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(dir_obj, isFuvDir, exe);
 
-    FKL_DECL_VM_UD_DATA(dir, FuvDirUd, dir_obj);
+    FKL_DECL_VM_UD_DATA(dir, FuvDir, dir_obj);
 
     if (cb_obj)
         FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
@@ -5411,10 +5411,10 @@ static int fuv_fs_readdir(FKL_CPROC_ARGL) {
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
         createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, 0);
-    req->dir = refFuvDir(*dir);
+    req->dir = refFuvDir(dir);
 
     FS_CALL(exe, ctx->pd, uv_fs_readdir, fuv_loop, req, req_obj, cb_obj,
-            (*dir)->dir);
+            dir->dir);
     return 0;
 }
 

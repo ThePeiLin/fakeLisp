@@ -309,9 +309,7 @@ typedef struct FklVMframe {
     };
 } FklVMframe;
 
-#define FKL_VM_FRAME_OF(ptr)                                                   \
-    FKL_TYPE_CAST(FklVMframe *,                                                \
-                  FKL_TYPE_CAST(char *, ptr) - offsetof(FklVMframe, data))
+#define FKL_VM_FRAME_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMframe, data)
 
 void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, struct FklVMgc *table);
 void fklCallObj(struct FklVM *exe, FklVMvalue *);

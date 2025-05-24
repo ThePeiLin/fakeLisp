@@ -37,7 +37,7 @@ noreturn static inline void raiseUvError(int err_id, FklVM *exe,
 #define CHECK_UV_RESULT(R, EXE, PD)                                            \
     if ((R) < 0)                                                               \
     raiseUvError((R), (EXE), (PD))
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print, mutex);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print, "mutex");
 
 static int mutex_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(mutex, uv_mutex_t, ud);
@@ -105,7 +105,7 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL) {
     return 0;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print, cond);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print, "cond");
 
 static int cond_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(cond, uv_cond_t, ud);
@@ -183,7 +183,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
     return 0;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print, rwlock);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print, "rwlock");
 
 static int rwlock_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(rwlock, uv_rwlock_t, ud);
@@ -277,7 +277,7 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL) {
     return 0;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print, sem);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print, "sem");
 
 static int sem_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(sem, uv_sem_t, ud);
@@ -341,7 +341,7 @@ static int sync_sem_trywait(FKL_CPROC_ARGL) {
     return 0;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print, barrier);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print, "barrier");
 
 static int barrier_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(barrier, uv_barrier_t, ud);

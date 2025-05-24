@@ -141,7 +141,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe, const FklVMud *v,
     return new_vec_val;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dvec_as_print, dvec);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dvec_as_print, "dvec");
 
 static FklVMudMetaTable DvecMetaTable = {
     .size = sizeof(FklVMvalueVector),

@@ -23,23 +23,23 @@ static int fuv_handle_ud_finalizer(FklVMud *ud) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_timer_as_print, timer);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_timer_as_print, "timer");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_prepare_as_print, prepare);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_prepare_as_print, "prepare");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_idle_as_print, idle);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_idle_as_print, "idle");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_check_as_print, check);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_check_as_print, "check");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_signal_as_print, signal);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_signal_as_print, "signal");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_async_as_print, async);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_async_as_print, "async");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_process_as_print, process);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_process_as_print, "process");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_poll_as_print, fs - poll);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_poll_as_print, "fs-poll");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_event_as_print, fs - poll);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_event_as_print, "fs-event");
 
 static void fuv_process_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_handle, FuvHandleUd, ud);
@@ -66,11 +66,11 @@ static void fuv_pipe_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print, pipe);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_pipe_as_print, "pipe");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print, tcp);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print, "tcp");
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_as_print, udp);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_as_print, "udp");
 
 static void fuv_tty_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_handle, FuvHandleUd, ud);
@@ -83,7 +83,7 @@ static void fuv_tty_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tty_as_print, tty);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tty_as_print, "tty");
 
 static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
     // UV_UNKNOWN_HANDLE

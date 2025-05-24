@@ -38,14 +38,14 @@ static int fuv_req_ud_finalizer(FklVMud *ud) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print, getaddrinfo);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print, getnameinfo);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print, write);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print, shutdown);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print, connect);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_send_as_print, udp - send);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_req_as_print, fs - req);
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_random_as_print, random);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print, "getaddrinfo");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print, "getnameinfo");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print, "write");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print, "shutdown");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print, "connect");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_send_as_print, "udp-send");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_req_as_print, "fs-req");
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_random_as_print, "random");
 
 static void fuv_write_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_req, FuvReqUd, ud);

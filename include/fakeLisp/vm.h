@@ -44,7 +44,6 @@ struct FklVMvalue;
 struct FklCprocFrameContext;
 #define FKL_CPROC_ARGL                                                         \
     struct FklVM *exe, struct FklCprocFrameContext *ctx, uint32_t argc
-#define FKL_MAX_INDIRECT_TAIL_CALL_COUNT (4)
 
 typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
 typedef struct FklVMvalue *FklVMptr;
@@ -1361,7 +1360,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
 
 #define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME, DATA_TYPE_NAME)                \
     static void NAME(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {   \
-        fklStringBufferPrintf(buf, "#<" #DATA_TYPE_NAME " %p>", ud);           \
+        fklStringBufferPrintf(buf, "#<" DATA_TYPE_NAME " %p>", ud);            \
     }
 
 // inlines

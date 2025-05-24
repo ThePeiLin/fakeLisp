@@ -1,6 +1,6 @@
 #include "fuv.h"
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, dir);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, "dir");
 
 static int fuv_dir_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(dir, FuvDirUd, ud);

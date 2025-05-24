@@ -1,7 +1,7 @@
 #include "fuv.h"
 #include <string.h>
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, loop);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, "loop");
 
 static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);

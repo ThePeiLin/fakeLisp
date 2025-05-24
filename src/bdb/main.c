@@ -9,7 +9,7 @@ typedef struct {
     DebugCtx *ctx;
 } DebugUdCtx;
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(debug_ctx_as_print, debug - ctx);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(debug_ctx_as_print, "debug-ctx");
 
 static inline char *get_valid_file_name(const char *filename) {
     if (fklIsAccessibleRegFile(filename)) {

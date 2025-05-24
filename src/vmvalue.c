@@ -1460,7 +1460,7 @@ static inline void init_chanl_recvq(struct FklVMchanlRecvq *q) {
     q->tail = &q->head;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_chanl_userdata_as_print, chanl);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_chanl_userdata_as_print, "chanl");
 
 static void _chanl_userdata_atomic(const FklVMud *root, FklVMgc *gc) {
     FKL_DECL_UD_DATA(ch, FklVMchanl, root);
@@ -1801,7 +1801,7 @@ FklVMvalue *fklCreateVMvalueHashEqual(FklVM *exe) {
     return r;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_code_obj_userdata_as_print, code - obj);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_code_obj_userdata_as_print, "code-obj");
 
 static int _code_obj_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
@@ -1829,7 +1829,7 @@ int fklIsVMvalueCodeObj(FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &CodeObjUserDataMetaTable;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dll_userdata_as_print, dll);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dll_userdata_as_print, "dll");
 
 static void _dll_userdata_atomic(const FklVMud *root, FklVMgc *gc) {
     FKL_DECL_UD_DATA(dll, FklVMdll, root);

@@ -41,7 +41,7 @@ static void ht_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(ht_as_print, ht);
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(ht_as_print, "ht");
 
 static int ht_equal(const FklVMud *a, const FklVMud *b) {
     FKL_DECL_UD_DATA(hta, HashTable, a);

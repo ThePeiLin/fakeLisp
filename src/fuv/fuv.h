@@ -1,6 +1,7 @@
 #ifndef FKL_FUV_FUV_H
 #define FKL_FUV_FUV_H
 
+#include <fakeLisp/common.h>
 #include <fakeLisp/vm.h>
 #include <signal.h>
 #include <stdnoreturn.h>
@@ -422,6 +423,7 @@ struct FuvErrorRecoverData {
 typedef struct {
     FklVM *exe;
     FklVMvalueHashSet gc_values;
+    FklVMvalue *gclist;
     uv_idle_t error_check_idle;
     struct FuvErrorRecoverData error_recover_data;
     jmp_buf buf;
@@ -493,6 +495,9 @@ FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *rel, int *err);
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
                       uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame);
 void fuvLoopInsertFuvObj(FklVMvalue *loop, FklVMvalue *handle);
+void fuvLoopRemoveFuvObj(FklVMvalue *looop, FklVMvalue *obj);
+void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
+
 static inline int fuvLoopIsClosed(const FuvLoop *l) {
     return l->data.is_closed;
 }
@@ -592,7 +597,6 @@ int symbolToSignum(FklSid_t, FuvPublicData *pd);
 FklSid_t signumToSymbol(int, FuvPublicData *pd);
 
 typedef struct {
-    FklVMvalue *req;
     FklVMvalue *loop;
     FklVMvalue *callback;
     FklVMvalue *write_data;
@@ -603,50 +607,82 @@ typedef struct {
     uv_req_t req;
 } FuvReq;
 
-struct FuvWrite {
+typedef struct FuvWrite {
     FuvReqData data;
     uv_write_t req;
     FklVMvalue *write_objs[1];
-};
+} FuvWrite;
 
-struct FuvUdp {
+typedef struct FuvUdp {
     FuvHandleData data;
     uv_udp_t handle;
     int64_t mmsg_num_msgs;
-};
+} FuvUdp;
 
-struct FuvUdpSend {
+typedef struct FuvUdpSend {
     FuvReqData data;
     uv_udp_send_t req;
     FklVMvalue *send_objs[1];
-};
+} FuvUdpSend;
 
 typedef struct FuvDir {
     uv_dir_t *dir;
-    atomic_uint ref;
+    FklVMvalue *req;
 } FuvDir;
 
-struct FuvFsReq {
+typedef struct FuvFsReq {
     FuvReqData data;
     uv_fs_t req;
     FklVMvalue *dest_path;
     size_t nentries;
-    FuvDir *dir;
+    FklVMvalue *dir;
     uv_buf_t buf;
     char base[1];
-};
+} FuvFsReq;
 
-struct FuvRandom {
+typedef struct FuvConnect {
+    FuvReqData data;
+    uv_connect_t req;
+} FuvConnect;
+
+typedef struct FuvShutdown {
+    FuvReqData data;
+    uv_shutdown_t req;
+} FuvShutdown;
+
+typedef struct FuvGetaddrinfo {
+    FuvReqData data;
+    uv_getaddrinfo_t req;
+} FuvGetaddrinfo;
+
+typedef struct FuvGetnameinfo {
+    FuvReqData data;
+    uv_getnameinfo_t req;
+} FuvGetnameinfo;
+
+typedef struct FuvRandom {
     FuvReqData data;
     uv_random_t req;
     uint8_t buf[1];
-};
+} FuvRandom;
 
-typedef FuvReq *FuvReqUd;
+int isFuvReq(const FklVMvalue *v);
+void fuvReqCleanUp(FuvReq *req);
 
-int isFuvReq(FklVMvalue *v);
-void uninitFuvReqValue(FklVMvalue *);
-void uninitFuvReq(FuvReqUd *);
+static inline FuvReq *getFuvReq(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvReq(v));
+    FKL_DECL_VM_UD_DATA(req, FuvReq, v);
+    return req;
+}
+
+typedef enum FuvFsReqCleanUpOption {
+    FUV_FS_REQ_CLEANUP_IN_FINALIZING = 0,
+    FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING,
+} FuvFsReqCleanUpOption;
+
+static inline FklVMvalue *fuvReqValueOf(FuvReq *req) {
+    return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
+}
 
 int isFuvGetaddrinfo(FklVMvalue *v);
 uv_getaddrinfo_t *createFuvGetaddrinfo(FklVM *exe, FklVMvalue **r,
@@ -679,22 +715,41 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
 int isFuvFsReq(FklVMvalue *v);
 struct FuvFsReq *createFuvFsReq(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
                                 FklVMvalue *loop, FklVMvalue *callback,
-                                unsigned int len);
+                                FklVMvalue *dir_obj, unsigned int len);
+void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption);
 
 int isFuvRandom(FklVMvalue *v);
 struct FuvRandom *createFuvRandom(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
                                   FklVMvalue *loop, FklVMvalue *callback,
                                   size_t buflen);
 
-int isFuvDir(FklVMvalue *v);
+int isFuvDir(const FklVMvalue *v);
 FklVMvalue *createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *dir,
                          size_t nentries);
 
-int isFuvDirUsing(FuvDir *dir);
+#define FUV_DIR_CLEANUP_NONE (0)
+#define FUV_DIR_CLEANUP_FREE_DIRENTS (1)
+#define FUV_DIR_CLEANUP_CLOSE_DIR (2)
+#define FUV_DIR_CLEANUP_ALL                                                    \
+    (FUV_DIR_CLEANUP_CLOSE_DIR | FUV_DIR_CLEANUP_FREE_DIRENTS)
 
-FuvDir *refFuvDir(FuvDir *dir);
+static inline void cleanUpDir(uv_dir_t *d, int cleanup_opt) {
+    if (d == NULL)
+        return;
+    if ((cleanup_opt & FUV_DIR_CLEANUP_FREE_DIRENTS) && d->dirents) {
+        d->nentries = 0;
+        free(d->dirents);
+        d->dirents = NULL;
+    }
+    if ((cleanup_opt & FUV_DIR_CLEANUP_CLOSE_DIR)) {
+        uv_fs_t tmp_req;
+        uv_fs_closedir(NULL, &tmp_req, d, NULL);
+    }
+}
 
-void unrefFuvDir(FuvDir *dir_obj);
+int isFuvDirUsing(FklVMvalue *dir);
+
+FklVMvalue *refFuvDir(FklVMvalue *dir, FklVMvalue *req_obj);
 
 void fuvCloseLoopHandleCb(uv_handle_t *handle);
 #ifdef __cplusplus

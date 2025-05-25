@@ -4,7 +4,10 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, "dir");
 
 static int fuv_dir_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(dir, FuvDir, ud);
-    unrefFuvDir(dir);
+    if (dir->req == NULL) {
+        cleanUpDir(dir->dir, FUV_DIR_CLEANUP_ALL);
+        dir->dir = NULL;
+    }
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -15,7 +18,7 @@ static FklVMudMetaTable FuvDirUdMetaTable = {
     .__finalizer = fuv_dir_finalizer,
 };
 
-int isFuvDir(FklVMvalue *v) {
+int isFuvDir(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &FuvDirUdMetaTable;
 }
 
@@ -35,27 +38,15 @@ FklVMvalue *createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *req,
     return v;
 }
 
-int isFuvDirUsing(FuvDir *dir) { return atomic_load(&dir->ref); }
-
-FuvDir *refFuvDir(FuvDir *dir) {
-    atomic_fetch_add(&dir->ref, 1);
+static inline FuvDir *get_fuv_dir(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvDir(v));
+    FKL_DECL_VM_UD_DATA(dir, FuvDir, v);
     return dir;
 }
 
-void unrefFuvDir(FuvDir *dir) {
-    if (atomic_load(&dir->ref))
-        atomic_fetch_sub(&dir->ref, 1);
-    else {
-        uv_fs_t req;
-        uv_dir_t *d = dir->dir;
-        if (d) {
-            if (d->dirents) {
-                d->nentries = 0;
-                free(d->dirents);
-                d->dirents = NULL;
-            }
-            uv_fs_closedir(NULL, &req, d, NULL);
-        }
-        dir->dir = NULL;
-    }
+int isFuvDirUsing(FklVMvalue *dir) { return get_fuv_dir(dir)->req != NULL; }
+
+FklVMvalue *refFuvDir(FklVMvalue *dir_obj, FklVMvalue *req_obj) {
+    get_fuv_dir(dir_obj)->req = req_obj;
+    return dir_obj;
 }

@@ -1,4 +1,7 @@
 #include "fuv.h"
+
+#include <fakeLisp/common.h>
+#include <fakeLisp/vm.h>
 #include <string.h>
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, "loop");
@@ -52,6 +55,8 @@ static int fuv_loop_finalizer(FklVMud *ud) {
     while (uv_loop_close(&fuv_loop->loop))
         uv_run(&fuv_loop->loop, UV_RUN_DEFAULT);
 closed:
+    fklVMgcSweep(fuv_loop->data.gclist);
+    fuv_loop->data.gclist = NULL;
     fklVMvalueHashSetUninit(&fuv_loop->data.gc_values);
     return FKL_VM_UD_FINALIZE_NOW;
 }
@@ -158,6 +163,20 @@ int isFuvLoop(FklVMvalue *v) {
 }
 
 void fuvLoopInsertFuvObj(FklVMvalue *loop_obj, FklVMvalue *v) {
+    FKL_ASSERT(isFuvLoop(loop_obj));
     FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     fklVMvalueHashSetPut2(&loop->data.gc_values, v);
+}
+
+void fuvLoopRemoveFuvObj(FklVMvalue *loop_obj, FklVMvalue *v) {
+    FKL_ASSERT(isFuvLoop(loop_obj));
+    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
+    fklVMvalueHashSetDel2(&fuv_loop->data.gc_values, v);
+}
+
+void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {
+    FKL_ASSERT(isFuvLoop(loop_obj));
+    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
+    v->next = fuv_loop->data.gclist;
+    fuv_loop->data.gclist = v;
 }

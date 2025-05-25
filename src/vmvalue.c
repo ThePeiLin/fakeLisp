@@ -798,21 +798,6 @@ void fklInitVMdll(FklVMvalue *rel, FklVM *exe) {
         init(dll, exe);
 }
 
-static inline void uninit_nothing_value(FklVMvalue *v) {}
-
-static inline void uninit_ud_value(FklVMvalue *v) {
-    fklFinalizeVMud(FKL_VM_UD(v));
-}
-
-static inline void uninit_proc_value(FklVMvalue *v) {
-    FklVMproc *proc = FKL_VM_PROC(v);
-    free(proc->closure);
-}
-
-static inline void uninit_hash_value(FklVMvalue *v) {
-    fklVMvalueHashMapUninit(&FKL_VM_HASH(v)->ht);
-}
-
 void fklDestroyVMvalue(FklVMvalue *cur) {
     switch (cur->type) {
     case FKL_TYPE_USERDATA:

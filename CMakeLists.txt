@@ -6,15 +6,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
-if(NOT WIN32)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
-	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-	set(LINK_TARGET m)
-else()
-	set(LINK_TARGET "")
-endif()
-
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING
 		"CMAKE_BUILD_TYPE is not set, use release as default CMAKE_BUILD_TYPE" FORCE)
@@ -55,6 +46,16 @@ set(VMPARSE vmparse)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
+
+if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
+	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+	set(LINK_TARGET m)
+endif()
+
+include(CMakePrintHelpers)
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
 #copy lib/*.fkl
@@ -187,123 +188,97 @@ add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 
-#ht.so
-add_library(ht
-	SHARED
-	"src/ht/ht.c")
-set_target_properties(ht PROPERTIES
-	PREFIX "")
-target_link_libraries(ht ${LIBFKL_TARGET_NAME})
+function(add_fkl_native_module name)
+    set(options)
+    set(oneValueArgs OUTPUT_DIR)
+    set(multiValueArgs SRC LIB)
+    cmake_parse_arguments(MOD "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    message(STATUS "module name: ${name}")
+    list(APPEND CMAKE_MESSAGE_INDENT "    ")
+    cmake_print_variables(MOD_OUTPUT_DIR)
+    message(STATUS "sources:")
+    list(APPEND CMAKE_MESSAGE_INDENT "    ")
+    foreach(src ${MOD_SRC})
+        message(STATUS "${src}")
+    endforeach()
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
 
-set_target_properties(ht PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+    message(STATUS "link libraries:")
+    list(APPEND CMAKE_MESSAGE_INDENT "    ")
+    foreach(lib ${MOD_LIB})
+        message(STATUS "${lib}")
+    endforeach()
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    message("")
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    add_library(${name} SHARED ${MOD_SRC})
+    set_target_properties(${name} PROPERTIES PREFIX "")
+    if(MSVC)
+        add_custom_command(TARGET ${name} POST_BUILD
+        	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"
+        	COMMENT "Copying ${name}"
+        	VERBATIM)
+        target_link_libraries(${name} ${LIBFKL_TARGET_NAME})
+    else()
+        set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MOD_OUTPUT_DIR}")
+    endif()
+    target_link_libraries(${name} ${MOD_LIB})
+endfunction()
+
+#ht.so
+add_fkl_native_module(ht
+    SRC "src/ht/ht.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #os.so
-add_library(os
-	SHARED
-	"src/os/os.c")
-set_target_properties(os PROPERTIES
-	PREFIX "")
-target_link_libraries(os ${LIBFKL_TARGET_NAME})
-
-set_target_properties(os PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(os
+    SRC "src/os/os.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #math.so
-add_library(math
-	SHARED
-	"src/math/math.c")
-set_target_properties(math PROPERTIES
-	PREFIX "")
-target_link_libraries(math ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
-
-set_target_properties(math PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(math
+    SRC "src/math/math.c"
+    LIB ${LINK_TARGET}
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #sync.so
-add_library(sync
-	SHARED
-	"src/sync/sync.c")
-set_target_properties(sync PROPERTIES
-	PREFIX "")
-target_link_libraries(sync ${LIBFKL_TARGET_NAME})
-
-set_target_properties(sync PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(sync
+    SRC "src/sync/sync.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #fs.so
-add_library(fs
-	SHARED
-	"src/fs/fs.c")
-set_target_properties(fs PROPERTIES
-	PREFIX "")
-target_link_libraries(fs ${LIBFKL_TARGET_NAME})
-
-set_target_properties(fs PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(fs
+    SRC "src/fs/fs.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #bdb.so
 file(GLOB BDB_SOURCE "src/bdb/*.c")
-
-add_library(bdb
-	SHARED
-	${BDB_SOURCE})
-set_target_properties(bdb PROPERTIES
-	PREFIX "")
-target_link_libraries(bdb ${LIBFKL_TARGET_NAME} replxx)
-
-set_target_properties(bdb PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(bdb
+    SRC ${BDB_SOURCE}
+    LIB replxx
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #fuv.so
 file(GLOB FUV_SOURCE "src/fuv/*.c")
-
-add_library(fuv
-	SHARED
-	${FUV_SOURCE})
-set_target_properties(fuv PROPERTIES
-	PREFIX "")
-target_link_libraries(fuv ${LIBFKL_TARGET_NAME})
+add_fkl_native_module(fuv
+    SRC ${FUV_SOURCE}
+    LIB $<$<BOOL:${MSVC}>:ws2_32>
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #buf.so
-add_library(buf
-	SHARED
-	"src/buf/buf.c")
-set_target_properties(buf PROPERTIES
-	PREFIX "")
-target_link_libraries(buf ${LIBFKL_TARGET_NAME})
-
-set_target_properties(buf PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(buf
+    SRC "src/buf/buf.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #dvec.so
-add_library(dvec
-	SHARED
-	"src/dvec/dvec.c")
-set_target_properties(dvec PROPERTIES
-	PREFIX "")
-target_link_libraries(dvec ${LIBFKL_TARGET_NAME})
-
-set_target_properties(dvec PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(dvec
+    SRC "src/dvec/dvec.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #bvec.so
-add_library(bvec
-	SHARED
-	"src/bvec/bvec.c")
-set_target_properties(bvec PROPERTIES
-	PREFIX "")
-target_link_libraries(bvec ${LIBFKL_TARGET_NAME})
-
-set_target_properties(bvec PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
-
-if(MSVC)
-target_link_libraries(fuv ws2_32)
-endif()
-
-set_target_properties(fuv PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+add_fkl_native_module(bvec
+    SRC "src/bvec/bvec.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 if(FANALYZER)
 	set(FANALYZER_OPTIONS "-fanalyzer"
@@ -344,15 +319,9 @@ target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${
 target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
 
 #test-dll
-add_library(test-dll
-	SHARED
-	"main/tests/dll.c")
-set_target_properties(test-dll PROPERTIES
-	PREFIX "")
-target_link_libraries(test-dll ${LIBFKL_TARGET_NAME})
-
-set_target_properties(test-dll PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/tests")
+add_fkl_native_module(test-dll
+    SRC "main/tests/dll.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/tests")
 
 add_custom_command(OUTPUT "parse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
@@ -378,52 +347,6 @@ add_custom_command(OUTPUT "vmparse.c"
 
 # copy dll in windows
 if(MSVC)
-add_custom_command(TARGET test-dll POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:test-dll> ${PROJECT_BINARY_DIR}/tests/
-	COMMENT "Copying test-dll"
-	VERBATIM)
-
-add_custom_command(TARGET ht POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:ht> ${PROJECT_BINARY_DIR}/lib/
-	BYPRODUCTS ${PROJECT_BINARY_DIR}/lib/ht.dll
-	VERBATIM)
-
-add_custom_command(TARGET os POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:os> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET math POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:math> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET sync POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:sync> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET fs POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:fs> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET bdb POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:bdb> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET fuv POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:fuv> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET buf POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:buf> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET dvec POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:dvec> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
-add_custom_command(TARGET bvec POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:bvec> ${PROJECT_BINARY_DIR}/lib/
-	VERBATIM)
-
 # «Â¿Ì
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/lib/")
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")
@@ -448,13 +371,14 @@ add_test(NAME test-pre-compile
 	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre)
 
 message(STATUS "options")
-include(CMakePrintHelpers)
 list(APPEND CMAKE_MESSAGE_INDENT "    ")
 cmake_print_variables(GPROF)
 cmake_print_variables(ASAN)
 cmake_print_variables(TSAN)
 cmake_print_variables(FANALYZER)
 cmake_print_variables(CMAKE_BUILD_TYPE)
+cmake_print_variables(CMAKE_C_COMPILER)
+cmake_print_variables(CMAKE_CXX_COMPILER)
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 message("")
 

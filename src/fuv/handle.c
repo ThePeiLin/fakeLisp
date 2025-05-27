@@ -10,7 +10,7 @@ static void fuv_handle_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-static void fuv_handle_ud_finalizer(FklVMud *ud) {
+static int fuv_handle_ud_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(handle_ud, FuvHandleUd, ud);
     FuvHandle *fuv_handle = *handle_ud;
     if (fuv_handle) {
@@ -20,6 +20,7 @@ static void fuv_handle_ud_finalizer(FklVMud *ud) {
         fuv_handle->data.handle = NULL;
         *handle_ud = NULL;
     }
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_timer_as_print, timer);

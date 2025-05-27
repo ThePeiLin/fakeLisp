@@ -2,9 +2,10 @@
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print, mutex);
 
-static void mutex_finalizer(FklVMud *ud) {
+static int mutex_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(mutex, uv_mutex_t, ud);
     uv_mutex_destroy(mutex);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable MutexUdMetaTable = {
@@ -70,9 +71,10 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print, cond);
 
-static void cond_finalizer(FklVMud *ud) {
+static int cond_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(cond, uv_cond_t, ud);
     uv_cond_destroy(cond);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable CondUdMetaTable = {
@@ -150,9 +152,10 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print, rwlock);
 
-static void rwlock_finalizer(FklVMud *ud) {
+static int rwlock_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(rwlock, uv_rwlock_t, ud);
     uv_rwlock_destroy(rwlock);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable RwlockUdMetaTable = {
@@ -244,9 +247,10 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print, sem);
 
-static void sem_finalizer(FklVMud *ud) {
+static int sem_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(sem, uv_sem_t, ud);
     uv_sem_destroy(sem);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable SemUdMetaTable = {
@@ -308,9 +312,10 @@ static int sync_sem_trywait(FKL_CPROC_ARGL) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print, barrier);
 
-static void barrier_finalizer(FklVMud *ud) {
+static int barrier_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(barrier, uv_barrier_t, ud);
     uv_barrier_destroy(barrier);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable BarrierUdMetaTable = {

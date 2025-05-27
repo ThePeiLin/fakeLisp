@@ -64,9 +64,10 @@ static int ht_equal(const FklVMud *a, const FklVMud *b) {
         return 0;
 }
 
-static void ht_finalizer(FklVMud *ud) {
+static int ht_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(ht, HashTable, ud);
     fklVMvalueHashMapUninit(&ht->ht);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static size_t ht_length(const FklVMud *ud) {

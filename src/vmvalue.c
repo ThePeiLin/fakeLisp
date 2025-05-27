@@ -814,23 +814,32 @@ static inline void uninit_hash_value(FklVMvalue *v) {
 }
 
 void fklDestroyVMvalue(FklVMvalue *cur) {
-    static void (*fkl_value_uniniters[FKL_VM_VALUE_GC_TYPE_NUM])(
-        FklVMvalue *v) = {
-        [FKL_TYPE_F64] = uninit_nothing_value,        // f64
-        [FKL_TYPE_BIGINT] = uninit_nothing_value,     // big-int
-        [FKL_TYPE_STR] = uninit_nothing_value,        // string
-        [FKL_TYPE_VECTOR] = uninit_nothing_value,     // vector
-        [FKL_TYPE_PAIR] = uninit_nothing_value,       // pair
-        [FKL_TYPE_BOX] = uninit_nothing_value,        // box
-        [FKL_TYPE_BYTEVECTOR] = uninit_nothing_value, // bvec
-        [FKL_TYPE_USERDATA] = uninit_ud_value,        // ud
-        [FKL_TYPE_PROC] = uninit_proc_value,          // proc
-        [FKL_TYPE_CPROC] = uninit_nothing_value,      // cproc
-        [FKL_TYPE_HASHTABLE] = uninit_hash_value,     // hash
-        [FKL_TYPE_VAR_REF] = uninit_nothing_value,    // var-ref
-    };
-
-    fkl_value_uniniters[cur->type](cur);
+    switch (cur->type) {
+    case FKL_TYPE_USERDATA:
+        if (fklFinalizeVMud(FKL_VM_UD(cur)) == FKL_VM_UD_FINALIZE_DELAY)
+            return;
+        break;
+    case FKL_TYPE_F64:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_STR:
+    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_PAIR:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_CPROC:
+    case FKL_TYPE_VAR_REF:
+        break;
+    case FKL_TYPE_PROC:
+        free(FKL_VM_PROC(cur)->closure);
+        break;
+    case FKL_TYPE_HASHTABLE:
+        fklVMvalueHashMapUninit(&FKL_VM_HASH(cur)->ht);
+        break;
+    default:
+        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+                __FUNCTION__);
+        abort();
+    }
     free((void *)cur);
 }
 
@@ -1415,9 +1424,10 @@ static void _error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf,
     fklStringBufferPutc(buf, '>');
 }
 
-static void _error_userdata_finalizer(FklVMud *v) {
+static int _error_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(err, FklVMerror, v);
     free(err->message);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable ErrorUserDataMetaTable = {
@@ -1497,9 +1507,10 @@ int fklIsVMvalueChanl(FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &ChanlUserDataMetaTable;
 }
 
-static void _fp_userdata_finalizer(FklVMud *ud) {
+static int _fp_userdata_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(fp, FklVMfp, ud);
     fklUninitVMfp(fp);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void _fp_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf,
@@ -1792,11 +1803,12 @@ FklVMvalue *fklCreateVMvalueHashEqual(FklVM *exe) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_code_obj_userdata_as_print, code - obj);
 
-static void _code_obj_userdata_finalizer(FklVMud *v) {
+static int _code_obj_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     fklDestroyByteCode(t->bc);
     if (t->l)
         free(t->l);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable CodeObjUserDataMetaTable = {
@@ -1824,12 +1836,13 @@ static void _dll_userdata_atomic(const FklVMud *root, FklVMgc *gc) {
     fklVMgcToGray(dll->pd, gc);
 }
 
-static void _dll_userdata_finalizer(FklVMud *v) {
+static int _dll_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(dll, FklVMdll, v);
     void (*uninit)(void) = fklGetAddress("_fklUninit", &dll->dll);
     if (uninit)
         uninit();
     uv_dlclose(&dll->dll);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable DllUserDataMetaTable = {
@@ -2017,12 +2030,6 @@ size_t fklHashvVMud(const FklVMud *a) {
     else
         return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, a->data)
                               >> FKL_UNUSEDBITNUM);
-}
-
-void fklFinalizeVMud(FklVMud *a) {
-    void (*finalize)(FklVMud *) = a->t->__finalizer;
-    if (finalize)
-        finalize(a);
 }
 
 void *fklVMvalueTerminalCreate(const char *s, size_t len, size_t line,

@@ -44,7 +44,7 @@ static void fuv_close_loop_walk_cb(uv_handle_t *handle, void *arg) {
         uv_close(handle, fuvCloseLoopHandleCb);
 }
 
-static void fuv_loop_finalizer(FklVMud *ud) {
+static int fuv_loop_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
     if (fuvLoopIsClosed(fuv_loop))
         goto closed;
@@ -53,6 +53,7 @@ static void fuv_loop_finalizer(FklVMud *ud) {
         uv_run(&fuv_loop->loop, UV_RUN_DEFAULT);
 closed:
     fklVMvalueHashSetUninit(&fuv_loop->data.gc_values);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable FuvLoopMetaTable = {

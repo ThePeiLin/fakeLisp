@@ -1486,27 +1486,6 @@ void fklDBG_printVMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
     fklPrin1VMvalue(v, fp, gc);
 }
 
-void fklDestroyAllValues(FklVMgc *gc) {
-    FklVMvalue **phead = &gc->head;
-    FklVMvalue *destroyDll = NULL;
-    while (*phead != NULL) {
-        FklVMvalue *cur = *phead;
-        *phead = cur->next;
-        if (fklIsVMvalueDll(cur)) {
-            cur->next = destroyDll;
-            destroyDll = cur;
-        } else
-            fklDestroyVMvalue(cur);
-        atomic_fetch_sub(&gc->num, 1);
-    }
-    phead = &destroyDll;
-    while (*phead != NULL) {
-        FklVMvalue *cur = *phead;
-        *phead = cur->next;
-        fklDestroyVMvalue(cur);
-    }
-}
-
 static inline FklVMlib *copy_vm_libs(FklVMlib *libs, size_t libNum) {
     FklVMlib *r = fklCopyMemory(libs, libNum * sizeof(FklVMlib));
     for (size_t i = 0; i < libNum; i++)

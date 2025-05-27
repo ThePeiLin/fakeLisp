@@ -32,9 +32,10 @@ void uninitFuvReqValue(FklVMvalue *v) {
     uninitFuvReq(req_ud);
 }
 
-static void fuv_req_ud_finalizer(FklVMud *ud) {
+static int fuv_req_ud_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(req_ud, FuvReqUd, ud);
     uninitFuvReq(req_ud);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print, getaddrinfo);

@@ -36,9 +36,10 @@ static uintptr_t _dvec_hash(const FklVMud *ud) {
     return seed;
 }
 
-static void _dvec_finalizer(FklVMud *ud) {
+static int _dvec_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(vec, FklVMvalueVector, ud);
     fklVMvalueVectorUninit(vec);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static int _dvec_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *base) {

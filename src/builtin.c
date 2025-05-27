@@ -1951,9 +1951,10 @@ static inline int isVMfpWritable(const FklVMvalue *fp) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print, parser);
 
-static void custom_parser_finalizer(FklVMud *p) {
+static int custom_parser_finalizer(FklVMud *p) {
     FKL_DECL_UD_DATA(grammer, FklGrammer, p);
     fklUninitGrammer(grammer);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {

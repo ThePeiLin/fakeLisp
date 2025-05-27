@@ -2,9 +2,10 @@
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, dir);
 
-static void fuv_dir_finalizer(FklVMud *ud) {
+static int fuv_dir_finalizer(FklVMud *ud) {
     FKL_DECL_UD_DATA(dir, FuvDirUd, ud);
     unrefFuvDir(*dir);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable FuvDirUdMetaTable = {

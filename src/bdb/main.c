@@ -45,10 +45,11 @@ static void debug_ctx_atomic(const FklVMud *ud, FklVMgc *gc) {
     markBreakpointCondExpObj(debug_ctx->ctx, gc);
 }
 
-static void debug_ctx_finalizer(FklVMud *data) {
+static int debug_ctx_finalizer(FklVMud *data) {
     FKL_DECL_UD_DATA(ud_ctx, DebugUdCtx, data);
     DebugCtx *dctx = ud_ctx->ctx;
     destroyDebugCtx(dctx);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable DebugCtxUdMetaTable = {

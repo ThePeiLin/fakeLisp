@@ -146,20 +146,10 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
 
 void fklVMgcSweep(FklVMvalue *head) {
     FklVMvalue **phead = &head;
-    FklVMvalue *destroyDll = NULL;
     while (*phead) {
         FklVMvalue *cur = *phead;
         *phead = cur->next;
-        if (fklIsVMvalueDll(cur)) {
-            cur->next = destroyDll;
-            destroyDll = cur;
-        } else
-            fklDestroyVMvalue(cur);
-    }
-    phead = &destroyDll;
-    while (*phead != NULL) {
-        FklVMvalue *cur = *phead;
-        *phead = cur->next;
+        cur->next = NULL;
         fklDestroyVMvalue(cur);
     }
 }
@@ -420,7 +410,8 @@ void fklDestroyVMgc(FklVMgc *gc) {
     destroy_extra_mark_list(gc->extra_mark_list);
     destroy_argv(gc);
     destroy_all_locv_cache(gc);
-    fklDestroyAllValues(gc);
+    fklVMgcSweep(gc->head);
+    gc->head = NULL;
     uninit_vm_queue(&gc->q);
     free(gc->ki64);
     free(gc->kf64);

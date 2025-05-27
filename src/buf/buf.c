@@ -11,9 +11,10 @@ static int strbuf_equal(const FklVMud *a, const FklVMud *b) {
         && !memcmp(bufa->buf, bufb->buf, bufa->index);
 }
 
-static void strbuf_finalizer(FklVMud *p) {
+static int strbuf_finalizer(FklVMud *p) {
     FKL_DECL_UD_DATA(buf, FklStringBuffer, p);
     fklUninitStringBuffer(buf);
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void strbuf_as_prin1(const FklVMud *ud, FklStringBuffer *buf,

@@ -467,13 +467,16 @@ typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
 typedef int (*FklVMudAppender)(FklVMud *, uint32_t argc,
                                FklVMvalue *const *base);
 
+#define FKL_VM_UD_FINALIZE_NOW (0)
+#define FKL_VM_UD_FINALIZE_DELAY (1)
+
 typedef struct FklVMudMetaTable {
     size_t size;
     void (*__as_princ)(const FklVMud *, FklStringBuffer *buf,
                        struct FklVMgc *gc);
     void (*__as_prin1)(const FklVMud *, FklStringBuffer *buf,
                        struct FklVMgc *gc);
-    void (*__finalizer)(FklVMud *);
+    int (*__finalizer)(FklVMud *);
     int (*__equal)(const FklVMud *, const FklVMud *);
     void (*__call)(FklVMvalue *, FklVM *);
     int (*__cmp)(const FklVMud *, const FklVMvalue *, int *);
@@ -758,8 +761,6 @@ void fklDeleteCallChain(FklVM *);
 
 FklGCstate fklGetGCstate(FklVMgc *);
 void fklVMgcToGray(FklVMvalue *, FklVMgc *);
-
-void fklDestroyAllValues(FklVMgc *);
 
 void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
 void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVMgc *gc);
@@ -1215,7 +1216,13 @@ int fklIsAbleToStringUd(const FklVMud *);
 int fklIsAbleAsPrincUd(const FklVMud *);
 int fklUdHasLength(const FklVMud *);
 
-void fklFinalizeVMud(FklVMud *);
+static inline int fklFinalizeVMud(FklVMud *a) {
+    int (*finalize)(FklVMud *) = a->t->__finalizer;
+    if (finalize)
+        return finalize(a);
+    return 0;
+}
+
 int fklEqualVMud(const FklVMud *, const FklVMud *);
 void fklCallVMud(const FklVMud *, const FklVMud *);
 int fklCmpVMud(const FklVMud *, const FklVMvalue *, int *);

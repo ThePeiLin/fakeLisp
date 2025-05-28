@@ -8,11 +8,6 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, "loop");
 
 static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
-    for (FklVMvalueHashSetNode *l = fuv_loop->data.gc_values.first; l;
-         l = l->next) {
-        FklVMvalue *v = FKL_REMOVE_CONST(FklVMvalue, l->k);
-        fklVMgcToGray(v, gc);
-    }
     struct FuvErrorRecoverData *rd = &fuv_loop->data.error_recover_data;
     for (FklVMframe *frame = rd->frame; frame; frame = frame->prev)
         fklDoAtomicFrame(frame, gc);
@@ -27,13 +22,8 @@ static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
 
 void fuvCloseLoopHandleCb(uv_handle_t *handle) {
     FuvHandle *fuv_handle = uv_handle_get_data(handle);
-    FuvHandleData *hdata = &fuv_handle->data;
-    FklVMvalue *handle_obj = hdata->handle;
-    free(fuv_handle);
-    if (handle_obj) {
-        FKL_DECL_VM_UD_DATA(fuv_handle_ud, FuvHandleUd, handle_obj);
-        *fuv_handle_ud = NULL;
-    }
+    fuv_handle->data.loop = NULL;
+    return;
 }
 
 static void fuv_close_loop_walk_cb(uv_handle_t *handle, void *arg) {
@@ -57,7 +47,6 @@ static int fuv_loop_finalizer(FklVMud *ud) {
 closed:
     fklVMgcSweep(fuv_loop->data.gclist);
     fuv_loop->data.gclist = NULL;
-    fklVMvalueHashSetUninit(&fuv_loop->data.gc_values);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -113,7 +102,6 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
         *err = r;
         return NULL;
     }
-    fklVMvalueHashSetInit(&fuv_loop->data.gc_values);
     uv_loop_set_data(&fuv_loop->loop, &fuv_loop->data);
     uv_handle_set_data((uv_handle_t *)&fuv_loop->data.error_check_idle,
                        fuv_loop);
@@ -160,18 +148,6 @@ void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
 
 int isFuvLoop(FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &FuvLoopMetaTable;
-}
-
-void fuvLoopInsertFuvObj(FklVMvalue *loop_obj, FklVMvalue *v) {
-    FKL_ASSERT(isFuvLoop(loop_obj));
-    FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
-    fklVMvalueHashSetPut2(&loop->data.gc_values, v);
-}
-
-void fuvLoopRemoveFuvObj(FklVMvalue *loop_obj, FklVMvalue *v) {
-    FKL_ASSERT(isFuvLoop(loop_obj));
-    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
-    fklVMvalueHashSetDel2(&fuv_loop->data.gc_values, v);
 }
 
 void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {

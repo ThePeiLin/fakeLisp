@@ -16,19 +16,19 @@
     return 0;
 
 #define CHECK_HANDLE_CLOSED(H, EXE, PD)                                        \
-    if ((H) == NULL)                                                           \
+    if (isFuvHandleClosed((H)))                                                \
     raiseFuvError(FUV_ERR_HANDLE_CLOSED, (EXE), (PD))
 
 #define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))
 
 #define DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(NAME, OBJ, EXE, PD)                \
-    FKL_DECL_VM_UD_DATA((NAME), FuvHandleUd, (OBJ));                           \
-    CHECK_HANDLE_CLOSED(*(NAME), (EXE), (PD))
+    FKL_DECL_VM_UD_DATA((NAME), FuvHandle, (OBJ));                             \
+    CHECK_HANDLE_CLOSED((NAME), (EXE), (PD))
 
 #define GET_REQ(FUV_REQ) (&((FUV_REQ)->req))
 
 #define CHECK_REQ_CANCELED(R, EXE, PD)                                         \
-    if ((R)->data.loop == NULL)                                                \
+    if (isFuvReqCanceled((R)))                                                 \
     raiseFuvError(FUV_ERR_REQ_CANCELED, (EXE), (PD))
 
 #define CHECK_UV_RESULT(R, EXE, PD)                                            \
@@ -55,23 +55,14 @@ static inline void cleanup_handle(FklVMvalue *handle_obj,
                                   FklVMvalue *loop_obj) {
     if (handle_obj == NULL)
         return;
-    FKL_DECL_VM_UD_DATA(handle_ud, FuvHandleUd, handle_obj);
-    FuvHandle *fuv_handle = *handle_ud;
+    FKL_DECL_VM_UD_DATA(fuv_handle, FuvHandle, handle_obj);
     FuvHandleData *hdata = &fuv_handle->data;
     hdata->callbacks[0] = NULL;
     hdata->callbacks[1] = NULL;
     if (uv_handle_get_loop(&fuv_handle->handle)) {
         uv_close(&fuv_handle->handle, fuvCloseLoopHandleCb);
-    } else {
-        FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
-        FuvLoopData *ldata = &fuv_loop->data;
+    } else
         hdata->loop = NULL;
-        free(fuv_handle);
-        if (handle_obj) {
-            fklVMvalueHashSetDel2(&ldata->gc_values, handle_obj);
-            *handle_ud = NULL;
-        }
-    }
 }
 
 static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
@@ -611,10 +602,9 @@ static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
     exe->state = FKL_VM_READY;
     FklVMframe *buttom_frame = exe->top_frame;
     FuvHandle *fuv_handle = uv_handle_get_data(handle);
-    FuvHandleData *handle_data = &fuv_handle->data;
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, proc);
-    FKL_VM_PUSH_VALUE(exe, handle_data->handle);
+    FKL_VM_PUSH_VALUE(exe, FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(fuv_handle)));
     fklCallObj(exe, proc);
     if (exe->thread_run_cb(exe, buttom_frame))
         walk_ctx->ev = FKL_VM_GET_TOP_VALUE(exe);
@@ -809,8 +799,8 @@ static int fuv_handle_active_p(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx,
-                     uv_is_active(GET_HANDLE(*fuv_handle)) ? FKL_VM_TRUE
-                                                           : FKL_VM_NIL);
+                     uv_is_active(GET_HANDLE(fuv_handle)) ? FKL_VM_TRUE
+                                                          : FKL_VM_NIL);
     return 0;
 }
 
@@ -820,8 +810,8 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx,
-                     uv_is_closing(GET_HANDLE(*fuv_handle)) ? FKL_VM_TRUE
-                                                            : FKL_VM_NIL);
+                     uv_is_closing(GET_HANDLE(fuv_handle)) ? FKL_VM_TRUE
+                                                           : FKL_VM_NIL);
     return 0;
 }
 
@@ -855,14 +845,7 @@ static void fuv_close_cb(uv_handle_t *handle) {
     FuvHandle *fuv_handle = uv_handle_get_data(handle);
     FuvHandleData *hdata = &fuv_handle->data;
     fuv_call_handle_callback_in_loop(handle, hdata, loop, ldata, 1);
-    FklVMvalue *handle_obj = hdata->handle;
     hdata->loop = NULL;
-    free(fuv_handle);
-    if (handle_obj) {
-        fklVMvalueHashSetDel2(&ldata->gc_values, handle_obj);
-        FKL_DECL_VM_UD_DATA(fuv_handle_ud, FuvHandleUd, handle_obj);
-        *fuv_handle_ud = NULL;
-    }
 }
 
 static int fuv_handle_close(FKL_CPROC_ARGL) {
@@ -870,8 +853,7 @@ static int fuv_handle_close(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *proc_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     uv_handle_t *hh = GET_HANDLE(handle);
     if (uv_is_closing(hh))
         raiseFuvError(FUV_ERR_CLOSE_CLOSEING_HANDLE, exe, ctx->pd);
@@ -888,8 +870,7 @@ static int fuv_handle_ref_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx,
                      uv_has_ref(GET_HANDLE(handle)) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
@@ -899,8 +880,7 @@ static int fuv_handle_ref(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     uv_ref(GET_HANDLE(handle));
     FKL_CPROC_RETURN(exe, ctx, handle_obj);
     return 0;
@@ -910,8 +890,7 @@ static int fuv_handle_unref(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     uv_unref(GET_HANDLE(handle));
     FKL_CPROC_RETURN(exe, ctx, handle_obj);
     return 0;
@@ -922,8 +901,7 @@ static int fuv_handle_send_buffer_size(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *value_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     int value = 0;
     if (value_obj) {
         FKL_CHECK_TYPE(value_obj, fklIsVMint, exe);
@@ -940,8 +918,7 @@ static int fuv_handle_recv_buffer_size(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *value_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     int value = 0;
     if (value_obj) {
         FKL_CHECK_TYPE(value_obj, fklIsVMint, exe);
@@ -957,8 +934,7 @@ static int fuv_handle_fileno(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     uv_os_fd_t fd = 0;
     int r = uv_fileno(GET_HANDLE(handle), &fd);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -970,8 +946,7 @@ static int fuv_handle_type(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     uv_handle_type type_id = uv_handle_get_type(GET_HANDLE(handle));
     const char *name = uv_handle_type_name(type_id);
     FKL_CPROC_RETURN(
@@ -987,8 +962,7 @@ static int fuv_handle_loop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FuvHandle *handle = *fuv_handle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, handle->data.loop);
     return 0;
 }
@@ -1031,10 +1005,9 @@ static int fuv_timer_start(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     uint64_t timeout = fklVMgetUint(timeout_obj);
     uint64_t repeat = fklVMgetUint(repeat_obj);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *timer;
-    fuv_handle->data.callbacks[0] = timer_cb;
-    int r = uv_timer_start((uv_timer_t *)GET_HANDLE(fuv_handle), fuv_timer_cb,
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = timer_cb;
+    int r = uv_timer_start((uv_timer_t *)GET_HANDLE(handle), fuv_timer_cb,
                            timeout, repeat);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, timer_obj);
@@ -1045,8 +1018,7 @@ static int fuv_timer_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
-    FuvHandle *handle = *timer;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
     int r = uv_timer_stop((uv_timer_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, timer_obj);
@@ -1057,8 +1029,7 @@ static int fuv_timer_again(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
-    FuvHandle *handle = *timer;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
     int r = uv_timer_again((uv_timer_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, timer_obj);
@@ -1069,8 +1040,7 @@ static int fuv_timer_repeat(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
-    FuvHandle *handle = *timer;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(
         exe, ctx,
         fklMakeVMuint(uv_timer_get_repeat((uv_timer_t *)GET_HANDLE(handle)),
@@ -1084,8 +1054,7 @@ static int fuv_timer_repeat_set1(FKL_CPROC_ARGL) {
     FklVMvalue *repeat_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     FKL_CHECK_TYPE(repeat_obj, fklIsVMint, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
-    FuvHandle *handle = *timer;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
     if (fklIsVMnumberLt0(repeat_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     uv_timer_set_repeat((uv_timer_t *)GET_HANDLE(handle),
@@ -1098,8 +1067,7 @@ static int fuv_timer_due_in(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(timer, timer_obj, exe, ctx->pd);
-    FuvHandle *handle = *timer;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(
         exe, ctx,
         fklMakeVMuint(uv_timer_get_due_in((uv_timer_t *)GET_HANDLE(handle)),
@@ -1135,11 +1103,10 @@ static int fuv_prepare_start(FKL_CPROC_ARGL) {
     FklVMvalue *prepare_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(prepare_obj, isFuvPrepare, exe);
     FKL_CHECK_TYPE(prepare_cb, fklIsCallable, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(prepare, prepare_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *prepare;
-    fuv_handle->data.callbacks[0] = prepare_cb;
-    int r = uv_prepare_start((uv_prepare_t *)GET_HANDLE(fuv_handle),
-                             fuv_prepare_cb);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, prepare_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = prepare_cb;
+    int r =
+        uv_prepare_start((uv_prepare_t *)GET_HANDLE(handle), fuv_prepare_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, prepare_obj);
     return 0;
@@ -1149,8 +1116,7 @@ static int fuv_prepare_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *prepare_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(prepare_obj, isFuvPrepare, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(prepare, prepare_obj, exe, ctx->pd);
-    FuvHandle *handle = *prepare;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, prepare_obj, exe, ctx->pd);
     int r = uv_prepare_stop((uv_prepare_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, prepare_obj);
@@ -1185,10 +1151,9 @@ static int fuv_idle_start(FKL_CPROC_ARGL) {
     FklVMvalue *idle_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(idle_obj, isFuvIdle, exe);
     FKL_CHECK_TYPE(idle_cb, fklIsCallable, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(idle, idle_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *idle;
-    fuv_handle->data.callbacks[0] = idle_cb;
-    int r = uv_idle_start((uv_idle_t *)GET_HANDLE(fuv_handle), fuv_idle_cb);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, idle_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = idle_cb;
+    int r = uv_idle_start((uv_idle_t *)GET_HANDLE(handle), fuv_idle_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, idle_obj);
     return 0;
@@ -1198,8 +1163,7 @@ static int fuv_idle_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *idle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(idle_obj, isFuvIdle, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(idle, idle_obj, exe, ctx->pd);
-    FuvHandle *handle = *idle;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, idle_obj, exe, ctx->pd);
     int r = uv_idle_stop((uv_idle_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, idle_obj);
@@ -1234,10 +1198,9 @@ static int fuv_check_start(FKL_CPROC_ARGL) {
     FklVMvalue *check_cb = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(check_obj, isFuvCheck, exe);
     FKL_CHECK_TYPE(check_cb, fklIsCallable, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(check, check_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *check;
-    fuv_handle->data.callbacks[0] = check_cb;
-    int r = uv_check_start((uv_check_t *)GET_HANDLE(fuv_handle), fuv_check_cb);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, check_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = check_cb;
+    int r = uv_check_start((uv_check_t *)GET_HANDLE(handle), fuv_check_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, check_obj);
     return 0;
@@ -1247,8 +1210,7 @@ static int fuv_check_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *check_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(check_obj, isFuvCheck, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(check, check_obj, exe, ctx->pd);
-    FuvHandle *handle = *check;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, check_obj, exe, ctx->pd);
     int r = uv_check_stop((uv_check_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, check_obj);
@@ -1343,11 +1305,10 @@ static int fuv_signal_start(FKL_CPROC_ARGL) {
     if (signum <= 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
 
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(signal, signal_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *signal;
-    fuv_handle->data.callbacks[0] = signal_cb;
-    int r = uv_signal_start((uv_signal_t *)GET_HANDLE(fuv_handle),
-                            fuv_signal_cb, signum);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = signal_cb;
+    int r = uv_signal_start((uv_signal_t *)GET_HANDLE(handle), fuv_signal_cb,
+                            signum);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, signal_obj);
     return 0;
@@ -1371,10 +1332,9 @@ static int fuv_signal_start_oneshot(FKL_CPROC_ARGL) {
     if (signum <= 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
 
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(signal, signal_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *signal;
-    fuv_handle->data.callbacks[0] = signal_cb;
-    int r = uv_signal_start_oneshot((uv_signal_t *)GET_HANDLE(fuv_handle),
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = signal_cb;
+    int r = uv_signal_start_oneshot((uv_signal_t *)GET_HANDLE(handle),
                                     fuv_signal_cb, signum);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, signal_obj);
@@ -1385,8 +1345,7 @@ static int fuv_signal_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *signal_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(signal_obj, isFuvSignal, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(signal, signal_obj, exe, ctx->pd);
-    FuvHandle *handle = *signal;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
     int r = uv_signal_stop((uv_signal_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, signal_obj);
@@ -1413,8 +1372,7 @@ static int fuv_async_send(FKL_CPROC_ARGL) {
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *async_obj = arg_base[0];
     FKL_CHECK_TYPE(async_obj, isFuvAsync, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(async, async_obj, exe, ctx->pd);
-    FuvHandle *handle = *async;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, async_obj, exe, ctx->pd);
     struct FuvAsync *async_handle = (struct FuvAsync *)handle;
     if (!atomic_flag_test_and_set(&async_handle->send_ready)) {
         struct FuvAsyncExtraData extra = {
@@ -1762,7 +1720,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(
     FuvReq *fuv_req = uv_req_get_data(FKL_TYPE_CAST(uv_req_t *, req));
     FklVMvalue *proc = fuv_req->data.callback;
     FuvReqData *rdata = &fuv_req->data;
-    if (fuv_req->data.loop == NULL)
+    if (isFuvReqCanceled(fuv_req))
         return;
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, rdata->loop);
     FuvLoopData *ldata = &fuv_loop->data;
@@ -2206,13 +2164,13 @@ get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
                         containers[i].data.fd = fd;
                         containers[i].flags = UV_INHERIT_FD;
                     } else if (isFuvStream(stream)) {
-                        FKL_DECL_VM_UD_DATA(s, FuvHandleUd, stream);
-                        if (*s == NULL) {
+                        FKL_DECL_VM_UD_DATA(s, FuvHandle, stream);
+                        if (isFuvHandleClosed(s)) {
                             *fuv_err = FUV_ERR_HANDLE_CLOSED;
                             return 0;
                         }
                         uv_os_fd_t fd;
-                        uv_stream_t *ss = (uv_stream_t *)GET_HANDLE(*s);
+                        uv_stream_t *ss = (uv_stream_t *)GET_HANDLE(s);
                         int err = uv_fileno((uv_handle_t *)ss, &fd);
                         if (err) {
                             int flags = UV_CREATE_PIPE;
@@ -2404,7 +2362,7 @@ static int fuv_process_kill(FKL_CPROC_ARGL) {
     if (signum <= 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(process_ud, process_obj, exe, ctx->pd);
-    uv_process_t *process = (uv_process_t *)&(*process_ud)->handle;
+    uv_process_t *process = (uv_process_t *)GET_HANDLE(process_ud);
     int r = uv_process_kill(process, signum);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -2417,7 +2375,7 @@ static int fuv_process_pid(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(process_obj, isFuvProcess, exe);
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(process_ud, process_obj, exe, ctx->pd);
-    uv_process_t *process = (uv_process_t *)GET_HANDLE(*process_ud);
+    uv_process_t *process = (uv_process_t *)GET_HANDLE(process_ud);
     int r = uv_process_get_pid(process);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(r));
@@ -2431,7 +2389,7 @@ static int fuv_stream_readable_p(FKL_CPROC_ARGL) {
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     FKL_CPROC_RETURN(exe, ctx,
                      uv_is_readable(stream) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
@@ -2442,7 +2400,7 @@ static int fuv_stream_writable_p(FKL_CPROC_ARGL) {
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     FKL_CPROC_RETURN(exe, ctx,
                      uv_is_writable(stream) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
@@ -2453,7 +2411,7 @@ static int fuv_stream_write_queue_size(FKL_CPROC_ARGL) {
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     uint64_t size = uv_stream_get_write_queue_size(stream);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(size, exe));
     return 0;
@@ -2522,8 +2480,7 @@ static int fuv_stream_read_start(FKL_CPROC_ARGL) {
     FklVMvalue *cb_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    FuvHandle *handle = *stream_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, stream_obj, exe, ctx->pd);
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(handle);
     handle->data.callbacks[0] = cb_obj;
     int ret = uv_read_start(stream, fuv_alloc_cb, fuv_read_cb);
@@ -2537,7 +2494,7 @@ static int fuv_stream_read_stop(FKL_CPROC_ARGL) {
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     int ret = uv_read_stop(stream);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, stream_obj);
@@ -2603,8 +2560,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
         cb_obj = NULL;
     else if (!fklIsCallable(cb_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    FuvHandle *handle = *stream_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, stream_obj, exe, ctx->pd);
     FklVMvalue *write_obj = NULL;
     uv_write_t *write = NULL;
     FklVMvalue *send_handle_obj =
@@ -2626,7 +2582,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
                                             exe, ctx->pd);
         ret =
             uv_write2(write, stream, bufs, buf_count,
-                      (uv_stream_t *)GET_HANDLE(*send_handle_ud), fuv_write_cb);
+                      (uv_stream_t *)GET_HANDLE(send_handle_ud), fuv_write_cb);
     } else
         ret = uv_write(write, stream, bufs, buf_count, fuv_write_cb);
     free(bufs);
@@ -2676,13 +2632,13 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     int ret = 0;
     if (send_handle_obj) {
         DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(send_handle_ud, send_handle_obj,
                                             exe, ctx->pd);
         ret = uv_try_write2(stream, bufs, buf_count,
-                            (uv_stream_t *)GET_HANDLE(*send_handle_ud));
+                            (uv_stream_t *)GET_HANDLE(send_handle_ud));
     } else
         ret = uv_try_write(stream, bufs, buf_count);
     free(bufs);
@@ -2703,12 +2659,11 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL) {
     if (cb_obj)
         FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    FuvHandle *handle = *stream_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, stream_obj, exe, ctx->pd);
     FklVMvalue *shutdown_obj = NULL;
     uv_shutdown_t *write = createFuvShutdown(exe, &shutdown_obj, ctx->proc,
                                              handle->data.loop, cb_obj);
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(handle);
     int ret = uv_shutdown(write, stream, fuv_shutdown_cb);
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(shutdown_obj), exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, shutdown_obj);
@@ -2755,8 +2710,7 @@ static int fuv_stream_listen(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(backlog_obj, FKL_IS_FIX, exe);
     FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
 
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(server_ud, server_obj, exe, ctx->pd);
-    FuvHandle *handle = *server_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, server_obj, exe, ctx->pd);
     uv_stream_t *server = (uv_stream_t *)GET_HANDLE(handle);
 
     handle->data.callbacks[0] = cb_obj;
@@ -2774,10 +2728,10 @@ static int fuv_stream_accept(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(client_obj, isFuvStream, exe);
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(server_ud, server_obj, exe, ctx->pd);
-    uv_stream_t *server = (uv_stream_t *)GET_HANDLE(*server_ud);
+    uv_stream_t *server = (uv_stream_t *)GET_HANDLE(server_ud);
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(client_ud, client_obj, exe, ctx->pd);
-    uv_stream_t *client = (uv_stream_t *)GET_HANDLE(*client_ud);
+    uv_stream_t *client = (uv_stream_t *)GET_HANDLE(client_ud);
 
     int ret = uv_accept(server, client);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
@@ -2791,7 +2745,7 @@ static int fuv_stream_blocking_set1(FKL_CPROC_ARGL) {
     FklVMvalue *set_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
-    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(*stream_ud);
+    uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     int ret = uv_stream_set_blocking(stream, set_obj == FKL_VM_NIL ? 0 : 1);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, stream_obj);
@@ -2840,8 +2794,8 @@ static int fuv_pipe_open(FKL_CPROC_ARGL) {
     FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    struct FuvPipe *handle = (struct FuvPipe *)*handle_ud;
-    uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
+    FuvPipe *handle = FKL_TYPE_CAST(FuvPipe *, handle_ud);
+    uv_pipe_t *pipe = GET_HANDLE(handle);
     int ret = 0;
     if (fklIsVMvalueFp(fd_obj)) {
         handle->fp = fd_obj;
@@ -2862,8 +2816,7 @@ static int fuv_pipe_bind(FKL_CPROC_ARGL) {
     FklVMvalue *no_truncate = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     FKL_CHECK_TYPE(name_obj, FKL_IS_STR, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     FklString *str = FKL_VM_STR(name_obj);
     int flags =
@@ -2891,8 +2844,7 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     FKL_CHECK_TYPE(name_obj, FKL_IS_STR, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     FklVMvalue *connect_obj = NULL;
     uv_connect_t *connect = createFuvConnect(exe, &connect_obj, ctx->proc,
@@ -2913,8 +2865,7 @@ static int fuv_pipe_chmod(FKL_CPROC_ARGL) {
     FklVMvalue *flags_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     FKL_CHECK_TYPE(flags_obj, FKL_IS_STR, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     int flags = 0;
     FklString *str = FKL_VM_STR(flags_obj);
@@ -2944,7 +2895,7 @@ static int fuv_pipe_peername(FKL_CPROC_ARGL) {
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
     int ret =
-        uv_pipe_getpeername((uv_pipe_t *)GET_HANDLE(*handle_ud), buf, &len);
+        uv_pipe_getpeername((uv_pipe_t *)GET_HANDLE(handle_ud), buf, &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
@@ -2958,7 +2909,7 @@ static int fuv_pipe_sockname(FKL_CPROC_ARGL) {
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
     int ret =
-        uv_pipe_getsockname((uv_pipe_t *)GET_HANDLE(*handle_ud), buf, &len);
+        uv_pipe_getsockname((uv_pipe_t *)GET_HANDLE(handle_ud), buf, &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
@@ -2968,8 +2919,7 @@ static int fuv_pipe_pending_count(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     int ret = uv_pipe_pending_count(pipe);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(ret));
@@ -2980,8 +2930,7 @@ static int fuv_pipe_pending_type(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *pipe_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     uv_handle_type type_id = uv_pipe_pending_type(pipe);
     const char *name = uv_handle_type_name(type_id);
@@ -3000,8 +2949,7 @@ static int fuv_pipe_pending_instances(FKL_CPROC_ARGL) {
     FklVMvalue *count_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pipe_obj, isFuvPipe, exe);
     FKL_CHECK_TYPE(count_obj, FKL_IS_FIX, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, pipe_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     uv_pipe_pending_instances(pipe, FKL_GET_FIX(count_obj));
     FKL_CPROC_RETURN(exe, ctx, pipe_obj);
@@ -3056,7 +3004,7 @@ static int fuv_tcp_open(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(sock_obj, fklIsVMint, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     uv_os_sock_t sock = fklVMgetInt(sock_obj);
-    int r = uv_tcp_open((uv_tcp_t *)GET_HANDLE(*handle_ud), sock);
+    int r = uv_tcp_open((uv_tcp_t *)GET_HANDLE(handle_ud), sock);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
     return 0;
@@ -3069,7 +3017,7 @@ static int fuv_tcp_nodelay(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     int enable = enable_obj != FKL_VM_NIL;
-    int r = uv_tcp_nodelay((uv_tcp_t *)GET_HANDLE(*handle_ud), enable);
+    int r = uv_tcp_nodelay((uv_tcp_t *)GET_HANDLE(handle_ud), enable);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
     return 0;
@@ -3092,7 +3040,7 @@ static int fuv_tcp_keepalive(FKL_CPROC_ARGL) {
         delay = FKL_GET_FIX(delay_obj);
     } else if (delay_obj)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
-    int r = uv_tcp_keepalive((uv_tcp_t *)GET_HANDLE(*handle_ud), enable, delay);
+    int r = uv_tcp_keepalive((uv_tcp_t *)GET_HANDLE(handle_ud), enable, delay);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
     return 0;
@@ -3106,7 +3054,7 @@ static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     int enable = enable_obj != FKL_VM_NIL;
     int r =
-        uv_tcp_simultaneous_accepts((uv_tcp_t *)GET_HANDLE(*handle_ud), enable);
+        uv_tcp_simultaneous_accepts((uv_tcp_t *)GET_HANDLE(handle_ud), enable);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
     return 0;
@@ -3155,7 +3103,7 @@ static int fuv_tcp_sockname(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
-    int ret = uv_tcp_getsockname((uv_tcp_t *)GET_HANDLE(*handle_ud),
+    int ret = uv_tcp_getsockname((uv_tcp_t *)GET_HANDLE(handle_ud),
                                  (struct sockaddr *)&addr, &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
@@ -3169,7 +3117,7 @@ static int fuv_tcp_peername(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
-    int ret = uv_tcp_getpeername((uv_tcp_t *)GET_HANDLE(*handle_ud),
+    int ret = uv_tcp_getpeername((uv_tcp_t *)GET_HANDLE(handle_ud),
                                  (struct sockaddr *)&addr, &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
@@ -3194,7 +3142,7 @@ static int fuv_tcp_bind(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     unsigned int flags =
         ipv6only_obj && ipv6only_obj != FKL_VM_NIL ? UV_TCP_IPV6ONLY : 0;
-    int ret = uv_tcp_bind((uv_tcp_t *)GET_HANDLE(*handle_ud),
+    int ret = uv_tcp_bind((uv_tcp_t *)GET_HANDLE(handle_ud),
                           (struct sockaddr *)&addr, flags);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
@@ -3218,12 +3166,11 @@ static int fuv_tcp_connect(FKL_CPROC_ARGL) {
     if (uv_ip4_addr(host, port, (struct sockaddr_in *)&addr)
         && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, tcp_obj, exe, ctx->pd);
     FklVMvalue *connect_obj = NULL;
     uv_connect_t *connect = createFuvConnect(exe, &connect_obj, ctx->proc,
                                              handle->data.loop, cb_obj);
-    int ret = uv_tcp_connect(connect, (uv_tcp_t *)GET_HANDLE(*handle_ud),
+    int ret = uv_tcp_connect(connect, (uv_tcp_t *)GET_HANDLE(handle),
                              (struct sockaddr *)&addr, fuv_connect_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, connect_obj);
@@ -3235,8 +3182,7 @@ static int fuv_tcp_close_reset(FKL_CPROC_ARGL) {
     FklVMvalue *tcp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *proc_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
-    FuvHandle *handle = *handle_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, tcp_obj, exe, ctx->pd);
     uv_tcp_t *tcp = (uv_tcp_t *)GET_HANDLE(handle);
     if (proc_obj) {
         FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
@@ -3337,7 +3283,7 @@ static int fuv_tty_mode_set1(FKL_CPROC_ARGL) {
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
 
-    int r = uv_tty_set_mode((uv_tty_t *)GET_HANDLE(*handle_ud), mode);
+    int r = uv_tty_set_mode((uv_tty_t *)GET_HANDLE(handle_ud), mode);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tty_obj);
     return 0;
@@ -3351,7 +3297,7 @@ static int fuv_tty_winsize(FKL_CPROC_ARGL) {
     int width = 0;
     int height = 0;
     int r =
-        uv_tty_get_winsize((uv_tty_t *)GET_HANDLE(*handle_ud), &width, &height);
+        uv_tty_get_winsize((uv_tty_t *)GET_HANDLE(handle_ud), &width, &height);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx,
                      fklCreateVMvaluePair(exe, FKL_MAKE_VM_FIX(width),
@@ -3459,7 +3405,7 @@ static int fuv_udp_recv_stop(FKL_CPROC_ARGL) {
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     int r = uv_udp_recv_stop(udp);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3473,7 +3419,7 @@ static int fuv_udp_open(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     FKL_CHECK_TYPE(sock_obj, fklIsVMint, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     uv_os_sock_t sock = fklVMgetInt(sock_obj);
     int r = uv_udp_open(udp, sock);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -3487,7 +3433,7 @@ static int fuv_udp_multicast_loop_set1(FKL_CPROC_ARGL) {
     FklVMvalue *on_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     int r = uv_udp_set_multicast_loop(udp, on_obj == FKL_VM_NIL ? 0 : 1);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3501,7 +3447,7 @@ static int fuv_udp_multicast_ttl_set1(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     FKL_CHECK_TYPE(ttl_obj, FKL_IS_FIX, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     int r = uv_udp_set_multicast_ttl(udp, FKL_GET_FIX(ttl_obj));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3516,7 +3462,7 @@ static int fuv_udp_multicast_interface_set1(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
 
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     const char *interface_addr = NULL;
     if (interface_addr_obj) {
         if (FKL_IS_STR(interface_addr_obj))
@@ -3536,7 +3482,7 @@ static int fuv_udp_broadcast_set1(FKL_CPROC_ARGL) {
     FklVMvalue *on_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     int r = uv_udp_set_broadcast(udp, on_obj == FKL_VM_NIL ? 0 : 1);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3550,7 +3496,7 @@ static int fuv_udp_ttl_set1(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     FKL_CHECK_TYPE(ttl_obj, FKL_IS_FIX, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     int r = uv_udp_set_ttl(udp, FKL_GET_FIX(ttl_obj));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3595,7 +3541,7 @@ static int fuv_udp_connect(FKL_CPROC_ARGL) {
         setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
-    int r = uv_udp_connect((uv_udp_t *)GET_HANDLE(*udp_ud), addr_ptr);
+    int r = uv_udp_connect((uv_udp_t *)GET_HANDLE(udp_ud), addr_ptr);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
     return 0;
@@ -3660,7 +3606,7 @@ static int fuv_udp_bind(FKL_CPROC_ARGL) {
                  : 0;
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
-    int r = uv_udp_bind((uv_udp_t *)GET_HANDLE(*udp_ud),
+    int r = uv_udp_bind((uv_udp_t *)GET_HANDLE(udp_ud),
                         (struct sockaddr *)&addr, flags);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3672,7 +3618,7 @@ static int fuv_udp_using_recvmmsg_p(FKL_CPROC_ARGL) {
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     int r = uv_udp_using_recvmmsg(udp);
     FKL_CPROC_RETURN(exe, ctx, r ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
@@ -3683,7 +3629,7 @@ static int fuv_udp_send_queue_size(FKL_CPROC_ARGL) {
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     size_t size = uv_udp_get_send_queue_size(udp);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(size, exe));
     return 0;
@@ -3694,7 +3640,7 @@ static int fuv_udp_send_queue_count(FKL_CPROC_ARGL) {
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(*udp_ud);
+    uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(udp_ud);
     size_t size = uv_udp_get_send_queue_count(udp);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(size, exe));
     return 0;
@@ -3707,7 +3653,7 @@ static int fuv_udp_peername(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
-    int ret = uv_udp_getpeername((uv_udp_t *)GET_HANDLE(*udp_ud),
+    int ret = uv_udp_getpeername((uv_udp_t *)GET_HANDLE(udp_ud),
                                  (struct sockaddr *)&addr, &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
@@ -3721,7 +3667,7 @@ static int fuv_udp_sockname(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
-    int ret = uv_udp_getsockname((uv_udp_t *)GET_HANDLE(*udp_ud),
+    int ret = uv_udp_getsockname((uv_udp_t *)GET_HANDLE(udp_ud),
                                  (struct sockaddr *)&addr, &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
@@ -3762,7 +3708,7 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL) {
     uv_membership membership = 0;
     if (sid_to_membership(id, fpd, &membership))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    int ret = uv_udp_set_membership((uv_udp_t *)GET_HANDLE(*udp_ud),
+    int ret = uv_udp_set_membership((uv_udp_t *)GET_HANDLE(udp_ud),
                                     multicast_addr, interface_addr, membership);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -3794,7 +3740,7 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL) {
     uv_membership membership = 0;
     if (sid_to_membership(id, fpd, &membership))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    int ret = uv_udp_set_source_membership((uv_udp_t *)GET_HANDLE(*udp_ud),
+    int ret = uv_udp_set_source_membership((uv_udp_t *)GET_HANDLE(udp_ud),
                                            multicast_addr, interface_addr,
                                            source_addr, membership);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
@@ -3851,7 +3797,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
     else if (!fklIsCallable(cb_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
 
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, udp_obj, exe, ctx->pd);
 
     struct sockaddr_storage addr;
     FklBuiltinErrorType err_type = 0;
@@ -3860,7 +3806,6 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    FuvHandle *handle = *udp_ud;
     uv_buf_t *bufs = NULL;
     FklVMvalue *udp_send_obj = NULL;
     uv_udp_send_t *udp_send = NULL;
@@ -4006,8 +3951,7 @@ static int fuv_udp_recv_start(FKL_CPROC_ARGL) {
     FklVMvalue *cb_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
-    FuvHandle *handle = *udp_ud;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, udp_obj, exe, ctx->pd);
     uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(handle);
     handle->data.callbacks[0] = cb_obj;
     int ret = uv_udp_recv_start(udp, fuv_udp_alloc_cb, fuv_udp_recv_cb);
@@ -4041,7 +3985,7 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    int ret = uv_udp_try_send((uv_udp_t *)GET_HANDLE(*udp_ud), bufs, buf_count,
+    int ret = uv_udp_try_send((uv_udp_t *)GET_HANDLE(udp_ud), bufs, buf_count,
                               addr_ptr);
     free(bufs);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
@@ -4153,12 +4097,11 @@ static int fuv_fs_event_start(FKL_CPROC_ARGL) {
         get_fs_event_flags(&arg_base[3], arg_base + argc, &flags, ctx->pd);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_event, fs_event_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *fs_event;
-    fuv_handle->data.callbacks[0] = cb_obj;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_event_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = cb_obj;
     int r =
-        uv_fs_event_start((uv_fs_event_t *)GET_HANDLE(fuv_handle),
-                          fuv_fs_event_cb, FKL_VM_STR(path_obj)->str, flags);
+        uv_fs_event_start((uv_fs_event_t *)GET_HANDLE(handle), fuv_fs_event_cb,
+                          FKL_VM_STR(path_obj)->str, flags);
 
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fs_event_obj);
@@ -4169,8 +4112,7 @@ static int fuv_fs_event_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fs_event_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fs_event_obj, isFuvFsEvent, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_event, fs_event_obj, exe, ctx->pd);
-    FuvHandle *handle = *fs_event;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_event_obj, exe, ctx->pd);
     int r = uv_fs_event_stop((uv_fs_event_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fs_event_obj);
@@ -4185,7 +4127,7 @@ static int fuv_fs_event_path(FKL_CPROC_ARGL) {
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
     int ret =
-        uv_fs_event_getpath((uv_fs_event_t *)GET_HANDLE(*handle_ud), buf, &len);
+        uv_fs_event_getpath((uv_fs_event_t *)GET_HANDLE(handle_ud), buf, &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
@@ -4385,12 +4327,10 @@ static int fuv_fs_poll_start(FKL_CPROC_ARGL) {
     if (interval < 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
 
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_poll, fs_poll_obj, exe, ctx->pd);
-    FuvHandle *fuv_handle = *fs_poll;
-    fuv_handle->data.callbacks[0] = cb_obj;
-    int r =
-        uv_fs_poll_start((uv_fs_poll_t *)GET_HANDLE(fuv_handle), fuv_fs_poll_cb,
-                         FKL_VM_STR(path_obj)->str, interval);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_poll_obj, exe, ctx->pd);
+    handle->data.callbacks[0] = cb_obj;
+    int r = uv_fs_poll_start((uv_fs_poll_t *)GET_HANDLE(handle), fuv_fs_poll_cb,
+                             FKL_VM_STR(path_obj)->str, interval);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fs_poll_obj);
     return 0;
@@ -4400,8 +4340,7 @@ static int fuv_fs_poll_stop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *fs_poll_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fs_poll_obj, isFuvFsPoll, exe);
-    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fs_poll, fs_poll_obj, exe, ctx->pd);
-    FuvHandle *handle = *fs_poll;
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_poll_obj, exe, ctx->pd);
     int r = uv_fs_poll_stop((uv_fs_poll_t *)GET_HANDLE(handle));
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fs_poll_obj);
@@ -4416,7 +4355,7 @@ static int fuv_fs_poll_path(FKL_CPROC_ARGL) {
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
     int ret =
-        uv_fs_poll_getpath((uv_fs_poll_t *)GET_HANDLE(*handle_ud), buf, &len);
+        uv_fs_poll_getpath((uv_fs_poll_t *)GET_HANDLE(handle_ud), buf, &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;

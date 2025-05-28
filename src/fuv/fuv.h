@@ -422,7 +422,6 @@ struct FuvErrorRecoverData {
 
 typedef struct {
     FklVM *exe;
-    FklVMvalueHashSet gc_values;
     FklVMvalue *gclist;
     uv_idle_t error_check_idle;
     struct FuvErrorRecoverData error_recover_data;
@@ -442,7 +441,6 @@ typedef struct {
 } FuvLoop;
 
 typedef struct {
-    FklVMvalue *handle;
     FklVMvalue *loop;
     FklVMvalue *callbacks[2];
 } FuvHandleData;
@@ -452,21 +450,21 @@ struct FuvAsyncExtraData {
     FklVMvalue **base;
 };
 
-struct FuvAsync {
+typedef struct {
+    FuvHandleData data;
+    uv_handle_t handle;
+} FuvHandle;
+
+typedef struct FuvAsync {
     FuvHandleData data;
     uv_async_t handle;
     _Atomic(struct FuvAsyncExtraData *) extra;
     atomic_flag send_ready;
     atomic_flag copy_done;
     atomic_flag send_done;
-};
+} FuvAsync;
 
-typedef struct {
-    FuvHandleData data;
-    uv_handle_t handle;
-} FuvHandle;
-
-struct FuvProcess {
+typedef struct FuvProcess {
     FuvHandleData data;
     uv_process_t handle;
     FklVMvalue *args_obj;
@@ -474,28 +472,70 @@ struct FuvProcess {
     FklVMvalue *file_obj;
     FklVMvalue *stdio_obj;
     FklVMvalue *cwd_obj;
-};
+} FuvProcess;
 
-struct FuvPipe {
+typedef struct FuvPipe {
     FuvHandleData data;
     uv_pipe_t handle;
     FklVMvalue *fp;
-};
+} FuvPipe;
 
-struct FuvTTY {
+typedef struct FuvTTY {
     FuvHandleData data;
     uv_tty_t handle;
     FklVMvalue *fp;
-};
+} FuvTTY;
 
-typedef FuvHandle *FuvHandleUd;
+typedef struct FuvTimer {
+    FuvHandleData data;
+    uv_timer_t handle;
+} FuvTimer;
+
+typedef struct FuvPrepare {
+    FuvHandleData data;
+    uv_prepare_t handle;
+} FuvPrepare;
+
+typedef struct FuvIdle {
+    FuvHandleData data;
+    uv_idle_t handle;
+} FuvIdle;
+
+typedef struct FuvCheck {
+    FuvHandleData data;
+    uv_check_t handle;
+} FuvCheck;
+
+typedef struct FuvSignal {
+    FuvHandleData data;
+    uv_signal_t handle;
+} FuvSignal;
+
+typedef struct FuvTcp {
+    FuvHandleData data;
+    uv_tcp_t handle;
+} FuvTcp;
+
+typedef struct FuvUdp {
+    FuvHandleData data;
+    uv_udp_t handle;
+    int64_t mmsg_num_msgs;
+} FuvUdp;
+
+typedef struct FuvFsPoll {
+    FuvHandleData data;
+    uv_fs_poll_t handle;
+} FuvFsPoll;
+
+typedef struct FuvFsEvent {
+    FuvHandleData data;
+    uv_fs_event_t handle;
+} FuvFsEvent;
 
 int isFuvLoop(FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *rel, int *err);
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
                       uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame);
-void fuvLoopInsertFuvObj(FklVMvalue *loop, FklVMvalue *handle);
-void fuvLoopRemoveFuvObj(FklVMvalue *looop, FklVMvalue *obj);
 void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
 
 static inline int fuvLoopIsClosed(const FuvLoop *l) {
@@ -507,6 +547,9 @@ static inline void fuvLoopSetClosed(FuvLoop *l) {
 }
 
 int isFuvHandle(FklVMvalue *v);
+static inline int isFuvHandleClosed(const FuvHandle *h) {
+    return h->data.loop == NULL;
+}
 
 int isFuvTimer(FklVMvalue *v);
 FklVMvalue *createFuvTimer(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
@@ -613,12 +656,6 @@ typedef struct FuvWrite {
     FklVMvalue *write_objs[1];
 } FuvWrite;
 
-typedef struct FuvUdp {
-    FuvHandleData data;
-    uv_udp_t handle;
-    int64_t mmsg_num_msgs;
-} FuvUdp;
-
 typedef struct FuvUdpSend {
     FuvReqData data;
     uv_udp_send_t req;
@@ -668,6 +705,9 @@ typedef struct FuvRandom {
 
 int isFuvReq(const FklVMvalue *v);
 void fuvReqCleanUp(FuvReq *req);
+static inline int isFuvReqCanceled(const FuvReq *req) {
+    return req->data.loop == NULL;
+}
 
 static inline FuvReq *getFuvReq(const FklVMvalue *v) {
     FKL_ASSERT(isFuvReq(v));

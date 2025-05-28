@@ -480,11 +480,11 @@ typedef struct FuvPipe {
     FklVMvalue *fp;
 } FuvPipe;
 
-typedef struct FuvTTY {
+typedef struct FuvTty {
     FuvHandleData data;
     uv_tty_t handle;
     FklVMvalue *fp;
-} FuvTTY;
+} FuvTty;
 
 typedef struct FuvTimer {
     FuvHandleData data;
@@ -590,8 +590,8 @@ int isFuvTcp(FklVMvalue *v);
 uv_tcp_t *createFuvTcp(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
                        FklVMvalue *loop_obj);
 
-int isFuvTTY(FklVMvalue *v);
-uv_tty_t *createFuvTTY(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
+int isFuvTty(FklVMvalue *v);
+uv_tty_t *createFuvTty(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
                        FklVMvalue *loop_obj, FklVMvalue *fp_obj);
 
 int isFuvUdp(FklVMvalue *v);

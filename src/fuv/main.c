@@ -3239,7 +3239,7 @@ static int fuv_socketpair(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int fuv_tty_p(FKL_CPROC_ARGL) { PREDICATE(isFuvTTY(val)) }
+static int fuv_tty_p(FKL_CPROC_ARGL) { PREDICATE(isFuvTty(val)) }
 
 static int fuv_make_tty(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
@@ -3256,7 +3256,7 @@ static int fuv_make_tty(FKL_CPROC_ARGL) {
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklVMvalue *tty_obj = NULL;
-    uv_tty_t *tty = createFuvTTY(exe, &tty_obj, ctx->proc, loop_obj, fp_obj);
+    uv_tty_t *tty = createFuvTty(exe, &tty_obj, ctx->proc, loop_obj, fp_obj);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     int r = uv_tty_init(&fuv_loop->loop, tty, fd, 0);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, tty_obj, loop_obj, exe, ctx->pd);
@@ -3268,7 +3268,7 @@ static int fuv_tty_mode_set1(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *tty_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FKL_CHECK_TYPE(tty_obj, isFuvTTY, exe);
+    FKL_CHECK_TYPE(tty_obj, isFuvTty, exe);
     FKL_CHECK_TYPE(mode_obj, FKL_IS_SYM, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tty_obj, exe, ctx->pd);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
@@ -3292,7 +3292,7 @@ static int fuv_tty_mode_set1(FKL_CPROC_ARGL) {
 static int fuv_tty_winsize(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *tty_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(tty_obj, isFuvTTY, exe);
+    FKL_CHECK_TYPE(tty_obj, isFuvTty, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tty_obj, exe, ctx->pd);
     int width = 0;
     int height = 0;

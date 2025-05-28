@@ -1031,8 +1031,18 @@ switch_un_notice_lock_ins_for_running_threads(FklThreadQueue *q) {
 }
 
 static inline void lock_all_vm(FklThreadQueue *q) {
-    for (FklThreadQueueNode *n = q->head; n; n = n->next)
-        uv_mutex_lock(&((FklVM *)(n->data))->lock);
+    FklThreadQueue locked_queue;
+    fklThreadQueueInit(&locked_queue);
+
+    for (FklThreadQueueNode *n = fklThreadQueuePopNode(q); n;
+         n = fklThreadQueuePopNode(q)) {
+        if (uv_mutex_trylock(&((FklVM *)(n->data))->lock))
+            fklThreadQueuePushNode(q, n);
+        else
+            fklThreadQueuePushNode(&locked_queue, n);
+    }
+
+    *q = locked_queue;
 }
 
 static inline void unlock_all_vm(FklThreadQueue *q) {

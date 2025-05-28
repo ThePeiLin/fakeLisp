@@ -59,7 +59,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_as_print, "udp");
 
 static void fuv_tty_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    FKL_DECL_UD_DATA(handle, FuvTTY, ud);
+    FKL_DECL_UD_DATA(handle, FuvTty, ud);
     fklVMgcToGray(handle->fp, gc);
 }
 
@@ -166,7 +166,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TTY] =
         {
-            .size = sizeof(FuvTTY),
+            .size = sizeof(FuvTty),
             .__as_prin1 = fuv_tty_as_print,
             .__as_princ = fuv_tty_as_print,
             .__atomic = fuv_tty_ud_atomic,
@@ -346,12 +346,12 @@ FUV_HANDLE_P(isFuvTcp, UV_TCP);
 
 OTHER_HANDLE_CREATOR(FuvTcp, tcp, UV_TCP);
 
-FUV_HANDLE_P(isFuvTTY, UV_TTY);
+FUV_HANDLE_P(isFuvTty, UV_TTY);
 
-uv_tty_t *createFuvTTY(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
+uv_tty_t *createFuvTty(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
                        FklVMvalue *loop_obj, FklVMvalue *fp_obj) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_TTY], rel);
-    FKL_DECL_VM_UD_DATA(handle, FuvTTY, v);
+    FKL_DECL_VM_UD_DATA(handle, FuvTty, v);
     init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);
     handle->fp = fp_obj;
     *pr = v;

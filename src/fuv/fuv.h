@@ -411,6 +411,11 @@ typedef struct {
     FklSid_t metrics_loop_count_sid;
     FklSid_t metrics_events_sid;
     FklSid_t metrics_events_waiting_sid;
+
+    FklSid_t UV_READABLE_sid;
+    FklSid_t UV_WRITABLE_sid;
+    FklSid_t UV_DISCONNECT_sid;
+    FklSid_t UV_PRIORITIZED_sid;
 } FuvPublicData;
 
 struct FuvErrorRecoverData {
@@ -479,6 +484,12 @@ typedef struct FuvPipe {
     uv_pipe_t handle;
     FklVMvalue *fp;
 } FuvPipe;
+
+typedef struct FuvPoll {
+    FuvHandleData data;
+    uv_poll_t handle;
+    FklVMvalue *fp;
+} FuvPoll;
 
 typedef struct FuvTty {
     FuvHandleData data;
@@ -605,6 +616,10 @@ FklVMvalue *createFuvFsPoll(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
 int isFuvFsEvent(FklVMvalue *v);
 FklVMvalue *createFuvFsEvent(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
                              int *err);
+
+int isFuvPoll(FklVMvalue *v);
+uv_poll_t *createFuvPoll(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
+                         FklVMvalue *loop_obj, FklVMvalue *fp_obj);
 
 #define FUV_ASYNC_COPY_DONE(async_handle)                                      \
     atomic_flag_clear(&(async_handle)->copy_done)

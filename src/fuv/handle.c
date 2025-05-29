@@ -36,6 +36,8 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_poll_as_print, "fs-poll");
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_event_as_print, "fs-event");
 
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_poll_as_print, "poll");
+
 static void fuv_process_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
     FKL_DECL_UD_DATA(handle, FuvProcess, ud);
@@ -48,6 +50,12 @@ static void fuv_process_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
 static void fuv_pipe_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
     FKL_DECL_UD_DATA(handle, FuvPipe, ud);
+    fklVMgcToGray(handle->fp, gc);
+}
+
+static void fuv_poll_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
+    fuv_handle_ud_atomic(ud, gc);
+    FKL_DECL_UD_DATA(handle, FuvPoll, ud);
     fklVMgcToGray(handle->fp, gc);
 }
 
@@ -124,7 +132,14 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
             .__finalizer = fuv_handle_ud_finalizer,
         },
 
-    [UV_POLL] = {0},
+    [UV_POLL] =
+        {
+            .size = sizeof(FuvPoll),
+            .__as_prin1 = fuv_poll_as_print,
+            .__as_princ = fuv_poll_as_print,
+            .__atomic = fuv_poll_ud_atomic,
+            .__finalizer = fuv_handle_ud_finalizer,
+        },
 
     [UV_PREPARE] =
         {
@@ -375,6 +390,18 @@ FUV_HANDLE_CREATOR(FuvFsPoll, fs_poll, UV_FS_POLL);
 
 FUV_HANDLE_P(isFuvFsEvent, UV_FS_EVENT);
 FUV_HANDLE_CREATOR(FuvFsEvent, fs_event, UV_FS_EVENT);
+
+FUV_HANDLE_P(isFuvPoll, UV_POLL);
+
+uv_poll_t *createFuvPoll(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
+                         FklVMvalue *loop_obj, FklVMvalue *fp_obj) {
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_POLL], rel);
+    FKL_DECL_VM_UD_DATA(handle, FuvPoll, v);
+    init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);
+    handle->fp = fp_obj;
+    *pr = v;
+    return &handle->handle;
+}
 
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR

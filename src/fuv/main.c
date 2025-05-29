@@ -486,6 +486,11 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
     pd->metrics_loop_count_sid = fklAddSymbolCstr("loop-count", st)->v;
     pd->metrics_events_sid = fklAddSymbolCstr("events", st)->v;
     pd->metrics_events_waiting_sid = fklAddSymbolCstr("events-waiting", st)->v;
+
+    pd->UV_READABLE_sid = fklAddSymbolCstr("readable", st)->v;
+    pd->UV_WRITABLE_sid = fklAddSymbolCstr("writable", st)->v;
+    pd->UV_DISCONNECT_sid = fklAddSymbolCstr("disconnect", st)->v;
+    pd->UV_PRIORITIZED_sid = fklAddSymbolCstr("prioritized", st)->v;
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL) { PREDICATE(isFuvLoop(val)) }
@@ -1386,6 +1391,170 @@ static int fuv_async_send(FKL_CPROC_ARGL) {
         CHECK_UV_RESULT(r, exe, ctx->pd);
     }
     FKL_CPROC_RETURN(exe, ctx, async_obj);
+    return 0;
+}
+
+static int fuv_poll_p(FKL_CPROC_ARGL) { PREDICATE(isFuvPoll(val)) }
+
+static int fuv_make_poll(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
+    FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *fd_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FklVMvalue *fp_obj = NULL;
+    FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
+    int fd;
+    if (FKL_IS_FIX(fd_obj)) {
+        fd = FKL_GET_FIX(fd_obj);
+    } else if (fklIsVMvalueFp(fd_obj)) {
+        fp_obj = fd_obj;
+        fd = fklVMfpFileno(FKL_VM_FP(fp_obj));
+    } else
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    FklVMvalue *retval = NULL;
+    uv_poll_t *poll = createFuvPoll(exe, &retval, ctx->proc, loop_obj, fp_obj);
+    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
+    int r = uv_poll_init(&fuv_loop->loop, poll, fd);
+    CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, retval);
+    return 0;
+}
+
+static int fuv_make_socket_poll(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
+    FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *sock_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
+    FKL_CHECK_TYPE(sock_obj, FKL_IS_FIX, exe);
+    FklVMvalue *retval = NULL;
+    uv_poll_t *poll = createFuvPoll(exe, &retval, ctx->proc, loop_obj, NULL);
+    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
+    int r = uv_poll_init_socket(&fuv_loop->loop, poll, FKL_GET_FIX(sock_obj));
+    CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, retval);
+    return 0;
+}
+
+static inline FklBuiltinErrorType
+get_poll_start_events(FklVMvalue **cur_arg, FklVMvalue **const arg_end,
+                      int *events, FuvPublicData *fpd) {
+    for (; cur_arg < arg_end; ++cur_arg) {
+        FklVMvalue *v = *cur_arg;
+        if (FKL_IS_SYM(v)) {
+            FklSid_t sid = FKL_GET_SYM(v);
+            if (sid == fpd->UV_READABLE_sid)
+                (*events) |= UV_READABLE;
+            else if (sid == fpd->UV_WRITABLE_sid)
+                (*events) |= UV_WRITABLE;
+            else if (sid == fpd->UV_DISCONNECT_sid)
+                (*events) |= UV_DISCONNECT;
+            else if (sid == fpd->UV_PRIORITIZED_sid)
+                (*events) |= UV_PRIORITIZED;
+            else
+                return FKL_ERR_INVALID_VALUE;
+        } else
+            return FKL_ERR_INCORRECT_TYPE_VALUE;
+    }
+    return 0;
+}
+
+struct PollCreateArg {
+    FuvPublicData *fpd;
+    int status;
+    int events;
+};
+
+static inline FklVMvalue *poll_events_to_list(FklVM *exe, int events,
+                                              FuvPublicData *fpd) {
+    FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **pr = &r;
+
+    if (events & UV_READABLE) {
+        *pr = fklCreateVMvaluePairWithCar(
+            exe, FKL_MAKE_VM_SYM(fpd->UV_READABLE_sid));
+        pr = &FKL_VM_CDR(*pr);
+    }
+    if (events & UV_WRITABLE) {
+        *pr = fklCreateVMvaluePairWithCar(
+            exe, FKL_MAKE_VM_SYM(fpd->UV_WRITABLE_sid));
+        pr = &FKL_VM_CDR(*pr);
+    }
+    if (events & UV_DISCONNECT) {
+        *pr = fklCreateVMvaluePairWithCar(
+            exe, FKL_MAKE_VM_SYM(fpd->UV_DISCONNECT_sid));
+        pr = &FKL_VM_CDR(*pr);
+    }
+    if (events & UV_PRIORITIZED) {
+        *pr = fklCreateVMvaluePairWithCar(
+            exe, FKL_MAKE_VM_SYM(fpd->UV_PRIORITIZED_sid));
+        pr = &FKL_VM_CDR(*pr);
+    }
+
+    return r;
+}
+
+static int fuv_poll_cb_value_creator(FklVM *exe, void *a) {
+    struct PollCreateArg *arg = a;
+    FklVMvalue *err = arg->status < 0
+                        ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
+                        : FKL_VM_NIL;
+    FKL_VM_PUSH_VALUE(exe, err);
+    FKL_VM_PUSH_VALUE(exe, err == FKL_VM_NIL
+                               ? poll_events_to_list(exe, arg->events, arg->fpd)
+                               : FKL_VM_NIL);
+    return 0;
+}
+
+static void fuv_poll_cb(uv_poll_t *handle, int status, int events) {
+    FuvLoopData *ldata =
+        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
+    FuvHandleData *hdata =
+        &((FuvHandle *)uv_handle_get_data((uv_handle_t *)handle))->data;
+    FklVMvalue *fpd_obj =
+        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+    FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
+    struct PollCreateArg arg = {
+        .fpd = fpd,
+        .status = status,
+        .events = events,
+    };
+    fuv_call_handle_callback_in_loop_with_value_creator(
+        (uv_handle_t *)handle, hdata, ldata, 0, fuv_poll_cb_value_creator,
+        &arg);
+}
+
+static int fuv_poll_start(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *poll_obj = arg_base[0];
+    FklVMvalue *cb_obj = arg_base[1];
+    FKL_CHECK_TYPE(poll_obj, isFuvPoll, exe);
+    FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(poll_ud, poll_obj, exe, ctx->pd);
+    FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
+    int events = 0;
+    FklBuiltinErrorType err_type =
+        argc > 2
+            ? get_poll_start_events(&arg_base[2], arg_base + argc, &events, fpd)
+            : 0;
+    if (err_type)
+        FKL_RAISE_BUILTIN_ERROR(err_type, exe);
+    uv_poll_t *poll = (uv_poll_t *)GET_HANDLE(poll_ud);
+    poll_ud->data.callbacks[0] = cb_obj;
+    int ret = uv_poll_start(poll, events, fuv_poll_cb);
+    CHECK_UV_RESULT(ret, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, poll_obj);
+    return 0;
+}
+
+static int fuv_poll_stop(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
+    FklVMvalue *poll_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(poll_obj, isFuvPoll, exe);
+    DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(poll_ud, poll_obj, exe, ctx->pd);
+    uv_poll_t *poll = (uv_poll_t *)GET_HANDLE(poll_ud);
+    int ret = uv_poll_stop(poll);
+    CHECK_UV_RESULT(ret, exe, ctx->pd);
+    FKL_CPROC_RETURN(exe, ctx, poll_obj);
     return 0;
 }
 
@@ -6952,6 +7121,13 @@ struct SymFunc {
     {"async?",                       fuv_async_p                      },
     {"make-async",                   fuv_make_async                   },
     {"async-send",                   fuv_async_send                   },
+
+    // poll
+    {"poll?",                        fuv_poll_p                       },
+    {"make-poll",                    fuv_make_poll                    },
+    {"make-socket-poll",             fuv_make_socket_poll             },
+    {"poll-start",                   fuv_poll_start                   },
+    {"poll-stop",                    fuv_poll_stop                    },
 
     // process
     {"process?",                     fuv_process_p                    },

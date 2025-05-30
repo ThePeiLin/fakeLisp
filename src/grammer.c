@@ -4,6 +4,7 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
 #include <stdalign.h>
@@ -30,8 +31,8 @@ void fklDestroyGrammerProduction(FklGrammerProduction *h) {
         return;
     h->ctx_destroyer(h->ctx);
     fklUninitGrammerSymbols(h->syms, h->len);
-    free(h->syms);
-    free(h);
+    fklZfree(h->syms);
+    fklZfree(h);
 }
 
 static inline void destroy_builtin_grammer_sym(FklLalrBuiltinGrammerSym *s) {
@@ -46,7 +47,7 @@ FklGrammerProduction *fklCreateProduction(FklSid_t group, FklSid_t sid,
                                           void (*destroy)(void *),
                                           void *(*copyer)(const void *)) {
     FklGrammerProduction *r =
-        (FklGrammerProduction *)calloc(1, sizeof(FklGrammerProduction));
+        (FklGrammerProduction *)fklZcalloc(1, sizeof(FklGrammerProduction));
     FKL_ASSERT(r);
     r->left.group = group;
     r->left.sid = sid;
@@ -57,7 +58,6 @@ FklGrammerProduction *fklCreateProduction(FklSid_t group, FklSid_t sid,
     r->ctx_destroyer = destroy;
     r->ctx_copyer = copyer;
     r->syms = syms;
-    ;
     return r;
 }
 
@@ -68,7 +68,7 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
                                                void (*destroy)(void *),
                                                void *(*copyer)(const void *)) {
     FklGrammerProduction *r =
-        (FklGrammerProduction *)calloc(1, sizeof(FklGrammerProduction));
+        (FklGrammerProduction *)fklZcalloc(1, sizeof(FklGrammerProduction));
     FKL_ASSERT(r);
     r->left.group = group;
     r->left.sid = sid;
@@ -81,7 +81,7 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
     if (!len)
         r->syms = NULL;
     else {
-        r->syms = (FklGrammerSym *)calloc(len, sizeof(FklGrammerSym));
+        r->syms = (FklGrammerSym *)fklZcalloc(len, sizeof(FklGrammerSym));
         FKL_ASSERT(r->syms);
     }
     return r;
@@ -127,7 +127,7 @@ static inline void *init_builtin_grammer_sym(const FklLalrBuiltinMatch *m,
 
 void fklProdCtxDestroyDoNothing(void *c) {}
 
-void fklProdCtxDestroyFree(void *c) { free(c); }
+void fklProdCtxDestroyFree(void *c) { fklZfree(c); }
 
 void *fklProdCtxCopyerDoNothing(const void *c) { return (void *)c; }
 
@@ -150,7 +150,7 @@ static inline void find_and_add_terminal_in_regex(const FklRegexCode *re,
             for (uint32_t i = 0; i < len; i++)
                 str->str[i] = start[i].ch;
             fklAddSymbol(str, tt);
-            free(str);
+            fklZfree(str);
         }
     }
     const FklRegexObj *end = objs;
@@ -167,7 +167,7 @@ static inline void find_and_add_terminal_in_regex(const FklRegexCode *re,
             for (uint32_t i = 0; i < len; i++)
                 str->str[i] = end[i].ch;
             fklAddSymbol(str, tt);
-            free(str);
+            fklZfree(str);
         }
     }
 }
@@ -274,7 +274,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
     }
 exit:
     while (!fklStringVectorIsEmpty(&st))
-        free(*fklStringVectorPopBack(&st));
+        fklZfree(*fklStringVectorPopBack(&st));
     fklStringVectorUninit(&st);
     return prod;
 }
@@ -304,7 +304,7 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
                 return NULL;
         }
     }
-    FklGrammerIgnore *ig = (FklGrammerIgnore *)malloc(
+    FklGrammerIgnore *ig = (FklGrammerIgnore *)fklZmalloc(
         sizeof(FklGrammerIgnore) + len * sizeof(FklGrammerIgnoreSym));
     FKL_ASSERT(ig);
     ig->len = len;
@@ -318,7 +318,7 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
             igs->b = sym->b;
         else {
             if (sym->end_with_terminal) {
-                free(ig);
+                fklZfree(ig);
                 return NULL;
             }
             if (igs->term_type == FKL_TERM_REGEX)
@@ -359,7 +359,7 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
     size_t prod_len = st.size - joint_num;
     if (!prod_len) {
         while (!fklStringVectorIsEmpty(&st))
-            free(*fklStringVectorPopBack(&st));
+            fklZfree(*fklStringVectorPopBack(&st));
         fklStringVectorUninit(&st);
         return NULL;
     }
@@ -417,7 +417,7 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
         symIdx++;
     }
     while (!fklStringVectorIsEmpty(&st))
-        free(*fklStringVectorPopBack(&st));
+        fklZfree(*fklStringVectorPopBack(&st));
     fklStringVectorUninit(&st);
     FklGrammerIgnore *ig =
         fklGrammerSymbolsToIgnore(prod->syms, prod->len, termTable);
@@ -425,7 +425,7 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
     return ig;
 error:
     while (!fklStringVectorIsEmpty(&st))
-        free(*fklStringVectorPopBack(&st));
+        fklZfree(*fklStringVectorPopBack(&st));
     fklStringVectorUninit(&st);
     return NULL;
 }
@@ -773,7 +773,7 @@ static inline void sort_reachable_terminals(FklGrammer *g) {
     g->sortedTerminalsNum = num;
     const FklString **terms = NULL;
     if (num) {
-        terms = (const FklString **)malloc(num * sizeof(FklString *));
+        terms = (const FklString **)fklZmalloc(num * sizeof(FklString *));
         FKL_ASSERT(terms);
         FklStrIdHashMapElm **symList = g->reachable_terminals.idl;
         for (size_t i = 0; i < num; i++)
@@ -1124,7 +1124,8 @@ static void *s_number_ctx_global_create(size_t idx, FklGrammerProduction *prod,
         start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
     }
     prod->len = 1;
-    SymbolNumberCtx *ctx = (SymbolNumberCtx *)malloc(sizeof(SymbolNumberCtx));
+    SymbolNumberCtx *ctx =
+        (SymbolNumberCtx *)fklZmalloc(sizeof(SymbolNumberCtx));
     FKL_ASSERT(ctx);
     ctx->start = start;
     ctx->g = g;
@@ -1162,7 +1163,7 @@ static uintptr_t s_number_ctx_hash(const void *c0) {
     return (uintptr_t)ctx0->start;
 }
 
-static void s_number_ctx_destroy(void *c) { free(c); }
+static void s_number_ctx_destroy(void *c) { fklZfree(c); }
 
 #define SYMBOL_NUMBER_MATCH(F)                                                 \
     SymbolNumberCtx *ctx = c;                                                  \
@@ -1413,7 +1414,8 @@ static void *s_char_ctx_global_create(size_t idx, FklGrammerProduction *prod,
     }
     start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
     prod->len = 1;
-    SymbolNumberCtx *ctx = (SymbolNumberCtx *)malloc(sizeof(SymbolNumberCtx));
+    SymbolNumberCtx *ctx =
+        (SymbolNumberCtx *)fklZmalloc(sizeof(SymbolNumberCtx));
     FKL_ASSERT(ctx);
     ctx->start = start;
     ctx->g = g;
@@ -1650,7 +1652,7 @@ static int builtin_match_symbol_equal(const void *c0, const void *c1) {
     return 0;
 }
 
-static void builtin_match_symbol_destroy(void *c) { free(c); }
+static void builtin_match_symbol_destroy(void *c) { fklZfree(c); }
 
 static void *builtin_match_symbol_global_create(size_t idx,
                                                 FklGrammerProduction *prod,
@@ -1681,7 +1683,7 @@ static void *builtin_match_symbol_global_create(size_t idx,
         end = fklGetSymbolWithId(prod->syms[2].nt.sid, &g->terminals)->k;
     }
     prod->len = 1;
-    MatchSymbolCtx *ctx = (MatchSymbolCtx *)malloc(sizeof(MatchSymbolCtx));
+    MatchSymbolCtx *ctx = (MatchSymbolCtx *)fklZmalloc(sizeof(MatchSymbolCtx));
     FKL_ASSERT(ctx);
     ctx->start = start;
     ctx->end = end;
@@ -1756,18 +1758,18 @@ static inline void clear_analysis_table(FklGrammer *g, size_t last) {
         FklAnalysisStateAction *actions = curState->state.action;
         while (actions) {
             FklAnalysisStateAction *next = actions->next;
-            free(actions);
+            fklZfree(actions);
             actions = next;
         }
 
         FklAnalysisStateGoto *gt = curState->state.gt;
         while (gt) {
             FklAnalysisStateGoto *next = gt->next;
-            free(gt);
+            fklZfree(gt);
             gt = next;
         }
     }
-    free(states);
+    fklZfree(states);
     g->aTable.states = NULL;
     g->aTable.num = 0;
 }
@@ -1779,7 +1781,7 @@ void fklDestroyIgnore(FklGrammerIgnore *ig) {
         if (igs->term_type == FKL_TERM_BUILTIN)
             destroy_builtin_grammer_sym(&igs->b);
     }
-    free(ig);
+    fklZfree(ig);
 }
 
 void fklClearGrammer(FklGrammer *g) {
@@ -1789,13 +1791,13 @@ void fklClearGrammer(FklGrammer *g) {
     fklProdHashMapClear(&g->productions);
     fklFirstSetHashMapClear(&g->firstSets);
     clear_analysis_table(g, g->aTable.num - 1);
-    free(g->sortedTerminals);
+    fklZfree(g->sortedTerminals);
     g->sortedTerminals = NULL;
     g->sortedTerminalsNum = 0;
     FklGrammerIgnore *ig = g->ignores;
     while (ig) {
         FklGrammerIgnore *next = ig->next;
-        free(ig);
+        fklZfree(ig);
         ig = next;
     }
     g->ignores = NULL;
@@ -1809,7 +1811,7 @@ void fklUninitGrammer(FklGrammer *g) {
     fklUninitSymbolTable(&g->reachable_terminals);
     fklUninitRegexTable(&g->regexes);
     clear_analysis_table(g, g->aTable.num - 1);
-    free(g->sortedTerminals);
+    fklZfree(g->sortedTerminals);
     FklGrammerIgnore *ig = g->ignores;
     while (ig) {
         FklGrammerIgnore *next = ig->next;
@@ -1820,13 +1822,13 @@ void fklUninitGrammer(FklGrammer *g) {
 
 void fklDestroyGrammer(FklGrammer *g) {
     fklUninitGrammer(g);
-    free(g);
+    fklZfree(g);
 }
 
 static inline int init_all_builtin_grammer_sym(FklGrammer *g) {
     int failed = 0;
     if (g->sortedTerminalsNum) {
-        free(g->sortedTerminals);
+        fklZfree(g->sortedTerminals);
         g->sortedTerminals = NULL;
         g->sortedTerminalsNum = 0;
     }
@@ -2031,7 +2033,7 @@ void fklInitEmptyGrammer(FklGrammer *r, FklSymbolTable *st) {
 }
 
 FklGrammer *fklCreateEmptyGrammer(FklSymbolTable *st) {
-    FklGrammer *r = (FklGrammer *)calloc(1, sizeof(FklGrammer));
+    FklGrammer *r = (FklGrammer *)fklZcalloc(1, sizeof(FklGrammer));
     FKL_ASSERT(r);
     fklInitEmptyGrammer(r, st);
     return r;
@@ -2394,7 +2396,7 @@ static inline void lalr_item_set_sort(FklLalrItemHashSet *itemSet) {
     if (num == 0)
         return;
     else {
-        item_array = (FklLalrItem *)malloc(num * sizeof(FklLalrItem));
+        item_array = (FklLalrItem *)fklZmalloc(num * sizeof(FklLalrItem));
         FKL_ASSERT(item_array);
     }
 
@@ -2406,7 +2408,7 @@ static inline void lalr_item_set_sort(FklLalrItemHashSet *itemSet) {
     fklLalrItemHashSetClear(itemSet);
     for (i = 0; i < num; i++)
         fklLalrItemHashSetPut(itemSet, &item_array[i]);
-    free(item_array);
+    fklZfree(item_array);
 }
 
 static inline void lr0_item_set_closure(FklLalrItemHashSet *itemSet,
@@ -2534,7 +2536,7 @@ static void item_set_add_link(FklLalrItemSetHashMapElm *src,
                               const FklGrammerSym *sym,
                               FklLalrItemSetHashMapElm *dst) {
     FklLalrItemSetLink *l =
-        (FklLalrItemSetLink *)malloc(sizeof(FklLalrItemSetLink));
+        (FklLalrItemSetLink *)fklZmalloc(sizeof(FklLalrItemSetLink));
     FKL_ASSERT(l);
     l->sym = *sym;
     l->dst = dst;
@@ -2829,7 +2831,7 @@ static inline void add_lookahead_spread(FklLalrItemSetHashMapElm *itemset,
                                         FklLalrItemHashSet *dstItems,
                                         const FklLalrItem *dst) {
     FklLookAheadSpreads *sp =
-        (FklLookAheadSpreads *)malloc(sizeof(FklLookAheadSpreads));
+        (FklLookAheadSpreads *)fklZmalloc(sizeof(FklLookAheadSpreads));
     FKL_ASSERT(sp);
     sp->next = itemset->v.spreads;
     sp->dstItems = dstItems;
@@ -3096,7 +3098,7 @@ static inline FklAnalysisStateAction *
 create_shift_action(const FklGrammerSym *sym, const FklSymbolTable *tt,
                     FklAnalysisState *state) {
     FklAnalysisStateAction *action =
-        (FklAnalysisStateAction *)malloc(sizeof(FklAnalysisStateAction));
+        (FklAnalysisStateAction *)fklZmalloc(sizeof(FklAnalysisStateAction));
     FKL_ASSERT(action);
     action->next = NULL;
     action->action = FKL_ANALYSIS_SHIFT;
@@ -3121,7 +3123,7 @@ static inline FklAnalysisStateGoto *
 create_state_goto(const FklGrammerSym *sym, const FklSymbolTable *tt,
                   FklAnalysisStateGoto *next, FklAnalysisState *state) {
     FklAnalysisStateGoto *gt =
-        (FklAnalysisStateGoto *)malloc(sizeof(FklAnalysisStateGoto));
+        (FklAnalysisStateGoto *)fklZmalloc(sizeof(FklAnalysisStateGoto));
     FKL_ASSERT(gt);
     gt->next = next;
     gt->state = state;
@@ -3190,7 +3192,7 @@ static inline int add_reduce_action(FklAnalysisState *curState,
     if (check_reduce_conflict(curState->state.action, la))
         return 1;
     FklAnalysisStateAction *action =
-        (FklAnalysisStateAction *)malloc(sizeof(FklAnalysisStateAction));
+        (FklAnalysisStateAction *)fklZmalloc(sizeof(FklAnalysisStateAction));
     FKL_ASSERT(action);
     init_action_with_look_ahead(action, la);
     if (is_Sq_nt(&prod->left))
@@ -3386,7 +3388,7 @@ static const FklLalrBuiltinMatch builtin_match_ignore = {
 static inline FklAnalysisStateAction *
 create_builtin_ignore_action(FklGrammer *g, FklGrammerIgnore *ig) {
     FklAnalysisStateAction *action =
-        (FklAnalysisStateAction *)malloc(sizeof(FklAnalysisStateAction));
+        (FklAnalysisStateAction *)fklZmalloc(sizeof(FklAnalysisStateAction));
     FKL_ASSERT(action);
     action->next = NULL;
     action->action = FKL_ANALYSIS_IGNORE;
@@ -3466,8 +3468,8 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
     if (!states->count)
         astates = NULL;
     else {
-        astates = (FklAnalysisState *)malloc(states->count
-                                             * sizeof(FklAnalysisState));
+        astates = (FklAnalysisState *)fklZmalloc(states->count
+                                                 * sizeof(FklAnalysisState));
         FKL_ASSERT(astates);
     }
     grammer->aTable.states = astates;
@@ -4078,7 +4080,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
 
         if (ac->prod->len)
             fprintf(fp,
-                    "\t\t\tvoid** nodes=(void**)malloc(%" FKL_PRT64U
+                    "\t\t\tvoid** nodes=(void**)fklZmalloc(%" FKL_PRT64U
                     "*sizeof(void*));\n"
                     "\t\t\tFKL_ASSERT(nodes||!%" FKL_PRT64U ");\n"
                     "\t\t\tconst FklAnalysisSymbol* "
@@ -4114,7 +4116,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
             fprintf(fp,
                     "\t\t\tfor(size_t i=0;i<%" FKL_PRT64U ";i++)\n"
                     "\t\t\t\t%s(nodes[i]);\n"
-                    "\t\t\tfree(nodes);\n",
+                    "\t\t\tfklZfree(nodes);\n",
                     ac->prod->len, ast_destroyer_name);
         fputs("\t\t\tif(!ast)\n\t\t\t{\n\t\t\t\t*errLine=line;\n\t\t\t\treturn "
               "FKL_PARSE_REDUCE_FAILED;\n\t\t\t}\n",
@@ -4641,7 +4643,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     symbolStack->size -= len;
     void **nodes = NULL;
     if (len) {
-        nodes = (void **)malloc(len * sizeof(void *));
+        nodes = (void **)fklZmalloc(len * sizeof(void *));
         FKL_ASSERT(nodes);
         const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
         for (size_t i = 0; i < len; i++) {
@@ -4654,7 +4656,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     if (len) {
         for (size_t i = 0; i < len; i++)
             outerCtx->destroy(nodes[i]);
-        free(nodes);
+        fklZfree(nodes);
     }
     if (!ast) {
         *errLine = line;
@@ -4918,7 +4920,7 @@ static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
             size_t size = 0;
             char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
             fklStringBufferBincpy(&buffer, s, size);
-            free(s);
+            fklZfree(s);
             cstr += len;
             cstr_size -= len;
             continue;
@@ -4964,7 +4966,7 @@ static inline void *prod_action_string(void *ctx, void *outerCtx, void *ast[],
                                    str->size - end_size - start_size, &size);
     FklNastNode *node = fklCreateNastNode(FKL_NAST_STR, nodes[0]->curline);
     node->str = fklCreateString(size, s);
-    free(s);
+    fklZfree(s);
     return node;
 }
 
@@ -5004,7 +5006,7 @@ static inline void *prod_action_dec_integer(void *ctx, void *outerCtx,
     if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
         FklBigInt bInt = FKL_BIGINT_0;
         fklInitBigIntWithDecCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)malloc(sizeof(FklBigInt));
+        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
@@ -5025,7 +5027,7 @@ static inline void *prod_action_hex_integer(void *ctx, void *outerCtx,
     if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
         FklBigInt bInt = FKL_BIGINT_0;
         fklInitBigIntWithHexCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)malloc(sizeof(FklBigInt));
+        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
@@ -5046,7 +5048,7 @@ static inline void *prod_action_oct_integer(void *ctx, void *outerCtx,
     if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
         FklBigInt bInt = FKL_BIGINT_0;
         fklInitBigIntWithOctCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)malloc(sizeof(FklBigInt));
+        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
@@ -5236,7 +5238,7 @@ static inline void *prod_action_bytevector(void *ctx, void *outerCtx,
     FklNastNode *node =
         fklCreateNastNode(FKL_NAST_BYTEVECTOR, nodes[0]->curline);
     node->bvec = fklCreateBytevector(size, (uint8_t *)s);
-    free(s);
+    fklZfree(s);
     return node;
 }
 

@@ -168,7 +168,7 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
                     }
                     fklDestroyNastNode(c->pair->car);
                     fklDestroyNastNode(c->pair->cdr);
-                    free(c->pair);
+                    fklZfree(c->pair);
                     c->type = FKL_NAST_SLOT;
                     c->sym = sym;
                 } else {

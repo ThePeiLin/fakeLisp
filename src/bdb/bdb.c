@@ -71,7 +71,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     FklCodegenEnv *main_env =
         fklInitGlobalCodegenInfo(&codegen, rp, pst, pkt, 0, outer_ctx,
                                  info_work_cb, create_env_work_cb, ctx);
-    free(rp);
+    fklZfree(rp);
     FklByteCodelnt *mainByteCode =
         fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
@@ -93,7 +93,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     codegen.pts = NULL;
     anotherVM->libNum = scriptLibStack->size;
     anotherVM->libs =
-        (FklVMlib *)calloc((scriptLibStack->size + 1), sizeof(FklVMlib));
+        (FklVMlib *)fklZcalloc((scriptLibStack->size + 1), sizeof(FklVMlib));
     FKL_ASSERT(anotherVM->libs);
 
     FklVMgc *gc = anotherVM->gc;
@@ -129,7 +129,7 @@ static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
     if (argc == 0) {
         gc->argv = NULL;
     } else {
-        char **argv = (char **)malloc(argc * sizeof(char *));
+        char **argv = (char **)fklZmalloc(argc * sizeof(char *));
         FKL_ASSERT(argv);
         for (int i = 0; i < argc; i++) {
             argv[i] = fklStringToCstr(FKL_VM_STR(FKL_VM_CAR(argv_list)));
@@ -612,7 +612,7 @@ void restartDebugging(DebugCtx *ctx) {
 
     base++;
     uint64_t lib_num = ctx->extra_mark_value.size - 1;
-    FklVMlib *libs = (FklVMlib *)calloc(lib_num + 1, sizeof(FklVMlib));
+    FklVMlib *libs = (FklVMlib *)fklZcalloc(lib_num + 1, sizeof(FklVMlib));
     FKL_ASSERT(libs);
     for (uint64_t i = 1; base < end; base++, i++)
         fklInitVMlib(&libs[i], *base);

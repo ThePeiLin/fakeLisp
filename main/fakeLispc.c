@@ -3,6 +3,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <argtable3.h>
 #include <stdio.h>
@@ -69,8 +70,8 @@ static inline void write_codegen_script_lib_path(const char *rp,
         fputc('\0', outfp);
     }
     fputc('\0', outfp);
-    free(relpath);
-    free(slices);
+    fklZfree(relpath);
+    fklZfree(slices);
 }
 
 static inline void write_codegen_script_lib(const FklCodegenLib *lib,
@@ -101,8 +102,8 @@ static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
     fwrite(slices[count], len, 1, outfp);
     fputc('\0', outfp);
     fputc('\0', outfp);
-    free(relpath);
-    free(slices);
+    fklZfree(relpath);
+    fklZfree(slices);
 }
 
 static inline void write_codegen_dll_lib(const FklCodegenLib *lib,
@@ -202,7 +203,7 @@ static inline int pre_compile(const char *main_file_name,
     FklByteCodelnt *mainByteCode =
         fklGenExpressionCodeWithFpForPrecompile(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
-        free(rp);
+        fklZfree(rp);
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
@@ -212,7 +213,7 @@ static inline int pre_compile(const char *main_file_name,
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
-    char *outputname = (char *)malloc(sizeof(char) * (strlen(rp) + 2));
+    char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
     FKL_ASSERT(outputname);
     strcpy(outputname, rp);
     strcat(outputname, FKL_PRE_COMPILE_FKL_SUFFIX_STR);
@@ -220,14 +221,14 @@ static inline int pre_compile(const char *main_file_name,
         if (!fklIsAccessibleDirectory(output_dir))
             fklMkdir(output_dir);
         char *new_output_name =
-            fklStrCat(fklCopyCstr(output_dir), FKL_PATH_SEPARATOR_STR);
+            fklStrCat(fklZstrdup(output_dir), FKL_PATH_SEPARATOR_STR);
         char *rel_new_output_name = fklRelpath(main_dir, outputname);
         new_output_name = fklStrCat(new_output_name, rel_new_output_name);
-        free(rel_new_output_name);
-        free(outputname);
+        fklZfree(rel_new_output_name);
+        fklZfree(outputname);
         outputname = new_output_name;
     }
-    free(rp);
+    fklZfree(rp);
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create pre-compile file!", outputname);
@@ -239,7 +240,7 @@ static inline int pre_compile(const char *main_file_name,
     fklDestroyByteCodelnt(mainByteCode);
     fclose(outfp);
     fklUninitCodegenInfo(&codegen);
-    free(outputname);
+    fklZfree(outputname);
     return 0;
 }
 
@@ -261,7 +262,7 @@ static inline int compile(const char *filename, const char *output,
     FklByteCodelnt *mainByteCode =
         fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
-        free(rp);
+        fklZfree(rp);
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
@@ -274,16 +275,16 @@ static inline int compile(const char *filename, const char *output,
     FklCodegenLibVector *loadedLibStack = codegen.libStack;
     char *outputname = NULL;
     if (output) {
-        outputname = fklStrCat(fklCopyCstr(cwd), FKL_PATH_SEPARATOR_STR);
+        outputname = fklStrCat(fklZstrdup(cwd), FKL_PATH_SEPARATOR_STR);
         outputname = fklStrCat(outputname, output);
         outputname = fklStrCat(outputname, FKL_BYTECODE_FILE_EXTENSION);
     } else {
-        outputname = (char *)malloc(sizeof(char) * (strlen(rp) + 2));
+        outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
         FKL_ASSERT(outputname);
         strcpy(outputname, rp);
         strcat(outputname, FKL_BYTECODE_FKL_SUFFIX_STR);
     }
-    free(rp);
+    fklZfree(rp);
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create byte code file!\n", outputname);
@@ -316,7 +317,7 @@ static inline int compile(const char *filename, const char *output,
     fklDestroyByteCodelnt(mainByteCode);
     fclose(outfp);
     fklUninitCodegenInfo(&codegen);
-    free(outputname);
+    fklZfree(outputname);
     return 0;
 }
 
@@ -393,15 +394,15 @@ int main(int argc, char **argv) {
 
         char *output_dir =
             dir->count > 0
-                ? fklStrCat(fklStrCat(fklCopyCstr(cwd), FKL_PATH_SEPARATOR_STR),
+                ? fklStrCat(fklStrCat(fklZstrdup(cwd), FKL_PATH_SEPARATOR_STR),
                             dir->filename[0])
                 : NULL;
         if (pre_compile(buffer.buf, output_dir, argc, argv, &outer_ctx)) {
-            free(output_dir);
+            fklZfree(output_dir);
             fklUninitStringBuffer(&buffer);
             goto compile_error;
         }
-        free(output_dir);
+        fklZfree(output_dir);
         fklUninitStringBuffer(&buffer);
         goto exit;
     }
@@ -442,7 +443,7 @@ int main(int argc, char **argv) {
     }
 
 exit:
-    free(cwd);
+    fklZfree(cwd);
     fklUninitCodegenOuterCtx(&outer_ctx);
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
     return exitcode;

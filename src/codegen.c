@@ -6,6 +6,7 @@
 #include <fakeLisp/parser.h>
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <stdint.h>
 #include <string.h>
@@ -107,7 +108,7 @@ static FklCodegenQuestContext *
 createCodegenQuestContext(void *data,
                           const FklCodegenQuestContextMethodTable *t) {
     FklCodegenQuestContext *r =
-        (FklCodegenQuestContext *)malloc(sizeof(FklCodegenQuestContext));
+        (FklCodegenQuestContext *)fklZmalloc(sizeof(FklCodegenQuestContext));
     FKL_ASSERT(r);
     r->data = data;
     r->t = t;
@@ -138,8 +139,8 @@ static FklCodegenQuestContext *createEmptyContext(void) {
 static FklCodegenNextExpression *
 createCodegenNextExpression(const FklNextExpressionMethodTable *t,
                             void *context, uint8_t must_has_retval) {
-    FklCodegenNextExpression *r =
-        (FklCodegenNextExpression *)malloc(sizeof(FklCodegenNextExpression));
+    FklCodegenNextExpression *r = (FklCodegenNextExpression *)fklZmalloc(
+        sizeof(FklCodegenNextExpression));
     FKL_ASSERT(r);
     r->t = t;
     r->context = context;
@@ -640,7 +641,7 @@ static inline FklByteCodelnt *create_bc_lnt(FklByteCode *bc, FklSid_t fid,
                                             uint32_t line, uint32_t scope) {
     FklByteCodelnt *r = fklCreateByteCodelnt(bc);
     r->ls = 1;
-    r->l = (FklLineNumberTableItem *)malloc(sizeof(FklLineNumberTableItem));
+    r->l = (FklLineNumberTableItem *)fklZmalloc(sizeof(FklLineNumberTableItem));
     FKL_ASSERT(r->l);
     fklInitLineNumTabNode(&r->l[0], fid, 0, line, scope);
     return r;
@@ -680,7 +681,7 @@ fklCreateCodegenQuest(FklByteCodeProcesser f, FklCodegenQuestContext *context,
                       FklCodegenMacroScope *macroScope, FklCodegenEnv *env,
                       uint64_t curline, FklCodegenQuest *prev,
                       FklCodegenInfo *codegen) {
-    FklCodegenQuest *r = (FklCodegenQuest *)malloc(sizeof(FklCodegenQuest));
+    FklCodegenQuest *r = (FklCodegenQuest *)fklZmalloc(sizeof(FklCodegenQuest));
     FKL_ASSERT(r);
     r->scope = scope;
     r->macroScope = make_macro_scope_ref(macroScope);
@@ -703,14 +704,14 @@ static void destroyCodegenQuest(FklCodegenQuest *quest) {
     if (nextExpression) {
         if (nextExpression->t->finalizer)
             nextExpression->t->finalizer(nextExpression->context);
-        free(nextExpression);
+        fklZfree(nextExpression);
     }
     fklDestroyCodegenEnv(quest->env);
     fklDestroyCodegenMacroScope(quest->macroScope);
     quest->context->t->__finalizer(quest->context->data);
-    free(quest->context);
+    fklZfree(quest->context);
     fklDestroyCodegenInfo(quest->codegen);
-    free(quest);
+    fklZfree(quest);
 }
 
 #define FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(F, STACK, NEXT_EXPRESSIONS,    \
@@ -916,7 +917,7 @@ static CODEGEN_FUNC(codegen_begin) {
 
 static inline uint32_t enter_new_scope(uint32_t p, FklCodegenEnv *env) {
     uint32_t r = ++env->sc;
-    FklCodegenEnvScope *scopes = (FklCodegenEnvScope *)fklRealloc(
+    FklCodegenEnvScope *scopes = (FklCodegenEnvScope *)fklZrealloc(
         env->scopes, r * sizeof(FklCodegenEnvScope));
     FKL_ASSERT(scopes);
     env->scopes = scopes;
@@ -1060,7 +1061,7 @@ typedef struct Let1Context {
 } Let1Context;
 
 static inline Let1Context *createLet1Context(FklSidVector *ss) {
-    Let1Context *ctx = (Let1Context *)malloc(sizeof(Let1Context));
+    Let1Context *ctx = (Let1Context *)fklZmalloc(sizeof(Let1Context));
     FKL_ASSERT(ctx);
     ctx->ss = ss;
     fklByteCodelntVectorInit(&ctx->stack, 8);
@@ -1082,7 +1083,7 @@ static void _let1_finalizer(void *d) {
         fklDestroyByteCodelnt(*fklByteCodelntVectorPopBack(s));
     fklByteCodelntVectorUninit(s);
     fklSidVectorDestroy(dd->ss);
-    free(dd);
+    fklZfree(dd);
 }
 
 static FklCodegenQuestContextMethodTable Let1ContextMethodTable = {
@@ -1849,7 +1850,7 @@ static void _def_var_context_finalizer(void *data) {
     while (!fklByteCodelntVectorIsEmpty(s))
         fklDestroyByteCodelnt(*fklByteCodelntVectorPopBack(s));
     fklByteCodelntVectorUninit(s);
-    free(ctx);
+    fklZfree(ctx);
 }
 
 static void _def_var_context_put_bcl(void *data, FklByteCodelnt *bcl) {
@@ -1871,7 +1872,7 @@ static const FklCodegenQuestContextMethodTable DefineVarContextMethodTable = {
 static inline FklCodegenQuestContext *
 create_def_var_context(FklSid_t id, uint32_t scope, uint32_t line) {
     DefineVarContext *ctx =
-        (DefineVarContext *)malloc(sizeof(DefineVarContext));
+        (DefineVarContext *)fklZmalloc(sizeof(DefineVarContext));
     FKL_ASSERT(ctx);
     ctx->id = id;
     ctx->scope = scope;
@@ -2002,7 +2003,7 @@ sid_ht_to_idx_key_ht(FklSymDefHashMap *sht, FklSymbolTable *globalSymTable,
     if (!sht->count)
         refs = NULL;
     else {
-        refs = (FklSymDefHashMapMutElm *)malloc(
+        refs = (FklSymDefHashMapMutElm *)fklZmalloc(
             sht->count * sizeof(FklSymDefHashMapMutElm));
         FKL_ASSERT(refs);
     }
@@ -2039,7 +2040,7 @@ static inline void create_and_insert_to_pool(FklCodegenInfo *info, uint32_t p,
     FklSymbolTable *gst = info->runtime_symbol_table;
     FklFuncPrototypes *cp = info->pts;
     cp->count += 1;
-    FklFuncPrototype *pts = (FklFuncPrototype *)fklRealloc(
+    FklFuncPrototype *pts = (FklFuncPrototype *)fklZrealloc(
         cp->pa, (cp->count + 1) * sizeof(FklFuncPrototype));
     FKL_ASSERT(pts);
     cp->pa = pts;
@@ -2316,7 +2317,7 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp, FklCodegenEnv *env,
     if (!count)
         refs = NULL;
     else {
-        refs = (FklSymDefHashMapMutElm *)fklRealloc(
+        refs = (FklSymDefHashMapMutElm *)fklZrealloc(
             pts->refs, count * sizeof(FklSymDefHashMapMutElm));
         FKL_ASSERT(refs);
     }
@@ -2345,7 +2346,7 @@ void fklUpdatePrototype(FklFuncPrototypes *cp, FklCodegenEnv *env,
 
 FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev, uint32_t pscope,
                                    FklCodegenMacroScope *macroScope) {
-    FklCodegenEnv *r = (FklCodegenEnv *)malloc(sizeof(FklCodegenEnv));
+    FklCodegenEnv *r = (FklCodegenEnv *)fklZmalloc(sizeof(FklCodegenEnv));
     FKL_ASSERT(r);
     r->pscope = pscope;
     r->sc = 0;
@@ -2376,8 +2377,8 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env) {
             FklCodegenEnvScope *scopes = cur->scopes;
             for (uint32_t i = 0; i < sc; i++)
                 fklSymDefHashMapUninit(&scopes[i].defs);
-            free(scopes);
-            free(cur->slotFlags);
+            fklZfree(scopes);
+            fklZfree(cur->slotFlags);
             fklSymDefHashMapUninit(&cur->refs);
             FklUnReSymbolRefVector *unref = &cur->uref;
             fklUnReSymbolRefVectorUninit(unref);
@@ -2385,7 +2386,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env) {
 
             fklPredefHashMapUninit(&cur->pdef);
             fklPreDefRefVectorUninit(&cur->ref_pdef);
-            free(cur);
+            fklZfree(cur);
         } else
             return;
     }
@@ -3029,27 +3030,27 @@ static inline int cfg_check_importable(const FklNastNode *exp,
 
     if (filename) {
         char *packageMainFileName =
-            fklStrCat(fklCopyCstr(filename), FKL_PATH_SEPARATOR_STR);
+            fklStrCat(fklZstrdup(filename), FKL_PATH_SEPARATOR_STR);
         packageMainFileName =
             fklStrCat(packageMainFileName, FKL_PACKAGE_MAIN_FILE);
 
-        char *preCompileFileName = fklStrCat(fklCopyCstr(packageMainFileName),
+        char *preCompileFileName = fklStrCat(fklZstrdup(packageMainFileName),
                                              FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
         char *scriptFileName =
-            fklStrCat(fklCopyCstr(filename), FKL_SCRIPT_FILE_EXTENSION);
+            fklStrCat(fklZstrdup(filename), FKL_SCRIPT_FILE_EXTENSION);
 
-        char *dllFileName = fklStrCat(fklCopyCstr(filename), FKL_DLL_FILE_TYPE);
+        char *dllFileName = fklStrCat(fklZstrdup(filename), FKL_DLL_FILE_TYPE);
 
         int r = fklIsAccessibleRegFile(packageMainFileName)
              || fklIsAccessibleRegFile(scriptFileName)
              || fklIsAccessibleRegFile(preCompileFileName)
              || fklIsAccessibleRegFile(dllFileName);
-        free(filename);
-        free(scriptFileName);
-        free(dllFileName);
-        free(packageMainFileName);
-        free(preCompileFileName);
+        fklZfree(filename);
+        fklZfree(scriptFileName);
+        fklZfree(dllFileName);
+        fklZfree(packageMainFileName);
+        fklZfree(preCompileFileName);
         return r;
     } else
         return 0;
@@ -4142,7 +4143,7 @@ static FklCodegenInfo *createCodegenInfo(FklCodegenInfo *prev,
                                          const char *filename, int libMark,
                                          int macroMark,
                                          FklCodegenOuterCtx *outer_ctx) {
-    FklCodegenInfo *r = (FklCodegenInfo *)malloc(sizeof(FklCodegenInfo));
+    FklCodegenInfo *r = (FklCodegenInfo *)fklZmalloc(sizeof(FklCodegenInfo));
     FKL_ASSERT(r);
     fklInitCodegenInfo(r, filename, prev, prev->runtime_symbol_table,
                        prev->runtime_kt, 1, libMark, macroMark, outer_ctx);
@@ -4162,7 +4163,7 @@ typedef struct {
 static CodegenLoadContext *createCodegenLoadContext(FILE *fp,
                                                     FklCodegenInfo *codegen) {
     CodegenLoadContext *r =
-        (CodegenLoadContext *)malloc(sizeof(CodegenLoadContext));
+        (CodegenLoadContext *)fklZmalloc(sizeof(CodegenLoadContext));
     FKL_ASSERT(r);
     r->codegen = codegen;
     r->fp = fp;
@@ -4181,7 +4182,7 @@ static void _codegen_load_finalizer(void *pcontext) {
     fklParseStateVectorUninit(&context->stateStack);
     fklUintVectorUninit(&context->lineStack);
     fclose(context->fp);
-    free(context);
+    fklZfree(context);
 }
 
 static inline FklNastNode *getExpressionFromFile(
@@ -4208,7 +4209,7 @@ static inline FklNastNode *getExpressionFromFile(
             errorLine, &begin, symbolStack, lineStack, stateStack);
     }
     if (list)
-        free(list);
+        fklZfree(list);
     if (*unexpectEOF)
         begin = NULL;
     while (!fklAnalysisSymbolVectorIsEmpty(symbolStack))
@@ -4349,7 +4350,7 @@ combineFileNameFromListAndCheckPrivate(const FklNastNode *list,
         FklNastNode *cur = curPair->pair->car;
         const FklString *str = fklGetSymbolWithId(cur->sym, pst)->k;
         if (curPair != list && str->str[0] == '_') {
-            free(r);
+            fklZfree(r);
             return NULL;
         }
         r = fklCstrStringCat(r, str);
@@ -4401,7 +4402,7 @@ static FklNastNode *createPatternWithPrefixFromOrig(FklNastNode *orig,
         fklNastConsWithSym(fklAddSymbol(symbolWithPrefix, pst)->v,
                            fklMakeNastNodeRef(orig->pair->cdr), orig->curline,
                            orig->pair->car->curline);
-    free(symbolWithPrefix);
+    fklZfree(symbolWithPrefix);
     return patternWithPrefix;
 }
 
@@ -4414,7 +4415,7 @@ static FklNastNode *add_prefix_for_pattern_origin_exp(FklNastNode *orig,
     FklString *symbolWithPrefix = fklStringAppend(prefix, head);
     FklSid_t id = fklAddSymbol(symbolWithPrefix, pst)->v;
     head_node->sym = id;
-    free(symbolWithPrefix);
+    fklZfree(symbolWithPrefix);
     return retval;
 }
 
@@ -4436,7 +4437,7 @@ export_replacement_with_prefix(FklReplacementHashMap *replacements,
         FklString *symbolWithPrefix = fklStringAppend(prefix, origSymbol);
         FklSid_t id = fklAddSymbol(symbolWithPrefix, pst)->v;
         fklReplacementHashMapAdd2(macros->replacements, id, cur->v);
-        free(symbolWithPrefix);
+        fklZfree(symbolWithPrefix);
     }
 }
 
@@ -4486,7 +4487,7 @@ static void export_context_data_finalizer(void *data) {
         fklDestroyNastNode(d->alias);
     if (d->except)
         fklDestroyNastNode(d->except);
-    free(d);
+    fklZfree(d);
 }
 
 static FklByteCodelntVector *export_context_data_get_bcl_stack(void *data) {
@@ -4597,7 +4598,7 @@ import_reader_macro(int is_grammer_inited, int *p_is_grammer_inited,
         add_production_group(codegen->named_prod_groups, new_group_id);
 
     for (FklGrammerIgnore *igs = group->ignore; igs; igs = igs->next) {
-        FklGrammerIgnore *ig = (FklGrammerIgnore *)malloc(
+        FklGrammerIgnore *ig = (FklGrammerIgnore *)fklZmalloc(
             sizeof(FklGrammerIgnore) + igs->len * sizeof(FklGrammerIgnoreSym));
         FKL_ASSERT(ig);
         ig->len = igs->len;
@@ -4607,7 +4608,7 @@ import_reader_macro(int is_grammer_inited, int *p_is_grammer_inited,
         recompute_ignores_terminal_sid_and_regex(ig, &g->terminals, &g->regexes,
                                                  orig_rt);
         if (fklAddIgnoreToIgnoreList(&target_group->ignore, ig)) {
-            free(ig);
+            fklZfree(ig);
             goto reader_macro_error;
         }
     }
@@ -5037,7 +5038,7 @@ createExportContext(FklCodegenInfo *codegen, FklCodegenEnv *targetEnv,
                     FklNastNode *prefix, FklNastNode *only, FklNastNode *alias,
                     FklNastNode *except) {
     ExportContextData *data =
-        (ExportContextData *)malloc(sizeof(ExportContextData));
+        (ExportContextData *)fklZmalloc(sizeof(ExportContextData));
     FKL_ASSERT(data);
 
     data->codegen = codegen;
@@ -5251,7 +5252,7 @@ static void export_sequnce_context_data_finalizer(void *data) {
         fklDestroyByteCodelnt(*fklByteCodelntVectorPopBack(d->stack));
     fklByteCodelntVectorDestroy(d->stack);
     fklDestroyNastNode(d->origExp);
-    free(d);
+    fklZfree(d);
 }
 
 static FklByteCodelntVector *
@@ -5275,8 +5276,8 @@ static const FklCodegenQuestContextMethodTable ExportSequnceContextMethodTable =
 static FklCodegenQuestContext *
 create_export_sequnce_context(FklNastNode *origExp, FklByteCodelntVector *s,
                               uint8_t must_has_retval) {
-    ExportSequnceContextData *data =
-        (ExportSequnceContextData *)malloc(sizeof(ExportSequnceContextData));
+    ExportSequnceContextData *data = (ExportSequnceContextData *)fklZmalloc(
+        sizeof(ExportSequnceContextData));
     FKL_ASSERT(data);
 
     data->stack = s;
@@ -5331,7 +5332,7 @@ static void _export_define_context_finalizer(void *data) {
     while (!fklByteCodelntVectorIsEmpty(s))
         fklDestroyByteCodelnt(*fklByteCodelntVectorPopBack(s));
     fklByteCodelntVectorUninit(s);
-    free(ctx);
+    fklZfree(ctx);
 }
 
 static void _export_define_context_put_bcl(void *data, FklByteCodelnt *bcl) {
@@ -5354,7 +5355,7 @@ static const FklCodegenQuestContextMethodTable ExportDefineContextMethodTable =
 static inline FklCodegenQuestContext *
 create_export_define_context(FklSid_t id, FklCodegenExportIdx *item) {
     ExportDefineContext *ctx =
-        (ExportDefineContext *)malloc(sizeof(ExportDefineContext));
+        (ExportDefineContext *)fklZmalloc(sizeof(ExportDefineContext));
     FKL_ASSERT(ctx);
     ctx->id = id;
     ctx->item = item;
@@ -5576,7 +5577,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(
             fprintf(stderr, "%s\n", uv_dlerror(&dll));
             errorState->type = FKL_ERR_FILEFAILURE;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             uv_dlclose(&dll);
             return NULL;
         }
@@ -5586,7 +5587,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libStack, NULL);
@@ -5596,7 +5597,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(
     } else {
         lib = &codegen->libStack->base[libId - 1];
         dll = lib->dll;
-        free(realpath);
+        fklZfree(realpath);
     }
 
     FklByteCodelnt *load_dll = append_load_dll_ins(
@@ -5639,7 +5640,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(
             fprintf(stderr, "%s\n", uv_dlerror(&dll));
             errorState->type = FKL_ERR_FILEFAILURE;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             uv_dlclose(&dll);
             return NULL;
         }
@@ -5649,7 +5650,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libStack, NULL);
@@ -5659,7 +5660,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(
     } else {
         lib = &codegen->libStack->base[libId - 1];
         dll = lib->dll;
-        free(realpath);
+        fklZfree(realpath);
     }
 
     FklByteCodelnt *load_dll = append_load_dll_ins(
@@ -5699,7 +5700,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(
             fprintf(stderr, "%s\n", uv_dlerror(&dll));
             errorState->type = FKL_ERR_FILEFAILURE;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             uv_dlclose(&dll);
             return NULL;
         }
@@ -5709,7 +5710,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libStack, NULL);
@@ -5719,7 +5720,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(
     } else {
         lib = &codegen->libStack->base[libId - 1];
         dll = lib->dll;
-        free(realpath);
+        fklZfree(realpath);
     }
 
     FklByteCodelnt *load_dll = append_load_dll_ins(
@@ -5744,7 +5745,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
             fprintf(stderr, "%s\n", uv_dlerror(&dll));
             errorState->type = FKL_ERR_FILEFAILURE;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             uv_dlclose(&dll);
             return NULL;
         }
@@ -5754,7 +5755,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libStack, NULL);
@@ -5764,7 +5765,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
     } else {
         lib = &codegen->libStack->base[libId - 1];
         dll = lib->dll;
-        free(realpath);
+        fklZfree(realpath);
     }
 
     FklString *prefix = fklGetSymbolWithId(prefixNode->sym, pst)->k;
@@ -5792,7 +5793,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(
             fprintf(stderr, "%s\n", uv_dlerror(&dll));
             errorState->type = FKL_ERR_FILEFAILURE;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             uv_dlclose(&dll);
             return NULL;
         }
@@ -5802,7 +5803,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
             errorState->place = fklMakeNastNodeRef(name);
-            free(realpath);
+            fklZfree(realpath);
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libStack, NULL);
@@ -5812,7 +5813,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(
     } else {
         lib = &codegen->libStack->base[libId - 1];
         dll = lib->dll;
-        free(realpath);
+        fklZfree(realpath);
     }
 
     FklByteCodelnt *load_dll = append_load_dll_ins(
@@ -5935,16 +5936,16 @@ static inline void codegen_import_helper(
     }
 
     char *packageMainFileName =
-        fklStrCat(fklCopyCstr(filename), FKL_PATH_SEPARATOR_STR);
+        fklStrCat(fklZstrdup(filename), FKL_PATH_SEPARATOR_STR);
     packageMainFileName = fklStrCat(packageMainFileName, FKL_PACKAGE_MAIN_FILE);
 
-    char *preCompileFileName = fklStrCat(fklCopyCstr(packageMainFileName),
+    char *preCompileFileName = fklStrCat(fklZstrdup(packageMainFileName),
                                          FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
     char *scriptFileName =
-        fklStrCat(fklCopyCstr(filename), FKL_SCRIPT_FILE_EXTENSION);
+        fklStrCat(fklZstrdup(filename), FKL_SCRIPT_FILE_EXTENSION);
 
-    char *dllFileName = fklStrCat(fklCopyCstr(filename), FKL_DLL_FILE_TYPE);
+    char *dllFileName = fklStrCat(fklZstrdup(filename), FKL_DLL_FILE_TYPE);
 
     if (fklIsAccessibleRegFile(packageMainFileName))
         process_import_script_common_header(
@@ -5967,7 +5968,7 @@ static inline void codegen_import_helper(
                                   preCompileFileName, NULL, &errorStr)) {
                 if (errorStr) {
                     fprintf(stderr, "%s\n", errorStr);
-                    free(errorStr);
+                    fklZfree(errorStr);
                 }
                 errorState->type = FKL_ERR_IMPORTFAILED;
                 errorState->place = fklMakeNastNodeRef(name);
@@ -6002,11 +6003,11 @@ static inline void codegen_import_helper(
         errorState->place = fklMakeNastNodeRef(name);
     }
 exit:
-    free(filename);
-    free(scriptFileName);
-    free(dllFileName);
-    free(packageMainFileName);
-    free(preCompileFileName);
+    fklZfree(filename);
+    fklZfree(scriptFileName);
+    fklZfree(dllFileName);
+    fklZfree(packageMainFileName);
+    fklZfree(preCompileFileName);
 }
 
 static CODEGEN_FUNC(codegen_import) {
@@ -6108,7 +6109,7 @@ static inline MacroContext *createMacroContext(FklNastNode *origin_exp,
                                                FklNastNode *pattern,
                                                FklCodegenMacroScope *macroScope,
                                                uint32_t prototype_id) {
-    MacroContext *r = (MacroContext *)malloc(sizeof(MacroContext));
+    MacroContext *r = (MacroContext *)fklZmalloc(sizeof(MacroContext));
     FKL_ASSERT(r);
     r->pattern = pattern;
     r->origin_exp = fklMakeNastNodeRef(origin_exp);
@@ -6159,7 +6160,7 @@ static void _macro_stack_context_finalizer(void *data) {
     fklDestroyNastNode(d->origin_exp);
     if (d->macroScope)
         fklDestroyCodegenMacroScope(d->macroScope);
-    free(d);
+    fklZfree(d);
 }
 
 static const FklCodegenQuestContextMethodTable MacroStackContextMethodTable = {
@@ -6259,14 +6260,14 @@ static void custom_action_ctx_destroy(void *c) {
     else {
         if (ctx->bcl)
             fklDestroyByteCodelnt(ctx->bcl);
-        free(ctx);
+        fklZfree(ctx);
     }
 }
 
 static inline struct ReaderMacroCtx *
 createReaderMacroContext(struct CustomActionCtx *ctx, FklFuncPrototypes *pts) {
     struct ReaderMacroCtx *r =
-        (struct ReaderMacroCtx *)malloc(sizeof(struct ReaderMacroCtx));
+        (struct ReaderMacroCtx *)fklZmalloc(sizeof(struct ReaderMacroCtx));
     FKL_ASSERT(r);
     r->action_ctx = custom_action_ctx_copy(ctx);
     r->pts = pts;
@@ -6316,7 +6317,7 @@ static void _reader_macro_stack_context_finalizer(void *data) {
     fklByteCodelntVectorUninit(s);
     if (d->action_ctx)
         custom_action_ctx_destroy(d->action_ctx);
-    free(d);
+    fklZfree(d);
 }
 
 static const FklCodegenQuestContextMethodTable
@@ -6778,7 +6779,7 @@ static void *simple_action_cons_create(FklNastNode *rest[], size_t rest_len,
         *failed = 1;
         return NULL;
     }
-    struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)malloc(
+    struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)fklZmalloc(
         sizeof(struct SimpleActionConsCtx));
     FKL_ASSERT(ctx);
     ctx->car = rest[0]->fix;
@@ -6787,7 +6788,7 @@ static void *simple_action_cons_create(FklNastNode *rest[], size_t rest_len,
 }
 
 static void *simple_action_cons_copy(const void *c) {
-    struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)malloc(
+    struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)fklZmalloc(
         sizeof(struct SimpleActionConsCtx));
     FKL_ASSERT(ctx);
     *ctx = *(struct SimpleActionConsCtx *)c;
@@ -6820,13 +6821,13 @@ static void *simple_action_head(void *c, void *outerCtx, void *nodes[],
             return NULL;
     FklNastNode *head = fklMakeNastNodeRef(cc->head);
     FklNastNode **exps =
-        (FklNastNode **)malloc((1 + cc->idx_num) * sizeof(FklNastNode *));
+        (FklNastNode **)fklZmalloc((1 + cc->idx_num) * sizeof(FklNastNode *));
     FKL_ASSERT(exps);
     exps[0] = head;
     for (size_t i = 0; i < cc->idx_num; i++)
         exps[i + 1] = fklMakeNastNodeRef(nodes[cc->idx[i]]);
     FklNastNode *retval = create_nast_list(exps, 1 + cc->idx_num, line);
-    free(exps);
+    fklZfree(exps);
     return retval;
 }
 
@@ -6839,7 +6840,7 @@ static void *simple_action_head_create(FklNastNode *rest[], size_t rest_len,
     for (size_t i = 1; i < rest_len; i++)
         if (rest[i]->type != FKL_NAST_FIX || rest[i]->fix < 0)
             return NULL;
-    struct SimpleActionHeadCtx *ctx = (struct SimpleActionHeadCtx *)malloc(
+    struct SimpleActionHeadCtx *ctx = (struct SimpleActionHeadCtx *)fklZmalloc(
         sizeof(struct SimpleActionHeadCtx)
         + ((rest_len - 1) * sizeof(uint64_t)));
     FKL_ASSERT(ctx);
@@ -6855,7 +6856,7 @@ static void *simple_action_head_copy(const void *c) {
     size_t size =
         sizeof(struct SimpleActionHeadCtx) + (sizeof(uint64_t) * cc->idx_num);
     struct SimpleActionHeadCtx *ctx =
-        (struct SimpleActionHeadCtx *)malloc(size);
+        (struct SimpleActionHeadCtx *)fklZmalloc(size);
     FKL_ASSERT(ctx);
     memcpy(ctx, cc, size);
     fklMakeNastNodeRef(ctx->head);
@@ -6865,7 +6866,7 @@ static void *simple_action_head_copy(const void *c) {
 static void simple_action_head_destroy(void *cc) {
     struct SimpleActionHeadCtx *ctx = (struct SimpleActionHeadCtx *)cc;
     fklDestroyNastNode(ctx->head);
-    free(ctx);
+    fklZfree(ctx);
 }
 
 static inline void *simple_action_box(void *ctx, void *outerCtx, void *nodes[],
@@ -7011,8 +7012,9 @@ static void *simple_action_symbol_create(FklNastNode *rest[], size_t rest_len,
         start = rest[1]->str;
         end = start;
     }
-    struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)malloc(
-        sizeof(struct SimpleActionSymbolCtx));
+    struct SimpleActionSymbolCtx *ctx =
+        (struct SimpleActionSymbolCtx *)fklZmalloc(
+            sizeof(struct SimpleActionSymbolCtx));
     FKL_ASSERT(ctx);
     ctx->nth = rest[0]->fix;
     ctx->start = start ? fklCopyString(start) : NULL;
@@ -7021,8 +7023,9 @@ static void *simple_action_symbol_create(FklNastNode *rest[], size_t rest_len,
 }
 
 static void *simple_action_symbol_copy(const void *cc) {
-    struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)malloc(
-        sizeof(struct SimpleActionSymbolCtx));
+    struct SimpleActionSymbolCtx *ctx =
+        (struct SimpleActionSymbolCtx *)fklZmalloc(
+            sizeof(struct SimpleActionSymbolCtx));
     FKL_ASSERT(ctx);
     *ctx = *(struct SimpleActionSymbolCtx *)cc;
     ctx->end = fklCopyString(ctx->end);
@@ -7032,9 +7035,9 @@ static void *simple_action_symbol_copy(const void *cc) {
 
 static void simple_action_symbol_destroy(void *cc) {
     struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)cc;
-    free(ctx->end);
-    free(ctx->start);
-    free(ctx);
+    fklZfree(ctx->end);
+    fklZfree(ctx->start);
+    fklZfree(ctx);
 }
 
 static void *simple_action_symbol(void *c, void *outerCtx, void *nodes[],
@@ -7070,7 +7073,7 @@ static void *simple_action_symbol(void *c, void *outerCtx, void *nodes[],
                 size_t size = 0;
                 char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
                 fklStringBufferBincpy(&buffer, s, size);
-                free(s);
+                fklZfree(s);
                 cstr += len;
                 cstr_size -= len;
                 continue;
@@ -7116,7 +7119,7 @@ static inline void *simple_action_string(void *c, void *outerCtx, void *nodes[],
             &cstr[start_size], str->size - end_size - start_size, &size);
         FklNastNode *retval = fklCreateNastNode(FKL_NAST_STR, node->curline);
         retval->str = fklCreateString(size, s);
-        free(s);
+        fklZfree(s);
         return retval;
     } else
         return fklMakeNastNodeRef(node);
@@ -7172,7 +7175,7 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
     if (!vec->size)
         delim = NULL;
     else {
-        delim = (uint8_t *)malloc(vec->size * sizeof(uint8_t));
+        delim = (uint8_t *)fklZmalloc(vec->size * sizeof(uint8_t));
         FKL_ASSERT(delim);
         memset(delim, 1, sizeof(uint8_t) * vec->size);
     }
@@ -7197,7 +7200,7 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
     }
     if (valid_items.size) {
         size_t top = valid_items.size;
-        retval = (FklGrammerSym *)malloc(top * sizeof(FklGrammerSym));
+        retval = (FklGrammerSym *)fklZmalloc(top * sizeof(FklGrammerSym));
         FKL_ASSERT(retval);
         FklNastNode *const *base = (FklNastNode *const *)valid_items.base;
         for (size_t i = 0; i < top; i++) {
@@ -7222,7 +7225,7 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
                 const FklRegexCode *re = fklAddRegexStr(rt, cur->box->str);
                 if (!re) {
                     *failed = 2;
-                    free(retval);
+                    fklZfree(retval);
                     retval = NULL;
                     goto end;
                 }
@@ -7253,7 +7256,7 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
 
 end:
     fklNastNodeVectorUninit(&valid_items);
-    free(delim);
+    fklZfree(delim);
     return retval;
 }
 
@@ -7268,7 +7271,7 @@ nast_vector_to_ignore(const FklNastVector *vec,
         return NULL;
     FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(syms, num, tt);
     fklUninitGrammerSymbols(syms, num);
-    free(syms);
+    fklZfree(syms);
     return ig;
 }
 
@@ -7306,8 +7309,8 @@ FklGrammerProduction *fklCodegenProdPrintingToProduction(
         prod->ctx_destroyer = action->ctx_destroy;
         prod->ctx_copyer = action->ctx_copyer;
     } else {
-        struct CustomActionCtx *ctx =
-            (struct CustomActionCtx *)calloc(1, sizeof(struct CustomActionCtx));
+        struct CustomActionCtx *ctx = (struct CustomActionCtx *)fklZcalloc(
+            1, sizeof(struct CustomActionCtx));
         FKL_ASSERT(ctx);
         ctx->codegen_outer_ctx = outer_ctx;
         ctx->prototype_id = p->prototype_id;
@@ -7337,10 +7340,10 @@ macro_compile_prepare(FklCodegenInfo *codegen, FklCodegenMacroScope *macroScope,
     macroCodegen->global_env = macro_glob_env;
     macro_glob_env->refcount++;
 
-    free(macroCodegen->dir);
-    macroCodegen->dir = fklCopyCstr(codegen->dir);
-    macroCodegen->filename = fklCopyCstr(codegen->filename);
-    macroCodegen->realpath = fklCopyCstr(codegen->realpath);
+    fklZfree(macroCodegen->dir);
+    macroCodegen->dir = fklZstrdup(codegen->dir);
+    macroCodegen->filename = fklZstrdup(codegen->filename);
+    macroCodegen->realpath = fklZstrdup(codegen->realpath);
     macroCodegen->pts = codegen->macro_pts;
     macroCodegen->macro_pts = fklCreateFuncPrototypes(0);
 
@@ -7380,7 +7383,7 @@ static void _adding_production_ctx_finalizer(void *data) {
     fklDestroyNastNode(ctx->vec);
     if (ctx->type != FKL_CODEGEN_PROD_CUSTOM)
         fklDestroyNastNode(ctx->action);
-    free(data);
+    fklZfree(data);
 }
 
 static const FklCodegenQuestContextMethodTable AddingProductionCtxMethodTable =
@@ -7396,7 +7399,7 @@ createAddingProductionCtx(FklGrammerProduction *prod, FklSid_t sid,
                           FklNastNode *vec, FklCodegenProdActionType type,
                           FklNastNode *action_ast) {
     AddingProductionCtx *ctx =
-        (AddingProductionCtx *)malloc(sizeof(AddingProductionCtx));
+        (AddingProductionCtx *)fklZmalloc(sizeof(AddingProductionCtx));
     FKL_ASSERT(ctx);
     ctx->prod = prod;
     ctx->sid = sid;
@@ -7605,8 +7608,8 @@ static inline FklGrammerProduction *nast_vector_to_production(
         create_and_insert_to_pool(macroCodegen, 0, macroEnv, 0,
                                   action_ast->curline, pst);
         FklNastNodeQueue *queue = fklNastNodeQueueCreate();
-        struct CustomActionCtx *ctx =
-            (struct CustomActionCtx *)calloc(1, sizeof(struct CustomActionCtx));
+        struct CustomActionCtx *ctx = (struct CustomActionCtx *)fklZcalloc(
+            1, sizeof(struct CustomActionCtx));
         FKL_ASSERT(ctx);
         ctx->codegen_outer_ctx = codegen->outer_ctx;
         ctx->prototype_id = macroEnv->prototypeId;
@@ -7650,7 +7653,7 @@ static inline int add_group_prods(FklGrammer *g, const FklProdHashMap *prods) {
 
 static inline int add_group_ignores(FklGrammer *g, FklGrammerIgnore *igs) {
     for (; igs; igs = igs->next) {
-        FklGrammerIgnore *ig = (FklGrammerIgnore *)malloc(
+        FklGrammerIgnore *ig = (FklGrammerIgnore *)fklZmalloc(
             sizeof(FklGrammerIgnore) + igs->len * sizeof(FklGrammerIgnoreSym));
         FKL_ASSERT(ig);
         ig->len = igs->len;
@@ -7658,7 +7661,7 @@ static inline int add_group_ignores(FklGrammer *g, FklGrammerIgnore *igs) {
         memcpy(ig->ig, igs->ig, sizeof(FklGrammerIgnoreSym) * ig->len);
 
         if (fklAddIgnoreToIgnoreList(&g->ignores, ig)) {
-            free(ig);
+            fklZfree(ig);
             return 1;
         }
     }
@@ -8323,7 +8326,7 @@ void fklInitCodegenOuterCtx(FklCodegenOuterCtx *outerCtx,
     outerCtx->cwd = fklSysgetcwd();
     outerCtx->main_file_real_path_dir = main_file_real_path_dir
                                           ? main_file_real_path_dir
-                                          : fklCopyCstr(outerCtx->cwd);
+                                          : fklZstrdup(outerCtx->cwd);
     fklInitCodegenOuterCtxExceptPattern(outerCtx);
     FklSymbolTable *publicSymbolTable = &outerCtx->public_symbol_table;
 
@@ -8380,7 +8383,7 @@ void fklInitCodegenOuterCtx(FklCodegenOuterCtx *outerCtx,
 void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx *outer_ctx,
                                               char *dir) {
     if (outer_ctx->main_file_real_path_dir)
-        free(outer_ctx->main_file_real_path_dir);
+        fklZfree(outer_ctx->main_file_real_path_dir);
     outer_ctx->main_file_real_path_dir = dir;
 }
 
@@ -8393,8 +8396,8 @@ void fklUninitCodegenOuterCtx(FklCodegenOuterCtx *outer_ctx) {
     nodes = outer_ctx->builtin_sub_pattern_node;
     for (size_t i = 0; i < FKL_CODEGEN_SUB_PATTERN_NUM; i++)
         fklDestroyNastNode(nodes[i]);
-    free(outer_ctx->cwd);
-    free(outer_ctx->main_file_real_path_dir);
+    fklZfree(outer_ctx->cwd);
+    fklZfree(outer_ctx->main_file_real_path_dir);
 }
 
 void fklDestroyCodegenInfo(FklCodegenInfo *codegen) {
@@ -8403,7 +8406,7 @@ void fklDestroyCodegenInfo(FklCodegenInfo *codegen) {
         FklCodegenInfo *prev = codegen->prev;
         if (!codegen->refcount) {
             fklUninitCodegenInfo(codegen);
-            free(codegen);
+            fklZfree(codegen);
             codegen = prev;
         } else
             break;
@@ -8679,7 +8682,7 @@ fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,
     if (rp != NULL) {
         codegen->dir = fklGetDir(rp);
         codegen->filename = fklRelpath(outer_ctx->main_file_real_path_dir, rp);
-        codegen->realpath = fklCopyCstr(rp);
+        codegen->realpath = fklZstrdup(rp);
         codegen->fid = fklAddSymbolCstr(codegen->filename, runtime_st)->v;
     } else {
         codegen->dir = fklSysgetcwd();
@@ -8819,11 +8822,11 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
         if (codegen->pts)
             fklDestroyFuncPrototypes(codegen->pts);
     }
-    free(codegen->dir);
+    fklZfree(codegen->dir);
     if (codegen->filename)
-        free(codegen->filename);
+        fklZfree(codegen->filename);
     if (codegen->realpath)
-        free(codegen->realpath);
+        fklZfree(codegen->realpath);
     if (codegen->exports.buckets)
         fklCgExportSidIdxHashMapUninit(&codegen->exports);
     for (FklCodegenMacro *cur = codegen->export_macro; cur;) {
@@ -8849,7 +8852,7 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
         fklProdHashMapUninit(codegen->builtin_prods);
         fklProdHashMapUninit(codegen->unnamed_prods);
         fklGraProdGroupHashMapUninit(codegen->named_prod_groups);
-        free(g);
+        fklZfree(g);
         codegen->g = NULL;
     }
 }
@@ -8899,7 +8902,7 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
                     add_production_group(&lib->named_prod_groups, id);
                 for (FklGrammerIgnore *igs = group->ignore; igs;
                      igs = igs->next) {
-                    FklGrammerIgnore *ig = (FklGrammerIgnore *)malloc(
+                    FklGrammerIgnore *ig = (FklGrammerIgnore *)fklZmalloc(
                         sizeof(FklGrammerIgnore)
                         + igs->len * sizeof(FklGrammerIgnoreSym));
                     FKL_ASSERT(ig);
@@ -8983,7 +8986,7 @@ void fklInitCodegenDllLib(FklCodegenLib *lib, char *rp, uv_lib_t dll,
         }
     }
     if (exports)
-        free(exports);
+        fklZfree(exports);
 }
 
 void fklDestroyCodegenMacroList(FklCodegenMacro *cur) {
@@ -9003,7 +9006,7 @@ void fklDestroyCodegenLibMacroScope(FklCodegenLib *lib) {
 void fklUninitCodegenLibInfo(FklCodegenLib *lib) {
     if (lib->exports.buckets)
         fklCgExportSidIdxHashMapUninit(&lib->exports);
-    free(lib->rp);
+    fklZfree(lib->rp);
     if (lib->named_prod_groups.buckets) {
         fklGraProdGroupHashMapUninit(&lib->named_prod_groups);
         fklUninitSymbolTable(&lib->terminal_table);
@@ -9029,7 +9032,7 @@ FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
                                        FklByteCodelnt *bcl,
                                        FklCodegenMacro *next,
                                        uint32_t prototype_id, int own) {
-    FklCodegenMacro *r = (FklCodegenMacro *)malloc(sizeof(FklCodegenMacro));
+    FklCodegenMacro *r = (FklCodegenMacro *)fklZmalloc(sizeof(FklCodegenMacro));
     FKL_ASSERT(r);
     r->pattern = pattern;
     r->origin_exp = origin_exp;
@@ -9042,12 +9045,12 @@ FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
 
 void fklDestroyCodegenMacro(FklCodegenMacro *macro) {
     uninit_codegen_macro(macro);
-    free(macro);
+    fklZfree(macro);
 }
 
 FklCodegenMacroScope *fklCreateCodegenMacroScope(FklCodegenMacroScope *prev) {
     FklCodegenMacroScope *r =
-        (FklCodegenMacroScope *)malloc(sizeof(FklCodegenMacroScope));
+        (FklCodegenMacroScope *)fklZmalloc(sizeof(FklCodegenMacroScope));
     FKL_ASSERT(r);
     r->head = NULL;
     r->replacements = fklReplacementHashMapCreate();
@@ -9070,7 +9073,7 @@ void fklDestroyCodegenMacroScope(FklCodegenMacroScope *macros) {
             }
             if (macros->replacements)
                 fklReplacementHashMapDestroy(macros->replacements);
-            free(macros);
+            fklZfree(macros);
             macros = prev;
         }
     }
@@ -9176,7 +9179,7 @@ FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl, FklFuncPrototypes *pts,
 
     anotherVM->libNum = macroLibStack->size;
     anotherVM->libs =
-        (FklVMlib *)calloc(macroLibStack->size + 1, sizeof(FklVMlib));
+        (FklVMlib *)fklZcalloc(macroLibStack->size + 1, sizeof(FklVMlib));
     FKL_ASSERT(anotherVM->libs);
     for (size_t i = 0; i < macroLibStack->size; i++) {
         const FklCodegenLib *cur = &macroLibStack->base[i];

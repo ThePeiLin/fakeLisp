@@ -30,7 +30,7 @@ static inline void remove_closed_var_ref_from_list(FklVMvarRefList **ll) {
         FklVMvalue *ref = l->ref;
         if (fklIsClosedVMvalueVarRef(ref)) {
             *ll = l->next;
-            free(l);
+            fklZfree(l);
         } else
             ll = &l->next;
     }
@@ -187,10 +187,10 @@ void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv) {
         return;
     }
     size_t size = sizeof(const char *) * gc->argc;
-    char **argv_v = (char **)malloc(size);
+    char **argv_v = (char **)fklZmalloc(size);
     FKL_ASSERT(argv_v);
     for (int i = 0; i < gc->argc; i++)
-        argv_v[i] = fklCopyCstr(argv[i]);
+        argv_v[i] = fklZstrdup(argv[i]);
     gc->argv = argv_v;
 }
 
@@ -200,46 +200,46 @@ static inline void init_idle_work_queue(FklVMgc *gc) {
 }
 
 void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt) {
-    free(gc->ki64);
+    fklZfree(gc->ki64);
     if (kt->ki64t.count) {
         size_t size = sizeof(int64_t) * kt->ki64t.count;
-        gc->ki64 = (int64_t *)malloc(size);
+        gc->ki64 = (int64_t *)fklZmalloc(size);
         FKL_ASSERT(gc->ki64);
         memcpy(gc->ki64, kt->ki64t.base, size);
     } else
         gc->ki64 = NULL;
 
-    free(gc->kf64);
+    fklZfree(gc->kf64);
     if (kt->kf64t.count) {
         size_t size = sizeof(double) * kt->kf64t.count;
-        gc->kf64 = (double *)malloc(size);
+        gc->kf64 = (double *)fklZmalloc(size);
         FKL_ASSERT(gc->kf64);
         memcpy(gc->kf64, kt->kf64t.base, size);
     } else
         gc->kf64 = NULL;
 
-    free(gc->kstr);
+    fklZfree(gc->kstr);
     if (kt->kstrt.count) {
         size_t size = sizeof(FklString *) * kt->kstrt.count;
-        gc->kstr = (FklString **)malloc(size);
+        gc->kstr = (FklString **)fklZmalloc(size);
         FKL_ASSERT(gc->kstr);
         memcpy(gc->kstr, kt->kstrt.base, size);
     } else
         gc->kstr = NULL;
 
-    free(gc->kbvec);
+    fklZfree(gc->kbvec);
     if (kt->kbvect.count) {
         size_t size = sizeof(FklBytevector *) * kt->kbvect.count;
-        gc->kbvec = (FklBytevector **)malloc(size);
+        gc->kbvec = (FklBytevector **)fklZmalloc(size);
         FKL_ASSERT(gc->kbvec);
         memcpy(gc->kbvec, kt->kbvect.base, size);
     } else
         gc->kbvec = NULL;
 
-    free(gc->kbi);
+    fklZfree(gc->kbi);
     if (kt->kbit.count) {
         size_t size = sizeof(FklBigInt *) * kt->kbit.count;
-        gc->kbi = (FklBigInt **)malloc(size);
+        gc->kbi = (FklBigInt **)fklZmalloc(size);
         FKL_ASSERT(gc->kbi);
         memcpy(gc->kbi, kt->kbit.base, size);
     } else
@@ -248,7 +248,7 @@ void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt) {
 
 FklVMgc *fklCreateVMgc(FklSymbolTable *st, FklConstTable *kt,
                        FklFuncPrototypes *pts) {
-    FklVMgc *gc = (FklVMgc *)calloc(1, sizeof(FklVMgc));
+    FklVMgc *gc = (FklVMgc *)fklZcalloc(1, sizeof(FklVMgc));
     FKL_ASSERT(gc);
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_rwlock_init(&gc->st_lock);
@@ -294,7 +294,7 @@ FklVMvalue **fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast,
         if (!llast)
             r = NULL;
         else {
-            r = (FklVMvalue **)malloc(llast * sizeof(FklVMvalue *));
+            r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
             FKL_ASSERT(r);
         }
         atomic_fetch_add(&gc->num, llast);
@@ -329,7 +329,7 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc, uint32_t llast,
         if (!llast)
             r = NULL;
         else {
-            r = (FklVMvalue **)malloc(llast * sizeof(FklVMvalue *));
+            r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
             FKL_ASSERT(r);
         }
         atomic_fetch_add(&gc->num, llast);
@@ -356,7 +356,7 @@ static inline void destroy_all_locv_cache(FklVMgc *gc) {
         for (uint8_t j = 0; j < FKL_VM_GC_LOCV_CACHE_NUM; j++) {
             struct FklLocvCache *cur_cache = &cache[j];
             if (cur_cache->llast)
-                free(cur_cache->locv);
+                fklZfree(cur_cache->locv);
         }
     }
 }
@@ -369,15 +369,15 @@ static inline void destroy_argv(FklVMgc *gc) {
     if (gc->argc) {
         char **const end = &gc->argv[gc->argc];
         for (char **cur = gc->argv; cur < end; cur++)
-            free(*cur);
-        free(gc->argv);
+            fklZfree(*cur);
+        fklZfree(gc->argv);
     }
 }
 
 void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList *l) {
     if (l->finalizer)
         l->finalizer(l->int_handle_arg);
-    free(l);
+    fklZfree(l);
 }
 
 static inline void
@@ -387,7 +387,7 @@ destroy_interrupt_handle_list(struct FklVMinterruptHandleList *l) {
         if (l->finalizer)
             l->finalizer(l->int_handle_arg);
         l = l->next;
-        free(c);
+        fklZfree(c);
     }
 }
 
@@ -397,7 +397,7 @@ static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList *l) {
         if (l->finalizer)
             l->finalizer(l->arg);
         l = l->next;
-        free(c);
+        fklZfree(c);
     }
 }
 
@@ -413,12 +413,12 @@ void fklDestroyVMgc(FklVMgc *gc) {
     fklVMgcSweep(gc->head);
     gc->head = NULL;
     uninit_vm_queue(&gc->q);
-    free(gc->ki64);
-    free(gc->kf64);
-    free(gc->kstr);
-    free(gc->kbvec);
-    free(gc->kbi);
-    free(gc);
+    fklZfree(gc->ki64);
+    fklZfree(gc->kf64);
+    fklZfree(gc->kstr);
+    fklZfree(gc->kbvec);
+    fklZfree(gc->kbi);
+    fklZfree(gc);
 }
 
 void fklVMacquireWq(FklVMgc *gc) { uv_mutex_lock(&gc->workq_lock); }
@@ -471,7 +471,7 @@ void fklVMpushInterruptHandler(FklVMgc *gc, FklVMinterruptHandler func,
                                FklVMextraMarkFunc mark,
                                void (*finalizer)(void *), void *arg) {
     struct FklVMinterruptHandleList *l =
-        (struct FklVMinterruptHandleList *)malloc(
+        (struct FklVMinterruptHandleList *)fklZmalloc(
             sizeof(struct FklVMinterruptHandleList));
     FKL_ASSERT(l);
     l->int_handler = func;
@@ -486,7 +486,7 @@ void fklVMpushInterruptHandlerLocal(FklVM *exe, FklVMinterruptHandler func,
                                     FklVMextraMarkFunc mark,
                                     void (*finalizer)(void *), void *arg) {
     struct FklVMinterruptHandleList *l =
-        (struct FklVMinterruptHandleList *)malloc(
+        (struct FklVMinterruptHandleList *)fklZmalloc(
             sizeof(struct FklVMinterruptHandleList));
     FKL_ASSERT(l);
     l->int_handler = func;
@@ -499,8 +499,9 @@ void fklVMpushInterruptHandlerLocal(FklVM *exe, FklVMinterruptHandler func,
 
 void fklVMpushExtraMarkFunc(FklVMgc *gc, FklVMextraMarkFunc func,
                             void (*finalizer)(void *), void *arg) {
-    struct FklVMextraMarkObjList *l = (struct FklVMextraMarkObjList *)malloc(
-        sizeof(struct FklVMextraMarkObjList));
+    struct FklVMextraMarkObjList *l =
+        (struct FklVMextraMarkObjList *)fklZmalloc(
+            sizeof(struct FklVMextraMarkObjList));
     FKL_ASSERT(l);
     l->func = func;
     l->arg = arg;

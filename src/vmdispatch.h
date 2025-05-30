@@ -1253,7 +1253,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         exe->tp = frame->c.sp;
         FklVMvalue **loc = NULL;
         if (idx1) {
-            loc = (FklVMvalue **)malloc(idx1 * sizeof(FklVMvalue *));
+            loc = (FklVMvalue **)fklZmalloc(idx1 * sizeof(FklVMvalue *));
             FKL_ASSERT(loc);
         }
         lib->loc = loc;

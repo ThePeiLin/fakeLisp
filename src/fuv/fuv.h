@@ -432,7 +432,7 @@ typedef struct {
     struct FuvErrorRecoverData error_recover_data;
     int mode;
     int is_closed;
-    jmp_buf* buf;
+    jmp_buf *buf;
 } FuvLoopData;
 
 typedef enum {
@@ -793,7 +793,7 @@ static inline void cleanUpDir(uv_dir_t *d, int cleanup_opt) {
         return;
     if ((cleanup_opt & FUV_DIR_CLEANUP_FREE_DIRENTS) && d->dirents) {
         d->nentries = 0;
-        free(d->dirents);
+        fklZfree(d->dirents);
         d->dirents = NULL;
     }
     if ((cleanup_opt & FUV_DIR_CLEANUP_CLOSE_DIR)) {

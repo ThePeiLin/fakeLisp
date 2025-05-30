@@ -189,8 +189,6 @@ static inline void init_fuv_req(FuvReq *req, FklVMvalue *v, FklVMvalue *loop,
     uv_req_set_data(&req->req, req);
 }
 
-#define CREATE_OBJ(TYPE) (TYPE *)calloc(1, sizeof(TYPE))
-
 #define FUV_REQ_P(NAME, ENUM)                                                  \
     int NAME(FklVMvalue *v) {                                                  \
         return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &ReqMetaTables[ENUM];  \

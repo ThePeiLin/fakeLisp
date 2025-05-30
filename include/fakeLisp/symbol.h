@@ -2,6 +2,7 @@
 #define FKL_SYMBOL_H
 
 #include "base.h"
+#include "zmalloc.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -12,6 +13,8 @@ extern "C" {
 
 typedef uint64_t FklSid_t;
 
+static inline void fklStrIdKeyFree(FklString *s) { fklZfree(s); }
+
 // FklStrIdHashMap
 #define FKL_HASH_KEY_TYPE FklString *
 #define FKL_HASH_VAL_TYPE FklSid_t
@@ -20,7 +23,7 @@ typedef uint64_t FklSid_t;
 #define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
 #define FKL_HASH_KEY_UNINIT(K)                                                 \
     {                                                                          \
-        free(*(K));                                                            \
+        fklStrIdKeyFree(*(K));                                                 \
     }
 #include "hash.h"
 

@@ -1,4 +1,3 @@
-#include "uv.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/builtin.h>
@@ -9,6 +8,7 @@
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -1662,7 +1662,7 @@ static void read_frame_finalizer(void *data) {
     fklAnalysisSymbolVectorUninit(ss);
     fklUintVectorUninit(&pctx->lineStack);
     fklParseStateVectorUninit(&pctx->stateStack);
-    free(pctx);
+    fklZfree(pctx);
 }
 
 static int read_frame_step(void *d, FklVM *exe) {
@@ -1731,7 +1731,8 @@ static inline void push_state0_of_custom_parser(FklVMvalue *parser,
 }
 
 static inline struct ParseCtx *create_read_parse_ctx(void) {
-    struct ParseCtx *pctx = (struct ParseCtx *)malloc(sizeof(struct ParseCtx));
+    struct ParseCtx *pctx =
+        (struct ParseCtx *)fklZmalloc(sizeof(struct ParseCtx));
     FKL_ASSERT(pctx);
     pctx->offset = 0;
     pctx->reducing_sid = 0;
@@ -1780,7 +1781,7 @@ static inline int do_custom_parser_reduce_action(
         if (!len)
             nodes = NULL;
         else {
-            nodes = (void **)malloc(len * sizeof(void *));
+            nodes = (void **)fklZmalloc(len * sizeof(void *));
             FKL_ASSERT(nodes);
         }
         const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
@@ -1794,7 +1795,7 @@ static inline int do_custom_parser_reduce_action(
     if (len) {
         for (size_t i = 0; i < len; i++)
             outerCtx->destroy(nodes[i]);
-        free(nodes);
+        fklZfree(nodes);
     }
     fklUintVectorPushBack2(lineStack, line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){.state = state});
@@ -2017,7 +2018,7 @@ vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinHashMap *builtin_term,
     if (vec->size == 0)
         goto zero_len;
 
-    delim = (uint8_t *)malloc(vec->size * sizeof(uint8_t));
+    delim = (uint8_t *)fklZmalloc(vec->size * sizeof(uint8_t));
     FKL_ASSERT(delim);
     memset(delim, 1, vec->size * sizeof(uint8_t));
 
@@ -2040,8 +2041,8 @@ vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinHashMap *builtin_term,
     }
     if (valid_items.size) {
         size_t top = valid_items.size;
-        syms =
-            (FklGrammerSym *)malloc(valid_items.size * sizeof(FklGrammerSym));
+        syms = (FklGrammerSym *)fklZmalloc(valid_items.size
+                                           * sizeof(FklGrammerSym));
         FKL_ASSERT(syms);
         FklVMvalue **base = (FklVMvalue **)valid_items.base;
         for (size_t i = 0; i < top; i++) {
@@ -2068,7 +2069,7 @@ vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinHashMap *builtin_term,
                 ss->term_type = FKL_TERM_REGEX;
                 const FklRegexCode *re = fklAddRegexStr(rt, str);
                 if (!re) {
-                    free(syms);
+                    fklZfree(syms);
                     *error_type = REGEX_COMPILE_ERROR;
                     goto end;
                 }
@@ -2098,7 +2099,7 @@ zero_len:
 
 end:
     fklVMvalueVectorUninit(&valid_items);
-    free(delim);
+    fklZfree(delim);
     return prod;
 }
 
@@ -2239,7 +2240,7 @@ static void custom_parse_frame_finalizer(void *data) {
     fklAnalysisSymbolVectorUninit(ss);
     fklUintVectorUninit(&c->pctx->lineStack);
     fklParseStateVectorUninit(&c->pctx->stateStack);
-    free(c->pctx);
+    fklZfree(c->pctx);
 }
 
 static int custom_parse_frame_step(void *d, FklVM *exe) {
@@ -3139,7 +3140,7 @@ static void error_handler_frame_atomic(void *data, FklVMgc *gc) {
 
 static void error_handler_frame_finalizer(void *data) {
     EhFrameContext *c = (EhFrameContext *)data;
-    free(c->err_handlers);
+    fklZfree(c->err_handlers);
 }
 
 static void error_handler_frame_copy(void *d, const void *s, FklVM *exe) {
@@ -3151,7 +3152,7 @@ static void error_handler_frame_copy(void *d, const void *s, FklVM *exe) {
     if (num == 0)
         dc->err_handlers = NULL;
     else {
-        dc->err_handlers = (FklVMpair *)malloc(num * sizeof(FklVMpair));
+        dc->err_handlers = (FklVMpair *)fklZmalloc(num * sizeof(FklVMpair));
         FKL_ASSERT(dc->err_handlers);
     }
 
@@ -3266,7 +3267,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     top_frame->t = &ErrorHandlerContextMethodTable;
     EhFrameContext *c = FKL_TYPE_CAST(EhFrameContext *, top_frame->data);
     c->num = err_handlers.size;
-    FklVMpair *t = (FklVMpair *)fklRealloc(
+    FklVMpair *t = (FklVMpair *)fklZrealloc(
         err_handlers.base, err_handlers.size * sizeof(FklVMpair));
     FKL_ASSERT(t);
     c->err_handlers = t;
@@ -3410,13 +3411,13 @@ static void vm_atexit_mark(void *a, FklVMgc *gc) {
         fklVMgcToGray(*args, gc);
 }
 
-static void vm_atexit_finalizer(void *arg) { free(arg); }
+static void vm_atexit_finalizer(void *arg) { fklZfree(arg); }
 
 static inline struct AtExitArg *create_at_exit_arg(uint32_t arg_num,
                                                    FklVMvalue **base) {
     size_t size = arg_num * sizeof(FklVMvalue *);
     struct AtExitArg *r =
-        (struct AtExitArg *)calloc(1, sizeof(struct AtExitArg) + size);
+        (struct AtExitArg *)fklZcalloc(1, sizeof(struct AtExitArg) + size);
     FKL_ASSERT(r);
     r->arg_num = arg_num;
     memcpy(r->args, base, size);

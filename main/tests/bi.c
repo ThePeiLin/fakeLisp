@@ -1,6 +1,7 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -406,7 +407,7 @@ static void sub_test3(void) {
         FKL_ASSERT(!strcmp(str->str, "1145141919"));
 
         // neg
-        free(str);
+        fklZfree(str);
         fklUninitStringBuffer(&buf);
 
         fklSetBigIntI(&a, -1145141919);
@@ -421,7 +422,7 @@ static void sub_test3(void) {
 
         fklUninitBigInt(&a);
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
     }
     {
         // oct
@@ -442,7 +443,7 @@ static void sub_test3(void) {
         FKL_ASSERT(!strcmp(str->str, "10420275237"));
 
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // oct alternate
 
@@ -455,7 +456,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "010420275237"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // oct neg
 
@@ -469,7 +470,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-10420275237"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // oct neg alternate
 
@@ -482,7 +483,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-010420275237"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
         fklUninitBigInt(&a);
     }
     {
@@ -502,7 +503,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "44417a9f"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex alternate
 
@@ -515,7 +516,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "0x44417a9f"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex capitals
 
@@ -528,7 +529,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "44417A9F"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex alternate capitals
 
@@ -545,7 +546,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "0X44417A9F"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex neg
         fklSetBigIntI(&a, -1145141919);
@@ -559,7 +560,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-44417a9f"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex neg alternate
         fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
@@ -571,7 +572,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-0x44417a9f"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex neg capitals
         fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
@@ -583,7 +584,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-44417A9F"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         // hex neg alternate capitals
         fklBigIntToStringBuffer(&a, &buf, 16,
@@ -599,7 +600,7 @@ static void sub_test3(void) {
         fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-0X44417A9F"));
         fklUninitStringBuffer(&buf);
-        free(str);
+        fklZfree(str);
 
         fklUninitBigInt(&a);
     }
@@ -790,7 +791,7 @@ typedef struct {
 
 static FklBigIntDigit *other_bi_alloc_cb(void *ctx, size_t size) {
     OtherBi **pbi = (OtherBi **)ctx;
-    *pbi = (OtherBi *)malloc(
+    *pbi = (OtherBi *)fklZmalloc(
         sizeof(OtherBi) + (size == 0 ? size - 1 : 0) * sizeof(FklBigIntDigit));
     FKL_ASSERT(*pbi);
     return (*pbi)->digits;
@@ -818,12 +819,12 @@ static void sub_test5(void) {
             .size = fklAbs(a0->num),
             .const_size = 1,
         };
-		(void)tmp;
+        (void)tmp;
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
 
         fklUninitBigInt(&a1);
-        free(a0);
+        fklZfree(a0);
         a0 = NULL;
 
         fklInitBigIntWithHexCharBuf2(&a0, &method_table, "0x00000000114514abcd",
@@ -836,7 +837,7 @@ static void sub_test5(void) {
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
         fklUninitBigInt(&a1);
-        free(a0);
+        fklZfree(a0);
         a0 = NULL;
 
         fklInitBigIntWithOctCharBuf2(&a0, &method_table, "011451477665544",
@@ -849,7 +850,7 @@ static void sub_test5(void) {
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
         fklUninitBigInt(&a1);
-        free(a0);
+        fklZfree(a0);
         a0 = NULL;
     }
     {
@@ -864,12 +865,12 @@ static void sub_test5(void) {
             .size = fklAbs(a0->num),
             .const_size = 1,
         };
-		(void)tmp;
+        (void)tmp;
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
 
         fklUninitBigInt(&a1);
-        free(a0);
+        fklZfree(a0);
         a0 = NULL;
 
         fklInitBigIntWithHexCharBuf2(&a0, &method_table,
@@ -883,7 +884,7 @@ static void sub_test5(void) {
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
         fklUninitBigInt(&a1);
-        free(a0);
+        fklZfree(a0);
         a0 = NULL;
 
         fklInitBigIntWithOctCharBuf2(&a0, &method_table, "-011451477665544",
@@ -896,7 +897,7 @@ static void sub_test5(void) {
 
         FKL_ASSERT(fklBigIntEqual(&a1, &tmp));
         fklUninitBigInt(&a1);
-        free(a0);
+        fklZfree(a0);
         a0 = NULL;
     }
 }

@@ -27,7 +27,7 @@ static inline void push_old_locv(FklVM *exe, uint32_t llast,
         if (exe->old_locv_count < 8)
             n = &exe->old_locv_cache[exe->old_locv_count];
         else {
-            n = (FklVMlocvList *)malloc(sizeof(FklVMlocvList));
+            n = (FklVMlocvList *)fklZmalloc(sizeof(FklVMlocvList));
             FKL_ASSERT(n);
         }
         n->next = exe->old_locv_list;
@@ -167,7 +167,8 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     if (!proc->rcount)
         closure = NULL;
     else {
-        closure = (FklVMvalue **)malloc(proc->rcount * sizeof(FklVMvalue *));
+        closure =
+            (FklVMvalue **)fklZmalloc(proc->rcount * sizeof(FklVMvalue *));
         FKL_ASSERT(closure);
     }
     for (uint32_t i = 0; i < proc->rcount; i++) {
@@ -192,7 +193,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
                                FklSymbolTable *runtime_st,
                                FklConstTable *runtime_kt,
                                FklFuncPrototypes *pts, uint32_t pid) {
-    FklVM *exe = (FklVM *)calloc(1, sizeof(FklVM));
+    FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     exe->prev = exe;
     exe->next = exe;
@@ -249,14 +250,14 @@ static inline void close_all_var_ref(FklVMCompoundFrameVarRef *lr) {
         close_var_ref(l->ref);
         FklVMvarRefList *c = l;
         l = c->next;
-        free(c);
+        fklZfree(c);
     }
 }
 
 void fklDoFinalizeCompoundFrame(FklVM *exe, FklVMframe *frame) {
     FklVMCompoundFrameVarRef *lr = &frame->c.lr;
     close_all_var_ref(lr);
-    free(lr->lref);
+    fklZfree(lr->lref);
 
     frame->prev = NULL;
     *(exe->frame_cache_tail) = frame;
@@ -667,7 +668,7 @@ static inline void move_old_locv_to_gc(FklVMgc *gc, uint32_t llast,
         if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
             atomic_fetch_sub(&gc->num,
                              locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
-            free(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
+            fklZfree(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
             num--;
         } else
             locv_cache->num++;
@@ -677,7 +678,7 @@ static inline void move_old_locv_to_gc(FklVMgc *gc, uint32_t llast,
         locvs[i].locv = locv;
     } else {
         atomic_fetch_sub(&gc->num, llast);
-        free(locv);
+        fklZfree(locv);
     }
 }
 
@@ -690,7 +691,7 @@ static inline void move_thread_old_locv_to_gc(FklVM *vm, FklVMgc *gc) {
 
         FklVMlocvList *prev = cur;
         cur = cur->next;
-        free(prev);
+        fklZfree(prev);
     }
 
     for (uint32_t j = 0; j < i; j++) {
@@ -712,7 +713,7 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
             phead = &prev->prev;
         else {
             *phead = prev->prev;
-            free(prev);
+            fklZfree(prev);
         }
     }
     exe->frame_cache_tail = exe->frame_cache_head ? &exe->frame_cache_head->prev
@@ -964,7 +965,7 @@ static inline void destroy_vm_atexit(FklVM *vm) {
         struct FklVMatExit *next = cur->next;
         if (cur->finalizer)
             cur->finalizer(cur->arg);
-        free(cur);
+        fklZfree(cur);
         cur = next;
     }
 }
@@ -974,7 +975,7 @@ static inline void destroy_vm_interrupt_handler(FklVM *vm) {
     vm->int_list = NULL;
     while (cur) {
         struct FklVMinterruptHandleList *next = cur->next;
-        free(cur);
+        fklZfree(cur);
         cur = next;
     }
 }
@@ -995,8 +996,8 @@ static inline void remove_exited_thread_common(FklVM *cur) {
     destroy_vm_interrupt_handler(cur);
     uv_mutex_destroy(&cur->lock);
     remove_thread_frame_cache(cur);
-    free(cur->libs);
-    free(cur);
+    fklZfree(cur->libs);
+    fklZfree(cur);
 }
 
 static inline void remove_exited_thread(FklVMgc *gc) {
@@ -1156,7 +1157,7 @@ static inline void vm_idle_loop(FklVMgc *gc) {
                 if (exe->state == FKL_VM_EXIT) {
                     uv_thread_join(&exe->tid);
                     uv_mutex_unlock(&exe->lock);
-                    free(n);
+                    fklThreadQueueDestroyNode(n);
                 } else
                     fklThreadQueuePushNode(&other_running_q, n);
             }
@@ -1185,7 +1186,7 @@ static inline void vm_idle_loop(FklVMgc *gc) {
                             exe, gc->builtinErrorTypeId[FKL_ERR_THREADERROR],
                             fklCreateStringFromCstr("Failed to create thread")),
                         exe);
-                    free(n);
+                    fklThreadQueueDestroyNode(n);
                 } else
                     abort();
             } else {
@@ -1199,7 +1200,7 @@ static inline void vm_idle_loop(FklVMgc *gc) {
                  n; n = fklThreadQueuePopNode(&q->running_q)) {
                 FklVM *exe = n->data;
                 uv_thread_join(&exe->tid);
-                free(n);
+                fklThreadQueueDestroyNode(n);
             }
             return;
         }
@@ -1240,7 +1241,7 @@ void fklVMidleLoop(FklVMgc *gc) { vm_idle_loop(gc); }
 void fklVMatExit(FklVM *vm, FklVMatExitFunc func, FklVMatExitMarkFunc mark,
                  void (*finalizer)(void *), void *arg) {
     struct FklVMatExit *m =
-        (struct FklVMatExit *)malloc(sizeof(struct FklVMatExit));
+        (struct FklVMatExit *)fklZmalloc(sizeof(struct FklVMatExit));
     FKL_ASSERT(m);
     m->func = func;
     m->mark = mark;
@@ -1278,7 +1279,7 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
                 if (exe->state == FKL_VM_EXIT) {
                     uv_thread_join(&exe->tid);
                     uv_mutex_unlock(&exe->lock);
-                    free(n);
+                    fklThreadQueueDestroyNode(n);
                 } else
                     fklThreadQueuePushNode(&other_running_q, n);
             }
@@ -1309,7 +1310,7 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
                  n; n = fklThreadQueuePopNode(&q->running_q)) {
                 FklVM *exe = n->data;
                 uv_thread_join(&exe->tid);
-                free(n);
+                fklThreadQueueDestroyNode(n);
             }
             return;
         }
@@ -1351,7 +1352,7 @@ FklGCstate fklGetGCstate(FklVMgc *gc) {
 
 FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx) {
     FklVMvalueVarRef *ref =
-        (FklVMvalueVarRef *)calloc(1, sizeof(FklVMvalueVarRef));
+        (FklVMvalueVarRef *)fklZcalloc(1, sizeof(FklVMvalueVarRef));
     FKL_ASSERT(ref);
     ref->type = FKL_TYPE_VAR_REF;
     ref->ref = &FKL_VM_GET_ARG(exe, f, idx);
@@ -1363,7 +1364,7 @@ FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx) {
 
 FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
     FklVMvalueVarRef *ref =
-        (FklVMvalueVarRef *)calloc(1, sizeof(FklVMvalueVarRef));
+        (FklVMvalueVarRef *)fklZcalloc(1, sizeof(FklVMvalueVarRef));
     FKL_ASSERT(ref);
     ref->type = FKL_TYPE_VAR_REF;
     ref->v = v;
@@ -1374,14 +1375,15 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
 
 static inline void inc_lref(FklVMCompoundFrameVarRef *lr, uint32_t lcount) {
     if (!lr->lref) {
-        lr->lref = (FklVMvalue **)calloc(lcount, sizeof(FklVMvalue *));
+        lr->lref = (FklVMvalue **)fklZcalloc(lcount, sizeof(FklVMvalue *));
         FKL_ASSERT(lr->lref);
     }
 }
 
 static inline FklVMvalue *insert_local_ref(FklVMCompoundFrameVarRef *lr,
                                            FklVMvalue *ref, uint32_t cidx) {
-    FklVMvarRefList *rl = (FklVMvarRefList *)malloc(sizeof(FklVMvarRefList));
+    FklVMvarRefList *rl =
+        (FklVMvarRefList *)fklZmalloc(sizeof(FklVMvarRefList));
     FKL_ASSERT(rl);
     rl->ref = ref;
     rl->next = lr->lrefl;
@@ -1429,7 +1431,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe, FklVMframe *f, size_t cpc,
     if (count) {
         FklVMvalue **ref = lr->ref;
         FklVMvalue **closure =
-            (FklVMvalue **)malloc(count * sizeof(FklVMvalue *));
+            (FklVMvalue **)fklZmalloc(count * sizeof(FklVMvalue *));
         FKL_ASSERT(closure);
         for (uint32_t i = 0; i < count; i++) {
             FklSymDefHashMapMutElm *c = &pt->refs[i];
@@ -1520,7 +1522,7 @@ static inline FklVMlib *copy_vm_libs(FklVMlib *libs, size_t libNum) {
 
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num,
                    FklVMlib *libs) {
-    FklVM *exe = (FklVM *)calloc(1, sizeof(FklVM));
+    FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     exe->gc = gc;
     exe->prev = exe;
@@ -1543,7 +1545,7 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num,
 FklVM *fklCreateThreadVM(FklVMvalue *nextCall, uint32_t arg_num,
                          FklVMvalue *const *args, FklVM *prev, FklVM *next,
                          size_t libNum, FklVMlib *libs) {
-    FklVM *exe = (FklVM *)calloc(1, sizeof(FklVM));
+    FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     exe->gc = prev->gc;
     exe->prev = exe;
@@ -1597,7 +1599,7 @@ void fklDestroyVMframes(FklVMframe *h) {
     while (h) {
         FklVMframe *cur = h;
         h = h->prev;
-        free(cur);
+        fklZfree(cur);
     }
 }
 
@@ -1619,12 +1621,12 @@ void fklInitVMlibWithCodeObj(FklVMlib *lib, FklVMvalue *codeObj, FklVM *exe,
 
 void fklUninitVMlib(FklVMlib *lib) {
     if (lib->belong)
-        free(lib->loc);
+        fklZfree(lib->loc);
 }
 
 void fklDestroyVMlib(FklVMlib *lib) {
     fklUninitVMlib(lib);
-    free(lib);
+    fklZfree(lib);
 }
 
 void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj) {

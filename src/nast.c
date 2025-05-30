@@ -1,9 +1,10 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/nast.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 FklNastNode *fklCreateNastNode(FklNastType type, uint64_t line) {
-    FklNastNode *r = (FklNastNode *)malloc(sizeof(FklNastNode));
+    FklNastNode *r = (FklNastNode *)fklZmalloc(sizeof(FklNastNode));
     FKL_ASSERT(r);
     r->curline = line;
     r->type = type;
@@ -103,7 +104,7 @@ FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
 }
 
 FklNastPair *fklCreateNastPair(void) {
-    FklNastPair *pair = (FklNastPair *)malloc(sizeof(FklNastPair));
+    FklNastPair *pair = (FklNastPair *)fklZmalloc(sizeof(FklNastPair));
     FKL_ASSERT(pair);
     pair->car = NULL;
     pair->cdr = NULL;
@@ -111,25 +112,26 @@ FklNastPair *fklCreateNastPair(void) {
 }
 
 FklNastVector *fklCreateNastVector(size_t size) {
-    FklNastVector *vec = (FklNastVector *)malloc(sizeof(FklNastVector));
+    FklNastVector *vec = (FklNastVector *)fklZmalloc(sizeof(FklNastVector));
     FKL_ASSERT(vec);
     vec->size = size;
     if (!size)
         vec->base = NULL;
     else {
-        vec->base = (FklNastNode **)calloc(size, sizeof(FklNastNode *));
+        vec->base = (FklNastNode **)fklZcalloc(size, sizeof(FklNastNode *));
         FKL_ASSERT(vec->base);
     }
     return vec;
 }
 
 FklNastHashTable *fklCreateNastHash(FklHashTableEqType type, size_t num) {
-    FklNastHashTable *r = (FklNastHashTable *)malloc(sizeof(FklNastHashTable));
+    FklNastHashTable *r =
+        (FklNastHashTable *)fklZmalloc(sizeof(FklNastHashTable));
     FKL_ASSERT(r);
     if (!num)
         r->items = NULL;
     else {
-        r->items = (FklNastPair *)calloc(num, sizeof(FklNastPair));
+        r->items = (FklNastPair *)fklZcalloc(num, sizeof(FklNastPair));
         FKL_ASSERT(r->items);
     }
     r->num = num;
@@ -150,16 +152,16 @@ FklNastNode *fklMakeNastNodeRef(FklNastNode *n) {
     return n;
 }
 
-static void destroyNastPair(FklNastPair *pair) { free(pair); }
+static void destroyNastPair(FklNastPair *pair) { fklZfree(pair); }
 
 static void destroyNastVector(FklNastVector *vec) {
-    free(vec->base);
-    free(vec);
+    fklZfree(vec->base);
+    fklZfree(vec);
 }
 
 static void destroyNastHash(FklNastHashTable *hash) {
-    free(hash->items);
-    free(hash);
+    fklZfree(hash->items);
+    fklZfree(hash);
 }
 
 void fklDestroyNastNode(FklNastNode *node) {
@@ -179,10 +181,10 @@ void fklDestroyNastNode(FklNastNode *node) {
         case FKL_NAST_RC_SYM:
             break;
         case FKL_NAST_STR:
-            free(node->str);
+            fklZfree(node->str);
             break;
         case FKL_NAST_BYTEVECTOR:
-            free(node->bvec);
+            fklZfree(node->bvec);
             break;
         case FKL_NAST_BIGINT:
             fklDestroyBigInt(node->bigInt);
@@ -197,7 +199,7 @@ void fklDestroyNastNode(FklNastNode *node) {
             abort();
             break;
         }
-        free(node);
+        fklZfree(node);
     }
     return;
 destroy_nested:
@@ -219,10 +221,10 @@ destroy_nested:
                 case FKL_NAST_RC_SYM:
                     break;
                 case FKL_NAST_STR:
-                    free(cur->str);
+                    fklZfree(cur->str);
                     break;
                 case FKL_NAST_BYTEVECTOR:
-                    free(cur->bvec);
+                    fklZfree(cur->bvec);
                     break;
                 case FKL_NAST_BIGINT:
                     fklDestroyBigInt(cur->bigInt);
@@ -253,7 +255,7 @@ destroy_nested:
                     abort();
                     break;
                 }
-                free(cur);
+                fklZfree(cur);
             }
         }
     }

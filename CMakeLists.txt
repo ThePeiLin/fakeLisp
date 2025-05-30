@@ -52,7 +52,7 @@ if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-	set(LINK_TARGET m)
+	list(APPEND LINK_TARGET m)
 endif()
 
 include(CMakePrintHelpers)

@@ -1,4 +1,4 @@
-#include "fakeLisp/base.h"
+#include <fakeLisp/base.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
@@ -15,7 +15,7 @@ void fklInitSymbolTable(FklSymbolTable *tmp) {
 }
 
 FklSymbolTable *fklCreateSymbolTable() {
-    FklSymbolTable *tmp = (FklSymbolTable *)malloc(sizeof(FklSymbolTable));
+    FklSymbolTable *tmp = (FklSymbolTable *)fklZmalloc(sizeof(FklSymbolTable));
     FKL_ASSERT(tmp);
     fklInitSymbolTable(tmp);
     return tmp;
@@ -46,7 +46,7 @@ FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *buf, size_t len,
     node->v = ht->count;
     if ((++table->num) >= table->idl_size) {
         table->idl_size += FKL_DEFAULT_INC;
-        table->idl = (FklStrIdHashMapElm **)fklRealloc(
+        table->idl = (FklStrIdHashMapElm **)fklZrealloc(
             table->idl, table->idl_size * sizeof(FklStrIdHashMapElm *));
         FKL_ASSERT(table->idl);
     }
@@ -56,12 +56,12 @@ FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *buf, size_t len,
 
 void fklUninitSymbolTable(FklSymbolTable *table) {
     fklStrIdHashMapUninit(&table->ht);
-    free(table->idl);
+    fklZfree(table->idl);
 }
 
 void fklDestroySymbolTable(FklSymbolTable *table) {
     fklUninitSymbolTable(table);
-    free(table);
+    fklZfree(table);
 }
 
 FklStrIdHashMapElm *fklGetSymbolWithId(FklSid_t id,
@@ -99,7 +99,7 @@ void fklLoadSymbolTable(FILE *fp, FklSymbolTable *table) {
         FklString *buf = fklCreateString(len, NULL);
         fread(buf->str, len, 1, fp);
         fklAddSymbol(buf, table);
-        free(buf);
+        fklZfree(buf);
     }
 }
 
@@ -111,13 +111,14 @@ static inline void init_as_empty_pt(FklFuncPrototype *pt) {
 
 void fklInitFuncPrototypes(FklFuncPrototypes *r, uint32_t count) {
     r->count = count;
-    r->pa = (FklFuncPrototype *)malloc((count + 1) * sizeof(FklFuncPrototype));
+    r->pa =
+        (FklFuncPrototype *)fklZmalloc((count + 1) * sizeof(FklFuncPrototype));
     FKL_ASSERT(r->pa);
     init_as_empty_pt(r->pa);
 }
 
 FklFuncPrototypes *fklCreateFuncPrototypes(uint32_t count) {
-    FklFuncPrototypes *r = (FklFuncPrototypes *)malloc(sizeof(*r));
+    FklFuncPrototypes *r = (FklFuncPrototypes *)fklZmalloc(sizeof(*r));
     FKL_ASSERT(r);
     fklInitFuncPrototypes(r, count);
     return r;
@@ -125,7 +126,7 @@ FklFuncPrototypes *fklCreateFuncPrototypes(uint32_t count) {
 
 uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes *pts) {
     pts->count++;
-    FklFuncPrototype *pa = (FklFuncPrototype *)fklRealloc(
+    FklFuncPrototype *pa = (FklFuncPrototype *)fklZrealloc(
         pts->pa, (pts->count + 1) * sizeof(FklFuncPrototype));
     FKL_ASSERT(pts);
     pts->pa = pa;
@@ -135,14 +136,14 @@ uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes *pts) {
 }
 
 void fklUninitFuncPrototype(FklFuncPrototype *p) {
-    free(p->refs);
+    fklZfree(p->refs);
     p->rcount = 0;
 }
 
 void fklDestroyFuncPrototypes(FklFuncPrototypes *p) {
     if (p) {
         fklUninitFuncPrototypes(p);
-        free(p);
+        fklZfree(p);
     }
 }
 
@@ -151,7 +152,7 @@ void fklUninitFuncPrototypes(FklFuncPrototypes *p) {
     uint32_t end = p->count + 1;
     for (uint32_t i = 1; i < end; i++)
         fklUninitFuncPrototype(&pts[i]);
-    free(pts);
+    fklZfree(pts);
 }
 
 static inline void write_symbol_def(const FklSymDefHashMapMutElm *def,
@@ -204,8 +205,8 @@ static inline void load_prototype(FklFuncPrototype *pt, FILE *fp) {
     if (count == 0)
         defs = NULL;
     else {
-        defs = (FklSymDefHashMapMutElm *)calloc(count,
-                                                sizeof(FklSymDefHashMapMutElm));
+        defs = (FklSymDefHashMapMutElm *)fklZcalloc(
+            count, sizeof(FklSymDefHashMapMutElm));
         FKL_ASSERT(defs);
         for (uint32_t i = 0; i < count; i++)
             load_symbol_def(&defs[i], fp);

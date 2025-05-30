@@ -2,6 +2,7 @@
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
 #include <limits.h>
@@ -17,7 +18,7 @@ void fklInitBigInt1(FklBigInt *b) {
     *b = FKL_BIGINT_0;
     b->num = 1;
     b->size = 1;
-    b->digits = (FklBigIntDigit *)malloc(b->size * sizeof(FklBigIntDigit));
+    b->digits = (FklBigIntDigit *)fklZmalloc(b->size * sizeof(FklBigIntDigit));
     FKL_ASSERT(b->digits);
     b->digits[0] = 1;
 }
@@ -55,7 +56,8 @@ void fklInitBigIntU(FklBigInt *b, uint64_t num) {
     if (num) {
         b->size = count_digits_size(num);
         b->num = b->size;
-        b->digits = (FklBigIntDigit *)malloc(b->size * sizeof(FklBigIntDigit));
+        b->digits =
+            (FklBigIntDigit *)fklZmalloc(b->size * sizeof(FklBigIntDigit));
         FKL_ASSERT(b->digits);
         set_uint64_to_digits(b->digits, b->size, num);
     }
@@ -109,7 +111,7 @@ static void ensure_bigint_size(FklBigInt *to, uint64_t size) {
     if (to->size < size) {
         FKL_ASSERT(!to->const_size);
         to->size = size;
-        to->digits = (FklBigIntDigit *)fklRealloc(
+        to->digits = (FklBigIntDigit *)fklZrealloc(
             to->digits, size * sizeof(FklBigIntDigit));
         FKL_ASSERT(to->digits);
     }
@@ -321,12 +323,12 @@ void fklInitBigIntWithDecCharBuf2(
 }
 
 void fklUninitBigInt(FklBigInt *b) {
-    free(b->digits);
+    fklZfree(b->digits);
     *b = FKL_BIGINT_0;
 }
 
 FklBigInt *fklCreateBigInt0(void) {
-    FklBigInt *b = (FklBigInt *)malloc(sizeof(FklBigInt));
+    FklBigInt *b = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
     FKL_ASSERT(b);
     *b = FKL_BIGINT_0;
     return b;
@@ -390,7 +392,7 @@ FklBigInt *fklCreateBigIntWithCstr(const char *cstr) {
 
 void fklDestroyBigInt(FklBigInt *b) {
     fklUninitBigInt(b);
-    free(b);
+    fklZfree(b);
 }
 
 FklBigInt *fklCopyBigInt(const FklBigInt *b) {
@@ -744,7 +746,7 @@ void fklMulBigInt(FklBigInt *a, const FklBigInt *b) {
         int64_t num_b = fklAbs(b->num);
         int64_t total = num_a + num_b;
         FklBigIntDigit *result =
-            (FklBigIntDigit *)calloc(total, sizeof(FklBigIntDigit));
+            (FklBigIntDigit *)fklZcalloc(total, sizeof(FklBigIntDigit));
         FKL_ASSERT(result);
         for (int64_t i = 0; i < num_a; i++) {
             FklBigIntTwoDigit na = a->digits[i];
@@ -757,7 +759,7 @@ void fklMulBigInt(FklBigInt *a, const FklBigInt *b) {
             }
             result[i + num_b] += carry;
         }
-        free(a->digits);
+        fklZfree(a->digits);
         a->digits = result;
         a->size = total;
         a->num = SAME_SIGN(a, b) ? total : -total;
@@ -1084,7 +1086,7 @@ static inline size_t bigint_to_dec_string_buffer(const FklBigInt *a,
     int64_t size = 1 + size_a + size_a / d;
     const FklBigIntDigit *pin = a->digits;
     FklBigIntDigit *pout =
-        (FklBigIntDigit *)malloc(size * sizeof(FklBigIntDigit));
+        (FklBigIntDigit *)fklZmalloc(size * sizeof(FklBigIntDigit));
     FKL_ASSERT(pout);
     size = 0;
     for (int64_t i = size_a; --i >= 0;) {
@@ -1128,7 +1130,7 @@ static inline size_t bigint_to_dec_string_buffer(const FklBigInt *a,
     } while (rem != 0);
     if (neg)
         *--p_str = '-';
-    free(pout);
+    fklZfree(pout);
     return len;
 }
 
@@ -1205,7 +1207,7 @@ size_t fklBigIntToStr(const FklBigInt *a, FklBigIntToStrAllocCb alloc_cb,
 
 static char *print_bigint_alloc(void *ptr, size_t len) {
     char **pstr = ptr;
-    char *str = (char *)malloc((len + 1) * sizeof(char));
+    char *str = (char *)fklZmalloc((len + 1) * sizeof(char));
     FKL_ASSERT(str);
     str[len] = '\0';
     *pstr = str;
@@ -1219,7 +1221,7 @@ void fklPrintBigInt(const FklBigInt *a, FILE *fp) {
         char *str = NULL;
         bigint_to_dec_string_buffer(a, print_bigint_alloc, &str);
         fputs(str, fp);
-        free(str);
+        fklZfree(str);
     }
 }
 

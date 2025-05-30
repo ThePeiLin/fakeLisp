@@ -64,7 +64,6 @@ int fklIsPrecompileFile(const char *filename);
 
 int fklGetDelim(FILE *fp, FklStringBuffer *b, char d);
 
-char *fklCopyCstr(const char *);
 void *fklCopyMemory(const void *, size_t);
 int fklIsSymbolShouldBeExport(const FklString *str, const FklString **pStr,
                               uint32_t n);
@@ -96,8 +95,6 @@ int fklIsAccessibleRegFile(const char *s);
 int fklIsAccessibleDirectory(const char *s);
 
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
-
-void *fklRealloc(void *ptr, size_t nsize);
 
 #ifdef __cplusplus
 }

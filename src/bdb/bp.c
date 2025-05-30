@@ -1,6 +1,7 @@
 #include "bdb.h"
 
 #include <fakeLisp/base.h>
+#include <fakeLisp/zmalloc.h>
 
 void initBreakpointTable(BreakpointTable *bt) {
     bdbBpInsHashMapInit(&bt->ins_ht);
@@ -58,7 +59,7 @@ static inline void destroy_all_deleted_breakpoint(BreakpointTable *bt) {
         bp = bp->next_del;
         if (cur->cond_exp)
             fklDestroyNastNode(cur->cond_exp);
-        free(cur);
+        fklZfree(cur);
     }
     bt->deleted_breakpoints = NULL;
 }
@@ -130,7 +131,7 @@ void clearDeletedBreakpoint(DebugCtx *dctx) {
             *phead = cur->next_del;
             if (cur->cond_exp)
                 fklDestroyNastNode(cur->cond_exp);
-            free(cur);
+            fklZfree(cur);
         }
     }
 }
@@ -162,7 +163,7 @@ void markBreakpointCondExpObj(DebugCtx *dctx, FklVMgc *gc) {
 static inline Breakpoint *make_breakpoint(BdbBpInsHashMapElm *item,
                                           BreakpointTable *bt, FklSid_t fid,
                                           uint32_t line) {
-    Breakpoint *bp = (Breakpoint *)calloc(1, sizeof(Breakpoint));
+    Breakpoint *bp = (Breakpoint *)fklZcalloc(1, sizeof(Breakpoint));
     FKL_ASSERT(bp);
     bp->fid = fid;
     bp->line = line;

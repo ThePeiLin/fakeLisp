@@ -30,7 +30,7 @@ static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
             size_t size = 0;
             char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
             fklStringBufferBincpy(&buffer, s, size);
-            free(s);
+            fklZfree(s);
             cstr += len;
             cstr_size -= len;
             continue;
@@ -77,7 +77,7 @@ static inline void *prod_action_string(void *outerCtx, void *ast[], size_t num,
     FklVM *exe = (FklVM *)outerCtx;
     FklVMvalue *retval = fklCreateVMvalueStr2(exe, size, s);
 
-    free(s);
+    fklZfree(s);
     return retval;
 }
 
@@ -299,6 +299,6 @@ static inline void *prod_action_bytevector(void *outerCtx, void *ast[],
     FklVM *exe = (FklVM *)outerCtx;
     FklVMvalue *retval = fklCreateVMvalueBvec2(exe, size, (uint8_t *)s);
 
-    free(s);
+    fklZfree(s);
     return retval;
 }

@@ -10,7 +10,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(debug_ctx_as_print, "debug-ctx");
 static inline char *get_valid_file_name(const char *filename) {
     if (fklIsAccessibleRegFile(filename)) {
         if (fklIsScriptFile(filename))
-            return fklCopyCstr(filename);
+            return fklZstrdup(filename);
         return NULL;
     } else {
         char *r = NULL;
@@ -22,7 +22,7 @@ static inline char *get_valid_file_name(const char *filename) {
         fklStringBufferConcatWithCstr(&main_script_buf, "main.fkl");
 
         if (fklIsAccessibleRegFile(main_script_buf.buf))
-            r = fklCopyCstr(main_script_buf.buf);
+            r = fklZstrdup(main_script_buf.buf);
         fklUninitStringBuffer(&main_script_buf);
         return r;
     }
@@ -94,7 +94,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
     fklUnlockThread(exe);
     int r = initDebugCtx(debug_ud, exe, valid_filename, argv_obj);
     fklLockThread(exe);
-    free(valid_filename);
+    fklZfree(valid_filename);
     if (r)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     insert_debug_ctx_atexit(exe, ud);
@@ -399,13 +399,13 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
         if (fklIsAccessibleRegFile(str->str)) {
             char *rp = fklRealpath(str->str);
             fid = fklAddSymbolCstr(rp, dctx->st)->v;
-            free(rp);
+            fklZfree(rp);
         } else {
             char *filename_with_dir = fklStrCat(
-                fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir), str->str);
+                fklZstrdup(dctx->outer_ctx.main_file_real_path_dir), str->str);
             if (fklIsAccessibleRegFile(str->str))
                 fid = fklAddSymbolCstr(filename_with_dir, dctx->st)->v;
-            free(filename_with_dir);
+            fklZfree(filename_with_dir);
         }
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -603,13 +603,13 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
     if (fklIsAccessibleRegFile(str->str)) {
         char *rp = fklRealpath(str->str);
         fid = fklAddSymbolCstr(rp, dctx->st)->v;
-        free(rp);
+        fklZfree(rp);
     } else {
         char *filename_with_dir = fklStrCat(
-            fklCopyCstr(dctx->outer_ctx.main_file_real_path_dir), str->str);
+            fklZstrdup(dctx->outer_ctx.main_file_real_path_dir), str->str);
         if (fklIsAccessibleRegFile(str->str))
             fid = fklAddSymbolCstr(filename_with_dir, dctx->st)->v;
-        free(filename_with_dir);
+        fklZfree(filename_with_dir);
     }
 
     if (fid == 0) {
@@ -1149,7 +1149,7 @@ static const size_t EXPORT_NUM =
 FKL_DLL_EXPORT FklSid_t *
 _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
-    FklSid_t *symbols = (FklSid_t *)malloc(sizeof(FklSid_t) * EXPORT_NUM);
+    FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
         symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
@@ -1158,7 +1158,8 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
-    FklVMvalue **loc = (FklVMvalue **)malloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+    FklVMvalue **loc =
+        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;

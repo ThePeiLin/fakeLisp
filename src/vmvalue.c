@@ -1,5 +1,6 @@
 #include <fakeLisp/parser.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <math.h>
 #include <stdalign.h>
@@ -815,7 +816,7 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
     case FKL_TYPE_VAR_REF:
         break;
     case FKL_TYPE_PROC:
-        free(FKL_VM_PROC(cur)->closure);
+        fklZfree(FKL_VM_PROC(cur)->closure);
         break;
     case FKL_TYPE_HASHTABLE:
         fklVMvalueHashMapUninit(&FKL_VM_HASH(cur)->ht);
@@ -825,7 +826,7 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
                 __FUNCTION__);
         abort();
     }
-    free((void *)cur);
+    fklZfree((void *)cur);
 }
 
 static inline void chanl_push_recv(FklVMchanl *ch, FklVMchanlRecv *recv) {
@@ -1182,7 +1183,7 @@ int fklVMhashTableDel(FklVMhash *ht, FklVMvalue *key, FklVMvalue **pv,
     return 0;
 }
 
-#define NEW_OBJ(TYPE) (FklVMvalue *)calloc(1, sizeof(TYPE));
+#define NEW_OBJ(TYPE) (FklVMvalue *)fklZcalloc(1, sizeof(TYPE));
 
 FklVMvalue *fklCreateVMvaluePair(FklVM *exe, FklVMvalue *car, FklVMvalue *cdr) {
     FklVMvalue *r = NEW_OBJ(FklVMvaluePair);
@@ -1215,8 +1216,8 @@ FklVMvalue *fklCreateVMvaluePairNil(FklVM *exe) {
 }
 
 FklVMvalue *fklCreateVMvalueVec(FklVM *exe, size_t size) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueVec)
-                                                + size * sizeof(FklVMvalue *));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(
+        1, sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_VECTOR;
     FklVMvec *v = FKL_VM_VEC(r);
@@ -1228,7 +1229,7 @@ FklVMvalue *fklCreateVMvalueVec(FklVM *exe, size_t size) {
 FklVMvalue *fklCreateVMvalueVecWithPtr(FklVM *exe, size_t size,
                                        FklVMvalue *const *ptr) {
     size_t ss = size * sizeof(FklVMvalue *);
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueVec) + ss);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec) + ss);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_VECTOR;
     FklVMvec *v = FKL_VM_VEC(r);
@@ -1240,8 +1241,8 @@ FklVMvalue *fklCreateVMvalueVecWithPtr(FklVM *exe, size_t size,
 
 FklVMvalue *fklCreateVMvalueVec3(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
                                  FklVMvalue *c) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueVec)
-                                                + 3 * sizeof(FklVMvalue *));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec)
+                                                    + 3 * sizeof(FklVMvalue *));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_VECTOR;
     FklVMvec *v = FKL_VM_VEC(r);
@@ -1255,8 +1256,8 @@ FklVMvalue *fklCreateVMvalueVec3(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
 
 FklVMvalue *fklCreateVMvalueVec4(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
                                  FklVMvalue *c, FklVMvalue *d) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueVec)
-                                                + 4 * sizeof(FklVMvalue *));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec)
+                                                    + 4 * sizeof(FklVMvalue *));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_VECTOR;
     FklVMvec *v = FKL_VM_VEC(r);
@@ -1271,8 +1272,8 @@ FklVMvalue *fklCreateVMvalueVec4(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
 
 FklVMvalue *fklCreateVMvalueVec5(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
                                  FklVMvalue *c, FklVMvalue *d, FklVMvalue *f) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueVec)
-                                                + 5 * sizeof(FklVMvalue *));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec)
+                                                    + 5 * sizeof(FklVMvalue *));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_VECTOR;
     FklVMvec *v = FKL_VM_VEC(r);
@@ -1289,8 +1290,8 @@ FklVMvalue *fklCreateVMvalueVec5(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
 FklVMvalue *fklCreateVMvalueVec6(FklVM *exe, FklVMvalue *a, FklVMvalue *b,
                                  FklVMvalue *c, FklVMvalue *d, FklVMvalue *f,
                                  FklVMvalue *e) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueVec)
-                                                + 6 * sizeof(FklVMvalue *));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec)
+                                                    + 6 * sizeof(FklVMvalue *));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_VECTOR;
     FklVMvec *v = FKL_VM_VEC(r);
@@ -1333,8 +1334,8 @@ FklVMvalue *fklCreateVMvalueF64(FklVM *exe, double d) {
 }
 
 FklVMvalue *fklCreateVMvalueStr(FklVM *exe, const FklString *s) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueStr)
-                                                + s->size * sizeof(s->str[0]));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(
+        1, sizeof(FklVMvalueStr) + s->size * sizeof(s->str[0]));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_STR;
     FklString *rs = FKL_VM_STR(r);
@@ -1345,8 +1346,8 @@ FklVMvalue *fklCreateVMvalueStr(FklVM *exe, const FklString *s) {
 }
 
 FklVMvalue *fklCreateVMvalueStr2(FklVM *exe, size_t size, const char *str) {
-    FklVMvalue *r =
-        (FklVMvalue *)calloc(1, sizeof(FklVMvalueStr) + size * sizeof(str[0]));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueStr)
+                                                    + size * sizeof(str[0]));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_STR;
     FklString *rs = FKL_VM_STR(r);
@@ -1358,8 +1359,8 @@ FklVMvalue *fklCreateVMvalueStr2(FklVM *exe, size_t size, const char *str) {
 }
 
 FklVMvalue *fklCreateVMvalueBvec(FklVM *exe, const FklBytevector *b) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueBvec)
-                                                + b->size * sizeof(b->ptr[0]));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(
+        1, sizeof(FklVMvalueBvec) + b->size * sizeof(b->ptr[0]));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_BYTEVECTOR;
     FklBytevector *bvec = FKL_VM_BVEC(r);
@@ -1370,8 +1371,8 @@ FklVMvalue *fklCreateVMvalueBvec(FklVM *exe, const FklBytevector *b) {
 }
 
 FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
-    FklVMvalue *r =
-        (FklVMvalue *)calloc(1, sizeof(FklVMvalueBvec) + size * sizeof(ptr[0]));
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueBvec)
+                                                    + size * sizeof(ptr[0]));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_BYTEVECTOR;
     FklBytevector *bvec = FKL_VM_BVEC(r);
@@ -1411,7 +1412,7 @@ static void _error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf,
 
 static int _error_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(err, FklVMerror, v);
-    free(err->message);
+    fklZfree(err->message);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -1596,7 +1597,7 @@ FklVMvalue *fklCreateVMvalueBigIntWithOctString(FklVM *exe,
 }
 
 FklVMvalue *fklCreateVMvalueBigInt(FklVM *exe, size_t size) {
-    FklVMvalue *r = (FklVMvalue *)calloc(
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(
         1, sizeof(FklVMvalueBigInt) + size * sizeof(FklBigIntDigit));
     FKL_ASSERT(r);
     r->type = FKL_TYPE_BIGINT;
@@ -1792,7 +1793,7 @@ static int _code_obj_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     fklDestroyByteCode(t->bc);
     if (t->l)
-        free(t->l);
+        fklZfree(t->l);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -1806,7 +1807,7 @@ static FklVMudMetaTable CodeObjUserDataMetaTable = {
 FklVMvalue *fklCreateVMvalueCodeObj(FklVM *exe, FklByteCodelnt *bcl) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
     *FKL_VM_CO(r) = *bcl;
-    free(bcl);
+    fklZfree(bcl);
     return r;
 }
 
@@ -1841,13 +1842,13 @@ static FklVMudMetaTable DllUserDataMetaTable = {
 FklVMvalue *fklCreateVMvalueDll(FklVM *exe, const char *dllName,
                                 FklVMvalue **errorStr) {
     size_t len = strlen(dllName) + strlen(FKL_DLL_FILE_TYPE) + 1;
-    char *realDllName = (char *)malloc(len);
+    char *realDllName = (char *)fklZmalloc(len);
     FKL_ASSERT(realDllName);
     strcpy(realDllName, dllName);
     strcat(realDllName, FKL_DLL_FILE_TYPE);
     char *rpath = fklRealpath(realDllName);
     if (rpath) {
-        free(realDllName);
+        fklZfree(realDllName);
         realDllName = rpath;
     }
     uv_lib_t lib;
@@ -1860,10 +1861,10 @@ FklVMvalue *fklCreateVMvalueDll(FklVM *exe, const char *dllName,
     FklVMdll *dll = FKL_VM_DLL(r);
     dll->dll = lib;
     dll->pd = FKL_VM_NIL;
-    free(realDllName);
+    fklZfree(realDllName);
     return r;
 err:
-    free(realDllName);
+    fklZfree(realDllName);
     return NULL;
 }
 
@@ -1887,7 +1888,7 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *exe, FklVMcFunc func, FklVMvalue *dll,
 
 FklVMvalue *fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t,
                                FklVMvalue *rel) {
-    FklVMvalue *r = (FklVMvalue *)calloc(1, sizeof(FklVMvalueUd) + t->size);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueUd) + t->size);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_USERDATA;
     FklVMud *ud = FKL_VM_UD(r);
@@ -1899,8 +1900,8 @@ FklVMvalue *fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t,
 
 FklVMvalue *fklCreateVMvalueUd2(FklVM *exe, const FklVMudMetaTable *t,
                                 size_t extra_size, FklVMvalue *rel) {
-    FklVMvalue *r =
-        (FklVMvalue *)calloc(1, sizeof(FklVMvalueUd) + t->size + extra_size);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueUd) + t->size
+                                                    + extra_size);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_USERDATA;
     FklVMud *ud = FKL_VM_UD(r);

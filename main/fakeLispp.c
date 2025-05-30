@@ -3,6 +3,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <argtable3.h>
 #include <stdio.h>
@@ -121,7 +122,7 @@ int main(int argc, char **argv) {
             fklLoadConstTable(fp, &runtime_kt);
             fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
             char *rp = fklRealpath(filename);
-            free(rp);
+            fklZfree(rp);
 
             FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
             printf("file: %s\n\n", filename);
@@ -157,13 +158,13 @@ int main(int argc, char **argv) {
             puts("\nruntime const table:");
             fklPrintConstTable(&runtime_kt, stdout);
 
-            free(libs);
+            fklZfree(libs);
             fclose(fp);
             fklUninitSymbolTable(&runtime_st);
             fklUninitConstTable(&runtime_kt);
         } else if (!strcmp(extension, FKL_PRE_COMPILE_FILE_EXTENSION)) {
             char *cwd = fklSysgetcwd();
-            free(cwd);
+            fklZfree(cwd);
             FILE *fp = fopen(filename, "rb");
             if (fp == NULL) {
                 perror(filename);
@@ -196,12 +197,12 @@ int main(int argc, char **argv) {
             int load_result = fklLoadPreCompile(
                 &pts, &macro_pts, &scriptLibStack, &macroScriptLibStack,
                 &runtime_st, &runtime_kt, &ctx, rp, fp, &errorStr);
-            free(rp);
+            fklZfree(rp);
             fclose(fp);
             if (load_result) {
                 if (errorStr) {
                     fprintf(stderr, "%s\n", errorStr);
-                    free(errorStr);
+                    fklZfree(errorStr);
                 } else
                     fprintf(stderr, "%s: load failed\n", filename);
                 exitState = EXIT_FAILURE;
@@ -327,7 +328,7 @@ static void loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs,
     if (!num)
         libs = NULL;
     else {
-        libs = (FklCodegenLib *)malloc(sizeof(FklCodegenInfo) * num);
+        libs = (FklCodegenLib *)fklZmalloc(sizeof(FklCodegenInfo) * num);
         FKL_ASSERT(libs);
     }
     *plibs = libs;
@@ -348,7 +349,7 @@ static void loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs,
             uint64_t len = 0;
             uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
             fread(&len, sizeof(uint64_t), 1, fp);
-            char *rp = (char *)calloc(len + typelen + 1, sizeof(char));
+            char *rp = (char *)fklZcalloc(len + typelen + 1, sizeof(char));
             FKL_ASSERT(rp);
             fread(rp, len, 1, fp);
             strcat(rp, FKL_DLL_FILE_TYPE);

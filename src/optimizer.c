@@ -1,6 +1,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <stdlib.h>
 
@@ -132,8 +133,8 @@ static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins, FklOpcode op,
 static inline void push_ins_ln(FklByteCodeBuffer *buf, const FklInsLn *ins) {
     if (buf->size == buf->capacity) {
         buf->capacity <<= 1;
-        FklInsLn *new_base =
-            (FklInsLn *)fklRealloc(buf->base, buf->capacity * sizeof(FklInsLn));
+        FklInsLn *new_base = (FklInsLn *)fklZrealloc(
+            buf->base, buf->capacity * sizeof(FklInsLn));
         FKL_ASSERT(new_base);
         buf->base = new_base;
     }
@@ -435,13 +436,13 @@ void fklInitByteCodeBuffer(FklByteCodeBuffer *buf, size_t capacity) {
     FKL_ASSERT(capacity);
     buf->capacity = capacity;
     buf->size = 0;
-    buf->base = (FklInsLn *)malloc(capacity * sizeof(FklInsLn));
+    buf->base = (FklInsLn *)fklZmalloc(capacity * sizeof(FklInsLn));
     FKL_ASSERT(buf->base);
 }
 
 FklByteCodeBuffer *fklCreateByteCodeBuffer(size_t capacity) {
     FklByteCodeBuffer *buf =
-        (FklByteCodeBuffer *)malloc(sizeof(FklByteCodeBuffer));
+        (FklByteCodeBuffer *)fklZmalloc(sizeof(FklByteCodeBuffer));
     FKL_ASSERT(buf);
     fklInitByteCodeBuffer(buf, capacity);
     return buf;
@@ -455,7 +456,7 @@ static inline void bytecode_buffer_reserve(FklByteCodeBuffer *buf,
     if (target_capacity < target)
         target_capacity = target;
     FklInsLn *new_base =
-        (FklInsLn *)fklRealloc(buf->base, target_capacity * sizeof(FklInsLn));
+        (FklInsLn *)fklZrealloc(buf->base, target_capacity * sizeof(FklInsLn));
     FKL_ASSERT(new_base);
     buf->base = new_base;
     buf->capacity = target_capacity;
@@ -516,7 +517,7 @@ void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf,
 
 FklByteCodeBuffer *fklCreateByteCodeBufferWith(const FklByteCodelnt *bcl) {
     FklByteCodeBuffer *buf =
-        (FklByteCodeBuffer *)malloc(sizeof(FklByteCodeBuffer));
+        (FklByteCodeBuffer *)fklZmalloc(sizeof(FklByteCodeBuffer));
     FKL_ASSERT(buf);
     fklInitByteCodeBufferWith(buf, bcl);
     return buf;
@@ -526,8 +527,8 @@ void fklByteCodeBufferPush(FklByteCodeBuffer *buf, const FklInstruction *ins,
                            uint32_t line, uint32_t scope, FklSid_t fid) {
     if (buf->size == buf->capacity) {
         buf->capacity <<= 1;
-        FklInsLn *new_base =
-            (FklInsLn *)fklRealloc(buf->base, buf->capacity * sizeof(FklInsLn));
+        FklInsLn *new_base = (FklInsLn *)fklZrealloc(
+            buf->base, buf->capacity * sizeof(FklInsLn));
         FKL_ASSERT(new_base);
         buf->base = new_base;
     }
@@ -545,25 +546,25 @@ void fklByteCodeBufferPush(FklByteCodeBuffer *buf, const FklInstruction *ins,
 void fklUninitByteCodeBuffer(FklByteCodeBuffer *buf) {
     buf->capacity = 0;
     buf->size = 0;
-    free(buf->base);
+    fklZfree(buf->base);
     buf->base = NULL;
 }
 
 void fklDestroyByteCodeBuffer(FklByteCodeBuffer *buf) {
     fklUninitByteCodeBuffer(buf);
-    free(buf);
+    fklZfree(buf);
 }
 
 void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
                               const FklByteCodeBuffer *buf) {
     FKL_ASSERT(buf->size);
-    FklLineNumberTableItem *ln = (FklLineNumberTableItem *)fklRealloc(
+    FklLineNumberTableItem *ln = (FklLineNumberTableItem *)fklZrealloc(
         bcl->l, buf->size * sizeof(FklLineNumberTableItem));
     FKL_ASSERT(ln);
 
     FklByteCode *bc = bcl->bc;
     bc->len = buf->size;
-    FklInstruction *new_code = (FklInstruction *)fklRealloc(
+    FklInstruction *new_code = (FklInstruction *)fklZrealloc(
         bc->code, bc->len * sizeof(FklInstruction));
     FKL_ASSERT(new_code);
 
@@ -592,7 +593,7 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
     uint32_t ls = ln_idx + 1;
 
     bcl->ls = ls;
-    FklLineNumberTableItem *nnl = (FklLineNumberTableItem *)fklRealloc(
+    FklLineNumberTableItem *nnl = (FklLineNumberTableItem *)fklZrealloc(
         ln, ls * sizeof(FklLineNumberTableItem));
     FKL_ASSERT(nnl);
     bcl->l = nnl;
@@ -1676,7 +1677,8 @@ void fklPeepholeOptimize(FklByteCodelnt *bcl) {
     fklInitByteCodeBufferWith(&buf, bcl);
 
     uint32_t block_num = fklByteCodeBufferScanAndSetBasicBlock(&buf);
-    uint64_t *block_start = (uint64_t *)malloc(block_num * sizeof(uint64_t));
+    uint64_t *block_start =
+        (uint64_t *)fklZmalloc(block_num * sizeof(uint64_t));
     FKL_ASSERT(block_start);
     scan_and_set_block_start(&buf, block_start);
 
@@ -1694,5 +1696,5 @@ void fklPeepholeOptimize(FklByteCodelnt *bcl) {
     fklUninitByteCodeBuffer(&buf);
     fklUninitByteCodeBuffer(&new_buf);
 
-    free(block_start);
+    fklZfree(block_start);
 }

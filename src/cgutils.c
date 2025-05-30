@@ -503,7 +503,7 @@ FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scopeId,
             scope->end = end;
         if (idx >= env->lcount) {
             env->lcount = idx + 1;
-            uint8_t *slotFlags = (uint8_t *)fklRealloc(
+            uint8_t *slotFlags = (uint8_t *)fklZrealloc(
                 env->slotFlags, env->lcount * sizeof(uint8_t));
             FKL_ASSERT(slotFlags);
             env->slotFlags = slotFlags;
@@ -887,7 +887,7 @@ static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
 
     fklStringBufferPutc(&buf, FKL_PRE_COMPILE_FKL_SUFFIX);
 
-    char *path = fklCopyCstr(buf.buf);
+    char *path = fklZstrdup(buf.buf);
     fklUninitStringBuffer(&buf);
     return path;
 }
@@ -993,10 +993,10 @@ static inline char *load_dll_lib_path(const char *main_dir, FILE *fp) {
 
     fklStringBufferConcatWithCstr(&buf, FKL_DLL_FILE_TYPE);
 
-    char *path = fklCopyCstr(buf.buf);
+    char *path = fklZstrdup(buf.buf);
     fklUninitStringBuffer(&buf);
     char *rp = fklRealpath(path);
-    free(path);
+    fklZfree(path);
     return rp;
 }
 
@@ -1006,14 +1006,14 @@ static inline int load_dll_lib_from_pre_compile(FklCodegenLib *lib,
                                                 char **errorStr) {
     lib->rp = load_dll_lib_path(main_dir, fp);
     if (!lib->rp || !fklIsAccessibleRegFile(lib->rp)) {
-        free(lib->rp);
+        fklZfree(lib->rp);
         return 1;
     }
 
     if (uv_dlopen(lib->rp, &lib->dll)) {
-        *errorStr = fklCopyCstr(uv_dlerror(&lib->dll));
+        *errorStr = fklZstrdup(uv_dlerror(&lib->dll));
         uv_dlclose(&lib->dll);
-        free(lib->rp);
+        fklZfree(lib->rp);
         return 1;
     }
     load_export_sid_idx_table(&lib->exports, fp);
@@ -1208,7 +1208,7 @@ static inline void merge_prototypes(FklFuncPrototypes *o,
                                     const FklFuncPrototypes *pts) {
     uint32_t o_count = o->count;
     o->count += pts->count;
-    FklFuncPrototype *pa = (FklFuncPrototype *)fklRealloc(
+    FklFuncPrototype *pa = (FklFuncPrototype *)fklZrealloc(
         o->pa, (o->count + 1) * sizeof(FklFuncPrototype));
     FKL_ASSERT(pa);
     o->pa = pa;
@@ -1423,7 +1423,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
 exit:
     if (need_open)
         fclose(fp);
-    free(main_dir);
+    fklZfree(main_dir);
     fklDestroyFuncPrototypes(pts);
     if (macro_pts)
         fklDestroyFuncPrototypes(macro_pts);

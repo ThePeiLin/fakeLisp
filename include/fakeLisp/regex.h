@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "common.h"
+#include "zmalloc.h"
 
 #include <stdalign.h>
 #include <stddef.h>
@@ -73,13 +74,15 @@ typedef struct {
 
 void fklRegexFree(FklRegexCode *);
 
+static inline void fklStrRegexKeyFree(FklString *s) { fklZfree(s); }
+
 // FklStrRegexHashMap
 #define FKL_HASH_KEY_TYPE FklString *
 #define FKL_HASH_VAL_TYPE FklRegexItem
 #define FKL_HASH_ELM_NAME StrRegex
 #define FKL_HASH_KEY_HASH return fklStringHash(*pk);
 #define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#define FKL_HASH_KEY_UNINIT(K) free(*(K))
+#define FKL_HASH_KEY_UNINIT(K) fklStrRegexKeyFree(*(K))
 #define FKL_HASH_VAL_UNINIT(V) fklRegexFree((V)->re)
 #include "hash.h"
 

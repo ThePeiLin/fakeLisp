@@ -4,6 +4,7 @@
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <string.h>
 
@@ -58,7 +59,7 @@ char *fklReadWithBuiltinParser(FILE *fp, size_t *psize, size_t line,
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
             *errLine = outerCtx.line;
             *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
-            free(tmp);
+            fklZfree(tmp);
             tmp = NULL;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
@@ -67,21 +68,21 @@ char *fklReadWithBuiltinParser(FILE *fp, size_t *psize, size_t line,
                              ? outerCtx.line
                              : *fklUintVectorBack(lineStack);
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
-                free(tmp);
+                fklZfree(tmp);
                 tmp = NULL;
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbolStack)) {
                     *errLine = lineStack->base[0];
                     *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
-                    free(tmp);
+                    fklZfree(tmp);
                     tmp = NULL;
                 }
                 break;
             }
         } else if (err == FKL_PARSE_REDUCE_FAILED) {
             *unexpectEOF = err;
-            free(tmp);
+            fklZfree(tmp);
             tmp = NULL;
             break;
         } else if (ast) {
@@ -97,7 +98,7 @@ char *fklReadWithBuiltinParser(FILE *fp, size_t *psize, size_t line,
         offset = size - restLen;
         if (nextSize == 0)
             continue;
-        tmp = (char *)fklRealloc(tmp, (size + nextSize) * sizeof(char));
+        tmp = (char *)fklZrealloc(tmp, (size + nextSize) * sizeof(char));
         FKL_ASSERT(tmp);
         memcpy(&tmp[size], next_buf.buf, nextSize);
         size += nextSize;
@@ -134,7 +135,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
             *errLine = outerCtx.line;
             *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
-            free(tmp);
+            fklZfree(tmp);
             tmp = NULL;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
@@ -143,21 +144,21 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
                              ? outerCtx.line
                              : *fklUintVectorBack(lineStack);
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
-                free(tmp);
+                fklZfree(tmp);
                 tmp = NULL;
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbolStack)) {
                     *errLine = lineStack->base[0];
                     *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
-                    free(tmp);
+                    fklZfree(tmp);
                     tmp = NULL;
                 }
                 break;
             }
         } else if (err == FKL_PARSE_REDUCE_FAILED) {
             *unexpectEOF = err;
-            free(tmp);
+            fklZfree(tmp);
             tmp = NULL;
             break;
         } else if (ast) {
@@ -173,7 +174,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
         offset = size - restLen;
         if (nextSize == 0)
             continue;
-        tmp = (char *)fklRealloc(tmp, (size + nextSize) * sizeof(char));
+        tmp = (char *)fklZrealloc(tmp, (size + nextSize) * sizeof(char));
         FKL_ASSERT(tmp);
         memcpy(&tmp[size], next_buf.buf, nextSize);
         size += nextSize;

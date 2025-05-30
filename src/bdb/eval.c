@@ -1,6 +1,7 @@
 #include "bdb.h"
 
 #include <fakeLisp/builtin.h>
+#include <fakeLisp/zmalloc.h>
 #include <string.h>
 
 static inline void replace_func_prototype(FklCodegenInfo *info, uint32_t p,
@@ -67,7 +68,7 @@ static inline void resolve_reference(DebugCtx *ctx, FklCodegenEnv *env,
     FklVMproc *proc = FKL_VM_PROC(proc_obj);
     uint32_t rcount = pt->rcount;
     proc->rcount = rcount;
-    proc->closure = (FklVMvalue **)calloc(rcount, sizeof(FklVMvalue *));
+    proc->closure = (FklVMvalue **)fklZcalloc(rcount, sizeof(FklVMvalue *));
     FKL_ASSERT(proc->closure);
     fklCreateVMvalueClosureFrom(vm, proc->closure, cur_frame, 0, pt);
     FklUnReSymbolRefVector *urefs = &env->prev->uref;
@@ -77,7 +78,7 @@ static inline void resolve_reference(DebugCtx *ctx, FklCodegenEnv *env,
         FklSymDef *ref = fklGetCodegenRefBySid(uref->id, ctx->glob_env);
         if (ref)
             proc->closure[uref->idx] = builtin_refs[ref->cidx];
-        free(uref);
+        fklZfree(uref);
     }
 }
 

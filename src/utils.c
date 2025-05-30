@@ -2,6 +2,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
 #include <stdint.h>
@@ -22,14 +23,17 @@
 #endif
 
 #ifdef _WIN32
-char *fklSysgetcwd(void) { return _getcwd(NULL, 0); }
+#define getcwd _getcwd
+#define chdir _chdir
+#endif
 
-int fklChdir(const char *dir) { return _chdir(dir); }
-#else
-char *fklSysgetcwd(void) { return getcwd(NULL, 0); }
+char *fklSysgetcwd(void) {
+    char path_buf[FKL_PATH_MAX];
+    getcwd(path_buf, sizeof(path_buf));
+    return fklZstrdup(path_buf);
+}
 
 int fklChdir(const char *dir) { return chdir(dir); }
-#endif
 
 double fklStringToDouble(const FklString *str) { return atof(str->str); }
 
@@ -59,7 +63,7 @@ FklString *fklIntToString(int64_t num) {
 char *fklIntToCstr(int64_t num) {
     char numString[256] = {0};
     snprintf(numString, 256, "%" FKL_PRT64D "", num);
-    return fklCopyCstr(numString);
+    return fklZstrdup(numString);
 }
 
 int fklPower(int first, int second) {
@@ -366,15 +370,6 @@ int fklIsSymbolShouldBeExport(const FklString *str, const FklString **pStr,
     return 0;
 }
 
-char *fklCopyCstr(const char *str) {
-    if (str == NULL)
-        return NULL;
-    char *tmp = (char *)malloc((strlen(str) + 1) * sizeof(char));
-    FKL_ASSERT(tmp);
-    strcpy(tmp, str);
-    return tmp;
-}
-
 static inline int check_file_ext(const char *filename, const char *ext) {
     size_t i = strlen(filename);
     for (; i > 0 && filename[i - 1] != '.'; i--)
@@ -397,7 +392,7 @@ int fklIsPrecompileFile(const char *filename) {
 void *fklCopyMemory(const void *pm, size_t size) {
     if (size == 0)
         return NULL;
-    void *tmp = (void *)malloc(size);
+    void *tmp = (void *)fklZmalloc(size);
     FKL_ASSERT(tmp);
     if (pm != NULL)
         memcpy(tmp, pm, size);
@@ -405,18 +400,20 @@ void *fklCopyMemory(const void *pm, size_t size) {
 }
 
 char *fklRealpath(const char *filename) {
+    char path_buf[FKL_PATH_MAX];
 #ifdef _WIN32
-    return _fullpath(NULL, filename, 0);
+    _fullpath(path_buf, filename, sizeof(path_buf));
 #else
-    return realpath(filename, NULL);
+    realpath(filename, path_buf);
 #endif
+    return fklZstrdup(path_buf);
 }
 
 char *fklGetDir(const char *filename) {
     int i = strlen(filename) - 1;
     for (; filename[i] != FKL_PATH_SEPARATOR; i--)
         ;
-    char *tmp = (char *)malloc((i + 1) * sizeof(char));
+    char *tmp = (char *)fklZmalloc((i + 1) * sizeof(char));
     FKL_ASSERT(tmp);
     tmp[i] = '\0';
     memcpy(tmp, filename, i);
@@ -428,8 +425,8 @@ char *fklRelpath(const char *start, const char *path) {
     const char *divstr = FKL_PATH_SEPARATOR_STR;
     const char *upperDir = "..\\";
     char rp[FKL_PATH_MAX] = {0};
-    char *c_start = fklCopyCstr(start);
-    char *c_path = fklCopyCstr(path);
+    char *c_start = fklZstrdup(start);
+    char *c_path = fklZstrdup(path);
 
     size_t start_part_count = 0;
     size_t path_part_count = 0;
@@ -468,7 +465,7 @@ char *fklRelpath(const char *start, const char *path) {
 
     if (common_prefix_len == (length - 1)
         && start_part_count == path_part_count) {
-        trp = fklCopyCstr(".");
+        trp = fklZstrdup(".");
         goto exit;
     }
     for (index = common_prefix_len; index < start_part_count; index++)
@@ -480,12 +477,12 @@ char *fklRelpath(const char *start, const char *path) {
     }
     if (path_parts != NULL)
         strcat(rp, path_parts[path_part_count - 1]);
-    trp = fklCopyCstr(rp);
+    trp = fklZstrdup(rp);
 exit:
-    free(c_start);
-    free(c_path);
-    free(start_parts);
-    free(path_parts);
+    fklZfree(c_start);
+    fklZfree(c_path);
+    fklZfree(start_parts);
+    fklZfree(path_parts);
     return trp;
 }
 
@@ -496,8 +493,8 @@ char *fklRelpath(const char *start, const char *path) {
     const char *upperDir = "../";
     char rp[FKL_PATH_MAX] = {0};
 
-    char *c_start = fklCopyCstr(start);
-    char *c_path = fklCopyCstr(path);
+    char *c_start = fklZstrdup(start);
+    char *c_path = fklZstrdup(path);
 
     size_t start_part_count = 0;
     size_t path_part_count = 0;
@@ -519,7 +516,7 @@ char *fklRelpath(const char *start, const char *path) {
     char *trp = NULL;
 
     if (common_prefix_len == length && start_part_count == path_part_count) {
-        trp = fklCopyCstr(".");
+        trp = fklZstrdup(".");
         goto exit;
     }
     for (index = common_prefix_len; index < start_part_count; index++)
@@ -531,12 +528,12 @@ char *fklRelpath(const char *start, const char *path) {
     }
     if (path_parts != NULL)
         strcat(rp, path_parts[path_part_count - 1]);
-    trp = fklCopyCstr(rp);
+    trp = fklZstrdup(rp);
 exit:
-    free(c_start);
-    free(c_path);
-    free(start_parts);
-    free(path_parts);
+    fklZfree(c_start);
+    fklZfree(c_path);
+    fklZfree(start_parts);
+    fklZfree(path_parts);
     return trp;
 }
 
@@ -551,7 +548,7 @@ char **fklSplit(char *str, const char *divstr, size_t *pcount) {
     pNext = strtok_r(str, divstr, &context);
     while (pNext != NULL) {
         char **tstrArry =
-            (char **)fklRealloc(str_slices, (count + 1) * sizeof(char *));
+            (char **)fklZrealloc(str_slices, (count + 1) * sizeof(char *));
         FKL_ASSERT(tstrArry);
         str_slices = tstrArry;
         str_slices[count++] = pNext;
@@ -569,7 +566,7 @@ char **fklSplit(char *str, const char *divstr, size_t *pcount) {
     pNext = strtok_s(str, divstr, &context);
     while (pNext != NULL) {
         char **tstrArry =
-            (char **)fklRealloc(str_slices, (count + 1) * sizeof(char *));
+            (char **)fklZrealloc(str_slices, (count + 1) * sizeof(char *));
         FKL_ASSERT(tstrArry);
         str_slices = tstrArry;
         str_slices[count++] = pNext;
@@ -607,14 +604,14 @@ size_t fklCountCharInBuf(const char *buf, size_t n, char c) {
 }
 
 char *fklStrCat(char *s1, const char *s2) {
-    s1 = (char *)fklRealloc(s1, (strlen(s1) + strlen(s2) + 1) * sizeof(char));
+    s1 = (char *)fklZrealloc(s1, (strlen(s1) + strlen(s2) + 1) * sizeof(char));
     FKL_ASSERT(s1);
     strcat(s1, s2);
     return s1;
 }
 
 char *fklCharBufToCstr(const char *buf, size_t size) {
-    char *str = (char *)malloc((size + 1) * sizeof(char));
+    char *str = (char *)fklZmalloc((size + 1) * sizeof(char));
     FKL_ASSERT(str);
     size_t len = 0;
     for (size_t i = 0; i < size; i++) {
@@ -624,7 +621,7 @@ char *fklCharBufToCstr(const char *buf, size_t size) {
         len++;
     }
     str[len] = '\0';
-    char *tstr = (char *)fklRealloc(str, (strlen(str) + 1) * sizeof(char));
+    char *tstr = (char *)fklZrealloc(str, (strlen(str) + 1) * sizeof(char));
     FKL_ASSERT(str);
     str = tstr;
     return str;
@@ -720,7 +717,7 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
     if (!memSize)
         tmp = NULL;
     else {
-        tmp = (char *)malloc(memSize * sizeof(char));
+        tmp = (char *)fklZmalloc(memSize * sizeof(char));
         FKL_ASSERT(tmp);
     }
     for (size_t i = 0; i < size;) {
@@ -753,8 +750,8 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
             ch = str[i++];
         strSize++;
         if (strSize > memSize - 1) {
-            char *ttmp = (char *)fklRealloc(tmp, (memSize + FKL_MAX_STRING_SIZE)
-                                                     * sizeof(char));
+            char *ttmp = (char *)fklZrealloc(
+                tmp, (memSize + FKL_MAX_STRING_SIZE) * sizeof(char));
             FKL_ASSERT(tmp);
             tmp = ttmp;
             memSize += FKL_MAX_STRING_SIZE;
@@ -823,10 +820,6 @@ int fklRewindStream(FILE *fp, const char *buf, ssize_t len) {
         return 0;
     }
     return fseek(fp, -len, SEEK_CUR);
-}
-
-void *fklRealloc(void *ptr, size_t ns) {
-    return ns ? realloc(ptr, ns) : (free(ptr), NULL);
 }
 
 int fklIsDecInt(const char *cstr, size_t maxLen) {

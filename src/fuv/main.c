@@ -2268,8 +2268,8 @@ get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
                 uint64_t len = 0;
                 if (!is_string_list_and_get_len(cur, &len))
                     return FKL_ERR_INCORRECT_TYPE_VALUE;
-                free(options->args);
-                char **args = (char **)calloc(len + 1, sizeof(char *));
+                fklZfree(options->args);
+                char **args = (char **)fklZcalloc(len + 1, sizeof(char *));
                 FKL_ASSERT(args);
                 *args_obj = cur;
                 for (uint64_t i = 0; i < len; i++) {
@@ -2286,8 +2286,8 @@ get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
                 uint64_t len = 0;
                 if (!is_string_list_and_get_len(cur, &len))
                     return FKL_ERR_INCORRECT_TYPE_VALUE;
-                free(options->env);
-                char **env = (char **)calloc(len + 1, sizeof(char *));
+                fklZfree(options->env);
+                char **env = (char **)fklZcalloc(len + 1, sizeof(char *));
                 FKL_ASSERT(env);
                 *env_obj = cur;
                 for (uint64_t i = 0; i < len; i++) {
@@ -2313,15 +2313,15 @@ get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
                     return FKL_ERR_TOOFEWARG;
                 if (!fklIsList(cur))
                     return FKL_ERR_INCORRECT_TYPE_VALUE;
-                free(options->stdio);
+                fklZfree(options->stdio);
                 uint64_t len = fklVMlistLength(cur);
                 options->stdio_count = len;
                 *stdio_obj = cur;
                 if (len == 0)
                     continue;
                 uv_stdio_container_t *containers =
-                    (uv_stdio_container_t *)malloc(len
-                                                   * sizeof(*(options->stdio)));
+                    (uv_stdio_container_t *)fklZmalloc(
+                        len * sizeof(*(options->stdio)));
                 FKL_ASSERT(containers);
                 options->stdio = containers;
                 for (uint64_t i = 0; i < len; i++) {
@@ -2411,9 +2411,9 @@ get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
 }
 
 static inline void clean_options(uv_process_options_t *options) {
-    free(options->args);
-    free(options->env);
-    free(options->stdio);
+    fklZfree(options->args);
+    fklZfree(options->env);
+    fklZfree(options->stdio);
 }
 
 struct ProcessExitValueCreateArg {
@@ -2597,7 +2597,7 @@ static void fuv_alloc_cb(uv_handle_t *handle, size_t suggested_size,
     if (!suggested_size)
         base = NULL;
     else {
-        base = (char *)malloc(suggested_size);
+        base = (char *)fklZmalloc(suggested_size);
         FKL_ASSERT(base);
     }
     buf->base = base;
@@ -2625,7 +2625,7 @@ static int fuv_read_cb_value_creator(FklVM *exe, void *a) {
         else
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     }
-    free(arg->buf->base);
+    fklZfree(arg->buf->base);
     return 0;
 }
 
@@ -2696,7 +2696,7 @@ setup_write_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
                  FklVMvalue *write_obj, uv_buf_t **pbufs) {
     FKL_DECL_VM_UD_DATA(req, FuvWrite, write_obj);
     FklVMvalue **cur = req->write_objs;
-    uv_buf_t *bufs = (uv_buf_t *)malloc(num * sizeof(uv_buf_t));
+    uv_buf_t *bufs = (uv_buf_t *)fklZmalloc(num * sizeof(uv_buf_t));
     FKL_ASSERT(bufs);
     for (uint32_t i = 0; parg < arg_end; ++i, ++parg, ++cur) {
         FklVMvalue *val = *parg;
@@ -2711,7 +2711,7 @@ setup_write_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
             bufs[i].base = (char *)bvec->ptr;
             bufs[i].len = bvec->size;
         } else {
-            free(bufs);
+            fklZfree(bufs);
             return FKL_ERR_INCORRECT_TYPE_VALUE;
         }
     }
@@ -2759,7 +2759,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
                       (uv_stream_t *)GET_HANDLE(send_handle_ud), fuv_write_cb);
     } else
         ret = uv_write(write, stream, bufs, buf_count, fuv_write_cb);
-    free(bufs);
+    fklZfree(bufs);
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(write_obj), exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, write_obj);
     return 0;
@@ -2768,7 +2768,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
 static inline FklBuiltinErrorType
 setup_try_write_data(FklVMvalue **parg, FklVMvalue **const arg_end,
                      uint32_t num, uv_buf_t **pbufs) {
-    uv_buf_t *bufs = (uv_buf_t *)malloc(num * sizeof(uv_buf_t));
+    uv_buf_t *bufs = (uv_buf_t *)fklZmalloc(num * sizeof(uv_buf_t));
     FKL_ASSERT(bufs);
     for (uint32_t i = 0; parg < arg_end; ++i, ++parg) {
         FklVMvalue *val = *parg;
@@ -2781,7 +2781,7 @@ setup_try_write_data(FklVMvalue **parg, FklVMvalue **const arg_end,
             bufs[i].base = (char *)bvec->ptr;
             bufs[i].len = bvec->size;
         } else {
-            free(bufs);
+            fklZfree(bufs);
             return FKL_ERR_INCORRECT_TYPE_VALUE;
         }
     }
@@ -2815,7 +2815,7 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL) {
                             (uv_stream_t *)GET_HANDLE(send_handle_ud));
     } else
         ret = uv_try_write(stream, bufs, buf_count);
-    free(bufs);
+    fklZfree(bufs);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(ret));
     return 0;
@@ -3927,7 +3927,7 @@ setup_udp_send_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
                     FklVMvalue *write_obj, uv_buf_t **pbufs) {
     FKL_DECL_VM_UD_DATA(req, FuvUdpSend, write_obj);
     FklVMvalue **cur = req->send_objs;
-    uv_buf_t *bufs = (uv_buf_t *)malloc(num * sizeof(uv_buf_t));
+    uv_buf_t *bufs = (uv_buf_t *)fklZmalloc(num * sizeof(uv_buf_t));
     FKL_ASSERT(bufs);
     for (uint32_t i = 0; parg < arg_end; ++i, ++parg, ++cur) {
         FklVMvalue *val = *parg;
@@ -3942,7 +3942,7 @@ setup_udp_send_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
             bufs[i].base = (char *)bvec->ptr;
             bufs[i].len = bvec->size;
         } else {
-            free(bufs);
+            fklZfree(bufs);
             return FKL_ERR_INCORRECT_TYPE_VALUE;
         }
     }
@@ -3992,7 +3992,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
 
     int ret = uv_udp_send(udp_send, (uv_udp_t *)GET_HANDLE(handle), bufs,
                           buf_count, addr_ptr, fuv_udp_send_cb);
-    free(bufs);
+    fklZfree(bufs);
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(udp_send_obj), exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_send_obj);
     return 0;
@@ -4012,7 +4012,7 @@ static void fuv_udp_alloc_cb(uv_handle_t *handle, size_t suggested_size,
     if (!buffer_size)
         base = NULL;
     else {
-        base = (char *)malloc(buffer_size);
+        base = (char *)fklZmalloc(buffer_size);
         FKL_ASSERT(base);
     }
     buf->base = base;
@@ -4040,7 +4040,7 @@ static int fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
         res = fklCreateVMvalueStr2(exe, nread, arg->buf->base);
 
     if (arg->buf && !(arg->flags & UV_UDP_MMSG_CHUNK))
-        free(arg->buf->base);
+        fklZfree(arg->buf->base);
 
     FuvPublicData *fpd = arg->fpd;
     FklVMvalue *addr = arg->addr
@@ -4097,7 +4097,7 @@ static void fuv_udp_recv_cb(uv_udp_t *handle, ssize_t nread,
                             const uv_buf_t *buf, const struct sockaddr *addr,
                             unsigned flags) {
     if (flags & UV_UDP_MMSG_FREE) {
-        free(buf->base);
+        fklZfree(buf->base);
         return;
     }
     FuvLoopData *ldata =
@@ -4161,7 +4161,7 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL) {
 
     int ret = uv_udp_try_send((uv_udp_t *)GET_HANDLE(udp_ud), bufs, buf_count,
                               addr_ptr);
-    free(bufs);
+    fklZfree(bufs);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(ret));
     return 0;
@@ -7346,7 +7346,7 @@ static const size_t EXPORT_NUM =
 FKL_DLL_EXPORT FklSid_t *
 _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
-    FklSid_t *symbols = (FklSid_t *)malloc(sizeof(FklSid_t) * EXPORT_NUM);
+    FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
         symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
@@ -7355,7 +7355,8 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
-    FklVMvalue **loc = (FklVMvalue **)malloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+    FklVMvalue **loc =
+        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
 
     FklVMvalue *fpd = fklCreateVMvalueUd(exe, &FuvPublicDataMetaTable, dll);

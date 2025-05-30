@@ -1,7 +1,8 @@
-#include "fakeLisp/base.h"
+#include <fakeLisp/base.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
 #include <stdlib.h>
@@ -132,7 +133,7 @@ static inline int compile_count(struct ReCompileCtx *ctx, const char *pat,
     uint32_t brcnt = 0;
     ctx->ecnt++;
     ctx->stcnt = 1;
-    ctx->inst = (struct ReInst *)calloc(ctx->ecnt, sizeof(struct ReInst));
+    ctx->inst = (struct ReInst *)fklZcalloc(ctx->ecnt, sizeof(struct ReInst));
     FKL_ASSERT(ctx->inst);
     uint32_t resel = 0;
     while (i < len) {
@@ -147,7 +148,7 @@ static inline int compile_count(struct ReCompileCtx *ctx, const char *pat,
             if (i + 1 >= len)
                 return 1;
             brcnt++;
-            struct ReInst *inst = (struct ReInst *)fklRealloc(
+            struct ReInst *inst = (struct ReInst *)fklZrealloc(
                 ctx->inst, (ctx->ecnt + 1) * sizeof(struct ReInst));
             FKL_ASSERT(inst);
             ctx->inst = inst;
@@ -201,7 +202,7 @@ FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
         goto error;
     uint32_t patoff = ctx.objs * sizeof(FklRegexObj);
     size_t totallen = patoff + ctx.strln + sizeof(FklRegexCode);
-    retval = (FklRegexCode *)calloc(1, totallen);
+    retval = (FklRegexCode *)fklZcalloc(1, totallen);
     FKL_ASSERT(retval);
     retval->totalsize = totallen - sizeof(FklRegexCode);
     retval->pstsize = ctx.stcnt;
@@ -383,15 +384,15 @@ FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
         j++;
     }
     objs[j].type = FKL_REGEX_UNUSED;
-    free(ctx.inst);
+    fklZfree(ctx.inst);
     return retval;
 error:
-    free(ctx.inst);
-    free(retval);
+    fklZfree(ctx.inst);
+    fklZfree(retval);
     return NULL;
 }
 
-void fklRegexFree(FklRegexCode *re) { free(re); }
+void fklRegexFree(FklRegexCode *re) { fklZfree(re); }
 
 FklRegexCode *fklRegexCompileCstr(const char *cstr) {
     return fklRegexCompileCharBuf(cstr, strlen(cstr));
@@ -583,8 +584,8 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
     const FklRegexObj *objs = re->data;
     const FklRegexObj *cur_obj = NULL;
     const uint8_t *patrns = (const uint8_t *)re->data;
-    struct ReMatchState *state =
-        (struct ReMatchState *)calloc(re->pstsize, sizeof(struct ReMatchState));
+    struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
+        re->pstsize, sizeof(struct ReMatchState));
     FKL_ASSERT(state);
     uint32_t sp = 0;
     int evalres = 0;
@@ -604,7 +605,7 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
                 POP();
             else {
                 uint32_t est = STP.st;
-                free(state);
+                fklZfree(state);
                 if (cur_obj->type == FKL_REGEX_END)
                     return est == len && evalres ? est : IMPOSSIBLE_IDX;
                 else
@@ -690,7 +691,7 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
             break;
         }
     }
-    free(state);
+    fklZfree(state);
     return 0;
 }
 
@@ -701,8 +702,8 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
     const FklRegexObj *objs = re->data;
     const FklRegexObj *cur_obj = NULL;
     const uint8_t *patrns = (const uint8_t *)re->data;
-    struct ReMatchState *state =
-        (struct ReMatchState *)calloc(re->pstsize, sizeof(struct ReMatchState));
+    struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
+        re->pstsize, sizeof(struct ReMatchState));
     FKL_ASSERT(state);
     uint32_t sp = 0;
     int evalres = 0;
@@ -722,7 +723,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
                 POP();
             else {
                 uint32_t est = STP.st;
-                free(state);
+                fklZfree(state);
                 return evalres ? est : IMPOSSIBLE_IDX;
             }
             break;
@@ -807,7 +808,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
         if (evalres)
             *last_is_true = 1;
     }
-    free(state);
+    fklZfree(state);
     return 0;
 }
 
@@ -1027,7 +1028,7 @@ void fklUninitRegexTable(FklRegexTable *t) {
 }
 
 FklRegexTable *fklCreateRegexTable(void) {
-    FklRegexTable *r = (FklRegexTable *)malloc(sizeof(FklRegexTable));
+    FklRegexTable *r = (FklRegexTable *)fklZmalloc(sizeof(FklRegexTable));
     FKL_ASSERT(r);
     fklInitRegexTable(r);
     return r;

@@ -1,5 +1,7 @@
 // steal from pocketpy: https://github.com/pocketpy/pocketpy/
 
+#include "config.h"
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -47,8 +49,8 @@ static inline void METHOD(Init)(NAME *r, size_t size) {
     if (!size)
         r->base = NULL;
     else {
-        r->base =
-            (FKL_VECTOR_ELM_TYPE *)malloc(size * sizeof(FKL_VECTOR_ELM_TYPE));
+        r->base = (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_MALLOC(
+            size * sizeof(FKL_VECTOR_ELM_TYPE));
         assert(r->base);
     }
     r->capacity = size;
@@ -56,14 +58,14 @@ static inline void METHOD(Init)(NAME *r, size_t size) {
 }
 
 static inline void METHOD(Uninit)(NAME *r) {
-    free(r->base);
+    FKL_CONTAINER_FREE(r->base);
     r->base = NULL;
     r->capacity = 0;
     r->size = 0;
 }
 
 static inline NAME *METHOD(Create)(size_t size) {
-    NAME *r = (NAME *)malloc(sizeof(NAME));
+    NAME *r = (NAME *)FKL_CONTAINER_MALLOC(sizeof(NAME));
     assert(r);
     METHOD(Init)(r, size);
     return r;
@@ -71,7 +73,7 @@ static inline NAME *METHOD(Create)(size_t size) {
 
 static inline void METHOD(Destroy)(NAME *r) {
     METHOD(Uninit)(r);
-    free(r);
+    FKL_CONTAINER_FREE(r);
 }
 
 static inline void METHOD(Reserve)(NAME *r, size_t size) {
@@ -80,7 +82,7 @@ static inline void METHOD(Reserve)(NAME *r, size_t size) {
     r->capacity <<= 1;
     if (r->capacity < size)
         r->capacity = size;
-    FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)realloc(
+    FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(
         r->base, r->capacity * sizeof(FKL_VECTOR_ELM_TYPE));
     assert(nbase);
     r->base = nbase;
@@ -91,7 +93,7 @@ static inline void METHOD(Resize)(NAME *r, size_t new_size,
     if (new_size < r->size) {
         r->size = new_size;
     } else if (new_size == 0) {
-        free(r->base);
+        FKL_CONTAINER_FREE(r->base);
         r->base = NULL;
         r->capacity = 0;
         r->size = 0;
@@ -186,12 +188,13 @@ static inline FKL_VECTOR_ELM_TYPE *METHOD(Back)(const NAME *r) {
 
 static inline void METHOD(ShrinkToFit)(NAME *r) {
     if (r->size) {
-        FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)realloc(
-            r->base, r->size * sizeof(FKL_VECTOR_ELM_TYPE));
+        FKL_VECTOR_ELM_TYPE *nbase =
+            (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(
+                r->base, r->size * sizeof(FKL_VECTOR_ELM_TYPE));
         assert(nbase);
         r->base = nbase;
     } else {
-        free(r->base);
+        FKL_CONTAINER_FREE(r->base);
         r->base = NULL;
     }
     r->capacity = r->size;
@@ -199,8 +202,9 @@ static inline void METHOD(ShrinkToFit)(NAME *r) {
 
 static inline void METHOD(Shrink)(NAME *r, size_t s) {
     if (s >= r->size) {
-        FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)realloc(
-            r->base, s * sizeof(FKL_VECTOR_ELM_TYPE));
+        FKL_VECTOR_ELM_TYPE *nbase =
+            (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(
+                r->base, s * sizeof(FKL_VECTOR_ELM_TYPE));
         assert(nbase);
         r->base = nbase;
         r->capacity = s;

@@ -2,6 +2,7 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunused-function"
@@ -32,7 +33,7 @@ static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
             size_t size = 0;
             char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
             fklStringBufferBincpy(&buffer, s, size);
-            free(s);
+            fklZfree(s);
             cstr += len;
             cstr_size -= len;
             continue;
@@ -76,7 +77,7 @@ static inline void *prod_action_string(void *outerCtx, void *ast[], size_t num,
                                    str->size - end_size - start_size, &size);
     FklNastNode *node = fklCreateNastNode(FKL_NAST_STR, nodes[0]->curline);
     node->str = fklCreateString(size, s);
-    free(s);
+    fklZfree(s);
     return node;
 }
 
@@ -115,7 +116,7 @@ static inline void *prod_action_dec_integer(void *outerCtx, void *nodes[],
     if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
         FklBigInt bInt = FKL_BIGINT_0;
         fklInitBigIntWithDecCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)malloc(sizeof(FklBigInt));
+        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
@@ -135,7 +136,7 @@ static inline void *prod_action_hex_integer(void *outerCtx, void *nodes[],
     if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
         FklBigInt bInt = FKL_BIGINT_0;
         fklInitBigIntWithHexCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)malloc(sizeof(FklBigInt));
+        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
@@ -155,7 +156,7 @@ static inline void *prod_action_oct_integer(void *outerCtx, void *nodes[],
     if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
         FklBigInt bInt = FKL_BIGINT_0;
         fklInitBigIntWithOctCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)malloc(sizeof(FklBigInt));
+        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
         FKL_ASSERT(bi);
         *bi = bInt;
         r->bigInt = bi;
@@ -338,6 +339,6 @@ static inline void *prod_action_bytevector(void *outerCtx, void *ast[],
     FklNastNode *node =
         fklCreateNastNode(FKL_NAST_BYTEVECTOR, nodes[0]->curline);
     node->bvec = fklCreateBytevector(size, (uint8_t *)s);
-    free(s);
+    fklZfree(s);
     return node;
 }

@@ -73,7 +73,7 @@ static inline FklVMvalue *recover_error_scene(FklVM *exe,
         f = prev;
     }
 
-    free(rd->stack_values);
+    fklZfree(rd->stack_values);
     memset(rd, 0, sizeof(*rd));
     return FKL_VM_POP_TOP_VALUE(exe);
 }
@@ -121,7 +121,7 @@ void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
 
     rd->stack_values_num = exe->tp - stp;
 
-    free(rd->stack_values);
+    fklZfree(rd->stack_values);
     rd->stack_values = fklCopyMemory(
         &exe->base[stp], sizeof(FklVMvalue *) * rd->stack_values_num);
 

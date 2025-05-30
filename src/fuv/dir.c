@@ -31,7 +31,7 @@ FklVMvalue *createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *req,
     uv_dir_t *dir = dir_ud->dir;
     dir->nentries = nentries;
     if (nentries) {
-        dir->dirents = (uv_dirent_t *)calloc(nentries, sizeof(uv_dirent_t));
+        dir->dirents = (uv_dirent_t *)fklZcalloc(nentries, sizeof(uv_dirent_t));
         FKL_ASSERT(dir->dirents);
     } else
         dir->dirents = NULL;

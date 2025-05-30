@@ -1,5 +1,6 @@
 // steal from pocketpy: https://github.com/pocketpy/pocketpy/
 
+#include "config.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -62,13 +63,13 @@ static inline void METHOD(Uninit)(NAME *r) {
     while (cur) {
         NODE_NAME *prev = cur;
         cur = cur->next;
-        free(prev);
+        FKL_CONTAINER_FREE(prev);
     }
     cur = r->cache;
     while (cur) {
         NODE_NAME *prev = cur;
         cur = cur->next;
-        free(prev);
+        FKL_CONTAINER_FREE(prev);
     }
     r->head = NULL;
     r->tail = NULL;
@@ -76,7 +77,7 @@ static inline void METHOD(Uninit)(NAME *r) {
 }
 
 static inline NAME *METHOD(Create)(void) {
-    NAME *r = (NAME *)malloc(sizeof(NAME));
+    NAME *r = (NAME *)FKL_CONTAINER_MALLOC(sizeof(NAME));
     assert(r);
     METHOD(Init)(r);
     return r;
@@ -84,7 +85,7 @@ static inline NAME *METHOD(Create)(void) {
 
 static inline void METHOD(Destroy)(NAME *r) {
     METHOD(Uninit)(r);
-    free(r);
+    FKL_CONTAINER_FREE(r);
 }
 
 static inline FKL_QUEUE_ELM_TYPE *METHOD(Push)(NAME *r,
@@ -94,7 +95,7 @@ static inline FKL_QUEUE_ELM_TYPE *METHOD(Push)(NAME *r,
         node = r->cache;
         r->cache = node->next;
     } else {
-        node = (NODE_NAME *)malloc(sizeof(NODE_NAME));
+        node = (NODE_NAME *)FKL_CONTAINER_MALLOC(sizeof(NODE_NAME));
         assert(node);
     }
     node->next = NULL;
@@ -117,7 +118,7 @@ static inline FKL_QUEUE_ELM_TYPE *METHOD(Push2)(NAME *r,
         node = r->cache;
         r->cache = node->next;
     } else {
-        node = (NODE_NAME *)malloc(sizeof(NODE_NAME));
+        node = (NODE_NAME *)FKL_CONTAINER_MALLOC(sizeof(NODE_NAME));
         assert(node);
     }
     node->next = NULL;
@@ -171,6 +172,8 @@ static inline NODE_NAME *METHOD(PopNode)(NAME *r) {
     }
 }
 
+static inline void METHOD(DestroyNode)(NODE_NAME *r) { FKL_CONTAINER_FREE(r); }
+
 static inline FKL_QUEUE_ELM_TYPE *METHOD(Front)(const NAME *r) {
     return r->head ? &r->head->data : NULL;
 }
@@ -184,7 +187,7 @@ static inline void METHOD(Shrink)(NAME *r) {
     while (cur) {
         NODE_NAME *prev = cur;
         cur = cur->next;
-        free(prev);
+        FKL_CONTAINER_FREE(prev);
     }
     r->cache = NULL;
 }

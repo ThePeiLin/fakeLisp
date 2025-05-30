@@ -2,6 +2,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <math.h>
 #include <stdalign.h>
@@ -84,7 +85,7 @@ FklVMerrorHandler *fklCreateVMerrorHandler(FklSid_t *typeIds,
                                            uint32_t errTypeNum,
                                            FklInstruction *spc, uint64_t cpc) {
     FklVMerrorHandler *t =
-        (FklVMerrorHandler *)malloc(sizeof(FklVMerrorHandler));
+        (FklVMerrorHandler *)fklZmalloc(sizeof(FklVMerrorHandler));
     FKL_ASSERT(t);
     t->typeIds = typeIds;
     t->num = errTypeNum;
@@ -95,8 +96,8 @@ FklVMerrorHandler *fklCreateVMerrorHandler(FklSid_t *typeIds,
 }
 
 void fklDestroyVMerrorHandler(FklVMerrorHandler *h) {
-    free(h->typeIds);
-    free(h);
+    fklZfree(h->typeIds);
+    fklZfree(h);
 }
 
 static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
@@ -173,7 +174,7 @@ void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {
 
 FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *f,
                                               FklVMframe *prev) {
-    FklVMframe *tmp = (FklVMframe *)malloc(sizeof(FklVMframe));
+    FklVMframe *tmp = (FklVMframe *)fklZmalloc(sizeof(FklVMframe));
     FKL_ASSERT(tmp);
     tmp->type = FKL_FRAME_COMPOUND;
     tmp->prev = prev;
@@ -196,7 +197,7 @@ FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *f,
     FklVMvarRefList *nl = NULL;
     for (FklVMvarRefList *ll = lr->lrefl; ll; ll = ll->next) {
         FklVMvarRefList *rl =
-            (FklVMvarRefList *)malloc(sizeof(FklVMvarRefList));
+            (FklVMvarRefList *)fklZmalloc(sizeof(FklVMvarRefList));
         FKL_ASSERT(rl);
         rl->ref = ll->ref;
         rl->next = nl;
@@ -239,7 +240,7 @@ FklVMframe *fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *proc,
         if (frame->prev == NULL)
             exe->frame_cache_tail = &exe->frame_cache_head;
     } else {
-        frame = (FklVMframe *)malloc(sizeof(FklVMframe));
+        frame = (FklVMframe *)fklZmalloc(sizeof(FklVMframe));
         FKL_ASSERT(frame);
     }
     frame->errorCallBack = NULL;
@@ -276,7 +277,7 @@ FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
         if (r->prev == NULL)
             exe->frame_cache_tail = &exe->frame_cache_head;
     } else {
-        r = (FklVMframe *)malloc(sizeof(FklVMframe));
+        r = (FklVMframe *)fklZmalloc(sizeof(FklVMframe));
         FKL_ASSERT(r);
     }
     r->bp = exe->bp;
@@ -289,7 +290,7 @@ FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
 
 FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t,
                                         FklVMframe *prev) {
-    FklVMframe *r = (FklVMframe *)calloc(1, sizeof(FklVMframe));
+    FklVMframe *r = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
     FKL_ASSERT(r);
     r->prev = prev;
     r->errorCallBack = NULL;
@@ -911,7 +912,7 @@ static inline void print_bigint_to_string_buffer(FklStringBuffer *s,
         const FklBigInt bi = fklVMbigIntToBigInt(a);
         char *str = fklBigIntToCstr(&bi, 10, FKL_BIGINT_FMT_FLAG_NONE);
         fklStringBufferConcatWithCstr(s, str);
-        free(str);
+        fklZfree(str);
     }
 }
 

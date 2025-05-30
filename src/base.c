@@ -3,6 +3,7 @@
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -11,7 +12,7 @@
 
 FklString *fklCreateString(size_t size, const char *str) {
     FklString *tmp =
-        (FklString *)malloc(sizeof(FklString) + size * sizeof(uint8_t));
+        (FklString *)fklZmalloc(sizeof(FklString) + size * sizeof(uint8_t));
     FKL_ASSERT(tmp);
     tmp->size = size;
     if (str)
@@ -21,7 +22,7 @@ FklString *fklCreateString(size_t size, const char *str) {
 }
 
 FklString *fklStringRealloc(FklString *str, size_t new_size) {
-    FklString *new = (FklString *)fklRealloc(
+    FklString *new = (FklString *)fklZrealloc(
         str, sizeof(FklString) + new_size * sizeof(uint8_t));
     FKL_ASSERT(new);
     new->str[new_size] = '\0';
@@ -82,8 +83,8 @@ FklString *fklCreateStringFromCstr(const char *cStr) {
 void fklStringCharBufCat(FklString **a, const char *buf, size_t s) {
     size_t aSize = (*a)->size;
     FklString *prev = *a;
-    prev = (FklString *)fklRealloc(prev, sizeof(FklString)
-                                             + (aSize + s) * sizeof(char));
+    prev = (FklString *)fklZrealloc(prev, sizeof(FklString)
+                                              + (aSize + s) * sizeof(char));
     FKL_ASSERT(prev);
     *a = prev;
     prev->size = aSize + s;
@@ -100,7 +101,7 @@ void fklStringCstrCat(FklString **pfir, const char *sec) {
 }
 
 FklString *fklCreateEmptyString() {
-    FklString *tmp = (FklString *)calloc(1, sizeof(FklString));
+    FklString *tmp = (FklString *)fklZcalloc(1, sizeof(FklString));
     FKL_ASSERT(tmp);
     return tmp;
 }
@@ -198,7 +199,7 @@ char *fklCstrStringCat(char *fir, const FklString *sec) {
     if (!fir)
         return fklStringToCstr(sec);
     size_t len = strlen(fir);
-    fir = (char *)fklRealloc(fir, len * sizeof(char) + sec->size + 1);
+    fir = (char *)fklZrealloc(fir, len * sizeof(char) + sec->size + 1);
     FKL_ASSERT(fir);
     fklWriteStringToCstr(&fir[len], sec);
     return fir;
@@ -257,7 +258,7 @@ FklBytevector *fklStringBufferToBytevector(FklStringBuffer *b) {
 }
 
 FklStringBuffer *fklCreateStringBuffer(void) {
-    FklStringBuffer *r = (FklStringBuffer *)malloc(sizeof(FklStringBuffer));
+    FklStringBuffer *r = (FklStringBuffer *)fklZmalloc(sizeof(FklStringBuffer));
     FKL_ASSERT(r);
     fklInitStringBuffer(r);
     return r;
@@ -266,13 +267,13 @@ FklStringBuffer *fklCreateStringBuffer(void) {
 void fklUninitStringBuffer(FklStringBuffer *b) {
     b->size = 0;
     b->index = 0;
-    free(b->buf);
+    fklZfree(b->buf);
     b->buf = NULL;
 }
 
 void fklDestroyStringBuffer(FklStringBuffer *b) {
     fklUninitStringBuffer(b);
-    free(b);
+    fklZfree(b);
 }
 
 void fklStringBufferClear(FklStringBuffer *b) { b->index = 0; }
@@ -286,14 +287,14 @@ void fklStringBufferReverse(FklStringBuffer *b, size_t s) {
         b->size <<= 1;
         if ((b->size - b->index) < s)
             b->size += s;
-        char *t = (char *)fklRealloc(b->buf, b->size);
+        char *t = (char *)fklZrealloc(b->buf, b->size);
         FKL_ASSERT(t);
         b->buf = t;
     }
 }
 
 void fklStringBufferShrinkTo(FklStringBuffer *b, size_t s) {
-    char *t = (char *)fklRealloc(b->buf, s);
+    char *t = (char *)fklZrealloc(b->buf, s);
     FKL_ASSERT(t);
     t[s - 1] = '\0';
     b->buf = t;
@@ -305,7 +306,7 @@ static inline void stringbuffer_reserve(FklStringBuffer *b, size_t s) {
         b->size <<= 1;
         if (b->size < s)
             b->size = s;
-        char *t = (char *)fklRealloc(b->buf, b->size);
+        char *t = (char *)fklZrealloc(b->buf, b->size);
         FKL_ASSERT(t);
         b->buf = t;
     }
@@ -376,8 +377,8 @@ int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b) {
 }
 
 FklBytevector *fklCreateBytevector(size_t size, const uint8_t *ptr) {
-    FklBytevector *tmp =
-        (FklBytevector *)malloc(sizeof(FklBytevector) + size * sizeof(uint8_t));
+    FklBytevector *tmp = (FklBytevector *)fklZmalloc(sizeof(FklBytevector)
+                                                     + size * sizeof(uint8_t));
     FKL_ASSERT(tmp);
     tmp->size = size;
     if (ptr)
@@ -386,7 +387,7 @@ FklBytevector *fklCreateBytevector(size_t size, const uint8_t *ptr) {
 }
 
 FklBytevector *fklBytevectorRealloc(FklBytevector *bvec, size_t new_size) {
-    FklBytevector *new = (FklBytevector *)fklRealloc(
+    FklBytevector *new = (FklBytevector *)fklZrealloc(
         bvec, sizeof(FklBytevector) + new_size * sizeof(uint8_t));
     FKL_ASSERT(new);
     return new;
@@ -395,7 +396,7 @@ FklBytevector *fklBytevectorRealloc(FklBytevector *bvec, size_t new_size) {
 void fklBytevectorCat(FklBytevector **a, const FklBytevector *b) {
     size_t aSize = (*a)->size;
     FklBytevector *prev = *a;
-    prev = (FklBytevector *)fklRealloc(
+    prev = (FklBytevector *)fklZrealloc(
         prev, sizeof(FklBytevector) + (aSize + b->size) * sizeof(char));
     FKL_ASSERT(prev);
     *a = prev;
@@ -479,7 +480,7 @@ FklBytevector *fklCopyBytevector(const FklBytevector *obj) {
     if (obj == NULL)
         return NULL;
     FklBytevector *tmp =
-        (FklBytevector *)malloc(sizeof(FklBytevector) + obj->size);
+        (FklBytevector *)fklZmalloc(sizeof(FklBytevector) + obj->size);
     FKL_ASSERT(tmp);
     memcpy(tmp->ptr, obj->ptr, obj->size);
     tmp->size = obj->size;

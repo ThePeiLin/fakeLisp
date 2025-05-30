@@ -105,7 +105,7 @@ typedef struct {
         FklString **c = (V)->base;                                             \
         FklString **const end = c + (V)->size;                                 \
         for (; c < end; ++c)                                                   \
-            free(*c);                                                          \
+            fklZfree(*c);                                                      \
         fklStringVectorUninit(V);                                              \
     }
 #define FKL_HASH_ELM_NAME SourceCode

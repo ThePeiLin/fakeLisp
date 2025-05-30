@@ -32,7 +32,7 @@ extern "C" {
 #define FKL_HASH_KEY_INIT(K, X) *(K) = fklCopyString(*X)
 #define FKL_HASH_KEY_UNINIT(K)                                                 \
     {                                                                          \
-        free(*K);                                                              \
+        fklZfree(*K);                                                          \
         (*K) = NULL;                                                           \
     }
 #define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
@@ -46,7 +46,7 @@ extern "C" {
 #define FKL_HASH_KEY_INIT(K, X) *(K) = fklCopyBytevector(*X)
 #define FKL_HASH_KEY_UNINIT(K)                                                 \
     {                                                                          \
-        free(*K);                                                              \
+        fklZfree(*K);                                                          \
         (*K) = NULL;                                                           \
     }
 #define FKL_HASH_KEY_EQUAL(A, B) fklBytevectorEqual(*(A), *(B))

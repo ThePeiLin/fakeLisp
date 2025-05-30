@@ -226,8 +226,6 @@ static inline void init_fuv_handle(FuvHandle *handle, FklVMvalue *v,
     uv_handle_set_data(&handle->handle, handle);
 }
 
-#define CREATE_OBJ(TYPE) (TYPE *)malloc(sizeof(TYPE))
-
 #define FUV_HANDLE_P(NAME, ENUM)                                               \
     int NAME(FklVMvalue *v) {                                                  \
         return FKL_IS_USERDATA(v)                                              \
@@ -329,7 +327,6 @@ uv_process_t *createFuvProcess(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
     *pr = v;
     return &handle->handle;
 }
-#undef CREATE_OBJ
 
 int isFuvStream(FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
@@ -342,8 +339,6 @@ int isFuvStream(FklVMvalue *v) {
 }
 
 FUV_HANDLE_P(isFuvPipe, UV_NAMED_PIPE);
-
-#define CREATE_OBJ(TYPE) (TYPE *)calloc(1, sizeof(TYPE))
 
 #define OTHER_HANDLE_CREATOR(TYPE, NAME, ENUM)                                 \
     uv_##NAME##_t *create##TYPE(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,   \
@@ -406,4 +401,3 @@ uv_poll_t *createFuvPoll(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR
 #undef OTHER_HANDLE_CREATOR
-#undef CREATE_OBJ

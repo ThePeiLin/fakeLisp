@@ -317,13 +317,13 @@ typedef struct FklLalrItemSetHashMapItem {
         FklLalrItemSetLink *l = (V)->links;                                    \
         while (l) {                                                            \
             FklLalrItemSetLink *next = l->next;                                \
-            free(l);                                                           \
+            fklZfree(l);                                                       \
             l = next;                                                          \
         }                                                                      \
         FklLookAheadSpreads *sp = (V)->spreads;                                \
         while (sp) {                                                           \
             FklLookAheadSpreads *next = sp->next;                              \
-            free(sp);                                                          \
+            fklZfree(sp);                                                      \
             sp = next;                                                         \
         }                                                                      \
     }

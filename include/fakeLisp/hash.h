@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -156,7 +158,8 @@ static inline void METHOD(Init)(NAME *self) {
     self->count = 0;
     self->first = NULL;
     self->last = NULL;
-    self->buckets = (NODE_NAME **)calloc(self->capacity, sizeof(NODE_NAME *));
+    self->buckets =
+        (NODE_NAME **)FKL_CONTAINER_CALLOC(self->capacity, sizeof(NODE_NAME *));
     assert(self->buckets);
 }
 
@@ -165,7 +168,7 @@ static inline void METHOD(Uninit)(NAME *self) {
     self->rehash_threshold = 0;
     self->count = 0;
     self->mask = 0;
-    free(self->buckets);
+    FKL_CONTAINER_FREE(self->buckets);
     self->buckets = NULL;
     NODE_NAME *cur = self->first;
     while (cur) {
@@ -173,14 +176,14 @@ static inline void METHOD(Uninit)(NAME *self) {
         FKL_HASH_VAL_UNINIT(&cur->v);
         NODE_NAME *prev = cur;
         cur = prev->next;
-        free(prev);
+        FKL_CONTAINER_FREE(prev);
     }
     self->first = NULL;
     self->last = NULL;
 }
 
 static inline NAME *METHOD(Create)(void) {
-    NAME *r = (NAME *)malloc(sizeof(NAME));
+    NAME *r = (NAME *)FKL_CONTAINER_MALLOC(sizeof(NAME));
     assert(r);
     METHOD(Init)(r);
     return r;
@@ -188,7 +191,7 @@ static inline NAME *METHOD(Create)(void) {
 
 static inline void METHOD(Destroy)(NAME *r) {
     METHOD(Uninit)(r);
-    free(r);
+    FKL_CONTAINER_FREE(r);
 }
 
 static inline void METHOD(Clear)(NAME *self) {
@@ -200,7 +203,7 @@ static inline void METHOD(Clear)(NAME *self) {
         FKL_HASH_VAL_UNINIT(&cur->v);
         NODE_NAME *prev = cur;
         cur = prev->next;
-        free(prev);
+        FKL_CONTAINER_FREE(prev);
     }
     self->first = NULL;
     self->last = NULL;
@@ -225,7 +228,7 @@ static inline void METHOD(Grow)(NAME *self) {
 #else
     self->rehash_threshold = (self->capacity >> 2) | (self->capacity >> 1);
 #endif
-    NODE_NAME **buckets = (NODE_NAME **)realloc(
+    NODE_NAME **buckets = (NODE_NAME **)FKL_CONTAINER_REALLOC(
         self->buckets, self->capacity * sizeof(NODE_NAME *));
     assert(buckets);
     self->buckets = buckets;
@@ -243,7 +246,7 @@ static inline NODE_NAME *const *METHOD(Bucket)(NAME *self, uintptr_t hashv) {
 
 static inline NODE_NAME *METHOD(CreateNode)(uintptr_t hashv,
                                             FKL_HASH_KEY_TYPE const *k) {
-    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
+    NODE_NAME *node = (NODE_NAME *)FKL_CONTAINER_CALLOC(1, sizeof(NODE_NAME));
     assert(node);
     *((uintptr_t *)&node->hashv) = hashv;
     FKL_HASH_KEY_INIT((FKL_HASH_KEY_TYPE *)&node->k, k);
@@ -252,7 +255,7 @@ static inline NODE_NAME *METHOD(CreateNode)(uintptr_t hashv,
 
 static inline NODE_NAME *METHOD(CreateNode2)(uintptr_t hashv,
                                              FKL_HASH_KEY_TYPE k) {
-    NODE_NAME *node = (NODE_NAME *)calloc(1, sizeof(NODE_NAME));
+    NODE_NAME *node = (NODE_NAME *)FKL_CONTAINER_CALLOC(1, sizeof(NODE_NAME));
     assert(node);
     *((uintptr_t *)&node->hashv) = hashv;
     FKL_HASH_KEY_INIT((FKL_HASH_KEY_TYPE *)&node->k, &k);
@@ -434,7 +437,7 @@ static inline int METHOD(Earase)(NAME *self, FKL_HASH_KEY_TYPE const *k,
             } else {
                 FKL_HASH_VAL_UNINIT(&pn->v);
             }
-            free(pn);
+            FKL_CONTAINER_FREE(pn);
             return 1;
         }
     }
@@ -476,7 +479,7 @@ static inline int METHOD(DelNode)(NAME *self, NODE_NAME **pp) {
         --self->count;
         FKL_HASH_KEY_UNINIT((FKL_HASH_KEY_TYPE *)&pn->k);
         FKL_HASH_VAL_UNINIT(&pn->v);
-        free(pn);
+        FKL_CONTAINER_FREE(pn);
         return 1;
     }
     return 0;
@@ -500,7 +503,7 @@ static inline int METHOD(Del)(NAME *self, FKL_HASH_KEY_TYPE const *k) {
             --self->count;
             FKL_HASH_KEY_UNINIT((FKL_HASH_KEY_TYPE *)&pn->k);
             FKL_HASH_VAL_UNINIT(&pn->v);
-            free(pn);
+            FKL_CONTAINER_FREE(pn);
             return 1;
         }
     }

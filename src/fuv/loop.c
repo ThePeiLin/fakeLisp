@@ -85,7 +85,7 @@ static void error_check_idle_close_cb(uv_handle_t *h) {
     FklVMvalue *ev =
         recover_error_scene(exe, &fuv_loop->data.error_recover_data);
     FKL_VM_PUSH_VALUE(fuv_loop->data.exe, ev);
-    longjmp(fuv_loop->data.buf, FUV_RUN_ERR_OCCUR);
+    longjmp(*fuv_loop->data.buf, FUV_RUN_ERR_OCCUR);
 }
 
 static void error_check_idle_cb(uv_idle_t *idle) {

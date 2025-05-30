@@ -168,7 +168,7 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
 
 void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {
     FKL_VM_PUSH_VALUE(exe, ev);
-    longjmp(exe->buf, FKL_VM_ERR_RAISE);
+    longjmp(*exe->buf, FKL_VM_ERR_RAISE);
 }
 
 FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *f,

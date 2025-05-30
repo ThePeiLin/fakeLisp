@@ -39,18 +39,18 @@ static void interrupt_queue_work_cb(FklVM *vm, void *a) {
             bp->count++;
             if (bp->is_temporary)
                 delBreakpoint(ctx, bp->idx);
-            longjmp(ctx->jmpb, DBG_INTERRUPTED);
+            longjmp(*ctx->jmpb, DBG_INTERRUPTED);
         }
     } else if (arg->ln) {
         setReachedThread(ctx, vm);
         getCurLineStr(ctx, arg->ln->fid, arg->ln->line);
-        longjmp(ctx->jmpb, DBG_INTERRUPTED);
+        longjmp(*ctx->jmpb, DBG_INTERRUPTED);
     } else {
         setReachedThread(ctx, vm);
         if (arg->err)
-            longjmp(ctx->jmpb, DBG_ERROR_OCCUR);
+            longjmp(*ctx->jmpb, DBG_ERROR_OCCUR);
         else
-            longjmp(ctx->jmpb, DBG_INTERRUPTED);
+            longjmp(*ctx->jmpb, DBG_INTERRUPTED);
     }
 }
 

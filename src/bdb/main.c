@@ -312,7 +312,9 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
     fklUnlockThread(exe);
     dctx->reached_breakpoint = NULL;
     dctx->reached_thread = NULL;
-    int r = setjmp(dctx->jmpb);
+    jmp_buf buf;
+    dctx->jmpb = &buf;
+    int r = setjmp(buf);
     if (r == DBG_INTERRUPTED) {
         dctx->done = 0;
         if (dctx->reached_breakpoint)
@@ -333,6 +335,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
         dctx->done = 1;
         fputs("*** The program finishied and will restart ***\n", stderr);
     }
+    dctx->jmpb = NULL;
     fklLockThread(exe);
     FKL_CPROC_RETURN(
         exe, ctx,

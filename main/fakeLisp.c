@@ -1170,6 +1170,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
                 is_need_update_const_array(&const_count, kt));
 
             exe->top_frame = mainframe;
+            fctx->lrefl = NULL;
+            fctx->lref = NULL;
 
             return 1;
         } else {
@@ -1419,6 +1421,8 @@ static int eval_frame_step(void *data, FklVM *exe) {
             is_need_update_const_array(&const_count, kt));
 
         exe->top_frame = mainframe;
+        fctx->lrefl = NULL;
+        fctx->lref = NULL;
         if (ctx->interactive) {
             repl_frame->errorCallBack = replErrorCallBack;
             repl_frame->t = &ReplContextMethodTable;

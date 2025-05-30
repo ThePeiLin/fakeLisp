@@ -430,9 +430,9 @@ typedef struct {
     FklVMvalue *gclist;
     uv_idle_t error_check_idle;
     struct FuvErrorRecoverData error_recover_data;
-    jmp_buf buf;
     int mode;
     int is_closed;
+    jmp_buf* buf;
 } FuvLoopData;
 
 typedef enum {

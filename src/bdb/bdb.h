@@ -161,7 +161,7 @@ typedef struct DebugCtx {
     FklVMvalueVector extra_mark_value;
     FklVMvalueVector code_objs;
 
-    jmp_buf jmpb;
+    jmp_buf* jmpb;
     FklVM *reached_thread;
 
     BdbFrameVector reached_thread_frames;

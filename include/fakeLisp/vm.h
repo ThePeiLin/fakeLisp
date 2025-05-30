@@ -410,7 +410,7 @@ typedef struct FklVM {
     FklVMlib *libs;
     struct FklVM *prev;
     struct FklVM *next;
-    jmp_buf buf;
+    jmp_buf* buf;
 
     FklFuncPrototypes *pts;
     FklVMlib *importingLib;

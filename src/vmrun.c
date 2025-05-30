@@ -589,6 +589,7 @@ start:
 #undef RETURN_INCLUDE
 
 int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
+    jmp_buf buf;
     for (;;) {
         switch (exe->state) {
         case FKL_VM_RUNNING: {
@@ -607,10 +608,12 @@ int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
                 return 0;
         } break;
         case FKL_VM_EXIT:
+            exe->buf = NULL;
             return 0;
             break;
         case FKL_VM_READY:
-            if (setjmp(exe->buf) == FKL_VM_ERR_RAISE) {
+            exe->buf = &buf;
+            if (setjmp(buf) == FKL_VM_ERR_RAISE) {
                 FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
                 FklVMframe *frame =
                     fklIsVMvalueError(ev) ? exe->top_frame : exit_frame;
@@ -735,6 +738,7 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
 }
 
 static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
+    jmp_buf buf;
     for (;;) {
         switch (exe->state) {
         case FKL_VM_RUNNING: {
@@ -755,10 +759,12 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                 return 0;
         } break;
         case FKL_VM_EXIT:
+            exe->buf = NULL;
             return 0;
             break;
         case FKL_VM_READY:
-            if (setjmp(exe->buf) == FKL_VM_ERR_RAISE) {
+            exe->buf = &buf;
+            if (setjmp(buf) == FKL_VM_ERR_RAISE) {
                 FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
                 FklVMframe *frame =
                     fklIsVMvalueError(ev) ? exe->top_frame : exit_frame;
@@ -789,6 +795,7 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
 
 static void vm_thread_cb(void *arg) {
     FklVM *volatile exe = (FklVM *)arg;
+    jmp_buf buf;
     uv_mutex_lock(&exe->lock);
     exe->thread_run_cb = vm_run_cb;
     exe->run_cb = vm_run_cb;
@@ -812,13 +819,15 @@ static void vm_thread_cb(void *arg) {
                 exe->state = FKL_VM_EXIT;
         }; break;
         case FKL_VM_EXIT:
+            exe->buf = NULL;
             THREAD_EXIT(exe);
             atomic_fetch_sub(&exe->gc->q.running_count, 1);
             uv_mutex_unlock(&exe->lock);
             return;
             break;
         case FKL_VM_READY:
-            if (setjmp(exe->buf) == FKL_VM_ERR_RAISE)
+            exe->buf = &buf;
+            if (setjmp(buf) == FKL_VM_ERR_RAISE)
                 DO_ERROR_HANDLING(exe);
             exe->state = FKL_VM_RUNNING;
             continue;
@@ -834,6 +843,7 @@ static void vm_thread_cb(void *arg) {
 }
 
 static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
+    jmp_buf buf;
     for (;;) {
         switch (exe->state) {
         case FKL_VM_RUNNING: {
@@ -856,10 +866,12 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                 return 0;
         } break;
         case FKL_VM_EXIT:
+            exe->buf = NULL;
             return 0;
             break;
         case FKL_VM_READY:
-            if (setjmp(exe->buf) == FKL_VM_ERR_RAISE) {
+            exe->buf = &buf;
+            if (setjmp(buf) == FKL_VM_ERR_RAISE) {
                 FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
                 FklVMframe *frame =
                     fklIsVMvalueError(ev) ? exe->top_frame : exit_frame;
@@ -890,6 +902,7 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
 
 static void vm_trapping_thread_cb(void *arg) {
     FklVM *volatile exe = (FklVM *)arg;
+    jmp_buf buf;
     uv_mutex_lock(&exe->lock);
     exe->thread_run_cb = vm_trapping_run_cb;
     exe->run_cb = vm_trapping_run_cb;
@@ -915,13 +928,15 @@ static void vm_trapping_thread_cb(void *arg) {
                 exe->state = FKL_VM_EXIT;
         } break;
         case FKL_VM_EXIT:
+            exe->buf = NULL;
             THREAD_EXIT(exe);
             atomic_fetch_sub(&exe->gc->q.running_count, 1);
             uv_mutex_unlock(&exe->lock);
             return;
             break;
         case FKL_VM_READY:
-            if (setjmp(exe->buf) == FKL_VM_ERR_RAISE)
+            exe->buf = &buf;
+            if (setjmp(buf) == FKL_VM_ERR_RAISE)
                 DO_ERROR_HANDLING(exe);
             exe->state = FKL_VM_RUNNING;
             continue;

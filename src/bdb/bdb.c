@@ -251,16 +251,15 @@ static inline void push_extra_mark_value(DebugCtx *ctx) {
     fklVMpushExtraMarkFunc(ctx->gc, dbg_extra_mark, NULL, ctx);
 }
 
-DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
-    DebugCtx *ctx = (DebugCtx *)calloc(1, sizeof(DebugCtx));
-    FKL_ASSERT(ctx);
+int initDebugCtx(DebugCtx *ctx, FklVM *exe, const char *filename,
+                 FklVMvalue *argv) {
     bdbEnvHashMapInit(&ctx->envs);
     fklSidHashSetInit(&ctx->file_sid_set);
     if (init_debug_codegen_outer_ctx(ctx, filename)) {
         bdbEnvHashMapUninit(&ctx->envs);
         fklSidHashSetUninit(&ctx->file_sid_set);
-        free(ctx);
-        return NULL;
+        ctx->inited = 0;
+        return -1;
     }
 
     bdbFrameVectorInit(&ctx->reached_thread_frames, 16);
@@ -287,7 +286,8 @@ DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
     set_argv_with_list(ctx->gc, argv);
     init_cmd_read_ctx(&ctx->read_ctx);
 
-    return ctx;
+    ctx->inited = 1;
+    return 0;
 }
 
 static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
@@ -310,7 +310,9 @@ void exitDebugCtx(DebugCtx *ctx) {
         fklDestroyAllVMs(gc->main_thread);
 }
 
-void destroyDebugCtx(DebugCtx *ctx) {
+void uninitDebugCtx(DebugCtx *ctx) {
+    if (!ctx->inited)
+        return;
     bdbEnvHashMapUninit(&ctx->envs);
     fklSidHashSetUninit(&ctx->file_sid_set);
 
@@ -325,7 +327,7 @@ void destroyDebugCtx(DebugCtx *ctx) {
     uninit_cmd_read_ctx(&ctx->read_ctx);
     fklUninitCodegenOuterCtx(&ctx->outer_ctx);
     fklDestroyCodegenEnv(ctx->glob_env);
-    free(ctx);
+    ctx->inited = 0;
 }
 
 const FklLineNumberTableItem *

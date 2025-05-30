@@ -142,6 +142,7 @@ typedef struct DebugCtx {
     FklSymbolTable *st;
     FklConstTable *kt;
 
+    int8_t inited;
     int8_t exit;
     int8_t running;
     int8_t done;
@@ -161,7 +162,7 @@ typedef struct DebugCtx {
     FklVMvalueVector extra_mark_value;
     FklVMvalueVector code_objs;
 
-    jmp_buf* jmpb;
+    jmp_buf *jmpb;
     FklVM *reached_thread;
 
     BdbFrameVector reached_thread_frames;
@@ -208,9 +209,11 @@ typedef struct {
     int err;
 } DbgInterruptArg;
 
+int initDebugCtx(DebugCtx *, FklVM *exe, const char *filename,
+                 FklVMvalue *argv);
 DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv);
 void exitDebugCtx(DebugCtx *);
-void destroyDebugCtx(DebugCtx *);
+void uninitDebugCtx(DebugCtx *);
 const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line);
 const FklLineNumberTableItem *
 getCurLineNumberItemWithCp(const FklInstruction *cp, FklByteCodelnt *code);

@@ -3034,7 +3034,7 @@ static int builtin_recv(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, r);
     } else {
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
-        fklChanlRecv(chanl, &FKL_CPROC_GET_ARG(exe, ctx, 1), exe);
+        fklChanlRecv(chanl, exe->tp - 1, exe);
         FKL_CPROC_RETURN(exe, ctx, FKL_CPROC_GET_ARG(exe, ctx, 1));
     }
     return 0;

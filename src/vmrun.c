@@ -1,8 +1,9 @@
-#include "fakeLisp/base.h"
+#include <fakeLisp/base.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <stdatomic.h>
 #include <stdint.h>
@@ -666,8 +667,9 @@ static inline void move_old_locv_to_gc(FklVMgc *gc, uint32_t llast,
 
     if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
         if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-            atomic_fetch_sub(&gc->num,
-                             locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].llast);
+            atomic_fetch_sub(
+                &gc->alloced_size,
+                fklZmallocSize(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv));
             fklZfree(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
             num--;
         } else
@@ -677,7 +679,7 @@ static inline void move_old_locv_to_gc(FklVMgc *gc, uint32_t llast,
         locvs[i].llast = llast;
         locvs[i].locv = locv;
     } else {
-        atomic_fetch_sub(&gc->num, llast);
+        atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(locv));
         fklZfree(locv);
     }
 }
@@ -722,7 +724,7 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
 
 void fklCheckAndGCinSingleThread(FklVM *exe) {
     FklVMgc *gc = exe->gc;
-    if (atomic_load(&gc->num) > gc->threshold) {
+    if (atomic_load(&gc->alloced_size) > gc->threshold) {
         move_thread_objects_to_gc(exe, gc);
         move_thread_old_locv_to_gc(exe, gc);
         remove_thread_frame_cache(exe);
@@ -1132,7 +1134,7 @@ static inline struct FklVMidleWork *pop_idle_work(FklVMgc *gc) {
 static inline void vm_idle_loop(FklVMgc *gc) {
     FklVMqueue *q = &gc->q;
     for (;;) {
-        if (atomic_load(&gc->num) > gc->threshold) {
+        if (atomic_load(&gc->alloced_size) > gc->threshold) {
             switch_notice_lock_ins_for_running_threads(&q->running_q);
             lock_all_vm(&q->running_q);
 
@@ -1254,7 +1256,7 @@ void fklVMatExit(FklVM *vm, FklVMatExitFunc func, FklVMatExitMarkFunc mark,
 void fklVMtrappingIdleLoop(FklVMgc *gc) {
     FklVMqueue *q = &gc->q;
     for (;;) {
-        if (atomic_load(&gc->num) > gc->threshold) {
+        if (atomic_load(&gc->alloced_size) > gc->threshold) {
             switch_notice_lock_ins_for_running_threads(&q->running_q);
             lock_all_vm(&q->running_q);
 

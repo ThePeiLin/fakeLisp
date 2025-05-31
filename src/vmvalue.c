@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <stdalign.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -826,6 +827,7 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
                 __FUNCTION__);
         abort();
     }
+    atomic_fetch_sub(&cur->gc->alloced_size, fklZmallocSize(cur));
     fklZfree((void *)cur);
 }
 
@@ -894,24 +896,25 @@ int fklChanlRecvOk(FklVMchanl *ch, FklVMvalue **slot) {
     }
 }
 
-void fklChanlRecv(FklVMchanl *ch, FklVMvalue **slot, FklVM *exe) {
+void fklChanlRecv(FklVMchanl *ch, uint32_t slot, FklVM *exe) {
     uv_mutex_lock(&ch->lock);
     FklVMchanlSend *send = chanl_pop_send(ch);
     if (send) {
         if (ch->count) {
-            *slot = chanl_pop_msg(ch);
+            exe->base[slot] = chanl_pop_msg(ch);
             chanl_push_msg(ch, send->msg);
         } else
-            *slot = send->msg;
+            exe->base[slot] = send->msg;
         uv_cond_signal(&send->cond);
         uv_mutex_unlock(&ch->lock);
         return;
     } else if (ch->count) {
-        *slot = chanl_pop_msg(ch);
+        exe->base[slot] = chanl_pop_msg(ch);
         uv_mutex_unlock(&ch->lock);
         return;
     } else {
         FklVMchanlRecv r = {
+            .exe = exe,
             .slot = slot,
         };
         if (uv_cond_init(&r.cond))
@@ -930,7 +933,7 @@ void fklChanlSend(FklVMchanl *ch, FklVMvalue *msg, FklVM *exe) {
     uv_mutex_lock(&ch->lock);
     FklVMchanlRecv *recv = chanl_pop_recv(ch);
     if (recv) {
-        *(recv->slot) = msg;
+        recv->exe->base[recv->slot] = msg;
         uv_cond_signal(&recv->cond);
         uv_mutex_unlock(&ch->lock);
         return;

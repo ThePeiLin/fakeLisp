@@ -91,7 +91,8 @@ typedef struct FklVMchanlSend {
 typedef struct FklVMchanlRecv {
     struct FklVMchanlRecv *next;
     uv_cond_t cond;
-    struct FklVMvalue **slot;
+    struct FklVM *exe;
+    uint32_t slot;
 } FklVMchanlRecv;
 
 typedef struct {
@@ -139,6 +140,7 @@ typedef enum {
 } FklVMvalueMark;
 
 #define FKL_VM_VALUE_COMMON_HEADER                                             \
+    struct FklVMgc *gc;                                                        \
     struct FklVMvalue *next;                                                   \
     struct FklVMvalue *gray_next;                                              \
     FklVMvalueMark volatile mark : 32;                                         \
@@ -498,7 +500,7 @@ typedef enum {
 } FklGCstate;
 
 #define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
-#define FKL_VM_GC_THRESHOLD_SIZE (2048)
+#define FKL_VM_GC_THRESHOLD_SIZE (16384)
 
 typedef enum {
     FKL_ERR_DUMMY = 0,
@@ -561,7 +563,7 @@ typedef void (*FklVMextraMarkFunc)(struct FklVMgc *, void *arg);
 
 typedef struct FklVMgc {
     FklGCstate volatile running;
-    atomic_size_t num;
+    atomic_size_t alloced_size;
     size_t threshold;
     FklVMvalue *head;
 
@@ -1200,7 +1202,7 @@ void fklVMstopTheWorld(FklVMgc *);
 void fklVMcontinueTheWorld(FklVMgc *);
 
 void fklChanlSend(FklVMchanl *, FklVMvalue *msg, FklVM *);
-void fklChanlRecv(FklVMchanl *, FklVMvalue **, FklVM *);
+void fklChanlRecv(FklVMchanl *, uint32_t, FklVM *);
 int fklChanlRecvOk(FklVMchanl *, FklVMvalue **);
 
 #define FKL_GET_UD_DATA(TYPE, UD) ((TYPE *)(UD)->data)

@@ -1,4 +1,5 @@
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <string.h>
 
@@ -122,7 +123,6 @@ int fklVMgcPropagate(FklVMgc *gc) {
 }
 
 void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
-    size_t count = 0;
     FklVMvalue *head = gc->head;
     gc->head = NULL;
     gc->running = FKL_GC_SWEEPING;
@@ -133,7 +133,6 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
             *phead = cur->next;
             cur->next = *pw;
             *pw = cur;
-            count++;
         } else {
             cur->mark = FKL_MARK_W;
             phead = &cur->next;
@@ -141,7 +140,6 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     }
     *phead = gc->head;
     gc->head = head;
-    atomic_fetch_sub(&gc->num, count);
 }
 
 void fklVMgcSweep(FklVMvalue *head) {
@@ -156,7 +154,7 @@ void fklVMgcSweep(FklVMvalue *head) {
 
 void fklGetGCstateAndGCNum(FklVMgc *gc, FklGCstate *s, int *cr) {
     *s = gc->running;
-    *cr = atomic_load(&gc->num) > gc->threshold;
+    *cr = atomic_load(&gc->alloced_size) > gc->threshold;
 }
 
 static inline void init_vm_queue(FklVMqueue *q) {
@@ -297,7 +295,7 @@ FklVMvalue **fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast,
             r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
             FKL_ASSERT(r);
         }
-        atomic_fetch_add(&gc->num, llast);
+        atomic_fetch_add(&gc->alloced_size, fklZmallocSize(r));
     }
     return r;
 }
@@ -332,18 +330,19 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc, uint32_t llast,
             r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
             FKL_ASSERT(r);
         }
-        atomic_fetch_add(&gc->num, llast);
+        atomic_fetch_add(&gc->alloced_size, fklZmallocSize(r));
     }
     return r;
 }
 
 void fklAddToGC(FklVMvalue *v, FklVM *vm) {
     if (FKL_IS_PTR(v)) {
+        v->gc = vm->gc;
         v->next = vm->obj_head;
         vm->obj_head = v;
         if (!vm->obj_tail)
             vm->obj_tail = v;
-        atomic_fetch_add(&vm->gc->num, 1);
+        atomic_fetch_add(&vm->gc->alloced_size, fklZmallocSize(v));
     }
 }
 
@@ -355,14 +354,17 @@ static inline void destroy_all_locv_cache(FklVMgc *gc) {
         struct FklLocvCache *cache = cur_level->locv;
         for (uint8_t j = 0; j < FKL_VM_GC_LOCV_CACHE_NUM; j++) {
             struct FklLocvCache *cur_cache = &cache[j];
-            if (cur_cache->llast)
+            if (cur_cache->locv) {
+                atomic_fetch_sub(&gc->alloced_size,
+                                 fklZmallocSize(cur_cache->locv));
                 fklZfree(cur_cache->locv);
+            }
         }
     }
 }
 
 void fklVMgcUpdateThreshold(FklVMgc *gc) {
-    gc->threshold = atomic_load(&gc->num) * 2;
+    gc->threshold = atomic_load(&gc->alloced_size) * 2;
 }
 
 static inline void destroy_argv(FklVMgc *gc) {
@@ -418,6 +420,10 @@ void fklDestroyVMgc(FklVMgc *gc) {
     fklZfree(gc->kstr);
     fklZfree(gc->kbvec);
     fklZfree(gc->kbi);
+    if (gc->alloced_size) {
+        fprintf(stderr, "still has %lu bytes not freed\n", gc->alloced_size);
+        abort();
+    }
     fklZfree(gc);
 }
 

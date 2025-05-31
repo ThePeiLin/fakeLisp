@@ -432,13 +432,26 @@ int fklBigIntCmp(const FklBigInt *a, const FklBigInt *b) {
     return sign < 0 ? -1 : sign > 0 ? 1 : 0;
 }
 
+static inline void set_bigint_i64_without_ensure(FklBigInt *to,
+                                                 int64_t const v) {
+    uint64_t uv = fklAbs(v);
+    if (uv) {
+        size_t c = count_digits_size(uv);
+        to->num = c;
+        set_uint64_to_digits(to->digits, c, uv);
+    } else
+        to->num = 0;
+    if (v < 0)
+        to->num = -to->num;
+}
+
 int fklBigIntCmpI(const FklBigInt *a, int64_t b) {
     FklBigIntDigit digits[FKL_MAX_INT64_DIGITS_COUNT];
     FklBigInt bi = FKL_BIGINT_0;
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, b);
+    set_bigint_i64_without_ensure(&bi, b);
     return fklBigIntCmp(a, &bi);
 }
 
@@ -477,7 +490,7 @@ int fklIsDivisibleBigIntI(const FklBigInt *a, int64_t d) {
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, d);
+    set_bigint_i64_without_ensure(&bi, d);
     return fklIsDivisibleBigInt(a, &bi);
 }
 
@@ -693,7 +706,7 @@ void fklAddBigIntI(FklBigInt *b, int64_t v) {
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, v);
+    set_bigint_i64_without_ensure(&bi, v);
     fklAddBigInt(b, &bi);
 }
 
@@ -721,7 +734,7 @@ void fklSubBigIntI(FklBigInt *a, int64_t v) {
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, v);
+    set_bigint_i64_without_ensure(&bi, v);
     fklSubBigInt(a, &bi);
 }
 
@@ -773,7 +786,7 @@ void fklMulBigIntI(FklBigInt *b, int64_t v) {
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, v);
+    set_bigint_i64_without_ensure(&bi, v);
     fklMulBigInt(b, &bi);
 }
 
@@ -783,7 +796,7 @@ int fklDivRemBigIntI(FklBigInt *b, int64_t divider, FklBigInt *rem) {
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, divider);
+    set_bigint_i64_without_ensure(&bi, divider);
     return fklDivRemBigInt(b, &bi, rem);
 }
 
@@ -966,7 +979,7 @@ int fklRemBigIntI(FklBigInt *a, int64_t div) {
     bi.size = FKL_MAX_INT64_DIGITS_COUNT;
     bi.digits = digits;
     bi.const_size = 1;
-    fklSetBigIntI(&bi, div);
+    set_bigint_i64_without_ensure(&bi, div);
     return fklRemBigInt(a, &bi);
 }
 

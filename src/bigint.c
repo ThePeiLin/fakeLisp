@@ -437,6 +437,7 @@ static inline void set_bigint_i64_without_ensure(FklBigInt *to,
     uint64_t uv = fklAbs(v);
     if (uv) {
         size_t c = count_digits_size(uv);
+        FKL_ASSERT(c < 4);
         to->num = c;
         set_uint64_to_digits(to->digits, c, uv);
     } else

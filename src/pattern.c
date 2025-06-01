@@ -17,7 +17,7 @@ int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
         &s,
         &(FklNastImmPair){.car = pattern->pair->cdr, .cdr = exp->pair->cdr});
     while (!fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *top = fklNastImmPairVectorPopBack(&s);
+        const FklNastImmPair *top = fklNastImmPairVectorPopBackNonNull(&s);
         const FklNastNode *n0 = top->car;
         const FklNastNode *n1 = top->cdr;
         if (n0->type == FKL_NAST_SLOT) {
@@ -55,7 +55,7 @@ static inline int is_pattern_equal(const FklNastNode *pattern,
         &(FklNastImmPair){.car = pattern->pair->cdr, .cdr = exp->pair->cdr});
     int r = 1;
     while (r && !fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *top = fklNastImmPairVectorPopBack(&s);
+        const FklNastImmPair *top = fklNastImmPairVectorPopBackNonNull(&s);
         const FklNastNode *n0 = top->car;
         const FklNastNode *n1 = top->cdr;
         if (n0->type != n1->type)
@@ -91,7 +91,7 @@ static inline int is_partly_covered(const FklNastNode *pattern,
         &s,
         &(FklNastImmPair){.car = pattern->pair->cdr, .cdr = exp->pair->cdr});
     while (!fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *top = fklNastImmPairVectorPopBack(&s);
+        const FklNastImmPair *top = fklNastImmPairVectorPopBackNonNull(&s);
         const FklNastNode *n0 = top->car;
         const FklNastNode *n1 = top->cdr;
         if (n0->type == FKL_NAST_SLOT) {
@@ -155,7 +155,7 @@ FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
         fklNastNodeVectorInit(&stack, 32);
         fklNastNodeVectorPushBack2(&stack, rest);
         while (!fklNastNodeVectorIsEmpty(&stack)) {
-            FklNastNode *c = *fklNastNodeVectorPopBack(&stack);
+            FklNastNode *c = *fklNastNodeVectorPopBackNonNull(&stack);
             if (c->type == FKL_NAST_PAIR) {
                 if (is_pattern_slot(slotId, c)) {
                     FklSid_t sym = c->pair->cdr->pair->car->sym;

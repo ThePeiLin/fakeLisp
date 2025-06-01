@@ -32,7 +32,7 @@ FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
     nastNodeSlotPairVectorPushBack2(
         &s, (NodeSlotPair){.node = orig, .slot = &retval});
     while (!nastNodeSlotPairVectorIsEmpty(&s)) {
-        const NodeSlotPair *p = nastNodeSlotPairVectorPopBack(&s);
+        const NodeSlotPair *p = nastNodeSlotPairVectorPopBackNonNull(&s);
         const FklNastNode *top = p->node;
         FklNastNode **retval = p->slot;
 
@@ -206,7 +206,7 @@ destroy_nested:
     fklNastNodeVectorInit(&stack, 32);
     fklNastNodeVectorPushBack2(&stack, node);
     while (!fklNastNodeVectorIsEmpty(&stack)) {
-        FklNastNode *cur = *fklNastNodeVectorPopBack(&stack);
+        FklNastNode *cur = *fklNastNodeVectorPopBackNonNull(&stack);
         if (cur) {
             if (cur->refcount)
                 --cur->refcount;
@@ -505,7 +505,7 @@ void fklPrintNastNode(const FklNastNode *exp, FILE *fp,
         if (nastPrintCtxVectorIsEmpty(&print_contexts))
             break;
         while (!nastPrintCtxVectorIsEmpty(&print_contexts)) {
-            PrintCtx *ctx = nastPrintCtxVectorBack(&print_contexts);
+            PrintCtx *ctx = nastPrintCtxVectorBackNonNull(&print_contexts);
             exp = ctx->method(ctx, fp);
             if (exp)
                 break;
@@ -522,7 +522,7 @@ int fklNastNodeEqual(const FklNastNode *n0, const FklNastNode *n1) {
     fklNastImmPairVectorPushBack2(&s, (FklNastImmPair){.car = n0, .cdr = n1});
     int r = 1;
     while (!fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *p = fklNastImmPairVectorPopBack(&s);
+        const FklNastImmPair *p = fklNastImmPairVectorPopBackNonNull(&s);
         const FklNastNode *car = p->car;
         const FklNastNode *cdr = p->cdr;
         if (car->type != cdr->type)

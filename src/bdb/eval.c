@@ -74,7 +74,7 @@ static inline void resolve_reference(DebugCtx *ctx, FklCodegenEnv *env,
     FklUnReSymbolRefVector *urefs = &env->prev->uref;
     FklVMvalue **builtin_refs = vm->gc->builtin_refs;
     while (!fklUnReSymbolRefVectorIsEmpty(urefs)) {
-        FklUnReSymbolRef *uref = fklUnReSymbolRefVectorPopBack(urefs);
+        FklUnReSymbolRef *uref = fklUnReSymbolRefVectorPopBackNonNull(urefs);
         FklSymDef *ref = fklGetCodegenRefBySid(uref->id, ctx->glob_env);
         if (ref)
             proc->closure[uref->idx] = builtin_refs[ref->cidx];
@@ -153,8 +153,8 @@ static inline FklCodegenEnv *init_codegen_info_for_cond_bp_with_debug_ctx(
             fklCreateFuncPrototypeAndInsertToPool(
                 info, env->prototypeId, new_env, 0, ctx->curline, ctx->st);
         else {
-            uint32_t pid =
-                *fklUintVectorPopBack(&ctx->bt.unused_prototype_id_for_cond_bp);
+            uint32_t pid = *fklUintVectorPopBackNonNull(
+                &ctx->bt.unused_prototype_id_for_cond_bp);
             replace_func_prototype(info, env->prototypeId, new_env, 0,
                                    ctx->curline, ctx->st, pid);
         }

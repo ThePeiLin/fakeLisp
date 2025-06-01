@@ -274,7 +274,7 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
     }
 exit:
     while (!fklStringVectorIsEmpty(&st))
-        fklZfree(*fklStringVectorPopBack(&st));
+        fklZfree(*fklStringVectorPopBackNonNull(&st));
     fklStringVectorUninit(&st);
     return prod;
 }
@@ -359,7 +359,7 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
     size_t prod_len = st.size - joint_num;
     if (!prod_len) {
         while (!fklStringVectorIsEmpty(&st))
-            fklZfree(*fklStringVectorPopBack(&st));
+            fklZfree(*fklStringVectorPopBackNonNull(&st));
         fklStringVectorUninit(&st);
         return NULL;
     }
@@ -417,7 +417,7 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
         symIdx++;
     }
     while (!fklStringVectorIsEmpty(&st))
-        fklZfree(*fklStringVectorPopBack(&st));
+        fklZfree(*fklStringVectorPopBackNonNull(&st));
     fklStringVectorUninit(&st);
     FklGrammerIgnore *ig =
         fklGrammerSymbolsToIgnore(prod->syms, prod->len, termTable);
@@ -425,7 +425,7 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
     return ig;
 error:
     while (!fklStringVectorIsEmpty(&st))
-        fklZfree(*fklStringVectorPopBack(&st));
+        fklZfree(*fklStringVectorPopBackNonNull(&st));
     fklStringVectorUninit(&st);
     return NULL;
 }
@@ -2055,7 +2055,7 @@ static inline int add_reachable_terminal(FklGrammer *g) {
     FklNontermHashSet nonterm_set;
     fklNontermHashSetInit(&nonterm_set);
     while (!graProdVectorIsEmpty(&prod_stack)) {
-        FklGrammerProduction *prods = *graProdVectorPopBack(&prod_stack);
+        FklGrammerProduction *prods = *graProdVectorPopBackNonNull(&prod_stack);
         for (; prods; prods = prods->next) {
             const FklGrammerSym *syms = prods->syms;
             for (size_t i = 0; i < prods->len; i++) {
@@ -3071,7 +3071,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
     }
     for (const FklLalrItemSetHashMapNode *ll = i->first; ll; ll = ll->next) {
         const FklLalrItemHashSet *i = &ll->k;
-        idx = *graItemStateIdxHashMapGet2(&idxTable, &ll->elm);
+        idx = *graItemStateIdxHashMapGet2NonNull(&idxTable, &ll->elm);
         fprintf(fp,
                 "\t\"I%" FKL_PRT64U "\"[fontname=\"Courier\" nojustify=true "
                 "shape=\"box\" label=\"I%" FKL_PRT64U "\\l\\\n",
@@ -3080,7 +3080,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
         fputs("\"]\n", fp);
         for (FklLalrItemSetLink *l = ll->v.links; l; l = l->next) {
             FklLalrItemSetHashMapElm *dst = l->dst;
-            size_t *c = graItemStateIdxHashMapGet2(&idxTable, dst);
+            size_t *c = graItemStateIdxHashMapGet2NonNull(&idxTable, dst);
             fprintf(fp,
                     "\tI%" FKL_PRT64U "->I%" FKL_PRT64U
                     "[fontname=\"Courier\" label=\"",
@@ -3494,7 +3494,8 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
         const FklLalrItemHashSet *items = &l->k;
         for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
             const FklGrammerSym *sym = &ll->sym;
-            size_t dstIdx = *graItemStateIdxHashMapGet2(&idxTable, ll->dst);
+            size_t dstIdx =
+                *graItemStateIdxHashMapGet2NonNull(&idxTable, ll->dst);
             FklAnalysisState *dstState = &astates[dstIdx];
             if (sym->isterm)
                 add_shift_action(curState, sym, tt, dstState);
@@ -4065,7 +4066,7 @@ print_state_action_to_c_file(const FklAnalysisStateAction *ac,
         fprintf(fp, "\t\t\tsymbolStack->size-=%" FKL_PRT64U ";\n",
                 ac->prod->len);
         fputs("\t\t\tFklStateFuncPtr "
-              "func=fklParseStateVectorBack(stateStack)->func;\n",
+              "func=fklParseStateVectorBackNonNull(stateStack)->func;\n",
               fp);
         fputs("\t\t\tFklStateFuncPtr nextState=NULL;\n", fp);
         fprintf(fp,
@@ -4401,14 +4402,14 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i, const FklGrammer *g,
     }
     for (const FklLalrItemSetHashMapNode *l = i->first; l; l = l->next) {
         const FklLalrItemHashSet *i = &l->k;
-        idx = *graItemStateIdxHashMapGet2(&idxTable, &l->elm);
+        idx = *graItemStateIdxHashMapGet2NonNull(&idxTable, &l->elm);
         fprintf(fp, "===\nI%" FKL_PRT64U ": ", idx);
         putc('\n', fp);
         fklPrintItemSet(i, g, st, fp);
         putc('\n', fp);
         for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
             FklLalrItemSetHashMapElm *dst = ll->dst;
-            size_t *c = graItemStateIdxHashMapGet2(&idxTable, dst);
+            size_t *c = graItemStateIdxHashMapGet2NonNull(&idxTable, dst);
             fprintf(fp, "I%" FKL_PRT64U "--{ ", idx);
             print_prod_sym(fp, &ll->sym, st, &g->terminals, &g->regexes);
             fprintf(fp, " }-->I%" FKL_PRT64U "\n", *c);
@@ -4512,13 +4513,14 @@ void *fklDefaultParseForCstr(const char *cstr,
     void *ast = NULL;
     for (;;) {
         int accept = 0;
-        FklStateFuncPtr state = fklParseStateVectorBack(stateStack)->func;
+        FklStateFuncPtr state =
+            fklParseStateVectorBackNonNull(stateStack)->func;
         *err = state(stateStack, symbolStack, lineStack, 1, 0, NULL, start,
                      &cstr, &restLen, outerCtx, &accept, errLine);
         if (*err)
             break;
         if (accept) {
-            ast = fklAnalysisSymbolVectorPopBack(symbolStack)->ast;
+            ast = fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
             break;
         }
     }
@@ -4536,13 +4538,14 @@ void *fklDefaultParseForCharBuf(const char *cstr, size_t len, size_t *restLen,
     void *ast = NULL;
     for (;;) {
         int accept = 0;
-        FklStateFuncPtr state = fklParseStateVectorBack(stateStack)->func;
+        FklStateFuncPtr state =
+            fklParseStateVectorBackNonNull(stateStack)->func;
         *err = state(stateStack, symbolStack, lineStack, 1, 0, NULL, start,
                      &cstr, restLen, outerCtx, &accept, errLine);
         if (*err)
             break;
         if (accept) {
-            ast = fklAnalysisSymbolVectorPopBack(symbolStack)->ast;
+            ast = fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
             break;
         }
     }
@@ -4632,7 +4635,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     size_t len = prod->len;
     stateStack->size -= len;
     FklAnalysisStateGoto *gt =
-        fklParseStateVectorBack(stateStack)->state->state.gt;
+        fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
     FklGrammerNonterm left = prod->left;
     for (; gt; gt = gt->next)
@@ -4691,7 +4694,7 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
     for (;;) {
         int is_waiting_for_more = 0;
         const FklAnalysisState *state =
-            fklParseStateVectorBack(&stateStack)->state;
+            fklParseStateVectorBackNonNull(&stateStack)->state;
         const FklAnalysisStateAction *action = state->state.action;
         dbg_print_state_stack(&stateStack, t->states);
         for (; action; action = action->next)
@@ -4722,7 +4725,7 @@ void *fklParseWithTableForCstrDbg(const FklGrammer *g, const char *cstr,
                 restLen -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                ast = fklAnalysisSymbolVectorPopBack(&symbolStack)->ast;
+                ast = fklAnalysisSymbolVectorPopBackNonNull(&symbolStack)->ast;
             }
                 goto break_for;
                 break;
@@ -4744,7 +4747,8 @@ break_for:
     fklUintVectorUninit(&lineStack);
     fklParseStateVectorUninit(&stateStack);
     while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
-        fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(&symbolStack)->ast);
+        fklDestroyNastNode(
+            fklAnalysisSymbolVectorPopBackNonNull(&symbolStack)->ast);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
@@ -4770,7 +4774,7 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
     for (;;) {
         int is_waiting_for_more = 0;
         const FklAnalysisState *state =
-            fklParseStateVectorBack(&stateStack)->state;
+            fklParseStateVectorBackNonNull(&stateStack)->state;
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match, start, cstr, restLen,
@@ -4798,7 +4802,7 @@ void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
                 restLen -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                ast = fklAnalysisSymbolVectorPopBack(&symbolStack)->ast;
+                ast = fklAnalysisSymbolVectorPopBackNonNull(&symbolStack)->ast;
             }
                 goto break_for;
                 break;
@@ -4820,7 +4824,8 @@ break_for:
     fklUintVectorUninit(&lineStack);
     fklParseStateVectorUninit(&stateStack);
     while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
-        fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(&symbolStack)->ast);
+        fklDestroyNastNode(
+            fklAnalysisSymbolVectorPopBackNonNull(&symbolStack)->ast);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
@@ -4840,7 +4845,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
     for (;;) {
         int is_waiting_for_more = 0;
         const FklAnalysisState *state =
-            fklParseStateVectorBack(stateStack)->state;
+            fklParseStateVectorBackNonNull(stateStack)->state;
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match, start, cstr, *restLen,
@@ -4868,7 +4873,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
                 (*restLen) -= matchLen;
             } break;
             case FKL_ANALYSIS_ACCEPT: {
-                ast = fklAnalysisSymbolVectorPopBack(symbolStack)->ast;
+                ast = fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
                 return ast;
             } break;
             case FKL_ANALYSIS_REDUCE:

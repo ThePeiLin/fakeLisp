@@ -285,6 +285,7 @@ if(FANALYZER)
 		"-Wno-analyzer-malloc-leak"
 		"-Wno-analyzer-tainted-allocation-size"
 		"-Wno-analyzer-tainted-size"
+		"-Wno-analyzer-allocation-size"
 	)
 	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
 	target_compile_options(${LIBFKL_STATIC_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})

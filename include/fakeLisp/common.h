@@ -31,6 +31,7 @@ extern "C" {
 #ifdef _WIN32
 #define FKL_PATH_SEPARATOR ('\\')
 #define FKL_PATH_SEPARATOR_STR ("\\")
+#define FKL_PATH_UPPER_DIR "..\\"
 #define FKL_PATH_SEPARATOR_STR_LEN (1)
 
 #define FKL_DLL_FILE_TYPE (".dll")
@@ -42,6 +43,7 @@ typedef SSIZE_T ssize_t;
 #else
 #define FKL_PATH_SEPARATOR ('/')
 #define FKL_PATH_SEPARATOR_STR ("/")
+#define FKL_PATH_UPPER_DIR "../"
 #define FKL_PATH_SEPARATOR_STR_LEN (1)
 #define FKL_DLL_FILE_TYPE (".so")
 #define FKL_DLL_FILE_TYPE_STR_LEN (3)

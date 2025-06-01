@@ -233,7 +233,7 @@ create_nested_objects:
         }
 
         while (!vmValueCreateCtxVectorIsEmpty(&s)) {
-            ctx = vmValueCreateCtxVectorBack(&s);
+            ctx = vmValueCreateCtxVectorBackNonNull(&s);
             node = ctx->method(ctx, retval);
             if (node)
                 goto loop_start;
@@ -271,7 +271,7 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
         vmValueSlotLineVectorPushBack(
             &s, &(ValueSlotLine){.v = v, .slot = &retval, .line = curline});
         while (!vmValueSlotLineVectorIsEmpty(&s)) {
-            const ValueSlotLine *top = vmValueSlotLineVectorPopBack(&s);
+            const ValueSlotLine *top = vmValueSlotLineVectorPopBackNonNull(&s);
             const FklVMvalue *value = top->v;
             FklNastNode **pcur = top->slot;
             uint64_t sline = top->line;
@@ -409,7 +409,7 @@ FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
     FklVMvalue *tmp = FKL_VM_NIL;
     vmVMvalueSlotVectorPushBack2(&s, (VMvalueSlot){.v = obj, .slot = &tmp});
     while (!vmVMvalueSlotVectorIsEmpty(&s)) {
-        const VMvalueSlot *top = vmVMvalueSlotVectorPopBack(&s);
+        const VMvalueSlot *top = vmVMvalueSlotVectorPopBackNonNull(&s);
         const FklVMvalue *root = top->v;
         FklVMvalue **root1 = top->slot;
         FklVMptrTag tag = FKL_GET_TAG(root);
@@ -597,7 +597,7 @@ nested_equal:
                         .cdr = FKL_REMOVE_CONST(FklVMvalue, sec)});
     int r = 1;
     while (!fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *top = fklVMpairVectorPopBack(&s);
+        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
         FklVMvalue *root1 = top->car;
         FklVMvalue *root2 = top->cdr;
         if (FKL_GET_TAG(root1) != FKL_GET_TAG(root2))

@@ -165,11 +165,11 @@ typedef struct {
         }                                                                      \
         while (!fklNastNodeVectorIsEmpty(&(V)->ignore_printing))               \
             fklDestroyNastNode(                                                \
-                *fklNastNodeVectorPopBack(&(V)->ignore_printing));             \
+                *fklNastNodeVectorPopBackNonNull(&(V)->ignore_printing));      \
         fklNastNodeVectorUninit(&(V)->ignore_printing);                        \
         while (!fklProdPrintingVectorIsEmpty(&(V)->prod_printing)) {           \
             FklCodegenProdPrinting *p =                                        \
-                fklProdPrintingVectorPopBack(&(V)->prod_printing);             \
+                fklProdPrintingVectorPopBackNonNull(&(V)->prod_printing);      \
             fklDestroyNastNode(p->vec);                                        \
             if (p->type == FKL_CODEGEN_PROD_CUSTOM)                            \
                 fklDestroyByteCodelnt(p->bcl);                                 \

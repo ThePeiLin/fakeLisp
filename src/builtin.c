@@ -1767,7 +1767,7 @@ static inline int do_custom_parser_reduce_action(
     size_t len = prod->len;
     stateStack->size -= len;
     FklAnalysisStateGoto *gt =
-        fklParseStateVectorBack(stateStack)->state->state.gt;
+        fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
     FklSid_t left = prod->left.sid;
     for (; gt; gt = gt->next)
@@ -1815,7 +1815,7 @@ static inline void parse_with_custom_parser_for_char_buf(
     for (;;) {
         int is_waiting_for_more = 0;
         const FklAnalysisState *state =
-            fklParseStateVectorBack(stateStack)->state;
+            fklParseStateVectorBackNonNull(stateStack)->state;
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match, start, cstr, *restLen,
@@ -1897,7 +1897,8 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
         if (restLen)
             fklVMfpRewind(vfp, s, fklStringBufferLen(s) - restLen);
         FKL_CPROC_RETURN(
-            exe, rctx, fklAnalysisSymbolVectorPopBack(&pctx->symbolStack)->ast);
+            exe, rctx,
+            fklAnalysisSymbolVectorPopBackNonNull(&pctx->symbolStack)->ast);
         return 0;
     } else if (pctx->symbolStack.size == 0 && fklVMfpEof(vfp)) {
         FKL_CPROC_RETURN(exe, rctx, fklGetVMvalueEof());
@@ -2275,7 +2276,8 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
     }
     if (accept) {
         FKL_CPROC_RETURN(
-            exe, ctx, fklAnalysisSymbolVectorPopBack(&pctx->symbolStack)->ast);
+            exe, ctx,
+            fklAnalysisSymbolVectorPopBackNonNull(&pctx->symbolStack)->ast);
         if (ctx->box) {
             uint64_t offset = pctx->offset = str->size - restLen;
             if (offset > FKL_FIX_INT_MAX)
@@ -2767,7 +2769,7 @@ static inline int match_pattern(const FklVMvalue *pattern, FklVMvalue *exp,
         &s, (FklVMpair){.car = FKL_VM_CAR(FKL_VM_CDR(pattern)), .cdr = exp});
     int r = 0;
     while (!fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *p = fklVMpairVectorPopBack(&s);
+        const FklVMpair *p = fklVMpairVectorPopBackNonNull(&s);
         FklVMvalue *v0 = p->car;
         FklVMvalue *v1 = p->cdr;
         FklVMvalue *slotV = isSlot(slotS, v0);
@@ -2839,7 +2841,7 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
     fklVMvalueVectorInit(&exe, 32);
     fklVMvalueVectorPushBack2(&exe, FKL_REMOVE_CONST(FklVMvalue, body));
     while (!fklVMvalueVectorIsEmpty(&exe)) {
-        const FklVMvalue *c = *fklVMvalueVectorPopBack(&exe);
+        const FklVMvalue *c = *fklVMvalueVectorPopBackNonNull(&exe);
         FklVMvalue *slotV = isSlot(head, c);
         if (slotV) {
             FklSid_t sid = FKL_GET_SYM(slotV);

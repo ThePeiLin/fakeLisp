@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #ifdef _WIN32
 #include <windows.h>
 
@@ -18,13 +22,29 @@
 #include <libloaderapi.h>
 #include <process.h>
 #include <timeapi.h>
-#else
-#include <unistd.h>
-#endif
 
-#ifdef _WIN32
 #define getcwd _getcwd
 #define chdir _chdir
+#define strtok_r strtok_s
+
+#define S_ISREG(m) ((S_IFMT & m) == S_IFREG)
+#define S_ISDIR(m) ((S_IFMT & m) == S_IFDIR)
+
+#define R_OK 4
+#define W_OK 2
+#define F_OK 0
+
+#define access _access
+
+#define REALPATH(filename, path_buf, size) _fullpath(path_buf, filename, size)
+#define MKDIR _mkdir
+#define RELPATH_START_INDEX 1
+#else
+#include <unistd.h>
+
+#define MKDIR(dir) mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
+#define REALPATH(filename, path_buf, size) realpath(filename, path_buf)
+#define RELPATH_START_INDEX 0
 #endif
 
 char *fklSysgetcwd(void) {
@@ -401,11 +421,7 @@ void *fklCopyMemory(const void *pm, size_t size) {
 
 char *fklRealpath(const char *filename) {
     char path_buf[FKL_PATH_MAX];
-#ifdef _WIN32
-    _fullpath(path_buf, filename, sizeof(path_buf));
-#else
-    realpath(filename, path_buf);
-#endif
+    REALPATH(filename, path_buf, sizeof(path_buf));
     return fklZstrdup(path_buf);
 }
 
@@ -420,25 +436,26 @@ char *fklGetDir(const char *filename) {
     return tmp;
 }
 
-#ifdef _WIN32
 char *fklRelpath(const char *start, const char *path) {
-    const char *divstr = FKL_PATH_SEPARATOR_STR;
-    const char *upperDir = "..\\";
     char rp[FKL_PATH_MAX] = {0};
+
     char *c_start = fklZstrdup(start);
     char *c_path = fklZstrdup(path);
 
     size_t start_part_count = 0;
     size_t path_part_count = 0;
 
-    char **start_parts = fklSplit(c_start, divstr, &start_part_count);
-    char **path_parts = fklSplit(c_path, divstr, &path_part_count);
+    char **start_parts =
+        fklSplit(c_start, FKL_PATH_SEPARATOR_STR, &start_part_count);
+    char **path_parts =
+        fklSplit(c_path, FKL_PATH_SEPARATOR_STR, &path_part_count);
+    FKL_ASSERT(start_parts && path_parts);
 
     size_t length = (start_part_count < path_part_count) ? start_part_count
                                                          : path_part_count;
     size_t common_prefix_len = 0;
 
-    size_t index = 1;
+    size_t index = RELPATH_START_INDEX;
     for (; index < length; index++) {
         if (!strcmp(start_parts[index], path_parts[index]))
             common_prefix_len = index + 1;
@@ -446,6 +463,8 @@ char *fklRelpath(const char *start, const char *path) {
             break;
     }
     char *trp = NULL;
+
+#ifdef _WIN32
     if (length) {
         char *start_drive = start_parts[0];
         char *path_drive = path_parts[0];
@@ -459,21 +478,21 @@ char *fklRelpath(const char *start, const char *path) {
         if (toupper(*start_drive) != toupper(*path_drive))
             goto exit;
     }
-
     if (!common_prefix_len)
         goto exit;
+#endif
 
-    if (common_prefix_len == (length - 1)
+    if (common_prefix_len == (length - RELPATH_START_INDEX)
         && start_part_count == path_part_count) {
         trp = fklZstrdup(".");
         goto exit;
     }
     for (index = common_prefix_len; index < start_part_count; index++)
         if (start_part_count > 0)
-            strcat(rp, upperDir);
+            strcat(rp, FKL_PATH_UPPER_DIR);
     for (index = common_prefix_len; index < path_part_count - 1; index++) {
         strcat(rp, path_parts[index]);
-        strcat(rp, divstr);
+        strcat(rp, FKL_PATH_SEPARATOR_STR);
     }
     if (path_parts != NULL)
         strcat(rp, path_parts[path_part_count - 1]);
@@ -486,60 +505,6 @@ exit:
     return trp;
 }
 
-#else
-
-char *fklRelpath(const char *start, const char *path) {
-    const char *divstr = FKL_PATH_SEPARATOR_STR;
-    const char *upperDir = "../";
-    char rp[FKL_PATH_MAX] = {0};
-
-    char *c_start = fklZstrdup(start);
-    char *c_path = fklZstrdup(path);
-
-    size_t start_part_count = 0;
-    size_t path_part_count = 0;
-
-    char **start_parts = fklSplit(c_start, divstr, &start_part_count);
-    char **path_parts = fklSplit(c_path, divstr, &path_part_count);
-
-    size_t length = (start_part_count < path_part_count) ? start_part_count
-                                                         : path_part_count;
-    size_t common_prefix_len = 0;
-
-    size_t index = 0;
-    for (; index < length; index++) {
-        if (!strcmp(start_parts[index], path_parts[index]))
-            common_prefix_len = index + 1;
-        else
-            break;
-    }
-    char *trp = NULL;
-
-    if (common_prefix_len == length && start_part_count == path_part_count) {
-        trp = fklZstrdup(".");
-        goto exit;
-    }
-    for (index = common_prefix_len; index < start_part_count; index++)
-        if (start_part_count > 0)
-            strcat(rp, upperDir);
-    for (index = common_prefix_len; index < path_part_count - 1; index++) {
-        strcat(rp, path_parts[index]);
-        strcat(rp, divstr);
-    }
-    if (path_parts != NULL)
-        strcat(rp, path_parts[path_part_count - 1]);
-    trp = fklZstrdup(rp);
-exit:
-    fklZfree(c_start);
-    fklZfree(c_path);
-    fklZfree(start_parts);
-    fklZfree(path_parts);
-    return trp;
-}
-
-#endif
-
-#ifndef _WIN32
 char **fklSplit(char *str, const char *divstr, size_t *pcount) {
     int count = 0;
     char *context = NULL;
@@ -557,32 +522,9 @@ char **fklSplit(char *str, const char *divstr, size_t *pcount) {
     *pcount = count;
     return str_slices;
 }
-#else
-char **fklSplit(char *str, const char *divstr, size_t *pcount) {
-    int count = 0;
-    char *context = NULL;
-    char *pNext = NULL;
-    char **str_slices = NULL;
-    pNext = strtok_s(str, divstr, &context);
-    while (pNext != NULL) {
-        char **tstrArry =
-            (char **)fklZrealloc(str_slices, (count + 1) * sizeof(char *));
-        FKL_ASSERT(tstrArry);
-        str_slices = tstrArry;
-        str_slices[count++] = pNext;
-        pNext = strtok_s(NULL, divstr, &context);
-    }
-    *pcount = count;
-    return str_slices;
-}
-#endif
 
 char *fklStrTok(char *str, const char *divstr, char **context) {
-#ifndef _WIN32
     return strtok_r(str, divstr, context);
-#else
-    return strtok_s(str, divstr, context);
-#endif
 }
 
 char *fklTrim(char *str) {
@@ -762,14 +704,6 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
     return tmp;
 }
 
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#ifdef _WIN32
-#define S_ISREG(m) ((S_IFMT & m) == S_IFREG)
-#define S_ISDIR(m) ((S_IFMT & m) == S_IFDIR)
-#endif
-
 int fklIsRegFile(const char *p) {
     struct stat buf;
     stat(p, &buf);
@@ -782,7 +716,6 @@ int fklIsDirectory(const char *p) {
     return S_ISDIR(buf.st_mode);
 }
 
-#ifndef _WIN32
 int fklIsAccessibleDirectory(const char *p) {
     return !access(p, R_OK) && fklIsDirectory(p);
 }
@@ -791,26 +724,7 @@ int fklIsAccessibleRegFile(const char *p) {
     return !access(p, R_OK) && fklIsRegFile(p);
 }
 
-int fklMkdir(const char *dir) {
-    return mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-}
-
-#else
-#define R_OK 4
-#define W_OK 2
-#define F_OK 0
-
-int fklIsAccessibleDirectory(const char *p) {
-    return !_access(p, R_OK) && fklIsDirectory(p);
-}
-
-int fklIsAccessibleRegFile(const char *p) {
-    return !_access(p, R_OK) && fklIsRegFile(p);
-}
-
-int fklMkdir(const char *dir) { return _mkdir(dir); }
-
-#endif
+int fklMkdir(const char *dir) { return MKDIR(dir); }
 
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len) {
     if (fp == stdin) {

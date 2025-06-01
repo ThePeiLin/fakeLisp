@@ -172,6 +172,27 @@ static inline NODE_NAME *METHOD(PopNode)(NAME *r) {
     }
 }
 
+static inline FKL_QUEUE_ELM_TYPE *METHOD(PopNonNull)(NAME *r) {
+    NODE_NAME *n = r->head;
+    assert(n);
+    r->head = n->next;
+    n->next = r->cache;
+    r->cache = n;
+    if (!r->head)
+        r->tail = NULL;
+    return &n->data;
+}
+
+static inline NODE_NAME *METHOD(PopNodeNonNull)(NAME *r) {
+    NODE_NAME *n = r->head;
+    assert(n);
+    r->head = n->next;
+    n->next = NULL;
+    if (!r->head)
+        r->tail = NULL;
+    return n;
+}
+
 static inline void METHOD(DestroyNode)(NODE_NAME *r) { FKL_CONTAINER_FREE(r); }
 
 static inline FKL_QUEUE_ELM_TYPE *METHOD(Front)(const NAME *r) {

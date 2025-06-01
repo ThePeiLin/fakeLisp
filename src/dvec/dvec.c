@@ -168,8 +168,10 @@ static int export_dvec(FKL_CPROC_ARGL) {
     FklVMvalue *vec = create_dvec(exe, argc, FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
-    for (uint32_t i = 0; i < argc; ++i)
-        v->base[i] = arg_base[i];
+    if (v->base) {
+        for (uint32_t i = 0; i < argc; ++i)
+            v->base[i] = arg_base[i];
+    }
     FKL_CPROC_RETURN(exe, ctx, vec);
     return 0;
 }

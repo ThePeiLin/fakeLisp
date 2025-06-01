@@ -9,9 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef _WIN32
-#include <tchar.h>
-#endif
 
 FklVMvalue *fklMakeVMint(int64_t r64, FklVM *vm) {
     if (r64 > FKL_FIX_INT_MAX || r64 < FKL_FIX_INT_MIN)
@@ -423,7 +420,7 @@ scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
     fklVMvalueVectorPushBack2(&stack,
                               FKL_REMOVE_CONST(FklVMvalue, first_value));
     while (!fklVMvalueVectorIsEmpty(&stack)) {
-        FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
+        FklVMvalue *v = *fklVMvalueVectorPopBackNonNull(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(ht, v);
             if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
@@ -564,7 +561,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     fklVMvalueVectorPushBack2(&stack,
                               FKL_REMOVE_CONST(FklVMvalue, first_value));
     while (!fklVMvalueVectorIsEmpty(&stack)) {
-        FklVMvalue *v = *fklVMvalueVectorPopBack(&stack);
+        FklVMvalue *v = *fklVMvalueVectorPopBackNonNull(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(&degree_table, v);
             if (!fklVMvalueHashSetPut2(&value_set, v)) {

@@ -186,6 +186,16 @@ static inline FKL_VECTOR_ELM_TYPE *METHOD(Back)(const NAME *r) {
     return r->size ? &r->base[r->size - 1] : NULL;
 }
 
+static inline FKL_VECTOR_ELM_TYPE *METHOD(PopBackNonNull)(NAME *r) {
+    assert(r->size);
+    return &r->base[--r->size];
+}
+
+static inline FKL_VECTOR_ELM_TYPE *METHOD(BackNonNull)(const NAME *r) {
+    assert(r->size);
+    return &r->base[r->size - 1];
+}
+
 static inline void METHOD(ShrinkToFit)(NAME *r) {
     if (r->size) {
         FKL_VECTOR_ELM_TYPE *nbase =

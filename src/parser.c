@@ -25,8 +25,10 @@ FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
     FklNastNode *node = fklDefaultParseForCstr(
         cStr, &outerCtx, &err, &errLine, &symbolStack, &lineStack, &stateStack);
 
-    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
-        fklDestroyNastNode(fklAnalysisSymbolVectorPopBack(&symbolStack)->ast);
+    FklAnalysisSymbol *cur_sym = symbolStack.base;
+    FklAnalysisSymbol *const sym_end = cur_sym + symbolStack.size;
+    for (; cur_sym < sym_end; ++cur_sym)
+        fklDestroyNastNode(cur_sym->ast);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     fklParseStateVectorUninit(&stateStack);
     fklUintVectorUninit(&lineStack);

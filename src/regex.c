@@ -1038,10 +1038,8 @@ const FklString *fklGetStringWithRegex(const FklRegexTable *t,
                                        const FklRegexCode *re, uint64_t *pnum) {
     FklString **item = fklRegexStrHashMapGet2(&t->re_str, re);
     if (item) {
-        if (pnum) {
-            FklRegexItem *str_re = fklStrRegexHashMapGet2(&t->str_re, *item);
-            *pnum = str_re->num;
-        }
+        if (pnum)
+            *pnum = fklStrRegexHashMapGet2NonNull(&t->str_re, *item)->num;
         return *item;
     }
     return NULL;

@@ -3,8 +3,36 @@
 
 #include <uv.h>
 #ifdef _WIN32
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <winsock2.h>
+
+#ifndef S_ISREG
+#define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
 #endif
+#ifndef S_ISDIR
+#define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
+#endif
+#ifndef S_ISFIFO
+#define S_ISFIFO(x) (((x) & _S_IFMT) == _S_IFIFO)
+#endif
+#ifndef S_ISCHR
+#define S_ISCHR(x) (((x) & _S_IFMT) == _S_IFCHR)
+#endif
+#ifndef S_ISBLK
+#define S_ISBLK(x) 0
+#endif
+#ifndef S_ISLNK
+#define S_ISLNK(x) (((x) & S_IFLNK) == S_IFLNK)
+#endif
+#ifndef S_ISSOCK
+#define S_ISSOCK(x) 0
+#endif
+#else
+#include <unistd.h>
+#endif
+
 #include <string.h>
 
 #include "fuv.h"
@@ -4333,35 +4361,6 @@ timespec_to_vmtable(FklVM *exe, const uv_timespec_t *spec, FuvPublicData *fpd) {
 
     return hash;
 }
-
-#ifdef _WIN32
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#ifndef S_ISREG
-#define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
-#endif
-#ifndef S_ISDIR
-#define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
-#endif
-#ifndef S_ISFIFO
-#define S_ISFIFO(x) (((x) & _S_IFMT) == _S_IFIFO)
-#endif
-#ifndef S_ISCHR
-#define S_ISCHR(x) (((x) & _S_IFMT) == _S_IFCHR)
-#endif
-#ifndef S_ISBLK
-#define S_ISBLK(x) 0
-#endif
-#ifndef S_ISLNK
-#define S_ISLNK(x) (((x) & S_IFLNK) == S_IFLNK)
-#endif
-#ifndef S_ISSOCK
-#define S_ISSOCK(x) 0
-#endif
-#else
-#include <unistd.h>
-#endif
 
 static inline FklVMvalue *stat_to_vmtable(FklVM *exe, const uv_stat_t *stat,
                                           FuvPublicData *fpd) {

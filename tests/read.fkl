@@ -14,7 +14,6 @@
   (assert (equal (println (read fp json-parser))
                  #hashequal(("foo",1) ("bar",2))))
 
-  (assert (equal (println (read fp json-parser))
-                 ()))
+  (assert (eof? (println (read fp json-parser))))
 
   (println "test done"))

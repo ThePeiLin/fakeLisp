@@ -1,4 +1,3 @@
-
 #ifndef DISPATCH_INCLUDED
 #include <fakeLisp/vm.h>
 

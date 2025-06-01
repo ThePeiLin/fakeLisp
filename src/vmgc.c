@@ -142,6 +142,37 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     gc->head = head;
 }
 
+void fklDestroyVMvalue(FklVMvalue *cur) {
+    switch (cur->type) {
+    case FKL_TYPE_USERDATA:
+        if (fklFinalizeVMud(FKL_VM_UD(cur)) == FKL_VM_UD_FINALIZE_DELAY)
+            return;
+        break;
+    case FKL_TYPE_F64:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_STR:
+    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_PAIR:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_CPROC:
+    case FKL_TYPE_VAR_REF:
+        break;
+    case FKL_TYPE_PROC:
+        fklZfree(FKL_VM_PROC(cur)->closure);
+        break;
+    case FKL_TYPE_HASHTABLE:
+        fklVMvalueHashMapUninit(&FKL_VM_HASH(cur)->ht);
+        break;
+    default:
+        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+                __FUNCTION__);
+        abort();
+    }
+    atomic_fetch_sub(&cur->gc->alloced_size, fklZmallocSize(cur));
+    fklZfree((void *)cur);
+}
+
 void fklVMgcSweep(FklVMvalue *head) {
     FklVMvalue **phead = &head;
     while (*phead) {
@@ -150,6 +181,62 @@ void fklVMgcSweep(FklVMvalue *head) {
         cur->next = NULL;
         fklDestroyVMvalue(cur);
     }
+}
+
+void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast,
+                                       FklVMvalue **locv) {
+    struct FklLocvCacheLevel *locv_cache_level = gc->locv_cache;
+    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
+
+    struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
+    uint32_t num = locv_cache->num;
+    struct FklLocvCache *locvs = locv_cache->locv;
+
+    uint8_t i = 0;
+    for (; i < num; i++) {
+        if (llast < locvs[i].llast)
+            break;
+    }
+
+    if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
+        if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
+            atomic_fetch_sub(
+                &gc->alloced_size,
+                fklZmallocSize(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv));
+            fklZfree(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
+            num--;
+        } else
+            locv_cache->num++;
+        for (uint8_t j = num; j > i; j--)
+            locvs[j] = locvs[j - 1];
+        locvs[i].llast = llast;
+        locvs[i].locv = locv;
+    } else {
+        atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(locv));
+        fklZfree(locv);
+    }
+}
+
+void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc) {
+    FklVMlocvList *cur = vm->old_locv_list;
+    uint32_t i = vm->old_locv_count;
+    for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
+        fklVMgcAddLocvCache(gc, cur->llast, cur->locv);
+
+        FklVMlocvList *prev = cur;
+        cur = cur->next;
+        fklZfree(prev);
+    }
+
+    for (uint32_t j = 0; j < i; j++) {
+        FklVMlocvList *cur = &vm->old_locv_cache[j];
+
+        fklVMgcAddLocvCache(gc, cur->llast, cur->locv);
+        cur->llast = 0;
+        cur->locv = NULL;
+    }
+    vm->old_locv_list = NULL;
+    vm->old_locv_count = 0;
 }
 
 void fklGetGCstateAndGCNum(FklVMgc *gc, FklGCstate *s, int *cr) {

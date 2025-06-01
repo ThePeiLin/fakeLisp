@@ -52,7 +52,7 @@ if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-	list(APPEND LINK_TARGET m)
+	list(APPEND LINK_TARGET m dl)
 endif()
 
 include(CMakePrintHelpers)
@@ -115,6 +115,13 @@ file(GLOB GRAMMER_GEN_SOURCE
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
 
+add_executable(test-lexer3 "main/tests/lexer3.c")
+target_link_libraries(test-lexer3 test_lib ${LINK_TARGET})
+target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/action.c")
+
+add_executable(test-lexer4 "main/tests/lexer4.c")
+target_link_libraries(test-lexer4 ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+
 add_executable(test-dns "main/tests/dns.c")
 add_executable(test-fs-event "main/tests/fs_event.c")
 
@@ -153,10 +160,12 @@ file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 add_library(${PARSE}
 	OBJECT
 	"parse.c")
+set_target_properties(${PARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 #vmparser.o
 add_library(${VMPARSE}
 	OBJECT
 	"vmparse.c")
+set_target_properties(${VMPARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if(ASAN)
 	set_target_properties(${PARSE} PROPERTIES

@@ -1762,9 +1762,8 @@ static inline void initReadCtx(void *data, FklSid_t sid, FklVM *exe,
 
 static inline int do_custom_parser_reduce_action(
     FklParseStateVector *stateStack, FklAnalysisSymbolVector *symbolStack,
-    FklUintVector *lineStack, const FklGrammerProduction *prod,
+    FklUintVector *lineStack, const FklGrammerProduction *prod, size_t len,
     FklGrammerMatchOuterCtx *outerCtx, size_t *errLine) {
-    size_t len = prod->len;
     stateStack->size -= len;
     FklAnalysisStateGoto *gt =
         fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
@@ -1808,61 +1807,23 @@ static inline void parse_with_custom_parser_for_char_buf(
     FklAnalysisSymbolVector *symbolStack, FklUintVector *lineStack,
     FklParseStateVector *stateStack, FklVM *exe, int *accept,
     ParsingState *parse_state, FklSid_t *reducing_sid) {
-    *restLen = len;
-    const char *start = cstr;
-    size_t matchLen = 0;
-    int waiting_for_more_err = 0;
-    for (;;) {
-        int is_waiting_for_more = 0;
-        const FklAnalysisState *state =
-            fklParseStateVectorBackNonNull(stateStack)->state;
-        const FklAnalysisStateAction *action = state->state.action;
-        for (; action; action = action->next)
-            if (fklIsStateActionMatch(&action->match, start, cstr, *restLen,
-                                      &matchLen, outerCtx, &is_waiting_for_more,
-                                      g))
-                break;
-        waiting_for_more_err |= is_waiting_for_more;
-        if (action) {
-            switch (action->action) {
-            case FKL_ANALYSIS_IGNORE:
-                outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
-                cstr += matchLen;
-                (*restLen) -= matchLen;
-                continue;
-                break;
-            case FKL_ANALYSIS_SHIFT:
-                fklParseStateVectorPushBack2(
-                    stateStack, (FklParseState){.state = action->state});
-                fklInitTerminalAnalysisSymbol(
-                    fklAnalysisSymbolVectorPushBack(symbolStack, NULL), cstr,
-                    matchLen, outerCtx);
-                fklUintVectorPushBack2(lineStack, outerCtx->line);
-                outerCtx->line += fklCountCharInBuf(cstr, matchLen, '\n');
-                cstr += matchLen;
-                (*restLen) -= matchLen;
-                break;
-            case FKL_ANALYSIS_ACCEPT:
-                *accept = 1;
-                return;
-                break;
-            case FKL_ANALYSIS_REDUCE:
-                *parse_state = PARSE_REDUCING;
-                *reducing_sid = action->prod->left.sid;
-                if (do_custom_parser_reduce_action(stateStack, symbolStack,
-                                                   lineStack, action->prod,
-                                                   outerCtx, errLine))
-                    *err = FKL_PARSE_REDUCE_FAILED;
-                return;
-                break;
-            }
-        } else {
-            *err = waiting_for_more_err ? FKL_PARSE_WAITING_FOR_MORE
-                                        : FKL_PARSE_TERMINAL_MATCH_FAILED;
-            break;
-        }
-    }
+
+#define PARSE_ACCEPT()                                                         \
+    *accept = 1;                                                               \
     return;
+#define PARSE_REDUCE()                                                         \
+    *parse_state = PARSE_REDUCING;                                             \
+    *reducing_sid = action->prod->left.sid;                                    \
+    if (do_custom_parser_reduce_action(stateStack, symbolStack, lineStack,     \
+                                       action->prod, action->actual_len,       \
+                                       outerCtx, errLine))                     \
+        *err = FKL_PARSE_REDUCE_FAILED;                                        \
+    return;
+#define PARSE_INCLUDED
+#define PARSE_BODY
+#include "parse.h"
+#undef PARSE_INCLUDED
+#undef PARSE_BODY
 }
 
 static int custom_read_frame_step(void *d, FklVM *exe) {
@@ -2009,13 +1970,14 @@ static const FklVMudMetaTable CustomParserMetaTable = {
 #define INVALID_PROD_PART (2)
 
 static inline FklGrammerProduction *
-vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinHashMap *builtin_term,
-               FklSymbolTable *tt, FklRegexTable *rt, FklSid_t left,
-               int *error_type) {
+vm_vec_to_prod(int is_adding_ignore, FklVMvec *vec,
+               FklGraSidBuiltinHashMap *builtin_term, FklSymbolTable *tt,
+               FklRegexTable *rt, FklSid_t left, int *error_type) {
     FklVMvalueVector valid_items;
     fklVMvalueVectorInit(&valid_items, vec->size);
     FklGrammerSym *syms = NULL;
     uint8_t *delim = NULL;
+    size_t top = 0;
     if (vec->size == 0)
         goto zero_len;
 
@@ -2040,34 +2002,29 @@ vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinHashMap *builtin_term,
             goto end;
         }
     }
-    if (valid_items.size) {
-        size_t top = valid_items.size;
-        syms = (FklGrammerSym *)fklZmalloc(valid_items.size
-                                           * sizeof(FklGrammerSym));
+    top = valid_items.size;
+    if (top) {
+        if (!is_adding_ignore && top > 1)
+            top += valid_items.size - 1;
+        syms = (FklGrammerSym *)fklZmalloc(top * sizeof(FklGrammerSym));
         FKL_ASSERT(syms);
         FklVMvalue **base = (FklVMvalue **)valid_items.base;
-        for (size_t i = 0; i < top; i++) {
+        size_t symIdx = 0;
+        for (size_t i = 0; i < valid_items.size; i++) {
             FklVMvalue *cur = base[i];
-            FklGrammerSym *ss = &syms[i];
-            ss->delim = delim[i];
-            ss->end_with_terminal = 0;
+            FklGrammerSym *ss = &syms[symIdx];
             if (FKL_IS_STR(cur)) {
-                ss->isterm = 1;
-                ss->term_type = FKL_TERM_STRING;
+                ss->type = FKL_TERM_STRING;
                 ss->nt.group = 0;
                 ss->nt.sid = fklAddSymbol(FKL_VM_STR(cur), tt)->v;
-                ss->end_with_terminal = 0;
             } else if (FKL_IS_VECTOR(cur)) {
-                ss->isterm = 1;
-                ss->term_type = FKL_TERM_STRING;
+                ss->type = FKL_TERM_KEYWORD;
                 ss->nt.group = 0;
                 ss->nt.sid =
                     fklAddSymbol(FKL_VM_STR(FKL_VM_VEC(cur)->base[0]), tt)->v;
-                ss->end_with_terminal = 1;
             } else if (FKL_IS_BOX(cur)) {
                 const FklString *str = FKL_VM_STR(FKL_VM_BOX(cur));
-                ss->isterm = 1;
-                ss->term_type = FKL_TERM_REGEX;
+                ss->type = FKL_TERM_REGEX;
                 const FklRegexCode *re = fklAddRegexStr(rt, str);
                 if (!re) {
                     fklZfree(syms);
@@ -2080,22 +2037,27 @@ vm_vec_to_prod(FklVMvec *vec, FklGraSidBuiltinHashMap *builtin_term,
                 const FklLalrBuiltinMatch *builtin_match =
                     fklGetBuiltinMatch(builtin_term, id);
                 if (builtin_match) {
-                    ss->isterm = 1;
-                    ss->term_type = FKL_TERM_BUILTIN;
+                    ss->type = FKL_TERM_BUILTIN;
                     ss->b.t = builtin_match;
                     ss->b.c = NULL;
                 } else {
-                    ss->isterm = 0;
-                    ss->term_type = FKL_TERM_STRING;
+                    ss->type = FKL_TERM_NONTERM;
                     ss->nt.group = 0;
                     ss->nt.sid = id;
                 }
+            }
+            ++symIdx;
+            if (!is_adding_ignore && symIdx < top - 1
+                && i < valid_items.size - 1) {
+                FklGrammerSym *u = &syms[symIdx];
+                u->type = FKL_TERM_IGNORE;
+                ++symIdx;
             }
         }
     }
 zero_len:
     prod = fklCreateProduction(
-        0, left, valid_items.size, syms, NULL, custom_parser_prod_action, NULL,
+        0, left, top, syms, NULL, custom_parser_prod_action, NULL,
         fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
 
 end:
@@ -2149,8 +2111,8 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
         case EXCEPT_NEXT_ARG_VECTOR:
             if (FKL_IS_VECTOR(next_arg)) {
                 int error_type = 0;
-                prod = vm_vec_to_prod(FKL_VM_VEC(next_arg), builtins, tt, rt,
-                                      sid, &error_type);
+                prod = vm_vec_to_prod(is_adding_ignore, FKL_VM_VEC(next_arg),
+                                      builtins, tt, rt, sid, &error_type);
                 if (!prod) {
                     if (error_type == REGEX_COMPILE_ERROR)
                         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_REGEX_COMPILE_FAILED,

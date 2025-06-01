@@ -63,27 +63,27 @@ typedef struct {
 #include "hash.h"
 
 typedef enum {
-    FKL_LALR_MATCH_NONE,
-    FKL_LALR_MATCH_EOF,
-    FKL_LALR_MATCH_STRING,
-    FKL_LALR_MATCH_BUILTIN,
-    FKL_LALR_MATCH_STRING_END_WITH_TERMINAL,
-    FKL_LALR_MATCH_REGEX,
-} FklLalrMatchType;
+    FKL_TERM_NONE = 0,
+    FKL_TERM_KEYWORD,
+    FKL_TERM_STRING,
+    FKL_TERM_REGEX,
+    FKL_TERM_BUILTIN,
+    FKL_TERM_IGNORE,
+    FKL_TERM_EOF,
+    FKL_TERM_NONTERM,
+} FklGrammerTermType;
 
 #define FKL_LALR_MATCH_NONE_INIT                                               \
     ((FklLalrItemLookAhead){                                                   \
-        .t = FKL_LALR_MATCH_NONE,                                              \
+        .t = FKL_TERM_NONE,                                                    \
     })
 #define FKL_LALR_MATCH_EOF_INIT                                                \
     ((FklLalrItemLookAhead){                                                   \
-        .t = FKL_LALR_MATCH_EOF,                                               \
+        .t = FKL_TERM_EOF,                                                     \
     })
 
 typedef struct {
-    FklLalrMatchType t;
-    unsigned int delim : 1;
-    unsigned int end_with_terminal : 1;
+    FklGrammerTermType t;
     union {
         const FklString *s;
         FklLalrBuiltinGrammerSym b;
@@ -104,23 +104,28 @@ fklBuiltinGrammerSymEqual(const FklLalrBuiltinGrammerSym *s0,
 
 static inline int fklLalrItemLookAheadEqual(const FklLalrItemLookAhead *la0,
                                             const FklLalrItemLookAhead *la1) {
-    if (la0->t != la1->t || la0->delim != la1->delim
-        || la0->end_with_terminal != la1->end_with_terminal)
+    if (la0->t != la1->t)
         return 0;
     switch (la0->t) {
-    case FKL_LALR_MATCH_NONE:
-    case FKL_LALR_MATCH_EOF:
+    case FKL_TERM_NONE:
+    case FKL_TERM_EOF:
         return 1;
         break;
-    case FKL_LALR_MATCH_STRING:
-    case FKL_LALR_MATCH_STRING_END_WITH_TERMINAL:
+    case FKL_TERM_STRING:
+    case FKL_TERM_KEYWORD:
         return la0->s == la1->s;
         break;
-    case FKL_LALR_MATCH_REGEX:
+    case FKL_TERM_REGEX:
         return la0->re == la1->re;
         break;
-    case FKL_LALR_MATCH_BUILTIN:
+    case FKL_TERM_BUILTIN:
         return fklBuiltinGrammerSymEqual(&la0->b, &la1->b);
+        break;
+    case FKL_TERM_IGNORE:
+        return 1;
+        break;
+    case FKL_TERM_NONTERM:
+        FKL_UNREACHABLE();
         break;
     }
     return 0;
@@ -133,14 +138,29 @@ static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
 }
 
 static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
-    uintptr_t rest = pk->t == FKL_LALR_MATCH_STRING
-                       ? FKL_TYPE_CAST(uintptr_t, pk->s)
-                       : (pk->t == FKL_LALR_MATCH_BUILTIN
-                              ? fklBuiltinGrammerSymHash(&pk->b)
-                              : 0);
-    rest = fklHashCombine(rest, FKL_TYPE_CAST(uintptr_t, pk->t));
-    rest = fklHashCombine(rest, pk->delim);
-    return fklHashCombine(rest, pk->end_with_terminal);
+    uintptr_t rest;
+    switch (pk->t) {
+    case FKL_TERM_KEYWORD:
+    case FKL_TERM_STRING:
+        rest = FKL_TYPE_CAST(uintptr_t, pk->s);
+        break;
+    case FKL_TERM_REGEX:
+        rest = FKL_TYPE_CAST(uintptr_t, pk->re);
+        break;
+    case FKL_TERM_BUILTIN:
+        rest = fklBuiltinGrammerSymHash(&pk->b);
+        break;
+    case FKL_TERM_EOF:
+    case FKL_TERM_NONE:
+    case FKL_TERM_IGNORE:
+        rest = 0;
+        break;
+    case FKL_TERM_NONTERM:
+        FKL_UNREACHABLE();
+        break;
+    }
+
+    return fklHashCombine(rest, FKL_TYPE_CAST(uintptr_t, pk->t));
 }
 
 // FklLookAheadHashSet
@@ -173,17 +193,8 @@ static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
 #define FKL_HASH_ELM_NAME FirstSet
 #include "hash.h"
 
-enum FklGrammerTermType {
-    FKL_TERM_STRING = 0,
-    FKL_TERM_BUILTIN,
-    FKL_TERM_REGEX,
-};
-
 typedef struct FklGrammerSym {
-    uint16_t delim;
-    uint16_t isterm;
-    uint16_t term_type;
-    uint16_t end_with_terminal;
+    FklGrammerTermType type;
     union {
         FklGrammerNonterm nt;
         FklLalrBuiltinGrammerSym b;
@@ -269,6 +280,7 @@ fklCopyUninitedGrammerProduction(FklGrammerProduction *prod);
 
 typedef struct FklLalrItemSetLink {
     FklGrammerSym sym;
+    int allow_ignore;
     struct FklLalrItemSetHashMapElm *dst;
     struct FklLalrItemSetLink *next;
 } FklLalrItemSetLink;
@@ -344,7 +356,8 @@ typedef struct FklAnalysisStateGoto {
 } FklAnalysisStateGoto;
 
 typedef struct {
-    FklLalrMatchType t;
+    FklGrammerTermType t;
+    int allow_ignore;
     union {
         const FklString *str;
         FklLalrBuiltinGrammerSym func;
@@ -358,7 +371,10 @@ typedef struct FklAnalysisStateAction {
     FklAnalysisStateActionEnum action;
     union {
         const struct FklAnalysisState *state;
-        const FklGrammerProduction *prod;
+        struct {
+            const FklGrammerProduction *prod;
+            size_t actual_len;
+        };
     };
 
     struct FklAnalysisStateAction *next;
@@ -386,7 +402,7 @@ typedef struct {
         FklLalrBuiltinGrammerSym b;
         const FklRegexCode *re;
     };
-    uint32_t term_type;
+    FklGrammerTermType term_type;
 } FklGrammerIgnoreSym;
 
 typedef struct FklGrammerIgnore {
@@ -396,6 +412,7 @@ typedef struct FklGrammerIgnore {
 } FklGrammerIgnore;
 
 typedef struct FklGrammer {
+    FklSymbolTable *st;
     FklSymbolTable terminals;
 
     FklSymbolTable reachable_terminals;
@@ -430,6 +447,14 @@ typedef struct FklAnalysisSymbol {
     void *ast;
 } FklAnalysisSymbol;
 
+typedef struct FklStateActionMatchArgs {
+    size_t matchLen;
+    size_t skip_ignore_len;
+    ssize_t ignore_len;
+} FklStateActionMatchArgs;
+
+#define FKL_STATE_ACTION_MATCH_ARGS_INIT {.ignore_len = -2}
+
 int fklCheckAndInitGrammerSymbols(FklGrammer *g);
 
 FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st);
@@ -453,9 +478,11 @@ void fklClearGrammer(FklGrammer *);
 FklLalrItemSetHashMap *fklGenerateLr0Items(FklGrammer *grammer);
 
 int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
-                          const char *start, const char *cstr, size_t restLen,
-                          size_t *matchLen, FklGrammerMatchOuterCtx *outerCtx,
-                          int *is_waiting_for_more, const FklGrammer *g);
+                          const FklGrammer *g,
+                          FklGrammerMatchOuterCtx *outerCtx, const char *start,
+                          const char *cstr, size_t restLen,
+                          int *is_waiting_for_more,
+                          FklStateActionMatchArgs *args);
 
 static inline void
 fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym, const char *s, size_t len,
@@ -531,10 +558,9 @@ void *fklParseWithTableForCstr(const FklGrammer *, const char *str,
                                FklGrammerMatchOuterCtx *, FklSymbolTable *st,
                                int *err);
 
-void *fklParseWithTableForCstrDbg(const FklGrammer *, const char *str,
-                                  FklGrammerMatchOuterCtx *, FklSymbolTable *st,
-                                  int *err);
-
+void *fklParseWithTableForCharBuf(const FklGrammer *, const char *str,
+                                  size_t len, FklGrammerMatchOuterCtx *,
+                                  FklSymbolTable *st, int *err);
 struct FklParseStateVector;
 
 // FklAnalysisSymbolVector
@@ -558,13 +584,12 @@ typedef union FklParseState {
 #define FKL_VECTOR_ELM_TYPE_NAME ParseState
 #include "vector.h"
 
-void *fklParseWithTableForCharBuf(const FklGrammer *, const char *str,
-                                  size_t len, size_t *restLen,
-                                  FklGrammerMatchOuterCtx *, FklSymbolTable *st,
-                                  int *err, size_t *errLine,
-                                  struct FklAnalysisSymbolVector *symbols,
-                                  FklUintVector *lines,
-                                  FklParseStateVector *states);
+void *
+fklParseWithTableForCharBuf2(const FklGrammer *, const char *str, size_t len,
+                             size_t *restLen, FklGrammerMatchOuterCtx *,
+                             FklSymbolTable *st, int *err, size_t *errLine,
+                             struct FklAnalysisSymbolVector *symbols,
+                             FklUintVector *lines, FklParseStateVector *states);
 
 #define FKL_PARSE_TERMINAL_MATCH_FAILED (1)
 #define FKL_PARSE_REDUCE_FAILED (2)

@@ -131,7 +131,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, FILE *fp, size_t *psize,
     for (;;) {
         size_t restLen = size - offset;
         int err = 0;
-        ast = fklParseWithTableForCharBuf(g, tmp + offset, restLen, &restLen,
+        ast = fklParseWithTableForCharBuf2(g, tmp + offset, restLen, &restLen,
                                           &outerCtx, st, &err, errLine,
                                           symbolStack, lineStack, stateStack);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {

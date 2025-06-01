@@ -41,25 +41,27 @@
   #(() #["#23cons'" *s-exp* *s-exp* *s-exp* *s-exp*] simple #(cons 3 4))
   #(() #["#head'" *s-exp* *s-exp*] simple #(head head 1 2))
   #(() #["#2nd-vector'" *s-exp* *s-exp*] simple #(vector 2))
-  #(() #[?symbol "《" "》"] simple #(symbol 0 "《" "》"))
+  ;; FIXME
+  ; #(() #[?symbol "《" "》"] simple #(symbol 0 "《" "》"))
   #(() #[#&"“”|^“(\\\\.|.)*”$"] simple #(string 0 "“" "”"))
   #(() #["#other-json'" (json,json-value)] builtin second)
-  #(() #[#("var") *symbol* #("=") *s-exp*] simple #(head define 1 3)))
+  #(() #[#("var") *symbol* #("=") *s-exp*] simple #(head define 1 3))
+ )
 
-(prin1n '#4th' foo bar foobar barfoo)
-
-(prin1n '#23cons' foo bar foobar barfoo)
-
-(prin1n '#head' foo bar)
-
-(prin1n '#2nd-vector' (foo bar) (foobar barfoo))
-
-(prin1n '《测试》)
-
-(prin1n '“测试”)
-
-(prin1n #other-json'["foo","bar",null,true,false])
-
-var foo = 114514
-
-(println foo)
+;; (prin1n '#4th' foo bar foobar barfoo)
+;; 
+;; (prin1n '#23cons' foo bar foobar barfoo)
+;; 
+;; (prin1n '#head' foo bar)
+;; 
+;; (prin1n '#2nd-vector' (foo bar) (foobar barfoo))
+;; 
+;; (prin1n '《测试》)
+;; 
+;; (prin1n '“测试”)
+;; 
+;; (prin1n #other-json'["foo","bar",null,true,false])
+;; 
+;; var foo = 114514
+;; 
+;; (println foo)

@@ -800,37 +800,6 @@ void fklInitVMdll(FklVMvalue *rel, FklVM *exe) {
         init(dll, exe);
 }
 
-void fklDestroyVMvalue(FklVMvalue *cur) {
-    switch (cur->type) {
-    case FKL_TYPE_USERDATA:
-        if (fklFinalizeVMud(FKL_VM_UD(cur)) == FKL_VM_UD_FINALIZE_DELAY)
-            return;
-        break;
-    case FKL_TYPE_F64:
-    case FKL_TYPE_BIGINT:
-    case FKL_TYPE_STR:
-    case FKL_TYPE_VECTOR:
-    case FKL_TYPE_PAIR:
-    case FKL_TYPE_BOX:
-    case FKL_TYPE_BYTEVECTOR:
-    case FKL_TYPE_CPROC:
-    case FKL_TYPE_VAR_REF:
-        break;
-    case FKL_TYPE_PROC:
-        fklZfree(FKL_VM_PROC(cur)->closure);
-        break;
-    case FKL_TYPE_HASHTABLE:
-        fklVMvalueHashMapUninit(&FKL_VM_HASH(cur)->ht);
-        break;
-    default:
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
-                __FUNCTION__);
-        abort();
-    }
-    atomic_fetch_sub(&cur->gc->alloced_size, fklZmallocSize(cur));
-    fklZfree((void *)cur);
-}
-
 static inline void chanl_push_recv(FklVMchanl *ch, FklVMchanlRecv *recv) {
     *(ch->recvq.tail) = recv;
     ch->recvq.tail = &recv->next;

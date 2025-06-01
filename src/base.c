@@ -55,17 +55,18 @@ int fklStringCharBufCmp(const FklString *fir, size_t len, const char *buf) {
     return r;
 }
 
-size_t fklStringCharBufMatch(const FklString *a, const char *b, size_t b_size) {
+ssize_t fklStringCharBufMatch(const FklString *a, const char *b,
+                              size_t b_size) {
     return fklCharBufMatch(a->str, a->size, b, b_size);
 }
 
-size_t fklCharBufMatch(const char *a, size_t a_size, const char *b,
-                       size_t b_size) {
+ssize_t fklCharBufMatch(const char *a, size_t a_size, const char *b,
+                        size_t b_size) {
     if (b_size < a_size)
-        return 0;
+        return -1;
     if (!memcmp(a, b, a_size))
         return a_size;
-    return 0;
+    return -1;
 }
 
 FklString *fklCopyString(const FklString *obj) {

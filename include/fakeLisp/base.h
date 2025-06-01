@@ -2,6 +2,7 @@
 #define FKL_BASE_H
 
 #include "bigint.h"
+#include "common.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -34,9 +35,10 @@ int fklStringEqual(const FklString *fir, const FklString *sec);
 
 int fklStringCharBufCmp(const FklString *, size_t len, const char *buf);
 int fklStringCstrCmp(const FklString *, const char *);
-size_t fklStringCharBufMatch(const FklString *, const char *, size_t len);
 
-size_t fklCharBufMatch(const char *s0, size_t l0, const char *s1, size_t l1);
+ssize_t fklStringCharBufMatch(const FklString *, const char *, size_t len);
+
+ssize_t fklCharBufMatch(const char *s0, size_t l0, const char *s1, size_t l1);
 
 char *fklStringToCstr(const FklString *str);
 void fklPrintRawString(const FklString *str, FILE *fp);

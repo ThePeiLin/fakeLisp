@@ -61,6 +61,7 @@ int main() {
         fklAnalysisSymbolVectorUninit(&symbolStack);
         fklParseStateVectorUninit(&stateStack);
         fklUintVectorUninit(&lineStack);
+		FKL_ASSERT(ast);
         if (retval)
             break;
 

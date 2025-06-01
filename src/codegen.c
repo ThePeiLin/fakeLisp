@@ -4535,7 +4535,7 @@ recompute_prod_terminal_sid(FklGrammerProduction *prod,
     FklGrammerSym *sym = prod->syms;
     for (size_t i = 0; i < len; i++) {
         FklGrammerSym *cur = &sym[i];
-        if (cur->isterm && cur->term_type != FKL_TERM_BUILTIN)
+        if (cur->type != FKL_TERM_NONTERM && cur->type != FKL_TERM_BUILTIN)
             cur->nt.sid =
                 fklAddSymbol(fklGetSymbolWithId(cur->nt.sid, origin_table)->k,
                              target_table)
@@ -4551,7 +4551,7 @@ static inline void replace_group_id(FklGrammerProduction *prod,
     FklGrammerSym *sym = prod->syms;
     for (size_t i = 0; i < len; i++) {
         FklGrammerSym *cur = &sym[i];
-        if (!cur->isterm && cur->nt.group)
+        if (cur->type == FKL_TERM_NONTERM && cur->nt.group)
             cur->nt.group = new_id;
     }
 }
@@ -7065,7 +7065,7 @@ static void *simple_action_symbol(void *c, void *outerCtx, void *nodes[],
         fklInitStringBuffer(&buffer);
         const char *end_cstr = cstr + str->size;
         while (cstr < end_cstr) {
-            if (fklCharBufMatch(start, start_size, cstr, cstr_size)) {
+            if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
                 cstr += start_size;
                 cstr_size -= start_size;
                 size_t len =
@@ -7083,7 +7083,8 @@ static void *simple_action_symbol(void *c, void *outerCtx, void *nodes[],
             size_t len = 0;
             for (; (cstr + len) < end_cstr; len++)
                 if (fklCharBufMatch(start, start_size, cstr + len,
-                                    cstr_size - len))
+                                    cstr_size - len)
+                    >= 0)
                     break;
             fklStringBufferBincpy(&buffer, cstr, len);
             cstr += len;
@@ -7200,30 +7201,27 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
             goto end;
         }
     }
-    if (valid_items.size) {
-        size_t top = valid_items.size;
+    size_t top = valid_items.size;
+    if (top) {
+        if (top > 1)
+            top += valid_items.size - 1;
         retval = (FklGrammerSym *)fklZmalloc(top * sizeof(FklGrammerSym));
         FKL_ASSERT(retval);
         FklNastNode *const *base = (FklNastNode *const *)valid_items.base;
-        for (size_t i = 0; i < top; i++) {
+        size_t symIdx = 0;
+        for (size_t i = 0; i < valid_items.size; i++) {
             const FklNastNode *cur = base[i];
-            FklGrammerSym *ss = &retval[i];
-            ss->delim = delim[i];
-            ss->end_with_terminal = 0;
+            FklGrammerSym *ss = &retval[symIdx];
             if (cur->type == FKL_NAST_STR) {
-                ss->isterm = 1;
-                ss->term_type = FKL_TERM_STRING;
+                ss->type = FKL_TERM_STRING;
                 ss->nt.group = 0;
                 ss->nt.sid = fklAddSymbol(cur->str, tt)->v;
-                ss->end_with_terminal = 0;
             } else if (cur->type == FKL_NAST_PAIR) {
-                ss->isterm = 0;
-                ss->term_type = FKL_TERM_STRING;
+                ss->type = FKL_TERM_NONTERM;
                 ss->nt.group = cur->pair->car->sym;
                 ss->nt.sid = cur->pair->cdr->sym;
             } else if (cur->type == FKL_NAST_BOX) {
-                ss->isterm = 1;
-                ss->term_type = FKL_TERM_REGEX;
+                ss->type = FKL_TERM_REGEX;
                 const FklRegexCode *re = fklAddRegexStr(rt, cur->box->str);
                 if (!re) {
                     *failed = 2;
@@ -7233,28 +7231,30 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
                 }
                 ss->re = re;
             } else if (cur->type == FKL_NAST_VECTOR) {
-                ss->isterm = 1;
-                ss->term_type = FKL_TERM_STRING;
+                ss->type = FKL_TERM_KEYWORD;
                 ss->nt.group = 0;
                 const FklString *str = cur->vec->base[0]->str;
                 ss->nt.sid = fklAddSymbol(str, tt)->v;
-                ss->end_with_terminal = 1;
             } else {
                 if (fklGetBuiltinMatch(builtin_term, cur->sym)) {
-                    ss->isterm = 1;
-                    ss->term_type = FKL_TERM_BUILTIN;
+                    ss->type = FKL_TERM_BUILTIN;
                     ss->b.t = fklGetBuiltinMatch(builtin_term, cur->sym);
                     ss->b.c = NULL;
                 } else {
-                    ss->isterm = 0;
-                    ss->term_type = FKL_TERM_STRING;
+                    ss->type = FKL_TERM_NONTERM;
                     ss->nt.group = 0;
                     ss->nt.sid = cur->sym;
                 }
             }
+            ++symIdx;
+            if (symIdx < top - 1 && i < valid_items.size - 1) {
+                FklGrammerSym *u = &retval[symIdx];
+                u->type = FKL_TERM_IGNORE;
+                ++symIdx;
+            }
         }
     }
-    *num = valid_items.size;
+    *num = top;
 
 end:
     fklNastNodeVectorUninit(&valid_items);
@@ -7424,7 +7424,7 @@ static inline int check_group_outer_ref(FklCodegenInfo *codegen,
              prods = prods->next) {
             for (size_t i = 0; i < prods->len; i++) {
                 FklGrammerSym *sym = &prods->syms[i];
-                if (!sym->isterm) {
+                if (sym->type == FKL_TERM_NONTERM) {
                     if (sym->nt.group)
                         is_ref_outer |= sym->nt.group != group_id;
                     else {
@@ -7451,9 +7451,7 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklSid_t group,
     prod->func = codegen_prod_action_first;
     prod->idx = 0;
     FklGrammerSym *u = &prod->syms[0];
-    u->delim = 1;
-    u->term_type = FKL_TERM_STRING;
-    u->isterm = 0;
+    u->type = FKL_TERM_NONTERM;
     u->nt.group = group;
     u->nt.sid = sid;
     return prod;
@@ -7743,7 +7741,7 @@ static inline int scan_and_add_reachable_productions(FklCodegenInfo *codegen) {
             FklGrammerSym *syms = prods->syms;
             for (size_t i = 0; i < len; i++) {
                 FklGrammerSym *cur = &syms[i];
-                if (!cur->isterm
+                if (cur->type == FKL_TERM_NONTERM
                     && !fklIsNonterminalExist(&g->productions, cur->nt.group,
                                               cur->nt.sid)) {
                     if (cur->nt.group) {

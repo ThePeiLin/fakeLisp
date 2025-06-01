@@ -650,63 +650,6 @@ static inline void move_thread_objects_to_gc(FklVM *vm, FklVMgc *gc) {
     }
 }
 
-static inline void move_old_locv_to_gc(FklVMgc *gc, uint32_t llast,
-                                       FklVMvalue **locv) {
-    struct FklLocvCacheLevel *locv_cache_level = gc->locv_cache;
-    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
-
-    struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
-    uint32_t num = locv_cache->num;
-    struct FklLocvCache *locvs = locv_cache->locv;
-
-    uint8_t i = 0;
-    for (; i < num; i++) {
-        if (llast < locvs[i].llast)
-            break;
-    }
-
-    if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
-        if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-            atomic_fetch_sub(
-                &gc->alloced_size,
-                fklZmallocSize(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv));
-            fklZfree(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
-            num--;
-        } else
-            locv_cache->num++;
-        for (uint8_t j = num; j > i; j--)
-            locvs[j] = locvs[j - 1];
-        locvs[i].llast = llast;
-        locvs[i].locv = locv;
-    } else {
-        atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(locv));
-        fklZfree(locv);
-    }
-}
-
-static inline void move_thread_old_locv_to_gc(FklVM *vm, FklVMgc *gc) {
-    FklVMlocvList *cur = vm->old_locv_list;
-    uint32_t i = vm->old_locv_count;
-    for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
-
-        move_old_locv_to_gc(gc, cur->llast, cur->locv);
-
-        FklVMlocvList *prev = cur;
-        cur = cur->next;
-        fklZfree(prev);
-    }
-
-    for (uint32_t j = 0; j < i; j++) {
-        FklVMlocvList *cur = &vm->old_locv_cache[j];
-
-        move_old_locv_to_gc(gc, cur->llast, cur->locv);
-        cur->llast = 0;
-        cur->locv = NULL;
-    }
-    vm->old_locv_list = NULL;
-    vm->old_locv_count = 0;
-}
-
 static inline void remove_thread_frame_cache(FklVM *exe) {
     FklVMframe **phead = &exe->frame_cache_head;
     while (*phead) {
@@ -726,7 +669,7 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
     FklVMgc *gc = exe->gc;
     if (atomic_load(&gc->alloced_size) > gc->threshold) {
         move_thread_objects_to_gc(exe, gc);
-        move_thread_old_locv_to_gc(exe, gc);
+        fklVMgcMoveLocvCache(exe, gc);
         remove_thread_frame_cache(exe);
         fklVMgcMarkAllRootToGray(exe);
         while (!fklVMgcPropagate(gc))
@@ -983,7 +926,7 @@ static inline void destroy_vm_interrupt_handler(FklVM *vm) {
 }
 
 static inline void vm_stack_uninit(FklVM *s) {
-    move_old_locv_to_gc(s->gc, s->last, s->base);
+    fklVMgcAddLocvCache(s->gc, s->last, s->base);
     s->base = NULL;
     s->last = 0;
     s->tp = 0;
@@ -1072,11 +1015,11 @@ static inline void
 move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(FklVMgc *gc) {
     FklVM *vm = gc->main_thread;
     move_thread_objects_to_gc(vm, gc);
-    move_thread_old_locv_to_gc(vm, gc);
+    fklVMgcMoveLocvCache(vm, gc);
     remove_thread_frame_cache(vm);
     for (FklVM *cur = vm->next; cur != vm; cur = cur->next) {
         move_thread_objects_to_gc(cur, gc);
-        move_thread_old_locv_to_gc(cur, gc);
+        fklVMgcMoveLocvCache(cur, gc);
         remove_thread_frame_cache(cur);
     }
 }
@@ -1481,6 +1424,8 @@ void fklVMstackShrink(FklVM *exe) {
     exe->last = fklNextPow2(exe->tp);
     if (exe->last < FKL_VM_STACK_INC_NUM)
         exe->last = FKL_VM_STACK_INC_NUM;
+    if (exe->last == old_last)
+        return;
     FklVMvalue **nbase =
         fklAllocLocalVarSpaceFromGCwithoutLock(exe->gc, exe->last, &exe->last);
     FklVMvalue **obase = exe->base;
@@ -1580,7 +1525,7 @@ void fklDestroyAllVMs(FklVM *curVM) {
     for (FklVM *cur = curVM; cur;) {
         FklVM *t = cur;
         cur = cur->next;
-        move_thread_old_locv_to_gc(t, t->gc);
+        fklVMgcMoveLocvCache(t, t->gc);
         if (t->obj_head)
             move_thread_objects_to_gc(t, t->gc);
         remove_exited_thread_common(t);

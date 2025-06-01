@@ -748,6 +748,8 @@ FklStrIdHashMapElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
 FklStrIdHashMapElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
 FklStrIdHashMapElm *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
 
+void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
+void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
 void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt);
 void fklVMgcMarkAllRootToGray(FklVM *curVM);
 int fklVMgcPropagate(FklVMgc *gc);

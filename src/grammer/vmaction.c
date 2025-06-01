@@ -21,7 +21,7 @@ static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
     fklInitStringBuffer(&buffer);
     const char *end_cstr = cstr + str->size;
     while (cstr < end_cstr) {
-        if (fklCharBufMatch(start, start_size, cstr, cstr_size)) {
+        if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
             cstr += start_size;
             cstr_size -= start_size;
             size_t len = fklQuotedCharBufMatch(cstr, cstr_size, end, end_size);
@@ -37,7 +37,8 @@ static inline void *prod_action_symbol(void *outerCtx, void *ast[], size_t num,
         }
         size_t len = 0;
         for (; (cstr + len) < end_cstr; len++)
-            if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len))
+            if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
+                >= 0)
                 break;
         fklStringBufferBincpy(&buffer, cstr, len);
         cstr += len;

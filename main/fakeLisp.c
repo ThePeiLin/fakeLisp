@@ -1060,7 +1060,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
     fklVMacquireSt(exe->gc);
     if (g && g->aTable.num) {
-        ast = fklParseWithTableForCharBuf(
+        ast = fklParseWithTableForCharBuf2(
             g, fklStringBufferBody(s) + cc->offset, restLen, &restLen,
             &outerCtx, exe->gc->st, &err, &errLine, &cc->symbolStack,
             &cc->lineStack, &cc->stateStack);

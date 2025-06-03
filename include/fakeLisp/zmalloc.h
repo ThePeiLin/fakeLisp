@@ -14,6 +14,8 @@ static inline size_t fklZmallocSize(void *ptr) {
 }
 
 static inline void *fklZmalloc(size_t size) {
+    if (size == 0)
+        return NULL;
     void *ptr = malloc(sizeof(size_t) + size);
     if (ptr == NULL)
         return NULL;
@@ -23,6 +25,8 @@ static inline void *fklZmalloc(size_t size) {
 
 static inline void *fklZcalloc(size_t ele_num, size_t size) {
     size *= ele_num;
+    if (size == 0)
+        return NULL;
     void *ptr = calloc(1, sizeof(size_t) + size);
     if (ptr == NULL)
         return NULL;

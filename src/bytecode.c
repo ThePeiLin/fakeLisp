@@ -409,19 +409,16 @@ void fklCodeConcat(FklByteCode *fir, const FklByteCode *sec) {
 
 void fklCodeReverseConcat(const FklByteCode *fir, FklByteCode *sec) {
     uint32_t len = fir->len;
-    FklInstruction *tmp;
     if (fir->len + sec->len == 0)
-        tmp = NULL;
+        sec->code = NULL;
     else {
-        tmp = (FklInstruction *)fklZmalloc((fir->len + sec->len)
-                                           * sizeof(FklInstruction));
-        FKL_ASSERT(tmp);
-        memcpy(tmp, fir->code, sizeof(FklInstruction) * len);
-        memcpy(&tmp[len], sec->code, sizeof(FklInstruction) * sec->len);
+        sec->code = (FklInstruction *)fklZrealloc(
+            sec->code, (fir->len + sec->len) * sizeof(FklInstruction));
+        FKL_ASSERT(sec->code);
+        memmove(&sec->code[len], sec->code, sec->len * sizeof(FklInstruction));
+        memcpy(sec->code, fir->code, len * sizeof(FklInstruction));
     }
 
-    fklZfree(sec->code);
-    sec->code = tmp;
     sec->len = len + sec->len;
 }
 

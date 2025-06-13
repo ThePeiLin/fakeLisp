@@ -61,7 +61,28 @@ static const FklGrammerCstrAction test_json_and_action[] = {
     // clang-format on
 };
 
-int main(void) {
+static const FklGrammerCstrAction test_ignore_and_action[]={
+    // clang-format off
+	{"s ## &item-list",      "test_action", NULL },
+	{"s ## &item-list",        "test_action", NULL },
+
+	{"item-list #( &items #)", "test_action", NULL },
+	{"items ",                 "test_action", NULL },
+	{"items &items &item",     "test_action", NULL },
+
+	{"item &?dint",            "test_action", NULL },
+
+    {"+ /\\s+",                NULL,          NULL },
+    {NULL,                     NULL,          NULL },
+
+	{"other &?dint",           "test_action", NULL },
+    // clang-format on
+};
+
+int main(int argc,const char* argv[]) {
+    if (argc > 2)
+        return 1;
+    const char *grammer_select = argc > 1 ? argv[1] : "builtin";
     const char *output_file_name = "test_lexer3_parse.c";
     const char *action_file_name = ACTION_FILE_PATH;
     const char *ast_creator_name = "fklNastTerminalCreate";
@@ -69,10 +90,21 @@ int main(void) {
     const char *state_0_push_name = "fklNastPushState0ToStack";
 
     FklSymbolTable *st = fklCreateSymbolTable();
-    // FklGrammer *g = fklCreateBuiltinGrammer(st);
-    // FklGrammer *g = fklCreateGrammerFromCstrAction(test_grammer_and_action,
-    // st);
-    FklGrammer *g = fklCreateGrammerFromCstrAction(test_json_and_action, st);
+    FklGrammer *g;
+    if (!strcmp(grammer_select, "op"))
+        g = fklCreateGrammerFromCstrAction(test_grammer_and_action, st);
+    else if (!strcmp(grammer_select, "json"))
+        g = fklCreateGrammerFromCstrAction(test_json_and_action, st);
+    else if (!strcmp(grammer_select, "builtin"))
+        g = fklCreateBuiltinGrammer(st);
+    else if (!strcmp(grammer_select, "ignore"))
+        g = fklCreateGrammerFromCstrAction(test_ignore_and_action, st);
+    else {
+        fklDestroySymbolTable(st);
+        fprintf(stderr, "invalid selection\n");
+        exit(1);
+    }
+
     if (!g) {
         fklDestroySymbolTable(st);
         fprintf(stderr, "garmmer create fail\n");

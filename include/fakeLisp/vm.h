@@ -500,7 +500,7 @@ typedef enum {
 } FklGCstate;
 
 #define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
-#define FKL_VM_GC_THRESHOLD_SIZE (16384)
+#define FKL_VM_GC_THRESHOLD_SIZE (0x4000)
 
 typedef enum {
     FKL_ERR_DUMMY = 0,

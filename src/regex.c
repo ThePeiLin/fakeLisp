@@ -472,8 +472,6 @@ static const char *regex_obj_enum_type_name[] = {
 };
 
 void fklRegexPrint(const FklRegexCode *re, FILE *fp) {
-    ;
-
     fprintf(fp, "total size:%u\n", re->totalsize);
     const FklRegexObj *obj = re->data;
     uint32_t idx = 0;
@@ -848,18 +846,28 @@ uint32_t fklRegexLexMatchp(const FklRegexCode *re, const char *text,
     return lex_matchpattern(re, text, len, last_is_true);
 }
 
-static inline void print_objs(const FklRegexObj *obj, uint32_t objs_num,
-                              FILE *fp) {
+#define CB_LINE(...) fklCodeBuilderLine(build, __VA_ARGS__)
+#define CB_FMT(...) fklCodeBuilderFmt(build, __VA_ARGS__)
+
+#define CB_LINE_START(...) fklCodeBuilderLineStart(build, __VA_ARGS__)
+#define CB_LINE_END(...) fklCodeBuilderLineEnd(build, __VA_ARGS__)
+
+#define CB_INDENT(flag)                                                        \
+    for (uint8_t flag = (fklCodeBuilderIndent(build), 0); flag < 1;            \
+         fklCodeBuilderUnindent(build), ++flag)
+
+static inline void build_objs(const FklRegexObj *obj, uint32_t objs_num,
+                              FklCodeBuilder *build) {
     for (const FklRegexObj *end = &obj[objs_num]; obj < end; obj++) {
-        fprintf(fp, "\t\t{.type=%-24s,.trueoffset=%u,.falseoffset=%u,",
-                regex_obj_enum_type_name[obj->type], obj->trueoffset,
-                obj->falseoffset);
+        CB_LINE_START("{.type=%-24s,.trueoffset=%u,.falseoffset=%u,",
+                      regex_obj_enum_type_name[obj->type], obj->trueoffset,
+                      obj->falseoffset);
         if (obj->type == FKL_REGEX_CHAR)
-            fprintf(fp, ".ch=%d,},\n", obj->ch);
+            CB_LINE_END(".ch=%d,},", obj->ch);
         else if (obj->type == FKL_REGEX_CHAR_CLASS)
-            fprintf(fp, ".ccl=%u,},\n", obj->ccl);
+            CB_LINE_END(".ccl=%u,},", obj->ccl);
         else
-            fputs("},\n", fp);
+            CB_LINE_END("},");
     }
 }
 
@@ -869,30 +877,32 @@ static const char *char_class_enum_name[] = {
     "FKL_REGEX_CHAR_CLASS_RANGE",
 };
 
-static inline void print_patrns(const uint8_t *pat, uint32_t len, FILE *fp) {
+static inline void build_patrns(const uint8_t *pat, uint32_t len,
+                                FklCodeBuilder *build) {
     for (const uint8_t *end = &pat[len]; pat < end;) {
-        fprintf(fp, "\t\t%-26s,", char_class_enum_name[*pat]);
+        CB_LINE_START("%-26s,", char_class_enum_name[*pat]);
         switch (*(pat++)) {
         case FKL_REGEX_CHAR_CLASS_END:
             break;
         case FKL_REGEX_CHAR_CLASS_RANGE:
-            fprintf(fp, "%u,", *(pat++));
-            fprintf(fp, "%u,", *(pat++));
+            CB_LINE("%u,", *(pat++));
+            CB_LINE("%u,", *(pat++));
             break;
         case FKL_REGEX_CHAR_CLASS_CHAR: {
             uint32_t num = *(pat++);
-            fprintf(fp, "%u,", num);
+            CB_LINE("%u,", num);
             for (uint8_t i = 0; i < num; i++)
-                fprintf(fp, "%u,", pat[i]);
+                CB_LINE("%u,", pat[i]);
             pat += num;
         } break;
         }
-        fputc('\n', fp);
+        CB_LINE_END("");
     }
 }
 
-void fklRegexPrintAsC(const FklRegexCode *re, const char *prefix,
-                      const char *pattern, uint32_t pattern_len, FILE *fp) {
+void fklRegexBuildAsC(const FklRegexCode *re, const char *prefix,
+                      const char *pattern, uint32_t pattern_len,
+                      FklCodeBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;
     const FklRegexObj *objs = re->data;
@@ -900,46 +910,48 @@ void fklRegexPrintAsC(const FklRegexCode *re, const char *prefix,
         objs_num++;
     uint32_t objs_size = objs_num * sizeof(FklRegexObj);
     uint32_t strln = totalsize - objs_size;
-    if (strln)
-        fprintf(fp,
-                "struct{\n"
-                "\tuint32_t totalsize;\n"
-                "\tuint32_t pstsize;\n"
-                "\tFklRegexObj objs[%u];\n"
-                "\tuint8_t patrns[%u];\n"
-                "}",
-                objs_num, strln);
-    else
-        fprintf(fp,
-                "struct{\n"
-                "\tuint32_t totalsize;\n"
-                "\tuint32_t pstsize;\n"
-                "\tFklRegexObj objs[%u];\n"
-                "}",
-                objs_num);
-    fputs(prefix ? prefix : "regex_", fp);
-    fklPrintCharBufInHex(pattern, pattern_len, fp);
-    fprintf(fp,
-            "={\n"
-            "\t.totalsize=%u,\n"
-            "\t.pstsize=%u,\n"
-            "\t.objs={\n",
-            totalsize, re->pstsize);
-    print_objs(objs, objs_num, fp);
-    fputs("\t},\n", fp);
-    if (strln) {
-        const uint8_t *patrns = &((const uint8_t *)re->data)[objs_size];
-        fputs("\t.patrns={\n", fp);
-        print_patrns(patrns, strln, fp);
-        fputs("\t},\n", fp);
+    CB_LINE("struct{");
+
+    CB_INDENT(flag) {
+
+        CB_LINE("tuint32_t totalsize;");
+        CB_LINE("tuint32_t pstsize;");
+        if (strln) {
+            CB_LINE("tFklRegexObj objs[%u];", objs_num);
+            CB_LINE("tuint8_t patrns[%u];", strln);
+        } else {
+            CB_LINE("FklRegexObj objs[%u];", objs_num);
+        }
     }
-    fputs("};\n", fp);
+
+    CB_LINE_START("} %s", prefix ? prefix : "regex_");
+    {
+        for (uint32_t i = 0; i < pattern_len; ++i)
+            CB_LINE("%X", (uint8_t)pattern[i]);
+    }
+    CB_LINE_END("={");
+
+    CB_INDENT(flag) {
+        CB_LINE(".totalsize=%u,", totalsize);
+        CB_LINE(".pstsize=%u,", re->pstsize);
+        CB_LINE(".objs={");
+
+        CB_INDENT(flag) { build_objs(objs, objs_num, build); }
+
+        CB_LINE("},");
+
+        if (strln) {
+            const uint8_t *patrns = &((const uint8_t *)re->data)[objs_size];
+            CB_LINE(".patrns={");
+            build_patrns(patrns, strln, build);
+            CB_LINE("},");
+        }
+    }
+    CB_LINE("};");
 }
 
-#include <fakeLisp/common.h>
-
-void fklRegexPrintAsCwithNum(const FklRegexCode *re, const char *prefix,
-                             uint64_t num, FILE *fp) {
+void fklRegexBuildAsCwithNum(const FklRegexCode *re, const char *prefix,
+                             uint64_t num, FklCodeBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;
     const FklRegexObj *objs = re->data;
@@ -947,39 +959,35 @@ void fklRegexPrintAsCwithNum(const FklRegexCode *re, const char *prefix,
         objs_num++;
     uint32_t objs_size = objs_num * sizeof(FklRegexObj);
     uint32_t strln = totalsize - objs_size;
-    if (strln)
-        fprintf(fp,
-                "struct{\n"
-                "\tuint32_t totalsize;\n"
-                "\tuint32_t pstsize;\n"
-                "\tFklRegexObj objs[%u];\n"
-                "\tuint8_t patrns[%u];\n"
-                "}",
-                objs_num, strln);
-    else
-        fprintf(fp,
-                "struct{\n"
-                "\tuint32_t totalsize;\n"
-                "\tuint32_t pstsize;\n"
-                "\tFklRegexObj objs[%u];\n"
-                "}",
-                objs_num);
-    fputs(prefix ? prefix : "regex_", fp);
-    fprintf(fp,
-            "%" FKL_PRT64X "={\n"
-            "\t.totalsize=%u,\n"
-            "\t.pstsize=%u,\n"
-            "\t.objs={\n",
-            num, totalsize, re->pstsize);
-    print_objs(objs, objs_num, fp);
-    fputs("\t},\n", fp);
-    if (strln) {
-        const uint8_t *patrns = &((const uint8_t *)re->data)[objs_size];
-        fputs("\t.patrns={\n", fp);
-        print_patrns(patrns, strln, fp);
-        fputs("\t},\n", fp);
+    CB_LINE("struct{");
+    CB_INDENT(flag) {
+        CB_LINE("uint32_t totalsize;");
+        CB_LINE("uint32_t pstsize;");
+        if (strln) {
+            CB_LINE("FklRegexObj objs[%u];", objs_num);
+            CB_LINE("uint8_t patrns[%u];", strln);
+        } else {
+            CB_LINE("FklRegexObj objs[%u];", objs_num);
+        }
     }
-    fputs("};\n", fp);
+
+    CB_LINE("} %s%" FKL_PRT64X "={", prefix ? prefix : "regex_", num);
+
+    CB_INDENT(flag) {
+        CB_LINE(".totalsize=%u,", totalsize);
+        CB_LINE(".pstsize=%u,", re->pstsize);
+        CB_LINE(".objs={");
+        CB_INDENT(flag) { build_objs(objs, objs_num, build); }
+        CB_LINE("},");
+
+        if (strln) {
+            const uint8_t *patrns = &((const uint8_t *)re->data)[objs_size];
+            CB_LINE(".patrns={");
+            build_patrns(patrns, strln, build);
+            CB_LINE("},");
+        }
+    }
+    CB_LINE("};");
 }
 
 const FklRegexCode *fklAddRegexStr(FklRegexTable *t, const FklString *str) {

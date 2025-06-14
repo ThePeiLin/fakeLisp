@@ -2,6 +2,7 @@
 #define FKL_REGEX_H
 
 #include "base.h"
+#include "code_builder.h"
 #include "common.h"
 #include "zmalloc.h"
 
@@ -104,11 +105,12 @@ uint32_t fklRegexLexMatchp(const FklRegexCode *re, const char *str,
 
 void fklRegexPrint(const FklRegexCode *, FILE *fp);
 
-void fklRegexPrintAsC(const FklRegexCode *, const char *prefix,
-                      const char *pattern, uint32_t pattern_len, FILE *fp);
+void fklRegexBuildAsC(const FklRegexCode *, const char *prefix,
+                      const char *pattern, uint32_t pattern_len,
+                      FklCodeBuilder *build);
 
-void fklRegexPrintAsCwithNum(const FklRegexCode *, const char *prefix,
-                             uint64_t num, FILE *fp);
+void fklRegexBuildAsCwithNum(const FklRegexCode *, const char *prefix,
+                             uint64_t num, FklCodeBuilder *build);
 
 FklRegexTable *fklCreateRegexTable(void);
 void fklInitRegexTable(FklRegexTable *);

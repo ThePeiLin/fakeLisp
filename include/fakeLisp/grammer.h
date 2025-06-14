@@ -2,6 +2,7 @@
 #define FKL_GRAMMER_H
 
 #include "base.h"
+#include "code_builder.h"
 #include "regex.h"
 #include "symbol.h"
 
@@ -39,8 +40,9 @@ typedef struct {
                                struct FklGrammer *g, int *failed);
     void (*ctx_destroy)(void *);
     const char *name;
-    void (*print_src)(const struct FklGrammer *g, FILE *fp);
-    void (*print_c_match_cond)(void *ctx, const struct FklGrammer *g, FILE *fp);
+    void (*build_src)(const struct FklGrammer *g, FklCodeBuilder *build);
+    void (*build_c_match_cond)(void *ctx, const struct FklGrammer *g,
+                               FklCodeBuilder *build);
 } FklLalrBuiltinMatch;
 
 typedef struct {
@@ -138,7 +140,7 @@ static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
 }
 
 static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
-    uintptr_t rest;
+    uintptr_t rest = 0;
     switch (pk->t) {
     case FKL_TERM_KEYWORD:
     case FKL_TERM_STRING:

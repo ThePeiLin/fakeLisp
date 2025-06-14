@@ -72,7 +72,11 @@ int main() {
         FKL_ASSERT(re);
         fklRegexPrint(re, stdout);
         uint32_t pos = 0;
-        fklRegexPrintAsC(re, NULL, pattern, pattern_len, stdout);
+
+        FklCodeBuilder builder;
+        fklInitCodeBuilderFp(&builder, stdout, NULL);
+        fklRegexBuildAsC(re, NULL, pattern, pattern_len, &builder);
+
         uint32_t str_len = strlen(str);
         int last_is_true = 0;
         uint32_t len = cur->lex

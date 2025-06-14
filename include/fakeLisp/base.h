@@ -2,7 +2,6 @@
 #define FKL_BASE_H
 
 #include "bigint.h"
-#include "common.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -112,7 +111,8 @@ void fklStringBufferConcatWithString(FklStringBuffer *, const FklString *);
 void fklStringBufferConcatWithStringBuffer(FklStringBuffer *,
                                            const FklStringBuffer *);
 void fklStringBufferPutc(FklStringBuffer *, char);
-void fklStringBufferPrintf(FklStringBuffer *, const char *fmt, ...);
+long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap);
+long fklStringBufferPrintf(FklStringBuffer *, const char *fmt, ...);
 FklString *fklStringBufferToString(FklStringBuffer *);
 int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer *s, char ch);
 int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b);

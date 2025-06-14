@@ -600,11 +600,6 @@ void fklPrintRawCharBuf(const uint8_t *str, size_t size, const char *begin_str,
     fputs(end_str, out);
 }
 
-void fklPrintCharBufInHex(const char *buf, uint32_t len, FILE *fp) {
-    for (const char *end = buf + len; buf < end; buf++)
-        fprintf(fp, "%X", (uint8_t)(*buf));
-}
-
 int fklIsI64AddOverflow(int64_t a, int64_t b) {
     int64_t sum = a + b;
     return (a < 0 && b < 0 && sum > 0) || (a > 0 && b > 0 && sum < 0);

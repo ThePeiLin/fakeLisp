@@ -322,8 +322,7 @@ void fklStringBufferResize(FklStringBuffer *b, size_t ns, char c) {
     b->index = ns;
 }
 
-static inline void string_buffer_printf_va(FklStringBuffer *b, const char *fmt,
-                                           va_list ap) {
+long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap) {
     long n;
     va_list cp;
     for (;;) {
@@ -336,20 +335,22 @@ static inline void string_buffer_printf_va(FklStringBuffer *b, const char *fmt,
         va_end(cp);
         if ((n > -1) && n < (b->size - b->index)) {
             b->index += n;
-            return;
+            return n;
         }
         if (n > -1)
             fklStringBufferReverse(b, n + 1);
         else
             fklStringBufferReverse(b, (b->size) * 2);
     }
+    return n;
 }
 
-void fklStringBufferPrintf(FklStringBuffer *b, const char *fmt, ...) {
+long fklStringBufferPrintf(FklStringBuffer *b, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    string_buffer_printf_va(b, fmt, ap);
+    long r = fklStringBufferPrintfVa(b, fmt, ap);
     va_end(ap);
+    return r;
 }
 
 void fklStringBufferConcatWithCstr(FklStringBuffer *b, const char *s) {

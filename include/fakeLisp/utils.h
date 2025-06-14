@@ -40,7 +40,12 @@ void fklPrintRawCharBuf(const uint8_t *str, size_t size, const char *begin_str,
 void fklPrintRawCstr(const char *, const char *begin_str, const char *end_str,
                      char se, FILE *);
 void fklPrintRawChar(char, FILE *);
-void fklPrintCharBufInHex(const char *buf, uint32_t len, FILE *fp);
+
+static inline void fklPrintCharBufInHex(const char *buf, uint32_t len,
+                                        FILE *fp) {
+    for (const char *end = buf + len; buf < end; buf++)
+        fprintf(fp, "%X", (uint8_t)(*buf));
+}
 
 double fklStringToDouble(const FklString *);
 size_t fklWriteDoubleToBuf(char *buf, size_t max, double f64);

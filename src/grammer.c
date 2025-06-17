@@ -3374,7 +3374,7 @@ static inline void init_action_with_look_ahead(FklAnalysisStateAction *action,
     }
 }
 
-static inline int add_reduce_action(FklGrammerTermType cur_type,
+static inline int add_reduce_action(FklGrammerSymType cur_type,
                                     FklAnalysisState *curState,
                                     const FklGrammerProduction *prod,
                                     const FklLalrItemLookAhead *la) {
@@ -3458,7 +3458,7 @@ static inline int add_reduce_action(FklGrammerTermType cur_type,
     return 0;
 }
 
-static const FklGrammerTermType grammerSymPriority[] = {
+static const FklGrammerSymType grammerSymPriority[] = {
     FKL_TERM_KEYWORD, //
     FKL_TERM_STRING,  //
     FKL_TERM_REGEX,   //
@@ -3466,7 +3466,7 @@ static const FklGrammerTermType grammerSymPriority[] = {
     FKL_TERM_IGNORE,  //
 };
 
-static inline void add_shift_action(FklGrammerTermType cur_type,
+static inline void add_shift_action(FklGrammerSymType cur_type,
                                     FklAnalysisState *curState,
                                     const FklGrammerSym *sym, int allow_ignore,
                                     const FklSymbolTable *tt,
@@ -3748,14 +3748,13 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
     for (const FklLalrItemSetHashMapNode *l = states->first; l;
          l = l->next, idx++) {
         FklAnalysisState *curState = &astates[idx];
-        curState->builtin = 0;
         curState->func = NULL;
         curState->state.action = NULL;
         curState->state.gt = NULL;
         const FklLalrItemHashSet *items = &l->k;
         int ignore_added = 0;
         int is_single_way = is_only_single_way_to_reduce(&l->elm);
-        for (const FklGrammerTermType *priority = &grammerSymPriority[0];
+        for (const FklGrammerSymType *priority = &grammerSymPriority[0];
              priority < &grammerSymPriority[sizeof(grammerSymPriority)
                                             / sizeof(*priority)];
              ++priority) {
@@ -4446,13 +4445,13 @@ static inline void build_state_action_to_c_file(
             CB_LINE("symbolStack->size-=%" FKL_PRT64U ";", actual_len);
             CB_LINE(
                 "FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
-            CB_LINE("FklStateFuncPtr nextState=NULL;");
+            CB_LINE("FklParseState nextState={.func=NULL};");
             CB_LINE("func(NULL,NULL,NULL,0,%" FKL_PRT64U
-                    ",(void**)&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
+                    ",&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
                     ac->prod->left.sid);
-            CB_LINE("if(!nextState) return FKL_PARSE_REDUCE_FAILED;");
             CB_LINE(
-                "fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=nextState});");
+                "if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
+            CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
 
             if (actual_len) {
                 CB_LINE("void** nodes=(void**)fklZmalloc(%" FKL_PRT64U
@@ -4518,7 +4517,7 @@ build_state_prototype_to_c_file(const FklAnalysisState *states, size_t idx,
     CB_LINE(",FklUintVector*");
     CB_LINE(",int");
     CB_LINE(",FklSid_t");
-    CB_LINE(",void** pfunc");
+    CB_LINE(",FklParseState* pfunc");
     CB_LINE(",const char*");
     CB_LINE(",const char**");
     CB_LINE(",size_t*");
@@ -4539,7 +4538,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
         CB_LINE(",FklUintVector* lineStack");
         CB_LINE(",int is_action");
         CB_LINE(",FklSid_t left");
-        CB_LINE(",void** pfunc");
+        CB_LINE(",FklParseState* pfunc");
         CB_LINE(",const char* start");
         CB_LINE(",const char** in");
         CB_LINE(",size_t* restLen");
@@ -4618,7 +4617,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
             if (gt) {
                 CB_LINE("if(left==%" FKL_PRT64U "){", gt->nt.sid);
                 CB_INDENT(flag) {
-                    CB_LINE("*pfunc=(void*)state_%" FKL_PRT64U ";",
+                    CB_LINE("pfunc->func=state_%" FKL_PRT64U ";",
                             gt->state - states);
                     CB_LINE("return 0;");
                 }
@@ -4628,7 +4627,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
                 for (; gt; gt = gt->next) {
                     CB_LINE("else if(left==%" FKL_PRT64U "){", gt->nt.sid);
                     CB_INDENT(flag) {
-                        CB_LINE("*pfunc=(void*)state_%" FKL_PRT64U ";",
+                        CB_LINE("pfunc->func=state_%" FKL_PRT64U ";",
                                 gt->state - states);
                         CB_LINE("return 0;");
                     }

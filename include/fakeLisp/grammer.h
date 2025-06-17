@@ -73,7 +73,7 @@ typedef enum {
     FKL_TERM_IGNORE,
     FKL_TERM_EOF,
     FKL_TERM_NONTERM,
-} FklGrammerTermType;
+} FklGrammerSymType;
 
 #define FKL_LALR_MATCH_NONE_INIT                                               \
     ((FklLalrItemLookAhead){                                                   \
@@ -85,7 +85,7 @@ typedef enum {
     })
 
 typedef struct {
-    FklGrammerTermType t;
+    FklGrammerSymType t;
     union {
         const FklString *s;
         FklLalrBuiltinGrammerSym b;
@@ -196,7 +196,7 @@ static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
 #include "hash.h"
 
 typedef struct FklGrammerSym {
-    FklGrammerTermType type;
+    FklGrammerSymType type;
     union {
         FklGrammerNonterm nt;
         FklLalrBuiltinGrammerSym b;
@@ -358,7 +358,7 @@ typedef struct FklAnalysisStateGoto {
 } FklAnalysisStateGoto;
 
 typedef struct {
-    FklGrammerTermType t;
+    FklGrammerSymType t;
     int allow_ignore;
     union {
         const FklString *str;
@@ -383,7 +383,6 @@ typedef struct FklAnalysisStateAction {
 } FklAnalysisStateAction;
 
 typedef struct FklAnalysisState {
-    unsigned int builtin : 1;
     union {
         void *func;
         struct {
@@ -404,7 +403,7 @@ typedef struct {
         FklLalrBuiltinGrammerSym b;
         const FklRegexCode *re;
     };
-    FklGrammerTermType term_type;
+    FklGrammerSymType term_type;
 } FklGrammerIgnoreSym;
 
 typedef struct FklGrammerIgnore {
@@ -570,10 +569,13 @@ struct FklParseStateVector;
 #define FKL_VECTOR_ELM_TYPE_NAME AnalysisSymbol
 #include "vector.h"
 
+typedef union FklParseState FklParseState;
+
 typedef int (*FklStateFuncPtr)(struct FklParseStateVector *,
                                FklAnalysisSymbolVector *, FklUintVector *, int,
-                               FklSid_t, void **, const char *, const char **,
-                               size_t *, FklGrammerMatchOuterCtx *, int *,
+                               FklSid_t, FklParseState *func,
+                               const char *, const char **, size_t *,
+                               FklGrammerMatchOuterCtx *, int *,
                                size_t *errLine);
 
 typedef union FklParseState {

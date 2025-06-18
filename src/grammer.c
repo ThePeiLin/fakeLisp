@@ -2744,10 +2744,11 @@ static inline void add_gra_link_syms(GraSymbolHashSet *checked,
             int allow_ignore =
                 is_gra_link_sym_allow_ignore(checked, l->k.prod->left);
 
-            int is_at_delim = is_at_delim_sym(&l->k);
+            // int is_at_delim = is_at_delim_sym(&l->k);
             GraLinkSym ss = {.sym = *sym,
-                             .allow_ignore = allow_ignore || is_at_delim,
-                             .is_at_delim = is_at_delim};
+                             .allow_ignore =
+                                 allow_ignore || is_at_delim_sym(&l->k),
+                             .is_at_delim = 0};
             graSymbolHashSetPut(checked, &ss);
         }
     }
@@ -2787,7 +2788,9 @@ static inline void lr0_item_set_goto(GraSymbolHashSet *checked,
         for (FklLalrItemHashSetNode *l = itemsClosure.first; l; l = l->next) {
             FklGrammerSym *next = get_item_next(&l->k);
             if (next && grammer_sym_equal(&ll->k.sym, next)
-                && ll->k.is_at_delim == is_at_delim_sym(&l->k)) {
+                && (ll->k.is_at_delim == is_at_delim_sym(&l->k)
+                    || ll->k.sym.type == FKL_TERM_NONTERM)
+                ) {
                 FklLalrItem item = get_item_advance(&l->k);
                 fklLalrItemHashSetPut(&newItems, &item);
             }
@@ -3301,14 +3304,16 @@ create_shift_action(const FklGrammerSym *sym, int allow_ignore,
 }
 
 static inline FklAnalysisStateGoto *
-create_state_goto(const FklGrammerSym *sym, const FklSymbolTable *tt,
-                  FklAnalysisStateGoto *next, FklAnalysisState *state) {
+create_state_goto(const FklGrammerSym *sym, int allow_ignore,
+                  const FklSymbolTable *tt, FklAnalysisStateGoto *next,
+                  FklAnalysisState *state) {
     FklAnalysisStateGoto *gt =
         (FklAnalysisStateGoto *)fklZmalloc(sizeof(FklAnalysisStateGoto));
     FKL_ASSERT(gt);
     gt->next = next;
     gt->state = state;
     gt->nt = sym->nt;
+    gt->allow_ignore = allow_ignore;
     return gt;
 }
 
@@ -3767,9 +3772,15 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
                     if (sym->type == *priority)
                         add_shift_action(*priority, curState, sym,
                                          ll->allow_ignore, tt, dstState);
-                } else if (*priority == FKL_TERM_IGNORE)
-                    curState->state.gt = create_state_goto(
-                        sym, tt, curState->state.gt, dstState);
+                } else if (*priority == FKL_TERM_STRING && ll->allow_ignore) {
+                    curState->state.gt =
+                        create_state_goto(sym, ll->allow_ignore, tt,
+                                          curState->state.gt, dstState);
+                } else if (*priority == FKL_TERM_KEYWORD && !ll->allow_ignore) {
+                    curState->state.gt =
+                        create_state_goto(sym, ll->allow_ignore, tt,
+                                          curState->state.gt, dstState);
+                }
             }
             if (is_single_way)
                 continue;
@@ -4615,7 +4626,10 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
         CB_INDENT(flag) {
             const FklAnalysisStateGoto *gt = state->state.gt;
             if (gt) {
-                CB_LINE("if(left==%" FKL_PRT64U "){", gt->nt.sid);
+                if (gt->allow_ignore)
+                    CB_LINE("if(1 && left==%" FKL_PRT64U "){", gt->nt.sid);
+                else
+                    CB_LINE("if(left==%" FKL_PRT64U "){", gt->nt.sid);
                 CB_INDENT(flag) {
                     CB_LINE("pfunc->func=state_%" FKL_PRT64U ";",
                             gt->state - states);
@@ -4625,7 +4639,11 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
 
                 gt = gt->next;
                 for (; gt; gt = gt->next) {
-                    CB_LINE("else if(left==%" FKL_PRT64U "){", gt->nt.sid);
+                    if (gt->allow_ignore)
+                        CB_LINE("else if(1 && left==%" FKL_PRT64U "){",
+                                gt->nt.sid);
+                    else
+                        CB_LINE("else if(left==%" FKL_PRT64U "){", gt->nt.sid);
                     CB_INDENT(flag) {
                         CB_LINE("pfunc->func=state_%" FKL_PRT64U ";",
                                 gt->state - states);

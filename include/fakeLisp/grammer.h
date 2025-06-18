@@ -352,6 +352,7 @@ typedef enum {
 } FklAnalysisStateActionEnum;
 
 typedef struct FklAnalysisStateGoto {
+    int allow_ignore;
     FklGrammerNonterm nt;
     struct FklAnalysisState *state;
     struct FklAnalysisStateGoto *next;

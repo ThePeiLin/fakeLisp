@@ -64,11 +64,11 @@ static const FklGrammerCstrAction test_json_and_action[] = {
 static const FklGrammerCstrAction test_ignore_and_action[]={
     // clang-format off
 	{"s ## &item-list",      "test_action", NULL },
-	{"s ## &item-list",        "test_action", NULL },
+	{"s ## + &item-list",        "test_action", NULL },
 
 	{"item-list #( &items #)", "test_action", NULL },
 	{"items ",                 "test_action", NULL },
-	{"items &items &item",     "test_action", NULL },
+	{"items &items &item ",     "test_action", NULL },
 
 	{"item &?dint",            "test_action", NULL },
 

@@ -2789,8 +2789,7 @@ static inline void lr0_item_set_goto(GraSymbolHashSet *checked,
             FklGrammerSym *next = get_item_next(&l->k);
             if (next && grammer_sym_equal(&ll->k.sym, next)
                 && (ll->k.is_at_delim == is_at_delim_sym(&l->k)
-                    || ll->k.sym.type == FKL_TERM_NONTERM)
-                ) {
+                    || ll->k.sym.type == FKL_TERM_NONTERM)) {
                 FklLalrItem item = get_item_advance(&l->k);
                 fklLalrItemHashSetPut(&newItems, &item);
             }
@@ -5053,16 +5052,14 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
                           FklStateActionMatchArgs *args) {
     args->skip_ignore_len = 0;
     int has_tried_match_ignore = 0;
-    size_t skip_ignore_len = 0;
 match_start:
     switch (match->t) {
     case FKL_TERM_STRING: {
         const FklString *laString = match->str;
-        if (fklStringCharBufMatch(laString, cstr + skip_ignore_len,
-                                  restLen - skip_ignore_len)
+        if (fklStringCharBufMatch(laString, cstr + args->skip_ignore_len,
+                                  restLen - args->skip_ignore_len)
             >= 0) {
             args->matchLen = laString->size;
-            args->skip_ignore_len = skip_ignore_len;
             return 1;
         }
     } break;
@@ -5071,7 +5068,6 @@ match_start:
         if (match_char_buf_end_with_terminal(laString, cstr, restLen, g,
                                              outerCtx, start)) {
             args->matchLen = laString->size;
-            args->skip_ignore_len = skip_ignore_len;
             return 1;
         }
     } break;
@@ -5081,23 +5077,22 @@ match_start:
         return 1;
         break;
     case FKL_TERM_BUILTIN:
-        if (match->func.t->match(match->func.c, start, cstr + skip_ignore_len,
-                                 restLen - skip_ignore_len, &args->matchLen,
-                                 outerCtx, is_waiting_for_more)) {
-            args->skip_ignore_len = skip_ignore_len;
+        if (match->func.t->match(
+                match->func.c, start, cstr + args->skip_ignore_len,
+                restLen - args->skip_ignore_len, &args->matchLen, outerCtx,
+                is_waiting_for_more)) {
             return 1;
         }
         break;
     case FKL_TERM_REGEX: {
         int last_is_true = 0;
         uint32_t len =
-            fklRegexLexMatchp(match->re, cstr + skip_ignore_len,
-                              restLen - skip_ignore_len, &last_is_true);
-        if (len > restLen - skip_ignore_len)
+            fklRegexLexMatchp(match->re, cstr + args->skip_ignore_len,
+                              restLen - args->skip_ignore_len, &last_is_true);
+        if (len > restLen - args->skip_ignore_len)
             *is_waiting_for_more |= last_is_true;
         else {
             args->matchLen = len;
-            args->skip_ignore_len = skip_ignore_len;
             return 1;
         }
     } break;
@@ -5121,7 +5116,7 @@ match_start:
                     > 0)
             || args->ignore_len > 0)) {
         has_tried_match_ignore = 1;
-        skip_ignore_len = (size_t)args->ignore_len;
+        args->skip_ignore_len = (size_t)args->ignore_len;
         goto match_start;
     }
 

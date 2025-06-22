@@ -4535,7 +4535,8 @@ recompute_prod_terminal_sid(FklGrammerProduction *prod,
     FklGrammerSym *sym = prod->syms;
     for (size_t i = 0; i < len; i++) {
         FklGrammerSym *cur = &sym[i];
-        if (cur->type != FKL_TERM_NONTERM && cur->type != FKL_TERM_BUILTIN)
+        if (cur->type != FKL_TERM_NONTERM && cur->type != FKL_TERM_BUILTIN
+            && cur->type != FKL_TERM_IGNORE)
             cur->nt.sid =
                 fklAddSymbol(fklGetSymbolWithId(cur->nt.sid, origin_table)->k,
                              target_table)

@@ -11,36 +11,39 @@
 extern "C" {
 #endif
 
+#ifndef FKL_ZMALLOC_ALIGN_PADDING
+#define ALIGN_PADDING alignof(max_align_t)
+#endif
+
 static inline size_t fklZmallocSize(void *ptr) {
-    return ptr == NULL ? 0
-                       : *((size_t *)(((char *)ptr) - alignof(max_align_t)));
+    return ptr == NULL ? 0 : *((size_t *)(((char *)ptr) - ALIGN_PADDING));
 }
 
 static inline void *fklZmalloc(size_t size) {
     if (size == 0)
         return NULL;
-    void *ptr = malloc(alignof(max_align_t) + size);
+    void *ptr = malloc(ALIGN_PADDING + size);
     if (ptr == NULL)
         return NULL;
     *((size_t *)ptr) = size;
-    return (void *)(((char *)ptr) + alignof(max_align_t));
+    return (void *)(((char *)ptr) + ALIGN_PADDING);
 }
 
 static inline void *fklZcalloc(size_t ele_num, size_t size) {
     size *= ele_num;
     if (size == 0)
         return NULL;
-    void *ptr = calloc(1, alignof(max_align_t) + size);
+    void *ptr = calloc(1, ALIGN_PADDING + size);
     if (ptr == NULL)
         return NULL;
     *((size_t *)ptr) = size;
-    return (void *)(((char *)ptr) + alignof(max_align_t));
+    return (void *)(((char *)ptr) + ALIGN_PADDING);
 }
 
 static inline void fklZfree(void *ptr) {
     if (ptr == NULL)
         return;
-    free(((char *)ptr) - alignof(max_align_t));
+    free(((char *)ptr) - ALIGN_PADDING);
 }
 
 static inline char *fklZstrdup(const char *str) {
@@ -60,15 +63,15 @@ static inline void *fklZrealloc(void *ptr, size_t new_size) {
         return NULL;
     } else if (ptr == NULL) {
         return fklZmalloc(new_size);
-    } else if (*((size_t *)(((char *)ptr) - alignof(max_align_t))) == new_size)
+    } else if (*((size_t *)(((char *)ptr) - ALIGN_PADDING)) == new_size)
         return ptr;
 
-    void *new_ptr = realloc((((char *)ptr) - alignof(max_align_t)),
-                            alignof(max_align_t) + new_size);
+    void *new_ptr =
+        realloc((((char *)ptr) - ALIGN_PADDING), ALIGN_PADDING + new_size);
     if (new_ptr == NULL)
         return NULL;
     *((size_t *)new_ptr) = new_size;
-    return (void *)(((char *)new_ptr) + alignof(max_align_t));
+    return (void *)(((char *)new_ptr) + ALIGN_PADDING);
 }
 
 #ifdef __cplusplus

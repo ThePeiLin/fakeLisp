@@ -14,7 +14,7 @@ void fuvReqCleanUp(FuvReq *req) {
     FuvReqData *data = &req->data;
     if (data->loop) {
         data->callback = NULL;
-        data->loop = NULL;
+        fuvLoopRemoveReqRef(data->loop, req);
     }
 }
 
@@ -42,7 +42,6 @@ static inline int fuv_req_ud_finalizer(FklVMud *ud) {
     if (req->data.loop) {
         FklVMvalue *v = FKL_VM_VALUE_OF(ud);
         fuvLoopAddGcObj(req->data.loop, v);
-        req->data.loop = NULL;
         return FKL_VM_UD_FINALIZE_DELAY;
     }
     fuvReqCleanUp(req);
@@ -187,6 +186,7 @@ static inline void init_fuv_req(FuvReq *req, FklVMvalue *v, FklVMvalue *loop,
     req->data.loop = loop;
     req->data.callback = callback;
     uv_req_set_data(&req->req, req);
+    fuvLoopAddReqRef(loop, req);
 }
 
 #define FUV_REQ_P(NAME, ENUM)                                                  \

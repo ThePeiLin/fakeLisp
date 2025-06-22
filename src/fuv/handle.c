@@ -1,4 +1,5 @@
 #include "fuv.h"
+#include <uv.h>
 
 static void fuv_handle_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(handle, FuvHandle, ud);
@@ -12,7 +13,6 @@ static int fuv_handle_ud_finalizer(FklVMud *ud) {
     FuvHandleData *handle_data = &handle->data;
     if (handle_data->loop) {
         fuvLoopAddGcObj(handle_data->loop, FKL_VM_VALUE_OF(ud));
-        handle_data->loop = NULL;
         return FKL_VM_UD_FINALIZE_DELAY;
     }
     return FKL_VM_UD_FINALIZE_NOW;
@@ -209,7 +209,26 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
     [UV_FILE] = {0},
 };
 
-int isFuvHandle(FklVMvalue *v) {
+static void close_callback_wrapper(uv_handle_t *handle) {
+    FuvHandle *fuv_handle = uv_handle_get_data(handle);
+    if (fuv_handle->data.loop) {
+        fuvLoopRemoveHandleRef(fuv_handle->data.loop, fuv_handle);
+    }
+    if (fuv_handle->data.close_callback)
+        fuv_handle->data.close_callback(handle);
+    fuv_handle->data.close_callback = NULL;
+}
+
+void fuvHandleClose(FuvHandle *handle, uv_close_cb cb) {
+    if (uv_handle_get_loop(&handle->handle)) {
+        handle->data.close_callback = cb;
+        uv_close(&handle->handle, close_callback_wrapper);
+    } else {
+        fuvLoopRemoveHandleRef(handle->data.loop, handle);
+    }
+}
+
+int isFuvHandle(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
         const FklVMudMetaTable *t = FKL_VM_UD(v)->t;
         return t > &HandleMetaTables[UV_UNKNOWN_HANDLE]
@@ -224,6 +243,7 @@ static inline void init_fuv_handle(FuvHandle *handle, FklVMvalue *v,
     handle->data.callbacks[0] = NULL;
     handle->data.callbacks[1] = NULL;
     uv_handle_set_data(&handle->handle, handle);
+    fuvLoopAddHandleRef(loop, handle);
 }
 
 #define FUV_HANDLE_P(NAME, ENUM)                                               \

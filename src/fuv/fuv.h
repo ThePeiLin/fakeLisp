@@ -427,6 +427,7 @@ struct FuvErrorRecoverData {
 
 typedef struct {
     FklVM *exe;
+    FklVMvalue *refs;
     FklVMvalue *gclist;
     uv_idle_t error_check_idle;
     struct FuvErrorRecoverData error_recover_data;
@@ -446,8 +447,11 @@ typedef struct {
 } FuvLoop;
 
 typedef struct {
+    FklVMvalue *prev;
+    FklVMvalue *next;
     FklVMvalue *loop;
     FklVMvalue *callbacks[2];
+    uv_close_cb close_callback;
 } FuvHandleData;
 
 struct FuvAsyncExtraData {
@@ -557,9 +561,17 @@ static inline void fuvLoopSetClosed(FuvLoop *l) {
     l->data.is_closed = 1;
 }
 
-int isFuvHandle(FklVMvalue *v);
+void fuvHandleClose(FuvHandle *h, uv_close_cb cb);
+int isFuvHandle(const FklVMvalue *v);
+
 static inline int isFuvHandleClosed(const FuvHandle *h) {
     return h->data.loop == NULL;
+}
+
+static inline FuvHandle *getFuvHandle(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvHandle(v));
+    FKL_DECL_VM_UD_DATA(handle, FuvHandle, v);
+    return handle;
 }
 
 int isFuvTimer(FklVMvalue *v);
@@ -655,6 +667,8 @@ int symbolToSignum(FklSid_t, FuvPublicData *pd);
 FklSid_t signumToSymbol(int, FuvPublicData *pd);
 
 typedef struct {
+    FklVMvalue *prev;
+    FklVMvalue *next;
     FklVMvalue *loop;
     FklVMvalue *callback;
     FklVMvalue *write_data;
@@ -739,6 +753,16 @@ static inline FklVMvalue *fuvReqValueOf(FuvReq *req) {
     return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
 }
 
+static inline FklVMvalue *fuvHandleValueOf(FuvHandle *req) {
+    return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
+}
+
+void fuvLoopAddHandleRef(FklVMvalue *loop, FuvHandle *handle);
+void fuvLoopAddReqRef(FklVMvalue *loop, FuvReq *handle);
+
+void fuvLoopRemoveHandleRef(FklVMvalue *loop, FuvHandle *handle);
+void fuvLoopRemoveReqRef(FklVMvalue *loop, FuvReq *handle);
+
 int isFuvGetaddrinfo(FklVMvalue *v);
 uv_getaddrinfo_t *createFuvGetaddrinfo(FklVM *exe, FklVMvalue **r,
                                        FklVMvalue *rel, FklVMvalue *loop,
@@ -805,8 +829,6 @@ static inline void cleanUpDir(uv_dir_t *d, int cleanup_opt) {
 int isFuvDirUsing(FklVMvalue *dir);
 
 FklVMvalue *refFuvDir(FklVMvalue *dir, FklVMvalue *req_obj);
-
-void fuvCloseLoopHandleCb(uv_handle_t *handle);
 #ifdef __cplusplus
 }
 #endif

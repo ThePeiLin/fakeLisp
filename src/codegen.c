@@ -4517,8 +4517,8 @@ static inline void recompute_ignores_terminal_sid_and_regex(
         FklGrammerIgnoreSym *cur = &syms[idx];
         if (cur->term_type == FKL_TERM_BUILTIN) {
             int failed = 0;
-            cur->b.c = cur->b.t->ctx_create(
-                idx + 1 < len ? syms[idx + 1].str : NULL, &failed);
+            // cur->b.c = cur->b.t->ctx_create(
+            //     idx + 1 < len ? syms[idx + 1].str : NULL, &failed);
         } else if (cur->term_type == FKL_TERM_REGEX)
             cur->re = fklAddRegexStr(
                 target_rt, fklGetStringWithRegex(orig_rt, cur->re, NULL));
@@ -7240,7 +7240,9 @@ static inline FklGrammerSym *nast_vector_to_production_right_part(
                 if (fklGetBuiltinMatch(builtin_term, cur->sym)) {
                     ss->type = FKL_TERM_BUILTIN;
                     ss->b.t = fklGetBuiltinMatch(builtin_term, cur->sym);
-                    ss->b.c = NULL;
+                    ss->b.args = NULL;
+                    ss->b.len = 0;
+                    // ss->b.c = NULL;
                 } else {
                     ss->type = FKL_TERM_NONTERM;
                     ss->nt.group = 0;
@@ -7830,10 +7832,11 @@ static inline int init_builtin_grammer(FklCodegenInfo *codegen,
     fklGraProdGroupHashMapInit(codegen->named_prod_groups);
     codegen->self_unnamed_ignores = NULL;
     *codegen->unnamed_ignores = NULL;
-    *codegen->builtin_ignores = fklInitBuiltinProductionSet(
-        codegen->builtin_prods, st, &g->terminals, &g->regexes, &g->builtins);
+    *codegen->builtin_ignores = fklInitBuiltinProductionSet(g);
 
     g->ignores = NULL;
+    *codegen->builtin_prods = g->productions;
+    g->productions = (FklProdHashMap){0};
 
     fklClearGrammer(g);
     if (add_group_ignores(g, *codegen->builtin_ignores))

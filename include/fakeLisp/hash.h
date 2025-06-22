@@ -88,6 +88,10 @@
     }
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline uintptr_t METHOD(__hashv)(FKL_HASH_KEY_TYPE const *pk) {
     FKL_HASH_KEY_HASH;
 }
@@ -545,6 +549,10 @@ static inline int METHOD(Del)(NAME *self, FKL_HASH_KEY_TYPE const *k) {
 static inline int METHOD(Del2)(NAME *self, FKL_HASH_KEY_TYPE k) {
     return METHOD(Del)(self, &k);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #undef CONCAT
 #undef CONCAT_

@@ -69,6 +69,44 @@ ssize_t fklCharBufMatch(const char *a, size_t a_size, const char *b,
     return -1;
 }
 
+size_t fklQuotedStringMatch(const char *cstr, size_t restLen,
+                            const FklString *end) {
+    if (restLen < end->size)
+        return 0;
+    size_t matchLen = 0;
+    size_t len = 0;
+    for (; len < restLen; len++) {
+        if (cstr[len] == '\\') {
+            len++;
+            continue;
+        }
+        if (fklStringCharBufMatch(end, &cstr[len], restLen - len) >= 0) {
+            matchLen += len + end->size;
+            return matchLen;
+        }
+    }
+    return 0;
+}
+
+size_t fklQuotedCharBufMatch(const char *cstr, size_t restLen, const char *end,
+                             size_t end_size) {
+    if (restLen < end_size)
+        return 0;
+    size_t matchLen = 0;
+    size_t len = 0;
+    for (; len < restLen; len++) {
+        if (cstr[len] == '\\') {
+            len++;
+            continue;
+        }
+        if (fklCharBufMatch(end, end_size, &cstr[len], restLen - len) >= 0) {
+            matchLen += len + end_size;
+            return matchLen;
+        }
+    }
+    return 0;
+}
+
 FklString *fklCopyString(const FklString *obj) {
     return fklCreateString(obj->size, obj->str);
 }

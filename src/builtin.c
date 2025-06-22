@@ -2039,7 +2039,9 @@ vm_vec_to_prod(int is_adding_ignore, FklVMvec *vec,
                 if (builtin_match) {
                     ss->type = FKL_TERM_BUILTIN;
                     ss->b.t = builtin_match;
-                    ss->b.c = NULL;
+                    ss->b.len = 0;
+                    ss->b.args = NULL;
+                    // ss->b.c = NULL;
                 } else {
                     ss->type = FKL_TERM_NONTERM;
                     ss->nt.group = 0;

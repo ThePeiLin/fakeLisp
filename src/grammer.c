@@ -4,6 +4,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
@@ -24,8 +25,16 @@ static inline int is_Sq_nt(const FklGrammerNonterm *nt) {
 void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len) {
     for (size_t i = 0; i < len; i++) {
         FklGrammerSym *s = &syms[i];
-        if (s->type == FKL_TERM_BUILTIN && s->b.c && s->b.t->ctx_destroy)
-            s->b.t->ctx_destroy(s->b.c);
+        if (s->type == FKL_TERM_BUILTIN) {
+            // if (s->b.c && s->b.t->ctx_destroy)
+            //     s->b.t->ctx_destroy(s->b.c);
+
+            if (s->b.len) {
+                s->b.len = 0;
+                fklZfree(s->b.args);
+                s->b.args = NULL;
+            }
+        }
     }
 }
 
@@ -39,8 +48,8 @@ void fklDestroyGrammerProduction(FklGrammerProduction *h) {
 }
 
 static inline void destroy_builtin_grammer_sym(FklLalrBuiltinGrammerSym *s) {
-    if (s->t->ctx_destroy && s->c)
-        s->t->ctx_destroy(s->c);
+    // if (s->t->ctx_destroy && s->c)
+    //     s->t->ctx_destroy(s->c);
 }
 
 FklGrammerProduction *fklCreateProduction(FklSid_t group, FklSid_t sid,
@@ -102,42 +111,43 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
 
 #define DEFINE_DEFAULT_C_MATCH_COND(NAME)                                      \
     static void builtin_match_##NAME##_print_c_match_cond(                     \
-        void *ctx, const FklGrammer *g, FklCodeBuilder *build) {               \
+        const FklBuiltinTerminalMatchArgs *args, FklCodeBuilder *build) {      \
         CB_FMT("builtin_match_" #NAME                                          \
                "(start,*in+otherMatchLen+skip_ignore_len,*restLen-"            \
-               "otherMatchLen-skip_ignore_len,&matchLen,outerCtx)");           \
+               "otherMatchLen-skip_ignore_len,&matchLen,ctx)");                \
     }
 
-static void default_builtin_match_print_src(const FklGrammer *g,
-                                            FklCodeBuilder *build) {
-    CB_FMT("");
-}
-
-static inline const FklGrammerSym *sym_at_idx(const FklGrammerProduction *prod,
-                                              size_t i) {
-    if (i < prod->len)
-        return &prod->syms[i];
-    return NULL;
-}
-
-static inline void *init_builtin_grammer_sym(const FklLalrBuiltinMatch *m,
-                                             size_t i,
-                                             FklGrammerProduction *prod,
-                                             FklGrammer *g, int *failed) {
-    if (m->ctx_global_create)
-        return m->ctx_global_create(i, prod, g, failed);
-    if (m->ctx_create) {
-        const FklGrammerSym *sym = sym_at_idx(prod, i + 1);
-        if (sym && sym->type != FKL_TERM_STRING) {
-            *failed = 1;
-            return NULL;
-        }
-        const FklString *next =
-            sym ? fklGetSymbolWithId(sym->nt.sid, &g->terminals)->k : NULL;
-        return m->ctx_create(next, failed);
-    }
-    return NULL;
-}
+// static void default_builtin_match_print_src(const FklGrammer *g,
+//                                             FklCodeBuilder *build) {
+//     CB_FMT("");
+// }
+//
+// static inline const FklGrammerSym *sym_at_idx(const FklGrammerProduction
+// *prod,
+//                                               size_t i) {
+//     if (i < prod->len)
+//         return &prod->syms[i];
+//     return NULL;
+// }
+//
+// static inline void *init_builtin_grammer_sym(const FklLalrBuiltinMatch *m,
+//                                              size_t i,
+//                                              FklGrammerProduction *prod,
+//                                              FklGrammer *g, int *failed) {
+//     if (m->ctx_global_create)
+//         return m->ctx_global_create(i, prod, g, failed);
+//     if (m->ctx_create) {
+//         const FklGrammerSym *sym = sym_at_idx(prod, i + 1);
+//         if (sym && sym->type != FKL_TERM_STRING) {
+//             *failed = 1;
+//             return NULL;
+//         }
+//         const FklString *next =
+//             sym ? fklGetSymbolWithId(sym->nt.sid, &g->terminals)->k : NULL;
+//         return m->ctx_create(next, failed);
+//     }
+//     return NULL;
+// }
 
 void fklProdCtxDestroyDoNothing(void *c) {}
 
@@ -278,7 +288,9 @@ static inline FklGrammerProduction *create_grammer_prod_from_cstr(
             if (builtin) {
                 u->type = FKL_TERM_BUILTIN;
                 u->b.t = builtin;
-                u->b.c = NULL;
+                u->b.len = 0;
+                u->b.args = NULL;
+                // u->b.c = NULL;
             } else {
                 u->type = FKL_TERM_NONTERM;
                 u->nt.group = 0;
@@ -310,18 +322,18 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
         else if (sym->type == FKL_TERM_BUILTIN) {
             int failed = 0;
             FklLalrBuiltinGrammerSym *b = &sym->b;
-            if (b->t->ctx_global_create && !b->t->ctx_create)
-                return NULL;
-            if (b->c)
-                destroy_builtin_grammer_sym(b);
-            if (b->t->ctx_create) {
-                FklGrammerSym *sym = (i < len) ? &syms[i] : NULL;
-                if (sym && sym->type != FKL_TERM_STRING)
-                    return NULL;
-                const FklString *next =
-                    sym ? fklGetSymbolWithId(sym->nt.sid, tt)->k : NULL;
-                b->c = b->t->ctx_create(next, &failed);
-            }
+            // if (b->t->ctx_global_create && !b->t->ctx_create)
+            //     return NULL;
+            // if (b->c)
+            //     destroy_builtin_grammer_sym(b);
+            // if (b->t->ctx_create) {
+            //     FklGrammerSym *sym = (i < len) ? &syms[i] : NULL;
+            //     if (sym && sym->type != FKL_TERM_STRING)
+            //         return NULL;
+            //     const FklString *next =
+            //         sym ? fklGetSymbolWithId(sym->nt.sid, tt)->k : NULL;
+            //     b->c = b->t->ctx_create(next, &failed);
+            // }
             if (failed)
                 return NULL;
         }
@@ -426,7 +438,9 @@ static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
             if (builtin) {
                 u->type = FKL_TERM_BUILTIN;
                 u->b.t = builtin;
-                u->b.c = NULL;
+                u->b.len = 0;
+                u->b.args = NULL;
+                // u->b.c = NULL;
             } else {
                 u->type = FKL_TERM_NONTERM;
                 u->nt.group = 0;
@@ -456,8 +470,13 @@ static inline int prod_sym_equal(const FklGrammerSym *u0,
         switch (u0->type) {
         case FKL_TERM_BUILTIN:
             if (u0->b.t == u1->b.t) {
-                if (u0->b.t->ctx_equal)
-                    return u0->b.t->ctx_equal(u0->b.c, u1->b.c);
+                if (u0->b.len != u1->b.len)
+                    return 0;
+                for (size_t i = 0; i < u0->b.len; ++i)
+                    if (!fklStringEqual(u0->b.args[i], u1->b.args[i]))
+                        return 0;
+                // if (u0->b.t->ctx_equal)
+                //     return u0->b.t->ctx_equal(u0->b.c, u1->b.c);
                 return 1;
             }
             return 0;
@@ -636,8 +655,19 @@ int fklAddProdToProdTableNoRepeat(FklProdHashMap *productions,
 
 static inline int builtin_grammer_sym_cmp(const FklLalrBuiltinGrammerSym *b0,
                                           const FklLalrBuiltinGrammerSym *b1) {
-    if (b0->t->ctx_cmp)
-        return b0->t->ctx_cmp(b0->c, b1->c);
+    if (b0->len > b1->len)
+        return 1;
+    else if (b0->len < b1->len)
+        return -1;
+    else {
+        for (size_t i = 0; i < b0->len; ++i) {
+            int r = fklStringCmp(b0->args[i], b1->args[i]);
+            if (r != 0)
+                return r;
+        }
+    }
+    // if (b0->t->ctx_cmp)
+    //     return b0->t->ctx_cmp(b0->c, b1->c);
     return 0;
 }
 
@@ -689,10 +719,10 @@ static inline void build_string_in_hex(const FklString *stri,
         CB_FMT("\\x%02X", str[i]);
 }
 
-static inline int ignore_match(const FklGrammerIgnore *ig, const char *start,
-                               const char *str, size_t restLen,
-                               size_t *pmatchLen,
-                               FklGrammerMatchOuterCtx *outerCtx,
+static inline int ignore_match(const FklGrammer *g, const FklGrammerIgnore *ig,
+                               const char *start, const char *str,
+                               size_t restLen, size_t *pmatchLen,
+                               FklGrammerMatchOuterCtx *ctx,
                                int *is_waiting_for_more) {
     size_t matchLen = 0;
     const FklGrammerIgnoreSym *igss = ig->ig;
@@ -701,8 +731,13 @@ static inline int ignore_match(const FklGrammerIgnore *ig, const char *start,
         const FklGrammerIgnoreSym *ig = &igss[i];
         if (ig->term_type == FKL_TERM_BUILTIN) {
             size_t len = 0;
-            if (ig->b.t->match(ig->b.c, start, str, restLen - matchLen, &len,
-                               outerCtx, is_waiting_for_more)) {
+            FklBuiltinTerminalMatchArgs args = {
+                .g = g,
+                .len = ig->b.len,
+                .args = ig->b.args,
+            };
+            if (ig->b.t->match(&args, start, str, restLen - matchLen, &len, ctx,
+                               is_waiting_for_more)) {
                 str += len;
                 matchLen += len;
             } else
@@ -748,8 +783,8 @@ static inline size_t get_max_non_term_length(const FklGrammer *g,
             int is_waiting_for_more = 0;
             for (FklGrammerIgnore *ig = ignores; ig; ig = ig->next) {
                 size_t matchLen = 0;
-                if (ignore_match(ig, start, cur, restLen - len, &matchLen, ctx,
-                                 &is_waiting_for_more))
+                if (ignore_match(g, ig, start, cur, restLen - len, &matchLen,
+                                 ctx, &is_waiting_for_more))
                     goto break_loop;
             }
             for (size_t i = 0; i < num; i++)
@@ -765,14 +800,14 @@ static inline size_t get_max_non_term_length(const FklGrammer *g,
     return 0;
 }
 
-static int builtin_match_dec_int_func(void *ctx, const char *start,
-                                      const char *cstr, size_t restLen,
-                                      size_t *pmatchLen,
-                                      FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_dec_int_func(const FklBuiltinTerminalMatchArgs *args,
+                                      const char *start, const char *cstr,
+                                      size_t restLen, size_t *pmatchLen,
+                                      FklGrammerMatchOuterCtx *ctx,
                                       int *is_waiting_for_more) {
     if (restLen) {
         size_t maxLen =
-            get_max_non_term_length(ctx, outerCtx, start, cstr, restLen);
+            get_max_non_term_length(args->g, ctx, start, cstr, restLen);
         if (maxLen && fklIsDecInt(cstr, maxLen)) {
             *pmatchLen = maxLen;
             return 1;
@@ -806,14 +841,14 @@ static inline void sort_reachable_terminals(FklGrammer *g) {
     g->sortedTerminals = terms;
 }
 
-static void *builtin_match_number_global_create(size_t idx,
-                                                FklGrammerProduction *prod,
-                                                FklGrammer *g, int *failed) {
-    if (!g->sortedTerminals)
-        sort_reachable_terminals(g);
-    return g;
-}
-
+// static void *builtin_match_number_global_create(size_t idx,
+//                                                 FklGrammerProduction *prod,
+//                                                 FklGrammer *g, int *failed) {
+//     if (!g->sortedTerminals)
+//         sort_reachable_terminals(g);
+//     return g;
+// }
+//
 DEFINE_DEFAULT_C_MATCH_COND(dec_int);
 
 static inline void build_builtin_match_print_src(FklCodeBuilder *build,
@@ -824,14 +859,14 @@ static inline void build_builtin_match_print_src(FklCodeBuilder *build,
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
         CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx)");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx)");
     }
     CB_LINE("{");
     CB_INDENT(flag) {
         CB_LINE("if(restLen){");
         CB_INDENT(flag) {
             CB_LINE(
-                "size_t maxLen=get_max_non_term_length(outerCtx,start,cstr,restLen);");
+                "size_t maxLen=get_max_non_term_length(ctx,start,cstr,restLen);");
             CB_LINE("if(maxLen&&%s(cstr,maxLen)){", func_name);
             CB_INDENT(flag) {
                 CB_LINE("*pmatchLen=maxLen;");
@@ -853,19 +888,19 @@ static void builtin_match_dec_int_print_src(const FklGrammer *g,
 static const FklLalrBuiltinMatch builtin_match_dec_int = {
     .name = "?dint",
     .match = builtin_match_dec_int_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_dec_int_print_src,
     .build_c_match_cond = builtin_match_dec_int_print_c_match_cond,
 };
 
-static int builtin_match_hex_int_func(void *ctx, const char *start,
-                                      const char *cstr, size_t restLen,
-                                      size_t *pmatchLen,
-                                      FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_hex_int_func(const FklBuiltinTerminalMatchArgs *args,
+                                      const char *start, const char *cstr,
+                                      size_t restLen, size_t *pmatchLen,
+                                      FklGrammerMatchOuterCtx *ctx,
                                       int *is_waiting_for_more) {
     if (restLen) {
         size_t maxLen =
-            get_max_non_term_length(ctx, outerCtx, start, cstr, restLen);
+            get_max_non_term_length(args->g, ctx, start, cstr, restLen);
         if (maxLen && fklIsHexInt(cstr, maxLen)) {
             *pmatchLen = maxLen;
             return 1;
@@ -884,19 +919,19 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_int);
 static const FklLalrBuiltinMatch builtin_match_hex_int = {
     .name = "?xint",
     .match = builtin_match_hex_int_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_hex_int_print_src,
     .build_c_match_cond = builtin_match_hex_int_print_c_match_cond,
 };
 
-static int builtin_match_oct_int_func(void *ctx, const char *start,
-                                      const char *cstr, size_t restLen,
-                                      size_t *pmatchLen,
-                                      FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_oct_int_func(const FklBuiltinTerminalMatchArgs *args,
+                                      const char *start, const char *cstr,
+                                      size_t restLen, size_t *pmatchLen,
+                                      FklGrammerMatchOuterCtx *ctx,
                                       int *is_waiting_for_more) {
     if (restLen) {
         size_t maxLen =
-            get_max_non_term_length(ctx, outerCtx, start, cstr, restLen);
+            get_max_non_term_length(args->g, ctx, start, cstr, restLen);
         if (maxLen && fklIsOctInt(cstr, maxLen)) {
             *pmatchLen = maxLen;
             return 1;
@@ -915,19 +950,19 @@ DEFINE_DEFAULT_C_MATCH_COND(oct_int);
 static const FklLalrBuiltinMatch builtin_match_oct_int = {
     .name = "?oint",
     .match = builtin_match_oct_int_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_oct_int_print_src,
     .build_c_match_cond = builtin_match_oct_int_print_c_match_cond,
 };
 
-static int builtin_match_dec_float_func(void *ctx, const char *start,
-                                        const char *cstr, size_t restLen,
-                                        size_t *pmatchLen,
-                                        FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_dec_float_func(const FklBuiltinTerminalMatchArgs *args,
+                                        const char *start, const char *cstr,
+                                        size_t restLen, size_t *pmatchLen,
+                                        FklGrammerMatchOuterCtx *ctx,
                                         int *is_waiting_for_more) {
     if (restLen) {
         size_t maxLen =
-            get_max_non_term_length(ctx, outerCtx, start, cstr, restLen);
+            get_max_non_term_length(args->g, ctx, start, cstr, restLen);
         if (maxLen && fklIsDecFloat(cstr, maxLen)) {
             *pmatchLen = maxLen;
             return 1;
@@ -946,19 +981,19 @@ DEFINE_DEFAULT_C_MATCH_COND(dec_float);
 static const FklLalrBuiltinMatch builtin_match_dec_float = {
     .name = "?dfloat",
     .match = builtin_match_dec_float_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_dec_float_print_src,
     .build_c_match_cond = builtin_match_dec_float_print_c_match_cond,
 };
 
-static int builtin_match_hex_float_func(void *ctx, const char *start,
-                                        const char *cstr, size_t restLen,
-                                        size_t *pmatchLen,
-                                        FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_hex_float_func(const FklBuiltinTerminalMatchArgs *args,
+                                        const char *start, const char *cstr,
+                                        size_t restLen, size_t *pmatchLen,
+                                        FklGrammerMatchOuterCtx *ctx,
                                         int *is_waiting_for_more) {
     if (restLen) {
         size_t maxLen =
-            get_max_non_term_length(ctx, outerCtx, start, cstr, restLen);
+            get_max_non_term_length(args->g, ctx, start, cstr, restLen);
         if (maxLen && fklIsHexFloat(cstr, maxLen)) {
             *pmatchLen = maxLen;
             return 1;
@@ -977,18 +1012,17 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_float);
 static const FklLalrBuiltinMatch builtin_match_hex_float = {
     .name = "?xfloat",
     .match = builtin_match_hex_float_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_hex_float_print_src,
     .build_c_match_cond = builtin_match_hex_float_print_c_match_cond,
 };
 
-static int builtin_match_identifier_func(void *c, const char *cstrStart,
-                                         const char *cstr, size_t restLen,
-                                         size_t *pmatchLen,
-                                         FklGrammerMatchOuterCtx *outerCtx,
-                                         int *is_waiting_for_more) {
+static int builtin_match_identifier_func(
+    const FklBuiltinTerminalMatchArgs *args, const char *cstrStart,
+    const char *cstr, size_t restLen, size_t *pmatchLen,
+    FklGrammerMatchOuterCtx *ctx, int *is_waiting_for_more) {
     size_t maxLen =
-        get_max_non_term_length(c, outerCtx, cstrStart, cstr, restLen);
+        get_max_non_term_length(args->g, ctx, cstrStart, cstr, restLen);
     if (!maxLen || fklIsDecInt(cstr, maxLen) || fklIsOctInt(cstr, maxLen)
         || fklIsHexInt(cstr, maxLen) || fklIsDecFloat(cstr, maxLen)
         || fklIsHexFloat(cstr, maxLen) || fklIsAllDigit(cstr, maxLen))
@@ -1004,12 +1038,12 @@ static void builtin_match_identifier_print_src(const FklGrammer *g,
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
         CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx)");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx)");
     }
     CB_LINE("{");
     CB_INDENT(flag) {
         CB_LINE(
-            "size_t maxLen=get_max_non_term_length(outerCtx,cstrStart,cstr,restLen);");
+            "size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen);");
         CB_LINE("if(!maxLen");
         CB_INDENT(flag) {
             CB_INDENT(flag) {
@@ -1033,7 +1067,7 @@ DEFINE_DEFAULT_C_MATCH_COND(identifier);
 static const FklLalrBuiltinMatch builtin_match_identifier = {
     .name = "?identifier",
     .match = builtin_match_identifier_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_identifier_print_src,
     .build_c_match_cond = builtin_match_identifier_print_c_match_cond,
 };
@@ -1047,12 +1081,12 @@ static void builtin_match_noterm_print_src(const FklGrammer *g,
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
         CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx)");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx)");
     }
     CB_LINE("{");
     CB_INDENT(flag) {
         CB_LINE(
-            "size_t maxLen=get_max_non_term_length(outerCtx,cstrStart,cstr,restLen);");
+            "size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen);");
         CB_LINE("if(!maxLen)");
         CB_INDENT(flag) { CB_LINE("return 0;"); }
         CB_LINE("*pmatchLen=maxLen;");
@@ -1061,13 +1095,13 @@ static void builtin_match_noterm_print_src(const FklGrammer *g,
     CB_LINE("}");
 }
 
-static int builtin_match_noterm_func(void *c, const char *cstrStart,
-                                     const char *cstr, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_noterm_func(const FklBuiltinTerminalMatchArgs *args,
+                                     const char *cstrStart, const char *cstr,
+                                     size_t restLen, size_t *pmatchLen,
+                                     FklGrammerMatchOuterCtx *ctx,
                                      int *is_waiting_for_more) {
     size_t maxLen =
-        get_max_non_term_length(c, outerCtx, cstrStart, cstr, restLen);
+        get_max_non_term_length(args->g, ctx, cstrStart, cstr, restLen);
     if (!maxLen)
         return 0;
     *pmatchLen = maxLen;
@@ -1077,80 +1111,87 @@ static int builtin_match_noterm_func(void *c, const char *cstrStart,
 static const FklLalrBuiltinMatch builtin_match_noterm = {
     .name = "?noterm",
     .match = builtin_match_noterm_func,
-    .ctx_global_create = builtin_match_number_global_create,
+    // .ctx_global_create = builtin_match_number_global_create,
     .build_src = builtin_match_noterm_print_src,
     .build_c_match_cond = builtin_match_noterm_print_c_match_cond,
 };
 
-typedef struct {
-    const FklGrammer *g;
-    const FklString *start;
-} SymbolNumberCtx;
+// typedef struct {
+//     const FklGrammer *g;
+//     const FklString *start;
+// } SymbolNumberCtx;
+//
+// static void *s_number_ctx_global_create(size_t idx, FklGrammerProduction
+// *prod,
+//                                         FklGrammer *g, int *failed) {
+//     if (prod->len > 2 || idx != 0) {
+//         *failed = 1;
+//         return NULL;
+//     }
+//     const FklString *start = NULL;
+//     if (prod->len == 2) {
+//         if (prod->syms[1].type != FKL_TERM_STRING) {
+//             *failed = 1;
+//             return NULL;
+//         }
+//         start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
+//     }
+//     prod->len = 1;
+//     SymbolNumberCtx *ctx =
+//         (SymbolNumberCtx *)fklZmalloc(sizeof(SymbolNumberCtx));
+//     FKL_ASSERT(ctx);
+//     ctx->start = start;
+//     ctx->g = g;
+//     if (!g->sortedTerminals)
+//         sort_reachable_terminals(g);
+//     return ctx;
+// }
 
-static void *s_number_ctx_global_create(size_t idx, FklGrammerProduction *prod,
-                                        FklGrammer *g, int *failed) {
-    if (prod->len > 2 || idx != 0) {
-        *failed = 1;
-        return NULL;
-    }
-    const FklString *start = NULL;
-    if (prod->len == 2) {
-        if (prod->syms[1].type != FKL_TERM_STRING) {
-            *failed = 1;
-            return NULL;
-        }
-        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
-    }
-    prod->len = 1;
-    SymbolNumberCtx *ctx =
-        (SymbolNumberCtx *)fklZmalloc(sizeof(SymbolNumberCtx));
-    FKL_ASSERT(ctx);
-    ctx->start = start;
-    ctx->g = g;
-    if (!g->sortedTerminals)
-        sort_reachable_terminals(g);
-    return ctx;
+static FklBuiltinTerminalInitError
+s_number_create_new(size_t len, const FklString **args, struct FklGrammer *g) {
+    if (len > 1)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
+    return 0;
 }
 
-static int s_number_ctx_cmp(const void *c0, const void *c1) {
-    const SymbolNumberCtx *ctx0 = c0;
-    const SymbolNumberCtx *ctx1 = c1;
-    if (ctx0->start == ctx1->start)
-        return 0;
-    else if (ctx0 == NULL)
-        return -1;
-    else if (ctx1 == NULL)
-        return 1;
-    else
-        return fklStringCmp(ctx0->start, ctx1->start);
-}
-
-static int s_number_ctx_equal(const void *c0, const void *c1) {
-    const SymbolNumberCtx *ctx0 = c0;
-    const SymbolNumberCtx *ctx1 = c1;
-    if (ctx0->start == ctx1->start)
-        return 1;
-    else if (ctx0 == NULL || ctx1 == NULL)
-        return 0;
-    else
-        return !fklStringCmp(ctx0->start, ctx1->start);
-}
-
-static uintptr_t s_number_ctx_hash(const void *c0) {
-    const SymbolNumberCtx *ctx0 = c0;
-    return (uintptr_t)ctx0->start;
-}
-
-static void s_number_ctx_destroy(void *c) { fklZfree(c); }
+// static int s_number_ctx_cmp(const void *c0, const void *c1) {
+//     const SymbolNumberCtx *ctx0 = c0;
+//     const SymbolNumberCtx *ctx1 = c1;
+//     if (ctx0->start == ctx1->start)
+//         return 0;
+//     else if (ctx0 == NULL)
+//         return -1;
+//     else if (ctx1 == NULL)
+//         return 1;
+//     else
+//         return fklStringCmp(ctx0->start, ctx1->start);
+// }
+//
+// static int s_number_ctx_equal(const void *c0, const void *c1) {
+//     const SymbolNumberCtx *ctx0 = c0;
+//     const SymbolNumberCtx *ctx1 = c1;
+//     if (ctx0->start == ctx1->start)
+//         return 1;
+//     else if (ctx0 == NULL || ctx1 == NULL)
+//         return 0;
+//     else
+//         return !fklStringCmp(ctx0->start, ctx1->start);
+// }
+//
+// static uintptr_t s_number_ctx_hash(const void *c0) {
+//     const SymbolNumberCtx *ctx0 = c0;
+//     return (uintptr_t)ctx0->start;
+// }
+//
+// static void s_number_ctx_destroy(void *c) { fklZfree(c); }
 
 #define SYMBOL_NUMBER_MATCH(F)                                                 \
-    SymbolNumberCtx *ctx = c;                                                  \
     if (restLen) {                                                             \
         size_t maxLen =                                                        \
-            get_max_non_term_length(ctx->g, outerCtx, start, cstr, restLen);   \
+            get_max_non_term_length(args->g, ctx, start, cstr, restLen);       \
         if (maxLen                                                             \
-            && (!ctx->start                                                    \
-                || fklStringCharBufMatch(ctx->start, cstr + maxLen,            \
+            && (!args->len                                                     \
+                || fklStringCharBufMatch(args->args[0], cstr + maxLen,         \
                                          restLen - maxLen)                     \
                        < 0)                                                    \
             && F(cstr, maxLen)) {                                              \
@@ -1160,10 +1201,10 @@ static void s_number_ctx_destroy(void *c) { fklZfree(c); }
     }                                                                          \
     return 0
 
-static int builtin_match_s_dint_func(void *c, const char *start,
-                                     const char *cstr, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_s_dint_func(const FklBuiltinTerminalMatchArgs *args,
+                                     const char *start, const char *cstr,
+                                     size_t restLen, size_t *pmatchLen,
+                                     FklGrammerMatchOuterCtx *ctx,
                                      int *is_waiting_for_more) {
     SYMBOL_NUMBER_MATCH(fklIsDecInt);
 }
@@ -1177,7 +1218,7 @@ static inline void build_lisp_match_print_src(const FklGrammer *g,
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
         CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx");
         CB_LINE(",const char* term");
         CB_LINE(",size_t termLen)");
     }
@@ -1186,7 +1227,7 @@ static inline void build_lisp_match_print_src(const FklGrammer *g,
         CB_LINE("if(restLen) {");
         CB_INDENT(flag) {
             CB_LINE(
-                "size_t maxLen=get_max_non_term_length(outerCtx,start,cstr,restLen);");
+                "size_t maxLen=get_max_non_term_length(ctx,start,cstr,restLen);");
             CB_LINE(
                 "if(maxLen&&(!term||fklCharBufMatch(term,termLen,cstr+maxLen,restLen-maxLen)<0)");
             CB_INDENT(flag) {
@@ -1210,16 +1251,15 @@ static inline void build_lisp_match_print_src(const FklGrammer *g,
 
 #define DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND(NAME)                            \
     static void builtin_match_##NAME##_print_c_match_cond(                     \
-        void *c, const FklGrammer *g, FklCodeBuilder *build) {                 \
+        const FklBuiltinTerminalMatchArgs *args, FklCodeBuilder *build) {      \
         CB_FMT("builtin_match_" #NAME                                          \
                "(start,*in+otherMatchLen+skip_ignore_len,*restLen-"            \
-               "otherMatchLen-skip_ignore_len,&matchLen,outerCtx,");           \
-        SymbolNumberCtx *ctx = c;                                              \
-        if (ctx->start) {                                                      \
+               "otherMatchLen-skip_ignore_len,&matchLen,ctx,");                \
+        if (args->len) {                                                       \
             CB_FMT("\"");                                                      \
-            build_string_in_hex(ctx->start, build);                            \
+            build_string_in_hex(args->args[0], build);                         \
             CB_FMT("\"");                                                      \
-            CB_FMT(",%" FKL_PRT64U "", ctx->start->size);                      \
+            CB_FMT(",%" FKL_PRT64U "", args->args[0]->size);                   \
         } else                                                                 \
             CB_FMT("NULL,0");                                                  \
         CB_FMT(")");                                                           \
@@ -1245,34 +1285,34 @@ DEFINE_LISP_NUMBER_PRINT_SRC(s_xfloat, fklIsHexFloat);
 
 DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND(s_xfloat);
 
-static int builtin_match_s_xint_func(void *c, const char *start,
-                                     const char *cstr, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_s_xint_func(const FklBuiltinTerminalMatchArgs *args,
+                                     const char *start, const char *cstr,
+                                     size_t restLen, size_t *pmatchLen,
+                                     FklGrammerMatchOuterCtx *ctx,
                                      int *is_waiting_for_more) {
     SYMBOL_NUMBER_MATCH(fklIsHexInt);
 }
 
-static int builtin_match_s_oint_func(void *c, const char *start,
-                                     const char *cstr, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_s_oint_func(const FklBuiltinTerminalMatchArgs *args,
+                                     const char *start, const char *cstr,
+                                     size_t restLen, size_t *pmatchLen,
+                                     FklGrammerMatchOuterCtx *ctx,
                                      int *is_waiting_for_more) {
     SYMBOL_NUMBER_MATCH(fklIsOctInt);
 }
 
-static int builtin_match_s_dfloat_func(void *c, const char *start,
-                                       const char *cstr, size_t restLen,
-                                       size_t *pmatchLen,
-                                       FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_s_dfloat_func(const FklBuiltinTerminalMatchArgs *args,
+                                       const char *start, const char *cstr,
+                                       size_t restLen, size_t *pmatchLen,
+                                       FklGrammerMatchOuterCtx *ctx,
                                        int *is_waiting_for_more) {
     SYMBOL_NUMBER_MATCH(fklIsDecFloat);
 }
 
-static int builtin_match_s_xfloat_func(void *c, const char *start,
-                                       const char *cstr, size_t restLen,
-                                       size_t *pmatchLen,
-                                       FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_s_xfloat_func(const FklBuiltinTerminalMatchArgs *args,
+                                       const char *start, const char *cstr,
+                                       size_t restLen, size_t *pmatchLen,
+                                       FklGrammerMatchOuterCtx *ctx,
                                        int *is_waiting_for_more) {
     SYMBOL_NUMBER_MATCH(fklIsHexFloat);
 }
@@ -1282,11 +1322,12 @@ static int builtin_match_s_xfloat_func(void *c, const char *start,
 static const FklLalrBuiltinMatch builtin_match_s_dint = {
     .name = "?s-dint",
     .match = builtin_match_s_dint_func,
-    .ctx_global_create = s_number_ctx_global_create,
-    .ctx_cmp = s_number_ctx_cmp,
-    .ctx_equal = s_number_ctx_equal,
-    .ctx_hash = s_number_ctx_hash,
-    .ctx_destroy = s_number_ctx_destroy,
+    // .ctx_global_create = s_number_ctx_global_create,
+    .ctx_create = s_number_create_new,
+    // .ctx_cmp = s_number_ctx_cmp,
+    // .ctx_equal = s_number_ctx_equal,
+    // .ctx_hash = s_number_ctx_hash,
+    // .ctx_destroy = s_number_ctx_destroy,
     .build_src = builtin_match_s_dint_print_src,
     .build_c_match_cond = builtin_match_s_dint_print_c_match_cond,
 };
@@ -1294,11 +1335,12 @@ static const FklLalrBuiltinMatch builtin_match_s_dint = {
 static const FklLalrBuiltinMatch builtin_match_s_xint = {
     .name = "?s-xint",
     .match = builtin_match_s_xint_func,
-    .ctx_global_create = s_number_ctx_global_create,
-    .ctx_cmp = s_number_ctx_cmp,
-    .ctx_equal = s_number_ctx_equal,
-    .ctx_hash = s_number_ctx_hash,
-    .ctx_destroy = s_number_ctx_destroy,
+    // .ctx_global_create = s_number_ctx_global_create,
+    .ctx_create = s_number_create_new,
+    // .ctx_cmp = s_number_ctx_cmp,
+    // .ctx_equal = s_number_ctx_equal,
+    // .ctx_hash = s_number_ctx_hash,
+    // .ctx_destroy = s_number_ctx_destroy,
     .build_src = builtin_match_s_xint_print_src,
     .build_c_match_cond = builtin_match_s_xint_print_c_match_cond,
 };
@@ -1306,11 +1348,12 @@ static const FklLalrBuiltinMatch builtin_match_s_xint = {
 static const FklLalrBuiltinMatch builtin_match_s_oint = {
     .name = "?s-oint",
     .match = builtin_match_s_oint_func,
-    .ctx_global_create = s_number_ctx_global_create,
-    .ctx_cmp = s_number_ctx_cmp,
-    .ctx_equal = s_number_ctx_equal,
-    .ctx_hash = s_number_ctx_hash,
-    .ctx_destroy = s_number_ctx_destroy,
+    // .ctx_global_create = s_number_ctx_global_create,
+    .ctx_create = s_number_create_new,
+    // .ctx_cmp = s_number_ctx_cmp,
+    // .ctx_equal = s_number_ctx_equal,
+    // .ctx_hash = s_number_ctx_hash,
+    // .ctx_destroy = s_number_ctx_destroy,
     .build_src = builtin_match_s_oint_print_src,
     .build_c_match_cond = builtin_match_s_oint_print_c_match_cond,
 };
@@ -1318,11 +1361,12 @@ static const FklLalrBuiltinMatch builtin_match_s_oint = {
 static const FklLalrBuiltinMatch builtin_match_s_dfloat = {
     .name = "?s-dfloat",
     .match = builtin_match_s_dfloat_func,
-    .ctx_global_create = s_number_ctx_global_create,
-    .ctx_cmp = s_number_ctx_cmp,
-    .ctx_equal = s_number_ctx_equal,
-    .ctx_hash = s_number_ctx_hash,
-    .ctx_destroy = s_number_ctx_destroy,
+    // .ctx_global_create = s_number_ctx_global_create,
+    .ctx_create = s_number_create_new,
+    // .ctx_cmp = s_number_ctx_cmp,
+    // .ctx_equal = s_number_ctx_equal,
+    // .ctx_hash = s_number_ctx_hash,
+    // .ctx_destroy = s_number_ctx_destroy,
     .build_src = builtin_match_s_dfloat_print_src,
     .build_c_match_cond = builtin_match_s_dfloat_print_c_match_cond,
 };
@@ -1330,22 +1374,22 @@ static const FklLalrBuiltinMatch builtin_match_s_dfloat = {
 static const FklLalrBuiltinMatch builtin_match_s_xfloat = {
     .name = "?s-xfloat",
     .match = builtin_match_s_xfloat_func,
-    .ctx_global_create = s_number_ctx_global_create,
-    .ctx_cmp = s_number_ctx_cmp,
-    .ctx_equal = s_number_ctx_equal,
-    .ctx_hash = s_number_ctx_hash,
-    .ctx_destroy = s_number_ctx_destroy,
+    // .ctx_global_create = s_number_ctx_global_create,
+    .ctx_create = s_number_create_new,
+    // .ctx_cmp = s_number_ctx_cmp,
+    // .ctx_equal = s_number_ctx_equal,
+    // .ctx_hash = s_number_ctx_hash,
+    // .ctx_destroy = s_number_ctx_destroy,
     .build_src = builtin_match_s_xfloat_print_src,
     .build_c_match_cond = builtin_match_s_xfloat_print_c_match_cond,
 };
 
-static int builtin_match_s_char_func(void *c, const char *start,
-                                     const char *cstr, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_s_char_func(const FklBuiltinTerminalMatchArgs *args,
+                                     const char *start, const char *cstr,
+                                     size_t restLen, size_t *pmatchLen,
+                                     FklGrammerMatchOuterCtx *ctx,
                                      int *is_waiting_for_more) {
-    const SymbolNumberCtx *ctx = c;
-    const FklString *prefix = ctx->start;
+    const FklString *prefix = args->args[0];
     size_t minLen = prefix->size + 1;
     if (restLen < minLen)
         return 0;
@@ -1353,8 +1397,7 @@ static int builtin_match_s_char_func(void *c, const char *start,
         return 0;
     restLen -= prefix->size;
     cstr += prefix->size;
-    size_t maxLen =
-        get_max_non_term_length(ctx->g, outerCtx, start, cstr, restLen);
+    size_t maxLen = get_max_non_term_length(args->g, ctx, start, cstr, restLen);
     if (!maxLen)
         *pmatchLen = prefix->size + 1;
     else
@@ -1369,7 +1412,7 @@ static void builtin_match_s_char_print_src(const FklGrammer *g,
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
         CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx");
         CB_LINE(",const char* prefix");
         CB_LINE(",size_t prefix_size)");
     }
@@ -1382,7 +1425,7 @@ static void builtin_match_s_char_print_src(const FklGrammer *g,
         CB_LINE("restLen-=prefix_size;");
         CB_LINE("cstr+=prefix_size;");
         CB_LINE(
-            "size_t maxLen=get_max_non_term_length(outerCtx,start,cstr,restLen);");
+            "size_t maxLen=get_max_non_term_length(ctx,start,cstr,restLen);");
         CB_LINE("if(!maxLen) *pmatchLen=prefix_size+1;");
         CB_LINE("else *pmatchLen=prefix_size+maxLen;");
         CB_LINE("return 1;");
@@ -1392,93 +1435,64 @@ static void builtin_match_s_char_print_src(const FklGrammer *g,
 
 DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND(s_char);
 
-static void *s_char_ctx_global_create(size_t idx, FklGrammerProduction *prod,
-                                      FklGrammer *g, int *failed) {
-    if (prod->len < 2 || prod->len > 2 || idx != 0) {
-        *failed = 1;
-        return NULL;
-    }
-    const FklString *start = NULL;
-    if (prod->syms[1].type != FKL_TERM_STRING) {
-        *failed = 1;
-        return NULL;
-    }
-    start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
-    prod->len = 1;
-    SymbolNumberCtx *ctx =
-        (SymbolNumberCtx *)fklZmalloc(sizeof(SymbolNumberCtx));
-    FKL_ASSERT(ctx);
-    ctx->start = start;
-    ctx->g = g;
-    if (!g->sortedTerminals)
-        sort_reachable_terminals(g);
-    return ctx;
+static FklBuiltinTerminalInitError
+s_char_create_new(size_t len, const FklString **args, struct FklGrammer *g) {
+    if (len > 1)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
+    else if (len < 1)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS;
+    return 0;
 }
+
+// static void *s_char_ctx_global_create(size_t idx, FklGrammerProduction *prod,
+//                                       FklGrammer *g, int *failed) {
+//     if (prod->len < 2 || prod->len > 2 || idx != 0) {
+//         *failed = 1;
+//         return NULL;
+//     }
+//     const FklString *start = NULL;
+//     if (prod->syms[1].type != FKL_TERM_STRING) {
+//         *failed = 1;
+//         return NULL;
+//     }
+//     start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
+//     prod->len = 1;
+//     SymbolNumberCtx *ctx =
+//         (SymbolNumberCtx *)fklZmalloc(sizeof(SymbolNumberCtx));
+//     FKL_ASSERT(ctx);
+//     ctx->start = start;
+//     ctx->g = g;
+//     if (!g->sortedTerminals)
+//         sort_reachable_terminals(g);
+//     return ctx;
+// }
 
 static const FklLalrBuiltinMatch builtin_match_s_char = {
     .name = "?s-char",
     .match = builtin_match_s_char_func,
-    .ctx_global_create = s_char_ctx_global_create,
-    .ctx_cmp = s_number_ctx_cmp,
-    .ctx_equal = s_number_ctx_equal,
-    .ctx_hash = s_number_ctx_hash,
-    .ctx_destroy = s_number_ctx_destroy,
+    // .ctx_global_create = s_char_ctx_global_create,
+    .ctx_create = s_char_create_new,
+    // .ctx_cmp = s_number_ctx_cmp,
+    // .ctx_equal = s_number_ctx_equal,
+    // .ctx_hash = s_number_ctx_hash,
+    // .ctx_destroy = s_number_ctx_destroy,
     .build_src = builtin_match_s_char_print_src,
     .build_c_match_cond = builtin_match_s_char_print_c_match_cond,
 };
 
-typedef struct {
-    const FklGrammer *g;
-    const FklString *start;
-    const FklString *end;
-} MatchSymbolCtx;
+// typedef struct {
+//     const FklGrammer *g;
+//     const FklString *start;
+//     const FklString *end;
+// } MatchSymbolCtx;
 
-size_t fklQuotedStringMatch(const char *cstr, size_t restLen,
-                            const FklString *end) {
-    if (restLen < end->size)
-        return 0;
-    size_t matchLen = 0;
-    size_t len = 0;
-    for (; len < restLen; len++) {
-        if (cstr[len] == '\\') {
-            len++;
-            continue;
-        }
-        if (fklStringCharBufMatch(end, &cstr[len], restLen - len) >= 0) {
-            matchLen += len + end->size;
-            return matchLen;
-        }
-    }
-    return 0;
-}
-
-size_t fklQuotedCharBufMatch(const char *cstr, size_t restLen, const char *end,
-                             size_t end_size) {
-    if (restLen < end_size)
-        return 0;
-    size_t matchLen = 0;
-    size_t len = 0;
-    for (; len < restLen; len++) {
-        if (cstr[len] == '\\') {
-            len++;
-            continue;
-        }
-        if (fklCharBufMatch(end, end_size, &cstr[len], restLen - len) >= 0) {
-            matchLen += len + end_size;
-            return matchLen;
-        }
-    }
-    return 0;
-}
-
-static int builtin_match_symbol_func(void *c, const char *cstrStart,
-                                     const char *cstr, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
+static int builtin_match_symbol_func(const FklBuiltinTerminalMatchArgs *args,
+                                     const char *cstrStart, const char *cstr,
+                                     size_t restLen, size_t *pmatchLen,
+                                     FklGrammerMatchOuterCtx *ctx,
                                      int *is_waiting_for_more) {
-    MatchSymbolCtx *ctx = c;
-    const FklString *start = ctx->start;
-    const FklString *end = ctx->end;
+    const FklString *start = args->len > 0 ? args->args[0] : NULL;
+    const FklString *end = args->len > 1 ? args->args[1] : start;
     if (start) {
         size_t matchLen = 0;
         for (;;) {
@@ -1495,7 +1509,7 @@ static int builtin_match_symbol_func(void *c, const char *cstrStart,
                 cstr += len;
                 continue;
             }
-            size_t maxLen = get_max_non_term_length(ctx->g, outerCtx, cstrStart,
+            size_t maxLen = get_max_non_term_length(args->g, ctx, cstrStart,
                                                     cstr, restLen - matchLen);
             if ((!matchLen && !maxLen)
                 || (fklStringCharBufMatch(start, cstr + maxLen,
@@ -1517,7 +1531,7 @@ static int builtin_match_symbol_func(void *c, const char *cstrStart,
         return matchLen != 0;
     } else {
         size_t maxLen =
-            get_max_non_term_length(ctx->g, outerCtx, cstrStart, cstr, restLen);
+            get_max_non_term_length(args->g, ctx, cstrStart, cstr, restLen);
         if (!maxLen || fklIsDecInt(cstr, maxLen) || fklIsOctInt(cstr, maxLen)
             || fklIsHexInt(cstr, maxLen) || fklIsDecFloat(cstr, maxLen)
             || fklIsHexFloat(cstr, maxLen) || fklIsAllDigit(cstr, maxLen))
@@ -1534,7 +1548,7 @@ static void builtin_match_symbol_print_src(const FklGrammer *g,
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
         CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx");
         CB_LINE(",int* is_waiting_for_more");
         CB_LINE(",const char* start");
         CB_LINE(",size_t start_size");
@@ -1567,7 +1581,7 @@ static void builtin_match_symbol_print_src(const FklGrammer *g,
                 }
                 CB_LINE("}");
                 CB_LINE(
-                    "size_t maxLen=get_max_non_term_length(outerCtx,cstrStart,cstr,restLen-matchLen);");
+                    "size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen-matchLen);");
                 CB_LINE("if((!matchLen&&!maxLen)");
                 CB_INDENT(flag) {
                     CB_LINE(
@@ -1597,7 +1611,7 @@ static void builtin_match_symbol_print_src(const FklGrammer *g,
         CB_LINE("}else{");
         CB_INDENT(flag) {
             CB_LINE(
-                "size_t maxLen=get_max_non_term_length(outerCtx,cstrStart,cstr,restLen);");
+                "size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen);");
             CB_LINE("if(!maxLen");
             CB_INDENT(flag) {
                 CB_LINE("||fklIsDecInt(cstr,maxLen)");
@@ -1617,14 +1631,15 @@ static void builtin_match_symbol_print_src(const FklGrammer *g,
     CB_LINE("}");
 }
 
-static void builtin_match_symbol_print_c_match_cond(void *c,
-                                                    const FklGrammer *g,
-                                                    FklCodeBuilder *build) {
-    MatchSymbolCtx *ctx = c;
-    const FklString *start = ctx->start;
-    const FklString *end = ctx->end;
+static void
+builtin_match_symbol_print_c_match_cond(const FklBuiltinTerminalMatchArgs *args,
+                                        FklCodeBuilder *build) {
+    // MatchSymbolCtx *ctx = c;
+    const FklString *start =
+        args->len > 0 ? args->args[0] : NULL;                     // ctx->start;
+    const FklString *end = args->len > 1 ? args->args[1] : start; // ctx->end;
     CB_FMT(
-        "builtin_match_symbol(start,*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,outerCtx,&is_waiting_for_more,");
+        "builtin_match_symbol(start,*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,ctx,&is_waiting_for_more,");
     CB_FMT("\"");
     build_string_in_hex(start, build);
     CB_FMT("\",%" FKL_PRT64U ",\"", start->size);
@@ -1632,85 +1647,91 @@ static void builtin_match_symbol_print_c_match_cond(void *c,
     CB_FMT("\",%" FKL_PRT64U ")", end->size);
 }
 
-static int builtin_match_symbol_cmp(const void *c0, const void *c1) {
-    const MatchSymbolCtx *ctx0 = c0;
-    const MatchSymbolCtx *ctx1 = c1;
-    if (ctx0->start == ctx1->start && ctx0->end == ctx1->end)
-        return 0;
-    if (ctx0->start == NULL && ctx1->start)
-        return -1;
-    else if (ctx1->start == NULL)
-        return 1;
-    else {
-        int r = fklStringCmp(ctx0->start, ctx1->start);
-        if (r)
-            return r;
-        return fklStringCmp(ctx0->end, ctx1->end);
-    }
-}
+// static int builtin_match_symbol_cmp(const void *c0, const void *c1) {
+//     const MatchSymbolCtx *ctx0 = c0;
+//     const MatchSymbolCtx *ctx1 = c1;
+//     if (ctx0->start == ctx1->start && ctx0->end == ctx1->end)
+//         return 0;
+//     if (ctx0->start == NULL && ctx1->start)
+//         return -1;
+//     else if (ctx1->start == NULL)
+//         return 1;
+//     else {
+//         int r = fklStringCmp(ctx0->start, ctx1->start);
+//         if (r)
+//             return r;
+//         return fklStringCmp(ctx0->end, ctx1->end);
+//     }
+// }
+//
+// static int builtin_match_symbol_equal(const void *c0, const void *c1) {
+//     const MatchSymbolCtx *ctx0 = c0;
+//     const MatchSymbolCtx *ctx1 = c1;
+//     if (ctx0->start == ctx1->start && ctx0->end == ctx1->end)
+//         return 1;
+//     else if (ctx0->start || ctx1->start)
+//         return !fklStringCmp(ctx0->start, ctx1->start)
+//             && !fklStringCmp(ctx0->end, ctx1->end);
+//     return 0;
+// }
+//
+// static void builtin_match_symbol_destroy(void *c) { fklZfree(c); }
 
-static int builtin_match_symbol_equal(const void *c0, const void *c1) {
-    const MatchSymbolCtx *ctx0 = c0;
-    const MatchSymbolCtx *ctx1 = c1;
-    if (ctx0->start == ctx1->start && ctx0->end == ctx1->end)
-        return 1;
-    else if (ctx0->start || ctx1->start)
-        return !fklStringCmp(ctx0->start, ctx1->start)
-            && !fklStringCmp(ctx0->end, ctx1->end);
+// static void *builtin_match_symbol_global_create(size_t idx,
+//                                                 FklGrammerProduction *prod,
+//                                                 FklGrammer *g, int *failed) {
+//     if (prod->len > 3 || idx != 0) {
+//         *failed = 1;
+//         return NULL;
+//     }
+//     const FklString *start = NULL;
+//     const FklString *end = NULL;
+//     if (prod->len == 2) {
+//         if (prod->syms[1].type != FKL_TERM_STRING) {
+//             *failed = 1;
+//             return NULL;
+//         }
+//         start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
+//         end = start;
+//     } else if (prod->len == 3) {
+//         if (prod->syms[1].type != FKL_TERM_STRING
+//             || prod->syms[2].type != FKL_TERM_STRING) {
+//             *failed = 1;
+//             return NULL;
+//         }
+//         start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
+//         end = fklGetSymbolWithId(prod->syms[2].nt.sid, &g->terminals)->k;
+//     }
+//     prod->len = 1;
+//     MatchSymbolCtx *ctx = (MatchSymbolCtx
+//     *)fklZmalloc(sizeof(MatchSymbolCtx)); FKL_ASSERT(ctx); ctx->start =
+//     start; ctx->end = end; ctx->g = g; if (!g->sortedTerminals)
+//         sort_reachable_terminals(g);
+//     return ctx;
+// }
+
+static FklBuiltinTerminalInitError
+builtin_match_symbol_create_new(size_t len, const FklString **args,
+                                struct FklGrammer *g) {
+    if (len > 2)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     return 0;
 }
 
-static void builtin_match_symbol_destroy(void *c) { fklZfree(c); }
-
-static void *builtin_match_symbol_global_create(size_t idx,
-                                                FklGrammerProduction *prod,
-                                                FklGrammer *g, int *failed) {
-    if (prod->len > 3 || idx != 0) {
-        *failed = 1;
-        return NULL;
-    }
-    const FklString *start = NULL;
-    const FklString *end = NULL;
-    if (prod->len == 2) {
-        if (prod->syms[1].type != FKL_TERM_STRING) {
-            *failed = 1;
-            return NULL;
-        }
-        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
-        end = start;
-    } else if (prod->len == 3) {
-        if (prod->syms[1].type != FKL_TERM_STRING
-            || prod->syms[2].type != FKL_TERM_STRING) {
-            *failed = 1;
-            return NULL;
-        }
-        start = fklGetSymbolWithId(prod->syms[1].nt.sid, &g->terminals)->k;
-        end = fklGetSymbolWithId(prod->syms[2].nt.sid, &g->terminals)->k;
-    }
-    prod->len = 1;
-    MatchSymbolCtx *ctx = (MatchSymbolCtx *)fklZmalloc(sizeof(MatchSymbolCtx));
-    FKL_ASSERT(ctx);
-    ctx->start = start;
-    ctx->end = end;
-    ctx->g = g;
-    if (!g->sortedTerminals)
-        sort_reachable_terminals(g);
-    return ctx;
-}
-
-static uintptr_t builtin_match_symbol_hash(const void *c) {
-    const MatchSymbolCtx *ctx = c;
-    return (uintptr_t)ctx->start + (uintptr_t)ctx->end;
-}
-
+// static uintptr_t builtin_match_symbol_hash(const void *c) {
+//     const MatchSymbolCtx *ctx = c;
+//     return (uintptr_t)ctx->start + (uintptr_t)ctx->end;
+// }
+//
 static const FklLalrBuiltinMatch builtin_match_symbol = {
     .name = "?symbol",
     .match = builtin_match_symbol_func,
-    .ctx_cmp = builtin_match_symbol_cmp,
-    .ctx_equal = builtin_match_symbol_equal,
-    .ctx_hash = builtin_match_symbol_hash,
-    .ctx_global_create = builtin_match_symbol_global_create,
-    .ctx_destroy = builtin_match_symbol_destroy,
+    // .ctx_cmp = builtin_match_symbol_cmp,
+    // .ctx_equal = builtin_match_symbol_equal,
+    // .ctx_hash = builtin_match_symbol_hash,
+    // .ctx_global_create = builtin_match_symbol_global_create,
+    .ctx_create = builtin_match_symbol_create_new,
+    // .ctx_destroy = builtin_match_symbol_destroy,
     .build_src = builtin_match_symbol_print_src,
     .build_c_match_cond = builtin_match_symbol_print_c_match_cond,
 };
@@ -1753,6 +1774,21 @@ void fklInitBuiltinGrammerSymTable(FklGraSidBuiltinHashMap *s,
         FklSid_t id = fklAddSymbolCstr(l->name, st)->v;
         fklGraSidBuiltinHashMapPut2(s, id, l->t);
     }
+}
+
+const char *fklBuiltinTerminalInitErrorToCstr(FklBuiltinTerminalInitError err) {
+    switch (err) {
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS:
+        return "too many arguments";
+        break;
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS:
+        return "too few arguments";
+        break;
+    }
+    return NULL;
 }
 
 static inline void clear_analysis_table(FklGrammer *g, size_t last) {
@@ -1843,14 +1879,16 @@ static inline int init_all_builtin_grammer_sym(FklGrammer *g) {
                 size_t idx = i - 1;
                 FklGrammerSym *u = &prod->syms[idx];
                 if (u->type == FKL_TERM_BUILTIN) {
-                    if (!u->b.c)
-                        u->b.c = init_builtin_grammer_sym(u->b.t, idx, prod, g,
-                                                          &failed);
-                    else if (u->b.t->ctx_global_create) {
-                        destroy_builtin_grammer_sym(&u->b);
-                        u->b.c = init_builtin_grammer_sym(u->b.t, idx, prod, g,
-                                                          &failed);
-                    }
+                    // if (!u->b.c)
+                    //     u->b.c = init_builtin_grammer_sym(u->b.t, idx, prod,
+                    //     g,
+                    //                                       &failed);
+                    // else if (u->b.t->ctx_global_create) {
+                    //     destroy_builtin_grammer_sym(&u->b);
+                    //     u->b.c = init_builtin_grammer_sym(u->b.t, idx, prod,
+                    //     g,
+                    //                                       &failed);
+                    // }
                 } else if (u->type == FKL_TERM_KEYWORD
                            && !g->sortedTerminalsNum)
                     sort_reachable_terminals(g);
@@ -1894,10 +1932,11 @@ static inline uint32_t is_regex_match_epsilon(const FklRegexCode *re) {
 }
 
 static inline int
-is_builtin_terminal_match_epsilon(const FklLalrBuiltinGrammerSym *b) {
+is_builtin_terminal_match_epsilon(const FklGrammer *g,
+                                  const FklLalrBuiltinGrammerSym *b) {
     int is_waiting_for_more = 0;
     size_t matchLen = 0;
-    FklGrammerMatchOuterCtx outerCtx = {
+    FklGrammerMatchOuterCtx ctx = {
         .maxNonterminalLen = 0,
         .line = 0,
         .start = NULL,
@@ -1905,8 +1944,12 @@ is_builtin_terminal_match_epsilon(const FklLalrBuiltinGrammerSym *b) {
         .create = NULL,
         .destroy = NULL,
     };
-    return b->t->match(b->c, "", "", 0, &matchLen, &outerCtx,
-                       &is_waiting_for_more);
+    FklBuiltinTerminalMatchArgs args = {
+        .g = g,
+        .len = b->len,
+        .args = b->args,
+    };
+    return b->t->match(&args, "", "", 0, &matchLen, &ctx, &is_waiting_for_more);
 }
 
 static inline int compute_all_first_set(FklGrammer *g) {
@@ -1947,7 +1990,7 @@ static inline int compute_all_first_set(FklGrammer *g) {
                     FklLalrItemLookAhead la = {.t = sym->type};
                     switch (sym->type) {
                     case FKL_TERM_BUILTIN: {
-                        int r = is_builtin_terminal_match_epsilon(&sym->b);
+                        int r = is_builtin_terminal_match_epsilon(g, &sym->b);
                         la.b = sym->b;
                         change |=
                             !fklLookAheadHashSetPut(&firstItem->first, &la);
@@ -2081,8 +2124,11 @@ static inline int add_reachable_terminal(FklGrammer *g) {
                 else if (cur->type == FKL_TERM_REGEX)
                     find_and_add_terminal_in_regex(cur->re,
                                                    &g->reachable_terminals);
-                else if (cur->type == FKL_TERM_NONTERM
-                         && !fklNontermHashSetPut(&nonterm_set, &cur->nt)) {
+                else if (cur->type == FKL_TERM_BUILTIN) {
+                    for (size_t i = 0; i < cur->b.len; i++)
+                        fklAddSymbol(cur->b.args[i], &g->reachable_terminals);
+                } else if (cur->type == FKL_TERM_NONTERM
+                           && !fklNontermHashSetPut(&nonterm_set, &cur->nt)) {
                     graProdVectorPushBack2(&prod_stack,
                                            fklGetProductions(productions,
                                                              cur->nt.group,
@@ -2130,10 +2176,16 @@ static inline int check_undefined_nonterm(FklGrammer *g) {
 }
 
 int fklCheckAndInitGrammerSymbols(FklGrammer *g) {
-    return check_undefined_nonterm(g)      //
-        || add_reachable_terminal(g)       //
-        || init_all_builtin_grammer_sym(g) //
-        || compute_all_first_set(g);
+    int r = check_undefined_nonterm(g) || compute_all_first_set(g);
+    if (r)
+        return r;
+    if (!g->sortedTerminals)
+        sort_reachable_terminals(g);
+    return 0;
+    // return check_undefined_nonterm(g)      //
+    //     || add_reachable_terminal(g)       //
+    //     || init_all_builtin_grammer_sym(g) //
+    //     || compute_all_first_set(g);
 }
 
 FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st) {
@@ -2863,7 +2915,7 @@ static inline FklLookAheadHashSet *get_first_set_from_first_sets(
             FklLalrItemLookAhead la = {.t = sym->type};
             switch (sym->type) {
             case FKL_TERM_BUILTIN: {
-                int r = is_builtin_terminal_match_epsilon(&sym->b);
+                int r = is_builtin_terminal_match_epsilon(g, &sym->b);
                 la.b = sym->b;
                 fklLookAheadHashSetPut(first, &la);
                 if (r)
@@ -3362,8 +3414,9 @@ static inline void init_action_with_look_ahead(FklAnalysisStateAction *action,
         action->match.str = la->s;
         break;
     case FKL_TERM_BUILTIN:
-        action->match.func.t = la->b.t;
-        action->match.func.c = la->b.c;
+        action->match.func = la->b;
+        // action->match.func.t = la->b.t;
+        // action->match.func.c = la->b.c;
         break;
     case FKL_TERM_REGEX:
         action->match.re = la->re;
@@ -3539,15 +3592,16 @@ static inline void add_shift_action(FklGrammerSymType cur_type,
     *pa = action;
 }
 
-static int builtin_match_ignore_func(void *ctx, const char *start,
-                                     const char *str, size_t restLen,
-                                     size_t *pmatchLen,
-                                     FklGrammerMatchOuterCtx *outerCtx,
-                                     int *is_waiting_for_more) {
-    FklGrammerIgnore *ig = (FklGrammerIgnore *)ctx;
-    return ignore_match(ig, start, str, restLen, pmatchLen, outerCtx,
-                        is_waiting_for_more);
-}
+// static int builtin_match_ignore_func(const FklBuiltinTerminalMatchArgs *args,
+//                                      const char *start, const char *str,
+//                                      size_t restLen, size_t *pmatchLen,
+//                                      FklGrammerMatchOuterCtx *ctx,
+//                                      int *is_waiting_for_more) {
+//     FklGrammerIgnore *ig = args->g->ignores;
+//     return ignore_match(args->g, ig, start, str, restLen, pmatchLen,
+//     ctx,
+//                         is_waiting_for_more);
+// }
 
 #define PRINT_C_REGEX_PREFIX "R_"
 
@@ -3560,9 +3614,14 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore *ig,
 
     const FklGrammerIgnoreSym *igs = &igss[0];
     switch (igs->term_type) {
-    case FKL_TERM_BUILTIN:
-        igs->b.t->build_c_match_cond(igs->b.c, g, build);
-        break;
+    case FKL_TERM_BUILTIN: {
+        FklBuiltinTerminalMatchArgs args = {
+            .g = g,
+            .len = igs->b.len,
+            .args = igs->b.args,
+        };
+        igs->b.t->build_c_match_cond(&args, build);
+    } break;
     case FKL_TERM_REGEX: {
         uint64_t num = 0;
         fklGetStringWithRegex(&g->regexes, igs->re, &num);
@@ -3593,9 +3652,14 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore *ig,
         CB_FMT("&&");
         const FklGrammerIgnoreSym *igs = &igss[i];
         switch (igs->term_type) {
-        case FKL_TERM_BUILTIN:
-            igs->b.t->build_c_match_cond(igs->b.c, g, build);
-            break;
+        case FKL_TERM_BUILTIN: {
+            FklBuiltinTerminalMatchArgs args = {
+                .g = g,
+                .len = igs->b.len,
+                .args = igs->b.args,
+            };
+            igs->b.t->build_c_match_cond(&args, build);
+        } break;
         case FKL_TERM_REGEX: {
             uint64_t num = 0;
             fklGetStringWithRegex(&g->regexes, igs->re, &num);
@@ -3626,23 +3690,25 @@ static inline void ignore_print_c_match_cond(const FklGrammerIgnore *ig,
     CB_FMT(")");
 }
 
-static void builtin_match_ignore_print_c_match_cond(void *c,
-                                                    const FklGrammer *g,
-                                                    FklCodeBuilder *build) {
-    ignore_print_c_match_cond(c, g, build);
-}
-
-static const FklLalrBuiltinMatch builtin_match_ignore = {
-    .name = NULL,
-    .match = builtin_match_ignore_func,
-    .ctx_create = NULL,
-    .ctx_destroy = NULL,
-    .ctx_global_create = NULL,
-    .ctx_cmp = NULL,
-    .ctx_hash = NULL,
-    .build_src = default_builtin_match_print_src,
-    .build_c_match_cond = builtin_match_ignore_print_c_match_cond,
-};
+// static void
+// builtin_match_ignore_print_c_match_cond(const FklBuiltinTerminalMatchArgs
+// *args,
+//                                         const FklGrammer *g,
+//                                         FklCodeBuilder *build) {
+//     ignore_print_c_match_cond(c, g, build);
+// }
+//
+// static const FklLalrBuiltinMatch builtin_match_ignore = {
+//     .name = NULL,
+//     .match = builtin_match_ignore_func,
+//     .ctx_create = NULL,
+//     .ctx_destroy = NULL,
+//     .ctx_global_create = NULL,
+//     .ctx_cmp = NULL,
+//     .ctx_hash = NULL,
+//     .build_src = default_builtin_match_print_src,
+//     .build_c_match_cond = builtin_match_ignore_print_c_match_cond,
+// };
 
 static inline FklAnalysisStateAction *
 create_builtin_ignore_action(FklGrammer *g, FklGrammerIgnore *ig) {
@@ -3675,9 +3741,11 @@ create_builtin_ignore_action(FklGrammer *g, FklGrammerIgnore *ig) {
             break;
         }
     } else {
-        action->match.t = FKL_TERM_BUILTIN;
-        action->match.func.t = &builtin_match_ignore;
-        action->match.func.c = ig;
+#warning INCOMPLETE
+        FKL_UNREACHABLE();
+        // action->match.t = FKL_TERM_BUILTIN;
+        // action->match.func.t = &builtin_match_ignore;
+        // action->match.func.c = ig;
     }
     return action;
 }
@@ -3928,7 +3996,7 @@ action_match_hash_func(const FklAnalysisStateActionMatch *match) {
         return (uintptr_t)match->re;
         break;
     case FKL_TERM_BUILTIN:
-        return (uintptr_t)match->func.t + (uintptr_t)match->func.c;
+        return fklBuiltinGrammerSymHash(&match->func);
         break;
     case FKL_TERM_NONTERM:
         FKL_UNREACHABLE();
@@ -3954,7 +4022,7 @@ static inline int action_match_equal(const FklAnalysisStateActionMatch *m0,
             return m0->re == m1->re;
             break;
         case FKL_TERM_BUILTIN:
-            return m0->func.t == m1->func.t && m0->func.c == m1->func.c;
+            return fklBuiltinGrammerSymEqual(&m0->func, &m1->func);
             break;
         case FKL_TERM_NONTERM:
             FKL_UNREACHABLE();
@@ -4267,7 +4335,7 @@ static inline void
 build_get_max_non_term_length_to_c_file(const FklGrammer *g,
                                         FklCodeBuilder *build) {
     CB_LINE("static inline size_t");
-    CB_LINE("get_max_non_term_length(FklGrammerMatchOuterCtx* outerCtx");
+    CB_LINE("get_max_non_term_length(FklGrammerMatchOuterCtx* ctx");
     CB_INDENT(flag) {
         CB_LINE(",const char* start");
         CB_LINE(",const char* cur");
@@ -4277,9 +4345,9 @@ build_get_max_non_term_length_to_c_file(const FklGrammer *g,
         CB_LINE("if(rLen) {");
         CB_INDENT(flag) {
             CB_LINE(
-                "if(start==outerCtx->start&&cur==outerCtx->cur) return outerCtx->maxNonterminalLen;");
-            CB_LINE("outerCtx->start=start;");
-            CB_LINE("outerCtx->cur=cur;");
+                "if(start==ctx->start&&cur==ctx->cur) return ctx->maxNonterminalLen;");
+            CB_LINE("ctx->start=start;");
+            CB_LINE("ctx->cur=cur;");
             CB_LINE("size_t len=0;");
             CB_LINE("ssize_t matchLen=0;");
             CB_LINE("size_t otherMatchLen=0;");
@@ -4334,7 +4402,7 @@ build_get_max_non_term_length_to_c_file(const FklGrammer *g,
                 CB_LINE("cur++;");
             }
             CB_LINE("}");
-            CB_LINE("outerCtx->maxNonterminalLen=len;");
+            CB_LINE("ctx->maxNonterminalLen=len;");
             CB_LINE("return len;");
         }
         CB_LINE("}");
@@ -4351,7 +4419,7 @@ static inline void build_match_char_buf_end_with_terminal_prototype_to_c_file(
         CB_LINE("size_t,");
         CB_LINE("const char*,");
         CB_LINE("size_t,");
-        CB_LINE("FklGrammerMatchOuterCtx* outerCtx,");
+        CB_LINE("FklGrammerMatchOuterCtx* ctx,");
         CB_LINE("const char* start);");
     }
 }
@@ -4364,14 +4432,14 @@ build_match_char_buf_end_with_terminal_to_c_file(FklCodeBuilder *build) {
         CB_LINE(",size_t pattern_size");
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx");
         CB_LINE(",const char* start)");
     }
 
     CB_LINE("{");
     CB_INDENT(flag) {
         CB_LINE(
-            "size_t maxNonterminalLen=get_max_non_term_length(outerCtx,start,cstr,restLen);");
+            "size_t maxNonterminalLen=get_max_non_term_length(ctx,start,cstr,restLen);");
         CB_LINE(
             "ssize_t matchLen=fklCharBufMatch(pattern,pattern_size,cstr,restLen);");
         CB_LINE("return matchLen>=0 && maxNonterminalLen==(size_t)matchLen;");
@@ -4388,7 +4456,7 @@ build_state_action_match_to_c_file(const FklAnalysisStateAction *ac,
         build_string_in_hex(ac->match.str, build);
         CB_FMT(
             "\",%" FKL_PRT64U
-            ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,outerCtx,start))",
+            ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,ctx,start))",
             ac->match.str->size);
         break;
     case FKL_TERM_STRING:
@@ -4407,9 +4475,14 @@ build_state_action_match_to_c_file(const FklAnalysisStateAction *ac,
         CB_FMT(
             ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
     } break;
-    case FKL_TERM_BUILTIN:
-        ac->match.func.t->build_c_match_cond(ac->match.func.c, g, build);
-        break;
+    case FKL_TERM_BUILTIN: {
+        FklBuiltinTerminalMatchArgs args = {
+            .g = g,
+            .len = ac->match.func.len,
+            .args = ac->match.func.args,
+        };
+        ac->match.func.t->build_c_match_cond(&args, build);
+    } break;
     case FKL_TERM_EOF:
         CB_FMT("(matchLen=1)", build);
         break;
@@ -4433,10 +4506,10 @@ static inline void build_state_action_to_c_file(
                 "});",
                 ac->state - states);
             CB_LINE(
-                "init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),*in+skip_ignore_len,matchLen,outerCtx->line,outerCtx->ctx);");
-            CB_LINE("fklUintVectorPushBack2(lineStack,outerCtx->line);");
+                "init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),*in+skip_ignore_len,matchLen,ctx->line,ctx->ctx);");
+            CB_LINE("fklUintVectorPushBack2(lineStack,ctx->line);");
             CB_LINE(
-                "outerCtx->line+=fklCountCharInBuf(*in,matchLen+skip_ignore_len,'\\n');");
+                "ctx->line+=fklCountCharInBuf(*in,matchLen+skip_ignore_len,'\\n');");
             CB_LINE("*in+=matchLen+skip_ignore_len;");
             CB_LINE("*restLen-=matchLen+skip_ignore_len;");
             break;
@@ -4480,13 +4553,14 @@ static inline void build_state_action_to_c_file(
 
             if (actual_len) {
                 CB_LINE("size_t line=fklGetFirstNthLine(lineStack,%" FKL_PRT64U
-                        ",outerCtx->line);",
+                        ",ctx->line);",
                         actual_len);
                 CB_LINE("lineStack->size-=%" FKL_PRT64U ";", actual_len);
             } else
-                CB_LINE("size_t line=outerCtx->line;");
+                CB_LINE("size_t line=ctx->line;");
 
-            CB_LINE("void* ast=%s(outerCtx->ctx,nodes,%" FKL_PRT64U ",line);\n",
+            CB_LINE("void* ast=prod_action_%s(ctx->ctx,nodes,%" FKL_PRT64U
+                    ",line);\n",
                     ac->prod->name, actual_len);
 
             if (actual_len) {
@@ -4508,7 +4582,7 @@ static inline void build_state_action_to_c_file(
             CB_LINE("fklUintVectorPushBack2(lineStack,line);");
         } break;
         case FKL_ANALYSIS_IGNORE:
-            CB_LINE("outerCtx->line+=fklCountCharInBuf(*in,matchLen,'\\n');");
+            CB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen,'\\n');");
             CB_LINE("*in+=matchLen;");
             CB_LINE("*restLen-=matchLen;");
             CB_LINE("goto action_match_start;");
@@ -4552,7 +4626,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
         CB_LINE(",const char* start");
         CB_LINE(",const char** in");
         CB_LINE(",size_t* restLen");
-        CB_LINE(",FklGrammerMatchOuterCtx* outerCtx");
+        CB_LINE(",FklGrammerMatchOuterCtx* ctx");
         CB_LINE(",int* accept");
         CB_LINE(",size_t* errLine) {");
     }
@@ -4793,9 +4867,8 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g, const FklSymbolTable *st,
 
     CB_LINE("// Do not edit!");
     CB_LINE("");
-    CB_LINE("#include<fakeLisp/grammer.h>");
-    CB_LINE("#include<fakeLisp/utils.h>");
-    CB_LINE("#include<ctype.h>");
+    CB_LINE("#include <fakeLisp/grammer.h>");
+    CB_LINE("#include <fakeLisp/utils.h>");
 
 #define BUFFER_SIZE (512)
     char buffer[BUFFER_SIZE];
@@ -4976,20 +5049,18 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
     print_ignores(grammer->ignores, &grammer->regexes, fp);
 }
 
-void *fklDefaultParseForCstr(const char *cstr,
-                             FklGrammerMatchOuterCtx *outerCtx, int *err,
-                             uint64_t *errLine,
+void *fklDefaultParseForCstr(const char *cstr, FklGrammerMatchOuterCtx *ctx,
+                             int *err, uint64_t *errLine,
                              FklAnalysisSymbolVector *symbolStack,
                              FklUintVector *lineStack,
                              FklParseStateVector *stateStack) {
     size_t restLen = strlen(cstr);
-    return fklDefaultParseForCharBuf(cstr, restLen, &restLen, outerCtx, err,
-                                     errLine, symbolStack, lineStack,
-                                     stateStack);
+    return fklDefaultParseForCharBuf(cstr, restLen, &restLen, ctx, err, errLine,
+                                     symbolStack, lineStack, stateStack);
 }
 
 void *fklDefaultParseForCharBuf(const char *cstr, size_t len, size_t *restLen,
-                                FklGrammerMatchOuterCtx *outerCtx, int *err,
+                                FklGrammerMatchOuterCtx *ctx, int *err,
                                 uint64_t *errLine,
                                 FklAnalysisSymbolVector *symbolStack,
                                 FklUintVector *lineStack,
@@ -5002,7 +5073,7 @@ void *fklDefaultParseForCharBuf(const char *cstr, size_t len, size_t *restLen,
         FklStateFuncPtr state =
             fklParseStateVectorBackNonNull(stateStack)->func;
         *err = state(stateStack, symbolStack, lineStack, 1, 0, NULL, start,
-                     &cstr, restLen, outerCtx, &accept, errLine);
+                     &cstr, restLen, ctx, &accept, errLine);
         if (*err)
             break;
         if (accept) {
@@ -5031,7 +5102,7 @@ static inline size_t match_ignore(const FklGrammer *g,
     for (; restLen > ret_len;) {
         int has_matched = 0;
         for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next) {
-            if (ignore_match(ig, cstr, cstr + ret_len, restLen - ret_len,
+            if (ignore_match(g, ig, cstr, cstr + ret_len, restLen - ret_len,
                              &matchLen, outerctx, is_waiting_for_more)) {
                 ret_len += matchLen;
                 has_matched = 1;
@@ -5045,9 +5116,8 @@ static inline size_t match_ignore(const FklGrammer *g,
 }
 
 int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
-                          const FklGrammer *g,
-                          FklGrammerMatchOuterCtx *outerCtx, const char *start,
-                          const char *cstr, size_t restLen,
+                          const FklGrammer *g, FklGrammerMatchOuterCtx *ctx,
+                          const char *start, const char *cstr, size_t restLen,
                           int *is_waiting_for_more,
                           FklStateActionMatchArgs *args) {
     args->skip_ignore_len = 0;
@@ -5065,8 +5135,8 @@ match_start:
     } break;
     case FKL_TERM_KEYWORD: {
         const FklString *laString = match->str;
-        if (match_char_buf_end_with_terminal(laString, cstr, restLen, g,
-                                             outerCtx, start)) {
+        if (match_char_buf_end_with_terminal(laString, cstr, restLen, g, ctx,
+                                             start)) {
             args->matchLen = laString->size;
             return 1;
         }
@@ -5076,14 +5146,16 @@ match_start:
         args->matchLen = 1;
         return 1;
         break;
-    case FKL_TERM_BUILTIN:
-        if (match->func.t->match(
-                match->func.c, start, cstr + args->skip_ignore_len,
-                restLen - args->skip_ignore_len, &args->matchLen, outerCtx,
-                is_waiting_for_more)) {
+    case FKL_TERM_BUILTIN: {
+        FklBuiltinTerminalMatchArgs match_args = {
+            .g = g, .len = match->func.len, .args = match->func.args};
+        if (match->func.t->match(&match_args, start,
+                                 cstr + args->skip_ignore_len,
+                                 restLen - args->skip_ignore_len,
+                                 &args->matchLen, ctx, is_waiting_for_more)) {
             return 1;
         }
-        break;
+    } break;
     case FKL_TERM_REGEX: {
         int last_is_true = 0;
         uint32_t len =
@@ -5097,8 +5169,8 @@ match_start:
         }
     } break;
     case FKL_TERM_IGNORE: {
-        size_t match_len = match_ignore(g, outerCtx, start, cstr, restLen,
-                                        is_waiting_for_more);
+        size_t match_len =
+            match_ignore(g, ctx, start, cstr, restLen, is_waiting_for_more);
         if (match_len > 0) {
             args->matchLen = match_len;
             return 1;
@@ -5111,8 +5183,8 @@ match_start:
     }
     if (match->allow_ignore && !has_tried_match_ignore
         && ((args->ignore_len == -2
-             && (args->ignore_len = match_ignore(g, outerCtx, start, cstr,
-                                                 restLen, is_waiting_for_more))
+             && (args->ignore_len = match_ignore(g, ctx, start, cstr, restLen,
+                                                 is_waiting_for_more))
                     > 0)
             || args->ignore_len > 0)) {
         has_tried_match_ignore = 1;
@@ -5135,7 +5207,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
                                    FklAnalysisSymbolVector *symbolStack,
                                    FklUintVector *lineStack,
                                    const FklGrammerProduction *prod, size_t len,
-                                   FklGrammerMatchOuterCtx *outerCtx,
+                                   FklGrammerMatchOuterCtx *ctx,
                                    FklSymbolTable *st, size_t *errLine) {
     stateStack->size -= len;
     FklAnalysisStateGoto *gt =
@@ -5157,12 +5229,12 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
             nodes[i] = base[i].ast;
         }
     }
-    size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
+    size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
     lineStack->size -= len;
-    void *ast = prod->func(prod->ctx, outerCtx->ctx, nodes, len, line);
+    void *ast = prod->func(prod->ctx, ctx->ctx, nodes, len, line);
     if (len) {
         for (size_t i = 0; i < len; i++)
-            outerCtx->destroy(nodes[i]);
+            ctx->destroy(nodes[i]);
         fklZfree(nodes);
     }
     if (!ast) {
@@ -5178,15 +5250,13 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
 }
 
 void *fklParseWithTableForCstr(const FklGrammer *g, const char *cstr,
-                               FklGrammerMatchOuterCtx *outerCtx,
-                               FklSymbolTable *st, int *err) {
-    return fklParseWithTableForCharBuf(g, cstr, strlen(cstr), outerCtx, st,
-                                       err);
+                               FklGrammerMatchOuterCtx *ctx, FklSymbolTable *st,
+                               int *err) {
+    return fklParseWithTableForCharBuf(g, cstr, strlen(cstr), ctx, st, err);
 }
 
 void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
-                                  size_t restLen,
-                                  FklGrammerMatchOuterCtx *outerCtx,
+                                  size_t restLen, FklGrammerMatchOuterCtx *ctx,
                                   FklSymbolTable *st, int *err) {
     const FklAnalysisTable *t = &g->aTable;
     size_t errLine = 0;
@@ -5199,9 +5269,9 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g, const char *cstr,
     fklParseStateVectorPushBack2(&stateStack,
                                  (FklParseState){.state = &t->states[0]});
 
-    void *ast = fklParseWithTableForCharBuf2(
-        g, cstr, restLen, &restLen, outerCtx, st, err, &errLine, &symbolStack,
-        &lineStack, &stateStack);
+    void *ast = fklParseWithTableForCharBuf2(g, cstr, restLen, &restLen, ctx,
+                                             st, err, &errLine, &symbolStack,
+                                             &lineStack, &stateStack);
 
     fklUintVectorUninit(&lineStack);
     fklParseStateVectorUninit(&stateStack);
@@ -5223,462 +5293,147 @@ uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line) {
         return line;
 }
 
-static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
-                                       size_t num, size_t line) {
-    FklNastNode **nodes = (FklNastNode **)ast;
-    const char *start = "|";
-    size_t start_size = 1;
-    const char *end = "|";
-    size_t end_size = 1;
+#include "grammer/action.h"
 
-    const FklString *str = nodes[0]->str;
-    const char *cstr = str->str;
-    size_t cstr_size = str->size;
-
-    FklStringBuffer buffer;
-    fklInitStringBuffer(&buffer);
-    const char *end_cstr = cstr + str->size;
-    while (cstr < end_cstr) {
-        if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
-            cstr += start_size;
-            cstr_size -= start_size;
-            size_t len = fklQuotedCharBufMatch(cstr, cstr_size, end, end_size);
-            if (!len)
-                return 0;
-            size_t size = 0;
-            char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
-            fklStringBufferBincpy(&buffer, s, size);
-            fklZfree(s);
-            cstr += len;
-            cstr_size -= len;
-            continue;
-        }
-        size_t len = 0;
-        for (; (cstr + len) < end_cstr; len++)
-            if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
-                >= 0)
-                break;
-        fklStringBufferBincpy(&buffer, cstr, len);
-        cstr += len;
-        cstr_size -= len;
-    }
-    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx)->v;
-    FklNastNode *node = fklCreateNastNode(FKL_NAST_SYM, nodes[0]->curline);
-    node->sym = id;
-    fklUninitStringBuffer(&buffer);
-    return node;
-}
-
-static inline void *prod_action_return_first(void *ctx, void *outerCtx,
-                                             void *nodes[], size_t num,
-                                             size_t line) {
-    return fklMakeNastNodeRef(nodes[0]);
-}
-
-static inline void *prod_action_return_second(void *ctx, void *outerCtx,
-                                              void *nodes[], size_t num,
-                                              size_t line) {
-    return fklMakeNastNodeRef(nodes[1]);
-}
-
-static inline void *prod_action_string(void *ctx, void *outerCtx, void *ast[],
-                                       size_t num, size_t line) {
-    FklNastNode **nodes = (FklNastNode **)ast;
-    const size_t start_size = 1;
-    const size_t end_size = 1;
-
-    const FklString *str = nodes[0]->str;
-    const char *cstr = str->str;
-
-    size_t size = 0;
-    char *s = fklCastEscapeCharBuf(&cstr[start_size],
-                                   str->size - end_size - start_size, &size);
-    FklNastNode *node = fklCreateNastNode(FKL_NAST_STR, nodes[0]->curline);
-    node->str = fklCreateString(size, s);
-    fklZfree(s);
-    return node;
-}
-
-static inline void *prod_action_nil(void *ctx, void *outerCtx, void *nodes[],
-                                    size_t num, size_t line) {
-    return fklCreateNastNode(FKL_NAST_NIL, line);
-}
-
-static inline void *prod_action_pair(void *ctx, void *outerCtx, void *nodes[],
-                                     size_t num, size_t line) {
-    FklNastNode *car = nodes[0];
-    FklNastNode *cdr = nodes[2];
-    FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
-    pair->pair = fklCreateNastPair();
-    pair->pair->car = fklMakeNastNodeRef(car);
-    pair->pair->cdr = fklMakeNastNodeRef(cdr);
-    return pair;
-}
-
-static inline void *prod_action_list(void *ctx, void *outerCtx, void *nodes[],
-                                     size_t num, size_t line) {
-    FklNastNode *car = nodes[0];
-    FklNastNode *cdr = nodes[1];
-    FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
-    pair->pair = fklCreateNastPair();
-    pair->pair->car = fklMakeNastNodeRef(car);
-    pair->pair->cdr = fklMakeNastNodeRef(cdr);
-    return pair;
-}
-
-static inline void *prod_action_dec_integer(void *ctx, void *outerCtx,
-                                            void *nodes[], size_t num,
-                                            size_t line) {
-    const FklString *str = ((FklNastNode *)nodes[0])->str;
-    int64_t i = strtoll(str->str, NULL, 10);
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
-    if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
-        FklBigInt bInt = FKL_BIGINT_0;
-        fklInitBigIntWithDecCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
-        FKL_ASSERT(bi);
-        *bi = bInt;
-        r->bigInt = bi;
-        r->type = FKL_NAST_BIGINT;
-    } else {
-        r->type = FKL_NAST_FIX;
-        r->fix = i;
-    }
-    return r;
-}
-
-static inline void *prod_action_hex_integer(void *ctx, void *outerCtx,
-                                            void *nodes[], size_t num,
-                                            size_t line) {
-    const FklString *str = ((FklNastNode *)nodes[0])->str;
-    int64_t i = strtoll(str->str, NULL, 16);
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
-    if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
-        FklBigInt bInt = FKL_BIGINT_0;
-        fklInitBigIntWithHexCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
-        FKL_ASSERT(bi);
-        *bi = bInt;
-        r->bigInt = bi;
-        r->type = FKL_NAST_BIGINT;
-    } else {
-        r->type = FKL_NAST_FIX;
-        r->fix = i;
-    }
-    return r;
-}
-
-static inline void *prod_action_oct_integer(void *ctx, void *outerCtx,
-                                            void *nodes[], size_t num,
-                                            size_t line) {
-    const FklString *str = ((FklNastNode *)nodes[0])->str;
-    int64_t i = strtoll(str->str, NULL, 8);
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
-    if (i > FKL_FIX_INT_MAX || i < FKL_FIX_INT_MIN) {
-        FklBigInt bInt = FKL_BIGINT_0;
-        fklInitBigIntWithOctCharBuf(&bInt, str->str, str->size);
-        FklBigInt *bi = (FklBigInt *)fklZmalloc(sizeof(FklBigInt));
-        FKL_ASSERT(bi);
-        *bi = bInt;
-        r->bigInt = bi;
-        r->type = FKL_NAST_BIGINT;
-    } else {
-        r->type = FKL_NAST_FIX;
-        r->fix = i;
-    }
-    return r;
-}
-
-static inline void *prod_action_float(void *ctx, void *outerCtx, void *nodes[],
-                                      size_t num, size_t line) {
-    const FklString *str = ((FklNastNode *)nodes[0])->str;
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_F64, line);
-    double i = strtod(str->str, NULL);
-    r->f64 = i;
-    return r;
-}
-
-static inline void *prod_action_char(void *ctx, void *outerCtx, void *nodes[],
-                                     size_t num, size_t line) {
-    const FklString *str = ((FklNastNode *)nodes[0])->str;
-    if (!fklIsValidCharBuf(str->str + 2, str->size - 2))
-        return NULL;
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_CHR, line);
-    r->chr = fklCharBufToChar(str->str + 2, str->size - 2);
-    return r;
-}
-
-static inline void *prod_action_box(void *ctx, void *outerCtx, void *nodes[],
-                                    size_t num, size_t line) {
-    FklNastNode *box = fklCreateNastNode(FKL_NAST_BOX, line);
-    box->box = fklMakeNastNodeRef(nodes[1]);
-    return box;
-}
-
-static inline void *prod_action_vector(void *ctx, void *outerCtx, void *nodes[],
-                                       size_t num, size_t line) {
-    FklNastNode *list = nodes[1];
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_VECTOR, line);
-    size_t len = fklNastListLength(list);
-    FklNastVector *vec = fklCreateNastVector(len);
-    r->vec = vec;
-    size_t i = 0;
-    for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++)
-        vec->base[i] = fklMakeNastNodeRef(list->pair->car);
-    return r;
-}
-
-static inline FklNastNode *create_nast_list(FklNastNode *a[], size_t num,
-                                            uint64_t line) {
-    FklNastNode *r = NULL;
-    FklNastNode **cur = &r;
-    for (size_t i = 0; i < num; i++) {
-        (*cur) = fklCreateNastNode(FKL_NAST_PAIR, a[i]->curline);
-        (*cur)->pair = fklCreateNastPair();
-        (*cur)->pair->car = a[i];
-        cur = &(*cur)->pair->cdr;
-    }
-    (*cur) = fklCreateNastNode(FKL_NAST_NIL, line);
-    return r;
-}
-
-static inline void *prod_action_quote(void *ctx, void *outerCtx, void *nodes[],
-                                      size_t num, size_t line) {
-    FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->v;
-    FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
-    FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
-    return create_nast_list(s_exps, 2, line);
-}
-
-static inline void *prod_action_unquote(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->v;
-    FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
-    FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
-    return create_nast_list(s_exps, 2, line);
-}
-
-static inline void *prod_action_qsquote(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
-    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->v;
-    FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
-    FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
-    return create_nast_list(s_exps, 2, line);
-}
-
-static inline void *prod_action_unqtesp(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->v;
-    FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
-    FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
-    return create_nast_list(s_exps, 2, line);
-}
-
-static inline void *prod_action_kv_list(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
-    FklNastNode *car = nodes[1];
-    FklNastNode *cdr = nodes[3];
-    FklNastNode *rest = nodes[5];
-
-    FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
-    pair->pair = fklCreateNastPair();
-    pair->pair->car = fklMakeNastNodeRef(car);
-    pair->pair->cdr = fklMakeNastNodeRef(cdr);
-
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_PAIR, line);
-    r->pair = fklCreateNastPair();
-    r->pair->car = pair;
-    r->pair->cdr = fklMakeNastNodeRef(rest);
-    return r;
-}
-
-static inline void *prod_action_hasheq(void *ctx, void *outerCtx, void *nodes[],
-                                       size_t num, size_t line) {
-    FklNastNode *list = nodes[1];
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    size_t len = fklNastListLength(list);
-    FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQ, len);
-    r->hash = ht;
-    size_t i = 0;
-    for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-        ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-        ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    }
-    return r;
-}
-
-static inline void *prod_action_hasheqv(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
-    FklNastNode *list = nodes[1];
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    size_t len = fklNastListLength(list);
-    FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQV, len);
-    r->hash = ht;
-    size_t i = 0;
-    for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-        ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-        ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    }
-    return r;
-}
-
-static inline void *prod_action_hashequal(void *ctx, void *outerCtx,
-                                          void *nodes[], size_t num,
-                                          size_t line) {
-    FklNastNode *list = nodes[1];
-    FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    size_t len = fklNastListLength(list);
-    FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQUAL, len);
-    r->hash = ht;
-    size_t i = 0;
-    for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-        ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-        ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    }
-    return r;
-}
-
-static inline void *prod_action_bytevector(void *ctx, void *outerCtx,
-                                           void *ast[], size_t num,
-                                           size_t line) {
-    FklNastNode **nodes = (FklNastNode **)ast;
-    const size_t start_size = 2;
-    const size_t end_size = 1;
-
-    const FklString *str = nodes[0]->str;
-    const char *cstr = str->str;
-
-    size_t size = 0;
-    char *s = fklCastEscapeCharBuf(&cstr[start_size],
-                                   str->size - end_size - start_size, &size);
-    FklNastNode *node =
-        fklCreateNastNode(FKL_NAST_BYTEVECTOR, nodes[0]->curline);
-    node->bvec = fklCreateBytevector(size, (uint8_t *)s);
-    fklZfree(s);
-    return node;
-}
-
-static const FklGrammerCstrAction builtin_grammer_and_action[] = {
-    // clang-format off
-    {"*s-exp* &*list*",                                       "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*vector*",                                     "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*bytevector*",                                 "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*box*",                                        "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*hasheq*",                                     "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*hasheqv*",                                    "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*hashequal*",                                  "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*string*",                                     "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*symbol*",                                     "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*integer*",                                    "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*float*",                                      "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*char*",                                       "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*quote*",                                      "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*qsquote*",                                    "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*unquote*",                                    "prod_action_return_first",  prod_action_return_first  },
-    {"*s-exp* &*unqtesp*",                                    "prod_action_return_first",  prod_action_return_first  },
-
-    {"*quote* #' &*s-exp*",                                   "prod_action_quote",         prod_action_quote         },
-    {"*qsquote* #` &*s-exp*",                                 "prod_action_qsquote",       prod_action_qsquote       },
-    {"*unquote* #~ &*s-exp*",                                 "prod_action_unquote",       prod_action_unquote       },
-    {"*unqtesp* #~@ &*s-exp*",                                "prod_action_unqtesp",       prod_action_unqtesp       },
-
-    {"*symbol* &?symbol + #|",                                "prod_action_symbol",        prod_action_symbol        },
-
-    {"*string* /\"\"|^\"(\\\\.|.)*\"$",                       "prod_action_string",        prod_action_string        },
-
-    {"*bytevector* /#\"\"|^#\"(\\\\.|.)*\"$",                 "prod_action_bytevector",    prod_action_bytevector    },
-
-    // s-dint can accepet the next terminator as its arguement
-    {"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer   },
-    {"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer   },
-    {"*integer* &?s-oint + #|",                               "prod_action_oct_integer",   prod_action_oct_integer   },
-
-    {"*float* &?s-dfloat + #|",                               "prod_action_float",         prod_action_float         },
-    {"*float* &?s-xfloat + #|",                               "prod_action_float",         prod_action_float         },
-
-    {"*char* &?s-char + ##\\",                                "prod_action_char",          prod_action_char          },
-
-    {"*box* ##& &*s-exp*",                                    "prod_action_box",           prod_action_box           },
-
-    {"*list* #( &*list-items* #)",                            "prod_action_return_second", prod_action_return_second },
-    {"*list* #[ &*list-items* #]",                            "prod_action_return_second", prod_action_return_second },
-
-    {"*list-items* ",                                         "prod_action_nil",           prod_action_nil           },
-    {"*list-items* &*s-exp* &*list-items*",                   "prod_action_list",          prod_action_list          },
-    {"*list-items* &*s-exp* #, &*s-exp*",                     "prod_action_pair",          prod_action_pair          },
-
-    {"*vector* ##( &*vector-items* #)",                       "prod_action_vector",        prod_action_vector        },
-    {"*vector* ##[ &*vector-items* #]",                       "prod_action_vector",        prod_action_vector        },
-
-    {"*vector-items* ",                                       "prod_action_nil",           prod_action_nil           },
-    {"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list          },
-
-    {"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq        },
-    {"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq        },
-
-	// {"*hasheq* ##hash + &*hasheq-items*",                     "prod_action_return_second", prod_action_return_second},
-	// {"*hasheq-items* #( &*hash-items* #)",                     "prod_action_hasheq", prod_action_hasheq},
-	// {"*hasheq-items* #[ &*hash-items* #]",                     "prod_action_hasheq", prod_action_hasheq},
-
-    {"*hasheqv* ##hasheqv( &*hash-items* #)",                 "prod_action_hasheqv",       prod_action_hasheqv       },
-    {"*hasheqv* ##hasheqv[ &*hash-items* #]",                 "prod_action_hasheqv",       prod_action_hasheqv       },
-
-    {"*hashequal* ##hashequal( &*hash-items* #)",             "prod_action_hashequal",     prod_action_hashequal     },
-    {"*hashequal* ##hashequal[ &*hash-items* #]",             "prod_action_hashequal",     prod_action_hashequal     },
-
-    {"*hash-items* ",                                         "prod_action_nil",           prod_action_nil           },
-    {"*hash-items* #( &*s-exp* #, &*s-exp* #) &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
-    {"*hash-items* #[ &*s-exp* #, &*s-exp* #] &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
-
-    {"+ /\\s+",                                               NULL,                        NULL                      },
-    {"+ /^;.*\\n?",                                           NULL,                        NULL                      },
-    {"+ /^#!.*\\n?",                                          NULL,                        NULL                      },
-    {NULL,                                                    NULL,                        NULL                      },
-    // clang-format on
+static const char builtin_grammer_rules[] = {
+#include "lisp.g.h"
+    '\0',
 };
+// clang-format off
+// static const FklGrammerCstrAction builtin_grammer_and_action[] = {
+//     {"*s-exp* &*list*",                                       "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*vector*",                                     "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*bytevector*",                                 "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*box*",                                        "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*hasheq*",                                     "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*hasheqv*",                                    "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*hashequal*",                                  "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*string*",                                     "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*symbol*",                                     "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*integer*",                                    "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*float*",                                      "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*char*",                                       "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*quote*",                                      "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*qsquote*",                                    "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*unquote*",                                    "prod_action_return_first",  prod_action_return_first  },
+//     {"*s-exp* &*unqtesp*",                                    "prod_action_return_first",  prod_action_return_first  },
+//
+//     {"*quote* #' &*s-exp*",                                   "prod_action_quote",         prod_action_quote         },
+//     {"*qsquote* #` &*s-exp*",                                 "prod_action_qsquote",       prod_action_qsquote       },
+//     {"*unquote* #~ &*s-exp*",                                 "prod_action_unquote",       prod_action_unquote       },
+//     {"*unqtesp* #~@ &*s-exp*",                                "prod_action_unqtesp",       prod_action_unqtesp       },
+//
+//     {"*symbol* &?symbol + #|",                                "prod_action_symbol",        prod_action_symbol        },
+//
+//     {"*string* /\"\"|^\"(\\\\.|.)*\"$",                       "prod_action_string",        prod_action_string        },
+//
+//     {"*bytevector* /#\"\"|^#\"(\\\\.|.)*\"$",                 "prod_action_bytevector",    prod_action_bytevector    },
+//
+//     // s-dint can accepet the next terminator as its arguement
+//     {"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer   },
+//     {"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer   },
+//     {"*integer* &?s-oint + #|",                               "prod_action_oct_integer",   prod_action_oct_integer   },
+//
+//     {"*float* &?s-dfloat + #|",                               "prod_action_float",         prod_action_float         },
+//     {"*float* &?s-xfloat + #|",                               "prod_action_float",         prod_action_float         },
+//
+//     {"*char* &?s-char + ##\\",                                "prod_action_char",          prod_action_char          },
+//
+//     {"*box* ##& &*s-exp*",                                    "prod_action_box",           prod_action_box           },
+//
+//     {"*list* #( &*list-items* #)",                            "prod_action_return_second", prod_action_return_second },
+//     {"*list* #[ &*list-items* #]",                            "prod_action_return_second", prod_action_return_second },
+//
+//     {"*list-items* ",                                         "prod_action_nil",           prod_action_nil           },
+//     {"*list-items* &*s-exp* &*list-items*",                   "prod_action_list",          prod_action_list          },
+//     {"*list-items* &*s-exp* #, &*s-exp*",                     "prod_action_pair",          prod_action_pair          },
+//
+//     {"*vector* ##( &*vector-items* #)",                       "prod_action_vector",        prod_action_vector        },
+//     {"*vector* ##[ &*vector-items* #]",                       "prod_action_vector",        prod_action_vector        },
+//
+//     {"*vector-items* ",                                       "prod_action_nil",           prod_action_nil           },
+//     {"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list          },
+//
+//     {"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq        },
+//     {"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq        },
+//
+// 	// {"*hasheq* ##hash + &*hasheq-items*",                     "prod_action_return_second", prod_action_return_second},
+// 	// {"*hasheq-items* #( &*hash-items* #)",                     "prod_action_hasheq", prod_action_hasheq},
+// 	// {"*hasheq-items* #[ &*hash-items* #]",                     "prod_action_hasheq", prod_action_hasheq},
+//
+//     {"*hasheqv* ##hasheqv( &*hash-items* #)",                 "prod_action_hasheqv",       prod_action_hasheqv       },
+//     {"*hasheqv* ##hasheqv[ &*hash-items* #]",                 "prod_action_hasheqv",       prod_action_hasheqv       },
+//
+//     {"*hashequal* ##hashequal( &*hash-items* #)",             "prod_action_hashequal",     prod_action_hashequal     },
+//     {"*hashequal* ##hashequal[ &*hash-items* #]",             "prod_action_hashequal",     prod_action_hashequal     },
+//
+//     {"*hash-items* ",                                         "prod_action_nil",           prod_action_nil           },
+//     {"*hash-items* #( &*s-exp* #, &*s-exp* #) &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
+//     {"*hash-items* #[ &*s-exp* #, &*s-exp* #] &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
+//
+//     {"+ /\\s+",                                               NULL,                        NULL                      },
+//     {"+ /^;.*\\n?",                                           NULL,                        NULL                      },
+//     {"+ /^#!.*\\n?",                                          NULL,                        NULL                      },
+//     {NULL,                                                    NULL,                        NULL                      },
+// };
+// clang-format on
 
 FklGrammer *fklCreateBuiltinGrammer(FklSymbolTable *st) {
-    return fklCreateGrammerFromCstrAction(builtin_grammer_and_action, st);
+    FklParserGrammerParseArg args;
+    FklGrammer *g = fklCreateEmptyGrammer(st);
+    fklInitParserGrammerParseArg(&args, g, 1, builtin_prod_action_resolver,
+                                 NULL);
+    int err = fklParseProductionRuleWithCstr(&args, builtin_grammer_rules);
+    if (err) {
+        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklDestroyGrammer(g);
+        FKL_UNREACHABLE();
+        return NULL;
+    }
+    fklUninitParserGrammerParseArg(&args);
+    if (fklCheckAndInitGrammerSymbols(g)) {
+        fklDestroyGrammer(g);
+        FKL_UNREACHABLE();
+        return NULL;
+    }
+    // return fklCreateGrammerFromCstrAction(builtin_grammer_and_action, st);
+    return g;
 }
 
-FklGrammerIgnore *
-fklInitBuiltinProductionSet(FklProdHashMap *ht, FklSymbolTable *st,
-                            FklSymbolTable *tt, FklRegexTable *rt,
-                            FklGraSidBuiltinHashMap *builtins) {
-    FklGrammerIgnore *ignores = NULL;
-    const FklGrammerCstrAction *pa = builtin_grammer_and_action;
-    for (; pa->cstr; pa++) {
-        const char *str = pa->cstr;
-        if (*str == '+') {
-            FklGrammerIgnore *ignore =
-                create_grammer_ignore_from_cstr(str, builtins, st, tt, rt);
-            if (!ignore)
-                return NULL;
-            if (fklAddIgnoreToIgnoreList(&ignores, ignore)) {
-                fklDestroyIgnore(ignore);
-                return NULL;
-            }
-        } else {
-            FklGrammerProduction *prod = create_grammer_prod_from_cstr(
-                str, builtins, st, tt, rt, pa->action_name, pa->func);
-            if (prod == NULL || fklAddProdToProdTable(ht, builtins, prod)) {
-                fklDestroyGrammerProduction(prod);
-                return NULL;
-            }
-        }
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g) {
+    FklParserGrammerParseArg args;
+    fklInitParserGrammerParseArg(&args, g, 1, builtin_prod_action_resolver,
+                                 NULL);
+    int err = fklParseProductionRuleWithCstr(&args, builtin_grammer_rules);
+    if (err) {
+        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklDestroyGrammer(g);
+        FKL_UNREACHABLE();
+        return NULL;
     }
-    return ignores;
+    fklUninitParserGrammerParseArg(&args);
+    return g->ignores;
+    // FklGrammerIgnore *ignores = NULL;
+    // const FklGrammerCstrAction *pa = builtin_grammer_and_action;
+    // for (; pa->cstr; pa++) {
+    //     const char *str = pa->cstr;
+    //     if (*str == '+') {
+    //         FklGrammerIgnore *ignore =
+    //             create_grammer_ignore_from_cstr(str, builtins, st, tt, rt);
+    //         if (!ignore)
+    //             return NULL;
+    //         if (fklAddIgnoreToIgnoreList(&ignores, ignore)) {
+    //             fklDestroyIgnore(ignore);
+    //             return NULL;
+    //         }
+    //     } else {
+    //         FklGrammerProduction *prod = create_grammer_prod_from_cstr(
+    //             str, builtins, st, tt, rt, pa->action_name, pa->func);
+    //         if (prod == NULL || fklAddProdToProdTable(ht, builtins, prod)) {
+    //             fklDestroyGrammerProduction(prod);
+    //             return NULL;
+    //         }
+    //     }
+    // }
+    // return ignores;
 }

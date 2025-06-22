@@ -43,6 +43,7 @@ set(LIBFKL_TARGET_NAME fkl)
 set(GRAMMER_GEN grammer)
 set(PARSE parse)
 set(VMPARSE vmparse)
+set(BIN2H bin2h)
 
 #project setting
 project(${INTERPRETER_TARGET_NAME})
@@ -55,6 +56,7 @@ if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	list(APPEND LINK_TARGET m dl)
 endif()
 
+set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
@@ -82,10 +84,12 @@ add_library(test_lib
 	"src/base.c"
 	"src/utils.c"
 	"src/grammer.c"
+	"src/parser_grammer.c"
 	"src/symbol.c"
 	"src/nast.c"
 	"src/regex.c"
-	"src/bigint.c")
+	"src/bigint.c"
+	"${GENERATED_HEADER_DIR}/lisp.g.h")
 
 add_executable(test-lexer "main/tests/lexer.c")
 target_link_libraries(test-lexer test_lib ${LINK_TARGET})
@@ -110,7 +114,8 @@ target_link_libraries(test-ins ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
-	"main/grammer.c")
+	"main/grammer.c"
+)
 
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
@@ -122,6 +127,9 @@ target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURC
 add_executable(test-lexer4 "main/tests/lexer4.c")
 target_link_libraries(test-lexer4 ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
+add_executable(test-parser-grammer "main/tests/parser-grammer.c" "${GENERATED_HEADER_DIR}/lisp.g.h")
+target_link_libraries(test-parser-grammer ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+ 
 add_executable(test-dns "main/tests/dns.c")
 add_executable(test-fs-event "main/tests/fs_event.c")
 
@@ -132,6 +140,9 @@ else()
 	target_link_libraries(test-dns uv_a ${LINK_TARGET})
 	target_link_libraries(test-fs-event uv_a ${LINK_TARGET})
 endif()
+
+#generated-header
+include_directories(${GENERATED_HEADER_DIR})
 
 #argtable3
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
@@ -175,7 +186,8 @@ if(ASAN)
 endif()
 
 #libfkl_a.a
-file(GLOB LIBFKL_SOURCE "src/*.c")
+file(GLOB LIBFKL_SOURCE "src/*.c"
+	                    "${GENERATED_HEADER_DIR}/lisp.g.h")
 
 add_library(${LIBFKL_STATIC_TARGET_NAME}
 	STATIC
@@ -196,6 +208,13 @@ endif()
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
+
+# bin2h
+file(GLOB BIN2H_SOURCE
+	"main/bin2h.c")
+
+add_executable(${BIN2H} ${BIN2H_SOURCE})
+target_link_libraries(${BIN2H} argtable3 ${LINK_TARGET})
 
 function(add_fkl_native_module name)
     set(options)
@@ -357,10 +376,24 @@ add_custom_command(OUTPUT "vmparse.c"
 
 # copy dll in windows
 if(MSVC)
-# «Â¿Ì
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/lib/")
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")
 endif()
+
+add_custom_target(MAKE_GENERATED_HEADER_DIR ALL
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_HEADER_DIR}
+	BYPRODUCTS ${GENERATED_HEADER_DIR})
+
+function(add_bin2h dir name)
+	add_custom_command(OUTPUT "${GENERATED_HEADER_DIR}/${name}.h"
+	COMMAND $<TARGET_FILE:${BIN2H}>
+	"-o" "${GENERATED_HEADER_DIR}/${name}.h"
+	"-i" "${dir}/${name}"
+	DEPENDS ${BIN2H} ${dir}/${name} ${GENERATED_HEADER_DIR}
+	VERBATIM)
+endfunction()
+
+add_bin2h(${PROJECT_SOURCE_DIR} "lisp.g")
 
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)

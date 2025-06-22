@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "code_builder.h"
+#include "fakeLisp/common.h"
 #include "regex.h"
 #include "symbol.h"
 
@@ -28,26 +29,44 @@ typedef struct {
     void (*destroy)(void *s);
 } FklGrammerMatchOuterCtx;
 
+typedef enum FklBuiltinTerminalInitError {
+    FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY = 0,
+    FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS,
+    FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS,
+} FklBuiltinTerminalInitError;
+
 typedef struct {
-    int (*match)(void *ctx, const char *start, const char *str, size_t restLen,
-                 size_t *matchLen, FklGrammerMatchOuterCtx *outerCtx,
-                 int *is_waiting_for_more);
-    int (*ctx_cmp)(const void *c0, const void *c1);
-    int (*ctx_equal)(const void *c0, const void *c1);
-    uintptr_t (*ctx_hash)(const void *c);
-    void *(*ctx_create)(const FklString *next, int *failed);
-    void *(*ctx_global_create)(size_t, struct FklGrammerProduction *prod,
-                               struct FklGrammer *g, int *failed);
-    void (*ctx_destroy)(void *);
+    const struct FklGrammer *g;
+    size_t len;
+    FklString const **args;
+} FklBuiltinTerminalMatchArgs;
+
+typedef struct {
+    int (*match)(const FklBuiltinTerminalMatchArgs *args, const char *start,
+                 const char *str, size_t restLen, size_t *matchLen,
+                 FklGrammerMatchOuterCtx *outerCtx, int *is_waiting_for_more);
+    // int (*ctx_cmp)(const void *c0, const void *c1);
+    // int (*ctx_equal)(const void *c0, const void *c1);
+    // uintptr_t (*ctx_hash)(const void *c);
+    // void *(*ctx_create)(const FklString *next, int *failed);
+    // void *(*ctx_global_create)(size_t, struct FklGrammerProduction *prod,
+    //                            struct FklGrammer *g, int *failed);
+
+    FklBuiltinTerminalInitError (*ctx_create)(size_t len,
+                                              const FklString **args,
+                                              struct FklGrammer *g);
+    // void (*ctx_destroy)(void *);
     const char *name;
     void (*build_src)(const struct FklGrammer *g, FklCodeBuilder *build);
-    void (*build_c_match_cond)(void *ctx, const struct FklGrammer *g,
+    void (*build_c_match_cond)(const FklBuiltinTerminalMatchArgs *args,
                                FklCodeBuilder *build);
 } FklLalrBuiltinMatch;
 
 typedef struct {
     const FklLalrBuiltinMatch *t;
-    void *c;
+    // void *c;
+    size_t len;
+    FklString const **args;
 } FklLalrBuiltinGrammerSym;
 
 typedef struct {
@@ -96,12 +115,20 @@ typedef struct {
 static inline int
 fklBuiltinGrammerSymEqual(const FklLalrBuiltinGrammerSym *s0,
                           const FklLalrBuiltinGrammerSym *s1) {
-    if (s0->t == s1->t) {
-        if (s0->t->ctx_equal)
-            return s0->t->ctx_equal(s0->c, s1->c);
-        return 1;
+    if (s0->t != s1->t)
+        return 0;
+    if (s0->len != s1->len)
+        return 0;
+    for (size_t i = 0; i < s0->len; ++i) {
+        if (!fklStringEqual(s0->args[i], s1->args[i]))
+            return 0;
     }
-    return 0;
+    // if (s0->t == s1->t) {
+    //     if (s0->t->ctx_equal)
+    //         return s0->t->ctx_equal(s0->c, s1->c);
+    //     return 1;
+    // }
+    return 1;
 }
 
 static inline int fklLalrItemLookAheadEqual(const FklLalrItemLookAhead *la0,
@@ -134,9 +161,13 @@ static inline int fklLalrItemLookAheadEqual(const FklLalrItemLookAhead *la0,
 }
 
 static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
-    if (s->t->ctx_hash)
-        return s->t->ctx_hash(s->c);
-    return 0;
+    uintptr_t seed = s->len;
+    for (size_t i = 0; i < s->len; ++i) {
+        seed = fklHashCombine(seed, fklStringHash(s->args[i]));
+    }
+    // if (s->t->ctx_hash)
+    //     return s->t->ctx_hash(s->c);
+    return fklHashCombine(FKL_TYPE_CAST(uintptr_t, s->t), seed);
 }
 
 static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
@@ -208,7 +239,7 @@ struct FklGrammerProduction;
 
 uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line);
 
-typedef void *(*FklProdActionFunc)(void *ctx, void *outerCtx, void *asts[],
+typedef void *(*FklProdActionFunc)(void *args, void *ctx, void *asts[],
                                    size_t num, size_t line);
 
 typedef struct FklGrammerProduction {
@@ -444,6 +475,11 @@ typedef struct {
     FklProdActionFunc func;
 } FklGrammerCstrAction;
 
+typedef struct {
+    const char *name;
+    FklProdActionFunc func;
+} FklGrammerBuiltinAction;
+
 typedef struct FklAnalysisSymbol {
     FklGrammerNonterm nt;
     void *ast;
@@ -574,8 +610,8 @@ typedef union FklParseState FklParseState;
 
 typedef int (*FklStateFuncPtr)(struct FklParseStateVector *,
                                FklAnalysisSymbolVector *, FklUintVector *, int,
-                               FklSid_t, FklParseState *func,
-                               const char *, const char **, size_t *,
+                               FklSid_t, FklParseState *func, const char *,
+                               const char **, size_t *,
                                FklGrammerMatchOuterCtx *, int *,
                                size_t *errLine);
 
@@ -612,24 +648,19 @@ void *fklDefaultParseForCharBuf(const char *str, size_t len, size_t *restLen,
                                 FklUintVector *lines,
                                 FklParseStateVector *states);
 
-FklGrammerIgnore *
-fklInitBuiltinProductionSet(FklProdHashMap *ht, FklSymbolTable *st,
-                            FklSymbolTable *tt, FklRegexTable *rt,
-                            FklGraSidBuiltinHashMap *builtins);
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g);
 
 void fklInitBuiltinGrammerSymTable(FklGraSidBuiltinHashMap *s,
                                    FklSymbolTable *st);
+
+const char *fklBuiltinTerminalInitErrorToCstr(FklBuiltinTerminalInitError err);
+
 void fklInitEmptyGrammer(FklGrammer *g, FklSymbolTable *st);
 FklGrammer *fklCreateEmptyGrammer(FklSymbolTable *st);
 FklGrammer *fklCreateBuiltinGrammer(FklSymbolTable *st);
 
 int fklAddIgnoreToIgnoreList(FklGrammerIgnore **pp, FklGrammerIgnore *ig);
 void fklDestroyIgnore(FklGrammerIgnore *ig);
-
-size_t fklQuotedStringMatch(const char *cstr, size_t restLen,
-                            const FklString *end);
-size_t fklQuotedCharBufMatch(const char *cstr, size_t restLen, const char *end,
-                             size_t end_size);
 
 #ifdef __cplusplus
 }

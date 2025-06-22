@@ -36,6 +36,10 @@
 #define NODE_NAME                                                              \
     CONCAT(FKL_QUEUE_TYPE_PREFIX, CONCAT(FKL_QUEUE_ELM_TYPE_NAME, QueueNode))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct NODE_NAME {
     struct NODE_NAME *next;
     FKL_QUEUE_ELM_TYPE data;
@@ -221,6 +225,10 @@ static inline size_t METHOD(Length)(const NAME *r) {
         ;
     return l;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #undef CONCAT
 #undef CONCAT_

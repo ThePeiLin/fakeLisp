@@ -34,6 +34,10 @@
 #define NAME                                                                   \
     CONCAT(FKL_VECTOR_TYPE_PREFIX, CONCAT(FKL_VECTOR_ELM_TYPE_NAME, Vector))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct NAME {
     FKL_VECTOR_ELM_TYPE *base;
     size_t size;
@@ -222,6 +226,10 @@ static inline void METHOD(Shrink)(NAME *r, size_t s) {
 }
 
 static inline int METHOD(IsEmpty)(const NAME *r) { return r->size == 0; }
+
+#ifdef __cplusplus
+}
+#endif
 
 #undef CONCAT
 #undef CONCAT_

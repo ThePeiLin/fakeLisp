@@ -74,6 +74,12 @@ static inline void *fklZrealloc(void *ptr, size_t new_size) {
     return (void *)(((char *)new_ptr) + ALIGN_PADDING);
 }
 
+#define malloc (?"calling malloc when including zmalloc.h is not allowed"?)
+#define calloc (?"calling calloc when including zmalloc.h is not allowed"?)
+#define free (?"calling free when including zmalloc.h is not allowed"?)
+#define realloc (?"calling realloc when including zmalloc.h is not allowed"?)
+#define strdup (?"calling strdup when including zmalloc.h is not allowed"?)
+
 #ifdef __cplusplus
 }
 #endif

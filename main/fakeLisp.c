@@ -2,6 +2,7 @@
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/grammer.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/symbol.h>
@@ -191,6 +192,7 @@ static inline int runPreCompile(const char *filename, int argc,
     fclose(fp);
     fklUninitSymbolTable(&ctx.public_symbol_table);
     fklUninitConstTable(&ctx.public_kt);
+    fklUninitGrammer(&ctx.builtin_g);
     if (load_result) {
         fklUninitSymbolTable(&runtime_st);
         fklDestroyFuncPrototypes(pts);

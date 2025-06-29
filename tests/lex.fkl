@@ -1,11 +1,11 @@
 (defmacro #&json
   #(json #["#json'" json-value] builtin second)
 
-  #(#[#&"null"] json-value builtin symbol)
+  #(#[#"null"] json-value builtin symbol)
 
-  #(#[#&"true"] json-value builtin symbol)
+  #(#[#"true"] json-value builtin symbol)
 
-  #(#[#&"false"] json-value builtin symbol)
+  #(#[#"false"] json-value builtin symbol)
 
   #(#[*string*] json-value builtin first)
 
@@ -41,11 +41,12 @@
   #(() #["#23cons'" *s-exp* *s-exp* *s-exp* *s-exp*] simple #(cons 3 4))
   #(() #["#head'" *s-exp* *s-exp*] simple #(head head 1 2))
   #(() #["#2nd-vector'" *s-exp* *s-exp*] simple #(vector 2))
-  ;; FIXME
   #(() #[#(?symbol "《" "》")] simple #(symbol 0 "《" "》"))
-  #(() #[#&'"“”|^“(\\\\.|.)*”$"] simple #(string 0 "“" "”"))
+  #(() #[#&"“”|^“(\\\\.|.)*”$"] simple #(string 0 "“" "”"))
   #(() #["#other-json'" (json,json-value)] builtin second)
-  #(() #[#&"var" *symbol* #("=") *s-exp*] simple #(head define 1 3)))
+  #(() #[#"var" *symbol* #"=" *s-exp*] simple #(head define 1 3))
+  ;; 添加更多的分割符
+  ("“" "”"))
 
 (prin1n '#4th' foo bar foobar barfoo)
 

@@ -1,6 +1,9 @@
+#include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/nast.h>
+#include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
@@ -27,6 +30,9 @@ static void print_compiler_macros(FklCodegenMacro *head,
 static void print_reader_macros(const FklGraProdGroupHashMap *named_prod_groups,
                                 const FklSymbolTable *pst,
                                 const FklConstTable *pkt, FILE *fp);
+
+static void print_replacements(const FklReplacementHashMap *replacements,
+                               const FklSymbolTable *pst, FILE *fp);
 
 struct arg_lit *help;
 struct arg_lit *stats;
@@ -229,6 +235,8 @@ int main(int argc, char **argv) {
                     if (cur->named_prod_groups.buckets)
                         print_reader_macros(&cur->named_prod_groups, pst, pkt,
                                             stdout);
+                    if (cur->replacements->buckets)
+                        print_replacements(cur->replacements, pst, stdout);
                     if (!cur->head && !cur->named_prod_groups.buckets)
                         fputc('\n', stdout);
                     break;
@@ -299,6 +307,7 @@ int main(int argc, char **argv) {
             fklUninitConstTable(&runtime_kt);
             fklUninitSymbolTable(&ctx.public_symbol_table);
             fklUninitConstTable(&ctx.public_kt);
+            fklUninitGrammer(&ctx.builtin_g);
 
             if (exitState)
                 break;
@@ -391,7 +400,7 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
             }
         }
         if (l->v.prod_printing.size) {
-            fputs("\nprods:\n\n", fp);
+            fputs("\nprods:\n", fp);
             uint32_t top = l->v.prod_printing.size;
             FklCodegenProdPrinting *base = l->v.prod_printing.base;
             for (uint32_t i = 0; i < top; i++) {
@@ -405,19 +414,37 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
                 fputc(' ', fp);
                 fputs(p->add_extra ? "start" : "not-start", fp);
                 fputc(' ', fp);
-                fputs("\naction: ", fp);
+                fputs("=> ", fp);
                 if (p->type == FKL_CODEGEN_PROD_CUSTOM) {
-                    fputs("custom\n", fp);
+                    fputs("custom:\n", fp);
                     fklPrintByteCodelnt(p->bcl, fp, pst, pkt);
                 } else {
-                    fputs(p->type == FKL_CODEGEN_PROD_SIMPLE ? "simple\n"
-                                                             : "builtin\n",
+                    fputs(p->type == FKL_CODEGEN_PROD_SIMPLE ? "simple "
+                                                             : "builtin ",
                           fp);
                     fklPrintNastNode(p->forth, fp, pst);
                 }
                 fputc('\n', fp);
             }
         }
+        if (l->v.reachable_terminals.num) {
+            fputs("\nreachable terminals:\n", fp);
+            for (size_t i = 0; i < l->v.reachable_terminals.num; ++i) {
+                fklPrintRawString(l->v.reachable_terminals.idl[i]->k, fp);
+            }
+        }
+        fputc('\n', fp);
+    }
+}
+
+static void print_replacements(const FklReplacementHashMap *replacements,
+                               const FklSymbolTable *pst, FILE *fp) {
+    fputs("\nreplacements:\n", fp);
+    for (const FklReplacementHashMapNode *cur = replacements->first; cur;
+         cur = cur->next) {
+        fklPrintRawSymbol(fklGetSymbolWithId(cur->k, pst)->k, fp);
+        fputs(" => ", fp);
+        fklPrintNastNode(cur->v, fp, pst);
         fputc('\n', fp);
     }
 }

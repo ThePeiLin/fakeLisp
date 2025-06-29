@@ -292,13 +292,6 @@ builtin_terminal_init_failed_error(FklBuiltinTerminalInitError err,
     fklStringBufferPrintf(buf, ", %s", fklBuiltinTerminalInitErrorToCstr(err));
 }
 
-// PgGraSymVector
-#define FKL_VECTOR_TYPE_PREFIX Pg
-#define FKL_VECTOR_METHOD_PREFIX pg
-#define FKL_VECTOR_ELM_TYPE FklGrammerSym
-#define FKL_VECTOR_ELM_TYPE_NAME GraSym
-#include <fakeLisp/vector.h>
-
 static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,
                                                 int *err, const char *buf,
                                                 const char *const end) {
@@ -346,8 +339,8 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
         return NULL;
     }
 
-    PgGraSymVector gsym_vector;
-    pgGraSymVectorInit(&gsym_vector, 2);
+    FklGraSymVector gsym_vector;
+    fklGraSymVectorInit(&gsym_vector, 2);
 
     for (; buf < end;) {
         FklGrammerSym s = {.type = FKL_TERM_STRING};
@@ -421,7 +414,7 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
         } break;
         }
 
-        pgGraSymVectorPushBack(&gsym_vector, &s);
+        fklGraSymVectorPushBack(&gsym_vector, &s);
     }
 
 loop_break:;
@@ -434,12 +427,12 @@ loop_break:;
         goto error_happened;
     }
 
-    pgGraSymVectorUninit(&gsym_vector);
+    fklGraSymVectorUninit(&gsym_vector);
     return buf;
 
 error_happened:
-    while (!pgGraSymVectorIsEmpty(&gsym_vector)) {
-        FklGrammerSym *s = pgGraSymVectorPopBack(&gsym_vector);
+    while (!fklGraSymVectorIsEmpty(&gsym_vector)) {
+        FklGrammerSym *s = fklGraSymVectorPopBack(&gsym_vector);
 
         if (s->type == FKL_TERM_BUILTIN && s->b.len) {
             // if (s->b.c && s->b.t->ctx_destroy) {
@@ -452,7 +445,7 @@ error_happened:
         }
     }
 
-    pgGraSymVectorUninit(&gsym_vector);
+    fklGraSymVectorUninit(&gsym_vector);
 
     return NULL;
 }
@@ -550,8 +543,8 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
         return NULL;
     }
 
-    PgGraSymVector gsym_vector;
-    pgGraSymVectorInit(&gsym_vector, 2);
+    FklGraSymVector gsym_vector;
+    fklGraSymVectorInit(&gsym_vector, 2);
 
     int has_ignore = 0;
 
@@ -722,9 +715,9 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
 
         if (has_ignore) {
             FklGrammerSym s = {.type = FKL_TERM_IGNORE};
-            pgGraSymVectorPushBack(&gsym_vector, &s);
+            fklGraSymVectorPushBack(&gsym_vector, &s);
         }
-        pgGraSymVectorPushBack(&gsym_vector, &s);
+        fklGraSymVectorPushBack(&gsym_vector, &s);
         has_ignore = 1;
     }
 loop_break:;
@@ -742,12 +735,12 @@ loop_break:;
         goto error_happened;
     }
 
-    pgGraSymVectorUninit(&gsym_vector);
+    fklGraSymVectorUninit(&gsym_vector);
     return buf;
 
 error_happened:
-    while (!pgGraSymVectorIsEmpty(&gsym_vector)) {
-        FklGrammerSym *s = pgGraSymVectorPopBack(&gsym_vector);
+    while (!fklGraSymVectorIsEmpty(&gsym_vector)) {
+        FklGrammerSym *s = fklGraSymVectorPopBack(&gsym_vector);
 
         if (s->type == FKL_TERM_BUILTIN && s->b.len) {
             s->b.len = 0;
@@ -756,7 +749,7 @@ error_happened:
         }
     }
 
-    pgGraSymVectorUninit(&gsym_vector);
+    fklGraSymVectorUninit(&gsym_vector);
 
     return NULL;
 }

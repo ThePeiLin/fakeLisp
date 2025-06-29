@@ -44,6 +44,7 @@ size_t fklQuotedStringMatch(const char *cstr, size_t restLen,
 size_t fklQuotedCharBufMatch(const char *cstr, size_t restLen, const char *end,
                              size_t end_size);
 
+FklString *fklLoadString(FILE *fp);
 char *fklStringToCstr(const FklString *str);
 void fklPrintRawString(const FklString *str, FILE *fp);
 void fklPrintString(const FklString *str, FILE *fp);

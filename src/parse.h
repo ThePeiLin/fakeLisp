@@ -78,10 +78,13 @@ void *fklParseWithTableForCharBuf2(
                 break;
             }
         } else {
-            *err = (waiting_for_more_err
-                    || (*restLen && *restLen == match_args.skip_ignore_len))
-                     ? FKL_PARSE_WAITING_FOR_MORE
-                     : FKL_PARSE_TERMINAL_MATCH_FAILED;
+            if (waiting_for_more_err
+                || (*restLen && *restLen == match_args.skip_ignore_len)) {
+                *err = FKL_PARSE_WAITING_FOR_MORE;
+            } else if (*restLen == 0)
+                *err = FKL_PARSE_TERMINAL_MATCH_FAILED;
+            else
+                *err = FKL_PARSE_TERMINAL_MATCH_FAILED;
             break;
         }
     }

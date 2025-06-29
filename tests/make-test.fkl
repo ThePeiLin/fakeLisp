@@ -8,7 +8,7 @@
                     (define r
                       `(local
                          (define test-num ~num)
-                         (let [(err (pcall (lambda () (import ~t))))]
+                         (let [(err (pcall (lambda () (import (only ~t)))))]
                            (if (error? err)
                              (vector-set! msg
                                           test-num

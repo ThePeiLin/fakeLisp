@@ -107,6 +107,14 @@ size_t fklQuotedCharBufMatch(const char *cstr, size_t restLen, const char *end,
     return 0;
 }
 
+FklString *fklLoadString(FILE *fp) {
+    uint64_t str_len;
+    fread(&str_len, sizeof(str_len), 1, fp);
+    FklString *str = fklCreateString(str_len, NULL);
+    fread(str->str, str_len, 1, fp);
+    return str;
+}
+
 FklString *fklCopyString(const FklString *obj) {
     return fklCreateString(obj->size, obj->str);
 }

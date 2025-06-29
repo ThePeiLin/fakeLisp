@@ -131,6 +131,17 @@ typedef struct {
     };
 } FklCodegenProdPrinting;
 
+typedef struct FklSimpleProdAction {
+    const char *name;
+    FklProdActionFunc func;
+    void *(*creator)(FklNastNode *rest[], size_t rest_len, int *failed);
+    void *(*ctx_copyer)(const void *);
+    void (*ctx_destroy)(void *);
+    void (*write)(const FklSymbolTable *pst, void *, FILE *fp);
+    void *(*read)(FklSymbolTable *pst, FILE *fp);
+} FklSimpleProdAction;
+
+// to be delete
 // FklProdPrintingVector
 #define FKL_VECTOR_ELM_TYPE FklCodegenProdPrinting
 #define FKL_VECTOR_ELM_TYPE_NAME ProdPrinting
@@ -144,8 +155,12 @@ typedef enum {
 
 typedef struct {
     int is_ref_outer;
-    FklProdHashMap prods;
-    FklGrammerIgnore *ignore;
+    FklSymbolTable reachable_terminals;
+    FklGrammer g;
+    // FklProdHashMap prods;
+    // FklGrammerIgnore *ignore;
+
+    // to be delete
     FklNastNodeVector ignore_printing;
     FklProdPrintingVector prod_printing;
 } FklGrammerProdGroupItem;
@@ -156,13 +171,8 @@ typedef struct {
 #define FKL_HASH_ELM_NAME GraProdGroup
 #define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
-        fklProdHashMapUninit(&(V)->prods);                                     \
-        FklGrammerIgnore *ig = (V)->ignore;                                    \
-        while (ig) {                                                           \
-            FklGrammerIgnore *next = ig->next;                                 \
-            fklDestroyIgnore(ig);                                              \
-            ig = next;                                                         \
-        }                                                                      \
+        fklUninitSymbolTable(&(V)->reachable_terminals);                       \
+        fklUninitGrammer(&(V)->g);                                             \
         while (!fklNastNodeVectorIsEmpty(&(V)->ignore_printing))               \
             fklDestroyNastNode(                                                \
                 *fklNastNodeVectorPopBackNonNull(&(V)->ignore_printing));      \
@@ -193,8 +203,8 @@ typedef struct {
     FklReplacementHashMap *replacements;
 
     FklGraProdGroupHashMap named_prod_groups;
-    FklSymbolTable terminal_table;
-    FklRegexTable regexes;
+    // FklSymbolTable terminal_table;
+    // FklRegexTable regexes;
 
     uint32_t prototypeId;
 } FklCodegenLib;
@@ -292,6 +302,8 @@ typedef struct {
     FklSymbolTable public_symbol_table;
     FklConstTable public_kt;
 
+    FklGrammer builtin_g;
+
     FklSid_t builtInPatternVar_orig;
     FklSid_t builtInPatternVar_rest;
     FklSid_t builtInPatternVar_name;
@@ -332,18 +344,20 @@ typedef struct FklCodegenInfo {
 
     struct {
         FklGrammer *self_g;
-        FklProdHashMap self_builtin_prods;
-        FklGrammerIgnore *self_builtin_ignores;
-        FklProdHashMap self_unnamed_prods;
-        FklGrammerIgnore *self_unnamed_ignores;
+        // FklProdHashMap self_builtin_prods;
+        // FklGrammerIgnore *self_builtin_ignores;
+        FklGrammer self_unnamed_g;
+        // FklProdHashMap self_unnamed_prods;
+        // FklGrammerIgnore *self_unnamed_ignores;
         FklGraProdGroupHashMap self_named_prod_groups;
     };
 
     FklGrammer **g;
-    FklProdHashMap *builtin_prods;
-    FklGrammerIgnore **builtin_ignores;
-    FklProdHashMap *unnamed_prods;
-    FklGrammerIgnore **unnamed_ignores;
+    // FklProdHashMap *builtin_prods;
+    // FklGrammerIgnore **builtin_ignores;
+    FklGrammer *unnamed_g;
+    // FklProdHashMap *unnamed_prods;
+    // FklGrammerIgnore **unnamed_ignores;
     FklGraProdGroupHashMap *named_prod_groups;
 
     FklCodegenEnv *global_env;
@@ -597,20 +611,26 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklCodegenOuterCtx *outer_ctx, const char *rp, FILE *fp,
                       char **errorStr);
 
+FklProdActionFunc fklFindBuiltinProdActionByName(const char *str);
+const FklSimpleProdAction *fklFindSimpleProdActionByName(const char *str);
+
 void fklWriteNamedProds(const FklGraProdGroupHashMap *named_prod_groups,
                         const FklSymbolTable *st, FILE *fp);
 
-FklGrammerProduction *fklCreateExtraStartProduction(FklSid_t group,
-                                                    FklSid_t sid);
+void fklLoadNamedProds(FklGraProdGroupHashMap *ht, FklSymbolTable *st,
+                       FklCodegenOuterCtx *outer_ctx, FILE *fp);
 
-FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklSymbolTable *tt,
-                                        FklRegexTable *rt,
-                                        FklGraSidBuiltinHashMap *builtin_terms);
+FklGrammerProduction *
+fklCreateExtraStartProduction(FklCodegenOuterCtx *outer_ctx, FklSid_t group,
+                              FklSid_t sid);
 
-FklGrammerProduction *fklCodegenProdPrintingToProduction(
-    const FklCodegenProdPrinting *p, FklSymbolTable *tt, FklRegexTable *rt,
-    FklGraSidBuiltinHashMap *builtin_terms, FklCodegenOuterCtx *outer_ctx,
-    FklFuncPrototypes *pts, FklCodegenLibVector *macroLibStack);
+FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklGrammer *g);
+
+FklGrammerProduction *
+fklCodegenProdPrintingToProduction(const FklCodegenProdPrinting *p,
+                                   FklGrammer *g, FklCodegenOuterCtx *outer_ctx,
+                                   FklFuncPrototypes *pts,
+                                   FklCodegenLibVector *macroLibStack);
 
 void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
                               const FklGraProdGroupHashMap *named_prod_groups,

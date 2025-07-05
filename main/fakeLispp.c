@@ -1,3 +1,4 @@
+#include "fakeLisp/grammer.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/codegen.h>
@@ -399,6 +400,25 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
                 fputc('\n', fp);
             }
         }
+
+        if (l->v.g.ignores) {
+            fputs("\nignores:\n", fp);
+            fklPrintGrammerIgnores(&l->v.g, &l->v.g.regexes, fp);
+        }
+
+        if (l->v.g.productions.first) {
+            fputs("\nprods:\n", fp);
+            for (const FklProdHashMapNode *cur = l->v.g.productions.first; cur;
+                 cur = cur->next) {
+                for (const FklGrammerProduction *prod = cur->v; prod;
+                     prod = prod->next) {
+                    fklPrintGrammerProduction(fp, prod, l->v.g.st,
+                                              &l->v.g.terminals,
+                                              &l->v.g.regexes);
+                }
+            }
+        }
+
         if (l->v.prod_printing.size) {
             fputs("\nprods:\n", fp);
             uint32_t top = l->v.prod_printing.size;

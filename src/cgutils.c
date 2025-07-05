@@ -8,6 +8,8 @@
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 
+#include "codegen.h"
+
 static inline FklSymDefHashMapElm *
 get_def_by_id_in_scope(FklSid_t id, uint32_t scopeId,
                        FklCodegenEnvScope *scope) {
@@ -516,12 +518,6 @@ FklSymDef *fklAddCodegenDefBySid(FklSid_t id, uint32_t scopeId,
     return el;
 }
 
-static inline void replace_sid(FklSid_t *id, const FklSymbolTable *origin_st,
-                               FklSymbolTable *target_st) {
-    FklSid_t sid = *id;
-    *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st)->k, target_st)->v;
-}
-
 struct RecomputeSidAndConstIdCtx {
     const FklSymbolTable *origin_st;
     FklSymbolTable *target_st;
@@ -596,10 +592,11 @@ static int recompute_sid_and_const_id_func(void *cctx, FklOpcode *popcode,
 #undef IS_PUSH_BVEC_OP
 #undef IS_PUSH_BI_OP
 
-static inline void recompute_sid_and_const_id_for_bytecodelnt(
-    FklByteCodelnt *bcl, const FklSymbolTable *origin_st,
-    FklSymbolTable *target_st, const FklConstTable *origin_kt,
-    FklConstTable *target_kt) {
+void fklRecomputeSidAndConstIdForBcl(FklByteCodelnt *bcl,
+                                     const FklSymbolTable *origin_st,
+                                     FklSymbolTable *target_st,
+                                     const FklConstTable *origin_kt,
+                                     FklConstTable *target_kt) {
     struct RecomputeSidAndConstIdCtx ctx = {
         .origin_st = origin_st,
         .target_st = target_st,
@@ -694,8 +691,8 @@ static inline void recompute_sid_for_compiler_macros(
     for (; m; m = m->next) {
         fklRecomputeSidForNastNode(m->origin_exp, origin_st, target_st, option);
         if (m->own)
-            recompute_sid_and_const_id_for_bytecodelnt(
-                m->bcl, origin_st, target_st, origin_kt, target_kt);
+            fklRecomputeSidAndConstIdForBcl(m->bcl, origin_st, target_st,
+                                            origin_kt, target_kt);
     }
 }
 
@@ -711,59 +708,19 @@ static inline void recompute_sid_for_replacements(
     }
 }
 
-static inline void recompute_sid_for_named_prod_groups(
-    FklGraProdGroupHashMap *ht, const FklSymbolTable *origin_st,
-    FklSymbolTable *target_st, const FklConstTable *origin_kt,
-    FklConstTable *target_kt, FklCodegenRecomputeNastSidOption option) {
-    if (ht && ht->buckets) {
-        for (FklGraProdGroupHashMapNode *list = ht->first; list;
-             list = list->next) {
-            replace_sid(FKL_REMOVE_CONST(FklSid_t, &list->k), origin_st,
-                        target_st);
-            *FKL_REMOVE_CONST(uintptr_t, &list->hashv) =
-                fklGraProdGroupHashMap__hashv(&list->k);
-
-            uint32_t top = list->v.prod_printing.size;
-            for (uint32_t i = 0; i < top; i++) {
-                FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
-                if (p->group_id)
-                    replace_sid(&p->group_id, origin_st, target_st);
-                if (p->sid)
-                    replace_sid(&p->sid, origin_st, target_st);
-                fklRecomputeSidForNastNode(p->vec, origin_st, target_st,
-                                           option);
-                if (p->type == FKL_CODEGEN_PROD_CUSTOM)
-                    recompute_sid_and_const_id_for_bytecodelnt(
-                        p->bcl, origin_st, target_st, origin_kt, target_kt);
-                else
-                    fklRecomputeSidForNastNode(p->forth, origin_st, target_st,
-                                               option);
-            }
-
-            top = list->v.ignore_printing.size;
-            for (uint32_t i = 0; i < top; i++) {
-                FklNastNode *node = list->v.ignore_printing.base[i];
-                fklRecomputeSidForNastNode(node, origin_st, target_st, option);
-            }
-        }
-        fklGraProdGroupHashMapRehash(ht);
-    }
-}
-
 static inline void recompute_sid_for_script_lib(
     FklCodegenLib *lib, const FklSymbolTable *origin_st,
     FklSymbolTable *target_st, const FklConstTable *origin_kt,
     FklConstTable *target_kt, FklCodegenRecomputeNastSidOption option) {
-    recompute_sid_and_const_id_for_bytecodelnt(lib->bcl, origin_st, target_st,
-                                               origin_kt, target_kt);
+    fklRecomputeSidAndConstIdForBcl(lib->bcl, origin_st, target_st, origin_kt,
+                                    target_kt);
     recompute_sid_for_export_sid_index(&lib->exports, origin_st, target_st);
     recompute_sid_for_compiler_macros(lib->head, origin_st, target_st,
                                       origin_kt, target_kt, option);
     recompute_sid_for_replacements(lib->replacements, origin_st, target_st,
                                    option);
-    recompute_sid_for_named_prod_groups(&lib->named_prod_groups, origin_st,
-                                        target_st, origin_kt, target_kt,
-                                        option);
+    fklRecomputeSidForNamedProdGroups(&lib->named_prod_groups, origin_st,
+                                      target_st, origin_kt, target_kt, option);
 }
 
 static inline void recompute_sid_for_dll_lib(FklCodegenLib *lib,
@@ -796,16 +753,15 @@ static inline void recompute_sid_for_double_st_script_lib(
     FklSymbolTable *runtime_st, FklSymbolTable *public_st,
     const FklConstTable *origin_kt, FklConstTable *runtime_kt,
     FklConstTable *public_kt, FklCodegenRecomputeNastSidOption option) {
-    recompute_sid_and_const_id_for_bytecodelnt(lib->bcl, origin_st, runtime_st,
-                                               origin_kt, runtime_kt);
+    fklRecomputeSidAndConstIdForBcl(lib->bcl, origin_st, runtime_st, origin_kt,
+                                    runtime_kt);
     recompute_sid_for_export_sid_index(&lib->exports, origin_st, public_st);
     recompute_sid_for_compiler_macros(lib->head, origin_st, public_st,
                                       origin_kt, public_kt, option);
     recompute_sid_for_replacements(lib->replacements, origin_st, public_st,
                                    option);
-    recompute_sid_for_named_prod_groups(&lib->named_prod_groups, origin_st,
-                                        public_st, origin_kt, public_kt,
-                                        option);
+    fklRecomputeSidForNamedProdGroups(&lib->named_prod_groups, origin_st,
+                                      public_st, origin_kt, public_kt, option);
 }
 
 static inline void recompute_sid_for_double_st_lib_stack(
@@ -845,8 +801,8 @@ static inline void recompute_sid_for_main_file(
     const FklSymbolTable *origin_st, FklSymbolTable *target_st,
     const FklConstTable *origin_kt, FklConstTable *target_kt,
     FklCodegenRecomputeNastSidOption option) {
-    recompute_sid_and_const_id_for_bytecodelnt(bcl, origin_st, target_st,
-                                               origin_kt, target_kt);
+    fklRecomputeSidAndConstIdForBcl(bcl, origin_st, target_st, origin_kt,
+                                    target_kt);
     recompute_sid_for_export_sid_index(&codegen->exports, origin_st, target_st);
     recompute_sid_for_compiler_macros(codegen->export_macro, origin_st,
                                       target_st, origin_kt, target_kt, option);
@@ -854,9 +810,8 @@ static inline void recompute_sid_for_main_file(
                                    target_st, option);
     recompute_sid_for_sid_set(codegen->export_named_prod_groups, origin_st,
                               target_st);
-    recompute_sid_for_named_prod_groups(codegen->named_prod_groups, origin_st,
-                                        target_st, origin_kt, target_kt,
-                                        option);
+    fklRecomputeSidForNamedProdGroups(codegen->named_prod_groups, origin_st,
+                                      target_st, origin_kt, target_kt, option);
 }
 
 void fklRecomputeSidForSingleTableInfo(
@@ -914,18 +869,6 @@ static inline void load_export_sid_idx_table(FklCgExportSidIdxHashMap *t,
         fread(&idxs.oidx, sizeof(idxs.oidx), 1, fp);
         fklCgExportSidIdxHashMapPut(t, &sid, &idxs);
     }
-}
-
-static inline FklNastNode *load_nast_node_with_null_chr(FklSymbolTable *st,
-                                                        FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    char ch = 0;
-    while ((ch = fgetc(fp)))
-        fklStringBufferPutc(&buf, ch);
-    FklNastNode *node = fklCreateNastNodeFromCstr(buf.buf, st);
-    fklUninitStringBuffer(&buf);
-    return node;
 }
 
 static inline FklCodegenMacro *load_compiler_macros(FklSymbolTable *st,
@@ -1261,52 +1204,6 @@ static inline void merge_prototypes(FklFuncPrototypes *o,
 //     }
 // }
 
-static inline void
-init_pre_lib_reader_macros(FklCodegenLibVector *libStack, FklSymbolTable *st,
-                           FklCodegenOuterCtx *outer_ctx,
-                           FklFuncPrototypes *pts,
-                           FklCodegenLibVector *macroLibStack) {
-    uint32_t top = libStack->size;
-    for (uint32_t i = 0; i < top; i++) {
-        FklCodegenLib *lib = &libStack->base[i];
-        if (lib->named_prod_groups.buckets) {
-            // FklSymbolTable *tt = &lib->terminal_table;
-            // FklRegexTable *rt = &lib->regexes;
-            for (FklGraProdGroupHashMapNode *l = lib->named_prod_groups.first;
-                 l; l = l->next) {
-
-                for (size_t i = 0; i < l->v.reachable_terminals.num; ++i)
-                    fklAddSymbol(l->v.reachable_terminals.idl[i]->k,
-                                 &l->v.g.reachable_terminals);
-
-                FklNastNodeVector *stack = &l->v.ignore_printing;
-                uint32_t top = stack->size;
-                for (uint32_t i = 0; i < top; i++) {
-                    FklNastNode *node = stack->base[i];
-                    FklGrammerIgnore *ig = fklNastVectorToIgnore(node, &l->v.g);
-                    fklAddIgnoreToIgnoreList(&l->v.g.ignores, ig);
-                }
-                FklProdPrintingVector *stack1 = &l->v.prod_printing;
-                top = stack1->size;
-                for (uint32_t i = 0; i < top; i++) {
-                    const FklCodegenProdPrinting *p = &stack1->base[i];
-                    FklGrammerProduction *prod =
-                        fklCodegenProdPrintingToProduction(
-                            p, &l->v.g, outer_ctx, pts, macroLibStack);
-                    fklAddProdToProdTableNoRepeat(&l->v.g, prod);
-                    if (p->add_extra) {
-                        FklGrammerProduction *extra_prod =
-                            fklCreateExtraStartProduction(outer_ctx,
-                                                          p->group_id, p->sid);
-                        fklAddProdToProdTable(&l->v.g, extra_prod);
-                    }
-                }
-            }
-#warning INCOMPLETE
-        }
-    }
-}
-
 int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklFuncPrototypes *info_macro_pts,
                       FklCodegenLibVector *info_scriptLibStack,
@@ -1377,10 +1274,10 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     merge_prototypes(info_pts, pts);
     merge_prototypes(info_macro_pts, macro_pts);
 
-    init_pre_lib_reader_macros(&scriptLibStack, pst, outer_ctx, info_macro_pts,
-                               info_macroScriptLibStack);
-    init_pre_lib_reader_macros(&macroScriptLibStack, pst, outer_ctx,
-                               info_macro_pts, info_macroScriptLibStack);
+    fklInitPreLibReaderMacros(&scriptLibStack, pst, outer_ctx, info_macro_pts,
+                              info_macroScriptLibStack);
+    fklInitPreLibReaderMacros(&macroScriptLibStack, pst, outer_ctx,
+                              info_macro_pts, info_macroScriptLibStack);
 
     for (uint32_t i = 0; i < scriptLibStack.size; i++)
         fklCodegenLibVectorPushBack(info_scriptLibStack,

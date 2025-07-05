@@ -598,6 +598,8 @@ FklGrammerProduction *fklGetProductions(const FklProdHashMap *prod,
 FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
                                                FklSid_t group, FklSid_t id);
 
+void fklPrintGrammerIgnores(const FklGrammer *g, const FklRegexTable *rt,
+                            FILE *fp);
 void fklPrintGrammerProduction(FILE *fp, const FklGrammerProduction *prod,
                                const FklSymbolTable *st,
                                const FklSymbolTable *tt,

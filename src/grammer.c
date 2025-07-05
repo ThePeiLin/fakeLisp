@@ -2321,6 +2321,19 @@ FklGrammer *fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],
     return grammer;
 }
 
+static inline void print_as_regex(const FklString *str, FILE *fp) {
+    const char *cur = str->str;
+    const char *const end = cur + str->size;
+    fputc('/', fp);
+    for (; cur < end; ++cur) {
+        if (*cur == '/')
+            fputs("\\/", fp);
+        else
+            fputc(*cur, fp);
+    }
+    fputc('/', fp);
+}
+
 static inline void print_prod_sym(FILE *fp, const FklGrammerSym *u,
                                   const FklSymbolTable *st,
                                   const FklSymbolTable *tt,
@@ -2341,7 +2354,8 @@ static inline void print_prod_sym(FILE *fp, const FklGrammerSym *u,
         }
         break;
     case FKL_TERM_REGEX:
-        fprintf(fp, "/%s/", fklGetStringWithRegex(rt, u->re, NULL)->str);
+        print_as_regex(fklGetStringWithRegex(rt, u->re, NULL), fp);
+        // fprintf(fp, "/%s/", fklGetStringWithRegex(rt, u->re, NULL)->str);
         // putc('/', fp);
         // fklPrintString(fklGetStringWithRegex(rt, u->re, NULL), fp);
         break;
@@ -2357,7 +2371,15 @@ static inline void print_prod_sym(FILE *fp, const FklGrammerSym *u,
         break;
     case FKL_TERM_NONTERM:
         // putc('&', fp);
-        fklPrintString(fklGetSymbolWithId(u->nt.sid, st)->k, fp);
+        if (u->nt.group) {
+            fputc('(', fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.group, st)->k, fp);
+            fputs(" , ", fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.sid, st)->k, fp);
+            fputc(')', fp);
+        } else {
+            fklPrintString(fklGetSymbolWithId(u->nt.sid, st)->k, fp);
+        }
         break;
     case FKL_TERM_IGNORE:
         fputs("?e", fp);
@@ -2688,7 +2710,8 @@ static inline void print_look_ahead(FILE *fp, const FklLalrItemLookAhead *la,
         fputs("?e", fp);
         break;
     case FKL_TERM_REGEX:
-        fprintf(fp, "/%s/", fklGetStringWithRegex(rt, la->re, NULL)->str);
+        print_as_regex(fklGetStringWithRegex(rt, la->re, NULL), fp);
+        // fprintf(fp, "/%s/", fklGetStringWithRegex(rt, la->re, NULL)->str);
         break;
     case FKL_TERM_NONTERM:
         FKL_UNREACHABLE();
@@ -5043,9 +5066,17 @@ void fklPrintGrammerProduction(FILE *fp, const FklGrammerProduction *prod,
                                const FklSymbolTable *st,
                                const FklSymbolTable *tt,
                                const FklRegexTable *rt) {
-    if (!is_Sq_nt(&prod->left))
-        fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
-    else
+    if (!is_Sq_nt(&prod->left)) {
+        if (prod->left.group) {
+            fputc('(', fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.group, st)->k, fp);
+            fputs(" , ", fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
+            fputc(')', fp);
+        } else {
+            fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
+        }
+    } else
         fputs("S'", fp);
     fputs(" ->", fp);
     size_t len = prod->len;
@@ -5089,8 +5120,9 @@ FklGrammerProduction *fklGetProductions(const FklProdHashMap *prods,
     return pp ? *pp : NULL;
 }
 
-static inline void print_ignores(const FklGrammerIgnore *ig,
-                                 const FklRegexTable *rt, FILE *fp) {
+void fklPrintGrammerIgnores(const FklGrammer *g, const FklRegexTable *rt,
+                            FILE *fp) {
+    const FklGrammerIgnore *ig = g->ignores;
     for (; ig; ig = ig->next) {
         for (size_t i = 0; i < ig->len; i++) {
             const FklGrammerIgnoreSym *u = &ig->ig[i];
@@ -5110,8 +5142,9 @@ static inline void print_ignores(const FklGrammerIgnore *ig,
             } break;
 
             case FKL_TERM_REGEX:
-                fprintf(fp, "/%s/",
-                        fklGetStringWithRegex(rt, u->re, NULL)->str);
+                print_as_regex(fklGetStringWithRegex(rt, u->re, NULL), fp);
+                // fprintf(fp, "/%s/",
+                //         fklGetStringWithRegex(rt, u->re, NULL)->str);
                 break;
             case FKL_TERM_STRING: {
                 fklPrintRawString(u->str, fp);
@@ -5164,7 +5197,7 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
         }
     }
     fputs("\nignore:\n", fp);
-    print_ignores(grammer->ignores, &grammer->regexes, fp);
+    fklPrintGrammerIgnores(grammer, &grammer->regexes, fp);
 }
 
 void *fklDefaultParseForCstr(const char *cstr, FklGrammerMatchOuterCtx *ctx,

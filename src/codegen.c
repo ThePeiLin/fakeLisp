@@ -1,5 +1,6 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
+#include <fakeLisp/bytecode.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/nast.h>
@@ -14,6 +15,7 @@
 #include <fakeLisp/zmalloc.h>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #ifdef _WIN32
 #include <direct.h>
@@ -24,25 +26,6 @@
 #endif
 
 #include "codegen.h"
-
-static inline void print_nast_node_with_null_chr(const FklNastNode *node,
-                                                 const FklSymbolTable *st,
-                                                 FILE *fp) {
-    fklPrintNastNode(node, fp, st);
-    fputc('\0', fp);
-}
-
-static inline FklNastNode *load_nast_node_with_null_chr(FklSymbolTable *st,
-                                                        FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    char ch = 0;
-    while ((ch = fgetc(fp)))
-        fklStringBufferPutc(&buf, ch);
-    FklNastNode *node = fklCreateNastNodeFromCstr(buf.buf, st);
-    fklUninitStringBuffer(&buf);
-    return node;
-}
 
 static inline FklNastNode *cadr_nast_node(const FklNastNode *node) {
     return node->pair->cdr->pair->car;
@@ -10240,6 +10223,7 @@ static inline void read_production_rule_action(FklSymbolTable *pst,
         FKL_ASSERT(ctx);
         fread(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
         ctx->bcl = fklLoadByteCodelnt(fp);
+        prod->ctx = ctx;
     } break;
 
     case FKL_CODEGEN_PROD_SIMPLE: {
@@ -10419,6 +10403,128 @@ void fklLoadNamedProds(FklGraProdGroupHashMap *ht, FklSymbolTable *st,
             load_grammer_in_binary(&group->g, fp);
             // load_printing_prods(&group->prod_printing, st, fp);
             // load_printing_ignores(&group->ignore_printing, st, fp);
+        }
+    }
+}
+
+void fklRecomputeSidForNamedProdGroups(
+    FklGraProdGroupHashMap *ht, const FklSymbolTable *origin_st,
+    FklSymbolTable *target_st, const FklConstTable *origin_kt,
+    FklConstTable *target_kt, FklCodegenRecomputeNastSidOption option) {
+    if (ht && ht->buckets) {
+        for (FklGraProdGroupHashMapNode *list = ht->first; list;
+             list = list->next) {
+            replace_sid(FKL_REMOVE_CONST(FklSid_t, &list->k), origin_st,
+                        target_st);
+            *FKL_REMOVE_CONST(uintptr_t, &list->hashv) =
+                fklGraProdGroupHashMap__hashv(&list->k);
+
+            for (FklProdHashMapNode *cur = list->v.g.productions.first; cur;
+                 cur = cur->next) {
+                for (FklGrammerProduction *prod = cur->v; prod;
+                     prod = prod->next) {
+#warning INCOMPLETE
+                    if (prod->func == custom_action) {
+                        struct CustomActionCtx *ctx = prod->ctx;
+                        if (!ctx->is_recomputed) {
+                            fklRecomputeSidAndConstIdForBcl(
+                                ctx->bcl, origin_st, target_st, origin_kt,
+                                target_kt);
+                            ctx->is_recomputed = 1;
+                        }
+                    }
+                }
+            }
+
+            uint32_t top = list->v.prod_printing.size;
+            for (uint32_t i = 0; i < top; i++) {
+                FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
+                if (p->group_id)
+                    replace_sid(&p->group_id, origin_st, target_st);
+                if (p->sid)
+                    replace_sid(&p->sid, origin_st, target_st);
+                fklRecomputeSidForNastNode(p->vec, origin_st, target_st,
+                                           option);
+                if (p->type == FKL_CODEGEN_PROD_CUSTOM)
+                    fklRecomputeSidAndConstIdForBcl(
+                        p->bcl, origin_st, target_st, origin_kt, target_kt);
+                else
+                    fklRecomputeSidForNastNode(p->forth, origin_st, target_st,
+                                               option);
+            }
+
+            top = list->v.ignore_printing.size;
+            for (uint32_t i = 0; i < top; i++) {
+                FklNastNode *node = list->v.ignore_printing.base[i];
+                fklRecomputeSidForNastNode(node, origin_st, target_st, option);
+            }
+        }
+        fklGraProdGroupHashMapRehash(ht);
+    }
+}
+
+void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
+                               FklSymbolTable *st,
+                               FklCodegenOuterCtx *outer_ctx,
+                               FklFuncPrototypes *pts,
+                               FklCodegenLibVector *macroLibStack) {
+    uint32_t top = libStack->size;
+    for (uint32_t i = 0; i < top; i++) {
+        FklCodegenLib *lib = &libStack->base[i];
+        if (lib->named_prod_groups.buckets) {
+            // FklSymbolTable *tt = &lib->terminal_table;
+            // FklRegexTable *rt = &lib->regexes;
+            for (FklGraProdGroupHashMapNode *l = lib->named_prod_groups.first;
+                 l; l = l->next) {
+
+                for (size_t i = 0; i < l->v.reachable_terminals.num; ++i)
+                    fklAddSymbol(l->v.reachable_terminals.idl[i]->k,
+                                 &l->v.g.reachable_terminals);
+
+                for (FklProdHashMapNode *cur = l->v.g.productions.first; cur;
+                     cur = cur->next) {
+                    for (FklGrammerProduction *prod = cur->v; prod;
+                         prod = prod->next) {
+#warning INCOMPLETE
+                        if (prod->func == custom_action) {
+                            struct CustomActionCtx *ctx = prod->ctx;
+                            ctx->codegen_outer_ctx = outer_ctx;
+                            ctx->pst = &outer_ctx->public_symbol_table;
+                            ctx->macroLibStack = macroLibStack;
+                            ctx->pts = pts;
+                            ctx->is_recomputed = 0;
+                            prod->func = custom_action;
+                            prod->ctx = ctx;
+                            prod->ctx_destroyer = custom_action_ctx_destroy;
+                            prod->ctx_copyer = custom_action_ctx_copy;
+                        }
+                    }
+                }
+
+                FklNastNodeVector *stack = &l->v.ignore_printing;
+                uint32_t top = stack->size;
+                for (uint32_t i = 0; i < top; i++) {
+                    FklNastNode *node = stack->base[i];
+                    FklGrammerIgnore *ig = fklNastVectorToIgnore(node, &l->v.g);
+                    fklAddIgnoreToIgnoreList(&l->v.g.ignores, ig);
+                }
+                FklProdPrintingVector *stack1 = &l->v.prod_printing;
+                top = stack1->size;
+                for (uint32_t i = 0; i < top; i++) {
+                    const FklCodegenProdPrinting *p = &stack1->base[i];
+                    FklGrammerProduction *prod =
+                        fklCodegenProdPrintingToProduction(
+                            p, &l->v.g, outer_ctx, pts, macroLibStack);
+                    fklAddProdToProdTableNoRepeat(&l->v.g, prod);
+                    if (p->add_extra) {
+                        FklGrammerProduction *extra_prod =
+                            fklCreateExtraStartProduction(outer_ctx,
+                                                          p->group_id, p->sid);
+                        fklAddProdToProdTable(&l->v.g, extra_prod);
+                    }
+                }
+            }
+#warning INCOMPLETE
         }
     }
 }

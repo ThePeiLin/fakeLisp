@@ -603,6 +603,25 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
                                 FklSymbolTable *target_table,
                                 FklCodegenRecomputeNastSidOption option);
 
+void fklRecomputeSidAndConstIdForBcl(FklByteCodelnt *bcl,
+                                     const FklSymbolTable *origin_st,
+                                     FklSymbolTable *target_st,
+                                     const FklConstTable *origin_kt,
+                                     FklConstTable *target_kt);
+
+void fklRecomputeSidForNamedProdGroups(FklGraProdGroupHashMap *ht,
+                                       const FklSymbolTable *origin_st,
+                                       FklSymbolTable *target_st,
+                                       const FklConstTable *origin_kt,
+                                       FklConstTable *target_kt,
+                                       FklCodegenRecomputeNastSidOption option);
+
+void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
+                               FklSymbolTable *st,
+                               FklCodegenOuterCtx *outer_ctx,
+                               FklFuncPrototypes *pts,
+                               FklCodegenLibVector *macroLibStack);
+
 int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklFuncPrototypes *info_macro_pts,
                       FklCodegenLibVector *info_scriptLibStack,

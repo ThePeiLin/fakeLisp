@@ -4493,6 +4493,7 @@ typedef struct {
     FklCodegenEnv *env;
     FklCodegenMacroScope *cms;
     FklByteCodelntVector stack;
+    FklSidHashSet named_prod_group_ids;
     FklNastNode *prefix;
     FklNastNode *only;
     FklNastNode *alias;
@@ -4505,6 +4506,7 @@ static void export_context_data_finalizer(void *data) {
     while (!fklByteCodelntVectorIsEmpty(&d->stack))
         fklDestroyByteCodelnt(*fklByteCodelntVectorPopBackNonNull(&d->stack));
     fklByteCodelntVectorUninit(&d->stack);
+    fklSidHashSetUninit(&d->named_prod_group_ids);
     fklDestroyCodegenEnv(d->env);
     fklDestroyCodegenInfo(d->codegen);
     fklDestroyCodegenMacroScope(d->cms);
@@ -4597,6 +4599,15 @@ static inline int merge_all_grammer(FklCodegenInfo *codegen) {
 }
 static inline int add_all_group_to_grammer(FklCodegenInfo *codegen);
 
+static inline void merge_group(FklGrammerProdGroupItem *group,
+                               const FklGrammerProdGroupItem *other,
+                               const FklRecomputeGroupIdArgs *args) {
+    for (size_t i = 0; i < other->reachable_terminals.num; ++i)
+        fklAddSymbol(other->reachable_terminals.idl[i]->k,
+                     &group->reachable_terminals);
+    fklMergeGrammer(&group->g, &other->g, args);
+}
+
 static inline int
 import_reader_macro(FklCodegenInfo *codegen, FklCodegenErrorState *errorState,
                     uint64_t curline, const FklCodegenLib *lib,
@@ -4668,9 +4679,9 @@ import_reader_macro(FklCodegenInfo *codegen, FklCodegenErrorState *errorState,
     //         }
     //     }
     // }
-    fklMergeGrammer(&target_group->g, &group->g,
-                    &(FklRecomputeGroupIdArgs){.old_group_id = origin_group_id,
-                                               .new_group_id = new_group_id});
+    merge_group(target_group, group,
+                &(FklRecomputeGroupIdArgs){.old_group_id = origin_group_id,
+                                           .new_group_id = new_group_id});
     return 0;
 }
 
@@ -5120,6 +5131,15 @@ createExportContext(FklCodegenInfo *codegen, FklCodegenEnv *targetEnv,
     data->except = except ? fklMakeNastNodeRef(except) : NULL;
     data->alias = alias ? fklMakeNastNodeRef(alias) : NULL;
     fklByteCodelntVectorInit(&data->stack, 16);
+
+    fklSidHashSetInit(&data->named_prod_group_ids);
+    if (codegen->named_prod_groups) {
+        for (const FklGraProdGroupHashMapNode *cur =
+                 codegen->named_prod_groups->first;
+             cur; cur = cur->next) {
+            fklSidHashSetPut2(&data->named_prod_group_ids, cur->k);
+        }
+    }
     return createCodegenQuestContext(data, &ExportContextMethodTable);
 }
 
@@ -5259,6 +5279,18 @@ BC_PROCESS(_export_import_bc_process) {
         fklReplacementHashMapAdd2(macros->replacements, cur->k, cur->v);
     }
 
+    FklCodegenInfo *lib_codegen = d->codegen;
+    if (lib_codegen->named_prod_groups->first) {
+        for (const FklGraProdGroupHashMapNode *cur =
+                 lib_codegen->named_prod_groups->first;
+             cur; cur = cur->next) {
+            if (!fklSidHashSetHas2(&d->named_prod_group_ids, cur->k)) {
+                FKL_ASSERT(lib_codegen->export_named_prod_groups);
+                fklSidHashSetPut2(lib_codegen->export_named_prod_groups,
+                                  cur->k);
+            }
+        }
+    }
 exit:
     fklSidVectorUninit(&idPstack);
 
@@ -9254,6 +9286,7 @@ fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,
                          int destroyAbleMark, FklCodegenOuterCtx *outer_ctx,
                          FklCodegenInfoWorkCb work_cb,
                          FklCodegenInfoEnvWorkCb env_work_cb, void *work_ctx) {
+    memset(codegen, 0, sizeof(*codegen));
     codegen->runtime_symbol_table = runtime_st;
     codegen->runtime_kt = runtime_kt;
     codegen->outer_ctx = outer_ctx;
@@ -9310,6 +9343,7 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen, const char *filename,
                         FklConstTable *runtime_kt, int destroyAbleMark,
                         int libMark, int macroMark,
                         FklCodegenOuterCtx *outer_ctx) {
+    memset(codegen, 0, sizeof(*codegen));
     if (filename != NULL) {
         char *rp = fklRealpath(filename);
         codegen->dir = fklGetDir(rp);
@@ -9490,7 +9524,7 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
                 FklGrammerProdGroupItem *target_group = add_production_group(
                     &lib->named_prod_groups,
                     &codegen->outer_ctx->public_symbol_table, id);
-                fklMergeGrammer(&target_group->g, &group->g, NULL);
+                merge_group(target_group, group, NULL);
 #warning INCOMPLETE
                 // for (FklGrammerIgnore *igs = group->ignore; igs;
                 //      igs = igs->next) {
@@ -10135,6 +10169,7 @@ void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
         FklSid_t id = list->k;
         FklGrammerProdGroupItem *group =
             get_production_group(named_prod_groups, id);
+        FKL_ASSERT(group);
         fwrite(&id, sizeof(id), 1, fp);
         fklWriteSymbolTable(&group->reachable_terminals, fp);
         write_grammer_in_binary(&group->g, fp);

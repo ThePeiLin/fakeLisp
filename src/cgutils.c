@@ -720,6 +720,9 @@ static inline void recompute_sid_for_named_prod_groups(
              list = list->next) {
             replace_sid(FKL_REMOVE_CONST(FklSid_t, &list->k), origin_st,
                         target_st);
+            *FKL_REMOVE_CONST(uintptr_t, &list->hashv) =
+                fklGraProdGroupHashMap__hashv(&list->k);
+
             uint32_t top = list->v.prod_printing.size;
             for (uint32_t i = 0; i < top; i++) {
                 FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
@@ -831,6 +834,8 @@ static inline void recompute_sid_for_sid_set(FklSidHashSet *ht,
     for (FklSidHashSetNode *l = ht->first; l; l = l->next) {
         FklSid_t *id = FKL_REMOVE_CONST(FklSid_t, &l->k);
         replace_sid(id, ost, tst);
+        *FKL_REMOVE_CONST(uintptr_t, &l->hashv) =
+            fklGraProdGroupHashMap__hashv(id);
     }
     fklSidHashSetRehash(ht);
 }

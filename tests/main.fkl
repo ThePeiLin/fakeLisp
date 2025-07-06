@@ -19,7 +19,7 @@
     (internationale)
     (test-loc)
     (lex)
-    ;; (reader-macro)
+    (reader-macro)
     (compiler-macro)
     (test)
     (test-alias)

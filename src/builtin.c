@@ -2164,8 +2164,11 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 #undef EXCEPT_NEXT_ARG_VECTOR
 #undef EXCEPT_NEXT_ARG_CALLABLE
 
-    if (fklCheckAndInitGrammerSymbols(grammer))
+    FklGrammerNonterm nonterm = {0};
+    if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
+#warning INCOMPLETE
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);
+    }
 
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(grammer);
     fklLr0ToLalrItems(itemSet, grammer);

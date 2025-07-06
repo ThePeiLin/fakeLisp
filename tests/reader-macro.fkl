@@ -47,7 +47,8 @@
 ;; 虽然这玩意儿叫读取器宏，但其实本质是产生式
 
 (defmacro #&custom
-  #(#[#&"/\\*\\*/|^/\\*.*\\*/$"]) ;; 自定义注释
+  "/*"                            ;; 添加分割符
+  #& #[#&"/\\*\\*/|^/\\*.*\\*/$"] ;; 自定义注释
 
   #(my-lambda
      #[*symbol* "=>" *s-exp*]
@@ -62,7 +63,7 @@
   #(#[*s-exp* "," my-fn-call-args] my-fn-call-args builtin pair)
 
   #(my-var-def
-     #[#("var") *symbol* ":=" *s-exp*]
+     #[#"var" *symbol* ":=" *s-exp*]
      simple #(head define 1 3))
 
   #(my-var-assign
@@ -78,15 +79,15 @@
   #(#[] my-fn-arg-list builtin nil)
   #(#[*symbol*] my-fn-arg-list builtin cons)
   #(#[*symbol* "," my-fn-arg-list] my-fn-arg-list builtin pair)
-  #(#[*symbol* "," *symbol* #("...")] my-fn-arg-list builtin pair)
+  #(#[*symbol* "," *symbol* #"..."] my-fn-arg-list builtin pair)
 
   #(my-fn-def
-     #[#("def") *symbol* "(" my-fn-arg-list ")" "{" func-body "}"]
+     #[#"def" *symbol* "(" my-fn-arg-list ")" "{" func-body "}"]
      custom
      `(define (~(vector-ref $$ 1),~(vector-ref $$ 3)),~(vector-ref $$ 6)))
 
   #(my-fn-def
-     #[#("def") *symbol* *symbol* "{" func-body "}"]
+     #[#"def" *symbol* *symbol* "{" func-body "}"]
      custom
      `(define (~(vector-ref $$ 1),~(vector-ref $$ 2)),~(vector-ref $$ 4))))
 

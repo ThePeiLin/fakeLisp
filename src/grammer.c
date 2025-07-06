@@ -2198,7 +2198,8 @@ static inline int add_reachable_terminal(FklGrammer *g) {
     return 0;
 }
 
-static inline int check_undefined_nonterm(FklGrammer *g) {
+static inline int check_undefined_nonterm(FklGrammer *g,
+                                          FklGrammerNonterm *nt) {
     FklProdHashMap *productions = &g->productions;
     for (const FklProdHashMapNode *il = productions->first; il; il = il->next) {
         for (const FklGrammerProduction *prods = il->v; prods;
@@ -2208,10 +2209,7 @@ static inline int check_undefined_nonterm(FklGrammer *g) {
                 const FklGrammerSym *cur = &syms[i];
                 if (cur->type == FKL_TERM_NONTERM
                     && !fklProdHashMapGet(productions, &cur->nt)) {
-                    fputs("nonterm: ", stderr);
-                    fklPrintRawSymbol(fklGetSymbolWithId(cur->nt.sid, g->st)->k,
-                                      stderr);
-                    fputs(" is not defined\n", stderr);
+                    *nt = cur->nt;
                     return 1;
                 }
             }
@@ -2220,8 +2218,8 @@ static inline int check_undefined_nonterm(FklGrammer *g) {
     return 0;
 }
 
-int fklCheckAndInitGrammerSymbols(FklGrammer *g) {
-    int r = check_undefined_nonterm(g) || compute_all_first_set(g);
+int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
+    int r = check_undefined_nonterm(g, nt) || compute_all_first_set(g);
     if (r)
         return r;
     if (!g->sortedTerminals)
@@ -2231,6 +2229,13 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g) {
     //     || add_reachable_terminal(g)       //
     //     || init_all_builtin_grammer_sym(g) //
     //     || compute_all_first_set(g);
+}
+
+static inline void print_unresolved_terminal(FILE *fp, const FklSymbolTable *st,
+                                             const FklGrammerNonterm *nt) {
+    fputs("nonterm: ", stderr);
+    fklPrintRawSymbol(fklGetSymbolWithId(nt->sid, st)->k, stderr);
+    fputs(" is not defined\n", stderr);
 }
 
 FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st) {
@@ -2261,7 +2266,11 @@ FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st) {
             }
         }
     }
-    if (fklCheckAndInitGrammerSymbols(grammer)) {
+
+    FklGrammerNonterm nonterm = {0, 0};
+    if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
+        print_unresolved_terminal(stderr, st, &nonterm);
+
         fklDestroyGrammer(grammer);
         return NULL;
     }
@@ -2314,7 +2323,11 @@ FklGrammer *fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],
             }
         }
     }
-    if (fklCheckAndInitGrammerSymbols(grammer)) {
+
+    FklGrammerNonterm nonterm = {0, 0};
+    if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
+        print_unresolved_terminal(stderr, st, &nonterm);
+
         fklDestroyGrammer(grammer);
         return NULL;
     }
@@ -5544,8 +5557,10 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklSymbolTable *st) {
         FKL_UNREACHABLE();
         return;
     }
+    FklGrammerNonterm nonterm = {0, 0};
     fklUninitParserGrammerParseArg(&args);
-    if (fklCheckAndInitGrammerSymbols(g)) {
+    if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
+        print_unresolved_terminal(stderr, st, &nonterm);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return;

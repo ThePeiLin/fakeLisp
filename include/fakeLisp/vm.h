@@ -502,51 +502,58 @@ typedef enum {
 #define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
 #define FKL_VM_GC_THRESHOLD_SIZE (0x4000)
 
+#define FKL_BUILTIN_ERR_MAP                                                    \
+    X(FKL_ERR_DUMMY = 0, "dummy")                                              \
+    X(FKL_ERR_SYMUNDEFINE, "symbol-error")                                     \
+    X(FKL_ERR_SYNTAXERROR, "syntax-error")                                     \
+    X(FKL_ERR_INVALIDEXPR, "read-error")                                       \
+    X(FKL_ERR_CIRCULARLOAD, "load-error")                                      \
+    X(FKL_ERR_INVALIDPATTERN, "pattern-error")                                 \
+    X(FKL_ERR_INCORRECT_TYPE_VALUE, "type-error")                              \
+    X(FKL_ERR_STACKERROR, "stack-error")                                       \
+    X(FKL_ERR_TOOMANYARG, "arg-error")                                         \
+    X(FKL_ERR_TOOFEWARG, "arg-error")                                          \
+    X(FKL_ERR_CANTCREATETHREAD, "thread-error")                                \
+    X(FKL_ERR_THREADERROR, "thread-error")                                     \
+    X(FKL_ERR_MACROEXPANDFAILED, "macro-error")                                \
+    X(FKL_ERR_CALL_ERROR, "call-error")                                        \
+    X(FKL_ERR_LOADDLLFAILD, "load-error")                                      \
+    X(FKL_ERR_INVALIDSYMBOL, "symbol-error")                                   \
+    X(FKL_ERR_LIBUNDEFINED, "library-error")                                   \
+    X(FKL_ERR_UNEXPECTED_EOF, "eof-error")                                     \
+    X(FKL_ERR_DIVZEROERROR, "div-zero-error")                                  \
+    X(FKL_ERR_FILEFAILURE, "file-error")                                       \
+    X(FKL_ERR_INVALID_VALUE, "value-error")                                    \
+    X(FKL_ERR_INVALIDASSIGN, "access-error")                                   \
+    X(FKL_ERR_INVALIDACCESS, "access-error")                                   \
+    X(FKL_ERR_IMPORTFAILED, "import-error")                                    \
+    X(FKL_ERR_INVALID_MACRO_PATTERN, "macro-error")                            \
+    X(FKL_ERR_FAILD_TO_CREATE_BIGINT_FROM_MEM, "type-error")                   \
+    X(FKL_ERR_LIST_DIFFER_IN_LENGTH, "type-error")                             \
+    X(FKL_ERR_CROSS_C_CALL_CONTINUATION, "call-error")                         \
+    X(FKL_ERR_INVALIDRADIX_FOR_INTEGER, "value-error")                         \
+    X(FKL_ERR_NO_VALUE_FOR_KEY, "value-error")                                 \
+    X(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, "value-error")                        \
+    X(FKL_ERR_CIR_REF, "value-error")                                          \
+    X(FKL_ERR_UNSUPPORTED_OP, "operation-error")                               \
+    X(FKL_ERR_IMPORT_MISSING, "import-error")                                  \
+    X(FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP, "export-error")                     \
+    X(FKL_ERR_IMPORT_READER_MACRO_ERROR, "import-error")                       \
+    X(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, "grammer-error")                 \
+    X(FKL_ERR_REGEX_COMPILE_FAILED, "grammer-error")                           \
+    X(FKL_ERR_GRAMMER_CREATE_FAILED, "grammer-error")                          \
+    X(FKL_ERR_INVALIDRADIX_FOR_FLOAT, "value-error")                           \
+    X(FKL_ERR_ASSIGN_CONSTANT, "symbol-error")                                 \
+    X(FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT, "symbol-error")                   \
+    X(FKL_ERR_EXP_HAS_NO_VALUE, "syntax-error")                                \
+    X(FKL_ERR_UNRESOLVED_NOMTERM, "grammer-error")                             \
+    X(FKL_ERR_REDUCE_CONFLICT, "grammer-error")
+
 typedef enum {
-    FKL_ERR_DUMMY = 0,
-    FKL_ERR_SYMUNDEFINE,
-    FKL_ERR_SYNTAXERROR,
-    FKL_ERR_INVALIDEXPR,
-    FKL_ERR_CIRCULARLOAD,
-    FKL_ERR_INVALIDPATTERN,
-    FKL_ERR_INCORRECT_TYPE_VALUE,
-    FKL_ERR_STACKERROR,
-    FKL_ERR_TOOMANYARG,
-    FKL_ERR_TOOFEWARG,
-    FKL_ERR_CANTCREATETHREAD,
-    FKL_ERR_THREADERROR,
-    FKL_ERR_MACROEXPANDFAILED,
-    FKL_ERR_CALL_ERROR,
-    FKL_ERR_LOADDLLFAILD,
-    FKL_ERR_INVALIDSYMBOL,
-    FKL_ERR_LIBUNDEFINED,
-    FKL_ERR_UNEXPECTED_EOF,
-    FKL_ERR_DIVZEROERROR,
-    FKL_ERR_FILEFAILURE,
-    FKL_ERR_INVALID_VALUE,
-    FKL_ERR_INVALIDASSIGN,
-    FKL_ERR_INVALIDACCESS,
-    FKL_ERR_IMPORTFAILED,
-    FKL_ERR_INVALID_MACRO_PATTERN,
-    FKL_ERR_FAILD_TO_CREATE_BIGINT_FROM_MEM,
-    FKL_ERR_LIST_DIFFER_IN_LENGTH,
-    FKL_ERR_CROSS_C_CALL_CONTINUATION,
-    FKL_ERR_INVALIDRADIX_FOR_INTEGER,
-    FKL_ERR_NO_VALUE_FOR_KEY,
-    FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
-    FKL_ERR_CIR_REF,
-    FKL_ERR_UNSUPPORTED_OP,
-    FKL_ERR_IMPORT_MISSING,
-    FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP,
-    FKL_ERR_IMPORT_READER_MACRO_ERROR,
-    FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,
-    FKL_ERR_REGEX_COMPILE_FAILED,
-    FKL_ERR_GRAMMER_CREATE_FAILED,
-    FKL_ERR_INVALIDRADIX_FOR_FLOAT,
-    FKL_ERR_ASSIGN_CONSTANT,
-    FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT,
-    FKL_ERR_EXP_HAS_NO_VALUE,
-    FKL_BUILTIN_ERR_NUM,
+#define X(A, B) A,
+    FKL_BUILTIN_ERR_MAP
+#undef X
+        FKL_BUILTIN_ERR_NUM,
 } FklBuiltinErrorType;
 
 typedef enum {

@@ -407,6 +407,7 @@ typedef struct FklCodegenErrorState {
     FklNastNode *place;
     size_t line;
     FklSid_t fid;
+    const char *msg;
 } FklCodegenErrorState;
 
 typedef FklByteCodelnt *(*FklByteCodeProcesser)(
@@ -497,7 +498,8 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
 void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
                           const FklCodegenInfo *info,
                           const FklSymbolTable *symbolTable, size_t line,
-                          FklSid_t fid, const FklSymbolTable *pst);
+                          FklSid_t fid, const FklSymbolTable *pst,
+                          const char *msg);
 
 void fklPrintUndefinedRef(const FklCodegenEnv *env, FklSymbolTable *runtime_st,
                           FklSymbolTable *pst);
@@ -647,8 +649,6 @@ void fklLoadNamedProds(FklGraProdGroupHashMap *ht, FklSymbolTable *st,
 FklGrammerProduction *
 fklCreateExtraStartProduction(FklCodegenOuterCtx *outer_ctx, FklSid_t group,
                               FklSid_t sid);
-
-FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklGrammer *g);
 
 FklGrammerProduction *
 fklCodegenProdPrintingToProduction(const FklCodegenProdPrinting *p,

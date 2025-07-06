@@ -508,7 +508,8 @@ typedef struct FklStateActionMatchArgs {
 
 #define FKL_STATE_ACTION_MATCH_ARGS_INIT {.ignore_len = -2}
 
-int fklCheckAndInitGrammerSymbols(FklGrammer *g);
+int fklCheckAndInitGrammerSymbols(FklGrammer *g,
+                                  FklGrammerNonterm *unresolved_nonterm);
 
 FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st);
 FklGrammer *

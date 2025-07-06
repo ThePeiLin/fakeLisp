@@ -3,6 +3,7 @@
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
+#include <fakeLisp/nast.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/symbol.h>
@@ -37,60 +38,29 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
 void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
                           const FklCodegenInfo *info,
                           const FklSymbolTable *symbolTable, size_t line,
-                          FklSid_t fid,
-                          const FklSymbolTable *publicSymbolTable) {
+                          FklSid_t fid, const FklSymbolTable *publicSymbolTable,
+                          const char *msg) {
     static const char *builtInErrorType[] = {
-        // clang-format off
-        "dummy",
-        "symbol-error",
-        "syntax-error",
-        "read-error",
-        "load-error",
-        "pattern-error",
-        "type-error",
-        "stack-error",
-        "arg-error",
-        "arg-error",
-        "thread-error",
-        "thread-error",
-        "macro-error",
-        "call-error",
-        "load-error",
-        "symbol-error",
-        "library-error",
-        "eof-error",
-        "div-zero-error",
-        "file-error",
-        "value-error",
-        "access-error",
-        "access-error",
-        "import-error",
-        "macro-error",
-        "type-error",
-        "type-error",
-        "call-error",
-        "value-error",
-        "value-error",
-        "value-error",
-        "value-error",
-        "operation-error",
-        "import-error",
-        "export-error",
-        "import-error",
-        "grammer-error",
-        "grammer-error",
-        "grammer-error",
-        "value-error",
-        "symbol-error",
-        "symbol-error",
-        "syntax-error",
-        // clang-format on
+#define X(A, B) B,
+        FKL_BUILTIN_ERR_MAP
+#undef X
     };
 
     if (type == FKL_ERR_DUMMY || type == FKL_ERR_SYMUNDEFINE)
         return;
     fklPrintRawCstr(builtInErrorType[type], "|", "|", '|', stderr);
     fputs(": ", stderr);
+    if (msg) {
+        fputs(msg, stderr);
+
+        if (obj) {
+            fputc(' ', stderr);
+            fklPrintNastNode(obj, stderr, publicSymbolTable);
+        }
+
+        goto print_line;
+    }
+
     switch (type) {
     case FKL_ERR_CIR_REF:
         fputs("Circular reference occur in expanding macro", stderr);
@@ -183,6 +153,7 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
         fputs("Unknown compiling error", stderr);
         break;
     }
+print_line:
     fputc('\n', stderr);
     if (obj) {
         if (fid) {

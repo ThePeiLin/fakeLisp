@@ -3220,9 +3220,7 @@ is_check_subpattern_true(const FklNastNode *exp, const FklCodegenInfo *info,
         break;
     case FKL_NAST_RC_SYM:
     case FKL_NAST_SLOT:
-        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
-                __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     case FKL_NAST_PAIR:
         goto check_nested_sub_pattern;
@@ -3256,9 +3254,7 @@ check_nested_sub_pattern:
             break;
         case FKL_NAST_RC_SYM:
         case FKL_NAST_SLOT:
-            fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
-                    __LINE__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         case FKL_NAST_PAIR:
             if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
@@ -4580,7 +4576,39 @@ static inline int merge_all_grammer(FklCodegenInfo *codegen) {
 
     return 0;
 }
-static inline int add_all_group_to_grammer(FklCodegenInfo *codegen);
+static inline int add_all_group_to_grammer(FklCodegenInfo *codegen,
+                                           FklCodegenErrorState *error_state) {
+    if (codegen->g == NULL)
+        return 0;
+
+    FklGrammer *g = *codegen->g;
+
+    if (g == NULL)
+        return 0;
+
+    if (merge_all_grammer(codegen))
+        return 1;
+
+    // if (add_all_ignores_to_grammer(codegen))
+    //     return 1;
+
+    // if (add_all_start_prods_to_grammer(codegen))
+    //     return 1;
+
+    // if (scan_and_add_reachable_productions(codegen))
+    //     return 1;
+
+    FklGrammerNonterm nonterm = {0};
+    if (fklCheckAndInitGrammerSymbols(g, &nonterm))
+        return 1;
+
+    FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
+    fklLr0ToLalrItems(itemSet, g);
+    int r = fklGenerateLalrAnalyzeTable(g, itemSet);
+    fklLalrItemSetHashMapDestroy(itemSet);
+
+    return r;
+}
 
 static inline void merge_group(FklGrammerProdGroupItem *group,
                                const FklGrammerProdGroupItem *other,
@@ -4597,7 +4625,6 @@ import_reader_macro(FklCodegenInfo *codegen, FklCodegenErrorState *errorState,
                     FklGrammerProdGroupItem *group, FklSid_t origin_group_id,
                     FklSid_t new_group_id) {
 
-    FklGrammer *g = *codegen->g;
     FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
 #warning INCOMPLETE
     // if (!is_grammer_inited) {
@@ -4712,7 +4739,9 @@ static inline FklByteCodelnt *process_import_imported_lib_common(
                     prod_group_item->k, prod_group_item->k))
                 break;
         }
-        if (!errorState->type && add_all_group_to_grammer(codegen)) {
+
+        if (!errorState->type
+            && add_all_group_to_grammer(codegen, errorState)) {
             errorState->line = curline;
             errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
             errorState->place = NULL;
@@ -4768,7 +4797,8 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(
             fklStringBufferClear(&buffer);
         }
         fklUninitStringBuffer(&buffer);
-        if (!errorState->type && add_all_group_to_grammer(codegen)) {
+        if (!errorState->type
+            && add_all_group_to_grammer(codegen, errorState)) {
             errorState->line = curline;
             errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
             errorState->place = NULL;
@@ -4845,7 +4875,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
         }
     }
 
-    if (!errorState->type && add_all_group_to_grammer(codegen)) {
+    if (!errorState->type && add_all_group_to_grammer(codegen, errorState)) {
         errorState->line = curline;
         errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
         errorState->place = NULL;
@@ -4899,7 +4929,8 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
                     break;
             }
         }
-        if (!errorState->type && add_all_group_to_grammer(codegen)) {
+        if (!errorState->type
+            && add_all_group_to_grammer(codegen, errorState)) {
             errorState->line = curline;
             errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
             errorState->place = NULL;
@@ -5000,7 +5031,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
         }
     }
 
-    if (!errorState->type && add_all_group_to_grammer(codegen)) {
+    if (!errorState->type && add_all_group_to_grammer(codegen, errorState)) {
         errorState->line = curline;
         errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
         errorState->place = NULL;
@@ -7510,6 +7541,35 @@ typedef enum {
     NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST,
 } NastToGrammerSymErr;
 
+static inline const char *
+get_nast_to_grammer_sym_err_msg(NastToGrammerSymErr err) {
+    switch (err) {
+    case NAST_TO_GRAMMER_SYM_ERR_DUMMY:
+        FKL_UNREACHABLE();
+        break;
+    case NAST_TO_GRAMMER_SYM_ERR_INVALID:
+        return "invalid syntax";
+        break;
+    case NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST:
+        return "invalid action syntax";
+        break;
+    case NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_TYPE:
+        return "invalid action type";
+        break;
+    case NAST_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED:
+        return "failed to init builtin terminal";
+        break;
+    case NAST_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN:
+        return "unresolved builtin terminal";
+        break;
+    case NAST_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED:
+        return "failed to compile regex";
+        break;
+    }
+
+    return NULL;
+}
+
 static inline NastToGrammerSymErr
 nast_vector_to_builtin_terminal(const FklNastVector *vec, FklGrammerSym *s,
                                 FklGrammer *g) {
@@ -7725,9 +7785,11 @@ error_happened:
 }
 
 static inline FklGrammerIgnore *
-nast_vector_to_ignore(const FklNastVector *vec, NastToGrammerSymArgs *args) {
+nast_vector_to_ignore(const FklNastVector *vec, NastToGrammerSymArgs *args,
+                      NastToGrammerSymErr *perr) {
 
     NastToGrammerSymErr err = nast_vector_to_production_right_part(args, vec);
+    *perr = err;
     if (err)
         return NULL;
     FklGrammerIgnore *ig =
@@ -7740,10 +7802,14 @@ nast_vector_to_ignore(const FklNastVector *vec, NastToGrammerSymArgs *args) {
     return ig;
 }
 
-FklGrammerIgnore *fklNastVectorToIgnore(FklNastNode *ast, FklGrammer *g) {
+static inline FklGrammerIgnore *nast_vector_to_ignore2(FklNastNode *ast,
+                                                       FklGrammer *g) {
     NastToGrammerSymArgs args = {.g = g};
     // int failed = 0;
-    return nast_vector_to_ignore(ast->vec, &args);
+    NastToGrammerSymErr err = 0;
+    FklGrammerIgnore *r = nast_vector_to_ignore(ast->vec, &args, &err);
+    FKL_ASSERT(err == 0);
+    return r;
 }
 
 FklGrammerProduction *
@@ -7754,9 +7820,7 @@ fklCodegenProdPrintingToProduction(const FklCodegenProdPrinting *p,
     const FklNastVector *vec = p->vec->vec;
     NastToGrammerSymArgs args = {.g = g};
     NastToGrammerSymErr err = nast_vector_to_production_right_part(&args, vec);
-    if (err) {
-        abort();
-    }
+    FKL_ASSERT(err == 0);
 
     FklGrammerProduction *prod = fklCreateProduction(
         p->sid == 0 ? 0 : p->group_id, p->sid, args.len, args.syms, NULL, NULL,
@@ -8047,6 +8111,9 @@ nast_vector_to_production(const FklNastNode *vec_node,
         nast_vector_to_production_right_part(&other_args, vec);
     if (err) {
         args->err_node = other_args.err_node;
+        other_args.len = 0;
+        fklZfree(other_args.syms);
+        other_args.syms = NULL;
         return err;
     }
 
@@ -8059,12 +8126,18 @@ nast_vector_to_production(const FklNastNode *vec_node,
     uint8_t add_extra = args->add_extra;
 
     if (action_type == codegen->outer_ctx->builtInPatternVar_builtin) {
-        if (action_ast->type != FKL_NAST_SYM)
-            return NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+        if (action_ast->type != FKL_NAST_SYM) {
+            args->err_node = action_ast;
+            err = NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
         FklProdActionFunc action = find_builtin_prod_action(
             action_ast->sym, codegen->outer_ctx->builtin_prod_action_id);
-        if (!action)
-            return NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+        if (!action) {
+            args->err_node = action_ast;
+            err = NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
         FklGrammerProduction *prod = fklCreateProduction(
             left_group, left_sid, other_args.len, other_args.syms, NULL, action,
             NULL, fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
@@ -8079,18 +8152,27 @@ nast_vector_to_production(const FklNastNode *vec_node,
         return NAST_TO_GRAMMER_SYM_ERR_DUMMY;
     } else if (action_type == codegen->outer_ctx->builtInPatternVar_simple) {
         if (action_ast->type != FKL_NAST_VECTOR || !action_ast->vec->size
-            || action_ast->vec->base[0]->type != FKL_NAST_SYM)
-            return NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            || action_ast->vec->base[0]->type != FKL_NAST_SYM) {
+            args->err_node = action_ast;
+            err = NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
         struct FklSimpleProdAction *action =
             find_simple_prod_action(action_ast->vec->base[0]->sym,
                                     codegen->outer_ctx->simple_prod_action_id);
-        if (!action)
-            return NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+        if (!action) {
+            args->err_node = action_ast;
+            err = NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
         int failed = 0;
         void *ctx = action->creator(&action_ast->vec->base[1],
                                     action_ast->vec->size - 1, &failed);
-        if (failed)
-            return NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+        if (failed) {
+            args->err_node = action_ast;
+            err = NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
         FklGrammerProduction *prod = fklCreateProduction(
             left_group, left_sid, other_args.len, other_args.syms, NULL,
             action->func, ctx, action->ctx_destroy, action->ctx_copyer);
@@ -8145,8 +8227,16 @@ nast_vector_to_production(const FklNastNode *vec_node,
         args->production = prod;
         return NAST_TO_GRAMMER_SYM_ERR_DUMMY;
     } else {
-        return NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_TYPE;
+        args->err_node = NULL;
+        err = NAST_TO_GRAMMER_SYM_ERR_INVALID_ACTION_TYPE;
+    error_happened:
+        other_args.len = 0;
+        fklZfree(other_args.syms);
+        other_args.syms = NULL;
+        return err;
     }
+
+    return 0;
 }
 
 // static inline int add_group_prods(FklGrammer *g, const FklProdHashMap *prods)
@@ -8290,38 +8380,6 @@ nast_vector_to_production(const FklNastNode *vec_node,
 //     return 0;
 // }
 
-static inline int add_all_group_to_grammer(FklCodegenInfo *codegen) {
-    if (codegen->g == NULL)
-        return 0;
-
-    FklGrammer *g = *codegen->g;
-
-    if (g == NULL)
-        return 0;
-
-    if (merge_all_grammer(codegen))
-        return 1;
-
-    // if (add_all_ignores_to_grammer(codegen))
-    //     return 1;
-
-    // if (add_all_start_prods_to_grammer(codegen))
-    //     return 1;
-
-    // if (scan_and_add_reachable_productions(codegen))
-    //     return 1;
-
-    if (fklCheckAndInitGrammerSymbols(g))
-        return 1;
-
-    FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
-    fklLr0ToLalrItems(itemSet, g);
-    int r = fklGenerateLalrAnalyzeTable(g, itemSet);
-    fklLalrItemSetHashMapDestroy(itemSet);
-
-    return r;
-}
-
 // static inline void destroy_grammer_ignore_list(FklGrammerIgnore *ig) {
 //     while (ig) {
 //         FklGrammerIgnore *next = ig->next;
@@ -8409,33 +8467,28 @@ static inline int process_add_production(
         FKL_ASSERT(ignore_obj->type == FKL_NAST_VECTOR);
 
         NastToGrammerSymArgs args = {.g = g};
+        NastToGrammerSymErr err = 0;
         FklGrammerIgnore *ignore =
-            nast_vector_to_ignore(ignore_obj->vec, &args);
-        if (!ignore) {
-            // if (failed == 2)
-            {
-            regex_compile_error:
-                errorState->type = FKL_ERR_REGEX_COMPILE_FAILED;
-                errorState->place = fklMakeNastNodeRef(vector_node);
-                return 1;
-            }
-        reader_macro_error:
-            errorState->type = FKL_ERR_SYNTAXERROR;
-            errorState->place = fklMakeNastNodeRef(vector_node);
+            nast_vector_to_ignore(ignore_obj->vec, &args, &err);
+        if (err) {
+            errorState->type = FKL_ERR_GRAMMER_CREATE_FAILED;
+            errorState->place = fklMakeNastNodeRef(
+                FKL_REMOVE_CONST(FklNastNode, args.err_node));
+            errorState->msg = get_nast_to_grammer_sym_err_msg(err);
             return 1;
         }
         if (group_id == 0) {
             if (fklAddIgnoreToIgnoreList(&codegen->unnamed_g->ignores,
                                          ignore)) {
                 fklDestroyIgnore(ignore);
-                goto reader_macro_error;
+                return 0;
             }
         } else {
             FklGrammerProdGroupItem *group =
                 add_production_group(codegen->named_prod_groups, pst, group_id);
             if (fklAddIgnoreToIgnoreList(&group->g.ignores, ignore)) {
                 fklDestroyIgnore(ignore);
-                goto reader_macro_error;
+                return 0;
             }
             fklNastNodeVectorPushBack2(&group->ignore_printing,
                                        fklMakeNastNodeRef(ignore_obj));
@@ -8443,13 +8496,19 @@ static inline int process_add_production(
         return 0;
     }
 
+    FklNastNode *error_node = NULL;
     FklNastVector *vec = vector_node->vec;
     if (vec->size == 4) {
 
         FklNastNode **base = vec->base;
 
-        if (base[2]->type != FKL_NAST_SYM)
-            goto reader_macro_error;
+        if (base[2]->type != FKL_NAST_SYM) {
+            error_node = base[2];
+        reader_macro_syntax_error:
+            errorState->type = FKL_ERR_SYNTAXERROR;
+            errorState->place = fklMakeNastNodeRef(error_node);
+            return 1;
+        }
 
         FklNastNode *vect = NULL;
         NastToProductionArgs args = {
@@ -8501,8 +8560,10 @@ static inline int process_add_production(
                 && (fklGraSidBuiltinHashMapGet2(&g->builtins, sid)
                     || fklIsNonterminalExist(
                         &codegen->outer_ctx->builtin_g.productions, group_id,
-                        sid)))
-                goto reader_macro_error;
+                        sid))) {
+                error_node = base[0];
+                goto reader_macro_syntax_error;
+            }
             args.left_group = group_id;
             args.left_sid = sid;
 
@@ -8537,8 +8598,10 @@ static inline int process_add_production(
                 && (fklGraSidBuiltinHashMapGet2(&g->builtins, sid)
                     || fklIsNonterminalExist(
                         &codegen->outer_ctx->builtin_g.productions, group_id,
-                        sid)))
-                goto reader_macro_error;
+                        sid))) {
+                error_node = base[1];
+                goto reader_macro_syntax_error;
+            }
             args.left_group = group_id;
             args.left_sid = sid;
             args.add_extra = 0;
@@ -8566,24 +8629,35 @@ static inline int process_add_production(
             // //     goto regex_compile_error;
             // if (!args.production)
             //     goto reader_macro_error;
-        } else
-            goto reader_macro_error;
+        } else {
+            error_node = vector_node;
+            goto reader_macro_syntax_error;
+        }
 
         NastToGrammerSymErr err = nast_vector_to_production(vect, &args);
         if (err) {
-            abort();
+            if (args.err_node == NULL)
+                args.err_node = base[2];
+            errorState->type = FKL_ERR_GRAMMER_CREATE_FAILED;
+            errorState->place = fklMakeNastNodeRef(
+                FKL_REMOVE_CONST(FklNastNode, args.err_node));
+            errorState->msg = get_nast_to_grammer_sym_err_msg(err);
+            return 1;
         }
         // if (failed == 2)
         //     goto regex_compile_error;
-        if (!args.production)
-            goto reader_macro_error;
-    } else
-        goto reader_macro_error;
+        // if (!args.production) {
+        //     goto reader_macro_error;
+        // }
+    } else {
+        error_node = vector_node;
+        goto reader_macro_syntax_error;
+    }
     return 0;
 }
 
 BC_PROCESS(update_grammer) {
-    if (add_all_group_to_grammer(codegen)) {
+    if (add_all_group_to_grammer(codegen, errorState)) {
         errorState->type = FKL_ERR_GRAMMER_CREATE_FAILED;
         errorState->line = line;
         return NULL;
@@ -9094,7 +9168,7 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
     FklByteCodelntVector resultStack;
     fklByteCodelntVectorInit(&resultStack, 1);
-    FklCodegenErrorState errorState = {0, NULL, 0, 0};
+    FklCodegenErrorState errorState = {0, NULL, 0, 0, NULL};
     FklCodegenQuestVector codegenQuestStack;
     fklCodegenQuestVectorInit(&codegenQuestStack, 32);
     fklCodegenQuestVectorPushBack2(&codegenQuestStack, initialQuest);
@@ -9198,7 +9272,8 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
         print_error:
             fklPrintCodegenError(errorState.place, errorState.type, curCodegen,
                                  curCodegen->runtime_symbol_table,
-                                 errorState.line, errorState.fid, pst);
+                                 errorState.line, errorState.fid, pst,
+                                 errorState.msg);
             while (!fklCodegenQuestVectorIsEmpty(&codegenQuestStack)) {
                 destroyCodegenQuest(
                     *fklCodegenQuestVectorPopBackNonNull(&codegenQuestStack));
@@ -10553,7 +10628,8 @@ void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
                 uint32_t top = stack->size;
                 for (uint32_t i = 0; i < top; i++) {
                     FklNastNode *node = stack->base[i];
-                    FklGrammerIgnore *ig = fklNastVectorToIgnore(node, &l->v.g);
+                    FklGrammerIgnore *ig =
+                        nast_vector_to_ignore2(node, &l->v.g);
                     fklAddIgnoreToIgnoreList(&l->v.g.ignores, ig);
                 }
                 FklProdPrintingVector *stack1 = &l->v.prod_printing;

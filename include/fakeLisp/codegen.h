@@ -137,8 +137,9 @@ typedef struct FklSimpleProdAction {
     void *(*creator)(FklNastNode *rest[], size_t rest_len, int *failed);
     void *(*ctx_copyer)(const void *);
     void (*ctx_destroy)(void *);
-    void (*write)(const FklSymbolTable *pst, void *, FILE *fp);
+    void (*write)(void *, const FklSymbolTable *pst, FILE *fp);
     void *(*read)(FklSymbolTable *pst, FILE *fp);
+    void (*print)(void *ctx, const FklSymbolTable *pst, FILE *fp);
 } FklSimpleProdAction;
 
 // to be delete
@@ -635,6 +636,10 @@ const FklSimpleProdAction *fklFindSimpleProdActionByName(const char *str);
 
 void fklWriteNamedProds(const FklGraProdGroupHashMap *named_prod_groups,
                         const FklSymbolTable *st, FILE *fp);
+
+void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod,
+                               const FklSymbolTable *pst,
+                               const FklConstTable *pkt);
 
 void fklLoadNamedProds(FklGraProdGroupHashMap *ht, FklSymbolTable *st,
                        FklCodegenOuterCtx *outer_ctx, FILE *fp);

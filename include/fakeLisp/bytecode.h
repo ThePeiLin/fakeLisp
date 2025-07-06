@@ -184,8 +184,8 @@ FklByteCodelnt *fklCreateByteCodelnt(FklByteCode *bc);
 FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins, FklSid_t fid,
                                         uint32_t line, uint32_t scope);
 
-void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp, const FklSymbolTable *,
-                         const FklConstTable *);
+void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
+                         const FklSymbolTable *, const FklConstTable *);
 void fklDestroyByteCodelnt(FklByteCodelnt *);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *, uint64_t);
 void fklCodeLntConcat(FklByteCodelnt *, const FklByteCodelnt *);

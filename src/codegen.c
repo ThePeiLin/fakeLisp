@@ -6844,10 +6844,16 @@ static void *simple_action_nth_create(FklNastNode *rest[], size_t rest_len,
     return (void *)(rest[0]->fix);
 }
 
-static void simple_action_nth_write(const FklSymbolTable *pst, void *ctx,
+static void simple_action_nth_write(void *ctx, const FklSymbolTable *pst,
                                     FILE *fp) {
     uint64_t len = FKL_TYPE_CAST(uintptr_t, ctx);
     fwrite(&len, sizeof(len), 1, fp);
+}
+
+static void simple_action_nth_print(void *ctx, const FklSymbolTable *pst,
+                                    FILE *fp) {
+    uint64_t len = FKL_TYPE_CAST(uintptr_t, ctx);
+    fprintf(fp, "%" FKL_PRT64U, len);
 }
 
 static void *simple_action_nth_reader(FklSymbolTable *pst, FILE *fp) {
@@ -6904,14 +6910,20 @@ static void *simple_action_cons(void *c, void *outerCtx, void *nodes[],
     return retval;
 }
 
-static void simple_action_cons_writter(const FklSymbolTable *pst, void *c,
-                                       FILE *fp) {
+static void simple_action_cons_write(void *c, const FklSymbolTable *pst,
+                                     FILE *fp) {
     struct SimpleActionConsCtx *ctx = c;
     fwrite(&ctx->car, sizeof(ctx->car), 1, fp);
     fwrite(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
 }
 
-static void *simple_action_cons_reader(FklSymbolTable *pst, FILE *fp) {
+static void simple_action_cons_print(void *c, const FklSymbolTable *pst,
+                                     FILE *fp) {
+    struct SimpleActionConsCtx *ctx = c;
+    fprintf(fp, "%" FKL_PRT64U ", %" FKL_PRT64U, ctx->car, ctx->cdr);
+}
+
+static void *simple_action_cons_read(FklSymbolTable *pst, FILE *fp) {
     struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)fklZmalloc(
         sizeof(struct SimpleActionConsCtx));
     FKL_ASSERT(ctx);
@@ -6965,15 +6977,24 @@ static void *simple_action_head_create(FklNastNode *rest[], size_t rest_len,
     return ctx;
 }
 
-static void simple_action_head_writtor(const FklSymbolTable *pst, void *c,
-                                       FILE *fp) {
+static void simple_action_head_write(void *c, const FklSymbolTable *pst,
+                                     FILE *fp) {
     struct SimpleActionHeadCtx *ctx = c;
     print_nast_node_with_null_chr(ctx->head, pst, fp);
     fwrite(&ctx->idx_num, sizeof(ctx->idx_num), 1, fp);
     fwrite(&ctx->idx[0], sizeof(ctx->idx[0]), ctx->idx_num, fp);
 }
 
-static void *simple_action_head_reader(FklSymbolTable *pst, FILE *fp) {
+static void simple_action_head_print(void *c, const FklSymbolTable *pst,
+                                     FILE *fp) {
+    struct SimpleActionHeadCtx *ctx = c;
+    fklPrintNastNode(ctx->head, fp, pst);
+    for (size_t i = 0; i < ctx->idx_num; ++i) {
+        fprintf(fp, ", %" FKL_PRT64U, ctx->idx[i]);
+    }
+}
+
+static void *simple_action_head_read(FklSymbolTable *pst, FILE *fp) {
     FklNastNode *node = load_nast_node_with_null_chr(pst, fp);
     uint64_t idx_num = 0;
     fread(&idx_num, sizeof(idx_num), 1, fp);
@@ -7158,7 +7179,7 @@ static void *simple_action_symbol_create(FklNastNode *rest[], size_t rest_len,
     return ctx;
 }
 
-static void simple_action_symbol_write(const FklSymbolTable *pst, void *c,
+static void simple_action_symbol_write(void *c, const FklSymbolTable *pst,
                                        FILE *fp) {
     struct SimpleActionSymbolCtx *ctx = c;
     fwrite(&ctx->nth, sizeof(ctx->nth), 1, fp);
@@ -7176,6 +7197,19 @@ static void simple_action_symbol_write(const FklSymbolTable *pst, void *c,
     }
 }
 
+static void simple_action_symbol_print(void *c, const FklSymbolTable *pst,
+                                       FILE *fp) {
+    struct SimpleActionSymbolCtx *ctx = c;
+    fprintf(fp, "%" FKL_PRT64U, ctx->nth);
+    if (ctx->start) {
+        fputs(", ", fp);
+        fklPrintRawString(ctx->start, fp);
+    }
+    if (ctx->end) {
+        fputs(", ", fp);
+        fklPrintRawString(ctx->end, fp);
+    }
+}
 static void *simple_action_symbol_read(FklSymbolTable *pst, FILE *fp) {
     struct SimpleActionSymbolCtx *ctx =
         (struct SimpleActionSymbolCtx *)fklZmalloc(
@@ -7321,6 +7355,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
         {
             "cons",
@@ -7328,8 +7363,9 @@ static struct FklSimpleProdAction
             simple_action_cons_create,
             simple_action_cons_copy,
             fklProdCtxDestroyFree,
-            simple_action_cons_writter,
-            simple_action_cons_reader,
+            simple_action_cons_write,
+            simple_action_cons_read,
+            simple_action_cons_print,
         },
         {
             "head",
@@ -7337,8 +7373,9 @@ static struct FklSimpleProdAction
             simple_action_head_create,
             simple_action_head_copy,
             simple_action_head_destroy,
-            simple_action_head_writtor,
-            simple_action_head_reader,
+            simple_action_head_write,
+            simple_action_head_read,
+            simple_action_head_print,
         },
         {
             "symbol",
@@ -7348,6 +7385,7 @@ static struct FklSimpleProdAction
             simple_action_symbol_destroy,
             simple_action_symbol_write,
             simple_action_symbol_read,
+            simple_action_symbol_print,
         },
         {
             "string",
@@ -7357,6 +7395,7 @@ static struct FklSimpleProdAction
             simple_action_symbol_destroy,
             simple_action_symbol_write,
             simple_action_symbol_read,
+            simple_action_symbol_print,
         },
         {
             "box",
@@ -7366,6 +7405,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
         {
             "vector",
@@ -7375,6 +7415,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
         {
             "hasheq",
@@ -7384,6 +7425,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
         {
             "hasheqv",
@@ -7393,6 +7435,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
         {
             "hashequal",
@@ -7402,6 +7445,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
         {
             "bytes",
@@ -7411,6 +7455,7 @@ static struct FklSimpleProdAction
             fklProdCtxDestroyDoNothing,
             simple_action_nth_write,
             simple_action_nth_reader,
+            simple_action_nth_print,
         },
 };
 
@@ -10008,7 +10053,7 @@ write_production_rule_action(const FklSymbolTable *pst,
         fwrite(&str_len, sizeof(str_len), 1, fp);
         fputs(name, fp);
 
-        a->write(pst, prod->ctx, fp);
+        a->write(prod->ctx, pst, fp);
     } else {
         type = FKL_CODEGEN_PROD_BUILTIN;
         fwrite(&type, sizeof(type), 1, fp);
@@ -10235,6 +10280,7 @@ static inline void read_production_rule_action(FklSymbolTable *pst,
         prod->ctx_destroyer = action->ctx_destroy;
         prod->ctx_copyer = action->ctx_copyer;
         prod->ctx = action->read(pst, fp);
+        fklZfree(name);
     } break;
     }
 }
@@ -10436,28 +10482,30 @@ void fklRecomputeSidForNamedProdGroups(
                 }
             }
 
-            uint32_t top = list->v.prod_printing.size;
-            for (uint32_t i = 0; i < top; i++) {
-                FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
-                if (p->group_id)
-                    replace_sid(&p->group_id, origin_st, target_st);
-                if (p->sid)
-                    replace_sid(&p->sid, origin_st, target_st);
-                fklRecomputeSidForNastNode(p->vec, origin_st, target_st,
-                                           option);
-                if (p->type == FKL_CODEGEN_PROD_CUSTOM)
-                    fklRecomputeSidAndConstIdForBcl(
-                        p->bcl, origin_st, target_st, origin_kt, target_kt);
-                else
-                    fklRecomputeSidForNastNode(p->forth, origin_st, target_st,
-                                               option);
-            }
+            // uint32_t top = list->v.prod_printing.size;
+            // for (uint32_t i = 0; i < top; i++) {
+            //     FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
+            //     if (p->group_id)
+            //         replace_sid(&p->group_id, origin_st, target_st);
+            //     if (p->sid)
+            //         replace_sid(&p->sid, origin_st, target_st);
+            //     fklRecomputeSidForNastNode(p->vec, origin_st, target_st,
+            //                                option);
+            //     if (p->type == FKL_CODEGEN_PROD_CUSTOM)
+            //         fklRecomputeSidAndConstIdForBcl(
+            //             p->bcl, origin_st, target_st, origin_kt, target_kt);
+            //     else
+            //         fklRecomputeSidForNastNode(p->forth, origin_st,
+            //         target_st,
+            //                                    option);
+            // }
 
-            top = list->v.ignore_printing.size;
-            for (uint32_t i = 0; i < top; i++) {
-                FklNastNode *node = list->v.ignore_printing.base[i];
-                fklRecomputeSidForNastNode(node, origin_st, target_st, option);
-            }
+            // top = list->v.ignore_printing.size;
+            // for (uint32_t i = 0; i < top; i++) {
+            //     FklNastNode *node = list->v.ignore_printing.base[i];
+            //     fklRecomputeSidForNastNode(node, origin_st, target_st,
+            //     option);
+            // }
         }
         fklGraProdGroupHashMapRehash(ht);
     }
@@ -10526,5 +10574,27 @@ void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
             }
 #warning INCOMPLETE
         }
+    }
+}
+
+void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod,
+                               const FklSymbolTable *pst,
+                               const FklConstTable *pkt) {
+    if (prod->func == custom_action) {
+        struct CustomActionCtx *ctx = prod->ctx;
+        fputs("custom\n", fp);
+        fklPrintByteCodelnt(ctx->bcl, fp, pst, pkt);
+        fputc('\n', fp);
+    } else if (is_simple_action(prod->func)) {
+        struct FklSimpleProdAction *a =
+            find_simple_prod_action_name(prod->func);
+        FKL_ASSERT(a);
+        fprintf(fp, "simple %s(", a->name);
+        a->print(prod->ctx, pst, fp);
+        fputc(')', fp);
+    } else {
+        const char *name = find_builtin_prod_action_name(prod->func);
+        FKL_ASSERT(name);
+        fprintf(fp, "builtin %s", name);
     }
 }

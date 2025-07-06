@@ -846,7 +846,7 @@ void fklScanAndSetTailCall(FklByteCode *bc) {
             bc->code[i - 1].op = FKL_OP_TAIL_CALL;
 }
 
-void fklPrintByteCodelnt(FklByteCodelnt *obj, FILE *fp,
+void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
                          const FklSymbolTable *st, const FklConstTable *kt) {
     FklByteCode *tmpCode = obj->bc;
     BcBcPrintStateVector s;

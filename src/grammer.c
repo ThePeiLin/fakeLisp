@@ -3968,6 +3968,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
                         fklPrintGrammerProduction(
                             stderr, il->k.prod, grammer->st,
                             &grammer->terminals, &grammer->regexes);
+                        putc('\n', stderr);
                         fprintf(stderr, "idx: %u\n", il->k.idx);
                         goto break_loop;
                     }
@@ -5090,7 +5091,6 @@ void fklPrintGrammerProduction(FILE *fp, const FklGrammerProduction *prod,
         else
             ++i;
     }
-    putc('\n', fp);
 }
 
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
@@ -5194,6 +5194,7 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
         for (; prods; prods = prods->next) {
             fprintf(fp, "(%" FKL_PRT64U ") ", prods->idx);
             fklPrintGrammerProduction(fp, prods, st, tt, rt);
+            putc('\n', fp);
         }
     }
     fputs("\nignore:\n", fp);

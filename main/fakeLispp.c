@@ -415,44 +415,48 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
                     fklPrintGrammerProduction(fp, prod, l->v.g.st,
                                               &l->v.g.terminals,
                                               &l->v.g.regexes);
+                    fputs(" => ", fp);
+                    fklPrintReaderMacroAction(fp, prod, l->v.g.st, pkt);
+                    fputc('\n', fp);
                 }
             }
         }
 
-        if (l->v.prod_printing.size) {
-            fputs("\nprods:\n", fp);
-            uint32_t top = l->v.prod_printing.size;
-            FklCodegenProdPrinting *base = l->v.prod_printing.base;
-            for (uint32_t i = 0; i < top; i++) {
-                const FklCodegenProdPrinting *p = &base[i];
-                if (p->sid)
-                    fklPrintRawSymbol(fklGetSymbolWithId(p->sid, pst)->k, fp);
-                else
-                    fputs("()", fp);
-                fputc(' ', fp);
-                fklPrintNastNode(p->vec, fp, pst);
-                fputc(' ', fp);
-                fputs(p->add_extra ? "start" : "not-start", fp);
-                fputc(' ', fp);
-                fputs("=> ", fp);
-                if (p->type == FKL_CODEGEN_PROD_CUSTOM) {
-                    fputs("custom:\n", fp);
-                    fklPrintByteCodelnt(p->bcl, fp, pst, pkt);
-                } else {
-                    fputs(p->type == FKL_CODEGEN_PROD_SIMPLE ? "simple "
-                                                             : "builtin ",
-                          fp);
-                    fklPrintNastNode(p->forth, fp, pst);
-                }
-                fputc('\n', fp);
-            }
-        }
-        if (l->v.reachable_terminals.num) {
-            fputs("\nreachable terminals:\n", fp);
-            for (size_t i = 0; i < l->v.reachable_terminals.num; ++i) {
-                fklPrintRawString(l->v.reachable_terminals.idl[i]->k, fp);
-            }
-        }
+        // if (l->v.prod_printing.size) {
+        //     fputs("\nprods:\n", fp);
+        //     uint32_t top = l->v.prod_printing.size;
+        //     FklCodegenProdPrinting *base = l->v.prod_printing.base;
+        //     for (uint32_t i = 0; i < top; i++) {
+        //         const FklCodegenProdPrinting *p = &base[i];
+        //         if (p->sid)
+        //             fklPrintRawSymbol(fklGetSymbolWithId(p->sid, pst)->k,
+        //             fp);
+        //         else
+        //             fputs("()", fp);
+        //         fputc(' ', fp);
+        //         fklPrintNastNode(p->vec, fp, pst);
+        //         fputc(' ', fp);
+        //         fputs(p->add_extra ? "start" : "not-start", fp);
+        //         fputc(' ', fp);
+        //         fputs("=> ", fp);
+        //         if (p->type == FKL_CODEGEN_PROD_CUSTOM) {
+        //             fputs("custom:\n", fp);
+        //             fklPrintByteCodelnt(p->bcl, fp, pst, pkt);
+        //         } else {
+        //             fputs(p->type == FKL_CODEGEN_PROD_SIMPLE ? "simple "
+        //                                                      : "builtin ",
+        //                   fp);
+        //             fklPrintNastNode(p->forth, fp, pst);
+        //         }
+        //         fputc('\n', fp);
+        //     }
+        // }
+        // if (l->v.reachable_terminals.num) {
+        //     fputs("\nreachable terminals:\n", fp);
+        //     for (size_t i = 0; i < l->v.reachable_terminals.num; ++i) {
+        //         fklPrintRawString(l->v.reachable_terminals.idl[i]->k, fp);
+        //     }
+        // }
         fputc('\n', fp);
     }
 }

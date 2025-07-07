@@ -2173,10 +2173,15 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(grammer);
     fklLr0ToLalrItems(itemSet, grammer);
 
-    if (fklGenerateLalrAnalyzeTable(grammer, itemSet)) {
+    FklStringBuffer err_msg;
+    fklInitStringBuffer(&err_msg);
+    if (fklGenerateLalrAnalyzeTable(grammer, itemSet, &err_msg)) {
+#warning INCOMPLETE
+        fklUninitStringBuffer(&err_msg);
         fklLalrItemSetHashMapDestroy(itemSet);
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, exe);
     }
+    fklUninitStringBuffer(&err_msg);
     fklLalrItemSetHashMapDestroy(itemSet);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;

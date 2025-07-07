@@ -61,7 +61,7 @@ static const FklGrammerCstrAction test_json_and_action[] = {
     // clang-format on
 };
 
-static const FklGrammerCstrAction test_ignore_and_action[]={
+static const FklGrammerCstrAction test_ignore_and_action[] = {
     // clang-format off
 	// {"s ## &item-list",      "test_action", NULL },
 	{"s ## + &item-list",        "test_action", NULL },
@@ -79,7 +79,7 @@ static const FklGrammerCstrAction test_ignore_and_action[]={
     // clang-format on
 };
 
-int main(int argc,const char* argv[]) {
+int main(int argc, const char *argv[]) {
     if (argc > 2)
         return 1;
     const char *grammer_select = argc > 1 ? argv[1] : "builtin";
@@ -122,13 +122,18 @@ int main(int argc,const char* argv[]) {
     fprintf(stdout, "lalr item set:\n");
     fklPrintItemStateSet(itemSet, g, st, stdout);
 
-    if (fklGenerateLalrAnalyzeTable(g, itemSet)) {
+    FklStringBuffer err_msg;
+    fklInitStringBuffer(&err_msg);
+    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroySymbolTable(st);
         fklDestroyGrammer(g);
         fprintf(stderr, "not lalr garmmer\n");
+        fprintf(stderr, "%s\n", err_msg.buf);
+        fklUninitStringBuffer(&err_msg);
         return 1;
     }
+    fklUninitStringBuffer(&err_msg);
 
     FILE *action_file = fopen(action_file_name, "r");
     FILE *parse = fopen(output_file_name, "w");

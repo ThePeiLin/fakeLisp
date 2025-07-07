@@ -4576,7 +4576,8 @@ static inline int merge_all_grammer(FklCodegenInfo *codegen) {
 
     return 0;
 }
-static inline int add_all_group_to_grammer(FklCodegenInfo *codegen,
+static inline int add_all_group_to_grammer(uint64_t line,
+                                           FklCodegenInfo *codegen,
                                            FklCodegenErrorState *error_state) {
     if (codegen->g == NULL)
         return 0;
@@ -4599,12 +4600,36 @@ static inline int add_all_group_to_grammer(FklCodegenInfo *codegen,
     //     return 1;
 
     FklGrammerNonterm nonterm = {0};
-    if (fklCheckAndInitGrammerSymbols(g, &nonterm))
+    if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
+        error_state->msg = "unresolovd non-terminal";
+        FKL_ASSERT(nonterm.sid);
+        if (nonterm.group) {
+            FklNastNode *n = fklCreateNastNode(FKL_NAST_PAIR, line);
+            n->pair = fklCreateNastPair();
+
+            n->pair->car = fklCreateNastNode(FKL_NAST_SYM, line);
+            n->pair->car->sym = nonterm.group;
+
+            n->pair->cdr = fklCreateNastNode(FKL_NAST_SYM, line);
+            n->pair->cdr->sym = nonterm.sid;
+
+            error_state->place = n;
+        } else {
+            error_state->place = fklCreateNastNode(FKL_NAST_SYM, line);
+            error_state->place->sym = nonterm.sid;
+        }
         return 1;
+    }
 
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fklLr0ToLalrItems(itemSet, g);
-    int r = fklGenerateLalrAnalyzeTable(g, itemSet);
+    FklStringBuffer err_msg;
+    fklInitStringBuffer(&err_msg);
+
+    int r = fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg);
+    if (r)
+        error_state->msg2 = fklZstrdup(err_msg.buf);
+    fklUninitStringBuffer(&err_msg);
     fklLalrItemSetHashMapDestroy(itemSet);
 
     return r;
@@ -4741,7 +4766,7 @@ static inline FklByteCodelnt *process_import_imported_lib_common(
         }
 
         if (!errorState->type
-            && add_all_group_to_grammer(codegen, errorState)) {
+            && add_all_group_to_grammer(curline, codegen, errorState)) {
             errorState->line = curline;
             errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
             errorState->place = NULL;
@@ -4798,7 +4823,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(
         }
         fklUninitStringBuffer(&buffer);
         if (!errorState->type
-            && add_all_group_to_grammer(codegen, errorState)) {
+            && add_all_group_to_grammer(curline, codegen, errorState)) {
             errorState->line = curline;
             errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
             errorState->place = NULL;
@@ -4875,7 +4900,8 @@ static inline FklByteCodelnt *process_import_imported_lib_only(
         }
     }
 
-    if (!errorState->type && add_all_group_to_grammer(codegen, errorState)) {
+    if (!errorState->type
+        && add_all_group_to_grammer(curline, codegen, errorState)) {
         errorState->line = curline;
         errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
         errorState->place = NULL;
@@ -4930,7 +4956,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(
             }
         }
         if (!errorState->type
-            && add_all_group_to_grammer(codegen, errorState)) {
+            && add_all_group_to_grammer(curline, codegen, errorState)) {
             errorState->line = curline;
             errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
             errorState->place = NULL;
@@ -5031,7 +5057,8 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(
         }
     }
 
-    if (!errorState->type && add_all_group_to_grammer(codegen, errorState)) {
+    if (!errorState->type
+        && add_all_group_to_grammer(curline, codegen, errorState)) {
         errorState->line = curline;
         errorState->type = FKL_ERR_IMPORT_READER_MACRO_ERROR;
         errorState->place = NULL;
@@ -8657,7 +8684,7 @@ static inline int process_add_production(
 }
 
 BC_PROCESS(update_grammer) {
-    if (add_all_group_to_grammer(codegen, errorState)) {
+    if (add_all_group_to_grammer(line, codegen, errorState)) {
         errorState->type = FKL_ERR_GRAMMER_CREATE_FAILED;
         errorState->line = line;
         return NULL;
@@ -9168,7 +9195,7 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
     FklByteCodelntVector resultStack;
     fklByteCodelntVectorInit(&resultStack, 1);
-    FklCodegenErrorState errorState = {0, NULL, 0, 0, NULL};
+    FklCodegenErrorState errorState = {0, NULL, 0, 0, NULL, NULL};
     FklCodegenQuestVector codegenQuestStack;
     fklCodegenQuestVectorInit(&codegenQuestStack, 32);
     fklCodegenQuestVectorPushBack2(&codegenQuestStack, initialQuest);
@@ -9270,10 +9297,8 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
         }
         if (errorState.type) {
         print_error:
-            fklPrintCodegenError(errorState.place, errorState.type, curCodegen,
-                                 curCodegen->runtime_symbol_table,
-                                 errorState.line, errorState.fid, pst,
-                                 errorState.msg);
+            fklPrintCodegenError(&errorState, curCodegen,
+                                 curCodegen->runtime_symbol_table, pst);
             while (!fklCodegenQuestVectorIsEmpty(&codegenQuestStack)) {
                 destroyCodegenQuest(
                     *fklCodegenQuestVectorPopBackNonNull(&codegenQuestStack));

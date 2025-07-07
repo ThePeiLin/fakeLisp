@@ -374,7 +374,7 @@ add_custom_command(OUTPUT "vmparse.c"
 	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
 	VERBATIM)
 
-# copy dll in windows
+# 清理
 if(MSVC)
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/lib/")
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")

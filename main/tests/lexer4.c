@@ -54,14 +54,19 @@ int main() {
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fklLr0ToLalrItems(itemSet, g);
 
-    if (fklGenerateLalrAnalyzeTable(g, itemSet)) {
+    FklStringBuffer err_msg;
+    fklInitStringBuffer(&err_msg);
+    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklUninitSymbolTable(&st);
         fklDestroyGrammer(g);
         fprintf(stderr, "not lalr garmmer\n");
+        fprintf(stderr, "%s\n", err_msg.buf);
+        fklUninitStringBuffer(&err_msg);
         return 1;
     }
 
+    fklUninitStringBuffer(&err_msg);
     fputs("\nparse with custom parser\n", stderr);
     for (const char **pexp = &exp[0]; *pexp; ++pexp) {
         int err = 0;

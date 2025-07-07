@@ -408,6 +408,7 @@ typedef struct FklCodegenErrorState {
     size_t line;
     FklSid_t fid;
     const char *msg;
+    char *msg2;
 } FklCodegenErrorState;
 
 typedef FklByteCodelnt *(*FklByteCodeProcesser)(
@@ -495,11 +496,10 @@ FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklSid_t id, uint32_t scope,
 FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
                                                  const FklCodegenEnv *env);
 
-void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
+void fklPrintCodegenError(FklCodegenErrorState *error_state,
                           const FklCodegenInfo *info,
-                          const FklSymbolTable *symbolTable, size_t line,
-                          FklSid_t fid, const FklSymbolTable *pst,
-                          const char *msg);
+                          const FklSymbolTable *symbolTable,
+                          const FklSymbolTable *publicSymbolTable);
 
 void fklPrintUndefinedRef(const FklCodegenEnv *env, FklSymbolTable *runtime_st,
                           FklSymbolTable *pst);

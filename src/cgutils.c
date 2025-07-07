@@ -35,11 +35,19 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id, uint32_t scope,
     return get_def_by_id_in_scope(id, scope, &env->scopes[scope - 1]);
 }
 
-void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
+void fklPrintCodegenError(FklCodegenErrorState *error_state,
                           const FklCodegenInfo *info,
-                          const FklSymbolTable *symbolTable, size_t line,
-                          FklSid_t fid, const FklSymbolTable *publicSymbolTable,
-                          const char *msg) {
+                          const FklSymbolTable *symbolTable,
+                          const FklSymbolTable *publicSymbolTable) {
+    FklNastNode *obj = error_state->place;
+    FklBuiltinErrorType type = error_state->type;
+    size_t line = error_state->line;
+    FklSid_t fid = error_state->fid;
+    const char *msg = error_state->msg;
+    char *msg2 = error_state->msg2;
+
+    memset(error_state, 0, sizeof(*error_state));
+
     static const char *builtInErrorType[] = {
 #define X(A, B) B,
         FKL_BUILTIN_ERR_MAP
@@ -50,8 +58,11 @@ void fklPrintCodegenError(FklNastNode *obj, FklBuiltinErrorType type,
         return;
     fklPrintRawCstr(builtInErrorType[type], "|", "|", '|', stderr);
     fputs(": ", stderr);
-    if (msg) {
-        fputs(msg, stderr);
+    if (msg || msg2) {
+        if (msg)
+            fputs(msg, stderr);
+        if (msg2)
+            fputs(msg2, stderr);
 
         if (obj) {
             fputc(' ', stderr);
@@ -180,6 +191,8 @@ print_line:
     }
     if (obj)
         fklDestroyNastNode(obj);
+    if (msg2)
+        fklZfree(msg2);
 }
 
 #define INIT_SYMBOL_DEF(ID, SCOPE, IDX) {{ID, SCOPE}, IDX, IDX, 0, 0}

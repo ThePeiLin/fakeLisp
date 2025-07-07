@@ -2231,7 +2231,7 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
     //     || compute_all_first_set(g);
 }
 
-static inline void print_unresolved_terminal(FILE *fp, const FklSymbolTable *st,
+static inline void print_unresolved_terminal(const FklSymbolTable *st,
                                              const FklGrammerNonterm *nt) {
     fputs("nonterm: ", stderr);
     fklPrintRawSymbol(fklGetSymbolWithId(nt->sid, st)->k, stderr);
@@ -2269,7 +2269,7 @@ FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st) {
 
     FklGrammerNonterm nonterm = {0, 0};
     if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
-        print_unresolved_terminal(stderr, st, &nonterm);
+        print_unresolved_terminal(st, &nonterm);
 
         fklDestroyGrammer(grammer);
         return NULL;
@@ -2326,7 +2326,7 @@ FklGrammer *fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],
 
     FklGrammerNonterm nonterm = {0, 0};
     if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
-        print_unresolved_terminal(stderr, st, &nonterm);
+        print_unresolved_terminal(st, &nonterm);
 
         fklDestroyGrammer(grammer);
         return NULL;
@@ -2345,6 +2345,20 @@ static inline void print_as_regex(const FklString *str, FILE *fp) {
             fputc(*cur, fp);
     }
     fputc('/', fp);
+}
+
+static inline void print_as_regex_to_string_buffer(FklStringBuffer *buf,
+                                                   const FklString *str) {
+    const char *cur = str->str;
+    const char *const end = cur + str->size;
+    fklStringBufferPutc(buf, '/');
+    for (; cur < end; ++cur) {
+        if (*cur == '/')
+            fklStringBufferPrintf(buf, "\\/");
+        else
+            fklStringBufferPutc(buf, *cur);
+    }
+    fklStringBufferPutc(buf, '/');
 }
 
 static inline void print_prod_sym(FILE *fp, const FklGrammerSym *u,
@@ -2732,6 +2746,59 @@ static inline void print_look_ahead(FILE *fp, const FklLalrItemLookAhead *la,
     }
 }
 
+static inline void
+print_lookahead_to_string_buffer(FklStringBuffer *buf,
+                                 const FklLalrItemLookAhead *la,
+                                 const FklRegexTable *rt) {
+    switch (la->t) {
+    case FKL_TERM_STRING:
+        fklPrintRawStringToStringBuffer(buf, la->s, "\"", "\"", '"');
+        // putc('#', fp);
+        // fklPrintString(la->s, fp);
+        break;
+    case FKL_TERM_KEYWORD:
+        fklPrintRawStringToStringBuffer(buf, la->s, "|", "|", '|');
+        // putc(':', fp);
+        // fklPrintString(la->s, fp);
+        break;
+    case FKL_TERM_EOF:
+        fklStringBufferPrintf(buf, "$$");
+        break;
+    case FKL_TERM_BUILTIN:
+        fklStringBufferPrintf(buf, la->b.t->name);
+        if (la->b.len) {
+            fklStringBufferPutc(buf, '[');
+            size_t i = 0;
+            for (; i < la->b.len - 1; ++i) {
+                fklPrintRawStringToStringBuffer(buf, la->b.args[i], "\"", "\"",
+                                                '"');
+                fklStringBufferPrintf(buf, " , ");
+            }
+            fklPrintRawStringToStringBuffer(buf, la->b.args[i], "\"", "\"",
+                                            '"');
+            fklStringBufferPutc(buf, ']');
+        }
+        break;
+        // fputs("&?", fp);
+        // fputs(la->b.t->name, fp);
+        // break;
+    case FKL_TERM_NONE:
+        fklStringBufferPrintf(buf, "()");
+        break;
+    case FKL_TERM_IGNORE:
+        fklStringBufferPrintf(buf, "?e");
+        break;
+    case FKL_TERM_REGEX:
+        print_as_regex_to_string_buffer(
+            buf, fklGetStringWithRegex(rt, la->re, NULL));
+        // fprintf(fp, "/%s/", fklGetStringWithRegex(rt, la->re, NULL)->str);
+        break;
+    case FKL_TERM_NONTERM:
+        FKL_UNREACHABLE();
+        break;
+    }
+}
+
 static inline void print_item(FILE *fp, const FklLalrItem *item,
                               const FklSymbolTable *st,
                               const FklSymbolTable *tt,
@@ -2757,6 +2824,103 @@ static inline void print_item(FILE *fp, const FklLalrItem *item,
     }
     fputs(" # ", fp);
     print_look_ahead(fp, &item->la, rt);
+}
+
+static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
+                                                  const FklGrammerSym *u,
+                                                  const FklSymbolTable *st,
+                                                  const FklSymbolTable *tt,
+                                                  const FklRegexTable *rt) {
+    switch (u->type) {
+    case FKL_TERM_BUILTIN:
+        fklStringBufferPrintf(buf, u->b.t->name);
+        if (u->b.len) {
+            fklStringBufferPutc(buf, '[');
+            size_t i = 0;
+            for (; i < u->b.len - 1; ++i) {
+                fklPrintRawStringToStringBuffer(buf, u->b.args[i], "\"", "\"",
+                                                '"');
+                fklStringBufferPrintf(buf, " , ");
+            }
+            fklPrintRawStringToStringBuffer(buf, u->b.args[i], "\"", "\"", '"');
+            fklStringBufferPutc(buf, ']');
+        }
+        break;
+    case FKL_TERM_REGEX:
+        print_as_regex_to_string_buffer(buf,
+                                        fklGetStringWithRegex(rt, u->re, NULL));
+        break;
+    case FKL_TERM_STRING:
+        fklPrintRawStringToStringBuffer(
+            buf, fklGetSymbolWithId(u->nt.sid, tt)->k, "\"", "\"", '"');
+        break;
+    case FKL_TERM_KEYWORD:
+        fklPrintRawStringToStringBuffer(
+            buf, fklGetSymbolWithId(u->nt.sid, tt)->k, "|", "|", '|');
+        // putc(':', fp);
+        // fklPrintString(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
+        break;
+    case FKL_TERM_NONTERM:
+        // putc('&', fp);
+        if (u->nt.group) {
+            fklStringBufferPutc(buf, '(');
+            fklPrintRawStringToStringBuffer(
+                buf, fklGetSymbolWithId(u->nt.group, st)->k, "|", "|", '|');
+            fklStringBufferPrintf(buf, " , ");
+            fklPrintRawStringToStringBuffer(
+                buf, fklGetSymbolWithId(u->nt.sid, st)->k, "|", "|", '|');
+            fklStringBufferPutc(buf, ')');
+        } else {
+            fklStringBufferPrintf(buf,
+                                  fklGetSymbolWithId(u->nt.sid, st)->k->str);
+        }
+        break;
+    case FKL_TERM_IGNORE:
+        fklStringBufferPrintf(buf, "?e");
+        break;
+    case FKL_TERM_NONE:
+    case FKL_TERM_EOF:
+        FKL_UNREACHABLE();
+        break;
+    }
+}
+
+static inline void print_lalr_item_to_stringbuffer(FklStringBuffer *buf,
+                                                   const FklLalrItem *item,
+                                                   const FklSymbolTable *st,
+                                                   const FklSymbolTable *tt,
+                                                   const FklRegexTable *rt) {
+    size_t i = 0;
+    size_t idx = item->idx;
+    FklGrammerProduction *prod = item->prod;
+    size_t len = prod->len;
+    FklGrammerSym *syms = prod->syms;
+    if (!is_Sq_nt(&prod->left)) {
+        if (prod->left.group) {
+            fklStringBufferPutc(buf, '(');
+            fklPrintRawStringToStringBuffer(
+                buf, fklGetSymbolWithId(prod->left.group, st)->k, "|", "|",
+                '|');
+            fklStringBufferPrintf(buf, " , ");
+            fklPrintRawStringToStringBuffer(
+                buf, fklGetSymbolWithId(prod->left.sid, st)->k, "|", "|", '|');
+            fklStringBufferPutc(buf, ')');
+        } else {
+            fklStringBufferPrintf(
+                buf, fklGetSymbolWithId(prod->left.sid, st)->k->str);
+        }
+    } else
+        fklStringBufferPrintf(buf, "S'");
+    fklStringBufferPrintf(buf, " ->");
+    for (; i < idx; i++) {
+        fklStringBufferPutc(buf, ' ');
+        print_prod_sym_to_stringbuffer(buf, &syms[i], st, tt, rt);
+    }
+    fklStringBufferPrintf(buf, " *");
+    for (; i < len; i++) {
+        fklStringBufferPutc(buf, ' ');
+        print_prod_sym_to_stringbuffer(buf, &syms[i], st, tt, rt);
+    }
 }
 
 void fklPrintItemSet(const FklLalrItemHashSet *itemSet, const FklGrammer *g,
@@ -3903,7 +4067,8 @@ is_only_single_way_to_reduce(const FklLalrItemSetHashMapElm *set) {
 }
 
 int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
-                                FklLalrItemSetHashMap *states) {
+                                FklLalrItemSetHashMap *states,
+                                FklStringBuffer *error_msg) {
     int hasConflict = 0;
     grammer->aTable.num = states->count;
     FklSymbolTable *tt = &grammer->terminals;
@@ -3973,16 +4138,16 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
                     }
                     if (hasConflict) {
                         clear_analysis_table(grammer, idx);
-                        fprintf(stderr,
-                                "[%s: %d] conflict idx: %lu, la: ", __FILE__,
-                                __LINE__, idx);
-                        print_look_ahead(stderr, &il->k.la, &grammer->regexes);
-                        fputs(" prod: ", stderr);
-                        fklPrintGrammerProduction(
-                            stderr, il->k.prod, grammer->st,
-                            &grammer->terminals, &grammer->regexes);
-                        putc('\n', stderr);
-                        fprintf(stderr, "idx: %u\n", il->k.idx);
+                        fklStringBufferPrintf(
+                            error_msg, "conflict at state %lu with [[  ",
+                            idx);
+                        print_lalr_item_to_stringbuffer(
+                            error_msg, &il->k, grammer->st, &grammer->terminals,
+                            &grammer->regexes);
+                        fklStringBufferPrintf(error_msg, " # ");
+                        print_lookahead_to_string_buffer(error_msg, &il->k.la,
+                                                         &grammer->regexes);
+                        fklStringBufferPrintf(error_msg, "  ]]");
                         goto break_loop;
                     }
                 }
@@ -3992,7 +4157,10 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
         if (is_single_way) {
             FklLalrItem const *item = &items->first->k;
             FklLalrItemLookAhead eofla = FKL_LALR_MATCH_EOF_INIT;
-            add_reduce_action(FKL_TERM_EOF, curState, item->prod, &eofla);
+            int r =
+                add_reduce_action(FKL_TERM_EOF, curState, item->prod, &eofla);
+            FKL_ASSERT(r == 0);
+            (void)r;
         }
         if (idx == 0 && !ignore_added)
             add_ignore_action(grammer, curState);
@@ -5560,7 +5728,7 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklSymbolTable *st) {
     FklGrammerNonterm nonterm = {0, 0};
     fklUninitParserGrammerParseArg(&args);
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
-        print_unresolved_terminal(stderr, st, &nonterm);
+        print_unresolved_terminal(st, &nonterm);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return;

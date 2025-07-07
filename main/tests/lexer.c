@@ -683,13 +683,18 @@ int main() {
     fklPrintItemStateSet(itemSet, g, st, stdout);
     fklPrintItemStateSetAsDot(itemSet, g, st, lalrgzf);
 
-    if (fklGenerateLalrAnalyzeTable(g, itemSet)) {
+    FklStringBuffer err_msg;
+    fklInitStringBuffer(&err_msg);
+    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
         fklDestroySymbolTable(st);
         fprintf(stderr, "not lalr garmmer\n");
+        fprintf(stderr, "%s\n", err_msg.buf);
+        fklUninitStringBuffer(&err_msg);
         exit(1);
     }
     fklPrintAnalysisTable(g, st, stdout);
     fklLalrItemSetHashMapDestroy(itemSet);
+    fklUninitStringBuffer(&err_msg);
 
     FILE *tablef = fopen("table.txt", "w");
     fklPrintAnalysisTableForGraphEasy(g, st, tablef);

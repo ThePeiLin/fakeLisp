@@ -35,13 +35,18 @@ int main() {
     fklLr0ToLalrItems(itemSet, g);
     // fklPrintItemStateSet(itemSet,g,st,stdout);
 
-    if (fklGenerateLalrAnalyzeTable(g, itemSet)) {
+    FklStringBuffer err_msg;
+    fklInitStringBuffer(&err_msg);
+    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
         fklDestroySymbolTable(st);
         fprintf(stderr, "not lalr garmmer\n");
+        fprintf(stderr, "%s\n", err_msg.buf);
+        fklUninitStringBuffer(&err_msg);
         exit(1);
     }
     // fklPrintAnalysisTable(g,st,stdout);
     fklLalrItemSetHashMapDestroy(itemSet);
+    fklUninitStringBuffer(&err_msg);
 
     fputc('\n', stdout);
 

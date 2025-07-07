@@ -544,7 +544,8 @@ fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym, const char *s, size_t len,
 }
 
 int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
-                                FklLalrItemSetHashMap *states);
+                                FklLalrItemSetHashMap *states,
+                                FklStringBuffer *error_msg);
 void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
                            FILE *fp);
 void fklPrintAnalysisTableForGraphEasy(const FklGrammer *grammer,

@@ -116,21 +116,6 @@ typedef struct {
 #define FKL_HASH_ELM_NAME CgExportSidIdx
 #include "hash.h"
 
-typedef struct {
-    FklSid_t group_id;
-    FklSid_t sid;
-    FklNastNode *vec;
-    uint8_t add_extra;
-    uint8_t type;
-    union {
-        FklNastNode *forth;
-        struct {
-            uint32_t prototype_id;
-            FklByteCodelnt *bcl;
-        };
-    };
-} FklCodegenProdPrinting;
-
 typedef struct FklSimpleProdAction {
     const char *name;
     FklProdActionFunc func;
@@ -142,12 +127,6 @@ typedef struct FklSimpleProdAction {
     void (*print)(void *ctx, const FklSymbolTable *pst, FILE *fp);
 } FklSimpleProdAction;
 
-// to be delete
-// FklProdPrintingVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenProdPrinting
-#define FKL_VECTOR_ELM_TYPE_NAME ProdPrinting
-#include "vector.h"
-
 typedef enum {
     FKL_CODEGEN_PROD_BUILTIN = 0,
     FKL_CODEGEN_PROD_SIMPLE,
@@ -158,12 +137,6 @@ typedef struct {
     int is_ref_outer;
     FklSymbolTable reachable_terminals;
     FklGrammer g;
-    // FklProdHashMap prods;
-    // FklGrammerIgnore *ignore;
-
-    // to be delete
-    FklNastNodeVector ignore_printing;
-    FklProdPrintingVector prod_printing;
 } FklGrammerProdGroupItem;
 
 // FklGraProdGroupHashMap
@@ -174,20 +147,6 @@ typedef struct {
     {                                                                          \
         fklUninitSymbolTable(&(V)->reachable_terminals);                       \
         fklUninitGrammer(&(V)->g);                                             \
-        while (!fklNastNodeVectorIsEmpty(&(V)->ignore_printing))               \
-            fklDestroyNastNode(                                                \
-                *fklNastNodeVectorPopBackNonNull(&(V)->ignore_printing));      \
-        fklNastNodeVectorUninit(&(V)->ignore_printing);                        \
-        while (!fklProdPrintingVectorIsEmpty(&(V)->prod_printing)) {           \
-            FklCodegenProdPrinting *p =                                        \
-                fklProdPrintingVectorPopBackNonNull(&(V)->prod_printing);      \
-            fklDestroyNastNode(p->vec);                                        \
-            if (p->type == FKL_CODEGEN_PROD_CUSTOM)                            \
-                fklDestroyByteCodelnt(p->bcl);                                 \
-            else                                                               \
-                fklDestroyNastNode(p->forth);                                  \
-        }                                                                      \
-        fklProdPrintingVectorUninit(&(V)->prod_printing);                      \
     }
 #include "hash.h"
 
@@ -646,15 +605,14 @@ void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod,
 void fklLoadNamedProds(FklGraProdGroupHashMap *ht, FklSymbolTable *st,
                        FklCodegenOuterCtx *outer_ctx, FILE *fp);
 
+void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib, uint32_t lib_count,
+                                    uint32_t macro_lib_count,
+                                    uint32_t pts_count,
+                                    uint32_t macro_pts_count);
+
 FklGrammerProduction *
 fklCreateExtraStartProduction(FklCodegenOuterCtx *outer_ctx, FklSid_t group,
                               FklSid_t sid);
-
-FklGrammerProduction *
-fklCodegenProdPrintingToProduction(const FklCodegenProdPrinting *p,
-                                   FklGrammer *g, FklCodegenOuterCtx *outer_ctx,
-                                   FklFuncPrototypes *pts,
-                                   FklCodegenLibVector *macroLibStack);
 
 void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
                               const FklGraProdGroupHashMap *named_prod_groups,

@@ -7839,53 +7839,6 @@ static inline FklGrammerIgnore *nast_vector_to_ignore2(FklNastNode *ast,
     return r;
 }
 
-FklGrammerProduction *
-fklCodegenProdPrintingToProduction(const FklCodegenProdPrinting *p,
-                                   FklGrammer *g, FklCodegenOuterCtx *outer_ctx,
-                                   FklFuncPrototypes *pts,
-                                   FklCodegenLibVector *macroLibStack) {
-    const FklNastVector *vec = p->vec->vec;
-    NastToGrammerSymArgs args = {.g = g};
-    NastToGrammerSymErr err = nast_vector_to_production_right_part(&args, vec);
-    FKL_ASSERT(err == 0);
-
-    FklGrammerProduction *prod = fklCreateProduction(
-        p->sid == 0 ? 0 : p->group_id, p->sid, args.len, args.syms, NULL, NULL,
-        NULL, fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
-
-    if (p->type == FKL_CODEGEN_PROD_BUILTIN) {
-        FklProdActionFunc action = find_builtin_prod_action(
-            p->forth->sym, outer_ctx->builtin_prod_action_id);
-        prod->func = action;
-    } else if (p->type == FKL_CODEGEN_PROD_SIMPLE) {
-        int failed = 0;
-        struct FklSimpleProdAction *action = find_simple_prod_action(
-            p->forth->vec->base[0]->sym, outer_ctx->simple_prod_action_id);
-        void *ctx = action->creator(&p->forth->vec->base[1],
-                                    p->forth->vec->size - 1, &failed);
-        prod->ctx = ctx;
-        prod->func = action->func;
-        prod->ctx_destroyer = action->ctx_destroy;
-        prod->ctx_copyer = action->ctx_copyer;
-    } else {
-        struct CustomActionCtx *ctx = (struct CustomActionCtx *)fklZcalloc(
-            1, sizeof(struct CustomActionCtx));
-        FKL_ASSERT(ctx);
-        ctx->codegen_outer_ctx = outer_ctx;
-        ctx->prototype_id = p->prototype_id;
-        ctx->pst = &outer_ctx->public_symbol_table;
-        ctx->macroLibStack = macroLibStack;
-        ctx->bcl = fklCopyByteCodelnt(p->bcl);
-        ctx->pts = pts;
-        prod->func = custom_action;
-        prod->ctx = ctx;
-        prod->ctx_destroyer = custom_action_ctx_destroy;
-        prod->ctx_copyer = custom_action_ctx_copy;
-    }
-
-    return prod;
-}
-
 static inline FklCodegenInfo *
 macro_compile_prepare(FklCodegenInfo *codegen, FklCodegenMacroScope *macroScope,
                       FklSidHashSet *symbolSet, FklCodegenEnv **pmacroEnv,
@@ -8019,24 +7972,6 @@ fklCreateExtraStartProduction(FklCodegenOuterCtx *outer_ctx, FklSid_t group,
     return prod;
 }
 
-static inline void
-init_codegen_prod_printing(FklCodegenProdPrinting *p, FklSid_t group,
-                           FklSid_t sid, FklNastNode *vec, uint8_t type,
-                           uint8_t add_extra, FklNastNode *forth,
-                           uint32_t prototype_id, FklByteCodelnt *bcl) {
-    p->group_id = group;
-    p->sid = sid;
-    p->vec = fklMakeNastNodeRef(vec);
-    p->type = type;
-    p->add_extra = add_extra;
-    if (p->type != FKL_CODEGEN_PROD_CUSTOM)
-        p->forth = fklMakeNastNodeRef(forth);
-    else {
-        p->prototype_id = prototype_id;
-        p->bcl = fklCopyByteCodelnt(bcl);
-    }
-}
-
 BC_PROCESS(process_adding_production) {
     AddingProductionCtx *ctx = context->data;
     FklSid_t group_id = ctx->group_id;
@@ -8090,10 +8025,6 @@ BC_PROCESS(process_adding_production) {
             prototype_id = ctx->prototype_id;
             bcl = ctx->bcl;
         }
-        init_codegen_prod_printing(
-            fklProdPrintingVectorPushBack(&group->prod_printing, NULL),
-            group_id, sid, ctx->vec, ctx->type, ctx->add_extra, ctx->action,
-            prototype_id, bcl);
     }
     if (codegen->export_named_prod_groups
         && fklSidHashSetHas2(codegen->export_named_prod_groups, group_id)
@@ -8517,8 +8448,8 @@ static inline int process_add_production(
                 fklDestroyIgnore(ignore);
                 return 0;
             }
-            fklNastNodeVectorPushBack2(&group->ignore_printing,
-                                       fklMakeNastNodeRef(ignore_obj));
+            // fklNastNodeVectorPushBack2(&group->ignore_printing,
+            //                            fklMakeNastNodeRef(ignore_obj));
         }
         return 0;
     }
@@ -9666,19 +9597,19 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib, FklCodegenInfo *codegen,
                 //            sizeof(FklGrammerIgnoreSym) * ig->len);
                 //     fklAddIgnoreToIgnoreList(&target_group->ignore, ig);
                 // }
-                uint32_t top = group->ignore_printing.size;
-                FklNastNode **base = group->ignore_printing.base;
-                for (uint32_t i = 0; i < top; i++)
-                    fklNastNodeVectorPushBack2(&target_group->ignore_printing,
-                                               base[i]);
-                group->ignore_printing.size = 0;
+                // uint32_t top = group->ignore_printing.size;
+                // FklNastNode **base = group->ignore_printing.base;
+                // for (uint32_t i = 0; i < top; i++)
+                //     fklNastNodeVectorPushBack2(&target_group->ignore_printing,
+                //                                base[i]);
+                // group->ignore_printing.size = 0;
 
-                top = group->prod_printing.size;
-                FklCodegenProdPrinting *base2 = group->prod_printing.base;
-                for (uint32_t i = 0; i < top; i++)
-                    fklProdPrintingVectorPushBack(&target_group->prod_printing,
-                                                  &base2[i]);
-                group->prod_printing.size = 0;
+                // top = group->prod_printing.size;
+                // FklCodegenProdPrinting *base2 = group->prod_printing.base;
+                // for (uint32_t i = 0; i < top; i++)
+                //     fklProdPrintingVectorPushBack(&target_group->prod_printing,
+                //                                   &base2[i]);
+                // group->prod_printing.size = 0;
 
                 for (size_t i = 0; i < group->reachable_terminals.num; ++i) {
                     fklAddSymbol(group->reachable_terminals.idl[i]->k,
@@ -10649,29 +10580,30 @@ void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
                     }
                 }
 
-                FklNastNodeVector *stack = &l->v.ignore_printing;
-                uint32_t top = stack->size;
-                for (uint32_t i = 0; i < top; i++) {
-                    FklNastNode *node = stack->base[i];
-                    FklGrammerIgnore *ig =
-                        nast_vector_to_ignore2(node, &l->v.g);
-                    fklAddIgnoreToIgnoreList(&l->v.g.ignores, ig);
-                }
-                FklProdPrintingVector *stack1 = &l->v.prod_printing;
-                top = stack1->size;
-                for (uint32_t i = 0; i < top; i++) {
-                    const FklCodegenProdPrinting *p = &stack1->base[i];
-                    FklGrammerProduction *prod =
-                        fklCodegenProdPrintingToProduction(
-                            p, &l->v.g, outer_ctx, pts, macroLibStack);
-                    fklAddProdToProdTableNoRepeat(&l->v.g, prod);
-                    if (p->add_extra) {
-                        FklGrammerProduction *extra_prod =
-                            fklCreateExtraStartProduction(outer_ctx,
-                                                          p->group_id, p->sid);
-                        fklAddProdToProdTable(&l->v.g, extra_prod);
-                    }
-                }
+                // FklNastNodeVector *stack = &l->v.ignore_printing;
+                // uint32_t top = stack->size;
+                // for (uint32_t i = 0; i < top; i++) {
+                //     FklNastNode *node = stack->base[i];
+                //     FklGrammerIgnore *ig =
+                //         nast_vector_to_ignore2(node, &l->v.g);
+                //     fklAddIgnoreToIgnoreList(&l->v.g.ignores, ig);
+                // }
+                // FklProdPrintingVector *stack1 = &l->v.prod_printing;
+                // top = stack1->size;
+                // for (uint32_t i = 0; i < top; i++) {
+                //     const FklCodegenProdPrinting *p = &stack1->base[i];
+                //     FklGrammerProduction *prod =
+                //         fklCodegenProdPrintingToProduction(
+                //             p, &l->v.g, outer_ctx, pts, macroLibStack);
+                //     fklAddProdToProdTableNoRepeat(&l->v.g, prod);
+                //     if (p->add_extra) {
+                //         FklGrammerProduction *extra_prod =
+                //             fklCreateExtraStartProduction(outer_ctx,
+                //                                           p->group_id,
+                //                                           p->sid);
+                //         fklAddProdToProdTable(&l->v.g, extra_prod);
+                //     }
+                // }
             }
 #warning INCOMPLETE
         }
@@ -10697,5 +10629,119 @@ void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod,
         const char *name = find_builtin_prod_action_name(prod->func);
         FKL_ASSERT(name);
         fprintf(fp, "builtin %s", name);
+    }
+}
+
+#define IS_LOAD_DLL_OP(OP)                                                     \
+    ((OP) >= FKL_OP_LOAD_DLL && (OP) <= FKL_OP_LOAD_DLL_X)
+#define IS_LOAD_LIB_OP(OP)                                                     \
+    ((OP) >= FKL_OP_LOAD_LIB && (OP) <= FKL_OP_LOAD_LIB_X)
+#define IS_PUSH_PROC_OP(OP)                                                    \
+    ((OP) >= FKL_OP_PUSH_PROC && (OP) <= FKL_OP_PUSH_PROC_XXX)
+#define IS_EXPORT_TO_OP(OP)                                                    \
+    ((OP) >= FKL_OP_EXPORT_TO && (OP) <= FKL_OP_EXPORT_TO_XX)
+
+struct IncreaseBclLibPrototypeCtx {
+    uint32_t lib_count;
+    uint32_t pts_count;
+};
+
+static int increase_bcl_lib_prototype_id_predicate(FklOpcode op) {
+    return IS_LOAD_LIB_OP(op) || IS_LOAD_DLL_OP(op) || IS_PUSH_PROC_OP(op)
+        || IS_EXPORT_TO_OP(op);
+}
+
+static int increase_bcl_lib_prototype_id_func(void *cctx, FklOpcode *popcode,
+                                              FklOpcodeMode *pmode,
+                                              FklInstructionArg *ins_arg) {
+    struct IncreaseBclLibPrototypeCtx *ctx = cctx;
+    FklOpcode op = *popcode;
+    if (IS_LOAD_DLL_OP(op)) {
+        ins_arg->ux += ctx->lib_count;
+        *popcode = FKL_OP_LOAD_DLL;
+        *pmode = FKL_OP_MODE_IuB;
+    } else if (IS_LOAD_LIB_OP(op)) {
+        ins_arg->ux += ctx->lib_count;
+        *popcode = FKL_OP_LOAD_LIB;
+        *pmode = FKL_OP_MODE_IuB;
+    } else if (IS_EXPORT_TO_OP(op)) {
+        ins_arg->ux += ctx->lib_count;
+        *popcode = FKL_OP_EXPORT_TO;
+        *pmode = FKL_OP_MODE_IuAuB;
+    } else if (IS_PUSH_PROC_OP(op)) {
+        ins_arg->ux += ctx->pts_count;
+        *popcode = FKL_OP_PUSH_PROC;
+        *pmode = FKL_OP_MODE_IuAuB;
+    }
+    return 0;
+}
+
+static inline void increase_bcl_lib_prototype_id(FklByteCodelnt *bcl,
+                                                 uint32_t lib_count,
+                                                 uint32_t pts_count) {
+    struct IncreaseBclLibPrototypeCtx ctx = {
+        .lib_count = lib_count,
+        .pts_count = pts_count,
+    };
+    fklRecomputeInsImm(bcl, &ctx, increase_bcl_lib_prototype_id_predicate,
+                       increase_bcl_lib_prototype_id_func);
+}
+
+static inline void increase_compiler_macros_lib_prototype_id(
+    FklCodegenMacro *head, uint32_t macro_lib_count, uint32_t macro_pts_count) {
+    for (; head; head = head->next) {
+        head->prototype_id += macro_pts_count;
+        increase_bcl_lib_prototype_id(head->bcl, macro_lib_count,
+                                      macro_pts_count);
+    }
+}
+
+static inline void increase_reader_macro_lib_prototype_id(
+    FklGraProdGroupHashMap *named_prod_groups, uint32_t lib_count,
+    uint32_t count) {
+    if (named_prod_groups->buckets) {
+        for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
+             list = list->next) {
+
+            for (const FklProdHashMapNode *cur = list->v.g.productions.first;
+                 cur; cur = cur->next) {
+                for (const FklGrammerProduction *prod = cur->v; prod;
+                     prod = prod->next) {
+                    if (prod->func == custom_action) {
+                        struct CustomActionCtx *ctx = prod->ctx;
+                        ctx->prototype_id += count;
+                        increase_bcl_lib_prototype_id(ctx->bcl, lib_count,
+                                                      count);
+                    }
+                }
+            }
+
+            // uint32_t top = list->v.prod_printing.size;
+            // for (uint32_t i = 0; i < top; i++) {
+            //     FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
+            //     if (p->type == FKL_CODEGEN_PROD_CUSTOM) {
+            //         p->prototype_id += count;
+            //         increase_bcl_lib_prototype_id(p->bcl, lib_count, count);
+            //     }
+            // }
+        }
+    }
+}
+
+void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib, uint32_t lib_count,
+                                    uint32_t macro_lib_count,
+                                    uint32_t pts_count,
+                                    uint32_t macro_pts_count) {
+    switch (lib->type) {
+    case FKL_CODEGEN_LIB_SCRIPT:
+        lib->prototypeId += pts_count;
+        increase_bcl_lib_prototype_id(lib->bcl, lib_count, pts_count);
+        increase_compiler_macros_lib_prototype_id(lib->head, macro_lib_count,
+                                                  macro_pts_count);
+        increase_reader_macro_lib_prototype_id(
+            &lib->named_prod_groups, macro_lib_count, macro_pts_count);
+        break;
+    case FKL_CODEGEN_LIB_DLL:
+        break;
     }
 }

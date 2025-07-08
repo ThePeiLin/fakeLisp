@@ -1017,107 +1017,6 @@ static inline int load_macro_lib_stack(FklCodegenLibVector *libStack,
     return 0;
 }
 
-#define IS_LOAD_DLL_OP(OP)                                                     \
-    ((OP) >= FKL_OP_LOAD_DLL && (OP) <= FKL_OP_LOAD_DLL_X)
-#define IS_LOAD_LIB_OP(OP)                                                     \
-    ((OP) >= FKL_OP_LOAD_LIB && (OP) <= FKL_OP_LOAD_LIB_X)
-#define IS_PUSH_PROC_OP(OP)                                                    \
-    ((OP) >= FKL_OP_PUSH_PROC && (OP) <= FKL_OP_PUSH_PROC_XXX)
-#define IS_EXPORT_TO_OP(OP)                                                    \
-    ((OP) >= FKL_OP_EXPORT_TO && (OP) <= FKL_OP_EXPORT_TO_XX)
-
-struct IncreaseBclLibPrototypeCtx {
-    uint32_t lib_count;
-    uint32_t pts_count;
-};
-
-static int increase_bcl_lib_prototype_id_predicate(FklOpcode op) {
-    return IS_LOAD_LIB_OP(op) || IS_LOAD_DLL_OP(op) || IS_PUSH_PROC_OP(op)
-        || IS_EXPORT_TO_OP(op);
-}
-
-static int increase_bcl_lib_prototype_id_func(void *cctx, FklOpcode *popcode,
-                                              FklOpcodeMode *pmode,
-                                              FklInstructionArg *ins_arg) {
-    struct IncreaseBclLibPrototypeCtx *ctx = cctx;
-    FklOpcode op = *popcode;
-    if (IS_LOAD_DLL_OP(op)) {
-        ins_arg->ux += ctx->lib_count;
-        *popcode = FKL_OP_LOAD_DLL;
-        *pmode = FKL_OP_MODE_IuB;
-    } else if (IS_LOAD_LIB_OP(op)) {
-        ins_arg->ux += ctx->lib_count;
-        *popcode = FKL_OP_LOAD_LIB;
-        *pmode = FKL_OP_MODE_IuB;
-    } else if (IS_EXPORT_TO_OP(op)) {
-        ins_arg->ux += ctx->lib_count;
-        *popcode = FKL_OP_EXPORT_TO;
-        *pmode = FKL_OP_MODE_IuAuB;
-    } else if (IS_PUSH_PROC_OP(op)) {
-        ins_arg->ux += ctx->pts_count;
-        *popcode = FKL_OP_PUSH_PROC;
-        *pmode = FKL_OP_MODE_IuAuB;
-    }
-    return 0;
-}
-
-static inline void increase_bcl_lib_prototype_id(FklByteCodelnt *bcl,
-                                                 uint32_t lib_count,
-                                                 uint32_t pts_count) {
-    struct IncreaseBclLibPrototypeCtx ctx = {
-        .lib_count = lib_count,
-        .pts_count = pts_count,
-    };
-    fklRecomputeInsImm(bcl, &ctx, increase_bcl_lib_prototype_id_predicate,
-                       increase_bcl_lib_prototype_id_func);
-}
-
-static inline void increase_compiler_macros_lib_prototype_id(
-    FklCodegenMacro *head, uint32_t macro_lib_count, uint32_t macro_pts_count) {
-    for (; head; head = head->next) {
-        head->prototype_id += macro_pts_count;
-        increase_bcl_lib_prototype_id(head->bcl, macro_lib_count,
-                                      macro_pts_count);
-    }
-}
-
-static inline void increase_reader_macro_lib_prototype_id(
-    FklGraProdGroupHashMap *named_prod_groups, uint32_t lib_count,
-    uint32_t count) {
-    if (named_prod_groups->buckets) {
-        for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
-             list = list->next) {
-            uint32_t top = list->v.prod_printing.size;
-            for (uint32_t i = 0; i < top; i++) {
-                FklCodegenProdPrinting *p = &list->v.prod_printing.base[i];
-                if (p->type == FKL_CODEGEN_PROD_CUSTOM) {
-                    p->prototype_id += count;
-                    increase_bcl_lib_prototype_id(p->bcl, lib_count, count);
-                }
-            }
-        }
-    }
-}
-
-static inline void increase_lib_id_and_prototype_id(FklCodegenLib *lib,
-                                                    uint32_t lib_count,
-                                                    uint32_t macro_lib_count,
-                                                    uint32_t pts_count,
-                                                    uint32_t macro_pts_count) {
-    switch (lib->type) {
-    case FKL_CODEGEN_LIB_SCRIPT:
-        lib->prototypeId += pts_count;
-        increase_bcl_lib_prototype_id(lib->bcl, lib_count, pts_count);
-        increase_compiler_macros_lib_prototype_id(lib->head, macro_lib_count,
-                                                  macro_pts_count);
-        increase_reader_macro_lib_prototype_id(
-            &lib->named_prod_groups, macro_lib_count, macro_pts_count);
-        break;
-    case FKL_CODEGEN_LIB_DLL:
-        break;
-    }
-}
-
 static inline void
 increase_prototype_and_lib_id(uint32_t pts_count, uint32_t macro_pts_count,
                               uint32_t lib_count, uint32_t macro_lib_count,
@@ -1126,14 +1025,14 @@ increase_prototype_and_lib_id(uint32_t pts_count, uint32_t macro_pts_count,
     uint32_t top = libStack->size;
     FklCodegenLib *base = libStack->base;
     for (uint32_t i = 0; i < top; i++) {
-        increase_lib_id_and_prototype_id(&base[i], lib_count, macro_lib_count,
+        fklIncreaseLibIdAndPrototypeId(&base[i], lib_count, macro_lib_count,
                                          pts_count, macro_pts_count);
     }
 
     top = macroLibStack->size;
     base = macroLibStack->base;
     for (uint32_t i = 0; i < top; i++) {
-        increase_lib_id_and_prototype_id(&base[i], macro_lib_count,
+        fklIncreaseLibIdAndPrototypeId(&base[i], macro_lib_count,
                                          macro_lib_count, pts_count,
                                          macro_pts_count);
     }

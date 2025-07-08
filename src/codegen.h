@@ -24,8 +24,6 @@ add_production_group(FklGraProdGroupHashMap *named_prod_groups,
     if (!group->g.st) {
         fklInitEmptyGrammer(&group->g, st);
         fklInitSymbolTable(&group->reachable_terminals);
-        fklProdPrintingVectorInit(&group->prod_printing, 8);
-        fklNastNodeVectorInit(&group->ignore_printing, 8);
     }
     return group;
 }

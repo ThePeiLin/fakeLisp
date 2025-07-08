@@ -391,15 +391,15 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
     for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
         fputs("group name:", fp);
         fklPrintRawSymbol(fklGetSymbolWithId(l->k, pst)->k, fp);
-        if (l->v.ignore_printing.size) {
-            fputs("\nignores:\n", fp);
-            uint32_t top = l->v.ignore_printing.size;
-            FklNastNode **base = l->v.ignore_printing.base;
-            for (uint32_t i = 0; i < top; i++) {
-                fklPrintNastNode(base[i], fp, pst);
-                fputc('\n', fp);
-            }
-        }
+        // if (l->v.ignore_printing.size) {
+        //     fputs("\nignores:\n", fp);
+        //     uint32_t top = l->v.ignore_printing.size;
+        //     FklNastNode **base = l->v.ignore_printing.base;
+        //     for (uint32_t i = 0; i < top; i++) {
+        //         fklPrintNastNode(base[i], fp, pst);
+        //         fputc('\n', fp);
+        //     }
+        // }
 
         if (l->v.g.ignores) {
             fputs("\nignores:\n", fp);

@@ -155,164 +155,6 @@ void fklProdCtxDestroyFree(void *c) { fklZfree(c); }
 
 void *fklProdCtxCopyerDoNothing(const void *c) { return (void *)c; }
 
-static inline void find_and_add_terminal_in_regex(const FklRegexCode *re,
-                                                  FklSymbolTable *tt) {
-    const FklRegexObj *objs = re->data;
-    for (; objs->type != FKL_REGEX_UNUSED && objs->type != FKL_REGEX_BEGIN;
-         objs++)
-        ;
-    if (objs->type == FKL_REGEX_BEGIN) {
-        uint32_t len = 0;
-        const FklRegexObj *start = objs + 1;
-        for (; start[len].type == FKL_REGEX_CHAR; len++)
-            ;
-        if (start[len].type == FKL_REGEX_STAR
-            || start[len].type == FKL_REGEX_QUESTIONMARK)
-            len--;
-        if (len) {
-            FklString *str = fklCreateString(len, NULL);
-            for (uint32_t i = 0; i < len; i++)
-                str->str[i] = start[i].ch;
-            fklAddSymbol(str, tt);
-            fklZfree(str);
-        }
-    }
-    const FklRegexObj *end = objs;
-    for (; end->type != FKL_REGEX_UNUSED; end++)
-        ;
-    if (end != objs && (--end)->type == FKL_REGEX_END) {
-        end--;
-        uint32_t len = 0;
-        for (; end >= objs && end->type == FKL_REGEX_CHAR; end--)
-            len++;
-        if (len) {
-            end++;
-            FklString *str = fklCreateString(len, NULL);
-            for (uint32_t i = 0; i < len; i++)
-                str->str[i] = end[i].ch;
-            fklAddSymbol(str, tt);
-            fklZfree(str);
-        }
-    }
-}
-
-static inline const FklRegexCode *
-add_regex_and_get_terminal(FklRegexTable *t, const char *buf, size_t len,
-                           FklSymbolTable *tt) {
-    uint32_t old = t->num;
-    const FklRegexCode *re = fklAddRegexCharBuf(t, buf, len);
-    if (re && old != t->num)
-        find_and_add_terminal_in_regex(re, tt);
-    return re;
-}
-
-static inline FklGrammerProduction *create_grammer_prod_from_cstr(
-    const char *str, FklGraSidBuiltinHashMap *builtins,
-    FklSymbolTable *symbolTable, FklSymbolTable *termTable,
-    FklRegexTable *regexTable, const char *name, FklProdActionFunc func) {
-    const char *ss;
-    size_t len;
-    for (ss = str; isspace(*ss); ss++)
-        ;
-    for (len = 0; !isspace(ss[len]); len++)
-        ;
-    FklSid_t left = fklAddSymbolCharBuf(ss, len, symbolTable)->v;
-    ss += len;
-    len = 0;
-    FklStringVector st;
-    fklStringVectorInit(&st, 8);
-    size_t joint_num = 0;
-    while (*ss) {
-        for (; isspace(*ss); ss++)
-            ;
-        for (len = 0; ss[len] && !isspace(ss[len]); len++)
-            ;
-        if (ss[0] == '+')
-            joint_num++;
-        if (len)
-            fklStringVectorPushBack2(&st, fklCreateString(len, ss));
-        ss += len;
-    }
-    size_t prod_len = st.size - joint_num;
-    if (prod_len) {
-        prod_len += prod_len - 1 - joint_num;
-    }
-    FklGrammerProduction *prod = fklCreateEmptyProduction(
-        0, left, prod_len, name, func, NULL, fklProdCtxDestroyDoNothing,
-        fklProdCtxCopyerDoNothing);
-    size_t symIdx = 0;
-    if (prod == NULL || prod_len == 0)
-        goto exit;
-    // if (st.size == 0 && !is_epsilon) {
-    //     FklGrammerSym *u = &prod->syms[0];
-    //     u->type = FKL_TERM_NONTERM;
-    //     u->nt.group = 0;
-    //     u->nt.sid = epsilon_id;
-    //     goto exit;
-    // }
-    for (uint32_t i = 0; i < st.size; i++) {
-        FklGrammerSym *u = &prod->syms[symIdx];
-        u->type = FKL_TERM_STRING;
-        FklString *s = st.base[i];
-        switch (*(s->str)) {
-        case '+':
-            continue;
-            break;
-        case '#':
-            u->nt.group = 0;
-            u->nt.sid =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->v;
-            break;
-        case ':':
-            u->type = FKL_TERM_KEYWORD;
-            u->nt.group = 0;
-            u->nt.sid =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->v;
-            break;
-        case '/': {
-            u->type = FKL_TERM_REGEX;
-            const FklRegexCode *re = add_regex_and_get_terminal(
-                regexTable, &s->str[1], s->size - 1, termTable);
-            if (!re) {
-                fklDestroyGrammerProduction(prod);
-                prod = NULL;
-                goto exit;
-            }
-            u->re = re;
-        } break;
-        case '&': {
-            FklSid_t id =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, symbolTable)->v;
-            const FklLalrBuiltinMatch *builtin =
-                fklGetBuiltinMatch(builtins, id);
-            if (builtin) {
-                u->type = FKL_TERM_BUILTIN;
-                u->b.t = builtin;
-                u->b.len = 0;
-                u->b.args = NULL;
-                // u->b.c = NULL;
-            } else {
-                u->type = FKL_TERM_NONTERM;
-                u->nt.group = 0;
-                u->nt.sid = id;
-            }
-        } break;
-        }
-        ++symIdx;
-        if (symIdx < prod_len - 1 && i < st.size - 1
-            && (*st.base[i + 1]->str != '+')) {
-            FklGrammerSym *u = &prod->syms[symIdx];
-            u->type = FKL_TERM_IGNORE;
-            ++symIdx;
-        }
-    }
-exit:
-    while (!fklStringVectorIsEmpty(&st))
-        fklZfree(*fklStringVectorPopBackNonNull(&st));
-    fklStringVectorUninit(&st);
-    return prod;
-}
-
 FklGrammerIgnore *fklCreateEmptyGrammerIgnore(size_t len) {
     FklGrammerIgnore *ig = (FklGrammerIgnore *)fklZcalloc(
         1, sizeof(FklGrammerIgnore) + len * sizeof(FklGrammerIgnoreSym));
@@ -367,106 +209,6 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
         }
     }
     return ig;
-}
-
-static inline FklGrammerIgnore *create_grammer_ignore_from_cstr(
-    const char *str, FklGraSidBuiltinHashMap *builtins,
-    FklSymbolTable *symbolTable, FklSymbolTable *termTable, FklRegexTable *rt) {
-    const char *ss;
-    size_t len;
-    for (ss = str; isspace(*ss); ss++)
-        ;
-    for (len = 0; !isspace(ss[len]); len++)
-        ;
-    FklSid_t left = 0;
-    ss += len;
-    len = 0;
-    FklStringVector st;
-    fklStringVectorInit(&st, 8);
-    size_t joint_num = 0;
-    while (*ss) {
-        for (; isspace(*ss); ss++)
-            ;
-        for (len = 0; ss[len] && !isspace(ss[len]); len++)
-            ;
-        if (ss[0] == '+')
-            joint_num++;
-        if (len)
-            fklStringVectorPushBack2(&st, fklCreateString(len, ss));
-        ss += len;
-    }
-    size_t prod_len = st.size - joint_num;
-    if (!prod_len) {
-        while (!fklStringVectorIsEmpty(&st))
-            fklZfree(*fklStringVectorPopBackNonNull(&st));
-        fklStringVectorUninit(&st);
-        return NULL;
-    }
-    FklGrammerProduction *prod = fklCreateEmptyProduction(
-        0, left, prod_len, NULL, NULL, NULL, fklProdCtxDestroyDoNothing,
-        fklProdCtxCopyerDoNothing);
-    size_t symIdx = 0;
-    for (uint32_t i = 0; i < st.size; i++) {
-        FklGrammerSym *u = &prod->syms[symIdx];
-        u->type = FKL_TERM_STRING;
-        FklString *s = st.base[i];
-        switch (*(s->str)) {
-        case '+':
-            continue;
-            break;
-        case '#':
-            u->nt.group = 0;
-            u->nt.sid =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->v;
-            break;
-        case ':':
-            u->type = FKL_TERM_KEYWORD;
-            u->nt.group = 0;
-            u->nt.sid =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, termTable)->v;
-            break;
-        case '/': {
-            u->type = FKL_TERM_REGEX;
-            const FklRegexCode *re = add_regex_and_get_terminal(
-                rt, &s->str[1], s->size - 1, termTable);
-            if (!re) {
-                fklDestroyGrammerProduction(prod);
-                goto error;
-            }
-            u->re = re;
-        } break;
-        case '&': {
-            FklSid_t id =
-                fklAddSymbolCharBuf(&s->str[1], s->size - 1, symbolTable)->v;
-            const FklLalrBuiltinMatch *builtin =
-                fklGetBuiltinMatch(builtins, id);
-            if (builtin) {
-                u->type = FKL_TERM_BUILTIN;
-                u->b.t = builtin;
-                u->b.len = 0;
-                u->b.args = NULL;
-                // u->b.c = NULL;
-            } else {
-                u->type = FKL_TERM_NONTERM;
-                u->nt.group = 0;
-                u->nt.sid = id;
-            }
-        } break;
-        }
-        symIdx++;
-    }
-    while (!fklStringVectorIsEmpty(&st))
-        fklZfree(*fklStringVectorPopBackNonNull(&st));
-    fklStringVectorUninit(&st);
-    FklGrammerIgnore *ig =
-        fklGrammerSymbolsToIgnore(prod->syms, prod->len, termTable);
-    fklDestroyGrammerProduction(prod);
-    return ig;
-error:
-    while (!fklStringVectorIsEmpty(&st))
-        fklZfree(*fklStringVectorPopBackNonNull(&st));
-    fklStringVectorUninit(&st);
-    return NULL;
 }
 
 static inline int prod_sym_equal(const FklGrammerSym *u0,
@@ -1921,40 +1663,6 @@ void fklDestroyGrammer(FklGrammer *g) {
     fklZfree(g);
 }
 
-static inline int init_all_builtin_grammer_sym(FklGrammer *g) {
-    int failed = 0;
-    if (g->sortedTerminalsNum) {
-        fklZfree(g->sortedTerminals);
-        g->sortedTerminals = NULL;
-        g->sortedTerminalsNum = 0;
-    }
-    for (FklProdHashMapNode *pl = g->productions.first; pl; pl = pl->next) {
-        for (FklGrammerProduction *prod = pl->v; prod; prod = prod->next) {
-            for (size_t i = prod->len; i > 0; i--) {
-                size_t idx = i - 1;
-                FklGrammerSym *u = &prod->syms[idx];
-                if (u->type == FKL_TERM_BUILTIN) {
-                    // if (!u->b.c)
-                    //     u->b.c = init_builtin_grammer_sym(u->b.t, idx, prod,
-                    //     g,
-                    //                                       &failed);
-                    // else if (u->b.t->ctx_global_create) {
-                    //     destroy_builtin_grammer_sym(&u->b);
-                    //     u->b.c = init_builtin_grammer_sym(u->b.t, idx, prod,
-                    //     g,
-                    //                                       &failed);
-                    // }
-                } else if (u->type == FKL_TERM_KEYWORD
-                           && !g->sortedTerminalsNum)
-                    sort_reachable_terminals(g);
-                if (failed)
-                    break;
-            }
-        }
-    }
-    return failed;
-}
-
 int fklAddIgnoreToIgnoreList(FklGrammerIgnore **pp, FklGrammerIgnore *ig) {
     for (; *pp; pp = &(*pp)->next) {
         if (ignore_equal(*pp, ig))
@@ -2143,61 +1851,6 @@ int fklIsGrammerInited(const FklGrammer *g) {
 #define FKL_VECTOR_ELM_TYPE_NAME Prod
 #include <fakeLisp/vector.h>
 
-static inline int add_reachable_terminal(FklGrammer *g) {
-    FklProdHashMap *productions = &g->productions;
-    GraProdVector prod_stack;
-    graProdVectorInit(&prod_stack, g->prodNum);
-    FklGrammerProduction *first = NULL;
-    for (const FklProdHashMapNode *first_node = g->productions.first;
-         first_node; first_node = first_node->next) {
-        if (is_Sq_nt(&first_node->v->left))
-            first = first_node->v;
-    }
-    graProdVectorPushBack2(&prod_stack, first);
-    FklNontermHashSet nonterm_set;
-    fklNontermHashSetInit(&nonterm_set);
-    while (!graProdVectorIsEmpty(&prod_stack)) {
-        FklGrammerProduction *prods = *graProdVectorPopBackNonNull(&prod_stack);
-        for (; prods; prods = prods->next) {
-            const FklGrammerSym *syms = prods->syms;
-            for (size_t i = 0; i < prods->len; i++) {
-                const FklGrammerSym *cur = &syms[i];
-                if (cur->type == FKL_TERM_STRING)
-                    fklAddSymbol(
-                        fklGetSymbolWithId(cur->nt.sid, &g->terminals)->k,
-                        &g->reachable_terminals);
-                else if (cur->type == FKL_TERM_REGEX)
-                    find_and_add_terminal_in_regex(cur->re,
-                                                   &g->reachable_terminals);
-                else if (cur->type == FKL_TERM_BUILTIN) {
-                    for (size_t i = 0; i < cur->b.len; i++)
-                        fklAddSymbol(cur->b.args[i], &g->reachable_terminals);
-                } else if (cur->type == FKL_TERM_NONTERM
-                           && !fklNontermHashSetPut(&nonterm_set, &cur->nt)) {
-                    graProdVectorPushBack2(&prod_stack,
-                                           fklGetProductions(productions,
-                                                             cur->nt.group,
-                                                             cur->nt.sid));
-                }
-            }
-        }
-    }
-    fklNontermHashSetUninit(&nonterm_set);
-    graProdVectorUninit(&prod_stack);
-    for (FklGrammerIgnore *igs = g->ignores; igs; igs = igs->next) {
-        FklGrammerIgnoreSym *igss = igs->ig;
-        for (size_t i = 0; i < igs->len; i++) {
-            FklGrammerIgnoreSym *cur = &igss[i];
-            if (cur->term_type == FKL_TERM_STRING)
-                fklAddSymbol(cur->str, &g->reachable_terminals);
-            else
-                find_and_add_terminal_in_regex(cur->re,
-                                               &g->reachable_terminals);
-        }
-    }
-    return 0;
-}
-
 static inline int check_undefined_nonterm(FklGrammer *g,
                                           FklGrammerNonterm *nt) {
     FklProdHashMap *productions = &g->productions;
@@ -2238,45 +1891,6 @@ static inline void print_unresolved_terminal(const FklSymbolTable *st,
     fputs(" is not defined\n", stderr);
 }
 
-FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st) {
-    FklGrammer *grammer = fklCreateEmptyGrammer(st);
-    FklSymbolTable *tt = &grammer->terminals;
-    FklRegexTable *rt = &grammer->regexes;
-    FklGraSidBuiltinHashMap *builtins = &grammer->builtins;
-    for (; *str; str++) {
-        if (**str == '+') {
-            FklGrammerIgnore *ignore =
-                create_grammer_ignore_from_cstr(*str, builtins, st, tt, rt);
-            if (!ignore) {
-                fklDestroyGrammer(grammer);
-                return NULL;
-            }
-            if (fklAddIgnoreToIgnoreList(&grammer->ignores, ignore)) {
-                fklDestroyIgnore(ignore);
-                fklDestroyGrammer(grammer);
-                return NULL;
-            }
-        } else {
-            FklGrammerProduction *prod = create_grammer_prod_from_cstr(
-                *str, builtins, st, tt, rt, NULL, NULL);
-            if (prod == NULL || fklAddProdAndExtraToGrammer(grammer, prod)) {
-                fklDestroyGrammerProduction(prod);
-                fklDestroyGrammer(grammer);
-                return NULL;
-            }
-        }
-    }
-
-    FklGrammerNonterm nonterm = {0, 0};
-    if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
-        print_unresolved_terminal(st, &nonterm);
-
-        fklDestroyGrammer(grammer);
-        return NULL;
-    }
-    return grammer;
-}
-
 int fklAddExtraProdToGrammer(FklGrammer *g) {
     FklGrammerNonterm left = g->start;
     const FklGraSidBuiltinHashMap *builtins = &g->builtins;
@@ -2291,47 +1905,6 @@ int fklAddExtraProdToGrammer(FklGrammer *g) {
     (*item)->idx = g->prodNum;
     g->prodNum++;
     return 0;
-}
-
-FklGrammer *fklCreateGrammerFromCstrAction(const FklGrammerCstrAction pa[],
-                                           FklSymbolTable *st) {
-    FklGrammer *grammer = fklCreateEmptyGrammer(st);
-    FklSymbolTable *tt = &grammer->terminals;
-    FklRegexTable *rt = &grammer->regexes;
-    FklGraSidBuiltinHashMap *builtins = &grammer->builtins;
-    for (; pa->cstr; pa++) {
-        const char *str = pa->cstr;
-        if (*str == '+') {
-            FklGrammerIgnore *ignore =
-                create_grammer_ignore_from_cstr(str, builtins, st, tt, rt);
-            if (!ignore) {
-                fklDestroyGrammer(grammer);
-                return NULL;
-            }
-            if (fklAddIgnoreToIgnoreList(&grammer->ignores, ignore)) {
-                fklDestroyIgnore(ignore);
-                fklDestroyGrammer(grammer);
-                return NULL;
-            }
-        } else {
-            FklGrammerProduction *prod = create_grammer_prod_from_cstr(
-                str, builtins, st, tt, rt, pa->action_name, pa->func);
-            if (prod == NULL || fklAddProdAndExtraToGrammer(grammer, prod)) {
-                fklDestroyGrammerProduction(prod);
-                fklDestroyGrammer(grammer);
-                return NULL;
-            }
-        }
-    }
-
-    FklGrammerNonterm nonterm = {0, 0};
-    if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
-        print_unresolved_terminal(st, &nonterm);
-
-        fklDestroyGrammer(grammer);
-        return NULL;
-    }
-    return grammer;
 }
 
 static inline void print_as_regex(const FklString *str, FILE *fp) {
@@ -2822,7 +2395,7 @@ static inline void print_item(FILE *fp, const FklLalrItem *item,
         putc(' ', fp);
         print_prod_sym(fp, &syms[i], st, tt, rt);
     }
-    fputs(" # ", fp);
+    fputs(" ## ", fp);
     print_look_ahead(fp, &item->la, rt);
 }
 
@@ -4139,12 +3712,11 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
                     if (hasConflict) {
                         clear_analysis_table(grammer, idx);
                         fklStringBufferPrintf(
-                            error_msg, "conflict at state %lu with [[  ",
-                            idx);
+                            error_msg, "conflict at state %lu with [[  ", idx);
                         print_lalr_item_to_stringbuffer(
                             error_msg, &il->k, grammer->st, &grammer->terminals,
                             &grammer->regexes);
-                        fklStringBufferPrintf(error_msg, " # ");
+                        fklStringBufferPrintf(error_msg, " ## ");
                         print_lookahead_to_string_buffer(error_msg, &il->k.la,
                                                          &grammer->regexes);
                         fklStringBufferPrintf(error_msg, "  ]]");

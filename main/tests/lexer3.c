@@ -1,83 +1,109 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/utils.h>
 
 #ifndef ACTION_FILE_PATH
 #define ACTION_FILE_PATH "action.c"
 #endif
-static const FklGrammerCstrAction test_grammer_and_action[] = {
-    // clang-format off
-	{"E &E #+ &T",   "test_action", NULL },
-	{"E &T",         "test_action", NULL },
 
-	{"T &T #* &F",   "test_action", NULL },
-	{"T &F",         "test_action", NULL },
+static const char test_op_grammer_rules[] = //
+    ""
+    "E -> E \"+\" T      => test\n"
+    "  -> T              => test\n"
 
-	{"F #( &E #)",   "test_action", NULL },
-	{"F &?dfloat",   "test_action", NULL },
+    "T -> T \"*\" F      => test\n"
+    "  -> F              => test\n"
 
-    {"+ /\\s+",      NULL,          NULL },
-    {"+ /^;.*\\n?",  NULL,          NULL },
-    {"+ /^#!.*\\n?", NULL,          NULL },
-    {NULL,           NULL,          NULL },
-    // clang-format on
-};
+    "F -> \"(\" E \")\"  => test\n"
+    "  -> \"(\" E \")\"  => test\n"
 
-static const FklGrammerCstrAction test_json_and_action[] = {
-    // clang-format off
-	{"json-value &null",                           "test_action", NULL },
-	{"json-value &bool",                           "test_action", NULL },
-	{"json-value &string",                         "test_action", NULL },
-	{"json-value &integer",                        "test_action", NULL },
-	{"json-value &float",                          "test_action", NULL },
-	{"json-value &object",                         "test_action", NULL },
-	{"json-value &array",                          "test_action", NULL },
+    "?e -> /#!.*\\n?/    \n"
+    "   -> /;.*\\n?/     \n"
+    "   -> /\\s+/        \n"
+    "   ;\n"
+    "?? -> \"#!\"        \n"
+    "   -> \";\"         \n"
+    "";
 
-	{"null :null",                                 "test_action", NULL },
-	{"bool :true",                                 "test_action", NULL },
-	{"bool :false",                                "test_action", NULL },
-	{"string /\"\"|^\"(\\\\.|.)*\"$",              "test_action", NULL },
-	{"integer &?dint",                             "test_action", NULL },
-	{"integer &?xint",                             "test_action", NULL },
-	{"integer &?oint",                             "test_action", NULL },
+static const char test_json_grammer_rules[] = //
+    ""
+    "json-value -> null    => test  \n"
+    "           -> bool    => test  \n"
+    "           -> string  => test  \n"
+    "           -> integer => test  \n"
+    "           -> float   => test  \n"
+    "           -> object  => test  \n"
+    "           -> array   => test  \n"
+    "null -> |null| => test \n"
+    "bool -> |true|  => test \n"
+    "     -> |false| => test \n"
+    "string -> /\"\"|\"(\\\\.|.)*\"/ => test \n"
+    "integer -> ?dint => test \n"
+    "        -> ?xint => test \n"
+    "        -> ?oint => test \n"
+    "float -> ?dfloat => test \n"
+    "      -> ?xfloat => test \n"
+    "array -> \"[\" array-items \"]\" => test \n"
+    "array-items ->                              => test \n"
+    "            -> json-value                   => test \n"
+    "            -> json-value \",\" array-items => test \n"
+    "object -> \"{\" object-items \"}\" => test \n"
+    "object-item -> string \":\" json-value => test \n"
+    "object-items ->                                => test \n"
+    "             -> object-item                    => test \n"
+    "             -> object-item \",\" object-items => test \n"
+    "?e -> /\\s+/  \n"
+    "   ;\n"
+    "?? -> \"\\\"\"  \n"
+    "";
 
-	{"float &?dfloat",                             "test_action", NULL },
-	{"float &?xfloat",                             "test_action", NULL },
+static const char test_ignore_grammer_rules[] = //
+    ""
+    // "s -> item-list => test \n"
+    "s -> \"#\" .. item-list => test \n"
+    "item-list -> \"(\" items \")\" => test \n"
+    "items ->            => test \n"
+    "      -> items item => test \n"
+    "item  -> ?dint => test \n"
+    "?e -> /\\s+/; \n"
+    // "other -> ?dint \n"
+    "";
 
-	{"array #[ &array-items #]",                   "test_action", NULL },
-	{"array-items ",                               "test_action", NULL },
-	{"array-items &json-value",                    "test_action", NULL },
-	{"array-items &json-value #, &array-items",    "test_action", NULL },
+static inline const FklGrammerBuiltinAction *
+test_prod_action_resolver(void *ctx, const char *str, size_t len) {
+    static FklGrammerBuiltinAction action = {"test", NULL};
+    return &action;
+}
 
-	{"object #{ &object-items #}",                 "test_action", NULL },
-	{"object-item &string #: &json-value",         "test_action", NULL },
-	{"object-items ",                              "test_action", NULL },
-	{"object-items &object-item",                  "test_action", NULL },
-	{"object-items &object-item #, &object-items", "test_action", NULL },
+static inline FklGrammer *create_grammer_with_cstr(FklSymbolTable *st,
+                                                   const char *rules) {
+    FklParserGrammerParseArg args;
+    FklGrammer *g = fklCreateEmptyGrammer(st);
 
-    {"+ /\\s+",                                    NULL,          NULL },
-    {NULL,                                         NULL,          NULL },
-    // clang-format on
-};
+    fklInitParserGrammerParseArg(&args, g, 1, test_prod_action_resolver, NULL);
+    int err = fklParseProductionRuleWithCstr(&args, rules);
+    if (err) {
+        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklDestroyGrammer(g);
+        fprintf(stderr, "garmmer create fail\n");
+        fklUninitParserGrammerParseArg(&args);
+        return NULL;
+    }
 
-static const FklGrammerCstrAction test_ignore_and_action[] = {
-    // clang-format off
-	// {"s ## &item-list",      "test_action", NULL },
-	{"s ## + &item-list",        "test_action", NULL },
+    fklUninitParserGrammerParseArg(&args);
 
-	{"item-list #( &items #)", "test_action", NULL },
-	{"items ",                 "test_action", NULL },
-	{"items &items &item ",     "test_action", NULL },
-
-	{"item &?dint",            "test_action", NULL },
-
-    {"+ /\\s+",                NULL,          NULL },
-    {NULL,                     NULL,          NULL },
-
-	{"other &?dint",           "test_action", NULL },
-    // clang-format on
-};
+    FklGrammerNonterm nonterm = {0};
+    if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
+        fputs("nonterm: ", stderr);
+        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
+        fputs(" is not defined\n", stderr);
+        fklDestroyGrammer(g);
+        return NULL;
+    }
+    return g;
+}
 
 int main(int argc, const char *argv[]) {
     if (argc > 2)
@@ -91,14 +117,14 @@ int main(int argc, const char *argv[]) {
 
     FklSymbolTable *st = fklCreateSymbolTable();
     FklGrammer *g;
-    if (!strcmp(grammer_select, "op"))
-        g = fklCreateGrammerFromCstrAction(test_grammer_and_action, st);
-    else if (!strcmp(grammer_select, "json"))
-        g = fklCreateGrammerFromCstrAction(test_json_and_action, st);
+    if (!strcmp(grammer_select, "op")) {
+        g = create_grammer_with_cstr(st, test_op_grammer_rules);
+    } else if (!strcmp(grammer_select, "json"))
+        g = create_grammer_with_cstr(st, test_json_grammer_rules);
     else if (!strcmp(grammer_select, "builtin"))
         g = fklCreateBuiltinGrammer(st);
     else if (!strcmp(grammer_select, "ignore"))
-        g = fklCreateGrammerFromCstrAction(test_ignore_and_action, st);
+        g = create_grammer_with_cstr(st, test_ignore_grammer_rules);
     else {
         fklDestroySymbolTable(st);
         fprintf(stderr, "invalid selection\n");

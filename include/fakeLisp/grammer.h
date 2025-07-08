@@ -485,12 +485,6 @@ typedef struct {
 } FklRecomputeGroupIdArgs;
 
 typedef struct {
-    const char *cstr;
-    const char *action_name;
-    FklProdActionFunc func;
-} FklGrammerCstrAction;
-
-typedef struct {
     const char *name;
     FklProdActionFunc func;
 } FklGrammerBuiltinAction;
@@ -510,11 +504,6 @@ typedef struct FklStateActionMatchArgs {
 
 int fklCheckAndInitGrammerSymbols(FklGrammer *g,
                                   FklGrammerNonterm *unresolved_nonterm);
-
-FklGrammer *fklCreateGrammerFromCstr(const char *str[], FklSymbolTable *st);
-FklGrammer *
-fklCreateGrammerFromCstrAction(const FklGrammerCstrAction prodAction[],
-                               FklSymbolTable *st);
 
 int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod);
 int fklAddProdToProdTable(FklGrammer *g, FklGrammerProduction *prod);

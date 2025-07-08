@@ -2,6 +2,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/nast.h>
+#include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/utils.h>
 
 #include <stdio.h>
@@ -14,8 +15,8 @@ static void *fklNastTerminalCreate(const char *s, size_t len, size_t line,
     return ast;
 }
 
-static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
-                                       size_t num, size_t line) {
+static void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
+                                size_t num, size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;
     const char *start = "|";
     size_t start_size = 1;
@@ -30,7 +31,7 @@ static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
     fklInitStringBuffer(&buffer);
     const char *end_cstr = cstr + str->size;
     while (cstr < end_cstr) {
-        if (fklCharBufMatch(start, start_size, cstr, cstr_size)) {
+        if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
             cstr += start_size;
             cstr_size -= start_size;
             size_t len = fklQuotedCharBufMatch(cstr, cstr_size, end, end_size);
@@ -46,7 +47,8 @@ static inline void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
         }
         size_t len = 0;
         for (; (cstr + len) < end_cstr; len++)
-            if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len))
+            if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
+                >= 0)
                 break;
         fklStringBufferBincpy(&buffer, cstr, len);
         cstr += len;
@@ -361,310 +363,135 @@ static inline void *prod_action_bytevector(void *ctx, void *outerCtx,
     return r;
 }
 
-static const FklGrammerCstrAction example_grammer_action[] = {
-    {
-        "s-exp &list",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &vector",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &bytevector",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &box",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &hasheq",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &hasheqv",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &hashequal",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &string",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &symbol",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &integer",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &float",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &char",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &quote",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &qsquote",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &unquote",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-    {
-        "s-exp &unqtesp",
-        "prod_action_return_first",
-        prod_action_return_first,
-    },
-
-    {
-        "quote #' &s-exp",
-        "prod_action_quote",
-        prod_action_quote,
-    },
-    {
-        "qsquote #` &s-exp",
-        "prod_action_qsquote",
-        prod_action_qsquote,
-    },
-    {
-        "unquote #~ &s-exp",
-        "prod_action_unquote",
-        prod_action_unquote,
-    },
-    {
-        "unqtesp #~@ &s-exp",
-        "prod_action_unqtesp",
-        prod_action_unqtesp,
-    },
-
-    {
-        "symbol &?symbol + #|",
-        "prod_action_symbol",
-        prod_action_symbol,
-    },
-    {
-        "string /^\"(\\\\.|.)*\"$",
-        "prod_action_string",
-        prod_action_string,
-    },
-
-    {
-        "integer &?s-dint + #|",
-        "prod_action_dec_integer",
-        prod_action_dec_integer,
-    },
-    {
-        "integer &?s-xint + #|",
-        "prod_action_hex_integer",
-        prod_action_hex_integer,
-    },
-    {
-        "integer &?s-oint + #|",
-        "prod_action_oct_integer",
-        prod_action_oct_integer,
-    },
-
-    {
-        "float &?s-dfloat + #|",
-        "prod_action_float",
-        prod_action_float,
-    },
-    {
-        "float &?s-xfloat + #|",
-        "prod_action_float",
-        prod_action_float,
-    },
-
-    {
-        "char &?char + ##\\",
-        "prod_action_char",
-        prod_action_char,
-    },
-
-    {
-        "box ##& &s-exp",
-        "prod_action_box",
-        prod_action_box,
-    },
-
-    {
-        "list #( &l #)",
-        "prod_action_return_second",
-        prod_action_return_second,
-    },
-    {
-        "list #[ &l #]",
-        "prod_action_return_second",
-        prod_action_return_second,
-    },
-
-    {
-        "l ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "l &s-exp &l",
-        "prod_action_list",
-        prod_action_list,
-    },
-    {
-        "l &s-exp #, &s-exp",
-        "prod_action_pair",
-        prod_action_pair,
-    },
-
-    {
-        "vector ##( &v #)",
-        "prod_action_vector",
-        prod_action_vector,
-    },
-    {
-        "vector ##[ &v #]",
-        "prod_action_vector",
-        prod_action_vector,
-    },
-
-    {
-        "v ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "v &s-exp &v",
-        "prod_action_list",
-        prod_action_list,
-    },
-
-    {
-        "hasheq ##hash( &kv #)",
-        "prod_action_hasheq",
-        prod_action_hasheq,
-    },
-    {
-        "hasheq ##hash[ &kv #]",
-        "prod_action_hasheq",
-        prod_action_hasheq,
-    },
-
-    {
-        "hasheqv ##hasheqv( &kv #)",
-        "prod_action_hasheqv",
-        prod_action_hasheqv,
-    },
-    {
-        "hasheqv ##hasheqv[ &kv #]",
-        "prod_action_hasheqv",
-        prod_action_hasheqv,
-    },
-
-    {
-        "hashequal ##hashequal( &kv #)",
-        "prod_action_hashequal",
-        prod_action_hashequal,
-    },
-    {
-        "hashequal ##hashequal[ &kv #]",
-        "prod_action_hashequal",
-        prod_action_hashequal,
-    },
-
-    {
-        "kv ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "kv #( &s-exp #, &s-exp #) &kv",
-        "prod_action_kv_list",
-        prod_action_kv_list,
-    },
-    {
-        "kv #[ &s-exp #, &s-exp #] &kv",
-        "prod_action_kv_list",
-        prod_action_kv_list,
-    },
-
-    {
-        "bytevector ##vu8( &v8 #)",
-        "prod_action_bytevector",
-        prod_action_bytevector,
-    },
-    {
-        "bytevector ##vu8[ &v8 #]",
-        "prod_action_bytevector",
-        prod_action_bytevector,
-    },
-
-    {
-        "v8 ",
-        "prod_action_nil",
-        prod_action_nil,
-    },
-    {
-        "v8 &integer &v8",
-        "prod_action_list",
-        prod_action_list,
-    },
-
-    {
-        "+ /\\s+",
-        NULL,
-        NULL,
-    },
-    {
-        "+ /^;[^\\n]*\\n?",
-        NULL,
-        NULL,
-    },
-    {
-        "+ /^#![^\\n]*\\n?",
-        NULL,
-        NULL,
-    },
-    {
-        NULL,
-        NULL,
-        NULL,
-    },
+static const FklGrammerBuiltinAction builtin_actions[] = {
+    {"symbol", prod_action_symbol},
+    {"first", prod_action_return_first},
+    {"second", prod_action_return_second},
+    {"string", prod_action_string},
+    {"nil", prod_action_nil},
+    {"pair", prod_action_pair},
+    {"list", prod_action_list},
+    {"dec_integer", prod_action_dec_integer},
+    {"hex_integer", prod_action_hex_integer},
+    {"oct_integer", prod_action_oct_integer},
+    {"float", prod_action_float},
+    {"char", prod_action_char},
+    {"box", prod_action_box},
+    {"vector", prod_action_vector},
+    {"quote", prod_action_quote},
+    {"unquote", prod_action_unquote},
+    {"qsquote", prod_action_qsquote},
+    {"unqtesp", prod_action_unqtesp},
+    {"pair_list", prod_action_kv_list},
+    {"hasheq", prod_action_hasheq},
+    {"hasheqv", prod_action_hasheqv},
+    {"hashequal", prod_action_hashequal},
+    {"bytes", prod_action_bytevector},
+    {NULL, NULL},
 };
+
+static inline const FklGrammerBuiltinAction *
+builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
+    for (const FklGrammerBuiltinAction *cur = &builtin_actions[0]; cur->name;
+         ++cur) {
+        size_t cur_len = strlen(cur->name);
+        if (cur_len == len && memcmp(cur->name, str, cur_len) == 0)
+            return cur;
+    }
+    return NULL;
+}
+
+static const char example_grammer_rules[] =
+    ""
+    "## specials: ??, ?e, ?symbol, ?s-dint, ?s-xint, ?s-oint, ?s-char ...\n"
+    "*s-exp* -> *list*       =>  first\n"
+    "        -> *vector*     =>  first\n"
+    "        -> *box*        =>  first\n"
+    "        -> *hasheq*     =>  first\n"
+    "        -> *hasheqv*    =>  first\n"
+    "        -> *hashequal*  =>  first\n"
+    "        -> *quote*      =>  first\n"
+    "        -> *qsquote*    =>  first\n"
+    "        -> *unquote*    =>  first\n"
+    "        -> *unqtesp*    =>  first\n"
+    "        -> *symbol*     =>  first\n"
+    "        -> *string*     =>  first\n"
+    "        -> *bytes*      =>  first\n"
+    "        -> *integer*    =>  first\n"
+    "        -> *float*      =>  first\n"
+    "        -> *char*       =>  first\n"
+    "*quote*   -> \"'\" *s-exp*   =>  quote\n"
+    "*qsquote* -> \"`\" *s-exp*   =>  qsquote\n"
+    "*unquote* -> \"~\" *s-exp*   =>  unquote\n"
+    "*unqtesp* -> \"~@\" *s-exp*  =>  unqtesp\n"
+    "*symbol* -> ?symbol[\"|\"]       =>  symbol\n"
+    "*string* -> /\"\"|\"(\\\\.|.)*\"/    =>  string\n"
+    "*bytes*  -> /#\"\"|#\"(\\\\.|.)*\"/  =>  bytes\n"
+    "*integer* -> ?s-dint[\"|\"]  =>  dec_integer\n"
+    "          -> ?s-xint[\"|\"]  =>  hex_integer\n"
+    "          -> ?s-oint[\"|\"]  =>  oct_integer\n"
+    "*float* -> ?s-dfloat[\"|\"]  =>  float\n"
+    "        -> ?s-xfloat[\"|\"]  =>  float\n"
+    "*char* -> ?s-char[\"#\\\\\"]  =>  char\n"
+    "*box* -> \"#&\" *s-exp*  =>  box\n"
+    "*list* -> \"(\" *list-items* \")\"  => second\n"
+    "       -> \"[\" *list-items* \"]\"  => second\n"
+    "*list-items* ->                       =>  nil\n"
+    "             -> *s-exp* *list-items*  =>  list\n"
+    "             -> *s-exp* \",\" *s-exp*   =>  pair\n"
+    "*vector* -> \"#(\" *vector-items* \")\"  =>  vector\n"
+    "         -> \"#[\" *vector-items* \"]\"  =>  vector\n"
+    "*vector-items* ->                         =>  nil\n"
+    "               -> *s-exp* *vector-items*  =>  list\n"
+    "*hasheq*    -> \"#hash(\"      *hash-items* \")\"  =>  hasheq\n"
+    "            -> \"#hash[\"      *hash-items* \"]\"  =>  hasheq\n"
+    "*hasheqv*   -> \"#hasheqv(\"   *hash-items* \")\"  =>  hasheqv\n"
+    "            -> \"#hasheqv[\"   *hash-items* \"]\"  =>  hasheqv\n"
+    "*hashequal* -> \"#hashequal(\" *hash-items* \")\"  =>  hashequal\n"
+    "            -> \"#hashequal[\" *hash-items* \"]\"  =>  hashequal\n"
+    "*hash-items* ->                                           =>  nil\n"
+    "             -> \"(\" *s-exp* \",\" *s-exp* \")\" *hash-items*  =>  pair_list\n"
+    "             -> \"[\" *s-exp* \",\" *s-exp* \"]\" *hash-items*  =>  pair_list\n"
+    "?e -> /#!.*\\n?/\n"
+    "   -> /;.*\\n?/\n"
+    "   -> /\\s+/\n"
+    "   ;\n"
+    "?? -> \"#!\"\n"
+    "   -> \";\"\n"
+    "   -> \"\\\"\"\n"
+    "   -> \"#\\\"\"\n"
+    "";
 
 int main() {
     FklSymbolTable *st = fklCreateSymbolTable();
-    // FklGrammer* g=fklCreateGrammerFromCstrAction(example_grammer,st);
-    FklGrammer *g = fklCreateGrammerFromCstrAction(example_grammer_action, st);
-    if (!g) {
+
+    FklParserGrammerParseArg args;
+    FklGrammer *g = fklCreateEmptyGrammer(st);
+
+    fklInitParserGrammerParseArg(&args, g, 1, builtin_prod_action_resolver,
+                                 NULL);
+    int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
+    if (err) {
+        fklPrintParserGrammerParseError(err, &args, stderr);
         fklDestroySymbolTable(st);
+        fklDestroyGrammer(g);
         fprintf(stderr, "garmmer create fail\n");
+        fklUninitParserGrammerParseArg(&args);
         exit(1);
     }
+
+    fklUninitParserGrammerParseArg(&args);
+
+    FklGrammerNonterm nonterm = {0};
+    if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
+        fputs("nonterm: ", stderr);
+        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
+        fputs(" is not defined\n", stderr);
+        fklDestroySymbolTable(st);
+        fklDestroyGrammer(g);
+        exit(1);
+    }
+
     if (g->sortedTerminals) {
         fputs("\nterminals:\n", stdout);
         for (size_t i = 0; i < g->sortedTerminalsNum; i++)
@@ -674,6 +501,7 @@ int main() {
     fputs("grammer:\n", stdout);
     fklPrintGrammer(stdout, g, st);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
+
     fputc('\n', stdout);
     fputs("item sets:\n", stdout);
     FILE *gzf = fopen("items.gz.txt", "w");

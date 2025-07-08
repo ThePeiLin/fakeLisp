@@ -1,29 +1,55 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/nast.h>
+#include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/utils.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
-static const FklGrammerCstrAction example_grammer_action[] = {
-    // clang-format off
-    {"S &L #= &R",     NULL, NULL },
-    {"S &R",           NULL, NULL },
-    {"L #* &R",        NULL, NULL },
-    {"L &?identifier", NULL, NULL },
-    {"R &L",           NULL, NULL },
-    {NULL,             NULL, NULL },
-    // clang-format on
-};
+static const FklGrammerBuiltinAction builtin_actions[] = {{"symbol", NULL}};
+
+static inline const FklGrammerBuiltinAction *
+builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
+    return &builtin_actions[0];
+}
+
+static char example_grammer_rules[] = //
+    ""
+    "S -> L \"=\" R => test\n"
+    "S -> R => test\n"
+    "L -> \"*\" R => test\n"
+    "L -> ?identifier => test\n"
+    "R -> L => test\n"
+    "";
 
 int main() {
     FklSymbolTable *st = fklCreateSymbolTable();
-    // FklGrammer* g=fklCreateGrammerFromCstrAction(example_grammer,st);
-    FklGrammer *g = fklCreateGrammerFromCstrAction(example_grammer_action, st);
-    if (!g) {
+
+    FklParserGrammerParseArg args;
+    FklGrammer *g = fklCreateEmptyGrammer(st);
+
+    fklInitParserGrammerParseArg(&args, g, 1, builtin_prod_action_resolver,
+                                 NULL);
+    int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
+    if (err) {
+        fklPrintParserGrammerParseError(err, &args, stderr);
         fklDestroySymbolTable(st);
+        fklDestroyGrammer(g);
         fprintf(stderr, "garmmer create fail\n");
+        fklUninitParserGrammerParseArg(&args);
+        exit(1);
+    }
+
+    fklUninitParserGrammerParseArg(&args);
+
+    FklGrammerNonterm nonterm = {0};
+    if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
+        fputs("nonterm: ", stderr);
+        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
+        fputs(" is not defined\n", stderr);
+        fklDestroySymbolTable(st);
+        fklDestroyGrammer(g);
         exit(1);
     }
     if (g->sortedTerminals) {

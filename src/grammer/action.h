@@ -369,7 +369,7 @@ static const FklGrammerBuiltinAction builtin_actions[] = {
     {NULL, NULL},
 };
 
-static const FklGrammerBuiltinAction *
+static inline const FklGrammerBuiltinAction *
 builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
     for (const FklGrammerBuiltinAction *cur = &builtin_actions[0]; cur->name;
          ++cur) {

@@ -638,6 +638,15 @@ static inline void sort_reachable_terminals(FklGrammer *g) {
 //     return g;
 // }
 //
+
+static FklBuiltinTerminalInitError
+builtin_match_number_create(size_t len, const FklString **args,
+                            struct FklGrammer *g) {
+    if (len > 0)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
+    return 0;
+}
+
 DEFINE_DEFAULT_C_MATCH_COND(dec_int);
 
 static inline void build_builtin_match_print_src(FklCodeBuilder *build,
@@ -677,7 +686,7 @@ static void builtin_match_dec_int_print_src(const FklGrammer *g,
 static const FklLalrBuiltinMatch builtin_match_dec_int = {
     .name = "?dint",
     .match = builtin_match_dec_int_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_dec_int_print_src,
     .build_c_match_cond = builtin_match_dec_int_print_c_match_cond,
 };
@@ -708,7 +717,7 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_int);
 static const FklLalrBuiltinMatch builtin_match_hex_int = {
     .name = "?xint",
     .match = builtin_match_hex_int_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_hex_int_print_src,
     .build_c_match_cond = builtin_match_hex_int_print_c_match_cond,
 };
@@ -739,7 +748,7 @@ DEFINE_DEFAULT_C_MATCH_COND(oct_int);
 static const FklLalrBuiltinMatch builtin_match_oct_int = {
     .name = "?oint",
     .match = builtin_match_oct_int_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_oct_int_print_src,
     .build_c_match_cond = builtin_match_oct_int_print_c_match_cond,
 };
@@ -770,7 +779,7 @@ DEFINE_DEFAULT_C_MATCH_COND(dec_float);
 static const FklLalrBuiltinMatch builtin_match_dec_float = {
     .name = "?dfloat",
     .match = builtin_match_dec_float_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_dec_float_print_src,
     .build_c_match_cond = builtin_match_dec_float_print_c_match_cond,
 };
@@ -801,7 +810,7 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_float);
 static const FklLalrBuiltinMatch builtin_match_hex_float = {
     .name = "?xfloat",
     .match = builtin_match_hex_float_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_hex_float_print_src,
     .build_c_match_cond = builtin_match_hex_float_print_c_match_cond,
 };
@@ -856,7 +865,7 @@ DEFINE_DEFAULT_C_MATCH_COND(identifier);
 static const FklLalrBuiltinMatch builtin_match_identifier = {
     .name = "?identifier",
     .match = builtin_match_identifier_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_identifier_print_src,
     .build_c_match_cond = builtin_match_identifier_print_c_match_cond,
 };
@@ -900,7 +909,7 @@ static int builtin_match_noterm_func(const FklBuiltinTerminalMatchArgs *args,
 static const FklLalrBuiltinMatch builtin_match_noterm = {
     .name = "?noterm",
     .match = builtin_match_noterm_func,
-    // .ctx_global_create = builtin_match_number_global_create,
+    .ctx_create = builtin_match_number_create,
     .build_src = builtin_match_noterm_print_src,
     .build_c_match_cond = builtin_match_noterm_print_c_match_cond,
 };
@@ -937,7 +946,7 @@ static const FklLalrBuiltinMatch builtin_match_noterm = {
 // }
 
 static FklBuiltinTerminalInitError
-s_number_create_new(size_t len, const FklString **args, struct FklGrammer *g) {
+s_number_create(size_t len, const FklString **args, struct FklGrammer *g) {
     if (len > 1)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     return 0;
@@ -1112,7 +1121,7 @@ static const FklLalrBuiltinMatch builtin_match_s_dint = {
     .name = "?s-dint",
     .match = builtin_match_s_dint_func,
     // .ctx_global_create = s_number_ctx_global_create,
-    .ctx_create = s_number_create_new,
+    .ctx_create = s_number_create,
     // .ctx_cmp = s_number_ctx_cmp,
     // .ctx_equal = s_number_ctx_equal,
     // .ctx_hash = s_number_ctx_hash,
@@ -1125,7 +1134,7 @@ static const FklLalrBuiltinMatch builtin_match_s_xint = {
     .name = "?s-xint",
     .match = builtin_match_s_xint_func,
     // .ctx_global_create = s_number_ctx_global_create,
-    .ctx_create = s_number_create_new,
+    .ctx_create = s_number_create,
     // .ctx_cmp = s_number_ctx_cmp,
     // .ctx_equal = s_number_ctx_equal,
     // .ctx_hash = s_number_ctx_hash,
@@ -1138,7 +1147,7 @@ static const FklLalrBuiltinMatch builtin_match_s_oint = {
     .name = "?s-oint",
     .match = builtin_match_s_oint_func,
     // .ctx_global_create = s_number_ctx_global_create,
-    .ctx_create = s_number_create_new,
+    .ctx_create = s_number_create,
     // .ctx_cmp = s_number_ctx_cmp,
     // .ctx_equal = s_number_ctx_equal,
     // .ctx_hash = s_number_ctx_hash,
@@ -1151,7 +1160,7 @@ static const FklLalrBuiltinMatch builtin_match_s_dfloat = {
     .name = "?s-dfloat",
     .match = builtin_match_s_dfloat_func,
     // .ctx_global_create = s_number_ctx_global_create,
-    .ctx_create = s_number_create_new,
+    .ctx_create = s_number_create,
     // .ctx_cmp = s_number_ctx_cmp,
     // .ctx_equal = s_number_ctx_equal,
     // .ctx_hash = s_number_ctx_hash,
@@ -1164,7 +1173,7 @@ static const FklLalrBuiltinMatch builtin_match_s_xfloat = {
     .name = "?s-xfloat",
     .match = builtin_match_s_xfloat_func,
     // .ctx_global_create = s_number_ctx_global_create,
-    .ctx_create = s_number_create_new,
+    .ctx_create = s_number_create,
     // .ctx_cmp = s_number_ctx_cmp,
     // .ctx_equal = s_number_ctx_equal,
     // .ctx_hash = s_number_ctx_hash,
@@ -1225,7 +1234,7 @@ static void builtin_match_s_char_print_src(const FklGrammer *g,
 DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND(s_char);
 
 static FklBuiltinTerminalInitError
-s_char_create_new(size_t len, const FklString **args, struct FklGrammer *g) {
+s_char_create(size_t len, const FklString **args, struct FklGrammer *g) {
     if (len > 1)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     else if (len < 1)
@@ -1260,7 +1269,7 @@ static const FklLalrBuiltinMatch builtin_match_s_char = {
     .name = "?s-char",
     .match = builtin_match_s_char_func,
     // .ctx_global_create = s_char_ctx_global_create,
-    .ctx_create = s_char_create_new,
+    .ctx_create = s_char_create,
     // .ctx_cmp = s_number_ctx_cmp,
     // .ctx_equal = s_number_ctx_equal,
     // .ctx_hash = s_number_ctx_hash,
@@ -1500,8 +1509,8 @@ builtin_match_symbol_print_c_match_cond(const FklBuiltinTerminalMatchArgs *args,
 // }
 
 static FklBuiltinTerminalInitError
-builtin_match_symbol_create_new(size_t len, const FklString **args,
-                                struct FklGrammer *g) {
+builtin_match_symbol_create(size_t len, const FklString **args,
+                            struct FklGrammer *g) {
     if (len > 2)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     return 0;
@@ -1519,7 +1528,7 @@ static const FklLalrBuiltinMatch builtin_match_symbol = {
     // .ctx_equal = builtin_match_symbol_equal,
     // .ctx_hash = builtin_match_symbol_hash,
     // .ctx_global_create = builtin_match_symbol_global_create,
-    .ctx_create = builtin_match_symbol_create_new,
+    .ctx_create = builtin_match_symbol_create,
     // .ctx_destroy = builtin_match_symbol_destroy,
     .build_src = builtin_match_symbol_print_src,
     .build_c_match_cond = builtin_match_symbol_print_c_match_cond,
@@ -5205,84 +5214,6 @@ static const char builtin_grammer_rules[] = {
 #include "lisp.g.h"
     '\0',
 };
-// clang-format off
-// static const FklGrammerCstrAction builtin_grammer_and_action[] = {
-//     {"*s-exp* &*list*",                                       "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*vector*",                                     "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*bytevector*",                                 "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*box*",                                        "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*hasheq*",                                     "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*hasheqv*",                                    "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*hashequal*",                                  "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*string*",                                     "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*symbol*",                                     "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*integer*",                                    "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*float*",                                      "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*char*",                                       "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*quote*",                                      "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*qsquote*",                                    "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*unquote*",                                    "prod_action_return_first",  prod_action_return_first  },
-//     {"*s-exp* &*unqtesp*",                                    "prod_action_return_first",  prod_action_return_first  },
-//
-//     {"*quote* #' &*s-exp*",                                   "prod_action_quote",         prod_action_quote         },
-//     {"*qsquote* #` &*s-exp*",                                 "prod_action_qsquote",       prod_action_qsquote       },
-//     {"*unquote* #~ &*s-exp*",                                 "prod_action_unquote",       prod_action_unquote       },
-//     {"*unqtesp* #~@ &*s-exp*",                                "prod_action_unqtesp",       prod_action_unqtesp       },
-//
-//     {"*symbol* &?symbol + #|",                                "prod_action_symbol",        prod_action_symbol        },
-//
-//     {"*string* /\"\"|^\"(\\\\.|.)*\"$",                       "prod_action_string",        prod_action_string        },
-//
-//     {"*bytevector* /#\"\"|^#\"(\\\\.|.)*\"$",                 "prod_action_bytevector",    prod_action_bytevector    },
-//
-//     // s-dint can accepet the next terminator as its arguement
-//     {"*integer* &?s-dint + #|",                               "prod_action_dec_integer",   prod_action_dec_integer   },
-//     {"*integer* &?s-xint + #|",                               "prod_action_hex_integer",   prod_action_hex_integer   },
-//     {"*integer* &?s-oint + #|",                               "prod_action_oct_integer",   prod_action_oct_integer   },
-//
-//     {"*float* &?s-dfloat + #|",                               "prod_action_float",         prod_action_float         },
-//     {"*float* &?s-xfloat + #|",                               "prod_action_float",         prod_action_float         },
-//
-//     {"*char* &?s-char + ##\\",                                "prod_action_char",          prod_action_char          },
-//
-//     {"*box* ##& &*s-exp*",                                    "prod_action_box",           prod_action_box           },
-//
-//     {"*list* #( &*list-items* #)",                            "prod_action_return_second", prod_action_return_second },
-//     {"*list* #[ &*list-items* #]",                            "prod_action_return_second", prod_action_return_second },
-//
-//     {"*list-items* ",                                         "prod_action_nil",           prod_action_nil           },
-//     {"*list-items* &*s-exp* &*list-items*",                   "prod_action_list",          prod_action_list          },
-//     {"*list-items* &*s-exp* #, &*s-exp*",                     "prod_action_pair",          prod_action_pair          },
-//
-//     {"*vector* ##( &*vector-items* #)",                       "prod_action_vector",        prod_action_vector        },
-//     {"*vector* ##[ &*vector-items* #]",                       "prod_action_vector",        prod_action_vector        },
-//
-//     {"*vector-items* ",                                       "prod_action_nil",           prod_action_nil           },
-//     {"*vector-items* &*s-exp* &*vector-items*",               "prod_action_list",          prod_action_list          },
-//
-//     {"*hasheq* ##hash( &*hash-items* #)",                     "prod_action_hasheq",        prod_action_hasheq        },
-//     {"*hasheq* ##hash[ &*hash-items* #]",                     "prod_action_hasheq",        prod_action_hasheq        },
-//
-// 	// {"*hasheq* ##hash + &*hasheq-items*",                     "prod_action_return_second", prod_action_return_second},
-// 	// {"*hasheq-items* #( &*hash-items* #)",                     "prod_action_hasheq", prod_action_hasheq},
-// 	// {"*hasheq-items* #[ &*hash-items* #]",                     "prod_action_hasheq", prod_action_hasheq},
-//
-//     {"*hasheqv* ##hasheqv( &*hash-items* #)",                 "prod_action_hasheqv",       prod_action_hasheqv       },
-//     {"*hasheqv* ##hasheqv[ &*hash-items* #]",                 "prod_action_hasheqv",       prod_action_hasheqv       },
-//
-//     {"*hashequal* ##hashequal( &*hash-items* #)",             "prod_action_hashequal",     prod_action_hashequal     },
-//     {"*hashequal* ##hashequal[ &*hash-items* #]",             "prod_action_hashequal",     prod_action_hashequal     },
-//
-//     {"*hash-items* ",                                         "prod_action_nil",           prod_action_nil           },
-//     {"*hash-items* #( &*s-exp* #, &*s-exp* #) &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
-//     {"*hash-items* #[ &*s-exp* #, &*s-exp* #] &*hash-items*", "prod_action_kv_list",       prod_action_kv_list       },
-//
-//     {"+ /\\s+",                                               NULL,                        NULL                      },
-//     {"+ /^;.*\\n?",                                           NULL,                        NULL                      },
-//     {"+ /^#!.*\\n?",                                          NULL,                        NULL                      },
-//     {NULL,                                                    NULL,                        NULL                      },
-// };
-// clang-format on
 
 void fklInitBuiltinGrammer(FklGrammer *g, FklSymbolTable *st) {
     FklParserGrammerParseArg args;
@@ -5462,6 +5393,14 @@ int fklMergeGrammer(FklGrammer *g, const FklGrammer *other,
                 case FKL_TERM_BUILTIN: {
                     to->b.t = from->b.t;
                     to->b.len = from->b.len;
+                    if (to->b.len == 0) {
+                        to->b.args = NULL;
+                        if (to->b.t->ctx_create
+                            && to->b.t->ctx_create(to->b.len, to->b.args, g)) {
+                            FKL_UNREACHABLE();
+                        }
+                        break;
+                    }
                     FklString const **args =
                         fklZmalloc(to->b.len * sizeof(FklString *));
                     FKL_ASSERT(args);

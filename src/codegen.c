@@ -7570,6 +7570,9 @@ typedef enum {
 
 static inline const char *
 get_nast_to_grammer_sym_err_msg(NastToGrammerSymErr err) {
+    FklBuiltinTerminalInitError builtin_terminal_err = err >> CHAR_BIT;
+    err &= 0xff;
+
     switch (err) {
     case NAST_TO_GRAMMER_SYM_ERR_DUMMY:
         FKL_UNREACHABLE();
@@ -7584,7 +7587,18 @@ get_nast_to_grammer_sym_err_msg(NastToGrammerSymErr err) {
         return "invalid action type";
         break;
     case NAST_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED:
-        return "failed to init builtin terminal";
+        switch (builtin_terminal_err) {
+        case FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY:
+            FKL_UNREACHABLE();
+            break;
+        case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS:
+            return "init builtin terminal with too many arguments";
+            break;
+        case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS:
+            return "init builtin terminal with too few arguments";
+            break;
+        }
+        return fklBuiltinTerminalInitErrorToCstr(builtin_terminal_err);
         break;
     case NAST_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN:
         return "unresolved builtin terminal";
@@ -7740,6 +7754,7 @@ typedef struct {
     FklGrammer *g;
     FklGrammerSym *syms;
     size_t len;
+    int adding_ignore;
 } NastToGrammerSymArgs;
 
 static inline NastToGrammerSymErr
@@ -7783,7 +7798,7 @@ nast_vector_to_production_right_part(NastToGrammerSymArgs *args,
             fklGraSymVectorPushBack(&gsym_vector, &s);
         }
         fklGraSymVectorPushBack(&gsym_vector, &s);
-        has_ignore = 1;
+        has_ignore = !args->adding_ignore;
     }
 
     args->syms =
@@ -7815,6 +7830,7 @@ static inline FklGrammerIgnore *
 nast_vector_to_ignore(const FklNastVector *vec, NastToGrammerSymArgs *args,
                       NastToGrammerSymErr *perr) {
 
+    args->adding_ignore = 1;
     NastToGrammerSymErr err = nast_vector_to_production_right_part(args, vec);
     *perr = err;
     if (err)

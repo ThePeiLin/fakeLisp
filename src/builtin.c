@@ -2101,11 +2101,10 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
         return vm_vector_to_builtin_terminal(FKL_VM_VEC(v), gc, s, g);
     } else if (FKL_IS_BYTEVECTOR(v)) {
         s->type = FKL_TERM_KEYWORD;
-        s->nt.group = 0;
-        s->nt.sid = fklAddSymbolCharBuf(
-                        FKL_TYPE_CAST(const char *, FKL_VM_BVEC(v)->ptr),
-                        FKL_VM_BVEC(v)->size, &g->terminals)
-                        ->v;
+        s->str = fklAddSymbolCharBuf(
+                     FKL_TYPE_CAST(const char *, FKL_VM_BVEC(v)->ptr),
+                     FKL_VM_BVEC(v)->size, &g->terminals)
+                     ->k;
     } else if (FKL_IS_BOX(v)) {
         FklVMvalue *regex_value = FKL_VM_BOX(v);
         if (!FKL_IS_STR(regex_value))
@@ -2116,8 +2115,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
             return VALUE_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED;
     } else if (FKL_IS_STR(v)) {
         s->type = FKL_TERM_STRING;
-        s->nt.group = 0;
-        s->nt.sid = fklAddSymbol(FKL_VM_STR(v), &g->terminals)->v;
+        s->str = fklAddSymbol(FKL_VM_STR(v), &g->terminals)->k;
         fklAddSymbol(FKL_VM_STR(v), &g->reachable_terminals);
     } else if (FKL_IS_SYM(v)) {
         const FklString *str = fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k;
@@ -2257,6 +2255,7 @@ vm_vec_to_production(FklSid_t left, FklVMvec *vec, ValueToGrammerSymArgs *args,
         fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
 
     args->len = 0;
+    fklZfree(args->syms);
     args->syms = NULL;
 
     return prod;
@@ -2288,8 +2287,6 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklGrammerProduction *prod = NULL;
     FklSid_t sid = 0;
     FklSymbolTable *tt = &grammer->terminals;
-    FklRegexTable *rt = &grammer->regexes;
-    FklGraSidBuiltinHashMap *builtins = &grammer->builtins;
     for (++arg_base; arg_base < end; ++arg_base) {
         FklVMvalue *next_arg = *arg_base;
         switch (next) {
@@ -2382,8 +2379,9 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 
     FklGrammerNonterm nonterm = {0};
     if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
-#warning INCOMPLETE
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_GRAMMER_CREATE_FAILED, exe,
+                                    "unresolved non-terminal %S",
+                                    FKL_MAKE_VM_SYM(nonterm.sid));
     }
 
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(grammer);
@@ -2392,10 +2390,12 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
     if (fklGenerateLalrAnalyzeTable(grammer, itemSet, &err_msg)) {
-#warning INCOMPLETE
+        FklVMvalue *err_str =
+            fklCreateVMvalueStr2(exe, err_msg.index, err_msg.buf);
         fklUninitStringBuffer(&err_msg);
         fklLalrItemSetHashMapDestroy(itemSet);
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, exe);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, exe,
+                                    "%s", err_str);
     }
     fklUninitStringBuffer(&err_msg);
     fklLalrItemSetHashMapDestroy(itemSet);

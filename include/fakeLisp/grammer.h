@@ -45,17 +45,10 @@ typedef struct {
     int (*match)(const FklBuiltinTerminalMatchArgs *args, const char *start,
                  const char *str, size_t restLen, size_t *matchLen,
                  FklGrammerMatchOuterCtx *outerCtx, int *is_waiting_for_more);
-    // int (*ctx_cmp)(const void *c0, const void *c1);
-    // int (*ctx_equal)(const void *c0, const void *c1);
-    // uintptr_t (*ctx_hash)(const void *c);
-    // void *(*ctx_create)(const FklString *next, int *failed);
-    // void *(*ctx_global_create)(size_t, struct FklGrammerProduction *prod,
-    //                            struct FklGrammer *g, int *failed);
 
     FklBuiltinTerminalInitError (*ctx_create)(size_t len,
                                               const FklString **args,
                                               struct FklGrammer *g);
-    // void (*ctx_destroy)(void *);
     const char *name;
     void (*build_src)(const struct FklGrammer *g, FklCodeBuilder *build);
     void (*build_c_match_cond)(const FklBuiltinTerminalMatchArgs *args,
@@ -64,7 +57,6 @@ typedef struct {
 
 typedef struct {
     const FklLalrBuiltinMatch *t;
-    // void *c;
     size_t len;
     FklString const **args;
 } FklLalrBuiltinGrammerSym;
@@ -123,11 +115,6 @@ fklBuiltinGrammerSymEqual(const FklLalrBuiltinGrammerSym *s0,
         if (!fklStringEqual(s0->args[i], s1->args[i]))
             return 0;
     }
-    // if (s0->t == s1->t) {
-    //     if (s0->t->ctx_equal)
-    //         return s0->t->ctx_equal(s0->c, s1->c);
-    //     return 1;
-    // }
     return 1;
 }
 
@@ -165,8 +152,6 @@ static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
     for (size_t i = 0; i < s->len; ++i) {
         seed = fklHashCombine(seed, fklStringHash(s->args[i]));
     }
-    // if (s->t->ctx_hash)
-    //     return s->t->ctx_hash(s->c);
     return fklHashCombine(FKL_TYPE_CAST(uintptr_t, s->t), seed);
 }
 
@@ -237,6 +222,7 @@ typedef struct FklGrammerSym {
         FklGrammerNonterm nt;
         FklLalrBuiltinGrammerSym b;
         const FklRegexCode *re;
+        const FklString *str;
     };
 } FklGrammerSym;
 
@@ -253,16 +239,16 @@ typedef void *(*FklProdActionFunc)(void *args, void *ctx, void *asts[],
                                    size_t num, size_t line);
 
 typedef struct FklGrammerProduction {
-    FklGrammerNonterm left;
-    size_t len;
-    size_t idx;
-    FklGrammerSym *syms;
     struct FklGrammerProduction *next;
     const char *name;
     void *ctx;
     FklProdActionFunc func;
     void *(*ctx_copyer)(const void *);
     void (*ctx_destroyer)(void *);
+    FklGrammerNonterm left;
+    size_t len;
+    size_t idx;
+    FklGrammerSym syms[];
 } FklGrammerProduction;
 
 void fklDestroyGrammerProduction(FklGrammerProduction *h);
@@ -317,9 +303,6 @@ static inline uintptr_t fklLalrItemHash(const FklLalrItem *pk) {
 #define FKL_HASH_KEY_HASH return fklLalrItemHash(pk)
 #define FKL_HASH_ELM_NAME LalrItem
 #include "hash.h"
-
-// FklGrammerProduction *
-// fklCopyUninitedGrammerProduction(FklGrammerProduction *prod);
 
 typedef struct FklLalrItemSetLink {
     FklGrammerSym sym;

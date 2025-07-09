@@ -381,7 +381,7 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
             char *str =
                 fklCastEscapeCharBuf(&token.str[start_size],
                                      token.len - end_size - start_size, &len);
-            s.nt.sid = fklAddSymbolCharBuf(str, len, terminals)->v;
+            s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
             fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
             fklZfree(str);
         } break;
@@ -435,10 +435,6 @@ error_happened:
         FklGrammerSym *s = fklGraSymVectorPopBack(&gsym_vector);
 
         if (s->type == FKL_TERM_BUILTIN && s->b.len) {
-            // if (s->b.c && s->b.t->ctx_destroy) {
-            //     s->b.t->ctx_destroy(s->b.c);
-            // }
-
             s->b.len = 0;
             fklZfree(s->b.args);
             s->b.args = NULL;
@@ -593,7 +589,6 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     fklGetBuiltinMatch(&arg->g->builtins, id);
                 if (builtin) {
                     s.b.t = builtin;
-                    // s.b.c = NULL;
 
                     if (ntoken.type == TOKEN_LB) {
                         buf = parse_builtin_args(&s, arg, err, buf, end);
@@ -650,7 +645,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             char *str =
                 fklCastEscapeCharBuf(&token.str[start_size],
                                      token.len - end_size - start_size, &len);
-            s.nt.sid = fklAddSymbolCharBuf(str, len, terminals)->v;
+            s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
             fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
             fklZfree(str);
         } break;
@@ -663,7 +658,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             char *str =
                 fklCastEscapeCharBuf(&token.str[start_size],
                                      token.len - end_size - start_size, &len);
-            s.nt.sid = fklAddSymbolCharBuf(str, len, terminals)->v;
+            s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
             fklZfree(str);
         } break;
 

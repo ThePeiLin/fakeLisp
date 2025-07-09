@@ -894,14 +894,13 @@ static inline void
 load_script_lib_from_pre_compile(FklCodegenLib *lib, FklSymbolTable *st,
                                  FklCodegenOuterCtx *outer_ctx,
                                  const char *main_dir, FILE *fp) {
+    memset(lib, 0, sizeof(*lib));
     lib->rp = load_script_lib_path(main_dir, fp);
     fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
     lib->bcl = fklLoadByteCodelnt(fp);
     load_export_sid_idx_table(&lib->exports, fp);
     lib->head = load_compiler_macros(st, fp);
     lib->replacements = load_replacements(st, fp);
-    lib->named_prod_groups.buckets = NULL;
-    // lib->terminal_table.ht.buckets = NULL;
     fklLoadNamedProds(&lib->named_prod_groups, st, outer_ctx, fp);
 }
 
@@ -1026,15 +1025,15 @@ increase_prototype_and_lib_id(uint32_t pts_count, uint32_t macro_pts_count,
     FklCodegenLib *base = libStack->base;
     for (uint32_t i = 0; i < top; i++) {
         fklIncreaseLibIdAndPrototypeId(&base[i], lib_count, macro_lib_count,
-                                         pts_count, macro_pts_count);
+                                       pts_count, macro_pts_count);
     }
 
     top = macroLibStack->size;
     base = macroLibStack->base;
     for (uint32_t i = 0; i < top; i++) {
         fklIncreaseLibIdAndPrototypeId(&base[i], macro_lib_count,
-                                         macro_lib_count, pts_count,
-                                         macro_pts_count);
+                                       macro_lib_count, pts_count,
+                                       macro_pts_count);
     }
 }
 
@@ -1054,38 +1053,6 @@ static inline void merge_prototypes(FklFuncPrototypes *o,
         cur->refs = fklCopyMemory(cur->refs, cur->rcount * sizeof(*cur->refs));
     }
 }
-
-// static inline void load_printing_ignores(FklNastNodeVector *stack,
-//                                          FklSymbolTable *st, FILE *fp) {
-//     uint32_t count = 0;
-//     fread(&count, sizeof(count), 1, fp);
-//     for (; count > 0; count--) {
-//         FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-//         fklNastNodeVectorPushBack2(stack, node);
-//     }
-// }
-//
-// static inline void load_printing_prods(FklProdPrintingVector *stack,
-//                                        FklSymbolTable *st, FILE *fp) {
-//     uint32_t count = 0;
-//     fread(&count, sizeof(count), 1, fp);
-//     for (; count > 0; count--) {
-//         FklCodegenProdPrinting p = {0};
-//         fread(&p.group_id, sizeof(p.group_id), 1, fp);
-//         fread(&p.sid, sizeof(p.sid), 1, fp);
-//         p.vec = load_nast_node_with_null_chr(st, fp);
-//         fread(&p.add_extra, sizeof(p.add_extra), 1, fp);
-//         fread(&p.type, sizeof(p.type), 1, fp);
-//         if (p.type == FKL_CODEGEN_PROD_CUSTOM) {
-//             uint32_t prototype_id = 0;
-//             fread(&prototype_id, sizeof(prototype_id), 1, fp);
-//             p.prototype_id = prototype_id;
-//             p.bcl = fklLoadByteCodelnt(fp);
-//         } else
-//             p.forth = load_nast_node_with_null_chr(st, fp);
-//         fklProdPrintingVectorPushBack(stack, &p);
-//     }
-// }
 
 int fklLoadPreCompile(FklFuncPrototypes *info_pts,
                       FklFuncPrototypes *info_macro_pts,

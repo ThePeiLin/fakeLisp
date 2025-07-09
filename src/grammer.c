@@ -43,7 +43,6 @@ void fklDestroyGrammerProduction(FklGrammerProduction *h) {
         return;
     h->ctx_destroyer(h->ctx);
     fklUninitGrammerSymbols(h->syms, h->len);
-    fklZfree(h->syms);
     fklZfree(h);
 }
 
@@ -58,8 +57,8 @@ FklGrammerProduction *fklCreateProduction(FklSid_t group, FklSid_t sid,
                                           FklProdActionFunc func, void *ctx,
                                           void (*destroy)(void *),
                                           void *(*copyer)(const void *)) {
-    FklGrammerProduction *r =
-        (FklGrammerProduction *)fklZcalloc(1, sizeof(FklGrammerProduction));
+    FklGrammerProduction *r = (FklGrammerProduction *)fklZcalloc(
+        1, sizeof(FklGrammerProduction) + len * sizeof(FklGrammerSym));
     FKL_ASSERT(r);
     r->left.group = group;
     r->left.sid = sid;
@@ -69,7 +68,7 @@ FklGrammerProduction *fklCreateProduction(FklSid_t group, FklSid_t sid,
     r->ctx = ctx;
     r->ctx_destroyer = destroy;
     r->ctx_copyer = copyer;
-    r->syms = syms;
+    memcpy(r->syms, syms, len * sizeof(FklGrammerSym));
     return r;
 }
 
@@ -79,8 +78,8 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
                                                void *ctx,
                                                void (*destroy)(void *),
                                                void *(*copyer)(const void *)) {
-    FklGrammerProduction *r =
-        (FklGrammerProduction *)fklZcalloc(1, sizeof(FklGrammerProduction));
+    FklGrammerProduction *r = (FklGrammerProduction *)fklZcalloc(
+        1, sizeof(FklGrammerProduction) + len * sizeof(FklGrammerSym));
     FKL_ASSERT(r);
     r->left.group = group;
     r->left.sid = sid;
@@ -90,12 +89,6 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group, FklSid_t sid,
     r->ctx = ctx;
     r->ctx_destroyer = destroy;
     r->ctx_copyer = copyer;
-    if (!len)
-        r->syms = NULL;
-    else {
-        r->syms = (FklGrammerSym *)fklZcalloc(len, sizeof(FklGrammerSym));
-        FKL_ASSERT(r->syms);
-    }
     return r;
 }
 
@@ -170,24 +163,6 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
         FklGrammerSym *sym = &syms[i - 1];
         if (sym->type == FKL_TERM_NONTERM)
             return NULL;
-        else if (sym->type == FKL_TERM_BUILTIN) {
-            int failed = 0;
-            FklLalrBuiltinGrammerSym *b = &sym->b;
-            // if (b->t->ctx_global_create && !b->t->ctx_create)
-            //     return NULL;
-            // if (b->c)
-            //     destroy_builtin_grammer_sym(b);
-            // if (b->t->ctx_create) {
-            //     FklGrammerSym *sym = (i < len) ? &syms[i] : NULL;
-            //     if (sym && sym->type != FKL_TERM_STRING)
-            //         return NULL;
-            //     const FklString *next =
-            //         sym ? fklGetSymbolWithId(sym->nt.sid, tt)->k : NULL;
-            //     b->c = b->t->ctx_create(next, &failed);
-            // }
-            if (failed)
-                return NULL;
-        }
     }
     FklGrammerIgnore *ig = fklCreateEmptyGrammerIgnore(len);
     FklGrammerIgnoreSym *igss = ig->ig;
@@ -201,7 +176,7 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len,
             if (igs->term_type == FKL_TERM_REGEX)
                 igs->re = sym->re;
             else if (igs->term_type == FKL_TERM_STRING)
-                igs->str = fklGetSymbolWithId(sym->nt.sid, tt)->k;
+                igs->str = sym->str;
             else {
                 fklZfree(ig);
                 return NULL;
@@ -233,6 +208,8 @@ static inline int prod_sym_equal(const FklGrammerSym *u0,
             break;
         case FKL_TERM_STRING:
         case FKL_TERM_KEYWORD:
+            return u0->str == u1->str;
+            break;
         case FKL_TERM_NONTERM:
             return u0->nt.group == u1->nt.group && u0->nt.sid == u1->nt.sid;
             break;
@@ -253,8 +230,8 @@ static inline int prod_equal(const FklGrammerProduction *prod0,
     if (prod0->len != prod1->len)
         return 0;
     size_t len = prod0->len;
-    FklGrammerSym *u0 = prod0->syms;
-    FklGrammerSym *u1 = prod1->syms;
+    const FklGrammerSym *u0 = prod0->syms;
+    const FklGrammerSym *u1 = prod1->syms;
     for (size_t i = 0; i < len; i++)
         if (!prod_sym_equal(&u0[i], &u1[i]))
             return 0;
@@ -1710,7 +1687,6 @@ is_builtin_terminal_match_epsilon(const FklGrammer *g,
 
 static inline int compute_all_first_set(FklGrammer *g) {
     FklFirstSetHashMap *firsetSets = &g->firstSets;
-    const FklSymbolTable *tt = &g->terminals;
 
     const FklFirstSetItem item = {.hasEpsilon = 0};
 
@@ -1799,8 +1775,7 @@ static inline int compute_all_first_set(FklGrammer *g) {
                     } break;
                     case FKL_TERM_STRING:
                     case FKL_TERM_KEYWORD: {
-                        const FklString *s =
-                            fklGetSymbolWithId(sym->nt.sid, tt)->k;
+                        const FklString *s = sym->str;
                         if (s->size == 0) {
                             if (i == lastIdx) {
                                 change |= firstItem->hasEpsilon != 1;
@@ -1969,12 +1944,12 @@ static inline void print_prod_sym(FILE *fp, const FklGrammerSym *u,
         // fklPrintString(fklGetStringWithRegex(rt, u->re, NULL), fp);
         break;
     case FKL_TERM_STRING:
-        fklPrintRawString(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
+        fklPrintRawString(u->str, fp);
         // putc('#', fp);
         // fklPrintString(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
         break;
     case FKL_TERM_KEYWORD:
-        fklPrintRawSymbol(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
+        fklPrintRawSymbol(u->str, fp);
         // putc(':', fp);
         // fklPrintString(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
         break;
@@ -2054,7 +2029,7 @@ static inline void print_prod_sym_as_dot(FILE *fp, const FklGrammerSym *u,
     } break;
     case FKL_TERM_STRING:
     case FKL_TERM_KEYWORD: {
-        const FklString *str = fklGetSymbolWithId(u->nt.sid, tt)->k;
+        const FklString *str = u->str;
         fputs("\\\'", fp);
         print_string_as_dot((const uint8_t *)str->str, '"', str->size, fp);
         fputs("\\\'", fp);
@@ -2088,7 +2063,7 @@ static inline int is_at_delim_sym(const FklLalrItem *item) {
 
 static inline int is_delim_sym2(const FklGrammerProduction *prod,
                                 uint32_t idx) {
-    FklGrammerSym *sym = &prod->syms[idx];
+    const FklGrammerSym *sym = &prod->syms[idx];
     if (sym->type == FKL_TERM_IGNORE) {
         return 1;
     }
@@ -2433,17 +2408,12 @@ static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
                                         fklGetStringWithRegex(rt, u->re, NULL));
         break;
     case FKL_TERM_STRING:
-        fklPrintRawStringToStringBuffer(
-            buf, fklGetSymbolWithId(u->nt.sid, tt)->k, "\"", "\"", '"');
+        fklPrintRawStringToStringBuffer(buf, u->str, "\"", "\"", '"');
         break;
     case FKL_TERM_KEYWORD:
-        fklPrintRawStringToStringBuffer(
-            buf, fklGetSymbolWithId(u->nt.sid, tt)->k, "|", "|", '|');
-        // putc(':', fp);
-        // fklPrintString(fklGetSymbolWithId(u->nt.sid, tt)->k, fp);
+        fklPrintRawStringToStringBuffer(buf, u->str, "|", "|", '|');
         break;
     case FKL_TERM_NONTERM:
-        // putc('&', fp);
         if (u->nt.group) {
             fklStringBufferPutc(buf, '(');
             fklPrintRawStringToStringBuffer(
@@ -2761,11 +2731,10 @@ static inline FklLookAheadHashSet *get_first_set_from_first_sets(
         fklLookAheadHashSetInit(first);
         item->has_epsilon = 0;
         size_t lastIdx = len - 1;
-        const FklSymbolTable *tt = &g->terminals;
         int hasEpsilon = 0;
         const FklFirstSetHashMap *firstSets = &g->firstSets;
         for (uint32_t i = idx; i < len; i++) {
-            FklGrammerSym *sym = &prod->syms[i];
+            const FklGrammerSym *sym = &prod->syms[i];
 
             FklLalrItemLookAhead la = {.t = sym->type};
             switch (sym->type) {
@@ -2806,7 +2775,7 @@ static inline FklLookAheadHashSet *get_first_set_from_first_sets(
             } break;
             case FKL_TERM_STRING:
             case FKL_TERM_KEYWORD: {
-                FklString *s = fklGetSymbolWithId(sym->nt.sid, tt)->k;
+                const FklString *s = sym->str;
                 if (s->size == 0)
                     hasEpsilon = i == lastIdx;
                 else {
@@ -3194,10 +3163,9 @@ create_shift_action(const FklGrammerSym *sym, int allow_ignore,
         action->match.re = sym->re;
         break;
     case FKL_TERM_KEYWORD:
-    case FKL_TERM_STRING: {
-        const FklString *s = fklGetSymbolWithId(sym->nt.sid, tt)->k;
-        action->match.str = s;
-    } break;
+    case FKL_TERM_STRING:
+        action->match.str = sym->str;
+        break;
     case FKL_TERM_IGNORE:
     case FKL_TERM_EOF:
     case FKL_TERM_NONE:
@@ -4843,7 +4811,7 @@ void fklPrintGrammerProduction(FILE *fp, const FklGrammerProduction *prod,
         fputs("S'", fp);
     fputs(" ->", fp);
     size_t len = prod->len;
-    FklGrammerSym *syms = prod->syms;
+    const FklGrammerSym *syms = prod->syms;
     for (size_t i = 0; i < len;) {
         putc(' ', fp);
         print_prod_sym(fp, &syms[i], st, tt, rt);
@@ -5376,18 +5344,12 @@ int fklMergeGrammer(FklGrammer *g, const FklGrammer *other,
                 } break;
 
                 case FKL_TERM_STRING: {
-                    const FklString *from_str =
-                        fklGetSymbolWithId(from->nt.sid, &other->terminals)->k;
-                    to->nt.group = 0;
-                    to->nt.sid = fklAddSymbol(from_str, &g->terminals)->v;
-                    fklAddSymbol(from_str, &g->reachable_terminals);
+                    to->str = fklAddSymbol(from->str, &g->terminals)->k;
+                    fklAddSymbol(from->str, &g->reachable_terminals);
                 } break;
 
                 case FKL_TERM_KEYWORD: {
-                    const FklString *from_str =
-                        fklGetSymbolWithId(from->nt.sid, &other->terminals)->k;
-                    to->nt.group = 0;
-                    to->nt.sid = fklAddSymbol(from_str, &g->terminals)->v;
+                    to->str = fklAddSymbol(from->str, &g->terminals)->k;
                 } break;
 
                 case FKL_TERM_BUILTIN: {

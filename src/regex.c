@@ -589,8 +589,8 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
     const uint8_t *patrns = (const uint8_t *)re->data;
     struct ReMatchState *state;
     if (re->pstsize > DEFAULT_STACK_SIZE) {
-        struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
-            re->pstsize, sizeof(struct ReMatchState));
+        state = (struct ReMatchState *)fklZcalloc(re->pstsize,
+                                                  sizeof(struct ReMatchState));
         FKL_ASSERT(state);
     } else {
         state = &stack_state[0];
@@ -715,8 +715,8 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
 
     struct ReMatchState *state;
     if (re->pstsize > DEFAULT_STACK_SIZE) {
-        struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
-            re->pstsize, sizeof(struct ReMatchState));
+        state = (struct ReMatchState *)fklZcalloc(re->pstsize,
+                                                  sizeof(struct ReMatchState));
         FKL_ASSERT(state);
     } else {
         state = &stack_state[0];

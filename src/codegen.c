@@ -9814,9 +9814,12 @@ static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
         for (uint64_t i = 0; i < prod_count; ++i) {
             uint64_t prod_len;
             fread(&prod_len, sizeof(prod_len), 1, fp);
-            FklGrammerSym *syms =
-                (FklGrammerSym *)fklZcalloc(prod_len, sizeof(FklGrammerSym));
-            FKL_ASSERT(syms);
+            FklGrammerProduction *prod = fklCreateEmptyProduction(
+                nt.group, nt.sid, prod_len, NULL, NULL, NULL,
+                fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
+
+            FklGrammerSym *syms = prod->syms;
+
             for (size_t i = 0; i < prod_len; ++i) {
                 uint8_t type;
                 fread(&type, sizeof(type), 1, fp);
@@ -9874,9 +9877,6 @@ static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
                 }
             }
 
-            FklGrammerProduction *prod = fklCreateProduction(
-                nt.group, nt.sid, prod_len, syms, NULL, NULL, NULL,
-                fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
             read_production_rule_action(g->st, prod, fp);
             if (fklAddProdToProdTableNoRepeat(g, prod)) {
                 FKL_UNREACHABLE();

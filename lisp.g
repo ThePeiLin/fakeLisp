@@ -63,8 +63,8 @@
              -> "(" *s-exp* "," *s-exp* ")" *hash-items*  =>  pair_list
              -> "[" *s-exp* "," *s-exp* "]" *hash-items*  =>  pair_list
 
-?e -> /#!.*\n?/
-   -> /;.*\n?/
+?e -> "#!"  /.*\n?/
+   -> ";"  /.*\n?/
    -> /\s+/
    ;
 

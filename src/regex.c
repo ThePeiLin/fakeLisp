@@ -574,17 +574,28 @@ static inline int matchone(const FklRegexObj *cur, const uint8_t *patrns,
     state[sp + 1].offset = state[sp].offset;                                   \
     state[sp + 1].st = state[sp].st;                                           \
     sp++
+#define FREE_STATE_STACK()                                                     \
+    if (state != &stack_state[0])                                              \
+    fklZfree(state)
 
-#define COMMON_PART
+#define DEFAULT_STACK_SIZE (32)
+
 static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
                                     uint32_t len) {
+    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = {0};
     const uint32_t IMPOSSIBLE_IDX = len + 1;
     const FklRegexObj *objs = re->data;
     const FklRegexObj *cur_obj = NULL;
     const uint8_t *patrns = (const uint8_t *)re->data;
-    struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
-        re->pstsize, sizeof(struct ReMatchState));
-    FKL_ASSERT(state);
+    struct ReMatchState *state;
+    if (re->pstsize > DEFAULT_STACK_SIZE) {
+        struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
+            re->pstsize, sizeof(struct ReMatchState));
+        FKL_ASSERT(state);
+    } else {
+        state = &stack_state[0];
+    }
+
     uint32_t sp = 0;
     int evalres = 0;
     uint32_t brtxcoff = 0;
@@ -603,7 +614,7 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
                 POP();
             else {
                 uint32_t est = STP.st;
-                fklZfree(state);
+                FREE_STATE_STACK();
                 if (cur_obj->type == FKL_REGEX_END)
                     return est == len && evalres ? est : IMPOSSIBLE_IDX;
                 else
@@ -689,20 +700,28 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
             break;
         }
     }
-    fklZfree(state);
+    FREE_STATE_STACK();
     return 0;
 }
 
 static inline uint32_t lex_matchpattern(const FklRegexCode *re,
                                         const char *text, uint32_t len,
                                         int *last_is_true) {
+    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = {0};
     const uint32_t IMPOSSIBLE_IDX = len + 1;
     const FklRegexObj *objs = re->data;
     const FklRegexObj *cur_obj = NULL;
     const uint8_t *patrns = (const uint8_t *)re->data;
-    struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
-        re->pstsize, sizeof(struct ReMatchState));
-    FKL_ASSERT(state);
+
+    struct ReMatchState *state;
+    if (re->pstsize > DEFAULT_STACK_SIZE) {
+        struct ReMatchState *state = (struct ReMatchState *)fklZcalloc(
+            re->pstsize, sizeof(struct ReMatchState));
+        FKL_ASSERT(state);
+    } else {
+        state = &stack_state[0];
+    }
+
     uint32_t sp = 0;
     int evalres = 0;
     uint32_t brtxcoff = 0;
@@ -721,7 +740,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
                 POP();
             else {
                 uint32_t est = STP.st;
-                fklZfree(state);
+                FREE_STATE_STACK();
                 return evalres ? est : IMPOSSIBLE_IDX;
             }
             break;
@@ -806,7 +825,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
         if (evalres)
             *last_is_true = 1;
     }
-    fklZfree(state);
+    FREE_STATE_STACK();
     return 0;
 }
 

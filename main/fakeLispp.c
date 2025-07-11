@@ -10,6 +10,8 @@
 #include <fakeLisp/zmalloc.h>
 
 #include <argtable3.h>
+
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #ifdef _WIN32
@@ -73,9 +75,9 @@ static inline void print_statistics(const char *filename,
     qsort(statistics, FKL_OPCODE_NUM, sizeof(struct OpcodeStatistics),
           opstatcmp);
     for (uint32_t i = 0; i < FKL_OPCODE_NUM; i++)
-        printf("%-*s:\t%" FKL_PRT64U "\n", (int)FKL_MAX_OPCODE_NAME_LEN,
+        printf("%-*s:\t%" PRIu64 "\n", (int)FKL_MAX_OPCODE_NAME_LEN,
                fklGetOpcodeName(statistics[i].op), statistics[i].count);
-    printf("\nmost used opcode is %s, the count is %" FKL_PRT64U "\n",
+    printf("\nmost used opcode is %s, the count is %" PRIu64 "\n",
            fklGetOpcodeName(statistics[FKL_OPCODE_NUM - 1].op),
            statistics[FKL_OPCODE_NUM - 1].count);
 }
@@ -144,7 +146,7 @@ int main(int argc, char **argv) {
             for (size_t i = 0; i < num; i++) {
                 FklCodegenLib *cur = &libs[i];
                 fputc('\n', stdout);
-                printf("lib %" FKL_PRT64U ":\n", i + 1);
+                printf("lib %" PRIu64 ":\n", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
                     fklPrintByteCodelnt(cur->bcl, stdout, &runtime_st,
@@ -222,7 +224,7 @@ int main(int argc, char **argv) {
             uint32_t num = scriptLibStack.size;
             for (size_t i = 0; i < num; i++) {
                 const FklCodegenLib *cur = &scriptLibStack.base[i];
-                printf("lib %" FKL_PRT64U ":\n", i + 1);
+                printf("lib %" PRIu64 ":\n", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
                     fklPrintByteCodelnt(cur->bcl, stdout, &runtime_st,
@@ -255,7 +257,7 @@ int main(int argc, char **argv) {
                 num = macroScriptLibStack.size;
                 for (size_t i = 0; i < num; i++) {
                     const FklCodegenLib *cur = &macroScriptLibStack.base[i];
-                    printf("lib %" FKL_PRT64U ":\n", i + 1);
+                    printf("lib %" PRIu64 ":\n", i + 1);
                     switch (cur->type) {
                     case FKL_CODEGEN_LIB_SCRIPT:
                         fklPrintByteCodelnt(cur->bcl, stdout, pst, pkt);

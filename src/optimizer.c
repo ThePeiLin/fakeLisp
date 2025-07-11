@@ -307,7 +307,7 @@ static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 		for(int i=0;i<l;i++)
 			ins[i]=cur[i].ins;
 		fklGetInsOpArg(ins,&ins_arg);
-		fprintf(fp,"%-*"FKL_PRT64D":\t%-17s ",numLen,i,fklGetOpcodeName(ins->op));
+		fprintf(fp,"%-*"PRId64":\t%-17s ",numLen,i,fklGetOpcodeName(ins->op));
 		switch(fklGetOpcodeMode(ins->op))
 		{
 			case FKL_OP_MODE_IsA:
@@ -315,25 +315,25 @@ static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 			case FKL_OP_MODE_IsC:
 			case FKL_OP_MODE_IsBB:
 			case FKL_OP_MODE_IsCCB:
-				fprintf(fp,"%"FKL_PRT64D,ins_arg.ix);
+				fprintf(fp,"%"PRId64,ins_arg.ix);
 				break;
 			case FKL_OP_MODE_IuB:
 			case FKL_OP_MODE_IuC:
 			case FKL_OP_MODE_IuBB:
 			case FKL_OP_MODE_IuCCB:
-				fprintf(fp,"%"FKL_PRT64U,ins_arg.ux);
+				fprintf(fp,"%"PRIu64,ins_arg.ux);
 				break;
 			case FKL_OP_MODE_IuAuB:
 			case FKL_OP_MODE_IuCuC:
 			case FKL_OP_MODE_IuCAuBB:
 			case FKL_OP_MODE_IuCAuBCC:
-				fprintf(fp,"%"FKL_PRT64U"\t%"FKL_PRT64U,ins_arg.ux,ins_arg.uy);
+				fprintf(fp,"%"PRIu64"\t%"PRIu64,ins_arg.ux,ins_arg.uy);
 				break;
 			case FKL_OP_MODE_I:
 				break;
 
 			case FKL_OP_MODE_IxAxB:
-				fprintf(fp,"%#"FKL_PRT64x"\t%#"FKL_PRT64x,ins_arg.ux,ins_arg.uy);
+				fprintf(fp,"%#"PRIx64"\t%#"PRIx64,ins_arg.ux,ins_arg.uy);
 				break;
 		}
 		putc('\n',fp);

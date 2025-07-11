@@ -5,6 +5,7 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -306,7 +307,7 @@ void fklPrintConstTable(const FklConstTable *kt, FILE *fp) {
     int numLen = ki64t->count ? (int)(log10(ki64t->count) + 1) : 1;
     fprintf(fp, "i64:\t%u\n", ki64t->count);
     for (uint32_t i = 0; i < ki64t->count; i++)
-        fprintf(fp, "\t%-*u:\t%" FKL_PRT64D "\n", numLen, i, ki64t->base[i]);
+        fprintf(fp, "\t%-*u:\t%" PRId64 "\n", numLen, i, ki64t->base[i]);
 
     const FklConstF64Table *kf64t = &kt->kf64t;
     numLen = kf64t->count ? (int)(log10(kf64t->count) + 1) : 1;
@@ -322,7 +323,7 @@ void fklPrintConstTable(const FklConstTable *kt, FILE *fp) {
     fprintf(fp, "string:\t%u\n", kstrt->count);
     for (uint32_t i = 0; i < kstrt->count; i++) {
         const FklString *str = kstrt->base[i];
-        fprintf(fp, "\t%-*u:\t%" FKL_PRT64U "\t", numLen, i, str->size);
+        fprintf(fp, "\t%-*u:\t%" PRIu64 "\t", numLen, i, str->size);
         fklPrintRawString(str, fp);
         fputc('\n', fp);
     }
@@ -332,7 +333,7 @@ void fklPrintConstTable(const FklConstTable *kt, FILE *fp) {
     fprintf(fp, "bvec:\t%u\n", kbvect->count);
     for (uint32_t i = 0; i < kbvect->count; i++) {
         const FklBytevector *bvec = kbvect->base[i];
-        fprintf(fp, "\t%-*u:\t%" FKL_PRT64U "\t", numLen, i, bvec->size);
+        fprintf(fp, "\t%-*u:\t%" PRIu64 "\t", numLen, i, bvec->size);
         fklPrintRawBytevector(bvec, fp);
         fputc('\n', fp);
     }
@@ -470,7 +471,7 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
                                         const FklConstTable *kt, int numLen) {
     uint32_t tab_count = cur_state->tc;
     uint32_t proc_len = 0;
-    fprintf(fp, "%-*" FKL_PRT64U ":", numLen, i);
+    fprintf(fp, "%-*" PRIu64 ":", numLen, i);
     for (uint32_t i = 0; i < tab_count; i++)
         fputs("    ", fp);
     const FklInstruction *ins = &tmpCode->code[i];
@@ -489,51 +490,51 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
     case FKL_OP_PUSH_I64B:
     case FKL_OP_PUSH_I64B_C:
     case FKL_OP_PUSH_I64B_X:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t%" FKL_PRT64D, ins_arg.ux,
+        fprintf(fp, "%" PRIu64 "\t#\t%" PRId64, ins_arg.ux,
                 fklGetI64ConstWithIdx(kt, ins_arg.ux));
         break;
     case FKL_OP_PUSH_F64:
     case FKL_OP_PUSH_F64_C:
     case FKL_OP_PUSH_F64_X:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
+        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrintDouble(fklGetF64ConstWithIdx(kt, ins_arg.ux), fp);
         break;
     case FKL_OP_PUSH_CHAR:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
+        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrintRawChar(ins->bu, fp);
         break;
 
     case FKL_OP_PUSH_STR:
     case FKL_OP_PUSH_STR_C:
     case FKL_OP_PUSH_STR_X:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
+        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrintRawString(fklGetStrConstWithIdx(kt, ins_arg.ux), fp);
         break;
     case FKL_OP_PUSH_BVEC:
     case FKL_OP_PUSH_BVEC_C:
     case FKL_OP_PUSH_BVEC_X:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
+        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrintRawBytevector(fklGetBvecConstWithIdx(kt, ins_arg.ux), fp);
         break;
 
     case FKL_OP_PUSH_SYM:
     case FKL_OP_PUSH_SYM_C:
     case FKL_OP_PUSH_SYM_X:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
+        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrintRawSymbol(fklGetSymbolWithId(ins_arg.ux, st)->k, fp);
         break;
 
     case FKL_OP_PUSH_BI:
     case FKL_OP_PUSH_BI_C:
     case FKL_OP_PUSH_BI_X:
-        fprintf(fp, "%" FKL_PRT64U "\t#\t", ins_arg.ux);
+        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrintBigInt(fklGetBiConstWithIdx(kt, ins_arg.ux), fp);
         break;
     case FKL_OP_PUSH_PROC:
     case FKL_OP_PUSH_PROC_X:
     case FKL_OP_PUSH_PROC_XX:
     case FKL_OP_PUSH_PROC_XXX:
-        fprintf(fp, "%" FKL_PRT64U "\t%" FKL_PRT64U, ins_arg.ux, ins_arg.uy);
+        fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
         push_bytecode_print_state(s, cur_state->tc, i + len + ins_arg.uy,
                                   cur_state->cpc);
         push_bytecode_print_state(s, tab_count + 1, i + len,
@@ -561,31 +562,28 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
         case FKL_OP_MODE_IsC:
         case FKL_OP_MODE_IsBB:
         case FKL_OP_MODE_IsCCB:
-            fprintf(fp, "%" FKL_PRT64D, ins_arg.ix);
+            fprintf(fp, "%" PRId64, ins_arg.ix);
             break;
         case FKL_OP_MODE_IuB:
         case FKL_OP_MODE_IuC:
         case FKL_OP_MODE_IuBB:
         case FKL_OP_MODE_IuCCB:
-            fprintf(fp, "%" FKL_PRT64U, ins_arg.ux);
+            fprintf(fp, "%" PRIu64, ins_arg.ux);
             break;
         case FKL_OP_MODE_IsAuB:
-            fprintf(fp, "%" FKL_PRT64D "\t%" FKL_PRT64U, ins_arg.ix,
-                    ins_arg.uy);
+            fprintf(fp, "%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
             break;
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
         case FKL_OP_MODE_IuCAuBB:
         case FKL_OP_MODE_IuCAuBCC:
-            fprintf(fp, "%" FKL_PRT64U "\t%" FKL_PRT64U, ins_arg.ux,
-                    ins_arg.uy);
+            fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
             break;
         case FKL_OP_MODE_I:
             break;
 
         case FKL_OP_MODE_IxAxB:
-            fprintf(fp, "%#" FKL_PRT64x "\t%#" FKL_PRT64x, ins_arg.ux,
-                    ins_arg.uy);
+            fprintf(fp, "%#" PRIx64 "\t%#" PRIx64, ins_arg.ux, ins_arg.uy);
             break;
         }
         break;

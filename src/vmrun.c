@@ -5,6 +5,7 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <inttypes.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <string.h>
@@ -1448,7 +1449,7 @@ void fklDBG_printVMstack(FklVM *stack, uint32_t count, FILE *fp, int mode,
             if (mode && stack->bp == i)
                 fputs("->", stderr);
             if (fp != stdout)
-                fprintf(fp, "%" FKL_PRT64D ":", i);
+                fprintf(fp, "%" PRId64 ":", i);
             FklVMvalue *tmp = stack->base[i];
             fklPrin1VMvalue(tmp, fp, gc);
             putc('\n', fp);

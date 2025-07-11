@@ -10,6 +10,7 @@
 #include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdalign.h>
 #include <stdio.h>
 #include <string.h>
@@ -914,7 +915,7 @@ static inline void build_lisp_match_print_src(const FklGrammer *g,
             CB_FMT("\"");                                                      \
             build_string_in_hex(args->args[0], build);                         \
             CB_FMT("\"");                                                      \
-            CB_FMT(",%" FKL_PRT64U "", args->args[0]->size);                   \
+            CB_FMT(",%" PRIu64 "", args->args[0]->size);                       \
         } else                                                                 \
             CB_FMT("NULL,0");                                                  \
         CB_FMT(")");                                                           \
@@ -1236,9 +1237,9 @@ builtin_match_symbol_print_c_match_cond(const FklBuiltinTerminalMatchArgs *args,
         "builtin_match_symbol(start,*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,ctx,&is_waiting_for_more,");
     CB_FMT("\"");
     build_string_in_hex(start, build);
-    CB_FMT("\",%" FKL_PRT64U ",\"", start->size);
+    CB_FMT("\",%" PRIu64 ",\"", start->size);
     build_string_in_hex(end, build);
-    CB_FMT("\",%" FKL_PRT64U ")", end->size);
+    CB_FMT("\",%" PRIu64 ")", end->size);
 }
 
 static FklBuiltinTerminalInitError
@@ -2838,8 +2839,8 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
         idx = *graItemStateIdxHashMapGet2NonNull(&idxTable, &ll->elm);
         fprintf(
             fp,
-            "\t\"I%" FKL_PRT64U
-            "\"[fontname=\"Courier\" nojustify=true shape=\"box\" label=\"I%" FKL_PRT64U
+            "\t\"I%" PRIu64
+            "\"[fontname=\"Courier\" nojustify=true shape=\"box\" label=\"I%" PRIu64
             "\\l\\\n",
             idx, idx);
         print_item_set_as_dot(i, g, st, fp);
@@ -2848,7 +2849,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
             FklLalrItemSetHashMapElm *dst = l->dst;
             size_t *c = graItemStateIdxHashMapGet2NonNull(&idxTable, dst);
             fprintf(fp,
-                    "\tI%" FKL_PRT64U "->I%" FKL_PRT64U
+                    "\tI%" PRIu64 "->I%" PRIu64
                     "[fontname=\"Courier\" label=\"",
                     idx, *c);
             print_prod_sym_as_dot(fp, &l->sym, st, &g->terminals, &g->regexes);
@@ -3136,7 +3137,7 @@ static inline void ignore_print_c_match_cond(uint64_t number,
                                              const FklGrammer *g,
                                              FklCodeBuilder *build) {
     CB_FMT(
-        "match_ignore_%" FKL_PRT64U
+        "match_ignore_%" PRIu64
         "(start,*in+otherMatchLen,*restLen-otherMatchLen,&matchLen,&is_waiting_for_more,ctx)",
         number);
     return;
@@ -3342,7 +3343,7 @@ void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
     FklAnalysisState *states = grammer->aTable.states;
 
     for (size_t i = 0; i < num; i++) {
-        fprintf(fp, "%" FKL_PRT64U ": ", i);
+        fprintf(fp, "%" PRIu64 ": ", i);
         FklAnalysisState *curState = &states[i];
         for (FklAnalysisStateAction *actions = curState->state.action; actions;
              actions = actions->next) {
@@ -3352,13 +3353,13 @@ void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
                 print_look_ahead_of_analysis_table(fp, &actions->match);
                 {
                     uintptr_t idx = actions->state - states;
-                    fprintf(fp, " , %" FKL_PRT64U " )", idx);
+                    fprintf(fp, " , %" PRIu64 " )", idx);
                 }
                 break;
             case FKL_ANALYSIS_REDUCE:
                 fputs("R(", fp);
                 print_look_ahead_of_analysis_table(fp, &actions->match);
-                fprintf(fp, " , %" FKL_PRT64U " )", actions->prod->idx);
+                fprintf(fp, " , %" PRIu64 " )", actions->prod->idx);
                 break;
             case FKL_ANALYSIS_ACCEPT:
                 fputs("acc(", fp);
@@ -3375,7 +3376,7 @@ void fklPrintAnalysisTable(const FklGrammer *grammer, const FklSymbolTable *st,
             uintptr_t idx = gt->state - states;
             fputc('(', fp);
             fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid, st)->k, fp);
-            fprintf(fp, " , %" FKL_PRT64U ")", idx);
+            fprintf(fp, " , %" PRIu64 ")", idx);
             fputc('\t', fp);
         }
         fputc('\n', fp);
@@ -3634,7 +3635,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
     FklNontermHashSetNode *sidList = sidSet.first;
     for (size_t i = 0; i < num; i++) {
         const FklAnalysisState *curState = &states[i];
-        fprintf(fp, "%" FKL_PRT64U ": |", i);
+        fprintf(fp, "%" PRIu64 ": |", i);
         for (GraActionMatchHashSetNode *al = laList; al; al = al->next) {
             FklAnalysisStateAction *action =
                 find_action(curState->state.action, &al->k);
@@ -3642,10 +3643,10 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
                 switch (action->action) {
                 case FKL_ANALYSIS_SHIFT: {
                     uintptr_t idx = action->state - states;
-                    fprintf(fp, "s%" FKL_PRT64U "", idx);
+                    fprintf(fp, "s%" PRIu64 "", idx);
                 } break;
                 case FKL_ANALYSIS_REDUCE:
-                    fprintf(fp, "r%" FKL_PRT64U "", action->prod->idx);
+                    fprintf(fp, "r%" PRIu64 "", action->prod->idx);
                     break;
                 case FKL_ANALYSIS_ACCEPT:
                     fputs("acc", fp);
@@ -3664,7 +3665,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
                 find_gt(curState->state.gt, sl->k.group, sl->k.sid);
             if (gt) {
                 uintptr_t idx = gt->state - states;
-                fprintf(fp, "%" FKL_PRT64U "", idx);
+                fprintf(fp, "%" PRIu64 "", idx);
             } else
                 fputs("\\n", fp);
         }
@@ -3794,7 +3795,7 @@ build_get_max_non_term_length_to_c_file(const FklGrammer *g,
                     const FklString *cur = terminals[0];
                     CB_LINE("(matchLen=fklCharBufMatch(\"");
                     build_string_in_hex(cur, build);
-                    CB_LINE("\",%" FKL_PRT64U
+                    CB_LINE("\",%" PRIu64
                             ",*in+otherMatchLen,*restLen-otherMatchLen))>=0",
                             cur->size);
                     for (size_t i = 1; i < num; i++) {
@@ -3804,7 +3805,7 @@ build_get_max_non_term_length_to_c_file(const FklGrammer *g,
                         CB_LINE("(matchLen=fklCharBufMatch(\"");
                         build_string_in_hex(cur, build);
                         CB_LINE(
-                            "\",%" FKL_PRT64U
+                            "\",%" PRIu64
                             ",*in+otherMatchLen,*restLen-otherMatchLen))>=0",
                             cur->size);
                     }
@@ -3868,7 +3869,7 @@ build_state_action_match_to_c_file(const FklAnalysisStateAction *ac,
         CB_FMT("(matchLen=match_char_buf_end_with_terminal(\"");
         build_string_in_hex(ac->match.str, build);
         CB_FMT(
-            "\",%" FKL_PRT64U
+            "\",%" PRIu64
             ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,ctx,start))",
             ac->match.str->size);
         break;
@@ -3876,7 +3877,7 @@ build_state_action_match_to_c_file(const FklAnalysisStateAction *ac,
         CB_FMT("(matchLen=fklCharBufMatch(\"");
         build_string_in_hex(ac->match.str, build);
         CB_FMT(
-            "\",%" FKL_PRT64U
+            "\",%" PRIu64
             ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len))>=0",
             ac->match.str->size);
         break;
@@ -3884,7 +3885,7 @@ build_state_action_match_to_c_file(const FklAnalysisStateAction *ac,
         uint64_t num = 0;
         fklGetStringWithRegex(&g->regexes, ac->match.re, &num);
         CB_FMT("regex_lex_match_for_parser_in_c((const FklRegexCode*)&");
-        CB_FMT(PRINT_C_REGEX_PREFIX "%" FKL_PRT64X, num);
+        CB_FMT(PRINT_C_REGEX_PREFIX "%" PRIX64, num);
         CB_FMT(
             ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
     } break;
@@ -3918,7 +3919,7 @@ static inline void build_state_action_to_c_file(
         switch (ac->action) {
         case FKL_ANALYSIS_SHIFT:
             CB_LINE(
-                "fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" FKL_PRT64U
+                "fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" PRIu64
                 "});",
                 ac->state - states);
             CB_LINE(
@@ -3940,12 +3941,12 @@ static inline void build_state_action_to_c_file(
                     ++delim_len;
             size_t actual_len = ac->prod->len - delim_len;
 
-            CB_LINE("stateStack->size-=%" FKL_PRT64U ";", actual_len);
-            CB_LINE("symbolStack->size-=%" FKL_PRT64U ";", actual_len);
+            CB_LINE("stateStack->size-=%" PRIu64 ";", actual_len);
+            CB_LINE("symbolStack->size-=%" PRIu64 ";", actual_len);
             CB_LINE(
                 "FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
             CB_LINE("FklParseState nextState={.func=NULL};");
-            CB_LINE("func(NULL,NULL,NULL,0,%" FKL_PRT64U
+            CB_LINE("func(NULL,NULL,NULL,0,%" PRIu64
                     ",&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
                     ac->prod->left.sid);
             CB_LINE(
@@ -3953,34 +3954,34 @@ static inline void build_state_action_to_c_file(
             CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
 
             if (actual_len) {
-                CB_LINE("void** nodes=(void**)fklZmalloc(%" FKL_PRT64U
+                CB_LINE("void** nodes=(void**)fklZmalloc(%" PRIu64
                         "*sizeof(void*));",
                         actual_len);
-                CB_LINE("FKL_ASSERT(nodes||!%" FKL_PRT64U ");", actual_len);
+                CB_LINE("FKL_ASSERT(nodes||!%" PRIu64 ");", actual_len);
                 CB_LINE(
                     "const FklAnalysisSymbol* base=&symbolStack->base[symbolStack->size];");
             } else
                 CB_LINE("void** nodes=NULL;");
 
             if (actual_len)
-                CB_LINE("for(size_t i=0;i<%" FKL_PRT64U
+                CB_LINE("for(size_t i=0;i<%" PRIu64
                         ";i++) nodes[i]=base[i].ast;",
                         actual_len);
 
             if (actual_len) {
-                CB_LINE("size_t line=fklGetFirstNthLine(lineStack,%" FKL_PRT64U
+                CB_LINE("size_t line=fklGetFirstNthLine(lineStack,%" PRIu64
                         ",ctx->line);",
                         actual_len);
-                CB_LINE("lineStack->size-=%" FKL_PRT64U ";", actual_len);
+                CB_LINE("lineStack->size-=%" PRIu64 ";", actual_len);
             } else
                 CB_LINE("size_t line=ctx->line;");
 
-            CB_LINE("void* ast=prod_action_%s(ctx->ctx,nodes,%" FKL_PRT64U
+            CB_LINE("void* ast=prod_action_%s(ctx->ctx,nodes,%" PRIu64
                     ",line);\n",
                     ac->prod->name, actual_len);
 
             if (actual_len) {
-                CB_LINE("for(size_t i=0;i<%" FKL_PRT64U ";i++) %s(nodes[i]);",
+                CB_LINE("for(size_t i=0;i<%" PRIu64 ";i++) %s(nodes[i]);",
                         actual_len, ast_destroyer_name);
                 CB_LINE("fklZfree(nodes);");
             }
@@ -3992,7 +3993,7 @@ static inline void build_state_action_to_c_file(
             CB_LINE("}");
 
             CB_LINE(
-                "init_nonterm_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),%" FKL_PRT64U
+                "init_nonterm_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),%" PRIu64
                 ",ast);",
                 ac->prod->left.sid);
             CB_LINE("fklUintVectorPushBack2(lineStack,line);");
@@ -4012,7 +4013,7 @@ static inline void build_state_action_to_c_file(
 static inline void
 build_state_prototype_to_c_file(const FklAnalysisState *states, size_t idx,
                                 FklCodeBuilder *build) {
-    CB_LINE_START("static int state_%" FKL_PRT64U "(FklParseStateVector*", idx);
+    CB_LINE_START("static int state_%" PRIu64 "(FklParseStateVector*", idx);
     CB_LINE(",FklAnalysisSymbolVector*");
     CB_LINE(",FklUintVector*");
     CB_LINE(",int");
@@ -4031,7 +4032,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
                                          const char *ast_destroyer_name,
                                          FklCodeBuilder *build) {
     const FklAnalysisState *state = &states[idx];
-    CB_LINE("static int state_%" FKL_PRT64U "(FklParseStateVector* stateStack",
+    CB_LINE("static int state_%" PRIu64 "(FklParseStateVector* stateStack",
             idx);
     CB_INDENT(flag) {
         CB_LINE(",FklAnalysisSymbolVector* symbolStack");
@@ -4116,11 +4117,11 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
             const FklAnalysisStateGoto *gt = state->state.gt;
             if (gt) {
                 if (gt->allow_ignore)
-                    CB_LINE("if(1 && left==%" FKL_PRT64U "){", gt->nt.sid);
+                    CB_LINE("if(1 && left==%" PRIu64 "){", gt->nt.sid);
                 else
-                    CB_LINE("if(left==%" FKL_PRT64U "){", gt->nt.sid);
+                    CB_LINE("if(left==%" PRIu64 "){", gt->nt.sid);
                 CB_INDENT(flag) {
-                    CB_LINE("pfunc->func=state_%" FKL_PRT64U ";",
+                    CB_LINE("pfunc->func=state_%" PRIu64 ";",
                             gt->state - states);
                     CB_LINE("return 0;");
                 }
@@ -4129,12 +4130,11 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
                 gt = gt->next;
                 for (; gt; gt = gt->next) {
                     if (gt->allow_ignore)
-                        CB_LINE("else if(1 && left==%" FKL_PRT64U "){",
-                                gt->nt.sid);
+                        CB_LINE("else if(1 && left==%" PRIu64 "){", gt->nt.sid);
                     else
-                        CB_LINE("else if(left==%" FKL_PRT64U "){", gt->nt.sid);
+                        CB_LINE("else if(left==%" PRIu64 "){", gt->nt.sid);
                     CB_INDENT(flag) {
-                        CB_LINE("pfunc->func=state_%" FKL_PRT64U ";",
+                        CB_LINE("pfunc->func=state_%" PRIu64 ";",
                                 gt->state - states);
                         CB_LINE("return 0;");
                     }
@@ -4277,7 +4277,7 @@ build_ignore_sym_match_to_c_file(const FklGrammerIgnoreSym *sym,
         CB_FMT("(matchLen=fklCharBufMatch(\"");
         build_string_in_hex(sym->str, build);
         CB_FMT(
-            "\",%" FKL_PRT64U
+            "\",%" PRIu64
             ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len))>=0",
             sym->str->size);
         break;
@@ -4285,7 +4285,7 @@ build_ignore_sym_match_to_c_file(const FklGrammerIgnoreSym *sym,
         uint64_t num = 0;
         fklGetStringWithRegex(&g->regexes, sym->re, &num);
         CB_FMT("regex_lex_match_for_parser_in_c((const FklRegexCode*)&");
-        CB_FMT(PRINT_C_REGEX_PREFIX "%" FKL_PRT64X, num);
+        CB_FMT(PRINT_C_REGEX_PREFIX "%" PRIX64, num);
         CB_FMT(
             ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
     } break;
@@ -4310,7 +4310,7 @@ build_ignore_sym_match_to_c_file(const FklGrammerIgnoreSym *sym,
 
 static inline void build_ignore(uint64_t number, const FklGrammerIgnore *ig,
                                 const FklGrammer *g, FklCodeBuilder *build) {
-    CB_LINE("static inline int match_ignore_%" FKL_PRT64U "(const char* start",
+    CB_LINE("static inline int match_ignore_%" PRIu64 "(const char* start",
             number);
     CB_INDENT(flag) {
         CB_LINE(",const char* cstr");
@@ -4466,18 +4466,18 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i, const FklGrammer *g,
     for (const FklLalrItemSetHashMapNode *l = i->first; l; l = l->next) {
         const FklLalrItemHashSet *i = &l->k;
         idx = *graItemStateIdxHashMapGet2NonNull(&idxTable, &l->elm);
-        fprintf(fp, "===\nI%" FKL_PRT64U ": ", idx);
+        fprintf(fp, "===\nI%" PRIu64 ": ", idx);
         putc('\n', fp);
         fklPrintItemSet(i, g, st, fp);
         putc('\n', fp);
         for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
             FklLalrItemSetHashMapElm *dst = ll->dst;
             size_t *c = graItemStateIdxHashMapGet2NonNull(&idxTable, dst);
-            fprintf(fp, "I%" FKL_PRT64U "--{ ", idx);
+            fprintf(fp, "I%" PRIu64 "--{ ", idx);
             if (ll->allow_ignore)
                 fputs("?e ", fp);
             print_prod_sym(fp, &ll->sym, st, &g->terminals, &g->regexes);
-            fprintf(fp, " }-->I%" FKL_PRT64U "\n", *c);
+            fprintf(fp, " }-->I%" PRIu64 "\n", *c);
         }
         putc('\n', fp);
     }
@@ -4585,7 +4585,7 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
          list = list->next) {
         FklGrammerProduction *prods = list->v;
         for (; prods; prods = prods->next) {
-            fprintf(fp, "(%" FKL_PRT64U ") ", prods->idx);
+            fprintf(fp, "(%" PRIu64 ") ", prods->idx);
             fklPrintGrammerProduction(fp, prods, st, tt, rt);
             putc('\n', fp);
         }

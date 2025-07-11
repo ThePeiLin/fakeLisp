@@ -3,6 +3,7 @@
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,10 +75,10 @@ FklStrIdHashMapElm *fklGetSymbolWithId(FklSid_t id,
 #include <math.h>
 void fklPrintSymbolTable(const FklSymbolTable *table, FILE *fp) {
     int numLen = table->num ? (int)(log10(table->num) + 1) : 1;
-    fprintf(fp, "size:%" FKL_PRT64U "\n", table->num);
+    fprintf(fp, "size:%" PRIu64 "\n", table->num);
     for (uint32_t i = 0; i < table->num; i++) {
         FklStrIdHashMapElm *cur = table->idl[i];
-        fprintf(fp, "%-*" FKL_PRT64U ":\t", numLen, cur->v);
+        fprintf(fp, "%-*" PRIu64 ":\t", numLen, cur->v);
         fklPrintRawSymbol(cur->k, fp);
         fputc('\n', fp);
     }

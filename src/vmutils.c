@@ -4,6 +4,7 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <inttypes.h>
 #include <math.h>
 #include <stdalign.h>
 #include <stdio.h>
@@ -126,7 +127,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
                                       fp);
                 else
                     fputs("stdin", fp);
-                fprintf(fp, ":%" FKL_PRT64U ">", pt->line);
+                fprintf(fp, ":%" PRIu64 ">", pt->line);
             }
         } else
             fprintf(fp, "at <top>");
@@ -706,7 +707,7 @@ static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS) {
 static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS) { fputs("()", fp); }
 
 static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS) {
-    fprintf(fp, "%" FKL_PRT64D "", FKL_GET_FIX(v));
+    fprintf(fp, "%" PRId64 "", FKL_GET_FIX(v));
 }
 
 static void vmvalue_sym_ptr_princ(VMVALUE_PRINTER_ARGS) {
@@ -921,7 +922,7 @@ static void nil_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS) {
 }
 
 static void fix_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS) {
-    fklStringBufferPrintf(result, "%" FKL_PRT64D "", FKL_GET_FIX(v));
+    fklStringBufferPrintf(result, "%" PRId64 "", FKL_GET_FIX(v));
 }
 
 static void sym_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {

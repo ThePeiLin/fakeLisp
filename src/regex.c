@@ -5,6 +5,7 @@
 #include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -990,7 +991,7 @@ void fklRegexBuildAsCwithNum(const FklRegexCode *re, const char *prefix,
         }
     }
 
-    CB_LINE("} %s%" FKL_PRT64X "={", prefix ? prefix : "regex_", num);
+    CB_LINE("} %s%" PRIX64 "={", prefix ? prefix : "regex_", num);
 
     CB_INDENT(flag) {
         CB_LINE(".totalsize=%u,", totalsize);

@@ -5,6 +5,7 @@
 #include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,14 +76,14 @@ size_t fklPrintDouble(double k, FILE *fp) {
 
 FklString *fklIntToString(int64_t num) {
     char numString[256] = {0};
-    int lenOfNum = snprintf(numString, 256, "%" FKL_PRT64D "", num);
+    int lenOfNum = snprintf(numString, 256, "%" PRId64 "", num);
     FklString *tmp = fklCreateString(lenOfNum, numString);
     return tmp;
 }
 
 char *fklIntToCstr(int64_t num) {
     char numString[256] = {0};
-    snprintf(numString, 256, "%" FKL_PRT64D "", num);
+    snprintf(numString, 256, "%" PRId64 "", num);
     return fklZstrdup(numString);
 }
 

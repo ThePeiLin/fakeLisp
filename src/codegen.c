@@ -14,6 +14,7 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -4453,7 +4454,7 @@ void fklPrintUndefinedRef(const FklCodegenEnv *env,
         FklUnReSymbolRef *ref = &urefs->base[i - 1];
         fprintf(stderr, "warning: Symbol ");
         fklPrintRawSymbol(fklGetSymbolWithId(ref->id, pst)->k, stderr);
-        fprintf(stderr, " is undefined at line %" FKL_PRT64U, ref->line);
+        fprintf(stderr, " is undefined at line %" PRIu64, ref->line);
         if (ref->fid) {
             fputs(" of ", stderr);
             fklPrintString(fklGetSymbolWithId(ref->fid, globalSymTable)->k,
@@ -6783,7 +6784,7 @@ static void simple_action_nth_write(void *ctx, const FklSymbolTable *pst,
 static void simple_action_nth_print(void *ctx, const FklSymbolTable *pst,
                                     FILE *fp) {
     uint64_t len = FKL_TYPE_CAST(uintptr_t, ctx);
-    fprintf(fp, "%" FKL_PRT64U, len);
+    fprintf(fp, "%" PRIu64, len);
 }
 
 static void *simple_action_nth_reader(FklSymbolTable *pst, FILE *fp) {
@@ -6850,7 +6851,7 @@ static void simple_action_cons_write(void *c, const FklSymbolTable *pst,
 static void simple_action_cons_print(void *c, const FklSymbolTable *pst,
                                      FILE *fp) {
     struct SimpleActionConsCtx *ctx = c;
-    fprintf(fp, "%" FKL_PRT64U ", %" FKL_PRT64U, ctx->car, ctx->cdr);
+    fprintf(fp, "%" PRIu64 ", %" PRIu64, ctx->car, ctx->cdr);
 }
 
 static void *simple_action_cons_read(FklSymbolTable *pst, FILE *fp) {
@@ -6920,7 +6921,7 @@ static void simple_action_head_print(void *c, const FklSymbolTable *pst,
     struct SimpleActionHeadCtx *ctx = c;
     fklPrintNastNode(ctx->head, fp, pst);
     for (size_t i = 0; i < ctx->idx_num; ++i) {
-        fprintf(fp, ", %" FKL_PRT64U, ctx->idx[i]);
+        fprintf(fp, ", %" PRIu64, ctx->idx[i]);
     }
 }
 
@@ -7130,7 +7131,7 @@ static void simple_action_symbol_write(void *c, const FklSymbolTable *pst,
 static void simple_action_symbol_print(void *c, const FklSymbolTable *pst,
                                        FILE *fp) {
     struct SimpleActionSymbolCtx *ctx = c;
-    fprintf(fp, "%" FKL_PRT64U, ctx->nth);
+    fprintf(fp, "%" PRIu64, ctx->nth);
     if (ctx->start) {
         fputs(", ", fp);
         fklPrintRawString(ctx->start, fp);

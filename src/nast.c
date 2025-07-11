@@ -3,6 +3,8 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <inttypes.h>
+
 FklNastNode *fklCreateNastNode(FklNastType type, uint64_t line) {
     FklNastNode *r = (FklNastNode *)fklZmalloc(sizeof(FklNastNode));
     FKL_ASSERT(r);
@@ -460,7 +462,7 @@ void fklPrintNastNode(const FklNastNode *exp, FILE *fp,
             fputs("()", fp);
             break;
         case FKL_NAST_FIX:
-            fprintf(fp, "%" FKL_PRT64D "", exp->fix);
+            fprintf(fp, "%" PRId64 "", exp->fix);
             break;
         case FKL_NAST_RC_SYM:
         case FKL_NAST_SYM:

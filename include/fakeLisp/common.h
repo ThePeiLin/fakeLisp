@@ -5,19 +5,6 @@
 extern "C" {
 #endif
 
-#include <assert.h>
-#ifdef _WIN32
-#define FKL_PRT64D "lld"
-#define FKL_PRT64U "llu"
-#define FKL_PRT64x "llx"
-#define FKL_PRT64X "llX"
-#else
-#define FKL_PRT64D "ld"
-#define FKL_PRT64U "lu"
-#define FKL_PRT64x "lx"
-#define FKL_PRT64X "lX"
-#endif
-
 #define FKL_BYTE_WIDTH (8)
 #define FKL_I16_WIDTH (FKL_BYTE_WIDTH * 2)
 #define FKL_I24_WIDTH (FKL_BYTE_WIDTH * 3)

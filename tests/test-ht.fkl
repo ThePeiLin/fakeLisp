@@ -81,6 +81,7 @@
 (println "length: " (length hash-table))
 (prin1n (ht->list hash-table))
 (printf "ht-ref 114: %S\n" (ht-ref hash-table 114))
+(printf "ht-ref \"efgh\": %S\n" (ht-ref hash-table "efgh"))
 (newline)
 
 (println "after clear")

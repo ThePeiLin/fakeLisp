@@ -346,11 +346,13 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
                 HT_CTX_ARG_NUM(ctx) = rest_arg_num - 2;
                 fklSetBp(exe);
                 FKL_VM_PUSH_VALUE(exe, ht->hash_func);
-                FKL_VM_PUSH_VALUE(exe, key);
+                FKL_VM_PUSH_VALUE(exe,
+                                  FKL_CPROC_GET_ARG(exe, ctx, key_idx + 2));
                 fklCallObj(exe, ht->hash_func);
                 return 1;
-            } else
+            } else {
                 FKL_CPROC_RETURN(exe, ctx, item->v);
+            }
         }
     } break;
     case HT_CALL_STATE_VALUE: {
@@ -382,8 +384,9 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
                                       FKL_CPROC_GET_ARG(exe, ctx, key_idx + 2));
                     fklCallObj(exe, ht->hash_func);
                     return 1;
-                } else
+                } else {
                     FKL_CPROC_RETURN(exe, ctx, item->v);
+                }
             }
         } else {
             FklVMvalueHashMapNode *i = *node;
@@ -397,8 +400,9 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
                                   FKL_CPROC_GET_ARG(exe, ctx, key_idx + 2));
                 fklCallObj(exe, ht->hash_func);
                 return 1;
-            } else
+            } else {
                 FKL_CPROC_RETURN(exe, ctx, i->v);
+            }
         }
     } break;
     default:

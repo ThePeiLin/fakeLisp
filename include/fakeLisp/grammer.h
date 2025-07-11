@@ -73,7 +73,7 @@ typedef struct {
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift(pk->group), pk->sid)
 #define FKL_HASH_ELM_NAME Nonterm
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef enum {
     FKL_TERM_NONE = 0,
@@ -186,7 +186,7 @@ static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
 #define FKL_HASH_KEY_EQUAL(A, B) fklLalrItemLookAheadEqual(A, B)
 #define FKL_HASH_KEY_HASH return fklLalrItemLookAheadHash(pk)
 #define FKL_HASH_ELM_NAME LookAhead
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     FklLookAheadHashSet first;
@@ -214,7 +214,7 @@ static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
     }
 #define FKL_HASH_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
 #define FKL_HASH_ELM_NAME FirstSet
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklGrammerSym {
     FklGrammerSymType type;
@@ -229,7 +229,7 @@ typedef struct FklGrammerSym {
 // FklGraSymVector
 #define FKL_VECTOR_ELM_TYPE FklGrammerSym
 #define FKL_VECTOR_ELM_TYPE_NAME GraSym
-#include "vector.h"
+#include "cont/vector.h"
 
 struct FklGrammerProduction;
 
@@ -271,13 +271,13 @@ void fklDestroyGrammerProduction(FklGrammerProduction *h);
         }                                                                      \
         *(V) = NULL;                                                           \
     }
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklGraSidBuiltinHashMap
 #define FKL_HASH_KEY_TYPE FklSid_t
 #define FKL_HASH_VAL_TYPE FklLalrBuiltinMatch const *
 #define FKL_HASH_ELM_NAME GraSidBuiltin
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     FklGrammerProduction *prod;
@@ -302,7 +302,7 @@ static inline uintptr_t fklLalrItemHash(const FklLalrItem *pk) {
 #define FKL_HASH_KEY_EQUAL(A, B) fklLalrItemEqual((A), (B))
 #define FKL_HASH_KEY_HASH return fklLalrItemHash(pk)
 #define FKL_HASH_ELM_NAME LalrItem
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklLalrItemSetLink {
     FklGrammerSym sym;
@@ -366,7 +366,7 @@ typedef struct FklLalrItemSetHashMapItem {
         }                                                                      \
     }
 #define FKL_HASH_ELM_NAME LalrItemSet
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef enum {
     FKL_ANALYSIS_SHIFT,
@@ -592,7 +592,7 @@ struct FklParseStateVector;
 // FklAnalysisSymbolVector
 #define FKL_VECTOR_ELM_TYPE FklAnalysisSymbol
 #define FKL_VECTOR_ELM_TYPE_NAME AnalysisSymbol
-#include "vector.h"
+#include "cont/vector.h"
 
 typedef union FklParseState FklParseState;
 
@@ -611,7 +611,7 @@ typedef union FklParseState {
 // FklParseStateVector
 #define FKL_VECTOR_ELM_TYPE FklParseState
 #define FKL_VECTOR_ELM_TYPE_NAME ParseState
-#include "vector.h"
+#include "cont/vector.h"
 
 void *
 fklParseWithTableForCharBuf2(const FklGrammer *, const char *str, size_t len,

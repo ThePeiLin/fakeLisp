@@ -19,14 +19,14 @@ extern "C" {
 #define FKL_HASH_VAL_TYPE uint32_t
 #define FKL_HASH_ELM_NAME Ki64
 #define FKL_HASH_KEY_HASH return fklHash64Shift(*pk);
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklKf64HashMap
 #define FKL_HASH_KEY_TYPE double
 #define FKL_HASH_VAL_TYPE uint32_t
 #define FKL_HASH_ELM_NAME Kf64
 #define FKL_HASH_KEY_HASH return *FKL_TYPE_CAST(int64_t *, pk);
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklKstrHashMap
 #define FKL_HASH_KEY_INIT(K, X) *(K) = fklCopyString(*X)
@@ -40,7 +40,7 @@ extern "C" {
 #define FKL_HASH_VAL_TYPE uint32_t
 #define FKL_HASH_ELM_NAME Kstr
 #define FKL_HASH_KEY_HASH return fklStringHash(*pk);
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklKbvecHashMap
 #define FKL_HASH_KEY_INIT(K, X) *(K) = fklCopyBytevector(*X)
@@ -54,7 +54,7 @@ extern "C" {
 #define FKL_HASH_VAL_TYPE uint32_t
 #define FKL_HASH_ELM_NAME Kbvec
 #define FKL_HASH_KEY_HASH return fklBytevectorHash(*pk);
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklKbiHashMap
 #define FKL_HASH_KEY_INIT(K, X) fklInitBigInt(K, X)
@@ -64,7 +64,7 @@ extern "C" {
 #define FKL_HASH_VAL_TYPE uint32_t
 #define FKL_HASH_ELM_NAME Kbi
 #define FKL_HASH_KEY_HASH return fklBigIntHash(pk);
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     uint8_t op;
@@ -144,7 +144,7 @@ typedef struct {
 // FklByteCodelntVector
 #define FKL_VECTOR_ELM_TYPE FklByteCodelnt *
 #define FKL_VECTOR_ELM_TYPE_NAME ByteCodelnt
-#include "vector.h"
+#include "cont/vector.h"
 
 void fklInitConstTable(FklConstTable *kt);
 FklConstTable *fklCreateConstTable(void);

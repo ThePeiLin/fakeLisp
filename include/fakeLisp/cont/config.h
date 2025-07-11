@@ -1,7 +1,7 @@
 #ifndef FKL_CONFIG_H
 #define FKL_CONFIG_H
 
-#include "zmalloc.h"
+#include "../zmalloc.h"
 #define FKL_CONTAINER_MALLOC fklZmalloc
 #define FKL_CONTAINER_CALLOC fklZcalloc
 #define FKL_CONTAINER_REALLOC fklZrealloc

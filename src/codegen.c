@@ -3002,7 +3002,7 @@ typedef struct CfgCtx {
 #define FKL_VECTOR_METHOD_PREFIX cg
 #define FKL_VECTOR_ELM_TYPE CfgCtx
 #define FKL_VECTOR_ELM_TYPE_NAME CfgCtx
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 static inline int cfg_check_defined(const FklNastNode *exp,
                                     const FklPmatchHashMap *ht,
@@ -3570,7 +3570,7 @@ static inline void init_qsquote_helper_struct(QsquoteHelperStruct *r,
 #define FKL_VECTOR_METHOD_PREFIX cg
 #define FKL_VECTOR_ELM_TYPE QsquoteHelperStruct
 #define FKL_VECTOR_ELM_TYPE_NAME QsquoteHelper
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 static CODEGEN_FUNC(codegen_qsquote) {
     FklNastNode *value =

@@ -109,7 +109,7 @@ static const FklNastNode *hash_create_method(ValueCreateCtx *ctx,
 #define FKL_VECTOR_METHOD_PREFIX vm
 #define FKL_VECTOR_ELM_TYPE ValueCreateCtx
 #define FKL_VECTOR_ELM_TYPE_NAME ValueCreateCtx
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 typedef const FklNastNode *(*ValueCreateMethod)(ValueCreateCtx *ctx,
                                                 FklVMvalue *v);
@@ -259,7 +259,7 @@ typedef struct {
 #define FKL_VECTOR_METHOD_PREFIX vm
 #define FKL_VECTOR_ELM_TYPE ValueSlotLine
 #define FKL_VECTOR_ELM_TYPE_NAME ValueSlotLine
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v, uint64_t curline,
                                           FklLineNumHashMap *lineHash,
@@ -401,7 +401,7 @@ typedef struct {
 #define FKL_VECTOR_METHOD_PREFIX vm
 #define FKL_VECTOR_ELM_TYPE VMvalueSlot
 #define FKL_VECTOR_ELM_TYPE_NAME VMvalueSlot
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
     VmVMvalueSlotVector s;

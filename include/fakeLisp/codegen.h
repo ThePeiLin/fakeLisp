@@ -35,7 +35,7 @@ typedef struct {
 // FklPreDefRefVector
 #define FKL_VECTOR_ELM_TYPE FklPreDefRef
 #define FKL_VECTOR_ELM_TYPE_NAME PreDefRef
-#include "vector.h"
+#include "cont/vector.h"
 
 // FklPredefHashMap
 #define FKL_HASH_KEY_TYPE FklSidScope
@@ -44,7 +44,7 @@ typedef struct {
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklCodegenEnv {
     size_t refcount;
@@ -91,7 +91,7 @@ typedef struct FklCodegenMacro {
         *(V) = fklMakeNastNodeRef(*(X));                                       \
     }
 #define FKL_HASH_VAL_UNINIT(V) fklDestroyNastNode(*(V))
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklCodegenMacroScope {
     uint32_t refcount;
@@ -114,7 +114,7 @@ typedef struct {
 #define FKL_HASH_KEY_TYPE FklSid_t
 #define FKL_HASH_VAL_TYPE FklCodegenExportIdx
 #define FKL_HASH_ELM_NAME CgExportSidIdx
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklSimpleProdAction {
     const char *name;
@@ -148,7 +148,7 @@ typedef struct {
         fklUninitSymbolTable(&(V)->reachable_terminals);                       \
         fklUninitGrammer(&(V)->g);                                             \
     }
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     FklCodegenLibType type;
@@ -172,7 +172,7 @@ typedef struct {
 // FklCodegenLibVector
 #define FKL_VECTOR_ELM_TYPE FklCodegenLib
 #define FKL_VECTOR_ELM_TYPE_NAME CodegenLib
-#include "vector.h"
+#include "cont/vector.h"
 
 typedef enum {
     FKL_CODEGEN_PATTERN_BEGIN = 0,
@@ -401,7 +401,7 @@ typedef struct FklCodegenQuest {
 // FklCodegenQuestVector
 #define FKL_VECTOR_ELM_TYPE FklCodegenQuest *
 #define FKL_VECTOR_ELM_TYPE_NAME CodegenQuest
-#include "vector.h"
+#include "cont/vector.h"
 
 FklCodegenEnv *
 fklInitGlobalCodegenInfo(FklCodegenInfo *codegen, const char *rp,

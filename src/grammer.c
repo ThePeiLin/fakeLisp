@@ -1580,7 +1580,7 @@ int fklIsGrammerInited(const FklGrammer *g) {
 #define FKL_VECTOR_METHOD_PREFIX gra
 #define FKL_VECTOR_ELM_TYPE FklGrammerProduction *
 #define FKL_VECTOR_ELM_TYPE_NAME Prod
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 static inline int check_undefined_nonterm(FklGrammer *g,
                                           FklGrammerNonterm *nt) {
@@ -2236,14 +2236,14 @@ typedef struct GraGetLaFirstSetCacheItem {
                               / alignof(FklGrammerProduction),                 \
                           pk->idx);
 #define FKL_HASH_ELM_NAME LaFirstSetCache
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 // GraItemSetQueue
 #define FKL_QUEUE_TYPE_PREFIX Gra
 #define FKL_QUEUE_METHOD_PREFIX gra
 #define FKL_QUEUE_ELM_TYPE FklLalrItemSetHashMapElm *
 #define FKL_QUEUE_ELM_TYPE_NAME ItemSet
-#include <fakeLisp/queue.h>
+#include <fakeLisp/cont/queue.h>
 
 typedef struct {
     FklGrammerSym sym;
@@ -2316,7 +2316,7 @@ static inline uintptr_t gra_link_sym_hash(const GraLinkSym *ss) {
 #define FKL_HASH_KEY_EQUAL(A, B) gra_link_sym_equal(A, B)
 #define FKL_HASH_KEY_HASH return gra_link_sym_hash(pk)
 #define FKL_HASH_ELM_NAME Symbol
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 static inline int is_gra_link_sym_allow_ignore(const GraSymbolHashSet *checked,
                                                const FklGrammerNonterm left) {
@@ -2731,7 +2731,7 @@ void fklLr0ToLalrItems(FklLalrItemSetHashMap *lr0, FklGrammer *g) {
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
                           / alignof(FklLalrItemSetHashMapElm));
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 static inline void print_look_ahead_as_dot(FILE *fp,
                                            const FklLalrItemLookAhead *la,
@@ -3174,7 +3174,7 @@ static inline void add_ignore_action(FklGrammer *g,
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
                           / alignof(FklGrammerProduction));
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 static inline int
 is_only_single_way_to_reduce(const FklLalrItemSetHashMapElm *set) {
@@ -3446,7 +3446,7 @@ static inline int action_match_equal(const FklAnalysisStateActionMatch *m0,
 #define FKL_HASH_KEY_EQUAL(A, B) action_match_equal(A, B)
 #define FKL_HASH_KEY_HASH return action_match_hash_func(pk)
 #define FKL_HASH_ELM_NAME ActionMatch
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 static inline void init_analysis_table_header(GraActionMatchHashSet *la,
                                               FklNontermHashSet *nt,
@@ -4160,7 +4160,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, *pk)                        \
                           / alignof(FklLalrBuiltinMatch));
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 static inline void get_all_match_method_table(const FklGrammer *g,
                                               GraBtmHashSet *ptrSet) {

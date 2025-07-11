@@ -27,14 +27,14 @@ struct BdbBpInsHashMapElm;
 #define FKL_VECTOR_METHOD_PREFIX bdb
 #define FKL_VECTOR_ELM_TYPE FklVMframe *
 #define FKL_VECTOR_ELM_TYPE_NAME Frame
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 // BdbThreadVector
 #define FKL_VECTOR_TYPE_PREFIX Bdb
 #define FKL_VECTOR_METHOD_PREFIX bdb
 #define FKL_VECTOR_ELM_TYPE FklVM *
 #define FKL_VECTOR_ELM_TYPE_NAME Thread
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 typedef struct Breakpoint {
     struct Breakpoint **pnext;
@@ -76,7 +76,7 @@ typedef struct {
                           / alignof(FklInstruction));
 #define FKL_HASH_VAL_TYPE BdbCodepoint
 #define FKL_HASH_ELM_NAME BpIns
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 // BdbBpIdxHashMap
 #define FKL_HASH_TYPE_PREFIX Bdb
@@ -84,7 +84,7 @@ typedef struct {
 #define FKL_HASH_KEY_TYPE uint32_t
 #define FKL_HASH_VAL_TYPE Breakpoint *
 #define FKL_HASH_ELM_NAME BpIdx
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 typedef struct {
     BdbBpInsHashMap ins_ht;
@@ -109,7 +109,7 @@ typedef struct {
         fklStringVectorUninit(V);                                              \
     }
 #define FKL_HASH_ELM_NAME SourceCode
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 // BdbEnvHashMap
 #define FKL_HASH_TYPE_PREFIX Bdb
@@ -131,7 +131,7 @@ typedef struct {
         fklDestroyCodegenEnv(*(V));                                            \
     }
 #define FKL_HASH_ELM_NAME Env
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;

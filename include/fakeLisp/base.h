@@ -145,12 +145,12 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv);
 // FklUintVector
 #define FKL_VECTOR_ELM_TYPE uintmax_t
 #define FKL_VECTOR_ELM_TYPE_NAME Uint
-#include "vector.h"
+#include "cont/vector.h"
 
 // FklstringVector
 #define FKL_VECTOR_ELM_TYPE FklString *
 #define FKL_VECTOR_ELM_TYPE_NAME String
-#include "vector.h"
+#include "cont/vector.h"
 
 size_t fklBigIntToStringBuffer(const FklBigInt *a,
                                FklStringBuffer *string_buffer, uint8_t radix,

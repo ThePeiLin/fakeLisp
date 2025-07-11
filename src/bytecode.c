@@ -454,7 +454,7 @@ typedef struct ByteCodePrintState {
 #define FKL_VECTOR_METHOD_PREFIX bc
 #define FKL_VECTOR_ELM_TYPE ByteCodePrintState
 #define FKL_VECTOR_ELM_TYPE_NAME BcPrintState
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 static inline void push_bytecode_print_state(BcBcPrintStateVector *s,
                                              uint64_t tc, uint64_t cp,

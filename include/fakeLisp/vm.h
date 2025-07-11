@@ -354,7 +354,7 @@ typedef enum {
 // FklThreadQueue
 #define FKL_QUEUE_ELM_TYPE struct FklVM *
 #define FKL_QUEUE_ELM_TYPE_NAME Thread
-#include "queue.h"
+#include "cont/queue.h"
 
 typedef struct {
     uv_mutex_t pre_running_lock;
@@ -440,19 +440,19 @@ typedef struct FklVM {
 // FklVMvalueVector
 #define FKL_VECTOR_ELM_TYPE FklVMvalue *
 #define FKL_VECTOR_ELM_TYPE_NAME VMvalue
-#include "vector.h"
+#include "cont/vector.h"
 
 // FklVMpairVector
 #define FKL_VECTOR_ELM_TYPE FklVMpair
 #define FKL_VECTOR_ELM_TYPE_NAME VMpair
-#include "vector.h"
+#include "cont/vector.h"
 
 // FklVMvalueHashSet
 #define FKL_HASH_KEY_TYPE FklVMvalue const *
 #define FKL_HASH_ELM_NAME VMvalue
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklLineNumHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue const *
@@ -460,7 +460,7 @@ typedef struct FklVM {
 #define FKL_HASH_ELM_NAME LineNum
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef FklVMvalue *(*FklVMudCopyAppender)(FklVM *exe, const FklVMud *ud,
                                            uint32_t argc,
@@ -670,7 +670,7 @@ typedef struct {
     fprintf(stderr, "[%s: %d] calling %s is not allowed!\n", __FILE__,         \
             __LINE__, __FUNCTION__),                                           \
         abort(), 1
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     FklVMvalueHashMap ht;

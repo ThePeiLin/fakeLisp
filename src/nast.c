@@ -25,7 +25,7 @@ typedef struct {
 #define FKL_VECTOR_METHOD_PREFIX nast
 #define FKL_VECTOR_ELM_TYPE NodeSlotPair
 #define FKL_VECTOR_ELM_TYPE_NAME NodeSlotPair
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
     NastNodeSlotPairVector s;
@@ -315,7 +315,7 @@ static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
 #define FKL_VECTOR_METHOD_PREFIX nast
 #define FKL_VECTOR_ELM_TYPE PrintCtx
 #define FKL_VECTOR_ELM_TYPE_NAME PrintCtx
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 static void print_pair_ctx_init(PrintCtx *ctx, const FklNastNode *pair) {
     PrintPairCtx *pair_ctx = FKL_TYPE_CAST(PrintPairCtx *, ctx);

@@ -25,7 +25,7 @@ static inline void fklStrIdKeyFree(FklString *s) { fklZfree(s); }
     {                                                                          \
         fklStrIdKeyFree(*(K));                                                 \
     }
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklSymboTable {
     FklSid_t num;
@@ -78,17 +78,17 @@ typedef struct // unresolved symbol ref
 // FklUnReSymbolRefVector
 #define FKL_VECTOR_ELM_TYPE FklUnReSymbolRef
 #define FKL_VECTOR_ELM_TYPE_NAME UnReSymbolRef
-#include "vector.h"
+#include "cont/vector.h"
 
 // FklSidVector
 #define FKL_VECTOR_ELM_TYPE FklSid_t
 #define FKL_VECTOR_ELM_TYPE_NAME Sid
-#include "vector.h"
+#include "cont/vector.h"
 
 // FklSidHashSet
 #define FKL_HASH_KEY_TYPE FklSid_t
 #define FKL_HASH_ELM_NAME Sid
-#include "hash.h"
+#include "cont/hash.h"
 
 // FklSymDefHashMap
 #define FKL_HASH_KEY_TYPE FklSidScope
@@ -97,7 +97,7 @@ typedef struct // unresolved symbol ref
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct FklFuncPrototype {
     FklSymDefHashMapMutElm *refs;

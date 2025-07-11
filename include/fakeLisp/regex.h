@@ -66,7 +66,7 @@ typedef struct {
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
                           / alignof(FklRegexCode));
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     uint64_t num;
@@ -85,7 +85,7 @@ static inline void fklStrRegexKeyFree(FklString *s) { fklZfree(s); }
 #define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
 #define FKL_HASH_KEY_UNINIT(K) fklStrRegexKeyFree(*(K))
 #define FKL_HASH_VAL_UNINIT(V) fklRegexFree((V)->re)
-#include "hash.h"
+#include "cont/hash.h"
 
 typedef struct {
     FklStrRegexHashMap str_re;

@@ -380,7 +380,7 @@ typedef struct {
 #define FKL_HASH_ELM_NAME CircleHead
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 static inline void putValueInSet(VmCircleHeadHashMap *s, const FklVMvalue *v) {
     uint32_t num = s->count;
     vmCircleHeadHashMapPut2(s, v,
@@ -398,7 +398,7 @@ static inline void putValueInSet(VmCircleHeadHashMap *s, const FklVMvalue *v) {
 #define FKL_HASH_ELM_NAME ValueDegree
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include <fakeLisp/hash.h>
+#include <fakeLisp/cont/hash.h>
 
 static inline void inc_value_degree(VmValueDegreeHashMap *ht, FklVMvalue *v) {
     VmValueDegreeHashMapElm *degree_item =
@@ -817,7 +817,7 @@ static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
 #define FKL_VECTOR_METHOD_PREFIX vm
 #define FKL_VECTOR_ELM_TYPE PrintCtx
 #define FKL_VECTOR_ELM_TYPE_NAME PrintCtx
-#include <fakeLisp/vector.h>
+#include <fakeLisp/cont/vector.h>
 
 static inline void
 print_pair_ctx_init(PrintCtx *ctx, const FklVMvalue *pair,

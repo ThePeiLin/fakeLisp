@@ -72,7 +72,7 @@ int main() {
         int err = 0;
         FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(&st);
         FklNastNode *node =
-            fklParseWithTableForCstr(g, *pexp, &outerCtx, &st, &err);
+                fklParseWithTableForCstr(g, *pexp, &outerCtx, &st, &err);
         FKL_ASSERT(node && err == 0);
         fklPrintNastNode(node, stderr, &st);
         fputc('\n', stderr);

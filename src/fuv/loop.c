@@ -83,7 +83,7 @@ static FklVMudMetaTable FuvLoopMetaTable = {
 };
 
 static inline FklVMvalue *recover_error_scene(FklVM *exe,
-                                              struct FuvErrorRecoverData *rd) {
+        struct FuvErrorRecoverData *rd) {
     FklVMvalue **cur = rd->stack_values;
     FklVMvalue **end = &cur[rd->stack_values_num];
     for (; cur < end; cur++)
@@ -107,7 +107,7 @@ static void error_check_idle_close_cb(uv_handle_t *h) {
     fklLockThread(fuv_loop->data.exe);
     FklVM *exe = fuv_loop->data.exe;
     FklVMvalue *ev =
-        recover_error_scene(exe, &fuv_loop->data.error_recover_data);
+            recover_error_scene(exe, &fuv_loop->data.error_recover_data);
     FKL_VM_PUSH_VALUE(fuv_loop->data.exe, ev);
     longjmp(*fuv_loop->data.buf, FUV_RUN_ERR_OCCUR);
 }
@@ -128,12 +128,16 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
     }
     uv_loop_set_data(&fuv_loop->loop, &fuv_loop->data);
     uv_handle_set_data((uv_handle_t *)&fuv_loop->data.error_check_idle,
-                       fuv_loop);
+            fuv_loop);
     return v;
 }
 
-void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
-                      uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame) {
+void startErrorHandle(uv_loop_t *loop,
+        FuvLoopData *ldata,
+        FklVM *exe,
+        uint32_t sbp,
+        uint32_t stp,
+        FklVMframe *buttom_frame) {
     struct FuvErrorRecoverData *rd = &ldata->error_recover_data;
 
     FklVMframe *f = rd->frame;
@@ -146,8 +150,8 @@ void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
     rd->stack_values_num = exe->tp - stp;
 
     fklZfree(rd->stack_values);
-    rd->stack_values = fklCopyMemory(
-        &exe->base[stp], sizeof(FklVMvalue *) * rd->stack_values_num);
+    rd->stack_values = fklCopyMemory(&exe->base[stp],
+            sizeof(FklVMvalue *) * rd->stack_values_num);
 
     exe->bp = sbp;
     exe->tp = stp;
@@ -176,7 +180,7 @@ int isFuvLoop(FklVMvalue *v) {
 
 void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {
     FKL_ASSERT(isFuvLoop(loop_obj));
-	fuv_loop_remove_obj_ref(v);
+    fuv_loop_remove_obj_ref(v);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     v->next = fuv_loop->data.gclist;
     fuv_loop->data.gclist = v;

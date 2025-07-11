@@ -23,13 +23,15 @@ typedef struct {
 } FklByteCodeBuffer;
 
 typedef int (*FklRecomputeInsImmPredicate)(FklOpcode op);
-typedef int (*FklRecomputeInsImmFunc)(void *ctx, FklOpcode *opcode,
-                                      FklOpcodeMode *pmode,
-                                      FklInstructionArg *ins_arg);
+typedef int (*FklRecomputeInsImmFunc)(void *ctx,
+        FklOpcode *opcode,
+        FklOpcodeMode *pmode,
+        FklInstructionArg *ins_arg);
 
-void fklRecomputeInsImm(FklByteCodelnt *bcl, void *ctx,
-                        FklRecomputeInsImmPredicate p,
-                        FklRecomputeInsImmFunc func);
+void fklRecomputeInsImm(FklByteCodelnt *bcl,
+        void *ctx,
+        FklRecomputeInsImmPredicate p,
+        FklRecomputeInsImmFunc func);
 
 void fklInitByteCodeBuffer(FklByteCodeBuffer *buf, size_t capacity);
 FklByteCodeBuffer *fklCreateByteCodeBuffer(size_t capacity);
@@ -41,8 +43,11 @@ uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer *buf);
 
 FklByteCodelnt *fklCreateByteCodelntFromBuf(const FklByteCodeBuffer *);
 
-void fklByteCodeBufferPush(FklByteCodeBuffer *buf, const FklInstruction *ins,
-                           uint32_t line, uint32_t scope, FklSid_t fid);
+void fklByteCodeBufferPush(FklByteCodeBuffer *buf,
+        const FklInstruction *ins,
+        uint32_t line,
+        uint32_t scope,
+        FklSid_t fid);
 
 void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf, const FklByteCodelnt *);
 FklByteCodeBuffer *fklCreateByteCodeBufferWith(const FklByteCodelnt *);

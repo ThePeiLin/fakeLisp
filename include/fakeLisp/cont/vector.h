@@ -16,7 +16,7 @@
 #endif
 
 #ifndef FKL_VECTOR_INIT
-#define FKL_VECTOR_INIT {NULL, 0, 0, 0}
+#define FKL_VECTOR_INIT { NULL, 0, 0, 0 }
 #endif
 
 #ifndef FKL_VECTOR_ELM_TYPE
@@ -46,15 +46,15 @@ typedef struct NAME {
 
 #define METHOD(method_name)                                                    \
     CONCAT(CONCAT(CONCAT(FKL_VECTOR_METHOD_PREFIX, FKL_VECTOR_ELM_TYPE_NAME),  \
-                  Vector),                                                     \
-           method_name)
+                   Vector),                                                    \
+            method_name)
 
 static inline void METHOD(Init)(NAME *r, size_t size) {
     if (!size)
         r->base = NULL;
     else {
         r->base = (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_MALLOC(
-            size * sizeof(FKL_VECTOR_ELM_TYPE));
+                size * sizeof(FKL_VECTOR_ELM_TYPE));
         assert(r->base);
     }
     r->capacity = size;
@@ -86,14 +86,15 @@ static inline void METHOD(Reserve)(NAME *r, size_t size) {
     r->capacity <<= 1;
     if (r->capacity < size)
         r->capacity = size;
-    FKL_VECTOR_ELM_TYPE *nbase = (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(
-        r->base, r->capacity * sizeof(FKL_VECTOR_ELM_TYPE));
+    FKL_VECTOR_ELM_TYPE *nbase =
+            (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(r->base,
+                    r->capacity * sizeof(FKL_VECTOR_ELM_TYPE));
     assert(nbase);
     r->base = nbase;
 }
 
-static inline void METHOD(Resize)(NAME *r, size_t new_size,
-                                  FKL_VECTOR_ELM_TYPE const *v) {
+static inline void METHOD(
+        Resize)(NAME *r, size_t new_size, FKL_VECTOR_ELM_TYPE const *v) {
     if (new_size < r->size) {
         r->size = new_size;
     } else if (new_size == 0) {
@@ -113,8 +114,8 @@ static inline void METHOD(Resize)(NAME *r, size_t new_size,
     }
 }
 
-static inline FKL_VECTOR_ELM_TYPE *
-METHOD(PushBack)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
+static inline FKL_VECTOR_ELM_TYPE *METHOD(
+        PushBack)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     METHOD(Reserve)(r, r->size + 1);
     FKL_VECTOR_ELM_TYPE *p = &r->base[r->size++];
     if (data)
@@ -122,16 +123,16 @@ METHOD(PushBack)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     return p;
 }
 
-static inline FKL_VECTOR_ELM_TYPE *METHOD(PushBack2)(NAME *r,
-                                                     FKL_VECTOR_ELM_TYPE data) {
+static inline FKL_VECTOR_ELM_TYPE *METHOD(
+        PushBack2)(NAME *r, FKL_VECTOR_ELM_TYPE data) {
     METHOD(Reserve)(r, r->size + 1);
     FKL_VECTOR_ELM_TYPE *p = &r->base[r->size++];
     *p = data;
     return p;
 }
 
-static inline FKL_VECTOR_ELM_TYPE *
-METHOD(InsertFront)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
+static inline FKL_VECTOR_ELM_TYPE *METHOD(
+        InsertFront)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     METHOD(Reserve)(r, r->size + 1);
     memmove(r->base + 1, r->base, r->size * sizeof(FKL_VECTOR_ELM_TYPE));
     if (data)
@@ -140,8 +141,8 @@ METHOD(InsertFront)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     return r->base;
 }
 
-static inline FKL_VECTOR_ELM_TYPE *
-METHOD(InsertFront2)(NAME *r, FKL_VECTOR_ELM_TYPE data) {
+static inline FKL_VECTOR_ELM_TYPE *METHOD(
+        InsertFront2)(NAME *r, FKL_VECTOR_ELM_TYPE data) {
     METHOD(Reserve)(r, r->size + 1);
     memmove(r->base + 1, r->base, r->size * sizeof(FKL_VECTOR_ELM_TYPE));
     r->base[0] = data;
@@ -149,15 +150,16 @@ METHOD(InsertFront2)(NAME *r, FKL_VECTOR_ELM_TYPE data) {
     return r->base;
 }
 
-static inline FKL_VECTOR_ELM_TYPE *
-METHOD(Insert)(NAME *r, unsigned long idx, FKL_VECTOR_ELM_TYPE const *data) {
+static inline FKL_VECTOR_ELM_TYPE *METHOD(
+        Insert)(NAME *r, unsigned long idx, FKL_VECTOR_ELM_TYPE const *data) {
     if (idx == r->size)
         return METHOD(PushBack)(r, data);
     else if (idx == 0)
         return METHOD(InsertFront)(r, data);
     else {
         METHOD(Reserve)(r, r->size + 1);
-        memmove(r->base + idx + 1, r->base + idx,
+        memmove(r->base + idx + 1,
+                r->base + idx,
                 r->size * sizeof(FKL_VECTOR_ELM_TYPE));
         if (data)
             r->base[idx] = *data;
@@ -166,15 +168,16 @@ METHOD(Insert)(NAME *r, unsigned long idx, FKL_VECTOR_ELM_TYPE const *data) {
     }
 }
 
-static inline FKL_VECTOR_ELM_TYPE *METHOD(Insert2)(NAME *r, unsigned long idx,
-                                                   FKL_VECTOR_ELM_TYPE data) {
+static inline FKL_VECTOR_ELM_TYPE *METHOD(
+        Insert2)(NAME *r, unsigned long idx, FKL_VECTOR_ELM_TYPE data) {
     if (idx == r->size)
         return METHOD(PushBack2)(r, data);
     else if (idx == 0)
         return METHOD(InsertFront2)(r, data);
     else {
         METHOD(Reserve)(r, r->size + 1);
-        memmove(r->base + idx + 1, r->base + idx,
+        memmove(r->base + idx + 1,
+                r->base + idx,
                 r->size * sizeof(FKL_VECTOR_ELM_TYPE));
         r->base[idx] = data;
         ++r->size;
@@ -203,8 +206,8 @@ static inline FKL_VECTOR_ELM_TYPE *METHOD(BackNonNull)(const NAME *r) {
 static inline void METHOD(ShrinkToFit)(NAME *r) {
     if (r->size) {
         FKL_VECTOR_ELM_TYPE *nbase =
-            (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(
-                r->base, r->size * sizeof(FKL_VECTOR_ELM_TYPE));
+                (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(r->base,
+                        r->size * sizeof(FKL_VECTOR_ELM_TYPE));
         assert(nbase);
         r->base = nbase;
     } else {
@@ -217,8 +220,8 @@ static inline void METHOD(ShrinkToFit)(NAME *r) {
 static inline void METHOD(Shrink)(NAME *r, size_t s) {
     if (s >= r->size) {
         FKL_VECTOR_ELM_TYPE *nbase =
-            (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(
-                r->base, s * sizeof(FKL_VECTOR_ELM_TYPE));
+                (FKL_VECTOR_ELM_TYPE *)FKL_CONTAINER_REALLOC(r->base,
+                        s * sizeof(FKL_VECTOR_ELM_TYPE));
         assert(nbase);
         r->base = nbase;
         r->capacity = s;

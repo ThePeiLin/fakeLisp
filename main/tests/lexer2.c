@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const FklGrammerBuiltinAction builtin_actions[] = {{"symbol", NULL}};
+static const FklGrammerBuiltinAction builtin_actions[] = { { "symbol", NULL } };
 
 static inline const FklGrammerBuiltinAction *
 builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
@@ -15,13 +15,13 @@ builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
 }
 
 static char example_grammer_rules[] = //
-    ""
-    "S -> L \"=\" R => test\n"
-    "S -> R => test\n"
-    "L -> \"*\" R => test\n"
-    "L -> ?identifier => test\n"
-    "R -> L => test\n"
-    "";
+        ""
+        "S -> L \"=\" R => test\n"
+        "S -> R => test\n"
+        "L -> \"*\" R => test\n"
+        "L -> ?identifier => test\n"
+        "R -> L => test\n"
+        "";
 
 int main() {
     FklSymbolTable *st = fklCreateSymbolTable();
@@ -29,8 +29,11 @@ int main() {
     FklParserGrammerParseArg args;
     FklGrammer *g = fklCreateEmptyGrammer(st);
 
-    fklInitParserGrammerParseArg(&args, g, 1, builtin_prod_action_resolver,
-                                 NULL);
+    fklInitParserGrammerParseArg(&args,
+            g,
+            1,
+            builtin_prod_action_resolver,
+            NULL);
     int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
     if (err) {
         fklPrintParserGrammerParseError(err, &args, stderr);
@@ -43,7 +46,7 @@ int main() {
 
     fklUninitParserGrammerParseArg(&args);
 
-    FklGrammerNonterm nonterm = {0};
+    FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
         fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);

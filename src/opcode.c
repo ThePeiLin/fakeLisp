@@ -9,7 +9,7 @@ static struct {
     char *name;
     FklOpcodeMode mode;
 } opcodeInfo[FKL_OPCODE_NUM] = {
-#define X(A, B, C) {B, C},
+#define X(A, B, C) { B, C },
     FKL_OPCODE_X
 #undef X
 };

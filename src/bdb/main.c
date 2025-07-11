@@ -87,8 +87,10 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(argv_obj, is_string_list, exe);
     char *valid_filename = get_valid_file_name(FKL_VM_STR(filename_obj)->str);
     if (!valid_filename)
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE, exe,
-                                    "Failed for file: %s", filename_obj);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,
+                exe,
+                "Failed for file: %s",
+                filename_obj);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &DebugCtxUdMetaTable, ctx->proc);
     FKL_DECL_VM_UD_DATA(debug_ud, DebugCtx, ud);
     fklUnlockThread(exe);
@@ -138,7 +140,7 @@ static int bdb_debug_ctx_exit(FKL_CPROC_ARGL) {
 }
 
 static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
-                                                      FklStringBuffer *s) {
+        FklStringBuffer *s) {
     cc->offset = 0;
     fklStringBufferClear(s);
     s->buf[0] = '\0';
@@ -147,9 +149,9 @@ static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
     fklVMvaluePushState0ToStack(&cc->stateStack);
 }
 
-static inline const char *
-debug_ctx_replxx_input_string_buffer(Replxx *replxx, FklStringBuffer *buf,
-                                     const char *prompt) {
+static inline const char *debug_ctx_replxx_input_string_buffer(Replxx *replxx,
+        FklStringBuffer *buf,
+        const char *prompt) {
     const char *next = replxx_input(replxx, buf->index ? "" : prompt);
     if (next)
         fklStringBufferConcatWithCstr(buf, next);
@@ -158,8 +160,8 @@ debug_ctx_replxx_input_string_buffer(Replxx *replxx, FklStringBuffer *buf,
     return next;
 }
 
-static inline FklVMvalue *debug_ctx_replxx_input(FklVM *exe, DebugCtx *dctx,
-                                                 const char *prompt) {
+static inline FklVMvalue *
+debug_ctx_replxx_input(FklVM *exe, DebugCtx *dctx, const char *prompt) {
     CmdReadCtx *ctx = &dctx->read_ctx;
     FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
     FklStringBuffer *s = &ctx->buf;
@@ -173,10 +175,16 @@ static inline FklVMvalue *debug_ctx_replxx_input(FklVM *exe, DebugCtx *dctx,
         fklLockThread(exe);
         size_t restLen = fklStringBufferLen(s) - ctx->offset;
 
-        FklVMvalue *ast = fklDefaultParseForCharBuf(
-            fklStringBufferBody(s) + ctx->offset, restLen, &restLen, &outerCtx,
-            &err, &errLine, &ctx->symbolStack, &ctx->lineStack,
-            &ctx->stateStack);
+        FklVMvalue *ast =
+                fklDefaultParseForCharBuf(fklStringBufferBody(s) + ctx->offset,
+                        restLen,
+                        &restLen,
+                        &outerCtx,
+                        &err,
+                        &errLine,
+                        &ctx->symbolStack,
+                        &ctx->lineStack,
+                        &ctx->stateStack);
 
         ctx->offset = fklStringBufferLen(s) - restLen;
 
@@ -184,7 +192,8 @@ static inline FklVMvalue *debug_ctx_replxx_input(FklVM *exe, DebugCtx *dctx,
             dctx->exit = 1;
             return fklGetVMvalueEof();
         } else if ((err == FKL_PARSE_WAITING_FOR_MORE
-                    || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen))
+                           || (err == FKL_PARSE_TERMINAL_MATCH_FAILED
+                                   && !restLen))
                    && is_eof) {
             debug_repl_parse_ctx_and_buf_reset(ctx, s);
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF, exe);
@@ -215,8 +224,9 @@ static int bdb_debug_ctx_repl(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(prompt_obj, FKL_IS_STR, exe);
 
     FKL_DECL_VM_UD_DATA(debug_ctx_ud, DebugCtx, debug_ctx_obj);
-    FklVMvalue *cmd =
-        debug_ctx_replxx_input(exe, debug_ctx_ud, FKL_VM_STR(prompt_obj)->str);
+    FklVMvalue *cmd = debug_ctx_replxx_input(exe,
+            debug_ctx_ud,
+            FKL_VM_STR(prompt_obj)->str);
     FKL_CPROC_RETURN(exe, ctx, cmd);
     return 0;
 }
@@ -237,12 +247,14 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL) {
             const FklString *line_str = getCurLineStr(dctx, ln->fid, ln->line);
             if (line_str) {
                 FklVMvalue *line_str_value = fklCreateVMvalueStr(exe, line_str);
-                FklVMvalue *file_str_value = fklCreateVMvalueStr(
-                    exe, fklGetSymbolWithId(ln->fid, dctx->st)->k);
+                FklVMvalue *file_str_value = fklCreateVMvalueStr(exe,
+                        fklGetSymbolWithId(ln->fid, dctx->st)->k);
 
                 FklVMvalue *line_num_value = FKL_MAKE_VM_FIX(ln->line);
-                FklVMvalue *r = fklCreateVMvalueVec3(
-                    exe, file_str_value, line_num_value, line_str_value);
+                FklVMvalue *r = fklCreateVMvalueVec3(exe,
+                        file_str_value,
+                        line_num_value,
+                        line_str_value);
 
                 FKL_CPROC_RETURN(exe, ctx, r);
             } else
@@ -255,20 +267,23 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *create_breakpoint_vec(FklVM *exe, DebugCtx *dctx,
-                                                const Breakpoint *bp) {
+static inline FklVMvalue *
+create_breakpoint_vec(FklVM *exe, DebugCtx *dctx, const Breakpoint *bp) {
     FklVMvalue *filename =
-        fklCreateVMvalueStr(exe, fklGetSymbolWithId(bp->fid, dctx->st)->k);
+            fklCreateVMvalueStr(exe, fklGetSymbolWithId(bp->fid, dctx->st)->k);
     FklVMvalue *line = FKL_MAKE_VM_FIX(bp->line);
     FklVMvalue *num = FKL_MAKE_VM_FIX(bp->idx);
 
-    FklVMvalue *r = fklCreateVMvalueVec6(
-        exe, num, filename, line,
-        bp->cond_exp_obj ? fklCreateVMvalueBox(exe, bp->cond_exp_obj)
-                         : FKL_VM_NIL,
-        fklMakeVMuint(bp->count, exe),
-        fklCreateVMvaluePair(exe, bp->is_disabled ? FKL_VM_NIL : FKL_VM_TRUE,
-                             bp->is_temporary ? FKL_VM_TRUE : FKL_VM_NIL));
+    FklVMvalue *r = fklCreateVMvalueVec6(exe,
+            num,
+            filename,
+            line,
+            bp->cond_exp_obj ? fklCreateVMvalueBox(exe, bp->cond_exp_obj)
+                             : FKL_VM_NIL,
+            fklMakeVMuint(bp->count, exe),
+            fklCreateVMvaluePair(exe,
+                    bp->is_disabled ? FKL_VM_NIL : FKL_VM_TRUE,
+                    bp->is_temporary ? FKL_VM_TRUE : FKL_VM_NIL));
     return r;
 }
 
@@ -314,7 +329,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
     } else if (r == DBG_ERROR_OCCUR) {
         dctx->done = 1;
         fputs("*** Unhandled error occured. The program will restart ***\n",
-              stderr);
+                stderr);
     } else {
         if (dctx->running) {
             dctx->reached_breakpoint = NULL;
@@ -329,11 +344,11 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
     }
     dctx->jmpb = NULL;
     fklLockThread(exe);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        dctx->reached_breakpoint
-            ? create_breakpoint_vec(exe, dctx, dctx->reached_breakpoint)
-            : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            dctx->reached_breakpoint
+                    ? create_breakpoint_vec(exe, dctx, dctx->reached_breakpoint)
+                    : FKL_VM_NIL);
     return 0;
 }
 
@@ -370,11 +385,11 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
 
     if (FKL_IS_SYM(file_line_sym_obj)) {
-        FklSid_t id = fklAddSymbol(fklVMgetSymbolWithId(
-                                       exe->gc, FKL_GET_SYM(file_line_sym_obj))
-                                       ->k,
-                                   dctx->st)
-                          ->v;
+        FklSid_t id = fklAddSymbol(
+                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(file_line_sym_obj))
+                        ->k,
+                dctx->st)
+                              ->v;
         item = putBreakpointForProcedure(dctx, id);
         if (item)
             goto done;
@@ -402,7 +417,8 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
             fklZfree(rp);
         } else {
             char *filename_with_dir = fklStrCat(
-                fklZstrdup(dctx->outer_ctx.main_file_real_path_dir), str->str);
+                    fklZstrdup(dctx->outer_ctx.main_file_real_path_dir),
+                    str->str);
             if (fklIsAccessibleRegFile(str->str))
                 fid = fklAddSymbolCstr(filename_with_dir, dctx->st)->v;
             fklZfree(filename_with_dir);
@@ -415,17 +431,21 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
 
 done:
     cond_exp_obj = argc > cond_exp_obj_idx
-                     ? FKL_CPROC_GET_ARG(exe, ctx, cond_exp_obj_idx)
-                     : NULL;
+                         ? FKL_CPROC_GET_ARG(exe, ctx, cond_exp_obj_idx)
+                         : NULL;
     if (item) {
         if (cond_exp_obj) {
-            FklNastNode *expression = fklCreateNastNodeFromVMvalue(
-                cond_exp_obj, dctx->curline, NULL, exe->gc);
+            FklNastNode *expression = fklCreateNastNodeFromVMvalue(cond_exp_obj,
+                    dctx->curline,
+                    NULL,
+                    exe->gc);
             if (!expression)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF, exe);
             fklVMacquireSt(exe->gc);
-            fklRecomputeSidForNastNode(expression, exe->gc->st, dctx->st,
-                                       FKL_CODEGEN_SID_RECOMPUTE_NONE);
+            fklRecomputeSidForNastNode(expression,
+                    exe->gc->st,
+                    dctx->st,
+                    FKL_CODEGEN_SID_RECOMPUTE_NONE);
             fklVMreleaseSt(exe->gc);
             item->cond_exp = expression;
         }
@@ -435,9 +455,10 @@ done:
         FKL_CPROC_RETURN(exe, ctx, create_breakpoint_vec(exe, dctx, item));
     } else {
     error:
-        FKL_CPROC_RETURN(
-            exe, ctx,
-            fklCreateVMvalueStrFromCstr(exe, getPutBreakpointErrorInfo(err)));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueStrFromCstr(exe,
+                        getPutBreakpointErrorInfo(err)));
     }
     return 0;
 }
@@ -452,11 +473,11 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (BdbBpIdxHashMapNode *list = dctx->bt.idx_ht.first; list;
-         list = list->next) {
+            list = list->next) {
         Breakpoint *item = list->v;
 
-        *pr = fklCreateVMvaluePairWithCar(
-            exe, create_breakpoint_vec(exe, dctx, item));
+        *pr = fklCreateVMvaluePairWithCar(exe,
+                create_breakpoint_vec(exe, dctx, item));
         pr = &FKL_VM_CDR(*pr);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -560,16 +581,16 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
         else {
             uint32_t curline_num = line_num;
             const FklString *line_str =
-                dctx->curfile_lines->base[curline_num - 1];
+                    dctx->curfile_lines->base[curline_num - 1];
 
             FklVMvalue *num_val = FKL_MAKE_VM_FIX(curline_num);
             FklVMvalue *is_cur_line =
-                curline_num == dctx->curline ? FKL_VM_TRUE : FKL_VM_NIL;
+                    curline_num == dctx->curline ? FKL_VM_TRUE : FKL_VM_NIL;
             FklVMvalue *str_val = fklCreateVMvalueStr(exe, line_str);
 
-            FKL_CPROC_RETURN(
-                exe, ctx,
-                fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
+            FKL_CPROC_RETURN(exe,
+                    ctx,
+                    fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
         }
     } else if (dctx->curlist_line <= dctx->curfile_lines->size) {
         uint32_t curline_num = dctx->curlist_line;
@@ -577,11 +598,12 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
 
         FklVMvalue *num_val = FKL_MAKE_VM_FIX(curline_num);
         FklVMvalue *is_cur_line =
-            curline_num == dctx->curline ? FKL_VM_TRUE : FKL_VM_NIL;
+                curline_num == dctx->curline ? FKL_VM_TRUE : FKL_VM_NIL;
         FklVMvalue *str_val = fklCreateVMvalueStr(exe, line_str);
 
-        FKL_CPROC_RETURN(
-            exe, ctx, fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
     } else
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
@@ -605,8 +627,9 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
         fid = fklAddSymbolCstr(rp, dctx->st)->v;
         fklZfree(rp);
     } else {
-        char *filename_with_dir = fklStrCat(
-            fklZstrdup(dctx->outer_ctx.main_file_real_path_dir), str->str);
+        char *filename_with_dir =
+                fklStrCat(fklZstrdup(dctx->outer_ctx.main_file_real_path_dir),
+                        str->str);
         if (fklIsAccessibleRegFile(str->str))
             fid = fklAddSymbolCstr(filename_with_dir, dctx->st)->v;
         fklZfree(filename_with_dir);
@@ -627,13 +650,14 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
 
         FklVMvalue *num_val = FKL_MAKE_VM_FIX(target_line);
         FklVMvalue *is_cur_line =
-            (fid == dctx->curline_file && target_line == dctx->curline)
-                ? FKL_VM_TRUE
-                : FKL_VM_NIL;
+                (fid == dctx->curline_file && target_line == dctx->curline)
+                        ? FKL_VM_TRUE
+                        : FKL_VM_NIL;
         FklVMvalue *str_val = fklCreateVMvalueStr(exe, line_str);
 
-        FKL_CPROC_RETURN(
-            exe, ctx, fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueVec3(exe, num_val, is_cur_line, str_val));
     }
     return 0;
 }
@@ -699,8 +723,8 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *
-get_byte_code_frame_and_reset(DebugCtx *ctx, FklInstruction const **ppc) {
+static inline FklVMvalue *get_byte_code_frame_and_reset(DebugCtx *ctx,
+        FklInstruction const **ppc) {
     FklVMvalue *bc = NULL;
     FklVMframe *curframe = getCurrentFrame(ctx);
     for (; curframe; curframe = curframe->prev) {
@@ -719,17 +743,18 @@ get_byte_code_frame_and_reset(DebugCtx *ctx, FklInstruction const **ppc) {
     return bc;
 }
 
-static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
-                                         FklVMvalue *num_val,
-                                         FklVMvalue *is_cur_ins,
-                                         const FklInstruction *ins) {
+static inline FklVMvalue *create_ins_vec(FklVM *exe,
+        DebugCtx *dctx,
+        FklVMvalue *num_val,
+        FklVMvalue *is_cur_ins,
+        const FklInstruction *ins) {
     FklVMvalue *opcode_str =
-        fklCreateVMvalueStrFromCstr(exe, fklGetOpcodeName(ins->op));
+            fklCreateVMvalueStrFromCstr(exe, fklGetOpcodeName(ins->op));
     FklVMvalue *imm1 = NULL;
     FklVMvalue *imm2 = NULL;
     FklOpcode op = ins->op == FKL_OP_DUMMY
-                     ? getBreakpointHashItem(dctx, ins)->origin_op
-                     : ins->op;
+                         ? getBreakpointHashItem(dctx, ins)->origin_op
+                         : ins->op;
     FklOpcodeMode mode = fklGetOpcodeMode(op);
     FklInstructionArg arg;
     fklGetInsOpArgWithOp(op, ins, &arg);
@@ -769,7 +794,8 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
     case FKL_OP_PUSH_SYM_C:
     case FKL_OP_PUSH_SYM_X: {
         FklSid_t id =
-            fklVMaddSymbol(exe->gc, fklGetSymbolWithId(arg.ux, dctx->st)->k)->v;
+                fklVMaddSymbol(exe->gc, fklGetSymbolWithId(arg.ux, dctx->st)->k)
+                        ->v;
         imm1 = FKL_MAKE_VM_SYM(id);
     } break;
 
@@ -785,9 +811,9 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
     case FKL_OP_BVEC:
     case FKL_OP_BOX:
     case FKL_OP_HASH:
-        imm1 = fklCreateVMvalueBox(
-            exe,
-            fklCreateVMvalueStrFromCstr(exe, fklGetSubOpcodeName(op, arg.ix)));
+        imm1 = fklCreateVMvalueBox(exe,
+                fklCreateVMvalueStrFromCstr(exe,
+                        fklGetSubOpcodeName(op, arg.ix)));
         break;
 
     default:
@@ -838,8 +864,11 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
     case FKL_OP_MODE_IsBB:
     case FKL_OP_MODE_IuCCB:
     case FKL_OP_MODE_IsCCB:
-        retval =
-            fklCreateVMvalueVec4(exe, num_val, is_cur_ins, opcode_str, imm1);
+        retval = fklCreateVMvalueVec4(exe,
+                num_val,
+                is_cur_ins,
+                opcode_str,
+                imm1);
         break;
     case FKL_OP_MODE_IsAuB:
     case FKL_OP_MODE_IuAuB:
@@ -848,8 +877,12 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe, DebugCtx *dctx,
     case FKL_OP_MODE_IuCAuBCC:
 
     case FKL_OP_MODE_IxAxB:
-        retval = fklCreateVMvalueVec5(exe, num_val, is_cur_ins, opcode_str,
-                                      imm1, imm2);
+        retval = fklCreateVMvalueVec5(exe,
+                num_val,
+                is_cur_ins,
+                opcode_str,
+                imm1,
+                imm2);
         break;
     }
     return retval;
@@ -885,11 +918,11 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL) {
 
                 FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);
                 FklVMvalue *is_cur_ins =
-                    cur_pc == ins_pc ? FKL_VM_TRUE : FKL_VM_NIL;
+                        cur_pc == ins_pc ? FKL_VM_TRUE : FKL_VM_NIL;
 
-                FKL_CPROC_RETURN(
-                    exe, ctx,
-                    create_ins_vec(exe, dctx, num_val, is_cur_ins, ins));
+                FKL_CPROC_RETURN(exe,
+                        ctx,
+                        create_ins_vec(exe, dctx, num_val, is_cur_ins, ins));
             }
         }
     } else if (dctx->curlist_ins_pc < bc->len) {
@@ -899,8 +932,9 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL) {
         FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);
         FklVMvalue *is_cur_ins = cur_pc == ins_pc ? FKL_VM_TRUE : FKL_VM_NIL;
 
-        FKL_CPROC_RETURN(exe, ctx,
-                         create_ins_vec(exe, dctx, num_val, is_cur_ins, ins));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                create_ins_vec(exe, dctx, num_val, is_cur_ins, ins));
     } else
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
@@ -943,8 +977,9 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL) {
             FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);
             FklVMvalue *is_cur_ins = FKL_VM_TRUE;
 
-            FKL_CPROC_RETURN(
-                exe, ctx, create_ins_vec(exe, dctx, num_val, is_cur_ins, ins));
+            FKL_CPROC_RETURN(exe,
+                    ctx,
+                    create_ins_vec(exe, dctx, num_val, is_cur_ins, ins));
         } else
             FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     } else
@@ -975,24 +1010,34 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
     else {
         FklVMframe *cur_frame = getCurrentFrame(dctx);
         for (; cur_frame && cur_frame->type == FKL_FRAME_OTHEROBJ;
-             cur_frame = cur_frame->prev)
+                cur_frame = cur_frame->prev)
             ;
 
         if (cur_frame) {
             EvalCompileErr err = 0;
-            FklNastNode *expression = fklCreateNastNodeFromVMvalue(
-                expression_obj, dctx->curline, NULL, exe->gc);
+            FklNastNode *expression =
+                    fklCreateNastNodeFromVMvalue(expression_obj,
+                            dctx->curline,
+                            NULL,
+                            exe->gc);
             if (!expression)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF, exe);
             fklVMacquireSt(exe->gc);
-            fklRecomputeSidForNastNode(expression, exe->gc->st, dctx->st,
-                                       FKL_CODEGEN_SID_RECOMPUTE_NONE);
+            fklRecomputeSidForNastNode(expression,
+                    exe->gc->st,
+                    dctx->st,
+                    FKL_CODEGEN_SID_RECOMPUTE_NONE);
             fklVMreleaseSt(exe->gc);
-            FklVMvalue *proc = compileEvalExpression(
-                dctx, dctx->reached_thread, expression, cur_frame, &err);
+            FklVMvalue *proc = compileEvalExpression(dctx,
+                    dctx->reached_thread,
+                    expression,
+                    cur_frame,
+                    &err);
             if (proc) {
-                FklVMvalue *value =
-                    callEvalProc(dctx, dctx->reached_thread, proc, cur_frame);
+                FklVMvalue *value = callEvalProc(dctx,
+                        dctx->reached_thread,
+                        proc,
+                        cur_frame);
                 if (value) {
                     fputs(";=> ", stdout);
                     fklPrin1VMvalue(value, stdout, dctx->gc);
@@ -1045,7 +1090,7 @@ static int bdb_debug_ctx_up(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(dctx, DebugCtx, obj);
 
     if (dctx->reached_thread
-        && dctx->curframe_idx < dctx->reached_thread_frames.size) {
+            && dctx->curframe_idx < dctx->reached_thread_frames.size) {
         dctx->curframe_idx++;
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_TRUE);
     } else
@@ -1144,10 +1189,10 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -1159,7 +1204,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;

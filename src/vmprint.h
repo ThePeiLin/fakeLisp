@@ -50,9 +50,9 @@
 #error "PUT_ATOMIC_METHOD and PUT_ATOMIC_METHOD_ARG should be defined"
 #endif
 
-static inline int
-METHOD(print_circle_head)(OUTPUT_TYPE result, const FklVMvalue *v,
-                          const VmCircleHeadHashMap *circle_head_set) {
+static inline int METHOD(print_circle_head)(OUTPUT_TYPE result,
+        const FklVMvalue *v,
+        const VmCircleHeadHashMap *circle_head_set) {
     PrtSt *item = vmCircleHeadHashMapGet2(circle_head_set, v);
     if (item) {
         if (item->printed) {
@@ -66,8 +66,8 @@ METHOD(print_circle_head)(OUTPUT_TYPE result, const FklVMvalue *v,
     return 0;
 }
 
-static inline const FklVMvalue *METHOD(print_method)(PrintCtx *ctx,
-                                                     OUTPUT_TYPE buf) {
+static inline const FklVMvalue *METHOD(
+        print_method)(PrintCtx *ctx, OUTPUT_TYPE buf) {
 #define pair_ctx (FKL_TYPE_CAST(PrintPairCtx *, ctx))
 #define vec_ctx (FKL_TYPE_CAST(PrintVectorCtx *, ctx))
 #define hash_ctx (FKL_TYPE_CAST(PrintHashCtx *, ctx))
@@ -115,7 +115,9 @@ first_call:
         r = hash_ctx->cur->k;
         break;
     default:
-        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
+        fprintf(stderr,
+                "[ERROR %s: %u]\tunreachable \n",
+                __FUNCTION__,
                 __LINE__);
         abort();
         break;
@@ -130,7 +132,7 @@ cont_call:
             return NULL;
         } else if (FKL_IS_PAIR(pair_ctx->cur)) {
             if (vmCircleHeadHashMapGet2(pair_ctx->circle_head_set,
-                                        pair_ctx->cur))
+                        pair_ctx->cur))
                 goto print_cdr;
             PUTC(buf, ' ');
             r = FKL_VM_CAR(pair_ctx->cur);
@@ -180,7 +182,9 @@ cont_call:
         }
         break;
     default:
-        fprintf(stderr, "[ERROR %s: %u]\tunreachable \n", __FUNCTION__,
+        fprintf(stderr,
+                "[ERROR %s: %u]\tunreachable \n",
+                __FUNCTION__,
                 __LINE__);
         abort();
         break;
@@ -193,11 +197,13 @@ cont_call:
 #undef hash_table
 }
 
-static inline void NAME(const FklVMvalue *v, OUTPUT_TYPE result,
-                        PUT_ATOMIC_METHOD_ARG, FklVMgc *gc) {
+static inline void NAME(const FklVMvalue *v,
+        OUTPUT_TYPE result,
+        PUT_ATOMIC_METHOD_ARG,
+        FklVMgc *gc) {
     LOCAL_VAR;
     if (!FKL_IS_VECTOR(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
-        && !FKL_IS_HASHTABLE(v)) {
+            && !FKL_IS_HASHTABLE(v)) {
         PUT_ATOMIC_METHOD(result, v, gc);
         UNINIT_LOCAL_VAR;
         return;

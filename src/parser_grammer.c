@@ -13,10 +13,10 @@ static struct DelimMatching {
     const char *s;
     ssize_t l;
 } SortedTerminals[] = {
-#define X(T) {T, sizeof(T) - 1},
+#define X(T) { T, sizeof(T) - 1 },
     FKL_PG_SORTED_DELIMS
 #undef X
-    {NULL, 0},
+    { NULL, 0 },
 };
 
 typedef enum TokenType {
@@ -40,10 +40,10 @@ static struct OperatorMatching {
     ssize_t l;
     TokenType t;
 } SortedOperators[] = {
-#define X(T, Y) {T, sizeof(T) - 1, TOKEN_##Y},
+#define X(T, Y) { T, sizeof(T) - 1, TOKEN_##Y },
     FKL_PG_SORTED_OPERATORS
 #undef X
-    {NULL, 0, TOKEN_NONE},
+    { NULL, 0, TOKEN_NONE },
 };
 
 typedef struct Token {
@@ -70,8 +70,8 @@ static inline const char *skip_comment(const char *buf, const char *const end) {
     return buf;
 }
 
-static inline const char *skip_ignore(size_t *line, const char *buf,
-                                      const char *const end) {
+static inline const char *
+skip_ignore(size_t *line, const char *buf, const char *const end) {
     const char *start = buf;
     while (buf < end) {
         if (isspace(*buf))
@@ -94,8 +94,8 @@ static inline const char *skip_ignore(size_t *line, const char *buf,
 #define ERR_UNRESOLVED_BUILTIN_TERMINAL (7)
 #define ERR_BUILTIN_TERMINAL_INIT_FAILED (8)
 
-static inline int get_string_token(Token *t, const char *buf,
-                                   const char *const end) {
+static inline int
+get_string_token(Token *t, const char *buf, const char *const end) {
     const char *start = buf++;
     size_t len = 1;
     while (buf < end) {
@@ -124,8 +124,8 @@ create_token:
     return 0;
 }
 
-static inline int get_keyword_token(Token *t, const char *buf,
-                                    const char *const end) {
+static inline int
+get_keyword_token(Token *t, const char *buf, const char *const end) {
     const char *start = buf++;
     size_t len = 1;
     while (buf < end) {
@@ -154,8 +154,8 @@ create_token:
     return 0;
 }
 
-static inline int get_regex_token(Token *t, const char *buf,
-                                  const char *const end) {
+static inline int
+get_regex_token(Token *t, const char *buf, const char *const end) {
     const char *start = buf++;
     size_t len = 1;
     while (buf < end) {
@@ -193,8 +193,8 @@ static inline int match_delims(const char *buf, const char *const end) {
     return 0;
 }
 
-static inline void get_identifier_token(Token *t, const char *buf,
-                                        const char *const end) {
+static inline void
+get_identifier_token(Token *t, const char *buf, const char *const end) {
     const char *start = buf;
     size_t len = 0;
     while (buf < end) {
@@ -211,10 +211,12 @@ static inline void get_identifier_token(Token *t, const char *buf,
     t->str = start;
 }
 
-static inline Token next_token(FklParserGrammerParseArg *arg, int *err,
-                               const char **pbuf, const char *const end) {
+static inline Token next_token(FklParserGrammerParseArg *arg,
+        int *err,
+        const char **pbuf,
+        const char *const end) {
     *err = 0;
-    Token t = {.type = TOKEN_NONE};
+    Token t = { .type = TOKEN_NONE };
     const char *buf = *pbuf;
     if (buf >= end)
         return t;
@@ -248,7 +250,7 @@ static inline Token next_token(FklParserGrammerParseArg *arg, int *err,
 }
 
 static inline void unexpected_token_error(FklParserGrammerParseArg *arg,
-                                          const Token *t) {
+        const Token *t) {
 
     arg->errline = t->line;
     FklStringBuffer *buf = &arg->error_msg;
@@ -257,16 +259,16 @@ static inline void unexpected_token_error(FklParserGrammerParseArg *arg,
 }
 
 static inline void unresolved_action_name_error(FklParserGrammerParseArg *arg,
-                                                const Token *t) {
+        const Token *t) {
     arg->errline = t->line;
     FklStringBuffer *buf = &arg->error_msg;
     fklStringBufferPrintf(buf, "unresolved action name: ");
     fklStringBufferBincpy(buf, t->str, t->len);
 }
 
-static inline void
-unresolved_builtin_terminal_error(FklParserGrammerParseArg *arg,
-                                  const Token *t) {
+static inline void unresolved_builtin_terminal_error(
+        FklParserGrammerParseArg *arg,
+        const Token *t) {
     arg->errline = t->line;
     FklStringBuffer *buf = &arg->error_msg;
     fklStringBufferPrintf(buf, "unresolved builtin terminal: ");
@@ -274,17 +276,17 @@ unresolved_builtin_terminal_error(FklParserGrammerParseArg *arg,
 }
 
 static inline void invalid_left_part_error(FklParserGrammerParseArg *arg,
-                                           const Token *t) {
+        const Token *t) {
     arg->errline = t->line;
     FklStringBuffer *buf = &arg->error_msg;
     fklStringBufferPrintf(buf, "invalid production rule left part: ");
     fklStringBufferBincpy(buf, t->str, t->len);
 }
 
-static inline void
-builtin_terminal_init_failed_error(FklBuiltinTerminalInitError err,
-                                   FklParserGrammerParseArg *arg,
-                                   const Token *t) {
+static inline void builtin_terminal_init_failed_error(
+        FklBuiltinTerminalInitError err,
+        FklParserGrammerParseArg *arg,
+        const Token *t) {
     arg->errline = t->line;
     FklStringBuffer *buf = &arg->error_msg;
     fklStringBufferPrintf(buf, "failed to init builtin terminal: ");
@@ -293,8 +295,9 @@ builtin_terminal_init_failed_error(FklBuiltinTerminalInitError err,
 }
 
 static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,
-                                                int *err, const char *buf,
-                                                const char *const end) {
+        int *err,
+        const char *buf,
+        const char *const end) {
     Token token = next_token(arg, err, &buf, end);
     if (*err)
         return NULL;
@@ -309,8 +312,9 @@ static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,
         size_t const start_size = sizeof(FKL_PG_DELIM_STRING) - 1;
         size_t const end_size = start_size;
         size_t len = 0;
-        char *str = fklCastEscapeCharBuf(
-            &token.str[start_size], token.len - end_size - start_size, &len);
+        char *str = fklCastEscapeCharBuf(&token.str[start_size],
+                token.len - end_size - start_size,
+                &len);
         fklAddSymbolCharBuf(str, len, &arg->g->terminals);
         fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
         fklZfree(str);
@@ -326,8 +330,10 @@ static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,
     return buf;
 }
 
-static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
-                                       const char *buf, const char *const end) {
+static inline const char *parse_ignore(FklParserGrammerParseArg *arg,
+        int *err,
+        const char *buf,
+        const char *const end) {
     FklSymbolTable *terminals = &arg->g->terminals;
     FklRegexTable *regexes = &arg->g->regexes;
     Token token = next_token(arg, err, &buf, end);
@@ -343,7 +349,7 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
     fklGraSymVectorInit(&gsym_vector, 2);
 
     for (; buf < end;) {
-        FklGrammerSym s = {.type = FKL_TERM_STRING};
+        FklGrammerSym s = { .type = FKL_TERM_STRING };
         Token token = next_token(arg, err, &buf, end);
         if (*err)
             goto error_happened;
@@ -357,15 +363,17 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
                 *err = ERR_UNEXPECTED_TOKEN;
                 unexpected_token_error(arg, &token);
                 goto error_happened;
-            } else if (MATCH_DELIM(token.str, token.str + token.len,
-                                   FKL_PG_TERMINALS)) {
+            } else if (MATCH_DELIM(token.str,
+                               token.str + token.len,
+                               FKL_PG_TERMINALS)) {
                 *err = ERR_UNEXPECTED_TOKEN;
                 unexpected_token_error(arg, &token);
                 goto error_happened;
             }
 
-            if (MATCH_DELIM(token.str, token.str + token.len,
-                            FKL_PG_SPECIAL_PREFIX)) {
+            if (MATCH_DELIM(token.str,
+                        token.str + token.len,
+                        FKL_PG_SPECIAL_PREFIX)) {
                 FKL_UNREACHABLE();
             } else {
                 *err = ERR_UNEXPECTED_TOKEN;
@@ -378,9 +386,9 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
             size_t const start_size = sizeof(FKL_PG_DELIM_STRING) - 1;
             size_t const end_size = start_size;
             size_t len = 0;
-            char *str =
-                fklCastEscapeCharBuf(&token.str[start_size],
-                                     token.len - end_size - start_size, &len);
+            char *str = fklCastEscapeCharBuf(&token.str[start_size],
+                    token.len - end_size - start_size,
+                    &len);
             s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
             fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
             fklZfree(str);
@@ -390,9 +398,9 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
             size_t const start_size = sizeof(FKL_PG_DELIM_REGEX) - 1;
             size_t const end_size = start_size;
             s.type = FKL_TERM_REGEX;
-            const FklRegexCode *re =
-                fklAddRegexCharBuf(regexes, &token.str[start_size],
-                                   token.len - end_size - start_size);
+            const FklRegexCode *re = fklAddRegexCharBuf(regexes,
+                    &token.str[start_size],
+                    token.len - end_size - start_size);
             s.re = re;
         } break;
 
@@ -418,8 +426,9 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg, int *err,
     }
 
 loop_break:;
-    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(
-        gsym_vector.base, gsym_vector.size, terminals);
+    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(gsym_vector.base,
+            gsym_vector.size,
+            terminals);
 
     if (fklAddIgnoreToIgnoreList(&arg->g->ignores, ig)) {
         fklDestroyIgnore(ig);
@@ -447,9 +456,10 @@ error_happened:
 }
 
 static inline const char *parse_builtin_args(FklGrammerSym *s,
-                                             FklParserGrammerParseArg *arg,
-                                             int *err, const char *buf,
-                                             const char *const end) {
+        FklParserGrammerParseArg *arg,
+        int *err,
+        const char *buf,
+        const char *const end) {
     Token token = next_token(arg, err, &buf, end);
     if (token.type != TOKEN_LB) {
         *err = ERR_UNEXPECTED_TOKEN;
@@ -475,12 +485,13 @@ static inline const char *parse_builtin_args(FklGrammerSym *s,
         size_t const start_size = sizeof(FKL_PG_DELIM_STRING) - 1;
         size_t const end_size = start_size;
         size_t len = 0;
-        char *str = fklCastEscapeCharBuf(
-            &token.str[start_size], token.len - end_size - start_size, &len);
+        char *str = fklCastEscapeCharBuf(&token.str[start_size],
+                token.len - end_size - start_size,
+                &len);
         FklString const *arg_str =
-            fklAddSymbolCharBuf(str, len, &arg->g->terminals)->k;
+                fklAddSymbolCharBuf(str, len, &arg->g->terminals)->k;
         fklStringVectorPushBack2(&str_vec,
-                                 FKL_REMOVE_CONST(FklString, arg_str));
+                FKL_REMOVE_CONST(FklString, arg_str));
         fklZfree(str);
 
         token = next_token(arg, err, &buf, end);
@@ -526,8 +537,9 @@ error_happened:
 }
 
 static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
-                                           int *err, const char *buf,
-                                           const char *const end) {
+        int *err,
+        const char *buf,
+        const char *const end) {
     FklSymbolTable *terminals = &arg->g->terminals;
     FklRegexTable *regexes = &arg->g->regexes;
     Token token = next_token(arg, err, &buf, end);
@@ -547,7 +559,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
     const char *action_name = NULL;
     FklProdActionFunc action_func = NULL;
     for (; buf < end;) {
-        FklGrammerSym s = {.type = FKL_TERM_STRING};
+        FklGrammerSym s = { .type = FKL_TERM_STRING };
         Token token = next_token(arg, err, &buf, end);
         if (*err)
             goto error_happened;
@@ -571,22 +583,25 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                 *err = ERR_UNEXPECTED_TOKEN;
                 unexpected_token_error(arg, &token);
                 goto error_happened;
-            } else if (MATCH_DELIM(token.str, token.str + token.len,
-                                   FKL_PG_TERMINALS)) {
+            } else if (MATCH_DELIM(token.str,
+                               token.str + token.len,
+                               FKL_PG_TERMINALS)) {
                 *err = ERR_UNEXPECTED_TOKEN;
                 unexpected_token_error(arg, &token);
                 goto error_happened;
             }
 
-            if (MATCH_DELIM(token.str, token.str + token.len,
-                            FKL_PG_SPECIAL_PREFIX)) {
+            if (MATCH_DELIM(token.str,
+                        token.str + token.len,
+                        FKL_PG_SPECIAL_PREFIX)) {
                 Token ntoken = next_token(arg, err, &buf, end);
                 buf -= ntoken.len;
                 s.type = FKL_TERM_BUILTIN;
                 FklSid_t id =
-                    fklAddSymbolCharBuf(token.str, token.len, arg->g->st)->v;
+                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st)
+                                ->v;
                 const FklLalrBuiltinMatch *builtin =
-                    fklGetBuiltinMatch(&arg->g->builtins, id);
+                        fklGetBuiltinMatch(&arg->g->builtins, id);
                 if (builtin) {
                     s.b.t = builtin;
 
@@ -601,12 +616,13 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
 
                     if (s.b.t->ctx_create) {
                         FklBuiltinTerminalInitError init_err =
-                            FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
+                                FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
                         init_err = s.b.t->ctx_create(s.b.len, s.b.args, arg->g);
                         if (init_err) {
                             *err = ERR_BUILTIN_TERMINAL_INIT_FAILED;
-                            builtin_terminal_init_failed_error(init_err, arg,
-                                                               &token);
+                            builtin_terminal_init_failed_error(init_err,
+                                    arg,
+                                    &token);
                             s.b.len = 0;
                             fklZfree(s.b.args);
                             s.b.args = NULL;
@@ -615,8 +631,9 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     } else if (s.b.len != 0) {
                         *err = ERR_BUILTIN_TERMINAL_INIT_FAILED;
                         builtin_terminal_init_failed_error(
-                            FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS, arg,
-                            &token);
+                                FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS,
+                                arg,
+                                &token);
                         s.b.len = 0;
                         fklZfree(s.b.args);
                         s.b.args = NULL;
@@ -633,7 +650,8 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                 }
             } else {
                 FklSid_t id =
-                    fklAddSymbolCharBuf(token.str, token.len, arg->g->st)->v;
+                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st)
+                                ->v;
                 s.type = FKL_TERM_NONTERM;
                 s.nt.sid = id;
             }
@@ -642,9 +660,9 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             size_t const start_size = sizeof(FKL_PG_DELIM_STRING) - 1;
             size_t const end_size = start_size;
             size_t len = 0;
-            char *str =
-                fklCastEscapeCharBuf(&token.str[start_size],
-                                     token.len - end_size - start_size, &len);
+            char *str = fklCastEscapeCharBuf(&token.str[start_size],
+                    token.len - end_size - start_size,
+                    &len);
             s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
             fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
             fklZfree(str);
@@ -655,9 +673,9 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             size_t const start_size = sizeof(FKL_PG_DELIM_KEYWORD) - 1;
             size_t const end_size = start_size;
             size_t len = 0;
-            char *str =
-                fklCastEscapeCharBuf(&token.str[start_size],
-                                     token.len - end_size - start_size, &len);
+            char *str = fklCastEscapeCharBuf(&token.str[start_size],
+                    token.len - end_size - start_size,
+                    &len);
             s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
             fklZfree(str);
         } break;
@@ -666,9 +684,9 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             size_t const start_size = sizeof(FKL_PG_DELIM_REGEX) - 1;
             size_t const end_size = start_size;
             s.type = FKL_TERM_REGEX;
-            const FklRegexCode *re =
-                fklAddRegexCharBuf(regexes, &token.str[start_size],
-                                   token.len - end_size - start_size);
+            const FklRegexCode *re = fklAddRegexCharBuf(regexes,
+                    &token.str[start_size],
+                    token.len - end_size - start_size);
             s.re = re;
         } break;
 
@@ -684,8 +702,9 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
 
             if (arg->prod_action_resolver) {
                 const FklGrammerBuiltinAction *action =
-                    arg->prod_action_resolver(arg->resolver_ctx, token.str,
-                                              token.len);
+                        arg->prod_action_resolver(arg->resolver_ctx,
+                                token.str,
+                                token.len);
                 if (action == NULL) {
                     *err = ERR_UNRESOLVED_ACTION_NAME;
                     unresolved_action_name_error(arg, &token);
@@ -709,7 +728,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
         }
 
         if (has_ignore) {
-            FklGrammerSym s = {.type = FKL_TERM_IGNORE};
+            FklGrammerSym s = { .type = FKL_TERM_IGNORE };
             fklGraSymVectorPushBack(&gsym_vector, &s);
         }
         fklGraSymVectorPushBack(&gsym_vector, &s);
@@ -717,9 +736,14 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
     }
 loop_break:;
 
-    FklGrammerProduction *prod = fklCreateEmptyProduction(
-        0, arg->current_nonterm, gsym_vector.size, action_name, action_func,
-        NULL, fklProdCtxDestroyDoNothing, fklProdCtxCopyerDoNothing);
+    FklGrammerProduction *prod = fklCreateEmptyProduction(0,
+            arg->current_nonterm,
+            gsym_vector.size,
+            action_name,
+            action_func,
+            NULL,
+            fklProdCtxDestroyDoNothing,
+            fklProdCtxCopyerDoNothing);
 
     for (size_t i = 0; i < gsym_vector.size; ++i)
         prod->syms[i] = gsym_vector.base[i];
@@ -750,8 +774,8 @@ error_happened:
 }
 
 void fklPrintParserGrammerParseError(int err,
-                                     const FklParserGrammerParseArg *arg,
-                                     FILE *fp) {
+        const FklParserGrammerParseArg *arg,
+        FILE *fp) {
     switch (err) {
     case ERR_UNEXPECTED_TOKEN:
     case ERR_UNRESOLVED_ACTION_NAME:
@@ -776,7 +800,8 @@ void fklPrintParserGrammerParseError(int err,
 }
 
 int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
-                                      const char *buf, size_t len) {
+        const char *buf,
+        size_t len) {
     const char *const end = buf + len;
     int err = 0;
     for (; buf < end;) {
@@ -800,8 +825,9 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
                 if (err)
                     return err;
                 break;
-            } else if (MATCH_DELIM(token.str, token.str + token.len,
-                                   FKL_PG_TERMINALS)) {
+            } else if (MATCH_DELIM(token.str,
+                               token.str + token.len,
+                               FKL_PG_TERMINALS)) {
                 arg->state = FKL_PARSER_GRAMMER_ADDING_TERMINAL;
                 arg->current_nonterm = 0;
                 buf = parse_adding_terminal(arg, &err, buf, end);
@@ -810,14 +836,15 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
                 break;
             }
 
-            if (MATCH_DELIM(token.str, token.str + token.len,
-                            FKL_PG_SPECIAL_PREFIX)) {
+            if (MATCH_DELIM(token.str,
+                        token.str + token.len,
+                        FKL_PG_SPECIAL_PREFIX)) {
                 err = ERR_INVALID_LEFT_PART;
                 invalid_left_part_error(arg, &token);
             }
 
             arg->current_nonterm =
-                fklAddSymbolCharBuf(token.str, token.len, arg->g->st)->v;
+                    fklAddSymbolCharBuf(token.str, token.len, arg->g->st)->v;
             arg->state = FKL_PARSER_GRAMMER_ADDING_PRODUCTION;
             buf = parse_right_part(arg, &err, buf, end);
             if (err)
@@ -836,7 +863,7 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
             break;
         case TOKEN_LEFT_ARROW:
             if (arg->current_nonterm == 0
-                && arg->state == FKL_PARSER_GRAMMER_ADDING_PRODUCTION) {
+                    && arg->state == FKL_PARSER_GRAMMER_ADDING_PRODUCTION) {
             unexpected_token:
                 err = ERR_UNEXPECTED_TOKEN;
                 unexpected_token_error(arg, &token);

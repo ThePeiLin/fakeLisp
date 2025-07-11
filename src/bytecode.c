@@ -17,7 +17,7 @@ static inline void init_const_i64_table(FklConstI64Table *ki64t) {
     ki64t->count = 0;
     ki64t->size = DEFAULT_CONST_TABLE_SIZE;
     ki64t->base =
-        (int64_t *)fklZmalloc(DEFAULT_CONST_TABLE_SIZE * sizeof(int64_t));
+            (int64_t *)fklZmalloc(DEFAULT_CONST_TABLE_SIZE * sizeof(int64_t));
     FKL_ASSERT(ki64t->base);
 }
 
@@ -31,7 +31,7 @@ static inline void init_const_f64_table(FklConstF64Table *kf64t) {
     kf64t->count = 0;
     kf64t->size = DEFAULT_CONST_TABLE_SIZE;
     kf64t->base =
-        (double *)fklZmalloc(DEFAULT_CONST_TABLE_SIZE * sizeof(double));
+            (double *)fklZmalloc(DEFAULT_CONST_TABLE_SIZE * sizeof(double));
     FKL_ASSERT(kf64t->base);
 }
 
@@ -39,8 +39,8 @@ static inline void init_const_str_table(FklConstStrTable *kstrt) {
     fklKstrHashMapInit(&kstrt->ht);
     kstrt->count = 0;
     kstrt->size = DEFAULT_CONST_TABLE_SIZE;
-    kstrt->base = (FklString **)fklZmalloc(DEFAULT_CONST_TABLE_SIZE
-                                           * sizeof(FklString *));
+    kstrt->base = (FklString **)fklZmalloc(
+            DEFAULT_CONST_TABLE_SIZE * sizeof(FklString *));
     FKL_ASSERT(kstrt->base);
 }
 
@@ -48,8 +48,8 @@ static inline void init_const_bvec_table(FklConstBvecTable *kbvect) {
     fklKbvecHashMapInit(&kbvect->ht);
     kbvect->count = 0;
     kbvect->size = DEFAULT_CONST_TABLE_SIZE;
-    kbvect->base = (FklBytevector **)fklZmalloc(DEFAULT_CONST_TABLE_SIZE
-                                                * sizeof(FklBytevector *));
+    kbvect->base = (FklBytevector **)fklZmalloc(
+            DEFAULT_CONST_TABLE_SIZE * sizeof(FklBytevector *));
     FKL_ASSERT(kbvect->base);
 }
 
@@ -57,8 +57,8 @@ static inline void init_const_bi_table(FklConstBiTable *kbit) {
     fklKbiHashMapInit(&kbit->ht);
     kbit->count = 0;
     kbit->size = DEFAULT_CONST_TABLE_SIZE;
-    kbit->base = (FklBigInt const **)fklZmalloc(DEFAULT_CONST_TABLE_SIZE
-                                                * sizeof(FklBigInt const *));
+    kbit->base = (FklBigInt const **)fklZmalloc(
+            DEFAULT_CONST_TABLE_SIZE * sizeof(FklBigInt const *));
     FKL_ASSERT(kbit->base);
 }
 
@@ -120,7 +120,7 @@ void fklDestroyConstTable(FklConstTable *kt) {
         if ((K)->size == (K)->count) {                                         \
             (K)->size += DEFAULT_CONST_TABLE_INC;                              \
             (K)->base =                                                        \
-                (TYPE *)fklZrealloc((K)->base, (K)->size * sizeof(TYPE));      \
+                    (TYPE *)fklZrealloc((K)->base, (K)->size * sizeof(TYPE));  \
             FKL_ASSERT((K)->base);                                             \
         }                                                                      \
         (K)->count++;                                                          \
@@ -153,8 +153,9 @@ uint32_t fklAddF64Const(FklConstTable *kt, double k) {
 uint32_t fklAddStrConst(FklConstTable *kt, const FklString *k) {
     FklConstStrTable *kstrt = &kt->kstrt;
     uint32_t idx = kstrt->count;
-    FklKstrHashMapElm *i =
-        fklKstrHashMapInsert2(&kstrt->ht, FKL_REMOVE_CONST(FklString, k), idx);
+    FklKstrHashMapElm *i = fklKstrHashMapInsert2(&kstrt->ht,
+            FKL_REMOVE_CONST(FklString, k),
+            idx);
     if (i->v == kstrt->count) {
         REALLOC_CONST_TABLE_BASE(kstrt, FklString *);
         kstrt->base[idx] = i->k;
@@ -166,8 +167,9 @@ uint32_t fklAddStrConst(FklConstTable *kt, const FklString *k) {
 uint32_t fklAddBvecConst(FklConstTable *kt, const FklBytevector *k) {
     FklConstBvecTable *kbvect = &kt->kbvect;
     uint32_t idx = kbvect->count;
-    FklKbvecHashMapElm *i = fklKbvecHashMapInsert2(
-        &kbvect->ht, FKL_REMOVE_CONST(FklBytevector, k), idx);
+    FklKbvecHashMapElm *i = fklKbvecHashMapInsert2(&kbvect->ht,
+            FKL_REMOVE_CONST(FklBytevector, k),
+            idx);
     if (i->v == kbvect->count) {
         REALLOC_CONST_TABLE_BASE(kbvect, FklBytevector *);
         kbvect->base[idx] = i->k;
@@ -201,7 +203,7 @@ const FklString *fklGetStrConstWithIdx(const FklConstTable *kt, uint32_t idx) {
 }
 
 const FklBytevector *fklGetBvecConstWithIdx(const FklConstTable *kt,
-                                            uint32_t idx) {
+        uint32_t idx) {
     return kt->kbvect.base[idx];
 }
 
@@ -313,7 +315,7 @@ void fklPrintConstTable(const FklConstTable *kt, FILE *fp) {
     numLen = kf64t->count ? (int)(log10(kf64t->count) + 1) : 1;
     fprintf(fp, "f64:\t%u\n", kf64t->count);
     for (uint32_t i = 0; i < kf64t->count; i++) {
-        char buf[64] = {0};
+        char buf[64] = { 0 };
         fklWriteDoubleToBuf(buf, 64, kf64t->base[i]);
         fprintf(fp, "\t%-*u:\t%s\n", numLen, i, buf);
     }
@@ -371,8 +373,10 @@ FklByteCodelnt *fklCreateByteCodelnt(FklByteCode *bc) {
     return t;
 }
 
-FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins, FklSid_t fid,
-                                        uint32_t line, uint32_t scope) {
+FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
+        FklSid_t fid,
+        uint32_t line,
+        uint32_t scope) {
     FklByteCode *bc = fklCreateByteCode(1);
     bc->code[0] = ins;
     FklByteCodelnt *r = fklCreateByteCodelnt(bc);
@@ -401,8 +405,8 @@ void fklCodeConcat(FklByteCode *fir, const FklByteCode *sec) {
     if (!fir->len)
         fir->code = NULL;
     else {
-        fir->code = (FklInstruction *)fklZrealloc(
-            fir->code, fir->len * sizeof(FklInstruction));
+        fir->code = (FklInstruction *)fklZrealloc(fir->code,
+                fir->len * sizeof(FklInstruction));
         FKL_ASSERT(fir->code);
         memcpy(&fir->code[len], sec->code, sizeof(FklInstruction) * sec->len);
     }
@@ -413,8 +417,8 @@ void fklCodeReverseConcat(const FklByteCode *fir, FklByteCode *sec) {
     if (fir->len + sec->len == 0)
         sec->code = NULL;
     else {
-        sec->code = (FklInstruction *)fklZrealloc(
-            sec->code, (fir->len + sec->len) * sizeof(FklInstruction));
+        sec->code = (FklInstruction *)fklZrealloc(sec->code,
+                (fir->len + sec->len) * sizeof(FklInstruction));
         FKL_ASSERT(sec->code);
         memmove(&sec->code[len], sec->code, sec->len * sizeof(FklInstruction));
         memcpy(sec->code, fir->code, len * sizeof(FklInstruction));
@@ -436,7 +440,7 @@ FklByteCodelnt *fklCopyByteCodelnt(const FklByteCodelnt *obj) {
         tmp->l = NULL;
     else {
         tmp->l = (FklLineNumberTableItem *)fklZmalloc(
-            obj->ls * sizeof(FklLineNumberTableItem));
+                obj->ls * sizeof(FklLineNumberTableItem));
         FKL_ASSERT(tmp->l);
         for (size_t i = 0; i < obj->ls; i++)
             tmp->l[i] = obj->l[i];
@@ -457,18 +461,22 @@ typedef struct ByteCodePrintState {
 #include <fakeLisp/cont/vector.h>
 
 static inline void push_bytecode_print_state(BcBcPrintStateVector *s,
-                                             uint64_t tc, uint64_t cp,
-                                             uint64_t cpc) {
-    bcBcPrintStateVectorPushBack2(
-        s, (ByteCodePrintState){.tc = tc, .cp = cp, .cpc = cpc});
+        uint64_t tc,
+        uint64_t cp,
+        uint64_t cpc) {
+    bcBcPrintStateVectorPushBack2(s,
+            (ByteCodePrintState){ .tc = tc, .cp = cp, .cpc = cpc });
 }
 
-static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
-                                        FILE *fp,
-                                        struct ByteCodePrintState *cur_state,
-                                        BcBcPrintStateVector *s, int *needBreak,
-                                        const FklSymbolTable *st,
-                                        const FklConstTable *kt, int numLen) {
+static inline uint32_t print_single_ins(const FklByteCode *tmpCode,
+        uint64_t i,
+        FILE *fp,
+        struct ByteCodePrintState *cur_state,
+        BcBcPrintStateVector *s,
+        int *needBreak,
+        const FklSymbolTable *st,
+        const FklConstTable *kt,
+        int numLen) {
     uint32_t tab_count = cur_state->tc;
     uint32_t proc_len = 0;
     fprintf(fp, "%-*" PRIu64 ":", numLen, i);
@@ -481,7 +489,7 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
     if (mode == FKL_OP_MODE_I)
         goto end;
     fputc(' ', fp);
-    FklInstructionArg ins_arg = {0};
+    FklInstructionArg ins_arg = { 0 };
     int len = fklGetInsOpArg(ins, &ins_arg);
     switch (ins->op) {
     case FKL_OP_PUSH_I64F:
@@ -490,7 +498,9 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
     case FKL_OP_PUSH_I64B:
     case FKL_OP_PUSH_I64B_C:
     case FKL_OP_PUSH_I64B_X:
-        fprintf(fp, "%" PRIu64 "\t#\t%" PRId64, ins_arg.ux,
+        fprintf(fp,
+                "%" PRIu64 "\t#\t%" PRId64,
+                ins_arg.ux,
                 fklGetI64ConstWithIdx(kt, ins_arg.ux));
         break;
     case FKL_OP_PUSH_F64:
@@ -535,10 +545,14 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode, uint64_t i,
     case FKL_OP_PUSH_PROC_XX:
     case FKL_OP_PUSH_PROC_XXX:
         fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
-        push_bytecode_print_state(s, cur_state->tc, i + len + ins_arg.uy,
-                                  cur_state->cpc);
-        push_bytecode_print_state(s, tab_count + 1, i + len,
-                                  i + len + ins_arg.uy);
+        push_bytecode_print_state(s,
+                cur_state->tc,
+                i + len + ins_arg.uy,
+                cur_state->cpc);
+        push_bytecode_print_state(s,
+                tab_count + 1,
+                i + len,
+                i + len + ins_arg.uy);
         if (len > 1)
             push_bytecode_print_state(s, cur_state->tc, i + 1, i + 1 + len - 1);
         proc_len = ins_arg.uy;
@@ -593,8 +607,10 @@ end:
 }
 
 #include <math.h>
-void fklPrintByteCode(const FklByteCode *tmpCode, FILE *fp, FklSymbolTable *st,
-                      FklConstTable *kt) {
+void fklPrintByteCode(const FklByteCode *tmpCode,
+        FILE *fp,
+        FklSymbolTable *st,
+        FklConstTable *kt) {
     BcBcPrintStateVector s;
     bcBcPrintStateVectorInit(&s, 32);
     push_bytecode_print_state(&s, 0, 0, tmpCode->len);
@@ -603,34 +619,62 @@ void fklPrintByteCode(const FklByteCode *tmpCode, FILE *fp, FklSymbolTable *st,
 
     if (!bcBcPrintStateVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state =
-            *bcBcPrintStateVectorPopBackNonNull(&s);
+                *bcBcPrintStateVectorPopBackNonNull(&s);
         uint64_t i = cur_state.cp;
         uint64_t cpc = cur_state.cpc;
         int needBreak = 0;
         if (i < cpc)
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
         while (i < cpc && !needBreak) {
             putc('\n', fp);
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
         }
     }
     while (!bcBcPrintStateVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state =
-            *bcBcPrintStateVectorPopBackNonNull(&s);
+                *bcBcPrintStateVectorPopBackNonNull(&s);
         uint64_t i = cur_state.cp;
         uint64_t cpc = cur_state.cpc;
         int needBreak = 0;
         if (i < cpc) {
             putc('\n', fp);
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
         }
         while (i < cpc && !needBreak) {
             putc('\n', fp);
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
         }
     }
     bcBcPrintStateVectorUninit(&s);
@@ -640,9 +684,9 @@ static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
     uint64_t r = 0;
     const FklInstruction *ins = NULL;
     while (index + r < bc->len
-           && (ins = &bc->code[index + r])->op != FKL_OP_CALL) {
+            && (ins = &bc->code[index + r])->op != FKL_OP_CALL) {
         if (fklIsPushProcIns(ins)) {
-            FklInstructionArg arg = {0};
+            FklInstructionArg arg = { 0 };
             int8_t l = fklGetInsOpArg(ins, &arg);
             r += arg.uy + l;
         } else
@@ -653,7 +697,7 @@ static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
 
 static inline int64_t get_next(const FklInstruction *ins) {
     if (fklIsJmpIns(ins)) {
-        FklInstructionArg arg = {0};
+        FklInstructionArg arg = { 0 };
         int8_t l = fklGetInsOpArg(ins, &arg);
         return arg.ix + l;
     }
@@ -664,7 +708,7 @@ static inline int is_last_expression(uint64_t index, FklByteCode *bc) {
     uint64_t size = bc->len;
     FklInstruction *code = bc->code;
     for (uint64_t i = index; i < size && code[i].op != FKL_OP_RET;
-         i += get_next(&code[i]))
+            i += get_next(&code[i]))
         if (code[i].op != FKL_OP_JMP && code[i].op != FKL_OP_CLOSE_REF)
             return 0;
     return 1;
@@ -725,8 +769,9 @@ static inline int8_t get_op_ins_len(FklOpcode op) {
     return 1;
 }
 
-static inline int get_ins_op_with_op(FklOpcode op, const FklInstruction *ins,
-                                     FklInstructionArg *a) {
+static inline int get_ins_op_with_op(FklOpcode op,
+        const FklInstruction *ins,
+        FklInstructionArg *a) {
     switch (fklGetOpcodeMode(op)) {
     case FKL_OP_MODE_I:
         return 1;
@@ -796,7 +841,7 @@ static inline int get_ins_op_with_op(FklOpcode op, const FklInstruction *ins,
               | (((uint64_t)ins[2].bu) << FKL_I24_WIDTH)
               | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
               | (((uint64_t)ins[3].bu)
-                 << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
+                      << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
         return 4;
         break;
 
@@ -813,8 +858,9 @@ int fklGetInsOpArg(const FklInstruction *ins, FklInstructionArg *a) {
     return get_ins_op_with_op(ins->op, ins, a);
 }
 
-int fklGetInsOpArgWithOp(FklOpcode op, const FklInstruction *ins,
-                         FklInstructionArg *a) {
+int fklGetInsOpArgWithOp(FklOpcode op,
+        const FklInstruction *ins,
+        FklInstructionArg *a) {
     return get_ins_op_with_op(op, ins, a);
 }
 
@@ -844,8 +890,10 @@ void fklScanAndSetTailCall(FklByteCode *bc) {
             bc->code[i - 1].op = FKL_OP_TAIL_CALL;
 }
 
-void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
-                         const FklSymbolTable *st, const FklConstTable *kt) {
+void fklPrintByteCodelnt(const FklByteCodelnt *obj,
+        FILE *fp,
+        const FklSymbolTable *st,
+        const FklConstTable *kt) {
     FklByteCode *tmpCode = obj->bc;
     BcBcPrintStateVector s;
     bcBcPrintStateVectorInit(&s, 32);
@@ -860,13 +908,20 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
 
     if (!bcBcPrintStateVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state =
-            *bcBcPrintStateVectorPopBackNonNull(&s);
+                *bcBcPrintStateVectorPopBackNonNull(&s);
         uint64_t i = cur_state.cp;
         uint64_t cpc = cur_state.cpc;
         int needBreak = 0;
         if (i < cpc) {
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
             if (j < end && obj->l[j + 1].scp < i)
                 j++;
             if (obj->l[j].fid != fid || obj->l[j].line != line) {
@@ -875,7 +930,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
                 if (fid) {
                     fprintf(fp, "    ;");
                     fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
-                                   fp);
+                            fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -883,8 +938,15 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
         }
         while (i < cpc && !needBreak) {
             putc('\n', fp);
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
             if (j < end && obj->l[j + 1].scp < i)
                 j++;
             if (obj->l[j].fid != fid || obj->l[j].line != line) {
@@ -893,7 +955,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
                 if (fid) {
                     fprintf(fp, "    ;");
                     fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
-                                   fp);
+                            fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -902,14 +964,21 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
     }
     while (!bcBcPrintStateVectorIsEmpty(&s)) {
         struct ByteCodePrintState cur_state =
-            *bcBcPrintStateVectorPopBackNonNull(&s);
+                *bcBcPrintStateVectorPopBackNonNull(&s);
         uint64_t i = cur_state.cp;
         uint64_t cpc = cur_state.cpc;
         int needBreak = 0;
         if (i < cpc) {
             putc('\n', fp);
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
             if (j < end && obj->l[j + 1].scp < i)
                 j++;
             if (obj->l[j].fid != fid || obj->l[j].line != line) {
@@ -918,7 +987,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
                 if (fid) {
                     fprintf(fp, "    ;");
                     fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
-                                   fp);
+                            fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -926,8 +995,15 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
         }
         while (i < cpc && !needBreak) {
             putc('\n', fp);
-            i += print_single_ins(tmpCode, i, fp, &cur_state, &s, &needBreak,
-                                  st, kt, numLen);
+            i += print_single_ins(tmpCode,
+                    i,
+                    fp,
+                    &cur_state,
+                    &s,
+                    &needBreak,
+                    st,
+                    kt,
+                    numLen);
             if (j < end && obj->l[j + 1].scp < i)
                 j++;
             if (obj->l[j].fid != fid || obj->l[j].line != line) {
@@ -936,7 +1012,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj, FILE *fp,
                 if (fid) {
                     fprintf(fp, "    ;");
                     fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st)->k,
-                                   fp);
+                            fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -965,7 +1041,7 @@ void fklCodeLntConcat(FklByteCodelnt *f, const FklByteCodelnt *s) {
                 f->l = NULL;
             else {
                 f->l = (FklLineNumberTableItem *)fklZmalloc(
-                    s->ls * sizeof(FklLineNumberTableItem));
+                        s->ls * sizeof(FklLineNumberTableItem));
                 FKL_ASSERT(f->l);
                 FKL_INCREASE_ALL_SCP(s->l + 1, s->ls - 1, f->bc->len);
                 memcpy(f->l, s->l, (s->ls) * sizeof(FklLineNumberTableItem));
@@ -973,17 +1049,18 @@ void fklCodeLntConcat(FklByteCodelnt *f, const FklByteCodelnt *s) {
         } else {
             FKL_INCREASE_ALL_SCP(s->l, s->ls, f->bc->len);
             if (f->l[f->ls - 1].line == s->l[0].line
-                && f->l[f->ls - 1].scope == s->l[0].scope
-                && f->l[f->ls - 1].fid == s->l[0].fid) {
+                    && f->l[f->ls - 1].scope == s->l[0].scope
+                    && f->l[f->ls - 1].fid == s->l[0].fid) {
                 uint32_t size = f->ls + s->ls - 1;
                 if (!size)
                     f->l = NULL;
                 else {
-                    f->l = (FklLineNumberTableItem *)fklZrealloc(
-                        f->l, size * sizeof(FklLineNumberTableItem));
+                    f->l = (FklLineNumberTableItem *)fklZrealloc(f->l,
+                            size * sizeof(FklLineNumberTableItem));
                     FKL_ASSERT(f->l);
-                    memcpy(&f->l[f->ls], &s->l[1],
-                           (s->ls - 1) * sizeof(FklLineNumberTableItem));
+                    memcpy(&f->l[f->ls],
+                            &s->l[1],
+                            (s->ls - 1) * sizeof(FklLineNumberTableItem));
                 }
                 f->ls += s->ls - 1;
             } else {
@@ -991,11 +1068,12 @@ void fklCodeLntConcat(FklByteCodelnt *f, const FklByteCodelnt *s) {
                 if (!size)
                     f->l = NULL;
                 else {
-                    f->l = (FklLineNumberTableItem *)fklZrealloc(
-                        f->l, size * sizeof(FklLineNumberTableItem));
+                    f->l = (FklLineNumberTableItem *)fklZrealloc(f->l,
+                            size * sizeof(FklLineNumberTableItem));
                     FKL_ASSERT(f->l);
-                    memcpy(&f->l[f->ls], s->l,
-                           (s->ls) * sizeof(FklLineNumberTableItem));
+                    memcpy(&f->l[f->ls],
+                            s->l,
+                            (s->ls) * sizeof(FklLineNumberTableItem));
                 }
                 f->ls += s->ls;
             }
@@ -1012,26 +1090,27 @@ void fklCodeLntReverseConcat(const FklByteCodelnt *f, FklByteCodelnt *s) {
                 s->l = NULL;
             else {
                 s->l = (FklLineNumberTableItem *)fklZmalloc(
-                    f->ls * sizeof(FklLineNumberTableItem));
+                        f->ls * sizeof(FklLineNumberTableItem));
                 FKL_ASSERT(s->l);
                 memcpy(s->l, f->l, (f->ls) * sizeof(FklLineNumberTableItem));
             }
         } else {
             FKL_INCREASE_ALL_SCP(s->l, s->ls, f->bc->len);
             if (f->l[f->ls - 1].line == s->l[0].line
-                && f->l[f->ls - 1].scope == s->l[0].scope
-                && f->l[f->ls - 1].fid == s->l[0].fid) {
+                    && f->l[f->ls - 1].scope == s->l[0].scope
+                    && f->l[f->ls - 1].fid == s->l[0].fid) {
                 FklLineNumberTableItem *l;
                 const uint32_t len = f->ls + s->ls - 1;
                 if (len == 0)
                     l = NULL;
                 else {
                     l = (FklLineNumberTableItem *)fklZmalloc(
-                        len * sizeof(FklLineNumberTableItem));
+                            len * sizeof(FklLineNumberTableItem));
                     FKL_ASSERT(l);
                     memcpy(l, f->l, (f->ls) * sizeof(FklLineNumberTableItem));
-                    memcpy(&l[f->ls], &s->l[1],
-                           (s->ls - 1) * sizeof(FklLineNumberTableItem));
+                    memcpy(&l[f->ls],
+                            &s->l[1],
+                            (s->ls - 1) * sizeof(FklLineNumberTableItem));
                 }
                 fklZfree(s->l);
                 s->l = l;
@@ -1043,11 +1122,12 @@ void fklCodeLntReverseConcat(const FklByteCodelnt *f, FklByteCodelnt *s) {
                     l = NULL;
                 else {
                     l = (FklLineNumberTableItem *)fklZmalloc(
-                        len * sizeof(FklLineNumberTableItem));
+                            len * sizeof(FklLineNumberTableItem));
                     FKL_ASSERT(l);
                     memcpy(l, f->l, (f->ls) * sizeof(FklLineNumberTableItem));
-                    memcpy(&l[f->ls], s->l,
-                           (s->ls) * sizeof(FklLineNumberTableItem));
+                    memcpy(&l[f->ls],
+                            s->l,
+                            (s->ls) * sizeof(FklLineNumberTableItem));
                 }
                 fklZfree(s->l);
                 s->l = l;
@@ -1059,8 +1139,8 @@ void fklCodeLntReverseConcat(const FklByteCodelnt *f, FklByteCodelnt *s) {
 }
 
 void fklByteCodeInsertFront(FklInstruction ins, FklByteCode *bc) {
-    FklInstruction *code = (FklInstruction *)fklZrealloc(
-        bc->code, (bc->len + 1) * sizeof(FklInstruction));
+    FklInstruction *code = (FklInstruction *)fklZrealloc(bc->code,
+            (bc->len + 1) * sizeof(FklInstruction));
     FKL_ASSERT(code);
     for (uint64_t end = bc->len; end > 0; end--)
         code[end] = code[end - 1];
@@ -1070,19 +1150,22 @@ void fklByteCodeInsertFront(FklInstruction ins, FklByteCode *bc) {
 }
 
 void fklByteCodePushBack(FklByteCode *bc, FklInstruction ins) {
-    bc->code = (FklInstruction *)fklZrealloc(
-        bc->code, (bc->len + 1) * sizeof(FklInstruction));
+    bc->code = (FklInstruction *)fklZrealloc(bc->code,
+            (bc->len + 1) * sizeof(FklInstruction));
     FKL_ASSERT(bc->code);
     bc->code[bc->len] = ins;
     bc->len++;
 }
 
-void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl, const FklInstruction *ins,
-                               FklSid_t fid, uint32_t line, uint32_t scope) {
+void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
+        const FklInstruction *ins,
+        FklSid_t fid,
+        uint32_t line,
+        uint32_t scope) {
     if (!bcl->l) {
         bcl->ls = 1;
         bcl->l = (FklLineNumberTableItem *)fklZmalloc(
-            sizeof(FklLineNumberTableItem));
+                sizeof(FklLineNumberTableItem));
         FKL_ASSERT(bcl->l);
         fklInitLineNumTabNode(&bcl->l[0], fid, 0, line, scope);
         fklByteCodePushBack(bcl->bc, *ins);
@@ -1092,12 +1175,14 @@ void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl, const FklInstruction *ins,
 }
 
 void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
-                                  FklByteCodelnt *bcl, FklSid_t fid,
-                                  uint32_t line, uint32_t scope) {
+        FklByteCodelnt *bcl,
+        FklSid_t fid,
+        uint32_t line,
+        uint32_t scope) {
     if (!bcl->l) {
         bcl->ls = 1;
         bcl->l = (FklLineNumberTableItem *)fklZmalloc(
-            sizeof(FklLineNumberTableItem));
+                sizeof(FklLineNumberTableItem));
         FKL_ASSERT(bcl->l);
         fklInitLineNumTabNode(&bcl->l[0], fid, 0, line, scope);
         fklByteCodePushBack(bcl->bc, *ins);
@@ -1107,14 +1192,17 @@ void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
     }
 }
 
-void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl, FklInstruction ins,
-                               uint64_t at) {
+void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl,
+        FklInstruction ins,
+        uint64_t at) {
     FklByteCode *bc = bcl->bc;
-    bc->code = (FklInstruction *)fklZrealloc(
-        bc->code, (++bc->len) * sizeof(FklInstruction));
+    bc->code = (FklInstruction *)fklZrealloc(bc->code,
+            (++bc->len) * sizeof(FklInstruction));
     FKL_ASSERT(bc->code);
     FklLineNumberTableItem *l =
-        (FklLineNumberTableItem *)fklFindLineNumTabNode(at, bcl->ls, bcl->l);
+            (FklLineNumberTableItem *)fklFindLineNumTabNode(at,
+                    bcl->ls,
+                    bcl->l);
     FKL_ASSERT(l);
     const FklLineNumberTableItem *end = &bcl->l[bcl->ls];
     for (l++; l < end; l++)
@@ -1127,7 +1215,9 @@ void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl, FklInstruction ins,
 FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t at) {
     FklByteCode *bc = bcl->bc;
     FklLineNumberTableItem *l =
-        (FklLineNumberTableItem *)fklFindLineNumTabNode(at, bcl->ls, bcl->l);
+            (FklLineNumberTableItem *)fklFindLineNumTabNode(at,
+                    bcl->ls,
+                    bcl->l);
     FKL_ASSERT(l);
     const FklLineNumberTableItem *end = &bcl->l[bcl->ls];
     for (l++; l < end; l++)
@@ -1138,24 +1228,27 @@ FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t at) {
     if (!bc->len)
         bc->code = NULL;
     else {
-        bc->code = (FklInstruction *)fklZrealloc(
-            bc->code, (--bc->len) * sizeof(FklInstruction));
+        bc->code = (FklInstruction *)fklZrealloc(bc->code,
+                (--bc->len) * sizeof(FklInstruction));
         FKL_ASSERT(bc->code);
     }
     return ins;
 }
 
-void fklInitLineNumTabNode(FklLineNumberTableItem *n, FklSid_t fid,
-                           uint64_t scp, uint32_t line, uint32_t scope) {
+void fklInitLineNumTabNode(FklLineNumberTableItem *n,
+        FklSid_t fid,
+        uint64_t scp,
+        uint32_t line,
+        uint32_t scope) {
     n->fid = fid;
     n->scp = scp;
     n->line = line;
     n->scope = scope;
 }
 
-const FklLineNumberTableItem *
-fklFindLineNumTabNode(uint64_t cp, size_t ls,
-                      const FklLineNumberTableItem *line_numbers) {
+const FklLineNumberTableItem *fklFindLineNumTabNode(uint64_t cp,
+        size_t ls,
+        const FklLineNumberTableItem *line_numbers) {
     int64_t l = 0;
     int64_t h = ls - 1;
     int64_t mid = 0;
@@ -1174,7 +1267,8 @@ fklFindLineNumTabNode(uint64_t cp, size_t ls,
 }
 
 void fklWriteLineNumberTable(const FklLineNumberTableItem *line_numbers,
-                             uint32_t size, FILE *fp) {
+        uint32_t size,
+        FILE *fp) {
     fwrite(&size, sizeof(size), 1, fp);
     for (uint32_t i = 0; i < size; i++) {
         const FklLineNumberTableItem *n = &line_numbers[i];
@@ -1184,8 +1278,9 @@ void fklWriteLineNumberTable(const FklLineNumberTableItem *line_numbers,
     }
 }
 
-void fklLoadLineNumberTable(FILE *fp, FklLineNumberTableItem **plist,
-                            uint32_t *pnum) {
+void fklLoadLineNumberTable(FILE *fp,
+        FklLineNumberTableItem **plist,
+        uint32_t *pnum) {
     size_t size = 0;
     fread(&size, sizeof(uint32_t), 1, fp);
     FklLineNumberTableItem *list;
@@ -1193,7 +1288,7 @@ void fklLoadLineNumberTable(FILE *fp, FklLineNumberTableItem **plist,
         list = NULL;
     else {
         list = (FklLineNumberTableItem *)fklZmalloc(
-            size * sizeof(FklLineNumberTableItem));
+                size * sizeof(FklLineNumberTableItem));
         FKL_ASSERT(list);
         for (size_t i = 0; i < size; i++) {
             FklSid_t fid = 0;

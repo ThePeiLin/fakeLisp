@@ -22,20 +22,23 @@
 #include <unistd.h>
 #endif
 
-static void loadLib(FILE *, size_t *pnum, FklCodegenLib **libs,
-                    FklSymbolTable *);
+static void
+loadLib(FILE *, size_t *pnum, FklCodegenLib **libs, FklSymbolTable *);
 
 static void print_compiler_macros(FklCodegenMacro *head,
-                                  const FklSymbolTable *pst,
-                                  const FklConstTable *pkt, FILE *fp,
-                                  uint64_t *opcode_count);
+        const FklSymbolTable *pst,
+        const FklConstTable *pkt,
+        FILE *fp,
+        uint64_t *opcode_count);
 
 static void print_reader_macros(const FklGraProdGroupHashMap *named_prod_groups,
-                                const FklSymbolTable *pst,
-                                const FklConstTable *pkt, FILE *fp);
+        const FklSymbolTable *pst,
+        const FklConstTable *pkt,
+        FILE *fp);
 
 static void print_replacements(const FklReplacementHashMap *replacements,
-                               const FklSymbolTable *pst, FILE *fp);
+        const FklSymbolTable *pst,
+        FILE *fp);
 
 struct arg_lit *help;
 struct arg_lit *stats;
@@ -43,7 +46,7 @@ struct arg_file *files;
 struct arg_end *end;
 
 static inline void do_gather_statistics(const FklByteCodelnt *bcl,
-                                        uint64_t *array) {
+        uint64_t *array) {
     const FklByteCode *bc = bcl->bc;
     for (uint64_t i = 0; i < bc->len; i++)
         array[bc->code[i].op]++;
@@ -65,21 +68,25 @@ static int opstatcmp(const void *a, const void *b) {
 }
 
 static inline void print_statistics(const char *filename,
-                                    const uint64_t *count) {
+        const uint64_t *count) {
     struct OpcodeStatistics statistics[FKL_OPCODE_NUM];
     printf("\nstatistics of %s:\n", filename);
     for (uint32_t i = 0; i < FKL_OPCODE_NUM; i++) {
         statistics[i].op = i;
         statistics[i].count = count[i];
     }
-    qsort(statistics, FKL_OPCODE_NUM, sizeof(struct OpcodeStatistics),
-          opstatcmp);
+    qsort(statistics,
+            FKL_OPCODE_NUM,
+            sizeof(struct OpcodeStatistics),
+            opstatcmp);
     for (uint32_t i = 0; i < FKL_OPCODE_NUM; i++)
-        printf("%-*s:\t%" PRIu64 "\n", (int)FKL_MAX_OPCODE_NAME_LEN,
-               fklGetOpcodeName(statistics[i].op), statistics[i].count);
+        printf("%-*s:\t%" PRIu64 "\n",
+                (int)FKL_MAX_OPCODE_NAME_LEN,
+                fklGetOpcodeName(statistics[i].op),
+                statistics[i].count);
     printf("\nmost used opcode is %s, the count is %" PRIu64 "\n",
-           fklGetOpcodeName(statistics[FKL_OPCODE_NUM - 1].op),
-           statistics[FKL_OPCODE_NUM - 1].count);
+            fklGetOpcodeName(statistics[FKL_OPCODE_NUM - 1].op),
+            statistics[FKL_OPCODE_NUM - 1].count);
 }
 
 int main(int argc, char **argv) {
@@ -88,8 +95,12 @@ int main(int argc, char **argv) {
     void *argtable[] = {
         help = arg_lit0("h", "help", "display this help and exit"),
         stats = arg_lit0("s", "stat", "display the stats of every opcode"),
-        files = arg_filen(NULL, NULL, "files", 1, argc + 2,
-                          "the bytecode files you want to print"),
+        files = arg_filen(NULL,
+                NULL,
+                "files",
+                1,
+                argc + 2,
+                "the bytecode files you want to print"),
         end = arg_end(20),
     };
 
@@ -110,7 +121,7 @@ int main(int argc, char **argv) {
     }
 
     for (int i = 0; i < files->count; i++) {
-        uint64_t opcode_count[FKL_OPCODE_NUM] = {0};
+        uint64_t opcode_count[FKL_OPCODE_NUM] = { 0 };
 
         const char *filename = files->filename[i];
         const char *extension = files->extension[i];
@@ -149,8 +160,10 @@ int main(int argc, char **argv) {
                 printf("lib %" PRIu64 ":\n", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
-                    fklPrintByteCodelnt(cur->bcl, stdout, &runtime_st,
-                                        &runtime_kt);
+                    fklPrintByteCodelnt(cur->bcl,
+                            stdout,
+                            &runtime_st,
+                            &runtime_kt);
                     if (stats->count > 0)
                         do_gather_statistics(cur->bcl, opcode_count);
                     break;
@@ -203,9 +216,16 @@ int main(int argc, char **argv) {
 
             char *rp = fklRealpath(filename);
             char *errorStr = NULL;
-            int load_result = fklLoadPreCompile(
-                &pts, &macro_pts, &scriptLibStack, &macroScriptLibStack,
-                &runtime_st, &runtime_kt, &ctx, rp, fp, &errorStr);
+            int load_result = fklLoadPreCompile(&pts,
+                    &macro_pts,
+                    &scriptLibStack,
+                    &macroScriptLibStack,
+                    &runtime_st,
+                    &runtime_kt,
+                    &ctx,
+                    rp,
+                    fp,
+                    &errorStr);
             fklZfree(rp);
             fclose(fp);
             if (load_result) {
@@ -227,17 +247,24 @@ int main(int argc, char **argv) {
                 printf("lib %" PRIu64 ":\n", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
-                    fklPrintByteCodelnt(cur->bcl, stdout, &runtime_st,
-                                        &runtime_kt);
+                    fklPrintByteCodelnt(cur->bcl,
+                            stdout,
+                            &runtime_st,
+                            &runtime_kt);
                     if (stats->count > 0)
                         do_gather_statistics(cur->bcl, opcode_count);
                     fputc('\n', stdout);
                     if (cur->head)
-                        print_compiler_macros(cur->head, pst, pkt, stdout,
-                                              opcode_count);
+                        print_compiler_macros(cur->head,
+                                pst,
+                                pkt,
+                                stdout,
+                                opcode_count);
                     if (cur->named_prod_groups.buckets)
-                        print_reader_macros(&cur->named_prod_groups, pst, pkt,
-                                            stdout);
+                        print_reader_macros(&cur->named_prod_groups,
+                                pst,
+                                pkt,
+                                stdout);
                     if (cur->replacements->buckets)
                         print_replacements(cur->replacements, pst, stdout);
                     if (!cur->head && !cur->named_prod_groups.buckets)
@@ -265,11 +292,16 @@ int main(int argc, char **argv) {
                             do_gather_statistics(cur->bcl, opcode_count);
                         fputc('\n', stdout);
                         if (cur->head)
-                            print_compiler_macros(cur->head, pst, pkt, stdout,
-                                                  opcode_count);
+                            print_compiler_macros(cur->head,
+                                    pst,
+                                    pkt,
+                                    stdout,
+                                    opcode_count);
                         if (cur->named_prod_groups.buckets)
-                            print_reader_macros(&cur->named_prod_groups, pst,
-                                                pkt, stdout);
+                            print_reader_macros(&cur->named_prod_groups,
+                                    pst,
+                                    pkt,
+                                    stdout);
                         if (!cur->head && !cur->named_prod_groups.buckets)
                             fputc('\n', stdout);
                         break;
@@ -299,11 +331,11 @@ int main(int argc, char **argv) {
 
             while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
                 fklUninitCodegenLib(
-                    fklCodegenLibVectorPopBack(&scriptLibStack));
+                        fklCodegenLibVectorPopBack(&scriptLibStack));
             fklCodegenLibVectorUninit(&scriptLibStack);
             while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
                 fklUninitCodegenLib(
-                    fklCodegenLibVectorPopBack(&macroScriptLibStack));
+                        fklCodegenLibVectorPopBack(&macroScriptLibStack));
             fklCodegenLibVectorUninit(&macroScriptLibStack);
 
             fklUninitSymbolTable(&runtime_st);
@@ -332,8 +364,8 @@ static FklSid_t *dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     return NULL;
 }
 
-static void loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs,
-                    FklSymbolTable *table) {
+static void
+loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs, FklSymbolTable *table) {
     fread(pnum, sizeof(uint64_t), 1, fp);
     size_t num = *pnum;
     FklCodegenLib *libs;
@@ -357,7 +389,7 @@ static void loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs,
             fklInitCodegenScriptLib(&libs[i], NULL, bcl, NULL);
             libs[i].prototypeId = protoId;
         } else {
-            uv_lib_t lib = {0};
+            uv_lib_t lib = { 0 };
             uint64_t len = 0;
             uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
             fread(&len, sizeof(uint64_t), 1, fp);
@@ -371,9 +403,10 @@ static void loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs,
 }
 
 static void print_compiler_macros(FklCodegenMacro *head,
-                                  const FklSymbolTable *pst,
-                                  const FklConstTable *pkt, FILE *fp,
-                                  uint64_t *opcode_count) {
+        const FklSymbolTable *pst,
+        const FklConstTable *pkt,
+        FILE *fp,
+        uint64_t *opcode_count) {
     fputs("\ncompiler macros:\n", fp);
     for (; head; head = head->next) {
         fputs("pattern:\n", fp);
@@ -387,8 +420,9 @@ static void print_compiler_macros(FklCodegenMacro *head,
 }
 
 static void print_reader_macros(const FklGraProdGroupHashMap *ht,
-                                const FklSymbolTable *pst,
-                                const FklConstTable *pkt, FILE *fp) {
+        const FklSymbolTable *pst,
+        const FklConstTable *pkt,
+        FILE *fp) {
     fputs("\nreader macros:\n", fp);
     for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
         fputs("group name:", fp);
@@ -402,12 +436,14 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
         if (l->v.g.productions.first) {
             fputs("\nprods:\n", fp);
             for (const FklProdHashMapNode *cur = l->v.g.productions.first; cur;
-                 cur = cur->next) {
+                    cur = cur->next) {
                 for (const FklGrammerProduction *prod = cur->v; prod;
-                     prod = prod->next) {
-                    fklPrintGrammerProduction(fp, prod, l->v.g.st,
-                                              &l->v.g.terminals,
-                                              &l->v.g.regexes);
+                        prod = prod->next) {
+                    fklPrintGrammerProduction(fp,
+                            prod,
+                            l->v.g.st,
+                            &l->v.g.terminals,
+                            &l->v.g.regexes);
                     fputs(" => ", fp);
                     fklPrintReaderMacroAction(fp, prod, l->v.g.st, pkt);
                     fputc('\n', fp);
@@ -420,10 +456,11 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
 }
 
 static void print_replacements(const FklReplacementHashMap *replacements,
-                               const FklSymbolTable *pst, FILE *fp) {
+        const FklSymbolTable *pst,
+        FILE *fp) {
     fputs("\nreplacements:\n", fp);
     for (const FklReplacementHashMapNode *cur = replacements->first; cur;
-         cur = cur->next) {
+            cur = cur->next) {
         fklPrintRawSymbol(fklGetSymbolWithId(cur->k, pst)->k, fp);
         fputs(" => ", fp);
         fklPrintNastNode(cur->v, fp, pst);

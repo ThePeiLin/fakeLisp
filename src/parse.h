@@ -14,19 +14,31 @@
 
 #ifndef PARSE_REDUCE
 #define PARSE_REDUCE()                                                         \
-    if (do_reduce_action(stateStack, symbolStack, lineStack, action->prod,     \
-                         action->actual_len, outerCtx, st, errLine)) {         \
+    if (do_reduce_action(stateStack,                                           \
+                symbolStack,                                                   \
+                lineStack,                                                     \
+                action->prod,                                                  \
+                action->actual_len,                                            \
+                outerCtx,                                                      \
+                st,                                                            \
+                errLine)) {                                                    \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
         return NULL;                                                           \
     }
 #endif
 
 #ifndef PARSE_BODY
-void *fklParseWithTableForCharBuf2(
-    const FklGrammer *g, const char *cstr, size_t len, size_t *restLen,
-    FklGrammerMatchOuterCtx *outerCtx, FklSymbolTable *st, int *err,
-    size_t *errLine, FklAnalysisSymbolVector *symbolStack,
-    FklUintVector *lineStack, FklParseStateVector *stateStack) {
+void *fklParseWithTableForCharBuf2(const FklGrammer *g,
+        const char *cstr,
+        size_t len,
+        size_t *restLen,
+        FklGrammerMatchOuterCtx *outerCtx,
+        FklSymbolTable *st,
+        int *err,
+        size_t *errLine,
+        FklAnalysisSymbolVector *symbolStack,
+        FklUintVector *lineStack,
+        FklParseStateVector *stateStack) {
 #endif
     *restLen = len;
     const char *start = cstr;
@@ -37,36 +49,42 @@ void *fklParseWithTableForCharBuf2(
         FklStateActionMatchArgs match_args = FKL_STATE_ACTION_MATCH_ARGS_INIT;
         int is_waiting_for_more = 0;
         const FklAnalysisState *state =
-            fklParseStateVectorBackNonNull(stateStack)->state;
+                fklParseStateVectorBackNonNull(stateStack)->state;
         const FklAnalysisStateAction *action = state->state.action;
         for (; action; action = action->next)
-            if (fklIsStateActionMatch(&action->match, g, outerCtx, start, cstr,
-                                      *restLen, &is_waiting_for_more,
-                                      &match_args))
+            if (fklIsStateActionMatch(&action->match,
+                        g,
+                        outerCtx,
+                        start,
+                        cstr,
+                        *restLen,
+                        &is_waiting_for_more,
+                        &match_args))
                 break;
         waiting_for_more_err |= is_waiting_for_more;
         if (action) {
             FKL_ASSERT(action->match.t != FKL_TERM_EOF || action->next == NULL);
             switch (action->action) {
             case FKL_ANALYSIS_IGNORE:
-                outerCtx->line += fklCountCharInBuf(
-                    cstr, match_args.matchLen + match_args.skip_ignore_len,
-                    '\n');
+                outerCtx->line += fklCountCharInBuf(cstr,
+                        match_args.matchLen + match_args.skip_ignore_len,
+                        '\n');
                 cstr += match_args.matchLen + match_args.skip_ignore_len;
                 (*restLen) -= match_args.matchLen + match_args.skip_ignore_len;
                 continue;
                 break;
             case FKL_ANALYSIS_SHIFT:
-                fklParseStateVectorPushBack2(
-                    stateStack, (FklParseState){.state = action->state});
+                fklParseStateVectorPushBack2(stateStack,
+                        (FklParseState){ .state = action->state });
                 fklInitTerminalAnalysisSymbol(
-                    fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
-                    cstr + match_args.skip_ignore_len, match_args.matchLen,
-                    outerCtx);
+                        fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
+                        cstr + match_args.skip_ignore_len,
+                        match_args.matchLen,
+                        outerCtx);
                 fklUintVectorPushBack2(lineStack, outerCtx->line);
-                outerCtx->line += fklCountCharInBuf(
-                    cstr, match_args.matchLen + match_args.skip_ignore_len,
-                    '\n');
+                outerCtx->line += fklCountCharInBuf(cstr,
+                        match_args.matchLen + match_args.skip_ignore_len,
+                        '\n');
                 cstr += match_args.matchLen + match_args.skip_ignore_len;
                 (*restLen) -= match_args.matchLen + match_args.skip_ignore_len;
                 break;
@@ -79,7 +97,7 @@ void *fklParseWithTableForCharBuf2(
             }
         } else {
             if (waiting_for_more_err
-                || (*restLen && *restLen == match_args.skip_ignore_len)) {
+                    || (*restLen && *restLen == match_args.skip_ignore_len)) {
                 *err = FKL_PARSE_WAITING_FOR_MORE;
             } else if (*restLen == 0)
                 *err = FKL_PARSE_TERMINAL_MATCH_FAILED;

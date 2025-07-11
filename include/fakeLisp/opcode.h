@@ -219,8 +219,8 @@ typedef enum {
 #define FKL_GET_INS_IX(ins) ((int32_t)FKL_GET_INS_UX(ins))
 #define FKL_GET_INS_UXX(ins)                                                   \
     (FKL_GET_INS_UC(ins)                                                       \
-     | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH)                \
-     | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
+            | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH)         \
+            | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
 
 #define FKL_GET_INS_IXX(ins) ((int64_t)FKL_GET_INS_UXX(ins))
 

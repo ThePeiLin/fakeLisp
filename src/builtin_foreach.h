@@ -92,9 +92,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
 #undef FOREACH_CALL_STATE_ENTER

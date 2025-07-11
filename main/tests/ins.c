@@ -4,7 +4,7 @@
 
 #include <inttypes.h>
 
-static FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+static FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
 
 #define I24_L8_MASK (0xFF)
 #define I32_L16_MASK (0xFFFF)
@@ -38,12 +38,20 @@ int main() {
     set_ins_uc(ins, ux);
     arg.ux = FKL_GET_INS_UC(ins);
     fputs("IuC\n", stderr);
-    fprintf(stderr, "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, arg.ux);
+    fprintf(stderr,
+            "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            arg.ux);
     FKL_ASSERT(arg.ux == ux);
     fklGetInsOpArg(ins, &arg);
-    fprintf(stderr, "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, arg.ux);
+    fprintf(stderr,
+            "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            arg.ux);
     FKL_ASSERT(arg.ux == ux);
     fputc('\n', stderr);
 
@@ -52,12 +60,20 @@ int main() {
     set_ins_uc(ins, s + FKL_I24_OFFSET);
     arg.ix = FKL_GET_INS_IC(ins);
     fputs("IsC\n", stderr);
-    fprintf(stderr, "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__, __LINE__, s, arg.ix);
+    fprintf(stderr,
+            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
+            __FILE__,
+            __LINE__,
+            s,
+            arg.ix);
     FKL_ASSERT(arg.ix == s);
     fklGetInsOpArg(ins, &arg);
-    fprintf(stderr, "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__, __LINE__, s, arg.ix);
+    fprintf(stderr,
+            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
+            __FILE__,
+            __LINE__,
+            s,
+            arg.ix);
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
 
@@ -67,12 +83,20 @@ int main() {
     set_ins_ux(ins, ux);
     arg.ux = FKL_GET_INS_UX(ins);
     fputs("IuBB\n", stderr);
-    fprintf(stderr, "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, arg.ux);
+    fprintf(stderr,
+            "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            arg.ux);
     FKL_ASSERT(arg.ux == ux);
     fklGetInsOpArg(ins, &arg);
-    fprintf(stderr, "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, arg.ux);
+    fprintf(stderr,
+            "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            arg.ux);
     FKL_ASSERT(arg.ux == ux);
     fputc('\n', stderr);
 
@@ -82,12 +106,20 @@ int main() {
     set_ins_ux(ins, s);
     arg.ix = FKL_GET_INS_IX(ins);
     fputs("IsBB\n", stderr);
-    fprintf(stderr, "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__, __LINE__, s, arg.ix);
+    fprintf(stderr,
+            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
+            __FILE__,
+            __LINE__,
+            s,
+            arg.ix);
     FKL_ASSERT(arg.ix == s);
     fklGetInsOpArg(ins, &arg);
-    fprintf(stderr, "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__, __LINE__, s, arg.ix);
+    fprintf(stderr,
+            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
+            __FILE__,
+            __LINE__,
+            s,
+            arg.ix);
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
 
@@ -97,12 +129,20 @@ int main() {
     set_ins_uxx(ins, s);
     arg.ix = FKL_GET_INS_IXX(ins);
     fputs("IsCCB\n", stderr);
-    fprintf(stderr, "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__, __LINE__, s, arg.ix);
+    fprintf(stderr,
+            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
+            __FILE__,
+            __LINE__,
+            s,
+            arg.ix);
     FKL_ASSERT(arg.ix == s);
     fklGetInsOpArg(ins, &arg);
-    fprintf(stderr, "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__, __LINE__, s, arg.ix);
+    fprintf(stderr,
+            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
+            __FILE__,
+            __LINE__,
+            s,
+            arg.ix);
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
 
@@ -117,15 +157,25 @@ int main() {
     arg.uy = FKL_GET_INS_UC(&ins[1]);
     fputs("IuCuC\n", stderr);
     fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64
-            ", arg.ux= %" PRIu64 ", arg.uy= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, uy, arg.ux, arg.uy);
+            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
+            ", arg.uy= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            uy,
+            arg.ux,
+            arg.uy);
     FKL_ASSERT(arg.ux == ux && arg.uy == uy);
     fklGetInsOpArg(ins, &arg);
     fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64
-            ", arg.ux= %" PRIu64 ", arg.uy= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, uy, arg.ux, arg.uy);
+            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
+            ", arg.uy= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            uy,
+            arg.ux,
+            arg.uy);
     FKL_ASSERT(arg.ux == ux && arg.uy == uy);
     fputc('\n', stderr);
 
@@ -143,15 +193,25 @@ int main() {
     arg.uy = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
     fputs("IuCAuBB\n", stderr);
     fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64
-            ", arg.ux= %" PRIu64 ", arg.uy= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, uy, arg.ux, arg.uy);
+            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
+            ", arg.uy= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            uy,
+            arg.ux,
+            arg.uy);
     FKL_ASSERT(arg.ux == ux && arg.uy == uy);
     fklGetInsOpArg(ins, &arg);
     fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64
-            ", arg.ux= %" PRIu64 ", arg.uy= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, uy, arg.ux, arg.uy);
+            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
+            ", arg.uy= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            uy,
+            arg.ux,
+            arg.uy);
     FKL_ASSERT(arg.ux == ux && arg.uy == uy);
     fputc('\n', stderr);
 
@@ -171,23 +231,33 @@ int main() {
     set_ins_uc(&ins[3], (uy >> (FKL_I16_WIDTH + FKL_I24_WIDTH)) & I64_L24_MASK);
 
     arg.ux = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-    arg.uy =
-        ins[1].bu | (((uint64_t)ins[2].au) << FKL_I16_WIDTH)
-        | (((uint64_t)ins[2].bu) << FKL_I24_WIDTH)
-        | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
-        | (((uint64_t)ins[3].bu) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
+    arg.uy = ins[1].bu | (((uint64_t)ins[2].au) << FKL_I16_WIDTH)
+           | (((uint64_t)ins[2].bu) << FKL_I24_WIDTH)
+           | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
+           | (((uint64_t)ins[3].bu)
+                   << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
 
     fputs("IuCAuBCC\n", stderr);
     fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64
-            ", arg.ux= %" PRIu64 ", arg.uy= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, uy, arg.ux, arg.uy);
+            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
+            ", arg.uy= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            uy,
+            arg.ux,
+            arg.uy);
     FKL_ASSERT(arg.ux == ux && arg.uy == uy);
     fklGetInsOpArg(ins, &arg);
     fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64
-            ", arg.ux= %" PRIu64 ", arg.uy= %" PRIu64 "\n",
-            __FILE__, __LINE__, ux, uy, arg.ux, arg.uy);
+            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
+            ", arg.uy= %" PRIu64 "\n",
+            __FILE__,
+            __LINE__,
+            ux,
+            uy,
+            arg.ux,
+            arg.uy);
     FKL_ASSERT(arg.ux == ux && arg.uy == uy);
     fputc('\n', stderr);
 }

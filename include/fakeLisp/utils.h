@@ -35,14 +35,21 @@ int fklIsNumberCharBuf(const char *, size_t);
 int fklPower(int, int);
 
 int fklIsSpecialCharAndPrint(uint8_t ch, FILE *out);
-void fklPrintRawCharBuf(const uint8_t *str, size_t size, const char *begin_str,
-                        const char *end_str, char se, FILE *out);
-void fklPrintRawCstr(const char *, const char *begin_str, const char *end_str,
-                     char se, FILE *);
+void fklPrintRawCharBuf(const uint8_t *str,
+        size_t size,
+        const char *begin_str,
+        const char *end_str,
+        char se,
+        FILE *out);
+void fklPrintRawCstr(const char *,
+        const char *begin_str,
+        const char *end_str,
+        char se,
+        FILE *);
 void fklPrintRawChar(char, FILE *);
 
-static inline void fklPrintCharBufInHex(const char *buf, uint32_t len,
-                                        FILE *fp) {
+static inline void
+fklPrintCharBufInHex(const char *buf, uint32_t len, FILE *fp) {
     for (const char *end = buf + len; buf < end; buf++)
         fprintf(fp, "%X", (uint8_t)(*buf));
 }
@@ -70,8 +77,9 @@ int fklIsPrecompileFile(const char *filename);
 int fklGetDelim(FILE *fp, FklStringBuffer *b, char d);
 
 void *fklCopyMemory(const void *, size_t);
-int fklIsSymbolShouldBeExport(const FklString *str, const FklString **pStr,
-                              uint32_t n);
+int fklIsSymbolShouldBeExport(const FklString *str,
+        const FklString **pStr,
+        uint32_t n);
 char *fklGetDir(const char *);
 char **fklSplit(char *str, const char *divider, size_t *);
 char *fklStrTok(char *str, const char *divstr, char **context);

@@ -2,10 +2,10 @@
 #include <fakeLisp/parser_grammer.h>
 #include <string.h>
 
-static const FklGrammerBuiltinAction Actions[] = {{"first", NULL}};
+static const FklGrammerBuiltinAction Actions[] = { { "first", NULL } };
 
-static const FklGrammerBuiltinAction *resolver(void *ctx, const char *str,
-                                               size_t len) {
+static const FklGrammerBuiltinAction *
+resolver(void *ctx, const char *str, size_t len) {
     return &Actions[0];
 }
 

@@ -52,9 +52,11 @@ static int math_srand(FKL_CPROC_ARGL) {
         seed2 = (int64_t)(uintptr_t)exe;
         set_seed(exe->rand_state, seed1, seed2);
     }
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvaluePair(exe, fklMakeVMint(seed1, exe),
-                                          fklMakeVMint(seed2, exe)));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvaluePair(exe,
+                    fklMakeVMint(seed1, exe),
+                    fklMakeVMint(seed2, exe)));
     return 0;
 }
 
@@ -110,16 +112,19 @@ static int math_rand(FKL_CPROC_ARGL) {
         up = fklVMgetInt(up_v);
     } break;
     default:
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+        fprintf(stderr,
+                "[%s: %d] %s: unreachable!\n",
+                __FILE__,
+                __LINE__,
                 __FUNCTION__);
         abort();
         break;
     }
     if (low > up)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    uint64_t p =
-        project(rv, FKL_TYPE_CAST(uint64_t, up) - FKL_TYPE_CAST(uint64_t, low),
-                exe->rand_state);
+    uint64_t p = project(rv,
+            FKL_TYPE_CAST(uint64_t, up) - FKL_TYPE_CAST(uint64_t, low),
+            exe->rand_state);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(p + (uint64_t)low, exe));
     return 0;
 }
@@ -129,14 +134,15 @@ static int math_abs(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, fklIsVMnumber, exe);
     if (FKL_IS_F64(obj)) {
-        FKL_CPROC_RETURN(exe, ctx,
-                         fklCreateVMvalueF64(exe, fabs(FKL_VM_F64(obj))));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueF64(exe, fabs(FKL_VM_F64(obj))));
     } else if (FKL_IS_FIX(obj)) {
         int64_t i = fklAbs(FKL_GET_FIX(obj));
-        FKL_CPROC_RETURN(exe, ctx,
-                         i > FKL_FIX_INT_MAX
-                             ? fklCreateVMvalueBigIntWithI64(exe, i)
-                             : FKL_MAKE_VM_FIX(i));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                i > FKL_FIX_INT_MAX ? fklCreateVMvalueBigIntWithI64(exe, i)
+                                    : FKL_MAKE_VM_FIX(i));
     } else {
         FklVMvalue *r = fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(obj));
         FKL_VM_BI(r)->num = fklAbs(FKL_VM_BI(r)->num);
@@ -179,8 +185,9 @@ static int math_even_p(FKL_CPROC_ARGL) {
         FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);                                 \
         FklVMvalue *num = FKL_CPROC_GET_ARG(exe, ctx, 0);                      \
         FKL_CHECK_TYPE(num, fklIsVMnumber, exe);                               \
-        FKL_CPROC_RETURN(exe, ctx,                                             \
-                         fklCreateVMvalueF64(exe, FUNC(fklVMgetDouble(num)))); \
+        FKL_CPROC_RETURN(exe,                                                  \
+                ctx,                                                           \
+                fklCreateVMvalueF64(exe, FUNC(fklVMgetDouble(num))));          \
         return 0;                                                              \
     }
 
@@ -231,9 +238,11 @@ static int math_modf(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(num, fklIsVMnumber, exe);
     double cdr = 0.0;
     double car = modf(fklVMgetDouble(num), &cdr);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvaluePair(exe, fklCreateVMvalueF64(exe, car),
-                                          fklCreateVMvalueF64(exe, cdr)));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvaluePair(exe,
+                    fklCreateVMvalueF64(exe, car),
+                    fklCreateVMvalueF64(exe, cdr)));
     return 0;
 }
 
@@ -243,9 +252,11 @@ static int math_frexp(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(num, fklIsVMnumber, exe);
     int32_t cdr = 0;
     double car = frexp(fklVMgetDouble(num), &cdr);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvaluePair(exe, fklCreateVMvalueF64(exe, car),
-                                          FKL_MAKE_VM_FIX(cdr)));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvaluePair(exe,
+                    fklCreateVMvalueF64(exe, car),
+                    FKL_MAKE_VM_FIX(cdr)));
     return 0;
 }
 
@@ -258,18 +269,22 @@ static int math_log(FKL_CPROC_ARGL) {
         FKL_CHECK_TYPE(base, fklIsVMnumber, exe);
         double b = fklVMgetDouble(base);
         if (!islessgreater(b, 2.0))
-            FKL_CPROC_RETURN(exe, ctx,
-                             fklCreateVMvalueF64(exe, log2(fklVMgetDouble(x))));
+            FKL_CPROC_RETURN(exe,
+                    ctx,
+                    fklCreateVMvalueF64(exe, log2(fklVMgetDouble(x))));
         else if (!islessgreater(b, 10.0))
-            FKL_CPROC_RETURN(
-                exe, ctx, fklCreateVMvalueF64(exe, log10(fklVMgetDouble(x))));
+            FKL_CPROC_RETURN(exe,
+                    ctx,
+                    fklCreateVMvalueF64(exe, log10(fklVMgetDouble(x))));
         else
-            FKL_CPROC_RETURN(
-                exe, ctx,
-                fklCreateVMvalueF64(exe, log2(fklVMgetDouble(x)) / log2(b)));
+            FKL_CPROC_RETURN(exe,
+                    ctx,
+                    fklCreateVMvalueF64(exe,
+                            log2(fklVMgetDouble(x)) / log2(b)));
     } else
-        FKL_CPROC_RETURN(exe, ctx,
-                         fklCreateVMvalueF64(exe, log(fklVMgetDouble(x))));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueF64(exe, log(fklVMgetDouble(x))));
     return 0;
 }
 
@@ -280,9 +295,10 @@ static int math_log(FKL_CPROC_ARGL) {
         FklVMvalue *y = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
         FKL_CHECK_TYPE(x, fklIsVMnumber, exe);                                 \
         FKL_CHECK_TYPE(y, fklIsVMnumber, exe);                                 \
-        FKL_CPROC_RETURN(exe, ctx,                                             \
-                         fklCreateVMvalueF64(exe, FUNC(fklVMgetDouble(x),      \
-                                                       fklVMgetDouble(y))));   \
+        FKL_CPROC_RETURN(exe,                                                  \
+                ctx,                                                           \
+                fklCreateVMvalueF64(exe,                                       \
+                        FUNC(fklVMgetDouble(x), fklVMgetDouble(y))));          \
         return 0;                                                              \
     }
 
@@ -301,8 +317,9 @@ DOUBLE_ARG_MATH_FUNC(copysign, copysign, copysign);
         FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);                                 \
         FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);                      \
         FKL_CHECK_TYPE(val, fklIsVMnumber, exe);                               \
-        FKL_CPROC_RETURN(                                                      \
-            exe, ctx, FUNC(fklVMgetDouble(val)) ? FKL_VM_TRUE : FKL_VM_NIL);   \
+        FKL_CPROC_RETURN(exe,                                                  \
+                ctx,                                                           \
+                FUNC(fklVMgetDouble(val)) ? FKL_VM_TRUE : FKL_VM_NIL);         \
         return 0;                                                              \
     }
 
@@ -320,10 +337,10 @@ static int math_unordered_p(FKL_CPROC_ARGL) {
     FklVMvalue *y = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(x, fklIsVMnumber, exe);
     FKL_CHECK_TYPE(y, fklIsVMnumber, exe);
-    FKL_CPROC_RETURN(exe, ctx,
-                     isunordered(fklVMgetDouble(x), fklVMgetDouble(y))
-                         ? FKL_VM_TRUE
-                         : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            isunordered(fklVMgetDouble(x), fklVMgetDouble(y)) ? FKL_VM_TRUE
+                                                              : FKL_VM_NIL);
     return 0;
 }
 
@@ -410,10 +427,10 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -425,7 +442,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     size_t i = 0;
     fklVMacquireSt(exe->gc);

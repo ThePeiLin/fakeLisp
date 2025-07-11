@@ -39,8 +39,13 @@ int main(int argc, char *argv[]) {
 
     FILE *action_file = fopen(action_file_name, "r");
     FILE *parse = fopen(outer_file_name, "w");
-    fklPrintAnalysisTableAsCfunc(g, st, action_file, ast_creator_name,
-                                 ast_destroy_name, state_0_push_name, parse);
+    fklPrintAnalysisTableAsCfunc(g,
+            st,
+            action_file,
+            ast_creator_name,
+            ast_destroy_name,
+            state_0_push_name,
+            parse);
     fclose(parse);
     fclose(action_file);
 

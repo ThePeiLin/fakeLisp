@@ -43,7 +43,7 @@ static inline uint32_t count_number_esc_char(const char *pat, uint32_t len) {
 }
 
 static inline int esc_char_to_char(const char *pat, uint32_t len) {
-    char tmp[4] = {0};
+    char tmp[4] = { 0 };
     strncpy(tmp, pat, len > 3 ? 3 : len);
     if (toupper(*pat) == 'X' && len > 1)
         return strtol(&tmp[1], NULL, 16);
@@ -65,11 +65,11 @@ static inline uint32_t compute_char_class_len(const char *pat, uint32_t len) {
             uint8_t num = 0;
             while (num < UINT8_MAX) {
                 if (&pat[len] >= end
-                    || (&pat[len + 2] >= end && pat[len + 1] == '-'))
+                        || (&pat[len + 2] >= end && pat[len + 1] == '-'))
                     break;
                 if (pat[len] == '\\')
                     len += count_number_esc_char(&pat[len + 1],
-                                                 end - &pat[len + 1]);
+                            end - &pat[len + 1]);
                 num++;
                 len++;
             }
@@ -80,8 +80,8 @@ static inline uint32_t compute_char_class_len(const char *pat, uint32_t len) {
     return retval;
 }
 
-static inline uint32_t char_buf_to_char_class(const char *pat, size_t len,
-                                              uint8_t *patrns) {
+static inline uint32_t
+char_buf_to_char_class(const char *pat, size_t len, uint8_t *patrns) {
     const char *end = &pat[len];
     uint32_t idx = 0;
     while (pat < end) {
@@ -97,11 +97,11 @@ static inline uint32_t char_buf_to_char_class(const char *pat, size_t len,
             uint8_t num = 0;
             while (num < UINT8_MAX) {
                 if (&pat[len] >= end
-                    || (&pat[len + 2] >= end && pat[len + 1] == '-'))
+                        || (&pat[len + 2] >= end && pat[len + 1] == '-'))
                     break;
                 if (pat[len] == '\\')
                     len += count_number_esc_char(&pat[len + 1],
-                                                 end - &pat[len + 1]);
+                            end - &pat[len + 1]);
                 num++;
                 len++;
             }
@@ -110,7 +110,7 @@ static inline uint32_t char_buf_to_char_class(const char *pat, size_t len,
             for (uint32_t i = 0; i < len; i++) {
                 if (pat[i] == '\\') {
                     uint32_t esc_len =
-                        count_number_esc_char(&pat[i + 1], len - i - 1);
+                            count_number_esc_char(&pat[i + 1], len - i - 1);
                     int ch = esc_char_to_char(&pat[i + 1], esc_len);
                     if (ch > UINT8_MAX)
                         return 0;
@@ -127,8 +127,8 @@ static inline uint32_t char_buf_to_char_class(const char *pat, size_t len,
     return retval;
 }
 
-static inline int compile_count(struct ReCompileCtx *ctx, const char *pat,
-                                size_t len) {
+static inline int
+compile_count(struct ReCompileCtx *ctx, const char *pat, size_t len) {
     size_t i = 0;
     char c = 0;
     uint32_t brcnt = 0;
@@ -149,8 +149,8 @@ static inline int compile_count(struct ReCompileCtx *ctx, const char *pat,
             if (i + 1 >= len)
                 return 1;
             brcnt++;
-            struct ReInst *inst = (struct ReInst *)fklZrealloc(
-                ctx->inst, (ctx->ecnt + 1) * sizeof(struct ReInst));
+            struct ReInst *inst = (struct ReInst *)fklZrealloc(ctx->inst,
+                    (ctx->ecnt + 1) * sizeof(struct ReInst));
             FKL_ASSERT(inst);
             ctx->inst = inst;
             inst[ctx->ecnt].p = resel;
@@ -198,7 +198,7 @@ static inline int compile_count(struct ReCompileCtx *ctx, const char *pat,
 
 FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
     FklRegexCode *retval = NULL;
-    struct ReCompileCtx ctx = {NULL, 0, 0, 0, 0};
+    struct ReCompileCtx ctx = { NULL, 0, 0, 0, 0 };
     if (compile_count(&ctx, pattern, len))
         goto error;
     uint32_t patoff = ctx.objs * sizeof(FklRegexObj);
@@ -283,7 +283,7 @@ FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
                 cur_obj->trueoffset = cur_failoff;
                 for (uint32_t i = j - 1; i > inst[resel].trueoff; i--) {
                     if (objs[i].type == FKL_REGEX_BRANCH
-                        && objs[i].trueoffset == cur_failoff)
+                            && objs[i].trueoffset == cur_failoff)
                         break;
                     if (objs[i].falseoffset == cur_failoff)
                         objs[i].falseoffset = j;
@@ -311,7 +311,7 @@ FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
                 cur_obj->trueoffset = j + 1;
                 cur_obj->falseoffset = inst[resel].failoff;
                 uint32_t esc_len =
-                    count_number_esc_char(&pattern[i + 1], len - i - 1);
+                        count_number_esc_char(&pattern[i + 1], len - i - 1);
                 switch (pattern[i + 1]) {
                 case 'd':
                     cur_obj->type = FKL_REGEX_DIGITS;
@@ -366,8 +366,9 @@ FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
             }
             uint32_t pat_len = (i - pat_begin);
             cur_obj->ccl = patoff;
-            uint32_t len = char_buf_to_char_class(&pattern[pat_begin], pat_len,
-                                                  &patrns[patoff]);
+            uint32_t len = char_buf_to_char_class(&pattern[pat_begin],
+                    pat_len,
+                    &patrns[patoff]);
             if (!len)
                 goto error;
             patoff += len;
@@ -478,8 +479,12 @@ void fklRegexPrint(const FklRegexCode *re, FILE *fp) {
     uint32_t idx = 0;
     uint8_t *patrns = (uint8_t *)re->data;
     for (;;) {
-        fprintf(fp, "%-8X %-14s %8X %8X ", idx, regex_obj_type_name[obj->type],
-                obj->trueoffset, obj->falseoffset);
+        fprintf(fp,
+                "%-8X %-14s %8X %8X ",
+                idx,
+                regex_obj_type_name[obj->type],
+                obj->trueoffset,
+                obj->falseoffset);
         if (obj->type == FKL_REGEX_CHAR)
             print_char(obj->ch, fp);
         else if (obj->type == FKL_REGEX_CHAR_CLASS
@@ -531,8 +536,8 @@ static inline int match_inv_char_class(uint8_t c, const uint8_t *patrns) {
     return 0;
 }
 
-static inline int matchone(const FklRegexObj *cur, const uint8_t *patrns,
-                           uint8_t c) {
+static inline int
+matchone(const FklRegexObj *cur, const uint8_t *patrns, uint8_t c) {
     switch (cur->type) {
     case FKL_REGEX_DOT:
         return 1;
@@ -581,9 +586,9 @@ static inline int matchone(const FklRegexObj *cur, const uint8_t *patrns,
 
 #define DEFAULT_STACK_SIZE (32)
 
-static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
-                                    uint32_t len) {
-    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = {0};
+static inline uint32_t
+matchpattern(const FklRegexCode *re, const char *text, uint32_t len) {
+    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = { 0 };
     const uint32_t IMPOSSIBLE_IDX = len + 1;
     const FklRegexObj *objs = re->data;
     const FklRegexObj *cur_obj = NULL;
@@ -591,7 +596,7 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
     struct ReMatchState *state;
     if (re->pstsize > DEFAULT_STACK_SIZE) {
         state = (struct ReMatchState *)fklZcalloc(re->pstsize,
-                                                  sizeof(struct ReMatchState));
+                sizeof(struct ReMatchState));
         FKL_ASSERT(state);
     } else {
         state = &stack_state[0];
@@ -636,10 +641,10 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
                 STP.offset = cur_obj->trueoffset;
                 const FklRegexObj *cur_obj0 = &objs[offset0];
                 if (cur_obj0->type != FKL_REGEX_END
-                    && cur_obj0->type != FKL_REGEX_UNUSED
-                    && cur_obj0->type != FKL_REGEX_GROUPEND
-                    && cur_obj0->type != FKL_REGEX_BRANCH
-                    && STP.st0 != STP.st) {
+                        && cur_obj0->type != FKL_REGEX_UNUSED
+                        && cur_obj0->type != FKL_REGEX_GROUPEND
+                        && cur_obj0->type != FKL_REGEX_BRANCH
+                        && STP.st0 != STP.st) {
                     uint32_t tr = matchone(cur_obj0, patrns, text[STP.st]);
                     if (tr) {
                         STP.st0 = STP.st;
@@ -706,9 +711,10 @@ static inline uint32_t matchpattern(const FklRegexCode *re, const char *text,
 }
 
 static inline uint32_t lex_matchpattern(const FklRegexCode *re,
-                                        const char *text, uint32_t len,
-                                        int *last_is_true) {
-    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = {0};
+        const char *text,
+        uint32_t len,
+        int *last_is_true) {
+    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = { 0 };
     const uint32_t IMPOSSIBLE_IDX = len + 1;
     const FklRegexObj *objs = re->data;
     const FklRegexObj *cur_obj = NULL;
@@ -717,7 +723,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
     struct ReMatchState *state;
     if (re->pstsize > DEFAULT_STACK_SIZE) {
         state = (struct ReMatchState *)fklZcalloc(re->pstsize,
-                                                  sizeof(struct ReMatchState));
+                sizeof(struct ReMatchState));
         FKL_ASSERT(state);
     } else {
         state = &stack_state[0];
@@ -759,10 +765,10 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
                 STP.offset = cur_obj->trueoffset;
                 const FklRegexObj *cur_obj0 = &objs[offset0];
                 if (cur_obj0->type != FKL_REGEX_END
-                    && cur_obj0->type != FKL_REGEX_UNUSED
-                    && cur_obj0->type != FKL_REGEX_GROUPEND
-                    && cur_obj0->type != FKL_REGEX_BRANCH
-                    && STP.st0 != STP.st) {
+                        && cur_obj0->type != FKL_REGEX_UNUSED
+                        && cur_obj0->type != FKL_REGEX_GROUPEND
+                        && cur_obj0->type != FKL_REGEX_BRANCH
+                        && STP.st0 != STP.st) {
                     uint32_t tr = matchone(cur_obj0, patrns, text[STP.st]);
                     if (tr) {
                         STP.st0 = STP.st;
@@ -834,8 +840,10 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
 #undef POP
 #undef PUSH
 
-uint32_t fklRegexMatchpInCharBuf(const FklRegexCode *re, const char *text,
-                                 uint32_t len, uint32_t *ppos) {
+uint32_t fklRegexMatchpInCharBuf(const FklRegexCode *re,
+        const char *text,
+        uint32_t len,
+        uint32_t *ppos) {
     if (re->data[0].type == FKL_REGEX_BEGIN) {
         *ppos = 0;
         return matchpattern(re, text, len);
@@ -855,13 +863,15 @@ uint32_t fklRegexMatchpInCharBuf(const FklRegexCode *re, const char *text,
     return len + 1;
 }
 
-uint32_t fklRegexMatchpInCstr(const FklRegexCode *re, const char *str,
-                              uint32_t *ppos) {
+uint32_t
+fklRegexMatchpInCstr(const FklRegexCode *re, const char *str, uint32_t *ppos) {
     return fklRegexMatchpInCharBuf(re, str, strlen(str), ppos);
 }
 
-uint32_t fklRegexLexMatchp(const FklRegexCode *re, const char *text,
-                           uint32_t len, int *last_is_true) {
+uint32_t fklRegexLexMatchp(const FklRegexCode *re,
+        const char *text,
+        uint32_t len,
+        int *last_is_true) {
     *last_is_true = 0;
     return lex_matchpattern(re, text, len, last_is_true);
 }
@@ -874,14 +884,15 @@ uint32_t fklRegexLexMatchp(const FklRegexCode *re, const char *text,
 
 #define CB_INDENT(flag)                                                        \
     for (uint8_t flag = (fklCodeBuilderIndent(build), 0); flag < 1;            \
-         fklCodeBuilderUnindent(build), ++flag)
+            fklCodeBuilderUnindent(build), ++flag)
 
-static inline void build_objs(const FklRegexObj *obj, uint32_t objs_num,
-                              FklCodeBuilder *build) {
+static inline void
+build_objs(const FklRegexObj *obj, uint32_t objs_num, FklCodeBuilder *build) {
     for (const FklRegexObj *end = &obj[objs_num]; obj < end; obj++) {
         CB_LINE_START("{.type=%-24s,.trueoffset=%u,.falseoffset=%u,",
-                      regex_obj_enum_type_name[obj->type], obj->trueoffset,
-                      obj->falseoffset);
+                regex_obj_enum_type_name[obj->type],
+                obj->trueoffset,
+                obj->falseoffset);
         if (obj->type == FKL_REGEX_CHAR)
             CB_LINE_END(".ch=%d,},", obj->ch);
         else if (obj->type == FKL_REGEX_CHAR_CLASS)
@@ -897,8 +908,8 @@ static const char *char_class_enum_name[] = {
     "FKL_REGEX_CHAR_CLASS_RANGE",
 };
 
-static inline void build_patrns(const uint8_t *pat, uint32_t len,
-                                FklCodeBuilder *build) {
+static inline void
+build_patrns(const uint8_t *pat, uint32_t len, FklCodeBuilder *build) {
     for (const uint8_t *end = &pat[len]; pat < end;) {
         CB_LINE_START("%-26s,", char_class_enum_name[*pat]);
         switch (*(pat++)) {
@@ -920,9 +931,11 @@ static inline void build_patrns(const uint8_t *pat, uint32_t len,
     }
 }
 
-void fklRegexBuildAsC(const FklRegexCode *re, const char *prefix,
-                      const char *pattern, uint32_t pattern_len,
-                      FklCodeBuilder *build) {
+void fklRegexBuildAsC(const FklRegexCode *re,
+        const char *prefix,
+        const char *pattern,
+        uint32_t pattern_len,
+        FklCodeBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;
     const FklRegexObj *objs = re->data;
@@ -970,8 +983,10 @@ void fklRegexBuildAsC(const FklRegexCode *re, const char *prefix,
     CB_LINE("};");
 }
 
-void fklRegexBuildAsCwithNum(const FklRegexCode *re, const char *prefix,
-                             uint64_t num, FklCodeBuilder *build) {
+void fklRegexBuildAsCwithNum(const FklRegexCode *re,
+        const char *prefix,
+        uint64_t num,
+        FklCodeBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;
     const FklRegexObj *objs = re->data;
@@ -1018,8 +1033,8 @@ const FklRegexCode *fklAddRegexCstr(FklRegexTable *t, const char *cstr) {
     return fklAddRegexCharBuf(t, cstr, strlen(cstr));
 }
 
-const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
-                                       size_t len) {
+const FklRegexCode *
+fklAddRegexCharBuf(FklRegexTable *t, const char *buf, size_t len) {
     uintptr_t hashv = fklCharBufHash(buf, len);
     FklStrRegexHashMap *ht = &t->str_re;
     FklStrRegexHashMapNode *const *bkt = fklStrRegexHashMapBucket(ht, hashv);
@@ -1033,7 +1048,7 @@ const FklRegexCode *fklAddRegexCharBuf(FklRegexTable *t, const char *buf,
     FklRegexCode *re = fklRegexCompileCharBuf(buf, len);
     if (re) {
         FklStrRegexHashMapNode *node =
-            fklStrRegexHashMapCreateNode2(hashv, fklCreateString(len, buf));
+                fklStrRegexHashMapCreateNode2(hashv, fklCreateString(len, buf));
         node->v.num = ++t->num;
         node->v.re = re;
         fklStrRegexHashMapInsertNode(&t->str_re, node);
@@ -1063,7 +1078,8 @@ FklRegexTable *fklCreateRegexTable(void) {
 }
 
 const FklString *fklGetStringWithRegex(const FklRegexTable *t,
-                                       const FklRegexCode *re, uint64_t *pnum) {
+        const FklRegexCode *re,
+        uint64_t *pnum) {
     FklString **item = fklRegexStrHashMapGet2(&t->re_str, re);
     if (item) {
         if (pnum)

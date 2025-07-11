@@ -67,7 +67,7 @@ static inline void *fklZrealloc(void *ptr, size_t new_size) {
         return ptr;
 
     void *new_ptr =
-        realloc((((char *)ptr) - ALIGN_PADDING), ALIGN_PADDING + new_size);
+            realloc((((char *)ptr) - ALIGN_PADDING), ALIGN_PADDING + new_size);
     if (new_ptr == NULL)
         return NULL;
     *((size_t *)new_ptr) = new_size;

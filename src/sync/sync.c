@@ -13,8 +13,8 @@ static FklVMudMetaTable SyncPublicDataMetaTable = {
     .size = sizeof(SyncPublicData),
 };
 
-static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
-                                          SyncPublicData *pd) {
+static inline FklVMvalue *
+create_uv_error(int err_id, FklVM *exe, SyncPublicData *pd) {
     FklSid_t id = 0;
     switch (err_id) {
 #define XX(code, _)                                                            \
@@ -25,13 +25,14 @@ static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
     default:
         id = pd->uv_err_sid_UNKNOWN;
     }
-    return fklCreateVMvalueError(exe, id,
-                                 fklCreateStringFromCstr(uv_strerror(err_id)));
+    return fklCreateVMvalueError(exe,
+            id,
+            fklCreateStringFromCstr(uv_strerror(err_id)));
 #undef XX
 }
 
-noreturn static inline void raiseUvError(int err_id, FklVM *exe,
-                                         FklVMvalue *pd_obj) {
+noreturn static inline void
+raiseUvError(int err_id, FklVM *exe, FklVMvalue *pd_obj) {
     FKL_DECL_VM_UD_DATA(pd, SyncPublicData, pd_obj);
     fklRaiseVMerror(create_uv_error(err_id, exe, pd), exe);
 }
@@ -102,8 +103,9 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, IS_MUTEX_UD, exe);
     FKL_DECL_VM_UD_DATA(mutex, uv_mutex_t, obj);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_mutex_trylock(mutex) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_mutex_trylock(mutex) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -242,8 +244,9 @@ static int sync_rwlock_tryrdlock(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, IS_RWLOCK_UD, exe);
     FKL_DECL_VM_UD_DATA(rwlock, uv_rwlock_t, obj);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_rwlock_tryrdlock(rwlock) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_rwlock_tryrdlock(rwlock) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -274,8 +277,9 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, IS_RWLOCK_UD, exe);
     FKL_DECL_VM_UD_DATA(rwlock, uv_rwlock_t, obj);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_rwlock_trywrlock(rwlock) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_rwlock_trywrlock(rwlock) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -428,18 +432,18 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 static inline void init_sync_public_data(SyncPublicData *pd,
-                                         FklSymbolTable *st) {
+        FklSymbolTable *st) {
 #define XX(code, _)                                                            \
     pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st)->v;
     UV_ERRNO_MAP(XX);
 #undef XX
 }
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -451,7 +455,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     FklVMvalue *spd = fklCreateVMvalueUd(exe, &SyncPublicDataMetaTable, dll);
     FKL_DECL_VM_UD_DATA(pd, SyncPublicData, spd);

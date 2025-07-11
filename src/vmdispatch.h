@@ -9,8 +9,10 @@
 #endif
 
 #ifndef DISPATCH_SWITCH
-void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
-                             FklVMframe *frame) {
+void fklVMexecuteInstruction(FklVM *exe,
+        FklOpcode op,
+        FklInstruction *ins,
+        FklVMframe *frame) {
     FklVMlib *plib;
     uint32_t idx;
     uint32_t idx1;
@@ -63,77 +65,83 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         break;
     case FKL_OP_PUSH_I64F_C:
         FKL_VM_PUSH_VALUE(exe,
-                          FKL_MAKE_VM_FIX(exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+                FKL_MAKE_VM_FIX(exe->gc->ki64[FKL_GET_INS_UC(ins)]));
         break;
     case FKL_OP_PUSH_I64F_X:
-        FKL_VM_PUSH_VALUE(
-            exe, FKL_MAKE_VM_FIX(exe->gc->ki64[GET_INS_UX(ins, frame)]));
+        FKL_VM_PUSH_VALUE(exe,
+                FKL_MAKE_VM_FIX(exe->gc->ki64[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_PUSH_F64:
         FKL_VM_PUSH_VALUE(exe,
-                          fklCreateVMvalueF64(exe, exe->gc->kf64[ins->bu]));
+                fklCreateVMvalueF64(exe, exe->gc->kf64[ins->bu]));
         break;
     case FKL_OP_PUSH_F64_C:
-        FKL_VM_PUSH_VALUE(
-            exe, fklCreateVMvalueF64(exe, exe->gc->kf64[FKL_GET_INS_UC(ins)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueF64(exe, exe->gc->kf64[FKL_GET_INS_UC(ins)]));
         break;
     case FKL_OP_PUSH_F64_X:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueF64(
-                                   exe, exe->gc->kf64[GET_INS_UX(ins, frame)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueF64(exe,
+                        exe->gc->kf64[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_PUSH_STR:
         FKL_VM_PUSH_VALUE(exe,
-                          fklCreateVMvalueStr(exe, exe->gc->kstr[ins->bu]));
+                fklCreateVMvalueStr(exe, exe->gc->kstr[ins->bu]));
         break;
     case FKL_OP_PUSH_STR_C:
-        FKL_VM_PUSH_VALUE(
-            exe, fklCreateVMvalueStr(exe, exe->gc->kstr[FKL_GET_INS_UC(ins)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueStr(exe, exe->gc->kstr[FKL_GET_INS_UC(ins)]));
         break;
     case FKL_OP_PUSH_STR_X:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueStr(
-                                   exe, exe->gc->kstr[GET_INS_UX(ins, frame)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueStr(exe,
+                        exe->gc->kstr[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_PUSH_BVEC:
         FKL_VM_PUSH_VALUE(exe,
-                          fklCreateVMvalueBvec(exe, exe->gc->kbvec[ins->bu]));
+                fklCreateVMvalueBvec(exe, exe->gc->kbvec[ins->bu]));
         break;
     case FKL_OP_PUSH_BVEC_C:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBvec(
-                                   exe, exe->gc->kbvec[FKL_GET_INS_UC(ins)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBvec(exe, exe->gc->kbvec[FKL_GET_INS_UC(ins)]));
         break;
     case FKL_OP_PUSH_BVEC_X:
-        FKL_VM_PUSH_VALUE(
-            exe,
-            fklCreateVMvalueBvec(exe, exe->gc->kbvec[GET_INS_UX(ins, frame)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBvec(exe,
+                        exe->gc->kbvec[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_PUSH_I64B:
-        FKL_VM_PUSH_VALUE(
-            exe, fklCreateVMvalueBigIntWithI64(exe, exe->gc->ki64[ins->bu]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBigIntWithI64(exe, exe->gc->ki64[ins->bu]));
         break;
     case FKL_OP_PUSH_I64B_C:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigIntWithI64(
-                                   exe, exe->gc->ki64[FKL_GET_INS_UC(ins)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBigIntWithI64(exe,
+                        exe->gc->ki64[FKL_GET_INS_UC(ins)]));
         break;
     case FKL_OP_PUSH_I64B_X:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigIntWithI64(
-                                   exe, exe->gc->ki64[GET_INS_UX(ins, frame)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBigIntWithI64(exe,
+                        exe->gc->ki64[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_PUSH_BI:
         FKL_VM_PUSH_VALUE(exe,
-                          fklCreateVMvalueBigInt2(exe, exe->gc->kbi[ins->bu]));
+                fklCreateVMvalueBigInt2(exe, exe->gc->kbi[ins->bu]));
         break;
     case FKL_OP_PUSH_BI_C:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigInt2(
-                                   exe, exe->gc->kbi[FKL_GET_INS_UC(ins)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBigInt2(exe,
+                        exe->gc->kbi[FKL_GET_INS_UC(ins)]));
         break;
     case FKL_OP_PUSH_BI_X:
-        FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueBigInt2(
-                                   exe, exe->gc->kbi[GET_INS_UX(ins, frame)]));
+        FKL_VM_PUSH_VALUE(exe,
+                fklCreateVMvalueBigInt2(exe,
+                        exe->gc->kbi[GET_INS_UX(ins, frame)]));
         break;
     case FKL_OP_PUSH_BOX:
-        FKL_VM_PUSH_VALUE(
-            exe, ins->ai ? fklCreateVMvalueBox(exe, FKL_VM_POP_TOP_VALUE(exe))
-                         : fklCreateVMvalueBoxNil(exe));
+        FKL_VM_PUSH_VALUE(exe,
+                ins->ai ? fklCreateVMvalueBox(exe, FKL_VM_POP_TOP_VALUE(exe))
+                        : fklCreateVMvalueBoxNil(exe));
         break;
     case FKL_OP_PUSH_LIST_0: {
         FklVMvalue *last = FKL_VM_POP_TOP_VALUE(exe);
@@ -254,11 +262,11 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
              | (((uint64_t)ins[2].bu) << FKL_I24_WIDTH)
              | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
              | (((uint64_t)ins[3].bu)
-                << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
+                     << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
         frame->c.pc += 3;
     push_proc: {
         FKL_VM_PUSH_VALUE(exe,
-                          fklCreateVMvalueProcWithFrame(exe, frame, size, idx));
+                fklCreateVMvalueProcWithFrame(exe, frame, size, idx));
         fklAddCompoundFrameCp(frame, size);
     } break;
     case FKL_OP_DUP: {
@@ -278,7 +286,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             exe->tp = frame->c.sp;
             break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -297,8 +308,8 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FklVMvalue *obj = FKL_VM_NIL;
             FklVMvalue *volatile *pValue = &obj;
             for (uint32_t i = ins->bu; i < arg_num; ++i) {
-                *pValue = fklCreateVMvaluePairWithCar(
-                    exe, FKL_VM_GET_ARG(exe, frame, i));
+                *pValue = fklCreateVMvaluePairWithCar(exe,
+                        FKL_VM_GET_ARG(exe, frame, i));
                 FKL_VM_GET_ARG(exe, frame, i) = NULL;
                 pValue = &FKL_VM_CDR(*pValue);
             }
@@ -306,7 +317,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             exe->tp = frame->c.sp;
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -436,18 +450,18 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         break;
     case FKL_OP_GET_LOC_X:
         FKL_VM_PUSH_VALUE(exe,
-                          FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame)));
+                FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame)));
         break;
     case FKL_OP_PUT_LOC:
         FKL_VM_GET_ARG(exe, frame, ins->bu) = FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_PUT_LOC_C:
         FKL_VM_GET_ARG(exe, frame, FKL_GET_INS_UC(ins)) =
-            FKL_VM_GET_TOP_VALUE(exe);
+                FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_PUT_LOC_X:
         FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame)) =
-            FKL_VM_GET_TOP_VALUE(exe);
+                FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_GET_VAR_REF:
         idx = ins->bu;
@@ -461,9 +475,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklSid_t id = 0;
         FklVMvalue *v = get_var_val(frame, idx, exe->pts, &id);
         if (id)
-            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE, exe,
-                                        "Symbol %S is undefined",
-                                        FKL_MAKE_VM_SYM(id));
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
+                    exe,
+                    "Symbol %S is undefined",
+                    FKL_MAKE_VM_SYM(id));
         FKL_VM_PUSH_VALUE(exe, v);
     } break;
     case FKL_OP_PUT_VAR_REF:
@@ -478,9 +493,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklSid_t id = 0;
         FklVMvalue *volatile *pv = get_var_ref(frame, idx, exe->pts, &id);
         if (!pv)
-            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE, exe,
-                                        "Symbol %S is undefined",
-                                        FKL_MAKE_VM_SYM(id));
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
+                    exe,
+                    "Symbol %S is undefined",
+                    FKL_MAKE_VM_SYM(id));
         *pv = FKL_VM_GET_TOP_VALUE(exe);
     } break;
     case FKL_OP_EXPORT:
@@ -526,18 +542,21 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
     load_dll: {
         if (!plib->imported) {
             FklVMvalue *errorStr = NULL;
-            FklVMvalue *dll = fklCreateVMvalueDll(
-                exe, FKL_VM_STR(plib->proc)->str, &errorStr);
+            FklVMvalue *dll = fklCreateVMvalueDll(exe,
+                    FKL_VM_STR(plib->proc)->str,
+                    &errorStr);
             FklImportDllInitFunc initFunc = NULL;
             if (dll)
                 initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
             else
-                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED, exe,
-                                            FKL_VM_STR(errorStr)->str);
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
+                        exe,
+                        FKL_VM_STR(errorStr)->str);
             if (!initFunc)
-                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED, exe,
-                                            "Failed to import dll: %s",
-                                            plib->proc);
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
+                        exe,
+                        "Failed to import dll: %s",
+                        plib->proc);
             uint32_t tp = exe->tp;
             fklInitVMdll(dll, exe);
             plib->loc = initFunc(exe, dll, &plib->count);
@@ -567,19 +586,19 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FklVMvalue *sec = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *fir = FKL_VM_POP_TOP_VALUE(exe);
         FKL_VM_PUSH_VALUE(exe,
-                          fklVMvalueEq(fir, sec) ? FKL_VM_TRUE : FKL_VM_NIL);
+                fklVMvalueEq(fir, sec) ? FKL_VM_TRUE : FKL_VM_NIL);
     } break;
     case FKL_OP_EQV: {
         FklVMvalue *sec = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *fir = FKL_VM_POP_TOP_VALUE(exe);
         FKL_VM_PUSH_VALUE(exe,
-                          (fklVMvalueEqv(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
+                (fklVMvalueEqv(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
     } break;
     case FKL_OP_EQUAL: {
         FklVMvalue *sec = FKL_VM_POP_TOP_VALUE(exe);
         FklVMvalue *fir = FKL_VM_POP_TOP_VALUE(exe);
-        FKL_VM_PUSH_VALUE(exe, (fklVMvalueEqual(fir, sec)) ? FKL_VM_TRUE
-                                                           : FKL_VM_NIL);
+        FKL_VM_PUSH_VALUE(exe,
+                (fklVMvalueEqual(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
     } break;
     case FKL_OP_EQN: {
         switch (ins->ai) {
@@ -604,7 +623,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -633,7 +655,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -662,7 +687,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -691,7 +719,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -720,7 +751,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -748,8 +782,8 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         case 1: {
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
             if (FKL_IS_BIGINT(a))
-                FKL_VM_PUSH_VALUE(
-                    exe, fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
+                FKL_VM_PUSH_VALUE(exe,
+                        fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
             else if (FKL_IS_F64(a))
                 FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueF64(exe, FKL_VM_F64(a)));
             else if (FKL_IS_FIX(a))
@@ -780,7 +814,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             PROCESS_ADD_RES();
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -819,7 +856,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             PROCESS_SUB_RES();
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -830,8 +870,8 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         case 1: {
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
             if (FKL_IS_BIGINT(a))
-                FKL_VM_PUSH_VALUE(
-                    exe, fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
+                FKL_VM_PUSH_VALUE(exe,
+                        fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
             else if (FKL_IS_F64(a))
                 FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueF64(exe, FKL_VM_F64(a)));
             else if (FKL_IS_FIX(a))
@@ -862,7 +902,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             PROCESS_MUL_RES();
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -944,7 +987,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             PROCESS_IDIV_RES();
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -972,7 +1018,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             if (objlist == FKL_VM_NIL || FKL_IS_PAIR(objlist)) {
                 FklVMvalue *objPair = objlist;
                 for (uint64_t i = 0; i < index && FKL_IS_PAIR(objPair);
-                     i++, objPair = FKL_VM_CDR(objPair))
+                        i++, objPair = FKL_VM_CDR(objPair))
                     ;
                 if (FKL_IS_PAIR(objPair))
                     FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(objPair));
@@ -1018,7 +1064,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -1074,7 +1123,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -1113,7 +1165,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -1140,7 +1195,7 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *bvec = FKL_VM_GET_TOP_VALUE(exe);
             if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec)
-                || !fklIsVMint(value))
+                    || !fklIsVMint(value))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
@@ -1153,7 +1208,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -1174,7 +1232,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -1209,7 +1270,10 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+            fprintf(stderr,
+                    "[%s: %d] %s: unreachable!\n",
+                    __FILE__,
+                    __LINE__,
                     __FUNCTION__);
             abort();
             break;
@@ -1229,8 +1293,9 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->c.pc += 2;
     close_ref:
-        close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref, idx,
-                              idx1);
+        close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,
+                idx,
+                idx1);
         break;
     case FKL_OP_EXPORT_TO:
         idx = ins->au;
@@ -1276,26 +1341,32 @@ void fklVMexecuteInstruction(FklVM *exe, FklOpcode op, FklInstruction *ins,
         FKL_VM_GET_ARG(exe, frame, idx) = v;
     } break;
     case FKL_OP_MOV_LOC:
-        FKL_VM_PUSH_VALUE(exe, (FKL_VM_GET_ARG(exe, frame, ins->bu) =
-                                    FKL_VM_GET_ARG(exe, frame, ins->au)));
+        FKL_VM_PUSH_VALUE(exe,
+                (FKL_VM_GET_ARG(exe, frame, ins->bu) =
+                                FKL_VM_GET_ARG(exe, frame, ins->au)));
         break;
     case FKL_OP_MOV_VAR_REF: {
         FklSid_t id = 0;
         FklVMvalue *v = get_var_val(frame, ins->au, exe->pts, &id);
         if (id)
-            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE, exe,
-                                        "Symbol %S is undefined",
-                                        FKL_MAKE_VM_SYM(id));
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
+                    exe,
+                    "Symbol %S is undefined",
+                    FKL_MAKE_VM_SYM(id));
         FKL_VM_PUSH_VALUE(exe, v);
         FklVMvalue *volatile *pv = get_var_ref(frame, ins->bu, exe->pts, &id);
         if (!pv)
-            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE, exe,
-                                        "Symbol %S is undefined",
-                                        FKL_MAKE_VM_SYM(id));
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
+                    exe,
+                    "Symbol %S is undefined",
+                    FKL_MAKE_VM_SYM(id));
         *pv = v;
     } break;
     case FKL_OP_EXTRA_ARG:
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+        fprintf(stderr,
+                "[%s: %d] %s: unreachable!\n",
+                __FILE__,
+                __LINE__,
                 __FUNCTION__);
         abort();
         break;

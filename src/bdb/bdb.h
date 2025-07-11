@@ -72,8 +72,8 @@ typedef struct {
 #define FKL_HASH_METHOD_PREFIX bdb
 #define FKL_HASH_KEY_TYPE FklInstruction *
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk))                      \
-                          / alignof(FklInstruction));
+    return fklHash64Shift(                                                     \
+            FKL_TYPE_CAST(uintptr_t, (*pk)) / alignof(FklInstruction));
 #define FKL_HASH_VAL_TYPE BdbCodepoint
 #define FKL_HASH_ELM_NAME BpIns
 #include <fakeLisp/cont/hash.h>
@@ -209,8 +209,10 @@ typedef struct {
     int err;
 } DbgInterruptArg;
 
-int initDebugCtx(DebugCtx *, FklVM *exe, const char *filename,
-                 FklVMvalue *argv);
+int initDebugCtx(DebugCtx *,
+        FklVM *exe,
+        const char *filename,
+        FklVMvalue *argv);
 DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv);
 void exitDebugCtx(DebugCtx *);
 void uninitDebugCtx(DebugCtx *);
@@ -227,13 +229,14 @@ void markBreakpointCondExpObj(DebugCtx *ctx, FklVMgc *gc);
 
 const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid);
 
-Breakpoint *createBreakpoint(FklSid_t, uint32_t, FklInstruction *ins,
-                             DebugCtx *);
+Breakpoint *
+createBreakpoint(FklSid_t, uint32_t, FklInstruction *ins, DebugCtx *);
 BdbCodepoint *getBreakpointHashItem(DebugCtx *, const FklInstruction *ins);
 
-Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx, FklSid_t fid,
-                                         uint32_t line,
-                                         PutBreakpointErrorType *);
+Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
+        FklSid_t fid,
+        uint32_t line,
+        PutBreakpointErrorType *);
 Breakpoint *putBreakpointForProcedure(DebugCtx *ctx, FklSid_t name_sid);
 
 typedef struct {
@@ -262,8 +265,8 @@ void setStepUntil(DebugCtx *, uint32_t line);
 void setSingleStep(DebugCtx *);
 
 void dbgInterrupt(FklVM *, DbgInterruptArg *arg);
-FklVMinterruptResult dbgInterruptHandler(FklVM *, FklVMvalue *ev,
-                                         FklVMvalue **pv, void *arg);
+FklVMinterruptResult
+dbgInterruptHandler(FklVM *, FklVMvalue *ev, FklVMvalue **pv, void *arg);
 void setAllThreadReadyToExit(FklVM *head);
 void waitAllThreadExit(FklVM *head);
 void restartDebugging(DebugCtx *ctx);
@@ -273,14 +276,18 @@ typedef enum {
     EVAL_COMP_IMPORT,
 } EvalCompileErr;
 
-FklVMvalue *compileConditionExpression(DebugCtx *ctx, FklVM *, FklNastNode *exp,
-                                       FklVMframe *cur_frame,
-                                       EvalCompileErr *is_complie_unabled);
-FklVMvalue *compileEvalExpression(DebugCtx *ctx, FklVM *, FklNastNode *v,
-                                  FklVMframe *frame,
-                                  EvalCompileErr *is_complie_unabled);
-FklVMvalue *callEvalProc(DebugCtx *ctx, FklVM *, FklVMvalue *proc,
-                         FklVMframe *frame);
+FklVMvalue *compileConditionExpression(DebugCtx *ctx,
+        FklVM *,
+        FklNastNode *exp,
+        FklVMframe *cur_frame,
+        EvalCompileErr *is_complie_unabled);
+FklVMvalue *compileEvalExpression(DebugCtx *ctx,
+        FklVM *,
+        FklNastNode *v,
+        FklVMframe *frame,
+        EvalCompileErr *is_complie_unabled);
+FklVMvalue *
+callEvalProc(DebugCtx *ctx, FklVM *, FklVMvalue *proc, FklVMframe *frame);
 
 void setReachedThread(DebugCtx *ctx, FklVM *);
 void printBacktrace(DebugCtx *ctx, const FklString *prefix, FILE *fp);

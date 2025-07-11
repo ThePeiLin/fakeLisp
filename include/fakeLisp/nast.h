@@ -93,13 +93,14 @@ FklNastNode *fklCopyNastNode(const FklNastNode *);
 
 void fklDestroyNastNode(FklNastNode *);
 
-void fklPrintNastNode(const FklNastNode *node, FILE *fp,
-                      const FklSymbolTable *);
+void fklPrintNastNode(const FklNastNode *node,
+        FILE *fp,
+        const FklSymbolTable *);
 
 int fklNastNodeEqual(const FklNastNode *n0, const FklNastNode *n1);
 
-FklNastNode *fklNastConsWithSym(FklSid_t, FklNastNode *, uint64_t l1,
-                                uint64_t l2);
+FklNastNode *
+fklNastConsWithSym(FklSid_t, FklNastNode *, uint64_t l1, uint64_t l2);
 FklNastNode *fklNastCons(FklNastNode *, FklNastNode *, uint64_t l1);
 FklNastPair *fklCreateNastPair(void);
 FklNastHashTable *fklCreateNastHash(FklHashTableEqType, size_t);

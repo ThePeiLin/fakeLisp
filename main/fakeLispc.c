@@ -18,17 +18,17 @@
 #endif
 
 static inline void print_nast_node_with_null_chr(const FklNastNode *node,
-                                                 const FklSymbolTable *st,
-                                                 FILE *fp) {
+        const FklSymbolTable *st,
+        FILE *fp) {
     fklPrintNastNode(node, fp, st);
     fputc('\0', fp);
 }
 
 static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
-                                              FILE *fp) {
+        FILE *fp) {
     fwrite(&t->count, sizeof(t->count), 1, fp);
     for (FklCgExportSidIdxHashMapNode *sid_idx = t->first; sid_idx;
-         sid_idx = sid_idx->next) {
+            sid_idx = sid_idx->next) {
         fwrite(&sid_idx->k, sizeof(sid_idx->k), 1, fp);
         fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
         fwrite(&sid_idx->v.oidx, sizeof(sid_idx->v.oidx), 1, fp);
@@ -36,7 +36,8 @@ static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
 }
 
 static inline void write_compiler_macros(const FklCodegenMacro *head,
-                                         const FklSymbolTable *pst, FILE *fp) {
+        const FklSymbolTable *pst,
+        FILE *fp) {
     uint64_t count = 0;
     for (const FklCodegenMacro *c = head; c; c = c->next)
         count++;
@@ -49,18 +50,19 @@ static inline void write_compiler_macros(const FklCodegenMacro *head,
 }
 
 static inline void write_replacements(const FklReplacementHashMap *ht,
-                                      const FklSymbolTable *st, FILE *fp) {
+        const FklSymbolTable *st,
+        FILE *fp) {
     fwrite(&ht->count, sizeof(ht->count), 1, fp);
     for (const FklReplacementHashMapNode *rep_list = ht->first; rep_list;
-         rep_list = rep_list->next) {
+            rep_list = rep_list->next) {
         fwrite(&rep_list->k, sizeof(rep_list->k), 1, fp);
         print_nast_node_with_null_chr(rep_list->v, st, fp);
     }
 }
 
 static inline void write_codegen_script_lib_path(const char *rp,
-                                                 const char *main_dir,
-                                                 FILE *outfp) {
+        const char *main_dir,
+        FILE *outfp) {
     char *relpath = fklRelpath(main_dir, rp);
     size_t count = 0;
     char **slices = fklSplit(relpath, FKL_PATH_SEPARATOR_STR, &count);
@@ -75,8 +77,9 @@ static inline void write_codegen_script_lib_path(const char *rp,
 }
 
 static inline void write_codegen_script_lib(const FklCodegenLib *lib,
-                                            const FklSymbolTable *st,
-                                            const char *main_dir, FILE *outfp) {
+        const FklSymbolTable *st,
+        const char *main_dir,
+        FILE *outfp) {
     write_codegen_script_lib_path(lib->rp, main_dir, outfp);
     fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
     fklWriteByteCodelnt(lib->bcl, outfp);
@@ -87,8 +90,8 @@ static inline void write_codegen_script_lib(const FklCodegenLib *lib,
 }
 
 static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
-                                              const char *main_dir,
-                                              FILE *outfp) {
+        const char *main_dir,
+        FILE *outfp) {
     char *relpath = fklRelpath(main_dir, lib->rp);
     size_t count = 0;
     char **slices = fklSplit(relpath, FKL_PATH_SEPARATOR_STR, &count);
@@ -107,16 +110,18 @@ static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
 }
 
 static inline void write_codegen_dll_lib(const FklCodegenLib *lib,
-                                         const char *main_dir,
-                                         const char *target_dir, FILE *outfp) {
+        const char *main_dir,
+        const char *target_dir,
+        FILE *outfp) {
     write_codegen_dll_lib_path(lib, target_dir ? target_dir : main_dir, outfp);
     write_export_sid_idx_table(&lib->exports, outfp);
 }
 
 static inline void write_codegen_lib(const FklCodegenLib *lib,
-                                     const FklSymbolTable *st,
-                                     const char *main_dir,
-                                     const char *target_dir, FILE *fp) {
+        const FklSymbolTable *st,
+        const char *main_dir,
+        const char *target_dir,
+        FILE *fp) {
     uint8_t type_byte = lib->type;
     fwrite(&type_byte, sizeof(type_byte), 1, fp);
     switch (lib->type) {
@@ -130,22 +135,26 @@ static inline void write_codegen_lib(const FklCodegenLib *lib,
 }
 
 static inline void write_lib_main_file(const FklCodegenInfo *codegen,
-                                       const FklByteCodelnt *bcl,
-                                       const FklSymbolTable *st,
-                                       const char *main_dir, FILE *outfp) {
+        const FklByteCodelnt *bcl,
+        const FklSymbolTable *st,
+        const char *main_dir,
+        FILE *outfp) {
     write_codegen_script_lib_path(codegen->realpath, main_dir, outfp);
     fklWriteByteCodelnt(bcl, outfp);
     write_export_sid_idx_table(&codegen->exports, outfp);
     write_compiler_macros(codegen->export_macro, st, outfp);
     write_replacements(codegen->export_replacement, st, outfp);
     fklWriteExportNamedProds(codegen->export_named_prod_groups,
-                             codegen->named_prod_groups, st, outfp);
+            codegen->named_prod_groups,
+            st,
+            outfp);
 }
 
 static inline void write_lib_stack(FklCodegenLibVector *loadedLibStack,
-                                   const FklSymbolTable *st,
-                                   const char *main_dir, const char *target_dir,
-                                   FILE *outfp) {
+        const FklSymbolTable *st,
+        const char *main_dir,
+        const char *target_dir,
+        FILE *outfp) {
     uint64_t num = loadedLibStack->size;
     fwrite(&num, sizeof(uint64_t), 1, outfp);
     for (size_t i = 0; i < num; i++) {
@@ -155,9 +164,10 @@ static inline void write_lib_stack(FklCodegenLibVector *loadedLibStack,
 }
 
 static inline void write_pre_compile(FklCodegenInfo *codegen,
-                                     const char *main_dir,
-                                     const char *target_dir,
-                                     FklByteCodelnt *bcl, FILE *outfp) {
+        const char *main_dir,
+        const char *target_dir,
+        FklByteCodelnt *bcl,
+        FILE *outfp) {
     FklSymbolTable target_st;
     fklInitSymbolTable(&target_st);
 
@@ -165,9 +175,13 @@ static inline void write_pre_compile(FklCodegenInfo *codegen,
     fklInitConstTable(&target_kt);
     const FklSymbolTable *origin_st = codegen->runtime_symbol_table;
     const FklConstTable *origin_kt = codegen->runtime_kt;
-    fklRecomputeSidForSingleTableInfo(
-        codegen, bcl, origin_st, &target_st, origin_kt, &target_kt,
-        FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
+    fklRecomputeSidForSingleTableInfo(codegen,
+            bcl,
+            origin_st,
+            &target_st,
+            origin_kt,
+            &target_kt,
+            FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
 
     fklWriteSymbolTable(&target_st, outfp);
     fklWriteConstTable(&target_kt, outfp);
@@ -177,16 +191,21 @@ static inline void write_pre_compile(FklCodegenInfo *codegen,
     write_lib_main_file(codegen, bcl, &target_st, main_dir, outfp);
 
     fklWriteFuncPrototypes(codegen->macro_pts, outfp);
-    write_lib_stack(codegen->macroLibStack, &target_st, main_dir, target_dir,
-                    outfp);
+    write_lib_stack(codegen->macroLibStack,
+            &target_st,
+            main_dir,
+            target_dir,
+            outfp);
 
     fklUninitSymbolTable(&target_st);
     fklUninitConstTable(&target_kt);
 }
 
 static inline int pre_compile(const char *main_file_name,
-                              const char *output_dir, int argc, char *argv[],
-                              FklCodegenOuterCtx *outer_ctx) {
+        const char *output_dir,
+        int argc,
+        char *argv[],
+        FklCodegenOuterCtx *outer_ctx) {
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
     fklAddSymbolCstr(main_file_name, pst);
     FILE *fp = fopen(main_file_name, "r");
@@ -197,19 +216,27 @@ static inline int pre_compile(const char *main_file_name,
     fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
     const char *main_dir = outer_ctx->main_file_real_path_dir;
     fklChdir(outer_ctx->main_file_real_path_dir);
-    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(
-        &codegen, rp, &outer_ctx->public_symbol_table, &outer_ctx->public_kt, 0,
-        outer_ctx, NULL, NULL, NULL);
+    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+            rp,
+            &outer_ctx->public_symbol_table,
+            &outer_ctx->public_kt,
+            0,
+            outer_ctx,
+            NULL,
+            NULL,
+            NULL);
     FklByteCodelnt *mainByteCode =
-        fklGenExpressionCodeWithFpForPrecompile(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFpForPrecompile(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
         fklZfree(rp);
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts, main_env, codegen.runtime_symbol_table,
-                       pst);
+    fklUpdatePrototype(codegen.pts,
+            main_env,
+            codegen.runtime_symbol_table,
+            pst);
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
@@ -221,7 +248,7 @@ static inline int pre_compile(const char *main_file_name,
         if (!fklIsAccessibleDirectory(output_dir))
             fklMkdir(output_dir);
         char *new_output_name =
-            fklStrCat(fklZstrdup(output_dir), FKL_PATH_SEPARATOR_STR);
+                fklStrCat(fklZstrdup(output_dir), FKL_PATH_SEPARATOR_STR);
         char *rel_new_output_name = fklRelpath(main_dir, outputname);
         new_output_name = fklStrCat(new_output_name, rel_new_output_name);
         fklZfree(rel_new_output_name);
@@ -244,9 +271,12 @@ static inline int pre_compile(const char *main_file_name,
     return 0;
 }
 
-static inline int compile(const char *filename, const char *output,
-                          const char *cwd, int argc, char *argv[],
-                          FklCodegenOuterCtx *outer_ctx) {
+static inline int compile(const char *filename,
+        const char *output,
+        const char *cwd,
+        int argc,
+        char *argv[],
+        FklCodegenOuterCtx *outer_ctx) {
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
     fklAddSymbolCstr(filename, pst);
     FILE *fp = fopen(filename, "r");
@@ -256,19 +286,27 @@ static inline int compile(const char *filename, const char *output,
     char *rp = fklRealpath(filename);
     fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
     fklChdir(outer_ctx->main_file_real_path_dir);
-    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(
-        &codegen, rp, fklCreateSymbolTable(), fklCreateConstTable(), 0,
-        outer_ctx, NULL, NULL, NULL);
+    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+            rp,
+            fklCreateSymbolTable(),
+            fklCreateConstTable(),
+            0,
+            outer_ctx,
+            NULL,
+            NULL,
+            NULL);
     FklByteCodelnt *mainByteCode =
-        fklGenExpressionCodeWithFp(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
         fklZfree(rp);
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts, main_env, codegen.runtime_symbol_table,
-                       pst);
+    fklUpdatePrototype(codegen.pts,
+            main_env,
+            codegen.runtime_symbol_table,
+            pst);
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
@@ -343,11 +381,15 @@ int main(int argc, char **argv) {
     void *argtable[] = {
         help = arg_lit0("h", "help", "display this help and exit"),
         precompile =
-            arg_file0("p", "pre", "<package-name>", "pre-compile package"),
-        dir = arg_file0("d", "dir", "<target-dir>",
-                        "set pre-compile file target directory"),
-        output =
-            arg_file0("o", NULL, "<file-name>", "set bytecode file base name"),
+                arg_file0("p", "pre", "<package-name>", "pre-compile package"),
+        dir = arg_file0("d",
+                "dir",
+                "<target-dir>",
+                "set pre-compile file target directory"),
+        output = arg_file0("o",
+                NULL,
+                "<file-name>",
+                "set bytecode file base name"),
         file = arg_filen(NULL, NULL, NULL, 0, argc + 2, "compile files"),
         end = arg_end(20),
     };
@@ -392,11 +434,11 @@ int main(int argc, char **argv) {
             goto compile_error;
         }
 
-        char *output_dir =
-            dir->count > 0
-                ? fklStrCat(fklStrCat(fklZstrdup(cwd), FKL_PATH_SEPARATOR_STR),
-                            dir->filename[0])
-                : NULL;
+        char *output_dir = dir->count > 0
+                                 ? fklStrCat(fklStrCat(fklZstrdup(cwd),
+                                                     FKL_PATH_SEPARATOR_STR),
+                                           dir->filename[0])
+                                 : NULL;
         if (pre_compile(buffer.buf, output_dir, argc, argv, &outer_ctx)) {
             fklZfree(output_dir);
             fklUninitStringBuffer(&buffer);
@@ -414,8 +456,11 @@ int main(int argc, char **argv) {
         const char *filename = file->filename[i];
         if (fklIsScriptFile(filename) && fklIsAccessibleRegFile(filename)) {
             if (compile(filename,
-                        output->count > 0 ? output->filename[0] : NULL, cwd,
-                        argc, argv, &outer_ctx)) {
+                        output->count > 0 ? output->filename[0] : NULL,
+                        cwd,
+                        argc,
+                        argv,
+                        &outer_ctx)) {
             compile_error:
                 exitcode = 255;
                 goto exit;
@@ -433,8 +478,11 @@ int main(int argc, char **argv) {
                 goto compile_error;
             }
             if (compile(buffer.buf,
-                        output->count > 0 ? output->filename[0] : NULL, cwd,
-                        argc, argv, &outer_ctx)) {
+                        output->count > 0 ? output->filename[0] : NULL,
+                        cwd,
+                        argc,
+                        argv,
+                        &outer_ctx)) {
                 fklUninitStringBuffer(&buffer);
                 goto compile_error;
             }

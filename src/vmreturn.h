@@ -22,7 +22,8 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         uint32_t const value_count = (VM->tp - F->c.sp);
         if (value_count > 1 || value_count < 1)
             goto return_value_err;
-        memmove(&FKL_VM_GET_ARG(VM, F, -2), &VM->base[F->c.sp],
+        memmove(&FKL_VM_GET_ARG(VM, F, -2),
+                &VM->base[F->c.sp],
                 value_count * sizeof(FklVMvalue *));
         VM->tp = F->bp - 1 + value_count;
         fklDoFinalizeCompoundFrame(VM, popFrame(VM));
@@ -30,7 +31,10 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     return_value_err:
         fprintf(stderr,
                 "[%s: %d] %s: the return value count should be 1, but is %u\n",
-                __FILE__, __LINE__, __FUNCTION__, value_count);
+                __FILE__,
+                __LINE__,
+                __FUNCTION__,
+                value_count);
         fklPrintBacktrace(exe, stderr);
         abort();
     } break;
@@ -38,7 +42,8 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         close_all_var_ref(&F->c.lr);
         // copy stack values
         uint32_t const value_count = (VM->tp - VM->bp);
-        memmove(&FKL_VM_GET_ARG(VM, F, -1), &VM->base[VM->bp],
+        memmove(&FKL_VM_GET_ARG(VM, F, -1),
+                &VM->base[VM->bp],
                 value_count * sizeof(FklVMvalue *));
         VM->bp = F->bp;
         VM->tp = VM->bp + value_count;
@@ -56,7 +61,10 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         F->c.mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
         break;
     default:
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+        fprintf(stderr,
+                "[%s: %d] %s: unreachable!\n",
+                __FILE__,
+                __LINE__,
                 __FUNCTION__);
         fklPrintBacktrace(exe, stderr);
         abort();

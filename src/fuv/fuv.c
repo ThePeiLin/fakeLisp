@@ -15,8 +15,8 @@ FklSid_t uvErrToSid(int err_id, FuvPublicData *pd) {
 #undef XX
 }
 
-static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
-                                          FuvPublicData *pd) {
+static inline FklVMvalue *
+create_uv_error(int err_id, FklVM *exe, FuvPublicData *pd) {
     FklSid_t id = 0;
     switch (err_id) {
 #define XX(code, _)                                                            \
@@ -27,8 +27,9 @@ static inline FklVMvalue *create_uv_error(int err_id, FklVM *exe,
     default:
         id = pd->uv_err_sid_UNKNOWN;
     }
-    return fklCreateVMvalueError(exe, id,
-                                 fklCreateStringFromCstr(uv_strerror(err_id)));
+    return fklCreateVMvalueError(exe,
+            id,
+            fklCreateStringFromCstr(uv_strerror(err_id)));
 #undef XX
 }
 
@@ -57,8 +58,9 @@ void raiseFuvError(FuvErrorType err, FklVM *exe, FklVMvalue *pd_obj) {
         "can't close a using dir",
         "Number should not be less than 1",
     };
-    FklVMvalue *ev = fklCreateVMvalueError(
-        exe, sid, fklCreateStringFromCstr(fuv_err_msg[err]));
+    FklVMvalue *ev = fklCreateVMvalueError(exe,
+            sid,
+            fklCreateStringFromCstr(fuv_err_msg[err]));
     fklRaiseVMerror(ev, exe);
 }
 

@@ -13,8 +13,11 @@ static void interrupt_queue_work_cb(FklVM *vm, void *a) {
                 if (!bp->is_compiled) {
                     EvalCompileErr err;
                     bp->is_compiled = 1;
-                    FklVMvalue *proc = compileConditionExpression(
-                        ctx, vm, bp->cond_exp, vm->top_frame, &err);
+                    FklVMvalue *proc = compileConditionExpression(ctx,
+                            vm,
+                            bp->cond_exp,
+                            vm->top_frame,
+                            &err);
                     bp->cond_exp = NULL;
                     bp->proc = proc;
                     switch (err) {
@@ -28,7 +31,7 @@ static void interrupt_queue_work_cb(FklVM *vm, void *a) {
                 }
                 if (bp->proc) {
                     FklVMvalue *value =
-                        callEvalProc(ctx, vm, bp->proc, vm->top_frame);
+                            callEvalProc(ctx, vm, bp->proc, vm->top_frame);
                     if (value == FKL_VM_NIL)
                         continue;
                 }
@@ -59,7 +62,7 @@ void dbgInterrupt(FklVM *exe, DbgInterruptArg *arg) {
 }
 
 static inline FklVMframe *find_same_proc_frame(FklVMframe *f,
-                                               FklVMvalue *proc) {
+        FklVMvalue *proc) {
     for (; f; f = f->prev) {
         if (f->type == FKL_FRAME_COMPOUND && f->c.proc == proc)
             return f;
@@ -67,8 +70,10 @@ static inline FklVMframe *find_same_proc_frame(FklVMframe *f,
     return NULL;
 }
 
-FklVMinterruptResult dbgInterruptHandler(FklVM *exe, FklVMvalue *int_val,
-                                         FklVMvalue **pv, void *arg) {
+FklVMinterruptResult dbgInterruptHandler(FklVM *exe,
+        FklVMvalue *int_val,
+        FklVMvalue **pv,
+        void *arg) {
     FKL_ASSERT(int_val);
 
     DebugCtx *ctx = (DebugCtx *)arg;
@@ -88,11 +93,11 @@ FklVMinterruptResult dbgInterruptHandler(FklVM *exe, FklVMvalue *int_val,
             if (f) {
                 const FklInstruction *ins = f->c.pc;
                 FklByteCodelnt *code_obj =
-                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
+                        FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
                 const FklLineNumberTableItem *next_ins_ln =
-                    getCurLineNumberItemWithCp(ins, code_obj);
+                        getCurLineNumberItemWithCp(ins, code_obj);
                 if (next_ins_ln->fid == ctx->stepping_ctx.cur_fid
-                    && next_ins_ln->line >= ctx->stepping_ctx.target_line) {
+                        && next_ins_ln->line >= ctx->stepping_ctx.target_line) {
                     DbgInterruptArg arg = {
                         .ln = next_ins_ln,
                         .ctx = ctx,
@@ -106,10 +111,10 @@ FklVMinterruptResult dbgInterruptHandler(FklVM *exe, FklVMvalue *int_val,
             if (f && f->type == FKL_FRAME_COMPOUND) {
                 const FklInstruction *ins = f->c.pc;
                 FklByteCodelnt *code_obj =
-                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
+                        FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
                 if (ins->op == FKL_OP_RET
-                    && f == ctx->stepping_ctx.stepping_frame
-                    && f->c.proc == ctx->stepping_ctx.stepping_proc) {
+                        && f == ctx->stepping_ctx.stepping_frame
+                        && f->c.proc == ctx->stepping_ctx.stepping_proc) {
                     DbgInterruptArg arg = {
                         .ln = getCurLineNumberItemWithCp(ins, code_obj),
                         .ctx = ctx,
@@ -126,11 +131,11 @@ FklVMinterruptResult dbgInterruptHandler(FklVM *exe, FklVMvalue *int_val,
             if (f) {
                 const FklInstruction *ins = f->c.pc;
                 FklByteCodelnt *code_obj =
-                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
+                        FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
                 const FklLineNumberTableItem *next_ins_ln =
-                    getCurLineNumberItemWithCp(ins, code_obj);
+                        getCurLineNumberItemWithCp(ins, code_obj);
                 if (next_ins_ln->line != ln->line
-                    || next_ins_ln->fid != ln->fid) {
+                        || next_ins_ln->fid != ln->fid) {
                     DbgInterruptArg arg = {
                         .ln = next_ins_ln,
                         .ctx = ctx,
@@ -147,12 +152,12 @@ FklVMinterruptResult dbgInterruptHandler(FklVM *exe, FklVMvalue *int_val,
             if (f) {
                 const FklInstruction *ins = f->c.pc;
                 FklByteCodelnt *code_obj =
-                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
+                        FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj);
                 const FklLineNumberTableItem *next_ins_ln =
-                    getCurLineNumberItemWithCp(ins, code_obj);
+                        getCurLineNumberItemWithCp(ins, code_obj);
 
-                FklVMframe *same_proc_frame =
-                    find_same_proc_frame(f, ctx->stepping_ctx.stepping_proc);
+                FklVMframe *same_proc_frame = find_same_proc_frame(f,
+                        ctx->stepping_ctx.stepping_proc);
                 if (same_proc_frame == NULL) {
                     ctx->stepping_ctx.stepping_proc = f->c.proc;
                     DbgInterruptArg arg = {
@@ -163,8 +168,8 @@ FklVMinterruptResult dbgInterruptHandler(FklVM *exe, FklVMvalue *int_val,
                     dbgInterrupt(exe, &arg);
                 } else if (same_proc_frame == f) {
                     if (next_ins_ln->line != ln->line
-                        || next_ins_ln->fid != ln->fid
-                        || f->c.pc->op == FKL_OP_RET) {
+                            || next_ins_ln->fid != ln->fid
+                            || f->c.pc->op == FKL_OP_RET) {
                         DbgInterruptArg arg = {
                             .ln = next_ins_ln,
                             .ctx = ctx,
@@ -210,8 +215,8 @@ void setStepInto(DebugCtx *ctx) {
             ;
         if (f) {
             const FklInstruction *ins = f->c.pc;
-            ctx->stepping_ctx.ln = getCurLineNumberItemWithCp(
-                ins, FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
+            ctx->stepping_ctx.ln = getCurLineNumberItemWithCp(ins,
+                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
         }
         exe->trapping = 1;
     }
@@ -236,8 +241,8 @@ void setStepOver(DebugCtx *ctx) {
             ;
         if (f) {
             const FklInstruction *ins = f->c.pc;
-            ctx->stepping_ctx.ln = getCurLineNumberItemWithCp(
-                ins, FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
+            ctx->stepping_ctx.ln = getCurLineNumberItemWithCp(ins,
+                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
             ctx->stepping_ctx.stepping_proc = f->c.proc;
         }
         exe->trapping = 1;
@@ -254,8 +259,8 @@ void setStepOut(DebugCtx *ctx) {
             ;
         if (f) {
             const FklInstruction *ins = f->c.pc;
-            ctx->stepping_ctx.ln = getCurLineNumberItemWithCp(
-                ins, FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
+            ctx->stepping_ctx.ln = getCurLineNumberItemWithCp(ins,
+                    FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
             ctx->stepping_ctx.stepping_proc = f->c.proc;
             ctx->stepping_ctx.stepping_frame = f;
         }

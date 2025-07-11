@@ -31,8 +31,8 @@ FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
     NastNodeSlotPairVector s;
     nastNodeSlotPairVectorInit(&s, 8);
     FklNastNode *retval = NULL;
-    nastNodeSlotPairVectorPushBack2(
-        &s, (NodeSlotPair){.node = orig, .slot = &retval});
+    nastNodeSlotPairVectorPushBack2(&s,
+            (NodeSlotPair){ .node = orig, .slot = &retval });
     while (!nastNodeSlotPairVectorIsEmpty(&s)) {
         const NodeSlotPair *p = nastNodeSlotPairVectorPopBackNonNull(&s);
         const FklNastNode *top = p->node;
@@ -68,35 +68,35 @@ FklNastNode *fklCopyNastNode(const FklNastNode *orig) {
             break;
 
         case FKL_NAST_BOX:
-            nastNodeSlotPairVectorPushBack2(
-                &s, (NodeSlotPair){.node = top->box, .slot = &node->box});
+            nastNodeSlotPairVectorPushBack2(&s,
+                    (NodeSlotPair){ .node = top->box, .slot = &node->box });
             break;
         case FKL_NAST_PAIR:
             node->pair = fklCreateNastPair();
-            nastNodeSlotPairVectorPushBack2(
-                &s, (NodeSlotPair){.node = top->pair->car,
-                                   .slot = &node->pair->car});
-            nastNodeSlotPairVectorPushBack2(
-                &s, (NodeSlotPair){.node = top->pair->cdr,
-                                   .slot = &node->pair->cdr});
+            nastNodeSlotPairVectorPushBack2(&s,
+                    (NodeSlotPair){ .node = top->pair->car,
+                        .slot = &node->pair->car });
+            nastNodeSlotPairVectorPushBack2(&s,
+                    (NodeSlotPair){ .node = top->pair->cdr,
+                        .slot = &node->pair->cdr });
             break;
         case FKL_NAST_VECTOR:
             node->vec = fklCreateNastVector(top->vec->size);
             for (size_t i = 0; i < top->vec->size; i++) {
-                nastNodeSlotPairVectorPushBack2(
-                    &s, (NodeSlotPair){.node = top->vec->base[i],
-                                       .slot = &node->vec->base[i]});
+                nastNodeSlotPairVectorPushBack2(&s,
+                        (NodeSlotPair){ .node = top->vec->base[i],
+                            .slot = &node->vec->base[i] });
             }
             break;
         case FKL_NAST_HASHTABLE:
             node->hash = fklCreateNastHash(top->hash->type, top->hash->num);
             for (size_t i = 0; i < top->hash->num; i++) {
-                nastNodeSlotPairVectorPushBack2(
-                    &s, (NodeSlotPair){.node = top->hash->items[i].car,
-                                       .slot = &node->hash->items[i].car});
-                nastNodeSlotPairVectorPushBack2(
-                    &s, (NodeSlotPair){.node = top->hash->items[i].cdr,
-                                       .slot = &node->hash->items[i].cdr});
+                nastNodeSlotPairVectorPushBack2(&s,
+                        (NodeSlotPair){ .node = top->hash->items[i].car,
+                            .slot = &node->hash->items[i].car });
+                nastNodeSlotPairVectorPushBack2(&s,
+                        (NodeSlotPair){ .node = top->hash->items[i].cdr,
+                            .slot = &node->hash->items[i].cdr });
             }
             break;
         }
@@ -128,7 +128,7 @@ FklNastVector *fklCreateNastVector(size_t size) {
 
 FklNastHashTable *fklCreateNastHash(FklHashTableEqType type, size_t num) {
     FklNastHashTable *r =
-        (FklNastHashTable *)fklZmalloc(sizeof(FklNastHashTable));
+            (FklNastHashTable *)fklZmalloc(sizeof(FklNastHashTable));
     FKL_ASSERT(r);
     if (!num)
         r->items = NULL;
@@ -247,9 +247,9 @@ destroy_nested:
                 case FKL_NAST_HASHTABLE:
                     for (size_t i = 0; i < cur->hash->num; i++) {
                         fklNastNodeVectorPushBack2(&stack,
-                                                   cur->hash->items[i].car);
+                                cur->hash->items[i].car);
                         fklNastNodeVectorPushBack2(&stack,
-                                                   cur->hash->items[i].cdr);
+                                cur->hash->items[i].cdr);
                     }
                     destroyNastHash(cur->hash);
                     break;
@@ -290,7 +290,7 @@ typedef struct PrintPairCtx {
 } PrintPairCtx;
 
 static_assert(sizeof(PrintPairCtx) <= sizeof(PrintCtx),
-              "print pair ctx too large");
+        "print pair ctx too large");
 
 typedef struct PrintVectorCtx {
     PRINT_CTX_COMMON_HEADER;
@@ -299,7 +299,7 @@ typedef struct PrintVectorCtx {
 } PrintVectorCtx;
 
 static_assert(sizeof(PrintVectorCtx) <= sizeof(PrintCtx),
-              "print vector ctx too large");
+        "print vector ctx too large");
 
 typedef struct PrintHashCtx {
     PRINT_CTX_COMMON_HEADER;
@@ -308,7 +308,7 @@ typedef struct PrintHashCtx {
 } PrintHashCtx;
 
 static_assert(sizeof(PrintHashCtx) <= sizeof(PrintCtx),
-              "print hash ctx too large");
+        "print hash ctx too large");
 
 // NastPrintCtxVector
 #define FKL_VECTOR_TYPE_PREFIX Nast
@@ -440,8 +440,9 @@ static const FklNastNode *print_hash_method(PrintCtx *ctx, FILE *fp) {
 typedef void (*PrintCtxInitFunc)(PrintCtx *ctx, const FklNastNode *);
 typedef const FklNastNode *(*PrintMethod)(PrintCtx *ctx, FILE *fp);
 
-void fklPrintNastNode(const FklNastNode *exp, FILE *fp,
-                      const FklSymbolTable *table) {
+void fklPrintNastNode(const FklNastNode *exp,
+        FILE *fp,
+        const FklSymbolTable *table) {
     static const PrintCtxInitFunc ctx_init_method_table[FKL_NAST_RC_SYM + 1] = {
         [FKL_NAST_PAIR] = print_pair_ctx_init,
         [FKL_NAST_VECTOR] = print_vector_ctx_init,
@@ -472,7 +473,7 @@ void fklPrintNastNode(const FklNastNode *exp, FILE *fp,
             fklPrintRawChar(exp->chr, fp);
             break;
         case FKL_NAST_F64: {
-            char buf[64] = {0};
+            char buf[64] = { 0 };
             fklWriteDoubleToBuf(buf, 64, exp->f64);
             fputs(buf, fp);
         } break;
@@ -521,7 +522,7 @@ void fklPrintNastNode(const FklNastNode *exp, FILE *fp,
 int fklNastNodeEqual(const FklNastNode *n0, const FklNastNode *n1) {
     FklNastImmPairVector s;
     fklNastImmPairVectorInit(&s, 8);
-    fklNastImmPairVectorPushBack2(&s, (FklNastImmPair){.car = n0, .cdr = n1});
+    fklNastImmPairVectorPushBack2(&s, (FklNastImmPair){ .car = n0, .cdr = n1 });
     int r = 1;
     while (!fklNastImmPairVectorIsEmpty(&s)) {
         const FklNastImmPair *p = fklNastImmPairVectorPopBackNonNull(&s);
@@ -556,16 +557,16 @@ int fklNastNodeEqual(const FklNastNode *n0, const FklNastNode *n1) {
                 r = fklBigIntCmp(car->bigInt, cdr->bigInt);
                 break;
             case FKL_NAST_BOX:
-                fklNastImmPairVectorPushBack2(
-                    &s, (FklNastImmPair){.car = car->box, .cdr = cdr->box});
+                fklNastImmPairVectorPushBack2(&s,
+                        (FklNastImmPair){ .car = car->box, .cdr = cdr->box });
                 break;
             case FKL_NAST_VECTOR:
                 r = car->vec->size == cdr->vec->size;
                 if (r) {
                     for (size_t i = 0; i < car->vec->size; i++)
-                        fklNastImmPairVectorPushBack2(
-                            &s, (FklNastImmPair){.car = car->vec->base[i],
-                                                 .cdr = cdr->vec->base[i]});
+                        fklNastImmPairVectorPushBack2(&s,
+                                (FklNastImmPair){ .car = car->vec->base[i],
+                                    .cdr = cdr->vec->base[i] });
                 }
                 break;
             case FKL_NAST_HASHTABLE:
@@ -573,24 +574,24 @@ int fklNastNodeEqual(const FklNastNode *n0, const FklNastNode *n1) {
                  && car->hash->num == cdr->hash->num;
                 if (r) {
                     for (size_t i = 0; i < car->hash->num; i++) {
-                        fklNastImmPairVectorPushBack2(
-                            &s,
-                            (FklNastImmPair){.car = car->hash->items[i].car,
-                                             .cdr = cdr->hash->items[i].car});
-                        fklNastImmPairVectorPushBack2(
-                            &s,
-                            (FklNastImmPair){.car = car->hash->items[i].cdr,
-                                             .cdr = cdr->hash->items[i].cdr});
+                        fklNastImmPairVectorPushBack2(&s,
+                                (FklNastImmPair){
+                                    .car = car->hash->items[i].car,
+                                    .cdr = cdr->hash->items[i].car });
+                        fklNastImmPairVectorPushBack2(&s,
+                                (FklNastImmPair){
+                                    .car = car->hash->items[i].cdr,
+                                    .cdr = cdr->hash->items[i].cdr });
                     }
                 }
                 break;
             case FKL_NAST_PAIR:
-                fklNastImmPairVectorPushBack2(
-                    &s, (FklNastImmPair){.car = car->pair->car,
-                                         .cdr = cdr->pair->car});
-                fklNastImmPairVectorPushBack2(
-                    &s, (FklNastImmPair){.car = car->pair->cdr,
-                                         .cdr = cdr->pair->cdr});
+                fklNastImmPairVectorPushBack2(&s,
+                        (FklNastImmPair){ .car = car->pair->car,
+                            .cdr = cdr->pair->car });
+                fklNastImmPairVectorPushBack2(&s,
+                        (FklNastImmPair){ .car = car->pair->cdr,
+                            .cdr = cdr->pair->cdr });
                 break;
             case FKL_NAST_SLOT:
                 r = 1;
@@ -617,8 +618,8 @@ int fklIsNastNodeListAndHasSameType(const FklNastNode *list, FklNastType type) {
     return list->type == FKL_NAST_NIL;
 }
 
-FklNastNode *fklNastConsWithSym(FklSid_t sym, FklNastNode *cdr, uint64_t l1,
-                                uint64_t l2) {
+FklNastNode *
+fklNastConsWithSym(FklSid_t sym, FklNastNode *cdr, uint64_t l1, uint64_t l2) {
     FklNastNode *r = fklCreateNastNode(FKL_NAST_PAIR, l1);
     FklNastNode *h = fklCreateNastNode(FKL_NAST_SYM, l2);
     h->sym = sym;

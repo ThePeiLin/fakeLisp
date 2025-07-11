@@ -54,14 +54,18 @@ int main() {
         fklAnalysisSymbolVectorInit(&symbolStack, 8);
         fklUintVectorInit(&lineStack, 8);
         size_t errLine = 0;
-        FklNastNode *ast =
-            fklDefaultParseForCstr(*exp, &outerCtx, &retval, &errLine,
-                                   &symbolStack, &lineStack, &stateStack);
+        FklNastNode *ast = fklDefaultParseForCstr(*exp,
+                &outerCtx,
+                &retval,
+                &errLine,
+                &symbolStack,
+                &lineStack,
+                &stateStack);
 
         fklAnalysisSymbolVectorUninit(&symbolStack);
         fklParseStateVectorUninit(&stateStack);
         fklUintVectorUninit(&lineStack);
-		FKL_ASSERT(ast);
+        FKL_ASSERT(ast);
         if (retval)
             break;
 

@@ -28,8 +28,8 @@ static inline void set_ins_uxx(FklInstruction *ins, uint64_t k) {
     ins[2].bu = (k >> (FKL_I24_WIDTH * 2));
 }
 
-static inline int set_ins_with_signed_imm(FklInstruction *ins, FklOpcode op,
-                                          int64_t k) {
+static inline int
+set_ins_with_signed_imm(FklInstruction *ins, FklOpcode op, int64_t k) {
     int l = 1;
     if (k >= INT16_MIN && k <= INT16_MAX) {
         ins[0].op = op;
@@ -49,8 +49,8 @@ static inline int set_ins_with_signed_imm(FklInstruction *ins, FklOpcode op,
     return l;
 }
 
-static inline int set_ins_with_unsigned_imm(FklInstruction *ins, FklOpcode op,
-                                            uint64_t k) {
+static inline int
+set_ins_with_unsigned_imm(FklInstruction *ins, FklOpcode op, uint64_t k) {
     int l = 1;
     if (k <= UINT16_MAX) {
         ins[0].op = op;
@@ -71,23 +71,29 @@ static inline int set_ins_with_unsigned_imm(FklInstruction *ins, FklOpcode op,
 }
 
 static inline int set_ins_with_signed_unsigned_imm(FklInstruction *ins,
-                                                   FklOpcode op, int64_t ix,
-                                                   uint64_t uy) {
+        FklOpcode op,
+        int64_t ix,
+        uint64_t uy) {
     int l = 1;
     if (ix >= INT8_MIN && ix <= INT8_MAX && uy <= UINT16_MAX) {
         ins[0].op = op;
         ins[0].ai = ix;
         ins[0].bu = uy;
     } else {
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+        fprintf(stderr,
+                "[%s: %d] %s: unreachable!\n",
+                __FILE__,
+                __LINE__,
                 __FUNCTION__);
         abort();
     }
     return l;
 }
 
-static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins, FklOpcode op,
-                                              uint64_t ux, uint64_t uy) {
+static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins,
+        FklOpcode op,
+        uint64_t ux,
+        uint64_t uy) {
     int l = 1;
     if (ux <= UINT8_MAX && uy <= UINT16_MAX) {
         ins[0].op = op;
@@ -120,7 +126,7 @@ static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins, FklOpcode op,
 
         ins[3].op = FKL_OP_EXTRA_ARG;
         set_ins_uc(&ins[3],
-                   (uy >> (FKL_I16_WIDTH + FKL_I24_WIDTH)) & I64_L24_MASK);
+                (uy >> (FKL_I16_WIDTH + FKL_I24_WIDTH)) & I64_L24_MASK);
         l = 4;
     }
     return l;
@@ -133,8 +139,8 @@ static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins, FklOpcode op,
 static inline void push_ins_ln(FklByteCodeBuffer *buf, const FklInsLn *ins) {
     if (buf->size == buf->capacity) {
         buf->capacity <<= 1;
-        FklInsLn *new_base = (FklInsLn *)fklZrealloc(
-            buf->base, buf->capacity * sizeof(FklInsLn));
+        FklInsLn *new_base = (FklInsLn *)fklZrealloc(buf->base,
+                buf->capacity * sizeof(FklInsLn));
         FKL_ASSERT(new_base);
         buf->base = new_base;
     }
@@ -143,7 +149,7 @@ static inline void push_ins_ln(FklByteCodeBuffer *buf, const FklInsLn *ins) {
 }
 
 static inline int set_ins_ln_to_ins(const FklInsLn *cur_ins_ln,
-                                    FklInstruction *ins) {
+        FklInstruction *ins) {
     const FklInstruction *cur_ins = &cur_ins_ln->ins;
     FklOpcode op = cur_ins->op;
     int ol = fklGetOpcodeModeLen(op);
@@ -153,8 +159,8 @@ static inline int set_ins_ln_to_ins(const FklInsLn *cur_ins_ln,
     return ol;
 }
 
-static inline int set_jmp_backward(FklOpcode op, int64_t len,
-                                   FklInstruction *new_ins) {
+static inline int
+set_jmp_backward(FklOpcode op, int64_t len, FklInstruction *new_ins) {
     len = -len - 1;
     if (len >= FKL_I24_MIN)
         return set_ins_with_signed_imm(new_ins, op, len);
@@ -166,12 +172,12 @@ static inline int set_jmp_backward(FklOpcode op, int64_t len,
 }
 
 static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
-                                                      FklByteCodeBuffer *b) {
+        FklByteCodeBuffer *b) {
     int change;
     FklInstructionArg arg;
     FklInsLn tmp_ins_ln;
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
-    FklInstruction new_ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
+    FklInstruction new_ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
 
     do {
         change = 0;
@@ -189,15 +195,17 @@ static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
                     uint64_t end = a->size - i - ol;
                     uint64_t jmp_offset = 0;
                     for (; jmp_offset < end
-                           && jmp_to[jmp_offset].block_id != cur->jmp_to;
-                         jmp_offset++)
+                            && jmp_to[jmp_offset].block_id != cur->jmp_to;
+                            jmp_offset++)
                         ;
                     FKL_ASSERT(jmp_offset < end);
 
                     FklOpcode op = FKL_OP_PUSH_PROC;
 
-                    int nl = set_ins_with_2_unsigned_imm(new_ins, op, arg.ux,
-                                                         jmp_offset);
+                    int nl = set_ins_with_2_unsigned_imm(new_ins,
+                            op,
+                            arg.ux,
+                            jmp_offset);
 
                     if (jmp_offset == (uint64_t)arg.uy && ol == nl)
                         goto no_change;
@@ -206,8 +214,11 @@ static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
                     tmp_ins_ln.ins = new_ins[0];
                     push_ins_ln(b, &tmp_ins_ln);
                     for (int i = 1; i < nl; i++)
-                        fklByteCodeBufferPush(b, &new_ins[i], cur->line,
-                                              cur->scope, cur->fid);
+                        fklByteCodeBufferPush(b,
+                                &new_ins[i],
+                                cur->line,
+                                cur->scope,
+                                cur->fid);
                     goto done;
                 }
                 if (!fklIsJmpIns(ins) && !fklIsCondJmpIns(ins))
@@ -218,18 +229,19 @@ static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
                     uint64_t end = a->size - i - ol;
                     uint64_t jmp_offset = 0;
                     for (; jmp_offset < end
-                           && jmp_to[jmp_offset].block_id != cur->jmp_to;
-                         jmp_offset++)
+                            && jmp_to[jmp_offset].block_id != cur->jmp_to;
+                            jmp_offset++)
                         ;
                     FKL_ASSERT(jmp_offset < end);
 
-                    FklOpcode op = (cur->ins.op >= FKL_OP_JMP_IF_TRUE
+                    FklOpcode op =
+                            (cur->ins.op >= FKL_OP_JMP_IF_TRUE
                                     && cur->ins.op <= FKL_OP_JMP_IF_TRUE_XX)
-                                     ? FKL_OP_JMP_IF_TRUE
-                                 : (cur->ins.op >= FKL_OP_JMP_IF_FALSE
-                                    && cur->ins.op <= FKL_OP_JMP_IF_FALSE_XX)
-                                     ? FKL_OP_JMP_IF_FALSE
-                                     : FKL_OP_JMP;
+                                    ? FKL_OP_JMP_IF_TRUE
+                            : (cur->ins.op >= FKL_OP_JMP_IF_FALSE
+                                      && cur->ins.op <= FKL_OP_JMP_IF_FALSE_XX)
+                                    ? FKL_OP_JMP_IF_FALSE
+                                    : FKL_OP_JMP;
 
                     int nl = set_ins_with_unsigned_imm(new_ins, op, jmp_offset);
 
@@ -240,23 +252,27 @@ static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
                     tmp_ins_ln.ins = new_ins[0];
                     push_ins_ln(b, &tmp_ins_ln);
                     for (int i = 1; i < nl; i++)
-                        fklByteCodeBufferPush(b, &new_ins[i], cur->line,
-                                              cur->scope, cur->fid);
+                        fklByteCodeBufferPush(b,
+                                &new_ins[i],
+                                cur->line,
+                                cur->scope,
+                                cur->fid);
                 } else {
                     int64_t offset = 1;
                     for (; (int64_t)i >= offset
-                           && cur[-offset].block_id != cur->jmp_to;
-                         offset++)
+                            && cur[-offset].block_id != cur->jmp_to;
+                            offset++)
                         ;
                     FKL_ASSERT((int64_t)i >= offset);
 
-                    FklOpcode op = (cur->ins.op >= FKL_OP_JMP_IF_TRUE
+                    FklOpcode op =
+                            (cur->ins.op >= FKL_OP_JMP_IF_TRUE
                                     && cur->ins.op <= FKL_OP_JMP_IF_FALSE)
-                                     ? FKL_OP_JMP_IF_TRUE
-                                 : (cur->ins.op >= FKL_OP_JMP_IF_FALSE
-                                    && cur->ins.op <= FKL_OP_JMP_IF_FALSE_XX)
-                                     ? FKL_OP_JMP_IF_FALSE
-                                     : FKL_OP_JMP;
+                                    ? FKL_OP_JMP_IF_TRUE
+                            : (cur->ins.op >= FKL_OP_JMP_IF_FALSE
+                                      && cur->ins.op <= FKL_OP_JMP_IF_FALSE_XX)
+                                    ? FKL_OP_JMP_IF_FALSE
+                                    : FKL_OP_JMP;
 
                     int nl = set_jmp_backward(op, offset, new_ins);
                     FklInstructionArg new_arg;
@@ -269,8 +285,11 @@ static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
                     tmp_ins_ln.ins = new_ins[0];
                     push_ins_ln(b, &tmp_ins_ln);
                     for (int i = 1; i < nl; i++)
-                        fklByteCodeBufferPush(b, &new_ins[i], cur->line,
-                                              cur->scope, cur->fid);
+                        fklByteCodeBufferPush(b,
+                                &new_ins[i],
+                                cur->line,
+                                cur->scope,
+                                cur->fid);
                 }
             done:
                 i += ol;
@@ -343,13 +362,14 @@ static inline void print_basic_block(FklByteCodeBuffer* buf,FILE* fp)
 }
 #endif
 
-void fklRecomputeInsImm(FklByteCodelnt *bcl, void *ctx,
-                        FklRecomputeInsImmPredicate predicate,
-                        FklRecomputeInsImmFunc func) {
+void fklRecomputeInsImm(FklByteCodelnt *bcl,
+        void *ctx,
+        FklRecomputeInsImmPredicate predicate,
+        FklRecomputeInsImmFunc func) {
     FklInstructionArg arg;
 
-    FklInstruction cur[4] = {FKL_INSTRUCTION_STATIC_INIT};
-    FklInstruction new_ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+    FklInstruction cur[4] = { FKL_INSTRUCTION_STATIC_INIT };
+    FklInstruction new_ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
 
     FklByteCodeBuffer buf;
     fklInitByteCodeBufferWith(&buf, bcl);
@@ -398,8 +418,10 @@ void fklRecomputeInsImm(FklByteCodelnt *bcl, void *ctx,
                 nl = set_ins_with_unsigned_imm(new_ins, op, arg.ux);
                 break;
             case FKL_OP_MODE_IsAuB:
-                nl = set_ins_with_signed_unsigned_imm(new_ins, op, arg.ix,
-                                                      arg.uy);
+                nl = set_ins_with_signed_unsigned_imm(new_ins,
+                        op,
+                        arg.ix,
+                        arg.uy);
                 break;
             case FKL_OP_MODE_IuAuB:
             case FKL_OP_MODE_IuCuC:
@@ -416,8 +438,11 @@ void fklRecomputeInsImm(FklByteCodelnt *bcl, void *ctx,
             tmp_ins_ln.ins = new_ins[0];
             push_ins_ln(&new_buf, &tmp_ins_ln);
             for (int i = 1; i < nl; i++)
-                fklByteCodeBufferPush(&new_buf, &new_ins[i], cur_ins_ln->line,
-                                      cur_ins_ln->scope, cur_ins_ln->fid);
+                fklByteCodeBufferPush(&new_buf,
+                        &new_ins[i],
+                        cur_ins_ln->line,
+                        cur_ins_ln->scope,
+                        cur_ins_ln->fid);
 
             cur_ins_ln += ol;
         } else {
@@ -442,21 +467,21 @@ void fklInitByteCodeBuffer(FklByteCodeBuffer *buf, size_t capacity) {
 
 FklByteCodeBuffer *fklCreateByteCodeBuffer(size_t capacity) {
     FklByteCodeBuffer *buf =
-        (FklByteCodeBuffer *)fklZmalloc(sizeof(FklByteCodeBuffer));
+            (FklByteCodeBuffer *)fklZmalloc(sizeof(FklByteCodeBuffer));
     FKL_ASSERT(buf);
     fklInitByteCodeBuffer(buf, capacity);
     return buf;
 }
 
 static inline void bytecode_buffer_reserve(FklByteCodeBuffer *buf,
-                                           size_t target) {
+        size_t target) {
     if (buf->capacity >= target)
         return;
     size_t target_capacity = buf->capacity << 1;
     if (target_capacity < target)
         target_capacity = target;
-    FklInsLn *new_base =
-        (FklInsLn *)fklZrealloc(buf->base, target_capacity * sizeof(FklInsLn));
+    FklInsLn *new_base = (FklInsLn *)fklZrealloc(buf->base,
+            target_capacity * sizeof(FklInsLn));
     FKL_ASSERT(new_base);
     buf->base = new_base;
     buf->capacity = target_capacity;
@@ -489,7 +514,7 @@ void fklSetByteCodeBuffer(FklByteCodeBuffer *buf, const FklByteCodelnt *bcl) {
 }
 
 void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf,
-                               const FklByteCodelnt *bcl) {
+        const FklByteCodelnt *bcl) {
     size_t len = bcl->bc->len;
     fklInitByteCodeBuffer(buf, len);
     buf->size = len;
@@ -517,18 +542,21 @@ void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf,
 
 FklByteCodeBuffer *fklCreateByteCodeBufferWith(const FklByteCodelnt *bcl) {
     FklByteCodeBuffer *buf =
-        (FklByteCodeBuffer *)fklZmalloc(sizeof(FklByteCodeBuffer));
+            (FklByteCodeBuffer *)fklZmalloc(sizeof(FklByteCodeBuffer));
     FKL_ASSERT(buf);
     fklInitByteCodeBufferWith(buf, bcl);
     return buf;
 }
 
-void fklByteCodeBufferPush(FklByteCodeBuffer *buf, const FklInstruction *ins,
-                           uint32_t line, uint32_t scope, FklSid_t fid) {
+void fklByteCodeBufferPush(FklByteCodeBuffer *buf,
+        const FklInstruction *ins,
+        uint32_t line,
+        uint32_t scope,
+        FklSid_t fid) {
     if (buf->size == buf->capacity) {
         buf->capacity <<= 1;
-        FklInsLn *new_base = (FklInsLn *)fklZrealloc(
-            buf->base, buf->capacity * sizeof(FklInsLn));
+        FklInsLn *new_base = (FklInsLn *)fklZrealloc(buf->base,
+                buf->capacity * sizeof(FklInsLn));
         FKL_ASSERT(new_base);
         buf->base = new_base;
     }
@@ -556,16 +584,16 @@ void fklDestroyByteCodeBuffer(FklByteCodeBuffer *buf) {
 }
 
 void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
-                              const FklByteCodeBuffer *buf) {
+        const FklByteCodeBuffer *buf) {
     FKL_ASSERT(buf->size);
-    FklLineNumberTableItem *ln = (FklLineNumberTableItem *)fklZrealloc(
-        bcl->l, buf->size * sizeof(FklLineNumberTableItem));
+    FklLineNumberTableItem *ln = (FklLineNumberTableItem *)fklZrealloc(bcl->l,
+            buf->size * sizeof(FklLineNumberTableItem));
     FKL_ASSERT(ln);
 
     FklByteCode *bc = bcl->bc;
     bc->len = buf->size;
-    FklInstruction *new_code = (FklInstruction *)fklZrealloc(
-        bc->code, bc->len * sizeof(FklInstruction));
+    FklInstruction *new_code = (FklInstruction *)fklZrealloc(bc->code,
+            bc->len * sizeof(FklInstruction));
     FKL_ASSERT(new_code);
 
     bc->code = new_code;
@@ -573,19 +601,19 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
 
     const FklInsLn *ins_ln_base = buf->base;
     uint64_t ln_idx = 0;
-    ln[ln_idx] = (FklLineNumberTableItem){.fid = ins_ln_base->fid,
-                                          .scp = 0,
-                                          .line = ins_ln_base->line,
-                                          .scope = ins_ln_base->scope};
+    ln[ln_idx] = (FklLineNumberTableItem){ .fid = ins_ln_base->fid,
+        .scp = 0,
+        .line = ins_ln_base->line,
+        .scope = ins_ln_base->scope };
     for (size_t i = 0; i < buf->size; i++) {
         const FklInsLn *cur = &ins_ln_base[i];
         if (ln[ln_idx].scope != cur->scope || ln[ln_idx].line != cur->line
-            || ln[ln_idx].fid != cur->fid) {
+                || ln[ln_idx].fid != cur->fid) {
             ln_idx++;
-            ln[ln_idx] = (FklLineNumberTableItem){.fid = cur->fid,
-                                                  .scp = i,
-                                                  .line = cur->line,
-                                                  .scope = cur->scope};
+            ln[ln_idx] = (FklLineNumberTableItem){ .fid = cur->fid,
+                .scp = i,
+                .line = cur->line,
+                .scope = cur->scope };
         }
         new_code[i] = cur->ins;
     }
@@ -593,8 +621,8 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
     uint32_t ls = ln_idx + 1;
 
     bcl->ls = ls;
-    FklLineNumberTableItem *nnl = (FklLineNumberTableItem *)fklZrealloc(
-        ln, ls * sizeof(FklLineNumberTableItem));
+    FklLineNumberTableItem *nnl = (FklLineNumberTableItem *)fklZrealloc(ln,
+            ls * sizeof(FklLineNumberTableItem));
     FKL_ASSERT(nnl);
     bcl->l = nnl;
 }
@@ -605,7 +633,7 @@ uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer *buf) {
     buf->base[0].block_id = 1;
     uint32_t next_block_id = 1;
     FklInsLn *base = buf->base;
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
 
     for (uint64_t i = 0; i < buf->size;) {
         FklInsLn *cur = &base[i];
@@ -648,7 +676,7 @@ FklByteCodelnt *fklCreateByteCodelntFromBuf(const FklByteCodeBuffer *buf) {
 }
 
 static inline void scan_and_set_block_start(FklByteCodeBuffer *buf,
-                                            uint64_t *block_start) {
+        uint64_t *block_start) {
     for (uint64_t i = 0; i < buf->size; i++)
         if (buf->base[i].block_id)
             block_start[buf->base[i].block_id - 1] = i;
@@ -657,13 +685,14 @@ static inline void scan_and_set_block_start(FklByteCodeBuffer *buf,
 #define PEEPHOLE_SIZE (12)
 
 typedef uint32_t (*PeepholeOptimizationPredicate)(const FklByteCodeBuffer *buf,
-                                                  const uint64_t *block_start,
-                                                  const FklInsLn *peephole,
-                                                  uint32_t k);
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k);
 typedef uint32_t (*PeepholeOptimizationOutput)(const FklByteCodeBuffer *buf,
-                                               const uint64_t *block_start,
-                                               const FklInsLn *peephole,
-                                               uint32_t k, FklInsLn *output);
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output);
 
 struct PeepholeOptimizer {
     PeepholeOptimizationPredicate predicate;
@@ -675,41 +704,45 @@ struct PeepholeOptimizer {
 };
 
 static uint32_t not3_predicate(const FklByteCodeBuffer *buf,
-                               const uint64_t *block_start,
-                               const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 3)
         return 0;
     if (peephole[0].ins.op == FKL_OP_NOT && peephole[1].ins.op == FKL_OP_NOT
-        && peephole[2].ins.op == FKL_OP_NOT)
+            && peephole[2].ins.op == FKL_OP_NOT)
         return 3;
     return 0;
 }
 
 static uint32_t not3_output(const FklByteCodeBuffer *buf,
-                            const uint64_t *block_start,
-                            const FklInsLn *peephole, uint32_t k,
-                            FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     return 1;
 }
 
 static uint32_t inc_or_dec_loc_predicate(const FklByteCodeBuffer *buf,
-                                         const uint64_t *block_start,
-                                         const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 3)
         return 0;
     if (peephole[0].ins.op == FKL_OP_GET_LOC
-        && peephole[1].ins.op == FKL_OP_ADDK
-        && peephole[2].ins.op == FKL_OP_PUT_LOC
-        && peephole[0].ins.bu == peephole[2].ins.bu)
+            && peephole[1].ins.op == FKL_OP_ADDK
+            && peephole[2].ins.op == FKL_OP_PUT_LOC
+            && peephole[0].ins.bu == peephole[2].ins.bu)
         return 3;
     return 0;
 }
 
 static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer *buf,
-                                      const uint64_t *block_start,
-                                      const FklInsLn *peephole, uint32_t k,
-                                      FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins.op = FKL_OP_ADDK_LOC;
     output[0].ins.ai = peephole[1].ins.ai;
@@ -717,34 +750,36 @@ static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t not_jmp_if_true_or_false_predicate(const FklByteCodeBuffer *buf,
-                                                   const uint64_t *block_start,
-                                                   const FklInsLn *peephole,
-                                                   uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 3)
         return 0;
     uint32_t i = 0;
     if (peephole[i++].ins.op != FKL_OP_NOT)
         return 0;
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     i += set_ins_ln_to_ins(&peephole[i], ins);
     if (i < k
-        && ((ins[0].op >= FKL_OP_JMP_IF_TRUE
-             && ins[0].op <= FKL_OP_JMP_IF_TRUE_XX)
-            || (ins[0].op >= FKL_OP_JMP_IF_FALSE
-                && ins[0].op <= FKL_OP_JMP_IF_FALSE_XX))
-        && peephole[i].ins.op == FKL_OP_DROP
-        && buf->base[block_start[peephole[1].jmp_to - 1]].ins.op == FKL_OP_DROP)
+            && ((ins[0].op >= FKL_OP_JMP_IF_TRUE
+                        && ins[0].op <= FKL_OP_JMP_IF_TRUE_XX)
+                    || (ins[0].op >= FKL_OP_JMP_IF_FALSE
+                            && ins[0].op <= FKL_OP_JMP_IF_FALSE_XX))
+            && peephole[i].ins.op == FKL_OP_DROP
+            && buf->base[block_start[peephole[1].jmp_to - 1]].ins.op
+                       == FKL_OP_DROP)
         return i;
     return 0;
 }
 
 static uint32_t not_jmp_if_true_or_false_output(const FklByteCodeBuffer *buf,
-                                                const uint64_t *block_start,
-                                                const FklInsLn *peephole,
-                                                uint32_t k, FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[1];
     if (output[0].ins.op >= FKL_OP_JMP_IF_TRUE
-        && output[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
+            && output[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
         output[0].ins.op = FKL_OP_JMP_IF_FALSE;
     else
         output[0].ins.op = FKL_OP_JMP_IF_TRUE;
@@ -752,23 +787,25 @@ static uint32_t not_jmp_if_true_or_false_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t put_loc_drop_predicate(const FklByteCodeBuffer *buf,
-                                       const uint64_t *block_start,
-                                       const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 2)
         return 0;
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     uint32_t i = set_ins_ln_to_ins(&peephole[0], ins);
     if (i < k && (ins[0].op >= FKL_OP_PUT_LOC && ins[0].op <= FKL_OP_PUT_LOC_X)
-        && peephole[i].ins.op == FKL_OP_DROP)
+            && peephole[i].ins.op == FKL_OP_DROP)
         return i + 1;
     return 0;
 }
 
 static uint32_t put_loc_drop_output(const FklByteCodeBuffer *buf,
-                                    const uint64_t *block_start,
-                                    const FklInsLn *peephole, uint32_t k,
-                                    FklInsLn *output) {
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     FklInstructionArg arg;
     set_ins_ln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
@@ -785,12 +822,12 @@ static uint32_t put_loc_drop_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
-                                          const uint64_t *block_start,
-                                          const FklInsLn *peephole,
-                                          uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 2)
         return 0;
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     FklInstructionArg arg;
     uint32_t i = set_ins_ln_to_ins(&peephole[0], ins);
     if (i >= k)
@@ -810,10 +847,11 @@ static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t pop_and_get_loc_output(const FklByteCodeBuffer *buf,
-                                       const uint64_t *block_start,
-                                       const FklInsLn *peephole, uint32_t k,
-                                       FklInsLn *output) {
-    FklInstruction ins[4] = {FKL_INSTRUCTION_STATIC_INIT};
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
+    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     FklInstructionArg arg;
     set_ins_ln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
@@ -830,54 +868,57 @@ static uint32_t pop_and_get_loc_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t jmp_to_ret_predicate(const FklByteCodeBuffer *buf,
-                                     const uint64_t *block_start,
-                                     const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (peephole[0].jmp_to
-        && buf->base[block_start[peephole[0].jmp_to - 1]].ins.op
-               == FKL_OP_RET) {
+            && buf->base[block_start[peephole[0].jmp_to - 1]].ins.op
+                       == FKL_OP_RET) {
         if (peephole[0].ins.op >= FKL_OP_JMP
-            && peephole[0].ins.op <= FKL_OP_JMP_XX)
+                && peephole[0].ins.op <= FKL_OP_JMP_XX)
             return peephole[0].ins.op - (FKL_OP_JMP - 1);
         if (peephole[0].ins.op >= FKL_OP_JMP_IF_TRUE
-            && peephole[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
+                && peephole[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
             return peephole[0].ins.op - (FKL_OP_JMP_IF_TRUE - 1);
         if (peephole[0].ins.op >= FKL_OP_JMP_IF_FALSE
-            && peephole[0].ins.op <= FKL_OP_JMP_IF_FALSE_XX)
+                && peephole[0].ins.op <= FKL_OP_JMP_IF_FALSE_XX)
             return peephole[0].ins.op - (FKL_OP_JMP_IF_FALSE - 1);
     }
     return 0;
 }
 
 static uint32_t jmp_to_ret_output(const FklByteCodeBuffer *buf,
-                                  const uint64_t *block_start,
-                                  const FklInsLn *peephole, uint32_t k,
-                                  FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins.op = (peephole[0].ins.op >= FKL_OP_JMP
-                        && peephole[0].ins.op <= FKL_OP_JMP_XX)
-                         ? FKL_OP_RET
+                               && peephole[0].ins.op <= FKL_OP_JMP_XX)
+                             ? FKL_OP_RET
                      : (peephole[0].ins.op >= FKL_OP_JMP_IF_TRUE
-                        && peephole[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
-                         ? FKL_OP_RET_IF_TRUE
-                         : FKL_OP_RET_IF_FALSE;
+                               && peephole[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
+                             ? FKL_OP_RET_IF_TRUE
+                             : FKL_OP_RET_IF_FALSE;
     return 1;
 }
 
 static uint32_t jmp_to_jmp_predicate(const FklByteCodeBuffer *buf,
-                                     const uint64_t *block_start,
-                                     const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (peephole[0].jmp_to) {
         FklOpcode target_opcode =
-            buf->base[block_start[peephole[0].jmp_to - 1]].ins.op;
+                buf->base[block_start[peephole[0].jmp_to - 1]].ins.op;
         if (target_opcode >= FKL_OP_JMP && target_opcode <= FKL_OP_JMP_XX) {
             if (peephole[0].ins.op >= FKL_OP_JMP
-                && peephole[0].ins.op <= FKL_OP_JMP_XX)
+                    && peephole[0].ins.op <= FKL_OP_JMP_XX)
                 return peephole[0].ins.op - (FKL_OP_JMP - 1);
             if (peephole[0].ins.op >= FKL_OP_JMP_IF_TRUE
-                && peephole[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
+                    && peephole[0].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
                 return peephole[0].ins.op - (FKL_OP_JMP_IF_TRUE - 1);
             if (peephole[0].ins.op >= FKL_OP_JMP_IF_FALSE
-                && peephole[0].ins.op <= FKL_OP_JMP_IF_FALSE_XX)
+                    && peephole[0].ins.op <= FKL_OP_JMP_IF_FALSE_XX)
                 return peephole[0].ins.op - (FKL_OP_JMP_IF_FALSE - 1);
         } else
             return 0;
@@ -886,12 +927,13 @@ static uint32_t jmp_to_jmp_predicate(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t jmp_to_jmp_output(const FklByteCodeBuffer *buf,
-                                  const uint64_t *block_start,
-                                  const FklInsLn *peephole, uint32_t k,
-                                  FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     uint32_t target_jmp_to =
-        buf->base[block_start[peephole[0].jmp_to - 1]].jmp_to;
+            buf->base[block_start[peephole[0].jmp_to - 1]].jmp_to;
     output[0].jmp_to = target_jmp_to;
     return 1;
 }
@@ -942,13 +984,13 @@ static inline int is_i24_mul_overflow(int32_t a, int32_t b) {
         return (FKL_I24_MAX / a) > b;
     if (a * b == FKL_I24_MIN)
         return 0;
-    union I24u t = {.i24 = a * b};
+    union I24u t = { .i24 = a * b };
     t.i24 /= b;
     return a != t.i24;
 }
 
-static inline int is_foldable_op2(const FklInstruction *in, int32_t a,
-                                  int32_t b) {
+static inline int
+is_foldable_op2(const FklInstruction *in, int32_t a, int32_t b) {
     int32_t res;
     switch ((FklOpcode)in->op) {
     case FKL_OP_ADD:
@@ -997,9 +1039,9 @@ static inline int is_foldable_op2(const FklInstruction *in, int32_t a,
 }
 
 static uint32_t oprand2_const_fold_predicate(const FklByteCodeBuffer *buf,
-                                             const uint64_t *block_start,
-                                             const FklInsLn *peephole,
-                                             uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 3)
         return 0;
     int32_t oprand1;
@@ -1013,9 +1055,10 @@ static uint32_t oprand2_const_fold_predicate(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer *buf,
-                                          const uint64_t *block_start,
-                                          const FklInsLn *peephole, uint32_t k,
-                                          FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     int32_t oprand1 = 0;
     int32_t oprand2 = 0;
     is_foldable_const(&peephole[0].ins, &oprand1);
@@ -1066,8 +1109,8 @@ static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer *buf,
     return 1;
 }
 
-static inline int is_foldable_op3(const FklInstruction *in, int32_t a,
-                                  int32_t b, int32_t c) {
+static inline int
+is_foldable_op3(const FklInstruction *in, int32_t a, int32_t b, int32_t c) {
     int32_t res;
     switch ((FklOpcode)in->op) {
     case FKL_OP_ADD:
@@ -1115,9 +1158,9 @@ static inline int is_foldable_op3(const FklInstruction *in, int32_t a,
 }
 
 static uint32_t oprand3_const_fold_predicate(const FklByteCodeBuffer *buf,
-                                             const uint64_t *block_start,
-                                             const FklInsLn *peephole,
-                                             uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 4)
         return 0;
     int32_t oprand1;
@@ -1126,8 +1169,10 @@ static uint32_t oprand3_const_fold_predicate(const FklByteCodeBuffer *buf,
         if (is_foldable_const(&peephole[1].ins, &oprand2)) {
             int32_t oprand3;
             if (is_foldable_const(&peephole[2].ins, &oprand3))
-                if (is_foldable_op3(&peephole[3].ins, oprand1, oprand2,
-                                    oprand3))
+                if (is_foldable_op3(&peephole[3].ins,
+                            oprand1,
+                            oprand2,
+                            oprand3))
                     return 4;
         }
     }
@@ -1135,9 +1180,10 @@ static uint32_t oprand3_const_fold_predicate(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer *buf,
-                                          const uint64_t *block_start,
-                                          const FklInsLn *peephole, uint32_t k,
-                                          FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     int32_t oprand1 = 0;
     int32_t oprand2 = 0;
     int32_t oprand3 = 0;
@@ -1213,9 +1259,9 @@ static inline int is_foldable_op1(const FklInstruction *in, int32_t a) {
 }
 
 static uint32_t oprand1_const_fold_predicate(const FklByteCodeBuffer *buf,
-                                             const uint64_t *block_start,
-                                             const FklInsLn *peephole,
-                                             uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 2)
         return 0;
     int32_t oprand1;
@@ -1227,9 +1273,10 @@ static uint32_t oprand1_const_fold_predicate(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer *buf,
-                                          const uint64_t *block_start,
-                                          const FklInsLn *peephole, uint32_t k,
-                                          FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     int32_t oprand1 = 0;
     is_foldable_const(&peephole[0].ins, &oprand1);
     int32_t r;
@@ -1268,9 +1315,9 @@ static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t nil_cond_ret_or_jmp_drop_pred(const FklByteCodeBuffer *buf,
-                                              const uint64_t *block_start,
-                                              const FklInsLn *peephole,
-                                              uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 4)
         return 0;
     uint32_t block_count = 0;
@@ -1279,8 +1326,8 @@ static uint32_t nil_cond_ret_or_jmp_drop_pred(const FklByteCodeBuffer *buf,
         if (peephole[i].block_id)
             block_count++;
         if ((peephole[i].ins.op >= FKL_OP_JMP_IF_TRUE
-             && peephole[i].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
-            || (peephole[i].ins.op == FKL_OP_RET_IF_TRUE)) {
+                    && peephole[i].ins.op <= FKL_OP_JMP_IF_TRUE_XX)
+                || (peephole[i].ins.op == FKL_OP_RET_IF_TRUE)) {
             i += fklGetOpcodeModeLen(peephole[i].ins.op);
             if (i >= k)
                 return 0;
@@ -1302,9 +1349,10 @@ static uint32_t nil_cond_ret_or_jmp_drop_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t nil_cond_ret_or_jmp_drop_output(const FklByteCodeBuffer *buf,
-                                                const uint64_t *block_start,
-                                                const FklInsLn *peephole,
-                                                uint32_t k, FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     uint32_t i = 1 + fklGetOpcodeModeLen(peephole[1].ins.op) + 1;
     uint32_t l = fklGetOpcodeModeLen(peephole[i].ins.op);
     for (uint32_t j = 0; j < l; j++) {
@@ -1315,8 +1363,9 @@ static uint32_t nil_cond_ret_or_jmp_drop_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t push_const_not_pred(const FklByteCodeBuffer *buf,
-                                    const uint64_t *block_start,
-                                    const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 2)
         return 0;
     switch ((FklOpcode)peephole[0].ins.op) {
@@ -1352,18 +1401,20 @@ static uint32_t push_const_not_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t push_const_not_output(const FklByteCodeBuffer *buf,
-                                      const uint64_t *block_start,
-                                      const FklInsLn *peephole, uint32_t k,
-                                      FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
-    output[0].ins.op =
-        output[0].ins.op == FKL_OP_PUSH_NIL ? FKL_OP_PUSH_1 : FKL_OP_PUSH_NIL;
+    output[0].ins.op = output[0].ins.op == FKL_OP_PUSH_NIL ? FKL_OP_PUSH_1
+                                                           : FKL_OP_PUSH_NIL;
     return 1;
 }
 
 static uint32_t mov_loc_pred(const FklByteCodeBuffer *buf,
-                             const uint64_t *block_start,
-                             const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 2)
         return 0;
     if (peephole[0].ins.op == FKL_OP_GET_LOC) {
@@ -1377,9 +1428,10 @@ static uint32_t mov_loc_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_loc_output(const FklByteCodeBuffer *buf,
-                               const uint64_t *block_start,
-                               const FklInsLn *peephole, uint32_t k,
-                               FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins.op = FKL_OP_MOV_LOC;
     output[0].ins.au = peephole[0].ins.bu;
@@ -1388,8 +1440,9 @@ static uint32_t mov_loc_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_loc_drop_get_pred(const FklByteCodeBuffer *buf,
-                                      const uint64_t *block_start,
-                                      const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 3)
         return 0;
     if (peephole[0].ins.op == FKL_OP_MOV_LOC) {
@@ -1400,7 +1453,7 @@ static uint32_t mov_loc_drop_get_pred(const FklByteCodeBuffer *buf,
                     return 3;
             } else if (peephole[2].ins.op == FKL_OP_MOV_LOC) {
                 if (peephole[2].ins.au == peephole[0].ins.au
-                    && peephole[2].ins.bu == peephole[0].ins.bu)
+                        && peephole[2].ins.bu == peephole[0].ins.bu)
                     return 3;
             }
         }
@@ -1409,16 +1462,18 @@ static uint32_t mov_loc_drop_get_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_loc_drop_get_output(const FklByteCodeBuffer *buf,
-                                        const uint64_t *block_start,
-                                        const FklInsLn *peephole, uint32_t k,
-                                        FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     return 1;
 }
 
 static uint32_t mov_var_ref_pred(const FklByteCodeBuffer *buf,
-                                 const uint64_t *block_start,
-                                 const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 2)
         return 0;
     if (peephole[0].ins.op == FKL_OP_GET_VAR_REF) {
@@ -1432,9 +1487,10 @@ static uint32_t mov_var_ref_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_var_ref_output(const FklByteCodeBuffer *buf,
-                                   const uint64_t *block_start,
-                                   const FklInsLn *peephole, uint32_t k,
-                                   FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins.op = FKL_OP_MOV_VAR_REF;
     output[0].ins.au = peephole[0].ins.bu;
@@ -1443,9 +1499,9 @@ static uint32_t mov_var_ref_output(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_var_ref_drop_get_pred(const FklByteCodeBuffer *buf,
-                                          const uint64_t *block_start,
-                                          const FklInsLn *peephole,
-                                          uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if (k < 3)
         return 0;
     if (peephole[0].ins.op == FKL_OP_MOV_VAR_REF) {
@@ -1456,7 +1512,7 @@ static uint32_t mov_var_ref_drop_get_pred(const FklByteCodeBuffer *buf,
                     return 3;
             } else if (peephole[2].ins.op == FKL_OP_MOV_VAR_REF) {
                 if (peephole[2].ins.au == peephole[0].ins.au
-                    && peephole[2].ins.bu == peephole[0].ins.bu)
+                        && peephole[2].ins.bu == peephole[0].ins.bu)
                     return 3;
             }
         }
@@ -1465,10 +1521,11 @@ static uint32_t mov_var_ref_drop_get_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_to_get_pred(const FklByteCodeBuffer *buf,
-                                const uint64_t *block_start,
-                                const FklInsLn *peephole, uint32_t k) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k) {
     if ((peephole[0].ins.op == FKL_OP_MOV_LOC
-         || peephole[0].ins.op == FKL_OP_MOV_VAR_REF)) {
+                || peephole[0].ins.op == FKL_OP_MOV_VAR_REF)) {
         uint32_t a_idx = peephole[0].ins.au;
         uint32_t b_idx = peephole[0].ins.bu;
         if (a_idx == b_idx)
@@ -1478,13 +1535,14 @@ static uint32_t mov_to_get_pred(const FklByteCodeBuffer *buf,
 }
 
 static uint32_t mov_to_get_output(const FklByteCodeBuffer *buf,
-                                  const uint64_t *block_start,
-                                  const FklInsLn *peephole, uint32_t k,
-                                  FklInsLn *output) {
+        const uint64_t *block_start,
+        const FklInsLn *peephole,
+        uint32_t k,
+        FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins.op = peephole[0].ins.op == FKL_OP_MOV_LOC
-                         ? FKL_OP_GET_LOC
-                         : FKL_OP_GET_VAR_REF;
+                             ? FKL_OP_GET_LOC
+                             : FKL_OP_GET_VAR_REF;
     return 1;
 }
 
@@ -1581,12 +1639,12 @@ static const struct PeepholeOptimizer PeepholeOptimizers[] = {
     },
 };
 
-static inline int is_in_one_block(const FklInsLn *peephole, uint32_t offset,
-                                  uint32_t *block_id) {
+static inline int
+is_in_one_block(const FklInsLn *peephole, uint32_t offset, uint32_t *block_id) {
     if (peephole[0].block_id) {
         for (uint32_t i = 1; i < offset; i++)
             if (peephole[i].block_id
-                && peephole[i].block_id != peephole[0].block_id)
+                    && peephole[i].block_id != peephole[0].block_id)
                 return 0;
         *block_id = peephole[0].block_id;
     } else {
@@ -1598,7 +1656,7 @@ static inline int is_in_one_block(const FklInsLn *peephole, uint32_t offset,
 }
 
 static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
-                                       const uint64_t *block_start) {
+        const uint64_t *block_start) {
     FklInsLn peephole[PEEPHOLE_SIZE];
     FklInsLn output[PEEPHOLE_SIZE];
     uint64_t valid_ins_idx[PEEPHOLE_SIZE];
@@ -1620,15 +1678,19 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
 
         uint32_t offset = 0;
         for (const struct PeepholeOptimizer *optimizer = &PeepholeOptimizers[0];
-             optimizer->predicate; optimizer++) {
+                optimizer->predicate;
+                optimizer++) {
             offset = optimizer->predicate(buf, block_start, peephole, k);
             uint32_t block_id = 0;
             if (offset
-                && (optimizer->block_state
-                    || is_in_one_block(peephole, offset, &block_id))) {
+                    && (optimizer->block_state
+                            || is_in_one_block(peephole, offset, &block_id))) {
                 FklInsLn *output_start = &buf->base[i];
-                uint32_t output_len =
-                    optimizer->output(buf, block_start, peephole, k, output);
+                uint32_t output_len = optimizer->output(buf,
+                        block_start,
+                        peephole,
+                        k,
+                        output);
                 uint32_t ii = 0;
                 for (; ii < output_len; ii++)
                     output_start[ii] = output[ii];
@@ -1638,9 +1700,9 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
                     for (; ii < valid_ins_idx[offset]; ii++)
                         output_start[ii].ins.op = FKL_OP_DUMMY;
                     for (i += valid_ins_idx[offset];
-                         i < buf->size
-                         && buf->base[i].ins.op == FKL_OP_EXTRA_ARG;
-                         i++)
+                            i < buf->size
+                            && buf->base[i].ins.op == FKL_OP_EXTRA_ARG;
+                            i++)
                         ;
                 } else {
                     for (; i + ii < buf->size; ii++)
@@ -1653,7 +1715,8 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
         }
 
         for (i += (valid_ins_idx[0] + 1);
-             i < buf->size && buf->base[i].ins.op == FKL_OP_EXTRA_ARG; i++)
+                i < buf->size && buf->base[i].ins.op == FKL_OP_EXTRA_ARG;
+                i++)
             ;
     done:
         continue;
@@ -1662,7 +1725,7 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
 }
 
 static inline FklByteCodeBuffer *remove_dummy_code(FklByteCodeBuffer *a,
-                                                   FklByteCodeBuffer *b) {
+        FklByteCodeBuffer *b) {
     for (uint64_t i = 0; i < a->size; i++) {
         FklInsLn *cur = &a->base[i];
         if (cur->ins.op)
@@ -1678,7 +1741,7 @@ void fklPeepholeOptimize(FklByteCodelnt *bcl) {
 
     uint32_t block_num = fklByteCodeBufferScanAndSetBasicBlock(&buf);
     uint64_t *block_start =
-        (uint64_t *)fklZmalloc(block_num * sizeof(uint64_t));
+            (uint64_t *)fklZmalloc(block_num * sizeof(uint64_t));
     FKL_ASSERT(block_start);
     scan_and_set_block_start(&buf, block_start);
 

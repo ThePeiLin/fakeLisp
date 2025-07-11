@@ -2,6 +2,7 @@
 #define FKL_CODE_BUILDER
 
 #include "common.h"
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -10,8 +11,8 @@
 extern "C" {
 #endif
 
-typedef long (*FklCodeBuilderLinePrintf)(void *ctx, const char *fmt,
-                                         va_list va);
+typedef long (
+        *FklCodeBuilderLinePrintf)(void *ctx, const char *fmt, va_list va);
 typedef void (*FklCodeBuilderPuts)(void *ctx, const char *s);
 
 typedef struct FklCodeBuilder {
@@ -33,13 +34,13 @@ static inline void fklCodeBuilderUnindent(FklCodeBuilder *b) {
     --b->indents;
 };
 
-static inline long fklCodeBuilderFmtVa(const FklCodeBuilder *b, const char *fmt,
-                                       va_list ap) {
+static inline long
+fklCodeBuilderFmtVa(const FklCodeBuilder *b, const char *fmt, va_list ap) {
     return b->printf(b->ctx, fmt, ap);
 }
 
-static inline long fklCodeBuilderFmt(const FklCodeBuilder *b, const char *fmt,
-                                     ...) {
+static inline long
+fklCodeBuilderFmt(const FklCodeBuilder *b, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     long r = fklCodeBuilderFmtVa(b, fmt, ap);
@@ -47,8 +48,8 @@ static inline long fklCodeBuilderFmt(const FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline int fklCodeBuilderLineStartVa(FklCodeBuilder *b, const char *fmt,
-                                            va_list ap) {
+static inline int
+fklCodeBuilderLineStartVa(FklCodeBuilder *b, const char *fmt, va_list ap) {
     FKL_ASSERT(!b->line_start);
     for (unsigned int i = 0; i < b->indents; ++i)
         b->puts(b->ctx, b->indent_str);
@@ -57,8 +58,8 @@ static inline int fklCodeBuilderLineStartVa(FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline int fklCodeBuilderLineStart(FklCodeBuilder *b, const char *fmt,
-                                          ...) {
+static inline int
+fklCodeBuilderLineStart(FklCodeBuilder *b, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     long r = fklCodeBuilderLineStartVa(b, fmt, ap);
@@ -66,8 +67,8 @@ static inline int fklCodeBuilderLineStart(FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline long fklCodeBuilderLineEndVa(FklCodeBuilder *b, const char *fmt,
-                                           va_list ap) {
+static inline long
+fklCodeBuilderLineEndVa(FklCodeBuilder *b, const char *fmt, va_list ap) {
     FKL_ASSERT(b->line_start);
     long r = fklCodeBuilderFmtVa(b, fmt, ap);
     b->puts(b->ctx, "\n");
@@ -75,8 +76,8 @@ static inline long fklCodeBuilderLineEndVa(FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline long fklCodeBuilderLineEnd(FklCodeBuilder *b, const char *fmt,
-                                         ...) {
+static inline long
+fklCodeBuilderLineEnd(FklCodeBuilder *b, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     long r = fklCodeBuilderLineEndVa(b, fmt, ap);
@@ -84,8 +85,8 @@ static inline long fklCodeBuilderLineEnd(FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline int fklCodeBuilderLineVa(const FklCodeBuilder *b, const char *fmt,
-                                       va_list ap) {
+static inline int
+fklCodeBuilderLineVa(const FklCodeBuilder *b, const char *fmt, va_list ap) {
     if (*fmt && !b->line_start) {
         for (unsigned int i = 0; i < b->indents; ++i)
             b->puts(b->ctx, b->indent_str);
@@ -98,8 +99,8 @@ static inline int fklCodeBuilderLineVa(const FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline int fklCodeBuilderLine(const FklCodeBuilder *b, const char *fmt,
-                                     ...) {
+static inline int
+fklCodeBuilderLine(const FklCodeBuilder *b, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     long r = fklCodeBuilderLineVa(b, fmt, ap);
@@ -107,10 +108,11 @@ static inline int fklCodeBuilderLine(const FklCodeBuilder *b, const char *fmt,
     return r;
 }
 
-static inline void fklInitCodeBuilder(FklCodeBuilder *b, void *ctx,
-                                      FklCodeBuilderLinePrintf line,
-                                      FklCodeBuilderPuts puts,
-                                      const char *indent_str) {
+static inline void fklInitCodeBuilder(FklCodeBuilder *b,
+        void *ctx,
+        FklCodeBuilderLinePrintf line,
+        FklCodeBuilderPuts puts,
+        const char *indent_str) {
     FKL_ASSERT(line && puts);
     b->printf = line;
     b->puts = puts;
@@ -120,8 +122,8 @@ static inline void fklInitCodeBuilder(FklCodeBuilder *b, void *ctx,
     b->indent_str = indent_str == NULL ? "    " : indent_str;
 }
 
-static inline long fklCodeBuilderFpPrintf(void *ctx, const char *fmt,
-                                          va_list ap) {
+static inline long
+fklCodeBuilderFpPrintf(void *ctx, const char *fmt, va_list ap) {
     FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
     return vfprintf(fp, fmt, ap);
 }
@@ -131,10 +133,13 @@ static inline void fklCodeBuilderFpPuts(void *ctx, const char *fmt) {
     fputs(fmt, fp);
 }
 
-static inline void fklInitCodeBuilderFp(FklCodeBuilder *b, FILE *fp,
-                                        const char *indent_str) {
-    fklInitCodeBuilder(b, fp, fklCodeBuilderFpPrintf, fklCodeBuilderFpPuts,
-                       indent_str);
+static inline void
+fklInitCodeBuilderFp(FklCodeBuilder *b, FILE *fp, const char *indent_str) {
+    fklInitCodeBuilder(b,
+            fp,
+            fklCodeBuilderFpPrintf,
+            fklCodeBuilderFpPuts,
+            indent_str);
 }
 
 #ifdef __cplusplus

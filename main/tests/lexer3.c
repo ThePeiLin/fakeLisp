@@ -9,76 +9,76 @@
 #endif
 
 static const char test_op_grammer_rules[] = //
-    ""
-    "E -> E \"+\" T      => test\n"
-    "  -> T              => test\n"
+        ""
+        "E -> E \"+\" T      => test\n"
+        "  -> T              => test\n"
 
-    "T -> T \"*\" F      => test\n"
-    "  -> F              => test\n"
+        "T -> T \"*\" F      => test\n"
+        "  -> F              => test\n"
 
-    "F -> \"(\" E \")\"  => test\n"
-    "  -> \"(\" E \")\"  => test\n"
+        "F -> \"(\" E \")\"  => test\n"
+        "  -> \"(\" E \")\"  => test\n"
 
-    "?e -> /#!.*\\n?/    \n"
-    "   -> /;.*\\n?/     \n"
-    "   -> /\\s+/        \n"
-    "   ;\n"
-    "?? -> \"#!\"        \n"
-    "   -> \";\"         \n"
-    "";
+        "?e -> /#!.*\\n?/    \n"
+        "   -> /;.*\\n?/     \n"
+        "   -> /\\s+/        \n"
+        "   ;\n"
+        "?? -> \"#!\"        \n"
+        "   -> \";\"         \n"
+        "";
 
 static const char test_json_grammer_rules[] = //
-    ""
-    "json-value -> null    => test  \n"
-    "           -> bool    => test  \n"
-    "           -> string  => test  \n"
-    "           -> integer => test  \n"
-    "           -> float   => test  \n"
-    "           -> object  => test  \n"
-    "           -> array   => test  \n"
-    "null -> |null| => test \n"
-    "bool -> |true|  => test \n"
-    "     -> |false| => test \n"
-    "string -> /\"\"|\"(\\\\.|.)*\"/ => test \n"
-    "integer -> ?dint => test \n"
-    "        -> ?xint => test \n"
-    "        -> ?oint => test \n"
-    "float -> ?dfloat => test \n"
-    "      -> ?xfloat => test \n"
-    "array -> \"[\" array-items \"]\" => test \n"
-    "array-items ->                              => test \n"
-    "            -> json-value                   => test \n"
-    "            -> json-value \",\" array-items => test \n"
-    "object -> \"{\" object-items \"}\" => test \n"
-    "object-item -> string \":\" json-value => test \n"
-    "object-items ->                                => test \n"
-    "             -> object-item                    => test \n"
-    "             -> object-item \",\" object-items => test \n"
-    "?e -> /\\s+/  \n"
-    "   ;\n"
-    "?? -> \"\\\"\"  \n"
-    "";
+        ""
+        "json-value -> null    => test  \n"
+        "           -> bool    => test  \n"
+        "           -> string  => test  \n"
+        "           -> integer => test  \n"
+        "           -> float   => test  \n"
+        "           -> object  => test  \n"
+        "           -> array   => test  \n"
+        "null -> |null| => test \n"
+        "bool -> |true|  => test \n"
+        "     -> |false| => test \n"
+        "string -> /\"\"|\"(\\\\.|.)*\"/ => test \n"
+        "integer -> ?dint => test \n"
+        "        -> ?xint => test \n"
+        "        -> ?oint => test \n"
+        "float -> ?dfloat => test \n"
+        "      -> ?xfloat => test \n"
+        "array -> \"[\" array-items \"]\" => test \n"
+        "array-items ->                              => test \n"
+        "            -> json-value                   => test \n"
+        "            -> json-value \",\" array-items => test \n"
+        "object -> \"{\" object-items \"}\" => test \n"
+        "object-item -> string \":\" json-value => test \n"
+        "object-items ->                                => test \n"
+        "             -> object-item                    => test \n"
+        "             -> object-item \",\" object-items => test \n"
+        "?e -> /\\s+/  \n"
+        "   ;\n"
+        "?? -> \"\\\"\"  \n"
+        "";
 
 static const char test_ignore_grammer_rules[] = //
-    ""
-    // "s -> item-list => test \n"
-    "s -> \"#\" .. item-list => test \n"
-    "item-list -> \"(\" items \")\" => test \n"
-    "items ->            => test \n"
-    "      -> items item => test \n"
-    "item  -> ?dint => test \n"
-    "?e -> /\\s+/; \n"
-    // "other -> ?dint \n"
-    "";
+        ""
+        // "s -> item-list => test \n"
+        "s -> \"#\" .. item-list => test \n"
+        "item-list -> \"(\" items \")\" => test \n"
+        "items ->            => test \n"
+        "      -> items item => test \n"
+        "item  -> ?dint => test \n"
+        "?e -> /\\s+/; \n"
+        // "other -> ?dint \n"
+        "";
 
 static inline const FklGrammerBuiltinAction *
 test_prod_action_resolver(void *ctx, const char *str, size_t len) {
-    static FklGrammerBuiltinAction action = {"test", NULL};
+    static FklGrammerBuiltinAction action = { "test", NULL };
     return &action;
 }
 
 static inline FklGrammer *create_grammer_with_cstr(FklSymbolTable *st,
-                                                   const char *rules) {
+        const char *rules) {
     FklParserGrammerParseArg args;
     FklGrammer *g = fklCreateEmptyGrammer(st);
 
@@ -94,7 +94,7 @@ static inline FklGrammer *create_grammer_with_cstr(FklSymbolTable *st,
 
     fklUninitParserGrammerParseArg(&args);
 
-    FklGrammerNonterm nonterm = {0};
+    FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
         fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
@@ -163,8 +163,13 @@ int main(int argc, const char *argv[]) {
 
     FILE *action_file = fopen(action_file_name, "r");
     FILE *parse = fopen(output_file_name, "w");
-    fklPrintAnalysisTableAsCfunc(g, st, action_file, ast_creator_name,
-                                 ast_destroy_name, state_0_push_name, parse);
+    fklPrintAnalysisTableAsCfunc(g,
+            st,
+            action_file,
+            ast_creator_name,
+            ast_destroy_name,
+            state_0_push_name,
+            parse);
     fclose(parse);
     fclose(action_file);
 

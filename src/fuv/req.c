@@ -181,8 +181,10 @@ int isFuvReq(const FklVMvalue *v) {
     return 0;
 }
 
-static inline void init_fuv_req(FuvReq *req, FklVMvalue *v, FklVMvalue *loop,
-                                FklVMvalue *callback) {
+static inline void init_fuv_req(FuvReq *req,
+        FklVMvalue *v,
+        FklVMvalue *loop,
+        FklVMvalue *callback) {
     req->data.loop = loop;
     req->data.callback = callback;
     uv_req_set_data(&req->req, req);
@@ -197,8 +199,11 @@ static inline void init_fuv_req(FuvReq *req, FklVMvalue *v, FklVMvalue *loop,
 FUV_REQ_P(isFuvGetaddrinfo, UV_GETADDRINFO);
 
 #define NORMAL_REQ_CREATOR(TYPE, NAME, ENUM)                                   \
-    uv_##NAME##_t *create##TYPE(FklVM *vm, FklVMvalue **ret, FklVMvalue *rel,  \
-                                FklVMvalue *loop, FklVMvalue *callback) {      \
+    uv_##NAME##_t *create##TYPE(FklVM *vm,                                     \
+            FklVMvalue **ret,                                                  \
+            FklVMvalue *rel,                                                   \
+            FklVMvalue *loop,                                                  \
+            FklVMvalue *callback) {                                            \
         FklVMvalue *v = fklCreateVMvalueUd(vm, &ReqMetaTables[ENUM], rel);     \
         FKL_DECL_VM_UD_DATA(req, TYPE, v);                                     \
         init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);         \
@@ -214,11 +219,16 @@ NORMAL_REQ_CREATOR(FuvGetnameinfo, getnameinfo, UV_GETNAMEINFO);
 
 FUV_REQ_P(isFuvWrite, UV_WRITE);
 
-uv_write_t *createFuvWrite(FklVM *exe, FklVMvalue **ret, FklVMvalue *rel,
-                           FklVMvalue *loop, FklVMvalue *callback,
-                           uint32_t count) {
-    FklVMvalue *v = fklCreateVMvalueUd2(exe, &ReqMetaTables[UV_WRITE],
-                                        count * sizeof(FklVMvalue *), rel);
+uv_write_t *createFuvWrite(FklVM *exe,
+        FklVMvalue **ret,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        uint32_t count) {
+    FklVMvalue *v = fklCreateVMvalueUd2(exe,
+            &ReqMetaTables[UV_WRITE],
+            count * sizeof(FklVMvalue *),
+            rel);
     FKL_DECL_VM_UD_DATA(req, FuvWrite, v);
     init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
     *ret = v;
@@ -235,11 +245,16 @@ NORMAL_REQ_CREATOR(FuvConnect, connect, UV_CONNECT);
 
 FUV_REQ_P(isFuvUdpSend, UV_UDP_SEND);
 
-uv_udp_send_t *createFuvUdpSend(FklVM *exe, FklVMvalue **ret, FklVMvalue *rel,
-                                FklVMvalue *loop, FklVMvalue *callback,
-                                uint32_t count) {
-    FklVMvalue *v = fklCreateVMvalueUd2(exe, &ReqMetaTables[UV_UDP_SEND],
-                                        count * sizeof(FklVMvalue *), rel);
+uv_udp_send_t *createFuvUdpSend(FklVM *exe,
+        FklVMvalue **ret,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        uint32_t count) {
+    FklVMvalue *v = fklCreateVMvalueUd2(exe,
+            &ReqMetaTables[UV_UDP_SEND],
+            count * sizeof(FklVMvalue *),
+            rel);
     FKL_DECL_VM_UD_DATA(req, FuvUdpSend, v);
     init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
     *ret = v;
@@ -248,11 +263,17 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe, FklVMvalue **ret, FklVMvalue *rel,
 
 FUV_REQ_P(isFuvFsReq, UV_FS);
 
-struct FuvFsReq *createFuvFsReq(FklVM *exe, FklVMvalue **ret, FklVMvalue *rel,
-                                FklVMvalue *loop, FklVMvalue *callback,
-                                FklVMvalue *dir_obj, unsigned int len) {
-    FklVMvalue *v = fklCreateVMvalueUd2(exe, &ReqMetaTables[UV_FS],
-                                        len * sizeof(char), rel);
+struct FuvFsReq *createFuvFsReq(FklVM *exe,
+        FklVMvalue **ret,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        FklVMvalue *dir_obj,
+        unsigned int len) {
+    FklVMvalue *v = fklCreateVMvalueUd2(exe,
+            &ReqMetaTables[UV_FS],
+            len * sizeof(char),
+            rel);
     FKL_DECL_VM_UD_DATA(req, FuvFsReq, v);
     init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
     req->buf = uv_buf_init(req->base, len);
@@ -264,11 +285,16 @@ struct FuvFsReq *createFuvFsReq(FklVM *exe, FklVMvalue **ret, FklVMvalue *rel,
 
 FUV_REQ_P(isFuvRandom, UV_RANDOM);
 
-struct FuvRandom *createFuvRandom(FklVM *exe, FklVMvalue **ret, FklVMvalue *rel,
-                                  FklVMvalue *loop, FklVMvalue *callback,
-                                  size_t len) {
-    FklVMvalue *v = fklCreateVMvalueUd2(exe, &ReqMetaTables[UV_RANDOM],
-                                        len * sizeof(uint8_t), rel);
+struct FuvRandom *createFuvRandom(FklVM *exe,
+        FklVMvalue **ret,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        size_t len) {
+    FklVMvalue *v = fklCreateVMvalueUd2(exe,
+            &ReqMetaTables[UV_RANDOM],
+            len * sizeof(uint8_t),
+            rel);
     FKL_DECL_VM_UD_DATA(req, FuvRandom, v);
     init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
     *ret = v;

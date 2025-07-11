@@ -35,10 +35,14 @@ static int os_date(FKL_CPROC_ARGL) {
         FklStringBuffer buf;
         fklInitStringBuffer(&buf);
 
-        fklStringBufferPrintf(&buf, "%04u-%02u-%02u_%02u_%02u_%02u",
-                              tblock->tm_year + 1900, tblock->tm_mon + 1,
-                              tblock->tm_mday, tblock->tm_hour, tblock->tm_min,
-                              tblock->tm_sec);
+        fklStringBufferPrintf(&buf,
+                "%04u-%02u-%02u_%02u_%02u_%02u",
+                tblock->tm_year + 1900,
+                tblock->tm_mon + 1,
+                tblock->tm_mday,
+                tblock->tm_hour,
+                tblock->tm_min,
+                tblock->tm_sec);
 
         FklVMvalue *tmpVMvalue = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
         fklUninitStringBuffer(&buf);
@@ -61,7 +65,7 @@ static int os_date(FKL_CPROC_ARGL) {
             buf.index = n;
 
             FklVMvalue *tmpVMvalue =
-                fklCreateVMvalueStr2(exe, buf.index, buf.buf);
+                    fklCreateVMvalueStr2(exe, buf.index, buf.buf);
             fklUninitStringBuffer(&buf);
             FKL_CPROC_RETURN(exe, ctx, tmpVMvalue);
         } else if (fklIsVMint(arg1)) {
@@ -78,7 +82,7 @@ static int os_date(FKL_CPROC_ARGL) {
             buf.index = n;
 
             FklVMvalue *tmpVMvalue =
-                fklCreateVMvalueStr2(exe, buf.index, buf.buf);
+                    fklCreateVMvalueStr2(exe, buf.index, buf.buf);
             fklUninitStringBuffer(&buf);
             FKL_CPROC_RETURN(exe, ctx, tmpVMvalue);
         } else
@@ -102,14 +106,17 @@ static int os_date(FKL_CPROC_ARGL) {
             buf.index = n;
 
             FklVMvalue *tmpVMvalue =
-                fklCreateVMvalueStr2(exe, buf.index, buf.buf);
+                    fklCreateVMvalueStr2(exe, buf.index, buf.buf);
             fklUninitStringBuffer(&buf);
             FKL_CPROC_RETURN(exe, ctx, tmpVMvalue);
         } else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     } break;
     default:
-        fprintf(stderr, "[%s: %d] %s: unreachable!\n", __FILE__, __LINE__,
+        fprintf(stderr,
+                "[%s: %d] %s: unreachable!\n",
+                __FILE__,
+                __LINE__,
                 __FUNCTION__);
         abort();
         break;
@@ -134,9 +141,9 @@ static int os_rename(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(new_name, FKL_IS_STR, exe);
     const FklString *old_name_str = FKL_VM_STR(old_name);
     const FklString *new_name_str = FKL_VM_STR(new_name);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        FKL_MAKE_VM_FIX(rename(old_name_str->str, new_name_str->str)));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            FKL_MAKE_VM_FIX(rename(old_name_str->str, new_name_str->str)));
     return 0;
 }
 
@@ -146,8 +153,10 @@ static int os_chdir(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(dir, FKL_IS_STR, exe);
     int r = fklChdir(FKL_VM_STR(dir)->str);
     if (r)
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE, exe,
-                                    "Failed to Change dir to: %s", dir);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,
+                exe,
+                "Failed to Change dir to: %s",
+                dir);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
@@ -167,9 +176,9 @@ static int os_getenv(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(name, FKL_IS_STR, exe);
     const FklString *name_str = FKL_VM_STR(name);
     const char *env_var = getenv(name_str->str);
-    FKL_CPROC_RETURN(exe, ctx,
-                     env_var ? fklCreateVMvalueStrFromCstr(exe, env_var)
-                             : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            env_var ? fklCreateVMvalueStrFromCstr(exe, env_var) : FKL_VM_NIL);
     return 0;
 }
 
@@ -227,10 +236,10 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -242,7 +251,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;

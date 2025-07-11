@@ -10,8 +10,10 @@ extern "C" {
 
 #define FKL_BUILTIN_SYMBOL_NUM (199)
 
-typedef FklByteCodelnt *(*FklBuiltinInlineFunc)(FklByteCodelnt *[], FklSid_t,
-                                                uint32_t line, uint32_t scope);
+typedef FklByteCodelnt *(*FklBuiltinInlineFunc)(FklByteCodelnt *[],
+        FklSid_t,
+        uint32_t line,
+        uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum);
 
 struct FklCodegenEnv;

@@ -549,8 +549,12 @@ typedef struct FuvFsEvent {
 
 int isFuvLoop(FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *rel, int *err);
-void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe,
-                      uint32_t sbp, uint32_t stp, FklVMframe *buttom_frame);
+void startErrorHandle(uv_loop_t *loop,
+        FuvLoopData *ldata,
+        FklVM *exe,
+        uint32_t sbp,
+        uint32_t stp,
+        FklVMframe *buttom_frame);
 void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
 
 static inline int fuvLoopIsClosed(const FuvLoop *l) {
@@ -575,63 +579,80 @@ static inline FuvHandle *getFuvHandle(const FklVMvalue *v) {
 }
 
 int isFuvTimer(FklVMvalue *v);
-FklVMvalue *createFuvTimer(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                           int *err);
+FklVMvalue *
+createFuvTimer(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvPrepare(FklVMvalue *v);
-FklVMvalue *createFuvPrepare(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                             int *err);
+FklVMvalue *
+createFuvPrepare(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvIdle(FklVMvalue *v);
 FklVMvalue *createFuvIdle(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvCheck(FklVMvalue *v);
-FklVMvalue *createFuvCheck(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                           int *err);
+FklVMvalue *
+createFuvCheck(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvSignal(FklVMvalue *v);
-FklVMvalue *createFuvSignal(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                            int *err);
+FklVMvalue *
+createFuvSignal(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvAsync(FklVMvalue *v);
-FklVMvalue *createFuvAsync(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                           FklVMvalue *proc_obj, int *err);
+FklVMvalue *createFuvAsync(FklVM *,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *proc_obj,
+        int *err);
 
 int isFuvProcess(FklVMvalue *v);
-uv_process_t *createFuvProcess(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
-                               FklVMvalue *loop, FklVMvalue *proc_obj,
-                               FklVMvalue *args_obj, FklVMvalue *env_obj,
-                               FklVMvalue *file_obj, FklVMvalue *stdio_obj,
-                               FklVMvalue *cwd_obj);
+uv_process_t *createFuvProcess(FklVM *,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *proc_obj,
+        FklVMvalue *args_obj,
+        FklVMvalue *env_obj,
+        FklVMvalue *file_obj,
+        FklVMvalue *stdio_obj,
+        FklVMvalue *cwd_obj);
 
 int isFuvStream(FklVMvalue *v);
 int isFuvPipe(FklVMvalue *v);
-uv_pipe_t *createFuvPipe(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
-                         FklVMvalue *loop_obj);
+uv_pipe_t *
+createFuvPipe(FklVM *, FklVMvalue **pr, FklVMvalue *rel, FklVMvalue *loop_obj);
 
 int isFuvTcp(FklVMvalue *v);
-uv_tcp_t *createFuvTcp(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
-                       FklVMvalue *loop_obj);
+uv_tcp_t *
+createFuvTcp(FklVM *, FklVMvalue **pr, FklVMvalue *rel, FklVMvalue *loop_obj);
 
 int isFuvTty(FklVMvalue *v);
-uv_tty_t *createFuvTty(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
-                       FklVMvalue *loop_obj, FklVMvalue *fp_obj);
+uv_tty_t *createFuvTty(FklVM *,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        FklVMvalue *fp_obj);
 
 int isFuvUdp(FklVMvalue *v);
-uv_udp_t *createFuvUdp(FklVM *, FklVMvalue **pr, FklVMvalue *rel,
-                       FklVMvalue *loop_obj, int64_t);
+uv_udp_t *createFuvUdp(FklVM *,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        int64_t);
 
 int isFuvFsPoll(FklVMvalue *v);
-FklVMvalue *createFuvFsPoll(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                            int *err);
+FklVMvalue *
+createFuvFsPoll(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvFsEvent(FklVMvalue *v);
-FklVMvalue *createFuvFsEvent(FklVM *, FklVMvalue *rel, FklVMvalue *loop,
-                             int *err);
+FklVMvalue *
+createFuvFsEvent(FklVM *, FklVMvalue *rel, FklVMvalue *loop, int *err);
 
 int isFuvPoll(FklVMvalue *v);
-uv_poll_t *createFuvPoll(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
-                         FklVMvalue *loop_obj, FklVMvalue *fp_obj);
+uv_poll_t *createFuvPoll(FklVM *vm,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        FklVMvalue *fp_obj);
 
 #define FUV_ASYNC_COPY_DONE(async_handle)                                      \
     atomic_flag_clear(&(async_handle)->copy_done)
@@ -764,47 +785,70 @@ void fuvLoopRemoveHandleRef(FklVMvalue *loop, FuvHandle *handle);
 void fuvLoopRemoveReqRef(FklVMvalue *loop, FuvReq *handle);
 
 int isFuvGetaddrinfo(FklVMvalue *v);
-uv_getaddrinfo_t *createFuvGetaddrinfo(FklVM *exe, FklVMvalue **r,
-                                       FklVMvalue *rel, FklVMvalue *loop,
-                                       FklVMvalue *callback);
+uv_getaddrinfo_t *createFuvGetaddrinfo(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback);
 
 int isFuvGetnameinfo(FklVMvalue *v);
-uv_getnameinfo_t *createFuvGetnameinfo(FklVM *exe, FklVMvalue **r,
-                                       FklVMvalue *rel, FklVMvalue *loop,
-                                       FklVMvalue *callback);
+uv_getnameinfo_t *createFuvGetnameinfo(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback);
 
 int isFuvWrite(FklVMvalue *);
-uv_write_t *createFuvWrite(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
-                           FklVMvalue *loop, FklVMvalue *callback,
-                           uint32_t count);
+uv_write_t *createFuvWrite(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        uint32_t count);
 
 int isFuvShutdown(FklVMvalue *);
-uv_shutdown_t *createFuvShutdown(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
-                                 FklVMvalue *loop, FklVMvalue *callback);
+uv_shutdown_t *createFuvShutdown(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback);
 
 int isFuvConnect(FklVMvalue *);
-uv_connect_t *createFuvConnect(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
-                               FklVMvalue *loop, FklVMvalue *callback);
+uv_connect_t *createFuvConnect(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback);
 
 int isFuvUdpSend(FklVMvalue *);
-uv_udp_send_t *createFuvUdpSend(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
-                                FklVMvalue *loop, FklVMvalue *callback,
-                                uint32_t count);
+uv_udp_send_t *createFuvUdpSend(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        uint32_t count);
 
 int isFuvFsReq(FklVMvalue *v);
-struct FuvFsReq *createFuvFsReq(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
-                                FklVMvalue *loop, FklVMvalue *callback,
-                                FklVMvalue *dir_obj, unsigned int len);
+struct FuvFsReq *createFuvFsReq(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        FklVMvalue *dir_obj,
+        unsigned int len);
 void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption);
 
 int isFuvRandom(FklVMvalue *v);
-struct FuvRandom *createFuvRandom(FklVM *exe, FklVMvalue **r, FklVMvalue *rel,
-                                  FklVMvalue *loop, FklVMvalue *callback,
-                                  size_t buflen);
+struct FuvRandom *createFuvRandom(FklVM *exe,
+        FklVMvalue **r,
+        FklVMvalue *rel,
+        FklVMvalue *loop,
+        FklVMvalue *callback,
+        size_t buflen);
 
 int isFuvDir(const FklVMvalue *v);
-FklVMvalue *createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *dir,
-                         size_t nentries);
+FklVMvalue *
+createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *dir, size_t nentries);
 
 #define FUV_DIR_CLEANUP_NONE (0)
 #define FUV_DIR_CLEANUP_FREE_DIRENTS (1)

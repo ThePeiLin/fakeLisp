@@ -66,13 +66,13 @@
 #define CONCAT(A, B) CONCAT_(A, B)
 #define METHOD(method_name)                                                    \
     CONCAT(CONCAT(CONCAT(FKL_HASH_METHOD_PREFIX, FKL_HASH_ELM_NAME),           \
-                  POST_PREFIX),                                                \
-           method_name)
+                   POST_PREFIX),                                               \
+            method_name)
 #define NAME                                                                   \
     CONCAT(FKL_HASH_TYPE_PREFIX, CONCAT(FKL_HASH_ELM_NAME, POST_PREFIX))
 #define NODE_NAME                                                              \
     CONCAT(FKL_HASH_TYPE_PREFIX,                                               \
-           CONCAT(FKL_HASH_ELM_NAME, CONCAT(POST_PREFIX, Node)))
+            CONCAT(FKL_HASH_ELM_NAME, CONCAT(POST_PREFIX, Node)))
 
 #ifndef FKL_HASH_KEY_HASH
 #define FKL_HASH_KEY_HASH                                                      \
@@ -101,11 +101,11 @@ static inline uintptr_t METHOD(__hashv)(FKL_HASH_KEY_TYPE const *pk) {
 #ifdef FKL_HASH_VAL_TYPE
 #define ELM_NAME                                                               \
     CONCAT(FKL_HASH_TYPE_PREFIX,                                               \
-           CONCAT(FKL_HASH_ELM_NAME, CONCAT(POST_PREFIX, Elm)))
+            CONCAT(FKL_HASH_ELM_NAME, CONCAT(POST_PREFIX, Elm)))
 
 #define MUTABLE_ELM_NAME                                                       \
     CONCAT(FKL_HASH_TYPE_PREFIX,                                               \
-           CONCAT(FKL_HASH_ELM_NAME, CONCAT(POST_PREFIX, MutElm)))
+            CONCAT(FKL_HASH_ELM_NAME, CONCAT(POST_PREFIX, MutElm)))
 
 typedef struct ELM_NAME {
     FKL_HASH_KEY_TYPE const k;
@@ -162,8 +162,8 @@ static inline void METHOD(Init)(NAME *self) {
     self->count = 0;
     self->first = NULL;
     self->last = NULL;
-    self->buckets =
-        (NODE_NAME **)FKL_CONTAINER_CALLOC(self->capacity, sizeof(NODE_NAME *));
+    self->buckets = (NODE_NAME **)FKL_CONTAINER_CALLOC(self->capacity,
+            sizeof(NODE_NAME *));
     assert(self->buckets);
 }
 
@@ -232,8 +232,8 @@ static inline void METHOD(Grow)(NAME *self) {
 #else
     self->rehash_threshold = (self->capacity >> 2) | (self->capacity >> 1);
 #endif
-    NODE_NAME **buckets = (NODE_NAME **)FKL_CONTAINER_REALLOC(
-        self->buckets, self->capacity * sizeof(NODE_NAME *));
+    NODE_NAME **buckets = (NODE_NAME **)FKL_CONTAINER_REALLOC(self->buckets,
+            self->capacity * sizeof(NODE_NAME *));
     assert(buckets);
     self->buckets = buckets;
     memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
@@ -248,8 +248,8 @@ static inline NODE_NAME *const *METHOD(Bucket)(NAME *self, uintptr_t hashv) {
     return &self->buckets[hashv & self->mask];
 }
 
-static inline NODE_NAME *METHOD(CreateNode)(uintptr_t hashv,
-                                            FKL_HASH_KEY_TYPE const *k) {
+static inline NODE_NAME *METHOD(
+        CreateNode)(uintptr_t hashv, FKL_HASH_KEY_TYPE const *k) {
     NODE_NAME *node = (NODE_NAME *)FKL_CONTAINER_CALLOC(1, sizeof(NODE_NAME));
     assert(node);
     *((uintptr_t *)&node->hashv) = hashv;
@@ -257,8 +257,8 @@ static inline NODE_NAME *METHOD(CreateNode)(uintptr_t hashv,
     return node;
 }
 
-static inline NODE_NAME *METHOD(CreateNode2)(uintptr_t hashv,
-                                             FKL_HASH_KEY_TYPE k) {
+static inline NODE_NAME *METHOD(
+        CreateNode2)(uintptr_t hashv, FKL_HASH_KEY_TYPE k) {
     NODE_NAME *node = (NODE_NAME *)FKL_CONTAINER_CALLOC(1, sizeof(NODE_NAME));
     assert(node);
     *((uintptr_t *)&node->hashv) = hashv;
@@ -286,8 +286,8 @@ static inline NODE_NAME **METHOD(InsertNode)(NAME *self, NODE_NAME *node) {
 
 #ifdef FKL_HASH_VAL_TYPE
 static inline FKL_HASH_VAL_TYPE *METHOD(Put)(NAME *self,
-                                             FKL_HASH_KEY_TYPE const *k,
-                                             FKL_HASH_VAL_TYPE const *v) {
+        FKL_HASH_KEY_TYPE const *k,
+        FKL_HASH_VAL_TYPE const *v) {
 #else
 static inline int METHOD(Put)(NAME *self, FKL_HASH_KEY_TYPE const *k) {
 #endif
@@ -318,8 +318,8 @@ static inline int METHOD(Put)(NAME *self, FKL_HASH_KEY_TYPE const *k) {
 }
 
 #ifdef FKL_HASH_VAL_TYPE
-static inline FKL_HASH_VAL_TYPE *METHOD(Put2)(NAME *self, FKL_HASH_KEY_TYPE k,
-                                              FKL_HASH_VAL_TYPE v) {
+static inline FKL_HASH_VAL_TYPE *METHOD(
+        Put2)(NAME *self, FKL_HASH_KEY_TYPE k, FKL_HASH_VAL_TYPE v) {
     return METHOD(Put)(self, &k, &v);
 }
 #else
@@ -329,25 +329,25 @@ static inline int METHOD(Put2)(NAME *self, FKL_HASH_KEY_TYPE k) {
 #endif
 
 #ifdef FKL_HASH_VAL_TYPE
-static inline FKL_HASH_VAL_TYPE *METHOD(Get)(NAME const *self,
-                                             FKL_HASH_KEY_TYPE const *k) {
+static inline FKL_HASH_VAL_TYPE *METHOD(
+        Get)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
     for (NODE_NAME *pn = self->buckets[HASHV(k) & self->mask]; pn;
-         pn = pn->bkt_next) {
+            pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k))
             return &pn->v;
     }
     return NULL;
 }
 
-static inline FKL_HASH_VAL_TYPE *METHOD(Get2)(NAME const *self,
-                                              FKL_HASH_KEY_TYPE k) {
+static inline FKL_HASH_VAL_TYPE *METHOD(
+        Get2)(NAME const *self, FKL_HASH_KEY_TYPE k) {
     return METHOD(Get)(self, &k);
 }
 
-static inline ELM_NAME *METHOD(At)(NAME const *self,
-                                   FKL_HASH_KEY_TYPE const *k) {
+static inline ELM_NAME *METHOD(
+        At)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
     for (NODE_NAME *pn = self->buckets[HASHV(k) & self->mask]; pn;
-         pn = pn->bkt_next) {
+            pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k))
             return &pn->elm;
     }
@@ -358,8 +358,8 @@ static inline ELM_NAME *METHOD(At2)(NAME const *self, FKL_HASH_KEY_TYPE k) {
     return METHOD(At)(self, &k);
 }
 
-static inline FKL_HASH_VAL_TYPE *
-METHOD(GetNonNull)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
+static inline FKL_HASH_VAL_TYPE *METHOD(
+        GetNonNull)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
     NODE_NAME *pn = self->buckets[HASHV(k) & self->mask];
     for (; pn; pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k))
@@ -369,13 +369,13 @@ METHOD(GetNonNull)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
     return &pn->v;
 }
 
-static inline FKL_HASH_VAL_TYPE *METHOD(Get2NonNull)(NAME const *self,
-                                                     FKL_HASH_KEY_TYPE k) {
+static inline FKL_HASH_VAL_TYPE *METHOD(
+        Get2NonNull)(NAME const *self, FKL_HASH_KEY_TYPE k) {
     return METHOD(GetNonNull)(self, &k);
 }
 
-static inline ELM_NAME *METHOD(AtNonNull)(NAME const *self,
-                                          FKL_HASH_KEY_TYPE const *k) {
+static inline ELM_NAME *METHOD(
+        AtNonNull)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
     NODE_NAME *pn = self->buckets[HASHV(k) & self->mask];
     for (; pn; pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k))
@@ -385,14 +385,14 @@ static inline ELM_NAME *METHOD(AtNonNull)(NAME const *self,
     return &pn->elm;
 }
 
-static inline ELM_NAME *METHOD(At2NonNull)(NAME const *self,
-                                           FKL_HASH_KEY_TYPE k) {
+static inline ELM_NAME *METHOD(
+        At2NonNull)(NAME const *self, FKL_HASH_KEY_TYPE k) {
     return METHOD(AtNonNull)(self, &k);
 }
 
 static inline FKL_HASH_VAL_TYPE *METHOD(Add)(NAME *self,
-                                             FKL_HASH_KEY_TYPE const *k,
-                                             FKL_HASH_VAL_TYPE const *v) {
+        FKL_HASH_KEY_TYPE const *k,
+        FKL_HASH_VAL_TYPE const *v) {
     uintptr_t const hashv = HASHV(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
@@ -417,13 +417,14 @@ static inline FKL_HASH_VAL_TYPE *METHOD(Add1)(NAME *self, FKL_HASH_KEY_TYPE k) {
     return METHOD(Add)(self, &k, NULL);
 }
 
-static inline FKL_HASH_VAL_TYPE *METHOD(Add2)(NAME *self, FKL_HASH_KEY_TYPE k,
-                                              FKL_HASH_VAL_TYPE v) {
+static inline FKL_HASH_VAL_TYPE *METHOD(
+        Add2)(NAME *self, FKL_HASH_KEY_TYPE k, FKL_HASH_VAL_TYPE v) {
     return METHOD(Add)(self, &k, &v);
 }
 
-static inline ELM_NAME *METHOD(Insert)(NAME *self, FKL_HASH_KEY_TYPE const *k,
-                                       FKL_HASH_VAL_TYPE const *v) {
+static inline ELM_NAME *METHOD(Insert)(NAME *self,
+        FKL_HASH_KEY_TYPE const *k,
+        FKL_HASH_VAL_TYPE const *v) {
     uintptr_t const hashv = HASHV(k);
     NODE_NAME **pp = &self->buckets[hashv & self->mask];
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
@@ -441,15 +442,17 @@ static inline ELM_NAME *METHOD(Insert)(NAME *self, FKL_HASH_KEY_TYPE const *k,
     return &node->elm;
 }
 
-static inline ELM_NAME *METHOD(Insert2)(NAME *self, FKL_HASH_KEY_TYPE k,
-                                        FKL_HASH_VAL_TYPE v) {
+static inline ELM_NAME *METHOD(
+        Insert2)(NAME *self, FKL_HASH_KEY_TYPE k, FKL_HASH_VAL_TYPE v) {
     return METHOD(Insert)(self, &k, &v);
 }
 
-static inline int METHOD(Earase)(NAME *self, FKL_HASH_KEY_TYPE const *k,
-                                 FKL_HASH_VAL_TYPE *pv, FKL_HASH_KEY_TYPE *pk) {
+static inline int METHOD(Earase)(NAME *self,
+        FKL_HASH_KEY_TYPE const *k,
+        FKL_HASH_VAL_TYPE *pv,
+        FKL_HASH_KEY_TYPE *pk) {
     for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;
-         pp = &(*pp)->bkt_next) {
+            pp = &(*pp)->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &(*pp)->k)) {
             NODE_NAME *pn = *pp;
             *pp = pn->bkt_next;
@@ -480,15 +483,16 @@ static inline int METHOD(Earase)(NAME *self, FKL_HASH_KEY_TYPE const *k,
     return 0;
 }
 
-static inline int METHOD(Earase2)(NAME *self, FKL_HASH_KEY_TYPE k,
-                                  FKL_HASH_VAL_TYPE *pv,
-                                  FKL_HASH_KEY_TYPE *pk) {
+static inline int METHOD(Earase2)(NAME *self,
+        FKL_HASH_KEY_TYPE k,
+        FKL_HASH_VAL_TYPE *pv,
+        FKL_HASH_KEY_TYPE *pk) {
     return METHOD(Earase)(self, &k, pv, pk);
 }
 #else
 static inline int METHOD(Has)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {
     for (NODE_NAME *pn = self->buckets[HASHV(k) & self->mask]; pn;
-         pn = pn->bkt_next) {
+            pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k))
             return 1;
     }
@@ -523,7 +527,7 @@ static inline int METHOD(DelNode)(NAME *self, NODE_NAME **pp) {
 
 static inline int METHOD(Del)(NAME *self, FKL_HASH_KEY_TYPE const *k) {
     for (NODE_NAME **pp = &self->buckets[HASHV(k) & self->mask]; *pp;
-         pp = &(*pp)->bkt_next) {
+            pp = &(*pp)->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &(*pp)->k)) {
             NODE_NAME *pn = *pp;
             *pp = pn->bkt_next;

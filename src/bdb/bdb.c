@@ -15,7 +15,7 @@ static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
 
 static inline void replace_info_fid_with_realpath(FklCodegenInfo *info) {
     FklSid_t rpsid =
-        fklAddSymbolCstr(info->realpath, info->runtime_symbol_table)->v;
+            fklAddSymbolCstr(info->realpath, info->runtime_symbol_table)->v;
     info->fid = rpsid;
 }
 
@@ -27,8 +27,8 @@ static void info_work_cb(FklCodegenInfo *info, void *ctx) {
     }
 }
 
-static void create_env_work_cb(FklCodegenInfo *info, FklCodegenEnv *env,
-                               void *ctx) {
+static void
+create_env_work_cb(FklCodegenInfo *info, FklCodegenEnv *env, void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
         putEnv(dctx, env);
@@ -53,47 +53,58 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL) {
 
 static void B_int33(FKL_VM_INS_FUNC_ARGL) {
     exe->dummy_ins_func = B_int3;
-    fklVMexecuteInstruction(
-        exe, getBreakpointHashItem(exe->debug_ctx, ins)->origin_op, ins,
-        exe->top_frame);
+    fklVMexecuteInstruction(exe,
+            getBreakpointHashItem(exe->debug_ctx, ins)->origin_op,
+            ins,
+            exe->top_frame);
 }
 
 static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
-                                               const char *filename) {
+        const char *filename) {
     FILE *fp = fopen(filename, "r");
     char *rp = fklRealpath(filename);
     FklCodegenOuterCtx *outer_ctx = &ctx->outer_ctx;
-    FklCodegenInfo codegen = {.fid = 0};
+    FklCodegenInfo codegen = { .fid = 0 };
     fklInitCodegenOuterCtx(outer_ctx, fklGetDir(rp));
     FklSymbolTable *pst = &outer_ctx->public_symbol_table;
     FklConstTable *pkt = &outer_ctx->public_kt;
     fklAddSymbolCstr(filename, pst);
-    FklCodegenEnv *main_env =
-        fklInitGlobalCodegenInfo(&codegen, rp, pst, pkt, 0, outer_ctx,
-                                 info_work_cb, create_env_work_cb, ctx);
+    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+            rp,
+            pst,
+            pkt,
+            0,
+            outer_ctx,
+            info_work_cb,
+            create_env_work_cb,
+            ctx);
     fklZfree(rp);
     FklByteCodelnt *mainByteCode =
-        fklGenExpressionCodeWithFp(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         fklUninitCodegenOuterCtx(outer_ctx);
         return 1;
     }
-    fklUpdatePrototype(codegen.pts, main_env, codegen.runtime_symbol_table,
-                       pst);
+    fklUpdatePrototype(codegen.pts,
+            main_env,
+            codegen.runtime_symbol_table,
+            pst);
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
     FklCodegenLibVector *scriptLibStack = codegen.libStack;
-    FklVM *anotherVM =
-        fklCreateVMwithByteCode(mainByteCode, codegen.runtime_symbol_table,
-                                codegen.runtime_kt, codegen.pts, 1);
+    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
+            codegen.runtime_symbol_table,
+            codegen.runtime_kt,
+            codegen.pts,
+            1);
     codegen.runtime_symbol_table = NULL;
     codegen.pts = NULL;
     anotherVM->libNum = scriptLibStack->size;
-    anotherVM->libs =
-        (FklVMlib *)fklZcalloc((scriptLibStack->size + 1), sizeof(FklVMlib));
+    anotherVM->libs = (FklVMlib *)fklZcalloc((scriptLibStack->size + 1),
+            sizeof(FklVMlib));
     FKL_ASSERT(anotherVM->libs);
 
     FklVMgc *gc = anotherVM->gc;
@@ -101,8 +112,10 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
         FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBackNonNull(scriptLibStack);
         FklCodegenLibType type = cur->type;
-        fklInitVMlibWithCodegenLibAndDestroy(cur, curVMlib, anotherVM,
-                                             anotherVM->pts);
+        fklInitVMlibWithCodegenLibAndDestroy(cur,
+                curVMlib,
+                anotherVM,
+                anotherVM->pts);
         if (type == FKL_CODEGEN_LIB_SCRIPT)
             fklInitMainProcRefs(anotherVM, curVMlib->proc);
     }
@@ -139,9 +152,9 @@ static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
     }
 }
 
-static inline void
-load_source_code_to_source_code_hash_item(BdbSourceCodeHashMapElm *item,
-                                          const char *rp) {
+static inline void load_source_code_to_source_code_hash_item(
+        BdbSourceCodeHashMapElm *item,
+        const char *rp) {
     FILE *fp = fopen(rp, "r");
     FKL_ASSERT(fp);
     FklStringVector *lines = &item->v;
@@ -164,11 +177,11 @@ static inline void init_source_codes(DebugCtx *ctx) {
     bdbSourceCodeHashMapInit(&ctx->source_code_table);
     BdbSourceCodeHashMap *source_code_table = &ctx->source_code_table;
     for (FklSidHashSetNode *sid_list = ctx->file_sid_set.first; sid_list;
-         sid_list = sid_list->next) {
+            sid_list = sid_list->next) {
         FklSid_t fid = sid_list->k;
         const FklString *str = fklGetSymbolWithId(fid, ctx->st)->k;
         BdbSourceCodeHashMapElm *item =
-            bdbSourceCodeHashMapInsert(source_code_table, &fid, NULL);
+                bdbSourceCodeHashMapInsert(source_code_table, &fid, NULL);
         load_source_code_to_source_code_hash_item(item, str->str);
     }
 }
@@ -184,7 +197,7 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
         return ctx->curline_str;
     } else {
         const FklStringVector *item =
-            bdbSourceCodeHashMapGet2(&ctx->source_code_table, fid);
+                bdbSourceCodeHashMapGet2(&ctx->source_code_table, fid);
         if (item && line <= item->size) {
             ctx->curlist_line = 1;
             ctx->curline_file = fid;
@@ -251,8 +264,10 @@ static inline void push_extra_mark_value(DebugCtx *ctx) {
     fklVMpushExtraMarkFunc(ctx->gc, dbg_extra_mark, NULL, ctx);
 }
 
-int initDebugCtx(DebugCtx *ctx, FklVM *exe, const char *filename,
-                 FklVMvalue *argv) {
+int initDebugCtx(DebugCtx *ctx,
+        FklVM *exe,
+        const char *filename,
+        FklVMvalue *argv) {
     bdbEnvHashMapInit(&ctx->envs);
     fklSidHashSetInit(&ctx->file_sid_set);
     if (init_debug_codegen_outer_ctx(ctx, filename)) {
@@ -272,7 +287,7 @@ int initDebugCtx(DebugCtx *ctx, FklVM *exe, const char *filename,
     push_extra_mark_value(ctx);
     initBreakpointTable(&ctx->bt);
     const FklLineNumberTableItem *ln =
-        getCurFrameLineNumber(ctx->reached_thread->top_frame);
+            getCurFrameLineNumber(ctx->reached_thread->top_frame);
     FKL_ASSERT(ln);
     ctx->curline_str = getCurLineStr(ctx, ln->fid, ln->line);
 
@@ -348,11 +363,12 @@ const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid) {
     return bdbSourceCodeHashMapGet2(&dctx->source_code_table, fid);
 }
 
-Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx, FklSid_t fid,
-                                         uint32_t line,
-                                         PutBreakpointErrorType *err) {
+Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
+        FklSid_t fid,
+        uint32_t line,
+        PutBreakpointErrorType *err) {
     const FklStringVector *sc_item =
-        bdbSourceCodeHashMapGet2(&ctx->source_code_table, fid);
+            bdbSourceCodeHashMapGet2(&ctx->source_code_table, fid);
     if (!sc_item) {
         *err = PUT_BP_FILE_INVALID;
         return NULL;
@@ -417,7 +433,7 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     if (env == NULL)
         return NULL;
     const FklSymDefHashMapElm *def =
-        fklFindSymbolDefByIdAndScope(id, scope, env);
+            fklFindSymbolDefByIdAndScope(id, scope, env);
     if (def)
         return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
     return NULL;
@@ -443,15 +459,16 @@ static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
     return NULL;
 }
 
-static inline const FklLineNumberTableItem *
-get_proc_start_line_number(const FklVMproc *proc) {
+static inline const FklLineNumberTableItem *get_proc_start_line_number(
+        const FklVMproc *proc) {
     FklByteCodelnt *code = FKL_VM_CO(proc->codeObj);
     return fklFindLineNumTabNode(proc->spc - code->bc->code, code->ls, code->l);
 }
 
-static inline Breakpoint *
-put_breakpoint_with_pc(DebugCtx *ctx, uint64_t pc, FklInstruction *ins,
-                       const FklLineNumberTableItem *ln) {
+static inline Breakpoint *put_breakpoint_with_pc(DebugCtx *ctx,
+        uint64_t pc,
+        FklInstruction *ins,
+        const FklLineNumberTableItem *ln) {
     return createBreakpoint(ln->fid, ln->line, ins, ctx);
 }
 
@@ -570,7 +587,8 @@ void printThreadAlreadyExited(DebugCtx *ctx, FILE *fp) {
 }
 
 void printThreadCantEvaluate(DebugCtx *ctx, FILE *fp) {
-    fprintf(fp, "*** can't evaluate expression in thread %u ***\n",
+    fprintf(fp,
+            "*** can't evaluate expression in thread %u ***\n",
             ctx->curthread_idx);
 }
 

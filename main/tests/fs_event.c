@@ -2,8 +2,10 @@
 
 static uv_fs_event_t handle;
 
-static void fs_event_cb(uv_fs_event_t *event, const char *filename, int events,
-                        int status) {
+static void fs_event_cb(uv_fs_event_t *event,
+        const char *filename,
+        int events,
+        int status) {
     fprintf(stderr, "%s %d %d\n", filename, events, status);
     uv_close((uv_handle_t *)&handle, NULL);
 }

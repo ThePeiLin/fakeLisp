@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void *fklNastTerminalCreate(const char *s, size_t len, size_t line,
-                                   void *ctx) {
+static void *
+fklNastTerminalCreate(const char *s, size_t len, size_t line, void *ctx) {
     FklNastNode *ast = fklCreateNastNode(FKL_NAST_STR, line);
     ast->str = fklCreateString(len, s);
     return ast;
@@ -78,19 +78,18 @@ int main() {
     };
 
     int retval = 0;
-    FklGrammerMatchOuterCtx outerCtx = {
-        .maxNonterminalLen = 0,
+    FklGrammerMatchOuterCtx outerCtx = { .maxNonterminalLen = 0,
         .line = 1,
         .start = NULL,
         .cur = NULL,
         .create = fklNastTerminalCreate,
         .destroy = (void (*)(void *))fklDestroyNastNode,
-        .ctx = st};
+        .ctx = st };
 
     for (const char **exp = &exps[0]; *exp; exp++) {
 
         FklNastNode *ast =
-            fklParseWithTableForCstr(g, *exp, &outerCtx, st, &retval);
+                fklParseWithTableForCstr(g, *exp, &outerCtx, st, &retval);
 
         if (retval)
             break;

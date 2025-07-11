@@ -82,17 +82,21 @@ typedef struct {
 } FklBigIntInitWithCharBufMethodTable;
 
 void fklInitBigIntWithCharBuf2(void *ctx,
-                               const FklBigIntInitWithCharBufMethodTable *table,
-                               const char *, size_t);
-void fklInitBigIntWithDecCharBuf2(
-    void *ctx, const FklBigIntInitWithCharBufMethodTable *table, const char *,
-    size_t);
-void fklInitBigIntWithOctCharBuf2(
-    void *ctx, const FklBigIntInitWithCharBufMethodTable *table, const char *,
-    size_t);
-void fklInitBigIntWithHexCharBuf2(
-    void *ctx, const FklBigIntInitWithCharBufMethodTable *table, const char *,
-    size_t);
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *,
+        size_t);
+void fklInitBigIntWithDecCharBuf2(void *ctx,
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *,
+        size_t);
+void fklInitBigIntWithOctCharBuf2(void *ctx,
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *,
+        size_t);
+void fklInitBigIntWithHexCharBuf2(void *ctx,
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *,
+        size_t);
 void fklInitBigIntWithCstr2(FklBigInt *t, const char *);
 
 void fklUninitBigInt(FklBigInt *);
@@ -135,10 +139,13 @@ double fklBigIntToD(const FklBigInt *a);
 
 typedef char *(*FklBigIntToStrAllocCb)(void *ctx, size_t);
 
-size_t fklBigIntToStr(const FklBigInt *a, FklBigIntToStrAllocCb alloc_cb,
-                      void *ctx, uint8_t radix, FklBigIntFmtFlags flags);
+size_t fklBigIntToStr(const FklBigInt *a,
+        FklBigIntToStrAllocCb alloc_cb,
+        void *ctx,
+        uint8_t radix,
+        FklBigIntFmtFlags flags);
 
 void fklPrintBigInt(const FklBigInt *a, FILE *fp);
-char *fklBigIntToCstr(const FklBigInt *a, uint8_t radix,
-                      FklBigIntFmtFlags flags);
+char *
+fklBigIntToCstr(const FklBigInt *a, uint8_t radix, FklBigIntFmtFlags flags);
 #endif

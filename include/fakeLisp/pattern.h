@@ -21,8 +21,9 @@ typedef struct FklNastNode FklNastNode;
 #define FKL_PATTERN_EQUAL (3)
 
 FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklSidHashSet **);
-int fklPatternMatch(const FklNastNode *pattern, const FklNastNode *exp,
-                    FklPmatchHashMap *ht);
+int fklPatternMatch(const FklNastNode *pattern,
+        const FklNastNode *exp,
+        FklPmatchHashMap *ht);
 
 int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1);
 

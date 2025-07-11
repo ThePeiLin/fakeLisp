@@ -5,11 +5,12 @@ static int fs_facce_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
-    FKL_CPROC_RETURN(exe, ctx,
-                     (fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
-                      || fklIsAccessibleDirectory(FKL_VM_STR(filename)->str))
-                         ? FKL_VM_TRUE
-                         : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            (fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
+                    || fklIsAccessibleDirectory(FKL_VM_STR(filename)->str))
+                    ? FKL_VM_TRUE
+                    : FKL_VM_NIL);
     return 0;
 }
 
@@ -17,10 +18,10 @@ static int fs_freg_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklIsAccessibleRegFile(FKL_VM_STR(filename)->str)
-                         ? FKL_VM_TRUE
-                         : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklIsAccessibleRegFile(FKL_VM_STR(filename)->str) ? FKL_VM_TRUE
+                                                              : FKL_VM_NIL);
     return 0;
 }
 
@@ -28,10 +29,10 @@ static int fs_fdir_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklIsAccessibleDirectory(FKL_VM_STR(filename)->str)
-                         ? FKL_VM_TRUE
-                         : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklIsAccessibleDirectory(FKL_VM_STR(filename)->str) ? FKL_VM_TRUE
+                                                                : FKL_VM_NIL);
     return 0;
 }
 
@@ -41,14 +42,16 @@ static int fs_freopen(FKL_CPROC_ARGL) {
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *mode = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     if (!fklIsVMvalueFp(stream) || !FKL_IS_STR(filename)
-        || (mode && !FKL_IS_STR(mode)))
+            || (mode && !FKL_IS_STR(mode)))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklVMfp *vfp = FKL_VM_FP(stream);
     const char *modeStr = mode ? FKL_VM_STR(mode)->str : "r";
     FILE *fp = freopen(FKL_VM_STR(filename)->str, modeStr, vfp->fp);
     if (!fp)
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE, exe,
-                                    "Failed for file: %s", filename);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,
+                exe,
+                "Failed for file: %s",
+                filename);
     vfp->fp = fp;
     vfp->rw = fklGetVMfpRwFromCstr(modeStr);
     FKL_CPROC_RETURN(exe, ctx, stream);
@@ -84,19 +87,20 @@ static int fs_relpath(FKL_CPROC_ARGL) {
     }
 
     char *start_rp =
-        start ? fklRealpath(FKL_VM_STR(start)->str) : fklRealpath(".");
+            start ? fklRealpath(FKL_VM_STR(start)->str) : fklRealpath(".");
     if (!start_rp) {
         start_rp = fklStrCat(fklSysgetcwd(), FKL_PATH_SEPARATOR_STR);
         start_rp = fklStrCat(start_rp, FKL_VM_STR(start)->str);
     }
 
     char *relpath_cstr =
-        fklRelpath(start_rp ? start_rp : FKL_VM_STR(start)->str,
-                   path_rp ? path_rp : FKL_VM_STR(path)->str);
+            fklRelpath(start_rp ? start_rp : FKL_VM_STR(start)->str,
+                    path_rp ? path_rp : FKL_VM_STR(path)->str);
 
     if (relpath_cstr) {
-        FKL_CPROC_RETURN(exe, ctx,
-                         fklCreateVMvalueStrFromCstr(exe, relpath_cstr));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueStrFromCstr(exe, relpath_cstr));
         fklZfree(relpath_cstr);
     } else
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -110,8 +114,10 @@ static int fs_mkdir(FKL_CPROC_ARGL) {
     FklVMvalue *filename = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     if (fklMkdir(FKL_VM_STR(filename)->str))
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE, exe,
-                                    "Failed to make dir: %s", filename);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,
+                exe,
+                "Failed to make dir: %s",
+                filename);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
@@ -268,9 +274,12 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
 
     uint64_t len = 0;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklBuiltinErrorType err_type =
-        fklVMprintf2(exe, FKL_VM_FP(fp)->fp, FKL_VM_STR(fmt_obj), &len, start,
-                     start + argc - 2);
+    FklBuiltinErrorType err_type = fklVMprintf2(exe,
+            FKL_VM_FP(fp)->fp,
+            FKL_VM_STR(fmt_obj),
+            &len,
+            start,
+            start + argc - 2);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -313,10 +322,10 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -328,7 +337,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;

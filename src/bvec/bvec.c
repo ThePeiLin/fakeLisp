@@ -48,7 +48,7 @@ static int export_bvs64ref(FKL_CPROC_ARGL) { BV_S_REF(int64_t) }
 static int export_bvu8ref(FKL_CPROC_ARGL) { BV_U_S_8_REF(uint8_t) }
 static int export_bvu16ref(FKL_CPROC_ARGL) { BV_U_REF(uint16_t) }
 static int export_bvu32ref(FKL_CPROC_ARGL) { BV_U_REF(uint32_t) }
-static int export_bvu64ref(FKL_CPROC_ARGL) { BV_U_REF(uint64_t) }
+static int export_bvu64ref(FKL_CPROC_ARGL){ BV_U_REF(uint64_t) }
 
 #undef BV_REF
 #undef BV_S_REF
@@ -73,8 +73,10 @@ static int export_bvu64ref(FKL_CPROC_ARGL) { BV_U_REF(uint64_t) }
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueF64(exe, r));                   \
     return 0;
 
-static int export_bvf32ref(FKL_CPROC_ARGL) { BV_F_REF(float) }
-static int export_bvf64ref(FKL_CPROC_ARGL) { BV_F_REF(double) }
+static int export_bvf32ref(FKL_CPROC_ARGL) {
+    BV_F_REF(float)
+}
+static int export_bvf64ref(FKL_CPROC_ARGL){ BV_F_REF(double) }
 #undef BV_F_REF
 
 #define SET_BV_S_U_8_REF(TYPE)                                                 \
@@ -115,7 +117,9 @@ static int export_bvf64ref(FKL_CPROC_ARGL) { BV_F_REF(double) }
     FKL_CPROC_RETURN(exe, ctx, target);                                        \
     return 0;
 
-static int export_bvs8set1(FKL_CPROC_ARGL) { SET_BV_S_U_8_REF(int8_t) }
+static int export_bvs8set1(FKL_CPROC_ARGL) {
+    SET_BV_S_U_8_REF(int8_t)
+}
 static int export_bvs16set1(FKL_CPROC_ARGL) { SET_BV_REF(int16_t) }
 static int export_bvs32set1(FKL_CPROC_ARGL) { SET_BV_REF(int32_t) }
 static int export_bvs64set1(FKL_CPROC_ARGL) { SET_BV_REF(int64_t) }
@@ -123,7 +127,7 @@ static int export_bvs64set1(FKL_CPROC_ARGL) { SET_BV_REF(int64_t) }
 static int export_bvu8set1(FKL_CPROC_ARGL) { SET_BV_S_U_8_REF(uint8_t) }
 static int export_bvu16set1(FKL_CPROC_ARGL) { SET_BV_REF(uint16_t) }
 static int export_bvu32set1(FKL_CPROC_ARGL) { SET_BV_REF(uint32_t) }
-static int export_bvu64set1(FKL_CPROC_ARGL) { SET_BV_REF(uint64_t) }
+static int export_bvu64set1(FKL_CPROC_ARGL){ SET_BV_REF(uint64_t) }
 
 #undef SET_BV_S_U_8_REF
 #undef SET_BV_REF
@@ -147,7 +151,9 @@ static int export_bvu64set1(FKL_CPROC_ARGL) { SET_BV_REF(uint64_t) }
     FKL_CPROC_RETURN(exe, ctx, target);                                        \
     return 0;
 
-static int export_bvf32set1(FKL_CPROC_ARGL) { SET_BV_F_REF(float) }
+static int export_bvf32set1(FKL_CPROC_ARGL) {
+    SET_BV_F_REF(float)
+}
 static int export_bvf64set1(FKL_CPROC_ARGL) { SET_BV_F_REF(double) }
 #undef SET_BV_F_REF
 
@@ -249,10 +255,10 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -264,7 +270,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     fklVMacquireSt(exe->gc);
     FklSymbolTable *st = exe->gc->st;

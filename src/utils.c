@@ -68,21 +68,21 @@ size_t fklWriteDoubleToBuf(char *buf, size_t max, double f64) {
 }
 
 size_t fklPrintDouble(double k, FILE *fp) {
-    char buf[64] = {0};
+    char buf[64] = { 0 };
     size_t s = fklWriteDoubleToBuf(buf, 64, k);
     fputs(buf, fp);
     return s;
 }
 
 FklString *fklIntToString(int64_t num) {
-    char numString[256] = {0};
+    char numString[256] = { 0 };
     int lenOfNum = snprintf(numString, 256, "%" PRId64 "", num);
     FklString *tmp = fklCreateString(lenOfNum, numString);
     return tmp;
 }
 
 char *fklIntToCstr(int64_t num) {
-    char numString[256] = {0};
+    char numString[256] = { 0 };
     snprintf(numString, 256, "%" PRId64 "", num);
     return fklZstrdup(numString);
 }
@@ -95,10 +95,17 @@ int fklPower(int first, int second) {
     return result;
 }
 
-void fklPrintRawCstr(const char *objStr, const char *begin_str,
-                     const char *end_str, char escaped_char, FILE *out) {
-    fklPrintRawCharBuf((const uint8_t *)objStr, strlen(objStr), begin_str,
-                       end_str, escaped_char, out);
+void fklPrintRawCstr(const char *objStr,
+        const char *begin_str,
+        const char *end_str,
+        char escaped_char,
+        FILE *out) {
+    fklPrintRawCharBuf((const uint8_t *)objStr,
+            strlen(objStr),
+            begin_str,
+            end_str,
+            escaped_char,
+            out);
 }
 
 int fklIsValidCharBuf(const char *str, size_t len) {
@@ -373,8 +380,9 @@ void fklPrintRawChar(char chr, FILE *out) {
     }
 }
 
-int fklIsSymbolShouldBeExport(const FklString *str, const FklString **pStr,
-                              uint32_t n) {
+int fklIsSymbolShouldBeExport(const FklString *str,
+        const FklString **pStr,
+        uint32_t n) {
     int32_t l = 0;
     int32_t h = n - 1;
     int32_t mid = 0;
@@ -438,7 +446,7 @@ char *fklGetDir(const char *filename) {
 }
 
 char *fklRelpath(const char *start, const char *path) {
-    char rp[FKL_PATH_MAX] = {0};
+    char rp[FKL_PATH_MAX] = { 0 };
 
     char *c_start = fklZstrdup(start);
     char *c_path = fklZstrdup(path);
@@ -447,9 +455,9 @@ char *fklRelpath(const char *start, const char *path) {
     size_t path_part_count = 0;
 
     char **start_parts =
-        fklSplit(c_start, FKL_PATH_SEPARATOR_STR, &start_part_count);
+            fklSplit(c_start, FKL_PATH_SEPARATOR_STR, &start_part_count);
     char **path_parts =
-        fklSplit(c_path, FKL_PATH_SEPARATOR_STR, &path_part_count);
+            fklSplit(c_path, FKL_PATH_SEPARATOR_STR, &path_part_count);
     FKL_ASSERT(start_parts && path_parts);
 
     size_t length = (start_part_count < path_part_count) ? start_part_count
@@ -484,7 +492,7 @@ char *fklRelpath(const char *start, const char *path) {
 #endif
 
     if (common_prefix_len == (length - RELPATH_START_INDEX)
-        && start_part_count == path_part_count) {
+            && start_part_count == path_part_count) {
         trp = fklZstrdup(".");
         goto exit;
     }
@@ -514,7 +522,7 @@ char **fklSplit(char *str, const char *divstr, size_t *pcount) {
     pNext = strtok_r(str, divstr, &context);
     while (pNext != NULL) {
         char **tstrArry =
-            (char **)fklZrealloc(str_slices, (count + 1) * sizeof(char *));
+                (char **)fklZrealloc(str_slices, (count + 1) * sizeof(char *));
         FKL_ASSERT(tstrArry);
         str_slices = tstrArry;
         str_slices[count++] = pNext;
@@ -570,8 +578,12 @@ char *fklCharBufToCstr(const char *buf, size_t size) {
     return str;
 }
 
-void fklPrintRawCharBuf(const uint8_t *str, size_t size, const char *begin_str,
-                        const char *end_str, char se, FILE *out) {
+void fklPrintRawCharBuf(const uint8_t *str,
+        size_t size,
+        const char *begin_str,
+        const char *end_str,
+        char se,
+        FILE *out) {
     fputs(begin_str, out);
     uint64_t i = 0;
     while (i < size) {
@@ -615,7 +627,7 @@ union Fixu {
 };
 
 int fklIsFixAddOverflow(int64_t a, int64_t b) {
-    union Fixu us = {.fix = a + b};
+    union Fixu us = { .fix = a + b };
     int64_t sum = us.fix;
     return (a < 0 && b < 0 && sum > 0) || (a > 0 && b > 0 && sum < 0);
 }
@@ -643,7 +655,7 @@ int fklIsFixMulOverflow(int64_t a, int64_t b) {
         return (FKL_FIX_INT_MAX / a) > b;
     if (a * b == FKL_FIX_INT_MIN)
         return 0;
-    union Fixu t = {.fix = a * b};
+    union Fixu t = { .fix = a * b };
     t.fix /= b;
     return a != t.fix;
 }
@@ -667,12 +679,12 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
                 if (backSlashStr[len] == '0') {
                     if (toupper(backSlashStr[len + 1]) == 'X')
                         for (len++; isxdigit(backSlashStr[len]) && len < 5;
-                             len++)
+                                len++)
                             ;
                     else
                         for (; isdigit(backSlashStr[len])
-                               && backSlashStr[len] < '8' && len < 5;
-                             len++)
+                                && backSlashStr[len] < '8' && len < 5;
+                                len++)
                             ;
                 } else
                     for (; isdigit(backSlashStr[len]) && len < 4; len++)
@@ -688,8 +700,8 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
             ch = str[i++];
         strSize++;
         if (strSize > memSize - 1) {
-            char *ttmp = (char *)fklZrealloc(
-                tmp, (memSize + FKL_MAX_STRING_SIZE) * sizeof(char));
+            char *ttmp = (char *)fklZrealloc(tmp,
+                    (memSize + FKL_MAX_STRING_SIZE) * sizeof(char));
             FKL_ASSERT(tmp);
             tmp = ttmp;
             memSize += FKL_MAX_STRING_SIZE;

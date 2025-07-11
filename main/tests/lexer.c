@@ -8,15 +8,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void *fklNastTerminalCreate(const char *s, size_t len, size_t line,
-                                   void *ctx) {
+static void *
+fklNastTerminalCreate(const char *s, size_t len, size_t line, void *ctx) {
     FklNastNode *ast = fklCreateNastNode(FKL_NAST_STR, line);
     ast->str = fklCreateString(len, s);
     return ast;
 }
 
-static void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
-                                size_t num, size_t line) {
+static void *prod_action_symbol(void *ctx,
+        void *outerCtx,
+        void *ast[],
+        size_t num,
+        size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;
     const char *start = "|";
     size_t start_size = 1;
@@ -48,7 +51,7 @@ static void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
         size_t len = 0;
         for (; (cstr + len) < end_cstr; len++)
             if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
-                >= 0)
+                    >= 0)
                 break;
         fklStringBufferBincpy(&buffer, cstr, len);
         cstr += len;
@@ -61,20 +64,27 @@ static void *prod_action_symbol(void *ctx, void *outerCtx, void *ast[],
     return node;
 }
 
-static inline void *prod_action_return_first(void *ctx, void *outerCtx,
-                                             void *nodes[], size_t num,
-                                             size_t line) {
+static inline void *prod_action_return_first(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     return fklMakeNastNodeRef(nodes[0]);
 }
 
-static inline void *prod_action_return_second(void *ctx, void *outerCtx,
-                                              void *nodes[], size_t num,
-                                              size_t line) {
+static inline void *prod_action_return_second(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     return fklMakeNastNodeRef(nodes[1]);
 }
 
-static inline void *prod_action_string(void *ctx, void *outerCtx, void *ast[],
-                                       size_t num, size_t line) {
+static inline void *prod_action_string(void *ctx,
+        void *outerCtx,
+        void *ast[],
+        size_t num,
+        size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;
     size_t start_size = 1;
     size_t end_size = 1;
@@ -84,20 +94,27 @@ static inline void *prod_action_string(void *ctx, void *outerCtx, void *ast[],
 
     size_t size = 0;
     char *s = fklCastEscapeCharBuf(&cstr[start_size],
-                                   str->size - end_size - start_size, &size);
+            str->size - end_size - start_size,
+            &size);
     FklNastNode *node = fklCreateNastNode(FKL_NAST_STR, nodes[0]->curline);
     node->str = fklCreateString(size, s);
     fklZfree(s);
     return node;
 }
 
-static inline void *prod_action_nil(void *ctx, void *outerCtx, void *nodes[],
-                                    size_t num, size_t line) {
+static inline void *prod_action_nil(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     return fklCreateNastNode(FKL_NAST_NIL, line);
 }
 
-static inline void *prod_action_pair(void *ctx, void *outerCtx, void *nodes[],
-                                     size_t num, size_t line) {
+static inline void *prod_action_pair(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *car = nodes[0];
     FklNastNode *cdr = nodes[2];
     FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
@@ -107,8 +124,11 @@ static inline void *prod_action_pair(void *ctx, void *outerCtx, void *nodes[],
     return pair;
 }
 
-static inline void *prod_action_list(void *ctx, void *outerCtx, void *nodes[],
-                                     size_t num, size_t line) {
+static inline void *prod_action_list(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *car = nodes[0];
     FklNastNode *cdr = nodes[1];
     FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
@@ -118,9 +138,11 @@ static inline void *prod_action_list(void *ctx, void *outerCtx, void *nodes[],
     return pair;
 }
 
-static inline void *prod_action_dec_integer(void *ctx, void *outerCtx,
-                                            void *nodes[], size_t num,
-                                            size_t line) {
+static inline void *prod_action_dec_integer(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     int64_t i = strtoll(str->str, NULL, 10);
     FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -139,9 +161,11 @@ static inline void *prod_action_dec_integer(void *ctx, void *outerCtx,
     return r;
 }
 
-static inline void *prod_action_hex_integer(void *ctx, void *outerCtx,
-                                            void *nodes[], size_t num,
-                                            size_t line) {
+static inline void *prod_action_hex_integer(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     int64_t i = strtoll(str->str, NULL, 16);
     FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -160,9 +184,11 @@ static inline void *prod_action_hex_integer(void *ctx, void *outerCtx,
     return r;
 }
 
-static inline void *prod_action_oct_integer(void *ctx, void *outerCtx,
-                                            void *nodes[], size_t num,
-                                            size_t line) {
+static inline void *prod_action_oct_integer(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     int64_t i = strtoll(str->str, NULL, 8);
     FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -181,8 +207,11 @@ static inline void *prod_action_oct_integer(void *ctx, void *outerCtx,
     return r;
 }
 
-static inline void *prod_action_float(void *ctx, void *outerCtx, void *nodes[],
-                                      size_t num, size_t line) {
+static inline void *prod_action_float(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     FklNastNode *r = fklCreateNastNode(FKL_NAST_F64, line);
     double i = strtod(str->str, NULL);
@@ -190,8 +219,11 @@ static inline void *prod_action_float(void *ctx, void *outerCtx, void *nodes[],
     return r;
 }
 
-static inline void *prod_action_char(void *ctx, void *outerCtx, void *nodes[],
-                                     size_t num, size_t line) {
+static inline void *prod_action_char(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     if (!fklIsValidCharBuf(str->str + 2, str->size - 2))
         return NULL;
@@ -200,15 +232,21 @@ static inline void *prod_action_char(void *ctx, void *outerCtx, void *nodes[],
     return r;
 }
 
-static inline void *prod_action_box(void *ctx, void *outerCtx, void *nodes[],
-                                    size_t num, size_t line) {
+static inline void *prod_action_box(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *box = fklCreateNastNode(FKL_NAST_BOX, line);
     box->box = fklMakeNastNodeRef(nodes[1]);
     return box;
 }
 
-static inline void *prod_action_vector(void *ctx, void *outerCtx, void *nodes[],
-                                       size_t num, size_t line) {
+static inline void *prod_action_vector(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_VECTOR, line);
     size_t len = fklNastListLength(list);
@@ -220,8 +258,8 @@ static inline void *prod_action_vector(void *ctx, void *outerCtx, void *nodes[],
     return r;
 }
 
-static inline FklNastNode *create_nast_list(FklNastNode *a[], size_t num,
-                                            uint64_t line) {
+static inline FklNastNode *
+create_nast_list(FklNastNode *a[], size_t num, uint64_t line) {
     FklNastNode *r = NULL;
     FklNastNode **cur = &r;
     for (size_t i = 0; i < num; i++) {
@@ -234,52 +272,63 @@ static inline FklNastNode *create_nast_list(FklNastNode *a[], size_t num,
     return r;
 }
 
-static inline void *prod_action_quote(void *ctx, void *outerCtx, void *nodes[],
-                                      size_t num, size_t line) {
+static inline void *prod_action_quote(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_unquote(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *prod_action_unquote(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_qsquote(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *prod_action_qsquote(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_unqtesp(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *prod_action_unqtesp(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_kv_list(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *prod_action_kv_list(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *car = nodes[1];
     FklNastNode *cdr = nodes[3];
     FklNastNode *rest = nodes[5];
@@ -296,8 +345,11 @@ static inline void *prod_action_kv_list(void *ctx, void *outerCtx,
     return r;
 }
 
-static inline void *prod_action_hasheq(void *ctx, void *outerCtx, void *nodes[],
-                                       size_t num, size_t line) {
+static inline void *prod_action_hasheq(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
     size_t len = fklNastListLength(list);
@@ -311,9 +363,11 @@ static inline void *prod_action_hasheq(void *ctx, void *outerCtx, void *nodes[],
     return r;
 }
 
-static inline void *prod_action_hasheqv(void *ctx, void *outerCtx,
-                                        void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *prod_action_hasheqv(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
     size_t len = fklNastListLength(list);
@@ -327,9 +381,11 @@ static inline void *prod_action_hasheqv(void *ctx, void *outerCtx,
     return r;
 }
 
-static inline void *prod_action_hashequal(void *ctx, void *outerCtx,
-                                          void *nodes[], size_t num,
-                                          size_t line) {
+static inline void *prod_action_hashequal(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
     size_t len = fklNastListLength(list);
@@ -343,9 +399,11 @@ static inline void *prod_action_hashequal(void *ctx, void *outerCtx,
     return r;
 }
 
-static inline void *prod_action_bytevector(void *ctx, void *outerCtx,
-                                           void *nodes[], size_t num,
-                                           size_t line) {
+static inline void *prod_action_bytevector(void *ctx,
+        void *outerCtx,
+        void *nodes[],
+        size_t num,
+        size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_BYTEVECTOR, line);
     size_t len = fklNastListLength(list);
@@ -364,36 +422,36 @@ static inline void *prod_action_bytevector(void *ctx, void *outerCtx,
 }
 
 static const FklGrammerBuiltinAction builtin_actions[] = {
-    {"symbol", prod_action_symbol},
-    {"first", prod_action_return_first},
-    {"second", prod_action_return_second},
-    {"string", prod_action_string},
-    {"nil", prod_action_nil},
-    {"pair", prod_action_pair},
-    {"list", prod_action_list},
-    {"dec_integer", prod_action_dec_integer},
-    {"hex_integer", prod_action_hex_integer},
-    {"oct_integer", prod_action_oct_integer},
-    {"float", prod_action_float},
-    {"char", prod_action_char},
-    {"box", prod_action_box},
-    {"vector", prod_action_vector},
-    {"quote", prod_action_quote},
-    {"unquote", prod_action_unquote},
-    {"qsquote", prod_action_qsquote},
-    {"unqtesp", prod_action_unqtesp},
-    {"pair_list", prod_action_kv_list},
-    {"hasheq", prod_action_hasheq},
-    {"hasheqv", prod_action_hasheqv},
-    {"hashequal", prod_action_hashequal},
-    {"bytes", prod_action_bytevector},
-    {NULL, NULL},
+    { "symbol", prod_action_symbol },
+    { "first", prod_action_return_first },
+    { "second", prod_action_return_second },
+    { "string", prod_action_string },
+    { "nil", prod_action_nil },
+    { "pair", prod_action_pair },
+    { "list", prod_action_list },
+    { "dec_integer", prod_action_dec_integer },
+    { "hex_integer", prod_action_hex_integer },
+    { "oct_integer", prod_action_oct_integer },
+    { "float", prod_action_float },
+    { "char", prod_action_char },
+    { "box", prod_action_box },
+    { "vector", prod_action_vector },
+    { "quote", prod_action_quote },
+    { "unquote", prod_action_unquote },
+    { "qsquote", prod_action_qsquote },
+    { "unqtesp", prod_action_unqtesp },
+    { "pair_list", prod_action_kv_list },
+    { "hasheq", prod_action_hasheq },
+    { "hasheqv", prod_action_hasheqv },
+    { "hashequal", prod_action_hashequal },
+    { "bytes", prod_action_bytevector },
+    { NULL, NULL },
 };
 
 static inline const FklGrammerBuiltinAction *
 builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
     for (const FklGrammerBuiltinAction *cur = &builtin_actions[0]; cur->name;
-         ++cur) {
+            ++cur) {
         size_t cur_len = strlen(cur->name);
         if (cur_len == len && memcmp(cur->name, str, cur_len) == 0)
             return cur;
@@ -402,65 +460,65 @@ builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
 }
 
 static const char example_grammer_rules[] =
-    ""
-    "## specials: ??, ?e, ?symbol, ?s-dint, ?s-xint, ?s-oint, ?s-char ...\n"
-    "*s-exp* -> *list*       =>  first\n"
-    "        -> *vector*     =>  first\n"
-    "        -> *box*        =>  first\n"
-    "        -> *hasheq*     =>  first\n"
-    "        -> *hasheqv*    =>  first\n"
-    "        -> *hashequal*  =>  first\n"
-    "        -> *quote*      =>  first\n"
-    "        -> *qsquote*    =>  first\n"
-    "        -> *unquote*    =>  first\n"
-    "        -> *unqtesp*    =>  first\n"
-    "        -> *symbol*     =>  first\n"
-    "        -> *string*     =>  first\n"
-    "        -> *bytes*      =>  first\n"
-    "        -> *integer*    =>  first\n"
-    "        -> *float*      =>  first\n"
-    "        -> *char*       =>  first\n"
-    "*quote*   -> \"'\" *s-exp*   =>  quote\n"
-    "*qsquote* -> \"`\" *s-exp*   =>  qsquote\n"
-    "*unquote* -> \"~\" *s-exp*   =>  unquote\n"
-    "*unqtesp* -> \"~@\" *s-exp*  =>  unqtesp\n"
-    "*symbol* -> ?symbol[\"|\"]       =>  symbol\n"
-    "*string* -> /\"\"|\"(\\\\.|.)*\"/    =>  string\n"
-    "*bytes*  -> /#\"\"|#\"(\\\\.|.)*\"/  =>  bytes\n"
-    "*integer* -> ?s-dint[\"|\"]  =>  dec_integer\n"
-    "          -> ?s-xint[\"|\"]  =>  hex_integer\n"
-    "          -> ?s-oint[\"|\"]  =>  oct_integer\n"
-    "*float* -> ?s-dfloat[\"|\"]  =>  float\n"
-    "        -> ?s-xfloat[\"|\"]  =>  float\n"
-    "*char* -> ?s-char[\"#\\\\\"]  =>  char\n"
-    "*box* -> \"#&\" *s-exp*  =>  box\n"
-    "*list* -> \"(\" *list-items* \")\"  => second\n"
-    "       -> \"[\" *list-items* \"]\"  => second\n"
-    "*list-items* ->                       =>  nil\n"
-    "             -> *s-exp* *list-items*  =>  list\n"
-    "             -> *s-exp* \",\" *s-exp*   =>  pair\n"
-    "*vector* -> \"#(\" *vector-items* \")\"  =>  vector\n"
-    "         -> \"#[\" *vector-items* \"]\"  =>  vector\n"
-    "*vector-items* ->                         =>  nil\n"
-    "               -> *s-exp* *vector-items*  =>  list\n"
-    "*hasheq*    -> \"#hash(\"      *hash-items* \")\"  =>  hasheq\n"
-    "            -> \"#hash[\"      *hash-items* \"]\"  =>  hasheq\n"
-    "*hasheqv*   -> \"#hasheqv(\"   *hash-items* \")\"  =>  hasheqv\n"
-    "            -> \"#hasheqv[\"   *hash-items* \"]\"  =>  hasheqv\n"
-    "*hashequal* -> \"#hashequal(\" *hash-items* \")\"  =>  hashequal\n"
-    "            -> \"#hashequal[\" *hash-items* \"]\"  =>  hashequal\n"
-    "*hash-items* ->                                           =>  nil\n"
-    "             -> \"(\" *s-exp* \",\" *s-exp* \")\" *hash-items*  =>  pair_list\n"
-    "             -> \"[\" *s-exp* \",\" *s-exp* \"]\" *hash-items*  =>  pair_list\n"
-    "?e -> /#!.*\\n?/\n"
-    "   -> /;.*\\n?/\n"
-    "   -> /\\s+/\n"
-    "   ;\n"
-    "?? -> \"#!\"\n"
-    "   -> \";\"\n"
-    "   -> \"\\\"\"\n"
-    "   -> \"#\\\"\"\n"
-    "";
+        ""
+        "## specials: ??, ?e, ?symbol, ?s-dint, ?s-xint, ?s-oint, ?s-char ...\n"
+        "*s-exp* -> *list*       =>  first\n"
+        "        -> *vector*     =>  first\n"
+        "        -> *box*        =>  first\n"
+        "        -> *hasheq*     =>  first\n"
+        "        -> *hasheqv*    =>  first\n"
+        "        -> *hashequal*  =>  first\n"
+        "        -> *quote*      =>  first\n"
+        "        -> *qsquote*    =>  first\n"
+        "        -> *unquote*    =>  first\n"
+        "        -> *unqtesp*    =>  first\n"
+        "        -> *symbol*     =>  first\n"
+        "        -> *string*     =>  first\n"
+        "        -> *bytes*      =>  first\n"
+        "        -> *integer*    =>  first\n"
+        "        -> *float*      =>  first\n"
+        "        -> *char*       =>  first\n"
+        "*quote*   -> \"'\" *s-exp*   =>  quote\n"
+        "*qsquote* -> \"`\" *s-exp*   =>  qsquote\n"
+        "*unquote* -> \"~\" *s-exp*   =>  unquote\n"
+        "*unqtesp* -> \"~@\" *s-exp*  =>  unqtesp\n"
+        "*symbol* -> ?symbol[\"|\"]       =>  symbol\n"
+        "*string* -> /\"\"|\"(\\\\.|.)*\"/    =>  string\n"
+        "*bytes*  -> /#\"\"|#\"(\\\\.|.)*\"/  =>  bytes\n"
+        "*integer* -> ?s-dint[\"|\"]  =>  dec_integer\n"
+        "          -> ?s-xint[\"|\"]  =>  hex_integer\n"
+        "          -> ?s-oint[\"|\"]  =>  oct_integer\n"
+        "*float* -> ?s-dfloat[\"|\"]  =>  float\n"
+        "        -> ?s-xfloat[\"|\"]  =>  float\n"
+        "*char* -> ?s-char[\"#\\\\\"]  =>  char\n"
+        "*box* -> \"#&\" *s-exp*  =>  box\n"
+        "*list* -> \"(\" *list-items* \")\"  => second\n"
+        "       -> \"[\" *list-items* \"]\"  => second\n"
+        "*list-items* ->                       =>  nil\n"
+        "             -> *s-exp* *list-items*  =>  list\n"
+        "             -> *s-exp* \",\" *s-exp*   =>  pair\n"
+        "*vector* -> \"#(\" *vector-items* \")\"  =>  vector\n"
+        "         -> \"#[\" *vector-items* \"]\"  =>  vector\n"
+        "*vector-items* ->                         =>  nil\n"
+        "               -> *s-exp* *vector-items*  =>  list\n"
+        "*hasheq*    -> \"#hash(\"      *hash-items* \")\"  =>  hasheq\n"
+        "            -> \"#hash[\"      *hash-items* \"]\"  =>  hasheq\n"
+        "*hasheqv*   -> \"#hasheqv(\"   *hash-items* \")\"  =>  hasheqv\n"
+        "            -> \"#hasheqv[\"   *hash-items* \"]\"  =>  hasheqv\n"
+        "*hashequal* -> \"#hashequal(\" *hash-items* \")\"  =>  hashequal\n"
+        "            -> \"#hashequal[\" *hash-items* \"]\"  =>  hashequal\n"
+        "*hash-items* ->                                           =>  nil\n"
+        "             -> \"(\" *s-exp* \",\" *s-exp* \")\" *hash-items*  =>  pair_list\n"
+        "             -> \"[\" *s-exp* \",\" *s-exp* \"]\" *hash-items*  =>  pair_list\n"
+        "?e -> /#!.*\\n?/\n"
+        "   -> /;.*\\n?/\n"
+        "   -> /\\s+/\n"
+        "   ;\n"
+        "?? -> \"#!\"\n"
+        "   -> \";\"\n"
+        "   -> \"\\\"\"\n"
+        "   -> \"#\\\"\"\n"
+        "";
 
 int main() {
     FklSymbolTable *st = fklCreateSymbolTable();
@@ -468,8 +526,11 @@ int main() {
     FklParserGrammerParseArg args;
     FklGrammer *g = fklCreateEmptyGrammer(st);
 
-    fklInitParserGrammerParseArg(&args, g, 1, builtin_prod_action_resolver,
-                                 NULL);
+    fklInitParserGrammerParseArg(&args,
+            g,
+            1,
+            builtin_prod_action_resolver,
+            NULL);
     int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
     if (err) {
         fklPrintParserGrammerParseError(err, &args, stderr);
@@ -482,7 +543,7 @@ int main() {
 
     fklUninitParserGrammerParseArg(&args);
 
-    FklGrammerNonterm nonterm = {0};
+    FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
         fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
@@ -573,7 +634,7 @@ int main() {
 
     for (const char **exp = &exps[0]; *exp; exp++) {
         FklNastNode *ast =
-            fklParseWithTableForCstr(g, *exp, &outerCtx, st, &retval);
+                fklParseWithTableForCstr(g, *exp, &outerCtx, st, &retval);
 
         if (retval)
             break;

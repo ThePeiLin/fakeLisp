@@ -39,10 +39,12 @@ ssize_t fklStringCharBufMatch(const FklString *, const char *, size_t len);
 
 ssize_t fklCharBufMatch(const char *s0, size_t l0, const char *s1, size_t l1);
 
-size_t fklQuotedStringMatch(const char *cstr, size_t restLen,
-                            const FklString *end);
-size_t fklQuotedCharBufMatch(const char *cstr, size_t restLen, const char *end,
-                             size_t end_size);
+size_t
+fklQuotedStringMatch(const char *cstr, size_t restLen, const FklString *end);
+size_t fklQuotedCharBufMatch(const char *cstr,
+        size_t restLen,
+        const char *end,
+        size_t end_size);
 
 FklString *fklLoadString(FILE *fp);
 char *fklStringToCstr(const FklString *str);
@@ -65,23 +67,35 @@ static inline uintptr_t fklStringHash(const FklString *s) {
 
 struct FklStringBuffer;
 
-void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer *s, size_t len,
-                                      const char *fstr, const char *begin_str,
-                                      const char *end_str, char se);
+void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer *s,
+        size_t len,
+        const char *fstr,
+        const char *begin_str,
+        const char *end_str,
+        char se);
 static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer *s,
-                                                 const char *str,
-                                                 const char *begin_str,
-                                                 const char *end_str, char se) {
-    fklPrintRawCharBufToStringBuffer(s, strlen(str), str, begin_str, end_str,
-                                     se);
+        const char *str,
+        const char *begin_str,
+        const char *end_str,
+        char se) {
+    fklPrintRawCharBufToStringBuffer(s,
+            strlen(str),
+            str,
+            begin_str,
+            end_str,
+            se);
 }
 static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer *s,
-                                                   const FklString *fstr,
-                                                   const char *begin_str,
-                                                   const char *end_str,
-                                                   char se) {
-    fklPrintRawCharBufToStringBuffer(s, fstr->size, fstr->str, begin_str,
-                                     end_str, se);
+        const FklString *fstr,
+        const char *begin_str,
+        const char *end_str,
+        char se) {
+    fklPrintRawCharBufToStringBuffer(s,
+            fstr->size,
+            fstr->str,
+            begin_str,
+            end_str,
+            se);
 }
 
 FklString *fklStringToRawString(const FklString *str);
@@ -93,7 +107,7 @@ typedef struct FklStringBuffer {
     char *buf;
 } FklStringBuffer;
 
-#define FKL_STRING_BUFFER_INIT {0, 0, NULL}
+#define FKL_STRING_BUFFER_INIT { 0, 0, NULL }
 
 static inline uint32_t fklStringBufferLen(FklStringBuffer *b) {
     return b->index;
@@ -115,7 +129,7 @@ void fklStringBufferBincpy(FklStringBuffer *, const void *, size_t);
 void fklStringBufferConcatWithCstr(FklStringBuffer *, const char *);
 void fklStringBufferConcatWithString(FklStringBuffer *, const FklString *);
 void fklStringBufferConcatWithStringBuffer(FklStringBuffer *,
-                                           const FklStringBuffer *);
+        const FklStringBuffer *);
 void fklStringBufferPutc(FklStringBuffer *, char);
 long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap);
 long fklStringBufferPrintf(FklStringBuffer *, const char *fmt, ...);
@@ -138,7 +152,7 @@ int fklBytevectorEqual(const FklBytevector *fir, const FklBytevector *sec);
 void fklPrintRawBytevector(const FklBytevector *str, FILE *fp);
 FklString *fklBytevectorToString(const FklBytevector *);
 void fklPrintBytevectorToStringBuffer(FklStringBuffer *,
-                                      const FklBytevector *bvec);
+        const FklBytevector *bvec);
 
 uintptr_t fklBytevectorHash(const FklBytevector *bv);
 
@@ -153,11 +167,12 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv);
 #include "cont/vector.h"
 
 size_t fklBigIntToStringBuffer(const FklBigInt *a,
-                               FklStringBuffer *string_buffer, uint8_t radix,
-                               FklBigIntFmtFlags flags);
+        FklStringBuffer *string_buffer,
+        uint8_t radix,
+        FklBigIntFmtFlags flags);
 
-FklString *fklBigIntToString(const FklBigInt *a, uint8_t radix,
-                             FklBigIntFmtFlags flags);
+FklString *
+fklBigIntToString(const FklBigInt *a, uint8_t radix, FklBigIntFmtFlags flags);
 
 int fklIsBigIntGtLtFix(const FklBigInt *a);
 int fklIsBigIntAddkInFixIntRange(const FklBigInt *a, int8_t k);

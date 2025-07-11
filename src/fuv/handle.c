@@ -237,8 +237,8 @@ int isFuvHandle(const FklVMvalue *v) {
     return 0;
 }
 
-static inline void init_fuv_handle(FuvHandle *handle, FklVMvalue *v,
-                                   FklVMvalue *loop) {
+static inline void
+init_fuv_handle(FuvHandle *handle, FklVMvalue *v, FklVMvalue *loop) {
     handle->data.loop = loop;
     handle->data.callbacks[0] = NULL;
     handle->data.callbacks[1] = NULL;
@@ -253,8 +253,10 @@ static inline void init_fuv_handle(FuvHandle *handle, FklVMvalue *v,
     }
 
 #define FUV_HANDLE_CREATOR(TYPE, NAME, ENUM)                                   \
-    FklVMvalue *create##TYPE(FklVM *vm, FklVMvalue *rel, FklVMvalue *loop_obj, \
-                             int *err) {                                       \
+    FklVMvalue *create##TYPE(FklVM *vm,                                        \
+            FklVMvalue *rel,                                                   \
+            FklVMvalue *loop_obj,                                              \
+            int *err) {                                                        \
         FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[ENUM], rel);  \
         FKL_DECL_VM_UD_DATA(handle, TYPE, v);                                  \
         FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);                          \
@@ -312,8 +314,11 @@ static void fuv_async_cb(uv_async_t *handle) {
     }
 }
 
-FklVMvalue *createFuvAsync(FklVM *vm, FklVMvalue *rel, FklVMvalue *loop_obj,
-                           FklVMvalue *proc_obj, int *err) {
+FklVMvalue *createFuvAsync(FklVM *vm,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        FklVMvalue *proc_obj,
+        int *err) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_ASYNC], rel);
     FKL_DECL_VM_UD_DATA(handle, FuvAsync, v);
     FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
@@ -330,11 +335,16 @@ FklVMvalue *createFuvAsync(FklVM *vm, FklVMvalue *rel, FklVMvalue *loop_obj,
 
 FUV_HANDLE_P(isFuvProcess, UV_PROCESS);
 
-uv_process_t *createFuvProcess(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
-                               FklVMvalue *loop_obj, FklVMvalue *proc_obj,
-                               FklVMvalue *args_obj, FklVMvalue *env_obj,
-                               FklVMvalue *file_obj, FklVMvalue *stdio_obj,
-                               FklVMvalue *cwd_obj) {
+uv_process_t *createFuvProcess(FklVM *vm,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        FklVMvalue *proc_obj,
+        FklVMvalue *args_obj,
+        FklVMvalue *env_obj,
+        FklVMvalue *file_obj,
+        FklVMvalue *stdio_obj,
+        FklVMvalue *cwd_obj) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_PROCESS], rel);
     FKL_DECL_VM_UD_DATA(handle, FuvProcess, v);
     init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);
@@ -361,8 +371,10 @@ int isFuvStream(FklVMvalue *v) {
 FUV_HANDLE_P(isFuvPipe, UV_NAMED_PIPE);
 
 #define OTHER_HANDLE_CREATOR(TYPE, NAME, ENUM)                                 \
-    uv_##NAME##_t *create##TYPE(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,   \
-                                FklVMvalue *loop_obj) {                        \
+    uv_##NAME##_t *create##TYPE(FklVM *vm,                                     \
+            FklVMvalue **pr,                                                   \
+            FklVMvalue *rel,                                                   \
+            FklVMvalue *loop_obj) {                                            \
         FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[ENUM], rel);  \
         FKL_DECL_VM_UD_DATA(handle, TYPE, v);                                  \
         init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);      \
@@ -378,8 +390,11 @@ OTHER_HANDLE_CREATOR(FuvTcp, tcp, UV_TCP);
 
 FUV_HANDLE_P(isFuvTty, UV_TTY);
 
-uv_tty_t *createFuvTty(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
-                       FklVMvalue *loop_obj, FklVMvalue *fp_obj) {
+uv_tty_t *createFuvTty(FklVM *vm,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        FklVMvalue *fp_obj) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_TTY], rel);
     FKL_DECL_VM_UD_DATA(handle, FuvTty, v);
     init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);
@@ -390,8 +405,11 @@ uv_tty_t *createFuvTty(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
 
 FUV_HANDLE_P(isFuvUdp, UV_UDP);
 
-uv_udp_t *createFuvUdp(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
-                       FklVMvalue *loop_obj, int64_t mmsg_num_msgs) {
+uv_udp_t *createFuvUdp(FklVM *vm,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        int64_t mmsg_num_msgs) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_UDP], rel);
     FKL_DECL_VM_UD_DATA(handle, FuvUdp, v);
     init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);
@@ -408,8 +426,11 @@ FUV_HANDLE_CREATOR(FuvFsEvent, fs_event, UV_FS_EVENT);
 
 FUV_HANDLE_P(isFuvPoll, UV_POLL);
 
-uv_poll_t *createFuvPoll(FklVM *vm, FklVMvalue **pr, FklVMvalue *rel,
-                         FklVMvalue *loop_obj, FklVMvalue *fp_obj) {
+uv_poll_t *createFuvPoll(FklVM *vm,
+        FklVMvalue **pr,
+        FklVMvalue *rel,
+        FklVMvalue *loop_obj,
+        FklVMvalue *fp_obj) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_POLL], rel);
     FKL_DECL_VM_UD_DATA(handle, FuvPoll, v);
     init_fuv_handle(FKL_TYPE_CAST(FuvHandle *, handle), v, loop_obj);

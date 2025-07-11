@@ -8,8 +8,8 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 #endif
 
-static inline void *prod_action_symbol(void *ctx, void *ast[], size_t num,
-                                       size_t line) {
+static inline void *
+prod_action_symbol(void *ctx, void *ast[], size_t num, size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;
     const char *start = "|";
     const size_t start_size = 1;
@@ -41,7 +41,7 @@ static inline void *prod_action_symbol(void *ctx, void *ast[], size_t num,
         size_t len = 0;
         for (; (cstr + len) < end_cstr; len++)
             if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
-                >= 0)
+                    >= 0)
                 break;
         fklStringBufferBincpy(&buffer, cstr, len);
         cstr += len;
@@ -54,18 +54,18 @@ static inline void *prod_action_symbol(void *ctx, void *ast[], size_t num,
     return node;
 }
 
-static inline void *prod_action_first(void *ctx, void *nodes[], size_t num,
-                                      size_t line) {
+static inline void *
+prod_action_first(void *ctx, void *nodes[], size_t num, size_t line) {
     return fklMakeNastNodeRef(nodes[0]);
 }
 
-static inline void *prod_action_second(void *ctx, void *nodes[], size_t num,
-                                       size_t line) {
+static inline void *
+prod_action_second(void *ctx, void *nodes[], size_t num, size_t line) {
     return fklMakeNastNodeRef(nodes[1]);
 }
 
-static inline void *prod_action_string(void *ctx, void *ast[], size_t num,
-                                       size_t line) {
+static inline void *
+prod_action_string(void *ctx, void *ast[], size_t num, size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;
     const size_t start_size = 1;
     const size_t end_size = 1;
@@ -75,20 +75,21 @@ static inline void *prod_action_string(void *ctx, void *ast[], size_t num,
 
     size_t size = 0;
     char *s = fklCastEscapeCharBuf(&cstr[start_size],
-                                   str->size - end_size - start_size, &size);
+            str->size - end_size - start_size,
+            &size);
     FklNastNode *node = fklCreateNastNode(FKL_NAST_STR, nodes[0]->curline);
     node->str = fklCreateString(size, s);
     fklZfree(s);
     return node;
 }
 
-static inline void *prod_action_nil(void *ctx, void *nodes[], size_t num,
-                                    size_t line) {
+static inline void *
+prod_action_nil(void *ctx, void *nodes[], size_t num, size_t line) {
     return fklCreateNastNode(FKL_NAST_NIL, line);
 }
 
-static inline void *prod_action_pair(void *ctx, void *nodes[], size_t num,
-                                     size_t line) {
+static inline void *
+prod_action_pair(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *car = nodes[0];
     FklNastNode *cdr = nodes[2];
     FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
@@ -98,8 +99,8 @@ static inline void *prod_action_pair(void *ctx, void *nodes[], size_t num,
     return pair;
 }
 
-static inline void *prod_action_list(void *ctx, void *nodes[], size_t num,
-                                     size_t line) {
+static inline void *
+prod_action_list(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *car = nodes[0];
     FklNastNode *cdr = nodes[1];
     FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
@@ -109,8 +110,8 @@ static inline void *prod_action_list(void *ctx, void *nodes[], size_t num,
     return pair;
 }
 
-static inline void *prod_action_dec_integer(void *ctx, void *nodes[],
-                                            size_t num, size_t line) {
+static inline void *
+prod_action_dec_integer(void *ctx, void *nodes[], size_t num, size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     int64_t i = strtoll(str->str, NULL, 10);
     FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -129,8 +130,8 @@ static inline void *prod_action_dec_integer(void *ctx, void *nodes[],
     return r;
 }
 
-static inline void *prod_action_hex_integer(void *ctx, void *nodes[],
-                                            size_t num, size_t line) {
+static inline void *
+prod_action_hex_integer(void *ctx, void *nodes[], size_t num, size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     int64_t i = strtoll(str->str, NULL, 16);
     FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -149,8 +150,8 @@ static inline void *prod_action_hex_integer(void *ctx, void *nodes[],
     return r;
 }
 
-static inline void *prod_action_oct_integer(void *ctx, void *nodes[],
-                                            size_t num, size_t line) {
+static inline void *
+prod_action_oct_integer(void *ctx, void *nodes[], size_t num, size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     int64_t i = strtoll(str->str, NULL, 8);
     FklNastNode *r = fklCreateNastNode(FKL_NAST_FIX, line);
@@ -169,8 +170,8 @@ static inline void *prod_action_oct_integer(void *ctx, void *nodes[],
     return r;
 }
 
-static inline void *prod_action_float(void *ctx, void *nodes[], size_t num,
-                                      size_t line) {
+static inline void *
+prod_action_float(void *ctx, void *nodes[], size_t num, size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     FklNastNode *r = fklCreateNastNode(FKL_NAST_F64, line);
     double i = strtod(str->str, NULL);
@@ -178,8 +179,8 @@ static inline void *prod_action_float(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline void *prod_action_char(void *ctx, void *nodes[], size_t num,
-                                     size_t line) {
+static inline void *
+prod_action_char(void *ctx, void *nodes[], size_t num, size_t line) {
     const FklString *str = ((FklNastNode *)nodes[0])->str;
     if (!fklIsValidCharBuf(str->str + 2, str->size - 2))
         return NULL;
@@ -188,15 +189,15 @@ static inline void *prod_action_char(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline void *prod_action_box(void *ctx, void *nodes[], size_t num,
-                                    size_t line) {
+static inline void *
+prod_action_box(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *box = fklCreateNastNode(FKL_NAST_BOX, line);
     box->box = fklMakeNastNodeRef(nodes[1]);
     return box;
 }
 
-static inline void *prod_action_vector(void *ctx, void *nodes[], size_t num,
-                                       size_t line) {
+static inline void *
+prod_action_vector(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_VECTOR, line);
     size_t len = fklNastListLength(list);
@@ -208,8 +209,8 @@ static inline void *prod_action_vector(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline FklNastNode *create_nast_list(FklNastNode **a, size_t num,
-                                            uint64_t line) {
+static inline FklNastNode *
+create_nast_list(FklNastNode **a, size_t num, uint64_t line) {
     FklNastNode *r = NULL;
     FklNastNode **cur = &r;
     for (size_t i = 0; i < num; i++) {
@@ -222,48 +223,48 @@ static inline FklNastNode *create_nast_list(FklNastNode **a, size_t num,
     return r;
 }
 
-static inline void *prod_action_quote(void *ctx, void *nodes[], size_t num,
-                                      size_t line) {
+static inline void *
+prod_action_quote(void *ctx, void *nodes[], size_t num, size_t line) {
     FklSid_t id = fklAddSymbolCstr("quote", ctx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_unquote(void *ctx, void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *
+prod_action_unquote(void *ctx, void *nodes[], size_t num, size_t line) {
     FklSid_t id = fklAddSymbolCstr("unquote", ctx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_qsquote(void *ctx, void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *
+prod_action_qsquote(void *ctx, void *nodes[], size_t num, size_t line) {
     FklSid_t id = fklAddSymbolCstr("qsquote", ctx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_unqtesp(void *ctx, void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *
+prod_action_unqtesp(void *ctx, void *nodes[], size_t num, size_t line) {
     FklSid_t id = fklAddSymbolCstr("unqtesp", ctx)->v;
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1]);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
-    FklNastNode *s_exps[] = {head, s_exp};
+    FklNastNode *s_exps[] = { head, s_exp };
     return create_nast_list(s_exps, 2, line);
 }
 
-static inline void *prod_action_pair_list(void *ctx, void *nodes[], size_t num,
-                                          size_t line) {
+static inline void *
+prod_action_pair_list(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *car = nodes[1];
     FklNastNode *cdr = nodes[3];
     FklNastNode *rest = nodes[5];
@@ -280,8 +281,8 @@ static inline void *prod_action_pair_list(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline void *prod_action_hasheq(void *ctx, void *nodes[], size_t num,
-                                       size_t line) {
+static inline void *
+prod_action_hasheq(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
     size_t len = fklNastListLength(list);
@@ -295,8 +296,8 @@ static inline void *prod_action_hasheq(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline void *prod_action_hasheqv(void *ctx, void *nodes[], size_t num,
-                                        size_t line) {
+static inline void *
+prod_action_hasheqv(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
     size_t len = fklNastListLength(list);
@@ -310,8 +311,8 @@ static inline void *prod_action_hasheqv(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline void *prod_action_hashequal(void *ctx, void *nodes[], size_t num,
-                                          size_t line) {
+static inline void *
+prod_action_hashequal(void *ctx, void *nodes[], size_t num, size_t line) {
     FklNastNode *list = nodes[1];
     FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
     size_t len = fklNastListLength(list);
@@ -325,8 +326,8 @@ static inline void *prod_action_hashequal(void *ctx, void *nodes[], size_t num,
     return r;
 }
 
-static inline void *prod_action_bytes(void *ctx, void *ast[], size_t num,
-                                           size_t line) {
+static inline void *
+prod_action_bytes(void *ctx, void *ast[], size_t num, size_t line) {
     FklNastNode **nodes = (FklNastNode **)ast;
     const size_t start_size = 2;
     const size_t end_size = 1;
@@ -336,9 +337,10 @@ static inline void *prod_action_bytes(void *ctx, void *ast[], size_t num,
 
     size_t size = 0;
     char *s = fklCastEscapeCharBuf(&cstr[start_size],
-                                   str->size - end_size - start_size, &size);
+            str->size - end_size - start_size,
+            &size);
     FklNastNode *node =
-        fklCreateNastNode(FKL_NAST_BYTEVECTOR, nodes[0]->curline);
+            fklCreateNastNode(FKL_NAST_BYTEVECTOR, nodes[0]->curline);
     node->bvec = fklCreateBytevector(size, (uint8_t *)s);
     fklZfree(s);
     return node;

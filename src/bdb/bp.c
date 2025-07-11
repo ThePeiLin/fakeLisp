@@ -12,11 +12,11 @@ void initBreakpointTable(BreakpointTable *bt) {
 }
 
 static inline void mark_breakpoint_deleted(Breakpoint *bp,
-                                           BreakpointTable *bt) {
+        BreakpointTable *bt) {
     if (bp->is_compiled && bp->proc) {
         FklVMproc *proc = FKL_VM_PROC(bp->proc);
         fklUintVectorPushBack2(&bt->unused_prototype_id_for_cond_bp,
-                               proc->protoId);
+                proc->protoId);
         bp->proc = NULL;
     } else if (bp->cond_exp) {
         fklDestroyNastNode(bp->cond_exp);
@@ -149,7 +149,7 @@ Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
 void markBreakpointCondExpObj(DebugCtx *dctx, FklVMgc *gc) {
     BreakpointTable *bt = &dctx->bt;
     for (BdbBpIdxHashMapNode *list = bt->idx_ht.first; list;
-         list = list->next) {
+            list = list->next) {
         Breakpoint *bp = list->v;
         if (bp->cond_exp_obj)
             fklVMgcToGray(bp->cond_exp_obj, gc);
@@ -161,8 +161,9 @@ void markBreakpointCondExpObj(DebugCtx *dctx, FklVMgc *gc) {
 }
 
 static inline Breakpoint *make_breakpoint(BdbBpInsHashMapElm *item,
-                                          BreakpointTable *bt, FklSid_t fid,
-                                          uint32_t line) {
+        BreakpointTable *bt,
+        FklSid_t fid,
+        uint32_t line) {
     Breakpoint *bp = (Breakpoint *)fklZcalloc(1, sizeof(Breakpoint));
     FKL_ASSERT(bp);
     bp->fid = fid;
@@ -178,11 +179,14 @@ static inline Breakpoint *make_breakpoint(BdbBpInsHashMapElm *item,
     return bp;
 }
 
-Breakpoint *createBreakpoint(FklSid_t fid, uint32_t line, FklInstruction *ins,
-                             DebugCtx *ctx) {
+Breakpoint *createBreakpoint(FklSid_t fid,
+        uint32_t line,
+        FklInstruction *ins,
+        DebugCtx *ctx) {
     BreakpointTable *bt = &ctx->bt;
-    BdbBpInsHashMapElm *item = bdbBpInsHashMapInsert2(
-        &bt->ins_ht, ins, (BdbCodepoint){.origin_op = ins->op, .bp = NULL});
+    BdbBpInsHashMapElm *item = bdbBpInsHashMapInsert2(&bt->ins_ht,
+            ins,
+            (BdbCodepoint){ .origin_op = ins->op, .bp = NULL });
     item->v.bp = make_breakpoint(item, bt, fid, line);
     ins->op = FKL_OP_DUMMY;
     return item->v.bp;
@@ -190,5 +194,5 @@ Breakpoint *createBreakpoint(FklSid_t fid, uint32_t line, FklInstruction *ins,
 
 BdbCodepoint *getBreakpointHashItem(DebugCtx *dctx, const FklInstruction *ins) {
     return bdbBpInsHashMapGet2(&dctx->bt.ins_ht,
-                               FKL_REMOVE_CONST(FklInstruction, ins));
+            FKL_REMOVE_CONST(FklInstruction, ins));
 }

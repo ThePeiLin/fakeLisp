@@ -47,9 +47,8 @@ extern "C" {
     X(FKL_PG_DELIM_LB, LB)                                                     \
     X(FKL_PG_DELIM_RB, RB)
 
-typedef const FklGrammerBuiltinAction *(*FklProdActionResolver)(void *,
-                                                                const char *str,
-                                                                size_t len);
+typedef const FklGrammerBuiltinAction *(
+        *FklProdActionResolver)(void *, const char *str, size_t len);
 
 typedef enum {
     FKL_PARSER_GRAMMER_ADDING_PRODUCTION = 0,
@@ -70,10 +69,10 @@ typedef struct {
 } FklParserGrammerParseArg;
 
 static inline void fklInitParserGrammerParseArg(FklParserGrammerParseArg *arg,
-                                                FklGrammer *g,
-                                                int need_add_extra_prod,
-                                                FklProdActionResolver resolver,
-                                                void *resolver_ctx) {
+        FklGrammer *g,
+        int need_add_extra_prod,
+        FklProdActionResolver resolver,
+        void *resolver_ctx) {
     arg->g = g;
     arg->current_nonterm = 0;
     arg->state = FKL_PARSER_GRAMMER_ADDING_PRODUCTION;
@@ -85,8 +84,8 @@ static inline void fklInitParserGrammerParseArg(FklParserGrammerParseArg *arg,
     fklInitStringBuffer(&arg->error_msg);
 }
 
-static inline void
-fklUninitParserGrammerParseArg(FklParserGrammerParseArg *arg) {
+static inline void fklUninitParserGrammerParseArg(
+        FklParserGrammerParseArg *arg) {
     arg->g = NULL;
     arg->current_nonterm = 0;
     arg->state = FKL_PARSER_GRAMMER_ADDING_PRODUCTION;
@@ -99,20 +98,21 @@ fklUninitParserGrammerParseArg(FklParserGrammerParseArg *arg) {
 }
 
 int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
-                                      const char *buf, size_t len);
+        const char *buf,
+        size_t len);
 
 void fklPrintParserGrammerParseError(int err,
-                                     const FklParserGrammerParseArg *arg,
-                                     FILE *fp);
+        const FklParserGrammerParseArg *arg,
+        FILE *fp);
 
-static inline int
-fklParseProductionRuleWithString(FklParserGrammerParseArg *arg,
-                                 FklString *str) {
+static inline int fklParseProductionRuleWithString(
+        FklParserGrammerParseArg *arg,
+        FklString *str) {
     return fklParseProductionRuleWithCharBuf(arg, str->str, str->size);
 }
 
 static inline int fklParseProductionRuleWithCstr(FklParserGrammerParseArg *arg,
-                                                 const char *str) {
+        const char *str) {
     return fklParseProductionRuleWithCharBuf(arg, str, strlen(str));
 }
 

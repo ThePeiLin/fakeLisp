@@ -3,8 +3,8 @@
 #include <fakeLisp/utils.h>
 #include <string.h>
 
-static inline void print_match_res(const char *str, uint32_t len,
-                                   uint32_t pos) {
+static inline void
+print_match_res(const char *str, uint32_t len, uint32_t pos) {
     printf("\n%s %u %u\n", str, len, pos);
     if (len) {
         for (uint32_t i = 0; i < pos; i++)
@@ -63,7 +63,7 @@ static const struct PatternAndText {
 
 int main() {
     for (const struct PatternAndText *cur = &pattern_and_str[0]; cur->pattern;
-         cur++) {
+            cur++) {
         fputs("====\n", stdout);
         const char *pattern = cur->pattern;
         const char *str = cur->text;
@@ -79,8 +79,8 @@ int main() {
 
         uint32_t str_len = strlen(str);
         int last_is_true = 0;
-        uint32_t len = cur->lex
-                         ? fklRegexLexMatchp(re, str, str_len, &last_is_true)
+        uint32_t len =
+                cur->lex ? fklRegexLexMatchp(re, str, str_len, &last_is_true)
                          : fklRegexMatchpInCharBuf(re, str, str_len, &pos);
         if (cur->lex)
             FKL_ASSERT(len == cur->len && last_is_true == cur->last_is_true);

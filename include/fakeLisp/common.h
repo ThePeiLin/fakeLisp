@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include <assert.h>
+
 #define FKL_BYTE_WIDTH (8)
 #define FKL_I16_WIDTH (FKL_BYTE_WIDTH * 2)
 #define FKL_I24_WIDTH (FKL_BYTE_WIDTH * 3)
@@ -61,7 +63,7 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 
 #define FKL_DEFAULT_INC (32)
 #define FKL_MAX_STRING_SIZE (64)
-#define FKL_STATIC_SYMBOL_INIT {0, NULL, NULL}
+#define FKL_STATIC_SYMBOL_INIT { 0, NULL, NULL }
 #define FKL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define FKL_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define FKL_ASSERT(exp) assert(exp)

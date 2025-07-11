@@ -15,7 +15,7 @@
 #endif
 
 #ifndef FKL_QUEUE_INIT
-#define FKL_QUEUE_INIT ({NULL, NULL})
+#define FKL_QUEUE_INIT ({ NULL, NULL })
 #endif
 
 #ifndef FKL_QUEUE_ELM_TYPE
@@ -53,8 +53,8 @@ typedef struct NAME {
 
 #define METHOD(method_name)                                                    \
     CONCAT(CONCAT(CONCAT(FKL_QUEUE_METHOD_PREFIX, FKL_QUEUE_ELM_TYPE_NAME),    \
-                  Queue),                                                      \
-           method_name)
+                   Queue),                                                     \
+            method_name)
 
 static inline void METHOD(Init)(NAME *r) {
     r->head = NULL;
@@ -92,8 +92,8 @@ static inline void METHOD(Destroy)(NAME *r) {
     FKL_CONTAINER_FREE(r);
 }
 
-static inline FKL_QUEUE_ELM_TYPE *METHOD(Push)(NAME *r,
-                                               FKL_QUEUE_ELM_TYPE const *data) {
+static inline FKL_QUEUE_ELM_TYPE *METHOD(
+        Push)(NAME *r, FKL_QUEUE_ELM_TYPE const *data) {
     NODE_NAME *node;
     if (r->cache) {
         node = r->cache;
@@ -115,8 +115,8 @@ static inline FKL_QUEUE_ELM_TYPE *METHOD(Push)(NAME *r,
     return &node->data;
 }
 
-static inline FKL_QUEUE_ELM_TYPE *METHOD(Push2)(NAME *r,
-                                                FKL_QUEUE_ELM_TYPE data) {
+static inline FKL_QUEUE_ELM_TYPE *METHOD(
+        Push2)(NAME *r, FKL_QUEUE_ELM_TYPE data) {
     NODE_NAME *node;
     if (r->cache) {
         node = r->cache;

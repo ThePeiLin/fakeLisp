@@ -43,8 +43,8 @@ static inline size_t count_digits_size(uint64_t i) {
     return 0;
 }
 
-static inline void set_uint64_to_digits(FklBigIntDigit *digits, size_t size,
-                                        uint64_t num) {
+static inline void
+set_uint64_to_digits(FklBigIntDigit *digits, size_t size, uint64_t num) {
     for (size_t i = 0; i < size; i++) {
         digits[i] = num & FKL_BIGINT_DIGIT_MASK;
         num >>= FKL_BIGINT_DIGIT_SHIFT;
@@ -57,7 +57,7 @@ void fklInitBigIntU(FklBigInt *b, uint64_t num) {
         b->size = count_digits_size(num);
         b->num = b->size;
         b->digits =
-            (FklBigIntDigit *)fklZmalloc(b->size * sizeof(FklBigIntDigit));
+                (FklBigIntDigit *)fklZmalloc(b->size * sizeof(FklBigIntDigit));
         FKL_ASSERT(b->digits);
         set_uint64_to_digits(b->digits, b->size, num);
     }
@@ -79,20 +79,262 @@ void fklInitBigIntFromMem(FklBigInt *t, int64_t num, FklBigIntDigit *mem) {
 
 // also steal from cpython: cpython: https://github.com/python/cpython
 unsigned char DigitValue[256] = {
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 0,  1,  2,  3,  4,  5,  6,  7,  8,
-    9,  37, 37, 37, 37, 37, 37, 37, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 37, 37, 37,
-    37, 37, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37,
-    37, 37, 37, 37, 37, 37, 37, 37, 37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
+    37,
 };
 
 void fklInitBigIntWithDecCharBuf(FklBigInt *b, const char *buf, size_t len) {
@@ -111,8 +353,8 @@ static void ensure_bigint_size(FklBigInt *to, uint64_t size) {
     if (to->size < size) {
         FKL_ASSERT(!to->const_size);
         to->size = size;
-        to->digits = (FklBigIntDigit *)fklZrealloc(
-            to->digits, size * sizeof(FklBigIntDigit));
+        to->digits = (FklBigIntDigit *)fklZrealloc(to->digits,
+                size * sizeof(FklBigIntDigit));
         FKL_ASSERT(to->digits);
     }
 }
@@ -172,8 +414,8 @@ void fklInitBigIntWithHexCharBuf(FklBigInt *b, const char *buf, size_t len) {
         ;
     const char *start = buf + offset;
     int64_t digits_count =
-        ((len - offset) * HEX_BIT_COUNT + FKL_BIGINT_DIGIT_SHIFT - 1)
-        / FKL_BIGINT_DIGIT_SHIFT;
+            ((len - offset) * HEX_BIT_COUNT + FKL_BIGINT_DIGIT_SHIFT - 1)
+            / FKL_BIGINT_DIGIT_SHIFT;
     ensure_bigint_size(b, digits_count);
 
     int bits_in_accum = 0;
@@ -221,8 +463,9 @@ static inline void bigint_normalize2(int64_t *num, FklBigIntDigit *digits) {
 }
 
 void fklInitBigIntWithCharBuf2(void *ctx,
-                               const FklBigIntInitWithCharBufMethodTable *table,
-                               const char *buf, size_t len) {
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *buf,
+        size_t len) {
     if (fklIsHexInt(buf, len))
         fklInitBigIntWithHexCharBuf2(ctx, table, buf, len);
     else if (fklIsOctInt(buf, len))
@@ -231,9 +474,10 @@ void fklInitBigIntWithCharBuf2(void *ctx,
         fklInitBigIntWithDecCharBuf2(ctx, table, buf, len);
 }
 
-void fklInitBigIntWithOctCharBuf2(
-    void *ctx, const FklBigIntInitWithCharBufMethodTable *table,
-    const char *buf, size_t len) {
+void fklInitBigIntWithOctCharBuf2(void *ctx,
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *buf,
+        size_t len) {
     int neg = buf[0] == '-';
     size_t offset = (neg || buf[0] == '+') + 1;
     for (; offset < len && buf[offset] == '0'; offset++)
@@ -267,17 +511,18 @@ void fklInitBigIntWithOctCharBuf2(
         *bnum = -*bnum;
 }
 
-void fklInitBigIntWithHexCharBuf2(
-    void *ctx, const FklBigIntInitWithCharBufMethodTable *table,
-    const char *buf, size_t len) {
+void fklInitBigIntWithHexCharBuf2(void *ctx,
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *buf,
+        size_t len) {
     int neg = buf[0] == '-';
     size_t offset = (neg || buf[0] == '+') + 2;
     for (; offset < len && buf[offset] == '0'; offset++)
         ;
     const char *start = buf + offset;
     int64_t digits_count =
-        ((len - offset) * HEX_BIT_COUNT + FKL_BIGINT_DIGIT_SHIFT - 1)
-        / FKL_BIGINT_DIGIT_SHIFT;
+            ((len - offset) * HEX_BIT_COUNT + FKL_BIGINT_DIGIT_SHIFT - 1)
+            / FKL_BIGINT_DIGIT_SHIFT;
     FklBigIntDigit *bdigits = table->alloc(ctx, digits_count);
 
     int bits_in_accum = 0;
@@ -305,9 +550,10 @@ void fklInitBigIntWithHexCharBuf2(
         *bnum = -*bnum;
 }
 
-void fklInitBigIntWithDecCharBuf2(
-    void *ctx, const FklBigIntInitWithCharBufMethodTable *table,
-    const char *buf, size_t len) {
+void fklInitBigIntWithDecCharBuf2(void *ctx,
+        const FklBigIntInitWithCharBufMethodTable *table,
+        const char *buf,
+        size_t len) {
     FklBigInt b;
     fklInitBigIntWithDecCharBuf(&b, buf, len);
     FklBigIntDigit *digits = table->alloc(ctx, b.size);
@@ -403,8 +649,9 @@ FklBigInt *fklCopyBigInt(const FklBigInt *b) {
 
 int fklBigIntEqual(const FklBigInt *a, const FklBigInt *b) {
     if (a->num == b->num)
-        return memcmp(a->digits, b->digits,
-                      fklAbs(a->num) * sizeof(FklBigIntDigit))
+        return memcmp(a->digits,
+                       b->digits,
+                       fklAbs(a->num) * sizeof(FklBigIntDigit))
             == 0;
     else
         return 0;
@@ -414,9 +661,9 @@ static inline int x_cmp(const FklBigInt *a, const FklBigInt *b) {
     int64_t i = fklAbs(a->num);
     while (--i >= 0 && a->digits[i] == b->digits[i])
         ;
-    return i < 0
-             ? 0
-             : (FklBigIntSDigit)a->digits[i] - (FklBigIntSDigit)b->digits[i];
+    return i < 0 ? 0
+                 : (FklBigIntSDigit)a->digits[i]
+                           - (FklBigIntSDigit)b->digits[i];
 }
 
 int fklBigIntCmp(const FklBigInt *a, const FklBigInt *b) {
@@ -433,7 +680,7 @@ int fklBigIntCmp(const FklBigInt *a, const FklBigInt *b) {
 }
 
 static inline void set_bigint_i64_without_ensure(FklBigInt *to,
-                                                 int64_t const v) {
+        int64_t const v) {
     uint64_t uv = fklAbs(v);
     if (uv) {
         size_t c = count_digits_size(uv);
@@ -760,7 +1007,7 @@ void fklMulBigInt(FklBigInt *a, const FklBigInt *b) {
         int64_t num_b = fklAbs(b->num);
         int64_t total = num_a + num_b;
         FklBigIntDigit *result =
-            (FklBigIntDigit *)fklZcalloc(total, sizeof(FklBigIntDigit));
+                (FklBigIntDigit *)fklZcalloc(total, sizeof(FklBigIntDigit));
         FKL_ASSERT(result);
         for (int64_t i = 0; i < num_a; i++) {
             FklBigIntTwoDigit na = a->digits[i];
@@ -801,13 +1048,13 @@ int fklDivRemBigIntI(FklBigInt *b, int64_t divider, FklBigInt *rem) {
     return fklDivRemBigInt(b, &bi, rem);
 }
 
-static inline void divrem1(FklBigIntDigit *pin, int64_t size, FklBigIntDigit d,
-                           FklBigInt *rem) {
+static inline void
+divrem1(FklBigIntDigit *pin, int64_t size, FklBigIntDigit d, FklBigInt *rem) {
     FKL_ASSERT(size > 0 && d <= FKL_BIGINT_DIGIT_MASK);
     FklBigIntDigit rem1 = 0;
     while (--size >= 0) {
         FklBigIntTwoDigit dividend =
-            ((FklBigIntTwoDigit)rem1 << FKL_BIGINT_DIGIT_SHIFT) | pin[size];
+                ((FklBigIntTwoDigit)rem1 << FKL_BIGINT_DIGIT_SHIFT) | pin[size];
         FklBigIntDigit quotient = (FklBigIntDigit)(dividend / d);
         rem1 = dividend % d;
         pin[size] = quotient;
@@ -818,8 +1065,38 @@ static inline void divrem1(FklBigIntDigit *pin, int64_t size, FklBigIntDigit d,
 
 static inline uint8_t bit_length_digit(uint64_t x) {
     static const int BIT_LENGTH_TABLE[32] = {
-        0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
-        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+        0,
+        1,
+        2,
+        2,
+        3,
+        3,
+        3,
+        3,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
     };
     int msb = 0;
     while (x >= 32) {
@@ -849,15 +1126,15 @@ v_rshift(FklBigIntDigit *z, const FklBigIntDigit *a, int64_t m, int d) {
     FKL_ASSERT(0 <= d && d < FKL_BIGINT_DIGIT_SHIFT);
     for (int64_t i = m; i-- > 0;) {
         FklBigIntTwoDigit acc =
-            (FklBigIntTwoDigit)carry << FKL_BIGINT_DIGIT_SHIFT | a[i];
+                (FklBigIntTwoDigit)carry << FKL_BIGINT_DIGIT_SHIFT | a[i];
         carry = (FklBigIntDigit)acc & mask;
         z[i] = (FklBigIntDigit)(acc >> d);
     }
     return carry;
 }
 
-static inline void x_divrem(FklBigInt *v1, const FklBigInt *w1,
-                            FklBigInt *rem) {
+static inline void
+x_divrem(FklBigInt *v1, const FklBigInt *w1, FklBigInt *rem) {
     FklBigInt w = FKL_BIGINT_0;
     FklBigInt a = FKL_BIGINT_0;
     int64_t size_v = fklAbs(v1->num);
@@ -888,13 +1165,13 @@ static inline void x_divrem(FklBigInt *v1, const FklBigInt *w1,
         FklBigIntDigit vtop = vk[size_w];
         FKL_ASSERT(vtop <= wm1);
         FklBigIntTwoDigit vv =
-            ((FklBigIntTwoDigit)vtop << FKL_BIGINT_DIGIT_SHIFT)
-            | vk[size_w - 1];
+                ((FklBigIntTwoDigit)vtop << FKL_BIGINT_DIGIT_SHIFT)
+                | vk[size_w - 1];
         FklBigIntDigit q = (FklBigIntDigit)(vv / wm1);
         FklBigIntDigit r = (FklBigIntDigit)(vv % wm1);
         while ((FklBigIntTwoDigit)wm2 * q
-               > (((FklBigIntTwoDigit)r << FKL_BIGINT_DIGIT_SHIFT)
-                  | vk[size_w - 2])) {
+                > (((FklBigIntTwoDigit)r << FKL_BIGINT_DIGIT_SHIFT)
+                        | vk[size_w - 2])) {
             --q;
             r += wm1;
             if (r >= FKL_BIGINT_DIGIT_BASE)
@@ -904,8 +1181,8 @@ static inline void x_divrem(FklBigInt *v1, const FklBigInt *w1,
         FklBigIntSDigit zhi = 0;
         for (int64_t i = 0; i < size_w; ++i) {
             FklBigIntSTwoDigit z =
-                (FklBigIntSDigit)vk[i] + zhi
-                - (FklBigIntSTwoDigit)q * (FklBigIntSTwoDigit)w0[i];
+                    (FklBigIntSDigit)vk[i] + zhi
+                    - (FklBigIntSTwoDigit)q * (FklBigIntSTwoDigit)w0[i];
             vk[i] = (FklBigIntDigit)z & FKL_BIGINT_DIGIT_MASK;
             zhi = (FklBigIntSDigit)(z >> FKL_BIGINT_DIGIT_SHIFT);
         }
@@ -1091,8 +1368,8 @@ int64_t fklBigIntToI(const FklBigInt *bi) {
 }
 
 static inline size_t bigint_to_dec_string_buffer(const FklBigInt *a,
-                                                 FklBigIntToStrAllocCb alloc_cb,
-                                                 void *ctx) {
+        FklBigIntToStrAllocCb alloc_cb,
+        void *ctx) {
     FKL_ASSERT(a->num);
     int64_t size_a = fklAbs(a->num);
     int64_t d = (33 * FKL_BIGINT_DECIMAL_SHIFT)
@@ -1100,18 +1377,18 @@ static inline size_t bigint_to_dec_string_buffer(const FklBigInt *a,
     int64_t size = 1 + size_a + size_a / d;
     const FklBigIntDigit *pin = a->digits;
     FklBigIntDigit *pout =
-        (FklBigIntDigit *)fklZmalloc(size * sizeof(FklBigIntDigit));
+            (FklBigIntDigit *)fklZmalloc(size * sizeof(FklBigIntDigit));
     FKL_ASSERT(pout);
     size = 0;
     for (int64_t i = size_a; --i >= 0;) {
         FklBigIntDigit hi = pin[i];
         for (int64_t j = 0; j < size; j++) {
             FklBigIntTwoDigit z =
-                (FklBigIntTwoDigit)pout[j] << FKL_BIGINT_DIGIT_SHIFT | hi;
+                    (FklBigIntTwoDigit)pout[j] << FKL_BIGINT_DIGIT_SHIFT | hi;
             hi = (FklBigIntDigit)(z / FKL_BIGINT_DECIMAL_BASE);
             pout[j] = (FklBigIntDigit)(z
                                        - (FklBigIntTwoDigit)hi
-                                             * FKL_BIGINT_DECIMAL_BASE);
+                                                 * FKL_BIGINT_DECIMAL_BASE);
         }
         while (hi) {
             pout[size++] = hi % FKL_BIGINT_DECIMAL_BASE;
@@ -1149,10 +1426,11 @@ static inline size_t bigint_to_dec_string_buffer(const FklBigInt *a,
 }
 
 static inline size_t bigint_to_bin_string_buffer(const FklBigInt *a,
-                                                 FklBigIntToStrAllocCb alloc_cb,
-                                                 void *ctx, uint8_t base,
-                                                 FklBigIntFmtFlags flags,
-                                                 const char *alt_str) {
+        FklBigIntToStrAllocCb alloc_cb,
+        void *ctx,
+        uint8_t base,
+        FklBigIntFmtFlags flags,
+        const char *alt_str) {
     FKL_ASSERT(a->num);
     int bits = 0;
     int alternate = (flags & FKL_BIGINT_FMT_FLAG_ALTERNATE) != 0;
@@ -1201,8 +1479,11 @@ static inline size_t bigint_to_bin_string_buffer(const FklBigInt *a,
     return sz;
 }
 
-size_t fklBigIntToStr(const FklBigInt *a, FklBigIntToStrAllocCb alloc_cb,
-                      void *ctx, uint8_t radix, FklBigIntFmtFlags flags) {
+size_t fklBigIntToStr(const FklBigInt *a,
+        FklBigIntToStrAllocCb alloc_cb,
+        void *ctx,
+        uint8_t radix,
+        FklBigIntFmtFlags flags) {
     if (FKL_BIGINT_IS_0(a)) {
         char *ptr = alloc_cb(ctx, 1);
         ptr[0] = '0';
@@ -1212,9 +1493,12 @@ size_t fklBigIntToStr(const FklBigInt *a, FklBigIntToStrAllocCb alloc_cb,
     else if (radix == 8)
         return bigint_to_bin_string_buffer(a, alloc_cb, ctx, 8, flags, "0");
     else if (radix == 16)
-        return bigint_to_bin_string_buffer(
-            a, alloc_cb, ctx, 16, flags,
-            flags & FKL_BIGINT_FMT_FLAG_CAPITALS ? "0X" : "0x");
+        return bigint_to_bin_string_buffer(a,
+                alloc_cb,
+                ctx,
+                16,
+                flags,
+                flags & FKL_BIGINT_FMT_FLAG_CAPITALS ? "0X" : "0x");
     else
         abort();
 }
@@ -1239,8 +1523,8 @@ void fklPrintBigInt(const FklBigInt *a, FILE *fp) {
     }
 }
 
-char *fklBigIntToCstr(const FklBigInt *a, uint8_t radix,
-                      FklBigIntFmtFlags flags) {
+char *
+fklBigIntToCstr(const FklBigInt *a, uint8_t radix, FklBigIntFmtFlags flags) {
     char *str = NULL;
     fklBigIntToStr(a, print_bigint_alloc, &str, radix, flags);
     return str;

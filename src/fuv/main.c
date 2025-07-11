@@ -80,7 +80,7 @@ static FklVMudMetaTable FuvPublicDataMetaTable = {
 };
 
 static inline void cleanup_handle(FklVMvalue *handle_obj,
-                                  FklVMvalue *loop_obj) {
+        FklVMvalue *loop_obj) {
     if (handle_obj == NULL)
         return;
     FKL_DECL_VM_UD_DATA(fuv_handle, FuvHandle, handle_obj);
@@ -97,15 +97,19 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
         "nowait",
     };
     pd->loop_mode[UV_RUN_DEFAULT] =
-        fklAddSymbolCstr(loop_mode[UV_RUN_DEFAULT], st)->v;
+            fklAddSymbolCstr(loop_mode[UV_RUN_DEFAULT], st)->v;
     pd->loop_mode[UV_RUN_ONCE] =
-        fklAddSymbolCstr(loop_mode[UV_RUN_ONCE], st)->v;
+            fklAddSymbolCstr(loop_mode[UV_RUN_ONCE], st)->v;
     pd->loop_mode[UV_RUN_NOWAIT] =
-        fklAddSymbolCstr(loop_mode[UV_RUN_NOWAIT], st)->v;
+            fklAddSymbolCstr(loop_mode[UV_RUN_NOWAIT], st)->v;
 
     static const char *fuv_err_sym[] = {
-        "dummy",         "fuv-handle-error", "fuv-handle-error",
-        "fuv-req-error", "fuv-dir-error",    "value-error",
+        "dummy",
+        "fuv-handle-error",
+        "fuv-handle-error",
+        "fuv-req-error",
+        "fuv-dir-error",
+        "value-error",
     };
     for (size_t i = 0; i < FUV_ERR_NUM; i++)
         pd->fuv_err_sid[i] = fklAddSymbolCstr(fuv_err_sym[i], st)->v;
@@ -116,11 +120,12 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
         "loop-use-io-uring-sqpoll",
     };
     pd->loop_block_signal_sid =
-        fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL], st)->v;
+            fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL], st)->v;
     pd->metrics_idle_time_sid =
-        fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME], st)->v;
+            fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME], st)->v;
     pd->loop_use_io_uring_sqpoll =
-        fklAddSymbolCstr(loop_config_sym[UV_LOOP_USE_IO_URING_SQPOLL], st)->v;
+            fklAddSymbolCstr(loop_config_sym[UV_LOOP_USE_IO_URING_SQPOLL], st)
+                    ->v;
 
 #define XX(code, _)                                                            \
     pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st)->v;
@@ -128,11 +133,11 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
 #undef XX
 
     pd->UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid =
-        fklAddSymbolCstr("verbatim", st)->v;
+            fklAddSymbolCstr("verbatim", st)->v;
     pd->UV_PROCESS_DETACHED_sid = fklAddSymbolCstr("detached", st)->v;
     pd->UV_PROCESS_WINDOWS_HIDE_sid = fklAddSymbolCstr("hide", st)->v;
     pd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid =
-        fklAddSymbolCstr("hide-console", st)->v;
+            fklAddSymbolCstr("hide-console", st)->v;
     pd->UV_PROCESS_WINDOWS_HIDE_GUI_sid = fklAddSymbolCstr("hide-gui", st)->v;
 
     pd->UV_TTY_MODE_NORMAL_sid = fklAddSymbolCstr("normal", st)->v;
@@ -358,11 +363,11 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
 #endif
 #ifdef NI_IDN_ALLOW_UNASSIGNED
     pd->NI_IDN_ALLOW_UNASSIGNED_sid =
-        fklAddSymbolCstr("idn-allow-unassigned", st)->v;
+            fklAddSymbolCstr("idn-allow-unassigned", st)->v;
 #endif
 #ifdef NI_IDN_USE_STD3_ASCII_RULES
     pd->NI_IDN_USE_STD3_ASCII_RULES_sid =
-        fklAddSymbolCstr("idn-use-std3-ascii-rules", st)->v;
+            fklAddSymbolCstr("idn-use-std3-ascii-rules", st)->v;
 #endif
 
     pd->UV_FS_O_APPEND_sid = fklAddSymbolCstr("append", st)->v;
@@ -394,7 +399,7 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
     pd->UV_FS_COPYFILE_EXCL_sid = fklAddSymbolCstr("excl", st)->v;
     pd->UV_FS_COPYFILE_FICLONE_sid = fklAddSymbolCstr("ficlone", st)->v;
     pd->UV_FS_COPYFILE_FICLONE_FORCE_sid =
-        fklAddSymbolCstr("ficlone-force", st)->v;
+            fklAddSymbolCstr("ficlone-force", st)->v;
 
     pd->stat_f_dev_sid = fklAddSymbolCstr("dev", st)->v;
     pd->stat_f_mode_sid = fklAddSymbolCstr("mode", st)->v;
@@ -531,8 +536,9 @@ static int fuv_make_loop(FKL_CPROC_ARGL) {
 
 #define CHECK_LOOP_OPEN(LOOP, EXE, PD)                                         \
     if (fuvLoopIsClosed(LOOP))                                                 \
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALIDACCESS, EXE,                \
-                                    "loop is closed");
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALIDACCESS,                     \
+                EXE,                                                           \
+                "loop is closed");
 
 static int fuv_loop_close(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
@@ -569,7 +575,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
             FKL_DECL_VM_UD_DATA(pbd, FuvPublicData, ctx->pd);
             FklSid_t mode_id = FKL_GET_SYM(mode_obj);
             for (; mode < (int)(sizeof(pbd->loop_mode) / sizeof(FklSid_t));
-                 mode++)
+                    mode++)
                 if (pbd->loop_mode[mode] == mode_id)
                     break;
             if (mode > UV_RUN_NOWAIT)
@@ -831,9 +837,9 @@ static int fuv_handle_active_p(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_is_active(GET_HANDLE(fuv_handle)) ? FKL_VM_TRUE
-                                                          : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_is_active(GET_HANDLE(fuv_handle)) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -842,17 +848,17 @@ static int fuv_handle_closing_p(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(fuv_handle, handle_obj, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_is_closing(GET_HANDLE(fuv_handle)) ? FKL_VM_TRUE
-                                                           : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_is_closing(GET_HANDLE(fuv_handle)) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
 static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
-                                                    FuvHandle *fuv_handle,
-                                                    uv_loop_t *loop,
-                                                    FuvLoopData *loop_data,
-                                                    int idx) {
+        FuvHandle *fuv_handle,
+        uv_loop_t *loop,
+        FuvLoopData *loop_data,
+        int idx) {
     FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
@@ -903,8 +909,9 @@ static int fuv_handle_ref_p(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_has_ref(GET_HANDLE(handle)) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_has_ref(GET_HANDLE(handle)) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -981,11 +988,11 @@ static int fuv_handle_type(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
     uv_handle_type type_id = uv_handle_get_type(GET_HANDLE(handle));
     const char *name = uv_handle_type_name(type_id);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        name == NULL
-            ? FKL_VM_NIL
-            : fklCreateVMvaluePair(exe, fklCreateVMvalueStrFromCstr(exe, name),
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            name == NULL ? FKL_VM_NIL
+                         : fklCreateVMvaluePair(exe,
+                                   fklCreateVMvalueStrFromCstr(exe, name),
                                    FKL_MAKE_VM_FIX(type_id)));
     return 0;
 }
@@ -1016,8 +1023,11 @@ static void fuv_timer_cb(uv_timer_t *handle) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
-    fuv_call_handle_callback_in_loop((uv_handle_t *)handle, fuv_handle, loop,
-                                     ldata, 0);
+    fuv_call_handle_callback_in_loop((uv_handle_t *)handle,
+            fuv_handle,
+            loop,
+            ldata,
+            0);
 }
 
 static int fuv_timer_start(FKL_CPROC_ARGL) {
@@ -1038,8 +1048,10 @@ static int fuv_timer_start(FKL_CPROC_ARGL) {
     uint64_t repeat = fklVMgetUint(repeat_obj);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
     handle->data.callbacks[0] = timer_cb;
-    int r = uv_timer_start((uv_timer_t *)GET_HANDLE(handle), fuv_timer_cb,
-                           timeout, repeat);
+    int r = uv_timer_start((uv_timer_t *)GET_HANDLE(handle),
+            fuv_timer_cb,
+            timeout,
+            repeat);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, timer_obj);
     return 0;
@@ -1072,10 +1084,10 @@ static int fuv_timer_repeat(FKL_CPROC_ARGL) {
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        fklMakeVMuint(uv_timer_get_repeat((uv_timer_t *)GET_HANDLE(handle)),
-                      exe));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklMakeVMuint(uv_timer_get_repeat((uv_timer_t *)GET_HANDLE(handle)),
+                    exe));
     return 0;
 }
 
@@ -1089,7 +1101,7 @@ static int fuv_timer_repeat_set1(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(repeat_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     uv_timer_set_repeat((uv_timer_t *)GET_HANDLE(handle),
-                        fklVMgetUint(repeat_obj));
+            fklVMgetUint(repeat_obj));
     FKL_CPROC_RETURN(exe, ctx, timer_obj);
     return 0;
 }
@@ -1099,10 +1111,10 @@ static int fuv_timer_due_in(FKL_CPROC_ARGL) {
     FklVMvalue *timer_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(timer_obj, isFuvTimer, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        fklMakeVMuint(uv_timer_get_due_in((uv_timer_t *)GET_HANDLE(handle)),
-                      exe));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklMakeVMuint(uv_timer_get_due_in((uv_timer_t *)GET_HANDLE(handle)),
+                    exe));
     return 0;
 }
 
@@ -1123,8 +1135,11 @@ static void fuv_prepare_cb(uv_prepare_t *handle) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
-    fuv_call_handle_callback_in_loop((uv_handle_t *)handle, fuv_handle, loop,
-                                     ldata, 0);
+    fuv_call_handle_callback_in_loop((uv_handle_t *)handle,
+            fuv_handle,
+            loop,
+            ldata,
+            0);
 }
 
 static int fuv_prepare_start(FKL_CPROC_ARGL) {
@@ -1135,8 +1150,8 @@ static int fuv_prepare_start(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(prepare_cb, fklIsCallable, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, prepare_obj, exe, ctx->pd);
     handle->data.callbacks[0] = prepare_cb;
-    int r =
-        uv_prepare_start((uv_prepare_t *)GET_HANDLE(handle), fuv_prepare_cb);
+    int r = uv_prepare_start((uv_prepare_t *)GET_HANDLE(handle),
+            fuv_prepare_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, prepare_obj);
     return 0;
@@ -1170,8 +1185,11 @@ static void fuv_idle_cb(uv_idle_t *handle) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
-    fuv_call_handle_callback_in_loop((uv_handle_t *)handle, fuv_handle, loop,
-                                     ldata, 0);
+    fuv_call_handle_callback_in_loop((uv_handle_t *)handle,
+            fuv_handle,
+            loop,
+            ldata,
+            0);
 }
 
 static int fuv_idle_start(FKL_CPROC_ARGL) {
@@ -1216,8 +1234,11 @@ static void fuv_check_cb(uv_check_t *handle) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
-    fuv_call_handle_callback_in_loop((uv_handle_t *)handle, fuv_handle, loop,
-                                     ldata, 0);
+    fuv_call_handle_callback_in_loop((uv_handle_t *)handle,
+            fuv_handle,
+            loop,
+            ldata,
+            0);
 }
 
 static int fuv_check_start(FKL_CPROC_ARGL) {
@@ -1261,8 +1282,12 @@ static int fuv_make_signal(FKL_CPROC_ARGL) {
 typedef int (*CallbackValueCreator)(FklVM *exe, void *arg);
 
 static inline void fuv_call_handle_callback_in_loop_with_value_creator(
-    uv_handle_t *handle, FuvHandle *fuv_handle, FuvLoopData *loop_data, int idx,
-    CallbackValueCreator creator, void *arg) {
+        uv_handle_t *handle,
+        FuvHandle *fuv_handle,
+        FuvLoopData *loop_data,
+        int idx,
+        CallbackValueCreator creator,
+        void *arg) {
     FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
@@ -1277,8 +1302,12 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
             creator(exe, arg);
         fklCallObj(exe, proc);
         if (exe->thread_run_cb(exe, buttom_frame)) {
-            startErrorHandle(uv_handle_get_loop(handle), loop_data, exe, sbp,
-                             stp, buttom_frame);
+            startErrorHandle(uv_handle_get_loop(handle),
+                    loop_data,
+                    exe,
+                    sbp,
+                    stp,
+                    buttom_frame);
             fuvHandleClose(fuv_handle, NULL);
         } else
             exe->tp = stp;
@@ -1294,25 +1323,28 @@ struct SignalCbValueCreateArg {
 static int fuv_signal_cb_value_creator(FklVM *exe, void *a) {
     struct SignalCbValueCreateArg *arg = a;
     FklVMvalue *signum_val =
-        FKL_MAKE_VM_SYM(signumToSymbol(arg->num, arg->fpd));
+            FKL_MAKE_VM_SYM(signumToSymbol(arg->num, arg->fpd));
     FKL_VM_PUSH_VALUE(exe, signum_val);
     return 0;
 }
 
 static void fuv_signal_cb(uv_signal_t *handle, int num) {
     FuvLoopData *ldata =
-        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
+            uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
     struct SignalCbValueCreateArg arg = {
         .fpd = fpd,
         .num = num,
     };
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0,
-        fuv_signal_cb_value_creator, &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_signal_cb_value_creator,
+            &arg);
 }
 
 static int fuv_signal_start(FKL_CPROC_ARGL) {
@@ -1335,8 +1367,9 @@ static int fuv_signal_start(FKL_CPROC_ARGL) {
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
     handle->data.callbacks[0] = signal_cb;
-    int r = uv_signal_start((uv_signal_t *)GET_HANDLE(handle), fuv_signal_cb,
-                            signum);
+    int r = uv_signal_start((uv_signal_t *)GET_HANDLE(handle),
+            fuv_signal_cb,
+            signum);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, signal_obj);
     return 0;
@@ -1363,7 +1396,8 @@ static int fuv_signal_start_oneshot(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
     handle->data.callbacks[0] = signal_cb;
     int r = uv_signal_start_oneshot((uv_signal_t *)GET_HANDLE(handle),
-                                    fuv_signal_cb, signum);
+            fuv_signal_cb,
+            signum);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, signal_obj);
     return 0;
@@ -1457,9 +1491,10 @@ static int fuv_make_socket_poll(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklBuiltinErrorType
-get_poll_start_events(FklVMvalue **cur_arg, FklVMvalue **const arg_end,
-                      int *events, FuvPublicData *fpd) {
+static inline FklBuiltinErrorType get_poll_start_events(FklVMvalue **cur_arg,
+        FklVMvalue **const arg_end,
+        int *events,
+        FuvPublicData *fpd) {
     for (; cur_arg < arg_end; ++cur_arg) {
         FklVMvalue *v = *cur_arg;
         if (FKL_IS_SYM(v)) {
@@ -1486,29 +1521,29 @@ struct PollCreateArg {
     int events;
 };
 
-static inline FklVMvalue *poll_events_to_list(FklVM *exe, int events,
-                                              FuvPublicData *fpd) {
+static inline FklVMvalue *
+poll_events_to_list(FklVM *exe, int events, FuvPublicData *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
 
     if (events & UV_READABLE) {
-        *pr = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_READABLE_sid));
+        *pr = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_READABLE_sid));
         pr = &FKL_VM_CDR(*pr);
     }
     if (events & UV_WRITABLE) {
-        *pr = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_WRITABLE_sid));
+        *pr = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_WRITABLE_sid));
         pr = &FKL_VM_CDR(*pr);
     }
     if (events & UV_DISCONNECT) {
-        *pr = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_DISCONNECT_sid));
+        *pr = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_DISCONNECT_sid));
         pr = &FKL_VM_CDR(*pr);
     }
     if (events & UV_PRIORITIZED) {
-        *pr = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_PRIORITIZED_sid));
+        *pr = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_PRIORITIZED_sid));
         pr = &FKL_VM_CDR(*pr);
     }
 
@@ -1518,30 +1553,33 @@ static inline FklVMvalue *poll_events_to_list(FklVM *exe, int events,
 static int fuv_poll_cb_value_creator(FklVM *exe, void *a) {
     struct PollCreateArg *arg = a;
     FklVMvalue *err = arg->status < 0
-                        ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
-                        : FKL_VM_NIL;
+                            ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
+                            : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
-    FKL_VM_PUSH_VALUE(exe, err == FKL_VM_NIL
-                               ? poll_events_to_list(exe, arg->events, arg->fpd)
-                               : FKL_VM_NIL);
+    FKL_VM_PUSH_VALUE(exe,
+            err == FKL_VM_NIL ? poll_events_to_list(exe, arg->events, arg->fpd)
+                              : FKL_VM_NIL);
     return 0;
 }
 
 static void fuv_poll_cb(uv_poll_t *handle, int status, int events) {
     FuvLoopData *ldata =
-        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
+            uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
     struct PollCreateArg arg = {
         .fpd = fpd,
         .status = status,
         .events = events,
     };
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0, fuv_poll_cb_value_creator,
-        &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_poll_cb_value_creator,
+            &arg);
 }
 
 static int fuv_poll_start(FKL_CPROC_ARGL) {
@@ -1554,10 +1592,12 @@ static int fuv_poll_start(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(poll_ud, poll_obj, exe, ctx->pd);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     int events = 0;
-    FklBuiltinErrorType err_type =
-        argc > 2
-            ? get_poll_start_events(&arg_base[2], arg_base + argc, &events, fpd)
-            : 0;
+    FklBuiltinErrorType err_type = argc > 2
+                                         ? get_poll_start_events(&arg_base[2],
+                                                   arg_base + argc,
+                                                   &events,
+                                                   fpd)
+                                         : 0;
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     uv_poll_t *poll = (uv_poll_t *)GET_HANDLE(poll_ud);
@@ -1604,11 +1644,11 @@ static int fuv_req_type(FKL_CPROC_ARGL) {
 
     uv_req_type type_id = uv_req_get_type(GET_REQ(req));
     const char *name = uv_req_type_name(type_id);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        name == NULL
-            ? FKL_VM_NIL
-            : fklCreateVMvaluePair(exe, fklCreateVMvalueStrFromCstr(exe, name),
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            name == NULL ? FKL_VM_NIL
+                         : fklCreateVMvaluePair(exe,
+                                   fklCreateVMvalueStrFromCstr(exe, name),
                                    FKL_MAKE_VM_FIX(type_id)));
     return 0;
 }
@@ -1693,9 +1733,11 @@ static inline int sid_to_socktype(FklSid_t socktype_id, FuvPublicData *fpd) {
     return -1;
 }
 
-static inline FklBuiltinErrorType
-get_addrinfo_hints(FklVMgc *gc, FklVMvalue **parg, FklVMvalue **const arg_end,
-                   struct addrinfo *hints, FuvPublicData *fpd) {
+static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
+        FklVMvalue **parg,
+        FklVMvalue **const arg_end,
+        struct addrinfo *hints,
+        FuvPublicData *fpd) {
 #define GET_NEXT_ARG() ((parg < (arg_end - 1)) ? *(++parg) : NULL)
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
@@ -1735,7 +1777,7 @@ get_addrinfo_hints(FklVMgc *gc, FklVMvalue **parg, FklVMvalue **const arg_end,
                     hints->ai_protocol = proto;
                 } else if (FKL_IS_SYM(cur)) {
                     const char *name =
-                        fklVMgetSymbolWithId(gc, FKL_GET_SYM(cur))->k->str;
+                            fklVMgetSymbolWithId(gc, FKL_GET_SYM(cur))->k->str;
                     int proto = get_protonum_with_cstr(name);
                     if (proto < 0)
                         return FKL_ERR_INVALID_VALUE;
@@ -1829,7 +1871,7 @@ static inline FklVMvalue *af_num_to_symbol(int ai_family, FuvPublicData *fpd) {
 }
 
 static inline FklVMvalue *sock_num_to_symbol(int ai_socktype,
-                                             FuvPublicData *fpd) {
+        FuvPublicData *fpd) {
 #ifdef SOCK_STREAM
     if (ai_socktype == SOCK_STREAM)
         return FKL_MAKE_VM_SYM(fpd->SOCK_STREAM_sid);
@@ -1860,8 +1902,8 @@ static inline FklVMvalue *proto_num_to_symbol(int num, FklVM *exe) {
     return FKL_VM_NIL;
 }
 
-static inline FklVMvalue *addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info,
-                                             FuvPublicData *fpd) {
+static inline FklVMvalue *
+addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info, FuvPublicData *fpd) {
     char ip[INET6_ADDRSTRLEN];
     FklVMvalue *v = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(v);
@@ -1874,40 +1916,47 @@ static inline FklVMvalue *addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info,
         addr = (const char *)&((struct sockaddr_in6 *)info->ai_addr)->sin6_addr;
         port = ((struct sockaddr_in6 *)info->ai_addr)->sin6_port;
     }
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_family_sid),
-                      af_num_to_symbol(info->ai_family, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_family_sid),
+            af_num_to_symbol(info->ai_family, fpd));
     uv_inet_ntop(info->ai_family, addr, ip, INET6_ADDRSTRLEN);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_addr_sid),
-                      fklCreateVMvalueStrFromCstr(exe, ip));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_addr_sid),
+            fklCreateVMvalueStrFromCstr(exe, ip));
 
     if (ntohs(port))
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_port_sid),
-                          FKL_MAKE_VM_FIX(ntohs(port)));
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_socktype_sid),
-                      sock_num_to_symbol(info->ai_socktype, fpd));
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_protocol_sid),
-                      proto_num_to_symbol(info->ai_protocol, exe));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->f_port_sid),
+                FKL_MAKE_VM_FIX(ntohs(port)));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_socktype_sid),
+            sock_num_to_symbol(info->ai_socktype, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_protocol_sid),
+            proto_num_to_symbol(info->ai_protocol, exe));
     if (info->ai_canonname)
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_canonname_sid),
-                          fklCreateVMvalueStrFromCstr(exe, info->ai_canonname));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->f_canonname_sid),
+                fklCreateVMvalueStrFromCstr(exe, info->ai_canonname));
     return v;
 }
 
-static inline FklVMvalue *addrinfo_to_value(FklVM *exe, struct addrinfo *info,
-                                            FuvPublicData *fpd) {
+static inline FklVMvalue *
+addrinfo_to_value(FklVM *exe, struct addrinfo *info, FuvPublicData *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (; info; info = info->ai_next) {
         *pr = fklCreateVMvaluePairWithCar(exe,
-                                          addrinfo_to_vmhash(exe, info, fpd));
+                addrinfo_to_vmhash(exe, info, fpd));
         pr = &FKL_VM_CDR(*pr);
     }
     return r;
 }
 
-static void fuv_call_req_callback_in_loop_with_value_creator(
-    uv_req_t *req, CallbackValueCreator creator, void *arg) {
+static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
+        CallbackValueCreator creator,
+        void *arg) {
     FuvReq *fuv_req = uv_req_get_data(FKL_TYPE_CAST(uv_req_t *, req));
     FklVMvalue *proc = fuv_req->data.callback;
     FuvReqData *rdata = &fuv_req->data;
@@ -1928,8 +1977,9 @@ static void fuv_call_req_callback_in_loop_with_value_creator(
     FklVMframe *buttom_frame = exe->top_frame;
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, proc);
-    FuvFsReq *fs_req =
-        fuv_req->req.type == UV_FS ? FKL_TYPE_CAST(FuvFsReq *, fuv_req) : NULL;
+    FuvFsReq *fs_req = fuv_req->req.type == UV_FS
+                             ? FKL_TYPE_CAST(FuvFsReq *, fuv_req)
+                             : NULL;
     if ((!creator || !creator(exe, arg)) && fuv_req->data.loop && fs_req)
         fuvFsReqCleanUp(fs_req, FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING);
     fuvReqCleanUp(fuv_req);
@@ -1952,22 +2002,23 @@ static int fuv_getaddrinfo_cb_value_creator(FklVM *exe, void *a) {
 
     struct GetaddrinfoValueCreateArg *arg = a;
     FklVMvalue *err = arg->status < 0
-                        ? createUvErrorWithFpd(arg->status, exe, fpd)
-                        : FKL_VM_NIL;
+                            ? createUvErrorWithFpd(arg->status, exe, fpd)
+                            : FKL_VM_NIL;
     FklVMvalue *res = addrinfo_to_value(exe, arg->res, fpd);
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, res);
     return 0;
 }
 
-static void fuv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status,
-                               struct addrinfo *res) {
+static void
+fuv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addrinfo *res) {
     struct GetaddrinfoValueCreateArg arg = {
         .res = res,
         .status = status,
     };
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_getaddrinfo_cb_value_creator, &arg);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_getaddrinfo_cb_value_creator,
+            &arg);
     uv_freeaddrinfo(res);
 }
 
@@ -1998,10 +2049,12 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
     struct addrinfo hints = {
         .ai_flags = 0,
     };
-    FklBuiltinErrorType err_type =
-        argc > 4 ? get_addrinfo_hints(exe->gc, &arg_base[4], arg_base + argc,
-                                      &hints, fpd)
-                 : 0;
+    FklBuiltinErrorType err_type = argc > 4 ? get_addrinfo_hints(exe->gc,
+                                                      &arg_base[4],
+                                                      arg_base + argc,
+                                                      &hints,
+                                                      fpd)
+                                            : 0;
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -2012,18 +2065,29 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
     if (!proc_obj || proc_obj == FKL_VM_NIL) {
         uv_getaddrinfo_t req;
         fklUnlockThread(exe);
-        int r =
-            uv_getaddrinfo(&fuv_loop->loop, &req, NULL, node, service, &hints);
+        int r = uv_getaddrinfo(&fuv_loop->loop,
+                &req,
+                NULL,
+                node,
+                service,
+                &hints);
         fklLockThread(exe);
         CHECK_UV_RESULT(r, exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, addrinfo_to_value(exe, req.addrinfo, fpd));
         uv_freeaddrinfo(req.addrinfo);
     } else {
         FklVMvalue *retval = NULL;
-        uv_getaddrinfo_t *req =
-            createFuvGetaddrinfo(exe, &retval, ctx->proc, loop_obj, proc_obj);
-        int r = uv_getaddrinfo(&fuv_loop->loop, req, fuv_getaddrinfo_cb, node,
-                               service, &hints);
+        uv_getaddrinfo_t *req = createFuvGetaddrinfo(exe,
+                &retval,
+                ctx->proc,
+                loop_obj,
+                proc_obj);
+        int r = uv_getaddrinfo(&fuv_loop->loop,
+                req,
+                fuv_getaddrinfo_cb,
+                node,
+                service,
+                &hints);
         CHECK_UV_RESULT_AND_CLEANUP_REQ(r, getFuvReq(retval), exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, retval);
     }
@@ -2043,11 +2107,14 @@ static int fuv_udp_send_p(FKL_CPROC_ARGL) { PREDICATE(isFuvUdpSend(val)) }
 static int fuv_fs_req_p(FKL_CPROC_ARGL) { PREDICATE(isFuvFsReq(val)) }
 static int fuv_random_p(FKL_CPROC_ARGL) { PREDICATE(isFuvRandom(val)) }
 
-static inline FklBuiltinErrorType
-get_sockaddr_flags(FklVMvalue **parg, FklVMvalue **const arg_end,
-                   struct sockaddr_storage *addr, int *flags,
-                   FuvPublicData *fpd, FklVMvalue **pip_obj,
-                   FklVMvalue **pport_obj, int *uv_err) {
+static inline FklBuiltinErrorType get_sockaddr_flags(FklVMvalue **parg,
+        FklVMvalue **const arg_end,
+        struct sockaddr_storage *addr,
+        int *flags,
+        FuvPublicData *fpd,
+        FklVMvalue **pip_obj,
+        FklVMvalue **pport_obj,
+        int *uv_err) {
     const char *ip = NULL;
     int port = 0;
     int has_af = 0;
@@ -2161,17 +2228,18 @@ get_sockaddr_flags(FklVMvalue **parg, FklVMvalue **const arg_end,
 #undef GET_NEXT_ARG
 }
 
-static inline FklVMvalue *host_service_to_hash(FklVM *exe, const char *hostname,
-                                               const char *service,
-                                               FuvPublicData *fpd) {
+static inline FklVMvalue *host_service_to_hash(FklVM *exe,
+        const char *hostname,
+        const char *service,
+        FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_hostname_sid),
-                      hostname ? fklCreateVMvalueStrFromCstr(exe, hostname)
-                               : FKL_VM_NIL);
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_service_sid),
-                      service ? fklCreateVMvalueStrFromCstr(exe, service)
-                              : FKL_VM_NIL);
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_hostname_sid),
+            hostname ? fklCreateVMvalueStrFromCstr(exe, hostname) : FKL_VM_NIL);
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_service_sid),
+            service ? fklCreateVMvalueStrFromCstr(exe, service) : FKL_VM_NIL);
     return hash;
 }
 
@@ -2185,29 +2253,32 @@ static int fuv_getnameinfo_cb_value_creator(FklVM *exe, void *a) {
     struct GetnameinfoValueCreateArg *arg = a;
     FklVMvalue *fpd_obj = ((FklCprocFrameContext *)exe->top_frame->data)->pd;
 
-    FklVMvalue *err =
-        arg->status < 0 ? createUvError(arg->status, exe, fpd_obj) : FKL_VM_NIL;
-    FklVMvalue *hostname = arg->hostname
-                             ? fklCreateVMvalueStrFromCstr(exe, arg->hostname)
-                             : FKL_VM_NIL;
+    FklVMvalue *err = arg->status < 0 ? createUvError(arg->status, exe, fpd_obj)
+                                      : FKL_VM_NIL;
+    FklVMvalue *hostname =
+            arg->hostname ? fklCreateVMvalueStrFromCstr(exe, arg->hostname)
+                          : FKL_VM_NIL;
     FklVMvalue *service = arg->service
-                            ? fklCreateVMvalueStrFromCstr(exe, arg->service)
-                            : FKL_VM_NIL;
+                                ? fklCreateVMvalueStrFromCstr(exe, arg->service)
+                                : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, hostname);
     FKL_VM_PUSH_VALUE(exe, service);
     return 0;
 }
 
-static void fuv_getnameinfo_cb(uv_getnameinfo_t *req, int status,
-                               const char *hostname, const char *service) {
+static void fuv_getnameinfo_cb(uv_getnameinfo_t *req,
+        int status,
+        const char *hostname,
+        const char *service) {
     struct GetnameinfoValueCreateArg arg = {
         .hostname = hostname,
         .service = service,
         .status = status,
     };
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_getnameinfo_cb_value_creator, &arg);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_getnameinfo_cb_value_creator,
+            &arg);
 }
 
 static int fuv_getnameinfo(FKL_CPROC_ARGL) {
@@ -2217,16 +2288,21 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FklVMvalue *proc_obj = argc > 1 ? arg_base[1] : NULL;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
-    struct sockaddr_storage addr = {.ss_family = AF_UNSPEC};
+    struct sockaddr_storage addr = { .ss_family = AF_UNSPEC };
     int flags = 0;
 
     FklVMvalue *ip_obj = FKL_VM_NIL;
     FklVMvalue *port_obj = FKL_VM_NIL;
     int r = 0;
-    FklBuiltinErrorType error_type =
-        argc > 2 ? get_sockaddr_flags(&arg_base[2], arg_base + argc, &addr,
-                                      &flags, fpd, &ip_obj, &port_obj, &r)
-                 : 0;
+    FklBuiltinErrorType error_type = argc > 2 ? get_sockaddr_flags(&arg_base[2],
+                                                        arg_base + argc,
+                                                        &addr,
+                                                        &flags,
+                                                        fpd,
+                                                        &ip_obj,
+                                                        &port_obj,
+                                                        &r)
+                                              : 0;
     if (error_type)
         FKL_RAISE_BUILTIN_ERROR(error_type, exe);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -2235,18 +2311,28 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
     if (!proc_obj || proc_obj == FKL_VM_NIL) {
         uv_getnameinfo_t req;
         fklUnlockThread(exe);
-        int r = uv_getnameinfo(&fuv_loop->loop, &req, NULL,
-                               (struct sockaddr *)&addr, flags);
+        int r = uv_getnameinfo(&fuv_loop->loop,
+                &req,
+                NULL,
+                (struct sockaddr *)&addr,
+                flags);
         fklLockThread(exe);
         CHECK_UV_RESULT(r, exe, ctx->pd);
-        FKL_CPROC_RETURN(exe, ctx,
-                         host_service_to_hash(exe, req.host, req.service, fpd));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                host_service_to_hash(exe, req.host, req.service, fpd));
     } else {
         FklVMvalue *retval = NULL;
-        uv_getnameinfo_t *req =
-            createFuvGetnameinfo(exe, &retval, ctx->proc, loop_obj, proc_obj);
-        int r = uv_getnameinfo(&fuv_loop->loop, req, fuv_getnameinfo_cb,
-                               (struct sockaddr *)&addr, flags);
+        uv_getnameinfo_t *req = createFuvGetnameinfo(exe,
+                &retval,
+                ctx->proc,
+                loop_obj,
+                proc_obj);
+        int r = uv_getnameinfo(&fuv_loop->loop,
+                req,
+                fuv_getnameinfo_cb,
+                (struct sockaddr *)&addr,
+                flags);
         CHECK_UV_RESULT_AND_CLEANUP_REQ(r, getFuvReq(retval), exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, retval);
     }
@@ -2256,7 +2342,7 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
 static int fuv_process_p(FKL_CPROC_ARGL) { PREDICATE(isFuvProcess(val)) }
 
 static inline int is_string_list_and_get_len(const FklVMvalue *p,
-                                             uint64_t *plen) {
+        uint64_t *plen) {
     uint64_t len = 0;
     for (; p != FKL_VM_NIL; p = FKL_VM_CDR(p)) {
         if (!FKL_IS_PAIR(p) || !FKL_IS_STR(FKL_VM_CAR(p)))
@@ -2267,12 +2353,17 @@ static inline int is_string_list_and_get_len(const FklVMvalue *p,
     return 1;
 }
 
-static inline FklBuiltinErrorType
-get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
-                    uv_process_options_t *options, FuvPublicData *fpd,
-                    int *uv_err, FklVMvalue **args_obj, FklVMvalue **env_obj,
-                    FklVMvalue **stdio_obj, FklVMvalue **cwd_obj,
-                    FuvErrorType *fuv_err) {
+static inline FklBuiltinErrorType get_process_options(
+        FklVMvalue **const rest_args,
+        FklVMvalue **const arg_end,
+        uv_process_options_t *options,
+        FuvPublicData *fpd,
+        int *uv_err,
+        FklVMvalue **args_obj,
+        FklVMvalue **env_obj,
+        FklVMvalue **stdio_obj,
+        FklVMvalue **cwd_obj,
+        FuvErrorType *fuv_err) {
 #define GET_NEXT_ARG() ((parg < (arg_end - 1)) ? *(++parg) : NULL)
     for (FklVMvalue **parg = rest_args; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
@@ -2337,8 +2428,8 @@ get_process_options(FklVMvalue **const rest_args, FklVMvalue **const arg_end,
                 if (len == 0)
                     continue;
                 uv_stdio_container_t *containers =
-                    (uv_stdio_container_t *)fklZmalloc(
-                        len * sizeof(*(options->stdio)));
+                        (uv_stdio_container_t *)fklZmalloc(
+                                len * sizeof(*(options->stdio)));
                 FKL_ASSERT(containers);
                 options->stdio = containers;
                 for (uint64_t i = 0; i < len; i++) {
@@ -2449,22 +2540,26 @@ static int fuv_process_exit_cb_value_creator(FklVM *exe, void *a) {
     return 0;
 }
 
-static void fuv_process_exit_cb(uv_process_t *handle, int64_t exit_status,
-                                int term_signal) {
+static void fuv_process_exit_cb(uv_process_t *handle,
+        int64_t exit_status,
+        int term_signal) {
     FuvLoopData *ldata =
-        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
+            uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
     struct ProcessExitValueCreateArg arg = {
         .fpd = fpd,
         .term_signal = term_signal,
         .exit_status = exit_status,
     };
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0,
-        fuv_process_exit_cb_value_creator, &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_process_exit_cb_value_creator,
+            &arg);
 }
 
 static int fuv_process_spawn(FKL_CPROC_ARGL) {
@@ -2487,18 +2582,32 @@ static int fuv_process_spawn(FKL_CPROC_ARGL) {
     FklVMvalue *args_obj = NULL;
     FklVMvalue *stdio_obj = NULL;
     FklVMvalue *cwd_obj = NULL;
-    FklBuiltinErrorType fkl_err = get_process_options(
-        arg_base + 3, arg_base + argc, &options, fpd, &uv_err, &env_obj,
-        &args_obj, &stdio_obj, &cwd_obj, &fuv_err);
+    FklBuiltinErrorType fkl_err = get_process_options(arg_base + 3,
+            arg_base + argc,
+            &options,
+            fpd,
+            &uv_err,
+            &env_obj,
+            &args_obj,
+            &stdio_obj,
+            &cwd_obj,
+            &fuv_err);
     CHECK_UV_RESULT(uv_err, exe, ctx->pd);
     if (fkl_err)
         FKL_RAISE_BUILTIN_ERROR(fkl_err, exe);
     if (fuv_err)
         raiseFuvError(fuv_err, exe, ctx->pd);
     FklVMvalue *retval = NULL;
-    uv_process_t *handle =
-        createFuvProcess(exe, &retval, ctx->proc, loop_obj, exit_cb_obj,
-                         args_obj, env_obj, file_obj, stdio_obj, cwd_obj);
+    uv_process_t *handle = createFuvProcess(exe,
+            &retval,
+            ctx->proc,
+            loop_obj,
+            exit_cb_obj,
+            args_obj,
+            env_obj,
+            file_obj,
+            stdio_obj,
+            cwd_obj);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     uv_err = uv_spawn(&fuv_loop->loop, handle, &options);
     clean_options(&options);
@@ -2580,8 +2689,9 @@ static int fuv_stream_readable_p(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_is_readable(stream) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_is_readable(stream) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -2591,8 +2701,9 @@ static int fuv_stream_writable_p(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
-    FKL_CPROC_RETURN(exe, ctx,
-                     uv_is_writable(stream) ? FKL_VM_TRUE : FKL_VM_NIL);
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            uv_is_writable(stream) ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
 
@@ -2607,8 +2718,8 @@ static int fuv_stream_write_queue_size(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static void fuv_alloc_cb(uv_handle_t *handle, size_t suggested_size,
-                         uv_buf_t *buf) {
+static void
+fuv_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
     char *base;
     if (!suggested_size)
         base = NULL;
@@ -2645,22 +2756,25 @@ static int fuv_read_cb_value_creator(FklVM *exe, void *a) {
     return 0;
 }
 
-static void fuv_read_cb(uv_stream_t *stream, ssize_t nread,
-                        const uv_buf_t *buf) {
+static void
+fuv_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
     FuvLoopData *ldata =
-        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)stream));
+            uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)stream));
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)stream);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
     struct ReadValueCreateArg arg = {
         .fpd = fpd,
         .nread = nread,
         .buf = buf,
     };
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)stream, fuv_handle, ldata, 0, fuv_read_cb_value_creator,
-        &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)stream,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_read_cb_value_creator,
+            &arg);
 }
 
 static int fuv_stream_read_start(FKL_CPROC_ARGL) {
@@ -2696,19 +2810,22 @@ static int fuv_req_cb_error_value_creator(FklVM *exe, void *a) {
 
     int status = *(int *)a;
     FklVMvalue *err =
-        status < 0 ? createUvErrorWithFpd(status, exe, fpd) : FKL_VM_NIL;
+            status < 0 ? createUvErrorWithFpd(status, exe, fpd) : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
     return 0;
 }
 
 static void fuv_write_cb(uv_write_t *req, int status) {
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_req_cb_error_value_creator, &status);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_req_cb_error_value_creator,
+            &status);
 }
 
-static inline FklBuiltinErrorType
-setup_write_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
-                 FklVMvalue *write_obj, uv_buf_t **pbufs) {
+static inline FklBuiltinErrorType setup_write_data(FklVMvalue **parg,
+        FklVMvalue **const arg_end,
+        uint32_t num,
+        FklVMvalue *write_obj,
+        uv_buf_t **pbufs) {
     FKL_DECL_VM_UD_DATA(req, FuvWrite, write_obj);
     FklVMvalue **cur = req->write_objs;
     uv_buf_t *bufs = (uv_buf_t *)fklZmalloc(num * sizeof(uv_buf_t));
@@ -2753,25 +2870,37 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
     FklVMvalue *write_obj = NULL;
     uv_write_t *write = NULL;
     FklVMvalue *send_handle_obj =
-        isSendableHandle(*rest_arg) ? *(rest_arg++) : NULL;
+            isSendableHandle(*rest_arg) ? *(rest_arg++) : NULL;
     uv_buf_t *bufs = NULL;
 
     uint32_t const buf_count = argc - 2 - (send_handle_obj != NULL);
-    write = createFuvWrite(exe, &write_obj, ctx->proc, handle->data.loop,
-                           cb_obj, buf_count);
-    FklBuiltinErrorType err_type = setup_write_data(
-        rest_arg, arg_base + argc, buf_count, write_obj, &bufs);
+    write = createFuvWrite(exe,
+            &write_obj,
+            ctx->proc,
+            handle->data.loop,
+            cb_obj,
+            buf_count);
+    FklBuiltinErrorType err_type = setup_write_data(rest_arg,
+            arg_base + argc,
+            buf_count,
+            write_obj,
+            &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(handle);
     int ret = 0;
     if (send_handle_obj) {
-        DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(send_handle_ud, send_handle_obj,
-                                            exe, ctx->pd);
-        ret =
-            uv_write2(write, stream, bufs, buf_count,
-                      (uv_stream_t *)GET_HANDLE(send_handle_ud), fuv_write_cb);
+        DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(send_handle_ud,
+                send_handle_obj,
+                exe,
+                ctx->pd);
+        ret = uv_write2(write,
+                stream,
+                bufs,
+                buf_count,
+                (uv_stream_t *)GET_HANDLE(send_handle_ud),
+                fuv_write_cb);
     } else
         ret = uv_write(write, stream, bufs, buf_count, fuv_write_cb);
     fklZfree(bufs);
@@ -2780,9 +2909,10 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklBuiltinErrorType
-setup_try_write_data(FklVMvalue **parg, FklVMvalue **const arg_end,
-                     uint32_t num, uv_buf_t **pbufs) {
+static inline FklBuiltinErrorType setup_try_write_data(FklVMvalue **parg,
+        FklVMvalue **const arg_end,
+        uint32_t num,
+        uv_buf_t **pbufs) {
     uv_buf_t *bufs = (uv_buf_t *)fklZmalloc(num * sizeof(uv_buf_t));
     FKL_ASSERT(bufs);
     for (uint32_t i = 0; parg < arg_end; ++i, ++parg) {
@@ -2812,22 +2942,26 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(stream_ud, stream_obj, exe, ctx->pd);
     FklVMvalue *send_handle_obj =
-        isSendableHandle(*rest_arg) ? *(rest_arg++) : NULL;
+            isSendableHandle(*rest_arg) ? *(rest_arg++) : NULL;
     uv_buf_t *bufs = NULL;
 
     uint32_t const buf_count = argc - 1 - (send_handle_obj != NULL);
     FklBuiltinErrorType err_type =
-        setup_try_write_data(rest_arg, arg_base + argc, buf_count, &bufs);
+            setup_try_write_data(rest_arg, arg_base + argc, buf_count, &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(stream_ud);
     int ret = 0;
     if (send_handle_obj) {
-        DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(send_handle_ud, send_handle_obj,
-                                            exe, ctx->pd);
-        ret = uv_try_write2(stream, bufs, buf_count,
-                            (uv_stream_t *)GET_HANDLE(send_handle_ud));
+        DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(send_handle_ud,
+                send_handle_obj,
+                exe,
+                ctx->pd);
+        ret = uv_try_write2(stream,
+                bufs,
+                buf_count,
+                (uv_stream_t *)GET_HANDLE(send_handle_ud));
     } else
         ret = uv_try_write(stream, bufs, buf_count);
     fklZfree(bufs);
@@ -2837,8 +2971,9 @@ static int fuv_stream_try_write(FKL_CPROC_ARGL) {
 }
 
 static void fuv_shutdown_cb(uv_shutdown_t *req, int status) {
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_req_cb_error_value_creator, &status);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_req_cb_error_value_creator,
+            &status);
 }
 
 static int fuv_stream_shutdown(FKL_CPROC_ARGL) {
@@ -2850,8 +2985,11 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(stream_obj, isFuvStream, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, stream_obj, exe, ctx->pd);
     FklVMvalue *shutdown_obj = NULL;
-    uv_shutdown_t *write = createFuvShutdown(exe, &shutdown_obj, ctx->proc,
-                                             handle->data.loop, cb_obj);
+    uv_shutdown_t *write = createFuvShutdown(exe,
+            &shutdown_obj,
+            ctx->proc,
+            handle->data.loop,
+            cb_obj);
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(handle);
     int ret = uv_shutdown(write, stream, fuv_shutdown_cb);
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(shutdown_obj), exe, ctx->pd);
@@ -2867,26 +3005,29 @@ struct ConnectionValueCreateArg {
 static int fuv_connection_cb_value_creator(FklVM *exe, void *a) {
     struct ConnectionValueCreateArg *arg = a;
     FklVMvalue *err = arg->status < 0
-                        ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
-                        : FKL_VM_NIL;
+                            ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
+                            : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
     return 0;
 }
 
 static void fuv_connection_cb(uv_stream_t *handle, int status) {
     FuvLoopData *ldata =
-        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
+            uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
     struct ConnectionValueCreateArg arg = {
         .fpd = fpd,
         .status = status,
     };
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0,
-        fuv_connection_cb_value_creator, &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_connection_cb_value_creator,
+            &arg);
 }
 
 static int fuv_stream_listen(FKL_CPROC_ARGL) {
@@ -2970,9 +3111,11 @@ static int fuv_pipe(FKL_CPROC_ARGL) {
     uv_file fds[2];
     int ret = uv_pipe(fds, read_flags, write_flags);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvaluePair(exe, FKL_MAKE_VM_FIX(fds[0]),
-                                          FKL_MAKE_VM_FIX(fds[1])));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvaluePair(exe,
+                    FKL_MAKE_VM_FIX(fds[0]),
+                    FKL_MAKE_VM_FIX(fds[1])));
     return 0;
 }
 
@@ -3008,7 +3151,7 @@ static int fuv_pipe_bind(FKL_CPROC_ARGL) {
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     FklString *str = FKL_VM_STR(name_obj);
     int flags =
-        no_truncate && no_truncate != FKL_VM_NIL ? UV_PIPE_NO_TRUNCATE : 0;
+            no_truncate && no_truncate != FKL_VM_NIL ? UV_PIPE_NO_TRUNCATE : 0;
     int ret = uv_pipe_bind2(pipe, str->str, str->size, flags);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, pipe_obj);
@@ -3016,8 +3159,9 @@ static int fuv_pipe_bind(FKL_CPROC_ARGL) {
 }
 
 static void fuv_connect_cb(uv_connect_t *req, int status) {
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_req_cb_error_value_creator, &status);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_req_cb_error_value_creator,
+            &status);
 }
 
 static int fuv_pipe_connect(FKL_CPROC_ARGL) {
@@ -3035,13 +3179,20 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, pipe_obj, exe, ctx->pd);
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     FklVMvalue *connect_obj = NULL;
-    uv_connect_t *connect = createFuvConnect(exe, &connect_obj, ctx->proc,
-                                             handle->data.loop, cb_obj);
+    uv_connect_t *connect = createFuvConnect(exe,
+            &connect_obj,
+            ctx->proc,
+            handle->data.loop,
+            cb_obj);
     FklString *str = FKL_VM_STR(name_obj);
     int flags =
-        no_truncate && no_truncate != FKL_VM_NIL ? UV_PIPE_NO_TRUNCATE : 0;
-    int ret = uv_pipe_connect2(connect, pipe, str->str, str->size, flags,
-                               fuv_connect_cb);
+            no_truncate && no_truncate != FKL_VM_NIL ? UV_PIPE_NO_TRUNCATE : 0;
+    int ret = uv_pipe_connect2(connect,
+            pipe,
+            str->str,
+            str->size,
+            flags,
+            fuv_connect_cb);
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(connect_obj), exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, connect_obj);
     return 0;
@@ -3083,7 +3234,7 @@ static int fuv_pipe_peername(FKL_CPROC_ARGL) {
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
     int ret =
-        uv_pipe_getpeername((uv_pipe_t *)GET_HANDLE(handle_ud), buf, &len);
+            uv_pipe_getpeername((uv_pipe_t *)GET_HANDLE(handle_ud), buf, &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
@@ -3097,7 +3248,7 @@ static int fuv_pipe_sockname(FKL_CPROC_ARGL) {
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
     int ret =
-        uv_pipe_getsockname((uv_pipe_t *)GET_HANDLE(handle_ud), buf, &len);
+            uv_pipe_getsockname((uv_pipe_t *)GET_HANDLE(handle_ud), buf, &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
@@ -3122,11 +3273,11 @@ static int fuv_pipe_pending_type(FKL_CPROC_ARGL) {
     uv_pipe_t *pipe = (uv_pipe_t *)GET_HANDLE(handle);
     uv_handle_type type_id = uv_pipe_pending_type(pipe);
     const char *name = uv_handle_type_name(type_id);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        name == NULL
-            ? FKL_VM_NIL
-            : fklCreateVMvaluePair(exe, fklCreateVMvalueStrFromCstr(exe, name),
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            name == NULL ? FKL_VM_NIL
+                         : fklCreateVMvaluePair(exe,
+                                   fklCreateVMvalueStrFromCstr(exe, name),
                                    FKL_MAKE_VM_FIX(type_id)));
     return 0;
 }
@@ -3147,9 +3298,9 @@ static int fuv_pipe_pending_instances(FKL_CPROC_ARGL) {
 static int fuv_tcp_p(FKL_CPROC_ARGL) { PREDICATE(isFuvTcp(val)) }
 
 static inline FklBuiltinErrorType get_tcp_flags(FklVMvalue **parg,
-                                                FklVMvalue **const arg_end,
-                                                FuvPublicData *fpd,
-                                                unsigned int *flags) {
+        FklVMvalue **const arg_end,
+        FuvPublicData *fpd,
+        unsigned int *flags) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
@@ -3172,7 +3323,7 @@ static int fuv_make_tcp(FKL_CPROC_ARGL) {
     unsigned int flags = AF_UNSPEC;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     FklBuiltinErrorType err_type =
-        get_tcp_flags(&arg_base[1], arg_base + argc, fpd, &flags);
+            get_tcp_flags(&arg_base[1], arg_base + argc, fpd, &flags);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     FklVMvalue *retval = NULL;
@@ -3241,17 +3392,17 @@ static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(tcp_obj, isFuvTcp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tcp_obj, exe, ctx->pd);
     int enable = enable_obj != FKL_VM_NIL;
-    int r =
-        uv_tcp_simultaneous_accepts((uv_tcp_t *)GET_HANDLE(handle_ud), enable);
+    int r = uv_tcp_simultaneous_accepts((uv_tcp_t *)GET_HANDLE(handle_ud),
+            enable);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
     return 0;
 }
 
-static inline FklVMvalue *
-parse_sockaddr_with_fpd(FklVM *exe, struct sockaddr_storage *address,
-                        FuvPublicData *fpd) {
-    char ip[INET6_ADDRSTRLEN] = {0};
+static inline FklVMvalue *parse_sockaddr_with_fpd(FklVM *exe,
+        struct sockaddr_storage *address,
+        FuvPublicData *fpd) {
+    char ip[INET6_ADDRSTRLEN] = { 0 };
     int port = 0;
     if (address->ss_family == AF_INET) {
         struct sockaddr_in *addrin = (struct sockaddr_in *)address;
@@ -3266,14 +3417,17 @@ parse_sockaddr_with_fpd(FklVM *exe, struct sockaddr_storage *address,
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_family_sid),
-                      af_num_to_symbol(address->ss_family, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_family_sid),
+            af_num_to_symbol(address->ss_family, fpd));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_ip_sid),
-                      fklCreateVMvalueStrFromCstr(exe, ip));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_ip_sid),
+            fklCreateVMvalueStrFromCstr(exe, ip));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->f_port_sid),
-                      FKL_MAKE_VM_FIX(port));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->f_port_sid),
+            FKL_MAKE_VM_FIX(port));
 
     return hash;
 }
@@ -3292,7 +3446,8 @@ static int fuv_tcp_sockname(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
     int ret = uv_tcp_getsockname((uv_tcp_t *)GET_HANDLE(handle_ud),
-                                 (struct sockaddr *)&addr, &addrlen);
+            (struct sockaddr *)&addr,
+            &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
     return 0;
@@ -3306,7 +3461,8 @@ static int fuv_tcp_peername(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
     int ret = uv_tcp_getpeername((uv_tcp_t *)GET_HANDLE(handle_ud),
-                                 (struct sockaddr *)&addr, &addrlen);
+            (struct sockaddr *)&addr,
+            &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
     return 0;
@@ -3326,12 +3482,13 @@ static int fuv_tcp_bind(FKL_CPROC_ARGL) {
     const char *host = FKL_VM_STR(host_obj)->str;
     struct sockaddr_storage addr;
     if (uv_ip4_addr(host, port, (struct sockaddr_in *)&addr)
-        && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
+            && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     unsigned int flags =
-        ipv6only_obj && ipv6only_obj != FKL_VM_NIL ? UV_TCP_IPV6ONLY : 0;
+            ipv6only_obj && ipv6only_obj != FKL_VM_NIL ? UV_TCP_IPV6ONLY : 0;
     int ret = uv_tcp_bind((uv_tcp_t *)GET_HANDLE(handle_ud),
-                          (struct sockaddr *)&addr, flags);
+            (struct sockaddr *)&addr,
+            flags);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tcp_obj);
     return 0;
@@ -3352,14 +3509,19 @@ static int fuv_tcp_connect(FKL_CPROC_ARGL) {
     const char *host = FKL_VM_STR(host_obj)->str;
     struct sockaddr_storage addr;
     if (uv_ip4_addr(host, port, (struct sockaddr_in *)&addr)
-        && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
+            && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, tcp_obj, exe, ctx->pd);
     FklVMvalue *connect_obj = NULL;
-    uv_connect_t *connect = createFuvConnect(exe, &connect_obj, ctx->proc,
-                                             handle->data.loop, cb_obj);
-    int ret = uv_tcp_connect(connect, (uv_tcp_t *)GET_HANDLE(handle),
-                             (struct sockaddr *)&addr, fuv_connect_cb);
+    uv_connect_t *connect = createFuvConnect(exe,
+            &connect_obj,
+            ctx->proc,
+            handle->data.loop,
+            cb_obj);
+    int ret = uv_tcp_connect(connect,
+            (uv_tcp_t *)GET_HANDLE(handle),
+            (struct sockaddr *)&addr,
+            fuv_connect_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, connect_obj);
     return 0;
@@ -3407,7 +3569,8 @@ static int fuv_socketpair(FKL_CPROC_ARGL) {
         protocol = proto;
     } else if (FKL_IS_SYM(protocol_obj)) {
         const char *name =
-            fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(protocol_obj))->k->str;
+                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(protocol_obj))
+                        ->k->str;
         int proto = get_protonum_with_cstr(name);
         if (proto < 0)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
@@ -3421,9 +3584,11 @@ static int fuv_socketpair(FKL_CPROC_ARGL) {
     uv_os_sock_t socks[2];
     int ret = uv_socketpair(socktype, protocol, socks, flags0, flags1);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvaluePair(exe, fklMakeVMint(socks[0], exe),
-                                          fklMakeVMint(socks[1], exe)));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvaluePair(exe,
+                    fklMakeVMint(socks[0], exe),
+                    fklMakeVMint(socks[1], exe)));
     return 0;
 }
 
@@ -3484,12 +3649,15 @@ static int fuv_tty_winsize(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tty_obj, exe, ctx->pd);
     int width = 0;
     int height = 0;
-    int r =
-        uv_tty_get_winsize((uv_tty_t *)GET_HANDLE(handle_ud), &width, &height);
+    int r = uv_tty_get_winsize((uv_tty_t *)GET_HANDLE(handle_ud),
+            &width,
+            &height);
     CHECK_UV_RESULT(r, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvaluePair(exe, FKL_MAKE_VM_FIX(width),
-                                          FKL_MAKE_VM_FIX(height)));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvaluePair(exe,
+                    FKL_MAKE_VM_FIX(width),
+                    FKL_MAKE_VM_FIX(height)));
     return 0;
 }
 
@@ -3564,11 +3732,12 @@ static int fuv_make_udp(FKL_CPROC_ARGL) {
                         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
                     if (!FKL_IS_FIX(cur))
                         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,
-                                                exe);
+                                exe);
                     mmsg_num_msgs = FKL_GET_FIX(cur);
                     if (mmsg_num_msgs < 0)
                         FKL_RAISE_BUILTIN_ERROR(
-                            FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
+                                FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
+                                exe);
                 } else
                     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
             } else {
@@ -3580,7 +3749,7 @@ static int fuv_make_udp(FKL_CPROC_ARGL) {
     }
     FklVMvalue *udp_obj = NULL;
     uv_udp_t *udp =
-        createFuvUdp(exe, &udp_obj, ctx->proc, loop_obj, mmsg_num_msgs);
+            createFuvUdp(exe, &udp_obj, ctx->proc, loop_obj, mmsg_num_msgs);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     int r = uv_udp_init_ex(&fuv_loop->loop, udp, flags);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, udp_obj, loop_obj, exe, ctx->pd);
@@ -3646,7 +3815,7 @@ static int fuv_udp_multicast_interface_set1(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *udp_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *interface_addr_obj =
-        argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+            argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(udp_obj, isFuvUdp, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
 
@@ -3691,9 +3860,11 @@ static int fuv_udp_ttl_set1(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline struct sockaddr *
-setup_udp_addr(FklVM *exe, struct sockaddr_storage *addr, FklVMvalue *host_obj,
-               FklVMvalue *port_obj, FklBuiltinErrorType *err_type) {
+static inline struct sockaddr *setup_udp_addr(FklVM *exe,
+        struct sockaddr_storage *addr,
+        FklVMvalue *host_obj,
+        FklVMvalue *port_obj,
+        FklBuiltinErrorType *err_type) {
     const char *host = NULL;
     int port = 0;
     if (host_obj == FKL_VM_NIL && port_obj == FKL_VM_NIL)
@@ -3709,7 +3880,7 @@ setup_udp_addr(FklVM *exe, struct sockaddr_storage *addr, FklVMvalue *host_obj,
     host = FKL_VM_STR(host_obj)->str;
     port = FKL_GET_FIX(port_obj);
     if (uv_ip4_addr(host, port, (struct sockaddr_in *)addr)
-        && uv_ip6_addr(host, port, (struct sockaddr_in6 *)addr)) {
+            && uv_ip6_addr(host, port, (struct sockaddr_in6 *)addr)) {
         *err_type = FKL_ERR_INVALID_VALUE;
         return NULL;
     }
@@ -3726,7 +3897,7 @@ static int fuv_udp_connect(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     FklBuiltinErrorType err_type = 0;
     struct sockaddr *addr_ptr =
-        setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
+            setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     int r = uv_udp_connect((uv_udp_t *)GET_HANDLE(udp_ud), addr_ptr);
@@ -3754,9 +3925,9 @@ static inline int sid_to_udp_flag(FklSid_t id, FuvPublicData *fpd) {
 }
 
 static inline FklBuiltinErrorType get_udp_flags(FklVMvalue **parg,
-                                                FklVMvalue **const arg_end,
-                                                unsigned int *flags,
-                                                FuvPublicData *fpd) {
+        FklVMvalue **const arg_end,
+        unsigned int *flags,
+        FuvPublicData *fpd) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
@@ -3785,17 +3956,18 @@ static int fuv_udp_bind(FKL_CPROC_ARGL) {
     const char *host = FKL_VM_STR(host_obj)->str;
     int port = FKL_GET_FIX(port_obj);
     if (uv_ip4_addr(host, port, (struct sockaddr_in *)&addr)
-        && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
+            && uv_ip6_addr(host, port, (struct sockaddr_in6 *)&addr))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     unsigned int flags = 0;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     FklBuiltinErrorType err_type =
-        argc > 3 ? get_udp_flags(&arg_base[3], arg_base + argc, &flags, fpd)
-                 : 0;
+            argc > 3 ? get_udp_flags(&arg_base[3], arg_base + argc, &flags, fpd)
+                     : 0;
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     int r = uv_udp_bind((uv_udp_t *)GET_HANDLE(udp_ud),
-                        (struct sockaddr *)&addr, flags);
+            (struct sockaddr *)&addr,
+            flags);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
     return 0;
@@ -3842,7 +4014,8 @@ static int fuv_udp_peername(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
     int ret = uv_udp_getpeername((uv_udp_t *)GET_HANDLE(udp_ud),
-                                 (struct sockaddr *)&addr, &addrlen);
+            (struct sockaddr *)&addr,
+            &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
     return 0;
@@ -3856,14 +4029,15 @@ static int fuv_udp_sockname(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     int addrlen = sizeof(addr);
     int ret = uv_udp_getsockname((uv_udp_t *)GET_HANDLE(udp_ud),
-                                 (struct sockaddr *)&addr, &addrlen);
+            (struct sockaddr *)&addr,
+            &addrlen);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, parse_sockaddr(exe, &addr, ctx->pd));
     return 0;
 }
 
-static inline int sid_to_membership(FklSid_t id, FuvPublicData *fpd,
-                                    uv_membership *membership) {
+static inline int
+sid_to_membership(FklSid_t id, FuvPublicData *fpd, uv_membership *membership) {
     if (id == fpd->UV_LEAVE_GROUP_sid) {
         *membership = UV_LEAVE_GROUP;
         return 0;
@@ -3889,15 +4063,17 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
     const char *multicast_addr = FKL_VM_STR(multicast_addr_obj)->str;
     const char *interface_addr = interface_addr_obj == FKL_VM_NIL
-                                   ? NULL
-                                   : FKL_VM_STR(interface_addr_obj)->str;
+                                       ? NULL
+                                       : FKL_VM_STR(interface_addr_obj)->str;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     FklSid_t id = FKL_GET_SYM(membership_obj);
     uv_membership membership = 0;
     if (sid_to_membership(id, fpd, &membership))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     int ret = uv_udp_set_membership((uv_udp_t *)GET_HANDLE(udp_ud),
-                                    multicast_addr, interface_addr, membership);
+            multicast_addr,
+            interface_addr,
+            membership);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
     return 0;
@@ -3919,8 +4095,8 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(udp_ud, udp_obj, exe, ctx->pd);
     const char *multicast_addr = FKL_VM_STR(multicast_addr_obj)->str;
     const char *interface_addr = interface_addr_obj == FKL_VM_NIL
-                                   ? NULL
-                                   : FKL_VM_STR(interface_addr_obj)->str;
+                                       ? NULL
+                                       : FKL_VM_STR(interface_addr_obj)->str;
     const char *source_addr = FKL_VM_STR(source_addr_obj)->str;
 
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
@@ -3929,16 +4105,20 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL) {
     if (sid_to_membership(id, fpd, &membership))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     int ret = uv_udp_set_source_membership((uv_udp_t *)GET_HANDLE(udp_ud),
-                                           multicast_addr, interface_addr,
-                                           source_addr, membership);
+            multicast_addr,
+            interface_addr,
+            source_addr,
+            membership);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
     return 0;
 }
 
-static inline FklBuiltinErrorType
-setup_udp_send_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
-                    FklVMvalue *write_obj, uv_buf_t **pbufs) {
+static inline FklBuiltinErrorType setup_udp_send_data(FklVMvalue **parg,
+        FklVMvalue **const arg_end,
+        uint32_t num,
+        FklVMvalue *write_obj,
+        uv_buf_t **pbufs) {
     FKL_DECL_VM_UD_DATA(req, FuvUdpSend, write_obj);
     FklVMvalue **cur = req->send_objs;
     uv_buf_t *bufs = (uv_buf_t *)fklZmalloc(num * sizeof(uv_buf_t));
@@ -3965,8 +4145,9 @@ setup_udp_send_data(FklVMvalue **parg, FklVMvalue **const arg_end, uint32_t num,
 }
 
 static void fuv_udp_send_cb(uv_udp_send_t *req, int status) {
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_req_cb_error_value_creator, &status);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_req_cb_error_value_creator,
+            &status);
 }
 
 static int fuv_udp_send(FKL_CPROC_ARGL) {
@@ -3990,22 +4171,33 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     FklBuiltinErrorType err_type = 0;
     struct sockaddr *addr_ptr =
-        setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
+            setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
     uv_buf_t *bufs = NULL;
     FklVMvalue *udp_send_obj = NULL;
     uv_udp_send_t *udp_send = NULL;
-    udp_send = createFuvUdpSend(exe, &udp_send_obj, ctx->proc,
-                                handle->data.loop, cb_obj, buf_count);
-    err_type = setup_udp_send_data(rest_arg, arg_base + argc, buf_count,
-                                   udp_send_obj, &bufs);
+    udp_send = createFuvUdpSend(exe,
+            &udp_send_obj,
+            ctx->proc,
+            handle->data.loop,
+            cb_obj,
+            buf_count);
+    err_type = setup_udp_send_data(rest_arg,
+            arg_base + argc,
+            buf_count,
+            udp_send_obj,
+            &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    int ret = uv_udp_send(udp_send, (uv_udp_t *)GET_HANDLE(handle), bufs,
-                          buf_count, addr_ptr, fuv_udp_send_cb);
+    int ret = uv_udp_send(udp_send,
+            (uv_udp_t *)GET_HANDLE(handle),
+            bufs,
+            buf_count,
+            addr_ptr,
+            fuv_udp_send_cb);
     fklZfree(bufs);
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(udp_send_obj), exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_send_obj);
@@ -4014,8 +4206,8 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
 
 #define MAX_DGRAM_SIZE (64 * 1024)
 
-static void fuv_udp_alloc_cb(uv_handle_t *handle, size_t suggested_size,
-                             uv_buf_t *buf) {
+static void
+fuv_udp_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
     size_t buffer_size = suggested_size;
     struct FuvUdp *udp_handle = (struct FuvUdp *)uv_handle_get_data(handle);
     if (uv_udp_using_recvmmsg((uv_udp_t *)handle)) {
@@ -4045,7 +4237,7 @@ static int fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
     struct UdpRecvArg *arg = (struct UdpRecvArg *)a;
     ssize_t nread = arg->nread;
     FklVMvalue *err =
-        nread < 0 ? createUvErrorWithFpd(nread, exe, arg->fpd) : FKL_VM_NIL;
+            nread < 0 ? createUvErrorWithFpd(nread, exe, arg->fpd) : FKL_VM_NIL;
     FklVMvalue *res = FKL_VM_NIL;
     if (nread == 0) {
         if (arg->addr)
@@ -4057,47 +4249,47 @@ static int fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
         fklZfree(arg->buf->base);
 
     FuvPublicData *fpd = arg->fpd;
-    FklVMvalue *addr = arg->addr
-                         ? parse_sockaddr_with_fpd(
-                               exe, (struct sockaddr_storage *)arg->addr, fpd)
-                         : FKL_VM_NIL;
+    FklVMvalue *addr = arg->addr ? parse_sockaddr_with_fpd(exe,
+                                           (struct sockaddr_storage *)arg->addr,
+                                           fpd)
+                                 : FKL_VM_NIL;
 
     FklVMvalue *flags = FKL_VM_NIL;
 
     FklVMvalue **pcur = &flags;
     if (arg->flags & UV_UDP_IPV6ONLY) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_IPV6ONLY_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_IPV6ONLY_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     if (arg->flags & UV_UDP_PARTIAL) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_PARTIAL_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_PARTIAL_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     if (arg->flags & UV_UDP_REUSEADDR) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_REUSEADDR_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_REUSEADDR_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     if (arg->flags & UV_UDP_MMSG_CHUNK) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_CHUNK_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_CHUNK_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     if (arg->flags & UV_UDP_MMSG_FREE) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_FREE_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_FREE_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     if (arg->flags & UV_UDP_LINUX_RECVERR) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_LINUX_RECVERR_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_LINUX_RECVERR_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     if (arg->flags & UV_UDP_RECVMMSG) {
-        *pcur = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_UDP_RECVMMSG_sid));
+        *pcur = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_UDP_RECVMMSG_sid));
         pcur = &FKL_VM_CDR(*pcur);
     }
     FKL_VM_PUSH_VALUE(exe, err);
@@ -4107,18 +4299,20 @@ static int fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
     return 0;
 }
 
-static void fuv_udp_recv_cb(uv_udp_t *handle, ssize_t nread,
-                            const uv_buf_t *buf, const struct sockaddr *addr,
-                            unsigned flags) {
+static void fuv_udp_recv_cb(uv_udp_t *handle,
+        ssize_t nread,
+        const uv_buf_t *buf,
+        const struct sockaddr *addr,
+        unsigned flags) {
     if (flags & UV_UDP_MMSG_FREE) {
         fklZfree(buf->base);
         return;
     }
     FuvLoopData *ldata =
-        uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
+            uv_loop_get_data(uv_handle_get_loop((uv_handle_t *)handle));
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
     struct UdpRecvArg arg = {
         .nread = nread,
@@ -4127,9 +4321,12 @@ static void fuv_udp_recv_cb(uv_udp_t *handle, ssize_t nread,
         .flags = flags,
         .fpd = fpd,
     };
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0,
-        fuv_udp_recv_cb_value_creator, &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_udp_recv_cb_value_creator,
+            &arg);
 }
 
 static int fuv_udp_recv_start(FKL_CPROC_ARGL) {
@@ -4162,18 +4359,20 @@ static int fuv_udp_try_send(FKL_CPROC_ARGL) {
     struct sockaddr_storage addr;
     FklBuiltinErrorType err_type = 0;
     struct sockaddr *addr_ptr =
-        setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
+            setup_udp_addr(exe, &addr, host_obj, port_obj, &err_type);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
     uv_buf_t *bufs = NULL;
     err_type =
-        setup_try_write_data(rest_arg, arg_base + argc, buf_count, &bufs);
+            setup_try_write_data(rest_arg, arg_base + argc, buf_count, &bufs);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    int ret = uv_udp_try_send((uv_udp_t *)GET_HANDLE(udp_ud), bufs, buf_count,
-                              addr_ptr);
+    int ret = uv_udp_try_send((uv_udp_t *)GET_HANDLE(udp_ud),
+            bufs,
+            buf_count,
+            addr_ptr);
     fklZfree(bufs);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(ret));
@@ -4194,9 +4393,9 @@ static int fuv_make_fs_event(FKL_CPROC_ARGL) {
 }
 
 static inline FklBuiltinErrorType get_fs_event_flags(FklVMvalue **parg,
-                                                     FklVMvalue **const arg_end,
-                                                     unsigned int *flags,
-                                                     FklVMvalue *pd) {
+        FklVMvalue **const arg_end,
+        unsigned int *flags,
+        FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
@@ -4227,21 +4426,21 @@ static int fuv_fs_event_value_creator(FklVM *exe, void *a) {
     struct FsEventCbValueCreateArg *arg = a;
     FuvPublicData *fpd = arg->fpd;
     FklVMvalue *err = arg->status < 0
-                        ? createUvErrorWithFpd(arg->status, exe, fpd)
-                        : FKL_VM_NIL;
-    FklVMvalue *path =
-        arg->path ? fklCreateVMvalueStrFromCstr(exe, arg->path) : FKL_VM_NIL;
+                            ? createUvErrorWithFpd(arg->status, exe, fpd)
+                            : FKL_VM_NIL;
+    FklVMvalue *path = arg->path ? fklCreateVMvalueStrFromCstr(exe, arg->path)
+                                 : FKL_VM_NIL;
 
     FklVMvalue *events = FKL_VM_NIL;
     FklVMvalue **pevents = &events;
     if (arg->events & UV_RENAME) {
-        *pevents = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_RENAME_sid));
+        *pevents = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_RENAME_sid));
         pevents = &FKL_VM_CDR(*pevents);
     }
     if (arg->events & UV_CHANGE) {
-        *pevents = fklCreateVMvaluePairWithCar(
-            exe, FKL_MAKE_VM_SYM(fpd->UV_CHANGE_sid));
+        *pevents = fklCreateVMvaluePairWithCar(exe,
+                FKL_MAKE_VM_SYM(fpd->UV_CHANGE_sid));
         pevents = &FKL_VM_CDR(*pevents);
     }
 
@@ -4251,13 +4450,15 @@ static int fuv_fs_event_value_creator(FklVM *exe, void *a) {
     return 0;
 }
 
-static void fuv_fs_event_cb(uv_fs_event_t *handle, const char *path, int events,
-                            int status) {
+static void fuv_fs_event_cb(uv_fs_event_t *handle,
+        const char *path,
+        int events,
+        int status) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
 
     struct FsEventCbValueCreateArg arg = {
@@ -4267,9 +4468,12 @@ static void fuv_fs_event_cb(uv_fs_event_t *handle, const char *path, int events,
         .status = status,
     };
 
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0, fuv_fs_event_value_creator,
-        &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_fs_event_value_creator,
+            &arg);
 }
 
 static int fuv_fs_event_start(FKL_CPROC_ARGL) {
@@ -4280,14 +4484,15 @@ static int fuv_fs_event_start(FKL_CPROC_ARGL) {
     FklVMvalue *path_obj = arg_base[1];
     FklVMvalue *cb_obj = arg_base[2];
     FklBuiltinErrorType err_type =
-        get_fs_event_flags(&arg_base[3], arg_base + argc, &flags, ctx->pd);
+            get_fs_event_flags(&arg_base[3], arg_base + argc, &flags, ctx->pd);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_event_obj, exe, ctx->pd);
     handle->data.callbacks[0] = cb_obj;
-    int r =
-        uv_fs_event_start((uv_fs_event_t *)GET_HANDLE(handle), fuv_fs_event_cb,
-                          FKL_VM_STR(path_obj)->str, flags);
+    int r = uv_fs_event_start((uv_fs_event_t *)GET_HANDLE(handle),
+            fuv_fs_event_cb,
+            FKL_VM_STR(path_obj)->str,
+            flags);
 
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fs_event_obj);
@@ -4312,8 +4517,9 @@ static int fuv_fs_event_path(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, fs_event_obj, exe, ctx->pd);
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
-    int ret =
-        uv_fs_event_getpath((uv_fs_event_t *)GET_HANDLE(handle_ud), buf, &len);
+    int ret = uv_fs_event_getpath((uv_fs_event_t *)GET_HANDLE(handle_ud),
+            buf,
+            &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
@@ -4337,67 +4543,85 @@ timespec_to_vmtable(FklVM *exe, const uv_timespec_t *spec, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+            fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
-                      fklMakeVMint(spec->tv_nsec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
+            fklMakeVMint(spec->tv_nsec, exe));
 
     return hash;
 }
 
-static inline FklVMvalue *stat_to_vmtable(FklVM *exe, const uv_stat_t *stat,
-                                          FuvPublicData *fpd) {
+static inline FklVMvalue *
+stat_to_vmtable(FklVM *exe, const uv_stat_t *stat, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_dev_sid),
-                      fklMakeVMuint(stat->st_dev, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_dev_sid),
+            fklMakeVMuint(stat->st_dev, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_mode_sid),
-                      fklMakeVMuint(stat->st_mode, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_mode_sid),
+            fklMakeVMuint(stat->st_mode, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_nlink_sid),
-                      fklMakeVMuint(stat->st_nlink, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_nlink_sid),
+            fklMakeVMuint(stat->st_nlink, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_uid_sid),
-                      fklMakeVMuint(stat->st_uid, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_uid_sid),
+            fklMakeVMuint(stat->st_uid, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_gid_sid),
-                      fklMakeVMuint(stat->st_gid, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_gid_sid),
+            fklMakeVMuint(stat->st_gid, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_rdev_sid),
-                      fklMakeVMuint(stat->st_rdev, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_rdev_sid),
+            fklMakeVMuint(stat->st_rdev, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_ino_sid),
-                      fklMakeVMuint(stat->st_ino, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_ino_sid),
+            fklMakeVMuint(stat->st_ino, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_size_sid),
-                      fklMakeVMuint(stat->st_size, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_size_sid),
+            fklMakeVMuint(stat->st_size, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_blksize_sid),
-                      fklMakeVMuint(stat->st_blksize, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_blksize_sid),
+            fklMakeVMuint(stat->st_blksize, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_blocks_sid),
-                      fklMakeVMuint(stat->st_blocks, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_blocks_sid),
+            fklMakeVMuint(stat->st_blocks, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_flags_sid),
-                      fklMakeVMuint(stat->st_flags, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_flags_sid),
+            fklMakeVMuint(stat->st_flags, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_gen_sid),
-                      fklMakeVMuint(stat->st_gen, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_gen_sid),
+            fklMakeVMuint(stat->st_gen, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_atime_sid),
-                      timespec_to_vmtable(exe, &stat->st_atim, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_atime_sid),
+            timespec_to_vmtable(exe, &stat->st_atim, fpd));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_mtime_sid),
-                      timespec_to_vmtable(exe, &stat->st_mtim, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_mtime_sid),
+            timespec_to_vmtable(exe, &stat->st_mtim, fpd));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_ctime_sid),
-                      timespec_to_vmtable(exe, &stat->st_ctim, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_ctime_sid),
+            timespec_to_vmtable(exe, &stat->st_ctim, fpd));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_birthtime_sid),
-                      timespec_to_vmtable(exe, &stat->st_birthtim, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_birthtime_sid),
+            timespec_to_vmtable(exe, &stat->st_birthtim, fpd));
 
     FklSid_t type = 0;
     if (S_ISREG(stat->st_mode))
@@ -4419,8 +4643,9 @@ static inline FklVMvalue *stat_to_vmtable(FklVM *exe, const uv_stat_t *stat,
     else
         type = fpd->stat_type_unknown_sid;
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->stat_f_type_sid),
-                      FKL_MAKE_VM_SYM(type));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->stat_f_type_sid),
+            FKL_MAKE_VM_SYM(type));
     return hash;
 }
 
@@ -4435,12 +4660,12 @@ static int fuv_fs_poll_value_creator(FklVM *exe, void *a) {
     struct FsPollCbValueCreateArg *arg = a;
     FuvPublicData *fpd = arg->fpd;
     FklVMvalue *err = arg->status < 0
-                        ? createUvErrorWithFpd(arg->status, exe, fpd)
-                        : FKL_VM_NIL;
+                            ? createUvErrorWithFpd(arg->status, exe, fpd)
+                            : FKL_VM_NIL;
     FklVMvalue *prev =
-        arg->prev ? stat_to_vmtable(exe, arg->prev, fpd) : FKL_VM_NIL;
+            arg->prev ? stat_to_vmtable(exe, arg->prev, fpd) : FKL_VM_NIL;
     FklVMvalue *curr =
-        arg->curr ? stat_to_vmtable(exe, arg->curr, fpd) : FKL_VM_NIL;
+            arg->curr ? stat_to_vmtable(exe, arg->curr, fpd) : FKL_VM_NIL;
 
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, prev);
@@ -4448,13 +4673,15 @@ static int fuv_fs_poll_value_creator(FklVM *exe, void *a) {
     return 0;
 }
 
-static void fuv_fs_poll_cb(uv_fs_poll_t *handle, int status,
-                           const uv_stat_t *prev, const uv_stat_t *curr) {
+static void fuv_fs_poll_cb(uv_fs_poll_t *handle,
+        int status,
+        const uv_stat_t *prev,
+        const uv_stat_t *curr) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
     FuvHandle *fuv_handle = uv_handle_get_data((uv_handle_t *)handle);
     FklVMvalue *fpd_obj =
-        ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
+            ((FklCprocFrameContext *)ldata->exe->top_frame->data)->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
 
     struct FsPollCbValueCreateArg arg = {
@@ -4464,9 +4691,12 @@ static void fuv_fs_poll_cb(uv_fs_poll_t *handle, int status,
         .status = status,
     };
 
-    fuv_call_handle_callback_in_loop_with_value_creator(
-        (uv_handle_t *)handle, fuv_handle, ldata, 0, fuv_fs_poll_value_creator,
-        &arg);
+    fuv_call_handle_callback_in_loop_with_value_creator((uv_handle_t *)handle,
+            fuv_handle,
+            ldata,
+            0,
+            fuv_fs_poll_value_creator,
+            &arg);
 }
 
 static int fuv_fs_poll_start(FKL_CPROC_ARGL) {
@@ -4485,8 +4715,10 @@ static int fuv_fs_poll_start(FKL_CPROC_ARGL) {
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_poll_obj, exe, ctx->pd);
     handle->data.callbacks[0] = cb_obj;
-    int r = uv_fs_poll_start((uv_fs_poll_t *)GET_HANDLE(handle), fuv_fs_poll_cb,
-                             FKL_VM_STR(path_obj)->str, interval);
+    int r = uv_fs_poll_start((uv_fs_poll_t *)GET_HANDLE(handle),
+            fuv_fs_poll_cb,
+            FKL_VM_STR(path_obj)->str,
+            interval);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fs_poll_obj);
     return 0;
@@ -4510,69 +4742,84 @@ static int fuv_fs_poll_path(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, fs_poll_obj, exe, ctx->pd);
     size_t len = 2 * FKL_PATH_MAX;
     char buf[2 * FKL_PATH_MAX];
-    int ret =
-        uv_fs_poll_getpath((uv_fs_poll_t *)GET_HANDLE(handle_ud), buf, &len);
+    int ret = uv_fs_poll_getpath((uv_fs_poll_t *)GET_HANDLE(handle_ud),
+            buf,
+            &len);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, len, buf));
     return 0;
 }
 
-static inline FklVMvalue *create_fs_uv_err(FklVM *exe, int r, uv_fs_t *req,
-                                           FklVMvalue *dest_path,
-                                           FklVMvalue *pd) {
+static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
+        int r,
+        uv_fs_t *req,
+        FklVMvalue *dest_path,
+        FklVMvalue *pd) {
     FklVMvalue *err = NULL;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     if (dest_path) {
         FklStringBuffer buf;
         fklInitStringBuffer(&buf);
-        fklStringBufferPrintf(&buf, "%s: %s -> %s", uv_strerror(r), req->path,
-                              FKL_VM_STR(dest_path)->str);
-        err = fklCreateVMvalueError(exe, uvErrToSid(r, fpd),
-                                    fklStringBufferToString(&buf));
+        fklStringBufferPrintf(&buf,
+                "%s: %s -> %s",
+                uv_strerror(r),
+                req->path,
+                FKL_VM_STR(dest_path)->str);
+        err = fklCreateVMvalueError(exe,
+                uvErrToSid(r, fpd),
+                fklStringBufferToString(&buf));
         fklUninitStringBuffer(&buf);
     } else if (req->path) {
         FklStringBuffer buf;
         fklInitStringBuffer(&buf);
         fklStringBufferPrintf(&buf, "%s: %s", uv_strerror(r), req->path);
-        err = fklCreateVMvalueError(exe, uvErrToSid(r, fpd),
-                                    fklStringBufferToString(&buf));
+        err = fklCreateVMvalueError(exe,
+                uvErrToSid(r, fpd),
+                fklStringBufferToString(&buf));
         fklUninitStringBuffer(&buf);
     } else
         err = createUvErrorWithFpd(r, exe, fpd);
     return err;
 }
 
-static inline FklVMvalue *statfs_to_vmtable(FklVM *exe, uv_statfs_t *s,
-                                            FuvPublicData *fpd) {
+static inline FklVMvalue *
+statfs_to_vmtable(FklVM *exe, uv_statfs_t *s, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_type_sid),
-                      fklMakeVMuint(s->f_type, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_type_sid),
+            fklMakeVMuint(s->f_type, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_bsize_sid),
-                      fklMakeVMuint(s->f_bsize, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_bsize_sid),
+            fklMakeVMuint(s->f_bsize, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_blocks_sid),
-                      fklMakeVMuint(s->f_blocks, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_blocks_sid),
+            fklMakeVMuint(s->f_blocks, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_bfree_sid),
-                      fklMakeVMuint(s->f_bfree, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_bfree_sid),
+            fklMakeVMuint(s->f_bfree, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_bavail_sid),
-                      fklMakeVMuint(s->f_bavail, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_bavail_sid),
+            fklMakeVMuint(s->f_bavail, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_files_sid),
-                      fklMakeVMuint(s->f_files, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_files_sid),
+            fklMakeVMuint(s->f_files, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->statfs_f_ffree_sid),
-                      fklMakeVMuint(s->f_ffree, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->statfs_f_ffree_sid),
+            fklMakeVMuint(s->f_ffree, exe));
 
     return hash;
 }
 
 static inline FklSid_t dirent_type_to_sid(uv_dirent_type_t type,
-                                          FuvPublicData *fpd) {
+        FuvPublicData *fpd) {
     switch (type) {
     case UV_DIRENT_FILE:
         return fpd->UV_DIRENT_FILE_sid;
@@ -4603,28 +4850,31 @@ static inline FklSid_t dirent_type_to_sid(uv_dirent_type_t type,
     }
 }
 
-static inline FklVMvalue *dirent_to_vmtable(FklVM *exe, uv_dirent_t *d,
-                                            FuvPublicData *fpd) {
+static inline FklVMvalue *
+dirent_to_vmtable(FklVM *exe, uv_dirent_t *d, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->dirent_f_type_sid),
-                      FKL_MAKE_VM_SYM(dirent_type_to_sid(d->type, fpd)));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->dirent_f_type_sid),
+            FKL_MAKE_VM_SYM(dirent_type_to_sid(d->type, fpd)));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->dirent_f_name_sid),
-                      fklCreateVMvalueStrFromCstr(exe, d->name));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->dirent_f_name_sid),
+            fklCreateVMvalueStrFromCstr(exe, d->name));
 
     return hash;
 }
 
-static inline FklVMvalue *readdir_result_to_list(FklVM *exe, ssize_t result,
-                                                 uv_dir_t *dir,
-                                                 FuvPublicData *fpd) {
+static inline FklVMvalue *readdir_result_to_list(FklVM *exe,
+        ssize_t result,
+        uv_dir_t *dir,
+        FuvPublicData *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (ssize_t i = 0; i < result; i++) {
-        *pr = fklCreateVMvaluePairWithCar(
-            exe, dirent_to_vmtable(exe, &dir->dirents[i], fpd));
+        *pr = fklCreateVMvaluePairWithCar(exe,
+                dirent_to_vmtable(exe, &dir->dirents[i], fpd));
         pr = &FKL_VM_CDR(*pr);
     }
     return r;
@@ -4676,8 +4926,9 @@ create_fs_retval_sync(FklVM *exe, struct FuvFsReq *fs_req, FklVMvalue *pd) {
         r = fklCreateVMvalueStrFromCstr(exe, req->path);
         break;
     case UV_FS_MKSTEMP:
-        r = fklCreateVMvaluePair(exe, FKL_MAKE_VM_FIX(req->result),
-                                 fklCreateVMvalueStrFromCstr(exe, req->path));
+        r = fklCreateVMvaluePair(exe,
+                FKL_MAKE_VM_FIX(req->result),
+                fklCreateVMvalueStrFromCstr(exe, req->path));
         break;
     case UV_FS_REALPATH:
     case UV_FS_READLINK:
@@ -4703,9 +4954,11 @@ create_fs_retval_sync(FklVM *exe, struct FuvFsReq *fs_req, FklVMvalue *pd) {
     return r;
 }
 
-static inline FklVMvalue *check_fs_uv_result(ssize_t r, struct FuvFsReq *fs_req,
-                                             FklVM *exe, FklVMvalue *pd,
-                                             int sync) {
+static inline FklVMvalue *check_fs_uv_result(ssize_t r,
+        struct FuvFsReq *fs_req,
+        FklVM *exe,
+        FklVMvalue *pd,
+        int sync) {
     FklVMvalue *retval = FKL_VM_NIL;
     FklVMvalue *err = NULL;
     if (r < 0)
@@ -4726,10 +4979,12 @@ static int fuv_fs_cb_value_creator(FklVM *exe, void *a) {
 
     struct FuvFsReq *freq = a;
     uv_fs_t *req = &freq->req;
-    FklVMvalue *err =
-        req->result < 0
-            ? create_fs_uv_err(exe, req->result, req, freq->dest_path, fpd_obj)
-            : FKL_VM_NIL;
+    FklVMvalue *err = req->result < 0 ? create_fs_uv_err(exe,
+                                                req->result,
+                                                req,
+                                                freq->dest_path,
+                                                fpd_obj)
+                                      : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
     if (req->result < 0) {
         switch (req->fs_type) {
@@ -4806,8 +5061,8 @@ static int fuv_fs_cb_value_creator(FklVM *exe, void *a) {
         case UV_FS_CUSTOM:
             break;
         case UV_FS_READ:
-            FKL_VM_PUSH_VALUE(
-                exe, fklCreateVMvalueStr2(exe, req->result, freq->buf.base));
+            FKL_VM_PUSH_VALUE(exe,
+                    fklCreateVMvalueStr2(exe, req->result, freq->buf.base));
             break;
         case UV_FS_OPEN:
             FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(req->result));
@@ -4837,11 +5092,11 @@ static int fuv_fs_cb_value_creator(FklVM *exe, void *a) {
             break;
         case UV_FS_OPENDIR:
             FKL_VM_PUSH_VALUE(exe,
-                              createFuvDir(exe, fpd_obj, req, freq->nentries));
+                    createFuvDir(exe, fpd_obj, req, freq->nentries));
             break;
         case UV_FS_READDIR:
-            FKL_VM_PUSH_VALUE(
-                exe, readdir_result_to_list(exe, req->result, req->ptr, fpd));
+            FKL_VM_PUSH_VALUE(exe,
+                    readdir_result_to_list(exe, req->result, req->ptr, fpd));
             break;
         }
     }
@@ -4850,22 +5105,25 @@ static int fuv_fs_cb_value_creator(FklVM *exe, void *a) {
 }
 
 static void fuv_fs_cb(uv_fs_t *req) {
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_fs_cb_value_creator,
-        uv_req_get_data((uv_req_t *)req));
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_fs_cb_value_creator,
+            uv_req_get_data((uv_req_t *)req));
 }
 
 #define FS_CALL(EXE, PD, FUNC, FUV_LOOP, REQ, REQ_OBJ, CB_OBJ, ...)            \
     {                                                                          \
         if (CB_OBJ) {                                                          \
-            int r =                                                            \
-                FUNC(&(FUV_LOOP)->loop, &(REQ)->req, __VA_ARGS__, fuv_fs_cb);  \
+            int r = FUNC(&(FUV_LOOP)->loop,                                    \
+                    &(REQ)->req,                                               \
+                    __VA_ARGS__,                                               \
+                    fuv_fs_cb);                                                \
             check_fs_uv_result(r, (REQ), (EXE), (PD), 0);                      \
             FKL_CPROC_RETURN((EXE), ctx, (REQ_OBJ));                           \
         } else {                                                               \
             int r = FUNC(&(FUV_LOOP)->loop, &(REQ)->req, __VA_ARGS__, NULL);   \
-            FKL_CPROC_RETURN((EXE), ctx,                                       \
-                             check_fs_uv_result(r, (REQ), (EXE), (PD), 1));    \
+            FKL_CPROC_RETURN((EXE),                                            \
+                    ctx,                                                       \
+                    check_fs_uv_result(r, (REQ), (EXE), (PD), 1));             \
         }                                                                      \
     }
 
@@ -5001,11 +5259,11 @@ static int fuv_fs_type(FKL_CPROC_ARGL) {
     uv_fs_type type_id = uv_fs_get_type(fs);
     const char *name = fs_type_name(type_id);
 
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        name == NULL
-            ? FKL_VM_NIL
-            : fklCreateVMvaluePair(exe, fklCreateVMvalueStrFromCstr(exe, name),
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            name == NULL ? FKL_VM_NIL
+                         : fklCreateVMvaluePair(exe,
+                                   fklCreateVMvalueStrFromCstr(exe, name),
                                    FKL_MAKE_VM_FIX(type_id)));
     return 0;
 }
@@ -5023,9 +5281,15 @@ static int fuv_fs_close(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_close, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_close,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_GET_FIX(fd_obj));
     return 0;
 }
@@ -5078,8 +5342,8 @@ static int sid_to_fs_flags(FklSid_t id, FuvPublicData *fpd) {
     return -1;
 }
 
-static inline FklBuiltinErrorType list_to_fs_flags(FklVMvalue *cur_pair,
-                                                   int *flags, FklVMvalue *pd) {
+static inline FklBuiltinErrorType
+list_to_fs_flags(FklVMvalue *cur_pair, int *flags, FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     for (; cur_pair != FKL_VM_NIL; cur_pair = FKL_VM_CDR(cur_pair)) {
         FklVMvalue *cur = FKL_VM_CAR(cur_pair);
@@ -5143,7 +5407,7 @@ static int fuv_fs_open(FKL_CPROC_ARGL) {
     int flags = 0;
     if (fklIsList(flags_obj)) {
         FklBuiltinErrorType err_type =
-            list_to_fs_flags(flags_obj, &flags, ctx->pd);
+                list_to_fs_flags(flags_obj, &flags, ctx->pd);
         if (err_type)
             FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     } else if (FKL_IS_STR(flags_obj)) {
@@ -5165,23 +5429,32 @@ static int fuv_fs_open(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_open, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, flags, mode);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_open,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            flags,
+            mode);
     return 0;
 }
 
 static inline FklBuiltinErrorType setup_fs_write_buf(FklVMvalue **parg,
-                                                     FklVMvalue **const arg_end,
-                                                     FklStringBuffer *buf) {
+        FklVMvalue **const arg_end,
+        FklStringBuffer *buf) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_STR(cur))
             fklStringBufferConcatWithString(buf, FKL_VM_STR(cur));
         else if (FKL_IS_BYTEVECTOR(cur))
-            fklStringBufferBincpy(buf, FKL_VM_BVEC(cur)->ptr,
-                                  FKL_VM_BVEC(cur)->size);
+            fklStringBufferBincpy(buf,
+                    FKL_VM_BVEC(cur)->ptr,
+                    FKL_VM_BVEC(cur)->size);
         else
             return FKL_ERR_INCORRECT_TYPE_VALUE;
     }
@@ -5207,17 +5480,32 @@ static int fuv_fs_read(FKL_CPROC_ARGL) {
     int64_t len = fklVMgetInt(len_obj);
     if (len < 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    int64_t offset =
-        offset_obj && offset_obj != FKL_VM_NIL ? fklVMgetInt(offset_obj) : -1;
+    int64_t offset = offset_obj && offset_obj != FKL_VM_NIL
+                           ? fklVMgetInt(offset_obj)
+                           : -1;
 
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
 
     FklVMvalue *req_obj = NULL;
-    struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, len);
+    struct FuvFsReq *req = createFuvFsReq(exe,
+            &req_obj,
+            ctx->proc,
+            loop_obj,
+            cb_obj,
+            NULL,
+            len);
 
-    FS_CALL(exe, ctx->pd, uv_fs_read, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(fd_obj), &req->buf, 1, offset);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_read,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(fd_obj),
+            &req->buf,
+            1,
+            offset);
     return 0;
 }
 
@@ -5236,9 +5524,15 @@ static int fuv_fs_unlink(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_unlink, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_unlink,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -5262,15 +5556,17 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
     if (cb_obj)
         FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
 
-    int64_t offset =
-        offset_obj && offset_obj != FKL_VM_NIL ? fklVMgetInt(offset_obj) : -1;
+    int64_t offset = offset_obj && offset_obj != FKL_VM_NIL
+                           ? fklVMgetInt(offset_obj)
+                           : -1;
 
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
 
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     FklBuiltinErrorType err_type =
-        argc > 4 ? setup_fs_write_buf(&arg_base[4], arg_base + argc, &buf) : 0;
+            argc > 4 ? setup_fs_write_buf(&arg_base[4], arg_base + argc, &buf)
+                     : 0;
 
     if (err_type) {
         fklUninitStringBuffer(&buf);
@@ -5278,13 +5574,27 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
     }
 
     FklVMvalue *req_obj = NULL;
-    struct FuvFsReq *req = createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj,
-                                          cb_obj, NULL, buf.index);
+    struct FuvFsReq *req = createFuvFsReq(exe,
+            &req_obj,
+            ctx->proc,
+            loop_obj,
+            cb_obj,
+            NULL,
+            buf.index);
     memcpy(req->buf.base, buf.buf, sizeof(char) * buf.index);
     fklUninitStringBuffer(&buf);
 
-    FS_CALL(exe, ctx->pd, uv_fs_write, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(fd_obj), &req->buf, 1, offset);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_write,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(fd_obj),
+            &req->buf,
+            1,
+            offset);
     return 0;
 }
 
@@ -5312,10 +5622,17 @@ static int fuv_fs_mkdir(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_mkdir, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, mode);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_mkdir,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            mode);
     return 0;
 }
 
@@ -5334,9 +5651,15 @@ static int fuv_fs_mkdtemp(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_mkdtemp, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_mkdtemp,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(tpl_obj)->str);
     return 0;
 }
@@ -5356,9 +5679,15 @@ static int fuv_fs_mkstemp(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_mkstemp, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_mkstemp,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(tpl_obj)->str);
     return 0;
 }
@@ -5378,9 +5707,15 @@ static int fuv_fs_rmdir(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_rmdir, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_rmdir,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -5415,10 +5750,16 @@ static int fuv_fs_opendir(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
     req->nentries = nentries;
 
-    FS_CALL(exe, ctx->pd, uv_fs_opendir, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_opendir,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -5442,8 +5783,13 @@ static int fuv_fs_closedir(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
 
     FklVMvalue *req_obj = NULL;
-    struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, dir_obj, 0);
+    struct FuvFsReq *req = createFuvFsReq(exe,
+            &req_obj,
+            ctx->proc,
+            loop_obj,
+            cb_obj,
+            dir_obj,
+            0);
 
     uv_dir_t *d = dir->dir;
     cleanUpDir(dir->dir, FUV_DIR_CLEANUP_FREE_DIRENTS);
@@ -5469,10 +5815,21 @@ static int fuv_fs_readdir(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
 
     FklVMvalue *req_obj = NULL;
-    struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, dir_obj, 0);
+    struct FuvFsReq *req = createFuvFsReq(exe,
+            &req_obj,
+            ctx->proc,
+            loop_obj,
+            cb_obj,
+            dir_obj,
+            0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_readdir, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_readdir,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             dir->dir);
     return 0;
 }
@@ -5482,11 +5839,13 @@ static int fuv_scandir_cb_value_creator(FklVM *exe, void *a) {
     uv_fs_t *fs = &req->req;
     if (fs->result < 0) {
         FklVMvalue *fpd_obj =
-            ((FklCprocFrameContext *)exe->top_frame->data)->pd;
-        FklVMvalue *err =
-            fs->result < 0
-                ? create_fs_uv_err(exe, fs->result, fs, req->dest_path, fpd_obj)
-                : FKL_VM_NIL;
+                ((FklCprocFrameContext *)exe->top_frame->data)->pd;
+        FklVMvalue *err = fs->result < 0 ? create_fs_uv_err(exe,
+                                                   fs->result,
+                                                   fs,
+                                                   req->dest_path,
+                                                   fpd_obj)
+                                         : FKL_VM_NIL;
         FKL_VM_PUSH_VALUE(exe, err);
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
         return 0;
@@ -5498,9 +5857,9 @@ static int fuv_scandir_cb_value_creator(FklVM *exe, void *a) {
 }
 
 static void fuv_scandir_cb(uv_fs_t *req) {
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_scandir_cb_value_creator,
-        uv_req_get_data((uv_req_t *)req));
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_scandir_cb_value_creator,
+            uv_req_get_data((uv_req_t *)req));
 }
 
 static int fuv_fs_scandir(FKL_CPROC_ARGL) {
@@ -5520,15 +5879,31 @@ static int fuv_fs_scandir(FKL_CPROC_ARGL) {
 
     int ret = 0;
     if (cb_obj) {
-        struct FuvFsReq *req =
-            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
-        ret = uv_fs_scandir(&fuv_loop->loop, &req->req,
-                            FKL_VM_STR(path_obj)->str, 0, fuv_scandir_cb);
+        struct FuvFsReq *req = createFuvFsReq(exe,
+                &req_obj,
+                ctx->proc,
+                loop_obj,
+                cb_obj,
+                NULL,
+                0);
+        ret = uv_fs_scandir(&fuv_loop->loop,
+                &req->req,
+                FKL_VM_STR(path_obj)->str,
+                0,
+                fuv_scandir_cb);
     } else {
-        struct FuvFsReq *req =
-            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, NULL, NULL, 0);
-        ret = uv_fs_scandir(&fuv_loop->loop, &req->req,
-                            FKL_VM_STR(path_obj)->str, 0, NULL);
+        struct FuvFsReq *req = createFuvFsReq(exe,
+                &req_obj,
+                ctx->proc,
+                loop_obj,
+                NULL,
+                NULL,
+                0);
+        ret = uv_fs_scandir(&fuv_loop->loop,
+                &req->req,
+                FKL_VM_STR(path_obj)->str,
+                0,
+                NULL);
     }
     CHECK_UV_RESULT_AND_CLEANUP_REQ(ret, getFuvReq(req_obj), exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, req_obj);
@@ -5546,7 +5921,7 @@ static int fuv_fs_scandir_next(FKL_CPROC_ARGL) {
     if (fs->fs_type != UV_FS_SCANDIR)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
 
-    uv_dirent_t ent = {.name = NULL};
+    uv_dirent_t ent = { .name = NULL };
     int ret = uv_fs_scandir_next(fs, &ent);
     if (ret == UV_EOF)
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -5573,9 +5948,15 @@ static int fuv_fs_stat(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_stat, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_stat,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -5595,9 +5976,15 @@ static int fuv_fs_fstat(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_fstat, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_fstat,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_GET_FIX(fd_obj));
     return 0;
 }
@@ -5617,9 +6004,15 @@ static int fuv_fs_lstat(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_lstat, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_lstat,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -5639,9 +6032,15 @@ static int fuv_fs_statfs(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_statfs, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_statfs,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -5663,11 +6062,18 @@ static int fuv_fs_rename(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
     req->dest_path = new_path_obj;
 
-    FS_CALL(exe, ctx->pd, uv_fs_rename, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_VM_STR(new_path_obj)->str);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_rename,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_VM_STR(new_path_obj)->str);
     return 0;
 }
 
@@ -5684,9 +6090,15 @@ static int fuv_fs_fsync(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_fsync, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_fsync,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_GET_FIX(fd_obj));
     return 0;
 }
@@ -5704,9 +6116,15 @@ static int fuv_fs_fdatasync(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_fdatasync, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_fdatasync,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_GET_FIX(fd_obj));
     return 0;
 }
@@ -5726,10 +6144,17 @@ static int fuv_fs_ftruncate(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_ftruncate, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(fd_obj), fklVMgetInt(offset_obj));
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_ftruncate,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(fd_obj),
+            fklVMgetInt(offset_obj));
     return 0;
 }
 
@@ -5781,7 +6206,7 @@ static int fuv_fs_copyfile(FKL_CPROC_ARGL) {
 
     int flags = 0;
     FklBuiltinErrorType err_type =
-        list_to_copyfile_flags(flags_obj, &flags, ctx->pd);
+            list_to_copyfile_flags(flags_obj, &flags, ctx->pd);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -5789,11 +6214,19 @@ static int fuv_fs_copyfile(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
     req->dest_path = new_path_obj;
 
-    FS_CALL(exe, ctx->pd, uv_fs_copyfile, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_VM_STR(new_path_obj)->str, flags);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_copyfile,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_VM_STR(new_path_obj)->str,
+            flags);
     return 0;
 }
 
@@ -5819,11 +6252,19 @@ static int fuv_fs_sendfile(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_sendfile, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(out_fd_obj), FKL_GET_FIX(in_fd_obj),
-            fklVMgetInt(offset_obj), fklVMgetUint(len_obj));
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_sendfile,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(out_fd_obj),
+            FKL_GET_FIX(in_fd_obj),
+            fklVMgetInt(offset_obj),
+            fklVMgetUint(len_obj));
     return 0;
 }
 
@@ -5878,10 +6319,17 @@ static int fuv_fs_access(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_access, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, amode);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_access,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            amode);
     return 0;
 }
 
@@ -5900,10 +6348,17 @@ static int fuv_fs_chmod(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_chmod, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_GET_FIX(mode_obj));
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_chmod,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_GET_FIX(mode_obj));
     return 0;
 }
 
@@ -5922,10 +6377,17 @@ static int fuv_fs_fchmod(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_fchmod, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(fd_obj), FKL_GET_FIX(mode_obj));
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_fchmod,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(fd_obj),
+            FKL_GET_FIX(mode_obj));
     return 0;
 }
 
@@ -5948,10 +6410,17 @@ static int fuv_fs_utime(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_utime, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_VM_F64(atime_obj),
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_utime,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_VM_F64(atime_obj),
             FKL_VM_F64(mtime_obj));
     return 0;
 }
@@ -5975,10 +6444,18 @@ static int fuv_fs_futime(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_futime, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(fd_obj), FKL_VM_F64(atime_obj), FKL_VM_F64(mtime_obj));
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_futime,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(fd_obj),
+            FKL_VM_F64(atime_obj),
+            FKL_VM_F64(mtime_obj));
     return 0;
 }
 
@@ -6001,10 +6478,17 @@ static int fuv_fs_lutime(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_lutime, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_VM_F64(atime_obj),
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_lutime,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_VM_F64(atime_obj),
             FKL_VM_F64(mtime_obj));
     return 0;
 }
@@ -6026,11 +6510,18 @@ static int fuv_fs_link(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
     req->dest_path = new_path_obj;
 
-    FS_CALL(exe, ctx->pd, uv_fs_link, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_VM_STR(new_path_obj)->str);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_link,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_VM_STR(new_path_obj)->str);
     return 0;
 }
 
@@ -6080,7 +6571,7 @@ static int fuv_fs_symlink(FKL_CPROC_ARGL) {
 
     int flags = 0;
     FklBuiltinErrorType err_type =
-        list_to_symlink_flags(flags_obj, &flags, ctx->pd);
+            list_to_symlink_flags(flags_obj, &flags, ctx->pd);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -6088,11 +6579,19 @@ static int fuv_fs_symlink(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
     req->dest_path = new_path_obj;
 
-    FS_CALL(exe, ctx->pd, uv_fs_symlink, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_VM_STR(new_path_obj)->str, flags);
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_symlink,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_VM_STR(new_path_obj)->str,
+            flags);
     return 0;
 }
 
@@ -6111,9 +6610,15 @@ static int fuv_fs_readlink(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_readlink, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_readlink,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -6133,9 +6638,15 @@ static int fuv_fs_realpath(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_realpath, fuv_loop, req, req_obj, cb_obj,
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_realpath,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
             FKL_VM_STR(path_obj)->str);
     return 0;
 }
@@ -6159,10 +6670,17 @@ static int fuv_fs_chown(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_chown, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_GET_FIX(uid_obj),
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_chown,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_GET_FIX(uid_obj),
             FKL_GET_FIX(gid_obj));
     return 0;
 }
@@ -6186,10 +6704,18 @@ static int fuv_fs_fchown(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_fchown, fuv_loop, req, req_obj, cb_obj,
-            FKL_GET_FIX(fd_obj), FKL_GET_FIX(uid_obj), FKL_GET_FIX(gid_obj));
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_fchown,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_GET_FIX(fd_obj),
+            FKL_GET_FIX(uid_obj),
+            FKL_GET_FIX(gid_obj));
     return 0;
 }
 
@@ -6212,10 +6738,17 @@ static int fuv_fs_lchown(FKL_CPROC_ARGL) {
 
     FklVMvalue *req_obj = NULL;
     struct FuvFsReq *req =
-        createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
+            createFuvFsReq(exe, &req_obj, ctx->proc, loop_obj, cb_obj, NULL, 0);
 
-    FS_CALL(exe, ctx->pd, uv_fs_lchown, fuv_loop, req, req_obj, cb_obj,
-            FKL_VM_STR(path_obj)->str, FKL_GET_FIX(uid_obj),
+    FS_CALL(exe,
+            ctx->pd,
+            uv_fs_lchown,
+            fuv_loop,
+            req,
+            req_obj,
+            cb_obj,
+            FKL_VM_STR(path_obj)->str,
+            FKL_GET_FIX(uid_obj),
             FKL_GET_FIX(gid_obj));
     return 0;
 }
@@ -6227,11 +6760,11 @@ static int fuv_guess_handle(FKL_CPROC_ARGL) {
     uv_file fd = FKL_GET_FIX(fd_obj);
     uv_handle_type type_id = uv_guess_handle(fd);
     const char *name = uv_handle_type_name(type_id);
-    FKL_CPROC_RETURN(
-        exe, ctx,
-        name == NULL
-            ? FKL_VM_NIL
-            : fklCreateVMvaluePair(exe, fklCreateVMvalueStrFromCstr(exe, name),
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            name == NULL ? FKL_VM_NIL
+                         : fklCreateVMvaluePair(exe,
+                                   fklCreateVMvalueStrFromCstr(exe, name),
                                    FKL_MAKE_VM_FIX(type_id)));
     return 0;
 }
@@ -6280,68 +6813,86 @@ timeval_to_vmtable(FklVM *exe, const uv_timeval_t *spec, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+            fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
-                      fklMakeVMint(spec->tv_usec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
+            fklMakeVMint(spec->tv_usec, exe));
 
     return hash;
 }
 
-static inline FklVMvalue *rusage_to_vmtable(FklVM *exe, uv_rusage_t *r,
-                                            FklVMvalue *pd) {
+static inline FklVMvalue *
+rusage_to_vmtable(FklVM *exe, uv_rusage_t *r, FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_utime_sid),
-                      timeval_to_vmtable(exe, &r->ru_utime, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_utime_sid),
+            timeval_to_vmtable(exe, &r->ru_utime, fpd));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_stime_sid),
-                      timeval_to_vmtable(exe, &r->ru_stime, fpd));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_stime_sid),
+            timeval_to_vmtable(exe, &r->ru_stime, fpd));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_maxrss_sid),
-                      fklMakeVMuint(r->ru_maxrss, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_maxrss_sid),
+            fklMakeVMuint(r->ru_maxrss, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_ixrss_sid),
-                      fklMakeVMuint(r->ru_ixrss, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_ixrss_sid),
+            fklMakeVMuint(r->ru_ixrss, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_idrss_sid),
-                      fklMakeVMuint(r->ru_idrss, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_idrss_sid),
+            fklMakeVMuint(r->ru_idrss, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_isrss_sid),
-                      fklMakeVMuint(r->ru_isrss, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_isrss_sid),
+            fklMakeVMuint(r->ru_isrss, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_minflt_sid),
-                      fklMakeVMuint(r->ru_minflt, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_minflt_sid),
+            fklMakeVMuint(r->ru_minflt, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_majflt_sid),
-                      fklMakeVMuint(r->ru_majflt, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_majflt_sid),
+            fklMakeVMuint(r->ru_majflt, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nswap_sid),
-                      fklMakeVMuint(r->ru_nswap, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_nswap_sid),
+            fklMakeVMuint(r->ru_nswap, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_inblock_sid),
-                      fklMakeVMuint(r->ru_inblock, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_inblock_sid),
+            fklMakeVMuint(r->ru_inblock, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_oublock_sid),
-                      fklMakeVMuint(r->ru_oublock, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_oublock_sid),
+            fklMakeVMuint(r->ru_oublock, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_msgsnd_sid),
-                      fklMakeVMuint(r->ru_msgsnd, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_msgsnd_sid),
+            fklMakeVMuint(r->ru_msgsnd, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_msgrcv_sid),
-                      fklMakeVMuint(r->ru_msgrcv, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_msgrcv_sid),
+            fklMakeVMuint(r->ru_msgrcv, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nsignals_sid),
-                      fklMakeVMuint(r->ru_nsignals, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_nsignals_sid),
+            fklMakeVMuint(r->ru_nsignals, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nvcsw_sid),
-                      fklMakeVMuint(r->ru_nvcsw, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_nvcsw_sid),
+            fklMakeVMuint(r->ru_nvcsw, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->rusage_nivcsw_sid),
-                      fklMakeVMuint(r->ru_nivcsw, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->rusage_nivcsw_sid),
+            fklMakeVMuint(r->ru_nivcsw, exe));
     return hash;
 }
 
@@ -6384,40 +6935,49 @@ static int fuv_available_parallelism(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info,
-                                              FuvPublicData *fpd) {
+static inline FklVMvalue *
+cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_model_sid),
-                      fklCreateVMvalueStrFromCstr(exe, info->model));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_model_sid),
+            fklCreateVMvalueStrFromCstr(exe, info->model));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_speed_sid),
-                      FKL_MAKE_VM_FIX(info->speed));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_speed_sid),
+            FKL_MAKE_VM_FIX(info->speed));
 
     FklVMvalue *cpu_times = fklCreateVMvalueHashEq(exe);
     FklVMhash *cht = FKL_VM_HASH(cpu_times);
 
-    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_user_sid),
-                      fklMakeVMuint(info->cpu_times.user, exe));
+    fklVMhashTableSet(cht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_times_user_sid),
+            fklMakeVMuint(info->cpu_times.user, exe));
 
-    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_nice_sid),
-                      fklMakeVMuint(info->cpu_times.nice, exe));
+    fklVMhashTableSet(cht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_times_nice_sid),
+            fklMakeVMuint(info->cpu_times.nice, exe));
 
-    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_sys_sid),
-                      fklMakeVMuint(info->cpu_times.sys, exe));
+    fklVMhashTableSet(cht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_times_sys_sid),
+            fklMakeVMuint(info->cpu_times.sys, exe));
 
-    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_idle_sid),
-                      fklMakeVMuint(info->cpu_times.idle, exe));
+    fklVMhashTableSet(cht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_times_idle_sid),
+            fklMakeVMuint(info->cpu_times.idle, exe));
 
-    fklVMhashTableSet(cht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_irq_sid),
-                      fklMakeVMuint(info->cpu_times.irq, exe));
+    fklVMhashTableSet(cht,
+            FKL_MAKE_VM_SYM(fpd->cpu_info_times_irq_sid),
+            fklMakeVMuint(info->cpu_times.irq, exe));
 
     fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_sid), cpu_times);
     return hash;
 }
 
-static inline FklVMvalue *cpu_infos_to_vmvec(FklVM *exe, uv_cpu_info_t *infos,
-                                             int count, FklVMvalue *pd) {
+static inline FklVMvalue *cpu_infos_to_vmvec(FklVM *exe,
+        uv_cpu_info_t *infos,
+        int count,
+        FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *v = fklCreateVMvalueVec(exe, count);
     FklVMvec *vec = FKL_VM_VEC(v);
@@ -6446,9 +7006,10 @@ static int fuv_cpumask_size(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *
-interface_addresses_to_vec(FklVM *exe, uv_interface_address_t *addresses,
-                           int count, FklVMvalue *pd) {
+static inline FklVMvalue *interface_addresses_to_vec(FklVM *exe,
+        uv_interface_address_t *addresses,
+        int count,
+        FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *v = fklCreateVMvalueVec(exe, count);
     FklVMvec *vec = FKL_VM_VEC(v);
@@ -6460,16 +7021,19 @@ interface_addresses_to_vec(FklVM *exe, uv_interface_address_t *addresses,
         vec->base[i] = hash;
         FklVMhash *ht = FKL_VM_HASH(hash);
 
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_name_sid),
-                          fklCreateVMvalueStrFromCstr(exe, cur->name));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->ifa_f_name_sid),
+                fklCreateVMvalueStrFromCstr(exe, cur->name));
 
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid),
-                          fklCreateVMvalueBvec2(
-                              exe, sizeof(cur->phys_addr),
-                              FKL_TYPE_CAST(const uint8_t *, cur->phys_addr)));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid),
+                fklCreateVMvalueBvec2(exe,
+                        sizeof(cur->phys_addr),
+                        FKL_TYPE_CAST(const uint8_t *, cur->phys_addr)));
 
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid),
-                          cur->is_internal ? FKL_VM_TRUE : FKL_VM_NIL);
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid),
+                cur->is_internal ? FKL_VM_TRUE : FKL_VM_NIL);
 
         if (cur->address.address4.sin_family == AF_INET) {
             uv_ip4_name(&cur->address.address4, ip, sizeof(ip));
@@ -6482,13 +7046,15 @@ interface_addresses_to_vec(FklVM *exe, uv_interface_address_t *addresses,
             strncpy(netmask, "<unknown>", INET6_ADDRSTRLEN);
         }
 
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_ip_sid),
-                          fklCreateVMvalueStrFromCstr(exe, ip));
-        fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->ifa_f_netmask_sid),
-                          fklCreateVMvalueStrFromCstr(exe, netmask));
-        fklVMhashTableSet(
-            ht, FKL_MAKE_VM_SYM(fpd->ifa_f_family_sid),
-            af_num_to_symbol(cur->address.address4.sin_family, fpd));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->ifa_f_ip_sid),
+                fklCreateVMvalueStrFromCstr(exe, ip));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->ifa_f_netmask_sid),
+                fklCreateVMvalueStrFromCstr(exe, netmask));
+        fklVMhashTableSet(ht,
+                FKL_MAKE_VM_SYM(fpd->ifa_f_family_sid),
+                af_num_to_symbol(cur->address.address4.sin_family, fpd));
     }
     return v;
 }
@@ -6499,8 +7065,9 @@ static int fuv_interface_address(FKL_CPROC_ARGL) {
     int count = 0;
     int r = uv_interface_addresses(&addresses, &count);
     CHECK_UV_RESULT(r, exe, ctx->pd);
-    FKL_CPROC_RETURN(
-        exe, ctx, interface_addresses_to_vec(exe, addresses, count, ctx->pd));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            interface_addresses_to_vec(exe, addresses, count, ctx->pd));
     uv_free_interface_addresses(addresses, count);
     return 0;
 }
@@ -6509,10 +7076,12 @@ static int fuv_loadavg(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     double r[3];
     uv_loadavg(r);
-    FKL_CPROC_RETURN(exe, ctx,
-                     fklCreateVMvalueVec3(exe, fklCreateVMvalueF64(exe, r[0]),
-                                          fklCreateVMvalueF64(exe, r[1]),
-                                          fklCreateVMvalueF64(exe, r[2])));
+    FKL_CPROC_RETURN(exe,
+            ctx,
+            fklCreateVMvalueVec3(exe,
+                    fklCreateVMvalueF64(exe, r[0]),
+                    fklCreateVMvalueF64(exe, r[1]),
+                    fklCreateVMvalueF64(exe, r[2])));
     return 0;
 }
 
@@ -6596,29 +7165,32 @@ static int fuv_os_tmpdir(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *passwd_to_vmtable(FklVM *exe, uv_passwd_t *passwd,
-                                            FklVMvalue *pd) {
+static inline FklVMvalue *
+passwd_to_vmtable(FklVM *exe, uv_passwd_t *passwd, FklVMvalue *pd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_username_sid),
-                      fklCreateVMvalueStrFromCstr(exe, passwd->username));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->passwd_username_sid),
+            fklCreateVMvalueStrFromCstr(exe, passwd->username));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_uid_sid),
-                      fklMakeVMint(passwd->uid, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->passwd_uid_sid),
+            fklMakeVMint(passwd->uid, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_gid_sid),
-                      fklMakeVMint(passwd->gid, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->passwd_gid_sid),
+            fklMakeVMint(passwd->gid, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_shell_sid),
-                      passwd->shell
-                          ? fklCreateVMvalueStrFromCstr(exe, passwd->shell)
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->passwd_shell_sid),
+            passwd->shell ? fklCreateVMvalueStrFromCstr(exe, passwd->shell)
                           : FKL_VM_NIL);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->passwd_homedir_sid),
-                      passwd->homedir
-                          ? fklCreateVMvalueStrFromCstr(exe, passwd->homedir)
-                          : FKL_VM_NIL);
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->passwd_homedir_sid),
+            passwd->homedir ? fklCreateVMvalueStrFromCstr(exe, passwd->homedir)
+                            : FKL_VM_NIL);
     return hash;
 }
 
@@ -6668,16 +7240,18 @@ static int fuv_hrtime(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *timespec64_to_vmtable(FklVM *exe,
-                                                const uv_timespec64_t *spec,
-                                                FuvPublicData *fpd) {
+        const uv_timespec64_t *spec,
+        FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+            fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
-                      fklMakeVMint(spec->tv_nsec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
+            fklMakeVMint(spec->tv_nsec, exe));
 
     return hash;
 }
@@ -6753,9 +7327,9 @@ static int fuv_os_environ(FKL_CPROC_ARGL) {
     FklVMvalue *v = fklCreateVMvalueVec(exe, count);
     FklVMvec *vec = FKL_VM_VEC(v);
     for (int i = 0; i < count; i++)
-        vec->base[i] = fklCreateVMvaluePair(
-            exe, fklCreateVMvalueStrFromCstr(exe, items[i].name),
-            fklCreateVMvalueStrFromCstr(exe, items[i].value));
+        vec->base[i] = fklCreateVMvaluePair(exe,
+                fklCreateVMvalueStrFromCstr(exe, items[i].name),
+                fklCreateVMvalueStrFromCstr(exe, items[i].value));
     FKL_CPROC_RETURN(exe, ctx, v);
     uv_os_free_environ(items, count);
     return 0;
@@ -6770,13 +7344,15 @@ static int fuv_os_getenv(FKL_CPROC_ARGL) {
     size_t size = buf.size;
     int r = 0;
     while ((r = uv_os_getenv(FKL_VM_STR(env_obj)->str, buf.buf, &size))
-           == UV_ENOBUFS)
+            == UV_ENOBUFS)
         fklStringBufferReverse(&buf, size + 1);
     if (r == 0) {
         buf.index = size;
-        FKL_CPROC_RETURN(exe, ctx,
-                         fklCreateVMvalueStr2(exe, fklStringBufferLen(&buf),
-                                              fklStringBufferBody(&buf)));
+        FKL_CPROC_RETURN(exe,
+                ctx,
+                fklCreateVMvalueStr2(exe,
+                        fklStringBufferLen(&buf),
+                        fklStringBufferBody(&buf)));
         fklUninitStringBuffer(&buf);
     } else {
         fklUninitStringBuffer(&buf);
@@ -6864,36 +7440,42 @@ static int fuv_os_setpriority(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *timeval64_to_vmtable(FklVM *exe,
-                                               const uv_timeval64_t *spec,
-                                               FuvPublicData *fpd) {
+        const uv_timeval64_t *spec,
+        FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-                      fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
+            fklMakeVMint(spec->tv_sec, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
-                      fklMakeVMint(spec->tv_usec, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
+            fklMakeVMint(spec->tv_usec, exe));
 
     return hash;
 }
 
-static inline FklVMvalue *utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf,
-                                             FuvPublicData *fpd) {
+static inline FklVMvalue *
+utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf, FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_sysname_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->sysname));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->utsname_sysname_sid),
+            fklCreateVMvalueStrFromCstr(exe, buf->sysname));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_release_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->release));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->utsname_release_sid),
+            fklCreateVMvalueStrFromCstr(exe, buf->release));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_version_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->version));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->utsname_version_sid),
+            fklCreateVMvalueStrFromCstr(exe, buf->version));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->utsname_machine_sid),
-                      fklCreateVMvalueStrFromCstr(exe, buf->machine));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->utsname_machine_sid),
+            fklCreateVMvalueStrFromCstr(exe, buf->machine));
     return hash;
 }
 
@@ -6929,23 +7511,24 @@ static int fuv_random_cb_value_creator(FklVM *exe, void *a) {
 
     struct RandomCbValueCreateArg *arg = a;
     FklVMvalue *err = arg->status < 0
-                        ? createUvErrorWithFpd(arg->status, exe, fpd)
-                        : FKL_VM_NIL;
+                            ? createUvErrorWithFpd(arg->status, exe, fpd)
+                            : FKL_VM_NIL;
     FklVMvalue *res = fklCreateVMvalueBvec2(exe, arg->buflen, arg->buf);
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, res);
     return 0;
 }
 
-static void fuv_random_cb(uv_random_t *req, int status, void *buf,
-                          size_t buflen) {
+static void
+fuv_random_cb(uv_random_t *req, int status, void *buf, size_t buflen) {
     struct RandomCbValueCreateArg arg = {
         .buf = buf,
         .buflen = buflen,
         .status = status,
     };
-    fuv_call_req_callback_in_loop_with_value_creator(
-        (uv_req_t *)req, fuv_random_cb_value_creator, &arg);
+    fuv_call_req_callback_in_loop_with_value_creator((uv_req_t *)req,
+            fuv_random_cb_value_creator,
+            &arg);
 }
 
 static int fuv_random(FKL_CPROC_ARGL) {
@@ -6965,9 +7548,13 @@ static int fuv_random(FKL_CPROC_ARGL) {
         FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
         FklVMvalue *retval = NULL;
         struct FuvRandom *ran =
-            createFuvRandom(exe, &retval, ctx->proc, loop_obj, cb_obj, len);
-        int r = uv_random(&fuv_loop->loop, &ran->req, &ran->buf, len, 0,
-                          fuv_random_cb);
+                createFuvRandom(exe, &retval, ctx->proc, loop_obj, cb_obj, len);
+        int r = uv_random(&fuv_loop->loop,
+                &ran->req,
+                &ran->buf,
+                len,
+                0,
+                fuv_random_cb);
         CHECK_UV_RESULT_AND_CLEANUP_REQ(r, getFuvReq(retval), exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, retval);
     } else {
@@ -7005,20 +7592,23 @@ static int fuv_metrics_idle_time(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *metrics_to_vmtable(FklVM *exe, uv_metrics_t *metrics,
-                                             FklVMvalue *pd) {
+static inline FklVMvalue *
+metrics_to_vmtable(FklVM *exe, uv_metrics_t *metrics, FklVMvalue *pd) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->metrics_loop_count_sid),
-                      fklMakeVMuint(metrics->loop_count, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->metrics_loop_count_sid),
+            fklMakeVMuint(metrics->loop_count, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->metrics_events_sid),
-                      fklMakeVMuint(metrics->events, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->metrics_events_sid),
+            fklMakeVMuint(metrics->events, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->metrics_events_waiting_sid),
-                      fklMakeVMuint(metrics->events_waiting, exe));
+    fklVMhashTableSet(ht,
+            FKL_MAKE_VM_SYM(fpd->metrics_events_waiting_sid),
+            fklMakeVMuint(metrics->events_waiting, exe));
 
     return hash;
 }
@@ -7323,10 +7913,10 @@ struct SymFunc {
 };
 
 static const size_t EXPORT_NUM =
-    sizeof(exports_and_func) / sizeof(struct SymFunc);
+        sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *
-_fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
+        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     *num = EXPORT_NUM;
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
@@ -7338,7 +7928,7 @@ _fklExportSymbolInit(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
 FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     *count = EXPORT_NUM;
     FklVMvalue **loc =
-        (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
+            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
 
     FklVMvalue *fpd = fklCreateVMvalueUd(exe, &FuvPublicDataMetaTable, dll);

@@ -1718,7 +1718,7 @@ FklVMvalue *fklVMbigIntSubI(FklVM *exe, const FklVMbigInt *a, int64_t b) {
     return r;
 }
 
-FklVMvalue *fklCreateVMvalueProc(FklVM *exe,
+FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
         FklInstruction *spc,
         uint64_t cpc,
         FklVMvalue *codeObj,
@@ -1741,26 +1741,10 @@ FklVMvalue *fklCreateVMvalueProc(FklVM *exe,
     return r;
 }
 
-FklVMvalue *fklCreateVMvalueProcWithWholeCodeObj(FklVM *exe,
-        FklVMvalue *codeObj,
-        uint32_t pid) {
-    FklVMvalue *r = NEW_OBJ(FklVMvalueProc);
-    FKL_ASSERT(r);
-    r->type = FKL_TYPE_PROC;
-    FklVMproc *proc = FKL_VM_PROC(r);
-
-    FklFuncPrototype *pt = &exe->pts->pa[pid];
-
+FklVMvalue *
+fklCreateVMvalueProc(FklVM *exe, FklVMvalue *codeObj, uint32_t pid) {
     FklByteCode *bc = FKL_VM_CO(codeObj)->bc;
-    proc->spc = bc->code;
-    proc->end = bc->code + bc->len;
-    proc->sid = pt->sid;
-    proc->protoId = pid;
-    proc->lcount = pt->lcount;
-    proc->codeObj = codeObj;
-
-    fklAddToGC(r, exe);
-    return r;
+    return fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, pid);
 }
 
 FklVMvalue *fklCreateVMvalueHash(FklVM *exe, FklHashTableEqType type) {
@@ -1820,10 +1804,11 @@ static FklVMudMetaTable CodeObjUserDataMetaTable = {
     .__finalizer = _code_obj_userdata_finalizer,
 };
 
-FklVMvalue *fklCreateVMvalueCodeObj(FklVM *exe, FklByteCodelnt *bcl) {
+FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *exe, FklByteCodelnt *bcl) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
     *FKL_VM_CO(r) = *bcl;
-    fklZfree(bcl);
+    bcl->bc = NULL;
+    bcl->l = NULL;
     return r;
 }
 

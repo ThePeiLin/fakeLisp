@@ -207,9 +207,10 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     fklInitGlobalVMclosureForGC(exe);
     vm_stack_init(exe);
     if (mainCode != NULL) {
-        FklVMvalue *proc = fklCreateVMvalueProcWithWholeCodeObj(exe,
-                fklCreateVMvalueCodeObj(exe, mainCode),
+        FklVMvalue *proc = fklCreateVMvalueProc(exe,
+                fklCreateVMvalueCodeObjMove(exe, mainCode),
                 pid);
+        fklDestroyByteCodelnt(mainCode);
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -1392,7 +1393,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
         uint32_t pid) {
     FklVMvalue *codeObj = get_compound_frame_code_obj(f);
     FklFuncPrototype *pt = &exe->pts->pa[pid];
-    FklVMvalue *r = fklCreateVMvalueProc(exe,
+    FklVMvalue *r = fklCreateVMvalueProc2(exe,
             fklGetCompoundFrameCode(f),
             cpc,
             codeObj,
@@ -1599,7 +1600,7 @@ void fklInitVMlibWithCodeObj(FklVMlib *lib,
         uint32_t protoId) {
     FklByteCode *bc = FKL_VM_CO(codeObj)->bc;
     FklVMvalue *proc =
-            fklCreateVMvalueProc(exe, bc->code, bc->len, codeObj, protoId);
+            fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, protoId);
     fklInitVMlib(lib, proc);
 }
 

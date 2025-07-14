@@ -758,6 +758,8 @@ static inline void recompute_sid_for_replacements(FklReplacementHashMap *t,
         const FklSymbolTable *origin_table,
         FklSymbolTable *target_table,
         FklCodegenRecomputeNastSidOption option) {
+    if (t == NULL)
+        return;
     for (FklReplacementHashMapNode *rep_list = t->first; rep_list;
             rep_list = rep_list->next) {
         replace_sid(FKL_REMOVE_CONST(FklSid_t, &rep_list->k),
@@ -829,6 +831,9 @@ static inline void recompute_sid_for_lib_stack(
         case FKL_CODEGEN_LIB_DLL:
             recompute_sid_for_dll_lib(lib, origin_st, target_st);
             break;
+        case FKL_CODEGEN_LIB_UNINIT:
+            FKL_UNREACHABLE();
+            break;
         }
     }
 }
@@ -889,6 +894,9 @@ static inline void recompute_sid_for_double_st_lib_stack(
             break;
         case FKL_CODEGEN_LIB_DLL:
             recompute_sid_for_dll_lib(lib, origin_st, public_st);
+            break;
+        case FKL_CODEGEN_LIB_UNINIT:
+            FKL_UNREACHABLE();
             break;
         }
     }
@@ -1128,6 +1136,9 @@ static inline int load_lib_from_pre_compile(FklCodegenLib *lib,
     case FKL_CODEGEN_LIB_DLL:
         if (load_dll_lib_from_pre_compile(lib, st, main_dir, fp, errorStr))
             return 1;
+        break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
         break;
     }
     return 0;

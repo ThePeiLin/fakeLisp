@@ -170,6 +170,9 @@ int main(int argc, char **argv) {
                 case FKL_CODEGEN_LIB_DLL:
                     fputs(cur->rp, stdout);
                     break;
+                case FKL_CODEGEN_LIB_UNINIT:
+                    FKL_UNREACHABLE();
+                    break;
                 }
                 fputc('\n', stdout);
                 fklUninitCodegenLib(cur);
@@ -274,6 +277,9 @@ int main(int argc, char **argv) {
                     fputs(cur->rp, stdout);
                     fputs("\n\n", stdout);
                     break;
+                case FKL_CODEGEN_LIB_UNINIT:
+                    FKL_UNREACHABLE();
+                    break;
                 }
                 fputc('\n', stdout);
             }
@@ -308,6 +314,9 @@ int main(int argc, char **argv) {
                     case FKL_CODEGEN_LIB_DLL:
                         fputs(cur->rp, stdout);
                         fputs("\n\n", stdout);
+                        break;
+                    case FKL_CODEGEN_LIB_UNINIT:
+                        FKL_UNREACHABLE();
                         break;
                     }
                     fputc('\n', stdout);
@@ -458,6 +467,8 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
 static void print_replacements(const FklReplacementHashMap *replacements,
         const FklSymbolTable *pst,
         FILE *fp) {
+    if (replacements->count == 0)
+        return;
     fputs("\nreplacements:\n", fp);
     for (const FklReplacementHashMapNode *cur = replacements->first; cur;
             cur = cur->next) {

@@ -96,7 +96,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
         FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBackNonNull(scriptLibStack);
         FklCodegenLibType type = cur->type;
-        fklInitVMlibWithCodegenLibAndDestroy(cur,
+        fklInitVMlibWithCodegenLibMove(cur,
                 curVMlib,
                 anotherVM,
                 anotherVM->pts);
@@ -239,7 +239,9 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     FklCodegenLib *main_lib =
             fklCodegenLibVectorPopBackNonNull(&scriptLibStack);
     FklByteCodelnt *main_byte_code = main_lib->bcl;
-    fklUninitCodegenLibExceptBclAndDll(main_lib);
+
+    main_lib->bcl = NULL;
+    fklUninitCodegenLib(main_lib);
 
     FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
             &runtime_st,
@@ -257,7 +259,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
         FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack.size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBackNonNull(&scriptLibStack);
         FklCodegenLibType type = cur->type;
-        fklInitVMlibWithCodegenLibAndDestroy(cur,
+        fklInitVMlibWithCodegenLibMove(cur,
                 curVMlib,
                 anotherVM,
                 anotherVM->pts);
@@ -521,10 +523,7 @@ int main(int argc, char *argv[]) {
         while (!fklCodegenLibVectorIsEmpty(loadedLibStack)) {
             FklCodegenLib *lib =
                     fklCodegenLibVectorPopBackNonNull(loadedLibStack);
-            fklDestroyCodegenLibMacroScope(lib);
-            if (lib->type == FKL_CODEGEN_LIB_DLL)
-                uv_dlclose(&lib->dll);
-            fklUninitCodegenLibInfo(lib);
+            fklUninitCodegenLib(lib);
         }
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
@@ -692,7 +691,8 @@ static void loadLib(FILE *fp,
             uint32_t protoId = 0;
             fread(&protoId, sizeof(protoId), 1, fp);
             FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-            FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe, bcl);
+            FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe, bcl);
+            fklDestroyByteCodelnt(bcl);
             fklInitVMlibWithCodeObj(&libs[i], codeObj, exe, protoId);
             fklInitMainProcRefs(exe, libs[i].proc);
         } else {
@@ -1250,12 +1250,14 @@ static int repl_frame_step(void *data, FklVM *exe) {
             fklVMreleaseSt(exe->gc);
 
             FklVMvalue *mainProc =
-                    fklCreateVMvalueProc(exe, NULL, 0, FKL_VM_NIL, 1);
+                    fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
             fklInitMainProcRefs(exe, mainProc);
             FklVMproc *proc = FKL_VM_PROC(mainProc);
             fctx->mainProc = mainProc;
 
-            FklVMvalue *mainCodeObj = fklCreateVMvalueCodeObj(exe, mainCode);
+            FklVMvalue *mainCodeObj =
+                    fklCreateVMvalueCodeObjMove(exe, mainCode);
+            fklDestroyByteCodelnt(mainCode);
             fctx->lcount = ret_proc_idx;
             ctx->new_var_count = fctx->lcount - o_lcount;
 
@@ -1529,12 +1531,13 @@ static int eval_frame_step(void *data, FklVM *exe) {
         fklVMreleaseSt(exe->gc);
 
         FklVMvalue *mainProc =
-                fklCreateVMvalueProc(exe, NULL, 0, FKL_VM_NIL, 1);
+                fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
         fklInitMainProcRefs(exe, mainProc);
         FklVMproc *proc = FKL_VM_PROC(mainProc);
         ctx->c->mainProc = mainProc;
 
-        FklVMvalue *mainCodeObj = fklCreateVMvalueCodeObj(exe, mainCode);
+        FklVMvalue *mainCodeObj = fklCreateVMvalueCodeObjMove(exe, mainCode);
+        fklDestroyByteCodelnt(mainCode);
         fctx->lcount = proc_idx;
 
         mainCode = FKL_VM_CO(mainCodeObj);
@@ -1638,7 +1641,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     ctx->c = (struct ReplFrameCtx *)fklZcalloc(1, sizeof(struct ReplFrameCtx));
     FKL_ASSERT(ctx->c);
 
-    FklVMvalue *mainProc = fklCreateVMvalueProc(exe, NULL, 0, FKL_VM_NIL, 1);
+    FklVMvalue *mainProc = fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
     ctx->c->replxx = replxx_init();
     ctx->exe = exe;
     ctx->c->mainProc = mainProc;

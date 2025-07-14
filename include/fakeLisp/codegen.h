@@ -107,6 +107,7 @@ typedef struct FklCodegenMacroScope {
 typedef enum FklCodegenLibType {
     FKL_CODEGEN_LIB_SCRIPT = 0,
     FKL_CODEGEN_LIB_DLL = 1,
+    FKL_CODEGEN_LIB_UNINIT = 2,
 } FklCodegenLibType;
 
 typedef struct {
@@ -167,8 +168,6 @@ typedef struct {
     FklReplacementHashMap *replacements;
 
     FklGraProdGroupHashMap named_prod_groups;
-    // FklSymbolTable terminal_table;
-    // FklRegexTable regexes;
 
     uint32_t prototypeId;
 } FklCodegenLib;
@@ -309,20 +308,12 @@ typedef struct FklCodegenInfo {
 
     struct {
         FklGrammer *self_g;
-        // FklProdHashMap self_builtin_prods;
-        // FklGrammerIgnore *self_builtin_ignores;
         FklGrammer self_unnamed_g;
-        // FklProdHashMap self_unnamed_prods;
-        // FklGrammerIgnore *self_unnamed_ignores;
         FklGraProdGroupHashMap self_named_prod_groups;
     };
 
     FklGrammer **g;
-    // FklProdHashMap *builtin_prods;
-    // FklGrammerIgnore **builtin_ignores;
     FklGrammer *unnamed_g;
-    // FklProdHashMap *unnamed_prods;
-    // FklGrammerIgnore **unnamed_ignores;
     FklGraProdGroupHashMap *named_prod_groups;
 
     FklCodegenEnv *global_env;
@@ -560,11 +551,10 @@ void fklInitCodegenDllLib(FklCodegenLib *lib,
         FklCodegenDllLibInitExportFunc init,
         FklSymbolTable *pst);
 
-void fklDestroyCodegenLibMacroScope(FklCodegenLib *lib);
-void fklUninitCodegenLib(FklCodegenLib *);
-void fklUninitCodegenLibInfo(FklCodegenLib *);
+void fklClearCodegenLibMacros(FklCodegenLib *lib);
 
-void fklUninitCodegenLibExceptBclAndDll(FklCodegenLib *clib);
+void fklUninitCodegenLib(FklCodegenLib *);
+
 void fklUninitCodegenLib(FklCodegenLib *);
 
 FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
@@ -609,7 +599,7 @@ void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         int needCopy,
         FklFuncPrototypes *);
 
-void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib *clib,
+void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,
         FklVMlib *vlib,
         FklVM *vm,
         FklFuncPrototypes *);

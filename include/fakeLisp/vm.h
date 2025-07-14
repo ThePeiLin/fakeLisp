@@ -1015,14 +1015,14 @@ FklVMvalue *fklCreateVMvalueVec6(FklVM *vm,
 
 FklVMvalue *fklCreateVMvalueF64(FklVM *, double f64);
 
-FklVMvalue *fklCreateVMvalueProc(FklVM *,
+FklVMvalue *fklCreateVMvalueProc(FklVM *, FklVMvalue *codeObj, uint32_t pid);
+
+FklVMvalue *fklCreateVMvalueProc2(FklVM *,
         FklInstruction *spc,
         uint64_t cpc,
         FklVMvalue *codeObj,
         uint32_t pid);
-FklVMvalue *fklCreateVMvalueProcWithWholeCodeObj(FklVM *,
-        FklVMvalue *codeObj,
-        uint32_t pid);
+
 FklVMvalue *
 fklCreateVMvalueProcWithFrame(FklVM *, FklVMframe *f, size_t, uint32_t pid);
 void fklCreateVMvalueClosureFrom(FklVM *,
@@ -1104,7 +1104,7 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *,
         size_t extra_size,
         FklVMvalue *rel);
 
-FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, FklByteCodelnt *bcl);
+FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *, FklByteCodelnt *bcl);
 int fklIsVMvalueCodeObj(FklVMvalue *v);
 
 FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm,

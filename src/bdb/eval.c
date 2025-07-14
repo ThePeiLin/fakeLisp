@@ -134,10 +134,9 @@ static inline FklVMvalue *compile_expression_common_helper(DebugCtx *ctx,
         fklUpdatePrototype(pts, tmp_env, ctx->st, ctx->st);
 
         FklFuncPrototype *pt = &pts->pa[tmp_env->prototypeId];
-        FklVMvalue *code_obj = fklCreateVMvalueCodeObj(vm, code);
-        proc = fklCreateVMvalueProcWithWholeCodeObj(vm,
-                code_obj,
-                tmp_env->prototypeId);
+        FklVMvalue *code_obj = fklCreateVMvalueCodeObjMove(vm, code);
+        fklDestroyByteCodelnt(code);
+        proc = fklCreateVMvalueProc(vm, code_obj, tmp_env->prototypeId);
         resolve_reference(ctx, tmp_env, vm, pt, proc, cur_frame);
         fklVMgcUpdateConstArray(vm->gc, vm->gc->kt);
     }

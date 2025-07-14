@@ -573,19 +573,24 @@ static int string_len_cmp(const void *a, const void *b) {
     return 0;
 }
 
-static inline void sort_reachable_terminals(FklGrammer *g) {
-    size_t num = g->reachable_terminals.num;
-    g->sortedTerminalsNum = num;
-    const FklString **terms = NULL;
-    if (num) {
-        terms = (const FklString **)fklZmalloc(num * sizeof(FklString *));
-        FKL_ASSERT(terms);
-        FklStrIdHashMapElm **symList = g->reachable_terminals.idl;
-        for (size_t i = 0; i < num; i++)
-            terms[i] = symList[i]->k;
-        qsort(terms, num, sizeof(FklString *), string_len_cmp);
+static inline void update_reachable_terminals(FklGrammer *g) {
+    if (g->reachable_terminals.num != g->sortedTerminalsNum) {
+        size_t num = g->reachable_terminals.num;
+        g->sortedTerminalsNum = num;
+        const FklString **terms = NULL;
+        if (num) {
+            terms = (const FklString **)fklZrealloc(g->sortedTerminals,
+                    num * sizeof(FklString *));
+            FKL_ASSERT(terms);
+            FklStrIdHashMapElm **symList = g->reachable_terminals.idl;
+            for (size_t i = 0; i < num; i++)
+                terms[i] = symList[i]->k;
+            qsort(terms, num, sizeof(FklString *), string_len_cmp);
+        } else {
+            fklZfree(g->sortedTerminals);
+        }
+        g->sortedTerminals = terms;
     }
-    g->sortedTerminals = terms;
 }
 
 static FklBuiltinTerminalInitError builtin_match_number_create(size_t len,
@@ -1658,8 +1663,7 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
     int r = check_undefined_nonterm(g, nt) || compute_all_first_set(g);
     if (r)
         return r;
-    if (!g->sortedTerminals)
-        sort_reachable_terminals(g);
+    update_reachable_terminals(g);
     return 0;
 }
 

@@ -11017,19 +11017,24 @@ void fklDestroyCodegenMacroList(FklCodegenMacro *cur) {
     }
 }
 
-void fklDestroyCodegenLibMacroScope(FklCodegenLib *lib) {
-    fklDestroyCodegenMacroList(lib->head);
-    if (lib->replacements)
+void fklClearCodegenLibMacros(FklCodegenLib *lib) {
+    if (lib->head) {
+        fklDestroyCodegenMacroList(lib->head);
+        lib->head = NULL;
+    }
+    if (lib->replacements) {
         fklReplacementHashMapDestroy(lib->replacements);
-}
-
-void fklUninitCodegenLibInfo(FklCodegenLib *lib) {
-    if (lib->exports.buckets)
-        fklCgExportSidIdxHashMapUninit(&lib->exports);
-    fklZfree(lib->rp);
+        lib->replacements = NULL;
+    }
     if (lib->named_prod_groups.buckets) {
         fklGraProdGroupHashMapUninit(&lib->named_prod_groups);
     }
+}
+
+static inline void uninit_codegen_lib_info(FklCodegenLib *lib) {
+    if (lib->exports.buckets)
+        fklCgExportSidIdxHashMapUninit(&lib->exports);
+    fklZfree(lib->rp);
 }
 
 void fklUninitCodegenLib(FklCodegenLib *lib) {
@@ -11037,14 +11042,20 @@ void fklUninitCodegenLib(FklCodegenLib *lib) {
         return;
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
-        fklDestroyByteCodelnt(lib->bcl);
+        if (lib->bcl != NULL) {
+            fklDestroyByteCodelnt(lib->bcl);
+            lib->bcl = NULL;
+        }
         break;
     case FKL_CODEGEN_LIB_DLL:
         uv_dlclose(&lib->dll);
         break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        return;
+        break;
     }
-    fklUninitCodegenLibInfo(lib);
-    fklDestroyCodegenLibMacroScope(lib);
+    uninit_codegen_lib_info(lib);
+    fklClearCodegenLibMacros(lib);
 }
 
 FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
@@ -11321,14 +11332,10 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib,
         FklFuncPrototypes *pts) {
     FklVMvalue *val = FKL_VM_NIL;
     if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        FklByteCode *bc = clib->bcl->bc;
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe,
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe,
                 needCopy ? fklCopyByteCodelnt(clib->bcl) : clib->bcl);
-        FklVMvalue *proc = fklCreateVMvalueProc(exe,
-                bc->code,
-                bc->len,
-                codeObj,
-                clib->prototypeId);
+        FklVMvalue *proc =
+                fklCreateVMvalueProc(exe, codeObj, clib->prototypeId);
         fklInitMainProcRefs(exe, proc);
         val = proc;
     } else
@@ -11345,14 +11352,10 @@ void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         FklFuncPrototypes *pts) {
     FklVMvalue *val = FKL_VM_NIL;
     if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        FklByteCode *bc = clib->bcl->bc;
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe,
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe,
                 needCopy ? fklCopyByteCodelnt(clib->bcl) : clib->bcl);
-        FklVMvalue *proc = fklCreateVMvalueProc(exe,
-                bc->code,
-                bc->len,
-                codeObj,
-                clib->prototypeId);
+        FklVMvalue *proc =
+                fklCreateVMvalueProc(exe, codeObj, clib->prototypeId);
         val = proc;
     } else
         val = fklCreateVMvalueStr2(exe,
@@ -11361,24 +11364,15 @@ void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
     fklInitVMlib(vlib, val);
 }
 
-void fklUninitCodegenLibExceptBclAndDll(FklCodegenLib *clib) {
-    fklDestroyCodegenLibMacroScope(clib);
-    fklUninitCodegenLibInfo(clib);
-}
-
-void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib *clib,
+void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,
         FklVMlib *vlib,
         FklVM *exe,
         FklFuncPrototypes *pts) {
     FklVMvalue *val = FKL_VM_NIL;
     if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        FklByteCode *bc = clib->bcl->bc;
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe, clib->bcl);
-        FklVMvalue *proc = fklCreateVMvalueProc(exe,
-                bc->code,
-                bc->len,
-                codeObj,
-                clib->prototypeId);
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe, clib->bcl);
+        FklVMvalue *proc =
+                fklCreateVMvalueProc(exe, codeObj, clib->prototypeId);
         val = proc;
     } else {
         val = fklCreateVMvalueStr2(exe,
@@ -11388,7 +11382,7 @@ void fklInitVMlibWithCodegenLibAndDestroy(FklCodegenLib *clib,
     }
     fklInitVMlib(vlib, val);
 
-    fklUninitCodegenLibExceptBclAndDll(clib);
+    fklUninitCodegenLib(clib);
 }
 
 static inline void
@@ -12048,6 +12042,9 @@ void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
                 macro_pts_count);
         break;
     case FKL_CODEGEN_LIB_DLL:
+        break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
         break;
     }
 }

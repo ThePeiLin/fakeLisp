@@ -52,6 +52,11 @@ static inline void write_compiler_macros(const FklCodegenMacro *head,
 static inline void write_replacements(const FklReplacementHashMap *ht,
         const FklSymbolTable *st,
         FILE *fp) {
+    if (ht == NULL) {
+        uint32_t count = 0;
+        fwrite(&count, sizeof(count), 1, fp);
+        return;
+    }
     fwrite(&ht->count, sizeof(ht->count), 1, fp);
     for (const FklReplacementHashMapNode *rep_list = ht->first; rep_list;
             rep_list = rep_list->next) {
@@ -131,6 +136,9 @@ static inline void write_codegen_lib(const FklCodegenLib *lib,
     case FKL_CODEGEN_LIB_DLL:
         write_codegen_dll_lib(lib, main_dir, target_dir, fp);
         break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
+        break;
     }
 }
 
@@ -175,6 +183,15 @@ static inline void write_pre_compile(FklCodegenInfo *codegen,
     fklInitConstTable(&target_kt);
     const FklSymbolTable *origin_st = codegen->runtime_symbol_table;
     const FklConstTable *origin_kt = codegen->runtime_kt;
+
+    for (uint32_t i = 0; i < codegen->libStack->size; ++i) {
+        fklClearCodegenLibMacros(&codegen->libStack->base[i]);
+    }
+
+    for (uint32_t i = 0; i < codegen->macroLibStack->size; ++i) {
+        fklClearCodegenLibMacros(&codegen->macroLibStack->base[i]);
+    }
+
     fklRecomputeSidForSingleTableInfo(codegen,
             bcl,
             origin_st,

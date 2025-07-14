@@ -388,7 +388,8 @@ FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
 }
 
 void fklDestroyByteCodelnt(FklByteCodelnt *t) {
-    fklDestroyByteCode(t->bc);
+    if (t->bc)
+        fklDestroyByteCode(t->bc);
     if (t->l)
         fklZfree(t->l);
     fklZfree(t);

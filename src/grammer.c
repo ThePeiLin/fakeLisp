@@ -515,8 +515,8 @@ static inline size_t get_max_non_term_length(const FklGrammer *g,
         ctx->start = start;
         ctx->cur = cur;
         FklGrammerIgnore *ignores = g->ignores;
-        const FklString **terms = g->sortedTerminals;
-        size_t num = g->sortedTerminalsNum;
+        const FklString **terms = g->sorted_delimiters;
+        size_t num = g->sorted_delimiters_num;
         size_t len = 0;
         while (len < restLen) {
             int is_waiting_for_more = 0;
@@ -573,23 +573,23 @@ static int string_len_cmp(const void *a, const void *b) {
     return 0;
 }
 
-static inline void update_reachable_terminals(FklGrammer *g) {
-    if (g->reachable_terminals.num != g->sortedTerminalsNum) {
-        size_t num = g->reachable_terminals.num;
-        g->sortedTerminalsNum = num;
+static inline void update_sorted_delimiters(FklGrammer *g) {
+    if (g->delimiters.num != g->sorted_delimiters_num) {
+        size_t num = g->delimiters.num;
+        g->sorted_delimiters_num = num;
         const FklString **terms = NULL;
         if (num) {
-            terms = (const FklString **)fklZrealloc(g->sortedTerminals,
+            terms = (const FklString **)fklZrealloc(g->sorted_delimiters,
                     num * sizeof(FklString *));
             FKL_ASSERT(terms);
-            FklStrIdHashMapElm **symList = g->reachable_terminals.idl;
+            FklStrIdHashMapElm **symList = g->delimiters.idl;
             for (size_t i = 0; i < num; i++)
                 terms[i] = symList[i]->k;
             qsort(terms, num, sizeof(FklString *), string_len_cmp);
         } else {
-            fklZfree(g->sortedTerminals);
+            fklZfree(g->sorted_delimiters);
         }
-        g->sortedTerminals = terms;
+        g->sorted_delimiters = terms;
     }
 }
 
@@ -1410,17 +1410,17 @@ void fklClearGrammer(FklGrammer *g) {
     fklProdHashMapClear(&g->productions);
     fklFirstSetHashMapClear(&g->firstSets);
     clear_analysis_table(g, g->aTable.num - 1);
-    fklZfree(g->sortedTerminals);
-    g->sortedTerminals = NULL;
-    g->sortedTerminalsNum = 0;
+    fklZfree(g->sorted_delimiters);
+    g->sorted_delimiters = NULL;
+    g->sorted_delimiters_num = 0;
     FklGrammerIgnore *ig = g->ignores;
     while (ig) {
         FklGrammerIgnore *next = ig->next;
         fklZfree(ig);
         ig = next;
     }
-    fklUninitSymbolTable(&g->reachable_terminals);
-    fklInitSymbolTable(&g->reachable_terminals);
+    fklUninitSymbolTable(&g->delimiters);
+    fklInitSymbolTable(&g->delimiters);
 
     g->ignores = NULL;
 }
@@ -1430,7 +1430,7 @@ void fklUninitGrammer(FklGrammer *g) {
     fklGraSidBuiltinHashMapUninit(&g->builtins);
     fklFirstSetHashMapUninit(&g->firstSets);
     fklUninitSymbolTable(&g->terminals);
-    fklUninitSymbolTable(&g->reachable_terminals);
+    fklUninitSymbolTable(&g->delimiters);
     fklUninitRegexTable(&g->regexes);
     clear_analysis_table(g, g->aTable.num - 1);
     FklGrammerIgnore *ig = g->ignores;
@@ -1439,10 +1439,10 @@ void fklUninitGrammer(FklGrammer *g) {
         fklDestroyIgnore(ig);
         ig = next;
     }
-    if (g->sortedTerminals) {
-        g->sortedTerminalsNum = 0;
-        fklZfree(g->sortedTerminals);
-        g->sortedTerminals = NULL;
+    if (g->sorted_delimiters) {
+        g->sorted_delimiters_num = 0;
+        fklZfree(g->sorted_delimiters);
+        g->sorted_delimiters = NULL;
     }
     memset(g, 0, sizeof(*g));
 }
@@ -1608,7 +1608,7 @@ static inline int compute_all_first_set(FklGrammer *g) {
 void fklInitEmptyGrammer(FklGrammer *r, FklSymbolTable *st) {
     memset(r, 0, sizeof(*r));
     fklInitSymbolTable(&r->terminals);
-    fklInitSymbolTable(&r->reachable_terminals);
+    fklInitSymbolTable(&r->delimiters);
     fklInitRegexTable(&r->regexes);
     r->st = st;
     fklFirstSetHashMapInit(&r->firstSets);
@@ -1663,7 +1663,7 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
     int r = check_undefined_nonterm(g, nt) || compute_all_first_set(g);
     if (r)
         return r;
-    update_reachable_terminals(g);
+    update_sorted_delimiters(g);
     return 0;
 }
 
@@ -3905,13 +3905,13 @@ static inline void build_get_max_non_term_length_to_c_file(const FklGrammer *g,
                         ignore_print_c_match_cond(number, igns, g, build);
                     }
                 }
-                if (g->ignores && g->sortedTerminalsNum) {
+                if (g->ignores && g->sorted_delimiters_num) {
                     CB_LINE_END("");
                     CB_LINE_START("||");
                 }
-                if (g->sortedTerminalsNum) {
-                    size_t num = g->sortedTerminalsNum;
-                    const FklString **terminals = g->sortedTerminals;
+                if (g->sorted_delimiters_num) {
+                    size_t num = g->sorted_delimiters_num;
+                    const FklString **terminals = g->sorted_delimiters;
                     const FklString *cur = terminals[0];
                     CB_LINE("(matchLen=fklCharBufMatch(\"");
                     build_string_in_hex(cur, build);
@@ -4516,7 +4516,7 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
 
     CB_LINE("");
 
-    if (g->sortedTerminals || g->sortedTerminalsNum != g->terminals.num) {
+    if (g->sorted_delimiters || g->sorted_delimiters_num != g->terminals.num) {
         build_get_max_non_term_length_prototype_to_c_file(build);
         CB_LINE("");
     }
@@ -4527,7 +4527,7 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
         CB_LINE("");
     }
 
-    if (g->sortedTerminalsNum != g->terminals.num) {
+    if (g->sorted_delimiters_num != g->terminals.num) {
         build_match_char_buf_end_with_terminal_prototype_to_c_file(build);
         CB_LINE("");
     }
@@ -4538,12 +4538,12 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
 
     size_t stateNum = g->aTable.num;
     const FklAnalysisState *states = g->aTable.states;
-    if (g->sortedTerminals || g->sortedTerminalsNum != g->terminals.num) {
+    if (g->sorted_delimiters || g->sorted_delimiters_num != g->terminals.num) {
         build_get_max_non_term_length_to_c_file(g, build);
         CB_LINE("");
     }
 
-    if (g->sortedTerminalsNum != g->terminals.num) {
+    if (g->sorted_delimiters_num != g->terminals.num) {
         build_match_char_buf_end_with_terminal_to_c_file(build);
         CB_LINE("");
     }
@@ -5106,7 +5106,7 @@ int fklMergeGrammer(FklGrammer *g,
             switch (from->term_type) {
             case FKL_TERM_STRING:
                 to->str = fklAddSymbol(from->str, &g->terminals)->k;
-                fklAddSymbol(from->str, &g->reachable_terminals);
+                fklAddSymbol(from->str, &g->delimiters);
                 break;
             case FKL_TERM_REGEX: {
                 const FklString *regex_str =
@@ -5121,7 +5121,7 @@ int fklMergeGrammer(FklGrammer *g,
                 FKL_ASSERT(args);
                 for (size_t i = 0; i < from->b.len; ++i) {
                     args[i] = fklAddSymbol(from->b.args[i], &g->terminals)->k;
-                    fklAddSymbol(args[i], &g->reachable_terminals);
+                    fklAddSymbol(args[i], &g->delimiters);
                 }
                 to->b.args = args;
                 if (to->b.t->ctx_create
@@ -5181,7 +5181,7 @@ int fklMergeGrammer(FklGrammer *g,
 
                 case FKL_TERM_STRING: {
                     to->str = fklAddSymbol(from->str, &g->terminals)->k;
-                    fklAddSymbol(from->str, &g->reachable_terminals);
+                    fklAddSymbol(from->str, &g->delimiters);
                 } break;
 
                 case FKL_TERM_KEYWORD: {
@@ -5207,7 +5207,7 @@ int fklMergeGrammer(FklGrammer *g,
                     for (size_t i = 0; i < from->b.len; ++i) {
                         args[i] =
                                 fklAddSymbol(from->b.args[i], &g->terminals)->k;
-                        fklAddSymbol(args[i], &g->reachable_terminals);
+                        fklAddSymbol(args[i], &g->delimiters);
                     }
                     to->b.args = args;
                     if (to->b.t->ctx_create
@@ -5232,8 +5232,7 @@ int fklMergeGrammer(FklGrammer *g,
         }
     }
 
-    for (size_t i = 0; i < other->reachable_terminals.num; ++i)
-        fklAddSymbol(other->reachable_terminals.idl[i]->k,
-                &g->reachable_terminals);
+    for (size_t i = 0; i < other->delimiters.num; ++i)
+        fklAddSymbol(other->delimiters.idl[i]->k, &g->delimiters);
     return 0;
 }

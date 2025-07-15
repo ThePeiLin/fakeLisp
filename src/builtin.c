@@ -2193,7 +2193,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
     } else if (FKL_IS_STR(v)) {
         s->type = FKL_TERM_STRING;
         s->str = fklAddSymbol(FKL_VM_STR(v), &g->terminals)->k;
-        fklAddSymbol(FKL_VM_STR(v), &g->reachable_terminals);
+        fklAddSymbol(FKL_VM_STR(v), &g->delimiters);
     } else if (FKL_IS_SYM(v)) {
         const FklString *str = fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k;
 
@@ -2407,16 +2407,14 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
             } else if (FKL_IS_STR(next_arg)) {
                 next = EXCEPT_NEXT_ARG_SYMBOL;
                 fklAddSymbol(FKL_VM_STR(next_arg), tt);
-                fklAddSymbol(FKL_VM_STR(next_arg),
-                        &grammer->reachable_terminals);
+                fklAddSymbol(FKL_VM_STR(next_arg), &grammer->delimiters);
             } else if (fklIsList(next_arg)) {
                 next = EXCEPT_NEXT_ARG_SYMBOL;
                 for (const FklVMvalue *cur = next_arg; FKL_IS_PAIR(cur);
                         cur = FKL_VM_CDR(cur)) {
                     if (FKL_IS_STR(cur)) {
                         fklAddSymbol(FKL_VM_STR(cur), tt);
-                        fklAddSymbol(FKL_VM_STR(cur),
-                                &grammer->reachable_terminals);
+                        fklAddSymbol(FKL_VM_STR(cur), &grammer->delimiters);
                     } else {
                         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,
                                 exe);

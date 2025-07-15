@@ -286,12 +286,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             exe->tp = frame->c.sp;
             break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
         break;
@@ -317,12 +312,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             exe->tp = frame->c.sp;
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -623,12 +613,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -655,12 +640,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -687,12 +667,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -719,12 +694,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -751,12 +721,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_PUSH_VALUE(exe, r ? FKL_VM_TRUE : FKL_VM_NIL);
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -814,12 +779,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             PROCESS_ADD_RES();
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -856,12 +816,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             PROCESS_SUB_RES();
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -902,12 +857,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             PROCESS_MUL_RES();
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -987,12 +937,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             PROCESS_IDIV_RES();
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1064,12 +1009,7 @@ void fklVMexecuteInstruction(FklVM *exe,
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1123,12 +1063,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1165,12 +1100,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1208,12 +1138,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1232,12 +1157,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1270,12 +1190,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     } break;
@@ -1363,12 +1278,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         *pv = v;
     } break;
     case FKL_OP_EXTRA_ARG:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
 #ifndef DISPATCH_SWITCH
     }

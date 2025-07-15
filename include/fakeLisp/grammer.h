@@ -447,12 +447,12 @@ typedef struct FklGrammer {
     FklSymbolTable *st;
     FklSymbolTable terminals;
 
-    FklSymbolTable reachable_terminals;
+    FklSymbolTable delimiters;
 
     FklRegexTable regexes;
 
-    size_t sortedTerminalsNum;
-    const FklString **sortedTerminals;
+    size_t sorted_delimiters_num;
+    const FklString **sorted_delimiters;
 
     FklGrammerNonterm start;
 

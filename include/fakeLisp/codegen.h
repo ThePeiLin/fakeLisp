@@ -140,7 +140,7 @@ typedef enum {
 
 typedef struct {
     int is_ref_outer;
-    FklSymbolTable reachable_terminals;
+    FklSymbolTable delimiters;
     FklGrammer g;
 } FklGrammerProdGroupItem;
 
@@ -150,7 +150,7 @@ typedef struct {
 #define FKL_HASH_ELM_NAME GraProdGroup
 #define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
-        fklUninitSymbolTable(&(V)->reachable_terminals);                       \
+        fklUninitSymbolTable(&(V)->delimiters);                                \
         fklUninitGrammer(&(V)->g);                                             \
     }
 #include "cont/hash.h"

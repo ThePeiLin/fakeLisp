@@ -1,3 +1,4 @@
+#include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
 
 #include <stdint.h>
@@ -72,8 +73,7 @@ static inline const char *get_box_subop(int8_t subop) {
         return "set";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -88,8 +88,7 @@ static inline const char *get_drop_subop(int8_t subop) {
         return "all";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -119,8 +118,7 @@ static inline const char *get_pair_subop(int8_t subop) {
         return "unpack";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -141,8 +139,7 @@ static inline const char *get_vec_subop(int8_t subop) {
         return "set";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -157,8 +154,7 @@ static inline const char *get_str_subop(int8_t subop) {
         return "set";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -173,8 +169,7 @@ static inline const char *get_bvec_subop(int8_t subop) {
         return "set";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -192,8 +187,7 @@ static inline const char *get_hash_subop(int8_t subop) {
         return "set";
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return NULL;
@@ -223,8 +217,7 @@ const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop) {
         return get_hash_subop(subop);
         break;
     default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
 }

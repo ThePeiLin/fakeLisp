@@ -24,7 +24,7 @@ static inline FklGrammerProdGroupItem *add_production_group(
             fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
     if (!group->g.st) {
         fklInitEmptyGrammer(&group->g, st);
-        fklInitSymbolTable(&group->reachable_terminals);
+        fklInitSymbolTable(&group->delimiters);
     }
     return group;
 }

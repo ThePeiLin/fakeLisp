@@ -164,11 +164,7 @@ FklVMvalue *fklCreateVMvalueFromNastNode(FklVM *vm,
         break;
     case FKL_NAST_RC_SYM:
     case FKL_NAST_SLOT:
-        fprintf(stderr,
-                "[ERROR %s: %u]\tunreachable \n",
-                __FUNCTION__,
-                __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     case FKL_NAST_PAIR:
     case FKL_NAST_BOX:
@@ -211,11 +207,7 @@ create_nested_objects:
             break;
         case FKL_NAST_RC_SYM:
         case FKL_NAST_SLOT:
-            fprintf(stderr,
-                    "[ERROR %s: %u]\tunreachable \n",
-                    __FUNCTION__,
-                    __LINE__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         case FKL_NAST_PAIR:
         case FKL_NAST_BOX:
@@ -383,11 +375,7 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v,
                     }
                 } break;
                 default:
-                    fprintf(stderr,
-                            "[ERROR %s: %u]\tunreachable \n",
-                            __FUNCTION__,
-                            __LINE__);
-                    abort();
+                    FKL_UNREACHABLE();
                     break;
                 }
             } break;
@@ -585,12 +573,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
             break;
         case FKL_TYPE_VAR_REF:
         case FKL_VM_VALUE_GC_TYPE_NUM:
-            fprintf(stderr,
-                    "[%s: %d] %s: unreachable!\n",
-                    __FILE__,
-                    __LINE__,
-                    __FUNCTION__);
-            abort();
+            FKL_UNREACHABLE();
             break;
         default:
             fprintf(stderr,
@@ -697,12 +680,7 @@ nested_equal:
                     break;
                 case FKL_TYPE_VAR_REF:
                 case FKL_VM_VALUE_GC_TYPE_NUM:
-                    fprintf(stderr,
-                            "[%s: %d] %s: unreachable!\n",
-                            __FILE__,
-                            __LINE__,
-                            __FUNCTION__);
-                    abort();
+                    FKL_UNREACHABLE();
                     break;
                 default:
                     fprintf(stderr,

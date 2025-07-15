@@ -166,12 +166,8 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
         fklVMvalueHashMapUninit(&FKL_VM_HASH(cur)->ht);
         break;
     default:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
+        break;
     }
     atomic_fetch_sub(&cur->gc->alloced_size, fklZmallocSize(cur));
     fklZfree((void *)cur);

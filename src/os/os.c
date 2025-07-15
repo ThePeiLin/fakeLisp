@@ -113,12 +113,7 @@ static int os_date(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     } break;
     default:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;

@@ -316,7 +316,7 @@ static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,
                 token.len - end_size - start_size,
                 &len);
         fklAddSymbolCharBuf(str, len, &arg->g->terminals);
-        fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
+        fklAddSymbolCharBuf(str, len, &arg->g->delimiters);
         fklZfree(str);
     } else if (token.type == TOKEN_NONE) {
         *err = ERR_UNEXPECTED_EOF;
@@ -390,7 +390,7 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg,
                     token.len - end_size - start_size,
                     &len);
             s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
-            fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
+            fklAddSymbolCharBuf(str, len, &arg->g->delimiters);
             fklZfree(str);
         } break;
 
@@ -641,7 +641,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     }
 
                     for (size_t i = 0; i < s.b.len; ++i) {
-                        fklAddSymbol(s.b.args[i], &arg->g->reachable_terminals);
+                        fklAddSymbol(s.b.args[i], &arg->g->delimiters);
                     }
                 } else {
                     *err = ERR_UNRESOLVED_BUILTIN_TERMINAL;
@@ -664,7 +664,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     token.len - end_size - start_size,
                     &len);
             s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
-            fklAddSymbolCharBuf(str, len, &arg->g->reachable_terminals);
+            fklAddSymbolCharBuf(str, len, &arg->g->delimiters);
             fklZfree(str);
         } break;
 

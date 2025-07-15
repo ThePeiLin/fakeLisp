@@ -85,23 +85,26 @@ static inline uint64_t project(uint64_t rv, uint64_t n, uint64_t s[4]) {
 
 static int math_rand(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 2);
-    uint64_t rv = next_rand(exe->rand_state);
+    uint64_t rv;
     int64_t low = 0;
     int64_t up = 0;
     switch (argc) {
     case 0:
+        rv = next_rand(exe->rand_state);
         FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueF64(exe, INT_TO_DOUBLE(rv)));
         return 0;
         break;
     case 1: {
-        low = 1;
+        low = 0;
         FklVMvalue *up_v = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FKL_CHECK_TYPE(up_v, fklIsVMint, exe);
         up = fklVMgetInt(up_v);
         if (up == 0) {
+            rv = next_rand(exe->rand_state);
             FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(TRIM64(rv), exe));
             return 0;
         }
+        up -= 1;
     } break;
     case 2: {
         FklVMvalue *low_v = FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -112,16 +115,12 @@ static int math_rand(FKL_CPROC_ARGL) {
         up = fklVMgetInt(up_v);
     } break;
     default:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     if (low > up)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
+    rv = next_rand(exe->rand_state);
     uint64_t p = project(rv,
             FKL_TYPE_CAST(uint64_t, up) - FKL_TYPE_CAST(uint64_t, low),
             exe->rand_state);

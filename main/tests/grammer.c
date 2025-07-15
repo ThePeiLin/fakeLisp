@@ -21,10 +21,10 @@ int main() {
         fprintf(stderr, "garmmer create fail\n");
         exit(1);
     }
-    if (g->sortedTerminals) {
+    if (g->sorted_delimiters) {
         fputs("\nterminals:\n", stdout);
-        for (size_t i = 0; i < g->sortedTerminalsNum; i++)
-            fprintf(stdout, "%s\n", g->sortedTerminals[i]->str);
+        for (size_t i = 0; i < g->sorted_delimiters_num; i++)
+            fprintf(stdout, "%s\n", g->sorted_delimiters[i]->str);
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);

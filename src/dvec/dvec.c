@@ -398,12 +398,7 @@ static int export_dvec_assign(FKL_CPROC_ARGL) {
         v->size = count;
     } break;
     default:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     FKL_CPROC_RETURN(exe, ctx, vec);
@@ -610,12 +605,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     FKL_CPROC_RETURN(exe, ctx, vec);
@@ -668,12 +658,7 @@ static int export_dvec_remove(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, r);
     } break;
     default:
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;

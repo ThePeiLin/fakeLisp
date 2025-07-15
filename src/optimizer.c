@@ -80,12 +80,7 @@ static inline int set_ins_with_signed_unsigned_imm(FklInstruction *ins,
         ins[0].ai = ix;
         ins[0].bu = uy;
     } else {
-        fprintf(stderr,
-                "[%s: %d] %s: unreachable!\n",
-                __FILE__,
-                __LINE__,
-                __FUNCTION__);
-        abort();
+        FKL_UNREACHABLE();
     }
     return l;
 }

@@ -215,14 +215,6 @@ static int ht_ht_values(FKL_CPROC_ARGL) {
     (*FKL_TYPE_CAST(FklVMvalueHashMapNode *const **, &(CTX)->c[1].ptr))
 #define HT_CTX_HASHV(CTX) (CTX)->c[2].uptr
 
-#define HT_STATE_UNREACHABLE()                                                 \
-    fprintf(stderr,                                                            \
-            "[%s: %d] %s: unreachable!\n",                                     \
-            __FILE__,                                                          \
-            __LINE__,                                                          \
-            __FUNCTION__);                                                     \
-    abort();
-
 static inline int key_equal(FklVM *exe,
         FklVMvalue *key,
         FklCprocFrameContext *ctx,
@@ -308,7 +300,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        HT_STATE_UNREACHABLE();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;
@@ -420,7 +412,7 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        HT_STATE_UNREACHABLE();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;
@@ -489,7 +481,7 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        HT_STATE_UNREACHABLE();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;
@@ -678,7 +670,7 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        HT_STATE_UNREACHABLE();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;
@@ -747,7 +739,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
         }
     } break;
     default:
-        HT_STATE_UNREACHABLE();
+        FKL_UNREACHABLE();
         break;
     }
     return 0;

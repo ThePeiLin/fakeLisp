@@ -3,6 +3,8 @@
 
 #include "bigint.h"
 
+#include "common.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

@@ -12,7 +12,13 @@ extern "C" {
 #endif
 
 #ifndef FKL_ZMALLOC_ALIGN_PADDING
+
+#ifdef _WIN32
+#define ALIGN_PADDING (16)
+#else
 #define ALIGN_PADDING alignof(max_align_t)
+#endif
+
 #endif
 
 static inline size_t fklZmallocSize(void *ptr) {

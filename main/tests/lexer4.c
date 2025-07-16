@@ -1,7 +1,7 @@
 #include <fakeLisp/nast.h>
 #include <fakeLisp/parser.h>
 
-static const char *exp[] = {
+static const char *expressions[] = {
     ";;abcd\n(abcd,efgh)",                                //
     "(a, b)",                                             //
     "(a , b)",                                            //
@@ -36,7 +36,7 @@ int main() {
     FklSymbolTable st;
     fklInitSymbolTable(&st);
     fputs("parse with builtin parser\n", stderr);
-    for (const char **pexp = &exp[0]; *pexp; ++pexp) {
+    for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
         FklNastNode *node = fklCreateNastNodeFromCstr(*pexp, &st);
         FKL_ASSERT(node);
         fklPrintNastNode(node, stderr, &st);
@@ -68,7 +68,7 @@ int main() {
 
     fklUninitStringBuffer(&err_msg);
     fputs("\nparse with custom parser\n", stderr);
-    for (const char **pexp = &exp[0]; *pexp; ++pexp) {
+    for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
         int err = 0;
         FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(&st);
         FklNastNode *node =

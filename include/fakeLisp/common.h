@@ -6,6 +6,9 @@ extern "C" {
 #endif
 
 #include <assert.h>
+#include <stdint.h>
+
+typedef intptr_t ssize_t;
 
 #define FKL_BYTE_WIDTH (8)
 #define FKL_I16_WIDTH (FKL_BYTE_WIDTH * 2)
@@ -26,10 +29,8 @@ extern "C" {
 #define FKL_DLL_FILE_TYPE (".dll")
 #define FKL_DLL_FILE_TYPE_STR_LEN (4)
 
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-
 #else
+
 #define FKL_PATH_SEPARATOR ('/')
 #define FKL_PATH_SEPARATOR_STR ("/")
 #define FKL_PATH_UPPER_DIR "../"

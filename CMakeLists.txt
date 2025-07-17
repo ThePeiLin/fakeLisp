@@ -86,6 +86,7 @@ add_library(test_lib
 	"src/grammer.c"
 	"src/parser_grammer.c"
 	"src/symbol.c"
+	"src/string_table.c"
 	"src/nast.c"
 	"src/regex.c"
 	"src/bigint.c"

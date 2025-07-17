@@ -451,7 +451,6 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
                     fklPrintGrammerProduction(fp,
                             prod,
                             l->v.g.st,
-                            &l->v.g.terminals,
                             &l->v.g.regexes);
                     fputs(" => ", fp);
                     fklPrintReaderMacroAction(fp, prod, l->v.g.st, pkt);

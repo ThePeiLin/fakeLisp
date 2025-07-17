@@ -2,7 +2,6 @@
 #define FKL_BASE_H
 
 #include "bigint.h"
-
 #include "common.h"
 
 #include <stdint.h>
@@ -75,6 +74,7 @@ void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer *s,
         const char *begin_str,
         const char *end_str,
         char se);
+
 static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer *s,
         const char *str,
         const char *begin_str,
@@ -87,6 +87,7 @@ static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer *s,
             end_str,
             se);
 }
+
 static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer *s,
         const FklString *fstr,
         const char *begin_str,

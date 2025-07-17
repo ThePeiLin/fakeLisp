@@ -2,11 +2,7 @@
 #define FKL_UTILS_H
 
 #include "base.h"
-
-#ifdef _WIN32
-// define ssize_t
 #include "common.h"
-#endif
 
 #include <assert.h>
 #include <stddef.h>

@@ -3,8 +3,9 @@
 
 #include "base.h"
 #include "code_builder.h"
-#include "fakeLisp/common.h"
+#include "common.h"
 #include "regex.h"
+#include "string_table.h"
 #include "symbol.h"
 
 #include <stddef.h>
@@ -445,9 +446,9 @@ typedef struct FklGrammerIgnore {
 
 typedef struct FklGrammer {
     FklSymbolTable *st;
-    FklSymbolTable terminals;
+    FklStringTable terminals;
 
-    FklSymbolTable delimiters;
+    FklStringTable delimiters;
 
     FklRegexTable regexes;
 
@@ -583,9 +584,7 @@ void fklProdCtxDestroyDoNothing(void *c);
 void *fklProdCtxCopyerDoNothing(const void *c);
 
 void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len);
-FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms,
-        size_t len,
-        const FklSymbolTable *tt);
+FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len);
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
         FklSid_t id);
 
@@ -602,7 +601,6 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
 void fklPrintGrammerProduction(FILE *fp,
         const FklGrammerProduction *prod,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt);
 void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st);
 

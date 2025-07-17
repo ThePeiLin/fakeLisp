@@ -2144,8 +2144,7 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(FklVMvec *vec,
                 fklZmalloc((vec->size - 1) * sizeof(FklString *));
 
         for (size_t i = 1; i < vec->size; ++i)
-            args[i - 1] =
-                    fklAddSymbol(FKL_VM_STR(vec->base[i]), &g->terminals)->k;
+            args[i - 1] = fklAddString(&g->terminals, FKL_VM_STR(vec->base[i]));
 
         s->type = FKL_TERM_BUILTIN;
         s->b.t = builtin_terminal;
@@ -2177,11 +2176,9 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
         return vm_vector_to_builtin_terminal(FKL_VM_VEC(v), gc, s, g);
     } else if (FKL_IS_BYTEVECTOR(v)) {
         s->type = FKL_TERM_KEYWORD;
-        s->str = fklAddSymbolCharBuf(
+        s->str = fklAddStringCharBuf(&g->terminals,
                 FKL_TYPE_CAST(const char *, FKL_VM_BVEC(v)->ptr),
-                FKL_VM_BVEC(v)->size,
-                &g->terminals)
-                         ->k;
+                FKL_VM_BVEC(v)->size);
     } else if (FKL_IS_BOX(v)) {
         FklVMvalue *regex_value = FKL_VM_BOX(v);
         if (!FKL_IS_STR(regex_value))
@@ -2192,8 +2189,8 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
             return VALUE_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED;
     } else if (FKL_IS_STR(v)) {
         s->type = FKL_TERM_STRING;
-        s->str = fklAddSymbol(FKL_VM_STR(v), &g->terminals)->k;
-        fklAddSymbol(FKL_VM_STR(v), &g->delimiters);
+        s->str = fklAddString(&g->terminals, FKL_VM_STR(v));
+        fklAddString(&g->delimiters, FKL_VM_STR(v));
     } else if (FKL_IS_SYM(v)) {
         const FklString *str = fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k;
 
@@ -2309,9 +2306,7 @@ static inline FklGrammerIgnore *vm_vec_to_ignore(FklVMvec *vec,
     *perr = err;
     if (err)
         return NULL;
-    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(args->syms,
-            args->len,
-            &args->g->terminals);
+    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(args->syms, args->len);
     fklUninitGrammerSymbols(args->syms, args->len);
 
     args->len = 0;
@@ -2373,7 +2368,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklVMvalue **end = arg_base + argc;
     FklGrammerProduction *prod = NULL;
     FklSid_t sid = 0;
-    FklSymbolTable *tt = &grammer->terminals;
+    FklStringTable *tt = &grammer->terminals;
     for (++arg_base; arg_base < end; ++arg_base) {
         FklVMvalue *next_arg = *arg_base;
         switch (next) {
@@ -2406,15 +2401,15 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
                 }
             } else if (FKL_IS_STR(next_arg)) {
                 next = EXCEPT_NEXT_ARG_SYMBOL;
-                fklAddSymbol(FKL_VM_STR(next_arg), tt);
-                fklAddSymbol(FKL_VM_STR(next_arg), &grammer->delimiters);
+                fklAddString(tt, FKL_VM_STR(next_arg));
+                fklAddString(&grammer->delimiters, FKL_VM_STR(next_arg));
             } else if (fklIsList(next_arg)) {
                 next = EXCEPT_NEXT_ARG_SYMBOL;
                 for (const FklVMvalue *cur = next_arg; FKL_IS_PAIR(cur);
                         cur = FKL_VM_CDR(cur)) {
                     if (FKL_IS_STR(cur)) {
-                        fklAddSymbol(FKL_VM_STR(cur), tt);
-                        fklAddSymbol(FKL_VM_STR(cur), &grammer->delimiters);
+                        fklAddString(tt, FKL_VM_STR(cur));
+                        fklAddString(&grammer->delimiters, FKL_VM_STR(cur));
                     } else {
                         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,
                                 exe);

@@ -55,9 +55,37 @@ fklAddSymbolCharBuf(const char *buf, size_t len, FklSymbolTable *table) {
     return &node->elm;
 }
 
+FklStrIdHashMapElm *add_symbol(FklSymbolTable *table, FklString *str) {
+    uintptr_t hashv = fklStringHash(str);
+    FklStrIdHashMap *ht = &table->ht;
+    FklStrIdHashMapNode *const *bkt = fklStrIdHashMapBucket(ht, hashv);
+    for (; *bkt; bkt = &(*bkt)->bkt_next) {
+        FklStrIdHashMapNode *cur = *bkt;
+        if (!fklStringCmp(cur->k, str)) {
+            fklZfree(str);
+            return &cur->elm;
+        }
+    }
+
+    FklStrIdHashMapNode *node = fklStrIdHashMapCreateNode2(hashv, str);
+    fklStrIdHashMapInsertNode(ht, node);
+    node->v = ht->count;
+    if ((++table->num) >= table->idl_size) {
+        table->idl_size += FKL_DEFAULT_INC;
+        table->idl = (FklStrIdHashMapElm **)fklZrealloc(table->idl,
+                table->idl_size * sizeof(FklStrIdHashMapElm *));
+        FKL_ASSERT(table->idl);
+    }
+    table->idl[table->num - 1] = &node->elm;
+    return &node->elm;
+}
+
 void fklUninitSymbolTable(FklSymbolTable *table) {
     fklStrIdHashMapUninit(&table->ht);
     fklZfree(table->idl);
+    table->idl = NULL;
+    table->num = 0;
+    table->idl_size = 0;
 }
 
 void fklDestroySymbolTable(FklSymbolTable *table) {
@@ -101,8 +129,7 @@ void fklLoadSymbolTable(FILE *fp, FklSymbolTable *table) {
         fread(&len, sizeof(len), 1, fp);
         FklString *buf = fklCreateString(len, NULL);
         fread(buf->str, len, 1, fp);
-        fklAddSymbol(buf, table);
-        fklZfree(buf);
+        add_symbol(table, buf);
     }
 }
 

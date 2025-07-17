@@ -132,9 +132,7 @@ FklGrammerIgnore *fklCreateEmptyGrammerIgnore(size_t len) {
     return ig;
 }
 
-FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms,
-        size_t len,
-        const FklSymbolTable *tt) {
+FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len) {
     for (size_t i = len; i > 0; i--) {
         FklGrammerSym *sym = &syms[i - 1];
         if (sym->type == FKL_TERM_NONTERM)
@@ -574,17 +572,19 @@ static int string_len_cmp(const void *a, const void *b) {
 }
 
 static inline void update_sorted_delimiters(FklGrammer *g) {
-    if (g->delimiters.num != g->sorted_delimiters_num) {
-        size_t num = g->delimiters.num;
+    if (g->delimiters.count != g->sorted_delimiters_num) {
+        size_t num = g->delimiters.count;
         g->sorted_delimiters_num = num;
         const FklString **terms = NULL;
         if (num) {
             terms = (const FklString **)fklZrealloc(g->sorted_delimiters,
                     num * sizeof(FklString *));
             FKL_ASSERT(terms);
-            FklStrIdHashMapElm **symList = g->delimiters.idl;
-            for (size_t i = 0; i < num; i++)
-                terms[i] = symList[i]->k;
+            size_t i = 0;
+            for (const FklStrHashSetNode *cur = g->delimiters.first; cur;
+                    cur = cur->next, ++i) {
+                terms[i] = cur->k;
+            }
             qsort(terms, num, sizeof(FklString *), string_len_cmp);
         } else {
             fklZfree(g->sorted_delimiters);
@@ -1419,8 +1419,7 @@ void fklClearGrammer(FklGrammer *g) {
         fklZfree(ig);
         ig = next;
     }
-    fklUninitSymbolTable(&g->delimiters);
-    fklInitSymbolTable(&g->delimiters);
+    fklClearStringTable(&g->delimiters);
 
     g->ignores = NULL;
 }
@@ -1429,8 +1428,8 @@ void fklUninitGrammer(FklGrammer *g) {
     fklProdHashMapUninit(&g->productions);
     fklGraSidBuiltinHashMapUninit(&g->builtins);
     fklFirstSetHashMapUninit(&g->firstSets);
-    fklUninitSymbolTable(&g->terminals);
-    fklUninitSymbolTable(&g->delimiters);
+    fklUninitStringTable(&g->terminals);
+    fklUninitStringTable(&g->delimiters);
     fklUninitRegexTable(&g->regexes);
     clear_analysis_table(g, g->aTable.num - 1);
     FklGrammerIgnore *ig = g->ignores;
@@ -1607,8 +1606,8 @@ static inline int compute_all_first_set(FklGrammer *g) {
 
 void fklInitEmptyGrammer(FklGrammer *r, FklSymbolTable *st) {
     memset(r, 0, sizeof(*r));
-    fklInitSymbolTable(&r->terminals);
-    fklInitSymbolTable(&r->delimiters);
+    fklInitStringTable(&r->terminals);
+    fklInitStringTable(&r->delimiters);
     fklInitRegexTable(&r->regexes);
     r->st = st;
     fklFirstSetHashMapInit(&r->firstSets);
@@ -1720,7 +1719,6 @@ static inline void print_as_regex_to_string_buffer(FklStringBuffer *buf,
 static inline void print_prod_sym(FILE *fp,
         const FklGrammerSym *u,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
@@ -1805,7 +1803,6 @@ print_string_as_dot(const uint8_t *str, char se, size_t size, FILE *out) {
 static inline void print_prod_sym_as_dot(FILE *fp,
         const FklGrammerSym *u,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
@@ -2143,7 +2140,6 @@ static inline void print_lookahead_to_string_buffer(FklStringBuffer *buf,
 static inline void print_item(FILE *fp,
         const FklLalrItem *item,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt) {
     size_t i = 0;
     size_t idx = item->idx;
@@ -2157,12 +2153,12 @@ static inline void print_item(FILE *fp,
     fputs(" ->", fp);
     for (; i < idx; i++) {
         putc(' ', fp);
-        print_prod_sym(fp, &syms[i], st, tt, rt);
+        print_prod_sym(fp, &syms[i], st, rt);
     }
     fputs(" *", fp);
     for (; i < len; i++) {
         putc(' ', fp);
-        print_prod_sym(fp, &syms[i], st, tt, rt);
+        print_prod_sym(fp, &syms[i], st, rt);
     }
     fputs(" ## ", fp);
     print_look_ahead(fp, &item->la, rt);
@@ -2171,7 +2167,6 @@ static inline void print_item(FILE *fp,
 static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
         const FklGrammerSym *u,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
@@ -2234,7 +2229,7 @@ static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
 static inline void print_lalr_item_to_stringbuffer(FklStringBuffer *buf,
         const FklLalrItem *item,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
+        const FklStringTable *tt,
         const FklRegexTable *rt) {
     size_t i = 0;
     size_t idx = item->idx;
@@ -2265,12 +2260,12 @@ static inline void print_lalr_item_to_stringbuffer(FklStringBuffer *buf,
     fklStringBufferPrintf(buf, " ->");
     for (; i < idx; i++) {
         fklStringBufferPutc(buf, ' ');
-        print_prod_sym_to_stringbuffer(buf, &syms[i], st, tt, rt);
+        print_prod_sym_to_stringbuffer(buf, &syms[i], st, rt);
     }
     fklStringBufferPrintf(buf, " *");
     for (; i < len; i++) {
         fklStringBufferPutc(buf, ' ');
-        print_prod_sym_to_stringbuffer(buf, &syms[i], st, tt, rt);
+        print_prod_sym_to_stringbuffer(buf, &syms[i], st, rt);
     }
 }
 
@@ -2278,7 +2273,6 @@ void fklPrintItemSet(const FklLalrItemHashSet *itemSet,
         const FklGrammer *g,
         const FklSymbolTable *st,
         FILE *fp) {
-    const FklSymbolTable *tt = &g->terminals;
     FklLalrItem const *curItem = NULL;
     for (FklLalrItemHashSetNode *list = itemSet->first; list;
             list = list->next) {
@@ -2287,7 +2281,7 @@ void fklPrintItemSet(const FklLalrItemHashSet *itemSet,
             if (curItem)
                 putc('\n', fp);
             curItem = &list->k;
-            print_item(fp, curItem, st, tt, &g->regexes);
+            print_item(fp, curItem, st, &g->regexes);
         } else {
             fputs(" , ", fp);
             print_look_ahead(fp, &list->k.la, &g->regexes);
@@ -2872,7 +2866,6 @@ static inline void print_look_ahead_as_dot(FILE *fp,
 static inline void print_item_as_dot(FILE *fp,
         const FklLalrItem *item,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt) {
     size_t i = 0;
     size_t idx = item->idx;
@@ -2889,12 +2882,12 @@ static inline void print_item_as_dot(FILE *fp,
     fputs(" ->", fp);
     for (; i < idx; i++) {
         putc(' ', fp);
-        print_prod_sym_as_dot(fp, &syms[i], st, tt, rt);
+        print_prod_sym_as_dot(fp, &syms[i], st, rt);
     }
     fputs(" *", fp);
     for (; i < len; i++) {
         putc(' ', fp);
-        print_prod_sym_as_dot(fp, &syms[i], st, tt, rt);
+        print_prod_sym_as_dot(fp, &syms[i], st, rt);
     }
     fputs(" , ", fp);
     print_look_ahead_as_dot(fp, &item->la, rt);
@@ -2904,7 +2897,6 @@ static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
         const FklGrammer *g,
         const FklSymbolTable *st,
         FILE *fp) {
-    const FklSymbolTable *tt = &g->terminals;
     FklLalrItem const *curItem = NULL;
     for (FklLalrItemHashSetNode *list = itemSet->first; list;
             list = list->next) {
@@ -2913,7 +2905,7 @@ static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
             if (curItem)
                 fputs("\\l\\\n", fp);
             curItem = &list->k;
-            print_item_as_dot(fp, curItem, st, tt, &g->regexes);
+            print_item_as_dot(fp, curItem, st, &g->regexes);
         } else {
             fputs(" / ", fp);
             print_look_ahead_as_dot(fp, &list->k.la, &g->regexes);
@@ -2955,7 +2947,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
                     "[fontname=\"Courier\" label=\"",
                     idx,
                     *c);
-            print_prod_sym_as_dot(fp, &l->sym, st, &g->terminals, &g->regexes);
+            print_prod_sym_as_dot(fp, &l->sym, st, &g->regexes);
             fputs("\"]\n", fp);
         }
         putc('\n', fp);
@@ -2967,7 +2959,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
 static inline FklAnalysisStateAction *create_shift_action(
         const FklGrammerSym *sym,
         int allow_ignore,
-        const FklSymbolTable *tt,
+        const FklStringTable *tt,
         FklAnalysisState *state) {
     FklAnalysisStateAction *action = (FklAnalysisStateAction *)fklZcalloc(1,
             sizeof(FklAnalysisStateAction));
@@ -3001,7 +2993,7 @@ static inline FklAnalysisStateAction *create_shift_action(
 
 static inline FklAnalysisStateGoto *create_state_goto(const FklGrammerSym *sym,
         int allow_ignore,
-        const FklSymbolTable *tt,
+        const FklStringTable *tt,
         FklAnalysisStateGoto *next,
         FklAnalysisState *state) {
     FklAnalysisStateGoto *gt =
@@ -3171,7 +3163,7 @@ static inline void add_shift_action(FklGrammerSymType cur_type,
         FklAnalysisState *curState,
         const FklGrammerSym *sym,
         int allow_ignore,
-        const FklSymbolTable *tt,
+        const FklStringTable *tt,
         FklAnalysisState *dstState) {
     FklAnalysisStateAction *action =
             create_shift_action(sym, allow_ignore, tt, dstState);
@@ -3307,7 +3299,7 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
         FklStringBuffer *error_msg) {
     int hasConflict = 0;
     grammer->aTable.num = states->count;
-    FklSymbolTable *tt = &grammer->terminals;
+    FklStringTable *tt = &grammer->terminals;
     FklAnalysisState *astates;
     if (!states->count)
         astates = NULL;
@@ -4516,7 +4508,8 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
 
     CB_LINE("");
 
-    if (g->sorted_delimiters || g->sorted_delimiters_num != g->terminals.num) {
+    if (g->sorted_delimiters
+            || g->sorted_delimiters_num != g->terminals.count) {
         build_get_max_non_term_length_prototype_to_c_file(build);
         CB_LINE("");
     }
@@ -4527,7 +4520,7 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
         CB_LINE("");
     }
 
-    if (g->sorted_delimiters_num != g->terminals.num) {
+    if (g->sorted_delimiters_num != g->terminals.count) {
         build_match_char_buf_end_with_terminal_prototype_to_c_file(build);
         CB_LINE("");
     }
@@ -4538,12 +4531,13 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
 
     size_t stateNum = g->aTable.num;
     const FklAnalysisState *states = g->aTable.states;
-    if (g->sorted_delimiters || g->sorted_delimiters_num != g->terminals.num) {
+    if (g->sorted_delimiters
+            || g->sorted_delimiters_num != g->terminals.count) {
         build_get_max_non_term_length_to_c_file(g, build);
         CB_LINE("");
     }
 
-    if (g->sorted_delimiters_num != g->terminals.num) {
+    if (g->sorted_delimiters_num != g->terminals.count) {
         build_match_char_buf_end_with_terminal_to_c_file(build);
         CB_LINE("");
     }
@@ -4590,7 +4584,7 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
             fprintf(fp, "I%" PRIu64 "--{ ", idx);
             if (ll->allow_ignore)
                 fputs("?e ", fp);
-            print_prod_sym(fp, &ll->sym, st, &g->terminals, &g->regexes);
+            print_prod_sym(fp, &ll->sym, st, &g->regexes);
             fprintf(fp, " }-->I%" PRIu64 "\n", *c);
         }
         putc('\n', fp);
@@ -4601,7 +4595,6 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
 void fklPrintGrammerProduction(FILE *fp,
         const FklGrammerProduction *prod,
         const FklSymbolTable *st,
-        const FklSymbolTable *tt,
         const FklRegexTable *rt) {
     if (!is_Sq_nt(&prod->left)) {
         if (prod->left.group) {
@@ -4620,7 +4613,7 @@ void fklPrintGrammerProduction(FILE *fp,
     const FklGrammerSym *syms = prod->syms;
     for (size_t i = 0; i < len;) {
         putc(' ', fp);
-        print_prod_sym(fp, &syms[i], st, tt, rt);
+        print_prod_sym(fp, &syms[i], st, rt);
         ++i;
         if (i < len && syms[i].type != FKL_TERM_IGNORE)
             fputs(" ..", fp);
@@ -4696,14 +4689,13 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
 }
 
 void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
-    const FklSymbolTable *tt = &grammer->terminals;
     const FklRegexTable *rt = &grammer->regexes;
     for (FklProdHashMapNode *list = grammer->productions.first; list;
             list = list->next) {
         FklGrammerProduction *prods = list->v;
         for (; prods; prods = prods->next) {
             fprintf(fp, "(%" PRIu64 ") ", prods->idx);
-            fklPrintGrammerProduction(fp, prods, st, tt, rt);
+            fklPrintGrammerProduction(fp, prods, st, rt);
             putc('\n', fp);
         }
     }
@@ -5105,8 +5097,8 @@ int fklMergeGrammer(FklGrammer *g,
             to->term_type = from->term_type;
             switch (from->term_type) {
             case FKL_TERM_STRING:
-                to->str = fklAddSymbol(from->str, &g->terminals)->k;
-                fklAddSymbol(from->str, &g->delimiters);
+                to->str = fklAddString(&g->terminals, from->str);
+                fklAddString(&g->delimiters, from->str);
                 break;
             case FKL_TERM_REGEX: {
                 const FklString *regex_str =
@@ -5120,8 +5112,8 @@ int fklMergeGrammer(FklGrammer *g,
                         fklZmalloc(to->b.len * sizeof(FklString *));
                 FKL_ASSERT(args);
                 for (size_t i = 0; i < from->b.len; ++i) {
-                    args[i] = fklAddSymbol(from->b.args[i], &g->terminals)->k;
-                    fklAddSymbol(args[i], &g->delimiters);
+                    args[i] = fklAddString(&g->terminals, from->b.args[i]);
+                    fklAddString(&g->delimiters, args[i]);
                 }
                 to->b.args = args;
                 if (to->b.t->ctx_create
@@ -5180,12 +5172,12 @@ int fklMergeGrammer(FklGrammer *g,
                 } break;
 
                 case FKL_TERM_STRING: {
-                    to->str = fklAddSymbol(from->str, &g->terminals)->k;
-                    fklAddSymbol(from->str, &g->delimiters);
+                    to->str = fklAddString(&g->terminals, from->str);
+                    fklAddString(&g->delimiters, from->str);
                 } break;
 
                 case FKL_TERM_KEYWORD: {
-                    to->str = fklAddSymbol(from->str, &g->terminals)->k;
+                    to->str = fklAddString(&g->terminals, from->str);
                 } break;
 
                 case FKL_TERM_BUILTIN: {
@@ -5205,9 +5197,8 @@ int fklMergeGrammer(FklGrammer *g,
                             fklZmalloc(to->b.len * sizeof(FklString *));
                     FKL_ASSERT(args);
                     for (size_t i = 0; i < from->b.len; ++i) {
-                        args[i] =
-                                fklAddSymbol(from->b.args[i], &g->terminals)->k;
-                        fklAddSymbol(args[i], &g->delimiters);
+                        args[i] = fklAddString(&g->terminals, from->b.args[i]);
+                        fklAddString(&g->delimiters, args[i]);
                     }
                     to->b.args = args;
                     if (to->b.t->ctx_create
@@ -5232,7 +5223,8 @@ int fklMergeGrammer(FklGrammer *g,
         }
     }
 
-    for (size_t i = 0; i < other->delimiters.num; ++i)
-        fklAddSymbol(other->delimiters.idl[i]->k, &g->delimiters);
+    for (const FklStrHashSetNode *cur = other->delimiters.first; cur;
+            cur = cur->next)
+        fklAddString(&g->delimiters, cur->k);
     return 0;
 }

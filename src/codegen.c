@@ -5536,8 +5536,9 @@ static inline int add_all_group_to_grammer(uint64_t line,
 static inline void merge_group(FklGrammerProdGroupItem *group,
         const FklGrammerProdGroupItem *other,
         const FklRecomputeGroupIdArgs *args) {
-    for (size_t i = 0; i < other->delimiters.num; ++i)
-        fklAddSymbol(other->delimiters.idl[i]->k, &group->delimiters);
+    for (const FklStrHashSetNode *cur = other->delimiters.first; cur;
+            cur = cur->next)
+        fklAddString(&group->delimiters, cur->k);
     fklMergeGrammer(&group->g, &other->g, args);
 }
 
@@ -9076,7 +9077,7 @@ static inline NastToGrammerSymErr nast_vector_to_builtin_terminal(
                 fklZmalloc((vec->size - 1) * sizeof(FklString *));
 
         for (size_t i = 1; i < vec->size; ++i)
-            args[i - 1] = fklAddSymbol(vec->base[i]->str, &g->terminals)->k;
+            args[i - 1] = fklAddString(&g->terminals, vec->base[i]->str);
 
         s->type = FKL_TERM_BUILTIN;
         s->b.t = builtin_terminal;
@@ -9110,11 +9111,9 @@ static inline NastToGrammerSymErr nast_node_to_grammer_sym(
         break;
     case FKL_NAST_BYTEVECTOR:
         s->type = FKL_TERM_KEYWORD;
-        s->str = fklAddSymbolCharBuf(
+        s->str = fklAddStringCharBuf(&g->terminals,
                 FKL_TYPE_CAST(const char *, node->bvec->ptr),
-                node->bvec->size,
-                &g->terminals)
-                         ->k;
+                node->bvec->size);
         break;
     case FKL_NAST_BOX:
         if (node->box->type != FKL_NAST_STR)
@@ -9126,8 +9125,8 @@ static inline NastToGrammerSymErr nast_node_to_grammer_sym(
         break;
     case FKL_NAST_STR:
         s->type = FKL_TERM_STRING;
-        s->str = fklAddSymbol(node->str, &g->terminals)->k;
-        fklAddSymbol(node->str, &g->delimiters);
+        s->str = fklAddString(&g->terminals, node->str);
+        fklAddString(&g->delimiters, node->str);
         break;
     case FKL_NAST_PAIR:
         s->type = FKL_TERM_NONTERM;
@@ -9270,9 +9269,7 @@ static inline FklGrammerIgnore *nast_vector_to_ignore(const FklNastVector *vec,
     *perr = err;
     if (err)
         return NULL;
-    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(args->syms,
-            args->len,
-            &args->g->terminals);
+    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(args->syms, args->len);
     fklUninitGrammerSymbols(args->syms, args->len);
 
     args->len = 0;
@@ -9721,14 +9718,14 @@ static inline int process_add_production(FklSid_t group_id,
                                     group_id)
                                      ->g;
     if (vector_node->type == FKL_NAST_STR) {
-        fklAddSymbol(vector_node->str, &g->terminals);
-        fklAddSymbol(vector_node->str, &g->delimiters);
+        fklAddString(&g->terminals, vector_node->str);
+        fklAddString(&g->delimiters, vector_node->str);
         if (group_id != 0) {
             FklGrammerProdGroupItem *group =
                     add_production_group(codegen->named_prod_groups,
                             pst,
                             group_id);
-            fklAddSymbol(vector_node->str, &group->delimiters);
+            fklAddString(&group->delimiters, vector_node->str);
         }
         return 0;
     }
@@ -9737,8 +9734,8 @@ static inline int process_add_production(FklSid_t group_id,
         for (const FklNastNode *cur = vector_node; cur->type == FKL_NAST_PAIR;
                 cur = cur->pair->cdr) {
             FKL_ASSERT(cur->pair->car->type == FKL_NAST_STR);
-            fklAddSymbol(cur->pair->car->str, &g->terminals);
-            fklAddSymbol(cur->pair->car->str, &g->delimiters);
+            fklAddString(&g->terminals, cur->pair->car->str);
+            fklAddString(&g->delimiters, cur->pair->car->str);
         }
 
         return 0;
@@ -10951,9 +10948,10 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
                                 id);
                 merge_group(target_group, group, NULL);
 
-                for (size_t i = 0; i < group->delimiters.num; ++i) {
-                    fklAddSymbol(group->delimiters.idl[i]->k,
-                            &target_group->delimiters);
+                for (const FklStrHashSetNode *cur = group->delimiters.first;
+                        cur;
+                        cur = cur->next) {
+                    fklAddString(&target_group->delimiters, cur->k);
                 }
             }
         }
@@ -11572,7 +11570,7 @@ void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
                 get_production_group(named_prod_groups, id);
         FKL_ASSERT(group);
         fwrite(&id, sizeof(id), 1, fp);
-        fklWriteSymbolTable(&group->delimiters, fp);
+        fklWriteStringTable(&group->delimiters, fp);
         write_grammer_in_binary(&group->g, fp);
     }
 }
@@ -11588,7 +11586,7 @@ void fklWriteNamedProds(const FklGraProdGroupHashMap *named_prod_groups,
     for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
             list = list->next) {
         fwrite(&list->k, sizeof(list->k), 1, fp);
-        fklWriteSymbolTable(&list->v.delimiters, fp);
+        fklWriteStringTable(&list->v.delimiters, fp);
         write_grammer_in_binary(&list->v.g, fp);
     }
 }
@@ -11693,9 +11691,9 @@ static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
                 case FKL_TERM_STRING:
                 case FKL_TERM_KEYWORD: {
                     FklString *str = fklLoadString(fp);
-                    cur->str = fklAddSymbol(str, &g->terminals)->k;
+                    cur->str = fklAddString(&g->terminals, str);
                     if (type == FKL_TERM_STRING)
-                        fklAddSymbol(str, &g->delimiters);
+                        fklAddString(&g->delimiters, str);
                     fklZfree(str);
                 } break;
 
@@ -11714,8 +11712,8 @@ static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
                     FKL_ASSERT(cur->b.args);
                     for (size_t i = 0; i < len; ++len) {
                         FklString *s = fklLoadString(fp);
-                        cur->b.args[i] = fklAddSymbol(s, &g->terminals)->k;
-                        fklAddSymbol(s, &g->delimiters);
+                        cur->b.args[i] = fklAddString(&g->terminals, s);
+                        fklAddString(&g->delimiters, s);
                         fklZfree(s);
                     }
                     fklZfree(str);
@@ -11756,8 +11754,8 @@ static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
             switch (cur->term_type) {
             case FKL_TERM_STRING: {
                 FklString *str = fklLoadString(fp);
-                cur->str = fklAddSymbol(str, &g->terminals)->k;
-                fklAddSymbol(str, &g->delimiters);
+                cur->str = fklAddString(&g->terminals, str);
+                fklAddString(&g->delimiters, str);
                 fklZfree(str);
             } break;
             case FKL_TERM_REGEX: {
@@ -11782,8 +11780,8 @@ static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
                 FKL_ASSERT(cur->b.args);
                 for (size_t i = 0; i < len; ++len) {
                     FklString *s = fklLoadString(fp);
-                    cur->b.args[i] = fklAddSymbol(s, &g->terminals)->k;
-                    fklAddSymbol(s, &g->delimiters);
+                    cur->b.args[i] = fklAddString(&g->terminals, s);
+                    fklAddString(&g->delimiters, s);
                     fklZfree(s);
                 }
                 fklZfree(str);
@@ -11822,7 +11820,7 @@ void fklLoadNamedProds(FklGraProdGroupHashMap *ht,
             FklGrammerProdGroupItem *group = add_production_group(ht,
                     &outer_ctx->public_symbol_table,
                     group_id);
-            fklLoadSymbolTable(fp, &group->delimiters);
+            fklLoadStringTable(fp, &group->delimiters);
             load_grammer_in_binary(&group->g, fp);
         }
     }
@@ -11878,8 +11876,9 @@ void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
                     l;
                     l = l->next) {
 
-                for (size_t i = 0; i < l->v.delimiters.num; ++i)
-                    fklAddSymbol(l->v.delimiters.idl[i]->k, &l->v.g.delimiters);
+                for (const FklStrHashSetNode *cur = l->v.delimiters.first; cur;
+                        cur = cur->next)
+                    fklAddString(&l->v.g.delimiters, cur->k);
 
                 for (FklProdHashMapNode *cur = l->v.g.productions.first; cur;
                         cur = cur->next) {

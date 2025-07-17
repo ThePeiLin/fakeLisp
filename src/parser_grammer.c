@@ -315,8 +315,8 @@ static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,
         char *str = fklCastEscapeCharBuf(&token.str[start_size],
                 token.len - end_size - start_size,
                 &len);
-        fklAddSymbolCharBuf(str, len, &arg->g->terminals);
-        fklAddSymbolCharBuf(str, len, &arg->g->delimiters);
+        fklAddStringCharBuf(&arg->g->terminals, str, len);
+        fklAddStringCharBuf(&arg->g->delimiters, str, len);
         fklZfree(str);
     } else if (token.type == TOKEN_NONE) {
         *err = ERR_UNEXPECTED_EOF;
@@ -334,7 +334,7 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg,
         int *err,
         const char *buf,
         const char *const end) {
-    FklSymbolTable *terminals = &arg->g->terminals;
+    FklStringTable *terminals = &arg->g->terminals;
     FklRegexTable *regexes = &arg->g->regexes;
     Token token = next_token(arg, err, &buf, end);
     if (*err)
@@ -389,8 +389,8 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg,
             char *str = fklCastEscapeCharBuf(&token.str[start_size],
                     token.len - end_size - start_size,
                     &len);
-            s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
-            fklAddSymbolCharBuf(str, len, &arg->g->delimiters);
+            s.str = fklAddStringCharBuf(terminals, str, len);
+            fklAddStringCharBuf(&arg->g->delimiters, str, len);
             fklZfree(str);
         } break;
 
@@ -426,9 +426,8 @@ static inline const char *parse_ignore(FklParserGrammerParseArg *arg,
     }
 
 loop_break:;
-    FklGrammerIgnore *ig = fklGrammerSymbolsToIgnore(gsym_vector.base,
-            gsym_vector.size,
-            terminals);
+    FklGrammerIgnore *ig =
+            fklGrammerSymbolsToIgnore(gsym_vector.base, gsym_vector.size);
 
     if (fklAddIgnoreToIgnoreList(&arg->g->ignores, ig)) {
         fklDestroyIgnore(ig);
@@ -489,7 +488,7 @@ static inline const char *parse_builtin_args(FklGrammerSym *s,
                 token.len - end_size - start_size,
                 &len);
         FklString const *arg_str =
-                fklAddSymbolCharBuf(str, len, &arg->g->terminals)->k;
+                fklAddStringCharBuf(&arg->g->terminals, str, len);
         fklStringVectorPushBack2(&str_vec,
                 FKL_REMOVE_CONST(FklString, arg_str));
         fklZfree(str);
@@ -540,7 +539,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
         int *err,
         const char *buf,
         const char *const end) {
-    FklSymbolTable *terminals = &arg->g->terminals;
+    FklStringTable *terminals = &arg->g->terminals;
     FklRegexTable *regexes = &arg->g->regexes;
     Token token = next_token(arg, err, &buf, end);
     if (*err)
@@ -641,7 +640,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     }
 
                     for (size_t i = 0; i < s.b.len; ++i) {
-                        fklAddSymbol(s.b.args[i], &arg->g->delimiters);
+                        fklAddString(&arg->g->delimiters, s.b.args[i]);
                     }
                 } else {
                     *err = ERR_UNRESOLVED_BUILTIN_TERMINAL;
@@ -663,8 +662,8 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             char *str = fklCastEscapeCharBuf(&token.str[start_size],
                     token.len - end_size - start_size,
                     &len);
-            s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
-            fklAddSymbolCharBuf(str, len, &arg->g->delimiters);
+            s.str = fklAddStringCharBuf(terminals, str, len);
+            fklAddStringCharBuf(&arg->g->delimiters, str, len);
             fklZfree(str);
         } break;
 
@@ -676,7 +675,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
             char *str = fklCastEscapeCharBuf(&token.str[start_size],
                     token.len - end_size - start_size,
                     &len);
-            s.str = fklAddSymbolCharBuf(str, len, terminals)->k;
+            s.str = fklAddStringCharBuf(terminals, str, len);
             fklZfree(str);
         } break;
 

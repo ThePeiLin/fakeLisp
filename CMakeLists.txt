@@ -74,7 +74,7 @@ add_custom_target(COPY_TEST ALL
 
 #warnnig setting
 if(MSVC)
-	add_compile_options(/W4 /experimental:c11atomics /utf-8)
+	add_compile_options(/W4 /experimental:c11atomics /utf-8 /wd4100 /wd4702 /wd4200)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()

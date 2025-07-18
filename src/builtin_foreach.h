@@ -21,7 +21,7 @@
 #endif
 
 #ifndef MAX_ARG_NUM
-#define MAX_ARG_NUM (-1)
+#define MAX_ARG_NUM (argc)
 #endif
 
 #ifndef DISCARD_HEAD

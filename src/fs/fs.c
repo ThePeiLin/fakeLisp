@@ -135,7 +135,7 @@ static inline int isVMfpWritable(const FklVMvalue *fp) {
     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, E)
 
 static int fs_fprint(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
@@ -153,7 +153,7 @@ static int fs_fprint(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprintln(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
@@ -172,7 +172,7 @@ static int fs_fprintln(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprin1(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
@@ -190,7 +190,7 @@ static int fs_fprin1(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprin1n(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
@@ -209,7 +209,7 @@ static int fs_fprin1n(FKL_CPROC_ARGL) {
 }
 
 static int fs_fwrite(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *f = arg_base[0];
     FKL_CHECK_TYPE(f, fklIsVMvalueFp, exe);
@@ -263,7 +263,7 @@ static int fs_fclerr(FKL_CPROC_ARGL) {
 }
 
 static int fs_fprintf(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue *fp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
 

@@ -366,7 +366,7 @@ static int bdb_debug_ctx_restart(FKL_CPROC_ARGL) {
 }
 
 static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, argc);
 
     FklVMvalue *debug_ctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *is_temporary = FKL_CPROC_GET_ARG(exe, ctx, 1);

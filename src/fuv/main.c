@@ -698,7 +698,7 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
 #undef LOOP_RUN_STATE_RETURN
 
 static int fuv_loop_configure(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *option_obj = arg_base[1];
@@ -1430,7 +1430,7 @@ static int fuv_make_async(FKL_CPROC_ARGL) {
 }
 
 static int fuv_async_send(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *async_obj = arg_base[0];
     FKL_CHECK_TYPE(async_obj, isFuvAsync, exe);
@@ -1583,7 +1583,7 @@ static void fuv_poll_cb(uv_poll_t *handle, int status, int events) {
 }
 
 static int fuv_poll_start(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *poll_obj = arg_base[0];
     FklVMvalue *cb_obj = arg_base[1];
@@ -2023,7 +2023,7 @@ fuv_getaddrinfo_cb(uv_getaddrinfo_t *req, int status, struct addrinfo *res) {
 }
 
 static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *node_obj = arg_base[1];
@@ -2282,7 +2282,7 @@ static void fuv_getnameinfo_cb(uv_getnameinfo_t *req,
 }
 
 static int fuv_getnameinfo(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -2563,7 +2563,7 @@ static void fuv_process_exit_cb(uv_process_t *handle,
 }
 
 static int fuv_process_spawn(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *file_obj = arg_base[1];
@@ -2856,7 +2856,7 @@ static inline int isSendableHandle(FklVMvalue *o) {
 }
 
 static int fuv_stream_write(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *stream_obj = arg_base[0];
     FklVMvalue *cb_obj = arg_base[1];
@@ -2935,7 +2935,7 @@ static inline FklBuiltinErrorType setup_try_write_data(FklVMvalue **parg,
 }
 
 static int fuv_stream_try_write(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *stream_obj = arg_base[0];
     FklVMvalue **rest_arg = &arg_base[1];
@@ -3316,7 +3316,7 @@ static inline FklBuiltinErrorType get_tcp_flags(FklVMvalue **parg,
 }
 
 static int fuv_make_tcp(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
@@ -3711,7 +3711,7 @@ static int fuv_tty_mode_reset1(FKL_CPROC_ARGL) {
 static int fuv_udp_p(FKL_CPROC_ARGL) { PREDICATE(isFuvUdp(val)) }
 
 static int fuv_make_udp(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue **const arg_end = arg_base + argc;
     FklVMvalue *loop_obj = arg_base[0];
@@ -3943,7 +3943,7 @@ static inline FklBuiltinErrorType get_udp_flags(FklVMvalue **parg,
 }
 
 static int fuv_udp_bind(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *udp_obj = arg_base[0];
     FklVMvalue *host_obj = arg_base[1];
@@ -4151,7 +4151,7 @@ static void fuv_udp_send_cb(uv_udp_send_t *req, int status) {
 }
 
 static int fuv_udp_send(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 5, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 5, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *udp_obj = arg_base[0];
     FklVMvalue *host_obj = arg_base[1];
@@ -4345,7 +4345,7 @@ static int fuv_udp_recv_start(FKL_CPROC_ARGL) {
 }
 
 static int fuv_udp_try_send(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *udp_obj = arg_base[0];
     FklVMvalue *host_obj = arg_base[1];
@@ -4478,7 +4478,7 @@ static void fuv_fs_event_cb(uv_fs_event_t *handle,
 
 static int fuv_fs_event_start(FKL_CPROC_ARGL) {
     unsigned int flags = 0;
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 3, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fs_event_obj = arg_base[0];
     FklVMvalue *path_obj = arg_base[1];
@@ -5538,7 +5538,7 @@ static int fuv_fs_unlink(FKL_CPROC_ARGL) {
 }
 
 static int fuv_fs_write(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 4, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
     FklVMvalue *fd_obj = arg_base[1];

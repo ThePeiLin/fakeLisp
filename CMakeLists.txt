@@ -94,7 +94,7 @@ if(MSVC)
 	add_compile_options(/D_SCL_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS)
 	add_compile_options(/wd4100 /wd4702 /wd4200 /wd4273 /wd4456 /wd4127)
 	add_compile_options(/wd4457 /wd4459)
-else()
+elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU"))
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()
 

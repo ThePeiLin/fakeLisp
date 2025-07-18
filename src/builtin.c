@@ -406,7 +406,7 @@ static int builtin_add_1(FKL_CPROC_ARGL) {
 }
 
 static int builtin_sub(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *prev = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
     double rd = 0.0;
@@ -453,7 +453,7 @@ static int builtin_mul(FKL_CPROC_ARGL) {
 }
 
 static int builtin_idiv(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue *prev = FKL_CPROC_GET_ARG(exe, ctx, 0);
     int64_t r64 = 1;
     FKL_CHECK_TYPE(prev, fklIsVMint, exe);
@@ -472,7 +472,7 @@ static int builtin_idiv(FKL_CPROC_ARGL) {
 }
 
 static int builtin_div(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *prev = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
     int64_t r64 = 1;
@@ -515,7 +515,7 @@ static int builtin_mod(FKL_CPROC_ARGL) {
 }
 
 static int builtin_eqn(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
 
     int r = 1;
     int err = 0;
@@ -536,7 +536,7 @@ static int builtin_eqn(FKL_CPROC_ARGL) {
 }
 
 static int builtin_gt(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
 
     int r = 1;
     int err = 0;
@@ -557,7 +557,7 @@ static int builtin_gt(FKL_CPROC_ARGL) {
 }
 
 static int builtin_ge(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
 
     int r = 1;
     int err = 0;
@@ -578,7 +578,7 @@ static int builtin_ge(FKL_CPROC_ARGL) {
 }
 
 static int builtin_lt(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
 
     int r = 1;
     int err = 0;
@@ -599,7 +599,7 @@ static int builtin_lt(FKL_CPROC_ARGL) {
 }
 
 static int builtin_le(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
 
     int r = 1;
     int err = 0;
@@ -2343,7 +2343,7 @@ static inline FklGrammerProduction *vm_vec_to_production(FklSid_t left,
 }
 
 static int builtin_make_parser(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *start = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(start, FKL_IS_SYM, exe);
     FklVMvalue *retval =
@@ -2937,7 +2937,7 @@ static int builtin_print(FKL_CPROC_ARGL) {
 }
 
 static int builtin_printf(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(fmt_obj, FKL_IS_STR, exe);
 
@@ -2957,7 +2957,7 @@ static int builtin_printf(FKL_CPROC_ARGL) {
 }
 
 static int builtin_format(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
     uint64_t len = 0;
@@ -3552,7 +3552,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
 #define GET_LIST (0)
 #define GET_PROC (1)
 
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
 
     FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
@@ -3624,7 +3624,7 @@ pcall_error_handler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
 static int builtin_pcall(FKL_CPROC_ARGL) {
     switch (ctx->c[0].u32a) {
     case 0: {
-        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
         FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
@@ -3669,7 +3669,7 @@ static void idle_queue_work_cb(FklVM *exe, void *a) {
 static int builtin_idle(FKL_CPROC_ARGL) {
     switch (IDLE_CTX_STATE(ctx)) {
     case 0: {
-        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
         FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         fklVMstackReserve(exe, exe->tp + 1);
@@ -3759,7 +3759,7 @@ static inline struct AtExitArg *create_at_exit_arg(uint32_t arg_num,
 }
 
 static int builtin_atexit(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue **base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *proc = base[0];
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
@@ -3770,7 +3770,7 @@ static int builtin_atexit(FKL_CPROC_ARGL) {
 }
 
 static int builtin_apply(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
 
     FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *arg_list = FKL_CPROC_GET_ARG(exe, ctx, argc - 1);
@@ -4108,7 +4108,7 @@ static int builtin_list(FKL_CPROC_ARGL) {
 }
 
 static int builtin_list8(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *r = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue **pcur = &r;
     FklVMvalue **base = &FKL_CPROC_GET_ARG(exe, ctx, 1);
@@ -4503,7 +4503,7 @@ static int builtin_hash_del1(FKL_CPROC_ARGL) {
 }
 
 static int builtin_hash_set8(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *ht = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
     if ((argc - 1) % 2)

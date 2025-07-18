@@ -309,7 +309,7 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
 static int ht_ht_set8(FKL_CPROC_ARGL) {
     switch (HT_CTX_STATE(ctx)) {
     case HT_CALL_STATE_ENTER: {
-        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, -1);
+        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
         FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
         FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
         uint32_t const rest_arg_num = argc - 1;

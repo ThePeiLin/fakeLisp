@@ -61,7 +61,10 @@ int main(int argc, char **argv) {
     size_t len = 0;
     {
         fseek(input_file, 0, SEEK_END);
-        len = ftell(input_file);
+        long r = ftell(input_file);
+        if (r < 0)
+            perror(input->filename[0]);
+        len = (size_t)r;
         fseek(input_file, 0, SEEK_SET);
     }
 

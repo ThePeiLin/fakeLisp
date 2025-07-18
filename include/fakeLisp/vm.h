@@ -900,12 +900,9 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
     }
 
 #define FKL_CPROC_CHECK_ARG_NUM2(EXE, NUM, MIN, MAX)                           \
-    if ((MAX >= 0)                                                             \
-            && (FKL_TYPE_CAST(int64_t, (NUM)) - FKL_TYPE_CAST(int64_t, (MAX))) \
-                       > 0) {                                                  \
+    if ((NUM) > (MAX)) {                                                       \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, (EXE));                    \
-    } else if ((FKL_TYPE_CAST(int64_t, (MIN)) - FKL_TYPE_CAST(int64_t, (NUM))) \
-               > 0) {                                                          \
+    } else if (((MIN) - (NUM)) > 0) {                                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, (EXE));                     \
     }
 

@@ -380,7 +380,7 @@ static int export_strbuf_empty(FKL_CPROC_ARGL) {
 }
 
 static int export_strbuf_fmt(FKL_CPROC_ARGL) {
-    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, -1);
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue *buf_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     if (!is_strbuf_ud(buf_obj)

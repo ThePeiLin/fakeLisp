@@ -4,13 +4,13 @@
 #include <string.h>
 
 static inline void
-print_match_res(const char *str, uint32_t len, uint32_t pos) {
-    printf("\n%s %u %u\n", str, len, pos);
+print_match_res(const char *str, size_t len, size_t pos) {
+    printf("\n%s %zu %zu\n", str, len, pos);
     if (len) {
-        for (uint32_t i = 0; i < pos; i++)
+        for (size_t i = 0; i < pos; i++)
             putchar(' ');
         putchar('^');
-        for (uint32_t i = 2; i < len; i++)
+        for (size_t i = 2; i < len; i++)
             putchar('-');
         putchar('^');
         putchar('\n');
@@ -67,21 +67,21 @@ int main() {
         fputs("====\n", stdout);
         const char *pattern = cur->pattern;
         const char *str = cur->text;
-        uint32_t pattern_len = strlen(pattern);
+        size_t pattern_len = strlen(pattern);
         FklRegexCode *re = fklRegexCompileCharBuf(pattern, pattern_len);
         FKL_ASSERT(re);
         fklRegexPrint(re, stdout);
-        uint32_t pos = 0;
+        size_t pos = 0;
 
         FklCodeBuilder builder;
         fklInitCodeBuilderFp(&builder, stdout, NULL);
         fklRegexBuildAsC(re, NULL, pattern, pattern_len, &builder);
 
-        uint32_t str_len = strlen(str);
+        size_t str_len = strlen(str);
         int last_is_true = 0;
-        uint32_t len =
-                cur->lex ? fklRegexLexMatchp(re, str, str_len, &last_is_true)
-                         : fklRegexMatchpInCharBuf(re, str, str_len, &pos);
+        size_t len = cur->lex
+                           ? fklRegexLexMatchp(re, str, str_len, &last_is_true)
+                           : fklRegexMatchpInCharBuf(re, str, str_len, &pos);
         if (cur->lex)
             FKL_ASSERT(len == cur->len && last_is_true == cur->last_is_true);
         else

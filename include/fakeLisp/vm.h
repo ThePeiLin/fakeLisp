@@ -1268,6 +1268,8 @@ typedef FklSid_t *(*FklCodegenDllLibInitExportFunc)(
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS                                          \
     FklVM *exe, FklVMvalue *dll, uint32_t *count
 typedef FklVMvalue **(*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
+typedef void (*FklDllInitFunc)(FklVMdll *dll, FklVM *exe);
+typedef void (*FklDllUninitFunc)(void);
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *);
 
@@ -1471,7 +1473,7 @@ static inline FklBigInt fklVMbigIntToBigInt(const FklVMbigInt *b) {
     const FklBigInt bi = {
         .digits = (FklBigIntDigit *)b->digits,
         .num = b->num,
-        .size = labs(b->num),
+        .size = fklAbs(b->num),
         .const_size = 1,
     };
     return bi;
@@ -1507,7 +1509,7 @@ static inline FklBigInt fklVMbigIntToBigInt(const FklVMbigInt *b) {
 #define FKL_VM_CALL_WITH_1_VB_1BI(NAME, FUNC)                                  \
     static inline void NAME(FklBigInt *a, const FklVMbigInt *b) {              \
         const FklBigInt b1 = fklVMbigIntToBigInt(b);                           \
-        return FUNC(a, &b1);                                                   \
+        FUNC(a, &b1);                                                          \
     }
 
 FKL_VM_BIGINT_CALL_1R(fklVMbigIntToI, int64_t, fklBigIntToI);

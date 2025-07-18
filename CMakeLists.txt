@@ -56,6 +56,22 @@ if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	list(APPEND LINK_TARGET m dl)
 endif()
 
+#argtable3
+include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
+
+#replxx
+include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
+set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+#libuv
+option(LIBUV_BUILD_SHARED OFF)
+add_compile_definitions(USING_UV_SHARED)
+include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
+add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
+set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
 include_directories("${PROJECT_SOURCE_DIR}/include")
@@ -74,7 +90,10 @@ add_custom_target(COPY_TEST ALL
 
 #warnnig setting
 if(MSVC)
-	add_compile_options(/W4 /experimental:c11atomics /utf-8 /wd4100 /wd4702 /wd4200)
+	add_compile_options(/W4 /experimental:c11atomics /utf-8)
+	add_compile_options(/D_SCL_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS)
+	add_compile_options(/wd4100 /wd4702 /wd4200 /wd4273 /wd4456 /wd4127)
+	add_compile_options(/wd4457 /wd4459)
 else()
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()
@@ -144,22 +163,6 @@ endif()
 
 #generated-header
 include_directories(${GENERATED_HEADER_DIR})
-
-#argtable3
-include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
-add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
-
-#replxx
-include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
-add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
-set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-#libuv
-option(LIBUV_BUILD_SHARED OFF)
-add_compile_definitions(USING_UV_SHARED)
-include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
-add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
-set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #set source file for taget
 file(GLOB INTERPRETER_SOURCE "main/fakeLisp.c")

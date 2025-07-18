@@ -54,7 +54,7 @@ typedef struct Token {
 } Token;
 
 #define MATCH_DELIM(buf, end, DELIM)                                           \
-    (fklCharBufMatch(DELIM, strlen(DELIM), buf, end - buf) == strlen(DELIM))
+    ((size_t)fklCharBufMatch(DELIM, strlen(DELIM), buf, end - buf) == strlen(DELIM))
 
 static inline int is_comment(const char *buf, const char *const end) {
     return MATCH_DELIM(buf, end, FKL_PG_DELIM_COMMENT);
@@ -781,16 +781,16 @@ void fklPrintParserGrammerParseError(int err,
     case ERR_UNRESOLVED_BUILTIN_TERMINAL:
     case ERR_INVALID_LEFT_PART:
     case ERR_BUILTIN_TERMINAL_INIT_FAILED:
-        fprintf(fp, "%s at %lu\n", arg->error_msg.buf, arg->errline);
+        fprintf(fp, "%s at %zu\n", arg->error_msg.buf, arg->errline);
         break;
     case ERR_UNEXPECTED_EOF:
-        fprintf(fp, "unexcpet eof at %lu\n", arg->line);
+        fprintf(fp, "unexcpet eof at %zu\n", arg->line);
         break;
     case ERR_ADDING_PRODUCTION:
-        fprintf(fp, "failed to add production at %lu\n", arg->line);
+        fprintf(fp, "failed to add production at %zu\n", arg->line);
         break;
     case ERR_ADDING_IGNORE:
-        fprintf(fp, "failed to add ignore at %lu\n", arg->line);
+        fprintf(fp, "failed to add ignore at %zu\n", arg->line);
         break;
     default:
         FKL_UNREACHABLE();

@@ -110,8 +110,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
             fprintf(fp, "at proc: ");
             fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, proc->sid)->k, fp);
         } else if (cur->prev) {
-            FklFuncPrototype *pt = NULL;
-            fklGetCompoundFrameProcPrototype(cur, exe);
+            FklFuncPrototype *pt = fklGetCompoundFrameProcPrototype(cur, exe);
             FklSid_t sid = fklGetCompoundFrameSid(cur);
             if (!sid) {
                 pt = fklGetCompoundFrameProcPrototype(cur, exe);
@@ -499,7 +498,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
     // get all circle heads
 
     vmCircleHeadHashMapClear(circle_heads);
-    while (ht->count) {
+    while (ht->first) {
         VmValueDegreeHashMapNode *value_degree = ht->first;
         FklVMvalue const *v = value_degree->k;
         putValueInSet(circle_heads, v);

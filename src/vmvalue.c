@@ -707,9 +707,10 @@ int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
         double af = fklVMgetDouble(a);
         double bf = fklVMgetDouble(b);
         r = isgreater(af, bf) ? 1 : (isless(af, bf) ? -1 : 0);
-    } else if (FKL_IS_FIX(a) && FKL_IS_FIX(b))
-        r = FKL_GET_FIX(a) - FKL_GET_FIX(b);
-    else if (FKL_IS_BIGINT(a) && FKL_IS_BIGINT(b))
+    } else if (FKL_IS_FIX(a) && FKL_IS_FIX(b)) {
+        int64_t rr = FKL_GET_FIX(a) - FKL_GET_FIX(b);
+        r = rr > 0 ? 1 : rr < 0 ? -1 : 0;
+    } else if (FKL_IS_BIGINT(a) && FKL_IS_BIGINT(b))
         r = fklVMbigIntCmp(FKL_VM_BI(a), FKL_VM_BI(b));
     else if (FKL_IS_BIGINT(a) && FKL_IS_FIX(b))
         r = fklVMbigIntCmpI(FKL_VM_BI(a), FKL_GET_FIX(b));
@@ -717,7 +718,7 @@ int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
         r = -1 * (fklVMbigIntCmpI(FKL_VM_BI(b), FKL_GET_FIX(a)));
     else if (FKL_IS_STR(a) && FKL_IS_STR(b))
         r = fklStringCmp(FKL_VM_STR(a), FKL_VM_STR(b));
-    else if (FKL_IS_BYTEVECTOR(a) && FKL_IS_BYTEVECTOR(a))
+    else if (FKL_IS_BYTEVECTOR(a) && FKL_IS_BYTEVECTOR(b))
         r = fklBytevectorCmp(FKL_VM_BVEC(a), FKL_VM_BVEC(b));
     else if (FKL_IS_CHR(a) && FKL_IS_CHR(b))
         r = FKL_GET_CHR(a) - FKL_GET_CHR(b);
@@ -792,8 +793,7 @@ int fklUninitVMfp(FklVMfp *vfp) {
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *exe) {
     FklVMdll *dll = FKL_VM_DLL(rel);
-    void (*init)(FklVMdll *dll, FklVM *exe) =
-            fklGetAddress("_fklInit", &dll->dll);
+    FklDllInitFunc init = (FklDllInitFunc)fklGetAddress("_fklInit", &dll->dll);
     if (init)
         init(dll, exe);
 }
@@ -1803,7 +1803,8 @@ static void _dll_userdata_atomic(const FklVMud *root, FklVMgc *gc) {
 
 static int _dll_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(dll, FklVMdll, v);
-    void (*uninit)(void) = fklGetAddress("_fklUninit", &dll->dll);
+    FklDllUninitFunc uninit =
+            (FklDllUninitFunc)fklGetAddress("_fklUninit", &dll->dll);
     if (uninit)
         uninit();
     uv_dlclose(&dll->dll);

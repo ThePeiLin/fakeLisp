@@ -3,6 +3,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +130,7 @@ static void sub_test0(void) {
         int64_t i = fklBigIntToI(&c);
         uint64_t u = fklBigIntToU(&c);
         double d = fklBigIntToD(&c);
-        fprintf(stderr, "i: %ld, u: %lu, d: %lf\n", i, u, d);
+        fprintf(stderr, "i: %" PRId64 ", u: %" PRIu64 ", d: %lf\n", i, u, d);
         FKL_ASSERT(i == 1145141919);
         FKL_ASSERT(u == 1145141919);
         FKL_ASSERT(!islessgreater(d, 1145141919.0));
@@ -137,37 +138,37 @@ static void sub_test0(void) {
         fklSetBigIntI(&c, -1145141919);
         i = fklBigIntToI(&c);
         d = fklBigIntToD(&c);
-        fprintf(stderr, "i: %ld, d: %lf\n", i, d);
+        fprintf(stderr, "i: %" PRId64 ", d: %lf\n", i, d);
         FKL_ASSERT(i == -1145141919);
         FKL_ASSERT(!islessgreater(d, -1145141919.0));
 
         fklSetBigIntI(&c, INT64_MAX);
         i = fklBigIntToI(&c);
         u = fklBigIntToU(&c);
-        fprintf(stderr, "i: %ld, u: %lu\n", i, u);
+        fprintf(stderr, "i: %" PRId64 ", u: %" PRIu64 "\n", i, u);
         FKL_ASSERT(i == INT64_MAX);
         FKL_ASSERT(u == INT64_MAX);
 
         fklSetBigIntI(&c, INT64_MIN);
         i = fklBigIntToI(&c);
-        fprintf(stderr, "i: %ld\n", i);
+        fprintf(stderr, "i: %" PRId64 "\n", i);
         FKL_ASSERT(i == INT64_MIN);
 
         fklSubBigIntI(&c, 1);
         i = fklBigIntToI(&c);
-        fprintf(stderr, "i: %ld\n", i);
+        fprintf(stderr, "i: %" PRId64 "\n", i);
         FKL_ASSERT(i == INT64_MIN);
 
         fklSetBigIntI(&c, INT64_MAX);
         fklAddBigIntI(&c, 1);
         i = fklBigIntToI(&c);
-        fprintf(stderr, "i: %ld\n", i);
+        fprintf(stderr, "i: %" PRId64 "\n", i);
         FKL_ASSERT(i == INT64_MAX);
 
         fklSetBigIntU(&c, UINT64_MAX);
         fklAddBigIntI(&c, 1);
         u = fklBigIntToU(&c);
-        fprintf(stderr, "u: %lu\n", u);
+        fprintf(stderr, "u: %" PRIu64 "\n", u);
         FKL_ASSERT(u == UINT64_MAX);
 
         fklUninitBigInt(&c);
@@ -409,7 +410,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "1145141919"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "1145141919"));
 
         // neg
@@ -425,7 +426,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-1145141919"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-1145141919"));
 
         fklUninitBigInt(&a);
@@ -449,7 +450,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "10420275237"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "10420275237"));
 
         fklUninitStringBuffer(&buf);
@@ -465,7 +466,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "010420275237"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "010420275237"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -481,7 +482,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-10420275237"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-10420275237"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -496,7 +497,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-010420275237"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-010420275237"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -518,7 +519,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "44417a9f"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "44417a9f"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -533,7 +534,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "0x44417a9f"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "0x44417a9f"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -548,7 +549,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "44417A9F"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "44417A9F"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -568,7 +569,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "0X44417A9F"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "0X44417A9F"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -584,7 +585,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-44417a9f"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-44417a9f"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -598,7 +599,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-0x44417a9f"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-0x44417a9f"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -612,7 +613,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-44417A9F"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-44417A9F"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -631,7 +632,7 @@ static void sub_test3(void) {
                 fklStringBufferBody(&buf),
                 fklStringBufferLen(&buf));
         FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-0X44417A9F"));
-        fprintf(stderr, "str: %s, len: %lu\n", str->str, str->size);
+        fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-0X44417A9F"));
         fklUninitStringBuffer(&buf);
         fklZfree(str);
@@ -656,7 +657,8 @@ static void sub_test4(void) {
         int64_t d = fklBigIntToI(&a);
         int64_t r = fklBigIntToI(&rem);
         fprintf(stderr,
-                "%17ld / %-17ld = %17ld ...... %-17ld\n",
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
                 h * i,
                 i,
                 d,
@@ -681,7 +683,8 @@ static void sub_test4(void) {
         int64_t d = fklBigIntToI(&a);
         int64_t r = fklBigIntToI(&rem);
         fprintf(stderr,
-                "%17ld / %-17ld = %17ld ...... %-17ld\n",
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
                 h * -i,
                 i,
                 d,
@@ -708,7 +711,13 @@ static void sub_test4(void) {
 
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", -h, -i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                -h,
+                -i,
+                d,
+                r);
         FKL_ASSERT(d == (-h / -i));
         FKL_ASSERT(r == (-h % -i));
 
@@ -716,7 +725,13 @@ static void sub_test4(void) {
         fklDivRemBigIntI(&a, i, &rem);
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", h, i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                h,
+                i,
+                d,
+                r);
         FKL_ASSERT(d == (h / i));
         FKL_ASSERT(r == (h % i));
 
@@ -724,7 +739,13 @@ static void sub_test4(void) {
         fklDivRemBigIntI(&a, i, &rem);
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", -h, i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                -h,
+                i,
+                d,
+                r);
         FKL_ASSERT(d == (-h / i));
         FKL_ASSERT(r == (-h % i));
 
@@ -732,7 +753,13 @@ static void sub_test4(void) {
         fklDivRemBigIntI(&a, -i, &rem);
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", h, -i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                h,
+                -i,
+                d,
+                r);
         FKL_ASSERT(d == (h / -i));
         FKL_ASSERT(r == (h % -i));
 
@@ -756,7 +783,13 @@ static void sub_test4(void) {
 
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", -h, -i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                -h,
+                -i,
+                d,
+                r);
         FKL_ASSERT(d == (-h / -i));
         FKL_ASSERT(r == (-h % -i));
 
@@ -764,7 +797,13 @@ static void sub_test4(void) {
         fklDivRemBigIntI(&a, i, &rem);
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", h, i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                h,
+                i,
+                d,
+                r);
         FKL_ASSERT(d == (h / i));
         FKL_ASSERT(r == (h % i));
 
@@ -772,7 +811,13 @@ static void sub_test4(void) {
         fklDivRemBigIntI(&a, i, &rem);
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", -h, i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                -h,
+                i,
+                d,
+                r);
         FKL_ASSERT(d == (-h / i));
         FKL_ASSERT(r == (-h % i));
 
@@ -780,7 +825,13 @@ static void sub_test4(void) {
         fklDivRemBigIntI(&a, -i, &rem);
         d = fklBigIntToI(&a);
         r = fklBigIntToI(&rem);
-        fprintf(stderr, "%17ld / %-17ld = %17ld ...... %-17ld\n", h, -i, d, r);
+        fprintf(stderr,
+                "%17" PRId64 " / %-17" PRId64 " = %17" PRId64
+                " ...... %-17" PRId64 "\n",
+                h,
+                -i,
+                d,
+                r);
         FKL_ASSERT(d == (h / -i));
         FKL_ASSERT(r == (h % -i));
 
@@ -800,25 +851,41 @@ static void sub_test4(void) {
         fklRemBigIntI(&a, -i);
 
         r = fklBigIntToI(&a);
-        fprintf(stderr, "%17ld %% %-17ld = %-17ld\n", -h, -i, r);
+        fprintf(stderr,
+                "%17" PRId64 " %% %-17" PRId64 " = %-17" PRId64 "\n",
+                -h,
+                -i,
+                r);
         FKL_ASSERT(r == (-h % -i));
 
         fklSetBigIntI(&a, h);
         fklRemBigIntI(&a, i);
         r = fklBigIntToI(&a);
-        fprintf(stderr, "%17ld %% %-17ld = %-17ld\n", h, i, r);
+        fprintf(stderr,
+                "%17" PRId64 " %% %-17" PRId64 " = %-17" PRId64 "\n",
+                h,
+                i,
+                r);
         FKL_ASSERT(r == (h % i));
 
         fklSetBigIntI(&a, -h);
         fklRemBigIntI(&a, i);
         r = fklBigIntToI(&a);
-        fprintf(stderr, "%17ld %% %-17ld = %-17ld\n", -h, i, r);
+        fprintf(stderr,
+                "%17" PRId64 " %% %-17" PRId64 " = %-17" PRId64 "\n",
+                -h,
+                i,
+                r);
         FKL_ASSERT(r == (-h % i));
 
         fklSetBigIntI(&a, h);
         fklRemBigIntI(&a, -i);
         r = fklBigIntToI(&a);
-        fprintf(stderr, "%17ld %% %-17ld = %-17ld\n", h, -i, r);
+        fprintf(stderr,
+                "%17" PRId64 " %% %-17" PRId64 " = %-17" PRId64 "\n",
+                h,
+                -i,
+                r);
         FKL_ASSERT(r == (h % -i));
 
         fklUninitStringBuffer(&buf);
@@ -961,7 +1028,7 @@ static void sub_test5(void) {
 }
 
 int main() {
-    fprintf(stderr, "sizeof(FklBigInt) == %lu\n", sizeof(FklBigInt));
+    fprintf(stderr, "sizeof(FklBigInt) == %" PRIu64 "\n", sizeof(FklBigInt));
     sub_test0();
     sub_test1();
     sub_test2();

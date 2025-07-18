@@ -1290,11 +1290,19 @@ static void builtin_match_symbol_print_c_match_cond(
     const FklString *start = args->len > 0 ? args->args[0] : NULL;
     const FklString *end = args->len > 1 ? args->args[1] : start;
     CB_FMT("builtin_match_symbol(start,*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,ctx,&is_waiting_for_more,");
-    CB_FMT("\"");
-    build_string_in_hex(start, build);
-    CB_FMT("\",%" PRIu64 ",\"", start->size);
-    build_string_in_hex(end, build);
-    CB_FMT("\",%" PRIu64 ")", end->size);
+    if (start) {
+        CB_FMT("\"");
+        build_string_in_hex(start, build);
+        CB_FMT("\",%" PRIu64 ",\"", start->size);
+    } else {
+        CB_FMT("NULL,0");
+    }
+    if (end) {
+        build_string_in_hex(end, build);
+        CB_FMT("\",%" PRIu64 ")", end->size);
+    } else {
+        CB_FMT("NULL,0");
+    }
 }
 
 static FklBuiltinTerminalInitError builtin_match_symbol_create(size_t len,
@@ -2763,6 +2771,8 @@ static inline void init_lalr_look_ahead(FklLalrItemSetHashMap *lr0,
         check_lookahead_self_generated_and_spread(g, &isl->elm, cache);
     }
     FklLalrItemSetHashMapNode *isl = lr0->first;
+    if (isl == NULL)
+        return;
     for (FklLalrItemHashSetNode *il = isl->k.first; il; il = il->next) {
         FklLalrItem item = il->k;
         item.la = FKL_LALR_MATCH_EOF_INIT;
@@ -4321,7 +4331,7 @@ static inline void build_regex_lex_match_for_parser_in_c_to_c_file(
     CB_LINE("{");
     CB_INDENT(flag) {
         CB_LINE("int last_is_true=0;");
-        CB_LINE("uint32_t len=fklRegexLexMatchp(re,cstr,restLen,&last_is_true);");
+        CB_LINE("size_t len=fklRegexLexMatchp(re,cstr,restLen,&last_is_true);");
         CB_LINE("if(len>restLen) {");
         CB_INDENT(flag) {
             CB_LINE("*is_waiting_for_more|=last_is_true;");

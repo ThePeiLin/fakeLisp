@@ -96,16 +96,16 @@ typedef struct {
 FklRegexCode *fklRegexCompileCstr(const char *pattern);
 FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len);
 
-uint32_t fklRegexMatchpInCstr(const FklRegexCode *pattern,
+size_t fklRegexMatchpInCstr(const FklRegexCode *pattern,
         const char *text,
-        uint32_t *ppos);
-uint32_t fklRegexMatchpInCharBuf(const FklRegexCode *pattern,
+        size_t *ppos);
+size_t fklRegexMatchpInCharBuf(const FklRegexCode *pattern,
         const char *text,
-        uint32_t len,
-        uint32_t *ppos);
-uint32_t fklRegexLexMatchp(const FklRegexCode *re,
+        size_t len,
+        size_t *ppos);
+size_t fklRegexLexMatchp(const FklRegexCode *re,
         const char *str,
-        uint32_t len,
+        size_t len,
         int *last_is_true);
 
 void fklRegexPrint(const FklRegexCode *, FILE *fp);
@@ -113,7 +113,7 @@ void fklRegexPrint(const FklRegexCode *, FILE *fp);
 void fklRegexBuildAsC(const FklRegexCode *,
         const char *prefix,
         const char *pattern,
-        uint32_t pattern_len,
+        size_t pattern_len,
         FklCodeBuilder *build);
 
 void fklRegexBuildAsCwithNum(const FklRegexCode *,

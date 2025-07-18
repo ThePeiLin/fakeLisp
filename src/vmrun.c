@@ -521,7 +521,7 @@ static inline FklVMvalue *volatile *get_var_ref(FklVMframe *frame,
 }
 
 static inline FklImportDllInitFunc getImportInit(uv_lib_t *handle) {
-    return fklGetAddress("_fklImportInit", handle);
+    return (FklImportDllInitFunc)fklGetAddress("_fklImportInit", handle);
 }
 
 static inline void

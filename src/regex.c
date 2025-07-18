@@ -43,8 +43,9 @@ static inline uint32_t count_number_esc_char(const char *pat, uint32_t len) {
 }
 
 static inline int esc_char_to_char(const char *pat, uint32_t len) {
-    char tmp[4] = { 0 };
+    char tmp[4];
     strncpy(tmp, pat, len > 3 ? 3 : len);
+    tmp[3] = '\0';
     if (toupper(*pat) == 'X' && len > 1)
         return strtol(&tmp[1], NULL, 16);
     else if (*pat >= '0' && *pat < '9')
@@ -178,7 +179,6 @@ compile_count(struct ReCompileCtx *ctx, const char *pat, size_t len) {
                     if (i + 1 >= len)
                         return 1;
                     i += count_number_esc_char(&pat[i + 1], len - i - 1);
-                    ;
                 }
             }
             if (i == len)
@@ -216,6 +216,7 @@ FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len) {
     uint32_t resel = 0;
 
     struct ReInst *inst = ctx.inst;
+    FKL_ASSERT(inst);
     while (i < len) {
         c = pattern[i];
         FklRegexObj *cur_obj = &objs[j];
@@ -840,10 +841,10 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
 #undef POP
 #undef PUSH
 
-uint32_t fklRegexMatchpInCharBuf(const FklRegexCode *re,
+size_t fklRegexMatchpInCharBuf(const FklRegexCode *re,
         const char *text,
-        uint32_t len,
-        uint32_t *ppos) {
+        size_t len,
+        size_t *ppos) {
     if (re->data[0].type == FKL_REGEX_BEGIN) {
         *ppos = 0;
         return matchpattern(re, text, len);
@@ -863,14 +864,14 @@ uint32_t fklRegexMatchpInCharBuf(const FklRegexCode *re,
     return len + 1;
 }
 
-uint32_t
-fklRegexMatchpInCstr(const FklRegexCode *re, const char *str, uint32_t *ppos) {
+size_t
+fklRegexMatchpInCstr(const FklRegexCode *re, const char *str, size_t *ppos) {
     return fklRegexMatchpInCharBuf(re, str, strlen(str), ppos);
 }
 
-uint32_t fklRegexLexMatchp(const FklRegexCode *re,
+size_t fklRegexLexMatchp(const FklRegexCode *re,
         const char *text,
-        uint32_t len,
+        size_t len,
         int *last_is_true) {
     *last_is_true = 0;
     return lex_matchpattern(re, text, len, last_is_true);
@@ -934,7 +935,7 @@ build_patrns(const uint8_t *pat, uint32_t len, FklCodeBuilder *build) {
 void fklRegexBuildAsC(const FklRegexCode *re,
         const char *prefix,
         const char *pattern,
-        uint32_t pattern_len,
+        size_t pattern_len,
         FklCodeBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;

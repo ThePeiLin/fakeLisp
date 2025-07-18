@@ -4,6 +4,7 @@
 #define _USE_MATH_DEFINES
 #include <float.h>
 #include <math.h>
+#include <time.h>
 
 #define TRIM64(X) ((X) & 0xffffffffffffffffu)
 

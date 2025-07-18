@@ -6785,7 +6785,8 @@ static inline void process_import_script_common_header(FklNastNode *origExp,
 }
 
 FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t *dll) {
-    return fklGetAddress("_fklExportSymbolInit", dll);
+    return (FklCodegenDllLibInitExportFunc)fklGetAddress("_fklExportSymbolInit",
+            dll);
 }
 
 static inline FklByteCodelnt *process_import_from_dll_only(FklNastNode *origExp,

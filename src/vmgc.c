@@ -507,7 +507,7 @@ void fklDestroyVMgc(FklVMgc *gc) {
     fklZfree(gc->kbvec);
     fklZfree(gc->kbi);
     if (gc->alloced_size) {
-        fprintf(stderr, "still has %lu bytes not freed\n", gc->alloced_size);
+        fprintf(stderr, "still has %zu bytes not freed\n", gc->alloced_size);
         abort();
     }
     fklZfree(gc);

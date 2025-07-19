@@ -201,7 +201,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->prev = exe;
     exe->next = exe;
     exe->pts = pts;
-    exe->gc = fklCreateVMgc(runtime_st, runtime_kt, pts);
+    exe->gc = fklCreateVMgc(runtime_st, runtime_kt, pts, 0, NULL);
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     fklInitGlobalVMclosureForGC(exe);
@@ -405,11 +405,6 @@ void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval) {
             }                                                                  \
         }                                                                      \
     }
-
-static inline void uninit_all_vm_lib(FklVMlib *libs, size_t num) {
-    for (size_t i = 1; i <= num; i++)
-        fklUninitVMlib(&libs[i]);
-}
 
 void fklLockThread(FklVM *exe) {
     if (exe->is_single_thread)
@@ -943,12 +938,10 @@ static inline void vm_stack_uninit(FklVM *s) {
 static inline void remove_exited_thread_common(FklVM *cur) {
     fklDeleteCallChain(cur);
     vm_stack_uninit(cur);
-    uninit_all_vm_lib(cur->libs, cur->libNum);
     destroy_vm_atexit(cur);
     destroy_vm_interrupt_handler(cur);
     uv_mutex_destroy(&cur->lock);
     remove_thread_frame_cache(cur);
-    fklZfree(cur->libs);
     fklZfree(cur);
 }
 
@@ -1492,23 +1485,13 @@ void fklDBG_printVMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
     fklPrin1VMvalue(v, fp, gc);
 }
 
-static inline FklVMlib *copy_vm_libs(FklVMlib *libs, size_t libNum) {
-    FklVMlib *r = fklCopyMemory(libs, libNum * sizeof(FklVMlib));
-    for (size_t i = 0; i < libNum; i++)
-        r[i].belong = 0;
-    return r;
-}
-
-FklVM *
-fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num, FklVMlib *libs) {
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     exe->gc = gc;
     exe->prev = exe;
     exe->next = exe;
     vm_stack_init(exe);
-    exe->libNum = lib_num;
-    exe->libs = libs;
     exe->pts = gc->pts;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
@@ -1525,9 +1508,7 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
         uint32_t arg_num,
         FklVMvalue *const *args,
         FklVM *prev,
-        FklVM *next,
-        size_t libNum,
-        FklVMlib *libs) {
+        FklVM *next) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     exe->gc = prev->gc;
@@ -1535,8 +1516,6 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     exe->next = exe;
     exe->chan = fklCreateVMvalueChanl(exe, 1);
     vm_stack_init(exe);
-    exe->libNum = libNum;
-    exe->libs = copy_vm_libs(libs, libNum + 1);
     exe->pts = prev->pts;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
@@ -1586,27 +1565,26 @@ void fklDestroyVMframes(FklVMframe *h) {
     }
 }
 
-void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj) {
+void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t spc) {
     lib->proc = proc_obj;
-    lib->imported = 0;
-    lib->belong = 0;
     lib->loc = NULL;
+    lib->import_state = FKL_VM_LIB_NONE;
     lib->count = 0;
+    lib->spc = spc;
 }
 
 void fklInitVMlibWithCodeObj(FklVMlib *lib,
         FklVMvalue *codeObj,
         FklVM *exe,
-        uint32_t protoId) {
-    FklByteCode *bc = FKL_VM_CO(codeObj)->bc;
-    FklVMvalue *proc =
-            fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, protoId);
-    fklInitVMlib(lib, proc);
+        uint32_t protoId,
+        uint64_t spc) {
+    FklVMvalue *proc = fklCreateVMvalueProc(exe, codeObj, protoId);
+    fklInitVMlib(lib, proc, spc);
 }
 
 void fklUninitVMlib(FklVMlib *lib) {
-    if (lib->belong)
-        fklZfree(lib->loc);
+    fklZfree(lib->loc);
+    memset(lib, 0, sizeof(*lib));
 }
 
 void fklDestroyVMlib(FklVMlib *lib) {

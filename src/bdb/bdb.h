@@ -159,7 +159,7 @@ typedef struct DebugCtx {
     BdbSourceCodeHashMap source_code_table;
     BdbEnvHashMap envs;
 
-    FklVMvalueVector extra_mark_value;
+    FklVMvalue *main_proc;
     FklVMvalueVector code_objs;
 
     jmp_buf *jmpb;

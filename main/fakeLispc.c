@@ -88,6 +88,7 @@ static inline void write_codegen_script_lib(const FklCodegenLib *lib,
     write_codegen_script_lib_path(lib->rp, main_dir, outfp);
     fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
     fklWriteByteCodelnt(lib->bcl, outfp);
+    fwrite(&lib->spc, sizeof(lib->spc), 1, outfp);
     write_export_sid_idx_table(&lib->exports, outfp);
     write_compiler_macros(lib->head, st, outfp);
     write_replacements(lib->replacements, st, outfp);
@@ -361,6 +362,7 @@ static inline int compile(const char *filename,
             fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
             FklByteCodelnt *bcl = lib->bcl;
             fklWriteByteCodelnt(bcl, outfp);
+            fwrite(&lib->spc, sizeof(lib->spc), 1, outfp);
         } else {
             const char *rp = lib->rp;
             uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);

@@ -1,5 +1,6 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+#include <uv.h>
 
 #include <string.h>
 
@@ -52,14 +53,6 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev)
         fklDoAtomicFrame(cur, gc);
 
-    for (size_t i = 1; i <= exe->libNum; i++) {
-        FklVMlib *lib = &exe->libs[i];
-        fklVMgcToGray(lib->proc, gc);
-        if (lib->imported) {
-            for (uint32_t i = 0; i < lib->count; i++)
-                fklVMgcToGray(lib->loc[i], gc);
-        }
-    }
     FklVMvalue **base = exe->base;
     for (uint32_t i = 0; i < exe->tp; i++)
         fklVMgcToGray(base[i], gc);
@@ -69,6 +62,15 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
 static inline void gc_extra_mark(FklVMgc *gc) {
     for (struct FklVMextraMarkObjList *l = gc->extra_mark_list; l; l = l->next)
         l->func(gc, l->arg);
+    for (size_t i = 1; i <= gc->lib_num; i++) {
+        FklVMlib *lib = &gc->libs[i];
+        fklVMgcToGray(lib->proc, gc);
+
+        FklVMvalue **cur = lib->loc;
+        FklVMvalue **const end = cur + lib->count;
+        for (; cur < end; ++cur)
+            fklVMgcToGray(*cur, gc);
+    }
 }
 
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
@@ -329,16 +331,27 @@ void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt) {
         gc->kbi = NULL;
 }
 
-FklVMgc *
-fklCreateVMgc(FklSymbolTable *st, FklConstTable *kt, FklFuncPrototypes *pts) {
+static inline void uninit_all_vm_lib(FklVMlib *libs, size_t num) {
+    for (size_t i = 1; i <= num; i++)
+        fklUninitVMlib(&libs[i]);
+}
+
+FklVMgc *fklCreateVMgc(FklSymbolTable *st,
+        FklConstTable *kt,
+        FklFuncPrototypes *pts,
+        uint64_t lib_num,
+        FklVMlib *libs) {
     FklVMgc *gc = (FklVMgc *)fklZcalloc(1, sizeof(FklVMgc));
     FKL_ASSERT(gc);
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_rwlock_init(&gc->st_lock);
     uv_mutex_init(&gc->extra_mark_lock);
+    uv_mutex_init_recursive(&gc->libs_lock);
     gc->kt = kt;
     gc->st = st;
     gc->pts = pts;
+    gc->lib_num = lib_num;
+    gc->libs = libs;
     fklVMgcUpdateConstArray(gc, kt);
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, st);
 
@@ -494,6 +507,7 @@ void fklDestroyVMgc(FklVMgc *gc) {
     uv_rwlock_destroy(&gc->st_lock);
     uv_mutex_destroy(&gc->workq_lock);
     uv_mutex_destroy(&gc->extra_mark_lock);
+    uv_mutex_destroy(&gc->libs_lock);
     destroy_interrupt_handle_list(gc->int_list);
     destroy_extra_mark_list(gc->extra_mark_list);
     destroy_argv(gc);
@@ -510,6 +524,12 @@ void fklDestroyVMgc(FklVMgc *gc) {
         fprintf(stderr, "still has %zu bytes not freed\n", gc->alloced_size);
         abort();
     }
+
+    uninit_all_vm_lib(gc->libs, gc->lib_num);
+    gc->lib_num = 0;
+    fklZfree(gc->libs);
+    gc->libs = NULL;
+
     fklZfree(gc);
 }
 

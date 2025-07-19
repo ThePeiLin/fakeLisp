@@ -1,8 +1,9 @@
-#include "fakeLisp/grammer.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
+#include <fakeLisp/bytecode.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/grammer.h>
 #include <fakeLisp/nast.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
@@ -390,12 +391,11 @@ loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs, FklSymbolTable *table) {
         fread(&libType, sizeof(char), 1, fp);
         if (libType == FKL_CODEGEN_LIB_SCRIPT) {
             uint32_t protoId = 0;
+            uint64_t spc = 0;
             fread(&protoId, sizeof(protoId), 1, fp);
-            FklByteCodelnt *bcl = fklCreateByteCodelnt(NULL);
-            fklLoadLineNumberTable(fp, &bcl->l, &bcl->ls);
-            FklByteCode *bc = fklLoadByteCode(fp);
-            bcl->bc = bc;
-            fklInitCodegenScriptLib(&libs[i], NULL, bcl, NULL);
+            FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
+            fread(&spc, sizeof(spc), 1, fp);
+            fklInitCodegenScriptLib(&libs[i], NULL, bcl, spc, NULL);
             libs[i].prototypeId = protoId;
         } else {
             uv_lib_t lib = { 0 };

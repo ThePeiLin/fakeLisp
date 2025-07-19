@@ -3221,9 +3221,7 @@ static int builtin_go(FKL_CPROC_ARGL) {
             argc - 1,
             &arg_base[1],
             exe,
-            exe->next,
-            exe->libNum,
-            exe->libs);
+            exe->next);
     FklVMvalue *chan = threadVM->chan;
     FKL_CPROC_RETURN(exe, ctx, chan);
     fklVMthreadStart(threadVM, &exe->gc->q);

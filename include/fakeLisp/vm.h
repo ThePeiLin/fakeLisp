@@ -242,6 +242,9 @@ typedef struct {
 // 目前只有REPL使用该功能
 #define FKL_VM_COMPOUND_FRAME_MARK_LOOP (2)
 
+// 让ret指令处理导入模块的善后工作
+#define FKL_VM_COMPOUND_FRAME_MARK_IMPORTED (3)
+
 typedef struct {
     FklSid_t sid : 61;
     unsigned int mark : 3;
@@ -332,12 +335,17 @@ void fklDoFinalizeCompoundFrame(struct FklVM *exe, FklVMframe *frame);
 void fklCloseVMvalueVarRef(FklVMvalue *ref);
 int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 
+#define FKL_VM_LIB_NONE (0)
+#define FKL_VM_LIB_IMPORTING (1)
+#define FKL_VM_LIB_IMPORTED (2)
+#define FKL_VM_LIB_ERROR (3)
+
 typedef struct FklVMlib {
     FklVMvalue *proc;
+    uint64_t spc;
     FklVMvalue **loc;
     uint32_t count;
-    uint8_t imported;
-    uint8_t belong;
+    atomic_int import_state;
 } FklVMlib;
 
 #define FKL_VM_ERR_RAISE (1)
@@ -408,14 +416,12 @@ typedef struct FklVM {
 
     struct FklVMvalue *chan;
     struct FklVMgc *gc;
-    uint64_t libNum;
-    FklVMlib *libs;
     struct FklVM *prev;
     struct FklVM *next;
     jmp_buf *buf;
 
     FklFuncPrototypes *pts;
-    FklVMlib *importingLib;
+    FklVMlib *importing_lib;
 
     FklVMstate volatile state;
 
@@ -634,6 +640,10 @@ typedef struct FklVMgc {
 
     FklVMvalue *builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
 
+    uv_mutex_t libs_lock;
+    uint64_t lib_num;
+    FklVMlib *libs;
+
     FklConstTable *kt;
     double *kf64;
     int64_t *ki64;
@@ -739,15 +749,12 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
         FklConstTable *,
         FklFuncPrototypes *,
         uint32_t);
-FklVM *
-fklCreateVM(FklVMvalue *proc, FklVMgc *gc, uint64_t lib_num, FklVMlib *libs);
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
         FklVMvalue *const *args,
         FklVM *prev,
-        FklVM *next,
-        size_t libNum,
-        FklVMlib *libs);
+        FklVM *next);
 
 void fklDestroyVMvalue(FklVMvalue *);
 void fklVMstackShrink(FklVM *);
@@ -767,8 +774,11 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
         return 0;
 }
 
-FklVMgc *
-fklCreateVMgc(FklSymbolTable *st, FklConstTable *kt, FklFuncPrototypes *pts);
+FklVMgc *fklCreateVMgc(FklSymbolTable *st,
+        FklConstTable *kt,
+        FklFuncPrototypes *pts,
+        uint64_t lib_num,
+        FklVMlib *libs);
 
 FklVMvalue **
 fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast, uint32_t *pllast);
@@ -902,7 +912,7 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
 #define FKL_CPROC_CHECK_ARG_NUM2(EXE, NUM, MIN, MAX)                           \
     if ((NUM) > (MAX)) {                                                       \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, (EXE));                    \
-    } else if (((MIN) - (NUM)) > 0) {                                          \
+    } else if (((NUM) + 1) < ((MIN) + 1)) {                                    \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, (EXE));                     \
     }
 
@@ -1370,12 +1380,13 @@ void fklDestroyVMframes(FklVMframe *h);
 
 void fklDestroyVMlib(FklVMlib *lib);
 
-void fklInitVMlib(FklVMlib *, FklVMvalue *proc);
+void fklInitVMlib(FklVMlib *, FklVMvalue *proc, uint64_t spc);
 
 void fklInitVMlibWithCodeObj(FklVMlib *,
         FklVMvalue *codeObj,
         FklVM *exe,
-        uint32_t protoId);
+        uint32_t protoId,
+        uint64_t spc);
 
 void fklUninitVMlib(FklVMlib *);
 

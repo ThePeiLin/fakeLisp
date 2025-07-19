@@ -158,18 +158,19 @@ typedef struct {
 typedef struct {
     FklCodegenLibType type;
     union {
-        FklByteCodelnt *bcl;
+        struct {
+            FklByteCodelnt *bcl;
+            uint64_t spc;
+            uint32_t prototypeId;
+            FklCodegenMacro *head;
+            FklReplacementHashMap *replacements;
+            FklGraProdGroupHashMap named_prod_groups;
+        };
         uv_lib_t dll;
     };
     char *rp;
     FklCgExportSidIdxHashMap exports;
 
-    FklCodegenMacro *head;
-    FklReplacementHashMap *replacements;
-
-    FklGraProdGroupHashMap named_prod_groups;
-
-    uint32_t prototypeId;
 } FklCodegenLib;
 
 // FklCodegenLibVector
@@ -540,6 +541,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env);
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklCodegenInfo *codegen,
         FklByteCodelnt *bcl,
+        uint64_t spc,
         FklCodegenEnv *env);
 
 FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t *dll);

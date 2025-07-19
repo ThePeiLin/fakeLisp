@@ -102,14 +102,14 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
             1);
     codegen.runtime_symbol_table = NULL;
     codegen.pts = NULL;
-    anotherVM->libNum = scriptLibStack->size;
-    anotherVM->libs = (FklVMlib *)fklZcalloc((scriptLibStack->size + 1),
-            sizeof(FklVMlib));
-    FKL_ASSERT(anotherVM->libs);
-
     FklVMgc *gc = anotherVM->gc;
+    gc->lib_num = scriptLibStack->size;
+    gc->libs = (FklVMlib *)fklZcalloc((scriptLibStack->size + 1),
+            sizeof(FklVMlib));
+    FKL_ASSERT(gc->libs);
+
     while (!fklCodegenLibVectorIsEmpty(scriptLibStack)) {
-        FklVMlib *curVMlib = &anotherVM->libs[scriptLibStack->size];
+        FklVMlib *curVMlib = &gc->libs[scriptLibStack->size];
         FklCodegenLib *cur = fklCodegenLibVectorPopBackNonNull(scriptLibStack);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibMove(cur,
@@ -225,13 +225,10 @@ static inline void get_all_code_objs(DebugCtx *ctx) {
 }
 
 static inline void internal_dbg_extra_mark(DebugCtx *ctx, FklVMgc *gc) {
-    FklVMvalue **base = (FklVMvalue **)ctx->extra_mark_value.base;
-    FklVMvalue **last = &base[ctx->extra_mark_value.size];
-    for (; base < last; base++)
-        fklVMgcToGray(*base, gc);
+    fklVMgcToGray(ctx->main_proc, gc);
 
-    base = (FklVMvalue **)ctx->code_objs.base;
-    last = &base[ctx->code_objs.size];
+    FklVMvalue **base = (FklVMvalue **)ctx->code_objs.base;
+    FklVMvalue **last = &base[ctx->code_objs.size];
     for (; base < last; base++)
         fklVMgcToGray(*base, gc);
 
@@ -254,13 +251,7 @@ static void dbg_extra_mark(FklVMgc *gc, void *arg) {
 
 static inline void push_extra_mark_value(DebugCtx *ctx) {
     FklVM *vm = ctx->reached_thread;
-    fklVMvalueVectorInit(&ctx->extra_mark_value, vm->libNum + 16);
-    fklVMvalueVectorPushBack2(&ctx->extra_mark_value, vm->top_frame->c.proc);
-    const uint64_t last = vm->libNum + 1;
-    for (uint64_t i = 1; i < last; i++) {
-        FklVMlib *cur = &vm->libs[i];
-        fklVMvalueVectorPushBack2(&ctx->extra_mark_value, cur->proc);
-    }
+    ctx->main_proc = vm->top_frame->c.proc;
     fklVMpushExtraMarkFunc(ctx->gc, dbg_extra_mark, NULL, ctx);
 }
 
@@ -333,7 +324,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
 
     uninitBreakpointTable(&ctx->bt);
     bdbSourceCodeHashMapUninit(&ctx->source_code_table);
-    fklVMvalueVectorUninit(&ctx->extra_mark_value);
+    ctx->main_proc = NULL;
     fklVMvalueVectorUninit(&ctx->code_objs);
     bdbThreadVectorUninit(&ctx->threads);
     bdbFrameVectorUninit(&ctx->reached_thread_frames);
@@ -624,18 +615,18 @@ void restartDebugging(DebugCtx *ctx) {
     fklVMgcSweep(white);
     fklVMgcUpdateThreshold(gc);
 
-    FklVMvalue **base = (FklVMvalue **)ctx->extra_mark_value.base;
-    FklVMvalue **const end = &base[ctx->extra_mark_value.size];
-    FklVMvalue *main_proc = base[0];
+    FklVMvalue *main_proc = ctx->main_proc;
+    ctx->main_proc = NULL;
 
-    base++;
-    uint64_t lib_num = ctx->extra_mark_value.size - 1;
-    FklVMlib *libs = (FklVMlib *)fklZcalloc(lib_num + 1, sizeof(FklVMlib));
-    FKL_ASSERT(libs);
-    for (uint64_t i = 1; base < end; base++, i++)
-        fklInitVMlib(&libs[i], *base);
+    for (uint64_t i = 0; i < gc->lib_num; ++i) {
+        FklVMlib *cur = &gc->libs[i + 1];
+        FklVMvalue *v = cur->proc;
+        uint64_t spc = cur->spc;
+        fklUninitVMlib(cur);
+        fklInitVMlib(cur, v, spc);
+    }
 
-    FklVM *main_thread = fklCreateVM(main_proc, gc, lib_num, libs);
+    FklVM *main_thread = fklCreateVM(main_proc, gc);
     ctx->reached_thread = main_thread;
     ctx->running = 0;
     ctx->done = 0;

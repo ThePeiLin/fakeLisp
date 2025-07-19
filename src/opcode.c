@@ -220,4 +220,5 @@ const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop) {
         FKL_UNREACHABLE();
         break;
     }
+    return NULL;
 }

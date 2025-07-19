@@ -16,7 +16,13 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     FKL_ASSERT(VM->top_frame->type == FKL_FRAME_COMPOUND);
 #endif
     switch (F->c.mark) {
+    case FKL_VM_COMPOUND_FRAME_MARK_IMPORTED:
+        atomic_store(&VM->importing_lib->import_state, FKL_VM_LIB_IMPORTED);
+        uv_mutex_unlock(&VM->gc->libs_lock);
+        goto do_return;
+        break;
     case FKL_VM_COMPOUND_FRAME_MARK_RET: {
+    do_return:
         VM->bp = FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, -2));
         // copy stack values
         uint32_t const value_count = (VM->tp - F->c.sp);

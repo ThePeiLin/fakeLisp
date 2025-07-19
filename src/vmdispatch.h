@@ -427,7 +427,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->c.pc += 2;
     import_lib: {
-        FklVMlib *plib = exe->importingLib;
+        FklVMlib *plib = exe->importing_lib;
         uint32_t count = plib->count;
         FklVMvalue *v = idx >= count ? NULL : plib->loc[idx];
         FKL_VM_GET_ARG(exe, frame, idx1) = v;
@@ -498,39 +498,71 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_EXPORT_X:
         idx = GET_INS_UX(ins, frame);
         export : {
-            FklVMlib *lib = exe->importingLib;
+            FklVMlib *lib = exe->importing_lib;
             lib->loc[lib->count++] = FKL_VM_GET_ARG(exe, frame, idx);
         }
         break;
     case FKL_OP_LOAD_LIB:
-        plib = &exe->libs[ins->bu];
+        plib = &exe->gc->libs[ins->bu];
         goto load_lib;
     case FKL_OP_LOAD_LIB_C:
-        plib = &exe->libs[FKL_GET_INS_UC(ins)];
+        plib = &exe->gc->libs[FKL_GET_INS_UC(ins)];
         goto load_lib;
     case FKL_OP_LOAD_LIB_X:
-        plib = &exe->libs[GET_INS_UX(ins, frame)];
+        plib = &exe->gc->libs[GET_INS_UX(ins, frame)];
     load_lib: {
-        if (plib->imported) {
-            exe->importingLib = plib;
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
-        } else {
+
+        int state = atomic_load(&plib->import_state);
+
+        if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
+            fklUnlockThread(exe);
+            uv_mutex_lock(&exe->gc->libs_lock);
+            fklLockThread(exe);
+        }
+
+        switch (atomic_load(&plib->import_state)) {
+        case FKL_VM_LIB_NONE:
+            atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, plib->proc);
             call_compound_procedure(exe, plib->proc);
+            exe->top_frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
+            exe->top_frame->c.pc += plib->spc;
+            break;
+        case FKL_VM_LIB_IMPORTED:
+            if (state == FKL_VM_LIB_IMPORTING)
+                uv_mutex_unlock(&exe->gc->libs_lock);
+            exe->importing_lib = plib;
+            FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+            break;
+
+        case FKL_VM_LIB_ERROR:
+        case FKL_VM_LIB_IMPORTING:
+            FKL_UNREACHABLE();
         }
+
         return;
     } break;
     case FKL_OP_LOAD_DLL:
-        plib = &exe->libs[ins->bu];
+        plib = &exe->gc->libs[ins->bu];
         goto load_dll;
     case FKL_OP_LOAD_DLL_C:
-        plib = &exe->libs[FKL_GET_INS_UC(ins)];
+        plib = &exe->gc->libs[FKL_GET_INS_UC(ins)];
         goto load_dll;
     case FKL_OP_LOAD_DLL_X:
-        plib = &exe->libs[GET_INS_UX(ins, frame)];
+        plib = &exe->gc->libs[GET_INS_UX(ins, frame)];
     load_dll: {
-        if (!plib->imported) {
+        int state = atomic_load(&plib->import_state);
+
+        if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
+            fklUnlockThread(exe);
+            uv_mutex_lock(&exe->gc->libs_lock);
+            fklLockThread(exe);
+        }
+
+        switch (atomic_load(&plib->import_state)) {
+        case FKL_VM_LIB_NONE:
+            atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
             FklVMvalue *errorStr = NULL;
             FklVMvalue *dll = fklCreateVMvalueDll(exe,
                     FKL_VM_STR(plib->proc)->str,
@@ -538,26 +570,42 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklImportDllInitFunc initFunc = NULL;
             if (dll)
                 initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
-            else
+            else {
+                uv_mutex_lock(&exe->gc->libs_lock);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         FKL_VM_STR(errorStr)->str);
-            if (!initFunc)
+            }
+            if (!initFunc) {
+                uv_mutex_lock(&exe->gc->libs_lock);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         "Failed to import dll: %s",
                         plib->proc);
+            }
             uint32_t tp = exe->tp;
             fklInitVMdll(dll, exe);
             plib->loc = initFunc(exe, dll, &plib->count);
-            plib->imported = 1;
-            plib->belong = 1;
             plib->proc = FKL_VM_NIL;
             exe->tp = tp;
+            atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTED);
+            uv_mutex_lock(&exe->gc->libs_lock);
+            break;
+
+        case FKL_VM_LIB_IMPORTED:
+            if (state == FKL_VM_LIB_IMPORTING)
+                uv_mutex_unlock(&exe->gc->libs_lock);
+            break;
+
+        case FKL_VM_LIB_ERROR:
+        case FKL_VM_LIB_IMPORTING:
+            FKL_UNREACHABLE();
         }
-        exe->importingLib = plib;
+
+        exe->importing_lib = plib;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } break;
+
     case FKL_OP_ATOM: {
         FklVMvalue *val = FKL_VM_POP_TOP_VALUE(exe);
         FKL_VM_PUSH_VALUE(exe, !FKL_IS_PAIR(val) ? FKL_VM_TRUE : FKL_VM_NIL);
@@ -1226,21 +1274,20 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->c.pc += 2;
     export_to: {
-        FklVMlib *lib = &exe->libs[idx];
+        FklVMlib *lib = &exe->gc->libs[idx];
         // pop all values in stack
         // module should only return nil
         exe->tp = frame->c.sp;
         FklVMvalue **loc = NULL;
         if (idx1) {
-            loc = (FklVMvalue **)fklZmalloc(idx1 * sizeof(FklVMvalue *));
+            loc = (FklVMvalue **)fklZcalloc(idx1, sizeof(FklVMvalue *));
             FKL_ASSERT(loc);
         }
         lib->loc = loc;
         lib->count = 0;
-        lib->imported = 1;
-        lib->belong = 1;
         lib->proc = FKL_VM_NIL;
-        exe->importingLib = lib;
+        exe->importing_lib = lib;
+        exe->top_frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_IMPORTED;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } break;
     case FKL_OP_POP_LOC:

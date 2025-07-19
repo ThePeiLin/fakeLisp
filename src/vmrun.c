@@ -541,6 +541,27 @@ close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
                     | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
 
+static inline FklVMlib *get_importing_lib(FklVMframe *f, FklVMgc *gc) {
+    const FklInstruction *first_ins =
+            &FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj)->bc->code[0];
+
+    FKL_ASSERT(first_ins->op >= FKL_OP_EXPORT_TO
+               && first_ins->op <= FKL_OP_EXPORT_TO_XX);
+
+    FklInstructionArg arg;
+    fklGetInsOpArg(first_ins, &arg);
+
+    return &gc->libs[arg.ux];
+}
+
+static int
+import_lib_error_callback(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
+    atomic_store(&get_importing_lib(f, exe->gc)->import_state,
+            FKL_VM_LIB_ERROR);
+    uv_mutex_unlock(&exe->gc->libs_lock);
+    return 0;
+}
+
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklInstruction *ins;
     FklVMlib *plib;

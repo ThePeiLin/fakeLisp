@@ -608,6 +608,16 @@ void waitAllThreadExit(FklVM *head) {
 void restartDebugging(DebugCtx *ctx) {
     FklVMgc *gc = ctx->gc;
     internal_dbg_extra_mark(ctx, gc);
+    for (uint64_t i = 1; i <= gc->lib_num; ++i) {
+        FklVMlib *cur = &gc->libs[i];
+        FklVMvalue *v = cur->proc;
+        uint64_t spc = cur->spc;
+
+        fklVMgcToGray(v, gc);
+        fklUninitVMlib(cur);
+        fklInitVMlib(cur, v, spc);
+    }
+
     while (!fklVMgcPropagate(gc))
         ;
     FklVMvalue *white = NULL;
@@ -616,15 +626,6 @@ void restartDebugging(DebugCtx *ctx) {
     fklVMgcUpdateThreshold(gc);
 
     FklVMvalue *main_proc = ctx->main_proc;
-    ctx->main_proc = NULL;
-
-    for (uint64_t i = 0; i < gc->lib_num; ++i) {
-        FklVMlib *cur = &gc->libs[i + 1];
-        FklVMvalue *v = cur->proc;
-        uint64_t spc = cur->spc;
-        fklUninitVMlib(cur);
-        fklInitVMlib(cur, v, spc);
-    }
 
     FklVM *main_thread = fklCreateVM(main_proc, gc);
     ctx->reached_thread = main_thread;

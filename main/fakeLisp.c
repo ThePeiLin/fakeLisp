@@ -691,7 +691,7 @@ static void loadLib(FILE *fp,
             uint64_t spc = 0;
             fread(&protoId, sizeof(protoId), 1, fp);
             FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-            fwrite(&spc, sizeof(spc), 1, fp);
+            fread(&spc, sizeof(spc), 1, fp);
             FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe, bcl);
             fklDestroyByteCodelnt(bcl);
             fklInitVMlibWithCodeObj(&libs[i], codeObj, exe, protoId, spc);

@@ -152,6 +152,7 @@ void fklPrintBacktrace(FklVM *exe, FILE *fp) {
 }
 
 void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
+    uv_mutex_lock(&exe->gc->print_backtrace_lock);
     if (fklIsVMvalueError(ev)) {
         FklVMerror *err = FKL_VM_ERR(ev);
         fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, err->type)->k, fp);
@@ -164,6 +165,7 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
         fklPrin1VMvalue(ev, fp, exe->gc);
         fputc('\n', fp);
     }
+    uv_mutex_unlock(&exe->gc->print_backtrace_lock);
 }
 
 void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {

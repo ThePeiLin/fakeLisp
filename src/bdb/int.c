@@ -3,6 +3,8 @@
 static void interrupt_queue_work_cb(FklVM *vm, void *a) {
     DbgInterruptArg *arg = (DbgInterruptArg *)a;
     DebugCtx *ctx = arg->ctx;
+    if (ctx->reached_thread)
+        return;
     if (arg->bp) {
         Breakpoint *bp = arg->bp;
         atomic_fetch_sub(&bp->reached_count, 1);

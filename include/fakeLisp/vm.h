@@ -640,6 +640,7 @@ typedef struct FklVMgc {
 
     FklVMvalue *builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
 
+    uv_mutex_t print_backtrace_lock;
     uv_mutex_t libs_lock;
     uint64_t lib_num;
     FklVMlib *libs;

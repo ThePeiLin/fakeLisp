@@ -347,6 +347,7 @@ FklVMgc *fklCreateVMgc(FklSymbolTable *st,
     uv_rwlock_init(&gc->st_lock);
     uv_mutex_init(&gc->extra_mark_lock);
     uv_mutex_init_recursive(&gc->libs_lock);
+    uv_mutex_init(&gc->print_backtrace_lock);
     gc->kt = kt;
     gc->st = st;
     gc->pts = pts;
@@ -508,6 +509,7 @@ void fklDestroyVMgc(FklVMgc *gc) {
     uv_mutex_destroy(&gc->workq_lock);
     uv_mutex_destroy(&gc->extra_mark_lock);
     uv_mutex_destroy(&gc->libs_lock);
+    uv_mutex_destroy(&gc->print_backtrace_lock);
     destroy_interrupt_handle_list(gc->int_list);
     destroy_extra_mark_list(gc->extra_mark_list);
     destroy_argv(gc);

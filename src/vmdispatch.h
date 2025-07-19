@@ -528,6 +528,8 @@ void fklVMexecuteInstruction(FklVM *exe,
             call_compound_procedure(exe, plib->proc);
             exe->top_frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
             exe->top_frame->c.pc += plib->spc;
+            exe->top_frame->errorCallBack = import_lib_error_callback;
+            exe->importing_lib = plib;
             break;
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
@@ -537,6 +539,12 @@ void fklVMexecuteInstruction(FklVM *exe,
             break;
 
         case FKL_VM_LIB_ERROR:
+            if (state == FKL_VM_LIB_IMPORTING)
+                uv_mutex_unlock(&exe->gc->libs_lock);
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
+                    exe,
+                    "library cannot be re-imported because of its' previous failure");
+            break;
         case FKL_VM_LIB_IMPORTING:
             FKL_UNREACHABLE();
         }
@@ -564,32 +572,42 @@ void fklVMexecuteInstruction(FklVM *exe,
         case FKL_VM_LIB_NONE:
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
             FklVMvalue *errorStr = NULL;
-            FklVMvalue *dll = fklCreateVMvalueDll(exe,
-                    FKL_VM_STR(plib->proc)->str,
-                    &errorStr);
+            FklVMvalue *dll;
             FklImportDllInitFunc initFunc = NULL;
+            if (FKL_IS_STR(plib->proc)) {
+                dll = fklCreateVMvalueDll(exe,
+                        FKL_VM_STR(plib->proc)->str,
+                        &errorStr);
+                fklInitVMdll(dll, exe);
+            } else {
+                dll = plib->proc;
+            }
+
             if (dll)
                 initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
             else {
+                atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
                 uv_mutex_lock(&exe->gc->libs_lock);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         FKL_VM_STR(errorStr)->str);
             }
+
             if (!initFunc) {
+                atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
                 uv_mutex_lock(&exe->gc->libs_lock);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         "Failed to import dll: %s",
                         plib->proc);
             }
+
             uint32_t tp = exe->tp;
-            fklInitVMdll(dll, exe);
+            plib->proc = dll;
             plib->loc = initFunc(exe, dll, &plib->count);
-            plib->proc = FKL_VM_NIL;
             exe->tp = tp;
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTED);
-            uv_mutex_lock(&exe->gc->libs_lock);
+            uv_mutex_unlock(&exe->gc->libs_lock);
             break;
 
         case FKL_VM_LIB_IMPORTED:
@@ -1285,7 +1303,6 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         lib->loc = loc;
         lib->count = 0;
-        lib->proc = FKL_VM_NIL;
         exe->importing_lib = lib;
         exe->top_frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_IMPORTED;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);

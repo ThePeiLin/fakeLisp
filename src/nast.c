@@ -198,7 +198,7 @@ void fklDestroyNastNode(FklNastNode *node) {
             goto destroy_nested;
             break;
         default:
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
         fklZfree(node);
@@ -254,7 +254,7 @@ destroy_nested:
                     destroyNastHash(cur->hash);
                     break;
                 default:
-                    abort();
+                    FKL_UNREACHABLE();
                     break;
                 }
                 fklZfree(cur);

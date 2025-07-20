@@ -524,7 +524,7 @@ FklVMvalue *fklCopyVMvalue(const FklVMvalue *obj, FklVM *vm) {
             return valueCopyer(obj, vm);
     } break;
     default:
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return tmp;
@@ -884,8 +884,9 @@ void fklChanlRecv(FklVMchanl *ch, uint32_t slot, FklVM *exe) {
             .exe = exe,
             .slot = slot,
         };
-        if (uv_cond_init(&r.cond))
-            abort();
+        if (uv_cond_init(&r.cond)) {
+            FKL_UNREACHABLE();
+        }
         chanl_push_recv(ch, &r);
         fklUnlockThread(exe);
         uv_cond_wait(&r.cond, &ch->lock);
@@ -912,8 +913,9 @@ void fklChanlSend(FklVMchanl *ch, FklVMvalue *msg, FklVM *exe) {
         FklVMchanlSend s = {
             .msg = msg,
         };
-        if (uv_cond_init(&s.cond))
-            abort();
+        if (uv_cond_init(&s.cond)) {
+            FKL_UNREACHABLE();
+        }
         chanl_push_send(ch, &s);
         fklUnlockThread(exe);
         uv_cond_wait(&s.cond, &ch->lock);

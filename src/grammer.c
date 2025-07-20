@@ -2313,7 +2313,7 @@ typedef struct GraGetLaFirstSetCacheItem {
 #define FKL_HASH_METHOD_PREFIX gra
 #define FKL_HASH_KEY_TYPE GraGetLaFirstSetCacheKey
 #define FKL_HASH_VAL_TYPE GraGetLaFirstSetCacheItem
-#define FKL_HASH_VAL_INIT(A, B) abort()
+#define FKL_HASH_VAL_INIT(A, B) FKL_UNREACHABLE()
 #define FKL_HASH_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->prod == (B)->prod && (A)->idx == (B)->idx
 #define FKL_HASH_KEY_HASH                                                      \

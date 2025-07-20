@@ -10193,7 +10193,7 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
             }
             break;
         default:
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
     }

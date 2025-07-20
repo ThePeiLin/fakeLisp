@@ -84,7 +84,7 @@ static inline const FklVMvalue *METHOD(
         goto cont_call;
         break;
     default:
-        abort();
+        FKL_UNREACHABLE();
     }
     return NULL;
 first_call:
@@ -115,11 +115,7 @@ first_call:
         r = hash_ctx->cur->k;
         break;
     default:
-        fprintf(stderr,
-                "[ERROR %s: %u]\tunreachable \n",
-                __FUNCTION__,
-                __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return r;
@@ -182,11 +178,7 @@ cont_call:
         }
         break;
     default:
-        fprintf(stderr,
-                "[ERROR %s: %u]\tunreachable \n",
-                __FUNCTION__,
-                __LINE__);
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     return r;

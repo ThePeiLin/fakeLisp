@@ -1367,7 +1367,7 @@ void fklWriteByteCode(const FklByteCode *bc, FILE *outfp) {
             fwrite(&code[3].bu, sizeof(code[3].bu), 1, outfp);
             break;
         case FKL_OP_MODE_IxAxB:
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
         code += ins_len;
@@ -1451,7 +1451,7 @@ FklByteCode *fklLoadByteCode(FILE *fp) {
             fread(&code[3].bu, sizeof(code[3].bu), 1, fp);
             break;
         case FKL_OP_MODE_IxAxB:
-            abort();
+            FKL_UNREACHABLE();
             break;
         }
         code += get_op_ins_len(op);

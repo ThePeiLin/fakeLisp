@@ -675,7 +675,7 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
         FklNastNode *top = *fklNastNodeVectorPopBack(&pending);
         switch (top->type) {
         case FKL_NAST_SLOT:
-            abort();
+			FKL_UNREACHABLE();
             break;
         case FKL_NAST_SYM:
             replace_sid(&top->sym, origin_table, target_table);

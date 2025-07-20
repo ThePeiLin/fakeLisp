@@ -427,7 +427,7 @@ void fklRecomputeInsImm(FklByteCodelnt *bcl,
 
             case FKL_OP_MODE_I:
             case FKL_OP_MODE_IxAxB:
-                abort();
+                FKL_UNREACHABLE();
             }
 
             tmp_ins_ln.ins = new_ins[0];
@@ -1084,7 +1084,7 @@ static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer *buf,
         r = oprand1 / oprand2;
         break;
     default:
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     output[0] = peephole[0];
@@ -1099,8 +1099,9 @@ static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer *buf,
     } else if (r >= FKL_I24_MAX && r <= FKL_I24_MIN) {
         output[0].ins.op = FKL_OP_PUSH_I24;
         set_ins_uc(&output[0].ins, r + FKL_I24_OFFSET);
-    } else
-        abort();
+    } else {
+        FKL_UNREACHABLE();
+    }
     return 1;
 }
 
@@ -1205,7 +1206,7 @@ static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer *buf,
         r = oprand1 / (oprand2 * oprand3);
         break;
     default:
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     output[0] = peephole[0];
@@ -1220,8 +1221,9 @@ static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer *buf,
     } else if (r >= FKL_I24_MAX && r <= FKL_I24_MIN) {
         output[0].ins.op = FKL_OP_PUSH_I24;
         set_ins_uc(&output[0].ins, r + FKL_I24_OFFSET);
-    } else
-        abort();
+    } else {
+        FKL_UNREACHABLE();
+    }
     return 1;
 }
 
@@ -1289,7 +1291,7 @@ static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer *buf,
         r = -oprand1;
         break;
     default:
-        abort();
+        FKL_UNREACHABLE();
         break;
     }
     output[0] = peephole[0];
@@ -1304,8 +1306,9 @@ static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer *buf,
     } else if (r >= FKL_I24_MAX && r <= FKL_I24_MIN) {
         output[0].ins.op = FKL_OP_PUSH_I24;
         set_ins_uc(&output[0].ins, r + FKL_I24_OFFSET);
-    } else
-        abort();
+    } else {
+        FKL_UNREACHABLE();
+    }
     return 1;
 }
 

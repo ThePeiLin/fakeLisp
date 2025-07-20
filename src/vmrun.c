@@ -1070,8 +1070,9 @@ void fklQueueWorkInIdleThread(FklVM *vm,
         .arg = arg,
         .cb = cb,
     };
-    if (uv_cond_init(&work.cond))
-        abort();
+    if (uv_cond_init(&work.cond)) {
+        FKL_UNREACHABLE();
+    }
     fklUnlockThread(vm);
     uv_mutex_lock(&gc->workq_lock);
 
@@ -1157,8 +1158,9 @@ static inline void vm_idle_loop(FklVMgc *gc) {
                                             "Failed to create thread")),
                             exe);
                     fklThreadQueueDestroyNode(n);
-                } else
-                    abort();
+                } else {
+                    FKL_UNREACHABLE();
+                }
             } else {
                 atomic_fetch_add(&q->running_count, 1);
                 fklThreadQueuePushNode(&q->running_q, n);
@@ -1276,8 +1278,9 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
                 n;
                 n = fklThreadQueuePopNode(&q->pre_running_q)) {
             FklVM *exe = n->data;
-            if (uv_thread_create(&exe->tid, vm_trapping_thread_cb, exe))
-                abort();
+            if (uv_thread_create(&exe->tid, vm_trapping_thread_cb, exe)) {
+                FKL_UNREACHABLE();
+            }
             atomic_fetch_add(&q->running_count, 1);
             fklThreadQueuePushNode(&q->running_q, n);
         }

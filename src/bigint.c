@@ -1443,7 +1443,7 @@ static inline size_t bigint_to_bin_string_buffer(const FklBigInt *a,
         bits = OCT_BIT_COUNT;
         break;
     default:
-        abort();
+        FKL_UNREACHABLE();
     }
     int64_t size_a = fklAbs(a->num);
     int neg = a->num < 0;
@@ -1499,8 +1499,9 @@ size_t fklBigIntToStr(const FklBigInt *a,
                 16,
                 flags,
                 flags & FKL_BIGINT_FMT_FLAG_CAPITALS ? "0X" : "0x");
-    else
-        abort();
+    else {
+        FKL_UNREACHABLE();
+    }
 }
 
 static char *print_bigint_alloc(void *ptr, size_t len) {

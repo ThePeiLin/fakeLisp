@@ -10,6 +10,7 @@
 #include <fakeLisp/utils.h>
 
 #include "codegen.h"
+#include "fakeLisp/base.h"
 
 #include <inttypes.h>
 
@@ -811,14 +812,14 @@ static inline void recompute_sid_for_dll_lib(FklCodegenLib *lib,
 }
 
 static inline void recompute_sid_for_lib_stack(
-        FklCodegenLibVector *loadedLibStack,
+        FklCodegenLibVector *loaded_libraries,
         const FklSymbolTable *origin_st,
         FklSymbolTable *target_st,
         const FklConstTable *origin_kt,
         FklConstTable *target_kt,
         FklCodegenRecomputeNastSidOption option) {
-    for (size_t i = 0; i < loadedLibStack->size; i++) {
-        FklCodegenLib *lib = &loadedLibStack->base[i];
+    for (size_t i = 0; i < loaded_libraries->size; i++) {
+        FklCodegenLib *lib = &loaded_libraries->base[i];
         switch (lib->type) {
         case FKL_CODEGEN_LIB_SCRIPT:
             recompute_sid_for_script_lib(lib,
@@ -871,7 +872,7 @@ static inline void recompute_sid_for_double_st_script_lib(FklCodegenLib *lib,
 }
 
 static inline void recompute_sid_for_double_st_lib_stack(
-        FklCodegenLibVector *loadedLibStack,
+        FklCodegenLibVector *loaded_libraries,
         const FklSymbolTable *origin_st,
         FklSymbolTable *runtime_st,
         FklSymbolTable *public_st,
@@ -879,8 +880,8 @@ static inline void recompute_sid_for_double_st_lib_stack(
         FklConstTable *runtime_kt,
         FklConstTable *public_kt,
         FklCodegenRecomputeNastSidOption option) {
-    for (size_t i = 0; i < loadedLibStack->size; i++) {
-        FklCodegenLib *lib = &loadedLibStack->base[i];
+    for (size_t i = 0; i < loaded_libraries->size; i++) {
+        FklCodegenLib *lib = &loaded_libraries->base[i];
         switch (lib->type) {
         case FKL_CODEGEN_LIB_SCRIPT:
             recompute_sid_for_double_st_script_lib(lib,
@@ -964,13 +965,13 @@ void fklRecomputeSidForSingleTableInfo(FklCodegenInfo *codegen,
             origin_kt,
             target_kt,
             option);
-    recompute_sid_for_lib_stack(codegen->libStack,
+    recompute_sid_for_lib_stack(codegen->libraries,
             origin_st,
             target_st,
             origin_kt,
             target_kt,
             option);
-    recompute_sid_for_lib_stack(codegen->macroLibStack,
+    recompute_sid_for_lib_stack(codegen->macro_libraries,
             origin_st,
             target_st,
             origin_kt,
@@ -1145,7 +1146,7 @@ static inline int load_lib_from_pre_compile(FklCodegenLib *lib,
     return 0;
 }
 
-static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
+static inline int load_imported_lib_stack(FklCodegenLibVector *libraries,
         FklSymbolTable *st,
         FklCodegenOuterCtx *outer_ctx,
         const char *main_dir,
@@ -1153,7 +1154,7 @@ static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
         char **errorStr) {
     uint64_t num = 0;
     fread(&num, sizeof(num), 1, fp);
-    fklCodegenLibVectorInit(libStack, num + 1);
+    fklCodegenLibVectorInit(libraries, num + 1);
     for (size_t i = 0; i < num; i++) {
         FklCodegenLib lib = { 0 };
         if (load_lib_from_pre_compile(&lib,
@@ -1163,7 +1164,7 @@ static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
                     fp,
                     errorStr))
             return 1;
-        fklCodegenLibVectorPushBack(libStack, &lib);
+        fklCodegenLibVectorPushBack(libraries, &lib);
     }
     FklCodegenLib main_lib = { 0 };
     main_lib.named_prod_groups.buckets = NULL;
@@ -1176,11 +1177,11 @@ static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
     main_lib.head = load_compiler_macros(st, fp);
     main_lib.replacements = load_replacements(st, fp);
     fklLoadNamedProds(&main_lib.named_prod_groups, st, outer_ctx, fp);
-    fklCodegenLibVectorPushBack(libStack, &main_lib);
+    fklCodegenLibVectorPushBack(libraries, &main_lib);
     return 0;
 }
 
-static inline int load_macro_lib_stack(FklCodegenLibVector *libStack,
+static inline int load_macro_lib_stack(FklCodegenLibVector *libraries,
         FklSymbolTable *st,
         FklCodegenOuterCtx *outer_ctx,
         const char *main_dir,
@@ -1188,7 +1189,7 @@ static inline int load_macro_lib_stack(FklCodegenLibVector *libStack,
         char **errorStr) {
     uint64_t num = 0;
     fread(&num, sizeof(num), 1, fp);
-    fklCodegenLibVectorInit(libStack, num);
+    fklCodegenLibVectorInit(libraries, num);
     for (size_t i = 0; i < num; i++) {
         FklCodegenLib lib = { 0 };
         if (load_lib_from_pre_compile(&lib,
@@ -1198,7 +1199,7 @@ static inline int load_macro_lib_stack(FklCodegenLibVector *libStack,
                     fp,
                     errorStr))
             return 1;
-        fklCodegenLibVectorPushBack(libStack, &lib);
+        fklCodegenLibVectorPushBack(libraries, &lib);
     }
     return 0;
 }
@@ -1207,10 +1208,10 @@ static inline void increase_prototype_and_lib_id(uint32_t pts_count,
         uint32_t macro_pts_count,
         uint32_t lib_count,
         uint32_t macro_lib_count,
-        FklCodegenLibVector *libStack,
-        FklCodegenLibVector *macroLibStack) {
-    uint32_t top = libStack->size;
-    FklCodegenLib *base = libStack->base;
+        FklCodegenLibVector *libraries,
+        FklCodegenLibVector *macro_libraries) {
+    uint32_t top = libraries->size;
+    FklCodegenLib *base = libraries->base;
     for (uint32_t i = 0; i < top; i++) {
         fklIncreaseLibIdAndPrototypeId(&base[i],
                 lib_count,
@@ -1219,8 +1220,8 @@ static inline void increase_prototype_and_lib_id(uint32_t pts_count,
                 macro_pts_count);
     }
 
-    top = macroLibStack->size;
-    base = macroLibStack->base;
+    top = macro_libraries->size;
+    base = macro_libraries->base;
     for (uint32_t i = 0; i < top; i++) {
         fklIncreaseLibIdAndPrototypeId(&base[i],
                 macro_lib_count,
@@ -1249,8 +1250,8 @@ static inline void merge_prototypes(FklFuncPrototypes *o,
 
 int fklLoadPreCompile(FklFuncPrototypes *info_pts,
         FklFuncPrototypes *info_macro_pts,
-        FklCodegenLibVector *info_scriptLibStack,
-        FklCodegenLibVector *info_macroScriptLibStack,
+        FklCodegenLibVector *info_script_libraries,
+        FklCodegenLibVector *info_macro_script_libraries,
         FklSymbolTable *runtime_st,
         FklConstTable *runtime_kt,
         FklCodegenOuterCtx *outer_ctx,
@@ -1272,8 +1273,8 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     char *main_dir = fklGetDir(rp);
     main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
 
-    FklCodegenLibVector scriptLibStack;
-    FklCodegenLibVector macroScriptLibStack;
+    FklCodegenLibVector script_libraries;
+    FklCodegenLibVector macro_script_libraries;
 
     fklInitSymbolTable(&ost);
     fklLoadSymbolTable(fp, &ost);
@@ -1286,7 +1287,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
 
     pts = fklLoadFuncPrototypes(fp);
 
-    if (load_imported_lib_stack(&scriptLibStack,
+    if (load_imported_lib_stack(&script_libraries,
                 &ost,
                 outer_ctx,
                 main_dir,
@@ -1295,19 +1296,19 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
         goto error;
 
     macro_pts = fklLoadFuncPrototypes(fp);
-    if (load_macro_lib_stack(&macroScriptLibStack,
+    if (load_macro_lib_stack(&macro_script_libraries,
                 &ost,
                 outer_ctx,
                 main_dir,
                 fp,
                 errorStr)) {
-        while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
+        while (!fklCodegenLibVectorIsEmpty(&macro_script_libraries))
             fklUninitCodegenLib(
-                    fklCodegenLibVectorPopBack(&macroScriptLibStack));
-        fklCodegenLibVectorUninit(&macroScriptLibStack);
+                    fklCodegenLibVectorPopBack(&macro_script_libraries));
+        fklCodegenLibVectorUninit(&macro_script_libraries);
     error:
-        while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
-            fklUninitCodegenLib(fklCodegenLibVectorPopBack(&scriptLibStack));
+        while (!fklCodegenLibVectorIsEmpty(&script_libraries))
+            fklUninitCodegenLib(fklCodegenLibVectorPopBack(&script_libraries));
         err = 1;
         goto exit;
     }
@@ -1315,7 +1316,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
     recompute_sid_for_prototypes(pts, &ost, runtime_st);
     recompute_sid_for_prototypes(macro_pts, &ost, pst);
 
-    recompute_sid_for_double_st_lib_stack(&scriptLibStack,
+    recompute_sid_for_double_st_lib_stack(&script_libraries,
             &ost,
             runtime_st,
             pst,
@@ -1323,7 +1324,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
             runtime_kt,
             pkt,
             FKL_CODEGEN_SID_RECOMPUTE_NONE);
-    recompute_sid_for_lib_stack(&macroScriptLibStack,
+    recompute_sid_for_lib_stack(&macro_script_libraries,
             &ost,
             pst,
             &okt,
@@ -1332,34 +1333,34 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
 
     increase_prototype_and_lib_id(info_pts->count,
             info_macro_pts->count,
-            info_scriptLibStack->size,
-            info_macroScriptLibStack->size,
-            &scriptLibStack,
-            &macroScriptLibStack);
+            info_script_libraries->size,
+            info_macro_script_libraries->size,
+            &script_libraries,
+            &macro_script_libraries);
 
     merge_prototypes(info_pts, pts);
     merge_prototypes(info_macro_pts, macro_pts);
 
-    fklInitPreLibReaderMacros(&scriptLibStack,
+    fklInitPreLibReaderMacros(&script_libraries,
             pst,
             outer_ctx,
             info_macro_pts,
-            info_macroScriptLibStack);
-    fklInitPreLibReaderMacros(&macroScriptLibStack,
+            info_macro_script_libraries);
+    fklInitPreLibReaderMacros(&macro_script_libraries,
             pst,
             outer_ctx,
             info_macro_pts,
-            info_macroScriptLibStack);
+            info_macro_script_libraries);
 
-    for (uint32_t i = 0; i < scriptLibStack.size; i++)
-        fklCodegenLibVectorPushBack(info_scriptLibStack,
-                &scriptLibStack.base[i]);
+    for (uint32_t i = 0; i < script_libraries.size; i++)
+        fklCodegenLibVectorPushBack(info_script_libraries,
+                &script_libraries.base[i]);
 
-    for (uint32_t i = 0; i < macroScriptLibStack.size; i++)
-        fklCodegenLibVectorPushBack(info_macroScriptLibStack,
-                &macroScriptLibStack.base[i]);
+    for (uint32_t i = 0; i < macro_script_libraries.size; i++)
+        fklCodegenLibVectorPushBack(info_macro_script_libraries,
+                &macro_script_libraries.base[i]);
 
-    fklCodegenLibVectorUninit(&macroScriptLibStack);
+    fklCodegenLibVectorUninit(&macro_script_libraries);
 exit:
     if (need_open)
         fclose(fp);
@@ -1369,6 +1370,284 @@ exit:
         fklDestroyFuncPrototypes(macro_pts);
     fklUninitSymbolTable(&ost);
     fklUninitConstTable(&okt);
-    fklCodegenLibVectorUninit(&scriptLibStack);
+    fklCodegenLibVectorUninit(&script_libraries);
     return err;
+}
+
+static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
+        FILE *fp) {
+    fwrite(&t->count, sizeof(t->count), 1, fp);
+    for (FklCgExportSidIdxHashMapNode *sid_idx = t->first; sid_idx;
+            sid_idx = sid_idx->next) {
+        fwrite(&sid_idx->k, sizeof(sid_idx->k), 1, fp);
+        fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
+        fwrite(&sid_idx->v.oidx, sizeof(sid_idx->v.oidx), 1, fp);
+    }
+}
+
+static inline void write_compiler_macros(const FklCodegenMacro *head,
+        const FklSymbolTable *pst,
+        FILE *fp) {
+    uint64_t count = 0;
+    for (const FklCodegenMacro *c = head; c; c = c->next)
+        count++;
+    fwrite(&count, sizeof(count), 1, fp);
+    for (const FklCodegenMacro *c = head; c; c = c->next) {
+        print_nast_node_with_null_chr(c->origin_exp, pst, fp);
+        fwrite(&c->prototype_id, sizeof(c->prototype_id), 1, fp);
+        fklWriteByteCodelnt(c->bcl, fp);
+    }
+}
+
+static inline void write_replacements(const FklReplacementHashMap *ht,
+        const FklSymbolTable *st,
+        FILE *fp) {
+    if (ht == NULL) {
+        uint32_t count = 0;
+        fwrite(&count, sizeof(count), 1, fp);
+        return;
+    }
+    fwrite(&ht->count, sizeof(ht->count), 1, fp);
+    for (const FklReplacementHashMapNode *rep_list = ht->first; rep_list;
+            rep_list = rep_list->next) {
+        fwrite(&rep_list->k, sizeof(rep_list->k), 1, fp);
+        print_nast_node_with_null_chr(rep_list->v, st, fp);
+    }
+}
+
+static inline void write_codegen_script_lib_path(const char *rp,
+        const char *main_dir,
+        FILE *outfp) {
+    char *relpath = fklRelpath(main_dir, rp);
+    size_t count = 0;
+    char **slices = fklSplit(relpath, FKL_PATH_SEPARATOR_STR, &count);
+
+    for (size_t i = 0; i < count; i++) {
+        fputs(slices[i], outfp);
+        fputc('\0', outfp);
+    }
+    fputc('\0', outfp);
+    fklZfree(relpath);
+    fklZfree(slices);
+}
+
+static inline void write_codegen_script_lib(const FklCodegenLib *lib,
+        const FklSymbolTable *st,
+        const char *main_dir,
+        FILE *outfp) {
+    write_codegen_script_lib_path(lib->rp, main_dir, outfp);
+    fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
+    fklWriteByteCodelnt(lib->bcl, outfp);
+    fwrite(&lib->spc, sizeof(lib->spc), 1, outfp);
+    write_export_sid_idx_table(&lib->exports, outfp);
+    write_compiler_macros(lib->head, st, outfp);
+    write_replacements(lib->replacements, st, outfp);
+    fklWriteNamedProds(&lib->named_prod_groups, st, outfp);
+}
+
+static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
+        const char *main_dir,
+        FILE *outfp) {
+    char *relpath = fklRelpath(main_dir, lib->rp);
+    size_t count = 0;
+    char **slices = fklSplit(relpath, FKL_PATH_SEPARATOR_STR, &count);
+    count--;
+
+    for (size_t i = 0; i < count; i++) {
+        fputs(slices[i], outfp);
+        fputc('\0', outfp);
+    }
+    uint64_t len = strlen(slices[count]) - FKL_DLL_FILE_TYPE_STR_LEN;
+    fwrite(slices[count], len, 1, outfp);
+    fputc('\0', outfp);
+    fputc('\0', outfp);
+    fklZfree(relpath);
+    fklZfree(slices);
+}
+
+static inline void write_codegen_dll_lib(const FklCodegenLib *lib,
+        const char *main_dir,
+        const char *target_dir,
+        FILE *outfp) {
+    write_codegen_dll_lib_path(lib, target_dir ? target_dir : main_dir, outfp);
+    write_export_sid_idx_table(&lib->exports, outfp);
+}
+
+static inline void write_codegen_lib(const FklCodegenLib *lib,
+        const FklSymbolTable *st,
+        const char *main_dir,
+        const char *target_dir,
+        FILE *fp) {
+    uint8_t type_byte = lib->type;
+    fwrite(&type_byte, sizeof(type_byte), 1, fp);
+    switch (lib->type) {
+    case FKL_CODEGEN_LIB_SCRIPT:
+        write_codegen_script_lib(lib, st, main_dir, fp);
+        break;
+    case FKL_CODEGEN_LIB_DLL:
+        write_codegen_dll_lib(lib, main_dir, target_dir, fp);
+        break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
+        break;
+    }
+}
+
+static inline void write_lib_stack(FklCodegenLibVector *loaded_libraries,
+        const FklSymbolTable *st,
+        const char *main_dir,
+        const char *target_dir,
+        FILE *outfp) {
+    uint64_t num = loaded_libraries->size;
+    fwrite(&num, sizeof(uint64_t), 1, outfp);
+    for (size_t i = 0; i < num; i++) {
+        const FklCodegenLib *lib = &loaded_libraries->base[i];
+        write_codegen_lib(lib, st, main_dir, target_dir, outfp);
+    }
+}
+
+static inline void write_lib_main_file(const FklCodegenInfo *codegen,
+        const FklByteCodelnt *bcl,
+        const FklSymbolTable *st,
+        const char *main_dir,
+        FILE *outfp) {
+    write_codegen_script_lib_path(codegen->realpath, main_dir, outfp);
+    fklWriteByteCodelnt(bcl, outfp);
+    fwrite(&codegen->spc, sizeof(codegen->spc), 1, outfp);
+    write_export_sid_idx_table(&codegen->exports, outfp);
+    write_compiler_macros(codegen->export_macro, st, outfp);
+    write_replacements(codegen->export_replacement, st, outfp);
+    fklWriteExportNamedProds(codegen->export_named_prod_groups,
+            codegen->named_prod_groups,
+            st,
+            outfp);
+}
+
+void fklWritePreCompile(FklCodegenInfo *codegen,
+        const char *main_dir,
+        const char *target_dir,
+        FklByteCodelnt *bcl,
+        FILE *outfp) {
+    FklSymbolTable target_st;
+    fklInitSymbolTable(&target_st);
+
+    FklConstTable target_kt;
+    fklInitConstTable(&target_kt);
+    const FklSymbolTable *origin_st = codegen->runtime_symbol_table;
+    const FklConstTable *origin_kt = codegen->runtime_kt;
+
+    for (uint32_t i = 0; i < codegen->libraries->size; ++i) {
+        fklClearCodegenLibMacros(&codegen->libraries->base[i]);
+    }
+
+    for (uint32_t i = 0; i < codegen->macro_libraries->size; ++i) {
+        fklClearCodegenLibMacros(&codegen->macro_libraries->base[i]);
+    }
+
+    fklRecomputeSidForSingleTableInfo(codegen,
+            bcl,
+            origin_st,
+            &target_st,
+            origin_kt,
+            &target_kt,
+            FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
+
+    fklWriteSymbolTable(&target_st, outfp);
+    fklWriteConstTable(&target_kt, outfp);
+
+    fklWriteFuncPrototypes(codegen->pts, outfp);
+    write_lib_stack(codegen->libraries,
+            &target_st,
+            main_dir,
+            target_dir,
+            outfp);
+    write_lib_main_file(codegen, bcl, &target_st, main_dir, outfp);
+
+    fklWriteFuncPrototypes(codegen->macro_pts, outfp);
+    write_lib_stack(codegen->macro_libraries,
+            &target_st,
+            main_dir,
+            target_dir,
+            outfp);
+
+    fklUninitSymbolTable(&target_st);
+    fklUninitConstTable(&target_kt);
+}
+
+void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *args) {
+    fklWriteSymbolTable(args->runtime_st, fp);
+    fklWriteConstTable(args->runtime_kt, fp);
+    fklWriteFuncPrototypes(args->pts, fp);
+    fklWriteByteCodelnt(args->main_func, fp);
+
+    uint64_t num = args->libs->size;
+    fwrite(&num, sizeof(uint64_t), 1, fp);
+    for (size_t i = 0; i < num; i++) {
+        const FklCodegenLib *lib = &args->libs->base[i];
+        uint8_t type_byte = lib->type;
+        fwrite(&type_byte, sizeof(type_byte), 1, fp);
+        if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
+            fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
+            FklByteCodelnt *bcl = lib->bcl;
+            fklWriteByteCodelnt(bcl, fp);
+            fwrite(&lib->spc, sizeof(lib->spc), 1, fp);
+        } else {
+            const char *rp = lib->rp;
+            uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
+            uint64_t len = strlen(rp) - typelen;
+            fwrite(&len, sizeof(uint64_t), 1, fp);
+            fwrite(rp, len, 1, fp);
+        }
+    }
+}
+
+static void load_lib(FILE *fp, FklReadCodeFileArgs *args) {
+    fread(&args->lib_count, sizeof(args->lib_count), 1, fp);
+    args->libs = fklZcalloc(args->lib_count + 1, args->lib_size);
+    FKL_ASSERT(args->libs);
+    for (size_t i = 1; i <= args->lib_count; i++) {
+        FklCodegenLibType libType = FKL_CODEGEN_LIB_SCRIPT;
+        fread(&libType, sizeof(char), 1, fp);
+        if (libType == FKL_CODEGEN_LIB_SCRIPT) {
+            uint32_t protoId = 0;
+            uint64_t spc = 0;
+            fread(&protoId, sizeof(protoId), 1, fp);
+            FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
+            fread(&spc, sizeof(spc), 1, fp);
+
+            void *lib_addr = FKL_TYPE_CAST(void *,
+                    FKL_TYPE_CAST(uint8_t *, args->libs) + args->lib_size * i);
+            args->library_initer(args,
+                    lib_addr,
+                    args->lib_init_args,
+                    libType,
+                    protoId,
+                    spc,
+                    bcl,
+                    NULL);
+
+            fklDestroyByteCodelnt(bcl);
+        } else {
+            FklString *str = fklLoadString(fp);
+            void *lib_addr = FKL_TYPE_CAST(void *,
+                    FKL_TYPE_CAST(uint8_t *, args->libs) + args->lib_size * i);
+            args->library_initer(args,
+                    lib_addr,
+                    args->lib_init_args,
+                    libType,
+                    0,
+                    0,
+                    NULL,
+                    str);
+            fklZfree(str);
+        }
+    }
+}
+
+void fklReadCodeFile(FILE *fp, FklReadCodeFileArgs *args) {
+    fklLoadSymbolTable(fp, args->runtime_st);
+    fklLoadConstTable(fp, args->runtime_kt);
+    args->pts = fklLoadFuncPrototypes(fp);
+    args->main_func = fklLoadByteCodelnt(fp);
+    load_lib(fp, args);
 }

@@ -32,8 +32,7 @@ static void init_frame_to_repl_frame(FklVM *,
         FklCodegenEnv *,
         const char *eval_expression,
         int8_t interactive);
-static void
-loadLib(FILE *, uint64_t *, FklVMlib **, FklVM *, FklVMCompoundFrameVarRef *lr);
+
 static int exitState = 0;
 
 #define FKL_EXIT_FAILURE (255)
@@ -78,7 +77,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
-    FklCodegenLibVector *scriptLibStack = codegen.libStack;
+    FklCodegenLibVector *scriptLibStack = codegen.libraries;
     FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
             codegen.runtime_symbol_table,
             codegen.runtime_kt,
@@ -131,6 +130,46 @@ initLibWithPrototype(FklVMlib *lib, uint32_t num, FklFuncPrototypes *pts) {
     }
 }
 
+typedef struct {
+    FklVM *exe;
+} VMlibInitArgs;
+
+static void vmlib_initer(FklReadCodeFileArgs *read_args,
+        void *lib_addr,
+        void *lib_init_args,
+        FklCodegenLibType type,
+        uint32_t prototypeId,
+        uint64_t spc,
+        const FklByteCodelnt *bcl,
+        const FklString *dll_name) {
+
+    FklVMlib *lib = FKL_TYPE_CAST(FklVMlib *, lib_addr);
+    VMlibInitArgs *args = FKL_TYPE_CAST(VMlibInitArgs *, lib_init_args);
+    if (args->exe == NULL) {
+        args->exe = fklCreateVMwithByteCode(read_args->main_func,
+                read_args->runtime_st,
+                read_args->runtime_kt,
+                read_args->pts,
+                1,
+                0);
+    }
+
+    switch (type) {
+    case FKL_CODEGEN_LIB_SCRIPT: {
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(args->exe, bcl);
+        fklInitVMlibWithCodeObj(lib, codeObj, args->exe, prototypeId, spc);
+        fklInitMainProcRefs(args->exe, lib->proc);
+    } break;
+    case FKL_CODEGEN_LIB_DLL: {
+        FklVMvalue *sv = fklCreateVMvalueStr(args->exe, dll_name);
+        fklInitVMlib(lib, sv, 0);
+    } break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
+        break;
+    }
+}
+
 static inline int
 runCode(const char *filename, int argc, const char *const *argv) {
     FILE *fp = fopen(filename, "rb");
@@ -142,28 +181,26 @@ runCode(const char *filename, int argc, const char *const *argv) {
     fklInitSymbolTable(&runtime_st);
     FklConstTable runtime_kt;
     fklInitConstTable(&runtime_kt);
-    fklLoadSymbolTable(fp, &runtime_st);
-    fklLoadConstTable(fp, &runtime_kt);
-    FklFuncPrototypes *prototypes = fklLoadFuncPrototypes(fp);
-    FklByteCodelnt *mainCodelnt = fklLoadByteCodelnt(fp);
 
-    FklVM *anotherVM = fklCreateVMwithByteCode(mainCodelnt,
-            &runtime_st,
-            &runtime_kt,
-            prototypes,
-            1,
-            0);
+    VMlibInitArgs lib_init_args = { .exe = NULL };
+    FklReadCodeFileArgs args = {
+        .runtime_st = &runtime_st,
+        .runtime_kt = &runtime_kt,
+        .library_initer = vmlib_initer,
+        .lib_init_args = &lib_init_args,
+        .lib_size = sizeof(FklVMlib),
+    };
+
+    fklReadCodeFile(fp, &args);
+
+    FklVM *anotherVM = lib_init_args.exe;
 
     FklVMgc *gc = anotherVM->gc;
 
-    loadLib(fp,
-            &gc->lib_num,
-            &gc->libs,
-            anotherVM,
-            fklGetCompoundFrameLocRef(anotherVM->top_frame));
-
     fclose(fp);
 
+    gc->libs = FKL_TYPE_CAST(FklVMlib *, args.libs);
+    gc->lib_num = args.lib_count;
     initLibWithPrototype(gc->libs, gc->lib_num, anotherVM->pts);
     fklInitVMargs(anotherVM->gc, argc, argv);
     int r = fklRunVM(anotherVM);
@@ -522,7 +559,7 @@ int main(int argc, char *argv[]) {
                 eval->count > 0 ? eval->sval[0] : NULL,
                 interactive->count > 0);
         codegen.runtime_symbol_table = NULL;
-        FklCodegenLibVector *loadedLibStack = codegen.libStack;
+        FklCodegenLibVector *loadedLibStack = codegen.libraries;
         while (!fklCodegenLibVectorIsEmpty(loadedLibStack)) {
             FklCodegenLib *lib =
                     fklCodegenLibVectorPopBackNonNull(loadedLibStack);
@@ -676,40 +713,6 @@ static int runRepl(FklCodegenInfo *codegen,
     fklDestroyVMgc(gc);
     codegen->pts = NULL;
     return err;
-}
-
-static void loadLib(FILE *fp,
-        uint64_t *plibNum,
-        FklVMlib **plibs,
-        FklVM *exe,
-        FklVMCompoundFrameVarRef *lr) {
-    fread(plibNum, sizeof(uint64_t), 1, fp);
-    size_t libNum = *plibNum;
-    FklVMlib *libs = (FklVMlib *)fklZcalloc((libNum + 1), sizeof(FklVMlib));
-    FKL_ASSERT(libs);
-    *plibs = libs;
-    for (size_t i = 1; i <= libNum; i++) {
-        FklCodegenLibType libType = FKL_CODEGEN_LIB_SCRIPT;
-        fread(&libType, sizeof(char), 1, fp);
-        if (libType == FKL_CODEGEN_LIB_SCRIPT) {
-            uint32_t protoId = 0;
-            uint64_t spc = 0;
-            fread(&protoId, sizeof(protoId), 1, fp);
-            FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-            fread(&spc, sizeof(spc), 1, fp);
-            FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe, bcl);
-            fklDestroyByteCodelnt(bcl);
-            fklInitVMlibWithCodeObj(&libs[i], codeObj, exe, protoId, spc);
-            fklInitMainProcRefs(exe, libs[i].proc);
-        } else {
-            uint64_t len = 0;
-            fread(&len, sizeof(uint64_t), 1, fp);
-            FklVMvalue *sv = fklCreateVMvalueStr2(exe, len, NULL);
-            FklString *s = FKL_VM_STR(sv);
-            fread(s->str, len, 1, fp);
-            fklInitVMlib(&libs[i], sv, 0);
-        }
-    }
 }
 
 typedef struct {
@@ -1202,7 +1205,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         }
 
         fklMakeNastNodeRef(ast);
-        size_t libs_count = codegen->libStack->size;
+        size_t libs_count = codegen->libraries->size;
 
         fklVMacquireSt(exe->gc);
         FklConstTable *kt = codegen->runtime_kt;
@@ -1221,7 +1224,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         repl_nast_ctx_and_buf_reset(cc, s, g);
         fklDestroyNastNode(ast);
 
-        size_t new_libs_count = codegen->libStack->size - libs_count;
+        size_t new_libs_count = codegen->libraries->size - libs_count;
         FklVMlib *new_libs = NULL;
 
         if (new_libs_count) {
@@ -1231,7 +1234,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
             for (size_t i = 0; i < new_libs_count; i++) {
                 FklVMlib *curVMlib = &new_libs[i];
                 FklCodegenLib *curCGlib =
-                        &codegen->libStack->base[i + libs_count];
+                        &codegen->libraries->base[i + libs_count];
                 fklInitVMlibWithCodegenLibRefs(curCGlib,
                         curVMlib,
                         exe,
@@ -1494,7 +1497,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         }
     }
 
-    size_t libs_count = codegen->libStack->size;
+    size_t libs_count = codegen->libraries->size;
 
     fklVMacquireSt(exe->gc);
     FklConstTable *kt = codegen->runtime_kt;
@@ -1512,7 +1515,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     g = *(codegen->g);
     repl_nast_ctx_and_buf_reset(cc, &ctx->c->buf, g);
 
-    size_t new_libs_count = codegen->libStack->size - libs_count;
+    size_t new_libs_count = codegen->libraries->size - libs_count;
     FklVMlib *new_libs = NULL;
 
     if (new_libs_count) {
@@ -1521,7 +1524,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         FKL_ASSERT(new_libs);
         for (size_t i = 0; i < new_libs_count; i++) {
             FklVMlib *curVMlib = &new_libs[i];
-            FklCodegenLib *curCGlib = &codegen->libStack->base[i + libs_count];
+            FklCodegenLib *curCGlib = &codegen->libraries->base[i + libs_count];
             fklInitVMlibWithCodegenLibRefs(curCGlib,
                     curVMlib,
                     exe,

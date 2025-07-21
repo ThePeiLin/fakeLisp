@@ -23,8 +23,14 @@
 #include <unistd.h>
 #endif
 
-static void
-loadLib(FILE *, size_t *pnum, FklCodegenLib **libs, FklSymbolTable *);
+static void codegenlib_initer(FklReadCodeFileArgs *read_args,
+        void *lib_addr,
+        void *lib_init_args,
+        FklCodegenLibType type,
+        uint32_t prototypeId,
+        uint64_t spc,
+        const FklByteCodelnt *bcl,
+        const FklString *dll_name);
 
 static void print_compiler_macros(FklCodegenMacro *head,
         const FklSymbolTable *pst,
@@ -136,29 +142,39 @@ int main(int argc, char **argv) {
             }
             FklSymbolTable runtime_st;
             fklInitSymbolTable(&runtime_st);
-            fklLoadSymbolTable(fp, &runtime_st);
 
             FklConstTable runtime_kt;
             fklInitConstTable(&runtime_kt);
-            fklLoadConstTable(fp, &runtime_kt);
-            fklDestroyFuncPrototypes(fklLoadFuncPrototypes(fp));
+
+            FklReadCodeFileArgs read_args = {
+                .runtime_st = &runtime_st,
+                .runtime_kt = &runtime_kt,
+                .library_initer = codegenlib_initer,
+                .lib_init_args = NULL,
+                .lib_size = sizeof(FklCodegenLib),
+            };
+
+            fklReadCodeFile(fp, &read_args);
+
+            fklDestroyFuncPrototypes(read_args.pts);
             char *rp = fklRealpath(filename);
             fklZfree(rp);
 
-            FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
+            FklByteCodelnt *bcl = read_args.main_func;
             printf("file: %s\n\n", filename);
             fklPrintByteCodelnt(bcl, stdout, &runtime_st, &runtime_kt);
             if (stats->count > 0)
                 do_gather_statistics(bcl, opcode_count);
             fputc('\n', stdout);
             fklDestroyByteCodelnt(bcl);
-            FklCodegenLib *libs = NULL;
-            size_t num = 0;
-            loadLib(fp, &num, &libs, &runtime_st);
-            for (size_t i = 0; i < num; i++) {
+
+            FklCodegenLib *libs = FKL_TYPE_CAST(void *, read_args.libs);
+            size_t num = read_args.lib_count;
+
+            for (size_t i = 1; i <= num; ++i) {
                 FklCodegenLib *cur = &libs[i];
                 fputc('\n', stdout);
-                printf("lib %" PRIu64 ":\n", i + 1);
+                printf("lib %" PRIu64 ":\n", i);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
                     fklPrintByteCodelnt(cur->bcl,
@@ -374,40 +390,39 @@ static FklSid_t *dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
     return NULL;
 }
 
-static void
-loadLib(FILE *fp, size_t *pnum, FklCodegenLib **plibs, FklSymbolTable *table) {
-    fread(pnum, sizeof(uint64_t), 1, fp);
-    size_t num = *pnum;
-    FklCodegenLib *libs;
-    if (!num)
-        libs = NULL;
-    else {
-        libs = (FklCodegenLib *)fklZmalloc(sizeof(FklCodegenInfo) * num);
-        FKL_ASSERT(libs);
-    }
-    *plibs = libs;
-    for (size_t i = 0; i < num; i++) {
-        FklCodegenLibType libType = FKL_CODEGEN_LIB_SCRIPT;
-        fread(&libType, sizeof(char), 1, fp);
-        if (libType == FKL_CODEGEN_LIB_SCRIPT) {
-            uint32_t protoId = 0;
-            uint64_t spc = 0;
-            fread(&protoId, sizeof(protoId), 1, fp);
-            FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-            fread(&spc, sizeof(spc), 1, fp);
-            fklInitCodegenScriptLib(&libs[i], NULL, bcl, spc, NULL);
-            libs[i].prototypeId = protoId;
-        } else {
-            uv_lib_t lib = { 0 };
-            uint64_t len = 0;
-            uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
-            fread(&len, sizeof(uint64_t), 1, fp);
-            char *rp = (char *)fklZcalloc(len + typelen + 1, sizeof(char));
-            FKL_ASSERT(rp);
-            fread(rp, len, 1, fp);
-            strcat(rp, FKL_DLL_FILE_TYPE);
-            fklInitCodegenDllLib(&libs[i], rp, lib, NULL, dll_init, table);
-        }
+static void codegenlib_initer(FklReadCodeFileArgs *read_args,
+        void *lib_addr,
+        void *lib_init_args,
+        FklCodegenLibType type,
+        uint32_t prototypeId,
+        uint64_t spc,
+        const FklByteCodelnt *bcl,
+        const FklString *dll_name) {
+    FklCodegenLib *lib = FKL_TYPE_CAST(FklCodegenLib *, lib_addr);
+
+    switch (type) {
+    case FKL_CODEGEN_LIB_SCRIPT: {
+        fklInitCodegenScriptLib(lib, NULL, fklCopyByteCodelnt(bcl), spc, NULL);
+        lib->prototypeId = prototypeId;
+    } break;
+    case FKL_CODEGEN_LIB_DLL: {
+        uv_lib_t tlib = { 0 };
+        uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
+        char *rp =
+                (char *)fklZcalloc(dll_name->size + typelen + 1, sizeof(char));
+        FKL_ASSERT(rp);
+        strncpy(rp, dll_name->str, dll_name->size);
+        strcat(rp, FKL_DLL_FILE_TYPE);
+        fklInitCodegenDllLib(lib,
+                rp,
+                tlib,
+                NULL,
+                dll_init,
+                read_args->runtime_st);
+    } break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
+        break;
     }
 }
 

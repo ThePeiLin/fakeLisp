@@ -1,3 +1,5 @@
+#include "fakeLisp/bytecode.h"
+#include "fakeLisp/utils.h"
 #include <fakeLisp/parser.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
@@ -1789,6 +1791,15 @@ FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *exe, FklByteCodelnt *bcl) {
     *FKL_VM_CO(r) = *bcl;
     bcl->bc = NULL;
     bcl->l = NULL;
+    return r;
+}
+
+FklVMvalue *fklCreateVMvalueCodeObj(FklVM *exe, const FklByteCodelnt *bcl) {
+    FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
+    FklByteCodelnt *bcl1 = FKL_VM_CO(r);
+    bcl1->bc = fklCopyByteCode(bcl->bc);
+    bcl1->l = fklCopyMemory(bcl->l, bcl->ls * sizeof(*bcl->l));
+    bcl1->ls = bcl->ls;
     return r;
 }
 

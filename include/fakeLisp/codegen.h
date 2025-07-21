@@ -329,9 +329,9 @@ typedef struct FklCodegenInfo {
 
     FklSidHashSet *export_named_prod_groups;
 
-    FklCodegenLibVector *libStack;
+    FklCodegenLibVector *libraries;
 
-    FklCodegenLibVector *macroLibStack;
+    FklCodegenLibVector *macro_libraries;
 
     FklFuncPrototypes *pts;
     FklFuncPrototypes *macro_pts;
@@ -400,6 +400,36 @@ typedef struct FklCodegenQuest {
     struct FklCodegenQuest *prev;
     FklCodegenNextExpression *nextExpression;
 } FklCodegenQuest;
+
+typedef struct {
+    const FklSymbolTable *runtime_st;
+    const FklConstTable *runtime_kt;
+    const FklFuncPrototypes *pts;
+    const FklByteCodelnt *main_func;
+
+    const FklCodegenLibVector *libs;
+} FklWriteCodeFileArgs;
+
+typedef struct FklReadCodeFileArgs {
+    FklSymbolTable *const runtime_st;
+    FklConstTable *const runtime_kt;
+
+    size_t const lib_size;
+    void *const lib_init_args;
+    void (*const library_initer)(struct FklReadCodeFileArgs *read_args,
+            void *lib,
+            void *lib_init_args,
+            FklCodegenLibType type,
+            uint32_t prototypeId,
+            uint64_t spc,
+            const FklByteCodelnt *bcl,
+            const FklString *dll_name);
+
+    FklFuncPrototypes *pts;
+    FklByteCodelnt *main_func;
+    uint64_t lib_count;
+    void *libs;
+} FklReadCodeFileArgs;
 
 // FklCodegenQuestVector
 #define FKL_VECTOR_ELM_TYPE FklCodegenQuest *
@@ -650,6 +680,12 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
         FILE *fp,
         char **errorStr);
 
+void fklWritePreCompile(FklCodegenInfo *codegen,
+        const char *main_dir,
+        const char *target_dir,
+        FklByteCodelnt *bcl,
+        FILE *outfp);
+
 FklProdActionFunc fklFindBuiltinProdActionByName(const char *str);
 const FklSimpleProdAction *fklFindSimpleProdActionByName(const char *str);
 
@@ -682,6 +718,9 @@ void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
         const FklGraProdGroupHashMap *named_prod_groups,
         const FklSymbolTable *st,
         FILE *fp);
+
+void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *args);
+void fklReadCodeFile(FILE *fp, FklReadCodeFileArgs *args);
 
 #ifdef __cplusplus
 }

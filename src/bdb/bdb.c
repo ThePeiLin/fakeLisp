@@ -94,7 +94,7 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
-    FklCodegenLibVector *scriptLibStack = codegen.libStack;
+    FklCodegenLibVector *script_libraries = codegen.libraries;
     FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
             codegen.runtime_symbol_table,
             codegen.runtime_kt,
@@ -104,14 +104,15 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     codegen.runtime_symbol_table = NULL;
     codegen.pts = NULL;
     FklVMgc *gc = anotherVM->gc;
-    gc->lib_num = scriptLibStack->size;
-    gc->libs = (FklVMlib *)fklZcalloc((scriptLibStack->size + 1),
+    gc->lib_num = script_libraries->size;
+    gc->libs = (FklVMlib *)fklZcalloc((script_libraries->size + 1),
             sizeof(FklVMlib));
     FKL_ASSERT(gc->libs);
 
-    while (!fklCodegenLibVectorIsEmpty(scriptLibStack)) {
-        FklVMlib *curVMlib = &gc->libs[scriptLibStack->size];
-        FklCodegenLib *cur = fklCodegenLibVectorPopBackNonNull(scriptLibStack);
+    while (!fklCodegenLibVectorIsEmpty(script_libraries)) {
+        FklVMlib *curVMlib = &gc->libs[script_libraries->size];
+        FklCodegenLib *cur =
+                fklCodegenLibVectorPopBackNonNull(script_libraries);
         FklCodegenLibType type = cur->type;
         fklInitVMlibWithCodegenLibMove(cur,
                 curVMlib,

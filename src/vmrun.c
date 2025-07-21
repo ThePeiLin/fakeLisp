@@ -195,7 +195,8 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
         FklSymbolTable *runtime_st,
         FklConstTable *runtime_kt,
         FklFuncPrototypes *pts,
-        uint32_t pid) {
+        uint32_t pid,
+        uint64_t spc) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     exe->prev = exe;
@@ -207,8 +208,12 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     fklInitGlobalVMclosureForGC(exe);
     vm_stack_init(exe);
     if (mainCode != NULL) {
-        FklVMvalue *proc = fklCreateVMvalueProc(exe,
-                fklCreateVMvalueCodeObjMove(exe, mainCode),
+        FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
+        FklByteCodelnt *bcl = FKL_VM_CO(co);
+        FklVMvalue *proc = fklCreateVMvalueProc2(exe,
+                bcl->bc->code + spc,
+                bcl->bc->len - spc,
+                co,
                 pid);
         fklDestroyByteCodelnt(mainCode);
         init_builtin_symbol_ref(exe, proc);

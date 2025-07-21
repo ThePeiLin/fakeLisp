@@ -6089,6 +6089,8 @@ static inline void process_export_bc(FklCodegenInfo *info,
         FklSid_t fid,
         uint32_t line,
         uint32_t scope) {
+
+    uint64_t spc = libBc->bc->len;
     FklInstruction ret = create_op_ins(FKL_OP_RET);
     fklByteCodeLntInsertFrontIns(&ret, libBc, fid, line, scope);
 
@@ -6103,6 +6105,8 @@ static inline void process_export_bc(FklCodegenInfo *info,
             fid,
             line,
             scope);
+    spc = libBc->bc->len - spc;
+    info->spc = spc;
 }
 
 BC_PROCESS(_library_bc_process) {
@@ -6127,12 +6131,10 @@ BC_PROCESS(_library_bc_process) {
 
     fklPeepholeOptimize(libBc);
 
-    uint64_t spc = libBc->bc->len;
     process_export_bc(codegen, libBc, fid, line, scope);
-    spc = libBc->bc->len - spc;
 
     FklCodegenLib *lib = fklCodegenLibVectorPushBack(codegen->libStack, NULL);
-    fklInitCodegenScriptLib(lib, codegen, libBc, spc, env);
+    fklInitCodegenScriptLib(lib, codegen, libBc, codegen->spc, env);
 
     codegen->realpath = NULL;
 
@@ -11222,7 +11224,8 @@ FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl,
             publicSymbolTable,
             public_kt,
             pts,
-            prototype_id);
+            prototype_id,
+            0);
     insert_macro_expand_frame(anotherVM,
             anotherVM->top_frame,
             pr,

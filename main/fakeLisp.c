@@ -83,7 +83,8 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             codegen.runtime_symbol_table,
             codegen.runtime_kt,
             codegen.pts,
-            1);
+            1,
+            0);
     codegen.runtime_symbol_table = NULL;
     codegen.runtime_kt = NULL;
     codegen.pts = NULL;
@@ -150,7 +151,8 @@ runCode(const char *filename, int argc, const char *const *argv) {
             &runtime_st,
             &runtime_kt,
             prototypes,
-            1);
+            1,
+            0);
 
     FklVMgc *gc = anotherVM->gc;
 
@@ -241,13 +243,15 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     FklByteCodelnt *main_byte_code = main_lib->bcl;
 
     main_lib->bcl = NULL;
-    fklUninitCodegenLib(main_lib);
 
     FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
             &runtime_st,
             &runtime_kt,
             pts,
-            1);
+            1,
+            main_lib->spc);
+
+    fklUninitCodegenLib(main_lib);
 
     FklVMgc *gc = anotherVM->gc;
     gc->lib_num = scriptLibStack.size + 1;
@@ -654,7 +658,8 @@ static int runRepl(FklCodegenInfo *codegen,
             codegen->runtime_symbol_table,
             codegen->runtime_kt,
             codegen->pts,
-            1);
+            1,
+            0);
     FklVMgc *gc = anotherVM->gc;
     gc->libs = (FklVMlib *)fklZcalloc(1, sizeof(FklVMlib));
     FKL_ASSERT(gc->libs);

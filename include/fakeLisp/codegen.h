@@ -318,6 +318,7 @@ typedef struct FklCodegenInfo {
     FklGraProdGroupHashMap *named_prod_groups;
 
     FklCodegenEnv *global_env;
+    uint64_t spc;
     FklSymbolTable *runtime_symbol_table;
     FklConstTable *runtime_kt;
 

@@ -675,7 +675,7 @@ void fklRecomputeSidForNastNode(FklNastNode *node,
         FklNastNode *top = *fklNastNodeVectorPopBack(&pending);
         switch (top->type) {
         case FKL_NAST_SLOT:
-			FKL_UNREACHABLE();
+            FKL_UNREACHABLE();
             break;
         case FKL_NAST_SYM:
             replace_sid(&top->sym, origin_table, target_table);
@@ -1068,6 +1068,7 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
     lib->rp = load_script_lib_path(main_dir, fp);
     fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
     lib->bcl = fklLoadByteCodelnt(fp);
+    fread(&lib->spc, sizeof(lib->spc), 1, fp);
     load_export_sid_idx_table(&lib->exports, fp);
     lib->head = load_compiler_macros(st, fp);
     lib->replacements = load_replacements(st, fp);
@@ -1169,6 +1170,7 @@ static inline int load_imported_lib_stack(FklCodegenLibVector *libStack,
     main_lib.type = FKL_CODEGEN_LIB_SCRIPT;
     main_lib.rp = load_script_lib_path(main_dir, fp);
     main_lib.bcl = fklLoadByteCodelnt(fp);
+    fread(&main_lib.spc, sizeof(main_lib.spc), 1, fp);
     main_lib.prototypeId = 1;
     load_export_sid_idx_table(&main_lib.exports, fp);
     main_lib.head = load_compiler_macros(st, fp);

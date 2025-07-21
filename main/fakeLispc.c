@@ -150,6 +150,7 @@ static inline void write_lib_main_file(const FklCodegenInfo *codegen,
         FILE *outfp) {
     write_codegen_script_lib_path(codegen->realpath, main_dir, outfp);
     fklWriteByteCodelnt(bcl, outfp);
+    fwrite(&codegen->spc, sizeof(codegen->spc), 1, outfp);
     write_export_sid_idx_table(&codegen->exports, outfp);
     write_compiler_macros(codegen->export_macro, st, outfp);
     write_replacements(codegen->export_replacement, st, outfp);

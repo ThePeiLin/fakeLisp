@@ -749,7 +749,8 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
         FklSymbolTable *,
         FklConstTable *,
         FklFuncPrototypes *,
-        uint32_t);
+        uint32_t,
+        uint64_t spc);
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,

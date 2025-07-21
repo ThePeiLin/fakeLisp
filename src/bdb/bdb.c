@@ -99,7 +99,8 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
             codegen.runtime_symbol_table,
             codegen.runtime_kt,
             codegen.pts,
-            1);
+            1,
+            0);
     codegen.runtime_symbol_table = NULL;
     codegen.pts = NULL;
     FklVMgc *gc = anotherVM->gc;

@@ -1773,9 +1773,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_code_obj_userdata_as_print, "code-obj");
 
 static int _code_obj_userdata_finalizer(FklVMud *v) {
     FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
-    fklDestroyByteCode(t->bc);
-    if (t->l)
-        fklZfree(t->l);
+    fklUninitByteCodelnt(t);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -1788,18 +1786,13 @@ static FklVMudMetaTable CodeObjUserDataMetaTable = {
 
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *exe, FklByteCodelnt *bcl) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
-    *FKL_VM_CO(r) = *bcl;
-    bcl->bc = NULL;
-    bcl->l = NULL;
+    fklMoveByteCodelnt(FKL_VM_CO(r), bcl);
     return r;
 }
 
 FklVMvalue *fklCreateVMvalueCodeObj(FklVM *exe, const FklByteCodelnt *bcl) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
-    FklByteCodelnt *bcl1 = FKL_VM_CO(r);
-    bcl1->bc = fklCopyByteCode(bcl->bc);
-    bcl1->l = fklCopyMemory(bcl->l, bcl->ls * sizeof(*bcl->l));
-    bcl1->ls = bcl->ls;
+    fklSetByteCodelnt(FKL_VM_CO(r), bcl);
     return r;
 }
 

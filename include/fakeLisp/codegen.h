@@ -82,7 +82,6 @@ typedef struct FklCodegenMacro {
     uint32_t prototype_id;
     FklByteCodelnt *bcl;
     struct FklCodegenMacro *next;
-    uint8_t own;
 } FklCodegenMacro;
 
 // FklReplacementHashMap
@@ -592,10 +591,16 @@ void fklUninitCodegenLib(FklCodegenLib *);
 
 FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
         FklNastNode *origin_exp,
+        const FklByteCodelnt *bcl,
+        FklCodegenMacro *next,
+        uint32_t prototype_id);
+
+FklCodegenMacro *fklCreateCodegenMacroMove(FklNastNode *pattern,
+        FklNastNode *origin_exp,
         FklByteCodelnt *bcl,
         FklCodegenMacro *next,
-        uint32_t prototype_id,
-        int own);
+        uint32_t prototype_id);
+
 void fklDestroyCodegenMacro(FklCodegenMacro *macro);
 void fklDestroyCodegenMacroList(FklCodegenMacro *macro);
 

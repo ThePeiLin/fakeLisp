@@ -1113,7 +1113,7 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *,
         size_t extra_size,
         FklVMvalue *rel);
 
-FklVMvalue *fkLCreateVMvalueCodeObj(FklVM *, const FklByteCodelnt *bcl);
+FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, const FklByteCodelnt *bcl);
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *, FklByteCodelnt *bcl);
 int fklIsVMvalueCodeObj(FklVMvalue *v);
 

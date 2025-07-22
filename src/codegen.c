@@ -3326,16 +3326,14 @@ static CODEGEN_FUNC(codegen_macroexpand) {
 static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
     fklDestroyNastNode(macro->pattern);
     fklDestroyNastNode(macro->origin_exp);
-    if (macro->own)
-        fklDestroyByteCodelnt(macro->bcl);
+    fklDestroyByteCodelnt(macro->bcl);
 }
 
 static void add_compiler_macro(FklCodegenMacro **pmacro,
         FklNastNode *pattern,
         FklNastNode *origin_exp,
-        FklByteCodelnt *bcl,
-        uint32_t prototype_id,
-        int own) {
+        const FklByteCodelnt *bcl,
+        uint32_t prototype_id) {
     int coverState = FKL_PATTERN_NOT_EQUAL;
     FklCodegenMacro **phead = pmacro;
     for (FklCodegenMacro *cur = *pmacro; cur;
@@ -3351,16 +3349,14 @@ static void add_compiler_macro(FklCodegenMacro **pmacro,
                 origin_exp,
                 bcl,
                 *phead,
-                prototype_id,
-                own);
+                prototype_id);
         *phead = macro;
     } else if (coverState == FKL_PATTERN_EQUAL) {
         FklCodegenMacro *macro = *pmacro;
         uninit_codegen_macro(macro);
-        macro->own = own;
         macro->prototype_id = prototype_id;
         macro->pattern = pattern;
-        macro->bcl = bcl;
+        macro->bcl = fklCopyByteCodelnt(bcl);
         macro->origin_exp = origin_exp;
     } else {
         FklCodegenMacro *next = *pmacro;
@@ -3368,8 +3364,7 @@ static void add_compiler_macro(FklCodegenMacro **pmacro,
                 origin_exp,
                 bcl,
                 next,
-                prototype_id,
-                own);
+                prototype_id);
     }
 }
 
@@ -3378,19 +3373,16 @@ BC_PROCESS(_export_macro_bc_process) {
     for (; codegen && !codegen->is_lib; codegen = codegen->prev)
         ;
     for (FklCodegenMacro *cur = cms->head; cur; cur = cur->next) {
-        cur->own = 0;
         add_compiler_macro(&codegen->export_macro,
                 fklMakeNastNodeRef(cur->pattern),
                 fklMakeNastNodeRef(cur->origin_exp),
                 cur->bcl,
-                cur->prototype_id,
-                1);
+                cur->prototype_id);
         add_compiler_macro(&target_macro_scope->head,
                 fklMakeNastNodeRef(cur->pattern),
                 fklMakeNastNodeRef(cur->origin_exp),
                 cur->bcl,
-                cur->prototype_id,
-                0);
+                cur->prototype_id);
     }
     for (FklReplacementHashMapNode *cur = cms->replacements->first; cur;
             cur = cur->next) {
@@ -5593,8 +5585,7 @@ static inline FklByteCodelnt *process_import_imported_lib_common(uint32_t libId,
                 fklMakeNastNodeRef(cur->pattern),
                 fklMakeNastNodeRef(cur->origin_exp),
                 cur->bcl,
-                cur->prototype_id,
-                0);
+                cur->prototype_id);
 
     for (FklReplacementHashMapNode *cur = lib->replacements->first; cur;
             cur = cur->next) {
@@ -5662,8 +5653,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
                 createPatternWithPrefixFromOrig(cur->pattern, prefix, pst),
                 add_prefix_for_pattern_origin_exp(cur->origin_exp, prefix, pst),
                 cur->bcl,
-                cur->prototype_id,
-                0);
+                cur->prototype_id);
 
     export_replacement_with_prefix(lib->replacements, macroScope, prefix, pst);
     if (lib->named_prod_groups.buckets) {
@@ -5752,8 +5742,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(uint32_t libId,
                         fklMakeNastNodeRef(macro->pattern),
                         fklMakeNastNodeRef(macro->origin_exp),
                         macro->bcl,
-                        macro->prototype_id,
-                        0);
+                        macro->prototype_id);
             }
         }
         FklNastNode *rep = fklGetReplacement(cur, replace);
@@ -5836,8 +5825,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
                     fklMakeNastNodeRef(macro->pattern),
                     fklMakeNastNodeRef(macro->origin_exp),
                     macro->bcl,
-                    macro->prototype_id,
-                    0);
+                    macro->prototype_id);
         }
     }
 
@@ -5949,8 +5937,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(uint32_t libId,
                         replace_pattern_origin_exp_head(macro->origin_exp,
                                 cur0),
                         macro->bcl,
-                        macro->prototype_id,
-                        0);
+                        macro->prototype_id);
             }
         }
         FklNastNode *rep = fklGetReplacement(cur, replace);
@@ -6327,15 +6314,13 @@ BC_PROCESS(_export_import_bc_process) {
                 fklMakeNastNodeRef(head->pattern),
                 fklMakeNastNodeRef(head->origin_exp),
                 head->bcl,
-                head->prototype_id,
-                0);
+                head->prototype_id);
 
         add_compiler_macro(&codegen->export_macro,
                 fklMakeNastNodeRef(head->pattern),
                 fklMakeNastNodeRef(head->origin_exp),
                 head->bcl,
-                head->prototype_id,
-                0);
+                head->prototype_id);
     }
 
     for (FklReplacementHashMapNode *cur = env->macros->replacements->first; cur;
@@ -7640,8 +7625,8 @@ BC_PROCESS(_compiler_macro_bc_process) {
             fklMakeNastNodeRef(pattern),
             fklMakeNastNodeRef(d->origin_exp),
             macroBcl,
-            prototype_id,
-            1);
+            prototype_id);
+    fklDestroyByteCodelnt(macroBcl);
     return NULL;
 }
 
@@ -11069,10 +11054,24 @@ void fklUninitCodegenLib(FklCodegenLib *lib) {
 
 FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
         FklNastNode *origin_exp,
+        const FklByteCodelnt *bcl,
+        FklCodegenMacro *next,
+        uint32_t prototype_id) {
+    FklCodegenMacro *r = (FklCodegenMacro *)fklZmalloc(sizeof(FklCodegenMacro));
+    FKL_ASSERT(r);
+    r->pattern = pattern;
+    r->origin_exp = origin_exp;
+    r->bcl = fklCopyByteCodelnt(bcl);
+    r->next = next;
+    r->prototype_id = prototype_id;
+    return r;
+}
+
+FklCodegenMacro *fklCreateCodegenMacroMove(FklNastNode *pattern,
+        FklNastNode *origin_exp,
         FklByteCodelnt *bcl,
         FklCodegenMacro *next,
-        uint32_t prototype_id,
-        int own) {
+        uint32_t prototype_id) {
     FklCodegenMacro *r = (FklCodegenMacro *)fklZmalloc(sizeof(FklCodegenMacro));
     FKL_ASSERT(r);
     r->pattern = pattern;
@@ -11080,7 +11079,6 @@ FklCodegenMacro *fklCreateCodegenMacro(FklNastNode *pattern,
     r->bcl = bcl;
     r->next = next;
     r->prototype_id = prototype_id;
-    r->own = own;
     return r;
 }
 

@@ -387,11 +387,20 @@ FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
     return r;
 }
 
-void fklDestroyByteCodelnt(FklByteCodelnt *t) {
-    if (t->bc)
+void fklUninitByteCodelnt(FklByteCodelnt *t) {
+    if (t->bc) {
         fklDestroyByteCode(t->bc);
-    if (t->l)
+        t->bc = NULL;
+    }
+    if (t->l) {
+        t->ls = 0;
         fklZfree(t->l);
+        t->l = NULL;
+    }
+}
+
+void fklDestroyByteCodelnt(FklByteCodelnt *t) {
+    fklUninitByteCodelnt(t);
     fklZfree(t);
 }
 
@@ -434,19 +443,25 @@ FklByteCode *fklCopyByteCode(const FklByteCode *obj) {
     return tmp;
 }
 
+void fklSetByteCodelnt(FklByteCodelnt *a, const FklByteCodelnt *b) {
+    fklUninitByteCodelnt(a);
+    a->bc = fklCopyByteCode(b->bc);
+    a->ls = b->ls;
+    a->l = fklCopyMemory(b->l, b->ls * sizeof(FklLineNumberTableItem));
+}
+
 FklByteCodelnt *fklCopyByteCodelnt(const FklByteCodelnt *obj) {
     FklByteCodelnt *tmp = fklCreateByteCodelnt(fklCopyByteCode(obj->bc));
-    tmp->ls = obj->ls;
-    if (!obj->ls)
-        tmp->l = NULL;
-    else {
-        tmp->l = (FklLineNumberTableItem *)fklZmalloc(
-                obj->ls * sizeof(FklLineNumberTableItem));
-        FKL_ASSERT(tmp->l);
-        for (size_t i = 0; i < obj->ls; i++)
-            tmp->l[i] = obj->l[i];
-    }
+    fklSetByteCodelnt(tmp, obj);
     return tmp;
+}
+
+void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from) {
+    fklUninitByteCodelnt(to);
+    *to = *from;
+    from->bc = NULL;
+    from->l = NULL;
+    from->ls = 0;
 }
 
 typedef struct ByteCodePrintState {

@@ -156,7 +156,7 @@ static void vmlib_initer(FklReadCodeFileArgs *read_args,
 
     switch (type) {
     case FKL_CODEGEN_LIB_SCRIPT: {
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(args->exe, bcl);
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(args->exe, bcl);
         fklInitVMlibWithCodeObj(lib, codeObj, args->exe, prototypeId, spc);
         fklInitMainProcRefs(args->exe, lib->proc);
     } break;

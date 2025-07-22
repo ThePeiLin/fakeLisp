@@ -174,6 +174,8 @@ void fklCodeReverseConcat(const FklByteCode *, FklByteCode *);
 
 FklByteCode *fklCopyByteCode(const FklByteCode *);
 FklByteCodelnt *fklCopyByteCodelnt(const FklByteCodelnt *);
+void fklSetByteCodelnt(FklByteCodelnt *, const FklByteCodelnt *);
+void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from);
 
 void fklDestroyByteCode(FklByteCode *);
 void fklPrintByteCode(const FklByteCode *,
@@ -192,6 +194,8 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
         FILE *fp,
         const FklSymbolTable *,
         const FklConstTable *);
+
+void fklUninitByteCodelnt(FklByteCodelnt *);
 void fklDestroyByteCodelnt(FklByteCodelnt *);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *, uint64_t);
 void fklCodeLntConcat(FklByteCodelnt *, const FklByteCodelnt *);

@@ -746,12 +746,11 @@ static inline void recompute_sid_for_compiler_macros(FklCodegenMacro *m,
         FklCodegenRecomputeNastSidOption option) {
     for (; m; m = m->next) {
         fklRecomputeSidForNastNode(m->origin_exp, origin_st, target_st, option);
-        if (m->own)
-            fklRecomputeSidAndConstIdForBcl(m->bcl,
-                    origin_st,
-                    target_st,
-                    origin_kt,
-                    target_kt);
+        fklRecomputeSidAndConstIdForBcl(m->bcl,
+                origin_st,
+                target_st,
+                origin_kt,
+                target_kt);
     }
 }
 
@@ -1033,12 +1032,11 @@ static inline FklCodegenMacro *load_compiler_macros(FklSymbolTable *st,
         fread(&prototype_id, sizeof(prototype_id), 1, fp);
         FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
         FklNastNode *pattern = fklCreatePatternFromNast(node, NULL);
-        FklCodegenMacro *cur = fklCreateCodegenMacro(pattern,
+        FklCodegenMacro *cur = fklCreateCodegenMacroMove(pattern,
                 node,
                 bcl,
                 NULL,
-                prototype_id,
-                1);
+                prototype_id);
         *pr = cur;
         pr = &cur->next;
     }

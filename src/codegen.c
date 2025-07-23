@@ -3325,8 +3325,11 @@ static CODEGEN_FUNC(codegen_macroexpand) {
 
 static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
     fklDestroyNastNode(macro->pattern);
+    macro->pattern = NULL;
     fklDestroyNastNode(macro->origin_exp);
+    macro->origin_exp = NULL;
     fklDestroyByteCodelnt(macro->bcl);
+    macro->bcl = NULL;
 }
 
 static void add_compiler_macro(FklCodegenMacro **pmacro,
@@ -7704,7 +7707,8 @@ custom_action(void *c, void *outerCtx, void *nodes[], size_t num, size_t line) {
     const char *file_dir = ctx->codegen_outer_ctx->cur_file_dir;
     fklChdir(file_dir);
 
-    FklVM *anotherVM = fklInitMacroExpandVM(ctx->bcl,
+    FklVM *exe = fklInitMacroExpandVM(ctx->codegen_outer_ctx,
+            ctx->bcl,
             ctx->pts,
             ctx->prototype_id,
             &ht,
@@ -7714,23 +7718,23 @@ custom_action(void *c, void *outerCtx, void *nodes[], size_t num, size_t line) {
             line,
             ctx->pst,
             &ctx->codegen_outer_ctx->public_kt);
-    FklVMgc *gc = anotherVM->gc;
+    FklVMgc *gc = exe->gc;
 
-    int e = fklRunVM(anotherVM);
+    int e = fklRunVM(exe);
+    fklMoveThreadObjectsToGc(exe, gc);
 
     fklChdir(cwd);
 
     gc->pts = NULL;
     if (e)
-        fklDeleteCallChain(anotherVM);
+        fklDeleteCallChain(exe);
 
     fklDestroyNastNode(nodes_vector);
     fklDestroyNastNode(line_node);
 
     fklPmatchHashMapUninit(&ht);
     fklLineNumHashMapUninit(&lineHash);
-    fklDestroyAllVMs(anotherVM);
-    fklDestroyVMgc(gc);
+    fklDestroyAllVMs(exe);
     return r;
 }
 
@@ -10288,6 +10292,7 @@ void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx *outerCtx) {
     fklInitSymbolTable(publicSymbolTable);
     fklInitConstTable(&outerCtx->public_kt);
     fklInitBuiltinGrammer(&outerCtx->builtin_g, &outerCtx->public_symbol_table);
+    outerCtx->gc = NULL;
 }
 
 void fklInitCodegenOuterCtx(FklCodegenOuterCtx *outerCtx,
@@ -10362,6 +10367,10 @@ void fklUninitCodegenOuterCtx(FklCodegenOuterCtx *outer_ctx) {
     fklUninitSymbolTable(&outer_ctx->public_symbol_table);
     fklUninitConstTable(&outer_ctx->public_kt);
     fklUninitGrammer(&outer_ctx->builtin_g);
+    if (outer_ctx->gc) {
+        fklDestroyVMgc(outer_ctx->gc);
+        outer_ctx->gc = NULL;
+    }
     FklNastNode **nodes = outer_ctx->builtin_pattern_node;
     for (size_t i = 0; i < FKL_CODEGEN_PATTERN_NUM; i++)
         fklDestroyNastNode(nodes[i]);
@@ -11208,7 +11217,27 @@ static void insert_macro_expand_frame(FklVM *exe,
     ctx->curline = curline;
 }
 
-FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl,
+static inline void update_new_codegen_to_new_vm_lib(FklVM *exe,
+        const FklCodegenLibVector *macro_libraries,
+        FklFuncPrototypes *pts) {
+    FklVMgc *gc = exe->gc;
+    if (gc->lib_num != macro_libraries->size) {
+        gc->libs = (FklVMlib *)fklZrealloc(gc->libs,
+                (macro_libraries->size + 1) * sizeof(FklVMlib));
+        FKL_ASSERT(gc->libs);
+
+        for (size_t i = gc->lib_num; i < macro_libraries->size; ++i) {
+            const FklCodegenLib *cur = &macro_libraries->base[i];
+            fklInitVMlibWithCodegenLib(cur, &gc->libs[i + 1], exe, pts);
+            if (cur->type == FKL_CODEGEN_LIB_SCRIPT)
+                fklInitMainProcRefs(exe, gc->libs[i + 1].proc);
+        }
+        gc->lib_num = macro_libraries->size;
+    }
+}
+
+FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
+        FklByteCodelnt *bcl,
         FklFuncPrototypes *pts,
         uint32_t prototype_id,
         FklPmatchHashMap *ht,
@@ -11216,40 +11245,72 @@ FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl,
         FklCodegenLibVector *macro_libraries,
         FklNastNode **pr,
         uint64_t curline,
-        FklSymbolTable *publicSymbolTable,
+        FklSymbolTable *public_st,
         FklConstTable *public_kt) {
-    FklVM *anotherVM = fklCreateVMwithByteCode(fklCopyByteCodelnt(bcl),
-            publicSymbolTable,
-            public_kt,
-            pts,
-            prototype_id,
-            0);
-    insert_macro_expand_frame(anotherVM,
-            anotherVM->top_frame,
-            pr,
-            lineHash,
-            publicSymbolTable,
-            curline);
+    FklVMgc *gc = outer_ctx->gc;
+    if (gc) {
+        FklVM *exe;
+        gc->pts = pts;
+        exe = fklCreateVM(NULL, gc);
+        FklVMvalue *code_obj = fklCreateVMvalueCodeObj(exe, bcl);
+        FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id);
+        fklInitMainProcRefs(exe, proc);
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
+        fklCallObj(exe, proc);
+        insert_macro_expand_frame(exe,
+                exe->top_frame,
+                pr,
+                lineHash,
+                public_st,
+                curline);
+        initVMframeFromPatternMatchTable(exe,
+                exe->top_frame,
+                ht,
+                lineHash,
+                pts,
+                prototype_id);
 
-    FklVMgc *gc = anotherVM->gc;
-    gc->lib_num = macro_libraries->size;
-    gc->libs =
-            (FklVMlib *)fklZcalloc(macro_libraries->size + 1, sizeof(FklVMlib));
-    FKL_ASSERT(gc->libs);
-    for (size_t i = 0; i < macro_libraries->size; i++) {
-        const FklCodegenLib *cur = &macro_libraries->base[i];
-        fklInitVMlibWithCodegenLib(cur, &gc->libs[i + 1], anotherVM, 1, pts);
-        if (cur->type == FKL_CODEGEN_LIB_SCRIPT)
-            fklInitMainProcRefs(anotherVM, gc->libs[i + 1].proc);
+        fklVMgcUpdateConstArray(gc, public_kt);
+
+        update_new_codegen_to_new_vm_lib(exe, macro_libraries, pts);
+        return exe;
+    } else {
+        FklVM *exe = fklCreateVMwithByteCode(fklCopyByteCodelnt(bcl),
+                public_st,
+                public_kt,
+                pts,
+                prototype_id,
+                0);
+        insert_macro_expand_frame(exe,
+                exe->top_frame,
+                pr,
+                lineHash,
+                public_st,
+                curline);
+
+        FklVMgc *gc = exe->gc;
+        gc->lib_num = macro_libraries->size;
+        gc->libs = (FklVMlib *)fklZcalloc(macro_libraries->size + 1,
+                sizeof(FklVMlib));
+        FKL_ASSERT(gc->libs);
+        for (size_t i = 0; i < macro_libraries->size; i++) {
+            const FklCodegenLib *cur = &macro_libraries->base[i];
+            fklInitVMlibWithCodegenLib(cur, &gc->libs[i + 1], exe, pts);
+            if (cur->type == FKL_CODEGEN_LIB_SCRIPT)
+                fklInitMainProcRefs(exe, gc->libs[i + 1].proc);
+        }
+        FklVMframe *mainframe = exe->top_frame;
+        initVMframeFromPatternMatchTable(exe,
+                mainframe,
+                ht,
+                lineHash,
+                pts,
+                prototype_id);
+        outer_ctx->gc = exe->gc;
+        gc = outer_ctx->gc;
+        return exe;
     }
-    FklVMframe *mainframe = anotherVM->top_frame;
-    initVMframeFromPatternMatchTable(anotherVM,
-            mainframe,
-            ht,
-            lineHash,
-            pts,
-            prototype_id);
-    return anotherVM;
 }
 
 static inline void get_macro_pts_and_lib(FklCodegenInfo *info,
@@ -11287,7 +11348,8 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
         FklFuncPrototypes *pts = NULL;
         FklCodegenLibVector *macro_libraries = NULL;
         get_macro_pts_and_lib(codegen, &pts, &macro_libraries);
-        FklVM *anotherVM = fklInitMacroExpandVM(macro->bcl,
+        FklVM *exe = fklInitMacroExpandVM(outer_ctx,
+                macro->bcl,
                 pts,
                 macro->prototype_id,
                 &ht,
@@ -11297,8 +11359,9 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
                 r->curline,
                 pst,
                 pkt);
-        FklVMgc *gc = anotherVM->gc;
-        int e = fklRunVM(anotherVM);
+        FklVMgc *gc = outer_ctx->gc;
+        int e = fklRunVM(exe);
+        fklMoveThreadObjectsToGc(exe, gc);
 
         fklChdir(cwd);
 
@@ -11307,7 +11370,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
             errorState->type = FKL_ERR_MACROEXPANDFAILED;
             errorState->place = r;
             errorState->line = curline;
-            fklDeleteCallChain(anotherVM);
+            fklDeleteCallChain(exe);
             r = NULL;
         } else {
             if (retval) {
@@ -11320,8 +11383,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
             }
         }
         fklLineNumHashMapUninit(&lineHash);
-        fklDestroyAllVMs(anotherVM);
-        fklDestroyVMgc(gc);
+        fklDestroyAllVMs(exe);
     }
     if (ht.buckets)
         fklPmatchHashMapUninit(&ht);
@@ -11333,12 +11395,10 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib,
         FklVM *exe,
         FklVMvalue **refs,
         uint32_t count,
-        int needCopy,
         FklFuncPrototypes *pts) {
     FklVMvalue *val = FKL_VM_NIL;
     if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe,
-                needCopy ? fklCopyByteCodelnt(clib->bcl) : clib->bcl);
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe, clib->bcl);
         FklVMvalue *proc =
                 fklCreateVMvalueProc(exe, codeObj, clib->prototypeId);
         fklInitMainProcRefs(exe, proc);
@@ -11353,12 +11413,10 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib,
 void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         FklVMlib *vlib,
         FklVM *exe,
-        int needCopy,
         FklFuncPrototypes *pts) {
     FklVMvalue *val = FKL_VM_NIL;
     if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObjMove(exe,
-                needCopy ? fklCopyByteCodelnt(clib->bcl) : clib->bcl);
+        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe, clib->bcl);
         FklVMvalue *proc =
                 fklCreateVMvalueProc(exe, codeObj, clib->prototypeId);
         val = proc;

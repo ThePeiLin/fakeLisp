@@ -757,6 +757,7 @@ FklVM *fklCreateThreadVM(FklVMvalue *,
         FklVMvalue *const *args,
         FklVM *prev,
         FklVM *next);
+void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc);
 
 void fklDestroyVMvalue(FklVMvalue *);
 void fklVMstackShrink(FklVM *);

@@ -669,7 +669,7 @@ int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
     return 0;
 }
 
-static inline void move_thread_objects_to_gc(FklVM *vm, FklVMgc *gc) {
+void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc) {
     if (vm->obj_head) {
         vm->obj_tail->next = gc->head;
         gc->head = vm->obj_head;
@@ -696,7 +696,7 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
 void fklCheckAndGCinSingleThread(FklVM *exe) {
     FklVMgc *gc = exe->gc;
     if (atomic_load(&gc->alloced_size) > gc->threshold) {
-        move_thread_objects_to_gc(exe, gc);
+        fklMoveThreadObjectsToGc(exe, gc);
         fklVMgcMoveLocvCache(exe, gc);
         remove_thread_frame_cache(exe);
         fklVMgcMarkAllRootToGray(exe);
@@ -1040,11 +1040,11 @@ static inline void unlock_all_vm(FklThreadQueue *q) {
 static inline void
 move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(FklVMgc *gc) {
     FklVM *vm = gc->main_thread;
-    move_thread_objects_to_gc(vm, gc);
+    fklMoveThreadObjectsToGc(vm, gc);
     fklVMgcMoveLocvCache(vm, gc);
     remove_thread_frame_cache(vm);
     for (FklVM *cur = vm->next; cur != vm; cur = cur->next) {
-        move_thread_objects_to_gc(cur, gc);
+        fklMoveThreadObjectsToGc(cur, gc);
         fklVMgcMoveLocvCache(cur, gc);
         remove_thread_frame_cache(cur);
     }
@@ -1526,9 +1526,11 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
-    fklSetBp(exe);
-    FKL_VM_PUSH_VALUE(exe, proc);
-    fklCallObj(exe, proc);
+    if (proc != NULL) {
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
+        fklCallObj(exe, proc);
+    }
     uv_mutex_init(&exe->lock);
     return exe;
 }
@@ -1571,7 +1573,7 @@ void fklDestroyAllVMs(FklVM *curVM) {
         cur = cur->next;
         fklVMgcMoveLocvCache(t, t->gc);
         if (t->obj_head)
-            move_thread_objects_to_gc(t, t->gc);
+            fklMoveThreadObjectsToGc(t, t->gc);
         remove_exited_thread_common(t);
     }
 }

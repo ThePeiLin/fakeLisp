@@ -1,0 +1,41 @@
+(defmacro ~(test-m1)
+  (begin
+    (import (macro-context-lib))
+    (printf "[%s: %d] test-macro-var: %S\n"
+            *file*
+            *line*
+            (get-test-macro-var))
+    (inc-test-macro-var)))
+
+(defmacro ~(test-m2)
+  (begin
+    (import (macro-context-lib))
+    (printf "[%s: %d] test-macro-var: %S\n"
+            *file*
+            *line*
+            (get-test-macro-var))
+    (inc-test-macro-var)))
+
+(test-m1)
+(test-m2)
+(test-m2)
+
+(defmacro #&()
+  #[inc-test-macro-var #["#INC#"] custom
+                       (begin
+                         (import (macro-context-lib))
+                         (printf "[%s: %d] test-macro-var: %S\n"
+                                 *file*
+                                 *line*
+                                 (get-test-macro-var))
+                         (inc-test-macro-var))])
+
+(printf "[%s: %d] #INC#: %S\n"
+            *file*
+            *line*
+            #INC#)
+
+(printf "[%s: %d] #INC#: %S\n"
+            *file*
+            *line*
+            #INC#)

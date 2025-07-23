@@ -1240,7 +1240,6 @@ static int repl_frame_step(void *data, FklVM *exe) {
                         exe,
                         proc->closure,
                         proc->rcount,
-                        0,
                         exe->pts);
             }
         }
@@ -1530,7 +1529,6 @@ static int eval_frame_step(void *data, FklVM *exe) {
                     exe,
                     proc->closure,
                     proc->rcount,
-                    0,
                     exe->pts);
         }
     }

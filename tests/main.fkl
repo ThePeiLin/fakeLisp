@@ -45,7 +45,8 @@
     (dvec-and-append)
     (sort)
     (buf)
-    (inline-test)))
+    (inline-test)
+    (macro-context)))
 
 (newline)
 (foreach (lambda (t) (println (cdr t)))

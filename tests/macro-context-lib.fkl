@@ -1,0 +1,10 @@
+(define test-macro-var 114)
+
+(export
+  (define (get-test-macro-var) test-macro-var)
+  (define (inc-test-macro-var) 
+    (printf "[%s: %d] test-macro-var: %S\n"
+            *file*
+            *line*
+            test-macro-var)
+    (setq test-macro-var (1+ test-macro-var))))

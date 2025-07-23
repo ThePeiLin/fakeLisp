@@ -264,6 +264,7 @@ typedef struct {
 
     FklSymbolTable public_symbol_table;
     FklConstTable public_kt;
+    FklVMgc *gc;
 
     FklGrammer builtin_g;
 
@@ -612,7 +613,8 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
         FklCodegenMacroScope *macros,
         FklCodegenErrorState *);
 
-FklVM *fklInitMacroExpandVM(FklByteCodelnt *bcl,
+FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
+        FklByteCodelnt *bcl,
         FklFuncPrototypes *pts,
         uint32_t prototype_id,
         FklPmatchHashMap *ht,
@@ -628,13 +630,11 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib,
         FklVM *exe,
         FklVMvalue **refs,
         uint32_t count,
-        int needCopy,
         FklFuncPrototypes *);
 
 void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         FklVMlib *vlib,
         FklVM *vm,
-        int needCopy,
         FklFuncPrototypes *);
 
 void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,

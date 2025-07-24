@@ -4066,19 +4066,7 @@ static inline void build_state_action_to_c_file(
             CB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
             CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
 
-            if (actual_len) {
-                CB_LINE("void** nodes=(void**)fklZmalloc(%" PRIu64
-                        "*sizeof(void*));",
-                        actual_len);
-                CB_LINE("FKL_ASSERT(nodes||!%" PRIu64 ");", actual_len);
-                CB_LINE("const FklAnalysisSymbol* base=&symbolStack->base[symbolStack->size];");
-            } else
-                CB_LINE("void** nodes=NULL;");
-
-            if (actual_len)
-                CB_LINE("for(size_t i=0;i<%" PRIu64
-                        ";i++) nodes[i]=base[i].ast;",
-                        actual_len);
+            CB_LINE("FklAnalysisSymbol* base=&symbolStack->base[symbolStack->size];");
 
             if (actual_len) {
                 CB_LINE("size_t line=fklGetFirstNthLine(lineStack,%" PRIu64
@@ -4088,16 +4076,15 @@ static inline void build_state_action_to_c_file(
             } else
                 CB_LINE("size_t line=ctx->line;");
 
-            CB_LINE("void* ast=prod_action_%s(ctx->ctx,nodes,%" PRIu64
+            CB_LINE("void* ast=prod_action_%s(ctx->ctx,base,%" PRIu64
                     ",line);\n",
                     ac->prod->name,
                     actual_len);
 
             if (actual_len) {
-                CB_LINE("for(size_t i=0;i<%" PRIu64 ";i++) %s(nodes[i]);",
+                CB_LINE("for(size_t i=0;i<%" PRIu64 ";i++) %s(base[i].ast);",
                         actual_len,
                         ast_destroyer_name);
-                CB_LINE("fklZfree(nodes);");
             }
             CB_LINE("if(!ast) {");
             CB_INDENT(flag) {
@@ -4937,22 +4924,13 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     if (!state)
         return 1;
     symbolStack->size -= len;
-    void **nodes = NULL;
-    if (len) {
-        nodes = (void **)fklZmalloc(len * sizeof(void *));
-        FKL_ASSERT(nodes);
-        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
-        for (size_t i = 0; i < len; i++) {
-            nodes[i] = base[i].ast;
-        }
-    }
+    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
     size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
     lineStack->size -= len;
-    void *ast = prod->func(prod->ctx, ctx->ctx, nodes, len, line);
-    if (len) {
-        for (size_t i = 0; i < len; i++)
-            ctx->destroy(nodes[i]);
-        fklZfree(nodes);
+    void *ast = prod->func(prod->ctx, ctx->ctx, base, len, line);
+    for (size_t i = 0; i < len; i++) {
+        ctx->destroy(base[i].ast);
+        base[i].ast = NULL;
     }
     if (!ast) {
         *errLine = line;

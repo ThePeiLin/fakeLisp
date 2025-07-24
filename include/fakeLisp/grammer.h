@@ -230,6 +230,11 @@ typedef struct FklGrammerSym {
     };
 } FklGrammerSym;
 
+typedef struct FklAnalysisSymbol {
+    FklGrammerNonterm nt;
+    void *ast;
+} FklAnalysisSymbol;
+
 // FklGraSymVector
 #define FKL_VECTOR_ELM_TYPE FklGrammerSym
 #define FKL_VECTOR_ELM_TYPE_NAME GraSym
@@ -241,8 +246,8 @@ uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line);
 
 typedef void *(*FklProdActionFunc)(void *args,
         void *ctx,
-        void *asts[],
-        size_t num,
+        const FklAnalysisSymbol asts[],
+        size_t count,
         size_t line);
 
 typedef struct FklGrammerProduction {
@@ -478,11 +483,6 @@ typedef struct {
     const char *name;
     FklProdActionFunc func;
 } FklGrammerBuiltinAction;
-
-typedef struct FklAnalysisSymbol {
-    FklGrammerNonterm nt;
-    void *ast;
-} FklAnalysisSymbol;
 
 typedef struct FklStateActionMatchArgs {
     size_t matchLen;

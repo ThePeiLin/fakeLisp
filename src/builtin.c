@@ -1822,26 +1822,13 @@ static inline int do_custom_parser_reduce_action(
     if (!state)
         return 1;
     symbolStack->size -= len;
-    void **nodes = NULL;
-    if (len) {
-        if (!len)
-            nodes = NULL;
-        else {
-            nodes = (void **)fklZmalloc(len * sizeof(void *));
-            FKL_ASSERT(nodes);
-        }
-        const FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
-        for (size_t i = 0; i < len; i++) {
-            nodes[i] = base[i].ast;
-        }
-    }
+    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
     size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
     lineStack->size -= len;
-    prod->func(prod->ctx, outerCtx->ctx, nodes, len, line);
-    if (len) {
-        for (size_t i = 0; i < len; i++)
-            outerCtx->destroy(nodes[i]);
-        fklZfree(nodes);
+    prod->func(prod->ctx, outerCtx->ctx, base, len, line);
+    for (size_t i = 0; i < len; i++) {
+        outerCtx->destroy(base[i].ast);
+        base[i].ast = NULL;
     }
     fklUintVectorPushBack2(lineStack, line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){ .state = state });
@@ -2003,7 +1990,7 @@ static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {
 
 static void *custom_parser_prod_action(void *ctx,
         void *outerCtx,
-        void *asts[],
+        const FklAnalysisSymbol asts[],
         size_t num,
         size_t line) {
     FklVMvalue *proc = (FklVMvalue *)ctx;
@@ -2014,7 +2001,7 @@ static void *custom_parser_prod_action(void *ctx,
     FklVMvalue *vect = fklCreateVMvalueVec(exe, num);
     FklVMvec *vec = FKL_VM_VEC(vect);
     for (size_t i = 0; i < num; i++)
-        vec->base[i] = asts[i];
+        vec->base[i] = asts[i].ast;
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, proc);
     FKL_VM_PUSH_VALUE(exe, vect);

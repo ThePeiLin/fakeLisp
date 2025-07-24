@@ -10293,6 +10293,11 @@ void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx *outerCtx) {
     fklInitConstTable(&outerCtx->public_kt);
     fklInitBuiltinGrammer(&outerCtx->builtin_g, &outerCtx->public_symbol_table);
     outerCtx->gc = NULL;
+    outerCtx->ki64_count = 0;
+    outerCtx->kf64_count = 0;
+    outerCtx->kstr_count = 0;
+    outerCtx->kbvec_count = 0;
+    outerCtx->kbi_count = 0;
 }
 
 void fklInitCodegenOuterCtx(FklCodegenOuterCtx *outerCtx,
@@ -11236,6 +11241,14 @@ static inline void update_new_codegen_to_new_vm_lib(FklVM *exe,
     }
 }
 
+static inline int is_need_update_const_array(FklCodegenOuterCtx *outer_ctx) {
+    return outer_ctx->ki64_count != outer_ctx->public_kt.ki64t.count
+        || outer_ctx->kf64_count != outer_ctx->public_kt.kf64t.count
+        || outer_ctx->kstr_count != outer_ctx->public_kt.kstrt.count
+        || outer_ctx->kbvec_count != outer_ctx->public_kt.kbvect.count
+        || outer_ctx->kbi_count != outer_ctx->public_kt.kbit.count;
+}
+
 FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
         FklByteCodelnt *bcl,
         FklFuncPrototypes *pts,
@@ -11271,7 +11284,14 @@ FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
                 pts,
                 prototype_id);
 
-        fklVMgcUpdateConstArray(gc, public_kt);
+        if (is_need_update_const_array(outer_ctx)) {
+            fklVMgcUpdateConstArray(gc, public_kt);
+            outer_ctx->ki64_count = public_kt->ki64t.count;
+            outer_ctx->kf64_count = public_kt->kf64t.count;
+            outer_ctx->kstr_count = public_kt->kstrt.count;
+            outer_ctx->kbvec_count = public_kt->kbvect.count;
+            outer_ctx->kbi_count = public_kt->kbit.count;
+        }
 
         update_new_codegen_to_new_vm_lib(exe, macro_libraries, pts);
         return exe;

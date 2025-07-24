@@ -266,6 +266,12 @@ typedef struct {
     FklConstTable public_kt;
     FklVMgc *gc;
 
+    uint64_t ki64_count;
+    uint64_t kf64_count;
+    uint64_t kstr_count;
+    uint64_t kbvec_count;
+    uint64_t kbi_count;
+
     FklGrammer builtin_g;
 
     FklSid_t builtInPatternVar_orig;

@@ -80,7 +80,8 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
                         fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
                         cstr + match_args.skip_ignore_len,
                         match_args.matchLen,
-                        outerCtx);
+                        outerCtx,
+                        match_args.skip_ignore_len > 0);
                 fklUintVectorPushBack2(lineStack, outerCtx->line);
                 outerCtx->line += fklCountCharInBuf(cstr,
                         match_args.matchLen + match_args.skip_ignore_len,

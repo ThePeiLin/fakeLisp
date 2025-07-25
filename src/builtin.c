@@ -1662,6 +1662,7 @@ struct ParseCtx {
     FklUintVector lineStack;
     FklParseStateVector stateStack;
     FklSid_t reducing_sid;
+    uint8_t start_with_ignore;
     uint32_t offset;
 };
 
@@ -1755,14 +1756,6 @@ static const FklVMframeContextMethodTable ReadContextMethodTable = {
     .step = read_frame_step,
 };
 
-static inline void init_nonterm_analyzing_symbol(FklAnalysisSymbol *sym,
-        FklSid_t id,
-        FklVMvalue *ast) {
-    sym->nt.group = 0;
-    sym->nt.sid = id;
-    sym->ast = ast;
-}
-
 static inline void push_state0_of_custom_parser(FklVMvalue *parser,
         FklParseStateVector *stack) {
     FKL_DECL_VM_UD_DATA(g, FklGrammer, parser);
@@ -1772,10 +1765,8 @@ static inline void push_state0_of_custom_parser(FklVMvalue *parser,
 
 static inline struct ParseCtx *create_read_parse_ctx(void) {
     struct ParseCtx *pctx =
-            (struct ParseCtx *)fklZmalloc(sizeof(struct ParseCtx));
+            (struct ParseCtx *)fklZcalloc(1, sizeof(struct ParseCtx));
     FKL_ASSERT(pctx);
-    pctx->offset = 0;
-    pctx->reducing_sid = 0;
 
     fklParseStateVectorInit(&pctx->stateStack, 16);
     fklAnalysisSymbolVectorInit(&pctx->symbolStack, 16);
@@ -1810,19 +1801,25 @@ static inline int do_custom_parser_reduce_action(
         const FklGrammerProduction *prod,
         size_t len,
         FklGrammerMatchOuterCtx *outerCtx,
+        uint8_t *start_with_ignore,
         size_t *errLine) {
     stateStack->size -= len;
+    symbolStack->size -= len;
+    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
     FklAnalysisStateGoto *gt =
             fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
     FklSid_t left = prod->left.sid;
-    for (; gt; gt = gt->next)
-        if (gt->nt.sid == left)
+    for (; gt; gt = gt->next) {
+        if ((gt->allow_ignore || !len || !base[0].start_with_ignore)
+                && gt->nt.sid == left) {
             state = gt->state;
+            break;
+        }
+    }
     if (!state)
         return 1;
-    symbolStack->size -= len;
-    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
+    *start_with_ignore = len && base[0].start_with_ignore;
     size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
     lineStack->size -= len;
     prod->func(prod->ctx, outerCtx->ctx, base, len, line);
@@ -1848,7 +1845,8 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
         FklVM *exe,
         int *accept,
         ParsingState *parse_state,
-        FklSid_t *reducing_sid) {
+        FklSid_t *reducing_sid,
+        uint8_t *start_with_ignore) {
 
 #define PARSE_ACCEPT()                                                         \
     *accept = 1;                                                               \
@@ -1862,6 +1860,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
                 action->prod,                                                  \
                 action->actual_len,                                            \
                 outerCtx,                                                      \
+                start_with_ignore,                                             \
                 errLine))                                                      \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
     return;
@@ -1880,10 +1879,12 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 
     if (rctx->state == PARSE_REDUCING) {
         FklVMvalue *ast = FKL_VM_POP_TOP_VALUE(exe);
-        init_nonterm_analyzing_symbol(
+        fklInitNontermAnalysisSymbol(
                 fklAnalysisSymbolVectorPushBack(&pctx->symbolStack, NULL),
+                0,
                 pctx->reducing_sid,
-                ast);
+                ast,
+                pctx->start_with_ignore);
         rctx->state = PARSE_CONTINUE;
     }
 
@@ -1909,7 +1910,8 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
             exe,
             &accept,
             &rctx->state,
-            &pctx->reducing_sid);
+            &pctx->reducing_sid,
+            &pctx->start_with_ignore);
 
     if (accept) {
         if (restLen)
@@ -2511,10 +2513,12 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
     struct ParseCtx *pctx = ctx->pctx;
     if (ctx->state == PARSE_REDUCING) {
         FklVMvalue *ast = FKL_VM_POP_TOP_VALUE(exe);
-        init_nonterm_analyzing_symbol(
+        fklInitNontermAnalysisSymbol(
                 fklAnalysisSymbolVectorPushBack(&pctx->symbolStack, NULL),
+                0,
                 pctx->reducing_sid,
-                ast);
+                ast,
+                pctx->start_with_ignore);
         ctx->state = PARSE_CONTINUE;
     }
     FKL_DECL_VM_UD_DATA(g, FklGrammer, ctx->parser);
@@ -2538,7 +2542,8 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
             exe,
             &accept,
             &ctx->state,
-            &pctx->reducing_sid);
+            &pctx->reducing_sid,
+            &pctx->start_with_ignore);
 
     if (err) {
         if (err == FKL_PARSE_WAITING_FOR_MORE

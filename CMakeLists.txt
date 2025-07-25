@@ -147,6 +147,10 @@ target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURC
 add_executable(test-lexer4 "main/tests/lexer4.c")
 target_link_libraries(test-lexer4 ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 
+add_executable(test-lexer5 "main/tests/lexer5.c")
+target_link_libraries(test-lexer5 test_lib ${LINK_TARGET})
+target_compile_definitions(test-lexer5 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/action.c")
+
 add_executable(test-parser-grammer "main/tests/parser-grammer.c" "${GENERATED_HEADER_DIR}/lisp.g.h")
 target_link_libraries(test-parser-grammer ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
  

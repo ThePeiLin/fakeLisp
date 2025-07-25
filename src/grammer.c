@@ -834,11 +834,11 @@ static const FklLalrBuiltinMatch builtin_match_identifier = {
     .build_c_match_cond = builtin_match_identifier_print_c_match_cond,
 };
 
-DEFINE_DEFAULT_C_MATCH_COND(noterm);
+DEFINE_DEFAULT_C_MATCH_COND(nodelimiter);
 
-static void builtin_match_noterm_print_src(const FklGrammer *g,
+static void builtin_match_nodelimiter_print_src(const FklGrammer *g,
         FklCodeBuilder *build) {
-    CB_LINE("static int builtin_match_nonterm(const char* cstrStart");
+    CB_LINE("static int builtin_match_nodelimiter(const char* cstrStart");
     CB_INDENT(flag) {
         CB_LINE(",const char* cstr");
         CB_LINE(",size_t restLen");
@@ -856,7 +856,8 @@ static void builtin_match_noterm_print_src(const FklGrammer *g,
     CB_LINE("}");
 }
 
-static int builtin_match_noterm_func(const FklBuiltinTerminalMatchArgs *args,
+static int builtin_match_nodelimiter_func(
+        const FklBuiltinTerminalMatchArgs *args,
         const char *cstrStart,
         const char *cstr,
         size_t restLen,
@@ -871,12 +872,12 @@ static int builtin_match_noterm_func(const FklBuiltinTerminalMatchArgs *args,
     return 1;
 }
 
-static const FklLalrBuiltinMatch builtin_match_noterm = {
-    .name = "?noterm",
-    .match = builtin_match_noterm_func,
+static const FklLalrBuiltinMatch builtin_match_nodelimiter = {
+    .name = "?nodelimiter",
+    .match = builtin_match_nodelimiter_func,
     .ctx_create = builtin_match_number_create,
-    .build_src = builtin_match_noterm_print_src,
-    .build_c_match_cond = builtin_match_noterm_print_c_match_cond,
+    .build_src = builtin_match_nodelimiter_print_src,
+    .build_c_match_cond = builtin_match_nodelimiter_print_c_match_cond,
 };
 
 static FklBuiltinTerminalInitError
@@ -1330,24 +1331,24 @@ static const struct BuiltinGrammerSymList {
     const FklLalrBuiltinMatch *t;
 } builtin_grammer_sym_list[] = {
     // clang-format off
-    {"?dint",       &builtin_match_dec_int    },
-    {"?xint",       &builtin_match_hex_int    },
-    {"?oint",       &builtin_match_oct_int    },
-    {"?dfloat",     &builtin_match_dec_float  },
-    {"?xfloat",     &builtin_match_hex_float  },
+    {"?dint",        &builtin_match_dec_int     },
+    {"?xint",        &builtin_match_hex_int     },
+    {"?oint",        &builtin_match_oct_int     },
+    {"?dfloat",      &builtin_match_dec_float   },
+    {"?xfloat",      &builtin_match_hex_float   },
 
-    {"?s-dint",     &builtin_match_s_dint     },
-    {"?s-xint",     &builtin_match_s_xint     },
-    {"?s-oint",     &builtin_match_s_oint     },
-    {"?s-dfloat",   &builtin_match_s_dfloat   },
-    {"?s-xfloat",   &builtin_match_s_xfloat   },
+    {"?s-dint",      &builtin_match_s_dint      },
+    {"?s-xint",      &builtin_match_s_xint      },
+    {"?s-oint",      &builtin_match_s_oint      },
+    {"?s-dfloat",    &builtin_match_s_dfloat    },
+    {"?s-xfloat",    &builtin_match_s_xfloat    },
 
-    {"?s-char",     &builtin_match_s_char     },
-    {"?symbol",     &builtin_match_symbol     },
-    {"?identifier", &builtin_match_identifier },
-    {"?noterm",     &builtin_match_noterm     },
+    {"?s-char",      &builtin_match_s_char      },
+    {"?symbol",      &builtin_match_symbol      },
+    {"?identifier",  &builtin_match_identifier  },
+    {"?nodelimiter", &builtin_match_nodelimiter },
 
-    {NULL,          NULL                      },
+    {NULL,           NULL                       },
     // clang-format on
 };
 
@@ -2427,7 +2428,7 @@ static inline void add_gra_link_syms(GraSymbolHashSet *checked,
 
             GraLinkSym ss = { .sym = *sym,
                 .allow_ignore = allow_ignore || is_at_delim_sym(&l->k),
-                .is_at_delim = 0 };
+                .is_at_delim = is_at_delim_sym(&l->k) };
             graSymbolHashSetPut(checked, &ss);
         }
     }
@@ -2467,9 +2468,9 @@ static inline void lr0_item_set_goto(GraSymbolHashSet *checked,
         fklLalrItemHashSetInit(&newItems);
         for (FklLalrItemHashSetNode *l = itemsClosure.first; l; l = l->next) {
             FklGrammerSym *next = get_item_next(&l->k);
-            if (next && grammer_sym_equal(&ll->k.sym, next)
-                    && (ll->k.is_at_delim == is_at_delim_sym(&l->k)
-                            || ll->k.sym.type == FKL_TERM_NONTERM)) {
+            if (next == NULL || !grammer_sym_equal(&ll->k.sym, next))
+                continue;
+            if (ll->k.is_at_delim == is_at_delim_sym(&l->k)) {
                 FklLalrItem item = get_item_advance(&l->k);
                 fklLalrItemHashSetPut(&newItems, &item);
             }
@@ -2714,7 +2715,8 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer *g,
                     cl = cl->next) {
                 FklLalrItem i = cl->k;
                 const FklGrammerSym *s = get_item_next(&i);
-                if (s && is_at_delim_sym(&i))
+                int is_at_delim_v = s && is_at_delim_sym(&i);
+                if (is_at_delim_v)
                     i.idx += 2;
                 else
                     ++i.idx;
@@ -2723,19 +2725,25 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer *g,
                     if (x->dst == itemset)
                         continue;
                     const FklGrammerSym *xsym = &x->sym;
-                    if (s && grammer_sym_equal(s, xsym)) {
-                        if (i.la.t == FKL_TERM_NONE)
+                    if (s == NULL || !grammer_sym_equal(s, xsym))
+                        continue;
+
+                    if (s->type != FKL_TERM_NONTERM
+                            || x->allow_ignore == is_at_delim_v
+                            || item.prod != i.prod) {
+                        if (i.la.t == FKL_TERM_NONE) {
                             add_lookahead_spread(itemset,
                                     &item,
                                     // 这些操作可能需要重新计算哈希值
                                     FKL_REMOVE_CONST(FklLalrItemHashSet,
                                             &x->dst->k),
                                     &i);
-                        else
+                        } else {
                             fklLalrItemHashSetPut(
                                     FKL_REMOVE_CONST(FklLalrItemHashSet,
                                             &x->dst->k),
                                     &i);
+                        }
                     }
                 }
             }
@@ -3355,13 +3363,13 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
                                 ll->allow_ignore,
                                 tt,
                                 dstState);
-                } else if (*priority == FKL_TERM_STRING && ll->allow_ignore) {
+                } else if (*priority == FKL_TERM_KEYWORD && ll->allow_ignore) {
                     curState->state.gt = create_state_goto(sym,
                             ll->allow_ignore,
                             tt,
                             curState->state.gt,
                             dstState);
-                } else if (*priority == FKL_TERM_KEYWORD && !ll->allow_ignore) {
+                } else if (*priority == FKL_TERM_STRING && !ll->allow_ignore) {
                     curState->state.gt = create_state_goto(sym,
                             ll->allow_ignore,
                             tt,
@@ -3425,6 +3433,7 @@ break_loop:
 }
 
 static inline void print_look_ahead_of_analysis_table(FILE *fp,
+        const FklRegexTable *rt,
         const FklAnalysisStateActionMatch *match) {
     switch (match->t) {
     case FKL_TERM_STRING: {
@@ -3449,7 +3458,7 @@ static inline void print_look_ahead_of_analysis_table(FILE *fp,
         fputs("()", fp);
         break;
     case FKL_TERM_REGEX:
-        fprintf(fp, "/%p/", match->re);
+        print_as_regex(fklGetStringWithRegex(rt, match->re, NULL), fp);
         break;
     case FKL_TERM_IGNORE:
         fputs("?e", fp);
@@ -3474,7 +3483,9 @@ void fklPrintAnalysisTable(const FklGrammer *grammer,
             switch (actions->action) {
             case FKL_ANALYSIS_SHIFT:
                 fputs("S(", fp);
-                print_look_ahead_of_analysis_table(fp, &actions->match);
+                print_look_ahead_of_analysis_table(fp,
+                        &grammer->regexes,
+                        &actions->match);
                 {
                     uintptr_t idx = actions->state - states;
                     fprintf(fp, " , %" PRIu64 " )", idx);
@@ -3482,12 +3493,16 @@ void fklPrintAnalysisTable(const FklGrammer *grammer,
                 break;
             case FKL_ANALYSIS_REDUCE:
                 fputs("R(", fp);
-                print_look_ahead_of_analysis_table(fp, &actions->match);
+                print_look_ahead_of_analysis_table(fp,
+                        &grammer->regexes,
+                        &actions->match);
                 fprintf(fp, " , %" PRIu64 " )", actions->prod->idx);
                 break;
             case FKL_ANALYSIS_ACCEPT:
                 fputs("acc(", fp);
-                print_look_ahead_of_analysis_table(fp, &actions->match);
+                print_look_ahead_of_analysis_table(fp,
+                        &grammer->regexes,
+                        &actions->match);
                 fputc(')', fp);
                 break;
             case FKL_ANALYSIS_IGNORE:
@@ -4039,7 +4054,14 @@ static inline void build_state_action_to_c_file(
             CB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" PRIu64
                     "});",
                     ac->state - states);
-            CB_LINE("init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),*in+skip_ignore_len,matchLen,ctx->line,ctx->ctx);");
+            CB_LINE("init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL)");
+            CB_INDENT(flag) {
+                CB_LINE(",*in+skip_ignore_len");
+                CB_LINE(",matchLen");
+                CB_LINE(",ctx->line");
+                CB_LINE(",skip_ignore_len>0");
+                CB_LINE(",ctx->ctx);");
+            }
             CB_LINE("fklUintVectorPushBack2(lineStack,ctx->line);");
             CB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen+skip_ignore_len,'\\n');");
             CB_LINE("*in+=matchLen+skip_ignore_len;");
@@ -4058,15 +4080,16 @@ static inline void build_state_action_to_c_file(
 
             CB_LINE("stateStack->size-=%" PRIu64 ";", actual_len);
             CB_LINE("symbolStack->size-=%" PRIu64 ";", actual_len);
+            CB_LINE("FklAnalysisSymbol* base=&symbolStack->base[symbolStack->size];");
+
             CB_LINE("FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
             CB_LINE("FklParseState nextState={.func=NULL};");
-            CB_LINE("func(NULL,NULL,NULL,0,%" PRIu64
+            CB_LINE("func(NULL,NULL,NULL,0,%s,%" PRIu64
                     ",&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
+                    actual_len ? "base[0].start_with_ignore" : "0",
                     ac->prod->left.sid);
             CB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
             CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
-
-            CB_LINE("FklAnalysisSymbol* base=&symbolStack->base[symbolStack->size];");
 
             if (actual_len) {
                 CB_LINE("size_t line=fklGetFirstNthLine(lineStack,%" PRIu64
@@ -4093,9 +4116,10 @@ static inline void build_state_action_to_c_file(
             }
             CB_LINE("}");
 
-            CB_LINE("init_nonterm_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),%" PRIu64
-                    ",ast);",
-                    ac->prod->left.sid);
+            CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),0,%" PRIu64
+                    ",ast,%s);",
+                    ac->prod->left.sid,
+                    actual_len ? "base[0].start_with_ignore" : "0");
             CB_LINE("fklUintVectorPushBack2(lineStack,line);");
         } break;
         case FKL_ANALYSIS_IGNORE:
@@ -4118,6 +4142,7 @@ static inline void build_state_prototype_to_c_file(
     CB_LINE(",FklAnalysisSymbolVector*");
     CB_LINE(",FklUintVector*");
     CB_LINE(",int");
+    CB_LINE(",uint8_t");
     CB_LINE(",FklSid_t");
     CB_LINE(",FklParseState* pfunc");
     CB_LINE(",const char*");
@@ -4140,6 +4165,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
         CB_LINE(",FklAnalysisSymbolVector* symbolStack");
         CB_LINE(",FklUintVector* lineStack");
         CB_LINE(",int is_action");
+        CB_LINE(",uint8_t start_with_ignore");
         CB_LINE(",FklSid_t left");
         CB_LINE(",FklParseState* pfunc");
         CB_LINE(",const char* start");
@@ -4217,23 +4243,17 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
         CB_INDENT(flag) {
             const FklAnalysisStateGoto *gt = state->state.gt;
             if (gt) {
-                if (gt->allow_ignore)
-                    CB_LINE("if(1 && left==%" PRIu64 "){", gt->nt.sid);
-                else
-                    CB_LINE("if(left==%" PRIu64 "){", gt->nt.sid);
-                CB_INDENT(flag) {
-                    CB_LINE("pfunc->func=state_%" PRIu64 ";",
-                            gt->state - states);
-                    CB_LINE("return 0;");
-                }
-                CB_LINE("}");
-
-                gt = gt->next;
+                CB_LINE("if(0){}");
                 for (; gt; gt = gt->next) {
-                    if (gt->allow_ignore)
-                        CB_LINE("else if(1 && left==%" PRIu64 "){", gt->nt.sid);
+                    if (!gt->allow_ignore)
+                        CB_LINE("else if(!start_with_ignore&&left==%" PRIu64
+                                "/* %s */){",
+                                gt->nt.sid,
+                                fklGetSymbolWithId(gt->nt.sid, g->st)->k->str);
                     else
-                        CB_LINE("else if(left==%" PRIu64 "){", gt->nt.sid);
+                        CB_LINE("else if(left==%" PRIu64 "/* %s */){",
+                                gt->nt.sid,
+                                fklGetSymbolWithId(gt->nt.sid, g->st)->k->str);
                     CB_INDENT(flag) {
                         CB_LINE("pfunc->func=state_%" PRIu64 ";",
                                 gt->state - states);
@@ -4339,6 +4359,7 @@ static inline void build_init_term_analyzing_symbol_src(FklCodeBuilder *build,
         CB_LINE("const char* s,");
         CB_LINE("size_t len,");
         CB_LINE("size_t line,");
+        CB_LINE("uint8_t start_with_ignore,");
         CB_LINE("void* ctx)");
     }
     CB_LINE("{");
@@ -4347,28 +4368,12 @@ static inline void build_init_term_analyzing_symbol_src(FklCodeBuilder *build,
         CB_LINE("sym->nt.group=0;");
         CB_LINE("sym->nt.sid=0;");
         CB_LINE("sym->ast=ast;");
+        CB_LINE("sym->start_with_ignore=start_with_ignore;");
     }
     CB_LINE("}");
     CB_LINE("");
 }
 
-static inline void build_init_nonterm_analyzing_symbol_src(
-        FklCodeBuilder *build) {
-    CB_LINE("static inline void");
-    CB_LINE("init_nonterm_analyzing_symbol(FklAnalysisSymbol* sym,");
-    CB_INDENT(flag) {
-        CB_LINE("FklSid_t id,");
-        CB_LINE("void* ast)");
-    }
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("sym->nt.group=0;");
-        CB_LINE("sym->nt.sid=id;");
-        CB_LINE("sym->ast=ast;");
-    }
-    CB_LINE("}");
-    CB_LINE("");
-}
 static inline void build_ignore_sym_match_to_c_file(
         const FklGrammerIgnoreSym *sym,
         const FklGrammer *g,
@@ -4498,8 +4503,6 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
     CB_LINE("");
     CB_LINE("");
     build_init_term_analyzing_symbol_src(build, ast_creator_name);
-
-    build_init_nonterm_analyzing_symbol_src(build);
 
     build_match_ignore_prototype_to_c_file(build);
 
@@ -4740,6 +4743,7 @@ void *fklDefaultParseForCharBuf(const char *cstr,
                 lineStack,
                 1,
                 0,
+                0,
                 NULL,
                 start,
                 &cstr,
@@ -4896,15 +4900,6 @@ match_start:
     return 0;
 }
 
-static inline void init_nonterm_analyzing_symbol(FklAnalysisSymbol *sym,
-        FklSid_t group,
-        FklSid_t id,
-        FklNastNode *ast) {
-    sym->nt.group = group;
-    sym->nt.sid = id;
-    sym->ast = ast;
-}
-
 static inline int do_reduce_action(FklParseStateVector *stateStack,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
@@ -4914,17 +4909,21 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
         FklSymbolTable *st,
         size_t *errLine) {
     stateStack->size -= len;
+    symbolStack->size -= len;
+    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
     FklAnalysisStateGoto *gt =
             fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
     FklGrammerNonterm left = prod->left;
-    for (; gt; gt = gt->next)
-        if (fklNontermEqual(&gt->nt, &left))
+    for (; gt; gt = gt->next) {
+        if ((gt->allow_ignore || !len || !base[0].start_with_ignore)
+                && fklNontermEqual(&gt->nt, &left)) {
             state = gt->state;
+            break;
+        }
+    }
     if (!state)
         return 1;
-    symbolStack->size -= len;
-    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
     size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
     lineStack->size -= len;
     void *ast = prod->func(prod->ctx, ctx->ctx, base, len, line);
@@ -4936,11 +4935,13 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
         *errLine = line;
         return FKL_PARSE_REDUCE_FAILED;
     }
-    init_nonterm_analyzing_symbol(
+
+    fklInitNontermAnalysisSymbol(
             fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
             left.group,
             left.sid,
-            ast);
+            ast,
+            len && base[0].start_with_ignore);
     fklUintVectorPushBack2(lineStack, line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){ .state = state });
     return 0;

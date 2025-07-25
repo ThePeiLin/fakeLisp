@@ -61,8 +61,11 @@ static const char test_json_grammer_rules[] = //
 
 static const char test_ignore_grammer_rules[] = //
         ""
-        // "s -> item-list => test \n"
+        "s -> \"#\" item-list => test \n"
         "s -> \"#\" .. item-list => test \n"
+        "s -> \"#\" .. vector-list => test \n"
+        "s -> \"#\" vector-list => test \n"
+        "vector-list -> \"[\" items \"]\" => test\n"
         "item-list -> \"(\" items \")\" => test \n"
         "items ->            => test \n"
         "      -> items item => test \n"

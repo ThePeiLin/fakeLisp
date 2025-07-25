@@ -1,0 +1,25 @@
+(import (only (.. lib utils m) assert))
+
+(define (return-first $$ line)
+  (vector-ref $$ 0))
+
+(define (not-allow-ignore $$ line)
+  'not-allow-ignore)
+
+(define (start-with-ignore $$ line)
+  'start-with-ignore)
+
+(define (return-nil $$ line)
+  nil)
+
+(define parser
+  (make-parser
+    'C
+    'C #[A] return-first
+    'A #["#" .. B] not-allow-ignore
+    'A #["#" B] start-with-ignore
+    'B #["(" ")"] return-nil
+    #&#[#&"\\s+"]))
+
+(assert (eq 'not-allow-ignore (prin1n (parse "#()" parser))))
+(assert (eq 'start-with-ignore (prin1n (parse "# ()" parser))))

@@ -233,6 +233,7 @@ typedef struct FklGrammerSym {
 typedef struct FklAnalysisSymbol {
     FklGrammerNonterm nt;
     void *ast;
+    uint8_t start_with_ignore;
 } FklAnalysisSymbol;
 
 // FklGraSymVector
@@ -518,11 +519,24 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
 static inline void fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym,
         const char *s,
         size_t len,
-        FklGrammerMatchOuterCtx *outerCtx) {
+        FklGrammerMatchOuterCtx *outerCtx,
+        uint8_t start_with_ignore) {
     void *ast = outerCtx->create(s, len, outerCtx->line, outerCtx->ctx);
     sym->nt.group = 0;
     sym->nt.sid = 0;
     sym->ast = ast;
+    sym->start_with_ignore = start_with_ignore;
+}
+
+static inline void fklInitNontermAnalysisSymbol(FklAnalysisSymbol *sym,
+        FklSid_t group,
+        FklSid_t id,
+        void *ast,
+        uint8_t start_with_ignore) {
+    sym->nt.group = group;
+    sym->nt.sid = id;
+    sym->ast = ast;
+    sym->start_with_ignore = start_with_ignore;
 }
 
 int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
@@ -625,17 +639,18 @@ struct FklParseStateVector;
 
 typedef union FklParseState FklParseState;
 
-typedef int (*FklStateFuncPtr)(struct FklParseStateVector *,
-        FklAnalysisSymbolVector *,
-        FklUintVector *,
-        int,
-        FklSid_t,
+typedef int (*FklStateFuncPtr)(struct FklParseStateVector *states,
+        FklAnalysisSymbolVector *symbols,
+        FklUintVector *lines,
+        int is_action,
+        uint8_t start_with_ignore,
+        FklSid_t left,
         FklParseState *func,
-        const char *,
-        const char **,
-        size_t *,
-        FklGrammerMatchOuterCtx *,
-        int *,
+        const char *start,
+        const char **in,
+        size_t *rest_len,
+        FklGrammerMatchOuterCtx *ctx,
+        int *accept,
         size_t *errLine);
 
 typedef union FklParseState {

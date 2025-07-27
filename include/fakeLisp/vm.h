@@ -125,7 +125,7 @@ typedef struct {
 } FklVMvec;
 
 #define FKL_VM_UD_COMMON_HEADER                                                \
-    struct FklVMvalue *rel;                                                    \
+    struct FklVMvalue *dll;                                                    \
     const struct FklVMudMetaTable *t
 
 typedef struct {
@@ -1108,11 +1108,11 @@ FklVMvalue *fklCreateVMvalueBigIntWithU64(FklVM *, uint64_t);
 FklVMvalue *fklCreateVMvalueBigIntWithF64(FklVM *, double);
 
 FklVMvalue *
-fklCreateVMvalueUd(FklVM *, const FklVMudMetaTable *t, FklVMvalue *rel);
+fklCreateVMvalueUd(FklVM *, const FklVMudMetaTable *t, FklVMvalue *dll);
 FklVMvalue *fklCreateVMvalueUd2(FklVM *,
         const FklVMudMetaTable *t,
         size_t extra_size,
-        FklVMvalue *rel);
+        FklVMvalue *dll);
 
 FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, const FklByteCodelnt *bcl);
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *, FklByteCodelnt *bcl);

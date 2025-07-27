@@ -1876,13 +1876,13 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *exe,
 }
 
 FklVMvalue *
-fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t, FklVMvalue *rel) {
+fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t, FklVMvalue *dll) {
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueUd) + t->size);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_USERDATA;
     FklVMud *ud = FKL_VM_UD(r);
     ud->t = t;
-    ud->rel = rel;
+    ud->dll = dll;
     fklAddToGC(r, exe);
     return r;
 }
@@ -1890,14 +1890,14 @@ fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t, FklVMvalue *rel) {
 FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
         const FklVMudMetaTable *t,
         size_t extra_size,
-        FklVMvalue *rel) {
+        FklVMvalue *dll) {
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
             sizeof(FklVMvalueUd) + t->size + extra_size);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_USERDATA;
     FklVMud *ud = FKL_VM_UD(r);
     ud->t = t;
-    ud->rel = rel;
+    ud->dll = dll;
     fklAddToGC(r, exe);
     return r;
 }
@@ -1922,7 +1922,7 @@ static const alignas(8) FklVMvalueUd EofUserDataValue = {
     .ud =
         {
             .t = &EofUserDataMetaTable,
-            .rel = NULL,
+            .dll = NULL,
         },
 };
 
@@ -1962,7 +1962,7 @@ void fklAtomicVMbox(FklVMvalue *root, FklVMgc *gc) {
 
 void fklAtomicVMuserdata(FklVMvalue *root, FklVMgc *gc) {
     FklVMud *ud = FKL_VM_UD(root);
-    fklVMgcToGray(ud->rel, gc);
+    fklVMgcToGray(ud->dll, gc);
     if (ud->t->__atomic)
         ud->t->__atomic(ud, gc);
 }

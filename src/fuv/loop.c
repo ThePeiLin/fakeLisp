@@ -116,8 +116,8 @@ static void error_check_idle_cb(uv_idle_t *idle) {
     uv_close((uv_handle_t *)idle, error_check_idle_close_cb);
 }
 
-FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *rel, int *err) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvLoopMetaTable, rel);
+FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *dll, int *err) {
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvLoopMetaTable, dll);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, v);
     fuv_loop->data.mode = -1;
     fuv_loop->data.is_closed = 0;

@@ -68,7 +68,9 @@ static int sync_mutex_p(FKL_CPROC_ARGL) { PREDICATE(IS_MUTEX_UD(val)); }
 
 static int sync_make_mutex(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &MutexUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe,
+            &MutexUdMetaTable,
+            FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(mutex, uv_mutex_t, ud);
     int r = uv_mutex_init(mutex);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -131,7 +133,9 @@ static int sync_cond_p(FKL_CPROC_ARGL) { PREDICATE(IS_COND_UD(val)); }
 
 static int sync_make_cond(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &CondUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe,
+            &CondUdMetaTable,
+            FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(cond, uv_cond_t, ud);
     int r = uv_cond_init(cond);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -209,7 +213,9 @@ static int sync_rwlock_p(FKL_CPROC_ARGL) { PREDICATE(IS_RWLOCK_UD(val)); }
 
 static int sync_make_rwlock(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &RwlockUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe,
+            &RwlockUdMetaTable,
+            FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(rwlock, uv_rwlock_t, ud);
     int r = uv_rwlock_init(rwlock);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -308,7 +314,9 @@ static int sync_make_sem(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(value_obj, fklIsVMint, exe);
     if (fklIsVMnumberLt0(value_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &SemUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe,
+            &SemUdMetaTable,
+            FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(sem, uv_sem_t, ud);
     int r = uv_sem_init(sem, fklVMgetUint(value_obj));
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -373,7 +381,9 @@ static int sync_make_barrier(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(count_obj, fklIsVMint, exe);
     if (fklIsVMnumberLt0(count_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &BarrierUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe,
+            &BarrierUdMetaTable,
+            FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(barrier, uv_barrier_t, ud);
     int r = uv_barrier_init(barrier, fklVMgetUint(count_obj));
     CHECK_UV_RESULT(r, exe, ctx->pd);

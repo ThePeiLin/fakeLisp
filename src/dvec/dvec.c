@@ -121,7 +121,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
         else
             return NULL;
     }
-    FklVMvalue *new_vec_val = create_dvec(exe, new_size, v->rel);
+    FklVMvalue *new_vec_val = create_dvec(exe, new_size, v->dll);
     FKL_DECL_VM_UD_DATA(new_vec, FklVMvalueVector, new_vec_val);
     new_size = dvec->size;
     if (new_vec->base)

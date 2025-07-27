@@ -67,8 +67,8 @@ static int strbuf_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *base) {
 }
 
 static inline FklVMvalue *
-create_vmstrbuf(FklVM *exe, size_t capacity, FklVMvalue *rel) {
-    FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, rel);
+create_vmstrbuf(FklVM *exe, size_t capacity, FklVMvalue *dll) {
+    FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, r);
     fklInitStringBuffer(buf);
     fklStringBufferReverse(buf, capacity);
@@ -76,8 +76,8 @@ create_vmstrbuf(FklVM *exe, size_t capacity, FklVMvalue *rel) {
 }
 
 static inline FklVMvalue *
-create_vmstrbuf2(FklVM *exe, size_t size, const char *ptr, FklVMvalue *rel) {
-    FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, rel);
+create_vmstrbuf2(FklVM *exe, size_t size, const char *ptr, FklVMvalue *dll) {
+    FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, r);
     fklInitStringBuffer(buf);
     fklStringBufferReverse(buf, size);
@@ -90,7 +90,7 @@ static FklVMvalue *strbuf_copy_append(FklVM *exe,
         uint32_t argc,
         FklVMvalue *const *base) {
     FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    FklVMvalue *retval = create_vmstrbuf(exe, 0, ud->rel);
+    FklVMvalue *retval = create_vmstrbuf(exe, 0, ud->dll);
     FklVMvalue *const *const end = base + argc;
     FKL_DECL_VM_UD_DATA(rbuf, FklStringBuffer, retval);
     fklStringBufferConcatWithStringBuffer(rbuf, buf);
@@ -477,7 +477,7 @@ static int export_substrbuf(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     size = end - start;
     FklVMvalue *r =
-            create_vmstrbuf2(exe, size, buf->buf + start, FKL_VM_UD(ostr)->rel);
+            create_vmstrbuf2(exe, size, buf->buf + start, FKL_VM_UD(ostr)->dll);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -501,7 +501,7 @@ static int export_sub_strbuf(FKL_CPROC_ARGL) {
     FklVMvalue *r = create_vmstrbuf2(exe,
             osize,
             buf->buf + start,
-            FKL_VM_UD(ostr)->rel);
+            FKL_VM_UD(ostr)->dll);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }

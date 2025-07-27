@@ -23,8 +23,8 @@ int isFuvDir(const FklVMvalue *v) {
 }
 
 FklVMvalue *
-createFuvDir(FklVM *vm, FklVMvalue *rel, uv_fs_t *req, size_t nentries) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvDirUdMetaTable, rel);
+createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *req, size_t nentries) {
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvDirUdMetaTable, dll);
     FKL_DECL_VM_UD_DATA(dir_ud, FuvDir, v);
     dir_ud->dir = req->ptr;
     req->ptr = NULL;

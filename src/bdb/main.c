@@ -91,7 +91,9 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
                 exe,
                 "Failed for file: %s",
                 filename_obj);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &DebugCtxUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe,
+            &DebugCtxUdMetaTable,
+            FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(debug_ud, DebugCtx, ud);
     fklUnlockThread(exe);
     int r = initDebugCtx(debug_ud, exe, valid_filename, argv_obj);

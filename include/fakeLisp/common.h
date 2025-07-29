@@ -40,11 +40,22 @@ typedef intptr_t ssize_t;
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
+
 #define FKL_DEPRECATED __attribute__((deprecated))
+#define FKL_ALWAYS_INLINE __attribute__((always_inline))
+#define __FKL_UNREACHABLE() __builtin_unreachable()
+
 #elif defined(_MSC_VER_)
+
 #define FKL_DEPRECATED __declspec(deprecated)
+#define FKL_ALWAYS_INLINE __forceinline
+#define __FKL_UNREACHABLE() __assume(0)
+
 #else
+
 #define FKL_DEPRECATED
+#define FKL_ALWAYS_INLINE
+
 #endif
 
 FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
@@ -70,6 +81,7 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_ASSERT(exp) assert(exp)
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \
+        __FKL_UNREACHABLE();                                                   \
         fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);        \
         abort();                                                               \
     } while (0)

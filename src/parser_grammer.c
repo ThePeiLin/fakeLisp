@@ -54,7 +54,8 @@ typedef struct Token {
 } Token;
 
 #define MATCH_DELIM(buf, end, DELIM)                                           \
-    ((size_t)fklCharBufMatch(DELIM, strlen(DELIM), buf, end - buf) == strlen(DELIM))
+    ((size_t)fklCharBufMatch(DELIM, strlen(DELIM), buf, end - buf)             \
+            == strlen(DELIM))
 
 static inline int is_comment(const char *buf, const char *const end) {
     return MATCH_DELIM(buf, end, FKL_PG_DELIM_COMMENT);

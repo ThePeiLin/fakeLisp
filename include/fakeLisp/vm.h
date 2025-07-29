@@ -23,21 +23,26 @@
 extern "C" {
 #endif
 
+#define FKL_VM_TYPE_X                                                          \
+    X(F64 = 0, F64)                                                            \
+    X(BIGINT, BIGINT)                                                          \
+    X(STR, STR)                                                                \
+    X(VECTOR, VECTOR)                                                          \
+    X(PAIR, PAIR)                                                              \
+    X(BOX, BOX)                                                                \
+    X(BYTEVECTOR, BYTEVECTOR)                                                  \
+    X(USERDATA, USERDATA)                                                      \
+    X(PROC, PROC)                                                              \
+    X(CPROC, CPROC)                                                            \
+    X(HASHTABLE, HASHTABLE)                                                    \
+    X(VAR_REF, VAR_REF)
+
 typedef enum {
-    FKL_TYPE_F64 = 0,
-    FKL_TYPE_BIGINT,
-    FKL_TYPE_STR,
-    FKL_TYPE_VECTOR,
-    FKL_TYPE_PAIR,
-    FKL_TYPE_BOX,
-    FKL_TYPE_BYTEVECTOR,
-    FKL_TYPE_USERDATA,
-    FKL_TYPE_PROC,
-    FKL_TYPE_CPROC,
-    FKL_TYPE_HASHTABLE,
-    FKL_TYPE_VAR_REF,
-    FKL_VM_VALUE_GC_TYPE_NUM,
+#define X(A, B) FKL_TYPE_##A,
+    FKL_VM_TYPE_X
+#undef X
 } FklValueType;
+#define FKL_VM_VALUE_GC_TYPE_NUM (FKL_TYPE_VAR_REF + 1)
 
 struct FklVM;
 struct FklVMvalue;
@@ -1438,42 +1443,31 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
 #define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P) >> FKL_UNUSEDBITNUM))
 #define FKL_GET_CHR(P) ((char)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) ((FklSid_t)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
+
 #define FKL_IS_NIL(P) ((P) == FKL_VM_NIL)
 #define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
-#define FKL_IS_PAIR(P)                                                         \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_PAIR)
-#define FKL_IS_F64(P)                                                          \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_F64)
-#define FKL_IS_STR(P)                                                          \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_STR)
-#define FKL_IS_PROC(P)                                                         \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_PROC)
-#define FKL_IS_CPROC(P)                                                        \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_CPROC)
-#define FKL_IS_VECTOR(P)                                                       \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_VECTOR)
-#define FKL_IS_BYTEVECTOR(P)                                                   \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_BYTEVECTOR)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P) == FKL_TAG_FIX)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P) == FKL_TAG_CHR)
 #define FKL_IS_SYM(P) (FKL_GET_TAG(P) == FKL_TAG_SYM)
-#define FKL_IS_USERDATA(P)                                                     \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_USERDATA)
-#define FKL_IS_BIGINT(P)                                                       \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_BIGINT)
-#define FKL_IS_BOX(P)                                                          \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_BOX)
-#define FKL_IS_HASHTABLE(P)                                                    \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_HASHTABLE)
-#define FKL_IS_HASHTABLE_EQ(P)                                                 \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_HASHTABLE          \
-            && FKL_VM_HASH(P)->eq_type == FKL_HASH_EQ)
-#define FKL_IS_HASHTABLE_EQV(P)                                                \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_HASHTABLE          \
-            && FKL_VM_HASH(P)->eq_type == FKL_HASH_EQV)
-#define FKL_IS_HASHTABLE_EQUAL(P)                                              \
-    (FKL_GET_TAG(P) == FKL_TAG_PTR && (P)->type == FKL_TYPE_HASHTABLE          \
-            && FKL_VM_HASH(P)->eq_type == FKL_HASH_EQUAL)
+
+#define X(A, B)                                                                \
+    FKL_ALWAYS_INLINE static inline int FKL_IS_##B(const FklVMvalue *p) {      \
+        return FKL_IS_PTR(p) && (p)->type == FKL_TYPE_##B;                     \
+    }
+FKL_VM_TYPE_X
+#undef X
+
+#define HASH_P(T)                                                              \
+    FKL_ALWAYS_INLINE static inline int FKL_IS_HASHTABLE_##T(                  \
+            const FklVMvalue *p) {                                             \
+        return FKL_IS_HASHTABLE(p) && FKL_VM_HASH(p)->eq_type == FKL_HASH_##T; \
+    }
+
+HASH_P(EQ);
+HASH_P(EQV);
+HASH_P(EQUAL);
+
+#undef HASH_P
 
 #define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME, DATA_TYPE_NAME)                \
     static void NAME(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {   \

@@ -574,7 +574,6 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
             return fir == sec;
             break;
         case FKL_TYPE_VAR_REF:
-        case FKL_VM_VALUE_GC_TYPE_NUM:
             FKL_UNREACHABLE();
             break;
         default:
@@ -681,7 +680,6 @@ nested_equal:
                     return fir == sec;
                     break;
                 case FKL_TYPE_VAR_REF:
-                case FKL_VM_VALUE_GC_TYPE_NUM:
                     FKL_UNREACHABLE();
                     break;
                 default:

@@ -45,7 +45,7 @@ typedef intptr_t ssize_t;
 #define FKL_ALWAYS_INLINE __attribute__((always_inline))
 #define __FKL_UNREACHABLE() __builtin_unreachable()
 
-#elif defined(_MSC_VER_)
+#elif defined(_MSC_VER)
 
 #define FKL_DEPRECATED __declspec(deprecated)
 #define FKL_ALWAYS_INLINE __forceinline

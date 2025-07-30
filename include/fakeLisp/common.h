@@ -82,7 +82,7 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \
         __FKL_UNREACHABLE();                                                   \
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);        \
+        fprintf(stderr, "[%s: %d] unreachable!\n", __REL_FILE__, __LINE__);        \
         abort();                                                               \
     } while (0)
 

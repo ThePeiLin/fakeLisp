@@ -98,6 +98,21 @@ elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" M
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 endif()
 
+# steal from: https://www.rayalto.org/2024/03/21/cmake-relative-file-macro/
+# Add a relative path version of the __FILE__ macro named __REL_FILE__ to all source files of the target.
+include(CheckSymbolExists)
+function(target_define_relative_file target_name)
+    get_target_property(target_srcs "${target_name}" SOURCES)
+    foreach(target_src ${target_srcs})
+        if(IS_ABSOLUTE ${target_src})
+            file(RELATIVE_PATH target_src_relpath ${PROJECT_SOURCE_DIR} ${target_src})
+        else()
+            set(target_src_relpath ${target_src})
+        endif()
+        set_property(SOURCE ${target_src} APPEND PROPERTY COMPILE_DEFINITIONS "__REL_FILE__=\"${target_src_relpath}\"")
+    endforeach()
+endfunction()
+
 add_library(test_lib
 	OBJECT
 	"src/base.c"
@@ -110,27 +125,35 @@ add_library(test_lib
 	"src/regex.c"
 	"src/bigint.c"
 	"${GENERATED_HEADER_DIR}/lisp.g.h")
+target_define_relative_file(test_lib)
 
 add_executable(test-lexer "main/tests/lexer.c")
 target_link_libraries(test-lexer test_lib ${LINK_TARGET})
+target_define_relative_file(test-lexer)
 
 add_executable(test-lexer2 "main/tests/lexer2.c")
 target_link_libraries(test-lexer2 test_lib ${LINK_TARGET})
+target_define_relative_file(test-lexer2)
 
 add_executable(test-regex "main/tests/regex.c")
 target_link_libraries(test-regex test_lib ${LINK_TARGET})
+target_define_relative_file(test-regex)
 
 add_executable(test-grammer "main/tests/grammer.c")
 target_link_libraries(test-grammer test_lib ${LINK_TARGET})
+target_define_relative_file(test-grammer)
 
-add_executable(test-parser "main/tests/parser.c" "src/parser.c" ${PARSE})
-target_link_libraries(test-parser test_lib ${LINK_TARGET})
+add_executable(test-parser "main/tests/parser.c" "src/parser.c")
+target_link_libraries(test-parser test_lib ${PARSE} ${LINK_TARGET})
+target_define_relative_file(test-parser)
 
 add_executable(test-bigint "main/tests/bi.c")
 target_link_libraries(test-bigint test_lib ${LINK_TARGET})
+target_define_relative_file(test-bigint)
 
 add_executable(test-ins "main/tests/ins.c")
 target_link_libraries(test-ins ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_define_relative_file(test-ins)
 
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
@@ -139,23 +162,29 @@ file(GLOB GRAMMER_GEN_SOURCE
 
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
 target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
+target_define_relative_file(${GRAMMER_GEN})
 
 add_executable(test-lexer3 "main/tests/lexer3.c")
 target_link_libraries(test-lexer3 test_lib ${LINK_TARGET})
 target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/action.c")
+target_define_relative_file(test-lexer3)
 
 add_executable(test-lexer4 "main/tests/lexer4.c")
 target_link_libraries(test-lexer4 ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_define_relative_file(test-lexer4)
 
 add_executable(test-lexer5 "main/tests/lexer5.c")
 target_link_libraries(test-lexer5 test_lib ${LINK_TARGET})
 target_compile_definitions(test-lexer5 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/action.c")
+target_define_relative_file(test-lexer5)
 
 add_executable(test-parser-grammer "main/tests/parser-grammer.c" "${GENERATED_HEADER_DIR}/lisp.g.h")
 target_link_libraries(test-parser-grammer ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_define_relative_file(test-parser-grammer)
  
 add_executable(test-dns "main/tests/dns.c")
 add_executable(test-fs-event "main/tests/fs_event.c")
+target_define_relative_file(test-fs-event)
 
 if(MSVC)
 	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
@@ -180,11 +209,14 @@ add_library(${PARSE}
 	OBJECT
 	"parse.c")
 set_target_properties(${PARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_define_relative_file(${PARSE})
+
 #vmparser.o
 add_library(${VMPARSE}
 	OBJECT
 	"vmparse.c")
 set_target_properties(${VMPARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_define_relative_file(${VMPARSE})
 
 if(ASAN)
 	set_target_properties(${PARSE} PROPERTIES
@@ -202,11 +234,13 @@ add_library(${LIBFKL_STATIC_TARGET_NAME}
 	${LIBFKL_SOURCE})
 set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
+target_define_relative_file(${LIBFKL_STATIC_TARGET_NAME})
 
 #libfkl.so
 add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})
+target_define_relative_file(${LIBFKL_TARGET_NAME})
 
 if(MSVC)
 	set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -214,8 +248,13 @@ endif()
 
 #fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})
+target_define_relative_file(${INTERPRETER_TARGET_NAME})
+
 add_executable(${COMPILER_TARGET_NAME} ${COMPILER_SOURCE})
+target_define_relative_file(${COMPILER_TARGET_NAME})
+
 add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
+target_define_relative_file(${BYTECODE_PRINTER_TARGET_NAME})
 
 # bin2h
 file(GLOB BIN2H_SOURCE
@@ -223,6 +262,7 @@ file(GLOB BIN2H_SOURCE
 
 add_executable(${BIN2H} ${BIN2H_SOURCE})
 target_link_libraries(${BIN2H} argtable3 ${LINK_TARGET})
+target_define_relative_file(${BIN2H})
 
 function(add_fkl_native_module name)
     set(options)
@@ -249,6 +289,7 @@ function(add_fkl_native_module name)
     list(POP_BACK CMAKE_MESSAGE_INDENT)
     add_library(${name} SHARED ${MOD_SRC})
     set_target_properties(${name} PROPERTIES PREFIX "")
+	target_define_relative_file(${name})
     if(MSVC)
         add_custom_command(TARGET ${name} POST_BUILD
         	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"

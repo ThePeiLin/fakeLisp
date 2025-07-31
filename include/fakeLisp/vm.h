@@ -329,9 +329,12 @@ void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
 void fklDoAtomicFrame(FklVMframe *f, struct FklVMgc *);
 void fklDoCopyObjFrameContext(FklVMframe *, FklVMframe *, struct FklVM *exe);
 
-static inline void *fklGetFrameData(FklVMframe *f) { return f->data; }
+FKL_ALWAYS_INLINE static inline void *fklGetFrameData(FklVMframe *f) {
+    return f->data;
+}
 
-static inline int fklDoCallableObjFrameStep(FklVMframe *f, struct FklVM *exe) {
+FKL_ALWAYS_INLINE static inline int fklDoCallableObjFrameStep(FklVMframe *f,
+        struct FklVM *exe) {
     return f->t->step(fklGetFrameData(f), exe);
 }
 
@@ -1214,22 +1217,24 @@ FklVMvalue *fklCreateNilValue(void);
 
 #define FKL_VM_PUSH_VALUE(S, V) fklPushVMvalue((S), (V))
 
-static inline unsigned int fklGetCompoundFrameMark(const FklVMframe *f) {
+FKL_ALWAYS_INLINE static inline unsigned int fklGetCompoundFrameMark(
+        const FklVMframe *f) {
     return f->c.mark;
 }
 
-static inline unsigned int fklSetCompoundFrameMark(FklVMframe *f,
-        unsigned int m) {
+FKL_ALWAYS_INLINE static inline unsigned int
+fklSetCompoundFrameMark(FklVMframe *f, unsigned int m) {
     f->c.mark = m;
     return m;
 }
 
-static inline FklVMCompoundFrameVarRef *fklGetCompoundFrameLocRef(
-        FklVMframe *f) {
+FKL_ALWAYS_INLINE static inline FklVMCompoundFrameVarRef *
+fklGetCompoundFrameLocRef(FklVMframe *f) {
     return &f->c.lr;
 }
 
-static inline FklVMvalue *fklGetCompoundFrameProc(const FklVMframe *f) {
+FKL_ALWAYS_INLINE static inline FklVMvalue *fklGetCompoundFrameProc(
+        const FklVMframe *f) {
     return f->c.proc;
 }
 
@@ -1254,14 +1259,19 @@ static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     s->base[s->tp++] = v;
 }
 
+FKL_ALWAYS_INLINE
 static inline FklVMvalue *fklGetTopValue(FklVM *exe) {
     return exe->base[exe->tp - 1];
 }
-static inline FklVMvalue *fklPopTopValue(FklVM *s) { return s->base[--s->tp]; }
-static inline FklVMvalue *fklGetValue(FklVM *exe, uint32_t i) {
+FKL_ALWAYS_INLINE static inline FklVMvalue *fklPopTopValue(FklVM *s) {
+    return s->base[--s->tp];
+}
+FKL_ALWAYS_INLINE static inline FklVMvalue *fklGetValue(FklVM *exe,
+        uint32_t i) {
     return exe->base[exe->tp - i];
 }
-static inline FklVMvalue **fklGetStackSlot(FklVM *exe, uint32_t i) {
+FKL_ALWAYS_INLINE static inline FklVMvalue **fklGetStackSlot(FklVM *exe,
+        uint32_t i) {
     return &exe->base[exe->tp - i];
 }
 
@@ -1373,11 +1383,12 @@ fklGetCompoundFrameProcPrototype(const FklVMframe *f, FklVM *exe) {
     return &exe->pts->pa[pId];
 }
 
-static inline FklInstruction *fklGetCompoundFrameCode(const FklVMframe *f) {
+FKL_ALWAYS_INLINE static inline FklInstruction *fklGetCompoundFrameCode(
+        const FklVMframe *f) {
     return f->c.pc;
 }
 
-static inline FklOpcode fklGetCompoundFrameOp(FklVMframe *f) {
+FKL_ALWAYS_INLINE static inline FklOpcode fklGetCompoundFrameOp(FklVMframe *f) {
     return (f->c.pc++)->op;
 }
 
@@ -1610,11 +1621,11 @@ static inline FklSid_t fklGetCompoundFrameSid(const FklVMframe *f) {
     return f->c.sid;
 }
 
-static inline int fklIsVMint(const FklVMvalue *p) {
+FKL_ALWAYS_INLINE static inline int fklIsVMint(const FklVMvalue *p) {
     return FKL_IS_FIX(p) || FKL_IS_BIGINT(p);
 }
 
-static inline int fklIsVMnumber(const FklVMvalue *p) {
+FKL_ALWAYS_INLINE static inline int fklIsVMnumber(const FklVMvalue *p) {
     return FKL_IS_FIX(p) || FKL_IS_BIGINT(p) || FKL_IS_F64(p);
 }
 

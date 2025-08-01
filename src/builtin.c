@@ -1633,7 +1633,7 @@ static int builtin_fopen(FKL_CPROC_ARGL) {
     if (!fp)
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_FILEFAILURE,
                 exe,
-                "Failed for file: %s",
+                "Failed for file %S",
                 filename);
     obj = fklCreateVMvalueFp(exe, fp, fklGetVMfpRwFromCstr(modeStr));
     FKL_CPROC_RETURN(exe, ctx, obj);

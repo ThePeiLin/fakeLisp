@@ -53,6 +53,7 @@ typedef intptr_t ssize_t;
 
 #else
 
+#define __FKL_UNREACHABLE()
 #define FKL_DEPRECATED
 #define FKL_ALWAYS_INLINE
 
@@ -82,7 +83,7 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \
         __FKL_UNREACHABLE();                                                   \
-        fprintf(stderr, "[%s: %d] unreachable!\n", __REL_FILE__, __LINE__);        \
+        fprintf(stderr, "[%s: %d] unreachable!\n", __REL_FILE__, __LINE__);    \
         abort();                                                               \
     } while (0)
 

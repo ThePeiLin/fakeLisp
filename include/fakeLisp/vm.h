@@ -866,8 +866,10 @@ FklBuiltinErrorType fklVMformat3(FklVM *exe,
         FklVMvalue **cur_val,
         FklVMvalue **const val_end);
 
-FklString *
-fklVMformatToString(FklVM *exe, const char *fmt, FklVMvalue **base, size_t len);
+FklString *fklVMformatToString(FklVM *exe,
+        const char *fmt,
+        FklVMvalue *base[],
+        size_t len);
 
 FklVMvalue *fklProcessVMnumAddk(FklVM *, FklVMvalue *, int8_t);
 
@@ -1413,27 +1415,45 @@ void fklUninitVMlib(FklVMlib *);
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
         FklSymbolTable *table);
 
-#define FKL_RAISE_BUILTIN_ERROR(ERRORTYPE, EXE)                                \
-    do {                                                                       \
-        FklString *errorMessage = fklGenErrorMessage((ERRORTYPE));             \
-        FklVMvalue *err = fklCreateVMvalueError((EXE),                         \
-                (EXE)->gc->builtinErrorTypeId[(ERRORTYPE)],                    \
-                errorMessage);                                                 \
-        fklRaiseVMerror(err, (EXE));                                           \
-    } while (0)
+noreturn FKL_ALWAYS_INLINE static inline void
+FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
+    FklString *errorMessage = fklGenErrorMessage(error_type);
+    FklVMvalue *err = fklCreateVMvalueError(exe,
+            exe->gc->builtinErrorTypeId[error_type],
+            errorMessage);
+    fklRaiseVMerror(err, exe);
+}
+
+noreturn FKL_ALWAYS_INLINE static inline void fklRaiseBuiltinErrorFmtArr(
+        FklBuiltinErrorType error_type,
+        FklVM *exe,
+        const char *fmt,
+        FklVMvalue *values[],
+        size_t value_count) {
+    FklString *errorMessage =
+            fklVMformatToString(exe, fmt, values, value_count);
+    FklVMvalue *err = fklCreateVMvalueError(exe,
+            exe->gc->builtinErrorTypeId[error_type],
+            errorMessage);
+    fklRaiseVMerror(err, exe);
+}
+
+noreturn FKL_ALWAYS_INLINE static inline void fklRaiseBuiltinErrorFmtV(
+        FklBuiltinErrorType error_type,
+        FklVM *exe,
+        const char *fmt,
+        FklVMvalue *values[]) {
+    size_t count = 0;
+    for (; values[count]; ++count)
+        ;
+    fklRaiseBuiltinErrorFmtArr(error_type, exe, fmt, values, count);
+}
 
 #define FKL_RAISE_BUILTIN_ERROR_FMT(ERRORTYPE, EXE, FMT, ...)                  \
-    {                                                                          \
-        FklVMvalue *values[] = { NULL, __VA_ARGS__ };                          \
-        FklString *errorMessage = fklVMformatToString((EXE),                   \
-                (FMT),                                                         \
-                &values[1],                                                    \
-                (sizeof(values) / sizeof(FklVMvalue *)) - 1);                  \
-        FklVMvalue *err = fklCreateVMvalueError((EXE),                         \
-                (EXE)->gc->builtinErrorTypeId[(ERRORTYPE)],                    \
-                errorMessage);                                                 \
-        fklRaiseVMerror(err, (EXE));                                           \
-    }
+    fklRaiseBuiltinErrorFmtV((ERRORTYPE),                                      \
+            (EXE),                                                             \
+            (FMT),                                                             \
+            &((FklVMvalue *[]){ NULL, ##__VA_ARGS__, NULL })[1]);
 
 #define FKL_UNUSEDBITNUM (3)
 #define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
@@ -1448,7 +1468,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
     ((FklVMptr)((((uintptr_t)(C)) << FKL_UNUSEDBITNUM) | FKL_TAG_CHR))
 #define FKL_MAKE_VM_SYM(S)                                                     \
     ((FklVMptr)((((uintptr_t)(S)) << FKL_UNUSEDBITNUM) | FKL_TAG_SYM))
-#define FKL_MAKE_VM_PTR(P) ((FklVMptr)(((uintptr_t)(P)) | FKL_TAG_PTR))
+
 #define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P)) & FKL_TAG_MASK))
 #define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P)) & FKL_PTR_MASK))
 #define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P) >> FKL_UNUSEDBITNUM))

@@ -433,7 +433,6 @@ FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
                 *root1 = FKL_REMOVE_CONST(FklVMvalue, root);
                 break;
             }
-            *root1 = FKL_MAKE_VM_PTR(*root1);
         } break;
         default:
             return NULL;

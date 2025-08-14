@@ -223,34 +223,34 @@ static int export_bytevector_to_u8_vector(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
     // bvec
-    {"bvs8ref",         export_bvs8ref                 },
-    {"bvs16ref",        export_bvs16ref                },
-    {"bvs32ref",        export_bvs32ref                },
-    {"bvs64ref",        export_bvs64ref                },
-    {"bvu8ref",         export_bvu8ref                 },
-    {"bvu16ref",        export_bvu16ref                },
-    {"bvu32ref",        export_bvu32ref                },
-    {"bvu64ref",        export_bvu64ref                },
-    {"bvf32ref",        export_bvf32ref                },
-    {"bvf64ref",        export_bvf64ref                },
-    {"bvs8set!",        export_bvs8set1                },
-    {"bvs16set!",       export_bvs16set1               },
-    {"bvs32set!",       export_bvs32set1               },
-    {"bvs64set!",       export_bvs64set1               },
-    {"bvu8set!",        export_bvu8set1                },
-    {"bvu16set!",       export_bvu16set1               },
-    {"bvu32set!",       export_bvu32set1               },
-    {"bvu64set!",       export_bvu64set1               },
-    {"bvf32set!",       export_bvf32set1               },
-    {"bvf64set!",       export_bvf64set1               },
-    {"bvec->s8-list",   export_bytevector_to_s8_list   },
-    {"bvec->u8-list",   export_bytevector_to_u8_list   },
-    {"bvec->s8-vector", export_bytevector_to_s8_vector },
-    {"bvec->u8-vector", export_bytevector_to_u8_vector },
+    {"bvs8ref",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs8ref",         export_bvs8ref                )},
+    {"bvs16ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs16ref",        export_bvs16ref               )},
+    {"bvs32ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs32ref",        export_bvs32ref               )},
+    {"bvs64ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs64ref",        export_bvs64ref               )},
+    {"bvu8ref",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu8ref",         export_bvu8ref                )},
+    {"bvu16ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu16ref",        export_bvu16ref               )},
+    {"bvu32ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu32ref",        export_bvu32ref               )},
+    {"bvu64ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu64ref",        export_bvu64ref               )},
+    {"bvf32ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvf32ref",        export_bvf32ref               )},
+    {"bvf64ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvf64ref",        export_bvf64ref               )},
+    {"bvs8set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs8set!",        export_bvs8set1               )},
+    {"bvs16set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs16set!",       export_bvs16set1              )},
+    {"bvs32set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs32set!",       export_bvs32set1              )},
+    {"bvs64set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvs64set!",       export_bvs64set1              )},
+    {"bvu8set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu8set!",        export_bvu8set1               )},
+    {"bvu16set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu16set!",       export_bvu16set1              )},
+    {"bvu32set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu32set!",       export_bvu32set1              )},
+    {"bvu64set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvu64set!",       export_bvu64set1              )},
+    {"bvf32set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvf32set!",       export_bvf32set1              )},
+    {"bvf64set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvf64set!",       export_bvf64set1              )},
+    {"bvec->s8-list",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvec->s8-list",   export_bytevector_to_s8_list  )},
+    {"bvec->u8-list",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvec->u8-list",   export_bytevector_to_u8_list  )},
+    {"bvec->s8-vector", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvec->s8-vector", export_bytevector_to_s8_vector)},
+    {"bvec->u8-vector", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bvec->u8-vector", export_bytevector_to_u8_vector)},
     // clang-format on
 };
 
@@ -273,13 +273,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

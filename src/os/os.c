@@ -214,19 +214,19 @@ static int os_setenv(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
-    {"system", os_system },
-    {"remove", os_remove },
-    {"rename", os_rename },
-    {"clock",  os_clock  },
-    {"time",   os_time   },
-    {"date",   os_date   },
-    {"chdir",  os_chdir  },
-    {"getcwd", os_getcwd },
-    {"getenv", os_getenv },
-    {"setenv", os_setenv },
+    {"system", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("system", os_system),},
+    {"remove", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remove", os_remove),},
+    {"rename", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("rename", os_rename),},
+    {"clock",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("clock",  os_clock ),},
+    {"time",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("time",   os_time  ),},
+    {"date",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("date",   os_date  ),},
+    {"chdir",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chdir",  os_chdir ),},
+    {"getcwd", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("getcwd", os_getcwd),},
+    {"getenv", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("getenv", os_getenv),},
+    {"setenv", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("setenv", os_setenv),},
     // clang-format on
 };
 
@@ -249,13 +249,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

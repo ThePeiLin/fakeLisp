@@ -747,27 +747,27 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
-    {"hashv",       ht_hashv       },
-    {"eqv-hashv",   ht_eqv_hashv   },
-    {"equal-hashv", ht_equal_hashv },
-    {"make-ht",     ht_make_ht     },
-    {"ht-hashv",    ht_ht_hashv    },
-    {"ht-equal",    ht_ht_equal    },
-    {"ht?",         ht_ht_p        },
-    {"ht-ref",      ht_ht_ref      },
-    {"ht-ref&",     ht_ht_ref7     },
-    {"ht-ref$",     ht_ht_ref4     },
-    {"ht-ref!",     ht_ht_ref1     },
-    {"ht-set!",     ht_ht_set1     },
-    {"ht-set*!",    ht_ht_set8     },
-    {"ht-del!",     ht_ht_del1     },
-    {"ht-clear!",   ht_ht_clear    },
-    {"ht->list",    ht_ht_to_list  },
-    {"ht-keys",     ht_ht_keys     },
-    {"ht-values",   ht_ht_values   },
+    {"hashv",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hashv",       ht_hashv      )},
+    {"eqv-hashv",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eqv-hashv",   ht_eqv_hashv  )},
+    {"equal-hashv", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("equal-hashv", ht_equal_hashv)},
+    {"make-ht",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-ht",     ht_make_ht    )},
+    {"ht-hashv",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-hashv",    ht_ht_hashv   )},
+    {"ht-equal",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-equal",    ht_ht_equal   )},
+    {"ht?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht?",         ht_ht_p       )},
+    {"ht-ref",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-ref",      ht_ht_ref     )},
+    {"ht-ref&",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-ref&",     ht_ht_ref7    )},
+    {"ht-ref$",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-ref$",     ht_ht_ref4    )},
+    {"ht-ref!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-ref!",     ht_ht_ref1    )},
+    {"ht-set!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-set!",     ht_ht_set1    )},
+    {"ht-set*!",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-set*!",    ht_ht_set8    )},
+    {"ht-del!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-del!",     ht_ht_del1    )},
+    {"ht-clear!",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-clear!",   ht_ht_clear   )},
+    {"ht->list",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht->list",    ht_ht_to_list )},
+    {"ht-keys",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-keys",     ht_ht_keys    )},
+    {"ht-values",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ht-values",   ht_ht_values  )},
     // clang-format on
 };
 
@@ -790,13 +790,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

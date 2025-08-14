@@ -759,41 +759,41 @@ static int export_bytevector_to_dvec(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
     // dvec
-    {"dvec?",              export_dvec_p                  },
-    {"dvec",               export_dvec                    },
-    {"make-dvec",          export_make_dvec               },
-    {"make-dvec/capacity", export_make_dvec_with_capacity },
-    {"subdvec",            export_subdvec                 },
-    {"sub-dvec",           export_sub_dvec                },
-    {"dvec-empty?",        export_dvec_empty_p            },
-    {"dvec-capacity",      export_dvec_capacity           },
-    {"dvec-first",         export_dvec_first              },
-    {"dvec-last",          export_dvec_last               },
-    {"dvec-ref",           export_dvec_ref                },
-    {"dvec-set!",          export_dvec_set                },
-    {"dvec-assign!",       export_dvec_assign             },
-    {"dvec-fill!",         export_dvec_fill               },
-    {"dvec-clear!",        export_dvec_clear              },
-    {"dvec-reserve!",      export_dvec_reserve            },
-    {"dvec-shrink!",       export_dvec_shrink             },
-    {"dvec-resize!",       export_dvec_resize             },
-    {"dvec-push!",         export_dvec_push               },
-    {"dvec-pop!",          export_dvec_pop                },
-    {"dvec-pop&!",         export_dvec_pop7               },
-    {"dvec-insert!",       export_dvec_insert             },
-    {"dvec-remove!",       export_dvec_remove             },
-    {"dvec->vector",       export_dvec_to_vector          },
-    {"dvec->list",         export_dvec_to_list            },
-    {"dvec->string",       export_dvec_to_string          },
-    {"dvec->bytes",        export_dvec_to_bytevector      },
-    {"list->dvec",         export_list_to_dvec            },
-    {"vector->dvec",       export_vector_to_dvec          },
-    {"string->dvec",       export_string_to_dvec          },
-    {"bytes->dvec",        export_bytevector_to_dvec      },
+    {"dvec?",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec?",              export_dvec_p                 )},
+    {"dvec",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec",               export_dvec                   )},
+    {"make-dvec",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-dvec",          export_make_dvec              )},
+    {"make-dvec/capacity", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-dvec/capacity", export_make_dvec_with_capacity)},
+    {"subdvec",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subdvec",            export_subdvec                )},
+    {"sub-dvec",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-dvec",           export_sub_dvec               )},
+    {"dvec-empty?",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-empty?",        export_dvec_empty_p           )},
+    {"dvec-capacity",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-capacity",      export_dvec_capacity          )},
+    {"dvec-first",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-first",         export_dvec_first             )},
+    {"dvec-last",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-last",          export_dvec_last              )},
+    {"dvec-ref",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-ref",           export_dvec_ref               )},
+    {"dvec-set!",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-set!",          export_dvec_set               )},
+    {"dvec-assign!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-assign!",       export_dvec_assign            )},
+    {"dvec-fill!",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-fill!",         export_dvec_fill              )},
+    {"dvec-clear!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-clear!",        export_dvec_clear             )},
+    {"dvec-reserve!",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-reserve!",      export_dvec_reserve           )},
+    {"dvec-shrink!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-shrink!",       export_dvec_shrink            )},
+    {"dvec-resize!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-resize!",       export_dvec_resize            )},
+    {"dvec-push!",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-push!",         export_dvec_push              )},
+    {"dvec-pop!",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-pop!",          export_dvec_pop               )},
+    {"dvec-pop&!",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-pop&!",         export_dvec_pop7              )},
+    {"dvec-insert!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-insert!",       export_dvec_insert            )},
+    {"dvec-remove!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec-remove!",       export_dvec_remove            )},
+    {"dvec->vector",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->vector",       export_dvec_to_vector         )},
+    {"dvec->list",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->list",         export_dvec_to_list           )},
+    {"dvec->string",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->string",       export_dvec_to_string         )},
+    {"dvec->bytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->bytes",        export_dvec_to_bytevector     )},
+    {"list->dvec",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->dvec",         export_list_to_dvec           )},
+    {"vector->dvec",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->dvec",       export_vector_to_dvec         )},
+    {"string->dvec",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->dvec",       export_string_to_dvec         )},
+    {"bytes->dvec",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->dvec",        export_bytevector_to_dvec     )},
     // clang-format on
 };
 
@@ -816,13 +816,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

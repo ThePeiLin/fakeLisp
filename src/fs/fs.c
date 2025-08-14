@@ -301,25 +301,25 @@ static int fs_fileno(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
-    {"facce?",   fs_facce_p  },
-    {"freg?",    fs_freg_p   },
-    {"fdir?",    fs_fdir_p   },
-    {"freopen",  fs_freopen  },
-    {"realpath", fs_realpath },
-    {"relpath",  fs_relpath  },
-    {"mkdir",    fs_mkdir    },
-    {"fprint",   fs_fprint   },
-    {"fprintln", fs_fprintln },
-    {"fprin1",   fs_fprin1   },
-    {"fprin1n",  fs_fprin1n  },
-    {"fwrite",   fs_fwrite   },
-    {"fflush",   fs_fflush   },
-    {"fclerr",   fs_fclerr   },
-    {"fprintf",  fs_fprintf  },
-    {"fileno",   fs_fileno   },
+    {"facce?",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("facce?",   fs_facce_p )},
+    {"freg?",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("freg?",    fs_freg_p  )},
+    {"fdir?",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fdir?",    fs_fdir_p  )},
+    {"freopen",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("freopen",  fs_freopen )},
+    {"realpath", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("realpath", fs_realpath)},
+    {"relpath",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("relpath",  fs_relpath )},
+    {"mkdir",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("mkdir",    fs_mkdir   )},
+    {"fprint",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fprint",   fs_fprint  )},
+    {"fprintln", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fprintln", fs_fprintln)},
+    {"fprin1",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fprin1",   fs_fprin1  )},
+    {"fprin1n",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fprin1n",  fs_fprin1n )},
+    {"fwrite",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fwrite",   fs_fwrite  )},
+    {"fflush",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fflush",   fs_fflush  )},
+    {"fclerr",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fclerr",   fs_fclerr  )},
+    {"fprintf",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fprintf",  fs_fprintf )},
+    {"fileno",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fileno",   fs_fileno  )},
     // clang-format on
 };
 
@@ -342,13 +342,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

@@ -4989,242 +4989,243 @@ static FklByteCodelnt *inlfunc_hash_set(INL_FUNC_ARGS) {
 #undef INL_FUNC_ARGS
 
 static const struct SymbolFuncStruct {
+    const char *name;
     const FklVMvalue *v;
     FklBuiltinInlineFunc inlfunc[4];
 } builtInSymbolList[FKL_BUILTIN_SYMBOL_NUM + 1] = {
     // clang-format off
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("stdin",           NULL),                         {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("stdout",          NULL),                         {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("stderr",          NULL),                         {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("car",             builtin_car),                  {NULL,         inlfunc_car,       NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cdr",             builtin_cdr),                  {NULL,         inlfunc_cdr,       NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cons",            builtin_cons),                 {NULL,         NULL,              inlfunc_cons,       NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("append",          builtin_append),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("append!",         builtin_append1),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("copy",            builtin_copy),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atom",            builtin_atom),                 {NULL,         inlfunc_atom,      NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("null",            builtin_null),                 {NULL,         inlfunc_not,       NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("not",             builtin_not),                  {NULL,         inlfunc_not,       NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eq",              builtin_eq),                   {NULL,         NULL,              inlfunc_eq,         NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eqv",             builtin_eqv),                  {NULL,         NULL,              inlfunc_eqv,        NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("equal",           builtin_equal),                {NULL,         NULL,              inlfunc_equal,      NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("=",               builtin_eqn),                  {NULL,         inlfunc_true,      inlfunc_eqn2,       inlfunc_eqn3       } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("+",               builtin_add),                  {inlfunc_add0, inlfunc_add1,      inlfunc_add2,       inlfunc_add3       } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("1+",              builtin_add_1),                {NULL,         inlfunc_add_1,     NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("-",               builtin_sub),                  {NULL,         inlfunc_sub1,      inlfunc_sub2,       inlfunc_sub3       } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("-1+",             builtin_sub_1),                {NULL,         inlfunc_sub_1,     NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("*",               builtin_mul),                  {inlfunc_mul0, inlfunc_mul1,      inlfunc_mul2,       inlfunc_mul3       } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("/",               builtin_div),                  {NULL,         inlfunc_div1,      inlfunc_div2,       inlfunc_div3       } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("//",              builtin_idiv),                 {NULL,         NULL,              inlfunc_idiv2,      inlfunc_idiv3      } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("%",               builtin_mod),                  {NULL,         NULL,              inlfunc_mod,        NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT(">",               builtin_gt),                   {NULL,         inlfunc_true,      inlfunc_gt2,        inlfunc_gt3        } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT(">=",              builtin_ge),                   {NULL,         inlfunc_true,      inlfunc_ge2,        inlfunc_ge3        } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("<",               builtin_lt),                   {NULL,         inlfunc_true,      inlfunc_lt2,        inlfunc_lt3        } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("<=",              builtin_le),                   {NULL,         inlfunc_true,      inlfunc_le2,        inlfunc_le3        } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nth",             builtin_nth),                  {NULL,         NULL,              inlfunc_nth,        NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("length",          builtin_length),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("apply",           builtin_apply),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("read",            builtin_read),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("parse",           builtin_parse),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-parser",     builtin_make_parser),          {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("parser?",         builtin_parser_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("stringify",       builtin_stringify),            {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("prin1",           builtin_prin1),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("princ",           builtin_princ),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("println",         builtin_println),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("print",           builtin_print),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("printf",          builtin_printf),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("format",          builtin_format),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("prin1n",          builtin_prin1n),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("prin1v",          builtin_prin1v),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("newline",         builtin_newline),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dlopen",          builtin_dlopen),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dlsym",           builtin_dlsym),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("argv",            builtin_argv),                 {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atexit",          builtin_atexit),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("idle",            builtin_idle),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("go",              builtin_go),                   {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pcall",           builtin_pcall),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("xpcall",          builtin_xpcall),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl",           builtin_chanl),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-msg-num",   builtin_chanl_msg_num),        {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-recv-num",  builtin_chanl_recv_num),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-send-num",  builtin_chanl_send_num),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-full?",     builtin_chanl_full_p),         {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-empty?",    builtin_chanl_empty_p),        {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-msg->list", builtin_chanl_msg_to_list),    {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("send",            builtin_send),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("recv",            builtin_recv),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("recv&",           builtin_recv7),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error",           builtin_error),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error-type",      builtin_error_type),           {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error-msg",       builtin_error_msg),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("raise",           builtin_raise),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("throw",           builtin_throw),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("reverse",         builtin_reverse),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("reverse!",        builtin_reverse1),             {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nthcdr",          builtin_nthcdr),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("tail",            builtin_tail),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("char?",           builtin_char_p),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer?",        builtin_integer_p),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fixint?",         builtin_fixint_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bigint?",         builtin_bigint_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("float?",          builtin_f64_p),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pair?",           builtin_pair_p),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("symbol?",         builtin_symbol_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->symbol",  builtin_string_to_symbol),     {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string?",         builtin_string_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string",          builtin_string),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("substring",       builtin_substring),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-string",      builtin_sub_string),           {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-string",     builtin_make_string),          {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("symbol->string",  builtin_symbol_to_string),     {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number->string",  builtin_number_to_string),     {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer->string", builtin_integer_to_string),    {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("float->string",   builtin_f64_to_string),        {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->string",  builtin_vector_to_string),     {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->string",   builtin_bytevector_to_string), {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->string",    builtin_list_to_string),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-ref",      builtin_str_ref),              {NULL,         NULL,              inlfunc_str_ref,    NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-set!",     builtin_str_set1),             {NULL,         NULL,              NULL,               inlfunc_str_set    } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-fill!",    builtin_string_fill),          {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error?",          builtin_error_p),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("procedure?",      builtin_procedure_p),          {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("proc?",           builtin_proc_p),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cproc?",          builtin_cproc_p),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("callable?",       builtin_callable_p),           {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector?",         builtin_vector_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector",          builtin_vector),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-vector",     builtin_make_vector),          {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subvector",       builtin_subvector),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-vector",      builtin_sub_vector),           {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->vector",    builtin_list_to_vector),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->vector",  builtin_string_to_vector),     {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-ref",      builtin_vec_ref),              {NULL,         NULL,              inlfunc_vec_ref,    NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-set!",     builtin_vec_set),              {NULL,         NULL,              NULL,               inlfunc_vec_set    } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-cas!",     builtin_vec_cas),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-fill!",    builtin_vector_fill),          {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list?",           builtin_list_p),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list",            builtin_list),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list*",           builtin_list8),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-list",       builtin_make_list),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->list",    builtin_vector_to_list),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->list",    builtin_string_to_list),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nth-set!",        builtin_nth_set),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nthcdr-set!",     builtin_nthcdr_set),           {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes?",          builtin_bytevector_p),         {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes",           builtin_bytevector),           {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subbytes",        builtin_subbytevector),        {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-bytes",       builtin_sub_bytevector),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-bytes",      builtin_make_bytevector),      {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->bytes",   builtin_string_to_bytevector), {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->bytes",   builtin_vector_to_bytevector), {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->bytes",     builtin_list_to_bytevector),   {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->list",     builtin_bytevector_to_list),   {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->vector",   builtin_bytevector_to_vector), {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-ref",       builtin_bvec_ref),             {NULL,         NULL,              inlfunc_bvec_ref,   NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-set!",      builtin_bvec_set1),            {NULL,         NULL,              NULL,               inlfunc_bvec_set   } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-fill!",     builtin_bytevector_fill),      {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl?",          builtin_chanl_p),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dll?",            builtin_dll_p),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("file?",           builtin_fp_p),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgets",           builtin_fgets),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgetb",           builtin_fgetb),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgetd",           builtin_fgetd),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgetc",           builtin_fgetc),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgeti",           builtin_fgeti),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fopen",           builtin_fopen),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fclose",          builtin_fclose),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("feof?",           builtin_feof_p),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eof?",            builtin_eof_p),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ftell",           builtin_ftell),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fseek",           builtin_fseek),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("car-set!",        builtin_car_set),              {NULL,         NULL,              inlfunc_car_set,    NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cdr-set!",        builtin_cdr_set),              {NULL,         NULL,              inlfunc_cdr_set,    NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box",             builtin_box),                  {inlfunc_box0, inlfunc_box,       NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("unbox",           builtin_unbox),                {NULL,         inlfunc_unbox,     NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box-set!",        builtin_box_set),              {NULL,         NULL,              inlfunc_box_set,    NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box-cas!",        builtin_box_cas),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box?",            builtin_box_p),                {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number?",         builtin_number_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->number",  builtin_string_to_number),     {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("char->integer",   builtin_char_to_integer),      {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("symbol->integer", builtin_symbol_to_integer),    {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer->char",   builtin_integer_to_char),      {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number->float",   builtin_number_to_f64),        {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number->integer", builtin_number_to_integer),    {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("map",             builtin_map),                  {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("foreach",         builtin_foreach),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("andmap",          builtin_andmap),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ormap",           builtin_ormap),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("memq",            builtin_memq),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("member",          builtin_member),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("memp",            builtin_memp),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("filter",          builtin_filter),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remq!",           builtin_remq1),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remv!",           builtin_remv1),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remove!",         builtin_remove1),              {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sleep",           builtin_sleep),                {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("msleep",          builtin_msleep),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash",            builtin_hash),                 {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-hash",       builtin_make_hash),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hasheqv",         builtin_hasheqv),              {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-hasheqv",    builtin_make_hasheqv),         {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hashequal",       builtin_hashequal),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-hashequal",  builtin_make_hashequal),       {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash?",           builtin_hash_p),               {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hasheq?",         builtin_hasheq_p),             {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hasheqv?",        builtin_hasheqv_p),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hashequal?",      builtin_hashequal_p),          {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref",        builtin_hash_ref),             {NULL,         NULL,              inlfunc_hash_ref_2, inlfunc_hash_ref_3 } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref&",       builtin_hash_ref7),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref$",       builtin_hash_ref4),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref!",       builtin_hash_ref1),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-set!",       builtin_hash_set),             {NULL,         NULL,              NULL,               inlfunc_hash_set   } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-set*!",      builtin_hash_set8),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-del!",       builtin_hash_del1),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-clear!",     builtin_hash_clear),           {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash->list",      builtin_hash_to_list),         {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-keys",       builtin_hash_keys),            {NULL,         NULL,              NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-values",     builtin_hash_values),          {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pmatch",          builtin_pmatch),               {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("exit",            builtin_exit),                 {NULL,         NULL,              NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("return",          builtin_return),               {inlfunc_ret0, inlfunc_ret1,      NULL,               NULL               } },
-
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-first",    builtin_vec_first),            {NULL,         inlfunc_vec_first, NULL,               NULL               } },
-    {(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-last",     builtin_vec_last),             {NULL,         inlfunc_vec_last,  NULL,               NULL               } },
-    {NULL,                                                                       {NULL,         NULL,              NULL,               NULL               } },
+    {"stdin",           (const FklVMvalue*)&StdinUserDataValue,                         {NULL,                         NULL,          NULL,              NULL               } },
+    {"stdout",          (const FklVMvalue*)&StdoutUserDataValue,                        {NULL,                         NULL,          NULL,              NULL               } },
+    {"stderr",          (const FklVMvalue*)&StderrUserDataValue,                        {NULL,                         NULL,          NULL,              NULL               } },
+                        
+    {"car",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("car",             builtin_car),                  {NULL,         inlfunc_car,       NULL,                   NULL               } },
+    {"cdr",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cdr",             builtin_cdr),                  {NULL,         inlfunc_cdr,       NULL,                   NULL               } },
+    {"cons",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cons",            builtin_cons),                 {NULL,         NULL,              inlfunc_cons,           NULL               } },
+    {"append",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("append",          builtin_append),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"append!",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("append!",         builtin_append1),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"copy",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("copy",            builtin_copy),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"atom",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atom",            builtin_atom),                 {NULL,         inlfunc_atom,      NULL,                   NULL               } },
+    {"null",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("null",            builtin_null),                 {NULL,         inlfunc_not,       NULL,                   NULL               } },
+    {"not",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("not",             builtin_not),                  {NULL,         inlfunc_not,       NULL,                   NULL               } },
+    {"eq",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eq",              builtin_eq),                   {NULL,         NULL,              inlfunc_eq,             NULL               } },
+    {"eqv",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eqv",             builtin_eqv),                  {NULL,         NULL,              inlfunc_eqv,            NULL               } },
+    {"equal",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("equal",           builtin_equal),                {NULL,         NULL,              inlfunc_equal,          NULL               } },
+    {"=",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("=",               builtin_eqn),                  {NULL,         inlfunc_true,      inlfunc_eqn2,           inlfunc_eqn3       } },
+    {"+",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("+",               builtin_add),                  {inlfunc_add0, inlfunc_add1,      inlfunc_add2,           inlfunc_add3       } },
+    {"1+",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("1+",              builtin_add_1),                {NULL,         inlfunc_add_1,     NULL,                   NULL               } },
+    {"-",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("-",               builtin_sub),                  {NULL,         inlfunc_sub1,      inlfunc_sub2,           inlfunc_sub3       } },
+    {"-1+",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("-1+",             builtin_sub_1),                {NULL,         inlfunc_sub_1,     NULL,                   NULL               } },
+    {"*",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("*",               builtin_mul),                  {inlfunc_mul0, inlfunc_mul1,      inlfunc_mul2,           inlfunc_mul3       } },
+    {"/",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("/",               builtin_div),                  {NULL,         inlfunc_div1,      inlfunc_div2,           inlfunc_div3       } },
+    {"//",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("//",              builtin_idiv),                 {NULL,         NULL,              inlfunc_idiv2,          inlfunc_idiv3      } },
+    {"%",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("%",               builtin_mod),                  {NULL,         NULL,              inlfunc_mod,            NULL               } },
+    {">",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT(">",               builtin_gt),                   {NULL,         inlfunc_true,      inlfunc_gt2,            inlfunc_gt3        } },
+    {">=",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT(">=",              builtin_ge),                   {NULL,         inlfunc_true,      inlfunc_ge2,            inlfunc_ge3        } },
+    {"<",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("<",               builtin_lt),                   {NULL,         inlfunc_true,      inlfunc_lt2,            inlfunc_lt3        } },
+    {"<=",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("<=",              builtin_le),                   {NULL,         inlfunc_true,      inlfunc_le2,            inlfunc_le3        } },
+    {"nth",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nth",             builtin_nth),                  {NULL,         NULL,              inlfunc_nth,            NULL               } },
+    {"length",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("length",          builtin_length),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"apply",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("apply",           builtin_apply),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"read",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("read",            builtin_read),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"parse",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("parse",           builtin_parse),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-parser",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-parser",     builtin_make_parser),          {NULL,         NULL,              NULL,                   NULL               } },
+    {"parser?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("parser?",         builtin_parser_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"stringify",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("stringify",       builtin_stringify),            {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"prin1",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("prin1",           builtin_prin1),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"princ",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("princ",           builtin_princ),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"println",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("println",         builtin_println),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"print",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("print",           builtin_print),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"printf",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("printf",          builtin_printf),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"format",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("format",          builtin_format),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"prin1n",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("prin1n",          builtin_prin1n),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"prin1v",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("prin1v",          builtin_prin1v),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"newline",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("newline",         builtin_newline),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"dlopen",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dlopen",          builtin_dlopen),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"dlsym",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dlsym",           builtin_dlsym),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"argv",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("argv",            builtin_argv),                 {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"atexit",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atexit",          builtin_atexit),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"idle",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("idle",            builtin_idle),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"go",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("go",              builtin_go),                   {NULL,         NULL,              NULL,                   NULL               } },
+    {"pcall",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pcall",           builtin_pcall),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"xpcall",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("xpcall",          builtin_xpcall),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"chanl",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl",           builtin_chanl),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"chanl-msg-num",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-msg-num",   builtin_chanl_msg_num),        {NULL,         NULL,              NULL,                   NULL               } },
+    {"chanl-recv-num",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-recv-num",  builtin_chanl_recv_num),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"chanl-send-num",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-send-num",  builtin_chanl_send_num),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"chanl-full?",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-full?",     builtin_chanl_full_p),         {NULL,         NULL,              NULL,                   NULL               } },
+    {"chanl-empty?",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-empty?",    builtin_chanl_empty_p),        {NULL,         NULL,              NULL,                   NULL               } },
+    {"chanl-msg->list", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl-msg->list", builtin_chanl_msg_to_list),    {NULL,         NULL,              NULL,                   NULL               } },
+    {"send",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("send",            builtin_send),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"recv",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("recv",            builtin_recv),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"recv&",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("recv&",           builtin_recv7),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"error",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error",           builtin_error),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"error-type",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error-type",      builtin_error_type),           {NULL,         NULL,              NULL,                   NULL               } },
+    {"error-msg",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error-msg",       builtin_error_msg),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"raise",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("raise",           builtin_raise),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"throw",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("throw",           builtin_throw),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"reverse",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("reverse",         builtin_reverse),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"reverse!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("reverse!",        builtin_reverse1),             {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"nthcdr",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nthcdr",          builtin_nthcdr),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"tail",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("tail",            builtin_tail),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"char?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("char?",           builtin_char_p),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"integer?",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer?",        builtin_integer_p),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"fixint?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fixint?",         builtin_fixint_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"bigint?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bigint?",         builtin_bigint_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"float?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("float?",          builtin_f64_p),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"pair?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pair?",           builtin_pair_p),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"symbol?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("symbol?",         builtin_symbol_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"string->symbol",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->symbol",  builtin_string_to_symbol),     {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"string?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string?",         builtin_string_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"string",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string",          builtin_string),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"substring",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("substring",       builtin_substring),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"sub-string",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-string",      builtin_sub_string),           {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-string",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-string",     builtin_make_string),          {NULL,         NULL,              NULL,                   NULL               } },
+    {"symbol->string",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("symbol->string",  builtin_symbol_to_string),     {NULL,         NULL,              NULL,                   NULL               } },
+    {"number->string",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number->string",  builtin_number_to_string),     {NULL,         NULL,              NULL,                   NULL               } },
+    {"integer->string", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer->string", builtin_integer_to_string),    {NULL,         NULL,              NULL,                   NULL               } },
+    {"float->string",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("float->string",   builtin_f64_to_string),        {NULL,         NULL,              NULL,                   NULL               } },
+    {"vector->string",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->string",  builtin_vector_to_string),     {NULL,         NULL,              NULL,                   NULL               } },
+    {"bytes->string",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->string",   builtin_bytevector_to_string), {NULL,         NULL,              NULL,                   NULL               } },
+    {"list->string",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->string",    builtin_list_to_string),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"string-ref",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-ref",      builtin_str_ref),              {NULL,         NULL,              inlfunc_str_ref,        NULL               } },
+    {"string-set!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-set!",     builtin_str_set1),             {NULL,         NULL,              NULL,                   inlfunc_str_set    } },
+    {"string-fill!",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-fill!",    builtin_string_fill),          {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"error?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("error?",          builtin_error_p),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"procedure?",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("procedure?",      builtin_procedure_p),          {NULL,         NULL,              NULL,                   NULL               } },
+    {"proc?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("proc?",           builtin_proc_p),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"cproc?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cproc?",          builtin_cproc_p),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"callable?",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("callable?",       builtin_callable_p),           {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"vector?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector?",         builtin_vector_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"vector",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector",          builtin_vector),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-vector",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-vector",     builtin_make_vector),          {NULL,         NULL,              NULL,                   NULL               } },
+    {"subvector",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subvector",       builtin_subvector),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"sub-vector",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-vector",      builtin_sub_vector),           {NULL,         NULL,              NULL,                   NULL               } },
+    {"list->vector",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->vector",    builtin_list_to_vector),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"string->vector",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->vector",  builtin_string_to_vector),     {NULL,         NULL,              NULL,                   NULL               } },
+    {"vector-ref",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-ref",      builtin_vec_ref),              {NULL,         NULL,              inlfunc_vec_ref,        NULL               } },
+    {"vector-set!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-set!",     builtin_vec_set),              {NULL,         NULL,              NULL,                   inlfunc_vec_set    } },
+    {"vector-cas!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-cas!",     builtin_vec_cas),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"vector-fill!",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-fill!",    builtin_vector_fill),          {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"list?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list?",           builtin_list_p),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"list",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list",            builtin_list),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"list*",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list*",           builtin_list8),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-list",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-list",       builtin_make_list),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"vector->list",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->list",    builtin_vector_to_list),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"string->list",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->list",    builtin_string_to_list),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"nth-set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nth-set!",        builtin_nth_set),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"nthcdr-set!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nthcdr-set!",     builtin_nthcdr_set),           {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"bytes?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes?",          builtin_bytevector_p),         {NULL,         NULL,              NULL,                   NULL               } },
+    {"bytes",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes",           builtin_bytevector),           {NULL,         NULL,              NULL,                   NULL               } },
+    {"subbytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subbytes",        builtin_subbytevector),        {NULL,         NULL,              NULL,                   NULL               } },
+    {"sub-bytes",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-bytes",       builtin_sub_bytevector),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-bytes",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-bytes",      builtin_make_bytevector),      {NULL,         NULL,              NULL,                   NULL               } },
+    {"string->bytes",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->bytes",   builtin_string_to_bytevector), {NULL,         NULL,              NULL,                   NULL               } },
+    {"vector->bytes",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->bytes",   builtin_vector_to_bytevector), {NULL,         NULL,              NULL,                   NULL               } },
+    {"list->bytes",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->bytes",     builtin_list_to_bytevector),   {NULL,         NULL,              NULL,                   NULL               } },
+    {"bytes->list",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->list",     builtin_bytevector_to_list),   {NULL,         NULL,              NULL,                   NULL               } },
+    {"bytes->vector",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->vector",   builtin_bytevector_to_vector), {NULL,         NULL,              NULL,                   NULL               } },
+    {"bytes-ref",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-ref",       builtin_bvec_ref),             {NULL,         NULL,              inlfunc_bvec_ref,       NULL               } },
+    {"bytes-set!",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-set!",      builtin_bvec_set1),            {NULL,         NULL,              NULL,                   inlfunc_bvec_set   } },
+                        
+    {"bytes-fill!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-fill!",     builtin_bytevector_fill),      {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"chanl?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl?",          builtin_chanl_p),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"dll?",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dll?",            builtin_dll_p),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"file?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("file?",           builtin_fp_p),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"fgets",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgets",           builtin_fgets),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"fgetb",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgetb",           builtin_fgetb),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"fgetd",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgetd",           builtin_fgetd),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"fgetc",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgetc",           builtin_fgetc),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"fgeti",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fgeti",           builtin_fgeti),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"fopen",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fopen",           builtin_fopen),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"fclose",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fclose",          builtin_fclose),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"feof?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("feof?",           builtin_feof_p),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"eof?",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("eof?",            builtin_eof_p),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"ftell",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ftell",           builtin_ftell),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"fseek",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("fseek",           builtin_fseek),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"car-set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("car-set!",        builtin_car_set),              {NULL,         NULL,              inlfunc_car_set,        NULL               } },
+    {"cdr-set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cdr-set!",        builtin_cdr_set),              {NULL,         NULL,              inlfunc_cdr_set,        NULL               } },
+    {"box",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box",             builtin_box),                  {inlfunc_box0, inlfunc_box,       NULL,                   NULL               } },
+    {"unbox",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("unbox",           builtin_unbox),                {NULL,         inlfunc_unbox,     NULL,                   NULL               } },
+    {"box-set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box-set!",        builtin_box_set),              {NULL,         NULL,              inlfunc_box_set,        NULL               } },
+    {"box-cas!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box-cas!",        builtin_box_cas),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"box?",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("box?",            builtin_box_p),                {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"number?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number?",         builtin_number_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"string->number",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->number",  builtin_string_to_number),     {NULL,         NULL,              NULL,                   NULL               } },
+    {"char->integer",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("char->integer",   builtin_char_to_integer),      {NULL,         NULL,              NULL,                   NULL               } },
+    {"symbol->integer", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("symbol->integer", builtin_symbol_to_integer),    {NULL,         NULL,              NULL,                   NULL               } },
+    {"integer->char",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer->char",   builtin_integer_to_char),      {NULL,         NULL,              NULL,                   NULL               } },
+    {"number->float",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number->float",   builtin_number_to_f64),        {NULL,         NULL,              NULL,                   NULL               } },
+    {"number->integer", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("number->integer", builtin_number_to_integer),    {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"map",             (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("map",             builtin_map),                  {NULL,         NULL,              NULL,                   NULL               } },
+    {"foreach",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("foreach",         builtin_foreach),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"andmap",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("andmap",          builtin_andmap),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"ormap",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ormap",           builtin_ormap),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"memq",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("memq",            builtin_memq),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"member",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("member",          builtin_member),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"memp",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("memp",            builtin_memp),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"filter",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("filter",          builtin_filter),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"remq!",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remq!",           builtin_remq1),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"remv!",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remv!",           builtin_remv1),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"remove!",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remove!",         builtin_remove1),              {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"sleep",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sleep",           builtin_sleep),                {NULL,         NULL,              NULL,                   NULL               } },
+    {"msleep",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("msleep",          builtin_msleep),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"hash",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash",            builtin_hash),                 {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-hash",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-hash",       builtin_make_hash),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hasheqv",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hasheqv",         builtin_hasheqv),              {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-hasheqv",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-hasheqv",    builtin_make_hasheqv),         {NULL,         NULL,              NULL,                   NULL               } },
+    {"hashequal",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hashequal",       builtin_hashequal),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"make-hashequal",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-hashequal",  builtin_make_hashequal),       {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash?",           builtin_hash_p),               {NULL,         NULL,              NULL,                   NULL               } },
+    {"hasheq?",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hasheq?",         builtin_hasheq_p),             {NULL,         NULL,              NULL,                   NULL               } },
+    {"hasheqv?",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hasheqv?",        builtin_hasheqv_p),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hashequal?",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hashequal?",      builtin_hashequal_p),          {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-ref",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref",        builtin_hash_ref),             {NULL,         NULL,              inlfunc_hash_ref_2,     inlfunc_hash_ref_3 } },
+    {"hash-ref&",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref&",       builtin_hash_ref7),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-ref$",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref$",       builtin_hash_ref4),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-ref!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-ref!",       builtin_hash_ref1),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-set!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-set!",       builtin_hash_set),             {NULL,         NULL,              NULL,                   inlfunc_hash_set   } },
+    {"hash-set*!",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-set*!",      builtin_hash_set8),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-del!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-del!",       builtin_hash_del1),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-clear!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-clear!",     builtin_hash_clear),           {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash->list",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash->list",      builtin_hash_to_list),         {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-keys",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-keys",       builtin_hash_keys),            {NULL,         NULL,              NULL,                   NULL               } },
+    {"hash-values",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hash-values",     builtin_hash_values),          {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"pmatch",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pmatch",          builtin_pmatch),               {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"exit",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("exit",            builtin_exit),                 {NULL,         NULL,              NULL,                   NULL               } },
+                        
+    {"return",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("return",          builtin_return),               {inlfunc_ret0, inlfunc_ret1,      NULL,                   NULL               } },
+                        
+    {"vector-first",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-first",    builtin_vec_first),            {NULL,         inlfunc_vec_first, NULL,                   NULL               } },
+    {"vector-last",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-last",     builtin_vec_last),             {NULL,         inlfunc_vec_last,  NULL,                   NULL               } },
+    {NULL,              NULL,                                                           {NULL,                         NULL,          NULL,              NULL               } },
     // clang-format on
 };
 
@@ -5236,10 +5237,10 @@ FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum) {
 
 void fklInitGlobCodegenEnv(FklCodegenEnv *curEnv, FklSymbolTable *pst) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
-            list->v != NULL;
+            list->name != NULL;
             list++) {
         FklSymDefHashMapElm *ref = fklAddCodegenBuiltinRefBySid(
-                fklAddSymbolCstr(FKL_VM_CPROC(list->v)->name, pst)->v,
+                fklAddSymbolCstr(list->name, pst)->v,
                 curEnv);
         ref->v.isConst = 1;
     }
@@ -5257,19 +5258,10 @@ static inline FklVMvalue **init_builtin_refs(void) {
         fklInitVMvalueFp(&StdoutUserDataValue, stdout, FKL_VM_FP_W);
         fklInitVMvalueFp(&StderrUserDataValue, stderr, FKL_VM_FP_W);
 
-        fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[0], GET_STDIN());
-
-        fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[1], GET_STDOUT());
-
-        fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[2], GET_STDERR());
-
-        for (size_t i = 3; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
+        for (size_t i = 0; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
             FklVMvalue *v =
                     FKL_REMOVE_CONST(FklVMvalue, builtInSymbolList[i].v);
             fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[i], v);
-        }
-
-        for (size_t i = 0; i < FKL_BUILTIN_SYMBOL_NUM; ++i) {
             builtin_refs[i] =
                     FKL_TYPE_CAST(FklVMvalue *, &builtin_symbol_var_refs[i]);
         }

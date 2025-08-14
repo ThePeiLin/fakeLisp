@@ -346,83 +346,83 @@ static int math_unordered_p(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
-    {"even?",      math_even_p      },
-    {"odd?",       math_odd_p       },
+    {"even?",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("even?",      math_even_p      ), },
+    {"odd?",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("odd?",       math_odd_p       ), },
+                   
+    {"srand",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("srand",      math_srand       ), },
+    {"rand",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("rand",       math_rand        ), },
+                   
+    {"sqrt",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sqrt",       math_sqrt        ), },
+    {"cbrt",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cbrt",       math_cbrt        ), },
+    {"pow",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("pow",        math_pow         ), },
+    {"hypot",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("hypot",      math_hypot       ), },
+                   
+    {"abs",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("abs",        math_abs         ), },
+    {"remainder", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("remainder",  math_remainder   ), },
+                   
+    {"rad",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("rad",        math_rad         ), },
+    {"deg",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("deg",        math_deg         ), },
+                   
+    {"asin",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("asin",       math_asin        ), },
+    {"acos",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("acos",       math_acos        ), },
+    {"atan",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atan",       math_atan        ), },
+    {"atan2",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atan2",      math_atan2       ), },
+                   
+    {"asinh",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("asinh",      math_asinh       ), },
+    {"acosh",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("acosh",      math_acosh       ), },
+    {"atanh",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("atanh",      math_atanh       ), },
+                   
+    {"sinh",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sinh",       math_sinh        ), },
+    {"cosh",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cosh",       math_cosh        ), },
+    {"tanh",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("tanh",       math_tanh        ), },
+                   
+    {"sin",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sin",        math_sin         ), },
+    {"cos",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("cos",        math_cos         ), },
+    {"tan",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("tan",        math_tan         ), },
+                   
+    {"ceil",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ceil",       math_ceil        ), },
+    {"floor",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("floor",      math_floor       ), },
+    {"trunc",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("trunc",      math_trunc       ), },
+    {"round",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("round",      math_round       ), },
+                   
+    {"frexp",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("frexp",      math_frexp       ), },
+    {"ldexp",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("ldexp",      math_ldexp       ), },
+    {"modf",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("modf",       math_modf        ), },
+    {"nextafter", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nextafter",  math_nextafter   ), },
+    {"copysign",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("copysign",   math_copysign    ), },
+                   
+    {"log",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("log",        math_log         ), },
+    {"log2",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("log2",       math_log2        ), },
+    {"log10",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("log10",      math_log10       ), },
+    {"log1p",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("log1p",      math_log1p       ), },
+                   
+    {"exp",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("exp",        math_exp         ), },
+    {"exp2",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("exp2",       math_exp2        ), },
+    {"expm1",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("expm1",      math_expm1       ), },
+                   
+    {"erf",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("erf",        math_erf         ), },
+    {"erfc",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("erfc",       math_erfc        ), },
+    {"gamma",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("gamma",      math_gamma       ), },
+    {"lgamma",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("lgamma",     math_lgamma      ), },
+                   
+    {"signbit",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("signbit",    math_signbit     ), },
+    {"nan?",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nan?",       math_nan_p       ), },
+    {"finite?",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("finite?",    math_finite_p    ), },
+    {"inf?",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("inf?",       math_inf_p       ), },
+    {"normal?",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("normal?",    math_normal_p    ), },
+    {"unordered?",(const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("unordered?", math_unordered_p ), },
 
-    {"srand",      math_srand       },
-    {"rand",       math_rand        },
-
-    {"sqrt",       math_sqrt        },
-    {"cbrt",       math_cbrt        },
-    {"pow",        math_pow         },
-    {"hypot",      math_hypot       },
-
-    {"abs",        math_abs         },
-    {"remainder",  math_remainder   },
-
-    {"rad",        math_rad         },
-    {"deg",        math_deg         },
-
-    {"asin",       math_asin        },
-    {"acos",       math_acos        },
-    {"atan",       math_atan        },
-    {"atan2",      math_atan2       },
-
-    {"asinh",      math_asinh       },
-    {"acosh",      math_acosh       },
-    {"atanh",      math_atanh       },
-
-    {"sinh",       math_sinh        },
-    {"cosh",       math_cosh        },
-    {"tanh",       math_tanh        },
-
-    {"sin",        math_sin         },
-    {"cos",        math_cos         },
-    {"tan",        math_tan         },
-
-    {"ceil",       math_ceil        },
-    {"floor",      math_floor       },
-    {"trunc",      math_trunc       },
-    {"round",      math_round       },
-
-    {"frexp",      math_frexp       },
-    {"ldexp",      math_ldexp       },
-    {"modf",       math_modf        },
-    {"nextafter",  math_nextafter   },
-    {"copysign",   math_copysign    },
-
-    {"log",        math_log         },
-    {"log2",       math_log2        },
-    {"log10",      math_log10       },
-    {"log1p",      math_log1p       },
-
-    {"exp",        math_exp         },
-    {"exp2",       math_exp2        },
-    {"expm1",      math_expm1       },
-
-    {"erf",        math_erf         },
-    {"erfc",       math_erfc        },
-    {"gamma",      math_gamma       },
-    {"lgamma",     math_lgamma      },
-
-    {"signbit",    math_signbit     },
-    {"nan?",       math_nan_p       },
-    {"finite?",    math_finite_p    },
-    {"inf?",       math_inf_p       },
-    {"normal?",    math_normal_p    },
-    {"unordered?", math_unordered_p },
-
-    {"NAN",        NULL             },
-    {"INF",        NULL             },
-    {"E",          NULL             },
-    {"PI",         NULL             },
-    {"PI/2",       NULL             },
-    {"PI/4",       NULL             },
-    {"1/PI",       NULL             },
-    {"2/PI",       NULL             },
+    {"NAN",       (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(NAN),                               },
+    {"INF",       (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(INFINITY),                          },
+    {"E",         (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(M_E),                               },
+    {"PI",        (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(M_PI),                              },
+    {"PI/2",      (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(M_PI_2),                            },
+    {"PI/4",      (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(M_PI_4),                            },
+    {"1/PI",      (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(M_1_PI),                            },
+    {"2/PI",      (const FklVMvalue*)&FKL_VM_F64_STATIC_INIT(M_2_PI),                            },
     // clang-format on
 };
 
@@ -446,24 +446,8 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(loc);
     size_t i = 0;
     for (; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        if (func == NULL)
-            break;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
 
-    loc[i++] = fklCreateVMvalueF64(exe, NAN);
-    loc[i++] = fklCreateVMvalueF64(exe, INFINITY);
-    loc[i++] = fklCreateVMvalueF64(exe, M_E);
-    loc[i++] = fklCreateVMvalueF64(exe, M_PI);
-    loc[i++] = fklCreateVMvalueF64(exe, M_PI_2);
-    loc[i++] = fklCreateVMvalueF64(exe, M_PI_4);
-    loc[i++] = fklCreateVMvalueF64(exe, M_1_PI);
-    loc[i++] = fklCreateVMvalueF64(exe, M_2_PI);
     return loc;
 }

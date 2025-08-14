@@ -1050,6 +1050,16 @@ FklVMvalue *fklCreateVMvalueVec6(FklVM *vm,
         FklVMvalue *f,
         FklVMvalue *e);
 
+#define FKL_VM_F64_STATIC_INIT(F64)                                            \
+    ((FklVMvalueF64 alignas(8)){                                             \
+        .gc = NULL,                                                            \
+        .next = NULL,                                                          \
+        .gray_next = NULL,                                                     \
+        .mark = FKL_MARK_B,                                                    \
+        .type = FKL_TYPE_F64,                                                  \
+        .f64 = (F64),                                                          \
+    })
+
 FklVMvalue *fklCreateVMvalueF64(FklVM *, double f64);
 
 FklVMvalue *fklCreateVMvalueProc(FklVM *, FklVMvalue *codeObj, uint32_t pid);

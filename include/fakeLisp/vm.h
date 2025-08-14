@@ -199,6 +199,17 @@ typedef struct {
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
+    union {
+        FklVMud ud;
+        struct {
+            FKL_VM_UD_COMMON_HEADER;
+            FklVMfp fp;
+        };
+    };
+} FklVMvalueFp;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
     uint32_t idx;
     _Atomic(FklVMvalue **) ref;
     FklVMvalue *v;
@@ -646,7 +657,7 @@ typedef struct FklVMgc {
         void *arg;
     } *extra_mark_list;
 
-    FklVMvalue *builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
+    FklVMvalue **builtin_refs;
 
     uv_mutex_t print_backtrace_lock;
     uv_mutex_t libs_lock;
@@ -659,12 +670,16 @@ typedef struct FklVMgc {
     FklString **kstr;
     FklBigInt **kbi;
     FklBytevector **kbvec;
+
+    FklSid_t seek_set;
+    FklSid_t seek_cur;
+    FklSid_t seek_end;
 } FklVMgc;
 
 typedef struct {
     FklVMcFunc func;
+    const char *name;
     FklVMvalue *dll;
-    FklSid_t sid;
     FklVMvalue *pd;
 } FklVMcproc;
 
@@ -965,6 +980,8 @@ void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 FklVMframe *
 fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *, FklVMframe *);
 
+void fklInitClosedVMvalueVarRef(FklVMvalueVarRef *ref, FklVMvalue *v);
+
 FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx);
 FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 
@@ -1061,14 +1078,25 @@ FklVMvalue *fklCreateVMvalueDll(FklVM *, const char *, FklVMvalue **);
 int fklIsVMvalueDll(FklVMvalue *v);
 void *fklGetAddress(const char *funcname, uv_lib_t *dll);
 
+#define FKL_VM_CPROC_STATIC_INIT(NAME, FUNC)                                   \
+    ((FklVMvalueCproc alignas(8)){                                             \
+        .gc = NULL,                                                            \
+        .next = NULL,                                                          \
+        .gray_next = NULL,                                                     \
+        .mark = FKL_MARK_B,                                                    \
+        .type = FKL_TYPE_CPROC,                                                \
+        .cproc = { .func = (FUNC), .name = (NAME), .dll = NULL, .pd = NULL },  \
+    })
+
 FklVMvalue *fklCreateVMvalueCproc(FklVM *,
         FklVMcFunc,
         FklVMvalue *dll,
         FklVMvalue *pd,
-        FklSid_t sid);
+        const char *name);
 
-void fklDoPrintCprocBacktrace(FklSid_t, FILE *fp, FklVMgc *gc);
+void fklDoPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc);
 
+void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
 FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);
 int fklIsVMvalueFp(FklVMvalue *v);
 

@@ -90,10 +90,10 @@ static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
     }
 }
 
-void fklDoPrintCprocBacktrace(FklSid_t sid, FILE *fp, FklVMgc *gc) {
-    if (sid) {
+void fklDoPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
+    if (name) {
         fprintf(fp, "at cproc: ");
-        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, sid)->k, fp);
+        fklPrintRawSymbolWithCstr(name, fp);
         fputc('\n', fp);
     } else
         fputs("at <cproc>\n", fp);
@@ -102,7 +102,7 @@ void fklDoPrintCprocBacktrace(FklSid_t sid, FILE *fp, FklVMgc *gc) {
 static void cproc_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     FklVMcproc *cproc = FKL_VM_CPROC(c->proc);
-    fklDoPrintCprocBacktrace(cproc->sid, fp, gc);
+    fklDoPrintCprocBacktrace(cproc->name, fp, gc);
 }
 
 static void cproc_frame_atomic(void *data, FklVMgc *gc) {
@@ -1348,11 +1348,28 @@ FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx) {
     return (FklVMvalue *)ref;
 }
 
+#define VM_VAR_REF_STATIC_INIT(V)                                              \
+    ((FklVMvalueVarRef){                                                       \
+        .gc = NULL,                                                            \
+        .next = NULL,                                                          \
+        .gray_next = NULL,                                                     \
+        .mark = FKL_MARK_B,                                                    \
+        .type = FKL_TYPE_VAR_REF,                                              \
+        .idx = UINT32_MAX,                                                     \
+        .v = (V),                                                              \
+    })
+
+void fklInitClosedVMvalueVarRef(FklVMvalueVarRef *ref, FklVMvalue *v) {
+    *ref = VM_VAR_REF_STATIC_INIT(v);
+    ref->ref = &ref->v;
+}
+
 FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
     FklVMvalueVarRef *ref =
             (FklVMvalueVarRef *)fklZcalloc(1, sizeof(FklVMvalueVarRef));
     FKL_ASSERT(ref);
     ref->type = FKL_TYPE_VAR_REF;
+    ref->idx = UINT32_MAX;
     ref->v = v;
     ref->ref = &ref->v;
     fklAddToGC((FklVMvalue *)ref, exe);

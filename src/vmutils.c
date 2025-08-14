@@ -308,7 +308,7 @@ void fklDestroyVMframe(FklVMframe *frame, FklVM *exe) {
 }
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
-        FklString *f);
+        const FklString *f);
 
 FklString *fklGenErrorMessage(FklBuiltinErrorType type) {
     static const char *builtinErrorMessages[FKL_BUILTIN_ERR_NUM] = {
@@ -690,9 +690,9 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS) {
     FklVMcproc *cproc = FKL_VM_CPROC(v);
-    if (cproc->sid) {
+    if (cproc->name) {
         fprintf(fp, "#<cproc ");
-        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, cproc->sid)->k, fp);
+        fklPrintRawSymbolWithCstr(cproc->name, fp);
         fputc('>', fp);
     } else
         fprintf(fp, "#<cproc %p>", cproc);
@@ -912,8 +912,13 @@ static inline void print_raw_string_to_string_buffer(FklStringBuffer *s,
     fklPrintRawStringToStringBuffer(s, f, "\"", "\"", '"');
 }
 
+static inline void
+print_raw_symbol_to_string_buffer_with_cstr(FklStringBuffer *s, const char *f) {
+    fklPrintRawCstrToStringBuffer(s, f, "|", "|", '|');
+}
+
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
-        FklString *f) {
+        const FklString *f) {
     fklPrintRawStringToStringBuffer(s, f, "|", "|", '|');
 }
 
@@ -988,10 +993,9 @@ static void vmvalue_proc_as_print(VMVALUE_TO_UTSTRING_ARGS) {
 
 static void vmvalue_cproc_as_print(VMVALUE_TO_UTSTRING_ARGS) {
     FklVMcproc *cproc = FKL_VM_CPROC(v);
-    if (cproc->sid) {
+    if (cproc->name) {
         fklStringBufferConcatWithCstr(result, "#<cproc ");
-        print_raw_symbol_to_string_buffer(result,
-                fklVMgetSymbolWithId(gc, cproc->sid)->k);
+        print_raw_symbol_to_string_buffer_with_cstr(result, cproc->name);
         fklStringBufferPutc(result, '>');
     } else
         fklStringBufferPrintf(result, "#<cproc %p>", cproc);

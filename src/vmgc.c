@@ -359,6 +359,10 @@ FklVMgc *fklCreateVMgc(FklSymbolTable *st,
     init_idle_work_queue(gc);
     init_vm_queue(&gc->q);
     init_locv_cache(gc);
+
+    gc->seek_set = fklAddSymbolCstr("set", st)->v;
+    gc->seek_cur = fklAddSymbolCstr("cur", st)->v;
+    gc->seek_end = fklAddSymbolCstr("end", st)->v;
     return gc;
 }
 

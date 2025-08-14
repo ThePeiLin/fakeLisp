@@ -193,6 +193,14 @@ int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer *s, char ch) {
     return r;
 }
 
+void fklPrintRawSymbolWithCstr(const char *str, FILE *fp) {
+    fklPrintRawCharBuf((const uint8_t *)str, strlen(str), "|", "|", '|', fp);
+}
+
+void fklPrintRawStringWithCstr(const char *str, FILE *fp) {
+    fklPrintRawCharBuf((const uint8_t *)str, strlen(str), "\"", "\"", '"', fp);
+}
+
 void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer *s,
         size_t size,
         const char *fstr,

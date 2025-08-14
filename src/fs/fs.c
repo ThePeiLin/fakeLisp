@@ -45,6 +45,8 @@ static int fs_freopen(FKL_CPROC_ARGL) {
             || (mode && !FKL_IS_STR(mode)))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklVMfp *vfp = FKL_VM_FP(stream);
+    if (vfp->fp == NULL)
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     const char *modeStr = mode ? FKL_VM_STR(mode)->str : "r";
     FILE *fp = freopen(FKL_VM_STR(filename)->str, modeStr, vfp->fp);
     if (!fp)
@@ -339,14 +341,14 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FklVMvalue **loc =
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
-    fklVMacquireSt(exe->gc);
-    FklSymbolTable *st = exe->gc->st;
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklSid_t id = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
         FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe, func, dll, NULL, id);
+        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
+                func,
+                dll,
+                NULL,
+                exports_and_func[i].sym);
         loc[i] = dlproc;
     }
-    fklVMreleaseSt(exe->gc);
     return loc;
 }

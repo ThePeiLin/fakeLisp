@@ -1,6 +1,6 @@
-#include "fakeLisp/bytecode.h"
-#include "fakeLisp/utils.h"
+#include <fakeLisp/bytecode.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -784,9 +784,9 @@ int fklVMfpFileno(FklVMfp *vfp) {
 int fklUninitVMfp(FklVMfp *vfp) {
     int r = 0;
     FILE *fp = vfp->fp;
-    if (!(fp != NULL && fp != stdin && fp != stdout && fp != stderr
-                && fclose(fp) != EOF))
+    if (fp == NULL || fclose(fp) == EOF)
         r = 1;
+    vfp->fp = NULL;
     return r;
 }
 
@@ -1488,14 +1488,7 @@ static int _fp_userdata_finalizer(FklVMud *ud) {
 static void
 _fp_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
     FKL_DECL_UD_DATA(vfp, FklVMfp, ud);
-    if (vfp->fp == stdin)
-        fklStringBufferConcatWithCstr(buf, "#<fp stdin>");
-    else if (vfp->fp == stdout)
-        fklStringBufferConcatWithCstr(buf, "#<fp stdout>");
-    else if (vfp->fp == stderr)
-        fklStringBufferConcatWithCstr(buf, "#<fp stderr>");
-    else
-        fklStringBufferPrintf(buf, "#<fp %p>", vfp);
+    fklStringBufferPrintf(buf, "#<fp %p>", vfp);
 }
 
 static FklVMudMetaTable FpUserDataMetaTable = {
@@ -1504,6 +1497,17 @@ static FklVMudMetaTable FpUserDataMetaTable = {
     .__as_prin1 = _fp_userdata_as_print,
     .__finalizer = _fp_userdata_finalizer,
 };
+
+#define VM_FP_STATIC_INIT(FP, RW)                                              \
+    (FklVMvalueFp) {                                                           \
+        .gc = NULL, .next = NULL, .gray_next = NULL, .mark = FKL_MARK_B,       \
+        .type = FKL_TYPE_USERDATA, .t = &FpUserDataMetaTable, .dll = NULL,     \
+        .fp = { .fp = (FP), .rw = (RW) },                                      \
+    }
+
+void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw) {
+    *vfp = VM_FP_STATIC_INIT(fp, rw);
+}
 
 FklVMvalue *fklCreateVMvalueFp(FklVM *exe, FILE *fp, FklVMfpRW rw) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &FpUserDataMetaTable, NULL);
@@ -1859,7 +1863,7 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *exe,
         FklVMcFunc func,
         FklVMvalue *dll,
         FklVMvalue *pd,
-        FklSid_t sid) {
+        const char *name) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueCproc);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_CPROC;
@@ -1867,7 +1871,7 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *exe,
     dlp->func = func;
     dlp->dll = dll;
     dlp->pd = pd;
-    dlp->sid = sid;
+    dlp->name = name;
     fklAddToGC(r, exe);
     return r;
 }
@@ -1913,14 +1917,12 @@ static FklVMudMetaTable EofUserDataMetaTable = {
 };
 
 static const alignas(8) FklVMvalueUd EofUserDataValue = {
-    .mark = FKL_MARK_B,
+    .gc = NULL,
     .next = NULL,
+    .gray_next = NULL,
+    .mark = FKL_MARK_B,
     .type = FKL_TYPE_USERDATA,
-    .ud =
-        {
-            .t = &EofUserDataMetaTable,
-            .dll = NULL,
-        },
+    .ud = { .t = &EofUserDataMetaTable, .dll = NULL },
 };
 
 FklVMvalue *fklGetVMvalueEof(void) { return (FklVMvalue *)&EofUserDataValue; }

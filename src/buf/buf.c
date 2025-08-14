@@ -508,30 +508,30 @@ static int export_sub_strbuf(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
     // strbuf
-    {"strbuf?",              export_strbuf_p                  },
-    {"strbuf",               export_strbuf                    },
-    {"substrbuf",            export_substrbuf                 },
-    {"sub-strbuf",           export_sub_strbuf                },
-    {"make-strbuf",          export_make_strbuf               },
-    {"make-strbuf/capacity", export_make_strbuf_with_capacity },
-    {"strbuf-ref",           export_strbuf_ref                },
-    {"strbuf-capacity",      export_strbuf_capacity           },
-    {"strbuf-empty?",        export_strbuf_empty              },
-    {"strbuf-set!",          export_strbuf_set1               },
-    {"strbuf-clear!",        export_strbuf_clear              },
-    {"strbuf-reserve!",      export_strbuf_reserve            },
-    {"strbuf-shrink!",       export_strbuf_shrink             },
-    {"strbuf-resize!",       export_strbuf_resize             },
-    {"strbuf-fmt!",          export_strbuf_fmt                },
-    {"strbuf->string",       export_strbuf_to_string          },
-    {"strbuf->bytes",        export_strbuf_to_bytevector      },
-    {"strbuf->vector",       export_strbuf_to_vector          },
-    {"strbuf->list",         export_strbuf_to_list            },
-    {"strbuf->symbol",       export_strbuf_to_symbol          },
+    {"strbuf?",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf?",              export_strbuf_p                 )},
+    {"strbuf",               (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf",               export_strbuf                   )},
+    {"substrbuf",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("substrbuf",            export_substrbuf                )},
+    {"sub-strbuf",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-strbuf",           export_sub_strbuf               )},
+    {"make-strbuf",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-strbuf",          export_make_strbuf              )},
+    {"make-strbuf/capacity", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-strbuf/capacity", export_make_strbuf_with_capacity)},
+    {"strbuf-ref",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-ref",           export_strbuf_ref               )},
+    {"strbuf-capacity",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-capacity",      export_strbuf_capacity          )},
+    {"strbuf-empty?",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-empty?",        export_strbuf_empty             )},
+    {"strbuf-set!",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-set!",          export_strbuf_set1              )},
+    {"strbuf-clear!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-clear!",        export_strbuf_clear             )},
+    {"strbuf-reserve!",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-reserve!",      export_strbuf_reserve           )},
+    {"strbuf-shrink!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-shrink!",       export_strbuf_shrink            )},
+    {"strbuf-resize!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-resize!",       export_strbuf_resize            )},
+    {"strbuf-fmt!",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-fmt!",          export_strbuf_fmt               )},
+    {"strbuf->string",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->string",       export_strbuf_to_string         )},
+    {"strbuf->bytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->bytes",        export_strbuf_to_bytevector     )},
+    {"strbuf->vector",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->vector",       export_strbuf_to_vector         )},
+    {"strbuf->list",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->list",         export_strbuf_to_list           )},
+    {"strbuf->symbol",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->symbol",       export_strbuf_to_symbol         )},
     // clang-format on
 };
 
@@ -554,13 +554,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

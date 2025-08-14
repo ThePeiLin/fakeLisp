@@ -1146,47 +1146,47 @@ static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
     // clang-format off
-    {"debug-ctx?",                bdb_debug_ctx_p               },
-    {"make-debug-ctx",            bdb_make_debug_ctx            },
-    {"debug-ctx-repl",            bdb_debug_ctx_repl            },
-    {"debug-ctx-get-curline",     bdb_debug_ctx_get_curline     },
-    {"debug-ctx-list-src",        bdb_debug_ctx_list_src        },
-    {"debug-ctx-list-file-src",   bdb_debug_ctx_list_file_src   },
-    {"debug-ctx-set-list-src",    bdb_debug_ctx_set_list_src    },
+    {"debug-ctx?",                (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx?",                bdb_debug_ctx_p              )},
+    {"make-debug-ctx",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-debug-ctx",            bdb_make_debug_ctx           )},
+    {"debug-ctx-repl",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-repl",            bdb_debug_ctx_repl           )},
+    {"debug-ctx-get-curline",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-get-curline",     bdb_debug_ctx_get_curline    )},
+    {"debug-ctx-list-src",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-list-src",        bdb_debug_ctx_list_src       )},
+    {"debug-ctx-list-file-src",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-list-file-src",   bdb_debug_ctx_list_file_src  )},
+    {"debug-ctx-set-list-src",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-list-src",    bdb_debug_ctx_set_list_src   )},
 
-    {"debug-ctx-list-ins",        bdb_debug_ctx_list_ins        },
-    {"debug-ctx-set-list-ins",    bdb_debug_ctx_set_list_ins    },
-    {"debug-ctx-get-cur-ins",     bdb_debug_ctx_get_cur_ins     },
+    {"debug-ctx-list-ins",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-list-ins",        bdb_debug_ctx_list_ins       )},
+    {"debug-ctx-set-list-ins",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-list-ins",    bdb_debug_ctx_set_list_ins   )},
+    {"debug-ctx-get-cur-ins",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-get-cur-ins",     bdb_debug_ctx_get_cur_ins    )},
 
-    {"debug-ctx-delete-break",    bdb_debug_ctx_delete_break    },
-    {"debug-ctx-enable-break",    bdb_debug_ctx_enable_break    },
-    {"debug-ctx-disable-break",   bdb_debug_ctx_disable_break   },
-    {"debug-ctx-set-break",       bdb_debug_ctx_set_break       },
-    {"debug-ctx-list-break",      bdb_debug_ctx_list_break      },
+    {"debug-ctx-delete-break",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-delete-break",    bdb_debug_ctx_delete_break   )},
+    {"debug-ctx-enable-break",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-enable-break",    bdb_debug_ctx_enable_break   )},
+    {"debug-ctx-disable-break",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-disable-break",   bdb_debug_ctx_disable_break  )},
+    {"debug-ctx-set-break",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-break",       bdb_debug_ctx_set_break      )},
+    {"debug-ctx-list-break",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-list-break",      bdb_debug_ctx_list_break     )},
 
-    {"debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over   },
-    {"debug-ctx-set-step-into",   bdb_debug_ctx_set_step_into   },
-    {"debug-ctx-set-step-out",    bdb_debug_ctx_set_step_out    },
-    {"debug-ctx-set-single-ins",  bdb_debug_ctx_set_single_ins  },
-    {"debug-ctx-set-until",       bdb_debug_ctx_set_until       },
+    {"debug-ctx-set-step-over",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over  )},
+    {"debug-ctx-set-step-into",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-into",   bdb_debug_ctx_set_step_into  )},
+    {"debug-ctx-set-step-out",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-out",    bdb_debug_ctx_set_step_out   )},
+    {"debug-ctx-set-single-ins",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-single-ins",  bdb_debug_ctx_set_single_ins )},
+    {"debug-ctx-set-until",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-until",       bdb_debug_ctx_set_until      )},
 
-    {"debug-ctx-continue",        bdb_debug_ctx_continue        },
-    {"debug-ctx-exit?",           bdb_debug_ctx_exit_p          },
-    {"debug-ctx-done?",           bdb_debug_ctx_done_p          },
-    {"debug-ctx-exit",            bdb_debug_ctx_exit            },
-    {"debug-ctx-eval",            bdb_debug_ctx_eval            },
-    {"debug-ctx-restart",         bdb_debug_ctx_restart         },
+    {"debug-ctx-continue",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-continue",        bdb_debug_ctx_continue       )},
+    {"debug-ctx-exit?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-exit?",           bdb_debug_ctx_exit_p         )},
+    {"debug-ctx-done?",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-done?",           bdb_debug_ctx_done_p         )},
+    {"debug-ctx-exit",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-exit",            bdb_debug_ctx_exit           )},
+    {"debug-ctx-eval",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-eval",            bdb_debug_ctx_eval           )},
+    {"debug-ctx-restart",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-restart",         bdb_debug_ctx_restart        )},
 
-    {"debug-ctx-print-cur-frame", bdb_debug_ctx_print_cur_frame },
-    {"debug-ctx-back-trace",      bdb_debug_ctx_back_trace      },
-    {"debug-ctx-up",              bdb_debug_ctx_up              },
-    {"debug-ctx-down",            bdb_debug_ctx_down            },
+    {"debug-ctx-print-cur-frame", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-print-cur-frame", bdb_debug_ctx_print_cur_frame)},
+    {"debug-ctx-back-trace",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-back-trace",      bdb_debug_ctx_back_trace     )},
+    {"debug-ctx-up",              (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-up",              bdb_debug_ctx_up             )},
+    {"debug-ctx-down",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-down",            bdb_debug_ctx_down           )},
 
-    {"debug-ctx-list-thread",     bdb_debug_ctx_list_thread     },
-    {"debug-ctx-switch-thread",   bdb_debug_ctx_switch_thread   },
+    {"debug-ctx-list-thread",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-list-thread",     bdb_debug_ctx_list_thread    )},
+    {"debug-ctx-switch-thread",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-switch-thread",   bdb_debug_ctx_switch_thread  )},
     // clang-format on
 };
 
@@ -1209,13 +1209,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

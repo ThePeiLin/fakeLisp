@@ -10,9 +10,11 @@ static int test_func(FKL_CPROC_ARGL) {
 
 struct SymFunc {
     const char *sym;
-    FklVMcFunc f;
+    const FklVMvalue *v;
 } exports_and_func[] = {
-    { "test-func", test_func },
+	// clang-format off
+    { "test-func", (const FklVMvalue *)&FKL_VM_CPROC_STATIC_INIT("test-func", test_func) },
+	// clang-format on
 };
 
 static const size_t EXPORT_NUM =
@@ -34,13 +36,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                NULL,
-                exports_and_func[i].sym);
-        loc[i] = dlproc;
+        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
     }
     return loc;
 }

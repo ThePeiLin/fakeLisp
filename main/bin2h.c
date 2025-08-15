@@ -62,8 +62,11 @@ int main(int argc, char **argv) {
     {
         fseek(input_file, 0, SEEK_END);
         long r = ftell(input_file);
-        if (r < 0)
+        if (r < 0) {
             perror(input->filename[0]);
+            exitcode = EXIT_FAILURE;
+            goto exit;
+        }
         len = (size_t)r;
         fseek(input_file, 0, SEEK_SET);
     }

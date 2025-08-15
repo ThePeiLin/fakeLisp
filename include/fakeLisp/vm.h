@@ -145,7 +145,7 @@ typedef enum {
 } FklVMvalueMark;
 
 #define FKL_VM_VALUE_COMMON_HEADER                                             \
-    struct FklVMgc *gc;                                                        \
+    alignas(8) struct FklVMgc *gc;                                             \
     struct FklVMvalue *next;                                                   \
     struct FklVMvalue *gray_next;                                              \
     FklVMvalueMark volatile mark : 32;                                         \
@@ -1051,7 +1051,7 @@ FklVMvalue *fklCreateVMvalueVec6(FklVM *vm,
         FklVMvalue *e);
 
 #define FKL_VM_F64_STATIC_INIT(F64)                                            \
-    ((FklVMvalueF64 alignas(8)){                                             \
+    ((FklVMvalueF64){                                                          \
         .gc = NULL,                                                            \
         .next = NULL,                                                          \
         .gray_next = NULL,                                                     \
@@ -1089,7 +1089,7 @@ int fklIsVMvalueDll(FklVMvalue *v);
 void *fklGetAddress(const char *funcname, uv_lib_t *dll);
 
 #define FKL_VM_CPROC_STATIC_INIT(NAME, FUNC)                                   \
-    ((FklVMvalueCproc alignas(8)){                                             \
+    ((FklVMvalueCproc){                                                        \
         .gc = NULL,                                                            \
         .next = NULL,                                                          \
         .gray_next = NULL,                                                     \

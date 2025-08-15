@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#define fileno _fileno
+#endif
+
 #define VALUE_CREATE_CTX_COMMON_HEADER                                         \
     const FklNastNode *(*method)(struct ValueCreateCtx *, FklVMvalue * v);     \
     const FklNastNode *node;                                                   \
@@ -773,13 +777,7 @@ int fklVMfpRewind(FklVMfp *vfp, FklStringBuffer *b, size_t j) {
     return fklRewindStream(vfp->fp, b->buf + j, b->index - j);
 }
 
-int fklVMfpFileno(FklVMfp *vfp) {
-#ifdef _WIN32
-    return _fileno(vfp->fp);
-#else
-    return fileno(vfp->fp);
-#endif
-}
+int fklVMfpFileno(FklVMfp *vfp) { return fileno(vfp->fp); }
 
 int fklUninitVMfp(FklVMfp *vfp) {
     int r = 0;

@@ -12,9 +12,9 @@ struct SymFunc {
     const char *sym;
     const FklVMvalue *v;
 } exports_and_func[] = {
-	// clang-format off
+    // clang-format off
     { "test-func", (const FklVMvalue *)&FKL_VM_CPROC_STATIC_INIT("test-func", test_func) },
-	// clang-format on
+    // clang-format on
 };
 
 static const size_t EXPORT_NUM =

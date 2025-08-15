@@ -5270,42 +5270,10 @@ static inline FklVMvalue **init_builtin_refs(void) {
     }
 
     return builtin_refs;
-
-    // FklVMvalue *builtInStdin = fklCreateVMvalueFp(exe, stdin, FKL_VM_FP_R);
-    // FklVMvalue *builtInStdout = fklCreateVMvalueFp(exe, stdout, FKL_VM_FP_W);
-    // FklVMvalue *builtInStderr = fklCreateVMvalueFp(exe, stderr, FKL_VM_FP_W);
-    // pd->sysIn = builtInStdin;
-    // pd->sysOut = builtInStdout;
-    // pd->sysErr = builtInStderr;
-
-    // fklVMacquireSt(exe->gc);
-    // FklSymbolTable *st = exe->gc->st;
-    // pd->seek_set = fklAddSymbolCstr("set", st)->v;
-    // pd->seek_cur = fklAddSymbolCstr("cur", st)->v;
-    // pd->seek_end = fklAddSymbolCstr("end", st)->v;
-    // fklVMreleaseSt(exe->gc);
 }
 
 void fklInitGlobalVMclosureForGC(FklVM *exe) {
     FklVMgc *gc = exe->gc;
-
-    // FklVMvalue **closure = gc->builtin_refs;
-    // FklVMvalue *publicUserData =
-    //         fklCreateVMvalueUd(exe, &PublicBuiltInDataMetaTable, FKL_VM_NIL);
-
-    // FKL_DECL_VM_UD_DATA(pd, PublicBuiltInData, publicUserData);
-
     gc->builtin_refs = init_builtin_refs();
 
-    // closure[FKL_VM_STDIN_IDX] =
-    //         fklCreateClosedVMvalueVarRef(exe, GET_STDIN(NULL));
-    // closure[FKL_VM_STDOUT_IDX] =
-    //         fklCreateClosedVMvalueVarRef(exe, GET_STDOUT(NULL));
-    // closure[FKL_VM_STDERR_IDX] =
-    //         fklCreateClosedVMvalueVarRef(exe, GET_STDERR(NULL));
-
-    // for (size_t i = 3; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
-    //     FklVMvalue *v = FKL_REMOVE_CONST(FklVMvalue, builtInSymbolList[i].v);
-    //     closure[i] = fklCreateClosedVMvalueVarRef(exe, v);
-    // }
 }

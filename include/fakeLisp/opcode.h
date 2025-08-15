@@ -134,44 +134,35 @@ extern "C" {
     X(FKL_OP_EQ,                "eq",                FKL_OP_MODE_I       )\
     X(FKL_OP_EQV,               "eqv",               FKL_OP_MODE_I       )\
     X(FKL_OP_EQUAL,             "equal",             FKL_OP_MODE_I       )\
-    \
     X(FKL_OP_EQN,               "eqn",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_GT,                "gt",                FKL_OP_MODE_IsA     )\
     X(FKL_OP_LT,                "lt",                FKL_OP_MODE_IsA     )\
     X(FKL_OP_GE,                "ge",                FKL_OP_MODE_IsA     )\
     X(FKL_OP_LE,                "le",                FKL_OP_MODE_IsA     )\
-    \
     X(FKL_OP_ADDK,              "addk",              FKL_OP_MODE_IsA     )\
     X(FKL_OP_ADDK_LOC,          "addk-loc",          FKL_OP_MODE_IsAuB   )\
-    \
     X(FKL_OP_ADD,               "add",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_SUB,               "sub",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_MUL,               "mul",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_DIV,               "div",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_IDIV,              "idiv",              FKL_OP_MODE_IsA     )\
-    \
     X(FKL_OP_PAIR,              "pair",              FKL_OP_MODE_IsA     )\
     X(FKL_OP_VEC,               "vec",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_STR,               "str",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_BVEC,              "bvec",              FKL_OP_MODE_IsA     )\
     X(FKL_OP_BOX,               "box",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_HASH,              "hash",              FKL_OP_MODE_IsA     )\
-    \
     X(FKL_OP_CLOSE_REF,         "close-ref",         FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_CLOSE_REF_X,       "close-ref-x",       FKL_OP_MODE_IuCuC   )\
     X(FKL_OP_CLOSE_REF_XX,      "close-ref-xx",      FKL_OP_MODE_IuCAuBB )\
-    \
     X(FKL_OP_EXPORT_TO,         "export-to",         FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_EXPORT_TO_X,       "export-to-x",       FKL_OP_MODE_IuCuC   )\
     X(FKL_OP_EXPORT_TO_XX,      "export-to-xx",      FKL_OP_MODE_IuCAuBB )\
-    \
     X(FKL_OP_POP_LOC,           "pop-loc",           FKL_OP_MODE_IuB     )\
     X(FKL_OP_POP_LOC_C,         "pop-loc-c",         FKL_OP_MODE_IuC     )\
     X(FKL_OP_POP_LOC_X,         "pop-loc-x",         FKL_OP_MODE_IuBB    )\
-    \
     X(FKL_OP_MOV_LOC,           "mov-loc",           FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_MOV_VAR_REF,       "mov-var-ref",       FKL_OP_MODE_IuAuB   )\
-    \
     X(FKL_OP_EXTRA_ARG,         "extra-arg",         FKL_OP_MODE_IxAxB   )
 // clang-format on
 

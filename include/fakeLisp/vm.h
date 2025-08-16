@@ -1408,9 +1408,10 @@ void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval);
 
 size_t fklVMlistLength(FklVMvalue *);
 
+void fklPushVMrasieErrorFrame(FklVM *exe, FklVMvalue *err);
+
 void fklPushVMframe(FklVMframe *, FklVM *exe);
-FklVMframe *fklMoveVMframeToTop(FklVM *exe, FklVMframe *f);
-void fklInsertTopVMframeAsPrev(FklVM *exe, FklVMframe *f);
+
 FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
         const FklVMframeContextMethodTable *t,
         FklVMframe *prev);

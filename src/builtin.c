@@ -3609,7 +3609,6 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
 }
 
 #define IDLE_CTX_STATE(CTX) ((CTX)->c[0].uptr)
-#define IDLE_CTX_FRAME(CTX) (*FKL_TYPE_CAST(FklVMframe **, &(CTX)->c[1].ptr))
 
 static void idle_queue_work_cb(FklVM *exe, void *a) {
     FklCprocFrameContext *ctx = FKL_TYPE_CAST(FklCprocFrameContext *, a);
@@ -3624,38 +3623,27 @@ static void idle_queue_work_cb(FklVM *exe, void *a) {
 }
 
 static int builtin_idle(FKL_CPROC_ARGL) {
-    switch (IDLE_CTX_STATE(ctx)) {
-    case 0: {
-        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
-        FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
-        FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-        fklVMstackReserve(exe, exe->tp + 1);
-        memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
-                &FKL_CPROC_GET_ARG(exe, ctx, 0),
-                argc * sizeof(FklVMvalue *));
-        exe->tp += 1;
-        FKL_CPROC_GET_ARG(exe, ctx, 0) = FKL_MAKE_VM_FIX(exe->bp);
-        // 函数idle与bp的值合计占用两个空间
-        exe->bp += 2;
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
+    FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(proc, fklIsCallable, exe);
+    fklVMstackReserve(exe, exe->tp + 1);
+    memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
+            &FKL_CPROC_GET_ARG(exe, ctx, 0),
+            argc * sizeof(FklVMvalue *));
+    exe->tp += 1;
+    FKL_CPROC_GET_ARG(exe, ctx, 0) = FKL_MAKE_VM_FIX(exe->bp);
+    // 函数idle与bp的值合计占用两个空间
+    exe->bp += 2;
 
-        FklVMframe *origin_top_frame = FKL_VM_FRAME_OF(ctx);
-        fklCallObj(exe, proc);
-        fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
-        // 在这个函数中返回，令虚拟机重新设置longjmp的buf
-        if (IDLE_CTX_STATE(ctx)) {
-            IDLE_CTX_FRAME(ctx) = fklMoveVMframeToTop(exe, origin_top_frame);
-            return 1;
-        }
-        FklVMvalue *retval = FKL_VM_POP_TOP_VALUE(exe);
-        FKL_CPROC_RETURN(exe, ctx, retval);
-        return 0;
+    fklCallObj(exe, proc);
+    fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
+    // 在这个函数中返回，令虚拟机重新设置longjmp的buf
+    if (IDLE_CTX_STATE(ctx)) {
+        fklPushVMrasieErrorFrame(exe, FKL_VM_POP_TOP_VALUE(exe));
+        return 1;
     }
-    case 1: {
-        FklVMframe *frame = IDLE_CTX_FRAME(ctx);
-        fklInsertTopVMframeAsPrev(exe, frame);
-        fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
-    } break;
-    }
+    FklVMvalue *retval = FKL_VM_POP_TOP_VALUE(exe);
+    FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
 }
 
@@ -5275,5 +5263,4 @@ static inline FklVMvalue **init_builtin_refs(void) {
 void fklInitGlobalVMclosureForGC(FklVM *exe) {
     FklVMgc *gc = exe->gc;
     gc->builtin_refs = init_builtin_refs();
-
 }

@@ -278,6 +278,52 @@ void fklDoCopyObjFrameContext(FklVMframe *s, FklVMframe *d, FklVM *exe) {
     s->t->copy(fklGetFrameData(d), fklGetFrameData(s), exe);
 }
 
+typedef struct {
+    FklVMvalue *error;
+} RaiseErrorFrameContext;
+
+FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(RaiseErrorFrameContext);
+
+static void raise_error_frame_atomic(void *data, FklVMgc *gc) {
+    RaiseErrorFrameContext *c = (RaiseErrorFrameContext *)data;
+    fklVMgcToGray(c->error, gc);
+}
+
+static void raise_error_frame_copy(void *d, const void *s, FklVM *exe) {
+    RaiseErrorFrameContext const *const sc = (RaiseErrorFrameContext *)s;
+    RaiseErrorFrameContext *dc = (RaiseErrorFrameContext *)d;
+    *dc = *sc;
+}
+
+static void
+raise_error_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
+    FKL_UNREACHABLE();
+    return;
+}
+
+static int raise_error_frame_step(void *data, FklVM *exe) {
+    RaiseErrorFrameContext *c = FKL_TYPE_CAST(RaiseErrorFrameContext *, data);
+    fklPopVMframe(exe);
+    fklRaiseVMerror(c->error, exe);
+    return 1;
+}
+
+static const FklVMframeContextMethodTable RaiseErrorContextMethodTable = {
+    .atomic = raise_error_frame_atomic,
+    .copy = raise_error_frame_copy,
+    .print_backtrace = raise_error_frame_print_backtrace,
+    .step = raise_error_frame_step,
+};
+
+void fklPushVMrasieErrorFrame(FklVM *exe, FklVMvalue *err) {
+    FklVMframe *f =
+            fklCreateOtherObjVMframe(exe, &RaiseErrorContextMethodTable, NULL);
+    RaiseErrorFrameContext *ctx =
+            FKL_TYPE_CAST(RaiseErrorFrameContext *, f->data);
+    ctx->error = err;
+    fklPushVMframe(f, exe);
+}
+
 void fklPushVMframe(FklVMframe *f, FklVM *exe) {
     f->prev = exe->top_frame;
     exe->top_frame = f;

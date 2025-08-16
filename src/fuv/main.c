@@ -553,73 +553,50 @@ static int fuv_loop_close(FKL_CPROC_ARGL) {
     return 0;
 }
 
-#define LOOP_RUN_STATE(CTX) ((CTX)->c[0].uptr)
-#define LOOP_RUN_FRAME(CTX) (*FKL_TYPE_CAST(FklVMframe **, &(CTX)->c[1].ptr))
-#define LOOP_RUN_STATE_RUN (0)
-#define LOOP_RUN_STATE_RETURN (1)
-
 static int fuv_loop_run(FKL_CPROC_ARGL) {
-    switch (LOOP_RUN_STATE(ctx)) {
-    case LOOP_RUN_STATE_RUN: {
-        FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
-        FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-        FklVMvalue *mode_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
-        FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
-        FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
-        FklVMframe *origin_top_frame = exe->top_frame;
-        fuv_loop->data.exe = exe;
-        int need_continue = 0;
-        int mode = UV_RUN_DEFAULT;
-        if (mode_obj) {
-            FKL_CHECK_TYPE(mode_obj, FKL_IS_SYM, exe);
-            FKL_DECL_VM_UD_DATA(pbd, FuvPublicData, ctx->pd);
-            FklSid_t mode_id = FKL_GET_SYM(mode_obj);
-            for (; mode < (int)(sizeof(pbd->loop_mode) / sizeof(FklSid_t));
-                    mode++)
-                if (pbd->loop_mode[mode] == mode_id)
-                    break;
-            if (mode > UV_RUN_NOWAIT)
-                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-        }
-        jmp_buf buf;
-        fuv_loop->data.buf = &buf;
-        if (setjmp(buf)) {
-            need_continue = 1;
-            LOOP_RUN_FRAME(ctx) = fklMoveVMframeToTop(exe, origin_top_frame);
-            LOOP_RUN_STATE(ctx) = LOOP_RUN_STATE_RETURN;
-        } else {
-            fuv_loop->data.mode = mode;
-            fklUnlockThread(exe);
-            int r = uv_run(&fuv_loop->loop, mode);
-            fklLockThread(exe);
-            if (r < 0) {
-                FKL_VM_PUSH_VALUE(exe, createUvError(r, exe, ctx->pd));
-                LOOP_RUN_STATE(ctx) = LOOP_RUN_STATE_RETURN;
-                need_continue = 1;
-            } else {
-                FKL_CPROC_RETURN(exe, ctx, loop_obj);
-            }
-            while (exe->top_frame != origin_top_frame)
-                fklPopVMframe(exe);
-        }
-        fuv_loop->data.mode = -1;
-        fuv_loop->data.exe = NULL;
-        fuv_loop->data.buf = NULL;
-        exe->state = FKL_VM_READY;
-        return need_continue;
-    } break;
-    case LOOP_RUN_STATE_RETURN: {
-        FklVMframe *prev = LOOP_RUN_FRAME(ctx);
-        fklInsertTopVMframeAsPrev(exe, prev);
-        fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
-    } break;
-    default:
-        fprintf(stderr, "[%s: %d] unreachable!\n", __FILE__, __LINE__);
-        fklPrintBacktrace(exe, stderr);
-        abort();
-        break;
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
+    FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *mode_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
+    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
+    FklVMframe *origin_top_frame = exe->top_frame;
+    fuv_loop->data.exe = exe;
+    int need_continue = 0;
+    int mode = UV_RUN_DEFAULT;
+    if (mode_obj) {
+        FKL_CHECK_TYPE(mode_obj, FKL_IS_SYM, exe);
+        FKL_DECL_VM_UD_DATA(pbd, FuvPublicData, ctx->pd);
+        FklSid_t mode_id = FKL_GET_SYM(mode_obj);
+        for (; mode < (int)(sizeof(pbd->loop_mode) / sizeof(FklSid_t)); mode++)
+            if (pbd->loop_mode[mode] == mode_id)
+                break;
+        if (mode > UV_RUN_NOWAIT)
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     }
-    return 0;
+    jmp_buf buf;
+    fuv_loop->data.buf = &buf;
+    if (setjmp(buf)) {
+        need_continue = 1;
+        fklPushVMrasieErrorFrame(exe, FKL_VM_POP_TOP_VALUE(exe));
+    } else {
+        fuv_loop->data.mode = mode;
+        fklUnlockThread(exe);
+        int r = uv_run(&fuv_loop->loop, mode);
+        fklLockThread(exe);
+        if (r < 0) {
+            need_continue = 1;
+            fklPushVMrasieErrorFrame(exe, createUvError(r, exe, ctx->pd));
+        } else {
+            FKL_CPROC_RETURN(exe, ctx, loop_obj);
+        }
+        while (exe->top_frame != origin_top_frame)
+            fklPopVMframe(exe);
+    }
+    fuv_loop->data.mode = -1;
+    fuv_loop->data.exe = NULL;
+    fuv_loop->data.buf = NULL;
+    exe->state = FKL_VM_READY;
+    return need_continue;
 }
 
 struct WalkCtx {
@@ -653,43 +630,32 @@ static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
 }
 
 static int fuv_loop_walk(FKL_CPROC_ARGL) {
-    switch (LOOP_RUN_STATE(ctx)) {
-    case LOOP_RUN_STATE_RUN: {
-        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
-        FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-        FklVMvalue *proc_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
-        FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
-        FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
-        FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
-        FklVMframe *origin_top_frame = exe->top_frame;
-        int need_continue = 0;
-        struct WalkCtx walk_ctx = {
-            .exe = exe,
-            .ev = NULL,
-        };
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
+    FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *proc_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
+    FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
+    FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
+    FklVMframe *origin_top_frame = exe->top_frame;
+    int need_continue = 0;
+    struct WalkCtx walk_ctx = {
+        .exe = exe,
+        .ev = NULL,
+    };
 
-        fklUnlockThread(exe);
-        uv_walk(&fuv_loop->loop, fuv_loop_walk_cb, &walk_ctx);
-        fklLockThread(exe);
-        if (walk_ctx.ev) {
-            need_continue = 1;
-            LOOP_RUN_FRAME(ctx) = fklMoveVMframeToTop(exe, origin_top_frame);
-            LOOP_RUN_STATE(ctx) = LOOP_RUN_STATE_RETURN;
-        } else {
-            while (exe->top_frame != origin_top_frame)
-                fklPopVMframe(exe);
-            FKL_CPROC_RETURN(exe, ctx, loop_obj);
-        }
-        exe->state = FKL_VM_READY;
-        return need_continue;
-    } break;
-    case LOOP_RUN_STATE_RETURN: {
-        FklVMframe *prev = LOOP_RUN_FRAME(ctx);
-        fklInsertTopVMframeAsPrev(exe, prev);
-        fklRaiseVMerror(FKL_VM_POP_TOP_VALUE(exe), exe);
-    } break;
+    fklUnlockThread(exe);
+    uv_walk(&fuv_loop->loop, fuv_loop_walk_cb, &walk_ctx);
+    fklLockThread(exe);
+    if (walk_ctx.ev) {
+        need_continue = 1;
+        fklPushVMrasieErrorFrame(exe, walk_ctx.ev);
+    } else {
+        while (exe->top_frame != origin_top_frame)
+            fklPopVMframe(exe);
+        FKL_CPROC_RETURN(exe, ctx, loop_obj);
     }
-    return 0;
+    exe->state = FKL_VM_READY;
+    return need_continue;
 }
 
 #undef LOOP_RUN_STATE

@@ -418,22 +418,13 @@ typedef struct {
     FklSid_t UV_PRIORITIZED_sid;
 } FuvPublicData;
 
-struct FuvErrorRecoverData {
-    FklVMframe *frame;
-    uint32_t stack_values_num;
-    uint32_t local_values_num;
-    FklVMvalue **stack_values;
-};
-
 typedef struct {
     FklVM *exe;
     FklVMvalue *refs;
     FklVMvalue *gclist;
-    uv_idle_t error_check_idle;
-    struct FuvErrorRecoverData error_recover_data;
     int mode;
-    int is_closed;
-    jmp_buf *buf;
+    int8_t is_closed;
+    int8_t error_occured;
 } FuvLoopData;
 
 typedef enum {
@@ -549,12 +540,7 @@ typedef struct FuvFsEvent {
 
 int isFuvLoop(FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
-void startErrorHandle(uv_loop_t *loop,
-        FuvLoopData *ldata,
-        FklVM *exe,
-        uint32_t sbp,
-        uint32_t stp,
-        FklVMframe *buttom_frame);
+void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe);
 void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
 
 static inline int fuvLoopIsClosed(const FuvLoop *l) {
@@ -563,6 +549,7 @@ static inline int fuvLoopIsClosed(const FuvLoop *l) {
 static inline void fuvLoopSetClosed(FuvLoop *l) {
     l->data.mode = -1;
     l->data.is_closed = 1;
+    l->data.error_occured = 0;
 }
 
 void fuvHandleClose(FuvHandle *h, uv_close_cb cb);

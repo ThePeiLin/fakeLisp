@@ -559,7 +559,6 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
     FklVMvalue *mode_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
-    FklVMframe *origin_top_frame = exe->top_frame;
     fuv_loop->data.exe = exe;
     int need_continue = 0;
     int mode = UV_RUN_DEFAULT;
@@ -573,28 +572,26 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
         if (mode > UV_RUN_NOWAIT)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     }
-    jmp_buf buf;
-    fuv_loop->data.buf = &buf;
-    if (setjmp(buf)) {
+
+    fuv_loop->data.mode = mode;
+    fuv_loop->data.error_occured = 0;
+    fklUnlockThread(exe);
+    int r = uv_run(&fuv_loop->loop, mode);
+    fklLockThread(exe);
+
+    if (r < 0) {
+        need_continue = 1;
+        fklPushVMrasieErrorFrame(exe, createUvError(r, exe, ctx->pd));
+    } else if (fuv_loop->data.error_occured) {
         need_continue = 1;
         fklPushVMrasieErrorFrame(exe, FKL_VM_POP_TOP_VALUE(exe));
     } else {
-        fuv_loop->data.mode = mode;
-        fklUnlockThread(exe);
-        int r = uv_run(&fuv_loop->loop, mode);
-        fklLockThread(exe);
-        if (r < 0) {
-            need_continue = 1;
-            fklPushVMrasieErrorFrame(exe, createUvError(r, exe, ctx->pd));
-        } else {
-            FKL_CPROC_RETURN(exe, ctx, loop_obj);
-        }
-        while (exe->top_frame != origin_top_frame)
-            fklPopVMframe(exe);
+        FKL_CPROC_RETURN(exe, ctx, loop_obj);
     }
+
+    fuv_loop->data.error_occured = 0;
     fuv_loop->data.mode = -1;
     fuv_loop->data.exe = NULL;
-    fuv_loop->data.buf = NULL;
     exe->state = FKL_VM_READY;
     return need_continue;
 }
@@ -607,9 +604,6 @@ struct WalkCtx {
 static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
     struct WalkCtx *walk_ctx = arg;
     if (walk_ctx->ev)
-        return;
-    FuvLoopData *floop_data = uv_loop_get_data(uv_handle_get_loop(handle));
-    if (handle == (uv_handle_t *)&floop_data->error_check_idle)
         return;
     FklVM *exe = walk_ctx->exe;
     uint32_t const old_tp = exe->tp;
@@ -825,11 +819,12 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
         uv_loop_t *loop,
         FuvLoopData *loop_data,
         int idx) {
+    if (loop_data->error_occured)
+        return;
     FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
         fklLockThread(exe);
-        uint32_t const sbp = exe->bp;
         uint32_t const stp = exe->tp;
         FklVMframe *buttom_frame = exe->top_frame;
         exe->state = FKL_VM_READY;
@@ -837,7 +832,7 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
         FKL_VM_PUSH_VALUE(exe, proc);
         fklCallObj(exe, proc);
         if (exe->thread_run_cb(exe, buttom_frame)) {
-            startErrorHandle(loop, loop_data, exe, sbp, stp, buttom_frame);
+            startErrorHandle(loop, loop_data, exe);
             fuvHandleClose(fuv_handle, NULL);
         } else
             exe->tp = stp;
@@ -1259,11 +1254,12 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
         int idx,
         CallbackValueCreator creator,
         void *arg) {
+    if (loop_data->error_occured)
+        return;
     FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
         fklLockThread(exe);
-        uint32_t const sbp = exe->bp;
         uint32_t const stp = exe->tp;
         FklVMframe *buttom_frame = exe->top_frame;
         exe->state = FKL_VM_READY;
@@ -1273,12 +1269,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
             creator(exe, arg);
         fklCallObj(exe, proc);
         if (exe->thread_run_cb(exe, buttom_frame)) {
-            startErrorHandle(uv_handle_get_loop(handle),
-                    loop_data,
-                    exe,
-                    sbp,
-                    stp,
-                    buttom_frame);
+            startErrorHandle(uv_handle_get_loop(handle), loop_data, exe);
             fuvHandleClose(fuv_handle, NULL);
         } else
             exe->tp = stp;
@@ -1947,6 +1938,8 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
         return;
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, rdata->loop);
     FuvLoopData *ldata = &fuv_loop->data;
+    if (ldata->error_occured)
+        return;
     FklVM *exe = ldata->exe;
     if (proc == NULL || exe == NULL) {
         fuvReqCleanUp(fuv_req);
@@ -1955,7 +1948,6 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
     fklLockThread(exe);
 
     exe->state = FKL_VM_READY;
-    uint32_t const sbp = exe->bp;
     uint32_t const stp = exe->tp;
     FklVMframe *buttom_frame = exe->top_frame;
     fklSetBp(exe);
@@ -1968,7 +1960,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
     fuvReqCleanUp(fuv_req);
     fklCallObj(exe, proc);
     if (exe->thread_run_cb(exe, buttom_frame))
-        startErrorHandle(&fuv_loop->loop, ldata, exe, sbp, stp, buttom_frame);
+        startErrorHandle(&fuv_loop->loop, ldata, exe);
     else
         exe->tp = stp;
     fklUnlockThread(exe);

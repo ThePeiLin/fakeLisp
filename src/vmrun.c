@@ -88,7 +88,7 @@ static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
     }
 }
 
-void fklDoPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
+void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
     if (name) {
         fprintf(fp, "at cproc: ");
         fklPrintRawSymbolWithCstr(name, fp);
@@ -100,7 +100,7 @@ void fklDoPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
 static void cproc_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     FklVMcproc *cproc = FKL_VM_CPROC(c->proc);
-    fklDoPrintCprocBacktrace(cproc->name, fp, gc);
+    fklPrintCprocBacktrace(cproc->name, fp, gc);
 }
 
 static void cproc_frame_atomic(void *data, FklVMgc *gc) {
@@ -217,15 +217,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     return exe;
 }
 
-void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, FklVMgc *gc) {
-    void (*backtrace)(void *data, FILE *, FklVMgc *) = f->t->print_backtrace;
-    if (backtrace)
-        backtrace(f->data, fp, gc);
-    else
-        fprintf(fp, "at callable-obj\n");
-}
-
-void fklDoFinalizeObjFrame(FklVM *vm, FklVMframe *f) {
+static inline void do_finalize_obj_frame(FklVM *vm, FklVMframe *f) {
     if (f->t->finalizer)
         f->t->finalizer(fklGetFrameData(f));
     f->prev = NULL;
@@ -254,7 +246,7 @@ static inline void close_all_var_ref(FklVMCompoundFrameVarRef *lr) {
     }
 }
 
-void fklDoFinalizeCompoundFrame(FklVM *exe, FklVMframe *frame) {
+static inline void do_finalize_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklVMCompoundFrameVarRef *lr = &frame->c.lr;
     close_all_var_ref(lr);
     fklZfree(lr->lref);
@@ -262,6 +254,13 @@ void fklDoFinalizeCompoundFrame(FklVM *exe, FklVMframe *frame) {
     frame->prev = NULL;
     *(exe->frame_cache_tail) = frame;
     exe->frame_cache_tail = &frame->prev;
+}
+
+void fklDestroyVMframe(FklVMframe *frame, FklVM *exe) {
+    if (frame->type == FKL_FRAME_OTHEROBJ)
+        do_finalize_obj_frame(exe, frame);
+    else
+        do_finalize_compound_frame(exe, frame);
 }
 
 typedef struct {
@@ -318,29 +317,10 @@ void fklPopVMframe(FklVM *exe) {
     FklVMframe *f = popFrame(exe);
     switch (f->type) {
     case FKL_FRAME_COMPOUND:
-        fklDoFinalizeCompoundFrame(exe, f);
+        do_finalize_compound_frame(exe, f);
         break;
     case FKL_FRAME_OTHEROBJ:
-        fklDoFinalizeObjFrame(exe, f);
-        break;
-    }
-}
-
-static inline void doAtomicFrame(FklVMframe *f, FklVMgc *gc) {
-    if (f->t->atomic)
-        f->t->atomic(fklGetFrameData(f), gc);
-}
-
-void fklDoAtomicFrame(FklVMframe *f, FklVMgc *gc) {
-    switch (f->type) {
-    case FKL_FRAME_COMPOUND:
-        for (FklVMvarRefList *l = fklGetCompoundFrameLocRef(f)->lrefl; l;
-                l = l->next)
-            fklVMgcToGray(l->ref, gc);
-        fklVMgcToGray(fklGetCompoundFrameProc(f), gc);
-        break;
-    case FKL_FRAME_OTHEROBJ:
-        doAtomicFrame(f, gc);
+        do_finalize_obj_frame(exe, f);
         break;
     }
 }
@@ -376,7 +356,7 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
 void fklTailCallObj(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *frame = exe->top_frame;
     exe->top_frame = frame->prev;
-    fklDoFinalizeObjFrame(exe, frame);
+    do_finalize_obj_frame(exe, frame);
     fklCallObj(exe, proc);
 }
 
@@ -623,6 +603,11 @@ start:
 #include "vmreturn.h"
 #undef RETURN_INCLUDE
 
+FKL_ALWAYS_INLINE static inline int do_callable_obj_frame_step(FklVMframe *f,
+        struct FklVM *exe) {
+    return f->t->step(fklGetFrameData(f), exe);
+}
+
 int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
     jmp_buf buf;
     for (;;) {
@@ -634,9 +619,9 @@ int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
                 execute_compound_frame(exe, curframe);
                 break;
             case FKL_FRAME_OTHEROBJ:
-                if (fklDoCallableObjFrameStep(curframe, exe))
+                if (do_callable_obj_frame_step(curframe, exe))
                     continue;
-                fklDoFinalizeObjFrame(exe, popFrame(exe));
+                do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
             if (exe->top_frame == exit_frame)
@@ -727,9 +712,9 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                 execute_compound_frame(exe, curframe);
                 break;
             case FKL_FRAME_OTHEROBJ:
-                if (fklDoCallableObjFrameStep(curframe, exe))
+                if (do_callable_obj_frame_step(curframe, exe))
                     continue;
-                fklDoFinalizeObjFrame(exe, popFrame(exe));
+                do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
             if (atomic_load(&(exe)->notice_lock))
@@ -787,9 +772,9 @@ static void vm_thread_cb(void *arg) {
                 execute_compound_frame(exe, curframe);
                 break;
             case FKL_FRAME_OTHEROBJ:
-                if (fklDoCallableObjFrameStep(curframe, exe))
+                if (do_callable_obj_frame_step(curframe, exe))
                     continue;
-                fklDoFinalizeObjFrame(exe, popFrame(exe));
+                do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
             if (atomic_load(&(exe)->notice_lock))
@@ -834,11 +819,11 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                     fklVMinterrupt(exe, FKL_VM_NIL, NULL);
                 break;
             case FKL_FRAME_OTHEROBJ:
-                if (fklDoCallableObjFrameStep(curframe, exe))
+                if (do_callable_obj_frame_step(curframe, exe))
                     continue;
                 if (atomic_load(&(exe)->notice_lock))
                     NOTICE_LOCK(exe);
-                fklDoFinalizeObjFrame(exe, popFrame(exe));
+                do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
             if (exe->top_frame == exit_frame)
@@ -896,11 +881,11 @@ static void vm_trapping_thread_cb(void *arg) {
                     fklVMinterrupt(exe, FKL_VM_NIL, NULL);
                 break;
             case FKL_FRAME_OTHEROBJ:
-                if (fklDoCallableObjFrameStep(curframe, exe))
+                if (do_callable_obj_frame_step(curframe, exe))
                     continue;
                 if (atomic_load(&(exe)->notice_lock))
                     NOTICE_LOCK(exe);
-                fklDoFinalizeObjFrame(exe, popFrame(exe));
+                do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
             if (exe->top_frame == NULL)

@@ -44,6 +44,21 @@ static inline void remove_closed_var_ref(FklVM *exe) {
             remove_closed_var_ref_from_list(&f->c.lr.lrefl);
 }
 
+static inline void do_atomic_frame(FklVMframe *f, FklVMgc *gc) {
+    switch (f->type) {
+    case FKL_FRAME_COMPOUND:
+        for (FklVMvarRefList *l = fklGetCompoundFrameLocRef(f)->lrefl; l;
+                l = l->next)
+            fklVMgcToGray(l->ref, gc);
+        fklVMgcToGray(fklGetCompoundFrameProc(f), gc);
+        break;
+    case FKL_FRAME_OTHEROBJ:
+        if (f->t->atomic)
+            f->t->atomic(fklGetFrameData(f), gc);
+        break;
+    }
+}
+
 static inline void gc_mark_root_to_gray(FklVM *exe) {
     remove_closed_var_ref(exe);
     mark_atexit(exe);
@@ -51,7 +66,7 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     FklVMgc *gc = exe->gc;
 
     for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev)
-        fklDoAtomicFrame(cur, gc);
+        do_atomic_frame(cur, gc);
 
     FklVMvalue **base = exe->base;
     for (uint32_t i = 0; i < exe->tp; i++)

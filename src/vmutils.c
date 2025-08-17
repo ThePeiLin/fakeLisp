@@ -103,6 +103,14 @@ static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
     return FKL_VM_PROC(frame->c.proc)->codeObj;
 }
 
+static inline void print_back_trace(FklVMframe *f, FILE *fp, FklVMgc *gc) {
+    void (*backtrace)(void *data, FILE *, FklVMgc *) = f->t->print_backtrace;
+    if (backtrace)
+        backtrace(f->data, fp, gc);
+    else
+        fprintf(fp, "at callable-obj\n");
+}
+
 void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
     if (cur->type == FKL_FRAME_COMPOUND) {
         FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
@@ -143,7 +151,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
         } else
             fprintf(fp, " (%u)\n", node->line);
     } else
-        fklDoPrintBacktrace(cur, fp, exe->gc);
+        print_back_trace(cur, fp, exe->gc);
 }
 
 void fklPrintBacktrace(FklVM *exe, FILE *fp) {
@@ -241,13 +249,6 @@ FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t) {
     r->type = FKL_FRAME_OTHEROBJ;
     r->t = t;
     return r;
-}
-
-void fklDestroyVMframe(FklVMframe *frame, FklVM *exe) {
-    if (frame->type == FKL_FRAME_OTHEROBJ)
-        fklDoFinalizeObjFrame(exe, frame);
-    else
-        fklDoFinalizeCompoundFrame(exe, frame);
 }
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,

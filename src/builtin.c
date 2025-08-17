@@ -1724,7 +1724,7 @@ static int read_frame_step(void *d, FklVM *exe) {
 }
 
 static void read_frame_print_backtrace(void *d, FILE *fp, FklVMgc *gc) {
-    fklDoPrintCprocBacktrace(((ReadCtx *)d)->name, fp, gc);
+    fklPrintCprocBacktrace(((ReadCtx *)d)->name, fp, gc);
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable = {
@@ -2564,7 +2564,7 @@ static inline void init_custom_parse_ctx(void *data,
 
 static inline void
 custom_parse_frame_print_backtrace(void *d, FILE *fp, FklVMgc *gc) {
-    fklDoPrintCprocBacktrace(((CustomParseCtx *)d)->name, fp, gc);
+    fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, fp, gc);
 }
 
 static const FklVMframeContextMethodTable CustomParseContextMethodTable = {

@@ -333,22 +333,13 @@ typedef struct FklVMframe {
 #define FKL_VM_VALUE_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMvalue, data)
 #define FKL_VM_UDATA_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMud, data)
 
-void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, struct FklVMgc *table);
 void fklCallObj(struct FklVM *exe, FklVMvalue *);
 void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
-void fklDoAtomicFrame(FklVMframe *f, struct FklVMgc *);
 
 FKL_ALWAYS_INLINE static inline void *fklGetFrameData(FklVMframe *f) {
     return f->data;
 }
 
-FKL_ALWAYS_INLINE static inline int fklDoCallableObjFrameStep(FklVMframe *f,
-        struct FklVM *exe) {
-    return f->t->step(fklGetFrameData(f), exe);
-}
-
-void fklDoFinalizeObjFrame(struct FklVM *, FklVMframe *f);
-void fklDoFinalizeCompoundFrame(struct FklVM *exe, FklVMframe *frame);
 void fklCloseVMvalueVarRef(FklVMvalue *ref);
 int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 
@@ -1101,7 +1092,7 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *,
         FklVMvalue *pd,
         const char *name);
 
-void fklDoPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc);
+void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc);
 
 void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
 FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);

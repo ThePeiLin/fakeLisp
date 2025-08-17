@@ -32,7 +32,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 &VM->base[F->c.sp],
                 value_count * sizeof(FklVMvalue *));
         VM->tp = F->bp - 1 + value_count;
-        fklDoFinalizeCompoundFrame(VM, popFrame(VM));
+        do_finalize_compound_frame(VM, popFrame(VM));
         return;
     return_value_err:
         fprintf(stderr,

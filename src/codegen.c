@@ -11208,21 +11208,18 @@ static const FklVMframeContextMethodTable MacroExpandMethodTable = {
     .print_backtrace = macro_expand_frame_backtrace,
 };
 
-static void insert_macro_expand_frame(FklVM *exe,
-        FklVMframe *mainframe,
+static void push_macro_expand_frame(FklVM *exe,
         FklNastNode **ptr,
         FklLineNumHashMap *lineHash,
         FklSymbolTable *symbolTable,
         uint64_t curline) {
-    FklVMframe *f = fklCreateOtherObjVMframe(exe,
-            &MacroExpandMethodTable,
-            mainframe->prev);
-    mainframe->prev = f;
+    FklVMframe *f = fklCreateOtherObjVMframe(exe, &MacroExpandMethodTable);
     MacroExpandCtx *ctx = (MacroExpandCtx *)f->data;
     ctx->retval = ptr;
     ctx->lineHash = lineHash;
     ctx->symbolTable = symbolTable;
     ctx->curline = curline;
+    fklPushVMframe(f, exe);
 }
 
 static inline void update_new_codegen_to_new_vm_lib(FklVM *exe,
@@ -11270,16 +11267,13 @@ FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
         exe = fklCreateVM(NULL, gc);
         FklVMvalue *code_obj = fklCreateVMvalueCodeObj(exe, bcl);
         FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id);
+
+        push_macro_expand_frame(exe, pr, lineHash, public_st, curline);
+
         fklInitMainProcRefs(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
         fklCallObj(exe, proc);
-        insert_macro_expand_frame(exe,
-                exe->top_frame,
-                pr,
-                lineHash,
-                public_st,
-                curline);
         initVMframeFromPatternMatchTable(exe,
                 exe->top_frame,
                 ht,
@@ -11299,18 +11293,12 @@ FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
         update_new_codegen_to_new_vm_lib(exe, macro_libraries, pts);
         return exe;
     } else {
-        FklVM *exe = fklCreateVMwithByteCode(fklCopyByteCodelnt(bcl),
+        FklVM *exe = fklCreateVMwithByteCode(NULL,
                 public_st,
                 public_kt,
                 pts,
                 prototype_id,
                 0);
-        insert_macro_expand_frame(exe,
-                exe->top_frame,
-                pr,
-                lineHash,
-                public_st,
-                curline);
 
         FklVMgc *gc = exe->gc;
         gc->lib_num = macro_libraries->size;
@@ -11323,13 +11311,23 @@ FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
             if (cur->type == FKL_CODEGEN_LIB_SCRIPT)
                 fklInitMainProcRefs(exe, gc->libs[i + 1].proc);
         }
-        FklVMframe *mainframe = exe->top_frame;
+
+        FklVMvalue *code_obj = fklCreateVMvalueCodeObj(exe, bcl);
+        FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id);
+        fklInitMainProcRefs(exe, proc);
+
+        push_macro_expand_frame(exe, pr, lineHash, public_st, curline);
+
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
+        fklCallObj(exe, proc);
         initVMframeFromPatternMatchTable(exe,
-                mainframe,
+                exe->top_frame,
                 ht,
                 lineHash,
                 pts,
                 prototype_id);
+
         outer_ctx->gc = exe->gc;
         gc = outer_ctx->gc;
         return exe;

@@ -173,56 +173,6 @@ void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {
     longjmp(*exe->buf, FKL_VM_ERR_RAISE);
 }
 
-FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *f,
-        FklVMframe *prev) {
-    FklVMframe *tmp = (FklVMframe *)fklZmalloc(sizeof(FklVMframe));
-    FKL_ASSERT(tmp);
-    tmp->type = FKL_FRAME_COMPOUND;
-    tmp->prev = prev;
-    tmp->errorCallBack = f->errorCallBack;
-    FklVMCompoundFrameData *fd = &tmp->c;
-    const FklVMCompoundFrameData *pfd = &f->c;
-    fd->sid = pfd->sid;
-    fd->pc = pfd->pc;
-    fd->spc = pfd->spc;
-    fd->end = pfd->end;
-    fd->proc = FKL_VM_NIL;
-    fd->proc = pfd->proc;
-    fd->mark = pfd->mark;
-    FklVMCompoundFrameVarRef *lr = &fd->lr;
-    const FklVMCompoundFrameVarRef *plr = &pfd->lr;
-    *lr = *plr;
-    FklVMvalue **lref = plr->lref ? fklCopyMemory(plr->lref,
-                                            sizeof(FklVMvalue *) * plr->lcount)
-                                  : NULL;
-    FklVMvarRefList *nl = NULL;
-    for (FklVMvarRefList *ll = lr->lrefl; ll; ll = ll->next) {
-        FklVMvarRefList *rl =
-                (FklVMvarRefList *)fklZmalloc(sizeof(FklVMvarRefList));
-        FKL_ASSERT(rl);
-        rl->ref = ll->ref;
-        rl->next = nl;
-        nl = rl;
-    }
-    lr->lref = lref;
-    lr->lrefl = nl;
-    return tmp;
-}
-
-FklVMframe *fklCopyVMframe(FklVM *target_vm, FklVMframe *f, FklVMframe *prev) {
-    switch (f->type) {
-    case FKL_FRAME_COMPOUND:
-        return fklCreateVMframeWithCompoundFrame(f, prev);
-        break;
-    case FKL_FRAME_OTHEROBJ: {
-        FklVMframe *r = fklCreateNewOtherObjVMframe(f->t, prev);
-        fklDoCopyObjFrameContext(f, r, target_vm);
-        return r;
-    } break;
-    }
-    return NULL;
-}
-
 static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
     lr->lcount = 0;
     lr->lref = NULL;
@@ -231,8 +181,7 @@ static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
     lr->lrefl = NULL;
 }
 
-FklVMframe *
-fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *proc, FklVMframe *prev) {
+FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
     FklVMproc *code = FKL_VM_PROC(proc);
     FklVMframe *frame;
     if (exe->frame_cache_head) {
@@ -240,13 +189,12 @@ fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *proc, FklVMframe *prev) {
         exe->frame_cache_head = frame->prev;
         if (frame->prev == NULL)
             exe->frame_cache_tail = &exe->frame_cache_head;
+        memset(frame, 0, sizeof(FklVMframe));
     } else {
-        frame = (FklVMframe *)fklZmalloc(sizeof(FklVMframe));
+        frame = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
         FKL_ASSERT(frame);
     }
-    frame->errorCallBack = NULL;
     frame->type = FKL_FRAME_COMPOUND;
-    frame->prev = prev;
 
     FklVMCompoundFrameData *f = &frame->c;
     f->sid = 0;
@@ -269,32 +217,27 @@ fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *proc, FklVMframe *prev) {
 }
 
 FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
-        const FklVMframeContextMethodTable *t,
-        FklVMframe *prev) {
+        const FklVMframeContextMethodTable *t) {
     FklVMframe *r;
     if (exe->frame_cache_head) {
         r = exe->frame_cache_head;
         exe->frame_cache_head = r->prev;
         if (r->prev == NULL)
             exe->frame_cache_tail = &exe->frame_cache_head;
+        memset(r, 0, sizeof(FklVMframe));
     } else {
-        r = (FklVMframe *)fklZmalloc(sizeof(FklVMframe));
+        r = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
         FKL_ASSERT(r);
     }
     r->bp = exe->bp;
-    r->prev = prev;
-    r->errorCallBack = NULL;
     r->type = FKL_FRAME_OTHEROBJ;
     r->t = t;
     return r;
 }
 
-FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t,
-        FklVMframe *prev) {
+FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t) {
     FklVMframe *r = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
     FKL_ASSERT(r);
-    r->prev = prev;
-    r->errorCallBack = NULL;
     r->type = FKL_FRAME_OTHEROBJ;
     r->t = t;
     return r;

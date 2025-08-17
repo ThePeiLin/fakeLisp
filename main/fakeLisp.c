@@ -1279,9 +1279,9 @@ static int repl_frame_step(void *data, FklVM *exe) {
             proc->end = proc->spc + mainCode->bc->len;
 
             exe->base[1] = fctx->mainProc;
-            FklVMframe *mainframe = fklCreateVMframeWithProcValue(exe,
-                    fctx->mainProc,
-                    exe->top_frame);
+            FklVMframe *mainframe =
+                    fklCreateVMframeWithProc(exe, fctx->mainProc);
+            fklPushVMframe(mainframe, exe);
             mainframe->c.lr.lrefl = fctx->lrefl;
             mainframe->c.lr.lref = fctx->lref;
             FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
@@ -1566,9 +1566,8 @@ static int eval_frame_step(void *data, FklVM *exe) {
         proc->end = proc->spc + mainCode->bc->len;
 
         exe->base[1] = ctx->c->mainProc;
-        FklVMframe *mainframe = fklCreateVMframeWithProcValue(exe,
-                ctx->c->mainProc,
-                exe->top_frame);
+        FklVMframe *mainframe = fklCreateVMframeWithProc(exe, ctx->c->mainProc);
+        fklPushVMframe(mainframe, exe);
         mainframe->c.lr.lrefl = fctx->lrefl;
         mainframe->c.lr.lref = fctx->lref;
         FklVMCompoundFrameVarRef *f = &mainframe->c.lr;
@@ -1668,13 +1667,10 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         FklCodegenEnv *main_env,
         const char *eval_expression,
         int8_t interactive) {
-    FklVMframe *replFrame = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
-    FKL_ASSERT(replFrame);
-    replFrame->prev = NULL;
+    FklVMframe *replFrame =
+            fklCreateNewOtherObjVMframe(&ReplContextMethodTable);
     replFrame->errorCallBack = replErrorCallBack;
     exe->top_frame = replFrame;
-    replFrame->type = FKL_FRAME_OTHEROBJ;
-    replFrame->t = &ReplContextMethodTable;
     ReplCtx *ctx = FKL_TYPE_CAST(ReplCtx *, replFrame->data);
     ctx->c = (struct ReplFrameCtx *)fklZcalloc(1, sizeof(struct ReplFrameCtx));
     FKL_ASSERT(ctx->c);

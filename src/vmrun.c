@@ -42,8 +42,7 @@ push_old_locv(FklVM *exe, uint32_t llast, FklVMvalue **locv) {
 
 // call compound procedure
 static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
-    FklVMframe *tmpFrame =
-            fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);
+    FklVMframe *tmpFrame = fklCreateVMframeWithProc(exe, proc);
     uint32_t lcount = FKL_VM_PROC(proc)->lcount;
     fklVMframeSetBp(exe, tmpFrame, lcount);
     FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
@@ -80,8 +79,7 @@ static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
     if (fklGetCompoundFrameProc(frame) == proc) {
         frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
     } else {
-        FklVMframe *tmpFrame =
-                fklCreateVMframeWithProcValue(exe, proc, exe->top_frame->prev);
+        FklVMframe *tmpFrame = fklCreateVMframeWithProc(exe, proc);
         uint32_t lcount = FKL_VM_PROC(proc)->lcount;
         fklVMframeSetBp(exe, tmpFrame, lcount);
         FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
@@ -138,8 +136,7 @@ initCprocFrameContext(void *data, FklVMvalue *proc, FklVM *exe) {
 }
 
 static inline void callCproc(FklVM *exe, FklVMvalue *cproc) {
-    FklVMframe *f =
-            fklCreateOtherObjVMframe(exe, &CprocContextMethodTable, NULL);
+    FklVMframe *f = fklCreateOtherObjVMframe(exe, &CprocContextMethodTable);
     initCprocFrameContext(f->data, cproc, exe);
     fklPushVMframe(f, exe);
 }
@@ -317,7 +314,7 @@ static const FklVMframeContextMethodTable RaiseErrorContextMethodTable = {
 
 void fklPushVMrasieErrorFrame(FklVM *exe, FklVMvalue *err) {
     FklVMframe *f =
-            fklCreateOtherObjVMframe(exe, &RaiseErrorContextMethodTable, NULL);
+            fklCreateOtherObjVMframe(exe, &RaiseErrorContextMethodTable);
     RaiseErrorFrameContext *ctx =
             FKL_TYPE_CAST(RaiseErrorFrameContext *, f->data);
     ctx->error = err;
@@ -327,25 +324,6 @@ void fklPushVMrasieErrorFrame(FklVM *exe, FklVMvalue *err) {
 void fklPushVMframe(FklVMframe *f, FklVM *exe) {
     f->prev = exe->top_frame;
     exe->top_frame = f;
-}
-
-FklVMframe *fklMoveVMframeToTop(FklVM *exe, FklVMframe *f) {
-    FklVMframe *prev = exe->top_frame;
-    for (; prev && prev->prev != f; prev = prev->prev)
-        ;
-    if (prev) {
-        prev->prev = f->prev;
-        f->prev = exe->top_frame;
-        exe->top_frame = f;
-    }
-    return prev;
-}
-
-void fklInsertTopVMframeAsPrev(FklVM *exe, FklVMframe *prev) {
-    FklVMframe *f = exe->top_frame;
-    exe->top_frame = f->prev;
-    f->prev = prev->prev;
-    prev->prev = f;
 }
 
 static inline FklVMframe *popFrame(FklVM *exe) {
@@ -396,8 +374,7 @@ void fklDoAtomicFrame(FklVMframe *f, FklVMgc *gc) {
         break;
 
 static inline void apply_compound_proc(FklVM *exe, FklVMvalue *proc) {
-    FklVMframe *tmpFrame =
-            fklCreateVMframeWithProcValue(exe, proc, exe->top_frame);
+    FklVMframe *tmpFrame = fklCreateVMframeWithProc(exe, proc);
     uint32_t lcount = FKL_VM_PROC(proc)->lcount;
     fklVMframeSetBp(exe, tmpFrame, lcount);
     FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;

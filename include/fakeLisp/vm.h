@@ -977,8 +977,7 @@ void fklPrintBacktrace(FklVM *, FILE *fp);
 
 void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 
-FklVMframe *
-fklCreateVMframeWithProcValue(FklVM *exe, FklVMvalue *, FklVMframe *);
+FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *);
 
 void fklInitClosedVMvalueVarRef(FklVMvalueVarRef *ref, FklVMvalue *v);
 
@@ -1413,10 +1412,8 @@ void fklPushVMrasieErrorFrame(FklVM *exe, FklVMvalue *err);
 void fklPushVMframe(FklVMframe *, FklVM *exe);
 
 FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
-        const FklVMframeContextMethodTable *t,
-        FklVMframe *prev);
-FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t,
-        FklVMframe *prev);
+        const FklVMframeContextMethodTable *t);
+FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t);
 
 static inline FklFuncPrototype *
 fklGetCompoundFrameProcPrototype(const FklVMframe *f, FklVM *exe) {
@@ -1434,9 +1431,6 @@ FKL_ALWAYS_INLINE static inline FklOpcode fklGetCompoundFrameOp(FklVMframe *f) {
 }
 
 void fklVMcompoundFrameReturn(FklVM *exe);
-FklVMframe *fklCreateVMframeWithCompoundFrame(const FklVMframe *,
-        FklVMframe *prev);
-FklVMframe *fklCopyVMframe(FklVM *, FklVMframe *, FklVMframe *prev);
 void fklDestroyVMframes(FklVMframe *h);
 
 void fklDestroyVMlib(FklVMlib *lib);

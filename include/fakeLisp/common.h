@@ -80,12 +80,16 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define FKL_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define FKL_ASSERT(exp) assert(exp)
+
+#ifdef NDEBUG
+#define FKL_UNREACHABLE() __FKL_UNREACHABLE()
+#else
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \
-        __FKL_UNREACHABLE();                                                   \
         fprintf(stderr, "[%s: %d] unreachable!\n", __REL_FILE__, __LINE__);    \
         abort();                                                               \
     } while (0)
+#endif
 
 #define FKL_REMOVE_CONST(T, V) ((T *)(V))
 #define FKL_TYPE_CAST(T, V) ((T)(V))

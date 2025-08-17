@@ -740,6 +740,12 @@ typedef struct FuvRandom {
     uint8_t buf[1];
 } FuvRandom;
 
+typedef struct FuvFsReqArgs {
+    FklVMvalue *dir_obj;
+    size_t len;
+    const char *str;
+} FuvFsReqArgs;
+
 int isFuvReq(const FklVMvalue *v);
 void fuvReqCleanUp(FuvReq *req);
 static inline int isFuvReqCanceled(const FuvReq *req) {
@@ -816,13 +822,14 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe,
         uint32_t count);
 
 int isFuvFsReq(FklVMvalue *v);
+
 struct FuvFsReq *createFuvFsReq(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback,
-        FklVMvalue *dir_obj,
-        unsigned int len);
+        const FuvFsReqArgs *args);
+
 void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption);
 
 int isFuvRandom(FklVMvalue *v);

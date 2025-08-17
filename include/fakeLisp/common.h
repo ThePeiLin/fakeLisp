@@ -82,7 +82,11 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_ASSERT(exp) assert(exp)
 
 #ifdef NDEBUG
-#define FKL_UNREACHABLE() __FKL_UNREACHABLE()
+#define FKL_UNREACHABLE()                                                      \
+    do {                                                                       \
+        __FKL_UNREACHABLE();                                                   \
+        abort();                                                               \
+    } while (0)
 #else
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \

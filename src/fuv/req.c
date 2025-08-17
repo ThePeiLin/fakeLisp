@@ -1,5 +1,6 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/vm.h>
+#include <string.h>
 
 #include "fuv.h"
 
@@ -268,8 +269,12 @@ struct FuvFsReq *createFuvFsReq(FklVM *exe,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback,
-        FklVMvalue *dir_obj,
-        unsigned int len) {
+        const FuvFsReqArgs *args) {
+
+    size_t len = args ? args->len : 0;
+    const char *str = args ? args->str : NULL;
+    FklVMvalue *dir_obj = args ? args->dir_obj : NULL;
+
     FklVMvalue *v = fklCreateVMvalueUd2(exe,
             &ReqMetaTables[UV_FS],
             len * sizeof(char),
@@ -277,6 +282,9 @@ struct FuvFsReq *createFuvFsReq(FklVM *exe,
     FKL_DECL_VM_UD_DATA(req, FuvFsReq, v);
     init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
     req->buf = uv_buf_init(req->base, len);
+    if (len && str) {
+        memcpy(req->buf.base, str, len * sizeof(char));
+    }
     if (dir_obj)
         req->dir = refFuvDir(dir_obj, v);
     *ret = v;

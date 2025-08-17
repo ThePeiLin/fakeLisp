@@ -5274,8 +5274,7 @@ static int fuv_fs_close(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5427,8 +5426,7 @@ static int fuv_fs_open(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5491,8 +5489,7 @@ static int fuv_fs_read(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            len);
+            &(const FuvFsReqArgs){ .len = len });
 
     FS_CALL(exe,
             ctx->pd,
@@ -5527,8 +5524,7 @@ static int fuv_fs_unlink(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5583,9 +5579,7 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            buf.index);
-    memcpy(req->buf.base, buf.buf, sizeof(char) * buf.index);
+            &(const FuvFsReqArgs){ .len = buf.index, .str = buf.buf });
     fklUninitStringBuffer(&buf);
 
     FS_CALL(exe,
@@ -5630,8 +5624,7 @@ static int fuv_fs_mkdir(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5664,8 +5657,7 @@ static int fuv_fs_mkdtemp(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5697,8 +5689,7 @@ static int fuv_fs_mkstemp(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5730,8 +5721,7 @@ static int fuv_fs_rmdir(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -5778,8 +5768,7 @@ static int fuv_fs_opendir(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
     req->nentries = nentries;
 
     FS_CALL(exe,
@@ -5817,8 +5806,7 @@ static int fuv_fs_closedir(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            dir_obj,
-            0);
+            &(const FuvFsReqArgs){ .dir_obj = dir_obj });
 
     uv_dir_t *d = dir->dir;
     cleanUpDir(dir->dir, FUV_DIR_CLEANUP_FREE_DIRENTS);
@@ -5849,8 +5837,7 @@ static int fuv_fs_readdir(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            dir_obj,
-            0);
+            &(const FuvFsReqArgs){ .dir_obj = dir_obj });
 
     FS_CALL(exe,
             ctx->pd,
@@ -5913,8 +5900,7 @@ static int fuv_fs_scandir(FKL_CPROC_ARGL) {
                 FKL_VM_CPROC(ctx->proc)->dll,
                 loop_obj,
                 cb_obj,
-                NULL,
-                0);
+                NULL);
         ret = uv_fs_scandir(&fuv_loop->loop,
                 &req->req,
                 FKL_VM_STR(path_obj)->str,
@@ -5926,8 +5912,7 @@ static int fuv_fs_scandir(FKL_CPROC_ARGL) {
                 FKL_VM_CPROC(ctx->proc)->dll,
                 loop_obj,
                 NULL,
-                NULL,
-                0);
+                NULL);
         ret = uv_fs_scandir(&fuv_loop->loop,
                 &req->req,
                 FKL_VM_STR(path_obj)->str,
@@ -5981,8 +5966,7 @@ static int fuv_fs_stat(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6014,8 +5998,7 @@ static int fuv_fs_fstat(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6047,8 +6030,7 @@ static int fuv_fs_lstat(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6080,8 +6062,7 @@ static int fuv_fs_statfs(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6115,8 +6096,7 @@ static int fuv_fs_rename(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
     req->dest_path = new_path_obj;
 
     FS_CALL(exe,
@@ -6148,8 +6128,7 @@ static int fuv_fs_fsync(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6179,8 +6158,7 @@ static int fuv_fs_fdatasync(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6212,8 +6190,7 @@ static int fuv_fs_ftruncate(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6287,8 +6264,7 @@ static int fuv_fs_copyfile(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
     req->dest_path = new_path_obj;
 
     FS_CALL(exe,
@@ -6330,8 +6306,7 @@ static int fuv_fs_sendfile(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6402,8 +6377,7 @@ static int fuv_fs_access(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6436,8 +6410,7 @@ static int fuv_fs_chmod(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6470,8 +6443,7 @@ static int fuv_fs_fchmod(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6508,8 +6480,7 @@ static int fuv_fs_utime(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6547,8 +6518,7 @@ static int fuv_fs_futime(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6586,8 +6556,7 @@ static int fuv_fs_lutime(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6623,8 +6592,7 @@ static int fuv_fs_link(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
     req->dest_path = new_path_obj;
 
     FS_CALL(exe,
@@ -6697,8 +6665,7 @@ static int fuv_fs_symlink(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
     req->dest_path = new_path_obj;
 
     FS_CALL(exe,
@@ -6733,8 +6700,7 @@ static int fuv_fs_readlink(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6766,8 +6732,7 @@ static int fuv_fs_realpath(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6803,8 +6768,7 @@ static int fuv_fs_chown(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6842,8 +6806,7 @@ static int fuv_fs_fchown(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,
@@ -6881,8 +6844,7 @@ static int fuv_fs_lchown(FKL_CPROC_ARGL) {
             FKL_VM_CPROC(ctx->proc)->dll,
             loop_obj,
             cb_obj,
-            NULL,
-            0);
+            NULL);
 
     FS_CALL(exe,
             ctx->pd,

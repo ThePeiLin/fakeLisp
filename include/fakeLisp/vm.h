@@ -307,7 +307,6 @@ typedef struct {
     void (*print_backtrace)(void *data, FILE *fp, struct FklVMgc *);
     void (*atomic)(void *data, struct FklVMgc *);
     void (*finalizer)(void *data);
-    void (*copy)(void *dst, const void *src, struct FklVM *);
 } FklVMframeContextMethodTable;
 
 struct FklVMframe;
@@ -338,7 +337,6 @@ void fklDoPrintBacktrace(FklVMframe *f, FILE *fp, struct FklVMgc *table);
 void fklCallObj(struct FklVM *exe, FklVMvalue *);
 void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
 void fklDoAtomicFrame(FklVMframe *f, struct FklVMgc *);
-void fklDoCopyObjFrameContext(FklVMframe *, FklVMframe *, struct FklVM *exe);
 
 FKL_ALWAYS_INLINE static inline void *fklGetFrameData(FklVMframe *f) {
     return f->data;

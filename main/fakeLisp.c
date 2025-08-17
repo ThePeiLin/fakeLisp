@@ -1383,7 +1383,6 @@ static void repl_frame_finalizer(void *data) {
 static const FklVMframeContextMethodTable ReplContextMethodTable = {
     .atomic = repl_frame_atomic,
     .finalizer = repl_frame_finalizer,
-    .copy = NULL,
     .print_backtrace = repl_frame_print_backtrace,
     .step = repl_frame_step,
 };
@@ -1623,7 +1622,6 @@ static int eval_frame_step(void *data, FklVM *exe) {
 static const FklVMframeContextMethodTable EvalContextMethodTable = {
     .atomic = repl_frame_atomic,
     .finalizer = repl_frame_finalizer,
-    .copy = NULL,
     .print_backtrace = repl_frame_print_backtrace,
     .step = eval_frame_step,
 };

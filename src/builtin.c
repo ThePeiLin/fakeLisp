@@ -1730,7 +1730,6 @@ static void read_frame_print_backtrace(void *d, FILE *fp, FklVMgc *gc) {
 static const FklVMframeContextMethodTable ReadContextMethodTable = {
     .atomic = read_frame_atomic,
     .finalizer = read_frame_finalizer,
-    .copy = NULL,
     .print_backtrace = read_frame_print_backtrace,
     .step = read_frame_step,
 };
@@ -1921,7 +1920,6 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 static const FklVMframeContextMethodTable CustomReadContextMethodTable = {
     .atomic = read_frame_atomic,
     .finalizer = read_frame_finalizer,
-    .copy = NULL,
     .print_backtrace = read_frame_print_backtrace,
     .step = custom_read_frame_step,
 };
@@ -3432,30 +3430,11 @@ static void error_handler_frame_finalizer(void *data) {
     fklZfree(c->err_handlers);
 }
 
-static void error_handler_frame_copy(void *d, const void *s, FklVM *exe) {
-    const EhFrameContext *const sc = FKL_TYPE_CAST(const EhFrameContext *, s);
-    EhFrameContext *dc = FKL_TYPE_CAST(EhFrameContext *, d);
-    dc->proc = sc->proc;
-    size_t num = sc->num;
-    dc->num = num;
-    if (num == 0)
-        dc->err_handlers = NULL;
-    else {
-        dc->err_handlers = (FklVMpair *)fklZmalloc(num * sizeof(FklVMpair));
-        FKL_ASSERT(dc->err_handlers);
-    }
-
-    for (size_t i = 0; i < num; i++) {
-        dc->err_handlers[i] = sc->err_handlers[i];
-    }
-}
-
 static int error_handler_frame_step(void *data, FklVM *exe) { return 0; }
 
 static const FklVMframeContextMethodTable ErrorHandlerContextMethodTable = {
     .atomic = error_handler_frame_atomic,
     .finalizer = error_handler_frame_finalizer,
-    .copy = error_handler_frame_copy,
     .print_backtrace = error_handler_frame_print_backtrace,
     .step = error_handler_frame_step,
 };

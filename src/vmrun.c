@@ -108,12 +108,6 @@ static void cproc_frame_atomic(void *data, FklVMgc *gc) {
     fklVMgcToGray(c->proc, gc);
 }
 
-static void cproc_frame_copy(void *d, const void *s, FklVM *exe) {
-    FklCprocFrameContext const *const sc = (FklCprocFrameContext *)s;
-    FklCprocFrameContext *dc = (FklCprocFrameContext *)d;
-    *dc = *sc;
-}
-
 static int cproc_frame_step(void *data, FklVM *exe) {
     FklCprocFrameContext *c = FKL_TYPE_CAST(FklCprocFrameContext *, data);
     return c->func(exe, c, FKL_CPROC_GET_ARG_NUM(exe, c));
@@ -121,7 +115,6 @@ static int cproc_frame_step(void *data, FklVM *exe) {
 
 static const FklVMframeContextMethodTable CprocContextMethodTable = {
     .atomic = cproc_frame_atomic,
-    .copy = cproc_frame_copy,
     .print_backtrace = cproc_frame_print_backtrace,
     .step = cproc_frame_step,
 };
@@ -271,10 +264,6 @@ void fklDoFinalizeCompoundFrame(FklVM *exe, FklVMframe *frame) {
     exe->frame_cache_tail = &frame->prev;
 }
 
-void fklDoCopyObjFrameContext(FklVMframe *s, FklVMframe *d, FklVM *exe) {
-    s->t->copy(fklGetFrameData(d), fklGetFrameData(s), exe);
-}
-
 typedef struct {
     FklVMvalue *error;
 } RaiseErrorFrameContext;
@@ -284,12 +273,6 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(RaiseErrorFrameContext);
 static void raise_error_frame_atomic(void *data, FklVMgc *gc) {
     RaiseErrorFrameContext *c = (RaiseErrorFrameContext *)data;
     fklVMgcToGray(c->error, gc);
-}
-
-static void raise_error_frame_copy(void *d, const void *s, FklVM *exe) {
-    RaiseErrorFrameContext const *const sc = (RaiseErrorFrameContext *)s;
-    RaiseErrorFrameContext *dc = (RaiseErrorFrameContext *)d;
-    *dc = *sc;
 }
 
 static void
@@ -307,7 +290,6 @@ static int raise_error_frame_step(void *data, FklVM *exe) {
 
 static const FklVMframeContextMethodTable RaiseErrorContextMethodTable = {
     .atomic = raise_error_frame_atomic,
-    .copy = raise_error_frame_copy,
     .print_backtrace = raise_error_frame_print_backtrace,
     .step = raise_error_frame_step,
 };

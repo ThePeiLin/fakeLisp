@@ -64,7 +64,25 @@ typedef struct FklCodegenEnv {
 
     FklPredefHashMap pdef;
     struct FklPreDefRefVector ref_pdef;
+
+    int is_debugging;
 } FklCodegenEnv;
+
+typedef struct {
+    FklCodegenEnv *top_env;
+    int no_refs_to_builtins;
+    void (*process_def)(const FklSymDefHashMapMutElm *ref,
+            const FklSymDefHashMapElm *def,
+            FklFuncPrototype *,
+            const FklUnReSymbolRef *uref,
+            void *args);
+    void *process_def_args;
+} FklProcessUnresolveRefArgs;
+
+void fklProcessUnresolveRef(FklCodegenEnv *env,
+        uint32_t scope,
+        FklFuncPrototypes *cp,
+        const FklProcessUnresolveRefArgs *args);
 
 void fklUpdatePrototype(FklFuncPrototypes *cp,
         FklCodegenEnv *env,

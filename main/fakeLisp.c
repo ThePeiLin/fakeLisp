@@ -775,7 +775,7 @@ insert_local_ref(FklVMCompoundFrameVarRef *lr, FklVMvalue *ref, uint32_t cidx) {
 }
 
 struct ProcessUnresolveRefArg {
-    FklSymDefHashMapElm *def;
+    const FklSymDefHashMapElm *def;
     uint32_t prototypeId;
     uint32_t idx;
 };
@@ -817,7 +817,7 @@ static inline void process_unresolve_work_func(FklVM *exe,
 
     FklVMCompoundFrameVarRef *lr = s->lr;
     for (; cur < end; cur++) {
-        FklSymDefHashMapElm *def = cur->def;
+        const FklSymDefHashMapElm *def = cur->def;
         uint32_t prototypeId = cur->prototypeId;
         uint32_t idx = cur->idx;
         for (FklVMvalue *v = exe->gc->head; v; v = v->next)
@@ -898,20 +898,49 @@ static inline void uninit_process_unresolve_ref_arg_stack(
     s->is_need_update_const_array = 0;
 }
 
+typedef struct {
+    FklVMCompoundFrameVarRef *lr;
+    FklProcessUnresolveRefArgVector *unresolve_refs;
+} ProcessDefArgs;
+
+static void process_def(const FklSymDefHashMapMutElm *ref,
+        const FklSymDefHashMapElm *def,
+        FklFuncPrototype *pts,
+        const FklUnReSymbolRef *uref,
+        void *vargs) {
+
+    const ProcessDefArgs *args = (const ProcessDefArgs *)vargs;
+    FklVMCompoundFrameVarRef *lr = args->lr;
+    FklProcessUnresolveRefArgVector *unresolve_refs = args->unresolve_refs;
+
+    uint32_t prototypeId = uref->prototypeId;
+    uint32_t idx = ref->v.idx;
+    inc_lref(lr, lr->lcount);
+
+    fklProcessUnresolveRefArgVectorPushBack(unresolve_refs,
+            &(struct ProcessUnresolveRefArg){
+                .def = def,
+                .prototypeId = prototypeId,
+                .idx = idx,
+            });
+}
+
 static inline void process_unresolve_ref_and_update_const_array_for_repl(
         FklCodegenEnv *env,
-        FklCodegenEnv *global_env,
+        FklCodegenEnv *top_env,
         FklFuncPrototypes *cp,
         FklVM *exe,
         FklVMframe *mainframe,
         int is_need_update_const_array,
         uint64_t new_lib_count,
         FklVMlib *new_libs) {
-    FklUnReSymbolRefVector *urefs = &env->uref;
+    uint32_t scope = 1;
 
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(mainframe);
 
     struct ProcessUnresolveRefArgs process_unresolve_ref_args = {
+        .lr = lr,
+        .loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
         .is_need_update_const_array = is_need_update_const_array,
         .new_lib_count = new_lib_count,
         .new_libs = new_libs,
@@ -919,59 +948,25 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
 
     FklProcessUnresolveRefArgVector *unresolve_refs =
             &process_unresolve_ref_args.unresolve_refs;
-    fklProcessUnresolveRefArgVectorInit(unresolve_refs, urefs->size);
+    fklProcessUnresolveRefArgVectorInit(unresolve_refs, env->uref.size);
 
-    FklFuncPrototype *pts = cp->pa;
-    FklUnReSymbolRefVector urefs1;
-    fklUnReSymbolRefVectorInit(&urefs1, 16);
-    uint32_t count = urefs->size;
-    for (uint32_t i = 0; i < count; i++) {
-        FklUnReSymbolRef *uref = &urefs->base[i];
-        FklFuncPrototype *cpt = &pts[uref->prototypeId];
-        FklSymDefHashMapMutElm *ref = &cpt->refs[uref->idx];
-        FklSymDefHashMapElm *def =
-                fklFindSymbolDefByIdAndScope(uref->id, uref->scope, env);
-        if (def) {
-            env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
-            ref->v.cidx = def->v.idx;
-            ref->v.isLocal = 1;
-            uint32_t prototypeId = uref->prototypeId;
-            uint32_t idx = ref->v.idx;
-            inc_lref(lr, lr->lcount);
-
-            fklProcessUnresolveRefArgVectorPushBack(unresolve_refs,
-                    &(struct ProcessUnresolveRefArg){
-                        .def = def,
-                        .prototypeId = prototypeId,
-                        .idx = idx,
-                    });
-
-            fklZfree(uref);
-            urefs->base = NULL;
-            urefs->capacity = 0;
-        } else if (env->prev != global_env) {
-            ref->v.cidx = fklAddCodegenRefBySidRetIndex(uref->id,
-                    env,
-                    uref->fid,
-                    uref->line,
-                    uref->assign);
-            fklZfree(uref);
-            urefs->base = NULL;
-            urefs->capacity = 0;
-        } else
-            fklUnReSymbolRefVectorPushBack(&urefs1, uref);
-    }
-    urefs->size = 0;
-    while (!fklUnReSymbolRefVectorIsEmpty(&urefs1))
-        fklUnReSymbolRefVectorPushBack(urefs,
-                fklUnReSymbolRefVectorPopBackNonNull(&urefs1));
-    fklUnReSymbolRefVectorUninit(&urefs1);
+    fklProcessUnresolveRef(env,
+            scope,
+            cp,
+            &(const FklProcessUnresolveRefArgs){
+                .top_env = top_env,
+                .no_refs_to_builtins = 1,
+                .process_def = process_def,
+                .process_def_args = (void *)&(const ProcessDefArgs){ .lr = lr,
+                    .unresolve_refs = unresolve_refs },
+            });
 
     if (unresolve_refs->size || is_need_update_const_array || new_lib_count) {
         fklQueueWorkInIdleThread(exe,
                 process_unresolve_ref_cb,
                 &process_unresolve_ref_args);
     }
+
     uninit_process_unresolve_ref_arg_stack(&process_unresolve_ref_args);
 }
 

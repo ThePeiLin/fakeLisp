@@ -34,6 +34,7 @@ static inline FklCodegenEnv *init_codegen_info_common_helper(DebugCtx *ctx,
     *origin_outer_env = env->prev;
     env->prev = NULL;
     FklCodegenEnv *new_env = fklCreateCodegenEnv(env, ln->scope, NULL);
+    new_env->is_debugging = 1;
     fklInitCodegenInfo(info,
             NULL,
             NULL,
@@ -99,7 +100,6 @@ static inline void resolve_reference(DebugCtx *ctx,
         FklSymDef *ref = fklGetCodegenRefBySid(uref->id, ctx->glob_env);
         if (ref)
             proc->closure[uref->idx] = builtin_refs[ref->cidx];
-        fklZfree(uref);
     }
 }
 

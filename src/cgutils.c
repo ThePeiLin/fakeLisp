@@ -505,6 +505,7 @@ FklSymDefHashMapElm *fklAddCodegenRefBySid(FklSid_t id,
             ret = fklSymDefHashMapInsert2(refs,
                     (FklSidScope){ .id = id, .scope = 0 },
                     (FklSymDef){ .idx = idx, .cidx = idx });
+            ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
             idx = ret->v.idx;
             initUnReSymbolRef(fklUnReSymbolRefVectorPushBack(&env->uref, NULL),
                     id,
@@ -1648,4 +1649,69 @@ void fklReadCodeFile(FILE *fp, FklReadCodeFileArgs *args) {
     args->pts = fklLoadFuncPrototypes(fp);
     args->main_func = fklLoadByteCodelnt(fp);
     load_lib(fp, args);
+}
+
+typedef void (*FklProcessDefFunc)(const FklSymDefHashMapMutElm *ref,
+        const FklSymDefHashMapElm *def,
+        FklFuncPrototype *,
+        const FklUnReSymbolRef *uref,
+        void *args);
+
+void fklProcessUnresolveRef(FklCodegenEnv *env,
+        uint32_t scope,
+        FklFuncPrototypes *cp,
+        const FklProcessUnresolveRefArgs *args) {
+
+    int no_refs_to_builtins = args ? args->no_refs_to_builtins : 0;
+    FklProcessDefFunc process_def = args ? args->process_def : NULL;
+    FklCodegenEnv *top_env = args ? args->top_env : NULL;
+
+    FklUnReSymbolRefVector *urefs = &env->uref;
+    FklFuncPrototype *pa = cp->pa;
+    FklUnReSymbolRefVector urefs1;
+    uint32_t count = urefs->size;
+
+    fklUnReSymbolRefVectorInit(&urefs1, count);
+    for (uint32_t i = 0; i < count; i++) {
+        FklUnReSymbolRef *uref = &urefs->base[i];
+        if (uref->scope < scope) {
+            // 忽略来自父作用域的未解决引用
+            fklUnReSymbolRefVectorPushBack(&urefs1, uref);
+            continue;
+        }
+
+        FklFuncPrototype *cpt = &pa[uref->prototypeId];
+        FklSymDefHashMapMutElm *ref = &cpt->refs[uref->idx];
+        const FklSymDefHashMapElm *def =
+                fklFindSymbolDefByIdAndScope(uref->id, uref->scope, env);
+
+        if (def) {
+            env->slotFlags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
+            ref->v.cidx = def->v.idx;
+            ref->v.isLocal = 1;
+
+            if (process_def) {
+                process_def(ref, def, cpt, uref, args->process_def_args);
+            }
+        } else if (env->scopes[uref->scope - 1].p) {
+            uref->scope = env->scopes[uref->scope - 1].p;
+            fklUnReSymbolRefVectorPushBack(&urefs1, uref);
+        } else if (env->prev != top_env) {
+            ref->v.cidx = fklAddCodegenRefBySidRetIndex(uref->id,
+                    env,
+                    uref->fid,
+                    uref->line,
+                    uref->assign);
+        } else {
+            if (!no_refs_to_builtins) {
+                fklAddCodegenBuiltinRefBySid(uref->id, env);
+            }
+            fklUnReSymbolRefVectorPushBack(&urefs1, uref);
+        }
+    }
+    urefs->size = 0;
+    while (!fklUnReSymbolRefVectorIsEmpty(&urefs1))
+        fklUnReSymbolRefVectorPushBack(urefs,
+                fklUnReSymbolRefVectorPopBackNonNull(&urefs1));
+    fklUnReSymbolRefVectorUninit(&urefs1);
 }

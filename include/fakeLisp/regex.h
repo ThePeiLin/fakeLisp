@@ -4,7 +4,6 @@
 #include "base.h"
 #include "code_builder.h"
 #include "common.h"
-#include "zmalloc.h"
 
 #include <stdalign.h>
 #include <stddef.h>
@@ -75,7 +74,7 @@ typedef struct {
 
 void fklRegexFree(FklRegexCode *);
 
-static inline void fklStrRegexKeyFree(FklString *s) { fklZfree(s); }
+void fklStrRegexKeyFree(FklString *s);
 
 // FklStrRegexHashMap
 #define FKL_HASH_KEY_TYPE FklString *

@@ -413,12 +413,7 @@ static void codegenlib_initer(FklReadCodeFileArgs *read_args,
         FKL_ASSERT(rp);
         strncpy(rp, dll_name->str, dll_name->size);
         strcat(rp, FKL_DLL_FILE_TYPE);
-        fklInitCodegenDllLib(lib,
-                rp,
-                tlib,
-                NULL,
-                dll_init,
-                read_args->runtime_st);
+        fklInitCodegenDllLib(lib, rp, tlib, dll_init, read_args->runtime_st);
     } break;
     case FKL_CODEGEN_LIB_UNINIT:
         FKL_UNREACHABLE();
@@ -450,7 +445,7 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
     fputs("\nreader macros:\n", fp);
     for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
         fputs("group name:", fp);
-        fklPrintRawSymbol(fklGetSymbolWithId(l->k, pst)->k, fp);
+        fklPrintRawSymbol(fklGetSymbolWithId(l->k, pst), fp);
 
         if (l->v.g.ignores) {
             fputs("\nignores:\n", fp);
@@ -486,7 +481,7 @@ static void print_replacements(const FklReplacementHashMap *replacements,
     fputs("\nreplacements:\n", fp);
     for (const FklReplacementHashMapNode *cur = replacements->first; cur;
             cur = cur->next) {
-        fklPrintRawSymbol(fklGetSymbolWithId(cur->k, pst)->k, fp);
+        fklPrintRawSymbol(fklGetSymbolWithId(cur->k, pst), fp);
         fputs(" => ", fp);
         fklPrintNastNode(cur->v, fp, pst);
         fputc('\n', fp);

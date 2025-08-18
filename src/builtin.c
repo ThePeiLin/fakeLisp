@@ -951,7 +951,7 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
         retval = fklCreateVMvalueStr2(exe, 1, &r);
     } else if (FKL_IS_SYM(obj))
         retval = fklCreateVMvalueStr(exe,
-                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj))->k);
+                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj)));
     else if (FKL_IS_STR(obj))
         retval = fklCreateVMvalueStr(exe, FKL_VM_STR(obj));
     else if (fklIsVMnumber(obj)) {
@@ -1025,7 +1025,7 @@ static int builtin_symbol_to_string(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_SYM, exe);
     FklVMvalue *retval = fklCreateVMvalueStr(exe,
-            fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj))->k);
+            fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(obj)));
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
 }
@@ -2087,7 +2087,7 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(FklVMvec *vec,
         return VALUE_TO_GRAMMER_SYM_ERR_INVALID;
 
     const FklString *builtin_term_name =
-            fklVMgetSymbolWithId(gc, FKL_GET_SYM(first))->k;
+            fklVMgetSymbolWithId(gc, FKL_GET_SYM(first));
 
     if (fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
                 sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
@@ -2157,7 +2157,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
         s->str = fklAddString(&g->terminals, FKL_VM_STR(v));
         fklAddString(&g->delimiters, FKL_VM_STR(v));
     } else if (FKL_IS_SYM(v)) {
-        const FklString *str = fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k;
+        const FklString *str = fklVMgetSymbolWithId(gc, FKL_GET_SYM(v));
 
         if (fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
                     sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
@@ -2213,7 +2213,7 @@ static inline ValueToGrammerSymErr vm_vec_to_production_right_part(
         FklVMvalue *cur = vec->base[i];
         if (FKL_IS_SYM(cur)
                 && is_concat_sym(
-                        fklVMgetSymbolWithId(args->gc, FKL_GET_SYM(cur))->k)) {
+                        fklVMgetSymbolWithId(args->gc, FKL_GET_SYM(cur)))) {
             if (!has_ignore) {
                 args->error_value = cur;
                 err = VALUE_TO_GRAMMER_SYM_ERR_INVALID;

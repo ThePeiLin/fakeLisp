@@ -2150,7 +2150,7 @@ static CODEGEN_FUNC(codegen_do1) {
 static inline FklSid_t get_sid_in_gs_with_id_in_ps(FklSid_t id,
         FklSymbolTable *gs,
         FklSymbolTable *ps) {
-    return fklAddSymbol(fklGetSymbolWithId(id, ps)->k, gs)->v;
+    return fklAddSymbol(fklGetSymbolWithId(id, ps), gs)->v;
 }
 
 static inline FklSid_t get_sid_with_idx(FklCodegenEnvScope *sc,
@@ -2405,7 +2405,7 @@ static inline FklByteCodelnt *processArgsInStack(FklSidVector *stack,
 
 static inline FklSymDefHashMapMutElm *sid_ht_to_idx_key_ht(
         FklSymDefHashMap *sht,
-        FklSymbolTable *globalSymTable,
+        FklSymbolTable *runtime_st,
         FklSymbolTable *pst) {
     FklSymDefHashMapMutElm *refs;
     if (!sht->count)
@@ -2417,9 +2417,9 @@ static inline FklSymDefHashMapMutElm *sid_ht_to_idx_key_ht(
     }
     FklSymDefHashMapNode *list = sht->first;
     for (; list; list = list->next) {
-        FklSid_t sid = fklAddSymbol(fklGetSymbolWithId(list->k.id, pst)->k,
-                globalSymTable)
-                               ->v;
+        FklSid_t sid =
+                fklAddSymbol(fklGetSymbolWithId(list->k.id, pst), runtime_st)
+                        ->v;
         refs[list->v.idx] =
                 (FklSymDefHashMapMutElm){ .k = (FklSidScope){ sid, 0 },
                     .v = (FklSymDef){ list->v.idx,
@@ -2808,8 +2808,8 @@ static CODEGEN_FUNC(codegen_or) {
 
 void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
         FklCodegenEnv *env,
-        FklSymbolTable *globalSymTable,
-        FklSymbolTable *pst) {
+        FklSymbolTable *runtime_st,
+        const FklSymbolTable *pst) {
     FKL_ASSERT(env->pdef.count == 0);
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
     FklSymDefHashMap *eht = &env->refs;
@@ -2826,9 +2826,9 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
     pts->refs = refs;
     pts->rcount = count;
     for (FklSymDefHashMapNode *list = eht->first; list; list = list->next) {
-        FklSid_t sid = fklAddSymbol(fklGetSymbolWithId(list->k.id, pst)->k,
-                globalSymTable)
-                               ->v;
+        const FklString *sym = fklGetSymbolWithId(list->k.id, pst);
+        FklSid_t sid = fklAddSymbol(sym, runtime_st)->v;
+
         refs[list->v.idx] =
                 (FklSymDefHashMapMutElm){ .k = (FklSidScope){ .id = sid,
                                               .scope = list->k.scope },
@@ -2840,13 +2840,13 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
 
 void fklUpdatePrototype(FklFuncPrototypes *cp,
         FklCodegenEnv *env,
-        FklSymbolTable *globalSymTable,
-        FklSymbolTable *pst) {
+        FklSymbolTable *runtime_st,
+        const FklSymbolTable *pst) {
     FKL_ASSERT(env->pdef.count == 0);
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
     pts->lcount = env->lcount;
     process_unresolve_ref(env, 1, cp);
-    fklUpdatePrototypeRef(cp, env, globalSymTable, pst);
+    fklUpdatePrototypeRef(cp, env, runtime_st, pst);
 }
 
 FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev,
@@ -3009,13 +3009,12 @@ BC_PROCESS(_def_const_exp_bc_process) {
         errorState->type = FKL_ERR_ASSIGN_CONSTANT;
         errorState->line = assign_uref->line;
         errorState->place = place;
+        const FklString *sym = fklGetSymbolWithId(assign_uref->fid,
+                codegen->runtime_symbol_table);
+
         errorState->fid =
                 assign_uref->fid
-                        ? fklAddSymbol(fklGetSymbolWithId(assign_uref->fid,
-                                               codegen->runtime_symbol_table)
-                                               ->k,
-                                  &outer_ctx->public_symbol_table)
-                                  ->v
+                        ? fklAddSymbol(sym, &outer_ctx->public_symbol_table)->v
                         : 0;
         return NULL;
     }
@@ -3125,7 +3124,7 @@ static CODEGEN_FUNC(codegen_defun) {
             origExp->curline,
             pst);
     FklNastNode *name_str = fklCreateNastNode(FKL_NAST_STR, name->curline);
-    name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst)->k);
+    name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst));
     fklReplacementHashMapAdd2(lambdaCodegenEnv->macros->replacements,
             fklAddSymbolCstr("*func*", pst)->v,
             name_str);
@@ -3202,7 +3201,7 @@ static CODEGEN_FUNC(codegen_defun_const) {
             origExp->curline,
             pst);
     FklNastNode *name_str = fklCreateNastNode(FKL_NAST_STR, name->curline);
-    name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst)->k);
+    name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst));
     fklReplacementHashMapAdd2(lambdaCodegenEnv->macros->replacements,
             fklAddSymbolCstr("*func*", pst)->v,
             name_str);
@@ -5283,7 +5282,7 @@ static inline char *combineFileNameFromListAndCheckPrivate(
     for (const FklNastNode *curPair = list; curPair->type == FKL_NAST_PAIR;
             curPair = curPair->pair->cdr) {
         FklNastNode *cur = curPair->pair->car;
-        const FklString *str = fklGetSymbolWithId(cur->sym, pst)->k;
+        const FklString *str = fklGetSymbolWithId(cur->sym, pst);
         if (curPair != list && str->str[0] == '_') {
             fklZfree(r);
             return NULL;
@@ -5296,7 +5295,6 @@ static inline char *combineFileNameFromListAndCheckPrivate(
 }
 
 static void add_symbol_to_local_env_in_array(FklCodegenEnv *env,
-        FklSymbolTable *symbolTable,
         const FklCgExportSidIdxHashMap *exports,
         FklByteCodelnt *bcl,
         FklSid_t fid,
@@ -5316,8 +5314,7 @@ static void add_symbol_to_local_env_in_array(FklCodegenEnv *env,
 }
 
 static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv *env,
-        FklSymbolTable *symbolTable,
-        FklString *prefix,
+        const FklString *prefix,
         const FklCgExportSidIdxHashMap *exports,
         FklByteCodelnt *bcl,
         FklSid_t fid,
@@ -5328,7 +5325,7 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv *env,
     fklInitStringBuffer(&buf);
     for (const FklCgExportSidIdxHashMapNode *l = exports->first; l;
             l = l->next) {
-        FklString *origSymbol = fklGetSymbolWithId(l->k, pst)->k;
+        const FklString *origSymbol = fklGetSymbolWithId(l->k, pst);
         fklStringBufferConcatWithString(&buf, prefix);
         fklStringBufferConcatWithString(&buf, origSymbol);
 
@@ -5347,9 +5344,9 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklCodegenEnv *env,
 }
 
 static FklNastNode *createPatternWithPrefixFromOrig(FklNastNode *orig,
-        FklString *prefix,
+        const FklString *prefix,
         FklSymbolTable *pst) {
-    const FklString *head = fklGetSymbolWithId(orig->pair->car->sym, pst)->k;
+    const FklString *head = fklGetSymbolWithId(orig->pair->car->sym, pst);
     FklString *symbolWithPrefix = fklStringAppend(prefix, head);
     FklNastNode *patternWithPrefix =
             fklNastConsWithSym(fklAddSymbol(symbolWithPrefix, pst)->v,
@@ -5361,11 +5358,11 @@ static FklNastNode *createPatternWithPrefixFromOrig(FklNastNode *orig,
 }
 
 static FklNastNode *add_prefix_for_pattern_origin_exp(FklNastNode *orig,
-        FklString *prefix,
+        const FklString *prefix,
         FklSymbolTable *pst) {
     FklNastNode *retval = fklCopyNastNode(orig);
     FklNastNode *head_node = caadr_nast_node(retval);
-    const FklString *head = fklGetSymbolWithId(head_node->sym, pst)->k;
+    const FklString *head = fklGetSymbolWithId(head_node->sym, pst);
     FklString *symbolWithPrefix = fklStringAppend(prefix, head);
     FklSid_t id = fklAddSymbol(symbolWithPrefix, pst)->v;
     head_node->sym = id;
@@ -5384,11 +5381,11 @@ static FklNastNode *replace_pattern_origin_exp_head(FklNastNode *orig,
 static inline void export_replacement_with_prefix(
         FklReplacementHashMap *replacements,
         FklCodegenMacroScope *macros,
-        FklString *prefix,
+        const FklString *prefix,
         FklSymbolTable *pst) {
     for (FklReplacementHashMapNode *cur = replacements->first; cur;
             cur = cur->next) {
-        FklString *origSymbol = fklGetSymbolWithId(cur->k, pst)->k;
+        const FklString *origSymbol = fklGetSymbolWithId(cur->k, pst);
         FklString *symbolWithPrefix = fklStringAppend(prefix, origSymbol);
         FklSid_t id = fklAddSymbol(symbolWithPrefix, pst)->v;
         fklReplacementHashMapAdd2(macros->replacements, id, cur->v);
@@ -5397,18 +5394,17 @@ static inline void export_replacement_with_prefix(
 }
 
 void fklPrintUndefinedRef(const FklCodegenEnv *env,
-        FklSymbolTable *globalSymTable,
+        FklSymbolTable *runtime_st,
         FklSymbolTable *pst) {
     const FklUnReSymbolRefVector *urefs = &env->uref;
     for (uint32_t i = urefs->size; i > 0; i--) {
         FklUnReSymbolRef *ref = &urefs->base[i - 1];
         fprintf(stderr, "warning: Symbol ");
-        fklPrintRawSymbol(fklGetSymbolWithId(ref->id, pst)->k, stderr);
+        fklPrintRawSymbol(fklGetSymbolWithId(ref->id, pst), stderr);
         fprintf(stderr, " is undefined at line %" PRIu64, ref->line);
         if (ref->fid) {
             fputs(" of ", stderr);
-            fklPrintString(fklGetSymbolWithId(ref->fid, globalSymTable)->k,
-                    stderr);
+            fklPrintString(fklGetSymbolWithId(ref->fid, runtime_st), stderr);
         }
         fputc('\n', stderr);
     }
@@ -5629,7 +5625,6 @@ static inline FklByteCodelnt *process_import_imported_lib_common(uint32_t libId,
             scope);
 
     add_symbol_to_local_env_in_array(curEnv,
-            codegen->runtime_symbol_table,
             &lib->exports,
             load_lib,
             codegen->fid,
@@ -5650,7 +5645,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
         FklNastNode *prefixNode,
         FklCodegenErrorState *errorState,
         FklSymbolTable *pst) {
-    FklString *prefix = fklGetSymbolWithId(prefixNode->sym, pst)->k;
+    const FklString *prefix = fklGetSymbolWithId(prefixNode->sym, pst);
     for (FklCodegenMacro *cur = lib->head; cur; cur = cur->next)
         add_compiler_macro(&macroScope->head,
                 createPatternWithPrefixFromOrig(cur->pattern, prefix, pst),
@@ -5668,7 +5663,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
                 prod_group_item = prod_group_item->next) {
             fklStringBufferConcatWithString(&buffer, prefix);
             fklStringBufferConcatWithString(&buffer,
-                    fklGetSymbolWithId(prod_group_item->k, pst)->k);
+                    fklGetSymbolWithId(prod_group_item->k, pst));
 
             FklSid_t group_id_with_prefix =
                     fklAddSymbolCharBuf(buffer.buf, buffer.index, pst)->v;
@@ -5702,7 +5697,6 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
             scope);
 
     add_symbol_with_prefix_to_local_env_in_array(curEnv,
-            codegen->runtime_symbol_table,
             prefix,
             &lib->exports,
             load_lib,
@@ -6277,12 +6271,11 @@ BC_PROCESS(_export_import_bc_process) {
             place->sym = const_def_id;
             errorState->type = FKL_ERR_ASSIGN_CONSTANT;
             errorState->line = line;
+            const FklString *sym =
+                    fklGetSymbolWithId(fid, codegen->runtime_symbol_table);
+
             errorState->fid =
-                    fid ? fklAddSymbol(fklGetSymbolWithId(fid,
-                                               codegen->runtime_symbol_table)
-                                               ->k,
-                                  &outer_ctx->public_symbol_table)
-                                    ->v
+                    fid ? fklAddSymbol(sym, &outer_ctx->public_symbol_table)->v
                         : 0;
             errorState->place = place;
             goto exit;
@@ -6299,13 +6292,14 @@ BC_PROCESS(_export_import_bc_process) {
                     fklCgExportSidIdxHashMapGet2(exports, id);
             if (item == NULL) {
                 uint32_t idx = exports->count;
+
+                const FklSymDefHashMapElm *idx_elm =
+                        fklGetCodegenDefByIdInScope(id, 1, targetEnv);
+
                 fklCgExportSidIdxHashMapAdd(exports,
                         &id,
                         &(FklCodegenExportIdx){ .idx = idx,
-                            .oidx = fklGetCodegenDefByIdInScope(id,
-                                    1,
-                                    targetEnv)
-                                    ->v.idx });
+                            .oidx = idx_elm->v.idx });
             }
         }
     }
@@ -6818,12 +6812,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(FklNastNode *origExp,
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-        fklInitCodegenDllLib(lib,
-                realpath,
-                dll,
-                codegen->runtime_symbol_table,
-                initExport,
-                pst);
+        fklInitCodegenDllLib(lib, realpath, dll, initExport, pst);
         libId = codegen->libraries->size;
     } else {
         lib = &codegen->libraries->base[libId - 1];
@@ -6899,12 +6888,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-        fklInitCodegenDllLib(lib,
-                realpath,
-                dll,
-                codegen->runtime_symbol_table,
-                initExport,
-                pst);
+        fklInitCodegenDllLib(lib, realpath, dll, initExport, pst);
         libId = codegen->libraries->size;
     } else {
         lib = &codegen->libraries->base[libId - 1];
@@ -6977,12 +6961,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-        fklInitCodegenDllLib(lib,
-                realpath,
-                dll,
-                codegen->runtime_symbol_table,
-                initExport,
-                pst);
+        fklInitCodegenDllLib(lib, realpath, dll, initExport, pst);
         libId = codegen->libraries->size;
     } else {
         lib = &codegen->libraries->base[libId - 1];
@@ -6998,7 +6977,6 @@ static inline FklByteCodelnt *process_import_from_dll_common(
             scope);
 
     add_symbol_to_local_env_in_array(curEnv,
-            codegen->runtime_symbol_table,
             &lib->exports,
             load_dll,
             codegen->fid,
@@ -7041,12 +7019,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-        fklInitCodegenDllLib(lib,
-                realpath,
-                dll,
-                codegen->runtime_symbol_table,
-                initExport,
-                pst);
+        fklInitCodegenDllLib(lib, realpath, dll, initExport, pst);
         libId = codegen->libraries->size;
     } else {
         lib = &codegen->libraries->base[libId - 1];
@@ -7054,7 +7027,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
         fklZfree(realpath);
     }
 
-    FklString *prefix = fklGetSymbolWithId(prefixNode->sym, pst)->k;
+    const FklString *prefix = fklGetSymbolWithId(prefixNode->sym, pst);
 
     FklByteCodelnt *load_dll = append_load_dll_ins(INS_APPEND_BACK,
             NULL,
@@ -7064,7 +7037,6 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
             scope);
 
     add_symbol_with_prefix_to_local_env_in_array(curEnv,
-            codegen->runtime_symbol_table,
             prefix,
             &lib->exports,
             load_dll,
@@ -7109,12 +7081,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(
             return NULL;
         }
         lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-        fklInitCodegenDllLib(lib,
-                realpath,
-                dll,
-                codegen->runtime_symbol_table,
-                initExport,
-                pst);
+        fklInitCodegenDllLib(lib, realpath, dll, initExport, pst);
         libId = codegen->libraries->size;
     } else {
         lib = &codegen->libraries->base[libId - 1];
@@ -9057,8 +9024,7 @@ static inline NastToGrammerSymErr nast_vector_to_builtin_terminal(
     if (first->type != FKL_NAST_SYM)
         return NAST_TO_GRAMMER_SYM_ERR_INVALID;
 
-    const FklString *builtin_term_name =
-            fklGetSymbolWithId(first->sym, g->st)->k;
+    const FklString *builtin_term_name = fklGetSymbolWithId(first->sym, g->st);
     if (fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
                 sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
                 builtin_term_name->str,
@@ -9136,7 +9102,7 @@ static inline NastToGrammerSymErr nast_node_to_grammer_sym(
         s->nt.sid = node->pair->cdr->sym;
         break;
     case FKL_NAST_SYM: {
-        const FklString *str = fklGetSymbolWithId(node->sym, g->st)->k;
+        const FklString *str = fklGetSymbolWithId(node->sym, g->st);
         if (fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
                     sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
                     str->str,
@@ -9212,7 +9178,7 @@ static inline NastToGrammerSymErr nast_vector_to_production_right_part(
         FklGrammerSym s = { .type = FKL_TERM_STRING };
         const FklNastNode *cur = vec->base[i];
         if (cur->type == FKL_NAST_SYM
-                && is_concat_sym(fklGetSymbolWithId(cur->sym, g->st)->k)) {
+                && is_concat_sym(fklGetSymbolWithId(cur->sym, g->st))) {
             if (!has_ignore) {
                 args->err_node = cur;
                 err = NAST_TO_GRAMMER_SYM_ERR_INVALID;
@@ -10084,7 +10050,7 @@ FklByteCode *fklCodegenNode(const FklNastNode *node, FklCodegenInfo *info) {
         case FKL_NAST_SYM:
             append_push_sym_ins_to_bc(INS_APPEND_FRONT,
                     retval,
-                    fklAddSymbol(fklGetSymbolWithId(node->sym, pst)->k,
+                    fklAddSymbol(fklGetSymbolWithId(node->sym, pst),
                             info->runtime_symbol_table)
                             ->v);
             break;
@@ -10994,7 +10960,6 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
 void fklInitCodegenDllLib(FklCodegenLib *lib,
         char *rp,
         uv_lib_t dll,
-        FklSymbolTable *table,
         FklCodegenDllLibInitExportFunc init,
         FklSymbolTable *pst) {
     lib->rp = rp;
@@ -11476,14 +11441,14 @@ write_nonterm(const FklGrammerNonterm *nt, const FklGrammer *g, FILE *fp) {
         str_len = 0;
         fwrite(&str_len, sizeof(str_len), 1, fp);
     } else {
-        const FklString *str = fklGetSymbolWithId(nt->group, g->st)->k;
+        const FklString *str = fklGetSymbolWithId(nt->group, g->st);
         fwrite(str, sizeof(str->size) + str->size, 1, fp);
     }
     if (nt->sid == 0) {
         str_len = 0;
         fwrite(&str_len, sizeof(str_len), 1, fp);
     } else {
-        const FklString *str = fklGetSymbolWithId(nt->sid, g->st)->k;
+        const FklString *str = fklGetSymbolWithId(nt->sid, g->st);
         fwrite(str, sizeof(str->size) + str->size, 1, fp);
     }
 }

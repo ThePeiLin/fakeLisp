@@ -181,7 +181,7 @@ static inline void init_source_codes(DebugCtx *ctx) {
     for (FklSidHashSetNode *sid_list = ctx->file_sid_set.first; sid_list;
             sid_list = sid_list->next) {
         FklSid_t fid = sid_list->k;
-        const FklString *str = fklGetSymbolWithId(fid, ctx->st)->k;
+        const FklString *str = fklGetSymbolWithId(fid, ctx->st);
         BdbSourceCodeHashMapElm *item =
                 bdbSourceCodeHashMapInsert(source_code_table, &fid, NULL);
         load_source_code_to_source_code_hash_item(item, str->str);

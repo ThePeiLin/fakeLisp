@@ -176,7 +176,7 @@ print_line:
             fprintf(stderr,
                     "at line %" PRIu64 " of file %s",
                     obj->curline,
-                    fklGetSymbolWithId(fid, publicSymbolTable)->k->str);
+                    fklGetSymbolWithId(fid, publicSymbolTable)->str);
             fputc('\n', stderr);
         } else if (info->filename) {
             fprintf(stderr,
@@ -191,7 +191,7 @@ print_line:
             fprintf(stderr,
                     "at line %" PRIu64 " of file %s",
                     obj->curline,
-                    fklGetSymbolWithId(fid, publicSymbolTable)->k->str);
+                    fklGetSymbolWithId(fid, publicSymbolTable)->str);
             fputc('\n', stderr);
         } else if (info->filename) {
             fprintf(stderr,

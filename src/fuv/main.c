@@ -1751,7 +1751,7 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
                     hints->ai_protocol = proto;
                 } else if (FKL_IS_SYM(cur)) {
                     const char *name =
-                            fklVMgetSymbolWithId(gc, FKL_GET_SYM(cur))->k->str;
+                            fklVMgetSymbolWithId(gc, FKL_GET_SYM(cur))->str;
                     int proto = get_protonum_with_cstr(name);
                     if (proto < 0)
                         return FKL_ERR_INVALID_VALUE;
@@ -3546,8 +3546,7 @@ static int fuv_socketpair(FKL_CPROC_ARGL) {
         protocol = proto;
     } else if (FKL_IS_SYM(protocol_obj)) {
         const char *name =
-                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(protocol_obj))
-                        ->k->str;
+                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(protocol_obj))->str;
         int proto = get_protonum_with_cstr(name);
         if (proto < 0)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);

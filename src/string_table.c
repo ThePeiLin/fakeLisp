@@ -1,5 +1,7 @@
 #include <fakeLisp/string_table.h>
 
+void fklStrKeyFree(FklString *s) { fklZfree(s); }
+
 void fklInitStringTable(FklStringTable *tmp) { fklStrHashSetInit(tmp); }
 
 FklStringTable *fklCreateStringTable() {

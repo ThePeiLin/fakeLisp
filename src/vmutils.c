@@ -116,7 +116,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
         FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
         if (proc->sid) {
             fprintf(fp, "at proc: ");
-            fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, proc->sid)->k, fp);
+            fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, proc->sid), fp);
         } else if (cur->prev) {
             FklFuncPrototype *pt = fklGetCompoundFrameProcPrototype(cur, exe);
             FklSid_t sid = fklGetCompoundFrameSid(cur);
@@ -126,12 +126,11 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
             }
             if (pt->sid) {
                 fprintf(fp, "at proc: ");
-                fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, pt->sid)->k,
-                        fp);
+                fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, pt->sid), fp);
             } else {
                 fprintf(fp, "at proc: <");
                 if (pt->fid)
-                    fklPrintRawString(fklVMgetSymbolWithId(exe->gc, pt->fid)->k,
+                    fklPrintRawString(fklVMgetSymbolWithId(exe->gc, pt->fid),
                             fp);
                 else
                     fputs("stdin", fp);
@@ -146,7 +145,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
                 codeObj->l);
         if (node->fid) {
             fprintf(fp, " (%u:", node->line);
-            fklPrintString(fklVMgetSymbolWithId(exe->gc, node->fid)->k, fp);
+            fklPrintString(fklVMgetSymbolWithId(exe->gc, node->fid), fp);
             fprintf(fp, ")\n");
         } else
             fprintf(fp, " (%u)\n", node->line);
@@ -163,7 +162,7 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
     uv_mutex_lock(&exe->gc->print_backtrace_lock);
     if (fklIsVMvalueError(ev)) {
         FklVMerror *err = FKL_VM_ERR(ev);
-        fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, err->type)->k, fp);
+        fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, err->type), fp);
         fputs(": ", fp);
         fklPrintString(err->message, fp);
         fputc('\n', fp);
@@ -626,7 +625,7 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS) {
     FklVMproc *proc = FKL_VM_PROC(v);
     if (proc->sid) {
         fprintf(fp, "#<proc ");
-        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, proc->sid)->k, fp);
+        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, proc->sid), fp);
         fputc('>', fp);
     } else
         fprintf(fp, "#<proc %p>", proc);
@@ -664,7 +663,7 @@ static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_sym_ptr_princ(VMVALUE_PRINTER_ARGS) {
-    fklPrintString(fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k, fp);
+    fklPrintString(fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)), fp);
 }
 
 static void vmvalue_chr_ptr_princ(VMVALUE_PRINTER_ARGS) {
@@ -684,7 +683,7 @@ static void princVMatom(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_sym_ptr_prin1(VMVALUE_PRINTER_ARGS) {
-    fklPrintRawSymbol(fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k, fp);
+    fklPrintRawSymbol(fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)), fp);
 }
 
 static void vmvalue_chr_ptr_prin1(VMVALUE_PRINTER_ARGS) {
@@ -891,7 +890,7 @@ static void fix_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS) {
 
 static void sym_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
     print_raw_symbol_to_string_buffer(result,
-            fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k);
+            fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)));
 }
 
 static void chr_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
@@ -929,7 +928,7 @@ static void vmvalue_proc_as_print(VMVALUE_TO_UTSTRING_ARGS) {
     if (proc->sid) {
         fklStringBufferConcatWithCstr(result, "#<proc ");
         print_raw_symbol_to_string_buffer(result,
-                fklVMgetSymbolWithId(gc, proc->sid)->k);
+                fklVMgetSymbolWithId(gc, proc->sid));
         fklStringBufferPutc(result, '>');
     } else
         fklStringBufferPrintf(result, "#<proc %p>", proc);
@@ -1006,7 +1005,7 @@ static void ptr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
 
 static void sym_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
     fklStringBufferConcatWithString(result,
-            fklVMgetSymbolWithId(gc, FKL_GET_SYM(v))->k);
+            fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)));
 }
 
 static void chr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS) {

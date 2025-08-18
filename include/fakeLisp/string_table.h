@@ -2,13 +2,12 @@
 #define FKL_STRING_TABLE_H
 
 #include "base.h"
-#include "zmalloc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static inline void fklStrKeyFree(FklString *s) { fklZfree(s); }
+void fklStrKeyFree(FklString *s);
 
 // FklStrHashSet
 #define FKL_HASH_KEY_TYPE FklString *

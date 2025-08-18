@@ -467,7 +467,7 @@ void fklPrintNastNode(const FklNastNode *exp,
             break;
         case FKL_NAST_RC_SYM:
         case FKL_NAST_SYM:
-            fklPrintRawSymbol(fklGetSymbolWithId(exp->sym, table)->k, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(exp->sym, table), fp);
             break;
         case FKL_NAST_CHR:
             fklPrintRawChar(exp->chr, fp);

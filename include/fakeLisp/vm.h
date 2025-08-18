@@ -806,7 +806,7 @@ void fklVMreleaseSt(FklVMgc *);
 FklStrIdHashMapElm *fklVMaddSymbol(FklVMgc *, const FklString *str);
 FklStrIdHashMapElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
 FklStrIdHashMapElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
-FklStrIdHashMapElm *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
+const FklString *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
 
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
 void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);

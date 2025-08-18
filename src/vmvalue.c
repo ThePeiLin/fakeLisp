@@ -1372,12 +1372,12 @@ _error_userdata_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
 }
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
-        FklString *f) {
+        const FklString *f) {
     fklPrintRawStringToStringBuffer(s, f, "|", "|", '|');
 }
 
 static inline void print_raw_string_to_string_buffer(FklStringBuffer *s,
-        FklString *f) {
+        const FklString *f) {
     fklPrintRawStringToStringBuffer(s, f, "\"", "\"", '"');
 }
 
@@ -1385,8 +1385,7 @@ static void
 _error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
     FKL_DECL_UD_DATA(err, FklVMerror, ud);
     fklStringBufferConcatWithCstr(buf, "#<err t: ");
-    print_raw_symbol_to_string_buffer(buf,
-            fklVMgetSymbolWithId(gc, err->type)->k);
+    print_raw_symbol_to_string_buffer(buf, fklVMgetSymbolWithId(gc, err->type));
     fklStringBufferConcatWithCstr(buf, " m: ");
     print_raw_string_to_string_buffer(buf, err->message);
     fklStringBufferPutc(buf, '>');

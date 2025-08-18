@@ -1678,7 +1678,7 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
 static inline void print_unresolved_terminal(const FklSymbolTable *st,
         const FklGrammerNonterm *nt) {
     fputs("nonterm: ", stderr);
-    fklPrintRawSymbol(fklGetSymbolWithId(nt->sid, st)->k, stderr);
+    fklPrintRawSymbol(fklGetSymbolWithId(nt->sid, st), stderr);
     fputs(" is not defined\n", stderr);
 }
 
@@ -1755,12 +1755,12 @@ static inline void print_prod_sym(FILE *fp,
     case FKL_TERM_NONTERM:
         if (u->nt.group) {
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.group, st)->k, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.group, st), fp);
             fputs(" , ", fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.sid, st)->k, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.sid, st), fp);
             fputc(')', fp);
         } else {
-            fklPrintString(fklGetSymbolWithId(u->nt.sid, st)->k, fp);
+            fklPrintString(fklGetSymbolWithId(u->nt.sid, st), fp);
         }
         break;
     case FKL_TERM_IGNORE:
@@ -1833,7 +1833,7 @@ static inline void print_prod_sym_as_dot(FILE *fp,
         fputs("\\\'", fp);
     } break;
     case FKL_TERM_NONTERM: {
-        const FklString *str = fklGetSymbolWithId(u->nt.sid, st)->k;
+        const FklString *str = fklGetSymbolWithId(u->nt.sid, st);
         fputc('|', fp);
         print_string_as_dot((const uint8_t *)str->str, '|', str->size, fp);
         fputc('|', fp);
@@ -2156,7 +2156,7 @@ static inline void print_item(FILE *fp,
     size_t len = prod->len;
     FklGrammerSym *syms = prod->syms;
     if (!is_Sq_nt(&prod->left))
-        fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
+        fklPrintString(fklGetSymbolWithId(prod->left.sid, st), fp);
     else
         fputs("S'", fp);
     fputs(" ->", fp);
@@ -2209,20 +2209,20 @@ static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
         if (u->nt.group) {
             fklStringBufferPutc(buf, '(');
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(u->nt.group, st)->k,
+                    fklGetSymbolWithId(u->nt.group, st),
                     "|",
                     "|",
                     '|');
             fklStringBufferPrintf(buf, " , ");
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(u->nt.sid, st)->k,
+                    fklGetSymbolWithId(u->nt.sid, st),
                     "|",
                     "|",
                     '|');
             fklStringBufferPutc(buf, ')');
         } else {
             fklStringBufferPrintf(buf,
-                    fklGetSymbolWithId(u->nt.sid, st)->k->str);
+                    fklGetSymbolWithId(u->nt.sid, st)->str);
         }
         break;
     case FKL_TERM_IGNORE:
@@ -2249,20 +2249,20 @@ static inline void print_lalr_item_to_stringbuffer(FklStringBuffer *buf,
         if (prod->left.group) {
             fklStringBufferPutc(buf, '(');
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(prod->left.group, st)->k,
+                    fklGetSymbolWithId(prod->left.group, st),
                     "|",
                     "|",
                     '|');
             fklStringBufferPrintf(buf, " , ");
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(prod->left.sid, st)->k,
+                    fklGetSymbolWithId(prod->left.sid, st),
                     "|",
                     "|",
                     '|');
             fklStringBufferPutc(buf, ')');
         } else {
             fklStringBufferPrintf(buf,
-                    fklGetSymbolWithId(prod->left.sid, st)->k->str);
+                    fklGetSymbolWithId(prod->left.sid, st)->str);
         }
     } else
         fklStringBufferPrintf(buf, "S'");
@@ -2891,7 +2891,7 @@ static inline void print_item_as_dot(FILE *fp,
     size_t len = prod->len;
     FklGrammerSym *syms = prod->syms;
     if (!is_Sq_nt(&prod->left)) {
-        const FklString *str = fklGetSymbolWithId(prod->left.sid, st)->k;
+        const FklString *str = fklGetSymbolWithId(prod->left.sid, st);
         fputc('|', fp);
         print_string_as_dot((const uint8_t *)str->str, '"', str->size, fp);
         fputc('|', fp);
@@ -3514,7 +3514,7 @@ void fklPrintAnalysisTable(const FklGrammer *grammer,
         for (FklAnalysisStateGoto *gt = curState->state.gt; gt; gt = gt->next) {
             uintptr_t idx = gt->state - states;
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid, st)->k, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid, st), fp);
             fprintf(fp, " , %" PRIu64 ")", idx);
             fputc('\t', fp);
         }
@@ -3732,7 +3732,7 @@ static inline void print_table_header_for_grapheasy(
     for (FklNontermHashSetNode *sl = sid->first; sl; sl = sl->next) {
         fputc('|', fp);
         fputs("\\|", fp);
-        print_symbol_for_grapheasy(fklGetSymbolWithId(sl->k.sid, st)->k, fp);
+        print_symbol_for_grapheasy(fklGetSymbolWithId(sl->k.sid, st), fp);
         fputs("\\|", fp);
     }
     fputs("||\n", fp);
@@ -4249,11 +4249,11 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
                         CB_LINE("else if(!start_with_ignore&&left==%" PRIu64
                                 "/* %s */){",
                                 gt->nt.sid,
-                                fklGetSymbolWithId(gt->nt.sid, g->st)->k->str);
+                                fklGetSymbolWithId(gt->nt.sid, g->st)->str);
                     else
                         CB_LINE("else if(left==%" PRIu64 "/* %s */){",
                                 gt->nt.sid,
-                                fklGetSymbolWithId(gt->nt.sid, g->st)->k->str);
+                                fklGetSymbolWithId(gt->nt.sid, g->st)->str);
                     CB_INDENT(flag) {
                         CB_LINE("pfunc->func=state_%" PRIu64 ";",
                                 gt->state - states);
@@ -4599,12 +4599,12 @@ void fklPrintGrammerProduction(FILE *fp,
     if (!is_Sq_nt(&prod->left)) {
         if (prod->left.group) {
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.group, st)->k, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.group, st), fp);
             fputs(" , ", fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
+            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.sid, st), fp);
             fputc(')', fp);
         } else {
-            fklPrintString(fklGetSymbolWithId(prod->left.sid, st)->k, fp);
+            fklPrintString(fklGetSymbolWithId(prod->left.sid, st), fp);
         }
     } else
         fputs("S'", fp);

@@ -250,7 +250,7 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL) {
             if (line_str) {
                 FklVMvalue *line_str_value = fklCreateVMvalueStr(exe, line_str);
                 FklVMvalue *file_str_value = fklCreateVMvalueStr(exe,
-                        fklGetSymbolWithId(ln->fid, dctx->st)->k);
+                        fklGetSymbolWithId(ln->fid, dctx->st));
 
                 FklVMvalue *line_num_value = FKL_MAKE_VM_FIX(ln->line);
                 FklVMvalue *r = fklCreateVMvalueVec3(exe,
@@ -272,7 +272,7 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL) {
 static inline FklVMvalue *
 create_breakpoint_vec(FklVM *exe, DebugCtx *dctx, const Breakpoint *bp) {
     FklVMvalue *filename =
-            fklCreateVMvalueStr(exe, fklGetSymbolWithId(bp->fid, dctx->st)->k);
+            fklCreateVMvalueStr(exe, fklGetSymbolWithId(bp->fid, dctx->st));
     FklVMvalue *line = FKL_MAKE_VM_FIX(bp->line);
     FklVMvalue *num = FKL_MAKE_VM_FIX(bp->idx);
 
@@ -388,8 +388,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
 
     if (FKL_IS_SYM(file_line_sym_obj)) {
         FklSid_t id = fklAddSymbol(
-                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(file_line_sym_obj))
-                        ->k,
+                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(file_line_sym_obj)),
                 dctx->st)
                               ->v;
         item = putBreakpointForProcedure(dctx, id);
@@ -796,7 +795,7 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe,
     case FKL_OP_PUSH_SYM_C:
     case FKL_OP_PUSH_SYM_X: {
         FklSid_t id =
-                fklVMaddSymbol(exe->gc, fklGetSymbolWithId(arg.ux, dctx->st)->k)
+                fklVMaddSymbol(exe->gc, fklGetSymbolWithId(arg.ux, dctx->st))
                         ->v;
         imm1 = FKL_MAKE_VM_SYM(id);
     } break;

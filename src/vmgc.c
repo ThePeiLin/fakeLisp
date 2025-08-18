@@ -578,9 +578,9 @@ fklVMaddSymbolCharBuf(FklVMgc *gc, const char *str, size_t size) {
     return r;
 }
 
-FklStrIdHashMapElm *fklVMgetSymbolWithId(FklVMgc *gc, FklSid_t id) {
+const FklString *fklVMgetSymbolWithId(FklVMgc *gc, FklSid_t id) {
     uv_rwlock_rdlock(&gc->st_lock);
-    FklStrIdHashMapElm *r = fklGetSymbolWithId(id, gc->st);
+    const FklString *r = fklGetSymbolWithId(id, gc->st);
     uv_rwlock_rdunlock(&gc->st_lock);
     return r;
 }

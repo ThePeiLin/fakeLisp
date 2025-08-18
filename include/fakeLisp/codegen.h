@@ -69,12 +69,12 @@ typedef struct FklCodegenEnv {
 void fklUpdatePrototype(FklFuncPrototypes *cp,
         FklCodegenEnv *env,
         FklSymbolTable *runtime_st,
-        FklSymbolTable *pst);
+        const FklSymbolTable *pst);
 
 void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
         FklCodegenEnv *env,
-        FklSymbolTable *globalSymTable,
-        FklSymbolTable *pst);
+        FklSymbolTable *runtime_st,
+        const FklSymbolTable *pst);
 
 typedef struct FklCodegenMacro {
     FklNastNode *origin_exp;
@@ -586,7 +586,6 @@ FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t *dll);
 void fklInitCodegenDllLib(FklCodegenLib *lib,
         char *rp,
         uv_lib_t dll,
-        FklSymbolTable *table,
         FklCodegenDllLibInitExportFunc init,
         FklSymbolTable *pst);
 

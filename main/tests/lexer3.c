@@ -100,7 +100,7 @@ static inline FklGrammer *create_grammer_with_cstr(FklSymbolTable *st,
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
-        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
+        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st), stderr);
         fputs(" is not defined\n", stderr);
         fklDestroyGrammer(g);
         return NULL;

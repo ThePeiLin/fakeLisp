@@ -2,7 +2,6 @@
 #define FKL_SYMBOL_H
 
 #include "base.h"
-#include "zmalloc.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -13,24 +12,18 @@ extern "C" {
 
 typedef uint64_t FklSid_t;
 
-static inline void fklStrIdKeyFree(FklString *s) { fklZfree(s); }
-
 // FklStrIdHashMap
 #define FKL_HASH_KEY_TYPE FklString *
 #define FKL_HASH_VAL_TYPE FklSid_t
 #define FKL_HASH_ELM_NAME StrId
 #define FKL_HASH_KEY_HASH return fklStringHash(*pk);
 #define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#define FKL_HASH_KEY_UNINIT(K)                                                 \
-    {                                                                          \
-        fklStrIdKeyFree(*(K));                                                 \
-    }
 #include "cont/hash.h"
 
 typedef struct FklSymboTable {
     FklSid_t num;
     size_t idl_size;
-    FklStrIdHashMapElm **idl;
+    FklString **idl;
     FklStrIdHashMap ht;
 } FklSymbolTable;
 
@@ -40,7 +33,7 @@ FklSymbolTable *fklCreateSymbolTable(void);
 FklStrIdHashMapElm *fklAddSymbol(const FklString *, FklSymbolTable *);
 FklStrIdHashMapElm *fklAddSymbolCstr(const char *, FklSymbolTable *);
 FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
-FklStrIdHashMapElm *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
+const FklString *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
 
 void fklPrintSymbolTable(const FklSymbolTable *, FILE *);
 

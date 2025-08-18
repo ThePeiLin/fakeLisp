@@ -53,7 +53,7 @@ static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
 void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc) {
     if (t->type == FKL_FRAME_COMPOUND) {
         if (t->c.sid)
-            fklPrintString(fklVMgetSymbolWithId(gc, t->c.sid)->k, stderr);
+            fklPrintString(fklVMgetSymbolWithId(gc, t->c.sid), stderr);
         else
             fputs("<lambda>", stderr);
         fprintf(stderr, "[%u]", t->c.mark);
@@ -64,7 +64,7 @@ void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc) {
         fputs(" --> ", stderr);
         if (cur->type == FKL_FRAME_COMPOUND) {
             if (cur->c.sid)
-                fklPrintString(fklVMgetSymbolWithId(gc, cur->c.sid)->k, stderr);
+                fklPrintString(fklVMgetSymbolWithId(gc, cur->c.sid), stderr);
             else
                 fputs("<lambda>", stderr);
             fprintf(stderr, "[%u]", cur->c.mark);
@@ -481,6 +481,7 @@ static inline FklVMvalue *get_var_val(FklVMframe *frame,
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
     FklSymDefHashMapMutElm *def = &pt->refs[idx];
+    FKL_ASSERT(def->k.id);
     *psid = def->k.id;
     return NULL;
 }
@@ -500,9 +501,9 @@ static inline FklVMvalue *volatile *get_var_ref(FklVMframe *frame,
     FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
     FklSymDefHashMapMutElm *def = &pt->refs[idx];
+    FKL_ASSERT(def->k.id);
     *psid = def->k.id;
     return NULL;
-    return v;
 }
 
 static inline FklImportDllInitFunc getImportInit(uv_lib_t *handle) {

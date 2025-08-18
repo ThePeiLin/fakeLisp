@@ -546,7 +546,7 @@ int main() {
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
-        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st)->k, stderr);
+        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st), stderr);
         fputs(" is not defined\n", stderr);
         fklDestroySymbolTable(st);
         fklDestroyGrammer(g);

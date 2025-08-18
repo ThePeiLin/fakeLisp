@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+void fklStrRegexKeyFree(FklString *s) { fklZfree(s); }
+
 struct ReInst {
     uint32_t p;
     uint32_t trueoff;

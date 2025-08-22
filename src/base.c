@@ -291,6 +291,7 @@ void fklInitStringBuffer(FklStringBuffer *b) {
     b->size = 0;
     b->buf = NULL;
     fklStringBufferReverse(b, 64);
+    b->buf[0] = '\0';
 }
 
 void fklInitStringBufferWithCapacity(FklStringBuffer *b, size_t len) {
@@ -298,6 +299,7 @@ void fklInitStringBufferWithCapacity(FklStringBuffer *b, size_t len) {
     b->size = 0;
     b->buf = NULL;
     fklStringBufferReverse(b, len);
+    b->buf[0] = '\0';
 }
 
 void fklStringBufferPutc(FklStringBuffer *b, char c) {
@@ -340,7 +342,17 @@ void fklDestroyStringBuffer(FklStringBuffer *b) {
     fklZfree(b);
 }
 
-void fklStringBufferClear(FklStringBuffer *b) { b->index = 0; }
+void fklStringBufferClear(FklStringBuffer *b) {
+    b->index = 0;
+    b->buf[0] = '\0';
+}
+
+void fklStringBufferMoveToFront(FklStringBuffer *b, uint32_t idx) {
+    uint32_t new_idx = b->index - idx;
+    memmove(b->buf, &b->buf[idx], new_idx);
+    b->buf[new_idx] = '\0';
+    b->index = new_idx;
+}
 
 void fklStringBufferFill(FklStringBuffer *b, char c) {
     memset(b->buf, c, b->index);

@@ -130,6 +130,7 @@ void fklStringBufferResize(FklStringBuffer *, size_t s, char content);
 void fklUninitStringBuffer(FklStringBuffer *);
 void fklDestroyStringBuffer(FklStringBuffer *);
 void fklStringBufferClear(FklStringBuffer *);
+void fklStringBufferMoveToFront(FklStringBuffer *buf, uint32_t idx);
 void fklStringBufferFill(FklStringBuffer *, char);
 void fklStringBufferBincpy(FklStringBuffer *, const void *, size_t);
 void fklStringBufferConcatWithCstr(FklStringBuffer *, const char *);

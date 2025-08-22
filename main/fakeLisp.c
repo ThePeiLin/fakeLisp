@@ -1,3 +1,4 @@
+#include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/codegen.h>
@@ -5,6 +6,7 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/readline.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
@@ -720,15 +722,15 @@ typedef struct {
     FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
-} NastCreatCtx;
 
-#include <replxx.h>
+    int err;
+    FklNastNode *node;
+} NastCreatCtx;
 
 struct ReplFrameCtx {
     FklVMvalue *stdinVal;
     FklVMvalue *mainProc;
     FklStringBuffer buf;
-    Replxx *replxx;
     FklVMvarRefList *lrefl;
     FklVMvalue **lref;
     FklVMvalue *ret_proc;
@@ -995,8 +997,10 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx *cc,
         FklStringBuffer *s,
         FklGrammer *g) {
     cc->offset = 0;
-    fklStringBufferClear(s);
-    s->buf[0] = '\0';
+    if (s) {
+        fklStringBufferClear(s);
+        s->buf[0] = '\0';
+    }
     FklAnalysisSymbolVector *ss = &cc->symbolStack;
     FklAnalysisSymbol *cur_sym = ss->base;
     FklAnalysisSymbol *const sym_end = cur_sym + ss->size;
@@ -1033,14 +1037,96 @@ eval_nast_ctx_reset(NastCreatCtx *cc, FklStringBuffer *s, FklGrammer *g) {
 #define REPL_PROMPT ">>> "
 #define RETVAL_PREFIX ";=> "
 
-static inline const char *replxx_input_string_buffer(Replxx *replxx,
-        FklStringBuffer *buf) {
-    const char *next = replxx_input(replxx, buf->index ? "" : REPL_PROMPT);
-    if (next)
+#define READ_ERROR_UNEXPETED_EOF (1)
+#define READ_ERROR_INVALIDEXPR (2)
+
+typedef struct {
+    size_t offset;
+    FklVMgc *gc;
+    NastCreatCtx *cc;
+    FklCodegenInfo *codegen;
+    size_t errline;
+} ReadExpressionEndArgs;
+
+static inline int read_expression_end_cb(const char *str,
+        int str_len,
+        const uint32_t *u32_buf,
+        int u32_len,
+        int pos,
+        void *vargs) {
+    if (pos != u32_len)
+        return 0;
+
+    ReadExpressionEndArgs *args = FKL_TYPE_CAST(ReadExpressionEndArgs *, vargs);
+
+    FklCodegenInfo *codegen = args->codegen;
+    FklGrammer *g = *(codegen->g);
+
+    FklVMgc *gc = args->gc;
+    NastCreatCtx *cc = args->cc;
+
+    cc->err = 0;
+
+    FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(gc->st);
+
+    int err = 0;
+    size_t restLen = str_len - cc->offset;
+
+    fklVMacquireSt(gc);
+    if (g && g->aTable.num) {
+        cc->node = fklParseWithTableForCharBuf2(g,
+                str + cc->offset,
+                restLen,
+                &restLen,
+                &outerCtx,
+                gc->st,
+                &err,
+                &args->errline,
+                &cc->symbolStack,
+                &cc->lineStack,
+                &cc->stateStack);
+    } else {
+        cc->node = fklDefaultParseForCharBuf(str + cc->offset,
+                restLen,
+                &restLen,
+                &outerCtx,
+                &err,
+                &args->errline,
+                &cc->symbolStack,
+                &cc->lineStack,
+                &cc->stateStack);
+    }
+    fklVMreleaseSt(gc);
+
+    cc->offset = str_len - restLen;
+    codegen->curline = outerCtx.line;
+
+    if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
+        cc->err = READ_ERROR_INVALIDEXPR;
+        return 1;
+    } else if (err == FKL_PARSE_REDUCE_FAILED) {
+        cc->err = READ_ERROR_INVALIDEXPR;
+        return 1;
+    } else if (cc->node) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+static inline int replxx_input_string_buffer(FklStringBuffer *buf,
+        ReadExpressionEndArgs *args) {
+    char *next = fklReadline3(REPL_PROMPT,
+            buf->buf,
+            read_expression_end_cb,
+            FKL_TYPE_CAST(void *, args));
+    fklStringBufferClear(buf);
+    int eof = next == NULL;
+    if (next) {
         fklStringBufferConcatWithCstr(buf, next);
-    else
-        fputc('\n', stdout);
-    return next;
+        fklZfree(next);
+    }
+    return eof;
 }
 
 static inline FklVMvalue **init_mainframe_lref(FklVMvalue **lref,
@@ -1114,15 +1200,29 @@ static inline int is_need_update_const_array(const struct ConstArrayCount *cc,
         || cc->bvec_count != kt->kbvect.count || cc->bi_count != kt->kbit.count;
 }
 
+static inline void store_history(FklStringBuffer *buf, size_t offset) {
+    char ch = buf->buf[offset];
+    buf->buf[offset] = '\0';
+
+    fklReadlineHistoryAdd(buf->buf);
+
+    buf->buf[offset] = ch;
+    fklStringBufferMoveToFront(buf, offset);
+}
+
 static int repl_frame_step(void *data, FklVM *exe) {
     ReplCtx *ctx = (ReplCtx *)data;
     struct ReplFrameCtx *fctx = ctx->c;
     NastCreatCtx *cc = ctx->cc;
 
-    if (ctx->state == READY) {
+    switch (ctx->state) {
+    default:
+        FKL_UNREACHABLE();
+    case READY:
         ctx->state = WAITING;
         return 1;
-    } else if (ctx->state == WAITING) {
+        break;
+    case WAITING: {
         ctx->state = READING;
         if (exe->tp - fctx->sp != 0) {
             fputs(RETVAL_PREFIX, stdout);
@@ -1131,74 +1231,40 @@ static int repl_frame_step(void *data, FklVM *exe) {
         exe->tp = fctx->sp;
 
         fklUnlockThread(exe);
-        ctx->eof = replxx_input_string_buffer(fctx->replxx, &fctx->buf) == NULL;
+
+        cc->node = NULL;
+        cc->err = 0;
+        ReadExpressionEndArgs args = {
+            .gc = exe->gc,
+            .cc = cc,
+            .codegen = ctx->codegen,
+        };
+
+        ctx->eof = replxx_input_string_buffer(&fctx->buf, &args);
         fklLockThread(exe);
         return 1;
-    } else
+    } break;
+    case READING:
         ctx->state = WAITING;
+        break;
+    }
 
     FklCodegenInfo *codegen = ctx->codegen;
     FklCodegenEnv *main_env = ctx->main_env;
     FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
     FklStringBuffer *s = &fctx->buf;
     int is_eof = ctx->eof;
-    FklNastNode *ast = NULL;
-    FklGrammerMatchOuterCtx outerCtx =
-            FKL_NAST_PARSE_OUTER_CTX_INIT(exe->gc->st);
-    outerCtx.line = codegen->curline;
-    size_t restLen = fklStringBufferLen(s) - cc->offset;
-    int err = 0;
-    size_t errLine = 0;
+
     FklGrammer *g = *(codegen->g);
 
-    fklVMacquireSt(exe->gc);
-    if (g && g->aTable.num) {
-        ast = fklParseWithTableForCharBuf2(g,
-                fklStringBufferBody(s) + cc->offset,
-                restLen,
-                &restLen,
-                &outerCtx,
-                exe->gc->st,
-                &err,
-                &errLine,
-                &cc->symbolStack,
-                &cc->lineStack,
-                &cc->stateStack);
-    } else {
-        ast = fklDefaultParseForCharBuf(fklStringBufferBody(s) + cc->offset,
-                restLen,
-                &restLen,
-                &outerCtx,
-                &err,
-                &errLine,
-                &cc->symbolStack,
-                &cc->lineStack,
-                &cc->stateStack);
-    }
-    fklVMreleaseSt(exe->gc);
-
-    cc->offset = fklStringBufferLen(s) - restLen;
-    codegen->curline = outerCtx.line;
-    if (!restLen && cc->symbolStack.size == 0 && is_eof)
-        return 0;
-    else if ((err == FKL_PARSE_WAITING_FOR_MORE
-                     || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen))
-             && is_eof) {
+    FklNastNode *ast = cc->node;
+    if (ast == NULL && cc->err) {
         repl_nast_ctx_and_buf_reset(cc, s, g);
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF, exe);
-    } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
-        repl_nast_ctx_and_buf_reset(cc, s, g);
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
-    } else if (err == FKL_PARSE_REDUCE_FAILED) {
-        repl_nast_ctx_and_buf_reset(cc, s, g);
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
+        if (cc->err == READ_ERROR_UNEXPETED_EOF)
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF, exe);
+        else if (cc->err == READ_ERROR_INVALIDEXPR)
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
     } else if (ast) {
-        if (restLen) {
-            size_t idx = fklStringBufferLen(s) - restLen;
-            replxx_set_preload_buffer(fctx->replxx, &s->buf[idx]);
-            s->buf[idx] = '\0';
-        }
-
         fklMakeNastNodeRef(ast);
         size_t libs_count = codegen->libraries->size;
 
@@ -1214,9 +1280,10 @@ static int repl_frame_step(void *data, FklVM *exe) {
         FklByteCodelnt *mainCode = fklGenExpressionCode(ast, main_env, codegen);
         fklVMreleaseSt(exe->gc);
 
-        replxx_history_add(fctx->replxx, s->buf);
+        store_history(s, cc->offset);
+
         g = *(codegen->g);
-        repl_nast_ctx_and_buf_reset(cc, s, g);
+        repl_nast_ctx_and_buf_reset(cc, NULL, g);
         fklDestroyNastNode(ast);
 
         size_t new_libs_count = codegen->libraries->size - libs_count;
@@ -1326,6 +1393,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
             ctx->state = WAITING;
             return 1;
         }
+    } else if (ast == NULL && is_eof) {
+        return 0;
     } else
         fklStringBufferPutc(&fctx->buf, '\n');
     return 1;
@@ -1362,7 +1431,7 @@ static void repl_frame_finalizer(void *data) {
     ReplCtx *ctx = (ReplCtx *)data;
     fklUninitStringBuffer(&ctx->c->buf);
     destroyNastCreatCtx(ctx->cc);
-    replxx_end(ctx->c->replxx);
+
     struct ReplFrameCtx *fctx = ctx->c;
     fklZfree(fctx->lref);
 
@@ -1622,9 +1691,8 @@ static const FklVMframeContextMethodTable EvalContextMethodTable = {
 };
 
 static inline NastCreatCtx *createNastCreatCtx(void) {
-    NastCreatCtx *cc = (NastCreatCtx *)fklZmalloc(sizeof(NastCreatCtx));
+    NastCreatCtx *cc = (NastCreatCtx *)fklZcalloc(1, sizeof(NastCreatCtx));
     FKL_ASSERT(cc);
-    cc->offset = 0;
     fklAnalysisSymbolVectorInit(&cc->symbolStack, 16);
     fklUintVectorInit(&cc->lineStack, 16);
     fklParseStateVectorInit(&cc->stateStack, 16);
@@ -1669,7 +1737,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     FKL_ASSERT(ctx->c);
 
     FklVMvalue *mainProc = fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
-    ctx->c->replxx = replxx_init();
+
     ctx->exe = exe;
     ctx->c->mainProc = mainProc;
 

@@ -60,11 +60,6 @@ endif()
 include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 
-#replxx
-include_directories("${PROJECT_SOURCE_DIR}/3rd/replxx/include")
-add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/replxx")
-set_target_properties(replxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
 #libuv
 option(LIBUV_BUILD_SHARED OFF)
 add_compile_definitions(USING_UV_SHARED)
@@ -333,7 +328,6 @@ add_fkl_native_module(fs
 file(GLOB BDB_SOURCE "src/bdb/*.c")
 add_fkl_native_module(bdb
     SRC ${BDB_SOURCE}
-    LIB replxx
     OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #fuv.so

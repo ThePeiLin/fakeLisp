@@ -1047,7 +1047,7 @@ typedef struct {
     size_t errline;
 } ReadExpressionEndArgs;
 
-static inline int read_expression_end_cb(const char *str,
+static int read_expression_end_cb(const char *str,
         int str_len,
         const uint32_t *u32_buf,
         int u32_len,
@@ -1113,7 +1113,7 @@ static inline int read_expression_end_cb(const char *str,
     }
 }
 
-static inline int replxx_input_string_buffer(FklStringBuffer *buf,
+static inline int repl_read_expression(FklStringBuffer *buf,
         ReadExpressionEndArgs *args) {
     char *next = fklReadline3(REPL_PROMPT,
             buf->buf,
@@ -1152,16 +1152,6 @@ static inline int is_need_update_const_array(const struct ConstArrayCount *cc,
     return cc->i64_count != kt->ki64t.count || cc->f64_count != kt->kf64t.count
         || cc->str_count != kt->kstrt.count
         || cc->bvec_count != kt->kbvect.count || cc->bi_count != kt->kbit.count;
-}
-
-static inline void store_history(FklStringBuffer *buf, size_t offset) {
-    char ch = buf->buf[offset];
-    buf->buf[offset] = '\0';
-
-    fklReadlineHistoryAdd(buf->buf);
-
-    buf->buf[offset] = ch;
-    fklStringBufferMoveToFront(buf, offset);
 }
 
 static int repl_frame_ret_callback(FklVM *exe, FklVMframe *frame) {
@@ -1216,7 +1206,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
             .codegen = ctx->codegen,
         };
 
-        ctx->eof = replxx_input_string_buffer(&fctx->buf, &args);
+        ctx->eof = repl_read_expression(&fctx->buf, &args);
         fklLockThread(exe);
         return 1;
     } break;
@@ -1256,7 +1246,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         FklByteCodelnt *mainCode = fklGenExpressionCode(ast, main_env, codegen);
         fklVMreleaseSt(exe->gc);
 
-        store_history(s, cc->offset);
+        fklStoreHistoryInStringBuffer(s, cc->offset);
 
         g = *(codegen->g);
         repl_nast_ctx_and_buf_reset(cc, NULL, g);

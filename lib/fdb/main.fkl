@@ -462,15 +462,19 @@
   (print-cur-line ctx file-prefix line-prefix)
   (do []
     [(debug-ctx-exit? ctx)]
-    (define cmd (debug-ctx-repl ctx prompt))
-    (xpcall
-      (lambda ()
-        (unless (eof? cmd)
-          (define cmd-head (if (symbol? cmd) cmd (car cmd)))
-          (define cmd-rest (if (symbol? cmd) nil (cdr cmd)))
-          (define cmd-func (get-cmd-func debug-cmd-func cmd-head))
-          (apply cmd-func ctx cmd-rest)))
-      nil (lambda (e) (printf "*** %S: %s ***\n" (error-type e) (error-msg e))))))
+    (define cmd-or-err (pcall debug-ctx-repl ctx prompt))
+    (if (box? cmd-or-err)
+      (begin
+        (define cmd (unbox cmd-or-err))
+        (xpcall
+          (lambda ()
+            (unless (eof? cmd)
+              (define cmd-head (if (symbol? cmd) cmd (car cmd)))
+              (define cmd-rest (if (symbol? cmd) nil (cdr cmd)))
+              (define cmd-func (get-cmd-func debug-cmd-func cmd-head))
+              (apply cmd-func ctx cmd-rest)))
+          nil (lambda (e) (printf "*** %S: %s ***\n" (error-type e) (error-msg e)))))
+      (printf "*** %S: %s ***\n" (error-type cmd-or-err) (error-msg cmd-or-err)))))
 
 (define (fdb-main)
 

@@ -104,6 +104,7 @@ int fklIsAccessibleRegFile(const char *s);
 int fklIsAccessibleDirectory(const char *s);
 
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
+void fklStoreHistoryInStringBuffer(FklStringBuffer *buf, size_t offset);
 
 #ifdef __cplusplus
 }

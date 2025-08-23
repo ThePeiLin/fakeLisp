@@ -1,5 +1,6 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
+#include <fakeLisp/readline.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
@@ -951,4 +952,14 @@ int fklGetDelim(FILE *fp, FklStringBuffer *b, char d) {
             break;
     }
     return c;
+}
+
+void fklStoreHistoryInStringBuffer(FklStringBuffer *buf, size_t offset) {
+    char ch = buf->buf[offset];
+    buf->buf[offset] = '\0';
+
+    fklReadlineHistoryAdd(buf->buf);
+
+    buf->buf[offset] = ch;
+    fklStringBufferMoveToFront(buf, offset);
 }

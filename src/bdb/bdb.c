@@ -5,7 +5,6 @@
 #include <string.h>
 
 static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
-    ctx->replxx = replxx_init();
     fklInitStringBuffer(&ctx->buf);
     fklAnalysisSymbolVectorInit(&ctx->symbolStack, 16);
     fklParseStateVectorInit(&ctx->stateStack, 16);
@@ -303,7 +302,6 @@ static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
     fklAnalysisSymbolVectorUninit(&ctx->symbolStack);
     fklUintVectorUninit(&ctx->lineStack);
     fklUninitStringBuffer(&ctx->buf);
-    replxx_end(ctx->replxx);
 }
 
 void exitDebugCtx(DebugCtx *ctx) {

@@ -124,6 +124,7 @@ add_library(test_lib
 	"src/nast.c"
 	"src/regex.c"
 	"src/bigint.c"
+	"src/readline.c"
 	"${GENERATED_HEADER_DIR}/lisp.g.h")
 target_define_relative_file(test_lib)
 

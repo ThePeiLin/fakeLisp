@@ -1,7 +1,10 @@
 #include "bdb.h"
 
 #include <fakeLisp/builtin.h>
+#include <fakeLisp/common.h>
 #include <fakeLisp/nast.h>
+#include <fakeLisp/readline.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <string.h>
 
@@ -143,79 +146,126 @@ static int bdb_debug_ctx_exit(FKL_CPROC_ARGL) {
 
 static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
         FklStringBuffer *s) {
-    cc->offset = 0;
-    fklStringBufferClear(s);
-    s->buf[0] = '\0';
+    if (s) {
+        fklStringBufferClear(s);
+        s->buf[0] = '\0';
+    }
     cc->stateStack.size = 0;
     cc->lineStack.size = 0;
     fklVMvaluePushState0ToStack(&cc->stateStack);
 }
 
-static inline const char *debug_ctx_replxx_input_string_buffer(Replxx *replxx,
+typedef struct {
+    FklVM *exe;
+    CmdReadCtx *ctx;
+    FklGrammerMatchOuterCtx *outerCtx;
+    size_t offset;
+    FklVMvalue *ast;
+
+    int err;
+} ReadExpressionEndArgs;
+
+#define READ_ERROR_UNEXPETED_EOF (1)
+#define READ_ERROR_INVALIDEXPR (2)
+
+static int read_expression_end_cb(const char *str,
+        int str_len,
+        const uint32_t *u32_buf,
+        int u32_len,
+        int pos,
+        void *vargs) {
+    if (pos != u32_len)
+        return 0;
+
+    ReadExpressionEndArgs *args = FKL_TYPE_CAST(ReadExpressionEndArgs *, vargs);
+    FklVM *exe = args->exe;
+    CmdReadCtx *ctx = args->ctx;
+    FklGrammerMatchOuterCtx *outerCtx = args->outerCtx;
+
+    size_t restLen = str_len - args->offset;
+    size_t errLine = 0;
+    int err = 0;
+
+    fklLockThread(exe);
+    FklVMvalue *ast = fklDefaultParseForCharBuf(str + args->offset,
+            restLen,
+            &restLen,
+            outerCtx,
+            &err,
+            &errLine,
+            &ctx->symbolStack,
+            &ctx->lineStack,
+            &ctx->stateStack);
+
+    args->offset = str_len - restLen;
+
+    int end = 0;
+    if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
+        args->err = READ_ERROR_INVALIDEXPR;
+        end = 1;
+    } else if (err == FKL_PARSE_REDUCE_FAILED) {
+        args->err = READ_ERROR_INVALIDEXPR;
+        end = 1;
+    } else if (ast) {
+        args->ast = ast;
+        args->err = 0;
+        FKL_VM_PUSH_VALUE(exe, ast);
+        end = 1;
+    } else {
+        end = 0;
+    }
+
+    fklUnlockThread(exe);
+    return end;
+}
+
+static inline int debug_ctx_read_expression_in_string_buffer(
         FklStringBuffer *buf,
-        const char *prompt) {
-    const char *next = replxx_input(replxx, buf->index ? "" : prompt);
-    if (next)
+        const char *prompt,
+        ReadExpressionEndArgs *args) {
+    char *next = fklReadline3(prompt,
+            buf->buf,
+            read_expression_end_cb,
+            FKL_TYPE_CAST(void *, args));
+    fklStringBufferClear(buf);
+    int is_eof = next == NULL;
+    if (next) {
         fklStringBufferConcatWithCstr(buf, next);
-    else
-        fputc('\n', stdout);
-    return next;
+        fklZfree(next);
+    }
+    return is_eof;
 }
 
 static inline FklVMvalue *
-debug_ctx_replxx_input(FklVM *exe, DebugCtx *dctx, const char *prompt) {
+debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
     CmdReadCtx *ctx = &dctx->read_ctx;
     FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
     FklStringBuffer *s = &ctx->buf;
-    int err = 0;
-    int is_eof = 0;
-    size_t errLine = 0;
-    for (;;) {
-        fklUnlockThread(exe);
-        is_eof = debug_ctx_replxx_input_string_buffer(ctx->replxx, s, prompt)
-              == NULL;
-        fklLockThread(exe);
-        size_t restLen = fklStringBufferLen(s) - ctx->offset;
+    ReadExpressionEndArgs args = {
+        .exe = exe,
+        .ctx = ctx,
+        .outerCtx = &outerCtx,
+    };
 
-        FklVMvalue *ast =
-                fklDefaultParseForCharBuf(fklStringBufferBody(s) + ctx->offset,
-                        restLen,
-                        &restLen,
-                        &outerCtx,
-                        &err,
-                        &errLine,
-                        &ctx->symbolStack,
-                        &ctx->lineStack,
-                        &ctx->stateStack);
+    fklUnlockThread(exe);
+    debug_ctx_read_expression_in_string_buffer(s, prompt, &args);
+    fklLockThread(exe);
 
-        ctx->offset = fklStringBufferLen(s) - restLen;
-
-        if (!restLen && ctx->symbolStack.size == 0 && is_eof) {
-            dctx->exit = 1;
-            return fklGetVMvalueEof();
-        } else if ((err == FKL_PARSE_WAITING_FOR_MORE
-                           || (err == FKL_PARSE_TERMINAL_MATCH_FAILED
-                                   && !restLen))
-                   && is_eof) {
-            debug_repl_parse_ctx_and_buf_reset(ctx, s);
+    if (args.ast == NULL && args.err) {
+        debug_repl_parse_ctx_and_buf_reset(ctx, s);
+        if (args.err == READ_ERROR_UNEXPETED_EOF)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF, exe);
-        } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
-            debug_repl_parse_ctx_and_buf_reset(ctx, s);
+        else if (args.err == READ_ERROR_INVALIDEXPR)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
-        } else if (err == FKL_PARSE_REDUCE_FAILED) {
-            debug_repl_parse_ctx_and_buf_reset(ctx, s);
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
-        } else if (ast) {
-            if (restLen) {
-                size_t idx = fklStringBufferLen(s) - restLen;
-                replxx_set_preload_buffer(ctx->replxx, &s->buf[idx]);
-                s->buf[idx] = '\0';
-            }
-            replxx_history_add(ctx->replxx, s->buf);
-            debug_repl_parse_ctx_and_buf_reset(ctx, s);
-            return ast;
-        }
+    } else if (args.ast) {
+        fklStoreHistoryInStringBuffer(s, args.offset);
+
+        debug_repl_parse_ctx_and_buf_reset(ctx, NULL);
+        return args.ast;
     }
+
+    dctx->exit = 1;
+    return fklGetVMvalueEof();
 }
 
 static int bdb_debug_ctx_repl(FKL_CPROC_ARGL) {
@@ -226,7 +276,7 @@ static int bdb_debug_ctx_repl(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(prompt_obj, FKL_IS_STR, exe);
 
     FKL_DECL_VM_UD_DATA(debug_ctx_ud, DebugCtx, debug_ctx_obj);
-    FklVMvalue *cmd = debug_ctx_replxx_input(exe,
+    FklVMvalue *cmd = debug_ctx_read_expression(exe,
             debug_ctx_ud,
             FKL_VM_STR(prompt_obj)->str);
     FKL_CPROC_RETURN(exe, ctx, cmd);

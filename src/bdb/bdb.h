@@ -3,7 +3,6 @@
 
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/vm.h>
-#include <replxx.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,9 +11,7 @@ extern "C" {
 enum { DBG_INTERRUPTED = 1, DBG_ERROR_OCCUR };
 
 typedef struct {
-    Replxx *replxx;
     FklStringBuffer buf;
-    uint32_t offset;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
     FklParseStateVector stateStack;

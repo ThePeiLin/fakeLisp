@@ -1434,6 +1434,7 @@ static int readline_end(int r) {
     return r;
 }
 
+// XXX: 添加更多的快捷键
 static inline char *readline_internal(const char *prompt,
         const char *init,
         FklReadlineEndPredicateCb cb,
@@ -1478,12 +1479,6 @@ static inline char *readline_internal(const char *prompt,
 
     fklReadlineHistoryAdd("");
     do {
-#ifdef _MSC_VER
-#pragma message("INCOMPLETE")
-#else
-#warning INCOMPLETE
-#endif
-
         int is_esc = 0;
         int ch = readline_getkey(&is_esc, fileno(in));
         ch = readline_key_mapping(ch);

@@ -2374,9 +2374,7 @@ static inline FklSymDefHashMapMutElm *sid_ht_to_idx_key_ht(
     FklSymDefHashMapNode *list = sht->first;
     for (; list; list = list->next) {
         FklSid_t sid = 0;
-        if (env->is_debugging
-                || (list->v.cidx == FKL_VAR_REF_INVALID_CIDX
-                        && !list->v.isLocal)) {
+        if (env->is_debugging || list->v.cidx == FKL_VAR_REF_INVALID_CIDX) {
             const FklString *sym = fklGetSymbolWithId(list->k.id, pst);
             sid = fklAddSymbol(sym, runtime_st)->v;
         }
@@ -2789,9 +2787,7 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
     for (FklSymDefHashMapNode *list = eht->first; list; list = list->next) {
 
         FklSid_t sid = 0;
-        if (env->is_debugging
-                || (list->v.cidx == FKL_VAR_REF_INVALID_CIDX
-                        && !list->v.isLocal)) {
+        if (env->is_debugging || list->v.cidx == FKL_VAR_REF_INVALID_CIDX) {
             const FklString *sym = fklGetSymbolWithId(list->k.id, pst);
             sid = fklAddSymbol(sym, runtime_st)->v;
         }

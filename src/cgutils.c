@@ -720,10 +720,13 @@ static inline void recompute_sid_for_prototypes(FklFuncPrototypes *pts,
         if (cur->sid)
             replace_sid(&cur->sid, origin_table, target_table);
 
-        for (uint32_t i = 0; i < cur->rcount; i++)
-            replace_sid(FKL_REMOVE_CONST(FklSid_t, &cur->refs[i].k.id),
-                    origin_table,
-                    target_table);
+        for (uint32_t i = 0; i < cur->rcount; i++) {
+            if (cur->refs[i].k.id) {
+                replace_sid(FKL_REMOVE_CONST(FklSid_t, &cur->refs[i].k.id),
+                        origin_table,
+                        target_table);
+            }
+        }
     }
 }
 

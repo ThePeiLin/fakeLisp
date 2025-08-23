@@ -252,15 +252,6 @@ typedef struct {
 #define FKL_VM_COMPOUND_FRAME_MARK_RET (0)
 #define FKL_VM_COMPOUND_FRAME_MARK_CALL (1)
 
-// 通常用于修改ret指令的行为
-// 具体用法为在函数的开头插入特殊的指令
-// 然后将这个函数的调用栈的成员mark改为LOOP
-// 目前只有REPL使用该功能
-#define FKL_VM_COMPOUND_FRAME_MARK_LOOP (2)
-
-// 让ret指令处理导入模块的善后工作
-#define FKL_VM_COMPOUND_FRAME_MARK_IMPORTED (3)
-
 typedef struct {
     FklSid_t sid : 61;
     unsigned int mark : 3;
@@ -311,14 +302,17 @@ typedef struct {
 
 struct FklVMframe;
 
-#define FKL_VM_ERROR_CALLBACK_ARGL                                             \
-    struct FklVMframe *f, FklVMvalue *ev, struct FklVM *vm
-typedef int (*FklVMerrorCallBack)(FKL_VM_ERROR_CALLBACK_ARGL);
+typedef int (*FklVMerrorCallBack)(struct FklVMframe *f,
+        FklVMvalue *ev,
+        struct FklVM *vm);
+
+typedef int (*FklVMretCallBack)(struct FklVM *vm, struct FklVMframe *f);
 
 typedef struct FklVMframe {
     FklFrameType type;
     uint32_t bp;
     FklVMerrorCallBack errorCallBack;
+    FklVMretCallBack retCallBack;
     struct FklVMframe *prev;
     union {
         FklVMCompoundFrameData c;
@@ -350,7 +344,7 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 
 typedef struct FklVMlib {
     FklVMvalue *proc;
-    uint64_t spc;
+    uint64_t ipc;
     FklVMvalue **loc;
     uint32_t count;
     atomic_int import_state;
@@ -762,7 +756,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
         FklConstTable *,
         FklFuncPrototypes *,
         uint32_t,
-        uint64_t spc);
+        uint64_t ipc);
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
@@ -1424,13 +1418,13 @@ void fklDestroyVMframes(FklVMframe *h);
 
 void fklDestroyVMlib(FklVMlib *lib);
 
-void fklInitVMlib(FklVMlib *, FklVMvalue *proc, uint64_t spc);
+void fklInitVMlib(FklVMlib *, FklVMvalue *proc, uint64_t ipc);
 
 void fklInitVMlibWithCodeObj(FklVMlib *,
         FklVMvalue *codeObj,
         FklVM *exe,
         uint32_t protoId,
-        uint64_t spc);
+        uint64_t ipc);
 
 void fklUninitVMlib(FklVMlib *);
 

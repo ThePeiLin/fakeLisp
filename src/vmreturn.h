@@ -12,17 +12,15 @@
 
 #ifndef RETURN_HEADER
 void fklVMcompoundFrameReturn(FklVM *VM) {
-    FklVMframe *F = exe->top_frame;
+    FklVMframe *F = VM->top_frame;
     FKL_ASSERT(VM->top_frame->type == FKL_FRAME_COMPOUND);
 #endif
+
+    if (F->retCallBack && F->retCallBack(VM, F))
+        return;
+
     switch (F->c.mark) {
-    case FKL_VM_COMPOUND_FRAME_MARK_IMPORTED:
-        atomic_store(&VM->importing_lib->import_state, FKL_VM_LIB_IMPORTED);
-        uv_mutex_unlock(&VM->gc->libs_lock);
-        goto do_return;
-        break;
     case FKL_VM_COMPOUND_FRAME_MARK_RET: {
-    do_return:
         VM->bp = FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, -2));
         // copy stack values
         uint32_t const value_count = (VM->tp - F->c.sp);
@@ -41,7 +39,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 __LINE__,
                 __FUNCTION__,
                 value_count);
-        fklPrintBacktrace(exe, stderr);
+        fklPrintBacktrace(VM, stderr);
         abort();
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
@@ -62,17 +60,13 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         F->c.pc = F->c.spc;
         F->c.mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
     } break;
-    case FKL_VM_COMPOUND_FRAME_MARK_LOOP:
-        F->c.pc = F->c.spc;
-        F->c.mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
-        break;
     default:
         fprintf(stderr,
                 "[%s: %d] %s: unreachable!\n",
                 __FILE__,
                 __LINE__,
                 __FUNCTION__);
-        fklPrintBacktrace(exe, stderr);
+        fklPrintBacktrace(VM, stderr);
         abort();
         break;
     }

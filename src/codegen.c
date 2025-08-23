@@ -6042,24 +6042,22 @@ static inline void process_export_bc(FklCodegenInfo *info,
         FklSid_t fid,
         uint32_t line,
         uint32_t scope) {
+    info->ipc = libBc->bc->len;
 
-    uint64_t spc = libBc->bc->len;
-    FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntInsertFrontIns(&ret, libBc, fid, line, scope);
-
-    for (const FklCgExportSidIdxHashMapNode *l = info->exports.last; l;
-            l = l->prev) {
-        append_export_ins(INS_APPEND_FRONT, libBc, l->v.oidx, fid, line, scope);
-    }
-    append_export_to_ins(INS_APPEND_FRONT,
+    append_export_to_ins(INS_APPEND_BACK,
             libBc,
             info->libraries->size + 1,
             info->exports.count,
             fid,
             line,
             scope);
-    spc = libBc->bc->len - spc;
-    info->spc = spc;
+    for (const FklCgExportSidIdxHashMapNode *l = info->exports.first; l;
+            l = l->next) {
+        append_export_ins(INS_APPEND_BACK, libBc, l->v.oidx, fid, line, scope);
+    }
+
+    FklInstruction ret = create_op_ins(FKL_OP_RET);
+    fklByteCodeLntPushBackIns(libBc, &ret, fid, line, scope);
 }
 
 BC_PROCESS(_library_bc_process) {
@@ -6087,7 +6085,7 @@ BC_PROCESS(_library_bc_process) {
     process_export_bc(codegen, libBc, fid, line, scope);
 
     FklCodegenLib *lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-    fklInitCodegenScriptLib(lib, codegen, libBc, codegen->spc, env);
+    fklInitCodegenScriptLib(lib, codegen, libBc, codegen->ipc, env);
 
     codegen->realpath = NULL;
 
@@ -10866,11 +10864,11 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklCodegenInfo *codegen,
         FklByteCodelnt *bcl,
-        uint64_t spc,
+        uint64_t ipc,
         FklCodegenEnv *env) {
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->bcl = bcl;
-    lib->spc = spc;
+    lib->ipc = ipc;
     lib->named_prod_groups.buckets = NULL;
     lib->exports.buckets = NULL;
     if (codegen) {
@@ -11362,7 +11360,7 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib,
         val = fklCreateVMvalueStr2(exe,
                 strlen(clib->rp) - strlen(FKL_DLL_FILE_TYPE),
                 clib->rp);
-    fklInitVMlib(vlib, val, clib->spc);
+    fklInitVMlib(vlib, val, clib->ipc);
 }
 
 void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
@@ -11379,7 +11377,7 @@ void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         val = fklCreateVMvalueStr2(exe,
                 strlen(clib->rp) - strlen(FKL_DLL_FILE_TYPE),
                 clib->rp);
-    fklInitVMlib(vlib, val, clib->spc);
+    fklInitVMlib(vlib, val, clib->ipc);
 }
 
 void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,
@@ -11398,7 +11396,7 @@ void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,
                 clib->rp);
         uv_dlclose(&clib->dll);
     }
-    fklInitVMlib(vlib, val, clib->spc);
+    fklInitVMlib(vlib, val, clib->ipc);
 
     fklUninitCodegenLib(clib);
 }

@@ -177,7 +177,7 @@ typedef struct {
     union {
         struct {
             FklByteCodelnt *bcl;
-            uint64_t spc;
+            uint64_t ipc;
             uint32_t prototypeId;
             FklCodegenMacro *head;
             FklReplacementHashMap *replacements;
@@ -342,7 +342,7 @@ typedef struct FklCodegenInfo {
     FklGraProdGroupHashMap *named_prod_groups;
 
     FklCodegenEnv *global_env;
-    uint64_t spc;
+    uint64_t ipc;
     FklSymbolTable *runtime_symbol_table;
     FklConstTable *runtime_kt;
 
@@ -445,7 +445,7 @@ typedef struct FklReadCodeFileArgs {
             void *lib_init_args,
             FklCodegenLibType type,
             uint32_t prototypeId,
-            uint64_t spc,
+            uint64_t ipc,
             const FklByteCodelnt *bcl,
             const FklString *dll_name);
 
@@ -596,7 +596,7 @@ void fklDestroyCodegenEnv(FklCodegenEnv *env);
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklCodegenInfo *codegen,
         FklByteCodelnt *bcl,
-        uint64_t spc,
+        uint64_t ipc,
         FklCodegenEnv *env);
 
 FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t *dll);

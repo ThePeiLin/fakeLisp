@@ -523,12 +523,13 @@ void fklVMexecuteInstruction(FklVM *exe,
         switch (atomic_load(&plib->import_state)) {
         case FKL_VM_LIB_NONE:
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
+            push_import_post_process_frame(exe, plib->ipc);
+
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, plib->proc);
             call_compound_procedure(exe, plib->proc);
-            exe->top_frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_LOOP;
-            exe->top_frame->c.pc += plib->spc;
             exe->top_frame->errorCallBack = import_lib_error_callback;
+            exe->top_frame->retCallBack = import_frame_ret_callback;
             exe->importing_lib = plib;
             break;
         case FKL_VM_LIB_IMPORTED:
@@ -1304,7 +1305,6 @@ void fklVMexecuteInstruction(FklVM *exe,
         lib->loc = loc;
         lib->count = 0;
         exe->importing_lib = lib;
-        exe->top_frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_IMPORTED;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } break;
     case FKL_OP_POP_LOC:

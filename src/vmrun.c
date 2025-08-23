@@ -128,6 +128,59 @@ initCprocFrameContext(void *data, FklVMvalue *proc, FklVM *exe) {
     c->pd = FKL_VM_CPROC(proc)->pd;
 }
 
+static void
+import_post_process_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {}
+
+static void import_post_process_frame_atomic(void *data, FklVMgc *gc) {}
+
+static int import_post_process_frame_step(void *data, FklVM *exe) {
+    atomic_store(&exe->importing_lib->import_state, FKL_VM_LIB_IMPORTED);
+    uv_mutex_unlock(&exe->gc->libs_lock);
+    return 0;
+}
+
+static const FklVMframeContextMethodTable
+        ImportPostProcessContextMethodTable = {
+            .atomic = import_post_process_frame_atomic,
+            .print_backtrace = import_post_process_frame_print_backtrace,
+            .step = import_post_process_frame_step,
+        };
+
+typedef struct ImportPostProcessContext {
+    uint64_t ipc;
+} ImportPostProcessContext;
+
+static inline void push_import_post_process_frame(FklVM *exe, uint64_t ipc) {
+    FklVMframe *f =
+            fklCreateOtherObjVMframe(exe, &ImportPostProcessContextMethodTable);
+    ImportPostProcessContext *ctx =
+            FKL_TYPE_CAST(ImportPostProcessContext *, f->data);
+    ctx->ipc = ipc;
+    fklPushVMframe(f, exe);
+}
+
+static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
+    FklVMframe *fi = f->prev;
+    FKL_ASSERT(f->type == FKL_FRAME_COMPOUND                  //
+               && f->retCallBack == import_frame_ret_callback //
+               && fi != NULL                                  //
+               && fi->type == FKL_FRAME_OTHEROBJ              //
+               && fi->t == &ImportPostProcessContextMethodTable);
+
+    f->retCallBack = NULL;
+
+    uint32_t const value_count = (exe->tp - f->c.sp);
+    if (value_count > 1 || value_count < 1) {
+        return 0;
+    }
+
+    ImportPostProcessContext *ctx =
+            FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
+
+    f->c.pc = f->c.spc + ctx->ipc;
+    return 1;
+}
+
 static inline void callCproc(FklVM *exe, FklVMvalue *cproc) {
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &CprocContextMethodTable);
     initCprocFrameContext(f->data, cproc, exe);
@@ -622,6 +675,11 @@ int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
             case FKL_FRAME_OTHEROBJ:
                 if (do_callable_obj_frame_step(curframe, exe))
                     continue;
+
+                if (curframe->retCallBack
+                        && curframe->retCallBack(exe, curframe))
+                    continue;
+
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
@@ -715,6 +773,11 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
             case FKL_FRAME_OTHEROBJ:
                 if (do_callable_obj_frame_step(curframe, exe))
                     continue;
+
+                if (curframe->retCallBack
+                        && curframe->retCallBack(exe, curframe))
+                    continue;
+
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
@@ -775,6 +838,11 @@ static void vm_thread_cb(void *arg) {
             case FKL_FRAME_OTHEROBJ:
                 if (do_callable_obj_frame_step(curframe, exe))
                     continue;
+
+                if (curframe->retCallBack
+                        && curframe->retCallBack(exe, curframe))
+                    continue;
+
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
@@ -822,11 +890,16 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
             case FKL_FRAME_OTHEROBJ:
                 if (do_callable_obj_frame_step(curframe, exe))
                     continue;
-                if (atomic_load(&(exe)->notice_lock))
-                    NOTICE_LOCK(exe);
+
+                if (curframe->retCallBack
+                        && curframe->retCallBack(exe, curframe))
+                    continue;
+
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
+            if (atomic_load(&(exe)->notice_lock))
+                NOTICE_LOCK(exe);
             if (exe->top_frame == exit_frame)
                 return 0;
         } break;
@@ -884,11 +957,16 @@ static void vm_trapping_thread_cb(void *arg) {
             case FKL_FRAME_OTHEROBJ:
                 if (do_callable_obj_frame_step(curframe, exe))
                     continue;
-                if (atomic_load(&(exe)->notice_lock))
-                    NOTICE_LOCK(exe);
+
+                if (curframe->retCallBack
+                        && curframe->retCallBack(exe, curframe))
+                    continue;
+
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
+            if (atomic_load(&(exe)->notice_lock))
+                NOTICE_LOCK(exe);
             if (exe->top_frame == NULL)
                 exe->state = FKL_VM_EXIT;
         } break;
@@ -1604,12 +1682,12 @@ void fklDestroyVMframes(FklVMframe *h) {
     }
 }
 
-void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t spc) {
+void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t ipc) {
     lib->proc = proc_obj;
     lib->loc = NULL;
     lib->import_state = FKL_VM_LIB_NONE;
     lib->count = 0;
-    lib->spc = spc;
+    lib->ipc = ipc;
 }
 
 void fklInitVMlibWithCodeObj(FklVMlib *lib,

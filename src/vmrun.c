@@ -4,6 +4,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+#include <uv.h>
 
 #include <inttypes.h>
 #include <stdatomic.h>
@@ -418,37 +419,6 @@ void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval) {
     exe->base[rtp] = retval;
 }
 
-#define NOTICE_LOCK(EXE)                                                       \
-    {                                                                          \
-        uv_mutex_unlock(&(EXE)->lock);                                         \
-        uv_mutex_lock(&(EXE)->lock);                                           \
-    }
-
-#define DO_ERROR_HANDLING(exe)                                                 \
-    {                                                                          \
-        FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);                            \
-        FklVMframe *frame = fklIsVMvalueError(ev) ? exe->top_frame : NULL;     \
-        for (; frame; frame = frame->prev)                                     \
-            if (frame->errorCallBack != NULL                                   \
-                    && frame->errorCallBack(frame, ev, exe))                   \
-                break;                                                         \
-        if (frame == NULL) {                                                   \
-            if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE)                  \
-                continue;                                                      \
-            fklPrintErrBacktrace(ev, exe, stderr);                             \
-            if (exe->chan) {                                                   \
-                fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);                \
-                exe->state = FKL_VM_EXIT;                                      \
-                exe->chan = NULL;                                              \
-                continue;                                                      \
-            } else {                                                           \
-                exe->gc->exit_code = 255;                                      \
-                exe->state = FKL_VM_EXIT;                                      \
-                continue;                                                      \
-            }                                                                  \
-        }                                                                      \
-    }
-
 void fklLockThread(FklVM *exe) {
     if (exe->is_single_thread)
         return;
@@ -662,62 +632,6 @@ FKL_ALWAYS_INLINE static inline int do_callable_obj_frame_step(FklVMframe *f,
     return f->t->step(fklGetFrameData(f), exe);
 }
 
-int fklRunVMinSingleThread(FklVM *volatile exe, FklVMframe *const exit_frame) {
-    jmp_buf buf;
-    for (;;) {
-        switch (exe->state) {
-        case FKL_VM_RUNNING: {
-            FklVMframe *curframe = exe->top_frame;
-            switch (curframe->type) {
-            case FKL_FRAME_COMPOUND:
-                execute_compound_frame(exe, curframe);
-                break;
-            case FKL_FRAME_OTHEROBJ:
-                if (do_callable_obj_frame_step(curframe, exe))
-                    continue;
-
-                if (curframe->retCallBack
-                        && curframe->retCallBack(exe, curframe))
-                    continue;
-
-                do_finalize_obj_frame(exe, popFrame(exe));
-                break;
-            }
-            if (exe->top_frame == exit_frame)
-                return 0;
-        } break;
-        case FKL_VM_EXIT:
-            exe->buf = NULL;
-            return 0;
-            break;
-        case FKL_VM_READY:
-            exe->buf = &buf;
-            if (setjmp(buf) == FKL_VM_ERR_RAISE) {
-                FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
-                FklVMframe *frame =
-                        fklIsVMvalueError(ev) ? exe->top_frame : exit_frame;
-                for (; frame != exit_frame; frame = frame->prev)
-                    if (frame->errorCallBack != NULL
-                            && frame->errorCallBack(frame, ev, exe))
-                        break;
-                if (frame == exit_frame) {
-                    if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE)
-                        continue;
-                    FKL_VM_PUSH_VALUE(exe, ev);
-                    return 1;
-                }
-            }
-            exe->state = FKL_VM_RUNNING;
-            continue;
-            break;
-        case FKL_VM_WAITING:
-            continue;
-            break;
-        }
-    }
-    return 0;
-}
-
 void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc) {
     if (vm->obj_head) {
         vm->obj_tail->next = gc->head;
@@ -760,7 +674,7 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
     }
 }
 
-static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
+int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
     jmp_buf buf;
     for (;;) {
         switch (exe->state) {
@@ -782,7 +696,7 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                 break;
             }
             if (atomic_load(&(exe)->notice_lock))
-                NOTICE_LOCK(exe);
+                fklVMyield(exe);
             if (exe->top_frame == exit_frame)
                 return 0;
         } break;
@@ -804,6 +718,7 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                     if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE)
                         continue;
                     FKL_VM_PUSH_VALUE(exe, ev);
+                    exe->buf = NULL;
                     return 1;
                 }
             }
@@ -811,69 +726,41 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
             continue;
             break;
         case FKL_VM_WAITING:
-            fklUnlockThread(exe);
-            uv_sleep(0);
-            fklLockThread(exe);
+            fklVMyield(exe);
             continue;
             break;
         }
     }
+    exe->buf = NULL;
     return 0;
 }
 
-// XXX: 合并实现
 static void vm_thread_cb(void *arg) {
-    FklVM *volatile exe = (FklVM *)arg;
-    jmp_buf buf;
-    uv_mutex_lock(&exe->lock);
-    exe->thread_run_cb = vm_run_cb;
-    exe->run_cb = vm_run_cb;
-    for (;;) {
-        switch (exe->state) {
-        case FKL_VM_RUNNING: {
-            FklVMframe *curframe = exe->top_frame;
-            switch (curframe->type) {
-            case FKL_FRAME_COMPOUND:
-                execute_compound_frame(exe, curframe);
-                break;
-            case FKL_FRAME_OTHEROBJ:
-                if (do_callable_obj_frame_step(curframe, exe))
-                    continue;
+    FklVM *volatile exe = FKL_TYPE_CAST(FklVM *, arg);
 
-                if (curframe->retCallBack
-                        && curframe->retCallBack(exe, curframe))
-                    continue;
+    fklLockThread(exe);
 
-                do_finalize_obj_frame(exe, popFrame(exe));
-                break;
-            }
-            if (atomic_load(&(exe)->notice_lock))
-                NOTICE_LOCK(exe);
-            if (exe->top_frame == NULL)
-                exe->state = FKL_VM_EXIT;
-        }; break;
-        case FKL_VM_EXIT:
-            exe->buf = NULL;
-            THREAD_EXIT(exe);
-            atomic_fetch_sub(&exe->gc->q.running_count, 1);
-            uv_mutex_unlock(&exe->lock);
-            return;
-            break;
-        case FKL_VM_READY:
-            exe->buf = &buf;
-            if (setjmp(buf) == FKL_VM_ERR_RAISE)
-                DO_ERROR_HANDLING(exe);
-            exe->state = FKL_VM_RUNNING;
-            continue;
-            break;
-        case FKL_VM_WAITING:
-            fklUnlockThread(exe);
-            uv_sleep(0);
-            fklLockThread(exe);
-            continue;
-            break;
+    exe->thread_run_cb = fklRunVMinSingleThread;
+    exe->run_cb = fklRunVMinSingleThread;
+
+    int r = exe->thread_run_cb(exe, NULL);
+    exe->state = FKL_VM_EXIT;
+    exe->buf = NULL;
+    if (r) {
+        FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
+        fklPrintErrBacktrace(ev, exe, stderr);
+        if (exe->chan) {
+            fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);
+            exe->chan = NULL;
+        } else {
+            exe->gc->exit_code = 255;
         }
     }
+
+    THREAD_EXIT(exe);
+    atomic_fetch_sub(&exe->gc->q.running_count, 1);
+
+    fklUnlockThread(exe);
 }
 
 static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
@@ -900,7 +787,7 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                 break;
             }
             if (atomic_load(&(exe)->notice_lock))
-                NOTICE_LOCK(exe);
+                fklVMyield(exe);
             if (exe->top_frame == exit_frame)
                 return 0;
         } break;
@@ -929,9 +816,7 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
             continue;
             break;
         case FKL_VM_WAITING:
-            fklUnlockThread(exe);
-            uv_sleep(0);
-            fklLockThread(exe);
+            fklVMyield(exe);
             continue;
             break;
         }
@@ -940,59 +825,30 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
 }
 
 static void vm_trapping_thread_cb(void *arg) {
-    FklVM *volatile exe = (FklVM *)arg;
-    jmp_buf buf;
-    uv_mutex_lock(&exe->lock);
+    FklVM *volatile exe = FKL_TYPE_CAST(FklVM *, arg);
+
+    fklLockThread(exe);
     exe->thread_run_cb = vm_trapping_run_cb;
     exe->run_cb = vm_trapping_run_cb;
-    for (;;) {
-        switch (exe->state) {
-        case FKL_VM_RUNNING: {
-            FklVMframe *curframe = exe->top_frame;
-            switch (curframe->type) {
-            case FKL_FRAME_COMPOUND:
-                execute_compound_frame_check_trap(exe, curframe);
-                if (exe->trapping)
-                    fklVMinterrupt(exe, FKL_VM_NIL, NULL);
-                break;
-            case FKL_FRAME_OTHEROBJ:
-                if (do_callable_obj_frame_step(curframe, exe))
-                    continue;
 
-                if (curframe->retCallBack
-                        && curframe->retCallBack(exe, curframe))
-                    continue;
-
-                do_finalize_obj_frame(exe, popFrame(exe));
-                break;
-            }
-            if (atomic_load(&(exe)->notice_lock))
-                NOTICE_LOCK(exe);
-            if (exe->top_frame == NULL)
-                exe->state = FKL_VM_EXIT;
-        } break;
-        case FKL_VM_EXIT:
-            exe->buf = NULL;
-            THREAD_EXIT(exe);
-            atomic_fetch_sub(&exe->gc->q.running_count, 1);
-            uv_mutex_unlock(&exe->lock);
-            return;
-            break;
-        case FKL_VM_READY:
-            exe->buf = &buf;
-            if (setjmp(buf) == FKL_VM_ERR_RAISE)
-                DO_ERROR_HANDLING(exe);
-            exe->state = FKL_VM_RUNNING;
-            continue;
-            break;
-        case FKL_VM_WAITING:
-            fklUnlockThread(exe);
-            uv_sleep(0);
-            fklLockThread(exe);
-            continue;
-            break;
+    int r = exe->thread_run_cb(exe, NULL);
+    exe->state = FKL_VM_EXIT;
+    exe->buf = NULL;
+    if (r) {
+        FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
+        fklPrintErrBacktrace(ev, exe, stderr);
+        if (exe->chan) {
+            fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);
+            exe->chan = NULL;
+        } else {
+            exe->gc->exit_code = 255;
         }
     }
+
+    THREAD_EXIT(exe);
+    atomic_fetch_sub(&exe->gc->q.running_count, 1);
+
+    fklUnlockThread(exe);
 }
 
 void fklVMthreadStart(FklVM *exe, FklVMqueue *q) {

@@ -742,8 +742,6 @@ void fklVMpushExtraMarkFunc(FklVMgc *,
         void (*finalizer)(void *),
         void *);
 
-void fklSetVMsingleThread(FklVM *exe);
-void fklUnsetVMsingleThread(FklVM *exe);
 void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
         FklInstruction *ins,
@@ -1340,15 +1338,13 @@ void fklResumeQueueWorkThread(FklVM *, uv_cond_t *);
 void fklResumeQueueIdleThread(FklVM *, uv_cond_t *);
 
 FKL_ALWAYS_INLINE static inline void fklVMyield(FklVM *exe) {
-    if (exe->is_single_thread) {
+    if (atomic_load(&(exe)->notice_lock) && exe->is_single_thread) {
         uv_mutex_unlock(&exe->lock);
         uv_sleep(0);
         uv_mutex_lock(&exe->lock);
     }
 }
 
-void fklNoticeThreadLock(FklVM *);
-void fklDontNoticeThreadLock(FklVM *);
 void fklUnlockThread(FklVM *);
 void fklLockThread(FklVM *);
 void fklSetThreadReadyToExit(FklVM *);

@@ -449,14 +449,30 @@ static inline void do_vm_atexit(FklVM *vm) {
         exe->chan = NULL;                                                      \
     }
 
-void fklSetVMsingleThread(FklVM *exe) {
-    exe->is_single_thread = 1;
-    exe->thread_run_cb = fklRunVMinSingleThread;
+static inline void switch_notice_lock_ins(FklVM *exe) {
+    if (atomic_load(&exe->notice_lock))
+        return;
+    atomic_store(&exe->notice_lock, 1);
 }
 
-void fklUnsetVMsingleThread(FklVM *exe) {
-    exe->is_single_thread = 0;
-    exe->thread_run_cb = exe->run_cb;
+static inline void switch_un_notice_lock_ins(FklVM *exe) {
+    if (atomic_load(&exe->notice_lock))
+        atomic_store(&exe->notice_lock, 0);
+}
+
+int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
+    int is_single_thread = exe->is_single_thread;
+    int trapping = exe->trapping;
+
+    exe->is_single_thread = 1;
+    exe->trapping = 0;
+
+    int r = exe->thread_run_cb(exe, exit_frame);
+
+    exe->is_single_thread = is_single_thread;
+    exe->trapping = trapping;
+
+    return r;
 }
 
 #define DROP_TOP(S) --(S)->tp
@@ -674,7 +690,7 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
     }
 }
 
-int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
+static inline int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
     jmp_buf buf;
     for (;;) {
         switch (exe->state) {
@@ -695,8 +711,8 @@ int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
-            if (atomic_load(&(exe)->notice_lock))
-                fklVMyield(exe);
+
+            fklVMyield(exe);
             if (exe->top_frame == exit_frame)
                 return 0;
         } break;
@@ -740,8 +756,8 @@ static void vm_thread_cb(void *arg) {
 
     fklLockThread(exe);
 
-    exe->thread_run_cb = fklRunVMinSingleThread;
-    exe->run_cb = fklRunVMinSingleThread;
+    exe->thread_run_cb = vm_run_cb;
+    exe->run_cb = vm_run_cb;
 
     int r = exe->thread_run_cb(exe, NULL);
     exe->state = FKL_VM_EXIT;
@@ -786,8 +802,8 @@ static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
                 do_finalize_obj_frame(exe, popFrame(exe));
                 break;
             }
-            if (atomic_load(&(exe)->notice_lock))
-                fklVMyield(exe);
+
+            fklVMyield(exe);
             if (exe->top_frame == exit_frame)
                 return 0;
         } break;
@@ -914,28 +930,11 @@ static inline void remove_exited_thread(FklVMgc *gc) {
     }
 }
 
-#undef NOTICE_LOCK
-
-static inline void switch_notice_lock_ins(FklVM *exe) {
-    if (atomic_load(&exe->notice_lock))
-        return;
-    atomic_store(&exe->notice_lock, 1);
-}
-
-void fklNoticeThreadLock(FklVM *exe) { switch_notice_lock_ins(exe); }
-
 static inline void switch_notice_lock_ins_for_running_threads(
         FklThreadQueue *q) {
     for (FklThreadQueueNode *n = q->head; n; n = n->next)
         switch_notice_lock_ins(n->data);
 }
-
-static inline void switch_un_notice_lock_ins(FklVM *exe) {
-    if (atomic_load(&exe->notice_lock))
-        atomic_store(&exe->notice_lock, 0);
-}
-
-void fklDontNoticeThreadLock(FklVM *exe) { switch_un_notice_lock_ins(exe); }
 
 static inline void switch_un_notice_lock_ins_for_running_threads(
         FklThreadQueue *q) {

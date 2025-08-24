@@ -257,18 +257,14 @@ FklVMvalue *callEvalProc(DebugCtx *ctx,
     vm->state = FKL_VM_READY;
     uint32_t tp = vm->tp;
     uint32_t bp = vm->bp;
-    fklSetVMsingleThread(vm);
     fklSetBp(vm);
     FKL_VM_PUSH_VALUE(vm, proc);
     fklCallObj(vm, proc);
-    fklDontNoticeThreadLock(vm);
     if (fklRunVMinSingleThread(vm, origin_cur_frame))
         fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(vm), vm, stderr);
     else
         retval = FKL_VM_POP_TOP_VALUE(vm);
     vm->state = FKL_VM_READY;
-    fklNoticeThreadLock(vm);
-    fklUnsetVMsingleThread(vm);
     FklVMframe *f = vm->top_frame;
     while (f != origin_cur_frame) {
         FklVMframe *cur = f;

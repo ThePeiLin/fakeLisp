@@ -1703,7 +1703,7 @@ static int read_frame_step(void *d, FklVM *exe) {
     pctx->offset = fklStringBufferLen(s) - restLen;
 
     if (pctx->symbolStack.size == 0 && fklVMfpEof(vfp)) {
-        FKL_CPROC_RETURN(exe, rctx, fklGetVMvalueEof());
+        FKL_CPROC_RETURN(exe, rctx, FKL_VM_EOF);
         return 0;
     } else if ((err == FKL_PARSE_WAITING_FOR_MORE
                        || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen))
@@ -1899,7 +1899,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
                 fklAnalysisSymbolVectorPopBackNonNull(&pctx->symbolStack)->ast);
         return 0;
     } else if (pctx->symbolStack.size == 0 && fklVMfpEof(vfp)) {
-        FKL_CPROC_RETURN(exe, rctx, fklGetVMvalueEof());
+        FKL_CPROC_RETURN(exe, rctx, FKL_VM_EOF);
         return 0;
     } else if ((err == FKL_PARSE_WAITING_FOR_MORE
                        || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen))
@@ -4535,7 +4535,7 @@ static int builtin_hashequal_p(FKL_CPROC_ARGL) {
     PREDICATE(FKL_IS_HASHTABLE_EQUAL(val))
 }
 
-static int builtin_eof_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMeofUd(val)) }
+static int builtin_eof_p(FKL_CPROC_ARGL) { PREDICATE(val == FKL_VM_EOF) }
 
 static int builtin_parser_p(FKL_CPROC_ARGL) {
     PREDICATE(

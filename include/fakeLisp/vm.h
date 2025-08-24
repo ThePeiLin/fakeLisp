@@ -1157,8 +1157,8 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v,
         FklLineNumHashMap *,
         FklVMgc *gc);
 
-FklVMvalue *fklGetVMvalueEof(void);
-int fklIsVMeofUd(FklVMvalue *v);
+extern const alignas(8) FklVMvalueUd FklVMvalueEof;
+
 // value getters
 
 #define FKL_VM_CAR(V) (((FklVMvaluePair *)(V))->pair.car)
@@ -1475,9 +1475,9 @@ noreturn FKL_ALWAYS_INLINE static inline void fklRaiseBuiltinErrorFmtV(
 #define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
 #define FKL_TAG_MASK ((intptr_t)0x7)
 
+#define FKL_VM_EOF ((FklVMptr) & FklVMvalueEof)
 #define FKL_VM_NIL ((FklVMptr)0x1)
 #define FKL_VM_TRUE (FKL_MAKE_VM_FIX(1))
-#define FKL_VM_EOF ((FklVMptr)0x7fffffffa)
 #define FKL_MAKE_VM_FIX(I)                                                     \
     ((FklVMptr)((((uintptr_t)(I)) << FKL_UNUSEDBITNUM) | FKL_TAG_FIX))
 #define FKL_MAKE_VM_CHR(C)                                                     \

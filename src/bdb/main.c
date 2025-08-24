@@ -265,7 +265,7 @@ debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
     }
 
     dctx->exit = 1;
-    return fklGetVMvalueEof();
+    return FKL_VM_EOF;
 }
 
 static int bdb_debug_ctx_repl(FKL_CPROC_ARGL) {

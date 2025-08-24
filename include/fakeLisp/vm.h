@@ -344,7 +344,7 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 
 typedef struct FklVMlib {
     FklVMvalue *proc;
-    uint64_t ipc;
+    uint64_t epc;
     FklVMvalue **loc;
     uint32_t count;
     atomic_int import_state;
@@ -756,7 +756,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
         FklConstTable *,
         FklFuncPrototypes *,
         uint32_t,
-        uint64_t ipc);
+        uint64_t spc);
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
@@ -1418,13 +1418,13 @@ void fklDestroyVMframes(FklVMframe *h);
 
 void fklDestroyVMlib(FklVMlib *lib);
 
-void fklInitVMlib(FklVMlib *, FklVMvalue *proc, uint64_t ipc);
+void fklInitVMlib(FklVMlib *, FklVMvalue *proc, uint64_t epc);
 
 void fklInitVMlibWithCodeObj(FklVMlib *,
         FklVMvalue *codeObj,
         FklVM *exe,
         uint32_t protoId,
-        uint64_t ipc);
+        uint64_t epc);
 
 void fklUninitVMlib(FklVMlib *);
 

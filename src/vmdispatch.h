@@ -523,7 +523,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         switch (atomic_load(&plib->import_state)) {
         case FKL_VM_LIB_NONE:
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
-            push_import_post_process_frame(exe, plib->ipc);
+            push_import_post_process_frame(exe, plib->epc);
 
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, plib->proc);

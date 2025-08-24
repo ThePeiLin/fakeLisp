@@ -147,15 +147,15 @@ static const FklVMframeContextMethodTable
         };
 
 typedef struct ImportPostProcessContext {
-    uint64_t ipc;
+    uint64_t epc;
 } ImportPostProcessContext;
 
-static inline void push_import_post_process_frame(FklVM *exe, uint64_t ipc) {
+static inline void push_import_post_process_frame(FklVM *exe, uint64_t epc) {
     FklVMframe *f =
             fklCreateOtherObjVMframe(exe, &ImportPostProcessContextMethodTable);
     ImportPostProcessContext *ctx =
             FKL_TYPE_CAST(ImportPostProcessContext *, f->data);
-    ctx->ipc = ipc;
+    ctx->epc = epc;
     fklPushVMframe(f, exe);
 }
 
@@ -177,7 +177,7 @@ static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
     ImportPostProcessContext *ctx =
             FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
 
-    f->c.pc = f->c.spc + ctx->ipc;
+    f->c.pc = f->c.spc + ctx->epc;
     return 1;
 }
 
@@ -821,6 +821,7 @@ static int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
     return 0;
 }
 
+// XXX: 合并实现
 static void vm_thread_cb(void *arg) {
     FklVM *volatile exe = (FklVM *)arg;
     jmp_buf buf;
@@ -1682,12 +1683,12 @@ void fklDestroyVMframes(FklVMframe *h) {
     }
 }
 
-void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t ipc) {
+void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t epc) {
     lib->proc = proc_obj;
     lib->loc = NULL;
     lib->import_state = FKL_VM_LIB_NONE;
     lib->count = 0;
-    lib->ipc = ipc;
+    lib->epc = epc;
 }
 
 void fklInitVMlibWithCodeObj(FklVMlib *lib,

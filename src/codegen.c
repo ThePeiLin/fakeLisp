@@ -6038,7 +6038,7 @@ static inline void process_export_bc(FklCodegenInfo *info,
         FklSid_t fid,
         uint32_t line,
         uint32_t scope) {
-    info->ipc = libBc->bc->len;
+    info->epc = libBc->bc->len;
 
     append_export_to_ins(INS_APPEND_BACK,
             libBc,
@@ -6081,7 +6081,7 @@ BC_PROCESS(_library_bc_process) {
     process_export_bc(codegen, libBc, fid, line, scope);
 
     FklCodegenLib *lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-    fklInitCodegenScriptLib(lib, codegen, libBc, codegen->ipc, env);
+    fklInitCodegenScriptLib(lib, codegen, libBc, codegen->epc, env);
 
     codegen->realpath = NULL;
 
@@ -10860,11 +10860,11 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklCodegenInfo *codegen,
         FklByteCodelnt *bcl,
-        uint64_t ipc,
+        uint64_t epc,
         FklCodegenEnv *env) {
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->bcl = bcl;
-    lib->ipc = ipc;
+    lib->epc = epc;
     lib->named_prod_groups.buckets = NULL;
     lib->exports.buckets = NULL;
     if (codegen) {
@@ -11356,7 +11356,7 @@ void fklInitVMlibWithCodegenLibRefs(FklCodegenLib *clib,
         val = fklCreateVMvalueStr2(exe,
                 strlen(clib->rp) - strlen(FKL_DLL_FILE_TYPE),
                 clib->rp);
-    fklInitVMlib(vlib, val, clib->ipc);
+    fklInitVMlib(vlib, val, clib->epc);
 }
 
 void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
@@ -11373,7 +11373,7 @@ void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         val = fklCreateVMvalueStr2(exe,
                 strlen(clib->rp) - strlen(FKL_DLL_FILE_TYPE),
                 clib->rp);
-    fklInitVMlib(vlib, val, clib->ipc);
+    fklInitVMlib(vlib, val, clib->epc);
 }
 
 void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,
@@ -11392,7 +11392,7 @@ void fklInitVMlibWithCodegenLibMove(FklCodegenLib *clib,
                 clib->rp);
         uv_dlclose(&clib->dll);
     }
-    fklInitVMlib(vlib, val, clib->ipc);
+    fklInitVMlib(vlib, val, clib->epc);
 
     fklUninitCodegenLib(clib);
 }

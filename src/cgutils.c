@@ -1071,7 +1071,7 @@ static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
     lib->rp = load_script_lib_path(main_dir, fp);
     fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
     lib->bcl = fklLoadByteCodelnt(fp);
-    fread(&lib->ipc, sizeof(lib->ipc), 1, fp);
+    fread(&lib->epc, sizeof(lib->epc), 1, fp);
     load_export_sid_idx_table(&lib->exports, fp);
     lib->head = load_compiler_macros(st, fp);
     lib->replacements = load_replacements(st, fp);
@@ -1173,7 +1173,7 @@ static inline int load_imported_lib_stack(FklCodegenLibVector *libraries,
     main_lib.type = FKL_CODEGEN_LIB_SCRIPT;
     main_lib.rp = load_script_lib_path(main_dir, fp);
     main_lib.bcl = fklLoadByteCodelnt(fp);
-    fread(&main_lib.ipc, sizeof(main_lib.ipc), 1, fp);
+    fread(&main_lib.epc, sizeof(main_lib.epc), 1, fp);
     main_lib.prototypeId = 1;
     load_export_sid_idx_table(&main_lib.exports, fp);
     main_lib.head = load_compiler_macros(st, fp);
@@ -1440,7 +1440,7 @@ static inline void write_codegen_script_lib(const FklCodegenLib *lib,
     write_codegen_script_lib_path(lib->rp, main_dir, outfp);
     fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
     fklWriteByteCodelnt(lib->bcl, outfp);
-    fwrite(&lib->ipc, sizeof(lib->ipc), 1, outfp);
+    fwrite(&lib->epc, sizeof(lib->epc), 1, outfp);
     write_export_sid_idx_table(&lib->exports, outfp);
     write_compiler_macros(lib->head, st, outfp);
     write_replacements(lib->replacements, st, outfp);
@@ -1515,7 +1515,7 @@ static inline void write_lib_main_file(const FklCodegenInfo *codegen,
         FILE *outfp) {
     write_codegen_script_lib_path(codegen->realpath, main_dir, outfp);
     fklWriteByteCodelnt(bcl, outfp);
-    fwrite(&codegen->ipc, sizeof(codegen->ipc), 1, outfp);
+    fwrite(&codegen->epc, sizeof(codegen->epc), 1, outfp);
     write_export_sid_idx_table(&codegen->exports, outfp);
     write_compiler_macros(codegen->export_macro, st, outfp);
     write_replacements(codegen->export_replacement, st, outfp);
@@ -1592,7 +1592,7 @@ void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *args) {
             fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
             FklByteCodelnt *bcl = lib->bcl;
             fklWriteByteCodelnt(bcl, fp);
-            fwrite(&lib->ipc, sizeof(lib->ipc), 1, fp);
+            fwrite(&lib->epc, sizeof(lib->epc), 1, fp);
         } else {
             const char *rp = lib->rp;
             uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
@@ -1612,10 +1612,10 @@ static void load_lib(FILE *fp, FklReadCodeFileArgs *args) {
         fread(&libType, sizeof(char), 1, fp);
         if (libType == FKL_CODEGEN_LIB_SCRIPT) {
             uint32_t protoId = 0;
-            uint64_t ipc = 0;
+            uint64_t epc = 0;
             fread(&protoId, sizeof(protoId), 1, fp);
             FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-            fread(&ipc, sizeof(ipc), 1, fp);
+            fread(&epc, sizeof(epc), 1, fp);
 
             void *lib_addr = FKL_TYPE_CAST(void *,
                     FKL_TYPE_CAST(uint8_t *, args->libs) + args->lib_size * i);
@@ -1624,7 +1624,7 @@ static void load_lib(FILE *fp, FklReadCodeFileArgs *args) {
                     args->lib_init_args,
                     libType,
                     protoId,
-                    ipc,
+                    epc,
                     bcl,
                     NULL);
 

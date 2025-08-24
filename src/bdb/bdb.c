@@ -611,7 +611,7 @@ void restartDebugging(DebugCtx *ctx) {
     for (uint64_t i = 1; i <= gc->lib_num; ++i) {
         FklVMlib *cur = &gc->libs[i];
         FklVMvalue *v = cur->proc;
-        uint64_t ipc = cur->ipc;
+        uint64_t ipc = cur->epc;
 
         fklVMgcToGray(v, gc);
         fklUninitVMlib(cur);

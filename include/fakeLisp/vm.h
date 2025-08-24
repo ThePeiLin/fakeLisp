@@ -795,6 +795,11 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *,
 
 void fklVMacquireSt(FklVMgc *);
 void fklVMreleaseSt(FklVMgc *);
+
+#define FKL_VM_ACQUIRE_ST_BLOCK(gc, flag)                                      \
+    for (uint8_t flag = (fklVMacquireSt(gc), 0); flag < 1;                     \
+            fklVMreleaseSt(gc), ++flag)
+
 FklStrIdHashMapElm *fklVMaddSymbol(FklVMgc *, const FklString *str);
 FklStrIdHashMapElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
 FklStrIdHashMapElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
@@ -1347,6 +1352,15 @@ FKL_ALWAYS_INLINE static inline void fklVMyield(FklVM *exe) {
 
 void fklUnlockThread(FklVM *);
 void fklLockThread(FklVM *);
+
+#define FKL_VM_LOCK_BLOCK(exe, flag)                                           \
+    for (uint8_t flag = (fklLockThread(exe), 0); flag < 1;                     \
+            fklUnlockThread(exe), ++flag)
+
+#define FKL_VM_UNLOCK_BLOCK(exe, flag)                                         \
+    for (uint8_t flag = (fklUnlockThread(exe), 0); flag < 1;                   \
+            fklLockThread(exe), ++flag)
+
 void fklSetThreadReadyToExit(FklVM *);
 void fklVMstopTheWorld(FklVMgc *);
 void fklVMcontinueTheWorld(FklVMgc *);

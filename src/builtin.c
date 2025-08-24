@@ -2314,9 +2314,10 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklVMvalue *retval =
             fklCreateVMvalueUd(exe, &CustomParserMetaTable, FKL_VM_NIL);
     FKL_DECL_VM_UD_DATA(grammer, FklGrammer, retval);
-    fklVMacquireSt(exe->gc);
-    fklInitEmptyGrammer(grammer, exe->gc->st);
-    fklVMreleaseSt(exe->gc);
+
+    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+        fklInitEmptyGrammer(grammer, exe->gc->st);
+    }
 
     grammer->start =
             (FklGrammerNonterm){ .group = 0, .sid = FKL_GET_SYM(start) };
@@ -2730,9 +2731,8 @@ static int builtin_parse(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *vm_fgetc(FklVM *exe, FILE *fp) {
-    fklUnlockThread(exe);
-    int ch = fgetc(fp);
-    fklLockThread(exe);
+    int ch;
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { ch = fgetc(fp); }
     if (ch == EOF)
         return FKL_VM_NIL;
     return FKL_MAKE_VM_CHR(ch);
@@ -2749,9 +2749,8 @@ static int builtin_fgetc(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *vm_fgeti(FklVM *exe, FILE *fp) {
-    fklUnlockThread(exe);
-    int ch = fgetc(fp);
-    fklLockThread(exe);
+    int ch;
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { ch = fgetc(fp); }
     if (ch == EOF)
         return FKL_VM_NIL;
     return FKL_MAKE_VM_FIX(ch);

@@ -575,9 +575,8 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
 
     fuv_loop->data.mode = mode;
     fuv_loop->data.error_occured = 0;
-    fklUnlockThread(exe);
-    int r = uv_run(&fuv_loop->loop, mode);
-    fklLockThread(exe);
+    int r;
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { r = uv_run(&fuv_loop->loop, mode); }
 
     if (r < 0) {
         need_continue = 1;
@@ -607,20 +606,20 @@ static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
         return;
     FklVM *exe = walk_ctx->exe;
     uint32_t const old_tp = exe->tp;
-    fklLockThread(exe);
-    FklVMvalue *proc = FKL_VM_GET_TOP_VALUE(exe);
-    exe->state = FKL_VM_READY;
-    FklVMframe *buttom_frame = exe->top_frame;
-    FuvHandle *fuv_handle = uv_handle_get_data(handle);
-    fklSetBp(exe);
-    FKL_VM_PUSH_VALUE(exe, proc);
-    FKL_VM_PUSH_VALUE(exe, FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(fuv_handle)));
-    fklCallObj(exe, proc);
-    if (exe->thread_run_cb(exe, buttom_frame))
-        walk_ctx->ev = FKL_VM_GET_TOP_VALUE(exe);
-    else
-        exe->tp = old_tp;
-    fklUnlockThread(exe);
+    FKL_VM_LOCK_BLOCK(exe, flag) {
+        FklVMvalue *proc = FKL_VM_GET_TOP_VALUE(exe);
+        exe->state = FKL_VM_READY;
+        FklVMframe *buttom_frame = exe->top_frame;
+        FuvHandle *fuv_handle = uv_handle_get_data(handle);
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(fuv_handle)));
+        fklCallObj(exe, proc);
+        if (exe->thread_run_cb(exe, buttom_frame))
+            walk_ctx->ev = FKL_VM_GET_TOP_VALUE(exe);
+        else
+            exe->tp = old_tp;
+    }
 }
 
 static int fuv_loop_walk(FKL_CPROC_ARGL) {
@@ -637,9 +636,9 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
         .ev = NULL,
     };
 
-    fklUnlockThread(exe);
-    uv_walk(&fuv_loop->loop, fuv_loop_walk_cb, &walk_ctx);
-    fklLockThread(exe);
+    FKL_VM_UNLOCK_BLOCK(exe, flag) {
+        uv_walk(&fuv_loop->loop, fuv_loop_walk_cb, &walk_ctx);
+    }
     if (walk_ctx.ev) {
         need_continue = 1;
         fklPushVMrasieErrorFrame(exe, walk_ctx.ev);
@@ -824,19 +823,19 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
     FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
-        fklLockThread(exe);
-        uint32_t const stp = exe->tp;
-        FklVMframe *buttom_frame = exe->top_frame;
-        exe->state = FKL_VM_READY;
-        fklSetBp(exe);
-        FKL_VM_PUSH_VALUE(exe, proc);
-        fklCallObj(exe, proc);
-        if (exe->thread_run_cb(exe, buttom_frame)) {
-            startErrorHandle(loop, loop_data, exe);
-            fuvHandleClose(fuv_handle, NULL);
-        } else
-            exe->tp = stp;
-        fklUnlockThread(exe);
+        FKL_VM_LOCK_BLOCK(exe, flag) {
+            uint32_t const stp = exe->tp;
+            FklVMframe *buttom_frame = exe->top_frame;
+            exe->state = FKL_VM_READY;
+            fklSetBp(exe);
+            FKL_VM_PUSH_VALUE(exe, proc);
+            fklCallObj(exe, proc);
+            if (exe->thread_run_cb(exe, buttom_frame)) {
+                startErrorHandle(loop, loop_data, exe);
+                fuvHandleClose(fuv_handle, NULL);
+            } else
+                exe->tp = stp;
+        }
     }
 }
 
@@ -1259,21 +1258,21 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
     FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
-        fklLockThread(exe);
-        uint32_t const stp = exe->tp;
-        FklVMframe *buttom_frame = exe->top_frame;
-        exe->state = FKL_VM_READY;
-        fklSetBp(exe);
-        FKL_VM_PUSH_VALUE(exe, proc);
-        if (creator)
-            creator(exe, arg);
-        fklCallObj(exe, proc);
-        if (exe->thread_run_cb(exe, buttom_frame)) {
-            startErrorHandle(uv_handle_get_loop(handle), loop_data, exe);
-            fuvHandleClose(fuv_handle, NULL);
-        } else
-            exe->tp = stp;
-        fklUnlockThread(exe);
+        FKL_VM_LOCK_BLOCK(exe, flag) {
+            uint32_t const stp = exe->tp;
+            FklVMframe *buttom_frame = exe->top_frame;
+            exe->state = FKL_VM_READY;
+            fklSetBp(exe);
+            FKL_VM_PUSH_VALUE(exe, proc);
+            if (creator)
+                creator(exe, arg);
+            fklCallObj(exe, proc);
+            if (exe->thread_run_cb(exe, buttom_frame)) {
+                startErrorHandle(uv_handle_get_loop(handle), loop_data, exe);
+                fuvHandleClose(fuv_handle, NULL);
+            } else
+                exe->tp = stp;
+        }
     }
 }
 
@@ -1945,25 +1944,25 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
         fuvReqCleanUp(fuv_req);
         return;
     }
-    fklLockThread(exe);
 
-    exe->state = FKL_VM_READY;
-    uint32_t const stp = exe->tp;
-    FklVMframe *buttom_frame = exe->top_frame;
-    fklSetBp(exe);
-    FKL_VM_PUSH_VALUE(exe, proc);
-    FuvFsReq *fs_req = fuv_req->req.type == UV_FS
-                             ? FKL_TYPE_CAST(FuvFsReq *, fuv_req)
-                             : NULL;
-    if ((!creator || !creator(exe, arg)) && fuv_req->data.loop && fs_req)
-        fuvFsReqCleanUp(fs_req, FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING);
-    fuvReqCleanUp(fuv_req);
-    fklCallObj(exe, proc);
-    if (exe->thread_run_cb(exe, buttom_frame))
-        startErrorHandle(&fuv_loop->loop, ldata, exe);
-    else
-        exe->tp = stp;
-    fklUnlockThread(exe);
+    FKL_VM_LOCK_BLOCK(exe, flag) {
+        exe->state = FKL_VM_READY;
+        uint32_t const stp = exe->tp;
+        FklVMframe *buttom_frame = exe->top_frame;
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
+        FuvFsReq *fs_req = fuv_req->req.type == UV_FS
+                                 ? FKL_TYPE_CAST(FuvFsReq *, fuv_req)
+                                 : NULL;
+        if ((!creator || !creator(exe, arg)) && fuv_req->data.loop && fs_req)
+            fuvFsReqCleanUp(fs_req, FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING);
+        fuvReqCleanUp(fuv_req);
+        fklCallObj(exe, proc);
+        if (exe->thread_run_cb(exe, buttom_frame))
+            startErrorHandle(&fuv_loop->loop, ldata, exe);
+        else
+            exe->tp = stp;
+    }
 }
 
 struct GetaddrinfoValueCreateArg {
@@ -2039,14 +2038,15 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     if (!proc_obj || proc_obj == FKL_VM_NIL) {
         uv_getaddrinfo_t req;
-        fklUnlockThread(exe);
-        int r = uv_getaddrinfo(&fuv_loop->loop,
-                &req,
-                NULL,
-                node,
-                service,
-                &hints);
-        fklLockThread(exe);
+        int r;
+        FKL_VM_UNLOCK_BLOCK(exe, flag) {
+            r = uv_getaddrinfo(&fuv_loop->loop,
+                    &req,
+                    NULL,
+                    node,
+                    service,
+                    &hints);
+        }
         CHECK_UV_RESULT(r, exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, addrinfo_to_value(exe, req.addrinfo, fpd));
         uv_freeaddrinfo(req.addrinfo);
@@ -2285,13 +2285,14 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     if (!proc_obj || proc_obj == FKL_VM_NIL) {
         uv_getnameinfo_t req;
-        fklUnlockThread(exe);
-        int r = uv_getnameinfo(&fuv_loop->loop,
-                &req,
-                NULL,
-                (struct sockaddr *)&addr,
-                flags);
-        fklLockThread(exe);
+        int r;
+        FKL_VM_UNLOCK_BLOCK(exe, flag) {
+            r = uv_getnameinfo(&fuv_loop->loop,
+                    &req,
+                    NULL,
+                    (struct sockaddr *)&addr,
+                    flags);
+        }
         CHECK_UV_RESULT(r, exe, ctx->pd);
         FKL_CPROC_RETURN(exe,
                 ctx,
@@ -3192,9 +3193,8 @@ static int fuv_pipe_chmod(FKL_CPROC_ARGL) {
         flags = UV_READABLE | UV_WRITABLE;
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    fklUnlockThread(exe);
-    int ret = uv_pipe_chmod(pipe, flags);
-    fklLockThread(exe);
+    int ret;
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { ret = uv_pipe_chmod(pipe, flags); }
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, pipe_obj);
     return 0;
@@ -7684,9 +7684,7 @@ static int fuv_sleep(FKL_CPROC_ARGL) {
     int64_t msec = FKL_GET_FIX(msec_obj);
     if (msec < 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    fklUnlockThread(exe);
-    uv_sleep(msec);
-    fklLockThread(exe);
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { uv_sleep(msec); }
     FKL_CPROC_RETURN(exe, ctx, msec_obj);
     return 0;
 }
@@ -8044,9 +8042,9 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
 
     FKL_DECL_VM_UD_DATA(pd, FuvPublicData, fpd);
 
-    fklVMacquireSt(exe->gc);
-    init_fuv_public_data(pd, exe->gc->st);
-    fklVMreleaseSt(exe->gc);
+    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+        init_fuv_public_data(pd, exe->gc->st);
+    }
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMcFunc func = exports_and_func[i].f;

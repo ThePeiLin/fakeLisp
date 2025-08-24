@@ -11117,12 +11117,12 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(MacroExpandCtx);
 
 static int macro_expand_frame_step(void *data, FklVM *exe) {
     MacroExpandCtx *ctx = (MacroExpandCtx *)data;
-    fklVMacquireSt(exe->gc);
-    *(ctx->retval) = fklCreateNastNodeFromVMvalue(fklGetTopValue(exe),
-            ctx->curline,
-            ctx->lineHash,
-            exe->gc);
-    fklVMreleaseSt(exe->gc);
+    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+        *(ctx->retval) = fklCreateNastNodeFromVMvalue(fklGetTopValue(exe),
+                ctx->curline,
+                ctx->lineHash,
+                exe->gc);
+    }
     return 0;
 }
 

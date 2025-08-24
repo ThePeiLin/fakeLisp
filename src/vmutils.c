@@ -1392,9 +1392,7 @@ void *fklGetAddress(const char *funcname, uv_lib_t *dll) {
 }
 
 void fklVMsleep(FklVM *exe, uint64_t ms) {
-    fklUnlockThread(exe);
-    uv_sleep(ms);
-    fklLockThread(exe);
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { uv_sleep(ms); }
 }
 
 void fklVMread(FklVM *exe,
@@ -1402,12 +1400,12 @@ void fklVMread(FklVM *exe,
         FklStringBuffer *buf,
         uint64_t len,
         int d) {
-    fklUnlockThread(exe);
-    if (d != EOF)
-        fklGetDelim(fp, buf, d);
-    else
-        buf->index = fread(buf->buf, sizeof(char), len, fp);
-    fklLockThread(exe);
+    FKL_VM_UNLOCK_BLOCK(exe, flag) {
+        if (d != EOF)
+            fklGetDelim(fp, buf, d);
+        else
+            buf->index = fread(buf->buf, sizeof(char), len, fp);
+    }
 }
 
 void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],

@@ -1071,31 +1071,31 @@ static int read_expression_end_cb(const char *str,
     int err = 0;
     size_t restLen = str_len - cc->offset;
 
-    fklVMacquireSt(gc);
-    if (g && g->aTable.num) {
-        cc->node = fklParseWithTableForCharBuf2(g,
-                str + cc->offset,
-                restLen,
-                &restLen,
-                &outerCtx,
-                gc->st,
-                &err,
-                &args->errline,
-                &cc->symbolStack,
-                &cc->lineStack,
-                &cc->stateStack);
-    } else {
-        cc->node = fklDefaultParseForCharBuf(str + cc->offset,
-                restLen,
-                &restLen,
-                &outerCtx,
-                &err,
-                &args->errline,
-                &cc->symbolStack,
-                &cc->lineStack,
-                &cc->stateStack);
+    FKL_VM_ACQUIRE_ST_BLOCK(gc, flag) {
+        if (g && g->aTable.num) {
+            cc->node = fklParseWithTableForCharBuf2(g,
+                    str + cc->offset,
+                    restLen,
+                    &restLen,
+                    &outerCtx,
+                    gc->st,
+                    &err,
+                    &args->errline,
+                    &cc->symbolStack,
+                    &cc->lineStack,
+                    &cc->stateStack);
+        } else {
+            cc->node = fklDefaultParseForCharBuf(str + cc->offset,
+                    restLen,
+                    &restLen,
+                    &outerCtx,
+                    &err,
+                    &args->errline,
+                    &cc->symbolStack,
+                    &cc->lineStack,
+                    &cc->stateStack);
+        }
     }
-    fklVMreleaseSt(gc);
 
     cc->offset = str_len - restLen;
     codegen->curline = outerCtx.line;
@@ -1196,18 +1196,18 @@ static int repl_frame_step(void *data, FklVM *exe) {
         }
         exe->tp = fctx->sp;
 
-        fklUnlockThread(exe);
+        FKL_VM_UNLOCK_BLOCK(exe, flag) {
+            cc->node = NULL;
+            cc->err = 0;
+            ReadExpressionEndArgs args = {
+                .gc = exe->gc,
+                .cc = cc,
+                .codegen = ctx->codegen,
+            };
 
-        cc->node = NULL;
-        cc->err = 0;
-        ReadExpressionEndArgs args = {
-            .gc = exe->gc,
-            .cc = cc,
-            .codegen = ctx->codegen,
-        };
+            ctx->eof = repl_read_expression(&fctx->buf, &args);
+        }
 
-        ctx->eof = repl_read_expression(&fctx->buf, &args);
-        fklLockThread(exe);
         return 1;
     } break;
     case READING:
@@ -1234,7 +1234,6 @@ static int repl_frame_step(void *data, FklVM *exe) {
         fklMakeNastNodeRef(ast);
         size_t libs_count = codegen->libraries->size;
 
-        fklVMacquireSt(exe->gc);
         FklConstTable *kt = codegen->runtime_kt;
         struct ConstArrayCount const_count = {
             .i64_count = kt->ki64t.count,
@@ -1243,8 +1242,11 @@ static int repl_frame_step(void *data, FklVM *exe) {
             .bvec_count = kt->kbvect.count,
             .bi_count = kt->kbit.count,
         };
-        FklByteCodelnt *mainCode = fklGenExpressionCode(ast, main_env, codegen);
-        fklVMreleaseSt(exe->gc);
+
+        FklByteCodelnt *mainCode = NULL;
+        FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+            mainCode = fklGenExpressionCode(ast, main_env, codegen);
+        }
 
         fklStoreHistoryInStringBuffer(s, cc->offset);
 
@@ -1278,14 +1280,15 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
             update_prototype_lcount(codegen->pts, main_env);
 
-            fklVMacquireSt(exe->gc);
-            fklUpdatePrototypeRef(codegen->pts,
-                    main_env,
-                    codegen->runtime_symbol_table,
-                    pst);
+            uint32_t lcount = 0;
+            FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+                fklUpdatePrototypeRef(codegen->pts,
+                        main_env,
+                        codegen->runtime_symbol_table,
+                        pst);
 
-            uint32_t lcount = codegen->pts->pa[1].lcount;
-            fklVMreleaseSt(exe->gc);
+                lcount = codegen->pts->pa[1].lcount;
+            }
 
             FklVMvalue *mainProc =
                     fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
@@ -1491,19 +1494,17 @@ static int eval_frame_step(void *data, FklVM *exe) {
     FklGrammer *g = *(codegen->g);
 
     while (restLen) {
-        fklVMacquireSt(exe->gc);
-
-        ast = fklDefaultParseForCharBuf(eval_expression_str,
-                restLen,
-                &restLen,
-                &outerCtx,
-                &err,
-                &errLine,
-                &cc->symbolStack,
-                &cc->lineStack,
-                &cc->stateStack);
-
-        fklVMreleaseSt(exe->gc);
+        FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+            ast = fklDefaultParseForCharBuf(eval_expression_str,
+                    restLen,
+                    &restLen,
+                    &outerCtx,
+                    &err,
+                    &errLine,
+                    &cc->symbolStack,
+                    &cc->lineStack,
+                    &cc->stateStack);
+        }
 
         cc->offset = strlen(eval_expression_str) - restLen;
         codegen->curline = outerCtx.line;
@@ -1523,7 +1524,6 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
     size_t libs_count = codegen->libraries->size;
 
-    fklVMacquireSt(exe->gc);
     FklConstTable *kt = codegen->runtime_kt;
     struct ConstArrayCount const_count = {
         .i64_count = kt->ki64t.count,
@@ -1532,9 +1532,12 @@ static int eval_frame_step(void *data, FklVM *exe) {
         .bvec_count = kt->kbvect.count,
         .bi_count = kt->kbit.count,
     };
-    FklByteCodelnt *mainCode =
-            fklGenExpressionCodeWithQueue(queue, codegen, main_env);
-    fklVMreleaseSt(exe->gc);
+
+    FklByteCodelnt *mainCode = NULL;
+
+    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+        mainCode = fklGenExpressionCodeWithQueue(queue, codegen, main_env);
+    }
 
     g = *(codegen->g);
     repl_nast_ctx_and_buf_reset(cc, &ctx->c->buf, g);
@@ -1564,14 +1567,15 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
         update_prototype_lcount(codegen->pts, main_env);
 
-        fklVMacquireSt(exe->gc);
-        fklUpdatePrototypeRef(codegen->pts,
-                main_env,
-                codegen->runtime_symbol_table,
-                pst);
+        uint32_t lcount = 0;
+        FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+            fklUpdatePrototypeRef(codegen->pts,
+                    main_env,
+                    codegen->runtime_symbol_table,
+                    pst);
 
-        uint32_t lcount = codegen->pts->pa[1].lcount;
-        fklVMreleaseSt(exe->gc);
+            lcount = codegen->pts->pa[1].lcount;
+        }
 
         FklVMvalue *mainProc =
                 fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);

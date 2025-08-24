@@ -98,9 +98,12 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
             &DebugCtxUdMetaTable,
             FKL_VM_CPROC(ctx->proc)->dll);
     FKL_DECL_VM_UD_DATA(debug_ud, DebugCtx, ud);
-    fklUnlockThread(exe);
-    int r = initDebugCtx(debug_ud, exe, valid_filename, argv_obj);
-    fklLockThread(exe);
+    int r;
+
+    FKL_VM_UNLOCK_BLOCK(exe, flag) {
+        r = initDebugCtx(debug_ud, exe, valid_filename, argv_obj);
+    }
+
     fklZfree(valid_filename);
     if (r)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
@@ -186,36 +189,35 @@ static int read_expression_end_cb(const char *str,
     size_t errLine = 0;
     int err = 0;
 
-    fklLockThread(exe);
-    FklVMvalue *ast = fklDefaultParseForCharBuf(str + args->offset,
-            restLen,
-            &restLen,
-            outerCtx,
-            &err,
-            &errLine,
-            &ctx->symbolStack,
-            &ctx->lineStack,
-            &ctx->stateStack);
-
-    args->offset = str_len - restLen;
-
     int end = 0;
-    if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
-        args->err = READ_ERROR_INVALIDEXPR;
-        end = 1;
-    } else if (err == FKL_PARSE_REDUCE_FAILED) {
-        args->err = READ_ERROR_INVALIDEXPR;
-        end = 1;
-    } else if (ast) {
-        args->ast = ast;
-        args->err = 0;
-        FKL_VM_PUSH_VALUE(exe, ast);
-        end = 1;
-    } else {
-        end = 0;
-    }
+    FKL_VM_LOCK_BLOCK(exe, flag) {
+        FklVMvalue *ast = fklDefaultParseForCharBuf(str + args->offset,
+                restLen,
+                &restLen,
+                outerCtx,
+                &err,
+                &errLine,
+                &ctx->symbolStack,
+                &ctx->lineStack,
+                &ctx->stateStack);
 
-    fklUnlockThread(exe);
+        args->offset = str_len - restLen;
+
+        if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
+            args->err = READ_ERROR_INVALIDEXPR;
+            end = 1;
+        } else if (err == FKL_PARSE_REDUCE_FAILED) {
+            args->err = READ_ERROR_INVALIDEXPR;
+            end = 1;
+        } else if (ast) {
+            args->ast = ast;
+            args->err = 0;
+            FKL_VM_PUSH_VALUE(exe, ast);
+            end = 1;
+        } else {
+            end = 0;
+        }
+    }
     return end;
 }
 
@@ -247,9 +249,9 @@ debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
         .outerCtx = &outerCtx,
     };
 
-    fklUnlockThread(exe);
-    debug_ctx_read_expression_in_string_buffer(s, prompt, &args);
-    fklLockThread(exe);
+    FKL_VM_UNLOCK_BLOCK(exe, flag) {
+        debug_ctx_read_expression_in_string_buffer(s, prompt, &args);
+    }
 
     if (args.ast == NULL && args.err) {
         debug_repl_parse_ctx_and_buf_reset(ctx, s);
@@ -342,10 +344,10 @@ create_breakpoint_vec(FklVM *exe, DebugCtx *dctx, const Breakpoint *bp) {
 static inline int debug_restart(DebugCtx *dctx, FklVM *exe) {
     if (dctx->running) {
         if (dctx->reached_thread) {
-            fklUnlockThread(exe);
-            setAllThreadReadyToExit(dctx->reached_thread);
-            waitAllThreadExit(dctx->reached_thread);
-            fklLockThread(exe);
+            FKL_VM_UNLOCK_BLOCK(exe, flag) {
+                setAllThreadReadyToExit(dctx->reached_thread);
+                waitAllThreadExit(dctx->reached_thread);
+            }
         } else if (dctx->gc->main_thread) {
             fklDestroyAllVMs(dctx->gc->main_thread);
             dctx->gc->main_thread = NULL;
@@ -368,34 +370,34 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
         return 0;
     }
-    fklUnlockThread(exe);
-    dctx->reached_breakpoint = NULL;
-    dctx->reached_thread = NULL;
-    jmp_buf buf;
-    dctx->jmpb = &buf;
-    int r = setjmp(buf);
-    if (r == DBG_INTERRUPTED) {
-        dctx->done = 0;
-        if (dctx->reached_breakpoint)
-            unsetStepping(dctx);
-    } else if (r == DBG_ERROR_OCCUR) {
-        dctx->done = 1;
-        fputs("*** Unhandled error occured. The program will restart ***\n",
-                stderr);
-    } else {
-        if (dctx->running) {
-            dctx->reached_breakpoint = NULL;
-            dctx->reached_thread_frames.size = 0;
-            fklVMreleaseWq(dctx->gc);
-            fklVMcontinueTheWorld(dctx->gc);
+    FKL_VM_UNLOCK_BLOCK(exe, flag) {
+        dctx->reached_breakpoint = NULL;
+        dctx->reached_thread = NULL;
+        jmp_buf buf;
+        dctx->jmpb = &buf;
+        int r = setjmp(buf);
+        if (r == DBG_INTERRUPTED) {
+            dctx->done = 0;
+            if (dctx->reached_breakpoint)
+                unsetStepping(dctx);
+        } else if (r == DBG_ERROR_OCCUR) {
+            dctx->done = 1;
+            fputs("*** Unhandled error occured. The program will restart ***\n",
+                    stderr);
+        } else {
+            if (dctx->running) {
+                dctx->reached_breakpoint = NULL;
+                dctx->reached_thread_frames.size = 0;
+                fklVMreleaseWq(dctx->gc);
+                fklVMcontinueTheWorld(dctx->gc);
+            }
+            dctx->running = 1;
+            fklVMtrappingIdleLoop(dctx->gc);
+            dctx->done = 1;
+            fputs("*** The program finishied and will restart ***\n", stderr);
         }
-        dctx->running = 1;
-        fklVMtrappingIdleLoop(dctx->gc);
-        dctx->done = 1;
-        fputs("*** The program finishied and will restart ***\n", stderr);
+        dctx->jmpb = NULL;
     }
-    dctx->jmpb = NULL;
-    fklLockThread(exe);
     FKL_CPROC_RETURN(exe,
             ctx,
             dctx->reached_breakpoint
@@ -492,12 +494,12 @@ done:
                     exe->gc);
             if (!expression)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF, exe);
-            fklVMacquireSt(exe->gc);
-            fklRecomputeSidForNastNode(expression,
-                    exe->gc->st,
-                    dctx->st,
-                    FKL_CODEGEN_SID_RECOMPUTE_NONE);
-            fklVMreleaseSt(exe->gc);
+            FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+                fklRecomputeSidForNastNode(expression,
+                        exe->gc->st,
+                        dctx->st,
+                        FKL_CODEGEN_SID_RECOMPUTE_NONE);
+            }
             item->cond_exp = expression;
         }
         item->is_temporary = is_temporary != FKL_VM_NIL;
@@ -1073,12 +1075,12 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
                             exe->gc);
             if (!expression)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CIR_REF, exe);
-            fklVMacquireSt(exe->gc);
-            fklRecomputeSidForNastNode(expression,
-                    exe->gc->st,
-                    dctx->st,
-                    FKL_CODEGEN_SID_RECOMPUTE_NONE);
-            fklVMreleaseSt(exe->gc);
+            FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
+                fklRecomputeSidForNastNode(expression,
+                        exe->gc->st,
+                        dctx->st,
+                        FKL_CODEGEN_SID_RECOMPUTE_NONE);
+            }
             FklVMvalue *proc = compileEvalExpression(dctx,
                     dctx->reached_thread,
                     expression,

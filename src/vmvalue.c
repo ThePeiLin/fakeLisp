@@ -885,10 +885,10 @@ void fklChanlRecv(FklVMchanl *ch, uint32_t slot, FklVM *exe) {
             FKL_UNREACHABLE();
         }
         chanl_push_recv(ch, &r);
-        fklUnlockThread(exe);
-        uv_cond_wait(&r.cond, &ch->lock);
-        uv_mutex_unlock(&ch->lock);
-        fklLockThread(exe);
+        FKL_VM_UNLOCK_BLOCK(exe, flag) {
+            uv_cond_wait(&r.cond, &ch->lock);
+            uv_mutex_unlock(&ch->lock);
+        }
         uv_cond_destroy(&r.cond);
         return;
     }
@@ -914,10 +914,10 @@ void fklChanlSend(FklVMchanl *ch, FklVMvalue *msg, FklVM *exe) {
             FKL_UNREACHABLE();
         }
         chanl_push_send(ch, &s);
-        fklUnlockThread(exe);
-        uv_cond_wait(&s.cond, &ch->lock);
-        uv_mutex_unlock(&ch->lock);
-        fklLockThread(exe);
+        FKL_VM_UNLOCK_BLOCK(exe, flag) {
+            uv_cond_wait(&s.cond, &ch->lock);
+            uv_mutex_unlock(&ch->lock);
+        }
         uv_cond_destroy(&s.cond);
         return;
     }

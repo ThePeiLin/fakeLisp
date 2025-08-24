@@ -290,7 +290,7 @@ void fklInitStringBuffer(FklStringBuffer *b) {
     b->index = 0;
     b->size = 0;
     b->buf = NULL;
-    fklStringBufferReverse(b, 64);
+    fklStringBufferReserve(b, 64);
     b->buf[0] = '\0';
 }
 
@@ -298,18 +298,18 @@ void fklInitStringBufferWithCapacity(FklStringBuffer *b, size_t len) {
     b->index = 0;
     b->size = 0;
     b->buf = NULL;
-    fklStringBufferReverse(b, len);
+    fklStringBufferReserve(b, len);
     b->buf[0] = '\0';
 }
 
 void fklStringBufferPutc(FklStringBuffer *b, char c) {
-    fklStringBufferReverse(b, 2);
+    fklStringBufferReserve(b, 2);
     b->buf[b->index++] = c;
     b->buf[b->index] = '\0';
 }
 
 void fklStringBufferBincpy(FklStringBuffer *b, const void *p, size_t l) {
-    fklStringBufferReverse(b, l + 1);
+    fklStringBufferReserve(b, l + 1);
     memcpy(&b->buf[b->index], p, l);
     b->index += l;
     b->buf[b->index] = '\0';
@@ -358,7 +358,7 @@ void fklStringBufferFill(FklStringBuffer *b, char c) {
     memset(b->buf, c, b->index);
 }
 
-void fklStringBufferReverse(FklStringBuffer *b, size_t s) {
+void fklStringBufferReserve(FklStringBuffer *b, size_t s) {
     if ((b->size - b->index) < s) {
         b->size <<= 1;
         if ((b->size - b->index) < s)
@@ -413,9 +413,9 @@ long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap) {
             return n;
         }
         if (n > -1)
-            fklStringBufferReverse(b, n + 1);
+            fklStringBufferReserve(b, n + 1);
         else
-            fklStringBufferReverse(b, (b->size) * 2);
+            fklStringBufferReserve(b, (b->size) * 2);
     }
     return n;
 }
@@ -575,7 +575,7 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv) {
 
 static char *string_buffer_alloc(void *ptr, size_t len) {
     FklStringBuffer *buf = ptr;
-    fklStringBufferReverse(buf, len + 1);
+    fklStringBufferReserve(buf, len + 1);
     buf->index = len;
     char *body = fklStringBufferBody(buf);
     body[len] = '\0';

@@ -7450,7 +7450,7 @@ static int fuv_os_getenv(FKL_CPROC_ARGL) {
     int r = 0;
     while ((r = uv_os_getenv(FKL_VM_STR(env_obj)->str, buf.buf, &size))
             == UV_ENOBUFS)
-        fklStringBufferReverse(&buf, size + 1);
+        fklStringBufferReserve(&buf, size + 1);
     if (r == 0) {
         buf.index = size;
         FKL_CPROC_RETURN(exe,

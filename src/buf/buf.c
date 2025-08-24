@@ -71,7 +71,7 @@ create_vmstrbuf(FklVM *exe, size_t capacity, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, r);
     fklInitStringBuffer(buf);
-    fklStringBufferReverse(buf, capacity);
+    fklStringBufferReserve(buf, capacity);
     return r;
 }
 
@@ -80,7 +80,7 @@ create_vmstrbuf2(FklVM *exe, size_t size, const char *ptr, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, r);
     fklInitStringBuffer(buf);
-    fklStringBufferReverse(buf, size);
+    fklStringBufferReserve(buf, size);
     fklStringBufferBincpy(buf, ptr, size);
     return r;
 }
@@ -356,7 +356,7 @@ static int export_strbuf_reserve(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t capacity = fklVMgetUint(place);
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, str);
-    fklStringBufferReverse(buf, capacity);
+    fklStringBufferReserve(buf, capacity);
     FKL_CPROC_RETURN(exe, ctx, str);
     return 0;
 }

@@ -60,8 +60,8 @@ static int os_date(FKL_CPROC_ARGL) {
             const char *format = FKL_VM_STR(fmt)->str;
             size_t n = 0;
             while (!(n = strftime(buf.buf, buf.size, format, tblock)))
-                fklStringBufferReverse(&buf, buf.size * 2);
-            fklStringBufferReverse(&buf, n + 1);
+                fklStringBufferReserve(&buf, buf.size * 2);
+            fklStringBufferReserve(&buf, n + 1);
             buf.index = n;
 
             FklVMvalue *tmpVMvalue =
@@ -77,8 +77,8 @@ static int os_date(FKL_CPROC_ARGL) {
             const struct tm *tblock = localtime(&stamp);
             size_t n = 0;
             while (!(n = strftime(buf.buf, buf.size, default_fmt, tblock)))
-                fklStringBufferReverse(&buf, buf.size * 2);
-            fklStringBufferReverse(&buf, n + 1);
+                fklStringBufferReserve(&buf, buf.size * 2);
+            fklStringBufferReserve(&buf, n + 1);
             buf.index = n;
 
             FklVMvalue *tmpVMvalue =
@@ -101,8 +101,8 @@ static int os_date(FKL_CPROC_ARGL) {
             const char *format = FKL_VM_STR(fmt)->str;
             size_t n = 0;
             while (!(n = strftime(buf.buf, buf.size, format, tblock)))
-                fklStringBufferReverse(&buf, buf.size * 2);
-            fklStringBufferReverse(&buf, n + 1);
+                fklStringBufferReserve(&buf, buf.size * 2);
+            fklStringBufferReserve(&buf, n + 1);
             buf.index = n;
 
             FklVMvalue *tmpVMvalue =

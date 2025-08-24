@@ -124,7 +124,7 @@ static inline char *fklStringBufferBody(FklStringBuffer *b) { return b->buf; }
 FklStringBuffer *fklCreateStringBuffer(void);
 void fklInitStringBuffer(FklStringBuffer *);
 void fklInitStringBufferWithCapacity(FklStringBuffer *, size_t s);
-void fklStringBufferReverse(FklStringBuffer *, size_t s);
+void fklStringBufferReserve(FklStringBuffer *, size_t s);
 void fklStringBufferShrinkTo(FklStringBuffer *, size_t s);
 void fklStringBufferResize(FklStringBuffer *, size_t s, char content);
 void fklUninitStringBuffer(FklStringBuffer *);

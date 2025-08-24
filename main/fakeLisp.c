@@ -339,7 +339,7 @@ static const char *priority_str[PRIORITY_PACKAGE_PRECOMPILE + 1] = {
 
 #define PRIORITY_PLACEHOLDER ("~")
 
-static inline int process_priority(char *str,
+static inline int load_priority(char *str,
         enum PriorityEnum priority_array[PRIORITY_PACKAGE_PRECOMPILE]) {
     struct {
         enum PriorityEnum type;
@@ -412,7 +412,7 @@ error:
     return 1;
 }
 
-static inline int process_specify(char *str,
+static inline int load_specify(char *str,
         enum PriorityEnum priority_array[PRIORITY_PACKAGE_PRECOMPILE]) {
     struct {
         enum PriorityEnum type;
@@ -597,10 +597,10 @@ int main(int argc, char *argv[]) {
             };
 
             if (priority->count > 0) {
-                if (process_priority((char *)priority->sval[0], priority_array))
+                if (load_priority((char *)priority->sval[0], priority_array))
                     goto error;
             } else if (specify->count) {
-                if (process_specify((char *)specify->sval[0], priority_array))
+                if (load_specify((char *)specify->sval[0], priority_array))
                     goto error;
             } else {
                 priority_array[0] = PRIORITY_PACKAGE_SCRIPT;
@@ -775,21 +775,21 @@ insert_local_ref(FklVMCompoundFrameVarRef *lr, FklVMvalue *ref, uint32_t cidx) {
     return ref;
 }
 
-struct ProcessUnresolveRefArg {
+struct ResolveRefArg {
     const FklSymDefHashMapElm *def;
     uint32_t prototypeId;
     uint32_t idx;
 };
 
-// FklProcessUnresolveRefArgVector
-#define FKL_VECTOR_ELM_TYPE struct ProcessUnresolveRefArg
-#define FKL_VECTOR_ELM_TYPE_NAME ProcessUnresolveRefArg
+// FklResolveRefArgVector
+#define FKL_VECTOR_ELM_TYPE struct ResolveRefArg
+#define FKL_VECTOR_ELM_TYPE_NAME ResolveRefArg
 #include <fakeLisp/cont/vector.h>
 
-struct ProcessUnresolveRefArgs {
+struct ResolveRefArgs {
     FklVMvalue **loc;
     FklVMCompoundFrameVarRef *lr;
-    FklProcessUnresolveRefArgVector unresolve_refs;
+    FklResolveRefArgVector unresolve_refs;
     uint64_t new_lib_count;
     FklVMlib *new_libs;
     int is_need_update_const_array;
@@ -807,13 +807,13 @@ update_vm_libs(FklVMgc *gc, uint64_t new_libs_count, FklVMlib *new_libs) {
     gc->lib_num += new_libs_count;
 }
 
-static inline void process_unresolve_work_func(FklVM *exe,
-        const struct ProcessUnresolveRefArgs *s) {
+static inline void resolve_ref_work_func(FklVM *exe,
+        const struct ResolveRefArgs *s) {
     if (s->is_need_update_const_array)
         fklVMgcUpdateConstArray(exe->gc, exe->gc->kt);
-    const FklProcessUnresolveRefArgVector *unresolve_refs = &s->unresolve_refs;
-    struct ProcessUnresolveRefArg *cur = unresolve_refs->base;
-    const struct ProcessUnresolveRefArg *const end = &cur[unresolve_refs->size];
+    const FklResolveRefArgVector *unresolve_refs = &s->unresolve_refs;
+    struct ResolveRefArg *cur = unresolve_refs->base;
+    const struct ResolveRefArg *const end = &cur[unresolve_refs->size];
     FklVMvalue **loc = s->loc;
 
     FklVMCompoundFrameVarRef *lr = s->lr;
@@ -873,7 +873,7 @@ struct UpdateConstArrayArgs {
     int is_need_update_const_array;
 };
 
-static void process_update_const_array_cb(FklVM *exe, void *arg) {
+static void update_const_array_cb(FklVM *exe, void *arg) {
     const struct UpdateConstArrayArgs *args = arg;
     if (args->is_need_update_const_array) {
         fklVMgcUpdateConstArray(exe->gc, exe->gc->kt);
@@ -882,17 +882,15 @@ static void process_update_const_array_cb(FklVM *exe, void *arg) {
         update_vm_libs(exe->gc, args->new_libs_count, args->new_libs);
 }
 
-static void process_unresolve_ref_cb(FklVM *exe, void *arg) {
-    const struct ProcessUnresolveRefArgs *aarg =
-            (struct ProcessUnresolveRefArgs *)arg;
-    process_unresolve_work_func(exe, aarg);
+static void resolve_ref_cb(FklVM *exe, void *arg) {
+    const struct ResolveRefArgs *aarg = (struct ResolveRefArgs *)arg;
+    resolve_ref_work_func(exe, aarg);
 }
 
-static inline void uninit_process_unresolve_ref_arg_stack(
-        struct ProcessUnresolveRefArgs *s) {
+static inline void uninit_resolve_ref_arg_stack(struct ResolveRefArgs *s) {
     s->loc = NULL;
     s->lr = NULL;
-    fklProcessUnresolveRefArgVectorUninit(&s->unresolve_refs);
+    fklResolveRefArgVectorUninit(&s->unresolve_refs);
     s->new_lib_count = 0;
     fklZfree(s->new_libs);
     s->new_libs = NULL;
@@ -901,32 +899,32 @@ static inline void uninit_process_unresolve_ref_arg_stack(
 
 typedef struct {
     FklVMCompoundFrameVarRef *lr;
-    FklProcessUnresolveRefArgVector *unresolve_refs;
-} ProcessDefArgs;
+    FklResolveRefArgVector *unresolve_refs;
+} ResolveRefToDefCbArgs;
 
-static void process_def(const FklSymDefHashMapMutElm *ref,
+static void resolve_ref_to_def_cb(const FklSymDefHashMapMutElm *ref,
         const FklSymDefHashMapElm *def,
-        FklFuncPrototype *pts,
         const FklUnReSymbolRef *uref,
+        FklFuncPrototype *p,
         void *vargs) {
 
-    const ProcessDefArgs *args = (const ProcessDefArgs *)vargs;
+    const ResolveRefToDefCbArgs *args = (const ResolveRefToDefCbArgs *)vargs;
     FklVMCompoundFrameVarRef *lr = args->lr;
-    FklProcessUnresolveRefArgVector *unresolve_refs = args->unresolve_refs;
+    FklResolveRefArgVector *unresolve_refs = args->unresolve_refs;
 
     uint32_t prototypeId = uref->prototypeId;
     uint32_t idx = ref->v.idx;
     inc_lref(lr, lr->lcount);
 
-    fklProcessUnresolveRefArgVectorPushBack(unresolve_refs,
-            &(struct ProcessUnresolveRefArg){
+    fklResolveRefArgVectorPushBack(unresolve_refs,
+            &(struct ResolveRefArg){
                 .def = def,
                 .prototypeId = prototypeId,
                 .idx = idx,
             });
 }
 
-static inline void process_unresolve_ref_and_update_const_array_for_repl(
+static inline void resolve_ref_and_update_const_array_for_repl(
         FklCodegenEnv *env,
         FklCodegenEnv *top_env,
         FklFuncPrototypes *cp,
@@ -939,7 +937,7 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
 
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(mainframe);
 
-    struct ProcessUnresolveRefArgs process_unresolve_ref_args = {
+    struct ResolveRefArgs resolve_ref_args = {
         .lr = lr,
         .loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
         .is_need_update_const_array = is_need_update_const_array,
@@ -947,28 +945,26 @@ static inline void process_unresolve_ref_and_update_const_array_for_repl(
         .new_libs = new_libs,
     };
 
-    FklProcessUnresolveRefArgVector *unresolve_refs =
-            &process_unresolve_ref_args.unresolve_refs;
-    fklProcessUnresolveRefArgVectorInit(unresolve_refs, env->uref.size);
+    FklResolveRefArgVector *unresolve_refs = &resolve_ref_args.unresolve_refs;
+    fklResolveRefArgVectorInit(unresolve_refs, env->uref.size);
 
-    fklProcessUnresolveRef(env,
+    fklResolveRef(env,
             scope,
             cp,
-            &(const FklProcessUnresolveRefArgs){
+            &(const FklResolveRefArgs){
                 .top_env = top_env,
                 .no_refs_to_builtins = 1,
-                .process_def = process_def,
-                .process_def_args = (void *)&(const ProcessDefArgs){ .lr = lr,
-                    .unresolve_refs = unresolve_refs },
+                .resolve_ref_to_def_cb = resolve_ref_to_def_cb,
+                .resolve_ref_to_def_cb_args =
+                        (void *)&(const ResolveRefToDefCbArgs){ .lr = lr,
+                            .unresolve_refs = unresolve_refs },
             });
 
     if (unresolve_refs->size || is_need_update_const_array || new_lib_count) {
-        fklQueueWorkInIdleThread(exe,
-                process_unresolve_ref_cb,
-                &process_unresolve_ref_args);
+        fklQueueWorkInIdleThread(exe, resolve_ref_cb, &resolve_ref_args);
     }
 
-    uninit_process_unresolve_ref_arg_stack(&process_unresolve_ref_args);
+    uninit_resolve_ref_arg_stack(&resolve_ref_args);
 }
 
 static inline void update_prototype_lcount(FklFuncPrototypes *cp,
@@ -1325,7 +1321,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
             alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
             init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
 
-            process_unresolve_ref_and_update_const_array_for_repl(main_env,
+            resolve_ref_and_update_const_array_for_repl(main_env,
                     codegen->global_env,
                     codegen->pts,
                     exe,
@@ -1346,7 +1342,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
             if (is_need_update_const_array(&const_count, kt)
                     || new_libs_count) {
                 fklQueueWorkInIdleThread(exe,
-                        process_update_const_array_cb,
+                        update_const_array_cb,
                         &(struct UpdateConstArrayArgs){
                             .is_need_update_const_array = is_need_update_const,
                             .new_libs_count = new_libs_count,
@@ -1608,7 +1604,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         alloc_more_space_for_var_ref(f, o_lcount, f->lcount);
         init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
 
-        process_unresolve_ref_and_update_const_array_for_repl(main_env,
+        resolve_ref_and_update_const_array_for_repl(main_env,
                 codegen->global_env,
                 codegen->pts,
                 exe,
@@ -1629,7 +1625,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         int is_need_update_const = is_need_update_const_array(&const_count, kt);
         if (is_need_update_const_array(&const_count, kt) || new_libs_count) {
             fklQueueWorkInIdleThread(exe,
-                    process_update_const_array_cb,
+                    update_const_array_cb,
                     &(struct UpdateConstArrayArgs){
                         .is_need_update_const_array = is_need_update_const,
                         .new_libs_count = new_libs_count,

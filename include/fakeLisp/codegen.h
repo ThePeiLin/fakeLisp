@@ -71,18 +71,18 @@ typedef struct FklCodegenEnv {
 typedef struct {
     FklCodegenEnv *top_env;
     int no_refs_to_builtins;
-    void (*process_def)(const FklSymDefHashMapMutElm *ref,
+    void (*resolve_ref_to_def_cb)(const FklSymDefHashMapMutElm *ref,
             const FklSymDefHashMapElm *def,
-            FklFuncPrototype *,
             const FklUnReSymbolRef *uref,
+            FklFuncPrototype *,
             void *args);
-    void *process_def_args;
-} FklProcessUnresolveRefArgs;
+    void *resolve_ref_to_def_cb_args;
+} FklResolveRefArgs;
 
-void fklProcessUnresolveRef(FklCodegenEnv *env,
+void fklResolveRef(FklCodegenEnv *env,
         uint32_t scope,
         FklFuncPrototypes *cp,
-        const FklProcessUnresolveRefArgs *args);
+        const FklResolveRefArgs *args);
 
 void fklUpdatePrototype(FklFuncPrototypes *cp,
         FklCodegenEnv *env,

@@ -55,4 +55,58 @@ static inline void replace_sid(FklSid_t *id,
     *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st), target_st)->v;
 }
 
+static inline void merge_group(FklGrammerProdGroupItem *group,
+        const FklGrammerProdGroupItem *other,
+        const FklRecomputeGroupIdArgs *args) {
+    for (const FklStrHashSetNode *cur = other->delimiters.first; cur;
+            cur = cur->next)
+        fklAddString(&group->delimiters, cur->k);
+    fklMergeGrammer(&group->g, &other->g, args);
+}
+
+static inline FklCodegenMacroScope *make_macro_scope_ref(
+        FklCodegenMacroScope *s) {
+    if (s)
+        s->refcount++;
+    return s;
+}
+
+static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
+    fklDestroyNastNode(macro->pattern);
+    macro->pattern = NULL;
+    fklDestroyNastNode(macro->origin_exp);
+    macro->origin_exp = NULL;
+    fklDestroyByteCodelnt(macro->bcl);
+    macro->bcl = NULL;
+}
+
+static inline void create_and_insert_to_pool(FklCodegenInfo *info,
+        uint32_t p,
+        FklCodegenEnv *env,
+        FklSid_t sid,
+        uint32_t line,
+        FklSymbolTable *pst) {
+    FklSid_t fid = info->fid;
+    FklFuncPrototypes *cp = info->pts;
+    cp->count += 1;
+    FklFuncPrototype *pts = (FklFuncPrototype *)fklZrealloc(cp->pa,
+            (cp->count + 1) * sizeof(FklFuncPrototype));
+    FKL_ASSERT(pts);
+    cp->pa = pts;
+    FklFuncPrototype *cpt = &pts[cp->count];
+    env->prototypeId = cp->count;
+    cpt->lcount = env->lcount;
+    cpt->refs = NULL;
+    cpt->rcount = 0;
+    FKL_ASSERT(cpt == &info->pts->pa[env->prototypeId]);
+    fklUpdatePrototypeRef(info->pts, env, info->runtime_symbol_table, pst);
+
+    cpt->sid = sid;
+    cpt->fid = fid;
+    cpt->line = line;
+
+    if (info->work.env_work_cb)
+        info->work.env_work_cb(info, env, info->work.work_ctx);
+}
+
 #endif

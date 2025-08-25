@@ -104,8 +104,8 @@ static inline void resolve_reference(DebugCtx *ctx,
 }
 
 static inline int has_import_op_code(const FklByteCodelnt *lnt) {
-    const FklInstruction *cur = lnt->bc->code;
-    const FklInstruction *const end = &cur[lnt->bc->len];
+    const FklInstruction *cur = lnt->bc.code;
+    const FklInstruction *const end = &cur[lnt->bc.len];
     for (; cur < end; cur++)
         if (cur->op == FKL_OP_LOAD_DLL || cur->op == FKL_OP_LOAD_LIB)
             return 1;

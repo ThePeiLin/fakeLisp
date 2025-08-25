@@ -1723,7 +1723,7 @@ FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
 
 FklVMvalue *
 fklCreateVMvalueProc(FklVM *exe, FklVMvalue *codeObj, uint32_t pid) {
-    FklByteCode *bc = FKL_VM_CO(codeObj)->bc;
+    FklByteCode *bc = &FKL_VM_CO(codeObj)->bc;
     return fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, pid);
 }
 

@@ -4776,7 +4776,7 @@ static FklByteCodelnt *inlfunc_nth(INL_FUNC_ARGS) {
 
 static FklByteCodelnt *inlfunc_vec_ref(INL_FUNC_ARGS) {
     FklByteCodelnt *index_bcl = bcs[1];
-    if (index_bcl->bc->len == 1 && index_bcl->bc->code[0].op == FKL_OP_PUSH_0) {
+    if (index_bcl->bc.len == 1 && index_bcl->bc.code[0].op == FKL_OP_PUSH_0) {
         fklDestroyByteCodelnt(index_bcl);
         FklInstruction ins = { .op = FKL_OP_VEC, .ai = FKL_SUBOP_VEC_FIRST };
         return inl_1_arg_func2(&ins, bcs, fid, line, scope);

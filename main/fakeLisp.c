@@ -956,8 +956,10 @@ static inline void resolve_ref_and_update_const_array_for_repl(
                 .no_refs_to_builtins = 1,
                 .resolve_ref_to_def_cb = resolve_ref_to_def_cb,
                 .resolve_ref_to_def_cb_args =
-                        (void *)&(const ResolveRefToDefCbArgs){ .lr = lr,
-                            .unresolve_refs = unresolve_refs },
+                        (void *)&(const ResolveRefToDefCbArgs){
+                            .lr = lr,
+                            .unresolve_refs = unresolve_refs,
+                        },
             });
 
     if (unresolve_refs->size || is_need_update_const_array || new_lib_count) {
@@ -1301,8 +1303,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
             mainCode = FKL_VM_CO(mainCodeObj);
             proc->lcount = fctx->lcount;
             proc->codeObj = mainCodeObj;
-            proc->spc = mainCode->bc->code;
-            proc->end = proc->spc + mainCode->bc->len;
+            proc->spc = mainCode->bc.code;
+            proc->end = proc->spc + mainCode->bc.len;
 
             exe->base[1] = fctx->mainProc;
             FklVMframe *mainframe =
@@ -1586,8 +1588,8 @@ static int eval_frame_step(void *data, FklVM *exe) {
         mainCode = FKL_VM_CO(mainCodeObj);
         proc->lcount = fctx->lcount;
         proc->codeObj = mainCodeObj;
-        proc->spc = mainCode->bc->code;
-        proc->end = proc->spc + mainCode->bc->len;
+        proc->spc = mainCode->bc.code;
+        proc->end = proc->spc + mainCode->bc.len;
 
         exe->base[1] = ctx->c->mainProc;
         FklVMframe *mainframe = fklCreateVMframeWithProc(exe, ctx->c->mainProc);

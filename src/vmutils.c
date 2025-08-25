@@ -140,7 +140,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
             fprintf(fp, "at <top>");
         FklByteCodelnt *codeObj = FKL_VM_CO(get_compound_frame_code_obj(cur));
         const FklLineNumberTableItem *node = fklFindLineNumTabNode(
-                fklGetCompoundFrameCode(cur) - codeObj->bc->code - 1,
+                fklGetCompoundFrameCode(cur) - codeObj->bc.code - 1,
                 codeObj->ls,
                 codeObj->l);
         if (node->fid) {

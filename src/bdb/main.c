@@ -956,7 +956,7 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL) {
         return 0;
     }
 
-    FklByteCode *bc = FKL_VM_CO(byte_code)->bc;
+    FklByteCode *bc = &FKL_VM_CO(byte_code)->bc;
     uint64_t cur_pc = cur_ins - bc->code;
     if (pc_num_obj) {
         FKL_CHECK_TYPE(pc_num_obj, fklIsVMint, exe);
@@ -1024,7 +1024,7 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL) {
     FklVMvalue *byte_code = get_byte_code_frame_and_reset(dctx, &ins);
 
     if (byte_code) {
-        FklByteCode *bc = FKL_VM_CO(byte_code)->bc;
+        FklByteCode *bc = &FKL_VM_CO(byte_code)->bc;
         if (ins < &bc->code[bc->len]) {
             uint64_t ins_pc = ins - bc->code;
             FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);

@@ -371,7 +371,7 @@ void fklRecomputeInsImm(FklByteCodelnt *bcl,
     fklByteCodeBufferScanAndSetBasicBlock(&buf);
 
     FklByteCodeBuffer new_buf;
-    fklInitByteCodeBuffer(&new_buf, bcl->bc->len);
+    fklInitByteCodeBuffer(&new_buf, bcl->bc.len);
 
     FklInsLn tmp_ins_ln;
 
@@ -483,7 +483,7 @@ static inline void bytecode_buffer_reserve(FklByteCodeBuffer *buf,
 }
 
 void fklSetByteCodeBuffer(FklByteCodeBuffer *buf, const FklByteCodelnt *bcl) {
-    size_t len = bcl->bc->len;
+    size_t len = bcl->bc.len;
     bytecode_buffer_reserve(buf, len);
     buf->size = len;
 
@@ -491,7 +491,7 @@ void fklSetByteCodeBuffer(FklByteCodeBuffer *buf, const FklByteCodelnt *bcl) {
     uint64_t ln_idx = 0;
     uint64_t ln_idx_end = bcl->ls - 1;
     const FklLineNumberTableItem *ln_item_base = bcl->l;
-    const FklInstruction *ins_base = bcl->bc->code;
+    const FklInstruction *ins_base = bcl->bc.code;
     FklInsLn *ins_ln_base = buf->base;
     for (; pc < len; pc++) {
         if (ln_idx < ln_idx_end && pc >= ln_item_base[ln_idx + 1].scp)
@@ -510,7 +510,7 @@ void fklSetByteCodeBuffer(FklByteCodeBuffer *buf, const FklByteCodelnt *bcl) {
 
 void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf,
         const FklByteCodelnt *bcl) {
-    size_t len = bcl->bc->len;
+    size_t len = bcl->bc.len;
     fklInitByteCodeBuffer(buf, len);
     buf->size = len;
 
@@ -518,7 +518,7 @@ void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf,
     uint64_t ln_idx = 0;
     uint64_t ln_idx_end = bcl->ls - 1;
     const FklLineNumberTableItem *ln_item_base = bcl->l;
-    const FklInstruction *ins_base = bcl->bc->code;
+    const FklInstruction *ins_base = bcl->bc.code;
     FklInsLn *ins_ln_base = buf->base;
     for (; pc < len; pc++) {
         if (ln_idx < ln_idx_end && pc >= ln_item_base[ln_idx + 1].scp)
@@ -585,7 +585,7 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
             buf->size * sizeof(FklLineNumberTableItem));
     FKL_ASSERT(ln);
 
-    FklByteCode *bc = bcl->bc;
+    FklByteCode *bc = &bcl->bc;
     bc->len = buf->size;
     FklInstruction *new_code = (FklInstruction *)fklZrealloc(bc->code,
             bc->len * sizeof(FklInstruction));
@@ -665,7 +665,7 @@ uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer *buf) {
 }
 
 FklByteCodelnt *fklCreateByteCodelntFromBuf(const FklByteCodeBuffer *buf) {
-    FklByteCodelnt *bcl = fklCreateByteCodelnt(fklCreateByteCode(0));
+    FklByteCodelnt *bcl = fklCreateByteCodelnt(0);
     fklSetByteCodelntWithBuf(bcl, buf);
     return bcl;
 }

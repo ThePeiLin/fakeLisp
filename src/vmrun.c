@@ -255,8 +255,8 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
         FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
         FklByteCodelnt *bcl = FKL_VM_CO(co);
         FklVMvalue *proc = fklCreateVMvalueProc2(exe,
-                bcl->bc->code + spc,
-                bcl->bc->len - spc,
+                bcl->bc.code + spc,
+                bcl->bc.len - spc,
                 co,
                 pid);
         fklDestroyByteCodelnt(mainCode);
@@ -573,7 +573,7 @@ close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
 
 static inline FklVMlib *get_importing_lib(FklVMframe *f, FklVMgc *gc) {
     const FklInstruction *first_ins =
-            &FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj)->bc->code[0];
+            &FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj)->bc.code[0];
 
     FKL_ASSERT(first_ins->op >= FKL_OP_EXPORT_TO
                && first_ins->op <= FKL_OP_EXPORT_TO_XX);

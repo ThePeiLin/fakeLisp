@@ -338,7 +338,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
 
 const FklLineNumberTableItem *
 getCurLineNumberItemWithCp(const FklInstruction *cp, FklByteCodelnt *code) {
-    return fklFindLineNumTabNode(cp - code->bc->code, code->ls, code->l);
+    return fklFindLineNumTabNode(cp - code->bc.code, code->ls, code->l);
 }
 
 const FklLineNumberTableItem *getCurFrameLineNumber(const FklVMframe *frame) {
@@ -381,7 +381,7 @@ Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
             FklLineNumberTableItem *const end = &item[bclnt->ls];
             for (; item < end; item++) {
                 if (item->fid == fid && item->line == line) {
-                    ins = &bclnt->bc->code[item->scp];
+                    ins = &bclnt->bc.code[item->scp];
                     goto break_loop;
                 }
             }
@@ -453,7 +453,7 @@ static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
 static inline const FklLineNumberTableItem *get_proc_start_line_number(
         const FklVMproc *proc) {
     FklByteCodelnt *code = FKL_VM_CO(proc->codeObj);
-    return fklFindLineNumTabNode(proc->spc - code->bc->code, code->ls, code->l);
+    return fklFindLineNumTabNode(proc->spc - code->bc.code, code->ls, code->l);
 }
 
 static inline Breakpoint *put_breakpoint_with_pc(DebugCtx *ctx,
@@ -470,7 +470,7 @@ Breakpoint *putBreakpointForProcedure(DebugCtx *ctx, FklSid_t name_sid) {
     if (var_value && FKL_IS_PROC(var_value)) {
         FklVMproc *proc = FKL_VM_PROC(var_value);
         FklByteCodelnt *code = FKL_VM_CO(proc->codeObj);
-        uint64_t pc = proc->spc - code->bc->code;
+        uint64_t pc = proc->spc - code->bc.code;
         const FklLineNumberTableItem *ln = get_proc_start_line_number(proc);
         return put_breakpoint_with_pc(ctx, pc, proc->spc, ln);
     }

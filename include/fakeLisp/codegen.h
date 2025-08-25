@@ -501,7 +501,6 @@ void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx *ctx,
         char *main_file_real_path_dir);
 
 void fklUninitCodegenOuterCtx(FklCodegenOuterCtx *ctx);
-FklByteCode *fklCodegenNode(const FklNastNode *, FklCodegenInfo *codegen);
 FklByteCodelnt *fklGenExpressionCode(FklNastNode *exp,
         FklCodegenEnv *cur_env,
         FklCodegenInfo *codegen);

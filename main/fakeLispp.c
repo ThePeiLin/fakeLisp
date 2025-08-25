@@ -54,7 +54,7 @@ struct arg_end *end;
 
 static inline void do_gather_statistics(const FklByteCodelnt *bcl,
         uint64_t *array) {
-    const FklByteCode *bc = bcl->bc;
+    const FklByteCode *bc = &bcl->bc;
     for (uint64_t i = 0; i < bc->len; i++)
         array[bc->code[i].op]++;
 }

@@ -1697,7 +1697,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     }
     fklSetBp(exe);
     ctx->c->bp = exe->bp;
-    ctx->c->sp = exe->bp + 1 + 1;
+    ctx->c->sp = exe->bp + 1;
     fklVMstackReserve(exe, ctx->c->sp + 1);
     if (ctx->c->sp > exe->tp) {
         memset(&exe->base[exe->tp],

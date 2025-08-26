@@ -615,7 +615,7 @@ static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
         FKL_VM_PUSH_VALUE(exe, proc);
         FKL_VM_PUSH_VALUE(exe, FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(fuv_handle)));
         fklCallObj(exe, proc);
-        if (exe->thread_run_cb(exe, buttom_frame))
+        if (exe->run_cb(exe, buttom_frame))
             walk_ctx->ev = FKL_VM_GET_TOP_VALUE(exe);
         else
             exe->tp = old_tp;
@@ -830,7 +830,7 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, proc);
             fklCallObj(exe, proc);
-            if (exe->thread_run_cb(exe, buttom_frame)) {
+            if (exe->run_cb(exe, buttom_frame)) {
                 startErrorHandle(loop, loop_data, exe);
                 fuvHandleClose(fuv_handle, NULL);
             } else
@@ -1267,7 +1267,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
             if (creator)
                 creator(exe, arg);
             fklCallObj(exe, proc);
-            if (exe->thread_run_cb(exe, buttom_frame)) {
+            if (exe->run_cb(exe, buttom_frame)) {
                 startErrorHandle(uv_handle_get_loop(handle), loop_data, exe);
                 fuvHandleClose(fuv_handle, NULL);
             } else
@@ -1958,7 +1958,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
             fuvFsReqCleanUp(fs_req, FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING);
         fuvReqCleanUp(fuv_req);
         fklCallObj(exe, proc);
-        if (exe->thread_run_cb(exe, buttom_frame))
+        if (exe->run_cb(exe, buttom_frame))
             startErrorHandle(&fuv_loop->loop, ldata, exe);
         else
             exe->tp = stp;

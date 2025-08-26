@@ -390,7 +390,6 @@ typedef void (*FklVMatExitMarkFunc)(void *, struct FklVMgc *);
 typedef int (*FklVMrunCb)(struct FklVM *, FklVMframe *const exit_frame);
 
 typedef struct FklVM {
-    FklVMrunCb thread_run_cb;
     FklVMrunCb run_cb;
 
     uv_thread_t tid;

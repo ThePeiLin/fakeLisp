@@ -303,7 +303,7 @@ static void fuv_async_cb(uv_async_t *handle) {
             fklCallObj(exe, proc);
             FUV_ASYNC_COPY_DONE(async_handle);
             FUV_ASYNC_WAIT_SEND(exe, async_handle);
-            if (exe->thread_run_cb(exe, buttom_frame))
+            if (exe->run_cb(exe, buttom_frame))
                 startErrorHandle(loop, ldata, exe);
             else
                 exe->tp--;

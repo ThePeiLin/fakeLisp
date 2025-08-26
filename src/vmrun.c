@@ -467,7 +467,7 @@ int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
     exe->is_single_thread = 1;
     exe->trapping = 0;
 
-    int r = exe->thread_run_cb(exe, exit_frame);
+    int r = exe->run_cb(exe, exit_frame);
 
     exe->is_single_thread = is_single_thread;
     exe->trapping = trapping;
@@ -755,10 +755,9 @@ static void vm_thread_cb(void *arg) {
     FklVM *volatile exe = FKL_TYPE_CAST(FklVM *, arg);
 
     FKL_VM_LOCK_BLOCK(exe, flag) {
-        exe->thread_run_cb = vm_run_cb;
         exe->run_cb = vm_run_cb;
 
-        int r = exe->thread_run_cb(exe, NULL);
+        int r = exe->run_cb(exe, NULL);
         exe->state = FKL_VM_EXIT;
         exe->buf = NULL;
         if (r) {
@@ -842,10 +841,9 @@ static void vm_trapping_thread_cb(void *arg) {
     FklVM *volatile exe = FKL_TYPE_CAST(FklVM *, arg);
 
     FKL_VM_LOCK_BLOCK(exe, flag) {
-        exe->thread_run_cb = vm_trapping_run_cb;
         exe->run_cb = vm_trapping_run_cb;
 
-        int r = exe->thread_run_cb(exe, NULL);
+        int r = exe->run_cb(exe, NULL);
         exe->state = FKL_VM_EXIT;
         exe->buf = NULL;
         if (r) {

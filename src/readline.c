@@ -1493,10 +1493,10 @@ static inline char *readline_internal(const char *prompt,
         case KEY_UP:
             if (pos > 0 && !ps.in_his) {
 
+                int new_pos;
             case KEY_CTRL_UP:
             case KEY_ALT_UP:
-
-                int new_pos = readline_move_up(&buf, pos);
+                new_pos = readline_move_up(&buf, pos);
                 readline_refresh(&ps, new_pos, buf.size, 0);
             } else {
                 readline_history_move(&ps, FKL_READLINE_HISTORY_PREV);
@@ -1507,10 +1507,10 @@ static inline char *readline_internal(const char *prompt,
         case KEY_DOWN:
             if (pos < buf.size && !ps.in_his) {
 
+                int new_pos;
             case KEY_CTRL_DOWN:
             case KEY_ALT_DOWN:
-
-                int new_pos = readline_move_down(&buf, pos);
+                new_pos = readline_move_down(&buf, pos);
                 readline_refresh(&ps, new_pos, buf.size, 0);
             } else {
                 readline_history_move(&ps, FKL_READLINE_HISTORY_NEXT);

@@ -1,4 +1,5 @@
 #include "bdb.h"
+#include "fakeLisp/common.h"
 
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/vm.h>
@@ -38,7 +39,9 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL);
 static void B_int33(FKL_VM_INS_FUNC_ARGL);
 
 static void B_int3(FKL_VM_INS_FUNC_ARGL) {
-    BdbCodepoint *item = getBreakpointHashItem(exe->debug_ctx, ins);
+    DebugCtx *debug_ctx = FKL_CONTAINER_OF(exe->gc, DebugCtx, gc);
+    BdbCodepoint *item = getBreakpointHashItem(debug_ctx, ins);
+
     if (exe->is_single_thread) {
         FklOpcode origin_op = item->origin_op;
         fklVMexecuteInstruction(exe, origin_op, ins, exe->top_frame);
@@ -51,14 +54,15 @@ static void B_int3(FKL_VM_INS_FUNC_ARGL) {
 }
 
 static void B_int33(FKL_VM_INS_FUNC_ARGL) {
+    DebugCtx *debug_ctx = FKL_CONTAINER_OF(exe->gc, DebugCtx, gc);
     exe->dummy_ins_func = B_int3;
     fklVMexecuteInstruction(exe,
-            getBreakpointHashItem(exe->debug_ctx, ins)->origin_op,
+            getBreakpointHashItem(debug_ctx, ins)->origin_op,
             ins,
             exe->top_frame);
 }
 
-static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
+static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
         const char *filename) {
     FILE *fp = fopen(filename, "r");
     char *rp = fklRealpath(filename);
@@ -94,14 +98,19 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
     fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
 
     FklCodegenLibVector *script_libraries = codegen.libraries;
-    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
+    fklInitVMgc(&ctx->gc,
             codegen.runtime_symbol_table,
             codegen.runtime_kt,
             codegen.pts,
-            1,
-            0);
+            0,
+            NULL);
+
+    FklVM *anotherVM = fklCreateVMwithByteCode2(mainByteCode, &ctx->gc, 1, 0);
+    mainByteCode = NULL;
+
     codegen.runtime_symbol_table = NULL;
     codegen.pts = NULL;
+
     FklVMgc *gc = anotherVM->gc;
     gc->lib_num = script_libraries->size;
     gc->libs = (FklVMlib *)fklZcalloc((script_libraries->size + 1),
@@ -125,11 +134,9 @@ static inline int init_debug_codegen_outer_ctx(DebugCtx *ctx,
 
     ctx->st = &outer_ctx->public_symbol_table;
     ctx->kt = &outer_ctx->public_kt;
-    ctx->gc = gc;
     ctx->reached_thread = anotherVM;
 
     anotherVM->dummy_ins_func = B_int3;
-    anotherVM->debug_ctx = ctx;
 
     gc->main_thread = anotherVM;
     fklVMpushInterruptHandler(gc, dbgInterruptHandler, NULL, NULL, ctx);
@@ -213,7 +220,7 @@ const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line) {
 
 static inline void get_all_code_objs(DebugCtx *ctx) {
     fklVMvalueVectorInit(&ctx->code_objs, 16);
-    FklVMvalue *head = ctx->gc->head;
+    FklVMvalue *head = ctx->gc.head;
     for (; head; head = head->next) {
         if (fklIsVMvalueCodeObj(head))
             fklVMvalueVectorPushBack2(&ctx->code_objs, head);
@@ -253,7 +260,7 @@ static void dbg_extra_mark(FklVMgc *gc, void *arg) {
 static inline void push_extra_mark_value(DebugCtx *ctx) {
     FklVM *vm = ctx->reached_thread;
     ctx->main_proc = vm->top_frame->c.proc;
-    fklVMpushExtraMarkFunc(ctx->gc, dbg_extra_mark, NULL, ctx);
+    fklVMpushExtraMarkFunc(&ctx->gc, dbg_extra_mark, NULL, ctx);
 }
 
 int initDebugCtx(DebugCtx *ctx,
@@ -262,7 +269,7 @@ int initDebugCtx(DebugCtx *ctx,
         FklVMvalue *argv) {
     bdbEnvHashMapInit(&ctx->envs);
     fklSidHashSetInit(&ctx->file_sid_set);
-    if (init_debug_codegen_outer_ctx(ctx, filename)) {
+    if (init_debug_compile_and_init_vm(ctx, filename)) {
         bdbEnvHashMapUninit(&ctx->envs);
         fklSidHashSetUninit(&ctx->file_sid_set);
         ctx->inited = 0;
@@ -274,7 +281,7 @@ int initDebugCtx(DebugCtx *ctx,
 
     setReachedThread(ctx, ctx->reached_thread);
     init_source_codes(ctx);
-    ctx->temp_proc_prototype_id = fklInsertEmptyFuncPrototype(ctx->gc->pts);
+    ctx->temp_proc_prototype_id = fklInsertEmptyFuncPrototype(ctx->gc.pts);
     get_all_code_objs(ctx);
     push_extra_mark_value(ctx);
     initBreakpointTable(&ctx->bt);
@@ -290,7 +297,7 @@ int initDebugCtx(DebugCtx *ctx,
     fklInitGlobCodegenEnv(ctx->glob_env, ctx->st);
     ctx->glob_env->refcount++;
 
-    set_argv_with_list(ctx->gc, argv);
+    set_argv_with_list(&ctx->gc, argv);
     init_cmd_read_ctx(&ctx->read_ctx);
 
     ctx->inited = 1;
@@ -306,7 +313,7 @@ static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
 
 void exitDebugCtx(DebugCtx *ctx) {
     uninitBreakpointTable(&ctx->bt);
-    FklVMgc *gc = ctx->gc;
+    FklVMgc *gc = &ctx->gc;
     if (ctx->running && ctx->reached_thread) {
         setAllThreadReadyToExit(ctx->reached_thread);
         waitAllThreadExit(ctx->reached_thread);
@@ -329,7 +336,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
     bdbThreadVectorUninit(&ctx->threads);
     bdbFrameVectorUninit(&ctx->reached_thread_frames);
 
-    fklDestroyVMgc(ctx->gc);
+    fklUninitVMgc(&ctx->gc);
     uninit_cmd_read_ctx(&ctx->read_ctx);
     fklUninitCodegenOuterCtx(&ctx->outer_ctx);
     fklDestroyCodegenEnv(ctx->glob_env);
@@ -407,7 +414,7 @@ const char *getPutBreakpointErrorInfo(PutBreakpointErrorType t) {
 static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     FklVM *cur_thread = ctx->reached_thread;
     if (cur_thread == NULL)
-        cur_thread = ctx->gc->main_thread;
+        cur_thread = ctx->gc.main_thread;
     FklVMframe *frame = cur_thread->top_frame;
     for (; frame && frame->type == FKL_FRAME_OTHEROBJ; frame = frame->prev)
         ;
@@ -433,7 +440,7 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
 static inline FklVMvalue *find_closure_var(DebugCtx *ctx, FklSid_t id) {
     FklVM *cur_thread = ctx->reached_thread;
     if (cur_thread == NULL)
-        cur_thread = ctx->gc->main_thread;
+        cur_thread = ctx->gc.main_thread;
     FklVMframe *frame = cur_thread->top_frame;
     for (; frame && frame->type == FKL_FRAME_OTHEROBJ; frame = frame->prev)
         ;
@@ -606,7 +613,7 @@ void waitAllThreadExit(FklVM *head) {
 }
 
 void restartDebugging(DebugCtx *ctx) {
-    FklVMgc *gc = ctx->gc;
+    FklVMgc *gc = &ctx->gc;
     internal_dbg_extra_mark(ctx, gc);
     for (uint64_t i = 1; i <= gc->lib_num; ++i) {
         FklVMlib *cur = &gc->libs[i];
@@ -632,7 +639,6 @@ void restartDebugging(DebugCtx *ctx) {
     ctx->running = 0;
     ctx->done = 0;
     main_thread->dummy_ins_func = B_int3;
-    main_thread->debug_ctx = ctx;
     gc->main_thread = main_thread;
     fklVMthreadStart(main_thread, &gc->q);
     setReachedThread(ctx, main_thread);

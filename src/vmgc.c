@@ -351,13 +351,12 @@ static inline void uninit_all_vm_lib(FklVMlib *libs, size_t num) {
         fklUninitVMlib(&libs[i]);
 }
 
-FklVMgc *fklCreateVMgc(FklSymbolTable *st,
+void fklInitVMgc(FklVMgc *gc,
+        FklSymbolTable *st,
         FklConstTable *kt,
         FklFuncPrototypes *pts,
         uint64_t lib_num,
         FklVMlib *libs) {
-    FklVMgc *gc = (FklVMgc *)fklZcalloc(1, sizeof(FklVMgc));
-    FKL_ASSERT(gc);
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_rwlock_init(&gc->st_lock);
     uv_mutex_init(&gc->extra_mark_lock);
@@ -378,6 +377,16 @@ FklVMgc *fklCreateVMgc(FklSymbolTable *st,
     gc->seek_set = fklAddSymbolCstr("set", st)->v;
     gc->seek_cur = fklAddSymbolCstr("cur", st)->v;
     gc->seek_end = fklAddSymbolCstr("end", st)->v;
+}
+
+FklVMgc *fklCreateVMgc(FklSymbolTable *st,
+        FklConstTable *kt,
+        FklFuncPrototypes *pts,
+        uint64_t lib_num,
+        FklVMlib *libs) {
+    FklVMgc *gc = (FklVMgc *)fklZcalloc(1, sizeof(FklVMgc));
+    FKL_ASSERT(gc);
+    fklInitVMgc(gc, st, kt, pts, lib_num, libs);
     return gc;
 }
 
@@ -522,7 +531,7 @@ static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList *l) {
     }
 }
 
-void fklDestroyVMgc(FklVMgc *gc) {
+void fklUninitVMgc(FklVMgc *gc) {
     fklDestroyFuncPrototypes(gc->pts);
     uv_rwlock_destroy(&gc->st_lock);
     uv_mutex_destroy(&gc->workq_lock);
@@ -550,7 +559,11 @@ void fklDestroyVMgc(FklVMgc *gc) {
     gc->lib_num = 0;
     fklZfree(gc->libs);
     gc->libs = NULL;
+    memset(gc, 0, sizeof(FklVMgc));
+}
 
+void fklDestroyVMgc(FklVMgc *gc) {
+    fklUninitVMgc(gc);
     fklZfree(gc);
 }
 

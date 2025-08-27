@@ -271,6 +271,40 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     return exe;
 }
 
+FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *mainCode,
+        FklVMgc *gc,
+        uint32_t pid,
+        uint64_t spc) {
+    FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
+    FKL_ASSERT(exe);
+    exe->prev = exe;
+    exe->next = exe;
+    exe->pts = gc->pts;
+    exe->gc = gc;
+    exe->frame_cache_head = &exe->inplace_frame;
+    exe->frame_cache_tail = &exe->frame_cache_head->prev;
+    fklInitGlobalVMclosureForGC(exe);
+    vm_stack_init(exe);
+    if (mainCode != NULL) {
+        FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
+        FklByteCodelnt *bcl = FKL_VM_CO(co);
+        FklVMvalue *proc = fklCreateVMvalueProc2(exe,
+                bcl->bc.code + spc,
+                bcl->bc.len - spc,
+                co,
+                pid);
+        fklDestroyByteCodelnt(mainCode);
+        init_builtin_symbol_ref(exe, proc);
+        fklSetBp(exe);
+        FKL_VM_PUSH_VALUE(exe, proc);
+        fklCallObj(exe, proc);
+    }
+    exe->state = FKL_VM_READY;
+    exe->dummy_ins_func = B_dummy;
+    uv_mutex_init(&exe->lock);
+    return exe;
+}
+
 static inline void do_finalize_obj_frame(FklVM *vm, FklVMframe *f) {
     if (f->t->finalizer)
         f->t->finalizer(fklGetFrameData(f));
@@ -1204,10 +1238,22 @@ void fklVMtrappingIdleLoop(FklVMgc *gc) {
                 n = fklThreadQueuePopNode(&q->pre_running_q)) {
             FklVM *exe = n->data;
             if (uv_thread_create(&exe->tid, vm_trapping_thread_cb, exe)) {
-                FKL_UNREACHABLE();
+                if (exe->chan) {
+                    exe->state = FKL_VM_EXIT;
+                    fklChanlSend(FKL_VM_CHANL(exe->chan),
+                            fklCreateVMvalueError(exe,
+                                    gc->builtinErrorTypeId[FKL_ERR_THREADERROR],
+                                    fklCreateStringFromCstr(
+                                            "Failed to create thread")),
+                            exe);
+                    fklThreadQueueDestroyNode(n);
+                } else {
+                    FKL_UNREACHABLE();
+                }
+            } else {
+                atomic_fetch_add(&q->running_count, 1);
+                fklThreadQueuePushNode(&q->running_q, n);
             }
-            atomic_fetch_add(&q->running_count, 1);
-            fklThreadQueuePushNode(&q->running_q, n);
         }
         uv_mutex_unlock(&q->pre_running_lock);
         if (atomic_load(&q->running_count) == 0) {
@@ -1490,7 +1536,6 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     exe->state = FKL_VM_READY;
     memcpy(exe->rand_state, prev->rand_state, sizeof(uint64_t[4]));
     exe->dummy_ins_func = prev->dummy_ins_func;
-    exe->debug_ctx = prev->debug_ctx;
     uv_mutex_init(&exe->lock);
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, nextCall);

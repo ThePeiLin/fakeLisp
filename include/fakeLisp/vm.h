@@ -429,7 +429,6 @@ typedef struct FklVM {
     atomic_int notice_lock;
 
     FklVMinsFunc dummy_ins_func;
-    void *debug_ctx;
 
     uint64_t rand_state[4];
 
@@ -752,8 +751,14 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
         FklSymbolTable *,
         FklConstTable *,
         FklFuncPrototypes *,
-        uint32_t,
+        uint32_t proto_id,
         uint64_t spc);
+
+FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *,
+        FklVMgc *gc,
+        uint32_t proto_id,
+        uint64_t spc);
+
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
@@ -779,6 +784,13 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
     else
         return 0;
 }
+
+void fklInitVMgc(FklVMgc *,
+        FklSymbolTable *st,
+        FklConstTable *kt,
+        FklFuncPrototypes *pts,
+        uint64_t lib_num,
+        FklVMlib *libs);
 
 FklVMgc *fklCreateVMgc(FklSymbolTable *st,
         FklConstTable *kt,
@@ -813,6 +825,7 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw);
 void fklVMgcSweep(FklVMvalue *);
 void fklVMgcUpdateThreshold(FklVMgc *);
 
+void fklUninitVMgc(FklVMgc *);
 void fklDestroyVMgc(FklVMgc *);
 
 void fklDestroyAllVMs(FklVM *cur);

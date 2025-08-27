@@ -348,9 +348,9 @@ static inline int debug_restart(DebugCtx *dctx, FklVM *exe) {
                 setAllThreadReadyToExit(dctx->reached_thread);
                 waitAllThreadExit(dctx->reached_thread);
             }
-        } else if (dctx->gc->main_thread) {
-            fklDestroyAllVMs(dctx->gc->main_thread);
-            dctx->gc->main_thread = NULL;
+        } else if (dctx->gc.main_thread) {
+            fklDestroyAllVMs(dctx->gc.main_thread);
+            dctx->gc.main_thread = NULL;
         }
         restartDebugging(dctx);
         return 1;
@@ -388,11 +388,11 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
             if (dctx->running) {
                 dctx->reached_breakpoint = NULL;
                 dctx->reached_thread_frames.size = 0;
-                fklVMreleaseWq(dctx->gc);
-                fklVMcontinueTheWorld(dctx->gc);
+                fklVMreleaseWq(&dctx->gc);
+                fklVMcontinueTheWorld(&dctx->gc);
             }
             dctx->running = 1;
-            fklVMtrappingIdleLoop(dctx->gc);
+            fklVMtrappingIdleLoop(&dctx->gc);
             dctx->done = 1;
             fputs("*** The program finishied and will restart ***\n", stderr);
         }
@@ -1093,7 +1093,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
                         cur_frame);
                 if (value) {
                     fputs(";=> ", stdout);
-                    fklPrin1VMvalue(value, stdout, dctx->gc);
+                    fklPrin1VMvalue(value, stdout, &dctx->gc);
                     fputc('\n', stdout);
                 }
             }

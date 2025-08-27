@@ -45,7 +45,7 @@ static inline FklCodegenEnv *init_codegen_info_common_helper(DebugCtx *ctx,
             0,
             &ctx->outer_ctx);
     fklDestroyFuncPrototypes(info->pts);
-    info->pts = ctx->gc->pts;
+    info->pts = ctx->gc.pts;
     *penv = env;
     new_env->refcount++;
     return new_env;

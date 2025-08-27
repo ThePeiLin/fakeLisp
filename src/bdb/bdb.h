@@ -171,18 +171,9 @@ typedef struct DebugCtx {
 
     const Breakpoint *reached_breakpoint;
 
-    FklVMgc *gc;
-
     BreakpointTable bt;
 
     struct SteppingCtx {
-        enum {
-            STEP_OUT,
-            STEP_INTO,
-            STEP_OVER,
-            STEP_UNTIL,
-            SINGLE_INS,
-        } stepping_mode;
         FklVM *vm;
         const FklLineNumberTableItem *ln;
         FklVMvalue *stepping_proc;
@@ -190,7 +181,18 @@ typedef struct DebugCtx {
 
         FklSid_t cur_fid;
         uint64_t target_line;
+
+        FklInstruction ins;
+        enum {
+            STEP_OUT,
+            STEP_INTO,
+            STEP_OVER,
+            STEP_UNTIL,
+            SINGLE_INS,
+        } stepping_mode;
     } stepping_ctx;
+
+    FklVMgc gc;
 } DebugCtx;
 
 typedef enum {

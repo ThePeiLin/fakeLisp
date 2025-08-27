@@ -5904,7 +5904,8 @@ BC_PROCESS(_library_bc_process) {
 
     fklByteCodeLntPushBackIns(libBc, &ret, fid, line, scope);
 
-    fklPeepholeOptimize(libBc);
+    if (!env->is_debugging)
+        fklPeepholeOptimize(libBc);
 
     process_export_bc(codegen, libBc, fid, line, scope);
 
@@ -10233,6 +10234,7 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
     FklCodegenQuestVector codegenQuestStack;
     fklCodegenQuestVectorInit(&codegenQuestStack, 32);
     fklCodegenQuestVectorPushBack2(&codegenQuestStack, initialQuest);
+    int is_debugging = initialQuest->env->is_debugging;
     while (!fklCodegenQuestVectorIsEmpty(&codegenQuestStack)) {
         FklCodegenQuest *curCodegenQuest =
                 *fklCodegenQuestVectorBackNonNull(&codegenQuestStack);
@@ -10408,7 +10410,8 @@ FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *initialQuest,
                 codegener->fid,
                 codegener->curline,
                 1);
-        fklPeepholeOptimize(retval);
+        if (!is_debugging)
+            fklPeepholeOptimize(retval);
     }
     return retval;
 }

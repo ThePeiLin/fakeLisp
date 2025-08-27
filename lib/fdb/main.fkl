@@ -9,6 +9,7 @@
         (h,help)
         (l,list)
         (li,list-ins)
+        (si,step-ins)
         (ni,next-ins)
         (bt,where)))
 
@@ -17,7 +18,8 @@
     'exit "exit"
     'list "list source code"
     'list-ins "list instruction"
-    'next-ins "run the next instruction"
+    'next-ins "run the next instruction, but skip subroutine"
+    'step-ins "run the next instruction"
     'continue "continue the program until end or reach break point"
     'restart "restart debug with same arguement"
     'break "set break point"
@@ -388,8 +390,15 @@
   (debug-ctx-set-step-into ctx)
   (debug-continue ctx 1))
 
+(define (debug-step-ins ctx)
+  (debug-ctx-set-step-ins ctx)
+  (debug-continue ctx nil)
+  (define cur-ins (debug-ctx-get-cur-ins ctx))
+  (when cur-ins
+    (print-single-ins cur-ins)))
+
 (define (debug-next-ins ctx)
-  (debug-ctx-set-single-ins ctx)
+  (debug-ctx-set-next-ins ctx)
   (debug-continue ctx nil)
   (define cur-ins (debug-ctx-get-cur-ins ctx))
   (when cur-ins
@@ -447,6 +456,7 @@
     'list debug-list-src
     'list-ins debug-list-ins
     'next debug-next
+    'step-ins debug-step-ins
     'next-ins debug-next-ins
     'step debug-step
     'return debug-return

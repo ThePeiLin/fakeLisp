@@ -11,7 +11,7 @@
 #ifndef DISPATCH_SWITCH
 void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
-        FklInstruction *ins,
+        const FklInstruction *ins,
         FklVMframe *frame) {
     FklVMlib *plib;
     uint32_t idx;
@@ -267,7 +267,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     push_proc: {
         FKL_VM_PUSH_VALUE(exe,
                 fklCreateVMvalueProcWithFrame(exe, frame, size, idx));
-        fklAddCompoundFrameCp(frame, size);
+        frame->c.pc += size;
     } break;
     case FKL_OP_DUP: {
         if (exe->tp <= frame->c.sp)

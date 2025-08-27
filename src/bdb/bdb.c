@@ -31,35 +31,94 @@ static void
 create_env_work_cb(FklCodegenInfo *info, FklCodegenEnv *env, void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
+        env->is_debugging = 1;
         putEnv(dctx, env);
     }
 }
 
-static void B_int3(FKL_VM_INS_FUNC_ARGL);
-static void B_int33(FKL_VM_INS_FUNC_ARGL);
+static void B_int3(FklVM *exe, const FklInstruction *ins);
+static void B_int33(FklVM *exe, const FklInstruction *ins);
 
-static void B_int3(FKL_VM_INS_FUNC_ARGL) {
-    DebugCtx *debug_ctx = FKL_CONTAINER_OF(exe->gc, DebugCtx, gc);
-    BdbCodepoint *item = getBreakpointHashItem(debug_ctx, ins);
-
-    if (exe->is_single_thread) {
-        FklOpcode origin_op = item->origin_op;
-        fklVMexecuteInstruction(exe, origin_op, ins, exe->top_frame);
-    } else {
-        exe->dummy_ins_func = B_int33;
-        exe->top_frame->c.pc--;
-        atomic_fetch_add(&item->bp->reached_count, 1);
-        fklVMinterrupt(exe, createBreakpointWrapper(exe, item->bp), NULL);
+static inline FklInstruction get_step_target_ins(DebugCtx *debug_ctx,
+        const FklInstruction *target) {
+    FklInstruction r = { 0 };
+    for (size_t i = 0; i < BDB_STEPPING_TARGET_INS_COUNT; ++i) {
+        if (target == debug_ctx->stepping_ctx.target_ins[i]) {
+            r = debug_ctx->stepping_ctx.ins[i];
+        }
     }
+    return r;
 }
 
-static void B_int33(FKL_VM_INS_FUNC_ARGL) {
+static void B_int3(FklVM *exe, const FklInstruction *ins) {
+    DebugCtx *debug_ctx = FKL_CONTAINER_OF(exe->gc, DebugCtx, gc);
+
+    BdbCodepoint *item = NULL;
+
+    Int3Flags flags = ins->au;
+    FklInstruction oins = { 0 };
+
+    if ((flags & INT3_STEPPING)) {
+        uint8_t is_at_breakpoint = (flags & INT3_STEP_AT_BP) != 0;
+        SteppingType stepping_type =
+                (flags & INT3_STEP_LINE) != 0 ? STEP_LINE : STEP_INS;
+
+        oins = is_at_breakpoint ? (item = getBreakpointHashItem(debug_ctx, ins))
+                                          ->origin_ins
+                                : get_step_target_ins(debug_ctx, ins);
+
+        if (debug_ctx->stepping_ctx.vm != exe || exe->is_single_thread) {
+            goto reached_breakpoint;
+        }
+
+        const FklLineNumberTableItem *ln = debug_ctx->stepping_ctx.ln;
+        unsetStepping(debug_ctx);
+
+        FklInstruction *pc = FKL_REMOVE_CONST(FklInstruction, ins);
+        if (stepping_type == STEP_INS) {
+            FklInstruction *cur = exe->top_frame->c.pc;
+            exe->top_frame->c.pc = pc;
+
+            // interrupt for stepping
+            fklVMinterrupt(exe, FKL_VM_NIL, NULL);
+
+            exe->top_frame->c.pc = cur;
+        }
+
+        fklVMexecuteInstruction(exe, oins.op, &oins, exe->top_frame);
+
+        if (flags & INT3_GET_NEXT_INS
+                || (pc->op == FKL_OP_DUMMY && (pc->au & INT3_GET_NEXT_INS))) {
+            unsetStepping(debug_ctx);
+            debug_ctx->stepping_ctx.ln = ln;
+            setStepIns(debug_ctx, exe, STEP_INS_CUR, STEP_OVER, stepping_type);
+        }
+
+        return;
+    }
+
+    item = getBreakpointHashItem(debug_ctx, ins);
+    oins = item->origin_ins;
+
+reached_breakpoint:
+    if (exe->is_single_thread) {
+        fklVMexecuteInstruction(exe, oins.op, &oins, exe->top_frame);
+        return;
+    }
+
+    exe->dummy_ins_func = B_int33;
+    exe->top_frame->c.pc--;
+    atomic_fetch_add(&item->bp->reached_count, 1);
+    fklVMinterrupt(exe, createBreakpointWrapper(exe, item->bp), NULL);
+}
+
+static void B_int33(FklVM *exe, const FklInstruction *ins) {
     DebugCtx *debug_ctx = FKL_CONTAINER_OF(exe->gc, DebugCtx, gc);
     exe->dummy_ins_func = B_int3;
-    fklVMexecuteInstruction(exe,
-            getBreakpointHashItem(debug_ctx, ins)->origin_op,
-            ins,
-            exe->top_frame);
+
+    const FklInstruction *oins =
+            &getBreakpointHashItem(debug_ctx, ins)->origin_ins;
+    fklVMexecuteInstruction(exe, oins->op, oins, exe->top_frame);
 }
 
 static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
@@ -300,6 +359,7 @@ int initDebugCtx(DebugCtx *ctx,
     set_argv_with_list(&ctx->gc, argv);
     init_cmd_read_ctx(&ctx->read_ctx);
 
+    memset(&ctx->stepping_ctx.ins[0], 0xff, sizeof(ctx->stepping_ctx.ins));
     ctx->inited = 1;
     return 0;
 }
@@ -361,7 +421,7 @@ const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid) {
     return bdbSourceCodeHashMapGet2(&dctx->source_code_table, fid);
 }
 
-Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
+FklInstruction *getInsWithFileAndLine(DebugCtx *ctx,
         FklSid_t fid,
         uint32_t line,
         PutBreakpointErrorType *err) {
@@ -396,8 +456,18 @@ Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
     }
 break_loop:
     if (ins)
-        return createBreakpoint(fid, line, ins, ctx);
+        return ins;
     *err = PUT_BP_AT_END_OF_FILE;
+    return NULL;
+}
+
+Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
+        FklSid_t fid,
+        uint32_t line,
+        PutBreakpointErrorType *err) {
+    FklInstruction *ins = getInsWithFileAndLine(ctx, fid, line, err);
+    if (ins)
+        return createBreakpoint(fid, line, ins, ctx);
     return NULL;
 }
 

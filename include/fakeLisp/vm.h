@@ -379,8 +379,7 @@ typedef struct FklVMlocvList {
     FklVMvalue **locv;
 } FklVMlocvList;
 
-#define FKL_VM_INS_FUNC_ARGL struct FklVM *exe, FklInstruction *ins
-typedef void (*FklVMinsFunc)(FKL_VM_INS_FUNC_ARGL);
+typedef void (*FklVMinsFunc)(struct FklVM *exe, const FklInstruction *ins);
 
 #define FKL_VM_GC_LOCV_CACHE_NUM (8)
 #define FKL_VM_GC_LOCV_CACHE_LAST_IDX (FKL_VM_GC_LOCV_CACHE_NUM - 1)
@@ -720,6 +719,8 @@ void fklVMatExit(FklVM *vm,
         void (*finalizer)(void *),
         void *arg);
 void fklVMidleLoop(FklVMgc *gc);
+
+FKL_DEPRECATED
 void fklVMtrappingIdleLoop(FklVMgc *gc);
 
 FklVMinterruptResult fklVMinterrupt(FklVM *, FklVMvalue *v, FklVMvalue **pv);
@@ -742,7 +743,7 @@ void fklVMpushExtraMarkFunc(FklVMgc *,
 
 void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
-        FklInstruction *ins,
+        const FklInstruction *ins,
         FklVMframe *frame);
 int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame);
 void fklCheckAndGCinSingleThread(FklVM *exe);

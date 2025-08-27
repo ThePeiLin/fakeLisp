@@ -39,7 +39,8 @@ static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
 
     if (ins_item->v.bp == NULL) {
         FklInstruction *ins = ins_item->k;
-        ins->op = ins_item->v.origin_op;
+        *ins = ins_item->v.origin_ins;
+        // ins->op = ins_item->v.origin_op;
         bdbBpInsHashMapDel2(&bt->ins_ht, ins);
     }
 }
@@ -186,8 +187,9 @@ Breakpoint *createBreakpoint(FklSid_t fid,
     BreakpointTable *bt = &ctx->bt;
     BdbBpInsHashMapElm *item = bdbBpInsHashMapInsert2(&bt->ins_ht,
             ins,
-            (BdbCodepoint){ .origin_op = ins->op, .bp = NULL });
+            (BdbCodepoint){ .origin_ins = *ins, .bp = NULL });
     item->v.bp = make_breakpoint(item, bt, fid, line);
+    memset(ins, 0, sizeof(FklInstruction));
     ins->op = FKL_OP_DUMMY;
     return item->v.bp;
 }

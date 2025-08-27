@@ -188,7 +188,7 @@ static inline void callCproc(FklVM *exe, FklVMvalue *cproc) {
     fklPushVMframe(f, exe);
 }
 
-static inline void B_dummy(FKL_VM_INS_FUNC_ARGL) {
+static inline void B_dummy(FklVM *exe, const FklInstruction *ins) {
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[FKL_ERR_INVALIDACCESS],
             fklCreateStringFromCstr("reach invalid opcode: `dummy`"));

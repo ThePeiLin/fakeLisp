@@ -721,9 +721,15 @@ static int bdb_debug_ctx_set_step_into(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(debug_ctx_obj, IS_DEBUG_CTX_UD, exe);
     FKL_DECL_VM_UD_DATA(dctx, DebugCtx, debug_ctx_obj);
 
-    if (dctx->done)
+    int8_t done = dctx->done;
+    if (done)
         debug_restart(dctx, exe);
-    setStepInto(dctx);
+    // setStepInto(dctx);
+    setStepIns(dctx,
+            dctx->reached_thread,
+            done ? STEP_INS_CUR : STEP_INS_NEXT,
+            STEP_INTO,
+            STEP_LINE);
     FKL_CPROC_RETURN(exe, ctx, debug_ctx_obj);
     return 0;
 }
@@ -734,9 +740,15 @@ static int bdb_debug_ctx_set_step_over(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(debug_ctx_obj, IS_DEBUG_CTX_UD, exe);
     FKL_DECL_VM_UD_DATA(dctx, DebugCtx, debug_ctx_obj);
 
-    if (dctx->done)
+    int8_t done = dctx->done;
+    if (done)
         debug_restart(dctx, exe);
-    setStepOver(dctx);
+    // setStepOver(dctx);
+    setStepIns(dctx,
+            dctx->reached_thread,
+            done ? STEP_INS_CUR : STEP_INS_NEXT,
+            STEP_OVER,
+            STEP_LINE);
     FKL_CPROC_RETURN(exe, ctx, debug_ctx_obj);
     return 0;
 }
@@ -761,10 +773,15 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(debug_ctx_obj, IS_DEBUG_CTX_UD, exe);
     FKL_DECL_VM_UD_DATA(dctx, DebugCtx, debug_ctx_obj);
 
-    if (dctx->done)
+    int8_t done = dctx->done;
+    if (done)
         debug_restart(dctx, exe);
     if (lineno_obj == NULL)
-        setStepOver(dctx);
+        setStepIns(dctx,
+                dctx->reached_thread,
+                done ? STEP_INS_CUR : STEP_INS_NEXT,
+                STEP_OVER,
+                STEP_LINE);
     else {
         FKL_CHECK_TYPE(lineno_obj, FKL_IS_FIX, exe);
         int64_t line = FKL_GET_FIX(lineno_obj);
@@ -801,13 +818,16 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe,
         FklVMvalue *num_val,
         FklVMvalue *is_cur_ins,
         const FklInstruction *ins) {
+    if (ins->op == FKL_OP_DUMMY)
+        ins = &getBreakpointHashItem(dctx, ins)->origin_ins;
     FklVMvalue *opcode_str =
             fklCreateVMvalueStrFromCstr(exe, fklGetOpcodeName(ins->op));
     FklVMvalue *imm1 = NULL;
     FklVMvalue *imm2 = NULL;
-    FklOpcode op = ins->op == FKL_OP_DUMMY
-                         ? getBreakpointHashItem(dctx, ins)->origin_op
-                         : ins->op;
+    // FklOpcode op = ins->op == FKL_OP_DUMMY
+    //                      ? getBreakpointHashItem(dctx, ins)->origin_op
+    //                      : ins->op;
+    FklOpcode op = ins->op;
     FklOpcodeMode mode = fklGetOpcodeMode(op);
     FklInstructionArg arg;
     fklGetInsOpArgWithOp(op, ins, &arg);
@@ -1040,13 +1060,32 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int bdb_debug_ctx_set_single_ins(FKL_CPROC_ARGL) {
+static int bdb_debug_ctx_set_step_ins(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *debug_ctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(debug_ctx_obj, IS_DEBUG_CTX_UD, exe);
     FKL_DECL_VM_UD_DATA(debug_ctx_ud, DebugCtx, debug_ctx_obj);
 
-    setSingleStep(debug_ctx_ud);
+    setStepIns(debug_ctx_ud,
+            debug_ctx_ud->reached_thread,
+            STEP_INS_NEXT,
+            STEP_INTO,
+            STEP_INS);
+    FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
+    return 0;
+}
+
+static int bdb_debug_ctx_set_next_ins(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
+    FklVMvalue *debug_ctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(debug_ctx_obj, IS_DEBUG_CTX_UD, exe);
+    FKL_DECL_VM_UD_DATA(debug_ctx_ud, DebugCtx, debug_ctx_obj);
+
+    setStepIns(debug_ctx_ud,
+            debug_ctx_ud->reached_thread,
+            STEP_INS_NEXT,
+            STEP_OVER,
+            STEP_INS);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
@@ -1221,7 +1260,9 @@ struct SymFunc {
     {"debug-ctx-set-step-over",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-over",   bdb_debug_ctx_set_step_over  )},
     {"debug-ctx-set-step-into",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-into",   bdb_debug_ctx_set_step_into  )},
     {"debug-ctx-set-step-out",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-out",    bdb_debug_ctx_set_step_out   )},
-    {"debug-ctx-set-single-ins",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-single-ins",  bdb_debug_ctx_set_single_ins )},
+    {"debug-ctx-set-step-ins",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-step-ins",    bdb_debug_ctx_set_step_ins   )},
+    {"debug-ctx-set-next-ins",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-next-ins",    bdb_debug_ctx_set_next_ins   )},
+
     {"debug-ctx-set-until",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-set-until",       bdb_debug_ctx_set_until      )},
 
     {"debug-ctx-continue",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("debug-ctx-continue",        bdb_debug_ctx_continue       )},

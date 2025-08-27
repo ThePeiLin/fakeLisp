@@ -763,6 +763,56 @@ static inline int64_t get_next(const FklInstruction *ins) {
     return 1;
 }
 
+int fklGetNextIns(const FklInstruction *c, const FklInstruction *ins[2]) {
+    int r = 1;
+    ins[0] = NULL;
+    ins[1] = NULL;
+
+    FklInstructionArg arg = { 0 };
+    int8_t l = fklGetInsOpArg(c, &arg);
+    if (fklIsCallIns(c) || fklIsRetIns(c)) {
+        r = 0;
+    } else if (fklIsPushProcIns(c)) {
+        ins[0] = c + l + arg.uy;
+    } else if (fklIsCondJmpIns(c)) {
+        ins[0] = c + l;
+        ins[1] = ins[0] + arg.ix;
+        if (ins[0] == ins[1])
+            ins[1] = NULL;
+        else
+            r = 2;
+    } else if (fklIsJmpIns(c)) {
+        ins[0] = c + l + arg.ix;
+    } else {
+        ins[0] = c + l;
+    }
+    return r;
+}
+
+int fklGetNextIns2(FklInstruction *c, FklInstruction *ins[2]) {
+    int r = 1;
+    ins[0] = NULL;
+    ins[1] = NULL;
+
+    FklInstructionArg arg = { 0 };
+    int8_t l = fklGetInsOpArg(c, &arg);
+    if (c->op == FKL_OP_DUMMY || fklIsCallIns(c) || fklIsRetIns(c)
+            || fklIsLoadLibIns(c)) {
+        r = 0;
+    } else if (fklIsPushProcIns(c)) {
+        ins[0] = c + l + arg.uy;
+    } else if (fklIsCondJmpIns(c)) {
+        ins[0] = c + l;
+        ins[1] = ins[0] + arg.ix;
+        r = 2;
+    } else if (fklIsJmpIns(c)) {
+        ins[0] = c + l + arg.ix;
+    } else {
+        ins[0] = c + l;
+    }
+    return r;
+}
+
 static inline int is_last_expression(uint64_t index, FklByteCode *bc) {
     uint64_t size = bc->len;
     FklInstruction *code = bc->code;
@@ -921,26 +971,6 @@ int fklGetInsOpArgWithOp(FklOpcode op,
         const FklInstruction *ins,
         FklInstructionArg *a) {
     return get_ins_op_with_op(op, ins, a);
-}
-
-int fklIsJmpIns(const FklInstruction *ins) {
-    return ins->op >= FKL_OP_JMP && ins->op <= FKL_OP_JMP_XX;
-}
-
-int fklIsCondJmpIns(const FklInstruction *ins) {
-    return ins->op >= FKL_OP_JMP_IF_TRUE && ins->op <= FKL_OP_JMP_IF_FALSE_XX;
-}
-
-int fklIsPutLocIns(const FklInstruction *ins) {
-    return ins->op >= FKL_OP_PUT_LOC && ins->op <= FKL_OP_PUT_LOC_X;
-}
-
-int fklIsPushProcIns(const FklInstruction *ins) {
-    return ins->op >= FKL_OP_PUSH_PROC && ins->op <= FKL_OP_PUSH_PROC_XXX;
-}
-
-int fklIsPutVarRefIns(const FklInstruction *ins) {
-    return ins->op >= FKL_OP_PUT_VAR_REF && ins->op <= FKL_OP_PUT_VAR_REF_X;
 }
 
 void fklScanAndSetTailCall(FklByteCode *bc) {

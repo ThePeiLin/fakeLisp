@@ -60,7 +60,7 @@ typedef struct Breakpoint {
 } Breakpoint;
 
 typedef struct {
-    FklOpcode origin_op;
+    FklInstruction origin_ins;
     Breakpoint *bp;
 } BdbCodepoint;
 
@@ -130,6 +130,8 @@ typedef struct {
 #define FKL_HASH_ELM_NAME Env
 #include <fakeLisp/cont/hash.h>
 
+#define BDB_STEPPING_TARGET_INS_COUNT (2)
+
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;
     FklCodegenEnv *glob_env;
@@ -182,14 +184,9 @@ typedef struct DebugCtx {
         FklSid_t cur_fid;
         uint64_t target_line;
 
-        FklInstruction ins;
-        enum {
-            STEP_OUT,
-            STEP_INTO,
-            STEP_OVER,
-            STEP_UNTIL,
-            SINGLE_INS,
-        } stepping_mode;
+        FklInstruction ins[BDB_STEPPING_TARGET_INS_COUNT];
+        FklInstruction *target_ins[BDB_STEPPING_TARGET_INS_COUNT];
+
     } stepping_ctx;
 
     FklVMgc gc;
@@ -232,6 +229,11 @@ Breakpoint *
 createBreakpoint(FklSid_t, uint32_t, FklInstruction *ins, DebugCtx *);
 BdbCodepoint *getBreakpointHashItem(DebugCtx *, const FklInstruction *ins);
 
+FklInstruction *getInsWithFileAndLine(DebugCtx *ctx,
+        FklSid_t fid,
+        uint32_t line,
+        PutBreakpointErrorType *);
+
 Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
         FklSid_t fid,
         uint32_t line,
@@ -257,11 +259,35 @@ void clearDeletedBreakpoint(DebugCtx *dctx);
 const FklLineNumberTableItem *getCurFrameLineNumber(const FklVMframe *);
 
 void unsetStepping(DebugCtx *);
-void setStepInto(DebugCtx *);
-void setStepOver(DebugCtx *);
+
 void setStepOut(DebugCtx *);
+
 void setStepUntil(DebugCtx *, uint32_t line);
-void setSingleStep(DebugCtx *);
+
+typedef enum {
+    STEP_INS_NEXT = 0,
+    STEP_INS_CUR,
+} StepTargetPlacingType;
+
+typedef enum { STEP_INS = 0, STEP_LINE } SteppingType;
+
+typedef enum {
+    STEP_INTO,
+    STEP_OVER,
+} SteppingMode;
+
+typedef enum {
+    INT3_STEPPING = 0x1,
+    INT3_STEP_AT_BP = 0x2,
+    INT3_GET_NEXT_INS = 0x4,
+    INT3_STEP_LINE = 0x8,
+} Int3Flags;
+
+void setStepIns(DebugCtx *,
+        FklVM *exe,
+        StepTargetPlacingType,
+        SteppingMode,
+        SteppingType type);
 
 void dbgInterrupt(FklVM *, DbgInterruptArg *arg);
 FklVMinterruptResult

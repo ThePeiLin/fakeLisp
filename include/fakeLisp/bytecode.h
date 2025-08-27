@@ -246,11 +246,40 @@ int fklGetInsOpArgWithOp(FklOpcode op,
         const FklInstruction *ins,
         FklInstructionArg *arg);
 
-int fklIsJmpIns(const FklInstruction *ins);
-int fklIsCondJmpIns(const FklInstruction *ins);
-int fklIsPutLocIns(const FklInstruction *ins);
-int fklIsPushProcIns(const FklInstruction *ins);
-int fklIsPutVarRefIns(const FklInstruction *ins);
+int fklGetNextIns(const FklInstruction *cur_ins, const FklInstruction *ins[2]);
+int fklGetNextIns2(FklInstruction *cur_ins, FklInstruction *ins[2]);
+
+static inline int fklIsJmpIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_JMP && ins->op <= FKL_OP_JMP_XX;
+}
+
+static inline int fklIsCondJmpIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_JMP_IF_TRUE && ins->op <= FKL_OP_JMP_IF_FALSE_XX;
+}
+
+static inline int fklIsPutLocIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_PUT_LOC && ins->op <= FKL_OP_PUT_LOC_X;
+}
+
+static inline int fklIsPushProcIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_PUSH_PROC && ins->op <= FKL_OP_PUSH_PROC_XXX;
+}
+
+static inline int fklIsPutVarRefIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_PUT_VAR_REF && ins->op <= FKL_OP_PUT_VAR_REF_X;
+}
+
+static inline int fklIsCallIns(const FklInstruction *ins) {
+    return ins->op == FKL_OP_CALL || ins->op == FKL_OP_TAIL_CALL;
+}
+
+static inline int fklIsRetIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_RET_IF_TRUE && ins->op <= FKL_OP_RET;
+}
+
+static inline int fklIsLoadLibIns(const FklInstruction *ins) {
+    return ins->op >= FKL_OP_LOAD_LIB && ins->op <= FKL_OP_LOAD_LIB_X;
+}
 
 void fklScanAndSetTailCall(FklByteCode *bc);
 

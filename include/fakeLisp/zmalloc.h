@@ -13,11 +13,7 @@ extern "C" {
 
 #ifndef FKL_ZMALLOC_ALIGN_PADDING
 
-#ifdef _WIN32
-#define ALIGN_PADDING (16)
-#else
-#define ALIGN_PADDING alignof(max_align_t)
-#endif
+#define ALIGN_PADDING (sizeof(size_t))
 
 #endif
 

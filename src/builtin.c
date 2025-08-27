@@ -4565,6 +4565,18 @@ static int builtin_return(FKL_CPROC_ARGL) {
     return 1;
 }
 
+static int builtin_funcall(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
+    FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(proc, fklIsCallable, exe);
+    memmove(&FKL_CPROC_GET_ARG(exe, ctx, -1),
+            &FKL_CPROC_GET_ARG(exe, ctx, 0),
+            (argc - 1) * sizeof(FklVMvalue *));
+    exe->tp -= 1;
+    fklTailCallObj(exe, proc);
+    return 1;
+}
+
 #undef PREDICATE
 // end
 
@@ -5183,6 +5195,8 @@ static const struct SymbolFuncStruct {
                         
     {"vector-first",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-first",    builtin_vec_first),            {NULL,         inlfunc_vec_first, NULL,               NULL               } },
     {"vector-last",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-last",     builtin_vec_last),             {NULL,         inlfunc_vec_last,  NULL,               NULL               } },
+
+    {"funcall",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("funcall",         builtin_funcall),              {NULL,         NULL,              NULL,               NULL               } },
     {NULL,              NULL,                                                                                          {NULL,         NULL,              NULL,               NULL               } },
     // clang-format on
 };

@@ -1059,6 +1059,7 @@ static inline int readline_get_esckey(int ch, int fd) {
             if (ch2 == '~') {
                 ch = ESC_KEY4(ch, ch2);
             } else if (ch2 == ';') {
+                ch2 = _my_read(fd);
                 if (ch2 != '5' && ch2 != '3') {
                     return 0;
                 }
@@ -1096,6 +1097,7 @@ static inline int readline_getkey(int *is_esc, int fd) {
 
     return ch;
 }
+
 #else
 
 static inline int readline_getkey(int *is_esc, int fd) {
@@ -1434,7 +1436,7 @@ static int readline_end(int r) {
     return r;
 }
 
-// XXX: 添加更多的快捷键
+// TODO: 添加更多的快捷键
 static inline char *readline_internal(const char *prompt,
         const char *init,
         FklReadlineEndPredicateCb cb,
@@ -1484,22 +1486,36 @@ static inline char *readline_internal(const char *prompt,
         ch = readline_key_mapping(ch);
 
         switch (ch) {
-        case KEY_UP: {
+        case KEY_TAB:
+            break;
+
+        case CTRL_KEY('P'):
+        case KEY_UP:
             if (pos > 0 && !ps.in_his) {
+
+            case KEY_CTRL_UP:
+            case KEY_ALT_UP:
+
                 int new_pos = readline_move_up(&buf, pos);
                 readline_refresh(&ps, new_pos, buf.size, 0);
             } else {
                 readline_history_move(&ps, FKL_READLINE_HISTORY_PREV);
             }
-        } break;
-        case KEY_DOWN: {
+            break;
+
+        case CTRL_KEY('N'):
+        case KEY_DOWN:
             if (pos < buf.size && !ps.in_his) {
+
+            case KEY_CTRL_DOWN:
+            case KEY_ALT_DOWN:
+
                 int new_pos = readline_move_down(&buf, pos);
                 readline_refresh(&ps, new_pos, buf.size, 0);
             } else {
                 readline_history_move(&ps, FKL_READLINE_HISTORY_NEXT);
             }
-        } break;
+            break;
 
         case KEY_LEFT:
         case CTRL_KEY('B'):
@@ -1549,7 +1565,6 @@ static inline char *readline_internal(const char *prompt,
 
         case KEY_ENTER:
         case KEY_ENTER2:
-
             if (cb) {
                 u32_to_utf8_buffer(&str_buf, buf.base, buf.size);
                 read_end = cb(str_buf.buf,
@@ -1569,6 +1584,7 @@ static inline char *readline_internal(const char *prompt,
             printf(" \b\n");
             read_end = readline_end(1);
             break;
+
         case CTRL_KEY('G'):
         case CTRL_KEY('C'):
             readline_refresh(&ps, buf.size, buf.size, 0);

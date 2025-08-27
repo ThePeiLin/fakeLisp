@@ -12,7 +12,6 @@ typedef int (*FklReadlineEndPredicateCb)(const char *buf,
         const uint32_t *u32_buf,
         int u32_len,
         int pos,
-
         void *args);
 char *fklReadline(const char *prompt);
 char *fklReadline2(const char *prompt, const char *init);

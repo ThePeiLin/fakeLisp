@@ -386,11 +386,8 @@ typedef void (*FklVMinsFunc)(struct FklVM *exe, const FklInstruction *ins);
 
 typedef void (*FklVMatExitFunc)(struct FklVM *, void *);
 typedef void (*FklVMatExitMarkFunc)(void *, struct FklVMgc *);
-typedef int (*FklVMrunCb)(struct FklVM *, FklVMframe *const exit_frame);
 
 typedef struct FklVM {
-    FklVMrunCb run_cb;
-
     uv_thread_t tid;
     uv_mutex_t lock;
     FklVMvalue *obj_head;
@@ -711,7 +708,8 @@ typedef struct {
 } FklVMerrorHandler;
 
 void fklPopVMframe(FklVM *);
-int fklRunVM(FklVM *volatile);
+int fklRunVM(FklVM *exe, FklVMframe *const exit_frame);
+int fklRunVMidleLoop(FklVM *volatile);
 void fklVMatExit(FklVM *vm,
         FklVMatExitFunc func,
         FklVMatExitMarkFunc mark,

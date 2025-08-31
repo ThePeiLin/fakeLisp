@@ -2340,7 +2340,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
                 pst,
                 pkt);
         FklVMgc *gc = outer_ctx->gc;
-        int e = fklRunVM(exe);
+        int e = fklRunVMidleLoop(exe);
         fklMoveThreadObjectsToGc(exe, gc);
 
         fklChdir(cwd);

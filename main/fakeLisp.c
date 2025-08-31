@@ -112,7 +112,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     fklUninitCodegenOuterCtx(&outer_ctx);
 
     fklInitVMargs(gc, argc, argv);
-    int r = fklRunVM(anotherVM);
+    int r = fklRunVMidleLoop(anotherVM);
     fklDestroySymbolTable(gc->st);
     fklDestroyConstTable(gc->kt);
     fklDestroyAllVMs(anotherVM);
@@ -205,7 +205,7 @@ runCode(const char *filename, int argc, const char *const *argv) {
     gc->lib_num = args.lib_count;
     initLibWithPrototype(gc->libs, gc->lib_num, anotherVM->pts);
     fklInitVMargs(anotherVM->gc, argc, argv);
-    int r = fklRunVM(anotherVM);
+    int r = fklRunVMidleLoop(anotherVM);
     fklUninitSymbolTable(&runtime_st);
     fklUninitConstTable(&runtime_kt);
     fklDestroyAllVMs(anotherVM);
@@ -311,7 +311,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     fklCodegenLibVectorUninit(&scriptLibStack);
 
     fklInitVMargs(anotherVM->gc, argc, argv);
-    int r = fklRunVM(anotherVM);
+    int r = fklRunVMidleLoop(anotherVM);
     fklDestroyAllVMs(anotherVM);
     fklDestroyVMgc(gc);
     fklUninitSymbolTable(&runtime_st);
@@ -709,7 +709,7 @@ static int runRepl(FklCodegenInfo *codegen,
             eval_expression,
             interactive);
 
-    int err = fklRunVM(anotherVM);
+    int err = fklRunVMidleLoop(anotherVM);
 
     fklDestroyAllVMs(anotherVM);
     fklDestroyVMgc(gc);

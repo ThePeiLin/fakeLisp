@@ -7482,7 +7482,7 @@ static void *custom_action(void *c,
             &ctx->codegen_outer_ctx->public_kt);
     FklVMgc *gc = exe->gc;
 
-    int e = fklRunVM(exe);
+    int e = fklRunVMidleLoop(exe);
     fklMoveThreadObjectsToGc(exe, gc);
 
     fklChdir(cwd);

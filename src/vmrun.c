@@ -496,15 +496,12 @@ static inline void switch_un_notice_lock_ins(FklVM *exe) {
 
 int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
     int is_single_thread = exe->is_single_thread;
-    // int trapping = exe->trapping;
 
     exe->is_single_thread = 1;
-    // exe->trapping = 0;
 
-    int r = exe->run_cb(exe, exit_frame);
+    int r = fklRunVM(exe, exit_frame);
 
     exe->is_single_thread = is_single_thread;
-    // exe->trapping = trapping;
 
     return r;
 }
@@ -701,7 +698,7 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
     }
 }
 
-static inline int vm_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
+int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
     jmp_buf buf;
     for (;;) {
         switch (exe->state) {
@@ -766,9 +763,9 @@ static void vm_thread_cb(void *arg) {
     FklVM *volatile exe = FKL_TYPE_CAST(FklVM *, arg);
 
     FKL_VM_LOCK_BLOCK(exe, flag) {
-        exe->run_cb = vm_run_cb;
 
-        int r = exe->run_cb(exe, NULL);
+        int r = fklRunVM(exe, NULL);
+
         exe->state = FKL_VM_EXIT;
         exe->buf = NULL;
         if (r) {
@@ -947,7 +944,7 @@ static inline struct FklVMidleWork *pop_idle_work(FklVMgc *gc) {
     return r;
 }
 
-static inline void vm_idle_loop(FklVMgc *gc) {
+void fklVMidleLoop(FklVMgc *gc) {
     FklVMqueue *q = &gc->q;
     for (;;) {
         if (atomic_load(&gc->alloced_size) > gc->threshold) {
@@ -1059,8 +1056,6 @@ void fklVMcontinueTheWorld(FklVMgc *gc) {
     unlock_all_vm(&q->running_q);
 }
 
-void fklVMidleLoop(FklVMgc *gc) { vm_idle_loop(gc); }
-
 void fklVMatExit(FklVM *vm,
         FklVMatExitFunc func,
         FklVMatExitMarkFunc mark,
@@ -1077,11 +1072,11 @@ void fklVMatExit(FklVM *vm,
     vm->atexit = m;
 }
 
-int fklRunVM(FklVM *volatile exe) {
+int fklRunVMidleLoop(FklVM *volatile exe) {
     FklVMgc *gc = exe->gc;
     gc->main_thread = exe;
     fklVMthreadStart(exe, &gc->q);
-    vm_idle_loop(gc);
+    fklVMidleLoop(gc);
     return gc->exit_code;
 }
 

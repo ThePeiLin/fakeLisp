@@ -135,9 +135,20 @@ import_post_process_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {}
 static void import_post_process_frame_atomic(void *data, FklVMgc *gc) {}
 
 static int import_post_process_frame_step(void *data, FklVM *exe) {
+    return 0;
+}
+
+typedef struct ImportPostProcessContext {
+    uint64_t epc;
+    FklVM *exe;
+} ImportPostProcessContext;
+
+static void import_post_process_frame_finalize(void *data) {
+    ImportPostProcessContext *ctx =
+            FKL_TYPE_CAST(ImportPostProcessContext *, data);
+    FklVM *exe = ctx->exe;
     atomic_store(&exe->importing_lib->import_state, FKL_VM_LIB_IMPORTED);
     uv_mutex_unlock(&exe->gc->libs_lock);
-    return 0;
 }
 
 static const FklVMframeContextMethodTable
@@ -145,11 +156,8 @@ static const FklVMframeContextMethodTable
             .atomic = import_post_process_frame_atomic,
             .print_backtrace = import_post_process_frame_print_backtrace,
             .step = import_post_process_frame_step,
+            .finalizer = import_post_process_frame_finalize,
         };
-
-typedef struct ImportPostProcessContext {
-    uint64_t epc;
-} ImportPostProcessContext;
 
 static inline void push_import_post_process_frame(FklVM *exe, uint64_t epc) {
     FklVMframe *f =
@@ -157,6 +165,7 @@ static inline void push_import_post_process_frame(FklVM *exe, uint64_t epc) {
     ImportPostProcessContext *ctx =
             FKL_TYPE_CAST(ImportPostProcessContext *, f->data);
     ctx->epc = epc;
+    ctx->exe = exe;
     fklPushVMframe(f, exe);
 }
 
@@ -780,6 +789,9 @@ static void vm_thread_cb(void *arg) {
         }
 
         THREAD_EXIT(exe);
+
+        fklDeleteCallChain(exe);
+
         atomic_fetch_sub(&exe->gc->q.running_count, 1);
     }
 }

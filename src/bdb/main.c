@@ -724,7 +724,6 @@ static int bdb_debug_ctx_set_step_into(FKL_CPROC_ARGL) {
     int8_t done = dctx->done;
     if (done)
         debug_restart(dctx, exe);
-    // setStepInto(dctx);
     setStepIns(dctx,
             dctx->reached_thread,
             done ? STEP_INS_CUR : STEP_INS_NEXT,
@@ -743,7 +742,6 @@ static int bdb_debug_ctx_set_step_over(FKL_CPROC_ARGL) {
     int8_t done = dctx->done;
     if (done)
         debug_restart(dctx, exe);
-    // setStepOver(dctx);
     setStepIns(dctx,
             dctx->reached_thread,
             done ? STEP_INS_CUR : STEP_INS_NEXT,
@@ -824,9 +822,6 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe,
             fklCreateVMvalueStrFromCstr(exe, fklGetOpcodeName(ins->op));
     FklVMvalue *imm1 = NULL;
     FklVMvalue *imm2 = NULL;
-    // FklOpcode op = ins->op == FKL_OP_DUMMY
-    //                      ? getBreakpointHashItem(dctx, ins)->origin_op
-    //                      : ins->op;
     FklOpcode op = ins->op;
     FklOpcodeMode mode = fklGetOpcodeMode(op);
     FklInstructionArg arg;

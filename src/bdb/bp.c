@@ -40,7 +40,6 @@ static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
     if (ins_item->v.bp == NULL) {
         FklInstruction *ins = ins_item->k;
         *ins = ins_item->v.origin_ins;
-        // ins->op = ins_item->v.origin_op;
         bdbBpInsHashMapDel2(&bt->ins_ht, ins);
     }
 }

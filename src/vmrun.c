@@ -496,15 +496,15 @@ static inline void switch_un_notice_lock_ins(FklVM *exe) {
 
 int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
     int is_single_thread = exe->is_single_thread;
-    int trapping = exe->trapping;
+    // int trapping = exe->trapping;
 
     exe->is_single_thread = 1;
-    exe->trapping = 0;
+    // exe->trapping = 0;
 
     int r = exe->run_cb(exe, exit_frame);
 
     exe->is_single_thread = is_single_thread;
-    exe->trapping = trapping;
+    // exe->trapping = trapping;
 
     return r;
 }
@@ -646,29 +646,6 @@ start:
     goto start;
 }
 
-static inline void execute_compound_frame_check_trap(FklVM *exe,
-        FklVMframe *frame) {
-    FklInstruction *ins;
-    FklVMlib *plib;
-    uint32_t idx;
-    uint32_t idx1;
-    uint64_t size;
-    uint64_t num;
-    int64_t offset;
-start:
-    ins = frame->c.pc++;
-    switch ((FklOpcode)ins->op) {
-#define DISPATCH_INCLUDED
-#define DISPATCH_SWITCH
-#include "vmdispatch.h"
-#undef DISPATCH_INCLUDED
-#undef DISPATCH_SWITCH
-    }
-    if (exe->trapping)
-        fklVMinterrupt(exe, FKL_VM_NIL, NULL);
-    goto start;
-}
-
 #define DISPATCH_INCLUDED
 #include "vmdispatch.h"
 #undef DISPATCH_INCLUDED
@@ -790,92 +767,6 @@ static void vm_thread_cb(void *arg) {
 
     FKL_VM_LOCK_BLOCK(exe, flag) {
         exe->run_cb = vm_run_cb;
-
-        int r = exe->run_cb(exe, NULL);
-        exe->state = FKL_VM_EXIT;
-        exe->buf = NULL;
-        if (r) {
-            FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
-            fklPrintErrBacktrace(ev, exe, stderr);
-            if (exe->chan) {
-                fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);
-                exe->chan = NULL;
-            } else {
-                exe->gc->exit_code = 255;
-            }
-        }
-
-        THREAD_EXIT(exe);
-        atomic_fetch_sub(&exe->gc->q.running_count, 1);
-    }
-}
-
-static int vm_trapping_run_cb(FklVM *exe, FklVMframe *const exit_frame) {
-    jmp_buf buf;
-    for (;;) {
-        switch (exe->state) {
-        case FKL_VM_RUNNING: {
-            FklVMframe *curframe = exe->top_frame;
-            switch (curframe->type) {
-            case FKL_FRAME_COMPOUND:
-                execute_compound_frame_check_trap(exe, curframe);
-                if (exe->trapping)
-                    fklVMinterrupt(exe, FKL_VM_NIL, NULL);
-                break;
-            case FKL_FRAME_OTHEROBJ:
-                if (do_callable_obj_frame_step(curframe, exe))
-                    continue;
-
-                if (curframe->retCallBack
-                        && curframe->retCallBack(exe, curframe))
-                    continue;
-
-                do_finalize_obj_frame(exe, popFrame(exe));
-                break;
-            }
-
-            fklVMyield(exe);
-            if (exe->top_frame == exit_frame)
-                return 0;
-        } break;
-        case FKL_VM_EXIT:
-            exe->buf = NULL;
-            return 0;
-            break;
-        case FKL_VM_READY:
-            exe->buf = &buf;
-            if (setjmp(buf) == FKL_VM_ERR_RAISE) {
-                FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
-                FklVMframe *frame =
-                        fklIsVMvalueError(ev) ? exe->top_frame : exit_frame;
-                for (; frame != exit_frame; frame = frame->prev)
-                    if (frame->errorCallBack != NULL
-                            && frame->errorCallBack(frame, ev, exe))
-                        break;
-                if (frame == exit_frame) {
-                    if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE)
-                        continue;
-                    FKL_VM_PUSH_VALUE(exe, ev);
-                    return 1;
-                }
-            }
-            exe->state = FKL_VM_RUNNING;
-            continue;
-            break;
-        case FKL_VM_WAITING:
-            fklVMyield(exe);
-            continue;
-            break;
-        }
-    }
-    return 0;
-}
-
-static void vm_trapping_thread_cb(void *arg) {
-    FklVM *volatile exe = FKL_TYPE_CAST(FklVM *, arg);
-
-    FKL_VM_LOCK_BLOCK(exe, flag) {
-        exe->run_cb = vm_trapping_run_cb;
 
         int r = exe->run_cb(exe, NULL);
         exe->state = FKL_VM_EXIT;
@@ -1184,106 +1075,6 @@ void fklVMatExit(FklVM *vm,
     m->finalizer = finalizer;
     m->next = vm->atexit;
     vm->atexit = m;
-}
-
-void fklVMtrappingIdleLoop(FklVMgc *gc) {
-    FklVMqueue *q = &gc->q;
-    for (;;) {
-        if (atomic_load(&gc->alloced_size) > gc->threshold) {
-            switch_notice_lock_ins_for_running_threads(&q->running_q);
-            lock_all_vm(&q->running_q);
-
-            move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(
-                    gc);
-
-            FklVM *exe = gc->main_thread;
-            fklVMgcMarkAllRootToGray(exe);
-            while (!fklVMgcPropagate(gc))
-                ;
-            FklVMvalue *white = NULL;
-            fklVMgcCollect(gc, &white);
-            fklVMgcSweep(white);
-            fklVMgcUpdateThreshold(gc);
-
-            FklThreadQueue other_running_q;
-            fklThreadQueueInit(&other_running_q);
-
-            for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->running_q);
-                    n;
-                    n = fklThreadQueuePopNode(&q->running_q)) {
-                FklVM *exe = n->data;
-                if (exe->state == FKL_VM_EXIT) {
-                    uv_thread_join(&exe->tid);
-                    uv_mutex_unlock(&exe->lock);
-                    fklThreadQueueDestroyNode(n);
-                } else
-                    fklThreadQueuePushNode(&other_running_q, n);
-            }
-
-            for (FklThreadQueueNode *n =
-                            fklThreadQueuePopNode(&other_running_q);
-                    n;
-                    n = fklThreadQueuePopNode(&other_running_q))
-                fklThreadQueuePushNode(&q->running_q, n);
-
-            remove_exited_thread(gc);
-            shrink_locv_and_stack(&q->running_q);
-
-            switch_un_notice_lock_ins_for_running_threads(&q->running_q);
-            unlock_all_vm(&q->running_q);
-        }
-        uv_mutex_lock(&q->pre_running_lock);
-        for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->pre_running_q);
-                n;
-                n = fklThreadQueuePopNode(&q->pre_running_q)) {
-            FklVM *exe = n->data;
-            if (uv_thread_create(&exe->tid, vm_trapping_thread_cb, exe)) {
-                if (exe->chan) {
-                    exe->state = FKL_VM_EXIT;
-                    fklChanlSend(FKL_VM_CHANL(exe->chan),
-                            fklCreateVMvalueError(exe,
-                                    gc->builtinErrorTypeId[FKL_ERR_THREADERROR],
-                                    fklCreateStringFromCstr(
-                                            "Failed to create thread")),
-                            exe);
-                    fklThreadQueueDestroyNode(n);
-                } else {
-                    FKL_UNREACHABLE();
-                }
-            } else {
-                atomic_fetch_add(&q->running_count, 1);
-                fklThreadQueuePushNode(&q->running_q, n);
-            }
-        }
-        uv_mutex_unlock(&q->pre_running_lock);
-        if (atomic_load(&q->running_count) == 0) {
-            for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->running_q);
-                    n;
-                    n = fklThreadQueuePopNode(&q->running_q)) {
-                FklVM *exe = n->data;
-                uv_thread_join(&exe->tid);
-                fklThreadQueueDestroyNode(n);
-            }
-            return;
-        }
-        if (atomic_load(&gc->work_num)) {
-            switch_notice_lock_ins_for_running_threads(&q->running_q);
-            lock_all_vm(&q->running_q);
-            uv_mutex_lock(&gc->workq_lock);
-
-            for (struct FklVMidleWork *w = pop_idle_work(gc); w;
-                    w = pop_idle_work(gc)) {
-                atomic_fetch_sub(&gc->work_num, 1);
-                uv_cond_signal(&w->cond);
-                w->cb(w->vm, w->arg);
-            }
-
-            uv_mutex_unlock(&gc->workq_lock);
-            switch_un_notice_lock_ins_for_running_threads(&q->running_q);
-            unlock_all_vm(&q->running_q);
-        }
-        uv_sleep(0);
-    }
 }
 
 int fklRunVM(FklVM *volatile exe) {

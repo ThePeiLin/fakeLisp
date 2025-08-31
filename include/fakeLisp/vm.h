@@ -396,7 +396,6 @@ typedef struct FklVM {
     FklVMvalue *obj_head;
     FklVMvalue *obj_tail;
 
-    int16_t trapping;
     int16_t is_single_thread;
     uint32_t old_locv_count;
     FklVMlocvList old_locv_cache[FKL_VM_GC_LOCV_CACHE_NUM];
@@ -719,9 +718,6 @@ void fklVMatExit(FklVM *vm,
         void (*finalizer)(void *),
         void *arg);
 void fklVMidleLoop(FklVMgc *gc);
-
-FKL_DEPRECATED
-void fklVMtrappingIdleLoop(FklVMgc *gc);
 
 FklVMinterruptResult fklVMinterrupt(FklVM *, FklVMvalue *v, FklVMvalue **pv);
 void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList *l);

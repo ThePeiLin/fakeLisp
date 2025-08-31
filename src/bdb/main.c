@@ -392,7 +392,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
                 fklVMcontinueTheWorld(&dctx->gc);
             }
             dctx->running = 1;
-            fklVMtrappingIdleLoop(&dctx->gc);
+            fklVMidleLoop(&dctx->gc);
             dctx->done = 1;
             fputs("*** The program finishied and will restart ***\n", stderr);
         }

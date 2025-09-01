@@ -4752,7 +4752,7 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
                 FKL_VM_STR(dest_path)->str);
         err = fklCreateVMvalueError(exe,
                 uvErrToSid(r, fpd),
-                fklStringBufferToString(&buf));
+                fklCreateVMvalueStr2(exe, buf.index, buf.buf));
         fklUninitStringBuffer(&buf);
     } else if (req->path) {
         FklStringBuffer buf;
@@ -4760,7 +4760,7 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
         fklStringBufferPrintf(&buf, "%s: %s", uv_strerror(r), req->path);
         err = fklCreateVMvalueError(exe,
                 uvErrToSid(r, fpd),
-                fklStringBufferToString(&buf));
+                fklCreateVMvalueStr2(exe, buf.index, buf.buf));
         fklUninitStringBuffer(&buf);
     } else
         err = createUvErrorWithFpd(r, exe, fpd);

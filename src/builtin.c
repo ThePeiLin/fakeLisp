@@ -995,7 +995,7 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
     } else if (FKL_IS_USERDATA(obj) && fklIsAbleToStringUd(FKL_VM_UD(obj))) {
         FklStringBuffer buf;
         fklInitStringBuffer(&buf);
-        fklUdAsPrinc(FKL_VM_UD(obj), &buf, exe->gc);
+        fklUdAsPrinc(FKL_VM_UD(obj), &buf, exe);
         retval = fklCreateVMvalueStr2(exe,
                 fklStringBufferLen(&buf),
                 fklStringBufferBody(&buf));
@@ -2848,7 +2848,7 @@ static int builtin_prin1(FKL_CPROC_ARGL) {
     CHECK_FP_OPEN(file, exe);
     CHECK_FP_WRITABLE(file, exe);
 
-    fklPrin1VMvalue(obj, FKL_VM_FP(file)->fp, exe->gc);
+    fklPrin1VMvalue(obj, FKL_VM_FP(file)->fp, exe);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -2862,7 +2862,7 @@ static int builtin_princ(FKL_CPROC_ARGL) {
     CHECK_FP_OPEN(file, exe);
     CHECK_FP_WRITABLE(file, exe);
 
-    fklPrincVMvalue(obj, FKL_VM_FP(file)->fp, exe->gc);
+    fklPrincVMvalue(obj, FKL_VM_FP(file)->fp, exe);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -2873,7 +2873,7 @@ static int builtin_println(FKL_CPROC_ARGL) {
     FklVMvalue **const end = cur + argc;
     for (; cur < end; ++cur) {
         r = *cur;
-        fklPrincVMvalue(r, stdout, exe->gc);
+        fklPrincVMvalue(r, stdout, exe);
     }
     fputc('\n', stdout);
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -2886,7 +2886,7 @@ static int builtin_print(FKL_CPROC_ARGL) {
     FklVMvalue **const end = cur + argc;
     for (; cur < end; ++cur) {
         r = *cur;
-        fklPrincVMvalue(r, stdout, exe->gc);
+        fklPrincVMvalue(r, stdout, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -2945,7 +2945,7 @@ static int builtin_prin1n(FKL_CPROC_ARGL) {
     FklVMvalue **const end = cur + argc;
     for (; cur < end; ++cur) {
         r = *cur;
-        fklPrin1VMvalue(r, stdout, exe->gc);
+        fklPrin1VMvalue(r, stdout, exe);
     }
     fputc('\n', stdout);
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -2958,7 +2958,7 @@ static int builtin_prin1v(FKL_CPROC_ARGL) {
     FklVMvalue **const end = cur + argc;
     for (; cur < end; ++cur) {
         r = *cur;
-        fklPrin1VMvalue(r, stdout, exe->gc);
+        fklPrin1VMvalue(r, stdout, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -3344,9 +3344,7 @@ static int builtin_error(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FKL_CPROC_RETURN(exe,
             ctx,
-            fklCreateVMvalueError(exe,
-                    FKL_GET_SYM(type),
-                    fklCopyString(FKL_VM_STR(message))));
+            fklCreateVMvalueError(exe, FKL_GET_SYM(type), message));
     return 0;
 }
 
@@ -3364,7 +3362,7 @@ static int builtin_error_msg(FKL_CPROC_ARGL) {
     FklVMvalue *err = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(err, fklIsVMvalueError, exe);
     FklVMerror *error = FKL_VM_ERR(err);
-    FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr(exe, error->message));
+    FKL_CPROC_RETURN(exe, ctx, error->message);
     return 0;
 }
 
@@ -3384,9 +3382,7 @@ static int builtin_throw(FKL_CPROC_ARGL) {
     FklVMvalue *message = FKL_CPROC_GET_ARG(exe, ctx, 1);
     if (!FKL_IS_SYM(type) || !FKL_IS_STR(message))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FklVMvalue *err = fklCreateVMvalueError(exe,
-            FKL_GET_SYM(type),
-            fklCopyString(FKL_VM_STR(message)));
+    FklVMvalue *err = fklCreateVMvalueError(exe, FKL_GET_SYM(type), message);
     FKL_CPROC_RETURN(exe, ctx, err);
     fklPopVMframe(exe);
     fklRaiseVMerror(err, exe);

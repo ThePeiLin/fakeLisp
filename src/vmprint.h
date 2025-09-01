@@ -192,11 +192,11 @@ cont_call:
 static inline void NAME(const FklVMvalue *v,
         OUTPUT_TYPE result,
         PUT_ATOMIC_METHOD_ARG,
-        FklVMgc *gc) {
+        FklVM *exe) {
     LOCAL_VAR;
     if (!FKL_IS_VECTOR(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
             && !FKL_IS_HASHTABLE(v)) {
-        PUT_ATOMIC_METHOD(result, v, gc);
+        PUT_ATOMIC_METHOD(result, v, exe);
         UNINIT_LOCAL_VAR;
         return;
     }
@@ -243,7 +243,7 @@ static inline void NAME(const FklVMvalue *v,
             init_common_print_ctx(ctx, FKL_TYPE_HASHTABLE);
             print_hash_ctx_init(ctx, v);
         } else {
-            PUT_ATOMIC_METHOD(result, v, gc);
+            PUT_ATOMIC_METHOD(result, v, exe);
         }
     get_next:
         if (vmPrintCtxVectorIsEmpty(&print_ctxs))

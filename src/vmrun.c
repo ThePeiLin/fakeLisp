@@ -51,10 +51,10 @@ static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
     fklPushVMframe(tmpFrame, exe);
 }
 
-void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc) {
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe) {
     if (t->type == FKL_FRAME_COMPOUND) {
         if (t->c.sid)
-            fklPrintString(fklVMgetSymbolWithId(gc, t->c.sid), stderr);
+            fklPrintString(fklVMgetSymbolWithId(exe->gc, t->c.sid), stderr);
         else
             fputs("<lambda>", stderr);
         fprintf(stderr, "[%u]", t->c.mark);
@@ -65,7 +65,8 @@ void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc) {
         fputs(" --> ", stderr);
         if (cur->type == FKL_FRAME_COMPOUND) {
             if (cur->c.sid)
-                fklPrintString(fklVMgetSymbolWithId(gc, cur->c.sid), stderr);
+                fklPrintString(fklVMgetSymbolWithId(exe->gc, cur->c.sid),
+                        stderr);
             else
                 fputs("<lambda>", stderr);
             fprintf(stderr, "[%u]", cur->c.mark);
@@ -134,9 +135,7 @@ import_post_process_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {}
 
 static void import_post_process_frame_atomic(void *data, FklVMgc *gc) {}
 
-static int import_post_process_frame_step(void *data, FklVM *exe) {
-    return 0;
-}
+static int import_post_process_frame_step(void *data, FklVM *exe) { return 0; }
 
 typedef struct ImportPostProcessContext {
     uint64_t epc;
@@ -200,7 +199,7 @@ static inline void callCproc(FklVM *exe, FklVMvalue *cproc) {
 static inline void B_dummy(FklVM *exe, const FklInstruction *ins) {
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[FKL_ERR_INVALIDACCESS],
-            fklCreateStringFromCstr("reach invalid opcode: `dummy`"));
+            fklCreateVMvalueStrFromCstr(exe, "reach invalid opcode: `dummy`"));
     fklRaiseVMerror(err, exe);
 }
 
@@ -1013,7 +1012,7 @@ void fklVMidleLoop(FklVMgc *gc) {
                     fklChanlSend(FKL_VM_CHANL(exe->chan),
                             fklCreateVMvalueError(exe,
                                     gc->builtinErrorTypeId[FKL_ERR_THREADERROR],
-                                    fklCreateStringFromCstr(
+                                    fklCreateVMvalueStrFromCstr(exe,
                                             "Failed to create thread")),
                             exe);
                     fklThreadQueueDestroyNode(n);
@@ -1271,7 +1270,7 @@ void fklDBG_printVMstack(FklVM *stack,
         uint32_t count,
         FILE *fp,
         int mode,
-        FklVMgc *gc) {
+        FklVM *exe) {
     if (fp != stdout)
         fprintf(fp, "Current stack:\n");
     if (stack->tp == 0)
@@ -1285,14 +1284,14 @@ void fklDBG_printVMstack(FklVM *stack,
             if (fp != stdout)
                 fprintf(fp, "%" PRId64 ":", i);
             FklVMvalue *tmp = stack->base[i];
-            fklPrin1VMvalue(tmp, fp, gc);
+            fklPrin1VMvalue(tmp, fp, exe);
             putc('\n', fp);
         }
     }
 }
 
-void fklDBG_printVMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
-    fklPrin1VMvalue(v, fp, gc);
+void fklDBG_printVMvalue(FklVMvalue *v, FILE *fp, FklVM *exe) {
+    fklPrin1VMvalue(v, fp, exe);
 }
 
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {

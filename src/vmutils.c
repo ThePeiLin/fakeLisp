@@ -164,12 +164,12 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
         FklVMerror *err = FKL_VM_ERR(ev);
         fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, err->type), fp);
         fputs(": ", fp);
-        fklPrintString(err->message, fp);
+        fklPrincVMvalue(err->message, fp, exe);
         fputc('\n', fp);
         fklPrintBacktrace(exe, fp);
     } else {
         fprintf(fp, "interrupt with value: ");
-        fklPrin1VMvalue(ev, fp, exe->gc);
+        fklPrin1VMvalue(ev, fp, exe);
         fputc('\n', fp);
     }
     uv_mutex_unlock(&exe->gc->print_backtrace_lock);
@@ -253,7 +253,7 @@ FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t) {
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
         const FklString *f);
 
-FklString *fklGenErrorMessage(FklBuiltinErrorType type) {
+FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe) {
     static const char *builtinErrorMessages[FKL_BUILTIN_ERR_NUM] = {
         NULL,
         "Symbol undefined",
@@ -300,7 +300,7 @@ FklString *fklGenErrorMessage(FklBuiltinErrorType type) {
     };
     const char *s = builtinErrorMessages[type];
     FKL_ASSERT(s);
-    return fklCreateStringFromCstr(s);
+    return fklCreateVMvalueStrFromCstr(exe, s);
 }
 
 typedef enum PrintingState {
@@ -589,7 +589,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
 }
 
 #define VMVALUE_PRINTER_ARGS                                                   \
-    const FklVMvalue *v, FILE *fp, FklStringBuffer *buffer, FklVMgc *gc
+    const FklVMvalue *v, FILE *fp, FklStringBuffer *buffer, FklVM *exe
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS) {
     char buf[64] = { 0 };
     fklWriteDoubleToBuf(buf, 64, FKL_VM_F64(v));
@@ -611,10 +611,10 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     const FklVMud *ud = FKL_VM_UD(v);
-    void (*as_princ)(const FklVMud *, FklStringBuffer *, FklVMgc *) =
+    void (*as_princ)(const FklVMud *, FklStringBuffer *, FklVM *) =
             ud->t->__as_princ;
     if (as_princ) {
-        as_princ(ud, buffer, gc);
+        as_princ(ud, buffer, exe);
         fputs(buffer->buf, fp);
         buffer->index = 0;
     } else
@@ -625,7 +625,7 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS) {
     FklVMproc *proc = FKL_VM_PROC(v);
     if (proc->sid) {
         fprintf(fp, "#<proc ");
-        fklPrintRawSymbol(fklVMgetSymbolWithId(gc, proc->sid), fp);
+        fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, proc->sid), fp);
         fputc('>', fp);
     } else
         fprintf(fp, "#<proc %p>", proc);
@@ -653,7 +653,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(
 };
 
 static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS) {
-    VMvaluePtrPrincTable[v->type](v, fp, buffer, gc);
+    VMvaluePtrPrincTable[v->type](v, fp, buffer, exe);
 }
 
 static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS) { fputs("()", fp); }
@@ -663,7 +663,7 @@ static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_sym_ptr_princ(VMVALUE_PRINTER_ARGS) {
-    fklPrintString(fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)), fp);
+    fklPrintString(fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(v)), fp);
 }
 
 static void vmvalue_chr_ptr_princ(VMVALUE_PRINTER_ARGS) {
@@ -679,11 +679,11 @@ static void (*VMvaluePrincTable[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS) = {
 };
 
 static void princVMatom(VMVALUE_PRINTER_ARGS) {
-    VMvaluePrincTable[(FklVMptrTag)FKL_GET_TAG(v)](v, fp, buffer, gc);
+    VMvaluePrincTable[(FklVMptrTag)FKL_GET_TAG(v)](v, fp, buffer, exe);
 }
 
 static void vmvalue_sym_ptr_prin1(VMVALUE_PRINTER_ARGS) {
-    fklPrintRawSymbol(fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)), fp);
+    fklPrintRawSymbol(fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(v)), fp);
 }
 
 static void vmvalue_chr_ptr_prin1(VMVALUE_PRINTER_ARGS) {
@@ -696,10 +696,10 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     const FklVMud *ud = FKL_VM_UD(v);
-    void (*as_prin1)(const FklVMud *, FklStringBuffer *, FklVMgc *) =
+    void (*as_prin1)(const FklVMud *, FklStringBuffer *, FklVM *) =
             ud->t->__as_prin1;
     if (as_prin1) {
-        as_prin1(ud, buffer, gc);
+        as_prin1(ud, buffer, exe);
         fputs(buffer->buf, fp);
         buffer->index = 0;
     } else
@@ -718,7 +718,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(
 };
 
 static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS) {
-    VMvaluePtrPrin1Table[v->type](v, fp, buffer, gc);
+    VMvaluePtrPrin1Table[v->type](v, fp, buffer, exe);
 }
 
 static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS) = {
@@ -730,7 +730,7 @@ static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS) = {
 };
 
 static void prin1VMatom(VMVALUE_PRINTER_ARGS) {
-    VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v, fp, buffer, gc);
+    VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v, fp, buffer, exe);
 }
 
 #define PRINT_CTX_COMMON_HEADER                                                \
@@ -819,12 +819,12 @@ static inline void init_common_print_ctx(PrintCtx *ctx, FklValueType type) {
     atomPrinter((V), (OUT), &string_buffer, (GC))
 #include "vmprint.h"
 
-void fklPrin1VMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
-    print_value(v, fp, prin1VMatom, gc);
+void fklPrin1VMvalue(FklVMvalue *v, FILE *fp, FklVM *exe) {
+    print_value(v, fp, prin1VMatom, exe);
 }
 
-void fklPrincVMvalue(FklVMvalue *v, FILE *fp, FklVMgc *gc) {
-    print_value(v, fp, princVMatom, gc);
+void fklPrincVMvalue(FklVMvalue *v, FILE *fp, FklVM *exe) {
+    print_value(v, fp, princVMatom, exe);
 }
 
 #undef VMVALUE_PRINTER_ARGS
@@ -878,7 +878,7 @@ static inline void print_bigint_to_string_buffer(FklStringBuffer *s,
 }
 
 #define VMVALUE_TO_UTSTRING_ARGS                                               \
-    FklStringBuffer *result, const FklVMvalue *v, FklVMgc *gc
+    FklStringBuffer *result, const FklVMvalue *v, FklVM *exe
 
 static void nil_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS) {
     fklStringBufferConcatWithCstr(result, "()");
@@ -890,7 +890,7 @@ static void fix_ptr_as_print(VMVALUE_TO_UTSTRING_ARGS) {
 
 static void sym_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
     print_raw_symbol_to_string_buffer(result,
-            fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)));
+            fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(v)));
 }
 
 static void chr_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
@@ -918,7 +918,7 @@ static void vmvalue_bytevector_as_print(VMVALUE_TO_UTSTRING_ARGS) {
 static void vmvalue_userdata_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
     FklVMud *ud = FKL_VM_UD(v);
     if (fklIsAbleToStringUd(ud))
-        fklUdAsPrin1(ud, result, gc);
+        fklUdAsPrin1(ud, result, exe);
     else
         fklStringBufferPrintf(result, "#<userdata %p>", ud);
 }
@@ -928,7 +928,7 @@ static void vmvalue_proc_as_print(VMVALUE_TO_UTSTRING_ARGS) {
     if (proc->sid) {
         fklStringBufferConcatWithCstr(result, "#<proc ");
         print_raw_symbol_to_string_buffer(result,
-                fklVMgetSymbolWithId(gc, proc->sid));
+                fklVMgetSymbolWithId(exe->gc, proc->sid));
         fklStringBufferPutc(result, '>');
     } else
         fklStringBufferPrintf(result, "#<proc %p>", proc);
@@ -957,7 +957,7 @@ static void (
 };
 
 static void ptr_ptr_as_prin1(VMVALUE_TO_UTSTRING_ARGS) {
-    atom_ptr_ptr_to_string_buffer_prin1_table[v->type](result, v, gc);
+    atom_ptr_ptr_to_string_buffer_prin1_table[v->type](result, v, exe);
 }
 
 static void (*atom_ptr_to_string_buffer_prin1_table[FKL_PTR_TAG_NUM])(
@@ -972,7 +972,7 @@ static void (*atom_ptr_to_string_buffer_prin1_table[FKL_PTR_TAG_NUM])(
 static void atom_as_prin1_string(VMVALUE_TO_UTSTRING_ARGS) {
     atom_ptr_to_string_buffer_prin1_table[(FklVMptrTag)FKL_GET_TAG(v)](result,
             v,
-            gc);
+            exe);
 }
 
 static void vmvalue_string_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
@@ -982,7 +982,7 @@ static void vmvalue_string_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
 static void vmvalue_userdata_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
     FklVMud *ud = FKL_VM_UD(v);
     if (fklIsAbleAsPrincUd(ud))
-        fklUdAsPrinc(ud, result, gc);
+        fklUdAsPrinc(ud, result, exe);
     else
         fklStringBufferPrintf(result, "#<userdata %p>", ud);
 }
@@ -1000,12 +1000,12 @@ static void (
 };
 
 static void ptr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
-    atom_ptr_ptr_to_string_buffer_princ_table[v->type](result, v, gc);
+    atom_ptr_ptr_to_string_buffer_princ_table[v->type](result, v, exe);
 }
 
 static void sym_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
     fklStringBufferConcatWithString(result,
-            fklVMgetSymbolWithId(gc, FKL_GET_SYM(v)));
+            fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(v)));
 }
 
 static void chr_ptr_as_princ(VMVALUE_TO_UTSTRING_ARGS) {
@@ -1024,7 +1024,7 @@ static void (*atom_ptr_to_string_buffer_princ_table[FKL_PTR_TAG_NUM])(
 static void atom_as_princ_string(VMVALUE_TO_UTSTRING_ARGS) {
     atom_ptr_to_string_buffer_princ_table[(FklVMptrTag)FKL_GET_TAG(v)](result,
             v,
-            gc);
+            exe);
 }
 
 #define PRINT_INCLUDED
@@ -1033,10 +1033,7 @@ static void atom_as_princ_string(VMVALUE_TO_UTSTRING_ARGS) {
 FklVMvalue *fklVMstringify(FklVMvalue *value, FklVM *exe) {
     FklStringBuffer result;
     fklInitStringBuffer(&result);
-    stringify_value_to_string_buffer(value,
-            &result,
-            atom_as_prin1_string,
-            exe->gc);
+    stringify_value_to_string_buffer(value, &result, atom_as_prin1_string, exe);
     FklVMvalue *retval = fklCreateVMvalueStr2(exe,
             fklStringBufferLen(&result),
             fklStringBufferBody(&result));
@@ -1044,18 +1041,25 @@ FklVMvalue *fklVMstringify(FklVMvalue *value, FklVM *exe) {
     return retval;
 }
 
+void fklVMstringify2(FklStringBuffer *result, FklVMvalue *value, FklVM *exe) {
+    stringify_value_to_string_buffer(value, result, atom_as_prin1_string, exe);
+}
+
 FklVMvalue *fklVMstringifyAsPrinc(FklVMvalue *value, FklVM *exe) {
     FklStringBuffer result;
     fklInitStringBuffer(&result);
-    stringify_value_to_string_buffer(value,
-            &result,
-            atom_as_princ_string,
-            exe->gc);
+    stringify_value_to_string_buffer(value, &result, atom_as_princ_string, exe);
     FklVMvalue *retval = fklCreateVMvalueStr2(exe,
             fklStringBufferLen(&result),
             fklStringBufferBody(&result));
     fklUninitStringBuffer(&result);
     return retval;
+}
+
+void fklVMstringifyAsPrinc2(FklStringBuffer *result,
+        FklVMvalue *value,
+        FklVM *exe) {
+    stringify_value_to_string_buffer(value, result, atom_as_princ_string, exe);
 }
 
 size_t fklVMlistLength(FklVMvalue *v) {
@@ -1897,7 +1901,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
             stringify_value_to_string_buffer(obj,
                     &buf,
                     atom_as_prin1_string,
-                    exe->gc);
+                    exe);
 
             uint64_t len = buf.index;
 
@@ -1924,7 +1928,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
             stringify_value_to_string_buffer(obj,
                     &buf,
                     atom_as_princ_string,
-                    exe->gc);
+                    exe);
 
             uint64_t len = buf.index;
 
@@ -2069,14 +2073,14 @@ FklBuiltinErrorType fklVMformat3(FklVM *exe,
             val_end);
 }
 
-FklString *fklVMformatToString(FklVM *exe,
+FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
         FklVMvalue *base[],
         size_t len) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     fklVMformat(exe, &buf, fmt, NULL, base, &base[len]);
-    FklString *s = fklStringBufferToString(&buf);
+    FklVMvalue *s = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
     fklUninitStringBuffer(&buf);
     return s;
 }

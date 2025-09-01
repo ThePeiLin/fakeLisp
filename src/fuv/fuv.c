@@ -29,7 +29,7 @@ create_uv_error(int err_id, FklVM *exe, FuvPublicData *pd) {
     }
     return fklCreateVMvalueError(exe,
             id,
-            fklCreateStringFromCstr(uv_strerror(err_id)));
+            fklCreateVMvalueStrFromCstr(exe, uv_strerror(err_id)));
 #undef XX
 }
 
@@ -60,7 +60,7 @@ void raiseFuvError(FuvErrorType err, FklVM *exe, FklVMvalue *pd_obj) {
     };
     FklVMvalue *ev = fklCreateVMvalueError(exe,
             sid,
-            fklCreateStringFromCstr(fuv_err_msg[err]));
+            fklCreateVMvalueStrFromCstr(exe, fuv_err_msg[err]));
     fklRaiseVMerror(ev, exe);
 }
 

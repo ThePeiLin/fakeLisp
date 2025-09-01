@@ -148,7 +148,7 @@ static int fs_fprint(FKL_CPROC_ARGL) {
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
-        fklPrincVMvalue(r, fp, exe->gc);
+        fklPrincVMvalue(r, fp, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -166,7 +166,7 @@ static int fs_fprintln(FKL_CPROC_ARGL) {
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
-        fklPrincVMvalue(r, fp, exe->gc);
+        fklPrincVMvalue(r, fp, exe);
     }
     fputc('\n', stdout);
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -185,7 +185,7 @@ static int fs_fprin1(FKL_CPROC_ARGL) {
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
-        fklPrin1VMvalue(r, fp, exe->gc);
+        fklPrin1VMvalue(r, fp, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -203,7 +203,7 @@ static int fs_fprin1n(FKL_CPROC_ARGL) {
     FILE *fp = FKL_VM_FP(f)->fp;
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
-        fklPrin1VMvalue(r, fp, exe->gc);
+        fklPrin1VMvalue(r, fp, exe);
     }
     fputc('\n', stdout);
     FKL_CPROC_RETURN(exe, ctx, r);

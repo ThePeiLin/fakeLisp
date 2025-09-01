@@ -19,7 +19,7 @@ static int strbuf_finalizer(FklVMud *p) {
 }
 
 static void
-strbuf_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+strbuf_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
     FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
     fklStringBufferConcatWithCstr(buf, "#<strbuf ");
     fklPrintRawCharBufToStringBuffer(buf,
@@ -32,7 +32,7 @@ strbuf_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
 }
 
 static void
-strbuf_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+strbuf_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
     FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
     fklStringBufferConcatWithStringBuffer(buf, bufa);
 }

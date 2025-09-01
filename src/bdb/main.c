@@ -1125,7 +1125,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
                         cur_frame);
                 if (value) {
                     fputs(";=> ", stdout);
-                    fklPrin1VMvalue(value, stdout, &dctx->gc);
+                    fklPrin1VMvalue(value, stdout, dctx->reached_thread);
                     fputc('\n', stdout);
                 }
             }

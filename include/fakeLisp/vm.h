@@ -474,12 +474,8 @@ typedef int (
 
 typedef struct FklVMudMetaTable {
     size_t size;
-    void (*__as_princ)(const FklVMud *,
-            FklStringBuffer *buf,
-            struct FklVMgc *gc);
-    void (*__as_prin1)(const FklVMud *,
-            FklStringBuffer *buf,
-            struct FklVMgc *gc);
+    void (*__as_princ)(const FklVMud *, FklStringBuffer *, struct FklVM *);
+    void (*__as_prin1)(const FklVMud *, FklStringBuffer *, struct FklVM *);
     int (*__finalizer)(FklVMud *);
     int (*__equal)(const FklVMud *, const FklVMud *);
     void (*__call)(FklVMvalue *, FklVM *);
@@ -665,7 +661,7 @@ typedef struct {
 
 typedef struct {
     FklSid_t type;
-    FklString *message;
+    FklVMvalue *message;
 } FklVMerror;
 
 // FklVMvalueHashMap
@@ -828,14 +824,18 @@ void fklDeleteCallChain(FklVM *);
 FklGCstate fklGetGCstate(FklVMgc *);
 void fklVMgcToGray(FklVMvalue *, FklVMgc *);
 
-void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
-void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVMgc *gc);
-void fklDBG_printLinkBacktrace(FklVMframe *t, FklVMgc *gc);
+void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVM *exe);
+void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVM *exe);
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe);
 
 FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *);
 FklVMvalue *fklVMstringifyAsPrinc(FklVMvalue *, FklVM *);
-void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
-void fklPrincVMvalue(FklVMvalue *, FILE *, FklVMgc *gc);
+
+void fklVMstringify2(FklStringBuffer *buf, FklVMvalue *, FklVM *);
+void fklVMstringifyAsPrinc2(FklStringBuffer *buf, FklVMvalue *, FklVM *);
+
+void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVM *gc);
+void fklPrincVMvalue(FklVMvalue *, FILE *, FklVM *gc);
 
 FklBuiltinErrorType fklVMprintf(FklVM *,
         FILE *fp,
@@ -865,7 +865,7 @@ FklBuiltinErrorType fklVMformat2(FklVM *,
         FklVMvalue **start,
         FklVMvalue **const end);
 
-FklBuiltinErrorType fklVMformat3(FklVM *exe,
+FklBuiltinErrorType fklVMformat3(FklVM *,
         FklStringBuffer *result,
         const char *fmt,
         const char *end,
@@ -873,7 +873,7 @@ FklBuiltinErrorType fklVMformat3(FklVM *exe,
         FklVMvalue **cur_val,
         FklVMvalue **const val_end);
 
-FklString *fklVMformatToString(FklVM *exe,
+FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
         FklVMvalue *base[],
         size_t len);
@@ -977,7 +977,7 @@ FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx);
 FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 
 void fklDestroyVMframe(FklVMframe *, FklVM *exe);
-FklString *fklGenErrorMessage(FklBuiltinErrorType type);
+FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe);
 
 const char *fklGetVMhashTablePrefix(const FklVMhash *);
 int fklVMhashTableDel(FklVMhash *ht,
@@ -1116,7 +1116,7 @@ FklVMvalue *fklCreateVMvalueBox(FklVM *, FklVMvalue *);
 
 FklVMvalue *fklCreateVMvalueBoxNil(FklVM *);
 
-FklVMvalue *fklCreateVMvalueError(FklVM *, FklSid_t type, FklString *message);
+FklVMvalue *fklCreateVMvalueError(FklVM *, FklSid_t type, FklVMvalue *message);
 int fklIsVMvalueError(FklVMvalue *v);
 
 FklVMvalue *fklCreateVMvalueBigInt(FklVM *, size_t num);
@@ -1391,7 +1391,7 @@ static inline int fklFinalizeVMud(FklVMud *a) {
     int (*finalize)(FklVMud *) = a->t->__finalizer;
     if (finalize)
         return finalize(a);
-    return 0;
+    return FKL_VM_UD_FINALIZE_NOW;
 }
 
 int fklEqualVMud(const FklVMud *, const FklVMud *);
@@ -1400,8 +1400,8 @@ int fklCmpVMud(const FklVMud *, const FklVMvalue *, int *);
 void fklWriteVMud(const FklVMud *, FILE *fp);
 size_t fklLengthVMud(const FklVMud *);
 size_t fklHashvVMud(const FklVMud *);
-void fklUdAsPrin1(const FklVMud *, FklStringBuffer *, FklVMgc *);
-void fklUdAsPrinc(const FklVMud *, FklStringBuffer *, FklVMgc *);
+void fklUdAsPrin1(const FklVMud *, FklStringBuffer *, FklVM *);
+void fklUdAsPrinc(const FklVMud *, FklStringBuffer *, FklVM *);
 FklBytevector *fklUdToBytevector(const FklVMud *);
 
 int fklIsCallable(FklVMvalue *);
@@ -1457,7 +1457,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
 
 noreturn FKL_ALWAYS_INLINE static inline void
 FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
-    FklString *errorMessage = fklGenErrorMessage(error_type);
+    FklVMvalue *errorMessage = fklGenErrorMessage(error_type, exe);
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[error_type],
             errorMessage);
@@ -1470,7 +1470,7 @@ noreturn FKL_ALWAYS_INLINE static inline void fklRaiseBuiltinErrorFmtArr(
         const char *fmt,
         FklVMvalue *values[],
         size_t value_count) {
-    FklString *errorMessage =
+    FklVMvalue *errorMessage =
             fklVMformatToString(exe, fmt, values, value_count);
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[error_type],
@@ -1541,7 +1541,7 @@ HASH_P(EQUAL);
 #undef HASH_P
 
 #define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME, DATA_TYPE_NAME)                \
-    static void NAME(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {   \
+    static void NAME(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {    \
         fklStringBufferPrintf(buf, "#<" DATA_TYPE_NAME " %p>", ud);            \
     }
 

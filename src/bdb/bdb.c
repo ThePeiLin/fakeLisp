@@ -4,8 +4,9 @@
 #include <fakeLisp/vm.h>
 #include <string.h>
 
-static void
-bdb_step_break_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+static void bdb_step_break_userdata_as_print(const FklVMud *ud,
+        FklStringBuffer *buf,
+        FklVM *exe) {
     fklStringBufferConcatWithCstr(buf, "#<break>");
 }
 

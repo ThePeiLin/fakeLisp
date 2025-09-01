@@ -1366,9 +1366,9 @@ FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
 }
 
 static void
-_error_userdata_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+_error_userdata_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
     FKL_DECL_UD_DATA(err, FklVMerror, ud);
-    fklStringBufferConcatWithString(buf, err->message);
+    fklStringBufferConcatWithString(buf, FKL_VM_STR(err->message));
 }
 
 static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
@@ -1382,30 +1382,31 @@ static inline void print_raw_string_to_string_buffer(FklStringBuffer *s,
 }
 
 static void
-_error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+_error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
     FKL_DECL_UD_DATA(err, FklVMerror, ud);
     fklStringBufferConcatWithCstr(buf, "#<err t: ");
-    print_raw_symbol_to_string_buffer(buf, fklVMgetSymbolWithId(gc, err->type));
-    fklStringBufferConcatWithCstr(buf, " m: ");
-    print_raw_string_to_string_buffer(buf, err->message);
-    fklStringBufferPutc(buf, '>');
+    print_raw_symbol_to_string_buffer(buf,
+            fklVMgetSymbolWithId(exe->gc, err->type));
+    fklStringBufferConcatWithCstr(buf, ", message: ");
+    print_raw_string_to_string_buffer(buf, FKL_VM_STR(err->message));
+    fklStringBufferConcatWithCstr(buf, "> ");
 }
 
-static int _error_userdata_finalizer(FklVMud *v) {
+static void _error_userdata_atomic(const FklVMud *v, FklVMgc *gc) {
     FKL_DECL_UD_DATA(err, FklVMerror, v);
-    fklZfree(err->message);
-    return FKL_VM_UD_FINALIZE_NOW;
+    fklVMgcToGray(err->message, gc);
 }
 
 static FklVMudMetaTable ErrorUserDataMetaTable = {
-    .size = sizeof(FklVMdll),
+    .size = sizeof(FklVMerror),
     .__as_princ = _error_userdata_as_princ,
     .__as_prin1 = _error_userdata_as_prin1,
-    .__finalizer = _error_userdata_finalizer,
+    .__atomic = _error_userdata_atomic,
 };
 
 FklVMvalue *
-fklCreateVMvalueError(FklVM *exe, FklSid_t type, FklString *message) {
+fklCreateVMvalueError(FklVM *exe, FklSid_t type, FklVMvalue *message) {
+    FKL_ASSERT(FKL_IS_STR(message));
     FklVMvalue *r = fklCreateVMvalueUd(exe, &ErrorUserDataMetaTable, NULL);
     FklVMerror *err = FKL_VM_ERR(r);
     err->type = type;
@@ -1483,7 +1484,7 @@ static int _fp_userdata_finalizer(FklVMud *ud) {
 }
 
 static void
-_fp_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+_fp_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
     FKL_DECL_UD_DATA(vfp, FklVMfp, ud);
     fklStringBufferPrintf(buf, "#<fp %p>", vfp);
 }
@@ -1903,7 +1904,7 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
 #undef NEW_OBJ
 
 static void
-_eof_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+_eof_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
     fklStringBufferConcatWithCstr(buf, "#<eof>");
 }
 
@@ -1982,12 +1983,12 @@ int fklCmpVMud(const FklVMud *a, const FklVMvalue *b, int *err) {
 
 size_t fklLengthVMud(const FklVMud *a) { return a->t->__length(a); }
 
-void fklUdAsPrin1(const FklVMud *a, FklStringBuffer *buf, FklVMgc *gc) {
-    a->t->__as_prin1(a, buf, gc);
+void fklUdAsPrin1(const FklVMud *a, FklStringBuffer *buf, FklVM *exe) {
+    a->t->__as_prin1(a, buf, exe);
 }
 
-void fklUdAsPrinc(const FklVMud *a, FklStringBuffer *buf, FklVMgc *gc) {
-    a->t->__as_princ(a, buf, gc);
+void fklUdAsPrinc(const FklVMud *a, FklStringBuffer *buf, FklVM *exe) {
+    a->t->__as_princ(a, buf, exe);
 }
 
 void fklWriteVMud(const FklVMud *a, FILE *fp) { a->t->__write(a, fp); }

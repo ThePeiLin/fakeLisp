@@ -1190,7 +1190,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         ctx->state = READING;
         if (exe->tp - fctx->sp != 0) {
             fputs(RETVAL_PREFIX, stdout);
-            fklDBG_printVMstack(exe, exe->tp - fctx->sp, stdout, 0, exe->gc);
+            fklDBG_printVMstack(exe, exe->tp - fctx->sp, stdout, 0, exe);
         }
         exe->tp = fctx->sp;
 

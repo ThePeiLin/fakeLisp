@@ -78,7 +78,7 @@ FklVMinterruptResult dbgInterruptHandler(FklVM *exe,
             .ctx = ctx,
         };
         dbgInterrupt(exe, &arg);
-    } else if (int_val == FKL_VM_NIL) {
+    } else if (int_val == BDB_STEP_BREAK) {
         DbgInterruptArg arg = {
             .ctx = ctx,
         };
@@ -368,51 +368,51 @@ void setStepIns(DebugCtx *ctx,
 
 void setStepOut(DebugCtx *ctx) {
     FklVM *exe = ctx->reached_thread;
-    if (exe && exe->top_frame) {
-        ctx->stepping_ctx.vm = exe;
-        FklVMframe *f = exe->top_frame;
-        for (; f && f->type == FKL_FRAME_OTHEROBJ; f = f->prev)
-            ;
-        if (f == NULL)
-            return;
-        for (f = f->prev; f; f = f->prev) {
-            if (f->type == FKL_FRAME_COMPOUND)
-                break;
-        }
 
-        if (f == NULL)
-            return;
-
-        FklInstruction *ins = f->c.pc;
-
-        set_stepping_target(&ctx->stepping_ctx,
-                ins,
-                &(SetSteppingArgs){ .i = 0, .flags = INT3_STEPPING });
+    if (exe == NULL || exe->top_frame == NULL)
+        return;
+    ctx->stepping_ctx.vm = exe;
+    FklVMframe *f = exe->top_frame;
+    for (; f && f->type == FKL_FRAME_OTHEROBJ; f = f->prev)
+        ;
+    if (f == NULL)
+        return;
+    for (f = f->prev; f; f = f->prev) {
+        if (f->type == FKL_FRAME_COMPOUND)
+            break;
     }
+
+    if (f == NULL)
+        return;
+
+    FklInstruction *ins = f->c.pc;
+
+    set_stepping_target(&ctx->stepping_ctx,
+            ins,
+            &(SetSteppingArgs){ .i = 0, .flags = INT3_STEPPING });
 }
 
 void setStepUntil(DebugCtx *ctx, uint32_t target_line) {
     FklVM *exe = ctx->reached_thread;
-    if (exe && exe->top_frame) {
-        ctx->stepping_ctx.vm = exe;
-        PutBreakpointErrorType err = 0;
-        FklInstruction *target = getInsWithFileAndLine(ctx,
-                ctx->curline_file,
-                target_line,
-                &err);
-        if (target == NULL)
-            return;
 
-        set_stepping_target(&ctx->stepping_ctx,
-                target,
-                &(SetSteppingArgs){ .i = 0, .flags = INT3_STEPPING });
-    }
+    if (exe == NULL || exe->top_frame == NULL)
+        return;
+
+    ctx->stepping_ctx.vm = exe;
+    PutBreakpointErrorType err = 0;
+    FklInstruction *target =
+            getInsWithFileAndLine(ctx, ctx->curline_file, target_line, &err);
+    if (target == NULL)
+        return;
+
+    set_stepping_target(&ctx->stepping_ctx,
+            target,
+            &(SetSteppingArgs){ .i = 0, .flags = INT3_STEPPING });
 }
 
 void unsetStepping(DebugCtx *ctx) {
     struct SteppingCtx *sctx = &ctx->stepping_ctx;
     sctx->ln = NULL;
-    sctx->stepping_proc = NULL;
     for (size_t i = 0; i < BDB_STEPPING_TARGET_INS_COUNT; ++i) {
         if (sctx->target_ins[i]) {
             *(sctx->target_ins[i]) = sctx->ins[i];

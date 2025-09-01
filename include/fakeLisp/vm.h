@@ -393,7 +393,8 @@ typedef struct FklVM {
     FklVMvalue *obj_head;
     FklVMvalue *obj_tail;
 
-    int16_t is_single_thread;
+    int8_t is_single_thread;
+    atomic_schar notice_lock;
     uint32_t old_locv_count;
     FklVMlocvList old_locv_cache[FKL_VM_GC_LOCV_CACHE_NUM];
     FklVMlocvList *old_locv_list;
@@ -420,8 +421,6 @@ typedef struct FklVM {
     FklVMlib *importing_lib;
 
     FklVMstate volatile state;
-
-    atomic_int notice_lock;
 
     FklVMinsFunc dummy_ins_func;
 

@@ -94,9 +94,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
                 exe,
                 "Failed for file: %s",
                 filename_obj);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe,
-            &DebugCtxUdMetaTable,
-            FKL_VM_CPROC(ctx->proc)->dll);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe, &DebugCtxUdMetaTable, NULL);
     FKL_DECL_VM_UD_DATA(debug_ud, DebugCtx, ud);
     int r;
 
@@ -1092,9 +1090,9 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(debug_ctx_obj, IS_DEBUG_CTX_UD, exe);
     FKL_DECL_VM_UD_DATA(dctx, DebugCtx, debug_ctx_obj);
 
-    if (dctx->done && dctx->reached_thread == NULL)
+    if (dctx->done && dctx->reached_thread == NULL) {
         printThreadAlreadyExited(dctx, stderr);
-    else {
+    } else {
         FklVMframe *cur_frame = getCurrentFrame(dctx);
         for (; cur_frame && cur_frame->type == FKL_FRAME_OTHEROBJ;
                 cur_frame = cur_frame->prev)

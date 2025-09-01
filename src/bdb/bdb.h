@@ -178,15 +178,9 @@ typedef struct DebugCtx {
     struct SteppingCtx {
         FklVM *vm;
         const FklLineNumberTableItem *ln;
-        FklVMvalue *stepping_proc;
-        FklVMframe *stepping_frame;
-
-        FklSid_t cur_fid;
-        uint64_t target_line;
 
         FklInstruction ins[BDB_STEPPING_TARGET_INS_COUNT];
         FklInstruction *target_ins[BDB_STEPPING_TARGET_INS_COUNT];
-
     } stepping_ctx;
 
     FklVMgc gc;
@@ -204,6 +198,10 @@ typedef struct {
     DebugCtx *ctx;
     int err;
 } DbgInterruptArg;
+
+extern const alignas(8) FklVMvalueUd BdbStepBreak;
+
+#define BDB_STEP_BREAK ((FklVMptr) & BdbStepBreak)
 
 int initDebugCtx(DebugCtx *,
         FklVM *exe,

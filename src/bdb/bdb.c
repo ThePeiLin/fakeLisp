@@ -1,9 +1,28 @@
 #include "bdb.h"
-#include "fakeLisp/common.h"
 
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/vm.h>
 #include <string.h>
+
+static void
+bdb_step_break_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVMgc *gc) {
+    fklStringBufferConcatWithCstr(buf, "#<break>");
+}
+
+static FklVMudMetaTable BdbStepBreakUserDataMetaTable = {
+    .size = 0,
+    .__as_princ = bdb_step_break_userdata_as_print,
+    .__as_prin1 = bdb_step_break_userdata_as_print,
+};
+
+const alignas(8) FklVMvalueUd BdbStepBreak = {
+    .gc = NULL,
+    .next = NULL,
+    .gray_next = NULL,
+    .mark = FKL_MARK_B,
+    .type = FKL_TYPE_USERDATA,
+    .ud = { .t = &BdbStepBreakUserDataMetaTable, .dll = NULL },
+};
 
 static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
     fklInitStringBuffer(&ctx->buf);
@@ -80,7 +99,7 @@ static void B_int3(FklVM *exe, const FklInstruction *ins) {
             exe->top_frame->c.pc = pc;
 
             // interrupt for stepping
-            fklVMinterrupt(exe, FKL_VM_NIL, NULL);
+            fklVMinterrupt(exe, BDB_STEP_BREAK, NULL);
 
             exe->top_frame->c.pc = cur;
         }

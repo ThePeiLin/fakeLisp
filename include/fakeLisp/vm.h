@@ -330,6 +330,20 @@ typedef struct FklVMframe {
 void fklCallObj(struct FklVM *exe, FklVMvalue *);
 void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
 
+typedef struct {
+    uint32_t bp;
+    uint32_t tp;
+    FklVMframe *exit_frame;
+
+    FklVMvalue *r;
+    FklVMvalue *e;
+} FklVMrecoverArgs;
+
+typedef struct {
+    int err;
+    FklVMvalue *v;
+} FklVMcallResult;
+
 FKL_ALWAYS_INLINE static inline void *fklGetFrameData(FklVMframe *f) {
     return f->data;
 }
@@ -703,7 +717,37 @@ typedef struct {
 } FklVMerrorHandler;
 
 void fklPopVMframe(FklVM *);
+
 int fklRunVM(FklVM *exe, FklVMframe *const exit_frame);
+
+// same as fklRunVM, but in single thread
+int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame);
+
+typedef int (*FklRunVMcb)(FklVM *exe, FklVMframe *const exit_frame);
+typedef void (*FklVMcallbackValueCreator)(FklVM *exe, void *arg);
+
+FklVMcallResult fklVMcall(FklVM *exe,
+        FklVMrecoverArgs *re,
+        FklVMvalue *proc,
+        size_t count,
+        FklVMvalue *values[]);
+
+FklVMcallResult fklVMcall2(FklRunVMcb,
+        FklVM *exe,
+        FklVMrecoverArgs *re,
+        FklVMvalue *proc,
+        size_t count,
+        FklVMvalue *values[]);
+
+FklVMcallResult fklVMcall3(FklRunVMcb,
+        FklVM *exe,
+        FklVMrecoverArgs *re,
+        FklVMvalue *proc,
+        FklVMcallbackValueCreator creator,
+        void *args);
+
+void fklVMrecover(struct FklVM *exe, const FklVMrecoverArgs *args);
+
 int fklRunVMidleLoop(FklVM *volatile);
 void fklVMatExit(FklVM *vm,
         FklVMatExitFunc func,
@@ -734,9 +778,12 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
         const FklInstruction *ins,
         FklVMframe *frame);
-int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame);
-void fklCheckAndGCinSingleThread(FklVM *exe);
+
+// check and gc in single thread
+void fklCheckAndGC(FklVM *exe);
+
 void fklVMthreadStart(FklVM *, FklVMqueue *q);
+
 FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
         FklSymbolTable *,
         FklConstTable *,

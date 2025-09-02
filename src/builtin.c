@@ -3586,9 +3586,7 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
 
 static void idle_queue_work_cb(FklVM *exe, void *a) {
     FklCprocFrameContext *ctx = FKL_TYPE_CAST(FklCprocFrameContext *, a);
-    exe->state = FKL_VM_READY;
-    IDLE_CTX_STATE(ctx) = fklRunVMinSingleThread(exe, exe->top_frame->prev);
-    exe->state = FKL_VM_READY;
+    IDLE_CTX_STATE(ctx) = fklRunVM2(exe, exe->top_frame->prev);
     return;
 }
 
@@ -3624,23 +3622,18 @@ struct AtExitArg {
 
 static void vm_atexit_idle_queue_work_cb(FklVM *exe, void *a) {
     struct AtExitArg *arg = (struct AtExitArg *)a;
-    FklVMframe *origin_top_frame = exe->top_frame;
-    uint32_t tp = exe->tp;
-    uint32_t bp = exe->bp;
-    fklSetBp(exe);
-    fklVMstackReserve(exe, exe->tp + arg->arg_num);
-    memcpy(&exe->base[exe->tp], arg->args, arg->arg_num * sizeof(FklVMvalue *));
-    exe->tp += arg->arg_num;
+    FklVMrecoverArgs recover_args = { 0 };
+    FklVMcallResult r = fklVMcall2(fklRunVM2,
+            exe,
+            &recover_args,
+            arg->args[0],
+            arg->arg_num - 1,
+            &arg->args[1]);
+    if (r.err) {
+        fklPrintErrBacktrace(r.v, exe, stderr);
+        fklVMrecover(exe, &recover_args);
+    }
 
-    fklCallObj(exe, arg->args[0]);
-    exe->state = FKL_VM_READY;
-    if (fklRunVMinSingleThread(exe, origin_top_frame))
-        fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(exe), exe, stderr);
-    while (exe->top_frame != origin_top_frame)
-        fklPopVMframe(exe);
-    exe->state = FKL_VM_READY;
-    exe->bp = bp;
-    exe->tp = tp;
     return;
 }
 

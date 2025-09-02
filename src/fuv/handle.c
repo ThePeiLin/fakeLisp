@@ -282,6 +282,24 @@ FUV_HANDLE_CREATOR(FuvSignal, signal, UV_SIGNAL);
 
 FUV_HANDLE_P(isFuvAsync, UV_ASYNC);
 
+struct AsyncCreatorArgs {
+    struct FuvAsync *async_handle;
+    size_t count;
+    FklVMvalue **values;
+};
+
+static void fuv_async_cb_creator(FklVM *exe, void *args) {
+    struct AsyncCreatorArgs *a = FKL_TYPE_CAST(struct AsyncCreatorArgs *, args);
+    struct FuvAsync *async_handle = a->async_handle;
+
+    FklVMvalue **cur = a->values;
+    FklVMvalue **const end = &cur[a->count];
+    for (; cur < end; ++cur)
+        FKL_VM_PUSH_VALUE(exe, *cur);
+    FUV_ASYNC_COPY_DONE(async_handle);
+    FUV_ASYNC_WAIT_SEND(exe, async_handle);
+}
+
 static void fuv_async_cb(uv_async_t *handle) {
     uv_loop_t *loop = uv_handle_get_loop((uv_handle_t *)handle);
     FuvLoopData *ldata = uv_loop_get_data(loop);
@@ -291,22 +309,27 @@ static void fuv_async_cb(uv_async_t *handle) {
     if (proc) {
         FklVM *exe = ldata->exe;
         FKL_VM_LOCK_BLOCK(exe, flag) {
-            exe->state = FKL_VM_READY;
-            FklVMframe *buttom_frame = exe->top_frame;
+
             struct FuvAsyncExtraData *extra = atomic_load(&async_handle->extra);
-            fklSetBp(exe);
-            FklVMvalue **cur = extra->base;
-            FklVMvalue **const end = &cur[extra->num];
-            FKL_VM_PUSH_VALUE(exe, proc);
-            for (; cur < end; ++cur)
-                FKL_VM_PUSH_VALUE(exe, *cur);
-            fklCallObj(exe, proc);
-            FUV_ASYNC_COPY_DONE(async_handle);
-            FUV_ASYNC_WAIT_SEND(exe, async_handle);
-            if (fklRunVM(exe, buttom_frame))
+            FklVMrecoverArgs recover_args = { 0 };
+
+            struct AsyncCreatorArgs args = {
+                .async_handle = async_handle,
+                .count = extra->num,
+                .values = extra->base,
+            };
+
+            FklVMcallResult r = fklVMcall3(fklRunVM,
+                    exe,
+                    &recover_args,
+                    proc,
+                    fuv_async_cb_creator,
+                    &args);
+
+            if (r.err) {
+                FKL_VM_PUSH_VALUE(exe, r.v);
                 startErrorHandle(loop, ldata, exe);
-            else
-                exe->tp--;
+            }
         }
         return;
     }

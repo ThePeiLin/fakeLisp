@@ -252,28 +252,24 @@ FklVMvalue *callEvalProc(DebugCtx *ctx,
         FklVM *vm,
         FklVMvalue *proc,
         FklVMframe *origin_cur_frame) {
-    FklVMframe *origin_top_frame = vm->top_frame;
     FklVMvalue *retval = NULL;
-    vm->state = FKL_VM_READY;
-    uint32_t tp = vm->tp;
-    uint32_t bp = vm->bp;
-    fklSetBp(vm);
-    FKL_VM_PUSH_VALUE(vm, proc);
-    fklCallObj(vm, proc);
-    if (fklRunVMinSingleThread(vm, origin_cur_frame))
-        fklPrintErrBacktrace(FKL_VM_POP_TOP_VALUE(vm), vm, stderr);
-    else
-        retval = FKL_VM_POP_TOP_VALUE(vm);
-    vm->state = FKL_VM_READY;
-    FklVMframe *f = vm->top_frame;
-    while (f != origin_cur_frame) {
-        FklVMframe *cur = f;
-        f = f->prev;
-        fklDestroyVMframe(cur, vm);
-    }
-    vm->tp = tp;
-    vm->bp = bp;
-    vm->top_frame = origin_top_frame;
+
+    FklVMrecoverArgs recover_args = { 0 };
+
+    FklVMcallResult r = fklVMcall2(fklRunVM2,
+            vm,
+            &recover_args,
+            proc,
+            0,
+            NULL);
+
+    FklVMvalue *v = r.v;
+    if (r.err) {
+        fklPrintErrBacktrace(v, vm, stderr);
+        fklVMrecover(vm, &recover_args);
+    } else
+        retval = r.v;
+
     return retval;
 }
 

@@ -456,6 +456,84 @@ void fklTailCallObj(FklVM *exe, FklVMvalue *proc) {
     fklCallObj(exe, proc);
 }
 
+struct DefaultCbValueCreator {
+    size_t count;
+    FklVMvalue **values;
+};
+
+static void default_callback_value_creator(FklVM *exe, void *arg) {
+    struct DefaultCbValueCreator *a =
+            FKL_TYPE_CAST(struct DefaultCbValueCreator *, arg);
+
+    size_t count = a->count;
+    FklVMvalue **cur = a->values;
+    FklVMvalue **const end = &cur[count];
+
+    for (; cur < end; ++cur)
+        FKL_VM_PUSH_VALUE(exe, *cur);
+}
+
+FklVMcallResult fklVMcall3(FklRunVMcb cb,
+        FklVM *exe,
+        FklVMrecoverArgs *re,
+        FklVMvalue *proc,
+        FklVMcallbackValueCreator creator,
+        void *args) {
+    FKL_ASSERT(fklIsCallable(proc));
+    re->bp = exe->bp;
+    re->tp = exe->tp;
+    re->exit_frame = exe->top_frame;
+
+    fklSetBp(exe);
+    FKL_VM_PUSH_VALUE(exe, proc);
+
+    if (creator)
+        creator(exe, args);
+    fklCallObj(exe, proc);
+
+    FklVMcallResult result;
+
+    result.err = cb(exe, re->exit_frame);
+    result.v = FKL_VM_POP_TOP_VALUE(exe);
+
+    return result;
+}
+
+FklVMcallResult fklVMcall2(FklRunVMcb cb,
+        FklVM *exe,
+        FklVMrecoverArgs *re,
+        FklVMvalue *proc,
+        size_t count,
+        FklVMvalue *values[]) {
+
+    struct DefaultCbValueCreator args = {
+        .count = count,
+        .values = values,
+    };
+
+    return fklVMcall3(cb, exe, re, proc, default_callback_value_creator, &args);
+}
+
+FklVMcallResult fklVMcall(FklVM *exe,
+        FklVMrecoverArgs *re,
+        FklVMvalue *proc,
+        size_t count,
+        FklVMvalue *values[]) {
+    return fklVMcall2(fklRunVM, exe, re, proc, count, values);
+}
+
+void fklVMrecover(struct FklVM *vm, const FklVMrecoverArgs *args) {
+    FklVMframe *f = vm->top_frame;
+    while (f != args->exit_frame) {
+        FklVMframe *cur = f;
+        f = f->prev;
+        fklDestroyVMframe(cur, vm);
+    }
+    vm->tp = args->tp;
+    vm->bp = args->bp;
+    vm->top_frame = args->exit_frame;
+}
+
 void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval) {
     exe->tp = rtp + 1;
     exe->base[rtp] = retval;
@@ -502,7 +580,7 @@ static inline void switch_un_notice_lock_ins(FklVM *exe) {
         atomic_store(&exe->notice_lock, 0);
 }
 
-int fklRunVMinSingleThread(FklVM *exe, FklVMframe *const exit_frame) {
+int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame) {
     int is_single_thread = exe->is_single_thread;
 
     exe->is_single_thread = 1;
@@ -611,8 +689,17 @@ close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
 
 static inline FklVMlib *get_importing_lib(FklVMframe *f, FklVMgc *gc) {
+    FklVMframe *fi = f->prev;
+    FKL_ASSERT(f->type == FKL_FRAME_COMPOUND                  //
+               && f->retCallBack == import_frame_ret_callback //
+               && fi != NULL                                  //
+               && fi->type == FKL_FRAME_OTHEROBJ              //
+               && fi->t == &ImportPostProcessContextMethodTable);
+    ImportPostProcessContext *ctx =
+            FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
+
     const FklInstruction *first_ins =
-            &FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj)->bc.code[0];
+            &FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj)->bc.code[ctx->epc];
 
     FKL_ASSERT(first_ins->op >= FKL_OP_EXPORT_TO
                && first_ins->op <= FKL_OP_EXPORT_TO_XX);
@@ -627,7 +714,6 @@ static int
 import_lib_error_callback(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
     atomic_store(&get_importing_lib(f, exe->gc)->import_state,
             FKL_VM_LIB_ERROR);
-    uv_mutex_unlock(&exe->gc->libs_lock);
     return 0;
 }
 
@@ -688,7 +774,7 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
                                                   : &exe->frame_cache_head;
 }
 
-void fklCheckAndGCinSingleThread(FklVM *exe) {
+void fklCheckAndGC(FklVM *exe) {
     FklVMgc *gc = exe->gc;
     if (atomic_load(&gc->alloced_size) > gc->threshold) {
         fklMoveThreadObjectsToGc(exe, gc);
@@ -708,6 +794,8 @@ void fklCheckAndGCinSingleThread(FklVM *exe) {
 
 int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
     jmp_buf buf;
+    int r = 0;
+    exe->state = FKL_VM_READY;
     for (;;) {
         switch (exe->state) {
         case FKL_VM_RUNNING: {
@@ -730,7 +818,7 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
 
             fklVMyield(exe);
             if (exe->top_frame == exit_frame)
-                return 0;
+                goto done;
         } break;
         case FKL_VM_EXIT:
             exe->buf = NULL;
@@ -750,8 +838,8 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
                     if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE)
                         continue;
                     FKL_VM_PUSH_VALUE(exe, ev);
-                    exe->buf = NULL;
-                    return 1;
+                    r = 1;
+                    goto done;
                 }
             }
             exe->state = FKL_VM_RUNNING;
@@ -763,8 +851,10 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
             break;
         }
     }
+done:
+    exe->state = FKL_VM_READY;
     exe->buf = NULL;
-    return 0;
+    return r;
 }
 
 static void vm_thread_cb(void *arg) {

@@ -327,8 +327,9 @@ static void fuv_async_cb(uv_async_t *handle) {
                     &args);
 
             if (r.err) {
-                FKL_VM_PUSH_VALUE(exe, r.v);
                 startErrorHandle(loop, ldata, exe);
+            } else {
+                fklVMrecover(exe, &recover_args);
             }
         }
         return;

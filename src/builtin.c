@@ -3631,8 +3631,9 @@ static void vm_atexit_idle_queue_work_cb(FklVM *exe, void *a) {
             &arg->args[1]);
     if (r.err) {
         fklPrintErrBacktrace(r.v, exe, stderr);
-        fklVMrecover(exe, &recover_args);
     }
+
+    fklVMrecover(exe, &recover_args);
 
     return;
 }

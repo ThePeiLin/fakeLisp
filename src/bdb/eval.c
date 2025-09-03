@@ -256,19 +256,16 @@ FklVMvalue *callEvalProc(DebugCtx *ctx,
 
     FklVMrecoverArgs recover_args = { 0 };
 
-    FklVMcallResult r = fklVMcall2(fklRunVM2,
-            vm,
-            &recover_args,
-            proc,
-            0,
-            NULL);
+    FklVMcallResult r = fklVMcall2(fklRunVM2, vm, &recover_args, proc, 0, NULL);
 
     FklVMvalue *v = r.v;
     if (r.err) {
         fklPrintErrBacktrace(v, vm, stderr);
-        fklVMrecover(vm, &recover_args);
-    } else
+    } else {
         retval = r.v;
+    }
+
+    fklVMrecover(vm, &recover_args);
 
     return retval;
 }

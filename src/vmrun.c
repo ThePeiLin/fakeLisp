@@ -494,7 +494,7 @@ FklVMcallResult fklVMcall3(FklRunVMcb cb,
     FklVMcallResult result;
 
     result.err = cb(exe, re->exit_frame);
-    result.v = FKL_VM_POP_TOP_VALUE(exe);
+    result.v = FKL_VM_GET_TOP_VALUE(exe);
 
     return result;
 }
@@ -520,6 +520,23 @@ FklVMcallResult fklVMcall(FklVM *exe,
         size_t count,
         FklVMvalue *values[]) {
     return fklVMcall2(fklRunVM, exe, re, proc, count, values);
+}
+
+FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
+    FklVMvalue *callee = FKL_VM_GET_ARG(exe, exe, -1);
+    FKL_ASSERT(fklIsCallable(callee));
+    re->bp = FKL_GET_FIX(FKL_VM_GET_ARG(exe, exe, -2));
+    re->tp = re->bp - 1;
+    re->exit_frame = exe->top_frame;
+
+    fklCallObj(exe, callee);
+
+    FklVMcallResult result;
+
+    result.err = cb(exe, re->exit_frame);
+    result.v = FKL_VM_GET_TOP_VALUE(exe);
+
+    return result;
 }
 
 void fklVMrecover(struct FklVM *vm, const FklVMrecoverArgs *args) {
@@ -559,15 +576,6 @@ static inline void do_vm_atexit(FklVM *vm) {
         cur->func(vm, cur->arg);
     vm->state = FKL_VM_EXIT;
 }
-
-#define THREAD_EXIT(exe)                                                       \
-    do_vm_atexit(exe);                                                         \
-    if (exe->chan) {                                                           \
-        FklVMvalue *v = FKL_VM_GET_TOP_VALUE(exe);                             \
-        FklVMvalue *resultBox = fklCreateVMvalueBox(exe, v);                   \
-        fklChanlSend(FKL_VM_CHANL(exe->chan), resultBox, exe);                 \
-        exe->chan = NULL;                                                      \
-    }
 
 static inline void switch_notice_lock_ins(FklVM *exe) {
     if (atomic_load(&exe->notice_lock))
@@ -877,7 +885,13 @@ static void vm_thread_cb(void *arg) {
             }
         }
 
-        THREAD_EXIT(exe);
+        do_vm_atexit(exe);
+        if (exe->chan) {
+            FklVMvalue *v = FKL_VM_GET_TOP_VALUE(exe);
+            FklVMvalue *resultBox = fklCreateVMvalueBox(exe, v);
+            fklChanlSend(FKL_VM_CHANL(exe->chan), resultBox, exe);
+            exe->chan = NULL;
+        }
 
         fklDeleteCallChain(exe);
 

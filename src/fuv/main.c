@@ -614,8 +614,9 @@ static void fuv_loop_walk_cb(uv_handle_t *handle, void *arg) {
         FklVMcallResult r = fklVMcall(exe, &recover_args, proc, 1, args);
 
         if (r.err) {
-            FKL_VM_PUSH_VALUE(exe, r.v);
             walk_ctx->ev = r.v;
+        } else {
+            fklVMrecover(exe, &recover_args);
         }
     }
 }
@@ -827,9 +828,10 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
             FklVMcallResult r = fklVMcall(exe, &recover_args, proc, 0, NULL);
 
             if (r.err) {
-                FKL_VM_PUSH_VALUE(exe, r.v);
                 startErrorHandle(loop, loop_data, exe);
                 fuvHandleClose(fuv_handle, NULL);
+            } else {
+                fklVMrecover(exe, &recover_args);
             }
         }
     }
@@ -1262,9 +1264,10 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
                     arg);
 
             if (r.err) {
-                FKL_VM_PUSH_VALUE(exe, r.v);
                 startErrorHandle(uv_handle_get_loop(handle), loop_data, exe);
                 fuvHandleClose(fuv_handle, NULL);
+            } else {
+                fklVMrecover(exe, &recover_args);
             }
         }
     }
@@ -1976,8 +1979,9 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
                 &args);
 
         if (r.err) {
-            FKL_VM_PUSH_VALUE(exe, r.v);
             startErrorHandle(&fuv_loop->loop, ldata, exe);
+        } else {
+            fklVMrecover(exe, &recover_args);
         }
     }
 }

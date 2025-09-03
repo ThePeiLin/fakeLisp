@@ -334,9 +334,6 @@ typedef struct {
     uint32_t bp;
     uint32_t tp;
     FklVMframe *exit_frame;
-
-    FklVMvalue *r;
-    FklVMvalue *e;
 } FklVMrecoverArgs;
 
 typedef struct {
@@ -731,6 +728,9 @@ FklVMcallResult fklVMcall(FklVM *exe,
         FklVMvalue *proc,
         size_t count,
         FklVMvalue *values[]);
+
+// 类似fklVMcall，但是被调用函数和参数已经入栈
+FklVMcallResult fklVMcall0(FklRunVMcb, FklVM *exe, FklVMrecoverArgs *re);
 
 FklVMcallResult fklVMcall2(FklRunVMcb,
         FklVM *exe,

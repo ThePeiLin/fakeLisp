@@ -801,6 +801,7 @@ void fklCheckAndGC(FklVM *exe) {
 }
 
 int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
+    jmp_buf *volatile prev_buf = exe->buf;
     jmp_buf buf;
     int r = 0;
     exe->state = FKL_VM_READY;
@@ -861,7 +862,7 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
     }
 done:
     exe->state = FKL_VM_READY;
-    exe->buf = NULL;
+    exe->buf = prev_buf;
     return r;
 }
 

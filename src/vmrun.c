@@ -389,7 +389,7 @@ static const FklVMframeContextMethodTable RaiseErrorContextMethodTable = {
     .step = raise_error_frame_step,
 };
 
-void fklPushVMrasieErrorFrame(FklVM *exe, FklVMvalue *err) {
+void fklPushVMraiseErrorFrame(FklVM *exe, FklVMvalue *err) {
     FklVMframe *f =
             fklCreateOtherObjVMframe(exe, &RaiseErrorContextMethodTable);
     RaiseErrorFrameContext *ctx =

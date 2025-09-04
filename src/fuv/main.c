@@ -560,7 +560,6 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     fuv_loop->data.exe = exe;
-    int need_continue = 0;
     int mode = UV_RUN_DEFAULT;
     if (mode_obj) {
         FKL_CHECK_TYPE(mode_obj, FKL_IS_SYM, exe);
@@ -579,20 +578,18 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
     FKL_VM_UNLOCK_BLOCK(exe, flag) { r = uv_run(&fuv_loop->loop, mode); }
 
     if (r < 0) {
-        need_continue = 1;
-        fklPushVMrasieErrorFrame(exe, createUvError(r, exe, ctx->pd));
+        fklRaiseVMerror(createUvError(r, exe, ctx->pd), exe);
     } else if (fuv_loop->data.error_occured) {
-        need_continue = 1;
-        fklPushVMrasieErrorFrame(exe, FKL_VM_POP_TOP_VALUE(exe));
-    } else {
-        FKL_CPROC_RETURN(exe, ctx, loop_obj);
+        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
     }
+
+    FKL_CPROC_RETURN(exe, ctx, loop_obj);
 
     fuv_loop->data.error_occured = 0;
     fuv_loop->data.mode = -1;
     fuv_loop->data.exe = NULL;
     exe->state = FKL_VM_READY;
-    return need_continue;
+    return 0;
 }
 
 struct WalkCtx {
@@ -629,7 +626,6 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FklVMframe *origin_top_frame = exe->top_frame;
-    int need_continue = 0;
     struct WalkCtx walk_ctx = {
         .exe = exe,
         .ev = NULL,
@@ -639,15 +635,14 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
         uv_walk(&fuv_loop->loop, fuv_loop_walk_cb, &walk_ctx);
     }
     if (walk_ctx.ev) {
-        need_continue = 1;
-        fklPushVMrasieErrorFrame(exe, walk_ctx.ev);
+        fklRaiseVMerror(walk_ctx.ev, exe);
     } else {
         while (exe->top_frame != origin_top_frame)
             fklPopVMframe(exe);
         FKL_CPROC_RETURN(exe, ctx, loop_obj);
     }
     exe->state = FKL_VM_READY;
-    return need_continue;
+    return 0;
 }
 
 #undef LOOP_RUN_STATE

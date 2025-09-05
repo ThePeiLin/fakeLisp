@@ -1914,7 +1914,7 @@ static FklVMudMetaTable EofUserDataMetaTable = {
     .__as_prin1 = _eof_userdata_as_print,
 };
 
-const alignas(8) FklVMvalueUd FklVMvalueEof = {
+static const alignas(8) FklVMvalueUd FklVMvalueEof = {
     .gc = NULL,
     .next = NULL,
     .gray_next = NULL,
@@ -1922,6 +1922,10 @@ const alignas(8) FklVMvalueUd FklVMvalueEof = {
     .type = FKL_TYPE_USERDATA,
     .ud = { .t = &EofUserDataMetaTable, .dll = NULL },
 };
+
+FklVMvalue *fklVMvalueEof(void) {
+    return FKL_TYPE_CAST(FklVMvalue *, &FklVMvalueEof);
+}
 
 void fklAtomicVMvec(FklVMvalue *pVec, FklVMgc *gc) {
     FklVMvec *vec = FKL_VM_VEC(pVec);

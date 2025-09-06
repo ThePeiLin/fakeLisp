@@ -76,20 +76,6 @@ void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe) {
     fputc('\n', stderr);
 }
 
-static inline void tail_call_proc(FklVM *exe, FklVMvalue *proc) {
-    FklVMframe *frame = exe->top_frame;
-    if (fklGetCompoundFrameProc(frame) == proc) {
-        frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
-    } else {
-        FklVMframe *tmpFrame = fklCreateVMframeWithProc(exe, proc);
-        uint32_t lcount = FKL_VM_PROC(proc)->lcount;
-        fklVMframeSetBp(exe, tmpFrame, lcount);
-        FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
-        f->lcount = lcount;
-        fklPushVMframe(tmpFrame, exe);
-    }
-}
-
 void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
     if (name) {
         fprintf(fp, "at cproc: ");
@@ -130,52 +116,12 @@ initCprocFrameContext(void *data, FklVMvalue *proc, FklVM *exe) {
     c->pd = FKL_VM_CPROC(proc)->pd;
 }
 
-static void
-import_post_process_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {}
-
-static void import_post_process_frame_atomic(void *data, FklVMgc *gc) {}
-
-static int import_post_process_frame_step(void *data, FklVM *exe) { return 0; }
-
 typedef struct ImportPostProcessContext {
     uint64_t epc;
     FklVM *exe;
 } ImportPostProcessContext;
 
-static void import_post_process_frame_finalize(void *data) {
-    ImportPostProcessContext *ctx =
-            FKL_TYPE_CAST(ImportPostProcessContext *, data);
-    FklVM *exe = ctx->exe;
-    atomic_store(&exe->importing_lib->import_state, FKL_VM_LIB_IMPORTED);
-    uv_mutex_unlock(&exe->gc->libs_lock);
-}
-
-static const FklVMframeContextMethodTable
-        ImportPostProcessContextMethodTable = {
-            .atomic = import_post_process_frame_atomic,
-            .print_backtrace = import_post_process_frame_print_backtrace,
-            .step = import_post_process_frame_step,
-            // .finalizer = import_post_process_frame_finalize,
-        };
-
-static inline void push_import_post_process_frame(FklVM *exe, uint64_t epc) {
-    FklVMframe *f =
-            fklCreateOtherObjVMframe(exe, &ImportPostProcessContextMethodTable);
-    ImportPostProcessContext *ctx =
-            FKL_TYPE_CAST(ImportPostProcessContext *, f->data);
-    ctx->epc = epc;
-    ctx->exe = exe;
-    fklPushVMframe(f, exe);
-}
-
 static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
-    // FklVMframe *fi = f->prev;
-    // FKL_ASSERT(f->type == FKL_FRAME_COMPOUND                  //
-    //            && f->retCallBack == import_frame_ret_callback //
-    //            && fi != NULL                                  //
-    //            && fi->type == FKL_FRAME_OTHEROBJ              //
-    //            && fi->t == &ImportPostProcessContextMethodTable);
-
     f->retCallBack = NULL;
 
     uint32_t const value_count = (exe->tp - f->c.sp);
@@ -183,16 +129,12 @@ static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
         return 0;
     }
 
-    // ImportPostProcessContext *ctx =
-    //         FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
-
     uint64_t epc = fklVMgetUint(FKL_VM_GET_ARG(exe, f, -3));
-    // f->c.pc = f->c.spc + ctx->epc;
     f->c.pc = f->c.spc + epc;
     return 1;
 }
 
-static inline void callCproc(FklVM *exe, FklVMvalue *cproc) {
+static inline void call_cproc(FklVM *exe, FklVMvalue *cproc) {
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &CprocContextMethodTable);
     initCprocFrameContext(f->data, cproc, exe);
     fklPushVMframe(f, exe);
@@ -425,7 +367,7 @@ void fklPopVMframe(FklVM *exe) {
 
 #define CALL_CALLABLE_OBJ(EXE, V)                                              \
     case FKL_TYPE_CPROC:                                                       \
-        callCproc(EXE, V);                                                     \
+        call_cproc(EXE, V);                                                    \
         break;                                                                 \
     case FKL_TYPE_USERDATA:                                                    \
         FKL_VM_UD(V)->t->__call(V, EXE);                                       \
@@ -433,28 +375,29 @@ void fklPopVMframe(FklVM *exe) {
     default:                                                                   \
         break;
 
-static inline void apply_compound_proc(FklVM *exe, FklVMvalue *proc) {
-    FklVMframe *tmpFrame = fklCreateVMframeWithProc(exe, proc);
-    uint32_t lcount = FKL_VM_PROC(proc)->lcount;
-    fklVMframeSetBp(exe, tmpFrame, lcount);
-    FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
-    f->lcount = lcount;
-    fklPushVMframe(tmpFrame, exe);
-}
-
 void fklCallObj(FklVM *exe, FklVMvalue *proc) {
     switch (proc->type) {
     case FKL_TYPE_PROC:
-        apply_compound_proc(exe, proc);
+        call_compound_procedure(exe, proc);
         break;
-        CALL_CALLABLE_OBJ(exe, proc);
+    case FKL_TYPE_CPROC:
+        call_cproc(exe, proc);
+        break;
+    case FKL_TYPE_USERDATA:
+        FKL_VM_UD(proc)->t->__call(proc, exe);
+        break;
+    default:
+        FKL_UNREACHABLE();
+        break;
     }
 }
 
 void fklTailCallObj(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *frame = exe->top_frame;
-    exe->top_frame = frame->prev;
-    do_finalize_obj_frame(exe, frame);
+    if (frame->type == FKL_FRAME_OTHEROBJ) {
+        exe->top_frame = frame->prev;
+        do_finalize_obj_frame(exe, frame);
+    }
     fklCallObj(exe, proc);
 }
 
@@ -709,35 +652,6 @@ close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
                     | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH) \
                     | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
-
-static inline FklVMlib *get_importing_lib(FklVMframe *f, FklVMgc *gc) {
-    FklVMframe *fi = f->prev;
-    FKL_ASSERT(f->type == FKL_FRAME_COMPOUND                  //
-               && f->retCallBack == import_frame_ret_callback //
-               && fi != NULL                                  //
-               && fi->type == FKL_FRAME_OTHEROBJ              //
-               && fi->t == &ImportPostProcessContextMethodTable);
-    ImportPostProcessContext *ctx =
-            FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
-
-    const FklInstruction *first_ins =
-            &FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj)->bc.code[ctx->epc];
-
-    FKL_ASSERT(first_ins->op >= FKL_OP_EXPORT_TO
-               && first_ins->op <= FKL_OP_EXPORT_TO_XX);
-
-    FklInstructionArg arg;
-    fklGetInsOpArg(first_ins, &arg);
-
-    return &gc->libs[arg.ux];
-}
-
-static int
-import_lib_error_callback(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
-    atomic_store(&get_importing_lib(f, exe->gc)->import_state,
-            FKL_VM_LIB_ERROR);
-    return 0;
-}
 
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklInstruction *ins;

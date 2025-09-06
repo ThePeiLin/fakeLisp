@@ -323,24 +323,19 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        switch (proc->type) {
-        case FKL_TYPE_PROC:
-            call_compound_procedure(exe, proc);
-            break;
-            CALL_CALLABLE_OBJ(exe, proc);
-        }
+        fklCallObj(exe, proc);
         return;
     } break;
     case FKL_OP_TAIL_CALL: {
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        switch (proc->type) {
-        case FKL_TYPE_PROC:
-            tail_call_proc(exe, proc);
-            break;
-            CALL_CALLABLE_OBJ(exe, proc);
+        if (proc->type == FKL_TYPE_CPROC
+                && fklGetCompoundFrameProc(frame) == proc) {
+            frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
+            return;
         }
+        fklTailCallObj(exe, proc);
         return;
     } break;
     case FKL_OP_RET_IF_TRUE:
@@ -527,14 +522,11 @@ void fklVMexecuteInstruction(FklVM *exe,
             fklVMsetRecover(exe, &re);
             FKL_VM_PUSH_VALUE(exe, fklMakeVMuint(plib->epc, exe));
 
-            // push_import_post_process_frame(exe, plib->epc);
-
             FklVMframe *exit_frame = exe->top_frame;
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, plib->proc);
             call_compound_procedure(exe, plib->proc);
 
-            // exe->top_frame->errorCallBack = import_lib_error_callback;
             exe->top_frame->retCallBack = import_frame_ret_callback;
             exe->importing_lib = plib;
             int r = fklRunVM(exe, exit_frame);

@@ -746,6 +746,7 @@ FklVMcallResult fklVMcall3(FklRunVMcb,
         FklVMcallbackValueCreator creator,
         void *args);
 
+void fklVMsetRecover(struct FklVM *exe, FklVMrecoverArgs *args);
 void fklVMrecover(struct FklVM *exe, const FklVMrecoverArgs *args);
 
 int fklRunVMidleLoop(FklVM *volatile);

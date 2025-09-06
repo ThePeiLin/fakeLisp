@@ -521,17 +521,37 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
 
         switch (atomic_load(&plib->import_state)) {
-        case FKL_VM_LIB_NONE:
+        case FKL_VM_LIB_NONE: {
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
-            push_import_post_process_frame(exe, plib->epc);
+            FklVMrecoverArgs re = { 0 };
+            fklVMsetRecover(exe, &re);
+            FKL_VM_PUSH_VALUE(exe, fklMakeVMuint(plib->epc, exe));
 
+            // push_import_post_process_frame(exe, plib->epc);
+
+            FklVMframe *exit_frame = exe->top_frame;
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, plib->proc);
             call_compound_procedure(exe, plib->proc);
-            exe->top_frame->errorCallBack = import_lib_error_callback;
+
+            // exe->top_frame->errorCallBack = import_lib_error_callback;
             exe->top_frame->retCallBack = import_frame_ret_callback;
             exe->importing_lib = plib;
-            break;
+            int r = fklRunVM(exe, exit_frame);
+
+            atomic_store(&plib->import_state,
+                    r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED);
+            uv_mutex_unlock(&exe->gc->libs_lock);
+
+            if (r) {
+                fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+            }
+
+            exe->importing_lib = plib;
+
+            fklVMrecover(exe, &re);
+            FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+        } break;
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
                 uv_mutex_unlock(&exe->gc->libs_lock);

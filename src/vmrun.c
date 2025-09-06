@@ -155,7 +155,7 @@ static const FklVMframeContextMethodTable
             .atomic = import_post_process_frame_atomic,
             .print_backtrace = import_post_process_frame_print_backtrace,
             .step = import_post_process_frame_step,
-            .finalizer = import_post_process_frame_finalize,
+            // .finalizer = import_post_process_frame_finalize,
         };
 
 static inline void push_import_post_process_frame(FklVM *exe, uint64_t epc) {
@@ -169,12 +169,12 @@ static inline void push_import_post_process_frame(FklVM *exe, uint64_t epc) {
 }
 
 static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
-    FklVMframe *fi = f->prev;
-    FKL_ASSERT(f->type == FKL_FRAME_COMPOUND                  //
-               && f->retCallBack == import_frame_ret_callback //
-               && fi != NULL                                  //
-               && fi->type == FKL_FRAME_OTHEROBJ              //
-               && fi->t == &ImportPostProcessContextMethodTable);
+    // FklVMframe *fi = f->prev;
+    // FKL_ASSERT(f->type == FKL_FRAME_COMPOUND                  //
+    //            && f->retCallBack == import_frame_ret_callback //
+    //            && fi != NULL                                  //
+    //            && fi->type == FKL_FRAME_OTHEROBJ              //
+    //            && fi->t == &ImportPostProcessContextMethodTable);
 
     f->retCallBack = NULL;
 
@@ -183,10 +183,12 @@ static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
         return 0;
     }
 
-    ImportPostProcessContext *ctx =
-            FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
+    // ImportPostProcessContext *ctx =
+    //         FKL_TYPE_CAST(ImportPostProcessContext *, fi->data);
 
-    f->c.pc = f->c.spc + ctx->epc;
+    uint64_t epc = fklVMgetUint(FKL_VM_GET_ARG(exe, f, -3));
+    // f->c.pc = f->c.spc + ctx->epc;
+    f->c.pc = f->c.spc + epc;
     return 1;
 }
 
@@ -480,9 +482,7 @@ FklVMcallResult fklVMcall3(FklRunVMcb cb,
         FklVMcallbackValueCreator creator,
         void *args) {
     FKL_ASSERT(fklIsCallable(proc));
-    re->bp = exe->bp;
-    re->tp = exe->tp;
-    re->exit_frame = exe->top_frame;
+    fklVMsetRecover(exe, re);
 
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, proc);
@@ -522,12 +522,22 @@ FklVMcallResult fklVMcall(FklVM *exe,
     return fklVMcall2(fklRunVM, exe, re, proc, count, values);
 }
 
+static inline void set_recover(FklVMrecoverArgs *re,
+        uint32_t bp,
+        uint32_t tp,
+        FklVMframe *const exit_frame) {
+    re->bp = bp;
+    re->tp = tp;
+    re->exit_frame = exit_frame;
+}
+
 FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
     FklVMvalue *callee = FKL_VM_GET_ARG(exe, exe, -1);
     FKL_ASSERT(fklIsCallable(callee));
-    re->bp = FKL_GET_FIX(FKL_VM_GET_ARG(exe, exe, -2));
-    re->tp = re->bp - 1;
-    re->exit_frame = exe->top_frame;
+    set_recover(re,
+            FKL_GET_FIX(FKL_VM_GET_ARG(exe, exe, -2)),
+            re->bp - 1,
+            exe->top_frame);
 
     fklCallObj(exe, callee);
 
@@ -537,6 +547,10 @@ FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
     result.v = FKL_VM_GET_TOP_VALUE(exe);
 
     return result;
+}
+
+void fklVMsetRecover(struct FklVM *exe, FklVMrecoverArgs *re) {
+    set_recover(re, exe->bp, exe->tp, exe->top_frame);
 }
 
 void fklVMrecover(struct FklVM *vm, const FklVMrecoverArgs *args) {

@@ -46,7 +46,7 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
         codegen->dir = fklGetDir(rp);
         codegen->filename = fklRelpath(outer_ctx->main_file_real_path_dir, rp);
         codegen->realpath = fklZstrdup(rp);
-        codegen->fid = fklAddSymbolCstr(codegen->filename, runtime_st)->v;
+        codegen->fid = fklAddSymbolCstr(codegen->filename, runtime_st);
     } else {
         codegen->dir = fklSysgetcwd();
         codegen->filename = NULL;
@@ -110,7 +110,7 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen,
         codegen->dir = fklGetDir(rp);
         codegen->filename = fklRelpath(outer_ctx->main_file_real_path_dir, rp);
         codegen->realpath = rp;
-        codegen->fid = fklAddSymbolCstr(codegen->filename, runtime_st)->v;
+        codegen->fid = fklAddSymbolCstr(codegen->filename, runtime_st);
     } else {
         codegen->dir = fklSysgetcwd();
         codegen->filename = NULL;
@@ -1952,7 +1952,7 @@ void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
         FklSid_t sid = 0;
         if (env->is_debugging || list->v.cidx == FKL_VAR_REF_INVALID_CIDX) {
             const FklString *sym = fklGetSymbolWithId(list->k.id, pst);
-            sid = fklAddSymbol(sym, runtime_st)->v;
+            sid = fklAddSymbol(sym, runtime_st);
         }
 
         refs[list->v.idx] = (FklSymDefHashMapMutElm){
@@ -2561,4 +2561,3 @@ void fklDestroyCodegenInfo(FklCodegenInfo *codegen) {
             break;
     }
 }
-

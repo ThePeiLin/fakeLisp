@@ -437,8 +437,7 @@ static const size_t EXPORT_NUM =
 
 static inline void init_sync_public_data(SyncPublicData *pd,
         FklSymbolTable *st) {
-#define XX(code, _)                                                            \
-    pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st)->v;
+#define XX(code, _) pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st);
     UV_ERRNO_MAP(XX);
 #undef XX
 }
@@ -449,7 +448,7 @@ FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
+        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 

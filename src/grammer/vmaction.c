@@ -47,8 +47,7 @@ static inline void *prod_action_symbol(void *ctx,
         cstr_size -= len;
     }
     FklSid_t id =
-            fklVMaddSymbolCharBuf(((FklVM *)ctx)->gc, buffer.buf, buffer.index)
-                    ->v;
+            fklVMaddSymbolCharBuf(((FklVM *)ctx)->gc, buffer.buf, buffer.index);
     fklUninitStringBuffer(&buffer);
     FklVMvalue *retval = FKL_MAKE_VM_SYM(id);
     return retval;
@@ -217,7 +216,7 @@ static inline void *prod_action_quote(void *ctx,
         size_t num,
         size_t line) {
     FklVM *exe = (FklVM *)ctx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "quote")->v;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "quote");
     FklVMvalue *rest = nodes[1].ast;
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 
@@ -231,7 +230,7 @@ static inline void *prod_action_unquote(void *ctx,
         size_t num,
         size_t line) {
     FklVM *exe = (FklVM *)ctx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unquote")->v;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unquote");
     FklVMvalue *rest = nodes[1].ast;
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 
@@ -245,7 +244,7 @@ static inline void *prod_action_qsquote(void *ctx,
         size_t num,
         size_t line) {
     FklVM *exe = (FklVM *)ctx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "qsquote")->v;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "qsquote");
     FklVMvalue *rest = nodes[1].ast;
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 
@@ -259,7 +258,7 @@ static inline void *prod_action_unqtesp(void *ctx,
         size_t num,
         size_t line) {
     FklVM *exe = (FklVM *)ctx;
-    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unqtesp")->v;
+    FklSid_t id = fklVMaddSymbolCstr(exe->gc, "unqtesp");
     FklVMvalue *rest = nodes[1].ast;
     FklVMvalue *head = FKL_MAKE_VM_SYM(id);
 

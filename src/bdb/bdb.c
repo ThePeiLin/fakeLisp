@@ -35,7 +35,7 @@ static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
 
 static inline void replace_info_fid_with_realpath(FklCodegenInfo *info) {
     FklSid_t rpsid =
-            fklAddSymbolCstr(info->realpath, info->runtime_symbol_table)->v;
+            fklAddSymbolCstr(info->realpath, info->runtime_symbol_table);
     info->fid = rpsid;
 }
 

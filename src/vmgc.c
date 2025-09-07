@@ -374,9 +374,9 @@ void fklInitVMgc(FklVMgc *gc,
     init_vm_queue(&gc->q);
     init_locv_cache(gc);
 
-    gc->seek_set = fklAddSymbolCstr("set", st)->v;
-    gc->seek_cur = fklAddSymbolCstr("cur", st)->v;
-    gc->seek_end = fklAddSymbolCstr("end", st)->v;
+    gc->seek_set = fklAddSymbolCstr("set", st);
+    gc->seek_cur = fklAddSymbolCstr("cur", st);
+    gc->seek_end = fklAddSymbolCstr("end", st);
 }
 
 FklVMgc *fklCreateVMgc(FklSymbolTable *st,
@@ -575,18 +575,17 @@ void fklVMacquireSt(FklVMgc *gc) { uv_rwlock_wrlock(&gc->st_lock); }
 
 void fklVMreleaseSt(FklVMgc *gc) { uv_rwlock_wrunlock(&gc->st_lock); }
 
-FklStrIdHashMapElm *fklVMaddSymbol(FklVMgc *gc, const FklString *str) {
+FklSid_t fklVMaddSymbol(FklVMgc *gc, const FklString *str) {
     return fklVMaddSymbolCharBuf(gc, str->str, str->size);
 }
 
-FklStrIdHashMapElm *fklVMaddSymbolCstr(FklVMgc *gc, const char *str) {
+FklSid_t fklVMaddSymbolCstr(FklVMgc *gc, const char *str) {
     return fklVMaddSymbolCharBuf(gc, str, strlen(str));
 }
 
-FklStrIdHashMapElm *
-fklVMaddSymbolCharBuf(FklVMgc *gc, const char *str, size_t size) {
+FklSid_t fklVMaddSymbolCharBuf(FklVMgc *gc, const char *str, size_t size) {
     uv_rwlock_wrlock(&gc->st_lock);
-    FklStrIdHashMapElm *r = fklAddSymbolCharBuf(str, size, gc->st);
+    FklSid_t r = fklAddSymbolCharBuf(str, size, gc->st);
     uv_rwlock_wrunlock(&gc->st_lock);
     return r;
 }

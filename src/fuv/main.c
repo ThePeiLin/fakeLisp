@@ -97,11 +97,11 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
         "nowait",
     };
     pd->loop_mode[UV_RUN_DEFAULT] =
-            fklAddSymbolCstr(loop_mode[UV_RUN_DEFAULT], st)->v;
+            fklAddSymbolCstr(loop_mode[UV_RUN_DEFAULT], st);
     pd->loop_mode[UV_RUN_ONCE] =
-            fklAddSymbolCstr(loop_mode[UV_RUN_ONCE], st)->v;
+            fklAddSymbolCstr(loop_mode[UV_RUN_ONCE], st);
     pd->loop_mode[UV_RUN_NOWAIT] =
-            fklAddSymbolCstr(loop_mode[UV_RUN_NOWAIT], st)->v;
+            fklAddSymbolCstr(loop_mode[UV_RUN_NOWAIT], st);
 
     static const char *fuv_err_sym[] = {
         "dummy",
@@ -112,7 +112,7 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
         "value-error",
     };
     for (size_t i = 0; i < FUV_ERR_NUM; i++)
-        pd->fuv_err_sid[i] = fklAddSymbolCstr(fuv_err_sym[i], st)->v;
+        pd->fuv_err_sid[i] = fklAddSymbolCstr(fuv_err_sym[i], st);
 
     static const char *loop_config_sym[] = {
         "loop-block-signal",
@@ -120,407 +120,407 @@ static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
         "loop-use-io-uring-sqpoll",
     };
     pd->loop_block_signal_sid =
-            fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL], st)->v;
+            fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL], st);
     pd->metrics_idle_time_sid =
-            fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME], st)->v;
+            fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME], st);
     pd->loop_use_io_uring_sqpoll =
             fklAddSymbolCstr(loop_config_sym[UV_LOOP_USE_IO_URING_SQPOLL], st)
-                    ->v;
+                    ;
 
 #define XX(code, _)                                                            \
-    pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st)->v;
+    pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st);
     UV_ERRNO_MAP(XX);
 #undef XX
 
     pd->UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid =
-            fklAddSymbolCstr("verbatim", st)->v;
-    pd->UV_PROCESS_DETACHED_sid = fklAddSymbolCstr("detached", st)->v;
-    pd->UV_PROCESS_WINDOWS_HIDE_sid = fklAddSymbolCstr("hide", st)->v;
+            fklAddSymbolCstr("verbatim", st);
+    pd->UV_PROCESS_DETACHED_sid = fklAddSymbolCstr("detached", st);
+    pd->UV_PROCESS_WINDOWS_HIDE_sid = fklAddSymbolCstr("hide", st);
     pd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid =
-            fklAddSymbolCstr("hide-console", st)->v;
-    pd->UV_PROCESS_WINDOWS_HIDE_GUI_sid = fklAddSymbolCstr("hide-gui", st)->v;
+            fklAddSymbolCstr("hide-console", st);
+    pd->UV_PROCESS_WINDOWS_HIDE_GUI_sid = fklAddSymbolCstr("hide-gui", st);
 
-    pd->UV_TTY_MODE_NORMAL_sid = fklAddSymbolCstr("normal", st)->v;
-    pd->UV_TTY_MODE_RAW_sid = fklAddSymbolCstr("raw", st)->v;
-    pd->UV_TTY_MODE_IO_sid = fklAddSymbolCstr("io", st)->v;
+    pd->UV_TTY_MODE_NORMAL_sid = fklAddSymbolCstr("normal", st);
+    pd->UV_TTY_MODE_RAW_sid = fklAddSymbolCstr("raw", st);
+    pd->UV_TTY_MODE_IO_sid = fklAddSymbolCstr("io", st);
 
-    pd->UV_TTY_SUPPORTED_sid = fklAddSymbolCstr("supported", st)->v;
-    pd->UV_TTY_UNSUPPORTED_sid = fklAddSymbolCstr("unsupported", st)->v;
+    pd->UV_TTY_SUPPORTED_sid = fklAddSymbolCstr("supported", st);
+    pd->UV_TTY_UNSUPPORTED_sid = fklAddSymbolCstr("unsupported", st);
 
-    pd->UV_UDP_IPV6ONLY_sid = fklAddSymbolCstr("ipv6only", st)->v;
-    pd->UV_UDP_PARTIAL_sid = fklAddSymbolCstr("partial", st)->v;
-    pd->UV_UDP_REUSEADDR_sid = fklAddSymbolCstr("reuseaddr", st)->v;
-    pd->UV_UDP_MMSG_CHUNK_sid = fklAddSymbolCstr("mmsg-chunk", st)->v;
-    pd->UV_UDP_MMSG_FREE_sid = fklAddSymbolCstr("mmsg-free", st)->v;
-    pd->UV_UDP_LINUX_RECVERR_sid = fklAddSymbolCstr("linux-recverr", st)->v;
-    pd->UV_UDP_RECVMMSG_sid = fklAddSymbolCstr("recvmmsg", st)->v;
+    pd->UV_UDP_IPV6ONLY_sid = fklAddSymbolCstr("ipv6only", st);
+    pd->UV_UDP_PARTIAL_sid = fklAddSymbolCstr("partial", st);
+    pd->UV_UDP_REUSEADDR_sid = fklAddSymbolCstr("reuseaddr", st);
+    pd->UV_UDP_MMSG_CHUNK_sid = fklAddSymbolCstr("mmsg-chunk", st);
+    pd->UV_UDP_MMSG_FREE_sid = fklAddSymbolCstr("mmsg-free", st);
+    pd->UV_UDP_LINUX_RECVERR_sid = fklAddSymbolCstr("linux-recverr", st);
+    pd->UV_UDP_RECVMMSG_sid = fklAddSymbolCstr("recvmmsg", st);
 
-    pd->UV_LEAVE_GROUP_sid = fklAddSymbolCstr("leave", st)->v;
-    pd->UV_JOIN_GROUP_sid = fklAddSymbolCstr("join", st)->v;
+    pd->UV_LEAVE_GROUP_sid = fklAddSymbolCstr("leave", st);
+    pd->UV_JOIN_GROUP_sid = fklAddSymbolCstr("join", st);
 
-    pd->AI_ADDRCONFIG_sid = fklAddSymbolCstr("addrconfig", st)->v;
+    pd->AI_ADDRCONFIG_sid = fklAddSymbolCstr("addrconfig", st);
 #ifdef AI_V4MAPPED
-    pd->AI_V4MAPPED_sid = fklAddSymbolCstr("v4mapped", st)->v;
+    pd->AI_V4MAPPED_sid = fklAddSymbolCstr("v4mapped", st);
 #endif
 #ifdef AI_ALL
-    pd->AI_ALL_sid = fklAddSymbolCstr("all", st)->v;
+    pd->AI_ALL_sid = fklAddSymbolCstr("all", st);
 #endif
-    pd->AI_NUMERICHOST_sid = fklAddSymbolCstr("numerichost", st)->v;
-    pd->AI_PASSIVE_sid = fklAddSymbolCstr("passive", st)->v;
-    pd->AI_NUMERICSERV_sid = fklAddSymbolCstr("numerserv", st)->v;
-    pd->AI_CANONNAME_sid = fklAddSymbolCstr("canonname", st)->v;
+    pd->AI_NUMERICHOST_sid = fklAddSymbolCstr("numerichost", st);
+    pd->AI_PASSIVE_sid = fklAddSymbolCstr("passive", st);
+    pd->AI_NUMERICSERV_sid = fklAddSymbolCstr("numerserv", st);
+    pd->AI_CANONNAME_sid = fklAddSymbolCstr("canonname", st);
 
-    pd->f_ip_sid = fklAddSymbolCstr("ip", st)->v;
-    pd->f_addr_sid = fklAddSymbolCstr("addr", st)->v;
-    pd->f_port_sid = fklAddSymbolCstr("port", st)->v;
-    pd->f_family_sid = fklAddSymbolCstr("family", st)->v;
-    pd->f_socktype_sid = fklAddSymbolCstr("socktype", st)->v;
-    pd->f_protocol_sid = fklAddSymbolCstr("protocol", st)->v;
-    pd->f_canonname_sid = fklAddSymbolCstr("canonname", st)->v;
-    pd->f_hostname_sid = fklAddSymbolCstr("hostname", st)->v;
-    pd->f_service_sid = fklAddSymbolCstr("service", st)->v;
+    pd->f_ip_sid = fklAddSymbolCstr("ip", st);
+    pd->f_addr_sid = fklAddSymbolCstr("addr", st);
+    pd->f_port_sid = fklAddSymbolCstr("port", st);
+    pd->f_family_sid = fklAddSymbolCstr("family", st);
+    pd->f_socktype_sid = fklAddSymbolCstr("socktype", st);
+    pd->f_protocol_sid = fklAddSymbolCstr("protocol", st);
+    pd->f_canonname_sid = fklAddSymbolCstr("canonname", st);
+    pd->f_hostname_sid = fklAddSymbolCstr("hostname", st);
+    pd->f_service_sid = fklAddSymbolCstr("service", st);
 
-    pd->f_args_sid = fklAddSymbolCstr("args", st)->v;
-    pd->f_env_sid = fklAddSymbolCstr("env", st)->v;
-    pd->f_cwd_sid = fklAddSymbolCstr("cwd", st)->v;
-    pd->f_stdio_sid = fklAddSymbolCstr("stdio", st)->v;
-    pd->f_uid_sid = fklAddSymbolCstr("uid", st)->v;
-    pd->f_gid_sid = fklAddSymbolCstr("gid", st)->v;
+    pd->f_args_sid = fklAddSymbolCstr("args", st);
+    pd->f_env_sid = fklAddSymbolCstr("env", st);
+    pd->f_cwd_sid = fklAddSymbolCstr("cwd", st);
+    pd->f_stdio_sid = fklAddSymbolCstr("stdio", st);
+    pd->f_uid_sid = fklAddSymbolCstr("uid", st);
+    pd->f_gid_sid = fklAddSymbolCstr("gid", st);
 
 #ifdef AF_UNSPEC
-    pd->AF_UNSPEC_sid = fklAddSymbolCstr("unspec", st)->v;
+    pd->AF_UNSPEC_sid = fklAddSymbolCstr("unspec", st);
 #endif
 #ifdef AF_UNIX
-    pd->AF_UNIX_sid = fklAddSymbolCstr("unix", st)->v;
+    pd->AF_UNIX_sid = fklAddSymbolCstr("unix", st);
 #endif
 #ifdef AF_INET
-    pd->AF_INET_sid = fklAddSymbolCstr("inet", st)->v;
+    pd->AF_INET_sid = fklAddSymbolCstr("inet", st);
 #endif
 #ifdef AF_INET6
-    pd->AF_INET6_sid = fklAddSymbolCstr("inet6", st)->v;
+    pd->AF_INET6_sid = fklAddSymbolCstr("inet6", st);
 #endif
 #ifdef AF_IPX
-    pd->AF_IPX_sid = fklAddSymbolCstr("ipx", st)->v;
+    pd->AF_IPX_sid = fklAddSymbolCstr("ipx", st);
 #endif
 #ifdef AF_NETLINK
-    pd->AF_NETLINK_sid = fklAddSymbolCstr("netlink", st)->v;
+    pd->AF_NETLINK_sid = fklAddSymbolCstr("netlink", st);
 #endif
 #ifdef AF_X25
-    pd->AF_X25_sid = fklAddSymbolCstr("x25", st)->v;
+    pd->AF_X25_sid = fklAddSymbolCstr("x25", st);
 #endif
 #ifdef AF_AX25
-    pd->AF_AX25_sid = fklAddSymbolCstr("ax25", st)->v;
+    pd->AF_AX25_sid = fklAddSymbolCstr("ax25", st);
 #endif
 #ifdef AF_ATMPVC
-    pd->AF_ATMPVC_sid = fklAddSymbolCstr("atmpvc", st)->v;
+    pd->AF_ATMPVC_sid = fklAddSymbolCstr("atmpvc", st);
 #endif
 #ifdef AF_APPLETALK
-    pd->AF_APPLETALK_sid = fklAddSymbolCstr("appletalk", st)->v;
+    pd->AF_APPLETALK_sid = fklAddSymbolCstr("appletalk", st);
 #endif
 #ifdef AF_PACKET
-    pd->AF_PACKET_sid = fklAddSymbolCstr("packet", st)->v;
+    pd->AF_PACKET_sid = fklAddSymbolCstr("packet", st);
 #endif
 
 #ifdef SOCK_STREAM
-    pd->SOCK_STREAM_sid = fklAddSymbolCstr("stream", st)->v;
+    pd->SOCK_STREAM_sid = fklAddSymbolCstr("stream", st);
 #endif
 #ifdef SOCK_DGRAM
-    pd->SOCK_DGRAM_sid = fklAddSymbolCstr("dgram", st)->v;
+    pd->SOCK_DGRAM_sid = fklAddSymbolCstr("dgram", st);
 #endif
 #ifdef SOCK_SEQPACKET
-    pd->SOCK_SEQPACKET_sid = fklAddSymbolCstr("seqpacket", st)->v;
+    pd->SOCK_SEQPACKET_sid = fklAddSymbolCstr("seqpacket", st);
 #endif
 #ifdef SOCK_RAW
-    pd->SOCK_RAW_sid = fklAddSymbolCstr("raw", st)->v;
+    pd->SOCK_RAW_sid = fklAddSymbolCstr("raw", st);
 #endif
 #ifdef SOCK_RDM
-    pd->SOCK_RDM_sid = fklAddSymbolCstr("rdm", st)->v;
+    pd->SOCK_RDM_sid = fklAddSymbolCstr("rdm", st);
 #endif
 
 #ifdef SIGHUP
-    pd->SIGHUP_sid = fklAddSymbolCstr("sighup", st)->v;
+    pd->SIGHUP_sid = fklAddSymbolCstr("sighup", st);
 #endif
 #ifdef SIGINT
-    pd->SIGINT_sid = fklAddSymbolCstr("sigint", st)->v;
+    pd->SIGINT_sid = fklAddSymbolCstr("sigint", st);
 #endif
 #ifdef SIGQUIT
-    pd->SIGQUIT_sid = fklAddSymbolCstr("sigquit", st)->v;
+    pd->SIGQUIT_sid = fklAddSymbolCstr("sigquit", st);
 #endif
 #ifdef SIGILL
-    pd->SIGILL_sid = fklAddSymbolCstr("sigill", st)->v;
+    pd->SIGILL_sid = fklAddSymbolCstr("sigill", st);
 #endif
 #ifdef SIGTRAP
-    pd->SIGTRAP_sid = fklAddSymbolCstr("sigtrap", st)->v;
+    pd->SIGTRAP_sid = fklAddSymbolCstr("sigtrap", st);
 #endif
 #ifdef SIGABRT
-    pd->SIGABRT_sid = fklAddSymbolCstr("sigabrt", st)->v;
+    pd->SIGABRT_sid = fklAddSymbolCstr("sigabrt", st);
 #endif
 #ifdef SIGIOT
-    pd->SIGIOT_sid = fklAddSymbolCstr("sigiot", st)->v;
+    pd->SIGIOT_sid = fklAddSymbolCstr("sigiot", st);
 #endif
 #ifdef SIGBUS
-    pd->SIGBUS_sid = fklAddSymbolCstr("sigbus", st)->v;
+    pd->SIGBUS_sid = fklAddSymbolCstr("sigbus", st);
 #endif
 #ifdef SIGFPE
-    pd->SIGFPE_sid = fklAddSymbolCstr("sigfpe", st)->v;
+    pd->SIGFPE_sid = fklAddSymbolCstr("sigfpe", st);
 #endif
 #ifdef SIGKILL
-    pd->SIGKILL_sid = fklAddSymbolCstr("sigkill", st)->v;
+    pd->SIGKILL_sid = fklAddSymbolCstr("sigkill", st);
 #endif
 #ifdef SIGUSR1
-    pd->SIGUSR1_sid = fklAddSymbolCstr("sigusr1", st)->v;
+    pd->SIGUSR1_sid = fklAddSymbolCstr("sigusr1", st);
 #endif
 #ifdef SIGSEGV
-    pd->SIGSEGV_sid = fklAddSymbolCstr("sigsegv", st)->v;
+    pd->SIGSEGV_sid = fklAddSymbolCstr("sigsegv", st);
 #endif
 #ifdef SIGUSR2
-    pd->SIGUSR2_sid = fklAddSymbolCstr("sigusr2", st)->v;
+    pd->SIGUSR2_sid = fklAddSymbolCstr("sigusr2", st);
 #endif
 #ifdef SIGPIPE
-    pd->SIGPIPE_sid = fklAddSymbolCstr("sigpipe", st)->v;
+    pd->SIGPIPE_sid = fklAddSymbolCstr("sigpipe", st);
 #endif
 #ifdef SIGALRM
-    pd->SIGALRM_sid = fklAddSymbolCstr("sigalrm", st)->v;
+    pd->SIGALRM_sid = fklAddSymbolCstr("sigalrm", st);
 #endif
 #ifdef SIGTERM
-    pd->SIGTERM_sid = fklAddSymbolCstr("sigterm", st)->v;
+    pd->SIGTERM_sid = fklAddSymbolCstr("sigterm", st);
 #endif
 #ifdef SIGCHLD
-    pd->SIGCHLD_sid = fklAddSymbolCstr("sigchld", st)->v;
+    pd->SIGCHLD_sid = fklAddSymbolCstr("sigchld", st);
 #endif
 #ifdef SIGSTKFLT
-    pd->SIGSTKFLT_sid = fklAddSymbolCstr("sigstkflt", st)->v;
+    pd->SIGSTKFLT_sid = fklAddSymbolCstr("sigstkflt", st);
 #endif
 #ifdef SIGCONT
-    pd->SIGCONT_sid = fklAddSymbolCstr("sigcont", st)->v;
+    pd->SIGCONT_sid = fklAddSymbolCstr("sigcont", st);
 #endif
 #ifdef SIGSTOP
-    pd->SIGSTOP_sid = fklAddSymbolCstr("sigstop", st)->v;
+    pd->SIGSTOP_sid = fklAddSymbolCstr("sigstop", st);
 #endif
 #ifdef SIGTSTP
-    pd->SIGTSTP_sid = fklAddSymbolCstr("sigtstp", st)->v;
+    pd->SIGTSTP_sid = fklAddSymbolCstr("sigtstp", st);
 #endif
 #ifdef SIGBREAK
-    pd->SIGBREAK_sid = fklAddSymbolCstr("sigbreak", st)->v;
+    pd->SIGBREAK_sid = fklAddSymbolCstr("sigbreak", st);
 #endif
 #ifdef SIGTTIN
-    pd->SIGTTIN_sid = fklAddSymbolCstr("sigttin", st)->v;
+    pd->SIGTTIN_sid = fklAddSymbolCstr("sigttin", st);
 #endif
 #ifdef SIGTTOU
-    pd->SIGTTOU_sid = fklAddSymbolCstr("sigttou", st)->v;
+    pd->SIGTTOU_sid = fklAddSymbolCstr("sigttou", st);
 #endif
 #ifdef SIGURG
-    pd->SIGURG_sid = fklAddSymbolCstr("sigurg", st)->v;
+    pd->SIGURG_sid = fklAddSymbolCstr("sigurg", st);
 #endif
 #ifdef SIGXCPU
-    pd->SIGXCPU_sid = fklAddSymbolCstr("sigxcpu", st)->v;
+    pd->SIGXCPU_sid = fklAddSymbolCstr("sigxcpu", st);
 #endif
 #ifdef SIGXFSZ
-    pd->SIGXFSZ_sid = fklAddSymbolCstr("sigxfsz", st)->v;
+    pd->SIGXFSZ_sid = fklAddSymbolCstr("sigxfsz", st);
 #endif
 #ifdef SIGVTALRM
-    pd->SIGVTALRM_sid = fklAddSymbolCstr("sigvtalrm", st)->v;
+    pd->SIGVTALRM_sid = fklAddSymbolCstr("sigvtalrm", st);
 #endif
 #ifdef SIGPROF
-    pd->SIGPROF_sid = fklAddSymbolCstr("sigprof", st)->v;
+    pd->SIGPROF_sid = fklAddSymbolCstr("sigprof", st);
 #endif
 #ifdef SIGWINCH
-    pd->SIGWINCH_sid = fklAddSymbolCstr("sigwinch", st)->v;
+    pd->SIGWINCH_sid = fklAddSymbolCstr("sigwinch", st);
 #endif
 #ifdef SIGIO
-    pd->SIGIO_sid = fklAddSymbolCstr("sigio", st)->v;
+    pd->SIGIO_sid = fklAddSymbolCstr("sigio", st);
 #endif
 #ifdef SIGPOLL
-    pd->SIGPOLL_sid = fklAddSymbolCstr("sigpoll", st)->v;
+    pd->SIGPOLL_sid = fklAddSymbolCstr("sigpoll", st);
 #endif
 #ifdef SIGLOST
-    pd->SIGLOST_sid = fklAddSymbolCstr("siglost", st)->v;
+    pd->SIGLOST_sid = fklAddSymbolCstr("siglost", st);
 #endif
 #ifdef SIGPWR
-    pd->SIGPWR_sid = fklAddSymbolCstr("sigpwr", st)->v;
+    pd->SIGPWR_sid = fklAddSymbolCstr("sigpwr", st);
 #endif
 #ifdef SIGSYS
-    pd->SIGSYS_sid = fklAddSymbolCstr("sigsys", st)->v;
+    pd->SIGSYS_sid = fklAddSymbolCstr("sigsys", st);
 #endif
 
 #ifdef NI_NAMEREQD
-    pd->NI_NAMEREQD_sid = fklAddSymbolCstr("namereqd", st)->v;
+    pd->NI_NAMEREQD_sid = fklAddSymbolCstr("namereqd", st);
 #endif
 #ifdef NI_DGRAM
-    pd->NI_DGRAM_sid = fklAddSymbolCstr("dgram", st)->v;
+    pd->NI_DGRAM_sid = fklAddSymbolCstr("dgram", st);
 #endif
 #ifdef NI_NOFQDN
-    pd->NI_NOFQDN_sid = fklAddSymbolCstr("nofqdn", st)->v;
+    pd->NI_NOFQDN_sid = fklAddSymbolCstr("nofqdn", st);
 #endif
 #ifdef NI_NUMERICHOST
-    pd->NI_NUMERICHOST_sid = fklAddSymbolCstr("numerichost", st)->v;
+    pd->NI_NUMERICHOST_sid = fklAddSymbolCstr("numerichost", st);
 #endif
 #ifdef NI_NUMERICSERV
-    pd->NI_NUMERICSERV_sid = fklAddSymbolCstr("numericserv", st)->v;
+    pd->NI_NUMERICSERV_sid = fklAddSymbolCstr("numericserv", st);
 #endif
 #ifdef NI_IDN
-    pd->NI_IDN_sid = fklAddSymbolCstr("idn", st)->v;
+    pd->NI_IDN_sid = fklAddSymbolCstr("idn", st);
 #endif
 #ifdef NI_IDN_ALLOW_UNASSIGNED
     pd->NI_IDN_ALLOW_UNASSIGNED_sid =
-            fklAddSymbolCstr("idn-allow-unassigned", st)->v;
+            fklAddSymbolCstr("idn-allow-unassigned", st);
 #endif
 #ifdef NI_IDN_USE_STD3_ASCII_RULES
     pd->NI_IDN_USE_STD3_ASCII_RULES_sid =
-            fklAddSymbolCstr("idn-use-std3-ascii-rules", st)->v;
+            fklAddSymbolCstr("idn-use-std3-ascii-rules", st);
 #endif
 
-    pd->UV_FS_O_APPEND_sid = fklAddSymbolCstr("append", st)->v;
-    pd->UV_FS_O_CREAT_sid = fklAddSymbolCstr("creat", st)->v;
-    pd->UV_FS_O_EXCL_sid = fklAddSymbolCstr("excl", st)->v;
-    pd->UV_FS_O_FILEMAP_sid = fklAddSymbolCstr("filemap", st)->v;
-    pd->UV_FS_O_RANDOM_sid = fklAddSymbolCstr("random", st)->v;
-    pd->UV_FS_O_RDONLY_sid = fklAddSymbolCstr("rdonly", st)->v;
-    pd->UV_FS_O_RDWR_sid = fklAddSymbolCstr("rdwr", st)->v;
-    pd->UV_FS_O_SEQUENTIAL_sid = fklAddSymbolCstr("sequential", st)->v;
-    pd->UV_FS_O_SHORT_LIVED_sid = fklAddSymbolCstr("short_lived", st)->v;
-    pd->UV_FS_O_TEMPORARY_sid = fklAddSymbolCstr("temporary", st)->v;
-    pd->UV_FS_O_TRUNC_sid = fklAddSymbolCstr("trunc", st)->v;
-    pd->UV_FS_O_WRONLY_sid = fklAddSymbolCstr("wronly", st)->v;
-    pd->UV_FS_O_DIRECT_sid = fklAddSymbolCstr("direct", st)->v;
-    pd->UV_FS_O_DIRECTORY_sid = fklAddSymbolCstr("directory", st)->v;
-    pd->UV_FS_O_DSYNC_sid = fklAddSymbolCstr("dsync", st)->v;
-    pd->UV_FS_O_EXLOCK_sid = fklAddSymbolCstr("exlock", st)->v;
-    pd->UV_FS_O_NOATIME_sid = fklAddSymbolCstr("noatime", st)->v;
-    pd->UV_FS_O_NOCTTY_sid = fklAddSymbolCstr("noctty", st)->v;
-    pd->UV_FS_O_NOFOLLOW_sid = fklAddSymbolCstr("nofollow", st)->v;
-    pd->UV_FS_O_NONBLOCK_sid = fklAddSymbolCstr("nonblock", st)->v;
-    pd->UV_FS_O_SYMLINK_sid = fklAddSymbolCstr("symlink", st)->v;
-    pd->UV_FS_O_SYNC_sid = fklAddSymbolCstr("sync", st)->v;
+    pd->UV_FS_O_APPEND_sid = fklAddSymbolCstr("append", st);
+    pd->UV_FS_O_CREAT_sid = fklAddSymbolCstr("creat", st);
+    pd->UV_FS_O_EXCL_sid = fklAddSymbolCstr("excl", st);
+    pd->UV_FS_O_FILEMAP_sid = fklAddSymbolCstr("filemap", st);
+    pd->UV_FS_O_RANDOM_sid = fklAddSymbolCstr("random", st);
+    pd->UV_FS_O_RDONLY_sid = fklAddSymbolCstr("rdonly", st);
+    pd->UV_FS_O_RDWR_sid = fklAddSymbolCstr("rdwr", st);
+    pd->UV_FS_O_SEQUENTIAL_sid = fklAddSymbolCstr("sequential", st);
+    pd->UV_FS_O_SHORT_LIVED_sid = fklAddSymbolCstr("short_lived", st);
+    pd->UV_FS_O_TEMPORARY_sid = fklAddSymbolCstr("temporary", st);
+    pd->UV_FS_O_TRUNC_sid = fklAddSymbolCstr("trunc", st);
+    pd->UV_FS_O_WRONLY_sid = fklAddSymbolCstr("wronly", st);
+    pd->UV_FS_O_DIRECT_sid = fklAddSymbolCstr("direct", st);
+    pd->UV_FS_O_DIRECTORY_sid = fklAddSymbolCstr("directory", st);
+    pd->UV_FS_O_DSYNC_sid = fklAddSymbolCstr("dsync", st);
+    pd->UV_FS_O_EXLOCK_sid = fklAddSymbolCstr("exlock", st);
+    pd->UV_FS_O_NOATIME_sid = fklAddSymbolCstr("noatime", st);
+    pd->UV_FS_O_NOCTTY_sid = fklAddSymbolCstr("noctty", st);
+    pd->UV_FS_O_NOFOLLOW_sid = fklAddSymbolCstr("nofollow", st);
+    pd->UV_FS_O_NONBLOCK_sid = fklAddSymbolCstr("nonblock", st);
+    pd->UV_FS_O_SYMLINK_sid = fklAddSymbolCstr("symlink", st);
+    pd->UV_FS_O_SYNC_sid = fklAddSymbolCstr("sync", st);
 
-    pd->UV_FS_SYMLINK_DIR_sid = fklAddSymbolCstr("dir", st)->v;
-    pd->UV_FS_SYMLINK_JUNCTION_sid = fklAddSymbolCstr("junction", st)->v;
+    pd->UV_FS_SYMLINK_DIR_sid = fklAddSymbolCstr("dir", st);
+    pd->UV_FS_SYMLINK_JUNCTION_sid = fklAddSymbolCstr("junction", st);
 
-    pd->UV_FS_COPYFILE_EXCL_sid = fklAddSymbolCstr("excl", st)->v;
-    pd->UV_FS_COPYFILE_FICLONE_sid = fklAddSymbolCstr("ficlone", st)->v;
+    pd->UV_FS_COPYFILE_EXCL_sid = fklAddSymbolCstr("excl", st);
+    pd->UV_FS_COPYFILE_FICLONE_sid = fklAddSymbolCstr("ficlone", st);
     pd->UV_FS_COPYFILE_FICLONE_FORCE_sid =
-            fklAddSymbolCstr("ficlone-force", st)->v;
+            fklAddSymbolCstr("ficlone-force", st);
 
-    pd->stat_f_dev_sid = fklAddSymbolCstr("dev", st)->v;
-    pd->stat_f_mode_sid = fklAddSymbolCstr("mode", st)->v;
-    pd->stat_f_nlink_sid = fklAddSymbolCstr("nlink", st)->v;
-    pd->stat_f_uid_sid = fklAddSymbolCstr("uid", st)->v;
-    pd->stat_f_gid_sid = fklAddSymbolCstr("gid", st)->v;
-    pd->stat_f_rdev_sid = fklAddSymbolCstr("rdev", st)->v;
-    pd->stat_f_ino_sid = fklAddSymbolCstr("ino", st)->v;
-    pd->stat_f_size_sid = fklAddSymbolCstr("size", st)->v;
-    pd->stat_f_blksize_sid = fklAddSymbolCstr("blksize", st)->v;
-    pd->stat_f_blocks_sid = fklAddSymbolCstr("blocks", st)->v;
-    pd->stat_f_flags_sid = fklAddSymbolCstr("flags", st)->v;
-    pd->stat_f_gen_sid = fklAddSymbolCstr("gen", st)->v;
-    pd->stat_f_atime_sid = fklAddSymbolCstr("atime", st)->v;
-    pd->stat_f_mtime_sid = fklAddSymbolCstr("mtime", st)->v;
-    pd->stat_f_ctime_sid = fklAddSymbolCstr("ctime", st)->v;
-    pd->stat_f_birthtime_sid = fklAddSymbolCstr("birthtime", st)->v;
-    pd->stat_f_type_sid = fklAddSymbolCstr("type", st)->v;
+    pd->stat_f_dev_sid = fklAddSymbolCstr("dev", st);
+    pd->stat_f_mode_sid = fklAddSymbolCstr("mode", st);
+    pd->stat_f_nlink_sid = fklAddSymbolCstr("nlink", st);
+    pd->stat_f_uid_sid = fklAddSymbolCstr("uid", st);
+    pd->stat_f_gid_sid = fklAddSymbolCstr("gid", st);
+    pd->stat_f_rdev_sid = fklAddSymbolCstr("rdev", st);
+    pd->stat_f_ino_sid = fklAddSymbolCstr("ino", st);
+    pd->stat_f_size_sid = fklAddSymbolCstr("size", st);
+    pd->stat_f_blksize_sid = fklAddSymbolCstr("blksize", st);
+    pd->stat_f_blocks_sid = fklAddSymbolCstr("blocks", st);
+    pd->stat_f_flags_sid = fklAddSymbolCstr("flags", st);
+    pd->stat_f_gen_sid = fklAddSymbolCstr("gen", st);
+    pd->stat_f_atime_sid = fklAddSymbolCstr("atime", st);
+    pd->stat_f_mtime_sid = fklAddSymbolCstr("mtime", st);
+    pd->stat_f_ctime_sid = fklAddSymbolCstr("ctime", st);
+    pd->stat_f_birthtime_sid = fklAddSymbolCstr("birthtime", st);
+    pd->stat_f_type_sid = fklAddSymbolCstr("type", st);
 
-    pd->stat_type_file_sid = fklAddSymbolCstr("file", st)->v;
-    pd->stat_type_directory_sid = fklAddSymbolCstr("directory", st)->v;
-    pd->stat_type_link_sid = fklAddSymbolCstr("link", st)->v;
-    pd->stat_type_fifo_sid = fklAddSymbolCstr("fifo", st)->v;
-    pd->stat_type_socket_sid = fklAddSymbolCstr("socket", st)->v;
-    pd->stat_type_char_sid = fklAddSymbolCstr("char", st)->v;
-    pd->stat_type_block_sid = fklAddSymbolCstr("block", st)->v;
-    pd->stat_type_unknown_sid = fklAddSymbolCstr("unknown", st)->v;
+    pd->stat_type_file_sid = fklAddSymbolCstr("file", st);
+    pd->stat_type_directory_sid = fklAddSymbolCstr("directory", st);
+    pd->stat_type_link_sid = fklAddSymbolCstr("link", st);
+    pd->stat_type_fifo_sid = fklAddSymbolCstr("fifo", st);
+    pd->stat_type_socket_sid = fklAddSymbolCstr("socket", st);
+    pd->stat_type_char_sid = fklAddSymbolCstr("char", st);
+    pd->stat_type_block_sid = fklAddSymbolCstr("block", st);
+    pd->stat_type_unknown_sid = fklAddSymbolCstr("unknown", st);
 
-    pd->timespec_f_sec_sid = fklAddSymbolCstr("sec", st)->v;
-    pd->timespec_f_nsec_sid = fklAddSymbolCstr("nsec", st)->v;
-    pd->timeval_f_usec_sid = fklAddSymbolCstr("usec", st)->v;
+    pd->timespec_f_sec_sid = fklAddSymbolCstr("sec", st);
+    pd->timespec_f_nsec_sid = fklAddSymbolCstr("nsec", st);
+    pd->timeval_f_usec_sid = fklAddSymbolCstr("usec", st);
 
-    pd->statfs_f_type_sid = fklAddSymbolCstr("type", st)->v;
-    pd->statfs_f_bsize_sid = fklAddSymbolCstr("bsize", st)->v;
-    pd->statfs_f_blocks_sid = fklAddSymbolCstr("blocks", st)->v;
-    pd->statfs_f_bfree_sid = fklAddSymbolCstr("bfree", st)->v;
-    pd->statfs_f_bavail_sid = fklAddSymbolCstr("bavail", st)->v;
-    pd->statfs_f_files_sid = fklAddSymbolCstr("files", st)->v;
-    pd->statfs_f_ffree_sid = fklAddSymbolCstr("ffree", st)->v;
+    pd->statfs_f_type_sid = fklAddSymbolCstr("type", st);
+    pd->statfs_f_bsize_sid = fklAddSymbolCstr("bsize", st);
+    pd->statfs_f_blocks_sid = fklAddSymbolCstr("blocks", st);
+    pd->statfs_f_bfree_sid = fklAddSymbolCstr("bfree", st);
+    pd->statfs_f_bavail_sid = fklAddSymbolCstr("bavail", st);
+    pd->statfs_f_files_sid = fklAddSymbolCstr("files", st);
+    pd->statfs_f_ffree_sid = fklAddSymbolCstr("ffree", st);
 
-    pd->dirent_f_name_sid = fklAddSymbolCstr("name", st)->v;
-    pd->dirent_f_type_sid = fklAddSymbolCstr("type", st)->v;
+    pd->dirent_f_name_sid = fklAddSymbolCstr("name", st);
+    pd->dirent_f_type_sid = fklAddSymbolCstr("type", st);
 
-    pd->UV_DIRENT_UNKNOWN_sid = fklAddSymbolCstr("unknown", st)->v;
-    pd->UV_DIRENT_FILE_sid = fklAddSymbolCstr("file", st)->v;
-    pd->UV_DIRENT_DIR_sid = fklAddSymbolCstr("dir", st)->v;
-    pd->UV_DIRENT_LINK_sid = fklAddSymbolCstr("link", st)->v;
-    pd->UV_DIRENT_FIFO_sid = fklAddSymbolCstr("fifo", st)->v;
-    pd->UV_DIRENT_SOCKET_sid = fklAddSymbolCstr("socket", st)->v;
-    pd->UV_DIRENT_CHAR_sid = fklAddSymbolCstr("char", st)->v;
-    pd->UV_DIRENT_BLOCK_sid = fklAddSymbolCstr("block", st)->v;
+    pd->UV_DIRENT_UNKNOWN_sid = fklAddSymbolCstr("unknown", st);
+    pd->UV_DIRENT_FILE_sid = fklAddSymbolCstr("file", st);
+    pd->UV_DIRENT_DIR_sid = fklAddSymbolCstr("dir", st);
+    pd->UV_DIRENT_LINK_sid = fklAddSymbolCstr("link", st);
+    pd->UV_DIRENT_FIFO_sid = fklAddSymbolCstr("fifo", st);
+    pd->UV_DIRENT_SOCKET_sid = fklAddSymbolCstr("socket", st);
+    pd->UV_DIRENT_CHAR_sid = fklAddSymbolCstr("char", st);
+    pd->UV_DIRENT_BLOCK_sid = fklAddSymbolCstr("block", st);
 
-    pd->UV_FS_EVENT_WATCH_ENTRY_sid = fklAddSymbolCstr("watch-entry", st)->v;
-    pd->UV_FS_EVENT_STAT_sid = fklAddSymbolCstr("stat", st)->v;
-    pd->UV_FS_EVENT_RECURSIVE_sid = fklAddSymbolCstr("recursive", st)->v;
+    pd->UV_FS_EVENT_WATCH_ENTRY_sid = fklAddSymbolCstr("watch-entry", st);
+    pd->UV_FS_EVENT_STAT_sid = fklAddSymbolCstr("stat", st);
+    pd->UV_FS_EVENT_RECURSIVE_sid = fklAddSymbolCstr("recursive", st);
 
-    pd->UV_RENAME_sid = fklAddSymbolCstr("rename", st)->v;
-    pd->UV_CHANGE_sid = fklAddSymbolCstr("change", st)->v;
+    pd->UV_RENAME_sid = fklAddSymbolCstr("rename", st);
+    pd->UV_CHANGE_sid = fklAddSymbolCstr("change", st);
 
-    pd->UV_CLOCK_MONOTONIC_sid = fklAddSymbolCstr("monotonic", st)->v;
-    pd->UV_CLOCK_REALTIME_sid = fklAddSymbolCstr("realtime", st)->v;
+    pd->UV_CLOCK_MONOTONIC_sid = fklAddSymbolCstr("monotonic", st);
+    pd->UV_CLOCK_REALTIME_sid = fklAddSymbolCstr("realtime", st);
 
-    pd->utsname_sysname_sid = fklAddSymbolCstr("sysname", st)->v;
-    pd->utsname_release_sid = fklAddSymbolCstr("release", st)->v;
-    pd->utsname_version_sid = fklAddSymbolCstr("version", st)->v;
-    pd->utsname_machine_sid = fklAddSymbolCstr("machine", st)->v;
+    pd->utsname_sysname_sid = fklAddSymbolCstr("sysname", st);
+    pd->utsname_release_sid = fklAddSymbolCstr("release", st);
+    pd->utsname_version_sid = fklAddSymbolCstr("version", st);
+    pd->utsname_machine_sid = fklAddSymbolCstr("machine", st);
 
-    pd->rusage_utime_sid = fklAddSymbolCstr("utime", st)->v;
-    pd->rusage_stime_sid = fklAddSymbolCstr("stime", st)->v;
-    pd->rusage_maxrss_sid = fklAddSymbolCstr("maxrss", st)->v;
-    pd->rusage_ixrss_sid = fklAddSymbolCstr("ixrss", st)->v;
-    pd->rusage_idrss_sid = fklAddSymbolCstr("idrss", st)->v;
-    pd->rusage_isrss_sid = fklAddSymbolCstr("isrss", st)->v;
-    pd->rusage_minflt_sid = fklAddSymbolCstr("minflt", st)->v;
-    pd->rusage_majflt_sid = fklAddSymbolCstr("majflt", st)->v;
-    pd->rusage_nswap_sid = fklAddSymbolCstr("nswap", st)->v;
-    pd->rusage_inblock_sid = fklAddSymbolCstr("inblock", st)->v;
-    pd->rusage_oublock_sid = fklAddSymbolCstr("oublock", st)->v;
-    pd->rusage_msgsnd_sid = fklAddSymbolCstr("msgsnd", st)->v;
-    pd->rusage_msgrcv_sid = fklAddSymbolCstr("msgrcv", st)->v;
-    pd->rusage_nsignals_sid = fklAddSymbolCstr("nsignals", st)->v;
-    pd->rusage_nvcsw_sid = fklAddSymbolCstr("nvcsw", st)->v;
-    pd->rusage_nivcsw_sid = fklAddSymbolCstr("nivcsw", st)->v;
+    pd->rusage_utime_sid = fklAddSymbolCstr("utime", st);
+    pd->rusage_stime_sid = fklAddSymbolCstr("stime", st);
+    pd->rusage_maxrss_sid = fklAddSymbolCstr("maxrss", st);
+    pd->rusage_ixrss_sid = fklAddSymbolCstr("ixrss", st);
+    pd->rusage_idrss_sid = fklAddSymbolCstr("idrss", st);
+    pd->rusage_isrss_sid = fklAddSymbolCstr("isrss", st);
+    pd->rusage_minflt_sid = fklAddSymbolCstr("minflt", st);
+    pd->rusage_majflt_sid = fklAddSymbolCstr("majflt", st);
+    pd->rusage_nswap_sid = fklAddSymbolCstr("nswap", st);
+    pd->rusage_inblock_sid = fklAddSymbolCstr("inblock", st);
+    pd->rusage_oublock_sid = fklAddSymbolCstr("oublock", st);
+    pd->rusage_msgsnd_sid = fklAddSymbolCstr("msgsnd", st);
+    pd->rusage_msgrcv_sid = fklAddSymbolCstr("msgrcv", st);
+    pd->rusage_nsignals_sid = fklAddSymbolCstr("nsignals", st);
+    pd->rusage_nvcsw_sid = fklAddSymbolCstr("nvcsw", st);
+    pd->rusage_nivcsw_sid = fklAddSymbolCstr("nivcsw", st);
 
-    pd->cpu_info_model_sid = fklAddSymbolCstr("model", st)->v;
-    pd->cpu_info_speed_sid = fklAddSymbolCstr("speed", st)->v;
-    pd->cpu_info_times_sid = fklAddSymbolCstr("times", st)->v;
-    pd->cpu_info_times_user_sid = fklAddSymbolCstr("user", st)->v;
-    pd->cpu_info_times_nice_sid = fklAddSymbolCstr("nice", st)->v;
-    pd->cpu_info_times_sys_sid = fklAddSymbolCstr("sys", st)->v;
-    pd->cpu_info_times_idle_sid = fklAddSymbolCstr("idle", st)->v;
-    pd->cpu_info_times_irq_sid = fklAddSymbolCstr("irq", st)->v;
+    pd->cpu_info_model_sid = fklAddSymbolCstr("model", st);
+    pd->cpu_info_speed_sid = fklAddSymbolCstr("speed", st);
+    pd->cpu_info_times_sid = fklAddSymbolCstr("times", st);
+    pd->cpu_info_times_user_sid = fklAddSymbolCstr("user", st);
+    pd->cpu_info_times_nice_sid = fklAddSymbolCstr("nice", st);
+    pd->cpu_info_times_sys_sid = fklAddSymbolCstr("sys", st);
+    pd->cpu_info_times_idle_sid = fklAddSymbolCstr("idle", st);
+    pd->cpu_info_times_irq_sid = fklAddSymbolCstr("irq", st);
 
-    pd->passwd_username_sid = fklAddSymbolCstr("username", st)->v;
-    pd->passwd_uid_sid = fklAddSymbolCstr("uid", st)->v;
-    pd->passwd_gid_sid = fklAddSymbolCstr("gid", st)->v;
-    pd->passwd_shell_sid = fklAddSymbolCstr("shell", st)->v;
-    pd->passwd_homedir_sid = fklAddSymbolCstr("homedir", st)->v;
+    pd->passwd_username_sid = fklAddSymbolCstr("username", st);
+    pd->passwd_uid_sid = fklAddSymbolCstr("uid", st);
+    pd->passwd_gid_sid = fklAddSymbolCstr("gid", st);
+    pd->passwd_shell_sid = fklAddSymbolCstr("shell", st);
+    pd->passwd_homedir_sid = fklAddSymbolCstr("homedir", st);
 
-    pd->UV_PRIORITY_LOW_sid = fklAddSymbolCstr("low", st)->v;
-    pd->UV_PRIORITY_BELOW_NORMAL_sid = fklAddSymbolCstr("below-normal", st)->v;
-    pd->UV_PRIORITY_NORMAL_sid = fklAddSymbolCstr("normal", st)->v;
-    pd->UV_PRIORITY_ABOVE_NORMAL_sid = fklAddSymbolCstr("above-normal", st)->v;
-    pd->UV_PRIORITY_HIGH_sid = fklAddSymbolCstr("high", st)->v;
-    pd->UV_PRIORITY_HIGHEST_sid = fklAddSymbolCstr("highest", st)->v;
+    pd->UV_PRIORITY_LOW_sid = fklAddSymbolCstr("low", st);
+    pd->UV_PRIORITY_BELOW_NORMAL_sid = fklAddSymbolCstr("below-normal", st);
+    pd->UV_PRIORITY_NORMAL_sid = fklAddSymbolCstr("normal", st);
+    pd->UV_PRIORITY_ABOVE_NORMAL_sid = fklAddSymbolCstr("above-normal", st);
+    pd->UV_PRIORITY_HIGH_sid = fklAddSymbolCstr("high", st);
+    pd->UV_PRIORITY_HIGHEST_sid = fklAddSymbolCstr("highest", st);
 
-    pd->ifa_f_name_sid = fklAddSymbolCstr("name", st)->v;
-    pd->ifa_f_mac_sid = fklAddSymbolCstr("mac", st)->v;
-    pd->ifa_f_internal_sid = fklAddSymbolCstr("internal", st)->v;
-    pd->ifa_f_ip_sid = fklAddSymbolCstr("ip", st)->v;
-    pd->ifa_f_netmask_sid = fklAddSymbolCstr("netmask", st)->v;
-    pd->ifa_f_family_sid = fklAddSymbolCstr("family", st)->v;
+    pd->ifa_f_name_sid = fklAddSymbolCstr("name", st);
+    pd->ifa_f_mac_sid = fklAddSymbolCstr("mac", st);
+    pd->ifa_f_internal_sid = fklAddSymbolCstr("internal", st);
+    pd->ifa_f_ip_sid = fklAddSymbolCstr("ip", st);
+    pd->ifa_f_netmask_sid = fklAddSymbolCstr("netmask", st);
+    pd->ifa_f_family_sid = fklAddSymbolCstr("family", st);
 
-    pd->metrics_loop_count_sid = fklAddSymbolCstr("loop-count", st)->v;
-    pd->metrics_events_sid = fklAddSymbolCstr("events", st)->v;
-    pd->metrics_events_waiting_sid = fklAddSymbolCstr("events-waiting", st)->v;
+    pd->metrics_loop_count_sid = fklAddSymbolCstr("loop-count", st);
+    pd->metrics_events_sid = fklAddSymbolCstr("events", st);
+    pd->metrics_events_waiting_sid = fklAddSymbolCstr("events-waiting", st);
 
-    pd->UV_READABLE_sid = fklAddSymbolCstr("readable", st)->v;
-    pd->UV_WRITABLE_sid = fklAddSymbolCstr("writable", st)->v;
-    pd->UV_DISCONNECT_sid = fklAddSymbolCstr("disconnect", st)->v;
-    pd->UV_PRIORITIZED_sid = fklAddSymbolCstr("prioritized", st)->v;
+    pd->UV_READABLE_sid = fklAddSymbolCstr("readable", st);
+    pd->UV_WRITABLE_sid = fklAddSymbolCstr("writable", st);
+    pd->UV_DISCONNECT_sid = fklAddSymbolCstr("disconnect", st);
+    pd->UV_PRIORITIZED_sid = fklAddSymbolCstr("prioritized", st);
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL) { PREDICATE(isFuvLoop(val)) }
@@ -1861,7 +1861,7 @@ static inline FklVMvalue *sock_num_to_symbol(int ai_socktype,
 static inline FklVMvalue *proto_num_to_symbol(int num, FklVM *exe) {
     struct protoent *proto = getprotobynumber(num);
     if (proto)
-        return FKL_MAKE_VM_SYM(fklVMaddSymbolCstr(exe->gc, proto->p_name)->v);
+        return FKL_MAKE_VM_SYM(fklVMaddSymbolCstr(exe->gc, proto->p_name));
     return FKL_VM_NIL;
 }
 
@@ -8030,7 +8030,7 @@ FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
+        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 

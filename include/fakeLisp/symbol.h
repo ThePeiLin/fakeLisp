@@ -30,9 +30,9 @@ typedef struct FklSymboTable {
 void fklInitSymbolTable(FklSymbolTable *st);
 FklSymbolTable *fklCreateSymbolTable(void);
 
-FklStrIdHashMapElm *fklAddSymbol(const FklString *, FklSymbolTable *);
-FklStrIdHashMapElm *fklAddSymbolCstr(const char *, FklSymbolTable *);
-FklStrIdHashMapElm *fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
+FklSid_t fklAddSymbol(const FklString *, FklSymbolTable *);
+FklSid_t fklAddSymbolCstr(const char *, FklSymbolTable *);
+FklSid_t fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
 const FklString *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
 
 void fklPrintSymbolTable(const FklSymbolTable *, FILE *);

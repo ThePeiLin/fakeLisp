@@ -57,7 +57,7 @@ static void *prod_action_symbol(void *ctx,
         cstr += len;
         cstr_size -= len;
     }
-    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx)->v;
+    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, outerCtx);
     FklNastNode *node = fklCreateNastNode(FKL_NAST_SYM, first->curline);
     node->sym = id;
     fklUninitStringBuffer(&buffer);
@@ -277,7 +277,7 @@ static inline void *prod_action_quote(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("quote", outerCtx)->v;
+    FklSid_t id = fklAddSymbolCstr("quote", outerCtx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -290,7 +290,7 @@ static inline void *prod_action_unquote(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx)->v;
+    FklSid_t id = fklAddSymbolCstr("unquote", outerCtx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -303,7 +303,7 @@ static inline void *prod_action_qsquote(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx)->v;
+    FklSid_t id = fklAddSymbolCstr("qsquote", outerCtx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -316,7 +316,7 @@ static inline void *prod_action_unqtesp(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx)->v;
+    FklSid_t id = fklAddSymbolCstr("unqtesp", outerCtx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;

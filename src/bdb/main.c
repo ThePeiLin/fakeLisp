@@ -439,8 +439,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
     if (FKL_IS_SYM(file_line_sym_obj)) {
         FklSid_t id = fklAddSymbol(
                 fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(file_line_sym_obj)),
-                dctx->st)
-                              ->v;
+                dctx->st);
         item = putBreakpointForProcedure(dctx, id);
         if (item)
             goto done;
@@ -464,14 +463,14 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
         FklString *str = FKL_VM_STR(file_line_sym_obj);
         if (fklIsAccessibleRegFile(str->str)) {
             char *rp = fklRealpath(str->str);
-            fid = fklAddSymbolCstr(rp, dctx->st)->v;
+            fid = fklAddSymbolCstr(rp, dctx->st);
             fklZfree(rp);
         } else {
             char *filename_with_dir = fklStrCat(
                     fklZstrdup(dctx->outer_ctx.main_file_real_path_dir),
                     str->str);
             if (fklIsAccessibleRegFile(str->str))
-                fid = fklAddSymbolCstr(filename_with_dir, dctx->st)->v;
+                fid = fklAddSymbolCstr(filename_with_dir, dctx->st);
             fklZfree(filename_with_dir);
         }
     } else
@@ -675,14 +674,14 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
     FklString *str = FKL_VM_STR(filename_obj);
     if (fklIsAccessibleRegFile(str->str)) {
         char *rp = fklRealpath(str->str);
-        fid = fklAddSymbolCstr(rp, dctx->st)->v;
+        fid = fklAddSymbolCstr(rp, dctx->st);
         fklZfree(rp);
     } else {
         char *filename_with_dir =
                 fklStrCat(fklZstrdup(dctx->outer_ctx.main_file_real_path_dir),
                         str->str);
         if (fklIsAccessibleRegFile(str->str))
-            fid = fklAddSymbolCstr(filename_with_dir, dctx->st)->v;
+            fid = fklAddSymbolCstr(filename_with_dir, dctx->st);
         fklZfree(filename_with_dir);
     }
 
@@ -860,8 +859,7 @@ static inline FklVMvalue *create_ins_vec(FklVM *exe,
     case FKL_OP_PUSH_SYM_C:
     case FKL_OP_PUSH_SYM_X: {
         FklSid_t id =
-                fklVMaddSymbol(exe->gc, fklGetSymbolWithId(arg.ux, dctx->st))
-                        ->v;
+                fklVMaddSymbol(exe->gc, fklGetSymbolWithId(arg.ux, dctx->st));
         imm1 = FKL_MAKE_VM_SYM(id);
     } break;
 
@@ -1284,7 +1282,7 @@ FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
+        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 

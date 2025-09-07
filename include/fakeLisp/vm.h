@@ -849,9 +849,9 @@ void fklVMreleaseSt(FklVMgc *);
     for (uint8_t flag = (fklVMacquireSt(gc), 0); flag < 1;                     \
             fklVMreleaseSt(gc), ++flag)
 
-FklStrIdHashMapElm *fklVMaddSymbol(FklVMgc *, const FklString *str);
-FklStrIdHashMapElm *fklVMaddSymbolCstr(FklVMgc *, const char *str);
-FklStrIdHashMapElm *fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
+FklSid_t fklVMaddSymbol(FklVMgc *, const FklString *str);
+FklSid_t fklVMaddSymbolCstr(FklVMgc *, const char *str);
+FklSid_t fklVMaddSymbolCharBuf(FklVMgc *, const char *str, size_t);
 const FklString *fklVMgetSymbolWithId(FklVMgc *, FklSid_t id);
 
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);

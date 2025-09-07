@@ -598,8 +598,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                 buf -= ntoken.len;
                 s.type = FKL_TERM_BUILTIN;
                 FklSid_t id =
-                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st)
-                                ->v;
+                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st);
                 const FklLalrBuiltinMatch *builtin =
                         fklGetBuiltinMatch(&arg->g->builtins, id);
                 if (builtin) {
@@ -650,8 +649,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                 }
             } else {
                 FklSid_t id =
-                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st)
-                                ->v;
+                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st);
                 s.type = FKL_TERM_NONTERM;
                 s.nt.sid = id;
             }
@@ -844,7 +842,7 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
             }
 
             arg->current_nonterm =
-                    fklAddSymbolCharBuf(token.str, token.len, arg->g->st)->v;
+                    fklAddSymbolCharBuf(token.str, token.len, arg->g->st);
             arg->state = FKL_PARSER_GRAMMER_ADDING_PRODUCTION;
             buf = parse_right_part(arg, &err, buf, end);
             if (err)

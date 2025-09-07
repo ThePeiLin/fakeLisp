@@ -1037,7 +1037,7 @@ static int builtin_string_to_symbol(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(obj, FKL_IS_STR, exe);
     FKL_CPROC_RETURN(exe,
             ctx,
-            FKL_MAKE_VM_SYM(fklVMaddSymbol(exe->gc, FKL_VM_STR(obj))->v));
+            FKL_MAKE_VM_SYM(fklVMaddSymbol(exe->gc, FKL_VM_STR(obj))));
     return 0;
 }
 
@@ -5201,9 +5201,9 @@ void fklInitGlobCodegenEnv(FklCodegenEnv *curEnv, FklSymbolTable *pst) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
             list->name != NULL;
             list++) {
-        FklSymDefHashMapElm *ref = fklAddCodegenBuiltinRefBySid(
-                fklAddSymbolCstr(list->name, pst)->v,
-                curEnv);
+        FklSymDefHashMapElm *ref =
+                fklAddCodegenBuiltinRefBySid(fklAddSymbolCstr(list->name, pst),
+                        curEnv);
         ref->v.isConst = 1;
     }
 }

@@ -1421,7 +1421,7 @@ void fklInitBuiltinErrorType(FklSid_t errorTypeId[FKL_BUILTIN_ERR_NUM],
     };
 
     for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; i++)
-        errorTypeId[i] = fklAddSymbolCstr(builtInErrorType[i], table)->v;
+        errorTypeId[i] = fklAddSymbolCstr(builtInErrorType[i], table);
 }
 
 #define FLAGS_ZEROPAD (1u << 0u)

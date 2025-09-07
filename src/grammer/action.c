@@ -49,7 +49,7 @@ static inline void *prod_action_symbol(void *ctx,
         cstr += len;
         cstr_size -= len;
     }
-    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, ctx)->v;
+    FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, ctx);
     FklNastNode *node = fklCreateNastNode(FKL_NAST_SYM, first->curline);
     node->sym = id;
     fklUninitStringBuffer(&buffer);
@@ -255,7 +255,7 @@ static inline void *prod_action_quote(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("quote", ctx)->v;
+    FklSid_t id = fklAddSymbolCstr("quote", ctx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -267,7 +267,7 @@ static inline void *prod_action_unquote(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unquote", ctx)->v;
+    FklSid_t id = fklAddSymbolCstr("unquote", ctx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -279,7 +279,7 @@ static inline void *prod_action_qsquote(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("qsquote", ctx)->v;
+    FklSid_t id = fklAddSymbolCstr("qsquote", ctx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;
@@ -291,7 +291,7 @@ static inline void *prod_action_unqtesp(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklSid_t id = fklAddSymbolCstr("unqtesp", ctx)->v;
+    FklSid_t id = fklAddSymbolCstr("unqtesp", ctx);
     FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
     FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
     head->sym = id;

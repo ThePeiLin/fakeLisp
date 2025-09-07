@@ -34,15 +34,15 @@ FklSymbolTable *fklCreateSymbolTable() {
     return tmp;
 }
 
-FklStrIdHashMapElm *fklAddSymbol(const FklString *sym, FklSymbolTable *table) {
+FklSid_t fklAddSymbol(const FklString *sym, FklSymbolTable *table) {
     return fklAddSymbolCharBuf(sym->str, sym->size, table);
 }
 
-FklStrIdHashMapElm *fklAddSymbolCstr(const char *sym, FklSymbolTable *table) {
+FklSid_t fklAddSymbolCstr(const char *sym, FklSymbolTable *table) {
     return fklAddSymbolCharBuf(sym, strlen(sym), table);
 }
 
-FklStrIdHashMapElm *
+FklSid_t
 fklAddSymbolCharBuf(const char *buf, size_t len, FklSymbolTable *table) {
     uintptr_t hashv = fklCharBufHash(buf, len);
     FklStrIdHashMap *ht = &table->ht;
@@ -50,7 +50,7 @@ fklAddSymbolCharBuf(const char *buf, size_t len, FklSymbolTable *table) {
     for (; *bkt; bkt = &(*bkt)->bkt_next) {
         FklStrIdHashMapNode *cur = *bkt;
         if (!fklStringCharBufCmp(cur->k, len, buf))
-            return &cur->elm;
+            return cur->elm.v;
     }
 
     FklString *str = fklCreateString(len, buf);
@@ -61,7 +61,7 @@ fklAddSymbolCharBuf(const char *buf, size_t len, FklSymbolTable *table) {
     string_idl_reserve(table, table->num);
     table->idl[table->num - 1] = str;
 
-    return &node->elm;
+    return node->elm.v;
 }
 
 void fklUninitSymbolTable(FklSymbolTable *table) {

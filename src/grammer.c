@@ -1358,7 +1358,7 @@ void fklInitBuiltinGrammerSymTable(FklGraSidBuiltinHashMap *s,
     for (const struct BuiltinGrammerSymList *l = &builtin_grammer_sym_list[0];
             l->name;
             l++) {
-        FklSid_t id = fklAddSymbolCstr(l->name, st)->v;
+        FklSid_t id = fklAddSymbolCstr(l->name, st);
         fklGraSidBuiltinHashMapPut2(s, id, l->t);
     }
 }

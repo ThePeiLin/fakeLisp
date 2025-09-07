@@ -322,15 +322,15 @@ FklNastNode *fklCreateNastNodeFromVMvalue(const FklVMvalue *v,
                     break;
                 case FKL_TYPE_PROC:
                     cur->type = FKL_NAST_SYM;
-                    cur->sym = fklVMaddSymbolCstr(gc, "#<proc>")->v;
+                    cur->sym = fklVMaddSymbolCstr(gc, "#<proc>");
                     break;
                 case FKL_TYPE_CPROC:
                     cur->type = FKL_NAST_SYM;
-                    cur->sym = fklVMaddSymbolCstr(gc, "#<cproc>")->v;
+                    cur->sym = fklVMaddSymbolCstr(gc, "#<cproc>");
                     break;
                 case FKL_TYPE_USERDATA:
                     cur->type = FKL_NAST_SYM;
-                    cur->sym = fklVMaddSymbolCstr(gc, "#<userdata>")->v;
+                    cur->sym = fklVMaddSymbolCstr(gc, "#<userdata>");
                     break;
                 case FKL_TYPE_BOX:
                     cur->type = FKL_NAST_BOX;

@@ -52,7 +52,7 @@ static inline void replace_sid(FklSid_t *id,
         const FklSymbolTable *origin_st,
         FklSymbolTable *target_st) {
     FklSid_t sid = *id;
-    *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st), target_st)->v;
+    *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st), target_st);
 }
 
 static inline void merge_group(FklGrammerProdGroupItem *group,

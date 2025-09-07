@@ -806,7 +806,7 @@ FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
     FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st)->v;
+        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 

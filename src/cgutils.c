@@ -2373,7 +2373,6 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
 typedef struct MacroExpandCtx {
     FklNastNode **retval;
     FklLineNumHashMap *lineHash;
-    FklSymbolTable *symbolTable;
     uint64_t curline;
 } MacroExpandCtx;
 
@@ -2403,13 +2402,11 @@ static const FklVMframeContextMethodTable MacroExpandMethodTable = {
 static void push_macro_expand_frame(FklVM *exe,
         FklNastNode **ptr,
         FklLineNumHashMap *lineHash,
-        FklSymbolTable *symbolTable,
         uint64_t curline) {
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &MacroExpandMethodTable);
     MacroExpandCtx *ctx = (MacroExpandCtx *)f->data;
     ctx->retval = ptr;
     ctx->lineHash = lineHash;
-    ctx->symbolTable = symbolTable;
     ctx->curline = curline;
     fklPushVMframe(f, exe);
 }
@@ -2483,7 +2480,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
         FklVMvalue *code_obj = fklCreateVMvalueCodeObj(exe, bcl);
         FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id);
 
-        push_macro_expand_frame(exe, pr, lineHash, public_st, curline);
+        push_macro_expand_frame(exe, pr, lineHash, curline);
 
         fklInitMainProcRefs(exe, proc);
         fklSetBp(exe);
@@ -2531,7 +2528,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
         FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id);
         fklInitMainProcRefs(exe, proc);
 
-        push_macro_expand_frame(exe, pr, lineHash, public_st, curline);
+        push_macro_expand_frame(exe, pr, lineHash, curline);
 
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);

@@ -4405,14 +4405,16 @@ BC_PROCESS(_cond_exp_bc_process_1) {
 
         check_and_close_ref(retval, scope, env, codegen->pts, fid, line);
 
-        append_jmp_ins(INS_APPEND_BACK,
-                retval,
-                prev_len,
-                JMP_UNCOND,
-                JMP_FORWARD,
-                fid,
-                line,
-                scope);
+        if (stack->size > 2) {
+            append_jmp_ins(INS_APPEND_BACK,
+                    retval,
+                    prev_len,
+                    JMP_UNCOND,
+                    JMP_FORWARD,
+                    fid,
+                    line,
+                    scope);
+        }
 
         if (retval_len) {
             if (!true_bcl) {
@@ -4427,8 +4429,17 @@ BC_PROCESS(_cond_exp_bc_process_1) {
                         scope);
                 fklCodeLntReverseConcat(first, retval);
             }
-        } else
+        } else {
+            append_jmp_ins(INS_APPEND_BACK,
+                    first,
+                    prev->bc.len,
+                    true_bcl ? JMP_UNCOND : JMP_IF_TRUE,
+                    JMP_FORWARD,
+                    fid,
+                    line,
+                    scope);
             fklCodeLntReverseConcat(first, retval);
+        }
 
         fklCodeLntConcat(retval, prev);
         fklDestroyByteCodelnt(prev);

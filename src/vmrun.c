@@ -729,9 +729,16 @@ void fklCheckAndGC(FklVM *exe) {
 }
 
 int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
+    FKL_ASSERT(exe != &exe->gc->gcvm);
+
     jmp_buf *volatile prev_buf = exe->buf;
     jmp_buf buf;
     int r = 0;
+
+    if (exe->top_frame == exit_frame) {
+        goto done;
+    }
+
     exe->state = FKL_VM_READY;
     for (;;) {
         switch (exe->state) {
@@ -990,6 +997,7 @@ static inline struct FklVMidleWork *pop_idle_work(FklVMgc *gc) {
 
 void fklVMidleLoop(FklVMgc *gc) {
     FklVMqueue *q = &gc->q;
+    fklMoveThreadObjectsToGc(&gc->gcvm, gc);
     for (;;) {
         if (atomic_load(&gc->alloced_size) > gc->threshold) {
             switch_notice_lock_ins_for_running_threads(&q->running_q);

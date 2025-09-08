@@ -197,16 +197,19 @@ typedef struct {
     FklVMud ud;
 } FklVMvalueUd;
 
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    union {
-        FklVMud ud;
-        struct {
-            FKL_VM_UD_COMMON_HEADER;
+#define FKL_VM_DEF_UD_STRUCT(NAME, MEMBERS)                                    \
+    typedef struct {                                                           \
+        FKL_VM_VALUE_COMMON_HEADER;                                            \
+        alignas(FklVMud) struct {                                              \
+            FKL_VM_UD_COMMON_HEADER;                                           \
+            struct MEMBERS;                                                    \
+        };                                                                     \
+    } NAME
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueFp,
+        { //
             FklVMfp fp;
-        };
-    };
-} FklVMvalueFp;
+        });
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
@@ -656,6 +659,9 @@ typedef struct FklVMgc {
     FklSid_t seek_set;
     FklSid_t seek_cur;
     FklSid_t seek_end;
+
+    // only for create objects before idle loop start
+    FklVM gcvm;
 } FklVMgc;
 
 typedef struct {

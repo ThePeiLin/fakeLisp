@@ -377,6 +377,9 @@ void fklInitVMgc(FklVMgc *gc,
     gc->seek_set = fklAddSymbolCstr("set", st);
     gc->seek_cur = fklAddSymbolCstr("cur", st);
     gc->seek_end = fklAddSymbolCstr("end", st);
+
+    memset(&gc->gcvm, 0, sizeof(FklVM));
+    gc->gcvm.gc = gc;
 }
 
 FklVMgc *fklCreateVMgc(FklSymbolTable *st,

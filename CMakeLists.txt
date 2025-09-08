@@ -151,6 +151,11 @@ add_executable(test-ins "main/tests/ins.c")
 target_link_libraries(test-ins ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
 target_define_relative_file(test-ins)
 
+# print some struct size
+add_executable(psssize "main/psssize.c")
+target_link_libraries(psssize ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_define_relative_file(psssize)
+
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
 	"main/grammer.c"

@@ -46,6 +46,13 @@ static void debug_ctx_atomic(const FklVMud *ud, FklVMgc *gc) {
 
 static int debug_ctx_finalizer(FklVMud *data) {
     FKL_DECL_UD_DATA(ud_ctx, DebugCtx, data);
+    if (ud_ctx->exit == 0) {
+        fprintf(stderr,
+                "[%s: %d] debug ctx should be exit manually before it be finalized\n",
+                __REL_FILE__,
+                __LINE__);
+        abort();
+    }
     uninitDebugCtx(ud_ctx);
     return FKL_VM_UD_FINALIZE_NOW;
 }
@@ -60,20 +67,6 @@ static FklVMudMetaTable DebugCtxUdMetaTable = {
 
 #define IS_DEBUG_CTX_UD(V)                                                     \
     (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &DebugCtxUdMetaTable)
-
-static void debug_ctx_atexit_mark(void *arg, FklVMgc *gc) {
-    fklVMgcToGray(arg, gc);
-}
-
-static void debug_ctx_atexit_func(FklVM *vm, void *arg) {
-    FklVMvalue *v = arg;
-    FKL_DECL_VM_UD_DATA(debug_ud, DebugCtx, v);
-    exitDebugCtx(debug_ud);
-}
-
-static void insert_debug_ctx_atexit(FklVM *vm, FklVMvalue *v) {
-    fklVMatExit(vm, debug_ctx_atexit_func, debug_ctx_atexit_mark, NULL, v);
-}
 
 static inline int is_string_list(const FklVMvalue *p) {
     for (; p != FKL_VM_NIL; p = FKL_VM_CDR(p))
@@ -105,7 +98,6 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
     fklZfree(valid_filename);
     if (r)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    insert_debug_ctx_atexit(exe, ud);
     FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
@@ -140,7 +132,7 @@ static int bdb_debug_ctx_exit(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, IS_DEBUG_CTX_UD, exe);
     FKL_DECL_VM_UD_DATA(debug_ud, DebugCtx, obj);
-    debug_ud->exit = 1;
+    exitDebugCtx(debug_ud);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -264,7 +256,6 @@ debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
         return args.ast;
     }
 
-    dctx->exit = 1;
     return FKL_VM_EOF;
 }
 

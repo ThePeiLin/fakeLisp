@@ -392,6 +392,8 @@ static inline void uninit_cmd_read_ctx(CmdReadCtx *ctx) {
 }
 
 void exitDebugCtx(DebugCtx *ctx) {
+    if (ctx->exit == 1)
+        return;
     uninitBreakpointTable(&ctx->bt);
     FklVMgc *gc = &ctx->gc;
     if (ctx->running && ctx->reached_thread) {
@@ -401,6 +403,7 @@ void exitDebugCtx(DebugCtx *ctx) {
         ctx->reached_thread = NULL;
     } else
         fklDestroyAllVMs(gc->main_thread);
+    ctx->exit = 1;
 }
 
 void uninitDebugCtx(DebugCtx *ctx) {

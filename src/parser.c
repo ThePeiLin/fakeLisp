@@ -19,7 +19,7 @@ FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
     fklUintVectorInit(&lineStack, 16);
     fklNastPushState0ToStack(&stateStack);
 
-    int err = 0;
+    FklParseError err = 0;
     size_t errLine = 0;
     FklGrammerMatchOuterCtx outerCtx =
             FKL_NAST_PARSE_OUTER_CTX_INIT(publicSymbolTable);
@@ -62,7 +62,7 @@ char *fklReadWithBuiltinParser(FILE *fp,
     size_t offset = 0;
     for (;;) {
         size_t restLen = buf.index - offset;
-        int err = 0;
+        FklParseError err = 0;
         ast = fklDefaultParseForCharBuf(buf.buf + offset,
                 restLen,
                 &restLen,
@@ -137,7 +137,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
     size_t offset = 0;
     for (;;) {
         size_t restLen = buf.index - offset;
-        int err = 0;
+        FklParseError err = 0;
         ast = fklParseWithTableForCharBuf2(g,
                 buf.buf + offset,
                 restLen,

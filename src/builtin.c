@@ -1685,7 +1685,7 @@ static int read_frame_step(void *d, FklVM *exe) {
     FklStringBuffer *s = &rctx->buf;
     FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
 
-    int err = 0;
+    FklParseError err = 0;
     size_t restLen = fklStringBufferLen(s) - pctx->offset;
     size_t errLine = 0;
 
@@ -2684,7 +2684,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         return 1;
     } else {
         FklString *ss = FKL_VM_STR(str);
-        int err = 0;
+        FklParseError err = 0;
         size_t errorLine = 0;
         FklAnalysisSymbolVector symbolStack;
         FklParseStateVector stateStack;

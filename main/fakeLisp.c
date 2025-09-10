@@ -1066,7 +1066,7 @@ static int read_expression_end_cb(const char *str,
 
     FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(gc->st);
 
-    int err = 0;
+    FklParseError err = 0;
     size_t restLen = str_len - cc->offset;
 
     FKL_VM_ACQUIRE_ST_BLOCK(gc, flag) {
@@ -1487,7 +1487,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
     const char *eval_expression_str = fklStringBufferBody(&ctx->c->buf);
     size_t restLen = fklStringBufferLen(&ctx->c->buf);
-    int err = 0;
+    FklParseError err = 0;
     size_t errLine = 0;
     FklGrammer *g = *(codegen->g);
 

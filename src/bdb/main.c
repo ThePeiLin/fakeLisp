@@ -177,7 +177,7 @@ static int read_expression_end_cb(const char *str,
 
     size_t restLen = str_len - args->offset;
     size_t errLine = 0;
-    int err = 0;
+    FklParseError err = 0;
 
     int end = 0;
     FKL_VM_LOCK_BLOCK(exe, flag) {

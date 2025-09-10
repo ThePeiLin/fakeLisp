@@ -618,18 +618,25 @@ void fklPrintGrammerProduction(FILE *fp,
         const FklRegexTable *rt);
 void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st);
 
+typedef enum {
+    FKL_PARSE_TERMINAL_MATCH_FAILED = 1,
+    FKL_PARSE_REDUCE_FAILED = 2,
+    FKL_PARSE_WAITING_FOR_MORE = 3,
+} FklParseError;
+
 void *fklParseWithTableForCstr(const FklGrammer *,
         const char *str,
         FklGrammerMatchOuterCtx *,
         FklSymbolTable *st,
-        int *err);
+        FklParseError *err);
 
 void *fklParseWithTableForCharBuf(const FklGrammer *,
         const char *str,
         size_t len,
         FklGrammerMatchOuterCtx *,
         FklSymbolTable *st,
-        int *err);
+        FklParseError *err);
+
 struct FklParseStateVector;
 
 // FklAnalysisSymbolVector
@@ -669,19 +676,15 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *,
         size_t *restLen,
         FklGrammerMatchOuterCtx *,
         FklSymbolTable *st,
-        int *err,
+        FklParseError *err,
         size_t *errLine,
         struct FklAnalysisSymbolVector *symbols,
         FklUintVector *lines,
         FklParseStateVector *states);
 
-#define FKL_PARSE_TERMINAL_MATCH_FAILED (1)
-#define FKL_PARSE_REDUCE_FAILED (2)
-#define FKL_PARSE_WAITING_FOR_MORE (3)
-
 void *fklDefaultParseForCstr(const char *str,
         FklGrammerMatchOuterCtx *,
-        int *err,
+        FklParseError *err,
         size_t *errLine,
         FklAnalysisSymbolVector *symbols,
         FklUintVector *lines,
@@ -691,7 +694,7 @@ void *fklDefaultParseForCharBuf(const char *str,
         size_t len,
         size_t *restLen,
         FklGrammerMatchOuterCtx *,
-        int *err,
+        FklParseError *err,
         size_t *errLine,
         FklAnalysisSymbolVector *symbols,
         FklUintVector *lines,

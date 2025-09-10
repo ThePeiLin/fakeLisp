@@ -41,7 +41,7 @@ int main() {
         // clang-format on
     };
 
-    int retval = 0;
+    FklParseError retval = 0;
     for (const char **exp = &exps[0]; *exp; exp++) {
         FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(st);
 

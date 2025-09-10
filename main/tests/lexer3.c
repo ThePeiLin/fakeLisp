@@ -74,6 +74,19 @@ static const char test_ignore_grammer_rules[] = //
         // "other -> ?dint \n"
         "";
 
+static const char test_ignore_grammer_rules1[] = //
+        ""
+        "start      -> symbol                   => test \n"
+        "           -> list                     => test \n"
+        "symbol     -> \"#:\"                   => test \n"
+        "           -> ?symbol[\"|\"]           => test \n"
+        "           -> \"#:\" .. ?symbol[\"|\"] => test \n"
+        "list       -> \"(\" list-items \")\"   => test \n"
+        "list-items -> start list-items         => test \n"
+        "           ->                          => test \n"
+        "?e -> /\\s+/; \n"
+        "";
+
 static inline const FklGrammerBuiltinAction *
 test_prod_action_resolver(void *ctx, const char *str, size_t len) {
     static FklGrammerBuiltinAction action = { "test", NULL };
@@ -128,6 +141,8 @@ int main(int argc, const char *argv[]) {
         g = fklCreateBuiltinGrammer(st);
     else if (!strcmp(grammer_select, "ignore"))
         g = create_grammer_with_cstr(st, test_ignore_grammer_rules);
+    else if (!strcmp(grammer_select, "ignore1"))
+        g = create_grammer_with_cstr(st, test_ignore_grammer_rules1);
     else {
         fklDestroySymbolTable(st);
         fprintf(stderr, "invalid selection\n");

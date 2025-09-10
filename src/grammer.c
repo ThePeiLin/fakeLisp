@@ -2221,8 +2221,7 @@ static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
                     '|');
             fklStringBufferPutc(buf, ')');
         } else {
-            fklStringBufferPrintf(buf,
-                    fklGetSymbolWithId(u->nt.sid, st)->str);
+            fklStringBufferPrintf(buf, fklGetSymbolWithId(u->nt.sid, st)->str);
         }
         break;
     case FKL_TERM_IGNORE:
@@ -4705,7 +4704,7 @@ void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
 
 void *fklDefaultParseForCstr(const char *cstr,
         FklGrammerMatchOuterCtx *ctx,
-        int *err,
+        FklParseError *err,
         uint64_t *errLine,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
@@ -4726,7 +4725,7 @@ void *fklDefaultParseForCharBuf(const char *cstr,
         size_t len,
         size_t *restLen,
         FklGrammerMatchOuterCtx *ctx,
-        int *err,
+        FklParseError *err,
         uint64_t *errLine,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
@@ -4951,7 +4950,7 @@ void *fklParseWithTableForCstr(const FklGrammer *g,
         const char *cstr,
         FklGrammerMatchOuterCtx *ctx,
         FklSymbolTable *st,
-        int *err) {
+        FklParseError *err) {
     return fklParseWithTableForCharBuf(g, cstr, strlen(cstr), ctx, st, err);
 }
 
@@ -4960,7 +4959,7 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g,
         size_t restLen,
         FklGrammerMatchOuterCtx *ctx,
         FklSymbolTable *st,
-        int *err) {
+        FklParseError *err) {
     const FklAnalysisTable *t = &g->aTable;
     size_t errLine = 0;
     FklAnalysisSymbolVector symbolStack;

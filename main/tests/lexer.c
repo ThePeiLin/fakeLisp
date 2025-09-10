@@ -621,7 +621,7 @@ int main() {
         NULL,
     };
 
-    int retval = 0;
+    FklParseError retval = 0;
     FklGrammerMatchOuterCtx outerCtx = {
         .maxNonterminalLen = 0,
         .line = 1,

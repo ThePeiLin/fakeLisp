@@ -69,7 +69,7 @@ int main() {
     fklUninitStringBuffer(&err_msg);
     fputs("\nparse with custom parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
-        int err = 0;
+        FklParseError err = 0;
         FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(&st);
         FklNastNode *node =
                 fklParseWithTableForCstr(g, *pexp, &outerCtx, &st, &err);
